@@ -158,7 +158,7 @@ icon_data_poolFolder="${icon_data_rootFolder:-/pool/data/ICON}/grids/public/mpim
 #
 #
 # domain globe
-grid_id=0013
+grid_id=0043
 grids_folder=${icon_data_poolFolder}/${grid_id}
 grid_refinement=R02B04
 grid_label=G
@@ -387,6 +387,7 @@ cat > ${jsbach_namelist} << EOF
  usecase             = "${jsbach_usecase}"
  use_lakes           = ${llake}
  fract_filename      = 'bc_land_frac.nc'
+ enforce_water_budget = .FALSE.        ! True: stop in case of water conservation problem
 /
 &jsb_seb_nml
  bc_filename         = 'bc_land_phys.nc'
@@ -414,6 +415,8 @@ cat > ${jsbach_namelist} << EOF
   ic_filename          = 'ic_land_soil.nc'
 /
 &jsb_hydro_nml
+ l_organic           = .FALSE.
+ l_socmap            = .FALSE.
  bc_filename         = 'bc_land_soil.nc'
  ic_filename         = 'ic_land_soil.nc'
  bc_sso_filename     = 'bc_land_sso.nc'
@@ -471,17 +474,17 @@ add_required_file ${basedir}/run/${dict_file}                             ./
 
 # initial and boundary conditions
 # 
-datadir=${atmo_data_InputFolder}/initial_condition/r0002
+datadir=${atmo_data_InputFolder}/initial_condition/r0001
 add_link_file $datadir/ifs2icon_1979010100_R02B04_G.nc                    ./ifs2icon.nc
 #
-datadir=${atmo_data_InputFolder}/ozone/r0002
+datadir=${atmo_data_InputFolder}/ozone/r0001
 add_link_file $datadir/bc_ozone_historical_2014.nc                        ./bc_ozone.nc
 # 
-datadir=${atmo_data_InputFolder}/sst_and_seaice/r0002
+datadir=${atmo_data_InputFolder}/sst_and_seaice/r0001
 add_link_file $datadir/bc_sic_1979_2016.nc                                ./bc_sic.nc
 add_link_file $datadir/bc_sst_1979_2016.nc                                ./bc_sst.nc
 #
-datadir=${atmo_data_InputFolder}/aerosol_kinne/r0002
+datadir=${atmo_data_InputFolder}/aerosol_kinne/r0001
 add_link_file $datadir/bc_aeropt_kinne_lw_b16_coa.nc                      ./
 add_link_file $datadir/bc_aeropt_kinne_sw_b14_coa.nc                      ./
 add_link_file $datadir/bc_aeropt_kinne_sw_b14_fin_2014.nc                 ./bc_aeropt_kinne_sw_b14_fin.nc
@@ -495,13 +498,13 @@ add_link_file ${datadir}/swflux_14band_cmip6_1850-2299-v3.2.nc             ./bc_
 #
 # - land parameters
 #
-datadir=${atmo_data_InputFolder}/land/r0008
+datadir=${atmo_data_InputFolder}/land/r0004
 #
-add_link_file ${datadir}/ic_land_soil_1992.nc                              ./ic_land_soil.nc
-add_link_file ${datadir}/bc_land_soil_1992.nc                              ./bc_land_soil.nc
-add_link_file ${datadir}/bc_land_frac_${pft_file_tag}1992.nc               ./bc_land_frac.nc
-add_link_file ${datadir}/bc_land_phys_1992.nc                              ./bc_land_phys.nc
-add_link_file ${datadir}/bc_land_sso_1992.nc                               ./bc_land_sso.nc
+add_link_file ${datadir}/ic_land_soil_1979.nc                              ./ic_land_soil.nc
+add_link_file ${datadir}/bc_land_soil_1979.nc                              ./bc_land_soil.nc
+add_link_file ${datadir}/bc_land_frac_${pft_file_tag}1979.nc               ./bc_land_frac.nc
+add_link_file ${datadir}/bc_land_phys_1979.nc                              ./bc_land_phys.nc
+add_link_file ${datadir}/bc_land_sso_1979.nc                               ./bc_land_sso.nc
 #
 # - lctlib file for JSBACH
 add_link_file ${basedir}/externals/jsbach/data/lctlib_nlct21.def          ./lctlib_nlct21.def

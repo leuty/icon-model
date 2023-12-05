@@ -294,6 +294,7 @@ cat > ${jsbach_namelist} << EOF
  ic_filename         = 'ic_land_soil.nc'
 /
 &jsb_hydro_nml
+ l_socmap            = .FALSE.
  bc_filename         = 'bc_land_soil.nc'
  ic_filename         = 'ic_land_soil.nc'
  bc_sso_filename     = 'bc_land_sso.nc'

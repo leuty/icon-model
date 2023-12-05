@@ -1149,9 +1149,9 @@ if [[ "$output_lnd" == "yes" ]]; then
  output_interval  = "${output_interval}"
  file_interval    = "${file_interval}"
  include_last     = .FALSE.
- ml_varlist       = 'pheno_lai_box'         , 'pheno_fract_fpc_veg'         , 'hydro_fract_water_box' ,
-                    'hydro_fract_snow_box'  , 'hydro_w_skin_box'            , 'hydro_w_snow_box'      ,
-                    'hydro_w_soil_column_box'
+ ml_varlist       = 'pheno_lai_box'         , 'pheno_fract_fpc_veg' , 'hydro_fract_wet_box' ,
+                    'hydro_fract_snow_box'  , 'hydro_wtr_skin_box'  , 'hydro_weq_snow_box'  ,
+                    'hydro_wtr_rootzone_box'
 /
 &output_nml
  output_filename  = "${EXPNAME}_lnd_max1TS"
@@ -1164,9 +1164,9 @@ if [[ "$output_lnd" == "yes" ]]; then
  output_interval  = "${max1TS}"
  file_interval    = "${file_interval}"
  include_last     = .FALSE.
- ml_varlist       = 'pheno_lai_box'         , 'pheno_fract_fpc_veg'         , 'hydro_fract_water_box' ,
-                    'hydro_fract_snow_box'  , 'hydro_w_skin_box'            , 'hydro_w_snow_box'      ,
-                    'hydro_w_soil_column_box'
+ ml_varlist       = 'pheno_lai_box'         , 'pheno_fract_fpc_veg' , 'hydro_fract_wet_box' ,
+                    'hydro_fract_snow_box'  , 'hydro_wtr_skin_box'  , 'hydro_weq_snow_box'  ,
+                    'hydro_wtr_rootzone_box'
 /
 &output_nml
  output_filename  = "${EXPNAME}_lnd_max2TS"
@@ -1179,9 +1179,9 @@ if [[ "$output_lnd" == "yes" ]]; then
  output_interval  = "${max2TS}"
  file_interval    = "${file_interval}"
  include_last     = .FALSE.
- ml_varlist       = 'pheno_lai_box'         , 'pheno_fract_fpc_veg'         , 'hydro_fract_water_box' ,
-                    'hydro_fract_snow_box'  , 'hydro_w_skin_box'            , 'hydro_w_snow_box'      ,
-                    'hydro_w_soil_column_box'
+ ml_varlist       = 'pheno_lai_box'         , 'pheno_fract_fpc_veg' , 'hydro_fract_wet_box' ,
+                    'hydro_fract_snow_box'  , 'hydro_wtr_skin_box'  , 'hydro_weq_snow_box'  ,
+                    'hydro_wtr_rootzone_box'
 /
 &output_nml
  output_filename  = "${EXPNAME}_lnd_max3TS"
@@ -1194,9 +1194,9 @@ if [[ "$output_lnd" == "yes" ]]; then
  output_interval  = "${max3TS}"
  file_interval    = "${file_interval}"
  include_last     = .FALSE.
- ml_varlist       = 'pheno_lai_box'         , 'pheno_fract_fpc_veg'         , 'hydro_fract_water_box' ,
-                    'hydro_fract_snow_box'  , 'hydro_w_skin_box'            , 'hydro_w_snow_box'      ,
-                    'hydro_w_soil_column_box'
+ ml_varlist       = 'pheno_lai_box'         , 'pheno_fract_fpc_veg' , 'hydro_fract_wet_box' ,
+                    'hydro_fract_snow_box'  , 'hydro_wtr_skin_box'  , 'hydro_weq_snow_box'  ,
+                    'hydro_wtr_rootzone_box'
 /
 &output_nml
  output_filename  = "${EXPNAME}_lnd_max4TS"
@@ -1209,9 +1209,9 @@ if [[ "$output_lnd" == "yes" ]]; then
  output_interval  = "${max4TS}"
  file_interval    = "${file_interval}"
  include_last     = .FALSE.
- ml_varlist       = 'pheno_lai_box'         , 'pheno_fract_fpc_veg'         , 'hydro_fract_water_box' ,
-                    'hydro_fract_snow_box'  , 'hydro_w_skin_box'            , 'hydro_w_snow_box'      ,
-                    'hydro_w_soil_column_box'
+ ml_varlist       = 'pheno_lai_box'         , 'pheno_fract_fpc_veg' , 'hydro_fract_wet_box' ,
+                    'hydro_fract_snow_box'  , 'hydro_wtr_skin_box'  , 'hydro_weq_snow_box'  ,
+                    'hydro_wtr_rootzone_box'
 /
 &output_nml
  output_filename  = "${EXPNAME}_lnd_mean1TS"
@@ -1224,9 +1224,9 @@ if [[ "$output_lnd" == "yes" ]]; then
  output_interval  = "${mean1TS}"
  file_interval    = "${file_interval}"
  include_last     = .FALSE.
- ml_varlist       = 'pheno_lai_box'         , 'pheno_fract_fpc_veg'         , 'hydro_fract_water_box' ,
-                    'hydro_fract_snow_box'  , 'hydro_w_skin_box'            , 'hydro_w_snow_box'      ,
-                    'hydro_w_soil_column_box'
+ ml_varlist       = 'pheno_lai_box'         , 'pheno_fract_fpc_veg' , 'hydro_fract_wet_box' ,
+                    'hydro_fract_snow_box'  , 'hydro_wtr_skin_box'  , 'hydro_weq_snow_box'  ,
+                    'hydro_wtr_rootzone_box'
 /
 &output_nml
  output_filename  = "${EXPNAME}_lnd_mean2TS"
@@ -1239,9 +1239,9 @@ if [[ "$output_lnd" == "yes" ]]; then
  output_interval  = "${mean2TS}"
  file_interval    = "${file_interval}"
  include_last     = .FALSE.
- ml_varlist       = 'pheno_lai_box'         , 'pheno_fract_fpc_veg'         , 'hydro_fract_water_box' ,
-                    'hydro_fract_snow_box'  , 'hydro_w_skin_box'            , 'hydro_w_snow_box'      ,
-                    'hydro_w_soil_column_box'
+ ml_varlist       = 'pheno_lai_box'         , 'pheno_fract_fpc_veg' , 'hydro_fract_wet_box' ,
+                    'hydro_fract_snow_box'  , 'hydro_wtr_skin_box'  , 'hydro_weq_snow_box'  ,
+                    'hydro_wtr_rootzone_box'
 /
 &output_nml
  output_filename  = "${EXPNAME}_lnd_mean3TS"
@@ -1254,9 +1254,9 @@ if [[ "$output_lnd" == "yes" ]]; then
  output_interval  = "${mean3TS}"
  file_interval    = "${file_interval}"
  include_last     = .FALSE.
- ml_varlist       = 'pheno_lai_box'         , 'pheno_fract_fpc_veg'         , 'hydro_fract_water_box' ,
-                    'hydro_fract_snow_box'  , 'hydro_w_skin_box'            , 'hydro_w_snow_box'      ,
-                    'hydro_w_soil_column_box'
+ ml_varlist       = 'pheno_lai_box'         , 'pheno_fract_fpc_veg' , 'hydro_fract_wet_box' ,
+                    'hydro_fract_snow_box'  , 'hydro_wtr_skin_box'  , 'hydro_weq_snow_box'  ,
+                    'hydro_wtr_rootzone_box'
 /
 &output_nml
  output_filename  = "${EXPNAME}_lnd_mean4TS"
@@ -1269,9 +1269,9 @@ if [[ "$output_lnd" == "yes" ]]; then
  output_interval  = "${mean4TS}"
  file_interval    = "${file_interval}"
  include_last     = .FALSE.
- ml_varlist       = 'pheno_lai_box'         , 'pheno_fract_fpc_veg'         , 'hydro_fract_water_box' ,
-                    'hydro_fract_snow_box'  , 'hydro_w_skin_box'            , 'hydro_w_snow_box'      ,
-                    'hydro_w_soil_column_box'
+ ml_varlist       = 'pheno_lai_box'         , 'pheno_fract_fpc_veg' , 'hydro_fract_wet_box' ,
+                    'hydro_fract_snow_box'  , 'hydro_wtr_skin_box'  , 'hydro_weq_snow_box'  ,
+                    'hydro_wtr_rootzone_box'
 /
 &output_nml
  output_filename  = "${EXPNAME}_lnd_min1TS"
@@ -1284,9 +1284,9 @@ if [[ "$output_lnd" == "yes" ]]; then
  output_interval  = "${min1TS}"
  file_interval    = "${file_interval}"
  include_last     = .FALSE.
- ml_varlist       = 'pheno_lai_box'         , 'pheno_fract_fpc_veg'         , 'hydro_fract_water_box' ,
-                    'hydro_fract_snow_box'  , 'hydro_w_skin_box'            , 'hydro_w_snow_box'      ,
-                    'hydro_w_soil_column_box'
+ ml_varlist       = 'pheno_lai_box'         , 'pheno_fract_fpc_veg' , 'hydro_fract_wet_box' ,
+                    'hydro_fract_snow_box'  , 'hydro_wtr_skin_box'  , 'hydro_weq_snow_box'  ,
+                    'hydro_wtr_rootzone_box'
 /
 &output_nml
  output_filename  = "${EXPNAME}_lnd_min2TS"
@@ -1299,9 +1299,9 @@ if [[ "$output_lnd" == "yes" ]]; then
  output_interval  = "${min2TS}"
  file_interval    = "${file_interval}"
  include_last     = .FALSE.
- ml_varlist       = 'pheno_lai_box'         , 'pheno_fract_fpc_veg'         , 'hydro_fract_water_box' ,
-                    'hydro_fract_snow_box'  , 'hydro_w_skin_box'            , 'hydro_w_snow_box'      ,
-                    'hydro_w_soil_column_box'
+ ml_varlist       = 'pheno_lai_box'         , 'pheno_fract_fpc_veg' , 'hydro_fract_wet_box' ,
+                    'hydro_fract_snow_box'  , 'hydro_wtr_skin_box'  , 'hydro_weq_snow_box'  ,
+                    'hydro_wtr_rootzone_box'
 /
 &output_nml
  output_filename  = "${EXPNAME}_lnd_min3TS"
@@ -1314,9 +1314,9 @@ if [[ "$output_lnd" == "yes" ]]; then
  output_interval  = "${min3TS}"
  file_interval    = "${file_interval}"
  include_last     = .FALSE.
- ml_varlist       = 'pheno_lai_box'         , 'pheno_fract_fpc_veg'         , 'hydro_fract_water_box' ,
-                    'hydro_fract_snow_box'  , 'hydro_w_skin_box'            , 'hydro_w_snow_box'      ,
-                    'hydro_w_soil_column_box'
+ ml_varlist       = 'pheno_lai_box'         , 'pheno_fract_fpc_veg' , 'hydro_fract_wet_box' ,
+                    'hydro_fract_snow_box'  , 'hydro_wtr_skin_box'  , 'hydro_weq_snow_box'  ,
+                    'hydro_wtr_rootzone_box'
 /
 &output_nml
  output_filename  = "${EXPNAME}_lnd_min4TS"
@@ -1329,9 +1329,9 @@ if [[ "$output_lnd" == "yes" ]]; then
  output_interval  = "${min4TS}"
  file_interval    = "${file_interval}"
  include_last     = .FALSE.
- ml_varlist       = 'pheno_lai_box'         , 'pheno_fract_fpc_veg'         , 'hydro_fract_water_box' ,
-                    'hydro_fract_snow_box'  , 'hydro_w_skin_box'            , 'hydro_w_snow_box'      ,
-                    'hydro_w_soil_column_box'
+ ml_varlist       = 'pheno_lai_box'         , 'pheno_fract_fpc_veg' , 'hydro_fract_wet_box' ,
+                    'hydro_fract_snow_box'  , 'hydro_wtr_skin_box'  , 'hydro_weq_snow_box'  ,
+                    'hydro_wtr_rootzone_box'
 /
 &output_nml
  output_filename  = "${EXPNAME}_lnd_square1TS"
@@ -1344,9 +1344,9 @@ if [[ "$output_lnd" == "yes" ]]; then
  output_interval  = "${square1TS}"
  file_interval    = "${file_interval}"
  include_last     = .FALSE.
- ml_varlist       = 'pheno_lai_box'         , 'pheno_fract_fpc_veg'         , 'hydro_fract_water_box' ,
-                    'hydro_fract_snow_box'  , 'hydro_w_skin_box'            , 'hydro_w_snow_box'      ,
-                    'hydro_w_soil_column_box'
+ ml_varlist       = 'pheno_lai_box'         , 'pheno_fract_fpc_veg' , 'hydro_fract_wet_box' ,
+                    'hydro_fract_snow_box'  , 'hydro_wtr_skin_box'  , 'hydro_weq_snow_box'  ,
+                    'hydro_wtr_rootzone_box'
 /
 &output_nml
  output_filename  = "${EXPNAME}_lnd_square2TS"
@@ -1359,9 +1359,9 @@ if [[ "$output_lnd" == "yes" ]]; then
  output_interval  = "${square2TS}"
  file_interval    = "${file_interval}"
  include_last     = .FALSE.
- ml_varlist       = 'pheno_lai_box'         , 'pheno_fract_fpc_veg'         , 'hydro_fract_water_box' ,
-                    'hydro_fract_snow_box'  , 'hydro_w_skin_box'            , 'hydro_w_snow_box'      ,
-                    'hydro_w_soil_column_box'
+ ml_varlist       = 'pheno_lai_box'         , 'pheno_fract_fpc_veg' , 'hydro_fract_wet_box' ,
+                    'hydro_fract_snow_box'  , 'hydro_wtr_skin_box'  , 'hydro_weq_snow_box'  ,
+                    'hydro_wtr_rootzone_box'
 /
 &output_nml
  output_filename  = "${EXPNAME}_lnd_square3TS"
@@ -1374,9 +1374,9 @@ if [[ "$output_lnd" == "yes" ]]; then
  output_interval  = "${square3TS}"
  file_interval    = "${file_interval}"
  include_last     = .FALSE.
- ml_varlist       = 'pheno_lai_box'         , 'pheno_fract_fpc_veg'         , 'hydro_fract_water_box' ,
-                    'hydro_fract_snow_box'  , 'hydro_w_skin_box'            , 'hydro_w_snow_box'      ,
-                    'hydro_w_soil_column_box'
+ ml_varlist       = 'pheno_lai_box'         , 'pheno_fract_fpc_veg' , 'hydro_fract_wet_box' ,
+                    'hydro_fract_snow_box'  , 'hydro_wtr_skin_box'  , 'hydro_weq_snow_box'  ,
+                    'hydro_wtr_rootzone_box'
 /
 &output_nml
  output_filename  = "${EXPNAME}_lnd_square4TS"
@@ -1389,9 +1389,9 @@ if [[ "$output_lnd" == "yes" ]]; then
  output_interval  = "${square4TS}"
  file_interval    = "${file_interval}"
  include_last     = .FALSE.
- ml_varlist       = 'pheno_lai_box'         , 'pheno_fract_fpc_veg'         , 'hydro_fract_water_box' ,
-                    'hydro_fract_snow_box'  , 'hydro_w_skin_box'            , 'hydro_w_snow_box'      ,
-                    'hydro_w_soil_column_box'
+ ml_varlist       = 'pheno_lai_box'         , 'pheno_fract_fpc_veg' , 'hydro_fract_wet_box' ,
+                    'hydro_fract_snow_box'  , 'hydro_wtr_skin_box'  , 'hydro_weq_snow_box'  ,
+                    'hydro_wtr_rootzone_box'
 /
 EOF
 fi
