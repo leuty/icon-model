@@ -380,7 +380,7 @@ add_link_file $datadir/greenhouse_gases/greenhouse_ssp245.nc              ./bc_g
 datadir=${icon_data_poolFolder}/independent/solar_radiation/3.2
 add_link_file $datadir/swflux_14band_cmip6_1850-2299-v3.2.nc              ./bc_solar_irradiance_sw_b14.nc
 #
-datadir=${icon_data_poolFolder}/${grid_id}/land/r0001
+datadir=${icon_data_poolFolder}/${grid_id}/land/r0002
 add_link_file $datadir/ic_land_soil_2015.nc                               ./ic_land_soil.nc
 add_link_file $datadir/bc_land_frac_2015.nc                               ./bc_land_frac.nc
 add_link_file $datadir/bc_land_phys_2015.nc                               ./bc_land_phys.nc
