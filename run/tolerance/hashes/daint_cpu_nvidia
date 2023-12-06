@@ -4,7 +4,7 @@
 icon_data_rootFolder: /users/icontest/pool/data/ICON
 builder: daint_cpu_nvidia
 # The list below maps each experiment to its current experiment_hash
-"atm_qubicc_nc_test": 11e3ac138860e08275233d52db377a04de80b8e6
+"atm_qubicc_nc_test": 022fe3a7eb35fe8b3665b603c18bbfe91810d70d
 "exclaim_ape_R02B04": 7ecde7255cadb3b9fffdf6056de18f0aeb31c4a2
 "mch_bench_r19b07_dev_sppt": a8678270670cb0b64d9d47003762f7a01b29695a
 "mch_ch_lowres": 9c9eddbabda069aff05fefa8911dd92ea3493a12

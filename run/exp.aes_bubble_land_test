@@ -42,7 +42,7 @@ num_columns=20 # Number of columns in y-direction
 #
 atmo_dyn_grids="'${grid_name}.nc',"
 
-modelTimeStep="PT30S"
+modelTimeStep="PT20S"
 radiationTimeStep="PT2M"
 
 # start and end date+time
@@ -222,6 +222,7 @@ cat > ${jsbach_namelist} << EOF
   use_lakes               = .FALSE.
   use_glacier             = .FALSE.
   fract_filename          = 'bc_land_frac.nc'
+  enforce_water_budget    = .TRUE.      ! True: stop in case of water conservation problem
 /
 &jsb_seb_nml
   bc_filename             = 'bc_land_phys.nc'
@@ -424,9 +425,9 @@ if [[ "$output_lnd" == "yes" ]]; then
  output_interval  = "${output_interval_2d}"
  file_interval    = "${file_interval_2d}"
  include_last     = .FALSE.
- ml_varlist       = 'pheno_lai_box'         , 'pheno_fract_fpc_veg'         , 'hydro_fract_water_box' ,
-                    'hydro_fract_snow_box'  , 'hydro_w_skin_box'            , 'hydro_w_snow_box'      ,
-                    'hydro_w_soil_column_box'
+ ml_varlist       = 'pheno_lai_box'         , 'pheno_fract_fpc_veg'         , 'hydro_fract_wet_box' ,
+                    'hydro_fract_snow_box'  , 'hydro_wtr_skin_box'          , 'hydro_weq_snow_box'  ,
+                    'hydro_wtr_rootzone_box'
 /
 EOF
 fi

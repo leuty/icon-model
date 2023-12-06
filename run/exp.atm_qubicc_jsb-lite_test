@@ -51,7 +51,6 @@ author_list='Marco Giorgetta, MPIM'
 #
 # - nproma_sub           = radiation blocking length, <= nproma
 #                          --> nproma_sub
-#
 #--------------------------------------------------------------------------------------------------
 #
 # Variables provided by the header section (->create_target_header) of the full runscript
@@ -97,7 +96,7 @@ checkpoint_interval=PT2M
    restart_interval=PT4M
 
 # output intervals
-first_output_date=1979-01-01T00:00:40Z
+first_output_date=1979-01-01T00:00:00Z
 last__output_date=1979-01-01T00:04:00Z
 atm_output_interval=PT40S
   atm_file_interval=PT40S
@@ -111,10 +110,10 @@ output_format=${netcdf_format}
 # - files are produced for every output date for single variables or variable groups, as specified
 # - the amount of variables depends on the model configuration
 output_atm_vgrid=on         # 1 file/variable             , start date
-output_atm_state_3d_ini=on  # 1 file/variable             , start_date
-output_atm_state_3d_sim=on  # 1 file/variable/date        , first_output_date to last__output_date
+output_atm_state_3d_ini=off # 1 file/variable             , start_date
+output_atm_state_3d_sim=off # 1 file/variable/date        , first_output_date to last__output_date
 output_atm_state_2d_sim=on  # 1 file/(variable group)/date, first_output_date to last__output_date
-output_atm_tend_3d=on       # 1 file/variable/date        , first_output_date to last__output_date
+output_atm_tend_3d=off      # 1 file/variable/date        , first_output_date to last__output_date
 output_atm_flux_2d=on       # 1 file/(variable group)/date, first_output_date to last__output_date
 
 #--------------------------------------------------------------------------------------------------
@@ -146,7 +145,6 @@ dt_vdf=${dt_atm}    # as above
 dt_mig=${dt_atm}    # as above
 #
 run_jsbach=yes      # yes,true: on, else: off
-jsbach_with_lakes=true # true/false
 #
 fi # ${iforcing}
 
@@ -216,9 +214,6 @@ cat >> ${atmo_namelist} << EOF
  thhgtd_zdiffu      = 125.
  htop_moist_proc    = ${htop_cloudy}
 /
-&dynamics_nml
- lmoist_thdyn   = .TRUE.
-/
 &diffusion_nml
  hdiff_order        = 5
  hdiff_efdt_ratio   = 24.0        ! change from default 36.0 to 24.0
@@ -269,7 +264,7 @@ cat >> ${atmo_namelist} << EOF
  aes_phy_config(1)%lamip      = .TRUE.
  aes_phy_config(1)%lice       = .TRUE.
  aes_phy_config(1)%lmlo       = .FALSE.
- aes_phy_config(1)%llake      = .${jsbach_with_lakes}.
+ aes_phy_config(1)%llake      = .TRUE.
 !
 ! top height for cloud processes
  aes_phy_config(1)%zmaxcloudy = ${htop_cloudy}
@@ -343,15 +338,16 @@ fi # ${dt_mig}
 # land surface and soil
 # ---------------------
 if [ ${run_jsbach} = yes ]; then
+  output_tiles="'veg','glac','land','lake','box'"
 #
 jsbach_namelist=NAMELIST_${EXPNAME}_lnd # also used in exec.iconrun
 #
 cat > ${jsbach_namelist} << EOF
 &jsb_model_nml
   usecase                 = 'jsbach_lite'
-  use_lakes               = .${jsbach_with_lakes}.
+  use_lakes               = .TRUE.
   fract_filename          = 'bc_land_frac.nc'
-  enforce_water_budget    = .TRUE.      ! True: stop in case of water conservation problem
+  output_tiles            = ${output_tiles}
 /
 &jsb_seb_nml
   bc_filename             = 'bc_land_phys.nc'
@@ -365,7 +361,6 @@ cat > ${jsbach_namelist} << EOF
 &jsb_turb_nml
   bc_filename             = 'bc_land_phys.nc'
   ic_filename             = 'ic_land_soil.nc'
-  max_ini_rough_m         = -1.0 ! > 0: limit for roughness length from initial file
 /
 &jsb_sse_nml
   l_heat_cap_map          = .FALSE.
@@ -687,13 +682,13 @@ cat >> ${atmo_namelist} << EOF
  ready_file       = '${EXPNAME}_atm2d_ml_<datetime2>.ready'
  filetype         = ${output_format}
  remap            = 0
- output_grid      = .FALSE.
+ output_grid      = .TRUE. 
  output_start     = '${first_output_date}'
  output_end       = '${last__output_date}'
  output_interval  = '${atm_output_interval}'
  file_interval    = '${atm_file_interval}'
  include_last     = .FALSE.
- ml_varlist       = ${varlist}
+ ml_varlist       = ${varlist}, 'group:jsb_all_basic', 'group:jsb_a2l_all'
 /
 EOF
 fi # varlist
@@ -804,7 +799,7 @@ cat >> ${atmo_namelist} << EOF
  filetype         = ${output_format}
  remap            = 0
  operation        = 'mean'
- output_grid      = .FALSE.
+ output_grid      = .TRUE. 
  output_start     = '${first_output_date}'
  output_end       = '${last__output_date}'
  output_interval  = '${atm_output_interval}'

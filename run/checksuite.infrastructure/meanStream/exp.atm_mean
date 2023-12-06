@@ -236,6 +236,7 @@ cat > ${jsbach_namelist} << EOF
   ic_filename     = 'ic_land_soil.nc'
 /
 &jsb_hydro_nml
+  l_socmap        = .FALSE.
   bc_filename     = 'bc_land_soil.nc'
   ic_filename     = 'ic_land_soil.nc'
   bc_sso_filename = 'bc_land_sso.nc'
@@ -766,8 +767,8 @@ if [[ "$output_lnd" == "min" ]]; then
                     'rad_alb_vis_box'       , 'rad_alb_nir_box'             ,
                     'rad_rad_srf_net_box'   , 'rad_lw_srf_net_box'          , 'rad_sw_srf_net_box'     ,
                     'seb_latent_hflx_box'   , 'seb_sensible_hflx_box'       , 'pheno_lai_box'          ,
-                    'hydro_q_snocpymlt_box' , 'hydro_w_skin_box'            , 'hydro_w_snow_box'       ,
-                    'hydro_snowmelt_box'    , 'hydro_evapotrans_box', 'hydro_w_soil_column_box'
+                    'hydro_q_snocpymlt_box' , 'hydro_wtr_skin_box'          , 'hydro_weq_snow_box'     ,
+                    'hydro_snowmelt_box'    , 'hydro_evapotrans_box'        , 'hydro_wtr_rootzone_box'
 /
 &output_nml
  output_filename  = "${EXPNAME}_lnd_mean1TS"
@@ -787,8 +788,8 @@ if [[ "$output_lnd" == "min" ]]; then
                     'rad_alb_vis_box'       , 'rad_alb_nir_box'             ,
                     'rad_rad_srf_net_box'   , 'rad_lw_srf_net_box'          , 'rad_sw_srf_net_box'     ,
                     'seb_latent_hflx_box'   , 'seb_sensible_hflx_box'       , 'pheno_lai_box'          ,
-                    'hydro_q_snocpymlt_box' , 'hydro_w_skin_box'            , 'hydro_w_snow_box'       ,
-                    'hydro_snowmelt_box'    , 'hydro_evapotrans_box', 'hydro_w_soil_column_box'
+                    'hydro_q_snocpymlt_box' , 'hydro_wtr_skin_box'          , 'hydro_weq_snow_box'     ,
+                    'hydro_snowmelt_box'    , 'hydro_evapotrans_box'        , 'hydro_wtr_rootzone_box'
 /
 &output_nml
  output_filename  = "${EXPNAME}_lnd_mean2TS"
@@ -808,8 +809,8 @@ if [[ "$output_lnd" == "min" ]]; then
                     'rad_alb_vis_box'       , 'rad_alb_nir_box'             ,
                     'rad_rad_srf_net_box'   , 'rad_lw_srf_net_box'          , 'rad_sw_srf_net_box'     ,
                     'seb_latent_hflx_box'   , 'seb_sensible_hflx_box'       , 'pheno_lai_box'          ,
-                    'hydro_q_snocpymlt_box' , 'hydro_w_skin_box'            , 'hydro_w_snow_box'       ,
-                    'hydro_snowmelt_box'    , 'hydro_evapotrans_box', 'hydro_w_soil_column_box'
+                    'hydro_q_snocpymlt_box' , 'hydro_wtr_skin_box'          , 'hydro_weq_snow_box'     ,
+                    'hydro_snowmelt_box'    , 'hydro_evapotrans_box'        , 'hydro_wtr_rootzone_box'
 /
 EOF
 fi
@@ -900,14 +901,14 @@ if [[ "$output_lnd" == "full" ]]; then
  output_interval  = "${output_interval}"
  file_interval    = "${file_interval}"
  include_last     = .FALSE.
- ml_varlist       = 'hydro_q_snocpymlt_box'        , 'hydro_w_skin_box'       , 'hydro_w_snow_box'             ,
-                    'hydro_snowmelt_box'           , 'hydro_w_soil_column_veg', 'hydro_w_soil_sl_veg'          , 
-                    'hydro_evapotrans_veg'         , 'hydro_evapopot_veg'     , 'hydro_trans_veg'              ,
-                    'hydro_fract_water_veg'        , 'hydro_fract_snow_veg'   , 'hydro_w_skin_veg'             ,
-                    'hydro_w_snow_veg'             , 'hydro_q_snocpymlt_veg'  ,
-                    'hydro_fract_snow_soil_veg'    , 'hydro_w_snow_soil_veg'  , 'hydro_snow_accum_veg'         ,
-                    'hydro_fract_snow_can_veg'     , 'hydro_w_snow_can_veg'   ,
-                    'hydro_water_stress_veg'       , 'hydro_canopy_cond_veg'  , 'hydro_canopy_cond_limited_veg'
+ ml_varlist       = 'hydro_q_snocpymlt_box'        , 'hydro_wtr_skin_box'     , 'hydro_weq_snow_box'           ,
+                    'hydro_snowmelt_box'           , 'hydro_wtr_rootzone_veg' , 'hydro_wtr_soil_sl_veg'        ,
+                    'hydro_evapotrans_veg'         , 'hydro_evapopot_veg'     , 'hydro_transpiration_veg'      ,
+                    'hydro_fract_wet_veg'          , 'hydro_fract_snow_veg'   , 'hydro_wtr_skin_veg'           ,
+                    'hydro_weq_snow_veg'           , 'hydro_q_snocpymlt_veg'  ,
+                    'hydro_fract_snow_soil_veg'    , 'hydro_weq_snow_soil_veg', 'hydro_snow_accum_veg'         ,
+                    'hydro_fract_snow_can_veg'     , 'hydro_weq_snow_can_veg' ,
+                    'hydro_water_stress_veg'       , 'hydro_canopy_cond_veg'  , 'hydro_canopy_cond_limited_veg',
                     'hydro_evapotrans_glac'        , 'hydro_evapopot_glac'    ,
                     'hydro_snowmelt_glac'          , 'hydro_q_snocpymlt_glac'
 /
@@ -943,7 +944,7 @@ if [[ "$jsbach_check_wbal" == "yes" ]]; then
  output_interval  = "${output_interval}"
  file_interval    = "${file_interval}"
  include_last     = .FALSE.
- ml_varlist       = 'hydro_water_flux_box', 'hydro_water_content_box', 'hydro_water_budget_box',
+ ml_varlist       = 'hydro_weq_fluxes_box', 'hydro_weq_land_box', 'hydro_weq_balance_err_box',
 EOF
   if [[ "$jsbach_with_hd" == "yes" ]]; then
     cat >> ${atmo_namelist} << EOF
