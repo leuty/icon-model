@@ -4,11 +4,13 @@ current_dir=$(pwd)
 script_dir=$(unset CDPATH; cd "$(dirname "$0")" && pwd)
 icon_dir=$(unset CDPATH; cd "${script_dir}/../.." && pwd)
 
-sw=/project/project_465000454/icon/sw
+sw=${ICON_SW_PREFIX-'/project/project_465000454/icon/sw'}
 pool=/appl/local/climatedt/pool/
 container=/scratch/project_465000454/cpe/ccpe-rocm-5.4.1-16.0.1.1.sif
 
 module --force purge
+
+export ICON_SW_PREFIX=${sw}
 
 set dummy --bind "${current_dir}" --bind "${sw}" --bind "${pool}" "${container}" "$@"; shift
 
@@ -17,4 +19,4 @@ if test "x${current_dir}" != "x${icon_dir}"; then
   set dummy --bind "${icon_dir}" "$@"; shift
 fi
 
-singularity exec --cleanenv --rocm "$@"
+singularity exec --rocm "$@"
