@@ -616,9 +616,9 @@ if [[ "$output_lnd" == "yes" ]]; then
  output_interval  = "${atm_output_interval}"
  file_interval    = "${atm_file_interval}"
  include_last     = .FALSE.
- ml_varlist       = 'pheno_lai_box'         , 'pheno_fract_fpc_veg'         , 'hydro_fract_water_box' ,
-                    'hydro_fract_snow_box'  , 'hydro_w_skin_box'            , 'hydro_w_snow_box'      ,
-                    'hydro_w_soil_column_box'
+ ml_varlist       = 'pheno_lai_box'         , 'pheno_fract_fpc_veg' , 'hydro_fract_wet_box' ,
+                    'hydro_fract_snow_box'  , 'hydro_wtr_skin_box'  , 'hydro_weq_snow_box'  ,
+                    'hydro_wtr_rootzone_box'
 /
 EOF
 fi

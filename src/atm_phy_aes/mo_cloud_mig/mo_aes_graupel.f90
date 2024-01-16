@@ -183,7 +183,8 @@ CONTAINS
   END DO
 
   !jmx=0
-  !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1)
+  !ACCWA: Cray compiler (16.0.1) treats jmx_ firstprivate unless it is explicitly present
+  !$ACC PARALLEL DEFAULT(PRESENT) PRESENT(jmx_) ASYNC(1)
   !$ACC LOOP SEQ
   DO  k = ke,kstart,-1
     !$ACC LOOP GANG VECTOR PRIVATE(jmx, iqx)
@@ -212,7 +213,8 @@ CONTAINS
   END DO
   !$ACC END PARALLEL
 
-  !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1)
+  !ACCWA: Cray compiler (16.0.1) treats jmx_ firstprivate unless it is explicitly present
+  !$ACC PARALLEL DEFAULT(PRESENT) PRESENT(jmx_) ASYNC(1)
   !$ACC LOOP GANG VECTOR &
   !$ACC   PRIVATE(sink, dqdt, sx2x) &
   !$ACC   PRIVATE(k, iv) &

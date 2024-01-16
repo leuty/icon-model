@@ -607,6 +607,7 @@ cat > ${jsbach_namelist} << EOF
   usecase              = "${jsbach_usecase}"
   use_lakes            = ${llake}            ! TRUE if jsbach_with_lakes=yes
   fract_filename       = 'bc_land_frac.nc'
+  enforce_water_budget = .FALSE.         ! True: stop in case of water conservation problem
 /
 &jsb_seb_nml
   bc_filename          = 'bc_land_phys.nc'
@@ -634,6 +635,7 @@ cat > ${jsbach_namelist} << EOF
   ic_filename          = 'ic_land_soil.nc'
 /
 &jsb_hydro_nml
+  l_socmap             = .FALSE.
   bc_filename          = 'bc_land_soil.nc'
   ic_filename          = 'ic_land_soil.nc'
   bc_sso_filename      = 'bc_land_sso.nc'
@@ -671,7 +673,6 @@ cat > ${jsbach_namelist} << EOF
   bc_filename          = 'bc_land_hd.nc'
   diag_water_budget    = .TRUE.
   debug_hd             = .FALSE.
-  enforce_water_budget = .FALSE.         ! True: stop in case of water conservation problem
 /
 EOF
 
@@ -1020,11 +1021,11 @@ if [[ "$output_lnd" == "yes" ]]; then
  output_interval  = "${atm_output_interval}"
  file_interval    = "${atm_file_interval}"
  include_last     = .FALSE.
- ml_varlist       = 'pheno_lai_box'             , 'pheno_fract_fpc_veg'  , 'hydro_fract_water_box' ,
-                    'hydro_fract_snow_box'      , 'hydro_w_skin_box'     , 'hydro_w_snow_box'      ,
-                    'hydro_w_soil_column_box'   ,
+ ml_varlist       = 'pheno_lai_box'             , 'pheno_fract_fpc_veg'  , 'hydro_fract_wet_box' ,
+                    'hydro_fract_snow_box'      , 'hydro_wtr_skin_box'   , 'hydro_weq_snow_box'  ,
+                    'hydro_wtr_rootzone_box'    ,
                     'hydro_runoff_box'          , 'hydro_drainage_box'   ,
-                    'hydro_discharge_ocean_box' , 'hydro_discharge_box' 
+                    'hydro_discharge_ocean_box' , 'hydro_discharge_box'
 /
 EOF
 fi
