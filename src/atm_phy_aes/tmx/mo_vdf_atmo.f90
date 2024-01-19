@@ -887,16 +887,16 @@ CONTAINS
 
     energy_type      => this%config%list%Get_ptr_i0d('energy type')
 
+    ASSOCIATE(domain => this%domain)
+
+!$OMP PARALLEL
+    CALL init(flux_x)
+!$OMP END PARALLEL
+
     SELECT CASE(energy_type)
     CASE (1)
       cpd => this%config%list%Get_ptr_r0d('cpd')
       cvd => this%config%list%Get_ptr_r0d('cvd')
-
-      ASSOCIATE(domain => this%domain)
-
-!$OMP PARALLEL
-      CALL init(flux_x)
-!$OMP END PARALLEL
 
 !$OMP PARALLEL DO PRIVATE(jb, jc) ICON_OMP_DEFAULT_SCHEDULE
       DO jb = domain%i_startblk_c, domain%i_endblk_c
@@ -908,13 +908,23 @@ CONTAINS
       END DO
 !$OMP END PARALLEL DO
 
-      END ASSOCIATE
-
-      !$ACC WAIT(1)
-
     CASE (2)
-      CALL finish(routine, 'not implemented for energy_type==2')
+
+!$OMP PARALLEL DO PRIVATE(jb, jc) ICON_OMP_DEFAULT_SCHEDULE
+      DO jb = domain%i_startblk_c, domain%i_endblk_c
+        !$ACC PARALLEL LOOP DEFAULT(PRESENT) GANG(STATIC: 1) VECTOR ASYNC(1)
+        DO jc = domain%i_startidx_c(jb), domain%i_endidx_c(jb)
+          flux_x(jc,jb) = energy_flux(jc,jb)
+        END DO
+        !$ACC END PARALLEL LOOP
+      END DO
+!$OMP END PARALLEL DO
+
     END SELECT
+
+    END ASSOCIATE
+
+    !$ACC WAIT(1)
 
   END SUBROUTINE energy_flux_to_flux_x
   !

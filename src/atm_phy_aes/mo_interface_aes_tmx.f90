@@ -204,6 +204,24 @@ CONTAINS
           ins%pxim1 => ins%list%Get_ptr_r3d('cloud ice')
           __acc_attach(ins%pxim1)
       
+          ptr_r3d => field% qtrc_phy(:,:,:,iqr)
+          CALL unbind_variable(vdf%atmo%inputs%list%Search('rain'))
+          CALL bind_variable(vdf%atmo%inputs%list%Search('rain'), ptr_r3d)
+          ins%pxrm1 => ins%list%Get_ptr_r3d('rain')
+          __acc_attach(ins%pxrm1)
+      
+          ptr_r3d => field% qtrc_phy(:,:,:,iqs)
+          CALL unbind_variable(vdf%atmo%inputs%list%Search('snow'))
+          CALL bind_variable(vdf%atmo%inputs%list%Search('snow'), ptr_r3d)
+          ins%pxsm1 => ins%list%Get_ptr_r3d('snow')
+          __acc_attach(ins%pxsm1)
+      
+          ptr_r3d => field% qtrc_phy(:,:,:,iqg)
+          CALL unbind_variable(vdf%atmo%inputs%list%Search('graupel'))
+          CALL bind_variable(vdf%atmo%inputs%list%Search('graupel'), ptr_r3d)
+          ins%pxgm1 => ins%list%Get_ptr_r3d('graupel')
+          __acc_attach(ins%pxgm1)
+      
           CALL unbind_variable(vdf%atmo%states%search('temperature'))
           CALL bind_variable(vdf%atmo%states%search('temperature'), field%ta)
           CALL unbind_variable(vdf%atmo%inputs%list%Search('temperature'))

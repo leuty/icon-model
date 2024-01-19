@@ -333,7 +333,7 @@ if [[ "$output_atm_3d" == "yes" ]]; then
                     'ua'      , 'va'      , 'wa'      ,
                     'hus'     , 'clw'     , 'cli'     ,
                     'qr'      , 'qs'      , 'qg'      , 'cptgz',
-                    'tend_ta_vdf', 'tend_ua_vdf', 'tend_va_vdf', 'tend_qhus_vdf'
+                    'tend_ta_vdf', 'tend_ua_vdf', 'tend_va_vdf', 'tend_hus_vdf'
 /
 EOF
 fi

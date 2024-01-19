@@ -540,40 +540,9 @@ CONTAINS
 
     END IF
 
-!$OMP PARALLEL DO PRIVATE(jb,jc,jk) ICON_OMP_DEFAULT_SCHEDULE
-    DO jb = i_startblk_c,i_endblk_c
-      !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1)
-      !$ACC LOOP SEQ
-      DO jk = 1, nlev
-        !$ACC LOOP GANG(STATIC: 1) VECTOR
-        DO jc = i_startidx_c(jb), i_endidx_c(jb)
-          new_energy(jc,jk,jb) = energy(jc,jk,jb) + tend_energy(jc,jk,jb) * dtime
-        END DO
-      END DO
-      !$ACC END PARALLEL
-    END DO
-!$OMP END PARALLEL DO
-
-    CALL this%atmo%energy_to_temp(new_energy(:,:,:), new_state_ta(:,:,:), use_new_moisture_state=.TRUE.)
-
-!$OMP PARALLEL
-
-!$OMP DO PRIVATE(jb,jc,jk) ICON_OMP_DEFAULT_SCHEDULE
-    DO jb = i_startblk_c,i_endblk_c
-      !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1)
-      !$ACC LOOP SEQ
-      DO jk = 1, nlev
-        !$ACC LOOP GANG(STATIC: 1) VECTOR
-        DO jc = i_startidx_c(jb), i_endidx_c(jb)
-          tend_ta(jc,jk,jb) = (new_state_ta(jc,jk,jb) - state_ta(jc,jk,jb)) / dtime
-        END DO
-      END DO
-      !$ACC END PARALLEL
-    END DO
-!$OMP END DO
-
     ! Note: new_state_ta and tend_ta will be updated later by horizontal diffusion and by additional heating (see below)
     ! Additional heating
+!$OMP PARALLEL
 !$OMP DO PRIVATE(jb,jc,jk) ICON_OMP_DEFAULT_SCHEDULE
     DO jb = i_startblk_c,i_endblk_c
       !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1)
@@ -581,19 +550,16 @@ CONTAINS
       DO jk=1,nlev
         !$ACC LOOP GANG(STATIC: 1) VECTOR
         DO jc = i_startidx_c(jb), i_endidx_c(jb)
-          ! heating(jc,jk,jb) = tend_energy(jc,jk,jb) * mair(jc,jk,jb)
           heating(jc,jk,jb) = 0._wp
         END DO
       END DO
       !$ACC LOOP GANG(STATIC: 1) VECTOR
       DO jc = i_startidx_c(jb), i_endidx_c(jb)
-        ! heating(jc,nlev,jb) = heating(jc,nlev,jb) - q_snocpymlt(jc,jb)
         heating(jc,nlev,jb) = - q_snocpymlt(jc,jb) ! non-zero only for land
       END DO
       !$ACC END PARALLEL
     END DO
 !$OMP END DO
-
 !$OMP END PARALLEL
 
     !---------------------------------------------------------------
@@ -602,7 +568,7 @@ CONTAINS
 
     !include halo points and boundary points because these values will be
     !used in next loop
-    CALL sync_patch_array(SYNC_C, patch, state_ta)
+    CALL sync_patch_array(SYNC_C, patch, energy)
 
     rl_start   = grf_bdywidth_e
     rl_end     = min_rledge_int-1
@@ -616,7 +582,7 @@ CONTAINS
       CALL get_indices_e(patch, jb, i_startblk, i_endblk,       &
                         i_startidx, i_endidx, rl_start, rl_end)
 
-      ! compute kh_ie * grad_horiz(state_ta)
+      ! compute kh_ie * grad_horiz(energy)
       !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1)
       !$ACC LOOP GANG(STATIC: 1) VECTOR COLLAPSE(2)
       DO jk = 1, nlev
@@ -624,8 +590,8 @@ CONTAINS
           nabla2_e(je,jk,jb) = 0.5_wp * ( km_ie(je,jk,jb) + km_ie(je,jk+1,jb) ) *                    &
                                 rturb_prandtl *                                                       &
                                 patch%edges%inv_dual_edge_length(je,jb) *                           &
-                                ( state_ta(iecidx(je,jb,2),jk,iecblk(je,jb,2)) -                           &
-                                  state_ta(iecidx(je,jb,1),jk,iecblk(je,jb,1)) )
+                                ( energy(iecidx(je,jb,2),jk,iecblk(je,jb,2)) -                           &
+                                  energy(iecidx(je,jb,1),jk,iecblk(je,jb,1)) )
         ENDDO
       ENDDO
       !$ACC END PARALLEL
@@ -644,13 +610,45 @@ CONTAINS
             nabla2_e(ieidx(jc,jb,1),jk,ieblk(jc,jb,1)) * p_int%geofac_div(jc,1,jb) +  &
             nabla2_e(ieidx(jc,jb,2),jk,ieblk(jc,jb,2)) * p_int%geofac_div(jc,2,jb) +  &
             nabla2_e(ieidx(jc,jb,3),jk,ieblk(jc,jb,3)) * p_int%geofac_div(jc,3,jb) ) / rho(jc,jk,jb)
-          tend_ta(jc,jk,jb) = tend_ta(jc,jk,jb) + hori_tend_c(jc,jk,jb)
+          tend_energy(jc,jk,jb) = tend_energy(jc,jk,jb) + hori_tend_c(jc,jk,jb)
         END DO
       END DO
       !$ACC END PARALLEL
     END DO
 !$OMP END DO
 
+!$OMP END PARALLEL
+
+!$OMP PARALLEL DO PRIVATE(jb,jc,jk) ICON_OMP_DEFAULT_SCHEDULE
+    DO jb = i_startblk_c,i_endblk_c
+      !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1)
+      !$ACC LOOP SEQ
+      DO jk = 1, nlev
+        !$ACC LOOP GANG(STATIC: 1) VECTOR
+        DO jc = i_startidx_c(jb), i_endidx_c(jb)
+          new_energy(jc,jk,jb) = energy(jc,jk,jb) + tend_energy(jc,jk,jb) * dtime
+        END DO
+      END DO
+      !$ACC END PARALLEL
+    END DO
+!$OMP END PARALLEL DO
+
+    CALL this%atmo%energy_to_temp(new_energy(:,:,:), new_state_ta(:,:,:), use_new_moisture_state=.TRUE.)
+
+!$OMP PARALLEL
+!$OMP DO PRIVATE(jb,jc,jk) ICON_OMP_DEFAULT_SCHEDULE
+    DO jb = i_startblk_c,i_endblk_c
+      !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1)
+      !$ACC LOOP SEQ
+      DO jk = 1, nlev
+        !$ACC LOOP GANG(STATIC: 1) VECTOR
+        DO jc = i_startidx_c(jb), i_endidx_c(jb)
+          tend_ta(jc,jk,jb) = (new_state_ta(jc,jk,jb) - state_ta(jc,jk,jb)) / dtime
+        END DO
+      END DO
+      !$ACC END PARALLEL
+    END DO
+!$OMP END DO
 !$OMP END PARALLEL
 
     END ASSOCIATE
@@ -1103,36 +1101,16 @@ CONTAINS
 
     END IF
 
-    ! 4) Update vn: it makes more sense to first apply diffusion on vn
-    ! and then get ddt_u/v than to interpolate tot_tend directly to
-    ! ddt_u/v. Proof: during the test phase it was found that the latter slowed
-    ! down the computation by 15%, although the results look same.
-
-!$OMP PARALLEL DO PRIVATE(jb,jk,je,i_startidx,i_endidx) ICON_OMP_DEFAULT_SCHEDULE
-    DO jb = i_startblk,i_endblk
-      CALL get_indices_e(patch, jb, i_startblk, i_endblk,       &
-                         i_startidx, i_endidx, rl_start, rl_end)
-      !$ACC PARALLEL LOOP DEFAULT(PRESENT) GANG(STATIC: 1) VECTOR COLLAPSE(2) ASYNC(1)
-      DO jk = 1, nlev
-        DO je = i_startidx, i_endidx
-          var_new_e(je,jk,jb) = vn(je,jk,jb) + dtime * tot_tend(je,jk,jb)
-        END DO
-      END DO
-      !$ACC END PARALLEL LOOP
-    END DO
-!$OMP END PARALLEL DO
-
-    ! 5) Get turbulent tendency at cell center
-    CALL sync_patch_array(SYNC_E, patch, var_new_e)
-    CALL rbf_vec_interpol_cell(var_new_e, patch, p_int, new_state_u, new_state_v, opt_rlend=min_rlcell_int)
+    CALL sync_patch_array(SYNC_E, patch, tot_tend)
+    CALL rbf_vec_interpol_cell(tot_tend, patch, p_int, tend_u, tend_v, opt_rlend=min_rlcell_int)
 
 !$OMP PARALLEL DO PRIVATE(jb,jk,jc,i_startidx,i_endidx) ICON_OMP_DEFAULT_SCHEDULE
     DO jb = i_startblk_c,i_endblk_c
       !$ACC PARALLEL LOOP DEFAULT(PRESENT) GANG(STATIC: 1) VECTOR COLLAPSE(2) ASYNC(1)
       DO jk = 1, nlev
         DO jc = i_startidx_c(jb), i_endidx_c(jb)
-          tend_u(jc,jk,jb) = ( new_state_u(jc,jk,jb) - state_u(jc,jk,jb) ) / dtime
-          tend_v(jc,jk,jb) = ( new_state_v(jc,jk,jb) - state_v(jc,jk,jb) ) / dtime
+          new_state_u(jc,jk,jb) = state_u(jc,jk,jb) + tend_u(jc,jk,jb) * dtime
+          new_state_v(jc,jk,jb) = state_v(jc,jk,jb) + tend_v(jc,jk,jb) * dtime
         END DO
       END DO
       !$ACC END PARALLEL LOOP
