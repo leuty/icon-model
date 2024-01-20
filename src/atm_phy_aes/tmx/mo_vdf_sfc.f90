@@ -56,6 +56,7 @@ MODULE mo_vdf_sfc
       & dtime => NULL(), &
       & cpd => NULL(), &
       & cvd => NULL(), &
+      & cvv => NULL(), &
       & min_sfc_wind => NULL(), &
       & min_rough    => NULL(), &
       & rough_m_oce  => NULL(), &
@@ -76,6 +77,7 @@ MODULE mo_vdf_sfc
       & ua(:,:) => NULL(), &
       & va(:,:) => NULL(), &
       & qa(:,:) => NULL(), &
+      & rho_atm(:,:) => NULL(), &
       & pa(:,:) => NULL(), &
       & psfc(:,:) => NULL(), &
       & rsfl(:,:) => NULL(), &
@@ -134,6 +136,8 @@ MODULE mo_vdf_sfc
       & evapotrans(:,:) => NULL(), &
       & lhfl(:,:) => NULL(), &
       & shfl(:,:) => NULL(), &
+      & ufts(:,:) => NULL(), &
+      & ufvs(:,:) => NULL(), &
       & ustress(:,:) => NULL(), &
       & vstress(:,:) => NULL(), &
       & tsfc(:,:) => NULL(), &
@@ -233,7 +237,7 @@ CONTAINS
 
     USE mo_tmx_surface_interface, ONLY: &
       & update_land, update_sea_ice, compute_lw_rad_net, compute_sw_rad_net, compute_albedo, &
-      & compute_sfc_fluxes, compute_sfc_sat_spec_humidity
+      & compute_sfc_fluxes, compute_sfc_sat_spec_humidity, compute_energy_fluxes
     ! USE mo_vdf_diag_smag,  ONLY: compute_sfc_fluxes, compute_sfc_sat_spec_humidity
     USE mo_physical_constants, ONLY: albedoW ! TODO
     USE mo_sea_ice_nml, ONLY: albi           ! TODO
@@ -470,6 +474,11 @@ CONTAINS
       !$ACC END PARALLEL LOOP
     END DO
 !$OMP END PARALLEL DO
+
+    CALL compute_energy_fluxes( &
+      & this%domain, conf%cvv, conf%cvd, &
+      & diags%shfl, diags%evapotrans, ins%ta, ins%rho_atm, &
+      & diags%ufts, diags%ufvs)
 
     END ASSOCIATE
 
@@ -904,6 +913,7 @@ CONTAINS
     CALL configlist%append(t_variable('time step', shape_0d, "s", type_id="real"))
     CALL configlist%append(t_variable('cpd', shape_0d, "", type_id="real"))
     CALL configlist%append(t_variable('cvd', shape_0d, "", type_id="real"))
+    CALL configlist%append(t_variable('cvv', shape_0d, "", type_id="real"))
     CALL configlist%append(t_variable('minimum surface wind speed', shape_0d, "m/s", type_id="real"))
     CALL configlist%append(t_variable('ocean roughness length', shape_0d, "m", type_id="real"))
     CALL configlist%append(t_variable('ice roughness length', shape_0d, "m", type_id="real"))
@@ -925,6 +935,8 @@ CONTAINS
       __acc_attach(this%cpd)
       this%cvd => this%list%Get_ptr_r0d('cvd')
       __acc_attach(this%cvd)
+      this%cvv => this%list%Get_ptr_r0d('cvv')
+      __acc_attach(this%cvv)
       this%min_sfc_wind => this%list%Get_ptr_r0d('minimum surface wind speed')
       __acc_attach(this%min_sfc_wind)
       this%min_rough   => this%list%Get_ptr_r0d('minimal roughness length')
@@ -961,6 +973,7 @@ CONTAINS
     CALL inlist%append(t_variable('atm zonal wind', shape_2d, "m/s", type_id="real"))
     CALL inlist%append(t_variable('atm meridional wind', shape_2d, "m/s", type_id="real"))
     CALL inlist%append(t_variable('atm total water', shape_2d, "kg/kg", type_id="real"))
+    CALL inlist%append(t_variable('atm density', shape_2d, "kg/m3", type_id="real"))
     CALL inlist%append(t_variable('atm full level pressure', shape_2d, "Pa", type_id="real"))
     CALL inlist%append(t_variable('surface pressure', shape_2d, "Pa", type_id="real"))
     CALL inlist%append(t_variable('atm geometric height full', shape_2d, "Pa", type_id="real"))
@@ -1014,6 +1027,8 @@ CONTAINS
       __acc_attach(this%va)
       this%qa => this%list%Get_ptr_r2d('atm total water')
       __acc_attach(this%qa)
+      this%rho_atm => this%list%Get_ptr_r2d('atm density')
+      __acc_attach(this%rho_atm)
       this%pa => this%list%Get_ptr_r2d('atm full level pressure')
       __acc_attach(this%pa)
       this%psfc => this%list%Get_ptr_r2d('surface pressure')
@@ -1140,6 +1155,8 @@ CONTAINS
     CALL diaglist%append(t_variable('sfc sensible heat flux', shape_2d, "W m-2", type_id="real"))
     CALL diaglist%append(t_variable('sfc zonal wind stress', shape_2d, "N m-2", type_id="real"))
     CALL diaglist%append(t_variable('sfc mer. wind stress', shape_2d, "N m-2", type_id="real"))
+    CALL diaglist%append(t_variable('energy flux at surface from thermal exchange', shape_2d, "W m-2", type_id="real"))
+    CALL diaglist%append(t_variable('energy flux at surface from vapor exchange', shape_2d, "W m-2", type_id="real"))
     !
     CALL diaglist%append(t_variable('sfc temperature', shape_2d, "K", type_id="real"))
     CALL diaglist%append(t_variable('sfc radiative temperature', shape_2d, "K", type_id="real"))
@@ -1250,6 +1267,10 @@ CONTAINS
       __acc_attach(this%ustress)
       this%vstress         => this%list%Get_ptr_r2d('sfc mer. wind stress')
       __acc_attach(this%vstress)
+      this%ufts            => this%list%Get_ptr_r2d('energy flux at surface from thermal exchange')
+      __acc_attach(this%ufts)
+      this%ufvs            => this%list%Get_ptr_r2d('energy flux at surface from vapor exchange')
+      __acc_attach(this%ufvs)
    
       this%tsfc            => this%list%Get_ptr_r2d('sfc temperature')
       __acc_attach(this%tsfc)

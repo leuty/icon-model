@@ -22,7 +22,8 @@ MODULE mo_tmx_surface_interface
   USE mo_exception, ONLY: finish
   USE mo_fortran_tools, ONLY: init
   USE mtime, ONLY: datetime
-  USE mo_physical_constants, ONLY: rgrav, cpd, cvd, tmelt, Tf, stbo, rhos, alv, als, alf
+  USE mo_physical_constants, ONLY: rgrav, tmelt, Tf, stbo, rhos, alf, cvv, clw, ci
+  USE mo_aes_thermo, ONLY: lvc, lsc
   USE mo_turb_vdiff_params, ONLY: ckap
   USE mo_coupling_config,   ONLY: is_coupled_run
   USE mo_aes_phy_config,    ONLY: aes_phy_config  ! TODO: replace USE
@@ -39,7 +40,7 @@ MODULE mo_tmx_surface_interface
 
   PUBLIC :: update_land, update_sea_ice, &
     & compute_sfc_sat_spec_humidity, compute_sfc_fluxes, compute_sfc_roughness, &
-    & compute_lw_rad_net, compute_sw_rad_net, compute_albedo, &
+    & compute_lw_rad_net, compute_sw_rad_net, compute_albedo, compute_energy_fluxes, &
     & compute_2m_temperature, compute_10m_wind
 
   CHARACTER(len=*), PARAMETER :: modname = 'mo_tmx_surface_interface'
@@ -753,7 +754,7 @@ CONTAINS
         !$ACC PARALLEL LOOP DEFAULT(PRESENT) GANG(STATIC: 1) VECTOR ASYNC(1) PRIVATE(js)
         DO jls = 1, nvalid(jb)
           js = indices(jls,jb)
-          latent_hflx(js,jb)   = -lhflx * alv * rho(js,jb)
+          latent_hflx(js,jb)   = -lhflx * rho(js,jb) * (lvc+(cvv-clw)*t_sfc(js,jb))
           evapotrans(js,jb)    = -lhflx * rho(js,jb)
           sensible_hflx(js,jb) = -shflx * cvd * rho(js,jb)
         END DO
@@ -784,13 +785,13 @@ CONTAINS
         ! TODO: is the treatment of surface ocean current correct (cf. vdiff code)
         IF (isfc == isfc_oce) THEN
           evapotrans(js,jb) = rho(js,jb) * wind(js,jb) * kh(js,jb) * (qm1(js,jb) - qsat_sfc(js,jb))
-          latent_hflx(js,jb) = alv * evapotrans(js,jb)
+          latent_hflx(js,jb) = evapotrans(js,jb) * (lvc+(cvv-clw)*t_sfc(js,jb))
           sensible_hflx(js,jb) = cvd * rho(js,jb) * wind(js,jb) * kh(js,jb) * (ta(js,jb) - t_sfc(js,jb))
           ustress(js,jb) = rho(js,jb) * km(js,jb) * wind(js,jb) * (ua(js,jb) - u_sfc_oce(js,jb))
           vstress(js,jb) = rho(js,jb) * km(js,jb) * wind(js,jb) * (va(js,jb) - v_sfc_oce(js,jb))
         ELSE IF (isfc == isfc_ice) THEN
           evapotrans(js,jb) = rho(js,jb) * wind(js,jb) * kh(js,jb) * (qm1(js,jb) - qsat_sfc(js,jb))
-          latent_hflx(js,jb) = als * evapotrans(js,jb)
+          latent_hflx(js,jb) = evapotrans(js,jb) * (lsc+(cvv-ci)*t_sfc(js,jb))
           sensible_hflx(js,jb) = cvd * rho(js,jb) * wind(js,jb) * kh(js,jb) * (ta(js,jb) - t_sfc(js,jb))
           ustress(js,jb) = rho(js,jb) * km(js,jb) * wind(js,jb) * ua(js,jb)
           vstress(js,jb) = rho(js,jb) * km(js,jb) * wind(js,jb) * va(js,jb)
@@ -813,6 +814,58 @@ CONTAINS
     END IF
 
   END SUBROUTINE compute_sfc_fluxes
+  !
+  !=================================================================
+  !
+  SUBROUTINE compute_energy_fluxes( &
+    & domain,     &
+    & cvv, cvd,   &
+    & shfl,       &
+    & evapotrans, &
+    & ta,         &
+    & rho,        &
+    & ufts,       &
+    & ufvs)
+
+    ! Domain information
+    TYPE(t_domain),  INTENT(in), POINTER :: domain
+    !
+    ! Input variables
+    !
+    REAL(wp), INTENT(in) :: cvv, cvd
+    REAL(wp), DIMENSION(:,:), INTENT(in) :: &
+      & shfl,       &
+      & evapotrans, &
+      & ta,         &
+      & rho
+    !
+    ! Output variables
+    !
+    REAL(wp), DIMENSION(:,:), INTENT(out) :: &
+      & ufts, &
+      & ufvs
+
+    INTEGER :: ic, ib
+
+    CHARACTER(len=*), PARAMETER :: routine = modname//':compute_energy_fluxes'
+
+!$OMP PARALLEL
+    CALL init(ufts)
+    CALL init(ufvs)
+!$OMP END PARALLEL
+
+!$OMP PARALLEL DO PRIVATE(ib, ic) ICON_OMP_DEFAULT_SCHEDULE
+    DO ib = domain%i_startblk_c, domain%i_endblk_c
+      !$ACC PARALLEL LOOP DEFAULT(PRESENT) GANG(STATIC: 1) VECTOR ASYNC(1)
+      DO ic = domain%i_startidx_c(ib), domain%i_endidx_c(ib)
+        ufts(ic,ib) = shfl(ic,ib)
+        ufvs(ic,ib) = ta(ic,ib) * evapotrans(ic,ib) * (cvv - cvd) 
+      END DO
+      !$ACC END PARALLEL LOOP
+    END DO
+!$OMP END PARALLEL DO
+
+  END SUBROUTINE compute_energy_fluxes
   !
   !=================================================================
   !

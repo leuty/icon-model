@@ -411,8 +411,9 @@ if [[ "$output_atm_2d" == "yes" ]]; then
                     'hfls'    , 'hfss'    , 'evspsbl' ,
                     'prlr'    , 'prls'    , 'cptgzvi' , 
 !                    'pr_rain' , 'pr_snow' , 'pr_grpl' , 'pr_ice'  , 
-!                    'uphyvi'  , 'udynvi'  , 'evap_tsa',
-!                    'shfl_qsa', 'rsfl_tsa', 'ssfl_tsa',
+!                    'udynvi_gmean' , 'duphyvi_gmean' , 'uphybal_gmean' ,
+!                    'ufts_gmean'   , 'ufvs_gmean'    , 'ufcs_gmean' , 'kedisp_gmean' ,
+!                    'radtop_gmean' , 'radbot_gmean'  , 'radbal_gmean'
 /
 EOF
 fi

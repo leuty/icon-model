@@ -31,7 +31,7 @@ MODULE mo_vdf_atmo
   USE mo_nonhydro_types,    ONLY: t_nh_metrics
   USE mo_nonhydro_state,    ONLY: p_nh_state
   USE mo_aes_sfc_indices,   ONLY: nsfc_type, iwtr, iice, ilnd
-  USE mo_physical_constants,ONLY: grav, rd, cpd, cpv, rd_o_cpd,                 &
+  USE mo_physical_constants,ONLY: grav, rd, cpd, cpv, cvd, rd_o_cpd, &
     &                             vtmpc1, p0ref, rgrav, alvdcp, alv
   USE mo_aes_thermo,        ONLY: sat_pres_water, specific_humidity
   USE mo_turb_vdiff_params, ONLY: ckap
@@ -75,7 +75,7 @@ MODULE mo_vdf_atmo
     ! PROCEDURE(i_temp_to_energy) :: temp_to_energy
     PROCEDURE :: temp_to_energy
     PROCEDURE :: energy_to_temp
-    PROCEDURE :: energy_flux_to_flux_x
+    PROCEDURE :: compute_flux_x
     PROCEDURE :: Update_diagnostics
   END TYPE t_vdf_atmo
   
@@ -290,8 +290,6 @@ CONTAINS
 
     CALL compute_exchange_coefficient(this%domain, this%config, this%inputs, this%diagnostics)
     ! CALL compute_exchange_coefficient(this%domain, p_nh_state(jg)%metrics, p_int_state(jg))
-
-    ! CALL compute_heating_to_temperature_factor(this%domain, ins%mair(:,:,:), ins%cpair(:,:,:), diags%q2t_factor(:,:,:))
 
   END SUBROUTINE Compute_diagnostics
 
@@ -873,10 +871,13 @@ CONTAINS
 
   END SUBROUTINE energy_to_temp
 
-  SUBROUTINE energy_flux_to_flux_x(this, energy_flux, flux_x)
+  SUBROUTINE compute_flux_x(this, shflx, ufts, ufvs, flux_x)
 
     CLASS(t_vdf_atmo), INTENT(in) :: this
-    REAL(wp), INTENT(in) :: energy_flux(:,:)
+    REAL(wp), INTENT(in) :: &
+      & shflx(:,:), & !< sensible heat flux
+      & ufts(:,:),  & !< energy flux at surface from thermal exchange
+      & ufvs(:,:)     !< energy flux at surface from vapor exchange
     REAL(wp), INTENT(out) :: flux_x(:,:)
 
     INTEGER :: jb, jc
@@ -902,7 +903,7 @@ CONTAINS
       DO jb = domain%i_startblk_c, domain%i_endblk_c
         !$ACC PARALLEL LOOP DEFAULT(PRESENT) GANG(STATIC: 1) VECTOR ASYNC(1)
         DO jc = domain%i_startidx_c(jb), domain%i_endidx_c(jb)
-          flux_x(jc,jb) = energy_flux(jc,jb) * cpd / cvd
+          flux_x(jc,jb) = shflx(jc,jb) * cpd / cvd
         END DO
         !$ACC END PARALLEL LOOP
       END DO
@@ -914,7 +915,7 @@ CONTAINS
       DO jb = domain%i_startblk_c, domain%i_endblk_c
         !$ACC PARALLEL LOOP DEFAULT(PRESENT) GANG(STATIC: 1) VECTOR ASYNC(1)
         DO jc = domain%i_startidx_c(jb), domain%i_endidx_c(jb)
-          flux_x(jc,jb) = energy_flux(jc,jb)
+          flux_x(jc,jb) = ufts(jc,jb) + ufvs(jc,jb)
         END DO
         !$ACC END PARALLEL LOOP
       END DO
@@ -926,7 +927,7 @@ CONTAINS
 
     !$ACC WAIT(1)
 
-  END SUBROUTINE energy_flux_to_flux_x
+  END SUBROUTINE compute_flux_x
   !
   !=================================================================
   !
@@ -1083,7 +1084,7 @@ CONTAINS
             &   q_solid,               & ! solid
             &   1._wp,                 & ! density
             &   1._wp                  & ! delta z
-            &) + grav * geo_height(jc,jk,jb)
+            &) + grav * geo_height(jc,jk,jb) * cvd/cpd
         END DO
       END DO
       !$ACC END PARALLEL
@@ -1137,7 +1138,7 @@ CONTAINS
         DO jc = domain%i_startidx_c(jb), domain%i_endidx_c(jb)
           q_liquid = qc(jc,jk,jb) + qr(jc,jk,jb)
           q_solid  = qi(jc,jk,jb) + qs(jc,jk,jb) + qg(jc,jk,jb)
-          u        = energy(jc,jk,jb) - grav * geo_height(jc,jk,jb)
+          u        = energy(jc,jk,jb) - grav * geo_height(jc,jk,jb) * cvd/cpd
           temperature(jc,jk,jb) = &
             & T_from_internal_energy(  &
             &   u,                     & ! internal energy

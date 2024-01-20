@@ -764,6 +764,27 @@ CONTAINS
     !
     ! fluxes at the surface
     !
+    IF ( is_variable_in_output(var_name='pr_eflx') ) THEN
+       CALL add_var( this_list   = cloud_mig_list                                           ,&
+            &        varname     = 'pr_eflx'                                                ,&
+            &        ptr         = cloud_mig_output%pr_eflx                                 ,&
+            &        hgrid       = grid_unstructured_cell                                   ,&
+            &        vgrid       = za_surface                                               ,&
+            &        ldims       = shape2d                                                  ,&
+            &        cf          = t_cf_var ('internal_energy_flux',                         &
+            &                                'W  m-2',                                       &
+            &                                'rainfall energy flux '//                       &
+            &                                '(cloud_mig output)'                           ,&
+            &                                datatype_flt)                                  ,&
+            &        grib2       = grib2_var(0,1,65,                                         &
+            &                                datatype_grb,                                   &
+            &                                grid_unstructured,                              &
+            &                                grid_cell)                                     ,&
+            &        isteptype   = tstep_instant                                            ,&
+            &        lopenacc    =.TRUE.                                                    )
+       __acc_attach(cloud_mig_output%pr_eflx)
+    END IF
+    !
     IF ( is_variable_in_output(var_name='pr_rain') ) THEN
        CALL add_var( this_list   = cloud_mig_list                                           ,&
             &        varname     = 'pr_rain'                                                ,&

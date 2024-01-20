@@ -468,8 +468,8 @@ if [[ "$output_atm_2d" == "yes" ]]; then
                     'prlr'    , 'prls'    ,
                     'qgvi'    , 'qrvi'    , 'qsvi'    ,
                     'uas'     , 'vas'     , 'dew2'    ,
-                    'cptgzvi' , 'uphyvi'  , 'udynvi',
-                    'ssfl_tsa', 'rsfl_tsa', 'shfl_qsa',
+                    'cptgzvi' , 'duphyvi' , 'udynvi'  ,
+                    'ufts'    , 'ufvs'    , 'ufcs'    ,
                     'rpds_dir', 'rpds_dif', 'rvds_dif', 'rnds_dif',
                     'pr_rain', 'pr_ice', 'pr_snow', 'pr_grpl',
 /

@@ -492,6 +492,8 @@ CONTAINS
       km_ie        => diags_atmo%km_ie,        &
       heating      => diags_atmo%heating,   &
       shfl         => diags_sfc%shfl,          &
+      ufts         => diags_sfc%ufts, &
+      ufvs         => diags_sfc%ufvs, &
       q_snocpymlt  => diags_sfc%q_snocpymlt_lnd, &
       rho_ic       => diags_atmo%rho_ic,       &
       zf        => ins_atmo%zf,             &
@@ -515,7 +517,7 @@ CONTAINS
     CALL this%atmo%temp_to_energy(state_ta(:,:,:), energy(:,:,:), use_new_moisture_state=.FALSE.)
 
     ! sfc_flx(:,:) = shfl(:,:)
-    CALL this%atmo%energy_flux_to_flux_x(shfl(:,:), sfc_flx(:,:))
+    CALL this%atmo%compute_flux_x(shfl(:,:), ufts(:,:), ufvs(:,:), sfc_flx(:,:))
 
     IF ( SOLVER_TYPE == 1 ) THEN !Explicit solver
 

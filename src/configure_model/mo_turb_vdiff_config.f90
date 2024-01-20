@@ -138,7 +138,7 @@ CONTAINS
     config%turb     =  VDIFF_TURB_TTE
     config%use_tmx  = .FALSE.
     config%solver_type   = 2
-    config%energy_type   = 1
+    config%energy_type   = 2
     config%smag_constant = 0.23_wp
     config%max_turb_scale= 300._wp
     config%turb_prandtl  = 0.33333333333_wp

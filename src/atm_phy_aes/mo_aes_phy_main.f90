@@ -261,7 +261,6 @@ CONTAINS
     !
     CALL omp_block_loop_cell(patch, diagnose_cov)      ! cloud cover
     CALL omp_block_loop_cell(patch, interface_aes_wmo) ! WMO tropopause height
-    CALL aes_global_diagnostics(patch)                 ! global mean diagnostics
 
   END SUBROUTINE aes_phy_main
   !---------------------------------------------------------------------

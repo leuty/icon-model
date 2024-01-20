@@ -87,6 +87,7 @@ MODULE mo_cloud_mig_types
      REAL(wp), POINTER :: tend_qg_mig (:,:,:)=>NULL() !< [1/s] tendency of mass fraction of graupel     in air
      !
      ! fluxes at the surface
+     REAL(wp), POINTER :: pr_eflx     (:,  :)=>NULL() !< [W/m2] sfc rain energy flux
      REAL(wp), POINTER :: pr_rain     (:,  :)=>NULL() !< [kg/m2/s] sfc rain    flux
      REAL(wp), POINTER :: pr_ice      (:,  :)=>NULL() !< [kg/m2/s] sfc ice     flux
      REAL(wp), POINTER :: pr_snow     (:,  :)=>NULL() !< [kg/m2/s] sfc snow    flux

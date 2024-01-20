@@ -53,7 +53,8 @@ CONTAINS
        &                     pr_rain    ,&
        &                     pr_ice     ,&
        &                     pr_snow    ,&
-       &                     pr_grpl    )
+       &                     pr_grpl    ,&
+       &                     pr_eflx    )
 
     ! Arguments
     !
@@ -86,6 +87,7 @@ CONTAINS
     REAL(wp), INTENT(out) :: pr_ice  (:)   !< precip rate ice
     REAL(wp), INTENT(out) :: pr_snow (:)   !< precip rate snow
     REAL(wp), INTENT(out) :: pr_grpl (:)   !< precip rate graupel
+    REAL(wp), INTENT(out) :: pr_eflx (:)   !< energy flux from precip
 
     ! Local variables
     !
@@ -109,7 +111,7 @@ CONTAINS
 
     !$ACC DATA PRESENT(dz, rho, pf, cpair, cvair, ta, qv, qc, qi, qr, qs, qg) &
     !$ACC   PRESENT(tend_ta, tend_qv, tend_qc, tend_qi, tend_qr, tend_qs, tend_qg) &
-    !$ACC   PRESENT(pr_ice, pr_rain, pr_snow, pr_grpl) &
+    !$ACC   PRESENT(pr_ice, pr_rain, pr_snow, pr_grpl, pr_eflx) &
     !$ACC   CREATE(zqnc, zta, zqv, zqc, zqi, zqr, zqs, zqg, total_ice, zqrsflux)
 
     nproma = SIZE(dz,1)
@@ -188,7 +190,8 @@ CONTAINS
          &        prr_gsp = pr_rain (:)   ,& !<   out: precip rate rain
          &        pri_gsp = pr_ice  (:)   ,& !<   out: precip rate cloud ice
          &        prs_gsp = pr_snow (:)   ,& !<   out: precip rate snow
-         &        prg_gsp = pr_grpl (:)   )  !<   out: precip rate graupel
+         &        prg_gsp = pr_grpl (:)   ,& !<   out: precip rate graupel
+         &        pre_gsp = pr_eflx (:)   )  !<   out: precip energy flux
     !
     IF (ltimer) call timer_stop(timer_grp)
 

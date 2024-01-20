@@ -75,6 +75,7 @@ CONTAINS
     REAL(wp) :: pr_ice(aes_phy_dims(jg)%nproma)
     REAL(wp) :: pr_snow(aes_phy_dims(jg)%nproma)
     REAL(wp) :: pr_grpl(aes_phy_dims(jg)%nproma)
+    REAL(wp) :: pr_eflx(aes_phy_dims(jg)%nproma)
     !
     INTEGER  :: jk, jks, jke
     INTEGER  :: jc
@@ -102,7 +103,7 @@ CONTAINS
     !$ACC   CREATE(tend_ta_mig) &
     !$ACC   CREATE(tend_qv_mig, tend_qc_mig, tend_qi_mig) &
     !$ACC   CREATE(tend_qr_mig, tend_qs_mig, tend_qg_mig) &
-    !$ACC   CREATE(pr_rain, pr_ice, pr_snow, pr_grpl)
+    !$ACC   CREATE(pr_rain, pr_ice, pr_snow, pr_grpl, pr_eflx)
 
     fc_mig = aes_phy_config(jg)% fc_mig
 
@@ -162,13 +163,15 @@ CONTAINS
                &          pr_rain          (:)                ,& !& out: precip rate rain
                &          pr_ice           (:)                ,& !& out: precip rate rain
                &          pr_snow          (:)                ,& !& out: precip rate snow
-               &          pr_grpl          (:)                )  !& out: precip rate graupel
+               &          pr_grpl          (:)                ,& !& out: precip rate graupel
+               &          pr_eflx          (:)                )  !& out: precip rate graupel
           !
           IF (ltimer) CALL timer_stop(timer_cld_mig)
 
           !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1)
           !$ACC LOOP GANG VECTOR
           DO jc = jcs,jce
+             field% ufcs(jc,jb) = pr_eflx(jc)          ! = energy flux from precip
              field% rsfl(jc,jb) = pr_rain(jc)          ! = liquid precip rate
              field% ssfl(jc,jb) = pr_ice(jc)  &        ! = frozen precip rate
                   &             + pr_snow(jc) &
@@ -192,6 +195,7 @@ CONTAINS
           IF (ASSOCIATED(output% pr_ice      )) CALL copy(jcs,jce, pr_ice  (:), output% pr_ice  (:,jb))
           IF (ASSOCIATED(output% pr_snow     )) CALL copy(jcs,jce, pr_snow (:), output% pr_snow (:,jb))
           IF (ASSOCIATED(output% pr_grpl     )) CALL copy(jcs,jce, pr_grpl (:), output% pr_grpl (:,jb))
+          IF (ASSOCIATED(output% pr_eflx     )) CALL copy(jcs,jce, pr_eflx (:), output% pr_eflx (:,jb))
           !
        ELSE    ! is_active
           !
@@ -266,6 +270,7 @@ CONTAINS
        IF (ASSOCIATED(output% pr_ice  )) CALL copy(jcs,jce, 0._wp, output% pr_ice  (:,jb))
        IF (ASSOCIATED(output% pr_snow )) CALL copy(jcs,jce, 0._wp, output% pr_snow (:,jb))
        IF (ASSOCIATED(output% pr_grpl )) CALL copy(jcs,jce, 0._wp, output% pr_grpl (:,jb))
+       IF (ASSOCIATED(output% pr_eflx )) CALL copy(jcs,jce, 0._wp, output% pr_eflx (:,jb))
        !
     END IF     ! is_in_sd_ed_interval
 
