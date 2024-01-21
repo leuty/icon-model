@@ -1242,8 +1242,7 @@ CONTAINS
        !
     END IF
 
-
-    ! hack inhom implementation by scaling the liquid water path
+    ! hack inhom implementation by scaling the condensate water paths
     ! it's important to run this AFTER the longwave
     !$ACC KERNELS DEFAULT(PRESENT) ASYNC(1)
     zlwp(:,:) = zlwp(:,:) * inhoml

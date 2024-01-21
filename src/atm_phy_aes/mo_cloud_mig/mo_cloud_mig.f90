@@ -34,8 +34,6 @@ CONTAINS
        &                     dz         ,&
        &                     rho        ,&
        &                     pf         ,&
-       &                     cpair      ,&
-       &                     cvair      ,&
        &                     ta         ,&
        &                     qv         ,&
        &                     qc         ,&
@@ -64,8 +62,6 @@ CONTAINS
     REAL(wp), INTENT(in)  :: dz      (:,:) !< vertical layer thickness
     REAL(wp), INTENT(in)  :: rho     (:,:) !< density
     REAL(wp), INTENT(in)  :: pf      (:,:) !< pressure
-    REAL(wp), INTENT(in)  :: cpair   (:,:) !< isobaric specific heat of air
-    REAL(wp), INTENT(in)  :: cvair   (:,:) !< isometric specific heat of air
     !
     REAL(wp), INTENT(in)  :: ta      (:,:) !< temperature
     REAL(wp), INTENT(in)  :: qv      (:,:) !< sp humidity
@@ -109,7 +105,7 @@ CONTAINS
     !
     REAL(wp) :: zdtr ! reciprocal of timestep
 
-    !$ACC DATA PRESENT(dz, rho, pf, cpair, cvair, ta, qv, qc, qi, qr, qs, qg) &
+    !$ACC DATA PRESENT(dz, rho, pf, ta, qv, qc, qi, qr, qs, qg) &
     !$ACC   PRESENT(tend_ta, tend_qv, tend_qc, tend_qi, tend_qr, tend_qs, tend_qg) &
     !$ACC   PRESENT(pr_ice, pr_rain, pr_snow, pr_grpl, pr_eflx) &
     !$ACC   CREATE(zqnc, zta, zqv, zqc, zqi, zqr, zqs, zqg, total_ice, zqrsflux)
@@ -220,7 +216,7 @@ CONTAINS
     !$ACC LOOP GANG VECTOR COLLAPSE(2)
     DO jk = jks,jke
        DO jc = jcs,jce
-          tend_ta(jc,jk) =     (zta(jc,jk)-ta(jc,jk))*zdtr*cvair(jc,jk)/cpair(jc,jk)
+          tend_ta(jc,jk) =     (zta(jc,jk)-ta(jc,jk))*zdtr
           tend_qv(jc,jk) = MAX((zqv(jc,jk)-qv(jc,jk))*zdtr,-qv(jc,jk)*zdtr)
           tend_qc(jc,jk) = MAX((zqc(jc,jk)-qc(jc,jk))*zdtr,-qc(jc,jk)*zdtr)
           tend_qi(jc,jk) = MAX((zqi(jc,jk)-qi(jc,jk))*zdtr,-qi(jc,jk)*zdtr)

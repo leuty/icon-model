@@ -696,7 +696,7 @@ CONTAINS
       heating      => diags_atmo%heating,      &
       zf           => ins_atmo%zf,             &
       mair         => ins_atmo%mair,           &
-      q2t_factor   => ins_atmo%q2t_factor,     &
+      cvair        => ins_atmo%cvair,          &
       rho          => ins_atmo%rho,            &
       inv_dzf      => ins_atmo%inv_dzf,        &
       dissip_kin_energy => diags_atmo%dissip_kin_energy &
@@ -1129,7 +1129,7 @@ CONTAINS
             &                                    + state_v(jc,jk,jb)**2 - new_state_v(jc,jk,jb)**2 &
             &                                    ) * mair(jc,jk,jb) / dtime
           heating(jc,jk,jb) = heating(jc,jk,jb) + dissip_kin_energy(jc,jk,jb)
-          tend_ta(jc,jk,jb) = tend_ta(jc,jk,jb) + heating(jc,jk,jb) * q2t_factor(jc,jk,jb)
+          tend_ta(jc,jk,jb) = tend_ta(jc,jk,jb) + heating(jc,jk,jb) / cvair(jc,jk,jb)
           new_state_ta(jc,jk,jb) = state_ta(jc,jk,jb) + tend_ta(jc,jk,jb) * dtime
         END DO
       END DO

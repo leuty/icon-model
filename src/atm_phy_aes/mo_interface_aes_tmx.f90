@@ -374,7 +374,7 @@ CONTAINS
             END IF
 
             ! convert heating
-            tend_ta_rlw_impl(jc,jb) = q_rlw_impl(jc,jb) * field%qconv(jc,nlev,jb)
+            tend_ta_rlw_impl(jc,jb) = q_rlw_impl(jc,jb) / field%cvair(jc,nlev,jb)
             !
             IF (ASSOCIATED(tend%ta_rlw_impl)) THEN
               tend%ta_rlw_impl(jc,jb) = tend_ta_rlw_impl(jc,jb)
@@ -569,8 +569,7 @@ CONTAINS
     CALL bind_variable(vdf%atmo%inputs%list%Search('virtual temperature'), field%tv)
     CALL bind_variable(vdf%atmo%inputs%list%Search('air density'),         field%rho)
     CALL bind_variable(vdf%atmo%inputs%list%Search('moist air mass'),      field%mair)
-    CALL bind_variable(vdf%atmo%inputs%list%Search('conv. factor layer heating to temp. tendency'), field%qconv)
-    ! CALL bind_variable(vdf%atmo%inputs%list%Search('specific heat of air at constant pressure'),  field%cpair)
+    CALL bind_variable(vdf%atmo%inputs%list%Search('specific heat of air at constant volume'),  field%cvair)
     CALL bind_variable(vdf%atmo%inputs%list%Search('geometric height full'), field%zf)
     CALL bind_variable(vdf%atmo%inputs%list%Search('geometric height half'), field%zh)
     !

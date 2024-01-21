@@ -395,30 +395,6 @@ CONTAINS
        __acc_attach(cloud_two_input%pf)
     END IF
     !
-    IF ( is_variable_in_output(var_name='cpair_two') ) THEN
-       CALL add_var( this_list   = cloud_two_list                                           ,&
-            &        varname     = 'cpair_two'                                              ,&
-            &        ptr         = cloud_two_input%cpair                                    ,&
-            &        hgrid       = grid_unstructured_cell                                   ,&
-            &        vgrid       = za_reference                                             ,&
-            &        ldims       = shape3d                                                  ,&
-            &        cf          = t_cf_var ('air_specific_heat',                            &
-            &                                'J/K/kg',                                       &
-            &                                'specific heat of air at constant pressure '//  &
-            &                                '(cloud_two input)',                            &
-            &                                datatype_flt)                                  ,&
-            &        grib2       = grib2_var(0,0,255,                                        &
-            &                                datatype_grb,                                   &
-            &                                grid_unstructured,                              &
-            &                                grid_cell)                                     ,&
-            &        isteptype   = tstep_instant                                            ,&
-            &        vert_interp = create_vert_interp_metadata(                              &
-            &                             vert_intp_type   = vintp_types("P","Z","I"),       &
-            &                             vert_intp_method = vintp_method_lin)              ,&
-            &        lopenacc    =.TRUE.                                                    )
-       __acc_attach(cloud_two_input%cpair)
-    END IF
-    !
     ! Input fields (2)
     ! -----------------
     !

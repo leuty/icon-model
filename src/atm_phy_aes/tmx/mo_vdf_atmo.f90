@@ -100,7 +100,7 @@ MODULE mo_vdf_atmo
       & ptvm1(:,:,:) => NULL() , &
       & rho(:,:,:) => NULL() , &
       & mair(:,:,:) => NULL() , &
-      & q2t_factor(:,:,:) => NULL() , &
+      & cvair(:,:,:) => NULL() , &
       & zf(:,:,:) => NULL() , &
       & zh(:,:,:) => NULL() , &
       ! exchange coefficient + boundary condition
@@ -526,8 +526,8 @@ CONTAINS
     ! CALL inlist%append(t_variable('saturation specific humidity', shape_3d, "kg/kg", type_id="real"))
     CALL inlist%append(t_variable('moist air mass', shape_3d, "kg/m2", type_id="real"))
     ! CALL inlist%append(t_variable('specific heat of air at constant pressure', shape_3d, "J/kg/K", type_id="real"))
-    ! CALL inlist%append(t_variable('specific heat of air at constant volume',   shape_3d, "J/kg/K", type_id="real"))
-    CALL inlist%append(t_variable('conv. factor layer heating to temp. tendency', shape_3d, "(K/s)/(W/m2)", type_id="real"))
+    CALL inlist%append(t_variable('specific heat of air at constant volume',   shape_3d, "J/kg/K", type_id="real"))
+    ! CALL inlist%append(t_variable('conv. factor layer heating to temp. tendency', shape_3d, "(K/s)/(W/m2)", type_id="real"))
     CALL inlist%append(t_variable('geometric height full', shape_3d, "m", type_id="real"))
 
     shape_3d = [nproma,nlev+1,nblks_c]
@@ -551,10 +551,8 @@ CONTAINS
       this%rho     => this%list%Get_ptr_r3d('air density')
       __acc_attach(this%rho)
       this%mair    => this%list%Get_ptr_r3d('moist air mass')
-      ! this%cpair   => this%list%Get_ptr_r3d('specific heat of air at constant pressure')
-      ! this%cvair   => this%list%Get_ptr_r3d('specific heat of air at constant volume')
-      this%q2t_factor => this%list%get_ptr_r3d('conv. factor layer heating to temp. tendency')
-      __acc_attach(this%q2t_factor)
+      this%cvair   => this%list%Get_ptr_r3d('specific heat of air at constant volume')
+      __acc_attach(this%cvair)
       this%zf      => this%list%Get_ptr_r3d('geometric height full')
       __acc_attach(this%zf)
       this%zh      => this%list%Get_ptr_r3d('geometric height half')

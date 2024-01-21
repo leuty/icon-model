@@ -350,32 +350,6 @@ CONTAINS
        __acc_attach(cloud_mig_input%pf)
     END IF
     !
-    IF ( is_variable_in_output(var_name='cpair_mig') ) THEN
-       CALL add_var( this_list   = cloud_mig_list                                           ,&
-            &        varname     = 'cpair_mig'                                              ,&
-            &        ptr         = cloud_mig_input%cpair                                    ,&
-            &        hgrid       = grid_unstructured_cell                                   ,&
-            &        vgrid       = za_reference                                             ,&
-            &        ldims       = shape3d                                                  ,&
-            &        cf          = t_cf_var ('specific_heat_capacity_of_air_'//              &
-                                             'at_constant_pressure',                         &
-            &                                'J/K/kg',                                       &
-            &                                'specific heat capacity of air '//              &
-                                             'at constant pressure '//                       &
-            &                                '(cloud_mig input)',                            &
-            &                                datatype_flt)                                  ,&
-            &        grib2       = grib2_var(0,0,255,                                        &
-            &                                datatype_grb,                                   &
-            &                                grid_unstructured,                              &
-            &                                grid_cell)                                     ,&
-            &        isteptype   = tstep_instant                                            ,&
-            &        vert_interp = create_vert_interp_metadata(                              &
-            &                             vert_intp_type   = vintp_types("P","Z","I"),       &
-            &                             vert_intp_method = vintp_method_lin)              ,&
-            &        lopenacc    =.TRUE.                                                    )
-       __acc_attach(cloud_mig_input%cpair)
-    END IF
-    !
     IF ( is_variable_in_output(var_name='ta_mig') ) THEN
        CALL add_var( this_list   = cloud_mig_list                                           ,&
             &        varname     = 'ta_mig'                                                 ,&

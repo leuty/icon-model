@@ -123,8 +123,6 @@ CONTAINS
     IF (ASSOCIATED(input% dz    )) CALL copy(jcs,jce, jks,jke, field% dz        (:,:,jb)    , input% dz    (:,:,jb))
     IF (ASSOCIATED(input% rho   )) CALL copy(jcs,jce, jks,jke, field% rho       (:,:,jb)    , input% rho   (:,:,jb))
     IF (ASSOCIATED(input% pf    )) CALL copy(jcs,jce, jks,jke, field% pfull     (:,:,jb)    , input% pf    (:,:,jb))
-    IF (ASSOCIATED(input% cpair )) CALL copy(jcs,jce, jks,jke, field% cpair     (:,:,jb)    , input% cpair (:,:,jb))
-    IF (ASSOCIATED(input% cvair )) CALL copy(jcs,jce, jks,jke, field% cvair     (:,:,jb)    , input% cvair (:,:,jb))
     IF (ASSOCIATED(input% ta    )) CALL copy(jcs,jce, jks,jke, field% ta        (:,:,jb)    , input% ta    (:,:,jb))
     IF (ASSOCIATED(input% qv    )) CALL copy(jcs,jce, jks,jke, field% qtrc_phy  (:,:,jb,iqv), input% qv    (:,:,jb))
     IF (ASSOCIATED(input% qc    )) CALL copy(jcs,jce, jks,jke, field% qtrc_phy  (:,:,jb,iqc), input% qc    (:,:,jb))
@@ -144,8 +142,6 @@ CONTAINS
                &          field% dz        (:,jks:jke,jb)     ,& !< in : vertical layer thickness
                &          field% rho       (:,jks:jke,jb)     ,& !< in : density
                &          field% pfull     (:,jks:jke,jb)     ,& !< in : pressure
-               &          field% cpair     (:,jks:jke,jb)     ,& !< in : isobaric specific heat of air
-               &          field% cvair     (:,jks:jke,jb)     ,& !< in : isometric specific heat of air
                &          field% ta        (:,jks:jke,jb)     ,& !< in : temperature
                &          field% qtrc_phy  (:,jks:jke,jb,iqv) ,& !< in : sp humidity
                &          field% qtrc_phy  (:,jks:jke,jb,iqc) ,& !< in : cloud water

@@ -281,9 +281,7 @@ MODULE mo_aes_phy_memory
 
     ! Energy and moisture budget related diagnostic variables
     REAL(wp),POINTER ::     &
-      & cpair    (:,:,:)=>NULL(),   &!< specific heat of air at constant pressure [J/kg/K]
       & cvair    (:,:,:)=>NULL(),   &!< specific heat of air at constant volume   [J/kg/K]
-      & qconv    (:,:,:)=>NULL(),   &!< convert heating to temp tend. [(K/s)/(W/m^2)]
       !
       & q_phy    (:,:,:)=>NULL(),   &!< layer heating by physics [W/m^2]
       & q_phy_vi (:,  :)=>NULL(),   &!< vertically integrated heating by physics [W/m^2]
@@ -2465,21 +2463,6 @@ CONTAINS
     ! Variables for energy diagnostic of aes physics
     !---------------------------
 
-    CALL add_var( field_list, prefix//'cpair', field%cpair,                       &
-                & GRID_UNSTRUCTURED_CELL, ZA_REFERENCE,                           &
-                & t_cf_var('cpair', 'J/kg/K',                                     &
-                &          'specific heat of air at constant pressure',           &
-                &          datatype_flt),                                         &
-                & grib2_var(0,0,255, ibits, GRID_UNSTRUCTURED, GRID_CELL),        &
-                & ldims=shape3d,                                                  &
-                & lrestart = .FALSE.,                                             &
-                & vert_interp=create_vert_interp_metadata(                        &
-                &   vert_intp_type=vintp_types("P","Z","I"),                      &
-                &   vert_intp_method=VINTP_METHOD_LIN ),                          &
-                & lopenacc=.TRUE.)
-
-    __acc_attach(field%cpair)
-
     CALL add_var( field_list, prefix//'cvair', field%cvair,                       &
                 & GRID_UNSTRUCTURED_CELL, ZA_REFERENCE,                           &
                 & t_cf_var('cvair', 'J/kg/K',                                     &
@@ -2494,21 +2477,6 @@ CONTAINS
                 & lopenacc=.TRUE.)
 
     __acc_attach(field%cvair)
-
-    CALL add_var( field_list, prefix//'qconv', field%qconv,                       &
-                & GRID_UNSTRUCTURED_CELL, ZA_REFERENCE,                           &
-                & t_cf_var('qconv', '(K/s)/(W/m2)',                               &
-                &          'conv. factor layer heating to temp. tendency',        &
-                &          datatype_flt),                                         &
-                & grib2_var(0,0,255, ibits, GRID_UNSTRUCTURED, GRID_CELL),        &
-                & ldims=shape3d,                                                  &
-                & lrestart = .FALSE.,                                             &
-                & vert_interp=create_vert_interp_metadata(                        &
-                &   vert_intp_type=vintp_types("P","Z","I"),                      &
-                &   vert_intp_method=VINTP_METHOD_LIN ),                          &
-                & lopenacc=.TRUE.)
-
-    __acc_attach(field%qconv)
 
     IF (is_variable_in_output(var_name=prefix//'q_phy')) THEN
        CALL add_var( field_list, prefix//'q_phy', field%q_phy,                       &
