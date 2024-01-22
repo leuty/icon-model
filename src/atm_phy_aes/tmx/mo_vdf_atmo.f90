@@ -135,15 +135,18 @@ MODULE mo_vdf_atmo
     REAL(wp), POINTER :: &
       cpd => NULL(), &
       cvd => NULL(), &
+      dissipation_factor => NULL(), &
       rturb_prandtl => NULL(), &
       turb_prandtl  => NULL(), &
+      louis_constant_b => NULL(), &
       km_min => NULL(), &
       dtime => NULL(),  &
       k_s => NULL()
     INTEGER, POINTER :: &
       solver_type => NULL(), &
-      energy_type => NULL(), &
-      stability_correction => NULL()
+      energy_type => NULL()
+    LOGICAL, POINTER :: &
+      use_louis  => NULL()
     CONTAINS
     ! PROCEDURE :: Init => init_t_vdf_atmo_variable_set
     PROCEDURE :: Set_pointers => Set_pointers_config
@@ -159,6 +162,7 @@ MODULE mo_vdf_atmo
       & pprfac(:,:,:) => NULL(), &
       & rho_ic(:,:,:) => NULL(), &
       & bruvais(:,:,:) => NULL(), &
+      & stability_function(:,:,:) => NULL(), &
       & vn_ie(:,:,:) => NULL(), &
       & vt_ie(:,:,:) => NULL(), &
       & w_ie(:,:,:)  => NULL(), &
@@ -180,6 +184,7 @@ MODULE mo_vdf_atmo
       & dissip_kin_energy(:,:,:) => NULL(), &
       & dissip_kin_energy_vi(:,:) => NULL(), &
       & heating(:,:,:) => NULL(), &
+      & scaling_factor_louis(:,:) => NULL(), &
       & internal_energy_vi(:,:) => NULL(), &
       & internal_energy_vi_tend(:,:) => NULL()
       ! boundary condition
@@ -452,10 +457,12 @@ CONTAINS
     CALL configlist%append(t_variable('minimum Km', shape_0d, "m2/s", type_id="real"))
     CALL configlist%append(t_variable('k_s', shape_0d, "", type_id="real"))
     CALL configlist%append(t_variable('prandtl number', shape_0d, "", type_id="real"))
+    CALL configlist%append(t_variable('switch to activate Louis formula', shape_0d, "", type_id="logical"))
+    CALL configlist%append(t_variable('Louis constant b', shape_0d, "", type_id="real"))
     CALL configlist%append(t_variable('time step', shape_0d, "s", type_id="real"))
     CALL configlist%append(t_variable('solver type', shape_0d, "", type_id="integer"))
     CALL configlist%append(t_variable('energy type', shape_0d, "", type_id="integer"))
-    CALL configlist%append(t_variable('stability_correction', shape_0d, "", type_id="integer"))
+    CALL configlist%append(t_variable('dissipation factor', shape_0d, "", type_id="real"))
 
   END FUNCTION build_atmo_config_list
 
@@ -473,6 +480,10 @@ CONTAINS
       __acc_attach(this%rturb_prandtl)
       this%turb_prandtl  => this%list%Get_ptr_r0d('prandtl number')
       __acc_attach(this%turb_prandtl)
+      this%use_louis  => this%list%Get_ptr_l0d('switch to activate Louis formula')
+      __acc_attach(this%use_louis)
+      this%louis_constant_b => this%list%Get_ptr_r0d('Louis constant b')
+      __acc_attach(this%louis_constant_b)
       this%km_min => this%list%Get_ptr_r0d('minimum Km')
       __acc_attach(this%km_min)
       this%k_s => this%list%Get_ptr_r0d('k_s')
@@ -483,8 +494,8 @@ CONTAINS
       __acc_attach(this%solver_type)
       this%energy_type => this%list%Get_ptr_i0d('energy type')
       __acc_attach(this%energy_type)
-      this%stability_correction => this%list%Get_ptr_i0d('stability_correction')
-      __acc_attach(this%stability_correction)
+      this%dissipation_factor => this%list%Get_ptr_r0d('dissipation factor')
+      __acc_attach(this%dissipation_factor)
     END SELECT
 
   END SUBROUTINE Set_pointers_config
@@ -646,6 +657,7 @@ CONTAINS
     shape_3d = [nproma,nlevp1,nblks_c]
     CALL diaglist%append(t_variable('air density interface', shape_3d, "kg/m3", type_id="real"))
     CALL diaglist%append(t_variable('brunt vaisal freq', shape_3d, "", type_id="real"))
+    CALL diaglist%append(t_variable('stability function', shape_3d, "", type_id="real"))
     CALL diaglist%append(t_variable('mechanical production', shape_3d, "", type_id="real"))
     CALL diaglist%append(t_variable('exchange coefficient momentum interface', shape_3d, "m2/s", type_id="real"))
     CALL diaglist%append(t_variable('exchange coefficient scalar interface', shape_3d, "m2/s", type_id="real"))
@@ -655,6 +667,7 @@ CONTAINS
     CALL diaglist%append(t_variable('sensible heat flux surface', shape_2d, "W/m2", type_id="real"))
     CALL diaglist%append(t_variable('static energy, vert. int.', shape_2d, "m2 s-2", type_id="real"))
     CALL diaglist%append(t_variable('dissipation of kinetic energy, vert. int.', shape_2d, "W/m2", type_id="real"))
+    CALL diaglist%append(t_variable('scaling factor for Louis constant b', shape_2d, "", type_id="real"))
     CALL diaglist%append(t_variable('moist internal energy after tmx, vert. int.', shape_2d, "J m-2", type_id="real"))
     CALL diaglist%append(t_variable('tendency of vert. int. moist internal energy', shape_2d, "J m-2 s-1", type_id="real"))
 
@@ -708,6 +721,8 @@ CONTAINS
       __acc_attach(this%kh_ic)
       this%bruvais => this%list%Get_ptr_r3d('brunt vaisal freq')
       __acc_attach(this%bruvais)
+      this%stability_function => this%list%Get_ptr_r3d('stability function')
+      __acc_attach(this%stability_function)
       this%vn_ie => this%list%Get_ptr_r3d('normal wind at edge')
       __acc_attach(this%vn_ie)
       this%vt_ie => this%list%Get_ptr_r3d('tangential wind at edge')
@@ -738,6 +753,8 @@ CONTAINS
       __acc_attach(this%dissip_kin_energy)
       this%dissip_kin_energy_vi => this%list%Get_ptr_r2d('dissipation of kinetic energy, vert. int.')
       __acc_attach(this%dissip_kin_energy_vi)
+      this%scaling_factor_louis => this%list%Get_ptr_r2d('scaling factor for Louis constant b')
+      __acc_attach(this%scaling_factor_louis)
       this%internal_energy_vi => this%list%Get_ptr_r2d('moist internal energy after tmx, vert. int.')
       __acc_attach(this%internal_energy_vi)
       this%internal_energy_vi_tend => this%list%Get_ptr_r2d('tendency of vert. int. moist internal energy')
@@ -1260,13 +1277,19 @@ CONTAINS
     INTEGER :: i_startblk, i_endblk, i_startidx, i_endidx
     INTEGER :: rl_start, rl_end
 
+    REAL(wp), DIMENSION(:,:), POINTER :: area
+
     REAL(wp) :: zvn1, zvn2
     REAL(wp) :: vn_vert1, vn_vert2, vn_vert3, vn_vert4
     REAL(wp) :: vt_vert1, vt_vert2, vt_vert3, vt_vert4
     REAL(wp) :: w_full_c1, w_full_c2, w_full_v1, w_full_v2
     REAL(wp) :: D_11, D_12, D_13, D_22, D_23, D_33
+    REAL(wp) :: Ri
 
     REAL(wp), POINTER :: rturb_prandtl
+
+    ! Global mean of cell area for R2B8 [m]
+    REAL(wp), PARAMETER :: mean_area_R2B8 = 97294071.23714285_wp
 
     CHARACTER(len=*), PARAMETER :: routine = modname//':compute_exchange_coefficients'
 
@@ -1317,8 +1340,10 @@ CONTAINS
       papm1    => ins%papm1,     &
       paphm1   => ins%paphm1,    &
       theta_v  => diags%theta_v, &
+      scaling_factor_louis => diags%scaling_factor_louis, &
       pprfac   => diags%pprfac,  &
       bruvais  => diags%bruvais, &
+      stability_function => diags%stability_function, &
       rho_ic   => diags%rho_ic,  &
       km_min   => conf%km_min,   &
       ! kh       => diags%kh,      &
@@ -1340,6 +1365,8 @@ CONTAINS
       w_vert   => diags%w_vert,  &
       div_c    => diags%div_c,   &
       ! rturb_prandtl=> conf%rturb_prandtl,&
+      use_louis => conf%use_louis, &
+      louis_constant_b => conf%louis_constant_b, &
       turb_prandtl=> conf%turb_prandtl &
       )
 
@@ -1350,17 +1377,27 @@ CONTAINS
     nlevm1 = nlev-1
     nlevp1 = nlev+1
 
-   CALL sync_patch_array(SYNC_C, patch, pum1)
-   CALL sync_patch_array(SYNC_C, patch, pvm1)
+    ! Scaling factor for Louis constant b, designed to be 1 with R2B8
+    area => patch%cells%area
+!$OMP PARALLEL DO PRIVATE(jb,jc) ICON_OMP_DEFAULT_SCHEDULE
+    DO jb = domain%i_startblk_c, domain%i_endblk_c
+      !$ACC PARALLEL LOOP DEFAULT(PRESENT) GANG VECTOR ASYNC(1)
+      DO jc = domain%i_startidx_c(jb), domain%i_endidx_c(jb)
+        scaling_factor_louis(jc,jb) = mean_area_R2B8 / area(jc,jb)
+      END DO
+      !$ACC END PARALLEL LOOP
+    END DO
+!$OMP END PARALLEL DO
 
-  !  i_startidx_e => domain%i_startidx_e(:) ! Start indices on edges (for each block)
-  !  i_endidx_e   => domain%i_endidx_e(:)   ! End indices on edges (for each block)
-   rturb_prandtl=> conf%rturb_prandtl
+    CALL sync_patch_array(SYNC_C, patch, pum1)
+    CALL sync_patch_array(SYNC_C, patch, pvm1)
 
-   rl_start   = grf_bdywidth_e+1
-   rl_end     = min_rledge_int
-   i_startblk = patch%edges%start_block(rl_start)
-   i_endblk   = patch%edges%end_block(rl_end)
+    rturb_prandtl=> conf%rturb_prandtl
+
+    rl_start   = grf_bdywidth_e+1
+    rl_end     = min_rledge_int
+    i_startblk = patch%edges%start_block(rl_start)
+    i_endblk   = patch%edges%end_block(rl_end)
 
 !$OMP PARALLEL DO PRIVATE(jb, jk, je, i_startidx, i_endidx, jcn, jbn, zvn1, zvn2) ICON_OMP_DEFAULT_SCHEDULE
     DO jb = i_startblk, i_endblk ! domain%i_startblk_e, domain%i_endblk_e
@@ -1420,14 +1457,11 @@ CONTAINS
     END DO
 !$OMP END PARALLEL DO
 
-
     !Get rho at interfaces to be used later
     CALL vert_intp_full2half_cell_3d(patch, p_nh_metrics, rho, rho_ic, &
                                      2, min_rlcell_int-2, lacc=.TRUE.)
 
     CALL brunt_vaisala_freq(patch, p_nh_metrics, theta_v, bruvais, lacc=.TRUE.)
-
-
 
     !--------------------------------------------------------------------------
     !1) Interpolate velocities at desired locations- mostly around the quadrilateral
@@ -1699,6 +1733,51 @@ CONTAINS
     i_startblk = patch%cells%start_block(rl_start)
     i_endblk   = patch%cells%end_block(rl_end)
 
+    IF (use_louis) THEN
+
+!$OMP PARALLEL DO PRIVATE(jb, jk, jc, i_startidx, i_endidx) ICON_OMP_DEFAULT_SCHEDULE
+      DO jb = i_startblk,i_endblk
+        CALL get_indices_c(patch, jb, i_startblk, i_endblk, &
+                            i_startidx, i_endidx, rl_start, rl_end)
+      !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1)
+      !$ACC LOOP GANG(STATIC: 1) VECTOR COLLAPSE(2)
+#ifdef __LOOP_EXCHANGE
+        DO jc = i_startidx, i_endidx
+          DO jk = 2 , nlev
+#else
+        DO jk = 2 , nlev
+          DO jc = i_startidx, i_endidx
+#endif
+
+            Ri  = 2._wp * bruvais(jc,jk,jb) / mech_prod(jc,jk,jb) 
+
+            Stability_function(jc,jk,jb) =                                &
+            &  MAX(1.0_wp - Ri*rturb_prandtl,                             &
+            &      MIN(1._wp, 1._wp/(1._wp+louis_constant_b*scaling_factor_louis(jc,jb)*ABS(Ri))**3))
+
+            kh_ic(jc,jk,jb) = rho_ic(jc,jk,jb) * rturb_prandtl *          &
+                              p_nh_metrics%mixing_length_sq(jc,jk,jb) *   &
+                              SQRT( mech_prod(jc,jk,jb) * 0.5_wp ) *      &
+                              SQRT( Stability_function(jc,jk,jb) )
+
+            km_ic(jc,jk,jb) = kh_ic(jc,jk,jb) * turb_prandtl
+          END DO
+        END DO
+        !$ACC END PARALLEL
+        !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1)
+        !$ACC LOOP GANG VECTOR
+        DO jc = i_startidx, i_endidx
+          kh_ic(jc,1,jb)      = kh_ic(jc,2,jb)
+          kh_ic(jc,nlevp1,jb) = kh_ic(jc,nlev,jb)
+          km_ic(jc,1,jb)      = km_ic(jc,2,jb)
+          km_ic(jc,nlevp1,jb) = km_ic(jc,nlev,jb)
+        END DO
+        !$ACC END PARALLEL
+      END DO
+!$OMP END PARALLEL DO
+
+  ELSE
+
 !$OMP PARALLEL DO PRIVATE(jb, jk, jc, i_startidx, i_endidx) ICON_OMP_DEFAULT_SCHEDULE
     DO jb = i_startblk,i_endblk
       CALL get_indices_c(patch, jb, i_startblk, i_endblk, &
@@ -1731,6 +1810,8 @@ CONTAINS
       !$ACC END PARALLEL
     END DO
 !$OMP END PARALLEL DO
+
+END IF
 
     !$ACC WAIT
 

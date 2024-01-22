@@ -678,8 +678,9 @@ CONTAINS
       i_endblk_c   => this%domain%i_endblk_c,      &
       i_startidx_c => this%domain%i_startidx_c(:), &
       i_endidx_c   => this%domain%i_endidx_c(:),   &
-      dtime        => conf_atmo%dtime,      &
-      solver_type  => conf_atmo%solver_type,&
+      dtime        => conf_atmo%dtime,             &
+      solver_type  => conf_atmo%solver_type,       &
+      dissipation_factor => conf_atmo%dissipation_factor, &
       rturb_prandtl=> conf_atmo%rturb_prandtl,&
       km_c         => diags_atmo%km_c,         &
       km_iv        => diags_atmo%km_iv,        &
@@ -1127,7 +1128,7 @@ CONTAINS
         DO jc = i_startidx_c(jb), i_endidx_c(jb)
           dissip_kin_energy(jc,jk,jb) = 0.5_wp * ( state_u(jc,jk,jb)**2 - new_state_u(jc,jk,jb)**2 &
             &                                    + state_v(jc,jk,jb)**2 - new_state_v(jc,jk,jb)**2 &
-            &                                    ) * mair(jc,jk,jb) / dtime
+            &                                    ) * mair(jc,jk,jb) * dissipation_factor / dtime
           heating(jc,jk,jb) = heating(jc,jk,jb) + dissip_kin_energy(jc,jk,jb)
           tend_ta(jc,jk,jb) = tend_ta(jc,jk,jb) + heating(jc,jk,jb) / cvair(jc,jk,jb)
           new_state_ta(jc,jk,jb) = state_ta(jc,jk,jb) + tend_ta(jc,jk,jb) * dtime

@@ -556,9 +556,12 @@ CONTAINS
     CALL bind_variable(vdf%atmo%config%list%Search('minimum Km'),aes_vdf_config(1)%km_min)
     CALL bind_variable(vdf%atmo%config%list%Search('reverse prandtl number'),aes_vdf_config(1)%rturb_prandtl)
     CALL bind_variable(vdf%atmo%config%list%Search('prandtl number'),aes_vdf_config(1)%turb_prandtl)
+    CALL bind_variable(vdf%atmo%config%list%Search('switch to activate Louis formula'),aes_vdf_config(1)%use_louis)
+    CALL bind_variable(vdf%atmo%config%list%Search('Louis constant b'),aes_vdf_config(1)%louis_constant_b)
     CALL bind_variable(vdf%atmo%config%list%Search('time step'),dtime)
     CALL bind_variable(vdf%atmo%config%list%Search('solver type'), aes_vdf_config(1)%solver_type)
     CALL bind_variable(vdf%atmo%config%list%Search('energy type'), aes_vdf_config(1)%energy_type)
+    CALL bind_variable(vdf%atmo%config%list%Search('dissipation factor'), aes_vdf_config(1)%dissipation_factor)
 
     ! Bind variables to atmo input list
     ! 3d

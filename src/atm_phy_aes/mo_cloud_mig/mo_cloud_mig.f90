@@ -20,12 +20,13 @@ MODULE mo_cloud_mig
        &                            timer_sat, timer_grp
 
   USE mo_aes_thermo          ,ONLY: saturation_adjustment
-  USE gscp_data              ,ONLY: cloud_num
   USE mo_aes_graupel         ,ONLY: graupel
 
   IMPLICIT NONE
   PRIVATE
   PUBLIC  :: cloud_mig
+
+  REAL(wp), PARAMETER ::  cloud_num =  50.00e+06_wp   ! cloud droplet number concentration
 
 CONTAINS
 
