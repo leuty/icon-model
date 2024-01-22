@@ -99,7 +99,7 @@ if ( -d $srcdir."/.svn" ) {
     $revision = $revisions[0];
     $revision =~ s/Revision: */r/;
     $revision =~ s/ *\n//;
-} elsif ( -d $srcdir."/.git" ) {
+} elsif ( -e $srcdir."/.git" ) {
     $remote_url = `git --git-dir $srcdir/.git config --get remote.origin.url`;
     chomp($remote_url);
     my @branches = `git --git-dir $srcdir/.git branch`;	
@@ -112,7 +112,7 @@ if ( -d $srcdir."/.svn" ) {
     $revision = $revisions[0];
     $revision =~ s/commit *//;
     $revision =~ s/ *\n//;
-    if ( -d $srcdir."/externals/art/.git" ) {
+    if ( -e $srcdir."/externals/art/.git" ) {
         $art_remote_url = `git --git-dir $srcdir/externals/art/.git config --get remote.origin.url`;
         chomp($art_remote_url);
         my @art_branches = `git --git-dir $srcdir//externals/art/.git branch`;	
@@ -153,7 +153,9 @@ if ( -e "version.c") {
 
 print $version_c "#ifdef __xlc__\n";
 print $version_c "#pragma comment(user,\"$remote_url,$branch,$revision\")\n";
-print $version_c "#pragma comment(user,\"$art_remote_url,$art_branch,$art_revision\")\n";
+if($art_revision) {
+    print $version_c "#pragma comment(user,\"$art_remote_url,$art_branch,$art_revision\")\n";
+}
 print $version_c "#endif\n";
 print $version_c "#include <string.h>\n";
 print $version_c "\n";
@@ -161,9 +163,11 @@ print $version_c "const char remote_url[] = \"$remote_url\";\n";
 print $version_c "const char branch[] = \"$branch\";\n";
 print $version_c "const char revision[] = \"$revision\";\n"; 
 print $version_c "const char git_tag[] = \"$git_tag\";\n"; 
-print $version_c "const char art_remote_url[] = \"$art_remote_url\";\n";
-print $version_c "const char art_branch[] = \"$art_branch\";\n";
-print $version_c "const char art_revision[] = \"$art_revision\";\n"; 
+if($art_revision) {
+    print $version_c "const char art_remote_url[] = \"$art_remote_url\";\n";
+    print $version_c "const char art_branch[] = \"$art_branch\";\n";
+    print $version_c "const char art_revision[] = \"$art_revision\";\n";
+}
 print $version_c "\n";
 print $version_c "void repository_url(char *name, int *actual_len)\n";
 print $version_c "{\n";
@@ -225,51 +229,52 @@ print $version_c "\n";
 print $version_c "  return;\n";
 print $version_c "}\n";
 print $version_c "\n";
-
-print $version_c "void art_repository_url(char *name, int *actual_len)\n";
-print $version_c "{\n";
-print $version_c "  if (strlen(art_remote_url) > *actual_len)\n";
-print $version_c "    {\n";
-print $version_c "      *actual_len = 0;\n";
-print $version_c "    }\n";
-print $version_c "  else\n";
-print $version_c "    {\n";
-print $version_c "      strcpy(name, art_remote_url);\n";
-print $version_c "      *actual_len = strlen(name);\n";
-print $version_c "    }\n";
-print $version_c "\n";
-print $version_c "  return;\n";
-print $version_c "}\n";
-print $version_c "void art_branch_name(char *name, int *actual_len)\n";
-print $version_c "{\n";
-print $version_c "  if (strlen(art_branch) > *actual_len)\n";
-print $version_c "    {\n";
-print $version_c "      *actual_len = 0;\n";
-print $version_c "    }\n";
-print $version_c "  else\n";
-print $version_c "    {\n";
-print $version_c "      strcpy(name, art_branch);\n";
-print $version_c "      *actual_len = strlen(name);\n";
-print $version_c "    }\n";
-print $version_c "\n";
-print $version_c "  return;\n";
-print $version_c "}\n";
-print $version_c "\n";
-print $version_c "void art_revision_key(char *name, int *actual_len)\n";
-print $version_c "{\n";
-print $version_c "  if (strlen(art_revision) > *actual_len)\n";
-print $version_c "    {\n";
-print $version_c "      *actual_len = 0;\n";
-print $version_c "    }\n";
-print $version_c "  else\n";
-print $version_c "    {\n";
-print $version_c "      strcpy(name, art_revision);\n";
-print $version_c "      *actual_len = strlen(name);\n";
-print $version_c "    }\n";
-print $version_c "\n";
-print $version_c "  return;\n";
-print $version_c "}\n";
-print $version_c "\n";
+if($art_revision) {
+    print $version_c "void art_repository_url(char *name, int *actual_len)\n";
+    print $version_c "{\n";
+    print $version_c "  if (strlen(art_remote_url) > *actual_len)\n";
+    print $version_c "    {\n";
+    print $version_c "      *actual_len = 0;\n";
+    print $version_c "    }\n";
+    print $version_c "  else\n";
+    print $version_c "    {\n";
+    print $version_c "      strcpy(name, art_remote_url);\n";
+    print $version_c "      *actual_len = strlen(name);\n";
+    print $version_c "    }\n";
+    print $version_c "\n";
+    print $version_c "  return;\n";
+    print $version_c "}\n";
+    print $version_c "void art_branch_name(char *name, int *actual_len)\n";
+    print $version_c "{\n";
+    print $version_c "  if (strlen(art_branch) > *actual_len)\n";
+    print $version_c "    {\n";
+    print $version_c "      *actual_len = 0;\n";
+    print $version_c "    }\n";
+    print $version_c "  else\n";
+    print $version_c "    {\n";
+    print $version_c "      strcpy(name, art_branch);\n";
+    print $version_c "      *actual_len = strlen(name);\n";
+    print $version_c "    }\n";
+    print $version_c "\n";
+    print $version_c "  return;\n";
+    print $version_c "}\n";
+    print $version_c "\n";
+    print $version_c "void art_revision_key(char *name, int *actual_len)\n";
+    print $version_c "{\n";
+    print $version_c "  if (strlen(art_revision) > *actual_len)\n";
+    print $version_c "    {\n";
+    print $version_c "      *actual_len = 0;\n";
+    print $version_c "    }\n";
+    print $version_c "  else\n";
+    print $version_c "    {\n";
+    print $version_c "      strcpy(name, art_revision);\n";
+    print $version_c "      *actual_len = strlen(name);\n";
+    print $version_c "    }\n";
+    print $version_c "\n";
+    print $version_c "  return;\n";
+    print $version_c "}\n";
+    print $version_c "\n";
+}
 close $version_c;
 
 if ($need_to_compare) {
