@@ -17,10 +17,10 @@ script_dir=$(cd "$(dirname "$0")"; pwd)
 icon_dir=$(cd "${script_dir}/../.."; pwd)
 
 ${SINGULARITY_CONTAINER+false} : || {
-  {
-    echo "ERROR: this configure wrapper is not supposed to be run inside a container:"
-    echo "       exit the container environment first"
-  } >&2
+  cat >&2 <<_EOF
+ERROR: this configure wrapper is not supposed to be run inside a container:
+       exit the container environment first
+_EOF
   exit 1
 }
 

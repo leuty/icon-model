@@ -17,17 +17,26 @@ script_dir=$(cd "$(dirname "$0")"; pwd)
 icon_dir=$(cd "${script_dir}/../.."; pwd)
 
 ${SINGULARITY_CONTAINER+:} false || {
-  {
-    echo "ERROR: this configure wrapper must be run inside a container:"
-    echo "       run '${script_dir}/lumi.container_wrapper.cce-16.0.1.1 bash' first"
-  } >&2
+  cat >&2 <<_EOF
+ERROR: this configure wrapper must be run inside a container:
+       run '${script_dir}/lumi.container_wrapper.cce-16.0.1.1 bash' first
+_EOF
   exit 1
+}
+
+${ICON_CONTAINER_WRAPPER+:} false || {
+  cat >&2 <<_EOF
+WARNING: environment variable ICON_CONTAINER_WRAPPER providing the container
+wrapper command for the runscripts is not set
+_EOF
 }
 
 sw_root=${ICON_SW_PREFIX-'/project/project_465000454/icon/sw'}
 echo "Using software stack from ${sw_root}"
 
-modules='PrgEnv-cray cce/16.0.1.1 craype-x86-milan cray-mpich cray-hdf5 cray-netcdf cray-libsci'
+modules='PrgEnv-cray cce/16.0.1.1 craype-x86-milan cray-mpich cray-hdf5 cray-netcdf cray-libsci !libfabric'
+
+LIBFABRIC_ROOT='/opt/cray/libfabric/1.15.2.0'
 
 ZLIB_LIBS='-lz'
 
@@ -42,7 +51,7 @@ XML2_LIBS='-lxml2'
 
 ################################################################################
 
-BUILD_ENV=". /opt/cray/pe/modules/3.2.11.7/init/sh; . \"${script_dir}/module_switcher\"; switch_for_module ${modules}; export LD_LIBRARY_PATH=\"${ECCODES_ROOT}/lib64:${XML2_ROOT}/lib:${FYAML_ROOT}/lib:\${LD_LIBRARY_PATH-}\";"
+BUILD_ENV=". /opt/cray/pe/modules/3.2.11.7/init/sh; . \"${script_dir}/module_switcher\"; switch_for_module ${modules}; export LD_LIBRARY_PATH=\"${LIBFABRIC_ROOT}/lib64:${ECCODES_ROOT}/lib64:${XML2_ROOT}/lib:${FYAML_ROOT}/lib:\${LD_LIBRARY_PATH-}\";"
 
 CC='cc'
 CPPFLAGS="-I${ECCODES_ROOT}/include -I${FYAML_ROOT}/include -I${XML2_ROOT}/include/libxml2"
@@ -70,7 +79,7 @@ LDFLAGS="-L${ECCODES_ROOT}/lib64 -L${FYAML_ROOT}/lib -L${XML2_ROOT}/lib"
 # https://gitlab.dkrz.de/icon/icon/-/merge_requests/254:
 LDFLAGS+=' -fuse-ld=ld'
 
-ICON_LDFLAGS="-Wl,--disable-new-dtags -Wl,--as-needed"
+ICON_LDFLAGS="-Wl,--disable-new-dtags -Wl,--as-needed -Wl,-rpath -Wl,${LIBFABRIC_ROOT}/lib64"
 
 LIBS="${XML2_LIBS} ${FYAML_LIBS} ${ECCODES_LIBS} ${ZLIB_LIBS}"
 
