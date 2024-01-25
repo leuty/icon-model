@@ -355,6 +355,10 @@ $addexp "exp.dwd_run_ICON_09_R2B4N5_EPS" --machines "horeka" --list $listname # 
 $addexp "checksuite.nwp/nwpexp.run_ICON-ART_01_R3B08_lam_initmode7_pollen" --machines "horeka" --list $listname
 ./rmexp "checksuite.nwp/nwpexp.run_ICON-ART_01_R3B08_lam_initmode7_pollen"  --builders "horeka_gpu_nvhpc" --list $listname # Does not run on GPUs yet
 
+# Lumi at CSC
+$addexp exp.atm_tracer_Hadley_R2B4 --builders 'lumi_cpu' --list ${listname} --runflags="queue=debug"
+$addexp exp.atm_tracer_Hadley_R2B4 --builders 'lumi_gpu' --list ${listname} --runflags="queue=dev-g"
+
 #lets see the list
 ./lslist $listname
 #-----------------------------------------------------------
