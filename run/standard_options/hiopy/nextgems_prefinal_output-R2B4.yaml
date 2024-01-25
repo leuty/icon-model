@@ -221,12 +221,3 @@ variables:
   qs: 3D_inst_atm
 
   tend_ta_mig: 3D_inst_atm  # would have to be active in classic output
-
-  # Temporary diags for energy leak
-  uphyvi: 2D_acc_atm
-  udynvi: 2D_acc_atm
-  evap_tsa: 2D_acc_atm
-  shfl_qsa: 2D_acc_atm
-  rsfl_tsa: 2D_acc_atm
-  ssfl_tsa: 2D_acc_atm
-

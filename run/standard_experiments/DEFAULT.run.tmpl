@@ -13,7 +13,7 @@
 #
 # %{mkexp_input}
 #
-# $Id: run/standard_experiments/DEFAULT.run.tmpl 15 2023-07-20 10:02:10Z m221078 $
+# $Id: run/standard_experiments/DEFAULT.run.tmpl 16 2024-01-25 14:40:35Z k203123 $
 #
 # %{VERSIONS_|join('\n# ')}
 #
@@ -83,7 +83,16 @@ HIOPY_OUTPUT_PREFIX=%{DATA_DIR}/%{EXP_ID}_
 HIOPY_CATALOG_PATH=%{DATA_DIR}/%{EXP_ID}.yaml
 
 hiopy version
-icon_variables expand_plan --variables=$MODEL_DIR/run/standard_options/hiopy/variables.yaml $MODEL_DIR/run/standard_options/hiopy/%{hiopy.output_config}.yaml > ${HIOPY_PLAN}
+#%    if hiopy.expand_patches is defined:
+#%      set patches = []
+#%      for patch in hiopy.expand_patches|list:
+#%        do patches.append('s/' + patch + '/')
+#%      endfor
+#%      set filter = "| sed '" + patches|join(';') + "' "
+#%    else:
+#%      set filter = ''
+#%    endif
+icon_variables expand_plan --variables=$MODEL_DIR/run/standard_options/hiopy/variables.yaml $MODEL_DIR/run/standard_options/hiopy/%{hiopy.output_config}.yaml %{filter}> ${HIOPY_PLAN}
 #%  endif
 
 #=============================================================================

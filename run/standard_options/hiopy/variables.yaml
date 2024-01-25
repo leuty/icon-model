@@ -471,42 +471,18 @@ variables:
     long_name: zstar sfc elevation at cell center
     units: m
     vgrid: surface
-  uphyvi:
-    component: atmo
-    hgrid: cell
-    long_name: vertically integrated moist internal energy after physics
-    units: J m-2
-    vgrid: atmosphere
   udynvi:
     component: atmo
     hgrid: cell
     long_name: vertically integrated moist internal energy after dynamics
     units: J m-2
     vgrid: atmosphere
-  evap_tsa:
+  duphyvi:
     component: atmo
     hgrid: cell
-    long_name: near surface temperature weighted evaporation
-    units: K kg m-2 s-1
-    vgrid: surface
-  shfl_qsa:
-    component: atmo
-    hgrid: cell
-    long_name: near surface humidity weighted sensible temperature flux
-    units: K kg m-2 s-1
-    vgrid: surface
-  rsfl_tsa:
-    component: atmo
-    hgrid: cell
-    long_name: near surface temperature weighted liquid precipitation
-    units: K kg m-2 s-1
-    vgrid: surface
-  ssfl_tsa:
-    component: atmo
-    hgrid: cell
-    long_name: near surface temperature weighted solid precipitation
-    units: K kg m-2 s-1
-    vgrid: surface
+    long_name: change of vertically integrated moist internal energy by physics
+    units: J m-2
+    vgrid: atmosphere
 
 
   hydro_canopy_cond_limited_box:
