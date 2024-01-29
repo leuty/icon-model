@@ -1452,7 +1452,7 @@ library (--without-external-rte-rrtmgp), or set FCFLAGS, LDFLAGS and LIBS dnl
 accordingly])])],
 dnl
      [icon_subdir_srcdir="$srcdir/externals/rte-rrtmgp"
-      icon_subdir_unique_file="rte/mo_rte_sw.F90"
+      icon_subdir_unique_file="rte-frontend/mo_rte_sw.F90"
       AS_IF([test ! -r "$icon_subdir_srcdir/$icon_subdir_unique_file"],
         [AC_MSG_ERROR([unable to find sources of the RTE+RRTMGP library dnl
 ($icon_subdir_unique_file) in '$icon_subdir_srcdir': either disable usage of dnl
@@ -1469,14 +1469,24 @@ bundled version of RTE+RRTMGP library @<:@default=$ICON_BUNDLED_FCFLAGS@:>@])dnl
         [BUILD_ENV=*|ICON_*FLAGS=*|CFLAGS=*|FCFLAGS=*],
         [NETCDF_FCFLAGS=*|NETCDF_FCLIBS=*],
         [ACX_SUBDIR_CONFIG_PATTERN_ENABLE([silent-rules])],
+        [ACX_SUBDIR_CONFIG_PATTERN_ENABLE([maintainer-mode])],
+        [ACX_SUBDIR_CONFIG_PATTERN_ENABLE([single-precision])],
         [ACX_SUBDIR_CONFIG_PATTERN_ENABLE([gpu])])
       ACX_SUBDIR_APPEND_ARGS([externals/rte-rrtmgp],
         [FCFLAGS="$subdir_FCFLAGS $ICON_RTE_RRTMGP_FCFLAGS"],
         [NETCDF_FCFLAGS=], [NETCDF_FCLIBS=],
-        [--enable-gpu="$icon_gpu_primary"],
-        [--enable-silent-rules="$enable_silent_rules"])
+        [--enable-silent-rules="$enable_silent_rules"],
+        [--disable-maintainer-mode], [--enable-gpu="$icon_gpu_primary"])
+dnl The tests of the current version of RTE-RRTMGP are known to fail when built
+dnl with OpenACC support. The problem is in the test programs and not in the
+dnl library itself.
+      AS_VAR_IF([icon_gpu_primary], [openacc],
+        [ACX_SUBDIR_REMOVE_ARGS([externals/rte-rrtmgp],
+           [ACX_SUBDIR_CONFIG_PATTERN_ENABLE([tests])])
+         ACX_SUBDIR_APPEND_ARGS([externals/rte-rrtmgp],
+           [--disable-tests])])
       AS_VAR_APPEND([bundled_includes],
-        ["${FC_MOD_IN}externals/rte-rrtmgp/mod "])
+        ["${FC_MOD_IN}externals/rte-rrtmgp "])
       BUNDLED_LIBFILES="externals/rte-rrtmgp/librte.a $BUNDLED_LIBFILES"
       BUNDLED_LIBFILES="externals/rte-rrtmgp/librrtmgp.a $BUNDLED_LIBFILES"])])
 

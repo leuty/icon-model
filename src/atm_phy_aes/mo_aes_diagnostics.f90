@@ -30,14 +30,21 @@ MODULE mo_aes_diagnostics
   USE mo_impl_constants      ,ONLY: min_rlcell_int
   USE mo_impl_constants_grf  ,ONLY: grf_bdywidth_c
 
-  PUBLIC aes_global_diagnostics, aes_diag_output_minmax_micro
+  IMPLICIT NONE
+
+  PUBLIC :: aes_global_diagnostics, aes_diag_output_minmax_micro
 
 CONTAINS
-  SUBROUTINE aes_global_diagnostics(patch)
+  SUBROUTINE aes_global_diagnostics(patch, dt)
     TYPE(t_patch)  ,TARGET ,INTENT(in) :: patch
+    REAL(wp), INTENT(in) :: dt
+
     REAL(wp)                           :: scr(nproma,patch%alloc_cell_blocks)
 
-    REAL(wp) :: tas_gmean, rsdt_gmean, rsut_gmean, rlut_gmean, prec_gmean, evap_gmean, radtop_gmean, fwfoce_gmean
+    REAL(wp) :: tas_gmean, rsdt_gmean, rsut_gmean, rlut_gmean, prec_gmean, evap_gmean, &
+      &         radtop_gmean, radbot_gmean, kedisp_gmean, &
+      &         udynvi_gmean, duphyvi_gmean, utmxvi_gmean, ufts_gmean, ufvs_gmean, ufcs_gmean, &
+      &         fwfoce_gmean
     TYPE(t_aes_phy_field), POINTER    :: field
     INTEGER  :: jb, jbs, jbe, jc, jcs, jce, rls, rle
 
@@ -103,7 +110,7 @@ CONTAINS
 
     ! global mean toa total radiation, radtop, derived variable
     radtop_gmean = 0.0_wp
-    IF ( isRegistered("radtop_gmean") ) THEN
+    IF ( isRegistered("radtop_gmean") .OR. isRegistered("radbal_gmean") .OR. isRegistered("uphybal_gmean") ) THEN
 
       field => prm_field(patch%id)
 
@@ -137,6 +144,127 @@ CONTAINS
       NULLIFY(field)
     END IF
     prm_field(patch%id)%radtop_gmean = radtop_gmean
+
+    ! global mean surface total radiation, radbot, derived variable
+    radbot_gmean = 0.0_wp
+    IF ( isRegistered("radbot_gmean") .OR. isRegistered("radbal_gmean") .OR. isRegistered("uphybal_gmean") ) THEN
+
+      field => prm_field(patch%id)
+
+      ! Compute row and block bounds for derived variables
+      rls = grf_bdywidth_c + 1
+      rle = min_rlcell_int
+      jbs = patch%cells%start_blk(rls, 1)
+      jbe = patch%cells%end_blk(rle, MAX(1, patch%n_childdom))
+
+      !$ACC DATA PRESENT(field%rsds, field%rsus, field%rlds, field%rlus) &
+      !$ACC   CREATE(scr)
+
+      DO jb = jbs, jbe
+        CALL get_indices_c(patch, jb, jbs, jbe, jcs, jce, rls, rle)
+        !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1)
+        !$ACC LOOP GANG VECTOR
+        DO jc = jcs, jce
+          scr(jc,jb) = 0.0_wp
+          scr(jc,jb) = field%rsds(jc,jb) - field%rsus(jc,jb) + field%rlds(jc,jb) - field%rlus(jc,jb)
+        END DO
+        !$ACC END PARALLEL
+      END DO
+      call levels_horizontal_mean( scr(:,:), &
+          & patch%cells%area(:,:), &
+          & patch%cells%owned, &
+          & radbot_gmean, lopenacc=.TRUE.)
+
+      !$ACC WAIT(1)
+      !$ACC END DATA
+
+      NULLIFY(field)
+    END IF
+    prm_field(patch%id)%radbot_gmean = radbot_gmean
+
+    ! Total radiation balance
+    IF ( isRegistered("radbal_gmean") ) THEN
+      prm_field(patch%id)%radbal_gmean = radtop_gmean - radbot_gmean
+    END IF
+
+    ! global mean energy terms
+    udynvi_gmean = 0.0_wp
+    IF ( isRegistered("udynvi_gmean") ) THEN
+      call levels_horizontal_mean( prm_field(patch%id)%udynvi(:,:), &
+          & patch%cells%area(:,:), &
+          & patch%cells%owned, &
+          & udynvi_gmean, lopenacc=.TRUE.)
+    END IF
+    prm_field(patch%id)%udynvi_gmean = udynvi_gmean
+
+    duphyvi_gmean = 0.0_wp
+    IF ( isRegistered("duphyvi_gmean") .OR. isRegistered("uphybal_gmean") ) THEN
+      call levels_horizontal_mean( prm_field(patch%id)%duphyvi(:,:), &
+          & patch%cells%area(:,:), &
+          & patch%cells%owned, &
+          & duphyvi_gmean, lopenacc=.TRUE.)
+    END IF
+    prm_field(patch%id)%duphyvi_gmean = duphyvi_gmean
+
+    IF (ASSOCIATED(prm_field(patch%id)%utmxvi)) THEN
+      utmxvi_gmean = 0.0_wp
+      IF ( isRegistered("utmxvi_gmean") ) THEN
+        call levels_horizontal_mean( prm_field(patch%id)%utmxvi(:,:), &
+            & patch%cells%area(:,:), &
+            & patch%cells%owned, &
+            & utmxvi_gmean, lopenacc=.TRUE.)
+      END IF
+      prm_field(patch%id)%utmxvi_gmean = utmxvi_gmean
+    END IF
+
+    ufts_gmean = 0.0_wp
+    IF ( isRegistered("ufts_gmean") .OR. isRegistered("uphybal_gmean") ) THEN
+      call levels_horizontal_mean( prm_field(patch%id)%ufts(:,:), &
+          & patch%cells%area(:,:), &
+          & patch%cells%owned, &
+          & ufts_gmean, lopenacc=.TRUE.)
+    END IF
+    prm_field(patch%id)%ufts_gmean = ufts_gmean
+
+    ufvs_gmean = 0.0_wp
+    IF ( isRegistered("ufvs_gmean") .OR. isRegistered("uphybal_gmean") ) THEN
+      call levels_horizontal_mean( prm_field(patch%id)%ufvs(:,:), &
+          & patch%cells%area(:,:), &
+          & patch%cells%owned, &
+          & ufvs_gmean, lopenacc=.TRUE.)
+    END IF
+    prm_field(patch%id)%ufvs_gmean = ufvs_gmean
+
+    ufcs_gmean = 0.0_wp
+    IF ( isRegistered("ufcs_gmean") .OR. isRegistered("uphybal_gmean") ) THEN
+      call levels_horizontal_mean( prm_field(patch%id)%ufcs(:,:), &
+          & patch%cells%area(:,:), &
+          & patch%cells%owned, &
+          & ufcs_gmean, lopenacc=.TRUE.)
+    END IF
+    prm_field(patch%id)%ufcs_gmean = ufcs_gmean
+
+    kedisp_gmean = 0.0_wp
+    IF ( isRegistered("kedisp_gmean") .OR. isRegistered("uphybal_gmean") ) THEN
+      call levels_horizontal_mean( prm_field(patch%id)%kedisp(:,:), &
+          & patch%cells%area(:,:), &
+          & patch%cells%owned, &
+          & kedisp_gmean, lopenacc=.TRUE.)
+    END IF
+    prm_field(patch%id)%kedisp_gmean = kedisp_gmean
+
+    ! global energy balance in the AES physics (positive: gain of energy)
+    IF ( isRegistered("uphybal_gmean") ) THEN
+      prm_field(patch%id)%uphybal_gmean =                &
+            ! gain of total internal energy by physics
+        &   duphyvi_gmean / dt                           &
+            ! minus sum of energy fluxes into the atmosphere
+        &   - ( &
+        &         (radtop_gmean - radbot_gmean)          & ! gain of energy by total radiation
+        &       +  kedisp_gmean                          & ! gain of energy by heating by dissipation of kinetic energy
+        &       - (ufts_gmean + ufvs_gmean + ufcs_gmean) & ! gain of internal energy by sensible/latent heat flux and microphysics
+        &     )
+    END IF
 
     ! global mean freshwater flux over ocean area, fwfoce, derived variable
     fwfoce_gmean = 0.0_wp

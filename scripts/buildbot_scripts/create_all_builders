@@ -101,5 +101,5 @@ machine=horeka
 
 machine=lumi
 ./addmachine $machine --list $list
-./addbuilder lumi_gpu  --machine $machine  --build_script="config/buildbot/lumi_gpu"   --builderflags="build_only" --list $list
-./addbuilder lumi_cpu  --machine $machine  --build_script="config/buildbot/lumi_cpu"   --builderflags="build_only" --list $list
+./addbuilder lumi_gpu  --machine $machine  --build_script="config/buildbot/lumi_gpu"   --builderflags="Active" --list $list
+./addbuilder lumi_cpu  --machine $machine  --build_script="config/buildbot/lumi_cpu"   --builderflags="Active" --list $list

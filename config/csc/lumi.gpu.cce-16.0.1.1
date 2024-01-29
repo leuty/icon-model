@@ -17,15 +17,26 @@ script_dir=$(cd "$(dirname "$0")"; pwd)
 icon_dir=$(cd "${script_dir}/../.."; pwd)
 
 ${SINGULARITY_CONTAINER+:} false || {
-  {
-    echo "ERROR: this configure wrapper must be run inside a container:"
-    echo "       run '${script_dir}/lumi.container_wrapper.cce-16.0.1.1 bash' first"
-  } >&2
+  cat >&2 <<_EOF
+ERROR: this configure wrapper must be run inside a container:
+       run '${script_dir}/lumi.container_wrapper.cce-16.0.1.1 bash' first
+_EOF
   exit 1
 }
 
-modules='PrgEnv-cray cce/16.0.1.1 craype-x86-milan craype-accel-amd-gfx90a rocm cray-mpich cray-hdf5 cray-netcdf cray-libsci'
-sw_root='/project/project_465000454/icon/sw'
+${ICON_CONTAINER_WRAPPER+:} false || {
+  cat >&2 <<_EOF
+WARNING: environment variable ICON_CONTAINER_WRAPPER providing the container
+wrapper command for the runscripts is not set
+_EOF
+}
+
+sw_root=${ICON_SW_PREFIX-'/project/project_465000454/icon/sw'}
+echo "Using software stack from ${sw_root}"
+
+modules='PrgEnv-cray cce/16.0.1.1 craype-x86-milan craype-accel-amd-gfx90a rocm cray-mpich cray-hdf5 cray-netcdf cray-libsci !libfabric'
+
+LIBFABRIC_ROOT='/opt/cray/libfabric/1.15.2.0'
 
 ZLIB_LIBS='-lz'
 
@@ -40,7 +51,7 @@ XML2_LIBS='-lxml2'
 
 ################################################################################
 
-BUILD_ENV=". /opt/cray/pe/modules/3.2.11.7/init/sh; . \"${script_dir}/module_switcher\"; switch_for_module ${modules}; export LD_LIBRARY_PATH=\"${ECCODES_ROOT}/lib64:${XML2_ROOT}/lib:${FYAML_ROOT}/lib:\${LD_LIBRARY_PATH-}\";"
+BUILD_ENV=". /opt/cray/pe/modules/3.2.11.7/init/sh; . \"${script_dir}/module_switcher\"; switch_for_module ${modules}; export LD_LIBRARY_PATH=\"${LIBFABRIC_ROOT}/lib64:${ECCODES_ROOT}/lib64:${XML2_ROOT}/lib:${FYAML_ROOT}/lib:\${LD_LIBRARY_PATH-}\";"
 
 CC='cc'
 CPPFLAGS="-I${ECCODES_ROOT}/include -I${FYAML_ROOT}/include -I${XML2_ROOT}/include/libxml2"
@@ -58,8 +69,8 @@ HIPFLAGS='--offload-arch=gfx90a -g -O3'
 ICON_O0_PATH='externals/jsbach/src/base/mo_jsb_process_factory_core.f90'
 ICON_O0_FCFLAGS='-O0'
 
-# The compiler fails to compile the following file with the default optimization
-# level:
+# Due to compiler bug (in 16.0.1, HPE issue number 5376225297) the following file 
+# fails to compile with the default optimization level:
 ICON_O1_PATH='src/atm_phy_schemes/mo_cuascn.f90'
 ICON_O1_FCFLAGS='-O1'
 

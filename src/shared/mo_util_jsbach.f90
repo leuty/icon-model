@@ -1633,6 +1633,7 @@ MODULE mo_physical_constants_iface
     ki,              & !< Heat conductivity of ice               [J/(m s K)]
     ks,              & !< Heat conductivity of snow              [J/(m s K)]
     ! Auxiliary constants
+    rd_o_cpd,        & !< rd/cpd
     rvd1  => vtmpc1, & !< = rv/rd-1                              []
     cpvd1 => vtmpc2    !< = cpv/cpd-1                            []
 

@@ -17,15 +17,17 @@ script_dir=$(cd "$(dirname "$0")"; pwd)
 icon_dir=$(cd "${script_dir}/../.."; pwd)
 
 ${SINGULARITY_CONTAINER+false} : || {
-  {
-    echo "ERROR: this configure wrapper is not supposed to be run inside a container:"
-    echo "       exit the container environment first"
-  } >&2
+  cat >&2 <<_EOF
+ERROR: this configure wrapper is not supposed to be run inside a container:
+       exit the container environment first
+_EOF
   exit 1
 }
 
+sw_root=${ICON_SW_PREFIX-'/project/project_465000454/icon/sw'}
+echo "Using software stack from ${sw_root}"
+
 modules='PrgEnv-cray cce/15.0.1 craype-x86-milan cray-mpich libfabric cray-hdf5 cray-netcdf cray-libsci'
-sw_root='/project/project_465000454/icon/sw'
 
 ZLIB_LIBS='-lz'
 

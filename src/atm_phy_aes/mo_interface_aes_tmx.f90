@@ -204,6 +204,24 @@ CONTAINS
           ins%pxim1 => ins%list%Get_ptr_r3d('cloud ice')
           __acc_attach(ins%pxim1)
       
+          ptr_r3d => field% qtrc_phy(:,:,:,iqr)
+          CALL unbind_variable(vdf%atmo%inputs%list%Search('rain'))
+          CALL bind_variable(vdf%atmo%inputs%list%Search('rain'), ptr_r3d)
+          ins%pxrm1 => ins%list%Get_ptr_r3d('rain')
+          __acc_attach(ins%pxrm1)
+      
+          ptr_r3d => field% qtrc_phy(:,:,:,iqs)
+          CALL unbind_variable(vdf%atmo%inputs%list%Search('snow'))
+          CALL bind_variable(vdf%atmo%inputs%list%Search('snow'), ptr_r3d)
+          ins%pxsm1 => ins%list%Get_ptr_r3d('snow')
+          __acc_attach(ins%pxsm1)
+      
+          ptr_r3d => field% qtrc_phy(:,:,:,iqg)
+          CALL unbind_variable(vdf%atmo%inputs%list%Search('graupel'))
+          CALL bind_variable(vdf%atmo%inputs%list%Search('graupel'), ptr_r3d)
+          ins%pxgm1 => ins%list%Get_ptr_r3d('graupel')
+          __acc_attach(ins%pxgm1)
+      
           CALL unbind_variable(vdf%atmo%states%search('temperature'))
           CALL bind_variable(vdf%atmo%states%search('temperature'), field%ta)
           CALL unbind_variable(vdf%atmo%inputs%list%Search('temperature'))
@@ -356,7 +374,7 @@ CONTAINS
             END IF
 
             ! convert heating
-            tend_ta_rlw_impl(jc,jb) = q_rlw_impl(jc,jb) * field%qconv(jc,nlev,jb)
+            tend_ta_rlw_impl(jc,jb) = q_rlw_impl(jc,jb) / field%cvair(jc,nlev,jb)
             !
             IF (ASSOCIATED(tend%ta_rlw_impl)) THEN
               tend%ta_rlw_impl(jc,jb) = tend_ta_rlw_impl(jc,jb)
@@ -538,9 +556,12 @@ CONTAINS
     CALL bind_variable(vdf%atmo%config%list%Search('minimum Km'),aes_vdf_config(1)%km_min)
     CALL bind_variable(vdf%atmo%config%list%Search('reverse prandtl number'),aes_vdf_config(1)%rturb_prandtl)
     CALL bind_variable(vdf%atmo%config%list%Search('prandtl number'),aes_vdf_config(1)%turb_prandtl)
+    CALL bind_variable(vdf%atmo%config%list%Search('switch to activate Louis formula'),aes_vdf_config(1)%use_louis)
+    CALL bind_variable(vdf%atmo%config%list%Search('Louis constant b'),aes_vdf_config(1)%louis_constant_b)
     CALL bind_variable(vdf%atmo%config%list%Search('time step'),dtime)
     CALL bind_variable(vdf%atmo%config%list%Search('solver type'), aes_vdf_config(1)%solver_type)
     CALL bind_variable(vdf%atmo%config%list%Search('energy type'), aes_vdf_config(1)%energy_type)
+    CALL bind_variable(vdf%atmo%config%list%Search('dissipation factor'), aes_vdf_config(1)%dissipation_factor)
 
     ! Bind variables to atmo input list
     ! 3d
@@ -551,8 +572,7 @@ CONTAINS
     CALL bind_variable(vdf%atmo%inputs%list%Search('virtual temperature'), field%tv)
     CALL bind_variable(vdf%atmo%inputs%list%Search('air density'),         field%rho)
     CALL bind_variable(vdf%atmo%inputs%list%Search('moist air mass'),      field%mair)
-    CALL bind_variable(vdf%atmo%inputs%list%Search('conv. factor layer heating to temp. tendency'), field%qconv)
-    ! CALL bind_variable(vdf%atmo%inputs%list%Search('specific heat of air at constant pressure'),  field%cpair)
+    CALL bind_variable(vdf%atmo%inputs%list%Search('specific heat of air at constant volume'),  field%cvair)
     CALL bind_variable(vdf%atmo%inputs%list%Search('geometric height full'), field%zf)
     CALL bind_variable(vdf%atmo%inputs%list%Search('geometric height half'), field%zh)
     !
@@ -588,6 +608,7 @@ CONTAINS
     ! Bind variables to sfc config list
     CALL bind_variable(vdf%sfc%config%list%Search('cpd'), cpd)
     CALL bind_variable(vdf%sfc%config%list%Search('cvd'), cvd)
+    CALL bind_variable(vdf%sfc%config%list%Search('cvv'), cvv)
     CALL bind_variable(vdf%sfc%config%list%Search('time step'),dtime)
     CALL bind_variable(vdf%sfc%config%list%Search('minimum surface wind speed'), aes_vdf_config(jg)%min_sfc_wind)
     CALL bind_variable(vdf%sfc%config%list%Search('ocean roughness length'),     aes_vdf_config(jg)%z0m_oce)
@@ -607,6 +628,8 @@ CONTAINS
     CALL bind_variable(vdf%sfc%inputs%list%Search('atm meridional wind'), ptr_r2d)
     ptr_r2d => field% qtrc_phy(:,nlev,:,iqv)
     CALL bind_variable(vdf%sfc%inputs%list%Search('atm total water'), ptr_r2d)
+    ptr_r2d => field%rho(:,nlev,:)
+    CALL bind_variable(vdf%sfc%inputs%list%Search('atm density'), ptr_r2d)
     ptr_r2d => field%pfull(:,nlev,:)
     CALL bind_variable(vdf%sfc%inputs%list%Search('atm full level pressure'), ptr_r2d)
     ptr_r2d => field%phalf(:,nlevp1,:)
@@ -683,6 +706,8 @@ CONTAINS
     CALL bind_variable(vdf%sfc%diagnostics%list%Search('sfc evapotranspiration'),                       field%evap)
     CALL bind_variable(vdf%sfc%diagnostics%list%Search('sfc latent heat flux'),                         field%lhflx)
     CALL bind_variable(vdf%sfc%diagnostics%list%Search('sfc sensible heat flux'),                       field%shflx)
+    CALL bind_variable(vdf%sfc%diagnostics%list%Search('energy flux at surface from thermal exchange'), field%ufts)
+    CALL bind_variable(vdf%sfc%diagnostics%list%Search('energy flux at surface from vapor exchange'),   field%ufvs)
     CALL bind_variable(vdf%sfc%diagnostics%list%Search('sfc zonal wind stress'),                        field%u_stress)
     CALL bind_variable(vdf%sfc%diagnostics%list%Search('sfc mer. wind stress'),                         field%v_stress)
     CALL bind_variable(vdf%sfc%diagnostics%list%Search('sfc evapotranspiration, tile'),                 field%evap_tile)

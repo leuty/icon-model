@@ -33,7 +33,7 @@ MODULE mo_rte_rrtmgp_interface
   USE mo_icon_fluxes_sw,             ONLY: ty_icon_fluxes_sw, set_fractions
   USE mo_rte_rrtmgp_setup,           ONLY: k_dist_lw, k_dist_sw, &
                                            cloud_optics_lw, cloud_optics_sw, &
-                                           stop_on_err, inhoml, inhomi
+                                           stop_on_err, inhoml, inhomi, inhoms
 
   USE mo_rad_diag,                   ONLY: rad_aero_diag
   USE mo_timer,                      ONLY: ltimer, timer_start, timer_stop, &
@@ -1242,12 +1242,12 @@ CONTAINS
        !
     END IF
 
-
-    ! hack inhom implementation by scaling the liquid water path
+    ! hack inhom implementation by scaling the condensate water paths
     ! it's important to run this AFTER the longwave
     !$ACC KERNELS DEFAULT(PRESENT) ASYNC(1)
     zlwp(:,:) = zlwp(:,:) * inhoml
     ziwp(:,:) = ziwp(:,:) * inhomi
+    zswp(:,:) = zswp(:,:) * inhoms
     !$ACC END KERNELS
     
     ! new cloud optics: allocate memory for cloud optical properties:

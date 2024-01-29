@@ -10,21 +10,42 @@
 # SPDX-License-Identifier: BSD-3-Clause
 # ------------------------------------------
 
-current_dir=$(pwd)
-script_dir=$(unset CDPATH; cd "$(dirname "$0")" && pwd)
-icon_dir=$(unset CDPATH; cd "${script_dir}/../.." && pwd)
-
-sw=/project/project_465000454/icon/sw
-pool=/appl/local/climatedt/pool/
-container=/scratch/project_465000454/cpe/ccpe-rocm-5.4.1-16.0.1.1.sif
+sw=${ICON_SW_PREFIX-'/project/project_465000454/icon/sw'}
+pool='/appl/local/climatedt/pool'
 
 module --force purge
 
-set dummy --bind "${current_dir}" --bind "${sw}" --bind "${pool}" "${container}" "$@"; shift
+export ICON_SW_PREFIX=${sw}
 
-# Do not bind ${icon_dir} if we build in-source:
-if test "x${current_dir}" != "x${icon_dir}"; then
-  set dummy --bind "${icon_dir}" "$@"; shift
+current_dir=$(pwd)
+current_script="$(unset CDPATH; cd "$(dirname "${0}")" && pwd)/$(basename "${0}")"
+script_dir=$(unset CDPATH; cd "$(dirname "${current_script}")" && pwd)
+icon_dir=$(unset CDPATH; cd "${script_dir}/../.." && pwd)
+
+export ICON_CONTAINER_WRAPPER=${current_script}
+
+SINGULARITY_BINDPATH="${current_dir},${sw},${pool}"
+
+# Bind ${icon_dir} for out-of-source builds only:
+if [ "${icon_dir}" != "${current_dir}" ]
+then
+  SINGULARITY_BINDPATH="${icon_dir},${SINGULARITY_BINDPATH}"
 fi
 
-singularity exec --cleanenv --rocm "$@"
+# Libfabric within the container lacks functionality, so it, together with the
+# cxi provider, is also used from host:
+SINGULARITY_BINDPATH="/opt/cray/libfabric/1.15.2.0,/usr/lib64/libcxi.so.1,${SINGULARITY_BINDPATH}"
+
+# At the runtime, one needs slurmd and munge from host (munge is needed for
+# internode communication):
+if [ -d '/var/spool/slurmd/mpi_cray_shasta' ]
+then
+  SINGULARITY_BINDPATH="/var/spool/slurmd/mpi_cray_shasta,/var/run/munge,${SINGULARITY_BINDPATH}"
+fi
+
+export SINGULARITY_BINDPATH
+
+container="${sw}/cpe/ccpe-rocm-5.4.1-16.0.1.1.sif"
+echo "Using container image ${container}"
+
+exec singularity exec --rocm "${container}" "$@"
