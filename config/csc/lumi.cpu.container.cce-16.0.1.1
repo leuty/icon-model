@@ -19,7 +19,7 @@ icon_dir=$(cd "${script_dir}/../.."; pwd)
 ${SINGULARITY_CONTAINER+:} false || {
   cat >&2 <<_EOF
 ERROR: this configure wrapper must be run inside a container:
-       run '${script_dir}/lumi.container_wrapper.cce-16.0.1.1 bash' first
+       run '${script_dir}/exec.lumi.container.cce-16.0.1.1 bash' first
 _EOF
   exit 1
 }

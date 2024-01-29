@@ -10,6 +10,16 @@
 # SPDX-License-Identifier: BSD-3-Clause
 # ------------------------------------------
 
+if [ "${#}" -lt 1 ]
+then
+  cat >&2 <<_EOF
+ERROR: expected at least one argument
+
+this is NOT a configure but a CONTAINER wrapper
+_EOF
+  exit 1
+fi
+
 sw=${ICON_SW_PREFIX-'/project/project_465000454/icon/sw'}
 pool='/appl/local/climatedt/pool'
 
