@@ -1,5 +1,15 @@
 #!/bin/ksh
 
+# ICON
+#
+# ------------------------------------------
+# Copyright (C) 2004-2024, DWD, MPI-M, DKRZ, KIT, ETH, MeteoSwiss
+# Contact information: icon-model.org
+# See AUTHORS.TXT for a list of authors
+# See LICENSES/ for license information
+# SPDX-License-Identifier: BSD-3-Clause
+# ------------------------------------------
+
 # ===========================================================================
 # 
 # Name: exp.c2sm_clm_r13b03_seaice.run
@@ -8,7 +18,7 @@
 #          It is used as a test case for SST-ICE mode 6 (SST and SIC based
 #          on instantaneous values) in combination with lseaice = .TRUE.
 #
-# Author: Michael Jaehn (C2SM)
+# Authors: Annika Lauber, Michael Jaehn (C2SM)
 #
 # =========================================================================== 
 
