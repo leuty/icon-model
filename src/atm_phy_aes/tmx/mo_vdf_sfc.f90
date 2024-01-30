@@ -248,7 +248,6 @@ CONTAINS
     TYPE(t_vdf_sfc_config),      POINTER :: conf
     TYPE(t_vdf_sfc_inputs),      POINTER :: ins
     TYPE(t_vdf_sfc_diagnostics), POINTER :: diags
-    CLASS(t_variable_set),       POINTER :: set
 
     INTEGER :: jg, jtile, isfc, jc, jb
     REAL(wp), POINTER, DIMENSION(:,:,:) :: &
@@ -315,7 +314,7 @@ CONTAINS
       & rsds     => ins%rsds        &
       & )
 
-      ! DO isfc=1,SIZE(this%domain%sfc_types)
+    ! DO isfc=1,SIZE(this%domain%sfc_types)
     DO jtile=1,this%domain%ntiles
       isfc = this%domain%sfc_types(jtile)
 
@@ -357,7 +356,7 @@ CONTAINS
           & )
 
 !$OMP PARALLEL DO PRIVATE(jc, jb) ICON_OMP_DEFAULT_SCHEDULE
-        !$ACC PARALLEL LOOP DEFAULT(PRESENT) GANG(STATIC: 1) VECTOR COLLAPSE(2)
+        !$ACC PARALLEL LOOP DEFAULT(PRESENT) GANG VECTOR COLLAPSE(2) ASYNC(1)
           DO jb = 1, this%domain%nblks_c
             DO jc = 1, this%domain%nproma  
               new_tsfc_rad(jc,jb,jtile) = new_tsfc(jc,jb,jtile)
@@ -388,8 +387,9 @@ CONTAINS
           & diags%kh_tile(:,:,jtile), diags%km_tile(:,:,jtile), &
           & diags%kh_neutral_tile(:,:,jtile), diags%km_neutral_tile(:,:,jtile) &
           & )
+
 !$OMP PARALLEL DO PRIVATE(jc, jb) ICON_OMP_DEFAULT_SCHEDULE
-        !$ACC PARALLEL LOOP DEFAULT(PRESENT) GANG(STATIC: 1) VECTOR COLLAPSE(2)
+        !$ACC PARALLEL LOOP DEFAULT(PRESENT) GANG VECTOR COLLAPSE(2) ASYNC(1)
         DO jb = 1, this%domain%nblks_c
           DO jc = 1, this%domain%nproma  
             tend_tsfc(jc,jb,jtile) = (new_tsfc(jc,jb,jtile) - old_tsfc(jc,jb,jtile)) / dtime
@@ -399,6 +399,16 @@ CONTAINS
 !$OMP END PARALLEL DO
 
       END SELECT
+
+!$OMP PARALLEL DO PRIVATE(jc, jb) ICON_OMP_DEFAULT_SCHEDULE
+      !$ACC PARALLEL LOOP DEFAULT(PRESENT) GANG VECTOR COLLAPSE(2) ASYNC(1)
+      DO jb = 1, this%domain%nblks_c
+        DO jc = 1, this%domain%nproma  
+          new_tsfc_rad(jc,jb,jtile) = new_tsfc_rad(jc,jb,jtile)**4
+        END DO
+      END DO
+      !$ACC END PARALLEL LOOP
+!$OMP END PARALLEL DO
 
       ! Compute surface fluxes for heat, water vapor and momentum from new state
       ! Note: for land, latent and sensible heat fluxes are directly taken from land model
@@ -437,7 +447,7 @@ CONTAINS
 
     CALL average_tiles(this%domain, ins%fract_tile, diags%nvalid, diags%indices, new_tsfc(:,:,:), diags%tsfc, 'tsfc')
 
-    CALL average_tiles(this%domain, ins%fract_tile, diags%nvalid, diags%indices, new_tsfc_rad(:,:,:)**4, tsfc_rad, 'tsfc_rad')
+    CALL average_tiles(this%domain, ins%fract_tile, diags%nvalid, diags%indices, new_tsfc_rad(:,:,:), tsfc_rad, 'tsfc_rad4')
 !$OMP PARALLEL DO PRIVATE(jc, jb) ICON_OMP_DEFAULT_SCHEDULE
     DO jb = domain%i_startblk_c, domain%i_endblk_c
       !$ACC PARALLEL LOOP DEFAULT(PRESENT) GANG(STATIC: 1) VECTOR ASYNC(1)
@@ -738,8 +748,8 @@ CONTAINS
 
     ! TODO: Update roughness length for heat and momentum
 
-    CALL average_tiles(this%domain, ins%fract_tile, diags%nvalid, diags%indices, diags%km_tile, diags%km)
-    CALL average_tiles(this%domain, ins%fract_tile, diags%nvalid, diags%indices, diags%kh_tile, diags%kh)
+    CALL average_tiles(this%domain, ins%fract_tile, diags%nvalid, diags%indices, diags%km_tile, diags%km, 'km')
+    CALL average_tiles(this%domain, ins%fract_tile, diags%nvalid, diags%indices, diags%kh_tile, diags%kh, 'kh')
 
     IF (l_init) l_init = .FALSE.
 
@@ -755,62 +765,64 @@ CONTAINS
     REAL(wp),       INTENT(in)          :: fract_tile(:,:,:)
     INTEGER,        INTENT(out)         :: nvalid(:,:), indices(:,:,:)
 
-    INTEGER :: ib, ic, ics, ice, jsfc, ntiles
+    INTEGER     :: ib, ic, ics, ice, jsfc, ntiles
     INTEGER(i1) :: pfrc_test(domain%nproma,domain%nblks_c, domain%ntiles)
+    INTEGER     :: loidx    (domain%nproma,domain%ntiles), &
+      &            is       (domain%ntiles)
 
     ntiles = domain%ntiles
 
-    !$ACC DATA CREATE(pfrc_test) PRESENT(indices, nvalid)
+    !$ACC DATA CREATE(pfrc_test, loidx, is) PRESENT(fract_tile, indices, nvalid)
 
 !$OMP PARALLEL
+    CALL init(nvalid)
+    CALL init(indices)
+!$OMP END PARALLEL
 
-    ! CALL init(nvalid)
-    ! CALL init(indices)
-
+!$OMP PARALLEL
 !$OMP DO PRIVATE(ib, ic, ics, ice, jsfc) ICON_OMP_RUNTIME_SCHEDULE
     DO ib = domain%i_startblk_c, domain%i_endblk_c
       ics = domain%i_startidx_c(ib)
       ice = domain%i_endidx_c  (ib)
 
-      !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1)
-      !$ACC LOOP SEQ
+      !$ACC PARALLEL LOOP DEFAULT(PRESENT) GANG VECTOR COLLAPSE(2) ASYNC(1)
       DO jsfc = 1, ntiles
-        !$ACC LOOP GANG(STATIC: 1) VECTOR
         DO ic = ics, ice
           pfrc_test(ic,ib,jsfc) = MERGE(1_i1, 0_i1, fract_tile(ic,ib,jsfc) > 0.0_wp)
-          indices(ic,ib,jsfc) = 0
         END DO
-        !$ACC END LOOP
-        nvalid(ib,jsfc) = 0
       END DO
-      !$ACC END LOOP
-      !$ACC END PARALLEL
+      !$ACC END PARALLEL LOOP
     END DO
 !$OMP END DO
 
 !$OMP END PARALLEL
 
-    ! TODO: for some reason, I can't get generate_index_list_batched to work on GPUs
-
-    !$ACC WAIT(1)
-    !$ACC UPDATE HOST(pfrc_test, indices, nvalid)
-
-!$OMP PARALLEL DO PRIVATE(ib, ics, ice) ICON_OMP_RUNTIME_SCHEDULE
+!$OMP PARALLEL DO PRIVATE(ib, ics, ice, jsfc, ic, loidx, is) ICON_OMP_RUNTIME_SCHEDULE
     DO ib = domain%i_startblk_c, domain%i_endblk_c
       ics = domain%i_startidx_c(ib)
       ice = domain%i_endidx_c  (ib)
 
       CALL generate_index_list_batched( &
-        & pfrc_test(:,ib,:), indices(:,ib,:), ics, ice, nvalid(ib,:), opt_use_acc=.FALSE.)
+        & pfrc_test(:,ib,:), loidx(:,:), ics, ice, is(:), 1, opt_use_acc=.TRUE.)
+        ! Using indices(:,ib,:) and nvalid(ib,:) directly as in the next line does not work,
+        ! probably because they need to be contiguous to have proper addresses for CUDA
+        ! & pfrc_test(:,ib,:), indices(:,ib,:), ics, ice, nvalid(ib,:), 1, opt_use_acc=.TRUE.)
+
+      !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1)
+      !$ACC LOOP SEQ
+      DO jsfc = 1, ntiles
+        nvalid(ib,jsfc) = is(jsfc)
+        !$ACC LOOP GANG VECTOR
+        DO ic = 1, is(jsfc)
+          indices(ic,ib,jsfc) = loidx(ic,jsfc)
+        END DO
+      END DO
+      !$ACC END PARALLEL
   
     END DO
 !$OMP END PARALLEL DO
 
-    !$ACC UPDATE DEVICE(indices, nvalid)
-    !$noACC UPDATE HOST(indices, nvalid)
-
-    !$noACC WAIT(1)
-
+    !$ACC WAIT(1)
     !$ACC END DATA
 
   END SUBROUTINE compute_valid_indices
@@ -820,7 +832,7 @@ CONTAINS
     TYPE(t_domain), INTENT(in), POINTER :: domain
     REAL(wp), INTENT(in)  :: &
       & fract_tile(:,:,:)
-    REAL(wp), TARGET, INTENT(in) :: &
+    REAL(wp), INTENT(in) :: &
       & var_in(:,:,:)
     INTEGER,  INTENT(in)  :: &
       & nvalid(:,:),         &
@@ -829,9 +841,7 @@ CONTAINS
       & var_out(:,:)
     CHARACTER(len=*), OPTIONAL, INTENT(in) :: msg
 
-    INTEGER :: jb, jls, js, jsfc
-    REAL(wp), POINTER :: ptr3d(:,:,:)
-    LOGICAL :: not_is_present
+    INTEGER :: jb, jbs, jbe, jls, js, ntiles, jsfc
 
     CHARACTER(len=*), PARAMETER :: routine = modname//':average_tiles'
 
@@ -839,24 +849,14 @@ CONTAINS
 
     IF (domain%ntiles < 1) CALL finish(routine, 'This should not happen - ntiles < 1')
 
-#ifdef _OPENACC
-    not_is_present = .NOT. acc_is_present(var_in)
-    IF (not_is_present) THEN
-      ALLOCATE(ptr3d(SIZE(var_in,1),SIZE(var_in,2),SIZE(var_in,3)))
-      ptr3d(:,:,:) = var_in(:,:,:)
-    ELSE
-      ptr3d => var_in
-    END IF
-#else
-    not_is_present = .TRUE.
-    ptr3d => var_in
-#endif
-    !$ACC DATA COPYIN(ptr3d) IF(not_is_present)
+    ntiles = domain%ntiles
+    jbs = domain%i_startblk_c
+    jbe = domain%i_endblk_c
 
-    IF (domain%ntiles == 1) THEN
+    IF (ntiles == 1) THEN
 
 !$OMP PARALLEL
-      CALL copy(ptr3d(:,:,1), var_out(:,:))
+      CALL copy(var_in(:,:,1), var_out(:,:))
 !$OMP END PARALLEL
 
     ELSE
@@ -866,29 +866,21 @@ CONTAINS
 !$OMP END PARALLEL
 
 !$OMP PARALLEL DO PRIVATE(jb,jls,js,jsfc) ICON_OMP_RUNTIME_SCHEDULE
-      !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1)
-      !$ACC LOOP SEQ
-      DO jb = domain%i_startblk_c,domain%i_endblk_c
-        !$ACC LOOP GANG(STATIC: 1)
-        DO jsfc = 1, domain%ntiles
-          !$ACC LOOP VECTOR
+      DO jb = jbs, jbe
+        DO jsfc = 1, ntiles
+          !$ACC PARALLEL LOOP DEFAULT(PRESENT) GANG VECTOR ASYNC(1) PRIVATE(js)
           DO jls = 1, nvalid(jb,jsfc)
             js=indices(jls,jb,jsfc)
-            var_out(js,jb) = var_out(js,jb) + fract_tile(js,jb,jsfc) * ptr3d(js,jb,jsfc)
+            var_out(js,jb) = var_out(js,jb) + fract_tile(js,jb,jsfc) * var_in(js,jb,jsfc)
           END DO
+          !$ACC END PARALLEL LOOP
         END DO
       END DO
-      !$ACC END PARALLEL
 !$OMP END PARALLEL DO
 
     END IF
 
-    !$ACC END DATA
-#ifdef _OPENACC
-    IF (not_is_present) THEN
-      DEALLOCATE(ptr3d)
-    END IF
-#endif
+    !$ACC WAIT(1)
 
     ! IF (PRESENT(msg)) CALL message(routine, 'average complete for '//msg)
 

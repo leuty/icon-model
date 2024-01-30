@@ -302,6 +302,8 @@ CONTAINS
 
     CHARACTER(len=*), PARAMETER :: routine = modname//':update_sea_ice'
 
+    !$ACC DATA CREATE(Tfw, nonsolar_flux, dnonsolar_flux_dt, T1, T2)
+
 !$OMP PARALLEL
     CALL init(new_tsfc)
     CALL init(q_top)
@@ -317,8 +319,6 @@ CONTAINS
 #ifndef __NO_ICON_OCEAN__
 
     kice = 1
-
-    !$ACC DATA CREATE(Tfw, nonsolar_flux, dnonsolar_flux_dt, T1, T2)
 
 !$OMP PARALLEL DO PRIVATE(jb, jcs, jce, jc, Tfw, nonsolar_flux, dnonsolar_flux_dt) ICON_OMP_DEFAULT_SCHEDULE
     DO jb = domain%i_startblk_c,domain%i_endblk_c
@@ -385,12 +385,12 @@ CONTAINS
 
     !$ACC WAIT(1)
 
-    !$ACC END DATA
-
 #else
     CALL finish(routine, "The ice process requires the ICON_OCEAN component")
 #endif
-  
+
+    !$ACC END DATA
+
   END SUBROUTINE update_sea_ice
 
   SUBROUTINE compute_lw_rad_net( &
@@ -431,7 +431,7 @@ CONTAINS
 
 !$OMP PARALLEL DO PRIVATE(jb, jls, js) ICON_OMP_DEFAULT_SCHEDULE
     DO jb = domain%i_startblk_c,domain%i_endblk_c
-      !$ACC PARALLEL LOOP DEFAULT(PRESENT) GANG(STATIC: 1) VECTOR ASYNC(1)
+      !$ACC PARALLEL LOOP DEFAULT(PRESENT) GANG(STATIC: 1) VECTOR ASYNC(1) PRIVATE(js)
       DO jls = 1, nvalid(jb)
         js = indices(jls,jb)
         lwfl_net(js,jb) = emissivity(js,jb) * (rlds(js,jb) - stbo * tsfc(js,jb)**4)
@@ -492,7 +492,7 @@ CONTAINS
 
 !$OMP PARALLEL DO PRIVATE(jb, jls, js) ICON_OMP_DEFAULT_SCHEDULE
     DO jb = domain%i_startblk_c,domain%i_endblk_c
-      !$ACC PARALLEL LOOP DEFAULT(PRESENT) GANG(STATIC: 1) VECTOR ASYNC(1)
+      !$ACC PARALLEL LOOP DEFAULT(PRESENT) GANG(STATIC: 1) VECTOR ASYNC(1) PRIVATE(js)
       DO jls = 1, nvalid(jb)
         js = indices(jls,jb)
         swfl_net(js,jb) = &
@@ -585,7 +585,7 @@ CONTAINS
       CALL jsbach_get_var('turb_rough_h', 1, ptr2d=jsb_rough_h)
 !$OMP PARALLEL DO PRIVATE(jb, jls, js) ICON_OMP_DEFAULT_SCHEDULE
       DO jb = domain%i_startblk_c,domain%i_endblk_c
-        !$ACC PARALLEL LOOP DEFAULT(PRESENT) GANG(STATIC: 1) VECTOR PRIVATE(js) ASYNC(1)
+        !$ACC PARALLEL LOOP DEFAULT(PRESENT) GANG(STATIC: 1) VECTOR ASYNC(1) PRIVATE(js)
         DO jls = 1, nvalid(jb)
           js = indices(jls,jb)
           rough_m(js,jb) = jsb_rough_m(js,jb)
@@ -920,7 +920,7 @@ CONTAINS
 
 !$OMP PARALLEL DO PRIVATE(jb, jls, js, zalbvis, zalbnir, rvds, rnds) ICON_OMP_DEFAULT_SCHEDULE
     DO jb = domain%i_startblk_c, domain%i_endblk_c
-      !$ACC PARALLEL LOOP DEFAULT(PRESENT) GANG(STATIC: 1) VECTOR ASYNC(1)
+      !$ACC PARALLEL LOOP DEFAULT(PRESENT) GANG(STATIC: 1) VECTOR ASYNC(1) PRIVATE(js)
       DO jls = 1, nvalid(jb)
         js = indices(jls,jb)
 

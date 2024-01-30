@@ -245,7 +245,8 @@ CONTAINS
     !$ACC   CREATE(energy, new_energy, tend_energy) &
     !$noACC   CREATE(inv_rhoe, nabla2_e, tot_tend, ddt_u, ddt_v, hori_tend_c, hori_tend_e) &
     !$ACC   CREATE(inv_rhoe, nabla2_e, tot_tend, hori_tend_c, hori_tend_e) &
-    !$ACC   CREATE(a, b, c, rhs, var_new, vt_e, inv_rho_ic)
+    !$ACC   CREATE(a, b, c, rhs, var_new, vt_e, inv_rho_ic) &
+    !$ACC   CREATE(za, zb, zc, zrhs, var_new_e)
 
     SELECT TYPE (v => this%atmo%config)
     TYPE IS (t_vdf_atmo_config)
@@ -291,7 +292,7 @@ CONTAINS
 
     ! Call surface model and compute fluxes (so far, only explicit land/atmo is used!)
     CALL this%sfc%Compute(datetime)
-  
+
     ! Pseudo code:
     ! allocate (tri-diagonal) matrix
     ! for state in atmo%states:
@@ -760,6 +761,7 @@ CONTAINS
     !---------------------------------------------------------------
     ! Horizontal diffusion for horizontal wind
     !---------------------------------------------------------------
+
 !$OMP PARALLEL
     CALL init(tot_tend)
 !$OMP END PARALLEL
