@@ -290,40 +290,34 @@ CONTAINS
           CALL get_indices_c(patch, jb, jbs, jbe, jcs, jce, rls, rle)
       
           !$ACC PARALLEL DEFAULT(PRESENT) PRESENT(field%qtrc_phy) ASYNC(1)
-          !$ACC LOOP GANG(STATIC: 1) VECTOR
+          !$ACC LOOP GANG(STATIC: 1) VECTOR COLLAPSE(2)
           DO jk = 1, nlev
             DO jc = jcs, jce
 
-              IF (ASSOCIATED(tend%ta_vdf)) tend%ta_vdf(jc,jk,jb) = tend_ta_vdf(jc,jk,jb)
               ! Add tendency from turbulent transport to physics tendency
               ! (is used in iconam_aes interface)
               tend%ta_phy(jc,jk,jb) = tend%ta_phy(jc,jk,jb) + tend_ta_vdf(jc,jk,jb)
               ! Update physics state
               field%ta(jc,jk,jb) = field%ta(jc,jk,jb) + tend_ta_vdf(jc,jk,jb) * dtime
 
-              IF (ASSOCIATED(tend%qtrc_vdf)) tend%qtrc_vdf(jc,jk,jb,iqv) = tend_qv_vdf(jc,jk,jb)
               ! Add tendency from turbulent transport to physics tendency
               ! (is used in iconam_aes interface)
               tend%qtrc_phy (jc,jk,jb,iqv) = tend%qtrc_phy (jc,jk,jb,iqv) + tend_qv_vdf(jc,jk,jb)
               ! Update physics state
               field%qtrc_phy(jc,jk,jb,iqv) = field%qtrc_phy(jc,jk,jb,iqv) + tend_qv_vdf(jc,jk,jb) * dtime
 
-              IF (ASSOCIATED(tend%qtrc_vdf)) tend%qtrc_vdf(jc,jk,jb,iqc) = tend_qc_vdf(jc,jk,jb)
               ! Add tendency from turbulent transport to physics tendency
               ! (is used in iconam_aes interface)
               tend%qtrc_phy(jc,jk,jb,iqc) = tend%qtrc_phy(jc,jk,jb,iqc) + tend_qc_vdf(jc,jk,jb)
               ! Update physics state
               field%qtrc_phy(jc,jk,jb,iqc) = field%qtrc_phy(jc,jk,jb,iqc) + tend_qc_vdf(jc,jk,jb) * dtime
 
-              IF (ASSOCIATED(tend%qtrc_vdf)) tend%qtrc_vdf(jc,jk,jb,iqi) = tend_qi_vdf(jc,jk,jb)
               ! Add tendency from turbulent transport to physics tendency
               ! (is used in iconam_aes interface)
               tend%qtrc_phy(jc,jk,jb,iqi) = tend%qtrc_phy(jc,jk,jb,iqi) + tend_qi_vdf(jc,jk,jb)
               ! Update physics state
               field%qtrc_phy(jc,jk,jb,iqi) = field%qtrc_phy(jc,jk,jb,iqi) + tend_qi_vdf(jc,jk,jb) * dtime
               ! 
-              IF (ASSOCIATED(tend%ua_vdf)) tend%ua_vdf(jc,jk,jb) = tend_ua_vdf(jc,jk,jb)
-              IF (ASSOCIATED(tend%va_vdf)) tend%va_vdf(jc,jk,jb) = tend_va_vdf(jc,jk,jb)
               tend%ua_phy(jc,jk,jb) = tend%ua_phy(jc,jk,jb) + tend_ua_vdf(jc,jk,jb)
               tend%va_phy(jc,jk,jb) = tend%va_phy(jc,jk,jb) + tend_va_vdf(jc,jk,jb)
               ! Update physics state
@@ -338,8 +332,52 @@ CONTAINS
           END DO
           !$ACC END LOOP
 
+          IF (ASSOCIATED(tend%ta_vdf)) THEN
+            !$ACC LOOP GANG(STATIC: 1) VECTOR COLLAPSE(2)
+            DO jk = 1, nlev
+              DO jc = jcs, jce
+                tend%ta_vdf(jc,jk,jb) = tend_ta_vdf(jc,jk,jb)
+              END DO
+            END DO
+            !$ACC END LOOP
+          END IF
+
+          IF (ASSOCIATED(tend%ua_vdf)) THEN
+            !$ACC LOOP GANG(STATIC: 1) VECTOR COLLAPSE(2)
+            DO jk = 1, nlev
+              DO jc = jcs, jce
+                tend%ua_vdf(jc,jk,jb) = tend_ua_vdf(jc,jk,jb)
+              END DO
+            END DO
+            !$ACC END LOOP
+          END IF
+
+          IF (ASSOCIATED(tend%va_vdf)) THEN
+            !$ACC LOOP GANG(STATIC: 1) VECTOR COLLAPSE(2)
+            DO jk = 1, nlev
+              DO jc = jcs, jce
+                tend%va_vdf(jc,jk,jb) = tend_va_vdf(jc,jk,jb)
+              END DO
+            END DO
+            !$ACC END LOOP
+          END IF
+
+          IF (ASSOCIATED(tend%qtrc_vdf)) THEN
+            !$ACC LOOP GANG(STATIC: 1) VECTOR COLLAPSE(2)
+            DO jk = 1, nlev
+              DO jc = jcs, jce
+                tend%qtrc_vdf(jc,jk,jb,iqv) = tend_qv_vdf(jc,jk,jb)
+                tend%qtrc_vdf(jc,jk,jb,iqc) = tend_qc_vdf(jc,jk,jb)
+                tend%qtrc_vdf(jc,jk,jb,iqi) = tend_qi_vdf(jc,jk,jb)
+              END DO
+            END DO
+            !$ACC END LOOP
+          END IF
+          !$ACC END PARALLEL
+
+          !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1)
           IF (ASSOCIATED(tend%wa_vdf)) THEN
-            !$ACC LOOP GANG(STATIC: 1) VECTOR
+            !$ACC LOOP GANG(STATIC: 1) VECTOR COLLAPSE(2)
             DO jk = 1, nlevp1
               DO jc = jcs, jce
                 tend%wa_vdf(jc,jk,jb) = tend_wa_vdf(jc,jk,jb)
@@ -348,13 +386,11 @@ CONTAINS
             !$ACC END LOOP
           END IF
 
-          !$ACC LOOP SEQ
+          !$ACC LOOP GANG(STATIC: 1) VECTOR COLLAPSE(2)
           DO jsfc = 1, nsfc_type
-            !$ACC LOOP GANG(STATIC: 1) VECTOR
             DO jc = jcs, jce
               field%ts_tile(jc,jb,jsfc) = field%ts_tile(jc,jb,jsfc) + tend_ts(jc,jb,jsfc) * dtime
             END DO
-            !$ACC END LOOP
           END DO
           !$ACC END LOOP
 

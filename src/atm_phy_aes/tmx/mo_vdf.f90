@@ -1093,7 +1093,7 @@ CONTAINS
 
         CALL tdma_solver_vec(za(:,:,jb),zb(:,:,jb),zc(:,:,jb),zrhs(:,:,jb),1,nlev,i_startidx,i_endidx,var_new_e(:,:,jb))
 
-        !$ACC PARALLEL LOOP DEFAULT(PRESENT) GANG(STATIC: 1) VECTOR ASYNC(1)
+        !$ACC PARALLEL LOOP DEFAULT(PRESENT) GANG(STATIC: 1) VECTOR COLLAPSE(2) ASYNC(1)
         DO jk = 1, nlev
           DO je = i_startidx, i_endidx
             tot_tend(je,jk,jb) = tot_tend(je,jk,jb) + (var_new_e(je,jk,jb) - vn(je,jk,jb)) / dtime
@@ -1292,7 +1292,7 @@ END DO
       !$ACC WAIT
       CALL tdma_solver_vec(a(:,:,jb),b(:,:,jb),c(:,:,jb),rhs(:,:,jb),2,nlev,i_startidx_c(jb),i_endidx_c(jb),var_new(:,:,jb))
 
-      !$ACC PARALLEL LOOP DEFAULT(PRESENT) GANG(STATIC: 1) VECTOR ASYNC(1)
+      !$ACC PARALLEL LOOP DEFAULT(PRESENT) GANG(STATIC: 1) VECTOR COLLAPSE(2) ASYNC(1)
       DO jk = 2, nlev
         DO jc = i_startidx_c(jb), i_endidx_c(jb)
           tend(jc,jk,jb) = ( var_new(jc,jk,jb) - pwp1(jc,jk,jb) ) / dtime 
@@ -1411,7 +1411,7 @@ END DO
 !$OMP PARALLEL
 !$OMP DO PRIVATE(jb,jc,jk) ICON_OMP_DEFAULT_SCHEDULE
     DO jb = i_startblk_c,i_endblk_c
-      !$ACC PARALLEL LOOP DEFAULT(PRESENT) GANG(STATIC: 1) VECTOR ASYNC(1)
+      !$ACC PARALLEL LOOP DEFAULT(PRESENT) GANG(STATIC: 1) VECTOR COLLAPSE(2) ASYNC(1)
       DO jk = 2, nlev
         DO jc = i_startidx_c(jb), i_endidx_c(jb)
           tend(jc,jk,jb) = tend(jc,jk,jb) + inv_rho_ic(jc,jk,jb)             *                     &
@@ -1429,7 +1429,7 @@ END DO
 !$OMP END DO
 !$OMP DO PRIVATE(jb,jc,jk) ICON_OMP_DEFAULT_SCHEDULE
     DO jb = i_startblk_c,i_endblk_c
-      !$ACC PARALLEL LOOP DEFAULT(PRESENT) GANG(STATIC: 1) VECTOR ASYNC(1)
+      !$ACC PARALLEL LOOP DEFAULT(PRESENT) GANG(STATIC: 1) VECTOR COLLAPSE(2) ASYNC(1)
       DO jk = 2, nlev
         DO jc = i_startidx_c(jb), i_endidx_c(jb)
           new_state(jc,jk,jb) = state(jc,jk,jb) + tend(jc,jk,jb) * dtime
