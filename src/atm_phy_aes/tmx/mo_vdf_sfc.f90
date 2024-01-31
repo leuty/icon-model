@@ -174,6 +174,8 @@ MODULE mo_vdf_sfc
       !
       & t2m(:,:)            => NULL(), &
       & t2m_tile(:,:,:)     => NULL(), &
+      & hus2m(:,:)          => NULL(), &
+      & hus2m_tile(:,:,:)   => NULL(), &
       & wind10m(:,:)        => NULL(), &
       & u10m(:,:)           => NULL(), &
       & v10m(:,:)           => NULL(), &
@@ -329,7 +331,7 @@ CONTAINS
 !$OMP END PARALLEL
         CALL compute_sfc_sat_spec_humidity(.FALSE., this%domain, this%domain%sfc_types(jtile), &
           & diags%nvalid(:,jtile), diags%indices(:,:,jtile), &
-          & ins%psfc(:,:), new_tsfc(:,:,jtile), diags%qsat_tile(:,:,jtile))
+          & ins%psfc(:,:), new_tsfc(:,:,jtile), new_qsfc(:,:,jtile))
         ! TODO: This should be replaced by routine mo_surface_ocean:update_albedo_ocean from ECHAM6.2
 !$OMP PARALLEL
         CALL init(diags%albvisdir_tile(:,:,jtile), albedoW)
@@ -369,7 +371,7 @@ CONTAINS
 
         CALL compute_sfc_sat_spec_humidity(.FALSE., this%domain, this%domain%sfc_types(jtile), &
           & diags%nvalid(:,jtile), diags%indices(:,:,jtile), &
-          & ins%psfc(:,:), new_tsfc(:,:,jtile), diags%qsat_tile(:,:,jtile))
+          & ins%psfc(:,:), new_tsfc(:,:,jtile), new_qsfc(:,:,jtile))
       CASE(isfc_lnd)
         CALL update_land(jg, this%domain, datetime, this%dt, conf%cpd, &
           & ins%dz(:,:), ins%psfc(:,:), ins%ta(:,:), ins%qa(:,:), ins%pa(:,:), &
@@ -422,7 +424,7 @@ CONTAINS
         & ins%ta(:,:), ins%qa(:,:), diags%wind(:,:), ins%u_oce_current(:,:), ins%v_oce_current(:,:), &
         & diags%rho_tile(:,:,jtile),  &
         ! & diags%qsat_tile(:,:,jtile), diags%theta_tile(:,:,jtile), &
-        & diags%qsat_tile(:,:,jtile), new_tsfc(:,:,jtile), &
+        & new_qsfc(:,:,jtile), new_tsfc(:,:,jtile), &
         & diags%kh_tile(:,:,jtile), diags%km_tile(:,:,jtile), &
         ! Output
         & diags%evapotrans_tile(:,:,jtile), diags%lhfl_tile(:,:,jtile), diags%shfl_tile(:,:,jtile), &
@@ -1167,6 +1169,8 @@ CONTAINS
     !
     CALL diaglist%append(t_variable('2m temperature', shape_2d, "K", type_id="real"))
     CALL diaglist%append(t_variable('2m temperature, tile', shape_3d, "K", type_id="real"))
+    CALL diaglist%append(t_variable('2m specific humidity', shape_2d, "kg kg-1", type_id="real"))
+    CALL diaglist%append(t_variable('2m specific humidity, tile', shape_3d, "kg kg-1", type_id="real"))
     CALL diaglist%append(t_variable('10m wind speed', shape_2d, "m/s", type_id="real"))
     CALL diaglist%append(t_variable('10m zonal wind', shape_2d, "m/s", type_id="real"))
     CALL diaglist%append(t_variable('10m meridional wind', shape_2d, "m/s", type_id="real"))
@@ -1309,6 +1313,10 @@ CONTAINS
       __acc_attach(this%t2m)
       this%t2m_tile        => this%list%Get_ptr_r3d('2m temperature, tile')
       __acc_attach(this%t2m_tile)
+      this%hus2m           => this%list%Get_ptr_r2d('2m specific humidity')
+      __acc_attach(this%hus2m)
+      this%hus2m_tile      => this%list%Get_ptr_r3d('2m specific humidity, tile')
+      __acc_attach(this%hus2m_tile)
       this%wind10m         => this%list%Get_ptr_r2d('10m wind speed')
       __acc_attach(this%wind10m)
       this%u10m            => this%list%Get_ptr_r2d('10m zonal wind')

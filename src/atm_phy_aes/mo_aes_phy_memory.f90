@@ -463,19 +463,22 @@ MODULE mo_aes_phy_memory
       & vas         (:,  :)=>NULL(),   &!< grid box mean 10m v-velocity
       & tas         (:,  :)=>NULL(),   &!< grid box mean 2m temperature
       & dew2        (:,  :)=>NULL(),   &!< grid box mean 2m dew point temperature
+      & qv2m        (:,  :)=>NULL(),   &!< grid box mean 2m specific humidity
       & tasmax      (:,  :)=>NULL(),   &!< grid box mean maximum 2m temperature
       & tasmin      (:,  :)=>NULL(),   &!< grid box mean minimum 2m temperature
       & sfcwind_tile(:,:,:)=>NULL(),   &!< 10 m wind on tiles
       & uas_tile    (:,:,:)=>NULL(),   &!< 10m u-velocity on tiles
       & vas_tile    (:,:,:)=>NULL(),   &!< 10m v-velocity on tiles
       & tas_tile    (:,:,:)=>NULL(),   &!< 2m temperature on tiles
-      & dew2_tile   (:,:,:)=>NULL()     !< 2m dew point temperature on tiles
+      & dew2_tile   (:,:,:)=>NULL(),   &!< 2m dew point temperature on tiles
+      & qv2m_tile   (:,:,:)=>NULL()     !< 2m specific humidity on tiles
 
     TYPE(t_ptr_2d),ALLOCATABLE :: sfcwind_tile_ptr(:)
     TYPE(t_ptr_2d),ALLOCATABLE :: uas_tile_ptr(:)
     TYPE(t_ptr_2d),ALLOCATABLE :: vas_tile_ptr(:)
     TYPE(t_ptr_2d),ALLOCATABLE :: tas_tile_ptr(:)
     TYPE(t_ptr_2d),ALLOCATABLE :: dew2_tile_ptr(:)
+    TYPE(t_ptr_2d),ALLOCATABLE :: qv2m_tile_ptr(:)
 
     ! global diagnostics
     REAL(wp),POINTER ::       &
@@ -3705,17 +3708,31 @@ CONTAINS
 
     __acc_attach(field%tas)
 
-    CALL add_var( field_list, prefix//'dew2', field%dew2,                       &
-                & GRID_UNSTRUCTURED_CELL, ZA_HEIGHT_2M,                         &
-                & t_cf_var('dew2','K','dew point temperature in 2m',            &
-                &          datatype_flt),                                       &
-                & grib2_var(0,0,6, ibits, GRID_UNSTRUCTURED, GRID_CELL),        &
-                & ldims=shape2d,                                                &
-                & lrestart = .FALSE.,                                           &
-                & isteptype=TSTEP_INSTANT,                                      &
-                & lopenacc=.TRUE.)
-
-    __acc_attach(field%dew2)
+    ! For now, allocate both dew2 and qv2m in order to avoid problems in output
+    ! namelists in run script depending on whether tmx or vdiff are used
+!     IF (use_tmx) THEN
+     CALL add_var( field_list, prefix//'qv2m', field%qv2m,                      &
+                    & GRID_UNSTRUCTURED_CELL, ZA_HEIGHT_2M,                     &
+                    & t_cf_var('qv2m','kg kg-1','specific humidity in 2m',      &
+                    &          datatype_flt),                                   &
+                    & grib2_var(0,0,6, ibits, GRID_UNSTRUCTURED, GRID_CELL),    &
+                    & ldims=shape2d,                                            &
+                    & lrestart = .FALSE.,                                       &
+                    & isteptype=TSTEP_INSTANT,                                  &
+                    & lopenacc=.TRUE.)
+     __acc_attach(field%qv2m)
+!     ELSE
+     CALL add_var( field_list, prefix//'dew2', field%dew2,                      &
+                    & GRID_UNSTRUCTURED_CELL, ZA_HEIGHT_2M,                     &
+                    & t_cf_var('dew2','K','dew point temperature in 2m',        &
+                    &          datatype_flt),                                   &
+                    & grib2_var(0,0,6, ibits, GRID_UNSTRUCTURED, GRID_CELL),    &
+                    & ldims=shape2d,                                            &
+                    & lrestart = .FALSE.,                                       &
+                    & isteptype=TSTEP_INSTANT,                                  &
+                    & lopenacc=.TRUE.)
+     __acc_attach(field%dew2)
+!     END IF
 
     CALL add_var( field_list, prefix//'tasmax', field%tasmax,                   &
                 & GRID_UNSTRUCTURED_CELL, ZA_HEIGHT_2M,                         &
@@ -3797,24 +3814,39 @@ CONTAINS
 
     __acc_attach(field%tas_tile)
 
-    CALL add_var( field_list, prefix//'dew2_tile', field%dew2_tile,             &
-                & GRID_UNSTRUCTURED_CELL, ZA_HEIGHT_2M,                         &
-                & t_cf_var('dew2_tile','K','dew point temperature in 2m on tiles',&
-                &          datatype_flt),                                       &
-                & grib2_var(0,0,6, ibits, GRID_UNSTRUCTURED, GRID_CELL),        &
-                & ldims=shapesfc,                                               &
-                & lcontainer=.TRUE., lrestart=.FALSE.,                          &
-                & isteptype=TSTEP_INSTANT,                                      &
-                & lopenacc=.TRUE.)
-
-    __acc_attach(field%dew2_tile)
-
+    IF (use_tmx) THEN
+     CALL add_var( field_list, prefix//'qv2m_tile', field%qv2m_tile,            &
+                    & GRID_UNSTRUCTURED_CELL, ZA_HEIGHT_2M,                     &
+                    & t_cf_var('qv2m_tile','kg kg-1','specific humidity in 2m on tiles',&
+                    &          datatype_flt),                                   &
+                    & grib2_var(0,0,6, ibits, GRID_UNSTRUCTURED, GRID_CELL),    &
+                    & ldims=shapesfc,                                           &
+                    & lcontainer=.TRUE., lrestart=.FALSE.,                      &
+                    & isteptype=TSTEP_INSTANT,                                  &
+                    & lopenacc=.TRUE.)
+     __acc_attach(field%qv2m_tile)
+    ELSE
+     CALL add_var( field_list, prefix//'dew2_tile', field%dew2_tile,            &
+                    & GRID_UNSTRUCTURED_CELL, ZA_HEIGHT_2M,                     &
+                    & t_cf_var('dew2_tile','K','dew point temperature in 2m on tiles',&
+                    &          datatype_flt),                                   &
+                    & grib2_var(0,0,6, ibits, GRID_UNSTRUCTURED, GRID_CELL),    &
+                    & ldims=shapesfc,                                           &
+                    & lcontainer=.TRUE., lrestart=.FALSE.,                      &
+                    & isteptype=TSTEP_INSTANT,                                  &
+                    & lopenacc=.TRUE.)
+     __acc_attach(field%dew2_tile)
+    END IF
 
     ALLOCATE(field%sfcwind_tile_ptr(ksfc_type))
     ALLOCATE(field%uas_tile_ptr(ksfc_type))
     ALLOCATE(field%vas_tile_ptr(ksfc_type))
     ALLOCATE(field%tas_tile_ptr(ksfc_type))
-    ALLOCATE(field%dew2_tile_ptr(ksfc_type))
+    IF (use_tmx) THEN
+     ALLOCATE(field%qv2m_tile_ptr(ksfc_type))
+    ELSE
+     ALLOCATE(field%dew2_tile_ptr(ksfc_type))
+    END IF
 
     DO jsfc = 1,ksfc_type
 
@@ -3858,7 +3890,18 @@ CONTAINS
                   & ref_idx=jsfc, ldims=shape2d, lrestart=.FALSE.,                  &
                   & lmiss=.TRUE., missval=cdimissval )
 
-      CALL add_ref( field_list, prefix//'dew2_tile',                                &
+      IF (use_tmx) THEN
+        CALL add_ref( field_list, prefix//'qv2m_tile',                              &
+                  & prefix//'qv2m_'//csfc(jsfc), field%qv2m_tile_ptr(jsfc)%p,       &
+                  & GRID_UNSTRUCTURED_CELL, ZA_SURFACE,                             &
+                  & t_cf_var('qv2m_'//csfc(jsfc), 'kg kg-1',                        &
+                  &          'specific humidity in 2m on tile '//csfc(jsfc),        &
+                  &          datatype_flt),                                         &
+                  & grib2_var(0,0,6, ibits, GRID_UNSTRUCTURED, GRID_CELL),          &
+                  & ref_idx=jsfc, ldims=shape2d, lrestart=.FALSE.,                  &
+                  & lmiss=.TRUE., missval=cdimissval )
+      ELSE
+        CALL add_ref( field_list, prefix//'dew2_tile',                              &
                   & prefix//'dew2_'//csfc(jsfc), field%dew2_tile_ptr(jsfc)%p,       &
                   & GRID_UNSTRUCTURED_CELL, ZA_SURFACE,                             &
                   & t_cf_var('dew2_'//csfc(jsfc), 'K',                              &
@@ -3867,6 +3910,7 @@ CONTAINS
                   & grib2_var(0,0,6, ibits, GRID_UNSTRUCTURED, GRID_CELL),          &
                   & ref_idx=jsfc, ldims=shape2d, lrestart=.FALSE.,                  &
                   & lmiss=.TRUE., missval=cdimissval )
+      END IF
 
     END DO
 

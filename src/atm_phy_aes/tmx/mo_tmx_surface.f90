@@ -22,8 +22,10 @@ MODULE mo_tmx_surface_interface
   USE mo_exception, ONLY: finish
   USE mo_fortran_tools, ONLY: init
   USE mtime, ONLY: datetime
-  USE mo_physical_constants, ONLY: rgrav, tmelt, Tf, stbo, rhos, alf, cvv, clw, ci
-  USE mo_aes_thermo, ONLY: lvc, lsc
+  USE mo_physical_constants, ONLY: grav, rgrav, tmelt, Tf, stbo, rhos, alf, cvv, clw, ci, vtmpc1, rd
+  USE mo_aes_thermo, ONLY: &
+    & lvc, lsc, &
+    & sat_pres_water, sat_pres_ice, specific_humidity
   USE mo_turb_vdiff_params, ONLY: ckap
   USE mo_coupling_config,   ONLY: is_coupled_run
   USE mo_aes_phy_config,    ONLY: aes_phy_config  ! TODO: replace USE
@@ -41,7 +43,7 @@ MODULE mo_tmx_surface_interface
   PUBLIC :: update_land, update_sea_ice, &
     & compute_sfc_sat_spec_humidity, compute_sfc_fluxes, compute_sfc_roughness, &
     & compute_lw_rad_net, compute_sw_rad_net, compute_albedo, compute_energy_fluxes, &
-    & compute_2m_temperature, compute_10m_wind
+    & compute_2m_temperature, compute_2m_humidity, compute_10m_wind
 
   CHARACTER(len=*), PARAMETER :: modname = 'mo_tmx_surface_interface'
   
@@ -613,8 +615,6 @@ CONTAINS
     & qsat                     &
     )
 
-    USE mo_aes_thermo, ONLY: sat_pres_water, sat_pres_ice, specific_humidity
-
     ! Domain information
     TYPE(t_domain),        INTENT(in), POINTER :: domain
     INTEGER,         INTENT(in) :: isfc
@@ -1079,16 +1079,18 @@ CONTAINS
     ENDDO
 !$OMP END PARALLEL DO
 
+    !$ACC WAIT(1)
+
   END SUBROUTINE compute_2m_temperature
   !
   !=================================================================
   !
-  SUBROUTINE compute_2m_dewpoint(              &
-    & domain, isfc,                               &
-    & nvalid, indices, zf, zh,                    &
-    & tatm, tsfc,                                 &
-    & moist_rich, kh, km, kh_neutral, km_neutral, &
-    & t2m)
+  SUBROUTINE compute_2m_humidity( &
+    & domain, nvalid, indices,    &
+    & patm, psfc,                 &
+    & tatm, t2m,                  &
+    & qv_atm, qc_atm, qi_atm,     &
+    & hus2m)
 
     ! Domain information
     TYPE(t_domain),  INTENT(in), POINTER :: domain
@@ -1097,30 +1099,50 @@ CONTAINS
     !
     INTEGER,  INTENT(in)  :: &
       & nvalid(:),           &
-      & indices(:,:),        &
-      & isfc
+      & indices(:,:)
     REAL(wp), DIMENSION(:,:), INTENT(in) :: &
-      & zf, zh, &
-      & tatm, tsfc, moist_rich, kh, km, kh_neutral, km_neutral
+      & patm, psfc,             & ! pressure in lowest model level and at surface
+      & tatm, t2m,              & ! temperature in lowest model level and at surface
+      & qv_atm, qc_atm, qi_atm    ! water vapor, cloud water and cloud ice in lowest model level
     REAL(wp), DIMENSION(:,:), INTENT(out) :: &
-      & t2m
+      & hus2m                     ! specific humidity at 2 meter
 
     INTEGER :: jb, jls, js
-    REAL(wp) :: zrat, zbm, zbh, zcbn, zcbs, zcbu, zmerge, zred
+    REAL(wp) :: &
+      & qsat_atm, qsat_2m, & ! saturated humidity in lowest model level and at 2 meter
+      & qrel_atm,          & ! relative humidity in lowest model level
+      & pres2m               ! pressure at 2 meter
 
-    CHARACTER(len=*), PARAMETER :: routine = modname//':compute_2m_dewpoint'
+    REAL(wp), PARAMETER :: zephum = 0.05_wp ! epsilon for rel. humidity
+    !$ACC DECLARE COPYIN(zephum)
 
-!$OMP PARALLEL DO PRIVATE(jb, jls, js, zrat, zbm, zbh, zcbn, zcbs, zcbu, zmerge, zred) ICON_OMP_DEFAULT_SCHEDULE
+    CHARACTER(len=*), PARAMETER :: routine = modname//':compute_2m_humidity'
+
+!$OMP PARALLEL
+    CALL init(hus2m)
+!$OMP END PARALLEL
+
+    ! Note: Below it is assumed that relative humidity is constant with height. This should
+    ! be revisited, see comments in https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/341
+    !
+!$OMP PARALLEL DO PRIVATE(jb, jls, js, qsat_atm, qrel_atm, pres2m, qsat_2m) ICON_OMP_DEFAULT_SCHEDULE
     DO jb = domain%i_startblk_c, domain%i_endblk_c
-      !$ACC PARALLEL LOOP DEFAULT(PRESENT) GANG(STATIC: 1) VECTOR ASYNC(1) PRIVATE(js, zrat, zbm, zcbn, zcbs, zcbu, zmerge, zred)
+      !$ACC PARALLEL LOOP DEFAULT(PRESENT) GANG VECTOR ASYNC(1) &
+      !$ACC   PRIVATE(js, qsat_atm, qrel_atm, pres2m, qsat_2m)
       DO jls = 1, nvalid(jb)
         js = indices(jls,jb)
+        qsat_atm = specific_humidity(sat_pres_water(tatm(js,jb)),patm(js,jb))
+        qrel_atm = MAX(zephum, qv_atm(js,jb) / qsat_atm)
+        pres2m = psfc(js,jb) * &
+          &  (1._wp - 2._wp * grav / ( rd * t2m(js,jb) * (1._wp + vtmpc1 * qv_atm(js,jb) - qc_atm(js,jb) - qi_atm(js,jb))))
+        qsat_2m = specific_humidity(sat_pres_water(t2m(js,jb)),pres2m)
+        hus2m(js,jb) = qrel_atm * qsat_2m
       END DO
       !$ACC END PARALLEL LOOP
     ENDDO
 !$OMP END PARALLEL DO
 
-  END SUBROUTINE compute_2m_dewpoint
+  END SUBROUTINE compute_2m_humidity
   !
   !=================================================================
   !

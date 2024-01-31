@@ -784,6 +784,8 @@ CONTAINS
 
     CALL bind_variable(vdf%sfc%diagnostics%list%Search('2m temperature'),                               field%tas)
     CALL bind_variable(vdf%sfc%diagnostics%list%Search('2m temperature, tile'),                         field%tas_tile)
+    CALL bind_variable(vdf%sfc%diagnostics%list%Search('2m specific humidity'),                         field%qv2m)
+    CALL bind_variable(vdf%sfc%diagnostics%list%Search('2m specific humidity, tile'),                   field%qv2m_tile)
     CALL bind_variable(vdf%sfc%diagnostics%list%Search('10m wind speed'),                               field%sfcwind)
     CALL bind_variable(vdf%sfc%diagnostics%list%Search('10m zonal wind'),                               field%uas)
     CALL bind_variable(vdf%sfc%diagnostics%list%Search('10m meridional wind'),                          field%vas)
