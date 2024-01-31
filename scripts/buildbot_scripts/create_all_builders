@@ -103,3 +103,5 @@ machine=lumi
 ./addmachine $machine --list $list
 ./addbuilder lumi_gpu  --machine $machine  --build_script="config/buildbot/lumi_gpu"   --builderflags="Active" --list $list
 ./addbuilder lumi_cpu  --machine $machine  --build_script="config/buildbot/lumi_cpu"   --builderflags="Active" --list $list
+./addbuilder lumi_gpu_mixed  --machine $machine  --build_script="config/buildbot/lumi_gpu_mixed"   --builderflags="build_only" --list $list
+./addbuilder lumi_cpu_mixed  --machine $machine  --build_script="config/buildbot/lumi_cpu_mixed"   --builderflags="build_only" --list $list
