@@ -1,6 +1,6 @@
 resolutions:
   - dim: time
-    values: ["PT30M", "PT3H", "P1D"]
+    values: ["PT15M", "PT3H", "P1D"]
   - dim: zoom
     values: [10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0]
 
@@ -16,13 +16,23 @@ chunks:
   time:
     max_period: "P1D"
 
-worker_target_size: 1_200_000_000
+worker_target_size: 600_000_000
 
 output_categories:
   2D_acc_atm:
     agg:
       time: mean
     active: "*"
+  2D_acc_slow_atm:
+    agg:
+      time: mean
+    active:
+      - "PT3H,*"
+      - "P1D,*"
+  3D_acc_atm:
+    agg:
+      time: mean
+    active: "P1D,*"
   2D_acc_lnd:
     agg:
       time: mean
@@ -34,7 +44,6 @@ output_categories:
   2D_inst_atm:
     agg:
       time: last
-    active: "*"
   2D_inst_atm_300:
     agg:
       time: last
@@ -58,9 +67,6 @@ output_categories:
   3D_inst_atm:
     agg:
       time: last
-    active:
-      - "PT3H,*"
-      - "P1D,*"
   3D_inst_lnd:
     agg:
       time: last
@@ -168,56 +174,53 @@ variables:
   zos: 2D_acc_oce
   vort: oce_anim
 
+  # Sea-ice 2D diagnostics (ocean)
+  newice: 2D_acc_oce
+  delhi: 2D_acc_oce
+  snow_to_ice: 2D_acc_oce
+  heatOceW: 2D_acc_oce
+  heatOceI: 2D_acc_oce
+  FrshFlux_IceSalt: 2D_acc_oce
+  FrshFlux_TotalIce: 2D_acc_oce
+
   # atmosphere
-  gpsm: [2D_inst_atm_300, 2D_inst_atm_500, 2D_inst_atm_850]
-  wa_phy: [2D_inst_atm_500, 2D_inst_atm_850, 3D_inst_atm]
-  # omega: [2D_inst_atm_500, 2D_inst_atm_850, 3D_inst_atm]  # would have to be active in classic output
-  ta: [2D_inst_atm_700, 3D_inst_atm]
-  ua: [2D_inst_atm_850, 3D_inst_atm]
-  va: [2D_inst_atm_850, 3D_inst_atm]
+  cli: 3D_acc_atm
+  clw: 3D_acc_atm
   clivi: 2D_acc_atm
   cllvi: 2D_acc_atm
+  dew2: 2D_acc_slow_atm
   hfls: 2D_acc_atm
   hfss: 2D_acc_atm
+  hus: 3D_acc_atm
+  pfull: 3D_acc_atm
+  phalf: 3D_acc_atm
   pr: 2D_acc_atm
+  pres_msl: 2D_acc_slow_atm
+  pres_sfc: 2D_acc_slow_atm
   prls: 2D_acc_atm
   prw: 2D_acc_atm
-  #ps: 2D_inst_atm
-  pres_msl: 2D_inst_atm
-  pres_sfc: 2D_inst_atm
+  qg: 3D_acc_atm
   qgvi: 2D_acc_atm
+  qr: 3D_acc_atm
   qrvi: 2D_acc_atm
+  qs: 3D_acc_atm
   qsvi: 2D_acc_atm
-  rlds:
-    - 2D_acc_atm
-    # - 2D_inst_atm
-  rlus:
-    - 2D_acc_atm
-    # - 2D_inst_atm
+  rlds: 2D_acc_atm
+  rlus: 2D_acc_atm
   rlut: 2D_acc_atm
-  rsds:
-    - 2D_acc_atm
-    # - 2D_inst_atm
+  rsds: 2D_acc_atm
   rsdt: 2D_acc_atm
   rsus: 2D_acc_atm
   rsut: 2D_acc_atm
-  sfcwind: 2D_inst_atm
-  sic: 2D_inst_atm
-  sit: 2D_inst_atm
-  tas: 2D_inst_atm
+  sfcwind: 2D_acc_atm
+  ta: 3D_acc_atm
+  tas: 2D_acc_atm
   tauu: 2D_acc_atm
   tauv: 2D_acc_atm
-  #tdps: 2D_inst_atm
-  ts: 2D_inst_atm
-  uas: 2D_inst_atm
-  vas: 2D_inst_atm
-  pfull: 3D_inst_atm
-  phalf: 3D_inst_atm
-  clw: 3D_inst_atm
-  hus: 3D_inst_atm
-  cli: 3D_inst_atm
-  qg: 3D_inst_atm
-  qr: 3D_inst_atm
-  qs: 3D_inst_atm
+  ts: 2D_acc_slow_atm
+  ua: 3D_acc_atm
+  uas: 2D_acc_slow_atm
+  va: 3D_acc_atm
+  vas: 2D_acc_slow_atm
+  wa_phy: 3D_acc_atm
 
-  tend_ta_mig: 3D_inst_atm  # would have to be active in classic output

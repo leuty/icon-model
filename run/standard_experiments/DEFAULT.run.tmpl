@@ -53,7 +53,7 @@ PATH=$UTILS_DIR/slurm:$UTILS_DIR:$PATH
 pipe=%{EXP_ID}_%{JOB.id}_$$.pipe
 mkfifo $pipe
 trap "cd $PWD && rm -f $pipe" EXIT
-awk '{print strftime("%FT%T:"), $0; fflush()}' $pipe &
+timewarp $pipe &
 exec > $pipe 2>&1
 
 #% do VARIABLES_.add('MODEL_DIR')
@@ -326,13 +326,19 @@ atm_min_rank=0
 atm_max_rank=$((mpi_total_procs - 1))
 atm_group_size=$atm_per_node
 atm_inc_rank=$((oce_per_node + 1))
-#%  else
+#%  else:
+#%    if JOB.grab_hiopy_tasks|d("atmo") == "atmo":
 oce_min_rank=`expr ${mpi_total_procs} - ${mpi_oce_procs} - $hiopy_tasks`
 oce_max_rank=`expr ${oce_min_rank} + ${mpi_oce_procs} - 1`
+atm_max_rank=`expr ${oce_min_rank} - 1`
+#%    else:
+oce_max_rank=$((mpi_total_procs - hiopy_tasks - 1))
+oce_min_rank=$((oce_max_rank + 1 - mpi_oce_procs - (mpi_procs_pernode - hiopy_tasks%mpi_procs_pernode)))
+atm_max_rank=$((oce_min_rank - 1))
+#%    endif
 oce_group_size=1
 oce_inc_rank=1
 atm_min_rank=0
-atm_max_rank=`expr ${oce_min_rank} - 1`
 atm_group_size=1
 atm_inc_rank=1
 #%  endif
@@ -564,11 +570,15 @@ export PYTHONPATH
 
 # prepare output datasets
 
-#%  if JOB.entry_point is set:
+#%  if JOB.entry_point is set or JOB.init_zarr is set:
 hiopy configure -p ${HIOPY_PLAN} init_zarr -d ${HIOPY_OUTPUT_PREFIX}
+#%  endif
+#%  if JOB.entry_point is set:
 hiopy configure -p ${HIOPY_PLAN} build_catalog -d ${HIOPY_OUTPUT_PREFIX} -n %{EXP_ID} -o ${HIOPY_CATALOG_PATH}
 #%  endif
+#%  if JOB.dont_extend_time is not set:
 hiopy configure -p ${HIOPY_PLAN} extend_time ${initial_date} ${next_date} -d ${HIOPY_OUTPUT_PREFIX}
+#%  endif
 
 #%  endif
 #%  if JOB.debug_level|d(0)|int > 0:

@@ -7,6 +7,18 @@ variables:
     long_name: sea water vertical diffusivity
     cmip_name: sea_water_vertical_diffusivity
     units: m2 s-1
+  FrshFlux_IceSalt:
+    component: ocean
+    hgrid: cell
+    long_name: Salt volume flux due to sea ice change
+    units: psu m s-1
+    vgrid: surface
+  FrshFlux_TotalIce:
+    component: ocean
+    hgrid: cell
+    long_name: Freshwater Flux due to Sea Ice Change
+    units: m s-1
+    vgrid: surface
   Qbot:
     component: ocean
     hgrid: cell
@@ -90,6 +102,12 @@ variables:
     hgrid: cell
     units: Pa
     vgrid: surface
+  cl:
+    component: atmo
+    hgrid: cell
+    long_name: cloud area fraction
+    units: m2 m-2
+    vgrid: reference
   cli:
     component: atmo
     hgrid: cell
@@ -119,6 +137,18 @@ variables:
     hgrid: cell
     long_name: ice concentration in each ice class
     vgrid: generic_ice
+  delhi:
+    component: ocean
+    hgrid: cell
+    long_name: Change in ice mean thickness due to thermodynamic effects
+    units: m
+    vgrid: generic_ice
+  dew2:
+    component: atmo
+    hgrid: cell
+    long_name: dew point temperature in 2m
+    units: K
+    vgrid: height_2m
   gpsm:
     long_name: geopotential above surface
     units: m2 s-2
@@ -134,6 +164,18 @@ variables:
     component: ocean
     hgrid: cell
     vgrid: surface
+  heatOceI:
+    component: ocean
+    hgrid: cell
+    long_name: Heat flux to ocean from the ice growth
+    units: W/m^2
+    vgrid: generic_ice
+  heatOceW:
+    component: ocean
+    hgrid: cell
+    long_name: Heat flux to ocean from the atmosphere
+    units: W/m^2
+    vgrid: generic_ice
   hfls:
     component: atmo
     hgrid: cell
@@ -182,6 +224,12 @@ variables:
     component: ocean
     hgrid: cell
     standard_name: ocean_mixed_layer_thickness_defined_by_sigma_t
+    units: m
+    vgrid: surface
+  newice:
+    component: ocean
+    hgrid: cell
+    long_name: new ice growth in open water
     units: m
     vgrid: surface
   pfull:
@@ -268,6 +316,13 @@ variables:
     long_name: specific snow content
     units: kg kg-1
     vgrid: reference
+  rho:
+    component: atmo
+    hgrid: cell
+    long_name: density
+    standard_name: air_density
+    units: kg m-3
+    vgrid: reference
   rlds:
     component: atmo
     hgrid: cell
@@ -340,6 +395,12 @@ variables:
     long_name: sea ice thickness
     units: m
     vgrid: surface
+  snow_to_ice:
+    component: ocean
+    hgrid: cell
+    long_name: amount of snow that is transformed to ice
+    units: m
+    vgrid: generic_ice
   so:
     component: ocean
     hgrid: cell
