@@ -53,6 +53,7 @@ MODULE mo_atmo_coupling_frame
 
   USE mo_exception           ,ONLY: finish, message
 
+
 #ifdef YAC_coupling
   USE mo_yac_finterface      ,ONLY: yac_fget_version, yac_fdef_comp,        &
     &                               yac_fdef_comps,                         &

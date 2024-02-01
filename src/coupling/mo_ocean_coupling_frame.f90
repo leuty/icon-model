@@ -36,7 +36,7 @@ MODULE mo_ocean_coupling_frame
   USE mo_parallel_config,     ONLY: nproma
 #ifdef YAC_coupling
   USE mo_yac_finterface,      ONLY: yac_fdef_comp, yac_fdef_comps,          &
-    &                               yac_fget_version,                        &
+    &                               yac_fget_version,                       &
     &                               yac_fdef_datetime, yac_fdef_grid,       &
     &                               yac_fdef_points, yac_fset_global_index, &
     &                               yac_fset_core_mask, yac_fenddef,        &

@@ -1300,4 +1300,4 @@ The result of the commands above will be file `build-report.tar.gz`, which
 should be attached to the very first email describing your problem. Please, do
 not forget to specify the **repository** and the **branch** that you experience
 the issue with, preferably in the form of a URL
-(e.g. https://gitlab.dkrz.de/icon/icon/-/tree/icon-2.6.5-rc).
+(e.g. https://gitlab.dkrz.de/icon/icon-model/-/tree/release-2024.01-public).
