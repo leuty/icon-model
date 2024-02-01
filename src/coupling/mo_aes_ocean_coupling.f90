@@ -201,7 +201,9 @@ CONTAINS
     ! is required as some compilers are asked to initialise with NaN
     ! and as we loop over the full array.
 
+!ICON_OMP_PARALLEL
     CALL init(buffer(:,:))
+!ICON_OMP_END_PARALLEL
 
     IF ( mask_checksum > 0 .AND. aes_phy_config(jg)%ljsb ) THEN
       IF ( aes_phy_config(jg)%llake ) THEN
@@ -700,7 +702,9 @@ CONTAINS
     !   - ocean fields have undefined values on land, which are not sent to the atmosphere,
     !     therefore buffer is set to zero to avoid unintended usage of ocean values over land
 
+!ICON_OMP_PARALLEL
     CALL init(buffer(:,:))
+!ICON_OMP_END_PARALLEL
 
     ! ------------------------------
     !  Receive SST
@@ -926,7 +930,9 @@ CONTAINS
        !
        IF (ltimer) CALL timer_start(timer_coupling_get)
 
+!ICON_OMP_PARALLEL
        CALL init(buffer(:,:))  ! needs to be checked if this is necessary
+!ICON_OMP_END_PARALLEL
        CALL yac_fget ( field_id_co2_flx, nbr_hor_cells, 1, buffer(1:nbr_hor_cells,1:1), info, ierror )
        IF ( info > YAC_ACTION_COUPLING .AND. info < YAC_ACTION_OUT_OF_BOUND ) &
             & CALL message('interface_aes_ocean', 'YAC says it is get for restart - id=12, CO2 flux')
