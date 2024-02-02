@@ -249,9 +249,8 @@ cat > ${atmo_namelist} << EOF
 /
 &aes_cop_nml
  aes_cop_config(1)%cinhomi  = 1.0
- aes_cop_config(1)%cinhoml1 = 0.4
- aes_cop_config(1)%cinhoml2 = 0.4
- aes_cop_config(1)%cinhoml3 = 0.4
+ aes_cop_config(1)%cinhoms  = 1.0
+ aes_cop_config(1)%cinhoml  = 0.4
  aes_cop_config(1)%cn1lnd   = 50.0
  aes_cop_config(1)%cn1sea   = 50.0
  aes_cop_config(1)%cn2lnd   = 220.0
@@ -311,6 +310,7 @@ cat > ${jsbach_namelist} << EOF
  l_soil_texture      = .TRUE.
 /
 &jsb_hydro_nml
+ l_socmap            = .FALSE.
  bc_filename         = 'bc_land_soil.nc'
  ic_filename         = 'ic_land_soil.nc'
  bc_sso_filename     = 'bc_land_sso.nc'
@@ -350,8 +350,8 @@ EOF
 
 # model files
 #
-add_link_file ${basedir}/externals/rte-rrtmgp/rrtmgp/data/rrtmgp-data-lw-g128-210809.nc         ./coefficients_lw.nc
-add_link_file ${basedir}/externals/rte-rrtmgp/rrtmgp/data/rrtmgp-data-sw-g112-210809.nc         ./coefficients_sw.nc
+add_link_file ${basedir}/data/rrtmgp-gas-lw-g128.nc         ./coefficients_lw.nc
+add_link_file ${basedir}/data/rrtmgp-gas-sw-g112.nc         ./coefficients_sw.nc
 add_link_file ${basedir}/data/ECHAM6_CldOptProps_rrtmgp_lw.nc             ./rrtmgp-cloud-optics-coeffs-lw.nc
 add_link_file ${basedir}/data/ECHAM6_CldOptProps_rrtmgp_sw.nc             ./rrtmgp-cloud-optics-coeffs-sw.nc
 
@@ -390,7 +390,7 @@ add_link_file $datadir/greenhouse_gases/greenhouse_ssp245.nc              ./bc_g
 datadir=${icon_data_poolFolder}/independent/solar_radiation/3.2
 add_link_file $datadir/swflux_14band_cmip6_1850-2299-v3.2.nc              ./bc_solar_irradiance_sw_b14.nc
 #
-datadir=${icon_data_poolFolder}/${grid_id}/land/r0001
+datadir=${icon_data_poolFolder}/${grid_id}/land/r0002
 add_link_file $datadir/ic_land_soil_2015.nc                               ./ic_land_soil.nc
 add_link_file $datadir/bc_land_frac_2015.nc                               ./bc_land_frac.nc
 add_link_file $datadir/bc_land_phys_2015.nc                               ./bc_land_phys.nc
@@ -468,8 +468,8 @@ if [[ "$output_atm_2d" == "yes" ]]; then
                     'prlr'    , 'prls'    ,
                     'qgvi'    , 'qrvi'    , 'qsvi'    ,
                     'uas'     , 'vas'     , 'dew2'    ,
-                    'cptgzvi' , 'uphyvi'  , 'udynvi',
-                    'ssfl_tsa', 'rsfl_tsa', 'shfl_qsa',
+                    'cptgzvi' , 'duphyvi' , 'udynvi'  ,
+                    'ufts'    , 'ufvs'    , 'ufcs'    ,
                     'rpds_dir', 'rpds_dif', 'rvds_dif', 'rnds_dif',
                     'pr_rain', 'pr_ice', 'pr_snow', 'pr_grpl',
 /

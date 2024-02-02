@@ -274,8 +274,14 @@ case "$use_site" in
   csc.fi)
     use_submit='sbatch'
     use_sync_submit='sbatch --wait'
-    use_mpi_startrun='srun -n $mpi_total_procs --ntasks-per-node $mpi_procs_pernode --threads-per-core=1 --cpus-per-task $OMP_NUM_THREADS'
-    use_target='lumi'
+    use_mpi_startrun='srun'
+    if test xyes = x"${use_gpu}"; then
+      use_target='lumi_gpu'
+      use_mpi_startrun="srun --cpu-bind=map_cpu:49,57,17,25,1,9,33,41 ${ICON_CONTAINER_WRAPPER-} ${use_srcdir}/run/run_wrapper/lumi_gpu.sh"
+    else
+      use_target='lumi_cpu'
+      use_mpi_startrun="srun ${ICON_CONTAINER_WRAPPER-}"
+    fi
   ;;
 
   ecmwf.int)

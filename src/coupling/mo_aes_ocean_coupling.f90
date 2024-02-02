@@ -60,6 +60,7 @@ MODULE mo_aes_ocean_coupling
   USE mo_dbg_nml             ,ONLY: idbg_mxmn, idbg_val
   USE mo_physical_constants  ,ONLY: amd, amco2
   USE mo_physical_constants  ,ONLY: cvd, cpd
+  USE mo_fortran_tools       ,ONLY: init
 
   IMPLICIT NONE
 
@@ -132,12 +133,6 @@ CONTAINS
 
     ALLOCATE(buffer(nproma*p_patch%nblks_c,4))
 
-    ! As YAC does not touch masked data an explicit initialisation
-    ! is required as some compilers are asked to initialise with NaN
-    ! and as we loop over the full array.
-
-    buffer(:,:) = 0.0_wp
-
     jg   = p_patch%id
     nlev = p_patch%nlev
 
@@ -200,7 +195,15 @@ CONTAINS
     !  - if no lake part is present, subtract land part only
     !  - if no jsbach is present (aquaplanet), frac_oce is 1.
 
-    !$ACC DATA CREATE(frac_oce)
+    !$ACC DATA CREATE(frac_oce, buffer)
+
+    ! As YAC does not touch masked data an explicit initialisation
+    ! is required as some compilers are asked to initialise with NaN
+    ! and as we loop over the full array.
+
+!ICON_OMP_PARALLEL
+    CALL init(buffer(:,:))
+!ICON_OMP_END_PARALLEL
 
     IF ( mask_checksum > 0 .AND. aes_phy_config(jg)%ljsb ) THEN
       IF ( aes_phy_config(jg)%llake ) THEN
@@ -261,6 +264,8 @@ CONTAINS
 
 !ICON_OMP_PARALLEL
 !ICON_OMP_DO PRIVATE(i_blk, n, nn, nlen) ICON_OMP_RUNTIME_SCHEDULE
+    !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1)
+    !$ACC LOOP SEQ
     DO i_blk = 1, p_patch%nblks_c
       nn = (i_blk-1)*nproma
       IF (i_blk /= p_patch%nblks_c) THEN
@@ -268,12 +273,14 @@ CONTAINS
       ELSE
         nlen = p_patch%npromz_c
       END IF
-      !$ACC PARALLEL LOOP DEFAULT(PRESENT) ASYNC(1) COPYOUT(buffer(nn+1:nn+nlen, 1:2))
+      !$ACC LOOP GANG VECTOR
       DO n = 1, nlen
          buffer(nn+n,1) = prm_field(jg)%u_stress_tile(n,i_blk,iwtr)
          buffer(nn+n,2) = prm_field(jg)%u_stress_tile(n,i_blk,iice)
       ENDDO
     ENDDO
+    !$ACC END PARALLEL
+    !$ACC UPDATE HOST(buffer) ASYNC(1)
     !$ACC WAIT(1)
 !ICON_OMP_END_DO
 !ICON_OMP_END_PARALLEL
@@ -293,6 +300,8 @@ CONTAINS
     !   "surface_downward_northward_stress" bundle - meridional wind stress component over ice and water
 
 !ICON_OMP_PARALLEL_DO PRIVATE(i_blk, n, nn, nlen) ICON_OMP_RUNTIME_SCHEDULE
+    !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1)
+    !$ACC LOOP SEQ
     DO i_blk = 1, p_patch%nblks_c
       nn = (i_blk-1)*nproma
       IF (i_blk /= p_patch%nblks_c) THEN
@@ -300,12 +309,14 @@ CONTAINS
       ELSE
         nlen = p_patch%npromz_c
       END IF
-      !$ACC PARALLEL LOOP DEFAULT(PRESENT) ASYNC(1) COPYOUT(buffer(nn+1:nn+nlen, 1:2))
+      !$ACC LOOP GANG VECTOR
       DO n = 1, nlen
          buffer(nn+n,1) = prm_field(jg)%v_stress_tile(n,i_blk,iwtr)
          buffer(nn+n,2) = prm_field(jg)%v_stress_tile(n,i_blk,iice)
       ENDDO
     ENDDO
+    !$ACC END PARALLEL
+    !$ACC UPDATE HOST(buffer) ASYNC(1)
     !$ACC WAIT(1)
 !ICON_OMP_END_PARALLEL_DO
 
@@ -334,6 +345,8 @@ CONTAINS
     IF (nsfc_type == 2) THEN
 
 !ICON_OMP_PARALLEL_DO PRIVATE(i_blk, n, nn, nlen) ICON_OMP_RUNTIME_SCHEDULE
+      !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1)
+      !$ACC LOOP SEQ
       DO i_blk = 1, p_patch%nblks_c
         nn = (i_blk-1)*nproma
         IF (i_blk /= p_patch%nblks_c) THEN
@@ -341,7 +354,7 @@ CONTAINS
         ELSE
           nlen = p_patch%npromz_c
         END IF
-        !$ACC PARALLEL LOOP DEFAULT(PRESENT) ASYNC(1) COPYOUT(buffer(nn+1:nn+nlen, 1:3))
+        !$ACC LOOP GANG VECTOR
         DO n = 1, nlen
 
           ! total rates of rain and snow over whole cell
@@ -353,6 +366,8 @@ CONTAINS
             &              prm_field(jg)%evap_tile(n,i_blk,iice)*prm_field(jg)%frac_tile(n,i_blk,iice)
         ENDDO
       ENDDO
+      !$ACC END PARALLEL
+      !$ACC UPDATE HOST(buffer) ASYNC(1)
       !$ACC WAIT(1)
 !ICON_OMP_END_PARALLEL_DO
 
@@ -361,6 +376,8 @@ CONTAINS
 
 !ICON_OMP_PARALLEL_DO PRIVATE(i_blk, n, nn, nlen) ICON_OMP_RUNTIME_SCHEDULE
       !$ACC DATA COPYOUT(scr) IF(idbg_mxmn >= 1 .OR. idbg_val >=1)
+      !$ACC PARALLEL DEFAULT(PRESENT) NO_CREATE(scr) ASYNC(1)
+      !$ACC LOOP SEQ
       DO i_blk = 1, p_patch%nblks_c
         nn = (i_blk-1)*nproma
         IF (i_blk /= p_patch%nblks_c) THEN
@@ -368,7 +385,7 @@ CONTAINS
         ELSE
           nlen = p_patch%npromz_c
         END IF
-        !$ACC PARALLEL LOOP DEFAULT(PRESENT) ASYNC(1) COPYOUT(buffer(nn+1:nn+nlen, 1:3)) NO_CREATE(scr)
+        !$ACC LOOP GANG VECTOR
         DO n = 1, nlen
 
           ! total rates of rain and snow over whole cell
@@ -389,6 +406,8 @@ CONTAINS
           IF ( idbg_mxmn >= 1 .OR. idbg_val >=1 ) scr(n,i_blk) = buffer(nn+n,3)
         ENDDO
       ENDDO
+      !$ACC END PARALLEL
+      !$ACC UPDATE HOST(buffer) ASYNC(1)
       !$ACC WAIT(1)
       !$ACC END DATA
 !ICON_OMP_END_PARALLEL_DO
@@ -418,6 +437,8 @@ CONTAINS
       shflx_adjustment_factor = cvd/cpd
 
 !ICON_OMP_PARALLEL_DO PRIVATE(i_blk, n, nn, nlen) ICON_OMP_RUNTIME_SCHEDULE
+      !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1)
+      !$ACC LOOP SEQ
       DO i_blk = 1, p_patch%nblks_c
         nn = (i_blk-1)*nproma
         IF (i_blk /= p_patch%nblks_c) THEN
@@ -425,7 +446,7 @@ CONTAINS
         ELSE
           nlen = p_patch%npromz_c
         END IF
-        !$ACC PARALLEL LOOP DEFAULT(PRESENT) ASYNC(1) COPYOUT(buffer(nn+1:nn+nlen, 1:4))
+        !$ACC LOOP GANG VECTOR
         DO n = 1, nlen
           buffer(nn+n,1) = prm_field(jg)%swflxsfc_tile(n,i_blk,iwtr)
           buffer(nn+n,2) = prm_field(jg)%lwflxsfc_tile(n,i_blk,iwtr)
@@ -433,6 +454,9 @@ CONTAINS
           buffer(nn+n,4) = prm_field(jg)%lhflx_tile   (n,i_blk,iwtr)
         ENDDO
       ENDDO
+      !$ACC END PARALLEL
+      !$ACC UPDATE HOST(buffer) ASYNC(1)
+      !$ACC WAIT(1)
 !ICON_OMP_END_PARALLEL_DO
 
     ELSE ! .NOT. use_shflx_adjustment .OR. use_tmx
@@ -440,6 +464,8 @@ CONTAINS
       shflx_adjustment_factor = 1._wp
 
 !ICON_OMP_PARALLEL_DO PRIVATE(i_blk, n, nn, nlen) ICON_OMP_RUNTIME_SCHEDULE
+      !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1)
+      !$ACC LOOP SEQ
       DO i_blk = 1, p_patch%nblks_c
         nn = (i_blk-1)*nproma
         IF (i_blk /= p_patch%nblks_c) THEN
@@ -447,7 +473,7 @@ CONTAINS
         ELSE
           nlen = p_patch%npromz_c
         END IF
-        !$ACC PARALLEL LOOP DEFAULT(PRESENT) ASYNC(1) COPYOUT(buffer(nn+1:nn+nlen, 1:4))
+        !$ACC LOOP GANG VECTOR
         DO n = 1, nlen
           buffer(nn+n,1) = prm_field(jg)%swflxsfc_tile(n,i_blk,iwtr)
           buffer(nn+n,2) = prm_field(jg)%lwflxsfc_tile(n,i_blk,iwtr)
@@ -455,6 +481,9 @@ CONTAINS
           buffer(nn+n,4) = prm_field(jg)%lhflx_tile   (n,i_blk,iwtr)
         ENDDO
       ENDDO
+      !$ACC END PARALLEL
+      !$ACC UPDATE HOST(buffer) ASYNC(1)
+      !$ACC WAIT(1)
 !ICON_OMP_END_PARALLEL_DO
 
     ENDIF ! use_shflx_adjustment
@@ -475,6 +504,8 @@ CONTAINS
     !   "atmosphere_sea_ice_bundle" - sea ice surface and bottom melt potentials Qtop, Qbot
 
 !ICON_OMP_PARALLEL_DO PRIVATE(i_blk, n, nn, nlen) ICON_OMP_RUNTIME_SCHEDULE
+    !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1)
+    !$ACC LOOP SEQ
     DO i_blk = 1, p_patch%nblks_c
       nn = (i_blk-1)*nproma
       IF (i_blk /= p_patch%nblks_c) THEN
@@ -482,12 +513,14 @@ CONTAINS
       ELSE
         nlen = p_patch%npromz_c
       END IF
-      !$ACC PARALLEL LOOP DEFAULT(PRESENT) ASYNC(1) COPYOUT(buffer(nn+1:nn+nlen, 1:2))
+      !$ACC LOOP GANG VECTOR
       DO n = 1, nlen
         buffer(nn+n,1) = prm_field(jg)%Qtop(n,1,i_blk)
         buffer(nn+n,2) = prm_field(jg)%Qbot(n,1,i_blk)
       ENDDO
     ENDDO
+    !$ACC END PARALLEL
+    !$ACC UPDATE HOST(buffer) ASYNC(1)
     !$ACC WAIT(1)
 !ICON_OMP_END_PARALLEL_DO
 
@@ -511,6 +544,8 @@ CONTAINS
     !   "10m_wind_speed" - atmospheric wind speed
 
 !!ICON_OMP_PARALLEL_DO PRIVATE(i_blk, n, nn, nlen) ICON_OMP_RUNTIME_SCHEDULE
+    !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1)
+    !$ACC LOOP SEQ
     DO i_blk = 1, p_patch%nblks_c
       nn = (i_blk-1)*nproma
       IF (i_blk /= p_patch%nblks_c) THEN
@@ -518,12 +553,14 @@ CONTAINS
       ELSE
         nlen = p_patch%npromz_c
       END IF
-      !$ACC PARALLEL LOOP DEFAULT(PRESENT) ASYNC(1) COPYOUT(buffer(nn+1:nn+nlen, 1))
+      !$ACC LOOP GANG VECTOR
       DO n = 1, nlen
         ! as far as no tiles (pre04) are correctly implemented, use the grid-point mean of 10m wind for coupling
         buffer(nn+n,1) = prm_field(jg)%sfcWind(n,i_blk)
       ENDDO
     ENDDO
+    !$ACC END PARALLEL
+    !$ACC UPDATE HOST(buffer) ASYNC(1)
     !$ACC WAIT(1)
 !!ICON_OMP_END_PARALLEL_DO
 
@@ -552,6 +589,8 @@ CONTAINS
     !   "pres_msl" - atmospheric sea level pressure
 
 !!ICON_OMP_PARALLEL_DO PRIVATE(i_blk, n, nn, nlen) ICON_OMP_RUNTIME_SCHEDULE
+    !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1)
+    !$ACC LOOP SEQ
     DO i_blk = 1, p_patch%nblks_c
       nn = (i_blk-1)*nproma
       IF (i_blk /= p_patch%nblks_c) THEN
@@ -559,11 +598,13 @@ CONTAINS
       ELSE
         nlen = p_patch%npromz_c
       END IF
-      !$ACC PARALLEL LOOP DEFAULT(PRESENT) ASYNC(1) COPYOUT(buffer(nn+1:nn+nlen, 1))
+      !$ACC LOOP GANG VECTOR
       DO n = 1, nlen
         buffer(nn+n,1) = pt_diag%pres_msl(n,i_blk)
       ENDDO
     ENDDO
+    !$ACC END PARALLEL
+    !$ACC UPDATE HOST(buffer) ASYNC(1)
     !$ACC WAIT(1)
 !!ICON_OMP_END_PARALLEL_DO
 
@@ -595,6 +636,8 @@ CONTAINS
        !  "co2_mixing_ratio" - CO2 mixing ratio in ppmv
 
 !!ICON_OMP_PARALLEL_DO PRIVATE(i_blk, n, nn, nlen) ICON_OMP_RUNTIME_SCHEDULE
+       !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1)
+       !$ACC LOOP SEQ
        DO i_blk = 1, p_patch%nblks_c
           nn = (i_blk-1)*nproma
           IF (i_blk /= p_patch%nblks_c) THEN
@@ -604,25 +647,27 @@ CONTAINS
           END IF
           SELECT CASE (ccycle_config(jg)%iccycle)
           CASE (1) ! c-cycle with interactive atm. co2 concentration, qtrc_phy in kg/kg
-             !$ACC PARALLEL LOOP DEFAULT(PRESENT) ASYNC(1) COPYOUT(buffer(nn+1:nn+nlen, 1))
+             !$ACC LOOP GANG VECTOR
              DO n = 1, nlen
                 buffer(nn+n,1)    =  amd/amco2 * 1.0e6_wp * prm_field(jg)%qtrc_phy(n,nlev,i_blk,ico2)
              END DO
           CASE (2) ! c-cycle with prescribed  atm. co2 concentration
              SELECT CASE (ccycle_config(jg)%ico2conc)
              CASE (2) ! constant  co2 concentration, vmr_co2 in m3/m3
-                !$ACC PARALLEL LOOP DEFAULT(PRESENT) ASYNC(1) COPYOUT(buffer(nn+1:nn+nlen, 1))
+                !$ACC LOOP GANG VECTOR
                 DO n = 1, nlen
                    buffer(nn+n,1) =              1.0e6_wp * ccycle_config(jg)%vmr_co2
                 END DO
              CASE (4) ! transient co2 concentration, ghg_co2vmr in m3/m3
-                !$ACC PARALLEL LOOP DEFAULT(PRESENT) ASYNC(1) COPYOUT(buffer(nn+1:nn+nlen, 1))
+                !$ACC LOOP GANG VECTOR
                 DO n = 1, nlen
                    buffer(nn+n,1) =              1.0e6_wp * ghg_co2vmr
                 END DO
              END SELECT
           END SELECT
        ENDDO
+       !$ACC END PARALLEL
+       !$ACC UPDATE HOST(buffer) ASYNC(1)
        !$ACC WAIT(1)
 !!ICON_OMP_END_PARALLEL_DO
 
@@ -657,7 +702,9 @@ CONTAINS
     !   - ocean fields have undefined values on land, which are not sent to the atmosphere,
     !     therefore buffer is set to zero to avoid unintended usage of ocean values over land
 
-    buffer(:,:) = 0.0_wp
+!ICON_OMP_PARALLEL
+    CALL init(buffer(:,:))
+!ICON_OMP_END_PARALLEL
 
     ! ------------------------------
     !  Receive SST
@@ -683,6 +730,10 @@ CONTAINS
 
 !ICON_OMP_PARALLEL_DO PRIVATE(i_blk, n, nn, nlen) ICON_OMP_RUNTIME_SCHEDULE
       !$ACC DATA COPYOUT(scr) IF(idbg_mxmn >= 1 .OR. idbg_val >=1)
+      !$ACC UPDATE DEVICE(buffer) ASYNC(1)
+      !$ACC WAIT(1)
+      !$ACC PARALLEL DEFAULT(PRESENT) NO_CREATE(scr) ASYNC(1)
+      !$ACC LOOP SEQ
       DO i_blk = 1, p_patch%nblks_c
         nn = (i_blk-1)*nproma
         IF (i_blk /= p_patch%nblks_c) THEN
@@ -690,7 +741,7 @@ CONTAINS
         ELSE
           nlen = p_patch%npromz_c
         END IF
-        !$ACC PARALLEL LOOP DEFAULT(PRESENT) ASYNC(1) COPYIN(buffer(nn+1:nn+nlen, 1)) NO_CREATE(scr)
+        !$ACC LOOP GANG VECTOR
         DO n = 1, nlen
 
           !  - lake part is included in land part, must be subtracted as well, see frac_oce
@@ -709,6 +760,7 @@ CONTAINS
           ENDIF
         ENDDO
       ENDDO
+      !$ACC END PARALLEL
       !$ACC WAIT(1)
       !$ACC END DATA
 !ICON_OMP_END_PARALLEL_DO
@@ -735,6 +787,10 @@ CONTAINS
     IF ( info > 0 .AND. info < 7 ) THEN
 
 !ICON_OMP_PARALLEL_DO PRIVATE(i_blk, n, nn, nlen) ICON_OMP_RUNTIME_SCHEDULE
+      !$ACC UPDATE DEVICE(buffer) ASYNC(1)
+      !$ACC WAIT(1)
+      !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1)
+      !$ACC LOOP SEQ
       DO i_blk = 1, p_patch%nblks_c
         nn = (i_blk-1)*nproma
         IF (i_blk /= p_patch%nblks_c) THEN
@@ -742,7 +798,7 @@ CONTAINS
         ELSE
           nlen = p_patch%npromz_c
         END IF
-        !$ACC PARALLEL LOOP DEFAULT(PRESENT) ASYNC(1) COPYIN(buffer(nn+1:nn+nlen, 1))
+        !$ACC LOOP GANG VECTOR
         DO n = 1, nlen
           IF ( nn+n > nbr_inner_cells ) THEN
             prm_field(jg)%ocu(n,i_blk) = dummy
@@ -751,7 +807,7 @@ CONTAINS
           ENDIF
         ENDDO
       ENDDO
-      !$ACC WAIT(1)
+      !$ACC END PARALLEL
 !ICON_OMP_END_PARALLEL_DO
 
       CALL sync_patch_array(sync_c, p_patch, prm_field(jg)%ocu(:,:))
@@ -774,6 +830,10 @@ CONTAINS
     IF ( info > 0 .AND. info < 7 ) THEN
 
 !ICON_OMP_PARALLEL_DO PRIVATE(i_blk, n, nn, nlen) ICON_OMP_RUNTIME_SCHEDULE
+      !$ACC UPDATE DEVICE(buffer) ASYNC(1)
+      !$ACC WAIT(1)
+      !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1)
+      !$ACC LOOP SEQ
       DO i_blk = 1, p_patch%nblks_c
         nn = (i_blk-1)*nproma
         IF (i_blk /= p_patch%nblks_c) THEN
@@ -781,7 +841,7 @@ CONTAINS
         ELSE
           nlen = p_patch%npromz_c
         END IF
-        !$ACC PARALLEL LOOP DEFAULT(PRESENT) ASYNC(1) COPYIN(buffer(nn+1:nn+nlen, 1))
+        !$ACC LOOP GANG VECTOR
         DO n = 1, nlen
           IF ( nn+n > nbr_inner_cells ) THEN
             prm_field(jg)%ocv(n,i_blk) = dummy
@@ -790,7 +850,7 @@ CONTAINS
           ENDIF
         ENDDO
       ENDDO
-      !$ACC WAIT(1)
+      !$ACC END PARALLEL
 !ICON_OMP_END_PARALLEL_DO
 
       CALL sync_patch_array(sync_c, p_patch, prm_field(jg)%ocv(:,:))
@@ -814,6 +874,10 @@ CONTAINS
     IF ( info > 0 .AND. info < 7 ) THEN
 
 !ICON_OMP_PARALLEL_DO PRIVATE(i_blk, n, nn, nlen) ICON_OMP_RUNTIME_SCHEDULE
+      !$ACC UPDATE DEVICE(buffer) ASYNC(1)
+      !$ACC WAIT(1)
+      !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1)
+      !$ACC LOOP SEQ
       DO i_blk = 1, p_patch%nblks_c
         nn = (i_blk-1)*nproma
         IF (i_blk /= p_patch%nblks_c) THEN
@@ -821,7 +885,7 @@ CONTAINS
         ELSE
           nlen = p_patch%npromz_c
         END IF
-        !$ACC PARALLEL LOOP DEFAULT(PRESENT) ASYNC(1) COPYIN(buffer(nn+1:nn+nlen, 1:3))
+        !$ACC LOOP VECTOR
         DO n = 1, nlen
           IF ( nn+n > nbr_inner_cells ) THEN
             prm_field(jg)%hi  (n,1,i_blk) = dummy
@@ -834,7 +898,7 @@ CONTAINS
           ENDIF
         ENDDO
       ENDDO
-      !$ACC WAIT(1)
+      !$ACC END PARALLEL
 !ICON_OMP_END_PARALLEL_DO
 
       CALL sync_patch_array(sync_c, p_patch, prm_field(jg)%hi  (:,1,:))
@@ -854,7 +918,6 @@ CONTAINS
           prm_field(jg)%siced(n,i_blk)  = prm_field(jg)%hi(n,1,i_blk)
         ENDDO
       ENDDO
-      !$ACC WAIT(1)
 !ICON_OMP_END_PARALLEL_DO
 
     END IF
@@ -867,7 +930,9 @@ CONTAINS
        !
        IF (ltimer) CALL timer_start(timer_coupling_get)
 
-       buffer(:,:) = 0.0_wp ! needs to be checked if this is necessary
+!ICON_OMP_PARALLEL
+       CALL init(buffer(:,:))  ! needs to be checked if this is necessary
+!ICON_OMP_END_PARALLEL
        CALL yac_fget ( field_id_co2_flx, nbr_hor_cells, 1, buffer(1:nbr_hor_cells,1:1), info, ierror )
        IF ( info > YAC_ACTION_COUPLING .AND. info < YAC_ACTION_OUT_OF_BOUND ) &
             & CALL message('interface_aes_ocean', 'YAC says it is get for restart - id=12, CO2 flux')
@@ -879,6 +944,10 @@ CONTAINS
        IF ( info > 0 .AND. info < 7 ) THEN
 
 !ICON_OMP_PARALLEL_DO PRIVATE(i_blk, n, nn, nlen) ICON_OMP_RUNTIME_SCHEDULE
+          !$ACC UPDATE DEVICE(buffer) ASYNC(1)
+          !$ACC WAIT(1)
+          !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1)
+          !$ACC LOOP SEQ
           DO i_blk = 1, p_patch%nblks_c
              nn = (i_blk-1)*nproma
              IF (i_blk /= p_patch%nblks_c) THEN
@@ -886,7 +955,7 @@ CONTAINS
              ELSE
                 nlen = p_patch%npromz_c
              END IF
-             !$ACC PARALLEL LOOP DEFAULT(PRESENT) ASYNC(1) COPYIN(buffer(nn+1:nn+nlen, 1))
+             !$ACC LOOP GANG VECTOR
              DO n = 1, nlen
                 IF ( nn+n > nbr_inner_cells ) THEN
                    prm_field(jg)%co2_flux_tile(n,i_blk,iwtr) = dummy
@@ -895,7 +964,7 @@ CONTAINS
                 ENDIF
              ENDDO
           ENDDO
-          !$ACC WAIT(1)
+          !$ACC END PARALLEL
 !ICON_OMP_END_PARALLEL_DO
           !
           CALL sync_patch_array(sync_c, p_patch, prm_field(jg)%co2_flux_tile(:,:,iwtr))
@@ -971,7 +1040,7 @@ CONTAINS
           & CALL dbg_print('AESOce: frac_alake   ',prm_field(jg)%alake,str_module,4,in_subset=p_patch%cells%owned)
       ENDIF
     ENDIF
-    !$ACC END DATA ! frac_oce
+    !$ACC END DATA ! frac_oce, buffer
 
     !---------------------------------------------------------------------
 

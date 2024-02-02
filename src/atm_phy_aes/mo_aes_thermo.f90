@@ -22,6 +22,7 @@ USE mo_physical_constants, ONLY: rv     , & !> gas constant for water vapour
                                  vtmpc1 , & !! rv/rd-1._wp
                                  cvd    , & !! isometric specific heat of dry air
                                  cvv    , & !! isometric specific heat of water vapor
+                                 cpd    , & !! isobaric specific heat of dry air
                                  cpv    , & !! isobaric specific heat of water vapor
                                  clw    , & !! specific heat of water
                                  alv    , & !! latent heat of vaporization
@@ -46,11 +47,14 @@ USE mo_physical_constants, ONLY: rv     , & !> gas constant for water vapour
   PUBLIC  :: sat_pres_ice          ! saturation pressure over ice
   PUBLIC  :: specific_humidity     ! calculate specific humidity from vapor and total pressure
   PUBLIC  :: potential_temperature ! calculate potential temperature
+
+  PUBLIC  :: lvc                   ! invariant part of vaporization enthalpy
+  PUBLIC  :: lsc                   ! invariant part of sublimation enthalpy
   
   REAL (KIND=wp), PARAMETER ::     &
        ci  = 2108.0_wp,            & !! specific heat of ice
        lvc = alv-(cpv-clw)*tmelt,  & !! invariant part of vaporization enthalpy    
-       lsc = als-(cpv-ci )*tmelt,  & !! invariant part of vaporization enthalpy    
+       lsc = als-(cpv-ci )*tmelt,  & !! invariant part of sublimation enthalpy    
        c1es  = 610.78_wp,          & !! constants for saturation vapor pressure
        c2es  = c1es*rd/rv,         & !!
        c3les = 17.269_wp,          & !!
@@ -181,12 +185,12 @@ END SUBROUTINE saturation_adjustment
 PURE FUNCTION internal_energy(TK,qv,qliq,qice,rho,dz)
 
   REAL (KIND=wp)              :: internal_energy
-  REAL (KIND=wp), INTENT(IN)  :: TK  !! temperature (kelvin)
-  REAL (KIND=wp), INTENT(IN)  :: qv  !! water vapor specific humidity
+  REAL (KIND=wp), INTENT(IN)  :: TK   !! temperature (kelvin)
+  REAL (KIND=wp), INTENT(IN)  :: qv   !! water vapor specific humidity
   REAL (KIND=wp), INTENT(IN)  :: qliq !! specific mass of liquid phases
   REAL (KIND=wp), INTENT(IN)  :: qice !! specific mass of solid phases
-  REAL (KIND=wp), INTENT(IN)  :: rho !! density
-  REAL (KIND=wp), INTENT(IN)  :: dz  !! density
+  REAL (KIND=wp), INTENT(IN)  :: rho  !! density
+  REAL (KIND=wp), INTENT(IN)  :: dz   !! extent of grid cel
 
   REAL (KIND=wp) :: qtot !! total water specific mass
   REAL (KIND=wp) :: cv   !! moist isometric specific heat
@@ -209,8 +213,8 @@ PURE FUNCTION T_from_internal_energy(U,qv,qliq,qice,rho,dz)
   REAL (KIND=wp), INTENT(IN)  :: qv   !! water vapor specific humidity
   REAL (KIND=wp), INTENT(IN)  :: qliq !! specific mass of liquid phases
   REAL (KIND=wp), INTENT(IN)  :: qice !! specific mass of solid phases
-  REAL (KIND=wp), INTENT(IN)  :: rho !! density
-  REAL (KIND=wp), INTENT(IN)  :: dz  !! density
+  REAL (KIND=wp), INTENT(IN)  :: rho  !! density
+  REAL (KIND=wp), INTENT(IN)  :: dz   !! extent of grid cell
 
   REAL (KIND=wp) :: qtot !! total water specific mass
   REAL (KIND=wp) :: cv   !! moist isometric specific heat

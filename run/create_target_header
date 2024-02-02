@@ -604,10 +604,138 @@ set_run_target_mpipc()
 }
 
 #=============================================================================
-set_run_target_lumi()
+set_run_target_lumi_gpu()
 {
     # LUMI at CSC
-    set_run_target_default
+    icon_data_rootFolder=${icon_data_rootFolder:=/appl/local/climatedt/pool/data/ICON}
+
+    set_default use_nproma 8000
+    set_default use_nblocks_c 1
+    set_default use_prefetch_procs 0
+    set_default use_account_no "project_465000454"
+    set_default use_nodes 1
+    set_default use_queue "standard-g"
+
+    use_OMP_SCHEDULE="static,1"
+
+    is_serial_run="no"
+
+    set_default use_mpi_procs_pernode $((8+use_prefetch_procs))
+    set_default use_openmp_threads 1
+
+    job_type=parallel
+    tasks_per_node=$use_mpi_procs_pernode
+    SBATCH_nodes="SBATCH --nodes=$use_nodes"
+    SBATCH_ntasks_per_node="SBATCH --ntasks-per-node=${tasks_per_node}"
+
+    # ------------------------------------
+    job_log_name=""
+    if [[ "x$BB_SYSTEM" != "x" ]]
+    then
+	# this buildbot, do not use job id
+	job_log_name="LOG.$job_name"
+    else
+	job_log_name="LOG.$job_name.%j"
+    fi
+    # ------------------------------------
+    s_cpu_time="00:30:00"
+    if [[ "x$use_cpu_time" != "x" ]]
+    then
+      s_cpu_time="$use_cpu_time"
+    fi
+    # ------------------------------------
+
+    cat >> $output_script << EOF
+#=============================================================================
+
+# LUMI gpu batch job parameters
+# ------------------------------
+#SBATCH --job-name=$job_name
+#SBATCH --account=$use_account_no
+#SBATCH --output=$output_folder/$job_log_name.o
+#SBATCH --error=$output_folder/$job_log_name.o
+#$SBATCH_nodes
+#$SBATCH_ntasks_per_node
+#SBATCH --gpus-per-node=${tasks_per_node}
+#SBATCH --time=${s_cpu_time}
+#SBATCH --partition=${use_queue}
+EOF
+
+    start_header
+    cat >>$output_script <<EOF
+
+export FI_MR_CACHE_MONITOR=memhooks
+export MPICH_OFI_NIC_POLICY=GPU
+export MPICH_GPU_SUPPORT_ENABLED=1
+EOF
+}
+
+#=============================================================================
+set_run_target_lumi_cpu()
+{
+    # LUMI at CSC
+    icon_data_rootFolder=${icon_data_rootFolder:=/appl/local/climatedt/pool/data/ICON}
+
+    set_default use_nproma 32
+    set_default use_nblocks_c 0
+    set_default use_account_no "project_465000454"
+    set_default use_nodes 1
+    set_default use_queue "standard"
+
+    use_OMP_SCHEDULE="static,1"
+
+    is_serial_run="no"
+
+    set_default use_mpi_procs_pernode 32
+    set_default use_openmp_threads 4
+
+    job_type=parallel
+    tasks_per_node=$use_mpi_procs_pernode
+    SBATCH_nodes="SBATCH --nodes=$use_nodes"
+    SBATCH_ntasks_per_node="SBATCH --ntasks-per-node=${tasks_per_node}"
+    SBATCH_cpus_per_task="SBATCH --cpus-per-task=${use_openmp_threads}"
+
+    use_openmp_threads=\$SLURM_CPUS_PER_TASK
+
+    # ------------------------------------
+    job_log_name=""
+    if [[ "x$BB_SYSTEM" != "x" ]]
+    then
+	# this buildbot, do not use job id
+	job_log_name="LOG.$job_name"
+    else
+	job_log_name="LOG.$job_name.%j"
+    fi
+    # ------------------------------------
+    s_cpu_time="00:30:00"
+    if [[ "x$use_cpu_time" != "x" ]]
+    then
+      s_cpu_time="$use_cpu_time"
+    fi
+    # ------------------------------------
+
+    cat >> $output_script << EOF
+#=============================================================================
+
+# LUMI cpu batch job parameters
+# ------------------------------
+#SBATCH --job-name=$job_name
+#SBATCH --account=$use_account_no
+#SBATCH --output=$output_folder/$job_log_name.o
+#SBATCH --error=$output_folder/$job_log_name.o
+#$SBATCH_nodes
+#$SBATCH_ntasks_per_node
+#$SBATCH_cpus_per_task
+#SBATCH --time=${s_cpu_time}
+#SBATCH --partition=${use_queue}
+EOF
+
+    start_header
+    cat >>$output_script <<EOF
+
+export OMP_PLACES=cores
+export FI_MR_CACHE_MONITOR=memhooks
+EOF
 }
 
 #=============================================================================

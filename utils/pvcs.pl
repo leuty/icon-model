@@ -99,7 +99,7 @@ my $art_branch = '';
 my $art_revision = '';
 my $art_remote_url = '';
 
-if ( -d $srcdir."/.git" ) {
+if ( -e $srcdir."/.git" ) {
     $remote_url = `git --git-dir $srcdir/.git config --get remote.origin.url`;
     chomp($remote_url);
     if (index("$remote_url", "gitlab.dkrz.de") != -1) {
@@ -113,7 +113,7 @@ if ( -d $srcdir."/.git" ) {
         $revision = $revisions[0];
         $revision =~ s/commit *//;
         $revision =~ s/ *\n//;
-        if ( -d $srcdir."/externals/art/.git" ) {
+        if ( -e $srcdir."/externals/art/.git" ) {
             $art_remote_url = `git --git-dir $srcdir/externals/art/.git config --get remote.origin.url`;
             chomp($art_remote_url);
             my @art_branches = `git --git-dir $srcdir//externals/art/.git branch`;	
@@ -196,7 +196,7 @@ print $version_c "const char revision[] = \"$revision\";\n";
 print $version_c "const char git_tag[] = \"$git_tag\";\n"; 
 print $version_c "const char art_remote_url[] = \"$art_remote_url\";\n";
 print $version_c "const char art_branch[] = \"$art_branch\";\n";
-print $version_c "const char art_revision[] = \"$art_revision\";\n"; 
+print $version_c "const char art_revision[] = \"$art_revision\";\n";
 print $version_c "\n";
 print $version_c "void repository_url(char *name, int *actual_len)\n";
 print $version_c "{\n";

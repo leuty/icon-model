@@ -8417,7 +8417,7 @@ ${icon_usr_note}" "$LINENO" 5; }
 fi
 else
        icon_subdir_srcdir="$srcdir/externals/rte-rrtmgp"
-      icon_subdir_unique_file="rte/mo_rte_sw.F90"
+      icon_subdir_unique_file="rte-frontend/mo_rte_sw.F90"
       if test ! -r "$icon_subdir_srcdir/$icon_subdir_unique_file"; then :
   as_fn_error $? "unable to find sources of the RTE+RRTMGP library ($icon_subdir_unique_file) in '$icon_subdir_srcdir': either disable usage of the RTE+RRTMGP toolbox for radiation calculations (--disable-rte-rrtmgp) or provide an external version of RTE+RRTMGP library (--with-external-rte-rrtmgp) by setting FCFLAGS, LDFLAGS and LIBS accordingly" "$LINENO" 5
 fi
@@ -8462,6 +8462,10 @@ esac
      ;; #(
   -enable-silent-rules|-enable-silent-rules=*|--enable-silent-rules|--enable-silent-rules=*|-disable-silent-rules|--disable-silent-rules) :
      ;; #(
+  -enable-maintainer-mode|-enable-maintainer-mode=*|--enable-maintainer-mode|--enable-maintainer-mode=*|-disable-maintainer-mode|--disable-maintainer-mode) :
+     ;; #(
+  -enable-single-precision|-enable-single-precision=*|--enable-single-precision|--enable-single-precision=*|-disable-single-precision|--disable-single-precision) :
+     ;; #(
   -enable-gpu|-enable-gpu=*|--enable-gpu|--enable-gpu=*|-disable-gpu|--disable-gpu) :
      ;; #(
   *) :
@@ -8475,7 +8479,7 @@ esac
 esac
      shift
    done
-      set dummy FCFLAGS="$subdir_FCFLAGS $ICON_RTE_RRTMGP_FCFLAGS" NETCDF_FCFLAGS= NETCDF_FCLIBS= --enable-gpu="$icon_gpu_primary" --enable-silent-rules="$enable_silent_rules"; shift
+      set dummy FCFLAGS="$subdir_FCFLAGS $ICON_RTE_RRTMGP_FCFLAGS" NETCDF_FCFLAGS= NETCDF_FCLIBS= --enable-silent-rules="$enable_silent_rules" --disable-maintainer-mode --enable-gpu="$icon_gpu_primary"; shift
    for acx_tmp; do
      case $acx_tmp in #(
   *\'*) :
@@ -8485,7 +8489,37 @@ esac
 esac
      as_fn_append acx_subdir_run_args_externals_rte_rrtmgp " '$acx_tmp'"
    done
-      as_fn_append bundled_includes "${FC_MOD_IN}externals/rte-rrtmgp/mod "
+      if test "x$icon_gpu_primary" = xopenacc; then :
+  eval "set dummy $acx_subdir_run_args_externals_rte_rrtmgp"; shift
+   acx_subdir_run_args_externals_rte_rrtmgp=
+   while test $# != 0; do
+     acx_tmp=$1
+     case $acx_tmp in #(
+  -enable-tests|-enable-tests=*|--enable-tests|--enable-tests=*|-disable-tests|--disable-tests) :
+     ;; #(
+  *) :
+           case $acx_tmp in #(
+  *\'*) :
+    acx_tmp=`$as_echo "$acx_tmp" | sed "s/'/'\\\\\\\\''/g"` ;; #(
+  *) :
+     ;;
+esac
+        as_fn_append acx_subdir_run_args_externals_rte_rrtmgp " '$acx_tmp'" ;;
+esac
+     shift
+   done
+         set dummy --disable-tests; shift
+   for acx_tmp; do
+     case $acx_tmp in #(
+  *\'*) :
+    acx_tmp=`$as_echo "$acx_tmp" | sed "s/'/'\\\\\\\\''/g"` ;; #(
+  *) :
+     ;;
+esac
+     as_fn_append acx_subdir_run_args_externals_rte_rrtmgp " '$acx_tmp'"
+   done
+fi
+      as_fn_append bundled_includes "${FC_MOD_IN}externals/rte-rrtmgp "
       BUNDLED_LIBFILES="externals/rte-rrtmgp/librte.a $BUNDLED_LIBFILES"
       BUNDLED_LIBFILES="externals/rte-rrtmgp/librrtmgp.a $BUNDLED_LIBFILES"
 fi
