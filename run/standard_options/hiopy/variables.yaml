@@ -316,6 +316,12 @@ variables:
     long_name: specific snow content
     units: kg kg-1
     vgrid: reference
+  qv2m:
+    component: atmo
+    hgrid: cell
+    long_name: specific humidity in 2m
+    units: kg kg-1
+    vgrid: height_2m
   rho:
     component: atmo
     hgrid: cell

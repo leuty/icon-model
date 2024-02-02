@@ -19,11 +19,11 @@ chunks:
 worker_target_size: 600_000_000
 
 output_categories:
-  2D_acc_atm:
+  2D_acc_atm_focus:
     agg:
       time: mean
     active: "*"
-  2D_acc_slow_atm:
+  2D_acc_atm:
     agg:
       time: mean
     active:
@@ -36,7 +36,9 @@ output_categories:
   2D_acc_lnd:
     agg:
       time: mean
-    active: "*"
+    active:
+      - "PT3H,*"
+      - "P1D,*"
   2D_acc_oce:
     agg:
       time: mean
@@ -59,7 +61,9 @@ output_categories:
   2D_inst_lnd:
     agg:
       time: last
-    active: "*"
+    active:
+      - "PT3H,*"
+      - "P1D,*"
   3D_acc_oce:
     agg:
       time: mean
@@ -188,15 +192,15 @@ variables:
   clw: 3D_acc_atm
   clivi: 2D_acc_atm
   cllvi: 2D_acc_atm
-  dew2: 2D_acc_slow_atm
+  qv2m: 2D_acc_atm_focus
   hfls: 2D_acc_atm
   hfss: 2D_acc_atm
   hus: 3D_acc_atm
   pfull: 3D_acc_atm
   phalf: 3D_acc_atm
-  pr: 2D_acc_atm
-  pres_msl: 2D_acc_slow_atm
-  pres_sfc: 2D_acc_slow_atm
+  pr: 2D_acc_atm_focus
+  pres_msl: 2D_acc_atm
+  pres_sfc: 2D_acc_atm
   prls: 2D_acc_atm
   prw: 2D_acc_atm
   qg: 3D_acc_atm
@@ -207,20 +211,22 @@ variables:
   qsvi: 2D_acc_atm
   rlds: 2D_acc_atm
   rlus: 2D_acc_atm
-  rlut: 2D_acc_atm
-  rsds: 2D_acc_atm
+  rlut: 2D_acc_atm_focus
+  rsds: 2D_acc_atm_focus
   rsdt: 2D_acc_atm
   rsus: 2D_acc_atm
   rsut: 2D_acc_atm
-  sfcwind: 2D_acc_atm
+  sfcwind: 2D_acc_atm_focus
+  sic: 2D_acc_atm
+  sit: 2D_acc_atm
   ta: 3D_acc_atm
-  tas: 2D_acc_atm
+  tas: 2D_acc_atm_focus
   tauu: 2D_acc_atm
   tauv: 2D_acc_atm
-  ts: 2D_acc_slow_atm
+  ts: 2D_acc_atm
   ua: 3D_acc_atm
-  uas: 2D_acc_slow_atm
+  uas: 2D_acc_atm
   va: 3D_acc_atm
-  vas: 2D_acc_slow_atm
+  vas: 2D_acc_atm
   wa_phy: 3D_acc_atm
 
