@@ -49,6 +49,7 @@ MODULE mo_initicon_nml
     & config_ltile_coldstart     => ltile_coldstart,     &
     & config_ltile_init          => ltile_init,          &
     & config_icpl_da_sfcevap     => icpl_da_sfcevap,     &
+    & config_smi_relax_timescale => smi_relax_timescale, &
     & config_icpl_da_skinc       => icpl_da_skinc,       &
     & config_icpl_da_snowalb     => icpl_da_snowalb,     &
     & config_icpl_da_sfcfric     => icpl_da_sfcfric,     &
@@ -135,6 +136,8 @@ CONTAINS
 
   INTEGER  :: icpl_da_sfcevap  ! Type of coupling between data assimilation and model parameters 
                                ! affecting surface evaporation (plants + bare soil)
+
+  REAL(wp) :: smi_relax_timescale ! Time scale (days) for ICON-internal soil moisture relaxation
 
   INTEGER  :: icpl_da_skinc    ! Coupling between data assimilation and skin conductivity
 
@@ -240,7 +243,7 @@ CONTAINS
                           icpl_da_skinc, icpl_da_snowalb, adjust_tso_tsnow, &
                           icpl_da_sfcfric, lcouple_ocean_coldstart,         &
                           icpl_da_tkhmin, icpl_da_seaice, fire2d_filename,  &
-                          scalfac_da_sfcfric
+                          scalfac_da_sfcfric, smi_relax_timescale
 
   !------------------------------------------------------------
   ! 2.0 set up the default values for initicon
@@ -305,6 +308,8 @@ CONTAINS
                         ! 2: use filtered T2M bias and filtered RH increment at lowest model level
                         ! 3: use filtered T and RH increments at lowest model level
                         ! 4: as 3, but uses cr_bsmin instead of c_soil for adapting bare-soil evaporation
+
+  smi_relax_timescale = 20._wp ! Time scale (days) for ICON-internal soil moisture relaxation
 
   icpl_da_skinc = 0     ! Coupling between data assimilation and skin conductivity
                         ! 0: off, 1: on, 2: as 1, plus soil heat conductivity and capacity
@@ -453,6 +458,7 @@ CONTAINS
   config_ltile_coldstart     = ltile_coldstart
   config_ltile_init          = ltile_init
   config_icpl_da_sfcevap     = icpl_da_sfcevap
+  config_smi_relax_timescale = smi_relax_timescale
   config_icpl_da_skinc       = icpl_da_skinc
   config_icpl_da_snowalb     = icpl_da_snowalb
   config_icpl_da_sfcfric     = icpl_da_sfcfric

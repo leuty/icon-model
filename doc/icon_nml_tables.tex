@@ -2469,6 +2469,13 @@ tuning of bare-soil evaporation &
 init\_mode=5
 \tabularnewline
 
+smi\_relax\_timescale&
+R & 20. & days &
+Relaxation time scale for ICON-internal soil moisture adjustment, referring to a filtered RH increment of 1\%.
+Setting the time scale to zero turns off the soil moisture adjustment. &
+icpl\_da\_sfcevap $>=$ 2
+\tabularnewline
+
 icpl\_da\_snowalb&
 I & 0 & &
 Coupling between temperature bias inferred from data assimilation and snow albedo\\

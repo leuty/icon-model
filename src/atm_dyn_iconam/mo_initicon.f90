@@ -39,7 +39,7 @@ MODULE mo_initicon
     &                               niter_divdamp, niter_diffu, lanaread_tseasfc, qcana_mode, qiana_mode, &
     &                               qrsgana_mode, fgFilename, anaFilename, ana_varnames_map_file,         &
     &                               icpl_da_sfcevap, dt_ana, icpl_da_skinc, adjust_tso_tsnow, icpl_da_sfcfric, &
-    &                               lcouple_ocean_coldstart, icpl_da_seaice
+    &                               lcouple_ocean_coldstart, icpl_da_seaice, smi_relax_timescale
   USE mo_limarea_config,      ONLY: latbc_config
   USE mo_advection_config,    ONLY: advection_config
   USE mo_nwp_tuning_config,   ONLY: max_freshsnow_inc
@@ -1749,7 +1749,7 @@ MODULE mo_initicon
 
     REAL(wp) :: h_snow_t_fg(nproma,ntiles_total)   ! intermediate storage of h_snow first guess
     REAL(wp) :: wso_inc(nproma,nlev_soil)          ! local copy of w_so increment
-    REAL(wp) :: snowfrac_lim, wfac, rh_inc, smival, trh_avginc(nproma), localtime_fac
+    REAL(wp) :: snowfrac_lim, wfac, rh_inc, smival, trh_avginc(nproma), localtime_fac, smi_relax_fac
 
     REAL(wp), PARAMETER :: min_hsnow_inc=0.001_wp  ! minimum hsnow increment (1mm absolute value)
                                                    ! in order to avoid grib precision problems
@@ -1772,6 +1772,12 @@ MODULE mo_initicon
       lnd_prog_now =>p_lnd_state(jg)%prog_lnd(nnow_rcf(jg))
       lnd_diag     =>p_lnd_state(jg)%diag_lnd
 
+      IF (smi_relax_timescale > 0._wp) THEN
+        ! convert the time scale into the scaling factor needed below, referring to rh_avginc=0.01 and 8 analysis cycles/day
+        smi_relax_fac = 100._wp/(8._wp*smi_relax_timescale)
+      ELSE
+        smi_relax_fac = 0._wp
+      ENDIF
 
 !$OMP PARALLEL
 !$OMP DO PRIVATE(jb,jt,jk,ic,jc,i_startidx,i_endidx,lerr,h_snow_t_fg,snowfrac_lim,ist,wso_inc,wfac,rh_inc,smival,&
@@ -2022,25 +2028,28 @@ MODULE mo_initicon
             ! Ensure that some useable soil moisture is available when a dry/warm bias is present
             ! Specifically, water is added to levels 3-5 when the SMI is below 0.25, and a possible negative w_so increment
             ! from the SMA is reverted
-            DO jt = 1, ntiles_total
-              DO jk = 3, 5
+            IF (smi_relax_timescale > 0._wp) THEN
+              DO jt = 1, ntiles_total
+                DO jk = 3, 5
 !NEC$ ivdep
-                DO ic = 1, ext_data(jg)%atm%lp_count_t(jb,jt)
-                  jc = ext_data(jg)%atm%idx_lst_lp_t(ic,jb,jt)
-                  ist = ext_data(jg)%atm%soiltyp_t(jc,jb,jt)
-                  SELECT CASE(ist)
-                    CASE (3,4,5,6,7,8) ! soil types with non-zero water content
-                    smival = dzsoil_icon(jk)*(0.75_wp*cpwp(ist)+0.25_wp*cfcap(ist)) ! corresponds to SMI = 0.25
-                    ! The relaxation time scale is taken to be 20 days for an averaged 3-hourly RH increment of 1%
-                    ! The scaling factor is constant because it is assumed that the magnitude of rh_avginc is proportional to dt_ana
-                    IF (trh_avginc(jc) > 0._wp .AND. lnd_prog_now%w_so_t(jc,jk,jb,jt) <= smival) THEN
-                      lnd_prog_now%w_so_t(jc,jk,jb,jt) = lnd_prog_now%w_so_t(jc,jk,jb,jt) - MIN(0._wp,wso_inc(jc,jk)) + &
-                        0.625_wp*trh_avginc(jc)*(smival-lnd_prog_now%w_so_t(jc,jk,jb,jt))
-                    ENDIF
-                  END SELECT
+                  DO ic = 1, ext_data(jg)%atm%lp_count_t(jb,jt)
+                    jc = ext_data(jg)%atm%idx_lst_lp_t(ic,jb,jt)
+                    ist = ext_data(jg)%atm%soiltyp_t(jc,jb,jt)
+                    SELECT CASE(ist)
+                      CASE (3,4,5,6,7,8) ! soil types with non-zero water content
+                      smival = dzsoil_icon(jk)*(0.75_wp*cpwp(ist)+0.25_wp*cfcap(ist)) ! corresponds to SMI = 0.25
+                      ! The default relaxation time scale (smi_relax_timescale) of 20 days refers to an averaged 3-hourly RH increment of 1%
+                      ! The scaling factor does not depend on dt_ana because it is assumed that the magnitude of rh_avginc is proportional to dt_ana,
+                      ! so that the influence of the analysis interval cancels out
+                      IF (trh_avginc(jc) > 0._wp .AND. lnd_prog_now%w_so_t(jc,jk,jb,jt) <= smival) THEN
+                        lnd_prog_now%w_so_t(jc,jk,jb,jt) = lnd_prog_now%w_so_t(jc,jk,jb,jt) - MIN(0._wp,wso_inc(jc,jk)) + &
+                          smi_relax_fac*trh_avginc(jc)*(smival-lnd_prog_now%w_so_t(jc,jk,jb,jt))
+                      ENDIF
+                    END SELECT
+                  ENDDO
                 ENDDO
               ENDDO
-            ENDDO
+            ENDIF
           ENDIF  ! icpl_da_sfcevap
 
           IF (adjust_tso_tsnow) THEN

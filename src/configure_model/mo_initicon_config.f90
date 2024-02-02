@@ -53,7 +53,7 @@ MODULE mo_initicon_config
   PUBLIC :: ltile_coldstart
   PUBLIC :: ltile_init
   PUBLIC :: icpl_da_sfcevap, icpl_da_skinc, icpl_da_snowalb, icpl_da_sfcfric, icpl_da_tkhmin, dt_ana
-  PUBLIC :: scalfac_da_sfcfric
+  PUBLIC :: scalfac_da_sfcfric, smi_relax_timescale
   PUBLIC :: adjust_tso_tsnow, icpl_da_seaice
   PUBLIC :: lvert_remap_fg
   PUBLIC :: ifs2icon_filename
@@ -129,6 +129,8 @@ MODULE mo_initicon_config
   LOGICAL  :: ltile_init       ! If true, initialize tile-based surface fields from first guess without tiles
 
   INTEGER  :: icpl_da_sfcevap  ! Type of coupling between data assimilation and model parameters affecting surface evaporation (plants + bare soil)
+
+  REAL(wp) :: smi_relax_timescale ! Time scale (days) for ICON-internal soil moisture relaxation
 
   INTEGER  :: icpl_da_skinc    ! Coupling between data assimilation and skin conductivity
 
