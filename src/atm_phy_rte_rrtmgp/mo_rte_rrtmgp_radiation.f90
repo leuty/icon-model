@@ -28,16 +28,11 @@ MODULE mo_rte_rrtmgp_radiation
   USE mo_kind,                ONLY: wp, i8
   USE mo_mpi,                 ONLY: my_process_is_stdio
   USE mo_model_domain,        ONLY: t_patch
-  USE mo_loopindices         ,ONLY: get_indices_c
-  USE mo_parallel_config,     ONLY: nproma
-  USE mo_impl_constants      ,ONLY: min_rlcell_int, grf_bdywidth_c
 
-  USE mo_physical_constants,  ONLY: rae, amd, amco2, amch4, amn2o, amo2, amc11, amc12
+  USE mo_physical_constants,  ONLY: rae
   USE mo_exception,           ONLY: finish, message, message_text
-  USE mo_run_config,          ONLY: iqv, iqc, iqi, ico2, io3, ntracer
   USE mo_aes_phy_config,      ONLY: aes_phy_tc
   USE mo_aes_rad_config,      ONLY: aes_rad_config
-  USE mo_bc_ozone,            ONLY: ext_ozone
 
   USE mo_orbit,               ONLY: orbit_kepler, orbit_vsop87, get_orbit_times
   USE mo_radiation_solar_data, ONLY: ssi_default, ssi_amip,                    &
@@ -220,7 +215,7 @@ MODULE mo_rte_rrtmgp_radiation
       CASE (1)
         tsi=tsi_radt
         ssi_factor=ssi_radt
-        continue ! solar irradiance was read in aes_phy_bcs_global
+      ! solar irradiance was read in aes_phy_bcs_global
       CASE (2)
         tsi = SUM(ssi_cmip5_picontrol)
         ssi_factor = ssi_cmip5_picontrol
@@ -412,7 +407,7 @@ MODULE mo_rte_rrtmgp_radiation
 
     REAL (wp) :: pp_sfc(nproma)
 
-    INTEGER   :: jl, jk, jt
+    INTEGER   :: jl, jk
 
     !$ACC DATA PRESENT(xv_ozn) &
     !$ACC   CREATE(pp_sfc, tk_hl, xm_liq, xm_ice, xc_frc, xm_snw) &
