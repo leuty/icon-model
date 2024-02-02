@@ -339,7 +339,9 @@ do
 done
 
 # JSBACH-NWP test, has to be down here because the GPU builders get deactivated at the top and activated later.
-jsbach_nwp_builders='DWD_nec DWD_nec_hybrid levante_gcc levante_intel levante_gpu_nvhpc'
+# Temporarily deactivated on DWD_nec DWD_nec_hybrid due to crashes with nfort 5.1.0
+# jsbach_nwp_builders='DWD_nec DWD_nec_hybrid levante_gcc levante_intel levante_gpu_nvhpc'
+jsbach_nwp_builders='levante_gcc levante_intel levante_gpu_nvhpc'
 $addexp checksuite.icon-dev/check.atm_nwp_jsbach_test --builders "${jsbach_nwp_builders}" --list $listname
 
 # aurora node at DKRZ - not in production,yet
