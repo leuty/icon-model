@@ -684,7 +684,7 @@ set_run_target_rcl()
     # $use_memory can be used to set memsz_job. e.G. "24gb"
 
     # absolute path to cdo
-    cdo="/hpc/sw/cdo/1.9.8/x86/gnu/bin/cdo"
+    cdo="/hpc/sw/cdo/2.2.1/x86/gnu/bin/cdo"
     cdo_diff="diffn"
 
     add_free_var VE_ERRCTL_ALLOCATE "MSG"
