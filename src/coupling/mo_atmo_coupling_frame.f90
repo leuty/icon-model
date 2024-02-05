@@ -96,7 +96,6 @@ CONTAINS
   !>
   !! SUBROUTINE construct_atmo_coupling -- the initialisation for the coupling
   !! of atmosphere and the ocean, through a coupler
-
   SUBROUTINE construct_atmo_coupling (p_patch)
 
     TYPE(t_patch), TARGET, INTENT(IN) :: p_patch(:)

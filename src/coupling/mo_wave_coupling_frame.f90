@@ -87,7 +87,6 @@ CONTAINS
     INTEGER :: jg
     INTEGER :: nblks
     INTEGER :: jb, jc, jv, nn
-    INTEGER :: jn                  ! loop index for fields
     INTEGER :: nlen                ! block length
     INTEGER :: nbr_vertices_per_cell
     INTEGER :: ist                 ! error status

@@ -26,10 +26,7 @@ MODULE mo_aes_ocean_coupling
 
   USE mo_parallel_config     ,ONLY: nproma
 
-  USE mo_run_config          ,ONLY: ltimer, ico2
-  USE mo_timer,               ONLY: timer_start, timer_stop,                &
-       &                            timer_coupling_put, timer_coupling_get, &
-       &                            timer_coupling_1stget
+  USE mo_run_config          ,ONLY: ico2
   USE mo_aes_sfc_indices     ,ONLY: iwtr, iice, ilnd, nsfc_type
   USE mo_aes_phy_config      ,ONLY: aes_phy_config
   USE mo_aes_vdf_config      ,ONLY: aes_vdf_config
@@ -41,20 +38,15 @@ MODULE mo_aes_ocean_coupling
   USE mo_parallel_config     ,ONLY: nproma
 
   USE mo_coupling_config     ,ONLY: is_coupled_run
-  USE mo_coupling            ,ONLY: lyac_very_1st_get
   USE mo_atmo_coupling_frame ,ONLY: nbr_inner_cells
   USE mo_atmo_ocean_coupling ,ONLY: mask_checksum, &
     & field_id_co2_flx, field_id_co2_vmr, field_id_freshflx, &
     & field_id_heatflx, field_id_oce_u, field_id_oce_v, field_id_pres_msl, &
     & field_id_seaice_atm, field_id_seaice_oce, field_id_sp10m, field_id_sst, &
     & field_id_umfl, field_id_vmfl
-  USE mo_exception           ,ONLY: warning, finish, message
+  USE mo_exception           ,ONLY: finish
 
-#ifdef YAC_coupling
-  USE mo_yac_finterface      ,ONLY: yac_fput, yac_fget,                     &
-    &                               YAC_ACTION_COUPLING,                    &
-    &                               YAC_ACTION_OUT_OF_BOUND
-#endif
+  USE mo_coupling_utils      ,ONLY: cpl_put_field, cpl_get_field
 
   USE mo_util_dbg_prnt       ,ONLY: dbg_print
   USE mo_dbg_nml             ,ONLY: idbg_mxmn, idbg_val
@@ -100,15 +92,14 @@ CONTAINS
 
     ! Local variables
 
-    LOGICAL               :: write_coupler_restart
     INTEGER               :: nbr_hor_cells  ! = inner and halo points
     INTEGER               :: jg             ! grid index
     INTEGER               :: nlev           ! number of levels
+    INTEGER               :: nblks_c        ! number of blocks
     INTEGER               :: n              ! nproma loop count
     INTEGER               :: nn             ! block offset
     INTEGER               :: i_blk          ! block loop count
     INTEGER               :: nlen           ! nproma/npromz
-    INTEGER               :: info, ierror   !< return values from cpl_put/get calls
     INTEGER               :: no_arr         !  no of arrays in bundle for put/get calls
 
     REAL(wp), PARAMETER   :: dummy = 0.0_wp
@@ -118,28 +109,32 @@ CONTAINS
     REAL(wp)              :: scr(nproma,p_patch%alloc_cell_blocks)
     REAL(wp)              :: frac_oce(nproma,p_patch%alloc_cell_blocks)
 
-    REAL(wp), ALLOCATABLE :: buffer(:,:)
+    REAL(wp), ALLOCATABLE :: put_buffer(:,:,:)
+    REAL(wp), ALLOCATABLE :: get_buffer(:,:)
+    LOGICAL :: received_data
 
     CHARACTER(LEN=*), PARAMETER   :: routine = str_module // ':interface_aes_ocean'
 
-#ifndef YAC_coupling
-    CALL finish(routine, 'built without coupling support.')
-#else
-
     IF ( .NOT. is_coupled_run() ) RETURN
 
-    ! adjust size if larger bundles are used (no_arr > 4 below)
+    ! adjust size if larger bundles are used (no_arr > 2 below)
 
-    ALLOCATE(buffer(nproma*p_patch%nblks_c,4))
+    ALLOCATE(put_buffer(nproma,p_patch%nblks_c,2))
 
     ! As YAC does not touch masked data an explicit initialisation
     ! is required as some compilers are asked to initialise with NaN
     ! and as we loop over the full array.
 
-    buffer(:,:) = 0.0_wp
+    put_buffer(:,:,:) = 0.0_wp
+
+    ! adjust size if larger bundles are used (no_arr > 4 below)
+
+    nbr_hor_cells = p_patch%n_patch_cells
+    ALLOCATE(get_buffer(nbr_hor_cells,4))
 
     jg   = p_patch%id
     nlev = p_patch%nlev
+    nblks_c = p_patch%nblks_c
 
     !-------------------------------------------------------------------------
     ! If running in atm-oce coupled mode, exchange information
@@ -169,8 +164,6 @@ CONTAINS
     ! 2. prm_field(jg)% ocu(:,:) and ocv(:,:) ocean surface current
     ! 3. ... tbc
 
-    nbr_hor_cells = p_patch%n_patch_cells
-
     !  Send fields to ocean:
     !   "surface_downward_eastward_stress" bundle  - zonal wind stress component over ice and water
     !   "surface_downward_northward_stress" bundle - meridional wind stress component over ice and water
@@ -192,8 +185,6 @@ CONTAINS
     !  Send fields from atmosphere to ocean
     !  *****  *****  *****  *****  *****  *****  *****  *****  *****  *****  *****  *****
 
-    write_coupler_restart = .FALSE.
-
     ! Calculate fractional ocean mask
     ! evaporation over ice-free and ice-covered water fraction, of whole ocean part, without land part
     !  - lake part is included in land part, must be subtracted as well
@@ -205,9 +196,8 @@ CONTAINS
     IF ( mask_checksum > 0 .AND. aes_phy_config(jg)%ljsb ) THEN
       IF ( aes_phy_config(jg)%llake ) THEN
 !ICON_OMP_PARALLEL
-!ICON_OMP_DO PRIVATE(i_blk, n, nn, nlen) ICON_OMP_RUNTIME_SCHEDULE
+!ICON_OMP_DO PRIVATE(i_blk, n, nlen) ICON_OMP_RUNTIME_SCHEDULE
         DO i_blk = 1, p_patch%nblks_c
-            nn = (i_blk-1)*nproma
           IF (i_blk /= p_patch%nblks_c) THEN
             nlen = nproma
           ELSE
@@ -259,65 +249,25 @@ CONTAINS
     !  Send zonal wind stress bundle
     !   field_id(1) represents "surface_downward_eastward_stress" bundle - zonal wind stress component over ice and water
 
-!ICON_OMP_PARALLEL
-!ICON_OMP_DO PRIVATE(i_blk, n, nn, nlen) ICON_OMP_RUNTIME_SCHEDULE
-    DO i_blk = 1, p_patch%nblks_c
-      nn = (i_blk-1)*nproma
-      IF (i_blk /= p_patch%nblks_c) THEN
-        nlen = nproma
-      ELSE
-        nlen = p_patch%npromz_c
-      END IF
-      !$ACC PARALLEL LOOP DEFAULT(PRESENT) ASYNC(1) COPYOUT(buffer(nn+1:nn+nlen, 1:2))
-      DO n = 1, nlen
-         buffer(nn+n,1) = prm_field(jg)%u_stress_tile(n,i_blk,iwtr)
-         buffer(nn+n,2) = prm_field(jg)%u_stress_tile(n,i_blk,iice)
-      ENDDO
-    ENDDO
+    !$ACC UPDATE HOST(prm_field(jg)%u_stress_tile(:,:,iwtr)) ASYNC(1)
+    !$ACC UPDATE HOST(prm_field(jg)%u_stress_tile(:,:,iice)) ASYNC(1)
     !$ACC WAIT(1)
-!ICON_OMP_END_DO
-!ICON_OMP_END_PARALLEL
-
-    IF (ltimer) CALL timer_start(timer_coupling_put)
-
-    no_arr = 2
-    CALL yac_fput ( field_id_umfl, nbr_hor_cells, no_arr, buffer(1:nbr_hor_cells,1:no_arr), info, ierror )
-    IF ( info > YAC_ACTION_COUPLING .AND. info < YAC_ACTION_OUT_OF_BOUND ) write_coupler_restart = .TRUE.
-    IF ( info == YAC_ACTION_OUT_OF_BOUND ) &
-         & CALL warning('interface_aes_ocean', 'YAC says fput called after end of run - id=1, u-stress')
-
-    IF (ltimer) CALL timer_stop(timer_coupling_put)
+    CALL cpl_put_field( &
+      routine, field_id_umfl, 'u-stress', nbr_hor_cells, &
+      field_1=prm_field(jg)%u_stress_tile(:,1:nblks_c,iwtr), &
+      field_2=prm_field(jg)%u_stress_tile(:,1:nblks_c,iice))
 
     ! ------------------------------
     !  Send meridional wind stress bundle
     !   "surface_downward_northward_stress" bundle - meridional wind stress component over ice and water
 
-!ICON_OMP_PARALLEL_DO PRIVATE(i_blk, n, nn, nlen) ICON_OMP_RUNTIME_SCHEDULE
-    DO i_blk = 1, p_patch%nblks_c
-      nn = (i_blk-1)*nproma
-      IF (i_blk /= p_patch%nblks_c) THEN
-        nlen = nproma
-      ELSE
-        nlen = p_patch%npromz_c
-      END IF
-      !$ACC PARALLEL LOOP DEFAULT(PRESENT) ASYNC(1) COPYOUT(buffer(nn+1:nn+nlen, 1:2))
-      DO n = 1, nlen
-         buffer(nn+n,1) = prm_field(jg)%v_stress_tile(n,i_blk,iwtr)
-         buffer(nn+n,2) = prm_field(jg)%v_stress_tile(n,i_blk,iice)
-      ENDDO
-    ENDDO
+    !$ACC UPDATE HOST(prm_field(jg)%v_stress_tile(:,:,iwtr)) ASYNC(1)
+    !$ACC UPDATE HOST(prm_field(jg)%v_stress_tile(:,:,iice)) ASYNC(1)
     !$ACC WAIT(1)
-!ICON_OMP_END_PARALLEL_DO
-
-    IF (ltimer) CALL timer_start(timer_coupling_put)
-
-    no_arr = 2
-    CALL yac_fput ( field_id_vmfl, nbr_hor_cells, no_arr, buffer(1:nbr_hor_cells,1:no_arr), info, ierror )
-    IF ( info > YAC_ACTION_COUPLING .AND. info < YAC_ACTION_OUT_OF_BOUND ) write_coupler_restart = .TRUE.
-    IF ( info == YAC_ACTION_OUT_OF_BOUND ) &
-         & CALL warning('interface_aes_ocean', 'YAC says fput called after end of run - id=2, v-stress')
-
-    IF (ltimer) CALL timer_stop(timer_coupling_put)
+    CALL cpl_put_field( &
+      routine, field_id_vmfl, 'v-stress', nbr_hor_cells, &
+      field_1=prm_field(jg)%v_stress_tile(:,1:nblks_c,iwtr), &
+      field_2=prm_field(jg)%v_stress_tile(:,1:nblks_c,iice))
 
     ! ------------------------------
     !  Send surface fresh water flux bundle
@@ -327,30 +277,30 @@ CONTAINS
     !         as long as evaporation over sea-ice is not used in ocean thermodynamics, the evaporation over the
     !         whole ocean part of grid-cell is passed to the ocean
 
-    IF ( idbg_mxmn >= 1 .OR. idbg_val >=1 )  &
-      scr(:,:)      = 0.0_wp
+    IF ( idbg_mxmn >= 1 .OR. idbg_val >=1 ) scr(:,:) = 0.0_wp
+
+    ! total rates of rain and snow over whole cell
+    !$ACC UPDATE HOST(prm_field(jg)%rsfl, prm_field(jg)%ssfl) ASYNC(1)
 
     ! Aquaplanet coupling: surface types ocean and ice only
     IF (nsfc_type == 2) THEN
 
-!ICON_OMP_PARALLEL_DO PRIVATE(i_blk, n, nn, nlen) ICON_OMP_RUNTIME_SCHEDULE
+!ICON_OMP_PARALLEL_DO PRIVATE(i_blk, n, nlen) ICON_OMP_RUNTIME_SCHEDULE
       DO i_blk = 1, p_patch%nblks_c
-        nn = (i_blk-1)*nproma
         IF (i_blk /= p_patch%nblks_c) THEN
           nlen = nproma
         ELSE
           nlen = p_patch%npromz_c
         END IF
-        !$ACC PARALLEL LOOP DEFAULT(PRESENT) ASYNC(1) COPYOUT(buffer(nn+1:nn+nlen, 1:3))
+        !$ACC PARALLEL LOOP DEFAULT(PRESENT) ASYNC(1) COPYOUT(put_buffer(1:nlen,i_blk,1))
         DO n = 1, nlen
 
-          ! total rates of rain and snow over whole cell
-          buffer(nn+n,1) = prm_field(jg)%rsfl(n,i_blk)
-          buffer(nn+n,2) = prm_field(jg)%ssfl(n,i_blk)
-     
           ! evaporation over ice-free and ice-covered water fraction - of whole ocean part
-          buffer(nn+n,3) = prm_field(jg)%evap_tile(n,i_blk,iwtr)*prm_field(jg)%frac_tile(n,i_blk,iwtr) + &
-            &              prm_field(jg)%evap_tile(n,i_blk,iice)*prm_field(jg)%frac_tile(n,i_blk,iice)
+          put_buffer(n,i_blk,1) = &
+            prm_field(jg)%evap_tile(n,i_blk,iwtr) * &
+            prm_field(jg)%frac_tile(n,i_blk,iwtr) + &
+            prm_field(jg)%evap_tile(n,i_blk,iice) * &
+            prm_field(jg)%frac_tile(n,i_blk,iice)
         ENDDO
       ENDDO
       !$ACC WAIT(1)
@@ -362,31 +312,30 @@ CONTAINS
 !ICON_OMP_PARALLEL_DO PRIVATE(i_blk, n, nn, nlen) ICON_OMP_RUNTIME_SCHEDULE
       !$ACC DATA COPYOUT(scr) IF(idbg_mxmn >= 1 .OR. idbg_val >=1)
       DO i_blk = 1, p_patch%nblks_c
-        nn = (i_blk-1)*nproma
         IF (i_blk /= p_patch%nblks_c) THEN
           nlen = nproma
         ELSE
           nlen = p_patch%npromz_c
         END IF
-        !$ACC PARALLEL LOOP DEFAULT(PRESENT) ASYNC(1) COPYOUT(buffer(nn+1:nn+nlen, 1:3)) NO_CREATE(scr)
+        !$ACC PARALLEL LOOP DEFAULT(PRESENT) ASYNC(1) COPYOUT(put_buffer(1:nlen,i_blk,1)) NO_CREATE(scr)
         DO n = 1, nlen
 
-          ! total rates of rain and snow over whole cell
-          buffer(nn+n,1) = prm_field(jg)%rsfl(n,i_blk)
-          buffer(nn+n,2) = prm_field(jg)%ssfl(n,i_blk)
-    
           ! evaporation over ice-free and ice-covered water fraction, of whole ocean part, without land part
           !  - lake part is included in land part, must be subtracted as well
           !    frac_oce(n,i_blk)= 1.0_wp-prm_field(jg)%frac_tile(n,i_blk,ilnd)-prm_field(jg)%alake(n,i_blk)
 
           IF (frac_oce(n,i_blk) <= 0.0_wp) THEN
             ! land part is zero
-            buffer(nn+n,3) = 0.0_wp
+            put_buffer(n,i_blk,1) = 0.0_wp
           ELSE
-            buffer(nn+n,3) = (prm_field(jg)%evap_tile(n,i_blk,iwtr)*prm_field(jg)%frac_tile(n,i_blk,iwtr) + &
-              &               prm_field(jg)%evap_tile(n,i_blk,iice)*prm_field(jg)%frac_tile(n,i_blk,iice))/frac_oce(n,i_blk)
+            put_buffer(n,i_blk,1) = &
+              (prm_field(jg)%evap_tile(n,i_blk,iwtr) * &
+               prm_field(jg)%frac_tile(n,i_blk,iwtr) + &
+               prm_field(jg)%evap_tile(n,i_blk,iice) * &
+               prm_field(jg)%frac_tile(n,i_blk,iice))/frac_oce(n,i_blk)
           ENDIF
-          IF ( idbg_mxmn >= 1 .OR. idbg_val >=1 ) scr(n,i_blk) = buffer(nn+n,3)
+          IF ( idbg_mxmn >= 1 .OR. idbg_val >=1 ) &
+            scr(n,i_blk) = put_buffer(n,i_blk,1)
         ENDDO
       ENDDO
       !$ACC WAIT(1)
@@ -395,197 +344,113 @@ CONTAINS
       IF ( idbg_mxmn >= 1 .OR. idbg_val >=1 )  &
         &  CALL dbg_print('AESOce: evapo-cpl',scr,str_module,3,in_subset=p_patch%cells%owned)
     ELSE
-      CALL finish('interface_aes_ocean: coupling only for nsfc_type equals 2 or 3. Check your code/configuration!')
+      CALL finish( &
+        routine, 'coupling only for nsfc_type equals 2 or 3. ' // &
+        'Check your code/configuration!')
     ENDIF  !  nsfc_type
 
-    IF (ltimer) CALL timer_start(timer_coupling_put)
-
-    no_arr = 3
-    CALL yac_fput ( field_id_freshflx, nbr_hor_cells, no_arr, buffer(1:nbr_hor_cells,1:no_arr), info, ierror )
-    IF ( info > YAC_ACTION_COUPLING .AND. info < YAC_ACTION_OUT_OF_BOUND ) write_coupler_restart = .TRUE.
-    IF ( info == YAC_ACTION_OUT_OF_BOUND )                  &
-         & CALL warning('interface_aes_ocean', &
-         &              'YAC says fput called after end of run - id=3, fresh water flux')
-
-    IF (ltimer) CALL timer_stop(timer_coupling_put)
+    CALL cpl_put_field( &
+      routine, field_id_freshflx, 'fresh water flux', nbr_hor_cells, &
+      field_1=prm_field(jg)%rsfl, &
+      field_2=prm_field(jg)%ssfl, &
+      field_3=put_buffer(:,:,1))
 
     ! ------------------------------
     !  Send total heat flux bundle
     !   "total heat flux" bundle - short wave, long wave, sensible, latent heat flux
 
-    IF (aes_phy_config(jg)%use_shflx_adjustment .AND. .NOT. aes_vdf_config(jg)%use_tmx) THEN
+    !$ACC UPDATE HOST(prm_field(jg)%swflxsfc_tile(:,:,iwtr)) ASYNC(1)
+    !$ACC UPDATE HOST(prm_field(jg)%lwflxsfc_tile(:,:,iwtr)) ASYNC(1)
+    !$ACC UPDATE HOST(prm_field(jg)%lhflx_tile(:,:,iwtr)) ASYNC(1)
+
+    IF (aes_phy_config(jg)%use_shflx_adjustment .AND. &
+        .NOT. aes_vdf_config(jg)%use_tmx) THEN
 
       shflx_adjustment_factor = cvd/cpd
 
-!ICON_OMP_PARALLEL_DO PRIVATE(i_blk, n, nn, nlen) ICON_OMP_RUNTIME_SCHEDULE
+!ICON_OMP_PARALLEL_DO PRIVATE(i_blk, n, nlen) ICON_OMP_RUNTIME_SCHEDULE
       DO i_blk = 1, p_patch%nblks_c
-        nn = (i_blk-1)*nproma
         IF (i_blk /= p_patch%nblks_c) THEN
           nlen = nproma
         ELSE
           nlen = p_patch%npromz_c
         END IF
-        !$ACC PARALLEL LOOP DEFAULT(PRESENT) ASYNC(1) COPYOUT(buffer(nn+1:nn+nlen, 1:4))
+        !$ACC PARALLEL LOOP DEFAULT(PRESENT) ASYNC(1) COPYOUT(put_buffer(1:nlen,i_blk,1))
         DO n = 1, nlen
-          buffer(nn+n,1) = prm_field(jg)%swflxsfc_tile(n,i_blk,iwtr)
-          buffer(nn+n,2) = prm_field(jg)%lwflxsfc_tile(n,i_blk,iwtr)
-          buffer(nn+n,3) = shflx_adjustment_factor*prm_field(jg)%shflx_tile(n,i_blk,iwtr)
-          buffer(nn+n,4) = prm_field(jg)%lhflx_tile   (n,i_blk,iwtr)
+          put_buffer(n,i_blk,1) = &
+            shflx_adjustment_factor*prm_field(jg)%shflx_tile(n,i_blk,iwtr)
         ENDDO
       ENDDO
+      !$ACC WAIT(1)
 !ICON_OMP_END_PARALLEL_DO
+
+      CALL cpl_put_field( &
+        routine, field_id_heatflx, 'heat flux', nbr_hor_cells, &
+        field_1=prm_field(jg)%swflxsfc_tile(:,:,iwtr), &
+        field_2=prm_field(jg)%lwflxsfc_tile(:,:,iwtr), &
+        field_3=put_buffer(:,:,1), &
+        field_4=prm_field(jg)%lhflx_tile(:,:,iwtr))
 
     ELSE ! .NOT. use_shflx_adjustment .OR. use_tmx
 
-      shflx_adjustment_factor = 1._wp
+      !$ACC UPDATE HOST(prm_field(jg)%shflx_tile(:,:,iwtr)) ASYNC(1)
+      !$ACC WAIT(1)
 
-!ICON_OMP_PARALLEL_DO PRIVATE(i_blk, n, nn, nlen) ICON_OMP_RUNTIME_SCHEDULE
-      DO i_blk = 1, p_patch%nblks_c
-        nn = (i_blk-1)*nproma
-        IF (i_blk /= p_patch%nblks_c) THEN
-          nlen = nproma
-        ELSE
-          nlen = p_patch%npromz_c
-        END IF
-        !$ACC PARALLEL LOOP DEFAULT(PRESENT) ASYNC(1) COPYOUT(buffer(nn+1:nn+nlen, 1:4))
-        DO n = 1, nlen
-          buffer(nn+n,1) = prm_field(jg)%swflxsfc_tile(n,i_blk,iwtr)
-          buffer(nn+n,2) = prm_field(jg)%lwflxsfc_tile(n,i_blk,iwtr)
-          buffer(nn+n,3) = prm_field(jg)%shflx_tile   (n,i_blk,iwtr)
-          buffer(nn+n,4) = prm_field(jg)%lhflx_tile   (n,i_blk,iwtr)
-        ENDDO
-      ENDDO
-!ICON_OMP_END_PARALLEL_DO
+      CALL cpl_put_field( &
+        routine, field_id_heatflx, 'heat flux', nbr_hor_cells, &
+        field_1=prm_field(jg)%swflxsfc_tile(:,:,iwtr), &
+        field_2=prm_field(jg)%lwflxsfc_tile(:,:,iwtr), &
+        field_3=prm_field(jg)%shflx_tile(:,:,iwtr), &
+        field_4=prm_field(jg)%lhflx_tile(:,:,iwtr))
 
     ENDIF ! use_shflx_adjustment
-    !$ACC WAIT(1)
-
-    IF (ltimer) CALL timer_start(timer_coupling_put)
-
-    no_arr = 4
-    CALL yac_fput ( field_id_heatflx, nbr_hor_cells, no_arr, buffer(1:nbr_hor_cells,1:no_arr), info, ierror )
-    IF ( info > YAC_ACTION_COUPLING .AND. info < YAC_ACTION_OUT_OF_BOUND ) write_coupler_restart = .TRUE.
-    IF ( info == YAC_ACTION_OUT_OF_BOUND ) &
-         & CALL warning('interface_aes_ocean', 'YAC says fput called after end of run - id=4, heat flux')
-
-    IF (ltimer) CALL timer_stop(timer_coupling_put)
 
     ! ------------------------------
     !  Send sea ice flux bundle
     !   "atmosphere_sea_ice_bundle" - sea ice surface and bottom melt potentials Qtop, Qbot
 
-!ICON_OMP_PARALLEL_DO PRIVATE(i_blk, n, nn, nlen) ICON_OMP_RUNTIME_SCHEDULE
+!ICON_OMP_PARALLEL_DO PRIVATE(i_blk, n, nlen) ICON_OMP_RUNTIME_SCHEDULE
     DO i_blk = 1, p_patch%nblks_c
-      nn = (i_blk-1)*nproma
       IF (i_blk /= p_patch%nblks_c) THEN
         nlen = nproma
       ELSE
         nlen = p_patch%npromz_c
       END IF
-      !$ACC PARALLEL LOOP DEFAULT(PRESENT) ASYNC(1) COPYOUT(buffer(nn+1:nn+nlen, 1:2))
+      !$ACC PARALLEL LOOP DEFAULT(PRESENT) ASYNC(1) COPYOUT(put_buffer(1:nlen,i_blk,1:2))
       DO n = 1, nlen
-        buffer(nn+n,1) = prm_field(jg)%Qtop(n,1,i_blk)
-        buffer(nn+n,2) = prm_field(jg)%Qbot(n,1,i_blk)
+        put_buffer(n,i_blk,1) = prm_field(jg)%Qtop(n,1,i_blk)
+        put_buffer(n,i_blk,2) = prm_field(jg)%Qbot(n,1,i_blk)
       ENDDO
     ENDDO
     !$ACC WAIT(1)
 !ICON_OMP_END_PARALLEL_DO
 
-    IF (ltimer) CALL timer_start(timer_coupling_put)
-
-    no_arr = 2
-    CALL yac_fput ( field_id_seaice_atm, nbr_hor_cells, no_arr, buffer(1:nbr_hor_cells,1:no_arr), info, ierror )
-    IF ( info > YAC_ACTION_COUPLING .AND. info < YAC_ACTION_OUT_OF_BOUND ) write_coupler_restart = .TRUE.
-    IF ( info == YAC_ACTION_OUT_OF_BOUND )                  &
-         & CALL warning('interface_aes_ocean', &
-         &              'YAC says fput called after end of run - id=5, atmos sea ice')
-
-    IF (ltimer) CALL timer_stop(timer_coupling_put)
-
-    IF ( write_coupler_restart ) THEN
-       CALL message('interface_aes_ocean', 'YAC says it is put for restart - ids 1 to 5, atmosphere fields')
-    ENDIF
+    CALL cpl_put_field( &
+      routine, field_id_seaice_atm, 'atmos sea ice', nbr_hor_cells, &
+      field_1=put_buffer(:,:,1), &
+      field_2=put_buffer(:,:,2))
 
     ! ------------------------------
     !  Send 10m wind speed
     !   "10m_wind_speed" - atmospheric wind speed
 
-!!ICON_OMP_PARALLEL_DO PRIVATE(i_blk, n, nn, nlen) ICON_OMP_RUNTIME_SCHEDULE
-    DO i_blk = 1, p_patch%nblks_c
-      nn = (i_blk-1)*nproma
-      IF (i_blk /= p_patch%nblks_c) THEN
-        nlen = nproma
-      ELSE
-        nlen = p_patch%npromz_c
-      END IF
-      !$ACC PARALLEL LOOP DEFAULT(PRESENT) ASYNC(1) COPYOUT(buffer(nn+1:nn+nlen, 1))
-      DO n = 1, nlen
-        ! as far as no tiles (pre04) are correctly implemented, use the grid-point mean of 10m wind for coupling
-        buffer(nn+n,1) = prm_field(jg)%sfcWind(n,i_blk)
-      ENDDO
-    ENDDO
+    !$ACC UPDATE HOST(prm_field(jg)%sfcWind) ASYNC(1)
     !$ACC WAIT(1)
-!!ICON_OMP_END_PARALLEL_DO
 
-    IF (ltimer) CALL timer_start(timer_coupling_put)
-
-    no_arr = 1
-    CALL yac_fput ( field_id_sp10m, nbr_hor_cells, no_arr, buffer(1:nbr_hor_cells,1:no_arr), info, ierror )
-    IF ( info > YAC_ACTION_COUPLING .AND. info < YAC_ACTION_OUT_OF_BOUND ) THEN
-      write_coupler_restart = .TRUE.
-    ELSE
-      write_coupler_restart = .FALSE.
-    ENDIF
-
-    IF ( info == YAC_ACTION_OUT_OF_BOUND )                  &
-         & CALL warning('interface_aes_ocean', &
-         &              'YAC says fput called after end of run - id=10, wind speed')
-
-    IF (ltimer) CALL timer_stop(timer_coupling_put)
-
-    IF ( write_coupler_restart ) THEN
-       CALL message('interface_aes_ocean', 'YAC says it is put for restart - ids 10, wind speed')
-    ENDIF
+    CALL cpl_put_field( &
+      routine, field_id_sp10m, 'wind speed', nbr_hor_cells, &
+      prm_field(jg)%sfcWind(:,1:nblks_c))
 
     ! ------------------------------
     !  Send sea level pressure
     !   "pres_msl" - atmospheric sea level pressure
 
-!!ICON_OMP_PARALLEL_DO PRIVATE(i_blk, n, nn, nlen) ICON_OMP_RUNTIME_SCHEDULE
-    DO i_blk = 1, p_patch%nblks_c
-      nn = (i_blk-1)*nproma
-      IF (i_blk /= p_patch%nblks_c) THEN
-        nlen = nproma
-      ELSE
-        nlen = p_patch%npromz_c
-      END IF
-      !$ACC PARALLEL LOOP DEFAULT(PRESENT) ASYNC(1) COPYOUT(buffer(nn+1:nn+nlen, 1))
-      DO n = 1, nlen
-        buffer(nn+n,1) = pt_diag%pres_msl(n,i_blk)
-      ENDDO
-    ENDDO
+    !$ACC UPDATE HOST(pt_diag%pres_msl) ASYNC(1)
     !$ACC WAIT(1)
-!!ICON_OMP_END_PARALLEL_DO
 
-    IF (ltimer) CALL timer_start(timer_coupling_put)
-
-    no_arr = 1
-    CALL yac_fput ( field_id_pres_msl, nbr_hor_cells, no_arr, buffer(1:nbr_hor_cells,1:no_arr), info, ierror )
-    IF ( info > YAC_ACTION_COUPLING .AND. info < YAC_ACTION_OUT_OF_BOUND ) THEN
-      write_coupler_restart = .TRUE.
-    ELSE
-      write_coupler_restart = .FALSE.
-    ENDIF
-
-    IF ( info == YAC_ACTION_OUT_OF_BOUND )                  &
-         & CALL warning('interface_aes_ocean', &
-         &              'YAC says fput called after end of run - id=13, sea level pressure')
-
-    IF (ltimer) CALL timer_stop(timer_coupling_put)
-
-    IF ( write_coupler_restart ) THEN
-       CALL message('interface_aes_ocean', 'YAC says it is put for restart - ids 13, sea level pressure')
-    ENDIF
+    CALL cpl_put_field( &
+      routine, field_id_pres_msl, 'sea level pressure', nbr_hor_cells, &
+      pt_diag%pres_msl(:,1:nblks_c))
 
 #ifndef __NO_ICON_OCEAN__
     IF (ccycle_config(jg)%iccycle /= 0) THEN
@@ -594,9 +459,8 @@ CONTAINS
        !  Send co2 mixing ratio
        !  "co2_mixing_ratio" - CO2 mixing ratio in ppmv
 
-!!ICON_OMP_PARALLEL_DO PRIVATE(i_blk, n, nn, nlen) ICON_OMP_RUNTIME_SCHEDULE
+!!ICON_OMP_PARALLEL_DO PRIVATE(i_blk, n, nlen) ICON_OMP_RUNTIME_SCHEDULE
        DO i_blk = 1, p_patch%nblks_c
-          nn = (i_blk-1)*nproma
           IF (i_blk /= p_patch%nblks_c) THEN
              nlen = nproma
           ELSE
@@ -604,21 +468,21 @@ CONTAINS
           END IF
           SELECT CASE (ccycle_config(jg)%iccycle)
           CASE (1) ! c-cycle with interactive atm. co2 concentration, qtrc_phy in kg/kg
-             !$ACC PARALLEL LOOP DEFAULT(PRESENT) ASYNC(1) COPYOUT(buffer(nn+1:nn+nlen, 1))
+             !$ACC PARALLEL LOOP DEFAULT(PRESENT) ASYNC(1) COPYOUT(put_buffer(1:nlen,i_blk,1))
              DO n = 1, nlen
-                buffer(nn+n,1)    =  amd/amco2 * 1.0e6_wp * prm_field(jg)%qtrc_phy(n,nlev,i_blk,ico2)
+                put_buffer(n,i_blk,1) = amd/amco2 * 1.0e6_wp * prm_field(jg)%qtrc_phy(n,nlev,i_blk,ico2)
              END DO
           CASE (2) ! c-cycle with prescribed  atm. co2 concentration
              SELECT CASE (ccycle_config(jg)%ico2conc)
              CASE (2) ! constant  co2 concentration, vmr_co2 in m3/m3
-                !$ACC PARALLEL LOOP DEFAULT(PRESENT) ASYNC(1) COPYOUT(buffer(nn+1:nn+nlen, 1))
+                !$ACC PARALLEL LOOP DEFAULT(PRESENT) ASYNC(1) COPYOUT(put_buffer(1:nlen,i_blk,1))
                 DO n = 1, nlen
-                   buffer(nn+n,1) =              1.0e6_wp * ccycle_config(jg)%vmr_co2
+                   put_buffer(n,i_blk,1) = 1.0e6_wp * ccycle_config(jg)%vmr_co2
                 END DO
              CASE (4) ! transient co2 concentration, ghg_co2vmr in m3/m3
-                !$ACC PARALLEL LOOP DEFAULT(PRESENT) ASYNC(1) COPYOUT(buffer(nn+1:nn+nlen, 1))
+                !$ACC PARALLEL LOOP DEFAULT(PRESENT) ASYNC(1) COPYOUT(put_buffer(1:nlen,i_blk,1))
                 DO n = 1, nlen
-                   buffer(nn+n,1) =              1.0e6_wp * ghg_co2vmr
+                   put_buffer(n,i_blk,1) = 1.0e6_wp * ghg_co2vmr
                 END DO
              END SELECT
           END SELECT
@@ -626,25 +490,9 @@ CONTAINS
        !$ACC WAIT(1)
 !!ICON_OMP_END_PARALLEL_DO
 
-       IF (ltimer) CALL timer_start(timer_coupling_put)
-
-       no_arr = 1
-       CALL yac_fput ( field_id_co2_vmr, nbr_hor_cells, no_arr, buffer(1:nbr_hor_cells,1:no_arr), info, ierror )
-       IF ( info > YAC_ACTION_COUPLING .AND. info < YAC_ACTION_OUT_OF_BOUND ) THEN
-          write_coupler_restart = .TRUE.
-       ELSE
-          write_coupler_restart = .FALSE.
-       ENDIF
-
-       IF ( info == YAC_ACTION_OUT_OF_BOUND )                 &
-            & CALL warning('interface_aes_ocean', &
-            &              'YAC says fput called after end of run - id=11, co2 mr')
-
-       IF (ltimer) CALL timer_stop(timer_coupling_put)
-
-       IF ( write_coupler_restart ) THEN
-          CALL message('interface_aes_ocean', 'YAC says it is put for restart - id=11, co2 mr')
-       ENDIF
+      CALL cpl_put_field( &
+        routine, field_id_co2_vmr, 'co2 mr', nbr_hor_cells, &
+        put_buffer(:,:,1))
 
     ENDIF
 #endif
@@ -653,33 +501,21 @@ CONTAINS
     !  Receive fields from ocean to atmosphere
     !  *****  *****  *****  *****  *****  *****  *****  *****  *****  *****  *****  *****
     !
-    !  Receive fields, only assign values if something was received ( info > 0 )
+    !  Receive fields, only assign values if something was received
     !   - ocean fields have undefined values on land, which are not sent to the atmosphere,
-    !     therefore buffer is set to zero to avoid unintended usage of ocean values over land
+    !     therefore get_buffer is set to zero to avoid unintended usage of ocean values over land
 
-    buffer(:,:) = 0.0_wp
+    get_buffer(:,:) = 0.0_wp
 
     ! ------------------------------
     !  Receive SST
     !   "sea_surface_temperature" - SST
+    no_arr = 1
+    CALL cpl_get_field( &
+      routine, field_id_sst, 'SST', &
+      get_buffer(1:nbr_hor_cells,1:no_arr), received_data=received_data)
 
-    IF ( .NOT. lyac_very_1st_get ) THEN
-      IF (ltimer) CALL timer_start(timer_coupling_1stget)
-    ENDIF
-
-    CALL yac_fget ( field_id_sst, nbr_hor_cells, 1, buffer(1:nbr_hor_cells,1:1), info, ierror )
-    IF ( info > YAC_ACTION_COUPLING .AND. info < YAC_ACTION_OUT_OF_BOUND ) &
-         & CALL message('interface_aes_ocean', 'YAC says it is get for restart - id=6, SST')
-    IF ( info == YAC_ACTION_OUT_OF_BOUND ) &
-         & CALL warning('interface_aes_ocean', 'YAC says fget called after end of run - id=6, SST')
-
-    IF ( .NOT. lyac_very_1st_get ) THEN
-       IF (ltimer) CALL timer_stop(timer_coupling_1stget)
-    ENDIF
-
-    lyac_very_1st_get = .FALSE.
-
-    IF ( info > 0 .AND. info < 7 ) THEN
+    IF (received_data) THEN
 
 !ICON_OMP_PARALLEL_DO PRIVATE(i_blk, n, nn, nlen) ICON_OMP_RUNTIME_SCHEDULE
       !$ACC DATA COPYOUT(scr) IF(idbg_mxmn >= 1 .OR. idbg_val >=1)
@@ -690,7 +526,7 @@ CONTAINS
         ELSE
           nlen = p_patch%npromz_c
         END IF
-        !$ACC PARALLEL LOOP DEFAULT(PRESENT) ASYNC(1) COPYIN(buffer(nn+1:nn+nlen, 1)) NO_CREATE(scr)
+        !$ACC PARALLEL LOOP DEFAULT(PRESENT) ASYNC(1) COPYIN(get_buffer(nn+1:nn+nlen, 1)) NO_CREATE(scr)
         DO n = 1, nlen
 
           !  - lake part is included in land part, must be subtracted as well, see frac_oce
@@ -698,10 +534,11 @@ CONTAINS
           IF ( nn+n > nbr_inner_cells ) THEN
             prm_field(jg)%ts_tile(n,i_blk,iwtr) = dummy
           ELSE
-            IF ( frac_oce(n,i_blk) > EPSILON(1.0_wp) ) prm_field(jg)%ts_tile(n,i_blk,iwtr) = buffer(nn+n,1)
+            IF ( frac_oce(n,i_blk) > EPSILON(1.0_wp) ) &
+              prm_field(jg)%ts_tile(n,i_blk,iwtr) = get_buffer(nn+n,1)
             IF ( idbg_mxmn >= 1 .OR. idbg_val >=1 ) THEN
               IF ( frac_oce(n,i_blk) > 0.0_wp ) THEN
-                scr(n,i_blk) = buffer(nn+n,1)
+                scr(n,i_blk) = get_buffer(nn+n,1)
               ELSE
                 scr(n,i_blk) = 285.0_wp  !  value over land - for dbg_print
               ENDIF
@@ -722,17 +559,12 @@ CONTAINS
     !  Receive zonal velocity
     !   "eastward_sea_water_velocity" - zonal velocity, u component of ocean surface current
     !
-    IF (ltimer) CALL timer_start(timer_coupling_get)
+    no_arr = 1
+    CALL cpl_get_field( &
+      routine, field_id_oce_u, 'u velocity', &
+      get_buffer(1:nbr_hor_cells,1:no_arr), received_data=received_data)
 
-    CALL yac_fget ( field_id_oce_u, nbr_hor_cells, 1, buffer(1:nbr_hor_cells,1:1), info, ierror )
-    IF ( info > YAC_ACTION_COUPLING .AND. info < YAC_ACTION_OUT_OF_BOUND ) &
-         & CALL message('interface_aes_ocean', 'YAC says it is get for restart - id=7, u velocity')
-    IF ( info == YAC_ACTION_OUT_OF_BOUND ) &
-         & CALL warning('interface_aes_ocean', 'YAC says fget called after end of run - id=7, u velocity')
-
-    IF (ltimer) CALL timer_stop(timer_coupling_get)
-
-    IF ( info > 0 .AND. info < 7 ) THEN
+    IF (received_data) THEN
 
 !ICON_OMP_PARALLEL_DO PRIVATE(i_blk, n, nn, nlen) ICON_OMP_RUNTIME_SCHEDULE
       DO i_blk = 1, p_patch%nblks_c
@@ -742,12 +574,12 @@ CONTAINS
         ELSE
           nlen = p_patch%npromz_c
         END IF
-        !$ACC PARALLEL LOOP DEFAULT(PRESENT) ASYNC(1) COPYIN(buffer(nn+1:nn+nlen, 1))
+        !$ACC PARALLEL LOOP DEFAULT(PRESENT) ASYNC(1) COPYIN(get_buffer(nn+1:nn+nlen, 1))
         DO n = 1, nlen
           IF ( nn+n > nbr_inner_cells ) THEN
             prm_field(jg)%ocu(n,i_blk) = dummy
           ELSE
-            prm_field(jg)%ocu(n,i_blk) = buffer(nn+n,1)
+            prm_field(jg)%ocu(n,i_blk) = get_buffer(nn+n,1)
           ENDIF
         ENDDO
       ENDDO
@@ -760,18 +592,13 @@ CONTAINS
     ! ------------------------------
     !  Receive meridional velocity
     !   "northward_sea_water_velocity" - meridional velocity, v component of ocean surface current
+    !
+    no_arr = 1
+    CALL cpl_get_field( &
+      routine, field_id_oce_v, 'v velocity', &
+      get_buffer(1:nbr_hor_cells,1:no_arr), received_data=received_data)
 
-    IF (ltimer) CALL timer_start(timer_coupling_get)
-
-    CALL yac_fget ( field_id_oce_v, nbr_hor_cells, 1, buffer(1:nbr_hor_cells,1:1), info, ierror )
-    IF ( info > YAC_ACTION_COUPLING .AND. info < YAC_ACTION_OUT_OF_BOUND ) &
-         & CALL message('interface_aes_ocean', 'YAC says it is get for restart - id=8, v velocity')
-    IF ( info == YAC_ACTION_OUT_OF_BOUND ) &
-         & CALL warning('interface_aes_ocean', 'YAC says fget called after end of run - id=8, v velocity')
-
-    IF (ltimer) CALL timer_stop(timer_coupling_get)
-
-    IF ( info > 0 .AND. info < 7 ) THEN
+    IF (received_data) THEN
 
 !ICON_OMP_PARALLEL_DO PRIVATE(i_blk, n, nn, nlen) ICON_OMP_RUNTIME_SCHEDULE
       DO i_blk = 1, p_patch%nblks_c
@@ -781,12 +608,12 @@ CONTAINS
         ELSE
           nlen = p_patch%npromz_c
         END IF
-        !$ACC PARALLEL LOOP DEFAULT(PRESENT) ASYNC(1) COPYIN(buffer(nn+1:nn+nlen, 1))
+        !$ACC PARALLEL LOOP DEFAULT(PRESENT) ASYNC(1) COPYIN(get_buffer(nn+1:nn+nlen, 1))
         DO n = 1, nlen
           IF ( nn+n > nbr_inner_cells ) THEN
             prm_field(jg)%ocv(n,i_blk) = dummy
           ELSE
-            prm_field(jg)%ocv(n,i_blk) = buffer(nn+n,1)
+            prm_field(jg)%ocv(n,i_blk) = get_buffer(nn+n,1)
           ENDIF
         ENDDO
       ENDDO
@@ -799,19 +626,13 @@ CONTAINS
     ! ------------------------------
     !  Receive sea ice bundle
     !   "ocean_sea_ice_bundle" - ice thickness, snow thickness, ice concentration
-
-    IF (ltimer) CALL timer_start(timer_coupling_get)
-
+    !
     no_arr = 3
-    CALL yac_fget ( field_id_seaice_oce, nbr_hor_cells, no_arr, buffer(1:nbr_hor_cells,1:no_arr), info, ierror )
-    IF ( info > YAC_ACTION_COUPLING .AND. info < YAC_ACTION_OUT_OF_BOUND ) &
-         & CALL message('interface_aes_ocean', 'YAC says it is get for restart - id=9, sea ice')
-    IF ( info == YAC_ACTION_OUT_OF_BOUND ) &
-         & CALL warning('interface_aes_ocean', 'YAC says fget called after end of run - id=9, sea ice')
+    CALL cpl_get_field( &
+      routine, field_id_seaice_oce, 'sea ice', &
+      get_buffer(1:nbr_hor_cells,1:no_arr), received_data=received_data)
 
-    IF (ltimer) CALL timer_stop(timer_coupling_get)
-
-    IF ( info > 0 .AND. info < 7 ) THEN
+    IF (received_data) THEN
 
 !ICON_OMP_PARALLEL_DO PRIVATE(i_blk, n, nn, nlen) ICON_OMP_RUNTIME_SCHEDULE
       DO i_blk = 1, p_patch%nblks_c
@@ -821,16 +642,16 @@ CONTAINS
         ELSE
           nlen = p_patch%npromz_c
         END IF
-        !$ACC PARALLEL LOOP DEFAULT(PRESENT) ASYNC(1) COPYIN(buffer(nn+1:nn+nlen, 1:3))
+        !$ACC PARALLEL LOOP DEFAULT(PRESENT) ASYNC(1) COPYIN(get_buffer(nn+1:nn+nlen, 1:3))
         DO n = 1, nlen
           IF ( nn+n > nbr_inner_cells ) THEN
             prm_field(jg)%hi  (n,1,i_blk) = dummy
             prm_field(jg)%hs  (n,1,i_blk) = dummy
             prm_field(jg)%conc(n,1,i_blk) = dummy
           ELSE
-            prm_field(jg)%hi  (n,1,i_blk) = buffer(nn+n,1)
-            prm_field(jg)%hs  (n,1,i_blk) = buffer(nn+n,2)
-            prm_field(jg)%conc(n,1,i_blk) = buffer(nn+n,3)
+            prm_field(jg)%hi  (n,1,i_blk) = get_buffer(nn+n,1)
+            prm_field(jg)%hs  (n,1,i_blk) = get_buffer(nn+n,2)
+            prm_field(jg)%conc(n,1,i_blk) = get_buffer(nn+n,3)
           ENDIF
         ENDDO
       ENDDO
@@ -860,23 +681,18 @@ CONTAINS
     END IF
 
     IF (ccycle_config(jg)%iccycle /= 0) THEN
-       !
-       ! ------------------------------
-       !  Receive co2 flux
-       !   "co2_flux" - ocean co2 flux
-       !
-       IF (ltimer) CALL timer_start(timer_coupling_get)
+      !
+      ! ------------------------------
+      !  Receive co2 flux
+      !   "co2_flux" - ocean co2 flux
+      !
+      get_buffer(:,1) = 0.0_wp ! needs to be checked if this is necessary
+      no_arr = 1
+      CALL cpl_get_field( &
+        routine, field_id_co2_flx, 'CO2 flux', &
+        get_buffer(1:nbr_hor_cells,1:no_arr), received_data=received_data)
 
-       buffer(:,:) = 0.0_wp ! needs to be checked if this is necessary
-       CALL yac_fget ( field_id_co2_flx, nbr_hor_cells, 1, buffer(1:nbr_hor_cells,1:1), info, ierror )
-       IF ( info > YAC_ACTION_COUPLING .AND. info < YAC_ACTION_OUT_OF_BOUND ) &
-            & CALL message('interface_aes_ocean', 'YAC says it is get for restart - id=12, CO2 flux')
-       IF ( info == YAC_ACTION_OUT_OF_BOUND )                      &
-            & CALL warning('interface_aes_ocean', 'YAC says fget called after end of run - id=12, CO2 flux')
-
-       IF (ltimer) CALL timer_stop(timer_coupling_get)
-
-       IF ( info > 0 .AND. info < 7 ) THEN
+       IF (received_data) THEN
 
 !ICON_OMP_PARALLEL_DO PRIVATE(i_blk, n, nn, nlen) ICON_OMP_RUNTIME_SCHEDULE
           DO i_blk = 1, p_patch%nblks_c
@@ -886,12 +702,12 @@ CONTAINS
              ELSE
                 nlen = p_patch%npromz_c
              END IF
-             !$ACC PARALLEL LOOP DEFAULT(PRESENT) ASYNC(1) COPYIN(buffer(nn+1:nn+nlen, 1))
+             !$ACC PARALLEL LOOP DEFAULT(PRESENT) ASYNC(1) COPYIN(get_buffer(nn+1:nn+nlen, 1))
              DO n = 1, nlen
                 IF ( nn+n > nbr_inner_cells ) THEN
                    prm_field(jg)%co2_flux_tile(n,i_blk,iwtr) = dummy
                 ELSE
-                   prm_field(jg)%co2_flux_tile(n,i_blk,iwtr) = buffer(nn+n,1)
+                   prm_field(jg)%co2_flux_tile(n,i_blk,iwtr) = get_buffer(nn+n,1)
                 ENDIF
              ENDDO
           ENDDO
@@ -975,10 +791,7 @@ CONTAINS
 
     !---------------------------------------------------------------------
 
-    DEALLOCATE(buffer)
-
-! YAC_coupling
-#endif
+    DEALLOCATE(put_buffer, get_buffer)
 
   END SUBROUTINE interface_aes_ocean
 

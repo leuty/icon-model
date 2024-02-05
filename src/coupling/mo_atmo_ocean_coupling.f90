@@ -30,7 +30,7 @@ MODULE mo_atmo_ocean_coupling
   USE mo_run_config,      ONLY: iforcing
   USE mo_util_dbg_prnt,   ONLY: dbg_print
   USE mo_exception,       ONLY: finish
-  USE mo_coupling_utils,  ONLY: def_field
+  USE mo_coupling_utils,  ONLY: cpl_def_field
 #ifdef YAC_coupling
   USE mo_yac_finterface,  ONLY: yac_fdef_mask, YAC_LOCATION_CELL
 #endif
@@ -67,6 +67,12 @@ MODULE mo_atmo_ocean_coupling
 
 CONTAINS
 
+  !>
+  !! Registers fields required for the coupling between atmo and
+  !! ocean
+  !!
+  !! This subroutine is called from construct_atmo_coupling.
+  !!
   SUBROUTINE construct_atmo_ocean_coupling( &
     p_patch, comp_id, grid_id, cell_point_id, timestepstring)
 
@@ -212,55 +218,55 @@ CONTAINS
     DEALLOCATE (lsmnolake, STAT = error)
     IF(error /= SUCCESS) CALL finish(str_module, "Deallocation failed for lsmnolake")
 
-    CALL def_field( &
+    CALL cpl_def_field( &
       comp_id, cell_point_id, cell_mask_id, timestepstring, &
       "surface_downward_eastward_stress", 2, field_id_umfl)
 
-    CALL def_field( &
+    CALL cpl_def_field( &
       comp_id, cell_point_id, cell_mask_id, timestepstring, &
       "surface_downward_northward_stress", 2, field_id_vmfl)
 
-    CALL def_field( &
+    CALL cpl_def_field( &
       comp_id, cell_point_id, cell_mask_id, timestepstring, &
       "surface_fresh_water_flux", 3, field_id_freshflx)
 
-    CALL def_field( &
+    CALL cpl_def_field( &
       comp_id, cell_point_id, cell_mask_id, timestepstring, &
       "total_heat_flux", 4, field_id_heatflx)
 
-    CALL def_field( &
+    CALL cpl_def_field( &
       comp_id, cell_point_id, cell_mask_id, timestepstring, &
       "atmosphere_sea_ice_bundle", 2, field_id_seaice_atm)
 
-    CALL def_field( &
+    CALL cpl_def_field( &
       comp_id, cell_point_id, cell_mask_id, timestepstring, &
       "sea_surface_temperature", 1, field_id_sst)
 
-    CALL def_field( &
+    CALL cpl_def_field( &
       comp_id, cell_point_id, cell_mask_id, timestepstring, &
       "eastward_sea_water_velocity", 1, field_id_oce_u)
 
-    CALL def_field( &
+    CALL cpl_def_field( &
       comp_id, cell_point_id, cell_mask_id, timestepstring, &
       "northward_sea_water_velocity", 1, field_id_oce_v)
 
-    CALL def_field( &
+    CALL cpl_def_field( &
       comp_id, cell_point_id, cell_mask_id, timestepstring, &
       "ocean_sea_ice_bundle", 3, field_id_seaice_oce)
 
-    CALL def_field( &
+    CALL cpl_def_field( &
       comp_id, cell_point_id, cell_mask_id, timestepstring, &
       "10m_wind_speed", 1, field_id_sp10m)
 
-    CALL def_field( &
+    CALL cpl_def_field( &
       comp_id, cell_point_id, cell_mask_id, timestepstring, &
       "co2_mixing_ratio", 1, field_id_co2_vmr)
 
-    CALL def_field( &
+    CALL cpl_def_field( &
       comp_id, cell_point_id, cell_mask_id, timestepstring, &
       "co2_flux", 1, field_id_co2_flx)
 
-    CALL def_field( &
+    CALL cpl_def_field( &
       comp_id, cell_point_id, cell_mask_id, timestepstring, &
       "sea_level_pressure", 1, field_id_pres_msl)
 
