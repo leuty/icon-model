@@ -35,11 +35,8 @@ MODULE mo_bc_ozone
   USE mo_bcs_time_interpolation,   ONLY: t_time_interpolation_weights, &
        &                                      calculate_time_interpolation_weights
 
-#ifdef YAC_coupling
-  USE mo_atmo_o3_provider_coupling, ONLY: field_id_o3, nplev_o3_provider
-  USE mo_yac_finterface,            ONLY: yac_fget
-#endif
-  USE mo_sync,                     ONLY: sync_c, sync_patch_array
+  USE mo_atmo_o3_provider_coupling, ONLY: nplev_o3_provider, &
+                                          couple_atmo_to_o3_provider
 
   IMPLICIT NONE
   PRIVATE
@@ -64,13 +61,13 @@ MODULE mo_bc_ozone
 
 CONTAINS
 
-  SUBROUTINE read_bc_ozone(year, p_patch, irad_o3, vmr2mmr_opt, opt_from_yac)
+  SUBROUTINE read_bc_ozone(year, p_patch, irad_o3, vmr2mmr_opt, opt_from_coupler)
 
     INTEGER(i8)  , INTENT(in)            :: year
     TYPE(t_patch), TARGET, INTENT(in)    :: p_patch
     INTEGER      , INTENT(in)            :: irad_o3
     REAL(wp)     , INTENT(in), OPTIONAL  :: vmr2mmr_opt
-    LOGICAL      , INTENT(IN), OPTIONAL  :: opt_from_yac
+    LOGICAL      , INTENT(IN), OPTIONAL  :: opt_from_coupler
 
     CHARACTER(len=512)                :: fname
     TYPE(t_stream_id)                 :: stream_id
@@ -82,12 +79,10 @@ CONTAINS
     INTEGER                           :: imonth_beg, imonth_end      ! months with range 0-13
     INTEGER                           :: kmonth_beg, kmonth_end      ! months with range 1-12
     INTEGER                           :: nmonths
-    INTEGER                           :: info, ierr, i, j
     REAL(wp), POINTER                 :: zo3_plev(:,:,:,:)           ! (nproma, levels, blocks, time)
     REAL(wp)                          :: vmr2mmr_o3
-    REAL(wp), ALLOCATABLE, SAVE       :: yac_recv_buf(:,:)           ! (nbr_hor_cells, levels)
     LOGICAL                           :: l_first
-    LOGICAL                           :: from_yac = .FALSE.
+    LOGICAL                           :: from_coupler = .FALSE.
 
     jg    = p_patch%id
     WRITE(cjg,'(i2.2)') jg
@@ -121,40 +116,27 @@ CONTAINS
 
     l_first = .NOT. ALLOCATED(ext_ozone(jg)% o3_plev)
 
-    IF (PRESENT(opt_from_yac)) from_yac = opt_from_yac
+    IF (PRESENT(opt_from_coupler)) from_coupler = opt_from_coupler
 
 #ifdef YAC_coupling
-    IF (from_yac) THEN
+    IF (from_coupler) THEN
 
        nplev_o3 =  nplev_o3_provider
-       ext_ozone(jg)%nplev_o3 = nplev_o3
-
-       IF ( .NOT. ALLOCATED(yac_recv_buf) ) &
-            ALLOCATE(yac_recv_buf(p_patch%n_patch_cells, nplev_o3))
+       ext_ozone(jg)%nplev_o3 = nplev_o3_provider
        IF ( .NOT. ALLOCATED(ext_ozone(jg)% o3_plev) ) THEN
           ALLOCATE(ext_ozone(jg)% o3_plev(nproma, nplev_o3, p_patch%nblks_c, 1))
-          ext_ozone(jg)% o3_plev = 0
+          ext_ozone(jg)% o3_plev = 0.0_wp
        END IF
 
-       CALL yac_fget(field_id_o3, p_patch%n_patch_cells, nplev_o3, &
-            yac_recv_buf, info, ierr)
-
-       IF ( info > 0 .AND. info < 7 ) THEN
-          DO i=1,p_patch%nblks_c
-             DO j=1,nproma
-                IF ((i-1)*nproma+j > p_patch%n_patch_cells) CYCLE
-                ext_ozone(jg)% o3_plev(j,:,i,1) = vmr2mmr_o3*yac_recv_buf((i-1)*nproma+j,:)
-             END DO
-          END DO
-          CALL sync_patch_array(sync_c, p_patch, ext_ozone(jg)%o3_plev(:,:,:,1))
-       END IF
+       CALL couple_atmo_to_o3_provider( &
+        p_patch, vmr2mmr_o3, ext_ozone(jg)% o3_plev)
 
        fname = 'bc_ozone.nc'
 
     END IF
 #endif
 
-    IF (year > pre_year(jg) .AND. .NOT. from_yac) THEN
+    IF (year > pre_year(jg) .AND. .NOT. from_coupler) THEN
       !
       ! If year = pre_year, then the external monthly ozone data are already stored.
       ! Nothing needs to be done.
@@ -459,7 +441,7 @@ CONTAINS
 
       pre_year(jg) = year
 
-    END IF ! (year > pre_year(jg))  .AND. .NOT. from_yac
+    END IF ! (year > pre_year(jg))  .AND. .NOT. from_coupler
 
     IF (l_first) THEN
 

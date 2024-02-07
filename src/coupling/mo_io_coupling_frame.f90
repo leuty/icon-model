@@ -36,6 +36,8 @@ MODULE mo_io_coupling_frame
  
 CONTAINS
 
+  !>
+  !! Initializes the coupling on IO processes
   SUBROUTINE construct_io_coupling ( comp_name )
 
     CHARACTER(LEN=*), INTENT(IN) :: comp_name
@@ -65,6 +67,8 @@ CONTAINS
 
   END SUBROUTINE construct_io_coupling
 
+  !>
+  !! Finalizes the coupling on IO processes
   SUBROUTINE destruct_io_coupling ( comp_name )
 
     CHARACTER(LEN=*), INTENT(IN) :: comp_name

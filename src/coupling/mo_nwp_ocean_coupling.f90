@@ -34,7 +34,7 @@ MODULE mo_nwp_ocean_coupling
        & CCYCLE_MODE_NONE, CCYCLE_MODE_PRESCRIBED, CCYCLE_MODE_INTERACTIVE, &
        & CCYCLE_CO2CONC_CONST, CCYCLE_CO2CONC_FROMFILE
   USE mo_dbg_nml             ,ONLY: idbg_mxmn, idbg_val
-  USE mo_exception           ,ONLY: warning, message, finish
+  USE mo_exception           ,ONLY: finish
   USE mo_ext_data_types      ,ONLY: t_external_data
   USE mo_fortran_tools       ,ONLY: assert_acc_host_only, init
   USE mo_idx_list            ,ONLY: t_idx_list_blocked
@@ -49,22 +49,14 @@ MODULE mo_nwp_ocean_coupling
   USE mo_nwp_lnd_types       ,ONLY: t_wtr_prog, t_lnd_diag
   USE mo_parallel_config     ,ONLY: nproma
   USE mo_physical_constants  ,ONLY: vmr_to_mmr_co2
-  USE mo_run_config          ,ONLY: ltimer
-  USE mo_timer               ,ONLY: timer_start, timer_stop,                &
-       &                            timer_coupling_put, timer_coupling_get, &
-       &                            timer_coupling_1stget
   USE mo_util_dbg_prnt       ,ONLY: dbg_print
 
-#ifdef YAC_coupling
-  USE mo_coupling            ,ONLY: lyac_very_1st_get
   USE mo_atmo_ocean_coupling ,ONLY: &
     & field_id_co2_flx, field_id_co2_vmr, field_id_freshflx, &
     & field_id_heatflx, field_id_oce_u, field_id_oce_v, field_id_pres_msl, &
     & field_id_seaice_atm, field_id_seaice_oce, field_id_sp10m, field_id_sst, &
     & field_id_umfl, field_id_vmfl
-  USE mo_yac_finterface      ,ONLY: yac_fput, yac_fget, yac_dble_ptr,         &
-    &                               YAC_ACTION_COUPLING, YAC_ACTION_OUT_OF_BOUND
-#endif
+  USE mo_coupling_utils      ,ONLY: cpl_put_field, cpl_get_field
 
   IMPLICIT NONE
 
@@ -196,12 +188,7 @@ CONTAINS
 
     LOGICAL :: have_ice, have_hail, have_graupel
 
-
     CALL assert_acc_host_only('nwp_couple_ocean', lacc)
-
-#ifndef YAC_coupling
-    CALL finish('nwp_couple_ocean', 'unintentionally called. Check your source code and configure.')
-#else
 
     ! include boundary interpolation zone of nested domains and halo points
     i_startblk = p_patch%cells%start_block(start_prog_cells)
@@ -296,7 +283,6 @@ CONTAINS
 
     CALL couple_ocean(p_patch, ext_data%atm%list_sea, tx, rx, lacc)
 
-#endif /* ifndef YAC_coupling */
   END SUBROUTINE nwp_couple_ocean
 
 
@@ -316,30 +302,24 @@ CONTAINS
 
     ! Local variables
 
-    LOGICAL               :: write_coupler_restart
     INTEGER               :: jg                    ! grid index
     INTEGER               :: jb                    ! block loop count
     INTEGER               :: jc                    ! nproma loop count
     INTEGER               :: ic                    ! nproma loop count
-    INTEGER               :: info, ierror          ! return values from cpl_put/get calls
     INTEGER               :: i_startblk, i_endblk  ! blocks
     INTEGER               :: i_startidx, i_endidx  ! slices
 
     REAL(wp), TARGET      :: buf(nproma, p_patch%nblks_c)
 
-#ifdef YAC_coupling
-    TYPE(yac_dble_ptr)    :: ptrs(1,4)
-#endif
-
     REAL(wp), PARAMETER   :: csmall = 1.0E-5_wp    ! small number (security constant)
+
+    LOGICAL :: received_data
 
     REAL(wp) :: co2conc
 
-    CALL assert_acc_host_only('couple_ocean', lacc)
+    CHARACTER(LEN=*), PARAMETER :: routine = str_module // ':couple_ocean'
 
-#ifndef YAC_coupling
-    CALL finish('couple_ocean: unintentionally called. Check your source code and configure.')
-#else
+    CALL assert_acc_host_only('couple_ocean', lacc)
 
     ! As YAC does not touch masked data an explicit initialisation with zero
     ! is required as some compilers are asked to initialise with NaN
@@ -373,7 +353,8 @@ CONTAINS
     !  "co2_flux"                                 - ocean co2 flux
     !-------------------------------------------------------------------------
 
-    IF (.NOT. (SIZE(tx%umfl_s_w, 1) == nproma .AND. SIZE(tx%umfl_s_w, 2) >= p_patch%nblks_c)) THEN
+    IF (.NOT. (SIZE(tx%umfl_s_w, 1) == nproma .AND. &
+               SIZE(tx%umfl_s_w, 2) >= p_patch%nblks_c)) THEN
       CALL finish ('couple_ocean', 'first field extent must be nproma and &
           &field size has to be at least nproma*nblocks_c')
     END IF
@@ -383,22 +364,15 @@ CONTAINS
     !  Send fields from atmosphere to ocean
     !  *****  *****  *****  *****  *****  *****  *****  *****  *****  *****  *****  *****
 
-    write_coupler_restart = .FALSE.
-
     !------------------------------------------------
     !  Send zonal wind stress bundle
     !    "surface_downward_eastward_stress" bundle
     !    - zonal wind stress component over ice and water
     !------------------------------------------------
 
-    ptrs(1,1)%p(1:p_patch%n_patch_cells) => tx%umfl_s_w
-    ptrs(1,2)%p(1:p_patch%n_patch_cells) => tx%umfl_s_i
-
-    IF (ltimer) CALL timer_start(timer_coupling_put)
-    CALL put_ (field_id_umfl, ptrs(:,1:2), info=info, ierror=ierror)
-    IF (ltimer) CALL timer_stop(timer_coupling_put)
-
-    CALL check_ ('id=1, u-stress', info, ierror)
+    CALL cpl_put_field( &
+      routine, field_id_umfl, 'u-stress', p_patch%n_patch_cells, &
+      field_1=tx%umfl_s_w, field_2=tx%umfl_s_i)
 
     !------------------------------------------------
     !  Send meridional wind stress bundle
@@ -406,14 +380,9 @@ CONTAINS
     !    - meridional wind stress component over ice and water
     !------------------------------------------------
 
-    ptrs(1,1)%p(1:p_patch%n_patch_cells) => tx%vmfl_s_w
-    ptrs(1,2)%p(1:p_patch%n_patch_cells) => tx%vmfl_s_i
-
-    IF (ltimer) CALL timer_start(timer_coupling_put)
-    CALL put_ (field_id_vmfl, ptrs(:,1:2), info=info, ierror=ierror)
-    IF (ltimer) CALL timer_stop(timer_coupling_put)
-
-    CALL check_ ('id=2, v-stress', info, ierror)
+    CALL cpl_put_field( &
+      routine, field_id_vmfl, 'v-stress', p_patch%n_patch_cells, &
+      field_1=tx%vmfl_s_w, field_2=tx%vmfl_s_i)
 
     !------------------------------------------------
     !  Send surface fresh water flux bundle
@@ -449,15 +418,9 @@ CONTAINS
       CALL dbg_print('NWPOce: evapo-cpl', buf, str_module, 3, in_subset=p_patch%cells%owned)
     END IF
 
-    ptrs(1,1)%p(1:p_patch%n_patch_cells) => tx%rain_rate
-    ptrs(1,2)%p(1:p_patch%n_patch_cells) => tx%snow_rate
-    ptrs(1,3)%p(1:p_patch%n_patch_cells) => buf
-
-    IF (ltimer) CALL timer_start(timer_coupling_put)
-    CALL put_ (field_id_freshflx, ptrs(:,1:3), info=info, ierror=ierror)
-    IF (ltimer) CALL timer_stop(timer_coupling_put)
-
-    CALL check_ ('id=3, fresh water flux', info, ierror)
+    CALL cpl_put_field( &
+      routine, field_id_freshflx, 'fresh water flux', p_patch%n_patch_cells, &
+      field_1=tx%rain_rate, field_2=tx%snow_rate, field_3=buf)
 
     !------------------------------------------------
     !  Send total heat flux bundle
@@ -465,16 +428,10 @@ CONTAINS
     !    - short wave, long wave, sensible, latent heat flux
     !------------------------------------------------
 
-    ptrs(1,1)%p(1:p_patch%n_patch_cells) => tx%swflxsfc_w
-    ptrs(1,2)%p(1:p_patch%n_patch_cells) => tx%lwflxsfc_w
-    ptrs(1,3)%p(1:p_patch%n_patch_cells) => tx%shfl_s_w
-    ptrs(1,4)%p(1:p_patch%n_patch_cells) => tx%lhfl_s_w
-
-    IF (ltimer) CALL timer_start(timer_coupling_put)
-    CALL put_ (field_id_heatflx, ptrs(:,1:4), info=info, ierror=ierror)
-    IF (ltimer) CALL timer_stop(timer_coupling_put)
-
-    CALL check_ ('id=4, heat flux', info, ierror)
+    CALL cpl_put_field( &
+      routine, field_id_heatflx, 'heat flux', p_patch%n_patch_cells, &
+      field_1=tx%swflxsfc_w, field_2=tx%lwflxsfc_w, &
+      field_3=tx%shfl_s_w, field_4=tx%lhfl_s_w)
 
     !------------------------------------------------
     !  Send sea ice flux bundle
@@ -494,14 +451,9 @@ CONTAINS
       ENDDO
     ENDDO
 
-    ptrs(1,1)%p(1:p_patch%n_patch_cells) => buf
-    ptrs(1,2)%p(1:p_patch%n_patch_cells) => tx%chfl_i
-
-    IF (ltimer) CALL timer_start(timer_coupling_put)
-    CALL put_ (field_id_seaice_atm, ptrs(:,1:2), info=info, ierror=ierror)
-    IF (ltimer) CALL timer_stop(timer_coupling_put)
-
-    CALL check_ ('id=5, atmos sea ice', info, ierror)
+    CALL cpl_put_field( &
+      routine, field_id_seaice_atm, 'atmos sea ice', p_patch%n_patch_cells, &
+      field_1=buf, field_2=tx%chfl_i)
 
     !------------------------------------------------
     !  Send 10m wind speed
@@ -509,13 +461,9 @@ CONTAINS
     !    - atmospheric wind speed
     !------------------------------------------------
 
-    ptrs(1,1)%p(1:p_patch%n_patch_cells) => tx%sp_10m
-
-    IF (ltimer) CALL timer_start(timer_coupling_put)
-    CALL put_ (field_id_sp10m, ptrs(:,1:1), info=info, ierror=ierror)
-    IF (ltimer) CALL timer_stop(timer_coupling_put)
-
-    CALL check_ ('id=10, wind speed', info, ierror)
+    CALL cpl_put_field( &
+      routine, field_id_sp10m, 'wind speed', p_patch%n_patch_cells, &
+      tx%sp_10m)
 
     !------------------------------------------------
     !  Send sea level pressure
@@ -526,13 +474,9 @@ CONTAINS
     !      * it calculated the hydrostatic surface pressure with less noise
     !------------------------------------------------
 
-    ptrs(1,1)%p(1:p_patch%n_patch_cells) => tx%pres_sfc
-
-    IF (ltimer) CALL timer_start(timer_coupling_put)
-    CALL put_ (field_id_pres_msl, ptrs(:,1:1), info=info, ierror=ierror)
-    IF (ltimer) CALL timer_stop(timer_coupling_put)
-
-    CALL check_ ('id=13, sea level pressure', info, ierror)
+    CALL cpl_put_field( &
+      routine, field_id_pres_msl, 'sea level pressure', p_patch%n_patch_cells, &
+      tx%pres_sfc)
 
     !------------------------------------------------
     !  Send co2 mixing ratio
@@ -583,13 +527,8 @@ CONTAINS
 
       END SELECT
 
-      ptrs(1,1)%p(1:p_patch%n_patch_cells) => buf
-
-      IF (ltimer) CALL timer_start(timer_coupling_put)
-      CALL put_ (field_id_co2_vmr, ptrs(:,1:1), info=info, ierror=ierror)
-      IF (ltimer) CALL timer_stop(timer_coupling_put)
-
-      CALL check_ ('id=11, co2 vmr', info, ierror)
+      CALL cpl_put_field( &
+        routine, field_id_co2_vmr, 'co2 vmr', p_patch%n_patch_cells, buf)
 
     ENDIF
 #endif /* ifndef __NO_ICON_OCEAN__ */
@@ -599,7 +538,7 @@ CONTAINS
     !  Receive fields from ocean to atmosphere
     !  *****  *****  *****  *****  *****  *****  *****  *****  *****  *****  *****  *****
     !
-    !  Receive fields, only assign values if something was received ( info > 0 )
+    !  Receive fields, only assign values if something was received
     !   - ocean fields have undefined values on land, which are not sent to the atmosphere,
     !     therefore buffer is set to zero to avoid unintended usage of ocean values over land
 
@@ -613,21 +552,9 @@ CONTAINS
     !    - SST
     !------------------------------------------------
 
-    IF (ltimer .AND. .NOT. lyac_very_1st_get) THEN
-      CALL timer_start(timer_coupling_1stget)
-    ENDIF
-
-    ptrs(1,1)%p(1:p_patch%n_patch_cells) => rx%t_seasfc
-
-    CALL get_ (field_id_sst, ptrs(:,1:1), info=info, ierror=ierror)
-
-    IF (ltimer .AND. .NOT. lyac_very_1st_get) THEN
-      CALL timer_stop(timer_coupling_1stget)
-    ENDIF
-
-    CALL check_ ('id=6, sst', info, ierror)
-
-    lyac_very_1st_get = .FALSE.
+    CALL cpl_get_field( &
+      routine, field_id_sst, 'sst', p_patch%n_patch_cells, &
+      rx%t_seasfc)
 
     !------------------------------------------------
     !  Receive zonal velocity
@@ -636,15 +563,10 @@ CONTAINS
     !    RR: not used in NWP so far, not activated for exchange in coupling.xml
     !------------------------------------------------
 
-    IF (ASSOCIATED(rx%ocean_u)) THEN
-      ptrs(1,1)%p(1:p_patch%n_patch_cells) => rx%ocean_u
-
-      IF (ltimer) CALL timer_start(timer_coupling_get)
-      CALL get_ (field_id_oce_u, ptrs(:,1:1), info=info, ierror=ierror)
-      IF (ltimer) CALL timer_stop(timer_coupling_get)
-
-      CALL check_ ('id=7, u velocity', info, ierror)
-    END IF
+    IF (ASSOCIATED(rx%ocean_u)) &
+      CALL cpl_get_field( &
+        routine, field_id_oce_u, 'u velocity', p_patch%n_patch_cells, &
+        rx%ocean_u)
 
     !------------------------------------------------
     !  Receive meridional velocity
@@ -654,15 +576,10 @@ CONTAINS
     !        YAC configuration file
     !------------------------------------------------
 
-    IF (ASSOCIATED(rx%ocean_v)) THEN
-      ptrs(1,1)%p(1:p_patch%n_patch_cells) => rx%ocean_v
-
-      IF (ltimer) CALL timer_start(timer_coupling_get)
-      CALL get_ (field_id_oce_v, ptrs(:,1:1), info=info, ierror=ierror)
-      IF (ltimer) CALL timer_stop(timer_coupling_get)
-
-      CALL check_ ('id=8, u velocity', info, ierror)
-    END IF
+    IF (ASSOCIATED(rx%ocean_v)) &
+      CALL cpl_get_field( &
+        routine, field_id_oce_v, 'v velocity', p_patch%n_patch_cells, &
+        rx%ocean_v)
 
     !------------------------------------------------
     !  Receive sea ice bundle
@@ -670,17 +587,12 @@ CONTAINS
     !    - ice thickness, snow thickness, ice concentration
     !------------------------------------------------
 
-    ptrs(1,1)%p(1:p_patch%n_patch_cells) => rx%h_ice
-    ptrs(1,2)%p(1:p_patch%n_patch_cells) => buf ! unused snow thickness
-    ptrs(1,3)%p(1:p_patch%n_patch_cells) => rx%fr_seaice
+    CALL cpl_get_field( &
+      routine, field_id_seaice_oce, 'sea ice', p_patch%n_patch_cells, &
+      field_1=rx%h_ice, field_2=buf, field_3=rx%fr_seaice, &
+      received_data=received_data)
 
-    IF (ltimer) CALL timer_start(timer_coupling_get)
-    CALL get_ (field_id_seaice_oce, ptrs(:,1:3), info=info, ierror=ierror)
-    IF (ltimer) CALL timer_stop(timer_coupling_get)
-
-    CALL check_ ('id=9, sea ice', info, ierror)
-
-    IF ( info > 0 .AND. info < 7 ) THEN
+    IF (received_data) THEN
 
       ! --- Here we loop only over ocean points, because h_ice is used by both oceans and lakes.
 
@@ -705,17 +617,11 @@ CONTAINS
     !    - ocean co2 flux
     !------------------------------------------------
 
-    IF (ccycle_config(jg)%iccycle /= CCYCLE_MODE_NONE .AND. ASSOCIATED(rx%flx_co2)) THEN
-
-      ptrs(1,1)%p(1:p_patch%n_patch_cells) => rx%flx_co2
-
-      IF (ltimer) CALL timer_start(timer_coupling_get)
-      CALL get_ (field_id_co2_flx, ptrs(:,1:1), info=info, ierror=ierror)
-      IF (ltimer) CALL timer_stop(timer_coupling_get)
-
-      CALL check_ ('id=12, CO2 flux', info, ierror)
-
-    END IF
+    IF (ccycle_config(jg)%iccycle /= CCYCLE_MODE_NONE .AND. &
+        ASSOCIATED(rx%flx_co2)) &
+      CALL cpl_get_field( &
+        routine, field_id_co2_flx, 'CO2 flux', p_patch%n_patch_cells, &
+        rx%flx_co2)
 
     !------------------------------------------------
     ! Debug outputs
@@ -772,55 +678,6 @@ CONTAINS
       CALL dbg_print('NWPOce: frac.wtr    ', tx%frac_w(:,:),     str_module, 4, in_subset=p_patch%cells%owned)
 
     END IF
-
-  CONTAINS
-
-    SUBROUTINE put_ (field_id, send_field, info, ierror)
-      INTEGER, INTENT(IN) :: field_id
-      TYPE(yac_dble_ptr), INTENT(IN) :: send_field(:,:)
-      INTEGER, INTENT(OUT) :: info
-      INTEGER, INTENT(OUT) :: ierror
-
-      CALL yac_fput ( &
-          & field_id=field_id, &
-          & nbr_pointsets=SIZE(send_field, 1), &
-          & collection_size=SIZE(send_field, 2), &
-          & send_field=send_field(:,:), &
-          & info=info, &
-          & ierror=ierror &
-        )
-
-    END SUBROUTINE
-
-    SUBROUTINE get_ (field_id, recv_field, info, ierror)
-      INTEGER, INTENT(IN) :: field_id
-      TYPE(yac_dble_ptr), INTENT(IN) :: recv_field(:,:)
-      INTEGER, INTENT(OUT) :: info
-      INTEGER, INTENT(OUT) :: ierror
-
-      CALL yac_fget ( &
-          & field_id=field_id, &
-          & collection_size=SIZE(recv_field, 2), &
-          & recv_field=recv_field(1,:), &
-          & info=info, &
-          & ierror=ierror &
-        )
-
-    END SUBROUTINE
-
-    SUBROUTINE check_ (location, info, ierror)
-      CHARACTER(len=*), INTENT(IN) :: location
-      INTEGER, INTENT(IN) :: info
-      INTEGER, INTENT(IN) :: ierror
-
-      IF ( info > YAC_ACTION_COUPLING .AND. info < YAC_ACTION_OUT_OF_BOUND ) &
-          & write_coupler_restart = .TRUE. ! Declared in main function.
-      IF ( info == YAC_ACTION_OUT_OF_BOUND ) &
-          & CALL warning('nwp_couple_ocean', &
-                         'YAC says fput called after end of run - ' // TRIM(location))
-    END SUBROUTINE
-
-#endif /* ifndef YAC_coupling */
 
   END SUBROUTINE couple_ocean
 

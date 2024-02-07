@@ -2469,6 +2469,13 @@ tuning of bare-soil evaporation &
 init\_mode=5
 \tabularnewline
 
+smi\_relax\_timescale&
+R & 20. & days &
+Relaxation time scale for ICON-internal soil moisture adjustment, referring to a filtered RH increment of 1\%.
+Setting the time scale to zero turns off the soil moisture adjustment. &
+icpl\_da\_sfcevap $>=$ 2
+\tabularnewline
+
 icpl\_da\_snowalb&
 I & 0 & &
 Coupling between temperature bias inferred from data assimilation and snow albedo\\
@@ -2507,6 +2514,14 @@ parts of Russia where the assimilation of 10m winds is blacklisted in the operat
 2: on without masking over Russia, to be combined with 10m wind assimilation without blacklisting &
 init\_mode=5
 \tabularnewline
+
+
+scalfac\_da\_sfcfric&
+R & 2.5 & &
+Scaling factor for adaptive surface friction (see eqns. 3 and 4 in \texttt{https://doi.org/10.1002/qj.4535}) &
+icpl\_da\_sfcfric $>$ 0
+\tabularnewline
+
 
 icpl\_da\_tkhmin&
 I & 0 & &

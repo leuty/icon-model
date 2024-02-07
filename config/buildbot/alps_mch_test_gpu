@@ -1,0 +1,3 @@
+#!/bin/bash
+
+./config/cscs/alps_mch.gpu.nvidia_mixed

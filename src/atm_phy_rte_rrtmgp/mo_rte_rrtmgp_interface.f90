@@ -255,7 +255,7 @@ CONTAINS
               & jb,             nbndsw,                nbndlw,         &
               & zf,             dz,                                    &
               & aer_tau_sw,     aer_ssa_sw,            aer_asy_sw,     &
-              & aer_tau_lw, opt_from_yac=lrad_yac )
+              & aer_tau_lw, opt_from_coupler=lrad_yac )
       END IF
       IF (irad_aero==14 .OR. irad_aero==15 .OR. irad_aero==18) THEN
       ! iaero=14: only Stechnikov's volcanic aerosols are used (added to zero)
