@@ -1353,7 +1353,7 @@ EOF
 }
 
 #=============================================================================
-set_run_target_balfrin_gpu()
+set_run_target_alps_mch_gpu()
 {
     rootFolder_prefix=/scratch/mch/jenkins/icon
     icon_data_rootFolder=${icon_data_rootFolder:=${rootFolder_prefix}/pool/data/ICON}
@@ -1416,7 +1416,7 @@ set_run_target_balfrin_gpu()
     cat >> "$output_script" << EOF
 #=============================================================================
 
-# balfrin gpu batch job parameters
+# alps_mch gpu batch job parameters
 # ------------------------------
 #SBATCH --job-name=$job_name
 #SBATCH --output=$output_folder/$job_log_name.o
@@ -1438,7 +1438,7 @@ EOF
 }
 
 #=============================================================================
-set_run_target_balfrin_cpu()
+set_run_target_alps_mch_cpu()
 {
     rootFolder_prefix=/scratch/mch/jenkins/icon
     icon_data_rootFolder=${icon_data_rootFolder:=${rootFolder_prefix}/pool/data/ICON}
@@ -1484,7 +1484,7 @@ set_run_target_balfrin_cpu()
     fi
     if [[ "x$BB_SYSTEM" != "x" ]]
     then
-        # this is buldbot, do not run more than 15 minutes on Daint (SLURM delays)
+        # this is buldbot, do not run more than 15 minutes on Alps (SLURM delays)
         limit="00:15:00"
         default=${limit}
         limit_time_bb # sets use_cpu_time
@@ -1495,16 +1495,24 @@ set_run_target_balfrin_cpu()
     use_nodes=${use_nodes}
     use_mpi_procs_pernode=${use_mpi_procs_pernode}
 
+    # check if pp-short partition exists
+    pp_short_nodes=`sinfo -p pp-short -h`
+    partition=${pp_short_nodes%% *}
+
+    if test -z $partition; then
+        partition="normal"
+    fi
+
     cat >> "$output_script" << EOF
 #=============================================================================
 
-# balfrin cpu batch job parameters
+# alps_mch cpu batch job parameters
 # ------------------------------
 #SBATCH --account=$use_account_no
 #SBATCH --job-name=$job_name
 #SBATCH --output=$output_folder/$job_log_name.o
 #SBATCH --error=$output_folder/$job_log_name.o
-#SBATCH --partition=pp-short
+#SBATCH --partition=$partition
 #SBATCH --exclusive
 #SBATCH --hint=nomultithread
 #$SBATCH_nodes
@@ -1952,7 +1960,7 @@ create_target_header()
  	case $job_name in
         *dwd_run_ICON_09_R2B4N5_EPS.run*|*dwd_run_ICON_09_R2B4N5_EPS_member_id*)
             case $use_target in
-                balfrin_gpu*)
+                alps_mch_gpu*)
                     use_nodes=1
                     use_mpi_procs_pernode=4
                 ;;
@@ -1960,7 +1968,7 @@ create_target_header()
             ;;
         *mch_ch_lowres.run|*mch_ch_lowres_member_id*)
             case $use_target in
-                balfrin_gpu*)
+                alps_mch_gpu*)
                     use_nodes=1
                     use_mpi_procs_pernode=4
                 ;;
@@ -1968,7 +1976,7 @@ create_target_header()
             ;;
         *mch_kenda-ch1_small.run|*mch_kenda-ch1_small_member_id*)
             case $use_target in
-                balfrin_gpu*)
+                alps_mch_gpu*)
                     use_nodes=1
                     use_mpi_procs_pernode=4
                 ;;
@@ -2010,7 +2018,7 @@ create_target_header()
             ;;
         *mch_icon-ch1.run)
             case $use_target in
-                balfrin_gpu*)
+                alps_mch_gpu*)
                     use_nodes=2
                     use_mpi_procs_pernode=5
                     use_nproma_sub=6054
@@ -2019,7 +2027,7 @@ create_target_header()
             ;;
         *mch_kenda-ch1.run)
             case $use_target in
-                balfrin_gpu*)
+                alps_mch_gpu*)
                     use_nodes=1
                     use_mpi_procs_pernode=6
                     use_nproma_sub=1128
@@ -2028,7 +2036,7 @@ create_target_header()
             ;;
         *mch_icon-ch2.run)
             case $use_target in
-                balfrin_gpu*)
+                alps_mch_gpu*)
                     use_nodes=1
                     use_mpi_procs_pernode=6
                     use_nproma_sub=17757
@@ -2041,7 +2049,7 @@ create_target_header()
                 daint*)
                     use_mpi_procs_pernode=12 # Use 12 procs pernode for GPU as well until bug is fixed
                     ;;
-                balfrin*)
+                alps_mch*)
                     use_mpi_procs_pernode=4 # Use 4 procs pernode for GPU as well until bug is fixed
                     ;;
             esac
