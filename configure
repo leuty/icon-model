@@ -788,6 +788,7 @@ with_external_mtime
 with_external_yac
 with_external_tixi
 with_external_fortran_support
+with_external_comin
 '
       ac_precious_vars='build_alias
 host_alias
@@ -1636,6 +1637,7 @@ Optional Packages:
   --with-external-tixi    use external TIXI library [default=no]
   --with-external-fortran-support
                           use external FORTRAN-SUPPORT library [default=no]
+  --with-external-comin   use external ComIn library [default=no]
 
 Some influential environment variables:
   BUILD_ENV   initialization code to set up the building environment (must be
@@ -3743,6 +3745,18 @@ fi
 else
   with_external_fortran_support=no
 fi
+
+
+
+# Check whether --with-external-comin was given.
+if test "${with_external_comin+set}" = set; then :
+  withval=$with_external_comin; if test x"$withval" != xno; then :
+  with_external_comin=yes
+fi
+else
+  with_external_comin=no
+fi
+
 
 
 ############################# CODEBASE EXTENSIONS ##############################
@@ -10026,14 +10040,47 @@ ac_compiler_gnu=$ac_cv_fc_compiler_gnu
 esac
 
 if test "x$enable_comin" = xyes; then :
-  icon_subdir_srcdir="$srcdir/externals/comin"
-   icon_subdir_unique_file="src/comin_setup.F90"
-   if test ! -r "$icon_subdir_srcdir/$icon_subdir_unique_file"; then :
+  if test "x$with_external_comin" = xyes; then :
+  { $as_echo "$as_me:${as_lineno-$LINENO}: checking whether ComIn library is available" >&5
+$as_echo_n "checking whether ComIn library is available... " >&6; }
+if ${icon_cv_have_comin+:} false; then :
+  $as_echo_n "(cached) " >&6
+else
+  icon_cv_have_comin=no
+        cat > conftest.$ac_ext <<_ACEOF
+      program main
+
+        use comin_host_interface, only: t_comin_setup_version_info, &
+       &                                comin_setup_get_version
+        implicit none
+        type(t_comin_setup_version_info) :: version
+        version = comin_setup_get_version()
+      end
+_ACEOF
+if ac_fn_fc_try_link "$LINENO"; then :
+  icon_cv_have_comin=yes
+fi
+rm -f core conftest.err conftest.$ac_objext \
+    conftest$ac_exeext conftest.$ac_ext
+fi
+{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $icon_cv_have_comin" >&5
+$as_echo "$icon_cv_have_comin" >&6; }
+     if test "x$icon_cv_have_comin" = xno; then :
+  { { $as_echo "$as_me:${as_lineno-$LINENO}: error: in \`$ac_pwd':" >&5
+$as_echo "$as_me: error: in \`$ac_pwd':" >&2;}
+as_fn_error $? "unable to link a test program using ComIn library: either use the bundled version of COMIN (--without-external-comin) or set FCFLAGS, LDFLAGS and LIBS accordingly
+See \`config.log' for more details
+${icon_usr_note}" "$LINENO" 5; }
+fi
+else
+      icon_subdir_srcdir="$srcdir/externals/comin"
+     icon_subdir_unique_file="src/comin_setup.F90"
+     if test ! -r "$icon_subdir_srcdir/$icon_subdir_unique_file"; then :
   as_fn_error $? "unable to find sources of the bundled version of COMIN library ($icon_subdir_unique_file) in '$icon_subdir_srcdir'" "$LINENO" 5
 fi
-      ICON_COMIN_FCFLAGS=${ICON_COMIN_FCFLAGS-$ICON_BUNDLED_FCFLAGS}
-         ICON_COMIN_CFLAGS=${ICON_COMIN_CFLAGS-$ICON_BUNDLED_CFLAGS}
-                  acx_subdir_run_cmd_externals_comin="\"\${CMAKE}\""
+          ICON_COMIN_FCFLAGS=${ICON_COMIN_FCFLAGS-$ICON_BUNDLED_FCFLAGS}
+               ICON_COMIN_CFLAGS=${ICON_COMIN_CFLAGS-$ICON_BUNDLED_CFLAGS}
+                    acx_subdir_run_cmd_externals_comin="\"\${CMAKE}\""
    acx_subdir_run_dir_externals_comin="externals/comin/build"
    acx_subdir_build_type_externals_comin='cmake'
          acx_subdir_pre_adjust_cmake_args
@@ -10054,14 +10101,14 @@ esac
       as_fn_append acx_subdir_run_args_externals_comin " '$acx_tmp'"
       as_fn_append extra_src_subdirs " externals/comin"
    acx_subdir_run_condition_externals_comin=no
-   eval "set dummy $acx_subdir_run_args_externals_comin"; shift
+     eval "set dummy $acx_subdir_run_args_externals_comin"; shift
    acx_subdir_run_args_externals_comin=
    while test $# != 0; do
      acx_tmp=$1
      case $acx_tmp in #(
-       -DCMAKE_C_FLAGS=*|-DCMAKE_Fortran_FLAGS=*|-DCMAKE_CXX_FLAGS=*) :
+         -DCMAKE_C_FLAGS=*|-DCMAKE_Fortran_FLAGS=*|-DCMAKE_CXX_FLAGS=*) :
      ;; #(
-       -DCMAKE_*_COMPILER_AR=*|-DCMAKE_*_COMPILER_RANLIB=*) :
+         -DCMAKE_*_COMPILER_AR=*|-DCMAKE_*_COMPILER_RANLIB=*) :
      ;; #(
   *) :
            case $acx_tmp in #(
@@ -10074,7 +10121,7 @@ esac
 esac
      shift
    done
-   set dummy      -DCMAKE_C_FLAGS="$subdir_CFLAGS $ICON_COMIN_CFLAGS $subdir_CPPFLAGS" -DCMAKE_Fortran_FLAGS="$subdir_FCFLAGS $ICON_COMIN_FCFLAGS" -DCMAKE_CXX_FLAGS="$subdir_CXXFLAGS $ICON_COMIN_CXXFLAGS $subdir_CPPFLAGS"      -DBUILD_SHARED_LIBS:BOOL=OFF      -DCOMIN_ENABLE_EXAMPLES:BOOL=OFF      -DCMAKE_BUILD_TYPE:STRING=NOEXTRAFLAGS; shift
+     set dummy        -DCMAKE_C_FLAGS="$subdir_CFLAGS $ICON_COMIN_CFLAGS $subdir_CPPFLAGS" -DCMAKE_Fortran_FLAGS="$subdir_FCFLAGS $ICON_COMIN_FCFLAGS" -DCMAKE_CXX_FLAGS="$subdir_CXXFLAGS $ICON_COMIN_CXXFLAGS $subdir_CPPFLAGS"        -DBUILD_SHARED_LIBS:BOOL=OFF        -DCOMIN_ENABLE_EXAMPLES:BOOL=OFF        -DCMAKE_BUILD_TYPE:STRING=NOEXTRAFLAGS; shift
    for acx_tmp; do
      case $acx_tmp in #(
   *\'*) :
@@ -10084,8 +10131,9 @@ esac
 esac
      as_fn_append acx_subdir_run_args_externals_comin " '$acx_tmp'"
    done
-   as_fn_append bundled_includes "${FC_MOD_IN}externals/comin/build/mod "
-   BUNDLED_LIBFILES="externals/comin/build/libcomin.a $BUNDLED_LIBFILES"
+     as_fn_append bundled_includes "${FC_MOD_IN}externals/comin/build/mod "
+     BUNDLED_LIBFILES="externals/comin/build/libcomin.a $BUNDLED_LIBFILES"
+fi
 fi
 
 if test "x$with_external_fortran_support" = xyes; then :
