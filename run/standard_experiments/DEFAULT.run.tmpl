@@ -13,7 +13,7 @@
 #
 # %{mkexp_input}
 #
-# $Id: run/standard_experiments/DEFAULT.run.tmpl 16 2024-01-25 14:40:35Z k203123 $
+# $Id: run/standard_experiments/DEFAULT.run.tmpl 17 2024-02-02 20:43:54Z m221078 $
 #
 # %{VERSIONS_|join('\n# ')}
 #
@@ -117,6 +117,24 @@ hiopy_tasks=0
 #%  endif
 mpi_total_procs=$((no_of_nodes * mpi_procs_pernode))
 
+#%  if JOB.use_openmp_hack is set:
+#FIXME: Not working for 0 hiopy_tasks
+hiopy_nodes=$(( ($hiopy_tasks + $mpi_procs_pernode-1)/$mpi_procs_pernode ))
+#hiopy_nodes=0
+
+#FIXME if hiopy fills full nodes, we need to add at least one for the async o bullshit of the ocean. today this is not neccessarrryy.
+no_io_nodes=$hiopy_nodes
+
+no_of_nodes_comp=$(( no_of_nodes - no_io_nodes ))
+
+#FIXME: this is gonna break for any number of output ranks different from the case we run.
+#aka WORKS FOR ME
+mpi_atm_io_procs=1
+mpi_oce_io_procs=$(($no_io_nodes * $mpi_procs_pernode - $hiopy_tasks - $mpi_atm_io_procs))
+#mpi_atm_io_procs=0
+#mpi_oce_io_procs=0
+
+#%  endif
 #
 #=============================================================================
 
@@ -135,6 +153,7 @@ export EXPNAME=%{EXP_ID}
 # how to start the icon model
 # ---------------------------
 #%#
+#%  if JOB.use_openmp_hack is not set:
 #%  set mpi_command = MPI.command
 #%#
 #%  if JOB.use_cpu_mask is set:
@@ -158,6 +177,10 @@ export EXPNAME=%{EXP_ID}
 #%  endif
 
 export START="%{mpi_command} --ntasks=$mpi_total_procs --cpus-per-task=$cpus_per_task"
+#%  else:
+#%#     use_openmp_hack is set
+export START="srun -l --kill-on-bad-exit=1 --propagate=STACK,CORE --cpu-bind=v,none --distribution=arbitrary --ntasks=$mpi_total_procs --cpus-per-task=$cpus_per_task ./set_mask"
+#%  endif
 export MODEL="%{BIN_DIR}/%{MODEL_EXE}"
 
 # how to submit the next job
@@ -181,6 +204,7 @@ ulimit -c 0
 # (0) Basic model configuration
 # -----------------------------
 
+#%  if JOB.use_openmp_hack is not set:
 #%  if JOB.share_nodes is set:
 oce_per_node=%{JOB.ocean_tasks_per_node}
 atm_per_node=$((mpi_procs_pernode - oce_per_node))
@@ -190,6 +214,14 @@ atm_procs=$((no_of_nodes * atm_per_node))
 #%  else:
 mpi_oce_nodes=%{JOB.ocean_nodes}
 mpi_oce_procs=$((mpi_oce_nodes * mpi_procs_pernode))
+#%  endif
+#%  else:
+#%#     use_openmp_hack is set
+oce_per_node=16
+atm_per_node=$((mpi_procs_pernode - oce_per_node))
+oce_procs=$((no_of_nodes_comp * oce_per_node))
+mpi_oce_procs=$oce_procs
+atm_procs=$((no_of_nodes_comp * atm_per_node))
 #%  endif
 #
 #--------------------------------------------------------------------------------------------------
@@ -317,6 +349,7 @@ fi
 
 # I.1 Split the number of total procs and assign to each component
 # ----------------------------------------------------------------
+#%  if JOB.use_openmp_hack is not set:
 #%  if JOB.share_nodes is set and JOB.use_hostfile is not set:
 oce_min_rank=$atm_per_node
 oce_max_rank=$((mpi_total_procs - 1))
@@ -339,6 +372,17 @@ atm_max_rank=$((oce_min_rank - 1))
 oce_group_size=1
 oce_inc_rank=1
 atm_min_rank=0
+atm_group_size=1
+atm_inc_rank=1
+#%  endif
+#%  else:
+#%#     use_openmp_hack is set
+oce_min_rank=`expr ${atm_procs} + ${mpi_atm_io_procs}`
+oce_max_rank=`expr ${atm_procs} + ${mpi_atm_io_procs} + ${oce_procs} + ${mpi_oce_io_procs} - 1`
+oce_group_size=1
+oce_inc_rank=1
+atm_min_rank=0
+atm_max_rank=`expr ${oce_min_rank} - 1`
 atm_group_size=1
 atm_inc_rank=1
 #%  endif
@@ -455,6 +499,7 @@ ldd ${MODEL}
 #
 # start experiment
 #
+#%  if JOB.use_openmp_hack is not set:
 #%  if JOB.use_hostfile is set or JOB.use_mpmd is set:
 mpi_atm_io_procs=%{namelists.NAMELIST_atm.parallel_nml.num_io_procs}
 mpi_oce_io_procs=%{namelists.NAMELIST_oce.parallel_nml.num_io_procs}
@@ -507,6 +552,106 @@ function fill_hostfile(){
 
 fill_hostfile $atm_procs $mpi_atm_io_procs 0 > $SLURM_HOSTFILE
 fill_hostfile $oce_procs $mpi_oce_io_procs 1 >> $SLURM_HOSTFILE
+
+#%  endif
+#%  else:
+#%#     use_openmp_hack is set
+export SLURM_HOSTFILE=$EXPDIR/hst_file
+
+hostset=$(nodeset -e $SLURM_NODELIST)
+hostarr=($hostset)
+
+touch $SLURM_HOSTFILE
+rm $SLURM_HOSTFILE
+
+#FIXME
+numblocks=2
+
+#atmo comp
+for block in $(seq 1 $numblocks); do
+   for i in $(seq 0 $(($no_of_nodes-$no_io_nodes-1))); do
+      hst=${hostarr[$i]}
+      end=$(($mpi_procs_pernode/2/$numblocks))
+      for i in $(seq 1 $end); do
+          echo $hst >> $SLURM_HOSTFILE
+      done
+   done
+done
+
+#atmo out
+n_atmo_out_left=$mpi_atm_io_procs
+for i in $(seq $(($no_of_nodes-$no_io_nodes)) $(($no_of_nodes-1))); do
+   hst=${hostarr[$i]}
+   for i in $(seq 1 $(($mpi_procs_pernode))); do
+       if [ $n_atmo_out_left -gt 0 ]; then
+          echo $hst >> $SLURM_HOSTFILE
+          n_atmo_out_left=$(($n_atmo_out_left -1 ))
+       fi
+   done
+done
+
+#oce comp
+for block in $(seq 1 $numblocks); do
+   for i in $(seq 0 $(($no_of_nodes-$no_io_nodes-1))); do
+      hst=${hostarr[$i]}
+      end=$(($mpi_procs_pernode/2/$numblocks))
+      for i in $(seq 1 $end); do
+          echo $hst >> $SLURM_HOSTFILE
+      done
+   done
+done
+
+#oce out and hiopy
+n_atmo_out_left=$mpi_atm_io_procs
+for i in $(seq $(($no_of_nodes-$no_io_nodes)) $(($no_of_nodes-1))); do
+   hst=${hostarr[$i]}
+   for i in $(seq 1 $(($mpi_procs_pernode))); do
+       if [ $n_atmo_out_left -gt 0 ]; then
+          n_atmo_out_left=$(($n_atmo_out_left -1 ))
+          continue
+       fi
+       echo $hst >> $SLURM_HOSTFILE
+   done
+done
+
+
+cat << EOF > set_mask
+#!/bin/bash
+
+rank=\$SLURM_PROCID
+total_procs=\$SLURM_NTASKS
+
+mask=(0x7f 0x7f00 0x7f0000 0x7f000000 0x7f00000000 0x7f0000000000 0x7f000000000000 0x7f00000000000000 0x7f0000000000000000 0x7f000000000000000000 0x7f00000000000000000000 0x7f0000000000000000000000 0x7f000000000000000000000000 0x7f00000000000000000000000000 0x7f0000000000000000000000000000 0x7f000000000000000000000000000000 0x80 0x8000 0x800000 0x80000000 0x8000000000 0x800000000000 0x80000000000000 0x8000000000000000 0x800000000000000000 0x80000000000000000000 0x8000000000000000000000 0x800000000000000000000000 0x80000000000000000000000000 0x8000000000000000000000000000 0x800000000000000000000000000000 0x80000000000000000000000000000000)
+#more in the brownian spirit of things.
+mask=(0x7f 0x7f0000 0x7f00000000 0x7f000000000000 0x7f0000000000000000 0x7f00000000000000000000 0x7f000000000000000000000000 0x7f0000000000000000000000000000 0x7f00 0x7f000000 0x7f0000000000 0x7f00000000000000 0x7f000000000000000000 0x7f0000000000000000000000 0x7f00000000000000000000000000 0x7f000000000000000000000000000000 0x80 0x800000 0x8000000000 0x80000000000000 0x800000000000000000 0x8000000000000000000000 0x80000000000000000000000000 0x800000000000000000000000000000 0x8000 0x80000000 0x800000000000 0x8000000000000000 0x80000000000000000000 0x800000000000000000000000 0x8000000000000000000000000000 0x80000000000000000000000000000000)
+
+mask_out=(0xf 0xf0000 0xf00000000 0xf000000000000 0xf0000000000000000 0xf00000000000000000000 0xf000000000000000000000000 0xf0000000000000000000000000000 0xf0 0xf00000 0xf000000000 0xf0000000000000 0xf00000000000000000 0xf000000000000000000000 0xf0000000000000000000000000 0xf00000000000000000000000000000 0xf00 0xf000000 0xf0000000000 0xf00000000000000 0xf000000000000000000 0xf0000000000000000000000 0xf00000000000000000000000000 0xf000000000000000000000000000000 0xf000 0xf0000000 0xf00000000000 0xf000000000000000 0xf0000000000000000000 0xf00000000000000000000000 0xf000000000000000000000000000 0xf0000000000000000000000000000000)
+
+if [ \$rank -lt $atm_procs ]; then
+        export OMP_NUM_THREADS=7
+        echo atmo \${mask[\$SLURM_LOCALID]}
+        hwloc-bind \${mask[\$SLURM_LOCALID]} \$*
+#        exec \$*
+elif [ \$rank -lt $(($atm_procs +  $mpi_atm_io_procs)) ]; then
+        export OMP_NUM_THREADS=4
+        echo atmoo \${mask_out[\$SLURM_LOCALID]}
+        hwloc-bind \${mask_out[\$SLURM_LOCALID]} \$*
+elif [ \$rank -lt $(($atm_procs + $mpi_atm_io_procs + $oce_procs)) ]; then
+        export OMP_NUM_THREADS=1
+        echo oce \${mask[\$SLURM_LOCALID]}
+        hwloc-bind \${mask[\$SLURM_LOCALID]} \$*
+#        exec \$*
+elif [ \$rank -lt $(($atm_procs + $mpi_atm_io_procs + $oce_procs + $mpi_oce_io_procs)) ]; then
+        export OMP_NUM_THREADS=4
+        echo oceo \${mask_out[\$SLURM_LOCALID]}
+        hwloc-bind \${mask_out[\$SLURM_LOCALID]} \$*
+else
+        export OMP_NUM_THREADS=4
+        echo hiopy
+        hwloc-bind \${mask_out[\$SLURM_LOCALID]} ${EXPDIR}/mpmd_jobs/run_\$(( \$SLURM_PROCID -$atm_procs - $mpi_atm_io_procs - $oce_procs - $mpi_oce_io_procs))
+fi
+EOF
+chmod +x ./set_mask
 
 #%  endif
 cp -p ${MODEL} ./icon
@@ -605,7 +750,7 @@ echo "#################################################"
 
 #%  endif
 date
-#%  if JOB.use_mpmd is set or hiopy is defined and hiopy.use_mpmd is set:
+#%  if JOB.use_openmp_hack is not set and (JOB.use_mpmd is set or hiopy is defined and hiopy.use_mpmd is set):
 ${START} --multi-prog icon_mpmd.conf
 #%  else:
 ${START} ${MODEL}
@@ -680,7 +825,7 @@ status=0
 if [ $finish_status = "RESTART" ]
 then
   (
-#%     if JOB.use_hostfile is set:
+#%     if JOB.use_openmp_hack is set or JOB.use_hostfile is set:
     # Clean SLURM_HOSTFILE
     unset SLURM_HOSTFILE
 #%     endif
