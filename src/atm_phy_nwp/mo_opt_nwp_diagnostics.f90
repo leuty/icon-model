@@ -3899,7 +3899,7 @@ CONTAINS
         IF (atm_phy_nwp_config(jg)%icpl_aero_gscp == 2) THEN
           ! Not yet implemented in microphysics! We give a dummy value here.
           qnc_s(:,:) = cloud_num               ! 1/kg
-        ELSE IF (atm_phy_nwp_config(jg)%icpl_aero_gscp == 1) THEN
+        ELSE IF ( ANY ( atm_phy_nwp_config(jg)%icpl_aero_gscp == (/1, 3/) ) ) THEN
           qnc_s(:,:) = prm_diag%cloud_num(:,:) ! neglect difference of 1/m^3 and 1/kg for this near-surface value
         ELSE
           qnc_s(:,:) = cloud_num               ! 1/kg

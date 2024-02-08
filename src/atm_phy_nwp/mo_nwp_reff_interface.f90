@@ -107,7 +107,7 @@ MODULE mo_nwp_reff_interface
            &                   tune_rain_n0_factor = atm_phy_nwp_config(jg)%rain_n0_factor)
     END SELECT
 
-    IF (atm_phy_nwp_config(jg)%icpl_aero_gscp == 1) THEN  ! Only defined if aerosol coupling is on
+    IF ( ANY ( atm_phy_nwp_config(jg)%icpl_aero_gscp == (/1, 3/) ) ) THEN  ! Only defined if aerosol coupling is on
       IF (iprog_aero == 0) THEN  ! Take CCN from cloud_num or acdnc
         available_acdnc = .true.
       ELSE  ! Not yet developed fucntion

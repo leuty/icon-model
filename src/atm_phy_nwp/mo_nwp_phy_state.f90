@@ -73,7 +73,7 @@ USE mo_grid_config,         ONLY: n_dom, n_dom_start, nexlevs_rrg_vnest
 USE mo_atm_phy_nwp_config,  ONLY: atm_phy_nwp_config, icpl_aero_conv, iprog_aero
 USE turb_data,              ONLY: ltkecon
 USE mo_initicon_config,     ONLY: icpl_da_sfcevap, icpl_da_snowalb, icpl_da_skinc, icpl_da_seaice
-USE mo_radiation_config,    ONLY: irad_aero, iRadAeroTegen, iRadAeroART
+USE mo_radiation_config,    ONLY: irad_aero, iRadAeroTegen, iRadAeroART, iRadAeroNone, iRadAeroConst, iRadAeroCAMSclim
 USE mo_lnd_nwp_config,      ONLY: ntiles_total, ntiles_water, nlev_soil
 USE mo_nwp_vdiff_interface, ONLY: nwp_vdiff_setup
 USE mo_var_list,            ONLY: add_var, add_ref, t_var_list_ptr
@@ -2547,8 +2547,8 @@ SUBROUTINE new_nwp_phy_diag_list( k_jg, klev, klevp1, kblks,    &
 
     ENDIF
 
-    IF ( (irad_aero == iRadAeroTegen .OR. irad_aero == iRadAeroART) .AND.  &
-      &  (atm_phy_nwp_config(k_jg)%icpl_aero_gscp == 1 .OR. icpl_aero_conv == 1) ) THEN
+    IF (.NOT. ANY( irad_aero == (/iRadAeroNone, iRadAeroConst, iRadAeroCAMSclim/) ) .AND.          &
+      &  (ANY ( atm_phy_nwp_config(k_jg)%icpl_aero_gscp == (/1, 3/) ) .OR. icpl_aero_conv == 1) ) THEN
       lrestart = .TRUE.
     ELSE
       lrestart = .FALSE.

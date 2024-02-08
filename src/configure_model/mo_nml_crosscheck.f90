@@ -364,9 +364,10 @@ CONTAINS
             CALL finish(routine,'irad_aero=6 (Tegen) requires itopo=1')
           ENDIF
 
-          IF ( ( irad_aero /= iRadAeroTegen .AND. irad_aero /= iRadAeroART ) .AND.  &
+          IF ( .NOT. ANY ( irad_aero ==  (/iRadAeroTegen, iRadAeroART, iRadAeroConstKinne, iRadAeroKinne,   &
+                           iRadAeroVolc, iRadAeroKinneVolc, iRadAeroKinneVolcSP, iRadAeroKinneSP/) ) .AND.  &
             &  ( atm_phy_nwp_config(jg)%icpl_aero_gscp > 0 .OR. icpl_aero_conv > 0 ) ) THEN
-            CALL finish(routine,'aerosol-precipitation coupling requires irad_aero=6 (Tegen) or =9 (ART)')
+            CALL finish(routine,'aerosol-precipitation coupling requires irad_aero=6, 9, 12, 13, 14, 15, 18 or 19')
           ENDIF
 
           ! Kinne, CMIP6 volcanic aerosol only work with ecRad
@@ -543,13 +544,17 @@ CONTAINS
         END SELECT
 
       ENDDO
-    END IF
 
 #ifdef _OPENACC
     IF ( irad_aero == iRadAeroCAMSclim) THEN
         CALL finish(routine,'CAMS 3D climatology irad_aero=7 is currently not supported on GPU.')
     END IF
+    IF ( atm_phy_nwp_config(jg)%icpl_aero_gscp == 3 ) THEN
+        CALL finish(routine,'Using cloud-droplet number climatology icpl_aero_gscp = 3 is currently not supported on GPU.')
+    END IF
 #endif
+
+    END IF
 
     !--------------------------------------------------------------------
     ! Tracers and diabatic forcing

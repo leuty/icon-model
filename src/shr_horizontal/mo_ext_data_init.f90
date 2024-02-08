@@ -436,6 +436,16 @@ CONTAINS
           ENDDO
         ENDIF  ! lwemiss
 
+        ! cloud droplet climatology
+        IF ( atm_phy_nwp_config(jg)%icpl_aero_gscp == 3  ) THEN
+          DO jg = 1, n_dom
+            CALL interpol_monthly_mean(p_patch(jg),                      &! in
+                 &                     assumePrevMidnight(this_datetime),&! in
+                 &                     ext_data(jg)%atm_td%cdnc,         &! in
+                 &                     ext_data(jg)%atm%cdnc             )! out
+          ENDDO
+        ENDIF
+        
         ! clean up
         CALL deallocateDatetime(this_datetime)
 
@@ -642,6 +652,15 @@ CONTAINS
       IF ( sstice_mode == SSTICE_ANA_CLINC ) THEN
         IF ( test_cdi_varID(cdi_extpar_id, 'T_SEA')  == -1 ) THEN
           CALL finish(routine,'SST climatology missing in '//TRIM(extpar_filename))
+        ENDIF
+      ENDIF
+      
+      IF ( atm_phy_nwp_config(jg)%icpl_aero_gscp == 3  ) THEN
+        ! Check whether external parameter file contains cloud droplet number climatology
+        IF ( test_cdi_varID(cdi_extpar_id, 'cdnc')  == -1 ) THEN
+          CALL finish(routine,'icpl_aero_gscp=3 but cloud droplet number climatology missing in '//TRIM(extpar_filename))
+        ELSE
+          CALL message(routine,'Found cloud droplet number in extpar file' )
         ENDIF
       ENDIF
 
@@ -1330,6 +1349,11 @@ CONTAINS
             CALL read_extdata('T_2M_CLIM', arr3d=ext_data(jg)%atm_td%t2m_m)
             CALL read_extdata('TOPO_CLIM',   ext_data(jg)%atm%topo_t2mclim)
           ENDIF
+
+          IF ( atm_phy_nwp_config(jg)%icpl_aero_gscp == 3  ) THEN
+            ! cloud droplet climatology (time dependent monthly means)
+            CALL read_extdata('cdnc',   arr3d=ext_data(jg)%atm_td%cdnc)
+          END IF
 
           !--------------------------------
           ! If MODIS albedo is used

@@ -234,6 +234,7 @@ CONTAINS
     icpl_aero_gscp = 0  ! 0 = none
                         ! 1 = simple coupling with aerosol climatology disregarding the dependency of aerosol activation on vertical wind speed
                         ! 2 = more accurate coupling with aerosol climatology as a function of vertical wind speed
+                        ! 3 = like 1 but using the cdnc from external parameter 
 
     ! coupling between aersols and convection scheme
     icpl_aero_conv = 0  ! 0 = none

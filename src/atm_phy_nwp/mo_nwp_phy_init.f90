@@ -157,7 +157,7 @@ MODULE mo_nwp_phy_init
   PRIVATE
 
 
-  PUBLIC  :: init_nwp_phy, init_cloud_aero_cpl
+  PUBLIC  :: init_nwp_phy, init_cloud_aero_cpl, clim_cdnc
 
   CHARACTER(len=*), PARAMETER :: modname = 'mo_nwp_phy_init'
 
@@ -2028,6 +2028,94 @@ END SUBROUTINE init_nwp_phy
 !$OMP END PARALLEL
 
   END SUBROUTINE init_cloud_aero_cpl
+
+  !------------------------------------------------
+  ! Use climatological data of cloud droplet number 
+  ! Satellite based data are provided in EXTPAR 
+  !------------------------------------------------
+
+  SUBROUTINE clim_cdnc(mtime_date, p_patch, ext_data, prm_diag)
+
+    TYPE(datetime)       , POINTER       :: mtime_date
+    TYPE(t_patch)        , INTENT(in)    :: p_patch
+    TYPE(t_external_data), INTENT(in)    :: ext_data
+
+    TYPE(t_nwp_phy_diag) , INTENT(inout) :: prm_diag
+
+    INTEGER  :: imo1, imo2
+    INTEGER  :: rl_start, rl_end, i_startblk, i_endblk, i_startidx, i_endidx
+    INTEGER  :: jb, jc, jg
+    LOGICAL  :: landpoint
+
+    REAL(wp) :: wgt, zlat, zlon, ncloud
+
+    TYPE(t_time_interpolation_weights) :: current_time_interpolation_weights
+
+    TYPE(datetime), POINTER            :: mtime_hour
+
+    CALL message('mo_nwp_phy_init:', 'Use climatological cdnc')
+
+    mtime_hour => newDatetime(mtime_date)
+    mtime_hour%time%minute = 0
+    mtime_hour%time%second = 0
+    mtime_hour%time%ms     = 0
+    current_time_interpolation_weights = calculate_time_interpolation_weights(mtime_hour)
+    call deallocateDatetime(mtime_hour)
+    imo1 = current_time_interpolation_weights%month1
+    imo2 = current_time_interpolation_weights%month2
+    wgt  = current_time_interpolation_weights%weight2
+    rl_start = 1
+    rl_end   = min_rlcell_int
+
+    i_startblk = p_patch%cells%start_block(rl_start)
+    i_endblk   = p_patch%cells%end_block(rl_end)
+
+!$OMP PARALLEL
+!$OMP DO PRIVATE(jb,jc,i_startidx,i_endidx)
+    DO jb = i_startblk, i_endblk
+
+      CALL get_indices_c(p_patch, jb, i_startblk, i_endblk, i_startidx, i_endidx, rl_start, rl_end)
+
+        DO jc = i_startidx, i_endidx
+
+          zlat = p_patch%cells%center(jc,jb)%lat*rad2deg
+          zlon = p_patch%cells%center(jc,jb)%lon*rad2deg
+ 
+          landpoint = (ext_data%atm%llsm_atm_c(jc,jb) .OR. ext_data%atm%llake_c(jc,jb))
+
+          ! Initialize a background value of 30 cm-3 
+          prm_diag%cloud_num(jc,jb) = 30e6_wp
+
+          ! Increase cloud_num in Southern Ocean toward pole
+          ncloud = 120e6_wp * MIN(ABS(zlat)/90.0_wp,1.0_wp)
+          ncloud = MAX(prm_diag%cloud_num(jc,jb),ncloud)
+          prm_diag%cloud_num(jc,jb) = MERGE(ncloud, prm_diag%cloud_num(jc,jb), zlat < 0.0_wp )
+
+          ! Now overwrite with cloud droplet number climatology 
+          ncloud = ( ext_data%atm_td%cdnc(jc,jb,imo1) + &
+                   ( ext_data%atm_td%cdnc(jc,jb,imo2) - ext_data%atm_td%cdnc(jc,jb,imo1) ) * wgt ) * 1e6_wp
+          prm_diag%cloud_num(jc,jb) = MERGE(ncloud, prm_diag%cloud_num(jc,jb), ncloud > 0.0e6_wp )
+          ! Over land except Antarctica should be at least 175 cm-3
+          IF ( landpoint .AND. zlat > -57.0_wp) THEN
+            prm_diag%cloud_num(jc,jb) = MAX(175e6_wp, prm_diag%cloud_num(jc,jb))
+          ENDIF
+
+          ! Replace too small values over ocean in Antarctica with 70 cm-3
+          IF ( zlat <= -57.0_wp) THEN
+            prm_diag%cloud_num(jc,jb) = MAX(70e6_wp, prm_diag%cloud_num(jc,jb))
+          ENDIF
+
+          ! Default 100cm-3 over ocean in towards Arctics 
+          IF ( .NOT. landpoint .AND. zlat > 57.0_wp) THEN
+            prm_diag%cloud_num(jc,jb) = MAX(100e6_wp, prm_diag%cloud_num(jc,jb))
+          ENDIF
+
+        ENDDO
+    ENDDO
+!$OMP END DO
+!$OMP END PARALLEL
+
+  END SUBROUTINE clim_cdnc
 
 END MODULE mo_nwp_phy_init
 
