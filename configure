@@ -10041,8 +10041,8 @@ esac
 
 if test "x$enable_comin" = xyes; then :
   if test "x$with_external_comin" = xyes; then :
-  { $as_echo "$as_me:${as_lineno-$LINENO}: checking whether ComIn library is available" >&5
-$as_echo_n "checking whether ComIn library is available... " >&6; }
+  { $as_echo "$as_me:${as_lineno-$LINENO}: checking whether COMIN library is available" >&5
+$as_echo_n "checking whether COMIN library is available... " >&6; }
 if ${icon_cv_have_comin+:} false; then :
   $as_echo_n "(cached) " >&6
 else
@@ -10050,11 +10050,11 @@ else
         cat > conftest.$ac_ext <<_ACEOF
       program main
 
-        use comin_host_interface, only: t_comin_setup_version_info, &
-       &                                comin_setup_get_version
-        implicit none
-        type(t_comin_setup_version_info) :: version
-        version = comin_setup_get_version()
+      use comin_host_interface, only: t_comin_setup_version_info, &
+                                    & comin_setup_get_version
+      implicit none
+      type(t_comin_setup_version_info) :: version
+      version = comin_setup_get_version()
       end
 _ACEOF
 if ac_fn_fc_try_link "$LINENO"; then :
@@ -10068,7 +10068,7 @@ $as_echo "$icon_cv_have_comin" >&6; }
      if test "x$icon_cv_have_comin" = xno; then :
   { { $as_echo "$as_me:${as_lineno-$LINENO}: error: in \`$ac_pwd':" >&5
 $as_echo "$as_me: error: in \`$ac_pwd':" >&2;}
-as_fn_error $? "unable to link a test program using ComIn library: either use the bundled version of COMIN (--without-external-comin) or set FCFLAGS, LDFLAGS and LIBS accordingly
+as_fn_error $? "unable to link a test program using COMIN library: either use the bundled version of COMIN (--without-external-comin) or set FCFLAGS, LDFLAGS and LIBS accordingly
 See \`config.log' for more details
 ${icon_usr_note}" "$LINENO" 5; }
 fi
