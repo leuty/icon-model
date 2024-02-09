@@ -289,11 +289,8 @@ $addexp checksuite.art/exp.art_levante_test_short.run --builders "levante_gcc" -
 ./set_builder_flags Active --builders 'levante_gpu_nvhpc levante_cpu_nvhpc' --list $listname
 $addexp exp.atm_tracer_Hadley --builders 'levante_gpu_nvhpc' --list ${listname} --runflags "mpi_procs_pernode=5"
 $addexp exp.atm_tracer_Hadley --builders 'levante_cpu_nvhpc' --list ${listname} --runflags "queue=compute"
-$addexp "checksuite.icon-dev/check.atm_bubble_test" --builders 'levante_gpu_nvhpc' --list $listname --runflags "mpi_procs_pernode=3"
-$addexp "checksuite.icon-dev/check.atm_bubble_test_update" --builders 'levante_gpu_nvhpc' --list $listname --runflags "mpi_procs_pernode=3"
 $addexp "checksuite.icon-dev/check.atm_bubble_test" --builders 'levante_cpu_nvhpc' --list $listname --runflags "queue=shared ntasks=16 memory=32G"
 $addexp "checksuite.icon-dev/check.atm_bubble_test_update" --builders 'levante_cpu_nvhpc' --list $listname --runflags "queue=shared ntasks=16 memory=32G"
-$addexp "checksuite.icon-dev/check.atm_bubble_land_test" --builders 'levante_gpu_nvhpc' --list $listname --runflags "mpi_procs_pernode=3"
 $addexp "checksuite.icon-dev/check.atm_bubble_land_test" --builders 'levante_cpu_nvhpc' --list $listname --runflags "queue=shared ntasks=16 memory=32G"
 
 # add qubicc tests without tolerances on netcdf to levante nvhpc
