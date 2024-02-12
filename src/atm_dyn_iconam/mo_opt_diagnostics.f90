@@ -45,7 +45,7 @@ MODULE mo_opt_diagnostics
   USE mo_zaxis_type,           ONLY: ZA_REFERENCE, ZA_REFERENCE_HALF, ZA_SURFACE, &
     &                                ZA_MEANSEA
   USE mo_cdi,                  ONLY: DATATYPE_FLT32, DATATYPE_PACK16,                  &
-    &                                DATATYPE_PACK24,                                  & 
+    &                                DATATYPE_PACK24,                                  &
     &                                DATATYPE_FLT64, GRID_UNSTRUCTURED,                &
     &                                TSTEP_CONSTANT
   USE mo_cdi_constants,        ONLY: GRID_UNSTRUCTURED_CELL,                           &
@@ -910,6 +910,10 @@ CONTAINS
       call vcoeff_cub_deallocate(vcoeff%cub_edge)
 
       vcoeff%l_allocated = .FALSE.
+#if defined(_CRAYFTN) && _RELEASE_MAJOR <= 16
+      !ACCWA: Cray compiler (16.0.1) is too eager on the optimization
+      !$ACC WAIT
+#endif
       !$ACC EXIT DATA DELETE(vcoeff)
     END IF
 
@@ -988,6 +992,3 @@ CONTAINS
   END SUBROUTINE compute_lonlat_area_weights
 
 END MODULE mo_opt_diagnostics
-
-
-
