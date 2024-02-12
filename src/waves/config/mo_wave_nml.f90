@@ -102,6 +102,11 @@ CONTAINS
     REAL(wp) :: peak_u10, peak_v10 ! peak values (m/s) of 10 m U and V wind speed for test case
     REAL(wp) :: peak_lat, peak_lon ! geographical location (deg) of wind peak value
 
+    ! source function time integration
+    REAL(wp) :: impl_fac       ! implicitness factor for total source function time integration
+                               ! impl_fac=0.5 : second order Crank-Nicholson/trapezoidal scheme
+                               ! impl_fac=1   : first order Euler backward scheme
+                               ! valid range: 0.5 <= impl_fac <= 1
 
     NAMELIST /wave_nml/ &
          forc_file_prefix,          &
@@ -110,7 +115,8 @@ CONTAINS
          roair, RNUAIR, RNUAIRM, ROWATER, XEPS, XINVEPS, &
          XKAPPA, XNLEV, BETAMAX, ZALP, jtot_tauhf, ALPHA_CH, depth, niter_smooth, &
          linput_sf1, linput_sf2, ldissip_sf, lnon_linear_sf, lbottom_fric_sf, &
-         lwave_stress1, lwave_stress2, peak_u10, peak_v10, peak_lat, peak_lon
+         lwave_stress1, lwave_stress2, peak_u10, peak_v10, peak_lat, peak_lon, &
+         impl_fac
 
     !-----------------------------------------------------------
     ! 1. default settings
@@ -159,11 +165,13 @@ CONTAINS
     lwave_stress1  =   .TRUE. !< if .TRUE., calculate wave stress, first call
     lwave_stress2  =   .TRUE. !< if .TRUE., calculate wave stress, second call
 
-    peak_u10   = 9.0_wp     !! peak value (m/s) of 10 m U wind component for test case
-    peak_v10   = 9.0_wp     !! peak value (m/s) of 10 m V wind component for test case
-    peak_lat   = -60.0_wp   !! latitude (deg) of wind peak value
-    peak_lon   = -140.0_wp  !! longitude (deg) of wind peak value
+    peak_u10 = 9.0_wp         !! peak value (m/s) of 10 m U wind component for test case
+    peak_v10 = 9.0_wp         !! peak value (m/s) of 10 m V wind component for test case
+    peak_lat = -60.0_wp       !! latitude (deg) of wind peak value
+    peak_lon = -140.0_wp      !! longitude (deg) of wind peak value
 
+    impl_fac = 1.0_wp         !! first order Euler backward time integration scheme
+                              !! for total source function
 
     !------------------------------------------------------------------
     ! 2. If this is a resumed integration, overwrite the defaults above
@@ -206,6 +214,9 @@ CONTAINS
       CALL finish(TRIM(routine),'Error: jtot_tauhf must be odd')
     END IF
 
+    IF ( (impl_fac<0.5_wp) .OR. (impl_fac>1.0_wp)) THEN
+      CALL finish(TRIM(routine),'impl_fac outside permissible range 0.5<=impl_fac<=1.0')
+    ENDIF
 
     !----------------------------------------------------
     ! 5. Fill the configuration state
@@ -250,7 +261,7 @@ CONTAINS
       wave_config(jg)%peak_v10          = peak_v10
       wave_config(jg)%peak_lat          = peak_lat
       wave_config(jg)%peak_lon          = peak_lon
-
+      wave_config(jg)%impl_fac          = impl_fac
     ENDDO
 
 
