@@ -933,7 +933,7 @@ CONTAINS
       !-----------------------------------------------------------------
       ! jk = 1
       !-----------------------------------------------------------------
-      !$ACC LOOP GANG(STATIC: 1) VECTOR TILE(32, 4) &
+      !$ACC LOOP GANG(STATIC: 1) VECTOR &
       !$ACC   PRIVATE(flux_dn_e)
       DO je = i_startidx, i_endidx
         flux_dn_e = km_ie(je,2,jb) *                                              &
@@ -949,7 +949,7 @@ CONTAINS
       !-----------------------------------------------------------------
       ! jk = nlev
       !-----------------------------------------------------------------
-      !$ACC LOOP GANG(STATIC: 1) VECTOR TILE(32, 4) &
+      !$ACC LOOP GANG(STATIC: 1) VECTOR &
       !$ACC   PRIVATE(flux_up_e, flux_dn_e, stress_c1n, stress_c2n)
       DO je = i_startidx, i_endidx
         flux_up_e = km_ie(je,nlev,jb) *                                           &
@@ -1033,7 +1033,7 @@ CONTAINS
         !--------------------------------------------------------
         ! jk = 1
         !--------------------------------------------------------
-        !$ACC LOOP GANG(STATIC: 1) VECTOR TILE(32, 4) &
+        !$ACC LOOP GANG(STATIC: 1) VECTOR &
         !$ACC   PRIVATE(dwdn)
         DO je = i_startidx, i_endidx
           zc(je,1,jb)   = - km_ie(je,2,jb) * p_nh_metrics%inv_ddqz_z_full_e(je,1,jb) *                &
@@ -1054,7 +1054,7 @@ CONTAINS
         ! jk = nlev
         !--------------------------------------------------------
 
-        !$ACC LOOP GANG(STATIC: 1) VECTOR TILE(32, 4) &
+        !$ACC LOOP GANG(STATIC: 1) VECTOR &
         !$ACC   PRIVATE(dwdn, stress_c1n, stress_c2n, flux_dn_e)
         DO je = i_startidx, i_endidx
           za(je,nlev,jb)  = - km_ie(je,nlev,jb) * p_nh_metrics%inv_ddqz_z_full_e(je,nlev,jb) *        &
