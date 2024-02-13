@@ -307,6 +307,123 @@ CONTAINS
  !  END IF
  !  prm_field(patch%id)%icefrc_gmean = icefrc_gmean
 
+    !_____________________________________________________________________________
+    !
+    ! radiation output missing from destine output request not
+    ! provided by ICON per se
+    !
+    ! Input
+    !
+    ! rsds - surface downward short-wave radiation
+    ! rsus - surface upward shortwave radiation
+    !
+    ! rlds - surface downward longwave radiation
+    ! rlus - surface upward longwave radiation
+    !
+    ! rsdt - TOA incoming shortwave radiation
+    ! rsut - TOA outgoing shortwave radiation
+    ! 
+    ! rlut - TOA outgoing longwave radiation
+    ! N/A - TOA incoming longwave radiation
+    !
+    ! Output (with some encodings for eccodes handling) 
+    !
+    ! 176: rsns: surface net shortwave radiation flux: rsds - rsus 0-4-9-ffs1-sp1
+    ! 177: rlns: surface net longwave radiation flux:  rlds - rlus 0-5-5-ffs1-sp1
+    !
+    ! 178: rsnt: TOA net shortwave radiation flux:     rsdt - rsut 0-4-9-ffs8-sp1
+    ! 179: rlnt: TOA net longwave radiation flux:           - rlut 0-5-5-ffs8-sp1
+    !
+    IF ( isRegistered("rsns") ) THEN
+
+      field => prm_field(patch%id)
+
+      !$ACC DATA PRESENT(field%rsds, field%rlds)
+
+      !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1)
+      !$ACC LOOP GANG VECTOR COLLAPSE(2)
+      DO jb = 1, patch%alloc_cell_blocks
+        DO jc = 1, nproma
+          field%rsns(jc,jb) = field%rsds(jc,jb) - field%rsus(jc,jb)
+        END DO
+      END DO
+      !$ACC END PARALLEL
+
+      !$ACC WAIT(1)
+      !$ACC END DATA
+
+      NULLIFY(field)
+    END IF
+    
+    IF ( isRegistered("rlns") ) THEN
+
+      field => prm_field(patch%id)
+
+      !$ACC DATA PRESENT(field%rlds, field%rlus)
+
+      !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1)
+      !$ACC LOOP GANG VECTOR COLLAPSE(2)
+      DO jb = 1, patch%alloc_cell_blocks
+        DO jc = 1, nproma
+          field%rsns(jc,jb) = field%rlds(jc,jb) - field%rlus(jc,jb)
+        END DO
+      END DO
+      !$ACC END PARALLEL
+
+      !$ACC WAIT(1)
+      !$ACC END DATA
+
+      NULLIFY(field)
+    END IF
+
+    ! 178: rsnt: TOA net shortwave radiation flux:     rsdt - rsut 0-4-9-ffs8-sp1
+    ! 179: rlnt: TOA net longwave radiation flux:           - rlut 0-5-5-ffs8-sp1
+
+    IF ( isRegistered("rsnt") ) THEN
+
+      field => prm_field(patch%id)
+
+      !$ACC DATA PRESENT(field%rsdt, field%rsut)
+
+      !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1)
+      !$ACC LOOP GANG VECTOR COLLAPSE(2)
+      DO jb = 1, patch%alloc_cell_blocks
+        DO jc = 1, nproma
+          field%rsnt(jc,jb) = field%rsdt(jc,jb) - field%rsut(jc,jb)
+        END DO
+      END DO
+      !$ACC END PARALLEL
+
+      !$ACC WAIT(1)
+      !$ACC END DATA
+
+      NULLIFY(field)
+    END IF
+
+    IF ( isRegistered("rlnt") ) THEN
+
+      field => prm_field(patch%id)
+
+      !$ACC DATA PRESENT(field%rlut)
+
+      !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1)
+      !$ACC LOOP GANG VECTOR COLLAPSE(2)
+      DO jb = 1, patch%alloc_cell_blocks
+        DO jc = 1, nproma
+          field%rlnt(jc,jb) = - field%rlut(jc,jb)
+        END DO
+      END DO
+      !$ACC END PARALLEL
+
+      !$ACC WAIT(1)
+      !$ACC END DATA
+
+      NULLIFY(field)
+    END IF
+
+    !_____________________________________________________________________________
+    !
+    
   END SUBROUTINE aes_global_diagnostics
 
   SUBROUTINE aes_diag_output_minmax_micro (patch,lpos)

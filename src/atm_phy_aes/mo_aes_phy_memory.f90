@@ -181,11 +181,13 @@ MODULE mo_aes_phy_memory
       & rsdt        (:,  :)=>NULL(),  &!< [W/m2] toa incident shortwave radiation
       & rsut        (:,  :)=>NULL(),  &!< [W/m2] toa outgoing shortwave radiation
       & rsutcs      (:,  :)=>NULL(),  &!< [W/m2] toa outgoing clear-sky shortwave radiation
+      & rsnt        (:,  :)=>NULL(),  &!< [W/m2] toa net shortwave radiation
       ! - at the surface at all times
       & rsds        (:,  :)=>NULL(),  &!< [W/m2] surface downwelling shortwave radiation
       & rsus        (:,  :)=>NULL(),  &!< [W/m2] surface upwelling   shortwave radiation
       & rsdscs      (:,  :)=>NULL(),  &!< [W/m2] surface downwelling clear-sky shortwave radiation
       & rsuscs      (:,  :)=>NULL(),  &!< [W/m2] surface upwelling   clear-sky shortwave radiation
+      & rsns        (:,  :)=>NULL(),  &!< [W/m2] surface net shortwave radiation
       !
       ! shortwave flux components at the surface
       ! - at radiation times
@@ -218,11 +220,13 @@ MODULE mo_aes_phy_memory
       ! - at the top of the atmosphere at all times
       & rlut        (:,  :)=>NULL(),  &!< [W/m2] toa outgoing longwave radiation
       & rlutcs      (:,  :)=>NULL(),  &!< [W/m2] toa outgoing clear-sky longwave radiation
+      & rlnt        (:,  :)=>NULL(),  &!< [W/m2] TOA net longwave radiation
       ! - at the surface at all times
       & rlds        (:,  :)=>NULL(),  &!< [W/m2] surface downwelling longwave radiation
       & rlus        (:,  :)=>NULL(),  &!< [W/m2] surface upwelling   longwave radiation
       & rldscs      (:,  :)=>NULL(),  &!< [W/m2] surface downwelling clear-sky longwave radiation
       & rluscs      (:,  :)=>NULL(),  &!< [W/m2] surface downwelling clear-sky longwave radiation
+      & rlns        (:,  :)=>NULL(),  &!< [W/m2] surface net longwave radiation
       & o3          (:,:,:)=>NULL()    !< [mol/mol] ozone volume mixing ratio
     ! effective radius of ice
     REAL(wp), POINTER ::      &
@@ -1822,6 +1826,36 @@ CONTAINS
 
     END IF
     !
+    ! net shortwave fluxes only needed for diagnostic output for destinE
+    ! 176: rsns: surface net shortwave radiation flux: rsds - rsus  0-4-9-ffs1-sp1
+    ! 178: rsnt: TOA net shortwave radiation flux:     rsdt - rsut  0-4-9-ffs8-sp1
+
+    cf_desc    = t_cf_var('surface_net_shortwave_radiation_flux_in_air', &
+         &                'W m-2'                                      , &
+         &                'surface net shortwave radiation flux'       , &
+         &                datatype_flt                               )
+    grib2_desc = grib2_var(0,4,9, ibits, GRID_UNSTRUCTURED, GRID_CELL)
+    CALL add_var(field_list, prefix//'rsns', field%rsns, &
+         &       GRID_UNSTRUCTURED_CELL    , ZA_SURFACE, &
+         &       cf_desc, grib2_desc                   , &
+         &       lrestart = .FALSE.                    , &
+         &       ldims=shape2d                         , &
+         &       lopenacc=.TRUE.                       )
+    __acc_attach(field%rsns)
+
+    cf_desc    = t_cf_var('toa_net_shortwave_radiation_flux_in_air', &
+         &                'W m-2'                                      , &
+         &                'toa net shortwave radiation flux'       , &
+         &                datatype_flt                               )
+    grib2_desc = grib2_var(0,4,9, ibits, GRID_UNSTRUCTURED, GRID_CELL)
+    CALL add_var(field_list, prefix//'rsnt', field%rsnt, &
+         &       GRID_UNSTRUCTURED_CELL    , ZA_TOA    , &
+         &       cf_desc, grib2_desc                   , &
+         &       lrestart = .FALSE.                    , &
+         &       ldims=shape2d                         , &
+         &       lopenacc=.TRUE.                       )
+    __acc_attach(field%rsnt)
+
     !------------------
     !
 
@@ -1983,7 +2017,38 @@ CONTAINS
        __acc_attach(field%rluscs)
 
        !
+
     END IF
+
+    ! net longwave fluxes only needed for diagnostic output for destinE
+    !177: rlns: surface net longwave radiation flux:  rlds - rlus  0-5-5-ffs1-sp1
+    !179: rlnt: TOA net longwave radiation flux:           - rlut  0-5-5-ffs8-sp1
+    
+    cf_desc    = t_cf_var('surface_net_longwave_radiation_flux_in_air', &
+         &                'W m-2'                                     , &
+         &                'surface net longwave radiation flux'       , &
+         &                datatype_flt                               )
+    grib2_desc = grib2_var(0,5,5, ibits, GRID_UNSTRUCTURED, GRID_CELL)
+    CALL add_var(field_list, prefix//'rlns', field%rlns, &
+         &       GRID_UNSTRUCTURED_CELL    , ZA_SURFACE, &
+         &       cf_desc, grib2_desc                   , &
+         &       lrestart = .FALSE.                    , &
+         &       ldims=shape2d                         , &
+         &       lopenacc=.TRUE.                       )
+    __acc_attach(field%rlns)
+
+    cf_desc    = t_cf_var('toa_net_longwave_radiation_flux_in_air', &
+         &                'W m-2'                                 , &
+         &                'toa net longwave radiation flux'       , &
+         &                datatype_flt                               )
+    grib2_desc = grib2_var(0,5,5, ibits, GRID_UNSTRUCTURED, GRID_CELL)
+    CALL add_var(field_list, prefix//'rlnt', field%rlnt, &
+         &       GRID_UNSTRUCTURED_CELL    , ZA_TOA    , &
+         &       cf_desc, grib2_desc                   , &
+         &       lrestart = .FALSE.                    , &
+         &       ldims=shape2d                         , &
+         &       lopenacc=.TRUE.                       )
+    __acc_attach(field%rlnt)
 
     !
     !------------------
