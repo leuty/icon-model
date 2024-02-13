@@ -132,7 +132,9 @@ MODULE sfc_seaice
                                  & csalb              , &  !< solar albedo for different soil types
                                  & ist_seaice              !< ID of soiltype "sea ice"
 
-  USE mo_coupling_config,    ONLY: is_coupled_to_ocean     !< TRUE for coupled ocean-atmosphere runs 
+  USE mo_coupling_config,    ONLY: is_coupled_to_ocean     !< TRUE for coupled ocean-atmosphere runs
+
+  USE mo_lnd_nwp_config,     ONLY: lcuda_graph_lnd
 
   USE mo_fortran_tools,      ONLY: set_acc_host_or_device  !< Routine can be run on CPU and on GPU
 
@@ -213,12 +215,6 @@ MODULE sfc_seaice
          &  seaice_coldinit_albsi_nwp, & ! procedure
          &  seaice_timestep_nwp      , & ! procedure
          &  alb_seaice_equil
-
-#ifdef ICON_USE_CUDA_GRAPH
-  LOGICAL, PARAMETER :: using_cuda_graph = .TRUE.
-#else
-  LOGICAL, PARAMETER :: using_cuda_graph = .FALSE.
-#endif
 
 !234567890023456789002345678900234567890023456789002345678900234567890023456789002345678900234567890
 
@@ -852,7 +848,7 @@ CONTAINS
       ENDIF
     ENDIF
  
-    IF (.NOT. using_cuda_graph) THEN
+    IF (.NOT. lcuda_graph_lnd) THEN
       !$ACC WAIT(1)
     END IF
     !$ACC END DATA

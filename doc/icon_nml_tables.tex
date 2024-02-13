@@ -4170,6 +4170,14 @@ the keyword $<$path$>$ which will be substituted by model\_base\_dir \newline
 In case sstice\_mode=6, sea ice data for all time steps in the current simulation should be prepared in one single file, variable should be named SIC in this file. &
 sstice\_mode=3,4,5,6
 \tabularnewline
+%\hline
+lcuda\_graph\_lnd &
+L&
+.FALSE.&
+&
+Activate cuda graphs for the land scheme. Automatically set to .FALSE. if not compiled with the ICON_USE_CUDA_GRAPH cpp key.&
+ICON_USE_CUDA_GRAPH activated
+\tabularnewline
 \end{longtab}
 
 Defined and used in: \verb+src/namelists/mo_lnd_nwp_nml.f90+
@@ -5485,6 +5493,15 @@ run\_nml:iforcing = inwp \\
 init\_mode $<$ 4 \\
 inwp\_turb $>$ 0 \\
 inwp\_radiation $>$ 0
+\tabularnewline
+
+%\hline
+lcuda\_graph\_turb_tran &
+L&
+.FALSE.&
+&
+Activate cuda graphs for turbulent transfers. Automatically set to .FALSE. if not compiled with the ICON_USE_CUDA_GRAPH cpp key.&
+ICON_USE_CUDA_GRAPH activated
 \tabularnewline
 
 \end{longtab}

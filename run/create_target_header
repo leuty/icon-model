@@ -1434,6 +1434,7 @@ export MPICH_GPU_SUPPORT_ENABLED=1
 export MPICH_RDMA_ENABLED_CUDA=1
 export NVCOMPILER_ACC_DEFER_UPLOADS=1
 export NVCOMPILER_TERM=trace
+export NVCOMPILER_ACC_USE_GRAPH=1  # Harmless if cuda-graphs is disabled
 EOF
 }
 

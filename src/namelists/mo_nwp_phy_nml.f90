@@ -33,7 +33,8 @@ MODULE mo_nwp_phy_nml
     &                               config_cldopt_filename => cldopt_filename, &
     &                               config_icpl_aero_conv  => icpl_aero_conv,  &
     &                               config_iprog_aero      => iprog_aero,      &
-    &                               config_icpl_o3_tp      => icpl_o3_tp
+    &                               config_icpl_o3_tp      => icpl_o3_tp,      &
+    &                               config_lcuda_graph_turb_tran => lcuda_graph_turb_tran
 
   USE mo_nml_annotate,        ONLY: temp_defaults, temp_settings
   USE mo_cuparameters,        ONLY: icapdcycl
@@ -99,6 +100,8 @@ MODULE mo_nwp_phy_nml
   INTEGER  :: icpl_rad_reff(max_dom) !! coupling radiation and effective radius
   INTEGER  :: ithermo_water(max_dom) !! thermodynamic of water
 
+  LOGICAL  :: lcuda_graph_turb_tran  !! Activate CUDA GRAPH in turbulent transfer
+
   !> NetCDF file containing longwave absorption coefficients and other data
   !> for RRTMG_LW k-distribution model ('rrtmg_lw.nc')
   CHARACTER(LEN=filename_max) :: lrtm_filename
@@ -123,7 +126,7 @@ MODULE mo_nwp_phy_nml
     &                    ldetrain_conv_prec, rain_n0_factor,         &
     &                    icalc_reff, lupatmo_phy, icpl_rad_reff,     &
     &                    lgrayzone_deepconv, ithermo_water,          &
-    &                    lsbm_warm_full
+    &                    lsbm_warm_full, lcuda_graph_turb_tran
 
 CONTAINS
 
@@ -263,7 +266,9 @@ CONTAINS
 
     ithermo_water(:)=  ithermo_water_def ! 0   = Latent heats (LH) constant in microphysics
                                          ! 1   = LH as function of temperature in microphysics
-                               
+
+    lcuda_graph_turb_tran = .FALSE.   ! cuda graph deactivated by default
+
     IF (my_process_is_stdio()) THEN
       iunit = temp_defaults()
       WRITE(iunit, nwp_phy_nml)   ! write defaults to temporary text file
@@ -467,6 +472,10 @@ CONTAINS
 
     ENDDO
 
+    ! deactivate cuda graph if no cpp key => make sure ACC WAIT is activated where needed
+#ifndef ICON_USE_CUDA_GRAPH
+    lcuda_graph_turb_tran = .FALSE.
+#endif
 
 
     !----------------------------------------------------
@@ -520,11 +529,12 @@ CONTAINS
       atm_phy_nwp_config(jg)%lsbm_warm_full  = lsbm_warm_full
     ENDDO
 
-    config_lrtm_filename   = TRIM(lrtm_filename)
-    config_cldopt_filename = TRIM(cldopt_filename)
-    config_icpl_aero_conv  = icpl_aero_conv
-    config_iprog_aero      = iprog_aero
-    config_icpl_o3_tp      = icpl_o3_tp
+    config_lrtm_filename         = TRIM(lrtm_filename)
+    config_cldopt_filename       = TRIM(cldopt_filename)
+    config_icpl_aero_conv        = icpl_aero_conv
+    config_iprog_aero            = iprog_aero
+    config_icpl_o3_tp            = icpl_o3_tp
+    config_lcuda_graph_turb_tran = lcuda_graph_turb_tran
 
     !-----------------------------------------------------
     ! 6. Store the namelist for restart

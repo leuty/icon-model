@@ -92,6 +92,7 @@ USE mo_lnd_nwp_config,     ONLY: lmulti_snow, l2lay_rho_snow,     &
 USE mo_exception,          ONLY: finish
 USE mo_run_config,         ONLY: msg_level
 USE mo_fortran_tools,      ONLY: set_acc_host_or_device
+USE mo_lnd_nwp_config,     ONLY: lcuda_graph_lnd
 
 !------------------------------------------------------------------------------
 ! Declarations
@@ -110,12 +111,6 @@ PUBLIC :: terra
 !------------------------------------------------------------------------------
 ! Public variables
 !------------------------------------------------------------------------------
-
-#ifdef ICON_USE_CUDA_GRAPH
-  LOGICAL, PARAMETER :: using_cuda_graph = .TRUE.
-#else
-  LOGICAL, PARAMETER :: using_cuda_graph = .FALSE.
-#endif
 
 !------------------------------------------------------------------------------
 ! Parameters and variables which are global in this module
@@ -5527,7 +5522,7 @@ ENDDO
     !$ACC END PARALLEL
   ENDIF
 
-  IF (.NOT. using_cuda_graph) THEN
+  IF (.NOT. lcuda_graph_lnd) THEN
     !$ACC WAIT(acc_async_queue)
   END IF
 
@@ -5543,7 +5538,7 @@ ENDDO
 
   IF (msg_level >= 19) THEN
     !$ACC UPDATE HOST(ivend) ASYNC(acc_async_queue)
-    IF (.NOT. using_cuda_graph) THEN
+    IF (.NOT. lcuda_graph_lnd) THEN
       !$ACC WAIT(acc_async_queue)
     END IF
     DO i = ivstart, ivend
