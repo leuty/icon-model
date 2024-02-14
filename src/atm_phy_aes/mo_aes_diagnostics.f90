@@ -29,15 +29,19 @@ MODULE mo_aes_diagnostics
   USE mo_loopindices         ,ONLY: get_indices_c
   USE mo_impl_constants      ,ONLY: min_rlcell_int
   USE mo_impl_constants_grf  ,ONLY: grf_bdywidth_c
+  USE mo_nonhydro_types      ,ONLY: t_nh_prog, t_nh_diag
+  USE mo_util_phys           ,ONLY: compute_field_rel_hum_wmo
 
   IMPLICIT NONE
 
   PUBLIC :: aes_global_diagnostics, aes_diag_output_minmax_micro
 
 CONTAINS
-  SUBROUTINE aes_global_diagnostics(patch, dt)
+  SUBROUTINE aes_global_diagnostics(patch, dt, p_prog, p_diag)
     TYPE(t_patch)  ,TARGET ,INTENT(in) :: patch
     REAL(wp), INTENT(in) :: dt
+    TYPE(t_nh_prog), INTENT(IN) :: p_prog
+    TYPE(t_nh_diag), INTENT(IN) :: p_diag
 
     REAL(wp)                           :: scr(nproma,patch%alloc_cell_blocks)
 
@@ -297,6 +301,14 @@ CONTAINS
     END IF
     prm_field(patch%id)%fwfoce_gmean = fwfoce_gmean
 
+
+    ! relative humidity
+    IF ( isRegistered("hur") ) THEN
+      field => prm_field(patch%id)
+      CALL compute_field_rel_hum_wmo(patch, p_prog, p_diag, field%hur, lacc=.TRUE.)
+      NULLIFY(field)
+    END IF
+
     ! global mean ice cover fraction, icefrc - not set in atmosphere
  !  icefrc_gmean = 0.0_wp
  !  IF ( isRegistered("icefrc_gmean") ) THEN
@@ -458,7 +470,7 @@ CONTAINS
 
     nlev = patch%nlev
 
-    ! Exclude the nest boundary zone 
+    ! Exclude the nest boundary zone
 
     rl_start = grf_bdywidth_c+1
     rl_end   = min_rlcell_int

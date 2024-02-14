@@ -2306,7 +2306,7 @@ MODULE mo_nh_stepping
             !
             CALL omp_block_loop_cell ( p_patch(jg), diagnose_qvi ) ! tracer mass and tracer mass tendency vertical integral
             CALL omp_block_loop_cell ( p_patch(jg), diagnose_uvp ) ! internal energy vertical integral after physics
-            CALL aes_global_diagnostics ( p_patch(jg), dt_loc)     ! global mean diagnostics
+            CALL aes_global_diagnostics ( p_patch(jg), dt_loc, p_nh_state(jg)%prog(nnew(jg)), p_nh_state(jg)%diag )  ! global mean diagnostics
             !
             IF (ltimer) CALL timer_stop(timer_iconam_aes)
 #endif
