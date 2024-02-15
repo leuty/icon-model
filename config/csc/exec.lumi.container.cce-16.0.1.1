@@ -20,7 +20,16 @@ _EOF
   exit 1
 fi
 
-sw=${ICON_SW_PREFIX-'/project/project_465000454/icon/sw'}
+if ${ICON_CONTAINER_IMAGE+:} false; then :
+  container=${ICON_CONTAINER_IMAGE}
+else
+  container=${ICON_SW_PREFIX-'/project/project_465000454/icon/sw'}
+  container="${container}/cpe/ccpe-rocm-5.4.1-16.0.1.1.sif"
+fi
+
+echo "Using container image ${container}"
+
+sw=${ICON_SW_PREFIX-'/appl/local/climatedt/sw'}
 pool='/appl/local/climatedt/pool'
 
 module --force purge
@@ -54,8 +63,5 @@ then
 fi
 
 export SINGULARITY_BINDPATH
-
-container="${sw}/cpe/ccpe-rocm-5.4.1-16.0.1.1.sif"
-echo "Using container image ${container}"
 
 exec singularity exec --rocm "${container}" "$@"
