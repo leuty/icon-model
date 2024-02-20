@@ -342,7 +342,7 @@ CONTAINS
       CASE(isfc_ice)
         IF (conf%nice_thickness_classes /= 1) CALL finish(routine, 'Only one ice thickness class (kice) implemented!')
 
-        CALL update_sea_ice(this%domain, this%dt, conf%cpd, &
+        CALL update_sea_ice(this%domain, this%dt, &
           & old_tsfc(:,:,jtile), &
           & diags%lwfl_net_tile(:,:,jtile), diags%swfl_net_tile(:,:,jtile), &
           & diags%lhfl_tile(:,:,jtile), diags%shfl_tile(:,:,jtile), &
@@ -373,7 +373,7 @@ CONTAINS
           & diags%nvalid(:,jtile), diags%indices(:,:,jtile), &
           & ins%psfc(:,:), new_tsfc(:,:,jtile), new_qsfc(:,:,jtile))
       CASE(isfc_lnd)
-        CALL update_land(jg, this%domain, datetime, this%dt, conf%cpd, &
+        CALL update_land(jg, this%domain, datetime, this%dt, conf%cvd, &
           & ins%dz(:,:), ins%psfc(:,:), ins%ta(:,:), ins%qa(:,:), ins%pa(:,:), &
           & ins%rsfl(:,:), ins%ssfl(:,:), &
           & ins%rlds(:,:), &
@@ -418,7 +418,7 @@ CONTAINS
       CALL compute_sfc_fluxes( &
         ! Input
         & this%domain, this%domain%sfc_types(jtile), diags%nvalid(:,jtile), diags%indices(:,:,jtile), &
-        & conf%cpd, conf%cvd, &
+        & conf%cvd, &
         & ins%ua(:,:), ins%va(:,:), &
         ! & diags%theta_atm(:,:), ins%qa(:,:), diags%wind(:,:), diags%rho_tile(:,:,jtile),  &
         & ins%ta(:,:), ins%qa(:,:), diags%wind(:,:), ins%u_oce_current(:,:), ins%v_oce_current(:,:), &
@@ -603,7 +603,7 @@ CONTAINS
             & )
           
           ! Call land in quasi-diagnostic mode with a time step of 1 second
-          CALL update_land(jg, this%domain, datetime, 1._wp, conf%cpd, &
+          CALL update_land(jg, this%domain, datetime, 1._wp, conf%cvd, &
             & ins%dz(:,:), ins%psfc(:,:), ins%ta(:,:), ins%qa(:,:), ins%pa(:,:), &
             & ins%rsfl(:,:), ins%ssfl(:,:), &
             & ins%rlds(:,:), &
@@ -662,7 +662,7 @@ CONTAINS
         CALL compute_sfc_fluxes( &
           ! Input
           & this%domain, isfc_ice, diags%nvalid(:,jtile), diags%indices(:,:,jtile), &
-          & conf%cpd, conf%cvd, &
+          & conf%cvd, &
           & ins%ua(:,:), ins%va(:,:), &
           ! & diags%theta_atm(:,:), ins%qa(:,:), diags%wind(:,:), diags%rho_tile(:,:,jtile),  &
           & ins%ta(:,:), ins%qa(:,:), diags%wind(:,:), ins%u_oce_current(:,:), ins%v_oce_current(:,:), &

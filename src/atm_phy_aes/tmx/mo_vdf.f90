@@ -280,9 +280,6 @@ CONTAINS
     END SELECT
     __acc_attach(diags_sfc)
 
-    conf_sfc%cpd => conf_atmo%cpd
-    conf_sfc%cvd => conf_atmo%cvd
-
     ! Compute diagnostics at start of time step (e.g. sfc and atmo exchange coefficients)
     ! CALL this%atmo%Compute_diagnostics()
     ! Possibly put needed variables at lowest atmo level into sfc inputs collection

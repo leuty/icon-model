@@ -49,7 +49,7 @@ MODULE mo_tmx_surface_interface
   
 CONTAINS
 
-  SUBROUTINE update_land(jg, domain, datetime_old, dtime, cpd, &
+  SUBROUTINE update_land(jg, domain, datetime_old, dtime, cvd, &
     & dz, pres_srf, ptemp, pq, pres_air, rsfl, ssfl, &
     & rlds, rvds_dir, rnds_dir, rpds_dir, rvds_dif, rnds_dif, rpds_dif, &
     & cosmu0, wind, wind10m, rho, co2, &
@@ -66,7 +66,7 @@ CONTAINS
     TYPE(t_domain), INTENT(in), POINTER :: domain
     TYPE(datetime), INTENT(in), POINTER :: datetime_old ! date and time at beginning of this time step
     REAL(wp),       INTENT(in)          :: dtime
-    REAL(wp),       INTENT(in)          :: cpd
+    REAL(wp),       INTENT(in)          :: cvd
     REAL(vp), INTENT(IN) :: &
       & dz        (:,:)     ! reference height in surface layer times 2
     REAL(wp), INTENT(IN) :: &
@@ -155,7 +155,7 @@ CONTAINS
           fract_par_diffuse(jc) = 0._wp
         END IF
         t_acoef(jc) = 0._wp
-        t_bcoef(jc) = cpd * ptemp(jc,jb) ! dry static energy
+        t_bcoef(jc) = cvd * ptemp(jc,jb) ! dry static energy
         q_acoef(jc) = 0._wp
         q_bcoef(jc) = pq(jc,jb)
       END DO
@@ -257,7 +257,7 @@ CONTAINS
 
   END SUBROUTINE update_land
 
-  SUBROUTINE update_sea_ice(domain, dtime, cpd, &
+  SUBROUTINE update_sea_ice(domain, dtime, &
     & old_tsfc, &
     & lwflx_net, swflx_net, lhflx, shflx, &
     & ssfl, ice_thickness, &
@@ -274,7 +274,6 @@ CONTAINS
   
     TYPE(t_domain), INTENT(in), POINTER :: domain
     REAL(wp), INTENT(in) :: dtime
-    REAL(wp), INTENT(in) :: cpd
     REAL(wp), INTENT(in), DIMENSION(:,:) :: &
       & old_tsfc,       &
       & lwflx_net,      &
@@ -691,7 +690,7 @@ CONTAINS
     & domain,                  &
     & isfc,                    &
     & nvalid, indices,         &
-    & cpd, cvd,                &
+    & cvd,                     &
     ! & ua, va, thetam1, qm1, wind, rho, qsat_sfc, theta_sfc, kh, km,  &
     & ua, va, ta, qm1, wind, u_sfc_oce, v_sfc_oce, rho, qsat_sfc, t_sfc, kh, km,  &
     & evapotrans, latent_hflx, sensible_hflx, ustress, vstress  &
@@ -709,7 +708,7 @@ CONTAINS
     INTEGER,  INTENT(in)  :: &
       & nvalid(:),           &
       & indices(:,:)
-    REAL(wp), INTENT(in) :: cpd, cvd
+    REAL(wp), INTENT(in) :: cvd
     REAL(wp), DIMENSION(:,:), INTENT(in) :: &
       & ua, &
       & va, &
