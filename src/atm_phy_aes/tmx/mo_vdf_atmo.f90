@@ -1851,17 +1851,41 @@ END IF
     CALL cells2verts_scalar(kh_ic, patch, p_int%cells_aw_verts, km_iv, &
                             opt_rlstart=5, opt_rlend=min_rlvert_int-1,   &
                             opt_acc_async=.TRUE.)
-    !$ACC KERNELS DEFAULT(PRESENT) ASYNC(1)
-    km_iv = MAX( km_min, km_iv * turb_prandtl )
-    !$ACC END KERNELS
+
+    !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1)
+    !$ACC LOOP GANG VECTOR COLLAPSE(3)
+    DO jb = 1, SIZE(km_iv, 3)
+      DO jk = 1, SIZE(km_iv, 2)
+        DO jc = 1, SIZE(km_iv, 1)
+          km_iv(jc,jk,jb) = MAX( km_min,  km_iv(jc,jk,jb) * turb_prandtl )
+        END DO
+      END DO
+    END DO
+    !$ACC END PARALLEL
+
+!    !$ACC KERNELS DEFAULT(PRESENT) ASYNC(1)
+!    km_iv = MAX( km_min, km_iv * turb_prandtl )
+!    !$ACC END KERNELS
 
     !4c) Now calculate visc at half levels at edge
     CALL cells2edges_scalar(kh_ic, patch, p_int%c_lin_e, km_ie,                   &
                             opt_rlstart=grf_bdywidth_e, opt_rlend=min_rledge_int-1, &
                             lacc=.TRUE.)
-    !$ACC KERNELS DEFAULT(PRESENT) ASYNC(1)
-    km_ie = MAX( km_min, km_ie * turb_prandtl )
-    !$ACC END KERNELS
+
+    !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1)
+    !$ACC LOOP GANG VECTOR COLLAPSE(3)
+    DO jb = 1, SIZE(km_ie, 3)
+      DO jk = 1, SIZE(km_ie, 2)
+        DO jc = 1, SIZE(km_ie, 1)
+          km_ie(jc,jk,jb) = MAX( km_min,  km_ie(jc,jk,jb) * turb_prandtl )
+        END DO
+      END DO
+    END DO
+    !$ACC END PARALLEL
+
+!    !$ACC KERNELS DEFAULT(PRESENT) ASYNC(1)
+!    km_ie = MAX( km_min, km_ie * turb_prandtl )
+!    !$ACC END KERNELS
 
     END ASSOCIATE
 
