@@ -90,7 +90,8 @@ USE mo_physical_constants, ONLY: r_v   => rv    , & !> gas constant for water va
                                  b3    => tmelt , & !!
                                  tmelt
 
-USE mo_convect_tables,     ONLY: b1    => c1es  , & !! constants for computing the sat. vapour
+USE mo_lookup_tables_constants, ONLY:  &
+                                 b1    => c1es  , & !! constants for computing the sat. vapour
                                  b2w   => c3les , & !! pressure over water (l) and ice (i)
                                  b2i   => c3ies , & !!               -- " --
                                  b4w   => c4les , & !!               -- " --

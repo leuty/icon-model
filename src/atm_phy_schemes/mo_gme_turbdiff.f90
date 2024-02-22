@@ -1138,7 +1138,8 @@ SUBROUTINE parturs( zsurf, z1  , u1   , v1     , t1   , qv1  ,    &
 !     
 !==============================================================================
 
-  USE mo_convect_tables,     ONLY: b1  => c1es,     & ! variables for computing the saturation steam pressure
+  USE mo_lookup_tables_constants, ONLY:  &
+                               b1  => c1es,     & ! variables for computing the saturation steam pressure
                                &   b2w => c3les,    & ! over water (w)
                                &   b4w => c4les
 

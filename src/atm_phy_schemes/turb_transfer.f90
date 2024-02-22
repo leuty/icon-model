@@ -113,7 +113,7 @@ USE mo_physical_constants, ONLY : &
 
     rdv, con_m, con_h, grav      
 
-USE mo_convect_tables, ONLY : &
+USE mo_lookup_tables_constants, ONLY : &
 !
 ! Parameters for auxilary parametrizations:
 ! ------------------------------------------

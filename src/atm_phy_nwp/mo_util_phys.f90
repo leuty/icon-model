@@ -47,7 +47,7 @@ MODULE mo_util_phys
   USE mo_art_config,            ONLY: art_config
   USE mo_nonhydrostatic_config, ONLY: kstart_moist
   USE mo_2mom_mcrph_util,       ONLY: set_qnc, set_qnr, set_qni, set_qns
-  USE gscp_ice,                 ONLY: zxiconv
+  USE microphysics_1mom_schemes,ONLY: get_mean_crystal_mass
 
   IMPLICIT NONE
 
@@ -583,6 +583,7 @@ CONTAINS
     !
     INTEGER, DIMENSION(5) :: conv_list
     LOGICAL :: lzacc ! non-optional version of lacc
+    REAL(wp) :: zxiconv
 
     CALL set_acc_host_or_device(lzacc, lacc)
 
@@ -703,6 +704,7 @@ CONTAINS
       END DO
       !$ACC END PARALLEL
     ELSEIF (atm_phy_nwp_config(jg)%inwp_gscp == 3) THEN
+      CALL get_mean_crystal_mass(zxiconv)
       !CALL assert_acc_host_only("tracer_add_phytend l2moment", lacc)  ! some GPU stuff?
       DO jt=1,SIZE(conv_list)
         idx = conv_list(jt)

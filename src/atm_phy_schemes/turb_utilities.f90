@@ -232,7 +232,7 @@ USE mo_math_constants, ONLY : &
 
     uc2      => sqrt3       ! SQRT(3) used in cloud cover diagnostics based on rel. humid.
 
-USE mo_convect_tables, ONLY : &
+USE mo_lookup_tables_constants, ONLY : &
 !
 ! Parameters for auxilary parametrizations:
 ! ------------------------------------------

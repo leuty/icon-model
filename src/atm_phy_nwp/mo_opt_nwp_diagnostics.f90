@@ -32,8 +32,7 @@ MODULE mo_opt_nwp_diagnostics
     &                                 tmelt, earth_radius, &
     &                                 alvdcp, rd_o_cpd, &
     &                                 rhoh2o, rhoice, K_w_0, K_i_0
-  USE mo_convect_tables,        ONLY: c1es, c3les, c4les
-  USE gscp_data,                ONLY: cloud_num
+  USE mo_lookup_tables_constants,ONLY: c1es, c3les, c4les
   USE mo_nh_diagnose_pres_temp, ONLY: calc_qsum
   USE mo_opt_nwp_reflectivity,  ONLY: compute_field_dbz_1mom, compute_field_dbz_2mom
   USE mo_exception,             ONLY: finish, message, warning
@@ -73,6 +72,7 @@ MODULE mo_opt_nwp_diagnostics
   USE mo_diag_hailcast,         ONLY: hailstone_driver
   USE mo_util_phys,             ONLY: inversion_height_index  
   USE mo_nwp_tuning_config,     ONLY: tune_dursun_scaling
+  USE microphysics_1mom_schemes,ONLY: get_cloud_number, get_snow_temperature
 #ifdef HAVE_RADARFWO
   USE radar_data_mie,             ONLY: ldebug_dbz, T0C_emvorado => T0C_fwo
   USE radar_interface,            ONLY: initialize_tmax_atomic_1mom, &
@@ -86,7 +86,6 @@ MODULE mo_opt_nwp_diagnostics
     &                                   radar_rayleigh_oguchi_2mom_vec
   USE mo_synradar_config,         ONLY: synradar_meta, ydir_mielookup_read, ydir_mielookup_write
   USE mo_mpi,                     ONLY: get_my_mpi_work_comm_size
-  USE gscp_data,                  ONLY: isnow_n0temp
 #endif
 
   IMPLICIT NONE
@@ -3862,9 +3861,9 @@ CONTAINS
 
     ! local variables
     CHARACTER(len=*), PARAMETER :: routine = modname//': compute_field_dbz3d_lin'
-    REAL(wp) :: rho, qnc_s(nproma,ptr_patch%nblks_c)
+    REAL(wp) :: rho, qnc_s(nproma,ptr_patch%nblks_c), cloud_num
     INTEGER  :: i_rlstart, i_rlend, i_startblk, i_endblk, i_startidx, i_endidx, i_startidx_1, i_endidx_2, &
-         &      jc, jk, jb, ilow, iup, jlow, jup, klow, kup, itype_gscp_emvo
+         &      jc, jk, jb, ilow, iup, jlow, jup, klow, kup, itype_gscp_emvo, isnow_n0temp
 
     REAL(wp), ALLOCATABLE, DIMENSION(:,:) :: Tmax_i, Tmax_s, Tmax_g, Tmax_h, Tmin_g, Tmin_h
     REAL(wp), ALLOCATABLE, DIMENSION(:,:,:), TARGET :: dummy0
@@ -3896,6 +3895,7 @@ CONTAINS
       SELECT CASE ( atm_phy_nwp_config(jg)%inwp_gscp )
       CASE ( 1,3 )
 
+        CALL get_cloud_number(cloud_num)
         IF (atm_phy_nwp_config(jg)%icpl_aero_gscp == 2) THEN
           ! Not yet implemented in microphysics! We give a dummy value here.
           qnc_s(:,:) = cloud_num               ! 1/kg
@@ -3935,6 +3935,7 @@ CONTAINS
 
       CASE ( 2 )
 
+        CALL get_cloud_number(cloud_num)
         IF (atm_phy_nwp_config(jg)%icpl_aero_gscp == 2) THEN
           ! Not yet implemented in microphysics! We give a dummy value here.
           qnc_s(:,:) = cloud_num               ! 1/kg
@@ -4125,6 +4126,7 @@ CONTAINS
           Tmin_g = synradar_meta%Tmeltbegin_g
         END IF
 
+        CALL get_snow_temperature(isnow_n0temp)
         SELECT CASE ( synradar_meta%itype_refl )
         CASE ( 1, 5, 6 )
           ! Mie- or T-matrix scattering from EMVORADO:

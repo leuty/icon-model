@@ -69,9 +69,8 @@ MODULE mo_nwp_phy_init
   USE mo_aerosol_util,        ONLY: init_aerosol_props_tegen_ecrad
 #endif
 
-  ! microphysics
-  USE gscp_data,              ONLY: gscp_set_coefficients
   USE mo_2mom_mcrph_driver,   ONLY: two_moment_mcrph_init
+  USE microphysics_1mom_schemes, ONLY: microphysics_1mom_init
   USE mo_sbm_util,            ONLY: sbm_init 
 
 #ifdef __ICON_ART
@@ -921,13 +920,16 @@ SUBROUTINE init_nwp_phy ( p_patch, p_metrics,             &
 
   CASE (1,2,3)  ! cloud microphysics from COSMO (V 5.0)
     IF (msg_level >= 12)  CALL message(modname, 'init microphysics')
-    CALL gscp_set_coefficients(         igscp    = atm_phy_nwp_config(jg)%inwp_gscp, &
-      &                        tune_zceff_min   = tune_zceff_min,               &
-      &                        tune_v0snow      = tune_v0snow,                  &
-      &                        tune_zvz0i       = tune_zvz0i,                   &
-      &                        tune_icesedi_exp = tune_icesedi_exp,             &
-      &                        tune_mu_rain        = atm_phy_nwp_config(1)%mu_rain,&
-      &                        tune_rain_n0_factor = atm_phy_nwp_config(1)%rain_n0_factor)
+
+      CALL microphysics_1mom_init( &
+        igscp    = atm_phy_nwp_config(jg)%inwp_gscp, &
+        tune_zceff_min   = tune_zceff_min,               &
+        tune_v0snow      = tune_v0snow,                  &
+        tune_zvz0i       = tune_zvz0i,                   &
+        tune_icesedi_exp = tune_icesedi_exp,             &
+        tune_mu_rain        = atm_phy_nwp_config(1)%mu_rain,&
+        tune_rain_n0_factor = atm_phy_nwp_config(1)%rain_n0_factor)
+  
 
   CASE (4,7) !two moment microphysics
     IF (msg_level >= 12)  CALL message(modname, 'init microphysics: two-moment')

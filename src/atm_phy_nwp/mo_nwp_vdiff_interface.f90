@@ -1681,7 +1681,7 @@ CONTAINS
         & tdew_ref, rh_ref, q_ref &
       )
 
-    USE mo_convect_tables, ONLY: b1 => c1es, b2w => c3les, b4w => c4les
+    USE mo_lookup_tables_constants, ONLY: b1 => c1es, b2w => c3les, b4w => c4les
 
     INTEGER, INTENT(IN) :: ics !< Starting cell index.
     INTEGER, INTENT(IN) :: ice !< End cell index.
