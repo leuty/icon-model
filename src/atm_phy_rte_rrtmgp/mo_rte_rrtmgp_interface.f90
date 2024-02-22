@@ -12,7 +12,7 @@
 MODULE mo_rte_rrtmgp_interface
   USE mo_kind,                       ONLY: wp
   USE mo_math_constants,             ONLY: pi
-  USE mo_physical_constants,         ONLY: rhoh2o
+  USE mo_physical_constants,         ONLY: rhoh2o, rd_o_cpd
   USE mo_exception,                  ONLY: finish, warning
   USE mo_parallel_config,            ONLY: nproma_sub
   USE mo_bc_aeropt_kinne,            ONLY: set_bc_aeropt_kinne
@@ -96,6 +96,7 @@ CONTAINS
       & zf              ,zh              ,dz                               ,&
       & pp_sfc          ,pp_fl           ,pp_hl                            ,&
       & tk_sfc          ,tk_fl           ,tk_hl                            ,&
+      & rad_2d                                                             ,&
       & xvmr_vap        ,xm_liq          ,xm_ice                           ,&
       & reff_ice        ,tau_ice         ,reff_snow       ,tau_snow        ,&
       & cdnc            ,xc_frc          ,xm_snw                           ,&
@@ -166,7 +167,10 @@ CONTAINS
     REAL(wp), INTENT(INOUT) :: &
          tau_ice(:,:),    & !< optical depth of cloud ice integrated over bands
          tau_snow(:,:)      !< optical depth of snow integrated over bands
-    
+
+    REAL(wp), INTENT(INOUT) :: &
+         rad_2d(:)          !< arbitrary 2d field for output inside radiation
+
     REAL(wp), INTENT(OUT)   :: &
       & lw_dnw_clr(:,:),& !< Clear-sky downward longwave  at all levels
       & lw_upw_clr(:,:),& !< Clear-sky upward   longwave  at all levels
@@ -195,7 +199,7 @@ CONTAINS
          aer_asy_2325  (:,:), & !< Asymmetry factor at 2325 nm
          aer_aod_9731  (:,:)    !< Aerosol optical density at 9731 nm
 
-    LOGICAL :: lclearsky
+    LOGICAL :: lclearsky, inhom_lts
 
     ! --------------------------------------------------------------------------
     INTEGER :: ncol_supplied, ncol_needed, jchunk_start, jchunk_end
@@ -328,6 +332,8 @@ CONTAINS
     ! --------------------------------------------------------------------------
     ! Set flag for the optional computation of clear-sky fluxes
     lclearsky     = aes_rad_config(jg)%lclearsky
+    !
+    inhom_lts     = aes_rad_config(jg)%inhom_lts
     ! --------------------------------------------------------------------------
     !
     !
@@ -342,7 +348,7 @@ CONTAINS
     IF (jcs==1 .and. ncol_needed == ncol_supplied .and. nproma_sub == ncol_needed) THEN
 
        CALL rte_rrtmgp_interface_onBlock(                              &
-          & lclearsky,                                                 &
+          & lclearsky,         inhom_lts,                              &
           & ncol_needed,       klev,                                   &
           & psctm,             ssi_factor,                             &
           & loland(:),         loglac(:),                              &
@@ -353,6 +359,7 @@ CONTAINS
           & zf(:,:),           zh(:,:),           dz(:,:),             &
           & pp_sfc(:),         pp_fl(:,:),        pp_hl(:,:),          &
           & tk_sfc(:),         tk_fl(:,:),        tk_hl(:,:),          &
+          & rad_2d(:),                                                 &
           & xvmr_vap(:,:),     xm_liq(:,:),                            &
           & xm_ice(:,:),       reff_ice(:,:),     tau_ice(:,:),        &
           & reff_snow(:,:),    tau_snow(:,:),                          &
@@ -380,7 +387,7 @@ CONTAINS
        DO jchunk_start = jcs,jce, nproma_sub
         jchunk_end = MIN(jchunk_start + nproma_sub - 1, jce)
         CALL shift_and_call_rte_rrtmgp_interface_onBlock(                &
-            & lclearsky,                                                 &
+            & lclearsky,         inhom_lts,                              &
             & jchunk_start,      jchunk_end,                             &
             & klev,                                                      &
             & psctm,             ssi_factor,                             &
@@ -392,6 +399,7 @@ CONTAINS
             & zf(:,:),           zh(:,:),           dz(:,:),             &
             & pp_sfc(:),         pp_fl(:,:),        pp_hl(:,:),          &
             & tk_sfc(:),         tk_fl(:,:),        tk_hl(:,:),          &
+            & rad_2d(:),                                                 &
             & xvmr_vap(:,:),     xm_liq(:,:),                            &
             & xm_ice(:,:),       reff_ice(:,:),     tau_ice(:,:),        &
             & reff_snow(:,:),    tau_snow(:,:),                          &
@@ -473,7 +481,7 @@ CONTAINS
   !!
 
   SUBROUTINE rte_rrtmgp_interface_onBlock(                   &
-       & lclearsky,                                          &
+       & lclearsky,      inhom_lts,                          &
        & ncol,           klev,                               &
        & psctm,          ssi_factor,                         &
        & laland,         laglac,                             &
@@ -484,6 +492,7 @@ CONTAINS
        & zf,             zh,             dz,                 &
        & pp_sfc,         pp_fl,          pp_hl,              &
        & tk_sfc,         tk_fl,          tk_hl,              &
+       & rad_2d,                                             &
        & xvmr_vap,       xm_liq,                             &
        & xm_ice,         reff_ice,       tau_ice,            &
        & reff_snow,      tau_snow,                           &
@@ -505,6 +514,7 @@ CONTAINS
 #endif
 
     LOGICAL,INTENT(IN)  :: lclearsky                     !< flag for clear-sky computations
+    LOGICAL,INTENT(IN)  :: inhom_lts
 
     INTEGER,INTENT(IN)  :: &
          ncol,             & !< number of columns
@@ -557,6 +567,10 @@ CONTAINS
     REAL (wp), INTENT (INOUT) :: &
          tau_ice(:,:),     & !< optical depth of cloud ice integrated over bands
          tau_snow(:,:)       !< optical depth of snow integrated over bands
+
+    REAL (wp), INTENT (INOUT) :: &
+         rad_2d(:)           !< arbitrary 2d-field in radiation for output
+         
 
     REAL (wp), TARGET, INTENT (INOUT) ::       &
          flx_uplw    (:,:), & !<   upward LW flux profile, all sky
@@ -640,9 +654,13 @@ CONTAINS
     REAL (wp), PARAMETER :: &
        ccwmin = 1.e-7_wp, &    ! min condensate for lw cloud opacity
        zkap_cont = 1.143_wp, & ! continental (Martin et al. ) breadth param
-       zkap_mrtm = 1.077_wp    ! maritime (Martin et al.) breadth parameter
+       zkap_mrtm = 1.077_wp, & ! maritime (Martin et al.) breadth parameter
+       del0      = 0.8_wp,   & ! maximum value on inhoml
+       del1      = 2._wp,    & ! transition factor for inhomogeneity stability scaling
+       del2      = 20._wp      ! cut-overpoint for inhomogeneity stability scaling
     REAL (wp) :: effective_radius
     REAL (wp) :: reimin, reimax, relmin, relmax, zkap
+    REAL (wp) :: lts
     LOGICAL   :: lcldlyr
     !
     !DA TODO: rearrange the data section to reduce memory consumption
@@ -651,6 +669,7 @@ CONTAINS
     !$ACC   PRESENT(alb_vis_dir, alb_nir_dir, alb_vis_dif, alb_nir_dif) &
     !$ACC   PRESENT(daylght_frc, laland, laglac, dz, cdnc, xm_snw) &
     !$ACC   PRESENT(reff_ice, tau_ice, reff_snow, tau_snow) &
+    !$ACC   PRESENT(tk_sfc, pp_sfc, tk_fl, pp_fl) &
     !$ACC   CREATE(ziwp, zlwp, mu0, zsemiss, albdif, re_cryst, re_drop) &
     !$ACC   CREATE(zswp, zdwp, re_snow) &
     !$ACC   CREATE(albdir, tsi_norm_factor, toa_flux) &
@@ -680,6 +699,21 @@ CONTAINS
                   'Droplet minimun size required is bigger than maximum')
     END IF
 
+    IF (inhom_lts) THEN
+      !$ACC PARALLEL LOOP DEFAULT(PRESENT) GANG VECTOR ASYNC(1)
+      DO jl = 1, ncol
+         lts = tk_fl(jl,min(73,klev))*(1e5_wp/pp_fl(jl,min(73,klev)))**(rd_o_cpd) - tk_sfc(jl)*(1e5_wp/pp_sfc(jl))**(rd_o_cpd)
+         rad_2d(jl) = inhoml + (del0-inhoml)*(1._wp - atan2(del1,(lts - del2))/pi)
+      END DO 
+     !$ACC END PARALLEL LOOP
+     ELSE
+      !$ACC PARALLEL LOOP DEFAULT(PRESENT) GANG VECTOR ASYNC(1)
+      DO jl = 1, ncol
+         rad_2d(jl) = inhoml
+      END DO
+      !$ACC END PARALLEL LOOP
+    END IF
+    !
     !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1)
     !$ACC LOOP GANG VECTOR COLLAPSE(2)
     DO jk = 1, klev
@@ -1096,11 +1130,18 @@ CONTAINS
 
     ! hack inhom implementation by scaling the condensate water paths
     ! it's important to run this AFTER the longwave
-    !$ACC KERNELS DEFAULT(PRESENT) ASYNC(1)
-    zlwp(:,:) = zlwp(:,:) * inhoml
-    ziwp(:,:) = ziwp(:,:) * inhomi
-    zswp(:,:) = zswp(:,:) * inhoms
-    !$ACC END KERNELS
+    !!$ACC DATA CREATE(zlwp,ziwp,zswp)
+    !!$ACC DATA PRESENT(rad_2d)
+    !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1)
+    !$ACC LOOP GANG VECTOR COLLAPSE(2)
+    DO j = 1, klev
+      DO i = 1, ncol
+        zlwp(i,j) = zlwp(i,j) * rad_2d(i)
+        ziwp(i,j) = ziwp(i,j) * inhomi
+        zswp(i,j) = zswp(i,j) * inhoms
+      END DO
+    END DO
+    !$ACC END PARALLEL
     
     ! new cloud optics: allocate memory for cloud optical properties:
     CALL stop_on_err(clouds_bnd_sw%alloc_2str(ncol, klev, &
@@ -1212,7 +1253,7 @@ CONTAINS
   END SUBROUTINE rte_rrtmgp_interface_onBlock
   ! ----------------------------------------------------------------------------
   SUBROUTINE shift_and_call_rte_rrtmgp_interface_onBlock(    &
-    & lclearsky,                                      &
+    & lclearsky,      inhom_lts,                      &
     & jcs,            jce,                            &
     &                 klev,                           &
     !
@@ -1225,6 +1266,7 @@ CONTAINS
     & zf,             zh,             dz,             &
     & pp_sfc,         pp_fl,          pp_hl,          &
     & tk_sfc,         tk_fl,          tk_hl,          &
+    & rad_2d,                                         &
     & xvmr_vap,       xm_liq,                         &
     & xm_ice,         reff_ice,       tau_ice,        &
     & reff_snow,      tau_snow,                       &
@@ -1243,6 +1285,7 @@ CONTAINS
     & vis_up_sfc,     par_up_sfc,     nir_up_sfc      )
 
  LOGICAL,INTENT(IN)  :: lclearsky                     !< flag for clear-sky computations
+ LOGICAL,INTENT(IN)  :: inhom_lts
 
  INTEGER,INTENT(IN)  :: &
       & jcs,            & !< cell/column index, start
@@ -1296,6 +1339,10 @@ CONTAINS
       & tau_ice(:,:),     & !< optical depth of cloud ice integrated over bands
       & tau_snow(:,:)       !< optical depth of snow integrated over bands
  
+ REAL (wp), INTENT (INOUT) :: &
+      & rad_2d(:)           !< arbitrary 2d-field in radiation for output
+
+
  REAL (wp), TARGET, INTENT (INOUT) ::       &
       & lw_upw    (:,:), & !<   upward LW flux profile, all sky
       & lw_upw_clr(:,:), & !<   upward LW flux profile, clear sky
@@ -1447,7 +1494,7 @@ CONTAINS
   ! Call radiation with shifted input arguments and receive shifted output arguments
   !
   CALL rte_rrtmgp_interface_onBlock(                                                 &
-      & lclearsky,                                                                   &
+      & lclearsky,             inhom_lts,                                            &
       &   ncol,                klev,                                                 &
       !
       &   psctm,                  ssi_factor,                                        &
@@ -1459,6 +1506,7 @@ CONTAINS
       & s_zf(:,:),                s_zh(:,:),                s_dz(:,:),               &
       & pp_sfc     (jcs:jce),     s_pp_fl(:,:),             s_pp_hl(:,:),            &
       & tk_sfc     (jcs:jce),     s_tk_fl(:,:),             s_tk_hl(:,:),            &
+      & rad_2d     (jcs:jce),                                                        &
       & s_xvmr_vap(:,:),          s_xm_liq(:,:),                                     &
       & s_xm_ice(:,:),            s_reff_ice(:,:),          s_tau_ice(:,:),          &
       & s_reff_snow(:,:),         s_tau_snow(:,:),                                   &

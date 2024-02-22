@@ -1753,7 +1753,7 @@ CONTAINS
 
             Stability_function(jc,jk,jb) =                                &
             &  MAX(1.0_wp - Ri*rturb_prandtl,                             &
-            &      MIN(1._wp, 1._wp/(1._wp+louis_constant_b*scaling_factor_louis(jc,jb)*ABS(Ri))**3))
+            &      MIN(1._wp, 1._wp/(1._wp+louis_constant_b*scaling_factor_louis(jc,jb)*ABS(Ri))**4))
 
             kh_ic(jc,jk,jb) = rho_ic(jc,jk,jb) * rturb_prandtl *          &
                               p_nh_metrics%mixing_length_sq(jc,jk,jb) *   &

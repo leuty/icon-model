@@ -605,6 +605,18 @@ variables:
     units: m
     description: units is in water equivalents
     long_name: Water content in soil layers
+  seb_forc_hflx_box:
+    component: jsbach
+    hgrid: cell
+    vgrid: surface
+    units: W m-2
+    long_name: additional heat flux at surface
+  seb_heat_cap_box:
+    component: jsbach
+    hgrid: cell
+    vgrid: surface
+    units: J m-2 K-1
+    long_name: surface layer heat capacity
   sse_grnd_hflx_old_box:
     component: jsbach
     hgrid: cell

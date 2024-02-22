@@ -21,10 +21,10 @@
 #%  if JOB.qos is defined:
 #SBATCH --qos=%{JOB.qos}
 #%  endif
-#SBATCH --job-name=%{EXP_ID}.%{JOB.id}
+#SBATCH --job-name=%{EXP_ID}.weed_zarr
 #SBATCH --partition=%{JOB.partition}
 #SBATCH --ntasks=%{JOB.tasks}
-#SBATCH --output=%{SCRIPT_DIR}/%x.%8j.log
+#SBATCH --output=%{LOG_DIR}/%x.%8j.log
 #SBATCH --time=%{JOB.time_limit}
 #%include 'standard_environments/'+ENVIRONMENT+'.tmpl' ignore missing
 
@@ -32,6 +32,11 @@ set -e
 #%  if JOB.debug_level|d(0)|int > 1:
 set -x
 #%  endif
+
+# Convenience link to log file
+ln -snf \
+    %{LOG_DIR}/%{EXP_ID}.weed_zarr.$(printf %08d ${%{JOB.id_environ}}).log \
+    %{SCRIPT_DIR}/%{EXP_ID}.weed_zarr.log
 
 # Support log style output
 pipe=%{EXP_ID}_%{JOB.id}_$$.pipe

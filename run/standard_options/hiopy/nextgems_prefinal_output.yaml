@@ -87,10 +87,12 @@ variables:
   hydro_drainage_box: 2D_acc_lnd
   hydro_runoff_box: 2D_acc_lnd
   hydro_transpiration_box: 2D_acc_lnd
+  seb_forc_hflx_box: 2D_acc_lnd
   sse_grnd_hflx_old_box: 2D_acc_lnd
   hydro_canopy_cond_limited_box: 2D_inst_lnd
   hydro_weq_snow_box: 2D_inst_lnd
   hydro_snow_soil_dens_box: 2D_inst_lnd
+  seb_heat_cap_box: 2D_inst_lnd
   hydro_wtr_soil_sl_box: 3D_inst_lnd
   hydro_ice_soil_sl_box: 3D_inst_lnd
   sse_t_soil_sl_box: 3D_inst_lnd

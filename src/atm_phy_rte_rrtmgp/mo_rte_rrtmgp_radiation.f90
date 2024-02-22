@@ -287,6 +287,7 @@ MODULE mo_rte_rrtmgp_radiation
     & dz             ,&!< in  geometric height thickness of layer [m]
     & pp_hl          ,&!< in  pressure at half levels at t-dt [Pa]
     & pp_fl          ,&!< in  pressure at full levels at t-dt [Pa]
+    & rad_2d         ,&!< inout arbitrary 2d field in radiation for output
     & tk_fl          ,&!< in  tk_fl  = temperature at full level at t-dt
     & xm_air         ,&!< in  air mass in layer [kg/m2]
     & xq_trc         ,&!< in  tracer  mass fraction [kg/kg]
@@ -353,6 +354,7 @@ MODULE mo_rte_rrtmgp_radiation
     & xq_trc(:,:,:),    & !< tracer mass fraction [kg/kg]
     & cdnc(:,:)           !< Cloud drop number concentration
     REAL(wp), INTENT(INOUT) :: &
+    & rad_2d(:),        & !< arbitrary 2d field in radiation for output
     & reff_ice(:,:),    & !< effective radius of cloud ice [m]
     & tau_ice(:,:),     & !< optical depth of cloud ice, integraded over all bands     
     & reff_snow(:,:),   & !< effective radius of snow [m]
@@ -449,6 +451,7 @@ MODULE mo_rte_rrtmgp_radiation
       zf              ,zh              ,dz                               ,&
       pp_sfc          ,pp_fl           ,pp_hl                            ,&
       tk_sfc          ,tk_fl           ,tk_hl                            ,&
+      rad_2d                                                             ,&
       xvmr_vap        ,xm_liq          ,xm_ice                           ,&
       reff_ice        ,tau_ice         ,reff_snow       ,tau_snow        ,&
       cdnc            ,xc_frc          ,xm_snw                           ,&

@@ -13,7 +13,7 @@
 #
 # %{mkexp_input}
 #
-# $Id: run/standard_experiments/DEFAULT.run.tmpl 17 2024-02-02 20:43:54Z m221078 $
+# $Id: run/standard_experiments/DEFAULT.run.tmpl 18 2024-02-13 16:11:30Z m221078 $
 #
 # %{VERSIONS_|join('\n# ')}
 #
@@ -163,7 +163,7 @@ export EXPNAME=%{EXP_ID}
 #%      set mpi_command_2 = mpi_command|match('^.*?\s+--cpu-bind=\S*(.*)$')
 #%      set mpi_command = mpi_command_1 + mpi_command_2
 #%    endif
-#%    set mpi_command = mpi_command + ' --cpu-bind=v,mask_cpu=$(ccpumask -t $OMP_NUM_THREADS)'
+#%    set mpi_command = mpi_command + ' --cpu-bind=mask_cpu=$(ccpumask -t $OMP_NUM_THREADS)'
 #%  endif
 #%#
 #%  if JOB.use_hostfile is set:
@@ -179,7 +179,7 @@ export EXPNAME=%{EXP_ID}
 export START="%{mpi_command} --ntasks=$mpi_total_procs --cpus-per-task=$cpus_per_task"
 #%  else:
 #%#     use_openmp_hack is set
-export START="srun -l --kill-on-bad-exit=1 --propagate=STACK,CORE --cpu-bind=v,none --distribution=arbitrary --ntasks=$mpi_total_procs --cpus-per-task=$cpus_per_task ./set_mask"
+export START="srun -l --kill-on-bad-exit=1 --propagate=STACK,CORE --cpu-bind=none --distribution=arbitrary --ntasks=$mpi_total_procs --cpus-per-task=$cpus_per_task ./set_mask"
 #%  endif
 export MODEL="%{BIN_DIR}/%{MODEL_EXE}"
 
@@ -692,7 +692,7 @@ exec 3>&1 # save stdout
 exec > icon_mpmd.conf
 #%  endif
 #%  if hiopy is defined and hiopy.use_mpmd is set:
-hiopy configure -p ${HIOPY_PLAN} processes -d ${HIOPY_OUTPUT_PREFIX} -n %{hiopy.task_id_start} --number_step %{hiopy.task_id_step} -s ${EXPDIR}/mpmd_jobs/run_ --fpc %{hiopy.fpc|d(1)} --worker_loglevel INFO
+hiopy configure -p ${HIOPY_PLAN} processes -d ${HIOPY_OUTPUT_PREFIX} -n %{hiopy.task_id_start} --number_step %{hiopy.task_id_step} -s ${EXPDIR}/mpmd_jobs/run_ --fpc %{hiopy.fpc|d(1)}
 #%  endif
 #%  if JOB.use_mpmd is set:
 echo "$atm_io_line"
@@ -814,6 +814,20 @@ mv bgcout bgcout_${start_date}
 # Mark current run as successful in log
 echo $(date -u +'%Y-%m-%dT%H:%M:%SZ') ${start_date%:*} ${end_date%:*} ${%{JOB.id_environ}}  end >> $exp_log_file
 
+#%  if hiopy is defined:
+#%    if JOB.entry_point is set or JOB.init_zarr is set:
+# Write vertical coordinates into Zarr output
+
+HIOPY_OUTPUT_DATASETS=$(hiopy configure -p ${HIOPY_PLAN} dataset_list -d ${HIOPY_OUTPUT_PREFIX})
+HIOPY_MAX_ZOOM=$(hiopy configure -p ${HIOPY_PLAN} max_zoom)
+HIOPY_VGRID_SCRATCH="%{EXP_ID}_vgrid_healpix"
+ICON_ATM_VGRID_ML="%{EXP_ID}_atm_vgrid_ml.nc"
+hiopy icon vgrid2healpix ${ICON_ATM_VGRID_ML} ${HIOPY_VGRID_SCRATCH} $HIOPY_MAX_ZOOM
+hiopy icon add_z1d --oce_nml NAMELIST_oce ${HIOPY_OUTPUT_DATASETS}
+hiopy icon add_vgrid ${HIOPY_VGRID_SCRATCH} ${HIOPY_OUTPUT_DATASETS}
+
+#%    endif
+#%  endif
 cd $SCRIPT_DIR
 set +e
 status=0
