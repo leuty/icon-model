@@ -134,6 +134,7 @@ MODULE mo_aes_rad_config
 ! For stratocumulus calculations
      INTEGER  :: k_lts      ! first level > 3.2km
      LOGICAL  :: inhom_lts
+     REAL(wp) :: inhom_lts_max
      !
   END TYPE t_aes_rad_config
 
@@ -201,6 +202,7 @@ CONTAINS
     aes_rad_config(:)% lclearsky      = .TRUE.
     !
     aes_rad_config(:)% inhom_lts      = .FALSE.
+    aes_rad_config(:)% inhom_lts_max  = 0.8_wp
     aes_rad_config(:)% k_lts          = 73            ! preliminary, unused
     !
   END SUBROUTINE init_aes_rad_config
@@ -229,6 +231,7 @@ CONTAINS
     REAL(wp), POINTER :: frad_h2o, frad_co2, frad_ch4, frad_n2o, frad_o3, frad_o2
     LOGICAL , POINTER :: lrad_yac
     LOGICAL , POINTER :: lclearsky, inhom_lts
+    REAL(wp), POINTER :: inhom_lts_max
     REAL(wp), POINTER :: frad_cfc11, frad_cfc12
 
     CALL message    ('','')
@@ -285,6 +288,7 @@ CONTAINS
        lclearsky  => aes_rad_config(jg)% lclearsky
        !
        inhom_lts  => aes_rad_config(jg)% inhom_lts
+       inhom_lts_max  => aes_rad_config(jg)% inhom_lts_max
        k_lts      => aes_rad_config(jg)% k_lts
 
        WRITE(cg,'(i0)') jg

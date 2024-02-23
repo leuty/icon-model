@@ -200,6 +200,7 @@ CONTAINS
          aer_aod_9731  (:,:)    !< Aerosol optical density at 9731 nm
 
     LOGICAL :: lclearsky, inhom_lts
+    REAL(wp) :: inhom_lts_max
 
     ! --------------------------------------------------------------------------
     INTEGER :: ncol_supplied, ncol_needed, jchunk_start, jchunk_end
@@ -334,6 +335,7 @@ CONTAINS
     lclearsky     = aes_rad_config(jg)%lclearsky
     !
     inhom_lts     = aes_rad_config(jg)%inhom_lts
+    inhom_lts_max = aes_rad_config(jg)%inhom_lts_max
     ! --------------------------------------------------------------------------
     !
     !
@@ -348,7 +350,7 @@ CONTAINS
     IF (jcs==1 .and. ncol_needed == ncol_supplied .and. nproma_sub == ncol_needed) THEN
 
        CALL rte_rrtmgp_interface_onBlock(                              &
-          & lclearsky,         inhom_lts,                              &
+          & lclearsky,         inhom_lts,         inhom_lts_max,       &
           & ncol_needed,       klev,                                   &
           & psctm,             ssi_factor,                             &
           & loland(:),         loglac(:),                              &
@@ -387,7 +389,7 @@ CONTAINS
        DO jchunk_start = jcs,jce, nproma_sub
         jchunk_end = MIN(jchunk_start + nproma_sub - 1, jce)
         CALL shift_and_call_rte_rrtmgp_interface_onBlock(                &
-            & lclearsky,         inhom_lts,                              &
+            & lclearsky,         inhom_lts,         inhom_lts_max,       &
             & jchunk_start,      jchunk_end,                             &
             & klev,                                                      &
             & psctm,             ssi_factor,                             &
@@ -481,7 +483,7 @@ CONTAINS
   !!
 
   SUBROUTINE rte_rrtmgp_interface_onBlock(                   &
-       & lclearsky,      inhom_lts,                          &
+       & lclearsky,      inhom_lts,      inhom_lts_max,      &
        & ncol,           klev,                               &
        & psctm,          ssi_factor,                         &
        & laland,         laglac,                             &
@@ -515,6 +517,7 @@ CONTAINS
 
     LOGICAL,INTENT(IN)  :: lclearsky                     !< flag for clear-sky computations
     LOGICAL,INTENT(IN)  :: inhom_lts
+    REAL(wp),INTENT(IN) :: inhom_lts_max                 !< maximum value on inhoml
 
     INTEGER,INTENT(IN)  :: &
          ncol,             & !< number of columns
@@ -655,7 +658,6 @@ CONTAINS
        ccwmin = 1.e-7_wp, &    ! min condensate for lw cloud opacity
        zkap_cont = 1.143_wp, & ! continental (Martin et al. ) breadth param
        zkap_mrtm = 1.077_wp, & ! maritime (Martin et al.) breadth parameter
-       del0      = 0.8_wp,   & ! maximum value on inhoml
        del1      = 2._wp,    & ! transition factor for inhomogeneity stability scaling
        del2      = 20._wp      ! cut-overpoint for inhomogeneity stability scaling
     REAL (wp) :: effective_radius
@@ -703,7 +705,7 @@ CONTAINS
       !$ACC PARALLEL LOOP DEFAULT(PRESENT) GANG VECTOR ASYNC(1)
       DO jl = 1, ncol
          lts = tk_fl(jl,min(73,klev))*(1e5_wp/pp_fl(jl,min(73,klev)))**(rd_o_cpd) - tk_sfc(jl)*(1e5_wp/pp_sfc(jl))**(rd_o_cpd)
-         rad_2d(jl) = inhoml + (del0-inhoml)*(1._wp - atan2(del1,(lts - del2))/pi)
+         rad_2d(jl) = inhoml + (inhom_lts_max-inhoml)*(1._wp - atan2(del1,(lts - del2))/pi)
       END DO 
      !$ACC END PARALLEL LOOP
      ELSE
@@ -1253,7 +1255,7 @@ CONTAINS
   END SUBROUTINE rte_rrtmgp_interface_onBlock
   ! ----------------------------------------------------------------------------
   SUBROUTINE shift_and_call_rte_rrtmgp_interface_onBlock(    &
-    & lclearsky,      inhom_lts,                      &
+    & lclearsky,      inhom_lts,      inhom_lts_max,  &
     & jcs,            jce,                            &
     &                 klev,                           &
     !
@@ -1286,6 +1288,7 @@ CONTAINS
 
  LOGICAL,INTENT(IN)  :: lclearsky                     !< flag for clear-sky computations
  LOGICAL,INTENT(IN)  :: inhom_lts
+ REAL(wp),INTENT(IN) :: inhom_lts_max
 
  INTEGER,INTENT(IN)  :: &
       & jcs,            & !< cell/column index, start
@@ -1494,7 +1497,7 @@ CONTAINS
   ! Call radiation with shifted input arguments and receive shifted output arguments
   !
   CALL rte_rrtmgp_interface_onBlock(                                                 &
-      & lclearsky,             inhom_lts,                                            &
+      & lclearsky,             inhom_lts,                   inhom_lts_max,           &
       &   ncol,                klev,                                                 &
       !
       &   psctm,                  ssi_factor,                                        &
