@@ -523,7 +523,7 @@ SUBROUTINE init_nwp_phy ( p_patch, p_metrics,             &
         slope(jc) = SQRT(ext_data%atm%grad_topo(1,jc,jb)**2 + ext_data%atm%grad_topo(2,jc,jb)**2)
         prm_diag%tkred_sfc_h(jc,jb) = prm_diag%tkred_sfc_h(jc,jb)/MIN(7.5_wp,1._wp+10._wp*SQRT(MAX(0._wp,slope(jc)-0.05_wp)))
       ENDDO
-      DO jt = 1, ntiles_total + ntiles_total
+      DO jt = 1, ntiles_total + ntiles_water
         DO jc = i_startidx,i_endidx
           prm_diag%rlamh_fac_t(jc,jb,jt) = prm_diag%rlamh_fac_t(jc,jb,jt)/ &
             MIN(10._wp,1._wp+15._wp*SQRT(MAX(0._wp,slope(jc)-0.05_wp)))
