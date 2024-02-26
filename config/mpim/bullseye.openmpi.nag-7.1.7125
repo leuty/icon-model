@@ -32,7 +32,7 @@ else
   # installation of RTTOV if you want to build ICON with it but do not have read
   # access to the installation in ${sw_root}:
   # RTTOV_ROOT='/path/to/rttov'
-  # RTTOV_FCFLAGS="-I${RTTOV_ROOT}/mod -I${RTTOV}/include"
+  # RTTOV_FCFLAGS="-I${RTTOV_ROOT}/mod -I${RTTOV_ROOT}/include"
   # RTTOV_LDFLAGS="-L${RTTOV_ROOT}/lib"
   # RTTOV_LIBS='-lrttov_other -lrttov_emis_atlas -lrttov_brdf_atlas -lrttov_parallel -lrttov_coef_io -lrttov_hdf -lrttov_main'
 fi
@@ -52,33 +52,38 @@ CXXFLAGS='-g -march=native -mpc64 -O2'
 CPPFLAGS="-I${sw_root}/include -I${sw_root}/include/libxml2"
 
 FC='mpif90'
-FCFLAGS="-I${sw_root}/include ${RTTOV_FCFLAGS-} -f2008 -colour -w=uep -g -gline -O0 -float-store -nan"
+FCFLAGS="${RTTOV_FCFLAGS-} -I${sw_root}/include -f2008 -colour -w=uep -g -gline -O0 -float-store -nan"
 
 # Fortran compiler flags that cannot be handled by vanilla libtool scripts:
 non_libtool_FCFLAGS='-Wc,-g -Wc,-pipe -Wc,--param,max-vartrack-size=200000000 -Wc,-mno-fma'
 
 # Fortran compiler flags allowing for acceptable argument mismatches when
-# calling MPI and NetCDF-Fortran APIs:
-mismatch_mpi_FCFLAGS='-wmismatch=mpi_allgather,mpi_allgatherv,mpi_allreduce,mpi_alltoall,mpi_alltoallv,mpi_bcast,mpi_free_mem,mpi_gather,mpi_gatherv,mpi_get,mpi_get_address,mpi_ibcast,mpi_irecv,mpi_isend,mpi_pack,mpi_recv,mpi_reduce,mpi_rget,mpi_scatter,mpi_scatterv,mpi_send,mpi_sendrecv,mpi_unpack,mpi_win_create'
-# XXX: Temporary until either NAG provides an option to ignore interface conflicts or NetCDF uses its own functions correctly:
-mismatch_mpi_FCFLAGS="-mismatch ${mismatch_mpi_FCFLAGS}"
-mismatch_FCFLAGS='-wmismatch=mpi_allgather,mpi_allgatherv,mpi_allreduce,mpi_alltoall,mpi_alltoallv,mpi_bcast,mpi_free_mem,mpi_gather,mpi_gatherv,mpi_get,mpi_get_address,mpi_ibcast,mpi_irecv,mpi_isend,mpi_pack,mpi_recv,mpi_reduce,mpi_rget,mpi_scatter,mpi_scatterv,mpi_send,mpi_sendrecv,mpi_unpack,mpi_win_create,nf_def_var,nf_get_att_double,nf_get_att_int,nf_get_att_real,nf_get_vara_double,nf_get_vara_int,nf_get_vars_double,nf_get_vars_int,nf_put_att_double,nf_put_att_int,nf_put_vara_double,nf_put_vara_int,nf_put_vara_real'
+# calling the MPI API:
+selective_mismatch_FCFLAGS='-wmismatch=mpi_allgather,mpi_allgatherv,mpi_allreduce,mpi_alltoall,mpi_alltoallv,mpi_bcast,mpi_free_mem,mpi_gather,mpi_gatherv,mpi_get,mpi_get_address,mpi_ibcast,mpi_irecv,mpi_isend,mpi_pack,mpi_recv,mpi_reduce,mpi_rget,mpi_scatter,mpi_scatterv,mpi_send,mpi_sendrecv,mpi_unpack,mpi_win_create -C=all'
 
-check_all_wo_ccalls_FCFLAGS='-C=alias -C=array -C=bits -C=dangling -C=do -C=intovf -C=present -C=pointer -C=recursion'
-# XXX: Temporary until "-mismatch" can be removed from mismatch_mpi_FCFLAGS
-check_all_FCFLAGS="${check_all_wo_ccalls_FCFLAGS}"
+# The selective mismatch flags above are not enough in some cases:
+global_mismatch_FCFLAGS='-mismatch -C=alias -C=array -C=bits -C=dangling -C=do -C=intovf -C=present -C=pointer -C=recursion'
 
-ICON_FCFLAGS="${non_libtool_FCFLAGS} ${mismatch_mpi_FCFLAGS} ${check_all_FCFLAGS}"
+ICON_FCFLAGS="${non_libtool_FCFLAGS} ${selective_mismatch_FCFLAGS}"
 
-# Tolerate all argument mismatches in DACE (setting the function-specific
-# -wmismatch=p_bcast_derivedtype flag does not work due to what seems to be a
-# compiler bug):
-ICON_DACE_FCFLAGS="${non_libtool_FCFLAGS} -mismatch ${check_all_wo_ccalls_FCFLAGS}"
+# NAG detects a number of inconsistencies in the interface declarations of the
+# p_bcast_derivedtype subroutine:
+ICON_DACE_FCFLAGS="${non_libtool_FCFLAGS} ${global_mismatch_FCFLAGS}"
 ICON_DACE_PATH='externals/dace_icon'
+
+# The following files a victims of the inconsistent calls of the nf_get_att_real
+# function in externals/dace_icon/src_for_icon/mo_iratlas.f90:
+ICON_DACE_PATH+=':src/atm_dyn_iconam/mo_nh_stepping.f90:src/data_assimilation/interfaces/mo_icon2dace.f90:src/drivers/icon.f90:src/drivers/mo_atmo_model.f90:src/drivers/mo_atmo_nonhydrostatic.f90'
+
+# There are over 200 files that are victims of the incosistencies in the NetCDF
+# Fortran library (see https://github.com/Unidata/netcdf-fortran/pull/424).
+# Treating them as a compile group is impractical. Therefore, we compile
+# everything with the -mismatch flag:
+ICON_FCFLAGS="${non_libtool_FCFLAGS} ${global_mismatch_FCFLAGS}"
 
 # Enable recognition of non-standard double precision complex intrinsic
 # functions (DCMPLX and DCONJG):
-ICON_EMVORADO_FCFLAGS="${non_libtool_FCFLAGS} ${mismatch_mpi_FCFLAGS} ${check_all_FCFLAGS} -dcfuns"
+ICON_EMVORADO_FCFLAGS="${ICON_FCFLAGS} -dcfuns"
 ICON_EMVORADO_PATH='externals/emvorado'
 
 # Compile the bundled libraries with no tolerance to argument mismatches:
@@ -89,7 +94,7 @@ ICON_BUNDLED_FCFLAGS="${non_libtool_FCFLAGS} -C=all"
 ICON_MTIME_FCFLAGS='-C=all'
 ICON_SCT_FCFLAGS='-C=all'
 
-LDFLAGS="-L${sw_root}/lib ${RTTOV_LDFLAGS-}"
+LDFLAGS="${RTTOV_LDFLAGS-} -L${sw_root}/lib"
 # We put '-Wl,-Wl,,--disable-new-dtags' not to LDFLAGS or LIBS, which are used
 # by both Fortran and C compilers (the latter is used for linking by the bundled
 # libraries) but to ICON_LDFLAGS. We also do not add '-Wl,-Wl,,--as-needed'
@@ -102,7 +107,7 @@ LIBS="-lxml2 -lfyaml -lSerialboxFortran -leccodes_f90 -leccodes ${RTTOV_LIBS-} -
 
 MPI_LAUNCH='mpiexec --oversubscribe'
 
-EXTRA_CONFIG_ARGS='--enable-grib2 --enable-fcgroup-WORKAROUND1 --enable-fcgroup-DACE --enable-fcgroup-EMVORADO'
+EXTRA_CONFIG_ARGS='--enable-loop-exchange --enable-grib2 --enable-fcgroup-DACE --enable-fcgroup-EMVORADO'
 
 ################################################################################
 
