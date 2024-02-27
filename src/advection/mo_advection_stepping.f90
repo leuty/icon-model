@@ -762,8 +762,9 @@ CONTAINS
         iadv_slev_jt = advection_config(jg)%iadv_slev(jt)
 
         IF ( advection_config(jg)%ivadv_tracer(jt) /= 0 ) THEN
-          !$ACC LOOP GANG VECTOR COLLAPSE(2)
+          !$ACC LOOP SEQ
           DO jk = iadv_slev_jt, p_patch%nlev
+            !$ACC LOOP GANG(STATIC: 1) VECTOR PRIVATE(ikp1)
             DO jc = i_startidx, i_endidx
               ikp1 = jk + 1
               tracer_new(jc,jk,jb,jt) = ( tracer_now(jc,jk,jb,jt) * rhodz_now(jc,jk,jb)      &
@@ -773,9 +774,10 @@ CONTAINS
             END DO  !jc
           END DO  !jk
 
-          !$ACC LOOP GANG VECTOR COLLAPSE(2)
           ! set tracer(nnew) to tracer(nnow) at levels where advection is turned off
+          !$ACC LOOP SEQ
           DO jk = 1, iadv_slev_jt-1
+            !$ACC LOOP GANG(STATIC: 1) VECTOR
             DO jc = i_startidx, i_endidx
               tracer_new(jc,jk,jb,jt) = tracer_now(jc,jk,jb,jt)
             END DO
@@ -783,9 +785,10 @@ CONTAINS
 
         ELSE  ! no vertical transport
 
-          !$ACC LOOP GANG VECTOR COLLAPSE(2)
           ! copy
+          !$ACC LOOP SEQ
           DO jk = 1, p_patch%nlev
+            !$ACC LOOP GANG(STATIC: 1) VECTOR
             DO jc = i_startidx, i_endidx
               tracer_new(jc,jk,jb,jt) = tracer_now(jc,jk,jb,jt)
             ENDDO  !jc
