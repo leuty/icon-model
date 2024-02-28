@@ -2105,7 +2105,7 @@ CONTAINS
         & ldims=(/nproma,n_zlev,alloc_cell_blocks/),in_group=groups_oce_nudge)
 !       ocean_state_aux%relax_3dim_coefficient(:,:,:) = 1.0_wp 
     END IF
-    IF (no_tracer==2 .AND. type_3dimrelax_salt >0) THEN
+    IF (no_tracer >= 2 .AND. type_3dimrelax_salt > 0) THEN
       CALL add_var(ocean_default_list,'data_3dimRelax_Salt',ocean_nudge%data_3dimRelax_Salt,&
         & grid_unstructured_cell,&
         & za_depth_below_sea, t_cf_var('data_3dimRelax_Salt','psu','data_3dimRelax_Salt', datatype_flt),&
@@ -2856,6 +2856,18 @@ CONTAINS
     oce_config%tracer_units(2)      = 'psu'
     ! discipline=10, parameterCategory=4, parameterNumber=21 encoded in one integer
     oce_config%tracer_codes(2)      = ISHFT(10,16)+ISHFT(4,8)+21
+
+    oce_config%tracer_shortnames(3) = 'age_tracer'
+    oce_config%tracer_stdnames(3)   = 'age_tracer'
+    oce_config%tracer_longnames(3)  = 'age tracer'
+    oce_config%tracer_units(3)      = 'sec'
+    oce_config%tracer_codes(3)      = 6
+
+    oce_config%tracer_shortnames(4) = 'age_tracer_squared'
+    oce_config%tracer_stdnames(4)   = 'age_tracer_squared'
+    oce_config%tracer_longnames(4)  = 'age tracer squared'
+    oce_config%tracer_units(4)      = 'sec^2'
+    oce_config%tracer_codes(4)      = 7
   END SUBROUTINE setup_tracer_info
 
   SUBROUTINE transfer_ocean_state( patch_3d, operators_coefficients )
