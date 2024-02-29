@@ -956,15 +956,23 @@ CONTAINS
     ! write (0,*) "newcloudsss", sum(zlwp),     sum(ziwp),    sum(re_drop),    sum(re_cryst)
 !++jsr, first, detect cloud ice optical depth with zdwp=0,
 !       then calculate cloud optical depth
+    !$ACC WAIT(1)
     CALL stop_on_err(cloud_optics_lw%cloud_optics( &
                      zdwp,     ziwp,    re_drop,    re_cryst,   clouds_bnd_lw ))
-    !$ACC PARALLEL LOOP DEFAULT(PRESENT) ASYNC(1)
-    DO band=1,nbndlw
-      tau_ice(1:ncol,1:klev)=tau_ice(1:ncol,1:klev)+clouds_bnd_lw%tau(1:ncol,1:klev,band)
+    !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1)
+    !$ACC LOOP SEQ
+    DO band = 1, nbndlw
+    !$ACC LOOP GANG VECTOR COLLAPSE(2)
+      DO j = 1, klev
+        DO i = 1, ncol
+          tau_ice(i,j) = tau_ice(i,j) + clouds_bnd_lw%tau(i,j,band)
+        END DO
+      END DO
     END DO
-    !$ACC END PARALLEL LOOP
+    !$ACC END PARALLEL
 !--jsr, calculate cloud optics including ice and water hydrometeors now
 !       only these are used in the sequel.    
+    !$ACC WAIT(1)
     CALL stop_on_err(cloud_optics_lw%cloud_optics( &
                      zlwp,     ziwp,    re_drop,    re_cryst,   clouds_bnd_lw ))
     ! This will require computing logical masks for ice and liquid clouds
@@ -986,11 +994,14 @@ CONTAINS
     !$ACC DATA CREATE(snow_bnd_lw)
     !$ACC DATA CREATE(snow_bnd_lw%tau)
     ! compute snow optics from table of cloud_optics
+    !$ACC WAIT(1)
     CALL stop_on_err(cloud_optics_lw%cloud_optics( &
          zdwp,     zswp,  re_snow,  re_snow,   snow_bnd_lw ))
     !++jsr scale tau with reimax/reff_snow for reff_snow > reimax
-    !$ACC PARALLEL LOOP GANG VECTOR COLLAPSE(3) DEFAULT(PRESENT) ASYNC(1)
-    DO band=1,nbndlw
+    !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1)
+    !$ACC LOOP SEQ
+    DO band = 1, nbndlw
+    !$ACC LOOP GANG VECTOR COLLAPSE(2)
       DO j = 1, klev
         DO i = 1, ncol
           IF ((1.e6_wp * reff_snow(i, j)) > reimax) THEN
@@ -1000,7 +1011,7 @@ CONTAINS
         END DO
       END DO
     END DO
-    !$ACC END PARALLEL LOOP
+    !$ACC END PARALLEL
     !--jsr
     !$ACC WAIT(1)
     CALL stop_on_err(snow_bnd_lw%increment(atmos_lw))
@@ -1153,15 +1164,23 @@ CONTAINS
     ! then compute cloud optics
 !++jsr, first, detect cloud ice optical depth with zdwp=0,
 !       then calculate cloud optical depth
+    !$ACC WAIT(1)
     CALL stop_on_err(cloud_optics_sw%cloud_optics( &
                      zdwp,     ziwp,    re_drop,    re_cryst,   clouds_bnd_sw ))
-    !$ACC PARALLEL LOOP DEFAULT(PRESENT) ASYNC(1)
-    DO band=1,nbndsw
-      tau_ice(1:ncol,1:klev)=tau_ice(1:ncol,1:klev)+clouds_bnd_sw%tau(1:ncol,1:klev,band)
+    !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1)
+    !$ACC LOOP SEQ
+    DO band = 1, nbndsw
+    !$ACC LOOP GANG VECTOR COLLAPSE(2)
+      DO j = 1, klev
+        DO i = 1, ncol
+          tau_ice(i,j) = tau_ice(i,j) + clouds_bnd_sw%tau(i,j,band)
+        END DO
+      END DO
     END DO
-    !$ACC END PARALLEL LOOP
+    !$ACC END PARALLEL
 !--jsr, calculate cloud optics including ice and water hydrometeors now
 !       only these are used in the sequel.    
+    !$ACC WAIT(1)
     CALL stop_on_err(cloud_optics_sw%cloud_optics( &
                      zlwp,     ziwp,    re_drop,    re_cryst,   clouds_bnd_sw ))
     !
@@ -1178,13 +1197,16 @@ CONTAINS
     !$ACC DATA CREATE(snow_bnd_sw)
     !$ACC DATA CREATE(snow_bnd_sw%tau, snow_bnd_sw%ssa, snow_bnd_sw%g)
     ! then compute snow optics
+    !$ACC WAIT(1)
     CALL stop_on_err(cloud_optics_sw%cloud_optics( &
                      zdwp,     zswp,  re_snow,  re_snow,   snow_bnd_sw ))
     ! delta scale for the case ssa and g close to 1
     CALL stop_on_err(snow_bnd_sw%delta_scale())
     !++jsr scale tau with reimax/reff_snow for reff_snow > reimax
-    !$ACC PARALLEL LOOP GANG VECTOR COLLAPSE(3) DEFAULT(PRESENT) ASYNC(1)
+    !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1)
+    !$ACC LOOP SEQ
     DO band = 1, nbndsw
+    !$ACC LOOP GANG VECTOR COLLAPSE(2)
       DO j = 1, klev
         DO i = 1, ncol
           IF ((1.e6_wp * reff_snow(i, j)) > reimax) THEN
@@ -1194,7 +1216,7 @@ CONTAINS
         END DO
       END DO
     END DO
-    !$ACC END PARALLEL LOOP
+    !$ACC END PARALLEL
     !--jsr
     ! increment the optcial properties of the atmosphere
     !$ACC WAIT(1)
