@@ -37,7 +37,7 @@ CONTAINS
   !>
   !! Registers fields required for the coupling between atmosphere and wave
   !!
-  !! This subroutine is called from constrcut_atmo_coupling.
+  !! This subroutine is called from construct_atmo_coupling.
   !!
   SUBROUTINE construct_atmo_wave_coupling( &
     comp_id, cell_point_id, timestepstring)
@@ -130,7 +130,7 @@ CONTAINS
     !
     CALL cpl_get_field( &
       routine, field_id_z0, 'z0', p_patch%n_patch_cells, z0_waves, &
-      received_data=received_data)
+      first_get=.TRUE., received_data=received_data)
 
     IF (received_data) &
       CALL sync_patch_array(SYNC_C, p_patch, z0_waves, opt_varname='z0')

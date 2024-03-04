@@ -90,7 +90,8 @@ MODULE mo_name_list_output
   USE mo_util_string,               ONLY: t_keyword_list, associate_keyword, with_keywords,         &
   &                                       int2string
   USE mo_timer,                     ONLY: timer_start, timer_stop, timer_write_output, ltimer,      &
-    &                                     timer_wait_for_async_io, print_timer
+    &                                     timer_wait_for_async_io, print_timer, &
+    &                                     timer_coupling
   USE mo_level_selection_types,     ONLY: t_level_selection
   USE mo_name_list_output_gridinfo, ONLY: write_grid_info_grb2, GRID_INFO_NONE
   USE mo_util_file,                 ONLY: util_rename, get_filename, get_path
@@ -101,10 +102,9 @@ MODULE mo_name_list_output
   USE mo_run_config,                ONLY: msg_level
   USE mo_io_config,                 ONLY: lkeep_in_sync,                   &
     &                                     config_lmask_boundary => lmask_boundary
-#ifdef YAC_coupling
   USE mo_coupling_config,           ONLY: is_coupled_run
-  USE mo_io_coupling_frame,         ONLY: construct_io_coupling, destruct_io_coupling
-#endif
+  USE mo_dummy_coupling_frame,      ONLY: construct_dummy_coupling, &
+    &                                     destruct_dummy_coupling
   USE mo_gribout_config,            ONLY: gribout_config
   USE mo_parallel_config,           ONLY: p_test_run, use_dp_mpi2io, &
        num_io_procs, io_proc_chunk_size, nproma, pio_type
@@ -450,11 +450,13 @@ CONTAINS
       IF (pio_type == pio_type_cdipio) &
         CALL namespaceSetActive(prev_cdi_namespace)
 
-#ifdef YAC_coupling
       IF ( is_coupled_run() ) THEN
-        IF (my_process_is_io() ) CALL destruct_io_coupling ( "dummy" )
+        IF (my_process_is_io() ) THEN
+          CALL timer_start(timer_coupling)
+          CALL destruct_dummy_coupling("name_list_output")
+          CALL timer_stop(timer_coupling)
+        END IF
       ENDIF
-#endif
 #endif
 #ifndef NOMPI
 #ifndef __NO_ICON_ATMO__
@@ -2671,14 +2673,16 @@ CONTAINS
     IF (.NOT. is_ocean) &
       & CALL init_name_list_output(sim_step_info)
 
-#ifdef YAC_coupling
-    ! The initialisation of YAC needs to be called by all (!) MPI processes
+    ! The initialisation of coupling needs to be called by all (!) MPI processes
     ! in MPI_COMM_WORLD.
-    ! construct_io_coupling needs to be called after init_name_list_output
+    ! construct_dummy_coupling needs to be called after init_name_list_output
     ! due to calling sequence in subroutine atmo_model for other atmosphere
     ! processes
-    IF ( is_coupled_run() ) CALL construct_io_coupling ( "dummy" )
-#endif
+    IF ( is_coupled_run() ) THEN
+      CALL timer_start(timer_coupling)
+      CALL construct_dummy_coupling("name_list_output")
+      CALL timer_stop(timer_coupling)
+    END IF
 
     ! FIXME: Explain this braindead weirdnes.
     IF (is_ocean) &
@@ -2796,14 +2800,16 @@ CONTAINS
       END IF
     END IF
 
-    IF (ltimer) CALL print_timer
-
     CALL interval_write_psfile("output_schedule.ps", "Output Timings", &
       &                        int2string(p_pe,'(i0)'), p_comm_work)
 
-#ifdef YAC_coupling
-    IF ( is_coupled_run() ) CALL destruct_io_coupling ( "dummy" )
-#endif
+    IF ( is_coupled_run() ) THEN
+      IF (ltimer) CALL timer_start(timer_coupling)
+      CALL destruct_dummy_coupling("name_list_output")
+      IF (ltimer) CALL timer_stop(timer_coupling)
+    END IF
+
+    IF (ltimer) CALL print_timer
 
     ! Shut down MPI
     CALL stop_mpi

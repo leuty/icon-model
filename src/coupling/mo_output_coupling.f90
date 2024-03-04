@@ -20,7 +20,7 @@ MODULE mo_output_coupling
   USE mo_run_config          ,ONLY: nlev, msg_level
   USE mo_run_config          ,ONLY: ltimer
   USE mo_timer               ,ONLY: timer_start, timer_stop, &
-       &                            timer_coupling_put, timer_coupling_init
+       &                            timer_coupling_put
   USE mo_util_string         ,ONLY: int2string
   USE mo_exception           ,ONLY: message, finish
   USE mo_parallel_config     ,ONLY: nproma
@@ -42,13 +42,12 @@ MODULE mo_output_coupling
   END TYPE t_exposed_var
 
   PUBLIC :: construct_output_coupling
-  PUBLIC :: winnow_field_list
+  PUBLIC :: construct_output_coupling_finalize
   PUBLIC :: output_coupling
   PUBLIC :: destruct_output_coupling
 
   TYPE(t_exposed_var), POINTER :: exposed_vars_head => NULL()
   INTEGER :: max_collection_size = 0, max_hor_size = 0
-
 
 CONTAINS
 
@@ -64,8 +63,11 @@ CONTAINS
     USE mo_var_list_register,   ONLY: t_vl_register_iter
     USE mo_var_metadata,        ONLY: get_var_timelevel, get_var_name
     USE mo_cdi_constants,       ONLY: GRID_UNSTRUCTURED_CELL, GRID_UNSTRUCTURED_VERT
+    USE mo_coupling_utils,      ONLY: cpl_get_instance_id
+#ifdef YAC_coupling
     USE mo_yac_finterface      ,ONLY: yac_fdef_field, YAC_TIME_UNIT_ISO_FORMAT, &
          yac_fdef_field_metadata, yac_fget_component_name, yac_fget_grid_name
+#endif
 
     TYPE(t_patch), TARGET, INTENT(IN) :: p_patch(:)
     INTEGER, INTENT(IN) :: comp_id
@@ -76,7 +78,7 @@ CONTAINS
     TYPE(t_exposed_var), POINTER :: exposed_var
     CHARACTER(len=:), ALLOCATABLE :: var_name, metadata, comp_name, grid_name
     INTEGER :: iv, tl, collection_size, key_notl, count = 0, var_size, grpi, nblks, pos(3)
-    INTEGER :: point_id, var_ref_pos
+    INTEGER :: point_id, var_ref_pos, instance_id
 
     TYPE t_tmp_timelevel_var
        INTEGER :: key_notl
@@ -85,6 +87,12 @@ CONTAINS
     END type t_tmp_timelevel_var
 
     TYPE(t_tmp_timelevel_var), POINTER :: tmp_timelevel_var_head => NULL(), tmp_timelevel_var => NULL()
+
+#ifndef YAC_coupling
+    CALL finish(str_module // 'construct_output_coupling', &
+                'built without coupling support.')
+#else
+    instance_id = cpl_get_instance_id()
 
     max_hor_size = MAX(p_patch(1)%n_patch_cells, p_patch(1)%n_patch_verts)
 
@@ -206,6 +214,7 @@ CONTAINS
                   IF (elem%info%in_group(grpi)) metadata = metadata // "  - " // TRIM(var_groups_dyn%gname(grpi)) // newline
                END DO
                CALL yac_fdef_field_metadata( &
+                    instance_id, &
                     yac_fget_component_name(exposed_var%yac_field_id),&
                     yac_fget_grid_name(exposed_var%yac_field_id), &
                     var_name, metadata)
@@ -229,14 +238,21 @@ CONTAINS
        DEALLOCATE(tmp_timelevel_var_head)
     END DO
     DEALLOCATE(vl_iter)
+! YAC_coupling
+#endif
   END SUBROUTINE construct_output_coupling
 
 
   !>
-  !! SUBROUTINE winnow_field_list -- sort out all non-coupled fields
-  !! from the field_list
+  !! SUBROUTINE construct_output_coupling_finalize -- sort out all non-coupled fields
+  !! from the field_list (has to be called after the enddef operation)
 
-  SUBROUTINE winnow_field_list()
+  SUBROUTINE construct_output_coupling_finalize()
+
+#ifndef YAC_coupling
+   CALL finish(str_module // 'construct_output_coupling_finalize', &
+               "built without coupling support.")
+#else
     USE mo_yac_finterface, ONLY: yac_fget_role_from_field_id, &
          YAC_EXCHANGE_TYPE_NONE, YAC_EXCHANGE_TYPE_SOURCE
     TYPE(t_exposed_var), POINTER :: exposed_var, tmp
@@ -277,7 +293,9 @@ CONTAINS
 
     IF (msg_level >= 15) &
        CALL message(str_module, int2string(count) // " exposed vars left after clean up")
-  END SUBROUTINE winnow_field_list
+! YAC_coupling
+#endif
+  END SUBROUTINE construct_output_coupling_finalize
 
   !>
   !! SUBROUTINE output_coupling -- Exchange fields between
@@ -287,16 +305,23 @@ CONTAINS
     USE, INTRINSIC :: ieee_arithmetic
     USE mo_impl_constants      ,ONLY: TLEV_NNOW, TLEV_NNEW, TLEV_NNOW_RCF, TLEV_NNEW_RCF
     USE mo_dynamics_config,     ONLY: nnow, nnow_rcf, nnew, nnew_rcf
+#ifdef YAC_coupling
     USE mo_yac_finterface,      ONLY: yac_fget_field_collection_size, yac_fput, yac_fget_action, &
       &                               yac_fupdate, YAC_ACTION_NONE, yac_dble_ptr
+#endif
 
+    REAL(wp), OPTIONAL :: valid_mask(:,:,:)
+
+#ifndef YAC_coupling
+   CALL finish(str_module // 'output_coupling', &
+               'built without coupling support')
+#else
     INTEGER               :: info, ierror, collection_size, nn, now, ncontained, var_size, var_ref_pos
     REAL(wp), ALLOCATABLE, TARGET, SAVE :: buffer(:,:)
     REAL(wp), CONTIGUOUS, POINTER :: tmp_buffer(:,:)
-    TYPE(yac_dble_ptr), ALLOCATABLE :: buffer_ptr(:, :)
-    REAL(wp), OPTIONAL :: valid_mask(:,:,:)
     TYPE(t_exposed_var), POINTER :: cur_field
     TYPE(t_var_ptr) :: var_now
+    TYPE(yac_dble_ptr), ALLOCATABLE :: buffer_ptr(:, :)
 
     cur_field => exposed_vars_head
     IF (.NOT. ALLOCATED(buffer)) ALLOCATE(buffer(max_hor_size, max_collection_size))
@@ -404,6 +429,8 @@ CONTAINS
        IF (ltimer) CALL timer_stop(timer_coupling_put)
        cur_field => cur_field%next
     ENDDO
+! YAC_coupling
+#endif
   END SUBROUTINE output_coupling
 
   !>

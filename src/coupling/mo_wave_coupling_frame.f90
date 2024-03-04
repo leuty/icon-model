@@ -18,32 +18,22 @@
 
 MODULE mo_wave_coupling_frame
 
-  USE mo_kind,            ONLY: wp
-  USE mo_impl_constants,  ONLY: MAX_CHAR_LENGTH, SUCCESS 
   USE mo_exception,       ONLY: finish, message
   USE mo_model_domain,    ONLY: t_patch
-  USE mo_parallel_config, ONLY: nproma
   USE mo_run_config,      ONLY: ltimer
-  USE mo_master_control,  ONLY: get_my_process_name
-  USE mo_mpi,             ONLY: p_pe_work
   USE mo_time_config,     ONLY: time_config
-  USE mtime,              ONLY: datetimeToString, timedeltaToString, &
-    &                           MAX_DATETIME_STR_LEN, MAX_TIMEDELTA_STR_LEN
+  USE mtime,              ONLY: timedeltaToString, MAX_TIMEDELTA_STR_LEN
   USE mo_coupling_config, ONLY: is_coupled_run, is_coupled_to_atmo
   USE mo_wave_atmo_coupling, ONLY: construct_wave_atmo_coupling
-#ifdef YAC_coupling
-  USE mo_yac_finterface,  ONLY: yac_fget_version, yac_fdef_comp,        &
-    &                           yac_fdef_datetime, yac_fdef_grid,       &
-    &                           yac_fdef_points, yac_fset_global_index, &
-    &                           yac_fset_core_mask, YAC_LOCATION_CELL
-#endif
+  USE mo_coupling_utils,  ONLY: cpl_construct, cpl_destruct, &
+    &                           cpl_def_main, cpl_enddef
   USE mo_timer,           ONLY: timer_start, timer_stop, timer_coupling_init
 
   IMPLICIT NONE
 
   PRIVATE
 
-  PUBLIC :: construct_wave_coupling
+  PUBLIC :: construct_wave_coupling, destruct_wave_coupling
   PUBLIC :: nbr_inner_cells
 
   ! Output of module for debug
@@ -64,8 +54,6 @@ CONTAINS
 
     TYPE(t_patch), TARGET, INTENT(IN) :: p_patch(:)
 
-    CHARACTER(len=*), PARAMETER :: routine = str_module//':construct_wave_coupling'
-
     TYPE(t_patch), POINTER :: patch_horz
 
     !---------------------------------------------------------------------
@@ -76,214 +64,73 @@ CONTAINS
     ! too much in future.
     !---------------------------------------------------------------------
 
-    CHARACTER(LEN=max_char_length) :: grid_name   ! name of component-specific horizontal grid
-    CHARACTER(LEN=max_char_length) :: comp_name   ! component name
-
     INTEGER :: comp_id              ! component identifier
     INTEGER :: grid_id              ! grid identifier
-    INTEGER :: comp_ids(1)
-    INTEGER :: cell_point_ids(1)
+    INTEGER :: cell_point_id
 
     INTEGER :: jg
-    INTEGER :: nblks
-    INTEGER :: jb, jc, jv, nn
-    INTEGER :: nlen                ! block length
-    INTEGER :: nbr_vertices_per_cell
-    INTEGER :: ist                 ! error status
 
-    REAL(wp), ALLOCATABLE :: buffer_lon(:)
-    REAL(wp), ALLOCATABLE :: buffer_lat(:)
-    INTEGER,  ALLOCATABLE :: buffer_c(:,:)
+    CHARACTER(LEN=MAX_TIMEDELTA_STR_LEN):: timestepstring
 
-    LOGICAL,  ALLOCATABLE :: is_valid(:)
-
-    CHARACTER(LEN=MAX_DATETIME_STR_LEN) :: startdatestring
-    CHARACTER(LEN=MAX_DATETIME_STR_LEN) :: stopdatestring
-    CHARACTER(LEN=MAX_TIMEDELTA_STR_LEN):: tc_dt_model_string
-
-#ifndef YAC_coupling
-    CALL finish(routine, 'built without coupling support.')
-#else
+    CHARACTER(len=*), PARAMETER :: routine = str_module//':construct_wave_coupling'
 
     IF ( .NOT. is_coupled_run() ) RETURN
 
     IF (ltimer) CALL timer_start (timer_coupling_init)
 
+    CALL message(str_module, 'Constructing the wave coupling frame.')
+
+    ! initialise coupler
+    CALL cpl_construct()
+
     jg = 1
     patch_horz => p_patch(jg)
 
-    comp_name = TRIM(get_my_process_name())
+    ! do basic initialisation of the component
+    CALL cpl_def_main(routine,           & !in
+                      patch_horz,        & !in
+                      "icon_waves_grid", & !in
+                      comp_id,           & !out
+                      grid_id,           & !out
+                      cell_point_id,     & !out
+                      nbr_inner_cells)     !out
 
-    ! Inform the coupler about what we are
-    CALL yac_fdef_comp ( comp_name = TRIM(comp_name), & !in
-      &                  comp_id   = comp_id )          !out
-    comp_ids(1) = comp_id
-
-    ! Print the YAC version
-    CALL message('Running ICON-waves in coupled mode with YAC version ', TRIM(yac_fget_version()) )
-
-    ! Overwrite job start and end date with component data
-    CALL datetimeToString(time_config%tc_startdate, startdatestring)
-    CALL datetimeToString(time_config%tc_stopdate, stopdatestring)
-
-    ! convert model timestep into ISO string
-    CALL timedeltaToString(time_config%tc_dt_model, tc_dt_model_string)
-
-    CALL yac_fdef_datetime ( start_datetime = TRIM(startdatestring), & !in
-      &                      end_datetime   = TRIM(stopdatestring)   ) !in
-
-    ! Announce one grid (patch) to the coupler
-    grid_name = "icon_waves_grid"
-
-    ! Extract cell information
-    !
-    ! cartesian coordinates of cell vertices are stored in
-    ! patch_horz%verts%cartesian(:,:)%x(1:3)
-    ! Here we use the longitudes and latitudes in rad.
-
-    nblks = MAX(patch_horz%nblks_c,patch_horz%nblks_v)
-
-    nbr_vertices_per_cell = 3
-
-    ALLOCATE(buffer_lon(nproma*nblks), STAT=ist)
-    IF (ist /= SUCCESS)  CALL finish (routine, 'ALLOCATE failed for buffer_lon!')
-    !
-    ALLOCATE(buffer_lat(nproma*nblks), STAT=ist)
-    IF (ist /= SUCCESS)  CALL finish (routine, 'ALLOCATE failed for buffer_lat!')
-    !
-    ALLOCATE(buffer_c(nbr_vertices_per_cell,nproma*nblks),STAT=ist)
-    IF (ist /= SUCCESS)  CALL finish (routine, 'ALLOCATE failed for buffer_c!')
-
-!ICON_OMP_PARALLEL
-!ICON_OMP_DO PRIVATE(jb, jv, nlen, nn) ICON_OMP_RUNTIME_SCHEDULE
-    DO jb = 1, patch_horz%nblks_v
-      IF (jb /= patch_horz%nblks_v) THEN
-        nlen = nproma
-      ELSE
-        nlen = patch_horz%npromz_v
-      END IF
-      DO jv = 1, nlen
-        nn = (jb-1)*nproma+jv
-        buffer_lon(nn) = patch_horz%verts%vertex(jv,jb)%lon
-        buffer_lat(nn) = patch_horz%verts%vertex(jv,jb)%lat
-      ENDDO
-    ENDDO
-!ICON_OMP_END_DO NOWAIT
-
-!ICON_OMP_DO PRIVATE(jb, jc, nlen, nn) ICON_OMP_RUNTIME_SCHEDULE
-    DO jb = 1, patch_horz%nblks_c
-      IF (jb /= patch_horz%nblks_c) THEN
-        nlen = nproma
-      ELSE
-        nlen = patch_horz%npromz_c
-      END IF
-      DO jc = 1, nlen
-        nn = (jb-1)*nproma+jc
-        buffer_c(1,nn) = (patch_horz%cells%vertex_blk(jc,jb,1)-1)*nproma + &
-          &               patch_horz%cells%vertex_idx(jc,jb,1)
-        buffer_c(2,nn) = (patch_horz%cells%vertex_blk(jc,jb,2)-1)*nproma + &
-          &               patch_horz%cells%vertex_idx(jc,jb,2)
-        buffer_c(3,nn) = (patch_horz%cells%vertex_blk(jc,jb,3)-1)*nproma + &
-                          patch_horz%cells%vertex_idx(jc,jb,3)
-      ENDDO
-    ENDDO
-!ICON_OMP_END_DO
-!ICON_OMP_END_PARALLEL
-
-    ! Definition of unstructured horizontal grid
-    CALL yac_fdef_grid(                                   &
-      & grid_name             = TRIM(grid_name),          & !in
-      & nbr_vertices          = patch_horz%n_patch_verts, & !in
-      & nbr_cells             = patch_horz%n_patch_cells, & !in
-      & nbr_vertices_per_cell = nbr_vertices_per_cell,    & !in
-      & x_vertices            = buffer_lon,               & !in
-      & y_vertices            = buffer_lat,               & !in
-      & cell_to_vertex        = buffer_c,                 & !in
-      & grid_id               = grid_id)                    !out
-
-    !
-    ! Define cell center points (location = 0)
-    !
-    ! cartesian coordinates of cell centers are stored in
-    ! patch_horz%cells%cartesian_center(:,:)%x(1:3)
-    ! Here we use the longitudes and latitudes.
-
-!ICON_OMP_PARALLEL_DO PRIVATE(jb, jc, nlen, nn) ICON_OMP_RUNTIME_SCHEDULE
-    DO jb = 1, patch_horz%nblks_c
-      IF (jb /= patch_horz%nblks_c) THEN
-        nlen = nproma
-      ELSE
-        nlen = patch_horz%npromz_c
-      END IF
-      DO jc = 1, nlen
-        nn = (jb-1)*nproma+jc
-        buffer_lon(nn) = patch_horz%cells%center(jc,jb)%lon
-        buffer_lat(nn) = patch_horz%cells%center(jc,jb)%lat
-      ENDDO
-    ENDDO
-!ICON_OMP_END_PARALLEL_DO
-
-    ! center points in cells (needed e.g. for patch recovery and nearest neighbour interpolation)
-    CALL yac_fdef_points (                     &
-      & grid_id    = grid_id,                  & !in
-      & nbr_points = patch_horz%n_patch_cells, & !in
-      & location   = YAC_LOCATION_CELL,        & !in
-      & x_points   = buffer_lon,               & !in
-      & y_points   = buffer_lat,               & !in
-      & point_id   = cell_point_ids(1) )         !out
-
-    DEALLOCATE (buffer_lon, buffer_lat, buffer_c, STAT=ist)
-    IF (ist /= SUCCESS)  THEN
-      CALL finish (routine, 'DEALLOCATE failed for buffer_lon, buffer_lat, buffer_c!')
-    ENDIF
-
-    ! set global ids for grid cells
-    CALL yac_fset_global_index (                               &
-      & global_index = patch_horz%cells%decomp_info%glb_index, & !in
-      & location     = YAC_LOCATION_CELL,                      & !in
-      & grid_id      = grid_id )                                 !in
-
-    ALLOCATE(is_valid(nproma*patch_horz%nblks_c), STAT=ist)
-    IF (ist /= SUCCESS)  CALL finish (routine, 'ALLOCATE failed for is_valid!')
-
-    ! TODO
-    ! I am not fully sure what this scalar nbr_inner_cells is good for, and whether
-    ! we need it for atmo-wave coupling.
-    nbr_inner_cells = 0
-!ICON_OMP_PARALLEL_DO PRIVATE(jc) REDUCTION(+:nbr_inner_cells) ICON_OMP_RUNTIME_SCHEDULE
-    DO jc = 1, patch_horz%n_patch_cells
-       IF ( p_pe_work == patch_horz%cells%decomp_info%owner_local(jc) ) THEN
-         is_valid(jc) = .TRUE.
-         nbr_inner_cells = nbr_inner_cells + 1
-       ELSE
-         is_valid(jc) = .FALSE.
-       ENDIF
-    ENDDO
-!ICON_OMP_END_PARALLEL_DO
-
-    ! set grid core mask
-    CALL yac_fset_core_mask (            &
-      & is_core  = is_valid,             & !in
-      & location = YAC_LOCATION_CELL,    & !in
-      & grid_id  = grid_id )               !in
-
-    DEALLOCATE (is_valid, STAT=ist)
-    IF (ist /= SUCCESS)  CALL finish (routine, 'DEALLOCATE failed for is_valid!')
+    ! get model timestep
+    CALL timedeltaToString(time_config%tc_dt_model, timestepstring)
 
     IF ( is_coupled_to_atmo() ) THEN
+
       CALL message(str_module, 'Constructing the coupling frame wave-atmosphere.')
+
       CALL construct_wave_atmo_coupling( &
-        comp_id, cell_point_ids(1), tc_dt_model_string)
+        comp_id, cell_point_id, timestepstring)
+
     END IF
 
     ! End definition of coupling fields and search
-    CALL yac_fenddef ( )
+    CALL cpl_enddef(routine)
 
     IF (ltimer) CALL timer_stop(timer_coupling_init)
 
-! YAC_coupling
-#endif
-
   END SUBROUTINE construct_wave_coupling
+
+  !>
+  !! SUBROUTINE destruct_wave_coupling -- the finalization for the coupling
+  !! of wave model and the atmosphere, through a coupler
+  !!
+  SUBROUTINE destruct_wave_coupling ()
+
+    CHARACTER(len=*), PARAMETER :: routine = str_module//':destruct_wave_coupling'
+
+    IF ( is_coupled_run() ) THEN
+
+      CALL message(str_module, 'Destructing the wave coupling frame.')
+
+      ! destruct coupler
+      CALL cpl_destruct()
+
+    END IF
+
+  END SUBROUTINE destruct_wave_coupling
 
 END MODULE mo_wave_coupling_frame

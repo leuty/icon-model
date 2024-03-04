@@ -174,11 +174,11 @@ USE mo_icon2dace,           ONLY: init_dace, finish_dace
 #endif
 
   ! coupling
-#ifdef YAC_coupling
-  USE mo_coupling_config,           ONLY: is_coupled_to_ocean, is_coupled_to_waves, &
-    &                                     is_coupled_to_hydrodisc, is_coupled_to_output
-  USE mo_atmo_coupling_frame,       ONLY: construct_atmo_coupling
-#endif
+  USE mo_timer,               ONLY: ltimer, timer_start, timer_stop, &
+    &                               timer_coupling
+  USE mo_coupling_config,     ONLY: is_coupled_run
+  USE mo_atmo_coupling_frame, ONLY: construct_atmo_coupling, &
+    &                               destruct_atmo_coupling
 
 #ifndef __NO_ICON_COMIN__
   USE comin_host_interface, ONLY: EP_SECONDARY_CONSTRUCTOR,           &
@@ -224,16 +224,12 @@ CONTAINS
 
     !---------------------------------------------------------------------
     ! construct the coupler
-    !
-#ifdef YAC_coupling
-    IF ( ANY( (/is_coupled_to_ocean(),     &
-                is_coupled_to_hydrodisc(), &
-                is_coupled_to_waves(),     &
-                is_coupled_to_output()/) ) )   THEN
+    !---------------------------------------------------------------------
+    IF ( is_coupled_run() ) THEN
+      IF (ltimer) CALL timer_start(timer_coupling)
       CALL construct_atmo_coupling(p_patch(1:))
+      IF (ltimer) CALL timer_stop(timer_coupling)
     ENDIF
-#endif
-
 
     !------------------------------------------------------------------
     ! Now start the time stepping:
@@ -297,6 +293,15 @@ CONTAINS
     CALL comin_setup_finalize(ierr)
     IF (ierr /= 0) STOP
 #endif
+
+    !---------------------------------------------------------------------
+    ! construct the coupler
+    !---------------------------------------------------------------------
+    IF ( is_coupled_run() ) THEN
+      IF (ltimer) CALL timer_start(timer_coupling)
+      CALL destruct_atmo_coupling()
+      IF (ltimer) CALL timer_stop(timer_coupling)
+    ENDIF
 
     !---------------------------------------------------------------------
     ! Integration finished. Clean up.

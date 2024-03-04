@@ -225,10 +225,11 @@ MODULE mo_async_latbc
        &                                  cdi_max_name
   USE mo_io_util,                   ONLY: read_netcdf_int_1d, t_netcdf_att_int
   USE mo_util_cdi,                  ONLY: test_cdi_varID
-#ifdef YAC_coupling
+  USE mo_timer,                     ONLY: ltimer, timer_start, timer_stop, &
+    &                                     timer_coupling
   USE mo_coupling_config,           ONLY: is_coupled_run
-  USE mo_io_coupling_frame,         ONLY: construct_io_coupling, destruct_io_coupling
-#endif
+  USE mo_dummy_coupling_frame,      ONLY: construct_dummy_coupling, &
+    &                                     destruct_dummy_coupling
 
   IMPLICIT NONE
   PRIVATE
@@ -288,14 +289,18 @@ CONTAINS
 
     ! call to initalize the prefetch processor with grid data
     CALL init_prefetch(latbc)
-#ifdef YAC_coupling
-    ! The initialisation of YAC needs to be called by all (!) MPI processes
+
+    ! The initialisation of coupling needs to be called by all (!) MPI processes
     ! in MPI_COMM_WORLD.
     ! construct_io_coupling needs to be called before init_name_list_output
     ! due to calling sequence in subroutine atmo_model for other atmosphere
     ! processes
-    IF ( is_coupled_run() ) CALL construct_io_coupling ( "dummy" )
-#endif
+    IF ( is_coupled_run() ) THEN
+      IF (ltimer) CALL timer_start(timer_coupling)
+      CALL construct_dummy_coupling("async_latbc")
+      IF (ltimer) CALL timer_stop(timer_coupling)
+    END IF
+
     ! Enter prefetch loop
     done = .FALSE.
     DO WHILE(.NOT.done)
@@ -312,9 +317,13 @@ CONTAINS
     CALL close_prefetch()
     ! clean up
     CALL latbc%finalize()
-#ifdef YAC_coupling
-      IF ( is_coupled_run() ) CALL destruct_io_coupling ( "dummy" )
-#endif
+
+    IF ( is_coupled_run() ) THEN
+      IF (ltimer) CALL timer_start(timer_coupling)
+      CALL destruct_dummy_coupling("async_latbc")
+      IF (ltimer) CALL timer_stop(timer_coupling)
+    END IF
+
     CALL stop_mpi
   END SUBROUTINE prefetch_main_proc
 #endif

@@ -53,10 +53,9 @@ MODULE mo_wave_stepping
     &                                    update_ice_free_mask, update_water_depth
   USE mo_wave_advection_stepping,  ONLY: wave_step_advection
   USE mo_coupling_config,          ONLY: is_coupled_to_atmo
-
-#ifdef YAC_coupling
+  USE mo_timer,                    ONLY: ltimer, timer_start, timer_stop, &
+    &                                    timer_coupling
   USE mo_wave_atmo_coupling,       ONLY: couple_wave_to_atmo
-#endif
 
   IMPLICIT NONE
 
@@ -119,9 +118,7 @@ CONTAINS
     ENDIF
 
     IF (is_coupled_to_atmo()) THEN
-#ifdef YAC_coupling
       CALL message(routine,'coupled waves<->atmo run: work in progress...')
-#endif
     ELSE
       CALL message(routine,'standalone run: forcing data are read from file...')
 
@@ -312,15 +309,16 @@ CONTAINS
         n_new  = nnew(jg)
 
         IF (is_coupled_to_atmo()) THEN
-#ifdef YAC_coupling
           ! send and receive coupling fields
           !
+          IF (ltimer) CALL timer_start(timer_coupling)
           CALL couple_wave_to_atmo(p_patch   = p_patch(jg),                     & ! IN
             &                      z0        = p_wave_state(jg)%diag%z0,        & ! IN
             &                      u10m      = wave_forcing_state(jg)%u10m,     & ! OUT
             &                      v10m      = wave_forcing_state(jg)%v10m,     & ! OUT
             &                      sea_ice_c = wave_forcing_state(jg)%sea_ice_c ) ! OUT
-#endif
+          IF (ltimer) CALL timer_stop(timer_coupling)
+
           ! update forcing state
           ! update wind speed and direction
           CALL update_speed_and_direction(p_patch = p_patch(jg),                   & ! IN

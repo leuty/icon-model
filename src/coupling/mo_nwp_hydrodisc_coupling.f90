@@ -32,12 +32,10 @@ MODULE mo_nwp_hydrodisc_coupling
   USE mo_run_config          ,ONLY: dtime
   USE mo_loopindices         ,ONLY: get_indices_c
 
-  USE mo_coupling_utils      ,ONLY: cpl_def_field, cpl_put_field
-#ifdef YAC_coupling
-  USE mo_yac_finterface      ,ONLY: yac_fdef_mask, YAC_LOCATION_CELL
-#endif
+  USE mo_coupling_utils      ,ONLY: cpl_def_cell_field_mask, &
+    &                               cpl_def_field, cpl_put_field
 
-  USE mo_exception           ,ONLY: warning, message, finish
+  USE mo_exception           ,ONLY: finish
 
   IMPLICIT NONE
 
@@ -76,15 +74,11 @@ CONTAINS
 
     CHARACTER(LEN=*), PARAMETER   :: routine = str_module // ':construct_nwp_hydrodisc_coupling'
 
-#ifndef YAC_coupling
-    CALL finish(routine, 'built without coupling support.')
-#else
-
     jg = 1
     patch_horz => p_patch(jg)
 
     ALLOCATE(is_valid(nproma*patch_horz%nblks_c), STAT = error)
-    IF(error /= SUCCESS) CALL finish(str_module, "memory allocation failure for is_valid")
+    IF(error /= SUCCESS) CALL finish(routine, "memory allocation failure for is_valid")
 
     !ICON_OMP_PARALLEL PRIVATE(jb,jc)
       !ICON_OMP_WORKSHARE
@@ -102,15 +96,10 @@ CONTAINS
       !ICON_OMP_END_DO
     !ICON_OMP_END_PARALLEL
 
-    CALL yac_fdef_mask (          &
-      & grid_id,                  &
-      & patch_horz%n_patch_cells, &
-      & YAC_LOCATION_CELL,        &
-      & is_valid,                 &
-      & cell_mask_id )
+    CALL cpl_def_cell_field_mask(routine, grid_id, is_valid, cell_mask_id)
 
     DEALLOCATE (is_valid, STAT = error)
-    IF(error /= SUCCESS) CALL finish(str_module, "Deallocation failed for is_valid")
+    IF(error /= SUCCESS) CALL finish(routine, "Deallocation failed for is_valid")
 
     CALL cpl_def_field( &
       comp_id, cell_point_id, cell_mask_id, timestepstring, &
@@ -119,8 +108,6 @@ CONTAINS
     CALL cpl_def_field( &
       comp_id, cell_point_id, cell_mask_id, timestepstring, &
       "soil_water_runoff", 1, field_id_runoffg)
-! YAC_coupling
-#endif
 
   END SUBROUTINE construct_nwp_hydrodisc_coupling
 

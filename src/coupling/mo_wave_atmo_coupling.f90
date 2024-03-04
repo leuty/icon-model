@@ -110,7 +110,7 @@ CONTAINS
     !
     CALL cpl_get_field( &
       routine, field_id_u10m, 'u10m', p_patch%n_patch_cells, u10m, &
-      received_data=received_data)
+      first_get=.TRUE., received_data=received_data)
     IF (received_data) &
       CALL sync_patch_array( &
         SYNC_C, p_patch, u10m, opt_varname='u10m')

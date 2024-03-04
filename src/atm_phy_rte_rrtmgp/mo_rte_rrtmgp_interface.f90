@@ -91,7 +91,7 @@ CONTAINS
   !-------------------------------------------------------------------
   SUBROUTINE rte_rrtmgp_interface(                                          &
       & jg, jb, jcs, jce, nproma, klev                                     ,&
-      & irad_aero       , lrad_yac                                         ,&
+      & irad_aero       , lrad_coupled                                     ,&
       & psctm           , ssi_factor                                       ,&
       & loland          ,loglac          ,this_datetime                    ,&
       & pcos_mu0        ,daylght_frc                                       ,&
@@ -125,7 +125,7 @@ CONTAINS
          nproma, klev, & !< array dimensions(?)
          irad_aero       !< aerosol control
 
-    LOGICAL, INTENT(IN) :: lrad_yac                      !< kinne aerosol from yac (true) or file
+    LOGICAL, INTENT(IN) :: lrad_coupled                  !< kinne aerosol from coupler (true) or file
     REAL(wp),INTENT(IN) :: psctm                         !< orbit and time dependent solar constant for radiation time step
     REAL(wp),INTENT(IN) :: ssi_factor(:)                 !< fraction of TSI in the 14 RRTM SW bands
 
@@ -170,7 +170,7 @@ CONTAINS
     REAL(wp), INTENT(INOUT) :: &
          tau_ice(:,:),    & !< optical depth of cloud ice integrated over bands
          tau_snow(:,:)      !< optical depth of snow integrated over bands
-    
+
     REAL(wp), INTENT(OUT)   :: &
       & lw_dnw_clr(:,:),& !< Clear-sky downward longwave  at all levels
       & lw_upw_clr(:,:),& !< Clear-sky upward   longwave  at all levels
@@ -255,7 +255,7 @@ CONTAINS
               & jb,             nbndsw,                nbndlw,         &
               & zf,             dz,                                    &
               & aer_tau_sw,     aer_ssa_sw,            aer_asy_sw,     &
-              & aer_tau_lw, opt_from_coupler=lrad_yac )
+              & aer_tau_lw, opt_from_coupler=lrad_coupled )
       END IF
       IF (irad_aero==14 .OR. irad_aero==15 .OR. irad_aero==18) THEN
       ! iaero=14: only Stechnikov's volcanic aerosols are used (added to zero)

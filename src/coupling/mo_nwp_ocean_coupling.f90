@@ -27,6 +27,10 @@
 ! SPDX-License-Identifier: BSD-3-Clause
 ! ---------------------------------------------------------------
 
+!----------------------------
+#include "omp_definitions.inc"
+!----------------------------
+
 MODULE mo_nwp_ocean_coupling
 
   USE mo_bc_greenhouse_gases ,ONLY: ghg_co2vmr
@@ -40,8 +44,7 @@ MODULE mo_nwp_ocean_coupling
   USE mo_idx_list            ,ONLY: t_idx_list_blocked
   USE mo_impl_constants      ,ONLY: start_prog_cells, end_prog_cells
   USE mo_kind                ,ONLY: wp
-  USE mo_lnd_nwp_config      ,ONLY: isub_water, isub_seaice, isub_lake,     &
-       &                            hice_max
+  USE mo_lnd_nwp_config      ,ONLY: isub_water, isub_seaice, hice_max
   USE mo_loopindices         ,ONLY: get_indices_c
   USE mo_model_domain        ,ONLY: t_patch
   USE mo_nonhydro_types      ,ONLY: t_nh_diag
@@ -554,7 +557,7 @@ CONTAINS
 
     CALL cpl_get_field( &
       routine, field_id_sst, 'sst', p_patch%n_patch_cells, &
-      rx%t_seasfc)
+      rx%t_seasfc, first_get=.TRUE.)
 
     !------------------------------------------------
     !  Receive zonal velocity

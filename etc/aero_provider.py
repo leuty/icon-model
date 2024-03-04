@@ -48,7 +48,7 @@ except :
     lrad_yac = False
 
 if ( not lrad_yac ) :
-    print ( "aero_provider: lrad_yac = .FALSE. cannot be used when running o3_provider " )
+    print ( "aero_provider: lrad_yac = .FALSE. cannot be used when running aero_provider " )
     raise SystemExit(1); exit
 
 try :

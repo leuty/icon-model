@@ -259,10 +259,8 @@ MODULE mo_nh_stepping
     &                                    icon_call_callback
 #endif
 
-#ifdef YAC_coupling
   USE mo_coupling_config       ,ONLY: is_coupled_to_output
   USE mo_output_coupling       ,ONLY: output_coupling
-#endif
 
   !$ser verbatim USE mo_ser_all, ONLY: serialize_all
 
@@ -1519,14 +1517,11 @@ MODULE mo_nh_stepping
       END IF
    END DO
 
-#ifdef YAC_coupling
    IF( is_coupled_to_output() ) THEN
       IF (ltimer) CALL timer_start(timer_coupling)
       CALL output_coupling()
       IF (ltimer) CALL timer_stop(timer_coupling)
    END IF
-#endif
-
 
 
     ! Diagnostics: computation of total integrals

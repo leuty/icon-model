@@ -35,6 +35,8 @@ MODULE mo_bc_ozone
   USE mo_bcs_time_interpolation,   ONLY: t_time_interpolation_weights, &
        &                                      calculate_time_interpolation_weights
 
+  USE mo_timer,                     ONLY: ltimer, timer_start, timer_stop, &
+                                          timer_coupling
   USE mo_atmo_o3_provider_coupling, ONLY: nplev_o3_provider, &
                                           couple_atmo_to_o3_provider
 
@@ -118,7 +120,6 @@ CONTAINS
 
     IF (PRESENT(opt_from_coupler)) from_coupler = opt_from_coupler
 
-#ifdef YAC_coupling
     IF (from_coupler) THEN
 
        nplev_o3 =  nplev_o3_provider
@@ -128,13 +129,14 @@ CONTAINS
           ext_ozone(jg)% o3_plev = 0.0_wp
        END IF
 
+       IF (ltimer) CALL timer_start(timer_coupling)
        CALL couple_atmo_to_o3_provider( &
-        p_patch, vmr2mmr_o3, ext_ozone(jg)% o3_plev)
+         p_patch, vmr2mmr_o3, ext_ozone(jg)% o3_plev)
+       IF (ltimer) CALL timer_stop(timer_coupling)
 
        fname = 'bc_ozone.nc'
 
     END IF
-#endif
 
     IF (year > pre_year(jg) .AND. .NOT. from_coupler) THEN
       !

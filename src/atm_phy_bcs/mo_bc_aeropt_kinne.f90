@@ -28,7 +28,9 @@ MODULE mo_bc_aeropt_kinne
   USE mtime,                   ONLY: datetime
 
   USE mo_bcs_time_interpolation, ONLY: t_time_interpolation_weights, &
-       &                               calculate_time_interpolation_weights
+    &                                  calculate_time_interpolation_weights
+  USE mo_timer,                ONLY: ltimer, timer_start, timer_stop, &
+    &                                timer_coupling
   USE mo_atmo_aero_provider_coupling, ONLY: couple_atmo_to_aero_provider
 
   IMPLICIT NONE
@@ -254,12 +256,14 @@ SUBROUTINE read_bc_aeropt_kinne(mtime_current, p_patch, l_filename_year, nbndlw,
       pre_year(jg)  =  mtime_current%date%year
     ENDIF
 
+    IF (ltimer) CALL timer_start(timer_coupling)
     CALL couple_atmo_to_aero_provider( &
       p_patch, ext_aeropt_kinne(jg)%aod_f_s, ext_aeropt_kinne(jg)%ssa_f_s, &
       ext_aeropt_kinne(jg)%asy_f_s, ext_aeropt_kinne(jg)%aod_c_s, &
       ext_aeropt_kinne(jg)%ssa_c_s, ext_aeropt_kinne(jg)%asy_c_s, &
       ext_aeropt_kinne(jg)%aod_c_f, ext_aeropt_kinne(jg)%ssa_c_f, &
       ext_aeropt_kinne(jg)%z_km_aer_f_mo, ext_aeropt_kinne(jg)%z_km_aer_c_mo)
+    IF (ltimer) CALL timer_stop(timer_coupling)
 
     !$ACC UPDATE DEVICE(ext_aeropt_kinne(jg)%aod_c_s, ext_aeropt_kinne(jg)%aod_f_s) &
     !$ACC   DEVICE(ext_aeropt_kinne(jg)%ssa_c_s, ext_aeropt_kinne(jg)%ssa_f_s) &

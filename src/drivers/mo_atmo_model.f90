@@ -204,6 +204,7 @@ CONTAINS
     ! constructs the nonhydrostatic atmospheric model
     ! constructs the coupler
     ! performs integration
+    ! destructs the coupler
     ! destructs the nonhydrostatic atmospheric model
     !---------------------------------------------------------------------
     CALL atmo_nonhydrostatic ()

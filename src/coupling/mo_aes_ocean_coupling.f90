@@ -35,8 +35,6 @@ MODULE mo_aes_ocean_coupling
 
   USE mo_bc_greenhouse_gases ,ONLY: ghg_co2vmr
 
-  USE mo_parallel_config     ,ONLY: nproma
-
   USE mo_coupling_config     ,ONLY: is_coupled_run
   USE mo_atmo_coupling_frame ,ONLY: nbr_inner_cells
   USE mo_atmo_ocean_coupling ,ONLY: mask_checksum, &
@@ -513,7 +511,8 @@ CONTAINS
     no_arr = 1
     CALL cpl_get_field( &
       routine, field_id_sst, 'SST', &
-      get_buffer(1:nbr_hor_cells,1:no_arr), received_data=received_data)
+      get_buffer(1:nbr_hor_cells,1:no_arr), &
+      first_get=.TRUE., received_data=received_data)
 
     IF (received_data) THEN
 

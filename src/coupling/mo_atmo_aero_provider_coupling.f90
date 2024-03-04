@@ -21,6 +21,7 @@ MODULE mo_atmo_aero_provider_coupling
   USE mo_kind,           ONLY: wp
   USE mo_model_domain,   ONLY: t_patch
   USE mo_exception,      ONLY: finish
+  USE mo_aes_rad_config, ONLY: aes_rad_config
   USE mo_coupling_utils, ONLY: cpl_def_field, cpl_get_field, &
                                cpl_get_field_collection_size
 
@@ -63,8 +64,18 @@ CONTAINS
     INTEGER, INTENT(IN) :: cell_point_id
     CHARACTER(LEN=*), INTENT(IN) :: timestepstring
 
+    INTEGER, PARAMETER :: jg = 1
+
     CHARACTER(LEN=*), PARAMETER   :: &
       routine = str_module // ':construct_atmo_aero_provider_coupling_post_sync'
+
+    IF (.NOT. aes_rad_config(jg)%lrad_yac .OR. &
+        (aes_rad_config(jg)%irad_aero /= 12 .AND. &
+         aes_rad_config(jg)%irad_aero /= 13 .AND. &
+         aes_rad_config(jg)%irad_aero /= 15 .AND. &
+         aes_rad_config(jg)%irad_aero /= 18 .AND. &
+         aes_rad_config(jg)%irad_aero /= 19)) &
+      CALL finish(routine, "invalid configuration")
 
     IF ( nb_lw /= &
          cpl_get_field_collection_size( &
@@ -140,10 +151,8 @@ CONTAINS
     CHARACTER(LEN=*), PARAMETER   :: &
       routine = str_module // ':couple_atmo_to_aero_provider'
 
-    INTEGER :: nblks_c
     INTEGER :: num_cells
 
-    nblks_c = p_patch%nblks_c
     num_cells = p_patch%n_patch_cells
 
     IF ( .NOT. ALLOCATED(recv_buf) ) THEN
@@ -158,7 +167,7 @@ CONTAINS
     ! aod_lw_b16_coa -> aod_c_f ( band )
     CALL cpl_get_field( &
       routine, field_id_aod_c_f, 'aod_c_f', &
-      aod_c_f(:,1:nb_lw,:,1), recv_buf)
+      aod_c_f(:,1:nb_lw,:,1), recv_buf, first_get=.TRUE.)
 
     !ssa_lw_b16_coa -> ssa_c_f ( band )
     CALL cpl_get_field( &

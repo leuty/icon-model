@@ -118,7 +118,7 @@ CONTAINS
       gas(5,jg)%mmr2vmr = amd/amo3
       IF (aes_rad_config(jg)% lrad_yac .AND. &
         (gas(5,jg)%irad == 5 .OR. gas(5,jg)%irad == 6)) &
-         gas(5,jg)%irad = 4 ! one time step from yac
+         gas(5,jg)%irad = 4 ! one time step from coupler
 !   N2O
       gas(6,jg)%name = 'n2o  '
       gas(6,jg)%irad = aes_rad_config(jg)% irad_n2o

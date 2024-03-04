@@ -30,10 +30,7 @@ MODULE mo_atmo_ocean_coupling
   USE mo_run_config,      ONLY: iforcing
   USE mo_util_dbg_prnt,   ONLY: dbg_print
   USE mo_exception,       ONLY: finish
-  USE mo_coupling_utils,  ONLY: cpl_def_field
-#ifdef YAC_coupling
-  USE mo_yac_finterface,  ONLY: yac_fdef_mask, YAC_LOCATION_CELL
-#endif
+  USE mo_coupling_utils,  ONLY: cpl_def_cell_field_mask, cpl_def_field
 
   IMPLICIT NONE
 
@@ -96,10 +93,6 @@ CONTAINS
 
     CHARACTER(LEN=*), PARAMETER   :: &
       routine = str_module // ':construct_atmo_ocean_coupling'
-
-#ifndef YAC_coupling
-    CALL finish(routine, 'built without coupling support.')
-#else
 
     jg = 1
     patch_horz => p_patch(jg)
@@ -205,12 +198,8 @@ CONTAINS
 
     END SELECT !}}}
 
-    CALL yac_fdef_mask (          &
-      & grid_id,                  &
-      & patch_horz%n_patch_cells, &
-      & YAC_LOCATION_CELL,        &
-      & is_valid,                 &
-      & cell_mask_id )
+    CALL cpl_def_cell_field_mask( &
+      routine, grid_id, is_valid, cell_mask_id )
 
     DEALLOCATE (is_valid, STAT = error)
     IF(error /= SUCCESS) CALL finish(str_module, "Deallocation failed for is_valid")
@@ -269,9 +258,6 @@ CONTAINS
     CALL cpl_def_field( &
       comp_id, cell_point_id, cell_mask_id, timestepstring, &
       "sea_level_pressure", 1, field_id_pres_msl)
-
-! YAC_coupling
-#endif
 
   END SUBROUTINE construct_atmo_ocean_coupling
 

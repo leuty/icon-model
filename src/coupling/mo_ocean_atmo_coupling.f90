@@ -33,11 +33,9 @@ MODULE mo_ocean_atmo_coupling
   !-------------------------------------------------------------
   ! For the coupling
   !
-  USE mo_coupling_utils,      ONLY: cpl_def_field, cpl_put_field, cpl_get_field
+  USE mo_coupling_utils,      ONLY: cpl_def_cell_field_mask, cpl_def_field, &
+    &                               cpl_put_field, cpl_get_field
   USE mo_parallel_config,     ONLY: nproma
-#ifdef YAC_coupling
-  USE mo_yac_finterface,      ONLY: yac_fdef_mask, YAC_LOCATION_CELL
-#endif
   USE mo_coupling_config,     ONLY: is_coupled_run
   USE mo_hamocc_nml,          ONLY: l_cpl_co2
 
@@ -75,7 +73,7 @@ CONTAINS
   !! Registers fields required for the coupling between ocean and
   !! atmo
   !!
-  !! This subroutine is called from construct_atmo_coupling.
+  !! This subroutine is called from construct_ocean_coupling.
   !!
   SUBROUTINE construct_ocean_atmo_coupling( &
     patch_3d, comp_id, grid_id, cell_point_id, timestepstring, &
@@ -109,10 +107,6 @@ CONTAINS
 
     CHARACTER(LEN=*), PARAMETER   :: &
       routine = str_module // ':construct_ocean_atmo_coupling'
-
-#ifndef YAC_coupling
-    CALL finish(routine, 'built without coupling support.')
-#else
 
     patch_no = 1
     patch_horz => patch_3d%p_patch_2d(patch_no)
@@ -204,12 +198,7 @@ CONTAINS
       ENDDO
 !ICON_OMP_END_PARALLEL_DO
 
-      CALL yac_fdef_mask (          &
-        & grid_id,                  &
-        & patch_horz%n_patch_cells, &
-        & YAC_LOCATION_CELL,        &
-        & is_valid,                 &
-        & cell_mask_id )
+      CALL cpl_def_cell_field_mask(routine, grid_id, is_valid, cell_mask_id)
 
       DO i = 1, no_of_fields
 
@@ -243,9 +232,6 @@ CONTAINS
 
     ENDIF
 
-! YAC_coupling
-#endif
-
   END SUBROUTINE construct_ocean_atmo_coupling
 
   !>
@@ -278,8 +264,6 @@ CONTAINS
     CHARACTER(LEN=*), PARAMETER   :: routine = str_module // ':couple_ocean_toatmo_fluxes'
 
     IF (.NOT. is_coupled_run() ) RETURN
-
-    IF (ltimer) CALL timer_start(timer_coupling)
 
     patch_horz   => patch_3D%p_patch_2D(1)
 
@@ -450,7 +434,8 @@ CONTAINS
     CALL cpl_get_field( &
       'couple_ocean_toatmo_fluxes', field_id_umfl, 'u-stress', nbr_hor_cells, &
       field_1=atmos_fluxes%stress_xw, &
-      field_2=atmos_fluxes%stress_x, received_data=received_data)
+      field_2=atmos_fluxes%stress_x, &
+      first_get=.TRUE., received_data=received_data)
     !
     IF (received_data) THEN
       !
@@ -837,8 +822,6 @@ CONTAINS
 
     DEALLOCATE(put_buffer)
     DEALLOCATE(get_buffer)
-
-    IF (ltimer) CALL timer_stop(timer_coupling)
 
   END SUBROUTINE couple_ocean_toatmo_fluxes
   !--------------------------------------------------------------------------

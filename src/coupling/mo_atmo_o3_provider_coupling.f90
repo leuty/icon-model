@@ -20,6 +20,8 @@ MODULE mo_atmo_o3_provider_coupling
 
   USE mo_kind,           ONLY: wp
   USE mo_model_domain,   ONLY: t_patch
+  USE mo_exception,      ONLY: finish
+  USE mo_aes_rad_config, ONLY: aes_rad_config
   USE mo_coupling_utils, ONLY: cpl_def_field, cpl_get_field, &
                                cpl_get_field_collection_size
   USE mo_sync,           ONLY: SYNC_C, sync_patch_array
@@ -53,8 +55,15 @@ CONTAINS
     INTEGER, INTENT(IN) :: cell_point_id
     CHARACTER(LEN=*), INTENT(IN) :: timestepstring
 
+    INTEGER, PARAMETER :: jg = 1
+
     CHARACTER(LEN=*), PARAMETER   :: &
       routine = str_module // ':construct_atmo_o3_provider_coupling_post_sync'
+
+    IF  (.NOT. aes_rad_config(jg)%lrad_yac .OR. &
+         (aes_rad_config(jg)%irad_o3 /= 5 .AND. &
+          aes_rad_config(jg)%irad_o3 /= 6)) &
+      CALL finish(routine, "invalid configuration")
 
     nplev_o3_provider = &
       cpl_get_field_collection_size( &
@@ -86,8 +95,8 @@ CONTAINS
     END IF
 
     CALL cpl_get_field( &
-      routine, field_id_o3, 'o3', o3_plev(:,:,:,1), &
-      recv_buf, vmr2mmr_o3, received_data=received_data)
+      routine, field_id_o3, 'o3', o3_plev(:,:,:,1), recv_buf, &
+      scale_factor=vmr2mmr_o3, first_get=.TRUE., received_data=received_data)
     IF (received_data) &
       CALL sync_patch_array( &
         SYNC_C, p_patch, o3_plev(:,:,:,1), opt_varname='o3')
