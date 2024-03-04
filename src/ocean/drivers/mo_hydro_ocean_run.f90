@@ -34,6 +34,7 @@ MODULE mo_hydro_ocean_run
     &  Cartesian_Mixing, GMRedi_configuration, OceanReferenceDensity_inv, &
     &  atm_pressure_included_in_ocedyn, &
     &  vert_mix_type, vmix_pp, lcheck_salt_content, &
+    &  use_age_tracer, & ! by_nils
     &  use_draftave_for_transport_h, &
     & vert_cor_type, use_tides, check_total_volume
   USE mo_ocean_nml,              ONLY: iforc_oce, Coupled_FluxFromAtmo
@@ -110,6 +111,7 @@ MODULE mo_hydro_ocean_run
   USE mo_ocean_state,            ONLY: v_base
   USE mo_ocean_nudging,          ONLY: ocean_nudge
   USE mo_fortran_tools,          ONLY: set_acc_host_or_device
+  USE mo_ocean_age_tracer,       ONLY: calc_age_tracer ! by_nils
 #ifdef YAC_coupling
   USE mo_output_coupling,        ONLY: output_coupling
 #endif
@@ -587,6 +589,12 @@ CONTAINS
 
         CALL tracer_transport(patch_3d, ocean_state(jg), p_as, sea_ice, p_oce_sfc, &
           & p_phys_param, operators_coefficients, current_time, lacc=lzacc)
+
+        IF (use_age_tracer) THEN
+          !$ACC DATA COPYIN(p_as%pao) IF(lzacc)
+          CALL calc_age_tracer(patch_3d, ocean_state(jg), jstep, sea_ice, lacc=lzacc)
+          !$ACC END DATA
+        ENDIF
 
         IF (lcheck_salt_content) CALL check_total_salt_content(140,ocean_state(jg)%p_prog(nnew(1))%tracer(:,:,:,2), patch_2d, &
           ocean_state(jg)%p_prog(nnew(1))%h(:,:), patch_3D%p_patch_1d(1)%prism_thick_flat_sfc_c(:,:,:),&
@@ -1220,6 +1228,10 @@ CONTAINS
           & p_oce_sfc, p_phys_param, operators_coefficients, current_time, &
           & ocean_state(jg)%p_prog(nold(1))%stretch_c, stretch_e, ocean_state(jg)%p_prog(nnew(1))%stretch_c, &
           & lacc=lzacc)
+
+        IF (use_age_tracer) THEN
+          CALL calc_age_tracer(patch_3d, ocean_state(jg), jstep, sea_ice, lacc=lzacc)
+        ENDIF
 
         !$ACC WAIT(1)
         DO i = 1, ocean_state(jg)%p_prog(nold(1))%tracer_collection%no_of_tracers

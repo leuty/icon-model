@@ -8834,12 +8834,23 @@ CONTAINS
         IF (root /= my_rank) p_sum = zfield
       ELSE
 
+! ACCWA (Cray Fortran <= 16.0.1.1) : ACC IF generate wrong assembly which segfaults CAST-32453
+#if defined(_CRAYFTN) && _RELEASE_MAJOR <= 16
+        IF (loc_use_g2g) THEN
+          !$ACC HOST_DATA USE_DEVICE(zfield)
+          CALL mpi_allreduce (zfield, p_sum, SIZE(zfield), p_real_dp, &
+                mpi_sum, p_comm, p_error)
+          !$ACC END HOST_DATA
+        ELSE
+           CALL mpi_allreduce (zfield, p_sum, SIZE(zfield), p_real_dp, &
+                mpi_sum, p_comm, p_error)
+        END IF
+#else
         !$ACC HOST_DATA USE_DEVICE(zfield) IF(loc_use_g2g)
-
         CALL mpi_allreduce (zfield, p_sum, SIZE(zfield), p_real_dp, &
              mpi_sum, p_comm, p_error)
-
         !$ACC END HOST_DATA
+#endif
 
       END IF
     ELSE
