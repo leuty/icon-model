@@ -38,7 +38,8 @@ MODULE mo_atmo_model
 #endif
   USE mo_parallel_config,         ONLY: p_test_run, num_test_pe, l_test_openmp, num_io_procs, &
     &                                   proc0_shift, num_prefetch_proc, pio_type, num_io_procs_radar, &
-    &                                   ignore_nproma_use_nblocks_c, nproma, update_nproma_for_io_procs
+    &                                   ignore_nproma_use_nblocks_c, ignore_nproma_use_nblocks_e,     &
+    &                                   nproma, update_nproma_for_io_procs
   USE mo_master_config,           ONLY: isRestart
   USE mo_memory_log,              ONLY: memory_log_terminate
 #ifndef NOMPI
@@ -410,7 +411,7 @@ CONTAINS
       CALL build_decomposition(num_lev, nshift, is_ocean_decomposition = .FALSE.)
     ENDIF
 
-    IF (ignore_nproma_use_nblocks_c) THEN
+    IF (ignore_nproma_use_nblocks_c .OR. ignore_nproma_use_nblocks_e) THEN
       nproma_max = global_max(nproma)
       CALL update_nproma_for_io_procs(nproma_max)
     ENDIF

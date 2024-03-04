@@ -423,7 +423,7 @@ set_run_target_bullx_gpu()
 {
     icon_data_rootFolder=${icon_data_rootFolder:=/pool/data/ICON}
 
-    set_default use_nproma 8000
+    set_default use_nproma 0
     set_default use_nproma_sub 8000
     set_default use_nblocks_c 1
     set_default use_nodes 1
@@ -1248,7 +1248,7 @@ set_run_target_daint_gpu()
     rootFolder_prefix=/users/icontest
     icon_data_rootFolder=${icon_data_rootFolder:=${rootFolder_prefix}/pool/data/ICON}
 
-    set_default use_nproma 8000
+    set_default use_nproma 0
     set_default use_nproma_sub 800
     set_default use_nblocks_c 1
     set_default use_prefetch_procs 0
@@ -1359,7 +1359,7 @@ set_run_target_alps_mch_gpu()
     icon_data_rootFolder=${icon_data_rootFolder:=${rootFolder_prefix}/pool/data/ICON}
 
     set_default use_nodes 1
-    set_default use_nproma 8000
+    set_default use_nproma 0
     set_default use_nblocks_c 1
     set_default use_prefetch_procs 0
     set_default use_account_no "$(id -gn)"
@@ -1961,9 +1961,15 @@ create_target_header()
  	case $job_name in
         *dwd_run_ICON_09_R2B4N5_EPS.run*|*dwd_run_ICON_09_R2B4N5_EPS_member_id*)
             case $use_target in
+                daint_gpu*)
+                    use_nproma=8000
+		    use_nblocks_c=0
+                ;;
                 alps_mch_gpu*)
                     use_nodes=1
                     use_mpi_procs_pernode=4
+                    use_nproma=8000
+		    use_nblocks_c=0
                 ;;
             esac
             ;;
@@ -1983,10 +1989,38 @@ create_target_header()
                 ;;
             esac
             ;;
+        *atm_ape*.run|*atm_heldsuarez*.run) # for nproma test
+            case $use_target in
+                daint_gpu*|balfrin_gpu*)
+                    use_nproma=8000
+		    use_nblocks_c=0
+                ;;
+            esac
+            ;;
+        *atm_qubicc_nc_test*.run|*atm_qubicc_nc_test_nofor*.run|*atm_qubicc_nc_test_onlyfor*.run) # for nproma test
+            case $use_target in
+                daint_gpu*|balfrin_gpu*)
+                    use_nproma=8000
+		    use_nblocks_c=0
+                ;;
+            esac
+            ;;
+	*atm_tracer_Hadley*)
+            case $use_target in
+                bullx_gpu*)
+                    use_nproma=8000
+		    use_nblocks_c=0
+                ;;
+            esac
+            ;;
         *mch_opr_r04b07.run|*mch_opr_r04b07_member_id*.run)
             use_nodes=1
             use_mpi_procs_pernode=3
-            use_nproma=4250
+            case $use_target in
+                *_cpu*)
+                    use_nproma=4250
+                ;;
+            esac
             ;;
         *mch_opr_r04b07_lhn_00.run|*mch_opr_r04b07_lhn_00_member_id*.run)
             use_nodes=2
@@ -2072,6 +2106,14 @@ create_target_header()
             esac
             ;;
 
+	*ocean_omip_R2B4_V*)
+            case $use_target in
+                bullx_gpu*)
+                    use_nproma=8000
+		    use_nblocks_c=0
+                ;;
+            esac
+            ;;
         *run_ICON_01_R3B9_lam*)
             case $use_target in
                 daint*)

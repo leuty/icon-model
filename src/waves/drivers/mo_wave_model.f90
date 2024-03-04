@@ -40,7 +40,8 @@ MODULE mo_wave_model
   USE mo_wave_crosscheck,         ONLY: wave_crosscheck
   USE mo_parallel_config,         ONLY: p_test_run, num_test_pe, l_test_openmp, num_io_procs, &
        &                                proc0_shift, num_prefetch_proc, pio_type, num_io_procs_radar, &
-       &                                ignore_nproma_use_nblocks_c, nproma, update_nproma_for_io_procs
+       &                                ignore_nproma_use_nblocks_c, ignore_nproma_use_nblocks_e,  &
+       &                                nproma, update_nproma_for_io_procs
   USE mo_grid_config,             ONLY: n_dom, n_dom_start
   USE mo_build_decomposition,     ONLY: build_decomposition
   USE mo_zaxis_type,              ONLY: zaxisTypeList, t_zaxisTypeList

@@ -29,6 +29,7 @@ MODULE mo_nml_crosscheck
     &                                    wshear_uv_heights, n_wshear, srh_heights, n_srh
   USE mo_parallel_config,          ONLY: check_parallel_configuration,                     &
     &                                    ignore_nproma_use_nblocks_c,                      &
+    &                                    ignore_nproma_use_nblocks_e,                      &
     &                                    num_io_procs,                                     &
     &                                    num_prefetch_proc, use_dp_mpi2io, num_io_procs_radar
   USE mo_limarea_config,           ONLY: latbc_config, LATBC_TYPE_CONST, LATBC_TYPE_EXT
@@ -139,11 +140,11 @@ CONTAINS
     CALL check_parallel_configuration()
 
     !
-    ! nblock_c does not work with nesting
+    ! nblocks_c or nblocks_e does not work with nesting
     ! It crashes and would be a waste of memory, if the nest were significant smaller than the parent.
     !
-    IF (ignore_nproma_use_nblocks_c .AND. (n_dom > 1)) CALL finish(routine, &
-      'Currently nblocks_c (>0) is not supported for nested domains.')
+    IF ((ignore_nproma_use_nblocks_c .OR. ignore_nproma_use_nblocks_e) .AND. (n_dom > 1)) CALL finish(routine, &
+      'Currently nblocks_c or nblocks_e (>0) is not supported for nested domains.')
 
     !--------------------------------------------------------------------
     ! Limited Area Mode and LatBC read-in:

@@ -6935,26 +6935,33 @@ variable rather than the name of the corresponding tile container (i.e.\ in the 
 %\hline
 \textbf{nproma} &
 I & 1& &
-chunk length. &
+Loop chunk length. Only one of (\emph{nproma}, \emph{nblocks\_c}, \emph{nblocks\_e}) may be specified in the namelist (>0) at any time. \\
 \tabularnewline
 
 %\hline
 \textbf{nblocks\_c} &
 I & 0& &
-Number of looping chunks used for cells. For values <= 0 this is ignored. For bigger values, this overwrites \textbf{nproma}. &
+Number of looping chunks used for cells. For values > 0, \emph{nproma} is recomputed according to the specified \emph{nblocks\_c}.  \\   &
+\tabularnewline
+
+%\hline
+\textbf{nblocks\_e} &
+I & 0& &
+Number of looping chunks used for edges. For values > 0, \emph{nproma} is recomputed according to the specified \emph{nblocks\_e}. \\ &
 \tabularnewline
 
 %\hline
 nproma\_sub &
 I & nproma & &
 Chunk size of subblocks used for example by ecRad or rrtmgp, which is needed for the GPU
-port to reduce the memory footprint. \\ &
+port to reduce the memory footprint. \\ May only specify one of (\emph{nproma\_sub}, \emph{nblocks\_sub}) in the namelist (>0) at any time. \\ &
 \tabularnewline
 
 %\hline
 nblocks\_sub &
 I & 1 & &
-Number of looping chunks used for subblocking. For values <= 0 this is ignored. For bigger values, this overwrites \emph{nproma\_sub}. &
+Number of looping chunks used for subblocking. For values <= 0 this is ignored. For bigger values, this overwrites \emph{nproma\_sub}.
+\\ For reduced-grid radiation, we suggest explicitly specifying \emph{nproma\_sub} instead of using \emph{nblocks\_sub}.	&
 \tabularnewline
 
 %\hline
