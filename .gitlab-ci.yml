@@ -74,3 +74,46 @@ Check Style:
   # Run only for branches that are part of a merge request:
   rules:
     - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+
+Check Autoreconf:
+  variables:
+    AUTOCONF_VERSION: "2.69"
+    GIT_SUBMODULE_STRATEGY: none
+
+  stage: lint
+
+  before_script:
+    - apk add --no-cache automake curl git m4 make perl
+    - |
+      # Installing Autoconf
+      (
+        set -eux
+        mkdir autoconf && cd autoconf
+        curl -L https://de.freedif.org/gnu/autoconf/autoconf-${AUTOCONF_VERSION}.tar.gz | tar xz --strip-components=1
+        ./configure && make -j4 && make install
+      )
+
+  script:
+    - autoreconf -fvi
+    - git diff --patch-with-raw > autoreconf.patch
+    - |
+      # Checking the consistency
+      test ! -s autoreconf.patch || {
+        printf "\033[0;31mERROR: the automatically generated Autotools files \
+      (e.g. 'configure') are inconsistent with 'configure.ac' and/or \
+      Autoconf ${AUTOCONF_VERSION} (see artifacts)\033[0m\n" >&2
+        exit 1
+      }
+
+  tags:
+    - alpine
+
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+
+  artifacts:
+    paths:
+      - autoreconf.patch
+    expire_in: 1 week
+    expose_as: 'Autoreconf Git Patch'
+    when: on_failure
