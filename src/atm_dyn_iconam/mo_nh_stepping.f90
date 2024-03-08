@@ -1525,6 +1525,7 @@ MODULE mo_nh_stepping
 
 
     ! Diagnostics: computation of total integrals
+    !              will be called for the base domain, only.
     !
     ! Diagnostics computation is not yet properly MPI-parallelized
     !
@@ -1538,14 +1539,14 @@ MODULE mo_nh_stepping
 #ifdef NOMPI
       IF (my_process_is_mpi_all_seq()) &
 #endif
-        CALL supervise_total_integrals_nh( kstep, p_patch(1:), p_nh_state, p_int_state(1:), &
-        &                                  nnow(1:n_dom), nnow_rcf(1:n_dom), jstep == (nsteps+jstep0), lacc=i_am_accel_node)
+        CALL supervise_total_integrals_nh( kstep, p_patch(1), p_nh_state(1), p_int_state(1), &
+        &                                  nnow(1), nnow_rcf(1), jstep == (nsteps+jstep0), lacc=i_am_accel_node)
     ENDIF
 
 
     ! re-initialize MAX/MIN fields with 'resetval'
     ! must be done AFTER output
-
+    !
     CALL reset_act%execute(slack=dtime, mtime_date=mtime_current)
 
 
