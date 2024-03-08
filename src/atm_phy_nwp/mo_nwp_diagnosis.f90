@@ -71,7 +71,7 @@ MODULE mo_nwp_diagnosis
   USE mo_time_config,        ONLY: time_config
   USE mo_nwp_tuning_config,  ONLY: lcalib_clcov, max_calibfac_clcl
   USE mo_mpi,                ONLY: p_io, p_comm_work, p_bcast
-  USE mo_fortran_tools,      ONLY: assert_acc_host_only, set_acc_host_or_device, assert_acc_device_only
+  USE mo_fortran_tools,      ONLY: set_acc_host_or_device, assert_acc_device_only
   USE mo_radiation_config,   ONLY: decorr_pole, decorr_equator
 
   IMPLICIT NONE
@@ -715,7 +715,7 @@ CONTAINS
     INTEGER :: jt               ! tracer loop index
 
     REAL(wp):: clearsky(nproma)
-    REAL(wp):: ccmax, ccran, alpha(nproma,pt_patch%nlev), clcl_mod, clcm_mod, clct_fac, zlat,zcos_lat
+    REAL(wp):: ccmax, ccran, alpha(nproma,pt_patch%nlev), clcl_mod, clcm_mod, clct_fac, zcos_lat
     LOGICAL :: lland
     LOGICAL :: lzacc ! non-optional version of lacc
 
@@ -765,7 +765,7 @@ CONTAINS
 !$OMP PARALLEL
     IF ( atm_phy_nwp_config(jg)%lenabled(itccov) ) THEN
 
-!$OMP DO PRIVATE(jc,jk,jb,z_help,i_startidx,i_endidx,clearsky,ccmax,ccran,alpha,clcl_mod,clcm_mod,clct_fac,lland,zdecorr,zlat,zcos_lat)
+!$OMP DO PRIVATE(jc,jk,jb,z_help,i_startidx,i_endidx,clearsky,ccmax,ccran,alpha,clcl_mod,clcm_mod,clct_fac,lland,zdecorr,zcos_lat)
       DO jb = i_startblk, i_endblk
         !
         CALL get_indices_c(pt_patch, jb, i_startblk, i_endblk, &
@@ -1173,71 +1173,27 @@ CONTAINS
         & i_startidx, i_endidx, rl_start, rl_end)
 
       !
-      ! Calculation of grid scale (gsp) and total (gsp+con) instantaneous precipitation rates:
-      !
-      SELECT CASE (atm_phy_nwp_config(jg)%inwp_gscp)
-      CASE(4,5,6,7,8)
-        !$ACC PARALLEL LOOP GANG VECTOR DEFAULT(PRESENT) ASYNC(1) IF(lzacc)
-        DO jc =  i_startidx, i_endidx
-          prm_diag%prec_gsp_rate(jc,jb) = prm_diag%rain_gsp_rate(jc,jb)  &
-               &                        + prm_diag%ice_gsp_rate(jc,jb)   &
-               &                        + prm_diag%snow_gsp_rate(jc,jb)  &
-               &                        + prm_diag%hail_gsp_rate(jc,jb)  &
-               &                        + prm_diag%graupel_gsp_rate(jc,jb)
-          prm_diag%tot_prec_rate(jc,jb) = prm_diag%prec_gsp_rate(jc,jb)
-        ENDDO
-        !$ACC END PARALLEL LOOP
-      CASE(2)
-        !$ACC PARALLEL LOOP GANG VECTOR DEFAULT(PRESENT) ASYNC(1) IF(lzacc)
-        DO jc =  i_startidx, i_endidx
-          prm_diag%prec_gsp_rate(jc,jb) = prm_diag%rain_gsp_rate(jc,jb)  &
-               ! not sure what to do with ice. To be consistent to prm_diag%prec_gsp, where ice is neglected
-               ! because it predominantly is made of blowing snow, we neglect it also here:
-!               &                        + prm_diag%ice_gsp_rate(jc,jb)   &
-               &                        + prm_diag%snow_gsp_rate(jc,jb)  &
-               &                        + prm_diag%graupel_gsp_rate(jc,jb)
-          prm_diag%tot_prec_rate(jc,jb) = prm_diag%prec_gsp_rate(jc,jb)
-        ENDDO
-        !$ACC END PARALLEL LOOP
-      CASE (1)
-        !$ACC PARALLEL LOOP GANG VECTOR DEFAULT(PRESENT) ASYNC(1) IF(lzacc)
-        DO jc =  i_startidx, i_endidx
-          prm_diag%prec_gsp_rate(jc,jb) = prm_diag%rain_gsp_rate(jc,jb)  &
-               ! not sure what to do with ice. To be consistent to prm_diag%prec_gsp, where ice is neglected
-               ! because it predominantly is made of blowing snow, we neglect it also here:
-!               &                        + prm_diag%ice_gsp_rate(jc,jb)   &
-               &                        + prm_diag%snow_gsp_rate(jc,jb)
-          prm_diag%tot_prec_rate(jc,jb) = prm_diag%prec_gsp_rate(jc,jb)
-        ENDDO
-        !$ACC END PARALLEL LOOP
-      CASE (9)
-        !$ACC PARALLEL LOOP GANG VECTOR DEFAULT(PRESENT) ASYNC(1) IF(lzacc)
-        DO jc =  i_startidx, i_endidx
-          prm_diag%prec_gsp_rate(jc,jb) = prm_diag%rain_gsp_rate(jc,jb)
-          prm_diag%tot_prec_rate(jc,jb) = prm_diag%prec_gsp_rate(jc,jb)
-        ENDDO
-        !$ACC END PARALLEL LOOP
-      CASE default
-        !$ACC PARALLEL LOOP GANG VECTOR DEFAULT(PRESENT) ASYNC(1) IF(lzacc)
-        DO jc =  i_startidx, i_endidx
-          prm_diag%prec_gsp_rate(jc,jb) = 0.0_wp
-          prm_diag%tot_prec_rate(jc,jb) = 0.0_wp
-        ENDDO
-        !$ACC END PARALLEL LOOP
-      END SELECT
-      !
-      ! Add convective contributions to the total precipitation rate:
+      ! calculate total (gsp+con) instantaneous precipitation rate
       !
       IF (atm_phy_nwp_config(jg)%inwp_convection > 0) THEN
         !$ACC PARALLEL LOOP GANG VECTOR DEFAULT(PRESENT) ASYNC(1) IF(lzacc)
         DO jc = i_startidx, i_endidx
-          prm_diag%tot_prec_rate(jc,jb) = prm_diag%tot_prec_rate(jc,jb) + prm_diag%rain_con_rate(jc,jb) + &
-               &                          prm_diag%snow_con_rate(jc,jb)
-        ENDDO  ! jc
+          ! grid scale + convective
+          prm_diag%tot_prec_rate(jc,jb) = prm_diag%prec_gsp_rate(jc,jb) &
+            &                           + prm_diag%rain_con_rate(jc,jb) &
+            &                           + prm_diag%snow_con_rate(jc,jb)
+        ENDDO
         !$ACC END PARALLEL LOOP
-      END IF
+      ELSE
+        !$ACC PARALLEL LOOP GANG VECTOR DEFAULT(PRESENT) ASYNC(1) IF(lzacc)
+        DO jc = i_startidx, i_endidx
+          ! grid scale only
+          prm_diag%tot_prec_rate(jc,jb) = prm_diag%prec_gsp_rate(jc,jb)
+        ENDDO
+        !$ACC END PARALLEL LOOP
+      ENDIF
 
-   
+
       IF (atm_phy_nwp_config(jg)%lenabled(itconv))THEN !convection parameterization switched on
         !
         ! height of convection base and top, hbas_con, htop_con
