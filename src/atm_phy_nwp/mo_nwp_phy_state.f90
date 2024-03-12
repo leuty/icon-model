@@ -3041,7 +3041,7 @@ SUBROUTINE new_nwp_phy_diag_list( k_jg, klev, klevp1, kblks,    &
     CALL add_var( diag_list, 'rlamh_fac_t', diag%rlamh_fac_t,          &
       & GRID_UNSTRUCTURED_CELL, ZA_SURFACE, cf_desc, grib2_desc,       &
       & ldims=shape3dsubsw, lcontainer=.TRUE., lrestart=.FALSE.,       &
-      & loutput=.FALSE., lopenacc=.TRUE.)
+      & loutput=.FALSE., lopenacc=.TRUE., initval=1._wp)
     __acc_attach(diag%rlamh_fac_t)
 
     ! fill the seperate variables belonging to the container rlamh_fac_t

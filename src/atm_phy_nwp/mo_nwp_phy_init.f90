@@ -92,14 +92,13 @@ MODULE mo_nwp_phy_init
                                     imode_pat_len, pat_len, ndim
   USE turb_transfer,          ONLY: turbtran
   USE turb_diffusion,         ONLY: turbdiff
-  USE mo_nwp_vdiff_interface, ONLY: nwp_vdiff_init, nwp_vdiff_update_seaice_list, nwp_vdiff
+  USE mo_nwp_vdiff_interface, ONLY: nwp_vdiff_init, nwp_vdiff_update_seaice_list
   USE mo_turb_vdiff_config,   ONLY: vdiff_config
-  USE mo_ccycle_config,       ONLY: ccycle_config
 
   USE mo_nwp_sfc_utils,       ONLY: nwp_surface_init, init_snowtile_lists, init_sea_lists, &
     &                               aggregate_tg_qvs, copy_lnd_prog_now2new
-  USE mo_lnd_nwp_config,      ONLY: ntiles_total, lsnowtile, ntiles_water, ntiles_lnd, &
-    &                               lseaice, zml_soil, itype_canopy, nlev_soil, dzsoil_icon => dzsoil
+  USE mo_lnd_nwp_config,      ONLY: ntiles_total, lsnowtile, ntiles_water, &
+    &                               lseaice, zml_soil, nlev_soil, dzsoil_icon => dzsoil
   USE sfc_terra_data,         ONLY: csalbw, cpwp, cfcap
   USE mo_satad,               ONLY: sat_pres_water, &  !! saturation vapor pressure w.r.t. water
     &                               sat_pres_ice, &    !! saturation vapor pressure w.r.t. ice
@@ -110,13 +109,10 @@ MODULE mo_nwp_phy_init
   USE mo_master_config,       ONLY: isRestart
   USE mo_nwp_parameters,      ONLY: t_phy_params
 
-  USE mo_initicon_config,     ONLY: init_mode, lread_tke, icpl_da_sfcevap, dt_ana, icpl_da_snowalb, icpl_da_skinc, &
-                                    icpl_da_sfcfric, icpl_da_tkhmin, icpl_da_seaice, scalfac_da_sfcfric
-
-  USE mo_nwp_tuning_config,   ONLY: tune_zceff_min, tune_v0snow, tune_zvz0i, tune_icesedi_exp, tune_box_liq_sfc_fac, &
-                                    itune_slopecorr
+  USE mo_initicon_config,     ONLY: init_mode, lread_tke
+  USE mo_apt_routines,        ONLY: init_apt_fields
+  USE mo_nwp_tuning_config,   ONLY: tune_zceff_min, tune_v0snow, tune_zvz0i, tune_icesedi_exp, tune_box_liq_sfc_fac
   USE mo_cuparameters,        ONLY: sugwd
-  USE mo_fortran_tools,       ONLY: init
   USE mtime,                  ONLY: datetime, MAX_DATETIME_STR_LEN, &
     &                               datetimeToString, newDatetime, deallocateDatetime
   USE mo_bcs_time_interpolation, ONLY: t_time_interpolation_weights,         &
@@ -189,9 +185,9 @@ SUBROUTINE init_nwp_phy ( p_patch, p_metrics,             &
   INTEGER             :: jk, jk1
   REAL(wp)            :: rsltn   ! horizontal resolution
   REAL(wp)            :: pref(p_patch%nlev)
-  REAL(wp)            :: zlat, zlon, zprat, zn1, zn2, zcdnc
+  REAL(wp)            :: zlat, zprat, zn1, zn2, zcdnc
   REAL(wp)            :: zpres, zpres0
-  REAL(wp)            :: gz0(nproma), l_hori(nproma), slope(nproma)
+  REAL(wp)            :: gz0(nproma), l_hori(nproma)
   REAL(wp)            :: scale_fac ! scale factor used only for RCE cases
   REAL(wp) :: zvariaux(nproma,p_patch%nlevp1,ndim)  !< to pass values from turbdiff to vertdiff
   REAL(wp) :: zrhon   (nproma,p_patch%nlevp1)       !< to pass values from turbdiff to vertdiff
@@ -212,7 +208,7 @@ SUBROUTINE init_nwp_phy ( p_patch, p_metrics,             &
   REAL(wp), PARAMETER :: pr400  = 400._wp / 1013.25_wp
   REAL(wp), PARAMETER :: pr700  = 700._wp / 1013.25_wp
 
-  REAL(wp) :: ttropo, ptropo, temp, zfull, dtfac_heatc, tbias_wgt
+  REAL(wp) :: ttropo, ptropo, temp, zfull
 
   REAL(wp) :: dz1, dz2, dz3, fact_z0rough
   REAL(wp), ALLOCATABLE :: zrefpres(:,:,:)   ! ref press computed from ref exner
@@ -300,9 +296,6 @@ SUBROUTINE init_nwp_phy ( p_patch, p_metrics,             &
   dz2 = 0.0_wp
   dz3 = 0.0_wp
 
-  ! adaptation factor to analysis interval for adaptive heat conductivity/capacity
-  dtfac_heatc = (10800._wp/dt_ana)**(2._wp/3._wp)
-
   ! Initialization of upper-atmosphere physics 
   ! only in case of no reset and if the upatmo physics are switched on
   ! (upper-atmosphere physics are not integrated into the IAU iterations)
@@ -355,6 +348,7 @@ SUBROUTINE init_nwp_phy ( p_patch, p_metrics,             &
     CALL vege_clim (p_patch, ext_data, p_diag)
   ENDIF
 
+  CALL init_apt_fields(p_patch, p_diag, prm_diag, ext_data, p_diag_lnd, p_prog_wtr_now)
 
   ! Diagnose aggregated external parameter fields
   ! (mainly for output purposes)
@@ -412,124 +406,6 @@ SUBROUTINE init_nwp_phy ( p_patch, p_metrics,             &
       prm_diag%pat_len(jc,jb) = 300._wp*EXP(1.5_wp*LOG(MAX(1.e-2_wp,(ext_data%atm%sso_stdh_raw(jc,jb)-150._wp)/300._wp)))
     ENDDO
 
-    ! tuning factor for rlam_heat depending on skin conductivity and analyzed T2M/RH2M bias
-    IF (itype_canopy == 2 .AND. icpl_da_sfcevap >= 3) THEN
-      DO jt = 1, ntiles_total + ntiles_water
-        DO jc = i_startidx,i_endidx
-          IF (jt <= ntiles_lnd) THEN ! snow-free land points
-            prm_diag%rlamh_fac_t(jc,jb,jt) = 1._wp - 0.9_wp*MAX(0._wp, MIN(1._wp,                              &
-              2.5_wp*(10800._wp/dt_ana*(100._wp*p_diag%rh_avginc(jc,jb)-4._wp*p_diag%t_avginc(jc,jb))-0.4_wp) ))
-          ELSE IF (jt <= ntiles_total) THEN ! snow-covered land points
-            prm_diag%rlamh_fac_t(jc,jb,jt) = 1._wp - 0.9_wp*MAX(0._wp, MIN(1._wp, &
-              2.5_wp*(10800._wp/dt_ana*(MAX(0._wp,100._wp*p_diag%rh_avginc(jc,jb))-4._wp*p_diag%t_avginc(jc,jb))-0.4_wp) ))
-          ELSE IF (jt == ntiles_total + ntiles_water) THEN ! seaice points
-            prm_diag%rlamh_fac_t(jc,jb,jt) = 0.25_wp
-          ELSE
-            prm_diag%rlamh_fac_t(jc,jb,jt) = 1._wp
-          ENDIF
-        ENDDO
-      ENDDO
-    ELSE IF (itype_canopy == 2 .AND. icpl_da_sfcevap == 2) THEN
-      DO jt = 1, ntiles_total + ntiles_water
-        DO jc = i_startidx,i_endidx
-          IF (jt <= ntiles_total) THEN
-            prm_diag%rlamh_fac_t(jc,jb,jt) =                                                                              &
-              1._wp - 0.9_wp*MAX(0._wp,MIN(1._wp,(60._wp-ext_data%atm%skinc_t(jc,jb,jt))/30._wp)) *                       &
-              MAX(0._wp,MIN(1._wp,2.5_wp*(p_diag%t2m_bias(jc,jb)+100._wp*10800._wp/dt_ana*p_diag%rh_avginc(jc,jb)-0.4_wp)))
-          ELSE IF (jt == ntiles_total + ntiles_water) THEN ! seaice points
-            prm_diag%rlamh_fac_t(jc,jb,jt) = 0.25_wp
-          ELSE
-            prm_diag%rlamh_fac_t(jc,jb,jt) = 1._wp
-          ENDIF
-        ENDDO
-      ENDDO
-    ELSE
-      prm_diag%rlamh_fac_t(:,jb,:) = 1._wp
-    ENDIF
-    IF (icpl_da_snowalb >= 1 .AND. .NOT. isRestart()) THEN
-      ! Tuning factor for snow albedo
-      DO jc = i_startidx,i_endidx
-        IF (ANY(p_diag_lnd%h_snow_t(jc,jb,1:ntiles_total) > 0._wp) .OR. p_prog_wtr_now%h_ice(jc,jb) > 0._wp) THEN
-          IF (p_diag%t_avginc(jc,jb) > 0._wp) THEN
-            prm_diag%snowalb_fac(jc,jb) = MAX(0.75_wp,1._wp/(1._wp+10800._wp/dt_ana*0.8_wp*p_diag%t_avginc(jc,jb)))
-          ELSE
-            prm_diag%snowalb_fac(jc,jb) = MIN(4._wp/3._wp,1._wp-10800._wp/dt_ana*0.8_wp*p_diag%t_avginc(jc,jb))
-          ENDIF
-        ENDIF
-        IF (icpl_da_snowalb >= 2) THEN ! albedo factor is also applied to sea ice and needs to be restricted to the vicinity of land
-          tbias_wgt = MIN(1._wp,100._wp*ext_data%atm%fr_land_smt(jc,jb))
-          prm_diag%snowalb_fac(jc,jb) = tbias_wgt*prm_diag%snowalb_fac(jc,jb) + (1._wp-tbias_wgt)
-        ENDIF
-      ENDDO
-    ENDIF
-    IF (icpl_da_seaice >= 2) THEN
-      ! Tuning factor for sea ice bottom heat flux
-      DO jc = i_startidx,i_endidx
-        prm_diag%hflux_si_fac(jc,jb) = MIN(1._wp,MAX(0._wp,-5._wp*p_diag%t_avginc(jc,jb))) * &
-          MIN(1._wp,100._wp*ext_data%atm%fr_land_smt(jc,jb))
-      ENDDO
-    ENDIF
-    IF (icpl_da_skinc >= 2) THEN
-      ! Tuning factors for soil heat capacity and conductivity
-      DO jc = i_startidx,i_endidx
-        IF (p_diag%t_wgt_avginc(jc,jb) < 0._wp) THEN
-          prm_diag%heatcond_fac(jc,jb) = MAX(0.1_wp,  1._wp+dtfac_heatc*2.5_wp*p_diag%t_wgt_avginc(jc,jb))
-          prm_diag%heatcap_fac(jc,jb)  = MAX(0.25_wp, 1._wp+dtfac_heatc*2.0_wp*p_diag%t_wgt_avginc(jc,jb))
-        ELSE
-          prm_diag%heatcond_fac(jc,jb) = 1._wp/MAX(0.1_wp,  1._wp-dtfac_heatc*2.5_wp*p_diag%t_wgt_avginc(jc,jb)) 
-          prm_diag%heatcap_fac(jc,jb)  = 1._wp/MAX(0.25_wp, 1._wp-dtfac_heatc*2.0_wp*p_diag%t_wgt_avginc(jc,jb))
-        ENDIF
-      ENDDO
-    ENDIF
-    IF (icpl_da_tkhmin >= 1) THEN
-      ! Adaptive tuning of near-surface minimum vertical diffusion for heat
-      DO jc = i_startidx,i_endidx
-        tbias_wgt = 10800._wp/dt_ana*(p_diag%t_avginc(jc,jb)+0.5_wp*p_diag%t_wgt_avginc(jc,jb))
-        IF (tbias_wgt < 0._wp) THEN
-          prm_diag%tkred_sfc_h(jc,jb) = MAX(0.25_wp, 1._wp+2._wp*tbias_wgt)
-        ELSE
-          prm_diag%tkred_sfc_h(jc,jb) = 1._wp/SQRT(MAX(0.25_wp, 1._wp-2._wp*tbias_wgt))
-        ENDIF
-      ENDDO
-    ENDIF
-    IF (icpl_da_sfcfric >= 1) THEN
-      ! Tuning factor for surface friction (roughness length and SSO blocking)
-      DO jc = i_startidx,i_endidx
-        IF (p_diag%vabs_avginc(jc,jb) > 0._wp) THEN
-          prm_diag%sfcfric_fac(jc,jb) = MAX(0.25_wp, 1._wp-scalfac_da_sfcfric*10800._wp/dt_ana*p_diag%vabs_avginc(jc,jb))
-        ELSE
-          prm_diag%sfcfric_fac(jc,jb) = 1._wp/MAX(0.25_wp, 1._wp+scalfac_da_sfcfric*10800._wp/dt_ana*p_diag%vabs_avginc(jc,jb))
-        ENDIF
-
-        zlat = p_patch%cells%center(jc,jb)%lat*rad2deg
-        zlon = p_patch%cells%center(jc,jb)%lon*rad2deg
-
-        ! exclude Antarctic glaciers
-        IF (ext_data%atm%fr_glac(jc,jb) > 0.99_wp .AND. zlat < -60._wp) prm_diag%sfcfric_fac(jc,jb) = 1._wp
-
-        ! prevent reduction of surface friction in regions where 10m wind data are blacklisted
-        ! use icpl_da_sfcfric = 2 in combination without blacklisting
-        IF (icpl_da_sfcfric == 1 .AND.                                                          &
-           (zlon >= 30._wp .AND. zlon <= 50._wp .AND. zlat >= 40._wp .AND. zlat <= 70._wp .OR.  &
-            zlon >= 50._wp .AND. zlon <= 90._wp .AND. zlat >= 55._wp .AND. zlat <= 70._wp .OR.  &
-            zlon >= 90._wp .AND. zlon <= 140._wp .AND. zlat >= 50._wp .AND. zlat <= 70._wp)) THEN 
-          prm_diag%sfcfric_fac(jc,jb) = MAX(1._wp, prm_diag%sfcfric_fac(jc,jb))
-        ENDIF
-
-      ENDDO
-    ENDIF
-    IF (itune_slopecorr >= 1) THEN
-      DO jc = i_startidx,i_endidx
-        slope(jc) = SQRT(ext_data%atm%grad_topo(1,jc,jb)**2 + ext_data%atm%grad_topo(2,jc,jb)**2)
-        prm_diag%tkred_sfc_h(jc,jb) = prm_diag%tkred_sfc_h(jc,jb)/MIN(7.5_wp,1._wp+10._wp*SQRT(MAX(0._wp,slope(jc)-0.05_wp)))
-      ENDDO
-      DO jt = 1, ntiles_total + ntiles_water
-        DO jc = i_startidx,i_endidx
-          prm_diag%rlamh_fac_t(jc,jb,jt) = prm_diag%rlamh_fac_t(jc,jb,jt)/ &
-            MIN(10._wp,1._wp+15._wp*SQRT(MAX(0._wp,slope(jc)-0.05_wp)))
-         ENDDO
-      ENDDO
-    ENDIF
   ENDDO
 
   IF (linit_mode) THEN
@@ -2046,10 +1922,10 @@ END SUBROUTINE init_nwp_phy
 
     INTEGER  :: imo1, imo2
     INTEGER  :: rl_start, rl_end, i_startblk, i_endblk, i_startidx, i_endidx
-    INTEGER  :: jb, jc, jg
+    INTEGER  :: jb, jc
     LOGICAL  :: landpoint
 
-    REAL(wp) :: wgt, zlat, zlon, ncloud
+    REAL(wp) :: wgt, zlat, ncloud
 
     TYPE(t_time_interpolation_weights) :: current_time_interpolation_weights
 
@@ -2073,7 +1949,7 @@ END SUBROUTINE init_nwp_phy
     i_endblk   = p_patch%cells%end_block(rl_end)
 
 !$OMP PARALLEL
-!$OMP DO PRIVATE(jb,jc,i_startidx,i_endidx)
+!$OMP DO PRIVATE(jb,jc,i_startidx,i_endidx,zlat,landpoint,ncloud)
     DO jb = i_startblk, i_endblk
 
       CALL get_indices_c(p_patch, jb, i_startblk, i_endblk, i_startidx, i_endidx, rl_start, rl_end)
@@ -2081,7 +1957,6 @@ END SUBROUTINE init_nwp_phy
         DO jc = i_startidx, i_endidx
 
           zlat = p_patch%cells%center(jc,jb)%lat*rad2deg
-          zlon = p_patch%cells%center(jc,jb)%lon*rad2deg
  
           landpoint = (ext_data%atm%llsm_atm_c(jc,jb) .OR. ext_data%atm%llake_c(jc,jb))
 
