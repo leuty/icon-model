@@ -39,7 +39,7 @@ USE mo_aes_thermo, ONLY:        & !!
 
 IMPLICIT NONE
 PRIVATE
-PUBLIC :: graupel, snow_number, snow_lambda, ice_number
+PUBLIC :: graupel_init, graupel_run, graupel_finalize, snow_number, snow_lambda, ice_number
 
 LOGICAL, PARAMETER :: &
   lrain        = .TRUE.  , & ! switch for disabling rain
@@ -96,7 +96,21 @@ END TYPE t_qx_ptr
   
 CONTAINS
 
-  SUBROUTINE graupel(nvec, ke, ivstart, ivend, kstart,        & !! start/end indicies
+!
+! Routines _init, _finalize, and _-run are necessary to keep ICON main repo
+!  and Muphys repo in sync
+!
+  SUBROUTINE graupel_init()
+! Muphys Graupel has no state
+    WRITE(*, "(a)") "Graupel now initialized"
+  END SUBROUTINE graupel_init
+
+  SUBROUTINE graupel_finalize()
+! Muphys Graupel has no state
+    WRITE(*, "(a)") "Graupel now finalized"
+  END SUBROUTINE graupel_finalize
+
+  SUBROUTINE graupel_run(nvec, ke, ivstart, ivend, kstart,    & !! start/end indicies
              dt, dz, t, p, rho, qv, qc, qi, qr, qs, qg, qnc,  & !! prognostic variables
              prr_gsp, pri_gsp, prs_gsp, prg_gsp, pflx, pre_gsp)  !  total precipitation flux
 
@@ -392,7 +406,7 @@ CONTAINS
 
   !$ACC END DATA
 
-END SUBROUTINE graupel
+END SUBROUTINE graupel_run
 
 !!!=============================================================================================
 
@@ -417,7 +431,7 @@ PURE FUNCTION precip(params,zeta,vc,flx,vt,q,q_kp1,rho)
   flx_partial  = rho_x * vc * fall_speed(rho_x, params) 
   flx_partial  = MIN( flx_partial, flx_eff )
   precip(1)    = zeta*(flx_eff-flx_partial) / ((1.0_wp + zeta*vt)*rho)  ! q update
-  precip(2)    = (precip(1)*rho*vt + flx_partial)*0.5                   ! flx
+  precip(2)    = (precip(1)*rho*vt + flx_partial)*0.5_wp                ! flx
   rho_x        = (precip(1)+q_kp1)*0.5_wp*rho
   precip(3)    = vc*fall_speed(rho_x, params)                           ! vt
 
@@ -502,9 +516,9 @@ PURE FUNCTION snow_number(t,rho,qs)
     !$ACC ROUTINE SEQ
     IF (qs > qmin) THEN
       tc    = MAX(MIN(t,tmax),tmin) - tmelt
-      alf   = 10.**( xa1 + tc*(xa2 + tc*xa3) )
+      alf   = 10.0_wp**( xa1 + tc*(xa2 + tc*xa3) )
       bet   = xb1 + tc*(xb2 + tc*xb3)
-      n0s   = n0s3 * ((qs+qsmin) * rho / ams )**(4-3*bet) / (alf*alf*alf)
+      n0s   = n0s3 * ((qs+qsmin) * rho / ams )**(4.0_wp-3.0_wp*bet) / (alf*alf*alf)
 
       y     = EXP(n0s2*tc)
       n0smn = MAX(n0s4*y,n0s5)
@@ -633,7 +647,7 @@ PURE FUNCTION cloud_to_rain(t,qc,qr,nc)
           x3         = 2.00e+00_wp,  & ! gamma exponent for cloud distribution
           x2         = 2.60e-10_wp,  & ! separating mass between cloud and rain
           x1         = 9.44e+09_wp,  & ! kernel coeff for SB2001 autoconversion
-          au_kernel  = x1 / (20.0_wp*x2) * (x3+2.0_wp)*(x3+4.0_wp)/(x3+1.0_wp)**2
+          au_kernel  = x1 / (20.0_wp*x2) * (x3+2.0_wp)*(x3+4.0_wp)/(x3+1.0_wp)**2.0_wp
 
   REAL(KIND=wp) :: tau, & ! time-scale
                    phi, & ! similarity function for autoconversion
@@ -652,9 +666,9 @@ PURE FUNCTION cloud_to_rain(t,qc,qr,nc)
     IF (qc > qmin_ac .AND. t > tfrz_hom) THEN
       tau  = MAX(tau_min,MIN(1.0_wp-qc/(qc+qr),tau_max))
       phi  = tau**b
-      phi  = a * phi * (1.0_wp - phi)**3
-      xau  = au_kernel * (qc*qc/nc)**2  * (1.0_wp + phi/(1.0_wp - tau)**2)
-      xac  = ac_kernel * qc * qr * (tau/(tau+c))**4
+      phi  = a * phi * (1.0_wp - phi)**3.0_wp
+      xau  = au_kernel * (qc*qc/nc)**2.0_wp  * (1.0_wp + phi/(1.0_wp - tau)**2.0_wp)
+      xac  = ac_kernel * qc * qr * (tau/(tau+c))**4.0_wp
       cloud_to_rain = xau + xac
     ENDIF 
 

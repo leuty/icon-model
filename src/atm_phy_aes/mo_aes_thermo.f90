@@ -331,7 +331,7 @@ PURE FUNCTION dqsatdT (qs, TK)
   REAL (KIND=wp), INTENT(IN):: qs, TK
 
   !$ACC ROUTINE SEQ
-  dqsatdT =     c5les * ( 1.0_wp + vtmpc1*qs ) * qs / (TK-c4les)**2
+  dqsatdT =     c5les * ( 1.0_wp + vtmpc1*qs ) * qs / (TK-c4les)**2.0_wp
 
 END FUNCTION dqsatdT
 
@@ -343,7 +343,7 @@ PURE FUNCTION dqsatdT_ice (qs, TK)
   REAL (KIND=wp), INTENT(IN):: qs, TK
 
   !$ACC ROUTINE SEQ
-  dqsatdT_ice = c5ies * ( 1.0_wp + vtmpc1*qs ) * qs / (TK-c4ies)**2
+  dqsatdT_ice = c5ies * ( 1.0_wp + vtmpc1*qs ) * qs / (TK-c4ies)**2.0_wp
 
 END FUNCTION dqsatdT_ice
 
