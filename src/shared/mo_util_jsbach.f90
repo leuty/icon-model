@@ -918,7 +918,7 @@ MODULE mo_jsb_io_netcdf_iface
   !   MODULE PROCEDURE netcdf_read_real_2d_extdim
   ! END INTERFACE netcdf_read_2d_extdim
 
-  INTEGER, PARAMETER :: MAX_VAR_DIMS = 16 ! NF_MAX_VAR_DIMS
+  INTEGER, PARAMETER :: MAX_VAR_DIMS = 16 ! NF90_MAX_VAR_DIMS
 
   CHARACTER(len=*), PARAMETER :: modname = 'mo_jsb_io_netcdf_iface'
 
@@ -1107,8 +1107,8 @@ CONTAINS
     IF (my_process_is_stdio()) THEN
       IF (.NOT. input_file%is_open) CALL finish(TRIM(routine), 'NetCDF file not open')
 
-      status = nf_inq_dimid(input_file%file_id, TRIM(dimname), dimid)
-      netcdf_file_has_dim = (status == NF_NOERR)
+      status = nf90_inq_dimid(input_file%file_id, TRIM(dimname), dimid)
+      netcdf_file_has_dim = (status == NF90_NOERR)
     END IF
 
     CALL p_bcast(netcdf_file_has_dim, p_io, mpi_comm)
@@ -1127,8 +1127,8 @@ CONTAINS
     IF (my_process_is_stdio()) THEN
       IF(.NOT. input_file%is_open) CALL finish(TRIM(routine), 'NetCDF file not open')
 
-      status = nf_inq_varid(input_file%file_id, TRIM(varname), varid)
-      netcdf_file_has_var = (status == NF_NOERR)
+      status = nf90_inq_varid(input_file%file_id, TRIM(varname), varid)
+      netcdf_file_has_var = (status == NF90_NOERR)
     END IF
 
     CALL p_bcast(netcdf_file_has_var, p_io, mpi_comm)
@@ -1147,8 +1147,8 @@ CONTAINS
     IF (my_process_is_stdio()) THEN
       IF(.NOT. input_file%is_open) CALL finish(TRIM(routine), 'NetCDF file not open')
 
-      CALL nf(nf_inq_dimid  (input_file%file_id, TRIM(dimname), IO_dim_id), TRIM(routine))
-      CALL nf(nf_inq_dimlen (input_file%file_id, IO_dim_id, netcdf_file_get_dimlen), TRIM(routine))
+      CALL nf(nf90_inq_dimid  (input_file%file_id, TRIM(dimname), IO_dim_id), TRIM(routine))
+      CALL nf(nf90_inquire_dimension (input_file%file_id, IO_dim_id, len = netcdf_file_get_dimlen), TRIM(routine))
     ELSE
       CALL finish(TRIM(routine), 'should only be called on io process!')
     END IF

@@ -609,12 +609,13 @@ set_run_target_lumi_gpu()
     # LUMI at CSC
     icon_data_rootFolder=${icon_data_rootFolder:=/appl/local/climatedt/pool/data/ICON}
 
-    set_default use_nproma 8000
+    set_default use_nproma 14080
+    set_default use_nproma_sub 7040
     set_default use_nblocks_c 1
     set_default use_prefetch_procs 0
     set_default use_account_no "project_465000454"
     set_default use_nodes 1
-    set_default use_queue "standard-g"
+    set_default use_queue "ju-standard-g"
 
     use_OMP_SCHEDULE="static,1"
 
@@ -667,6 +668,7 @@ EOF
 export FI_MR_CACHE_MONITOR=memhooks
 export MPICH_OFI_NIC_POLICY=GPU
 export MPICH_GPU_SUPPORT_ENABLED=1
+export LD_PRELOAD=/appl/local/climatedt/sw/wtf/libpreload-me.so
 EOF
 }
 
@@ -735,6 +737,7 @@ EOF
 
 export OMP_PLACES=cores
 export FI_MR_CACHE_MONITOR=memhooks
+export LD_PRELOAD=/appl/local/climatedt/sw/wtf/libpreload-me.so
 EOF
 }
 
