@@ -26,11 +26,15 @@ Check OpenACC Style:
     # Apply beautifier:
     - python3 icon-openacc-beautifier/main.py src/
     # Build git patch:
-    - git diff --patch-with-raw > acc_style.patch
-    # Test if patching is necessary:
-    - test ! -s acc_style.patch || ( echo "There are ACC style errors. Please check
-      your code. You might want to run the ACC beautifier or \`git apply acc_style.patch\`
-      (see artifacts)." && false )
+    - git diff --ignore-submodules --patch-with-raw > acc_style.patch
+    - |
+      # Test if patching is necessary:
+      test ! -s acc_style.patch || {
+        printf "\033[0;31mERROR: There are ACC style errors. Please check your \
+      code. You might want to run the ACC beautifier or \`git apply acc_style.patch\` \
+      (see artifacts).\033[0m\n" >&2
+        exit 1
+      }
 
   tags:
     # Choose python capable runner:
@@ -95,7 +99,7 @@ Check Autoreconf:
 
   script:
     - autoreconf -fvi
-    - git diff --patch-with-raw > autoreconf.patch
+    - git diff --ignore-submodules --patch-with-raw > autoreconf.patch
     - |
       # Checking the consistency
       test ! -s autoreconf.patch || {
