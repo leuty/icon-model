@@ -2382,6 +2382,32 @@ create_target_header()
                     ;;
             esac
 	    ;;
+	*run_ICON_24_R19B7_RUC_ass*)
+            case $use_target in
+                daint*)
+                    use_nodes=10
+                    ;;
+                rcl)
+                    use_nodes=6
+                    use_venum_lhost=3
+                    use_cpunum_job=5
+                    ;;
+            esac
+            ;;
+
+	*run_ICON_25_R19B7_RUC_fc*)
+            case $use_target in
+                daint*)
+                    use_nodes=10
+                    ;;
+                rcl)
+                    use_nodes=6
+                    use_venum_lhost=3
+                    use_cpunum_job=5
+                    ;;
+            esac
+            ;;
+	
         *atm_nwp_jsbach_test*)
             use_memory="18gb"
             ;;
