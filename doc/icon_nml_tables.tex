@@ -3293,6 +3293,10 @@ ceiling & ceiling height & m & iforcing = inwp & 2d & - &  [2]
 \tabularnewline
 %
 
+vis & near-surface horizontal visibility & m & iforcing = inwp & 2d & - &  [2]
+\tabularnewline
+%
+
 hbas\_sc & cloud base above msl, shallow convection & m & iforcing = inwp & 2d & - & [2]
 \tabularnewline
 %
@@ -3377,6 +3381,11 @@ kg m-2 & iforcing = inwp & 2d & totprec\_d\_interval & [1], [4], [5]
 
 lapse\_rate & temperature gradient between 500 and 850 hPa  &
 K m-1 & iforcing = inwp & 2d & - & [2]
+\tabularnewline
+%
+
+mconv & low level horizontal moisture convergence averaged over 0-1000\,m AGL layer based on specific humidity, $\frac{1}{1\,\text{km}}\int_{0}^{1\,\text{km AGL}}\nabla_h\cdot(q_v\vec v_h)\,dz$&
+s-1 & iforcing = inwp & 2d & - & [2]
 \tabularnewline
 %
 

@@ -52,6 +52,7 @@ USE mo_impl_constants,      ONLY: success, &
   &                               TASK_COMPUTE_WSHEAR_U,              &
   &                               TASK_COMPUTE_WSHEAR_V,              &
   &                               TASK_COMPUTE_LAPSERATE,             &
+  &                               TASK_COMPUTE_MCONV,                 &
   &                               TASK_COMPUTE_SRH,                   &
   &                               TASK_COMPUTE_INVERSION,             &
   &                               ivdiff,                             &
@@ -432,6 +433,7 @@ SUBROUTINE new_nwp_phy_diag_list( k_jg, klev, klevp1, kblks,    &
       &     diag%ice_gsp_rate, &
       &     diag%inversion_height, &
       &     diag%lapse_rate, &
+      &     diag%mconv, &
       &     diag%lhn_diag, &
       &     diag%liqfl_turb, &
       &     diag%low_ent_zone, &
@@ -4723,6 +4725,23 @@ SUBROUTINE new_nwp_phy_diag_list( k_jg, klev, klevp1, kblks,    &
                   & action_list=actions( new_action( ACTION_RESET, celltracks_int ) ), &
                   & lopenacc=.TRUE. )
       __acc_attach(diag%vorw_ctmax)
+    END IF
+
+    IF (var_in_output%mconv) THEN
+      cf_desc    = t_cf_var('mconv', 's-1',                   &
+        &                   'Low level horizontal moisture convergence 0-1000 m AGL', datatype_flt)
+      grib2_desc = grib2_var( 0, 1, 26, ibits, GRID_UNSTRUCTURED, GRID_CELL)   &
+        &           + t_grib2_int_key("typeOfFirstFixedSurface",          103) &
+        &           + t_grib2_int_key("typeOfSecondFixedSurface",         103) &
+        &           + t_grib2_int_key("scaledValueOfFirstFixedSurface",  1000) &
+        &           + t_grib2_int_key("scaledValueOfSecondFixedSurface",    0)
+      CALL add_var( diag_list,                                               &
+                  & 'mconv', diag%mconv,                                     &
+                  & GRID_UNSTRUCTURED_CELL, ZA_SURFACE,                      &
+                  & cf_desc, grib2_desc,                                     &
+                  & ldims=shape2d,                                           &
+                  & isteptype=TSTEP_INSTANT,                                 &
+                  & l_pp_scheduler_task=TASK_COMPUTE_MCONV, lrestart=.FALSE. )
     END IF
 
     IF (var_in_output%w_ctmax) THEN

@@ -1029,6 +1029,12 @@ CONTAINS
             &              sfc_var_info, prm_diag%echotopinm(:,i,:))
         END DO
       END IF
+      IF (var_in_output(jg)%vis) THEN
+        CALL add_sfc_var(meteogram_config, var_list, VAR_GROUP_SURFACE, &
+          &              "VIS", "m", &
+          &              "near surface visibility", &
+          &              sfc_var_info, prm_diag%vis(:,:))
+      END IF
     ENDIF ! iforcing == nwp
 
     IF (inextra_2d > 0) THEN
