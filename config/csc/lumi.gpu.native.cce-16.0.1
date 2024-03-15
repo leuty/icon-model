@@ -27,7 +27,7 @@ _EOF
 sw_root=${ICON_SW_PREFIX-'/appl/local/climatedt/sw'}
 echo "Using software stack from ${sw_root}"
 
-modules='PrgEnv-cray cce/16.0.1 craype-x86-milan craype-accel-amd-gfx90a rocm cray-mpich libfabric cray-hdf5-parallel cray-netcdf-hdf5parallel cray-libsci'
+modules='PrgEnv-cray cce/16.0.1 craype-x86-milan craype-accel-amd-gfx90a rocm cray-mpich libfabric cray-hdf5 cray-netcdf cray-libsci'
 
 ZLIB_LIBS='-lz'
 
@@ -91,7 +91,7 @@ LIBS+=' -lcraymp'
 # LD_LIBRARY_PATH variable for the configure scripts and test suites of the
 # bundled libraries to work. Therefore, we configure ICON with --disable-rpaths
 # to avoid duplicate RPATH entries in the ICON executable:
-EXTRA_CONFIG_ARGS='--disable-rpaths --disable-mpi-checks --enable-mpi-gpu --enable-gpu=openacc+hip --enable-grib2 --enable-dim-swap --enable-fcgroup-O0 --enable-fcgroup-O1 --enable-fcgroup-DIAG --enable-parallel-netcdf'
+EXTRA_CONFIG_ARGS='--disable-rpaths --disable-mpi-checks --enable-mpi-gpu --enable-gpu=openacc+hip --enable-grib2 --enable-dim-swap --enable-fcgroup-O0 --enable-fcgroup-O1 --enable-fcgroup-DIAG'
 
 ################################################################################
 

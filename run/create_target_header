@@ -628,6 +628,7 @@ set_run_target_lumi_gpu()
     tasks_per_node=$use_mpi_procs_pernode
     SBATCH_nodes="SBATCH --nodes=$use_nodes"
     SBATCH_ntasks_per_node="SBATCH --ntasks-per-node=${tasks_per_node}"
+    cpu_bind='map_cpu:49,57,17,25,1,9,33,41'
 
     # ------------------------------------
     job_log_name=""
@@ -635,6 +636,8 @@ set_run_target_lumi_gpu()
     then
 	# this buildbot, do not use job id
 	job_log_name="LOG.$job_name"
+        # do not bind cpus
+        cpu_bind=
     else
 	job_log_name="LOG.$job_name.%j"
     fi
@@ -669,6 +672,7 @@ export FI_MR_CACHE_MONITOR=memhooks
 export MPICH_OFI_NIC_POLICY=GPU
 export MPICH_GPU_SUPPORT_ENABLED=1
 export LD_PRELOAD=/appl/local/climatedt/sw/wtf/libpreload-me.so
+${cpu_bind:+"export SLURM_CPU_BIND='${cpu_bind}'"}
 EOF
 }
 
