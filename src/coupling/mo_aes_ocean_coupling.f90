@@ -35,7 +35,7 @@ MODULE mo_aes_ocean_coupling
 
   USE mo_bc_greenhouse_gases ,ONLY: ghg_co2vmr
 
-  USE mo_coupling_config     ,ONLY: is_coupled_run
+  USE mo_coupling_config     ,ONLY: is_coupled_to_ocean
   USE mo_atmo_coupling_frame ,ONLY: nbr_inner_cells
   USE mo_atmo_ocean_coupling ,ONLY: mask_checksum, &
     & field_id_co2_flx, field_id_co2_vmr, field_id_freshflx, &
@@ -113,7 +113,7 @@ CONTAINS
 
     CHARACTER(LEN=*), PARAMETER   :: routine = str_module // ':interface_aes_ocean'
 
-    IF ( .NOT. is_coupled_run() ) RETURN
+    IF ( .NOT. is_coupled_to_ocean() ) RETURN
 
     ! adjust size if larger bundles are used (no_arr > 2 below)
 

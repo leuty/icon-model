@@ -2402,7 +2402,7 @@ CONTAINS
     INTEGER  :: ic, jc                     !< loop indices
     INTEGER  :: i_capture !< to capture thread-local value in ACC ATOMIC
     LOGICAL  :: l_update_required
-    LOGICAL  :: lis_coupled_run   !< TRUE for coupled ocean-atmosphere runs (copy for ACC vectorisation)
+    LOGICAL  :: lis_coupled_to_ocean   !< TRUE for coupled ocean-atmosphere runs (copy for ACC vectorisation)
     !-------------------------------------------------------------------------
 
 
@@ -2424,9 +2424,9 @@ CONTAINS
     IF (msg_level >= 13) CALL message('update_idx_lists_sea', &
       'One or more seaice cells melted -> List update required.')
 
-    lis_coupled_run = is_coupled_to_ocean() ! store result for vectorisation
+    lis_coupled_to_ocean = is_coupled_to_ocean() ! store result for vectorisation
 
-    !$ACC DATA PRESENT(condhf) IF(lis_coupled_run)
+    !$ACC DATA PRESENT(condhf) IF(lis_coupled_to_ocean)
     !$ACC DATA CREATE(list_seaice_idx_old) &
     !$ACC   PRESENT(hice_n, pres_sfc, list_seawtr_idx) &
     !$ACC   PRESENT(list_seaice_idx, frac_t_ice) &
@@ -2505,7 +2505,7 @@ CONTAINS
           tice_old(jc) = tmelt
           hice_old(jc) = 0._wp
 
-          IF (lis_coupled_run) THEN
+          IF (lis_coupled_to_ocean) THEN
             ! also reset conductive heat flux below ice
             condhf(jc)   = 0._wp
           ENDIF
@@ -2584,7 +2584,7 @@ CONTAINS
           tice_old(jc) = tmelt
           hice_old(jc) = 0._wp
 
-          IF (lis_coupled_run) THEN
+          IF (lis_coupled_to_ocean) THEN
             ! also reset conductive heat flux below ice
             condhf(jc)   = 0._wp
           ENDIF

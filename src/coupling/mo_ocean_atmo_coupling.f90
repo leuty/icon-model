@@ -36,7 +36,7 @@ MODULE mo_ocean_atmo_coupling
   USE mo_coupling_utils,      ONLY: cpl_def_cell_field_mask, cpl_def_field, &
     &                               cpl_put_field, cpl_get_field
   USE mo_parallel_config,     ONLY: nproma
-  USE mo_coupling_config,     ONLY: is_coupled_run
+  USE mo_coupling_config,     ONLY: is_coupled_to_atmo
   USE mo_hamocc_nml,          ONLY: l_cpl_co2
 
   !-------------------------------------------------------------
@@ -263,7 +263,7 @@ CONTAINS
 
     CHARACTER(LEN=*), PARAMETER   :: routine = str_module // ':couple_ocean_toatmo_fluxes'
 
-    IF (.NOT. is_coupled_run() ) RETURN
+    IF (.NOT. is_coupled_to_atmo() ) RETURN
 
     patch_horz   => patch_3D%p_patch_2D(1)
 

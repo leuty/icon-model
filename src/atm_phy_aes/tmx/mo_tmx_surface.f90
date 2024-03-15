@@ -24,7 +24,7 @@ MODULE mo_tmx_surface_interface
   USE mtime, ONLY: datetime
   USE mo_physical_constants, ONLY: rgrav, cpd, cvd, tmelt, Tf, stbo, rhos, alv, als, alf
   USE mo_turb_vdiff_params, ONLY: ckap
-  USE mo_coupling_config,   ONLY: is_coupled_run
+  USE mo_coupling_config,   ONLY: is_coupled_to_ocean
   USE mo_aes_phy_config,    ONLY: aes_phy_config  ! TODO: replace USE
   USE mo_tmx_field_class, ONLY: t_domain, isfc_oce, isfc_ice, isfc_lnd
 
@@ -354,7 +354,7 @@ CONTAINS
       ! Update the thickness of snow on ice in atmosphere only simulation.
       ! In coupled experiments this is done by the ocean model in either
       ! ice_growth_zerolayer or ice_growth_winton.
-      IF ( .NOT. is_coupled_run() ) THEN
+      IF ( .NOT. is_coupled_to_ocean() ) THEN
         !$ACC PARALLEL LOOP DEFAULT(PRESENT) GANG(STATIC: 1) VECTOR ASYNC(1)
         DO jc = jcs, jce
           ! Snowfall on ice - no ice => no snow

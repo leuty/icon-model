@@ -87,7 +87,7 @@ MODULE mo_interface_iconam_aes
 #endif
 
   USE mo_timer                 ,ONLY: timer_coupling
-  USE mo_coupling_config       ,ONLY: is_coupled_run
+  USE mo_coupling_config       ,ONLY: is_coupled_to_ocean
   USE mo_aes_ocean_coupling    ,ONLY: interface_aes_ocean
 
 #if defined(_OPENACC)
@@ -422,7 +422,7 @@ CONTAINS
     !
     ! Couple atmosphere and ocean, if needed
     !
-    IF (is_coupled_run()) THEN
+    IF (is_coupled_to_ocean()) THEN
       IF (ltimer) CALL timer_start(timer_coupling)
       CALL interface_aes_ocean(patch, diag)
       IF (ltimer) CALL timer_stop(timer_coupling)

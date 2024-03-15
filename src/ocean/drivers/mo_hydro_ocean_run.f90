@@ -25,8 +25,7 @@ MODULE mo_hydro_ocean_run
   USE mo_impl_constants,         ONLY: max_char_length, success
   USE mo_model_domain,           ONLY: t_patch, t_patch_3d
   USE mo_grid_config,            ONLY: n_dom
-  USE mo_coupling_config,        ONLY: is_coupled_run, is_coupled_to_atmo, &
-    &                                  is_coupled_to_output
+  USE mo_coupling_config,        ONLY: is_coupled_to_atmo, is_coupled_to_output
   USE mo_memory_log,             ONLY: memory_log_add
   USE mo_ocean_nml,              ONLY: iswm_oce, n_zlev, no_tracer, &
     &  i_sea_ice, cfl_check, cfl_threshold, cfl_stop_on_violation,   &
@@ -148,13 +147,13 @@ CONTAINS
 
     lzacc = .FALSE.
 
-    IF (is_restart .AND. is_coupled_run() ) THEN
+    IF (is_restart .AND. is_coupled_to_atmo() ) THEN
         ! Initialize 10m Wind Speed from restart file when run in coupled mode
         p_as%fu10 = p_oce_sfc%Wind_Speed_10m
         p_as%pao = p_oce_sfc%sea_level_pressure
     ENDIF
 
-    IF (is_restart .AND. is_coupled_run() .AND. l_cpl_co2 ) THEN
+    IF (is_restart .AND. is_coupled_to_atmo() .AND. l_cpl_co2 ) THEN
         ! Initialize CO" Mixing Ration from restart file when run in coupled mode with HAMOCC
         p_as%co2 = p_oce_sfc%CO2_Mixing_Ratio
     ENDIF
