@@ -43,18 +43,18 @@ MODULE gscp_cloudice
 
 !------------------------------------------------------------------------------
 
-USE mo_kind,               ONLY: wp         , &
-                                 i4
+USE, INTRINSIC :: iso_fortran_env, ONLY: wp => real64, &
+                                         i4 => int32
 USE mo_physical_constants, ONLY: r_v   => rv    , & !> gas constant for water vapour
                                  lh_v  => alv   , & !! latent heat of vapourization
                                  lh_s  => als   , & !! latent heat of sublimation
-!                                lh_f  => alf   , & !! latent heat of fusion
                                  cpdr  => rcpd  , & !! (spec. heat of dry air at constant press)^-1
                                  cvdr  => rcvd  , & !! (spec. heat of dry air at const vol)^-1
                                  b3    => tmelt , & !! melting temperature of ice/snow
                                  t0    => tmelt     !! melting temperature of ice/snow
 
-USE mo_convect_tables,     ONLY: b1    => c1es  , & !! constants for computing the sat. vapour
+USE mo_lookup_tables_constants, ONLY:  &
+                                 b1    => c1es  , & !! constants for computing the sat. vapour
                                  b2w   => c3les , & !! pressure over water (l) and ice (i)
                                  b4w   => c4les     !!               -- " --
 USE mo_satad,              ONLY: sat_pres_water, &  !! saturation vapor pressure w.r.t. water
@@ -62,7 +62,6 @@ USE mo_satad,              ONLY: sat_pres_water, &  !! saturation vapor pressure
                                  latent_heat_vaporization, &
                                  latent_heat_sublimation
 USE mo_exception,          ONLY: message, message_text
-USE mo_run_config,         ONLY: ldass_lhn
 
 !------------------------------------------------------------------------------
 
@@ -145,25 +144,16 @@ SUBROUTINE cloudice (                &
   idbg,                              & !! optional debug level
   zdt, dz,                           & !! numerics parameters
   t,p,rho,qv,qc,qi,qr,qs,qnc,        & !! prognostic variables
-  !xxx: this should become a module variable, e.g. in a new module mo_gscp_data.f90
   qi0,qc0,                           & !! cloud ice/water threshold for autoconversion
   prr_gsp,prs_gsp,pri_gsp,           & !! surface precipitation rates
   qrsflux,                           & !  total precipitation flux
   l_cv,                              &
+  ldass_lhn,                         &
   ithermo_water,                     & !  water thermodynamics
   ldiag_ttend,     ldiag_qtend     , &
   ddt_tend_t     , ddt_tend_qv     , &
   ddt_tend_qc    , ddt_tend_qi     , & !> ddt_tend_xx are tendencies
-  ddt_tend_qr    , ddt_tend_qs     , & !!    necessary for dynamics
-  ddt_diag_au    , ddt_diag_ac     , & !!
-  ddt_diag_ev    , ddt_diag_nuc    , & !! ddt_diag_xxx are optional
-  ddt_diag_idep  , ddt_diag_sdep   , & !!   diagnostic tendencies of all
-  ddt_diag_agg   , ddt_diag_rim    , & !!   individual microphysical processes
-  ddt_diag_rcri  , ddt_diag_icri   , & !!
-  ddt_diag_dau   , ddt_diag_iau    , & !!
-  ddt_diag_imelt , ddt_diag_smelt  , & !!
-  ddt_diag_cfrz  , ddt_diag_rfrz   , & !!
-  ddt_diag_shed                      ) !!
+  ddt_tend_qr    , ddt_tend_qs) !!    necessary for dynamics
 
 !------------------------------------------------------------------------------
 ! Description:
@@ -216,7 +206,8 @@ SUBROUTINE cloudice (                &
     p                      !! pressure                                      ( Pa  )
 
   LOGICAL, INTENT(IN), OPTIONAL :: &
-    l_cv                   !! if true, cv is used instead of cp
+    l_cv, &                !! if true, cv is used instead of cp
+    ldass_lhn
 
   INTEGER, INTENT(IN), OPTIONAL :: &
     ithermo_water          !! water thermodynamics
@@ -250,24 +241,6 @@ SUBROUTINE cloudice (                &
     ddt_tend_qr     , & !! tendency qr                                      ( 1/s )
     ddt_tend_qs         !! tendency qs                                      ( 1/s )
 
-  REAL(KIND=wp), DIMENSION(:,:), INTENT(OUT), OPTIONAL ::   &   ! dim (ie,ke)
-    ddt_diag_au     , & !> optional output autoconversion rate cloud to rain           ( 1/s )
-    ddt_diag_ac     , & !! optional output accretion rate cloud to rain                ( 1/s )
-    ddt_diag_ev     , & !! optional output evaporation of rain                         ( 1/s )
-    ddt_diag_nuc    , & !! optional output mass nucleation of cloud ice                ( 1/s )
-    ddt_diag_idep   , & !! optional output depositional growth of cloud ice            ( 1/s )
-    ddt_diag_sdep   , & !! optional output depositional growth of snow                 ( 1/s )
-    ddt_diag_agg    , & !! optional output aggregation snow collecting cloud ice       ( 1/s )
-    ddt_diag_rim    , & !! optional output riming of snow by cloud water               ( 1/s )
-    ddt_diag_rcri   , & !! optional output cloud ice + rain -> snow (rcri is sink qr)  ( 1/s )
-    ddt_diag_icri   , & !! optional output cloud ice + rain -> snow (icri is sink qi)  ( 1/s )
-    ddt_diag_dau    , & !! optional output depositional cloud ice autoconversion       ( 1/s )
-    ddt_diag_iau    , & !! optional output aggregational cloud ice autoconversion      ( 1/s )
-    ddt_diag_imelt  , & !! optional output melting of cloud ice                        ( 1/s )
-    ddt_diag_smelt  , & !! optional output melting of snow                             ( 1/s )
-    ddt_diag_cfrz   , & !! optional output freezing of cloud water                     ( 1/s )
-    ddt_diag_rfrz   , & !! optional output rainwater freezing                          ( 1/s )
-    ddt_diag_shed       !! optional output shedding                                    ( 1/s )
 
   !! Local parameters: None, parameters are in module header, gscp_data or data_constants
   !! ----------------
@@ -614,6 +587,7 @@ SUBROUTINE cloudice (                &
 ! transfer rates  and sedimentation terms
 ! *********************************************************************
 
+  !$ACC DATA COPYIN(ldass_lhn)
   !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1)
   !$ACC LOOP SEQ
 #ifdef __LOOP_EXCHANGE
@@ -1345,6 +1319,7 @@ llqi =  zqik > zqmin
 
   END DO ! loop over levels
   !$ACC END PARALLEL
+  !$ACC END DATA
 
 !------------------------------------------------------------------------------
 ! final tendency calculation for ICON

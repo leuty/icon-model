@@ -20,7 +20,8 @@ MODULE mo_wave_model
        &                                my_process_is_stdio
   USE mo_timer,                   ONLY: init_timer, timer_start, timer_stop, &
        &                                timers_level,timer_model_init, &
-       &                                timer_domain_decomp, print_timer
+       &                                timer_domain_decomp, print_timer, &
+       &                                timer_coupling
   USE mo_master_config,           ONLY: isRestart
   USE mo_master_control,          ONLY: wave_process
   USE mo_impl_constants,          ONLY: success, pio_type_async, pio_type_cdipio
@@ -40,7 +41,8 @@ MODULE mo_wave_model
   USE mo_wave_crosscheck,         ONLY: wave_crosscheck
   USE mo_parallel_config,         ONLY: p_test_run, num_test_pe, l_test_openmp, num_io_procs, &
        &                                proc0_shift, num_prefetch_proc, pio_type, num_io_procs_radar, &
-       &                                ignore_nproma_use_nblocks_c, nproma, update_nproma_for_io_procs
+       &                                ignore_nproma_use_nblocks_c, ignore_nproma_use_nblocks_e,  &
+       &                                nproma, update_nproma_for_io_procs
   USE mo_grid_config,             ONLY: n_dom, n_dom_start
   USE mo_build_decomposition,     ONLY: build_decomposition
   USE mo_zaxis_type,              ONLY: zaxisTypeList, t_zaxisTypeList
@@ -72,11 +74,9 @@ MODULE mo_wave_model
   USE mo_intp_lonlat,             ONLY: compute_lonlat_intp_coeffs
 
   ! coupling
-#ifdef YAC_coupling
-  USE mo_coupling_config,         ONLY: is_coupled_to_atmo
-  USE mo_wave_coupling_frame,     ONLY: construct_wave_coupling
-#endif
-
+  USE mo_coupling_config,         ONLY: is_coupled_run
+  USE mo_wave_coupling_frame,     ONLY: construct_wave_coupling, &
+    &                                   destruct_wave_coupling
 
   PUBLIC :: wave_model
 
@@ -96,13 +96,19 @@ CONTAINS
 
     !---------------------------------------------------------------------
     ! construct the coupler
-#ifdef YAC_coupling
-    IF (is_coupled_to_atmo()) THEN
+    IF (is_coupled_run()) THEN
+      IF (ltimer) CALL timer_start(timer_coupling)
       CALL construct_wave_coupling(p_patch(1:))
+      IF (ltimer) CALL timer_stop(timer_coupling)
     END IF
-#endif
 
     CALL wave()
+
+    IF (is_coupled_run()) THEN
+      IF (ltimer) CALL timer_start(timer_coupling)
+      CALL destruct_wave_coupling()
+      IF (ltimer) CALL timer_stop(timer_coupling)
+    END IF
 
     CALL destruct_wave_model()
 

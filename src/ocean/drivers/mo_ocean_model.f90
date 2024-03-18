@@ -26,7 +26,7 @@ MODULE mo_ocean_model
   USE mo_cdi_pio_interface,   ONLY: nml_io_cdi_pio_namespace
 #endif
   USE mo_timer,               ONLY: init_timer, timer_start, timer_stop, print_timer, &
-       &                            timer_model_init
+       &                            timer_model_init, timer_coupling
   USE mo_memory_log,          ONLY: memory_log_terminate
   USE mo_name_list_output,    ONLY: close_name_list_output
   USE mo_dynamics_config,     ONLY: configure_dynamics
@@ -112,9 +112,9 @@ MODULE mo_ocean_model
   USE mo_icon_output_tools,    ONLY: init_io_processes, prepare_output
   !-------------------------------------------------------------
   ! For the coupling
-#ifdef YAC_coupling
-  USE mo_ocean_coupling_frame, ONLY: construct_ocean_coupling, destruct_ocean_coupling
-#endif
+  USE mo_coupling_config,      ONLY: is_coupled_run
+  USE mo_ocean_coupling_frame, ONLY: construct_ocean_coupling, &
+    &                                destruct_ocean_coupling
   !-------------------------------------------------------------
 
   USE mo_ocean_hamocc_interface, ONLY: ocean_to_hamocc_construct, ocean_to_hamocc_init, ocean_to_hamocc_end
@@ -320,9 +320,11 @@ MODULE mo_ocean_model
 #endif
 
     CALL destruct_icon_communication()
-#ifdef YAC_coupling
-    CALL destruct_ocean_coupling ()
-#endif
+    IF ( is_coupled_run() ) THEN
+      IF (ltimer) CALL timer_start(timer_coupling)
+      CALL destruct_ocean_coupling ()
+      IF (ltimer) CALL timer_stop(timer_coupling)
+    END IF
 
     CALL destruct_operators_coefficients(operators_coefficients, solverCoefficients_sp)
     ! close memory logging files
@@ -574,9 +576,11 @@ MODULE mo_ocean_model
     CALL construct_atmos_fluxes(patch_3d%p_patch_2d(1), atmos_fluxes, kice)
 
     CALL construct_ocean_surface(patch_3d, p_oce_sfc)
-#ifdef YAC_coupling
-    CALL construct_ocean_coupling(ocean_patch_3d)
-#endif
+    IF ( is_coupled_run() ) THEN
+      IF (ltimer) CALL timer_start(timer_coupling)
+      CALL construct_ocean_coupling(ocean_patch_3d)
+      IF (ltimer) CALL timer_stop(timer_coupling)
+    END IF
 
     !------------------------------------------------------------------
     CALL construct_oce_diagnostics( ocean_patch_3d, ocean_state(1))

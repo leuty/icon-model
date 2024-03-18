@@ -92,9 +92,7 @@ MODULE mo_nh_interface_nwp
   USE mo_nwp_hydrodisc_coupling,  ONLY: nwp_couple_hydrodisc
   USE mo_sync,                    ONLY: sync_patch_array, sync_patch_array_mult, SYNC_E,      &
                                         SYNC_C, SYNC_C1
-#ifdef YAC_coupling
   USE mo_atmo_wave_coupling,      ONLY: couple_atmo_to_wave
-#endif
   USE mo_mpi,                     ONLY: my_process_is_mpi_all_parallel, work_mpi_barrier
   USE mo_nwp_diagnosis,           ONLY: nwp_statistics, nwp_opt_diagnostics_2, &
                                     &   nwp_diag_output_1, nwp_diag_output_2
@@ -731,14 +729,12 @@ CONTAINS
 
         IF ( is_coupled_to_hydrodisc() .AND. (.NOT. linit) ) THEN
 
-#ifdef YAC_coupling
           IF (ltimer) CALL timer_start(timer_coupling)
 #ifdef _OPENACC
           CALL finish('mo_nh_interface_nwp', 'nwp_couple_hydrodisc is not available on GPU')
 #endif
 
           CALL nwp_couple_hydrodisc( pt_patch, lnd_diag, prm_diag, ext_data )
-#endif
 
           IF (ltimer) CALL timer_stop(timer_coupling)
         END IF
@@ -1791,7 +1787,6 @@ CONTAINS
 
     IF ( is_coupled_to_waves() .AND. (.NOT. linit) ) THEN
 
-#ifdef YAC_coupling
       IF (ltimer) CALL timer_start(timer_coupling)
 #ifdef _OPENACC
       CALL finish('mo_nh_interface_nwp', 'nwp_couple_waves is not available on GPU')
@@ -1805,7 +1800,6 @@ CONTAINS
         &                      lacc      = lzacc               ) !in
 
       IF (ltimer) CALL timer_stop(timer_coupling)
-#endif
 
     END IF
 

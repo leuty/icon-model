@@ -155,6 +155,7 @@ MODULE mo_io_config
     LOGICAL :: wshear_u     = .FALSE. !< Flag. TRUE if computation of vertical U wind shear components is desired
     LOGICAL :: wshear_v     = .FALSE. !< Flag. TRUE if computation of vertical V wind shear components is desired
     LOGICAL :: lapserate    = .FALSE. !< Flag. TRUE if computation of T(500hPa) - T(850hPa) is desired
+    LOGICAL :: mconv        = .FALSE. !< Flag. TRUE if computation of low level moisture convergence is desired
     LOGICAL :: srh          = .FALSE. !< Flag. TRUE if computation of storm relative helicity (SRH) is desired
     LOGICAL :: cloudtop     = .FALSE. !< Flag. TRUE if computation of CLOUDTOP is desired
     LOGICAL :: si           = .FALSE. !< Flag. TRUE if computation of SI is desired
@@ -328,6 +329,7 @@ CONTAINS
         var_in_output(jg)%wshear_u    = is_variable_in_output_dom(var_name="wshear_u", jg=jg)
         var_in_output(jg)%wshear_v    = is_variable_in_output_dom(var_name="wshear_v", jg=jg)
         var_in_output(jg)%lapserate   = is_variable_in_output_dom(var_name="lapse_rate", jg=jg)
+        var_in_output(jg)%mconv       = is_variable_in_output_dom(var_name="mconv", jg=jg)
         var_in_output(jg)%srh         = is_variable_in_output_dom(var_name="srh", jg=jg)
         var_in_output(jg)%cape_mu     = is_variable_in_output_dom(var_name="cape_mu", jg=jg)
         var_in_output(jg)%cin_mu      = is_variable_in_output_dom(var_name="cin_mu", jg=jg)
@@ -341,7 +343,7 @@ CONTAINS
         var_in_output(jg)%cloudtop    = is_variable_in_output_dom(var_name="cloudtop", jg=jg)
         var_in_output(jg)%hpbl        = is_variable_in_output_dom(var_name="hpbl", jg=jg)
 
-        ! add vars for global mean claclulations
+        ! add vars for global mean calculations
         var_in_output(jg)%tas_gmean   = is_variable_in_output_dom(var_name="tas_gmean", jg=jg)
         var_in_output(jg)%rsdt_gmean  = is_variable_in_output_dom(var_name="rsdt_gmean", jg=jg)
         var_in_output(jg)%rsut_gmean  = is_variable_in_output_dom(var_name="rsut_gmean", jg=jg)

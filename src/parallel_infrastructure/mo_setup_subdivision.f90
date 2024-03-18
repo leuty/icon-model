@@ -69,6 +69,7 @@ MODULE mo_setup_subdivision
 
   USE mo_parallel_config,       ONLY:  nproma, ldiv_phys_dom, set_nproma, &
     & division_method, division_file_name, n_ghost_rows, ignore_nproma_use_nblocks_c, nblocks_c, &
+    & ignore_nproma_use_nblocks_e, nblocks_e, &
     & div_geometric, ext_div_from_file, write_div_to_file, use_div_from_file, proc0_shift, &
     & nproma_sub, nblocks_sub, ignore_nproma_sub_use_nblocks_sub
 
@@ -1718,18 +1719,21 @@ CONTAINS
       INTEGER :: nproma_max, nproma_min
 
       wrk_p_patch%n_patch_cells = n_patch_cells
-      IF (ignore_nproma_use_nblocks_c .AND. wrk_p_patch_pre%id == 1 ) THEN
+      IF ((ignore_nproma_use_nblocks_c .OR. ignore_nproma_use_nblocks_e) .AND. wrk_p_patch_pre%id == 1 ) THEN
         ! set nproma for work procs with gridpoints
-        IF (my_process_is_work()) THEN
-          IF(n_patch_cells > 0) THEN
+        IF (my_process_is_work()) THEN      
+          IF(ignore_nproma_use_nblocks_c .AND. n_patch_cells > 0) THEN
             new_nproma = (n_patch_cells-1) / nblocks_c + 1
+            CALL set_nproma(new_nproma)
+          ELSEIF(ignore_nproma_use_nblocks_e .AND. n_patch_edges > 0) THEN
+            new_nproma = (n_patch_edges-1) / nblocks_e + 1
             CALL set_nproma(new_nproma)
           ENDIF          
 
           IF(num_work_procs > 1) THEN
             nproma_max = global_max(new_nproma)
             ! set nproma for work procs with no gridpoints
-            IF(n_patch_cells < 1) THEN
+            IF((ignore_nproma_use_nblocks_c .AND. n_patch_cells < 1) .OR. (ignore_nproma_use_nblocks_e .AND. n_patch_edges < 1)) THEN
               new_nproma = nproma_max
               CALL set_nproma(new_nproma)
             ENDIF

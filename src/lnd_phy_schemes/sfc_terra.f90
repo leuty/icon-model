@@ -71,7 +71,8 @@ USE mo_physical_constants, ONLY: t0_melt => tmelt,& ! absolute zero for temperat
                                  rho_w => rhoh2o, & ! density of liquid water (kg/m^3)
                                  rdocp => rd_o_cpd  ! r_d / cp_d
 !
-USE mo_convect_tables,     ONLY: b1    => c1es  , & !! constants for computing the sat. vapour
+USE mo_lookup_tables_constants,ONLY: &
+                                 b1    => c1es  , & !! constants for computing the sat. vapour
                                  b2w   => c3les , & !! pressure over water (l) and ice (i)
                                  b2i   => c3ies , & !!               -- " --
                                  b4w   => c4les , & !!               -- " --
@@ -92,6 +93,7 @@ USE mo_lnd_nwp_config,     ONLY: lmulti_snow, l2lay_rho_snow,     &
 USE mo_exception,          ONLY: finish
 USE mo_run_config,         ONLY: msg_level
 USE mo_fortran_tools,      ONLY: set_acc_host_or_device
+USE mo_lnd_nwp_config,     ONLY: lcuda_graph_lnd
 
 !------------------------------------------------------------------------------
 ! Declarations
@@ -110,12 +112,6 @@ PUBLIC :: terra
 !------------------------------------------------------------------------------
 ! Public variables
 !------------------------------------------------------------------------------
-
-#ifdef ICON_USE_CUDA_GRAPH
-  LOGICAL, PARAMETER :: using_cuda_graph = .TRUE.
-#else
-  LOGICAL, PARAMETER :: using_cuda_graph = .FALSE.
-#endif
 
 !------------------------------------------------------------------------------
 ! Parameters and variables which are global in this module
@@ -5527,7 +5523,7 @@ ENDDO
     !$ACC END PARALLEL
   ENDIF
 
-  IF (.NOT. using_cuda_graph) THEN
+  IF (.NOT. lcuda_graph_lnd) THEN
     !$ACC WAIT(acc_async_queue)
   END IF
 
@@ -5543,7 +5539,7 @@ ENDDO
 
   IF (msg_level >= 19) THEN
     !$ACC UPDATE HOST(ivend) ASYNC(acc_async_queue)
-    IF (.NOT. using_cuda_graph) THEN
+    IF (.NOT. lcuda_graph_lnd) THEN
       !$ACC WAIT(acc_async_queue)
     END IF
     DO i = ivstart, ivend

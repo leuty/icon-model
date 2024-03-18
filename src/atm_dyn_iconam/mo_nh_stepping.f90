@@ -115,7 +115,7 @@ MODULE mo_nh_stepping
 #ifndef __NO_NWP__
   USE mo_nh_interface_nwp,         ONLY: nwp_nh_interface
   USE mo_phy_events,               ONLY: mtime_ctrl_physics
-  USE mo_nwp_phy_init,             ONLY: init_nwp_phy, init_cloud_aero_cpl
+  USE mo_nwp_phy_init,             ONLY: init_nwp_phy, init_cloud_aero_cpl, clim_cdnc
   USE mo_nwp_sfc_utils,            ONLY: aggregate_landvars, aggr_landvars, process_sst_and_seaice
   USE mo_nwp_diagnosis,            ONLY: nwp_diag_for_output, nwp_opt_diagnostics, nwp_diag_global
   USE mo_nwp_vdiff_interface,      ONLY: nwp_vdiff_update_seaice
@@ -259,10 +259,8 @@ MODULE mo_nh_stepping
     &                                    icon_call_callback
 #endif
 
-#ifdef YAC_coupling
   USE mo_coupling_config       ,ONLY: is_coupled_to_output
   USE mo_output_coupling       ,ONLY: output_coupling
-#endif
 
   !$ser verbatim USE mo_ser_all, ONLY: serialize_all
 
@@ -471,7 +469,10 @@ MODULE mo_nh_stepping
            & phy_params(jg), mtime_current         ,&
            & lreset=(iau_iter==2)                   )
 
-      IF (.NOT.isRestart()) THEN
+      IF (atm_phy_nwp_config(jg)%icpl_aero_gscp == 3) THEN
+        ! Use cloud droplet number from climatology:
+        CALL clim_cdnc(mtime_current, p_patch(jg), ext_data(jg), prm_diag(jg))
+      ELSEIF (.NOT.isRestart()) THEN
         CALL init_cloud_aero_cpl (mtime_current, p_patch(jg), p_nh_state(jg)%metrics, ext_data(jg), prm_diag(jg))
       ENDIF
 
@@ -1436,7 +1437,7 @@ MODULE mo_nh_stepping
 
     ! Adapt number of dynamics substeps if necessary
     !
-    IF (lcfl_watch_mode .OR. MOD(jstep-jstep_shift,5) == 0) THEN
+    IF (lcfl_watch_mode .OR. MOD(jstep-jstep_shift,5) == 0 .OR. jstep-jstep_shift <= 2) THEN
       IF (ANY((/MODE_IFSANA,MODE_COMBINED,MODE_COSMO,MODE_ICONVREMAP/) == init_mode)) THEN
         ! For interpolated initial conditions, apply more restrictive criteria for timestep reduction during the spinup phase
         CALL set_ndyn_substeps(lcfl_watch_mode,jstep <= 100)
@@ -1516,17 +1517,15 @@ MODULE mo_nh_stepping
       END IF
    END DO
 
-#ifdef YAC_coupling
    IF( is_coupled_to_output() ) THEN
       IF (ltimer) CALL timer_start(timer_coupling)
       CALL output_coupling()
       IF (ltimer) CALL timer_stop(timer_coupling)
    END IF
-#endif
-
 
 
     ! Diagnostics: computation of total integrals
+    !              will be called for the base domain, only.
     !
     ! Diagnostics computation is not yet properly MPI-parallelized
     !
@@ -1540,14 +1539,14 @@ MODULE mo_nh_stepping
 #ifdef NOMPI
       IF (my_process_is_mpi_all_seq()) &
 #endif
-        CALL supervise_total_integrals_nh( kstep, p_patch(1:), p_nh_state, p_int_state(1:), &
-        &                                  nnow(1:n_dom), nnow_rcf(1:n_dom), jstep == (nsteps+jstep0), lacc=i_am_accel_node)
+        CALL supervise_total_integrals_nh( kstep, p_patch(1), p_nh_state(1), p_int_state(1), &
+        &                                  nnow(1), nnow_rcf(1), jstep == (nsteps+jstep0), lacc=i_am_accel_node)
     ENDIF
 
 
     ! re-initialize MAX/MIN fields with 'resetval'
     ! must be done AFTER output
-
+    !
     CALL reset_act%execute(slack=dtime, mtime_date=mtime_current)
 
 
@@ -3367,7 +3366,7 @@ MODULE mo_nh_stepping
     LOGICAL, INTENT(INOUT) :: lcfl_watch_mode
     LOGICAL, INTENT(IN) :: lspinup
 
-    INTEGER :: jg, ndyn_substeps_enh
+    INTEGER :: jg, ndyn_substeps_enh, nsubs_add
     REAL(wp) :: mvcfl(n_dom), thresh1_vcfl, thresh2_vcfl, mhcfl(n_dom), thresh1_hcfl, thresh2_hcfl, subsfac
     REAL(wp), PARAMETER :: hcfl_threshold=0.7_wp ! empirical value
     LOGICAL :: lskip
@@ -3413,7 +3412,8 @@ MODULE mo_nh_stepping
         ENDIF
 
         IF (mvcfl(jg) > thresh1_vcfl .OR. mhcfl(jg) > thresh1_hcfl) THEN
-          ndyn_substeps_var(jg) = MIN(ndyn_substeps_var(jg)+1,ndyn_substeps_max+ndyn_substeps_enh)
+          nsubs_add = MAX(1,NINT(REAL(ndyn_substeps_var(jg),wp)*(mvcfl(jg)-thresh1_vcfl)/thresh1_vcfl))
+          ndyn_substeps_var(jg) = MIN(ndyn_substeps_var(jg)+nsubs_add,ndyn_substeps_max+ndyn_substeps_enh)
           advection_config(jg)%ivcfl_max = MIN(ndyn_substeps_var(jg),ndyn_substeps_max)
           WRITE(message_text,'(a,i3,a,i3)') 'Number of dynamics substeps in domain ', &
             jg,' increased to ', ndyn_substeps_var(jg)

@@ -40,27 +40,23 @@ MODULE gscp_kessler
 ! Microphysical constants and variables
 !------------------------------------------------------------------------------
 
-USE mo_kind,               ONLY: wp         , &
-                                 i4
-!USE mo_math_constants    , ONLY: pi
+USE, INTRINSIC :: iso_fortran_env, ONLY: wp => real64, &
+                                         i4 => int32
 USE mo_physical_constants, ONLY: r_v   => rv    , & !> gas constant for water vapour
                                  o_m_rdv        , & !! 1 - r_d/r_v
                                  rdv            , & !! r_d / r_v
                                  lh_v  => alv   , & !! latent heat of vapourization
-!                                lh_f  => alf   , & !! latent heat of fusion
                                  cpdr  => rcpd  , & !! (spec. heat of dry air at constant press)^-1
                                  cvdr  => rcvd  , & !! (spec. heat of dry air at const vol)^-1
                                  b3    => tmelt , & !! melting temperature of ice/snow
-!                                rho_w => rhoh2o, & !! density of liquid water (kg/m^3)
                                  t0    => tmelt     !! melting temperature of ice/snow
 
-USE mo_convect_tables,     ONLY: b1    => c1es  , & !! constants for computing the sat. vapour
+USE mo_lookup_tables_constants, ONLY: &
+                                 b1    => c1es  , & !! constants for computing the sat. vapour
                                  b2w   => c3les , & !! pressure over water (l) and ice (i)
                                  b4w   => c4les     !!               -- " --
 USE mo_satad,              ONLY: sat_pres_water     !! saturation vapor pressure w.r.t. water
 USE mo_exception,          ONLY: message, message_text
-
-USE mo_run_config,         ONLY: ldass_lhn
 
 !------------------------------------------------------------------------------
 
@@ -97,17 +93,15 @@ SUBROUTINE kessler  (             &
   idbg,                              & !! optional debug level
   zdt, dz,                           & !! numerics parameters
   t,p,rho,qv,qc,qr,                  & !! prognostic variables
-  !xxx: this should become a module variable, e.g. in a new module mo_gscp_data.f90
   qc0,                               & !! cloud ice/water threshold for autoconversion
   prr_gsp,                           & !! surface precipitation rates
   qrsflux,                           & !  precipitation flux
   l_cv,                              &
+  ldass_lhn,                         &
   ldiag_ttend,     ldiag_qtend     , &
   ddt_tend_t     , ddt_tend_qv     , &
   ddt_tend_qc    ,                   & !> ddt_tend_xx are tendencies
-  ddt_tend_qr    ,                   & !!    necessary for dynamics
-  ddt_diag_au    , ddt_diag_ac     , & !!
-  ddt_diag_ev                        ) !! ddt_diag_xxx are optional
+  ddt_tend_qr)!!    necessary for dynamics
 
 !------------------------------------------------------------------------------
 !>
@@ -152,8 +146,8 @@ SUBROUTINE kessler  (             &
     rho             ,    & !! density of moist air                          (kg/m3)
     p                      !! pressure                                      ( Pa  )
 
-  LOGICAL, INTENT(IN), OPTIONAL :: &
-    l_cv                   !! if true, cv is used instead of cp
+    LOGICAL, INTENT(IN):: l_cv, &                   !! if true, cv is used instead of cp
+      ldass_lhn
 
   LOGICAL, INTENT(IN), OPTIONAL :: &
     ldiag_ttend,         & ! if true, temperature tendency shall be diagnosed
@@ -176,11 +170,6 @@ SUBROUTINE kessler  (             &
     ddt_tend_qv     , & !! tendency qv                                      ( 1/s )
     ddt_tend_qc     , & !! tendency qc                                      ( 1/s )
     ddt_tend_qr         !! tendency qr                                      ( 1/s )
-
-  REAL(KIND=wp), DIMENSION(:,:), INTENT(OUT), OPTIONAL ::   &   ! dim (ie,ke)
-    ddt_diag_au     , & !> optional output autoconversion rate cloud to rain           ( 1/s )
-    ddt_diag_ac     , & !! optional output accretion rate cloud to rain                ( 1/s )
-    ddt_diag_ev         !! optional output evaporation of rain                         ( 1/s )
 
   !! Local parameters: None, parameters are in module header, gscp_data or data_constants
   !! ----------------
@@ -279,15 +268,11 @@ SUBROUTINE kessler  (             &
 ! Define reciprocal of heat capacity of dry air (at constant pressure vs at constant volume)
 
 
-  IF (PRESENT(l_cv)) THEN
     IF (l_cv) THEN
       z_heat_cap_r = cvdr
     ELSE
       z_heat_cap_r = cpdr
     ENDIF
-  ELSE
-    z_heat_cap_r = cpdr
-  ENDIF
 
   ! Delete precipitation fluxes from previous timestep
   prr_gsp (:) = 0.0_wp

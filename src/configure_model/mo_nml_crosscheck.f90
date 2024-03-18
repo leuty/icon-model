@@ -29,6 +29,7 @@ MODULE mo_nml_crosscheck
     &                                    wshear_uv_heights, n_wshear, srh_heights, n_srh
   USE mo_parallel_config,          ONLY: check_parallel_configuration,                     &
     &                                    ignore_nproma_use_nblocks_c,                      &
+    &                                    ignore_nproma_use_nblocks_e,                      &
     &                                    num_io_procs,                                     &
     &                                    num_prefetch_proc, use_dp_mpi2io, num_io_procs_radar
   USE mo_limarea_config,           ONLY: latbc_config, LATBC_TYPE_CONST, LATBC_TYPE_EXT
@@ -139,11 +140,11 @@ CONTAINS
     CALL check_parallel_configuration()
 
     !
-    ! nblock_c does not work with nesting
+    ! nblocks_c or nblocks_e does not work with nesting
     ! It crashes and would be a waste of memory, if the nest were significant smaller than the parent.
     !
-    IF (ignore_nproma_use_nblocks_c .AND. (n_dom > 1)) CALL finish(routine, &
-      'Currently nblocks_c (>0) is not supported for nested domains.')
+    IF ((ignore_nproma_use_nblocks_c .OR. ignore_nproma_use_nblocks_e) .AND. (n_dom > 1)) CALL finish(routine, &
+      'Currently nblocks_c or nblocks_e (>0) is not supported for nested domains.')
 
     !--------------------------------------------------------------------
     ! Limited Area Mode and LatBC read-in:
@@ -364,9 +365,10 @@ CONTAINS
             CALL finish(routine,'irad_aero=6 (Tegen) requires itopo=1')
           ENDIF
 
-          IF ( ( irad_aero /= iRadAeroTegen .AND. irad_aero /= iRadAeroART ) .AND.  &
+          IF ( .NOT. ANY ( irad_aero ==  (/iRadAeroTegen, iRadAeroART, iRadAeroConstKinne, iRadAeroKinne,   &
+                           iRadAeroVolc, iRadAeroKinneVolc, iRadAeroKinneVolcSP, iRadAeroKinneSP/) ) .AND.  &
             &  ( atm_phy_nwp_config(jg)%icpl_aero_gscp > 0 .OR. icpl_aero_conv > 0 ) ) THEN
-            CALL finish(routine,'aerosol-precipitation coupling requires irad_aero=6 (Tegen) or =9 (ART)')
+            CALL finish(routine,'aerosol-precipitation coupling requires irad_aero=6, 9, 12, 13, 14, 15, 18 or 19')
           ENDIF
 
           ! Kinne, CMIP6 volcanic aerosol only work with ecRad
@@ -543,13 +545,17 @@ CONTAINS
         END SELECT
 
       ENDDO
-    END IF
 
 #ifdef _OPENACC
     IF ( irad_aero == iRadAeroCAMSclim) THEN
         CALL finish(routine,'CAMS 3D climatology irad_aero=7 is currently not supported on GPU.')
     END IF
+    IF ( atm_phy_nwp_config(jg)%icpl_aero_gscp == 3 ) THEN
+        CALL finish(routine,'Using cloud-droplet number climatology icpl_aero_gscp = 3 is currently not supported on GPU.')
+    END IF
 #endif
+
+    END IF
 
     !--------------------------------------------------------------------
     ! Tracers and diabatic forcing

@@ -26,11 +26,15 @@ Check OpenACC Style:
     # Apply beautifier:
     - python3 icon-openacc-beautifier/main.py src/
     # Build git patch:
-    - git diff --patch-with-raw > acc_style.patch
-    # Test if patching is necessary:
-    - test ! -s acc_style.patch || ( echo "There are ACC style errors. Please check
-      your code. You might want to run the ACC beautifier or \`git apply acc_style.patch\`
-      (see artifacts)." && false )
+    - git diff --ignore-submodules --patch-with-raw > acc_style.patch
+    - |
+      # Test if patching is necessary:
+      test ! -s acc_style.patch || {
+        printf "\033[0;31mERROR: There are ACC style errors. Please check your \
+      code. You might want to run the ACC beautifier or \`git apply acc_style.patch\` \
+      (see artifacts).\033[0m\n" >&2
+        exit 1
+      }
 
   tags:
     # Choose python capable runner:
@@ -66,6 +70,7 @@ Check Style:
     - ./scripts/ci_scripts/check_src_noexec.sh 'src' 'support'
     - ./scripts/ci_scripts/check_omp_sentinels.sh 'src' 'support' 'externals/jsbach' 'externals/emvorado' 'externals/art'
     - ./scripts/ci_scripts/check_license.sh
+    - ./scripts/ci_scripts/check_granule_encapsulation.sh
 
   tags:
     # Choose a runner with GNU find, GNU grep and bash:
@@ -74,3 +79,46 @@ Check Style:
   # Run only for branches that are part of a merge request:
   rules:
     - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+
+Check Autoreconf:
+  variables:
+    AUTOCONF_VERSION: "2.69"
+    GIT_SUBMODULE_STRATEGY: none
+
+  stage: lint
+
+  before_script:
+    - apk add --no-cache automake curl git m4 make perl
+    - |
+      # Installing Autoconf
+      (
+        set -eux
+        mkdir autoconf && cd autoconf
+        curl -L https://de.freedif.org/gnu/autoconf/autoconf-${AUTOCONF_VERSION}.tar.gz | tar xz --strip-components=1
+        ./configure && make -j4 && make install
+      )
+
+  script:
+    - autoreconf -fvi
+    - git diff --ignore-submodules --patch-with-raw > autoreconf.patch
+    - |
+      # Checking the consistency
+      test ! -s autoreconf.patch || {
+        printf "\033[0;31mERROR: the automatically generated Autotools files \
+      (e.g. 'configure') are inconsistent with 'configure.ac' and/or \
+      Autoconf ${AUTOCONF_VERSION} (see artifacts)\033[0m\n" >&2
+        exit 1
+      }
+
+  tags:
+    - alpine
+
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+
+  artifacts:
+    paths:
+      - autoreconf.patch
+    expire_in: 1 week
+    expose_as: 'Autoreconf Git Patch'
+    when: on_failure

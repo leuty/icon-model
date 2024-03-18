@@ -76,7 +76,6 @@ output_atm_2d="yes"   # 1 file
 output_atm_3d="yes"   # 1 file
 
 # determine the number of io processes
-nproma=160
 nproma_sub=160
 num_io_procs=1
 

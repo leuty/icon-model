@@ -26,7 +26,7 @@ MODULE mo_surface
 
   USE mo_physical_constants,ONLY: grav, Tf, alf, albedoW, stbo, tmelt, rhos!!$, rhoi
   USE mo_physical_constants,ONLY: cvd, cpd
-  USE mo_coupling_config,   ONLY: is_coupled_run
+  USE mo_coupling_config,   ONLY: is_coupled_to_ocean
   USE mo_aes_phy_config,    ONLY: aes_phy_config
   USE mo_aes_phy_memory,    ONLY: cdimissval
   USE mo_aes_vdf_config,    ONLY: aes_vdf_config
@@ -1147,7 +1147,7 @@ CONTAINS
       ! Update the thickness of snow on ice in atmosphere only simulation.
       ! In coupled experiments this is done by the ocean model in either
       ! ice_growth_zerolayer or ice_growth_winton.
-      IF ( .NOT. is_coupled_run() ) THEN
+      IF ( .NOT. is_coupled_to_ocean() ) THEN
         !$ACC PARALLEL LOOP DEFAULT(PRESENT) GANG VECTOR COLLAPSE(2) ASYNC(1)
         DO k=1,kice
           DO jl = jcs,kproma

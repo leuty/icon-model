@@ -95,6 +95,11 @@ MODULE mo_wave_config
     REAL(wp) :: peak_u10, peak_v10 ! peak value (m/s) of 10 m U and V wind speed for test case
     REAL(wp) :: peak_lat, peak_lon ! geographical location (deg) of wind peak value
 
+    REAL(wp) :: impl_fac       !! implicitness factor for total source function time integration
+                               !! impl_fac=0.5 : second order Crank-Nicholson/trapezoidal scheme
+                               !! impl_fac=1   : first order Euler backward scheme
+                               !! valid range: 0.5 <= impl_fac <= 1
+
     ! derived variables and fields
     !
     REAL(wp) ::            &

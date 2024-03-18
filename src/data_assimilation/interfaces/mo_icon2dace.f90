@@ -213,6 +213,9 @@ MODULE mo_icon2dace
   use mo_obs,         only: process_obs,     &! general purpose routine
                             set_rules_cosmo, &! set default /RULES/ for COSMO
                             set_time_slice    ! set metadata for time interpol.
+  use mo_cloud,       only: cloud_detect,     &! cloud detection for all radiances
+                            cloud_detect_init,&! initialize cloud detection
+                            PH_ABC
   use mo_obs_sndrcv,  only: p_alltoall,      &! MPI_ALLTOALL (t_obs)
                             p_bcast           ! MPI_BCAST    (t_obs)
   use mo_obs_rules,   only: read_nml_rules    ! read namelists /RULES/
@@ -1891,8 +1894,9 @@ contains
     call init_fdbk_tables () ! initialise tables
     call disable_gh       () ! disable generalized humidity transformation
     call read_nml_report     ! set defaults in table 'rept_use'
-    call read_tovs_nml       ! read namelists /TOVS_OBS/ and /TOVS_OBS_CHAN_NML/
+    !call read_tovs_nml      ! read namelists /TOVS_OBS/ and /TOVS_OBS_CHAN_NML/
     call read_nml_thin       ! read namelist /THINNING/
+    call cloud_detect_init   ! read namelists /TOVS_CLOUD/ and /CLOUD_DETECT_COEFFS/
     if (n_dace_op > 0) then
        call read_blacklists  ! read namelist /BLACKLIST/ (and blacklist file)
     end if
@@ -2317,7 +2321,7 @@ contains
 
        call thin_superob_tovs(obs, H_det)
        call process_obs (TSK_R,    obs)
-
+       call cloud_detect(obs, H_det, PH_ABC)
 
        if (first) then
           !-------------------------

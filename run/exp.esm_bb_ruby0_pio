@@ -162,9 +162,9 @@ lnd_file_interval="P20Y"
 #atm_output_interval="P1M"
 #oce_output_interval="P1M"
 #lnd_output_interval="P1M"
-atm_output_interval="PT2H"
-oce_output_interval="PT2H"
-lnd_output_interval="PT2H"
+atm_output_interval="PT9H"
+oce_output_interval="PT9H"
+lnd_output_interval="PT9H"
 
 # asynchronous diagnostic output processes
 # ----------------------------------------

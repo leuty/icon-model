@@ -70,6 +70,7 @@ MODULE mo_atm_phy_nwp_config
   PUBLIC :: icpl_o3_tp
   PUBLIC :: iprog_aero
   PUBLIC :: setup_nwp_diag_events
+  PUBLIC :: lcuda_graph_turb_tran
 
 
 
@@ -217,6 +218,9 @@ MODULE mo_atm_phy_nwp_config
   REAL(wp) ::  &                       !> Field of calling-time interval (seconds) for
     &  dt_phy(max_dom,iphysproc_short) !! each domain and phys. process
 
+  ! Optimization
+  LOGICAL :: lcuda_graph_turb_tran   !! activate CUDA GRAPH in turbulent transfer
+  
   !!--------------------------------------------------------------------------
   !! Tuning parameters for physics
   !!--------------------------------------------------------------------------

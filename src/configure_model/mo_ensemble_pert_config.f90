@@ -40,7 +40,9 @@ MODULE mo_ensemble_pert_config
   USE mo_nwp_phy_types,      ONLY: t_nwp_phy_diag
   USE mo_nwp_parameters,     ONLY: t_phy_params
   USE data_gwd,              ONLY: gfluxlaun
-  USE gscp_data,             ONLY: zvz0i
+  USE microphysics_1mom_schemes, ONLY:  &
+                                  get_terminal_fall_velocity_ice, &
+                                  set_terminal_fall_velocity_ice
   USE mo_ext_data_types,     ONLY: t_external_data
   USE mo_extpar_config,      ONLY: nclass_lu
   USE mo_exception,          ONLY: message_text, message, finish
@@ -468,7 +470,7 @@ MODULE mo_ensemble_pert_config
     LOGICAL, INTENT(in) :: lprint ! print control output
     LOGICAL, INTENT(in) :: lacc ! If true, update data on device
 
-    REAL(wp) :: rnd_fac, rnd_num, tkfac
+    REAL(wp) :: rnd_fac, rnd_num, tkfac, zvz0i
     INTEGER :: jg
 #ifdef _OPENACC
     INTEGER :: nbytes
@@ -720,6 +722,7 @@ MODULE mo_ensemble_pert_config
     IF (lprint) THEN
 
       ! control output
+      CALL get_terminal_fall_velocity_ice(zvz0i)
       WRITE(message_text,'(4f8.4,e11.4,2f8.4)') tune_gkwake(1), tune_gkdrag(1), tune_gkdrag_enh(1), tune_gfrcrit(1), &
         tune_gfluxlaun, tune_zvz0i, atm_phy_nwp_config(1)%rain_n0_factor
       CALL message('Perturbed values, gkwake, gkdrag, gkdrag_enh, gfrcrit, gfluxlaun, zvz0i, rain_n0fac', TRIM(message_text))
@@ -932,7 +935,7 @@ MODULE mo_ensemble_pert_config
         ENDDO
         ! in addition, GWD and microphysics parameters need to be updated
         gfluxlaun = tune_gfluxlaun
-        zvz0i     = tune_zvz0i
+        CALL set_terminal_fall_velocity_ice(tune_zvz0i)
       ENDIF
     ENDIF
 
