@@ -48,6 +48,7 @@ MODULE mo_lnd_nwp_config
   PUBLIC :: tile_list
   PUBLIC :: groups_smi
   PUBLIC :: czbot_w_so
+  PUBLIC :: lcuda_graph_lnd
 
 
   !--------------------------------------------------------------------------
@@ -111,6 +112,8 @@ MODULE mo_lnd_nwp_config
   REAL(wp)::  czbot_w_so       !< thickness of the hydraulical active soil layer [m]
 
   CHARACTER(LEN=filename_max) :: sst_td_filename, ci_td_filename
+  
+  LOGICAL :: lcuda_graph_lnd  !< activate cuda graph
 
   ! derived variables
   INTEGER ::  ibot_w_so    !< number of hydrological active soil layers 

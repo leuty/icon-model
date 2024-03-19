@@ -177,7 +177,6 @@ MODULE mo_name_list_output_init
 #endif
 
 #if !defined (__NO_ICON_ATMO__) && !defined (__NO_ICON_OCEAN__)
-  USE mo_coupling_config,                   ONLY: is_coupled_run
   USE mo_master_control,                    ONLY: get_my_process_name
 #endif
 #ifdef HAVE_CDI_PIO
@@ -187,10 +186,11 @@ MODULE mo_name_list_output_init
   USE yaxt,                                 ONLY: xt_idxlist, &
        xt_idxvec_new, xt_idxlist_delete, xt_idxstripes_from_idxlist_new, &
        xt_int_kind, xt_idxstripes_new, xt_idxempty_new, xt_stripe
-#ifdef YAC_coupling
-  USE mo_io_coupling_frame,     ONLY: construct_io_coupling
 #endif
-#endif
+  USE mo_timer,                             ONLY: ltimer, timer_start, &
+    &                                             timer_stop, timer_coupling
+  USE mo_coupling_config,                   ONLY: is_coupled_run
+  USE mo_dummy_coupling_frame,              ONLY: construct_dummy_coupling
   IMPLICIT NONE
 
   PRIVATE
@@ -1612,10 +1612,12 @@ CONTAINS
   SUBROUTINE init_cdipio_cb
     INTEGER :: dom_sim_step_info_jstep0
     TYPE(t_event_data_local) :: event_list_dummy(1)
-    
-#ifdef YAC_coupling
-    CALL construct_io_coupling ( "dummy" )
-#endif
+
+    IF (is_coupled_run()) THEN
+      IF (ltimer) CALL timer_start(timer_coupling)
+      CALL construct_dummy_coupling("name_list_output")
+      IF (ltimer) CALL timer_stop(timer_coupling)
+    END IF
 
     IF (p_pe_work == 0) THEN
       CALL p_recv(dom_sim_step_info_jstep0, p_source=0, p_tag=156, &

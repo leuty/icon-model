@@ -2459,6 +2459,13 @@ tuning of bare-soil evaporation &
 init\_mode=5
 \tabularnewline
 
+smi\_relax\_timescale&
+R & 20. & days &
+Relaxation time scale for ICON-internal soil moisture adjustment, referring to a filtered RH increment of 1\%.
+Setting the time scale to zero turns off the soil moisture adjustment. &
+icpl\_da\_sfcevap $>=$ 2
+\tabularnewline
+
 icpl\_da\_snowalb&
 I & 0 & &
 Coupling between temperature bias inferred from data assimilation and snow albedo\\
@@ -2497,6 +2504,14 @@ parts of Russia where the assimilation of 10m winds is blacklisted in the operat
 2: on without masking over Russia, to be combined with 10m wind assimilation without blacklisting &
 init\_mode=5
 \tabularnewline
+
+
+scalfac\_da\_sfcfric&
+R & 2.5 & &
+Scaling factor for adaptive surface friction (see eqns. 3 and 4 in \texttt{https://doi.org/10.1002/qj.4535}) &
+icpl\_da\_sfcfric $>$ 0
+\tabularnewline
+
 
 icpl\_da\_tkhmin&
 I & 0 & &
@@ -3268,6 +3283,10 @@ ceiling & ceiling height & m & iforcing = inwp & 2d & - &  [2]
 \tabularnewline
 %
 
+vis & near-surface horizontal visibility & m & iforcing = inwp & 2d & - &  [2]
+\tabularnewline
+%
+
 hbas\_sc & cloud base above msl, shallow convection & m & iforcing = inwp & 2d & - & [2]
 \tabularnewline
 %
@@ -3352,6 +3371,11 @@ kg m-2 & iforcing = inwp & 2d & totprec\_d\_interval & [1], [4], [5]
 
 lapse\_rate & temperature gradient between 500 and 850 hPa  &
 K m-1 & iforcing = inwp & 2d & - & [2]
+\tabularnewline
+%
+
+mconv & low level horizontal moisture convergence averaged over 0-1000\,m AGL layer based on specific humidity, $\frac{1}{1\,\text{km}}\int_{0}^{1\,\text{km AGL}}\nabla_h\cdot(q_v\vec v_h)\,dz$&
+s-1 & iforcing = inwp & 2d & - & [2]
 \tabularnewline
 %
 
@@ -4144,6 +4168,14 @@ Default is "$<$path$>$CI\_$<$year$>$\_$<$month$>$\_$<$gridfile$>$". May contain
 the keyword $<$path$>$ which will be substituted by model\_base\_dir \newline
 In case sstice\_mode=6, sea ice data for all time steps in the current simulation should be prepared in one single file, variable should be named SIC in this file. &
 sstice\_mode=3,4,5,6
+\tabularnewline
+%\hline
+lcuda\_graph\_lnd &
+L&
+.FALSE.&
+&
+Activate cuda graphs for the land scheme. Automatically set to .FALSE. if not compiled with the ICON\_USE\_CUDA\_GRAPH cpp key.&
+ICON\_USE\_CUDA\_GRAPH activated
 \tabularnewline
 \end{longtab}
 
@@ -4998,8 +5030,8 @@ cloud microphysics and precipitation\\
 1: hydci (COSMO-EU microphysics, 2-cat ice: cloud ice, snow)\\
 2: hydci\_gr (COSMO-DE microphysics, 3-cat ice: cloud ice, snow, graupel)\\
 3: as 1, but with improved ice nucleation scheme by C. Koehler\\
-4: Two-moment microphysics by A. Seifert, further configuration possible in namelist \texttt{/twomom\_mcrph\_nml/}\\
-
+4,5,6,7: Two-moment microphysics by A. Seifert, further configuration possible in namelist \texttt{/twomom\_mcrph\_nml/}\\
+8: Spectral Bin Microphysics (SBM) by A. Khain\\
 9: Kessler scheme &
 run\_nml:iforcing = inwp
 \tabularnewline
@@ -5051,7 +5083,8 @@ I&
 0&
  &
 0: off \\
-1: simple coupling between autoconversion and Tegen aerosol climatology; requires irad\_aero=6 \\
+1: simple coupling between autoconversion and Tegen aerosol climatology; requires irad\_aero=6 or 9 \\
+3: use cloud-droplet number climatology from external parameter file. External parameter files containing cloud-droplet number climatology can be generated with extpar code from version rc\_5.14 \\
 More advanced options are in preparation&
 currently only for inwp\_gscp = 1
 \tabularnewline
@@ -5459,6 +5492,15 @@ run\_nml:iforcing = inwp \\
 init\_mode $<$ 4 \\
 inwp\_turb $>$ 0 \\
 inwp\_radiation $>$ 0
+\tabularnewline
+
+%\hline
+lcuda\_graph\_turb\_tran &
+L&
+.FALSE.&
+&
+Activate cuda graphs for turbulent transfers. Automatically set to .FALSE. if not compiled with the ICON\_USE\_CUDA\_GRAPH cpp key.&
+ICON\_USE\_CUDA\_GRAPH activated
 \tabularnewline
 
 \end{longtab}
@@ -6892,26 +6934,33 @@ variable rather than the name of the corresponding tile container (i.e.\ in the 
 %\hline
 \textbf{nproma} &
 I & 1& &
-chunk length. &
+Loop chunk length. Only one of (\emph{nproma}, \emph{nblocks\_c}, \emph{nblocks\_e}) may be specified in the namelist (>0) at any time. \\
 \tabularnewline
 
 %\hline
 \textbf{nblocks\_c} &
 I & 0& &
-Number of looping chunks used for cells. For values <= 0 this is ignored. For bigger values, this overwrites \textbf{nproma}. &
+Number of looping chunks used for cells. For values > 0, \emph{nproma} is recomputed according to the specified \emph{nblocks\_c}.  \\   &
+\tabularnewline
+
+%\hline
+\textbf{nblocks\_e} &
+I & 0& &
+Number of looping chunks used for edges. For values > 0, \emph{nproma} is recomputed according to the specified \emph{nblocks\_e}. \\ &
 \tabularnewline
 
 %\hline
 nproma\_sub &
 I & nproma & &
 Chunk size of subblocks used for example by ecRad or rrtmgp, which is needed for the GPU
-port to reduce the memory footprint. \\ &
+port to reduce the memory footprint. \\ May only specify one of (\emph{nproma\_sub}, \emph{nblocks\_sub}) in the namelist (>0) at any time. \\ &
 \tabularnewline
 
 %\hline
 nblocks\_sub &
 I & 1 & &
-Number of looping chunks used for subblocking. For values <= 0 this is ignored. For bigger values, this overwrites \emph{nproma\_sub}. &
+Number of looping chunks used for subblocking. For values <= 0 this is ignored. For bigger values, this overwrites \emph{nproma\_sub}.
+\\ For reduced-grid radiation, we suggest explicitly specifying \emph{nproma\_sub} instead of using \emph{nblocks\_sub}.	&
 \tabularnewline
 
 %\hline

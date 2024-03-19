@@ -52,6 +52,7 @@ USE mo_impl_constants,      ONLY: success, &
   &                               TASK_COMPUTE_WSHEAR_U,              &
   &                               TASK_COMPUTE_WSHEAR_V,              &
   &                               TASK_COMPUTE_LAPSERATE,             &
+  &                               TASK_COMPUTE_MCONV,                 &
   &                               TASK_COMPUTE_SRH,                   &
   &                               TASK_COMPUTE_INVERSION,             &
   &                               ivdiff,                             &
@@ -73,7 +74,7 @@ USE mo_grid_config,         ONLY: n_dom, n_dom_start, nexlevs_rrg_vnest
 USE mo_atm_phy_nwp_config,  ONLY: atm_phy_nwp_config, icpl_aero_conv, iprog_aero
 USE turb_data,              ONLY: ltkecon
 USE mo_initicon_config,     ONLY: icpl_da_sfcevap, icpl_da_snowalb, icpl_da_skinc, icpl_da_seaice
-USE mo_radiation_config,    ONLY: irad_aero, iRadAeroTegen, iRadAeroART
+USE mo_radiation_config,    ONLY: irad_aero, iRadAeroTegen, iRadAeroART, iRadAeroNone, iRadAeroConst, iRadAeroCAMSclim
 USE mo_lnd_nwp_config,      ONLY: ntiles_total, ntiles_water, nlev_soil
 USE mo_nwp_vdiff_interface, ONLY: nwp_vdiff_setup
 USE mo_var_list,            ONLY: add_var, add_ref, t_var_list_ptr
@@ -432,6 +433,7 @@ SUBROUTINE new_nwp_phy_diag_list( k_jg, klev, klevp1, kblks,    &
       &     diag%ice_gsp_rate, &
       &     diag%inversion_height, &
       &     diag%lapse_rate, &
+      &     diag%mconv, &
       &     diag%lhn_diag, &
       &     diag%liqfl_turb, &
       &     diag%low_ent_zone, &
@@ -2547,8 +2549,8 @@ SUBROUTINE new_nwp_phy_diag_list( k_jg, klev, klevp1, kblks,    &
 
     ENDIF
 
-    IF ( (irad_aero == iRadAeroTegen .OR. irad_aero == iRadAeroART) .AND.  &
-      &  (atm_phy_nwp_config(k_jg)%icpl_aero_gscp == 1 .OR. icpl_aero_conv == 1) ) THEN
+    IF (.NOT. ANY( irad_aero == (/iRadAeroNone, iRadAeroConst, iRadAeroCAMSclim/) ) .AND.          &
+      &  (ANY ( atm_phy_nwp_config(k_jg)%icpl_aero_gscp == (/1, 3/) ) .OR. icpl_aero_conv == 1) ) THEN
       lrestart = .TRUE.
     ELSE
       lrestart = .FALSE.
@@ -3041,7 +3043,7 @@ SUBROUTINE new_nwp_phy_diag_list( k_jg, klev, klevp1, kblks,    &
     CALL add_var( diag_list, 'rlamh_fac_t', diag%rlamh_fac_t,          &
       & GRID_UNSTRUCTURED_CELL, ZA_SURFACE, cf_desc, grib2_desc,       &
       & ldims=shape3dsubsw, lcontainer=.TRUE., lrestart=.FALSE.,       &
-      & loutput=.FALSE., lopenacc=.TRUE.)
+      & loutput=.FALSE., lopenacc=.TRUE., initval=1._wp)
     __acc_attach(diag%rlamh_fac_t)
 
     ! fill the seperate variables belonging to the container rlamh_fac_t
@@ -4723,6 +4725,23 @@ SUBROUTINE new_nwp_phy_diag_list( k_jg, klev, klevp1, kblks,    &
                   & action_list=actions( new_action( ACTION_RESET, celltracks_int ) ), &
                   & lopenacc=.TRUE. )
       __acc_attach(diag%vorw_ctmax)
+    END IF
+
+    IF (var_in_output%mconv) THEN
+      cf_desc    = t_cf_var('mconv', 's-1',                   &
+        &                   'Low level horizontal moisture convergence 0-1000 m AGL', datatype_flt)
+      grib2_desc = grib2_var( 0, 1, 26, ibits, GRID_UNSTRUCTURED, GRID_CELL)   &
+        &           + t_grib2_int_key("typeOfFirstFixedSurface",          103) &
+        &           + t_grib2_int_key("typeOfSecondFixedSurface",         103) &
+        &           + t_grib2_int_key("scaledValueOfFirstFixedSurface",  1000) &
+        &           + t_grib2_int_key("scaledValueOfSecondFixedSurface",    0)
+      CALL add_var( diag_list,                                               &
+                  & 'mconv', diag%mconv,                                     &
+                  & GRID_UNSTRUCTURED_CELL, ZA_SURFACE,                      &
+                  & cf_desc, grib2_desc,                                     &
+                  & ldims=shape2d,                                           &
+                  & isteptype=TSTEP_INSTANT,                                 &
+                  & l_pp_scheduler_task=TASK_COMPUTE_MCONV, lrestart=.FALSE. )
     END IF
 
     IF (var_in_output%w_ctmax) THEN

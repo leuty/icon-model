@@ -74,7 +74,8 @@ MODULE mo_lnd_nwp_nml
     &                               config_ci_td_filename     => ci_td_filename    , &
     &                               config_zml_soil           => zml_soil          , &
     &                               config_nlev_soil          => nlev_soil         , &
-    &                               config_czbot_w_so         => czbot_w_so
+    &                               config_czbot_w_so         => czbot_w_so        , &
+    &                               config_lcuda_graph_lnd    => lcuda_graph_lnd
 
   IMPLICIT NONE
 
@@ -159,7 +160,8 @@ CONTAINS
          lstomata   ,    & !> map of minimum stomata resistance
          l2tls      ,    & !> forecast with 2-TL integration scheme
          lana_rho_snow,  & !> if .TRUE., take rho_snow-values from analysis file
-         lsnowtile         !> if .TRUE., snow is considered as a separate tile
+         lsnowtile,      & !> if .TRUE., snow is considered as a separate tile
+         lcuda_graph_lnd   !> activate cuda graph
     !--------------------------------------------------------------------
     ! nwp forcing (right hand side)
     !--------------------------------------------------------------------
@@ -185,7 +187,7 @@ CONTAINS
          &               sstice_mode                                          , &
          &               sst_td_filename                                      , &
          &               ci_td_filename, cwimax_ml, c_soil, c_soil_urb        , &
-         &               czbot_w_so, cr_bsmin
+         &               czbot_w_so, cr_bsmin, lcuda_graph_lnd
 
     CHARACTER(len=*), PARAMETER ::  &
       &  routine = 'mo_lnd_nwp_nml:read_nwp_lnd_namelist'
@@ -278,6 +280,8 @@ CONTAINS
     lprog_albsi    = .FALSE. ! .TRUE.: sea-ice albedo is computed prognostically 
                              ! (only takes effect if "lseaice=.TRUE.")
     llake          = .TRUE.  ! .TRUE.: lake model is used
+    !
+    lcuda_graph_lnd = .FALSE. ! cuda graph deactivated by default
 
     !------------------------------------------------------------------
     ! 2. If this is a resumed integration, overwrite the defaults above 
@@ -369,9 +373,14 @@ CONTAINS
     ENDIF
     !$ACC ENTER DATA COPYIN(config_zml_soil)
 
-    !Check if target GPU configuration is supported
+    ! Check if target GPU configuration is supported
 #ifdef _OPENACC
     IF(lmulti_snow) CALL finish(routine, "GPU version not available for lmulti_snow == .TRUE.")
+#endif
+
+    ! deactivate cuda graph if no cpp key => make sure ACC WAIT is activated where needed
+#ifndef ICON_USE_CUDA_GRAPH
+    lcuda_graph_lnd = .FALSE.
 #endif
 
     !----------------------------------------------------
@@ -425,6 +434,7 @@ CONTAINS
     config_ci_td_filename     = ci_td_filename
     config_nlev_soil          = nlev_soil
     config_czbot_w_so         = czbot_w_so
+    config_lcuda_graph_lnd    = lcuda_graph_lnd
     !$ACC UPDATE DEVICE(config_itype_interception) ASYNC(1)
 
     !-----------------------------------------------------

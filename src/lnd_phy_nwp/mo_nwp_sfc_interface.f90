@@ -40,7 +40,7 @@ MODULE mo_nwp_sfc_interface
     &                               ntiles_lnd, lsnowtile, isub_water, isub_seaice,   &
     &                               isub_lake, itype_interception, l2lay_rho_snow,    &
     &                               lprog_albsi, itype_trvg, lterra_urb,              &
-    &                               itype_snowevap, zml_soil
+    &                               itype_snowevap, zml_soil, lcuda_graph_lnd
   USE mo_extpar_config,       ONLY: itype_vegetation_cycle
   USE mo_initicon_config,     ONLY: icpl_da_sfcevap, dt_ana, icpl_da_skinc, icpl_da_seaice
   USE mo_coupling_config,     ONLY: is_coupled_to_ocean
@@ -80,12 +80,8 @@ TYPE(accgraph) :: graphs(max_dom*2)
 TYPE(c_ptr) :: lnd_prog_now_cache(max_dom*2) = C_NULL_PTR
 LOGICAL :: graph_captured
 INTEGER :: cur_graph_id, ig
-LOGICAL, PARAMETER :: multi_queue_processing = .TRUE.
-LOGICAL, PARAMETER :: using_cuda_graph = .TRUE.
-#else
-LOGICAL, PARAMETER :: multi_queue_processing = .FALSE.
-LOGICAL, PARAMETER :: using_cuda_graph = .FALSE.
 #endif
+LOGICAL :: multi_queue_processing
 INTEGER :: acc_async_queue = 1
 
 CONTAINS
@@ -287,6 +283,12 @@ CONTAINS
 #endif
 
 !--------------------------------------------------------------
+#ifdef ICON_USE_CUDA_GRAPH
+    multi_queue_processing = lcuda_graph_lnd
+#else
+    multi_queue_processing = .FALSE.
+#endif
+
     CALL set_acc_host_or_device(lzacc, lacc)
 
     ! get patch ID
@@ -325,7 +327,7 @@ CONTAINS
 ! Using CUDA graphs here to capture and replay the GPU kernels without host overhead
 ! We need to capture two graphs because the source and destination arrays
 !  are swapped every step (alternating nnow and nnew)
-    IF (lzacc) THEN
+    IF (lzacc .AND. lcuda_graph_lnd) THEN
       cur_graph_id = -1
       DO ig=1,max_dom*2
         IF (C_LOC(lnd_prog_now) == lnd_prog_now_cache(ig)) THEN
@@ -1767,7 +1769,7 @@ CONTAINS
 !$OMP END PARALLEL
  
 #ifdef ICON_USE_CUDA_GRAPH
-    IF (lzacc) THEN
+    IF (lzacc .AND. lcuda_graph_lnd) THEN
       CALL accx_end_capture(graphs(cur_graph_id), 1)
       WRITE(message_text,'(a,i2,a)') 'finished to capture CUDA graph, id ', cur_graph_id, ', now executing it'
       IF (msg_level >= 13) CALL message('mo_nwp_sfc_interface: ', message_text)
@@ -1995,7 +1997,7 @@ CONTAINS
 !$OMP END DO
 !$OMP END PARALLEL
 
-    IF (.NOT. using_cuda_graph) THEN
+    IF (.NOT. multi_queue_processing) THEN
       !$ACC WAIT(1)
     END IF
     !$ACC END DATA
@@ -2250,7 +2252,9 @@ CONTAINS
 !$OMP END PARALLEL
 
     ! remove local variables from gpu
-    !$ACC WAIT(1)
+    IF (.NOT. lcuda_graph_lnd) THEN
+      !$ACC WAIT(1)
+    ENDIF
     !$ACC END DATA
   END SUBROUTINE nwp_lake
 

@@ -113,7 +113,7 @@ USE mo_physical_constants, ONLY : &
 
     rdv, con_m, con_h, grav      
 
-USE mo_convect_tables, ONLY : &
+USE mo_lookup_tables_constants, ONLY : &
 !
 ! Parameters for auxilary parametrizations:
 ! ------------------------------------------
@@ -262,6 +262,7 @@ USE turb_data, ONLY : &
 
 ! Switches controlling other physical parameterizations:
 USE mo_lnd_nwp_config,       ONLY: lseaice, llake, lterra_urb, itype_kbmo
+USE mo_atm_phy_nwp_config,   ONLY: lcuda_graph_turb_tran
 !   
 USE turb_data,         ONLY:   &
     itype_diag_t2m    !
@@ -310,12 +311,6 @@ REAL (KIND=wp), PARAMETER :: &
     z1d3=z1/z3     ,&
     z2d3=z2/z3     ,&
     z3d2=z3/z2
-
-#ifdef ICON_USE_CUDA_GRAPH
-  LOGICAL, PARAMETER :: using_cuda_graph = .TRUE.
-#else
-  LOGICAL, PARAMETER :: using_cuda_graph = .FALSE.
-#endif
 
 !===============================================================================
 
@@ -860,7 +855,7 @@ LOGICAL        ::   ldebug = .FALSE.
                    lacc=lzacc, opt_acc_async_queue=acc_async_queue)
 
 #ifdef ICON_USE_CUDA_GRAPH
-   IF (lzacc .AND. lini) THEN
+   IF (lzacc .AND. lini .AND. lcuda_graph_turb_tran ) THEN
       CALL finish ('turbtran', 'initialization is not supported when capturing a graph with OpenACC')
    END IF
 #endif

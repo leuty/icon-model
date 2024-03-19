@@ -1681,7 +1681,7 @@ CONTAINS
         & tdew_ref, rh_ref, q_ref &
       )
 
-    USE mo_convect_tables, ONLY: b1 => c1es, b2w => c3les, b4w => c4les
+    USE mo_lookup_tables_constants, ONLY: b1 => c1es, b2w => c3les, b4w => c4les
 
     INTEGER, INTENT(IN) :: ics !< Starting cell index.
     INTEGER, INTENT(IN) :: ice !< End cell index.
@@ -2073,7 +2073,7 @@ CONTAINS
   !> Update tile-based variables in land and atmosphere state with results from JSBACH.
   !! Assumes that grid-scale variables are updated already. Grabs a few additional variables
   !! from inside JSBACH and updates the state with their contents (currently runoff and drainage)
-  !! for an HD model coupled via YAC.
+  !! for a coupled HD model.
   SUBROUTINE update_nwp_tile_state (patch, delta_time, fr_sft, prog_lnd_new, diag_lnd, phy_diag)
 
     TYPE(t_patch), INTENT(IN) :: patch !< Current patch.

@@ -25,7 +25,7 @@ MODULE mo_hydro_ocean_run
   USE mo_impl_constants,         ONLY: max_char_length, success
   USE mo_model_domain,           ONLY: t_patch, t_patch_3d
   USE mo_grid_config,            ONLY: n_dom
-  USE mo_coupling_config,        ONLY: is_coupled_run, is_coupled_to_output
+  USE mo_coupling_config,        ONLY: is_coupled_to_atmo, is_coupled_to_output
   USE mo_memory_log,             ONLY: memory_log_add
   USE mo_ocean_nml,              ONLY: iswm_oce, n_zlev, no_tracer, &
     &  i_sea_ice, cfl_check, cfl_threshold, cfl_stop_on_violation,   &
@@ -49,7 +49,7 @@ MODULE mo_hydro_ocean_run
     & timer_tracer_ab, timer_vert_veloc, timer_normal_veloc,     &
     & timer_upd_flx, timer_extra20, timers_level, &
     & timer_scalar_prod_veloc, timer_extra21, timer_extra22, timer_bgc_ini, &
-    & timer_bgc_inv, timer_bgc_tot
+    & timer_bgc_inv, timer_bgc_tot, timer_coupling
   USE mo_ocean_ab_timestepping,    ONLY: solve_free_surface_eq_ab, &
     &                                    calc_normal_velocity_ab,  &
     &                                    calc_vert_velocity,       &
@@ -91,9 +91,7 @@ MODULE mo_hydro_ocean_run
   USE mo_ocean_hamocc_interface, ONLY: ocean_to_hamocc_interface
   USE mo_derived_variable_handling, ONLY: update_statistics
   USE mo_ocean_output
-#ifdef YAC_coupling
   USE mo_ocean_atmo_coupling,    ONLY: couple_ocean_toatmo_fluxes
-#endif
   USE mo_hamocc_nml,             ONLY: l_cpl_co2
   USE mo_ocean_time_events,      ONLY: ocean_time_nextStep, isCheckpoint, isEndOfThisRun, newNullDatetime
   USE mo_ocean_ab_timestepping_mimetic, ONLY: clear_ocean_ab_timestepping_mimetic
@@ -111,10 +109,8 @@ MODULE mo_hydro_ocean_run
   USE mo_ocean_state,            ONLY: v_base
   USE mo_ocean_nudging,          ONLY: ocean_nudge
   USE mo_fortran_tools,          ONLY: set_acc_host_or_device
-  USE mo_ocean_age_tracer,       ONLY: calc_age_tracer ! by_nils
-#ifdef YAC_coupling
+  USE mo_ocean_age_tracer,       ONLY: calc_age_tracer
   USE mo_output_coupling,        ONLY: output_coupling
-#endif
 
   IMPLICIT NONE
 
@@ -153,13 +149,13 @@ CONTAINS
 
     lzacc = .FALSE.
 
-    IF (is_restart .AND. is_coupled_run() ) THEN
+    IF (is_restart .AND. is_coupled_to_atmo() ) THEN
         ! Initialize 10m Wind Speed from restart file when run in coupled mode
         p_as%fu10 = p_oce_sfc%Wind_Speed_10m
         p_as%pao = p_oce_sfc%sea_level_pressure
     ENDIF
 
-    IF (is_restart .AND. is_coupled_run() .AND. l_cpl_co2 ) THEN
+    IF (is_restart .AND. is_coupled_to_atmo() .AND. l_cpl_co2 ) THEN
         ! Initialize CO" Mixing Ration from restart file when run in coupled mode with HAMOCC
         p_as%co2 = p_oce_sfc%CO2_Mixing_Ratio
     ENDIF
@@ -718,10 +714,11 @@ CONTAINS
           &                sea_ice,                 &
           &                jstep, jstep0)
 
-#ifdef YAC_coupling
-        IF ( is_coupled_to_output() ) &
-             CALL output_coupling(patch_3d%wet_c)
-#endif
+        IF ( is_coupled_to_output() ) THEN
+          IF (ltimer) CALL timer_start(timer_coupling)
+          CALL output_coupling(patch_3d%wet_c)
+          IF (ltimer) CALL timer_stop(timer_coupling)
+        END IF
 
 #ifdef _OPENACC
         lzacc = .FALSE.
@@ -731,9 +728,12 @@ CONTAINS
         ! send and receive coupling fluxes for ocean at the end of time stepping loop
         IF (iforc_oce == Coupled_FluxFromAtmo) THEN  !  14
 
-#ifdef YAC_coupling
-          CALL couple_ocean_toatmo_fluxes(patch_3D, ocean_state(jg), sea_ice, p_atm_f, p_as)
-#endif
+          IF ( is_coupled_to_atmo() ) THEN
+            IF (ltimer) CALL timer_start(timer_coupling)
+            CALL couple_ocean_toatmo_fluxes( &
+              patch_3D, ocean_state(jg), sea_ice, p_atm_f, p_as)
+            IF (ltimer) CALL timer_stop(timer_coupling)
+          END IF
 
           ! copy fluxes updated in coupling from p_atm_f into p_oce_sfc
           p_oce_sfc%FrshFlux_Precipitation = p_atm_f%FrshFlux_Precipitation
@@ -1389,10 +1389,11 @@ CONTAINS
           &                sea_ice,                 &
           &                jstep, jstep0)
 
-#ifdef YAC_coupling
-        IF ( is_coupled_to_output() ) &
-             CALL output_coupling(patch_3d%wet_c)
-#endif
+        IF ( is_coupled_to_output() ) THEN
+          IF (ltimer) CALL timer_start(timer_coupling)
+          CALL output_coupling(patch_3d%wet_c)
+          IF (ltimer) CALL timer_stop(timer_coupling)
+        END IF
 
 #ifdef _OPENACC
         lzacc = .FALSE.
@@ -1402,9 +1403,14 @@ CONTAINS
         ! send and receive coupling fluxes for ocean at the end of time stepping loop
         ! FIXME zstar: Does this make sense for zstar
         IF (iforc_oce == Coupled_FluxFromAtmo) THEN  !  14
-#ifdef YAC_coupling
-          CALL couple_ocean_toatmo_fluxes(patch_3D, ocean_state(jg), sea_ice, p_atm_f, p_as)
-#endif
+
+          IF ( is_coupled_to_atmo() ) THEN
+            IF (ltimer) CALL timer_start(timer_coupling)
+            CALL couple_ocean_toatmo_fluxes( &
+              patch_3D, ocean_state(jg), sea_ice, p_atm_f, p_as)
+            IF (ltimer) CALL timer_stop(timer_coupling)
+          END IF
+
           ! copy fluxes updated in coupling from p_atm_f into p_oce_sfc
           p_oce_sfc%FrshFlux_Precipitation = p_atm_f%FrshFlux_Precipitation
           p_oce_sfc%FrshFlux_Evaporation   = p_atm_f%FrshFlux_Evaporation

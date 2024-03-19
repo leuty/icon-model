@@ -40,7 +40,7 @@ MODULE mo_ext_data_init
     &                              generate_td_filename, extpar_varnames_map_file,              &
     &                              n_iter_smooth_topo, i_lctype, nclass_lu, nhori, nmonths_ext, &
     &                              itype_vegetation_cycle, read_nc_via_cdi, pp_sso
-  USE mo_initicon_config,    ONLY: icpl_da_sfcevap, dt_ana, icpl_da_skinc, icpl_da_seaice, icpl_da_snowalb
+  USE mo_initicon_config,    ONLY: icpl_da_sfcevap, dt_ana, icpl_da_seaice, icpl_da_snowalb
   USE mo_radiation_config,   ONLY: irad_o3, albedo_type, islope_rad,    &
     &                              irad_aero, iRadAeroTegen, iRadAeroART
   USE mo_process_topo,       ONLY: smooth_topo_real_data, postproc_sso, smooth_frland
@@ -436,6 +436,16 @@ CONTAINS
           ENDDO
         ENDIF  ! lwemiss
 
+        ! cloud droplet climatology
+        IF ( atm_phy_nwp_config(jg)%icpl_aero_gscp == 3  ) THEN
+          DO jg = 1, n_dom
+            CALL interpol_monthly_mean(p_patch(jg),                      &! in
+                 &                     assumePrevMidnight(this_datetime),&! in
+                 &                     ext_data(jg)%atm_td%cdnc,         &! in
+                 &                     ext_data(jg)%atm%cdnc             )! out
+          ENDDO
+        ENDIF
+        
         ! clean up
         CALL deallocateDatetime(this_datetime)
 
@@ -642,6 +652,15 @@ CONTAINS
       IF ( sstice_mode == SSTICE_ANA_CLINC ) THEN
         IF ( test_cdi_varID(cdi_extpar_id, 'T_SEA')  == -1 ) THEN
           CALL finish(routine,'SST climatology missing in '//TRIM(extpar_filename))
+        ENDIF
+      ENDIF
+      
+      IF ( atm_phy_nwp_config(jg)%icpl_aero_gscp == 3  ) THEN
+        ! Check whether external parameter file contains cloud droplet number climatology
+        IF ( test_cdi_varID(cdi_extpar_id, 'cdnc')  == -1 ) THEN
+          CALL finish(routine,'icpl_aero_gscp=3 but cloud droplet number climatology missing in '//TRIM(extpar_filename))
+        ELSE
+          CALL message(routine,'Found cloud droplet number in extpar file' )
         ENDIF
       ENDIF
 
@@ -1330,6 +1349,11 @@ CONTAINS
             CALL read_extdata('T_2M_CLIM', arr3d=ext_data(jg)%atm_td%t2m_m)
             CALL read_extdata('TOPO_CLIM',   ext_data(jg)%atm%topo_t2mclim)
           ENDIF
+
+          IF ( atm_phy_nwp_config(jg)%icpl_aero_gscp == 3  ) THEN
+            ! cloud droplet climatology (time dependent monthly means)
+            CALL read_extdata('cdnc',   arr3d=ext_data(jg)%atm_td%cdnc)
+          END IF
 
           !--------------------------------
           ! If MODIS albedo is used
@@ -2683,13 +2707,12 @@ CONTAINS
     INTEGER  :: i_startblk, i_endblk,i_startidx, i_endidx
     INTEGER  :: i_count,ilu
 
-    REAL(wp) :: t2mclim_hc(nproma),t_asyfac(nproma),tdiff_norm,wfac,dtdz_clim,trans_width,trh_bias, &
-                skinc_fac,lat,scal,dtfac_skinc
+    REAL(wp) :: t2mclim_hc(nproma),t_asyfac(nproma),tdiff_norm,wfac,dtdz_clim,trans_width
     REAL(wp), DIMENSION(num_lcc) :: laimin,threshold_temp,temp_asymmetry,rd_fac
 
     INTEGER, PARAMETER :: nparam = 4  ! Number of parameters used in lookup table 
 
-    REAL(wp), DIMENSION(num_lcc*nparam), TARGET :: vege_table ! < lookup table with control parameter specifications
+    REAL(wp), DIMENSION(num_lcc*nparam) :: vege_table ! < lookup table with control parameter specifications
 
     !-------------------------------------------------------------------------
 
@@ -2738,8 +2761,6 @@ CONTAINS
     ! transition width for temperature-dependent tai limitation
     trans_width = 2.0_wp
 
-    ! adaptation factor to analysis interval for adaptive skin conductivity
-    dtfac_skinc = (10800._wp/dt_ana)**(2._wp/3._wp)
 
     ! exclude the boundary interpolation zone of nested domains
     rl_start = grf_bdywidth_c+1
@@ -2749,7 +2770,7 @@ CONTAINS
     i_endblk   = p_patch%cells%end_block(rl_end)
 
 !$OMP PARALLEL
-!$OMP DO PRIVATE(jb,jt,ic,i_startidx,i_endidx,i_count,jc,ilu,t2mclim_hc,t_asyfac,tdiff_norm,wfac,trh_bias,skinc_fac,lat,scal)
+!$OMP DO PRIVATE(jb,jt,ic,i_startidx,i_endidx,i_count,jc,ilu,t2mclim_hc,t_asyfac,tdiff_norm,wfac)
     DO jb = i_startblk, i_endblk
 
       CALL get_indices_c(p_patch, jb, i_startblk, i_endblk, &
@@ -2819,65 +2840,6 @@ CONTAINS
                    ext_data%atm%t2m_climgrad(jc,jb) <= 0._wp) THEN
             wfac = (t2mclim_hc(jc)-(threshold_temp(ilu)-temp_asymmetry(ilu)))/(temp_asymmetry(ilu)+trans_width)
             ext_data%atm%rootdp_t(jc,jb,jt) = ext_data%atm%rootdp_t(jc,jb,jt)*(wfac + (1._wp-wfac)/rd_fac(ilu))
-          ENDIF
-
-          IF (icpl_da_sfcevap >= 3 .AND. icpl_da_skinc >= 1) THEN
-            trh_bias = 10800._wp/dt_ana*(125._wp*nh_diag%rh_avginc(jc,jb) - &
-              4._wp*(nh_diag%t_avginc(jc,jb)-0.5_wp*nh_diag%t_wgt_avginc(jc,jb)))
-          ELSE IF (icpl_da_sfcevap >= 3) THEN
-            trh_bias = 10800._wp/dt_ana*(100._wp*nh_diag%rh_avginc(jc,jb)-4._wp*nh_diag%t_avginc(jc,jb))
-          ELSE IF (icpl_da_sfcevap >= 2) THEN
-            trh_bias = nh_diag%t2m_bias(jc,jb) + 100._wp*10800._wp/dt_ana*nh_diag%rh_avginc(jc,jb)
-          ELSE IF (icpl_da_sfcevap == 1) THEN
-            trh_bias = nh_diag%t2m_bias(jc,jb)
-          ELSE
-            trh_bias = 0._wp
-          ENDIF
-
-          IF (icpl_da_sfcevap >= 4) THEN
-            IF (trh_bias < 0._wp) THEN
-              ext_data%atm%rsmin2d_t(jc,jb,jt) = ext_data%atm%stomresmin_lcc(ilu)*(1._wp-0.75_wp*trh_bias)
-              ext_data%atm%r_bsmin(jc,jb)      = cr_bsmin*(1._wp-trh_bias)
-            ELSE
-              ext_data%atm%rsmin2d_t(jc,jb,jt) = ext_data%atm%stomresmin_lcc(ilu)/(1._wp+0.75_wp*trh_bias)
-              ext_data%atm%r_bsmin(jc,jb)      = cr_bsmin/(1._wp+trh_bias)
-            ENDIF
-          ELSE IF (icpl_da_sfcevap >= 1) THEN
-            IF (trh_bias < 0._wp) THEN
-              ext_data%atm%rsmin2d_t(jc,jb,jt) = ext_data%atm%stomresmin_lcc(ilu)*(1._wp-0.5_wp*trh_bias)
-              ext_data%atm%eai_t(jc,jb,jt)     = MERGE(c_soil_urb,c_soil,ilu == ext_data%atm%i_lc_urban) /     &
-                                                 (1._wp-0.25_wp*trh_bias)
-            ELSE
-              ext_data%atm%rsmin2d_t(jc,jb,jt) = ext_data%atm%stomresmin_lcc(ilu)/(1._wp+0.5_wp*trh_bias)
-              ext_data%atm%eai_t(jc,jb,jt)     = MIN(MERGE(c_soil_urb,c_soil,ilu == ext_data%atm%i_lc_urban) * &
-                                                 (1._wp+0.25_wp*trh_bias), 2._wp)
-            ENDIF
-
-            IF (lterra_urb .AND. ((itype_eisa == 2) .OR. (itype_eisa == 3))) THEN
-              ext_data%atm%eai_t(jc,jb,jt)     = ext_data%atm%eai_t(jc,jb,jt)                                  &
-                                               * (1.0_wp - ext_data%atm%urb_isa_t(jc,jb,jt))
-            END IF
-
-          ELSE
-            ext_data%atm%rsmin2d_t(jc,jb,jt) = ext_data%atm%stomresmin_lcc(ilu)
-          ENDIF
-
-          ! Tuning factor for skin conductivity
-          IF (icpl_da_skinc >= 1) THEN
-            scal = MERGE(4._wp, 2.5_wp, icpl_da_skinc == 1)
-            IF (nh_diag%t_wgt_avginc(jc,jb) < 0._wp) THEN
-              skinc_fac = MAX(0.1_wp,1._wp+dtfac_skinc*scal*nh_diag%t_wgt_avginc(jc,jb))
-            ELSE
-              skinc_fac = 1._wp/MAX(0.1_wp,1._wp-dtfac_skinc*scal*nh_diag%t_wgt_avginc(jc,jb))
-            ENDIF
-
-            lat = p_patch%cells%center(jc,jb)%lat*rad2deg
-            IF (itype_lndtbl == 4 .AND. lat > -10._wp .AND. lat < 42.5_wp) THEN
-              ext_data%atm%skinc_t(jc,jb,jt) = skinc_fac*MIN(200._wp,ext_data%atm%skinc_lcc(ilu)*          &
-                                               (1._wp+MIN(1._wp,0.4_wp*(42.5_wp-lat),0.4_wp*(lat+10._wp))) )
-            ELSE
-              ext_data%atm%skinc_t(jc,jb,jt) = skinc_fac*ext_data%atm%skinc_lcc(ilu)
-            ENDIF
           ENDIF
 
         ENDDO

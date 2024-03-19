@@ -77,9 +77,10 @@ output_atm_3d="yes"   # 1 file
 output_lnd="yes"      # 1 file
 
 # determine the number of io processes
-nproma=160
-nproma_sub=160
+nproma=40
+nproma_sub=40
 num_io_procs=1
+nblocks_c=0
 
 # namelist files
 atmo_namelist=NAMELIST_${EXPNAME}_atm

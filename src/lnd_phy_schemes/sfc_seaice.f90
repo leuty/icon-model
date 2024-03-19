@@ -132,7 +132,9 @@ MODULE sfc_seaice
                                  & csalb              , &  !< solar albedo for different soil types
                                  & ist_seaice              !< ID of soiltype "sea ice"
 
-  USE mo_coupling_config,    ONLY: is_coupled_to_ocean     !< TRUE for coupled ocean-atmosphere runs 
+  USE mo_coupling_config,    ONLY: is_coupled_to_ocean     !< TRUE for coupled ocean-atmosphere runs
+
+  USE mo_lnd_nwp_config,     ONLY: lcuda_graph_lnd
 
   USE mo_fortran_tools,      ONLY: set_acc_host_or_device  !< Routine can be run on CPU and on GPU
 
@@ -213,12 +215,6 @@ MODULE sfc_seaice
          &  seaice_coldinit_albsi_nwp, & ! procedure
          &  seaice_timestep_nwp      , & ! procedure
          &  alb_seaice_equil
-
-#ifdef ICON_USE_CUDA_GRAPH
-  LOGICAL, PARAMETER :: using_cuda_graph = .TRUE.
-#else
-  LOGICAL, PARAMETER :: using_cuda_graph = .FALSE.
-#endif
 
 !234567890023456789002345678900234567890023456789002345678900234567890023456789002345678900234567890
 
@@ -582,7 +578,7 @@ CONTAINS
               &  rtaualbsisn  , &  !< reciprocal of relaxation time scale for snow-over-ice albedo [s^{-1}]
               &  albsi_e_wghtd     !< weighted equilibrium albedo (storage variable) [-] 
 
-    LOGICAL ::   lis_coupled_run   !< TRUE for coupled ocean-atmosphere runs (copy for vectorisation)
+    LOGICAL ::   lis_coupled_to_ocean !< TRUE for coupled ocean-atmosphere runs (copy for vectorisation)
     LOGICAL ::   lpres_fac_hflux   !< TRUE if fac_bottom_hflx is provided as input (from NWP interface only)
 
     !===============================================================================================
@@ -597,7 +593,7 @@ CONTAINS
     lpres_fac_hflux = PRESENT(fac_bottom_hflx)
 
     ! for vectorisation
-    lis_coupled_run = is_coupled_to_ocean()
+    lis_coupled_to_ocean = is_coupled_to_ocean()
     !$ACC DATA CREATE(dticedt, dhicedt, dtsnowdt, dhsnowdt) &
     !$ACC   PRESENT(qsen, qlat, qlwrnet, qsolnet, snow_rate, rain_rate, tice_p, hice_p, tsnow_p, hsnow_p) &
     !$ACC   PRESENT(albsi_p, tice_n, hice_n, tsnow_n, hsnow_n, condhf, albsi_n)
@@ -662,7 +658,7 @@ CONTAINS
         ! Set the ice surface temperature equal to the fresh-water freezing point
         tice_n(isi) = tf_fresh
 
-        IF ( lis_coupled_run ) THEN
+        IF ( lis_coupled_to_ocean ) THEN
           ! Coupling to icon-o: 
           ! Heat flux within the ice just above the ice-water intrface, phiipr0 is computed above 
           ! Note that for coupled runs, lbottom_hflux=.FALSE. and the heat flux 
@@ -692,7 +688,7 @@ CONTAINS
 
           ! Use a quasi-equilibrium model of heat transfer through the ice 
 
-          IF ( lis_coupled_run ) THEN
+          IF ( lis_coupled_to_ocean ) THEN
             ! Coupling to icon-o: 
             ! Heat flux (phiipr0 is computed above) 
             condhf(isi) = ki*phiipr0*(tice_p(isi)-tf_salt)/hice_p(isi)
@@ -724,7 +720,7 @@ CONTAINS
           ! Update the ice surface temperature
           tice_n(isi) = tice_p(isi) + dtime*dticedt(isi)
 
-          IF ( lis_coupled_run ) THEN
+          IF ( lis_coupled_to_ocean ) THEN
             ! Coupling to icon-o: 
             ! Heat flux (phiipr0 is computed above) 
             condhf(isi) = ki*phiipr0*(tice_p(isi)-tf_salt)/hice_p(isi)
@@ -852,7 +848,7 @@ CONTAINS
       ENDIF
     ENDIF
  
-    IF (.NOT. using_cuda_graph) THEN
+    IF (.NOT. lcuda_graph_lnd) THEN
       !$ACC WAIT(1)
     END IF
     !$ACC END DATA

@@ -2583,6 +2583,16 @@ END SUBROUTINE exchange_data_grf
          dst_data_cptr(npats*nfields)
     TYPE(c_ptr), POINTER :: src_cptr(:,:), dst_cptr(:,:)
 
+#ifdef _OPENACC
+    LOGICAL :: lzacc
+
+#ifdef __USE_G2G
+    lzacc = i_am_accel_node
+#else
+    lzacc = .FALSE.
+#endif
+#endif
+
     ! create C pointers to (contiguous) data
     src_cptr(1:npats, 1:nfields) => src_data_cptr
     dst_cptr(1:npats, 1:nfields) => dst_data_cptr
@@ -2606,7 +2616,7 @@ END SUBROUTINE exchange_data_grf
       END IF
       IF (incr > 0) THEN
 #ifdef _OPENACC
-        IF (lzacc) THEN ! FIXME: lzacc is undefined here (even before ACC clean-up 24c5f97e)
+        IF (lzacc) THEN
           dst_cptr(:, i) = acc_deviceptr(C_LOC(cpy(1,1,1)))
         ELSE
 #endif
