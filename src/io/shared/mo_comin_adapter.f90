@@ -39,6 +39,7 @@ MODULE mo_comin_adapter
   USE mo_util_vgrid_types,        ONLY : t_vgrid_buffer
   USE mo_decomposition_tools,     ONLY : get_local_index
   USE mo_comin_config,            ONLY : comin_config, t_comin_tracer_info
+  USE mo_coupling_utils,          ONLY : cpl_is_initialised, cpl_get_instance_id
   USE comin_host_interface,       ONLY : t_comin_var_ptr,                         &
     &                                    t_comin_var_descriptor,                  &
     &                                    t_var_request_list_item,                 &
@@ -90,17 +91,6 @@ MODULE mo_comin_adapter
   INTERFACE metadata_set_if_present
     MODULE PROCEDURE metadata_set_if_present_int
   END INTERFACE metadata_set_if_present
-#endif
-
-#ifdef YAC_coupling
- INTERFACE
-    FUNCTION yac_cget_default_instance_id() BIND(c) RESULT(instance_id)
-      ! int yac_cget_default_instance_id();
-      USE iso_c_binding
-      IMPLICIT NONE
-      INTEGER(C_INT) :: instance_id
-    END FUNCTION yac_cget_default_instance_id
- END INTERFACE
 #endif
 
 CONTAINS
@@ -614,13 +604,11 @@ CONTAINS
     ALLOCATE(comin_descrdata_global_data%vct_a(SIZE(vct_a)))
     comin_descrdata_global_data%vct_a(:)         = vct_a(:)
 
-#ifdef YAC_coupling
-    ! The following will be replaced by an explicit instance id once it is used in ICON
-    ! Please also remove the INTERFACE for yac_cget_default_instance_id above
-    comin_descrdata_global_data%yac_instance_id  = yac_cget_default_instance_id()
-#else
-    comin_descrdata_global_data%yac_instance_id  = -1
-#endif
+    IF (cpl_is_initialised()) THEN
+      comin_descrdata_global_data%yac_instance_id  = cpl_get_instance_id()
+    ELSE
+      comin_descrdata_global_data%yac_instance_id  = -1
+    END IF
 
     ! register global info in ComIn
     CALL comin_descrdata_set_global(comin_descrdata_global_data)

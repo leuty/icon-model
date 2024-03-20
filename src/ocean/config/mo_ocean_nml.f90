@@ -26,7 +26,7 @@ MODULE mo_ocean_nml
   USE mo_param1_bgc,         ONLY: n_bgctra, ntraad
 
 #ifndef __NO_ICON_ATMO__
-  USE mo_coupling_config,    ONLY: is_coupled_run
+  USE mo_coupling_config,    ONLY: is_coupled_to_atmo
 #endif
   IMPLICIT NONE
 
@@ -1389,7 +1389,7 @@ MODULE mo_ocean_nml
     END IF
 
 #ifndef __NO_ICON_ATMO__
-    IF ( is_coupled_run() ) THEN
+    IF ( is_coupled_to_atmo() ) THEN
       iforc_oce = Coupled_FluxFromAtmo
       CALL message(method_name,'WARNING, iforc_oce set to 14 for coupled experiment')
  !!!  limiters can now be set by namelist

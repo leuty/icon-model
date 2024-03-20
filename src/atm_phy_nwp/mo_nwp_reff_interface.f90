@@ -43,12 +43,12 @@ MODULE mo_nwp_reff_interface
   USE mo_nonhydrostatic_config,ONLY: kstart_moist
   USE mo_atm_phy_nwp_config,   ONLY: atm_phy_nwp_config, iprog_aero
 
-  USE gscp_data,               ONLY: gscp_set_coefficients                                                                      
   USE mo_nwp_tuning_config,    ONLY: tune_zceff_min, tune_v0snow, tune_zvz0i, tune_icesedi_exp
 
   USE mo_reff_types,           ONLY: t_reff_calc_dom,  nreff_max_calc
   USE mo_reff_main,            ONLY: init_reff_calc, mapping_indices, calculate_ncn, calculate_reff, combine_reff, set_max_reff
   USE mo_impl_constants,       ONLY: max_dom  
+  USE microphysics_1mom_schemes, ONLY: microphysics_1mom_init
 
   IMPLICIT NONE
   PRIVATE
@@ -98,7 +98,7 @@ MODULE mo_nwp_reff_interface
       END IF
 
     CASE DEFAULT  ! Initialize 1 moment with graupel schme (igscp=2) for subgrid clouds
-      CALL gscp_set_coefficients(            igscp = 2,                             & 
+      CALL microphysics_1mom_init(            igscp = 2,                             & 
            &                        tune_zceff_min = tune_zceff_min,                &
            &                        tune_v0snow    = tune_v0snow,                   &
            &                        tune_zvz0i     = tune_zvz0i,                    &
@@ -107,7 +107,7 @@ MODULE mo_nwp_reff_interface
            &                   tune_rain_n0_factor = atm_phy_nwp_config(jg)%rain_n0_factor)
     END SELECT
 
-    IF (atm_phy_nwp_config(jg)%icpl_aero_gscp == 1) THEN  ! Only defined if aerosol coupling is on
+    IF ( ANY ( atm_phy_nwp_config(jg)%icpl_aero_gscp == (/1, 3/) ) ) THEN  ! Only defined if aerosol coupling is on
       IF (iprog_aero == 0) THEN  ! Take CCN from cloud_num or acdnc
         available_acdnc = .true.
       ELSE  ! Not yet developed fucntion

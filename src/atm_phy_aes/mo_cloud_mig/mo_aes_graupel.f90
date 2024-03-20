@@ -1,8 +1,6 @@
 !
 ! Module containing thermodynamic functions used by the AES department in MPI-M
 !
-! Code slightly refactored from gscp_graupel (DWD)
-!
 ! ICON
 !
 ! ---------------------------------------------------------------

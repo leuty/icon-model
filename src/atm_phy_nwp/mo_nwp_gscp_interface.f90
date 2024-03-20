@@ -60,13 +60,10 @@ MODULE mo_nwp_gscp_interface
   USE mo_run_config,           ONLY: msg_level, iqv, iqc, iqi, iqr, iqs,       &
                                      iqni, iqg, iqh, iqnr, iqns,               &
                                      iqng, iqnh, iqnc, inccn, ininpot, ininact,&
-                                     iqgl, iqhl,                               &
+                                     iqgl, iqhl, ldass_lhn, &
                                      iqb_i, iqb_e
   USE mo_atm_phy_nwp_config,   ONLY: atm_phy_nwp_config, iprog_aero
-  USE gscp_kessler,            ONLY: kessler
-  USE gscp_cloudice,           ONLY: cloudice
-  USE gscp_ice,                ONLY: cloudice2mom
-  USE gscp_graupel,            ONLY: graupel
+  USE microphysics_1mom_schemes,ONLY: graupel_run, cloudice_run, kessler_run, cloudice2mom_run, get_cloud_number
   USE mo_2mom_mcrph_driver,    ONLY: two_moment_mcrph
   USE mo_2mom_mcrph_util,      ONLY: set_qnc,set_qnr,set_qni,set_qns,set_qng,&
                                      set_qnh_expPSD_N0const
@@ -76,7 +73,6 @@ MODULE mo_nwp_gscp_interface
   USE mo_art_clouds_interface, ONLY: art_clouds_interface_2mom
 #endif
   USE mo_nwp_diagnosis,        ONLY: nwp_diag_output_minmax_micro
-  USE gscp_data,               ONLY: cloud_num
   USE mo_cpl_aerosol_microphys,ONLY: specccn_segalkhain, ncn_from_tau_aerosol_speccnconst, &
                                      specccn_segalkhain_simple
   USE mo_grid_config,          ONLY: l_limited_area
@@ -145,7 +141,7 @@ CONTAINS
 
     INTEGER :: jc,jb,jg,jk               !<block indices
 
-    REAL(wp) :: zncn(nproma,p_patch%nlev),qnc(nproma,p_patch%nlev),qnc_s(nproma),rholoc,rhoinv
+    REAL(wp) :: zncn(nproma,p_patch%nlev),qnc(nproma,p_patch%nlev),qnc_s(nproma),rholoc,rhoinv, cloud_num
     LOGICAL  :: l_nest_other_micro
     LOGICAL  :: ldiag_ttend, ldiag_qtend
     LOGICAL  :: lavail_tke
@@ -316,14 +312,22 @@ CONTAINS
 
           ENDIF
 
+        ELSE IF (atm_phy_nwp_config(jg)%icpl_aero_gscp == 3) THEN
+          DO jc=i_startidx,i_endidx
+            qnc_s(jc) = prm_diag%cloud_num(jc,jb)
+          END DO
+
         ELSE
 
+          CALL get_cloud_number(cloud_num)
+          !$ACC DATA COPYIN(cloud_num)
           !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1)
           !$ACC LOOP GANG VECTOR
           DO jc=i_startidx,i_endidx
             qnc_s(jc) = cloud_num
           END DO
           !$ACC END PARALLEL
+          !$ACC END DATA
 
         ENDIF
 
@@ -352,7 +356,7 @@ CONTAINS
                  ! version unified with COSMO scheme
                  ! unification version: COSMO_V4_23
 
-          CALL cloudice (                                   &
+          CALL cloudice_run(                                   &
             & nvec   =nproma                           ,    & !> in:  actual array size
             & ke     =nlev                             ,    & !< in:  actual array size
             & ivstart=i_startidx                       ,    & !< in:  start index of calculation
@@ -385,11 +389,12 @@ CONTAINS
             & ddt_tend_qs = ddt_tend_qs                ,    & !< out: tendency QS
             & idbg=msg_level/2                         ,    &
             & l_cv=.TRUE.                              ,    &
+            & ldass_lhn = ldass_lhn                    ,    &
             & ithermo_water=atm_phy_nwp_config(jg)%ithermo_water) !< in: latent heat choice
           
         CASE(2)  ! COSMO-DE (3-cat ice: snow, cloud ice, graupel)
 
-          CALL graupel (                                     &
+          CALL graupel_run (                                     &
             & nvec   =nproma                            ,    & !> in:  actual array size
             & ke     =nlev                              ,    & !< in:  actual array size
             & ivstart=i_startidx                        ,    & !< in:  start index of calculation
@@ -424,11 +429,12 @@ CONTAINS
             & ddt_tend_qs = ddt_tend_qs                 ,    & !< out: tendency QS
             & idbg=msg_level/2                          ,    &
             & l_cv=.TRUE.                               ,    &
+            & ldass_lhn = ldass_lhn                     ,    &
             & ithermo_water=atm_phy_nwp_config(jg)%ithermo_water) !< in: latent heat choice
 
         CASE(3)  ! extended version of cloudice scheme with progn. cloud ice number
 
-          CALL cloudice2mom (                               &
+          CALL cloudice2mom_run (                           &
             & nvec   =nproma                           ,    & !> in:  actual array size
             & ke     =nlev                             ,    & !< in:  actual array size
             & ivstart=i_startidx                       ,    & !< in:  start index of calculation
@@ -464,6 +470,7 @@ CONTAINS
             & ddt_tend_qs = ddt_tend_qs                ,    & !< out: tendency QS
             & idbg=msg_level/2                         ,    &
             & l_cv=.TRUE.                              ,    &
+            & ldass_lhn = ldass_lhn                    ,    &
             & ithermo_water=atm_phy_nwp_config(jg)%ithermo_water) !< in: latent heat choice
 
         CASE(4)  ! two-moment scheme 
@@ -674,7 +681,7 @@ CONTAINS
 
         CASE(9)  ! Kessler scheme (warm rain scheme)
 
-          CALL kessler (                                     &
+          CALL kessler_run (                                     &
             & nvec   =nproma                            ,    & ! in:  actual array size
             & ke     =nlev                              ,    & ! in:  actual array size
             & ivstart =i_startidx                       ,    & ! in:  start index of calculation
@@ -698,7 +705,8 @@ CONTAINS
             & ddt_tend_qc = ddt_tend_qc                 ,    & !< out: tendency QC
             & ddt_tend_qr = ddt_tend_qr                 ,    & !< out: tendency QR
             & idbg   =msg_level/2                       ,    &
-            & l_cv    =.TRUE. )
+            & l_cv    =.TRUE.                           ,    &
+            ldass_lhn = ldass_lhn )
 
           IF (ldiag_qtend) THEN
             ddt_tend_qi(:,:) = 0._wp
@@ -744,20 +752,25 @@ CONTAINS
         !! Calculate surface precipitation
         !!
         !-------------------------------------------------------------------------
-      
+
         IF (atm_phy_nwp_config(jg)%lcalc_acc_avg) THEN
           SELECT CASE (atm_phy_nwp_config(jg)%inwp_gscp)
           CASE(4,5,6,7,8)
-
-
 
 !DIR$ IVDEP
           !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1)
           !$ACC LOOP GANG VECTOR
            DO jc =  i_startidx, i_endidx
+
+             prm_diag%prec_gsp_rate(jc,jb) = prm_diag%rain_gsp_rate(jc,jb)  &
+!!% no ice because of blowing snow         + prm_diag%ice_gsp_rate(jc,jb)   &
+               &                           + prm_diag%snow_gsp_rate(jc,jb)  &
+               &                           + prm_diag%hail_gsp_rate(jc,jb)  &
+               &                           + prm_diag%graupel_gsp_rate(jc,jb)
+
              prm_diag%rain_gsp(jc,jb) = prm_diag%rain_gsp(jc,jb)                         &
                   &                   + tcall_gscp_jg * prm_diag%rain_gsp_rate (jc,jb)
-             prm_diag%ice_gsp(jc,jb)  = prm_diag%ice_gsp(jc,jb)                          & 
+             prm_diag%ice_gsp(jc,jb)  = prm_diag%ice_gsp(jc,jb)                          &
                   &                   + tcall_gscp_jg * prm_diag%ice_gsp_rate (jc,jb)
              prm_diag%snow_gsp(jc,jb) = prm_diag%snow_gsp(jc,jb)                         &
                   &                   + tcall_gscp_jg * prm_diag%snow_gsp_rate (jc,jb)
@@ -765,21 +778,17 @@ CONTAINS
                   &                   + tcall_gscp_jg * prm_diag%hail_gsp_rate (jc,jb)
              prm_diag%graupel_gsp(jc,jb) = prm_diag%graupel_gsp(jc,jb)                   &
                   &                   + tcall_gscp_jg * prm_diag%graupel_gsp_rate (jc,jb)
-             !
-             prm_diag%prec_gsp(jc,jb) = prm_diag%rain_gsp(jc,jb)  &
-               &                      + prm_diag%ice_gsp(jc,jb)   &
-               &                      + prm_diag%snow_gsp(jc,jb)  &
-               &                      + prm_diag%hail_gsp(jc,jb)  &
-               &                      + prm_diag%graupel_gsp(jc,jb)
+
+               ! note: ice is deliberately excluded here because it predominantly contains blowing snow
+             prm_diag%prec_gsp(jc,jb) = prm_diag%prec_gsp(jc,jb)         &
+               &                      + tcall_gscp_jg                    &
+               &                      * prm_diag%prec_gsp_rate(jc,jb)
 
              ! to compute tot_prec_d lateron:
-             prm_diag%prec_gsp_d(jc,jb) = prm_diag%prec_gsp_d(jc,jb) + tcall_gscp_jg * ( &
-                  &                   + prm_diag%rain_gsp_rate (jc,jb)       &
-!!% no ice because of blowing snow     + prm_diag%ice_gsp_rate (jc,jb)        &
-                  &                   + prm_diag%snow_gsp_rate (jc,jb)       &
-                  &                   + prm_diag%graupel_gsp_rate (jc,jb)    &
-                  &                   + prm_diag%hail_gsp_rate (jc,jb)       &
-                  &                   )
+             ! note: ice is deliberately excluded here because it predominantly contains blowing snow
+             prm_diag%prec_gsp_d(jc,jb) = prm_diag%prec_gsp_d(jc,jb)     &
+               &                        + tcall_gscp_jg                  &
+               &                        * prm_diag%prec_gsp_rate(jc,jb)
 
            ENDDO
            !$ACC END PARALLEL
@@ -790,6 +799,11 @@ CONTAINS
            !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1)
            !$ACC LOOP GANG VECTOR
            DO jc =  i_startidx, i_endidx
+
+             prm_diag%prec_gsp_rate(jc,jb) = prm_diag%rain_gsp_rate(jc,jb)  &
+!!% no ice because of blowing snow         + prm_diag%ice_gsp_rate(jc,jb)   &
+               &                           + prm_diag%snow_gsp_rate(jc,jb)  &
+               &                           + prm_diag%graupel_gsp_rate(jc,jb)
 
              prm_diag%rain_gsp(jc,jb) = prm_diag%rain_gsp(jc,jb)           &
                &                      + tcall_gscp_jg                      &
@@ -805,17 +819,15 @@ CONTAINS
                &                      * prm_diag%graupel_gsp_rate (jc,jb)
 
              ! note: ice is deliberately excluded here because it predominantly contains blowing snow
-             prm_diag%prec_gsp(jc,jb) = prm_diag%rain_gsp(jc,jb)  &
-               &                      + prm_diag%snow_gsp(jc,jb)  &
-               &                      + prm_diag%graupel_gsp(jc,jb)
+             prm_diag%prec_gsp(jc,jb) = prm_diag%prec_gsp(jc,jb)           &
+               &                      + tcall_gscp_jg                      &
+               &                      * prm_diag%prec_gsp_rate(jc,jb)
 
              ! to compute tot_prec_d lateron:
-             prm_diag%prec_gsp_d(jc,jb) = prm_diag%prec_gsp_d(jc,jb) + tcall_gscp_jg * ( &
-                  &                   + prm_diag%rain_gsp_rate (jc,jb)       &
-!!% no ice because of blowing snow     + prm_diag%ice_gsp_rate (jc,jb)        &
-                  &                   + prm_diag%snow_gsp_rate (jc,jb)       &
-                  &                   + prm_diag%graupel_gsp_rate (jc,jb)    &
-                  &                   )
+             ! note: ice is deliberately excluded here because it predominantly contains blowing snow
+             prm_diag%prec_gsp_d(jc,jb) = prm_diag%prec_gsp_d(jc,jb)       &
+               &                        + tcall_gscp_jg                    &
+               &                        * prm_diag%prec_gsp_rate(jc,jb)
 
            ENDDO
            !$ACC END PARALLEL
@@ -827,16 +839,20 @@ CONTAINS
            !$ACC LOOP GANG VECTOR
            DO jc =  i_startidx, i_endidx
 
+             prm_diag%prec_gsp_rate(jc,jb) = prm_diag%rain_gsp_rate(jc,jb)
+
              prm_diag%rain_gsp(jc,jb) = prm_diag%rain_gsp(jc,jb)         &
                &                      + tcall_gscp_jg                    &
                &                      * prm_diag%rain_gsp_rate (jc,jb)
 
-             prm_diag%prec_gsp(jc,jb) = prm_diag%rain_gsp(jc,jb)
+             prm_diag%prec_gsp(jc,jb) = prm_diag%prec_gsp(jc,jb)         &
+               &                      + tcall_gscp_jg                    &
+               &                      * prm_diag%prec_gsp_rate(jc,jb)
 
              ! to compute tot_prec_d lateron:
              prm_diag%prec_gsp_d(jc,jb) = prm_diag%prec_gsp_d(jc,jb)     &
                &                      + tcall_gscp_jg                    &
-               &                      * prm_diag%rain_gsp_rate (jc,jb)
+               &                      * prm_diag%prec_gsp_rate(jc,jb)
 
            ENDDO
            !$ACC END PARALLEL
@@ -848,8 +864,12 @@ CONTAINS
            !$ACC LOOP GANG VECTOR
            DO jc =  i_startidx, i_endidx
 
-             prm_diag%rain_gsp(jc,jb) = prm_diag%rain_gsp(jc,jb)         & 
-               &                      + tcall_gscp_jg                    &
+            prm_diag%prec_gsp_rate(jc,jb) = prm_diag%rain_gsp_rate(jc,jb)  &
+!!% no ice because of blowing snow        + prm_diag%ice_gsp_rate(jc,jb)   &
+               &                          + prm_diag%snow_gsp_rate(jc,jb)
+
+             prm_diag%rain_gsp(jc,jb) = prm_diag%rain_gsp(jc,jb)           &
+               &                      + tcall_gscp_jg                      &
                &                      * prm_diag%rain_gsp_rate (jc,jb)
              prm_diag%snow_gsp(jc,jb) = prm_diag%snow_gsp(jc,jb)           &
                &                      + tcall_gscp_jg                      &
@@ -859,15 +879,15 @@ CONTAINS
                &                      * prm_diag%ice_gsp_rate (jc,jb)
 
              ! note: ice is deliberately excluded here because it predominantly contains blowing snow
-             prm_diag%prec_gsp(jc,jb) = prm_diag%rain_gsp(jc,jb)  &
-               &                      + prm_diag%snow_gsp(jc,jb)
+             prm_diag%prec_gsp(jc,jb) = prm_diag%prec_gsp(jc,jb)         &
+               &                      + tcall_gscp_jg                    &
+               &                      * prm_diag%prec_gsp_rate(jc,jb)
 
              ! to compute tot_prec_d lateron:
-             prm_diag%prec_gsp_d(jc,jb) = prm_diag%prec_gsp_d(jc,jb) + tcall_gscp_jg * ( &
-                  &                   + prm_diag%rain_gsp_rate (jc,jb)       &
-!!% no ice because of blowing snow     + prm_diag%ice_gsp_rate (jc,jb)        &
-                  &                   + prm_diag%snow_gsp_rate (jc,jb)       &
-                  &                   )
+             ! note: ice is deliberately excluded here because it predominantly contains blowing snow
+             prm_diag%prec_gsp_d(jc,jb) = prm_diag%prec_gsp_d(jc,jb) &
+               &                        + tcall_gscp_jg              &
+               &                        * prm_diag%prec_gsp_rate(jc,jb)
 
            ENDDO
            !$ACC END PARALLEL

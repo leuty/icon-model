@@ -67,6 +67,8 @@ MODULE mo_nwp_sfc_utils
   USE mo_fortran_tools,       ONLY: set_acc_host_or_device, assert_acc_device_only
   USE mo_timer,               ONLY: ltimer, timer_nh_diagnostics, timer_start, timer_stop
 
+  USE mo_lnd_nwp_config,      ONLY: lcuda_graph_lnd
+
   IMPLICIT NONE
 
   PRIVATE
@@ -92,14 +94,7 @@ INTEGER, PARAMETER :: nlsoil= 8
   PUBLIC :: init_sea_lists
   PUBLIC :: copy_lnd_prog_now2new
   PUBLIC :: seaice_albedo_coldstart
-
-#ifdef ICON_USE_CUDA_GRAPH
-  LOGICAL, PARAMETER :: using_cuda_graph = .TRUE.
-#else
-  LOGICAL, PARAMETER :: using_cuda_graph = .FALSE.
-#endif
-
-
+  
 
 CONTAINS
 
@@ -2172,7 +2167,7 @@ CONTAINS
       ENDIF
     END SELECT
     !$ACC END PARALLEL
-    IF (.NOT. using_cuda_graph) THEN
+    IF (.NOT. lcuda_graph_lnd) THEN
       !$ACC WAIT(acc_async_queue)
     END IF
     !$ACC END DATA
@@ -2313,7 +2308,9 @@ CONTAINS
       idx_lst(ic) = idx_lst_lp(idx_lst(ic))
     ENDDO
 
-    !$ACC WAIT(1)
+    IF (.NOT. lcuda_graph_lnd) THEN
+      !$ACC WAIT(1)
+    END IF
     !$ACC END DATA
 
   END SUBROUTINE update_idx_lists_lnd
@@ -2405,7 +2402,7 @@ CONTAINS
     INTEGER  :: ic, jc                     !< loop indices
     INTEGER  :: i_capture !< to capture thread-local value in ACC ATOMIC
     LOGICAL  :: l_update_required
-    LOGICAL  :: lis_coupled_run   !< TRUE for coupled ocean-atmosphere runs (copy for ACC vectorisation)
+    LOGICAL  :: lis_coupled_to_ocean   !< TRUE for coupled ocean-atmosphere runs (copy for ACC vectorisation)
     !-------------------------------------------------------------------------
 
 
@@ -2419,7 +2416,7 @@ CONTAINS
       IF ( hice_n(jc) < hice_min ) l_update_required = .TRUE.
     ENDDO
     !$ACC END PARALLEL LOOP
-    IF (.NOT. using_cuda_graph) THEN
+    IF (.NOT. lcuda_graph_lnd) THEN
       !$ACC WAIT(1)
     END IF
     IF (.NOT. l_update_required) RETURN
@@ -2427,9 +2424,9 @@ CONTAINS
     IF (msg_level >= 13) CALL message('update_idx_lists_sea', &
       'One or more seaice cells melted -> List update required.')
 
-    lis_coupled_run = is_coupled_to_ocean() ! store result for vectorisation
+    lis_coupled_to_ocean = is_coupled_to_ocean() ! store result for vectorisation
 
-    !$ACC DATA PRESENT(condhf) IF(lis_coupled_run)
+    !$ACC DATA PRESENT(condhf) IF(lis_coupled_to_ocean)
     !$ACC DATA CREATE(list_seaice_idx_old) &
     !$ACC   PRESENT(hice_n, pres_sfc, list_seawtr_idx) &
     !$ACC   PRESENT(list_seaice_idx, frac_t_ice) &
@@ -2508,7 +2505,7 @@ CONTAINS
           tice_old(jc) = tmelt
           hice_old(jc) = 0._wp
 
-          IF (lis_coupled_run) THEN
+          IF (lis_coupled_to_ocean) THEN
             ! also reset conductive heat flux below ice
             condhf(jc)   = 0._wp
           ENDIF
@@ -2587,7 +2584,7 @@ CONTAINS
           tice_old(jc) = tmelt
           hice_old(jc) = 0._wp
 
-          IF (lis_coupled_run) THEN
+          IF (lis_coupled_to_ocean) THEN
             ! also reset conductive heat flux below ice
             condhf(jc)   = 0._wp
           ENDIF
@@ -2603,7 +2600,7 @@ CONTAINS
 
     ENDIF  ! IF ( ntiles_total == 1 )
     !$ACC UPDATE ASYNC(1) HOST(list_seawtr_count, list_seaice_count) ! also update index lists?
-    IF (.NOT. using_cuda_graph) THEN
+    IF (.NOT. lcuda_graph_lnd) THEN
       !$ACC WAIT(1)
     END IF
     !$ACC END DATA

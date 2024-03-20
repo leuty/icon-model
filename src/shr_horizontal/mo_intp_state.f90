@@ -111,12 +111,13 @@ SUBROUTINE allocate_int_state( ptr_patch, ptr_int)
   INTEGER :: nblks_c, nblks_e, nblks_v
   INTEGER :: ist
   INTEGER :: idummy
-  LOGICAL :: lsdi         = .FALSE. ,&
-             llpi         = .FALSE. ,&
-             llpim        = .FALSE. ,&
-             llsc         = .FALSE. ,&
-             llsd         = .FALSE. ,&
-             llde         = .FALSE.
+  LOGICAL :: lsdi   ,&  ! deleted the former expl. init with .FALSE.
+             llpi   ,&  ! to avoid the implicit SAVE attribute, which
+             llpim  ,&  ! would be dangerous for subsequent calls
+             llsc   ,&
+             llsd   ,&
+             llde   ,&
+             lmconv
 
 !-----------------------------------------------------------------------
 
@@ -334,16 +335,22 @@ SUBROUTINE allocate_int_state( ptr_patch, ptr_int)
       &            'allocation for rbf_vec_coeff_e failed')
     ENDIF
 
+    lsdi         = .FALSE.
+    llpi         = .FALSE.
+    llpim        = .FALSE.
+    lmconv       = .FALSE.
+
     ! GZ: offloading 'is_variable_in_output' to vector hosts requires separate calls in order to
     !     avoid an MPI deadlock in p_bcast
-                            lsdi         = is_variable_in_output(var_name="sdi2")
-    IF (.NOT. lsdi)         llpi         = is_variable_in_output(var_name="lpi")
-    IF (.NOT. llpi)         llpim        = is_variable_in_output(var_name="lpi_max")
-    IF (.NOT. llpim)        llsc         = atm_phy_nwp_config(MAX(1,ptr_patch%id))%lstoch_expl 
-    IF (.NOT. llsc)         llsd         = atm_phy_nwp_config(MAX(1,ptr_patch%id))%lstoch_sde
-    IF (.NOT. llsd)         llde         = atm_phy_nwp_config(MAX(1,ptr_patch%id))%lstoch_deep
+                    lsdi         = is_variable_in_output(var_name="sdi2")
+    IF (.NOT.lsdi)  llpi         = is_variable_in_output(var_name="lpi")
+    IF (.NOT.llpi)  llpim        = is_variable_in_output(var_name="lpi_max")
+    IF (.NOT.llpim) lmconv       = is_variable_in_output(var_name="mconv")
+    llsc         = atm_phy_nwp_config(MAX(1,ptr_patch%id))%lstoch_expl 
+    llsd         = atm_phy_nwp_config(MAX(1,ptr_patch%id))%lstoch_sde
+    llde         = atm_phy_nwp_config(MAX(1,ptr_patch%id))%lstoch_deep
     
-    ptr_int%cell_environ%is_used = lsdi .OR. llpi .OR. llpim .OR. llsc .OR. llsd .OR. llde .OR. &
+    ptr_int%cell_environ%is_used = lsdi .OR. llpi .OR. llpim .OR. lmconv .OR. llsc .OR. llsd .OR. llde .OR. &
                                    icpl_da_seaice >= 2 .OR. icpl_da_snowalb >= 2
 
     IF ( ptr_int%cell_environ%is_used ) THEN

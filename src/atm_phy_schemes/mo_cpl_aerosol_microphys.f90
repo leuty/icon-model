@@ -16,7 +16,6 @@ MODULE mo_cpl_aerosol_microphys
 
 
   USE mo_kind,               ONLY: ireals=>wp, iintegers=>i4
-  USE gscp_data,             ONLY: r2_fix, lsigs_fix, r2_lsigs_are_fixed, lincloud
   USE mo_exception,          ONLY: finish
 
   IMPLICIT NONE
@@ -66,6 +65,17 @@ END TYPE lookupt_4D
 
 TYPE(lookupt_4D) :: ltab4D
 TYPE(lookupt_2D) :: ltab2D
+
+! Parameters for Segal-Khain parameterization (aerosol-microphysics coupling)
+! ---------------------------------------------------------------------------
+
+REAL(KIND=ireals), PARAMETER ::       &
+  r2_fix    = 0.03_ireals,            & ! Parameters for simplified lookup table computation; 
+  lsigs_fix = 0.3_ireals                ! relevant for r2_lsigs_are_fixed = .TRUE.
+
+LOGICAL,       PARAMETER ::       &
+  r2_lsigs_are_fixed = .TRUE. ,   & !
+  lincloud           = .FALSE.      ! ignore in-cloud nucleation
 
 CONTAINS
 

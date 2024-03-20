@@ -44,7 +44,7 @@ case $(echo ${BB_NAME} | tr '[:upper:]' '[:lower:]') in
       exit 1
     fi
     ;;
-  balfrin*) # balfrin
+  balfrin*|tasna*|alps_mch*) # alps_mch
     cd ${ICON_DIR} && ${ICON_DIR}/config/buildbot/buildModel.sbatch > ${LOGFILE} 2>&1
     if test 0 -ne "$?" ; then
       exit 1
