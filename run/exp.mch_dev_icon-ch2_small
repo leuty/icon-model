@@ -2,13 +2,15 @@
 
 # ===========================================================================
 # 
-# Name: exp.mch_dev_icon-ch2_small .run
+# Name: exp.mch_dev_icon-ch2_small.run
 #
 # Purpose:  Run script for ICON at on a domain similar to the current icon-ch2-eps domain.
 #           This is a low resolution version used for development purpose,
 #           to test new features before they are put into our production tests.
+#
+# Created by:  Daniel Leuenberger (MeteoSwiss), Claire Merker (MeteoSwiss)
+#
 # Based on: mch_kenda-ch1_small
-# Authors:  Daniel Leuenberger (MeteoSwiss), Claire Merker (MeteoSwiss)
 #
 # ========================================================================== 
 
