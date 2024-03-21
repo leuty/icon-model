@@ -1788,12 +1788,16 @@ CONTAINS
       CALL finish('mo_nh_interface_nwp', 'nwp_couple_waves is not available on GPU')
 #endif
 
-      CALL couple_atmo_to_wave(p_patch   = pt_patch,           & !in
-        &                      u10m      = prm_diag%u_10m,     & !in
-        &                      v10m      = prm_diag%v_10m,     & !in
-        &                      fr_seaice = lnd_diag%fr_seaice, & !in
-        &                      z0_waves  = prm_diag%z0_waves,  & !out
-        &                      lacc      = lzacc               ) !in
+      CALL couple_atmo_to_wave(p_patch      = pt_patch,              & !in
+        &                      list_sea     = ext_data%atm%list_sea, & !in
+        &                      u10m         = prm_diag%u_10m,        & !in
+        &                      v10m         = prm_diag%v_10m,        & !in
+        &                      fr_seaice    = lnd_diag%fr_seaice,    & !in
+        &                      frac_t       = ext_data%atm%frac_t,   & !in
+        &                      z0_waves     = prm_diag%z0_waves,     & !inout
+        &                      gz0_t        = prm_diag%gz0_t,        & !inout
+        &                      gz0          = prm_diag%gz0,          & !inout
+        &                      lacc         = lzacc                  ) !in
 
       IF (ltimer) CALL timer_stop(timer_coupling)
 

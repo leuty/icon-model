@@ -50,6 +50,7 @@ MODULE mo_wave_physics
   PUBLIC :: wave_number_c
   PUBLIC :: wave_number_e
   PUBLIC :: set_energy2emin
+  PUBLIC :: mask_energy
 
   CHARACTER(LEN=*), PARAMETER :: modname = 'mo_wave_physics'
 
@@ -1553,5 +1554,54 @@ CONTAINS
 !$OMP ENDDO NOWAIT
 !$OMP END PARALLEL
   END SUBROUTINE set_energy2emin
+
+  !>
+  !! Set wave spectrum to zero according to 0,1 mask by
+  !! multiplication of tracers and mask
+  !!
+  SUBROUTINE mask_energy(p_patch, wave_config, mask, tracer)
+    CHARACTER(len=MAX_CHAR_LENGTH), PARAMETER ::  &
+         &  routine = 'mask_energy'
+
+    TYPE(t_patch),               INTENT(IN)    :: p_patch
+    TYPE(t_wave_config), TARGET, INTENT(IN)    :: wave_config
+    INTEGER,                     INTENT(IN)    :: mask(:,:)
+    REAL(wp),                    INTENT(INOUT) :: tracer(:,:,:,:)
+
+    TYPE(t_wave_config), POINTER :: wc => NULL()
+
+    INTEGER :: i_rlstart, i_rlend, i_startblk, i_endblk
+    INTEGER :: i_startidx, i_endidx
+    INTEGER :: jb,jc,jf,jd,jt,jk
+
+    i_rlstart  = 1
+    i_rlend    = min_rlcell
+    i_startblk = p_patch%cells%start_block(i_rlstart)
+    i_endblk   = p_patch%cells%end_block(i_rlend)
+    jk         = p_patch%nlev
+
+    ! save some paperwork
+    wc => wave_config
+!$OMP PARALLEL
+!$OMP DO PRIVATE(jb,jf,jd,jt,jc,i_startidx,i_endidx) ICON_OMP_DEFAULT_SCHEDULE
+    DO jb = i_startblk, i_endblk
+      CALL get_indices_c( p_patch, jb, i_startblk, i_endblk,           &
+           &                 i_startidx, i_endidx, i_rlstart, i_rlend)
+
+      DO jf = 1,wc%nfreqs
+        DO jd = 1,wc%ndirs
+
+          jt = wc%tracer_ind(jd,jf)
+
+          DO jc = i_startidx, i_endidx
+            tracer(jc,jk,jb,jt) = tracer(jc,jk,jb,jt) * REAL(mask(jc,jb),wp)
+          END DO
+        END DO
+      END DO
+    END DO
+!$OMP ENDDO NOWAIT
+!$OMP END PARALLEL
+  END SUBROUTINE mask_energy
+
 
 END MODULE mo_wave_physics

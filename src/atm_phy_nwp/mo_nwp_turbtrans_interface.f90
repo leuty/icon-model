@@ -64,7 +64,7 @@ MODULE mo_nwp_turbtrans_interface
   USE mo_timer
   USE mo_run_config,           ONLY: timers_level
   USE mo_fortran_tools,        ONLY: set_acc_host_or_device
-
+  USE mo_coupling_config,      ONLY: is_coupled_to_waves
 
 #ifdef ICON_USE_CUDA_GRAPH
   USE openacc, ONLY: accgraph, accx_begin_capture, accx_end_capture, accx_graph_exec
@@ -176,6 +176,10 @@ SUBROUTINE nwp_turbtrans  ( tcall_turb_jg,                     & !>in
 
   INTEGER,  POINTER :: ilist(:)       ! pointer to tile index list
 
+  LOGICAL :: lgz0inp_loc ! FALSE: turbtran updates gz0 at water points
+                         ! TRUE : gz0 is provided externally (e.g. by the wave model)
+                         !        and is not updated by turbtran
+
 !--------------------------------------------------------------
 #ifdef ICON_USE_CUDA_GRAPH
     multi_queue_processing = lcuda_graph_turb_tran
@@ -268,7 +272,7 @@ SUBROUTINE nwp_turbtrans  ( tcall_turb_jg,                     & !>in
 !$OMP temp_t,pres_t,qv_t,qc_t,tkvm_t,tkvh_t,z_ifc_t,rcld_t,sai_t,urb_isa_t,fr_land_t,depth_lk_t,&
 !$OMP h_ice_t,area_frac,shfl_s_t,lhfl_s_t,qhfl_s_t,umfl_s_t,vmfl_s_t,nlevcm,jk_gust,epr_t,      &
 !$OMP PGEOMLEV,PCPTGZLEV,PCPTSTI,PUCURR,PVCURR,ZCFMTI,PCFHTI,PCFQTI,ZBUOMTI,ZZDLTI,             &
-!$OMP ZZ0MTI,ZZ0HTI,ZZ0QTI,rho_s,rlamh_fac ) ICON_OMP_GUIDED_SCHEDULE
+!$OMP ZZ0MTI,ZZ0HTI,ZZ0QTI,rho_s,rlamh_fac,lgz0inp_loc) ICON_OMP_GUIDED_SCHEDULE
 !MR:>
 
   DO jb = i_startblk, i_endblk
@@ -438,7 +442,7 @@ SUBROUTINE nwp_turbtrans  ( tcall_turb_jg,                     & !>in
 !-------------------------------------------------------------------------
 !< COSMO turbulence scheme by M. Raschendorfer
 !-------------------------------------------------------------------------
- 
+
 
       ! note that TKE must be converted to the turbulence velocity scale SQRT(2*TKE)
       ! for turbdiff
@@ -468,7 +472,7 @@ SUBROUTINE nwp_turbtrans  ( tcall_turb_jg,                     & !>in
         CALL turbtran (               & ! only surface-layer turbulence
           &  iini=0,                  & !
           &  ltkeinp=.FALSE.,         & !
-          &  lgz0inp=.FALSE.,         & !
+          &  lgz0inp=.FALSE.,         &
           &  lstfnct=.TRUE. ,         & ! with stability function
           &  lsrflux=.TRUE. ,         & !
           &  lnsfdia=.TRUE. ,         & ! including near-surface diagnostics
@@ -566,6 +570,13 @@ SUBROUTINE nwp_turbtrans  ( tcall_turb_jg,                     & !>in
         ! Loop over land tile points, sea, lake points and seaice points
         ! Each tile has a separate index list
         DO  jt = 1, ntiles_total + ntiles_water
+
+          IF (is_coupled_to_waves().AND.(jt==isub_water)) THEN
+            lgz0inp_loc = .TRUE.  ! gz0 at non ice-covered sea water points is provided
+                                  ! from external sources (e.g. ICON-waves). No update by turbtran.
+          ELSE
+            lgz0inp_loc = .FALSE. ! gz0 at water points is updated by turbtran
+          END IF
 
           IF (multi_queue_processing) acc_async_queue = jt
           !$ACC DATA CREATE(u_t, v_t, temp_t, pres_t, qv_t, qc_t, epr_t, z_ifc_t, pres_sfc_t) &
@@ -690,12 +701,12 @@ SUBROUTINE nwp_turbtrans  ( tcall_turb_jg,                     & !>in
 
           nlevcm = 3
           nzprv  = 1
-          
+
           ! turbtran
           CALL turbtran (               & ! only surface-layer turbulence
             &  iini=0,                  & !
             &  ltkeinp=.FALSE.,         & !
-            &  lgz0inp=.FALSE.,         & !
+            &  lgz0inp=lgz0inp_loc,     & !
             &  lstfnct=.TRUE. ,         & ! with stability function
             &  lsrflux=.TRUE. ,         & !
             &  lnsfdia=.TRUE. ,         & ! including near-surface diagnostics

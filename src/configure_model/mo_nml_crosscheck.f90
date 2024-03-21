@@ -849,11 +849,19 @@ CONTAINS
 
     IF ( ntiles_lnd == 1 .AND. ( is_coupled_to_ocean() .OR. is_coupled_to_hydrodisc() ) .AND. .NOT. &
         & (iforcing == inwp .AND. ALL(atm_phy_nwp_config(1:n_dom)%inwp_turb == ivdiff)) ) THEN
-       CALL finish(routine, "Coupled atm/hydrodisc/ocean runs not supported with ntiles=1 when not using VDIFF")
+      CALL finish(routine, "Coupled atm/hydrodisc/ocean runs not supported with ntiles=1 when not using VDIFF")
     ENDIF
 
     IF ( sstice_mode /= 1 .AND. is_coupled_to_ocean() ) THEN
-       CALL finish(routine, "Coupled atm/ocean runs only supported with sstice_mode=1 named SSTICE_ANA")
+      CALL finish(routine, "Coupled atm/ocean runs only supported with sstice_mode=1 named SSTICE_ANA")
+    ENDIF
+
+    IF ( is_coupled_to_waves() .AND. (.NOT. iforcing == inwp) ) THEN
+      CALL finish(routine, "Coupled atm/wave runs only supported with NWP physics (iforcing=3)")
+    ENDIF
+
+    IF ( is_coupled_to_waves() .AND. (ntiles_lnd == 1) ) THEN
+      CALL finish(routine, "Coupled atm/wave runs require ntiles_lnd>1.")
     ENDIF
 
 #ifdef _OPENACC

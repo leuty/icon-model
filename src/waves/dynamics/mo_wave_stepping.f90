@@ -43,7 +43,8 @@ MODULE mo_wave_stepping
     &                                    src_nonlinear_transfer, integrate_in_time_src
   USE mo_wave_physics,             ONLY: total_energy, wm1_wm2_wavenumber, set_energy2emin, &
        &                                 mean_frequency_energy, air_sea,  last_prog_freq_ind, &
-       &                                 impose_high_freq_tail, tm1_tm2_periods, wave_stress
+       &                                 impose_high_freq_tail, tm1_tm2_periods, wave_stress, &
+       &                                 mask_energy
   USE mo_wave_config,              ONLY: wave_config, generate_filename
   USE mo_energy_propagation_config,ONLY: energy_propagation_config
   USE mo_wave_forcing_state,       ONLY: wave_forcing_state
@@ -555,6 +556,10 @@ CONTAINS
           &  dir10m      = wave_forcing_state(jg)%dir10m,     & !in
           &  tracer      = p_wave_state(jg)%prog(n_new)%tracer) !inout
 
+        ! Set energy to zero under the sea ice
+        CALL mask_energy(p_patch(jg), wave_config(jg), &
+             wave_forcing_state(jg)%ice_free_mask_c, & !IN
+             p_wave_state(jg)%prog(n_new)%tracer) ! INOUT
 
         ! Update total and mean frequency energy
         CALL total_energy(p_patch(jg), wave_config(jg), &
@@ -584,7 +589,6 @@ CONTAINS
              wave_ext_data(jg)%bathymetry_c,           & !IN
              p_wave_state(jg)%diag%last_prog_freq_ind, & !IN
              p_wave_state(jg)%prog(n_new)%tracer)        !INOUT
-
 
         ! Set energy to absolute allowed minimum
         CALL set_energy2emin(p_patch(jg), wave_config(jg), &
