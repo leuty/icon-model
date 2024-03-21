@@ -28,10 +28,6 @@
 #include "omp_definitions.inc"
 !----------------------------
 
-! Workaround note: With Cray Fortran 8.5.5, a segmentation fault occurred in
-! the SUBROUTINE radheat (source line 1892) when accessing the dummy array
-! "pqv".  the workaround here is to copy the "pqv" dummy array to a temporary
-! pqv=prm_diag%tot_cld(:,:,jb,iqv)
 #ifdef _OPENACC
 #define __PGI_WORKAROUND
 #endif
