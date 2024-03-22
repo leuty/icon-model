@@ -56,7 +56,9 @@ MODULE mo_ocean_state
   USE mo_math_types,          ONLY: t_cartesian_coordinates, t_geographical_coordinates
   USE mo_var_list_register,   ONLY: vlr_add, vlr_del
   USE mo_var_list,            ONLY: add_var, add_ref, t_var_list_ptr
-  USE mo_var_metadata,        ONLY: get_timelevel_string
+  USE mo_var_metadata,        ONLY: get_timelevel_string, post_op
+  USE mo_var_metadata_types,  ONLY: POST_OP_OFFSET
+  USE mo_name_list_output_config, ONLY: is_variable_in_output
   USE mo_var_groups,          ONLY: groups, MAX_GROUPS
   USE mo_cf_convention
   USE mo_util_dbg_prnt,       ONLY: dbg_print
@@ -506,6 +508,18 @@ CONTAINS
             & ldims=(/nproma,n_zlev,alloc_cell_blocks/), tlev_source=TLEV_NNEW, &
             & in_group=oce_tr_groups)
         END DO
+        ! if temperature in Kelvin is requested
+        IF (is_variable_in_output(var_name="to_k")) THEN
+          CALL add_ref( ocean_restart_list, 'tracers'//var_suffix,   &
+            & 'to_k'//var_suffix, ocean_state_prog%tracer_ptr(1)%p,  &
+            & grid_unstructured_cell, za_depth_below_sea,            &
+            & t_cf_var(TRIM(oce_config%tracer_stdnames(1)), 'K', TRIM(oce_config%tracer_longnames(1)), DATATYPE_FLT, &
+            & 'to_k'), &
+            & grib2_var(10, 4, 18, DATATYPE_PACK16, GRID_UNSTRUCTURED, grid_cell), &
+            & ref_idx=1, &
+            & ldims=(/nproma,n_zlev,alloc_cell_blocks/), tlev_source=TLEV_NNEW, &
+            & in_group=oce_tr_groups, post_op=post_op(ipost_op_type=POST_OP_OFFSET, arg1=273.15_wp))
+        END IF
 
         !--------------------------------------------------------------------------
         ! use of the ocean_tracers structure
@@ -2848,7 +2862,8 @@ CONTAINS
     oce_config%tracer_longnames(1)  = 'sea water potential temperature'
     oce_config%tracer_units(1)      = 'C'
     ! discipline=10, parameterCategory=4, parameterNumber=18 encoded in one integer
-    oce_config%tracer_codes(1)      = ISHFT(10,16)+ISHFT(4,8)+18
+    ! Celsius is the wrong unit for GRIB => set to undefined. Use 'to_k' for output in Kelvin with triplet (10,4,18)
+    oce_config%tracer_codes(1)      = ISHFT(255,16)+ISHFT(255,8)+255
 
     oce_config%tracer_shortnames(2) = 'so'
     oce_config%tracer_stdnames(2)   = 'sea_water_salinity'

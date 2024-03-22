@@ -784,14 +784,14 @@ CONTAINS
           !
           ! open file
           !
-          CALL nf(nf_open(TRIM(ozone_file), NF_NOWRITE, ncid), routine)
+          CALL nf(nf90_open(TRIM(ozone_file), NF90_NOWRITE, ncid), routine)
           WRITE(0,*)'open ozone file'
 
           !
           ! get number of cells
           !
-          CALL nf(nf_inq_dimid (ncid, TRIM(cellname), dimid), routine)
-          CALL nf(nf_inq_dimlen(ncid, dimid, no_cells), routine)
+          CALL nf(nf90_inq_dimid (ncid, TRIM(cellname), dimid), routine)
+          CALL nf(nf90_inquire_dimension(ncid, dimid, len = no_cells), routine)
           WRITE(0,*)'number of cells are', no_cells
 
           !
@@ -805,8 +805,8 @@ CONTAINS
           !
           ! check the time structure
           !
-          CALL nf(nf_inq_dimid (ncid, 'time', dimid), routine)
-          CALL nf(nf_inq_dimlen(ncid, dimid, nmonths), routine)
+          CALL nf(nf90_inq_dimid (ncid, 'time', dimid), routine)
+          CALL nf(nf90_inquire_dimension(ncid, dimid, len = nmonths), routine)
           WRITE(message_text,'(A,I4)')  &
             & 'Number of months in ozone file = ', nmonths
           CALL message(routine,message_text)
@@ -814,8 +814,8 @@ CONTAINS
           !
           ! check the vertical structure
           !
-          CALL nf(nf_inq_dimid (ncid,TRIM(levelname), dimid), routine)
-          CALL nf(nf_inq_dimlen(ncid, dimid, nlev_o3), routine)
+          CALL nf(nf90_inq_dimid (ncid,TRIM(levelname), dimid), routine)
+          CALL nf(nf90_inquire_dimension(ncid, dimid, len = nlev_o3), routine)
 
           WRITE(message_text,'(A,I4)')  &
             & 'Number of pressure levels in ozone file = ', nlev_o3
@@ -824,7 +824,7 @@ CONTAINS
           !
           ! close file
           !
-          CALL nf(nf_close(ncid), routine)
+          CALL nf(nf90_close(ncid), routine)
 
         END IF IF_IO ! pe
 
@@ -1494,11 +1494,11 @@ CONTAINS
         IF(my_process_is_stdio()) THEN
           ! open file
           !
-          CALL nf(nf_open(TRIM(ozone_file), NF_NOWRITE, ncid), routine)
+          CALL nf(nf90_open(TRIM(ozone_file), NF90_NOWRITE, ncid), routine)
           WRITE(0,*)'read ozone levels'
-          CALL nf(nf_inq_varid(ncid, TRIM(levelname), varid), routine)
-          CALL nf(nf_get_var_double(ncid, varid, zdummy_o3lev(:)), routine)
-          CALL nf(nf_close(ncid), routine)
+          CALL nf(nf90_inq_varid(ncid, TRIM(levelname), varid), routine)
+          CALL nf(nf90_get_var(ncid, varid, zdummy_o3lev(:)), routine)
+          CALL nf(nf90_close(ncid), routine)
           !
         ENDIF ! pe
 

@@ -676,13 +676,13 @@ CONTAINS
         !
         ! open file
         !
-        CALL nf(nf_open(TRIM(relax_init_file), nf_nowrite, ncid), routine)
+        CALL nf(nf90_open(TRIM(relax_init_file), nf90_nowrite, ncid), routine)
 
         !
         ! get number of cells
         !
-        CALL nf(nf_inq_dimid(ncid, 'ncells', dimid), routine)
-        CALL nf(nf_inq_dimlen(ncid, dimid, no_cells), routine)
+        CALL nf(nf90_inq_dimid(ncid, 'ncells', dimid), routine)
+        CALL nf(nf90_inquire_dimension(ncid, dimid, len = no_cells), routine)
 
         !
         ! check the number of cells
@@ -696,8 +696,8 @@ CONTAINS
         !
         ! get number of levels
         !
-        CALL nf(nf_inq_dimid(ncid, 'level', dimid), routine)
-        CALL nf(nf_inq_dimlen(ncid, dimid, no_levels), routine)
+        CALL nf(nf90_inq_dimid(ncid, 'level', dimid), routine)
+        CALL nf(nf90_inquire_dimension(ncid, dimid, len = no_levels), routine)
 
         !
         ! check the number of cells
@@ -708,7 +708,7 @@ CONTAINS
           CALL finish(TRIM(routine),'Number of vertical levels is not equal 1 - ABORT')
         ENDIF
 
-        CALL nf(nf_close(ncid), routine)
+        CALL nf(nf90_close(ncid), routine)
 
       ENDIF  !  stdio
 

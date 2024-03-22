@@ -254,6 +254,9 @@ cat > ${ocean_namelist} << EOF
   bottom_drag_coeff  =    0.0025 ! Chezy coefficient for bottom friction
   wstress_coeff      =    0.3    ! wind stress coefficient for top boundary forcing
 /
+&sea_ice_nml
+  stress_ice_zero = .TRUE.
+/
 &ocean_forcing_nml
   iforc_oce          = ${iforc}       ! ocean forcing:
   iforc_type         = ${iforc_type}  ! type of ocean forcing, see above

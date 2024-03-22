@@ -5088,18 +5088,18 @@ CONTAINS
     IF (p_pe_work == 0) THEN
       WRITE(0,*) "Write decomposition to file: ", TRIM(netcdf_file_name)
       ! generate decomposition file
-      CALL nf(nf_create(TRIM(netcdf_file_name), NF_CLOBBER, ncid), routine)
+      CALL nf(nf90_create(TRIM(netcdf_file_name), NF90_CLOBBER, ncid), routine)
 
       ! define dimension
-      CALL nf(nf_def_dim(ncid, "ncells", no_of_cells, dimid), routine)
+      CALL nf(nf90_def_dim(ncid, "ncells", no_of_cells, dimid), routine)
 
       ! define variable
-      CALL nf(nf_def_var(ncid, "cell_owner", NF_INT, 1, (/dimid/), varid), routine)
+      CALL nf(nf90_def_var(ncid, "cell_owner", NF90_INT, dimid, varid), routine)
 
       ! put the number of processes
-      CALL nf(nf_put_att_int(ncid, varid, "nprocs", NF_INT, 1, (/p_n_work/)), routine)
+      CALL nf(nf90_put_att(ncid, varid, "nprocs", p_n_work), routine)
 
-      CALL nf(nf_enddef(ncid), routine)
+      CALL nf(nf90_enddef(ncid), routine)
 
       ! write cell owner to file
       part_size = MIN(1024 * 1024 / 8, no_of_cells);
@@ -5117,12 +5117,13 @@ CONTAINS
 #endif
         start_value(1) = part_size * (i - 1) + 1
         value_count(1) = curr_part_size
-        CALL nf(nf_put_vara_int(ncid, varid, start_value, value_count, &
-          &     cell_owner_buffer), routine)
+        CALL nf(nf90_put_var(ncid, varid, cell_owner_buffer, &
+          &                  start_value, value_count), &
+          &     routine)
       END DO
       DEALLOCATE(cell_owner_buffer)
 
-      CALL nf(nf_close(ncid), routine)
+      CALL nf(nf90_close(ncid), routine)
 
 #ifdef HAVE_SLOW_PASSIVE_TARGET_ONESIDED
     ELSE

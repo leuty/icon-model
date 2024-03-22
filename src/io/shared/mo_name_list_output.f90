@@ -111,7 +111,7 @@ MODULE mo_name_list_output
   USE mo_name_list_output_config,   ONLY: use_async_name_list_io
   ! data types
   USE mo_var_metadata_types,        ONLY: t_var_metadata, POST_OP_SCALE, POST_OP_LUC, &
-    &                                     POST_OP_LIN2DBZ, var_metadata_get_size
+    &                                     POST_OP_LIN2DBZ, POST_OP_OFFSET, var_metadata_get_size
   USE mo_reorder_info,              ONLY: t_reorder_info, ri_cpy_part2whole
   USE mo_name_list_output_types,    ONLY: t_output_file, icell, iedge, ivert, &
     &                                     msg_io_start, msg_io_done, &
@@ -1063,7 +1063,8 @@ CONTAINS
 
       ipost_op_type = info%post_op%ipost_op_type
       post_op_apply &
-        = ipost_op_type == post_op_scale .OR. ipost_op_type == post_op_luc .OR. ipost_op_type == post_op_lin2dbz
+        = ipost_op_type == post_op_scale .OR. ipost_op_type == post_op_luc .OR. ipost_op_type == post_op_lin2dbz &
+                           .OR. ipost_op_type == post_op_offset
       IF ( post_op_apply ) THEN
         IF (idata_type == iREAL) THEN
           alloc_shape = SHAPE(r_ptr)

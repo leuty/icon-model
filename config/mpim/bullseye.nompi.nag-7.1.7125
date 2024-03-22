@@ -69,12 +69,6 @@ ICON_DACE_PATH='externals/dace_icon'
 # function in externals/dace_icon/src_for_icon/mo_iratlas.f90:
 ICON_DACE_PATH+=':src/atm_dyn_iconam/mo_nh_stepping.f90:src/data_assimilation/interfaces/mo_icon2dace.f90:src/drivers/icon.f90:src/drivers/mo_atmo_model.f90:src/drivers/mo_atmo_nonhydrostatic.f90'
 
-# There are over 200 files that are victims of the incosistencies in the NetCDF
-# Fortran library (see https://github.com/Unidata/netcdf-fortran/pull/424).
-# Treating them as a compile group is impractical. Therefore, we compile
-# everything with the -mismatch flag:
-ICON_FCFLAGS="${non_libtool_FCFLAGS} -mismatch -C=alias -C=array -C=bits -C=dangling -C=do -C=intovf -C=present -C=pointer -C=recursion"
-
 # Compile the bundled libraries with no tolerance to argument mismatches:
 ICON_BUNDLED_FCFLAGS="${non_libtool_FCFLAGS} -C=all"
 

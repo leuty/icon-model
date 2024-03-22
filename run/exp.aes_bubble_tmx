@@ -97,8 +97,9 @@ cat > ${atmo_namelist} << EOF
 !
 &parallel_nml
  nproma            = ${nproma}
+ nblocks_c         = 0
  num_io_procs      = ${num_io_procs}
- nproma_sub        = 8000
+ nproma_sub        = ${nproma_sub}
  io_process_stride = 6
 /
 &grid_nml
