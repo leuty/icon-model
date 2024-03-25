@@ -1448,7 +1448,7 @@ CONTAINS
 
       IF (timers_level > 10) CALL timer_start(timer_phys_reff)
 
-      CALL set_reff( prm_diag, pt_patch, pt_prog, pt_diag, ext_data )
+      CALL set_reff( prm_diag, pt_patch, pt_prog, pt_diag, ext_data, p_metrics=p_metrics) 
 
       IF (  atm_phy_nwp_config(jg)%icpl_rad_reff == 1 .AND. atm_phy_nwp_config(jg)%icalc_reff /= 101 ) THEN
 

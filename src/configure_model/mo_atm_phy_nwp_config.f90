@@ -70,9 +70,8 @@ MODULE mo_atm_phy_nwp_config
   PUBLIC :: icpl_o3_tp
   PUBLIC :: iprog_aero
   PUBLIC :: setup_nwp_diag_events
+  PUBLIC :: icpl_aero_ice
   PUBLIC :: lcuda_graph_turb_tran
-
-
 
   !!--------------------------------------------------------------------------
   !! Basic configuration setup for nwp physics
@@ -214,6 +213,7 @@ MODULE mo_atm_phy_nwp_config
   INTEGER  :: icpl_aero_conv     !! type of coupling between aerosols and convection scheme
   INTEGER  :: iprog_aero         !! type of prognostic aerosol
   INTEGER  :: icpl_o3_tp         !! type of coupling between ozone and the tropopause
+  INTEGER  :: icpl_aero_ice      !! type of coupling between aersols and ice nucleation
 
   REAL(wp) ::  &                       !> Field of calling-time interval (seconds) for
     &  dt_phy(max_dom,iphysproc_short) !! each domain and phys. process
