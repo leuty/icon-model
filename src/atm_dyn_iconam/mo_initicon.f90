@@ -534,7 +534,7 @@ MODULE mo_initicon
                 ! Perform vertical interpolation from intermediate
                 ! IFS2ICON grid to ICON grid and convert variables to
                 ! the NH set of prognostic variables
-                CALL vert_interp_sfc(p_patch, initicon)
+                CALL vert_interp_sfc(p_patch, ext_data, initicon)
                 ! Finally copy the results to the prognostic model variables
                 CALL copy_initicon2prog_sfc(p_patch, initicon, p_lnd_state, ext_data)
             END IF

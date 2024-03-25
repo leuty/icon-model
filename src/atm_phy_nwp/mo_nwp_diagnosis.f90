@@ -65,7 +65,6 @@ MODULE mo_nwp_diagnosis
   USE mo_exception,          ONLY: finish
   USE mo_math_constants,     ONLY: pi
   USE mo_statistics,         ONLY: time_avg, levels_horizontal_mean
-  USE mo_ext_data_state,     ONLY: ext_data
   USE mo_ext_data_types,     ONLY: t_external_data
   USE mo_nwp_parameters,     ONLY: t_phy_params
   USE mo_time_config,        ONLY: time_config
@@ -1740,15 +1739,16 @@ CONTAINS
   !!
   !! Moved from nh_stepping for better code structure
   !!
-  SUBROUTINE nwp_opt_diagnostics(p_patch, p_patch_lp, p_int_lp, p_nh, p_int, prm_diag, &
+  SUBROUTINE nwp_opt_diagnostics(p_patch, p_patch_lp, p_int_lp, ext_data, p_nh, p_int, prm_diag, &
      l_output, nnow, nnow_rcf, &
      lpi_max_Event, celltracks_Event, dbz_Event, hail_max_Event, mtime_current,  plus_slack, lacc)
 
-    TYPE(t_patch)       ,INTENT(IN)   :: p_patch(:), p_patch_lp(:)  ! patches and their local parents
-    TYPE(t_int_state)   ,INTENT(IN)   :: p_int_lp(:)                ! interpolation state for local parents
-    TYPE(t_nh_state)    ,INTENT(INOUT):: p_nh(:)                    ! nonhydro state
-    TYPE(t_int_state)   ,INTENT(IN)   :: p_int(:)                   ! interpolation state
-    TYPE(t_nwp_phy_diag),INTENT(INOUT):: prm_diag(:)                ! physics diagnostics
+    TYPE(t_patch)        ,INTENT(IN)   :: p_patch(:), p_patch_lp(:)  ! patches and their local parents
+    TYPE(t_int_state)    ,INTENT(IN)   :: p_int_lp(:)                ! interpolation state for local parents
+    TYPE(t_external_data),INTENT(IN)   :: ext_data(:)                ! external data state
+    TYPE(t_nh_state)     ,INTENT(INOUT):: p_nh(:)                    ! nonhydro state
+    TYPE(t_int_state)    ,INTENT(IN)   :: p_int(:)                   ! interpolation state
+    TYPE(t_nwp_phy_diag) ,INTENT(INOUT):: prm_diag(:)                ! physics diagnostics
 
     TYPE(event),     POINTER, INTENT(INOUT) :: lpi_max_Event, celltracks_Event, dbz_Event, hail_max_Event
     TYPE(datetime),  POINTER, INTENT(IN   ) :: mtime_current  !< current_datetime

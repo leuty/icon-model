@@ -20,7 +20,7 @@ MODULE mo_atmo_ocean_coupling
 
   USE mo_kind,            ONLY: wp
   USE mo_model_domain,    ONLY: t_patch
-  USE mo_ext_data_state,  ONLY: ext_data
+  USE mo_ext_data_types,  ONLY: t_external_data
 #ifndef __NO_AES__
   USE mo_aes_phy_memory,  ONLY: prm_field
 #endif
@@ -71,9 +71,10 @@ CONTAINS
   !! This subroutine is called from construct_atmo_coupling.
   !!
   SUBROUTINE construct_atmo_ocean_coupling( &
-    p_patch, comp_id, grid_id, cell_point_id, timestepstring)
+    p_patch, ext_data, comp_id, grid_id, cell_point_id, timestepstring)
 
     TYPE(t_patch), TARGET, INTENT(IN) :: p_patch(:)
+    TYPE(t_external_data), INTENT(IN) :: ext_data(:)
     INTEGER, INTENT(IN) :: comp_id
     INTEGER, INTENT(IN) :: grid_id
     INTEGER, INTENT(IN) :: cell_point_id

@@ -723,17 +723,9 @@ CONTAINS
     CHARACTER(*), PARAMETER :: routine = "mo_atmo_model:destruct_atmo_model"
 
     INTEGER :: error_status
+
     ! Destruct external data state
-
-    CALL destruct_ext_data
-    IF (msg_level > 5) CALL message(routine, 'destruct_ext_data is done')
-
-    ! deallocate ext_data array
-    DEALLOCATE(ext_data, stat=error_status)
-    IF (error_status/=success) THEN
-      CALL finish(routine, 'deallocation of ext_data')
-    ENDIF
-
+    CALL destruct_ext_data()
 
     ! destruct interpolation patterns generate in create_grf_index_lists
     IF (n_dom_start==0 .OR. n_dom > 1) THEN

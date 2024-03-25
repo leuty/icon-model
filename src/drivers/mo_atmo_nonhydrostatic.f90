@@ -227,7 +227,7 @@ CONTAINS
     !---------------------------------------------------------------------
     IF ( is_coupled_run() ) THEN
       IF (ltimer) CALL timer_start(timer_coupling)
-      CALL construct_atmo_coupling(p_patch(1:))
+      CALL construct_atmo_coupling(p_patch(1:), ext_data(1:))
       IF (ltimer) CALL timer_stop(timer_coupling)
     ENDIF
 
@@ -741,7 +741,7 @@ CONTAINS
       !
       ! read external data for real case
       IF (.NOT. ltestcase) THEN 
-        CALL init_aes_phy_external( p_patch(1:)                   ,&
+        CALL init_aes_phy_external( p_patch(1:), ext_data(1:)     ,&
            &                          time_config%tc_current_date )
       END IF
       !

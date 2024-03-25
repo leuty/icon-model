@@ -53,8 +53,8 @@ MODULE mo_ext_data_init
     &                              p_comm_work_test, p_comm_work, my_process_is_mpi_workroot
   USE mo_sync,               ONLY: global_sum_array
   USE mo_parallel_config,    ONLY: p_test_run, nproma
-  USE mo_ext_data_types,     ONLY: t_external_data
   USE mo_nonhydro_types,     ONLY: t_nh_diag
+  USE mo_ext_data_types,     ONLY: t_external_data
   USE mo_ext_data_state,     ONLY: construct_ext_data, levelname, cellname, o3name, o3unit, &
     &                              nlev_o3, nmonths
   USE mo_master_config,      ONLY: getModelBaseDir
@@ -192,11 +192,14 @@ CONTAINS
 
     ! top-level procedure for building data structures for
     ! external data.
-    
+
     IF (i_scm_netcdf > 0) THEN
       nclass_lu = num_lcc ! 3rd dim of lu_class_fraction, has to agree with num_lcc
     ENDIF
-   
+
+    ! Note that construct_ext_data must be called after inquire_external_files!
+    ! The latter routine retrieves the constants nlev_o3 and nmonths, which are used
+    ! by construct_ext_data, when constructing the state vector ext_atm_td.
     CALL construct_ext_data(p_patch, ext_data)
 
     !-------------------------------------------------------------------------

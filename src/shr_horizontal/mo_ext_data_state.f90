@@ -21,10 +21,10 @@
 MODULE mo_ext_data_state
 
   USE mo_kind,               ONLY: wp
-  USE mo_impl_constants,     ONLY: inwp, MODIS, io3_clim, io3_ape,                 &
+  USE mo_impl_constants,     ONLY: SUCCESS, inwp, MODIS, io3_clim, io3_ape,        &
     &                              HINTP_TYPE_LONLAT_NNB, MAX_CHAR_LENGTH,         &
     &                              SSTICE_ANA, SSTICE_ANA_CLINC, SSTICE_CLIM,      &
-    &                              SSTICE_AVG_MONTHLY, SSTICE_AVG_DAILY,           & 
+    &                              SSTICE_AVG_MONTHLY, SSTICE_AVG_DAILY,           &
     &                              SSTICE_INST
   USE mo_cdi_constants,      ONLY: GRID_UNSTRUCTURED_CELL, GRID_CELL
   USE mo_exception,          ONLY: message, finish
@@ -90,8 +90,7 @@ MODULE mo_ext_data_state
   PUBLIC :: construct_ext_data
   PUBLIC :: destruct_ext_data
 
-  TYPE(t_external_data),TARGET, ALLOCATABLE :: &
-    &  ext_data(:)  ! n_dom
+  TYPE(t_external_data), TARGET, ALLOCATABLE :: ext_data(:)  ! n_dom
 
 !-------------------------------------------------------------------------
 
@@ -1958,6 +1957,7 @@ CONTAINS
   SUBROUTINE destruct_ext_data
 
     INTEGER :: jg
+    INTEGER :: error_status
     CHARACTER(len=MAX_CHAR_LENGTH), PARAMETER :: &
       routine = modname//':destruct_ext_data'
     !-------------------------------------------------------------------------
@@ -1995,6 +1995,12 @@ CONTAINS
       !$ACC EXIT DATA DELETE(ext_data(jg)%atm)
     ENDDO
     !$ACC EXIT DATA DELETE(ext_data)
+
+    ! deallocate ext_data array
+    DEALLOCATE(ext_data, stat=error_status)
+    IF (error_status/=SUCCESS) THEN
+      CALL finish(routine, 'deallocation of ext_data')
+    ENDIF
 
     CALL message (TRIM(routine), 'Destruction of data structure for ' // &
       &                          'external data finished')

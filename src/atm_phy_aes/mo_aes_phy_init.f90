@@ -69,7 +69,7 @@ MODULE mo_aes_phy_init
   USE mo_jsb_interface,        ONLY: jsbach_get_var
   ! USE mo_phy_schemes,          ONLY: register_exchange_coefficients_procedure
 #endif
-  USE mo_ext_data_state,       ONLY: ext_data
+  USE mo_ext_data_types,       ONLY: t_external_data
 
   ! carbon cycle
   USE mo_ccycle_config,        ONLY: print_ccycle_config, ccycle_config
@@ -498,10 +498,11 @@ CONTAINS
   END SUBROUTINE init_aes_phy_tracer
 
 
-  SUBROUTINE init_aes_phy_external( p_patch, mtime_current)
+  SUBROUTINE init_aes_phy_external( p_patch, ext_data, mtime_current)
 
-    TYPE(t_patch), TARGET, INTENT(in) :: p_patch(:)
-    TYPE(datetime),  INTENT(in), POINTER    :: mtime_current !< Date and time information
+    TYPE(t_patch), TARGET,   INTENT(in) :: p_patch(:)
+    TYPE(t_external_data),   INTENT(in) :: ext_data(:)
+    TYPE(datetime), POINTER, INTENT(in) :: mtime_current !< Date and time information
 
     INTEGER :: ng, jg
     LOGICAL :: lany

@@ -30,16 +30,14 @@ USE mo_intp_data_strc,      ONLY: t_int_state, p_int_state_local_parent
 USE mo_grf_intp_data_strc,  ONLY: t_gridref_state, t_gridref_single_state, &
                                   p_grf_state, p_grf_state_local_parent
 USE mo_nwp_phy_types,       ONLY: t_nwp_phy_diag
-USE mo_nwp_lnd_types,       ONLY: t_lnd_prog, t_lnd_diag, t_wtr_prog
+USE mo_nwp_lnd_types,       ONLY: t_lnd_state, t_lnd_prog, t_lnd_diag, t_wtr_prog
 USE mo_ext_data_types,      ONLY: t_external_data
-USE mo_nwp_lnd_state,       ONLY: p_lnd_state
 USE mo_grf_bdyintp,         ONLY: interpol_scal_grf
 USE mo_grf_nudgintp,        ONLY: interpol_scal_nudging
 USE mo_parallel_config,     ONLY: nproma, p_test_run
 USE mo_dynamics_config,     ONLY: nnow_rcf
 USE mo_run_config,          ONLY: msg_level, iqv, iqc, iqi
 USE mo_grid_config,         ONLY: l_limited_area, nexlevs_rrg_vnest
-USE mo_nwp_phy_state,       ONLY: prm_diag
 USE mo_nonhydro_state,      ONLY: p_nh_state
 USE mo_impl_constants,      ONLY: min_rlcell, min_rlcell_int
 USE mo_physical_constants,  ONLY: rd, grav, stbo, tmelt
@@ -2092,13 +2090,14 @@ END SUBROUTINE downscale_rad_output
 !>
 !! This routine optimizes the boundary interpolation of diagnostic physics fields for output
 !!
-SUBROUTINE interpol_phys_grf (ext_data, jg, jgc, jn, lacc)
+SUBROUTINE interpol_phys_grf (ext_data, prm_diag, p_lnd_state, jg, jgc, jn, lacc)
 
-  USE mo_nwp_phy_state,      ONLY: prm_diag
   USE mo_nonhydro_state,     ONLY: p_nh_state
 
   ! Input:
-  TYPE(t_external_data), INTENT(in) :: ext_data(:)
+  TYPE(t_external_data),     INTENT(IN)    :: ext_data(:)
+  TYPE(t_nwp_phy_diag),      INTENT(INOUT) :: prm_diag(:)
+  TYPE(t_lnd_state), TARGET, INTENT(INOUT) :: p_lnd_state(:)
   INTEGER              , INTENT(in) :: jg,jgc,jn
   LOGICAL, OPTIONAL    , INTENT(IN) :: lacc ! If true, use openacc
 
@@ -2751,10 +2750,12 @@ END SUBROUTINE interpol_phys_grf
 !! radiation is computed on a reduced grid
 !!
 !!
-SUBROUTINE interpol_rrg_grf (jg, jgc, jn, ntl_rcf, lacc)
+SUBROUTINE interpol_rrg_grf (jg, jgc, jn, ntl_rcf, prm_diag, p_lnd_state, lacc)
 
-  INTEGER, INTENT(in) :: jg, jgc, jn, ntl_rcf ! Input grid parameters
-  LOGICAL, INTENT(IN), OPTIONAL :: lacc ! If true, use openacc
+  INTEGER,                      INTENT(IN)    :: jg, jgc, jn, ntl_rcf ! Input grid parameters
+  TYPE(t_nwp_phy_diag), TARGET, INTENT(INOUT) :: prm_diag(:)
+  TYPE(t_lnd_state),    TARGET, INTENT(INOUT) :: p_lnd_state(:)
+  LOGICAL,           OPTIONAL,  INTENT(IN)    :: lacc                 ! If true, use openacc
 
   ! Pointers
   TYPE(t_patch),                POINTER :: ptr_pp
@@ -2871,10 +2872,11 @@ END SUBROUTINE interpol_rrg_grf
 !! This routine copies additional model levels to the local parent grid if vertical nesting
 !! is combined with a reduced radiation grid and the option latm_above_top = .TRUE.
 !!
-SUBROUTINE copy_rrg_ubc (jg, jgc)
+SUBROUTINE copy_rrg_ubc (jg, jgc, prm_diag)
 
   ! Input grid parameters
-  INTEGER, INTENT(in) :: jg, jgc
+  INTEGER,              INTENT(IN)   :: jg, jgc
+  TYPE(t_nwp_phy_diag), INTENT(INOUT):: prm_diag(:)
 
   ! Local fields
 
@@ -2898,11 +2900,12 @@ END SUBROUTINE copy_rrg_ubc
 !>
 !! This routine performs the feedback of diagnostic physics fields for output
 !!
-SUBROUTINE feedback_phys_diag(jg, jgp, lacc)
+SUBROUTINE feedback_phys_diag(jg, jgp, prm_diag, lacc)
 
-  INTEGER, INTENT(IN) :: jg   ! child grid level
-  INTEGER, INTENT(IN) :: jgp  ! parent grid level
-  LOGICAL, INTENT(IN), OPTIONAL :: lacc ! If true, use openacc
+  INTEGER,              INTENT(IN)    :: jg         ! child grid level
+  INTEGER,              INTENT(IN)    :: jgp        ! parent grid level
+  TYPE(t_nwp_phy_diag), INTENT(INOUT) :: prm_diag(:)
+  LOGICAL, OPTIONAL,    INTENT(IN)    :: lacc       ! If true, use openacc
 
   ! Pointers to types needed to minimize code duplication for MPI/no-MPI cases
   TYPE(t_grid_cells), POINTER     :: p_gcp
