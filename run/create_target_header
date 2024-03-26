@@ -2528,6 +2528,19 @@ create_target_header()
         *atm_nwp_jsbach_test*)
             use_memory="18gb"
             ;;
+        *art_oem*.run)
+            use_nodes=4
+            case $use_target in
+                *_cpu*)
+                    use_mpi_procs_pernode=12
+                    use_nproma=16
+                ;;
+                *_gpu*)
+                    use_mpi_procs_pernode=1
+                    # no nproma needed since this uses nlbocks_c anyway
+                ;;
+            esac
+            ;;    
     esac
 
     # set more default values
