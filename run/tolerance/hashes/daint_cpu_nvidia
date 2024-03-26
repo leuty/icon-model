@@ -21,3 +21,4 @@ builder: daint_cpu_nvidia
 "mch_opr_r19b07_lpi": dd86a007cf01df7c488854a9b8ab3bef4a991428
 "mch_opr_r19b07_midnight": 855dfa16f4de5b26b2c6f603d30fe1a958245e97
 "mch_opr_r19b07_turb": cc8c67f67bd17029ca2b05d7d835f604578529c4
+"art_oem": 78ecb5e7cf22a5ffbdc801759879a79432fc4f6d
