@@ -88,6 +88,7 @@ CONTAINS
       !ICON_OMP_DO ICON_OMP_DEFAULT_SCHEDULE
       DO jb = 1, patch_horz%nblks_c
         DO jc = 1, nproma
+          ! All cells with fr_land + fr_lake >= 0 are valid:
           IF ( ext_data(jg)%atm%fr_land(jc,jb)+ext_data(jg)%atm%fr_lake(jc,jb) .GE. 0.05_wp ) THEN
             is_valid((jb-1)*nproma+jc) = .TRUE.
           END IF
@@ -183,9 +184,10 @@ CONTAINS
         DO isubs = 1, ntiles_total
           IF ( isubs == isub_lake ) THEN
             DO jc = i_startidx, i_endidx
-              ! Take P-E over the lake as runoff
-              buffer(jc,jb) = buffer(jc,jb) + ( prm_diag%tot_prec_rate(jc,jb) + prm_diag%qhfl_s_t(jc,jb,isubs) )  &
-                &           * ext_data%atm%frac_t(jc,jb,isubs)
+              ! Take P-E over the lake as runoff (P=prec_gsp_rate+rain_con_rate+snow_con_rate):
+              buffer(jc,jb) = buffer(jc,jb) + ( prm_diag%prec_gsp_rate(jc,jb) + prm_diag%rain_con_rate(jc,jb) +   &
+                &                               prm_diag%snow_con_rate(jc,jb) + prm_diag%qhfl_s_t(jc,jb,isubs) )  &
+                &                           * ext_data%atm%frac_t(jc,jb,isubs)
             ENDDO
           ELSE
             DO jc = i_startidx, i_endidx
