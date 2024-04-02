@@ -7,7 +7,6 @@ builder: daint_cpu_nvidia
 "atm_qubicc_nc_test": 65a4da5523a8869a741fd7ab4875a38c1c7a30c4
 "c2sm_clm_r13b03_seaice": 1637374b831329ac470aa794d4f847b77e59e444
 "exclaim_ape_R02B04": 0d9dd5f1c9f28588db2d231d12a5b225df30485c
-"mch_bench_r19b07_dev_sppt": ae0a8052e7bd121de0c0a9181f7e418628723d15
 "mch_ch_lowres": d7edd8c514486ee6387ebfc36738143fd0a208ff
 "mch_ch_r04b09_dace": 700ee1864a125205870b681d666558b384eddf8b
 "mch_ch_r04b09_dace_synsat": 48e12723a6c05517878bf3bf87b1ae9c0fefa322

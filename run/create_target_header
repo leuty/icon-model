@@ -2098,7 +2098,7 @@ create_target_header()
                 ;;
             esac
             ;;
-        *mch_kenda-ch1_small.run|*mch_kenda-ch1_small_member_id*)
+        *mch_*_small.run|*mch_*_small_member_id*)
             case $use_target in
                 alps_mch_gpu*)
                     use_nodes=1
@@ -2158,13 +2158,6 @@ create_target_header()
                 *_gpu*)
                     use_mpi_procs_pernode=2
                     # no nproma needed since this uses nlbocks_c anyway
-                ;;
-            esac
-            ;;
-        *mch_bench_r19b07_dev_sppt.run|*mch_bench_r19b07_dev_sppt_member_id*.run)
-            case $use_target in
-                daint_gpu*)
-                    use_mpi_procs_pernode=4
                 ;;
             esac
             ;;
