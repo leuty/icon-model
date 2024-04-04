@@ -107,6 +107,7 @@ MODULE mo_art_config
     INTEGER :: iart_volcano            !< Treatment of volcanic ash aerosol
     INTEGER :: iart_nonsph             !< Treatment of nonspherical particles
     INTEGER :: iart_isorropia          !< Treatment of gas aerosol partioning
+    INTEGER :: iart_seas_water    !< Calculation of seasalt water content
     CHARACTER(LEN=IART_PATH_LEN) :: &
       &  cart_volcano_file             !< Absolute path + filename of input file for volcanoes
     INTEGER :: iart_radioact           !< Treatment of radioactive particles
