@@ -753,8 +753,6 @@ CONTAINS
     !
     ! Note: river runoff fluxes are received in m^3/s and are converted to m/s by division by whole grid area
     !
-    ! mandatory as river ruoff comes with a different mask!
-    atmos_fluxes%FrshFlux_Runoff(:,:) = 0.0_wp
 
     CALL cpl_get_field( &
       'couple_ocean_toatmo_fluxes', field_id_freshflx_runoff, &
@@ -772,9 +770,7 @@ CONTAINS
           nlen = patch_horz%npromz_c
         END IF
         DO cell_index = 1, nlen
-          IF ( nn+cell_index > nbr_inner_cells ) THEN
-            atmos_fluxes%FrshFlux_Runoff(cell_index,blockNo) = dummy
-          ELSE
+          IF ( nn+cell_index <= nbr_inner_cells ) THEN
             ! !!! Note: freshwater fluxes are received in kg/m^2/s and are
             ! !!!       converted to m/s by division by rhoh2o below.
             ! !!!   atmos_fluxes%FrshFlux_Runoff(cell_index,blockNo) = &
