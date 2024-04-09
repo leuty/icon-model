@@ -208,7 +208,7 @@ MODULE mo_sgs_turbmetric
       CALL prognostic_tke(p_nh_prog, p_nh_prog_now_rcf, p_nh_prog_rcf, p_nh_diag,                 &
                           p_nh_metrics, p_patch, p_int, prm_diag, dt, D_11_ie, D_12_ie, D_13_ie)
     ELSE
-      CALL brunt_vaisala_freq(p_patch, p_nh_metrics, theta_v, prm_diag%bruvais, lacc=.TRUE.)
+      CALL brunt_vaisala_freq(p_patch, p_nh_metrics, nproma, theta_v, prm_diag%bruvais, lacc=.TRUE.)
 
       CALL smagorinsky_model(p_nh_prog, p_nh_metrics, p_patch, p_int, prm_diag%tkvh,              &
                              prm_diag%mech_prod, prm_diag%tkvm, prm_diag%bruvais,                 &

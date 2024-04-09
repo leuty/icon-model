@@ -759,12 +759,21 @@
 
       ! in async mode: copy the variable values from prefetch buffer to the respective allocated variable
       ! in init mode: read the variables synchronously from input file
-
       ! Read parameters QV, QC and QI
-      CALL get_data(latbc, 'qv', latbc%latbc_data(tlev)%atm_in%qv, read_params(icell))
+      IF (latbc_config%latbc_contains_hus) THEN
+        CALL get_data(latbc, 'hus', latbc%latbc_data(tlev)%atm_in%qv, read_params(icell))
+      ELSE
+        CALL get_data(latbc, 'qv', latbc%latbc_data(tlev)%atm_in%qv, read_params(icell))
+      ENDIF
+
       IF ( latbc_config%latbc_contains_qcqi ) THEN ! get qc, qi from latbc data
-        CALL get_data(latbc, 'qc', latbc%latbc_data(tlev)%atm_in%qc, read_params(icell))
-        CALL get_data(latbc, 'qi', latbc%latbc_data(tlev)%atm_in%qi, read_params(icell))
+        IF (latbc_config%latbc_contains_hus) THEN
+          CALL get_data(latbc, 'clw', latbc%latbc_data(tlev)%atm_in%qc, read_params(icell))
+          CALL get_data(latbc, 'cli', latbc%latbc_data(tlev)%atm_in%qi, read_params(icell))
+        ELSE
+          CALL get_data(latbc, 'qc', latbc%latbc_data(tlev)%atm_in%qc, read_params(icell))
+          CALL get_data(latbc, 'qi', latbc%latbc_data(tlev)%atm_in%qi, read_params(icell))
+        ENDIF
       ELSE  ! initialize qc, qi with 0
 !$OMP PARALLEL
         CALL init(latbc%latbc_data(tlev)%atm_in%qc(:,:,:))

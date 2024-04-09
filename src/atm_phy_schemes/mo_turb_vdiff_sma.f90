@@ -284,6 +284,27 @@ CONTAINS
     !$ACC   CREATE(loidx, pfrc_test, ztheta, is) &
     !$ACC   CREATE(theta_v, bruvais, rho_ic)
 
+
+
+!#########################################################################
+!## initialize
+!#########################################################################
+
+!$OMP PARALLEL
+    CALL init(km_iv)
+    CALL init(km_c)
+    CALL init(km_ie)
+    CALL init(kh_ic)
+    CALL init(km_ic)
+    CALL init(vn)
+
+    IF(p_test_run)THEN
+      CALL init(u_vert(:,:,:))
+      CALL init(v_vert(:,:,:))
+      CALL init(w_vert(:,:,:))
+    END IF
+!$OMP END PARALLEL
+
 !$OMP PARALLEL
 !$OMP DO PRIVATE(jb,jc,i_startidx,i_endidx)
     DO jb = i_startblk,i_endblk
@@ -308,7 +329,6 @@ CONTAINS
         pri_tile(jc,jb,:)  = 0._wp
         pch_tile(jc,jb,:)  = 0._wp
         pcpt_tile(jc,jb,:) = 0._wp
-
       END DO
       !$ACC END PARALLEL
 
@@ -318,7 +338,7 @@ CONTAINS
 
    ! Here pum1 and pvm1 are assumed to be synchronized already, see interface_iconam_aes.
 
-    rl_start   = grf_bdywidth_e+1
+    rl_start   = 2
     rl_end     = min_rledge_int
     i_startblk = p_patch%edges%start_block(rl_start)
     i_endblk   = p_patch%edges%end_block(rl_end)
@@ -531,31 +551,13 @@ CONTAINS
 
 
 
-
-!#########################################################################
-!## initialize
-!#########################################################################
-
-!$OMP PARALLEL
-    CALL init(km_iv(:,:,:))
-    CALL init(km_c(:,:,:))
-    CALL init(km_ie(:,:,:))
-
-    IF(p_test_run)THEN
-      CALL init(u_vert(:,:,:))
-      CALL init(v_vert(:,:,:))
-      CALL init(w_vert(:,:,:))
-    END IF
-!$OMP END PARALLEL
-
-
 !#########################################################################
 !## Convert temperature to potential temperature: all routines within
 !## use theta.
 !#########################################################################
 
 
-    rl_start   = grf_bdywidth_c+1
+    rl_start   = 3
     rl_end     = min_rlcell_int
     i_startblk = p_patch%cells%start_block(rl_start)
     i_endblk   = p_patch%cells%end_block(rl_end)
@@ -579,11 +581,13 @@ CONTAINS
     !Get rho at interfaces to be used later
     CALL vert_intp_full2half_cell_3d(p_patch, p_nh_metrics, rho, rho_ic, &
                                      2, min_rlcell_int-2, lacc=.TRUE.)
-
-    CALL brunt_vaisala_freq(p_patch, p_nh_metrics, theta_v, bruvais, lacc=.TRUE.)
-
-
-
+    
+    ! Compute the Brunt Vaisala frequency where theta_v was defined
+                                     
+    CALL brunt_vaisala_freq(p_patch, p_nh_metrics, kbdim, theta_v, bruvais, &
+                            opt_rlstart=3, lacc=.TRUE.)
+    
+    
 !#########################################################################
 !## Smagorinsky_model
   !!------------------------------------------------------------------------
@@ -632,7 +636,7 @@ CONTAINS
                             lacc=.TRUE.)
 
     ! RBF reconstruction of velocity at vertices: include halos
-    CALL rbf_vec_interpol_vertex(vn, p_patch, p_int, u_vert, v_vert,                       &
+    CALL rbf_vec_interpol_vertex(vn, p_patch, p_int, u_vert, v_vert, &
                                  opt_rlend=min_rlvert_int, opt_acc_async=.TRUE. )
 
     !$ACC WAIT
@@ -825,8 +829,7 @@ CONTAINS
 !$OMP END PARALLEL
 
 
-    !Interpolate mech production term from mid level edge to interface level cell
-    !except top and bottom boundaries
+    !Interpolate div(stress) from edge to cell-scalar, incl. halo for its use in hor diffusion
     rl_start   = grf_bdywidth_c+1
     rl_end     = min_rlcell_int-1
     i_startblk = p_patch%cells%start_block(rl_start)
@@ -859,7 +862,7 @@ CONTAINS
 
 
     ! Interpolate mech. production term from mid level edge to interface level cell
-    ! except top and bottom boundaries
+    ! except top and bottom boundaries.
     rl_start   = 3
     rl_end     = min_rlcell_int-1
     i_startblk = p_patch%cells%start_block(rl_start)

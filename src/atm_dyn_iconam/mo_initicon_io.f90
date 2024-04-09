@@ -1272,7 +1272,7 @@ MODULE mo_initicon_io
     REAL(dp), POINTER :: levelValues(:)
     TYPE(t_fetchParams) :: params
     REAL(wp), ALLOCATABLE :: z_ifc_in(:,:,:), w_ifc(:,:,:), tke_ifc(:,:,:)
-    LOGICAL :: lfound_thv, lfound_rho, lfound_vn, lfound_qr, lfound_qs, lfound_qg
+    LOGICAL :: lfound_thv, lfound_rho, lfound_vn, lfound_hus, lfound_clw, lfound_cli, lfound_qr, lfound_qs, lfound_qg
 
     ALLOCATE(params%inputInstructions(SIZE(inputInstructions, 1)))
     params%inputInstructions = inputInstructions
@@ -1312,16 +1312,26 @@ MODULE mo_initicon_io
             ! If the TKE field is not in the input data, a cold-start initialization is executed in init_nwp_phy
             CALL fetch3d(params, 'tke', jg, tke_ifc, lread_tke)
 
-            CALL fetchRequired3d(params, 'qv', jg, initicon(jg)%atm_in%qv)
-            CALL fetchRequired3d(params, 'qc', jg, initicon(jg)%atm_in%qc)
-            CALL fetchRequired3d(params, 'qi', jg, initicon(jg)%atm_in%qi)
+            ! Check for both DWD/Sapphire variables due to naming mismatch
+            CALL fetch3d(params, 'hus', jg, initicon(jg)%atm_in%qv, lfound_hus)
+            CALL fetch3d(params, 'clw', jg, initicon(jg)%atm_in%qc, lfound_clw)
+            CALL fetch3d(params, 'cli', jg, initicon(jg)%atm_in%qi, lfound_cli)
+!$OMP PARALLEL
+            IF (.NOT. lfound_hus) CALL fetchRequired3d(params, 'qv', jg, initicon(jg)%atm_in%qv)
+            IF (.NOT. lfound_clw) CALL fetchRequired3d(params, 'qc', jg, initicon(jg)%atm_in%qc)
+            IF (.NOT. lfound_cli) CALL fetchRequired3d(params, 'qi', jg, initicon(jg)%atm_in%qi)
+!$OMP END PARALLEL
+
             CALL fetch3d(params, 'qr', jg, initicon(jg)%atm_in%qr, lfound_qr)
             CALL fetch3d(params, 'qs', jg, initicon(jg)%atm_in%qs, lfound_qs)
 !$OMP PARALLEL
             IF (.NOT. lfound_qr) CALL init(initicon(jg)%atm_in%qr(:,:,:))
             IF (.NOT. lfound_qs) CALL init(initicon(jg)%atm_in%qs(:,:,:))
 !$OMP END PARALLEL
-
+            
+            ! Set up flags for later calls
+            IF (lfound_hus) latbc_config%latbc_contains_hus = .TRUE.
+            
             ! fetch additional tracers in first guess
             CALL fetch_tracer_fg('tracer_fg_in', params, jg,       &
               &                   atm_in  = initicon(jg)%atm_in,   &

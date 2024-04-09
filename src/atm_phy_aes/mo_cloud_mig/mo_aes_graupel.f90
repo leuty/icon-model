@@ -245,7 +245,7 @@ CONTAINS
     l_snow = snow_lambda  (rho(iv,k),q(lqs)%x(iv,k),n_snow)
 
     sx2x(:,:)     = 0.0_wp
-    sx2x(lqc,lqr) = cloud_to_rain   (t(iv,k),q(lqc)%x(iv,k),q(lqr)%x(iv,k),qnc(1))
+    sx2x(lqc,lqr) = cloud_to_rain   (t(iv,k),q(lqc)%x(iv,k),q(lqr)%x(iv,k),qnc(ivstart))
     sx2x(lqr,lqv) = rain_to_vapor   (t(iv,k),rho(iv,k),q(lqc)%x(iv,k),q(lqr)%x(iv,k),dvsw,dt)
     sx2x(lqc,lqi) = cloud_x_ice (t(iv,k),q(lqc)%x(iv,k),q(lqi)%x(iv,k),dt)
     sx2x(lqi,lqc) = -MIN(sx2x(lqc,lqi),0.0_wp)

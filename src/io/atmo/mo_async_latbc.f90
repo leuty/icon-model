@@ -719,7 +719,7 @@ CONTAINS
 
 #ifndef NOMPI
     CHARACTER(*), PARAMETER                   :: routine = modname//"::read_init_file"
-    LOGICAL,      PARAMETER                   :: ldebug  = .FALSE.
+    LOGICAL,      PARAMETER                   :: ldebug  = .TRUE.
     ! local variables
     CHARACTER(LEN=vname_len), ALLOCATABLE :: grp_vars(:), grp_vars_lc(:)
     ! dictionary which maps prefetch variable names onto
