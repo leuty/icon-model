@@ -2268,7 +2268,8 @@ my_thrd_id = omp_get_thread_num()
 
       END IF !in case of ".NOT.lnsfdia" this kind of diagnostics is done at another place
 
-!!$      IF (.NOT.lgz0inp) THEN
+
+      IF (.NOT.lgz0inp .OR. lini) THEN
 !DIR$ IVDEP
         !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(acc_async_queue) IF(lzacc)
         !$ACC LOOP GANG VECTOR PRIVATE(velo, wert, fakt)
@@ -2316,7 +2317,7 @@ my_thrd_id = omp_get_thread_num()
            END IF
         END DO
         !$ACC END PARALLEL
-!!$      ENDIF  !lgz0inp
+      ENDIF  !lgz0inp
 
       !$ACC END DATA ! from acc data present
       !$ACC END DATA ! from acc data create
