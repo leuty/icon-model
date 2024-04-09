@@ -82,8 +82,8 @@ CONTAINS
 
         ! calculate U and V wind components and ensure nonzero values in order to
         ! avoid division by zero in the following ATAN2 function
-        p_forcing%u10m(jc,jb) = MAX((1._wp + COS(pi*d1)) * wc%peak_u10, dbl_eps)
-        p_forcing%v10m(jc,jb) = MAX((1._wp + COS(pi*d1)) * wc%peak_v10, dbl_eps)
+        p_forcing%u10m(jc,jb) = MAX(0.5_wp*(1._wp + COS(pi*d1)) * wc%peak_u10, dbl_eps)
+        p_forcing%v10m(jc,jb) = MAX(0.5_wp*(1._wp + COS(pi*d1)) * wc%peak_v10, dbl_eps)
         p_forcing%sp10m(jc,jb) = SQRT(p_forcing%u10m(jc,jb)**2 + p_forcing%v10m(jc,jb)**2)
         ! 45 degree towards NE
         p_forcing%dir10m(jc,jb) = ATAN2(p_forcing%v10m(jc,jb),p_forcing%u10m(jc,jb))*rad2deg

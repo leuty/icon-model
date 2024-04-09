@@ -790,14 +790,13 @@ CONTAINS
 
 !$OMP PARALLEL
     CALL init(p_diag%phiaw)
-    CALL init(p_diag%tauw)
 !$OMP BARRIER
 !$OMP DO PRIVATE(jb,jc,jf,jd,jtd,i_startidx,i_endidx,cm,const1,const2,         &
 !$OMP            rhowgdfth,sinplus,sumt,sumx,sumy,cmrhowgdfth,xstress,ystress, &
 !$OMP            xstress_tot,ystress_tot,cosw,temp1,temp2) ICON_OMP_DEFAULT_SCHEDULE
     DO jb = i_startblk, i_endblk
       CALL get_indices_c( p_patch, jb, i_startblk, i_endblk,           &
-           &                 i_startidx, i_endidx, i_rlstart, i_rlend)
+        &                 i_startidx, i_endidx, i_rlstart, i_rlend)
       DO jf = 1,wc%nfreqs
         DO jc = i_startidx, i_endidx
           cm(jc,jf) = p_diag%wave_num_c(jc,jb,jf) * 1.0_wp/(pi2*wc%freqs(jf))
@@ -821,7 +820,6 @@ CONTAINS
         ystress(jc) = 0._wp
 
       END DO
-
 
       !sum
       DO jf = 1, MAXVAL(p_diag%last_prog_freq_ind(i_startidx:i_endidx,jb))
@@ -847,6 +845,7 @@ CONTAINS
           xstress(jc) = xstress(jc) + sumx(jc)*cmrhowgdfth
           ystress(jc) = ystress(jc) + sumy(jc)*cmrhowgdfth
         END DO
+
       END DO  ! jf
 
 
@@ -868,6 +867,7 @@ CONTAINS
           temp1(jc) = temp1(jc) + tracer(jc,jk,jb,jtd) * cosw**3
           temp2(jc) = temp2(jc) + tracer(jc,jk,jb,jtd) * cosw**2
         END DO
+
       END DO
 
       CALL high_frequency_stress(wave_config        = wave_config,                     & !IN
@@ -892,7 +892,6 @@ CONTAINS
         p_diag%tauw(jc,jb) = SQRT(xstress_tot**2+ystress_tot**2)
         p_diag%tauw(jc,jb) = MIN(p_diag%tauw(jc,jb),p_diag%ustar(jc,jb)**2 - EPS1)
         p_diag%tauw(jc,jb) = MAX(p_diag%tauw(jc,jb),0.0_wp)
-
       END DO
 
     END DO
