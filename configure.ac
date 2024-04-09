@@ -121,20 +121,27 @@ AC_ARG_ENABLE([ocean],
 
 AC_ARG_ENABLE([jsbach],
   [AS_HELP_STRING([--enable-jsbach],
-     [enable the land component JSBACH @<:@default=yes@:>@])],
+     [enable the land component of ICON (ICON-Land) @<:@default=yes@:>@])],
   [AS_IF([test x"$enableval" != xno], [enable_jsbach=yes])],
   [enable_jsbach=yes])
 
 AC_ARG_ENABLE([jsbach-hd],
   [AS_HELP_STRING([--enable-jsbach-hd],
-     [enable the hydrological discharge scheme of the JSBACH land component
-(JSBACH HD) @<:@default=auto@:>@])],
+     [enable the internal hydrological discharge (HD) scheme of the land
+component @<:@default=auto@:>@])],
   [AS_IF([test x"$enableval" != xno && test x"$enableval" != xauto],
      [enable_jsbach_hd=yes])],
   [enable_jsbach_hd=auto])
 
 AS_VAR_IF([enable_jsbach_hd], [auto],
   [AS_VAR_COPY([enable_jsbach_hd], [enable_jsbach])])
+
+AC_ARG_ENABLE([quincy],
+  [AS_HELP_STRING([--enable-quincy],
+     [enable the QUINCY biogeochemistry model in the land component
+@<:@default=no@:>@])],
+  [AS_IF([test x"$enableval" != xno], [enable_quincy=yes])],
+  [enable_quincy=no])
 
 AC_ARG_ENABLE([waves],
   [AS_HELP_STRING([--enable-waves],
@@ -826,10 +833,17 @@ AS_VAR_IF([enable_jsbach_hd], [no],
   [AS_VAR_APPEND([FCFLAGS], [" ${FC_PP_DEF}__NO_JSBACH_HD__"])],
   [AS_VAR_IF([enable_jsbach], [no],
      [AC_MSG_ERROR([unsupported combination of the configure options: you dnl
-are trying to configure with the JSBACH HD scheme but the land component dnl
-JSBACH is disabled: either disable the hydrological discharge scheme of the dnl
-JSBACH land component (--disable-jsbach-hd) or enable the land component dnl
-JSBACH (--enable-jsbach)])])])
+are trying to configure with the internal hydrological discharge (HD) scheme dnl
+but the land component of ICON is disabled: either disable the internal HD dnl
+scheme (--disable-jsbach-hd) or enable the land component (--enable-jsbach)])])])
+
+AS_VAR_IF([enable_quincy], [no],
+  [AS_VAR_APPEND([FCFLAGS], [" ${FC_PP_DEF}__NO_QUINCY__"])],
+  [AS_VAR_IF([enable_jsbach], [no],
+     [AC_MSG_ERROR([unsupported combination of the configure options: you dnl
+are trying to configure with the QUINCY biogeochemistry model but the ICON dnl
+land component is disabled: either disable the QUINCY model dnl
+(--disable-quincy) or enable the ICON land component (--enable-jsbach)])])])
 
 AS_VAR_IF([enable_waves], [no],
   [AS_VAR_APPEND([FCFLAGS], [" ${FC_PP_DEF}__NO_ICON_WAVES__"])])
