@@ -884,6 +884,11 @@ MODULE mo_nh_stepping
     WRITE(message_text,'(a,i6,a)') 'Model start shifted backwards by ', ABS(jstep_shift),' time steps'
     CALL message(routine, message_text)
     atm_phy_nwp_config(:)%lcalc_acc_avg = .FALSE.
+    IF (iforcing == inwp) THEN
+      DO jg=1, n_dom
+        !$ACC UPDATE DEVICE(atm_phy_nwp_config(jg)%lcalc_acc_avg) ASYNC(1)
+      END DO
+    END IF
   ELSE
     jstep_shift = 0
   ENDIF
@@ -1051,8 +1056,15 @@ MODULE mo_nh_stepping
     ENDIF
 
     ! turn on calculation of averaged and accumulated quantities at the first regular time step
-    IF (jstep-jstep0 == 1) atm_phy_nwp_config(:)%lcalc_acc_avg = .TRUE.
-
+    IF (jstep-jstep0 == 1) THEN
+      atm_phy_nwp_config(:)%lcalc_acc_avg = .TRUE.
+      IF (iforcing == inwp) THEN
+        DO jg=1, n_dom
+          !$ACC UPDATE DEVICE(atm_phy_nwp_config(jg)%lcalc_acc_avg) ASYNC(1)
+        END DO
+      END IF
+    END IF
+    
     lprint_timestep = msg_level > 2 .OR. MOD(jstep,25) == 0
 
     ! always print the first and the last time step

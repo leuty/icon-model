@@ -432,11 +432,11 @@ MODULE mo_nwp_phy_types
       rh(:,:,:),           & !> relative humidity
       pv(:,:,:),           & !> potential vorticity
       sdi2(:,:),           & !> supercell detection index (SDI2)
-      dhail(:,:,:),        & ! expected hail diameter at the ground
-      dhail_mx(:,:),       & ! maximum expected hail diameter at the ground
-      dhail_av(:,:),       & ! average expected hail diameter at the ground
-      dhail_sd(:,:),       & ! standard deviation of hail diameter at the ground
-      wdur(:,:),           & ! duration of strong updraft in a grid column
+      dhail(:,:,:),        & !> expected hail diameter at the ground
+      dhail_mx(:,:),       & !> maximum expected hail diameter at the ground
+      dhail_av(:,:),       & !> average expected hail diameter at the ground
+      dhail_sd(:,:),       & !> standard deviation of hail diameter at the ground
+      wdur(:,:),           & !> duration of strong updraft in a grid column
       lpi(:,:),            & !> lightning potential index (LPI)
       lpi_max(:,:),        & !> lightning potential index, maximum (LPI_MAX)
       koi(:,:),            & !> KOI (stability measure - equivalent potential temperature difference
@@ -472,19 +472,20 @@ MODULE mo_nwp_phy_types
       lapse_rate(:,:),     & !< T(500hPa) - T(850hPa) with a correction if 850 hPa is below the surface
       cape_mu (:,:),       & !< Most unstable convective available energy
       cin_mu(:,:),         & !< Most unstable convective inhibition
-      cape_ml (:,:),       & !! convective available energy of mean surface layer parcel
-      si      (:,:),       & !! Showalter Index SI
-      sli     (:,:),       & !! Surface Lifted Index SLI
-      swiss12 (:,:),       & !! SWISS12 Index
-      swiss00 (:,:),       & !! SWISS00 Index
-      cin_ml  (:,:),       & !! convective inhibition of mean surface layer parcel
-      lcl_ml  (:,:),       & !! Lifted Condensation Level of mean surface layer parcel
-      lfc_ml  (:,:),       & !! Level of Free Convection of mean surface layer parcel
-      cape_3km (:,:),      & !! convective available energy of mean surface layer parcel with endpoint 3km.
-      cin_3km(:,:),        & !! convective inhibition of mean surface layer parcel with endpoint 3km.
-      cloudtop(:,:),       & !! Cloud Top
+      cape_ml (:,:),       & !< convective available energy of mean surface layer parcel
+      si      (:,:),       & !< Showalter Index SI
+      sli     (:,:),       & !< Surface Lifted Index SLI
+      swiss12 (:,:),       & !< SWISS12 Index
+      swiss00 (:,:),       & !< SWISS00 Index
+      cin_ml  (:,:),       & !< convective inhibition of mean surface layer parcel
+      lcl_ml  (:,:),       & !< Lifted Condensation Level of mean surface layer parcel
+      lfc_ml  (:,:),       & !< Level of Free Convection of mean surface layer parcel
+      cape_3km (:,:),      & !< convective available energy of mean surface layer parcel with endpoint 3km.
+      cin_3km(:,:),        & !< convective inhibition of mean surface layer parcel with endpoint 3km.
+      cloudtop(:,:),       & !< Cloud Top
       srh(:,:,:),          & !< Storm relative helicity with right-moving storm motion after Bunkers et al. (2000)
-      hpbl(:,:)              !! Boundary layer height  (m)
+      tot_pr_max(:,:),     & !< Time maximum total precipitation rate
+      hpbl(:,:)              !< Boundary layer height  (m)
 
     ! Buffer field needed when vertical nesting is combined with a reduced radiation
     ! grid and latm_above_top = .TRUE.

@@ -2942,7 +2942,7 @@ iforcing=3
 %\hline
 celltracks\_interval&
 R(n\_dom)& 3600. & s&
-Interval over which celltrack variables are maximized (lpi\_max, uh\_max, vorw\_ctmax, w\_ctmax, tcond\_max, tcond10\_max, dbz\_ctmax) &
+Interval over which celltrack variables are maximized (lpi\_max, uh\_max, vorw\_ctmax, w\_ctmax, tcond\_max, tcond10\_max, dbz\_ctmax, tot\_pr\_max) &
 iforcing=3
 \tabularnewline
 
@@ -3366,6 +3366,11 @@ omega & vertical (pressure) velocity & Pa s-1 & - & 3d & - & [2]
 
 tot\_prec\_d &  total accumulated precipitation during a different time interval compared to tot\_prec &
 kg m-2 & iforcing = inwp & 2d & totprec\_d\_interval & [1], [4], [5]
+\tabularnewline
+%
+
+tot\_pr\_max &  maximum total precipitation rate during prescribed time interval &
+kg m-2 s-1 & iforcing = inwp & 2d & celltracks\_interval & [4]
 \tabularnewline
 %
 

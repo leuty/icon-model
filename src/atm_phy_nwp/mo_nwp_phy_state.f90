@@ -456,6 +456,7 @@ SUBROUTINE new_nwp_phy_diag_list( k_jg, klev, klevp1, kblks,    &
       &     diag%sdi2, &
       &     diag%snowalb_fac, &
       &     diag%srh, &
+      &     diag%tot_pr_max, &
       &     diag%swflxsfc_t, &
       &     diag%synsat_arr, &
       &     diag%t_cbase, &
@@ -853,7 +854,7 @@ SUBROUTINE new_nwp_phy_diag_list( k_jg, klev, klevp1, kblks,    &
 
     ! &      diag%tot_prec_d(nproma,nblks_c) = diag%prec_gsp_d(nproma,nblks_c) + diag%prec_con_d(nproma,nblks_c)
     cf_desc    = t_cf_var('tot_prec_d', 'kg m-2', 'total precip since end of previous full '// &
-                 TRIM(totprec_d_interval(k_jg)(3:))//' since model start', datatype_flt)
+                 TRIM(totprec_d_interval(k_jg)(3:))//' interval synchronized to model start', datatype_flt)
     grib2_desc = grib2_var(0, 1, 52, ibits, GRID_UNSTRUCTURED, GRID_CELL)  &
          &           + t_grib2_int_key("typeOfStatisticalProcessing", 4)
     CALL add_var( diag_list, 'tot_prec_d', diag%tot_prec_d,                   &
@@ -871,7 +872,7 @@ SUBROUTINE new_nwp_phy_diag_list( k_jg, klev, klevp1, kblks,    &
 
     ! &      diag%prec_gsp_d(nproma,nblks_c) !! have to be in restart
     cf_desc    = t_cf_var('prec_gsp_d', 'kg m-2', 'gridscale precip since end of previous full '// &
-                          TRIM(totprec_d_interval(k_jg)(3:))//' since model start', datatype_flt)
+                          TRIM(totprec_d_interval(k_jg)(3:))//' interval synchronized to model start', datatype_flt)
     grib2_desc = grib2_var(255, 255, 255, ibits, GRID_UNSTRUCTURED, GRID_CELL)  &  ! no grib definitions available yet
          &           + t_grib2_int_key("typeOfStatisticalProcessing", 4)
     CALL add_var( diag_list, 'prec_gsp_d', diag%prec_gsp_d,                   &
@@ -889,7 +890,7 @@ SUBROUTINE new_nwp_phy_diag_list( k_jg, klev, klevp1, kblks,    &
 
     ! &      diag%prec_con_d(nproma,nblks_c)
     cf_desc    = t_cf_var('prec_con_d', 'kg m-2', 'convective precip since end of previous full '// &
-                          TRIM(totprec_d_interval(k_jg)(3:))//' since model start', datatype_flt)
+                          TRIM(totprec_d_interval(k_jg)(3:))//' interval synchronized to model start', datatype_flt)
     grib2_desc = grib2_var(255, 255, 255, ibits, GRID_UNSTRUCTURED, GRID_CELL)  &  ! no grib definitions available yet
          &           + t_grib2_int_key("typeOfStatisticalProcessing", 4)
     CALL add_var( diag_list, 'prec_con_d', diag%prec_con_d,                   &
@@ -956,6 +957,27 @@ SUBROUTINE new_nwp_phy_diag_list( k_jg, klev, klevp1, kblks,    &
                 & lopenacc=.TRUE.                                             )
     __acc_attach(diag%tot_prec_rate_avg)
 
+    ! &      diag%tot_pr_max(nproma,nblks_c)
+    IF (var_in_output%tot_pr_max) THEN
+      celltracks_int(:) = ' '
+      CALL getPTStringFromMS(NINT(1000_wp*celltracks_interval(k_jg), i8), celltracks_int)
+      cf_desc    = t_cf_var('tot_pr_max', 'kg m-2 s-1',                  &
+           &                 'total precip rate, maximum since end of previous full '// &
+                             TRIM(celltracks_int(3:))//' interval synchronized to model start', datatype_flt)
+      grib2_desc = grib2_var(0, 1, 52, ibits, GRID_UNSTRUCTURED, GRID_CELL)
+      CALL add_var( diag_list, 'tot_pr_max', diag%tot_pr_max,                     &
+                  & GRID_UNSTRUCTURED_CELL, ZA_SURFACE, cf_desc, grib2_desc,      &
+                  & ldims=shape2d, lrestart=.TRUE., loutput=.TRUE.,               &
+                  & isteptype=TSTEP_MAX,                                          &
+                  & hor_interp=create_hor_interp_metadata(                        &
+                  &    hor_intp_type=HINTP_TYPE_LONLAT_BCTR,                      &
+                  &    fallback_type=HINTP_TYPE_LONLAT_NNB),                      &
+                  & initval=0.0_wp, resetval=0.0_wp,                              &
+                  & action_list=actions(new_action(ACTION_RESET,celltracks_int)), &
+                  & lopenacc=.TRUE. )
+      __acc_attach(diag%tot_pr_max)
+    END IF
+
     ! &      diag%cape(nproma,nblks_c)
     cf_desc    = t_cf_var('cape', 'J kg-1 ', 'conv avail pot energy', datatype_flt)
     grib2_desc = grib2_var(0, 7, 6, ibits, GRID_UNSTRUCTURED, GRID_CELL)      &
@@ -998,9 +1020,9 @@ SUBROUTINE new_nwp_phy_diag_list( k_jg, klev, klevp1, kblks,    &
     __acc_attach(diag%cin_ml)
 
     ! &      diag%gust10(nproma,nblks_c)
-    CALL getPTStringFromMS(NINT(1000*gust_interval(k_jg), i8), gust_int)
+    CALL getPTStringFromMS(NINT(1000_wp*gust_interval(k_jg), i8), gust_int)
     cf_desc    = t_cf_var('gust10', 'm s-1 ', 'gust at 10 m since end of previous full '// &
-                          TRIM(gust_int(3:))//' since model start', datatype_flt)
+                          TRIM(gust_int(3:))//' interval synchronized to model start', datatype_flt)
     grib2_desc = grib2_var( 0, 2, 22, ibits, GRID_UNSTRUCTURED, GRID_CELL)
     CALL add_var( diag_list, 'gust10', diag%gust10,                              &
                 & GRID_UNSTRUCTURED_CELL, ZA_HEIGHT_10M, cf_desc, grib2_desc,    &
@@ -4143,14 +4165,14 @@ SUBROUTINE new_nwp_phy_diag_list( k_jg, klev, klevp1, kblks,    &
     IF (var_in_output%dhail_mx .OR. var_in_output%dhail_av .OR. var_in_output%dhail_sd ) THEN
 
       celltracks_int(:) = ' '
-      CALL getPTStringFromMS(NINT(1000*celltracks_interval(k_jg), i8), celltracks_int)
+      CALL getPTStringFromMS(NINT(1000_wp*celltracks_interval(k_jg), i8), celltracks_int)
 
       ! Expected hailstone diameter of each sample size. Each sample is the maximum 
       ! over the time periode.
       ! This variable is used for hailcast computation
       ! grib2: no grib definition, not for nwp operational output
       cf_desc    = t_cf_var('dhail', 'mm', 'expected hailsize since end of previous full '//&
-                             TRIM(celltracks_int(3:))//' since model start', datatype_flt)
+                             TRIM(celltracks_int(3:))//' interval synchronized to model start', datatype_flt)
       grib2_desc = grib2_var(255, 255, 255, ibits, GRID_UNSTRUCTURED, GRID_CELL)
       CALL add_var( diag_list,                                                     &
                     & "dhail", diag%dhail,                                         &
@@ -4167,7 +4189,7 @@ SUBROUTINE new_nwp_phy_diag_list( k_jg, klev, klevp1, kblks,    &
       ! the time periode.
       ! GRIB2: no grib definition, not for nwp operational output
       cf_desc    = t_cf_var('dhail_av', 'mm', 'average expected hailsize since end of previous full '//&
-                             TRIM(celltracks_int(3:))//' since model start', datatype_flt)
+                             TRIM(celltracks_int(3:))//' interval synchronized to model start', datatype_flt)
       grib2_desc = grib2_var(255, 255, 255, ibits, GRID_UNSTRUCTURED, GRID_CELL)
       CALL add_var( diag_list,                                                     &
                     & "dhail_av", diag%dhail_av,                                   &
@@ -4183,7 +4205,7 @@ SUBROUTINE new_nwp_phy_diag_list( k_jg, klev, klevp1, kblks,    &
       ! Maximum expected hailstone diameter over all samples size. Each sample is  
       ! the maximum over the time periode
       cf_desc    = t_cf_var('dhail_mx', 'mm', 'maximum expected hailsize since end of previous full ' //&
-                             TRIM(celltracks_int(3:))//' since model start', datatype_flt)
+                             TRIM(celltracks_int(3:))//' interval synchronized to model start', datatype_flt)
       grib2_desc = grib2_var(0, 1, 238, ibits, GRID_UNSTRUCTURED, GRID_CELL)       &
                     + t_grib2_int_key("typeOfStatisticalProcessing", 2)
       CALL add_var( diag_list,                                                     &
@@ -4201,7 +4223,7 @@ SUBROUTINE new_nwp_phy_diag_list( k_jg, klev, klevp1, kblks,    &
       ! Each sample is the maximum over the time periode
       ! GRIB2: no grib definition, not for nwp operational output
       cf_desc    = t_cf_var('dhail_sd', 'mm', 'standard deviation of expected hailsize since end of previous full '//&
-                          TRIM(celltracks_int(3:))//' since model start', datatype_flt)
+                          TRIM(celltracks_int(3:))//' interval synchronized to model start', datatype_flt)
       grib2_desc = grib2_var(255, 255, 255, ibits, GRID_UNSTRUCTURED, GRID_CELL)
       CALL add_var( diag_list,                                                     &
                     & "dhail_sd", diag%dhail_sd,                                   &
@@ -4264,10 +4286,10 @@ SUBROUTINE new_nwp_phy_diag_list( k_jg, klev, klevp1, kblks,    &
 
     IF (var_in_output%lpi_max) THEN
       celltracks_int(:) = ' '
-      CALL getPTStringFromMS(NINT(1000*celltracks_interval(k_jg), i8), celltracks_int)
+      CALL getPTStringFromMS(NINT(1000_wp*celltracks_interval(k_jg), i8), celltracks_int)
       cf_desc    = t_cf_var('lpi_max', 'J kg-1',                   &
            &                 'lightning potential index, maximum since end of previous full '// &
-                             TRIM(celltracks_int(3:))//' since model start', datatype_flt)
+                             TRIM(celltracks_int(3:))//' interval synchronized to model start', datatype_flt)
       grib2_desc = grib2_var( 0, 17, 192, ibits, GRID_UNSTRUCTURED, GRID_CELL)
       CALL add_var( diag_list, 'lpi_max', diag%lpi_max,                      &
                   & GRID_UNSTRUCTURED_CELL, ZA_SURFACE,                      &
@@ -4613,10 +4635,10 @@ SUBROUTINE new_nwp_phy_diag_list( k_jg, klev, klevp1, kblks,    &
 
     IF (var_in_output%tcond_max) THEN
       celltracks_int(:) = ' '
-      CALL getPTStringFromMS(NINT(1000*celltracks_interval(k_jg), i8), celltracks_int)
+      CALL getPTStringFromMS(NINT(1000_wp*celltracks_interval(k_jg), i8), celltracks_int)
       cf_desc    = t_cf_var('tcond_max', 'kg m-2',                           &
         &                   'total column-integrated condensate, max. since end of previous full '// &
-        &                   TRIM(celltracks_int(3:))//' since model start', datatype_flt)
+        &                   TRIM(celltracks_int(3:))//' interval synchronized to model start', datatype_flt)
       grib2_desc = grib2_var( 0, 1, 81, ibits, GRID_UNSTRUCTURED, GRID_CELL)  &
         &              + t_grib2_int_key("typeOfSecondFixedSurface", 8)
       CALL add_var( diag_list, 'tcond_max', diag%tcond_max,                  &
@@ -4632,10 +4654,10 @@ SUBROUTINE new_nwp_phy_diag_list( k_jg, klev, klevp1, kblks,    &
 
     IF (var_in_output%tcond10_max) THEN
       celltracks_int(:) = ' '
-      CALL getPTStringFromMS(NINT(1000*celltracks_interval(k_jg), i8), celltracks_int)
+      CALL getPTStringFromMS(NINT(1000_wp*celltracks_interval(k_jg), i8), celltracks_int)
       cf_desc    = t_cf_var('tcond10_max', 'kg m-2',                         &
         &                   'total column-integrated condensate above z(T=-10 degC), max. since end of previous full '// &
-        &                   TRIM(celltracks_int(3:))//' since model start', datatype_flt)
+        &                   TRIM(celltracks_int(3:))//' interval synchronized to model start', datatype_flt)
       grib2_desc = grib2_var( 0, 1, 81, ibits, GRID_UNSTRUCTURED, GRID_CELL)       &
         &              + t_grib2_int_key("typeOfFirstFixedSurface",           20)  &
         &              + t_grib2_int_key("typeOfSecondFixedSurface",           8)  &
@@ -4670,7 +4692,7 @@ SUBROUTINE new_nwp_phy_diag_list( k_jg, klev, klevp1, kblks,    &
       ALLOCATE( diag%uh_max_ptr(uh_max_nlayer) )
 
       celltracks_int(:) = ' '
-      CALL getPTStringFromMS(NINT(1000*celltracks_interval(k_jg), i8), celltracks_int)
+      CALL getPTStringFromMS(NINT(1000_wp*celltracks_interval(k_jg), i8), celltracks_int)
 
       DO k = 1,uh_max_nlayer
 
@@ -4685,7 +4707,7 @@ SUBROUTINE new_nwp_phy_diag_list( k_jg, klev, klevp1, kblks,    &
 
         longname = 'updraft helicity '// &
                    TRIM(real2string(uh_max_zmin(k)))//'-'//TRIM(real2string(uh_max_zmax(k)))// &
-                   ' m, max. since end of previous full '//TRIM(celltracks_int(3:))//' since model start'
+                   ' m, max. since end of previous full '//TRIM(celltracks_int(3:))//' interval synchronized to model start'
 
         IF (luh_max_out(k_jg, k)) THEN
           cf_desc    = t_cf_var(TRIM(shortname), 'm2 s-2', TRIM(longname), datatype_flt)
@@ -4707,10 +4729,10 @@ SUBROUTINE new_nwp_phy_diag_list( k_jg, klev, klevp1, kblks,    &
 
     IF (var_in_output%vorw_ctmax) THEN
       celltracks_int(:) = ' '
-      CALL getPTStringFromMS(NINT(1000*celltracks_interval(k_jg), i8), celltracks_int)
+      CALL getPTStringFromMS(NINT(1000_wp*celltracks_interval(k_jg), i8), celltracks_int)
       cf_desc    = t_cf_var('vorw_ctmax', 's-1',                   &
         &                   'Maximum rotation amplitude since end of previous full '// &
-        &                   TRIM(celltracks_int(3:))//' since model start', datatype_flt)
+        &                   TRIM(celltracks_int(3:))//' interval synchronized to model start', datatype_flt)
       grib2_desc = grib2_var( 0, 2, 206, ibits, GRID_UNSTRUCTURED, GRID_CELL)   &
         &           + t_grib2_int_key("typeOfFirstFixedSurface",          102)  &
         &           + t_grib2_int_key("typeOfSecondFixedSurface",         102)  &
@@ -4746,10 +4768,10 @@ SUBROUTINE new_nwp_phy_diag_list( k_jg, klev, klevp1, kblks,    &
 
     IF (var_in_output%w_ctmax) THEN
       celltracks_int(:) = ' '
-      CALL getPTStringFromMS(NINT(1000*celltracks_interval(k_jg), i8), celltracks_int)
+      CALL getPTStringFromMS(NINT(1000_wp*celltracks_interval(k_jg), i8), celltracks_int)
       cf_desc    = t_cf_var('w_ctmax', ' m s-1',                   &
         &                   'Maximum updraft track since end of previous full '// &
-        &                   TRIM(celltracks_int(3:))//' since model start', datatype_flt)
+        &                   TRIM(celltracks_int(3:))//' interval synchronized to model start', datatype_flt)
       grib2_desc = grib2_var( 0, 2, 207, ibits, GRID_UNSTRUCTURED, GRID_CELL)    &
         &           + t_grib2_int_key("typeOfFirstFixedSurface",           102)  &
         &           + t_grib2_int_key("typeOfSecondFixedSurface",          102)  &
@@ -5052,10 +5074,10 @@ SUBROUTINE new_nwp_phy_diag_list( k_jg, klev, klevp1, kblks,    &
 
     IF (var_in_output%dbzctmax) THEN
       celltracks_int(:) = ' '
-      CALL getPTStringFromMS(NINT(1000*celltracks_interval(k_jg), i8), celltracks_int)
+      CALL getPTStringFromMS(NINT(1000_wp*celltracks_interval(k_jg), i8), celltracks_int)
       cf_desc    = t_cf_var('dbz_ctmax', 'dBZ',                   &
         &                   'Column and time maximum reflectivity since end of previous full '// &
-        &                   TRIM(celltracks_int(3:))//' since model start', datatype_flt)
+        &                   TRIM(celltracks_int(3:))//' interval synchronized to model start', datatype_flt)
       grib2_desc = grib2_var( 0, 15, 1, ibits, GRID_UNSTRUCTURED, GRID_CELL)    &
         &           + t_grib2_int_key("typeOfFirstFixedSurface",           1)   &
         &           + t_grib2_int_key("typeOfSecondFixedSurface",          8)
@@ -5073,7 +5095,7 @@ SUBROUTINE new_nwp_phy_diag_list( k_jg, klev, klevp1, kblks,    &
 
     IF (var_in_output%echotop) THEN
       echotop_int(:) = ' '
-      CALL getPTStringFromMS(NINT(1000*echotop_meta(k_jg)%time_interval, i8), echotop_int)
+      CALL getPTStringFromMS(NINT(1000_wp*echotop_meta(k_jg)%time_interval, i8), echotop_int)
       cf_desc    = t_cf_var('echotop', 'Pa',                   &
         &                   'Minimum pressure of exceeding radar reflectivity threshold since end of previous full '// &
         &                   TRIM(echotop_int(3:))//' since model start', datatype_flt)
@@ -5098,7 +5120,7 @@ SUBROUTINE new_nwp_phy_diag_list( k_jg, klev, klevp1, kblks,    &
 
     IF (var_in_output%echotopinm) THEN
       echotop_int(:) = ' '
-      CALL getPTStringFromMS(NINT(1000*echotop_meta(k_jg)%time_interval, i8), echotop_int)
+      CALL getPTStringFromMS(NINT(1000_wp*echotop_meta(k_jg)%time_interval, i8), echotop_int)
       cf_desc    = t_cf_var('echotopinm', 'm',                                  &
         &                   'Maximum height of exceeding radar reflectivity threshold since end of previous full '// &
         &                   TRIM(echotop_int(3:))//' since model start', datatype_flt)

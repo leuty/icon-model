@@ -94,6 +94,7 @@ MODULE mo_nwp_diagnosis
 
 CONTAINS
 
+  
   !>
   !! Computation of time averages, accumulated variables and vertical integrals
   !!
@@ -198,6 +199,7 @@ CONTAINS
     !-----------
     ! - total precipitation amount
     ! - time averaged precipitation rates (total, grid-scale, convective)
+    ! - time maximum total precipitation rate
     !
     ! soil
     !-----
@@ -224,7 +226,41 @@ CONTAINS
     ! - surface shortwave direct downward radiation
     ! - surface downward photosynthetically active flux
 
+
+    !
+    ! Calculation of total (gsp+con) instantaneous precipitation rate:
+    !
 !$OMP PARALLEL
+!$OMP DO PRIVATE(jb,jc,i_startidx,i_endidx) ICON_OMP_DEFAULT_SCHEDULE
+    DO jb = i_startblk, i_endblk
+      !
+      CALL get_indices_c(pt_patch, jb, i_startblk, i_endblk, &
+        & i_startidx, i_endidx, rl_start, rl_end)
+
+      !
+      ! calculate total (gsp+con) instantaneous precipitation rate
+      !
+      IF (atm_phy_nwp_config(jg)%inwp_convection > 0) THEN
+        !$ACC PARALLEL LOOP GANG VECTOR DEFAULT(PRESENT) ASYNC(1) IF(lzacc)
+        DO jc =  i_startidx, i_endidx
+          ! grid scale + convective
+          prm_diag%tot_prec_rate(jc,jb) = prm_diag%prec_gsp_rate(jc,jb) &
+            &                           + prm_diag%rain_con_rate(jc,jb) &
+            &                           + prm_diag%snow_con_rate(jc,jb)
+        ENDDO
+        !$ACC END PARALLEL LOOP
+      ELSE
+        !$ACC PARALLEL LOOP GANG VECTOR DEFAULT(PRESENT) ASYNC(1) IF(lzacc)
+        DO jc =  i_startidx, i_endidx
+          ! grid scale only
+          prm_diag%tot_prec_rate(jc,jb) = prm_diag%prec_gsp_rate(jc,jb)
+        ENDDO
+        !$ACC END PARALLEL LOOP
+      END IF
+      
+    END DO
+!$OMP END DO
+
     IF ( p_sim_time <= 1.e-6_wp) THEN
 
       ! ensure that extreme value fields are equal to instantaneous fields 
@@ -250,6 +286,16 @@ CONTAINS
         ENDDO
         !$ACC END PARALLEL
 
+        IF (var_in_output(jg)%tot_pr_max) THEN
+          !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1) IF(lzacc)
+          !$ACC LOOP GANG VECTOR
+          DO jc = i_startidx, i_endidx
+            ! set to instantaneous values
+            prm_diag%tot_pr_max(jc,jb)  = prm_diag%tot_prec_rate(jc,jb)
+          ENDDO
+          !$ACC END PARALLEL
+        END IF
+        
       ENDDO  ! jb
 !$OMP END DO
 
@@ -289,6 +335,16 @@ CONTAINS
 
         ENDDO  ! jc
         !$ACC END PARALLEL
+
+        IF (var_in_output(jg)%tot_pr_max) THEN
+          !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1) IF(lzacc)
+          !$ACC LOOP GANG VECTOR
+          DO jc = i_startidx, i_endidx
+            ! time max total precipitation rate
+            prm_diag%tot_pr_max(jc,jb)  = MAX ( prm_diag%tot_pr_max(jc,jb), prm_diag%tot_prec_rate(jc,jb) )
+          ENDDO
+          !$ACC END PARALLEL
+        END IF
 
         IF (lcall_phy_jg(itsfc)) THEN
           !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1) IF(lzacc)
@@ -1045,9 +1101,6 @@ CONTAINS
 
   END SUBROUTINE calc_moist_integrals
 
-
-
-
   !>
   !! Diagnostics which are only required for output
   !!
@@ -1159,7 +1212,7 @@ CONTAINS
                             & pt_diag, prm_diag,          & !inout
                             & lacc=lzacc                  ) !in
 
-
+      
     ! time difference since last call of ww_diagnostics
     time_diff => newTimedelta("PT0S")
     time_diff =  getTimeDeltaFromDateTime(mtime_current, ww_datetime(jg))
@@ -1170,28 +1223,6 @@ CONTAINS
       !
       CALL get_indices_c(pt_patch, jb, i_startblk, i_endblk, &
         & i_startidx, i_endidx, rl_start, rl_end)
-
-      !
-      ! calculate total (gsp+con) instantaneous precipitation rate
-      !
-      IF (atm_phy_nwp_config(jg)%inwp_convection > 0) THEN
-        !$ACC PARALLEL LOOP GANG VECTOR DEFAULT(PRESENT) ASYNC(1) IF(lzacc)
-        DO jc = i_startidx, i_endidx
-          ! grid scale + convective
-          prm_diag%tot_prec_rate(jc,jb) = prm_diag%prec_gsp_rate(jc,jb) &
-            &                           + prm_diag%rain_con_rate(jc,jb) &
-            &                           + prm_diag%snow_con_rate(jc,jb)
-        ENDDO
-        !$ACC END PARALLEL LOOP
-      ELSE
-        !$ACC PARALLEL LOOP GANG VECTOR DEFAULT(PRESENT) ASYNC(1) IF(lzacc)
-        DO jc = i_startidx, i_endidx
-          ! grid scale only
-          prm_diag%tot_prec_rate(jc,jb) = prm_diag%prec_gsp_rate(jc,jb)
-        ENDDO
-        !$ACC END PARALLEL LOOP
-      ENDIF
-
 
       IF (atm_phy_nwp_config(jg)%lenabled(itconv))THEN !convection parameterization switched on
         !

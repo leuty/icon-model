@@ -721,7 +721,7 @@ CONTAINS
       CALL add_sfc_var(meteogram_config, var_list, VAR_GROUP_SURFACE, &
         &              "V10M", "m/s", "meridional wind in 10m", &
         &              sfc_var_info, prm_diag%v_10m(:,:))
-      CALL getPTStringFromMS(NINT(1000*gust_interval(jg), i8), c_time_int)
+      CALL getPTStringFromMS(NINT(1000_wp*gust_interval(jg), i8), c_time_int)
       CALL add_sfc_var(meteogram_config, var_list, VAR_GROUP_SURFACE, &
         &              "VBMAX10M", "m/s", "gust in 10m since end of previous full "//&
         &              TRIM(ADJUSTL(c_time_int(3:)))//" since model start", &
@@ -996,7 +996,7 @@ CONTAINS
           &              sfc_var_info, prm_diag%dbz_cmax(:,:))
       END IF
       IF (var_in_output(jg)%dbzctmax) THEN
-        CALL getPTStringFromMS(NINT(1000*celltracks_interval(jg), i8), c_time_int)
+        CALL getPTStringFromMS(NINT(1000_wp*celltracks_interval(jg), i8), c_time_int)
         CALL add_sfc_var(meteogram_config, var_list, VAR_GROUP_SURFACE, &
           &              "DBZ_CTMAX", "dBZ", &
           &              "column and time max radar reflectivity since end of previous full "// &
@@ -1004,7 +1004,7 @@ CONTAINS
           &              sfc_var_info, prm_diag%dbz_ctmax(:,:))
       END IF
       IF (var_in_output(jg)%lpi_max) THEN
-        CALL getPTStringFromMS(NINT(1000*celltracks_interval(jg), i8), c_time_int)
+        CALL getPTStringFromMS(NINT(1000_wp*celltracks_interval(jg), i8), c_time_int)
         CALL add_sfc_var(meteogram_config, var_list, VAR_GROUP_SURFACE, &
           &              "LPI_MAX", "J/kg", &
           &              "time max lightning potential index since end of previous full "// &
@@ -1019,7 +1019,7 @@ CONTAINS
       END IF
       IF (var_in_output(jg)%echotopinm) THEN
         DO i=1, echotop_meta(jg)%nechotop
-          CALL getPTStringFromMS(NINT(1000*echotop_meta(jg)%time_interval, i8), c_time_int)
+          CALL getPTStringFromMS(NINT(1000_wp*echotop_meta(jg)%time_interval, i8), c_time_int)
           WRITE (c_thresh_int, '(i10," dBZ")') NINT(echotop_meta(jg)%dbzthresh(i))
           CALL add_sfc_var(meteogram_config, var_list, VAR_GROUP_SURFACE, &
             &              "ECHOTOPinM_"//TRIM(ADJUSTL(c_thresh_int(1:10))), "m", &
@@ -1034,6 +1034,14 @@ CONTAINS
           &              "VIS", "m", &
           &              "near surface visibility", &
           &              sfc_var_info, prm_diag%vis(:,:))
+      END IF
+      IF (var_in_output(jg)%tot_pr_max) THEN
+        CALL getPTStringFromMS(NINT(1000_wp*celltracks_interval(jg), i8), c_time_int)
+        CALL add_sfc_var(meteogram_config, var_list, VAR_GROUP_SURFACE, &
+          &              "TOT_PR_MAX", "kg/m2/s", &
+          &              "time max precipitation rate since end of previous full "// &
+          &              TRIM(ADJUSTL(c_time_int(3:)))//" since model start", &
+          &              sfc_var_info, prm_diag%tot_pr_max(:,:))
       END IF
     ENDIF ! iforcing == nwp
 
