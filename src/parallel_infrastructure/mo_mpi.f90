@@ -2829,7 +2829,7 @@ CONTAINS
 #endif
 
 #ifndef NOMPI
-    CALL MPI_ABORT (MPI_COMM_WORLD, 0, p_error)
+    CALL MPI_ABORT (MPI_COMM_WORLD, 1, p_error)
 
     IF (p_error /= MPI_SUCCESS) THEN
        WRITE (nerr,'(a)') ' MPI_ABORT failed.'
