@@ -28,6 +28,7 @@ MODULE mo_ext_data_state
     &                              SSTICE_INST
   USE mo_cdi_constants,      ONLY: GRID_UNSTRUCTURED_CELL, GRID_CELL
   USE mo_exception,          ONLY: message, finish
+  USE mo_master_control,     ONLY: get_my_process_name
   USE mo_model_domain,       ONLY: t_patch
   USE mo_ext_data_types,     ONLY: t_external_data, t_external_atmos_td, &
     &                              t_external_atmos
@@ -326,7 +327,8 @@ CONTAINS
     !
     ! Register a field list and apply default settings
     !
-    CALL vlr_add(p_ext_atm_list, TRIM(listname), patch_id=p_patch%id, lrestart=.FALSE.)
+    CALL vlr_add(p_ext_atm_list, TRIM(listname), patch_id=p_patch%id, &
+      &          lrestart=.FALSE., model_type=get_my_process_name())
 
     ! topography height at cell center
     !
@@ -1688,7 +1690,8 @@ CONTAINS
     ! Register a field list and apply default settings
     !
     CALL vlr_add(p_ext_atm_td_list, TRIM(listname), patch_id=jg, &
-      &               lrestart=.FALSE., loutput=.TRUE.)
+      &               lrestart=.FALSE., loutput=.TRUE.,          &
+      &               model_type=get_my_process_name())
 
     !--------------------------------
     ! radiation parameters

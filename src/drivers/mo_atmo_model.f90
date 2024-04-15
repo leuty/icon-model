@@ -83,7 +83,7 @@ MODULE mo_atmo_model
   USE mo_jsb_model_init,          ONLY: jsbach_setup_grid
   USE mo_jsb_model_final,         ONLY: jsbach_finalize
 #endif
-  USE mo_master_control,          ONLY: atmo_process
+  USE mo_master_control,          ONLY: atmo_process, get_my_process_name
 
   ! time stepping
   USE mo_atmo_nonhydrostatic,     ONLY: atmo_nonhydrostatic
@@ -162,7 +162,6 @@ MODULE mo_atmo_model
   USE mo_grid_config,             ONLY: start_time, end_time
   USE mo_vertical_coord_table,    ONLY: vct_a
   USE mo_mpi,                     ONLY: p_comm_comin
-  USE mo_master_control,          ONLY: get_my_process_name
   USE mo_impl_constants,          ONLY: max_dom
   USE mo_timer,                   ONLY: timer_comin_primary_constructors
 #endif
@@ -273,7 +272,7 @@ CONTAINS
 
     IF (isRestart()) THEN
       CALL message('','Read restart file meta data ...')
-      CALL read_restart_header("atm")
+      CALL read_restart_header(get_my_process_name())
     ENDIF
 
     !---------------------------------------------------------------------

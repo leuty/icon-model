@@ -21,6 +21,7 @@ USE mo_impl_constants,       ONLY: SUCCESS, max_dom, inwp, iaes, LSS_JSBACH
 USE mo_timer,                ONLY: timers_level, timer_start, timer_stop, timer_init_latbc, &
   &                                timer_model_init, timer_init_icon, timer_read_restart, timer_init_dace
 USE mo_master_config,        ONLY: isRestart, getModelBaseDir
+USE mo_master_control,       ONLY: get_my_process_name
 USE mo_time_config,          ONLY: t_time_config, time_config
 USE mo_load_restart,         ONLY: read_restart_files
 USE mo_key_value_store,      ONLY: t_key_value_store
@@ -235,7 +236,7 @@ CONTAINS
     ! Now start the time stepping:
     !------------------------------------------------------------------
 
-    restartDescriptor => createRestartDescriptor("atm")
+    restartDescriptor => createRestartDescriptor(get_my_process_name())
 
     ! for iterative IAU, perform_nh_stepping is called twice with distinct
     ! model stop dates.

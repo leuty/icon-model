@@ -19,6 +19,7 @@ MODULE mo_prepadv_state
 
   USE mo_impl_constants,          ONLY: SUCCESS, MAX_CHAR_LENGTH, vname_len
   USE mo_exception,               ONLY: message, finish
+  USE mo_master_control,          ONLY: get_my_process_name
   USE mo_model_domain,            ONLY: t_patch
   USE mo_prepadv_types,           ONLY: t_prepare_adv, t_step_adv
   USE mo_parallel_config,         ONLY: nproma
@@ -183,7 +184,8 @@ CONTAINS
     !
     ! Register a field list and apply default settings
     !
-    CALL vlr_add(prep_adv_list, TRIM(listname), patch_id=p_patch%id, lrestart=.FALSE.)
+    CALL vlr_add(prep_adv_list, TRIM(listname), patch_id=p_patch%id, &
+      &          lrestart=.FALSE., model_type=get_my_process_name())
 
 
     ! mass_flx_me      prep_adv%mass_flx_me(nproma,nlev,nblks_e)

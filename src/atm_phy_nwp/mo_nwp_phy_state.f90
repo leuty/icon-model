@@ -66,6 +66,7 @@ USE mo_impl_constants,      ONLY: success, &
   &                               idu, nclass_aero, vname_len
 USE mo_cdi_constants,       ONLY: GRID_UNSTRUCTURED_CELL,             &
   &                               GRID_CELL
+USE mo_master_control,      ONLY: get_my_process_name
 USE mo_parallel_config,     ONLY: nproma
 USE mo_run_config,          ONLY: nqtendphy, iqv, iqc, iqi, iqr, iqs, iqg, iqh, lart, ldass_lhn
 USE mo_exception,           ONLY: message, finish !,message_text
@@ -482,7 +483,8 @@ SUBROUTINE new_nwp_phy_diag_list( k_jg, klev, klevp1, kblks,    &
 
     ! Register a field list and apply default settings
 
-    CALL vlr_add(diag_list, TRIM(listname), patch_id=k_jg, lrestart=.TRUE.)
+    CALL vlr_add(diag_list, TRIM(listname), patch_id=k_jg, &
+      &          lrestart=.TRUE., model_type=get_my_process_name())
    
     !------------------------------
     ! Meteorological quantities
@@ -5444,7 +5446,8 @@ SUBROUTINE new_nwp_phy_stochconv_list( k_jg, kblks,    &
 
     ! Register a field list and apply default settings
 
-    CALL vlr_add(stochconv_list, TRIM(listname), patch_id=k_jg, lrestart=.TRUE.)
+    CALL vlr_add(stochconv_list, TRIM(listname), patch_id=k_jg, &
+      &          lrestart=.TRUE., model_type=get_my_process_name())
 
     !------------------------------
     ! Meteorological quantities
@@ -5714,7 +5717,8 @@ SUBROUTINE new_nwp_phy_tend_list( k_jg, klev,  kblks,   &
       & phy_tend%ddt_v_sso, &
       & phy_tend%ddt_w_turb )
 
-    CALL vlr_add(phy_tend_list, TRIM(listname), patch_id=k_jg ,lrestart=.TRUE.)
+    CALL vlr_add(phy_tend_list, TRIM(listname), patch_id=k_jg, &
+      &          lrestart=.TRUE., model_type=get_my_process_name())
     
     !------------------------------
     ! Temperature tendencies

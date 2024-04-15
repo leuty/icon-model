@@ -36,6 +36,7 @@ MODULE mo_nonhydro_state
     &                                GRID_UNSTRUCTURED_VERT, GRID_CELL, GRID_EDGE,   &
     &                                GRID_VERTEX
   USE mo_exception,            ONLY: message, finish
+  USE mo_master_control,       ONLY: get_my_process_name
   USE mo_model_domain,         ONLY: t_patch
   USE mo_nonhydro_types,       ONLY: t_nh_state, t_nh_state_lists,       &
                                      t_nh_prog, t_nh_diag,               &
@@ -64,7 +65,7 @@ MODULE mo_nonhydro_state
     &                                icpl_da_sfcevap, icpl_da_skinc, icpl_da_sfcfric
   USE mo_nudging_config,       ONLY: nudging_config, indg_type
   USE mo_var_list,             ONLY: add_var, find_list_element, add_ref, t_var_list_ptr
-  USE mo_var_list_register, ONLY: vlr_add, vlr_del
+  USE mo_var_list_register,    ONLY: vlr_add, vlr_del
   USE mo_var,                  ONLY: t_var
   USE mo_var_groups,           ONLY: MAX_GROUPS, groups
   USE mo_var_metadata,         ONLY: create_vert_interp_metadata,            &
@@ -484,7 +485,8 @@ MODULE mo_nonhydro_state
     !
     ! Register a field list and apply default settings
     !
-    CALL vlr_add(p_prog_list, TRIM(listname), patch_id=p_patch%id, lrestart=.TRUE.)
+    CALL vlr_add(p_prog_list, TRIM(listname), patch_id=p_patch%id, &
+      &          lrestart=.TRUE., model_type=get_my_process_name())
 
     !------------------------------
     ! Ensure that all pointers have a defined association status
@@ -1693,7 +1695,8 @@ MODULE mo_nonhydro_state
     !
     ! Register a field list and apply default settings
     !
-    CALL vlr_add(p_diag_list, TRIM(listname), patch_id=p_patch%id, lrestart=.TRUE.)
+    CALL vlr_add(p_diag_list, TRIM(listname), patch_id=p_patch%id, &
+      &          lrestart=.TRUE., model_type=get_my_process_name())
 
     ! u           p_diag%u(nproma,nlev,nblks_c)
     !
@@ -3583,7 +3586,8 @@ MODULE mo_nonhydro_state
     !
     ! Register a field list and apply default settings
     !
-    CALL vlr_add(p_ref_list, TRIM(listname), patch_id=p_patch%id, lrestart=.FALSE.)
+    CALL vlr_add(p_ref_list, TRIM(listname), patch_id=p_patch%id, &
+      &          lrestart=.FALSE., model_type=get_my_process_name())
 
     ! vn_ref     p_ref%vn_ref(nproma,nlev,nblks_c)
     !
@@ -3820,7 +3824,8 @@ MODULE mo_nonhydro_state
     !
     ! Register a field list and apply default settings
     !
-    CALL vlr_add(p_metrics_list, TRIM(listname), patch_id=p_patch%id, lrestart=.FALSE.)
+    CALL vlr_add(p_metrics_list, TRIM(listname), patch_id=p_patch%id, &
+      &          lrestart=.FALSE., model_type=get_my_process_name())
 
     ! geometric height at the vertical interface of cells
     ! z_ifc        p_metrics%z_ifc(nproma,nlevp1,nblks_c)

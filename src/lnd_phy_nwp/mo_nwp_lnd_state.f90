@@ -37,6 +37,7 @@ MODULE mo_nwp_lnd_state
     &                                ALB_SI_MISSVAL, TASK_COMPUTE_SMI
   USE mo_cdi_constants,        ONLY: GRID_UNSTRUCTURED_CELL, GRID_CELL
   USE mo_physical_constants,   ONLY: tmelt
+  USE mo_master_control,       ONLY: get_my_process_name
   USE mo_parallel_config,      ONLY: nproma
   USE mo_nwp_lnd_types,        ONLY: t_lnd_state, t_lnd_prog, t_lnd_diag, t_wtr_prog
   USE mo_exception,            ONLY: message, finish
@@ -395,7 +396,8 @@ MODULE mo_nwp_lnd_state
     !
     ! Register a field list and apply default settings
     !
-    CALL vlr_add(prog_list, TRIM(listname), patch_id=p_jg, lrestart=.TRUE.)
+    CALL vlr_add(prog_list, TRIM(listname), patch_id=p_jg, &
+      &          lrestart=.TRUE., model_type=get_my_process_name())
 
     !------------------------------
 
@@ -1046,7 +1048,8 @@ MODULE mo_nwp_lnd_state
     !
     ! Register a field list and apply default settings
     !
-    CALL vlr_add(prog_list, TRIM(listname), patch_id=p_jg, lrestart=.TRUE.)
+    CALL vlr_add(prog_list, TRIM(listname), patch_id=p_jg, &
+      &          lrestart=.TRUE., model_type=get_my_process_name())
 
     !------------------------------
 
@@ -1335,7 +1338,8 @@ MODULE mo_nwp_lnd_state
     !
     ! Register a field list and apply default settings
     !
-    CALL vlr_add(diag_list, TRIM(listname), patch_id=p_jg, lrestart=.TRUE.)
+    CALL vlr_add(diag_list, TRIM(listname), patch_id=p_jg, &
+      &          lrestart=.TRUE., model_type=get_my_process_name())
 
     !------------------------------
 

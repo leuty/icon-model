@@ -131,7 +131,7 @@ CONTAINS
     TYPE(t_patch), TARGET, INTENT(in) :: patch_2d
     CHARACTER(:), ALLOCATABLE :: model_name
 
-    model_name = TRIM(get_my_process_name())
+    model_name = get_my_process_name()
 
     ! IMO the number of variable lists should be as small as possible
     !

@@ -27,6 +27,7 @@ MODULE mo_opt_diagnostics
 
   USE mo_kind,                 ONLY: wp
   USE mo_parallel_config,      ONLY: nproma
+  USE mo_master_control,       ONLY: get_my_process_name
   USE mo_model_domain,         ONLY: t_patch, t_subset_range
   USE mo_nonhydro_types,       ONLY: t_nh_diag,t_nh_prog,      &
                                      t_nh_state_lists
@@ -648,39 +649,47 @@ CONTAINS
 
     ! local variables
     CHARACTER(*), PARAMETER :: routine = modname//":construct_opt_diag"
-    INTEGER                            :: jg, ist
-    CHARACTER(LEN=2) :: dom_str
+    INTEGER                   :: jg, ist
+    CHARACTER(LEN=2)          :: dom_str
+    CHARACTER(:), ALLOCATABLE :: model_type
 
     ! initialize data structure for optional diagnostics
     ALLOCATE(p_nh_opt_diag(n_dom), STAT=ist)
     IF (ist /= SUCCESS) &
       CALL finish (routine, 'Allocation of optional diagnostics failed')
 
+    model_type = get_my_process_name()
+
     DO jg = 1, n_dom
       WRITE(dom_str, "(i2.2)") jg
 
       CALL vlr_add(p_nh_opt_diag(jg)%opt_diag_list, &
         & 'nh_state_opt_diag_of_domain_'//dom_str, &
-        & patch_id=p_patch(jg)%id, vlevel_type=level_type_ml, lrestart=.FALSE.)
+        & patch_id=p_patch(jg)%id, vlevel_type=level_type_ml, lrestart=.FALSE., &
+        & model_type=model_type)
 
       IF (.NOT. l_init_pz) CYCLE
 
       CALL vlr_add(p_nh_opt_diag(jg)%opt_diag_list_z, &
         & 'nh_state_opt_diag_z_of_domain_'//dom_str, &
-        & patch_id=p_patch(jg)%id, vlevel_type=level_type_hl, lrestart=.FALSE.)
+        & patch_id=p_patch(jg)%id, vlevel_type=level_type_hl, lrestart=.FALSE., &
+        & model_type=model_type)
 
       CALL vlr_add(p_nh_opt_diag(jg)%opt_diag_list_p, &
         & 'nh_state_opt_diag_p_of_domain_'//dom_str, &
-        & patch_id=p_patch(jg)%id, vlevel_type=level_type_pl, lrestart=.FALSE.)
+        & patch_id=p_patch(jg)%id, vlevel_type=level_type_pl, lrestart=.FALSE., &
+        & model_type=model_type)
 
       CALL vlr_add(p_nh_opt_diag(jg)%opt_diag_list_i, &
         & 'nh_state_opt_diag_i_of_domain_'//dom_str, &
-        & patch_id=p_patch(jg)%id, vlevel_type=level_type_il, lrestart=.FALSE.)
+        & patch_id=p_patch(jg)%id, vlevel_type=level_type_il, lrestart=.FALSE., &
+        & model_type=model_type)
 
       CALL vlr_add(p_nh_opt_diag(jg)%opt_acc_list, &
         & 'nh_accumulation_for_ProgAndDiag_of_domain_'//dom_str, &
-        & patch_id=p_patch(jg)%id, vlevel_type=level_type_ml,            &
-        & lrestart=.FALSE.,loutput=.TRUE.)
+        & patch_id=p_patch(jg)%id, vlevel_type=level_type_ml,    &
+        & lrestart=.FALSE.,loutput=.TRUE.,                       &
+        & model_type=model_type)
     ENDDO ! jg
 
     ! provisional construction of memory for a hardwired set of variables on domain 1

@@ -14,6 +14,7 @@
 
 MODULE mo_wave_state
 
+  USE mo_master_control,            ONLY: get_my_process_name
   USE mo_exception,                 ONLY: message, finish
   USE mo_parallel_config,           ONLY: nproma
   USE mo_model_domain,              ONLY: t_patch
@@ -196,7 +197,8 @@ CONTAINS
     !
     ! Register a field list and apply default settings
     !
-    CALL vlr_add(p_prog_list, TRIM(listname), patch_id=p_patch%id, lrestart=.TRUE.)
+    CALL vlr_add(p_prog_list, TRIM(listname), patch_id=p_patch%id, lrestart=.TRUE., &
+      &          model_type=get_my_process_name())
 
     tracer_container_name = 'tracer'//suffix
     cf_desc    = t_cf_var('tracer', '', 'spectral bin of wave energy', datatype_flt)
@@ -276,7 +278,8 @@ CONTAINS
       datatype_flt = DATATYPE_FLT32
     ENDIF
 
-    CALL vlr_add(p_source_list, TRIM(listname), patch_id=p_patch%id, lrestart=.TRUE. )
+    CALL vlr_add(p_source_list, TRIM(listname), patch_id=p_patch%id, lrestart=.TRUE., &
+      &           model_type=get_my_process_name())
 
 
     ! fl          p_source%fl(nproma,nblks_c,ntracer)
@@ -398,7 +401,8 @@ CONTAINS
       datatype_flt = DATATYPE_FLT32
     ENDIF
 
-    CALL vlr_add(p_diag_list, TRIM(listname), patch_id=p_patch%id, lrestart=.TRUE. )
+    CALL vlr_add(p_diag_list, TRIM(listname), patch_id=p_patch%id, lrestart=.TRUE., &
+      &         model_type=get_my_process_name())
 
     !wave group velocity
     cf_desc    = t_cf_var('gv_c', 'm s-1', 'group velocity at cells', datatype_flt)

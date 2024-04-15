@@ -33,6 +33,7 @@ MODULE mo_aes_phy_memory
   USE mo_cdi_constants,       ONLY: GRID_UNSTRUCTURED_CELL,    &
     &                               GRID_CELL
   USE mo_exception,           ONLY: message, finish
+  USE mo_master_control,      ONLY: get_my_process_name
   USE mo_fortran_tools,       ONLY: t_ptr_2d, t_ptr_3d
   USE mo_parallel_config,     ONLY: nproma
   USE mo_io_config,           ONLY: lnetcdf_flt64_output
@@ -742,7 +743,8 @@ CONTAINS
     !$ACC ENTER DATA COPYIN(field)
     ! Register a field list and apply default settings
 
-    CALL vlr_add(field_list, listname, patch_id=jg ,lrestart=.TRUE.)
+    CALL vlr_add(field_list, listname, patch_id=jg, lrestart=.TRUE., &
+      &          model_type=get_my_process_name())
 
     !------------------------------
     ! Metrics
@@ -4199,7 +4201,8 @@ CONTAINS
 
     !$ACC ENTER DATA COPYIN(tend)
 
-    CALL vlr_add(tend_list, listname, patch_id=jg ,lrestart=.FALSE.)
+    CALL vlr_add(tend_list, listname, patch_id=jg ,lrestart=.FALSE., &
+      &          model_type=get_my_process_name())
 
     !------------------------------
     ! Temperature tendencies
