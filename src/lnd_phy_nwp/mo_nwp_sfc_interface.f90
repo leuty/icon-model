@@ -57,7 +57,7 @@ MODULE mo_nwp_sfc_interface
   USE mo_fortran_tools,       ONLY: init, set_acc_host_or_device, assert_acc_device_only
 
 #ifdef ICON_USE_CUDA_GRAPH
-  USE openacc, ONLY: accgraph, accx_begin_capture, accx_end_capture, accx_graph_exec
+  USE mo_acc_device_management,ONLY: accGraph, accBeginCapture, accEndCapture, accGraphLaunch
   USE, INTRINSIC :: iso_c_binding
 #endif
 
@@ -76,7 +76,7 @@ INTEGER, PARAMETER :: nlsoil= 8
 #endif
 
 #ifdef ICON_USE_CUDA_GRAPH
-TYPE(accgraph) :: graphs(max_dom*2)
+TYPE(accGraph) :: graphs(max_dom*2)
 TYPE(c_ptr) :: lnd_prog_now_cache(max_dom*2) = C_NULL_PTR
 LOGICAL :: graph_captured
 INTEGER :: cur_graph_id, ig
@@ -355,14 +355,14 @@ CONTAINS
       IF (graph_captured) THEN
         WRITE(message_text,'(a,i2)') 'executing CUDA graph id ', cur_graph_id
         IF (msg_level >= 14) CALL message('mo_nwp_sfc_interface: ', message_text)
-        CALL accx_graph_exec(graphs(cur_graph_id), 1)
+        CALL accGraphLaunch(graphs(cur_graph_id), 1)
         !$ACC UPDATE HOST(ext_data%atm%gp_count_t(:,1:ntiles_total)) ASYNC(1)
         !$ACC WAIT(1)
         RETURN
       ELSE
         WRITE(message_text,'(a,i2)') 'starting to capture CUDA graph, id ', cur_graph_id
         IF (msg_level >= 13) CALL message('mo_nwp_sfc_interface: ', message_text)
-        CALL accx_begin_capture(1)
+        CALL accBeginCapture(1)
       END IF
     END IF
 #endif
@@ -1770,10 +1770,10 @@ CONTAINS
  
 #ifdef ICON_USE_CUDA_GRAPH
     IF (lzacc .AND. lcuda_graph_lnd) THEN
-      CALL accx_end_capture(graphs(cur_graph_id), 1)
+      CALL accEndCapture(1, graphs(cur_graph_id))
       WRITE(message_text,'(a,i2,a)') 'finished to capture CUDA graph, id ', cur_graph_id, ', now executing it'
       IF (msg_level >= 13) CALL message('mo_nwp_sfc_interface: ', message_text)
-      CALL accx_graph_exec(graphs(cur_graph_id), 1)
+      CALL accGraphLaunch(graphs(cur_graph_id), 1)
     END IF
 #endif
     !$ACC UPDATE HOST(ext_data%atm%gp_count_t(:,1:ntiles_total)) ASYNC(1) IF(lzacc)

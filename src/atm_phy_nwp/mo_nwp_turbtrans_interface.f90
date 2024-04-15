@@ -67,7 +67,7 @@ MODULE mo_nwp_turbtrans_interface
   USE mo_coupling_config,      ONLY: is_coupled_to_waves
 
 #ifdef ICON_USE_CUDA_GRAPH
-  USE openacc, ONLY: accgraph, accx_begin_capture, accx_end_capture, accx_graph_exec
+  USE mo_acc_device_management,ONLY: accGraph, accBeginCapture, accEndCapture, accGraphLaunch
   USE, INTRINSIC :: iso_c_binding
 #endif
 
@@ -81,7 +81,7 @@ MODULE mo_nwp_turbtrans_interface
 
 
 #ifdef ICON_USE_CUDA_GRAPH
-  TYPE(accgraph) :: graphs(max_dom*2)
+  TYPE(accGraph) :: graphs(max_dom*2)
   TYPE(c_ptr) :: lnd_prog_new_cache(max_dom*2) = C_NULL_PTR
   LOGICAL :: graph_captured
   INTEGER :: cur_graph_id, ig
@@ -228,14 +228,14 @@ SUBROUTINE nwp_turbtrans  ( tcall_turb_jg,                     & !>in
     IF (graph_captured) THEN
       WRITE(message_text,'(a,i2)') 'executing CUDA graph id ', cur_graph_id
       IF (msg_level >= 14) CALL message('mo_nwp_turbtrans_interface: ', message_text)
-      CALL accx_graph_exec(graphs(cur_graph_id), 1)
+      CALL accGraphLaunch(graphs(cur_graph_id), 1)
       !$ACC WAIT(1)
       IF (timers_level > 9) CALL timer_stop(timer_nwp_turbtrans)
       RETURN
     ELSE
       WRITE(message_text,'(a,i2)') 'starting to capture CUDA graph, id ', cur_graph_id
       IF (msg_level >= 13) CALL message('mo_nwp_turbtrans_interface: ', message_text)
-      CALL accx_begin_capture(1)
+      CALL accBeginCapture(1)
     END IF
   END IF
 #endif
@@ -1077,10 +1077,10 @@ SUBROUTINE nwp_turbtrans  ( tcall_turb_jg,                     & !>in
 
 #ifdef ICON_USE_CUDA_GRAPH
     IF (lzacc .AND. lcuda_graph_turb_tran) THEN
-      CALL accx_end_capture(graphs(cur_graph_id), 1)
+      CALL accEndCapture(1, graphs(cur_graph_id))
       WRITE(message_text,'(a,i2,a)') 'finished to capture CUDA graph, id ', cur_graph_id, ', now executing it'
       IF (msg_level >= 13) CALL message('mo_nwp_turbtrans_interface: ', message_text)
-      CALL accx_graph_exec(graphs(cur_graph_id), 1)
+      CALL accGraphLaunch(graphs(cur_graph_id), 1)
     END IF
 #endif
 
