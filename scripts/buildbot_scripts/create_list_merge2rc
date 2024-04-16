@@ -251,6 +251,7 @@ $addexp exp.seamless_bb-ecradmin --builders "levante_intel_hybrid levante_gcc_hy
 
 # nextGEMS test setup (!) ALPHA
 $addexp test_nextGEMS.config --builders levante_intel_hybrid --list $listname
+$addexp test_yaxt_xchange.config --builders levante_intel_hybrid --list $listname
 
 # test memory loggin in amip setup
 #   input data for the following two tests have been removed, therefore, we
