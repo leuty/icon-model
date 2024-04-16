@@ -260,7 +260,7 @@ CONTAINS
     
       IF (is_sig_present(j)) THEN
         eta           = deposition_factor(t(iv,k),qvsi) ! neglect cloud depth cor. from gcsp_graupel
-        sx2x(lqv,lqi) = vapor_x_ice    (q(lqi)%x(iv,k),m_ice,eta,dvsi,dt)
+        sx2x(lqv,lqi) = vapor_x_ice    (q(lqi)%x(iv,k),m_ice,eta,dvsi,rho(iv,k),dt)
         sx2x(lqi,lqv) =-MIN(sx2x(lqv,lqi),0.0_wp)
         sx2x(lqv,lqi) = MAX(sx2x(lqv,lqi),0.0_wp)
         ice_dep       = MIN(sx2x(lqv,lqi),dvsi/dt)
@@ -802,7 +802,7 @@ PURE FUNCTION rain_to_graupel(t,rho,qc,qr,qi,qs,mi,dvsw,dt)
     ENDIF 
   ENDIF 
   IF (min(qi,qr) > qmin .AND. qs > qs_crit) THEN ! rain + ice creating graupel
-    rain_to_graupel = rain_to_graupel +  a2 * (qi/mi) * qr**b2 
+    rain_to_graupel = rain_to_graupel + a2 * (qi/mi) * (rho*qr)**b2
   END IF
 
 END FUNCTION rain_to_graupel
@@ -970,12 +970,13 @@ END FUNCTION ice_deposition_nucleation
 
 !!!=============================================================================================
 
-PURE FUNCTION vapor_x_ice(qi,mi,eta,dvsi,dt)
+PURE FUNCTION vapor_x_ice(qi,mi,eta,dvsi,rho,dt)
   REAL(KIND=wp)             :: vapor_x_ice     ! returns rate of vapor deposition to ice
   REAL(KIND=wp), INTENT(IN) :: qi          , & ! specific humidity of ice
           &                    mi          , & ! ice crystal mass
           &                    eta         , & ! deposition factor
           &                    dvsi        , & ! vapor excess with respect to ice sat
+          &                    rho         , & ! ambient density
           &                    dt              ! time-step
 
   REAL(KIND=wp), PARAMETER  ::                 &
@@ -986,7 +987,7 @@ PURE FUNCTION vapor_x_ice(qi,mi,eta,dvsi,dt)
   !$ACC ROUTINE SEQ
   vapor_x_ice = 0.0_wp
   IF (qi>qmin) THEN
-    vapor_x_ice = (a * eta) * qi* (mi**b) * dvsi
+    vapor_x_ice = (a * eta) * rho * qi * (mi**b) * dvsi
     IF (vapor_x_ice > 0._wp) THEN
       vapor_x_ice = MIN(vapor_x_ice, dvsi/dt)
     ELSE
