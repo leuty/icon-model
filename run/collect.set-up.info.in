@@ -176,13 +176,8 @@ case "$use_site" in
         use_target='rcl'
         use_shell='/bin/bash'
         use_mpi_startrun='@MPI_LAUNCH@'
-        if ((RH_VERSION != 8)); then
-          use_queue='sx_norm'
-        else
-          use_queue='sx_norm_rh8'
-          use_load_modules='mpi/3.5.0'  # binary is created on RHEL8 node and run on RHEL8 compute node
-                                        # !!! must be adapted, if the configure wrapper does not use mpi 3.5.0.
-        fi
+        use_queue='sx_norm'
+        use_load_modules='mpi/3.5.0' # !!! must be adapted, if the configure wrapper does not use mpi 3.5.0.
       ;;
       xc*)
         use_submit='qsub'
