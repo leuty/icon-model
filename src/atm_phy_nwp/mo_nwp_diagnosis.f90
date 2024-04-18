@@ -39,18 +39,19 @@ MODULE mo_nwp_diagnosis
   USE mo_math_divrot,        ONLY: rot_vertex
   USE mo_intp,               ONLY: verts2cells_scalar
   USE mo_parallel_config,    ONLY: nproma, proc0_offloading
-  USE mo_lnd_nwp_config,     ONLY: nlev_soil, ntiles_total
+  USE mo_lnd_nwp_config,     ONLY: nlev_soil, ntiles_total, isub_water
   USE mo_nwp_lnd_types,      ONLY: t_lnd_diag, t_wtr_prog, t_lnd_prog
   USE mo_physical_constants, ONLY: tmelt, grav, cpd, vtmpc1, dtdz_standardatm
   USE mo_atm_phy_nwp_config, ONLY: atm_phy_nwp_config
   USE mo_advection_config,   ONLY: advection_config
-  USE mo_io_config,          ONLY: lflux_avg, uh_max_zmin, uh_max_zmax, &
+  USE mo_io_config,          ONLY: lflux_avg, uh_max_zmin, uh_max_zmax, ff10m_interval, &
     &                              luh_max_out, uh_max_nlayer, var_in_output, &
     &                              itype_dursun, itype_convindices, itype_hzerocl, t_var_in_output
   USE mo_sync,               ONLY: global_max, global_min
   USE mo_vertical_coord_table,  ONLY: vct_a
   USE mo_satad,              ONLY: sat_pres_water, spec_humi
   USE mo_nh_diagnose_pres_temp, ONLY: diagnose_pres_temp
+  USE mo_util_phys,            ONLY: nwp_dyn_gust
   USE mo_opt_nwp_diagnostics,ONLY: calsnowlmt, cal_cape_cin, cal_cape_cin_mu, cal_cape_cin_mu_COSMO, &    
                                    cal_si_sli_swiss, cal_cloudtop, &
                                    maximize_field_lpi, compute_field_tcond_max, &
@@ -68,7 +69,7 @@ MODULE mo_nwp_diagnosis
   USE mo_ext_data_types,     ONLY: t_external_data
   USE mo_nwp_parameters,     ONLY: t_phy_params
   USE mo_time_config,        ONLY: time_config
-  USE mo_nwp_tuning_config,  ONLY: lcalib_clcov, max_calibfac_clcl
+  USE mo_nwp_tuning_config,  ONLY: lcalib_clcov, max_calibfac_clcl, itune_gust_diag, tune_gustlim_fac
   USE mo_mpi,                ONLY: p_io, p_comm_work, p_bcast
   USE mo_fortran_tools,      ONLY: set_acc_host_or_device, assert_acc_device_only
   USE mo_radiation_config,   ONLY: decorr_pole, decorr_equator
@@ -169,6 +170,9 @@ CONTAINS
     i_startblk = pt_patch%cells%start_block(rl_start)
     i_endblk   = pt_patch%cells%end_block(rl_end)
     
+    IF (itune_gust_diag == 4) THEN
+      CALL calc_filtered_gusts( dt_phy_jg, p_sim_time, ext_data, pt_patch, p_metrics, pt_diag, prm_diag, lacc)
+    ENDIF
 
     ! Calculate vertical integrals of moisture quantities and cloud cover
     ! Anurag Dipankar, MPIM (2015-08-01): always call this routine
@@ -733,6 +737,148 @@ CONTAINS
 
   END SUBROUTINE nwp_statistics
 
+  !>
+  !! Computation of time-averaged 10-m winds and wind gusts building upon these time-averaged winds
+  !! Relevant for turbulence-permitting model resolutions in order to avoid double-counting of resolved
+  !! and parameterized gusts
+  !!
+  SUBROUTINE calc_filtered_gusts( dt_phy_jg, p_sim_time, ext_data, pt_patch, p_metrics, pt_diag, prm_diag, lacc)
+                            
+    LOGICAL, OPTIONAL,  INTENT(IN)   :: lacc            !< initialization flag
+    REAL(wp),           INTENT(IN)   :: dt_phy_jg(:)    !< time interval for all physics
+                                                        !< packages on domain jg
+    REAL(wp),           INTENT(IN)   :: p_sim_time
+
+    TYPE(t_patch),      INTENT(IN)   :: pt_patch    !<grid/patch info.
+    TYPE(t_nh_diag),    INTENT(INOUT):: pt_diag     !<the diagnostic variables
+
+    TYPE(t_nh_metrics), INTENT(in)   :: p_metrics
+    TYPE(t_external_data),INTENT(IN) :: ext_data    !< external data
+
+    TYPE(t_nwp_phy_diag), INTENT(inout):: prm_diag
+
+
+    INTEGER :: rl_start, rl_end
+    INTEGER :: i_startblk, i_endblk    !> blocks
+    INTEGER :: i_startidx, i_endidx    !< slices
+
+    REAL(wp):: t_wgt                   !< weight for running time average
+    REAL(wp):: ff10m
+
+    INTEGER :: jc,jb,jg      ! indices
+    LOGICAL :: lzacc         ! OpenACC flag
+    INTEGER :: nlev, jk_gust(nproma)
+    LOGICAL :: lcalc_gusts
+
+
+  !-----------------------------------------------------------------
+
+
+    CALL set_acc_host_or_device(lzacc, lacc)
+
+    jg        = pt_patch%id
+    nlev      = pt_patch%nlev
+
+    ! exclude nest boundary interpolation zone
+    rl_start = grf_bdywidth_c+1
+    rl_end   = min_rlcell_int
+
+    i_startblk = pt_patch%cells%start_block(rl_start)
+    i_endblk   = pt_patch%cells%end_block(rl_end)
+
+
+    ! time average weight
+    t_wgt = dt_phy_jg(itfastphy)/MAX(1.e-6_wp, p_sim_time - prm_diag%prev_v10mavg_reset)
+
+    ! calculate gusts when averaging interval is completed
+    lcalc_gusts = p_sim_time - prm_diag%prev_v10mavg_reset + 0.5_wp*dt_phy_jg(itfastphy) >= ff10m_interval(jg)
+
+    !$ACC DATA CREATE(jk_gust) ASYNC(1) IF(lzacc)
+
+!$OMP PARALLEL
+    IF ( p_sim_time <= 1.e-6_wp) THEN ! first part of IAU phase
+
+!$OMP DO PRIVATE(jc,jb,i_startidx,i_endidx,jk_gust,ff10m) ICON_OMP_DEFAULT_SCHEDULE
+      DO jb = i_startblk, i_endblk
+
+        CALL get_indices_c(pt_patch, jb, i_startblk, i_endblk, &
+          & i_startidx, i_endidx, rl_start, rl_end)
+
+        !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1) IF(lzacc)
+        !$ACC LOOP GANG VECTOR
+        DO jc = i_startidx, i_endidx
+            prm_diag%u_10m_a(jc,jb) =  prm_diag%u_10m(jc,jb)
+            prm_diag%v_10m_a(jc,jb) = prm_diag%v_10m(jc,jb)
+            prm_diag%tcm_a(jc,jb)   = prm_diag%tcm(jc,jb)
+        ENDDO
+        !$ACC END PARALLEL
+
+      ENDDO
+!$OMP END DO
+
+    ELSE  ! regular time steps
+  
+!$OMP DO PRIVATE(jc,jb,i_startidx,i_endidx) ICON_OMP_DEFAULT_SCHEDULE
+      DO jb = i_startblk, i_endblk
+        !
+        CALL get_indices_c(pt_patch, jb, i_startblk, i_endblk, &
+          & i_startidx, i_endidx, rl_start, rl_end)
+
+        !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1) IF(lzacc)
+        !$ACC LOOP GANG VECTOR
+        DO jc = i_startidx, i_endidx
+          prm_diag%u_10m_a(jc,jb) = time_avg(prm_diag%u_10m_a(jc,jb), prm_diag%u_10m(jc,jb), t_wgt)
+          prm_diag%v_10m_a(jc,jb) = time_avg(prm_diag%v_10m_a(jc,jb), prm_diag%v_10m(jc,jb), t_wgt)
+          prm_diag%tcm_a(jc,jb)   = time_avg(prm_diag%tcm_a(jc,jb), prm_diag%tcm(jc,jb), t_wgt)
+        ENDDO
+        !$ACC END PARALLEL
+
+        IF (lcalc_gusts) THEN
+
+          IF (atm_phy_nwp_config(jg)%inwp_sso > 0) THEN
+            !$ACC PARALLEL ASYNC(1) DEFAULT(PRESENT) IF(lzacc)
+            !$ACC LOOP GANG VECTOR
+            DO jc = i_startidx, i_endidx
+              jk_gust(jc) = MERGE(prm_diag%ktop_envel(jc,jb)-1, nlev, prm_diag%ktop_envel(jc,jb) < nlev)
+            ENDDO
+            !$ACC END PARALLEL
+          ELSE
+            !$ACC KERNELS ASYNC(1) DEFAULT(PRESENT) IF(lzacc)
+            jk_gust(:) = nlev
+            !$ACC END KERNELS
+          ENDIF
+
+          !$ACC PARALLEL ASYNC(1) DEFAULT(PRESENT) IF(lzacc)
+          !$ACC LOOP GANG(STATIC: 1) VECTOR PRIVATE(ff10m)
+          DO jc = i_startidx, i_endidx
+
+            prm_diag%dyn_gust(jc,jb) = nwp_dyn_gust (prm_diag%u_10m_a(jc,jb), prm_diag%v_10m_a(jc,jb), prm_diag%tcm_a(jc,jb),   &
+                                                     pt_diag%u(jc,nlev,jb), pt_diag%v(jc,nlev,jb),                              &
+                                                     pt_diag%u(jc,jk_gust(jc),jb), pt_diag%v(jc,jk_gust(jc),jb),                &
+                                                     ext_data%atm%lc_frac_t(jc,jb,isub_water), p_metrics%mask_mtnpoints_g(jc,jb))
+
+            IF (tune_gustlim_fac(jg) > 0._wp) THEN
+
+              ff10m = SQRT(prm_diag%u_10m_a(jc,jb)**2 + prm_diag%v_10m_a(jc,jb)**2)
+              prm_diag%dyn_gust(jc,jb) = MIN(prm_diag%dyn_gust(jc,jb),                                      &
+                                             ff10m + tune_gustlim_fac(jg)*(prm_diag%gust_lim(jc,jb) - ff10m))
+
+            ENDIF
+          ENDDO
+          !$ACC END PARALLEL
+
+        ENDIF
+
+      ENDDO ! nblks
+!$OMP END DO NOWAIT
+
+    END IF  ! p_sim_time
+
+!$OMP END PARALLEL  
+
+    !$ACC END DATA
+
+  END SUBROUTINE calc_filtered_gusts
 
   !>
   !! Computation of vertical integrals of moisture and cloud cover

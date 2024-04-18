@@ -77,6 +77,7 @@ USE turb_data,              ONLY: ltkecon
 USE mo_initicon_config,     ONLY: icpl_da_sfcevap, icpl_da_snowalb, icpl_da_skinc, icpl_da_seaice
 USE mo_radiation_config,    ONLY: irad_aero, iRadAeroTegen, iRadAeroART, iRadAeroNone, iRadAeroConst, iRadAeroCAMSclim
 USE mo_lnd_nwp_config,      ONLY: ntiles_total, ntiles_water, nlev_soil
+USE mo_nwp_tuning_config,   ONLY: itune_gust_diag
 USE mo_nwp_vdiff_interface, ONLY: nwp_vdiff_setup
 USE mo_var_list,            ONLY: add_var, add_ref, t_var_list_ptr
 USE mo_var_list_register,   ONLY: vlr_add, vlr_del
@@ -117,7 +118,7 @@ USE mo_io_config,            ONLY: lflux_avg, lnetcdf_flt64_output, gust_interva
   &                                maxt_interval, precip_interval, t_var_in_output, &
   &                                totprec_d_interval, itype_hzerocl, &
   &                                uh_max_zmin, uh_max_zmax, luh_max_out, uh_max_nlayer, &
-  &                                sunshine_interval, n_wshear, n_srh
+  &                                sunshine_interval, n_wshear, n_srh, ff10m_interval
 USE mtime,                   ONLY: max_timedelta_str_len, getPTStringFromMS
 USE mo_name_list_output_config, ONLY: is_variable_in_output
 USE mo_util_string,          ONLY: real2string
@@ -341,7 +342,7 @@ SUBROUTINE new_nwp_phy_diag_list( k_jg, klev, klevp1, kblks,    &
     CHARACTER(LEN=vname_len) :: shortname
     CHARACTER(LEN=128)         :: longname, unit
     CHARACTER(len=max_timedelta_str_len) :: gust_int, celltracks_int,   &
-      &                                     echotop_int
+      &                                     echotop_int, ff10m_int
     ! For lpi_con_max need an hourly reset for the first 48 h,
     ! a 3-hourly reset for day 3 and 4, and a 6 hourly reset thereafter.
     ! lpi_stop 3 is not needed - it is the end of the simulation
@@ -3263,6 +3264,53 @@ SUBROUTINE new_nwp_phy_diag_list( k_jg, klev, klevp1, kblks,    &
       & ldims=shape2d, lrestart=lart, in_group=groups("pbl_vars","dwd_fg_atm_vars"), &
       & lopenacc=.TRUE. )
     __acc_attach(diag%v_10m)
+
+    IF (itune_gust_diag == 4) THEN
+      ! &      diag%u_10m_a(nproma, nblks_c)
+      CALL getPTStringFromMS(NINT(1000._wp*ff10m_interval(k_jg), i8), ff10m_int)
+      cf_desc    = t_cf_var('u_10m_a', 'm s-1 ','time-averaged zonal wind in 10m', datatype_flt)
+      grib2_desc = grib2_var(0, 2, 2, ibits, GRID_UNSTRUCTURED, GRID_CELL)
+      CALL add_var( diag_list, 'u_10m_a', diag%u_10m_a,                        &
+        & GRID_UNSTRUCTURED_CELL, ZA_HEIGHT_10M, cf_desc, grib2_desc,          &
+        & ldims=shape2d, lrestart=.TRUE.,                                      &
+        & isteptype=TSTEP_AVG, initval=0._wp, resetval=0._wp,                  &
+        & action_list=actions(new_action(ACTION_RESET, TRIM(ff10m_int))),      &
+        & lopenacc=.TRUE. )
+      __acc_attach(diag%u_10m_a)
+
+      ! &      diag%v_10m_a(nproma, nblks_c)
+      cf_desc    = t_cf_var('v_10m_a', 'm s-1 ','time-averaged meridional wind in 10m', datatype_flt)
+      grib2_desc = grib2_var(0, 2, 3, ibits, GRID_UNSTRUCTURED, GRID_CELL)
+      CALL add_var( diag_list, 'v_10m_a', diag%v_10m_a,                     &
+        & GRID_UNSTRUCTURED_CELL, ZA_HEIGHT_10M, cf_desc, grib2_desc,       &
+        & ldims=shape2d, lrestart=.TRUE.,                                   &
+        & isteptype=TSTEP_AVG, initval=0._wp, resetval=0._wp,               &
+        & action_list=actions(new_action(ACTION_RESET, TRIM(ff10m_int))),   &
+        & lopenacc=.TRUE. )
+      __acc_attach(diag%v_10m_a)
+
+      ! &      diag%tcm_a(nproma, nblks_c)
+      cf_desc    = t_cf_var('tcm_a', '','time-averaged momentum transfer coefficient', datatype_flt)
+      grib2_desc = grib2_var(255, 255, 255, ibits, GRID_UNSTRUCTURED, GRID_CELL)
+      CALL add_var( diag_list, 'tcm_a', diag%tcm_a,                         &
+        & GRID_UNSTRUCTURED_CELL, ZA_HEIGHT_10M, cf_desc, grib2_desc,       &
+        & ldims=shape2d, lrestart=.TRUE.,                                   &
+        & isteptype=TSTEP_AVG, initval=0._wp, resetval=0._wp,               &
+        & action_list=actions(new_action(ACTION_RESET, TRIM(ff10m_int))),   &
+        & lopenacc=.TRUE. )
+      __acc_attach(diag%tcm_a)
+
+      ! &      diag%gust_lim(nproma, nblks_c)
+      cf_desc    = t_cf_var('gust_lim', 'm s-1 ','upper limit for wind gusts', datatype_flt)
+      grib2_desc = grib2_var(255, 255, 255, ibits, GRID_UNSTRUCTURED, GRID_CELL)
+      CALL add_var( diag_list, 'gust_lim', diag%gust_lim,                   &
+        & GRID_UNSTRUCTURED_CELL, ZA_HEIGHT_10M, cf_desc, grib2_desc,       &
+        & ldims=shape2d, lrestart=.TRUE.,                                   &
+        & initval=0._wp, resetval=0._wp,                                    &
+        & action_list=actions(new_action(ACTION_RESET, TRIM(ff10m_int))),   &
+        & lopenacc=.TRUE. )
+      __acc_attach(diag%gust_lim)
+    ENDIF
 
     ! &      diag%sp_10m(nproma,nblks_c)
     cf_desc    = t_cf_var('sp_10m', 'm s-1 ','wind speed in 10m', datatype_flt)

@@ -37,7 +37,7 @@ MODULE mo_nwp_turbtrans_interface
   USE mo_loopindices,          ONLY: get_indices_c
   USE mo_physical_constants,   ONLY: rd_o_cpd, grav, lh_v=>alv, lh_s=>als, rd, cpd
   USE mo_ext_data_types,       ONLY: t_external_data
-  USE mo_nwp_tuning_config,    ONLY: itune_gust_diag
+  USE mo_nwp_tuning_config,    ONLY: itune_gust_diag, tune_gustlim_agl
   USE mo_nonhydro_types,       ONLY: t_nh_prog, t_nh_diag, t_nh_metrics
   USE mo_nwp_phy_types,        ONLY: t_nwp_phy_diag
   USE mo_nwp_phy_types,        ONLY: t_nwp_phy_tend
@@ -46,6 +46,7 @@ MODULE mo_nwp_turbtrans_interface
   USE mo_parallel_config,      ONLY: nproma
   USE mo_run_config,           ONLY: msg_level, iqv, iqc, iqtke
   USE mo_atm_phy_nwp_config,   ONLY: atm_phy_nwp_config, lcuda_graph_turb_tran
+  USE mo_nonhydrostatic_config,ONLY: kstart_moist
   USE mo_advection_config,     ONLY: advection_config
   USE mo_initicon_config,      ONLY: icpl_da_sfcfric
   USE turb_data,               ONLY: get_turbdiff_param
@@ -933,22 +934,39 @@ SUBROUTINE nwp_turbtrans  ( tcall_turb_jg,                     & !>in
 
       ENDIF ! tiles / no tiles
 
-      ! Dynamic gusts are diagnosed from averaged values in order to avoid artifacts along coastlines
-      !$ACC PARALLEL ASYNC(1) DEFAULT(PRESENT) IF(lzacc)
-      !$ACC LOOP GANG(STATIC: 1) VECTOR
-      DO jc = i_startidx, i_endidx
-        prm_diag%dyn_gust(jc,jb) =  nwp_dyn_gust (prm_diag%u_10m(jc,jb),      &
-          &                                       prm_diag%v_10m(jc,jb),      &
-          &                                       prm_diag%tcm  (jc,jb),      &
-          &                                       p_diag%u      (jc,nlev,jb), &
-          &                                       p_diag%v      (jc,nlev,jb), &
-          &                                       p_diag%u(jc,jk_gust(jc),jb),&
-          &                                       p_diag%v(jc,jk_gust(jc),jb),&
-          &                          ext_data%atm%lc_frac_t(jc,jb,isub_water),&
-          &                                  p_metrics%mask_mtnpoints_g(jc,jb))
-      ENDDO
+      IF (itune_gust_diag < 4) THEN
+        ! Dynamic gusts are diagnosed from averaged values in order to avoid artifacts along coastlines
+        !$ACC PARALLEL ASYNC(1) DEFAULT(PRESENT) IF(lzacc)
+        !$ACC LOOP GANG(STATIC: 1) VECTOR
+        DO jc = i_startidx, i_endidx
+          prm_diag%dyn_gust(jc,jb) =  nwp_dyn_gust (prm_diag%u_10m(jc,jb),      &
+            &                                       prm_diag%v_10m(jc,jb),      &
+            &                                       prm_diag%tcm  (jc,jb),      &
+            &                                       p_diag%u      (jc,nlev,jb), &
+            &                                       p_diag%v      (jc,nlev,jb), &
+            &                                       p_diag%u(jc,jk_gust(jc),jb),&
+            &                                       p_diag%v(jc,jk_gust(jc),jb),&
+            &                          ext_data%atm%lc_frac_t(jc,jb,isub_water),&
+            &                                  p_metrics%mask_mtnpoints_g(jc,jb))
+        ENDDO
+        !$ACC END PARALLEL
+      ELSE ! compute only the gust limiter; the gust calculation itself is executed at the end of each averaging interval
+        !$ACC PARALLEL ASYNC(1) DEFAULT(PRESENT) IF(lzacc)
+        !$ACC LOOP GANG(STATIC: 1)
+        DO jk = nlev, kstart_moist(jg), -1
+          !$ACC LOOP VECTOR
+          DO jc = i_startidx, i_endidx
+            IF (p_metrics%geopot_agl(jc,jk,jb) < MAX(tune_gustlim_agl(jg)*grav, &
+                p_metrics%geopot_agl(jc,jk_gust(jc),jb) + 500._wp*grav)) THEN
+              prm_diag%gust_lim(jc,jb) = MAX(prm_diag%gust_lim(jc,jb), SQRT(p_diag%u(jc,jk,jb)**2 + p_diag%v(jc,jk,jb)**2))
+            ENDIF
+          ENDDO
+        ENDDO
+        !$ACC END PARALLEL
+      ENDIF
 
       ! transform updated turbulent velocity scale back to TKE
+      !$ACC PARALLEL ASYNC(1) DEFAULT(PRESENT) IF(lzacc)
       !$ACC LOOP GANG(STATIC: 1) VECTOR
       DO jc = i_startidx, i_endidx
         p_prog_rcf%tke(jc,nlevp1,jb)= 0.5_wp*(z_tvs(jc,3,1))**2

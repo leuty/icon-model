@@ -339,6 +339,10 @@ MODULE mo_nwp_phy_types
       rh_2m_land (:,:),    & !! relative humidity in 2m  (land tiles only)    (  %  )
       u_10m (:,:)     ,    & !! zonal wind in 10m                             ( m/s )
       v_10m (:,:)     ,    & !! meridional wind in 10m                        ( m/s )
+      u_10m_a (:,:)   ,    & !! time-averaged zonal wind in 10m               ( m/s )
+      v_10m_a (:,:)   ,    & !! time-averaged meridional wind in 10m          ( m/s )
+      tcm_a (:,:)     ,    & !! time-averaged momentum transfer coefficient   ( --  )
+      gust_lim(:,:)   ,    & !! upper limit on gust speed                     ( m/s )
       sp_10m(:,:)     ,    & !! wind speed in 10m                             ( m/s )
       dyn_gust(:,:)   ,    & !! dynamic gust at 10m                           ( m/s )
       gust10(:,:)     ,    & !! max. gust at 10m                              ( m/s )
@@ -374,6 +378,8 @@ MODULE mo_nwp_phy_types
       reff_qs(:,:,:)   ,   & !! effective radius of cloud snow                (m)
       reff_qg(:,:,:)   ,   & !! effective radius of cloud graupel             (m)
       reff_qh(:,:,:)         !! effective radius of cloud hail                (m)
+
+    REAL(wp) :: prev_v10mavg_reset  !! storage for previous reset of averaged v10m field
 
     !> Diagnostics for LES turbulence
     REAL(wp), POINTER, CONTIGUOUS :: &

@@ -49,7 +49,7 @@ MODULE mo_action
     &                              deallocateTimedelta, getPTStringFromMS,           &
     &                              getTriggeredPreviousEventAtDateTime,              &
     &                              getPTStringFromMS, datetimetostring, OPERATOR(+)
-  USE mo_util_mtime,         ONLY: is_event_active
+  USE mo_util_mtime,         ONLY: is_event_active, getElapsedSimTimeInSeconds
   USE mo_time_config,        ONLY: time_config
   USE mo_util_string,        ONLY: remove_duplicates
   USE mo_util_table,         ONLY: initialize_table, finalize_table, add_table_column, &
@@ -60,13 +60,14 @@ MODULE mo_action
   USE mo_parallel_config,    ONLY: proc0_offloading
   USE mo_var_list_register,  ONLY: t_vl_register_iter
   USE mo_var,                ONLY: t_var
+  USE mo_var_list,           ONLY: t_var_list_ptr, find_list_element
   USE mo_fortran_tools,      ONLY: init
 
   IMPLICIT NONE
   PRIVATE
 
   PUBLIC :: reset_act
-  PUBLIC :: action_names, action_reset, new_action, actions
+  PUBLIC :: action_names, action_reset, new_action, actions, check_reset_time
 
   INTEGER, PARAMETER :: NMAX_VARS = 220 ! maximum number of fields that can be
                                         ! assigned to a single action (should be
@@ -531,6 +532,33 @@ CONTAINS
       END IF
     END SUBROUTINE add_action_item
   END FUNCTION actions
+
+  !>
+  !! Returns the forecast lead time of the last previous execution of a reset action
+  !!
+  SUBROUTINE check_reset_time(var_list, var_name, res_time)
+
+    TYPE(t_var_list_ptr), INTENT(IN) :: var_list(:)
+    CHARACTER(*),         INTENT(IN) :: var_name
+    REAL(wp),             INTENT(OUT):: res_time(:)
+
+    ! Local
+    TYPE(t_var),     POINTER :: tmp_var
+    TYPE(datetime),  POINTER :: dummy_ptr
+    INTEGER                  :: jg
+
+    IF (.NOT. proc0_offloading .OR. my_process_is_stdio()) THEN
+      DO jg = 1, n_dom
+        tmp_var => find_list_element (var_list(jg), TRIM(var_name))
+        dummy_ptr =>  newDatetime(tmp_var%info%action_list%action(1)%lastActive)
+        res_time(jg) = getElapsedSimTimeInSeconds(dummy_ptr)
+        CALL deallocateDatetime(dummy_ptr)
+      ENDDO
+    ENDIF
+    IF (proc0_offloading) CALL p_bcast(res_time(1:n_dom), p_io, p_comm_work)
+
+  END SUBROUTINE check_reset_time
+
 
 END MODULE mo_action
 

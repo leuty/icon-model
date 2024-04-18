@@ -41,6 +41,7 @@ MODULE mo_nwp_sfc_interface
     &                               isub_lake, itype_interception, l2lay_rho_snow,    &
     &                               lprog_albsi, itype_trvg, lterra_urb,              &
     &                               itype_snowevap, zml_soil, lcuda_graph_lnd
+  USE mo_nwp_tuning_config,   ONLY: itune_gust_diag
   USE mo_extpar_config,       ONLY: itype_vegetation_cycle
   USE mo_initicon_config,     ONLY: icpl_da_sfcevap, dt_ana, icpl_da_skinc, icpl_da_seaice
   USE mo_coupling_config,     ONLY: is_coupled_to_ocean
@@ -525,7 +526,10 @@ CONTAINS
              ! which would require a multi-layer snow scheme to be properly represented, is approximated by a combination of the
              ! glacier snow density (which depends on the climatological 2m-temperature) and the freshsnow factor
              !
-             IF (ext_data%atm%lc_class_t(jc,jb,isubs) == ext_data%atm%i_lc_snow_ice) THEN
+             ! Calculation is suppressed for itune_gust_diag=4 because gusts are not computed at each time step in this case
+             ! This is going to be replaced by a separate switch
+             !
+             IF (ext_data%atm%lc_class_t(jc,jb,isubs) == ext_data%atm%i_lc_snow_ice .AND. itune_gust_diag < 4) THEN
                IF (icpl_da_sfcevap>=2) THEN
                  tmp2 = 7.5e-9_wp*MAX(0._wp,1._wp+100._wp*10800._wp/dt_ana*p_diag%rh_avginc(jc,jb))
                ELSE

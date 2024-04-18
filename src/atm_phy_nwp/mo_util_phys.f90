@@ -97,6 +97,8 @@ CONTAINS
 
     uadd_sso = MAX(0._wp, SQRT(u_env**2 + v_env**2) - SQRT(u1**2 + v1**2))
     SELECT CASE (itune_gust_diag)
+    CASE (4)     ! gust param based on 10-min averaged wind
+      offset = 6._wp
     CASE (3)     ! ICON-D2 with subgrid-scale condensation
       offset = 10._wp+6._wp*fr_oce
     CASE (2)     ! ICON global with MERIT/REMA orography data
@@ -104,7 +106,7 @@ CONTAINS
     CASE default ! actually (1), but code does not vectorize without default branch
       offset = 10._wp
     END SELECT
-    oce_shift = MERGE(fr_oce,0._wp,itune_gust_diag==3)
+    oce_shift = MERGE(fr_oce,0._wp,itune_gust_diag>=3)
 
     ff10m = SQRT( u_10m**2 + v_10m**2)
     ustar = calc_ustar(tcm, u1, v1)

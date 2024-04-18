@@ -103,7 +103,7 @@ MODULE mo_nh_stepping
 #endif
   ! NWP physics
   USE mo_atm_phy_nwp_config,       ONLY: dt_phy, atm_phy_nwp_config, iprog_aero, setup_nwp_diag_events
-  USE mo_nwp_phy_state,            ONLY: prm_diag, prm_nwp_tend, phy_params, prm_nwp_stochconv
+  USE mo_nwp_phy_state,            ONLY: prm_diag, prm_nwp_tend, phy_params, prm_nwp_stochconv, prm_nwp_diag_list
   USE mo_lnd_nwp_config,           ONLY: nlev_soil, nlev_snow, sstice_mode, sst_td_filename, &
     &                                    ci_td_filename, frsi_min
   USE mo_nwp_lnd_state,            ONLY: p_lnd_state
@@ -178,7 +178,7 @@ MODULE mo_nh_stepping
   USE mo_restart_util,             ONLY: check_for_checkpoint
   USE mo_prepadv_types,            ONLY: t_prepare_adv
   USE mo_prepadv_state,            ONLY: prep_adv, jstep_adv
-  USE mo_action,                   ONLY: reset_act
+  USE mo_action,                   ONLY: reset_act, check_reset_time
   USE mo_output_event_handler,     ONLY: get_current_jfile
   USE mo_opt_diagnostics,          ONLY: update_opt_acc, reset_opt_acc, &
     &                                    calc_mean_opt_acc, p_nh_opt_diag
@@ -232,6 +232,7 @@ MODULE mo_nh_stepping
   USE mo_icon2dace,                ONLY: mec_Event, init_dace_op, run_dace_op, dace_op_init
   USE mo_extpar_config,            ONLY: generate_td_filename
   USE mo_nudging_config,           ONLY: nudging_config, l_global_nudging, indg_type
+  USE mo_nwp_tuning_config,        ONLY: itune_gust_diag
   USE mo_nudging,                  ONLY: nudging_interface
   USE mo_nh_moist_thdyn,           ONLY: thermo_src_term
 #ifndef __NO_ICON_COMIN__
@@ -479,6 +480,10 @@ MODULE mo_nh_stepping
       IF (iprog_aero >= 1) CALL setup_aerosol_advection(p_patch(jg))
 
     ENDDO
+
+    IF (isRestart() .AND. itune_gust_diag == 4) THEN
+      CALL check_reset_time(prm_nwp_diag_list(:), 'u_10m_a', prm_diag(:)%prev_v10mavg_reset)
+    ENDIF
 
 #endif /* __NO_NWP__ */
   END IF  ! iforcing == inwp
@@ -1569,6 +1574,9 @@ MODULE mo_nh_stepping
     !
     CALL reset_act%execute(slack=dtime, mtime_date=mtime_current)
 
+    IF (itune_gust_diag == 4) THEN
+      CALL check_reset_time(prm_nwp_diag_list(:), 'u_10m_a', prm_diag(:)%prev_v10mavg_reset)
+    ENDIF
 
     !--------------------------------------------------------------------------
     ! Write restart file
