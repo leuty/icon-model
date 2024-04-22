@@ -11,10 +11,6 @@
 ! SPDX-License-Identifier: BSD-3-Clause
 ! ---------------------------------------------------------------
 
-#if (defined (__GNUC__) || defined(__SUNPRO_F95) || defined(__SX__))
-#define HAVE_F95
-#endif
-
 MODULE mo_nwp_phy_state
 
 !
@@ -56,6 +52,7 @@ USE mo_impl_constants,      ONLY: success, &
   &                               TASK_COMPUTE_WSHEAR_U,              &
   &                               TASK_COMPUTE_WSHEAR_V,              &
   &                               TASK_COMPUTE_LAPSERATE,             &
+  &                               TASK_COMPUTE_MCONV,                 &
   &                               TASK_COMPUTE_SRH,                   &
   &                               TASK_COMPUTE_INVERSION,             &
   &                               ivdiff,                             &
@@ -77,7 +74,7 @@ USE mo_grid_config,         ONLY: n_dom, n_dom_start, nexlevs_rrg_vnest
 USE mo_atm_phy_nwp_config,  ONLY: atm_phy_nwp_config, icpl_aero_conv, iprog_aero
 USE turb_data,              ONLY: ltkecon
 USE mo_initicon_config,     ONLY: icpl_da_sfcevap, icpl_da_snowalb, icpl_da_skinc, icpl_da_seaice
-USE mo_radiation_config,    ONLY: irad_aero, iRadAeroTegen, iRadAeroART
+USE mo_radiation_config,    ONLY: irad_aero, iRadAeroTegen, iRadAeroART, iRadAeroNone, iRadAeroConst, iRadAeroCAMSclim
 USE mo_lnd_nwp_config,      ONLY: ntiles_total, ntiles_water, nlev_soil
 USE mo_nwp_vdiff_interface, ONLY: nwp_vdiff_setup
 USE mo_var_list,            ONLY: add_var, add_ref, t_var_list_ptr
@@ -112,6 +109,7 @@ USE mo_art_config,           ONLY: nart_tendphy
 #ifdef __ICON_ART
 USE mo_art_tracer_interface, ONLY: art_tracer_interface
 #endif
+USE mo_comin_config,         ONLY: comin_config
 USE mo_action,               ONLY: ACTION_RESET, new_action, actions
 USE mo_io_config,            ONLY: lflux_avg, lnetcdf_flt64_output, gust_interval, &
   &                                celltracks_interval, echotop_meta, &
@@ -124,14 +122,12 @@ USE mo_name_list_output_config, ONLY: is_variable_in_output
 USE mo_util_string,          ONLY: real2string
 USE mo_sbm_storage,          ONLY: construct_sbm_storage, destruct_sbm_storage
 USE mo_coupling_config,      ONLY: is_coupled_to_waves
+USE mo_netcdf,               ONLY: NF_MAX_NAME
 
 #include "add_var_acc_macro.inc"
 
 IMPLICIT NONE
 PRIVATE
-
-INCLUDE 'netcdf.inc'
-
 
 !public interface
 !
@@ -423,6 +419,8 @@ SUBROUTINE new_nwp_phy_diag_list( k_jg, klev, klevp1, kblks,    &
       &     diag%dursun_r, &
       &     diag%echotop, &
       &     diag%echotopinm, &
+      &     diag%fac_entrorg, &
+      &     diag%fac_rmfdeps, &
       &     diag%graupel_gsp, &
       &     diag%graupel_gsp_rate, &
       &     diag%hail_gsp, &
@@ -435,6 +433,7 @@ SUBROUTINE new_nwp_phy_diag_list( k_jg, klev, klevp1, kblks,    &
       &     diag%ice_gsp_rate, &
       &     diag%inversion_height, &
       &     diag%lapse_rate, &
+      &     diag%mconv, &
       &     diag%lhn_diag, &
       &     diag%liqfl_turb, &
       &     diag%low_ent_zone, &
@@ -1364,6 +1363,24 @@ SUBROUTINE new_nwp_phy_diag_list( k_jg, klev, klevp1, kblks,    &
       & GRID_UNSTRUCTURED_CELL, ZA_SURFACE, cf_desc, grib2_desc,          &
       & ldims=shape2d, lrestart=.FALSE., initval=1._wp, lopenacc=.TRUE. )
     __acc_attach(diag%fac_ccqc)
+
+    ! &      diag%fac_entrorg(nproma,nblks_c)
+    cf_desc    = t_cf_var('fac_entrorg', ' ','perturbation factor for entrainment parameter', &
+         &                DATATYPE_FLT32)
+    grib2_desc = grib2_var(255, 255, 255, ibits, GRID_UNSTRUCTURED, GRID_CELL)
+    CALL add_var( diag_list, 'fac_entrorg', diag%fac_entrorg,                   &
+      & GRID_UNSTRUCTURED_CELL, ZA_SURFACE, cf_desc, grib2_desc,          &
+      & ldims=shape2d, lrestart=.FALSE., initval=1._wp, lopenacc=.TRUE. )
+    __acc_attach(diag%fac_entrorg)
+
+    ! &      diag%fac_rmfdeps(nproma,nblks_c)
+    cf_desc    = t_cf_var('fac_rmfdeps', ' ','perturbation factor for downdraft mass flux', &
+         &                DATATYPE_FLT32)
+    grib2_desc = grib2_var(255, 255, 255, ibits, GRID_UNSTRUCTURED, GRID_CELL)
+    CALL add_var( diag_list, 'fac_rmfdeps', diag%fac_rmfdeps,                   &
+      & GRID_UNSTRUCTURED_CELL, ZA_SURFACE, cf_desc, grib2_desc,          &
+      & ldims=shape2d, lrestart=.FALSE., initval=1._wp, lopenacc=.TRUE. )
+    __acc_attach(diag%fac_rmfdeps)
 
     ! &      diag%hbas_con(nproma,nblks_c)
     cf_desc    = t_cf_var('hbas_con', 'm', 'height of convective cloud base', datatype_flt)
@@ -2532,8 +2549,8 @@ SUBROUTINE new_nwp_phy_diag_list( k_jg, klev, klevp1, kblks,    &
 
     ENDIF
 
-    IF ( (irad_aero == iRadAeroTegen .OR. irad_aero == iRadAeroART) .AND.  &
-      &  (atm_phy_nwp_config(k_jg)%icpl_aero_gscp == 1 .OR. icpl_aero_conv == 1) ) THEN
+    IF (.NOT. ANY( irad_aero == (/iRadAeroNone, iRadAeroConst, iRadAeroCAMSclim/) ) .AND.          &
+      &  (ANY ( atm_phy_nwp_config(k_jg)%icpl_aero_gscp == (/1, 3/) ) .OR. icpl_aero_conv == 1) ) THEN
       lrestart = .TRUE.
     ELSE
       lrestart = .FALSE.
@@ -3026,7 +3043,7 @@ SUBROUTINE new_nwp_phy_diag_list( k_jg, klev, klevp1, kblks,    &
     CALL add_var( diag_list, 'rlamh_fac_t', diag%rlamh_fac_t,          &
       & GRID_UNSTRUCTURED_CELL, ZA_SURFACE, cf_desc, grib2_desc,       &
       & ldims=shape3dsubsw, lcontainer=.TRUE., lrestart=.FALSE.,       &
-      & loutput=.FALSE., lopenacc=.TRUE.)
+      & loutput=.FALSE., lopenacc=.TRUE., initval=1._wp)
     __acc_attach(diag%rlamh_fac_t)
 
     ! fill the seperate variables belonging to the container rlamh_fac_t
@@ -4710,6 +4727,23 @@ SUBROUTINE new_nwp_phy_diag_list( k_jg, klev, klevp1, kblks,    &
       __acc_attach(diag%vorw_ctmax)
     END IF
 
+    IF (var_in_output%mconv) THEN
+      cf_desc    = t_cf_var('mconv', 's-1',                   &
+        &                   'Low level horizontal moisture convergence 0-1000 m AGL', datatype_flt)
+      grib2_desc = grib2_var( 0, 1, 26, ibits, GRID_UNSTRUCTURED, GRID_CELL)   &
+        &           + t_grib2_int_key("typeOfFirstFixedSurface",          103) &
+        &           + t_grib2_int_key("typeOfSecondFixedSurface",         103) &
+        &           + t_grib2_int_key("scaledValueOfFirstFixedSurface",  1000) &
+        &           + t_grib2_int_key("scaledValueOfSecondFixedSurface",    0)
+      CALL add_var( diag_list,                                               &
+                  & 'mconv', diag%mconv,                                     &
+                  & GRID_UNSTRUCTURED_CELL, ZA_SURFACE,                      &
+                  & cf_desc, grib2_desc,                                     &
+                  & ldims=shape2d,                                           &
+                  & isteptype=TSTEP_INSTANT,                                 &
+                  & l_pp_scheduler_task=TASK_COMPUTE_MCONV, lrestart=.FALSE. )
+    END IF
+
     IF (var_in_output%w_ctmax) THEN
       celltracks_int(:) = ' '
       CALL getPTStringFromMS(NINT(1000*celltracks_interval(k_jg), i8), celltracks_int)
@@ -5611,6 +5645,10 @@ SUBROUTINE new_nwp_phy_tend_list( k_jg, klev,  kblks,   &
     INTEGER :: ibits, ktracer, ist, ntr_conv
     LOGICAL :: lrestart
     INTEGER :: datatype_flt
+    INTEGER :: ncomin_tendphy_turb, ncomin_tendphy_conv
+
+    ncomin_tendphy_turb = comin_config%comin_icon_domain_config(k_jg)%nturb_tracer
+    ncomin_tendphy_conv = comin_config%comin_icon_domain_config(k_jg)%nconv_tracer
 
     IF ( lnetcdf_flt64_output ) THEN
       datatype_flt = DATATYPE_FLT64
@@ -5624,13 +5662,13 @@ SUBROUTINE new_nwp_phy_tend_list( k_jg, klev,  kblks,   &
     shape3dkp1 = (/nproma, klev+1, kblks            /)
 
     IF (lart) THEN
-     shape4d    = (/nproma, klev  , kblks, nqtendphy+nart_tendphy /)
+     shape4d    = (/nproma, klev  , kblks, nqtendphy+nart_tendphy+ncomin_tendphy_turb /)
     ELSE
-     shape4d    = (/nproma, klev  , kblks, nqtendphy /)
+     shape4d    = (/nproma, klev  , kblks, nqtendphy+ncomin_tendphy_turb /)
     ENDIF 
       
     ! dimension of convective tracer field
-    ntr_conv = nqtendphy
+    ntr_conv = nqtendphy + ncomin_tendphy_conv
     IF (lart)                                        ntr_conv = ntr_conv + nart_tendphy
     IF (atm_phy_nwp_config(k_jg)%ldetrain_conv_prec) ntr_conv = ntr_conv + 2 ! plus qr and qs
 
@@ -5911,9 +5949,9 @@ SUBROUTINE new_nwp_phy_tend_list( k_jg, klev,  kblks,   &
     __acc_attach(phy_tend%ddt_tracer_turb)
 
     IF (lart) THEN
-     ktracer=nqtendphy+nart_tendphy
+     ktracer=nqtendphy+nart_tendphy+ncomin_tendphy_turb
     ELSE
-     ktracer=nqtendphy
+     ktracer=nqtendphy+ncomin_tendphy_turb
     ENDIF
     ALLOCATE( phy_tend%tracer_turb_ptr(ktracer) )
     !$ACC ENTER DATA CREATE(phy_tend%tracer_turb_ptr)
@@ -5977,9 +6015,9 @@ SUBROUTINE new_nwp_phy_tend_list( k_jg, klev,  kblks,   &
     __acc_attach(phy_tend%ddt_tracer_pconv)
 
     IF (lart) THEN
-      ktracer=nqtendphy+nart_tendphy 
+      ktracer=nqtendphy+nart_tendphy+ncomin_tendphy_conv
     ELSE
-      ktracer=nqtendphy 
+      ktracer=nqtendphy+ncomin_tendphy_conv
     ENDIF
     IF (atm_phy_nwp_config(k_jg)%ldetrain_conv_prec) ktracer = ktracer+2
 

@@ -148,7 +148,7 @@ MODULE mo_name_list_output_init
     &                                             GRP_PREFIX, TILE_PREFIX,                        &
     &                                             t_fname_metadata, all_events, t_patch_info_ll,  &
     &                                             is_grid_info_var, GRB2_GRID_INFO_NAME,          &
-    &                                             t_event_data_local
+    &                                             t_event_data_local, FILETYPE_YAC
   USE mo_name_list_output_gridinfo,         ONLY: set_grid_info_grb2, set_grid_info_netcdf,       &
     &                                             collect_all_grid_info, copy_grid_info,          &
     &                                             allgather_grid_info, deallocate_all_grid_info,  &
@@ -177,7 +177,6 @@ MODULE mo_name_list_output_init
 #endif
 
 #if !defined (__NO_ICON_ATMO__) && !defined (__NO_ICON_OCEAN__)
-  USE mo_coupling_config,                   ONLY: is_coupled_run
   USE mo_master_control,                    ONLY: get_my_process_name
 #endif
 #ifdef HAVE_CDI_PIO
@@ -187,10 +186,11 @@ MODULE mo_name_list_output_init
   USE yaxt,                                 ONLY: xt_idxlist, &
        xt_idxvec_new, xt_idxlist_delete, xt_idxstripes_from_idxlist_new, &
        xt_int_kind, xt_idxstripes_new, xt_idxempty_new, xt_stripe
-#ifdef YAC_coupling
-  USE mo_io_coupling,     ONLY: construct_io_coupler
 #endif
-#endif
+  USE mo_timer,                             ONLY: ltimer, timer_start, &
+    &                                             timer_stop, timer_coupling
+  USE mo_coupling_config,                   ONLY: is_coupled_run
+  USE mo_dummy_coupling_frame,              ONLY: construct_dummy_coupling
   IMPLICIT NONE
 
   PRIVATE
@@ -1612,10 +1612,12 @@ CONTAINS
   SUBROUTINE init_cdipio_cb
     INTEGER :: dom_sim_step_info_jstep0
     TYPE(t_event_data_local) :: event_list_dummy(1)
-    
-#ifdef YAC_coupling
-    CALL construct_io_coupler ( "dummy" )
-#endif
+
+    IF (is_coupled_run()) THEN
+      IF (ltimer) CALL timer_start(timer_coupling)
+      CALL construct_dummy_coupling("name_list_output")
+      IF (ltimer) CALL timer_stop(timer_coupling)
+    END IF
 
     IF (p_pe_work == 0) THEN
       CALL p_recv(dom_sim_step_info_jstep0, p_source=0, p_tag=156, &
@@ -2704,8 +2706,14 @@ CONTAINS
           END SELECT
         CASE (FILETYPE_GRB2)
           ! handled later...
+        CASE (FILETYPE_YAC)
+#ifdef YAC_coupling
+           ! handled later...
+#else
+           CALL finish(routine,'using yac-coupled output but yac coupling is disabled')
+#endif
         CASE DEFAULT
-          CALL finish(routine, "Unknown grid type")
+          CALL finish(routine, "Unknown output_type")
         END SELECT
       END IF
 
@@ -3080,15 +3088,13 @@ CONTAINS
   !
   SUBROUTINE init_memory_window
 
-#ifdef __SUNPRO_F95
-    INCLUDE "mpif.h"
-#else
     USE mpi, ONLY: MPI_ADDRESS_KIND
 #ifdef NO_ASYNC_IO_RMA
     USE mpi, ONLY: MPI_REQUEST_NULL, MPI_MAX
+# ifndef NO_MPI_CHOICE_ARG
+    USE mpi, ONLY: MPI_Allreduce
+# endif
 #endif
-#endif
-! __SUNPRO_F95
 
     ! local variables
     CHARACTER(LEN=*), PARAMETER     :: routine = modname//"::init_memory_window"
@@ -3180,12 +3186,13 @@ CONTAINS
   !  @note Implementation for non-Cray pointers
   !
   SUBROUTINE allocate_mem_noncray(mem_size, of)
-#ifdef __SUNPRO_F95
-    INCLUDE "mpif.h"
-#else
-    USE mpi, ONLY: MPI_ADDRESS_KIND, MPI_INFO_NULL
+    USE mpi, ONLY: MPI_ADDRESS_KIND, MPI_INFO_NULL, MPI_Type_get_extent
+#ifndef NO_MPI_CHOICE_ARG
+    USE mpi, ONLY: MPI_Win_create
 #endif
-! __SUNPRO_F95
+#ifndef NO_MPI_CPTR_ARG
+    USE mpi, ONLY: MPI_Alloc_mem
+#endif
 
     INTEGER (KIND=MPI_ADDRESS_KIND), INTENT(IN)    :: mem_size
     TYPE (t_output_file),            INTENT(INOUT) :: of

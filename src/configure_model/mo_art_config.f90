@@ -51,6 +51,7 @@ MODULE mo_art_config
     INTEGER :: iart_init_aero            !< Initialization of aerosol species
     INTEGER :: iart_init_gas             !< Initialization of gaseous species
     INTEGER :: iart_fplume               !< run FPlume model (Volcanic plumes)
+    INTEGER :: iart_volc_numb            !< number of volcanoes in FPlume
     CHARACTER(LEN=IART_PATH_LEN)  ::   &
       &  cart_fplume_inp                 !< Path to FPlume input files (insert without extension)
     LOGICAL :: lart_diag_out             !< Enable output of diagnostic fields
@@ -106,6 +107,7 @@ MODULE mo_art_config
     INTEGER :: iart_volcano            !< Treatment of volcanic ash aerosol
     INTEGER :: iart_nonsph             !< Treatment of nonspherical particles
     INTEGER :: iart_isorropia          !< Treatment of gas aerosol partioning
+    INTEGER :: iart_seas_water    !< Calculation of seasalt water content
     CHARACTER(LEN=IART_PATH_LEN) :: &
       &  cart_volcano_file             !< Absolute path + filename of input file for volcanoes
     INTEGER :: iart_radioact           !< Treatment of radioactive particles

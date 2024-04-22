@@ -35,7 +35,7 @@ MODULE mo_pp_tasks
     & TASK_COMPUTE_DBZCMAX, TASK_COMPUTE_DBZ850,                      &
     & TASK_COMPUTE_DBZLMX_LOW, TASK_COMPUTE_SRH, TASK_COMPUTE_VIS,    &
     & TASK_COMPUTE_WSHEAR_U, TASK_COMPUTE_WSHEAR_V,                   &
-    & TASK_COMPUTE_LAPSERATE,                                         &
+    & TASK_COMPUTE_LAPSERATE, TASK_COMPUTE_MCONV,                     &
     & TASK_INTP_VER_ZLEV,                                             &
     & TASK_INTP_VER_ILEV,                                             &
     & PRES_MSL_METHOD_SAI, PRES_MSL_METHOD_GME, max_dom,              &
@@ -89,6 +89,7 @@ MODULE mo_pp_tasks
     &                                   compute_field_dbzcmax,                   &
     &                                   compute_field_smi,                       &
     &                                   compute_field_lapserate,                 &
+    &                                   compute_field_mconv,                     &
     &                                   compute_field_srh,                       &
     &                                   compute_field_wshear
   USE mo_io_config,               ONLY: itype_pres_msl, itype_rh,                &
@@ -1483,6 +1484,12 @@ CONTAINS
 #endif
       CALL compute_field_lapserate( p_patch, ptr_task%data_input%p_nh_state%metrics, &
            &                        p_diag, 500e2_wp, 850e2_wp, out_var%r_ptr(:,:,out_var_idx,1,1) )
+    CASE (TASK_COMPUTE_MCONV)
+#ifdef _OPENACC
+      CALL finish(routine, 'not yet ported postproc TASK_COMPUTE_MCONV for variable '//TRIM(p_info%name) )
+#endif
+      CALL compute_field_mconv( p_patch, p_int_state(jg), ptr_task%data_input%p_nh_state%metrics, &
+           &                    p_prog, p_prog_rcf, 0.0_wp, 1000.0_wp, out_var%r_ptr(:,:,out_var_idx,1,1) )
 
     CASE (TASK_COMPUTE_SRH)
 #ifdef _OPENACC

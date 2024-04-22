@@ -46,7 +46,7 @@ MODULE mo_ext_data_state
   USE mo_initicon_config,    ONLY: icpl_da_seaice, icpl_da_snowalb
   USE mo_lnd_nwp_config,     ONLY: ntiles_total, ntiles_water, llake,       &
     &                              sstice_mode, lterra_urb
-  USE mo_atm_phy_nwp_config, ONLY: iprog_aero
+  USE mo_atm_phy_nwp_config, ONLY: iprog_aero, atm_phy_nwp_config
   USE mo_radiation_config,   ONLY: irad_o3, albedo_type, islope_rad
   USE mo_extpar_config,      ONLY: i_lctype, nclass_lu, nhori,              &
     &                              nmonths_ext, itype_vegetation_cycle, itype_lwemiss
@@ -320,6 +320,7 @@ CONTAINS
       &     p_ext_atm%albni_dif,       &
       &     p_ext_atm%lsm_ctr_c,       &
       &     p_ext_atm%lsm_switch,      &
+      &     p_ext_atm%cdnc,            &
       &     p_ext_atm%elevation_c      )
 
 
@@ -392,7 +393,8 @@ CONTAINS
         grib2_desc = grib2_var( 0,199, 1, ibits, GRID_UNSTRUCTURED, GRID_CELL)
         CALL add_var( p_ext_atm_list, 'horizon', p_ext_atm%horizon,     &
           &           GRID_UNSTRUCTURED_CELL, ZA_REFERENCE, cf_desc,    &
-          &           grib2_desc, ldims=shape3d_sfc_sec, loutput=.TRUE. )
+          &           grib2_desc, ldims=shape3d_sfc_sec, loutput=.TRUE., lopenacc=.TRUE.)
+        __acc_attach(p_ext_atm%horizon)
         CALL message(routine, 'adding skyview factor')
         ! geometric sky-view factor scaled with sinus(horizon)**2
         !
@@ -1560,6 +1562,17 @@ CONTAINS
 
       END IF  ! albedo_type
 
+      ! cloud droplet climatology (2d array without time coordinate)
+      IF ( atm_phy_nwp_config(jg)%icpl_aero_gscp == 3  ) THEN
+        cf_desc    = t_cf_var('Cloud_droplet_number_from_climatology', '-',         &
+             &                'Cloud droplet number from climatology', datatype_flt)
+        grib2_desc = grib2_var(255, 255, 255, ibits, GRID_UNSTRUCTURED, GRID_CELL)
+        CALL add_var( p_ext_atm_list, 'cdnc_climatology', p_ext_atm%cdnc,           &
+             &           GRID_UNSTRUCTURED_CELL, ZA_SURFACE, cf_desc, grib2_desc,   &
+             &           ldims=shape2d_c, loutput=.FALSE., lopenacc=.TRUE.          )
+        __acc_attach(p_ext_atm%cdnc)
+      ENDIF
+
     ELSE ! iforcing /= inwp
 
       ! notsea  p_ext_atm%fr_land(nproma,nblks_c)
@@ -1795,7 +1808,17 @@ CONTAINS
       &           isteptype=TSTEP_AVG, lopenacc=.TRUE. )  ! Meta info constituentType missing
     __acc_attach(p_ext_atm_td%aer_ss)
 
-
+    IF ( atm_phy_nwp_config(jg)%icpl_aero_gscp == 3  ) THEN
+      ! cloud droplet number climatology
+      cf_desc    = t_cf_var('cdnc', '-',                                     &
+        &                   'cloud droplet number climatology', datatype_flt)
+      grib2_desc = grib2_var( 255, 255, 255, ibits, GRID_UNSTRUCTURED, GRID_CELL)
+      CALL add_var( p_ext_atm_td_list, 'cdnc', p_ext_atm_td%cdnc,            &
+        &           GRID_UNSTRUCTURED_CELL, ZA_SURFACE, cf_desc, grib2_desc, &
+        &           ldims=shape3d_c, loutput=.FALSE.,                        &
+        &           isteptype=TSTEP_AVG, lopenacc=.TRUE. )  ! Meta info constituentType missing
+      __acc_attach(p_ext_atm_td%cdnc)
+    END IF
 
     !--------------------------------
     ! vegetation parameters

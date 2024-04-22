@@ -1,8 +1,6 @@
 !
 ! Module containing thermodynamic functions used by the AES department in MPI-M
 !
-! Code slightly refactored from gscp_graupel (DWD)
-!
 ! ICON
 !
 ! ---------------------------------------------------------------
@@ -98,7 +96,7 @@ CONTAINS
 
   SUBROUTINE graupel(nvec, ke, ivstart, ivend, kstart,        & !! start/end indicies
              dt, dz, t, p, rho, qv, qc, qi, qr, qs, qg, qnc,  & !! prognostic variables
-             prr_gsp, pri_gsp, prs_gsp, prg_gsp, pflx        )  !  total precipitation flux
+             prr_gsp, pri_gsp, prs_gsp, prg_gsp, pflx, pre_gsp)  !  total precipitation flux
 
   INTEGER, INTENT(IN) ::  &
     nvec      , & !> number of horizontal points
@@ -130,13 +128,14 @@ CONTAINS
     qnc           !! cloud number concentration
 
   REAL(KIND=wp), DIMENSION(:,:), INTENT(OUT) ::   &   ! dim (ie,ke)
-    pflx          ! total precipitation flux 
+    pflx          !! total precipitation flux 
 
   REAL(KIND=wp), TARGET, DIMENSION(:), INTENT(OUT) ::   &   ! dim (ie)
     prr_gsp   , & !> precipitation rate of rain, grid-scale        (kg/(m2*s))
     pri_gsp   , & !> precipitation rate of ice, grid-scale         (kg/(m2*s))
     prs_gsp   , & !! precipitation rate of snow, grid-scale        (kg/(m2*s))
-    prg_gsp       !! precipitation rate of graupel, grid-scale     (kg/(m2*s))
+    prg_gsp   , & !! precipitation rate of graupel, grid-scale     (kg/(m2*s))
+    pre_gsp       !! energy flux at sfc from precipitation         (W/m2)
 
   LOGICAL :: is_sig_present(nvec*ke) ! is snow, ice or graupel present? 
 
@@ -170,7 +169,7 @@ CONTAINS
 
   !$ACC DATA &
   !$ACC   PRESENT(dz, t, p, rho, qv, qc, qi, qr, qs, qg, qnc) &
-  !$ACC   PRESENT(prr_gsp, prs_gsp, pri_gsp, prg_gsp, pflx) &
+  !$ACC   PRESENT(prr_gsp, prs_gsp, pri_gsp, prg_gsp, pflx, pre_gsp) &
   !$ACC   COPYIN(jmx_) &
   !$ACC   CREATE(is_sig_present, ind_k, ind_i, kmin, eflx, vt)
 
@@ -183,7 +182,8 @@ CONTAINS
   END DO
 
   !jmx=0
-  !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1)
+  !ACCWA: Cray compiler (16.0.1) treats jmx_ firstprivate unless it is explicitly present
+  !$ACC PARALLEL DEFAULT(PRESENT) PRESENT(jmx_) ASYNC(1)
   !$ACC LOOP SEQ
   DO  k = ke,kstart,-1
     !$ACC LOOP GANG VECTOR PRIVATE(jmx, iqx)
@@ -212,7 +212,8 @@ CONTAINS
   END DO
   !$ACC END PARALLEL
 
-  !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1)
+  !ACCWA: Cray compiler (16.0.1) treats jmx_ firstprivate unless it is explicitly present
+  !$ACC PARALLEL DEFAULT(PRESENT) PRESENT(jmx_) ASYNC(1)
   !$ACC LOOP GANG VECTOR &
   !$ACC   PRIVATE(sink, dqdt, sx2x) &
   !$ACC   PRIVATE(k, iv) &
@@ -314,7 +315,10 @@ CONTAINS
     !$ACC   PRIVATE(kp1, qliq, qice, e_int, zeta, xrho, vc) &
     !$ACC   PRIVATE(ix, iqx, update)
     DO iv = ivstart, ivend  
-      IF (k==kstart) eflx(iv) = 0.0_wp
+      IF (k==kstart) THEN
+        eflx(iv)    = 0.0_wp
+        pre_gsp(iv) = 0.0_wp
+      END IF
       kp1 = min(ke    ,k+1)
 
       IF( k >= MINVAL(kmin(iv,:)) )THEN
@@ -366,6 +370,9 @@ CONTAINS
         qice       = q(lqs)%x(iv,k) + q(lqi)%x(iv,k) + q(lqg)%x(iv,k)
         e_int      = e_int - eflx(iv)
         t(iv,k)    = T_from_internal_energy(e_int,qv(iv,k),qliq,qice,rho(iv,k),dz(iv,k))
+        IF (k == ke) THEN
+          pre_gsp(iv) = eflx(iv)/dt
+        ENDIF
       ENDIF
     END DO
   END DO

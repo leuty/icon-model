@@ -18,17 +18,18 @@ MODULE mo_nml_crosscheck
   USE, INTRINSIC :: iso_c_binding, ONLY: c_int64_t
   USE mo_kind,                     ONLY: wp
   USE mo_exception,                ONLY: message, message_text, finish
-  USE mo_impl_constants,           ONLY: inwp, tracer_only, inh_atmosphere,                &
-    &                                    iaes, RAYLEIGH_CLASSIC, inoforcing,               &
-    &                                    icosmo, iprog, MODE_IAU, MODE_IAU_OLD,            &
+  USE mo_impl_constants,           ONLY: inwp, tracer_only,                                &
+    &                                    iaes, RAYLEIGH_CLASSIC, INOFORCING,               &
+    &                                    icosmo, MODE_IAU, MODE_IAU_OLD,                   &
     &                                    max_echotop, max_wshear, max_srh,                 &
-    &                                    LSS_JSBACH, LSS_TERRA, ivdiff
+    &                                    LSS_JSBACH, ivdiff, IHELDSUAREZ, ILDF_DRY
   USE mo_time_config,              ONLY: time_config, dt_restart
   USE mo_extpar_config,            ONLY: itopo
   USE mo_io_config,                ONLY: dt_checkpoint, lnetcdf_flt64_output, echotop_meta,&
     &                                    wshear_uv_heights, n_wshear, srh_heights, n_srh
   USE mo_parallel_config,          ONLY: check_parallel_configuration,                     &
     &                                    ignore_nproma_use_nblocks_c,                      &
+    &                                    ignore_nproma_use_nblocks_e,                      &
     &                                    num_io_procs,                                     &
     &                                    num_prefetch_proc, use_dp_mpi2io, num_io_procs_radar
   USE mo_limarea_config,           ONLY: latbc_config, LATBC_TYPE_CONST, LATBC_TYPE_EXT
@@ -37,7 +38,7 @@ MODULE mo_nml_crosscheck
     &                                    ltransport, ltestcase, ltimer,                    &
     &                                    activate_sync_timers, timers_level, lart,         &
     &                                    msg_level, luse_radarfwo
-  USE mo_dynamics_config,          ONLY: iequations, ldeepatmo, lmoist_thdyn
+  USE mo_dynamics_config,          ONLY: ldeepatmo, lmoist_thdyn
   USE mo_advection_config,         ONLY: advection_config
   USE mo_nonhydrostatic_config,    ONLY: itime_scheme_nh => itime_scheme,                  &
     &                                    rayleigh_type, ivctype, iadv_rhotheta
@@ -73,7 +74,6 @@ MODULE mo_nml_crosscheck
   USE mo_event_manager,            ONLY: initEventManager
   USE mtime,                       ONLY: getTotalMilliSecondsTimeDelta, datetime,          &
     &                                    newDatetime, deallocateDatetime
-  USE mo_gridref_config,           ONLY: grf_intmethod_e
   USE mo_sleve_config,             ONLY: itype_laydistr, flat_height, top_height
   USE mo_nudging_config,           ONLY: nudging_config, indg_type
   USE mo_nwp_tuning_config,        ONLY: itune_gust_diag
@@ -140,11 +140,11 @@ CONTAINS
     CALL check_parallel_configuration()
 
     !
-    ! nblock_c does not work with nesting
+    ! nblocks_c or nblocks_e does not work with nesting
     ! It crashes and would be a waste of memory, if the nest were significant smaller than the parent.
     !
-    IF (ignore_nproma_use_nblocks_c .AND. (n_dom > 1)) CALL finish(routine, &
-      'Currently nblocks_c (>0) is not supported for nested domains.')
+    IF ((ignore_nproma_use_nblocks_c .OR. ignore_nproma_use_nblocks_e) .AND. (n_dom > 1)) CALL finish(routine, &
+      'Currently nblocks_c or nblocks_e (>0) is not supported for nested domains.')
 
     !--------------------------------------------------------------------
     ! Limited Area Mode and LatBC read-in:
@@ -230,9 +230,13 @@ CONTAINS
         & 'surface scheme must be switched off, when running the APE test')
     ENDIF
 
-    IF ( nh_test_name=='HS_nh'.AND. lmoist_thdyn ) THEN
-      CALL finish(routine, &
-        & 'lmoist_thdyn must be .FALSE. when running the Held-Suarez test')
+    IF ( lmoist_thdyn ) THEN
+      SELECT CASE (iforcing)
+      CASE(IHELDSUAREZ,INOFORCING,ILDF_DRY)     
+        CALL message(routine, &
+           'lmoist_thdyn is reset to false .FALSE. because a dry model configuration is used')
+        lmoist_thdyn = .FALSE.
+      END SELECT
     ENDIF
 
     !--------------------------------------------------------------------
@@ -264,15 +268,9 @@ CONTAINS
     !--------------------------------------------------------------------
     ! Nonhydrostatic atm
     !--------------------------------------------------------------------
-    IF (grf_intmethod_e == 6 .AND. iequations /= INH_ATMOSPHERE .AND. n_dom > 1) THEN
-      grf_intmethod_e = 4
-      CALL message( routine, 'grf_intmethod_e has been reset to 4')
-    ENDIF
 
     IF (ldeepatmo) THEN
-      IF (iequations /= INH_ATMOSPHERE) THEN
-        CALL finish(routine, 'Deep-atmosphere configuration requires non-hydrostatic dynamics')
-      ELSEIF (.NOT. ANY([inoforcing, inwp, iaes] == iforcing)) THEN
+      IF (.NOT. ANY([inoforcing, inwp, iaes] == iforcing)) THEN
         CALL finish(routine, 'Deep-atmosphere configuration: incompatible iforcing')
       ELSEIF (ltestcase .AND. TRIM(nh_test_name) /= 'dcmip_bw_11') THEN
         CALL finish(routine, 'Deep-atmosphere configuration: the only supported testcase is "dcmip_bw_11"')
@@ -286,9 +284,6 @@ CONTAINS
     !--------------------------------------------------------------------
     ! Atmospheric physics, general
     !--------------------------------------------------------------------
-    IF ((iforcing==INWP).AND.(iequations/=INH_ATMOSPHERE)) &
-    CALL finish( routine, 'NWP physics only implemented in the '//&
-               'nonhydrostatic atm model')
 
 #ifdef __NO_AES__
     IF ( iforcing==iaes ) &
@@ -370,9 +365,10 @@ CONTAINS
             CALL finish(routine,'irad_aero=6 (Tegen) requires itopo=1')
           ENDIF
 
-          IF ( ( irad_aero /= iRadAeroTegen .AND. irad_aero /= iRadAeroART ) .AND.  &
+          IF ( .NOT. ANY ( irad_aero ==  (/iRadAeroTegen, iRadAeroART, iRadAeroConstKinne, iRadAeroKinne,   &
+                           iRadAeroVolc, iRadAeroKinneVolc, iRadAeroKinneVolcSP, iRadAeroKinneSP/) ) .AND.  &
             &  ( atm_phy_nwp_config(jg)%icpl_aero_gscp > 0 .OR. icpl_aero_conv > 0 ) ) THEN
-            CALL finish(routine,'aerosol-precipitation coupling requires irad_aero=6 (Tegen) or =9 (ART)')
+            CALL finish(routine,'aerosol-precipitation coupling requires irad_aero=6, 9, 12, 13, 14, 15, 18 or 19')
           ENDIF
 
           ! Kinne, CMIP6 volcanic aerosol only work with ecRad
@@ -401,8 +397,8 @@ CONTAINS
               &  CALL finish(routine,'For inwp_radiation = 4, irad_ch4 has to be 0, 2, 3 or 4')
             IF (.NOT. ANY( irad_n2o     == (/0,2,3,4/)     ) ) &
               &  CALL finish(routine,'For inwp_radiation = 4, irad_n2o has to be 0, 2, 3 or 4')
-            IF (.NOT. ANY( irad_o3      == (/0,5,7,9,11,79,97/) ) ) &
-              &  CALL finish(routine,'For inwp_radiation = 4, irad_o3 has to be 0, 5, 7, 9, 11, 79 or 97')
+            IF (.NOT. ANY( irad_o3      == (/0,5,7,9,10,11,79,97/) ) ) &
+              &  CALL finish(routine,'For inwp_radiation = 4, irad_o3 has to be 0, 5, 7, 9, 10, 11, 79 or 97')
             IF (.NOT. ANY( irad_o2      == (/0,2/)         ) ) &
               &  CALL finish(routine,'For inwp_radiation = 4, irad_o2 has to be 0 or 2')
             IF (.NOT. ANY( irad_cfc11   == (/0,2,4/)       ) ) &
@@ -549,31 +545,30 @@ CONTAINS
         END SELECT
 
       ENDDO
-    END IF
 
 #ifdef _OPENACC
     IF ( irad_aero == iRadAeroCAMSclim) THEN
         CALL finish(routine,'CAMS 3D climatology irad_aero=7 is currently not supported on GPU.')
     END IF
+    IF ( atm_phy_nwp_config(jg)%icpl_aero_gscp == 3 ) THEN
+        CALL finish(routine,'Using cloud-droplet number climatology icpl_aero_gscp = 3 is currently not supported on GPU.')
+    END IF
 #endif
+
+    END IF
 
     !--------------------------------------------------------------------
     ! Tracers and diabatic forcing
     !--------------------------------------------------------------------
 
     ! General
-    SELECT CASE (iequations)
-    CASE (INH_ATMOSPHERE)
-      IF ((itime_scheme_nh==tracer_only) .AND. (.NOT.ltransport)) THEN
-        WRITE(message_text,'(A,i2,A)') &
-          'nonhydrostatic_nml:itime_scheme set to ', tracer_only, &
-          '(TRACER_ONLY), but ltransport to .FALSE.'
-        CALL finish( routine,message_text)
-      END IF
+    IF ((itime_scheme_nh==tracer_only) .AND. (.NOT.ltransport)) THEN
+      WRITE(message_text,'(A,i2,A)') &
+        'nonhydrostatic_nml:itime_scheme set to ', tracer_only, &
+        '(TRACER_ONLY), but ltransport to .FALSE.'
+      CALL finish( routine,message_text)
+    END IF
 
-    CASE default
-      CALL finish(routine, 'iequations /= INH_ATMOSPHERE no longer supported')
-    END SELECT
 
 
 #ifdef _OPENACC
@@ -927,11 +922,12 @@ CONTAINS
           &   art_config(jg)%iart_init_aero >  0  .OR.  &
           &   art_config(jg)%iart_radioact  >  0  .OR.  &
           &   art_config(jg)%iart_seasalt   >  0  .OR.  &
-          &   art_config(jg)%iart_volcano   >  0  .OR.  &
-          &   art_config(jg)%lart_chem            .OR.  &
-          &   art_config(jg)%lart_chemtracer            ) THEN
+          &   art_config(jg)%iart_volcano   >  0  ) THEN
         CALL finish(routine,  &
           &  'mo_nml_crosscheck: art_crosscheck: some activated art switches are currently not supported on GPU.')
+      ELSEIF (    art_config(jg)%lart_chem            .OR.  &
+              &   art_config(jg)%lart_chemtracer            ) THEN 
+        CALL message(routine, 'WARNING: The switches lartchem and lart_chemtracer are not supported on GPU. Use them at your own risk. However, using this with OEM-specific cases is safe at the moment.') 
       END IF
     ENDDO
 #endif
@@ -972,10 +968,9 @@ CONTAINS
       num_io_procs_radar = 0
     END IF
 
-    IF ( (iforcing /= INWP .OR. iequations /= INH_ATMOSPHERE) .AND. ANY(luse_radarfwo) ) THEN
+    IF ( iforcing /= INWP .AND. ANY(luse_radarfwo) ) THEN
       errstring(:) = ' '
-      WRITE (errstring, '(a,i2,a,i2)') 'luse_radarfwo = .true. is only possible for NWP physics iforcing = ', INWP, &
-           ' and non-hydrostatic equations iequations = ', INH_ATMOSPHERE
+      WRITE (errstring, '(a,i2)') 'luse_radarfwo = .true. is only possible for NWP physics iforcing = ', INWP
       CALL finish(routine, 'run_nml: '//TRIM(errstring))
     END IF
 

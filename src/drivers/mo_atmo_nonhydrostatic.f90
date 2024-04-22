@@ -42,6 +42,7 @@ USE mo_run_config,           ONLY: dtime,                & !    namelist paramet
   &                                iqc, iqt,             &
   &                                ico2, io3,            &
   &                                number_of_grid_used
+USE mo_lnd_nwp_config,       ONLY: lseaice
 USE mo_initicon_config,      ONLY: pinit_seed, pinit_amplitude, init_mode, iterate_iau
 USE mo_nh_testcases,         ONLY: init_nh_testcase, init_nh_testcase_scm
 USE mo_nh_testcases_nml,     ONLY: nh_test_name
@@ -79,6 +80,8 @@ USE mo_nh_stepping,          ONLY: perform_nh_stepping
 ! Initialization with real data
 USE mo_initicon,            ONLY: init_icon
 USE mo_ext_data_state,      ONLY: ext_data
+! Community Interface (ComIn)
+USE mo_comin_config,        ONLY: configure_comin
 ! meteogram output
 USE mo_meteogram_output,    ONLY: meteogram_init, meteogram_finalize
 USE mo_meteogram_config,    ONLY: meteogram_output_config
@@ -158,7 +161,7 @@ USE mo_mpi,                 ONLY: my_process_is_stdio, p_comm_work_only, my_proc
 USE mo_var_list_register_utils, ONLY: vlr_print_groups
 USE mo_sync,                ONLY: sync_patch_array, sync_c
 USE mo_nudging_config,      ONLY: l_global_nudging
-USE mo_random_util,         ONLY: add_random_noise
+USE mo_random_util,         ONLY: add_random_noise_3d, add_random_noise_2d
 
 USE mo_icon2dace,           ONLY: init_dace, finish_dace
 
@@ -167,7 +170,29 @@ USE mo_icon2dace,           ONLY: init_dace, finish_dace
   USE mo_impl_constants,      ONLY: pio_type_cdipio
   USE mo_parallel_config,     ONLY: pio_type
   USE mo_cdi,                 ONLY: namespaceGetActive, namespaceSetActive
-  USE mo_cdi_pio_interface,         ONLY: nml_io_cdi_pio_namespace
+  USE mo_cdi_pio_interface,   ONLY: nml_io_cdi_pio_namespace
+#endif
+
+  ! coupling
+  USE mo_timer,               ONLY: ltimer, timer_start, timer_stop, &
+    &                               timer_coupling
+  USE mo_coupling_config,     ONLY: is_coupled_run
+  USE mo_atmo_coupling_frame, ONLY: construct_atmo_coupling, &
+    &                               destruct_atmo_coupling
+
+#ifndef __NO_ICON_COMIN__
+  USE comin_host_interface, ONLY: EP_SECONDARY_CONSTRUCTOR,           &
+    &                             EP_ATM_INIT_FINALIZE,               &
+    &                             EP_DESTRUCTOR,                      &
+    &                             comin_var_list_finalize,            &
+    &                             comin_descrdata_finalize,           &
+    &                             comin_setup_finalize,               &
+    &                             COMIN_DOMAIN_OUTSIDE_LOOP
+  USE mo_comin_adapter,     ONLY: icon_append_comin_variables,        &
+    &                             icon_append_comin_tracer_variables, &
+    &                             icon_append_comin_tracer_phys_tend, &
+    &                             icon_expose_variables,              &
+    &                             icon_call_callback
 #endif
 
 
@@ -181,9 +206,9 @@ PUBLIC :: construct_atmo_nonhydrostatic, destruct_atmo_nonhydrostatic
 CONTAINS
 
   !---------------------------------------------------------------------
-  SUBROUTINE atmo_nonhydrostatic(latbc)
-    TYPE(t_latbc_data)           :: latbc   !< data structure for async latbc prefetching
+  SUBROUTINE atmo_nonhydrostatic()
 
+    TYPE(t_latbc_data)           :: latbc   !< data structure for async latbc prefetching
     INTEGER                      :: iter
     TYPE(t_time_config), TARGET  :: time_config_iau
     TYPE(t_time_config), POINTER :: ptr_time_config  => NULL()
@@ -191,6 +216,20 @@ CONTAINS
     CLASS(t_RestartDescriptor), POINTER  :: restartDescriptor
 
     CHARACTER(*), PARAMETER :: routine = "atmo_nonhydrostatic"
+    INTEGER :: ierr
+
+
+    ! construct the atmospheric nonhydrostatic model
+    CALL construct_atmo_nonhydrostatic(latbc)
+
+    !---------------------------------------------------------------------
+    ! construct the coupler
+    !---------------------------------------------------------------------
+    IF ( is_coupled_run() ) THEN
+      IF (ltimer) CALL timer_start(timer_coupling)
+      CALL construct_atmo_coupling(p_patch(1:))
+      IF (ltimer) CALL timer_stop(timer_coupling)
+    ENDIF
 
     !------------------------------------------------------------------
     ! Now start the time stepping:
@@ -244,6 +283,26 @@ CONTAINS
 
     CALL deleteRestartDescriptor(restartDescriptor)
 
+#ifndef __NO_ICON_COMIN__
+    CALL icon_call_callback(EP_DESTRUCTOR, COMIN_DOMAIN_OUTSIDE_LOOP)
+
+    CALL comin_var_list_finalize(ierr)
+    IF (ierr /= 0) STOP
+    CALL comin_descrdata_finalize(ierr)
+    IF (ierr /= 0) STOP
+    CALL comin_setup_finalize(ierr)
+    IF (ierr /= 0) STOP
+#endif
+
+    !---------------------------------------------------------------------
+    ! construct the coupler
+    !---------------------------------------------------------------------
+    IF ( is_coupled_run() ) THEN
+      IF (ltimer) CALL timer_start(timer_coupling)
+      CALL destruct_atmo_coupling()
+      IF (ltimer) CALL timer_stop(timer_coupling)
+    ENDIF
+
     !---------------------------------------------------------------------
     ! Integration finished. Clean up.
     !---------------------------------------------------------------------
@@ -263,7 +322,6 @@ CONTAINS
     TYPE(t_sim_step_info) :: sim_step_info  
     REAL(wp) :: sim_time
     TYPE(t_key_value_store), POINTER :: restartAttributes
-    LOGICAL :: lrestart
     CHARACTER(LEN=filename_max) :: model_base_dir
     INTEGER :: seed_size, i
     INTEGER, ALLOCATABLE :: seed(:)
@@ -297,7 +355,7 @@ CONTAINS
       CALL init_index_lists (p_patch(1:), ext_data)
 #endif
 
-      CALL configure_atm_phy_nwp(n_dom, p_patch(1:), dtime)
+      CALL configure_atm_phy_nwp(n_dom, p_patch(1:), time_config)
 
       CALL configure_synsat()
 
@@ -381,7 +439,6 @@ CONTAINS
 ! Upper atmosphere
 
     model_base_dir = getModelBaseDir()
-    lrestart       = isRestart()
 
     CALL configure_upatmo( n_dom_start, n_dom, p_patch(n_dom_start:), isRestart(), atm_phy_nwp_config(:)%lupatmo_phy,      &
       &                    init_mode, iforcing, time_config%tc_exp_startdate, time_config%tc_exp_stopdate, start_time(:),  & 
@@ -393,6 +450,28 @@ CONTAINS
 #ifndef __NO_ICON_UPATMO__
 ! Create state only if enabled
     CALL construct_upatmo_state( n_dom, nproma, p_patch(1:), upatmo_config(1:), upatmo_phy_config(1:), vct_a )
+#endif
+
+#ifndef __NO_ICON_COMIN__
+    ! ----------------------------------------------------------
+    ! UNDER DEVELOPMENT (ICON ComIn)
+    !
+    ! loop over the total list of additional requested variables and
+    ! perform `add_var` / `add_ref` operations needed.
+    ! remark: variables are added to a separate variable list.
+    CALL icon_append_comin_tracer_variables(p_patch(1:), p_nh_state, p_nh_state_lists)
+    CALL icon_append_comin_tracer_phys_tend(p_patch(1:))
+    CALL icon_append_comin_variables(p_patch(1:))
+
+    ! expose ICON's variables to the ComIn infrastructure.
+
+    CALL icon_expose_variables()
+
+    ! call to secondary constructor
+    !   third party modules retrieve pointers to data arrays, telling
+    !   ICON ComIn about the context where these will be accessed.
+    CALL icon_call_callback(EP_SECONDARY_CONSTRUCTOR, COMIN_DOMAIN_OUTSIDE_LOOP)
+    ! ----------------------------------------------------------
 #endif
 
 #ifdef MESSY
@@ -574,26 +653,31 @@ CONTAINS
         CALL RANDOM_SEED(PUT = seed)
 
         DO jg=1,n_dom
-          CALL add_random_noise(p_patch(jg)%cells%all, pinit_amplitude, &
-                                p_nh_state(jg)%prog(nnow(jg))%w)
-          CALL add_random_noise(p_patch(jg)%edges%all, pinit_amplitude, &
-                                p_nh_state(jg)%prog(nnow(jg))%vn)
-          CALL add_random_noise(p_patch(jg)%cells%all, pinit_amplitude, &
-                                p_nh_state(jg)%prog(nnow(jg))%theta_v)
-          CALL add_random_noise(p_patch(jg)%cells%all, pinit_amplitude, &
-                                p_nh_state(jg)%prog(nnow(jg))%exner)
-          CALL add_random_noise(p_patch(jg)%cells%all, pinit_amplitude, &
-                                p_nh_state(jg)%prog(nnow(jg))%rho)
+          CALL add_random_noise_3d(p_patch(jg)%cells%all, pinit_amplitude, &
+                                   p_nh_state(jg)%prog(nnow(jg))%w)
+          CALL add_random_noise_3d(p_patch(jg)%edges%all, pinit_amplitude, &
+                                   p_nh_state(jg)%prog(nnow(jg))%vn)
+          CALL add_random_noise_3d(p_patch(jg)%cells%all, pinit_amplitude, &
+                                   p_nh_state(jg)%prog(nnow(jg))%theta_v)
+          CALL add_random_noise_3d(p_patch(jg)%cells%all, pinit_amplitude, &
+                                   p_nh_state(jg)%prog(nnow(jg))%exner)
+          CALL add_random_noise_3d(p_patch(jg)%cells%all, pinit_amplitude, &
+                                   p_nh_state(jg)%prog(nnow(jg))%rho)
+
+          IF (lseaice) THEN
+            CALL add_random_noise_2d(p_patch(jg)%cells%all, pinit_amplitude, &
+                                     p_lnd_state(jg)%prog_wtr(nnow_rcf(jg))%t_ice)
+          ENDIF
 
           IF (.NOT. ltestcase .OR. nh_test_name == 'dcmip_pa_12') THEN
-             CALL add_random_noise(p_patch(jg)%cells%all, pinit_amplitude, &
-                                   p_nh_state(jg)%prog(nnow_rcf(jg))%tracer(:,:,:,1))
+            CALL add_random_noise_3d(p_patch(jg)%cells%all, pinit_amplitude, &
+                                     p_nh_state(jg)%prog(nnow_rcf(jg))%tracer(:,:,:,1))
           ENDIF
 
           IF (iforcing == inwp ) THEN
             DO jt = 1, SIZE(p_lnd_state(jg)%prog_lnd(nnow_rcf(jg))%t_so_t,4)
-              CALL add_random_noise(p_patch(jg)%cells%all, pinit_amplitude, &
-                                p_lnd_state(jg)%prog_lnd(nnow_rcf(jg))%t_so_t(:,:,:,jt) )
+              CALL add_random_noise_3d(p_patch(jg)%cells%all, pinit_amplitude, &
+                                  p_lnd_state(jg)%prog_lnd(nnow_rcf(jg))%t_so_t(:,:,:,jt) )
             ENDDO
           ENDIF
 
@@ -682,6 +766,14 @@ CONTAINS
       IF (timers_level > 4) CALL timer_stop(timer_init_latbc)
     ENDIF
 
+
+    !------------------------------------------------------------------
+    ! Status output for the Community Interface (ComIn)
+    !------------------------------------------------------------------
+
+    CALL configure_comin()
+
+
     !------------------------------------------------------------------
     ! Prepare output file
     !------------------------------------------------------------------
@@ -729,7 +821,7 @@ CONTAINS
       sim_step_info%run_start = time_config%tc_startdate
       sim_step_info%restart_time = time_config%tc_stopdate
 
-      sim_step_info%dtime      = dtime
+      sim_step_info%dtime  = time_config%get_model_timestep_sec(p_patch(1)%nest_level)
       sim_step_info%jstep0 = 0
 
       CALL getAttributesForRestarting(restartAttributes)
@@ -781,6 +873,9 @@ CONTAINS
     CALL messy_init_tracer
 #endif
 
+#ifndef __NO_ICON_COMIN__
+    CALL icon_call_callback(EP_ATM_INIT_FINALIZE, COMIN_DOMAIN_OUTSIDE_LOOP)
+#endif
     ! Determine if temporally averaged vertically integrated moisture quantities need to be computed
 
     IF (iforcing == inwp) THEN

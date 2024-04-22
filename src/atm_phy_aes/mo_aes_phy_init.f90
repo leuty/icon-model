@@ -205,9 +205,9 @@ CONTAINS
 #ifndef __NO_RTE_RRTMGP__
       !
       ! Radiation constants for gas and cloud optics
-      CALL rte_rrtmgp_basic_setup(nproma, nlev, pressure_scale, droplet_scale,       &
-        &                    aes_cop_config(1)%cinhoml1 ,aes_cop_config(1)%cinhoml2, &
-        &                    aes_cop_config(1)%cinhoml3 ,aes_cop_config(1)%cinhomi)
+      CALL rte_rrtmgp_basic_setup(nproma, nlev, pressure_scale, droplet_scale,          &
+        &                         aes_cop_config(1)%cinhoml, aes_cop_config(1)%cinhomi, &
+        &                         aes_cop_config(1)%cinhoms)
 #endif
     END IF
 

@@ -1,20 +1,21 @@
-dnl ICON
-dnl
-dnl ---------------------------------------------------------------
-dnl Copyright (C) 2004-2024, DWD, MPI-M, DKRZ, KIT, ETH, MeteoSwiss
-dnl Contact information: icon-model.org
-dnl See AUTHORS.TXT for a list of authors
-dnl See LICENSES/ for license information
-dnl SPDX-License-Identifier: BSD-3-Clause
-dnl ---------------------------------------------------------------
-
+# ICON
+#
+# ---------------------------------------------------------------
+# Copyright (C) 2004-2024, DWD, MPI-M, DKRZ, KIT, ETH, MeteoSwiss
+# Contact information: icon-model.org
+#
+# See AUTHORS.TXT for a list of authors
+# See LICENSES/ for license information
+# SPDX-License-Identifier: BSD-3-Clause
+# ---------------------------------------------------------------
 AC_PREREQ([2.69])
 
 ACX_POLYMORPHIC_OPTION([enable], [fcgroup-*], [icon_fcgroups])
 
-AC_INIT([icon], [2.6.6], [], [icon-2.6.6])
+AC_INIT([icon], [2024.01], [], [icon-2024.01])
 
 AC_CONFIG_MACRO_DIR([m4])
+m4_pattern_forbid([^A[SC]?X_])dnl
 AC_CONFIG_AUX_DIR([utils])
 AC_CONFIG_SRCDIR([src/drivers/icon.f90])
 
@@ -198,6 +199,18 @@ AC_ARG_ENABLE([art],
   [AS_IF([test x"$enableval" != xno], [enable_art=yes])],
   [enable_art=no])
 
+AC_ARG_ENABLE([art-gpl],
+  [AS_HELP_STRING([--enable-art-gpl],
+     [enable GPL-licensed code parts of the ART component @<:@default=no@:>@])],
+  [AS_IF([test x"$enableval" != xno], [enable_art_gpl=yes])],
+  [enable_art_gpl=no])
+
+AC_ARG_ENABLE([comin],
+  [AS_HELP_STRING([--enable-comin],
+     [enable the ICON community interfaces @<:@default=no@:>@])],
+  [AS_IF([test x"$enableval" != xno], [enable_comin=yes])],
+  [enable_comin=no])
+
 AC_ARG_ENABLE([hd],
 [  --enable-hd             enable the Hydrological Discharge (HD) model. The
                           value of the argument must be one of the following
@@ -212,6 +225,13 @@ AC_ARG_ENABLE([hd],
 --enable-hd='$enableval'; valid values are '05deg', 'yes' (same dnl
 as '05deg'), '5min', 'no'])])],
 [enable_hd=no])
+
+AC_ARG_ENABLE([acm-license],
+  [AS_HELP_STRING([--enable-acm-license],
+     [enable code parts that require accepting the ACM Software License ]dnl
+[Agreement @<:@default=no@:>@])],
+  [AS_IF([test x"$enableval" != xno], [enable_acm_license=yes])],
+  [enable_acm_license=no])
 
 m4_divert_once([HELP_ENABLE], [[
 Infrastructural Features:]])
@@ -610,6 +630,14 @@ AC_ARG_WITH([external-fortran-support],
      [with_external_fortran_support=yes])],
   [with_external_fortran_support=no])
 
+AC_ARG_WITH([external-comin],
+  [AS_HELP_STRING([--with-external-comin],
+     [use external ComIn library @<:@default=no@:>@])],
+  [AS_IF([test x"$withval" != xno],
+     [with_external_comin=yes])],
+  [with_external_comin=no])
+
+
 ############################# CODEBASE EXTENSIONS ##############################
 
 AS_VAR_IF([enable_jsbach], [yes],
@@ -837,6 +865,21 @@ AS_VAR_IF([enable_art], [yes],
   [AS_VAR_APPEND([FCFLAGS],
      [" ${FC_PP_DEF}__ICON_ART ${FC_PP_DEF}__ART_TMP_IFDEF"])])
 
+AS_VAR_IF([enable_art_gpl], [yes],
+  [AS_VAR_IF([enable_art], [yes],
+     [AS_VAR_APPEND([FCFLAGS], [" ${FC_PP_DEF}__ART_GPL"])],
+     [AC_MSG_ERROR([unsupported combination of the configure options: you dnl
+are trying to configure with the GPL-licensed code parts of the ART dnl
+component but the ART component is disabled: either disable the the dnl
+GPL-licensed code of the component (--disable-art-gpl) or enable the ART dnl
+component (--enable-art)])])])
+
+AS_VAR_IF([enable_comin], [no],
+  [AS_VAR_APPEND([FCFLAGS], [" ${FC_PP_DEF}__NO_ICON_COMIN__"])])
+
+AS_VAR_IF([enable_acm_license], [yes],
+  [AS_VAR_APPEND([FCFLAGS], [" ${FC_PP_DEF}HAVE_ACM_LICENSE"])])
+
 AS_VAR_IF([enable_mpi], [no],
   [AS_VAR_APPEND([FCFLAGS], [" ${FC_PP_DEF}NOMPI"])])
 
@@ -904,7 +947,7 @@ AS_VAR_IF([enable_cuda_graphs], [yes],
   [icon_warn=yes
    AS_CASE(["$FC_VENDOR,$FC_VERSION"],
      [portland,nv:*],
-     [ACX_COMPARE_VERSION([$FC_VERSION" | cut -d: -f2"], [ge], [23.3],
+     [AX_COMPARE_VERSION([$FC_VERSION" | cut -d: -f2"], [ge], [23.3],
         [icon_warn=no])])
    AS_VAR_IF([icon_warn], [yes],
      [AC_MSG_WARN([Fortran compiler is not recognized as NVIDIA HPC Fortran dnl
@@ -1163,6 +1206,35 @@ required (--disable-mpi-rget)])
         [enable_mpi_rget=no])])
    AS_VAR_IF([enable_mpi_rget], [no],
      [AS_VAR_APPEND([FCFLAGS], [" ${FC_PP_DEF}NO_MPI_RGET"])])])
+dnl ######################################################################
+   AC_CACHE_CHECK(
+     [for interfaces for MPI routines with choice arguments],
+     [icon_cv_have_mpi_choice],
+     [AC_COMPILE_IFELSE([AC_LANG_PROGRAM([], [[
+       use mpi, only: mpi_send, mpi_integer, mpi_comm_world
+       implicit none
+       integer :: ierror
+       call mpi_send(0, 1, mpi_integer, 1, 0, mpi_comm_world, ierror)]])],
+       [icon_cv_have_mpi_choice=yes],
+       [icon_cv_have_mpi_choice=no])])
+    AS_VAR_IF([icon_cv_have_mpi_choice], [no],
+      [AS_VAR_APPEND([FCFLAGS], [" ${FC_PP_DEF}NO_MPI_CHOICE_ARG"])])
+dnl ######################################################################
+   AC_CACHE_CHECK(
+     [whether the MPI_Alloc_mem interface accepts a TYPE(C_PTR) argument],
+     [icon_cv_have_mpi_cptr],
+     [AC_COMPILE_IFELSE([AC_LANG_PROGRAM([], [[
+       use, intrinsic :: iso_c_binding, only: c_ptr
+       use mpi, only: mpi_alloc_mem, mpi_address_kind
+       implicit none
+       type(c_ptr) :: ptr
+       integer :: ierror
+       call mpi_alloc_mem(4_mpi_address_kind, 0, ptr, ierror)]])],
+       [icon_cv_have_mpi_cptr=yes],
+       [icon_cv_have_mpi_cptr=no])])
+    AS_VAR_IF([icon_cv_have_mpi_cptr], [no],
+      [AS_VAR_APPEND([FCFLAGS], [" ${FC_PP_DEF}NO_MPI_CPTR_ARG"])])
+dnl ######################################################################
 
 dnl The configure scripts of the most of the bundled libraries expect
 dnl MPI_LAUNCH to be set in the form of an absolute path, which we try to
@@ -1388,7 +1460,7 @@ library (--without-external-rte-rrtmgp), or set FCFLAGS, LDFLAGS and LIBS dnl
 accordingly])])],
 dnl
      [icon_subdir_srcdir="$srcdir/externals/rte-rrtmgp"
-      icon_subdir_unique_file="rte/mo_rte_sw.F90"
+      icon_subdir_unique_file="rte-frontend/mo_rte_sw.F90"
       AS_IF([test ! -r "$icon_subdir_srcdir/$icon_subdir_unique_file"],
         [AC_MSG_ERROR([unable to find sources of the RTE+RRTMGP library dnl
 ($icon_subdir_unique_file) in '$icon_subdir_srcdir': either disable usage of dnl
@@ -1405,14 +1477,24 @@ bundled version of RTE+RRTMGP library @<:@default=$ICON_BUNDLED_FCFLAGS@:>@])dnl
         [BUILD_ENV=*|ICON_*FLAGS=*|CFLAGS=*|FCFLAGS=*],
         [NETCDF_FCFLAGS=*|NETCDF_FCLIBS=*],
         [ACX_SUBDIR_CONFIG_PATTERN_ENABLE([silent-rules])],
+        [ACX_SUBDIR_CONFIG_PATTERN_ENABLE([maintainer-mode])],
+        [ACX_SUBDIR_CONFIG_PATTERN_ENABLE([single-precision])],
         [ACX_SUBDIR_CONFIG_PATTERN_ENABLE([gpu])])
       ACX_SUBDIR_APPEND_ARGS([externals/rte-rrtmgp],
         [FCFLAGS="$subdir_FCFLAGS $ICON_RTE_RRTMGP_FCFLAGS"],
         [NETCDF_FCFLAGS=], [NETCDF_FCLIBS=],
-        [--enable-gpu="$icon_gpu_primary"],
-        [--enable-silent-rules="$enable_silent_rules"])
+        [--enable-silent-rules="$enable_silent_rules"],
+        [--disable-maintainer-mode], [--enable-gpu="$icon_gpu_primary"])
+dnl The tests of the current version of RTE-RRTMGP are known to fail when built
+dnl with OpenACC support. The problem is in the test programs and not in the
+dnl library itself.
+      AS_VAR_IF([icon_gpu_primary], [openacc],
+        [ACX_SUBDIR_REMOVE_ARGS([externals/rte-rrtmgp],
+           [ACX_SUBDIR_CONFIG_PATTERN_ENABLE([tests])])
+         ACX_SUBDIR_APPEND_ARGS([externals/rte-rrtmgp],
+           [--disable-tests])])
       AS_VAR_APPEND([bundled_includes],
-        ["${FC_MOD_IN}externals/rte-rrtmgp/mod "])
+        ["${FC_MOD_IN}externals/rte-rrtmgp "])
       BUNDLED_LIBFILES="externals/rte-rrtmgp/librte.a $BUNDLED_LIBFILES"
       BUNDLED_LIBFILES="externals/rte-rrtmgp/librrtmgp.a $BUNDLED_LIBFILES"])])
 
@@ -2272,6 +2354,63 @@ switch the secondary GPU compiler (e.g. dnl
 (--disable-gpu), or set HIPFLAGS accordingly])],
      [[// override default includes]])
    ACX_LANG_POP_HIP])
+
+AS_VAR_IF([enable_comin], [yes],
+  [AS_VAR_IF([with_external_comin], [yes],
+    [AC_CACHE_CHECK([whether COMIN library is available],
+       [icon_cv_have_comin],
+       [icon_cv_have_comin=no
+        AC_LINK_IFELSE([AC_LANG_PROGRAM([], [[
+      use comin_host_interface, only: t_comin_setup_version_info, &
+                                    & comin_setup_get_version
+      implicit none
+      type(t_comin_setup_version_info) :: version
+      version = comin_setup_get_version()]])],
+          [icon_cv_have_comin=yes])])
+     AS_VAR_IF([icon_cv_have_comin], [no],
+        [AC_MSG_FAILURE([unable to link a test program using COMIN dnl
+library: either use the bundled version of COMIN dnl
+(--without-external-comin) or set FCFLAGS, LDFLAGS and LIBS dnl
+accordingly])])],
+dnl
+    [icon_subdir_srcdir="$srcdir/externals/comin"
+     icon_subdir_unique_file="src/comin_setup.F90"
+     AS_IF([test ! -r "$icon_subdir_srcdir/$icon_subdir_unique_file"],
+       [AC_MSG_ERROR([unable to find sources of the bundled version of COMIN dnl
+library ($icon_subdir_unique_file) in '$icon_subdir_srcdir'])])
+     AC_ARG_VAR([ICON_COMIN_FCFLAGS],
+       [Fortran compiler flags to be appended to FCFLAGS when configuring the
+bundled version of COMIN library @<:@default=$ICON_BUNDLED_FCFLAGS@:>@])dnl
+     ICON_COMIN_FCFLAGS=${ICON_COMIN_FCFLAGS-$ICON_BUNDLED_FCFLAGS}
+     AC_ARG_VAR([ICON_COMIN_CFLAGS],
+       [C compiler flags to be appended to CFLAGS when configuring the bundled
+version of COMIN library @<:@default=$ICON_BUNDLED_CFLAGS@:>@])dnl
+     AC_ARG_VAR([ICON_COMIN_CXXFLAGS],
+       [C++ compiler flags to be appended to CXXFLAGS when configuring the bundled
+version of COMIN library @<:@default=$ICON_BUNDLED_CXXFLAGS@:>@])dnl
+     ICON_COMIN_CFLAGS=${ICON_COMIN_CFLAGS-$ICON_BUNDLED_CFLAGS}
+     ACX_SUBDIR_INIT_CMAKE([externals/comin], [no-run no-adjust-compilers], [],
+       [AS_ESCAPE(["${CMAKE}"])])
+     ACX_SUBDIR_REMOVE_ARGS([externals/comin],
+dnl The compiler flags are replaced below:
+       [-DCMAKE_C_FLAGS=*|-DCMAKE_Fortran_FLAGS=*|-DCMAKE_CXX_FLAGS=*],
+dnl The interprocedural optimization is not enabled in the project:
+       [-DCMAKE_*_COMPILER_AR=*|-DCMAKE_*_COMPILER_RANLIB=*])
+     ACX_SUBDIR_APPEND_ARGS([externals/comin],
+dnl Extend the compiler flags:
+       [-DCMAKE_C_FLAGS="$subdir_CFLAGS $ICON_COMIN_CFLAGS $subdir_CPPFLAGS"],
+       [-DCMAKE_Fortran_FLAGS="$subdir_FCFLAGS $ICON_COMIN_FCFLAGS"],
+       [-DCMAKE_CXX_FLAGS=dnl
+"$subdir_CXXFLAGS $ICON_COMIN_CXXFLAGS $subdir_CPPFLAGS"],
+dnl Build the static version of the library:
+       [-DBUILD_SHARED_LIBS:BOOL=OFF],
+dnl Turn off the examples (only build the static lib)
+       [-DCOMIN_ENABLE_EXAMPLES:BOOL=OFF],
+dnl Set non-existing build type to avoid extra compiler flags:
+       [-DCMAKE_BUILD_TYPE:STRING=NOEXTRAFLAGS])
+     AS_VAR_APPEND([bundled_includes],
+       ["${FC_MOD_IN}externals/comin/build/mod "])
+     BUNDLED_LIBFILES="externals/comin/build/libcomin.a $BUNDLED_LIBFILES"])])
 
 AS_VAR_IF([with_external_fortran_support], [yes],
   [AC_CACHE_CHECK([whether Fortran support library is available],

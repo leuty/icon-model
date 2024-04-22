@@ -36,7 +36,7 @@ NETCDF_LIBS="-L${NETCDF_LIB_ROOT} -lnetcdff -lnetcdf"
 # Assume that eccodes resides under the GLOBAL_LIB_ROOT:
 ECCODES_LIB_ROOT=${GLOBAL_LIB_ROOT}
 ECCODES_INCLUDE="${ECCODES_LIB_ROOT}/include"
-ECCODES_LIBS="-L${ECCODES_LIB_ROOT} -lgrib_api_f90 -lgrib_api -laec"
+ECCODES_LIBS="-L${ECCODES_LIB_ROOT} -leccodes_f90 -leccodes"
 
 # Assume that lapack and blas reside under the GLOBAL_LIB_ROOT:
 BLAS_LAPACK_LIBS="-llapack -lblas"
@@ -132,6 +132,7 @@ BUILD_ENV=""
 
 # C compiler wrapper on cray machine
 CC='mpicc'
+CXX='mpic++'
 CFLAGS='-std=gnu99'
 
 ICON_CFLAGS='-O2'
@@ -157,6 +158,7 @@ EXTRA_CONFIG_ARGS='--enable-grib2 --enable-openmp --disable-ocean --disable-jsba
 "${ICON_DIR}/configure" \
 BUILD_ENV="${BUILD_ENV}" \
 CC="${CC}" \
+CXX="${CXX}" \
 CFLAGS="${CFLAGS}" \
 CPPFLAGS="${CPPFLAGS}" \
 FC="${FC}" \

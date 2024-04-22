@@ -989,17 +989,33 @@ CONTAINS
     CALL cells2verts_scalar(kh_ic, p_patch, p_int%cells_aw_verts, km_iv, &
                             opt_rlstart=5, opt_rlend=min_rlvert_int-1,   &
                             opt_acc_async=.TRUE.)
-    !$ACC KERNELS DEFAULT(PRESENT) ASYNC(1)
-    km_iv = MAX( km_min, km_iv * turb_prandtl )
-    !$ACC END KERNELS
+
+    !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1)
+    !$ACC LOOP GANG VECTOR COLLAPSE(3)
+    DO jb = 1, SIZE(km_iv, 3)
+      DO jk = 1, SIZE(km_iv, 2)
+        DO jc = 1, SIZE(km_iv, 1)
+          km_iv(jc,jk,jb) = MAX( km_min,  km_iv(jc,jk,jb) * turb_prandtl )
+        END DO
+      END DO
+    END DO
+    !$ACC END PARALLEL
 
     !4c) Now calculate visc at half levels at edge
     CALL cells2edges_scalar(kh_ic, p_patch, p_int%c_lin_e, km_ie,                   &
                             opt_rlstart=grf_bdywidth_e, opt_rlend=min_rledge_int-1, &
                             lacc=.TRUE.)
-    !$ACC KERNELS DEFAULT(PRESENT) ASYNC(1)
-    km_ie = MAX( km_min, km_ie * turb_prandtl )
-    !$ACC END KERNELS
+
+    !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1)
+    !$ACC LOOP GANG VECTOR COLLAPSE(3)
+    DO jb = 1,  SIZE(km_ie, 3)
+      DO jk = 1, SIZE(km_ie, 2)
+        DO jc = 1, SIZE(km_ie, 1)
+          km_ie(jc,jk,jb) = MAX( km_min,  km_ie(jc,jk,jb) * turb_prandtl )
+        END DO
+      END DO
+    END DO
+    !$ACC END PARALLEL
 
     !4d)Get visc at the center on interface level
 !    prm_diag%tkvm = MAX( km_min, prm_diag%tkvh * turb_prandtl )
@@ -1682,10 +1698,16 @@ CONTAINS
     !$ACC   PRESENT(p_patch, km_ie, rho, p_int, hori_tend) &
     !$ACC   PRESENT(iecidx, iecblk, ieidx, ieblk, var_temp)
 
-    !$ACC KERNELS DEFAULT(PRESENT) ASYNC(1)
-    hori_tend = 0._wp
-    var = var_temp
-    !$ACC END KERNELS
+    !$ACC PARALLEL LOOP GANG VECTOR COLLAPSE(3) DEFAULT(PRESENT) ASYNC(1)
+    DO jc = 1, p_patch%nblks_c
+       DO je = 1, p_patch%nlev
+          DO jk = 1, nproma
+             hori_tend(jk,je,jc) = 0._wp
+             var(jk,je,jc) = var_temp(jk,je,jc)
+          END DO
+       END DO
+    END DO
+    !$ACC END PARALLEL LOOP
 
     !$ACC WAIT
     CALL sync_patch_array(SYNC_C, p_patch, var)

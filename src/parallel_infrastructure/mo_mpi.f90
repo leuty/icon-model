@@ -13,8 +13,25 @@
 ! SPDX-License-Identifier: BSD-3-Clause
 ! ---------------------------------------------------------------
 !
+!  MPI-Handshake
+!  -------------
 !
-!  Processors are divided into
+!  To allow the co-existence of external processes ICON proceeds the
+!  MPI-Handshake (see https://gitlab.dkrz.de/dkrz-sw/mpi-handshake)
+!  with the group name "icon" directly after initializing MPI.  This
+!  yields a MPI_Comm where all processes are contained in that also
+!  have provided this group name.
+
+!  Furthermore ICON participates in the groups "yac" and/or "comin" if
+!  these modules are enabled. The resulting communicators are then
+!  used to initialize the respective software component.
+!
+!  In the following the further split-up of the icon communicator is described.
+!
+!  ICON communicator split
+!  -----------------------
+!
+!  ICON processors are divided into
 !    1.    worker PEs    : majority of MPI tasks, doing the actual work
 !    2.    I/O PEs       : dedicated I/O server tasks          (only for parallel_nml::num_io_procs > 0)
 !    3.    one test PE   : for verification runs               (only for parallel_nml::p_test_run == .TRUE.)
@@ -207,8 +224,7 @@ MODULE mo_mpi
   !          MPI package to achieve proper output.
 
   USE, INTRINSIC :: iso_c_binding, ONLY: c_char, c_signed_char, c_int
-  
-  ! actual method (MPI-2)
+
 #ifndef NOMPI
   USE mpi
 #endif
@@ -245,11 +261,15 @@ MODULE mo_mpi
   USE mo_master_control, ONLY: get_my_process_type, hamocc_process, ocean_process, process_exists, &
        &                       my_process_is_hamocc, my_process_is_ocean
 
-  USE mo_coupling, ONLY: init_coupler, finalize_coupler
 #ifdef HAVE_YAXT
   USE yaxt,                   ONLY: xt_initialize, xt_initialized
 #endif
   USE mo_exception,           ONLY: init_logger
+
+#ifndef __NO_ICON_COMIN__
+  USE comin_host_interface,   ONLY: comin_callback_context_call,  &
+    &                               EP_FINISH, COMIN_DOMAIN_OUTSIDE_LOOP
+#endif
 
   IMPLICIT NONE
 
@@ -317,6 +337,13 @@ MODULE mo_mpi
   !restart communicators
   PUBLIC :: p_comm_work_2_restart, p_comm_work_restart
   PUBLIC :: p_communicator_a, p_communicator_b, p_communicator_d
+
+#ifndef __NO_ICON_COMIN__
+  PUBLIC :: p_comm_comin
+#endif
+#ifdef YAC_coupling
+  PUBLIC :: p_comm_yac
+#endif
 
   PUBLIC :: process_mpi_io_size, process_mpi_restart_size, process_mpi_pref_size
 
@@ -419,12 +446,6 @@ MODULE mo_mpi
   END TYPE t_work_root_process
 
   TYPE (t_work_root_process), ALLOCATABLE :: p_work_root_processes(:)
-
-  ! old fashioned method (MPI-1)
-
-!!$#ifndef NOMPI
-!!$  INCLUDE 'mpif.h'
-!!$#endif
 
   ! general run time information
 
@@ -554,6 +575,13 @@ MODULE mo_mpi
 
   INTEGER :: p_pe     = 0     ! this is the PE number of this task
   INTEGER :: p_io     = 0     ! PE number of PE handling IO
+
+#ifndef __NO_ICON_COMIN__
+  INTEGER :: p_comm_comin
+#endif
+#ifdef YAC_coupling
+  INTEGER :: p_comm_yac
+#endif
 
 ! non blocking calls
 
@@ -2460,7 +2488,7 @@ CONTAINS
       CALL exit(iexit)
 #else
       CALL util_exit(iexit)
-#endif       
+#endif
     END IF
 #else
     IF (provided < MPI_THREAD_FUNNELED) THEN
@@ -2479,10 +2507,21 @@ CONTAINS
       CALL exit(p_error)
 #else
       CALL util_exit(p_error)
-#endif       
+#endif
     END IF
 
-    CALL init_coupler(global_mpi_communicator, global_name)
+    ! generate icon, comin, and yac communicator (if appropriate)
+#if !defined __NO_ICON_COMIN__ && defined YAC_coupling
+    CALL set_mpi_global_communicators( &
+      global_mpi_communicator, opt_comin_comm = p_comm_comin, &
+      opt_yac_comm = p_comm_yac)
+#elif !defined __NO_ICON_COMIN__
+    CALL set_mpi_global_communicators( &
+      global_mpi_communicator, opt_comin_comm = p_comm_comin)
+#elif defined YAC_coupling
+    CALL set_mpi_global_communicators( &
+      global_mpi_communicator, opt_yac_comm = p_comm_yac)
+#endif
 
     process_mpi_all_comm = MPI_COMM_NULL
     IF (PRESENT(global_name)) THEN
@@ -2688,6 +2727,63 @@ CONTAINS
                      extra_info_prefix='PROC SPLIT', &
                      callback_abort=abort_mpi)
 
+  CONTAINS
+
+    SUBROUTINE set_mpi_global_communicators(&
+      global_comm, opt_comin_comm, opt_yac_comm)
+
+#if !defined __NO_ICON_COMIN__
+      USE comin_host_interface, handshake => mpi_handshake
+      INTEGER, PARAMETER :: GROUP_NAME_LENGTH = 256
+#elif defined YAC_coupling
+      USE mo_yac_finterface, handshake => yac_fmpi_handshake
+      USE mo_yac_finterface, ONLY: YAC_MAX_CHARLEN
+      INTEGER, PARAMETER :: GROUP_NAME_LENGTH = YAC_MAX_CHARLEN
+#endif
+
+      INTEGER, INTENT(inout) :: global_comm
+      INTEGER, OPTIONAL, INTENT(out) :: opt_comin_comm
+      INTEGER, OPTIONAL, INTENT(out) :: opt_yac_comm
+
+#if !defined __NO_ICON_COMIN__ || defined YAC_coupling
+
+      CHARACTER(len=GROUP_NAME_LENGTH) :: group_names(3)
+      INTEGER :: group_comms(3)
+      INTEGER :: num_groups
+
+      group_names(1) = "icon"
+      num_groups = 1
+
+      IF (PRESENT(opt_comin_comm)) THEN
+        num_groups = num_groups + 1
+        group_names(num_groups) = "comin"
+      END IF
+
+      IF (PRESENT(opt_yac_comm)) THEN
+        num_groups = num_groups + 1
+        group_names(num_groups) = "yac"
+      END IF
+
+      CALL handshake( &
+        global_comm, group_names(1:num_groups), group_comms(1:num_groups))
+
+      num_groups = 1
+      global_comm = group_comms(1)
+
+      IF (PRESENT(opt_comin_comm)) THEN
+        num_groups = num_groups + 1
+        opt_comin_comm = group_comms(num_groups)
+      END IF
+
+      IF (PRESENT(opt_yac_comm)) THEN
+        num_groups = num_groups + 1
+        opt_yac_comm = group_comms(num_groups)
+      END IF
+
+#endif
+
+    END SUBROUTINE set_mpi_global_communicators
+
   END SUBROUTINE start_mpi
   !------------------------------------------------------------------------------
 
@@ -2696,8 +2792,6 @@ CONTAINS
 
     INTEGER :: iexit = 0    
     ! finish MPI and clean up all PEs
-
-    CALL finalize_coupler()
 
 #ifndef NOMPI
     ! to prevent abort due to unfinished communication
@@ -2728,6 +2822,11 @@ CONTAINS
     ! this routine should be used instead of abort, util_abort() or
     ! STOP or any other exit call in all routines for proper clean up
     ! of all PEs
+
+#ifndef __NO_ICON_COMIN__
+    ! we dont use timers here due to cycic dependencies...
+    CALL comin_callback_context_call(EP_FINISH, COMIN_DOMAIN_OUTSIDE_LOOP)
+#endif
 
 #ifndef NOMPI
     CALL MPI_ABORT (MPI_COMM_WORLD, 0, p_error)
@@ -8788,12 +8887,23 @@ CONTAINS
         IF (root /= my_rank) p_sum = zfield
       ELSE
 
+! ACCWA (Cray Fortran <= 16.0.1.1) : ACC IF generate wrong assembly which segfaults CAST-32453
+#if defined(_CRAYFTN) && _RELEASE_MAJOR <= 16
+        IF (loc_use_g2g) THEN
+          !$ACC HOST_DATA USE_DEVICE(zfield)
+          CALL mpi_allreduce (zfield, p_sum, SIZE(zfield), p_real_dp, &
+                mpi_sum, p_comm, p_error)
+          !$ACC END HOST_DATA
+        ELSE
+           CALL mpi_allreduce (zfield, p_sum, SIZE(zfield), p_real_dp, &
+                mpi_sum, p_comm, p_error)
+        END IF
+#else
         !$ACC HOST_DATA USE_DEVICE(zfield) IF(loc_use_g2g)
-
         CALL mpi_allreduce (zfield, p_sum, SIZE(zfield), p_real_dp, &
              mpi_sum, p_comm, p_error)
-
         !$ACC END HOST_DATA
+#endif
 
       END IF
     ELSE

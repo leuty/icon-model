@@ -71,11 +71,10 @@ MODULE mo_name_list_output
   ! constants
   USE mo_kind,                      ONLY: wp, i4, i8, dp, sp
   USE mo_impl_constants,            ONLY: max_dom, SUCCESS, MAX_TIME_LEVELS,       &
-    &                                     ihs_ocean, BOUNDARY_MISSVAL, nlat_moc
+    &                                     BOUNDARY_MISSVAL, nlat_moc
   USE mo_cdi_constants,             ONLY: GRID_REGULAR_LONLAT, GRID_UNSTRUCTURED_VERT,              &
     &                                     GRID_UNSTRUCTURED_CELL, GRID_UNSTRUCTURED_EDGE, GRID_ZONAL
   USE mo_impl_constants_grf,        ONLY: grf_bdywidth_c
-  USE mo_dynamics_config,           ONLY: iequations
   USE mo_cdi,                       ONLY: streamOpenWrite, FILETYPE_GRB2, streamDefTimestep, cdiEncodeTime, cdiEncodeDate, &
       &                                   CDI_UNDEFID, TSTEP_CONSTANT, FILETYPE_GRB, taxisDestroy, gridDestroy, &
       &                                   vlistDestroy, streamClose, streamWriteVarSlice, streamWriteVarSliceF, streamDefVlist, &
@@ -91,20 +90,21 @@ MODULE mo_name_list_output
   USE mo_util_string,               ONLY: t_keyword_list, associate_keyword, with_keywords,         &
   &                                       int2string
   USE mo_timer,                     ONLY: timer_start, timer_stop, timer_write_output, ltimer,      &
-    &                                     timer_wait_for_async_io, print_timer
+    &                                     timer_wait_for_async_io, print_timer, &
+    &                                     timer_coupling
   USE mo_level_selection_types,     ONLY: t_level_selection
   USE mo_name_list_output_gridinfo, ONLY: write_grid_info_grb2, GRID_INFO_NONE
   USE mo_util_file,                 ONLY: util_rename, get_filename, get_path
   ! config
-  USE mo_master_config,             ONLY: getModelBaseDir
+  USE mo_master_control,            ONLY: my_process_is_ocean
+  USE mo_master_config,             ONLY: getModelBaseDir, isRestart
   USE mo_grid_config,               ONLY: n_dom, l_limited_area
   USE mo_run_config,                ONLY: msg_level
   USE mo_io_config,                 ONLY: lkeep_in_sync,                   &
     &                                     config_lmask_boundary => lmask_boundary
-#ifdef YAC_coupling
   USE mo_coupling_config,           ONLY: is_coupled_run
-  USE mo_io_coupling,               ONLY: construct_io_coupler, destruct_io_coupler
-#endif
+  USE mo_dummy_coupling_frame,      ONLY: construct_dummy_coupling, &
+    &                                     destruct_dummy_coupling
   USE mo_gribout_config,            ONLY: gribout_config
   USE mo_parallel_config,           ONLY: p_test_run, use_dp_mpi2io, &
        num_io_procs, io_proc_chunk_size, nproma, pio_type
@@ -117,7 +117,8 @@ MODULE mo_name_list_output
     &                                     msg_io_start, msg_io_done, &
     &                                     msg_io_meteogram_flush, &
     &                                     msg_io_shutdown, all_events, &
-    &                                     t_var_desc, t_output_name_list
+    &                                     t_var_desc, t_output_name_list, &
+    &                                     FILETYPE_YAC
   USE mo_output_event_types,        ONLY: t_sim_step_info, t_par_output_event
   ! parallelization
   USE mo_communication,             ONLY: exchange_data, t_comm_gather_pattern,&
@@ -151,6 +152,15 @@ MODULE mo_name_list_output
     &                                     check_write_readyfile, blocking_wait_for_irecvs
 #ifndef NOMPI
   USE mo_output_event_handler,      ONLY: trigger_output_step_irecv
+  USE mpi,                          ONLY: MPI_Win_lock, MPI_Win_unlock, MPI_Win_free
+# ifndef NO_MPI_CHOICE_ARG
+  ! MPI_Win_{un,}lock_all don't have choice args but OpenMPI doesn't include an interface in its
+  ! use-mpi-tkr variant for compilers that can't ignore argument TKR via directives.
+  ! Cray's MPI doesn't export MPI_Waitall and MPI_Waitany.
+  USE mpi,                          ONLY: MPI_Free_mem, MPI_Isend, MPI_Recv, MPI_Get, MPI_Rget,     &
+    &                                     MPI_Win_lock_all, MPI_Win_unlock_all, MPI_Waitall,        &
+    &                                     MPI_Waitany
+# endif
 #endif
   USE mo_name_list_output_stats,    ONLY: set_reference_time, interval_start, interval_end,         &
     &                                     interval_write_psfile
@@ -330,7 +340,7 @@ CONTAINS
       ! get the already stored number of time steps
       of%cdiTimeIndex = vlistNtsteps(streamInqVlist(of%cdiFileID))
     ELSE
-      ! assign the vlist (which must have ben set before)
+      ! assign the vlist (which must have been set before)
 #ifdef HAVE_CDI_PIO
       IF (pio_type == pio_type_cdipio) THEN
         ALLOCATE(partdescs(of%num_vars), conversions(of%num_vars), STAT=ierror)
@@ -441,11 +451,13 @@ CONTAINS
       IF (pio_type == pio_type_cdipio) &
         CALL namespaceSetActive(prev_cdi_namespace)
 
-#ifdef YAC_coupling
       IF ( is_coupled_run() ) THEN
-        IF (my_process_is_io() ) CALL destruct_io_coupler ( "dummy" )
+        IF (my_process_is_io() ) THEN
+          CALL timer_start(timer_coupling)
+          CALL destruct_dummy_coupling("name_list_output")
+          CALL timer_stop(timer_coupling)
+        END IF
       ENDIF
-#endif
 #endif
 #ifndef NOMPI
 #ifndef __NO_ICON_ATMO__
@@ -584,7 +596,8 @@ CONTAINS
           & .OR. (.NOT. use_async_name_list_io .AND. .NOT. is_test &
           &       .AND. p_pe_work == 0)
         ofile_has_first_write(i) = check_open_file(output_file(i)%out_event)
-        IF (ofile_is_assigned_here(i)) THEN
+
+        IF (ofile_is_assigned_here(i) .AND. output_file(i)%name_list%filetype /= FILETYPE_YAC) THEN
           ! -------------------------------------------------
           ! Check if files have to be closed
           ! -------------------------------------------------
@@ -617,7 +630,7 @@ CONTAINS
       io_proc_id = output_file(i)%io_proc_id
       lhas_output = lhas_output .OR. ofile_is_assigned_here(i)
 
-      IF (ofile_is_assigned_here(i)) THEN
+      IF (ofile_is_assigned_here(i) .AND. output_file(i)%name_list%filetype /= FILETYPE_YAC) THEN
         ! -------------------------------------------------
         ! Do the output
         ! -------------------------------------------------
@@ -703,7 +716,7 @@ CONTAINS
       ! hand-shake protocol: step finished!
       ! -------------------------------------------------
 #ifndef NOMPI
-      IF (do_sync) CALL streamsync(output_file(i)%cdiFileID)
+      IF (do_sync .AND. output_file(i)%name_list%filetype /= FILETYPE_YAC) CALL streamsync(output_file(i)%cdiFileID)
 #endif
       CALL pass_output_step(output_file(i)%out_event)
     ENDDO OUTFILE_WRITE_LOOP
@@ -858,11 +871,7 @@ CONTAINS
   SUBROUTINE write_name_list(of, is_first_write, file_idx, lacc)
 
 #ifndef NOMPI
-#ifdef  __SUNPRO_F95
-  INCLUDE "mpif.h"
-#else
     USE mpi, ONLY: MPI_LOCK_EXCLUSIVE, MPI_MODE_NOCHECK
-#endif
 #endif
 
     TYPE (t_output_file), INTENT(INOUT), TARGET :: of
@@ -919,7 +928,7 @@ CONTAINS
 #ifndef NOMPI
     is_mpi_workroot = my_process_is_mpi_workroot()
     participate_in_async_io &
-      = use_async_name_list_io .AND. .NOT. is_test
+      = use_async_name_list_io .AND. .NOT. is_test .AND. of%name_list%filetype /= FILETYPE_YAC
     lasync_io_metadata_prepare &
       = participate_in_async_io .AND. is_mpi_workroot
     ! In case of async IO: Lock own window before writing to it
@@ -1135,32 +1144,43 @@ CONTAINS
         CALL finish(routine,'unknown grid type')
       END SELECT
 
-#ifdef HAVE_CDI_PIO
-      IF (pio_type == pio_type_cdipio .AND. .NOT. is_test) THEN
-        CALL data_write_cdipio(of, idata_type, r_ptr, s_ptr, i_ptr, iv, &
-             nlevs, var_ignore_level_selection, p_ri, info, i_log_dom)
+      IF (of%name_list%filetype == FILETYPE_YAC) THEN
+         IF (.NOT. isRestart() .AND. is_first_write) THEN
+            ! skip very first step for yac-coupled output
+         ELSE
+#ifdef YAC_coupling
+            CALL data_write_coupled(of, idata_type, r_ptr, s_ptr, i_ptr, iv, &
+              nlevs, info, i_dom)
+#endif
+         END IF
       ELSE
-#endif
-        IF (.NOT.use_async_name_list_io .OR. is_test) THEN
-          CALL gather_on_workroot_and_write(of, idata_type, r_ptr, s_ptr, &
-            i_ptr, p_ri%n_glb, iv, last_bdry_index, &
-            nlevs, var_ignore_level_selection, p_pat, info)
-#ifndef NOMPI
-        ELSE
-          IF (use_dp_mpi2io) THEN
-            CALL var2buf(of%mem_win%mem_ptr_dp, ioff, of%level_selection, &
-              &          idata_type, r_ptr, s_ptr, i_ptr, &
-              &          nlevs, var_ignore_level_selection, p_ri, info, i_log_dom)
-          ELSE
-            CALL var2buf(of%mem_win%mem_ptr_sp, ioff, of%level_selection, &
-              &          idata_type, r_ptr, s_ptr, i_ptr, &
-              &          nlevs, var_ignore_level_selection, p_ri, info, i_log_dom)
-          END IF
-#endif
-        END IF
 #ifdef HAVE_CDI_PIO
-      END IF
+         IF (pio_type == pio_type_cdipio .AND. .NOT. is_test) THEN
+            CALL data_write_cdipio(of, idata_type, r_ptr, s_ptr, i_ptr, iv, &
+              nlevs, var_ignore_level_selection, p_ri, info, i_log_dom)
+         ELSE
 #endif
+            IF (.NOT.use_async_name_list_io .OR. is_test) THEN
+               CALL gather_on_workroot_and_write(of, idata_type, r_ptr, s_ptr, &
+                 i_ptr, p_ri%n_glb, iv, last_bdry_index, &
+                 nlevs, var_ignore_level_selection, p_pat, info)
+#ifndef NOMPI
+            ELSE
+               IF (use_dp_mpi2io) THEN
+                  CALL var2buf(of%mem_win%mem_ptr_dp, ioff, of%level_selection, &
+                    &          idata_type, r_ptr, s_ptr, i_ptr, &
+                    &          nlevs, var_ignore_level_selection, p_ri, info, i_log_dom)
+               ELSE
+                  CALL var2buf(of%mem_win%mem_ptr_sp, ioff, of%level_selection, &
+                    &          idata_type, r_ptr, s_ptr, i_ptr, &
+                    &          nlevs, var_ignore_level_selection, p_ri, info, i_log_dom)
+               END IF
+#endif
+            END IF
+#ifdef HAVE_CDI_PIO
+         END IF
+#endif
+      END IF
 
     ENDDO
 
@@ -1183,7 +1203,7 @@ CONTAINS
       CALL MPI_Win_unlock(p_pe_work, of%mem_win%mpi_win, mpierr)
 #endif
     END IF
-      
+
 #endif
 
   END SUBROUTINE write_name_list
@@ -2121,7 +2141,7 @@ CONTAINS
     TYPE(t_reorder_info),  INTENT(in) :: ri
     INTEGER, INTENT(inout) :: ioff
     INTEGER, INTENT(in) :: nlevs
-    
+
     INTEGER :: i, jk, ri_blk, ri_idx
     DO jk = 1, nlevs
       DO i = 1, ri%n_own
@@ -2457,6 +2477,104 @@ CONTAINS
       &                i_startidx, i_endidx, rl_start, rl_end)
   END SUBROUTINE get_bdry_blk_idx
 
+#ifdef YAC_coupling
+  SUBROUTINE data_write_coupled(of, idata_type, r_ptr, s_ptr, i_ptr, iv, &
+       nlevs, info, i_dom)
+
+    USE mo_exception,           ONLY: message_text
+    USE mo_var_metadata,        ONLY: get_var_name
+    USE mo_yac_finterface,      ONLY: yac_fput, yac_fget_action, &
+      &                               yac_fupdate, YAC_ACTION_NONE, &
+      &                               YAC_ACTION_OUT_OF_BOUND, yac_dble_ptr
+
+    TYPE (t_output_file), INTENT(IN) :: of
+    INTEGER, INTENT(in) :: idata_type, iv, nlevs
+    REAL(dp), INTENT(in) :: r_ptr(:,:,:)
+    REAL(sp), INTENT(in) :: s_ptr(:,:,:)
+    INTEGER, INTENT(in) :: i_ptr(:,:,:)
+    TYPE(t_var_metadata), INTENT(in) :: info
+    INTEGER, INTENT(in) :: i_dom
+
+    CHARACTER(LEN=*), PARAMETER  :: routine = modname//"::data_write_coupled"
+    INTEGER :: action, ierror, nbr_hor_points
+    REAL(dp), ALLOCATABLE :: r_buf(:,:,:)
+    REAL(sp), ALLOCATABLE :: s_buf(:,:,:)
+    CHARACTER(len=:), ALLOCATABLE :: name
+    INTEGER :: var_shape(3)
+    INTEGER :: il
+
+    name = TRIM(of%name_list%output_filename) // "_" // TRIM(get_var_name(info))
+    IF (msg_level >= 18) &
+      CALL message(routine, "Handling " // name // " via yac-coupled output_nml", .TRUE.)
+
+    IF (i_dom /= 1) &
+      CALL finish(routine, "Yac-coupled output_nml only supported on ICON horizontal grid yet")
+
+    CALL yac_fget_action(info%cdiVarID, action)
+
+    IF (action == YAC_ACTION_NONE) THEN
+       CALL yac_fupdate(info%cdiVarID)
+    ELSE IF (action /= YAC_ACTION_OUT_OF_BOUND) THEN
+       IF (msg_level >= 15) &
+         CALL message(routine, "Handling " // name // " via yac-coupled output_nml", .TRUE.)
+
+       IF (info%hgrid .EQ. GRID_UNSTRUCTURED_CELL) THEN
+          nbr_hor_points = p_patch(i_dom)%n_patch_cells
+       ELSEIF (info%hgrid .EQ. GRID_UNSTRUCTURED_VERT) THEN
+          nbr_hor_points = p_patch(i_dom)%n_patch_verts
+       ELSE
+          CALL finish(routine, "Invalid hgrid for yac-coupled output_nml") ! TODO support other grids
+       END IF
+
+       SELECT CASE(idata_type)
+       CASE (iREAL)
+          var_shape = SHAPE(r_ptr)
+          IF (var_shape(1) /= nproma .OR. var_shape(2) /= nlevs .OR. var_shape(1) * var_shape(3) < nbr_hor_points) THEN
+             WRITE (message_text,'(a,3i7,a,i0,a,i0,a,i0)') 'var_shape=', var_shape, ' nproma=', nproma, ' nlevs=', nlevs, ' nbr_hor_points=', nbr_hor_points
+             CALL message(routine, message_text, .TRUE.)
+             CALL finish(routine, "Unexpected variable dimensions for yac-coupled output_nml")
+          END IF
+          ALLOCATE(r_buf(nbr_hor_points, 1, nlevs))
+          DO il = 1,nlevs
+             r_buf(:,1,il) = RESHAPE(r_ptr(:, il, :), (/ nbr_hor_points /))
+          END DO
+          CALL yac_fput(info%cdiVarID, nbr_hor_points, 1, nlevs, r_buf, action, ierror)
+          DEALLOCATE(r_buf)
+
+       CASE (iREAL_sp)
+          var_shape = SHAPE(s_ptr)
+          IF (var_shape(1) /= nproma .OR. var_shape(2) /= nlevs .OR. var_shape(1) * var_shape(3) < nbr_hor_points) THEN
+             WRITE (message_text,'(a,3i7,a,i0,a,i0,a,i0)') 'var_shape=', var_shape, ' nproma=', nproma, ' nlevs=', nlevs, ' nbr_hor_points=', nbr_hor_points
+             CALL message(routine, message_text, .TRUE.)
+             CALL finish(routine, "Unexpected variable dimensions for yac-coupled output_nml")
+          END IF
+          ALLOCATE(s_buf(nbr_hor_points, 1, nlevs))
+          DO il = 1,nlevs
+             s_buf(:,1,il) = RESHAPE(s_ptr(:, il, :), (/ nbr_hor_points /))
+          END DO
+          CALL yac_fput(info%cdiVarID, nbr_hor_points, 1, nlevs, s_buf, action, ierror)
+          DEALLOCATE(s_buf)
+
+       CASE (iINTEGER)
+          var_shape = SHAPE(i_ptr)
+          IF (var_shape(1) /= nproma .OR. var_shape(2) /= nlevs .OR. var_shape(1) * var_shape(3) < nbr_hor_points) THEN
+             WRITE (message_text,'(a,3i7,a,i0,a,i0,a,i0)') 'var_shape=', var_shape, ' nproma=', nproma, ' nlevs=', nlevs, ' nbr_hor_points=', nbr_hor_points
+             CALL message(routine, message_text, .TRUE.)
+             CALL finish(routine, "Unexpected variable dimensions for yac-coupled output_nml")
+          END IF
+          ALLOCATE(s_buf(nbr_hor_points, 1, nlevs))
+          DO il = 1,nlevs
+             s_buf(:,1,il) = RESHAPE(i_ptr(:, il, :), (/ nbr_hor_points /))
+          END DO
+          CALL yac_fput(info%cdiVarID, nbr_hor_points, 1, nlevs, s_buf, action, ierror)
+          DEALLOCATE(s_buf)
+
+       END SELECT
+
+    END IF
+  END SUBROUTINE data_write_coupled
+#endif
+
 #ifdef HAVE_CDI_PIO
   SUBROUTINE data_write_cdipio(of, idata_type, r_ptr, s_ptr, i_ptr, iv, &
        nlevs, var_ignore_level_selection, ri, info, i_log_dom)
@@ -2656,7 +2774,7 @@ CONTAINS
     LOGICAL             :: is_ocean
 
     is_io_root = my_process_is_mpi_ioroot()
-    is_ocean   = iequations==ihs_ocean ! FIXME: is that really sensible?
+    is_ocean   = my_process_is_ocean() ! FIXME: is that really sensible?
 
     ! define initial time stamp used as reference for output statistics
     CALL set_reference_time()
@@ -2666,14 +2784,16 @@ CONTAINS
     IF (.NOT. is_ocean) &
       & CALL init_name_list_output(sim_step_info)
 
-#ifdef YAC_coupling
-    ! The initialisation of YAC needs to be called by all (!) MPI processes
+    ! The initialisation of coupling needs to be called by all (!) MPI processes
     ! in MPI_COMM_WORLD.
-    ! construct_io_coupler needs to be called after init_name_list_output
+    ! construct_dummy_coupling needs to be called after init_name_list_output
     ! due to calling sequence in subroutine atmo_model for other atmosphere
     ! processes
-    IF ( is_coupled_run() ) CALL construct_io_coupler ( "dummy" )
-#endif
+    IF ( is_coupled_run() ) THEN
+      CALL timer_start(timer_coupling)
+      CALL construct_dummy_coupling("name_list_output")
+      CALL timer_stop(timer_coupling)
+    END IF
 
     ! FIXME: Explain this braindead weirdnes.
     IF (is_ocean) &
@@ -2791,14 +2911,16 @@ CONTAINS
       END IF
     END IF
 
-    IF (ltimer) CALL print_timer
-
     CALL interval_write_psfile("output_schedule.ps", "Output Timings", &
       &                        int2string(p_pe,'(i0)'), p_comm_work)
 
-#ifdef YAC_coupling
-    IF ( is_coupled_run() ) CALL destruct_io_coupler ( "dummy" )
-#endif
+    IF ( is_coupled_run() ) THEN
+      IF (ltimer) CALL timer_start(timer_coupling)
+      CALL destruct_dummy_coupling("name_list_output")
+      IF (ltimer) CALL timer_stop(timer_coupling)
+    END IF
+
+    IF (ltimer) CALL print_timer
 
     ! Shut down MPI
     CALL stop_mpi
@@ -2828,16 +2950,12 @@ CONTAINS
 #ifndef NOMPI
   SUBROUTINE io_proc_write_name_list(of, is_first_write, file_idx)
 
-#ifdef __SUNPRO_F95
-    INCLUDE "mpif.h"
-#else
     USE mpi, ONLY: MPI_ADDRESS_KIND, MPI_LOCK_SHARED, MPI_MODE_NOCHECK
 #ifdef NO_ASYNC_IO_RMA
     USE mpi, ONLY: MPI_STATUS_IGNORE, MPI_STATUS_SIZE
 #else
 #ifndef NO_MPI_RGET
     USE mpi, ONLY: MPI_STATUS_IGNORE, MPI_STATUSES_IGNORE, MPI_REQUEST_NULL
-#endif
 #endif
 #endif
 
@@ -3475,6 +3593,7 @@ CONTAINS
 
       ! Go over all output files, collect IO PEs
       OUTFILE_LOOP : DO i=1,SIZE(output_file)
+        IF (output_file(i)%name_list%filetype == FILETYPE_YAC) CYCLE
         io_proc_id = output_file(i)%io_proc_id
         ! Skip this output file if it is not due for output!
 #if defined (__SX__) || defined (__NEC_VH__)
@@ -3572,6 +3691,7 @@ CONTAINS
     END IF
 
     DO i = 1, SIZE(output_file)
+      IF (output_file(i)%name_list%filetype == FILETYPE_YAC) CYCLE
 #ifdef NO_ASYNC_IO_RMA
       ! Make sure the buffer can be deallocated 
       ! Wait on latest requests

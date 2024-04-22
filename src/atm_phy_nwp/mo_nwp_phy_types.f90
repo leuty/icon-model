@@ -27,10 +27,6 @@
 ! SPDX-License-Identifier: BSD-3-Clause
 ! ---------------------------------------------------------------
 
-#if (defined (__GNUC__) || defined(__SUNPRO_F95) || defined(__SX__))
-#define HAVE_F95
-#endif
-
 MODULE mo_nwp_phy_types
 
   USE mo_kind,                ONLY: wp, vp
@@ -144,6 +140,8 @@ MODULE mo_nwp_phy_types
       &  cldepth(:,:),         & !! modified cloud depth for media
       &  clct_mod(:,:),        & !! modified total cloud cover for media
       &  fac_ccqc(:,:),        & !! tuning factor (for ensemble perturbations) for CLC-QC relationship in cloud cover scheme
+      &  fac_entrorg(:,:),     & !! tuning factor (for ensemble perturbations) for entrainment parameter
+      &  fac_rmfdeps(:,:),     & !! tuning factor (for ensemble perturbations) for downdraft mass flux
       &  hbas_con(:,:),        & !! height of base of convection [m]
       &  htop_con(:,:),        & !! height of top of convection [m]
       &  htop_dc(:,:),         & !! height above msl of the top of dry convection [m]
@@ -456,10 +454,11 @@ MODULE mo_nwp_phy_types
       htop_sc(:,:),        & !> height of top  above MSL from shallow convection parameterization
       twater(:,:),         & !> Total column integrated water
       q_sedim(:,:,:),      & !> Specific content of precipitation particles
+      mconv(:,:),          & !> Low level horizontal moisture convergence (0-1000 m AGL average) div.(q_v*v_h) [1/s]
       tcond_max(:,:),      & !< Total column-integrated condensate
       tcond10_max(:,:),    & !< Total column-integrated condensate above z(T=-10 degC) 
       uh_max_3d(:,:,:),    & !< Updraft helicity (integrated over different vertical layers)
-      vorw_ctmax(:,:),     & !< Maximum rotation amplitude
+      vorw_ctmax(:,:),     & !< Maximum low level rotation amplitude: Time-max amplitude (positive or negative) of mean 0-3000 m MSL (or 1500 m AGL, whichever is higher) vorticity
       w_ctmax(:,:),        & !< Maximum updraft track
       dbz3d_lin(:,:,:),    & !< Radar reflectivity 3D in linear units mm^6/m^3
       dbz_850(:,:),        & !< Radar reflectivity in approx. 850 hPa

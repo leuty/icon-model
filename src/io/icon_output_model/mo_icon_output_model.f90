@@ -60,14 +60,19 @@ MODULE mo_icon_output_model
   !-------------------------------------------------------------
   USE mo_icon_output_tools,    ONLY: init_io_processes, prepare_output
   ! For the coupling
-#ifdef YAC_coupling
+  USE mo_coupling_config,           ONLY: is_coupled_run
   USE mo_icon_output_coupling,      ONLY: construct_icon_output_coupling, destruct_icon_output_coupling
-#endif
+
   !-------------------------------------------------------------
   USE mo_icon_output_variables, ONLY: construct_icon_output_variables, destruct_icon_output_variables, &
-    & patch_3d
+       & patch_3d
 
- 
+#ifndef __NO_ICON_COMIN__
+  USE mo_mpi,               ONLY: p_comm_comin
+  USE comin_host_interface, ONLY: mpi_handshake_dummy
+#endif
+
+
   IMPLICIT NONE
 
   PRIVATE
@@ -191,9 +196,10 @@ MODULE mo_icon_output_model
     END IF
 #endif
     CALL destruct_icon_communication()
-#ifdef YAC_coupling
-    CALL destruct_icon_output_coupling ()
-#endif
+    IF ( is_coupled_run() ) THEN
+      CALL destruct_icon_output_coupling ()
+    END IF
+
     ! close memory logging files
     CALL memory_log_terminate
     CALL message(TRIM(method_name),'clean-up finished')
@@ -243,7 +249,13 @@ MODULE mo_icon_output_model
          &                          num_io_procs, dedicatedRestartProcs, &
          &                          comp_id,num_prefetch_proc, num_test_pe,      &
          &                          pio_type)
-!pa
+    !pa
+
+#ifndef __NO_ICON_COMIN__
+    ! we dont participate at comin (yet) but we need to be friendly and shake hands
+    CALL mpi_handshake_dummy(p_comm_comin)
+#endif
+
     !-------------------------------------------------------------------
     ! 3.2 Initialize various timers
     !-------------------------------------------------------------------
@@ -271,10 +283,11 @@ MODULE mo_icon_output_model
 !     CALL configure_dynamics ( n_dom, ldynamics, ltransport )
 
     CALL construct_icon_output_variables()
-    
-#ifdef YAC_coupling
-    CALL construct_icon_output_coupling()
-#endif
+
+    IF ( is_coupled_run() ) THEN
+      CALL construct_icon_output_coupling()
+    END IF
+
     !------------------------------------------------------------------
     ! step 5b: allocate state variables
     !---------------------------------------------------------------------

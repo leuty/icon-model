@@ -397,6 +397,14 @@ CONTAINS
             &                    od_lw(:,:,jb,:), od_sw(:,:,jb,:),                     &
             &                    ssa_sw(:,:,jb,:), g_sw(:,:,jb,:)                      )
 
+
+          ! Compute cloud number concentration depending on aerosol climatology
+          ! if aerosol-microphysics or aerosol-convection coupling is turned on
+          IF (atm_phy_nwp_config(pt_patch%id)%icpl_aero_gscp == 3 .OR. icpl_aero_conv == 1) THEN
+            CALL nwp_cpl_aero_gscp_conv(i_startidx, i_endidx, pt_patch%nlev, pt_diag%pres_sfc(:,jb), pt_diag%pres(:,:,jb), &
+              &                         prm_diag%acdnc(:,:,jb), prm_diag%cloud_num(:,jb), lacc)
+          ENDIF
+
         END DO
 !$OMP END DO NOWAIT
 !$OMP END PARALLEL

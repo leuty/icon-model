@@ -75,10 +75,11 @@ MODULE mo_timer
   PUBLIC :: timer_diagnose_pres_temp
   PUBLIC :: timer_nh_diagnostics
 
-  ! atmosphere - ocean coupling
+  ! general coupling
   PUBLIC :: timer_coupling, timer_coupling_init
-  PUBLIC :: timer_coupling_1stget, timer_coupling_get
-  PUBLIC :: timer_coupling_put
+  PUBLIC :: timer_coupling_init_def_comp, timer_coupling_init_enddef
+  PUBLIC :: timer_coupling_very_1stget, timer_coupling_1stget
+  PUBLIC :: timer_coupling_get, timer_coupling_put
 
   ! iconam - aes coupling
   PUBLIC :: timer_iconam_aes
@@ -251,6 +252,13 @@ MODULE mo_timer
   ! Model atmosphere
   PUBLIC :: timer_opt_diag_atmo
 
+#ifndef __NO_ICON_COMIN__
+  ! Timers for ComIn
+  PUBLIC :: timer_comin_init
+  PUBLIC :: timer_comin_primary_constructors
+  PUBLIC :: timer_comin_callbacks
+#endif
+
   ! low level timing routine
   PUBLIC :: tic, toc
   PUBLIC :: timer_ls_forcing 
@@ -337,7 +345,9 @@ MODULE mo_timer
 
   ! Timer ID's for ocean-atmosphere coupling
   INTEGER :: timer_coupling, timer_coupling_init
-  INTEGER :: timer_coupling_get, timer_coupling_1stget, timer_coupling_put
+  INTEGER :: timer_coupling_init_def_comp, timer_coupling_init_enddef
+  INTEGER :: timer_coupling_very_1stget, timer_coupling_1stget
+  INTEGER :: timer_coupling_get, timer_coupling_put
 
   ! Timer ID's for physics-dynamics coupling
 
@@ -475,6 +485,10 @@ MODULE mo_timer
   ! Model atmosphere
   INTEGER :: timer_opt_diag_atmo
 
+#ifndef __NO_ICON_COMIN__
+  ! Timers for ComIn
+  INTEGER :: timer_comin_init, timer_comin_primary_constructors, timer_comin_callbacks
+#endif
 
 CONTAINS
 
@@ -647,11 +661,14 @@ CONTAINS
     timer_intp      = new_timer("intp")
 
     ! atmosphere-ocean coupling
-    timer_coupling        = new_timer("coupling")
-    timer_coupling_init   = new_timer("coupling_init")
-    timer_coupling_1stget = new_timer("coupling_1stget")
-    timer_coupling_get    = new_timer("coupling_get")
-    timer_coupling_put    = new_timer("coupling_put")
+    timer_coupling               = new_timer("coupling")
+    timer_coupling_init          = new_timer("coupling_init")
+    timer_coupling_init_def_comp = new_timer("coupling_init_def_comp")
+    timer_coupling_init_enddef   = new_timer("coupling_init_enddef")
+    timer_coupling_very_1stget   = new_timer("coupling_very_1stget")
+    timer_coupling_1stget        = new_timer("coupling_1stget")
+    timer_coupling_get           = new_timer("coupling_get")
+    timer_coupling_put           = new_timer("coupling_put")
 
     IF (iforcing == iaes) THEN
        !
@@ -937,6 +954,13 @@ CONTAINS
       timer_radar_barrier   = new_timer("EMVORADO_barrier_waiting")
       timer_radar_acc_data_copies = new_timer("EMVORADO_acc_data_copies")
     END IF
+
+#ifndef __NO_ICON_COMIN__
+    ! Timers for ComIn
+    timer_comin_init                 = new_timer("comin_init")
+    timer_comin_primary_constructors = new_timer("comin_primary_constructors")
+    timer_comin_callbacks            = new_timer("comin_callbacks")
+#endif
 
     ! Timers for optional diagnostics
     ! Model atmosphere

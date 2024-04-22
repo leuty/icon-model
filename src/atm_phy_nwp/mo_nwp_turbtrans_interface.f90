@@ -45,7 +45,7 @@ MODULE mo_nwp_turbtrans_interface
   USE mo_nwp_lnd_types,        ONLY: t_lnd_prog, t_wtr_prog, t_lnd_diag
   USE mo_parallel_config,      ONLY: nproma
   USE mo_run_config,           ONLY: msg_level, iqv, iqc, iqtke
-  USE mo_atm_phy_nwp_config,   ONLY: atm_phy_nwp_config
+  USE mo_atm_phy_nwp_config,   ONLY: atm_phy_nwp_config, lcuda_graph_turb_tran
   USE mo_advection_config,     ONLY: advection_config
   USE mo_initicon_config,      ONLY: icpl_da_sfcfric
   USE turb_data,               ONLY: get_turbdiff_param
@@ -85,12 +85,8 @@ MODULE mo_nwp_turbtrans_interface
   TYPE(c_ptr) :: lnd_prog_new_cache(max_dom*2) = C_NULL_PTR
   LOGICAL :: graph_captured
   INTEGER :: cur_graph_id, ig
-  LOGICAL, PARAMETER :: multi_queue_processing = .TRUE.
-  LOGICAL, PARAMETER :: using_cuda_graph = .TRUE.
-#else
-  LOGICAL, PARAMETER :: multi_queue_processing = .FALSE.
-  LOGICAL, PARAMETER :: using_cuda_graph = .FALSE.
 #endif
+  LOGICAL :: multi_queue_processing
   INTEGER :: acc_async_queue = 1
 
 CONTAINS
@@ -181,6 +177,11 @@ SUBROUTINE nwp_turbtrans  ( tcall_turb_jg,                     & !>in
   INTEGER,  POINTER :: ilist(:)       ! pointer to tile index list
 
 !--------------------------------------------------------------
+#ifdef ICON_USE_CUDA_GRAPH
+    multi_queue_processing = lcuda_graph_turb_tran
+#else
+    multi_queue_processing = .FALSE.
+#endif
 
   CALL set_acc_host_or_device(lzacc, lacc)
 
@@ -195,7 +196,7 @@ SUBROUTINE nwp_turbtrans  ( tcall_turb_jg,                     & !>in
   jg = p_patch%id
 
 #ifdef ICON_USE_CUDA_GRAPH
-  IF (lzacc) THEN
+  IF (lzacc .AND. lcuda_graph_turb_tran) THEN
     cur_graph_id = -1
     DO ig=1,max_dom*2
       IF (C_LOC(lnd_prog_new) == lnd_prog_new_cache(ig)) THEN
@@ -348,12 +349,17 @@ SUBROUTINE nwp_turbtrans  ( tcall_turb_jg,                     & !>in
           ! Modify roughness length depending on snow cover
           prm_diag%gz0_t(jc,jb,jt) = grav *( (1._wp-lnd_diag%snowfrac_t(jc,jb,jt)**2)*z0_mod + &
             lnd_diag%snowfrac_t(jc,jb,jt)**2*ext_data%atm%z0_lcc_min(lc_class) )
-          ! Set gz0 on empty snow-free tiles because this is used in the snow-cover fraction diagnosis
-          IF (jt > ntiles_lnd .AND. lnd_diag%snowfrac_lc_t(jc,jb,jt) > 0.999_wp) THEN
-            prm_diag%gz0_t(jc,jb,jt-ntiles_lnd) = grav*z0_mod
-          ENDIF
+          ! apply adaptive parameter tuning to roughness length
           IF (icpl_da_sfcfric >= 1) THEN
             prm_diag%gz0_t(jc,jb,jt) = MIN(1.5_wp*grav,prm_diag%sfcfric_fac(jc,jb)*prm_diag%gz0_t(jc,jb,jt))
+          ENDIF
+          ! Set gz0 on empty snow-free tiles because this is used in the snow-cover fraction diagnosis
+          IF (jt > ntiles_lnd .AND. lnd_diag%snowfrac_lc_t(jc,jb,jt) > 0.999_wp) THEN
+            IF (icpl_da_sfcfric >= 1) THEN
+              prm_diag%gz0_t(jc,jb,jt-ntiles_lnd) = MIN(1.5_wp*grav,prm_diag%sfcfric_fac(jc,jb)*grav*z0_mod)
+            ELSE
+              prm_diag%gz0_t(jc,jb,jt-ntiles_lnd) = grav*z0_mod
+            ENDIF
           ENDIF
         ENDDO
         !$ACC END PARALLEL
@@ -1059,7 +1065,7 @@ SUBROUTINE nwp_turbtrans  ( tcall_turb_jg,                     & !>in
   !$ACC END DATA
 
 #ifdef ICON_USE_CUDA_GRAPH
-    IF (lzacc) THEN
+    IF (lzacc .AND. lcuda_graph_turb_tran) THEN
       CALL accx_end_capture(graphs(cur_graph_id), 1)
       WRITE(message_text,'(a,i2,a)') 'finished to capture CUDA graph, id ', cur_graph_id, ', now executing it'
       IF (msg_level >= 13) CALL message('mo_nwp_turbtrans_interface: ', message_text)

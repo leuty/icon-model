@@ -244,7 +244,7 @@ CONTAINS
 
 !$OMP PARALLEL DO PRIVATE(jb, jls, js) ICON_OMP_DEFAULT_SCHEDULE
     DO jb = domain%i_startblk_c,domain%i_endblk_c
-      !$ACC PARALLEL LOOP DEFAULT(PRESENT) GANG(STATIC: 1) VECTOR ASYNC(1)
+      !$ACC PARALLEL LOOP DEFAULT(PRESENT) GANG(STATIC: 1) VECTOR ASYNC(1) PRIVATE(js)
       DO jls = 1, nvalid(jb)
         js = indices(jls,jb)
         theta(js,jb)  = potential_temperature(ptsfc(js,jb), ppsfc(js,jb))

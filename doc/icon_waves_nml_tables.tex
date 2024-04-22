@@ -100,6 +100,10 @@ Defined and used in: \verb+src/waves/config/mo_energy_propagation_nml.f90+
  lbottom\_fric\_sf&L& .TRUE.&     & .TRUE.: calculate bottom friction source function term & \tabularnewline
  lwave\_stress1  &L& .TRUE. &     & .TRUE.: calculate wave stress & \tabularnewline
  lwave\_stress2  &L& .TRUE. &     & .TRUE.: update wave stress & \tabularnewline
+ impl\_fac  & R  & 1.0      &     & Implicitness factor for time integration scheme of total source function\\
+                                    Range of permissible values: $\left[0.5,\dots,1\right]$\\
+                                    0.5: second order Crank-Nicholson scheme\\
+                                    1.0: first order Euler backward scheme & \tabularnewline
  forc\_file\_prefix &C&     &     & common prefix of forcing files & \tabularnewline
                     & &     &     & if not empty, the names of forcing files will be consctructed as: & \tabularnewline
                     & &     &     & forc\_file\_prefix+\_wind.nc - for 10m wind & coupled\_mode= .FALSE. in coupling\_mode\_nml \tabularnewline

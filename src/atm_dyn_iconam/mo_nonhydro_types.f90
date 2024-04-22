@@ -13,10 +13,6 @@
 ! SPDX-License-Identifier: BSD-3-Clause
 ! ---------------------------------------------------------------
 
-#if (defined (__GNUC__) || defined(__SUNPRO_F95) || defined(__SX__))
-#define HAVE_F95
-#endif
-
 MODULE mo_nonhydro_types
 
   USE mo_kind,                 ONLY: wp, vp
@@ -70,7 +66,6 @@ MODULE mo_nonhydro_types
     &  exner_pr(:,:,:),     & ! exner pressure perturbation, saved from previous step (nproma,nlev,nblks_c)
     &  temp(:,:,:),         & ! temperature (nproma,nlev,nblks_c)                 [K]
     &  tempv(:,:,:),        & ! virtual temperature (nproma,nlev,nblks_c)         [K]
-    &  chi_q(:,:,:),        & ! sum of liquid condensate (nproma,nlev,nblks_c)    [kg/kg]
     &  temp_ifc(:,:,:),     & ! temperature at half levels (nproma,nlevp1,nblks_c)[K]
     &  pres(:,:,:),         & ! pressure (nproma,nlev,nblks_c)                  [Pa]
     &  pres_ifc(:,:,:),     & ! pressure at interfaces (nproma,nlevp1,nblks_c)  [Pa]
@@ -254,6 +249,7 @@ MODULE mo_nonhydro_types
      &  => NULL()
 
     REAL(vp) :: max_vcfl_dyn=0._vp  ! maximum vertical CFL number in dynamical core
+    REAL(wp) :: max_hcfl_dyn=0._wp  ! maximum horizontal CFL number in dynamical core
 
     TYPE(t_ptr_2d3d),ALLOCATABLE ::   &
       &  ddt_grf_trc_ptr(:),   &  !< pointer array: one pointer for each tracer

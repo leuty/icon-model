@@ -21,7 +21,7 @@ digraph ICON {
 			       "NetCDF-Fortran"; "RTE+RRTMGP"; "ECRAD"; "BLAS";
 			       "LAPACK"; "RTTOV"; "SCT"; "YAXT"; "ECCODES";
 			       "CDI"; "SERIALBOX"; "MTIME"; "YAC"; "ICON-TIXI";
-			       "FORTRAN-SUPPORT"};
+			       "COMIN"; "FORTRAN-SUPPORT"};
 
 		"STDC++";
 
@@ -77,6 +77,8 @@ digraph ICON {
 		"ICON-TIXI" [shape=box];
 		"ICON-TIXI" -> {"XML2"};
 
+		"COMIN" [shape=box];
+
 		"FORTRAN-SUPPORT" [shape=box; fillcolor="#47A1F1"];
 
 		"AEC / SZIP" [fillcolor="#DEF1D1"];
@@ -105,7 +107,7 @@ digraph ICON {
 			rank=same;
 			external -> bundled -> mandatoryIcon -> optionalIcon -> mandatoryBundled -> optionalBundled [style=invis];
 			external [label="External\npackages"; fillcolor=white];
-			bundled [label="Optionally\nbundled\npackages"; shape=box; fillcolor=white];
+			bundled [label="Bundled\npackages"; shape=box; fillcolor=white];
 			mandatoryIcon [label="Immediate mandatory\ndependencies of ICON"; shape=plaintext; fillcolor="#47A1F1"];
 			optionalIcon [label="Immediate optional\ndependencies of ICON"; shape=plaintext];
 			mandatoryBundled [label="Immediate mandatory\ndependencies of\nthe bundled packages"; shape=plaintext; fillcolor="#D1E8FC"];

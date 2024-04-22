@@ -381,7 +381,6 @@ MODULE mo_jsb_time_iface
     &                                  divideDatetimeDifferenceInSeconds !, isCurrentEventActive,      &
   USE mo_time_config,            ONLY: time_config !configure_time
   USE mo_time_nml,               ONLY: read_time_namelist
-  USE mo_dynamics_config,        ONLY: iequations
   USE mo_bcs_time_interpolation, ONLY: t_time_interpolation_weights,              &
     &                                  calculate_time_interpolation_weights
   USE mo_aes_phy_config,         ONLY: aes_phy_tc, dt_zero
@@ -758,11 +757,7 @@ CONTAINS
   REAL(wp) FUNCTION get_asselin_coef()
     CHARACTER(len=*), PARAMETER :: routine = modname//':get_asselin_coef'
 
-    SELECT CASE(iequations)
-    !
-    CASE DEFAULT
-      get_asselin_coef = 0._wp
-    END SELECT
+    get_asselin_coef = 0._wp
 
   END FUNCTION get_asselin_coef
 
@@ -882,6 +877,7 @@ MODULE mo_jsb_io_netcdf_iface
   USE mo_read_interface,     ONLY: read_1D, read_2D, read_2D_time, read_2D_1lev_1time, read_2D_extdim, read_2D_int, &
     &                              openInputFile, closeFile, on_cells, t_stream_id, read_netcdf_broadcast_method
   USE mo_netcdf_errhandler,  ONLY: nf
+  USE mo_netcdf
 
   IMPLICIT NONE
   PUBLIC
@@ -921,8 +917,6 @@ MODULE mo_jsb_io_netcdf_iface
   ! INTERFACE netcdf_read_2d_extdim
   !   MODULE PROCEDURE netcdf_read_real_2d_extdim
   ! END INTERFACE netcdf_read_2d_extdim
-
-  INCLUDE 'netcdf.inc'
 
   INTEGER, PARAMETER :: MAX_VAR_DIMS = 16 ! NF_MAX_VAR_DIMS
 
@@ -1639,6 +1633,7 @@ MODULE mo_physical_constants_iface
     ki,              & !< Heat conductivity of ice               [J/(m s K)]
     ks,              & !< Heat conductivity of snow              [J/(m s K)]
     ! Auxiliary constants
+    rd_o_cpd,        & !< rd/cpd
     rvd1  => vtmpc1, & !< = rv/rd-1                              []
     cpvd1 => vtmpc2    !< = cpv/cpd-1                            []
 
