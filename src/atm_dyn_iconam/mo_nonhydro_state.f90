@@ -61,6 +61,7 @@ MODULE mo_nonhydro_state
   USE mo_limarea_config,       ONLY: latbc_config
   USE mo_advection_config,     ONLY: t_advection_config, advection_config
   USE mo_turbdiff_config,      ONLY: turbdiff_config
+  USE mo_diffusion_config,     ONLY: diffusion_config
   USE mo_initicon_config,      ONLY: init_mode, qcana_mode, qiana_mode, qrsgana_mode, &
     &                                icpl_da_sfcevap, icpl_da_skinc, icpl_da_sfcfric
   USE mo_nudging_config,       ONLY: nudging_config, indg_type
@@ -1640,6 +1641,7 @@ MODULE mo_nonhydro_state
     &       p_diag%div, &
     &       p_diag%div_ic, &
     &       p_diag%hdef_ic, &
+    &       p_diag%kh_smag_e, &
     &       p_diag%dwdx, &
     &       p_diag%dwdy, &
     &       p_diag%mass_fl_e, &
@@ -2519,6 +2521,20 @@ MODULE mo_nonhydro_state
     ELSE ! dummy allocation to satisfy the strict NAG compiler
       ALLOCATE(p_diag%dwdx(1,1,nblks_c), p_diag%dwdy(1,1,nblks_c))
     ENDIF
+
+    IF (diffusion_config(p_patch%id)%lhdiff_q) THEN
+      ! kh_smag_e   p_diag%kh_smag_e(nproma,nlev,nblks_e)
+      cf_desc    = t_cf_var('horizontal Smagorinsky diffusion coefficient', 'm^2 s-1', &
+        &                   'horizontal Smagorinsky diffusion coefficient', datatype_flt)
+      grib2_desc = grib2_var( 255, 255, 255, ibits, GRID_UNSTRUCTURED, GRID_EDGE)
+      CALL add_var( p_diag_list, 'kh_smag_e', p_diag%kh_smag_e,                  &
+                  & GRID_UNSTRUCTURED_EDGE, ZA_REFERENCE,                        &
+                  & cf_desc, grib2_desc,                                         &
+                  & ldims=shape3d_e ,                                            &
+                  & lrestart=.FALSE., loutput=.TRUE.,                            &
+                  & lopenacc = .TRUE.                                            )
+      __acc_attach(p_diag%kh_smag_e)
+    END IF
 
     ! vor          p_diag%vor(nproma,nlev,nblks_c)
     !

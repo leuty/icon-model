@@ -89,7 +89,7 @@ MODULE mo_nh_stepping
   USE mo_update_dyn_scm,           ONLY: add_slowphys_scm
   USE mo_advection_stepping,       ONLY: step_advection
   USE mo_prepadv_util,             ONLY: prepare_tracer
-  USE mo_nh_diffusion,             ONLY: diffusion
+  USE mo_nh_diffusion,             ONLY: diffusion, moisture_diffusion
   USE mo_memory_log,               ONLY: memory_log_add
   USE mo_mpi,                      ONLY: proc_split, push_glob_comm, pop_glob_comm, &
        &                                 p_comm_work, my_process_is_mpi_workroot,   &
@@ -2234,6 +2234,10 @@ MODULE mo_nh_stepping
         CALL main_tracer_afteradv
 #endif
 
+        IF (diffusion_config(jg)%lhdiff_q) THEN
+          CALL moisture_diffusion(p_nh_state(jg)%prog(n_new_rcf), p_nh_state(jg)%diag, &
+            &  p_patch(jg), p_int_state(jg))
+        ENDIF
 
         ! Apply boundary nudging in case of one-way nesting
         IF (jg > 1 ) THEN
