@@ -1817,6 +1817,7 @@ CONTAINS
     REAL(wp) :: lwflxsfc (nproma)   ! net long-wave radiation flux at the surface     [W/m^2] 
     REAL(wp) :: swflxsfc (nproma)   ! net solar radiation flux at the surface         [W/m^2]
     REAL(wp) :: condhf_i (nproma)   ! conductive heat flux at sea-ice bottom          [W/m^2]
+    REAL(wp) :: meltpot_i(nproma)   ! melt potential at sea-ice top                   [W/m^2]
     REAL(wp) :: snow_rate(nproma)   ! snow rate (convecive + grid-scale)              [kg/(m^2 s)]
     REAL(wp) :: rain_rate(nproma)   ! rain rate (convecive + grid-scale)              [kg/(m^2 s)]
     REAL(wp) :: tice_now (nproma)   ! temperature of ice upper surface at previous time  [K]
@@ -1830,6 +1831,9 @@ CONTAINS
     REAL(wp) :: hsnow_new(nproma)   ! snow thickness at new time level                   [m]
     REAL(wp) :: albsi_new(nproma)   ! sea-ice albedo at new time level                   [-]
     REAL(wp) :: fhflx    (nproma)   ! tuning factor for bottom heat flux                 [-]
+
+    REAL(wp), CONTIGUOUS, POINTER :: condhf_ice_blk(:)
+    REAL(wp), CONTIGUOUS, POINTER :: meltpot_ice_blk(:)
 
     ! Local array bounds:
     !
@@ -1863,14 +1867,15 @@ CONTAINS
       CALL message(routine, 'call nwp_seaice scheme')
     ENDIF
 
-    !$ACC DATA CREATE(shfl_s, lhfl_s, lwflxsfc, swflxsfc, condhf_i, snow_rate, rain_rate, tice_now, hice_now) &
+    !$ACC DATA CREATE(shfl_s, lhfl_s, lwflxsfc, swflxsfc, condhf_i, meltpot_i, snow_rate, rain_rate, tice_now, hice_now) &
     !$ACC   CREATE(tsnow_now, hsnow_now, albsi_now, tice_new, hice_new, tsnow_new, hsnow_new, albsi_new, fhflx) &
     !$ACC   PRESENT(ext_data, p_lnd_diag, prm_diag, p_prog_wtr_now, lnd_prog_new, p_prog_wtr_new, p_diag)
 
 !$OMP PARALLEL
 !$OMP DO PRIVATE(jb,i_count,ic,jc,shfl_s,lhfl_s,lwflxsfc,swflxsfc,snow_rate,rain_rate, &
 !$OMP            tice_now, hice_now,tsnow_now,hsnow_now,tice_new,hice_new,tsnow_new,   &
-!$OMP            hsnow_new,albsi_now,albsi_new,condhf_i,fhflx) ICON_OMP_GUIDED_SCHEDULE
+!$OMP            hsnow_new,albsi_now,albsi_new,condhf_i,meltpot_i,fhflx,condhf_ice_blk,&
+!$OMP            meltpot_ice_blk) ICON_OMP_GUIDED_SCHEDULE
     DO jb = i_startblk, i_endblk
 
       !
@@ -1929,6 +1934,7 @@ CONTAINS
                             &   tsnow_n = tsnow_new(:),        & !out   ! DUMMY: not used yet
                             &   hsnow_n = hsnow_new(:),        & !out   ! DUMMY: not used yet
                             &   condhf  = condhf_i(:),         & !out
+                            &   meltpot = meltpot_i(:),        & !out
                             &   albsi_n = albsi_new(:)         ) !out
       ! optional arguments dticedt, dhicedt, dtsnowdt, dhsnowdt (tendencies) are neglected
 
@@ -1940,6 +1946,7 @@ CONTAINS
         !  set conductive heat flux to zero outside list_seaice,
         !  may be used by ocean (e.g. through interpolation)
         p_lnd_diag%condhf_ice (:,jb) = 0.0_wp
+        p_lnd_diag%meltpot_ice (:,jb) = 0.0_wp
       ENDIF
 
 
@@ -1960,7 +1967,8 @@ CONTAINS
         ENDIF
         IF (lis_coupled_run) THEN
           ! conductive heat flux at bottom of sea-ice [W/m^2]
-          p_lnd_diag%condhf_ice (jc,jb)   = condhf_i (ic)
+          p_lnd_diag%condhf_ice(jc,jb)  = condhf_i(ic)
+          p_lnd_diag%meltpot_ice(jc,jb) = meltpot_i(ic)
         ENDIF
         lnd_prog_new%t_g_t(jc,jb,isub_seaice) = tice_new(ic)
         ! surface saturation specific humidity (uses saturation water vapor pressure over ice)
@@ -1969,6 +1977,14 @@ CONTAINS
       ENDDO  ! ic
       !$ACC END PARALLEL
 
+      ! condhf and qtop are not allocated when the run is not coupled.
+      IF (lis_coupled_run) THEN
+        condhf_ice_blk => p_lnd_diag%condhf_ice(:,jb)
+        meltpot_ice_blk => p_lnd_diag%meltpot_ice(:,jb)
+      ELSE
+        condhf_ice_blk => NULL()
+        meltpot_ice_blk => NULL()
+      ENDIF
 
       ! Update dynamic sea-ice index list
       !
@@ -1995,7 +2011,8 @@ CONTAINS
         &              t_sk_t_new       = lnd_prog_new%t_sk_t(:,jb,isub_water),   &!inout
         &              qv_s_t           = p_lnd_diag%qv_s_t(:,jb,isub_water),     &!inout
         &              t_seasfc         = p_lnd_diag%t_seasfc(:,jb),              &!inout
-        &              condhf           = p_lnd_diag%condhf_ice(:,jb)             )!inout
+        &              condhf           = condhf_ice_blk,                         &!inout
+        &              meltpot          = meltpot_ice_blk                         )!inout
 
     ENDDO  ! jb
 !$OMP END DO
@@ -2263,4 +2280,3 @@ CONTAINS
   END SUBROUTINE nwp_lake
 
 END MODULE mo_nwp_sfc_interface
-

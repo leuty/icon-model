@@ -361,7 +361,11 @@ CONTAINS
     REAL(wp), CONTIGUOUS, POINTER :: p_ice_gsp_rate(:,:)
     REAL(wp), CONTIGUOUS, POINTER :: p_hail_gsp_rate(:,:)
 
+    REAL(wp), CONTIGUOUS, POINTER :: p_condhf_ice_blk(:)
+    REAL(wp), CONTIGUOUS, POINTER :: p_meltpot_ice_blk(:)
+
     LOGICAL :: linit
+    LOGICAL :: lis_coupled_to_ocean
 
     !
     ! Subroutine start
@@ -474,6 +478,8 @@ CONTAINS
     ELSE
       linit = .FALSE.
     END IF
+
+    lis_coupled_to_ocean = is_coupled_to_ocean()
 
     i_startblk = patch%cells%start_block(start_prog_cells)
     i_endblk = patch%cells%end_block(end_prog_cells)
@@ -688,7 +694,8 @@ CONTAINS
 
     !$OMP PARALLEL PRIVATE(i_blk, ic, ics, ice, isfc, isft, kl) &
     !$OMP   PRIVATE(drag_coef, t_acoef, t_bcoef, q_acoef, q_bcoef, uv_acoef, u_bcoef, v_bcoef) &
-    !$OMP   PRIVATE(flx_humidity, flx_sensible, flx_mom_u, flx_mom_v, b_neutral)
+    !$OMP   PRIVATE(flx_humidity, flx_sensible, flx_mom_u, flx_mom_v, b_neutral) &
+    !$OMP   PRIVATE(p_condhf_ice_blk, p_meltpot_ice_blk)
       !$OMP DO
       DO i_blk = i_startblk, i_endblk
         CALL get_indices_c(patch, i_blk, i_startblk, i_endblk, ics, ice, start_prog_cells, &
@@ -854,6 +861,15 @@ CONTAINS
           )
 #endif
 
+        ! condhf_ice and meltpot_ice are unallocated for uncoupled runs.
+        IF (lis_coupled_to_ocean) THEN
+          p_condhf_ice_blk => diag_lnd%condhf_ice(:,i_blk)
+          p_meltpot_ice_blk => diag_lnd%meltpot_ice(:,i_blk)
+        ELSE
+          p_condhf_ice_blk => NULL()
+          p_meltpot_ice_blk => NULL()
+        END IF
+
         CALL sea_model( &
             & iblk=i_blk, &
             & ics=ics, &
@@ -896,7 +912,8 @@ CONTAINS
             & latent_hflx_ice=flx_heat_latent_sft(:,i_blk,SFT_SICE), &
             & sensible_hflx_wtr=flx_heat_sensible_sft(:,i_blk,SFT_SWTR), &
             & sensible_hflx_ice=flx_heat_sensible_sft(:,i_blk,SFT_SICE), &
-            & conductive_hflx_ice=diag_lnd%condhf_ice(:,i_blk), &
+            & conductive_hflx_ice=p_condhf_ice_blk, &
+            & melt_potential_ice=p_meltpot_ice_blk, &
             & alb=alb, &
             & prog_wtr_new=prog_wtr_new &
           )
@@ -1181,6 +1198,11 @@ CONTAINS
           & mem%flx_heat_latent_sft(:,:,:), &
           & opt_acc_async=.TRUE. &
         )
+      CALL copy ( &
+        & evapo_sft(:,:,:), &
+        & mem%flx_water_vapor_sft(:,:,:), &
+        & opt_acc_async=.TRUE. &
+      )
 
       CALL weighted_average ( &
           & patch, fr_sft(:,:,:), mem%flx_heat_latent_sft(:,:,:), phy_diag%lhfl_s(:,:) &
@@ -1188,7 +1210,9 @@ CONTAINS
       CALL weighted_average ( &
           & patch, fr_sft(:,:,:), mem%flx_heat_sensible_sft(:,:,:), phy_diag%shfl_s(:,:) &
         )
-      CALL weighted_average(patch, fr_sft(:,:,:), evapo_sft(:,:,:), phy_diag%qhfl_s(:,:))
+      CALL weighted_average ( &
+          & patch, fr_sft(:,:,:), mem%flx_water_vapor_sft(:,:,:), phy_diag%qhfl_s(:,:) &
+        )
       CALL weighted_average(patch, fr_sft(:,:,:), flx_mom_u_sft(:,:,:), phy_diag%umfl_s(:,:))
       CALL weighted_average(patch, fr_sft(:,:,:), flx_mom_v_sft(:,:,:), phy_diag%vmfl_s(:,:))
 
@@ -1267,6 +1291,7 @@ CONTAINS
           & flx_heat_latent_sft=flx_heat_latent_sft(:,:,:), &
           & flx_heat_sensible_sft=flx_heat_sensible_sft(:,:,:), &
           & condhf_ice=diag_lnd%condhf_ice(:,:), &
+          & meltpot_ice=diag_lnd%meltpot_ice(:,:), &
           & co2_concentration_srf=co2_concentration_srf(:,:), &
           & rain_srf=rain_srf(:,:), &
           & snow_srf=snow_srf(:,:), &

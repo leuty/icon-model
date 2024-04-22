@@ -484,7 +484,7 @@ CONTAINS
                               &  tice_p, hice_p, tsnow_p, hsnow_p,      &
                               &  albsi_p,                               &
                               &  tice_n, hice_n, tsnow_n, hsnow_n,      &
-                              &  condhf, albsi_n,                       &
+                              &  condhf, meltpot, albsi_n,              &
                               &  opt_dticedt, opt_dhicedt, opt_dtsnowdt,&
                               &  opt_dhsnowdt                           )
 
@@ -526,6 +526,7 @@ CONTAINS
                                        &  hsnow_n , &  !< snow thickness at new time level [m] 
                                        &  condhf  , &  !< conductive heat flux within the sea ice
                                                        !< just above the ice lower boundary [W/m^2]
+                                       &  meltpot , &  !< melt potential at top [W/m^2]
                                        &  albsi_n      !< sea-ice albedo at new time level [-] 
 
     REAL(wp), DIMENSION(:), INTENT(OUT), OPTIONAL ::    &
@@ -594,9 +595,10 @@ CONTAINS
 
     ! for vectorisation
     lis_coupled_to_ocean = is_coupled_to_ocean()
+
     !$ACC DATA CREATE(dticedt, dhicedt, dtsnowdt, dhsnowdt) &
     !$ACC   PRESENT(qsen, qlat, qlwrnet, qsolnet, snow_rate, rain_rate, tice_p, hice_p, tsnow_p, hsnow_p) &
-    !$ACC   PRESENT(albsi_p, tice_n, hice_n, tsnow_n, hsnow_n, condhf, albsi_n)
+    !$ACC   PRESENT(albsi_p, tice_n, hice_n, tsnow_n, hsnow_n, condhf, meltpot, albsi_n)
     !$ACC DATA PRESENT(fac_bottom_hflx) IF(PRESENT(fac_bottom_hflx))
 
     !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1)
@@ -664,6 +666,7 @@ CONTAINS
           ! Note that for coupled runs, lbottom_hflux=.FALSE. and the heat flux 
           ! from water to ice qwat is set to zero (qwat should be provided by the ocean model).
           condhf(isi) = ki*phiipr0*(tice_n(isi)-tf_salt)/hice_p(isi)
+          meltpot(isi) = (qatm-qwat)/strg_2
           ! No change of ice thickness
           hice_n(isi) = hice_p(isi)
         ELSE
@@ -692,6 +695,7 @@ CONTAINS
             ! Coupling to icon-o: 
             ! Heat flux (phiipr0 is computed above) 
             condhf(isi) = ki*phiipr0*(tice_p(isi)-tf_salt)/hice_p(isi)
+            meltpot(isi) = 0._wp
             ! No change of ice thickness
             hice_n(isi) = hice_p(isi)
           ELSE
@@ -724,6 +728,7 @@ CONTAINS
             ! Coupling to icon-o: 
             ! Heat flux (phiipr0 is computed above) 
             condhf(isi) = ki*phiipr0*(tice_p(isi)-tf_salt)/hice_p(isi)
+            meltpot(isi) = 0._wp
             ! No change of ice thickness
             hice_n(isi) = hice_p(isi)
           ELSE
