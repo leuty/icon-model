@@ -28,12 +28,12 @@ MODULE mo_wave_stepping
   USE mo_io_units,                 ONLY: filename_max
   USE mo_master_config,            ONLY: getModelBaseDir
   USE mo_dynamics_config,          ONLY: nnow, nnew
-  USE mo_fortran_tools,            ONLY: swap, copy
+  USE mo_fortran_tools,            ONLY: swap, copy, init
   USE mo_intp_data_strc,           ONLY: p_int_state
   USE mo_pp_scheduler,             ONLY: new_simulation_status, pp_scheduler_process
   USE mo_pp_tasks,                 ONLY: t_simulation_status
 
-  USE mo_wave_adv_exp,             ONLY: init_wind_adv_test, init_ice_adv_test
+  USE mo_wave_adv_exp,             ONLY: init_wind_adv_test
   USE mo_init_wave_physics,        ONLY: init_wave_phy
   USE mo_wave_state,               ONLY: p_wave_state
   USE mo_wave_ext_data_state,      ONLY: wave_ext_data
@@ -114,7 +114,9 @@ CONTAINS
       DO jg = 1, n_dom
         ! Initialisation of 10 meter wind and sea ice
         CALL init_wind_adv_test(p_patch(jg), wave_config(jg), wave_forcing_state(jg))
-        CALL init_ice_adv_test(p_patch(jg), wave_forcing_state(jg))
+        CALL update_ice_free_mask(p_patch    = p_patch(jg),                          & ! IN
+          &                    sea_ice_c     = wave_forcing_state(jg)%sea_ice_c,     & ! IN
+          &                    ice_free_mask = wave_forcing_state(jg)%ice_free_mask_c) ! OUT
       END DO
     ENDIF
 
