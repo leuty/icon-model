@@ -752,7 +752,7 @@ CONTAINS
     !   "river_runoff" - river discharge into the ocean
     !
     ! Note: river runoff fluxes are received in m^3/s and are converted to m/s by division by whole grid area
-    !
+    !       mandatory as river ruoff comes with a different mask!
 
     CALL cpl_get_field( &
       'couple_ocean_toatmo_fluxes', field_id_freshflx_runoff, &

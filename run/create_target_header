@@ -2518,6 +2518,16 @@ create_target_header()
             esac
             ;;
 	
+        *run_ICON_26_R2B4_R2B6_AO-HD_coupled*)
+            case $use_target in
+                rcl)
+                    use_nodes=4
+                    use_venum_lhost=2
+                    use_cpunum_job=6 # 2x proc0 + 2x2 IO
+                    ;;
+            esac
+            ;;
+
         *atm_nwp_jsbach_test*)
             use_memory="18gb"
             ;;

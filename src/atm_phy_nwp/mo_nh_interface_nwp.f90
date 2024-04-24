@@ -723,18 +723,6 @@ CONTAINS
             & prm_nwp_tend, initialize=linit, lacc=lzacc &
           )
 
-        IF ( is_coupled_to_hydrodisc() .AND. (.NOT. linit) ) THEN
-
-          IF (ltimer) CALL timer_start(timer_coupling)
-#ifdef _OPENACC
-          CALL finish('mo_nh_interface_nwp', 'nwp_couple_hydrodisc is not available on GPU')
-#endif
-
-          CALL nwp_couple_hydrodisc( pt_patch, lnd_diag, prm_diag, ext_data )
-
-          IF (ltimer) CALL timer_stop(timer_coupling)
-        END IF
-
         IF (is_coupled_to_ocean()) THEN
           ! Sea-ice cover might change if ocean passed back new values.
 
@@ -1805,6 +1793,23 @@ CONTAINS
 
 
     !-------------------------------------------------------------------------
+    !> Hydrological Discharge HD coupling: if coupling time step
+    !-------------------------------------------------------------------------
+
+    IF ( is_coupled_to_hydrodisc() .AND. (.NOT. linit) ) THEN
+
+#ifdef YAC_coupling
+      IF (ltimer) CALL timer_start(timer_coupling)
+
+      CALL nwp_couple_hydrodisc( pt_patch, lnd_diag, prm_diag, ext_data, lacc=lzacc )
+
+      IF (ltimer) CALL timer_stop(timer_coupling)
+#endif
+
+    END IF
+
+
+    !-------------------------------------------------------------------------
     !> Ocean coupling: if coupling time step (VDIFF calls this internally)
     !-------------------------------------------------------------------------
 
@@ -2585,4 +2590,3 @@ CONTAINS
 
 
 END MODULE mo_nh_interface_nwp
-
