@@ -249,6 +249,7 @@ cat > job_ICON << ENDFILE
 #SBATCH --time=$2
 #SBATCH --ntasks-per-node=76
 #SBATCH --partition=$4
+#SBATCH -C LSDF
 
 
 $5 
