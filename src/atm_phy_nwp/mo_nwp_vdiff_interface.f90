@@ -1322,21 +1322,24 @@ CONTAINS
 
 
   !> Perform early setup tasks. This creates the variable lists for jsbach.
-  SUBROUTINE nwp_vdiff_setup (patch)
+  SUBROUTINE nwp_vdiff_setup (patch, use_jsbach)
 
-    TYPE(t_patch), INTENT(IN) :: patch
+    TYPE(t_patch), INTENT(IN) :: patch(:)
+    LOGICAL,       INTENT(IN) :: use_jsbach(:)
+
+    INTEGER :: jg
 
     CALL vdiff_init(2, ntracer)
 
 #ifndef __NO_JSBACH__
-    CALL jsbach_init(patch%id)
+    DO jg = 1, SIZE(patch)
+      IF (use_jsbach(jg)) CALL jsbach_init(patch(jg)%id)
+    ENDDO
 #endif
 
     ! TODO: This does double work, but we need some of the AES routines in VDIFF.
-    IF (patch%id == 1) THEN
-      CALL init_convect_tables
-      CALL init_aes_convect_tables
-    END IF
+    CALL init_convect_tables
+    CALL init_aes_convect_tables
 
     CALL setup_jsbach_init_vars
 

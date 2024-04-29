@@ -1,3 +1,4 @@
+!NEC$ options "-O0"
 !
 ! Constructs and destructs the state vector of the nonhydrostatic.
 !

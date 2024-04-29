@@ -1,4 +1,4 @@
-!NEC$ options "-O1"
+!NEC$ options "-O0"
 !
 ! ICON
 !
@@ -78,7 +78,6 @@ USE mo_initicon_config,     ONLY: icpl_da_sfcevap, icpl_da_snowalb, icpl_da_skin
 USE mo_radiation_config,    ONLY: irad_aero, iRadAeroTegen, iRadAeroART, iRadAeroNone, iRadAeroConst, iRadAeroCAMSclim
 USE mo_lnd_nwp_config,      ONLY: ntiles_total, ntiles_water, nlev_soil
 USE mo_nwp_tuning_config,   ONLY: itune_gust_diag
-USE mo_nwp_vdiff_interface, ONLY: nwp_vdiff_setup
 USE mo_var_list,            ONLY: add_var, add_ref, t_var_list_ptr
 USE mo_var_list_register,   ONLY: vlr_add, vlr_del
 USE mo_var_groups,          ONLY: groups, MAX_GROUPS
@@ -5450,7 +5449,6 @@ SUBROUTINE new_nwp_phy_diag_list( k_jg, klev, klevp1, kblks,    &
     ! Initialize JSBACH + VDIFF state.
     IF (atm_phy_nwp_config(k_jg)%inwp_surface == LSS_JSBACH .OR. atm_phy_nwp_config(k_jg)%inwp_turb == ivdiff) THEN
       CALL diag%nwp_vdiff_state%init(nproma, p_patch(k_jg)%nlev, p_patch(k_jg)%nblks_c, diag_list)
-      CALL nwp_vdiff_setup( p_patch(k_jg) )
     END IF
 
     CALL message('mo_nwp_phy_state:construct_nwp_phy_diag', &

@@ -109,6 +109,7 @@ USE mo_sppt_state,           ONLY: construct_sppt_state, destruct_sppt_state
 USE mo_sppt_config,          ONLY: sppt_config, configure_sppt
 USE mo_nwp_phy_cleanup,      ONLY: cleanup_nwp_phy
 USE mo_nwp_ww,               ONLY: configure_ww
+USE mo_nwp_vdiff_interface,  ONLY: nwp_vdiff_setup
 #endif
 #ifdef __ICON_ART
 ! ICON-ART
@@ -417,6 +418,11 @@ CONTAINS
     IF (iforcing == inwp) THEN
 #ifndef __NO_NWP__
       CALL construct_nwp_phy_state( p_patch(1:), var_in_output)
+
+      IF (ANY(atm_phy_nwp_config(:)%inwp_surface == LSS_JSBACH)) THEN
+        CALL nwp_vdiff_setup( p_patch(1:), atm_phy_nwp_config(:)%inwp_surface == LSS_JSBACH )
+      END IF
+
       CALL construct_nwp_lnd_state( p_patch(1:), p_lnd_state, var_in_output(:)%smi, n_timelevels=2 )
 
       ! Construct SPPT state
