@@ -67,6 +67,8 @@ MODULE mo_radiation_config
                                    ! 2: is for slope-dependent radiation with shading and skyview
                                    ! 3: slope-dependent radiation with shading without skyview
 
+    !$ACC DECLARE CREATE(islope_rad)
+
     ! --- Switches for radiative agents
     !     irad_x=0 : radiation uses tracer x = 0
     !     irad_x=1 : radiation uses tracer x from a tracer variable

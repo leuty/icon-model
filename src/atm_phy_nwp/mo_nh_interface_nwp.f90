@@ -262,7 +262,7 @@ CONTAINS
     !< vertical interfaces
 
     REAL(wp) :: zsct ! solar constant (at time of year)
-    REAL(wp) :: zcosmu0 (nproma,pt_patch%nblks_c), cosmu0_slope(nproma,pt_patch%nblks_c)
+    REAL(wp) :: zcosmu0 (nproma,pt_patch%nblks_c), cosmu0_slope(nproma,pt_patch%nblks_c), shading_mask(nproma,pt_patch%nblks_c)
 
     REAL(wp) :: z_qsum(nproma,pt_patch%nlev)       !< summand of virtual increment
     REAL(wp) :: z_ddt_alpha(nproma,pt_patch%nlev)  !< tendency of virtual increment
@@ -1491,7 +1491,7 @@ CONTAINS
 #endif
 
     IF ( lcall_phy_jg(itradheat) ) THEN
-      !$ACC DATA CREATE(cosmu0_slope) IF(lzacc)
+      !$ACC DATA CREATE(cosmu0_slope, shading_mask) IF(lzacc)
       !$ser verbatim IF (.not. linit) CALL serialize_all(nproma, jg, "radheat", .TRUE., opt_dt=mtime_datetime)
 
       IF (msg_level >= 15) &
@@ -1511,6 +1511,7 @@ CONTAINS
         & slope_azi  = p_metrics%slope_azimuth,     &
         & horizon    = ext_data%atm%horizon,        &
         & cosmu0_slp = cosmu0_slope,                &
+        & shading_mask = shading_mask,              &
         & lacc=lzacc                                 )
 
       IF (timers_level > 10) CALL timer_stop(timer_pre_radiation_nwp)
@@ -1613,6 +1614,7 @@ CONTAINS
           & idx_lst_t        = ext_data%atm%idx_lst_t(:,jb,:),     &! in index list of land points per tile
           & cosmu0=zcosmu0(:,jb)                   ,&! in     cosine of solar zenith angle (w.r.t. plain surface)
           & cosmu0_slp=cosmu0_slope(:,jb)          ,&! in     slope-dependent cosine of solar zenith angle
+          & shading_mask=shading_mask(:,jb)        ,&! in     mask field indicating orographic shading
           & skyview=ext_data%atm%skyview(:,jb)     ,&! in     skyview factor for islope_rad=2
           & opt_nh_corr=.TRUE.                     ,&! in     switch for NH mode
           & ptsfc=lnd_prog_new%t_g(:,jb)           ,&! in     surface temperature         [K]
@@ -1636,17 +1638,22 @@ CONTAINS
           & pdtdtradsw=prm_nwp_tend%ddt_temp_radsw(:,:,jb),&! out rad. heating by SW         [K/s]
           & pdtdtradlw=prm_nwp_tend%ddt_temp_radlw(:,:,jb),&! out rad. heating by LW         [K/s]
           & pflxsfcsw =prm_diag%swflxsfc (:,jb)        ,&   ! out shortwave surface net flux [W/m2]
+          & pflxsfcsw_os =prm_diag%swflxsfc_os (:,jb),  &   ! out shortwave surface net flux including shading [W/m2]
+          & pflxsfcsw_tan_os=prm_diag%swflxsfc_tan_os(:,jb), &  ! out shortwave surface net flux including shading and slope correction [W/m2]
           & pflxsfclw =prm_diag%lwflxsfc (:,jb)        ,&   ! out longwave surface net flux  [W/m2]
-          & pflxsfcsw_t=prm_diag%swflxsfc_t (:,jb,:)   ,&   ! out tile-specific shortwave surface net flux [W/m2]
+          & pflxsfcsw_t=prm_diag%swflxsfc_t (:,jb,:)   ,&   ! out tile-specific shortwave surface net flux [W/m2]; includes shading and slope correction for islope_rad>0
           & pflxsfclw_t=prm_diag%lwflxsfc_t (:,jb,:)   ,&   ! out tile-specific longwave surface net flux  [W/m2]
           & pflxtoasw =prm_diag%swflxtoa (:,jb)        ,&   ! out shortwave toa net flux     [W/m2]
           & pflxtoalw =prm_diag%lwflxtoa (:,jb)        ,&   ! out longwave  toa net flux     [W/m2]
           & lwflx_up_sfc=prm_diag%lwflx_up_sfc(:,jb)   ,&   ! out longwave upward flux at surface [W/m2]
           & swflx_up_toa=prm_diag%swflx_up_toa(:,jb)   ,&   ! out shortwave upward flux at the TOA [W/m2]
           & swflx_up_sfc=prm_diag%swflx_up_sfc(:,jb)   ,&   ! out shortwave upward flux at the surface [W/m2]
+          & swflx_up_sfc_os=prm_diag%swflx_up_sfc_os(:,jb), &  ! out shortwave upward flux at the surface including shading [W/m2]
+          & swflx_up_sfc_tan_os=prm_diag%swflx_up_sfc_tan_os(:,jb), &  ! out shortwave upward flux at the surface including shading and slope correction [W/m2]
           & swflx_nir_sfc=prm_diag%swflx_nir_sfc(:,jb) ,&   ! out near-infrared downward flux at the surface [W/m2]
           & swflx_vis_sfc=prm_diag%swflx_vis_sfc(:,jb) ,&   ! out visible downward flux at the surface [W/m2]
           & swflx_par_sfc=prm_diag%swflx_par_sfc(:,jb) ,&   ! out PAR downward flux at the surface [W/m2]
+          & swflx_par_sfc_tan_os=prm_diag%swflx_par_sfc_tan_os(:,jb) ,&   ! out PAR downward flux at the surface including shading and slope correction [W/m2]
           & swflx_clr_sfc=prm_diag%swflxclr_sfc(:,jb)  ,&   ! out clear-sky shortwave flux at the surface [W/m2]
           & swflx_dn_sfc_diff=prm_diag%swflx_dn_sfc_diff(:,jb), & ! out shortwave diffuse downward flux at the surface [W/m2]
           & lacc=lzacc                                          )
@@ -1679,8 +1686,6 @@ CONTAINS
           & pqi=prm_diag%tot_cld    (:,:,jb,iqi)   ,&! in     specific cloud ice          [kg/kg]
           & ppres_ifc=pt_diag%pres_ifc(:,:,jb)     ,&! in     pressure at layer boundaries [Pa]
           & cosmu0=zcosmu0(:,jb)                   ,&! in     cosine of solar zenith angle
-          & cosmu0_slp=cosmu0_slope(:,jb)          ,&! in     slope-dependent cosine of solar zenith angle
-          & skyview=ext_data%atm%skyview(:,jb)     ,&! in     skyview factor for islope_rad=2
           & opt_nh_corr=.TRUE.                     ,&! in     switch for NH mode
           & ptsfc=lnd_prog_new%t_g(:,jb)           ,&! in     surface temperature         [K]
           & ptsfctrad=prm_diag%tsfctrad(:,jb)      ,&! in     sfc temp. used for pflxlw   [K]
@@ -1720,7 +1725,7 @@ CONTAINS
       !$ser verbatim IF (.not. linit) CALL serialize_all(nproma, jg, "radheat", .FALSE., opt_dt=mtime_datetime)
 
     !$ACC WAIT(1)
-    !$ACC END DATA ! CREATE(cosmu0_slope)
+    !$ACC END DATA ! CREATE(cosmu0_slope, shading_mask)
 
       IF (timers_level > 2) CALL timer_stop(timer_radheat)
 

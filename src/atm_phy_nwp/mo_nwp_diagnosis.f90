@@ -71,8 +71,8 @@ MODULE mo_nwp_diagnosis
   USE mo_time_config,        ONLY: time_config
   USE mo_nwp_tuning_config,  ONLY: lcalib_clcov, max_calibfac_clcl, itune_gust_diag, tune_gustlim_fac
   USE mo_mpi,                ONLY: p_io, p_comm_work, p_bcast
-  USE mo_fortran_tools,      ONLY: set_acc_host_or_device, assert_acc_device_only
-  USE mo_radiation_config,   ONLY: decorr_pole, decorr_equator
+  USE mo_fortran_tools,      ONLY: assert_acc_host_only, set_acc_host_or_device, assert_acc_device_only
+  USE mo_radiation_config,   ONLY: decorr_pole, decorr_equator, islope_rad
 
   IMPLICIT NONE
 
@@ -560,14 +560,64 @@ CONTAINS
             ENDDO
             !$ACC END PARALLEL
 
+            ! Additional fields for slope-corrected radiation
+            IF (islope_rad(jg) > 0) THEN
+              !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1) IF(lzacc)
+              !$ACC LOOP GANG VECTOR
+              DO jc = i_startidx, i_endidx
+
+                ! time averaged shortwave net flux at surface with shading
+                prm_diag%swflxsfc_a_os(jc,jb) = time_avg(prm_diag%swflxsfc_a_os(jc,jb), &
+                  &                                   prm_diag%swflxsfc_os  (jc,jb), &
+                  &                                   t_wgt)
+
+                ! time averaged shortwave net flux at surface with shading and slope correction
+                prm_diag%swflxsfc_a_tan_os(jc,jb) = time_avg(prm_diag%swflxsfc_a_tan_os(jc,jb), &
+                  &                                   prm_diag%swflxsfc_tan_os  (jc,jb), &
+                  &                                   t_wgt)
+
+                ! time averaged shortwave diffuse upward flux at surface with shading
+                prm_diag%asodifu_s_os(jc,jb) = time_avg(prm_diag%asodifu_s_os  (jc,jb), &
+                  &                                   prm_diag%swflx_up_sfc_os(jc,jb), &
+                  &                                   t_wgt)
+
+                ! time averaged shortwave diffuse upward flux at surface with shading and slope correction
+                prm_diag%asodifu_s_tan_os(jc,jb) = time_avg(prm_diag%asodifu_s_tan_os  (jc,jb), &
+                  &                                   prm_diag%swflx_up_sfc_tan_os(jc,jb), &
+                  &                                   t_wgt)
+
+                ! time averaged shortwave direct downward flux at surface with shading
+                prm_diag%asodird_s_os (jc,jb) = MAX(0._wp, prm_diag%swflxsfc_a_os(jc,jb) &
+                  &                        -            prm_diag%asodifd_s (jc,jb) &
+                  &                        +            prm_diag%asodifu_s_os(jc,jb) )
+
+                ! time averaged shortwave direct downward flux at surface with shading and slope correction
+                prm_diag%asodird_s_tan_os (jc,jb) = MAX(0._wp, prm_diag%swflxsfc_a_tan_os(jc,jb) &
+                  &                        -            prm_diag%asodifd_s (jc,jb) &
+                  &                        +            prm_diag%asodifu_s_tan_os(jc,jb) )
+
+                ! time averaged downward solar radiation uncorrected = sum of direct + diffuse uncorrected
+                prm_diag%asod_s_os(jc,jb) = prm_diag%asodifd_s(jc,jb) + prm_diag%asodird_s_os(jc,jb)
+
+                ! time averaged downward solar radiation uncorrected = sum of direct + diffuse uncorrected
+                prm_diag%asod_s_tan_os(jc,jb) = prm_diag%asodifd_s(jc,jb) + prm_diag%asodird_s_tan_os(jc,jb)
+
+                ! time averaged downward photosynthetically active flux at surface with shading and slope correction
+                prm_diag%aswflx_par_sfc_tan_os(jc,jb) = time_avg(prm_diag%aswflx_par_sfc_tan_os(jc,jb), &
+                  &                                              prm_diag%swflx_par_sfc_tan_os(jc,jb),  &
+                  &                                              t_wgt)
+              ENDDO
+              !$ACC END PARALLEL
+            ENDIF ! slope_rad
+
           ENDIF  ! lcall_phy_jg(itradheat)
 
         ELSEIF (.NOT. lflux_avg) THEN
 
-          !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1) IF(lzacc)
           IF (lcall_phy_jg(itturb)) THEN
 
 !DIR$ IVDEP
+            !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1) IF(lzacc)
             !$ACC LOOP GANG(STATIC: 1) VECTOR
             DO jc = i_startidx, i_endidx
               ! ATTENTION:
@@ -643,11 +693,13 @@ CONTAINS
 
             ENDIF  ! lcalc_extra_avg
 
+          !$ACC END PARALLEL
           ENDIF  ! inwp_turb > 0
 
 
           IF ( lcall_phy_jg(itradheat) ) THEN
 !DIR$ IVDEP
+            !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1) IF(lzacc)
             !$ACC LOOP GANG(STATIC: 1) VECTOR
             DO jc = i_startidx, i_endidx
 
@@ -721,8 +773,59 @@ CONTAINS
                 &                            * dt_phy_jg(itfastphy)
 
             END DO
+            !$ACC END PARALLEL
+
+            IF (islope_rad(jg) > 0) THEN
+              !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1) IF(lzacc)
+              !$ACC LOOP GANG(STATIC: 1) VECTOR
+              DO jc = i_startidx, i_endidx
+
+                ! accumulated shortwave net flux at surface with shading
+                prm_diag%swflxsfc_a_os(jc,jb) = prm_diag%swflxsfc_a_os(jc,jb) &
+              &                         + prm_diag%swflxsfc_os(jc,jb)     &
+              &                         * dt_phy_jg(itfastphy)
+                ! accumulated shortwave net flux at surface with shading and slope correction
+                prm_diag%swflxsfc_a_tan_os(jc,jb) = prm_diag%swflxsfc_a_tan_os(jc,jb) &
+              &                         + prm_diag%swflxsfc_tan_os(jc,jb)     &
+              &                         * dt_phy_jg(itfastphy)
+
+                ! accumulated shortwave diffuse upward flux at surface with shading
+                prm_diag%asodifu_s_os(jc,jb) = prm_diag%asodifu_s_os  (jc,jb)  &
+              &                           + prm_diag%swflx_up_sfc_os(jc,jb)  &
+              &                           * dt_phy_jg(itfastphy)
+
+                ! accumulated shortwave diffuse upward flux at surface with shading and slope correction
+                prm_diag%asodifu_s_tan_os(jc,jb) = prm_diag%asodifu_s_tan_os  (jc,jb)  &
+              &                           + prm_diag%swflx_up_sfc_tan_os(jc,jb)  &
+              &                           * dt_phy_jg(itfastphy)
+
+                ! accumulated shortwave direct downward flux at surface with shading
+                prm_diag%asodird_s_os (jc,jb) = MAX(0._wp, prm_diag%swflxsfc_a_os(jc,jb) &
+                  &                        -            prm_diag%asodifd_s (jc,jb) &
+                  &                        +            prm_diag%asodifu_s_os(jc,jb) )
+
+                ! accumulated shortwave direct downward flux at surface with shading and slope correction
+                prm_diag%asodird_s_tan_os (jc,jb) = MAX(0._wp, prm_diag%swflxsfc_a_tan_os(jc,jb) &
+                  &                        -            prm_diag%asodifd_s (jc,jb) &
+                  &                        +            prm_diag%asodifu_s_tan_os(jc,jb) )
+
+                ! accumulated downward solar radiation uncorrected = sum of direct + diffuse uncorrected
+                prm_diag%asod_s_os(jc,jb) = prm_diag%asodifd_s(jc,jb) + prm_diag%asodird_s_os(jc,jb)
+
+                ! accumulated downward solar radiation uncorrected = sum of direct + diffuse uncorrected
+                prm_diag%asod_s_tan_os(jc,jb) = prm_diag%asodifd_s(jc,jb) + prm_diag%asodird_s_tan_os(jc,jb)
+
+
+                ! accumulated downward photosynthetically active flux at surface
+                prm_diag%aswflx_par_sfc_tan_os(jc,jb) = prm_diag%aswflx_par_sfc_tan_os(jc,jb)  &
+                  &                            + prm_diag%swflx_par_sfc_tan_os(jc,jb)   &
+                  &                            * dt_phy_jg(itfastphy)
+
+              END DO
+              !$ACC END PARALLEL
+            ENDIF ! slope_rad
+
           ENDIF  ! lcall_phy_jg(itradheat)
-          !$ACC END PARALLEL
 
         ENDIF  ! lflux_avg
 
@@ -2117,6 +2220,7 @@ CONTAINS
     INTEGER                                     :: jg
     LOGICAL                                     :: l_present_dursun_m, l_present_dursun_r
     REAL(wp), DIMENSION(nproma,p_patch%nblks_c) :: twater
+    REAL(wp), POINTER                           :: swflxsfc_slope_rad(:,:),swflx_up_sfc_slope_rad(:,:)
     LOGICAL :: lzacc             ! OpenACC flag 
     CALL set_acc_host_or_device(lzacc, lacc)
 
@@ -2132,16 +2236,25 @@ CONTAINS
 
     jg = p_patch%id
 
+
     IF (var_in_output(jg)%dursun .AND. (p_sim_time > 0._wp) ) THEN
+      IF ( islope_rad(jg) > 0) THEN
+        swflxsfc_slope_rad => prm_diag%swflxsfc_os
+        swflx_up_sfc_slope_rad => prm_diag%swflx_up_sfc_os
+      ELSE
+        swflxsfc_slope_rad => prm_diag%swflxsfc
+        swflx_up_sfc_slope_rad => prm_diag%swflx_up_sfc
+      ENDIF
       IF (l_present_dursun_m .OR. l_present_dursun_r) THEN
-      CALL compute_field_twater( p_patch, p_metrics%ddqz_z_full, p_prog%rho,               &
-          &                      p_prog_rcf%tracer, advection_config(jg)%trHydroMass%list, &
-          &                      twater, lacc=lzacc )
+
+        CALL compute_field_twater( p_patch, p_metrics%ddqz_z_full, p_prog%rho,               &
+            &                      p_prog_rcf%tracer, advection_config(jg)%trHydroMass%list, &
+            &                      twater, lacc=lzacc )
       ENDIF
       IF (itype_dursun == 0) THEN
         ! WMO sunshine duration is an accumulative value like precipitation or runoff
         CALL compute_field_dursun(p_patch, dt_phy, prm_diag%dursun,         &
-             &                    prm_diag%swflxsfc, prm_diag%swflx_up_sfc, &
+             &                    swflxsfc_slope_rad, swflx_up_sfc_slope_rad, &
              &                    prm_diag%swflx_dn_sfc_diff, cosmu0,       &
              &                    120.0_wp, 0.01_wp,                        &
              &                    prm_diag%dursun_m, prm_diag%dursun_r,     &
@@ -2150,7 +2263,7 @@ CONTAINS
       ELSEIF (itype_dursun == 1) THEN
         ! MeteoSwiss sunshine duration with a 200 W/m^2 threshold
         CALL compute_field_dursun(p_patch, dt_phy, prm_diag%dursun,         &
-             &                    prm_diag%swflxsfc, prm_diag%swflx_up_sfc, &
+             &                    swflxsfc_slope_rad, swflx_up_sfc_slope_rad, &
              &                    prm_diag%swflx_dn_sfc_diff, cosmu0,       &
              &                    200.0_wp, 60.0_wp,                        &
              &                    prm_diag%dursun_m, prm_diag%dursun_r,     &

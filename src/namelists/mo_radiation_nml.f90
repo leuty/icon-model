@@ -190,6 +190,7 @@ MODULE mo_radiation_nml
   LOGICAL  :: ecrad_use_general_cloud_optics
 
   CHARACTER(len=MAX_CHAR_LENGTH) :: ecrad_data_path
+
   !
   NAMELIST /radiation_nml/ isolrad,               &
     &                      albedo_type,           &
@@ -394,7 +395,7 @@ CONTAINS
     ENDIF
     __acc_attach(csalb)
 
-    !$ACC UPDATE DEVICE(config_decorr_pole, config_decorr_equator) ASYNC(1)
+    !$ACC UPDATE DEVICE(config_decorr_pole, config_decorr_equator, config_islope_rad) ASYNC(1)
 
     !-----------------------------------------------------
     ! 5. Store the namelist for restart

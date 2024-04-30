@@ -194,21 +194,29 @@ MODULE mo_nwp_phy_types
       &  trsol_dn_sfc_diff(:,:),& !! shortwave diffuse downward radiative transmissivity at the surface
       &  swflx_up_toa(:,:),    & !! shortwave upward flux at the top of the atmosphere [W/m2]
       &  swflx_up_sfc(:,:),    & !! shortwave upward flux at the surface [W/m2]
+      &  swflx_up_sfc_os(:,:), & !! shortwave upward flux at the surface incl. orographic shading [W/m2]
+      &  swflx_up_sfc_tan_os(:,:), & !! shortwave upward flux at the surface incl. slope-dependent and orographic shading [W/m2]
       &  swflx_nir_sfc(:,:),   & !! shortwave downward near-infrared flux at the surface [W/m2]
       &  swflx_vis_sfc(:,:),   & !! shortwave downward visible flux at the surface [W/m2]
       &  swflx_par_sfc(:,:),   & !! shortwave downward photosynthetically active flux at the surface [W/m2]
+      &  swflx_par_sfc_tan_os(:,:), & !! shortwave downward photosynthetically active flux at the surface incl. slope-dependent and orographic shading [W/m2] 
       &  fr_nir_sfc_diff(:,:), & !! diffuse fraction of downward near-infrared flux at the surface
       &  fr_vis_sfc_diff(:,:), & !! diffuse fraction of downward visible flux at the surface
       &  fr_par_sfc_diff(:,:), & !! diffuse fraction of downward photosynthetically active flux at the surface
       &  aswflx_par_sfc(:,:),  & !! shortwave downward photosynthetically active flux at the surface [W/m2]
+      &  aswflx_par_sfc_tan_os(:,:),  & !! shortwave downward photosynthetically active flux at the surface [W/m2]
                                  !! accumulated or mean since model start
       &  swflx_dn_sfc_diff(:,:),& !! shortwave diffuse downward radiative flux at the surface [W/m2]
       &  swflxsfc(:,:),        & !! shortwave net flux at surface [W/m2]
+      &  swflxsfc_os(:,:),     & !! shortwave net flux at surface incl. orographic shading [W/m2]
+      &  swflxsfc_tan_os(:,:), & !! shortwave net flux at surface incl. slope-dependent and orographic shading [W/m2]
       &  swflxsfc_t(:,:,:),    & !! tile-based shortwave net flux at surface [W/m2]
       &  swflxtoa(:,:),        & !! shortwave net flux at toa [W/m2]
       &  lwflxtoa(:,:),        & !! thermal net flux at toa [W/m2]
       &  lwflxsfc_a(:,:),      & !! Surface net thermal radiation [W/m2], accumulated or mean since model start
       &  swflxsfc_a(:,:),      & !! Surface net solar radiation [W/m2], accumulated or mean since model start
+      &  swflxsfc_a_os(:,:),   & !! Surface net solar radiation incl. orographic shading [W/m2], accumulated or mean since model start
+      &  swflxsfc_a_tan_os(:,:),& !! Surface net solar radiation incl. slope-dependent and orographic shading [W/m2], accumulated or mean since model start
       &  lwflxclrsfc_a(:,:),   & !! Clear-sky surface net thermal radiation [W/m2], accumulated or mean since model start
       &  swflxclrsfc_a(:,:),   & !! Clear-sky surface net solar radiation [W/m2], accumulated or mean since model start
       &  lwflxtoa_a(:,:),      & !! TOA net thermal radiation [W/m2], accumulated or mean since model start
@@ -221,11 +229,17 @@ MODULE mo_nwp_phy_types
       &  athd_s    (:,:),      & !! Surface down thermal radiation [W/m2], accumulated or mean since model start
       &  athu_s    (:,:),      & !! Surface up thermal radiation [W/m2], accumulated or mean since model start
       &  asod_s    (:,:),      & !! Surface down solar rad. [W/m2], accumulated or mean since model start 
+      &  asod_s_os    (:,:),     & !! Surface down solar rad. uncorr. [W/m2], accumulated or mean since model start 
+      &  asod_s_tan_os    (:,:), & !! Surface down solar rad. uncorr. [W/m2], accumulated or mean since model start 
       &  asodird_s (:,:),      & !! Surface down solar direct rad. [W/m2], accumulated or mean since model start 
+      &  asodird_s_os (:,:),   & !! Surface down solar direct rad. incl. orographic shading [W/m2], accumulated or mean since model start
+      &  asodird_s_tan_os (:,:),& !! Surface down solar direct rad. incl. slope-dependent and orographic shading [W/m2], accumulated or mean since model start
       &  asodifd_s (:,:),      & !! Surface down solar diff. rad. [W/m2], accumulated or mean since model start 
       &  asodifu_s (:,:),      & !! Surface up solar diff. rad. [W/m2], accumulated or mean since model start 
                                  !! _a means average values if lflux_avg=.TRUE.
                                  !! and accumulated values if lflux_avg=.FALSE., default is .FALSE.
+      &  asodifu_s_os(:,:),    & !! Surface up solar diff. rad. incl. orographic shading [W/m2], accumulated or mean since model start 
+      &  asodifu_s_tan_os(:,:),& !! Surface up solar diff. rad. incl. slope-dependent and orographic shading [W/m2], accumulated or mean since model start 
       &  snowlmt     (:,:),    & !! height of snowfall limit above MSL
       &  drag_u_grid (:,:),    & !! zonal resolved surface stress [N/m2]
       &  drag_v_grid (:,:),    & !! meridional resolved surface stress [N/m2]

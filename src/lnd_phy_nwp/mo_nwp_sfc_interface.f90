@@ -42,6 +42,7 @@ MODULE mo_nwp_sfc_interface
     &                               lprog_albsi, itype_trvg, lterra_urb,              &
     &                               itype_snowevap, zml_soil, lcuda_graph_lnd
   USE mo_nwp_tuning_config,   ONLY: itune_gust_diag
+  USE mo_radiation_config,    ONLY: islope_rad
   USE mo_extpar_config,       ONLY: itype_vegetation_cycle
   USE mo_initicon_config,     ONLY: icpl_da_sfcevap, dt_ana, icpl_da_skinc, icpl_da_seaice
   USE mo_coupling_config,     ONLY: is_coupled_to_ocean
@@ -662,6 +663,7 @@ CONTAINS
 #endif
 
 
+
 !$NEC ivdep
         !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(acc_async_queue) IF(lzacc)
         !$ACC LOOP GANG VECTOR PRIVATE(jc)
@@ -757,8 +759,12 @@ CONTAINS
           tfv_t(ic)                 =  prm_diag%tfv_t(jc,jb,isubs)
           tfvsn_t(ic)               =  1._wp
           sobs_t(ic)                =  prm_diag%swflxsfc_t(jc,jb,isubs) 
-          thbs_t(ic)                =  prm_diag%lwflxsfc_t(jc,jb,isubs) 
-          pabs_t(ic)                =  prm_diag%swflx_par_sfc(jc,jb) 
+          thbs_t(ic)                =  prm_diag%lwflxsfc_t(jc,jb,isubs)
+          IF (islope_rad(jg) > 0) THEN
+            pabs_t(ic)                =  prm_diag%swflx_par_sfc_tan_os(jc,jb) 
+          ELSE
+            pabs_t(ic)                =  prm_diag%swflx_par_sfc(jc,jb) 
+          ENDIF
 
           soiltyp_t(ic)             =  ext_data%atm%soiltyp_t(jc,jb,isubs)
 

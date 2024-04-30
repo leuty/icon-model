@@ -75,7 +75,7 @@ USE mo_grid_config,         ONLY: n_dom, n_dom_start, nexlevs_rrg_vnest
 USE mo_atm_phy_nwp_config,  ONLY: atm_phy_nwp_config, icpl_aero_conv, iprog_aero
 USE turb_data,              ONLY: ltkecon
 USE mo_initicon_config,     ONLY: icpl_da_sfcevap, icpl_da_snowalb, icpl_da_skinc, icpl_da_seaice
-USE mo_radiation_config,    ONLY: irad_aero, iRadAeroTegen, iRadAeroART, iRadAeroNone, iRadAeroConst, iRadAeroCAMSclim
+USE mo_radiation_config,    ONLY: irad_aero, iRadAeroTegen, iRadAeroART, iRadAeroNone, iRadAeroConst, iRadAeroCAMSclim, islope_rad
 USE mo_lnd_nwp_config,      ONLY: ntiles_total, ntiles_water, nlev_soil
 USE mo_nwp_tuning_config,   ONLY: itune_gust_diag
 USE mo_var_list,            ONLY: add_var, add_ref, t_var_list_ptr
@@ -97,7 +97,8 @@ USE mo_zaxis_type,          ONLY: ZA_REFERENCE, ZA_REFERENCE_HALF,          &
   &                               ZA_HEIGHT_2M_LAYER, ZA_TOA, ZA_DEPTH_BELOW_LAND,   &
   &                               ZA_PRESSURE_0, ZA_PRESSURE_400, ZA_SRH, &
   &                               ZA_PRESSURE_800, ZA_CLOUD_BASE, ZA_CLOUD_TOP,  &
-  &                               ZA_ISOTHERM_ZERO, ZA_ECHOTOP, ZA_WSHEAR, ZA_PRESSURE_LAPSERATE
+  &                               ZA_ISOTHERM_ZERO, ZA_ECHOTOP, ZA_WSHEAR, ZA_PRESSURE_LAPSERATE, &
+  &                               ZA_HORIZONTAL_PLANE_OS, ZA_TERRAIN_TANGENT_PLANE_OS
 USE mo_physical_constants,  ONLY: grav
 #ifndef __NO_ICON_LES__
 USE mo_ls_forcing_nml,      ONLY: is_ls_forcing
@@ -328,7 +329,7 @@ SUBROUTINE new_nwp_phy_diag_list( k_jg, klev, klevp1, kblks,    &
     INTEGER :: ibits,  kcloud
     INTEGER :: jsfc, ist
     CHARACTER(len=NF_MAX_NAME) :: long_name
-    CHARACTER(len=21) :: name
+    CHARACTER(len=27) :: name
     CHARACTER(len=3)  :: prefix
     CHARACTER(len=8)  :: meaning
     CHARACTER(len=10) :: varunits  ! variable units, depending on "lflux_avg"
@@ -1985,6 +1986,31 @@ SUBROUTINE new_nwp_phy_diag_list( k_jg, klev, klevp1, kblks,    &
       & lopenacc=.TRUE. )
     __acc_attach(diag%swflxsfc)
 
+    IF (islope_rad(k_jg) > 0) THEN
+      ! &      diag%swflxsfc_os(nproma,nblks_c)
+      cf_desc    = t_cf_var('sob_s_os', 'W m-2', 'shortwave net flux at surface incl. orographic shading', datatype_flt)
+      grib2_desc = grib2_var(0, 4, 9, ibits, GRID_UNSTRUCTURED, GRID_CELL)
+      CALL add_var( diag_list, 'sob_s_os', diag%swflxsfc_os,                     &
+        & GRID_UNSTRUCTURED_CELL, ZA_HORIZONTAL_PLANE_OS, cf_desc, grib2_desc,   &
+        & ldims=shape2d,                                                      &
+        & in_group=groups("rad_vars"),                                        &
+        & lopenacc=.TRUE. )
+      __acc_attach(diag%swflxsfc_os)
+
+      ! &      diag%swflxsfc_tan_os(nproma,nblks_c)
+      cf_desc    = t_cf_var('sob_s_tan_os', 'W m-2', 'shortwave net flux at surface incl. slope-dependent and orgraphic shading', datatype_flt)
+      grib2_desc = grib2_var(0, 4, 9, ibits, GRID_UNSTRUCTURED, GRID_CELL)
+      CALL add_var( diag_list, 'sob_s_tan_os', diag%swflxsfc_tan_os,                     &
+        & GRID_UNSTRUCTURED_CELL, ZA_TERRAIN_TANGENT_PLANE_OS, cf_desc, grib2_desc,   &
+        & ldims=shape2d,                                                      &
+        & in_group=groups("rad_vars"),                                        &
+        & lopenacc=.TRUE. )
+      __acc_attach(diag%swflxsfc_tan_os)
+    ELSE
+      ! dummy allocation
+      ALLOCATE(diag%swflxsfc_os(0,kblks), diag%swflxsfc_tan_os(0,kblks))
+    ENDIF
+
     ! &      diag%lwflxclr_sfc(nproma,nblks_c)
     cf_desc    = t_cf_var('thbclr_s', 'W m-2', 'net longwave clear-sky flux at surface', datatype_flt)
     grib2_desc = grib2_var(0, 5, 6, ibits, GRID_UNSTRUCTURED, GRID_CELL)
@@ -2093,6 +2119,29 @@ SUBROUTINE new_nwp_phy_diag_list( k_jg, klev, klevp1, kblks,    &
       & lopenacc=.TRUE. )
     __acc_attach(diag%swflx_up_sfc)
 
+    IF (islope_rad(k_jg) > 0) THEN
+      ! &      diag%swflx_up_sfc_os(nproma,nblks_c)
+      cf_desc    = t_cf_var('sou_s_os', 'W m-2', 'shortwave upward flux at surface incl. orographic shading', datatype_flt)
+      grib2_desc = grib2_var(0, 4, 8, ibits, GRID_UNSTRUCTURED, GRID_CELL)
+      CALL add_var( diag_list, 'sou_s_os', diag%swflx_up_sfc_os,                 &
+        & GRID_UNSTRUCTURED_CELL, ZA_HORIZONTAL_PLANE_OS, cf_desc, grib2_desc,   &
+        & ldims=shape2d, lrestart=.FALSE., in_group=groups("rad_vars"),       &
+        & lopenacc=.TRUE. )
+      __acc_attach(diag%swflx_up_sfc_os)
+
+      ! &      diag%swflx_up_sfc_tan_os(nproma,nblks_c)
+      cf_desc    = t_cf_var('sou_s_tan_os', 'W m-2', 'shortwave upward flux at surface incl. slope-dependent and orographic shading', datatype_flt)
+      grib2_desc = grib2_var(0, 4, 8, ibits, GRID_UNSTRUCTURED, GRID_CELL)
+      CALL add_var( diag_list, 'sou_s_tan_os', diag%swflx_up_sfc_tan_os,                 &
+        & GRID_UNSTRUCTURED_CELL, ZA_TERRAIN_TANGENT_PLANE_OS, cf_desc, grib2_desc,   &
+        & ldims=shape2d, lrestart=.FALSE., in_group=groups("rad_vars"),       &
+        & lopenacc=.TRUE. )
+      __acc_attach(diag%swflx_up_sfc_tan_os)
+    ELSE
+      ! dummy allocation
+      ALLOCATE(diag%swflx_up_sfc_os(0,kblks), diag%swflx_up_sfc_tan_os(0,kblks))
+    ENDIF
+
     ! &      diag%swflx_nir_sfc(nproma,nblks_c)
     cf_desc    = t_cf_var('swflx_nir_sfc', 'W m-2', 'downward near-infrared flux at surface', datatype_flt)
     grib2_desc = grib2_var(0, 4, 255, ibits, GRID_UNSTRUCTURED, GRID_CELL)
@@ -2119,6 +2168,20 @@ SUBROUTINE new_nwp_phy_diag_list( k_jg, klev, klevp1, kblks,    &
       & ldims=shape2d, lrestart=.TRUE., in_group=groups("rad_vars"),        &
       & lopenacc=.TRUE.)
     __acc_attach(diag%swflx_par_sfc)
+
+    IF (islope_rad(k_jg) > 0) THEN
+      ! &      diag%swflx_par_sfc_tan_os(nproma,nblks_c)
+      cf_desc    = t_cf_var('swflx_par_sfc_tan_os', 'W m-2', 'downward photosynthetically active flux at surface incl. slope-dependent and orographic shading', datatype_flt)
+      grib2_desc = grib2_var(0, 4, 10, ibits, GRID_UNSTRUCTURED, GRID_CELL)
+      CALL add_var( diag_list, 'swflx_par_sfc_tan_os', diag%swflx_par_sfc_tan_os, &
+        & GRID_UNSTRUCTURED_CELL, ZA_TERRAIN_TANGENT_PLANE_OS, cf_desc, grib2_desc,            &
+        & ldims=shape2d, lrestart=.TRUE., in_group=groups("rad_vars"),        &
+        & lopenacc=.TRUE.)
+      __acc_attach(diag%swflx_par_sfc_tan_os)
+    ELSE
+      ! dummy allocation
+      ALLOCATE(diag%swflx_par_sfc_tan_os(0,kblks))
+    ENDIF
 
     ! &      diag%fr_nir_sfc_diff(nproma,nblks_c)
     cf_desc    = t_cf_var('fr_nir_sfc_diff', '', 'diffuse fraction of downward near-infrared flux at surface', datatype_flt)
@@ -2273,6 +2336,40 @@ SUBROUTINE new_nwp_phy_diag_list( k_jg, klev, klevp1, kblks,    &
       & lopenacc=.TRUE.)
     __acc_attach(diag%swflxsfc_a)
 
+    IF (islope_rad(k_jg) > 0) THEN
+      ! &      diag%swflxsfc_a_os(nproma,nblks_c)
+      WRITE(name,'(A,A8)') TRIM(prefix),"sob_s_os"
+      WRITE(long_name,'(A53,A4,A18)') "Surface net solar radiation incl. orographic shading ", meaning, &
+                                    &" since model start"
+      cf_desc    = t_cf_var(name, varunits, long_name, datatype_flt)
+      grib2_desc = grib2_var(0, 4, 9, ibits, GRID_UNSTRUCTURED, GRID_CELL)
+      CALL add_var( diag_list, TRIM(name), diag%swflxsfc_a_os,                &
+        & GRID_UNSTRUCTURED_CELL, ZA_HORIZONTAL_PLANE_OS, cf_desc, grib2_desc, &
+        & ldims=shape2d,                                                    &
+        & isteptype=a_steptype, in_group=groups("rad_vars"),                &
+        & hor_interp=create_hor_interp_metadata(                            &
+        &    hor_intp_type=HINTP_TYPE_LONLAT_BCTR,                          &
+        &    fallback_type=HINTP_TYPE_LONLAT_RBF ),                         &
+        & lopenacc=.TRUE.)
+      __acc_attach(diag%swflxsfc_a_os)
+
+      ! &      diag%swflxsfc_a_tan_os(nproma,nblks_c)
+      WRITE(name,'(A,A12)') TRIM(prefix),"sob_s_tan_os"
+      WRITE(long_name,'(A73,A4,A18)') "Surface net solar radiation incl. slope-dependent and orographic shading ", meaning, &
+                                    &" since model start"
+      cf_desc    = t_cf_var(name, varunits, long_name, datatype_flt)
+      grib2_desc = grib2_var(0, 4, 9, ibits, GRID_UNSTRUCTURED, GRID_CELL)
+      CALL add_var( diag_list, TRIM(name), diag%swflxsfc_a_tan_os,                &
+        & GRID_UNSTRUCTURED_CELL, ZA_TERRAIN_TANGENT_PLANE_OS, cf_desc, grib2_desc, &
+        & ldims=shape2d,                                                    &
+        & isteptype=a_steptype, in_group=groups("rad_vars"),                &
+        & hor_interp=create_hor_interp_metadata(                            &
+        &    hor_intp_type=HINTP_TYPE_LONLAT_BCTR,                          &
+        &    fallback_type=HINTP_TYPE_LONLAT_RBF ),                         &
+        & lopenacc=.TRUE.)
+      __acc_attach(diag%swflxsfc_a_tan_os)
+    ENDIF
+
     ! &      diag%swflxclrsfc_a(nproma,nblks_c)
     WRITE(name,'(A,A8)') TRIM(prefix),"sobclr_s"
     WRITE(long_name,'(A40,A4,A18)') "Clear-sky surface net solar radiation ", meaning, &
@@ -2368,6 +2465,40 @@ SUBROUTINE new_nwp_phy_diag_list( k_jg, klev, klevp1, kblks,    &
       & lopenacc=.TRUE. )
     __acc_attach(diag%asodird_s)
 
+    IF (islope_rad(k_jg) > 0) THEN
+      ! &       diag%asodird_s_os(nproma,nblks)
+      WRITE(name,'(A,A11)') TRIM(prefix),"sodird_s_os"
+      WRITE(long_name,'(A56,A4,A18)') "Surface down solar direct rad. incl. orographic shading ", meaning, &
+                                    &" since model start"
+      cf_desc    = t_cf_var(name, varunits, long_name, datatype_flt)
+      grib2_desc = grib2_var(0, 4, 198, ibits, GRID_UNSTRUCTURED, GRID_CELL)
+      CALL add_var( diag_list, TRIM(name), diag%asodird_s_os,                &
+        & GRID_UNSTRUCTURED_CELL, ZA_HORIZONTAL_PLANE_OS, cf_desc, grib2_desc,&
+        & ldims=shape2d,                                                   &
+        & isteptype=a_steptype, in_group=groups("rad_vars"),               &
+        & hor_interp=create_hor_interp_metadata(                           &
+        &    hor_intp_type=HINTP_TYPE_LONLAT_BCTR,                         &
+        &    fallback_type=HINTP_TYPE_LONLAT_RBF ),                        &
+        & lopenacc=.TRUE. )
+      __acc_attach(diag%asodird_s_os)
+
+      ! &       diag%asodird_s_tan_os(nproma,nblks)
+      WRITE(name,'(A,A15)') TRIM(prefix),"sodird_s_tan_os"
+      WRITE(long_name,'(A76,A4,A18)') "Surface down solar direct rad. incl. slope-dependent and orographic shading ", meaning, &
+                                    &" since model start"
+      cf_desc    = t_cf_var(name, varunits, long_name, datatype_flt)
+      grib2_desc = grib2_var(0, 4, 198, ibits, GRID_UNSTRUCTURED, GRID_CELL)
+      CALL add_var( diag_list, TRIM(name), diag%asodird_s_tan_os,                &
+        & GRID_UNSTRUCTURED_CELL, ZA_TERRAIN_TANGENT_PLANE_OS, cf_desc, grib2_desc,&
+        & ldims=shape2d,                                                   &
+        & isteptype=a_steptype, in_group=groups("rad_vars"),               &
+        & hor_interp=create_hor_interp_metadata(                           &
+        &    hor_intp_type=HINTP_TYPE_LONLAT_BCTR,                         &
+        &    fallback_type=HINTP_TYPE_LONLAT_RBF ),                        &
+        & lopenacc=.TRUE. )
+      __acc_attach(diag%asodird_s_tan_os)
+    ENDIF
+
     ! &       diag%asodifd_s(nproma,nblks)
     WRITE(name,'(A,A8)') TRIM(prefix),"sodifd_s"
     WRITE(long_name,'(A30,A4,A18)') "Surface down solar diff. rad. ", meaning, &
@@ -2399,6 +2530,38 @@ SUBROUTINE new_nwp_phy_diag_list( k_jg, klev, klevp1, kblks,    &
       & lopenacc=.TRUE. )
     __acc_attach(diag%asod_s)
 
+    IF (islope_rad(k_jg) > 0) THEN
+      ! &       diag%asod_s_os(nproma,nblks)
+      WRITE(name,'(A,A8)') TRIM(prefix),"sod_s_os"
+      WRITE(long_name,'(A32,A4,A18)') "Surface down solar rad. os ", meaning, &
+                                    &" since model start"
+      cf_desc    = t_cf_var(name, varunits, long_name, datatype_flt)
+      grib2_desc = grib2_var(0, 4, 7, ibits, GRID_UNSTRUCTURED, GRID_CELL)
+      CALL add_var( diag_list, TRIM(name), diag%asod_s_os,                   &
+        & GRID_UNSTRUCTURED_CELL, ZA_HORIZONTAL_PLANE_OS, cf_desc, grib2_desc,&
+        & ldims=shape2d, isteptype=a_steptype,                             &
+        & hor_interp=create_hor_interp_metadata(                           &
+        &    hor_intp_type=HINTP_TYPE_LONLAT_BCTR,                         &
+        &    fallback_type=HINTP_TYPE_LONLAT_RBF ),                        &
+        & lopenacc=.TRUE. )
+      __acc_attach(diag%asod_s_os)
+
+      ! &       diag%asod_s_tan_os(nproma,nblks)
+      WRITE(name,'(A,A12)') TRIM(prefix),"sod_s_tan_os"
+      WRITE(long_name,'(A32,A4,A18)') "Surface down solar rad. tan os ", meaning, &
+                                    &" since model start"
+      cf_desc    = t_cf_var(name, varunits, long_name, datatype_flt)
+      grib2_desc = grib2_var(0, 4, 7, ibits, GRID_UNSTRUCTURED, GRID_CELL)
+      CALL add_var( diag_list, TRIM(name), diag%asod_s_tan_os,                   &
+        & GRID_UNSTRUCTURED_CELL, ZA_TERRAIN_TANGENT_PLANE_OS, cf_desc, grib2_desc,&
+        & ldims=shape2d, isteptype=a_steptype,                             &
+        & hor_interp=create_hor_interp_metadata(                           &
+        &    hor_intp_type=HINTP_TYPE_LONLAT_BCTR,                         &
+        &    fallback_type=HINTP_TYPE_LONLAT_RBF ),                        &
+        & lopenacc=.TRUE. )
+      __acc_attach(diag%asod_s_tan_os)
+    ENDIF
+
     ! &       diag%asodifu_s(nproma,nblks)
     WRITE(name,'(A,A8)') TRIM(prefix),"sodifu_s"
     WRITE(long_name,'(A30,A4,A18)') "Surface up solar diff. rad. ", meaning, &
@@ -2415,6 +2578,40 @@ SUBROUTINE new_nwp_phy_diag_list( k_jg, klev, klevp1, kblks,    &
       & lopenacc=.TRUE. )
     __acc_attach(diag%asodifu_s)
 
+    IF (islope_rad(k_jg) > 0) THEN
+      ! &       diag%asodifu_s_os(nproma,nblks)
+      WRITE(name,'(A,A11)') TRIM(prefix),"sodifu_s_os"
+      WRITE(long_name,'(A48,A4,A18)') "Surface up solar diff. incl. orographic shading ", meaning, &
+                                    &" since model start"
+      cf_desc    = t_cf_var(name, varunits, long_name, datatype_flt)
+      grib2_desc = grib2_var(0, 4, 8, ibits, GRID_UNSTRUCTURED, GRID_CELL)
+      CALL add_var( diag_list, TRIM(name), diag%asodifu_s_os,                &
+        & GRID_UNSTRUCTURED_CELL, ZA_HORIZONTAL_PLANE_OS, cf_desc, grib2_desc,&
+        & ldims=shape2d,                                                   &
+        & isteptype=a_steptype, in_group=groups("rad_vars"),               &
+        & hor_interp=create_hor_interp_metadata(                           &
+        &    hor_intp_type=HINTP_TYPE_LONLAT_BCTR,                         &
+        &    fallback_type=HINTP_TYPE_LONLAT_RBF ),                        &
+        & lopenacc=.TRUE. )
+      __acc_attach(diag%asodifu_s_os)
+
+      ! &       diag%asodifu_s_tan_os(nproma,nblks)
+      WRITE(name,'(A,A15)') TRIM(prefix),"sodifu_s_tan_os"
+      WRITE(long_name,'(A67,A4,A18)') "Surface up solar diff. incl. slope-dependent and orographic shading", meaning, &
+                                    &" since model start"
+      cf_desc    = t_cf_var(name, varunits, long_name, datatype_flt)
+      grib2_desc = grib2_var(0, 4, 8, ibits, GRID_UNSTRUCTURED, GRID_CELL)
+      CALL add_var( diag_list, TRIM(name), diag%asodifu_s_tan_os,                &
+        & GRID_UNSTRUCTURED_CELL, ZA_TERRAIN_TANGENT_PLANE_OS, cf_desc, grib2_desc,&
+        & ldims=shape2d,                                                   &
+        & isteptype=a_steptype, in_group=groups("rad_vars"),               &
+        & hor_interp=create_hor_interp_metadata(                           &
+        &    hor_intp_type=HINTP_TYPE_LONLAT_BCTR,                         &
+        &    fallback_type=HINTP_TYPE_LONLAT_RBF ),                        &
+        & lopenacc=.TRUE. )
+      __acc_attach(diag%asodifu_s_tan_os)
+    ENDIF
+
     ! &      diag%aswflx_par_sfc(nproma,nblks_c)
     WRITE(name,'(A,A13)') TRIM(prefix),"swflx_par_sfc"
     WRITE(long_name,'(A30,A4,A18)') "Downward PAR flux ", meaning, &
@@ -2430,6 +2627,24 @@ SUBROUTINE new_nwp_phy_diag_list( k_jg, klev, klevp1, kblks,    &
       &    fallback_type=HINTP_TYPE_LONLAT_RBF ),                        &
       & lopenacc=.TRUE. )
     __acc_attach(diag%aswflx_par_sfc)
+
+    IF (islope_rad(k_jg) > 0) THEN
+      ! &      diag%aswflx_par_sfc_tan_os(nproma,nblks_c)
+      WRITE(name,'(A,A20)') TRIM(prefix),"swflx_par_sfc_tan_os"
+      WRITE(long_name,'(A62,A4,A18)') "Downward PAR flux incl. slope-dependent and orographic shading", meaning, &
+                                    &" since model start"
+      cf_desc    = t_cf_var(name, varunits, long_name, datatype_flt)
+      grib2_desc = grib2_var(0, 4, 10, ibits, GRID_UNSTRUCTURED, GRID_CELL)
+      CALL add_var( diag_list, TRIM(name), diag%aswflx_par_sfc_tan_os,     &
+        & GRID_UNSTRUCTURED_CELL, ZA_TERRAIN_TANGENT_PLANE_OS, cf_desc, grib2_desc,         &
+        & ldims=shape2d,                                                   & 
+        & isteptype=a_steptype, in_group=groups("rad_vars"),               &
+        & hor_interp=create_hor_interp_metadata(                           &
+        &    hor_intp_type=HINTP_TYPE_LONLAT_BCTR,                         &
+        &    fallback_type=HINTP_TYPE_LONLAT_RBF ),                        &
+        & lopenacc=.TRUE. )
+      __acc_attach(diag%aswflx_par_sfc_tan_os)
+    ENDIF
 
     ! &      diag%vio3(nproma,nblks_c)
     cf_desc    = t_cf_var('vio3', '', 'vertically integrated ozone amount', datatype_flt)

@@ -6,7 +6,7 @@ builder: balfrin_cpu_nvidia_mixed
 # The list below maps each experiment to its current experiment_hash
 "c2sm_clm_r13b03_seaice": fbb3ddf0e4e5068131ce584daf8e32221087ea98
 "mch_ch_lowres": 061b70464cf8a202ef944446a37ee3b52c0c3b69
-"mch_dev_icon-ch2_small": 4f084fc27eeb92f38f555f51d022d5ad218c7283
+"mch_dev_icon-ch2_small": 69967c9757aca7d1ba86eadb104473581eb3d2e8
 "mch_icon-ch1_small": 69d1fdd1a1a7980b8fcdeb10b77919a3bade34bd
 "mch_icon-ch2_small": 653ca82712f62ffd1192c2330b563a1f488c7f66
 "mch_kenda-ch1_small": 6cbb7559fc7a2915f50cff933f8f56568412e803
