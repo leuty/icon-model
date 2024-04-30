@@ -853,12 +853,12 @@ CONTAINS
     REAL(wp),           INTENT(IN)   :: p_sim_time
 
     TYPE(t_patch),      INTENT(IN)   :: pt_patch    !<grid/patch info.
-    TYPE(t_nh_diag),    INTENT(INOUT):: pt_diag     !<the diagnostic variables
+    TYPE(t_nh_diag),    INTENT(IN)   :: pt_diag     !<the diagnostic variables
 
-    TYPE(t_nh_metrics), INTENT(in)   :: p_metrics
+    TYPE(t_nh_metrics), INTENT(IN)   :: p_metrics
     TYPE(t_external_data),INTENT(IN) :: ext_data    !< external data
 
-    TYPE(t_nwp_phy_diag), INTENT(inout):: prm_diag
+    TYPE(t_nwp_phy_diag), INTENT(INOUT):: prm_diag
 
 
     INTEGER :: rl_start, rl_end

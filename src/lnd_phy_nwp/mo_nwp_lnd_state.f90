@@ -70,7 +70,7 @@ MODULE mo_nwp_lnd_state
     &                                ZA_SEDIMENT_BOTTOM_TW_HALF, ZA_LAKE_BOTTOM, &
     &                                ZA_LAKE_BOTTOM_HALF, ZA_MIX_LAYER
   USE sfc_terra_data,          ONLY: zzhls, zdzhs, zdzms
-  USE mo_action,               ONLY: ACTION_RESET, actions, new_action
+  USE mo_action_types,         ONLY: ACTION_RESET, actions, new_action
 
 
 #include "add_var_acc_macro.inc"

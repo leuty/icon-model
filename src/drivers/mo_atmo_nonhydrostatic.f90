@@ -150,7 +150,8 @@ USE mo_upatmo_phy_setup,    ONLY: finalize_upatmo_phy_nwp
 
 USE mo_util_mtime,          ONLY: getElapsedSimTimeInSeconds
 USE mo_output_event_types,  ONLY: t_sim_step_info
-USE mo_action,              ONLY: ACTION_RESET, reset_act
+USE mo_action_types,        ONLY: ACTION_RESET
+USE mo_action,              ONLY: reset_act
 USE mo_turb_vdiff_params,   ONLY: VDIFF_TURB_3DSMAGORINSKY
 USE mo_limarea_config,      ONLY: latbc_config
 USE mo_async_latbc_types,   ONLY: t_latbc_data

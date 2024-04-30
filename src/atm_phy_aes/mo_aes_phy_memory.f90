@@ -47,7 +47,7 @@ MODULE mo_aes_phy_memory
   USE mo_var_list,            ONLY: add_var, add_ref, t_var_list_ptr
   USE mo_var_list_register,   ONLY: vlr_add, vlr_del
   USE mo_var_metadata,        ONLY: create_vert_interp_metadata, vintp_types, get_timelevel_string
-  USE mo_action,              ONLY: ACTION_RESET, new_action, actions
+  USE mo_action_types,        ONLY: ACTION_RESET, new_action, actions
   USE mo_nonhydro_state,      ONLY: p_nh_state_lists
   USE mo_ext_data_state,      ONLY: ext_data
   USE mo_cf_convention,       ONLY: t_cf_var

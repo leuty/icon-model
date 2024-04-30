@@ -112,7 +112,7 @@ USE mo_art_config,           ONLY: nart_tendphy
 USE mo_art_tracer_interface, ONLY: art_tracer_interface
 #endif
 USE mo_comin_config,         ONLY: comin_config
-USE mo_action,               ONLY: ACTION_RESET, new_action, actions
+USE mo_action_types,         ONLY: ACTION_RESET, new_action, actions
 USE mo_io_config,            ONLY: lflux_avg, lnetcdf_flt64_output, gust_interval, &
   &                                celltracks_interval, echotop_meta, &
   &                                maxt_interval, precip_interval, t_var_in_output, &

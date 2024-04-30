@@ -178,7 +178,7 @@ MODULE mo_nh_stepping
   USE mo_restart_util,             ONLY: check_for_checkpoint
   USE mo_prepadv_types,            ONLY: t_prepare_adv
   USE mo_prepadv_state,            ONLY: prep_adv, jstep_adv
-  USE mo_action,                   ONLY: reset_act, check_reset_time
+  USE mo_action,                   ONLY: reset_act, get_prev_trigger_time
   USE mo_output_event_handler,     ONLY: get_current_jfile
   USE mo_opt_diagnostics,          ONLY: update_opt_acc, reset_opt_acc, &
     &                                    calc_mean_opt_acc, p_nh_opt_diag
@@ -482,7 +482,7 @@ MODULE mo_nh_stepping
     ENDDO
 
     IF (isRestart() .AND. itune_gust_diag == 4) THEN
-      CALL check_reset_time(prm_nwp_diag_list(:), 'u_10m_a', prm_diag(:)%prev_v10mavg_reset)
+      CALL get_prev_trigger_time(prm_nwp_diag_list(:), 'u_10m_a', prm_diag(:)%prev_v10mavg_reset)
     ENDIF
 
 #endif /* __NO_NWP__ */
@@ -1576,7 +1576,7 @@ MODULE mo_nh_stepping
     CALL reset_act%execute(slack=dtime, mtime_date=mtime_current)
 
     IF (itune_gust_diag == 4) THEN
-      CALL check_reset_time(prm_nwp_diag_list(:), 'u_10m_a', prm_diag(:)%prev_v10mavg_reset)
+      CALL get_prev_trigger_time(prm_nwp_diag_list(:), 'u_10m_a', prm_diag(:)%prev_v10mavg_reset)
     ENDIF
 
     !--------------------------------------------------------------------------
