@@ -28,12 +28,14 @@ MODULE mo_nwp_hydrodisc_coupling
   USE mo_parallel_config     ,ONLY: nproma
   USE mo_atm_phy_nwp_config  ,ONLY: atm_phy_nwp_config
   USE mo_impl_constants      ,ONLY: min_rlcell, LSS_TERRA, SUCCESS
-  USE mo_run_config          ,ONLY: dtime
+  USE mo_physical_constants  ,ONLY: rhoh2o
+  USE mo_run_config          ,ONLY: dtime, msg_level
   USE mo_loopindices         ,ONLY: get_indices_c
 
   USE mo_coupling_utils      ,ONLY: cpl_def_field, cpl_put_field
 
-  USE mo_exception           ,ONLY: finish
+  USE mo_exception           ,ONLY: finish, message, message_text
+  USE mo_sync                ,ONLY: global_sum_array
 
   IMPLICIT NONE
 
@@ -110,6 +112,7 @@ CONTAINS
     INTEGER               :: isubs                 ! tile index
     REAL(wp), TARGET, ALLOCATABLE :: buffer(:,:)   ! buffer transferred to YAC coupler
     CHARACTER(LEN=*), PARAMETER   :: routine = str_module // ':nwp_couple_hydrodisc'
+    REAL(wp)              :: diag_tmp
 
     ! This routine hasn't been ported yet.
     CALL assert_acc_host_only(routine, lacc)
@@ -182,6 +185,13 @@ CONTAINS
 
 !ICON_OMP_END_PARALLEL_DO
 
+    ! Online diagnose for global sum of surface runoff (m3/s) before sending to YAC:
+    IF (msg_level >= 10) THEN
+      diag_tmp = global_sum_array(buffer(:,:) * p_patch%cells%area(:,:) / rhoh2o)
+      WRITE(message_text,'(a,f15.3)') ' NWP-HD: global total surface runoff (m3/s) :' , diag_tmp
+      CALL message (TRIM(routine), message_text)
+    ENDIF
+
     CALL cpl_put_field( &
       routine, field_id_runoffs, 'surface water runoff', &
       p_patch%n_patch_cells, buffer)
@@ -219,6 +229,13 @@ CONTAINS
       ENDIF
     ENDDO ! jb
 !ICON_OMP_END_PARALLEL_DO
+
+    ! Online diagnose for global sum of ground runoff (m3/s) before sending to YAC:
+    IF (msg_level >= 10) THEN
+      diag_tmp = global_sum_array(buffer(:,:) * p_patch%cells%area(:,:) / rhoh2o)
+      WRITE(message_text,'(a,f15.3)') ' NWP-HD: global total ground runoff (m3/s) :' , diag_tmp
+      CALL message (TRIM(routine), message_text)
+    ENDIF
 
     CALL cpl_put_field( &
       routine, field_id_runoffg, 'ground water runoff', &
