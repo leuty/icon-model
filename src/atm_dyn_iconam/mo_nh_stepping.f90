@@ -1138,6 +1138,7 @@ MODULE mo_nh_stepping
             &                      ext_data        = ext_data(jg),     &
             &                      p_lnd_state     = p_lnd_state(jg),  &
             &                      p_nh_state      = p_nh_state(jg),   &
+            &                      prm_diag        = prm_diag(jg),     &
             &                      ref_datetime    = ref_datetime,     &
             &                      target_datetime = target_datetime,  &
             &                      mtime_old       = mtime_old         )
