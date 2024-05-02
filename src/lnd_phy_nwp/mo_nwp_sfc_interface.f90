@@ -204,7 +204,6 @@ CONTAINS
 
     ! for TERRA_URB
     REAL(wp) :: urb_isa_t  (nproma)
-    REAL(wp) :: fr_paved_t (nproma)
     REAL(wp) :: urb_ai_t   (nproma)
     REAL(wp) :: urb_h_bld_t(nproma)
     REAL(wp) :: urb_hcap_t (nproma)
@@ -395,7 +394,7 @@ CONTAINS
 !$OMP   snowfrac_t,runoff_s_inst_t,runoff_g_inst_t,resid_wso_inst_t,u_10m_t,v_10m_t,tch_t,tcm_t,tfv_t,      &
 !$OMP   tfvsn_t,sobs_t,thbs_t,pabs_t,r_bsmin,                                                               &
 !$OMP   soiltyp_t,plcov_t,rootdp_t,sai_t,tai_t,eai_t,rsmin2d_t,t_snow_mult_now_t,wliq_snow_now_t,           &
-!$OMP   urb_isa_t,fr_paved_t,urb_ai_t,urb_h_bld_t,urb_hcap_t,urb_hcon_t,ahf_t,                              &
+!$OMP   urb_isa_t,urb_ai_t,urb_h_bld_t,urb_hcap_t,urb_hcon_t,ahf_t,                                         &
 !$OMP   rho_snow_mult_now_t,wtot_snow_now_t,dzh_snow_now_t,t_so_now_t,w_so_now_t,w_so_ice_now_t,            &
 !$OMP   t_s_new_t,w_snow_new_t,rho_snow_new_t,h_snow_t,w_i_new_t,w_p_new_t,w_s_new_t,t_so_new_t,            &
 !$OMP   lhfl_bs_t,rstom_t,shfl_s_t,lhfl_s_t,qhfl_s_t,t_snow_mult_new_t,rho_snow_mult_new_t,                 &
@@ -633,7 +632,7 @@ CONTAINS
 
         IF (multi_queue_processing) acc_async_queue = isubs
 
-        !$ACC DATA CREATE(soiltyp_t, urb_isa_t, fr_paved_t, urb_ai_t, urb_h_bld_t) &
+        !$ACC DATA CREATE(soiltyp_t, urb_isa_t, urb_ai_t, urb_h_bld_t) &
         !$ACC   CREATE(urb_hcap_t, urb_hcon_t, ahf_t) &
         !$ACC   CREATE(plcov_t, rootdp_t, sai_t, eai_t, tai_t, laifac_t, skinc_t) &
         !$ACC   CREATE(rsmin2d_t, r_bsmin, u_t, v_t, t_t, qv_t, p0_t, ps_t, h_snow_gp_t) &
@@ -770,7 +769,6 @@ CONTAINS
 
           IF (lterra_urb) THEN
             urb_isa_t(ic)           =  ext_data%atm%urb_isa_t(jc,jb,isubs)
-            fr_paved_t(ic)          =  ext_data%atm%fr_paved_t(jc,jb,isubs)
             urb_ai_t(ic)            =  ext_data%atm%urb_ai_t(jc,jb,isubs)
             urb_h_bld_t(ic)         =  ext_data%atm%urb_h_bld_t(jc,jb,isubs)
             urb_hcap_t(ic)          =  ext_data%atm%urb_hcap_t(jc,jb,isubs)
@@ -778,7 +776,6 @@ CONTAINS
             ahf_t(ic)               =  ext_data%atm%ahf_t(jc,jb,isubs)
           ELSE
             urb_isa_t(ic)           =  0._wp
-            fr_paved_t(ic)          =  0._wp
             urb_ai_t(ic)            =  0._wp
             urb_h_bld_t(ic)         =  0._wp
             urb_hcap_t(ic)          =  0._wp
@@ -920,7 +917,6 @@ CONTAINS
         &  soiltyp_subs = soiltyp_t                          , & !IN type of the soil (keys 0-9)         --
 ! for TERRA_URB
         &  urb_isa      = urb_isa_t                          , & !IN impervious surface area fraction of the urban canopy ( - )
-        &  fr_paved     = fr_paved_t                         , & !IN impervious surface area (ISA) fraction               ( - )
         &  urb_ai       = urb_ai_t                           , & !IN surface area index of the urban canopy               ( - )
         &  urb_h_bld    = urb_h_bld_t                        , & !IN building height                                      ( m )
         &  urb_hcap     = urb_hcap_t                         , & !IN volumetric heat capacity of urban material      (J/m**3/K)
