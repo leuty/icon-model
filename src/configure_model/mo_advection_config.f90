@@ -1082,7 +1082,7 @@ CONTAINS
       from_info_dyn => from_var_list%p%vl(iv)%p%info_dyn
       ! Only add tracer fields to the tracer list
       IF (from_info_dyn%tracer%lis_tracer .AND. .NOT.from_info%lcontainer) &
-        & CALL vlr_add_vref(p_tracer_list, from_info%name, from_var_list, in_group=groups())
+        & CALL vlr_add_vref(p_tracer_list, from_info%name, from_var_list)
     END DO
   END SUBROUTINE new_nh_state_tracer_list
 
