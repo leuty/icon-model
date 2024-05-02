@@ -522,7 +522,7 @@ cat >> ${basedir}/run/${atmo_namelist} << EOF
 EOF
 fi
 
-output_test_nml=no
+output_test_nml=yes
 if [[ "$output_test_nml" == "yes" ]]; then
 cat >> ${basedir}/run/${atmo_namelist} << EOF
 
