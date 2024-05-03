@@ -1272,6 +1272,7 @@ CONTAINS
 
     INTEGER :: jg, jl, jk
     INTEGER :: jb,jc,je
+    INTEGER :: jb_max, jk_max, jc_max
     INTEGER :: jcn, jbn
     INTEGER :: nlev, nlevm1, nlevp1
     INTEGER :: i_startblk, i_endblk, i_startidx, i_endidx
@@ -1860,11 +1861,15 @@ END IF
                             opt_rlstart=5, opt_rlend=min_rlvert_int-1,   &
                             opt_acc_async=.TRUE.)
 
+    jb_max=SIZE(km_iv, 3)
+    jk_max=SIZE(km_iv, 2)
+    jc_max=SIZE(km_iv, 1)
+
     !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1)
     !$ACC LOOP GANG VECTOR COLLAPSE(3)
-    DO jb = 1, SIZE(km_iv, 3)
-      DO jk = 1, SIZE(km_iv, 2)
-        DO jc = 1, SIZE(km_iv, 1)
+    DO jb = 1, jb_max
+      DO jk = 1, jk_max
+        DO jc = 1, jc_max
           km_iv(jc,jk,jb) = MAX( km_min,  km_iv(jc,jk,jb) * turb_prandtl )
         END DO
       END DO
@@ -1880,11 +1885,15 @@ END IF
                             opt_rlstart=grf_bdywidth_e, opt_rlend=min_rledge_int-1, &
                             lacc=.TRUE.)
 
+    jb_max=SIZE(km_ie, 3)
+    jk_max=SIZE(km_ie, 2)
+    jc_max=SIZE(km_ie, 1)
+
     !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1)
     !$ACC LOOP GANG VECTOR COLLAPSE(3)
-    DO jb = 1, SIZE(km_ie, 3)
-      DO jk = 1, SIZE(km_ie, 2)
-        DO jc = 1, SIZE(km_ie, 1)
+    DO jb = 1, jb_max
+      DO jk = 1, jk_max
+        DO jc = 1, jc_max
           km_ie(jc,jk,jb) = MAX( km_min,  km_ie(jc,jk,jb) * turb_prandtl )
         END DO
       END DO
