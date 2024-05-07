@@ -70,7 +70,10 @@ MODULE mo_wave_config
     REAL(wp) :: zalp     ! shifts growth curve (ecmwf cy45r1).
     REAL(wp) :: alpha_ch ! minimum charnock constant (ecmwf cy45r1)
 
-    REAL(wp) :: depth    ! ocean depth (m) if not 0, then constant depth
+    REAL(wp) :: depth     ! ocean depth (m) if not 0, then constant depth
+    REAL(wp) :: depth_min ! allowed minimum of model depth (m)
+    REAL(wp) :: depth_max ! allowed maximum of model depth (m)
+
     INTEGER  :: niter_smooth ! number of smoothing iterations for wave bathymetry
                              ! if 0 then no smoothing
 

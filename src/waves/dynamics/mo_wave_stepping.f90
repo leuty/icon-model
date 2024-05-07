@@ -28,7 +28,7 @@ MODULE mo_wave_stepping
   USE mo_io_units,                 ONLY: filename_max
   USE mo_master_config,            ONLY: getModelBaseDir
   USE mo_dynamics_config,          ONLY: nnow, nnew
-  USE mo_fortran_tools,            ONLY: swap, copy, init
+  USE mo_fortran_tools,            ONLY: swap, copy
   USE mo_intp_data_strc,           ONLY: p_int_state
   USE mo_pp_scheduler,             ONLY: new_simulation_status, pp_scheduler_process
   USE mo_pp_tasks,                 ONLY: t_simulation_status
@@ -455,7 +455,7 @@ CONTAINS
           &  lpfi        = p_wave_state(jg)%diag%last_prog_freq_ind) !OUT
 
         ! Calculate wave stress
-!        IF (wave_config(jg)%lwave_stress1) THEN
+        IF (wave_config(jg)%lwave_stress1) THEN
           CALL wave_stress(                                       &
             &  p_patch     = p_patch(jg),                         & !in
             &  wave_config = wave_config(jg),                     & !in
@@ -464,7 +464,7 @@ CONTAINS
             &  tracer      = p_wave_state(jg)%prog(n_new)%tracer, & !in
             &  p_diag      = p_wave_state(jg)%diag                ) !IN : last_prog_freq_ind,ustar,z0
                                                                     !OUT: phiaw,tauw,tauhf,phihf
-!        END IF
+        END IF
 
         ! Update roughness length and friction velocities
         CALL air_sea(p_patch(jg), wave_config(jg), &
