@@ -134,84 +134,94 @@ CONTAINS
         &        ldims=(/nproma,alloc_cell_blocks/), lrestart_cont=.True., in_group=groups("oce_force_essentials"))
     END IF
 
-    CALL add_var(ocean_default_list, 'sea_level_pressure', p_oce_sfc%sea_level_pressure, &
+    ! Coupling fluxes must go into restart file:
+    CALL add_var(ocean_restart_list, 'sea_level_pressure', p_oce_sfc%sea_level_pressure, &
       &        GRID_UNSTRUCTURED_CELL, ZA_SURFACE, &
       &        t_cf_var('air_pressure_at_mean_sea_level', 'Pa', 'Sea Level Pressure', datatype_flt),&
       &        grib2_var(255, 255, 255, DATATYPE_PACK16, GRID_UNSTRUCTURED, GRID_CELL),&
       &        ldims=(/nproma,alloc_cell_blocks/), in_group=groups("oce_force_essentials"), &
-      &        lopenacc=.NOT.is_coupled_to_atmo())
+      &        lrestart=is_coupled_to_atmo(), lrestart_cont=.TRUE., lopenacc=.NOT.is_coupled_to_atmo())
 
-    CALL add_var(ocean_default_list, 'Wind_Speed_10m', p_oce_sfc%Wind_Speed_10m, &
+    ! Coupling fluxes must go into restart file:
+    CALL add_var(ocean_restart_list, 'Wind_Speed_10m', p_oce_sfc%Wind_Speed_10m, &
       &        GRID_UNSTRUCTURED_CELL, ZA_SURFACE, &
       &        t_cf_var('wind_speed', 'm s-1', 'Wind Speed at 10m height', datatype_flt),&
       &        grib2_var(255, 255, 255, DATATYPE_PACK16, GRID_UNSTRUCTURED, GRID_CELL),&
       &        ldims=(/nproma,alloc_cell_blocks/), in_group=groups("oce_force_essentials"), &
-      &        lopenacc=.NOT.is_coupled_to_atmo())
+      &        lrestart=is_coupled_to_atmo(), lrestart_cont=.TRUE., lopenacc=.NOT.is_coupled_to_atmo())
 
     ! heat fluxes
-    CALL add_var(ocean_default_list, 'HeatFlux_Total', p_oce_sfc%HeatFlux_Total, &
+    CALL add_var(ocean_restart_list, 'HeatFlux_Total', p_oce_sfc%HeatFlux_Total, &
       &        GRID_UNSTRUCTURED_CELL, ZA_SURFACE, &
       &        t_cf_var('surface_downward_heat_flux', 'W m-2', 'Total Heat Flux', datatype_flt),&
       &        grib2_var(255, 255, 255, DATATYPE_PACK16, GRID_UNSTRUCTURED, GRID_CELL),&
       &        ldims=(/nproma,alloc_cell_blocks/), in_group=groups("oce_force_essentials"), &
-      &        lopenacc=.NOT.is_coupled_to_atmo())
+      &        lrestart=is_coupled_to_atmo(), lrestart_cont=.TRUE., lopenacc=.NOT.is_coupled_to_atmo())
 
-    CALL add_var(ocean_default_list, 'HeatFlux_Shortwave', p_oce_sfc%HeatFlux_Shortwave, &
+    ! Coupling fluxes must go into restart file:
+    CALL add_var(ocean_restart_list, 'HeatFlux_Shortwave', p_oce_sfc%HeatFlux_Shortwave, &
       &        GRID_UNSTRUCTURED_CELL, ZA_SURFACE, &
       &        t_cf_var('surface_downwelling_shortwave_flux', 'W m-2', 'Shortwave Heat Flux', datatype_flt),&
       &        grib2_var(255, 255, 255, DATATYPE_PACK16, GRID_UNSTRUCTURED, GRID_CELL),&
       &        ldims=(/nproma,alloc_cell_blocks/), in_group=groups("oce_force_essentials"), &
-      &        lopenacc=.NOT.is_coupled_to_atmo())
+      &        lrestart=is_coupled_to_atmo(), lrestart_cont=.TRUE., lopenacc=.NOT.is_coupled_to_atmo())
 
-    CALL add_var(ocean_default_list, 'HeatFlux_LongWave', p_oce_sfc%HeatFlux_LongWave , &
+    ! Coupling fluxes must go into restart file:
+    CALL add_var(ocean_restart_list, 'HeatFlux_LongWave', p_oce_sfc%HeatFlux_LongWave , &
       &        GRID_UNSTRUCTURED_CELL, ZA_SURFACE, &
       &        t_cf_var('surface_downwelling_longwave_flux', 'W m-2', 'Longwave Heat Flux', datatype_flt),&
       &        grib2_var(255, 255, 255, DATATYPE_PACK16, GRID_UNSTRUCTURED, GRID_CELL),&
       &        ldims=(/nproma,alloc_cell_blocks/), in_group=groups("oce_force_essentials"), &
-      &        lopenacc=.NOT.is_coupled_to_atmo())
+      &        lrestart=is_coupled_to_atmo(), lrestart_cont=.TRUE., lopenacc=.NOT.is_coupled_to_atmo())
 
-    CALL add_var(ocean_default_list, 'HeatFlux_Sensible', p_oce_sfc%HeatFlux_Sensible , &
+    ! Coupling fluxes must go into restart file:
+    CALL add_var(ocean_restart_list, 'HeatFlux_Sensible', p_oce_sfc%HeatFlux_Sensible , &
       &        GRID_UNSTRUCTURED_CELL, ZA_SURFACE, &
       &        t_cf_var('surface_downward_sensible_heat_flux', 'W m-2', 'Sensible Heat Flux', datatype_flt),&
       &        grib2_var(255, 255, 255, DATATYPE_PACK16, GRID_UNSTRUCTURED, GRID_CELL),&
       &        ldims=(/nproma,alloc_cell_blocks/), in_group=groups("oce_force_essentials"), &
-      &        lopenacc=.NOT.is_coupled_to_atmo())
+      &        lrestart=is_coupled_to_atmo(), lrestart_cont=.TRUE., lopenacc=.NOT.is_coupled_to_atmo())
 
-    CALL add_var(ocean_default_list, 'HeatFlux_Latent', p_oce_sfc%HeatFlux_Latent , &
+    ! Coupling fluxes must go into restart file:
+    CALL add_var(ocean_restart_list, 'HeatFlux_Latent', p_oce_sfc%HeatFlux_Latent , &
       &        GRID_UNSTRUCTURED_CELL, ZA_SURFACE, &
       &        t_cf_var('surface_downward_latent_heat_flux', 'W m-2', 'Latent Heat Flux', datatype_flt),&
       &        grib2_var(255, 255, 255, DATATYPE_PACK16, GRID_UNSTRUCTURED, GRID_CELL),&
       &        ldims=(/nproma,alloc_cell_blocks/), in_group=groups("oce_force_essentials"), &
-      &        lopenacc=.NOT.is_coupled_to_atmo())
+      &        lrestart=is_coupled_to_atmo(), lrestart_cont=.TRUE., lopenacc=.NOT.is_coupled_to_atmo())
 
     ! freshwater fluxes
-    CALL add_var(ocean_default_list, 'FrshFlux_Precipitation', p_oce_sfc%FrshFlux_Precipitation , &
+    ! Coupling fluxes must go into restart file:
+    CALL add_var(ocean_restart_list, 'FrshFlux_Precipitation', p_oce_sfc%FrshFlux_Precipitation , &
       &        GRID_UNSTRUCTURED_CELL, ZA_SURFACE, &
       &        t_cf_var('lwe_precipitation_rate', 'm s-1', 'FrshFlux_Precipitation', datatype_flt),&
       &        grib2_var(255, 255, 255, DATATYPE_PACK16, GRID_UNSTRUCTURED, GRID_CELL),&
       &        ldims=(/nproma,alloc_cell_blocks/), in_group=groups("oce_force_essentials"), &
-      &        lopenacc=.NOT.is_coupled_to_atmo())
+      &        lrestart=is_coupled_to_atmo(), lrestart_cont=.TRUE., lopenacc=.NOT.is_coupled_to_atmo())
 
-    CALL add_var(ocean_default_list, 'FrshFlux_Evaporation', p_oce_sfc%FrshFlux_Evaporation , &
+    ! Coupling fluxes must go into restart file:
+    CALL add_var(ocean_restart_list, 'FrshFlux_Evaporation', p_oce_sfc%FrshFlux_Evaporation , &
       &        GRID_UNSTRUCTURED_CELL, ZA_SURFACE, &
       &        t_cf_var('lwe_water_evaporation_rate', 'm s-1', 'FrshFlux_Evaporation', datatype_flt),&
       &        grib2_var(255, 255, 255, DATATYPE_PACK16, GRID_UNSTRUCTURED, GRID_CELL),&
       &        ldims=(/nproma,alloc_cell_blocks/), in_group=groups("oce_force_essentials"), &
-      &        lopenacc=.NOT.is_coupled_to_atmo())
+      &        lrestart=is_coupled_to_atmo(), lrestart_cont=.TRUE., lopenacc=.NOT.is_coupled_to_atmo())
 
-    CALL add_var(ocean_default_list, 'FrshFlux_SnowFall', p_oce_sfc%FrshFlux_SnowFall , &
+    ! Coupling fluxes must go into restart file:
+    CALL add_var(ocean_restart_list, 'FrshFlux_SnowFall', p_oce_sfc%FrshFlux_SnowFall , &
       &        GRID_UNSTRUCTURED_CELL, ZA_SURFACE, &
       &        t_cf_var('FrshFlux_SnowFall', 'm s-1', 'FrshFlux_SnowFall', datatype_flt),&
       &        grib2_var(255, 255, 255, DATATYPE_PACK16, GRID_UNSTRUCTURED, GRID_CELL),&
       &        ldims=(/nproma,alloc_cell_blocks/), in_group=groups("oce_force_essentials"), &
-      &        lopenacc=.NOT.is_coupled_to_atmo())
+      &        lrestart=is_coupled_to_atmo(), lrestart_cont=.TRUE., lopenacc=.NOT.is_coupled_to_atmo())
 
-    CALL add_var(ocean_default_list, 'FrshFlux_Runoff', p_oce_sfc%FrshFlux_Runoff , &
+    ! Coupling fluxes must go into restart file:
+    CALL add_var(ocean_restart_list, 'FrshFlux_Runoff', p_oce_sfc%FrshFlux_Runoff , &
       &        GRID_UNSTRUCTURED_CELL, ZA_SURFACE, &
       &        t_cf_var('FrshFlux_Runoff', 'm s-1', 'FrshFlux_Runoff', datatype_flt),&
       &        grib2_var(255, 255, 255, DATATYPE_PACK16, GRID_UNSTRUCTURED, GRID_CELL),&
       &        ldims=(/nproma,alloc_cell_blocks/), in_group=groups("oce_force_essentials"), &
-      &        lopenacc=.NOT.is_coupled_to_atmo())
+      &        lrestart=is_coupled_to_atmo(), lrestart_cont=.TRUE., lopenacc=.NOT.is_coupled_to_atmo())
 
     IF (.NOT. is_coupled_to_atmo()) THEN
       __acc_attach(p_oce_sfc%sea_level_pressure)
