@@ -70,7 +70,10 @@ MODULE mo_wave_config
     REAL(wp) :: zalp     ! shifts growth curve (ecmwf cy45r1).
     REAL(wp) :: alpha_ch ! minimum charnock constant (ecmwf cy45r1)
 
-    REAL(wp) :: depth    ! ocean depth (m) if not 0, then constant depth
+    REAL(wp) :: depth     ! ocean depth (m) if not 0, then constant depth
+    REAL(wp) :: depth_min ! allowed minimum of model depth (m)
+    REAL(wp) :: depth_max ! allowed maximum of model depth (m)
+
     INTEGER  :: niter_smooth ! number of smoothing iterations for wave bathymetry
                              ! if 0 then no smoothing
 
@@ -278,13 +281,13 @@ CONTAINS
       CALL message ('  ',message_text)
       CALL message (':----------------------------------------------------------','')
 
-      wc%DELTH    = pi2 / wc%ndirs !! ANGULAR INCREMENT OF SPECTRUM [RAD].
+      wc%DELTH    = pi2 / REAL(wc%ndirs,wp) !! ANGULAR INCREMENT OF SPECTRUM [RAD].
 
       ! calculate directions for wave spectrum
       !
       CALL message ('  ','Directions [Degree]: ')
       DO jd = 1,wc%ndirs
-        wc%dirs(jd) = REAL(jd-1) *  wc%DELTH + 0.5_wp * wc%DELTH !RAD
+        wc%dirs(jd) = REAL(jd-1,wp) *  wc%DELTH + 0.5_wp * wc%DELTH !RAD
         WRITE(message_text,'(i3,f10.5)') jd, wc%dirs(jd)*rad2deg
         CALL message ('  ',message_text)
       END DO
@@ -295,7 +298,7 @@ CONTAINS
       CALL message ('  ','Frequencies, [Hz]: ')
       WRITE(message_text,'(i3,f10.5)') 1, wc%FR1
       CALL message ('  ',message_text)
-      wc%freqs(1) = wc%CO**(-wc%iref + 1._wp) * wc%FR1
+      wc%freqs(1) = wc%CO**(-wc%iref + 1) * wc%FR1
       DO jf = 2,wc%nfreqs
         wc%freqs(jf) = wc%CO * wc%freqs(jf-1)
         WRITE(message_text,'(i3,f10.5)') jf, wc%freqs(jf)
@@ -355,11 +358,11 @@ CONTAINS
       ! M-1 TAIL FACTOR.
       wc%MM1_TAIL = - wc%DELTH / EX_TAIL
 
-      ! M+1 TAIL FACTOR
-      wc%MP1_TAIL = - wc%DELTH / (EX_TAIL + 2.0_wp) * wc%freqs(wc%nfreqs)**2.0_wp
+      ! M+1 TAIL FACTOR.
+      wc%MP1_TAIL = - wc%DELTH / (EX_TAIL + 2.0_wp) * wc%freqs(wc%nfreqs)**2
 
       ! M+2 TAIL FACTOR.
-      wc%MP2_TAIL = - wc%DELTH / (EX_TAIL + 3.0_wp) * wc%freqs(wc%nfreqs)**3.0_wp
+      wc%MP2_TAIL = - wc%DELTH / (EX_TAIL + 3.0_wp) * wc%freqs(wc%nfreqs)**3
 
 
       ! calculate freqs_dirs parameters

@@ -155,6 +155,7 @@ CONTAINS
         can_couple_to_o3 = .TRUE.
       CASE (ocean_process)
         can_couple_to_atmo = .TRUE.
+        can_couple_to_hydrodisc = .TRUE.
         can_couple_to_output = .TRUE.
       CASE (hamocc_process)
         can_couple_to_atmo = .TRUE.

@@ -25,7 +25,7 @@
 # - the output  file names: <EXPNAME>_<TYPE>_<DATE>.nc
 # - the restart file names: 
 #
-export EXPERIMENT='mch_bench_r19b07_dev_sppt'
+export EXPERIMENT='mch_icon-ch1_small'
 
 # TYPES is a list of names identifying the files <EXPNAME>_<TYPE>_<DATE>.nc
 # to be checked.

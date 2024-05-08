@@ -230,7 +230,7 @@ CONTAINS
     ! Register a field list and apply default settings
     !
     CALL vlr_add(p_ext_oce_list, TRIM(listname), patch_id=p_patch%id, &
-      & lrestart=.FALSE., model_type=TRIM(get_my_process_name()))
+      & lrestart=.FALSE., model_type=get_my_process_name())
 
     ! bathymetric height at cell center
     !

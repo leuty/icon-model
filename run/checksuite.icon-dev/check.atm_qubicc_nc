@@ -77,7 +77,7 @@ builder="unknown"
 
 case $builder in
     daint_*)
-        export MD='rnmot'
+        export MD='t'
         ;;
     levante_gpu*)
         export MD='rmo'  # nproma tests are overriden by nblocks_c=1

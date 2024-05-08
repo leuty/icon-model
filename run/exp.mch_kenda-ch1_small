@@ -12,12 +12,12 @@
 
 # ===========================================================================
 # 
-# Name: exp.mch_kenda-ch1_small
+# Name: exp.mch_kenda-ch1_small.run
 #
 # Purpose: Run script for ICON at on a domain similar to the current COSMO-1E domain
-#          This is a low resolution version used for development purpose.
+#          This is a low resolution version used for a technical test at MeteoSwiss.
 #
-# Authors: Daniel Leuenberger (MeteoSwiss), Claire Merker (MeteoSwiss)
+# Created by: Daniel Leuenberger (MeteoSwiss), Claire Merker (MeteoSwiss)
 #
 # ========================================================================== 
 

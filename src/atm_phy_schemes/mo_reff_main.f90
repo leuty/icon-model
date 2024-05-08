@@ -34,8 +34,10 @@ MODULE mo_reff_main
   USE mo_reff_types,           ONLY: t_reff_calc
   USE mo_2mom_mcrph_driver,    ONLY: two_mom_reff_coefficients 
   USE mo_parallel_config,      ONLY: nproma
+  USE mo_cpl_aerosol_microphys,ONLY: ncn_from_tau_aerosol_speccnconst_dust, ice_nucleation
   USE microphysics_1mom_schemes, ONLY: get_params_for_ncn_calculation, get_params_for_reff_coefficients, get_cloud_number
   USE mo_index_list,           ONLY: generate_index_list_batched
+
 
   IMPLICIT NONE
   PRIVATE
@@ -199,8 +201,11 @@ MODULE mo_reff_main
   ! This function provides the number concentration of hydrometoers consistent with the
   ! one moment scheme. 
   ! It contains copied code from the 1 moment scheme, because many functions are hard-coded.
-  SUBROUTINE one_mom_calculate_ncn( ncn, return_fct, reff_calc, k_start, &
-        &                           k_end, indices, n_ind, q, t, rho, surf_cloud_num )
+  SUBROUTINE one_mom_calculate_ncn( ncn, return_fct, reff_calc, k_start,             &
+       &                           k_end, indices, n_ind,                            & 
+       &                           icpl_aero_ice, cams5, cams6, z_ifc, aer_dust,     &
+       &                           q, t, rho, surf_cloud_num)
+
     REAL(wp)         , INTENT(INOUT)     ::  ncn(:,:)           ! Number concentration
     LOGICAL          , INTENT(INOUT)     ::  return_fct         ! Return code of the subroutine
     TYPE(t_reff_calc), INTENT(IN)        ::  reff_calc          ! Structure with options and coefficiencts
@@ -208,11 +213,17 @@ MODULE mo_reff_main
     INTEGER (KIND=i4), INTENT(IN)        ::  indices(:,:)       ! Mapping for going through array
     INTEGER (KIND=i4), INTENT(IN)        ::  n_ind(:)
 
-    REAL(wp), OPTIONAL, INTENT(IN)       ::  t(:,:)             ! Temperature
-    REAL(wp), OPTIONAL, INTENT(IN)       ::  q(:,:)             ! Mixing ratio of hydrometeor
-    REAL(wp), OPTIONAL, INTENT(IN)       ::  rho(:,:)           ! Mass density of air
+    INTEGER, INTENT(IN)                          :: icpl_aero_ice   ! aerosols ice nucleation scheme
+    REAL(wp),INTENT(IN), POINTER, DIMENSION(:,:) :: cams5, cams6    ! CAMS dust mixing ratios
+    REAL(wp),INTENT(IN), DIMENSION(:,:)          :: z_ifc           ! height at interface levels
+    REAL(wp),INTENT(IN), POINTER, DIMENSION(:)   :: aer_dust        ! Tegen dust total column mass
+    REAL(wp),INTENT(IN), POINTER, DIMENSION(:,:) :: q               ! Mixing ratio of hydrometeor
+    
+    REAL(wp), OPTIONAL, INTENT(IN)            ::  t(:,:)             ! Temperature
+    REAL(wp), OPTIONAL, INTENT(IN)            ::  rho(:,:)           ! Mass density of air
 
-    REAL(wp), INTENT(IN), OPTIONAL       ::  surf_cloud_num(:)  ! Number concentration at surface
+
+    REAL(wp), OPTIONAL, INTENT(IN)       ::  surf_cloud_num(:)  ! Number concentration at surface
                                                                 !CALL WITH prm_diag%cloud_num(is:ie,:) 
     ! --- End of input/output variables.
 
@@ -221,9 +232,8 @@ MODULE mo_reff_main
     LOGICAL                              ::  well_posed         ! Logical that indicates if enough data for calculations
 
     ! Variables for Ice parameterization 
-    REAL(wp)                             ::  fxna_cooper        ! statement function for ice crystal number, Cooper(1986)
-    REAL(wp)                             ::  ztx                ! dummy arguments for statement functions
     REAL(wp)                             ::  znimax, znimix     ! Maximum and minimum of ice concentration
+    REAL(wp)                             ::  aerncn             ! CAMS dust aerosols number concentration
 
     ! This is constant in both cloudice and graupel
     LOGICAL                              ::  lsuper_coolw = .true.   
@@ -233,12 +243,9 @@ MODULE mo_reff_main
 
     REAL(wp)            :: ageo_snow, zn0s1, zn0s2, &
                              znimax_Thom, mma(10),  &
-                             mmb(10)
+                             mmb(10), dummy
     INTEGER             :: isnow_n0temp
     REAL(wp)            :: cloud_num
- 
-    ! Number of activate ice crystals;  ztx is temperature. Statement functions
-    fxna_cooper(ztx) = 5.0E+0_wp * EXP(0.304_wp * (t0 - ztx))   ! FR: Cooper (1986) used by Greg Thompson(2008)
 
     zlog_10 = LOG(10._wp) ! logarithm of 10
 
@@ -288,35 +295,59 @@ MODULE mo_reff_main
 
     CASE (1)   ! Ice
 
-      well_posed = PRESENT(t)
-      IF (.NOT. well_posed) THEN
-        WRITE (message_text,*) 'Reff: Temperature needs to be provided to one_mom_calculate_ncn->ice'
-        CALL message('',message_text)
-        return_fct = .false.
-        RETURN
-      END IF
+      IF ( icpl_aero_ice == 1) THEN ! use DeMott with CAMS dust aerosols
+        !$ACC DATA PRESENT(n_ind, indices, ncn, rho, t, cams5, cams6)
+        !$ACC PARALLEL DEFAULT(NONE) ASYNC(1) FIRSTPRIVATE(k_start, k_end)
+        !$ACC LOOP SEQ
+        DO k = k_start,k_end
+          !$ACC LOOP GANG VECTOR PRIVATE(jc, aerncn, dummy)
+          DO ic  = 1,n_ind(k)
+            jc        = indices(ic,k)
+            aerncn = 1.0E-6_wp*rho(jc,k)*( cams5(jc,k)/4.72911E-16_wp + cams6(jc,k)/1.55698E-15_wp )
+            CALL ice_nucleation ( t(jc,k), aerncn=aerncn , znin=dummy )
+            ncn(jc,k) = dummy
+          ENDDO
+        ENDDO
+        !$ACC END PARALLEL
+        !$ACC END DATA
+      ELSE IF (icpl_aero_ice == 2) THEN ! use Tegen dust with DeMott formula
+        !$ACC DATA PRESENT(n_ind, indices, ncn, t, z_ifc, aer_dust)
+        !$ACC PARALLEL DEFAULT(NONE) ASYNC(1) FIRSTPRIVATE(k_start, k_end)
+        !$ACC LOOP SEQ
+        DO k = k_start,k_end
+          !$ACC LOOP GANG VECTOR PRIVATE(jc, aerncn, dummy)
+          DO ic  = 1,n_ind(k)
+            jc        = indices(ic,k)
+            CALL ncn_from_tau_aerosol_speccnconst_dust (z_ifc(jc,k), z_ifc(jc,k+1), aer_dust(jc), aerncn)
+            CALL ice_nucleation ( t(jc,k), aerncn=aerncn , znin=dummy )
+            ncn(jc,k) = dummy
+          ENDDO
+        ENDDO
+        !$ACC END PARALLEL
+        !$ACC END DATA
+      ELSE ! FR: Cooper (1986) used by Greg Thompson(2008)
+        ! Some constant coefficients
+        IF( lsuper_coolw) THEN
+          znimax = znimax_Thom         !znimax_Thom = 250.E+3_wp,
+        ELSE
+          znimax = 150.E+3_wp     ! from previous ICON code
+        END IF
 
-      ! Some constant coefficients
-      IF( lsuper_coolw) THEN
-        znimax = znimax_Thom         !znimax_Thom = 250.E+3_wp,
-      ELSE
-        znimax = 150.E+3_wp     ! from previous ICON code 
-      END IF
-
-      !$ACC DATA COPYIN(mma, mmb)
-      !$ACC DATA PRESENT(indices, ncn, t, n_ind)
-      !$ACC PARALLEL ASYNC(1)
-      !$ACC LOOP SEQ
-      DO k = k_start,k_end
-        !$ACC LOOP GANG VECTOR PRIVATE(jc)
-        DO ic  = 1,n_ind(k)
-          jc =  indices(ic,k)
-          ncn(jc,k) = MIN(fxna_cooper(t(jc,k)),znimax) 
+        !$ACC DATA PRESENT(indices, ncn, t, n_ind)
+        !$ACC PARALLEL ASYNC(1)
+        !$ACC LOOP SEQ
+        DO k = k_start,k_end
+          !$ACC LOOP GANG VECTOR PRIVATE(jc, dummy)
+          DO ic  = 1,n_ind(k)
+            jc =  indices(ic,k)
+             CALL ice_nucleation ( t(jc,k), znin=dummy )
+             ncn(jc,k) = MIN(dummy,znimax)
+           END DO
         END DO
-      END DO
-      !$ACC END PARALLEL
-      !$ACC END DATA
-      !$ACC END DATA
+        !$ACC END PARALLEL
+        !$ACC END DATA
+
+      ENDIF
 
     CASE (2,4) ! Rain, Graupel done with 1 mom param. w. fixed N0
 
@@ -324,7 +355,7 @@ MODULE mo_reff_main
       CALL finish('one_moment_calculate_ncn:','CASE hydrometeor=2,4 not available on GPU')
 #endif
 
-      well_posed = PRESENT(rho) .AND. PRESENT(q)
+      well_posed = PRESENT(rho) .AND. ASSOCIATED(q)
       IF (.NOT. well_posed) THEN
         WRITE (message_text,*) 'Reff: Rho ans q  needs to be provided to one_mom_calculate_ncn'
         CALL message('',message_text)
@@ -345,7 +376,7 @@ MODULE mo_reff_main
       CALL finish('one_moment_calculate_ncn:','CASE hydrometeor=3 not available on GPU')
 #endif
 
-      well_posed = PRESENT(rho) .AND. PRESENT(q) .AND. PRESENT(t)
+      well_posed = PRESENT(rho) .AND. ASSOCIATED(q) .AND. PRESENT(t)
       IF (.NOT. well_posed) THEN
         WRITE (message_text,*) 'Reff: Rho ans q  needs to be provided to one_mom_calculate_ncn->snow'
         CALL message('',message_text)
@@ -954,7 +985,9 @@ MODULE mo_reff_main
 
 
   !! Calculte number concentraion of a hydrometeor
-  SUBROUTINE calculate_ncn( ncn, reff_calc, indices, n_ind , k_start, k_end ,jb, return_fct, rho, t )
+  SUBROUTINE calculate_ncn( ncn, reff_calc, indices, n_ind , k_start, k_end ,jb, rho, t,  &
+       &                    icpl_aero_ice, z_ifc, cams5, cams6, aer_dust,                 &
+       &                    return_fct )
 
     REAL(wp)          , INTENT(INOUT), DIMENSION(:,:) :: ncn             ! Number concentration
     TYPE(t_reff_calc) , INTENT(IN)                    :: reff_calc       ! Reff calculation parameters and pointers
@@ -963,12 +996,17 @@ MODULE mo_reff_main
 
     INTEGER           , INTENT(IN)                    :: k_start, k_end  ! Start, end total indices
     INTEGER           , INTENT(IN)                    :: jb              ! Domain index
+    INTEGER           , INTENT(IN)                    :: icpl_aero_ice   ! aerosols ice nucleation scheme
+
+    REAL(wp), INTENT(IN)        , DIMENSION(:,:)       :: rho             ! Density of air
+    REAL(wp), INTENT(IN)        , DIMENSION(:,:)       :: t               ! Temperature
+    REAL(wp), INTENT(IN), POINTER, DIMENSION(:,:)      :: cams5, cams6    ! CAMS dust mixing ratios
+    REAL(wp), INTENT(IN)        , DIMENSION(:,:)       :: z_ifc           ! height at interface levels
+    REAL(wp), INTENT(IN), POINTER, DIMENSION(:)        :: aer_dust        ! Tegen dust total column mass
+    
     LOGICAL           , INTENT(INOUT)                 :: return_fct      ! Function return. .true. for right
-
-    REAL(wp), OPTIONAL, INTENT(IN)   , DIMENSION(:,:) :: rho             ! Density of air
-    REAL(wp), OPTIONAL, INTENT(IN)   , DIMENSION(:,:) :: t               ! Temperature
-
-
+    
+    
     ! End of subroutine variable declarations
 
     REAL(wp), POINTER                , DIMENSION(:)   :: surf_cloud_num  ! Number concentration at surface (cloud_num)
@@ -976,8 +1014,8 @@ MODULE mo_reff_main
     REAL(wp), POINTER                , DIMENSION(:,:) :: q               ! Mixing ratio of hydrometeor
     INTEGER                                           :: k, ic, jc       ! Counters
     LOGICAL                                           :: well_posed      ! Logical check
+!    REAL(wp)                                          :: aerncn          ! CAMS dust aerosols number concentration
     REAL(wp)                                          :: cloud_num
-
 
     ! Check input return_fct
     IF (.NOT. return_fct) THEN
@@ -1024,23 +1062,29 @@ MODULE mo_reff_main
       CASE (0) ! Cloud water. It currently uses cloud_num 2D for the cloud water.
         IF (ASSOCIATED(reff_calc%p_ncn2D)) THEN
           ! Cloud_num field
-          CALL one_mom_calculate_ncn( ncn, return_fct, reff_calc, k_start, k_end, &
-                                   & indices, n_ind, surf_cloud_num = surf_cloud_num )
+          CALL one_mom_calculate_ncn( ncn, return_fct, reff_calc, k_start,             &
+               &                      k_end, indices, n_ind,                           &
+               &                      icpl_aero_ice, cams5, cams6, z_ifc, aer_dust, q, &
+                                      surf_cloud_num = surf_cloud_num )
         ELSE
           ! Constant cloud_num
-          CALL one_mom_calculate_ncn( ncn, return_fct, reff_calc, k_start, k_end, &
-                                   & indices, n_ind )
+          CALL one_mom_calculate_ncn( ncn, return_fct, reff_calc, k_start,              &
+               &                      k_end, indices, n_ind,                            &
+               &                      icpl_aero_ice, cams5, cams6, z_ifc, aer_dust, q) 
         END IF
 
       CASE DEFAULT
-        well_posed = ASSOCIATED(reff_calc%p_q) .AND. PRESENT(t) .AND. PRESENT(rho)
+        well_posed = ASSOCIATED(reff_calc%p_q)
         IF (.NOT. well_posed) THEN
           WRITE (message_text,*) 'Reff: Insufficient arguments to call calculate ncn from 1 moment scheme'
           CALL message('',message_text)
           return_fct = .false.
           RETURN
         END IF
-        CALL one_mom_calculate_ncn( ncn, return_fct, reff_calc, k_start, k_end, indices, n_ind, q, t, rho )
+        CALL one_mom_calculate_ncn( ncn, return_fct, reff_calc, k_start,             &
+             &                      k_end, indices, n_ind,                           &
+             &                      icpl_aero_ice, cams5, cams6, z_ifc, aer_dust, q, &
+             &                      t = t, rho =rho) 
       END SELECT
 
 

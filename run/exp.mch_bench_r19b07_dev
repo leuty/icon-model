@@ -17,8 +17,9 @@
 # Purpose: Run script for ICON on the R19B07 grid (ICON-2) on 
 #          a small Alpine region over CH/IT. 
 #          It is used for a technical benchmark at MeteoSwiss.
+#          This experiment is not tested!
 #
-# Author: Sascha Bellaire (MeteoSwiss)
+# Created by: Fabian Gessler (MeteoSwiss)
 #
 # =========================================================================== 
 

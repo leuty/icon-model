@@ -16,9 +16,10 @@
 #
 # Purpose: Run script for ICON on the R19B07 grid (ICON-2) on 
 #          the full ICON-2 domain covering Switzerland and a large surrounding
-#          area. It is used for a full operational benchmark at MeteoSwiss.
+#          area. This setup is identical to the one used operationally.
+#          It is used for the full operational benchmark tests at MeteoSwiss.
 #
-# Author: Sascha Bellaire (MeteoSwiss)
+# Created by: Daniel Hupp (MeteoSwiss), Fabian Gessler (MeteoSwiss)
 #
 # =========================================================================== 
 

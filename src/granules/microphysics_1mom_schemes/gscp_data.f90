@@ -362,8 +362,6 @@ SUBROUTINE gscp_set_coefficients (igscp, idbg, tune_zceff_min, tune_v0snow, tune
 
 END SUBROUTINE gscp_set_coefficients
 
-
-
 !==============================================================================
 
 END MODULE gscp_data

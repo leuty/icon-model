@@ -188,7 +188,7 @@ CONTAINS
     !-----------------------------------------------------------------------
     CALL vlr_add(horizontal_velocity_diagnostics, 'horizontal_velocity_diagnostics', &
       & patch_id=patch_2d%id, lrestart=.FALSE., loutput=.TRUE.,                           &
-      & model_type=TRIM(get_my_process_name()))
+      & model_type=get_my_process_name())
     !-----------------------------------------------------------------------
     IF (diagnose_for_horizontalVelocity) THEN
       CALL add_var(horizontal_velocity_diagnostics, 'veloc_adv_horz_u', veloc_adv_horz_u, &

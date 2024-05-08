@@ -143,7 +143,8 @@ SUBROUTINE cloudice (                &
   ivstart,ivend, kstart,             & !! optional start/end indicies
   idbg,                              & !! optional debug level
   zdt, dz,                           & !! numerics parameters
-  t,p,rho,qv,qc,qi,qr,qs,qnc,        & !! prognostic variables
+  t,p,rho,qv,qc,qi,qr,qs,qnc,zninc,  & !! prognostic variables
+  !xxx: this should become a module variable, e.g. in a new module mo_gscp_data.f90
   qi0,qc0,                           & !! cloud ice/water threshold for autoconversion
   prr_gsp,prs_gsp,pri_gsp,           & !! surface precipitation rates
   qrsflux,                           & !  total precipitation flux
@@ -222,7 +223,8 @@ SUBROUTINE cloudice (                &
     qc              ,    & !! specific cloud water content                  (kg/kg)
     qi              ,    & !! specific cloud ice   content                  (kg/kg)
     qr              ,    & !! specific rain content                         (kg/kg)
-    qs                     !! specific snow content                         (kg/kg)
+    qs              ,    & !! specific snow content                         (kg/kg)
+    zninc                  !! number of cloud ice crystals at nucleation
 
   REAL(KIND=wp), DIMENSION(:,:), INTENT(INOUT) ::   &   ! dim (ie,ke)
        qrsflux        ! total precipitation flux (nudg)
@@ -232,6 +234,7 @@ SUBROUTINE cloudice (                &
     prs_gsp,             & !! precipitation rate of snow, grid-scale        (kg/(m2*s))
     pri_gsp,             & !! precipitation rate of cloud ice, grid-scale   (kg/(m2*s))
     qnc                    !! cloud number concentration
+
 
   REAL(KIND=wp), DIMENSION(:,:), INTENT(OUT), OPTIONAL ::   &     ! dim (ie,ke)
     ddt_tend_t      , & !> tendency T                                       ( 1/s )
@@ -430,7 +433,7 @@ SUBROUTINE cloudice (                &
 !------------------------------------------------------------------------------
   ! Input data
   !$ACC DATA &
-  !$ACC   PRESENT(dz, t, p, rho, qv, qc, qi, qr, qs, qnc) &
+  !$ACC   PRESENT(dz, t, p, rho, qv, qc, qi, qr, qs, qnc, zninc) &
   !$ACC   PRESENT(prr_gsp, prs_gsp, qrsflux, pri_gsp) &
   ! automatic arrays
   !$ACC   CREATE(zvzr, zvzs, zvzi) &
@@ -440,7 +443,7 @@ SUBROUTINE cloudice (                &
 
 ! Some constant coefficients
   IF( lsuper_coolw) THEN
-    znimax = znimax_Thom         !znimax_Thom = 250.E+3_wp,
+    znimax = znimax_Thom         !znimax_Thom = 250.E+3_wp, consider making that 4 times higher
     znimix = fxna_cooper(ztmix) ! number of ice crystals at temp threshold for mixed-phase clouds
   ELSEIF(lorig_icon) THEN
     znimax = 150.E+3_wp     ! from previous ICON code 
@@ -529,7 +532,7 @@ SUBROUTINE cloudice (                &
 #if defined( _OPENACC )
     CALL message('gscp_cloudice','GPU-info : update host before cloudice')
 #endif
-    !$ACC UPDATE HOST(dz, t, p, rho, qv, qc, qi, qr, qs) ASYNC(1)
+    !$ACC UPDATE HOST(dz, t, p, rho, qv, qc, qi, qr, qs, zninc) ASYNC(1)
     !$ACC WAIT(1)
     WRITE (message_text,'(A,2E10.3)') '      MAX/MIN dz  = ',MAXVAL(dz),MINVAL(dz)
     CALL message('',message_text)
@@ -903,7 +906,7 @@ llqi =  zqik > zqmin
                        .AND. qig <= 0.0_wp )) THEN
         IF( qvg > zqvsi ) THEN
           IF( lsuper_coolw .OR. lorig_icon) THEN
-            znin  = MIN( fxna_cooper(tg), znimax )
+            znin  = MIN( zninc(iv,k), znimax )
           ELSE
             znin  = MIN( fxna(tg), znimax )
           END IF
@@ -969,7 +972,7 @@ llqi =  zqik > zqmin
         ! threshold.
         IF( tg <= 267.15_wp .AND. qig <= 0.0_wp ) THEN   
           IF (lsuper_coolw .OR. lorig_icon) THEN
-            znin  = MIN( fxna_cooper(tg), znimax )
+            znin  = MIN( zninc(iv,k), znimax )
             snuc = zmi0 * z1orhog * znin * zdtr
           ELSE
             znin = MIN( fxna(tg), znimax )
@@ -1027,7 +1030,7 @@ llqi =  zqik > zqmin
           zsvmax    = zqvsidiff * zdtr
 
           IF( lsuper_coolw .OR. lorig_icon) THEN
-            znin   = MIN( fxna_cooper(tg), znimax )
+            znin  = MIN( zninc(iv,k), znimax )
           ELSE
             znin   = MIN( fxna(tg), znimax )
           END IF
@@ -1374,7 +1377,7 @@ llqi =  zqik > zqmin
 #ifdef _OPENACC
    CALL message('gscp_cloudice', 'GPU-info : update host after cloudice')
 #endif
-   !$ACC UPDATE HOST(t, qv, qc, qi, qr, qs) ASYNC(1)
+   !$ACC UPDATE HOST(t, qv, qc, qi, qr, qs, zninc) ASYNC(1)
    !$ACC WAIT(1)
    CALL message('gscp_cloudice', 'UPDATED VARIABLES')
    WRITE(message_text,'(A,2E20.9)') 'cloudice  T= ',&

@@ -313,8 +313,8 @@ CONTAINS
    ! cases even though it is overwritten in prepare_patch 
     IF(loc_nblocks_c > 0) THEN
         IF (loc_nblocks_e > 0 .OR. loc_nproma > 0) THEN 
-            WRITE(message_text,'(a,i7,a,i3,a,i3)') 'More than one of (nproma,nblocks_c,nblocks_e)' // &
-            'is specified (>0), nproma=',loc_nproma,'nblocks_e=',loc_nblocks_c,'nblocks_e=',loc_nblocks_e
+            WRITE(message_text,'(a,i7,a,i3,a,i3)') 'More than one of (nproma, nblocks_c, nblocks_e)' // &
+            ' is specified (>0), nproma=',loc_nproma,', nblocks_c=',loc_nblocks_c,', nblocks_e=',loc_nblocks_e
             CALL finish(TRIM(method_name), message_text) 
         ENDIF
         nblocks_c = loc_nblocks_c
@@ -323,8 +323,8 @@ CONTAINS
         CALL message(TRIM(method_name), 'Will recompute nproma based on nblocks_c') 
     ELSE IF(loc_nblocks_e > 0) THEN
         IF (loc_nproma > 0) THEN
-            WRITE(message_text,'(a,i7,a,i3,a,i3)') 'More than one of (nproma,nblocks_c,nblocks_e)' // &
-            'is specified (>0), nproma=',loc_nproma,'nblocks_c=',loc_nblocks_c,'nblocks_e=',loc_nblocks_e
+            WRITE(message_text,'(a,i7,a,i3,a,i3)') 'More than one of (nproma, nblocks_c, nblocks_e)' // &
+            ' is specified (>0), nproma=',loc_nproma,', nblocks_c=',loc_nblocks_c,', nblocks_e=',loc_nblocks_e
             CALL finish(TRIM(method_name), message_text) 
         ENDIF
         nblocks_e = loc_nblocks_e

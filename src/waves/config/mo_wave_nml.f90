@@ -70,7 +70,10 @@ CONTAINS
                          ! 0.0060, if le 30 frequencies changed !@waves todo
                          ! to 0.0075 in subroutine initmdl !@waves todo
 
-    REAL(wp) :: depth    ! ocean depth (m) if not 0, then constant depth
+    REAL(wp) :: depth     ! ocean depth (m) if not 0, then constant depth
+    REAL(wp) :: depth_min ! allowed minimum of model depth (m)
+    REAL(wp) :: depth_max ! allowed maximum of model depth (m)
+
     INTEGER  :: niter_smooth ! number of smoothing iterations for wave bathymetry
 
     REAL(wp) :: XKAPPA  ! VON KARMAN CONSTANT.
@@ -113,7 +116,8 @@ CONTAINS
          ndirs, nfreqs, fr1, CO, IREF,                      &
          ALPHA, FM, GAMMA_wave, SIGMA_A, SIGMA_B, FETCH,    &
          roair, RNUAIR, RNUAIRM, ROWATER, XEPS, XINVEPS, &
-         XKAPPA, XNLEV, BETAMAX, ZALP, jtot_tauhf, ALPHA_CH, depth, niter_smooth, &
+         XKAPPA, XNLEV, BETAMAX, ZALP, jtot_tauhf, ALPHA_CH, &
+         depth, depth_min, depth_max, niter_smooth, &
          linput_sf1, linput_sf2, ldissip_sf, lnon_linear_sf, lbottom_fric_sf, &
          lwave_stress1, lwave_stress2, peak_u10, peak_v10, peak_lat, peak_lon, &
          impl_fac
@@ -149,6 +153,8 @@ CONTAINS
     ALPHA_CH   = 0.0075_wp      !! minimum charnock constant (ecmwf cy45r1).
 
     depth        = 0._wp        !! ocean depth (m) if not 0, then constant depth
+    depth_min    = 0.2_wp       !! allowed minimum of model depth (m)
+    depth_max    = 999.0_wp     !! allowed maximum of model depth (m)
     niter_smooth = 1            !! number of smoothing iterations for wave bathymetry
                                 !! if 0 then no smoothing
 
@@ -248,6 +254,8 @@ CONTAINS
       wave_config(jg)%jtot_tauhf        = jtot_tauhf
       wave_config(jg)%ALPHA_CH          = ALPHA_CH
       wave_config(jg)%depth             = depth
+      wave_config(jg)%depth_min         = depth_min
+      wave_config(jg)%depth_max         = depth_max
       wave_config(jg)%niter_smooth      = niter_smooth
       wave_config(jg)%forc_file_prefix  = forc_file_prefix
       wave_config(jg)%linput_sf1        = linput_sf1

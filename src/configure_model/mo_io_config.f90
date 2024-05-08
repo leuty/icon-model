@@ -36,6 +36,7 @@ MODULE mo_io_config
   LOGICAL :: lkeep_in_sync              ! if .true., sync stream after each timestep
   REAL(wp):: dt_diag                    ! diagnostic output timestep [seconds]
   REAL(wp):: gust_interval(max_dom)     ! time interval [seconds] over which maximum wind gusts are taken
+  REAL(wp):: ff10m_interval(max_dom)    ! time interval [seconds] over which ff10m is averaged
   REAL(wp):: celltracks_interval(max_dom)  ! time interval [seconds] over which extrema of cell track vars are taken
                                            !  (LPI_MAX, UH_MAX, VORW_CTMAX, W_CTMAX, DBZ_CTMAX)
   CHARACTER(len=max_timedelta_str_len) :: precip_interval(max_dom)   ! time interval over which precipitation variables are accumulated
@@ -157,6 +158,7 @@ MODULE mo_io_config
     LOGICAL :: lapserate    = .FALSE. !< Flag. TRUE if computation of T(500hPa) - T(850hPa) is desired
     LOGICAL :: mconv        = .FALSE. !< Flag. TRUE if computation of low level moisture convergence is desired
     LOGICAL :: srh          = .FALSE. !< Flag. TRUE if computation of storm relative helicity (SRH) is desired
+    LOGICAL :: tot_pr_max   = .FALSE. !< Flag. TRUE if computation of time max precipitation rate is desired
     LOGICAL :: cloudtop     = .FALSE. !< Flag. TRUE if computation of CLOUDTOP is desired
     LOGICAL :: si           = .FALSE. !< Flag. TRUE if computation of SI is desired
     LOGICAL :: sli          = .FALSE. !< Flag. TRUE if computation of SLI is desired
@@ -331,6 +333,7 @@ CONTAINS
         var_in_output(jg)%lapserate   = is_variable_in_output_dom(var_name="lapse_rate", jg=jg)
         var_in_output(jg)%mconv       = is_variable_in_output_dom(var_name="mconv", jg=jg)
         var_in_output(jg)%srh         = is_variable_in_output_dom(var_name="srh", jg=jg)
+        var_in_output(jg)%tot_pr_max  = is_variable_in_output_dom(var_name="tot_pr_max", jg=jg)
         var_in_output(jg)%cape_mu     = is_variable_in_output_dom(var_name="cape_mu", jg=jg)
         var_in_output(jg)%cin_mu      = is_variable_in_output_dom(var_name="cin_mu", jg=jg)
         var_in_output(jg)%cape_3km    = is_variable_in_output_dom(var_name="cape_3km", jg=jg)

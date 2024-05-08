@@ -43,7 +43,7 @@ MODULE mo_nh_nest_utilities
   USE mo_run_config,          ONLY: ltransport, msg_level, ntracer, lvert_nest, iqv, iqc, iforcing
   USE mo_nonhydro_types,      ONLY: t_nh_state, t_nh_prog, t_nh_diag, t_nh_metrics
   USE mo_nonhydro_state,      ONLY: p_nh_state
-  USE mo_nwp_phy_state,       ONLY: prm_diag
+  USE mo_nwp_phy_types,       ONLY: t_nwp_phy_diag
   USE mo_prepadv_types,       ONLY: t_prepare_adv
   USE mo_nonhydrostatic_config,ONLY: ndyn_substeps_var
   USE mo_atm_phy_nwp_config,  ONLY: iprog_aero
@@ -672,7 +672,7 @@ CONTAINS
   !! for vertical nesting.
   !!
   SUBROUTINE boundary_interpolation (jg,jgc,ntp_dyn,ntc_dyn,ntp_tr,ntc_tr, &
-    p_patch, p_nh_state, prep_adv, p_grf_state)
+    p_patch, p_nh_state, prep_adv, prm_diag, p_grf_state)
 
     CHARACTER(len=*), PARAMETER ::  &
       &  routine = modname//':boundary_interpolation'
@@ -685,6 +685,7 @@ CONTAINS
     TYPE(t_patch)        , INTENT(   IN), TARGET :: p_patch(:)
     TYPE(t_nh_state)     , INTENT(INOUT), TARGET :: p_nh_state(:)
     TYPE(t_prepare_adv)  , INTENT(INOUT), TARGET :: prep_adv(:)
+    TYPE(t_nwp_phy_diag) , INTENT(INOUT)         :: prm_diag(:)
     TYPE(t_gridref_state), INTENT(   IN), TARGET :: p_grf_state(:)
 
     ! local variables

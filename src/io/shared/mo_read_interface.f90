@@ -81,6 +81,7 @@ MODULE mo_read_interface
   PUBLIC :: read_2D_extdim
   PUBLIC :: read_2D_extdim_int
   PUBLIC :: read_3D_extdim
+  PUBLIC :: read_inq_varexists
 
   PUBLIC :: nf  ! temporary hack, wich allows to USE nf via this module. Currently required for ART.
 

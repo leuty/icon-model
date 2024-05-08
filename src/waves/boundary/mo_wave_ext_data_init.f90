@@ -166,7 +166,8 @@ CONTAINS
                          i_startidx, i_endidx, rl_start, rl_end)
 
       DO je = i_startidx, i_endidx
-          bathymetry_e(je,jb) = MAX(bathymetry_e(je,jb),0.2_wp)
+        bathymetry_e(je,jb) = MAX(bathymetry_e(je,jb),wave_config(p_patch%id)%depth_min)
+        bathymetry_e(je,jb) = MIN(bathymetry_e(je,jb),wave_config(p_patch%id)%depth_max)
       ENDDO
     ENDDO
 !$OMP END DO NOWAIT
@@ -200,23 +201,23 @@ CONTAINS
 
     CALL closeFile(stream_id)
 
-
     rl_start   = 1
     rl_end     = min_rlcell
     i_startblk = p_patch%cells%start_block(rl_start)
     i_endblk   = p_patch%cells%end_block(rl_end)
 
-    ! set minimal depth of 0.2 m
+    ! set depth limits depth_min and depth_max
     !
 !$OMP PARALLEL
 !$OMP DO PRIVATE(jb,jc,i_startidx,i_endidx) ICON_OMP_DEFAULT_SCHEDULE
     DO jb=i_startblk, i_endblk
 
       CALL get_indices_c(p_patch, jb, i_startblk, i_endblk, &
-                         i_startidx, i_endidx, rl_start, rl_end)
+           i_startidx, i_endidx, rl_start, rl_end)
 
       DO jc = i_startidx, i_endidx
-        wave_ext_data%bathymetry_c(jc,jb) = MAX(wave_ext_data%bathymetry_c(jc,jb),0.2_wp)
+        wave_ext_data%bathymetry_c(jc,jb) = MAX(wave_ext_data%bathymetry_c(jc,jb),wave_config(p_patch%id)%depth_min)
+        wave_ext_data%bathymetry_c(jc,jb) = MIN(wave_ext_data%bathymetry_c(jc,jb),wave_config(p_patch%id)%depth_max)
       END DO
 
     END DO

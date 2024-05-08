@@ -162,7 +162,7 @@ CONTAINS
     idbg,                              & !! optional debug level
     zdt, dz,                           & !! numerics parameters
     t,p,rho,qv,qc,qi,qr,qs,qg,qnc,     & !! prognostic variables
-    qi0,qc0,                           & !! cloud ice/water threshold for autoconversion
+    qi0,qc0, zninc,                    & !! cloud ice/water threshold for autoconversion
     prr_gsp,prs_gsp,pri_gsp,prg_gsp,   & !! surface precipitation rates
     qrsflux,                           & !  total precipitation flux
     l_cv,                              &
@@ -202,7 +202,8 @@ CONTAINS
       qi              ,    & !! specific cloud ice   content                  (kg/kg)
       qr              ,    & !! specific rain content                         (kg/kg)
       qs              ,    & !! specific snow content                         (kg/kg)
-      qg                     !! specific graupel content                      (kg/kg)
+      qg              ,    & !! specific graupel content                      (kg/kg)
+      zninc                  !! number of cloud ice crystals at nucleation
 
     REAL(KIND=wp), INTENT(INOUT) :: qrsflux(:,:)       ! total precipitation flux (nudg)
 
@@ -240,6 +241,7 @@ CONTAINS
       & qs     =qs    ,    & !< in:  snow
       & qg     =qg    ,    & !< in:  graupel
       & qnc    = qnc                            ,    & !< cloud number concentration
+      & zninc  = zninc                          ,    & !< number of cloud ice crystals at nucleation
       & prr_gsp=prr_gsp     ,    & !< out: precipitation rate of rain
       & prs_gsp=prs_gsp     ,    & !< out: precipitation rate of snow
       & pri_gsp=pri_gsp      ,    & !< out: precipitation rate of cloud ice
@@ -266,7 +268,7 @@ CONTAINS
     ivstart,ivend, kstart,             & !! optional start/end indicies
     idbg,                              & !! optional debug level
     zdt, dz,                           & !! numerics parameters
-    t,p,rho,qv,qc,qi,qr,qs,qnc,     & !! prognostic variables
+    t,p,rho,qv,qc,qi,qr,qs,qnc,zninc,  & !! prognostic variables
     qi0,qc0,                           & !! cloud ice/water threshold for autoconversion
     prr_gsp,prs_gsp,pri_gsp,   & !! surface precipitation rates
     qrsflux,                           & !  total precipitation flux
@@ -306,14 +308,15 @@ CONTAINS
       qc              ,    & !! specific cloud water content                  (kg/kg)
       qi              ,    & !! specific cloud ice   content                  (kg/kg)
       qr              ,    & !! specific rain content                         (kg/kg)
-      qs                     !! specific snow content                         (kg/kg)
+      qs              ,    & !! specific snow content                         (kg/kg)
+      zninc                  !! number of cloud ice crystals at nucleation
 
     REAL(KIND=wp), INTENT(INOUT) :: qrsflux(:,:)       ! total precipitation flux (nudg)
 
     REAL(KIND=wp), DIMENSION(:), INTENT(INOUT) ::  prr_gsp,             & !> precipitation rate of rain, grid-scale        (kg/(m2*s))
-      prs_gsp,             & !! precipitation rate of snow, grid-scale        (kg/(m2*s))
-      pri_gsp, &
-      qnc                    !! cloud number concentration
+      prs_gsp,             &  !! precipitation rate of snow, grid-scale        (kg/(m2*s))
+      pri_gsp,             &
+      qnc                     !! cloud number concentration
 
 
     REAL(KIND=wp), DIMENSION(:,:), INTENT(OUT)::   ddt_tend_t      , & !> tendency T                                       ( 1/s )
@@ -342,6 +345,7 @@ CONTAINS
       & qr     =qr    ,    & !< in:  rain water
       & qs     =qs    ,    & !< in:  snow
       & qnc    = qnc                            ,    & !< cloud number concentration
+      & zninc  = zninc                          ,    & !< number of cloud ice crystals at nucleation
       & prr_gsp=prr_gsp     ,    & !< out: precipitation rate of rain
       & prs_gsp=prs_gsp     ,    & !< out: precipitation rate of snow
       & pri_gsp=pri_gsp      ,    & !< out: precipitation rate of cloud ice

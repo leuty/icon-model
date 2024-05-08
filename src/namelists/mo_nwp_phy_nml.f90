@@ -34,6 +34,7 @@ MODULE mo_nwp_phy_nml
     &                               config_icpl_aero_conv  => icpl_aero_conv,  &
     &                               config_iprog_aero      => iprog_aero,      &
     &                               config_icpl_o3_tp      => icpl_o3_tp,      &
+    &                               config_icpl_aero_ice   => icpl_aero_ice,   &
     &                               config_lcuda_graph_turb_tran => lcuda_graph_turb_tran
 
   USE mo_nml_annotate,        ONLY: temp_defaults, temp_settings
@@ -82,6 +83,7 @@ MODULE mo_nwp_phy_nml
 
   INTEGER  :: itype_z0           !! type of roughness length data
   INTEGER  :: icpl_aero_gscp     !! type of aerosol-microphysics coupling
+  INTEGER  :: icpl_aero_ice     !! type of aerosol-ice nucleation coupling
   INTEGER  :: icpl_aero_conv     !! type of coupling between aerosols and convection scheme
   INTEGER  :: iprog_aero         !! type of prognostic aerosol
   INTEGER  :: icpl_o3_tp         !! type of ozone-tropopause coupling
@@ -114,7 +116,7 @@ MODULE mo_nwp_phy_nml
     &                    inwp_gscp, inwp_satad,                      &
     &                    inwp_turb, inwp_surface,                    &
     &                    dt_conv, dt_rad, dt_sso, dt_gwd, dt_ccov,   &
-    &                    qi0, qc0, icpl_aero_gscp,                   &
+    &                    qi0, qc0, icpl_aero_gscp, icpl_aero_ice,    &
     &                    ustart_raylfric, efdt_min_raylfric,         &
     &                    latm_above_top, itype_z0, mu_rain,          &
     &                    mu_snow, icapdcycl, icpl_aero_conv,         &
@@ -238,6 +240,11 @@ CONTAINS
                         ! 1 = simple coupling with aerosol climatology disregarding the dependency of aerosol activation on vertical wind speed
                         ! 2 = more accurate coupling with aerosol climatology as a function of vertical wind speed
                         ! 3 = like 1 but using the cdnc from external parameter 
+
+    ! coupling between aersols and ice nucleation
+    icpl_aero_ice = 0   ! 0 = Cooper (1986)
+                        ! 1 = DeMott (2015) with CAMS dust number concentration
+                        ! 2 = DeMott (2015) with Tegen dust concentration
 
     ! coupling between aersols and convection scheme
     icpl_aero_conv = 0  ! 0 = none
@@ -535,6 +542,7 @@ CONTAINS
     config_iprog_aero            = iprog_aero
     config_icpl_o3_tp            = icpl_o3_tp
     config_lcuda_graph_turb_tran = lcuda_graph_turb_tran
+    config_icpl_aero_ice         = icpl_aero_ice
 
     !-----------------------------------------------------
     ! 6. Store the namelist for restart

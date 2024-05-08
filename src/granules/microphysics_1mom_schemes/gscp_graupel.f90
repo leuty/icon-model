@@ -135,6 +135,8 @@ SUBROUTINE graupel     (             &
   idbg,                              & !! optional debug level
   zdt, dz,                           & !! numerics parameters
   t,p,rho,qv,qc,qi,qr,qs,qg,qnc,     & !! prognostic variables
+  zninc,                             & !! prognostic variables
+  !xxx: this should become a module variable, e.g. in a new module mo_gscp_data.f90
   qi0,qc0,                           & !! cloud ice/water threshold for autoconversion
   prr_gsp,prs_gsp,pri_gsp,prg_gsp,   & !! surface precipitation rates
   qrsflux,                           & !  total precipitation flux
@@ -217,7 +219,8 @@ SUBROUTINE graupel     (             &
     qi              ,    & !! specific cloud ice   content                  (kg/kg)
     qr              ,    & !! specific rain content                         (kg/kg)
     qs              ,    & !! specific snow content                         (kg/kg)
-    qg                     !! specific graupel content                      (kg/kg)
+    qg              ,    & !! specific graupel content                      (kg/kg)
+    zninc                  !! number of cloud ice crystals at nucleation
 
   REAL(KIND=wp), INTENT(INOUT) :: &
        qrsflux(:,:)       ! total precipitation flux (nudg)
@@ -455,7 +458,7 @@ SUBROUTINE graupel     (             &
 !------------------------------------------------------------------------------
   ! Input data
   !$ACC DATA &
-  !$ACC   PRESENT(dz, t, p, rho, qv, qc, qi, qr, qs, qg, qnc) &
+  !$ACC   PRESENT(dz, t, p, rho, qv, qc, qi, qr, qs, qg, qnc, zninc) &
   !$ACC   PRESENT(prr_gsp, prs_gsp, prg_gsp, qrsflux) &
   ! automatic arrays
   !$ACC   CREATE(zvzr, zvzs, zvzg, zvzi) &
@@ -466,7 +469,7 @@ SUBROUTINE graupel     (             &
 
 ! Some constant coefficients
   IF( lsuper_coolw) THEN
-    znimax = znimax_Thom
+    znimax = znimax_Thom         !znimax_Thom = 250.E+3_wp, consider making that 4 times higher
     znimix = fxna_cooper(ztmix) ! number of ice crystals at temp threshold for mixed-phase clouds
   ELSE
     znimax = fxna(zthn) ! Maximum number of cloud ice crystals
@@ -527,7 +530,7 @@ SUBROUTINE graupel     (             &
 #if defined( _OPENACC )
     CALL message('gscp_graupel','GPU-info : update host before graupel')
 #endif
-    !$ACC UPDATE HOST(dz, t, p, rho, qv, qc, qi, qr, qs, qg) ASYNC(1)
+    !$ACC UPDATE HOST(dz, t, p, rho, qv, qc, qi, qr, qs, qg, zninc) ASYNC(1)
     !$ACC WAIT(1)
     WRITE (message_text,'(A,2E10.3)') '      MAX/MIN dz  = ',MAXVAL(dz),MINVAL(dz)
     CALL message('',message_text)
@@ -954,7 +957,7 @@ SUBROUTINE graupel     (             &
                        .AND. qig <= 0.0_wp )) THEN
         IF( qvg > zqvsi ) THEN
           IF( lsuper_coolw) THEN
-            znin  = MIN( fxna_cooper(tg), znimax )
+            znin  = MIN( zninc(iv,k), znimax )
           ELSE
             znin  = MIN( fxna(tg), znimax )
           END IF
@@ -1040,7 +1043,7 @@ SUBROUTINE graupel     (             &
 
         IF( tg <= 267.15_wp .AND. .NOT.llqi ) THEN   
           IF (lsuper_coolw) THEN
-            znin  = MIN( fxna_cooper(tg), znimax )
+            znin  = MIN( zninc(iv,k), znimax )
             snuc = zmi0 * z1orhog * znin * zdtr
           ELSE
             znin = MIN( fxna(tg), znimax )
@@ -1090,7 +1093,7 @@ SUBROUTINE graupel     (             &
           IF (llqi) THEN
 
             IF( lsuper_coolw) THEN
-              znin   = MIN( fxna_cooper(tg), znimax )
+              znin  = MIN( zninc(iv,k), znimax )
             ELSE
               znin   = MIN( fxna(tg), znimax )
             END IF

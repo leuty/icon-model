@@ -1308,12 +1308,7 @@ CONTAINS
 
     CHARACTER(:), ALLOCATABLE :: model_name
 
-    IF (TRIM(get_my_process_name()) == 'atmo') THEN
-      ! Model (process) name from master namelist is 'atmo' but name for model_type is 'atm'
-      model_name = 'atm'
-    ELSE
-      model_name = TRIM(get_my_process_name())
-    END IF
+    model_name = get_my_process_name()
 
     IF (PRESENT(table)) CONTINUE ! Only here to avoid compiler warning about "table" not being used
     CALL vlr_add(this_list, vname, output_type=output_type, restart_type=restart_type, &

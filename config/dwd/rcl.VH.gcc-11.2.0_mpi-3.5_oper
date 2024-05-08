@@ -24,7 +24,7 @@ ICON_DIR=$(cd "${SCRIPT_DIR}/../..">/dev/null; pwd)
 MODULE_SETTINGS=". ${MODULESHOME}/init/sh; module purge"
 
 
-MODULES='apps sx/default gcc/12.3.0 mpi/2.22.0 netcdf4/4.7.3-VH-gnu hdf5/1.10.5-VH-gnu eccodes/2.25.0-VH-gnu aec/1.0.3-VH-gnu aocl/2.1-VH-gnu szip/2.1.1-VH-gnu libfyaml/0.8-VH-gnu unsupported cmake/3.26.4'
+MODULES='apps sx/default gcc/11.2.0 mpi/3.5.0 netcdf4/4.7.3-VH-gnu hdf5/1.10.5-VH-gnu eccodes/2.31.0-VH-gnu aec/1.0.6-VH-gnu aocl/2.1-VH-gnu szip/2.1.1-VH-gnu libfyaml/0.8-VH-gnu unsupported cmake/3.26.4'
 
 
 ### Libraries ###
@@ -44,7 +44,7 @@ AMD_LIBS='-lflame -lblis'
 ECCODES__LIBS='-leccodes_f90 -leccodes'
 
 # XML
-XML2ROOT='/hpc/sw/NEC-old/libxml2-2.9.10/VH'
+XML2ROOT='/hpc/sw/libxml2/2.9.10/VH'
 XML2_LIBS='-lxml2'
 
 # AEC
@@ -55,7 +55,7 @@ SZIP_LIB='-lsz'
 
 # ZLIB
 ZLIBROOT='/hpc/sw/zlib/1.2.11/x86/gnu'
-ZLIB_LIB='-lz' 
+ZLIB_LIB='-lz'
 
 # RTTOV
 RTTOV_ROOT='/hpc/rhome/for0adm/nwp/x86_vh/external'
@@ -97,7 +97,7 @@ ICON_DACE_PATH="externals/dace_icon"
 LDFLAGS="-L${ZLIBROOT}/lib -L${AEC_DIR}/lib -L${SZIPROOT}/lib -L${HDF5ROOT}/lib -L${NETCDFROOT}/lib -L${NETCDFFROOT}/lib -L${RTTOV_ROOT}/lib -L${ECCODES_LIB_DIR} -L${AMDLIB_ROOT}/libs -L${XML2ROOT}/lib -shared-mpi"
 LIBS="-Wl,--as-needed ${XML2_LIBS} ${ECCODES__LIBS} ${RTTOV_LIBS} ${AMD_LIBS} ${NETCDFF_LIBS} ${NETCDF_LIBS} ${HDF5_LIBS} ${SZIP_LIB} ${AEC_LIB} ${ZLIB_LIB} ${FYAML_LIB} ${STATICLINK_FLAGS}"
 
-MPI_LAUNCH=''  # needed e.g. for yac configuration. What is the correct setting for gnu ?? 
+MPI_LAUNCH=''  # needed e.g. for yac configuration. What is the correct setting for gnu ??
 
 # full operational NWP configuration including ecRad and DACE+EMVORADO coupling
 EXTRA_CONFIG_ARGS='--disable-mpi-checks --disable-rpaths --enable-active-target-sync --enable-mixed-precision --enable-loop-exchange --enable-grib2 --enable-mpi --enable-openmp --enable-rttov --enable-ecrad --enable-dace --enable-fcgroup-DACE --enable-emvorado --enable-art --disable-aes --disable-jsbach --disable-ocean --disable-coupling'
