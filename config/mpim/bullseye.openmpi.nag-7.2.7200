@@ -16,7 +16,7 @@ unset CDPATH
 script_dir=$(cd "$(dirname "$0")"; pwd)
 icon_dir=$(cd "${script_dir}/../.."; pwd)
 
-sw_root='/sw/bullseye-x64/views/icon/openmpi/nag-7.1.7125'
+sw_root='/sw/bullseye-x64/views/icon/openmpi/nag-7.2.7200'
 
 if test -r "${sw_root}/lib/librttov_main.a"; then
   RTTOV_LIBS='-lrttov_other -lrttov_emis_atlas -lrttov_brdf_atlas -lrttov_parallel -lrttov_coef_io -lrttov_hdf -lrttov_main'
@@ -74,12 +74,6 @@ ICON_DACE_PATH='externals/dace_icon'
 # The following files a victims of the inconsistent calls of the nf_get_att_real
 # function in externals/dace_icon/src_for_icon/mo_iratlas.f90:
 ICON_DACE_PATH+=':src/atm_dyn_iconam/mo_nh_stepping.f90:src/data_assimilation/interfaces/mo_icon2dace.f90:src/drivers/icon.f90:src/drivers/mo_atmo_model.f90:src/drivers/mo_atmo_nonhydrostatic.f90'
-
-# There are over 200 files that are victims of the incosistencies in the NetCDF
-# Fortran library (see https://github.com/Unidata/netcdf-fortran/pull/424).
-# Treating them as a compile group is impractical. Therefore, we compile
-# everything with the -mismatch flag:
-ICON_FCFLAGS="${non_libtool_FCFLAGS} ${global_mismatch_FCFLAGS}"
 
 # Enable recognition of non-standard double precision complex intrinsic
 # functions (DCMPLX and DCONJG):

@@ -32,7 +32,6 @@ MODULE mo_radiation_nml
                                  & config_irad_cfc11 => irad_cfc11,                     &
                                  & config_irad_cfc12 => irad_cfc12,                     &
                                  & config_irad_aero  => irad_aero,                      &
-                                 & config_lrad_yac   => lrad_yac,                       &
                                  & config_cams_clim_filename => cams_clim_filename,     &
                                  & config_lrad_aero_diag => lrad_aero_diag,             &
                                  & config_ghg_filename   => ghg_filename,               &
@@ -146,7 +145,6 @@ MODULE mo_radiation_nml
   INTEGER  :: irad_cfc11
   INTEGER  :: irad_cfc12
   INTEGER  :: irad_aero
-  LOGICAL  :: lrad_yac
   LOGICAL  :: lrad_aero_diag
   !
   ! --- Name of the file that contains  dynamic greenhouse values
@@ -206,7 +204,6 @@ MODULE mo_radiation_nml
     &                      irad_cfc11, vmr_cfc11, &
     &                      irad_cfc12, vmr_cfc12, &
     &                      irad_aero,             &
-    &                      lrad_yac,              &
     &                      lrad_aero_diag,        &
     &                      ghg_filename,          &
     &                      cams_clim_filename,    &
@@ -270,7 +267,6 @@ CONTAINS
     irad_cfc11  = 2
     irad_cfc12  = 2
     irad_aero   = iRadAeroConst
-    lrad_yac    = .FALSE.
     lrad_aero_diag = .FALSE.
 
     cams_clim_filename = 'CAMS_clim_R<nroot0>B<jlev>_DOM<idom>.nc'
@@ -353,7 +349,6 @@ CONTAINS
     config_irad_cfc11 = irad_cfc11
     config_irad_cfc12 = irad_cfc12
     config_irad_aero  = irad_aero
-    config_lrad_yac   = lrad_yac
     config_lrad_aero_diag = lrad_aero_diag
     config_cams_clim_filename = TRIM(cams_clim_filename)
     config_ghg_filename   = ghg_filename

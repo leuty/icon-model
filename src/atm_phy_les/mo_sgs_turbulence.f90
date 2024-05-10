@@ -215,7 +215,7 @@ MODULE mo_sgs_turbulence
     ELSE IF ( atm_phy_nwp_config(jg)%inwp_turb == ismag ) THEN 
 
       IF ( les_config(jg)%smag_coeff_type == 1 ) THEN
-        CALL brunt_vaisala_freq(p_patch, p_nh_metrics, theta_v, prm_diag%bruvais)
+        CALL brunt_vaisala_freq(p_patch, p_nh_metrics, nproma, theta_v, prm_diag%bruvais)
         CALL smagorinsky_model(p_nh_prog, p_nh_metrics, p_patch, p_int, prm_diag)
 
       ELSE IF ( les_config(jg)%smag_coeff_type == 2 ) THEN

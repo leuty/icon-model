@@ -215,6 +215,9 @@ cat > ${ocean_namelist} << EOF
   richardson_veloc   = 2.0e-3    ! factor for vertical viscosity coefficient in PP scheme
   richardson_tracer  = 2.0e-3    ! factor for vertical diffusion coefficient in PP scheme
  /
+&sea_ice_nml
+  stress_ice_zero = .TRUE.
+/
 &ocean_forcing_nml
   iforc_oce          = ${iforc}  ! ocean forcing:
   type_surfRelax_Temp= 0      !  0: no relaxation used

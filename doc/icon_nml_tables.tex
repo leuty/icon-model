@@ -554,11 +554,6 @@ Selects source of aerosol types\\
 18: Kinne background aerosols (of natural origin, 1850) are set and Stenchikov's
 volcanic aerosols are added to Kinne background and Simple plumes are added \\
 aes\_phy\_config(jg)\% dt\_rad > 0.000s \tabularnewline
-%
-aes\_rad\_config(jg)\% lrad\_yac & L & .FALSE. & &
-.TRUE.: O3 and Kinne Aerosol is coupled via yac for \\
-irad\_aero 13, 15, 18, 19  and \\
-irad\_o3 4,5,6, \tabularnewline
 \end{longtab}
 
 %------------------------------------------------------------------------------
@@ -1167,6 +1162,22 @@ L &
 .FALSE. &  &
 .TRUE.: Required for coupled atmosphere-ocean or atmosphere-wave similations. \newline 
         Indicates the coupling of the model at hand (e.g. ocean, wave) to the atmosphere model. Yac coupling routines have to be called.&
+\tabularnewline
+
+%\hline
+coupled\_to\_aero &
+L &
+.FALSE. &  &
+.TRUE.: Activates the coupling of aes atmosphere to Kinne aerosole input files. \newline 
+        Kinne aerosol input is taken from python processes rather than direct reading from pre-processed input files. rte-rrtmgp radiation supported only. In this case yac coupling routines are called.&
+\tabularnewline
+
+%\hline
+coupled\_to\_o3 &
+L &
+.FALSE. &  &
+.TRUE.: Activates the coupling of aes atmosphere to o3 input files. \newline 
+        O3 input is taken from python processes rather than direct reading from pre-processed input files. In this case yac coupling routines are called.&
 \tabularnewline
 
 %\hline

@@ -122,7 +122,7 @@ USE mo_name_list_output_config, ONLY: is_variable_in_output
 USE mo_util_string,          ONLY: real2string
 USE mo_sbm_storage,          ONLY: construct_sbm_storage, destruct_sbm_storage
 USE mo_coupling_config,      ONLY: is_coupled_to_waves
-USE mo_netcdf,               ONLY: NF_MAX_NAME
+USE mo_netcdf,               ONLY: NF90_MAX_NAME
 
 #include "add_var_acc_macro.inc"
 
@@ -326,7 +326,7 @@ SUBROUTINE new_nwp_phy_diag_list( k_jg, klev, klevp1, kblks,    &
     INTEGER :: shape3dkp1(3), shape3dflux(3), shape3d_uh_max(3), shape3dturb(3), shape3dsrh(3)
     INTEGER :: ibits,  kcloud
     INTEGER :: jsfc, ist
-    CHARACTER(len=NF_MAX_NAME) :: long_name
+    CHARACTER(len=NF90_MAX_NAME) :: long_name
     CHARACTER(len=21) :: name
     CHARACTER(len=3)  :: prefix
     CHARACTER(len=8)  :: meaning

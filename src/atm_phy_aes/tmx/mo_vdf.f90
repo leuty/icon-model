@@ -380,7 +380,7 @@ CONTAINS
         CALL diffuse_scalar_vertical_explicit( &
           & i_startblk_c, i_endblk_c, i_startidx_c(:), i_endidx_c(:), &
           & mair(:,:,:), zf(:,:,:), &
-          & rho_ic(:,:,:), kh_ic(:,:,:), &
+          & kh_ic(:,:,:), &
           & state(:,:,:), sfc_flx(:,:), top_flx(:,:), &
           & tend(:,:,:) &
           & )
@@ -391,7 +391,7 @@ CONTAINS
           & i_startblk_c, i_endblk_c, i_startidx_c(:), i_endidx_c(:), &
           & dtime, &
           & mair(:,:,:), zf(:,:,:), &
-          & rho_ic(:,:,:), kh_ic(:,:,:), &
+          & kh_ic(:,:,:), &
           & state(:,:,:), sfc_flx(:,:), top_flx(:,:), &
           & tend(:,:,:) &
           & )
@@ -522,7 +522,7 @@ CONTAINS
       CALL diffuse_scalar_vertical_explicit( &
         & i_startblk_c, i_endblk_c, i_startidx_c(:), i_endidx_c(:), &
         & mair(:,:,:), zf(:,:,:), &
-        & rho_ic(:,:,:), kh_ic(:,:,:), &
+        & kh_ic(:,:,:), &
         & energy(:,:,:), sfc_flx(:,:), top_flx(:,:), &
         & tend_energy(:,:,:) &
         & )
@@ -533,7 +533,7 @@ CONTAINS
         & i_startblk_c, i_endblk_c, i_startidx_c(:), i_endidx_c(:), &
         & dtime, &
         & mair(:,:,:), zf(:,:,:), &
-        & rho_ic(:,:,:), kh_ic(:,:,:), &
+        & kh_ic(:,:,:), &
         & energy(:,:,:), sfc_flx(:,:), top_flx(:,:), &
         & tend_energy(:,:,:) &
         & )
@@ -710,7 +710,7 @@ CONTAINS
     !   CALL diffuse_scalar_vertical_explicit( &
     !     & i_startblk_c, i_endblk_c, i_startidx_c(:), i_endidx_c(:), &
     !     & mair(:,:,:), zf(:,:,:), &
-    !     & rho_ic(:,:,:), km_ic(:,:,:), &
+    !     & km_ic(:,:,:), &
     !     & state_u(:,:,:), mflux_u(:,:), top_flx(:,:), &
     !     & tend_u(:,:,:) &
     !     & )
@@ -721,7 +721,7 @@ CONTAINS
     !     & i_startblk_c, i_endblk_c, i_startidx_c(:), i_endidx_c(:), &
     !     & dtime, &
     !     & mair(:,:,:), zf(:,:,:), &
-    !     & rho_ic(:,:,:), km_ic(:,:,:), &
+    !     & km_ic(:,:,:), &
     !     & state_u(:,:,:), mflux_u(:,:), top_flx(:,:), &
     !     & tend_u(:,:,:) &
     !     & )
@@ -737,7 +737,7 @@ CONTAINS
     !   CALL diffuse_scalar_vertical_explicit( &
     !     & i_startblk_c, i_endblk_c, i_startidx_c(:), i_endidx_c(:), &
     !     & mair(:,:,:), zf(:,:,:), &
-    !     & rho_ic(:,:,:), km_ic(:,:,:), &
+    !     & km_ic(:,:,:), &
     !     & state_v(:,:,:), mflux_v(:,:), top_flx(:,:), &
     !     & tend_v(:,:,:) &
     !     & )
@@ -748,7 +748,7 @@ CONTAINS
     !     & i_startblk_c, i_endblk_c, i_startidx_c(:), i_endidx_c(:), &
     !     & dtime, &
     !     & mair(:,:,:), zf(:,:,:), &
-    !     & rho_ic(:,:,:), km_ic(:,:,:), &
+    !     & km_ic(:,:,:), &
     !     & state_v(:,:,:), mflux_v(:,:), top_flx(:,:), &
     !     & tend_v(:,:,:) &
     !     & )
