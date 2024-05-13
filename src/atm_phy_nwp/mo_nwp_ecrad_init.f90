@@ -46,8 +46,7 @@ MODULE mo_nwp_ecrad_init
                                  &   iRadAeroConst, iRadAeroTegen, iRadAeroART,          &
                                  &   iRadAeroConstKinne, iRadAeroKinne, iRadAeroVolc,    &
                                  &   iRadAeroKinneVolc,  iRadAeroKinneVolcSP,            &
-                                 &   iRadAeroKinneSP, iRadAeroNone,                      &
-                                 &   iRadAeroCAMSclim, iRadAeroCAMStd
+                                 &   iRadAeroKinneSP, iRadAeroNone, iRadAeroCAMSclim
 #ifdef __ECRAD
   USE mo_ecrad,                ONLY: t_ecrad_conf, ecrad_setup,                          &
                                  &   ISolverHomogeneous, ISolverMcICA, ISolverMcICAACC, ISolverSpartacus, &
@@ -138,8 +137,8 @@ CONTAINS
     SELECT CASE (irad_aero)
       CASE (iRadAeroNone) ! No aerosol
         ecrad_conf%use_aerosols = .false.
-      CASE (iRadAeroConst, iRadAeroTegen, iRadAeroCAMSclim, iRadAeroCAMStd, iRadAeroART, iRadAeroConstKinne,  &
-        &   iRadAeroKinne, iRadAeroVolc, iRadAeroKinneVolc,  iRadAeroKinneVolcSP, iRadAeroKinneSP)
+      CASE (iRadAeroConst, iRadAeroTegen, iRadAeroCAMSclim, iRadAeroART, iRadAeroConstKinne, iRadAeroKinne, &
+        &   iRadAeroVolc, iRadAeroKinneVolc,  iRadAeroKinneVolcSP, iRadAeroKinneSP)
         ecrad_conf%use_aerosols = .true.
       CASE DEFAULT
         CALL finish(routine, 'irad_aero not valid for ecRad')
@@ -350,7 +349,7 @@ CONTAINS
     ecrad_conf%max_cloud_od                = 20.0_wp      !< Maximum total optical depth of a cloudy region, for stability
 
     ! Optical properties data is taken from aerosol_ifs_rrtm_46R1_with_NI_AM.nc :  
-    IF (irad_aero == iRadAeroCAMSclim .OR. irad_aero == iRadAeroCAMStd) THEN
+    IF (irad_aero == iRadAeroCAMSclim) THEN
       ecrad_conf%use_aerosols              = .true.
       ecrad_conf%n_aerosol_types           = 11
       ecrad_conf%i_aerosol_type_map(1)     = -1           !< aermr01  Sea Salt Aerosol (0.03 - 0.5 um)   hydrophilic(1)

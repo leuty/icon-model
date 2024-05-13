@@ -5100,7 +5100,7 @@ I&
 0&
  &
 0: off \\
-1: simple coupling between autoconversion and Tegen aerosol climatology; requires irad\_aero=6, 7 or 9 \\
+1: simple coupling between autoconversion and Tegen aerosol climatology; requires irad\_aero=6 or 9 \\
 3: use cloud-droplet number climatology from external parameter file. External parameter files containing cloud-droplet number climatology can be generated with extpar code from version rc\_5.14 \\
 More advanced options are in preparation&
 currently only for inwp\_gscp = 1
@@ -5111,7 +5111,8 @@ I&
 0&
  &
 0: ice nucleating particles concentration defined by temperature using Cooper (1987) formula \\
-1: ice nucleating particles concentration defined by temperature and dust concentration using DeMott (2015) formula; requires irad\_aero=6, 7 or 8 \\
+1: ice nucleating particles concentration defined by temperature and dust concentration from CAMS climatology using DeMott (2015) formula; requires irad\_aero=7 \\
+2: ice nucleating particles concentration defined by temperature and dust concentration from Tegen climatology using DeMott (2015) formula; requires irad\_aero=6
 \tabularnewline
 
 %\hline
@@ -5232,7 +5233,7 @@ I&
 0&
  &
 0: off \\
-1: simple coupling between autoconversion and Tegen aerosol climatology; requires irad\_aero=6 or 7 &
+1: simple coupling between autoconversion and Tegen aerosol climatology; requires irad\_aero=6 &
 \tabularnewline
 
 
@@ -7620,8 +7621,7 @@ Aerosols\\
 2: global constant\\
 3: externally specified\\
 6: Tegen aerosol climatology {\color{red}for run\_nml/iforcing = 3 (NWP) .AND. itopo =1 }\\
-7: CAMS 3D aerosol climatology, the filename can be specified via cams\_aero\_filename in \&radiation\_nml\\
-8: CAMS 3D forecasted aerosol, the filename can be specified via cams\_aero\_filename in \&radiation\_nml\\
+7: CAMS 3D aerosol climatology, the filename can be specified via cams\_clim\_filename in \&radiation\_nml\\
 9: ART online aerosol radiation interaction, uses Tegen for aerosols not chosen to be represented in ART {\color{red}for run\_nml/iforcing = 3 (NWP) .AND. itopo =1 .AND. lart=TRUE .AND. iart\_ari=1}\\
 12: tropospheric 'Kinne' aerosols, constant in time\\
 13: total tropospheric 'Kinne' aerosols, time dependent from file \\
@@ -7656,16 +7656,16 @@ Path to the folder containing ecRad optical properties files.
 \tabularnewline
 
 %\hline
-cams\_aero\_filename &
+cams\_clim\_filename &
 C&
-"CAMS\_aero\_ \\
+"CAMS\_clim\_ \\
 R<nroot0>B<jlev>\_ \\
 DOM<idom>.nc"&
 &
-Path to the file containing CAMS 3D data\\
-Climatology data can be prepared using the script scripts/preprocessing/ \\ make\_camsclim\_onICONgrid.sh 
+Path to the file containing CAMS 3D climatology data\\
+Data can be prepared using the script scripts/preprocessing/ \\ make\_camsclim\_onICONgrid.sh 
 & inwp\_radiation=4 (ecRad)\\
-irad\_aero=7 or 8 (CAMS 3D climatology or forecasted aerosols)
+irad\_aero=7 (CAMS 3D climatology)
 \tabularnewline
 
 %\hline

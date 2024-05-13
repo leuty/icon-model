@@ -42,7 +42,7 @@ MODULE mo_ext_data_init
     &                              itype_vegetation_cycle, read_nc_via_cdi, pp_sso
   USE mo_initicon_config,    ONLY: icpl_da_sfcevap, dt_ana, icpl_da_seaice, icpl_da_snowalb
   USE mo_radiation_config,   ONLY: irad_o3, albedo_type, islope_rad,    &
-    &                              irad_aero, iRadAeroTegen, iRadAeroART, iRadAeroCAMSclim, iRadAeroCAMStd
+    &                              irad_aero, iRadAeroTegen, iRadAeroART
   USE mo_process_topo,       ONLY: smooth_topo_real_data, postproc_sso, smooth_frland
   USE mo_model_domain,       ONLY: t_patch
   USE mo_exception,          ONLY: message, message_text, finish
@@ -1340,7 +1340,7 @@ CONTAINS
             CALL read_extdata('emi_so2', arr2d=ext_data(jg)%atm%emi_so2)
           ENDIF
           ! Read time dependent data
-          IF (ANY (irad_aero == (/iRadAeroTegen, iRadAeroART, iRadAeroCAMSclim, iRadAeroCAMStd/))) THEN
+          IF ( irad_aero == iRadAeroTegen .OR. irad_aero == iRadAeroART) THEN
             CALL read_extdata('AER_SS',   arr3d=ext_data(jg)%atm_td%aer_ss)
             CALL read_extdata('AER_DUST', arr3d=ext_data(jg)%atm_td%aer_dust)
             CALL read_extdata('AER_ORG',  arr3d=ext_data(jg)%atm_td%aer_org)

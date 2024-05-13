@@ -33,7 +33,7 @@ MODULE mo_radiation_nml
                                  & config_irad_cfc12 => irad_cfc12,                     &
                                  & config_irad_aero  => irad_aero,                      &
                                  & config_lrad_yac   => lrad_yac,                       &
-                                 & config_cams_aero_filename => cams_aero_filename,     &
+                                 & config_cams_clim_filename => cams_clim_filename,     &
                                  & config_lrad_aero_diag => lrad_aero_diag,             &
                                  & config_ghg_filename   => ghg_filename,               &
                                  & config_vmr_co2    => vmr_co2,                        &
@@ -153,9 +153,9 @@ MODULE mo_radiation_nml
   !
   CHARACTER(LEN=filename_max)  :: ghg_filename
   !
-  !> NetCDF file with CAMS 3D aerosols
+  !> NetCDF file with CAMS 3D climatology
   !
-  CHARACTER(LEN=filename_max) :: cams_aero_filename
+  CHARACTER(LEN=filename_max) :: cams_clim_filename
   !
   ! --- Default gas volume mixing ratios - 1990 values (CMIP5)
   !
@@ -210,7 +210,7 @@ MODULE mo_radiation_nml
     &                      lrad_yac,              &
     &                      lrad_aero_diag,        &
     &                      ghg_filename,          &
-    &                      cams_aero_filename,    &
+    &                      cams_clim_filename,    &
     &                      izenith, icld_overlap, &
     &                      cos_zenith_fixed,      &
     &                      decorr_pole,           &
@@ -274,7 +274,7 @@ CONTAINS
     lrad_yac    = .FALSE.
     lrad_aero_diag = .FALSE.
 
-    cams_aero_filename = 'CAMS_aero_R<nroot0>B<jlev>_DOM<idom>.nc'
+    cams_clim_filename = 'CAMS_clim_R<nroot0>B<jlev>_DOM<idom>.nc'
 
     ghg_filename= 'bc_greenhouse_gases.nc'
 
@@ -356,7 +356,7 @@ CONTAINS
     config_irad_aero  = irad_aero
     config_lrad_yac   = lrad_yac
     config_lrad_aero_diag = lrad_aero_diag
-    config_cams_aero_filename = TRIM(cams_aero_filename)
+    config_cams_clim_filename = TRIM(cams_clim_filename)
     config_ghg_filename   = ghg_filename
     config_vmr_co2    = vmr_co2
     config_vmr_ch4    = vmr_ch4

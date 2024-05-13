@@ -34,16 +34,16 @@ MODULE mo_nwp_aerosol
   USE mo_impl_constants_grf,      ONLY: grf_bdywidth_c
   USE mo_physical_constants,      ONLY: rd, grav, cpd
   USE mo_reader_cams,             ONLY: t_cams_reader
-  USE mo_interpolate_time,        ONLY: t_time_intp, intModeLinearMonthlyClim, intModeLinear
+  USE mo_interpolate_time,        ONLY: t_time_intp
   USE mo_io_units,                ONLY: filename_max
   USE mo_fortran_tools,           ONLY: set_acc_host_or_device
   USE mo_util_string,             ONLY: int2string, associate_keyword, t_keyword_list, with_keywords
 ! ICON configuration
   USE mo_atm_phy_nwp_config,      ONLY: atm_phy_nwp_config, iprog_aero, icpl_aero_conv
-  USE mo_radiation_config,        ONLY: irad_aero, iRadAeroConstKinne, iRadAeroKinne, iRadAeroCAMSclim,     &
-                                    &   iRadAeroCAMStd, iRadAeroVolc, iRadAeroKinneVolc, iRadAeroART, &
-                                    &   iRadAeroKinneVolcSP, iRadAeroKinneSP, iRadAeroTegen,                &
-                                    &   cams_aero_filename
+  USE mo_radiation_config,        ONLY: irad_aero, iRadAeroConstKinne, iRadAeroKinne, iRadAeroCAMSclim, &
+                                    &   iRadAeroVolc, iRadAeroKinneVolc, iRadAeroART,                   &
+                                    &   iRadAeroKinneVolcSP, iRadAeroKinneSP, iRadAeroTegen,            &
+                                    &   cams_clim_filename
 ! External infrastruture
   USE mtime,                      ONLY: datetime, timedelta, newDatetime, newTimedelta,       &
                                     &   operator(+), deallocateTimedelta, deallocateDatetime
@@ -78,36 +78,34 @@ MODULE mo_nwp_aerosol
 CONTAINS
 
   !---------------------------------------------------------------------------------------
-  !! This subroutine uploads CAMS aerosols and updates them once a day
+  !! This subroutine uploads CAMS aerosols mixing ratios 3D climatology and updates them once a day
   SUBROUTINE nwp_aerosol_init(mtime_datetime, p_patch)
 
     TYPE(datetime), POINTER, INTENT(in) :: &
-      &  mtime_datetime                            !< Current datetime
+      &  mtime_datetime                      !< Current datetime
     TYPE(t_patch), INTENT(in)           :: &
       &  p_patch
     ! Local variables
-    INTEGER                             :: &
-      &  jg                                        !< Domain index
-    CHARACTER(LEN=filename_max)         :: &
-      &  cams_aero_td_file                         !< CAMS file names
-
-    jg     = p_patch%id
-
-    cams_aero_td_file = generate_cams_filename(TRIM(cams_aero_filename), nroot, p_patch%level, p_patch%id)
+    INTEGER ::                 &
+      &  jg                                  !< Domain index
+    CHARACTER(LEN=filename_max) :: &
+      &  cams_clim_td_file                   !< CAMS climatology file name
 
     IF (irad_aero == iRadAeroCAMSclim) THEN
-      CALL message  ('nwp_aerosol_init opening CAMS 3D climatology file: ', TRIM(cams_aero_td_file))
-      CALL cams_reader(jg)%init(p_patch, TRIM(cams_aero_td_file))
-      CALL cams_intp(jg)%init(cams_reader(jg), mtime_datetime, '', intModeLinearMonthlyClim)
-    ELSEIF (irad_aero == iRadAeroCAMStd) THEN
-      CALL message  ('nwp_aerosol_init opening CAMS forecast file: ', TRIM(cams_aero_td_file))
-      CALL cams_reader(jg)%init(p_patch, TRIM(cams_aero_td_file))
-      CALL cams_intp(jg)%init(cams_reader(jg), mtime_datetime, '', intModeLinear)
+
+      jg     = p_patch%id
+
+      cams_clim_td_file = generate_cams_clim_filename(TRIM(cams_clim_filename), nroot, p_patch%level, p_patch%id)
+      CALL message  ('nwp_aerosol_init opening CAMS 3D climatology file: ', TRIM(cams_clim_td_file))
+
+      CALL cams_reader(jg)%init(p_patch, TRIM(cams_clim_td_file))
+      CALL cams_intp(jg)%init(cams_reader(jg), mtime_datetime, '', 2)
+
     ENDIF
 
     CONTAINS
 
-      FUNCTION generate_cams_filename(filename_in, nroot, jlev, idom) RESULT(result_str)
+      FUNCTION generate_cams_clim_filename(filename_in, nroot, jlev, idom) RESULT(result_str)
         CHARACTER(filename_max)                 :: result_str
         CHARACTER(LEN=*), INTENT(in)            :: filename_in
         INTEGER,                     INTENT(in) :: nroot, jlev, idom
@@ -120,7 +118,7 @@ CONTAINS
         CALL associate_keyword("<idom>",     TRIM(int2string(idom, "(i2.2)")), keywords)
 
         result_str = TRIM(with_keywords(keywords, TRIM(filename_in)))
-      END FUNCTION generate_cams_filename
+      END FUNCTION generate_cams_clim_filename
 
   END SUBROUTINE nwp_aerosol_init
 
@@ -411,8 +409,8 @@ CONTAINS
 !$OMP END DO NOWAIT
 !$OMP END PARALLEL
 
-      ! CAMS climatology/forecasted aerosols
-      CASE(iRadAeroCAMSclim,iRadAeroCAMStd)
+      ! CAMS climatology aerosol
+      CASE(iRadAeroCAMSclim)
 
         rl_start   = grf_bdywidth_c+1
         rl_end     = min_rlcell_int
@@ -439,43 +437,13 @@ CONTAINS
             CALL get_indices_c(pt_patch,jb,i_startblk,i_endblk,i_startidx,i_endidx,rl_start,rl_end)
             IF (i_startidx>i_endidx) CYCLE
             pt_diag%camsaermr(:,:,jb,jt) = 0._wp
-
-            IF (irad_aero == iRadAeroCAMStd) THEN
-              CALL cams_forecast_prep(i_startidx, i_endidx, cams=cams(:,:,jb,jt),             &
-                &                                 cams_pres_in=cams(:,:,jb,n_camsaermr+1))
-            END IF
-
-            CALL vinterp_cams(i_startidx, i_endidx, pt_diag%pres_ifc(:,:,jb),                &
-              &               cams_pres_in=cams(:,:,jb,n_camsaermr+1), cams=cams(:,:,jb,jt), &
-              &               nlev=pt_patch%nlev, camsaermr=pt_diag%camsaermr(:,:,jb,jt))
-
+            CALL vinterp_cams_aerosols(i_startidx, i_endidx, pt_diag%pres_ifc(:,:,jb),    &
+              &                   cams_pres_in=cams(:,:,jb,n_camsaermr+1), cams=cams(:,:,jb,jt), &
+              &                   nlev=pt_patch%nlev, camsaermr=pt_diag%camsaermr(:,:,jb,jt))
           END DO
 !$OMP END DO NOWAIT
 !$OMP END PARALLEL
         END DO ! jt aerosol loop
-
-        ! This part prepares the coupling between grid scale microphysics / convection and Tegen aerosols
-        ! Start at third row instead of fifth as two rows are needed by the reduced grid aggregation
-        rl_start   = grf_bdywidth_c-1
-        rl_end     = min_rlcell_int
-        i_startblk = pt_patch%cells%start_block(rl_start)
-        i_endblk   = pt_patch%cells%end_block(rl_end)
-
-!$OMP PARALLEL
-!$OMP DO PRIVATE(jb,i_startidx,i_endidx)  ICON_OMP_DEFAULT_SCHEDULE
-        DO jb = i_startblk,i_endblk
-          CALL get_indices_c(pt_patch,jb,i_startblk,i_endblk,i_startidx,i_endidx,rl_start,rl_end)
-
-          ! Compute cloud number concentration depending on aerosol climatology if 
-          ! aerosol-microphysics or aerosol-convection coupling is turned on
-          IF (atm_phy_nwp_config(pt_patch%id)%icpl_aero_gscp == 1 .OR. icpl_aero_conv == 1) THEN
-            CALL nwp_cpl_aero_gscp_conv(i_startidx, i_endidx, pt_patch%nlev, pt_diag%pres_sfc(:,jb), pt_diag%pres(:,:,jb), &
-              &                         prm_diag%acdnc(:,:,jb), prm_diag%cloud_num(:,jb), lacc)
-          ENDIF
-
-        ENDDO !jb
-!$OMP END DO NOWAIT
-!$OMP END PARALLEL
 
       CASE DEFAULT
         ! Currently continue as not all cases are ported to nwp_aerosol_interface yet
@@ -601,14 +569,14 @@ CONTAINS
       &  jg                                !< Domain index
     ! Local variables
     REAL(wp), ALLOCATABLE                :: &
-      &  cams_dat(:,:,:,:)
+      &  camscl_dat(:,:,:,:)
 
     ALLOCATE(cams( nproma, cams_reader(jg)%nlev_cams, cams_reader(jg)%p_patch%nblks_c, n_camsaermr+1 ))
     cams(:,:,:,:) = 0.0_wp
 
-    CALL cams_intp(jg)%intp(mtime_datetime, cams_dat)
+    CALL cams_intp(jg)%intp(mtime_datetime, camscl_dat)
 
-    cams(:,:,:,:) = cams_dat(:,:,:,:)
+    cams(:,:,:,:) = camscl_dat(:,:,:,:)
 
   END SUBROUTINE nwp_aerosol_update_cams
 
@@ -643,7 +611,7 @@ CONTAINS
   !!   -------jk+1------
   !!                       -----lmax------
   !!
-  SUBROUTINE vinterp_cams(i_startidx, i_endidx, pres, cams_pres_in, cams, nlev, camsaermr )
+  SUBROUTINE vinterp_cams_aerosols(i_startidx, i_endidx, pres, cams_pres_in, cams, nlev, camsaermr )
 
     REAL(wp),      INTENT(in)      :: &
       &  cams(:,:),                      & !< CAMS fields taken from external file; layer integrated mass [kg/m^2]
@@ -671,7 +639,7 @@ CONTAINS
       &  nk1                               !< number of vertical levels in original CAMS climatology data
 
     CHARACTER(len=*), PARAMETER    :: &
-      &  routine = modname//':vinterp_cams'
+      &  routine = modname//':vinterp_cams_aerosols'
 
     nk1 = size(cams_pres_in,2)  
  
@@ -774,7 +742,7 @@ CONTAINS
 
         ! for checking if all gridpoints have meaningful values
         IF (camsaermr(jc,jk) < 0.0_wp) THEN
-          CALL finish(routine,'mo_nwp_aerosol: vinterp_cams failed')
+          CALL finish(routine,'mo_nwp_aerosol: vinterp_cams_aerosols failed')
         END IF
 
       ENDDO !jk
@@ -783,51 +751,8 @@ CONTAINS
     DEALLOCATE(cams_sigma)
     DEALLOCATE(icon_sigma)
 
-  END SUBROUTINE vinterp_cams
+  END SUBROUTINE vinterp_cams_aerosols
 
-  !---------------------------------------------------------------------------------------
-  !! Convert CAMS forecasted aerosols from mixing ratios to layer integrated mass
-  SUBROUTINE cams_forecast_prep(i_startidx, i_endidx, cams, cams_pres_in)
-
-    REAL(wp),      INTENT(inout)   :: &
-      &  cams(:,:),                   & !< CAMS fields taken from external file; mixing ratios [kg/kg]
-      &  cams_pres_in(:,:)              !< CAMS half level pressure taken from external file [Pa]
-
-    INTEGER,       INTENT(in)      :: &
-      &  i_startidx,                  & !< Loop indices
-      &  i_endidx                       !< Loop indices
-
-    ! local variables
-    REAL(wp)                       :: &
-      &  dp,                          & !< pressure thickness
-      &  layer_mass                     !< mass at specific layer
-    INTEGER                        :: &
-      &  jc, jk,                      & !< Loop indices
-      &  nk                             !< number of vertical levels in original CAMS climatology data
-
-    CHARACTER(len=*), PARAMETER    :: &
-      &  routine = modname//':cams_forecast_prep'
-
-    nk = size(cams_pres_in,2)  
-
-    DO jc = i_startidx, i_endidx ! loop on icon horizontal index
-      DO jk = 1, nk ! loop on icon vertical levels
- 
-          ! compute pressure thickness at (jc,jk)
-
-          IF ( jk == nk ) THEN
-            dp = 240.0_wp
-          ELSE
-            dp = cams_pres_in(jc,jk+1)-cams_pres_in(jc,jk)
-          ENDIF
-
-          layer_mass  = cams(jc,jk)*dp/grav
-          cams(jc,jk)= layer_mass
-
-      ENDDO !jk
-    ENDDO !jc
-
-  END SUBROUTINE cams_forecast_prep
   !---------------------------------------------------------------------------------------
   SUBROUTINE nwp_aerosol_tegen ( istart, iend, nlev, nlevp1, k850, temp, pres, pres_ifc,                 &
     &                            aer_ss_mo1, aer_org_mo1, aer_bc_mo1, aer_so4_mo1, aer_dust_mo1,         &

@@ -51,7 +51,6 @@ MODULE mo_nwp_phy_init
   USE mo_newcld_optics,       ONLY: setup_newcld_optics
   USE mo_lrtm_setup,          ONLY: lrtm_setup
   USE mo_radiation_config,    ONLY: irad_aero, iRadAeroTegen, iRadAeroART,            &
-    &                               iRadAeroCAMSclim, iRadAeroCAMStd,                 &
     &                               iRadAeroConstKinne, iRadAeroKinne, iRadAeroVolc,  &
     &                               iRadAeroKinneVolc,  iRadAeroKinneVolcSP,          &
     &                               iRadAeroKinneSP,                                  &
@@ -1847,7 +1846,7 @@ END SUBROUTINE init_nwp_phy
     jg = p_patch%id
     nlev = p_patch%nlev
 
-    IF (ALL (irad_aero /= (/iRadAeroTegen, iRadAeroART, iRadAeroCAMSclim, iRadAeroCAMStd/))) RETURN
+    IF (irad_aero /= iRadAeroTegen .AND. irad_aero /= iRadAeroART) RETURN
     IF (atm_phy_nwp_config(jg)%icpl_aero_gscp /= 1 .AND. icpl_aero_conv /= 1) RETURN
 
     

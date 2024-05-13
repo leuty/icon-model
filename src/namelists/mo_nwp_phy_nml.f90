@@ -83,7 +83,7 @@ MODULE mo_nwp_phy_nml
 
   INTEGER  :: itype_z0           !! type of roughness length data
   INTEGER  :: icpl_aero_gscp     !! type of aerosol-microphysics coupling
-  INTEGER  :: icpl_aero_ice      !! type of aerosol-ice nucleation coupling
+  INTEGER  :: icpl_aero_ice     !! type of aerosol-ice nucleation coupling
   INTEGER  :: icpl_aero_conv     !! type of coupling between aerosols and convection scheme
   INTEGER  :: iprog_aero         !! type of prognostic aerosol
   INTEGER  :: icpl_o3_tp         !! type of ozone-tropopause coupling
@@ -243,7 +243,8 @@ CONTAINS
 
     ! coupling between aersols and ice nucleation
     icpl_aero_ice = 0   ! 0 = Cooper (1986)
-                        ! 1 = DeMott (2015) with CAMS/Tegen dust concentration
+                        ! 1 = DeMott (2015) with CAMS dust number concentration
+                        ! 2 = DeMott (2015) with Tegen dust concentration
 
     ! coupling between aersols and convection scheme
     icpl_aero_conv = 0  ! 0 = none
