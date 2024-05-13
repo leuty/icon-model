@@ -564,8 +564,8 @@ CONTAINS
       IF (atm_phy_nwp_config(jg)%inwp_gscp == 8) THEN
         ptr_sbm_storage => get_sbm_storage(patch_id = jg)
 !$OMP PARALLEL
-        CALL copy(pt_prog_rcf%tracer(:,:,:,iqv), ptr_sbm_storage%qv_before_satad   )
-        CALL copy(pt_diag%temp(:,:,:),           ptr_sbm_storage%temp_before_satad )
+        CALL copy(pt_prog_rcf%tracer(:,:,:,iqv), ptr_sbm_storage%qv_before_satad, lacc=lzacc)
+        CALL copy(pt_diag%temp(:,:,:),           ptr_sbm_storage%temp_before_satad, lacc=lzacc)
 !$OMP END PARALLEL
       ENDIF
 
@@ -1954,8 +1954,8 @@ CONTAINS
 #endif
       ! needs to be always initialized with OpenACC
       IF (p_test_run .OR. lzacc) THEN
-        CALL init(z_ddt_u_tot, opt_acc_async=.TRUE.)
-        CALL init(z_ddt_v_tot, opt_acc_async=.TRUE.)
+        CALL init(z_ddt_u_tot, lacc=lzacc, opt_acc_async=.TRUE.)
+        CALL init(z_ddt_v_tot, lacc=lzacc, opt_acc_async=.TRUE.)
       ENDIF
 
       IF (timers_level > 10) CALL timer_start(timer_phys_acc_1)
@@ -2566,8 +2566,8 @@ CONTAINS
     IF (atm_phy_nwp_config(jg)%inwp_gscp == 8) THEN
       ptr_sbm_storage => get_sbm_storage(patch_id = jg)
 !$OMP PARALLEL
-      CALL copy(pt_prog_rcf%tracer(:,:,:,iqv), ptr_sbm_storage%qv_old )
-      CALL copy(pt_diag%temp(:,:,:), ptr_sbm_storage%temp_old         )
+      CALL copy(pt_prog_rcf%tracer(:,:,:,iqv), ptr_sbm_storage%qv_old, lacc=lzacc)
+      CALL copy(pt_diag%temp(:,:,:), ptr_sbm_storage%temp_old, lacc=lzacc)
 !$OMP END PARALLEL
     ENDIF
 

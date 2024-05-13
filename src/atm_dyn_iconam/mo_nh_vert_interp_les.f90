@@ -67,14 +67,14 @@ MODULE mo_nh_vert_interp_les
 
     IF (p_test_run) THEN
 !$OMP PARALLEL
-      CALL init(p_metrics%ddxt_z_half_v)
-      CALL init(p_metrics%ddxn_z_half_c)
-      CALL init(p_metrics%ddxn_z_full_c)
-      CALL init(p_metrics%ddxn_z_full_v)
-      CALL init(p_metrics%ddxt_z_half_c)
-      CALL init(p_metrics%ddxt_z_full_c)
-      CALL init(p_metrics%ddxt_z_full_v)
-      CALL init(p_metrics%inv_ddqz_z_full_v)
+      CALL init(p_metrics%ddxt_z_half_v, lacc=.FALSE.)
+      CALL init(p_metrics%ddxn_z_half_c, lacc=.FALSE.)
+      CALL init(p_metrics%ddxn_z_full_c, lacc=.FALSE.)
+      CALL init(p_metrics%ddxn_z_full_v, lacc=.FALSE.)
+      CALL init(p_metrics%ddxt_z_half_c, lacc=.FALSE.)
+      CALL init(p_metrics%ddxt_z_full_c, lacc=.FALSE.)
+      CALL init(p_metrics%ddxt_z_full_v, lacc=.FALSE.)
+      CALL init(p_metrics%inv_ddqz_z_full_v, lacc=.FALSE.)
 !$OMP END PARALLEL
     END IF
 

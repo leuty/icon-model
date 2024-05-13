@@ -1766,7 +1766,7 @@ CONTAINS
 
     IF (is_dry_cbl .AND. scalar_name==tracer_water) THEN
 !$OMP PARALLEL
-      CALL init(hori_tend(:,:,:))
+      CALL init(hori_tend(:,:,:), lacc=.TRUE.)
 !$OMP END PARALLEL
     END IF
 

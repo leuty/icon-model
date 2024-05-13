@@ -1172,7 +1172,7 @@ MODULE mo_initicon
       !
 !$OMP PARALLEL PRIVATE(rl_start,rl_end,i_startblk,i_endblk)
 
-      CALL init(zvn_incr)
+      CALL init(zvn_incr, lacc=.FALSE.)
 
       ! include boundary interpolation zone of nested domains and halo points
       rl_start = 1

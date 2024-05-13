@@ -1056,8 +1056,10 @@ MODULE mo_ls_forcing
 
     !0) Initialize all passed ddt's to 0
 !$OMP PARALLEL
-    CALL init(ddt_u_ls); CALL init(ddt_v_ls);  CALL init(ddt_temp_ls)
-    call init(ddt_qv_ls)
+    CALL init(ddt_u_ls, lacc=.FALSE.)
+    CALL init(ddt_v_ls, lacc=.FALSE.)
+    CALL init(ddt_temp_ls, lacc=.FALSE.)
+    call init(ddt_qv_ls, lacc=.FALSE.)
 
     !use theta instead of temperature for subsidence (Anurag, Christopher)
 !$OMP BARRIER

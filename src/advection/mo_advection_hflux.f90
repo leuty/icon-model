@@ -75,9 +75,7 @@ MODULE mo_advection_hflux
   USE mo_advection_hlimit,    ONLY: hflx_limiter_mo, hflx_limiter_pd
   USE mo_timer,               ONLY: timer_adv_hflx, timer_start, timer_stop
   USE mo_fortran_tools,       ONLY: init, copy
-#ifdef _OPENACC
-  USE mo_mpi,                 ONLY: i_am_accel_node, my_process_is_work
-#endif
+  USE mo_mpi,                 ONLY: i_am_accel_node
 
 
   IMPLICIT NONE
@@ -828,7 +826,7 @@ CONTAINS
         i_startblk = p_patch%cells%start_block(min_rlcell_int - 2)
         i_endblk   = p_patch%cells%end_block(min_rlcell_int - 2)
 !$OMP PARALLEL
-        CALL init(z_lsq_coeff(:,:,:,i_startblk:i_endblk), opt_acc_async=.TRUE.)
+        CALL init(z_lsq_coeff(:,:,:,i_startblk:i_endblk), lacc=i_am_accel_node, opt_acc_async=.TRUE.)
 !$OMP END PARALLEL
       ENDIF
 
@@ -882,7 +880,7 @@ CONTAINS
       i_startblk = p_patch%edges%start_block(i_rlend_e-1)
       i_endblk   = p_patch%edges%end_block(min_rledge_int-3)
 
-      CALL init(p_out_e(:,:,i_startblk:i_endblk), opt_acc_async=.TRUE.)
+      CALL init(p_out_e(:,:,i_startblk:i_endblk), lacc=i_am_accel_node, opt_acc_async=.TRUE.)
 !$OMP BARRIER
     ENDIF
 
@@ -891,7 +889,7 @@ CONTAINS
 
     ! initialize also nest boundary points with zero
     IF ( l_out_edgeval .AND. (p_patch%id > 1 .OR. l_limited_area)) THEN
-      CALL init(p_out_e(:,:,1:i_startblk))
+      CALL init(p_out_e(:,:,1:i_startblk), lacc=i_am_accel_node)
 !$OMP BARRIER
     ENDIF
 
@@ -1193,8 +1191,8 @@ CONTAINS
     nnow = 1
     nnew = 2
 !$OMP PARALLEL
-    CALL copy(p_cc (:,slev:elev,:), z_tracer(:,slev:elev,:,nnow))
-    CALL copy(p_rhodz_now(:,slev:elev,:), z_rho   (:,slev:elev,:,nnow))
+    CALL copy(p_cc (:,slev:elev,:), z_tracer(:,slev:elev,:,nnow), lacc=i_am_accel_node)
+    CALL copy(p_rhodz_now(:,slev:elev,:), z_rho   (:,slev:elev,:,nnow), lacc=i_am_accel_node)
 !$OMP END PARALLEL
 
 
@@ -1267,7 +1265,7 @@ CONTAINS
 
 
     IF ( p_patch%id > 1 .OR. l_limited_area) THEN
-      CALL init(z_tracer_mflx(:,:,1:i_startblk,nsub))
+      CALL init(z_tracer_mflx(:,:,1:i_startblk,nsub), lacc=i_am_accel_node)
 !$OMP BARRIER
     ENDIF
 
@@ -1365,7 +1363,7 @@ CONTAINS
     ! initialize nest boundary points at the second time level
     IF ( nsub == 1 .AND. (p_patch%id > 1 .OR. l_limited_area) ) THEN
       CALL copy(z_tracer(:,slev:elev,1:i_startblk,nnow), &
-           z_tracer(:,slev:elev,1:i_startblk,nnew))
+           z_tracer(:,slev:elev,1:i_startblk,nnew), lacc=i_am_accel_node)
 !$OMP BARRIER
     ENDIF
 
@@ -1841,7 +1839,7 @@ CONTAINS
       i_startblk = p_patch%edges%start_blk(i_rlend-1,i_nchdom)
       i_endblk   = p_patch%edges%end_blk(min_rledge_int-3,i_nchdom)
 
-      CALL init(p_out_e(:,:,i_startblk:i_endblk))
+      CALL init(p_out_e(:,:,i_startblk:i_endblk), lacc=i_am_accel_node)
 !$OMP BARRIER
     ENDIF
 
@@ -1850,7 +1848,7 @@ CONTAINS
 
     ! initialize also nest boundary points with zero
     IF ( l_out_edgeval .AND. (p_patch%id > 1 .OR. l_limited_area) ) THEN
-      CALL init(p_out_e(:,:,1:i_startblk))
+      CALL init(p_out_e(:,:,1:i_startblk), lacc=i_am_accel_node)
 !$OMP BARRIER
     ENDIF
 

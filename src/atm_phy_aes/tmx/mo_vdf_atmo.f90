@@ -387,9 +387,9 @@ CONTAINS
       & )
 
 !$OMP PARALLEL
-      CALL init(ctgzvi)
-      CALL init(dissip_kin_energy_vi)
-      CALL init(internal_energy_vi_tend)
+      CALL init(ctgzvi, lacc=.TRUE.)
+      CALL init(dissip_kin_energy_vi, lacc=.TRUE.)
+      CALL init(internal_energy_vi_tend, lacc=.TRUE.)
 !$OMP END PARALLEL
 
 !$OMP PARALLEL DO PRIVATE(jb, jk, jc) ICON_OMP_DEFAULT_SCHEDULE
@@ -906,7 +906,7 @@ CONTAINS
     ASSOCIATE(domain => this%domain)
 
 !$OMP PARALLEL
-    CALL init(flux_x)
+    CALL init(flux_x, lacc=.TRUE.)
 !$OMP END PARALLEL
 
     SELECT CASE(energy_type)
@@ -960,7 +960,7 @@ CONTAINS
     INTEGER :: jb, jk, jc
 
 !$OMP PARALLEL
-    CALL init(static_energy)
+    CALL init(static_energy, lacc=.TRUE.)
 !$OMP END PARALLEL
 
 !$OMP PARALLEL DO PRIVATE(jb, jk, jc) ICON_OMP_DEFAULT_SCHEDULE
@@ -993,7 +993,7 @@ CONTAINS
     INTEGER :: jb, jk, jc
 
 !$OMP PARALLEL
-    CALL init(temperature)
+    CALL init(temperature, lacc=.TRUE.)
 !$OMP END PARALLEL
 
 !$OMP PARALLEL DO PRIVATE(jb, jk, jc) ICON_OMP_DEFAULT_SCHEDULE
@@ -1027,7 +1027,7 @@ CONTAINS
     nlevp1 = domain%nlev + 1
 
 !$OMP PARALLEL
-    CALL init(ghf)
+    CALL init(ghf, lacc=.TRUE.)
 !$OMP END PARALLEL
 
 !$OMP PARALLEL DO PRIVATE(jb, jk, jc) ICON_OMP_DEFAULT_SCHEDULE
@@ -1079,7 +1079,7 @@ CONTAINS
     CHARACTER(len=*), PARAMETER :: routine = modname//':compute_internal_energy'
 
 !$OMP PARALLEL
-    CALL init(energy)
+    CALL init(energy, lacc=.TRUE.)
 !$OMP END PARALLEL
 
 !$OMP PARALLEL DO PRIVATE(jb, jk, jc, q_liquid, q_solid) ICON_OMP_DEFAULT_SCHEDULE
@@ -1141,7 +1141,7 @@ CONTAINS
     CHARACTER(len=*), PARAMETER :: routine = modname//':compute_temperature_from_internal_energy'
 
 !$OMP PARALLEL
-    CALL init(temperature)
+    CALL init(temperature, lacc=.TRUE.)
 !$OMP END PARALLEL
 
 !$OMP PARALLEL DO PRIVATE(jb, jk, jc, q_liquid, q_solid, u) ICON_OMP_DEFAULT_SCHEDULE
@@ -1205,7 +1205,7 @@ CONTAINS
     CHARACTER(len=*), PARAMETER :: routine = modname//':compute_internal_energy_vi'
 
 !$OMP PARALLEL
-    CALL init(uvi)
+    CALL init(uvi, lacc=.TRUE.)
 !$OMP END PARALLEL
 
 !$OMP PARALLEL DO PRIVATE(jb, jk, jc, q_liquid, q_solid) ICON_OMP_DEFAULT_SCHEDULE
@@ -1435,14 +1435,14 @@ CONTAINS
 !#########################################################################
 
 !$OMP PARALLEL
-    CALL init(km_iv)
-    CALL init(km_c)
-    CALL init(km_ie)
-    CALL init(kh_ic)
-    CALL init(km_ic)
-    CALL init(u_vert)
-    CALL init(v_vert)
-    CALL init(w_vert)
+    CALL init(km_iv, lacc=.TRUE.)
+    CALL init(km_c, lacc=.TRUE.)
+    CALL init(km_ie, lacc=.TRUE.)
+    CALL init(kh_ic, lacc=.TRUE.)
+    CALL init(km_ic, lacc=.TRUE.)
+    CALL init(u_vert, lacc=.TRUE.)
+    CALL init(v_vert, lacc=.TRUE.)
+    CALL init(w_vert, lacc=.TRUE.)
 !$OMP END PARALLEL
 
     rl_start   = 3

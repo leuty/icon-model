@@ -1826,13 +1826,13 @@ MODULE mo_nh_stepping
 !$OMP PARALLEL
 #endif
       CALL copy(p_nh_state(jg)%prog(n_now)%vn, &
-           p_nh_state(jg)%prog(n_save)%vn)
+           p_nh_state(jg)%prog(n_save)%vn, lacc=.TRUE.)
       CALL copy(p_nh_state(jg)%prog(n_now)%w, &
-           p_nh_state(jg)%prog(n_save)%w)
+           p_nh_state(jg)%prog(n_save)%w, lacc=.TRUE.)
       CALL copy(p_nh_state(jg)%prog(n_now)%rho, &
-           p_nh_state(jg)%prog(n_save)%rho)
+           p_nh_state(jg)%prog(n_save)%rho, lacc=.TRUE.)
       CALL copy(p_nh_state(jg)%prog(n_now)%theta_v, &
-           p_nh_state(jg)%prog(n_save)%theta_v)
+           p_nh_state(jg)%prog(n_save)%theta_v, lacc=.TRUE.)
 #ifndef _OPENACC
 !$OMP END PARALLEL
 #endif
@@ -1863,13 +1863,13 @@ MODULE mo_nh_stepping
         n_save = nsav2(jg)
 !$OMP PARALLEL
         CALL copy(p_nh_state(jg)%prog(n_now)%vn, &
-             p_nh_state(jg)%prog(n_save)%vn)
+             p_nh_state(jg)%prog(n_save)%vn, lacc=.TRUE.)
         CALL copy(p_nh_state(jg)%prog(n_now)%w, &
-             p_nh_state(jg)%prog(n_save)%w)
+             p_nh_state(jg)%prog(n_save)%w, lacc=.TRUE.)
         CALL copy(p_nh_state(jg)%prog(n_now)%rho, &
-             p_nh_state(jg)%prog(n_save)%rho)
+             p_nh_state(jg)%prog(n_save)%rho, lacc=.TRUE.)
         CALL copy(p_nh_state(jg)%prog(n_now)%theta_v, &
-             p_nh_state(jg)%prog(n_save)%theta_v)
+             p_nh_state(jg)%prog(n_save)%theta_v, lacc=.TRUE.)
 !$OMP END PARALLEL
       ENDIF
 
@@ -1904,10 +1904,10 @@ MODULE mo_nh_stepping
 #ifndef _OPENACC
 !$OMP PARALLEL
 #endif
-          CALL copy(p_nh_state(jg)%prog(n_now)%vn,p_nh_state(jg)%prog(n_save)%vn)
-          CALL copy(p_nh_state(jg)%prog(n_now)%w,p_nh_state(jg)%prog(n_save)%w)
-          CALL copy(p_nh_state(jg)%prog(n_now)%rho,p_nh_state(jg)%prog(n_save)%rho)
-          CALL copy(p_nh_state(jg)%prog(n_now)%theta_v,p_nh_state(jg)%prog(n_save)%theta_v)
+          CALL copy(p_nh_state(jg)%prog(n_now)%vn,p_nh_state(jg)%prog(n_save)%vn, lacc=.TRUE.)
+          CALL copy(p_nh_state(jg)%prog(n_now)%w,p_nh_state(jg)%prog(n_save)%w, lacc=.TRUE.)
+          CALL copy(p_nh_state(jg)%prog(n_now)%rho,p_nh_state(jg)%prog(n_save)%rho, lacc=.TRUE.)
+          CALL copy(p_nh_state(jg)%prog(n_now)%theta_v,p_nh_state(jg)%prog(n_save)%theta_v, lacc=.TRUE.)
 #ifndef _OPENACC
 !$OMP END PARALLEL
 #endif
@@ -3013,8 +3013,8 @@ MODULE mo_nh_stepping
       ! fast physics coupling only
       ! assure that physics tendencies for dynamical core are zero
       !$OMP PARALLEL
-      CALL init(p_nh_state(jg)%diag%ddt_exner_phy)
-      CALL init(p_nh_state(jg)%diag%ddt_vn_phy)
+      CALL init(p_nh_state(jg)%diag%ddt_exner_phy, lacc=lacc)
+      CALL init(p_nh_state(jg)%diag%ddt_vn_phy, lacc=lacc)
       !$OMP END PARALLEL
 #endif
     END SELECT ! iforcing
@@ -3558,16 +3558,16 @@ MODULE mo_nh_stepping
     TYPE(t_nh_diag), INTENT(inout) :: p_nh_diag  !< p_nh_state(jg)%diag
 
 !$OMP PARALLEL
-    IF (p_nh_diag%ddt_vn_dyn_is_associated) CALL init(p_nh_diag%ddt_vn_dyn)
-    IF (p_nh_diag%ddt_vn_dmp_is_associated) CALL init(p_nh_diag%ddt_vn_dmp)
-    IF (p_nh_diag%ddt_vn_hdf_is_associated) CALL init(p_nh_diag%ddt_vn_hdf)
-    IF (p_nh_diag%ddt_vn_adv_is_associated) CALL init(p_nh_diag%ddt_vn_adv)
-    IF (p_nh_diag%ddt_vn_cor_is_associated) CALL init(p_nh_diag%ddt_vn_cor)
-    IF (p_nh_diag%ddt_vn_pgr_is_associated) CALL init(p_nh_diag%ddt_vn_pgr)
-    IF (p_nh_diag%ddt_vn_phd_is_associated) CALL init(p_nh_diag%ddt_vn_phd)
-    IF (p_nh_diag%ddt_vn_iau_is_associated) CALL init(p_nh_diag%ddt_vn_iau)
-    IF (p_nh_diag%ddt_vn_ray_is_associated) CALL init(p_nh_diag%ddt_vn_ray)
-    IF (p_nh_diag%ddt_vn_grf_is_associated) CALL init(p_nh_diag%ddt_vn_grf)
+    IF (p_nh_diag%ddt_vn_dyn_is_associated) CALL init(p_nh_diag%ddt_vn_dyn, lacc=.TRUE.)
+    IF (p_nh_diag%ddt_vn_dmp_is_associated) CALL init(p_nh_diag%ddt_vn_dmp, lacc=.TRUE.)
+    IF (p_nh_diag%ddt_vn_hdf_is_associated) CALL init(p_nh_diag%ddt_vn_hdf, lacc=.TRUE.)
+    IF (p_nh_diag%ddt_vn_adv_is_associated) CALL init(p_nh_diag%ddt_vn_adv, lacc=.TRUE.)
+    IF (p_nh_diag%ddt_vn_cor_is_associated) CALL init(p_nh_diag%ddt_vn_cor, lacc=.TRUE.)
+    IF (p_nh_diag%ddt_vn_pgr_is_associated) CALL init(p_nh_diag%ddt_vn_pgr, lacc=.TRUE.)
+    IF (p_nh_diag%ddt_vn_phd_is_associated) CALL init(p_nh_diag%ddt_vn_phd, lacc=.TRUE.)
+    IF (p_nh_diag%ddt_vn_iau_is_associated) CALL init(p_nh_diag%ddt_vn_iau, lacc=.TRUE.)
+    IF (p_nh_diag%ddt_vn_ray_is_associated) CALL init(p_nh_diag%ddt_vn_ray, lacc=.TRUE.)
+    IF (p_nh_diag%ddt_vn_grf_is_associated) CALL init(p_nh_diag%ddt_vn_grf, lacc=.TRUE.)
 !$OMP END PARALLEL
 
   END SUBROUTINE init_ddt_vn_diagnostics

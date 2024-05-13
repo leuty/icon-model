@@ -174,9 +174,9 @@ CONTAINS
 
 
     !$OMP PARALLEL
-    CALL init(init_var=z_rhodz, init_val=1._wp)
-    CALL init(init_var=z_grf_tend_tracer)
-    CALL init(init_var=z_mflx_tracer_h)
+    CALL init(init_var=z_rhodz, init_val=1._wp, lacc=.FALSE.)
+    CALL init(init_var=z_grf_tend_tracer, lacc=.FALSE.)
+    CALL init(init_var=z_mflx_tracer_h, lacc=.FALSE.)
     !$OMP END PARALLEL
 
 

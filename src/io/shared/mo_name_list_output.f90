@@ -199,7 +199,7 @@ MODULE mo_name_list_output
   USE mo_meteogram_config,          ONLY: meteogram_output_config
   USE mo_intp_lonlat_types,         ONLY: lonlat_grids
 #endif
-  USE mo_fortran_tools, ONLY: insert_dimension, init, set_acc_host_or_device
+  USE mo_fortran_tools,             ONLY: insert_dimension, init, set_acc_host_or_device
 
   IMPLICIT NONE
 
@@ -3318,9 +3318,9 @@ CONTAINS
           IF (p_ri%pe_off(num_work_procs-1)+p_ri%pe_own(num_work_procs-1) &
             & < p_ri%n_glb) THEN
             IF (use_dp_mpi2io .OR. have_grib) THEN
-              CALL init(var3_dp)
+              CALL init(var3_dp, lacc=.FALSE.)
             ELSE
-              CALL init(var3_sp)
+              CALL init(var3_sp, lacc=.FALSE.)
             END IF
           END IF
           IF (use_dp_mpi2io) THEN

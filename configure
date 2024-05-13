@@ -10275,7 +10275,7 @@ esac
 esac
      shift
    done
-   set dummy      -DCMAKE_C_FLAGS="$subdir_CFLAGS $ICON_FORTRAN_SUPPORT_CFLAGS $subdir_CPPFLAGS" -DCMAKE_Fortran_FLAGS="$subdir_FCFLAGS $ICON_FORTRAN_SUPPORT_FCFLAGS"      -DBUILD_SHARED_LIBS:BOOL=OFF -DBUILD_TESTING:BOOL=OFF      -DCMAKE_BUILD_TYPE:STRING=NOEXTRAFLAGS; shift
+   set dummy      -DCMAKE_C_FLAGS="$subdir_CFLAGS $ICON_FORTRAN_SUPPORT_CFLAGS $subdir_CPPFLAGS" -DCMAKE_Fortran_FLAGS="$subdir_FCFLAGS $ICON_FORTRAN_SUPPORT_FCFLAGS"      -DFS_ENABLE_OMP=$enable_openmp -DFS_ENABLE_MIXED_PRECISION=$enable_mixed_precision -DFS_ENABLE_OPENACC=`test "x$icon_gpu_primary" = xopenacc && $as_echo_n 'ON' || $as_echo_n 'OFF'`      -DBUILD_SHARED_LIBS:BOOL=OFF -DBUILD_TESTING:BOOL=OFF      -DCMAKE_BUILD_TYPE:STRING=NOEXTRAFLAGS; shift
    for acx_tmp; do
      case $acx_tmp in #(
   *\'*) :

@@ -377,7 +377,7 @@ CONTAINS
       p_graupel_gsp_rate => prm_diag%graupel_gsp_rate(:,:)
     ELSE
       ! initialize dummy variable (precipitation rate of graupel, grid-scale)
-      CALL init(dummy_graupel_gsp_rate, opt_acc_async=.TRUE.)
+      CALL init(dummy_graupel_gsp_rate, lacc=.TRUE., opt_acc_async=.TRUE.)
       p_graupel_gsp_rate => dummy_graupel_gsp_rate(:,:)
     ENDIF
 

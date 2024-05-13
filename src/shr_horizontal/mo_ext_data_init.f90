@@ -1373,9 +1373,9 @@ CONTAINS
 
 !$OMP PARALLEL
             ! Scale from [%] to [1]
-            CALL var_scale(ext_data(jg)%atm_td%alb_dif(:,:,:), 1._wp/100._wp)
-            CALL var_scale(ext_data(jg)%atm_td%albuv_dif(:,:,:), 1._wp/100._wp)
-            CALL var_scale(ext_data(jg)%atm_td%albni_dif(:,:,:), 1._wp/100._wp)
+            CALL var_scale(ext_data(jg)%atm_td%alb_dif(:,:,:), 1._wp/100._wp, lacc=.FALSE.)
+            CALL var_scale(ext_data(jg)%atm_td%albuv_dif(:,:,:), 1._wp/100._wp, lacc=.FALSE.)
+            CALL var_scale(ext_data(jg)%atm_td%albni_dif(:,:,:), 1._wp/100._wp, lacc=.FALSE.)
 !$OMP BARRIER
 
 

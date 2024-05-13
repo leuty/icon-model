@@ -173,9 +173,9 @@ CONTAINS
     ! and p_patch%cells%neighbor_blk
 
 !$OMP PARALLEL
-    CALL copy(p_patch%cells%neighbor_idx(:,:,:), idx_c(:,:,:))
-    CALL copy(p_patch%cells%neighbor_blk(:,:,:), blk_c(:,:,:))
-    CALL copy(p_patch%cells%num_edges(:,:),      dim_stencil(:,:))
+    CALL copy(p_patch%cells%neighbor_idx(:,:,:), idx_c(:,:,:), lacc=.FALSE.)
+    CALL copy(p_patch%cells%neighbor_blk(:,:,:), blk_c(:,:,:), lacc=.FALSE.)
+    CALL copy(p_patch%cells%num_edges(:,:),      dim_stencil(:,:), lacc=.FALSE.)
 !$OMP END PARALLEL
 
   END SUBROUTINE create_stencil_c3
@@ -221,9 +221,9 @@ CONTAINS
     ! and p_patch%cells%neighbor_blk
 
 !$OMP PARALLEL
-    CALL copy(p_patch%cells%neighbor_idx(:,:,:), idx_c(:,:,:))
-    CALL copy(p_patch%cells%neighbor_blk(:,:,:), blk_c(:,:,:))
-    CALL copy(p_patch%cells%num_edges(:,:),      dim_stencil(:,:))
+    CALL copy(p_patch%cells%neighbor_idx(:,:,:), idx_c(:,:,:), lacc=.FALSE.)
+    CALL copy(p_patch%cells%neighbor_blk(:,:,:), blk_c(:,:,:), lacc=.FALSE.)
+    CALL copy(p_patch%cells%num_edges(:,:),      dim_stencil(:,:), lacc=.FALSE.)
 !$OMP BARRIER
 
     ! special treatment of boundary cell row defined by refin_c_ctrl==1:

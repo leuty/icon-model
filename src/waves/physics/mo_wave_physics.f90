@@ -788,8 +788,8 @@ CONTAINS
 
 
 !$OMP PARALLEL
-    CALL init(p_diag%phiaw)
-    CALL init(p_diag%tauw)
+    CALL init(p_diag%phiaw, lacc=.FALSE.)
+    CALL init(p_diag%tauw, lacc=.FALSE.)
 !$OMP BARRIER
 !$OMP DO PRIVATE(jb,jc,jf,jd,jtd,i_startidx,i_endidx,cm,const1,const2,         &
 !$OMP            rhowgdfth,sinplus,sumt,sumx,sumy,cmrhowgdfth,xstress,ystress, &

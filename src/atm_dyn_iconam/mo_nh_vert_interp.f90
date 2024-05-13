@@ -605,7 +605,7 @@ CONTAINS
           ! allocate target array for vertical interpolation
           ALLOCATE(initicon%atm%tracer(idx)%field(nproma,nlev,p_patch%nblks_c))
 !$OMP PARALLEL
-          CALL init(initicon%atm%tracer(idx)%field(:,:,:))   !_jf: necessary?
+          CALL init(initicon%atm%tracer(idx)%field(:,:,:), lacc=.FALSE.)   !_jf: necessary?
 !$OMP END PARALLEL
           ! set pointer to var_element of atm_in
           initicon%atm%tracer(idx)%var_element => initicon%atm_in%tracer(idx)%var_element

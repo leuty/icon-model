@@ -1325,8 +1325,8 @@ MODULE mo_initicon_io
             CALL fetch3d(params, 'qr', jg, initicon(jg)%atm_in%qr, lfound_qr)
             CALL fetch3d(params, 'qs', jg, initicon(jg)%atm_in%qs, lfound_qs)
 !$OMP PARALLEL
-            IF (.NOT. lfound_qr) CALL init(initicon(jg)%atm_in%qr(:,:,:))
-            IF (.NOT. lfound_qs) CALL init(initicon(jg)%atm_in%qs(:,:,:))
+            IF (.NOT. lfound_qr) CALL init(initicon(jg)%atm_in%qr(:,:,:), lacc=.FALSE.)
+            IF (.NOT. lfound_qs) CALL init(initicon(jg)%atm_in%qs(:,:,:), lacc=.FALSE.)
 !$OMP END PARALLEL
             
             ! Set up flags for later calls
@@ -1671,7 +1671,7 @@ MODULE mo_initicon_io
             ! allocate source array for vertical interpolation
             ALLOCATE(atm_in%tracer(idx)%field(nproma,nlev_in,nblks_c))
 !$OMP PARALLEL
-            CALL init(atm_in%tracer(idx)%field(:,:,:))      !_jf: necessary?
+            CALL init(atm_in%tracer(idx)%field(:,:,:), lacc=.FALSE.)      !_jf: necessary?
 !$OMP END PARALLEL
             ! request the first guess fields
             my_ptr3d => atm_in%tracer(idx)%field(:,:,:)
@@ -1750,7 +1750,7 @@ MODULE mo_initicon_io
                 CALL fetchSurface(params, 'fr_seaice', jg, lnd_diag%fr_seaice)
             ELSE
 !$OMP PARALLEL
-                CALL init(lnd_diag%fr_seaice(:,:))
+                CALL init(lnd_diag%fr_seaice(:,:), lacc=.FALSE.)
 !$OMP END PARALLEL
             ENDIF ! init_mode /= MODE_COSMO
 

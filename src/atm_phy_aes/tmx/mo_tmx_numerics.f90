@@ -93,7 +93,7 @@ CONTAINS
     nlev = SIZE(var,2)
 
 !$OMP PARALLEL
-    CALL init(tend)
+    CALL init(tend, lacc=.FALSE.)
 !$OMP END PARALLEL
 
 !$OMP PARALLEL DO PRIVATE(jb,jc,jk) ICON_OMP_DEFAULT_SCHEDULE
@@ -180,8 +180,8 @@ CONTAINS
     !$ACC DATA CREATE(a, b, c, rhs, new_var)
 
 !$OMP PARALLEL
-    CALL init(new_var)
-    CALL init(tend)
+    CALL init(new_var, lacc=.TRUE.)
+    CALL init(tend, lacc=.TRUE.)
 !$OMP END PARALLEL
 
 !$OMP PARALLEL DO PRIVATE(jb,jc,jk) ICON_OMP_RUNTIME_SCHEDULE
