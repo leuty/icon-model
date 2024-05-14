@@ -55,7 +55,7 @@ if [ x$namelist_list = x ]; then
   if [ x$atmo_namelist != x ]; then
     # this is the atmo model
     namelist_list[0]="$atmo_namelist"
-    modelname_list[0]="atmo"
+    modelname_list[0]="atm"
     modeltype_list[0]=1
     run_atmo="true"
   elif [ x$ocean_namelist != x ]; then

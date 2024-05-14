@@ -41,6 +41,8 @@ MODULE mo_nwp_sfc_interface
     &                               isub_lake, itype_interception, l2lay_rho_snow,    &
     &                               lprog_albsi, itype_trvg, lterra_urb,              &
     &                               itype_snowevap, zml_soil, lcuda_graph_lnd
+  USE mo_nwp_tuning_config,   ONLY: itune_gust_diag
+  USE mo_radiation_config,    ONLY: islope_rad
   USE mo_extpar_config,       ONLY: itype_vegetation_cycle
   USE mo_initicon_config,     ONLY: icpl_da_sfcevap, dt_ana, icpl_da_skinc, icpl_da_seaice
   USE mo_coupling_config,     ONLY: is_coupled_to_ocean
@@ -57,7 +59,7 @@ MODULE mo_nwp_sfc_interface
   USE mo_fortran_tools,       ONLY: init, set_acc_host_or_device, assert_acc_device_only
 
 #ifdef ICON_USE_CUDA_GRAPH
-  USE openacc, ONLY: accgraph, accx_begin_capture, accx_end_capture, accx_graph_exec
+  USE mo_acc_device_management,ONLY: accGraph, accBeginCapture, accEndCapture, accGraphLaunch
   USE, INTRINSIC :: iso_c_binding
 #endif
 
@@ -76,7 +78,7 @@ INTEGER, PARAMETER :: nlsoil= 8
 #endif
 
 #ifdef ICON_USE_CUDA_GRAPH
-TYPE(accgraph) :: graphs(max_dom*2)
+TYPE(accGraph) :: graphs(max_dom*2)
 TYPE(c_ptr) :: lnd_prog_now_cache(max_dom*2) = C_NULL_PTR
 LOGICAL :: graph_captured
 INTEGER :: cur_graph_id, ig
@@ -202,7 +204,6 @@ CONTAINS
 
     ! for TERRA_URB
     REAL(wp) :: urb_isa_t  (nproma)
-    REAL(wp) :: fr_paved_t (nproma)
     REAL(wp) :: urb_ai_t   (nproma)
     REAL(wp) :: urb_h_bld_t(nproma)
     REAL(wp) :: urb_hcap_t (nproma)
@@ -355,14 +356,14 @@ CONTAINS
       IF (graph_captured) THEN
         WRITE(message_text,'(a,i2)') 'executing CUDA graph id ', cur_graph_id
         IF (msg_level >= 14) CALL message('mo_nwp_sfc_interface: ', message_text)
-        CALL accx_graph_exec(graphs(cur_graph_id), 1)
+        CALL accGraphLaunch(graphs(cur_graph_id), 1)
         !$ACC UPDATE HOST(ext_data%atm%gp_count_t(:,1:ntiles_total)) ASYNC(1)
         !$ACC WAIT(1)
         RETURN
       ELSE
         WRITE(message_text,'(a,i2)') 'starting to capture CUDA graph, id ', cur_graph_id
         IF (msg_level >= 13) CALL message('mo_nwp_sfc_interface: ', message_text)
-        CALL accx_begin_capture(1)
+        CALL accBeginCapture(1)
       END IF
     END IF
 #endif
@@ -393,7 +394,7 @@ CONTAINS
 !$OMP   snowfrac_t,runoff_s_inst_t,runoff_g_inst_t,resid_wso_inst_t,u_10m_t,v_10m_t,tch_t,tcm_t,tfv_t,      &
 !$OMP   tfvsn_t,sobs_t,thbs_t,pabs_t,r_bsmin,                                                               &
 !$OMP   soiltyp_t,plcov_t,rootdp_t,sai_t,tai_t,eai_t,rsmin2d_t,t_snow_mult_now_t,wliq_snow_now_t,           &
-!$OMP   urb_isa_t,fr_paved_t,urb_ai_t,urb_h_bld_t,urb_hcap_t,urb_hcon_t,ahf_t,                              &
+!$OMP   urb_isa_t,urb_ai_t,urb_h_bld_t,urb_hcap_t,urb_hcon_t,ahf_t,                                         &
 !$OMP   rho_snow_mult_now_t,wtot_snow_now_t,dzh_snow_now_t,t_so_now_t,w_so_now_t,w_so_ice_now_t,            &
 !$OMP   t_s_new_t,w_snow_new_t,rho_snow_new_t,h_snow_t,w_i_new_t,w_p_new_t,w_s_new_t,t_so_new_t,            &
 !$OMP   lhfl_bs_t,rstom_t,shfl_s_t,lhfl_s_t,qhfl_s_t,t_snow_mult_new_t,rho_snow_mult_new_t,                 &
@@ -525,7 +526,10 @@ CONTAINS
              ! which would require a multi-layer snow scheme to be properly represented, is approximated by a combination of the
              ! glacier snow density (which depends on the climatological 2m-temperature) and the freshsnow factor
              !
-             IF (ext_data%atm%lc_class_t(jc,jb,isubs) == ext_data%atm%i_lc_snow_ice) THEN
+             ! Calculation is suppressed for itune_gust_diag=4 because gusts are not computed at each time step in this case
+             ! This is going to be replaced by a separate switch
+             !
+             IF (ext_data%atm%lc_class_t(jc,jb,isubs) == ext_data%atm%i_lc_snow_ice .AND. itune_gust_diag < 4) THEN
                IF (icpl_da_sfcevap>=2) THEN
                  tmp2 = 7.5e-9_wp*MAX(0._wp,1._wp+100._wp*10800._wp/dt_ana*p_diag%rh_avginc(jc,jb))
                ELSE
@@ -628,7 +632,7 @@ CONTAINS
 
         IF (multi_queue_processing) acc_async_queue = isubs
 
-        !$ACC DATA CREATE(soiltyp_t, urb_isa_t, fr_paved_t, urb_ai_t, urb_h_bld_t) &
+        !$ACC DATA CREATE(soiltyp_t, urb_isa_t, urb_ai_t, urb_h_bld_t) &
         !$ACC   CREATE(urb_hcap_t, urb_hcon_t, ahf_t) &
         !$ACC   CREATE(plcov_t, rootdp_t, sai_t, eai_t, tai_t, laifac_t, skinc_t) &
         !$ACC   CREATE(rsmin2d_t, r_bsmin, u_t, v_t, t_t, qv_t, p0_t, ps_t, h_snow_gp_t) &
@@ -656,6 +660,7 @@ CONTAINS
 #ifndef _OPENACC
         IF (i_count == 0) CYCLE ! skip loop if the index list for the given tile is empty
 #endif
+
 
 
 !$NEC ivdep
@@ -753,14 +758,17 @@ CONTAINS
           tfv_t(ic)                 =  prm_diag%tfv_t(jc,jb,isubs)
           tfvsn_t(ic)               =  1._wp
           sobs_t(ic)                =  prm_diag%swflxsfc_t(jc,jb,isubs) 
-          thbs_t(ic)                =  prm_diag%lwflxsfc_t(jc,jb,isubs) 
-          pabs_t(ic)                =  prm_diag%swflx_par_sfc(jc,jb) 
+          thbs_t(ic)                =  prm_diag%lwflxsfc_t(jc,jb,isubs)
+          IF (islope_rad(jg) > 0) THEN
+            pabs_t(ic)                =  prm_diag%swflx_par_sfc_tan_os(jc,jb) 
+          ELSE
+            pabs_t(ic)                =  prm_diag%swflx_par_sfc(jc,jb) 
+          ENDIF
 
           soiltyp_t(ic)             =  ext_data%atm%soiltyp_t(jc,jb,isubs)
 
           IF (lterra_urb) THEN
             urb_isa_t(ic)           =  ext_data%atm%urb_isa_t(jc,jb,isubs)
-            fr_paved_t(ic)          =  ext_data%atm%fr_paved_t(jc,jb,isubs)
             urb_ai_t(ic)            =  ext_data%atm%urb_ai_t(jc,jb,isubs)
             urb_h_bld_t(ic)         =  ext_data%atm%urb_h_bld_t(jc,jb,isubs)
             urb_hcap_t(ic)          =  ext_data%atm%urb_hcap_t(jc,jb,isubs)
@@ -768,7 +776,6 @@ CONTAINS
             ahf_t(ic)               =  ext_data%atm%ahf_t(jc,jb,isubs)
           ELSE
             urb_isa_t(ic)           =  0._wp
-            fr_paved_t(ic)          =  0._wp
             urb_ai_t(ic)            =  0._wp
             urb_h_bld_t(ic)         =  0._wp
             urb_hcap_t(ic)          =  0._wp
@@ -910,7 +917,6 @@ CONTAINS
         &  soiltyp_subs = soiltyp_t                          , & !IN type of the soil (keys 0-9)         --
 ! for TERRA_URB
         &  urb_isa      = urb_isa_t                          , & !IN impervious surface area fraction of the urban canopy ( - )
-        &  fr_paved     = fr_paved_t                         , & !IN impervious surface area (ISA) fraction               ( - )
         &  urb_ai       = urb_ai_t                           , & !IN surface area index of the urban canopy               ( - )
         &  urb_h_bld    = urb_h_bld_t                        , & !IN building height                                      ( m )
         &  urb_hcap     = urb_hcap_t                         , & !IN volumetric heat capacity of urban material      (J/m**3/K)
@@ -1770,10 +1776,10 @@ CONTAINS
  
 #ifdef ICON_USE_CUDA_GRAPH
     IF (lzacc .AND. lcuda_graph_lnd) THEN
-      CALL accx_end_capture(graphs(cur_graph_id), 1)
+      CALL accEndCapture(1, graphs(cur_graph_id))
       WRITE(message_text,'(a,i2,a)') 'finished to capture CUDA graph, id ', cur_graph_id, ', now executing it'
       IF (msg_level >= 13) CALL message('mo_nwp_sfc_interface: ', message_text)
-      CALL accx_graph_exec(graphs(cur_graph_id), 1)
+      CALL accGraphLaunch(graphs(cur_graph_id), 1)
     END IF
 #endif
     !$ACC UPDATE HOST(ext_data%atm%gp_count_t(:,1:ntiles_total)) ASYNC(1) IF(lzacc)
@@ -1813,6 +1819,7 @@ CONTAINS
     REAL(wp) :: lwflxsfc (nproma)   ! net long-wave radiation flux at the surface     [W/m^2] 
     REAL(wp) :: swflxsfc (nproma)   ! net solar radiation flux at the surface         [W/m^2]
     REAL(wp) :: condhf_i (nproma)   ! conductive heat flux at sea-ice bottom          [W/m^2]
+    REAL(wp) :: meltpot_i(nproma)   ! melt potential at sea-ice top                   [W/m^2]
     REAL(wp) :: snow_rate(nproma)   ! snow rate (convecive + grid-scale)              [kg/(m^2 s)]
     REAL(wp) :: rain_rate(nproma)   ! rain rate (convecive + grid-scale)              [kg/(m^2 s)]
     REAL(wp) :: tice_now (nproma)   ! temperature of ice upper surface at previous time  [K]
@@ -1826,6 +1833,9 @@ CONTAINS
     REAL(wp) :: hsnow_new(nproma)   ! snow thickness at new time level                   [m]
     REAL(wp) :: albsi_new(nproma)   ! sea-ice albedo at new time level                   [-]
     REAL(wp) :: fhflx    (nproma)   ! tuning factor for bottom heat flux                 [-]
+
+    REAL(wp), CONTIGUOUS, POINTER :: condhf_ice_blk(:)
+    REAL(wp), CONTIGUOUS, POINTER :: meltpot_ice_blk(:)
 
     ! Local array bounds:
     !
@@ -1859,14 +1869,15 @@ CONTAINS
       CALL message(routine, 'call nwp_seaice scheme')
     ENDIF
 
-    !$ACC DATA CREATE(shfl_s, lhfl_s, lwflxsfc, swflxsfc, condhf_i, snow_rate, rain_rate, tice_now, hice_now) &
+    !$ACC DATA CREATE(shfl_s, lhfl_s, lwflxsfc, swflxsfc, condhf_i, meltpot_i, snow_rate, rain_rate, tice_now, hice_now) &
     !$ACC   CREATE(tsnow_now, hsnow_now, albsi_now, tice_new, hice_new, tsnow_new, hsnow_new, albsi_new, fhflx) &
     !$ACC   PRESENT(ext_data, p_lnd_diag, prm_diag, p_prog_wtr_now, lnd_prog_new, p_prog_wtr_new, p_diag)
 
 !$OMP PARALLEL
 !$OMP DO PRIVATE(jb,i_count,ic,jc,shfl_s,lhfl_s,lwflxsfc,swflxsfc,snow_rate,rain_rate, &
 !$OMP            tice_now, hice_now,tsnow_now,hsnow_now,tice_new,hice_new,tsnow_new,   &
-!$OMP            hsnow_new,albsi_now,albsi_new,condhf_i,fhflx) ICON_OMP_GUIDED_SCHEDULE
+!$OMP            hsnow_new,albsi_now,albsi_new,condhf_i,meltpot_i,fhflx,condhf_ice_blk,&
+!$OMP            meltpot_ice_blk) ICON_OMP_GUIDED_SCHEDULE
     DO jb = i_startblk, i_endblk
 
       !
@@ -1925,6 +1936,7 @@ CONTAINS
                             &   tsnow_n = tsnow_new(:),        & !out   ! DUMMY: not used yet
                             &   hsnow_n = hsnow_new(:),        & !out   ! DUMMY: not used yet
                             &   condhf  = condhf_i(:),         & !out
+                            &   meltpot = meltpot_i(:),        & !out
                             &   albsi_n = albsi_new(:)         ) !out
       ! optional arguments dticedt, dhicedt, dtsnowdt, dhsnowdt (tendencies) are neglected
 
@@ -1936,6 +1948,7 @@ CONTAINS
         !  set conductive heat flux to zero outside list_seaice,
         !  may be used by ocean (e.g. through interpolation)
         p_lnd_diag%condhf_ice (:,jb) = 0.0_wp
+        p_lnd_diag%meltpot_ice (:,jb) = 0.0_wp
       ENDIF
 
 
@@ -1956,7 +1969,8 @@ CONTAINS
         ENDIF
         IF (lis_coupled_run) THEN
           ! conductive heat flux at bottom of sea-ice [W/m^2]
-          p_lnd_diag%condhf_ice (jc,jb)   = condhf_i (ic)
+          p_lnd_diag%condhf_ice(jc,jb)  = condhf_i(ic)
+          p_lnd_diag%meltpot_ice(jc,jb) = meltpot_i(ic)
         ENDIF
         lnd_prog_new%t_g_t(jc,jb,isub_seaice) = tice_new(ic)
         ! surface saturation specific humidity (uses saturation water vapor pressure over ice)
@@ -1965,6 +1979,14 @@ CONTAINS
       ENDDO  ! ic
       !$ACC END PARALLEL
 
+      ! condhf and qtop are not allocated when the run is not coupled.
+      IF (lis_coupled_run) THEN
+        condhf_ice_blk => p_lnd_diag%condhf_ice(:,jb)
+        meltpot_ice_blk => p_lnd_diag%meltpot_ice(:,jb)
+      ELSE
+        condhf_ice_blk => NULL()
+        meltpot_ice_blk => NULL()
+      ENDIF
 
       ! Update dynamic sea-ice index list
       !
@@ -1991,7 +2013,8 @@ CONTAINS
         &              t_sk_t_new       = lnd_prog_new%t_sk_t(:,jb,isub_water),   &!inout
         &              qv_s_t           = p_lnd_diag%qv_s_t(:,jb,isub_water),     &!inout
         &              t_seasfc         = p_lnd_diag%t_seasfc(:,jb),              &!inout
-        &              condhf           = p_lnd_diag%condhf_ice(:,jb)             )!inout
+        &              condhf           = condhf_ice_blk,                         &!inout
+        &              meltpot          = meltpot_ice_blk                         )!inout
 
     ENDDO  ! jb
 !$OMP END DO
@@ -2259,4 +2282,3 @@ CONTAINS
   END SUBROUTINE nwp_lake
 
 END MODULE mo_nwp_sfc_interface
-

@@ -12,12 +12,13 @@
 
 # ===========================================================================
 # 
-# Name: exp.mch_opr_r04b07.run
+# Name: exp.mch_opr_r04b07_lhn_00.run
 #
 # Purpose: Run script for ICON at on a domain similar to the current COSMO-1E domain
-#          This is a low resolution version used for development purpose.
+#          This is a low resolution version used for a technical test at MeteoSwiss.
+#          This setup includes lhn and starting the run at midnight.
 #
-# Author: Sascha Bellaire (MeteoSwiss)
+# Created by: Remo Dietlicher (MeteoSwiss)
 #
 # =========================================================================== 
 

@@ -1971,7 +1971,8 @@ MODULE mo_initicon_io
             IF (ANY((/MODE_COMBINED,MODE_COSMO,MODE_ICONVREMAP/) == init_mode)) THEN
                 IF (inputInstructions(jg)%ptr%sourceOfVar('smi')==kInputSourceFg) THEN
                     DO jt=1, ntiles_total
-                        CALL smi_to_wsoil(p_patch(jg), lnd_prog%w_so_t(:,:,:,jt))
+                        CALL smi_to_wsoil(p_patch(jg), ext_data(jg)%atm%list_land, &
+                          &               ext_data(jg)%atm%soiltyp, lnd_prog%w_so_t(:,:,:,jt))
                     END DO
                 ENDIF
             END IF
@@ -2095,11 +2096,7 @@ MODULE mo_initicon_io
             my_ptr2d => initicon(jg)%sfc%sst(:,:)
             CALL fetch2d(params, 't_seasfc', 0.0_wp, jg, my_ptr2d)
             !
-#ifdef __PGI
-            IF (inputInstructions(jg)%ptr%fetchStatus('t_seasfc', .FALSE.) == kStateFailedFetch) THEN
-#else
             IF (inputInstructions(jg)%ptr%fetchStatus('t_seasfc', lIsFg=.FALSE.) == kStateFailedFetch) THEN
-#endif
               ! T_SO(0). Note that the file may contain a 3D field, of which we ONLY fetch the level at 0.0.
               lHaveFg = inputInstructions(jg)%ptr%sourceOfVar('t_so') == kInputSourceFg
               CALL fetch2d(params, 't_so', 0.0_wp, jg, my_ptr2d)
@@ -2197,7 +2194,7 @@ MODULE mo_initicon_io
       IF(p_patch(jg)%ldom_active .AND. ANY((/MODE_IAU, MODE_IAU_OLD /) == init_mode)) THEN
         IF (lp2cintp_sfcana(jg)) THEN
           ! Perform parent-to-child interpolation of surface fields read from the analysis
-          CALL interpolate_sfcana(initicon, inputInstructions, p_patch(jg)%parent_id, jg)
+          CALL interpolate_sfcana(initicon, inputInstructions, p_patch(jg)%parent_id, jg, p_lnd_state(:))
 
         ELSE IF (ntiles_total>1 .AND. init_mode == MODE_IAU_OLD) THEN
           ! MODE_IAU_OLD: H_SNOW, FRESHSNOW, W_SNOW and RHO_SNOW are read from analysis (full fields)

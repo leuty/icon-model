@@ -2464,6 +2464,10 @@ dnl Extend C and Fortran compiler flags:
      [-DCMAKE_C_FLAGS=dnl
 "$subdir_CFLAGS $ICON_FORTRAN_SUPPORT_CFLAGS $subdir_CPPFLAGS"],
      [-DCMAKE_Fortran_FLAGS="$subdir_FCFLAGS $ICON_FORTRAN_SUPPORT_FCFLAGS"],
+dnl Set up library-specific compiler flags:
+     [-DFS_ENABLE_OMP=$enable_openmp],
+     [-DFS_ENABLE_MIXED_PRECISION=$enable_mixed_precision],
+     [-DFS_ENABLE_OPENACC=`test "x$icon_gpu_primary" = xopenacc && AS_ECHO_N(['ON']) || AS_ECHO_N(['OFF'])`],
 dnl Build the static version of the library and disable the tests:
      [-DBUILD_SHARED_LIBS:BOOL=OFF], [-DBUILD_TESTING:BOOL=OFF],
 dnl Set non-existing build type to avoid extra compiler flags:

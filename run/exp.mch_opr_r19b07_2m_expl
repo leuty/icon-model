@@ -12,14 +12,14 @@
 
 # ===========================================================================
 # 
-# Name: exp.mch_opr_r19b07_2m_expl
+# Name: exp.mch_opr_r19b07_2m_expl.run
 #
 # Purpose: Run script for ICON at on a domain similar to the current COSMO-1E domain
 #          which uses the two-moment microphysics scheme with the namelist switch gscp=5.
 #          This is a low resolution version used for development purpose.
 #          It is the same test case as exp.mch_opr_r19b07_2m but using the explicit 2 mom mcrph scheme
 #
-# Author: Remo Dietlicher (MeteoSwiss)
+# Created by: Annika Laube (C2SM)
 #
 # =========================================================================== 
 

@@ -17,7 +17,7 @@ MODULE mo_cloud_two_memory
 
   USE mo_exception               ,ONLY: message, finish
   USE mtime                      ,ONLY: timedelta, OPERATOR(>)
-
+  USE mo_master_control,          ONLY: get_my_process_name
   USE mo_model_domain            ,ONLY: t_patch
   USE mo_parallel_config         ,ONLY: nproma
   USE mo_time_config             ,ONLY: time_config
@@ -208,7 +208,8 @@ CONTAINS
          &        patch_id  = jg                  ,&
          &        loutput   = .TRUE.              ,&
          &        lrestart  = .FALSE.             ,&
-         &        linitial  = .FALSE. )
+         &        linitial  = .FALSE.             ,&
+         &        model_type= get_my_process_name())
 
     ! Input parameters
     ! ----------------

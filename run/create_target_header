@@ -1524,7 +1524,7 @@ set_run_target_alps_mch_gpu()
     if [[ "x$BB_SYSTEM" != "x" ]]
     then
         # this is buldbot, do not run more than 80 minutes
-        limit="01:20:00"
+        limit="02:00:00"
         default="00:15:00"
         limit_time_bb # sets use_cpu_time
         s_cpu_time="SBATCH --time=$use_cpu_time"
@@ -2098,7 +2098,7 @@ create_target_header()
                 ;;
             esac
             ;;
-        *mch_kenda-ch1_small.run|*mch_kenda-ch1_small_member_id*)
+        *mch_*_small.run|*mch_*_small_member_id*)
             case $use_target in
                 alps_mch_gpu*)
                     use_nodes=1
@@ -2158,13 +2158,6 @@ create_target_header()
                 *_gpu*)
                     use_mpi_procs_pernode=2
                     # no nproma needed since this uses nlbocks_c anyway
-                ;;
-            esac
-            ;;
-        *mch_bench_r19b07_dev_sppt.run|*mch_bench_r19b07_dev_sppt_member_id*.run)
-            case $use_target in
-                daint_gpu*)
-                    use_mpi_procs_pernode=4
                 ;;
             esac
             ;;
@@ -2525,6 +2518,16 @@ create_target_header()
             esac
             ;;
 	
+        *run_ICON_26_R2B4_R2B6_AO-HD_coupled*)
+            case $use_target in
+                rcl)
+                    use_nodes=4
+                    use_venum_lhost=2
+                    use_cpunum_job=6 # 2x proc0 + 2x2 IO
+                    ;;
+            esac
+            ;;
+
         *atm_nwp_jsbach_test*)
             use_memory="18gb"
             ;;

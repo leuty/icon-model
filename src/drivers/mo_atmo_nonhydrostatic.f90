@@ -21,6 +21,7 @@ USE mo_impl_constants,       ONLY: SUCCESS, max_dom, inwp, iaes, LSS_JSBACH
 USE mo_timer,                ONLY: timers_level, timer_start, timer_stop, timer_init_latbc, &
   &                                timer_model_init, timer_init_icon, timer_read_restart, timer_init_dace
 USE mo_master_config,        ONLY: isRestart, getModelBaseDir
+USE mo_master_control,       ONLY: get_my_process_name
 USE mo_time_config,          ONLY: t_time_config, time_config
 USE mo_load_restart,         ONLY: read_restart_files
 USE mo_key_value_store,      ONLY: t_key_value_store
@@ -108,6 +109,7 @@ USE mo_sppt_state,           ONLY: construct_sppt_state, destruct_sppt_state
 USE mo_sppt_config,          ONLY: sppt_config, configure_sppt
 USE mo_nwp_phy_cleanup,      ONLY: cleanup_nwp_phy
 USE mo_nwp_ww,               ONLY: configure_ww
+USE mo_nwp_vdiff_interface,  ONLY: nwp_vdiff_setup
 #endif
 #ifdef __ICON_ART
 ! ICON-ART
@@ -148,7 +150,8 @@ USE mo_upatmo_phy_setup,    ONLY: finalize_upatmo_phy_nwp
 
 USE mo_util_mtime,          ONLY: getElapsedSimTimeInSeconds
 USE mo_output_event_types,  ONLY: t_sim_step_info
-USE mo_action,              ONLY: ACTION_RESET, reset_act
+USE mo_action_types,        ONLY: ACTION_RESET
+USE mo_action,              ONLY: reset_act
 USE mo_turb_vdiff_params,   ONLY: VDIFF_TURB_3DSMAGORINSKY
 USE mo_limarea_config,      ONLY: latbc_config
 USE mo_async_latbc_types,   ONLY: t_latbc_data
@@ -227,7 +230,7 @@ CONTAINS
     !---------------------------------------------------------------------
     IF ( is_coupled_run() ) THEN
       IF (ltimer) CALL timer_start(timer_coupling)
-      CALL construct_atmo_coupling(p_patch(1:))
+      CALL construct_atmo_coupling(p_patch(1:), ext_data(1:))
       IF (ltimer) CALL timer_stop(timer_coupling)
     ENDIF
 
@@ -235,7 +238,7 @@ CONTAINS
     ! Now start the time stepping:
     !------------------------------------------------------------------
 
-    restartDescriptor => createRestartDescriptor("atm")
+    restartDescriptor => createRestartDescriptor(get_my_process_name())
 
     ! for iterative IAU, perform_nh_stepping is called twice with distinct
     ! model stop dates.
@@ -416,6 +419,11 @@ CONTAINS
     IF (iforcing == inwp) THEN
 #ifndef __NO_NWP__
       CALL construct_nwp_phy_state( p_patch(1:), var_in_output)
+
+      IF (ANY(atm_phy_nwp_config(:)%inwp_surface == LSS_JSBACH)) THEN
+        CALL nwp_vdiff_setup( p_patch(1:), atm_phy_nwp_config(:)%inwp_surface == LSS_JSBACH )
+      END IF
+
       CALL construct_nwp_lnd_state( p_patch(1:), p_lnd_state, var_in_output(:)%smi, n_timelevels=2 )
 
       ! Construct SPPT state
@@ -741,7 +749,7 @@ CONTAINS
       !
       ! read external data for real case
       IF (.NOT. ltestcase) THEN 
-        CALL init_aes_phy_external( p_patch(1:)                   ,&
+        CALL init_aes_phy_external( p_patch(1:), ext_data(1:)     ,&
            &                          time_config%tc_current_date )
       END IF
       !

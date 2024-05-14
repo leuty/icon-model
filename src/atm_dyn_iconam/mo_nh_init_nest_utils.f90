@@ -26,7 +26,7 @@ MODULE mo_nh_init_nest_utils
   USE mo_nonhydro_types,        ONLY: t_nh_metrics, t_nh_prog, t_nh_diag
   USE mo_nonhydro_state,        ONLY: p_nh_state
   USE mo_initicon_types,        ONLY: t_initicon_state
-  USE mo_nwp_phy_state,         ONLY: prm_diag
+  USE mo_nwp_phy_types,         ONLY: t_nwp_phy_diag
   USE mo_parallel_config,       ONLY: nproma, p_test_run
   USE mo_run_config,            ONLY: ltransport, msg_level, ntracer, iforcing
   USE mo_dynamics_config,       ONLY: nnow, nnow_rcf, nnew_rcf
@@ -47,22 +47,21 @@ MODULE mo_nh_init_nest_utils
                                       p_grf_state, p_grf_state_local_parent
   USE mo_loopindices,           ONLY: get_indices_c
   USE mo_impl_constants_grf,    ONLY: grf_bdywidth_c, grf_fbk_start_c
-  USE mo_nwp_lnd_types,         ONLY: t_lnd_prog, t_lnd_diag, t_wtr_prog
+  USE mo_nwp_lnd_types,         ONLY: t_lnd_state, t_lnd_prog, t_lnd_diag, t_wtr_prog
   USE mo_lnd_nwp_config,        ONLY: ntiles_total, ntiles_water, nlev_soil, lseaice, itype_trvg, &
     &                                 llake, isub_lake, frlake_thrhld, frsea_thrhld, lprog_albsi, &
     &                                 itype_snowevap, dzsoil, frsi_min
   USE mo_initicon_config,       ONLY: icpl_da_sfcevap, icpl_da_skinc, icpl_da_sfcfric
-  USE mo_nwp_lnd_state,         ONLY: p_lnd_state
-  USE mo_nwp_phy_state,         ONLY: prm_diag
   USE mo_atm_phy_nwp_config,    ONLY: atm_phy_nwp_config, iprog_aero
   USE mo_interpol_config,       ONLY: nudge_zone_width
-  USE mo_ext_data_state,        ONLY: ext_data
+  USE mo_ext_data_types,        ONLY: t_external_data
   USE mo_nh_diagnose_pres_temp, ONLY: diagnose_pres_temp
   USE mo_intp_rbf,              ONLY: rbf_vec_interpol_cell
   USE mo_nwp_sfc_interp,        ONLY: smi_to_wsoil, wsoil_to_smi
   USE sfc_flake,                ONLY: flake_coldinit
   USE mo_input_instructions,    ONLY: t_readInstructionListPtr, kStateFailedFetch, &
-    &                                 kInputSourceAnaI, kInputSourceFgAnaI, kInputSourceAna, kInputSourceBoth
+    &                                 kInputSourceAnaI, kInputSourceFgAnaI, kInputSourceAna, &
+    &                                 kInputSourceBoth
 
   IMPLICIT NONE
 
@@ -85,15 +84,16 @@ MODULE mo_nh_init_nest_utils
   !! land-water mask and adaptations to make optimal use of tiles
   !! The aggregate_landvars routine must be called before this routine
   !!
-  SUBROUTINE initialize_nest(jg, jgc)
+  SUBROUTINE initialize_nest(jg, jgc, ext_data, prm_diag, p_lnd_state)
 
     CHARACTER(len=*), PARAMETER ::  &
       &  routine = 'initialize_nest'
 
-
-    INTEGER, INTENT(IN) :: jg   ! parent (source) domain ID
-    INTEGER, INTENT(IN) :: jgc  ! child  (target) domain ID
-
+    INTEGER,                   INTENT(IN)    :: jg   ! parent (source) domain ID
+    INTEGER,                   INTENT(IN)    :: jgc  ! child  (target) domain ID
+    TYPE(t_external_data),     INTENT(IN)    :: ext_data(:)
+    TYPE(t_nwp_phy_diag),      INTENT(INOUT) :: prm_diag(:)
+    TYPE(t_lnd_state), TARGET, INTENT(INOUT) :: p_lnd_state(:)
 
     ! local pointers
     TYPE(t_nh_prog),    POINTER     :: p_parent_prog
@@ -456,7 +456,8 @@ MODULE mo_nh_init_nest_utils
 
     ! Convert wsoil into SMI for interpolation
     IF (atm_phy_nwp_config(jg)%inwp_surface == 1) &
-      CALL wsoil_to_smi(p_patch(jg), lndvars_par(:,1:nlev_soil,:))
+      CALL wsoil_to_smi(p_patch(jg), ext_data(jg)%atm%list_land, &
+        &               ext_data(jg)%atm%soiltyp, lndvars_par(:,1:nlev_soil,:))
 
     ! Step 1b: execute boundary interpolation
 
@@ -587,7 +588,8 @@ MODULE mo_nh_init_nest_utils
 
     ! Convert SMI back to wsoil
     IF (atm_phy_nwp_config(jg)%inwp_surface == 1) &
-      CALL smi_to_wsoil(p_patch(jgc), lndvars_chi(:,1:nlev_soil,:))
+      CALL smi_to_wsoil(p_patch(jgc), ext_data(jgc)%atm%list_land, &
+        &               ext_data(jgc)%atm%soiltyp, lndvars_chi(:,1:nlev_soil,:))
 
     ! Step 3: Add reference state to thermodynamic variables and copy land fields
     ! from the container arrays to the prognostic variables (for the time being,
@@ -1015,13 +1017,14 @@ MODULE mo_nh_init_nest_utils
   !! * sst       (full field)
   !!   i.e. t_so(0) over sea points only or t_seasfc
   !!
-  SUBROUTINE interpolate_sfcana(initicon, inputInstructions, jg, jgc )
+  SUBROUTINE interpolate_sfcana(initicon, inputInstructions, jg, jgc, p_lnd_state )
 
     TYPE(t_initicon_state),         INTENT(INOUT) :: initicon(:)
     TYPE(t_readInstructionListPtr), INTENT(INOUT) :: inputInstructions(:)
 
     INTEGER, INTENT(IN) :: jg   ! parent (source) domain ID
     INTEGER, INTENT(IN) :: jgc  ! child  (target) domain ID
+    TYPE(t_lnd_state), TARGET, INTENT(INOUT) :: p_lnd_state(:)
 
     ! local pointers
     TYPE(t_patch),         POINTER  :: p_pp, p_pc
@@ -1261,9 +1264,10 @@ MODULE mo_nh_init_nest_utils
 
 
 
-  RECURSIVE SUBROUTINE topo_blending_and_fbk(jg)
+  RECURSIVE SUBROUTINE topo_blending_and_fbk(jg, ext_data)
 
-    INTEGER, INTENT(IN) :: jg
+    INTEGER,               INTENT(IN)    :: jg
+    TYPE(t_external_data), INTENT(INOUT) :: ext_data(:)
 
     INTEGER :: jgc, jn
 
@@ -1277,7 +1281,7 @@ MODULE mo_nh_init_nest_utils
                ext_data(jg)%atm%topography_c, ext_data(jgc)%atm%topography_c  )
 
       IF (p_patch(jgc)%n_childdom > 0) &
-        CALL topo_blending_and_fbk(jgc)
+        CALL topo_blending_and_fbk(jgc, ext_data)
 
     ENDDO
 
@@ -1445,7 +1449,7 @@ MODULE mo_nh_init_nest_utils
   SUBROUTINE topography_feedback(p_pp, i_chidx, topo_cp, topo_cc)
 
     ! patch at parent level
-    TYPE(t_patch),                TARGET, INTENT(INOUT) :: p_pp
+    TYPE(t_patch),                TARGET, INTENT(IN) :: p_pp
 
     ! child domain index
     INTEGER, INTENT(IN) :: i_chidx

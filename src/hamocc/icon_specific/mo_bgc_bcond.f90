@@ -163,7 +163,7 @@ CONTAINS
     ! Register a field list and apply default settings
     !
     CALL vlr_add(p_ext_bgc_list, TRIM(listname), patch_id=p_patch%id, &
-      &               lrestart=.FALSE., model_type=TRIM(get_my_process_name()))
+      &               lrestart=.FALSE., model_type=get_my_process_name())
     IF (.not. lsediment_only) THEN
      cf_desc    = t_cf_var('Dust cell center', 'kg m-2 yr-1', &
        &                   'DUST', DATATYPE_FLT32)

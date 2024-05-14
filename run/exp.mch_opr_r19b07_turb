@@ -12,13 +12,13 @@
 
 # ===========================================================================
 # 
-# Name: exp.mch_opr_r19b07_turb
+# Name: exp.mch_opr_r19b07_turb.run
 #
 # Purpose: Run script for ICON at on a domain similar to the current COSMO-1E domain
 #          which uses the 3d-turbulence scheme
-#          This is a low resolution version used for development purpose.
+#          This is a low resolution version used for a technical test at MeteoSwiss
 #
-# Author: Remo Dietlicher (MeteoSwiss)
+# Created by: Annika Lauber (C2SM)
 #
 # =========================================================================== 
 

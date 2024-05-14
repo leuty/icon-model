@@ -17,12 +17,14 @@ MODULE mo_ocean_atmo_coupling
   USE mo_kind,                ONLY: wp
   USE mo_parallel_config,     ONLY: nproma
   USE mo_impl_constants,      ONLY: max_char_length
-  USE mo_mpi,                 ONLY: p_comm_work, p_sum
+  USE mo_mpi,                 ONLY: p_comm_work, p_sum 
   USE mo_physical_constants,  ONLY: tmelt, rhoh2o
-  USE mo_run_config,          ONLY: ltimer
+  USE mo_run_config,          ONLY: ltimer, msg_level
   USE mo_dynamics_config,     ONLY: nnew
   USE mo_timer,               ONLY: timer_start, timer_stop, timer_coupling
-  USE mo_sync,                ONLY: sync_c, sync_patch_array
+  USE mo_sync,                ONLY: sync_c, sync_patch_array, global_sum_array
+  USE mo_exception,           ONLY: message, message_text
+  USE mo_dbg_nml,             ONLY: idbg_mxmn, idbg_val
   USE mo_util_dbg_prnt,       ONLY: dbg_print
   USE mo_model_domain,        ONLY: t_patch, t_patch_3d
 
@@ -259,6 +261,7 @@ CONTAINS
 
     REAL(wp), ALLOCATABLE :: put_buffer(:,:,:)
     REAL(wp), ALLOCATABLE :: get_buffer(:,:)
+    REAL(wp):: diag_tmp 
     LOGICAL :: received_data
 
     CHARACTER(LEN=*), PARAMETER   :: routine = str_module // ':couple_ocean_toatmo_fluxes'
@@ -752,15 +755,20 @@ CONTAINS
     !   "river_runoff" - river discharge into the ocean
     !
     ! Note: river runoff fluxes are received in m^3/s and are converted to m/s by division by whole grid area
-    !
-    ! mandatory as river ruoff comes with a different mask!
-    atmos_fluxes%FrshFlux_Runoff(:,:) = 0.0_wp
+    !       mandatory as river ruoff comes with a different mask!
 
     CALL cpl_get_field( &
       'couple_ocean_toatmo_fluxes', field_id_freshflx_runoff, &
       'runoff', nbr_hor_cells, atmos_fluxes%FrshFlux_Runoff, &
       received_data=received_data)
     !
+    ! Online diagnose for global total discharge (m3/s) received from YAC:
+    IF (msg_level >= 10) THEN
+      diag_tmp = global_sum_array(atmos_fluxes%FrshFlux_Runoff(:,:))
+      WRITE(message_text,'(a,f15.3)') 'HD-Ocean: Global total river discharge (m3/s) :' , diag_tmp
+      CALL message (TRIM(routine), TRIM(message_text))
+    ENDIF
+
     IF (received_data) THEN
       !
 !ICON_OMP_PARALLEL_DO PRIVATE(blockNo, cell_index, nn, nlen) ICON_OMP_DEFAULT_SCHEDULE
@@ -772,9 +780,7 @@ CONTAINS
           nlen = patch_horz%npromz_c
         END IF
         DO cell_index = 1, nlen
-          IF ( nn+cell_index > nbr_inner_cells ) THEN
-            atmos_fluxes%FrshFlux_Runoff(cell_index,blockNo) = dummy
-          ELSE
+          IF ( nn+cell_index <= nbr_inner_cells ) THEN
             ! !!! Note: freshwater fluxes are received in kg/m^2/s and are
             ! !!!       converted to m/s by division by rhoh2o below.
             ! !!!   atmos_fluxes%FrshFlux_Runoff(cell_index,blockNo) = &

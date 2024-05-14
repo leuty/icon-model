@@ -37,7 +37,7 @@ MODULE mo_nwp_turbtrans_interface
   USE mo_loopindices,          ONLY: get_indices_c
   USE mo_physical_constants,   ONLY: rd_o_cpd, grav, lh_v=>alv, lh_s=>als, rd, cpd
   USE mo_ext_data_types,       ONLY: t_external_data
-  USE mo_nwp_tuning_config,    ONLY: itune_gust_diag
+  USE mo_nwp_tuning_config,    ONLY: itune_gust_diag, tune_gustlim_agl
   USE mo_nonhydro_types,       ONLY: t_nh_prog, t_nh_diag, t_nh_metrics
   USE mo_nwp_phy_types,        ONLY: t_nwp_phy_diag
   USE mo_nwp_phy_types,        ONLY: t_nwp_phy_tend
@@ -46,6 +46,7 @@ MODULE mo_nwp_turbtrans_interface
   USE mo_parallel_config,      ONLY: nproma
   USE mo_run_config,           ONLY: msg_level, iqv, iqc, iqtke
   USE mo_atm_phy_nwp_config,   ONLY: atm_phy_nwp_config, lcuda_graph_turb_tran
+  USE mo_nonhydrostatic_config,ONLY: kstart_moist
   USE mo_advection_config,     ONLY: advection_config
   USE mo_initicon_config,      ONLY: icpl_da_sfcfric
   USE turb_data,               ONLY: get_turbdiff_param
@@ -64,10 +65,10 @@ MODULE mo_nwp_turbtrans_interface
   USE mo_timer
   USE mo_run_config,           ONLY: timers_level
   USE mo_fortran_tools,        ONLY: set_acc_host_or_device
-
+  USE mo_coupling_config,      ONLY: is_coupled_to_waves
 
 #ifdef ICON_USE_CUDA_GRAPH
-  USE openacc, ONLY: accgraph, accx_begin_capture, accx_end_capture, accx_graph_exec
+  USE mo_acc_device_management,ONLY: accGraph, accBeginCapture, accEndCapture, accGraphLaunch
   USE, INTRINSIC :: iso_c_binding
 #endif
 
@@ -81,7 +82,7 @@ MODULE mo_nwp_turbtrans_interface
 
 
 #ifdef ICON_USE_CUDA_GRAPH
-  TYPE(accgraph) :: graphs(max_dom*2)
+  TYPE(accGraph) :: graphs(max_dom*2)
   TYPE(c_ptr) :: lnd_prog_new_cache(max_dom*2) = C_NULL_PTR
   LOGICAL :: graph_captured
   INTEGER :: cur_graph_id, ig
@@ -176,6 +177,10 @@ SUBROUTINE nwp_turbtrans  ( tcall_turb_jg,                     & !>in
 
   INTEGER,  POINTER :: ilist(:)       ! pointer to tile index list
 
+  LOGICAL :: lgz0inp_loc ! FALSE: turbtran updates gz0 at water points
+                         ! TRUE : gz0 is provided externally (e.g. by the wave model)
+                         !        and is not updated by turbtran
+
 !--------------------------------------------------------------
 #ifdef ICON_USE_CUDA_GRAPH
     multi_queue_processing = lcuda_graph_turb_tran
@@ -224,14 +229,14 @@ SUBROUTINE nwp_turbtrans  ( tcall_turb_jg,                     & !>in
     IF (graph_captured) THEN
       WRITE(message_text,'(a,i2)') 'executing CUDA graph id ', cur_graph_id
       IF (msg_level >= 14) CALL message('mo_nwp_turbtrans_interface: ', message_text)
-      CALL accx_graph_exec(graphs(cur_graph_id), 1)
+      CALL accGraphLaunch(graphs(cur_graph_id), 1)
       !$ACC WAIT(1)
       IF (timers_level > 9) CALL timer_stop(timer_nwp_turbtrans)
       RETURN
     ELSE
       WRITE(message_text,'(a,i2)') 'starting to capture CUDA graph, id ', cur_graph_id
       IF (msg_level >= 13) CALL message('mo_nwp_turbtrans_interface: ', message_text)
-      CALL accx_begin_capture(1)
+      CALL accBeginCapture(1)
     END IF
   END IF
 #endif
@@ -268,7 +273,7 @@ SUBROUTINE nwp_turbtrans  ( tcall_turb_jg,                     & !>in
 !$OMP temp_t,pres_t,qv_t,qc_t,tkvm_t,tkvh_t,z_ifc_t,rcld_t,sai_t,urb_isa_t,fr_land_t,depth_lk_t,&
 !$OMP h_ice_t,area_frac,shfl_s_t,lhfl_s_t,qhfl_s_t,umfl_s_t,vmfl_s_t,nlevcm,jk_gust,epr_t,      &
 !$OMP PGEOMLEV,PCPTGZLEV,PCPTSTI,PUCURR,PVCURR,ZCFMTI,PCFHTI,PCFQTI,ZBUOMTI,ZZDLTI,             &
-!$OMP ZZ0MTI,ZZ0HTI,ZZ0QTI,rho_s,rlamh_fac ) ICON_OMP_GUIDED_SCHEDULE
+!$OMP ZZ0MTI,ZZ0HTI,ZZ0QTI,rho_s,rlamh_fac,lgz0inp_loc) ICON_OMP_GUIDED_SCHEDULE
 !MR:>
 
   DO jb = i_startblk, i_endblk
@@ -438,7 +443,7 @@ SUBROUTINE nwp_turbtrans  ( tcall_turb_jg,                     & !>in
 !-------------------------------------------------------------------------
 !< COSMO turbulence scheme by M. Raschendorfer
 !-------------------------------------------------------------------------
- 
+
 
       ! note that TKE must be converted to the turbulence velocity scale SQRT(2*TKE)
       ! for turbdiff
@@ -468,7 +473,7 @@ SUBROUTINE nwp_turbtrans  ( tcall_turb_jg,                     & !>in
         CALL turbtran (               & ! only surface-layer turbulence
           &  iini=0,                  & !
           &  ltkeinp=.FALSE.,         & !
-          &  lgz0inp=.FALSE.,         & !
+          &  lgz0inp=.FALSE.,         &
           &  lstfnct=.TRUE. ,         & ! with stability function
           &  lsrflux=.TRUE. ,         & !
           &  lnsfdia=.TRUE. ,         & ! including near-surface diagnostics
@@ -566,6 +571,13 @@ SUBROUTINE nwp_turbtrans  ( tcall_turb_jg,                     & !>in
         ! Loop over land tile points, sea, lake points and seaice points
         ! Each tile has a separate index list
         DO  jt = 1, ntiles_total + ntiles_water
+
+          IF (is_coupled_to_waves().AND.(jt==isub_water)) THEN
+            lgz0inp_loc = .TRUE.  ! gz0 at non ice-covered sea water points is provided
+                                  ! from external sources (e.g. ICON-waves). No update by turbtran.
+          ELSE
+            lgz0inp_loc = .FALSE. ! gz0 at water points is updated by turbtran
+          END IF
 
           IF (multi_queue_processing) acc_async_queue = jt
           !$ACC DATA CREATE(u_t, v_t, temp_t, pres_t, qv_t, qc_t, epr_t, z_ifc_t, pres_sfc_t) &
@@ -690,12 +702,12 @@ SUBROUTINE nwp_turbtrans  ( tcall_turb_jg,                     & !>in
 
           nlevcm = 3
           nzprv  = 1
-          
+
           ! turbtran
           CALL turbtran (               & ! only surface-layer turbulence
             &  iini=0,                  & !
             &  ltkeinp=.FALSE.,         & !
-            &  lgz0inp=.FALSE.,         & !
+            &  lgz0inp=lgz0inp_loc,     & !
             &  lstfnct=.TRUE. ,         & ! with stability function
             &  lsrflux=.TRUE. ,         & !
             &  lnsfdia=.TRUE. ,         & ! including near-surface diagnostics
@@ -922,22 +934,39 @@ SUBROUTINE nwp_turbtrans  ( tcall_turb_jg,                     & !>in
 
       ENDIF ! tiles / no tiles
 
-      ! Dynamic gusts are diagnosed from averaged values in order to avoid artifacts along coastlines
-      !$ACC PARALLEL ASYNC(1) DEFAULT(PRESENT) IF(lzacc)
-      !$ACC LOOP GANG(STATIC: 1) VECTOR
-      DO jc = i_startidx, i_endidx
-        prm_diag%dyn_gust(jc,jb) =  nwp_dyn_gust (prm_diag%u_10m(jc,jb),      &
-          &                                       prm_diag%v_10m(jc,jb),      &
-          &                                       prm_diag%tcm  (jc,jb),      &
-          &                                       p_diag%u      (jc,nlev,jb), &
-          &                                       p_diag%v      (jc,nlev,jb), &
-          &                                       p_diag%u(jc,jk_gust(jc),jb),&
-          &                                       p_diag%v(jc,jk_gust(jc),jb),&
-          &                          ext_data%atm%lc_frac_t(jc,jb,isub_water),&
-          &                                  p_metrics%mask_mtnpoints_g(jc,jb))
-      ENDDO
+      IF (itune_gust_diag < 4) THEN
+        ! Dynamic gusts are diagnosed from averaged values in order to avoid artifacts along coastlines
+        !$ACC PARALLEL ASYNC(1) DEFAULT(PRESENT) IF(lzacc)
+        !$ACC LOOP GANG(STATIC: 1) VECTOR
+        DO jc = i_startidx, i_endidx
+          prm_diag%dyn_gust(jc,jb) =  nwp_dyn_gust (prm_diag%u_10m(jc,jb),      &
+            &                                       prm_diag%v_10m(jc,jb),      &
+            &                                       prm_diag%tcm  (jc,jb),      &
+            &                                       p_diag%u      (jc,nlev,jb), &
+            &                                       p_diag%v      (jc,nlev,jb), &
+            &                                       p_diag%u(jc,jk_gust(jc),jb),&
+            &                                       p_diag%v(jc,jk_gust(jc),jb),&
+            &                          ext_data%atm%lc_frac_t(jc,jb,isub_water),&
+            &                                  p_metrics%mask_mtnpoints_g(jc,jb))
+        ENDDO
+        !$ACC END PARALLEL
+      ELSE ! compute only the gust limiter; the gust calculation itself is executed at the end of each averaging interval
+        !$ACC PARALLEL ASYNC(1) DEFAULT(PRESENT) IF(lzacc)
+        !$ACC LOOP GANG(STATIC: 1)
+        DO jk = nlev, kstart_moist(jg), -1
+          !$ACC LOOP VECTOR
+          DO jc = i_startidx, i_endidx
+            IF (p_metrics%geopot_agl(jc,jk,jb) < MAX(tune_gustlim_agl(jg)*grav, &
+                p_metrics%geopot_agl(jc,jk_gust(jc),jb) + 500._wp*grav)) THEN
+              prm_diag%gust_lim(jc,jb) = MAX(prm_diag%gust_lim(jc,jb), SQRT(p_diag%u(jc,jk,jb)**2 + p_diag%v(jc,jk,jb)**2))
+            ENDIF
+          ENDDO
+        ENDDO
+        !$ACC END PARALLEL
+      ENDIF
 
       ! transform updated turbulent velocity scale back to TKE
+      !$ACC PARALLEL ASYNC(1) DEFAULT(PRESENT) IF(lzacc)
       !$ACC LOOP GANG(STATIC: 1) VECTOR
       DO jc = i_startidx, i_endidx
         p_prog_rcf%tke(jc,nlevp1,jb)= 0.5_wp*(z_tvs(jc,3,1))**2
@@ -1066,10 +1095,10 @@ SUBROUTINE nwp_turbtrans  ( tcall_turb_jg,                     & !>in
 
 #ifdef ICON_USE_CUDA_GRAPH
     IF (lzacc .AND. lcuda_graph_turb_tran) THEN
-      CALL accx_end_capture(graphs(cur_graph_id), 1)
+      CALL accEndCapture(1, graphs(cur_graph_id))
       WRITE(message_text,'(a,i2,a)') 'finished to capture CUDA graph, id ', cur_graph_id, ', now executing it'
       IF (msg_level >= 13) CALL message('mo_nwp_turbtrans_interface: ', message_text)
-      CALL accx_graph_exec(graphs(cur_graph_id), 1)
+      CALL accGraphLaunch(graphs(cur_graph_id), 1)
     END IF
 #endif
 
