@@ -360,7 +360,7 @@ SUBROUTINE init_nwp_phy ( p_patch, p_metrics,             &
 
   IF (linit_mode) THEN ! initialize field for time-dependent LW emissivity
 !$OMP PARALLEL
-    CALL copy(ext_data%atm%emis_rad, prm_diag%lw_emiss)
+    CALL copy(ext_data%atm%emis_rad, prm_diag%lw_emiss, lacc=.FALSE.)
 !$OMP END PARALLEL
   ENDIF
 

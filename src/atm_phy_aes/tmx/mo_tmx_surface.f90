@@ -113,20 +113,20 @@ CONTAINS
     CHARACTER(len=*), PARAMETER :: routine = modname//':update_land'
 
 !$OMP PARALLEL
-    CALL init(tsfc)
-    CALL init(qsat)
+    CALL init(tsfc, lacc=.TRUE.)
+    CALL init(qsat, lacc=.TRUE.)
     IF (PRESENT(km)) THEN
-      CALL init(tsfc_rad)
-      CALL init(tsfc_eff)
-      CALL init(q_snocpymlt)
-      CALL init(alb_vis_dir)
-      CALL init(alb_vis_dif)
-      CALL init(alb_nir_dir)
-      CALL init(alb_nir_dif)
-      CALL init(kh)
-      CALL init(km)
-      CALL init(kh_neutral)
-      CALL init(km_neutral)
+      CALL init(tsfc_rad, lacc=.TRUE.)
+      CALL init(tsfc_eff, lacc=.TRUE.)
+      CALL init(q_snocpymlt, lacc=.TRUE.)
+      CALL init(alb_vis_dir, lacc=.TRUE.)
+      CALL init(alb_vis_dif, lacc=.TRUE.)
+      CALL init(alb_nir_dir, lacc=.TRUE.)
+      CALL init(alb_nir_dif, lacc=.TRUE.)
+      CALL init(kh, lacc=.TRUE.)
+      CALL init(km, lacc=.TRUE.)
+      CALL init(kh_neutral, lacc=.TRUE.)
+      CALL init(km_neutral, lacc=.TRUE.)
     END IF
 !$OMP END PARALLEL
 
@@ -306,15 +306,15 @@ CONTAINS
     !$ACC DATA CREATE(Tfw, nonsolar_flux, dnonsolar_flux_dt, T1, T2)
 
 !$OMP PARALLEL
-    CALL init(new_tsfc)
-    CALL init(q_top)
-    CALL init(q_bot)
-    CALL init(albvisdir)
-    CALL init(albvisdif)
-    CALL init(albnirdir)
-    CALL init(albnirdif)
-    CALL init(T1)
-    CALL init(T2)
+    CALL init(new_tsfc, lacc=.TRUE.)
+    CALL init(q_top, lacc=.TRUE.)
+    CALL init(q_bot, lacc=.TRUE.)
+    CALL init(albvisdir, lacc=.TRUE.)
+    CALL init(albvisdif, lacc=.TRUE.)
+    CALL init(albnirdir, lacc=.TRUE.)
+    CALL init(albnirdif, lacc=.TRUE.)
+    CALL init(T1, lacc=.TRUE.)
+    CALL init(T2, lacc=.TRUE.)
 !$OMP END PARALLEL
 
 #ifndef __NO_ICON_OCEAN__
@@ -427,7 +427,7 @@ CONTAINS
     CHARACTER(len=*), PARAMETER :: routine = modname//':compute_lw_rad_net'
 
 !$OMP PARALLEL
-    CALL init(lwfl_net)
+    CALL init(lwfl_net, lacc=.TRUE.)
 !$OMP END PARALLEL
 
 !$OMP PARALLEL DO PRIVATE(jb, jls, js) ICON_OMP_DEFAULT_SCHEDULE
@@ -488,7 +488,7 @@ CONTAINS
     CHARACTER(len=*), PARAMETER :: routine = modname//':compute_sw_rad_net'
 
 !$OMP PARALLEL
-    CALL init(swfl_net)
+    CALL init(swfl_net, lacc=.TRUE.)
 !$OMP END PARALLEL
 
 !$OMP PARALLEL DO PRIVATE(jb, jls, js) ICON_OMP_DEFAULT_SCHEDULE
@@ -548,8 +548,8 @@ CONTAINS
     CHARACTER(len=*), PARAMETER :: routine = modname//':compute_sfc_roughness'
 
 !$OMP PARALLEL
-    CALL init(rough_h)
-    CALL init(rough_m)
+    CALL init(rough_h, lacc=.TRUE.)
+    CALL init(rough_m, lacc=.TRUE.)
 !$OMP END PARALLEL
 
 !$OMP PARALLEL DO PRIVATE(jb, jl, jls, js, rough_tmp) ICON_OMP_DEFAULT_SCHEDULE
@@ -740,11 +740,11 @@ CONTAINS
     ! CALL message(routine, 'Start')
 
 !$OMP PARALLEL
-      CALL init(evapotrans)
-      CALL init(latent_hflx)
-      CALL init(sensible_hflx)
-      CALL init(ustress)
-      CALL init(vstress)
+      CALL init(evapotrans, lacc=.TRUE.)
+      CALL init(latent_hflx, lacc=.TRUE.)
+      CALL init(sensible_hflx, lacc=.TRUE.)
+      CALL init(ustress, lacc=.TRUE.)
+      CALL init(vstress, lacc=.TRUE.)
 !$OMP END PARALLEL
 
     IF (isrfc_type == 1) THEN
@@ -849,8 +849,8 @@ CONTAINS
     CHARACTER(len=*), PARAMETER :: routine = modname//':compute_energy_fluxes'
 
 !$OMP PARALLEL
-    CALL init(ufts)
-    CALL init(ufvs)
+    CALL init(ufts, lacc=.TRUE.)
+    CALL init(ufvs, lacc=.TRUE.)
 !$OMP END PARALLEL
 
 !$OMP PARALLEL DO PRIVATE(ib, ic) ICON_OMP_DEFAULT_SCHEDULE
@@ -914,7 +914,7 @@ CONTAINS
     CHARACTER(len=*), PARAMETER :: routine = modname//':compute_albedo'
 
 !$OMP PARALLEL
-    CALL init(albedo)
+    CALL init(albedo, lacc=.TRUE.)
 !$OMP END PARALLEL
 
 !$OMP PARALLEL DO PRIVATE(jb, jls, js, zalbvis, zalbnir, rvds, rnds) ICON_OMP_DEFAULT_SCHEDULE
@@ -984,9 +984,9 @@ CONTAINS
     CHARACTER(len=*), PARAMETER :: routine = modname//':compute_10m_wind'
 
 !$OMP PARALLEL
-    CALL init(u10m)
-    CALL init(v10m)
-    CALL init(wind10m)
+    CALL init(u10m, lacc=.TRUE.)
+    CALL init(v10m, lacc=.TRUE.)
+    CALL init(wind10m, lacc=.TRUE.)
 !$OMP END PARALLEL
 
 !$OMP PARALLEL DO PRIVATE(jb, jls, js, zrat, zbm, zcbn, zcbs, zcbu, zmerge, zred) ICON_OMP_DEFAULT_SCHEDULE
@@ -1050,7 +1050,7 @@ CONTAINS
     CHARACTER(len=*), PARAMETER :: routine = modname//':compute_2m_temperature'
 
 !$OMP PARALLEL
-    CALL init(t2m)
+    CALL init(t2m, lacc=.TRUE.)
 !$OMP END PARALLEL
 
 !$OMP PARALLEL DO PRIVATE(jb, jls, js, zrat, zbm, zbh, zcbn, zcbs, zcbu, zmerge, zred) ICON_OMP_DEFAULT_SCHEDULE
@@ -1118,7 +1118,7 @@ CONTAINS
     CHARACTER(len=*), PARAMETER :: routine = modname//':compute_2m_humidity'
 
 !$OMP PARALLEL
-    CALL init(hus2m)
+    CALL init(hus2m, lacc=.TRUE.)
 !$OMP END PARALLEL
 
     ! Note: Below it is assumed that relative humidity is constant with height. This should

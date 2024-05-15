@@ -50,7 +50,7 @@ MODULE mo_rttov_interface
   USE mo_name_list_output_config, ONLY: is_variable_in_output
   USE mo_atm_phy_nwp_config,  ONLY: atm_phy_nwp_config
   USE mo_mpi,                 ONLY: p_pe, p_comm_work, p_io, num_work_procs, p_barrier, &
-    &                               get_my_mpi_all_id
+    &                               get_my_mpi_all_id, i_am_accel_node
   USE mo_fortran_tools,       ONLY: assert_acc_device_only, assert_lacc_equals_i_am_accel_node
 #ifdef __USE_RTTOV
   USE mo_rtifc,               ONLY: rtifc_set_opts, rtifc_init, rtifc_fill_input, &
@@ -1157,7 +1157,7 @@ SUBROUTINE downscale_rttov_output(jg, nimg, rg_satimg, satimg, l_enabled)
     CALL p_barrier(p_comm_work)
     WRITE (0,*) "Synchronize sat image array before interpolation"
   END IF
-  CALL assert_lacc_equals_i_am_accel_node("downscale_rttov_output", .TRUE.)
+  CALL assert_lacc_equals_i_am_accel_node("downscale_rttov_output", .TRUE., i_am_accel_node)
   CALL exchange_data(p_pp%comm_pat_c, rg_satimg)
 
   ! Execute interpolation from reduced grid to full grid
@@ -1307,8 +1307,8 @@ SUBROUTINE copy_rttov_ubc (jg, jgc, prm_diag, lacc)
 
   INTEGER :: nshift
 
-  CALL assert_acc_device_only("copy_rttov_ubc", lacc)
-  CALL assert_lacc_equals_i_am_accel_node("copy_rttov_ubc", lacc)
+  CALL assert_acc_device_only("copy_rttov_ubc", lacc=lacc)
+  CALL assert_lacc_equals_i_am_accel_node("copy_rttov_ubc", lacc, i_am_accel_node)
 
   nshift = p_patch(jgc)%nshift
   CALL exchange_data_mult(p_patch_local_parent(jgc)%comm_pat_glb_to_loc_c, 5, 5*nshift,                            &

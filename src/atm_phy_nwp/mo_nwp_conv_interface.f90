@@ -229,9 +229,9 @@ CONTAINS
        CALL finish('nwp_convection','stochastic convection not ported to GPU')
 #endif
        ! initialize stochstic diagnostic variables:
-       CALL init(prm_diag%mf_b)
-       CALL init(prm_diag%mf_p)
-       CALL init(prm_diag%mf_num)
+       CALL init(prm_diag%mf_b, lacc=lzacc)
+       CALL init(prm_diag%mf_p, lacc=lzacc)
+       CALL init(prm_diag%mf_num, lacc=lzacc)
     ENDIF
 
     IF (lstoch_expl .or. lstoch_sde) THEN

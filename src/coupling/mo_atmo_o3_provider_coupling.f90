@@ -18,13 +18,14 @@
 
 MODULE mo_atmo_o3_provider_coupling
 
-  USE mo_kind,           ONLY: wp
-  USE mo_model_domain,   ONLY: t_patch
-  USE mo_exception,      ONLY: finish
-  USE mo_aes_rad_config, ONLY: aes_rad_config
-  USE mo_coupling_utils, ONLY: cpl_def_field, cpl_get_field, &
-                               cpl_get_field_collection_size
-  USE mo_sync,           ONLY: SYNC_C, sync_patch_array
+  USE mo_kind,            ONLY: wp
+  USE mo_model_domain,    ONLY: t_patch
+  USE mo_exception,       ONLY: finish
+  USE mo_aes_rad_config,  ONLY: aes_rad_config
+  USE mo_coupling_config, ONLY: is_coupled_to_o3
+  USE mo_coupling_utils,  ONLY: cpl_def_field, cpl_get_field, &
+                                cpl_get_field_collection_size
+  USE mo_sync,            ONLY: SYNC_C, sync_patch_array
 
   IMPLICIT NONE
 
@@ -60,7 +61,7 @@ CONTAINS
     CHARACTER(LEN=*), PARAMETER   :: &
       routine = str_module // ':construct_atmo_o3_provider_coupling_post_sync'
 
-    IF  (.NOT. aes_rad_config(jg)%lrad_yac .OR. &
+    IF  (.NOT. is_coupled_to_o3() .OR. &
          (aes_rad_config(jg)%irad_o3 /= 5 .AND. &
           aes_rad_config(jg)%irad_o3 /= 6)) &
       CALL finish(routine, "invalid configuration")

@@ -707,7 +707,7 @@ CONTAINS
           ! CO2 tracer
           IF ( iqt <= ico2 .AND. ico2 <= ntracer) THEN
 !$OMP PARALLEL
-            CALL init(p_nh_state(jg)%prog(nnow_rcf(jg))%tracer(:,:,:,ico2),aes_rad_config(jg)% vmr_co2*amco2/amd)
+            CALL init(p_nh_state(jg)%prog(nnow_rcf(jg))%tracer(:,:,:,ico2),aes_rad_config(jg)% vmr_co2*amco2/amd, lacc=.FALSE.)
 !$OMP END PARALLEL
             CALL print_value('CO2 tracer initialized with constant vmr', &
               &              aes_rad_config(jg)% vmr_co2*amco2/amd,    &
@@ -726,7 +726,7 @@ CONTAINS
               CALL message(routine,'o3 tracer is initialized by the Cariolle lin. o3 scheme')
             ELSE
 !$OMP PARALLEL
-              CALL init(p_nh_state(jg)%prog(nnow_rcf(jg))%tracer(:,:,:,io3),0.0_wp)
+              CALL init(p_nh_state(jg)%prog(nnow_rcf(jg))%tracer(:,:,:,io3),0.0_wp, lacc=.FALSE.)
 !$OMP END PARALLEL
               CALL message(routine,'o3 tracer is initialized to zero, check setup')
             END IF

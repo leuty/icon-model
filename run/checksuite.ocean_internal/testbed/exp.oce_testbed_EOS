@@ -60,6 +60,9 @@ cat > ${ocean_namelist} << EOF
   n_zlev             =   2      ! number of vertical levels and (dzlev_m) thicknesses
   dzlev_m(1:2)      =   20.0,   20.0
 /
+&sea_ice_nml
+  stress_ice_zero = .TRUE.
+/
 EOF
 #-----------------------------------------------------------------------------
 #-----------------------------------------------------------------------------

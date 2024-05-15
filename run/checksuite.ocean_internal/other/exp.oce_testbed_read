@@ -79,6 +79,9 @@ cat > ${ocean_namelist} << EOF
 &ocean_initialConditions_nml
   InitialState_InputFileName = 'test_InputInitialState.nc'
 /
+&sea_ice_nml
+  stress_ice_zero = .TRUE.
+/
 EOF
 #-----------------------------------------------------------------------------
 # add required standard input files

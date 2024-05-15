@@ -98,10 +98,8 @@ MODULE mo_pp_tasks
   USE mo_interpol_config,         ONLY: support_baryctr_intp
   USE mo_advection_config,        ONLY: advection_config
   USE mo_fortran_tools,           ONLY: init, copy, assert_acc_device_only, assert_acc_host_only, &
-   &                                    assert_lacc_equals_i_am_accel_node
-#ifdef _OPENACC
+    & assert_lacc_equals_i_am_accel_node
   USE mo_mpi,                     ONLY: i_am_accel_node
-#endif
 
   ! Workaround for SMI computation. Not nice, however by making 
   ! direct use of the states below, we avoid enhancing the type t_data_input.
@@ -235,10 +233,6 @@ MODULE mo_pp_tasks
   !--- MODULE DATA -------------------------------------------------------------------
   TYPE(t_job_queue), POINTER   :: job_queue  =>  NULL() !< head of (ordered) job queue
 
-#ifndef _OPENACC
-  LOGICAL, PARAMETER :: i_am_accel_node=.FALSE.
-#endif
-
 CONTAINS
 
   !--- POST-PROCESSING TASKS ---------------------------------------------------------
@@ -351,7 +345,7 @@ CONTAINS
             SELECT CASE(var_ref_pos)
             CASE (1)
               !$OMP PARALLEL
-              CALL copy(in_var%r_ptr(in_var_idx,:,:,1,1), tmp_var(:,1,:))
+              CALL copy(in_var%r_ptr(in_var_idx,:,:,1,1), tmp_var(:,1,:), lacc=i_am_accel_node)
               !$OMP END PARALLEL
               tmp_ptr => tmp_var(:,:,:)
             CASE (2)
@@ -359,7 +353,7 @@ CONTAINS
               tmp_ptr => in_var%r_ptr(:,in_var_idx:in_var_idx,:,1,1)
             CASE (3)
               !$OMP PARALLEL
-              CALL copy(in_var%r_ptr(:,:,in_var_idx,1,1), tmp_var(:,1,:))
+              CALL copy(in_var%r_ptr(:,:,in_var_idx,1,1), tmp_var(:,1,:), lacc=i_am_accel_node)
               !$OMP END PARALLEL
               tmp_ptr => tmp_var(:,:,:)
             CASE default
@@ -373,15 +367,15 @@ CONTAINS
             SELECT CASE(var_ref_pos)
             CASE (1)
               !$OMP PARALLEL
-              CALL copy(in_var%s_ptr(in_var_idx,:,:,1,1), tmp_var(:,1,:))
+              CALL copy(in_var%s_ptr(in_var_idx,:,:,1,1), tmp_var(:,1,:), lacc=i_am_accel_node)
               !$OMP END PARALLEL
             CASE (2)
               !$OMP PARALLEL
-              CALL copy(in_var%s_ptr(:,in_var_idx,:,1,1), tmp_var(:,1,:))
+              CALL copy(in_var%s_ptr(:,in_var_idx,:,1,1), tmp_var(:,1,:), lacc=i_am_accel_node)
               !$OMP END PARALLEL
             CASE (3)
               !$OMP PARALLEL
-              CALL copy(in_var%s_ptr(:,:,in_var_idx,1,1), tmp_var(:,1,:))
+              CALL copy(in_var%s_ptr(:,:,in_var_idx,1,1), tmp_var(:,1,:), lacc=i_am_accel_node)
               !$OMP END PARALLEL
             CASE default
               CALL finish(routine, "internal error!")
@@ -420,7 +414,7 @@ CONTAINS
               IF (ierrstat /= SUCCESS)  CALL finish (routine, 'allocation of tmp_var failed')
               !$ACC ENTER DATA CREATE(tmp_var) IF(i_am_accel_node)
               !$OMP PARALLEL
-              CALL copy(in_var%s_ptr(in_var_idx,:,:,:,1), tmp_var)
+              CALL copy(in_var%s_ptr(in_var_idx,:,:,:,1), tmp_var, lacc=i_am_accel_node)
               !$OMP END PARALLEL
             CASE (2)
               dim1 = SIZE(in_var%s_ptr,1)
@@ -430,7 +424,7 @@ CONTAINS
               IF (ierrstat /= SUCCESS)  CALL finish (routine, 'allocation of tmp_var failed')
               !$ACC ENTER DATA CREATE(tmp_var) IF(i_am_accel_node)
               !$OMP PARALLEL
-              CALL copy(in_var%s_ptr(:,in_var_idx,:,:,1), tmp_var)
+              CALL copy(in_var%s_ptr(:,in_var_idx,:,:,1), tmp_var, lacc=i_am_accel_node)
               !$OMP END PARALLEL
             CASE (3)
               dim1 = SIZE(in_var%s_ptr,1)
@@ -440,7 +434,7 @@ CONTAINS
               IF (ierrstat /= SUCCESS)  CALL finish (routine, 'allocation of tmp_var failed')
               !$ACC ENTER DATA CREATE(tmp_var) IF(i_am_accel_node)
               !$OMP PARALLEL
-              CALL copy(in_var%s_ptr(:,:,in_var_idx,:,1), tmp_var)
+              CALL copy(in_var%s_ptr(:,:,in_var_idx,:,1), tmp_var, lacc=i_am_accel_node)
               !$OMP END PARALLEL
             CASE (4)
               dim1 = SIZE(in_var%s_ptr,1)
@@ -450,7 +444,7 @@ CONTAINS
               IF (ierrstat /= SUCCESS)  CALL finish (routine, 'allocation of tmp_var failed')
               !$ACC ENTER DATA CREATE(tmp_var) IF(i_am_accel_node)
               !$OMP PARALLEL
-              CALL copy(in_var%s_ptr(:,:,:,in_var_idx,1), tmp_var)
+              CALL copy(in_var%s_ptr(:,:,:,in_var_idx,1), tmp_var, lacc=i_am_accel_node)
               !$OMP END PARALLEL
             CASE default
               CALL finish(routine, "internal error!")
@@ -490,13 +484,13 @@ CONTAINS
 
           SELECT CASE(var_ref_pos)
           CASE (1)
-            CALL copy(in_var%i_ptr(in_var_idx,:,:,1,1), tmp_int_var(:,1,:))
+            CALL copy(in_var%i_ptr(in_var_idx,:,:,1,1), tmp_int_var(:,1,:), lacc=i_am_accel_node)
             tmp_int_ptr => tmp_int_var
           CASE (2)
             ! no need to copy in this particular case (the second dim has already length 1)
             tmp_int_ptr => in_var%i_ptr(:,in_var_idx:in_var_idx,:,1,1)
           CASE (3)
-            CALL copy(in_var%i_ptr(:,:,in_var_idx,1,1), tmp_int_var(:,1,:))
+            CALL copy(in_var%i_ptr(:,:,in_var_idx,1,1), tmp_int_var(:,1,:), lacc=i_am_accel_node)
             tmp_int_ptr => tmp_int_var
           CASE default
             CALL finish(routine, "internal error!")
@@ -563,7 +557,7 @@ CONTAINS
         SELECT CASE(var_ref_pos)
         CASE (1)
           !$OMP PARALLEL
-          CALL copy(in_var%r_ptr(in_var_idx,:,:,1,1), tmp_var(:,1,:))
+          CALL copy(in_var%r_ptr(in_var_idx,:,:,1,1), tmp_var(:,1,:), lacc=i_am_accel_node)
           !$OMP END PARALLEL
           tmp_ptr => tmp_var(:,:,:)
         CASE (2)
@@ -571,7 +565,7 @@ CONTAINS
           tmp_ptr => in_var%r_ptr(:,in_var_idx:in_var_idx,:,1,1)
         CASE (3)
           !$OMP PARALLEL
-          CALL copy(in_var%r_ptr(:,:,in_var_idx,1,1), tmp_var(:,1,:))
+          CALL copy(in_var%r_ptr(:,:,in_var_idx,1,1), tmp_var(:,1,:), lacc=i_am_accel_node)
           !$OMP END PARALLEL
           tmp_ptr => tmp_var(:,:,:)
         CASE default
@@ -872,7 +866,7 @@ CONTAINS
     REAL(wp), POINTER :: in_ptr(:,:,:), out_ptr(:,:,:)
 
     CALL assert_acc_device_only(routine, lacc)
-    CALL assert_lacc_equals_i_am_accel_node(routine, lacc)
+    CALL assert_lacc_equals_i_am_accel_node(routine, lacc, i_am_accel_node)
 
     ! input/output field for this task
     p_info            => ptr_task%data_input%var%info
@@ -1010,7 +1004,7 @@ CONTAINS
         IF (ierrstat /= SUCCESS)  CALL finish (routine, 'allocation of tmp_var failed')
         !$ACC ENTER DATA CREATE(tmp_var)
 !$OMP PARALLEL
-        CALL copy(in_var%s_ptr(in_var_idx,:,:,:,1), tmp_var(:,:,:))
+        CALL copy(in_var%s_ptr(in_var_idx,:,:,:,1), tmp_var(:,:,:), lacc=.TRUE.)
 !$OMP END PARALLEL
       CASE (2)
         dim1 = SIZE(in_var%s_ptr,1)
@@ -1020,7 +1014,7 @@ CONTAINS
         IF (ierrstat /= SUCCESS)  CALL finish (routine, 'allocation of tmp_var failed')
         !$ACC ENTER DATA CREATE(tmp_var)
 !$OMP PARALLEL
-        CALL copy(in_var%s_ptr(:,in_var_idx,:,:,1), tmp_var(:,:,:))
+        CALL copy(in_var%s_ptr(:,in_var_idx,:,:,1), tmp_var(:,:,:), lacc=.TRUE.)
 !$OMP END PARALLEL
       CASE (3)
         dim1 = SIZE(in_var%s_ptr,1)
@@ -1030,7 +1024,7 @@ CONTAINS
         IF (ierrstat /= SUCCESS)  CALL finish (routine, 'allocation of tmp_var failed')
         !$ACC ENTER DATA CREATE(tmp_var)
 !$OMP PARALLEL
-        CALL copy(in_var%s_ptr(:,:,in_var_idx,:,1), tmp_var(:,:,:))
+        CALL copy(in_var%s_ptr(:,:,in_var_idx,:,1), tmp_var(:,:,:), lacc=.TRUE.)
 !$OMP END PARALLEL
       CASE (4)
         dim1 = SIZE(in_var%s_ptr,1)
@@ -1040,7 +1034,7 @@ CONTAINS
         IF (ierrstat /= SUCCESS)  CALL finish (routine, 'allocation of tmp_var failed')
         !$ACC ENTER DATA CREATE(tmp_var)
 !$OMP PARALLEL
-        CALL copy(in_var%s_ptr(:,:,:,in_var_idx,1), tmp_var(:,:,:))
+        CALL copy(in_var%s_ptr(:,:,:,in_var_idx,1), tmp_var(:,:,:), lacc=.TRUE.)
 !$OMP END PARALLEL
       CASE default
         CALL finish(routine, "internal error!")
@@ -1200,7 +1194,7 @@ CONTAINS
       &  zextrap, wfacpbl1, wfacpbl2
 
     CALL assert_acc_device_only(routine, lacc)
-    CALL assert_lacc_equals_i_am_accel_node(routine, lacc)
+    CALL assert_lacc_equals_i_am_accel_node(routine, lacc, i_am_accel_node)
 
     ! patch, state, and metrics
     jg             =  ptr_task%data_input%jg
@@ -1230,10 +1224,10 @@ CONTAINS
       IF (dbg_level >= 10)  CALL message(routine, "PRES_MSL_METHOD_SAI: stepwise analytical integration")
 
       !$ACC DATA CREATE(kpbl1, wfacpbl1, kpbl2, wfacpbl2)
-      CALL init(kpbl1, opt_acc_async=.TRUE.)
-      CALL init(wfacpbl1, opt_acc_async=.TRUE.)
-      CALL init(kpbl2, opt_acc_async=.TRUE.)
-      CALL init(wfacpbl2, opt_acc_async=.TRUE.)
+      CALL init(kpbl1, lacc=.TRUE., opt_acc_async=.TRUE.)
+      CALL init(wfacpbl1, lacc=.TRUE., opt_acc_async=.TRUE.)
+      CALL init(kpbl2, lacc=.TRUE., opt_acc_async=.TRUE.)
+      CALL init(wfacpbl2, lacc=.TRUE., opt_acc_async=.TRUE.)
 
       ! compute extrapolation coefficients:
       CALL prepare_extrap(p_metrics%z_mc,                                     & !in
@@ -1274,9 +1268,9 @@ CONTAINS
         ENDIF
       ENDIF
       !$ACC DATA CREATE(kpbl1, wfacpbl1, zextrap)
-      CALL init(kpbl1, opt_acc_async=.TRUE.)
-      CALL init(wfacpbl1, opt_acc_async=.TRUE.)
-      CALL init(zextrap, opt_acc_async=.TRUE.)
+      CALL init(kpbl1, lacc=.TRUE., opt_acc_async=.TRUE.)
+      CALL init(wfacpbl1, lacc=.TRUE., opt_acc_async=.TRUE.)
+      CALL init(zextrap, lacc=.TRUE., opt_acc_async=.TRUE.)
       ! compute extrapolation coefficients:
       CALL prepare_extrap_ifspp(p_metrics%z_ifc, p_metrics%z_mc,              & !in
         &                 nblks_c, npromz_c, nlev,                            & !in
@@ -1299,14 +1293,14 @@ CONTAINS
     IF (l_limited_area .OR. jg > 1) THEN ! copy outermost nest boundary row in order to avoid missing values
       i_endblk = p_patch%cells%end_blk(1,1)
       !$OMP PARALLEL
-      CALL copy(pmsl_aux(:,1,1:i_endblk), pmsl_avg(:,1,1:i_endblk), opt_acc_async=.TRUE.)
+      CALL copy(pmsl_aux(:,1,1:i_endblk), pmsl_avg(:,1,1:i_endblk), lacc=.TRUE., opt_acc_async=.TRUE.)
       !$OMP END PARALLEL
     ENDIF
 
     CALL cell_avg(pmsl_aux, p_patch, p_int_state(jg)%c_bln_avg, pmsl_avg, lacc=.TRUE.)
     i_endblk = ptr_task%data_input%p_patch%nblks_c
     !$OMP PARALLEL
-    CALL copy(pmsl_avg(:,1,1:i_endblk), out_var%r_ptr(:,1:i_endblk,out_var_idx,1,1), opt_acc_async=.TRUE.)
+    CALL copy(pmsl_avg(:,1,1:i_endblk), out_var%r_ptr(:,1:i_endblk,out_var_idx,1,1), lacc=.TRUE., opt_acc_async=.TRUE.)
     !$OMP END PARALLEL
     !$ACC WAIT
     !$ACC END DATA

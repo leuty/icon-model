@@ -332,7 +332,7 @@ CONTAINS
     ! and as we loop over the full array.
 
     !$OMP PARALLEL
-    CALL init(buf(:,:))
+    CALL init(buf(:,:), lacc=.FALSE.)
     !$OMP END PARALLEL
 
     jg = p_patch%id
@@ -537,7 +537,7 @@ CONTAINS
     !     therefore buffer is set to zero to avoid unintended usage of ocean values over land
 
     !$OMP PARALLEL
-    CALL init(buf(:,:))
+    CALL init(buf(:,:), lacc=.FALSE.)
     !$OMP END PARALLEL
 
     !------------------------------------------------

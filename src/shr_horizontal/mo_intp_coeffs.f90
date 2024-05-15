@@ -1583,20 +1583,20 @@ CONTAINS
 
     ! Initialization of lateral boundary points
     IF (ptr_patch%id > 1) THEN
-      CALL init(ptr_patch%edges%inv_dual_edge_length(:,1:i_startblk))
-      CALL init(ptr_patch%edges%vertex_idx(:,1:i_startblk,3))
-      CALL init(ptr_patch%edges%vertex_idx(:,1:i_startblk,4))
-      CALL init(ptr_patch%edges%vertex_blk(:,1:i_startblk,3))
-      CALL init(ptr_patch%edges%vertex_blk(:,1:i_startblk,4))
-      CALL init(ptr_patch%edges%inv_vert_vert_length(:,1:i_startblk))
-      CALL init(ptr_patch%edges%primal_normal_cell(:,1:i_startblk,:)%v1)
-      CALL init(ptr_patch%edges%dual_normal_cell  (:,1:i_startblk,:)%v1)
-      CALL init(ptr_patch%edges%primal_normal_vert(:,1:i_startblk,:)%v1)
-      CALL init(ptr_patch%edges%dual_normal_vert  (:,1:i_startblk,:)%v1)
-      CALL init(ptr_patch%edges%primal_normal_cell(:,1:i_startblk,:)%v2)
-      CALL init(ptr_patch%edges%dual_normal_cell  (:,1:i_startblk,:)%v2)
-      CALL init(ptr_patch%edges%primal_normal_vert(:,1:i_startblk,:)%v2)
-      CALL init(ptr_patch%edges%dual_normal_vert  (:,1:i_startblk,:)%v2)
+      CALL init(ptr_patch%edges%inv_dual_edge_length(:,1:i_startblk), lacc=.FALSE.)
+      CALL init(ptr_patch%edges%vertex_idx(:,1:i_startblk,3), lacc=.FALSE.)
+      CALL init(ptr_patch%edges%vertex_idx(:,1:i_startblk,4), lacc=.FALSE.)
+      CALL init(ptr_patch%edges%vertex_blk(:,1:i_startblk,3), lacc=.FALSE.)
+      CALL init(ptr_patch%edges%vertex_blk(:,1:i_startblk,4), lacc=.FALSE.)
+      CALL init(ptr_patch%edges%inv_vert_vert_length(:,1:i_startblk), lacc=.FALSE.)
+      CALL init(ptr_patch%edges%primal_normal_cell(:,1:i_startblk,:)%v1, lacc=.FALSE.)
+      CALL init(ptr_patch%edges%dual_normal_cell  (:,1:i_startblk,:)%v1, lacc=.FALSE.)
+      CALL init(ptr_patch%edges%primal_normal_vert(:,1:i_startblk,:)%v1, lacc=.FALSE.)
+      CALL init(ptr_patch%edges%dual_normal_vert  (:,1:i_startblk,:)%v1, lacc=.FALSE.)
+      CALL init(ptr_patch%edges%primal_normal_cell(:,1:i_startblk,:)%v2, lacc=.FALSE.)
+      CALL init(ptr_patch%edges%dual_normal_cell  (:,1:i_startblk,:)%v2, lacc=.FALSE.)
+      CALL init(ptr_patch%edges%primal_normal_vert(:,1:i_startblk,:)%v2, lacc=.FALSE.)
+      CALL init(ptr_patch%edges%dual_normal_vert  (:,1:i_startblk,:)%v2, lacc=.FALSE.)
 !$OMP BARRIER
     ENDIF
     !

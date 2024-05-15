@@ -738,6 +738,7 @@ enable_upatmo
 enable_ocean
 enable_jsbach
 enable_jsbach_hd
+enable_quincy
 enable_waves
 enable_coupling
 enable_aes
@@ -1510,9 +1511,12 @@ Model Features:
   --enable-upatmo         enable the upper atmosphere component of ICON
                           [default=yes]
   --enable-ocean          enable the ocean component of ICON [default=yes]
-  --enable-jsbach         enable the land component JSBACH [default=yes]
-  --enable-jsbach-hd      enable the hydrological discharge scheme of the
-                          JSBACH land component (JSBACH HD) [default=auto]
+  --enable-jsbach         enable the land component of ICON (ICON-Land)
+                          [default=yes]
+  --enable-jsbach-hd      enable the internal hydrological discharge (HD)
+                          scheme of the land component [default=auto]
+  --enable-quincy         enable the QUINCY biogeochemistry model in the land
+                          component [default=no]
   --enable-waves          enable the ocean surface wave component of ICON
                           [default=no]
   --enable-coupling       enable the coupling [default=yes]
@@ -3046,6 +3050,16 @@ fi
 if test "x$enable_jsbach_hd" = xauto; then :
   enable_jsbach_hd=$enable_jsbach
 fi
+
+# Check whether --enable-quincy was given.
+if test "${enable_quincy+set}" = set; then :
+  enableval=$enable_quincy; if test x"$enableval" != xno; then :
+  enable_quincy=yes
+fi
+else
+  enable_quincy=no
+fi
+
 
 # Check whether --enable-waves was given.
 if test "${enable_waves+set}" = set; then :
@@ -5396,7 +5410,15 @@ if test "x$enable_jsbach_hd" = xno; then :
   as_fn_append FCFLAGS " ${FC_PP_DEF}__NO_JSBACH_HD__"
 else
   if test "x$enable_jsbach" = xno; then :
-  as_fn_error $? "unsupported combination of the configure options: you are trying to configure with the JSBACH HD scheme but the land component JSBACH is disabled: either disable the hydrological discharge scheme of the JSBACH land component (--disable-jsbach-hd) or enable the land component JSBACH (--enable-jsbach)" "$LINENO" 5
+  as_fn_error $? "unsupported combination of the configure options: you are trying to configure with the internal hydrological discharge (HD) scheme but the land component of ICON is disabled: either disable the internal HD scheme (--disable-jsbach-hd) or enable the land component (--enable-jsbach)" "$LINENO" 5
+fi
+fi
+
+if test "x$enable_quincy" = xno; then :
+  as_fn_append FCFLAGS " ${FC_PP_DEF}__NO_QUINCY__"
+else
+  if test "x$enable_jsbach" = xno; then :
+  as_fn_error $? "unsupported combination of the configure options: you are trying to configure with the QUINCY biogeochemistry model but the ICON land component is disabled: either disable the QUINCY model (--disable-quincy) or enable the ICON land component (--enable-jsbach)" "$LINENO" 5
 fi
 fi
 

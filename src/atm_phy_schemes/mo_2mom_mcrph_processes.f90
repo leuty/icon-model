@@ -6931,8 +6931,8 @@ CONTAINS
       cmax_temp = 0.0_wp
     END IF
 
-    CALL init(s_nv, opt_acc_async=.TRUE.)
-    CALL init(s_qv, opt_acc_async=.TRUE.)
+    CALL init(s_nv, lacc=.TRUE., opt_acc_async=.TRUE.)
+    CALL init(s_qv, lacc=.TRUE., opt_acc_async=.TRUE.)
 
     !$ACC PARALLEL ASYNC(1) DEFAULT(PRESENT) REDUCTION(MAX: cmax_temp)
     !$ACC LOOP SEQ

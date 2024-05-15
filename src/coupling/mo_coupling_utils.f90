@@ -588,7 +588,8 @@ CONTAINS
 #else
 
     cpl_get_field_collection_size = &
-      yac_fget_field_collection_size(comp_name, grid_name, field_name)
+      yac_fget_field_collection_size(yac_instance_id, &
+        comp_name, grid_name, field_name)
 
 ! YAC_coupling
 #endif

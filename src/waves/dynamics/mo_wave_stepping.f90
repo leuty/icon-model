@@ -379,7 +379,7 @@ CONTAINS
         ELSE
 !$OMP PARALLEL
           CALL copy(src  = p_wave_state(jg)%prog(n_now)%tracer, &
-            &       dest = p_wave_state(jg)%prog(n_new)%tracer)
+            &       dest = p_wave_state(jg)%prog(n_new)%tracer, lacc=.FALSE.)
 !$OMP END PARALLEL
         ENDIF
 
