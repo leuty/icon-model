@@ -431,12 +431,12 @@ CONTAINS
     IF (ASSOCIATED(act_obj%var_element_ptr(ivar)%p%r_ptr)) THEN
 !$OMP PARALLEL
       CALL init(act_obj%var_element_ptr(ivar)%p%r_ptr, &
-           act_obj%var_element_ptr(ivar)%p%info%resetval%rval)
+           act_obj%var_element_ptr(ivar)%p%info%resetval%rval, lacc=.TRUE.)
 !$OMP END PARALLEL
     ELSE IF (ASSOCIATED(act_obj%var_element_ptr(ivar)%p%i_ptr)) THEN
 !$OMP PARALLEL
       CALL init(act_obj%var_element_ptr(ivar)%p%i_ptr, &
-           act_obj%var_element_ptr(ivar)%p%info%resetval%ival)
+           act_obj%var_element_ptr(ivar)%p%info%resetval%ival, lacc=.TRUE.)
 !$OMP END PARALLEL
     ELSE
       CALL finish (routine, 'Field not allocated for '//TRIM(act_obj%var_element_ptr(ivar)%p%info%name))

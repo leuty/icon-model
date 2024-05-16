@@ -148,6 +148,9 @@ n_zlev             =   20
   tracer_TopWindMixing            = 1.0E-5
   velocity_TopWindMixing          = 1.0E-5
 /
+&sea_ice_nml
+  stress_ice_zero = .TRUE.
+/
 &ocean_forcing_nml
   iforc_oce                       = ${iforc}            ! ocean forcing
   forcing_windstress_u_type       =   0       ! 

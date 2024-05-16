@@ -324,20 +324,20 @@ CONTAINS
       CASE(isfc_oce)
         ! Ocean surface temperature is calculated outside of this, set tendency to zero
 !$OMP PARALLEL
-        CALL init(tend_tsfc(:,:,jtile))
-        CALL copy(old_tsfc(:,:,jtile), new_tsfc(:,:,jtile))
-        CALL copy(old_tsfc(:,:,jtile), new_tsfc_rad(:,:,jtile))
-        CALL copy(old_tsfc(:,:,jtile), new_tsfc_eff(:,:,jtile))
+        CALL init(tend_tsfc(:,:,jtile), lacc=.TRUE.)
+        CALL copy(old_tsfc(:,:,jtile), new_tsfc(:,:,jtile), lacc=.TRUE.)
+        CALL copy(old_tsfc(:,:,jtile), new_tsfc_rad(:,:,jtile), lacc=.TRUE.)
+        CALL copy(old_tsfc(:,:,jtile), new_tsfc_eff(:,:,jtile), lacc=.TRUE.)
 !$OMP END PARALLEL
         CALL compute_sfc_sat_spec_humidity(.FALSE., this%domain, this%domain%sfc_types(jtile), &
           & diags%nvalid(:,jtile), diags%indices(:,:,jtile), &
           & ins%psfc(:,:), new_tsfc(:,:,jtile), new_qsfc(:,:,jtile))
         ! TODO: This should be replaced by routine mo_surface_ocean:update_albedo_ocean from ECHAM6.2
 !$OMP PARALLEL
-        CALL init(diags%albvisdir_tile(:,:,jtile), albedoW)
-        CALL init(diags%albvisdif_tile(:,:,jtile), albedoW)
-        CALL init(diags%albnirdir_tile(:,:,jtile), albedoW)
-        CALL init(diags%albnirdif_tile(:,:,jtile), albedoW)
+        CALL init(diags%albvisdir_tile(:,:,jtile), albedoW, lacc=.TRUE.)
+        CALL init(diags%albvisdif_tile(:,:,jtile), albedoW, lacc=.TRUE.)
+        CALL init(diags%albnirdir_tile(:,:,jtile), albedoW, lacc=.TRUE.)
+        CALL init(diags%albnirdif_tile(:,:,jtile), albedoW, lacc=.TRUE.)
 !$OMP END PARALLEL
       CASE(isfc_ice)
         IF (conf%nice_thickness_classes /= 1) CALL finish(routine, 'Only one ice thickness class (kice) implemented!')
@@ -777,8 +777,8 @@ CONTAINS
     !$ACC DATA CREATE(pfrc_test, loidx, is) PRESENT(fract_tile, indices, nvalid)
 
 !$OMP PARALLEL
-    CALL init(nvalid)
-    CALL init(indices)
+    CALL init(nvalid, lacc=.TRUE.)
+    CALL init(indices, lacc=.TRUE.)
 !$OMP END PARALLEL
 
 !$OMP PARALLEL
@@ -858,13 +858,13 @@ CONTAINS
     IF (ntiles == 1) THEN
 
 !$OMP PARALLEL
-      CALL copy(var_in(:,:,1), var_out(:,:))
+      CALL copy(var_in(:,:,1), var_out(:,:), lacc=.TRUE.)
 !$OMP END PARALLEL
 
     ELSE
 
 !$OMP PARALLEL
-      CALL init(var_out)
+      CALL init(var_out, lacc=.TRUE.)
 !$OMP END PARALLEL
 
 !$OMP PARALLEL DO PRIVATE(jb,jls,js,jsfc) ICON_OMP_RUNTIME_SCHEDULE

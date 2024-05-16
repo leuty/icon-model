@@ -324,7 +324,7 @@ CONTAINS
     ! 1. Vertical and horizontal diffusion of hydrometeors (iqv, iqc, ici)
     ! ---------------------------------------
 !$OMP PARALLEL
-    CALL init(top_flx)
+    CALL init(top_flx, lacc=.TRUE.)
 !$OMP END PARALLEL
 
     ASSOCIATE ( &
@@ -352,27 +352,27 @@ CONTAINS
         tend => this%atmo%tendencies%Get_ptr_r3d('water vapor')
         new_state => this%atmo%new_states%Get_ptr_r3d('water vapor')
 !$OMP PARALLEL
-        CALL copy(evapotrans, sfc_flx)
+        CALL copy(evapotrans, sfc_flx, lacc=.TRUE.)
 !$OMP END PARALLEL
       CASE (2)
         state => this%atmo%states%Get_ptr_r3d('cloud water')
         tend => this%atmo%tendencies%Get_ptr_r3d('cloud water')
         new_state => this%atmo%new_states%Get_ptr_r3d('cloud water')
 !$OMP PARALLEL
-        CALL init(sfc_flx)
+        CALL init(sfc_flx, lacc=.TRUE.)
 !$OMP END PARALLEL
       CASE (3)
         state => this%atmo%states%Get_ptr_r3d('cloud ice')
         tend => this%atmo%tendencies%Get_ptr_r3d('cloud ice')
         new_state => this%atmo%new_states%Get_ptr_r3d('cloud ice')
 !$OMP PARALLEL
-        CALL init(sfc_flx)
+        CALL init(sfc_flx, lacc=.TRUE.)
 !$OMP END PARALLEL
       END SELECT
 
 !$OMP PARALLEL
-      CALL init(tend)
-      CALL init(new_state)
+      CALL init(tend, lacc=.TRUE.)
+      CALL init(new_state, lacc=.TRUE.)
 !$OMP END PARALLEL
 
       IF ( SOLVER_TYPE == 1 ) THEN !Explicit solver
@@ -380,7 +380,7 @@ CONTAINS
         CALL diffuse_scalar_vertical_explicit( &
           & i_startblk_c, i_endblk_c, i_startidx_c(:), i_endidx_c(:), &
           & mair(:,:,:), zf(:,:,:), &
-          & rho_ic(:,:,:), kh_ic(:,:,:), &
+          & kh_ic(:,:,:), &
           & state(:,:,:), sfc_flx(:,:), top_flx(:,:), &
           & tend(:,:,:) &
           & )
@@ -391,7 +391,7 @@ CONTAINS
           & i_startblk_c, i_endblk_c, i_startidx_c(:), i_endidx_c(:), &
           & dtime, &
           & mair(:,:,:), zf(:,:,:), &
-          & rho_ic(:,:,:), kh_ic(:,:,:), &
+          & kh_ic(:,:,:), &
           & state(:,:,:), sfc_flx(:,:), top_flx(:,:), &
           & tend(:,:,:) &
           & )
@@ -505,11 +505,11 @@ CONTAINS
     new_state_ta => this%atmo%new_states%Get_ptr_r3d('temperature')
 
 !$OMP PARALLEL
-    CALL init(top_flx)
-    CALL init(tend_ta)
-    CALL init(energy)
-    CALL init(tend_energy)
-    CALL init(new_energy)
+    CALL init(top_flx, lacc=.TRUE.)
+    CALL init(tend_ta, lacc=.TRUE.)
+    CALL init(energy, lacc=.TRUE.)
+    CALL init(tend_energy, lacc=.TRUE.)
+    CALL init(new_energy, lacc=.TRUE.)
 !$OMP END PARALLEL
 
     CALL this%atmo%temp_to_energy(state_ta(:,:,:), energy(:,:,:), use_new_moisture_state=.FALSE.)
@@ -522,7 +522,7 @@ CONTAINS
       CALL diffuse_scalar_vertical_explicit( &
         & i_startblk_c, i_endblk_c, i_startidx_c(:), i_endidx_c(:), &
         & mair(:,:,:), zf(:,:,:), &
-        & rho_ic(:,:,:), kh_ic(:,:,:), &
+        & kh_ic(:,:,:), &
         & energy(:,:,:), sfc_flx(:,:), top_flx(:,:), &
         & tend_energy(:,:,:) &
         & )
@@ -533,7 +533,7 @@ CONTAINS
         & i_startblk_c, i_endblk_c, i_startidx_c(:), i_endidx_c(:), &
         & dtime, &
         & mair(:,:,:), zf(:,:,:), &
-        & rho_ic(:,:,:), kh_ic(:,:,:), &
+        & kh_ic(:,:,:), &
         & energy(:,:,:), sfc_flx(:,:), top_flx(:,:), &
         & tend_energy(:,:,:) &
         & )
@@ -665,10 +665,10 @@ CONTAINS
     new_state_v => this%atmo%new_states%Get_ptr_r3d('northward wind')
 
 !$OMP PARALLEL
-    CALL init(tend_u)
-    CALL init(new_state_u)
-    CALL init(tend_v)
-    CALL init(new_state_v)
+    CALL init(tend_u, lacc=.TRUE.)
+    CALL init(new_state_u, lacc=.TRUE.)
+    CALL init(tend_v, lacc=.TRUE.)
+    CALL init(new_state_v, lacc=.TRUE.)
 !$OMP END PARALLEL
 
     ASSOCIATE ( &
@@ -710,7 +710,7 @@ CONTAINS
     !   CALL diffuse_scalar_vertical_explicit( &
     !     & i_startblk_c, i_endblk_c, i_startidx_c(:), i_endidx_c(:), &
     !     & mair(:,:,:), zf(:,:,:), &
-    !     & rho_ic(:,:,:), km_ic(:,:,:), &
+    !     & km_ic(:,:,:), &
     !     & state_u(:,:,:), mflux_u(:,:), top_flx(:,:), &
     !     & tend_u(:,:,:) &
     !     & )
@@ -721,7 +721,7 @@ CONTAINS
     !     & i_startblk_c, i_endblk_c, i_startidx_c(:), i_endidx_c(:), &
     !     & dtime, &
     !     & mair(:,:,:), zf(:,:,:), &
-    !     & rho_ic(:,:,:), km_ic(:,:,:), &
+    !     & km_ic(:,:,:), &
     !     & state_u(:,:,:), mflux_u(:,:), top_flx(:,:), &
     !     & tend_u(:,:,:) &
     !     & )
@@ -737,7 +737,7 @@ CONTAINS
     !   CALL diffuse_scalar_vertical_explicit( &
     !     & i_startblk_c, i_endblk_c, i_startidx_c(:), i_endidx_c(:), &
     !     & mair(:,:,:), zf(:,:,:), &
-    !     & rho_ic(:,:,:), km_ic(:,:,:), &
+    !     & km_ic(:,:,:), &
     !     & state_v(:,:,:), mflux_v(:,:), top_flx(:,:), &
     !     & tend_v(:,:,:) &
     !     & )
@@ -748,7 +748,7 @@ CONTAINS
     !     & i_startblk_c, i_endblk_c, i_startidx_c(:), i_endidx_c(:), &
     !     & dtime, &
     !     & mair(:,:,:), zf(:,:,:), &
-    !     & rho_ic(:,:,:), km_ic(:,:,:), &
+    !     & km_ic(:,:,:), &
     !     & state_v(:,:,:), mflux_v(:,:), top_flx(:,:), &
     !     & tend_v(:,:,:) &
     !     & )
@@ -760,7 +760,7 @@ CONTAINS
     !---------------------------------------------------------------
 
 !$OMP PARALLEL
-    CALL init(tot_tend)
+    CALL init(tot_tend, lacc=.TRUE.)
 !$OMP END PARALLEL
 
     CALL sync_patch_array(SYNC_C, patch, rho)
@@ -985,11 +985,11 @@ CONTAINS
     ELSE !Implicit solver
 
 !$OMP PARALLEL
-      CALL init(za)
-      CALL init(zb)
-      CALL init(zc)
-      CALL init(zrhs)
-      CALL init(var_new_e)
+      CALL init(za, lacc=.TRUE.)
+      CALL init(zb, lacc=.TRUE.)
+      CALL init(zc, lacc=.TRUE.)
+      CALL init(zrhs, lacc=.TRUE.)
+      CALL init(var_new_e, lacc=.TRUE.)
 !$OMP END PARALLEL
   
 !$OMP PARALLEL DO PRIVATE(jb, jk, je, i_startidx, i_endidx, dwdn, var_new,&
@@ -1179,8 +1179,8 @@ CONTAINS
       )
 
 !$OMP PARALLEL
-    CALL init(tend)
-    CALL init(new_state)
+    CALL init(tend, lacc=.TRUE.)
+    CALL init(new_state, lacc=.TRUE.)
 !$OMP END PARALLEL
 
     !---------------------------------------------------------------
@@ -1207,10 +1207,10 @@ END DO
     ! 2) Vertical tendency: evaluated at w point
 
 !$OMP PARALLEL
-    CALL init(a)
-    CALL init(b)
-    CALL init(c)
-    CALL init(rhs)
+    CALL init(a, lacc=.TRUE.)
+    CALL init(b, lacc=.TRUE.)
+    CALL init(c, lacc=.TRUE.)
+    CALL init(rhs, lacc=.TRUE.)
 !$OMP END PARALLEL
 
 !$OMP PARALLEL DO PRIVATE(jc,jb,jk) ICON_OMP_DEFAULT_SCHEDULE
@@ -1311,7 +1311,7 @@ END DO
     i_endblk   = patch%edges%end_block(rl_end)
 
 !$OMP PARALLEL
-    CALL init(hori_tend_e)
+    CALL init(hori_tend_e, lacc=.TRUE.)
 !$OMP END PARALLEL
 
 !$OMP PARALLEL DO PRIVATE(jb, jk, je, i_startidx, i_endidx, jcn, jbn, dvn1, dvn2, flux_up_c, flux_dn_c, &

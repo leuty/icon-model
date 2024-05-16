@@ -49,9 +49,7 @@ MODULE mo_advection_stepping
   USE mo_grid_config,         ONLY: l_limited_area
   USE mo_initicon_config,     ONLY: is_iau_active, iau_wgt_adv
   USE mo_fortran_tools,       ONLY: negative2zero
-#ifdef _OPENACC
   USE mo_mpi,                 ONLY: i_am_accel_node
-#endif
 
   IMPLICIT NONE
 
@@ -617,7 +615,7 @@ CONTAINS
     !
     IF ( advection_config(jg)%lclip_tracer ) THEN
 !$OMP PARALLEL
-      CALL negative2zero(p_tracer_new(:,:,:,:), .TRUE.)
+      CALL negative2zero(p_tracer_new(:,:,:,:), lacc=i_am_accel_node, opt_acc_async=.TRUE.)
 !$OMP BARRIER
 !$OMP END PARALLEL
     END IF

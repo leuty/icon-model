@@ -387,9 +387,9 @@ CONTAINS
       & )
 
 !$OMP PARALLEL
-      CALL init(ctgzvi)
-      CALL init(dissip_kin_energy_vi)
-      CALL init(internal_energy_vi_tend)
+      CALL init(ctgzvi, lacc=.TRUE.)
+      CALL init(dissip_kin_energy_vi, lacc=.TRUE.)
+      CALL init(internal_energy_vi_tend, lacc=.TRUE.)
 !$OMP END PARALLEL
 
 !$OMP PARALLEL DO PRIVATE(jb, jk, jc) ICON_OMP_DEFAULT_SCHEDULE
@@ -906,7 +906,7 @@ CONTAINS
     ASSOCIATE(domain => this%domain)
 
 !$OMP PARALLEL
-    CALL init(flux_x)
+    CALL init(flux_x, lacc=.TRUE.)
 !$OMP END PARALLEL
 
     SELECT CASE(energy_type)
@@ -960,7 +960,7 @@ CONTAINS
     INTEGER :: jb, jk, jc
 
 !$OMP PARALLEL
-    CALL init(static_energy)
+    CALL init(static_energy, lacc=.TRUE.)
 !$OMP END PARALLEL
 
 !$OMP PARALLEL DO PRIVATE(jb, jk, jc) ICON_OMP_DEFAULT_SCHEDULE
@@ -993,7 +993,7 @@ CONTAINS
     INTEGER :: jb, jk, jc
 
 !$OMP PARALLEL
-    CALL init(temperature)
+    CALL init(temperature, lacc=.TRUE.)
 !$OMP END PARALLEL
 
 !$OMP PARALLEL DO PRIVATE(jb, jk, jc) ICON_OMP_DEFAULT_SCHEDULE
@@ -1027,7 +1027,7 @@ CONTAINS
     nlevp1 = domain%nlev + 1
 
 !$OMP PARALLEL
-    CALL init(ghf)
+    CALL init(ghf, lacc=.TRUE.)
 !$OMP END PARALLEL
 
 !$OMP PARALLEL DO PRIVATE(jb, jk, jc) ICON_OMP_DEFAULT_SCHEDULE
@@ -1079,7 +1079,7 @@ CONTAINS
     CHARACTER(len=*), PARAMETER :: routine = modname//':compute_internal_energy'
 
 !$OMP PARALLEL
-    CALL init(energy)
+    CALL init(energy, lacc=.TRUE.)
 !$OMP END PARALLEL
 
 !$OMP PARALLEL DO PRIVATE(jb, jk, jc, q_liquid, q_solid) ICON_OMP_DEFAULT_SCHEDULE
@@ -1141,7 +1141,7 @@ CONTAINS
     CHARACTER(len=*), PARAMETER :: routine = modname//':compute_temperature_from_internal_energy'
 
 !$OMP PARALLEL
-    CALL init(temperature)
+    CALL init(temperature, lacc=.TRUE.)
 !$OMP END PARALLEL
 
 !$OMP PARALLEL DO PRIVATE(jb, jk, jc, q_liquid, q_solid, u) ICON_OMP_DEFAULT_SCHEDULE
@@ -1205,7 +1205,7 @@ CONTAINS
     CHARACTER(len=*), PARAMETER :: routine = modname//':compute_internal_energy_vi'
 
 !$OMP PARALLEL
-    CALL init(uvi)
+    CALL init(uvi, lacc=.TRUE.)
 !$OMP END PARALLEL
 
 !$OMP PARALLEL DO PRIVATE(jb, jk, jc, q_liquid, q_solid) ICON_OMP_DEFAULT_SCHEDULE
@@ -1272,6 +1272,7 @@ CONTAINS
 
     INTEGER :: jg, jl, jk
     INTEGER :: jb,jc,je
+    INTEGER :: jb_max, jk_max, jc_max
     INTEGER :: jcn, jbn
     INTEGER :: nlev, nlevm1, nlevp1
     INTEGER :: i_startblk, i_endblk, i_startidx, i_endidx
@@ -1434,22 +1435,29 @@ CONTAINS
 !#########################################################################
 
 !$OMP PARALLEL
-    CALL init(km_iv)
-    CALL init(km_c)
-    CALL init(km_ie)
-    CALL init(kh_ic)
-    CALL init(km_ic)
-    CALL init(u_vert)
-    CALL init(v_vert)
-    CALL init(w_vert)
+    CALL init(km_iv, lacc=.TRUE.)
+    CALL init(km_c, lacc=.TRUE.)
+    CALL init(km_ie, lacc=.TRUE.)
+    CALL init(kh_ic, lacc=.TRUE.)
+    CALL init(km_ic, lacc=.TRUE.)
+    CALL init(u_vert, lacc=.TRUE.)
+    CALL init(v_vert, lacc=.TRUE.)
+    CALL init(w_vert, lacc=.TRUE.)
 !$OMP END PARALLEL
 
-!$OMP PARALLEL DO PRIVATE(jb, jk, jc) ICON_OMP_DEFAULT_SCHEDULE
-    DO jb = domain%i_startblk_c, domain%i_endblk_c
+    rl_start   = 3
+    rl_end     = min_rlcell_int
+    i_startblk = patch%cells%start_block(rl_start)
+    i_endblk   = patch%cells%end_block(rl_end)
+
+!$OMP PARALLEL DO PRIVATE(jb, jk, jc, i_startidx, i_endidx) ICON_OMP_DEFAULT_SCHEDULE
+    DO jb = i_startblk, i_endblk
+      CALL get_indices_c(patch, jb, i_startblk, i_endblk,      &
+                         i_startidx, i_endidx, rl_start, rl_end)
       !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1)
       !$ACC LOOP GANG VECTOR COLLAPSE(2)
       DO jk = 1, nlev
-        DO jc = domain%i_startidx_c(jb), domain%i_endidx_c(jb)
+        DO jc = i_startidx, i_endidx
           theta_v(jc,jk,jb) = ptvm1(jc,jk,jb)*(p0ref/papm1(jc,jk,jb))**rd_o_cpd
         END DO
       END DO
@@ -1461,7 +1469,8 @@ CONTAINS
     CALL vert_intp_full2half_cell_3d(patch, p_nh_metrics, rho, rho_ic, &
                                      2, min_rlcell_int-2, lacc=.TRUE.)
 
-    CALL brunt_vaisala_freq(patch, p_nh_metrics, theta_v, bruvais, lacc=.TRUE.)
+    CALL brunt_vaisala_freq(patch, p_nh_metrics, nproma, theta_v, bruvais, &
+                            opt_rlstart=3, lacc=.TRUE.)
 
     !--------------------------------------------------------------------------
     !1) Interpolate velocities at desired locations- mostly around the quadrilateral
@@ -1852,11 +1861,15 @@ END IF
                             opt_rlstart=5, opt_rlend=min_rlvert_int-1,   &
                             opt_acc_async=.TRUE.)
 
+    jb_max=SIZE(km_iv, 3)
+    jk_max=SIZE(km_iv, 2)
+    jc_max=SIZE(km_iv, 1)
+
     !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1)
     !$ACC LOOP GANG VECTOR COLLAPSE(3)
-    DO jb = 1, SIZE(km_iv, 3)
-      DO jk = 1, SIZE(km_iv, 2)
-        DO jc = 1, SIZE(km_iv, 1)
+    DO jb = 1, jb_max
+      DO jk = 1, jk_max
+        DO jc = 1, jc_max
           km_iv(jc,jk,jb) = MAX( km_min,  km_iv(jc,jk,jb) * turb_prandtl )
         END DO
       END DO
@@ -1872,11 +1885,15 @@ END IF
                             opt_rlstart=grf_bdywidth_e, opt_rlend=min_rledge_int-1, &
                             lacc=.TRUE.)
 
+    jb_max=SIZE(km_ie, 3)
+    jk_max=SIZE(km_ie, 2)
+    jc_max=SIZE(km_ie, 1)
+
     !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1)
     !$ACC LOOP GANG VECTOR COLLAPSE(3)
-    DO jb = 1, SIZE(km_ie, 3)
-      DO jk = 1, SIZE(km_ie, 2)
-        DO jc = 1, SIZE(km_ie, 1)
+    DO jb = 1, jb_max
+      DO jk = 1, jk_max
+        DO jc = 1, jc_max
           km_ie(jc,jk,jb) = MAX( km_min,  km_ie(jc,jk,jb) * turb_prandtl )
         END DO
       END DO

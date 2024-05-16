@@ -759,14 +759,14 @@ CONTAINS
 
     ! Initialization
     !$OMP PARALLEL
-    CALL init(vcoeff_lin%wfac_lin, opt_acc_async=.TRUE.)
-    CALL init(vcoeff_lin%idx0_lin, opt_acc_async=.TRUE.)
-    CALL init(vcoeff_lin%bot_idx_lin, opt_acc_async=.TRUE.)
-    CALL init(vcoeff_lin%wfacpbl1, opt_acc_async=.TRUE.)
-    CALL init(vcoeff_lin%wfacpbl2, opt_acc_async=.TRUE.)
-    CALL init(vcoeff_lin%kpbl1, opt_acc_async=.TRUE.)
-    CALL init(vcoeff_lin%kpbl2, opt_acc_async=.TRUE.)
-    CALL init(vcoeff_lin%zextrap, opt_acc_async=.TRUE.)
+    CALL init(vcoeff_lin%wfac_lin, lacc=.TRUE., opt_acc_async=.TRUE.)
+    CALL init(vcoeff_lin%idx0_lin, lacc=.TRUE., opt_acc_async=.TRUE.)
+    CALL init(vcoeff_lin%bot_idx_lin, lacc=.TRUE., opt_acc_async=.TRUE.)
+    CALL init(vcoeff_lin%wfacpbl1, lacc=.TRUE., opt_acc_async=.TRUE.)
+    CALL init(vcoeff_lin%wfacpbl2, lacc=.TRUE., opt_acc_async=.TRUE.)
+    CALL init(vcoeff_lin%kpbl1, lacc=.TRUE., opt_acc_async=.TRUE.)
+    CALL init(vcoeff_lin%kpbl2, lacc=.TRUE., opt_acc_async=.TRUE.)
+    CALL init(vcoeff_lin%zextrap, lacc=.TRUE., opt_acc_async=.TRUE.)
     !$OMP END PARALLEL
   END SUBROUTINE vcoeff_lin_allocate
 
@@ -799,11 +799,11 @@ CONTAINS
 
     ! Initialization
     !$OMP PARALLEL
-    CALL init(vcoeff_cub%coef1, opt_acc_async=.TRUE.)
-    CALL init(vcoeff_cub%coef2, opt_acc_async=.TRUE.)
-    CALL init(vcoeff_cub%coef3, opt_acc_async=.TRUE.)
-    CALL init(vcoeff_cub%idx0_cub, opt_acc_async=.TRUE.)
-    CALL init(vcoeff_cub%bot_idx_cub, opt_acc_async=.TRUE.)
+    CALL init(vcoeff_cub%coef1, lacc=.TRUE., opt_acc_async=.TRUE.)
+    CALL init(vcoeff_cub%coef2, lacc=.TRUE., opt_acc_async=.TRUE.)
+    CALL init(vcoeff_cub%coef3, lacc=.TRUE., opt_acc_async=.TRUE.)
+    CALL init(vcoeff_cub%idx0_cub, lacc=.TRUE., opt_acc_async=.TRUE.)
+    CALL init(vcoeff_cub%bot_idx_cub, lacc=.TRUE., opt_acc_async=.TRUE.)
     !$OMP END PARALLEL
   END SUBROUTINE vcoeff_cub_allocate
 

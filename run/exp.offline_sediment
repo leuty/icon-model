@@ -141,6 +141,9 @@ cat > ${ocean_namelist} << EOF
   lbgcadv                                    = ${lbgcadv}
   lsediment_only                             = ${loffsed}
 /                                           
+&sea_ice_nml
+  stress_ice_zero = .TRUE.
+/
 &hamocc_nml
 l_cpl_co2                         = .FALSE.
 l_bgc_check                       = .FALSE.   ! mass check at every time step

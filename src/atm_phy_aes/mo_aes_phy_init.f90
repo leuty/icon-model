@@ -955,12 +955,12 @@ CONTAINS
         END IF
 
         IF (.NOT. isrestart()) THEN
-          CALL jsbach_get_var('seb_t',            jg, tile='land', arr2d=field%ts_tile       (:,:,ilnd))
+          CALL jsbach_get_var('seb_t',            jg, tile='land', arr2d=field%ts_tile       (:,:,ilnd), lacc=.FALSE.)
           IF (.NOT. aes_vdf_config(jg)%use_tmx) THEN
-            CALL jsbach_get_var('turb_rough_m',     jg, tile='veg',  arr2d=field%z0m_tile    (:,:,ilnd))
+            CALL jsbach_get_var('turb_rough_m',     jg, tile='veg',  arr2d=field%z0m_tile    (:,:,ilnd), lacc=.FALSE.)
           END IF
-          CALL jsbach_get_var('rad_alb_vis_soil', jg, tile='veg',  arr2d=field%albvisdif_tile(:,:,ilnd))
-          CALL jsbach_get_var('rad_alb_nir_soil', jg, tile='veg',  arr2d=field%albnirdif_tile(:,:,ilnd))
+          CALL jsbach_get_var('rad_alb_vis_soil', jg, tile='veg',  arr2d=field%albvisdif_tile(:,:,ilnd), lacc=.FALSE.)
+          CALL jsbach_get_var('rad_alb_nir_soil', jg, tile='veg',  arr2d=field%albnirdif_tile(:,:,ilnd), lacc=.FALSE.)
         END IF
 
 !$OMP PARALLEL DO PRIVATE(jb,jc,jcs,jce,zlat) ICON_OMP_DEFAULT_SCHEDULE

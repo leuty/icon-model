@@ -38,7 +38,7 @@ MODULE mo_reader_cams
   TYPE, EXTENDS(t_abstract_reader) :: t_cams_reader
 
     TYPE(t_patch), POINTER      :: p_patch => NULL()
-    CHARACTER(len=NF_MAX_NAME)  :: varnames(n_camsaermr+1)
+    CHARACTER(len=NF90_MAX_NAME)  :: varnames(n_camsaermr+1)
     CHARACTER(len=FILENAME_MAX) :: filename
     INTEGER                     :: fileid, dist_fileid,nlev_cams
     LOGICAL                     :: lopened = .FALSE.
@@ -86,7 +86,7 @@ CONTAINS
 
     IF (.NOT. this%lopened) THEN
       IF (my_process_is_mpi_workroot()) THEN
-        CALL nf(nf_open(this%filename, nf_nowrite, this%fileid), routine)
+        CALL nf(nf90_open(this%filename, nf90_nowrite, this%fileid), routine)
       ENDIF
       this%dist_fileid = distrib_nf_open(TRIM(this%filename))
       this%lopened = .TRUE.
@@ -167,7 +167,7 @@ CONTAINS
     IF (ASSOCIATED(this%p_patch)) NULLIFY(this%p_patch)
     IF (this%lopened) THEN
       IF (my_process_is_mpi_workroot()) THEN
-        CALL nf(nf_close(this%fileid), routine)
+        CALL nf(nf90_close(this%fileid), routine)
       END IF
       CALL distrib_nf_close(this%dist_fileid)
     END IF

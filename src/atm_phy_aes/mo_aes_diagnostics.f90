@@ -377,7 +377,7 @@ CONTAINS
       !$ACC LOOP GANG VECTOR COLLAPSE(2)
       DO jb = 1, patch%alloc_cell_blocks
         DO jc = 1, nproma
-          field%rsns(jc,jb) = field%rlds(jc,jb) - field%rlus(jc,jb)
+          field%rlns(jc,jb) = field%rlds(jc,jb) - field%rlus(jc,jb)
         END DO
       END DO
       !$ACC END PARALLEL

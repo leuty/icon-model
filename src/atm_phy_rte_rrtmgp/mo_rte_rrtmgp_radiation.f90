@@ -33,6 +33,7 @@ MODULE mo_rte_rrtmgp_radiation
   USE mo_exception,           ONLY: finish, message, message_text
   USE mo_aes_phy_config,      ONLY: aes_phy_tc
   USE mo_aes_rad_config,      ONLY: aes_rad_config
+  USE mo_coupling_config,     ONLY: is_coupled_to_aero
 
   USE mo_orbit,               ONLY: orbit_kepler, orbit_vsop87, get_orbit_times
   USE mo_radiation_solar_data, ONLY: ssi_default, ssi_amip,                    &
@@ -443,7 +444,7 @@ MODULE mo_rte_rrtmgp_radiation
          &                klev,         xq_trc, xm_air, xm_snw            )
 
     CALL rte_rrtmgp_interface(jg, jb, jcs, jce, nproma, klev             ,&
-      aes_rad_config(jg)%irad_aero, aes_rad_config(jg)%lrad_yac          ,&
+      aes_rad_config(jg)%irad_aero, is_coupled_to_aero()                 ,&
       psctm(jg), ssi_factor, loland, loglac, this_datetime               ,&
       pcos_mu0        ,daylght_frc                                       ,&
       alb_vis_dir     ,alb_nir_dir     ,alb_vis_dif     ,alb_nir_dif     ,&

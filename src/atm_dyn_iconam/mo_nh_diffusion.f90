@@ -338,8 +338,8 @@ MODULE mo_nh_diffusion
 
       ! needs to be always initialized with OpenACC
       IF (p_test_run .OR. i_am_accel_node) THEN
-        CALL init(u_vert, opt_acc_async=.TRUE.)
-        CALL init(v_vert, opt_acc_async=.TRUE.)
+        CALL init(u_vert, lacc=i_am_accel_node, opt_acc_async=.TRUE.)
+        CALL init(v_vert, lacc=i_am_accel_node, opt_acc_async=.TRUE.)
       ENDIF
 
       !  RBF reconstruction of velocity at vertices

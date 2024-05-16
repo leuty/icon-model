@@ -140,7 +140,7 @@ MODULE mo_sppt_util
 
     IF(rapa_event_active) THEN ! event active
 
-      CALL copy(rn_2d_new,rn_2d_now)
+      CALL copy(rn_2d_new,rn_2d_now, lacc=.TRUE.)
 
       ! ... since generate_rn expects a pointer
       mtime_current_new => newDatetime('0001-01-01T00:00:00')

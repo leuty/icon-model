@@ -22,13 +22,14 @@ MODULE mo_util_cdi
   USE mo_run_config,         ONLY: msg_level
   USE mo_io_config,          ONLY: config_lmask_boundary => lmask_boundary
   USE mo_mpi,                ONLY: p_bcast, p_io, my_process_is_stdio, p_mpi_wtime,  &
-    &                              my_process_is_mpi_workroot
+    &                              my_process_is_mpi_workroot, p_barrier
   USE mo_util_string,        ONLY: tolower, int2string
   USE mo_dictionary,         ONLY: t_dictionary, DICT_MAX_STRLEN
   USE mo_cdi_constants,      ONLY: GRID_UNSTRUCTURED_CELL
   USE mo_var_metadata_types, ONLY: t_var_metadata
   USE mo_gribout_config,     ONLY: t_gribout_config
   USE mo_cf_convention,      ONLY: t_cf_var
+  USE mo_aes_phy_config,     ONLY: aes_phy_config
   USE mo_grib2_util,         ONLY: set_GRIB2_additional_keys, set_GRIB2_tile_keys, &
     &                              set_GRIB2_ensemble_keys, set_GRIB2_local_keys,  &
     &                              set_GRIB2_synsat_keys, set_GRIB2_chem_keys
@@ -181,8 +182,9 @@ CONTAINS
       &      subtypeSize(variableCount), STAT=ierrstat)
     IF (ierrstat /= SUCCESS) CALL finish(routine, "ALLOCATE failed!")
 
+    subtypeSize(1:variableCount) = 0
+
     IF (is_workroot) THEN
-        subtypeSize(1:variableCount) = 0
         do i = 1, variableCount
             CALL vlistInqVarName(vlistId, i-1, me%variableNames(i))
             me%variableDatatype(i) = vlistInqVarDatatype(vlistId, i-1)
@@ -195,31 +197,32 @@ CONTAINS
               &      me%variableTileinfo(i)%tile_index(subtypeSize(i)), STAT=ierrstat)
             IF (ierrstat /= SUCCESS) CALL finish(routine, "ALLOCATE failed!")
 
-            IF (vlistInqVarIntKey(vlistId, i-1, "totalNumberOfTileAttributePairs") <= 0) THEN
-              ! not a tile variable
-              me%variableTileinfo(i)%tile(:)       = trivial_tile_att%getTileinfo_grb2()
-              tileinfo_icon = trivial_tile_att%getTileinfo_icon()
-              me%variableTileinfo(i)%tile_index(:) = tileinfo_icon%idx
-            ELSE
-              ! tile
-              DO ientry=1, subtypeSize(i)
-                CALL subtypeDefActiveIndex(subtypeID,ientry-1)  ! starts with 0
+            IF (.not. ANY(aes_phy_config(:)%ljsb)) THEN
+              IF (vlistInqVarIntKey(vlistId, i-1, "totalNumberOfTileAttributePairs") <= 0) THEN
+                ! not a tile variable
+                me%variableTileinfo(i)%tile(:) = trivial_tile_att%getTileinfo_grb2()
+                tileinfo_icon = trivial_tile_att%getTileinfo_icon()
 
-                idx        = vlistInqVarIntKey(vlistId, i-1, "tileIndex")
-                att        = vlistInqVarIntKey(vlistId, i-1, "tileAttribute")
-                tile_index = ientry-1
+                me%variableTileinfo(i)%tile_index(:) = tileinfo_icon%idx
+              ELSE
+                ! tile
+                DO ientry=1, subtypeSize(i)
+                  CALL subtypeDefActiveIndex(subtypeID,ientry-1)  ! starts with 0
 
-                me%variableTileinfo(i)%tile(ientry)       = t_tileinfo_grb2( idx, att )
-                me%variableTileinfo(i)%tile_index(ientry) = tile_index
-              END DO
-              ! reset active index
-              CALL subtypeDefActiveIndex(subtypeID,0)
-            ENDIF  ! totalNumberOfTileAttributePairs <= 0
+                  idx        = vlistInqVarIntKey(vlistId, i-1, "tileIndex")
+                  att        = vlistInqVarIntKey(vlistId, i-1, "tileAttribute")
+                  tile_index = ientry-1
 
-        END do
-
-    END IF
-
+                  me%variableTileinfo(i)%tile(ientry)       = t_tileinfo_grb2( idx, att )
+                  me%variableTileinfo(i)%tile_index(ientry) = tile_index
+                END DO
+                ! reset active index
+                CALL subtypeDefActiveIndex(subtypeID,0)
+              ENDIF  ! totalNumberOfTileAttributePairs <= 0
+            ENDIF
+          ENDDO
+    ENDIF
+    
     CALL p_bcast(subtypeSize, p_io, distribution%communicator)
 
     ! put tile info into local 1D arrays, for broadcasting
@@ -728,10 +731,26 @@ CONTAINS
     INTEGER :: vlistId, varId, zaxisId, gridId, tile_index, grid_size
     REAL(sp), ALLOCATABLE :: tmp_buf(:), map_buf(:) ! temporary local array
     LOGICAL :: lmap_buf, is_workroot
+    CHARACTER(len=DICT_MAX_STRLEN) :: mapped_name
+    INTEGER :: tlen
 
     is_workroot = my_process_is_mpi_workroot()
 
-    CALL parameters%findVarId(varname, trivial_tile_att%getTileinfo_grb2(), varID, tile_index)
+    IF (ANY(aes_phy_config(:)%ljsb)) THEN
+      mapped_name = varname
+      IF (parameters%have_dict) &
+      & mapped_name = parameters%dict%get(TRIM(varname), DEFAULT=varname)
+      mapped_name = tolower(mapped_name)
+      tlen = LEN_TRIM(mapped_name)
+      varID = -1
+      DO i = 1, SIZE(parameters%variableNames)
+        IF (tolower(parameters%variableNames(i))==mapped_name(1:tlen)) THEN
+            varID = i-1
+        END IF
+      END DO
+    ELSE
+      CALL parameters%findVarId(varname, trivial_tile_att%getTileinfo_grb2(), varID, tile_index)
+    ENDIF
     lmap_buf = .FALSE.
 
     IF (is_workroot) THEN
@@ -813,10 +832,25 @@ CONTAINS
     INTEGER :: vlistId, varId, zaxisId, gridId, tile_index, grid_size
     REAL(sp), ALLOCATABLE :: tmp_buf(:), map_buf(:) ! temporary local array
     LOGICAL :: lmap_buf, is_workroot
+    CHARACTER(len=DICT_MAX_STRLEN) :: mapped_name
+    INTEGER :: tlen
 
     is_workroot = my_process_is_mpi_workroot()
-
-    CALL parameters%findVarId(varname, trivial_tile_att%getTileinfo_grb2(), varID, tile_index)
+    IF (ANY(aes_phy_config(:)%ljsb)) THEN !If using JSB, bypassing TERRA-init routines
+      mapped_name = varname
+      IF (parameters%have_dict) &
+      & mapped_name = parameters%dict%get(TRIM(varname), DEFAULT=varname)
+      mapped_name = tolower(mapped_name)
+      tlen = LEN_TRIM(mapped_name)
+      varID = -1
+      DO i = 1, SIZE(parameters%variableNames)
+        IF (tolower(parameters%variableNames(i))==mapped_name(1:tlen)) THEN
+            varID = i-1
+        END IF
+      END DO
+    ELSE
+      CALL parameters%findVarId(varname, trivial_tile_att%getTileinfo_grb2(), varID, tile_index)
+    ENDIF
     lmap_buf = .FALSE.
 
     IF (is_workroot) THEN

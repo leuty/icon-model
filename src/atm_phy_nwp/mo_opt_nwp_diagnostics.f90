@@ -1841,7 +1841,7 @@ CONTAINS
 
 
 !$OMP PARALLEL
-    CALL init(twater(:,:))
+    CALL init(twater(:,:), lacc=lzacc)
 
 !$OMP DO PRIVATE(jc,jk,jb,i_startidx,i_endidx,q_water), ICON_OMP_RUNTIME_SCHEDULE
     DO jb = i_startblk, i_endblk
@@ -1917,7 +1917,7 @@ CONTAINS
     i_startblk = ptr_patch%cells%start_block( i_rlstart )
     i_endblk   = ptr_patch%cells%end_block  ( i_rlend   )
 !$OMP PARALLEL
-    CALL init(q_sedim( :, :, 1:i_startblk-1 ))
+    CALL init(q_sedim( :, :, 1:i_startblk-1 ), lacc=lzacc)
 
 !$OMP DO PRIVATE(jb,jk,jc,i_startidx,i_endidx), ICON_OMP_RUNTIME_SCHEDULE
     DO jb = i_startblk, i_endblk
@@ -4665,7 +4665,7 @@ CONTAINS
     most_negative_value = -HUGE(1.0_wp)
 
 !$OMP PARALLEL
-    CALL init(dbz_cmax(:,i_startblk:i_endblk), most_negative_value)
+    CALL init(dbz_cmax(:,i_startblk:i_endblk), most_negative_value, lacc=lzacc)
 !$OMP DO PRIVATE(jb,jk,jc,i_startidx,i_endidx), ICON_OMP_RUNTIME_SCHEDULE
     DO jb = i_startblk, i_endblk
 
@@ -4786,7 +4786,7 @@ CONTAINS
     i_endblk   = ptr_patch%cells%end_block  ( i_rlend   )
 
 !$OMP PARALLEL
-    CALL init(dbz_850(:,i_startblk:i_endblk))
+    CALL init(dbz_850(:,i_startblk:i_endblk), lacc=lzacc)
 !$OMP DO PRIVATE(jb,jk,jc,i_startidx,i_endidx), ICON_OMP_RUNTIME_SCHEDULE
     DO jb = i_startblk, i_endblk
 
@@ -4864,7 +4864,7 @@ CONTAINS
     i_endblk   = ptr_patch%cells%end_block  ( i_rlend   )
 
 !$OMP PARALLEL
-    CALL init(dbzlmx(:,i_startblk:i_endblk))
+    CALL init(dbzlmx(:,i_startblk:i_endblk), lacc=lzacc)
 !$OMP DO PRIVATE(jb,jk,jc,i_startidx,i_endidx,zml), ICON_OMP_RUNTIME_SCHEDULE
     DO jb = i_startblk, i_endblk
 
@@ -5281,8 +5281,8 @@ CONTAINS
 
     !$ACC DATA CREATE(wdur_prev, wup_mask_prev, my_neighbor_idx, my_neighbor_blk)
 
-    CALL init(wup_mask_prev)
-    CALL init(wdur_prev)
+    CALL init(wup_mask_prev, lacc=.TRUE.)
+    CALL init(wdur_prev, lacc=.TRUE.)
 
     dt = dtime
     !------------------------------------------------------------------------------ 

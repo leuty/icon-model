@@ -18,12 +18,13 @@
 
 MODULE mo_atmo_aero_provider_coupling
 
-  USE mo_kind,           ONLY: wp
-  USE mo_model_domain,   ONLY: t_patch
-  USE mo_exception,      ONLY: finish
-  USE mo_aes_rad_config, ONLY: aes_rad_config
-  USE mo_coupling_utils, ONLY: cpl_def_field, cpl_get_field, &
-                               cpl_get_field_collection_size
+  USE mo_kind,            ONLY: wp
+  USE mo_model_domain,    ONLY: t_patch
+  USE mo_exception,       ONLY: finish
+  USE mo_aes_rad_config,  ONLY: aes_rad_config
+  USE mo_coupling_config, ONLY: is_coupled_to_aero
+  USE mo_coupling_utils,  ONLY: cpl_def_field, cpl_get_field, &
+                                cpl_get_field_collection_size
 
   IMPLICIT NONE
 
@@ -69,7 +70,7 @@ CONTAINS
     CHARACTER(LEN=*), PARAMETER   :: &
       routine = str_module // ':construct_atmo_aero_provider_coupling_post_sync'
 
-    IF (.NOT. aes_rad_config(jg)%lrad_yac .OR. &
+    IF (.NOT. is_coupled_to_aero() .OR. &
         (aes_rad_config(jg)%irad_aero /= 12 .AND. &
          aes_rad_config(jg)%irad_aero /= 13 .AND. &
          aes_rad_config(jg)%irad_aero /= 15 .AND. &

@@ -20,7 +20,7 @@ MODULE mo_cloud_mig
        &                            timer_sat, timer_grp
 
   USE mo_aes_thermo          ,ONLY: saturation_adjustment
-  USE mo_aes_graupel         ,ONLY: graupel
+  USE mo_aes_graupel         ,ONLY: graupel_run
 
   IMPLICIT NONE
   PRIVATE
@@ -165,7 +165,7 @@ CONTAINS
     !
     IF (ltimer) call timer_start(timer_grp)
     !
-    CALL graupel( nvec    = nproma        ,& !< in
+    CALL graupel_run( nvec= nproma        ,& !< in
          &        ke      = jke           ,& !< in
          &        ivstart = jcs           ,& !< in
          &        ivend   = jce           ,& !< in
