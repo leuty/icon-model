@@ -1944,7 +1944,7 @@ set_run_target_hk()
 {
     icon_data_rootFolder=${icon_data_rootFolder:=/hkfs/home/dataset/datasets/icon/pool/data/ICON}
 
-    set_default use_nproma 8
+    set_default use_nproma 32
     set_default use_nproma_sub 8
     set_default use_nblocks_c 0
     set_default use_nodes 1
@@ -1982,7 +1982,7 @@ set_run_target_hk()
 #SBATCH --error=$output_folder/$job_log_name.o
 #SBATCH --job-name=$job_name
 #SBATCH --nodes=${use_nodes}
-#SBATCH --partition=dev_cpuonly
+#SBATCH --partition=cpuonly
 #SBATCH --account=hk-project-glori-init
 #SBATCH --ntasks-per-node=$use_mpi_procs_pernode
 #SBATCH --time=$use_cpu_time
@@ -1991,8 +1991,8 @@ EOF
     start_header
 
     cat >> "$output_script" << EOF
-export PATH=/hkfs/home/dataset/datasets/icon/sw/cdo-2.3.0-rev1/bin:\${PATH}
-export ECCODES_DEFINITION_PATH=/hkfs/home/dataset/datasets/icon/sw/definitions/2.32.0-2/definitions.edzw:/hkfs/home/dataset/datasets/icon/sw/definitions/2.32.0-2/definitions
+export PATH=/hkfs/home/dataset/datasets/icon/sw/cdo-2.4.0/bin:\${PATH}
+export ECCODES_DEFINITION_PATH=/hkfs/home/dataset/datasets/icon/bacy_data/definitions/2.32.0-2/definitions.edzw:/hkfs/home/dataset/datasets/icon/bacy_data/definitions/2.32.0-2/definitions
 export NVCOMPILER_TERM=trace
 export OMPI_MCA_btl=self,tcp
 EOF
@@ -2040,7 +2040,7 @@ set_run_target_hk_gpu()
 #SBATCH --output=$output_folder/$job_log_name.o
 #SBATCH --error=$output_folder/$job_log_name.o
 #SBATCH --job-name=$job_name
-#SBATCH --partition=dev_accelerated
+#SBATCH --partition=accelerated
 #SBATCH --account=hk-project-glori-init
 #SBATCH --ntasks-per-node=$use_mpi_procs_pernode
 #SBATCH --gres=gpu:4
@@ -2050,8 +2050,8 @@ EOF
     start_header
 
     cat >> "$output_script" << EOF
-export PATH=/hkfs/home/dataset/datasets/icon/sw/cdo-2.3.0-rev1/bin:\${PATH}
-export ECCODES_DEFINITION_PATH=/hkfs/home/dataset/datasets/icon/sw/definitions/2.32.0-2/definitions.edzw:/hkfs/home/dataset/datasets/icon/sw/definitions/2.32.0-2/definitions
+export PATH=/hkfs/home/dataset/datasets/icon/sw/cdo-2.4.0/bin:\${PATH}
+export ECCODES_DEFINITION_PATH=/hkfs/home/dataset/datasets/icon/bacy_data/definitions/2.32.0-2/definitions.edzw:/hkfs/home/dataset/datasets/icon/bacy_data/definitions/2.32.0-2/definitions
 export NVCOMPILER_TERM=trace
 EOF
 }
