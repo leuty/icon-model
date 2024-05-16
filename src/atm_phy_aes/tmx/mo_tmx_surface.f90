@@ -582,8 +582,8 @@ CONTAINS
 
     IF (isfc == isfc_lnd) THEN
 #ifndef __NO_JSBACH__
-      CALL jsbach_get_var('turb_rough_m', 1, ptr2d=jsb_rough_m)
-      CALL jsbach_get_var('turb_rough_h', 1, ptr2d=jsb_rough_h)
+      CALL jsbach_get_var('turb_rough_m', 1, ptr2d=jsb_rough_m, lacc=.TRUE.)
+      CALL jsbach_get_var('turb_rough_h', 1, ptr2d=jsb_rough_h, lacc=.TRUE.)
 !$OMP PARALLEL DO PRIVATE(jb, jls, js) ICON_OMP_DEFAULT_SCHEDULE
       DO jb = domain%i_startblk_c,domain%i_endblk_c
         !$ACC PARALLEL LOOP DEFAULT(PRESENT) GANG(STATIC: 1) VECTOR ASYNC(1) PRIVATE(js)
@@ -665,7 +665,7 @@ CONTAINS
 
 #ifndef __NO_JSBACH__
     IF (isfc == isfc_lnd .AND. .NOT. linit) THEN
-      CALL jsbach_get_var('seb_qsat_star', 1, ptr2d=jsb_qsat)
+      CALL jsbach_get_var('seb_qsat_star', 1, ptr2d=jsb_qsat, lacc=.TRUE.)
 !$OMP PARALLEL DO PRIVATE(jb, jls, js) ICON_OMP_DEFAULT_SCHEDULE
       DO jb = domain%i_startblk_c,domain%i_endblk_c
         !$ACC PARALLEL LOOP DEFAULT(PRESENT) GANG(STATIC: 1) VECTOR ASYNC(1) PRIVATE(js)
@@ -770,9 +770,9 @@ CONTAINS
 
     IF (isfc == isfc_lnd) THEN
 #ifndef __NO_JSBACH__
-      CALL jsbach_get_var('hydro_evapotrans',  1, ptr2d=jsb_evapotrans_ptr)
-      CALL jsbach_get_var('seb_latent_hflx',   1, ptr2d=jsb_latent_hflx_ptr)
-      CALL jsbach_get_var('seb_sensible_hflx', 1, ptr2d=jsb_sensible_hflx_ptr)
+      CALL jsbach_get_var('hydro_evapotrans',  1, ptr2d=jsb_evapotrans_ptr, lacc=.TRUE.)
+      CALL jsbach_get_var('seb_latent_hflx',   1, ptr2d=jsb_latent_hflx_ptr, lacc=.TRUE.)
+      CALL jsbach_get_var('seb_sensible_hflx', 1, ptr2d=jsb_sensible_hflx_ptr, lacc=.TRUE.)
 #endif
     END IF
 

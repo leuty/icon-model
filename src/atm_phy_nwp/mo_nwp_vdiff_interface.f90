@@ -2131,8 +2131,8 @@ CONTAINS
 
     NULLIFY(p_runoff, p_drainage)
 
-    CALL jsbach_get_var('hydro_runoff', patch%id, ptr2d=p_runoff)
-    CALL jsbach_get_var('hydro_drainage', patch%id, ptr2d=p_drainage)
+    CALL jsbach_get_var('hydro_runoff', patch%id, ptr2d=p_runoff, lacc=.TRUE.)
+    CALL jsbach_get_var('hydro_drainage', patch%id, ptr2d=p_drainage, lacc=.TRUE.)
 #endif
 
     !$OMP PARALLEL
