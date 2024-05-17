@@ -640,7 +640,7 @@ CONTAINS
     TYPE(ty_fluxes_broadband) :: fluxes_lwcs, fluxes_swcs !check acc
 
     TYPE(ty_gas_concs) :: gas_concs !check acc
-    REAL(wp), DIMENSION(ncol       ) :: tsi_norm_factor, mu0
+    REAL(wp), DIMENSION(ncol       ) :: mu0
     REAL(wp), DIMENSION(ncol,klev  ) :: tlay, play
     REAL(wp), DIMENSION(ncol,klev+1) :: tlev, plev
     REAL(wp), DIMENSION(k_dist_sw%get_nband(),ncol) :: albdir, albdif
@@ -674,7 +674,7 @@ CONTAINS
     !$ACC   PRESENT(tk_sfc, pp_sfc, tk_fl, pp_fl) &
     !$ACC   CREATE(ziwp, zlwp, mu0, zsemiss, albdif, re_cryst, re_drop) &
     !$ACC   CREATE(zswp, zdwp, re_snow) &
-    !$ACC   CREATE(albdir, tsi_norm_factor, toa_flux) &
+    !$ACC   CREATE(albdir, toa_flux) &
     !$ACC   CREATE(plev, play, tlev, tlay)
 
     nbndlw = k_dist_lw%get_nband()
@@ -1068,35 +1068,7 @@ CONTAINS
        k_dist_sw%gas_optics(play, plev, tlay, &
                             gas_concs, atmos_sw, &
                             toa_flux))
-    !
-    ! Normalize incident radiation
-    !
-    !$ACC KERNELS DEFAULT(PRESENT) ASYNC(1)
-    tsi_norm_factor(:) = 0._wp
-    !$ACC END KERNELS
-
-    !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1)
-    !$ACC LOOP SEQ
-    DO gpt = 1, ngptsw
-      !$ACC LOOP GANG VECTOR
-      DO i = 1, ncol
-        tsi_norm_factor(i) = tsi_norm_factor(i) + toa_flux(i,gpt)
-      END DO
-    END DO
-    !$ACC END PARALLEL
-
-    !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1)
-    !$ACC LOOP GANG VECTOR COLLAPSE(2)
-    DO gpt = 1, ngptsw 
-      DO i = 1, ncol
-        toa_flux(i,gpt) = toa_flux(i,gpt) * daylght_frc(i) * psctm / tsi_norm_factor(i)
-        !
-        ! baustelle - should be more general
-        !
-        toa_flux(i,gpt) = toa_flux(i,gpt) * (1360.9_wp/1368.22_wp)
-      ENDDO
-    ENDDO
-    !$ACC END PARALLEL
+    !toa_flux is output, some flux of rrtmgp, see mo_gas_optics_rrtmgp.F90
     !
     ! 4.2.2 Aerosol optical depth: add to clear-sky, reorder bands
     !
