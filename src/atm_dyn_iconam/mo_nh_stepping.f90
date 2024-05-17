@@ -52,7 +52,7 @@ MODULE mo_nh_stepping
     &                                    timer_iconam_aes, timer_dace_coupling, timer_rrg_interp, &
     &                                    timer_coupling
   USE mo_ext_data_state,           ONLY: ext_data
-  USE mo_radiation_config,         ONLY: irad_aero, iRadAeroCAMSclim
+  USE mo_radiation_config,         ONLY: irad_aero, iRadAeroCAMSclim, iRadAeroCAMStd
   USE mo_limarea_config,           ONLY: latbc_config
   USE mo_model_domain,             ONLY: p_patch, t_patch, p_patch_local_parent
   USE mo_time_config,              ONLY: t_time_config
@@ -388,7 +388,7 @@ MODULE mo_nh_stepping
       ENDDO
     END IF
 
-    IF (irad_aero == iRadAeroCAMSclim) THEN
+    IF (irad_aero == iRadAeroCAMSclim .OR. irad_aero == iRadAeroCAMStd ) THEN
       ALLOCATE(cams_reader(n_dom))
       ALLOCATE(cams_intp(n_dom))
     END IF
