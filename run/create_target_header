@@ -31,6 +31,7 @@
 set -eu
 
 BB_SYSTEM=${BB_SYSTEM:=""}
+BB_NAME=${BB_NAME:=""}
 
 add_free_var()
 {
@@ -139,10 +140,10 @@ EOF
         i=$((i+1));
     done
 
-    if [[ -n "$use_load_profile" ]]
-    then
-        profile_filename=`echo $use_load_profile | cut -d ' ' -f2`
-        cat >> "$output_script" << EOF
+    # load addition profiles
+    if [[ -n "$use_load_profile" ]]; then
+      profile_filename=`echo $use_load_profile | cut -d ' ' -f2`
+      cat >> "$output_script" << EOF
 # load profile
 # ------------
 if [[ -a "$profile_filename" ]]
@@ -152,8 +153,18 @@ fi
 EOF
     fi
 
-    if [[ -n "$use_load_profile" && -n "$use_load_modules" ]]; then
-        cat >> "$output_script" << EOF
+    # clean the module system
+    if [[ -n "$use_purge_modules" ]]; then
+      cat >> "$output_script" << EOF
+#=============================================================================
+# clean the module environment
+${use_purge_modules}
+EOF
+      fi
+
+    # load user defined modules
+    if [[ -n "$use_load_modules" ]]; then
+      cat >> "$output_script" << EOF
 #=============================================================================
 # load modules
 loadmodule="$use_load_modules"
@@ -162,7 +173,6 @@ module list
 #=============================================================================
 EOF
     fi
-
 
     cat >> "$output_script" << EOF
 
@@ -2062,6 +2072,94 @@ export ECCODES_DEFINITION_PATH=/hkfs/home/dataset/datasets/icon/bacy_data/defini
 export NVCOMPILER_TERM=trace
 EOF
 }
+#=============================================================================
+set_run_target_juwels()
+{
+    icon_data_rootFolder=${icon_data_rootFolder:=/p/fastdata/slmet/slmet111/model_data/ICON-BB}
+
+    set_default use_nproma 8
+    set_default use_nproma_sub 8
+    set_default use_nblocks_c 0
+    set_default use_nodes 1
+    set_default use_num_io_procs 1
+    set_default use_cpu_time 01:00:00
+
+    if [[ $use_mpi == "yes" ]]; then
+        set_default use_mpi_procs_pernode 48
+	use_mpi_startrun="srun --label --ntasks=\${mpi_total_procs}"
+    fi
+    if [[ $use_openmp == "yes" ]]; then
+        set_default use_openmp_threads 2
+	use_mpi_startrun+=" --cpus-per-task=\${OMP_NUM_THREADS}"
+    else
+        set_default use_openmp_threads 1
+    fi
+
+
+    if [[ -n "$BB_SYSTEM" ]]; then
+    # this buildbot, do not use job id
+        job_log_name="LOG.$job_name"
+    else
+        job_log_name="LOG.$job_name.%j"
+    fi
+
+    if [[ -n "$BB_SYSTEM" ]]; then
+        # this is bildbot, do not run more than 45 minutes
+        use_cpu_time="00:15:00"
+    fi
+
+
+    use_purge_modules='module --force purge'
+    add_free_var USERINSTALLATIONS "/p/usersoftware/slmet/easybuild/stages/2023/"
+    login_node_number=$(hostname | sed 's/[^0-9]*//g' | sed 's/^0*//')
+
+    if [ "$login_node_number" -gt 12 ]; then
+      partition='booster'
+      use_nblocks_c=1
+      use_nproma=0
+
+      # Default GPU builder is booster_nvhpc_psmpi
+      use_load_modules="Stages/2023 NVHPC/23.1 netCDF-Fortran ecCodes libfyaml CMake/3.26.3"
+      case "${BB_NAME}" in
+        *booster*ompi)
+        use_load_modules+=" OpenMPI"
+        ;;
+        *)
+        use_load_modules+=" ParaStationMPI/5.8.0-1"
+        ;;
+      esac
+    else
+      partition='batch'
+
+      # Default CPU builder is cluster_intel_psmpi
+      use_load_modules="Stages/2023 GCCcore/.11.3.0 CMake/3.26.3 netCDF-Fortran ecCodes libfyaml ParaStationMPI/5.8.0-1"
+      case "${BB_NAME}" in
+        cluster_intel_psmpi)
+        use_load_modules+=" imkl/2022.1.0 Intel/2022.1.0"
+        ;;
+        cluster_nvhpc_psmpi)
+        use_load_modules+=" NVHPC/23.1"
+        ;;
+      esac
+    fi
+
+    cdo='cdo'
+    cdo_diff='diffn'
+
+    cat >> "$output_script" << EOF
+#SBATCH --output=$output_folder/$job_log_name.o
+#SBATCH --error=$output_folder/$job_log_name.o
+#SBATCH --job-name=$job_name
+#SBATCH --nodes=${use_nodes}
+#SBATCH --partition=${partition}
+#SBATCH --account=exaww
+#SBATCH --ntasks-per-node=$use_mpi_procs_pernode
+#SBATCH --time=$use_cpu_time
+EOF
+
+    start_header
+
+}
 
 #=============================================================================
 create_target_header()
@@ -2538,7 +2636,7 @@ create_target_header()
         *atm_nwp_jsbach_test*)
             use_memory="18gb"
             ;;
-    esac
+        esac
 
     # set more default values
     set_default use_shell "/bin/bash"
