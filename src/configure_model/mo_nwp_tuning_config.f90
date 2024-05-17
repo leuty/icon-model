@@ -77,6 +77,7 @@ MODULE mo_nwp_tuning_config
   PUBLIC :: tune_sc_invmax
   PUBLIC :: tune_dursun_scaling
   PUBLIC :: tune_sbmccn
+  PUBLIC :: tune_urbahf, tune_urbisa
   
   !!--------------------------------------------------------------------------
   !! Basic configuration setup for physics tuning
@@ -266,7 +267,13 @@ MODULE mo_nwp_tuning_config
 
   REAL(wp) :: &                    !< scaling of direct solar rediation to tune sunshine duration
        &  tune_dursun_scaling      !< in corresponding diagnostic
-  
+
+  REAL(wp) :: &                    !< tuning of anthropogenic heat flux
+       &  tune_urbahf(4)
+
+  REAL(wp) :: &                    !< lower and upper bound for variable ISA paraeterization 
+       &  tune_urbisa(2)           !< depending on smoothed urban fraction
+
 !  END TYPE t_nwp_tuning_config
 
 

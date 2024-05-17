@@ -81,7 +81,9 @@ MODULE mo_nwp_tuning_nml
     &                               config_tune_sc_invmin        => tune_sc_invmin,        &
     &                               config_tune_sc_invmax        => tune_sc_invmax,        &
     &                               config_tune_dursun_scaling   => tune_dursun_scaling,   &
-    &                               config_tune_sbmccn           => tune_sbmccn
+    &                               config_tune_sbmccn           => tune_sbmccn,           &
+    &                               config_tune_urbahf           => tune_urbahf,           &
+    &                               config_tune_urbisa           => tune_urbisa
   
   IMPLICIT NONE
   PRIVATE
@@ -266,6 +268,13 @@ MODULE mo_nwp_tuning_nml
 
   REAL(wp) :: &                    !< scaling of direct solar rediation to tune sunshine duration
        &  tune_dursun_scaling      !< in corresponding diagnostic
+
+  REAL(wp) :: &                    !< tuning of anthropogenic heat flux
+       &  tune_urbahf(4)
+
+  REAL(wp) :: &                    !< lower and upper bound for variable ISA paraeterization 
+       &  tune_urbisa(2)           !< depending on smoothed urban fraction
+  
   
   NAMELIST/nwp_tuning_nml/ tune_gkwake, tune_gkdrag, tune_gfluxlaun, tune_gcstar, &
     &                      tune_zceff_min, tune_v0snow, tune_zvz0i,               &
@@ -285,7 +294,8 @@ MODULE mo_nwp_tuning_nml
     &                      tune_sc_eis, tune_sc_invmin, tune_sc_invmax,           &
     &                      tune_capethresh, tune_gkdrag_enh, tune_grcrit_enh,     &
     &                      tune_minsso_gwd, tune_dursun_scaling, tune_sbmccn,     &
-    &                      itune_slopecorr, tune_gustlim_agl, tune_gustlim_fac
+    &                      itune_slopecorr, tune_gustlim_agl, tune_gustlim_fac,   &
+    &                      tune_urbahf, tune_urbisa
 
 CONTAINS
 
@@ -453,6 +463,10 @@ CONTAINS
     !> scaling of direct solar radiation in sunshine duration diagnostic
     tune_dursun_scaling = 1._wp
 
+    !> Tuning parameters for TERRA-URB
+    tune_urbahf = (/0._wp,2._wp,2._wp,50._wp/)   ! anthropogenic heat flux; base values and gradients for heating and cooling; upper limit
+    tune_urbisa = (/0.6_wp,1._wp/)        ! lower and upper bound for variable ISA parameterization depending on smoothed urban fraction
+
     IF (my_process_is_stdio()) THEN
       iunit = temp_defaults()
       WRITE(iunit, nwp_tuning_nml)   ! write defaults to temporary text file
@@ -591,6 +605,8 @@ CONTAINS
     config_tune_sc_invmax        = tune_sc_invmax
     config_tune_dursun_scaling   = tune_dursun_scaling
     config_tune_sbmccn           = tune_sbmccn
+    config_tune_urbisa           = tune_urbisa
+    config_tune_urbahf           = tune_urbahf
 
     !$ACC UPDATE DEVICE(config_tune_gust_factor, config_itune_gust_diag, config_tune_gustsso_lim) ASYNC(1)
     !$ACC UPDATE DEVICE(config_tune_gustlim_agl, config_tune_gustlim_fac) ASYNC(1)

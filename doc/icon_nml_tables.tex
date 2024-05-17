@@ -4031,8 +4031,11 @@ lurbalb &
 L & .TRUE. &  & If .TRUE., use urban albedo and emissivity (Wouters et al.\ 2016) & lterra\_urb = .TRUE.
 \tabularnewline
 
-lurbahf &
-L & .TRUE. &  & If .TRUE., use urban anthropogenic heat flux (Wouters et al.\ 2016) & lterra\_urb = .TRUE.
+itype\_ahf &
+I & 2 &  & If $\ge$1, use urban anthropogenic heat flux (Wouters et al.\ 2016) \\
+1: constant value given by the first entry in tuning\_nml:tune\_urbahf \\
+2: variable value depending on climatological T2M as specified in tuning\_nml:tune\_urbahf \\
+3: to be implemented (variable value depending on time-filtered predicted T2M) & lterra\_urb = .TRUE.
 \tabularnewline
 
 itype\_kbmo &
@@ -6102,6 +6105,27 @@ R&
 &
 Tuning factor for direct solar irradiance in sunshine duration diagnostic to account for the 
 delta-Eddington scaling in ecRad and other possible biases (e.g. liquid/ice water path) &
+\tabularnewline
+
+\hline
+tune\_urbahf&
+R(4)&
+0., 2., 2., 50.& W m$^{-2}$
+&
+Tuning factors for specifying the anthropogenic heat flux (AHF) depending on climatological T2M. \\
+first value: constant base value independent of temperature \\
+second value: gradient per K below T2M = 15$^\circ$C for heating \\
+third value: gradient per K above T2M = 20$^\circ$C for cooling \\
+fourth value: upper limit for AHF & lterra\_urb=.TRUE.
+\tabularnewline
+
+\hline
+tune\_urbisa&
+R(2)&
+0.6, 1.0&
+&
+Lower and upper bound for variable ISA parameterization (fraction of impervious surface area on urban tiles) 
+depending on smoothed urban fraction & lterra\_urb=.TRUE.
 \tabularnewline
 
 

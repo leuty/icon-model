@@ -59,7 +59,7 @@ MODULE mo_lnd_nwp_nml
     &                               config_tau_skin           => tau_skin          , &
     &                               config_lterra_urb         => lterra_urb        , &
     &                               config_lurbalb            => lurbalb           , &
-    &                               config_lurbahf            => lurbahf           , &
+    &                               config_itype_ahf          => itype_ahf         , &
     &                               config_itype_kbmo         => itype_kbmo        , &
     &                               config_itype_eisa         => itype_eisa        , &
     &                               config_lstomata           => lstomata          , &
@@ -139,7 +139,7 @@ CONTAINS
     REAL(wp)::  tau_skin          !< relaxation time scale for the computation of the skin temperature
     LOGICAL ::  lterra_urb        !< activate urban model TERRA_URB (see Schulz et al. 2023)
     LOGICAL ::  lurbalb           !< use urban albedo and emissivity
-    LOGICAL ::  lurbahf           !< use urban anthropogenic heat flux
+    INTEGER ::  itype_ahf         !< type of urban anthropogenic heat flux
     INTEGER ::  itype_kbmo        !< type of bluff-body thermal roughness length parameterisation
     INTEGER ::  itype_eisa        !< type of evaporation from impervious surface area
     INTEGER ::  itype_hydbound    !< type of hydraulic lower boundary condition
@@ -179,8 +179,8 @@ CONTAINS
          &               itype_interception                                   , &
          &               itype_hydbound                                       , &
          &               itype_canopy, cskinc, tau_skin                       , &
-         &               lterra_urb, lurbalb, lurbahf, itype_kbmo, itype_eisa , &
-         &               lstomata                                             , &
+         &               lterra_urb, lurbalb, itype_ahf, itype_kbmo           , &
+         &               itype_eisa, lstomata                                 , &
          &               l2tls                                                , &
          &               lana_rho_snow, l2lay_rho_snow                        , &
          &               lsnowtile, itype_snowevap                            , &
@@ -261,7 +261,9 @@ CONTAINS
     lterra_urb     = .FALSE. ! if .TRUE., activate urban model TERRA_URB by Wouters et al. (2016, 2017)
                              ! (see Schulz et al. 2023)
     lurbalb        = .TRUE.  ! if .TRUE., use urban albedo and emissivity (Wouters et al. 2016)
-    lurbahf        = .TRUE.  ! if .TRUE., use urban anthropogenic heat flux (Wouters et al. 2016)
+    itype_ahf      = 2       ! if >0, use urban anthropogenic heat flux (Wouters et al. 2016)
+                             !  1: constant AHF, 2: AHF based on climatological T2M, 
+                             !  3: to be implemented (AHF based on time-filtered predicted T2M)
     itype_kbmo     = 2       ! type of bluff-body thermal roughness length parameterisation
                              !  1: standard SAI-based turbtran (Raschendorfer 2001)
                              !  2: Brutsaert-Kanda parameterisation for bluff-body elements (kB-1)
@@ -414,7 +416,7 @@ CONTAINS
     config_tau_skin           = tau_skin
     config_lterra_urb         = lterra_urb
     config_lurbalb            = lurbalb
-    config_lurbahf            = lurbahf
+    config_itype_ahf          = itype_ahf
     config_itype_kbmo         = itype_kbmo
     config_itype_eisa         = itype_eisa
     config_lstomata           = lstomata

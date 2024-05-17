@@ -256,8 +256,6 @@ CONTAINS
       &     p_ext_atm%sso_sigma,       &
       &     p_ext_atm%urb_isa,         &
       &     p_ext_atm%urb_isa_t,       &
-      &     p_ext_atm%fr_paved,        &
-      &     p_ext_atm%fr_paved_t,      &
       &     p_ext_atm%urb_ai,          &
       &     p_ext_atm%urb_ai_t,        &
       &     p_ext_atm%urb_alb_red,     &
@@ -546,6 +544,16 @@ CONTAINS
           &           lopenacc=.TRUE. )
       ENDIF
 
+      IF (lterra_urb) THEN
+        cf_desc    = t_cf_var('smoothed land_area_fraction', '-', 'Fraction land smooth', datatype_flt)
+        grib2_desc = grib2_var( 255, 255, 255, ibits, GRID_UNSTRUCTURED, GRID_CELL)
+        CALL add_var( p_ext_atm_list, 'fr_urb_smt', p_ext_atm%fr_urb_smt,   &
+          &           GRID_UNSTRUCTURED_CELL, ZA_SURFACE, cf_desc,    &
+          &           grib2_desc, ldims=shape2d_c, loutput=.TRUE.,    &
+          &           isteptype=TSTEP_CONSTANT,                       &
+          &           lopenacc=.TRUE. )
+      ENDIF
+
       ! glacier area fraction
       !
       ! fr_glac  p_ext_atm%fr_glac(nproma,nblks_c)
@@ -752,26 +760,6 @@ CONTAINS
 
 
       IF (lterra_urb) THEN
-
-      ! Impervious surface area (ISA) fraction
-      !
-      ! fr_paved        p_ext_atm%fr_paved(nproma,nblks_c)
-      cf_desc    = t_cf_var('fr_paved', '-', 'Impervious surface area fraction', datatype_flt)
-      grib2_desc = grib2_var( 2, 0, 196, ibits, GRID_UNSTRUCTURED, GRID_CELL)
-      CALL add_var( p_ext_atm_list, 'fr_paved', p_ext_atm%fr_paved,         &
-        &           GRID_UNSTRUCTURED_CELL, ZA_SURFACE, cf_desc,            &
-        &           grib2_desc, ldims=shape2d_c, loutput=.TRUE.,            &
-        &           initval=-1._wp, isteptype=TSTEP_CONSTANT )
-
-      ! fr_paved_t        p_ext_atm%fr_paved_t(nproma,nblks_c,ntiles_total)
-      cf_desc    = t_cf_var('fr_paved', '-', 'Impervious surface area fraction', datatype_flt)
-      grib2_desc = grib2_var( 2, 0, 196, ibits, GRID_UNSTRUCTURED, GRID_CELL)
-      CALL add_var( p_ext_atm_list, 'fr_paved_t', p_ext_atm%fr_paved_t,     &
-        &           GRID_UNSTRUCTURED_CELL, ZA_SURFACE, cf_desc,            &
-        &           grib2_desc, ldims=shape3d_nt, loutput=.FALSE.,          &
-        &           initval=-1._wp, lopenacc=.TRUE.)
-      __acc_attach(p_ext_atm%fr_paved_t)
-
 
       ! Surface area index of the urban canopy
       !
@@ -1402,7 +1390,6 @@ CONTAINS
                 p_ext_atm%laimax_lcc(nclass_lu(jg)),    & ! Maximum leaf area index for each land-cover class
                 p_ext_atm%rootdmax_lcc(nclass_lu(jg)),  & ! Maximum root depth each land-cover class
                 p_ext_atm%skinc_lcc(nclass_lu(jg)),     & ! Skin conductivity for each land use class
-                p_ext_atm%fr_paved_lcc(nclass_lu(jg)),  & ! Impervious surface area (ISA) for each land use class
                 p_ext_atm%ahf_lcc(nclass_lu(jg)),       & ! Anthropogenic heat flux for each land use class
                 p_ext_atm%stomresmin_lcc(nclass_lu(jg)),& ! Minimum stomata resistance for each land-cover class
                 p_ext_atm%snowalb_lcc(nclass_lu(jg)),   & ! Albedo in case of snow cover for each land-cover class
