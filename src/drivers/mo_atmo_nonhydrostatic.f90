@@ -867,13 +867,11 @@ CONTAINS
 
     ! tmx
 #ifndef __NO_AES__
-    IF (aes_vdf_config(1)%use_tmx) THEN
-      IF (n_dom == 1) THEN
-        CALL init_tmx(p_patch(1), dtime)
-      ELSE
-        CALL finish(routine, 'Only one domain supported currently for new tmx')
+    DO jg =1,n_dom
+      IF (aes_vdf_config(jg)%use_tmx) THEN
+        CALL init_tmx(p_patch(jg), dtime)
       END IF
-    END IF
+    END DO
 #endif
 
 #ifdef MESSY
