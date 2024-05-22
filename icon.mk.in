@@ -27,6 +27,13 @@ bundled_subdirs= $(bundled_config_subdirs) $(bundled_cmake_subdirs)
 # Relative path to the directory with the Fortran module files:
 moddir:= mod
 
+# When the two-step compilation is enabled, Fortran module files that are
+# generated together with the object file become an unwanted side effect. More
+# often than not, Fortran compilers do not have special flags to suppress the
+# generation of the module files. Therefore, we use the following directory as
+# a trash bin:
+@SEPARATE_MODS_ENABLED@moddir_null:= $(moddir)/null
+
 # Relative path to the directory with the generated executables:
 bindir:= bin
 
@@ -63,7 +70,7 @@ MKDIR_P= @MKDIR_P@
 
 # Fortran compiler flags:
 FCFLAGS= @FCFLAGS@
-make_FCFLAGS= @FC_MOD_IN@$(moddir) @FC_MOD_OUT@$(moddir)
+make_FCFLAGS= @FC_MOD_IN@$(moddir)
 ICON_FCFLAGS= @ICON_FCFLAGS@
 @ICON_FCGROUP_FLAGS@
 DEPGEN_FCFLAGS= @DEPGEN_FCFLAGS@
@@ -233,6 +240,9 @@ join_comma= $(subst $() ,$(join_comma_symbol),$(strip $(1)))
 # generation and usage:
 @PGI_INLIB_ENABLED@pgi_inlib_common_arg:= lib:$(pgi_inlib_name),name:$(call join_comma,$(pgi_inlib_procedures))
 @PGI_INLIB_ENABLED@pgi_inlib_ex_FCFLAGS= -Mextract=$(pgi_inlib_common_arg)
+@PGI_INLIB_ENABLED@@SEPARATE_MODS_ENABLED@dir_files+= $(moddir_null)/icon.il/.dirstamp
+@PGI_INLIB_ENABLED@@SEPARATE_MODS_ENABLED@pgi_inlib_ex_FCFLAGS+= @FC_MOD_OUT@$(moddir_null)/icon.il
+@PGI_INLIB_ENABLED@@SEPARATE_MODS_DISABLED@pgi_inlib_ex_FCFLAGS+= @FC_MOD_OUT@$(moddir)
 @PGI_INLIB_ENABLED@pgi_inlib_in_FCFLAGS= -Minline=$(pgi_inlib_common_arg),reshape
 
 # Additional flag limiting the GPU register usage (valid only if the inline
@@ -265,8 +275,9 @@ join_comma= $(subst $() ,$(join_comma_symbol),$(strip $(1)))
 # file of the respective parent module should be generated using the inline
 # library as well:
 @PGI_INLIB_ENABLED@pgi_inlib_target_obj_files+= \
-@PGI_INLIB_ENABLED@  $(filter %.@OBJEXT@, \
-@PGI_INLIB_ENABLED@    $(shell $(DEPLIST) --no-hints --max-depth 1 -t $(pgi_inlib_mod_files) -f $(dep_files)))
+@PGI_INLIB_ENABLED@  $(patsubst %$(pp_infix)modstamp.f90,%.@OBJEXT@, \
+@PGI_INLIB_ENABLED@    $(filter %.@OBJEXT@ %$(pp_infix)modstamp.f90, \
+@PGI_INLIB_ENABLED@      $(shell $(DEPLIST) --no-hints --max-depth 1 -t $(pgi_inlib_mod_files) -f $(dep_files))))
 
 # To avoid circular dependencies, we need to account for situations when we
 # have a dependency A -> B -> C, where A and C belong to $(pgi_inlib_obj_files)
@@ -284,7 +295,7 @@ join_comma= $(subst $() ,$(join_comma_symbol),$(strip $(1)))
 @PGI_INLIB_ENABLED@  $(filter %.@FC_MOD_FILE_EXT@.proxy %.@FC_SMOD_FILE_EXT@.sproxy, \
 @PGI_INLIB_ENABLED@    $(filter-out \
 @PGI_INLIB_ENABLED@      $(shell $(DEPLIST) --no-hints -p $(pgi_inlib_obj_files) -f $(pgi_inlib_dep_files)), \
-@PGI_INLIB_ENABLED@      $(shell $(DEPLIST) --no-hints -t $(pgi_inlib_obj_files) -f $(pgi_inlib_dep_files))))
+@PGI_INLIB_ENABLED@      $(shell $(DEPLIST) --no-hints -t $(pgi_inlib_obj_files) $(pgi_inlib_obj_files:.@OBJEXT@=$(pp_infix)modstamp.f90) -f $(pgi_inlib_dep_files))))
 
 ############################### MAKEFILE TWEAKS ################################
 
@@ -306,6 +317,7 @@ silent_FPP=     @echo "  FPP     " $@;
 silent_GEN=     @echo "  GEN     " $@;
 silent_HIPCXX=  @echo "  HIPCXX  " $@;
 silent_MKDIR=   @echo "  MKDIR   " $(@D);
+silent_MOD=     @echo "  MOD    <" $<;
 silent_SB2=     @echo "  SB2PP   " $@;
 silent_none=    @
 endif
@@ -392,6 +404,7 @@ mostlyclean: $(bundled_subdirs)
 	rm -f $(exec_files) $(lib_files) $(addsuffix .@OBJEXT@,$(basename $(f90_files) $(c_files) $(cu_files) $(hip_files))) version.@OBJEXT@
 	rm -f $(moddir)/*.@FC_MOD_FILE_EXT@ $(moddir)/*.@FC_MOD_FILE_EXT@.proxy
 	rm -f $(moddir)/*.@FC_SMOD_FILE_EXT@ $(moddir)/*.@FC_SMOD_FILE_EXT@.sproxy
+@SEPARATE_MODS_ENABLED@	rm -rf $(moddir_null) $(f90_files:.f90=$(pp_infix)modstamp.f90)
 @PGI_INLIB_ENABLED@	rm -rf $(pgi_inlib_name)
 
 # Delete files generated at the building stage (strictly speaking, we should
@@ -501,13 +514,20 @@ $(lib_files): | $(dir_files)
 # PGI/NVIDIA inline library generation rule (note that the source files are
 # provided to the compiler in the topological order):
 @PGI_INLIB_ENABLED@$(pgi_inlib_name)/TOC: $(pgi_inlib_prereq_mod_files) $(pgi_inlib_obj_files:.@OBJEXT@=.f90) inlib.mk | $(dir_files)
-@PGI_INLIB_ENABLED@	$(silent_FCEX)rm -rf $(@D) && $(FC) $(make_FCFLAGS) $(FCFLAGS) $(ICON_FCFLAGS) $(pgi_inlib_ex_FCFLAGS) @FCFLAGS_f90@ $(filter %.f90,$^)
+@PGI_INLIB_ENABLED@	$(silent_FCEX)rm -rf $(@D) && $(FC) $(pgi_inlib_ex_FCFLAGS) $(make_FCFLAGS) $(FCFLAGS) $(ICON_FCFLAGS) @FCFLAGS_f90@ $(filter %.f90,$^)
 
 # Fortran compilation rule:
-%.@OBJEXT@: %.f90 | $(dir_files) $(bundled_subdirs) sanitize-mod-proxies
-	$(silent_FC)$(FC) -o $@ -c $(make_FCFLAGS) $(FCFLAGS) $(ICON_FCFLAGS) @FCFLAGS_f90@ $<
+@SEPARATE_MODS_ENABLED@%.@OBJEXT@: %.f90 | $(dir_files) $(bundled_subdirs) sanitize-mod-proxies
+@SEPARATE_MODS_ENABLED@	$(silent_FC)@MKDIR_P@ $(moddir_null)/$@ && $(FC) -o $@ -c @FC_MOD_OUT@$(moddir_null)/$@ $(make_FCFLAGS) $(FCFLAGS) $(ICON_FCFLAGS) @FCFLAGS_f90@ $<
 
-# Fortran module file rule:
+@SEPARATE_MODS_DISABLED@%.@OBJEXT@: %.f90 | $(dir_files) $(bundled_subdirs) sanitize-mod-proxies
+@SEPARATE_MODS_DISABLED@	$(silent_FC)$(FC) -o $@ -c @FC_MOD_OUT@$(moddir) $(make_FCFLAGS) $(FCFLAGS) $(ICON_FCFLAGS) @FCFLAGS_f90@ $<
+
+# Fortran module file generation rule:
+@SEPARATE_MODS_ENABLED@%$(pp_infix)modstamp.f90: %.f90 | $(dir_files) $(bundled_subdirs) sanitize-mod-proxies
+@SEPARATE_MODS_ENABLED@	$(silent_MOD)$(FC) -c @FC_MOD_OUT@$(moddir) $(make_FCFLAGS) $(FCFLAGS) $(ICON_FCFLAGS) @FC_MOD_ONLY@ @FCFLAGS_f90@ $< && touch $@
+
+# Fortran module file tracking and recovery rule:
 $(moddir)/%.@FC_MOD_FILE_EXT@.proxy:| sanitize-mod-proxies
 	@if test -n '$<'; then \
 	  if test ! -f '$(@:.proxy=)'; then rm -f '$<'; $(MAKE) -f icon.mk '$<'; fi; \
@@ -515,7 +535,7 @@ $(moddir)/%.@FC_MOD_FILE_EXT@.proxy:| sanitize-mod-proxies
 	  else cp '$(@:.proxy=)' '$@' 2>/dev/null; fi; \
 	fi
 
-# Fortran submodule file rule:
+# Fortran submodule file tracking and recovery rule:
 $(moddir)/%.@FC_SMOD_FILE_EXT@.sproxy:| sanitize-mod-proxies
 	@if test -z '$<'; then \
 	  echo "Cannot find Fortran source file providing submodule '$(basename $(@F:.sproxy=))'." >&2; \
@@ -624,7 +644,7 @@ version.c: force-create-version
 
 # Fortran dependency generation rule:
 %.f90.d: %.f90 icon.mk depgen.f90.config | $(dir_files)
-	$(silent_DEPGEN)$(DEPGEN) @depgen.f90.config -o $@ --obj-name $(@:.f90.d=.@OBJEXT@) -i $< -- $(DEPGEN_FCFLAGS) $(make_FCFLAGS) $(FCFLAGS) $(ICON_FCFLAGS)
+	$(silent_DEPGEN)$(DEPGEN) @depgen.f90.config -o $@ --obj-name $(@:.f90.d=.@OBJEXT@) $(if @SEPARATE_MODS_DISABLED@,--fc-mod-stamp-name $(@:.f90.d=$(pp_infix)modstamp.f90)) -i $< -- $(DEPGEN_FCFLAGS) @FC_MOD_OUT@$(moddir) $(make_FCFLAGS) $(FCFLAGS) $(ICON_FCFLAGS)
 
 # C dependency generation rule:
 %.c.d: %.c icon.mk depgen.c.config | $(dir_files)

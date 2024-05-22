@@ -92,6 +92,14 @@ AC_ARG_ENABLE([delayed-config],
   [AS_IF([test x"$enableval" != xno], [enable_delayed_config=yes])],
   [enable_delayed_config=yes])
 
+AC_ARG_ENABLE([separate-mods],
+  [AS_HELP_STRING([--enable-separate-mods],
+     [enable the two-step compilation of the Fortran source files (increases the
+total overhead but potentially reduces the wall clock time for parallel builds
+due to a faster Fortran module generation) @<:@default=no@:>@])],
+  [AS_IF([test x"$enableval" != xno], [enable_separate_mods=yes])],
+  [enable_separate_mods=no])
+
 m4_divert_once([HELP_ENABLE], [[
 Model Features:]])
 
@@ -798,6 +806,11 @@ ACX_FC_MODULE_SNAMING(
 
 ACX_FC_MODULE_ROOT_SMOD(
   [AC_SUBST([FC_ROOT_SMOD], [$acx_cv_fc_module_root_smod])])
+
+AS_VAR_IF([enable_separate_mods], [yes],
+  [ACX_FC_MODULE_ONLY_FLAG([FC_MOD_ONLY=$acx_cv_fc_module_only_flag])],
+  [FC_MOD_ONLY=])
+AC_SUBST([FC_MOD_ONLY])
 
 ACX_FC_INCLUDE_FLAG(
   [AC_SUBST([FC_INC_FLAG], [$acx_cv_fc_ftn_include_flag])])
@@ -2697,6 +2710,12 @@ AS_VAR_IF([enable_silent_rules], [yes],
 AS_VAR_IF([enable_delayed_config], [yes],
   [AC_SUBST([DELAYED_CONFIG_ENABLED], [''])],
   [AC_SUBST([DELAYED_CONFIG_ENABLED], ['#'])])
+
+AS_VAR_IF([enable_separate_mods], [yes],
+  [AC_SUBST([SEPARATE_MODS_ENABLED], [''])
+   AC_SUBST([SEPARATE_MODS_DISABLED], ['#'])],
+  [AC_SUBST([SEPARATE_MODS_ENABLED], ['#'])
+   AC_SUBST([SEPARATE_MODS_DISABLED], [''])])
 
 AS_VAR_IF([enable_jsbach], [yes],
   [AC_SUBST([JSBACH_ENABLED], [''])],
