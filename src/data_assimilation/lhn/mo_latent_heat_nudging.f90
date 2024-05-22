@@ -335,12 +335,12 @@ SUBROUTINE organize_lhn ( dt_loc, p_sim_time,             & !>in
   !$ACC   PRESENT(pt_patch, pt_patch%cells%area)
 
 #ifdef _OPENACC
-  CALL init(wobs_space(:,:), opt_acc_async=.TRUE.)
-  CALL init(zprmod(:,:), opt_acc_async=.TRUE.)
-  CALL init(zprmod_ref(:,:), opt_acc_async=.TRUE.)
-  CALL init(zprmod_ref_f(:,:), opt_acc_async=.TRUE.)
-  CALL init(zprrad(:,:), opt_acc_async=.TRUE.)
-  CALL init(zprrad_f(:,:), opt_acc_async=.TRUE.)
+  CALL init(wobs_space(:,:), lacc=.TRUE., opt_acc_async=.TRUE.)
+  CALL init(zprmod(:,:), lacc=.TRUE., opt_acc_async=.TRUE.)
+  CALL init(zprmod_ref(:,:), lacc=.TRUE., opt_acc_async=.TRUE.)
+  CALL init(zprmod_ref_f(:,:), lacc=.TRUE., opt_acc_async=.TRUE.)
+  CALL init(zprrad(:,:), lacc=.TRUE., opt_acc_async=.TRUE.)
+  CALL init(zprrad_f(:,:), lacc=.TRUE., opt_acc_async=.TRUE.)
 #endif
 
 !$OMP PARALLEL
@@ -1533,7 +1533,7 @@ SUBROUTINE lhn_obs_prep (pt_patch,radar_data,lhn_fields,pr_obs,hzerocl, &
 
 !! reset counters
 !$OMP PARALLEL
-  CALL init(num_t_obs(:,:,:), opt_acc_async=.TRUE.)
+  CALL init(num_t_obs(:,:,:), lacc=.TRUE., opt_acc_async=.TRUE.)
 !$OMP END PARALLEL
 
 

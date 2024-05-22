@@ -554,11 +554,6 @@ Selects source of aerosol types\\
 18: Kinne background aerosols (of natural origin, 1850) are set and Stenchikov's
 volcanic aerosols are added to Kinne background and Simple plumes are added \\
 aes\_phy\_config(jg)\% dt\_rad > 0.000s \tabularnewline
-%
-aes\_rad\_config(jg)\% lrad\_yac & L & .FALSE. & &
-.TRUE.: O3 and Kinne Aerosol is coupled via yac for \\
-irad\_aero 13, 15, 18, 19  and \\
-irad\_o3 4,5,6, \tabularnewline
 \end{longtab}
 
 %------------------------------------------------------------------------------
@@ -1170,6 +1165,22 @@ L &
 \tabularnewline
 
 %\hline
+coupled\_to\_aero &
+L &
+.FALSE. &  &
+.TRUE.: Activates the coupling of aes atmosphere to Kinne aerosole input files. \newline 
+        Kinne aerosol input is taken from python processes rather than direct reading from pre-processed input files. rte-rrtmgp radiation supported only. In this case yac coupling routines are called.&
+\tabularnewline
+
+%\hline
+coupled\_to\_o3 &
+L &
+.FALSE. &  &
+.TRUE.: Activates the coupling of aes atmosphere to o3 input files. \newline 
+        O3 input is taken from python processes rather than direct reading from pre-processed input files. In this case yac coupling routines are called.&
+\tabularnewline
+
+%\hline
 coupled\_to\_river &
 L &
 .FALSE. &  &
@@ -1223,6 +1234,12 @@ Diffusion on the horizontal wind field&
 \textbf{lhdiff\_w}&
 L& .TRUE. & &
 Diffusion on the vertical wind field&
+\tabularnewline
+
+%\hline
+\textbf{lhdiff\_q}&
+L& .FALSE. & &
+Diffusion on QV and QC (water vapor and cloud water)&
 \tabularnewline
 
 %\hline
@@ -2537,7 +2554,7 @@ lconsistency\_checks&
 L & .TRUE.& &
 If .FALSE., consistency checks for Analysis and First Guess fields are skipped. On default, checks are performed for
 \emph{uuidOfHGrid} and \emph{validity time}. &
-init\_mode=1,3,4,5,6
+init\_mode=1,3,4,5,6,7
 \tabularnewline
 
 %\hline
@@ -2567,14 +2584,14 @@ ltile\_init&
 L & .FALSE.& &
 True: initialize tiled surface fields from a first guess coming from a run without tiles. \\
 Along coastlines and lake shores, a neighbor search is executed to fill the variables on previously non-existing
-land or water points with reasonable values. Should be combined with ltile\_coldstart = .TRUE. & init\_mode=1,5,6
+land or water points with reasonable values. Should be combined with ltile\_coldstart = .TRUE. & init\_mode=1,5,6,7
 \tabularnewline
 
 %\hline
 ltile\_coldstart&
 L & .FALSE.& &
 If true, tiled surface fields are initialized with tile-averaged fields from a previous run with tiles. \\
-A neighbor search is applied to subgrid-scale ocean points for SST and sea-ice fraction. & init\_mode=1,5,6
+A neighbor search is applied to subgrid-scale ocean points for SST and sea-ice fraction. & init\_mode=1,5,6,7
 \tabularnewline
 
 %\hline
@@ -2613,7 +2630,7 @@ Filename of DWD first-guess input file, default
 ''\texttt{<path>dwdFG\_R<nroot>B<jlev>\_DOM <idom>.nc}''.
 May contain the keywords \texttt{<path>} which will be substituted by
 \texttt{model\_base\_dir}, as well as \texttt{nroot}, \texttt{nroot0}, \texttt{jlev},
-and \texttt{idom} defining the current patch. & init\_mode=1,3,5,6
+and \texttt{idom} defining the current patch. & init\_mode=1,3,5,6,7
 \tabularnewline
 
 %\hline
@@ -2648,7 +2665,7 @@ they become mandatory for domain \texttt{jg}, such that the model aborts if any 
 This list may include a subset of the optional first guess fields, or even the entire set of first
 guess fields. On default this list is empty, such that optional fields experience a cold-start
 initialization if they are missing and the model does not abort.
-& init\_mode=1,5,6
+& init\_mode=1,5,6,7
 \tabularnewline
 
 %\hline
@@ -2939,10 +2956,16 @@ Interval over which wind gusts are maximized &
 iforcing=3
 \tabularnewline
 
+ff10m\_interval&
+R(n\_dom)& 600. & s&
+Interval over which 10-m winds are averaged (and used as basis for the gust diagnosis) &
+itune\_gust\_diag=4
+\tabularnewline
+
 %\hline
 celltracks\_interval&
 R(n\_dom)& 3600. & s&
-Interval over which celltrack variables are maximized (lpi\_max, uh\_max, vorw\_ctmax, w\_ctmax, tcond\_max, tcond10\_max, dbz\_ctmax) &
+Interval over which celltrack variables are maximized (lpi\_max, uh\_max, vorw\_ctmax, w\_ctmax, tcond\_max, tcond10\_max, dbz\_ctmax, tot\_pr\_max) &
 iforcing=3
 \tabularnewline
 
@@ -3366,6 +3389,11 @@ omega & vertical (pressure) velocity & Pa s-1 & - & 3d & - & [2]
 
 tot\_prec\_d &  total accumulated precipitation during a different time interval compared to tot\_prec &
 kg m-2 & iforcing = inwp & 2d & totprec\_d\_interval & [1], [4], [5]
+\tabularnewline
+%
+
+tot\_pr\_max &  maximum total precipitation rate during prescribed time interval &
+kg m-2 s-1 & iforcing = inwp & 2d & celltracks\_interval & [4]
 \tabularnewline
 %
 
@@ -5089,6 +5117,15 @@ More advanced options are in preparation&
 currently only for inwp\_gscp = 1
 \tabularnewline
 
+icpl\_aero\_ice&
+I&
+0&
+ &
+0: ice nucleating particles concentration defined by temperature using Cooper (1987) formula \\
+1: ice nucleating particles concentration defined by temperature and dust concentration from CAMS climatology using DeMott (2015) formula; requires irad\_aero=7 \\
+2: ice nucleating particles concentration defined by temperature and dust concentration from Tegen climatology using DeMott (2015) formula; requires irad\_aero=6
+\tabularnewline
+
 %\hline
 \textbf{inwp\_convection}&
 I (max\_ dom)&
@@ -5972,9 +6009,31 @@ Method of SSO blocking correction used in the gust diagnostics\\
 1: Use level above ``SSO envelope top'' for gust enhancement over mountains \\
 2: Use ``SSO envelope top'' level for gust enhancement over mountains, combined with an adjusted nonlinearity factor
 (recommended for global configurations with MERIT/REMA orography) \\
-3: Variant of option 1, recommended for ICON-D2 with subgrid-scale condensation (do not use with ntiles=1) &
-run\_nml:iforcing = inwp
+3: Variant of option 1, recommended for ICON-D2 with subgrid-scale condensation (do not use with ntiles=1) \\
+4: As 3, but using time-averaged 10-m wind speeds as input with additional limitation to resolved bouldary-layer wind speeds &
+run\_nml:iforcing = inwp; related switches are tune\_gustlim\_agl and tune\_gustlim\_fac
 \tabularnewline
+
+\hline
+tune\_gustlim\_agl&
+R(max\_dom)&
+1500.0&
+m&
+Height range above ground, within which the maximum resolved wind speed is determined for gust limitation &
+itune\_gust\_diag = 4
+\tabularnewline
+
+\hline
+tune\_gustlim\_fac&
+R(max\_dom)&
+0.0&
+ &
+Tuning factor for gust limitation. The default value of zero means that the limitation is turned off. Otherwise, the difference
+between the 10-m wind speed and the maximum speed found below tune\_gustlim\_agl times tune\_gustlim\_fac is used to limit
+the excess gust speed &
+itune\_gust\_diag = 4
+\tabularnewline
+
 
 \hline
 itune\_albedo&
@@ -6083,7 +6142,7 @@ There are for sure parameters which could be optimized for different resolutions
 
 %\hline
 i2mom\_solver &
-I& 1 & &
+I& 1 & - &
 Type of numerical time integration scheme for the two-moment scheme:\\
 0: explicit Euler-forward\\
 1: semi-implicit solver similar to that of the standard one-moment schemes &
@@ -6091,19 +6150,35 @@ iforcing=3, inwp\_gscp=4
 \tabularnewline
 
 ccn\_type &
-I& Depends on \mbox{inwp\_gscp}:\\for 4,7: 7\\ for 5: 8 & &
+I& Depends on \mbox{inwp\_gscp}:\\for 4,7: 7\\ for 5: 8 & - &
 Choice of the aerosol scenario for cloud nucleation (CCN):\\
 6: ``low CCN'' (``maritime'')\\
 7: ``intermediate CCN'' \\
 8: ``high CCN'' (``continental'')\\
 9: ``very high CCN'' (``polluted'')\\
-If applied together with the ART aerosol physics \textbf{inwp\_gscp=6}, this parameter has no effect.
+If applied together with the ART aerosol physics \textbf{inwp\_gscp=6, this parameter has no effect.}
 &
-iforcing=3, inwp\_gscp=4,5,6,7
+iforcing=3, inwp\_gscp=4,5,7
+\tabularnewline
+
+ccn\_Ncn0 &
+R & -999.99 & m$^{-3}$ &
+CN concentration near ground. A value of < -900 indicates that the hardcoded value associated with the ccn\_type will be used.
+If applied together with the ART aerosol physics \textbf{inwp\_gscp=6, this parameter has no effect.}
+&
+iforcing=2,3 inwp\_gscp=4,5,7
+\tabularnewline
+
+ccn\_wcb\_min &
+R & 0.1 & m$^{-3}$ &
+Minimum updraft speed for Segal\&Khain cloud nucleation parameterization.
+If applied together with the ART aerosol physics \textbf{inwp\_gscp=6, this parameter has no effect.}
+&
+iforcing=2,3 inwp\_gscp=4,5,7
 \tabularnewline
 
 iicephase &
-I& 1 & &
+I& 1 & - &
 Turning on/off mixed phase processes in the two-moment scheme:\\
 0: warm phase processes only\\
 1: mixed phase processes&
@@ -6111,7 +6186,7 @@ iforcing=3, inwp\_gscp=4,5,6,7
 \tabularnewline
 
 alpha\_spacefilling &
-R& 0.01 & &
+R& 0.01 & - &
 Parameter in conversion of snow or cloud ice to graupel by riming: degree of void filling by frozen supercooled droples within the ice particle skeleton, above which the particle is converted to the graupel class. Smaller values lead to faster conversion. 0.01 means very fast conversion to graupel. A value of 0.68 is the theoretical limit for densest sphere packing and leads to rather slow conversion.  &
 iforcing=2,3 inwp\_gscp=4,5,6,7
 \tabularnewline
@@ -6141,14 +6216,14 @@ iforcing=2,3 inwp\_gscp=4,5,6,7
 \tabularnewline
 
 rain\_cmu0 &
-R&  6.0 & &
+R&  6.0 & - &
 Parameter of the $\mu$-$D$-relation in the rain size distribution for evaporation and sedimentation below cloud base:\\
 asymptotic $\mu$-value for spectra with small mean diameter.  &
 iforcing=2,3 inwp\_gscp=4,5,6,7
 \tabularnewline
 
 rain\_cmu1 &
-R& 30.0 & &
+R& 30.0 & - &
 Parameter of the $\mu$-$D$-relation in the rain size distribution for evaporation and sedimentation below cloud base:\\
 asymptotic $\mu$-value for spectra with large mean diameter.  &
 iforcing=2,3 inwp\_gscp=4,5,6,7
@@ -6162,14 +6237,108 @@ iforcing=2,3 inwp\_gscp=4,5,6,7
 \tabularnewline
 
 rain\_cmu4 &
-R& 1.0 & &
+R& 1.0 & - &
 Parameter of the $\mu$-$D$-relation in the rain size distribution for evaporation and sedimentation below cloud base:\\
-base value.  &
+base value of $\mu$.  &
+iforcing=2,3 inwp\_gscp=4,5,6,7
+\tabularnewline
+
+in\_fact &
+R& 1.0 &  &
+Factor to tune the IN concentration for heterogeneous ice nucleation &
+iforcing=2,3 inwp\_gscp=4,5,6,7
+\tabularnewline
+
+nu\_i &
+R& -999.99 & - &
+Shape parameter $\nu$ for cloud ice in the PSD\\
+$f(x)=N_{0}x^{\nu}\exp(-\lambda x^{\mu})$\\
+A value of < -900  indicates that the background value $\nu=0.0$ from mo\_2mom\_mcrph\_main.f90 is used. &
+iforcing=2,3 inwp\_gscp=4,5,6,7
+\tabularnewline
+
+mu\_i &
+R& -999.99 & - &
+Shape parameter $\mu$ for cloud ice in the PSD\\
+$f(x)=N_{0}x^{\nu}\exp(-\lambda x^{\mu})$\\
+A value of < -900  indicates that the background value $\mu=1/3$ from mo\_2mom\_mcrph\_main.f90 is used. &
+iforcing=2,3 inwp\_gscp=4,5,6,7
+\tabularnewline
+
+ageo\_i &
+R& -999.99 & &
+Prefactor of the assumed size-mass-relation for cloud ice $D=a_{geo}x^{b_{geo}}$ for $x$ in kg and $D$ in m.\\
+A value of < -900  indicates that the background value $a_{geo}=0.835$ from mo\_2mom\_mcrph\_main.f90 is used. &
+iforcing=2,3 inwp\_gscp=4,5,6,7
+\tabularnewline
+
+bgeo\_i &
+R& -999.99 & - &
+Exponent of the assumed size-mass-relation for cloud ice $D=a_{geo}x^{b_{geo}}$ for $x$ in kg and $D$ in m.\\
+A value of < -900  indicates that the background value $b_{geo}=0.39$ from mo\_2mom\_mcrph\_main.f90 is used. &
+iforcing=2,3 inwp\_gscp=4,5,6,7
+\tabularnewline
+
+avel\_i &
+R& -999.99 & &
+Prefactor of the assumed fallspeed-mass-relation for cloud ice $v=a_{vel}x^{b_{vel}}$ for $x$ in kg and $v$ in m/s.\\
+A value of < -900  indicates that the background value $a_{vel}=27.7$ from mo\_2mom\_mcrph\_main.f90 is used. &
+iforcing=2,3 inwp\_gscp=4,5,6,7
+\tabularnewline
+
+bvel\_i &
+R& -999.99 & - &
+Exponent of the assumed fallspeed-mass-relation for cloud ice $v=a_{vel}x^{b_{vel}}$ for $x$ in kg and $v$ in m/s.\\
+A value of < -900  indicates that the background value $b_{vel}=0.21579$ from mo\_2mom\_mcrph\_main.f90 is used. &
+iforcing=2,3 inwp\_gscp=4,5,6,7
+\tabularnewline
+
+nu\_s &
+R& -999.99 & - &
+Shape parameter $\nu$ for snow in the PSD\\
+$f(x)=N_{0}x^{\nu}\exp(-\lambda x^{\mu})$\\
+A value of < -900  indicates that the background value $\nu=0.0$ from mo\_2mom\_mcrph\_main.f90 is used. &
+iforcing=2,3 inwp\_gscp=4,5,6,7
+\tabularnewline
+
+mu\_s &
+R& -999.99 & - &
+Shape parameter $\mu$ for snow in the PSD\\
+$f(x)=N_{0}x^{\nu}\exp(-\lambda x^{\mu})$\\
+A value of < -900  indicates that the background value $\mu=0.5$ from mo\_2mom\_mcrph\_main.f90 is used. &
+iforcing=2,3 inwp\_gscp=4,5,6,7
+\tabularnewline
+
+ageo\_s &
+R& -999.99 & &
+Prefactor of the assumed size-mass-relation for snow $D=a_{geo}x^{b_{geo}}$ for $x$ in kg and $D$ in m.\\
+A value of < -900  indicates that the background value $a_{geo}=5.13$ from mo\_2mom\_mcrph\_main.f90 is used. &
+iforcing=2,3 inwp\_gscp=4,5,6,7
+\tabularnewline
+
+bgeo\_s &
+R& -999.99 & - &
+Exponent of the assumed size-mass-relation for snow $D=a_{geo}x^{b_{geo}}$ for $x$ in kg and $D$ in m.\\
+A value of < -900  indicates that the background value $b_{geo}=1/2$ from mo\_2mom\_mcrph\_main.f90 is used. &
+iforcing=2,3 inwp\_gscp=4,5,6,7
+\tabularnewline
+
+avel\_s &
+R& -999.99 &  &
+Prefactor of the assumed fallspeed-mass-relation for snow $v=a_{vel}x^{b_{vel}}$ for $x$ in kg and $v$ in m/s.\\
+A value of < -900  indicates that the background value $a_{vel}=400.0$ from mo\_2mom\_mcrph\_main.f90 is used. &
+iforcing=2,3 inwp\_gscp=4,5,6,7
+\tabularnewline
+
+bvel\_s &
+R& -999.99 & - &
+Exponent of the assumed fallspeed-mass-relation for snow $v=a_{vel}x^{b_{vel}}$ for $x$ in kg and $v$ in m/s.\\
+A value of < -900  indicates that the background value $b_{vel}=0.35$ from mo\_2mom\_mcrph\_main.f90 is used. &
 iforcing=2,3 inwp\_gscp=4,5,6,7
 \tabularnewline
 
 nu\_r &
-R& -999.99 & &
+R& -999.99 & - &
 Shape parameter $\nu$ of the rain mass distribution inside clouds. Refers to the generalized gamma distribution with respect to mass $x$:\\
 $f(x)=N_{0}x^{\nu}\exp(-\lambda x^{\mu})$\\
 A value < -900 indicates that the background value $\nu=0.0$ from mo\_2mom\_mcrph\_main.f90 is used. &
@@ -6177,7 +6346,7 @@ iforcing=2,3 inwp\_gscp=4,5,6,7
 \tabularnewline
 
 nu\_g &
-R& -999.99 & &
+R& -999.99 & - &
 Shape parameter $\nu$ for graupel in the PSD\\
 $f(x)=N_{0}x^{\nu}\exp(-\lambda x^{\mu})$\\
 A value of < -900  indicates that the background value $\nu=1.0$ from mo\_2mom\_mcrph\_main.f90 is used. &
@@ -6185,10 +6354,10 @@ iforcing=2,3 inwp\_gscp=4,5,6,7
 \tabularnewline
 
 mu\_g &
-R& -999.99 & &
+R& -999.99 & - &
 Shape parameter $\mu$ for graupel in the PSD\\
 $f(x)=N_{0}x^{\nu}\exp(-\lambda x^{\mu})$\\
-A value of < -900  indicates that the background value $\nu=1/3$ from mo\_2mom\_mcrph\_main.f90 is used. &
+A value of < -900  indicates that the background value $\mu=1/3$ from mo\_2mom\_mcrph\_main.f90 is used. &
 iforcing=2,3 inwp\_gscp=4,5,6,7
 \tabularnewline
 
@@ -6200,7 +6369,7 @@ iforcing=2,3 inwp\_gscp=4,5,6,7
 \tabularnewline
 
 bgeo\_g &
-R& -999.99 & &
+R& -999.99 & - &
 Exponent of the assumed size-mass-relation for graupel $D=a_{geo}x^{b_{geo}}$ for $x$ in kg and $D$ in m.\\
 A value of < -900  indicates that the background value $b_{geo}=0.314$ from mo\_2mom\_mcrph\_main.f90 is used. &
 iforcing=2,3 inwp\_gscp=4,5,6,7
@@ -6214,7 +6383,7 @@ iforcing=2,3 inwp\_gscp=4,5,6,7
 \tabularnewline
 
 bvel\_g &
-R& -999.99 & &
+R& -999.99 & - &
 Exponent of the assumed fallspeed-mass-relation for graupel $v=a_{vel}x^{b_{vel}}$ for $x$ in kg and $v$ in m/s.\\
 A value of < -900  indicates that the background value $b_{vel}=0.34$ from mo\_2mom\_mcrph\_main.f90 is used. &
 iforcing=2,3 inwp\_gscp=4,5,6,7
@@ -6229,10 +6398,10 @@ iforcing=2,3 inwp\_gscp=4,5,6,7
 \tabularnewline
 
 mu\_h &
-R& -999.99 & &
+R& -999.99 & - &
 Shape parameter $\mu$ for hail in the PSD\\
 $f(x)=N_{0}x^{\nu}\exp(-\lambda x^{\mu})$\\
-A value of < -900  indicates that the background value $\nu=1/3$ from mo\_2mom\_mcrph\_main.f90 is used. &
+A value of < -900  indicates that the background value $\mu=1/3$ from mo\_2mom\_mcrph\_main.f90 is used. &
 iforcing=2,3 inwp\_gscp=4,5,6,7
 \tabularnewline
 
@@ -6244,7 +6413,7 @@ iforcing=2,3 inwp\_gscp=4,5,6,7
 \tabularnewline
 
 bgeo\_h &
-R& -999.99 & &
+R& -999.99 & - &
 Exponent of the assumed size-mass-relation for hail $D=a_{geo}x^{b_{geo}}$ for $x$ in kg and $D$ in m.\\
 A value of < -900  indicates that the background value $b_{geo}=1/3$ from mo\_2mom\_mcrph\_main.f90 is used. &
 iforcing=2,3 inwp\_gscp=4,5,6,7
@@ -6258,7 +6427,7 @@ iforcing=2,3 inwp\_gscp=4,5,6,7
 \tabularnewline
 
 bvel\_h &
-R& -999.99 & &
+R& -999.99 & - &
 Exponent of the assumed fallspeed-mass-relation for hail $v=a_{vel}x^{b_{vel}}$ for $x$ in kg and $v$ in m/s.\\
 A value of < -900  indicates that the background value $b_{vel}=1/6$ from mo\_2mom\_mcrph\_main.f90 is used. &
 iforcing=2,3 inwp\_gscp=4,5,6,7
@@ -6266,13 +6435,13 @@ iforcing=2,3 inwp\_gscp=4,5,6,7
 
 
 melt\_h\_tune\_fac &
-R& 1.0 & &
+R& 1.0 & - &
 Tuning factor for the hail melting rate. Values larger than 1.0 enhance the hail melting, smaller values slow down the melting. &
 iforcing=2,3 inwp\_gscp=4,5,6,7
 \tabularnewline
 
 melt\_g\_tune\_fac &
-R& 1.0 & &
+R& 1.0 & - &
 Tuning factor for the graupel melting rate. Values larger than 1.0 enhance the graupel melting, smaller values slow down the melting. &
 iforcing=2,3 inwp\_gscp=4,5,6,7
 \tabularnewline
@@ -6296,7 +6465,7 @@ iforcing=2,3 inwp\_gscp=4,5,6,7 lturb\_enhc=.TRUE.
 \tabularnewline
 
 iice\_stick &
-I& 10 &  &
+I& 10 & - &
 Optional choice of the sticking efficiency parameterization for ice-ice-collisions as function of temperature:\\
 1: $e = \min(\exp(0.09 (T-T_3)),1.0)$ from Lin et al. (1983)\\
 2: $e = \min(\exp(0.025 (T-T_3)),1.0)$, even larger as option 1\\
@@ -6314,14 +6483,14 @@ iforcing=2,3 inwp\_gscp=4,5,6,7
 \tabularnewline
 
 isnow\_stick &
-I& 5 &  &
+I& 5 & -  &
 Optional choice of the sticking efficiency parameterization for snow-snow collisions as function of temperature.\\
 Same choices as for \texttt{iice\_stick}. &
 iforcing=2,3 inwp\_gscp=4,5,6,7
 \tabularnewline
 
 iparti\_stick &
-I& 5 &  &
+I& 5 & -  &
 Optional choice of the sticking. efficiency parameterization for other frozen category collisions as function of temperature.\\
 Same choices as for \texttt{iice\_stick}.\\
 Does not apply for graupel selfcollection. There, the below \texttt{ecoll\_gg}, \texttt{ecoll\_gg\_wet} and \texttt{Tcoll\_gg\_wet} apply. &
@@ -6329,13 +6498,13 @@ iforcing=2,3 inwp\_gscp=4,5,6,7
 \tabularnewline
 
 ecoll\_gg &
-R& 0.1 &  &
+R& 0.1 & - &
 Collision efficiency for graupel autoconversion (dry graupel). Value between 0 and 1. &
 iforcing=2,3 inwp\_gscp=4,5,6,7
 \tabularnewline
 
 ecoll\_gg\_wet &
-R& 0.4 &  &
+R& 0.4 & - &
 Collision efficiency for graupel autoconversion (wet graupel). Value between 0 and 1. &
 iforcing=2,3 inwp\_gscp=4,5,6,7
 \tabularnewline
@@ -6346,8 +6515,14 @@ Temperature limit above which graupel autoconversion is considered to be for wet
 iforcing=2,3 inwp\_gscp=4,5,6,7
 \tabularnewline
 
+cap\_ice &
+R& -999.99 & - &
+Capacitance for clould ice depositional growth. A value < -900 indicates the usage of the code-internal backgroud value 3.0. &
+iforcing=2,3 inwp\_gscp=4,5,6,7
+\tabularnewline
+
 cap\_snow &
-R& -999.99 &  &
+R& -999.99 & - &
 Capacitance for snow depositional growth. A value < -900 indicates the usage of the code-internal backgroud value 3.0. &
 iforcing=2,3 inwp\_gscp=4,5,6,7
 \tabularnewline
@@ -6358,6 +6533,42 @@ Maximum allowed spectral mean sedimentation velocity of snow at sea level. A val
 iforcing=2,3 inwp\_gscp=4,5,6,7
 \tabularnewline
 
+itype\_shedding\_gh &
+I& 0 & - &
+Choice of shedding parameterization for graupel and hail during collision processes with water droplets: 0=no shedding, 1=simpe, 2=more physical.
+If applied together with the ART aerosol physics \textbf{inwp\_gscp=6, only options~0 and 1 are currently supported.}
+&
+iforcing=2,3 inwp\_gscp=4,5,6,7
+\tabularnewline
+
+D\_shed\_gh &
+R& 0.009 & m &
+Critical graupel/hail particle diameter for shedding during riming (wet growth) and melting. Shedding happens if: \\
+itype\_shedding\_gh = 1: $D_{meanmass}>$D\_shed\_gh \\
+itype\_shedding\_gh = 2: in the spectral PSD-part where $D>\max(D_{wetgr},\text{D\_shed\_gh})$ - that is for wet growth but not below a stable diameter, e.g., 9\,mm after Rasmussen and Heymfield &
+itype\_shedding\_gh=1,2 iforcing=2,3 inwp\_gscp=4,5,6,7
+\tabularnewline
+
+llim\_gr\_prod\_rain\_riming &
+L& .FALSE. & - &
+If .TRUE., limit the graupel production by rain riming of ice/snow by
+a bulk-density-based criterion on the mean-mass-particles of the collision partners. &
+iforcing=2,3 inwp\_gscp=4,5,6,7
+\tabularnewline
+
+wgt\_D\_coll\_limgrprod &
+R& 0.5 & - &
+Weight $\in [0,1]$ for the collided mean-mass-particle's diameter $D_{coll}$: how much does the
+smaller collision partner contribute to the overall diameter? &
+\squeezeme{llim\_gr\_prod\_rain\_riming=.TRUE.} iforcing=2,3 inwp\_gscp=4,5,6,7
+\tabularnewline
+
+wgt\_rho\_coll\_limgrprod &
+R& 0.5 & - &
+Weight $\in [0,1]$ for the limit of the collided mean-mass-particle's bulk density:
+how near should it be to the bulk density of graupel in order to convert it to graupel? &
+\squeezeme{llim\_gr\_prod\_rain\_riming=.TRUE.} iforcing=2,3 inwp\_gscp=4,5,6,7
+\tabularnewline
 
 
 \end{longtab}

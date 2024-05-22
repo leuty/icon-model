@@ -63,6 +63,7 @@ MODULE mo_nwp_tuning_config
   PUBLIC :: tune_difrad_3dcont
   PUBLIC :: tune_gust_factor
   PUBLIC :: tune_gustsso_lim
+  PUBLIC :: tune_gustlim_agl, tune_gustlim_fac
   PUBLIC :: itune_gust_diag
   PUBLIC :: itune_albedo
   PUBLIC :: itune_slopecorr
@@ -220,6 +221,13 @@ MODULE mo_nwp_tuning_config
   REAL(wp) :: &                    !< Basic gust speed (m/s) at which the SSO correction starts to be reduced
     &  tune_gustsso_lim            !
   !$ACC DECLARE CREATE(tune_gustsso_lim)
+
+  REAL(wp) :: &                    !< Height above ground up to which gust limitation is computed
+    &  tune_gustlim_agl(max_dom)   !
+
+  REAL(wp) :: &                    !< Tuning factor for gust limitation
+    &  tune_gustlim_fac(max_dom)   !
+  !$ACC DECLARE CREATE(tune_gustlim_agl, tune_gustlim_fac)
 
   INTEGER :: &                     !< (MODIS) albedo tuning
     &  itune_albedo                ! 1: dimmed Sahara

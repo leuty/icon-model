@@ -8,10 +8,24 @@
 # SPDX-License-Identifier: BSD-3-Clause
 # ---------------------------------------------------------------
 
+include:
+  - project: 'anw_dienste/ci-templates'
+    file: '.slurm-ci.yml'
+
+variables:
+  ACCOUNT: ka1125
+  SLURM_NTASKS: "-n 1"
+  SLURM_OPTIONS: "--account=$ACCOUNT"
+  SLURM_PARTITION: "--partition=shared"
+
 workflow:
   rules:
     - if: $CI_PIPELINE_SOURCE == "merge_request_event"
     - if: $CI_PIPELINE_SOURCE == "web"
+
+stages:
+ - test
+ - granules
 
 .colorized:
   variables:
@@ -116,3 +130,94 @@ Check Autoreconf:
     expire_in: 1 week
     expose_as: 'Autoreconf Git Patch'
     when: on_failure
+
+GCC Microphysics 1-moment:
+  variables:
+    SCHEDULER_PARAMETERS: "$SLURM_OPTIONS $SLURM_PARTITION $SLURM_NTASKS"
+  stage: granules
+  before_script:
+    - . /sw/etc/profile.levante && module use /sw/spack-levante/spack/modules && module list
+    # add ci-token to gitliab links
+    #- git config --global url."https://gitlab-ci-token:${CI_JOB_TOKEN}@gitlab.dkrz.de/".insteadOf "git@gitlab.dkrz.de:"
+    #- git config --global --add safe.directory '*'
+  script:
+    - module load git && git submodule init externals/probtest && git submodule update externals/probtest
+    - module load gcc/11.2.0-gcc-11.2.0 netcdf-fortran/4.5.3-gcc-11.2.0 python3
+    - python3 -mvenv ${CI_PROJECT_DIR}/venv 
+    - . ${CI_PROJECT_DIR}/venv/bin/activate
+    - pip3 install -v -r externals/probtest/requirements.txt
+    - mkdir gcc
+    - cd gcc
+    - cmake ../test/microphysics_1mom_schemes/  -DCMAKE_C_COMPILER=gcc -DCMAKE_Fortran_COMPILER=gfortran -DCMAKE_CXX_COMPILER=g++ -DNETCDF_DIR=/sw/spack-levante/netcdf-fortran-4.5.3-l2ulgp -DBUILD_TESTING=OFF -DBUILD_OPENACC=OFF
+    - make VERBOSE=1
+    - ctest --output-on-failure
+  tags:
+    - levante, hpc, dkrz
+  # Run only for branches that are part of a merge request:
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+      allow_failure: true
+
+INTEL Microphysics 1-moment:
+  variables:
+    SCHEDULER_PARAMETERS: "$SLURM_OPTIONS $SLURM_PARTITION $SLURM_NTASKS"
+  stage: granules
+  before_script:
+    - . /sw/etc/profile.levante && module use /sw/spack-levante/spack/modules && module list
+    # add ci-token to gitliab links
+    #- git config --global url."https://gitlab-ci-token:${CI_JOB_TOKEN}@gitlab.dkrz.de/".insteadOf "git@gitlab.dkrz.de:"
+    #- git config --global --add safe.directory '*'
+  script:
+    - module load git && git submodule init externals/probtest && git submodule update externals/probtest
+    - module load gcc/11.2.0-gcc-11.2.0 intel-oneapi-compilers/2022.0.1-gcc-11.2.0 python3
+    - python3 -mvenv ${CI_PROJECT_DIR}/venv 
+    - . ${CI_PROJECT_DIR}/venv/bin/activate
+    - pip3 install -v -r externals/probtest/requirements.txt
+    - mkdir intel
+    - cd intel
+    - cmake ../test/microphysics_1mom_schemes/  -DCMAKE_C_COMPILER=icc -DCMAKE_Fortran_COMPILER=ifort -DCMAKE_CXX_COMPILER=icpc -DNETCDF_DIR=/sw/spack-levante/netcdf-fortran-4.5.3-pvmcx6 -DBUILD_TESTING=OFF -DBUILD_OPENACC=OFF -DCMAKE_BUILD_RPATH=/sw/spack-levante/gcc-11.2.0-bcn7mb/lib64
+    - make VERBOSE=1
+    - ctest --output-on-failure
+  tags:
+    - levante, hpc, dkrz
+  # Run only for branches that are part of a merge request:
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+      allow_failure: true
+
+Create Tolerance Microphysics 1-moment:
+  variables:
+    SCHEDULER_PARAMETERS: "$SLURM_OPTIONS $SLURM_PARTITION $SLURM_NTASKS"
+  stage: granules
+  before_script:
+    - . /sw/etc/profile.levante && module use /sw/spack-levante/spack/modules && module list
+    # add ci-token to gitliab links
+    #- git config --global url."https://gitlab-ci-token:${CI_JOB_TOKEN}@gitlab.dkrz.de/".insteadOf "git@gitlab.dkrz.de:"
+    #- git config --global --add safe.directory '*'
+  script:
+    - module load git && git submodule init externals/probtest && git submodule update externals/probtest
+    - module load gcc/11.2.0-gcc-11.2.0 netcdf-fortran/4.5.3-gcc-11.2.0 python3
+    - python3 -mvenv ${CI_PROJECT_DIR}/venv 
+    - . ${CI_PROJECT_DIR}/venv/bin/activate
+    - pip3 install -v -r externals/probtest/requirements.txt
+    - mkdir gcc
+    - cd gcc
+    - cmake ../test/microphysics_1mom_schemes/  -DCMAKE_C_COMPILER=gcc -DCMAKE_Fortran_COMPILER=gfortran -DCMAKE_CXX_COMPILER=g++ -DNETCDF_DIR=/sw/spack-levante/netcdf-fortran-4.5.3-l2ulgp -DBUILD_TESTING=OFF -DBUILD_OPENACC=OFF
+    - make VERBOSE=1
+    - make tolerance
+    - cd ..
+    # build git patch
+    - git add  test/microphysics_1mom_schemes/tolerance/*  test/microphysics_1mom_schemes/reference/*
+    - git diff --patch-with-raw HEAD > reference.patch
+  artifacts:
+    paths:
+      - reference.patch
+    expire_in: 1 week
+    expose_as: 'Reference Git Patch'
+  tags:
+    - levante, hpc, dkrz
+  # Run only for branches that are part of a merge request:
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+      when: manual
+      allow_failure: true

@@ -28,10 +28,6 @@
 #include "omp_definitions.inc"
 !----------------------------
 
-! Workaround note: With Cray Fortran 8.5.5, a segmentation fault occurred in
-! the SUBROUTINE radheat (source line 1892) when accessing the dummy array
-! "pqv".  the workaround here is to copy the "pqv" dummy array to a temporary
-! pqv=prm_diag%tot_cld(:,:,jb,iqv)
 #ifdef _OPENACC
 #define __PGI_WORKAROUND
 #endif
@@ -266,7 +262,7 @@ CONTAINS
     !< vertical interfaces
 
     REAL(wp) :: zsct ! solar constant (at time of year)
-    REAL(wp) :: zcosmu0 (nproma,pt_patch%nblks_c), cosmu0_slope(nproma,pt_patch%nblks_c)
+    REAL(wp) :: zcosmu0 (nproma,pt_patch%nblks_c), cosmu0_slope(nproma,pt_patch%nblks_c), shading_mask(nproma,pt_patch%nblks_c)
 
     REAL(wp) :: z_qsum(nproma,pt_patch%nlev)       !< summand of virtual increment
     REAL(wp) :: z_ddt_alpha(nproma,pt_patch%nlev)  !< tendency of virtual increment
@@ -564,8 +560,8 @@ CONTAINS
       IF (atm_phy_nwp_config(jg)%inwp_gscp == 8) THEN
         ptr_sbm_storage => get_sbm_storage(patch_id = jg)
 !$OMP PARALLEL
-        CALL copy(pt_prog_rcf%tracer(:,:,:,iqv), ptr_sbm_storage%qv_before_satad   )
-        CALL copy(pt_diag%temp(:,:,:),           ptr_sbm_storage%temp_before_satad )
+        CALL copy(pt_prog_rcf%tracer(:,:,:,iqv), ptr_sbm_storage%qv_before_satad, lacc=lzacc)
+        CALL copy(pt_diag%temp(:,:,:),           ptr_sbm_storage%temp_before_satad, lacc=lzacc)
 !$OMP END PARALLEL
       ENDIF
 
@@ -664,7 +660,7 @@ CONTAINS
 
       IF (timers_level > 2) CALL timer_start(timer_nwp_surface)
 
-      !$ser verbatim IF (.not. linit) CALL serialize_all(nproma, jg, "surface", .TRUE., opt_lupdate_cpu=.FALSE., opt_dt=mtime_datetime)
+      !$ser verbatim IF (.not. linit) CALL serialize_all(nproma, jg, "surface", .TRUE., opt_dt=mtime_datetime)
 
        !> as pressure is needed only for an approximate adiabatic extrapolation
        !! of the temperature at the lowest model level towards ground level,
@@ -681,7 +677,7 @@ CONTAINS
                              & lnd_diag,                         & !>input
                              & lacc=lzacc                         ) !>in
 
-       !$ser verbatim IF (.not. linit) CALL serialize_all(nproma, jg, "surface", .FALSE., opt_lupdate_cpu=.TRUE., opt_dt=mtime_datetime)
+       !$ser verbatim IF (.not. linit) CALL serialize_all(nproma, jg, "surface", .FALSE., opt_dt=mtime_datetime)
       IF (timers_level > 2) CALL timer_stop(timer_nwp_surface)
     END IF
 #ifndef __NO_ICON_COMIN__
@@ -701,7 +697,7 @@ CONTAINS
       !Turbulence schemes NOT including the call to the surface scheme
       CASE(icosmo,igme)
 
-      !$ser verbatim IF (.not. linit) CALL serialize_all(nproma, jg, "turbdiff", .TRUE., opt_lupdate_cpu=.FALSE., opt_dt=mtime_datetime)
+      !$ser verbatim IF (.not. linit) CALL serialize_all(nproma, jg, "turbdiff", .TRUE., opt_dt=mtime_datetime)
       ! compute turbulent diffusion (atmospheric column)
       CALL nwp_turbdiff   (  dt_phy_jg(itfastphy),              & !>in
                             & pt_patch, p_metrics,              & !>in
@@ -715,7 +711,7 @@ CONTAINS
                             & lnd_diag,                         & !>in
                             & lacc=lzacc                        ) !>in
 
-      !$ser verbatim IF (.not. linit) CALL serialize_all(nproma, jg, "turbdiff", .FALSE., opt_lupdate_cpu=.TRUE., opt_dt=mtime_datetime)
+      !$ser verbatim IF (.not. linit) CALL serialize_all(nproma, jg, "turbdiff", .FALSE., opt_dt=mtime_datetime)
 
       CASE (ivdiff)
 
@@ -726,18 +722,6 @@ CONTAINS
             & lnd_diag, lnd_prog_new, wtr_prog_now, wtr_prog_new, prm_diag%nwp_vdiff_state, &
             & prm_nwp_tend, initialize=linit, lacc=lzacc &
           )
-
-        IF ( is_coupled_to_hydrodisc() .AND. (.NOT. linit) ) THEN
-
-          IF (ltimer) CALL timer_start(timer_coupling)
-#ifdef _OPENACC
-          CALL finish('mo_nh_interface_nwp', 'nwp_couple_hydrodisc is not available on GPU')
-#endif
-
-          CALL nwp_couple_hydrodisc( pt_patch, lnd_diag, prm_diag, ext_data )
-
-          IF (ltimer) CALL timer_stop(timer_coupling)
-        END IF
 
         IF (is_coupled_to_ocean()) THEN
           ! Sea-ice cover might change if ocean passed back new values.
@@ -815,7 +799,7 @@ CONTAINS
 
       IF (timers_level > 1) CALL timer_start(timer_nwp_microphysics)
 
-      !$ser verbatim IF (.not. linit) CALL serialize_all(nproma, jg, "microphysics", .TRUE., opt_lupdate_cpu=.FALSE., opt_dt=mtime_datetime)
+      !$ser verbatim IF (.not. linit) CALL serialize_all(nproma, jg, "microphysics", .TRUE., opt_dt=mtime_datetime)
       CALL nwp_microphysics ( dt_phy_jg(itfastphy),             & !>input
                             & lcall_phy_jg(itsatad),            & !>input
                             & pt_patch, p_metrics,              & !>input
@@ -828,7 +812,7 @@ CONTAINS
                             & lcompute_tt_lheat,                &
                             & lacc=lzacc ) !>in
 
-      !$ser verbatim IF (.not. linit) CALL serialize_all(nproma, jg, "microphysics", .FALSE., opt_lupdate_cpu=.TRUE., opt_dt=mtime_datetime)
+      !$ser verbatim IF (.not. linit) CALL serialize_all(nproma, jg, "microphysics", .FALSE., opt_dt=mtime_datetime)
 
       IF (timers_level > 1) CALL timer_stop(timer_nwp_microphysics)
 
@@ -888,7 +872,7 @@ CONTAINS
       IF (timers_level > 1) CALL timer_start(timer_datass)
 
       IF (lcall_lhn .OR. lcall_lhn_v) THEN
-        !$ser verbatim IF (.not. linit) CALL serialize_all(nproma, jg, "lhn", .TRUE., opt_lupdate_cpu=.FALSE., opt_dt=mtime_datetime)
+        !$ser verbatim IF (.not. linit) CALL serialize_all(nproma, jg, "lhn", .TRUE., opt_dt=mtime_datetime)
          CALL organize_lhn (   &
                                & dt_loc,                           & !>input
                                & p_sim_time,                       & ! in
@@ -903,7 +887,7 @@ CONTAINS
                                & mtime_datetime,                   &
                                & lcall_lhn, lcall_lhn_v,           &
                                & assimilation_config(jg)%lvalid_data)
-        !$ser verbatim IF (.not. linit) CALL serialize_all(nproma, jg, "lhn", .FALSE., opt_lupdate_cpu=.FALSE., opt_dt=mtime_datetime)
+        !$ser verbatim IF (.not. linit) CALL serialize_all(nproma, jg, "lhn", .FALSE., opt_dt=mtime_datetime)
 
         IF (msg_level >= 7 .AND. .NOT. assimilation_config(jg)%lvalid_data) THEN
           CALL message('mo_nh_interface_nwp:','LHN turned off due to lack of valid data')
@@ -1171,7 +1155,7 @@ CONTAINS
 
       ! compute turbulent transfer coefficients (atmosphere-surface interface)
 
-      !$ser verbatim IF (.not. linit) CALL serialize_all(nproma, jg, "turbtrans", .TRUE., opt_lupdate_cpu=.FALSE., opt_dt=mtime_datetime)
+      !$ser verbatim IF (.not. linit) CALL serialize_all(nproma, jg, "turbtrans", .TRUE., opt_dt=mtime_datetime)
       CALL nwp_turbtrans  ( dt_phy_jg(itfastphy),             & !>in
                           & pt_patch, p_metrics,              & !>in
                           & ext_data,                         & !>in
@@ -1184,7 +1168,7 @@ CONTAINS
                           & lnd_prog_new,                     & !>inout
                           & lnd_diag,                         & !>inout
                           & lacc=lzacc                         ) !>in
-      !$ser verbatim IF (.not. linit) CALL serialize_all(nproma, jg, "turbtrans", .FALSE., opt_lupdate_cpu=.TRUE., opt_dt=mtime_datetime)
+      !$ser verbatim IF (.not. linit) CALL serialize_all(nproma, jg, "turbtrans", .FALSE., opt_dt=mtime_datetime)
 
       IF (timers_level > 1) CALL timer_stop(timer_nwp_turbulence)
  
@@ -1286,7 +1270,7 @@ CONTAINS
     !-------------------------------------------------------------------------
 
     IF ( lcall_phy_jg(itconv)  ) THEN
-      !$ser verbatim IF (.not. linit) CALL serialize_all(nproma, jg, "convection", .TRUE., opt_lupdate_cpu=.FALSE., opt_dt=mtime_datetime)
+      !$ser verbatim IF (.not. linit) CALL serialize_all(nproma, jg, "convection", .TRUE., opt_dt=mtime_datetime)
 
       IF (msg_level >= 15)  CALL message('mo_nh_interface', 'convection')
 
@@ -1306,7 +1290,7 @@ CONTAINS
                             & lacc=lzacc                         ) !>in
 
       IF (timers_level > 2) CALL timer_stop(timer_nwp_convection)
-      !$ser verbatim IF (.not. linit) CALL serialize_all(nproma, jg, "convection", .FALSE., opt_lupdate_cpu=.FALSE., opt_dt=mtime_datetime)
+      !$ser verbatim IF (.not. linit) CALL serialize_all(nproma, jg, "convection", .FALSE., opt_dt=mtime_datetime)
 
     ENDIF! convection
 
@@ -1348,7 +1332,7 @@ CONTAINS
       !  (5) grid-scale cloud cover [1 or 0]
       !-------------------------------------------------------------------------
 
-      !$ser verbatim IF (.not. linit) CALL serialize_all(nproma, jg, "cover", .TRUE., opt_lupdate_cpu=.TRUE., opt_dt=mtime_datetime)
+      !$ser verbatim IF (.not. linit) CALL serialize_all(nproma, jg, "cover", .TRUE., opt_dt=mtime_datetime)
 #ifndef __GFORTRAN__
 ! FIXME: libgomp seems to run in deadlock here
 !$OMP PARALLEL DO PRIVATE(jb,jc,i_startidx,i_endidx,kc_inversion,kc_entr_zone,lfound_inversion) ICON_OMP_GUIDED_SCHEDULE
@@ -1426,7 +1410,7 @@ CONTAINS
 #ifndef __GFORTRAN__
 !$OMP END PARALLEL DO
 #endif
-      !$ser verbatim IF (.not. linit) CALL serialize_all(nproma, jg, "cover", .FALSE., opt_lupdate_cpu=.TRUE., opt_dt=mtime_datetime)
+      !$ser verbatim IF (.not. linit) CALL serialize_all(nproma, jg, "cover", .FALSE., opt_dt=mtime_datetime)
 
       IF (timers_level > 2) CALL timer_stop(timer_cover_koe)
 
@@ -1447,12 +1431,12 @@ CONTAINS
 
     IF ( lcall_phy_jg(itccov) .AND. atm_phy_nwp_config(jg)%icalc_reff > 0 ) THEN
       
-      !$ser verbatim IF (.not. linit) CALL serialize_all(nproma, jg, "set_reff", .TRUE., opt_lupdate_cpu=.FALSE., opt_dt=mtime_datetime)
+      !$ser verbatim IF (.not. linit) CALL serialize_all(nproma, jg, "set_reff", .TRUE., opt_dt=mtime_datetime)
       IF (msg_level >= 15) CALL message('mo_nh_interface', 'effective radius')
 
       IF (timers_level > 10) CALL timer_start(timer_phys_reff)
 
-      CALL set_reff( prm_diag, pt_patch, pt_prog, pt_diag, ext_data )
+      CALL set_reff( prm_diag, pt_patch, pt_prog, pt_diag, ext_data, p_metrics=p_metrics) 
 
       IF (  atm_phy_nwp_config(jg)%icpl_rad_reff == 1 .AND. atm_phy_nwp_config(jg)%icalc_reff /= 101 ) THEN
 
@@ -1462,7 +1446,7 @@ CONTAINS
       END IF
 
       IF (timers_level > 10) CALL timer_stop(timer_phys_reff)
-      !$ser verbatim IF (.not. linit) CALL serialize_all(nproma, jg, "set_reff", .FALSE., opt_lupdate_cpu=.FALSE., opt_dt=mtime_datetime)
+      !$ser verbatim IF (.not. linit) CALL serialize_all(nproma, jg, "set_reff", .FALSE., opt_dt=mtime_datetime)
     END IF
 
 
@@ -1477,7 +1461,7 @@ CONTAINS
     IF ( lcall_phy_jg(itrad) ) THEN
 
       IF (ltimer) CALL timer_start(timer_nwp_radiation)
-      !$ser verbatim IF (.not. linit) CALL serialize_all(nproma, jg, "radiation", .TRUE., opt_lupdate_cpu=.FALSE., opt_dt=mtime_datetime)
+      !$ser verbatim IF (.not. linit) CALL serialize_all(nproma, jg, "radiation", .TRUE., opt_dt=mtime_datetime)
       CALL nwp_radiation (lredgrid,              & ! in
            &              p_sim_time,            & ! in
            &              mtime_datetime,        & ! in
@@ -1494,7 +1478,7 @@ CONTAINS
            &              p_metrics%z_ifc,       & ! in
            &              p_metrics%ddqz_z_full, & ! in
            &              lacc=lzacc              ) ! in, optional
-      !$ser verbatim IF (.not. linit) CALL serialize_all(nproma, jg, "radiation", .FALSE., opt_lupdate_cpu=.FALSE., opt_dt=mtime_datetime)
+      !$ser verbatim IF (.not. linit) CALL serialize_all(nproma, jg, "radiation", .FALSE., opt_dt=mtime_datetime)
       IF (ltimer) CALL timer_stop(timer_nwp_radiation)
 
     ENDIF
@@ -1507,8 +1491,8 @@ CONTAINS
 #endif
 
     IF ( lcall_phy_jg(itradheat) ) THEN
-      !$ACC DATA CREATE(cosmu0_slope) IF(lzacc)
-      !$ser verbatim IF (.not. linit) CALL serialize_all(nproma, jg, "radheat", .TRUE., opt_lupdate_cpu=.FALSE., opt_dt=mtime_datetime)
+      !$ACC DATA CREATE(cosmu0_slope, shading_mask) IF(lzacc)
+      !$ser verbatim IF (.not. linit) CALL serialize_all(nproma, jg, "radheat", .TRUE., opt_dt=mtime_datetime)
 
       IF (msg_level >= 15) &
 &           CALL message('mo_nh_interface', 'radiative heating')
@@ -1527,6 +1511,7 @@ CONTAINS
         & slope_azi  = p_metrics%slope_azimuth,     &
         & horizon    = ext_data%atm%horizon,        &
         & cosmu0_slp = cosmu0_slope,                &
+        & shading_mask = shading_mask,              &
         & lacc=lzacc                                 )
 
       IF (timers_level > 10) CALL timer_stop(timer_pre_radiation_nwp)
@@ -1629,6 +1614,7 @@ CONTAINS
           & idx_lst_t        = ext_data%atm%idx_lst_t(:,jb,:),     &! in index list of land points per tile
           & cosmu0=zcosmu0(:,jb)                   ,&! in     cosine of solar zenith angle (w.r.t. plain surface)
           & cosmu0_slp=cosmu0_slope(:,jb)          ,&! in     slope-dependent cosine of solar zenith angle
+          & shading_mask=shading_mask(:,jb)        ,&! in     mask field indicating orographic shading
           & skyview=ext_data%atm%skyview(:,jb)     ,&! in     skyview factor for islope_rad=2
           & opt_nh_corr=.TRUE.                     ,&! in     switch for NH mode
           & ptsfc=lnd_prog_new%t_g(:,jb)           ,&! in     surface temperature         [K]
@@ -1652,17 +1638,22 @@ CONTAINS
           & pdtdtradsw=prm_nwp_tend%ddt_temp_radsw(:,:,jb),&! out rad. heating by SW         [K/s]
           & pdtdtradlw=prm_nwp_tend%ddt_temp_radlw(:,:,jb),&! out rad. heating by LW         [K/s]
           & pflxsfcsw =prm_diag%swflxsfc (:,jb)        ,&   ! out shortwave surface net flux [W/m2]
+          & pflxsfcsw_os =prm_diag%swflxsfc_os (:,jb),  &   ! out shortwave surface net flux including shading [W/m2]
+          & pflxsfcsw_tan_os=prm_diag%swflxsfc_tan_os(:,jb), &  ! out shortwave surface net flux including shading and slope correction [W/m2]
           & pflxsfclw =prm_diag%lwflxsfc (:,jb)        ,&   ! out longwave surface net flux  [W/m2]
-          & pflxsfcsw_t=prm_diag%swflxsfc_t (:,jb,:)   ,&   ! out tile-specific shortwave surface net flux [W/m2]
+          & pflxsfcsw_t=prm_diag%swflxsfc_t (:,jb,:)   ,&   ! out tile-specific shortwave surface net flux [W/m2]; includes shading and slope correction for islope_rad>0
           & pflxsfclw_t=prm_diag%lwflxsfc_t (:,jb,:)   ,&   ! out tile-specific longwave surface net flux  [W/m2]
           & pflxtoasw =prm_diag%swflxtoa (:,jb)        ,&   ! out shortwave toa net flux     [W/m2]
           & pflxtoalw =prm_diag%lwflxtoa (:,jb)        ,&   ! out longwave  toa net flux     [W/m2]
           & lwflx_up_sfc=prm_diag%lwflx_up_sfc(:,jb)   ,&   ! out longwave upward flux at surface [W/m2]
           & swflx_up_toa=prm_diag%swflx_up_toa(:,jb)   ,&   ! out shortwave upward flux at the TOA [W/m2]
           & swflx_up_sfc=prm_diag%swflx_up_sfc(:,jb)   ,&   ! out shortwave upward flux at the surface [W/m2]
+          & swflx_up_sfc_os=prm_diag%swflx_up_sfc_os(:,jb), &  ! out shortwave upward flux at the surface including shading [W/m2]
+          & swflx_up_sfc_tan_os=prm_diag%swflx_up_sfc_tan_os(:,jb), &  ! out shortwave upward flux at the surface including shading and slope correction [W/m2]
           & swflx_nir_sfc=prm_diag%swflx_nir_sfc(:,jb) ,&   ! out near-infrared downward flux at the surface [W/m2]
           & swflx_vis_sfc=prm_diag%swflx_vis_sfc(:,jb) ,&   ! out visible downward flux at the surface [W/m2]
           & swflx_par_sfc=prm_diag%swflx_par_sfc(:,jb) ,&   ! out PAR downward flux at the surface [W/m2]
+          & swflx_par_sfc_tan_os=prm_diag%swflx_par_sfc_tan_os(:,jb) ,&   ! out PAR downward flux at the surface including shading and slope correction [W/m2]
           & swflx_clr_sfc=prm_diag%swflxclr_sfc(:,jb)  ,&   ! out clear-sky shortwave flux at the surface [W/m2]
           & swflx_dn_sfc_diff=prm_diag%swflx_dn_sfc_diff(:,jb), & ! out shortwave diffuse downward flux at the surface [W/m2]
           & lacc=lzacc                                          )
@@ -1695,8 +1686,6 @@ CONTAINS
           & pqi=prm_diag%tot_cld    (:,:,jb,iqi)   ,&! in     specific cloud ice          [kg/kg]
           & ppres_ifc=pt_diag%pres_ifc(:,:,jb)     ,&! in     pressure at layer boundaries [Pa]
           & cosmu0=zcosmu0(:,jb)                   ,&! in     cosine of solar zenith angle
-          & cosmu0_slp=cosmu0_slope(:,jb)          ,&! in     slope-dependent cosine of solar zenith angle
-          & skyview=ext_data%atm%skyview(:,jb)     ,&! in     skyview factor for islope_rad=2
           & opt_nh_corr=.TRUE.                     ,&! in     switch for NH mode
           & ptsfc=lnd_prog_new%t_g(:,jb)           ,&! in     surface temperature         [K]
           & ptsfctrad=prm_diag%tsfctrad(:,jb)      ,&! in     sfc temp. used for pflxlw   [K]
@@ -1733,10 +1722,10 @@ CONTAINS
 !$OMP END DO NOWAIT
 !$OMP END PARALLEL
 
-      !$ser verbatim IF (.not. linit) CALL serialize_all(nproma, jg, "radheat", .FALSE., opt_lupdate_cpu=.TRUE., opt_dt=mtime_datetime)
+      !$ser verbatim IF (.not. linit) CALL serialize_all(nproma, jg, "radheat", .FALSE., opt_dt=mtime_datetime)
 
     !$ACC WAIT(1)
-    !$ACC END DATA ! CREATE(cosmu0_slope)
+    !$ACC END DATA ! CREATE(cosmu0_slope, shading_mask)
 
       IF (timers_level > 2) CALL timer_stop(timer_radheat)
 
@@ -1761,7 +1750,7 @@ CONTAINS
       IF (timers_level > 3) CALL timer_start(timer_sso)
 
       ! GZ: use fast-physics time step instead of dt_phy_jg(itsso) in order to avoid calling-frequency dependence of low-level blocking
-      !$ser verbatim IF (.not. linit) CALL serialize_all(nproma, jg, "gwdrag", .TRUE., opt_lupdate_cpu=.FALSE.)
+      !$ser verbatim IF (.not. linit) CALL serialize_all(nproma, jg, "gwdrag", .TRUE.)
       CALL nwp_gwdrag ( dt_loc,                    & !>input
         &               lcall_phy_jg(itsso),       & !>input
         &               dt_phy_jg(itgwd),          & !>input
@@ -1771,7 +1760,7 @@ CONTAINS
         &               pt_diag,                   & !>inout
         &               prm_diag, prm_nwp_tend,    & !>inout
         &               lacc=lzacc                  ) !>in
-      !$ser verbatim IF (.not. linit) CALL serialize_all(nproma, jg, "gwdrag", .FALSE., opt_lupdate_cpu=.FALSE.)
+      !$ser verbatim IF (.not. linit) CALL serialize_all(nproma, jg, "gwdrag", .FALSE.)
 
       IF (timers_level > 3) CALL timer_stop(timer_sso)
     ENDIF ! inwp_sso
@@ -1792,14 +1781,35 @@ CONTAINS
       CALL finish('mo_nh_interface_nwp', 'nwp_couple_waves is not available on GPU')
 #endif
 
-      CALL couple_atmo_to_wave(p_patch   = pt_patch,           & !in
-        &                      u10m      = prm_diag%u_10m,     & !in
-        &                      v10m      = prm_diag%v_10m,     & !in
-        &                      fr_seaice = lnd_diag%fr_seaice, & !in
-        &                      z0_waves  = prm_diag%z0_waves,  & !out
-        &                      lacc      = lzacc               ) !in
+      CALL couple_atmo_to_wave(p_patch      = pt_patch,              & !in
+        &                      list_sea     = ext_data%atm%list_sea, & !in
+        &                      u10m         = prm_diag%u_10m,        & !in
+        &                      v10m         = prm_diag%v_10m,        & !in
+        &                      fr_seaice    = lnd_diag%fr_seaice,    & !in
+        &                      frac_t       = ext_data%atm%frac_t,   & !in
+        &                      z0_waves     = prm_diag%z0_waves,     & !inout
+        &                      gz0_t        = prm_diag%gz0_t,        & !inout
+        &                      gz0          = prm_diag%gz0,          & !inout
+        &                      lacc         = lzacc                  ) !in
 
       IF (ltimer) CALL timer_stop(timer_coupling)
+
+    END IF
+
+
+    !-------------------------------------------------------------------------
+    !> Hydrological Discharge HD coupling: if coupling time step
+    !-------------------------------------------------------------------------
+
+    IF ( is_coupled_to_hydrodisc() .AND. (.NOT. linit) ) THEN
+
+#ifdef YAC_coupling
+      IF (ltimer) CALL timer_start(timer_coupling)
+
+      CALL nwp_couple_hydrodisc( pt_patch, lnd_diag, prm_diag, ext_data, lacc=lzacc )
+
+      IF (ltimer) CALL timer_stop(timer_coupling)
+#endif
 
     END IF
 
@@ -1954,8 +1964,8 @@ CONTAINS
 #endif
       ! needs to be always initialized with OpenACC
       IF (p_test_run .OR. lzacc) THEN
-        CALL init(z_ddt_u_tot, opt_acc_async=.TRUE.)
-        CALL init(z_ddt_v_tot, opt_acc_async=.TRUE.)
+        CALL init(z_ddt_u_tot, lacc=lzacc, opt_acc_async=.TRUE.)
+        CALL init(z_ddt_v_tot, lacc=lzacc, opt_acc_async=.TRUE.)
       ENDIF
 
       IF (timers_level > 10) CALL timer_start(timer_phys_acc_1)
@@ -2566,8 +2576,8 @@ CONTAINS
     IF (atm_phy_nwp_config(jg)%inwp_gscp == 8) THEN
       ptr_sbm_storage => get_sbm_storage(patch_id = jg)
 !$OMP PARALLEL
-      CALL copy(pt_prog_rcf%tracer(:,:,:,iqv), ptr_sbm_storage%qv_old )
-      CALL copy(pt_diag%temp(:,:,:), ptr_sbm_storage%temp_old         )
+      CALL copy(pt_prog_rcf%tracer(:,:,:,iqv), ptr_sbm_storage%qv_old, lacc=lzacc)
+      CALL copy(pt_diag%temp(:,:,:), ptr_sbm_storage%temp_old, lacc=lzacc)
 !$OMP END PARALLEL
     ENDIF
 
@@ -2585,4 +2595,3 @@ CONTAINS
 
 
 END MODULE mo_nh_interface_nwp
-

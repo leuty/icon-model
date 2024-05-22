@@ -32,7 +32,6 @@ MODULE mo_radiation_nml
                                  & config_irad_cfc11 => irad_cfc11,                     &
                                  & config_irad_cfc12 => irad_cfc12,                     &
                                  & config_irad_aero  => irad_aero,                      &
-                                 & config_lrad_yac   => lrad_yac,                       &
                                  & config_cams_clim_filename => cams_clim_filename,     &
                                  & config_lrad_aero_diag => lrad_aero_diag,             &
                                  & config_ghg_filename   => ghg_filename,               &
@@ -146,7 +145,6 @@ MODULE mo_radiation_nml
   INTEGER  :: irad_cfc11
   INTEGER  :: irad_cfc12
   INTEGER  :: irad_aero
-  LOGICAL  :: lrad_yac
   LOGICAL  :: lrad_aero_diag
   !
   ! --- Name of the file that contains  dynamic greenhouse values
@@ -190,6 +188,7 @@ MODULE mo_radiation_nml
   LOGICAL  :: ecrad_use_general_cloud_optics
 
   CHARACTER(len=MAX_CHAR_LENGTH) :: ecrad_data_path
+
   !
   NAMELIST /radiation_nml/ isolrad,               &
     &                      albedo_type,           &
@@ -206,7 +205,6 @@ MODULE mo_radiation_nml
     &                      irad_cfc11, vmr_cfc11, &
     &                      irad_cfc12, vmr_cfc12, &
     &                      irad_aero,             &
-    &                      lrad_yac,              &
     &                      lrad_aero_diag,        &
     &                      ghg_filename,          &
     &                      cams_clim_filename,    &
@@ -270,7 +268,6 @@ CONTAINS
     irad_cfc11  = 2
     irad_cfc12  = 2
     irad_aero   = iRadAeroConst
-    lrad_yac    = .FALSE.
     lrad_aero_diag = .FALSE.
 
     cams_clim_filename = 'CAMS_clim_R<nroot0>B<jlev>_DOM<idom>.nc'
@@ -353,7 +350,6 @@ CONTAINS
     config_irad_cfc11 = irad_cfc11
     config_irad_cfc12 = irad_cfc12
     config_irad_aero  = irad_aero
-    config_lrad_yac   = lrad_yac
     config_lrad_aero_diag = lrad_aero_diag
     config_cams_clim_filename = TRIM(cams_clim_filename)
     config_ghg_filename   = ghg_filename
@@ -394,7 +390,7 @@ CONTAINS
     ENDIF
     __acc_attach(csalb)
 
-    !$ACC UPDATE DEVICE(config_decorr_pole, config_decorr_equator) ASYNC(1)
+    !$ACC UPDATE DEVICE(config_decorr_pole, config_decorr_equator, config_islope_rad) ASYNC(1)
 
     !-----------------------------------------------------
     ! 5. Store the namelist for restart

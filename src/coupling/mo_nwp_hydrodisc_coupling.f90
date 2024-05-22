@@ -20,22 +20,22 @@ MODULE mo_nwp_hydrodisc_coupling
 
   USE mo_kind                ,ONLY: wp
   USE mo_model_domain        ,ONLY: t_patch
-  USE mo_ext_data_state      ,ONLY: ext_data
   USE mo_nwp_lnd_types       ,ONLY: t_lnd_diag
   USE mo_nwp_phy_types       ,ONLY: t_nwp_phy_diag
-  USE mo_lnd_nwp_config      ,ONLY: ntiles_total, isub_lake
   USE mo_ext_data_types      ,ONLY: t_external_data
-  USE mo_fortran_tools       ,ONLY: init
+  USE mo_lnd_nwp_config      ,ONLY: ntiles_total, isub_lake
+  USE mo_fortran_tools       ,ONLY: init, assert_acc_host_only
   USE mo_parallel_config     ,ONLY: nproma
   USE mo_atm_phy_nwp_config  ,ONLY: atm_phy_nwp_config
   USE mo_impl_constants      ,ONLY: min_rlcell, LSS_TERRA, SUCCESS
-  USE mo_run_config          ,ONLY: dtime
+  USE mo_physical_constants  ,ONLY: rhoh2o
+  USE mo_run_config          ,ONLY: dtime, msg_level
   USE mo_loopindices         ,ONLY: get_indices_c
 
-  USE mo_coupling_utils      ,ONLY: cpl_def_cell_field_mask, &
-    &                               cpl_def_field, cpl_put_field
+  USE mo_coupling_utils      ,ONLY: cpl_def_field, cpl_put_field
 
-  USE mo_exception           ,ONLY: finish
+  USE mo_exception           ,ONLY: finish, message, message_text
+  USE mo_sync                ,ONLY: global_sum_array
 
   IMPLICIT NONE
 
@@ -56,9 +56,10 @@ CONTAINS
   !! This subroutine is called from construct_atmo_coupling.
   !!
   SUBROUTINE construct_nwp_hydrodisc_coupling( &
-    p_patch, comp_id, grid_id, cell_point_id, timestepstring)
+    p_patch, ext_data, comp_id, grid_id, cell_point_id, timestepstring)
 
     TYPE(t_patch), TARGET, INTENT(IN) :: p_patch(:)
+    TYPE(t_external_data), INTENT(IN) :: ext_data(:)
     INTEGER, INTENT(IN) :: comp_id
     INTEGER, INTENT(IN) :: grid_id
     INTEGER, INTENT(IN) :: cell_point_id
@@ -66,47 +67,19 @@ CONTAINS
 
     TYPE(t_patch), POINTER :: patch_horz
 
-    INTEGER :: cell_mask_id
-
-    INTEGER :: jg, jb, jc, error
-
-    LOGICAL,  ALLOCATABLE :: is_valid(:)
+    INTEGER :: jg
 
     CHARACTER(LEN=*), PARAMETER   :: routine = str_module // ':construct_nwp_hydrodisc_coupling'
 
     jg = 1
     patch_horz => p_patch(jg)
 
-    ALLOCATE(is_valid(nproma*patch_horz%nblks_c), STAT = error)
-    IF(error /= SUCCESS) CALL finish(routine, "memory allocation failure for is_valid")
-
-    !ICON_OMP_PARALLEL PRIVATE(jb,jc)
-      !ICON_OMP_WORKSHARE
-      is_valid(:) = .FALSE.
-      !ICON_OMP_END_WORKSHARE
-
-      !ICON_OMP_DO ICON_OMP_DEFAULT_SCHEDULE
-      DO jb = 1, patch_horz%nblks_c
-        DO jc = 1, nproma
-          IF ( ext_data(jg)%atm%fr_land(jc,jb)+ext_data(jg)%atm%fr_lake(jc,jb) .GE. 0.05_wp ) THEN
-            is_valid((jb-1)*nproma+jc) = .TRUE.
-          END IF
-        END DO
-      END DO
-      !ICON_OMP_END_DO
-    !ICON_OMP_END_PARALLEL
-
-    CALL cpl_def_cell_field_mask(routine, grid_id, is_valid, cell_mask_id)
-
-    DEALLOCATE (is_valid, STAT = error)
-    IF(error /= SUCCESS) CALL finish(routine, "Deallocation failed for is_valid")
-
     CALL cpl_def_field( &
-      comp_id, cell_point_id, cell_mask_id, timestepstring, &
+      comp_id, cell_point_id, timestepstring, &
       "surface_water_runoff", 1, field_id_runoffs)
 
     CALL cpl_def_field( &
-      comp_id, cell_point_id, cell_mask_id, timestepstring, &
+      comp_id, cell_point_id, timestepstring, &
       "soil_water_runoff", 1, field_id_runoffg)
 
   END SUBROUTINE construct_nwp_hydrodisc_coupling
@@ -117,7 +90,7 @@ CONTAINS
   !!
   !! This subroutine is called from nwp_nh_interface.
 
-  SUBROUTINE nwp_couple_hydrodisc( p_patch, lnd_diag, prm_diag, ext_data )
+  SUBROUTINE nwp_couple_hydrodisc( p_patch, lnd_diag, prm_diag, ext_data, lacc )
 
     ! Arguments
 
@@ -125,6 +98,7 @@ CONTAINS
     TYPE(t_lnd_diag),        INTENT(INOUT)  :: lnd_diag
     TYPE(t_nwp_phy_diag),    INTENT(INOUT)  :: prm_diag
     TYPE(t_external_data),   INTENT(INOUT)  :: ext_data
+    LOGICAL, OPTIONAL,       INTENT(IN)     :: lacc
 
     ! Local variables
 
@@ -138,6 +112,10 @@ CONTAINS
     INTEGER               :: isubs                 ! tile index
     REAL(wp), TARGET, ALLOCATABLE :: buffer(:,:)   ! buffer transferred to YAC coupler
     CHARACTER(LEN=*), PARAMETER   :: routine = str_module // ':nwp_couple_hydrodisc'
+    REAL(wp)              :: diag_tmp
+
+    ! This routine hasn't been ported yet.
+    CALL assert_acc_host_only(routine, lacc)
 
     ALLOCATE(buffer(nproma, p_patch%nblks_c), STAT = error)
     IF(error /= SUCCESS) CALL finish(routine, "memory allocation failure")
@@ -169,7 +147,7 @@ CONTAINS
     !------------------------------------------------
 
     !$OMP PARALLEL
-    CALL init(buffer(:,:))
+    CALL init(buffer(:,:), lacc=.FALSE.)
     !$OMP END PARALLEL
 
 !ICON_OMP_PARALLEL_DO PRIVATE(jb, jc, i_startidx, i_endidx, isubs) ICON_OMP_RUNTIME_SCHEDULE
@@ -183,9 +161,10 @@ CONTAINS
         DO isubs = 1, ntiles_total
           IF ( isubs == isub_lake ) THEN
             DO jc = i_startidx, i_endidx
-              ! Take P-E over the lake as runoff
-              buffer(jc,jb) = buffer(jc,jb) + ( prm_diag%tot_prec_rate(jc,jb) + prm_diag%qhfl_s_t(jc,jb,isubs) )  &
-                &           * ext_data%atm%frac_t(jc,jb,isubs)
+              ! Take P-E over the lake as runoff (P=prec_gsp_rate+rain_con_rate+snow_con_rate):
+              buffer(jc,jb) = buffer(jc,jb) + ( prm_diag%prec_gsp_rate(jc,jb) + prm_diag%rain_con_rate(jc,jb) +   &
+                &                               prm_diag%snow_con_rate(jc,jb) + prm_diag%qhfl_s_t(jc,jb,isubs) )  &
+                &                           * ext_data%atm%frac_t(jc,jb,isubs)
             ENDDO
           ELSE
             DO jc = i_startidx, i_endidx
@@ -206,6 +185,13 @@ CONTAINS
 
 !ICON_OMP_END_PARALLEL_DO
 
+    ! Online diagnose for global sum of surface runoff (m3/s) before sending to YAC:
+    IF (msg_level >= 10) THEN
+      diag_tmp = global_sum_array(buffer(:,:) * p_patch%cells%area(:,:) / rhoh2o)
+      WRITE(message_text,'(a,f15.3)') ' NWP-HD: global total surface runoff (m3/s) :' , diag_tmp
+      CALL message (TRIM(routine), message_text)
+    ENDIF
+
     CALL cpl_put_field( &
       routine, field_id_runoffs, 'surface water runoff', &
       p_patch%n_patch_cells, buffer)
@@ -216,7 +202,7 @@ CONTAINS
     !------------------------------------------------
 
     !$OMP PARALLEL
-    CALL init(buffer(:,:))
+    CALL init(buffer(:,:), lacc=.FALSE.)
     !$OMP END PARALLEL
 
 !ICON_OMP_PARALLEL_DO PRIVATE(jb, jc, i_startidx, i_endidx, isubs) ICON_OMP_RUNTIME_SCHEDULE
@@ -243,6 +229,13 @@ CONTAINS
       ENDIF
     ENDDO ! jb
 !ICON_OMP_END_PARALLEL_DO
+
+    ! Online diagnose for global sum of ground runoff (m3/s) before sending to YAC:
+    IF (msg_level >= 10) THEN
+      diag_tmp = global_sum_array(buffer(:,:) * p_patch%cells%area(:,:) / rhoh2o)
+      WRITE(message_text,'(a,f15.3)') ' NWP-HD: global total ground runoff (m3/s) :' , diag_tmp
+      CALL message (TRIM(routine), message_text)
+    ENDIF
 
     CALL cpl_put_field( &
       routine, field_id_runoffg, 'ground water runoff', &

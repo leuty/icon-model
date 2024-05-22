@@ -211,6 +211,9 @@ MODULE mo_async_latbc
   USE mo_var_list_register,         ONLY: t_vl_register_iter
   USE mo_var_metadata,              ONLY: get_var_name
   USE mo_var,                       ONLY: t_var
+#ifdef __ICON_ART
+  USE mo_var_groups,                ONLY: var_groups_dyn
+#endif
   USE mo_limarea_config,            ONLY: latbc_config
   USE mo_dictionary,                ONLY: t_dictionary
   USE mo_util_string,               ONLY: add_to_list, tolower
@@ -719,7 +722,7 @@ CONTAINS
 
 #ifndef NOMPI
     CHARACTER(*), PARAMETER                   :: routine = modname//"::read_init_file"
-    LOGICAL,      PARAMETER                   :: ldebug  = .FALSE.
+    LOGICAL,      PARAMETER                   :: ldebug  = .TRUE.
     ! local variables
     CHARACTER(LEN=vname_len), ALLOCATABLE :: grp_vars(:), grp_vars_lc(:)
     ! dictionary which maps prefetch variable names onto
@@ -918,6 +921,9 @@ CONTAINS
     CHARACTER(:), ALLOCATABLE :: cur_name     !< name of current tracer
     INTEGER :: cur_idx, iv, idx, numlbc_tracer
     TYPE(t_var), POINTER :: cur_var
+#ifdef __ICON_ART
+    INTEGER :: art_aerosol_grp_id, latbc_prefetch_vars_grp_id
+#endif
 
        ! --- CHECK WHICH VARIABLES ARE AVAILABLE IN THE DATA SET ---
        ! Check if rain water (QR) is provided as input
@@ -929,6 +935,12 @@ CONTAINS
        buffer%name_tracer(:) = ''
        buffer%idx_tracer(:) = -1
        numlbc_tracer = 0
+
+#ifdef __ICON_ART
+       art_aerosol_grp_id = var_groups_dyn%group_id('ART_AEROSOL')
+       latbc_prefetch_vars_grp_id = var_groups_dyn%group_id('LATBC_PREFETCH_VARS')
+#endif
+
        ! Loop through the p_tracer_list
        DO iv = 1, p_nh_state_lists(1)%tracer_list(1)%p%nvars
          cur_var => p_nh_state_lists(1)%tracer_list(1)%p%vl(iv)%p
@@ -941,6 +953,14 @@ CONTAINS
            ! Check if additional tracer variables are provided as input
            buffer%lread_tracer(numlbc_tracer) = &
              &  (test_cdi_varID(fileID_latbc, cur_name, latbc_dict) /= -1)
+#ifdef __ICON_ART
+           ! Force lread_tracer to .FALSE. for ART AEROSOL (mainly for pollen) tracers that are not part of 
+           ! LATBC_PREFETCH_VARS, i.e. their latbc entry in tracers.xml is empty. Also see variable c_latbc in 
+           ! art_tracer_def_wrapper in mo_art_tracer_def_wrapper.f90.
+           IF (cur_var%info%in_group(art_aerosol_grp_id) .AND. (.NOT. cur_var%info%in_group(latbc_prefetch_vars_grp_id))) THEN
+             buffer%lread_tracer(numlbc_tracer) = .FALSE.
+           ENDIF
+#endif
            ! Save plain variable name and index
            buffer%name_tracer(numlbc_tracer) = cur_name
            buffer%idx_tracer(numlbc_tracer)  = cur_idx

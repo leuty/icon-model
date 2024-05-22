@@ -53,15 +53,15 @@ MODULE mo_ext_data_init
     &                              p_comm_work_test, p_comm_work, my_process_is_mpi_workroot
   USE mo_sync,               ONLY: global_sum_array
   USE mo_parallel_config,    ONLY: p_test_run, nproma
-  USE mo_ext_data_types,     ONLY: t_external_data
   USE mo_nonhydro_types,     ONLY: t_nh_diag
+  USE mo_ext_data_types,     ONLY: t_external_data
   USE mo_ext_data_state,     ONLY: construct_ext_data, levelname, cellname, o3name, o3unit, &
     &                              nlev_o3, nmonths
   USE mo_master_config,      ONLY: getModelBaseDir
   USE mo_time_config,        ONLY: time_config
   USE mo_io_config,          ONLY: default_read_method
   USE mo_read_interface,     ONLY: openInputFile, closeFile, on_cells, t_stream_id, &
-    &                              read_2D, read_2D_int, read_3D_extdim, read_2D_extdim
+    &                              read_2D, read_2D_int, read_3D_extdim, read_2D_extdim, read_inq_varexists
   USE mo_netcdf_errhandler,  ONLY: nf
   USE mo_netcdf
   USE turb_data,             ONLY: c_lnd, c_sea
@@ -192,11 +192,14 @@ CONTAINS
 
     ! top-level procedure for building data structures for
     ! external data.
-    
+
     IF (i_scm_netcdf > 0) THEN
       nclass_lu = num_lcc ! 3rd dim of lu_class_fraction, has to agree with num_lcc
     ENDIF
-   
+
+    ! Note that construct_ext_data must be called after inquire_external_files!
+    ! The latter routine retrieves the constants nlev_o3 and nmonths, which are used
+    ! by construct_ext_data, when constructing the state vector ext_atm_td.
     CALL construct_ext_data(p_patch, ext_data)
 
     !-------------------------------------------------------------------------
@@ -784,14 +787,14 @@ CONTAINS
           !
           ! open file
           !
-          CALL nf(nf_open(TRIM(ozone_file), NF_NOWRITE, ncid), routine)
+          CALL nf(nf90_open(TRIM(ozone_file), NF90_NOWRITE, ncid), routine)
           WRITE(0,*)'open ozone file'
 
           !
           ! get number of cells
           !
-          CALL nf(nf_inq_dimid (ncid, TRIM(cellname), dimid), routine)
-          CALL nf(nf_inq_dimlen(ncid, dimid, no_cells), routine)
+          CALL nf(nf90_inq_dimid (ncid, TRIM(cellname), dimid), routine)
+          CALL nf(nf90_inquire_dimension(ncid, dimid, len = no_cells), routine)
           WRITE(0,*)'number of cells are', no_cells
 
           !
@@ -805,8 +808,8 @@ CONTAINS
           !
           ! check the time structure
           !
-          CALL nf(nf_inq_dimid (ncid, 'time', dimid), routine)
-          CALL nf(nf_inq_dimlen(ncid, dimid, nmonths), routine)
+          CALL nf(nf90_inq_dimid (ncid, 'time', dimid), routine)
+          CALL nf(nf90_inquire_dimension(ncid, dimid, len = nmonths), routine)
           WRITE(message_text,'(A,I4)')  &
             & 'Number of months in ozone file = ', nmonths
           CALL message(routine,message_text)
@@ -814,8 +817,8 @@ CONTAINS
           !
           ! check the vertical structure
           !
-          CALL nf(nf_inq_dimid (ncid,TRIM(levelname), dimid), routine)
-          CALL nf(nf_inq_dimlen(ncid, dimid, nlev_o3), routine)
+          CALL nf(nf90_inq_dimid (ncid,TRIM(levelname), dimid), routine)
+          CALL nf(nf90_inquire_dimension(ncid, dimid, len = nlev_o3), routine)
 
           WRITE(message_text,'(A,I4)')  &
             & 'Number of pressure levels in ozone file = ', nlev_o3
@@ -824,7 +827,7 @@ CONTAINS
           !
           ! close file
           !
-          CALL nf(nf_close(ncid), routine)
+          CALL nf(nf90_close(ncid), routine)
 
         END IF IF_IO ! pe
 
@@ -883,8 +886,10 @@ CONTAINS
 
     TYPE(t_inputParameters) :: parameters
     LOGICAL :: is_mpi_workroot
+    LOGICAL :: do_patch_land_sea_mask
 
     is_mpi_workroot = my_process_is_mpi_workroot()
+    do_patch_land_sea_mask = .FALSE.
 
 !                    z0         pcmx      laimx rd      rsmin      snowalb snowtile skinc
 !
@@ -1228,9 +1233,10 @@ CONTAINS
         !--------------------------------------------------------------------
         CALL read_extdata('topography_c', ext_data(jg)%atm%topography_c)
 
-        ! If ocean coupling and TERRA is used, then read the land sea masks
+        ! If ocean coupling is used, then try to read the land sea masks. If no LSM is present
+        ! in the extpar file, we assume that the file fits the ocean LSM.
 
-        IF ( is_coupled_to_ocean() .AND. atm_phy_nwp_config(jg)%inwp_surface == LSS_TERRA ) THEN
+        IF ( is_coupled_to_ocean() .AND. read_inq_varexists(stream_id, 'cell_sea_land_mask')) THEN
 
           ! --- option NWP grids for coupling: Read fraction of land (land-sea mask) from
           ! interpolated ocean grid (ocean: integer 0/1 lsm). lsm_ctr_c is the fraction of land.
@@ -1238,6 +1244,8 @@ CONTAINS
           ! Used in routine lsm_ocean_atmo.
 
           CALL read_extdata('cell_sea_land_mask', ext_data(jg)%atm%lsm_ctr_c)
+
+          do_patch_land_sea_mask = .TRUE.
 
         ENDIF
 
@@ -1373,9 +1381,9 @@ CONTAINS
 
 !$OMP PARALLEL
             ! Scale from [%] to [1]
-            CALL var_scale(ext_data(jg)%atm_td%alb_dif(:,:,:), 1._wp/100._wp)
-            CALL var_scale(ext_data(jg)%atm_td%albuv_dif(:,:,:), 1._wp/100._wp)
-            CALL var_scale(ext_data(jg)%atm_td%albni_dif(:,:,:), 1._wp/100._wp)
+            CALL var_scale(ext_data(jg)%atm_td%alb_dif(:,:,:), 1._wp/100._wp, lacc=.FALSE.)
+            CALL var_scale(ext_data(jg)%atm_td%albuv_dif(:,:,:), 1._wp/100._wp, lacc=.FALSE.)
+            CALL var_scale(ext_data(jg)%atm_td%albni_dif(:,:,:), 1._wp/100._wp, lacc=.FALSE.)
 !$OMP BARRIER
 
 
@@ -1442,10 +1450,15 @@ CONTAINS
         ! land sea mask at cell centers (LOGICAL)
         !
 
-        ! adjust atmo LSM to ocean LSM for coupled simulation and initialize new land points (TERRA only)
+        ! adjust atmo LSM to ocean LSM for coupled simulation and initialize new land points
 
-        IF ( is_coupled_to_ocean() .AND. atm_phy_nwp_config(jg)%inwp_surface == LSS_TERRA ) THEN
-          CALL lsm_ocean_atmo ( p_patch(jg), ext_data(jg) )
+        IF ( is_coupled_to_ocean() ) THEN
+          IF (do_patch_land_sea_mask) THEN
+            CALL message(routine, 'Modifying LSM and soil properties from external parameters to fit provided ocean LSM.')
+            CALL lsm_ocean_atmo ( p_patch(jg), ext_data(jg) )
+          ELSE
+            CALL message(routine, 'Using unmodified LSM from external parameters in ocean-coupled simulation.')
+          END IF
         ENDIF
 
         i_nchdom  = MAX(1,p_patch(jg)%n_childdom)
@@ -1494,11 +1507,11 @@ CONTAINS
         IF(my_process_is_stdio()) THEN
           ! open file
           !
-          CALL nf(nf_open(TRIM(ozone_file), NF_NOWRITE, ncid), routine)
+          CALL nf(nf90_open(TRIM(ozone_file), NF90_NOWRITE, ncid), routine)
           WRITE(0,*)'read ozone levels'
-          CALL nf(nf_inq_varid(ncid, TRIM(levelname), varid), routine)
-          CALL nf(nf_get_var_double(ncid, varid, zdummy_o3lev(:)), routine)
-          CALL nf(nf_close(ncid), routine)
+          CALL nf(nf90_inq_varid(ncid, TRIM(levelname), varid), routine)
+          CALL nf(nf90_get_var(ncid, varid, zdummy_o3lev(:)), routine)
+          CALL nf(nf90_close(ncid), routine)
           !
         ENDIF ! pe
 

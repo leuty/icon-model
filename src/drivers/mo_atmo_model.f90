@@ -83,7 +83,7 @@ MODULE mo_atmo_model
   USE mo_jsb_model_init,          ONLY: jsbach_setup_grid
   USE mo_jsb_model_final,         ONLY: jsbach_finalize
 #endif
-  USE mo_master_control,          ONLY: atmo_process
+  USE mo_master_control,          ONLY: atmo_process, get_my_process_name
 
   ! time stepping
   USE mo_atmo_nonhydrostatic,     ONLY: atmo_nonhydrostatic
@@ -162,7 +162,6 @@ MODULE mo_atmo_model
   USE mo_grid_config,             ONLY: start_time, end_time
   USE mo_vertical_coord_table,    ONLY: vct_a
   USE mo_mpi,                     ONLY: p_comm_comin
-  USE mo_master_control,          ONLY: get_my_process_name
   USE mo_impl_constants,          ONLY: max_dom
   USE mo_timer,                   ONLY: timer_comin_primary_constructors
 #endif
@@ -273,7 +272,7 @@ CONTAINS
 
     IF (isRestart()) THEN
       CALL message('','Read restart file meta data ...')
-      CALL read_restart_header("atm")
+      CALL read_restart_header(get_my_process_name())
     ENDIF
 
     !---------------------------------------------------------------------
@@ -723,17 +722,9 @@ CONTAINS
     CHARACTER(*), PARAMETER :: routine = "mo_atmo_model:destruct_atmo_model"
 
     INTEGER :: error_status
+
     ! Destruct external data state
-
-    CALL destruct_ext_data
-    IF (msg_level > 5) CALL message(routine, 'destruct_ext_data is done')
-
-    ! deallocate ext_data array
-    DEALLOCATE(ext_data, stat=error_status)
-    IF (error_status/=success) THEN
-      CALL finish(routine, 'deallocation of ext_data')
-    ENDIF
-
+    CALL destruct_ext_data()
 
     ! destruct interpolation patterns generate in create_grf_index_lists
     IF (n_dom_start==0 .OR. n_dom > 1) THEN

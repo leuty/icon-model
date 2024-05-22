@@ -42,7 +42,8 @@ MODULE mo_nml_crosscheck
   USE mo_advection_config,         ONLY: advection_config
   USE mo_nonhydrostatic_config,    ONLY: itime_scheme_nh => itime_scheme,                  &
     &                                    rayleigh_type, ivctype, iadv_rhotheta
-  USE mo_atm_phy_nwp_config,       ONLY: atm_phy_nwp_config, icpl_aero_conv, iprog_aero
+  USE mo_atm_phy_nwp_config,       ONLY: atm_phy_nwp_config, icpl_aero_conv, iprog_aero,   &
+    &                                    icpl_aero_ice
   USE mo_lnd_nwp_config,           ONLY: ntiles_lnd, lsnowtile, sstice_mode, llake
   USE mo_aes_phy_config,           ONLY: aes_phy_config
   USE mo_aes_vdf_config,           ONLY: aes_vdf_config
@@ -370,6 +371,17 @@ CONTAINS
             &  ( atm_phy_nwp_config(jg)%icpl_aero_gscp > 0 .OR. icpl_aero_conv > 0 ) ) THEN
             CALL finish(routine,'aerosol-precipitation coupling requires irad_aero=6, 9, 12, 13, 14, 15, 18 or 19')
           ENDIF
+
+          ! check if CAMS aerosols are available for DeMott ice nucleation scheme
+          IF ( irad_aero /= iRadAeroCAMSclim .AND. icpl_aero_ice == 1  ) THEN
+            CALL finish(routine,'aerosol-ice coupling 1 requires irad_aero= 7')
+          ENDIF
+
+#ifdef _OPENACC
+          IF ( icpl_aero_ice == 1 .OR. icpl_aero_ice == 2) THEN
+            CALL finish(routine,'DeMott ice nucleation icpl_aero_ice > 0 is currently not supported on GPU.')
+          END IF
+#endif
 
           ! Kinne, CMIP6 volcanic aerosol only work with ecRad
           IF ( ANY( irad_aero == (/iRadAeroConstKinne,iRadAeroKinne,iRadAeroVolc,            &
@@ -849,11 +861,19 @@ CONTAINS
 
     IF ( ntiles_lnd == 1 .AND. ( is_coupled_to_ocean() .OR. is_coupled_to_hydrodisc() ) .AND. .NOT. &
         & (iforcing == inwp .AND. ALL(atm_phy_nwp_config(1:n_dom)%inwp_turb == ivdiff)) ) THEN
-       CALL finish(routine, "Coupled atm/hydrodisc/ocean runs not supported with ntiles=1 when not using VDIFF")
+      CALL finish(routine, "Coupled atm/hydrodisc/ocean runs not supported with ntiles=1 when not using VDIFF")
     ENDIF
 
     IF ( sstice_mode /= 1 .AND. is_coupled_to_ocean() ) THEN
-       CALL finish(routine, "Coupled atm/ocean runs only supported with sstice_mode=1 named SSTICE_ANA")
+      CALL finish(routine, "Coupled atm/ocean runs only supported with sstice_mode=1 named SSTICE_ANA")
+    ENDIF
+
+    IF ( is_coupled_to_waves() .AND. (.NOT. iforcing == inwp) ) THEN
+      CALL finish(routine, "Coupled atm/wave runs only supported with NWP physics (iforcing=3)")
+    ENDIF
+
+    IF ( is_coupled_to_waves() .AND. (ntiles_lnd == 1) ) THEN
+      CALL finish(routine, "Coupled atm/wave runs require ntiles_lnd>1.")
     ENDIF
 
 #ifdef _OPENACC

@@ -68,6 +68,8 @@ MODULE mo_nwp_tuning_nml
     &                               config_tune_gust_factor      => tune_gust_factor,      &
     &                               config_itune_gust_diag       => itune_gust_diag,       &
     &                               config_tune_gustsso_lim      => tune_gustsso_lim,      &
+    &                               config_tune_gustlim_agl      => tune_gustlim_agl,      &
+    &                               config_tune_gustlim_fac      => tune_gustlim_fac,      &
     &                               config_itune_albedo          => itune_albedo,          &
     &                               config_itune_slopecorr       => itune_slopecorr,       &
     &                               config_itune_o3              => itune_o3,              &
@@ -233,6 +235,13 @@ MODULE mo_nwp_tuning_nml
     &  itune_gust_diag             ! 1: use level above top of SSO envelope layer
                                    ! 2: use envelope top level, combined with adjusted tuning for MERIT/REMA orography
                                    ! 3: tuning for ICON-D2 with subgrid-scale condensation
+                                   ! 4: tuning for ICON-D05 using time-averaged 10-m wind speed and additional limitations
+
+  REAL(wp) :: &                    !< Height above ground up to which gust limitation is computed
+    &  tune_gustlim_agl(max_dom)   !
+
+  REAL(wp) :: &                    !< Tuning factor for gust limitation
+    &  tune_gustlim_fac(max_dom)   !
 
   LOGICAL :: &                     ! cloud cover calibration over land points
     &  lcalib_clcov
@@ -276,7 +285,7 @@ MODULE mo_nwp_tuning_nml
     &                      tune_sc_eis, tune_sc_invmin, tune_sc_invmax,           &
     &                      tune_capethresh, tune_gkdrag_enh, tune_grcrit_enh,     &
     &                      tune_minsso_gwd, tune_dursun_scaling, tune_sbmccn,     &
-    &                      itune_slopecorr
+    &                      itune_slopecorr, tune_gustlim_agl, tune_gustlim_fac
 
 CONTAINS
 
@@ -410,6 +419,8 @@ CONTAINS
     tune_gust_factor = 8.0_wp      ! tuning factor for gust parameterization
     itune_gust_diag  = 1           ! variant using level above SSO envelope
     tune_gustsso_lim = 100._wp     ! Basic gust speed at which the SSO correction starts to be reduced
+    tune_gustlim_agl(:) = 1500._wp ! AGL height used for gust limitation in case of itune_gust_diag=4
+    tune_gustlim_fac(:) = 0.0_wp   ! Corresponding tuning factor (0 means that limiting is deactivated)
 
     tune_dust_abs   = 0._wp        ! no tuning of LW absorption of mineral dust
     tune_difrad_3dcont = 0.5_wp    ! tuning factor for 3D contribution to diagnosed diffuse radiation (no impact on prognostic results!)
@@ -566,6 +577,8 @@ CONTAINS
     config_tune_gust_factor      = tune_gust_factor
     config_itune_gust_diag       = itune_gust_diag
     config_tune_gustsso_lim      = tune_gustsso_lim
+    config_tune_gustlim_agl      = tune_gustlim_agl
+    config_tune_gustlim_fac      = tune_gustlim_fac
     config_itune_albedo          = itune_albedo
     config_itune_slopecorr       = itune_slopecorr
     config_itune_o3              = itune_o3
@@ -580,6 +593,7 @@ CONTAINS
     config_tune_sbmccn           = tune_sbmccn
 
     !$ACC UPDATE DEVICE(config_tune_gust_factor, config_itune_gust_diag, config_tune_gustsso_lim) ASYNC(1)
+    !$ACC UPDATE DEVICE(config_tune_gustlim_agl, config_tune_gustlim_fac) ASYNC(1)
 
     !-----------------------------------------------------
     ! 6. Store the namelist for restart

@@ -360,7 +360,7 @@ SUBROUTINE init_nwp_phy ( p_patch, p_metrics,             &
 
   IF (linit_mode) THEN ! initialize field for time-dependent LW emissivity
 !$OMP PARALLEL
-    CALL copy(ext_data%atm%emis_rad, prm_diag%lw_emiss)
+    CALL copy(ext_data%atm%emis_rad, prm_diag%lw_emiss, lacc=.FALSE.)
 !$OMP END PARALLEL
   ENDIF
 
@@ -1914,7 +1914,7 @@ END SUBROUTINE init_nwp_phy
 
   SUBROUTINE clim_cdnc(mtime_date, p_patch, ext_data, prm_diag)
 
-    TYPE(datetime)       , POINTER       :: mtime_date
+    TYPE(datetime)       , INTENT(in)    :: mtime_date
     TYPE(t_patch)        , INTENT(in)    :: p_patch
     TYPE(t_external_data), INTENT(in)    :: ext_data
 

@@ -16,9 +16,10 @@
 #
 # Purpose: Run script for ICON on the R19B08 grid (ICON-1) on 
 #          the full ICON-1 domain covering Switzerland and a large surrounding
-#          area. It is used for a full operational benchmark at MeteoSwiss.
+#          area. This setup is identical to the one used operationally.
+#          It is used for the full operational benchmark tests at MeteoSwiss.
 #
-# Author: Sascha Bellaire (MeteoSwiss)
+# Created by: Daniel Hupp (MeteoSwiss), Fabian Gessler (MeteoSwiss)
 #
 # =========================================================================== 
 
@@ -521,7 +522,7 @@ cat >> ${basedir}/run/${atmo_namelist} << EOF
 EOF
 fi
 
-output_test_nml=no
+output_test_nml=yes
 if [[ "$output_test_nml" == "yes" ]]; then
 cat >> ${basedir}/run/${atmo_namelist} << EOF
 

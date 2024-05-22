@@ -110,7 +110,7 @@ CONTAINS
                                & km_c, km_iv, km_ie, km_ic, kh_ic,        &! out
                                & pprfac,                                  &! out
                                & u_vert, v_vert, div_c,                   &! out
-                               & rho_ic, w_vert, w_ie,                    &! out
+                               & inv_rho_ic, w_vert, w_ie,                &! out
                                & vn,                                      &! out
                                & pch_tile,                                &! out
                                & pbn_tile, pbhn_tile, pbm_tile, pbh_tile, &! out
@@ -172,7 +172,7 @@ CONTAINS
     REAL(wp), INTENT(OUT), DIMENSION(:,:,:)   :: div_c
     REAL(wp), INTENT(OUT), DIMENSION(:,:,:)   :: w_vert
     REAL(wp), INTENT(OUT), DIMENSION(:,:,:)   :: w_ie
-    REAL(wp), INTENT(OUT), DIMENSION(:,:,:)   :: rho_ic
+    REAL(wp), INTENT(OUT), DIMENSION(:,:,:)   :: inv_rho_ic
     REAL(wp), INTENT(OUT), DIMENSION(:,:,:)   :: vn !< normal wind vector
 
     REAL(wp), DIMENSION(kbdim,klev,nblks_c)   :: theta_v
@@ -229,7 +229,8 @@ CONTAINS
     REAL(wp) :: tcm
     REAL(wp) :: zthetavmid
 
-
+    ! Required for intermediate usage of the density at interface levels
+    REAL(wp) :: rho_ic(kbdim,klevp1,nblks_c)
 
     ! - 1D variables and scalars
 
@@ -277,11 +278,32 @@ CONTAINS
     !$ACC   PRESENT(pqsat_tile, pcpt_tile, pcfm_tile, pcfh_tile, pbn_tile, pbhn_tile, pbm_tile) &
     !$ACC   PRESENT(pbh_tile, pch_tile, pri_tile) &
     !$ACC   PRESENT(km_c, km_iv, km_ie, kh_ic, km_ic, vn) &
-    !$ACC   PRESENT(u_vert, v_vert, w_vert, rho_ic, div_c, w_ie) &
+    !$ACC   PRESENT(u_vert, v_vert, w_vert, inv_rho_ic, div_c, w_ie) &
     !---- Argument arrays - Module Variables
     !$ACC   PRESENT(p_nh_metrics, p_int) &
     !$ACC   CREATE(loidx, pfrc_test, ztheta, is) &
-    !$ACC   CREATE(theta_v, bruvais)
+    !$ACC   CREATE(theta_v, bruvais, rho_ic)
+
+
+
+!#########################################################################
+!## initialize
+!#########################################################################
+
+!$OMP PARALLEL
+    CALL init(km_iv)
+    CALL init(km_c)
+    CALL init(km_ie)
+    CALL init(kh_ic)
+    CALL init(km_ic)
+    CALL init(vn)
+
+    IF(p_test_run)THEN
+      CALL init(u_vert(:,:,:))
+      CALL init(v_vert(:,:,:))
+      CALL init(w_vert(:,:,:))
+    END IF
+!$OMP END PARALLEL
 
 !$OMP PARALLEL
 !$OMP DO PRIVATE(jb,jc,i_startidx,i_endidx)
@@ -307,7 +329,6 @@ CONTAINS
         pri_tile(jc,jb,:)  = 0._wp
         pch_tile(jc,jb,:)  = 0._wp
         pcpt_tile(jc,jb,:) = 0._wp
-
       END DO
       !$ACC END PARALLEL
 
@@ -317,7 +338,7 @@ CONTAINS
 
    ! Here pum1 and pvm1 are assumed to be synchronized already, see interface_iconam_aes.
 
-    rl_start   = grf_bdywidth_e+1
+    rl_start   = 2
     rl_end     = min_rledge_int
     i_startblk = p_patch%edges%start_block(rl_start)
     i_endblk   = p_patch%edges%end_block(rl_end)
@@ -530,31 +551,13 @@ CONTAINS
 
 
 
-
-!#########################################################################
-!## initialize
-!#########################################################################
-
-!$OMP PARALLEL
-    CALL init(km_iv(:,:,:))
-    CALL init(km_c(:,:,:))
-    CALL init(km_ie(:,:,:))
-
-    IF(p_test_run)THEN
-      CALL init(u_vert(:,:,:))
-      CALL init(v_vert(:,:,:))
-      CALL init(w_vert(:,:,:))
-    END IF
-!$OMP END PARALLEL
-
-
 !#########################################################################
 !## Convert temperature to potential temperature: all routines within
 !## use theta.
 !#########################################################################
 
 
-    rl_start   = grf_bdywidth_c+1
+    rl_start   = 3
     rl_end     = min_rlcell_int
     i_startblk = p_patch%cells%start_block(rl_start)
     i_endblk   = p_patch%cells%end_block(rl_end)
@@ -578,11 +581,13 @@ CONTAINS
     !Get rho at interfaces to be used later
     CALL vert_intp_full2half_cell_3d(p_patch, p_nh_metrics, rho, rho_ic, &
                                      2, min_rlcell_int-2, lacc=.TRUE.)
-
-    CALL brunt_vaisala_freq(p_patch, p_nh_metrics, theta_v, bruvais, lacc=.TRUE.)
-
-
-
+    
+    ! Compute the Brunt Vaisala frequency where theta_v was defined
+                                     
+    CALL brunt_vaisala_freq(p_patch, p_nh_metrics, kbdim, theta_v, bruvais, &
+                            opt_rlstart=3, lacc=.TRUE.)
+    
+    
 !#########################################################################
 !## Smagorinsky_model
   !!------------------------------------------------------------------------
@@ -631,7 +636,7 @@ CONTAINS
                             lacc=.TRUE.)
 
     ! RBF reconstruction of velocity at vertices: include halos
-    CALL rbf_vec_interpol_vertex(vn, p_patch, p_int, u_vert, v_vert,                       &
+    CALL rbf_vec_interpol_vertex(vn, p_patch, p_int, u_vert, v_vert, &
                                  opt_rlend=min_rlvert_int, opt_acc_async=.TRUE. )
 
     !$ACC WAIT
@@ -824,8 +829,7 @@ CONTAINS
 !$OMP END PARALLEL
 
 
-    !Interpolate mech production term from mid level edge to interface level cell
-    !except top and bottom boundaries
+    !Interpolate div(stress) from edge to cell-scalar, incl. halo for its use in hor diffusion
     rl_start   = grf_bdywidth_c+1
     rl_end     = min_rlcell_int-1
     i_startblk = p_patch%cells%start_block(rl_start)
@@ -858,7 +862,7 @@ CONTAINS
 
 
     ! Interpolate mech. production term from mid level edge to interface level cell
-    ! except top and bottom boundaries
+    ! except top and bottom boundaries.
     rl_start   = 3
     rl_end     = min_rlcell_int-1
     i_startblk = p_patch%cells%start_block(rl_start)
@@ -1039,9 +1043,14 @@ CONTAINS
       DO jk = 1, nlev-1
         DO jc = i_startidx, i_endidx
 #endif
-          pcfm(jc,jk,jb) = km_ic(jc,jk+1,jb)
-          pcfh(jc,jk,jb) = kh_ic(jc,jk+1,jb)
-
+          ! Since the TTE scheme provides the turbulent diffusion coefficients
+          ! excluding the density, the same should apply for the Smagorinsky
+          ! scheme. Hence, km and kh are devided by rho at this point. The
+          ! inverse of the density is saved, as it is required in
+          ! diffuse_vert_velocity.
+          inv_rho_ic(jc,jk+1,jb) = 1._wp / rho_ic(jc,jk+1,jb)
+          pcfh(jc,jk,jb) = kh_ic(jc,jk+1,jb) * inv_rho_ic(jc,jk+1,jb)
+          pcfm(jc,jk,jb) = km_ic(jc,jk+1,jb) * inv_rho_ic(jc,jk+1,jb)
         END DO
       END DO
       !$ACC END PARALLEL
@@ -1284,12 +1293,12 @@ CONTAINS
   !! - Option to switch on implicit scheme in vertical
   !! - only solves for jk=2 to nlev. The bottom and top boundaries are left untouched
   !!------------------------------------------------------------------------
-  SUBROUTINE diffuse_vert_velocity( nproma,                &
-                                  & p_patch,               &
-                                  & rho_ic, w_vert, w_ie,  &
-                                  & km_c, km_iv, km_ic,    &
-                                  & u_vert, v_vert, div_c, &
-                                  & pum1, pvm1, pwm1, vn,  &
+  SUBROUTINE diffuse_vert_velocity( nproma,                   &
+                                  & p_patch,                  &
+                                  & inv_rho_ic, w_vert, w_ie, &
+                                  & km_c, km_iv, km_ic,       &
+                                  & u_vert, v_vert, div_c,    &
+                                  & pum1, pvm1, pwm1, vn,     &
                                   & ddt_w, dt)
 
     INTEGER,INTENT(in) :: nproma
@@ -1299,7 +1308,7 @@ CONTAINS
     REAL(wp),          INTENT(in)        :: km_ic(nproma,p_patch%nlev+1,p_patch%nblks_c)
     REAL(wp),          INTENT(in)        :: dt
 
-    REAL(wp), INTENT(IN), DIMENSION(nproma,p_patch%nlev+1,p_patch%nblks_c) :: rho_ic
+    REAL(wp), INTENT(IN), DIMENSION(nproma,p_patch%nlev,p_patch%nblks_c) :: inv_rho_ic
     REAL(wp), INTENT(IN), DIMENSION(nproma,p_patch%nlev+1,p_patch%nblks_v) :: w_vert
     REAL(wp), INTENT(IN), DIMENSION(nproma,p_patch%nlev+1,p_patch%nblks_e) :: w_ie
     REAL(wp), INTENT(IN), DIMENSION(nproma,p_patch%nlev,p_patch%nblks_c) :: km_c
@@ -1317,7 +1326,6 @@ CONTAINS
 
     !interface level variables but only nlev quantities are needed
     REAL(wp) :: hor_tend(nproma,p_patch%nlev,p_patch%nblks_e)
-    REAL(wp) :: inv_rho_ic(nproma,p_patch%nlev,p_patch%nblks_c)!not necessary to allocate for nlev+1
 
     INTEGER,  DIMENSION(:,:,:), POINTER :: ividx, ivblk, iecidx, iecblk, ieidx, ieblk
     INTEGER :: i_startblk, i_endblk, i_startidx, i_endidx
@@ -1347,10 +1355,10 @@ CONTAINS
 
     !$ACC DATA &
     !---- Argument arrays - intent(out)
-    !$ACC   CREATE(inv_rho_ic, vt_e, hor_tend) &
+    !$ACC   CREATE(vt_e, hor_tend) &
     !$ACC   CREATE(a, b, c, rhs, var_new) &
-    !$ACC   PRESENT(km_c, km_ic, km_iv, rho_ic, u_vert, v_vert, w_vert, w_ie) &
-    !$ACC   PRESENT(p_int, div_c, pum1, pvm1, pwm1, ddt_w) &
+    !$ACC   PRESENT(km_c, km_ic, km_iv, u_vert, v_vert, w_vert, w_ie) &
+    !$ACC   PRESENT(p_int, div_c, pum1, pvm1, pwm1, ddt_w, inv_rho_ic) &
     !$ACC   PRESENT(p_nh_metrics, p_patch, ividx, ivblk, iecidx, iecblk, ieblk, ieidx)
 
     !Some initializations
@@ -1366,35 +1374,6 @@ CONTAINS
 
     CALL rbf_vec_interpol_edge( vn, p_patch, p_int, vt_e, opt_rlend=min_rledge_int-1, &
                                 opt_acc_async=.TRUE.)
-
-    ! Calculate rho at interface for vertical diffusion
-    rl_start   = grf_bdywidth_c+1
-    rl_end     = min_rlcell_int
-    i_startblk = p_patch%cells%start_block(rl_start)
-    i_endblk   = p_patch%cells%end_block(rl_end)
-
-!$OMP PARALLEL
-!$OMP DO PRIVATE(jc,jb,jk,i_startidx,i_endidx)
-    DO jb = i_startblk,i_endblk
-      CALL get_indices_c(p_patch, jb, i_startblk, i_endblk,       &
-                         i_startidx, i_endidx, rl_start, rl_end)
-      !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1)
-      !$ACC LOOP GANG VECTOR COLLAPSE(2)
-#ifdef __LOOP_EXCHANGE
-      DO jc = i_startidx, i_endidx
-        DO jk = 2, nlev
-#else
-      DO jk = 2, nlev
-        DO jc = i_startidx, i_endidx
-#endif
-          inv_rho_ic(jc,jk,jb) = 1._wp / rho_ic(jc,jk,jb)
-        END DO
-      END DO
-      !$ACC END PARALLEL
-    END DO
-!$OMP END DO
-!$OMP END PARALLEL
-
 
     ! 1) Get horizontal tendencies at half level edges
     rl_start   = grf_bdywidth_e
@@ -1787,7 +1766,7 @@ CONTAINS
 
     IF (is_dry_cbl .AND. scalar_name==tracer_water) THEN
 !$OMP PARALLEL
-      CALL init(hori_tend(:,:,:))
+      CALL init(hori_tend(:,:,:), lacc=.TRUE.)
 !$OMP END PARALLEL
     END IF
 

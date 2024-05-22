@@ -89,7 +89,7 @@ MODULE mo_nh_stepping
   USE mo_update_dyn_scm,           ONLY: add_slowphys_scm
   USE mo_advection_stepping,       ONLY: step_advection
   USE mo_prepadv_util,             ONLY: prepare_tracer
-  USE mo_nh_diffusion,             ONLY: diffusion
+  USE mo_nh_diffusion,             ONLY: diffusion, moisture_diffusion
   USE mo_memory_log,               ONLY: memory_log_add
   USE mo_mpi,                      ONLY: proc_split, push_glob_comm, pop_glob_comm, &
        &                                 p_comm_work, my_process_is_mpi_workroot,   &
@@ -103,7 +103,7 @@ MODULE mo_nh_stepping
 #endif
   ! NWP physics
   USE mo_atm_phy_nwp_config,       ONLY: dt_phy, atm_phy_nwp_config, iprog_aero, setup_nwp_diag_events
-  USE mo_nwp_phy_state,            ONLY: prm_diag, prm_nwp_tend, phy_params, prm_nwp_stochconv
+  USE mo_nwp_phy_state,            ONLY: prm_diag, prm_nwp_tend, phy_params, prm_nwp_stochconv, prm_nwp_diag_list
   USE mo_lnd_nwp_config,           ONLY: nlev_soil, nlev_snow, sstice_mode, sst_td_filename, &
     &                                    ci_td_filename, frsi_min
   USE mo_nwp_lnd_state,            ONLY: p_lnd_state
@@ -178,7 +178,7 @@ MODULE mo_nh_stepping
   USE mo_restart_util,             ONLY: check_for_checkpoint
   USE mo_prepadv_types,            ONLY: t_prepare_adv
   USE mo_prepadv_state,            ONLY: prep_adv, jstep_adv
-  USE mo_action,                   ONLY: reset_act
+  USE mo_action,                   ONLY: reset_act, get_prev_trigger_time
   USE mo_output_event_handler,     ONLY: get_current_jfile
   USE mo_opt_diagnostics,          ONLY: update_opt_acc, reset_opt_acc, &
     &                                    calc_mean_opt_acc, p_nh_opt_diag
@@ -232,6 +232,7 @@ MODULE mo_nh_stepping
   USE mo_icon2dace,                ONLY: mec_Event, init_dace_op, run_dace_op, dace_op_init
   USE mo_extpar_config,            ONLY: generate_td_filename
   USE mo_nudging_config,           ONLY: nudging_config, l_global_nudging, indg_type
+  USE mo_nwp_tuning_config,        ONLY: itune_gust_diag
   USE mo_nudging,                  ONLY: nudging_interface
   USE mo_nh_moist_thdyn,           ONLY: thermo_src_term
 #ifndef __NO_ICON_COMIN__
@@ -480,6 +481,10 @@ MODULE mo_nh_stepping
 
     ENDDO
 
+    IF (isRestart() .AND. itune_gust_diag == 4) THEN
+      CALL get_prev_trigger_time(prm_nwp_diag_list(:), 'u_10m_a', prm_diag(:)%prev_v10mavg_reset)
+    ENDIF
+
 #endif /* __NO_NWP__ */
   END IF  ! iforcing == inwp
 
@@ -577,9 +582,13 @@ MODULE mo_nh_stepping
         DO jn = 1, p_patch(jg)%n_childdom
           jgc = p_patch(jg)%child_id(jn)
           IF (.NOT. p_patch(jgc)%ldom_active) CYCLE
-          IF (lsynsat(jgc) .AND. p_patch(jgc)%nshift > 0) CALL copy_rttov_ubc (jg, jgc, lacc=.TRUE.)
+          !
+          IF (lsynsat(jgc) .AND. p_patch(jgc)%nshift > 0) THEN
+            CALL copy_rttov_ubc (jg, jgc, prm_diag(:), lacc=.TRUE.)
+          ENDIF
         ENDDO
-        IF (lsynsat(jg)) CALL rttov_driver (jg, p_patch(jg)%parent_id, nnow_rcf(jg), lacc=.TRUE.)
+        IF (lsynsat(jg)) CALL rttov_driver (prm_diag(jg), p_lnd_state(jg), ext_data(jg), jg, &
+          &                                 p_patch(jg)%parent_id, nnow_rcf(jg), lacc=.TRUE.)
 
       ENDDO!jg
     ELSE
@@ -704,7 +713,7 @@ MODULE mo_nh_stepping
 #ifdef _OPENACC
           CALL message('mo_nh_stepping', 'Copy init values for DACE to CPU')
           DO jg=1, n_dom
-            CALL gpu_d2h_dace(jg, atm_phy_nwp_config(jg))
+            CALL gpu_d2h_dace(jg, atm_phy_nwp_config(jg), prm_diag(jg), p_lnd_state(jg))
           ENDDO
           i_am_accel_node = .FALSE.
 #endif
@@ -880,6 +889,11 @@ MODULE mo_nh_stepping
     WRITE(message_text,'(a,i6,a)') 'Model start shifted backwards by ', ABS(jstep_shift),' time steps'
     CALL message(routine, message_text)
     atm_phy_nwp_config(:)%lcalc_acc_avg = .FALSE.
+    IF (iforcing == inwp) THEN
+      DO jg=1, n_dom
+        !$ACC UPDATE DEVICE(atm_phy_nwp_config(jg)%lcalc_acc_avg) ASYNC(1)
+      END DO
+    END IF
   ELSE
     jstep_shift = 0
   ENDIF
@@ -989,7 +1003,7 @@ MODULE mo_nh_stepping
   jstep = jstep0+jstep_shift+1
 
   !$ser verbatim DO jg = 1, n_dom
-    !$ser verbatim   CALL serialize_all(nproma, jg, "initialization", .FALSE., opt_lupdate_cpu=.TRUE.)
+    !$ser verbatim   CALL serialize_all(nproma, jg, "initialization", .FALSE.)
   !$ser verbatim ENDDO
   
 #ifndef __NO_ICON_COMIN__
@@ -1047,8 +1061,15 @@ MODULE mo_nh_stepping
     ENDIF
 
     ! turn on calculation of averaged and accumulated quantities at the first regular time step
-    IF (jstep-jstep0 == 1) atm_phy_nwp_config(:)%lcalc_acc_avg = .TRUE.
-
+    IF (jstep-jstep0 == 1) THEN
+      atm_phy_nwp_config(:)%lcalc_acc_avg = .TRUE.
+      IF (iforcing == inwp) THEN
+        DO jg=1, n_dom
+          !$ACC UPDATE DEVICE(atm_phy_nwp_config(jg)%lcalc_acc_avg) ASYNC(1)
+        END DO
+      END IF
+    END IF
+    
     lprint_timestep = msg_level > 2 .OR. MOD(jstep,25) == 0
 
     ! always print the first and the last time step
@@ -1117,6 +1138,7 @@ MODULE mo_nh_stepping
             &                      ext_data        = ext_data(jg),     &
             &                      p_lnd_state     = p_lnd_state(jg),  &
             &                      p_nh_state      = p_nh_state(jg),   &
+            &                      prm_diag        = prm_diag(jg),     &
             &                      ref_datetime    = ref_datetime,     &
             &                      target_datetime = target_datetime,  &
             &                      mtime_old       = mtime_old         )
@@ -1289,17 +1311,17 @@ MODULE mo_nh_stepping
     IF ((l_compute_diagnostic_quants .OR. iforcing==iaes .OR. iforcing==inoforcing)) THEN
 
       !$ser verbatim DO jg = 1, n_dom
-      !$ser verbatim   CALL serialize_all(nproma, jg, "output_diag_dyn", .TRUE., opt_lupdate_cpu=.TRUE.)
+      !$ser verbatim   CALL serialize_all(nproma, jg, "output_diag_dyn", .TRUE.)
       !$ser verbatim ENDDO
       CALL diag_for_output_dyn ()
       !$ser verbatim DO jg = 1, n_dom
-      !$ser verbatim   CALL serialize_all(nproma, jg, "output_diag_dyn", .FALSE., opt_lupdate_cpu=.TRUE.)
+      !$ser verbatim   CALL serialize_all(nproma, jg, "output_diag_dyn", .FALSE.)
       !$ser verbatim ENDDO
 
       IF (iforcing == inwp) THEN
 #ifndef __NO_NWP__
         !$ser verbatim DO jg = 1, n_dom
-        !$ser verbatim   CALL serialize_all(nproma, jg, "output_diag", .TRUE., opt_lupdate_cpu=.TRUE.)
+        !$ser verbatim   CALL serialize_all(nproma, jg, "output_diag", .TRUE.)
         !$ser verbatim ENDDO
         !$ACC WAIT
         CALL aggr_landvars(p_patch(1:), ext_data(:), p_lnd_state(:), lacc=.TRUE.)
@@ -1337,13 +1359,17 @@ MODULE mo_nh_stepping
           DO jn = 1, p_patch(jg)%n_childdom
             jgc = p_patch(jg)%child_id(jn)
             IF (.NOT. p_patch(jgc)%ldom_active) CYCLE
-            IF (lsynsat(jgc) .AND. p_patch(jgc)%nshift > 0) CALL copy_rttov_ubc (jg, jgc, lacc=.TRUE.)
+            !
+            IF (lsynsat(jgc) .AND. p_patch(jgc)%nshift > 0) THEN
+              CALL copy_rttov_ubc (jg, jgc, prm_diag(:), lacc=.TRUE.)
+            ENDIF
           ENDDO
-          IF (lsynsat(jg)) CALL rttov_driver (jg, p_patch(jg)%parent_id, nnow_rcf(jg), lacc=.TRUE.)
+          IF (lsynsat(jg)) CALL rttov_driver (prm_diag(jg), p_lnd_state(jg), ext_data(jg), jg, &
+            &                                 p_patch(jg)%parent_id, nnow_rcf(jg), lacc=.TRUE.)
 
         ENDDO!jg
         !$ser verbatim DO jg = 1, n_dom
-        !$ser verbatim   CALL serialize_all(nproma, jg, "output_diag", .FALSE., opt_lupdate_cpu=.TRUE.)
+        !$ser verbatim   CALL serialize_all(nproma, jg, "output_diag", .FALSE.)
         !$ser verbatim ENDDO
 
 #endif /* __NO_NWP__ */
@@ -1378,14 +1404,14 @@ MODULE mo_nh_stepping
 
 
     !$ser verbatim DO jg = 1, n_dom
-    !$ser verbatim   CALL serialize_all(nproma, jg, "output_opt", .TRUE., opt_lupdate_cpu=.FALSE.)
+    !$ser verbatim   CALL serialize_all(nproma, jg, "output_opt", .TRUE.)
     !$ser verbatim ENDDO
 
     ! Calculate optional diagnostic output variables if requested in the namelist(s)
     IF (iforcing == inwp) THEN
 #ifndef __NO_NWP__
       CALL nwp_opt_diagnostics(p_patch(1:), p_patch_local_parent, p_int_state_local_parent, &
-                               p_nh_state, p_int_state(1:), prm_diag, &
+                               ext_data, p_nh_state, p_int_state(1:), prm_diag, &
                                l_nml_output_dom, nnow, nnow_rcf, lpi_max_Event, celltracks_Event,  &
                                dbz_Event, hail_max_Event, mtime_current, time_config%tc_dt_model, lacc=.TRUE.)
 
@@ -1491,7 +1517,7 @@ MODULE mo_nh_stepping
     END IF
 
     !$ser verbatim DO jg = 1, n_dom
-    !$ser verbatim   CALL serialize_all(nproma, jg, "output_opt", .FALSE., opt_lupdate_cpu=.FALSE.)
+    !$ser verbatim   CALL serialize_all(nproma, jg, "output_opt", .FALSE.)
     !$ser verbatim ENDDO
 
 #ifndef __NO_ICON_COMIN__
@@ -1549,6 +1575,9 @@ MODULE mo_nh_stepping
     !
     CALL reset_act%execute(slack=dtime, mtime_date=mtime_current)
 
+    IF (itune_gust_diag == 4) THEN
+      CALL get_prev_trigger_time(prm_nwp_diag_list(:), 'u_10m_a', prm_diag(:)%prev_v10mavg_reset)
+    ENDIF
 
     !--------------------------------------------------------------------------
     ! Write restart file
@@ -1604,7 +1633,7 @@ MODULE mo_nh_stepping
 #ifdef _OPENACC
             CALL message('mo_nh_stepping', 'Copy values for DACE to CPU')
             DO jg=1, n_dom
-              CALL gpu_d2h_dace(jg, atm_phy_nwp_config(jg))
+              CALL gpu_d2h_dace(jg, atm_phy_nwp_config(jg), prm_diag(jg), p_lnd_state(jg))
             ENDDO
             i_am_accel_node = .FALSE.
 #endif
@@ -1695,7 +1724,7 @@ MODULE mo_nh_stepping
     ! prefetch boundary data if necessary
     IF(num_prefetch_proc >= 1 .AND. latbc_config%itype_latbc > 0 .AND. &
     &  .NOT.(jstep == 0 .AND. iau_iter == 1) ) THEN
-      !$ser verbatim CALL serialize_all(nproma, 1, "latbc_data", .TRUE., opt_lupdate_cpu=.TRUE., opt_id=iau_iter)
+      !$ser verbatim CALL serialize_all(nproma, 1, "latbc_data", .TRUE., opt_id=iau_iter)
       latbc_read_datetime = latbc%mtime_last_read + latbc%delta_dtime
       CALL recv_latbc_data(latbc               = latbc,              &
          &                  p_patch             = p_patch(1:),        &
@@ -1705,11 +1734,11 @@ MODULE mo_nh_stepping
          &                  latbc_read_datetime = latbc_read_datetime,&
          &                  lcheck_read         = .TRUE.,             &
          &                  tlev                = latbc%new_latbc_tlev)
-      !$ser verbatim CALL serialize_all(nproma, 1, "latbc_data", .FALSE., opt_lupdate_cpu=.TRUE., opt_id=iau_iter)
+      !$ser verbatim CALL serialize_all(nproma, 1, "latbc_data", .FALSE., opt_id=iau_iter)
     ENDIF
 
     !$ser verbatim DO jg = 1, n_dom
-    !$ser verbatim   CALL serialize_all(nproma, jg, "time_loop_end", .FALSE., opt_lupdate_cpu=.FALSE., opt_id=iau_iter)
+    !$ser verbatim   CALL serialize_all(nproma, jg, "time_loop_end", .FALSE., opt_id=iau_iter)
     !$ser verbatim ENDDO
 
 #ifndef __NO_ICON_COMIN__
@@ -1826,13 +1855,13 @@ MODULE mo_nh_stepping
 !$OMP PARALLEL
 #endif
       CALL copy(p_nh_state(jg)%prog(n_now)%vn, &
-           p_nh_state(jg)%prog(n_save)%vn)
+           p_nh_state(jg)%prog(n_save)%vn, lacc=.TRUE.)
       CALL copy(p_nh_state(jg)%prog(n_now)%w, &
-           p_nh_state(jg)%prog(n_save)%w)
+           p_nh_state(jg)%prog(n_save)%w, lacc=.TRUE.)
       CALL copy(p_nh_state(jg)%prog(n_now)%rho, &
-           p_nh_state(jg)%prog(n_save)%rho)
+           p_nh_state(jg)%prog(n_save)%rho, lacc=.TRUE.)
       CALL copy(p_nh_state(jg)%prog(n_now)%theta_v, &
-           p_nh_state(jg)%prog(n_save)%theta_v)
+           p_nh_state(jg)%prog(n_save)%theta_v, lacc=.TRUE.)
 #ifndef _OPENACC
 !$OMP END PARALLEL
 #endif
@@ -1863,13 +1892,13 @@ MODULE mo_nh_stepping
         n_save = nsav2(jg)
 !$OMP PARALLEL
         CALL copy(p_nh_state(jg)%prog(n_now)%vn, &
-             p_nh_state(jg)%prog(n_save)%vn)
+             p_nh_state(jg)%prog(n_save)%vn, lacc=.TRUE.)
         CALL copy(p_nh_state(jg)%prog(n_now)%w, &
-             p_nh_state(jg)%prog(n_save)%w)
+             p_nh_state(jg)%prog(n_save)%w, lacc=.TRUE.)
         CALL copy(p_nh_state(jg)%prog(n_now)%rho, &
-             p_nh_state(jg)%prog(n_save)%rho)
+             p_nh_state(jg)%prog(n_save)%rho, lacc=.TRUE.)
         CALL copy(p_nh_state(jg)%prog(n_now)%theta_v, &
-             p_nh_state(jg)%prog(n_save)%theta_v)
+             p_nh_state(jg)%prog(n_save)%theta_v, lacc=.TRUE.)
 !$OMP END PARALLEL
       ENDIF
 
@@ -1884,7 +1913,7 @@ MODULE mo_nh_stepping
 
       IF ( p_patch(jg)%n_childdom > 0 .AND. ndyn_substeps_var(jg) > 1) THEN
 
-        !$ser verbatim CALL serialize_all(nproma, jg, "nesting_save_progvars", .TRUE., opt_lupdate_cpu=.TRUE., opt_id=jstep + num_steps*iau_iter)
+        !$ser verbatim CALL serialize_all(nproma, jg, "nesting_save_progvars", .TRUE., opt_id=jstep + num_steps*iau_iter)
         lbdy_nudging = .FALSE.
         lnest_active = .FALSE.
         DO jn = 1, p_patch(jg)%n_childdom
@@ -1904,17 +1933,17 @@ MODULE mo_nh_stepping
 #ifndef _OPENACC
 !$OMP PARALLEL
 #endif
-          CALL copy(p_nh_state(jg)%prog(n_now)%vn,p_nh_state(jg)%prog(n_save)%vn)
-          CALL copy(p_nh_state(jg)%prog(n_now)%w,p_nh_state(jg)%prog(n_save)%w)
-          CALL copy(p_nh_state(jg)%prog(n_now)%rho,p_nh_state(jg)%prog(n_save)%rho)
-          CALL copy(p_nh_state(jg)%prog(n_now)%theta_v,p_nh_state(jg)%prog(n_save)%theta_v)
+          CALL copy(p_nh_state(jg)%prog(n_now)%vn,p_nh_state(jg)%prog(n_save)%vn, lacc=.TRUE.)
+          CALL copy(p_nh_state(jg)%prog(n_now)%w,p_nh_state(jg)%prog(n_save)%w, lacc=.TRUE.)
+          CALL copy(p_nh_state(jg)%prog(n_now)%rho,p_nh_state(jg)%prog(n_save)%rho, lacc=.TRUE.)
+          CALL copy(p_nh_state(jg)%prog(n_now)%theta_v,p_nh_state(jg)%prog(n_save)%theta_v, lacc=.TRUE.)
 #ifndef _OPENACC
 !$OMP END PARALLEL
 #endif
         ELSE IF (lnest_active) THEN ! optimized copy restricted to nest boundary points
           CALL save_progvars(jg,p_nh_state(jg)%prog(n_now),p_nh_state(jg)%prog(n_save))
         ENDIF
-        !$ser verbatim CALL serialize_all(nproma, jg, "nesting_save_progvars", .FALSE., opt_lupdate_cpu=.TRUE., opt_id=jstep + num_steps*iau_iter)
+        !$ser verbatim CALL serialize_all(nproma, jg, "nesting_save_progvars", .FALSE., opt_id=jstep + num_steps*iau_iter)
 
       ENDIF
 
@@ -2061,21 +2090,21 @@ MODULE mo_nh_stepping
 
         IF (ldynamics) THEN
 
-          !$ser verbatim CALL serialize_all(nproma, jg, "dynamics", .TRUE., opt_lupdate_cpu=.TRUE., opt_dt=datetime_local(jg)%ptr, opt_id=iau_iter)
+          !$ser verbatim CALL serialize_all(nproma, jg, "dynamics", .TRUE., opt_dt=datetime_local(jg)%ptr, opt_id=iau_iter)
           ! dynamics integration with substepping
           !
           CALL perform_dyn_substepping (time_config, p_patch(jg), p_nh_state(jg), p_int_state(jg), &
             &                           prep_adv(jg), jstep, iau_iter, dt_loc, datetime_local(jg)%ptr)
-          !$ser verbatim CALL serialize_all(nproma, jg, "dynamics", .FALSE., opt_lupdate_cpu=.TRUE., opt_dt=datetime_local(jg)%ptr, opt_id=iau_iter)
+          !$ser verbatim CALL serialize_all(nproma, jg, "dynamics", .FALSE., opt_dt=datetime_local(jg)%ptr, opt_id=iau_iter)
 
           ! diffusion at physics time steps
           !
           IF (diffusion_config(jg)%lhdiff_vn) THEN
-            !$ser verbatim CALL serialize_all(nproma, jg, "diffusion", .TRUE., opt_lupdate_cpu=.TRUE., opt_dt=datetime_local(jg)%ptr, opt_id=iau_iter)
+            !$ser verbatim CALL serialize_all(nproma, jg, "diffusion", .TRUE., opt_dt=datetime_local(jg)%ptr, opt_id=iau_iter)
             CALL diffusion(p_nh_state(jg)%prog(nnew(jg)), p_nh_state(jg)%diag,     &
               &            p_nh_state(jg)%metrics, p_patch(jg), p_int_state(jg),   &
               &            dt_loc, .FALSE.)
-            !$ser verbatim CALL serialize_all(nproma, jg, "diffusion", .FALSE., opt_lupdate_cpu=.TRUE., opt_dt=datetime_local(jg)%ptr, opt_id=iau_iter)
+            !$ser verbatim CALL serialize_all(nproma, jg, "diffusion", .FALSE., opt_dt=datetime_local(jg)%ptr, opt_id=iau_iter)
           ENDIF
 
           ! apply moisture term for thermodynamic equation
@@ -2137,7 +2166,7 @@ MODULE mo_nh_stepping
             CALL message('integrate_nh', message_text)
           ENDIF
 
-          !$ser verbatim CALL serialize_all(nproma, jg, "step_advection", .TRUE., opt_lupdate_cpu=.TRUE., opt_dt=datetime_local(jg)%ptr, opt_id=iau_iter)
+          !$ser verbatim CALL serialize_all(nproma, jg, "step_advection", .TRUE., opt_dt=datetime_local(jg)%ptr, opt_id=iau_iter)
           CALL step_advection(                                                 &
             &       p_patch           = p_patch(jg),                           & !in
             &       p_int_state       = p_int_state(jg),                       & !in
@@ -2158,7 +2187,7 @@ MODULE mo_nh_stepping
             &       q_ubc             = prep_adv(jg)%q_ubc,                    & !in
             &       q_int             = prep_adv(jg)%q_int,                    & !out
             &       opt_ddt_tracer_adv= p_nh_state(jg)%diag%ddt_tracer_adv     ) !out
-          !$ser verbatim CALL serialize_all(nproma, jg, "step_advection", .FALSE., opt_lupdate_cpu=.TRUE., opt_dt=datetime_local(jg)%ptr, opt_id=iau_iter)
+          !$ser verbatim CALL serialize_all(nproma, jg, "step_advection", .FALSE., opt_dt=datetime_local(jg)%ptr, opt_id=iau_iter)
 
 #ifndef __NO_ICON_COMIN__
           CALL icon_update_expose_variables(TLEV_NNOW_RCF, nnew_rcf(jg))
@@ -2207,6 +2236,10 @@ MODULE mo_nh_stepping
         CALL main_tracer_afteradv
 #endif
 
+        IF (diffusion_config(jg)%lhdiff_q) THEN
+          CALL moisture_diffusion(p_nh_state(jg)%prog(n_new_rcf), p_nh_state(jg)%diag, &
+            &  p_patch(jg), p_int_state(jg))
+        ENDIF
 
         ! Apply boundary nudging in case of one-way nesting
         IF (jg > 1 ) THEN
@@ -2246,7 +2279,7 @@ MODULE mo_nh_stepping
               &                     lcall_phy     = atm_phy_nwp_config(jg)%lcall_phy(:) ) !inout
 
             ! nwp physics
-            !$ser verbatim CALL serialize_all(nproma, jg, "physics", .TRUE., opt_lupdate_cpu=.TRUE., opt_dt=datetime_local(jg)%ptr, opt_id=iau_iter)
+            !$ser verbatim CALL serialize_all(nproma, jg, "physics", .TRUE., opt_dt=datetime_local(jg)%ptr, opt_id=iau_iter)
             CALL nwp_nh_interface(atm_phy_nwp_config(jg)%lcall_phy(:), & !in
                 &                  .FALSE.,                            & !in
                 &                  lredgrid_phys(jg),                  & !in
@@ -2272,7 +2305,7 @@ MODULE mo_nh_stepping
                 &                  p_lnd_state(jg)%prog_wtr(n_new_rcf),& !inout
                 &                  p_nh_state_lists(jg)%prog_list(n_new_rcf), & !in
                 &                  lacc=.TRUE.                         ) !in
-            !$ser verbatim CALL serialize_all(nproma, jg, "physics", .FALSE., opt_lupdate_cpu=.TRUE., opt_dt=datetime_local(jg)%ptr, opt_id=iau_iter)
+            !$ser verbatim CALL serialize_all(nproma, jg, "physics", .FALSE., opt_dt=datetime_local(jg)%ptr, opt_id=iau_iter)
 #endif
 
           CASE (iaes) ! iforcing
@@ -2347,10 +2380,10 @@ MODULE mo_nh_stepping
             ENDIF
 
             IF (lcall_rrg) THEN
-              CALL interpol_rrg_grf(jg, jgc, jn, nnew_rcf(jg), lacc=.TRUE.)
+              CALL interpol_rrg_grf(jg, jgc, jn, nnew_rcf(jg), prm_diag(:), p_lnd_state(:), lacc=.TRUE.)
             ENDIF
             IF (lcall_rrg .AND. atm_phy_nwp_config(jgc)%latm_above_top) THEN
-              CALL copy_rrg_ubc(jg, jgc)
+              CALL copy_rrg_ubc(jg, jgc, prm_diag(:))
             ENDIF
 
           ENDDO
@@ -2410,7 +2443,7 @@ MODULE mo_nh_stepping
       ! lateral nudging and optional upper boundary nudging in limited area mode
       !
       IF ( (l_limited_area .AND. (.NOT. l_global_nudging)) ) THEN
-        !$ser verbatim CALL serialize_all(nproma, jg, "nudging", .TRUE., opt_lupdate_cpu=.TRUE., opt_dt=datetime_local(jg)%ptr, opt_id=iau_iter)
+        !$ser verbatim CALL serialize_all(nproma, jg, "nudging", .TRUE., opt_dt=datetime_local(jg)%ptr, opt_id=iau_iter)
 
         IF (latbc_config%itype_latbc > 0) THEN  ! use time-dependent boundary data
 
@@ -2470,7 +2503,7 @@ MODULE mo_nh_stepping
           ENDIF
 
         ENDIF
-        !$ser verbatim CALL serialize_all(nproma, jg, "nudging", .FALSE., opt_lupdate_cpu=.TRUE., opt_dt=datetime_local(jg)%ptr, opt_id=iau_iter)
+        !$ser verbatim CALL serialize_all(nproma, jg, "nudging", .FALSE., opt_dt=datetime_local(jg)%ptr, opt_id=iau_iter)
 
       ELSE IF (l_global_nudging .AND. jg==1) THEN
 
@@ -2521,10 +2554,10 @@ MODULE mo_nh_stepping
         IF (timers_level >= 2) CALL timer_start(timer_bdy_interp)
 
         ! Compute time tendencies for interpolation to refined mesh boundaries
-        !$ser verbatim CALL serialize_all(nproma, jg, "nesting_compute_tendencies", .TRUE., opt_lupdate_cpu=.TRUE., opt_id=jstep + num_steps*iau_iter)
+        !$ser verbatim CALL serialize_all(nproma, jg, "nesting_compute_tendencies", .TRUE., opt_id=jstep + num_steps*iau_iter)
         CALL compute_tendencies (jg,nnew(jg),n_now_grf,n_new_rcf,n_now_rcf, &
           &                      rdt_loc,rdtmflx_loc)
-        !$ser verbatim CALL serialize_all(nproma, jg, "nesting_compute_tendencies", .FALSE., opt_lupdate_cpu=.TRUE., opt_id=jstep + num_steps*iau_iter)
+        !$ser verbatim CALL serialize_all(nproma, jg, "nesting_compute_tendencies", .FALSE., opt_id=jstep + num_steps*iau_iter)
 
         ! Loop over nested domains
         DO jn = 1, p_patch(jg)%n_childdom
@@ -2533,13 +2566,13 @@ MODULE mo_nh_stepping
 
           ! Interpolate tendencies to lateral boundaries of refined mesh (jgc)
           IF (p_patch(jgc)%ldom_active) THEN
-            !$ser verbatim CALL serialize_all(nproma, jg, "nesting_boundary_interpolation", .TRUE., opt_lupdate_cpu=.TRUE., opt_id=jstep + num_steps*iau_iter)
-            !$ser verbatim CALL serialize_all(nproma, jgc, "nesting_boundary_interpolation", .TRUE., opt_lupdate_cpu=.TRUE., opt_id=jstep + num_steps + num_steps*iau_iter)
+            !$ser verbatim CALL serialize_all(nproma, jg, "nesting_boundary_interpolation", .TRUE., opt_id=jstep + num_steps*iau_iter)
+            !$ser verbatim CALL serialize_all(nproma, jgc, "nesting_boundary_interpolation", .TRUE., opt_id=jstep + num_steps + num_steps*iau_iter)
             CALL boundary_interpolation(jg, jgc,                   &
               &  n_now_grf,nnow(jgc),n_now_rcf,nnow_rcf(jgc),      &
-              &  p_patch(1:),p_nh_state(:),prep_adv(:),p_grf_state(1:))
-            !$ser verbatim CALL serialize_all(nproma, jg, "nesting_boundary_interpolation", .FALSE., opt_lupdate_cpu=.TRUE., opt_id=jstep + num_steps*iau_iter)
-            !$ser verbatim CALL serialize_all(nproma, jgc, "nesting_boundary_interpolation", .FALSE., opt_lupdate_cpu=.TRUE., opt_id=jstep + num_steps + num_steps*iau_iter)
+              &  p_patch(1:),p_nh_state(:),prep_adv(:),prm_diag(:),p_grf_state(1:))
+            !$ser verbatim CALL serialize_all(nproma, jg, "nesting_boundary_interpolation", .FALSE., opt_id=jstep + num_steps*iau_iter)
+            !$ser verbatim CALL serialize_all(nproma, jgc, "nesting_boundary_interpolation", .FALSE., opt_id=jstep + num_steps + num_steps*iau_iter)
           ENDIF
 
         ENDDO
@@ -2597,8 +2630,8 @@ MODULE mo_nh_stepping
               CALL incr_feedback(p_patch, p_nh_state, p_int_state, p_grf_state, p_lnd_state, &
                 &           jgc, jg)
             ELSE
-              !$ser verbatim CALL serialize_all(nproma, jg, "nesting_relax_feedback", .TRUE., opt_lupdate_cpu=.TRUE., opt_id=jstep)
-              !$ser verbatim CALL serialize_all(nproma, jgc, "nesting_relax_feedback", .TRUE., opt_lupdate_cpu=.TRUE., opt_id=jstep + num_steps)
+              !$ser verbatim CALL serialize_all(nproma, jg, "nesting_relax_feedback", .TRUE., opt_id=jstep)
+              !$ser verbatim CALL serialize_all(nproma, jgc, "nesting_relax_feedback", .TRUE., opt_id=jstep + num_steps)
               IF (iforcing==inwp) THEN
                 CALL relax_feedback(  p_patch(n_dom_start:n_dom),            &
                   & p_nh_state(1:n_dom), p_int_state(n_dom_start:n_dom),     &
@@ -2608,8 +2641,8 @@ MODULE mo_nh_stepping
                   & p_nh_state(1:n_dom), p_int_state(n_dom_start:n_dom),     &
                   & p_grf_state(n_dom_start:n_dom), jgc, jg, dt_loc)
               END IF
-              !$ser verbatim CALL serialize_all(nproma, jg, "nesting_relax_feedback", .FALSE., opt_lupdate_cpu=.TRUE., opt_id=jstep)
-              !$ser verbatim CALL serialize_all(nproma, jgc, "nesting_relax_feedback", .FALSE., opt_lupdate_cpu=.TRUE., opt_id=jstep + num_steps)
+              !$ser verbatim CALL serialize_all(nproma, jg, "nesting_relax_feedback", .FALSE., opt_id=jstep)
+              !$ser verbatim CALL serialize_all(nproma, jgc, "nesting_relax_feedback", .FALSE., opt_id=jstep + num_steps)
             ENDIF
             IF (ldass_lhn) THEN
               IF (assimilation_config(jgc)%dass_lhn%isActive(datetime_local(jgc)%ptr)) THEN
@@ -2673,7 +2706,7 @@ MODULE mo_nh_stepping
             CALL gpu_d2h_nh_nwp(jg, ext_data=ext_data(jg), lacc=i_am_accel_node)
             i_am_accel_node = .FALSE. ! disable the execution of ACC kernels
 #endif
-            CALL initialize_nest(jg, jgc)
+            CALL initialize_nest(jg, jgc, ext_data(:), prm_diag(:), p_lnd_state(:))
 
             ! Apply hydrostatic adjustment, using downward integration
             CALL hydro_adjust_const_thetav(p_patch(jgc), p_nh_state(jgc)%metrics, .TRUE.,    &
@@ -2735,9 +2768,9 @@ MODULE mo_nh_stepping
               &                  airmass   = p_nh_state(jgc)%diag%airmass_new     ) !inout
 
             IF ( lredgrid_phys(jgc) ) THEN
-              CALL interpol_rrg_grf(jg, jgc, jn, nnow_rcf(jg), lacc=.FALSE.)
+              CALL interpol_rrg_grf(jg, jgc, jn, nnow_rcf(jg), prm_diag(:), p_lnd_state(:), lacc=.FALSE.)
               IF (atm_phy_nwp_config(jgc)%latm_above_top) THEN
-                CALL copy_rrg_ubc(jg, jgc)
+                CALL copy_rrg_ubc(jg, jgc, prm_diag(:))
               ENDIF
             ENDIF
 
@@ -2753,9 +2786,9 @@ MODULE mo_nh_stepping
             CALL init_slowphysics (datetime_local(jgc)%ptr, jgc, dt_sub, lacc=.TRUE.)
 
             ! jg: use opt_id to account for multiple childs that can be initialized at once
-            !$ser verbatim   CALL serialize_all(nproma, jg, "initialization", .FALSE., opt_lupdate_cpu=.TRUE., opt_id=jstep + num_steps*jn + num_steps*p_patch(jg)%n_childdom*iau_iter)
+            !$ser verbatim   CALL serialize_all(nproma, jg, "initialization", .FALSE., opt_id=jstep + num_steps*jn + num_steps*p_patch(jg)%n_childdom*iau_iter)
             ! jgc: opt_id not needed as jgc should be only initialized once
-            !$ser verbatim   CALL serialize_all(nproma, jgc, "initialization", .FALSE., opt_lupdate_cpu=.TRUE., opt_id=iau_iter)
+            !$ser verbatim   CALL serialize_all(nproma, jgc, "initialization", .FALSE., opt_id=iau_iter)
 
             WRITE(message_text,'(a,i2,a,f12.2)') 'domain ',jgc,' started at time ',sim_time
             CALL message('integrate_nh', message_text)
@@ -2977,7 +3010,7 @@ MODULE mo_nh_stepping
         &                     lcall_phy     = atm_phy_nwp_config(jg)%lcall_phy(:) )
       !
       ! nwp physics, slow physics forcing
-      !$ser verbatim CALL serialize_all(nproma, jg, "physics_init", .TRUE., opt_lupdate_cpu=.FALSE.)
+      !$ser verbatim CALL serialize_all(nproma, jg, "physics_init", .TRUE.)
       CALL nwp_nh_interface(atm_phy_nwp_config(jg)%lcall_phy(:), & !in
           &                  .TRUE.,                             & !in
           &                  lredgrid_phys(jg),                  & !in
@@ -3003,7 +3036,7 @@ MODULE mo_nh_stepping
           &                  p_lnd_state(jg)%prog_wtr(n_now_rcf),& !inout
           &                  p_nh_state_lists(jg)%prog_list(n_now_rcf), & !in
           &                  lacc=lacc) !in
-      !$ser verbatim CALL serialize_all(nproma, jg, "physics_init", .FALSE., opt_lupdate_cpu=.FALSE.)
+      !$ser verbatim CALL serialize_all(nproma, jg, "physics_init", .FALSE.)
 #endif
 
     CASE (iaes) ! iforcing
@@ -3014,8 +3047,8 @@ MODULE mo_nh_stepping
       ! fast physics coupling only
       ! assure that physics tendencies for dynamical core are zero
       !$OMP PARALLEL
-      CALL init(p_nh_state(jg)%diag%ddt_exner_phy)
-      CALL init(p_nh_state(jg)%diag%ddt_vn_phy)
+      CALL init(p_nh_state(jg)%diag%ddt_exner_phy, lacc=lacc)
+      CALL init(p_nh_state(jg)%diag%ddt_vn_phy, lacc=lacc)
       !$OMP END PARALLEL
 #endif
     END SELECT ! iforcing
@@ -3028,9 +3061,9 @@ MODULE mo_nh_stepping
       IF (.NOT. p_patch(jgc)%ldom_active) CYCLE
 
       IF ( lredgrid_phys(jgc) ) THEN
-        CALL interpol_rrg_grf(jg, jgc, jn, nnow_rcf(jg), lacc=lacc)
+        CALL interpol_rrg_grf(jg, jgc, jn, nnow_rcf(jg), prm_diag(:), p_lnd_state(:), lacc=lacc)
         IF (atm_phy_nwp_config(jgc)%latm_above_top) THEN
-          CALL copy_rrg_ubc(jg, jgc)
+          CALL copy_rrg_ubc(jg, jgc, prm_diag(:))
         ENDIF
       ENDIF
     ENDDO
@@ -3316,9 +3349,11 @@ MODULE mo_nh_stepping
         IF (.NOT. p_patch(jgc)%ldom_active) CYCLE
 
         !$ACC WAIT
-        CALL interpol_phys_grf(ext_data, jg, jgc, jn, lacc=lacc)
+        CALL interpol_phys_grf(ext_data, prm_diag, p_lnd_state, jg, jgc, jn, lacc=lacc)
 
-        IF (lfeedback(jgc) .AND. ifeedback_type==1) CALL feedback_phys_diag(jgc, jg, lacc=lacc)
+        IF (lfeedback(jgc) .AND. ifeedback_type==1) THEN
+          CALL feedback_phys_diag(jgc, jg, prm_diag(:), lacc=lacc)
+        ENDIF
 
         CALL interpol_scal_grf (p_patch(jg), p_patch(jgc), p_grf_state(jg)%p_dom(jn), 1, &
            p_nh_state(jg)%prog(nnow_rcf(jg))%tke, p_nh_state(jgc)%prog(nnow_rcf(jgc))%tke)
@@ -3559,16 +3594,16 @@ MODULE mo_nh_stepping
     TYPE(t_nh_diag), INTENT(inout) :: p_nh_diag  !< p_nh_state(jg)%diag
 
 !$OMP PARALLEL
-    IF (p_nh_diag%ddt_vn_dyn_is_associated) CALL init(p_nh_diag%ddt_vn_dyn)
-    IF (p_nh_diag%ddt_vn_dmp_is_associated) CALL init(p_nh_diag%ddt_vn_dmp)
-    IF (p_nh_diag%ddt_vn_hdf_is_associated) CALL init(p_nh_diag%ddt_vn_hdf)
-    IF (p_nh_diag%ddt_vn_adv_is_associated) CALL init(p_nh_diag%ddt_vn_adv)
-    IF (p_nh_diag%ddt_vn_cor_is_associated) CALL init(p_nh_diag%ddt_vn_cor)
-    IF (p_nh_diag%ddt_vn_pgr_is_associated) CALL init(p_nh_diag%ddt_vn_pgr)
-    IF (p_nh_diag%ddt_vn_phd_is_associated) CALL init(p_nh_diag%ddt_vn_phd)
-    IF (p_nh_diag%ddt_vn_iau_is_associated) CALL init(p_nh_diag%ddt_vn_iau)
-    IF (p_nh_diag%ddt_vn_ray_is_associated) CALL init(p_nh_diag%ddt_vn_ray)
-    IF (p_nh_diag%ddt_vn_grf_is_associated) CALL init(p_nh_diag%ddt_vn_grf)
+    IF (p_nh_diag%ddt_vn_dyn_is_associated) CALL init(p_nh_diag%ddt_vn_dyn, lacc=.TRUE.)
+    IF (p_nh_diag%ddt_vn_dmp_is_associated) CALL init(p_nh_diag%ddt_vn_dmp, lacc=.TRUE.)
+    IF (p_nh_diag%ddt_vn_hdf_is_associated) CALL init(p_nh_diag%ddt_vn_hdf, lacc=.TRUE.)
+    IF (p_nh_diag%ddt_vn_adv_is_associated) CALL init(p_nh_diag%ddt_vn_adv, lacc=.TRUE.)
+    IF (p_nh_diag%ddt_vn_cor_is_associated) CALL init(p_nh_diag%ddt_vn_cor, lacc=.TRUE.)
+    IF (p_nh_diag%ddt_vn_pgr_is_associated) CALL init(p_nh_diag%ddt_vn_pgr, lacc=.TRUE.)
+    IF (p_nh_diag%ddt_vn_phd_is_associated) CALL init(p_nh_diag%ddt_vn_phd, lacc=.TRUE.)
+    IF (p_nh_diag%ddt_vn_iau_is_associated) CALL init(p_nh_diag%ddt_vn_iau, lacc=.TRUE.)
+    IF (p_nh_diag%ddt_vn_ray_is_associated) CALL init(p_nh_diag%ddt_vn_ray, lacc=.TRUE.)
+    IF (p_nh_diag%ddt_vn_grf_is_associated) CALL init(p_nh_diag%ddt_vn_grf, lacc=.TRUE.)
 !$OMP END PARALLEL
 
   END SUBROUTINE init_ddt_vn_diagnostics

@@ -1019,6 +1019,7 @@ CONTAINS
 
     IF (iorder_sendrecv == 1 .OR. iorder_sendrecv == 3) THEN
       ! Set up irecv's for receive buffers
+      IF (lzacc) CALL acc_wait_comms(get_comm_acc_queue())
       DO np = 1, p_pat%np_recv ! loop over PEs from where to receive the data
 
         pid    = p_pat%pelist_recv(np) ! ID of receiver PE
@@ -1069,8 +1070,7 @@ CONTAINS
 
     ! Send our data
     !$ACC UPDATE HOST(send_buf) ASYNC(get_comm_acc_queue()) IF(use_staging)
-    !$ACC WAIT(get_comm_acc_queue())
-    CALL acc_wait_comms(get_comm_acc_queue())
+    IF (lzacc) CALL acc_wait_comms(get_comm_acc_queue())
     IF (iorder_sendrecv == 1) THEN
       DO np = 1, p_pat%np_send ! loop over PEs where to send the data
 
@@ -1274,6 +1274,7 @@ CONTAINS
 
     IF (iorder_sendrecv == 1 .OR. iorder_sendrecv == 3) THEN
       ! Set up irecv's for receive buffers
+      IF (lzacc) CALL acc_wait_comms(get_comm_acc_queue())
       DO np = 1, p_pat%np_recv ! loop over PEs from where to receive the data
 
         pid    = p_pat%pelist_recv(np) ! ID of receiver PE
@@ -1324,8 +1325,7 @@ CONTAINS
 
     ! Send our data
     !$ACC UPDATE HOST(send_buf) ASYNC(get_comm_acc_queue()) IF(use_staging)
-    !$ACC WAIT(get_comm_acc_queue())
-    CALL acc_wait_comms(get_comm_acc_queue())
+    IF (lzacc) CALL acc_wait_comms(get_comm_acc_queue())
     IF (iorder_sendrecv == 1) THEN
       DO np = 1, p_pat%np_send ! loop over PEs where to send the data
 
@@ -2114,8 +2114,7 @@ CONTAINS
 
     ! Send our data
     !$ACC UPDATE HOST(send_buf) ASYNC(get_comm_acc_queue()) IF(use_staging)
-    !$ACC WAIT(get_comm_acc_queue())
-    CALL acc_wait_comms(get_comm_acc_queue())
+    IF (lzacc) CALL acc_wait_comms(get_comm_acc_queue())
     IF (iorder_sendrecv == 1) THEN
       DO np = 1, p_pat%np_send ! loop over PEs where to send the data
 
@@ -2293,7 +2292,7 @@ CONTAINS
       ENDDO
     ENDDO
     !$ACC END PARALLEL
-    !$ACC WAIT(get_comm_acc_queue())
+    IF (lzacc) CALL acc_wait_comms(get_comm_acc_queue())
 #endif
 
     IF (lzacc .and. .not. use_staging) CALL comm_group_start()
@@ -2393,8 +2392,7 @@ CONTAINS
 
     ! Send our data
     !$ACC UPDATE HOST(send_buf) ASYNC(get_comm_acc_queue()) IF(use_staging)
-    !$ACC WAIT(get_comm_acc_queue())
-    CALL acc_wait_comms(get_comm_acc_queue())
+    IF (lzacc) CALL acc_wait_comms(get_comm_acc_queue())
     IF (iorder_sendrecv == 1) THEN
       DO np = 1, p_pat%np_send ! loop over PEs where to send the data
 
@@ -2630,7 +2628,7 @@ CONTAINS
       ENDDO
     ENDDO
     !$ACC END PARALLEL
-    !$ACC WAIT(get_comm_acc_queue())
+    IF (lzacc) CALL acc_wait_comms(get_comm_acc_queue())
 #endif
 
     IF (lzacc .and. .not. use_staging) CALL comm_group_start()
@@ -2780,8 +2778,7 @@ CONTAINS
 
     ! Send our data
     !$ACC UPDATE HOST(send_buf_sp, send_buf_dp) ASYNC(get_comm_acc_queue()) IF(use_staging)
-    !$ACC WAIT(get_comm_acc_queue())
-    CALL acc_wait_comms(get_comm_acc_queue())
+    IF (lzacc) CALL acc_wait_comms(get_comm_acc_queue())
     IF (iorder_sendrecv == 1) THEN
       DO np = 1, p_pat%np_send ! loop over PEs where to send the data
 
@@ -2996,11 +2993,12 @@ CONTAINS
     !$ACC   IF(lzacc)
 
 #ifdef _OPENACC
-    CALL init(recv_buf, opt_acc_async=.TRUE.)
+    CALL init(recv_buf, lacc=lzacc, opt_acc_async=.TRUE.)
 #endif
 
     IF ((iorder_sendrecv == 1 .OR. iorder_sendrecv == 3)) THEN
       ! Set up irecv's for receive buffers
+      IF(lzacc) CALL acc_wait_comms(get_comm_acc_queue())
       DO np = 1, p_pat%np_recv ! loop over PEs from where to receive the data
 
         pid    = p_pat%pelist_recv(np) ! ID of receiver PE

@@ -506,7 +506,7 @@ CONTAINS
     !   - ocean fields have undefined values on land, which are not sent to the atmosphere,
     !     therefore get_buffer is set to zero to avoid unintended usage of ocean values over land
 !ICON_OMP_PARALLEL
-    CALL init(get_buffer(:,:))
+    CALL init(get_buffer(:,:), lacc=.TRUE.)
 !ICON_OMP_END_PARALLEL
 
     ! ------------------------------

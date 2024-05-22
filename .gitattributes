@@ -1052,7 +1052,6 @@ src/shared/mo_derived_variable_handling.f90 -text
 src/shared/mo_dictionary.f90 -text
 src/shared/mo_event_manager.f90 -text
 src/shared/mo_fast_math_lib.f90 svneol=native#text/plain
-src/shared/mo_fortran_tools.f90 -text
 src/shared/mo_gnat_gridsearch.f90 -text
 src/shared/mo_grid_subset.f90 -text
 src/shared/mo_impl_constants.f90 -text
@@ -1065,8 +1064,6 @@ src/shared/mo_math_constants.f90 -text
 src/shared/mo_math_types.f90 -text
 src/shared/mo_math_utilities.f90 -text
 src/shared/mo_math_utility_solvers.f90 -text
-src/shared/mo_namelist.f90 -text
-src/shared/mo_octree.f90 -text
 src/shared/mo_orbit.f90 -text
 src/shared/mo_physical_constants.f90 -text
 src/shared/mo_random_util.f90 -text

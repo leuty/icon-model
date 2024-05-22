@@ -48,7 +48,7 @@
 	url = ../../icon-comin/comin.git
 [submodule "externals/hd"]
 	path = externals/hd
-	url = ../../dwd-sw/hd-couple.git
+	url = https://gitlab.dkrz.de/hd-model/hd-couple.git
 [submodule "externals/fortran-support"]
 	path = externals/fortran-support
 	url = ../../icon-libraries/libfortran-support.git

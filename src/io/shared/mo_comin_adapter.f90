@@ -17,6 +17,7 @@ MODULE mo_comin_adapter
     &                                    max_ntracer,  ifluxl_sm, islopel_vsm
   USE mo_cdi_constants,           ONLY : GRID_UNSTRUCTURED_CELL
   USE mo_zaxis_type,              ONLY : ZA_REFERENCE, ZA_SURFACE, zaxisTypeList, t_zaxisType
+  USE mo_master_control,          ONLY: get_my_process_name
   USE mo_grid_config,             ONLY : n_dom
   USE mo_exception,               ONLY : message, message_text, finish
   USE mo_model_domain,            ONLY : t_patch, p_patch
@@ -378,8 +379,9 @@ CONTAINS
     DOM_LOOP : DO jg=1,n_dom
 
       WRITE(dom_str, "(i2.2)") jg
-      CALL vlr_add(p_comin_varlist(jg), 'comin__'//dom_str, &
-        & patch_id=jg, vlevel_type=level_type_ml, lrestart=.TRUE.)
+      CALL vlr_add(p_comin_varlist(jg), 'comin__'//dom_str,        &
+        & patch_id=jg, vlevel_type=level_type_ml, lrestart=.TRUE., &
+        & model_type=get_my_process_name())
 
       shape2d_c = [ nproma,                   p_patch(jg)%nblks_c ]
       shape3d_c = [ nproma, p_patch(jg)%nlev, p_patch(jg)%nblks_c ]

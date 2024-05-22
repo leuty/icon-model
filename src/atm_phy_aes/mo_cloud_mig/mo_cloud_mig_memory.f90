@@ -14,9 +14,10 @@
 
 MODULE mo_cloud_mig_memory
 
+  USE mo_kind                    ,ONLY: wp
   USE mo_exception               ,ONLY: message, finish
   USE mtime                      ,ONLY: timedelta, OPERATOR(>)
-
+  USE mo_master_control,          ONLY: get_my_process_name
   USE mo_model_domain            ,ONLY: t_patch
   USE mo_parallel_config         ,ONLY: nproma
   USE mo_run_config              ,ONLY: iqv ,iqc ,iqi , iqr ,iqs ,iqg
@@ -209,7 +210,8 @@ CONTAINS
          &        patch_id  = jg             ,&
          &        loutput   = .TRUE.         ,&
          &        lrestart  = .FALSE.        ,&
-         &        linitial  = .FALSE.        )
+         &        linitial  = .FALSE.        ,&
+         &        model_type= get_my_process_name())
 
     ! Input parameters
     ! ----------------
@@ -745,6 +747,7 @@ CONTAINS
             &        hgrid       = grid_unstructured_cell                                   ,&
             &        vgrid       = za_surface                                               ,&
             &        ldims       = shape2d                                                  ,&
+            &        initval     = 0.0_wp                                                   ,&
             &        cf          = t_cf_var ('internal_energy_flux',                         &
             &                                'W  m-2',                                       &
             &                                'rainfall energy flux '//                       &
@@ -766,6 +769,7 @@ CONTAINS
             &        hgrid       = grid_unstructured_cell                                   ,&
             &        vgrid       = za_surface                                               ,&
             &        ldims       = shape2d                                                  ,&
+            &        initval     = 0.0_wp                                                   ,&
             &        cf          = t_cf_var ('rainfall_flux',                                &
             &                                'kg m-2 s-1',                                   &
             &                                'rainfall flux '//                              &
@@ -787,6 +791,7 @@ CONTAINS
             &        hgrid       = grid_unstructured_cell                                   ,&
             &        vgrid       = za_surface                                               ,&
             &        ldims       = shape2d                                                  ,&
+            &        initval     = 0.0_wp                                                   ,&
             &        cf          = t_cf_var ('icefall_flux'                                 ,&
             &                                'kg m-2 s-1',                                   &
             &                                'icefall flux '//                               &
@@ -808,6 +813,7 @@ CONTAINS
             &        hgrid       = grid_unstructured_cell                                   ,&
             &        vgrid       = za_surface                                               ,&
             &        ldims       = shape2d                                                  ,&
+            &        initval     = 0.0_wp                                                   ,&
             &        cf          = t_cf_var ('snowfall_flux'                                ,&
             &                                'kg m-2 s-1',                                   &
             &                                'snowfall flux '//                              &
@@ -829,6 +835,7 @@ CONTAINS
             &        hgrid       = grid_unstructured_cell                                   ,&
             &        vgrid       = za_surface                                               ,&
             &        ldims       = shape2d                                                  ,&
+            &        initval     = 0.0_wp                                                   ,&
             &        cf          = t_cf_var ('graupel_fall_flux'                            ,&
             &                                'kg m-2 s-1',                                   &
             &                                'graupel fall flux '//                          &

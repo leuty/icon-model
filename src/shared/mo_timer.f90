@@ -151,6 +151,7 @@ MODULE mo_timer
   PUBLIC :: timer_radheat
   PUBLIC :: timer_omp_radiation
   PUBLIC :: timer_lonlat_setup
+  PUBLIC :: timer_action
   PUBLIC :: timer_write_output
   PUBLIC :: timer_wait_for_async_io
   PUBLIC :: timer_model_init, timer_init_latbc
@@ -401,6 +402,9 @@ MODULE mo_timer
 
   ! Timer ID for optional lon-lat interpolation
   INTEGER :: timer_lonlat_setup
+
+  ! Timer ID for actions
+  INTEGER :: timer_action
 
   ! Timer IDs for boundary interpolation, feedback & nudging
   INTEGER :: timer_nesting
@@ -796,8 +800,9 @@ CONTAINS
     timer_normal_veloc  = new_timer("normal_veloc")
     timer_dbg_prnt      = new_timer("dbg_prnt")
 
-    timer_cube_root = new_timer("cube_root")
-    timer_lonlat_setup = new_timer("lonlat_setup")
+    timer_cube_root     = new_timer("cube_root")
+    timer_lonlat_setup  = new_timer("lonlat_setup")
+    timer_action        = new_timer("action")
 
     ! timers for boundary interpolation, feedback & nudging
     timer_nesting    = new_timer("nesting")

@@ -21,10 +21,10 @@ MODULE mo_atmo_coupling_frame
   USE mo_kind                ,ONLY: wp
   USE mo_model_domain        ,ONLY: t_patch
   USE mo_atm_phy_nwp_config,  ONLY: atm_phy_nwp_config
-
   USE mo_run_config          ,ONLY: iforcing, ltimer
   USE mo_timer,               ONLY: timer_start, timer_stop, timer_coupling_init
   USE mo_impl_constants      ,ONLY: MAX_CHAR_LENGTH, inwp, LSS_JSBACH
+  USE mo_ext_data_types      ,ONLY: t_external_data
 
 #if !defined(__NO_JSBACH__) && !defined(__NO_JSBACH_HD__) && defined(YAC_coupling)
   USE mo_interface_hd_ocean  ,ONLY: jsb_fdef_hd_fields
@@ -84,9 +84,10 @@ CONTAINS
   !>
   !! SUBROUTINE construct_atmo_coupling -- the initialisation for the coupling
   !! of the atmosphere
-  SUBROUTINE construct_atmo_coupling (p_patch)
+  SUBROUTINE construct_atmo_coupling (p_patch, ext_data)
 
     TYPE(t_patch), TARGET, INTENT(IN) :: p_patch(:)
+    TYPE(t_external_data), INTENT(IN) :: ext_data(:)
 
     TYPE(t_patch), POINTER :: patch_horz
 
@@ -166,7 +167,7 @@ CONTAINS
       CALL message(str_module, 'Constructing the coupling frame atmosphere-ocean.')
 
       CALL construct_atmo_ocean_coupling( &
-        p_patch, comp_id, grid_id, cell_point_id, timestepstring)
+        p_patch, ext_data, comp_id, grid_id, cell_point_id, timestepstring)
 
 #if !defined(__NO_JSBACH__) && !defined(__NO_JSBACH_HD__) && defined(YAC_coupling)
 
@@ -192,7 +193,7 @@ CONTAINS
 
 
       CALL construct_nwp_hydrodisc_coupling( &
-        p_patch, comp_id, grid_id, cell_point_id, timestepstring)
+        p_patch, ext_data, comp_id, grid_id, cell_point_id, timestepstring)
 
     ENDIF ! Construct coupling frame for atmosphere-hydrological discharge
 

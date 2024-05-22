@@ -51,7 +51,7 @@ MODULE mo_nwp_ocean_coupling
   USE mo_nwp_phy_types       ,ONLY: t_nwp_phy_diag
   USE mo_nwp_lnd_types       ,ONLY: t_wtr_prog, t_lnd_diag
   USE mo_parallel_config     ,ONLY: nproma
-  USE mo_physical_constants  ,ONLY: vmr_to_mmr_co2
+  USE mo_physical_constants  ,ONLY: vmr_to_mmr_co2, tmelt
   USE mo_util_dbg_prnt       ,ONLY: dbg_print
 
   USE mo_atmo_ocean_coupling ,ONLY: &
@@ -100,6 +100,8 @@ MODULE mo_nwp_ocean_coupling
 
     !> Conductive heat flux at water-ice interface [W/m2].
     REAL(wp), CONTIGUOUS, POINTER :: chfl_i(:,:) => NULL()
+    !> Melt potential at atmosphere-ice interface [W/m2].
+    REAL(wp), CONTIGUOUS, POINTER :: meltpot_i(:,:) => NULL()
 
     !> 10m wind speed [m/s].
     REAL(wp), CONTIGUOUS, POINTER :: sp_10m(:,:) => NULL()
@@ -257,6 +259,7 @@ CONTAINS
     tx%lhfl_s_i => prm_diag%lhfl_s_t(:,:,isub_seaice)
 
     tx%chfl_i => lnd_diag%condhf_ice(:,:)
+    tx%meltpot_i => lnd_diag%meltpot_ice(:,:)
 
     tx%sp_10m => prm_diag%sp_10m(:,:)
     tx%pres_sfc => pt_diag%pres_sfc(:,:)
@@ -329,7 +332,7 @@ CONTAINS
     ! and as we loop over the full array.
 
     !$OMP PARALLEL
-    CALL init(buf(:,:))
+    CALL init(buf(:,:), lacc=.FALSE.)
     !$OMP END PARALLEL
 
     jg = p_patch%id
@@ -442,21 +445,9 @@ CONTAINS
     !    - sea ice surface and bottom melt potentials Qtop, Qbot (conductive heat flux)
     !------------------------------------------------
 
-    DO jb = i_startblk, i_endblk
-      CALL get_indices_c ( &
-          & p_patch, jb, i_startblk, i_endblk, i_startidx, i_endidx, &
-          & start_prog_cells, end_prog_cells &
-        )
-
-      DO jc = i_startidx, i_endidx
-        buf(jc,jb) = tx%shfl_s_i(jc,jb) + tx%swflxsfc_i(jc,jb) &
-                 & + tx%lhfl_s_i(jc,jb) + tx%lwflxsfc_i(jc,jb)
-      ENDDO
-    ENDDO
-
     CALL cpl_put_field( &
       routine, field_id_seaice_atm, 'atmos sea ice', p_patch%n_patch_cells, &
-      field_1=buf, field_2=tx%chfl_i)
+      field_1=tx%meltpot_i, field_2=tx%chfl_i)
 
     !------------------------------------------------
     !  Send 10m wind speed
@@ -546,7 +537,7 @@ CONTAINS
     !     therefore buffer is set to zero to avoid unintended usage of ocean values over land
 
     !$OMP PARALLEL
-    CALL init(buf(:,:))
+    CALL init(buf(:,:), lacc=.FALSE.)
     !$OMP END PARALLEL
 
     !------------------------------------------------
@@ -647,7 +638,7 @@ CONTAINS
         CALL dbg_print('NWPOce: q_co2       ', tx%q_co2(:,:),    str_module, 3, in_subset=p_patch%cells%owned)
       END IF
 
-      buf(:,:) = tx%qhfl_s_w(:,:) * tx%frac_w(:,:) + tx%qhfl_s_i(:,:) * tx%frac_i(:,:) 
+      buf(:,:) = tx%qhfl_s_w(:,:) * tx%frac_w(:,:) + tx%qhfl_s_i(:,:) * tx%frac_i(:,:)
       CALL dbg_print('NWPOce: evaporation', buf(:,:),            str_module, 2, in_subset=p_patch%cells%owned)
 
       buf(:,:) = tx%swflxsfc_w(:,:) + tx%lwflxsfc_w(:,:) + tx%shfl_s_w(:,:) + tx%lhfl_s_w(:,:)

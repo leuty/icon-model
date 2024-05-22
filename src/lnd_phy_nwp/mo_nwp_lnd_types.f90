@@ -123,6 +123,7 @@ MODULE mo_nwp_lnd_types
                                 ! grid element, but set to 0 or 1
                                 ! index1=1,nproma, index2=1,nblks_c
     &  condhf_ice   (:,:)   , & ! conductive heat flux at sea-ice bottom        ( W/m2)
+    &  meltpot_ice  (:,:)   , & ! melt potential at sea-ice top                 ( W/m2)
     &  qv_s_t       (:,:,:) , & ! specific humidity at the surface              (kg/kg)
     &  runoff_s_t   (:,:,:) , & ! surface water runoff; sum over forecast       (kg/m2)
     &  runoff_g_t   (:,:,:) , & ! soil water runoff; sum over forecast          (kg/m2)

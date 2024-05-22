@@ -47,7 +47,7 @@ MODULE mo_initicon
   USE mo_impl_constants,      ONLY: SUCCESS, MODE_DWDANA, max_dom,   &
     &                               MODE_IAU, MODE_IAU_OLD, MODE_IFSANA,              &
     &                               MODE_ICONVREMAP, MODE_COMBINED, MODE_COSMO,       &
-    &                               min_rlcell, INWP, min_rledge_int, grf_bdywidth_c, &
+    &                               min_rlcell, INWP, iaes, min_rledge_int, grf_bdywidth_c, &
     &                               min_rlcell_int
   USE mo_physical_constants,  ONLY: rd, cpd, cvd, p0ref, vtmpc1, rd_o_cpd, tmelt, tf_salt
   USE mo_exception,           ONLY: message, finish
@@ -306,7 +306,7 @@ MODULE mo_initicon
             CALL fetch_dwdfg_sfc(requestList, p_patch, prm_diag, prm_nwp_stochconv, p_nh_state, p_lnd_state, inputInstructions)
         CASE(MODE_ICONVREMAP)
             CALL fetch_dwdfg_atm_ii(requestList, p_patch, initicon, inputInstructions)
-            CALL fetch_dwdfg_sfc(requestList, p_patch, prm_diag, prm_nwp_stochconv, p_nh_state, p_lnd_state, inputInstructions)
+            if (iforcing /= iaes) CALL fetch_dwdfg_sfc(requestList, p_patch, prm_diag, prm_nwp_stochconv, p_nh_state, p_lnd_state, inputInstructions)
         CASE(MODE_COMBINED, MODE_COSMO)
             CALL fetch_dwdfg_sfc(requestList, p_patch, prm_diag, prm_nwp_stochconv, p_nh_state, p_lnd_state, inputInstructions)
     END SELECT
@@ -331,7 +331,7 @@ MODULE mo_initicon
 
     SELECT CASE(init_mode)
         CASE(MODE_ICONVREMAP)
-            CALL process_input_dwdfg_sfc (p_patch, inputInstructions, p_lnd_state, ext_data)
+            if (iforcing /= iaes) CALL process_input_dwdfg_sfc (p_patch, inputInstructions, p_lnd_state, ext_data)
         CASE(MODE_DWDANA, MODE_IAU_OLD, MODE_IAU, MODE_COMBINED, MODE_COSMO)
             IF (lvert_remap_fg) THEN ! apply vertical remapping of FG input (requires that the number of model levels
                                      ! does not change; otherwise, init_mode = 7 must be used based on a full analysis)
@@ -365,14 +365,7 @@ MODULE mo_initicon
     TYPE(t_lnd_state), INTENT(INOUT), OPTIONAL :: p_lnd_state(:)
 
     CHARACTER(LEN = *), PARAMETER :: routine = modname//":read_dwdana"
-#if !defined __GFORTRAN__ || __GNUC__ >= 6
-
     CHARACTER(LEN = :), ALLOCATABLE :: incrementsList(:)
-#else
-    CHARACTER(LEN = 9) :: incrementsList_IAU(21)
-    CHARACTER(LEN = 4) :: incrementsList_IAU_OLD(6)
-    CHARACTER(LEN = 1) :: incrementsList_DEFAULT(1)
-#endif
     CLASS(t_InputRequestList), POINTER :: requestList
     CHARACTER(LEN=filename_max) :: anaFilename_str(max_dom)
     INTEGER :: jg, jg1
@@ -441,10 +434,6 @@ MODULE mo_initicon
     IF(my_process_is_stdio()) THEN
         CALL requestList%printInventory()
         IF(lconsistency_checks) THEN
-! Workaround for GNU compiler (<6.0), which still does not fully support deferred length character arrays
-! Make use of deferred length character arrays if the GNU compiler is not used, or if 
-! its version number is at least equal to 6.0.
-#if !defined __GFORTRAN__ || __GNUC__ >= 6
             SELECT CASE(init_mode)
                 CASE(MODE_IAU)
                     incrementsList = [CHARACTER(LEN=9) :: 'u', 'v', 'pres', 'temp', 'qv', 'qc', 'qi', 'qr', 'qs', 'qg', &
@@ -457,28 +446,6 @@ MODULE mo_initicon
             END SELECT
             CALL requestList%checkRuntypeAndUuids(incrementsList, gridUuids(p_patch), lIsFg = .FALSE., &
               lHardCheckUuids = .NOT.check_uuid_gracefully)
-#else
-            SELECT CASE(init_mode)
-                CASE(MODE_IAU)
-                    incrementsList_IAU = (/'u        ', 'v        ', 'pres     ', 'temp     ', 'qv       ', &
-                      &                    'qc       ', 'qi       ', 'qr       ', 'qs       ', 'qg       ', &
-                      &                    'qh       ', 'qnc      ', 'qni      ', 'qnr      ', 'qns      ', &
-                      &                    'qng      ', 'qnh      ', 'w_so     ', 'h_snow   ', 'freshsnow', &
-                      &                    't_2m' /)
-                    CALL requestList%checkRuntypeAndUuids(incrementsList_IAU, gridUuids(p_patch), lIsFg = .FALSE., &
-                      lHardCheckUuids = .NOT.check_uuid_gracefully)
-            write(0,*) "incrementsList_IAU: ", incrementsList_IAU
-                CASE(MODE_IAU_OLD)
-                    incrementsList_IAU_OLD = (/'u   ', 'v   ', 'pres', 'temp', 'qv  ', 'w_so'/)
-                    CALL requestList%checkRuntypeAndUuids(incrementsList_IAU_OLD, gridUuids(p_patch), lIsFg = .FALSE., &
-                      lHardCheckUuids = .NOT.check_uuid_gracefully)
-            write(0,*) "incrementsList_IAU_OLD: ", incrementsList_IAU_OLD
-                CASE DEFAULT
-                    incrementsList_DEFAULT = (/' '/)
-                    CALL requestList%checkRuntypeAndUuids(incrementsList_DEFAULT, gridUuids(p_patch), lIsFg = .FALSE., &
-                      lHardCheckUuids = .NOT.check_uuid_gracefully)
-            END SELECT
-#endif
         END IF
     END IF
 
@@ -554,7 +521,7 @@ MODULE mo_initicon
             END IF
             ! get SST from first soil level t_so or t_seasfc
             ! perform consistency checks
-            CALL create_dwdana_sfc(p_patch, p_lnd_state, ext_data, inputInstructions)
+            if (iforcing /= iaes) CALL create_dwdana_sfc(p_patch, p_lnd_state, ext_data, inputInstructions)
             IF (ANY((/MODE_IAU_OLD, MODE_IAU/) == init_mode) .AND. ntiles_total > 1) THEN
                 ! Call neighbor-filling routine for a second time in
                 ! order to ensure that fr_seaice is filled with
@@ -567,7 +534,7 @@ MODULE mo_initicon
                 ! Perform vertical interpolation from intermediate
                 ! IFS2ICON grid to ICON grid and convert variables to
                 ! the NH set of prognostic variables
-                CALL vert_interp_sfc(p_patch, initicon)
+                CALL vert_interp_sfc(p_patch, ext_data, initicon)
                 ! Finally copy the results to the prognostic model variables
                 CALL copy_initicon2prog_sfc(p_patch, initicon, p_lnd_state, ext_data)
             END IF
@@ -1172,7 +1139,7 @@ MODULE mo_initicon
       !
 !$OMP PARALLEL PRIVATE(rl_start,rl_end,i_startblk,i_endblk)
 
-      CALL init(zvn_incr)
+      CALL init(zvn_incr, lacc=.FALSE.)
 
       ! include boundary interpolation zone of nested domains and halo points
       rl_start = 1

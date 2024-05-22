@@ -32,17 +32,16 @@ MODULE mo_nwp_reff_interface
                                        iqni, iqg, iqh, iqnr, iqns,     &
                                        iqng, iqnh ,iqnc
 
-  USE mo_nonhydro_types,       ONLY: t_nh_prog,t_nh_diag
+  USE mo_nonhydro_types,       ONLY: t_nh_prog,t_nh_diag,t_nh_metrics
   USE mo_nwp_phy_types,        ONLY: t_nwp_phy_diag
   USE mo_parallel_config,      ONLY: nproma
   USE mo_model_domain,         ONLY: t_patch
   USE mo_ext_data_types,       ONLY: t_external_data
-  USE mo_impl_constants,       ONLY: min_rlcell_int
+  USE mo_impl_constants,       ONLY: min_rlcell_int, idu
   USE mo_impl_constants_grf,   ONLY: grf_bdywidth_c
   USE mo_loopindices,          ONLY: get_indices_c
   USE mo_nonhydrostatic_config,ONLY: kstart_moist
-  USE mo_atm_phy_nwp_config,   ONLY: atm_phy_nwp_config, iprog_aero
-
+  USE mo_atm_phy_nwp_config,   ONLY: atm_phy_nwp_config, iprog_aero, icpl_aero_ice
   USE mo_nwp_tuning_config,    ONLY: tune_zceff_min, tune_v0snow, tune_zvz0i, tune_icesedi_exp
 
   USE mo_reff_types,           ONLY: t_reff_calc_dom,  nreff_max_calc
@@ -432,13 +431,14 @@ MODULE mo_nwp_reff_interface
 
 ! Main routine to calculate effective radius
 ! Calculate effective radius according to different parameterizations
-  SUBROUTINE set_reff( prm_diag, p_patch, p_prog, p_nh_diag, ext_data, return_reff )
+  SUBROUTINE set_reff( prm_diag, p_patch, p_prog, p_nh_diag, ext_data, p_metrics, return_reff )
 
     TYPE(t_nwp_phy_diag)   , INTENT(inout):: prm_diag         !Diagnostic statistics from physics (inlcuding reff)
     TYPE(t_patch)          , INTENT(in)   :: p_patch          !<grid/patch info.
     TYPE(t_nh_prog)        , INTENT(in)   :: p_prog           !<the dyn prog vars
     TYPE(t_nh_diag)        , INTENT(in)   :: p_nh_diag        !<the dyn prog vars
     TYPE(t_external_data)  , INTENT(in)   :: ext_data         ! External data (like land fraction for RRTM)
+    TYPE(t_nh_metrics)     , INTENT(in), OPTIONAL    :: p_metrics
     LOGICAL, OPTIONAL      , INTENT(out)  :: return_reff      ! Return call from function .true. if right
 
     ! End of subroutine variables
@@ -454,9 +454,13 @@ MODULE mo_nwp_reff_interface
     INTEGER               :: is, ie                       !< slices
     INTEGER               :: i_rlstart, i_rlend           ! blocks limits 
     INTEGER               :: nlev                         ! Number of grid levels in vertical
+    INTEGER               :: jc, jk                       ! loop indices
     LOGICAL               :: return_fct(nreff_max_calc)   ! Return values
     INTEGER               :: nreff_calc                   ! Number of effective radius calculations 
 
+    ! Pointers for IN parameterization
+    REAL(wp), POINTER, DIMENSION(:,:) :: ptr_cams5=>NULL(), ptr_cams6=>NULL()
+    REAL(wp), POINTER, DIMENSION(:)   :: ptr_aer_dust=>NULL()
 
     ! Initiate proper return
     IF ( PRESENT (return_reff) ) return_reff = .true.
@@ -494,7 +498,7 @@ MODULE mo_nwp_reff_interface
     !$ACC   PRESENT(reff_calc_dom(jg)%reff_calc_arr(8)%p_reff)
 
 !$OMP PARALLEL
-!$OMP DO PRIVATE(jb,is,ie,ncn,indices,n_ind,ireff) FIRSTPRIVATE(return_fct) ICON_OMP_DEFAULT_SCHEDULE
+!$OMP DO PRIVATE(jb,is,ie,ncn,indices,n_ind,ireff,ptr_cams5,ptr_cams6, ptr_aer_dust) FIRSTPRIVATE(return_fct) ICON_OMP_DEFAULT_SCHEDULE
     DO jb = i_startblk, i_endblk     
 
       CALL get_indices_c(p_patch, jb, i_startblk, i_endblk, &
@@ -522,10 +526,21 @@ MODULE mo_nwp_reff_interface
           IF ( PRESENT (return_reff) ) return_reff = .false.
         END IF
 
-        CALL calculate_ncn (    ncn, reff_calc_dom(jg)%reff_calc_arr(ireff), indices,       &
-             &                  n_ind, k_start=kstart_moist(jg), k_end = nlev, jb=jb,       &
-             &                  rho=p_prog%rho(:,:,jb), t=p_nh_diag%temp(:,:,jb),           &
-             &                  return_fct=return_fct(ireff) )
+        IF ( icpl_aero_ice == 1) THEN
+          ptr_cams5=>p_nh_diag%camsaermr(:,:,jb,5)
+          ptr_cams6=>p_nh_diag%camsaermr(:,:,jb,6)
+        ELSE IF (icpl_aero_ice == 2) THEN
+          ptr_aer_dust=>prm_diag%aerosol(:,idu,jb)
+        ENDIF
+
+        CALL calculate_ncn (    ncn, reff_calc_dom(jg)%reff_calc_arr(ireff) ,indices,       &
+             &                  n_ind, kstart_moist(jg), nlev, jb,                          &
+             &                  p_prog%rho(:,:,jb),  p_nh_diag%temp(:,:,jb),                &
+             &                  icpl_aero_ice,                                              &
+             &                  p_metrics%z_ifc(:,:,jb),                                    &
+             &                  ptr_cams5, ptr_cams6,                                       &
+             &                  ptr_aer_dust,                                               &
+             &                  return_fct=return_fct(ireff))
 
         IF ( .NOT. return_fct(ireff) )  THEN
           WRITE(*,*) "WARNING: Something went wrong with calculate_ncn", ireff,             &

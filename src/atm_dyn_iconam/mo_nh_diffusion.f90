@@ -40,7 +40,7 @@ MODULE mo_nh_diffusion
   USE mo_diffusion_config,    ONLY: diffusion_config
   USE mo_turbdiff_config,     ONLY: turbdiff_config
   USE mo_parallel_config,     ONLY: nproma, cpu_min_nproma
-  USE mo_run_config,          ONLY: ltimer, iforcing, lvert_nest
+  USE mo_run_config,          ONLY: ltimer, iforcing, lvert_nest, iqv, iqc
   USE mo_loopindices,         ONLY: get_indices_e, get_indices_c
   USE mo_impl_constants    ,  ONLY: min_rledge_int, min_rlcell_int, min_rlvert_int, inwp, iaes
   USE mo_impl_constants_grf,  ONLY: grf_bdywidth_e, grf_bdywidth_c
@@ -49,7 +49,7 @@ MODULE mo_nh_diffusion
   USE mo_vertical_coord_table,ONLY: vct_a
   USE mo_gridref_config,      ONLY: denom_diffu_v
   USE mo_parallel_config,     ONLY: p_test_run
-  USE mo_sync,                ONLY: SYNC_E, SYNC_C, SYNC_V, sync_patch_array, &
+  USE mo_sync,                ONLY: SYNC_E, SYNC_C, SYNC_C1, SYNC_V, sync_patch_array, &
                                     sync_patch_array_mult, sync_patch_array_mult_mp
   USE mo_physical_constants,  ONLY: cvd_o_rd, grav
   USE mo_timer,               ONLY: timer_nh_hdiffusion, timer_start, timer_stop
@@ -62,7 +62,7 @@ MODULE mo_nh_diffusion
   PRIVATE
 
 
-  PUBLIC :: diffusion
+  PUBLIC :: diffusion, moisture_diffusion
 
   ! On the vectorizing DWD-NEC the diagnostics for the tendencies of the normal wind
   ! from terms xyz, ddt_vn_xyz, is disabled by default due to the fear that the
@@ -109,7 +109,7 @@ MODULE mo_nh_diffusion
     REAL(wp):: fac_bdydiff_v
 
     ! For Smagorinsky diffusion - vp means variable precision depending on the __MIXED_PRECISION cpp flag
-    REAL(vp), DIMENSION(nproma,p_patch%nlev,p_patch%nblks_e) :: kh_smag_e
+    REAL(vp), DIMENSION(nproma,p_patch%nlev,p_patch%nblks_e), TARGET :: zkh_smag_e
     REAL(vp), DIMENSION(nproma,p_patch%nlev,p_patch%nblks_e) :: kh_smag_ec
     REAL(vp), DIMENSION(nproma,p_patch%nlev,p_patch%nblks_v) :: u_vert
     REAL(vp), DIMENSION(nproma,p_patch%nlev,p_patch%nblks_v) :: v_vert
@@ -139,6 +139,7 @@ MODULE mo_nh_diffusion
       &                              iecidx(:,:,:), iecblk(:,:,:)
     INTEGER,  POINTER, CONTIGUOUS :: icell(:,:), ilev(:,:), iblk(:,:)
     REAL(wp), POINTER, CONTIGUOUS :: vcoef(:,:), geofac_n2s(:,:)
+    REAL(vp), POINTER, CONTIGUOUS :: kh_smag_e(:,:,:)
 
     LOGICAL :: ltemp_diffu, lfeedback_jg
     INTEGER :: diffu_type, discr_vn, discr_t
@@ -185,6 +186,12 @@ MODULE mo_nh_diffusion
     ! threshold temperature deviation from neighboring grid points
     ! that activates extra diffusion against runaway cooling
     thresh_tdiff = - 5._wp
+
+    IF (ASSOCIATED(p_nh_diag%kh_smag_e)) THEN
+      kh_smag_e => p_nh_diag%kh_smag_e
+    ELSE
+      kh_smag_e => zkh_smag_e
+    ENDIF
 
     ividx => p_patch%edges%vertex_idx
     ivblk => p_patch%edges%vertex_blk
@@ -298,12 +305,12 @@ MODULE mo_nh_diffusion
       ltemp_diffu = .FALSE.
     ENDIF
 
-    !$ACC DATA CREATE(div, kh_c, kh_smag_e, kh_smag_ec, u_vert, v_vert, u_cell, v_cell, z_w_v, z_temp) &
+    !$ACC DATA CREATE(div, kh_c, zkh_smag_e, kh_smag_ec, u_vert, v_vert, u_cell, v_cell, z_w_v, z_temp) &
     !$ACC   CREATE(z_nabla4_e, z_nabla4_e2, z_nabla2_e, z_nabla2_c, enh_diffu_3d, icount) &
     !$ACC   CREATE(z_vn_ie, z_vt_ie) &
     !$ACC   COPYIN(nrdmax, diff_multfac_vn, diff_multfac_n2w, diff_multfac_smag, smag_limit, smag_blending) &
     !$ACC   PRESENT(p_patch, p_int, p_nh_prog, p_nh_diag, p_nh_metrics) &
-    !$ACC   PRESENT(ividx, ivblk, iecidx, iecblk, icidx, icblk, ieidx, ieblk) &
+    !$ACC   PRESENT(ividx, ivblk, iecidx, iecblk, icidx, icblk, ieidx, ieblk, kh_smag_e) &
     !$ACC   IF(i_am_accel_node)
 
 !!! Following variables may be present in certain situations, but we don't want it to fail in the general case.
@@ -331,8 +338,8 @@ MODULE mo_nh_diffusion
 
       ! needs to be always initialized with OpenACC
       IF (p_test_run .OR. i_am_accel_node) THEN
-        CALL init(u_vert, opt_acc_async=.TRUE.)
-        CALL init(v_vert, opt_acc_async=.TRUE.)
+        CALL init(u_vert, lacc=i_am_accel_node, opt_acc_async=.TRUE.)
+        CALL init(v_vert, lacc=i_am_accel_node, opt_acc_async=.TRUE.)
       ENDIF
 
       !  RBF reconstruction of velocity at vertices
@@ -1584,5 +1591,126 @@ MODULE mo_nh_diffusion
 
   END SUBROUTINE diffusion
 
+
+
+  !! Computes the horizontal diffusion of water vapor and cloud water
+  !!
+  SUBROUTINE moisture_diffusion(p_nh_prog,p_nh_diag,p_patch,p_int)
+
+    TYPE(t_patch), TARGET, INTENT(inout) :: p_patch    !< single patch
+    TYPE(t_int_state),INTENT(in),TARGET :: p_int      !< single interpolation state
+    TYPE(t_nh_prog), INTENT(inout)    :: p_nh_prog  !< single nh prognostic state
+    TYPE(t_nh_diag), INTENT(inout)    :: p_nh_diag  !< single nh diagnostic state
+
+    ! local variables - vp means variable precision depending on the __MIXED_PRECISION cpp flag
+    REAL(vp), DIMENSION(nproma,p_patch%nlev,p_patch%nblks_e) :: z_nabla2_qv
+    REAL(vp), DIMENSION(nproma,p_patch%nlev,p_patch%nblks_e) :: z_nabla2_qc
+
+    INTEGER :: i_startblk, i_endblk, i_startidx, i_endidx
+    INTEGER :: rl_start, rl_end
+    INTEGER :: jk, jb, jc, je, nlev
+
+    INTEGER,  POINTER, CONTIGUOUS :: ieidx(:,:,:), ieblk(:,:,:), iecidx(:,:,:), iecblk(:,:,:)
+
+    IF (ltimer) CALL timer_start(timer_nh_hdiffusion)
+
+    ! number of vertical levels
+    nlev   = p_patch%nlev
+
+    iecidx => p_patch%edges%cell_idx
+    iecblk => p_patch%edges%cell_blk
+
+    ieidx => p_patch%cells%edge_idx
+    ieblk => p_patch%cells%edge_blk
+
+    CALL sync_patch_array_mult(SYNC_C1, p_patch, 2, p_nh_prog%tracer(:,:,:,iqv), p_nh_prog%tracer(:,:,:,iqc))
+
+    !$ACC DATA CREATE(z_nabla2_qv, z_nabla2_qc) &
+    !$ACC   PRESENT(p_patch, p_int, p_nh_prog, p_nh_diag) &
+    !$ACC   PRESENT(iecidx, iecblk, ieidx, ieblk) &
+    !$ACC   IF(i_am_accel_node)
+
+!$OMP PARALLEL PRIVATE(rl_start,rl_end,i_startblk,i_endblk)
+
+    rl_start = grf_bdywidth_e
+    rl_end   = min_rledge_int - 1
+
+    i_startblk = p_patch%edges%start_block(rl_start)
+    i_endblk   = p_patch%edges%end_block(rl_end)
+
+!$OMP DO PRIVATE(jk,je,jb,i_startidx,i_endidx), ICON_OMP_RUNTIME_SCHEDULE
+    DO jb = i_startblk,i_endblk
+
+      CALL get_indices_e(p_patch, jb, i_startblk, i_endblk, &
+                         i_startidx, i_endidx, rl_start, rl_end)
+
+      !$ACC PARALLEL LOOP DEFAULT(PRESENT) GANG VECTOR COLLAPSE(2) ASYNC(1) IF(i_am_accel_node)
+#ifdef __LOOP_EXCHANGE
+      DO je = i_startidx, i_endidx
+        DO jk = 1, nlev
+#else
+      DO jk = 1, nlev
+        DO je = i_startidx, i_endidx
+#endif
+          z_nabla2_qv(je,jk,jb) = p_nh_diag%kh_smag_e(je,jk,jb) *      &
+            p_patch%edges%inv_dual_edge_length(je,jb)*                 &
+           (p_nh_prog%tracer(iecidx(je,jb,2),jk,iecblk(je,jb,2),iqv) - &
+            p_nh_prog%tracer(iecidx(je,jb,1),jk,iecblk(je,jb,1),iqv))
+
+          z_nabla2_qc(je,jk,jb) = p_nh_diag%kh_smag_e(je,jk,jb) *      &
+            p_patch%edges%inv_dual_edge_length(je,jb)*                 &
+           (p_nh_prog%tracer(iecidx(je,jb,2),jk,iecblk(je,jb,2),iqc) - &
+            p_nh_prog%tracer(iecidx(je,jb,1),jk,iecblk(je,jb,1),iqc))
+
+        ENDDO
+      ENDDO
+          !$ACC END PARALLEL LOOP
+    ENDDO
+!$OMP END DO
+
+    rl_start = grf_bdywidth_c+1
+    rl_end   = min_rlcell_int
+
+    i_startblk = p_patch%cells%start_block(rl_start)
+    i_endblk   = p_patch%cells%end_block(rl_end)
+
+!$OMP DO PRIVATE(jk,jc,jb,i_startidx,i_endidx), ICON_OMP_RUNTIME_SCHEDULE
+    DO jb = i_startblk,i_endblk
+
+      CALL get_indices_c(p_patch, jb, i_startblk, i_endblk, &
+                         i_startidx, i_endidx, rl_start, rl_end)
+
+      ! now compute the divergence of the quantity above
+      !$ACC PARALLEL LOOP DEFAULT(PRESENT) GANG VECTOR COLLAPSE(2) ASYNC(1) IF(i_am_accel_node)
+#ifdef __LOOP_EXCHANGE
+      DO jc = i_startidx, i_endidx
+        DO jk = 1, nlev
+#else
+      DO jk = 1, nlev
+        DO jc = i_startidx, i_endidx
+#endif
+          p_nh_prog%tracer(jc,jk,jb,iqv) = p_nh_prog%tracer(jc,jk,jb,iqv) + p_patch%cells%area(jc,jb) * &
+            z_nabla2_qv(ieidx(jc,jb,1),jk,ieblk(jc,jb,1))*p_int%geofac_div(jc,1,jb) + &
+            z_nabla2_qv(ieidx(jc,jb,2),jk,ieblk(jc,jb,2))*p_int%geofac_div(jc,2,jb) + &
+            z_nabla2_qv(ieidx(jc,jb,3),jk,ieblk(jc,jb,3))*p_int%geofac_div(jc,3,jb)
+
+          p_nh_prog%tracer(jc,jk,jb,iqc) = p_nh_prog%tracer(jc,jk,jb,iqc) + p_patch%cells%area(jc,jb) * &
+            z_nabla2_qc(ieidx(jc,jb,1),jk,ieblk(jc,jb,1))*p_int%geofac_div(jc,1,jb) + &
+            z_nabla2_qc(ieidx(jc,jb,2),jk,ieblk(jc,jb,2))*p_int%geofac_div(jc,2,jb) + &
+            z_nabla2_qc(ieidx(jc,jb,3),jk,ieblk(jc,jb,3))*p_int%geofac_div(jc,3,jb)
+
+        ENDDO
+      ENDDO
+      !$ACC END PARALLEL LOOP
+    ENDDO
+!$OMP END DO
+!$OMP END PARALLEL
+
+    IF (ltimer) CALL timer_stop(timer_nh_hdiffusion)
+
+    !$ACC WAIT(1)
+    !$ACC END DATA
+
+  END SUBROUTINE moisture_diffusion
 
 END MODULE mo_nh_diffusion

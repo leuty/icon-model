@@ -81,7 +81,7 @@ USE mo_2mom_mcrph_util, ONLY:                            &
      &                       init_dmin_wg_gr_ltab_equi,  &
      &                       dmin_wetgrowth_fit_check, luse_dmin_wetgrowth_table, lprintout_comp_table_fit
 
-USE mo_2mom_mcrph_types, ONLY: ltabdminwgg
+USE mo_2mom_mcrph_types, ONLY: ltabdminwgg, ltabdminwgh
 
 USE mo_2mom_prepare, ONLY: prepare_twomoment, post_twomoment
 USE mo_nwp_tuning_config,  ONLY: tune_sbmccn
@@ -982,11 +982,11 @@ CONTAINS
       ntsedi_hail = 1
     ENDIF
 
-     CALL init(prec_r, opt_acc_async=.TRUE.)
-     CALL init(prec_i, opt_acc_async=.TRUE.)
-     CALL init(prec_s, opt_acc_async=.TRUE.)
-     CALL init(prec_g, opt_acc_async=.TRUE.)
-     CALL init(prec_h, opt_acc_async=.TRUE.)
+     CALL init(prec_r, lacc=.TRUE., opt_acc_async=.TRUE.)
+     CALL init(prec_i, lacc=.TRUE., opt_acc_async=.TRUE.)
+     CALL init(prec_s, lacc=.TRUE., opt_acc_async=.TRUE.)
+     CALL init(prec_g, lacc=.TRUE., opt_acc_async=.TRUE.)
+     CALL init(prec_h, lacc=.TRUE., opt_acc_async=.TRUE.)
 
      ! The following IF ANY conditions are important only for performance on CPU and don't work with OpenACC
 #ifndef _OPENACC
@@ -1255,10 +1255,13 @@ CONTAINS
 
     IF (timers_level > 10) CALL timer_start(timer_phys_2mom_dmin_init)
     IF (luse_dmin_wetgrowth_table .OR. lprintout_comp_table_fit) THEN
-      IF (msg_level>5) CALL message (TRIM(routine), " Looking for dmin_wetgrowth table file for "//TRIM(graupel%name))
       unitnr = 11
+      IF (msg_level>5) CALL message (TRIM(routine), " Looking for dmin_wetgrowth table file for "//TRIM(graupel%name))
       CALL init_dmin_wg_gr_ltab_equi('dmin_wetgrowth_lookup', graupel, &
            unitnr, 61, ltabdminwgg, msg_level)
+      IF (msg_level>5) CALL message (TRIM(routine), " Looking for dmin_wetgrowth table file for "//TRIM(hail%name))
+      CALL init_dmin_wg_gr_ltab_equi('dmin_wetgrowth_lookup', hail, &
+           unitnr, 61, ltabdminwgh, msg_level)
     END IF
     IF (.NOT. luse_dmin_wetgrowth_table) THEN
       ! check whether 4d-fit is consistent with graupel parameters
@@ -1271,7 +1274,8 @@ CONTAINS
       END IF
     END IF
     
-    IF (msg_level>dbg_level) CALL message (TRIM(routine), " finished init_dmin_wetgrowth for "//TRIM(graupel%name))
+    IF (msg_level>dbg_level) CALL message (TRIM(routine), ' finished init_dmin_wetgrowth for '// &
+         TRIM(graupel%name)//' and '//TRIM(hail%name))
     !..parameters for CCN and IN are set here. The 3D fields for prognostic CCN are then
     !  initialized in mo_nwp_phy_init.
     IF (timers_level > 10) CALL timer_stop(timer_phys_2mom_dmin_init)
@@ -1280,8 +1284,11 @@ CONTAINS
     !  z0:  up to this height (m) constant unchanged value
     !  z1e: height interval at which N_ccn decreases by factor 1/e above z0_nccn
     
-    ccn_coeffs%z0  = 4000.0d0
-    ccn_coeffs%z1e = 2000.0d0
+    ccn_coeffs%z0  = 4000.0_wp
+    ccn_coeffs%z1e = 2000.0_wp
+
+    ! min updraft speed for Segal&Khain activation
+    ccn_coeffs%wcb_min = cfg_params%ccn_wcb_min
 
     ! characteristics of different kinds of CN
     ! (copied from COSMO 5.0 Segal & Khain nucleation subroutine)
@@ -1289,51 +1296,55 @@ CONTAINS
     SELECT CASE(ccn_type)
     CASE(6)
       !... maritime case
-      ccn_coeffs%Ncn0 = 100.0d06   ! CN concentration at ground
-      ccn_coeffs%Nmin =  35.0d06
-      ccn_coeffs%lsigs = 0.4d0      ! log(sigma_s)
-      ccn_coeffs%R2    = 0.03d0     ! in mum
-      ccn_coeffs%etas  = 0.9        ! soluble fraction
+      ccn_coeffs%Ncn0 = 100.0e6_wp   ! CN concentration at ground
+      ccn_coeffs%Nmin =  35.0e6_wp   ! NOT relevant at the moment
+      ccn_coeffs%lsigs = 0.4_wp      ! log(sigma_s)
+      ccn_coeffs%R2    = 0.03_wp     ! in mum
+      ccn_coeffs%etas  = 0.9_wp      ! soluble fraction
     CASE(7)
       !... intermediate case
-      ccn_coeffs%Ncn0 = 250.0d06
-      ccn_coeffs%Nmin =  35.0d06
-      ccn_coeffs%lsigs = 0.4d0
-      ccn_coeffs%R2    = 0.03d0       ! in mum
-      ccn_coeffs%etas  = 0.8          ! soluble fraction
+      ccn_coeffs%Ncn0 = 250.0e6_wp
+      ccn_coeffs%Nmin =  35.0e6_wp
+      ccn_coeffs%lsigs = 0.4_wp
+      ccn_coeffs%R2    = 0.03_wp       ! in mum
+      ccn_coeffs%etas  = 0.8_wp        ! soluble fraction
     CASE(8)
-    IF (tune_sbmccn < 1.0_wp) THEN
-      !... maritime case
-      ccn_coeffs%Ncn0 = 100.0d06   ! CN concentration at ground
-      ccn_coeffs%Nmin =  35.0d06
-      ccn_coeffs%lsigs = 0.4d0      ! log(sigma_s)
-      ccn_coeffs%R2    = 0.03d0     ! in mum
-      ccn_coeffs%etas  = 0.9        ! soluble fraction
-    ELSE
-      !... continental case
-      ccn_coeffs%Ncn0 = 1700.0d06
-      ccn_coeffs%Nmin =   35.0d06
-      ccn_coeffs%lsigs = 0.2d0
-      ccn_coeffs%R2    = 0.03d0       ! in mum
-      ccn_coeffs%etas  = 0.7          ! soluble fraction
-    END IF
+      IF (tune_sbmccn < 1.0_wp) THEN
+        !... maritime case
+        ccn_coeffs%Ncn0 = 100.0e6_wp   ! CN concentration at ground
+        ccn_coeffs%Nmin =  35.0e6_wp   ! NOT relevant at the moment
+        ccn_coeffs%lsigs = 0.4_wp      ! log(sigma_s)
+        ccn_coeffs%R2    = 0.03_wp     ! in mum
+        ccn_coeffs%etas  = 0.9_wp      ! soluble fraction
+      ELSE
+        !... continental case
+        ccn_coeffs%Ncn0 = 1700.0e6_wp
+        ccn_coeffs%Nmin =   35.0e6_wp  ! NOT relevant at the moment
+        ccn_coeffs%lsigs = 0.2_wp
+        ccn_coeffs%R2    = 0.03_wp     ! in mum
+        ccn_coeffs%etas  = 0.7_wp      ! soluble fraction
+      END IF
     CASE(9)
       !... "polluted" continental
-      ccn_coeffs%Ncn0 = 3200.0d06
-      ccn_coeffs%Nmin =   35.0d06
-      ccn_coeffs%lsigs = 0.2d0
-      ccn_coeffs%R2    = 0.03d0       ! in mum
-      ccn_coeffs%etas  = 0.7          ! soluble fraction
+      ccn_coeffs%Ncn0 = 3200.0e6_wp
+      ccn_coeffs%Nmin =   35.0e6_wp    ! NOT relevant at the moment
+      ccn_coeffs%lsigs = 0.2_wp
+      ccn_coeffs%R2    = 0.03_wp       ! in mum
+      ccn_coeffs%etas  = 0.7_wp        ! soluble fraction
      CASE(1)
        !... dummy values
-       ccn_coeffs%Ncn0  =  200.0d06
-       ccn_coeffs%Nmin  =   10.0d06
-       ccn_coeffs%lsigs = 0.0
-       ccn_coeffs%R2    = 0.0
-       ccn_coeffs%etas  = 0.0
+       ccn_coeffs%Ncn0  =  200.0e6_wp
+       ccn_coeffs%Nmin  =   10.0e6_wp  ! NOT relevant at the moment
+       ccn_coeffs%lsigs = 0.0_wp
+       ccn_coeffs%R2    = 0.0_wp
+       ccn_coeffs%etas  = 0.0_wp
     CASE DEFAULT
        CALL finish(TRIM(routine),'Error in two_moment_mcrph_init: Invalid value for ccn_type')
     END SELECT
+
+    IF (cfg_params%ccn_Ncn0 > -900.0_wp) THEN
+      ccn_coeffs%Ncn0 = cfg_params%ccn_Ncn0
+    END IF
 
     IF (PRESENT(N_cn0)) THEN
       z0_nccn  = ccn_coeffs%z0
@@ -1349,8 +1360,8 @@ CONTAINS
     IF (PRESENT(N_in0)) THEN
 
        in_coeffs%N0  = 200.0e6_wp ! this is currently just a scaling factor for the PDA scheme
-       in_coeffs%z0  = 3000.0d0
-       in_coeffs%z1e = 1000.0d0
+       in_coeffs%z0  = 3000.0_wp
+       in_coeffs%z1e = 1000.0_wp
 
        N_in0   = in_coeffs%N0
        z0_nin  = in_coeffs%z0
@@ -1364,8 +1375,9 @@ CONTAINS
      
     IF (msg_level>5) CALL message (TRIM(routine), " finished two_moment_mcrph_init successfully")
     !$ACC ENTER DATA COPYIN(ccn_coeffs, in_coeffs, cfg_params)
-    !$ACC ENTER DATA COPYIN(ltabdminwgg)
-    !$ACC ENTER DATA COPYIN(ltabdminwgg%ltable, ltabdminwgg%x1, ltabdminwgg%x2, ltabdminwgg%x3, ltabdminwgg%x4)
+    !$ACC ENTER DATA COPYIN(ltabdminwgg, ltabdminwgh)
+    !$ACC ENTER DATA COPYIN(ltabdminwgg%ltable, ltabdminwgg%x1, ltabdminwgg%x2, ltabdminwgg%x3, ltabdminwgg%x4) &
+    !$ACC   COPYIN(ltabdminwgh%ltable, ltabdminwgh%x1, ltabdminwgh%x2, ltabdminwgh%x3, ltabdminwgh%x4)
 
   END SUBROUTINE two_moment_mcrph_init
 

@@ -42,9 +42,7 @@ MODULE mo_advection_hlimit
 #ifndef USE_LAXFR_MACROS
   USE mo_advection_utils,     ONLY: laxfr_upflux
 #endif
-#ifdef _OPENACC
   USE mo_mpi,                 ONLY: i_am_accel_node
-#endif
 
   IMPLICIT NONE
 
@@ -397,8 +395,8 @@ CONTAINS
       i_startblk   = ptr_patch%cells%start_blk(1,1)
       i_endblk     = ptr_patch%cells%end_blk(grf_bdywidth_c-1,1)
 
-      CALL init(r_m(:,:,i_startblk:i_endblk), opt_acc_async=.TRUE.)
-      CALL init(r_p(:,:,i_startblk:i_endblk), opt_acc_async=.TRUE.)
+      CALL init(r_m(:,:,i_startblk:i_endblk), lacc=i_am_accel_node, opt_acc_async=.TRUE.)
+      CALL init(r_p(:,:,i_startblk:i_endblk), lacc=i_am_accel_node, opt_acc_async=.TRUE.)
 
 !$OMP BARRIER
 
@@ -665,7 +663,7 @@ CONTAINS
       i_startblk   = ptr_patch%cells%start_block(1)
       i_endblk     = ptr_patch%cells%end_block(i_rlstart_c-1)
 
-      CALL init(r_m(:,:,i_startblk:i_endblk))
+      CALL init(r_m(:,:,i_startblk:i_endblk), lacc=i_am_accel_node)
 !$OMP BARRIER
     ENDIF
 

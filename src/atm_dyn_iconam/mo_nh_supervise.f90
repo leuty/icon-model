@@ -40,7 +40,8 @@ MODULE mo_nh_supervise
   USE mo_sync,                ONLY: global_sum_array, global_max
   USE mo_loopindices,         ONLY: get_indices_c, get_indices_e
   USE mo_impl_constants_grf,  ONLY: grf_bdywidth_c, grf_bdywidth_e
-  USE mo_fortran_tools,       ONLY: init, set_acc_host_or_device, assert_lacc_equals_i_am_accel_node, assert_acc_device_only
+  USE mo_fortran_tools,       ONLY: init, set_acc_host_or_device, assert_acc_device_only, &
+    & assert_lacc_equals_i_am_accel_node
   USE mo_nh_diagnose_pres_temp,ONLY: calc_qsum
 
   IMPLICIT NONE
@@ -185,7 +186,7 @@ CONTAINS
     CHARACTER(*), PARAMETER :: routine = modname//"::supervise_total_integrals_nh"
     !-----------------------------------------------------------------------------
 
-    CALL assert_lacc_equals_i_am_accel_node(routine, lacc)
+    CALL assert_lacc_equals_i_am_accel_node(routine, lacc, i_am_accel_node)
     CALL assert_acc_device_only(routine, lacc)
 
     ! store IDs of all water tracers in a list, including vapor
@@ -316,12 +317,12 @@ CONTAINS
 #else
 
 !$OMP PARALLEL
-    CALL init(z_total_mass_2d, opt_acc_async=.TRUE.)
-    CALL init(z_dry_mass_2d,   opt_acc_async=.TRUE.)
-    CALL init(z_kin_energy_2d, opt_acc_async=.TRUE.)
-    CALL init(z_int_energy_2d, opt_acc_async=.TRUE.)
-    CALL init(z_pot_energy_2d, opt_acc_async=.TRUE.)
-    CALL init(z_surfp_2d,      opt_acc_async=.TRUE.)
+    CALL init(z_total_mass_2d, lacc=.TRUE., opt_acc_async=.TRUE.)
+    CALL init(z_dry_mass_2d, lacc=.TRUE., opt_acc_async=.TRUE.)
+    CALL init(z_kin_energy_2d, lacc=.TRUE., opt_acc_async=.TRUE.)
+    CALL init(z_int_energy_2d, lacc=.TRUE., opt_acc_async=.TRUE.)
+    CALL init(z_pot_energy_2d, lacc=.TRUE., opt_acc_async=.TRUE.)
+    CALL init(z_surfp_2d, lacc=.TRUE., opt_acc_async=.TRUE.)
 !$OMP BARRIER
 
 !$OMP DO PRIVATE(jb,jk,jc,nlen,z_volume)
@@ -416,7 +417,7 @@ CONTAINS
 
       DO jt=1, ntracer
 !$OMP PARALLEL
-        CALL init(z_aux_tracer(:,:), opt_acc_async=.TRUE.) ! reinitialize for each jt
+        CALL init(z_aux_tracer(:,:), lacc=.TRUE., opt_acc_async=.TRUE.) ! reinitialize for each jt
 !$OMP BARRIER
 
 !$OMP DO PRIVATE(jb,jk,jc,nlen,z_volume)

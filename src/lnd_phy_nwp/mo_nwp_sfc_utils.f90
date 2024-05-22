@@ -44,7 +44,6 @@ MODULE mo_nwp_sfc_utils
     &                               itype_interception, lterra_urb, l2lay_rho_snow, lprog_albsi, itype_trvg, &
                                     itype_snowevap, zml_soil, dzsoil, frsi_min, hice_min
   USE mo_atm_phy_nwp_config,  ONLY: atm_phy_nwp_config
-  USE mo_coupling_config,     ONLY: is_coupled_to_ocean
   USE mo_nwp_tuning_config,   ONLY: tune_minsnowfrac
   USE mo_initicon_config,     ONLY: init_mode_soil, ltile_coldstart, init_mode, lanaread_tseasfc, use_lakeiceana
   USE mo_run_config,          ONLY: msg_level
@@ -68,6 +67,10 @@ MODULE mo_nwp_sfc_utils
   USE mo_timer,               ONLY: ltimer, timer_nh_diagnostics, timer_start, timer_stop
 
   USE mo_lnd_nwp_config,      ONLY: lcuda_graph_lnd
+
+#ifdef __NVCOMPILER
+  USE mo_coupling_config,     ONLY: is_coupled_to_ocean
+#endif
 
   IMPLICIT NONE
 
@@ -2331,7 +2334,8 @@ CONTAINS
     &                              frac_t_water, lc_frac_t_water, fr_seaice,            &
     &                              hice_old, tice_old, albsi_now, albsi_new,            &
     &                              t_g_t_now, t_g_t_new, t_s_t_now, t_s_t_new,          &
-    &                              t_sk_t_now, t_sk_t_new, qv_s_t, t_seasfc, condhf )
+    &                              t_sk_t_now, t_sk_t_new, qv_s_t, t_seasfc, condhf,    &
+    &                              meltpot                                              )
 
 
     REAL(wp),    INTENT(IN)    ::  &   !< sea-ice depth at new time level  [m]
@@ -2393,8 +2397,11 @@ CONTAINS
     REAL(wp),    INTENT(INOUT) ::  &   !< sea surface temperature          [kg/kg]
       &  t_seasfc(:)
 
-    REAL(wp),    INTENT(INOUT) ::  &   !< conductive heat flux at bottom of sea-ice [W/m^2]
-      &  condhf(:)
+    REAL(wp), OPTIONAL, INTENT(INOUT) :: &
+      &  condhf(:)                     !< conductive heat flux at bottom of sea-ice [W/m^2]
+
+    REAL(wp), OPTIONAL, INTENT(INOUT) :: &
+      &  meltpot(:)                    !< melt potential at top of sea-ice [W/m^2]
 
     ! Local variables
     INTEGER  :: list_seaice_count_old      !< old seaice index list and count
@@ -2402,7 +2409,8 @@ CONTAINS
     INTEGER  :: ic, jc                     !< loop indices
     INTEGER  :: i_capture !< to capture thread-local value in ACC ATOMIC
     LOGICAL  :: l_update_required
-    LOGICAL  :: lis_coupled_to_ocean   !< TRUE for coupled ocean-atmosphere runs (copy for ACC vectorisation)
+    LOGICAL  :: lhave_meltpot
+    LOGICAL  :: lhave_condhf
     !-------------------------------------------------------------------------
 
 
@@ -2424,16 +2432,24 @@ CONTAINS
     IF (msg_level >= 13) CALL message('update_idx_lists_sea', &
       'One or more seaice cells melted -> List update required.')
 
-    lis_coupled_to_ocean = is_coupled_to_ocean() ! store result for vectorisation
+#ifdef __NVCOMPILER
+    ! nvfortran does not understand passing a NULL pointer to an optional (Fortran 2008) :(
+    lhave_meltpot = is_coupled_to_ocean()
+    lhave_condhf = is_coupled_to_ocean()
+#else
+    lhave_meltpot = PRESENT(meltpot)
+    lhave_condhf = PRESENT(condhf)
+#endif
 
-    !$ACC DATA PRESENT(condhf) IF(lis_coupled_to_ocean)
+    !$ACC DATA PRESENT(condhf) IF(lhave_condhf)
+    !$ACC DATA PRESENT(meltpot) IF(lhave_meltpot)
     !$ACC DATA CREATE(list_seaice_idx_old) &
     !$ACC   PRESENT(hice_n, pres_sfc, list_seawtr_idx) &
     !$ACC   PRESENT(list_seaice_idx, frac_t_ice) &
     !$ACC   PRESENT(frac_t_water, lc_frac_t_water, fr_seaice) &
     !$ACC   PRESENT(hice_old, tice_old, albsi_now, albsi_new) &
     !$ACC   PRESENT(t_g_t_now, t_g_t_new, t_s_t_now, t_s_t_new) &
-    !$ACC   PRESENT(t_sk_t_now, t_sk_t_new, qv_s_t, t_seasfc) NO_CREATE(condhf)
+    !$ACC   PRESENT(t_sk_t_now, t_sk_t_new, qv_s_t, t_seasfc) NO_CREATE(condhf, meltpot)
 
     !$ACC PARALLEL LOOP GANG VECTOR ASYNC(1) DEFAULT(PRESENT)
     DO ic = 1, list_seaice_count
@@ -2505,10 +2521,9 @@ CONTAINS
           tice_old(jc) = tmelt
           hice_old(jc) = 0._wp
 
-          IF (lis_coupled_to_ocean) THEN
-            ! also reset conductive heat flux below ice
-            condhf(jc)   = 0._wp
-          ENDIF
+            ! also reset ice heat fluxes
+          IF (lhave_condhf) condhf(jc) = 0._wp
+          IF (lhave_meltpot) meltpot(jc) = 0._wp
 
           ! Reset prognostic sea ice albedo for consistency
           IF (lprog_albsi) THEN
@@ -2584,10 +2599,9 @@ CONTAINS
           tice_old(jc) = tmelt
           hice_old(jc) = 0._wp
 
-          IF (lis_coupled_to_ocean) THEN
-            ! also reset conductive heat flux below ice
-            condhf(jc)   = 0._wp
-          ENDIF
+            ! also reset ice heat fluxes
+          IF (lhave_condhf) condhf(jc) = 0._wp
+          IF (lhave_meltpot) meltpot(jc) = 0._wp
 
           ! Reset prognostic sea ice albedo for consistency
           IF (lprog_albsi) THEN
@@ -2603,6 +2617,7 @@ CONTAINS
     IF (.NOT. lcuda_graph_lnd) THEN
       !$ACC WAIT(1)
     END IF
+    !$ACC END DATA
     !$ACC END DATA
     !$ACC END DATA
 
@@ -3724,4 +3739,3 @@ CONTAINS
   END SUBROUTINE seaice_albedo_coldstart
 
 END MODULE mo_nwp_sfc_utils
-
