@@ -438,7 +438,7 @@ clean: mostlyclean
 # Delete everything generated at the configure stage (and clean the created
 # directories if they are empty):
 distclean: clean
-	rm -f config.h config.log config.status depgen.c.config depgen.f90.config deplist.config collect.extra-libs
+	rm -f config.h config.log config.status depgen.c.config depgen.f90.config deplist.config collect.extra-libs @PGI_INLIB_ENABLED@ inlib.mk
 	rm -f run/collect.set-up.info run/set-up.info run/SETUP.config
 	rm -f $(dep_files)
 	rm -f $(dir_files)
@@ -661,13 +661,13 @@ version.c: force-create-version
 # Dependency generation rule for Fortran-to-C bindings:
 c_binding.d: icon.mk
 	$(silent_DEPGEN):;{ \
-	  echo '$(call get_obj_names,src/io/restart/mo_c_restart_util.f90):| support/util_multifile_restart.@OBJEXT@'; \
-	  echo '$(call get_obj_names,support/mo_util_uuid.f90):| support/util_uuid.@OBJEXT@'; \
-	  echo '$(call get_obj_names,src/shared/mo_util_vcs.f90):| version.@OBJEXT@'; \
+	  echo '$(call get_obj_names,src/io/restart/mo_c_restart_util.f90): #-hint support/util_multifile_restart.@OBJEXT@'; \
+	  echo '$(call get_obj_names,support/mo_util_uuid.f90): #-hint support/util_uuid.@OBJEXT@'; \
+	  echo '$(call get_obj_names,src/shared/mo_util_vcs.f90): #-hint version.@OBJEXT@'; \
+	  echo '@ART_ENABLED@$(call get_obj_names,$(ART_subdir)/shared/mo_art_util_vcs.f90): #-hint version.@OBJEXT@'; \
+	  echo '@GPU_ENABLED@$(call get_obj_names,src/shared/mo_index_list.f90): #-hint src/shared_cuda/index_list_cuda.@OBJEXT@'; \
+	  echo '@DACE_ENABLED@$(call get_obj_names,$(DACE_subdir)/mo_wigos.f90): #-hint $(DACE_subdir)/dace_md5_ifc.@OBJEXT@ $(DACE_subdir)/md5.@OBJEXT@'; \
 	} >$@
-@ART_ENABLED@	$(silent_none)echo '$(call get_obj_names,src/art/shared/mo_art_util_vcs.f90):| version.@OBJEXT@' >>$@
-@GPU_ENABLED@	$(silent_none)echo '$(call get_obj_names,src/shared/mo_index_list.f90):| src/shared_cuda/index_list_cuda.@OBJEXT@' >>$@
-@DACE_ENABLED@	$(silent_none)echo '$(call get_obj_names,$(DACE_subdir)/mo_wigos.f90):| $(DACE_subdir)/dace_md5_ifc.@OBJEXT@ $(DACE_subdir)/md5.@OBJEXT@' >>$@
 
 # Dummy dependency file generation rule (called by config.status):
 dummy-depend: | $(dir_files)
