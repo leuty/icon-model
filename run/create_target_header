@@ -1558,13 +1558,6 @@ EOF
 
     start_header
     cat >> "$output_script" <<EOF
-export CRAY_CUDA_MPS=1
-export MPICH_GPU_SUPPORT_ENABLED=1
-export MPICH_RDMA_ENABLED_CUDA=1
-export NVCOMPILER_ACC_DEFER_UPLOADS=1
-export NVCOMPILER_TERM=trace
-export NVCOMPILER_ACC_USE_GRAPH=1  # Harmless if cuda-graphs is disabled
-export FI_CXI_SAFE_DEVMEM_COPY_THRESHOLD=0
 EOF
 }
 
@@ -1577,7 +1570,6 @@ set_run_target_alps_mch_cpu()
     set_default use_nproma 16
     set_default use_nblocks_c 0
     set_default use_nodes 1
-    # use_OMP_SCHEDULE="static,1"
     use_OMP_SCHEDULE="static,12"
 
     is_serial_run="no"
@@ -1647,8 +1639,6 @@ EOF
   start_header
 
   cat >> "$output_script" << EOF
-export NVCOMPILER_TERM=trace
-export FI_CXI_SAFE_DEVMEM_COPY_THRESHOLD=0
 EOF
 }
 
