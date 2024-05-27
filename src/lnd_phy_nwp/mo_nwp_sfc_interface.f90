@@ -1722,6 +1722,18 @@ CONTAINS
              area_frac = ext_data%atm%frac_t(jc,jb,isubs)*ext_data%atm%inv_frland_from_tiles(jc,jb)
              prm_diag%lhfl_bs(jc,jb) = prm_diag%lhfl_bs(jc,jb) + prm_diag%lhfl_bs_t(jc,jb,isubs) * area_frac
              lnd_diag%h_snow(jc,jb)  = lnd_diag%h_snow(jc,jb) + lnd_diag%h_snow_t(jc,jb,isubs) * area_frac
+
+             ! Accumulation of resid_wso, and snow_melt.
+             ! Note that these fields are not initialized with zero each time step (see above).
+             IF (var_in_output(jg)%res_soilwatb) THEN
+               lnd_diag%resid_wso(jc,jb) = lnd_diag%resid_wso(jc,jb) &
+                 &                       + lnd_diag%resid_wso_inst_t(jc,jb,isubs) * area_frac
+             ENDIF
+
+             IF (var_in_output(jg)%snow_melt) THEN
+               lnd_diag%snow_melt(jc,jb) = lnd_diag%snow_melt(jc,jb) &
+                 &                       + tcall_sfc_jg * lnd_diag%snow_melt_flux_t(jc,jb,isubs) * area_frac
+             ENDIF
            ENDDO  ! jc
            !$ACC LOOP SEQ
            DO jk=1,nlev_soil
@@ -1731,33 +1743,25 @@ CONTAINS
                  &      * ext_data%atm%inv_frland_from_tiles(jc,jb) * prm_diag%lhfl_pl_t(jc,jk,jb,isubs)
              ENDDO  ! jc
            ENDDO  ! jk
+         ENDDO  ! isubs
 
-           ! aggregation + accumulation for runoff, resid_wso, and snow_melt. 
-           ! Note that these fields are not initialized with zero each time step (see above).
-           !
-           ! In order to get the correct results, we accumulate the aggregated instantaneous values.
-           ! Aggregation of the accumulated tile-specific values (i.e. the other way around) does not work 
-           ! due to the time dependency of the snowtile fractions.
-           !
+         ! aggregation + accumulation for runoff. Note that these fields are not initialized with zero
+         ! each time step (see above).
+         !
+         ! In order to get the correct results, we accumulate the aggregated instantaneous values.
+         ! Aggregation of the accumulated tile-specific values (i.e. the other way around) does not work
+         ! due to the time dependency of the snowtile fractions.
+         !
+         !$ACC LOOP SEQ
+         DO isubs = 1, ntiles_total + ntiles_water
            !$ACC LOOP GANG(STATIC: 1) VECTOR PRIVATE(area_frac)
            DO jc = i_startidx, i_endidx
-
-             area_frac = ext_data%atm%frac_t(jc,jb,isubs) * ext_data%atm%inv_frland_from_tiles(jc,jb)
+             area_frac = ext_data%atm%frac_t(jc,jb,isubs)
 
              lnd_diag%runoff_s(jc,jb) = lnd_diag%runoff_s(jc,jb) &
                &                      + lnd_diag%runoff_s_inst_t(jc,jb,isubs) * area_frac
              lnd_diag%runoff_g(jc,jb) = lnd_diag%runoff_g(jc,jb) &
                &                      + lnd_diag%runoff_g_inst_t(jc,jb,isubs) * area_frac
-             !
-             IF (var_in_output(jg)%res_soilwatb) THEN
-               lnd_diag%resid_wso(jc,jb) = lnd_diag%resid_wso(jc,jb) &
-                 &                       + lnd_diag%resid_wso_inst_t(jc,jb,isubs) * area_frac
-             ENDIF
-             !
-             IF (var_in_output(jg)%snow_melt) THEN
-               lnd_diag%snow_melt(jc,jb) = lnd_diag%snow_melt(jc,jb) &
-                 &                       + tcall_sfc_jg * lnd_diag%snow_melt_flux_t(jc,jb,isubs) * area_frac
-             ENDIF
            ENDDO
          ENDDO  ! isubs
 
@@ -2091,6 +2095,10 @@ CONTAINS
     INTEGER :: jc, jb, ic              !loop indices
     INTEGER :: icount_flk
 
+    LOGICAL :: have_ice_gsp_rate
+    LOGICAL :: have_hail_gsp_rate
+    LOGICAL :: have_graupel_gsp_rate
+
     ! openACC flag
     !
     LOGICAL :: lzacc
@@ -2101,6 +2109,10 @@ CONTAINS
     !-------------------------------------------------------------------------
 
     CALL set_acc_host_or_device(lzacc, lacc)
+
+    have_ice_gsp_rate = ASSOCIATED(prm_diag%ice_gsp_rate)
+    have_hail_gsp_rate = ASSOCIATED(prm_diag%hail_gsp_rate)
+    have_graupel_gsp_rate = ASSOCIATED(prm_diag%graupel_gsp_rate)
 
     ! put local variables on gpu
     !$ACC DATA &
@@ -2266,6 +2278,35 @@ CONTAINS
           ! keep fr_seaice synchronized with h_ice
           p_lnd_diag%fr_seaice(jc,jb) = 0._wp
         ENDIF
+
+        ! Set lake runoff to precipitation - evaporation. This keeps the water level formally fixed.
+        ! runoff_s_inst_t is used as a temporary variable to sum the rates here and converted below.
+        p_lnd_diag%runoff_s_inst_t(jc,jb,isub_lake) = &
+            & + prm_diag%rain_gsp_rate(jc,jb) &
+            & + prm_diag%snow_gsp_rate(jc,jb) &
+            & + prm_diag%rain_con_rate(jc,jb) &
+            & + prm_diag%snow_con_rate(jc,jb)
+
+        IF (have_ice_gsp_rate) THEN
+          p_lnd_diag%runoff_s_inst_t(jc,jb,isub_lake) = &
+              & p_lnd_diag%runoff_s_inst_t(jc,jb,isub_lake) + prm_diag%ice_gsp_rate(jc,jb)
+        END IF
+
+        IF (have_graupel_gsp_rate) THEN
+          p_lnd_diag%runoff_s_inst_t(jc,jb,isub_lake) = &
+              & p_lnd_diag%runoff_s_inst_t(jc,jb,isub_lake) + prm_diag%graupel_gsp_rate(jc,jb)
+        END IF
+
+        IF (have_hail_gsp_rate) THEN
+          p_lnd_diag%runoff_s_inst_t(jc,jb,isub_lake) = &
+              & p_lnd_diag%runoff_s_inst_t(jc,jb,isub_lake) + prm_diag%hail_gsp_rate(jc,jb)
+        END IF
+
+        ! convert from rate to instantaneous value.
+        p_lnd_diag%runoff_s_inst_t(jc,jb,isub_lake) = dtime * &
+            & (p_lnd_diag%runoff_s_inst_t(jc,jb,isub_lake) + prm_diag%qhfl_s_t(jc,jb,isub_lake))
+
+        p_lnd_diag%runoff_g_inst_t(jc,jb,isub_lake) = 0._wp
 
       ENDDO  ! ic
       !$ACC END PARALLEL

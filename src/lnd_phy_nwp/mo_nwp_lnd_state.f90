@@ -1614,7 +1614,7 @@ MODULE mo_nwp_lnd_state
 
     ! & p_diag_lnd%runoff_g(nproma,nblks_c)
     cf_desc    = t_cf_var('runoff_g', 'kg m-2', &
-         &                'weighted soil water runoff', datatype_flt)
+         &                'weighted soil/ground water runoff', datatype_flt)
     grib2_desc = grib2_var(2, 0, 5, ibits, GRID_UNSTRUCTURED, GRID_CELL)
     CALL add_var( diag_list, vname_prefix//'runoff_g', p_diag_lnd%runoff_g,        &
            & GRID_UNSTRUCTURED_CELL, ZA_DEPTH_RUNOFF_G, cf_desc, grib2_desc,       &
@@ -1654,18 +1654,18 @@ MODULE mo_nwp_lnd_state
     grib2_desc = grib2_var(2, 0, 5, ibits, GRID_UNSTRUCTURED, GRID_CELL)
     CALL add_var( diag_list, vname_prefix//'runoff_s_inst_t', p_diag_lnd%runoff_s_inst_t,  &
            & GRID_UNSTRUCTURED_CELL, ZA_DEPTH_RUNOFF_S, cf_desc, grib2_desc,       &
-           & ldims=shape3d_subs, lcontainer=.TRUE., lrestart=.FALSE., loutput=.FALSE.,     &
+           & ldims=shape3d_subsw, lcontainer=.TRUE., lrestart=.FALSE., loutput=.FALSE.,    &
            & in_group=groups("iau_init_vars"),                                             &
            & lopenacc=.TRUE.)
     __acc_attach(p_diag_lnd%runoff_s_inst_t)
 
     ! & p_diag_lnd%runoff_g_inst_t(nproma,nblks_c,ntiles_total)
     cf_desc    = t_cf_var('runoff_g_inst_t', 'kg m-2', &
-         &                'soil water runoff; instantaneous value', datatype_flt)
+         &                'soil/ground water runoff; instantaneous value', datatype_flt)
     grib2_desc = grib2_var(2, 0, 5, ibits, GRID_UNSTRUCTURED, GRID_CELL)
     CALL add_var( diag_list, vname_prefix//'runoff_g_inst_t', p_diag_lnd%runoff_g_inst_t,    &
            & GRID_UNSTRUCTURED_CELL, ZA_DEPTH_RUNOFF_G, cf_desc, grib2_desc,       &
-           & ldims=shape3d_subs, lcontainer=.TRUE., lrestart=.FALSE., loutput=.FALSE.,       &
+           & ldims=shape3d_subsw, lcontainer=.TRUE., lrestart=.FALSE., loutput=.FALSE.,      &
            & in_group=groups("iau_init_vars"),                                               &
            & lopenacc=.TRUE.)
     __acc_attach(p_diag_lnd%runoff_g_inst_t) 
@@ -1689,7 +1689,7 @@ MODULE mo_nwp_lnd_state
     grib2_desc = grib2_var(2, 0, 5, ibits, GRID_UNSTRUCTURED, GRID_CELL)
     CALL add_var( diag_list, vname_prefix//'runoff_s_t', p_diag_lnd%runoff_s_t,    &
            & GRID_UNSTRUCTURED_CELL, ZA_DEPTH_RUNOFF_S, cf_desc, grib2_desc,       &
-           & ldims=shape3d_subs, lcontainer=.TRUE., lrestart=.FALSE., loutput=.FALSE., &
+           & ldims=shape3d_subsw, lcontainer=.TRUE., lrestart=.FALSE., loutput=.FALSE., &
            & initval=0._wp, resetval=0._wp,                              &
            & action_list=actions(new_action(ACTION_RESET,runoff_interval(p_jg))), &
            & in_group=groups("iau_init_vars"),                                    &
@@ -1698,11 +1698,11 @@ MODULE mo_nwp_lnd_state
 
     ! & p_diag_lnd%runoff_g_t(nproma,nblks_c,ntiles_total)
     cf_desc    = t_cf_var('runoff_g_t', 'kg m-2', &
-         &                'soil water runoff', datatype_flt)
+         &                'soil/ground water runoff', datatype_flt)
     grib2_desc = grib2_var(2, 0, 5, ibits, GRID_UNSTRUCTURED, GRID_CELL)
     CALL add_var( diag_list, vname_prefix//'runoff_g_t', p_diag_lnd%runoff_g_t,    &
            & GRID_UNSTRUCTURED_CELL, ZA_DEPTH_RUNOFF_G, cf_desc, grib2_desc,       &
-           & ldims=shape3d_subs, lcontainer=.TRUE., lrestart=.FALSE., loutput=.FALSE., &
+           & ldims=shape3d_subsw, lcontainer=.TRUE., lrestart=.FALSE., loutput=.FALSE., &
            & initval=0._wp, resetval=0._wp,                              &
            & action_list=actions(new_action(ACTION_RESET,runoff_interval(p_jg))), &
            & in_group=groups("iau_init_vars"),                                    &
@@ -1725,8 +1725,8 @@ MODULE mo_nwp_lnd_state
     ENDIF
 
     ! fill the separate variables belonging to the container runoff_s
-    ALLOCATE(p_diag_lnd%runoff_s_ptr(ntiles_total))
-    DO jsfc = 1,ntiles_total
+    ALLOCATE(p_diag_lnd%runoff_s_ptr(ntiles_total + ntiles_water))
+    DO jsfc = 1,ntiles_total + ntiles_water
       NULLIFY(p_diag_lnd%runoff_s_ptr(jsfc)%p_2d, p_diag_lnd%runoff_s_ptr(jsfc)%p_3d)
       WRITE(csfc,'(i2)') jsfc 
       CALL add_ref( diag_list, vname_prefix//'runoff_s_t',                       &
@@ -1742,8 +1742,8 @@ MODULE mo_nwp_lnd_state
     END DO
 
     ! fill the separate variables belonging to the container runoff_g
-    ALLOCATE(p_diag_lnd%runoff_g_ptr(ntiles_total))
-    DO jsfc = 1,ntiles_total
+    ALLOCATE(p_diag_lnd%runoff_g_ptr(ntiles_total + ntiles_water))
+    DO jsfc = 1,ntiles_total + ntiles_water
       NULLIFY(p_diag_lnd%runoff_g_ptr(jsfc)%p_2d, p_diag_lnd%runoff_g_ptr(jsfc)%p_3d)
       WRITE(csfc,'(i2)') jsfc 
       CALL add_ref( diag_list, vname_prefix//'runoff_g_t',                       &
@@ -2215,4 +2215,3 @@ MODULE mo_nwp_lnd_state
 
 
 END MODULE mo_nwp_lnd_state
-
