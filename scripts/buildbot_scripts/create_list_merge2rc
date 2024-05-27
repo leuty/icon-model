@@ -352,8 +352,8 @@ $addexp "checksuite.infrastructure/aurora/exp.host_and_vector_only_tests.run" --
 # HoreKa at KIT
 ./set_builder_flags Active --builders 'horeka_gpu_nvhpc horeka_cpu_nvhpc horeka_gcc horeka_intel' --list $listname
 $addexp "checksuite.icon-dev/check.atm_bubble_test" --machines "horeka" --list $listname
-$addexp "exp.dwd_run_ICON_09_R2B4N5_EPS" --machines "horeka" --list $listname # TODO: setup check. test with probtest on Horeka
-./rmexp "exp.dwd_run_ICON_09_R2B4N5_EPS" --builders "horeka_intel" --list $listname # icon/icon-nwp!370 may have introduced changes breaking this test on horeka_intel
+$addexp "checksuite.icon-dev/check.dwd_run_ICON_09_R2B4N5_EPS" --builders "horeka_gpu_nvhpc horeka_cpu_nvhpc " --list $listname
+$addexp "exp.dwd_run_ICON_09_R2B4N5_EPS" --builders "horeka_gcc" --list $listname # icon/icon-nwp!370 may have introduced changes breaking this test on horeka_intel
 
 # Lumi at CSC
 $addexp exp.atm_tracer_Hadley_R2B4 --builders 'lumi_cpu' --list ${listname} --runflags="queue=debug"
