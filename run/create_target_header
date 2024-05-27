@@ -2054,6 +2054,74 @@ EOF
 }
 
 #=============================================================================
+set_run_target_leo()
+{
+    icon_data_rootFolder=${icon_data_rootFolder:=/leonardo_work/DE360_GLORI/pool/data/ICON/}
+
+    if [[ "$use_gpu" == "yes" ]]; then
+        set_default use_nproma 8192
+        set_default use_nproma_sub 512
+        set_default use_ecrad_isolver 2 # McICA for OpenACC
+        if [[ $use_mpi == "yes" ]]; then
+            set_default use_mpi_procs_pernode 4
+        fi
+    else
+        set_default use_nproma 8
+        set_default use_nproma_sub 8
+        if [[ $use_mpi == "yes" ]]; then
+            set_default use_mpi_procs_pernode 32
+        fi
+        if [[ $use_openmp == "yes" ]]; then
+            set_default use_openmp_threads 2
+        else
+            set_default use_openmp_threads 1
+        fi
+    fi
+    set_default use_nblocks_c 0
+    set_default use_nodes 1
+    set_default use_num_io_procs 1
+    set_default use_cpu_time 01:00:00
+
+
+    if [[ -n "$BB_SYSTEM" ]]; then
+        # this buildbot, do not use job id and do not run more than 45 minutes
+        job_log_name="LOG.$job_name"
+        limit="00:45:00"
+        limit_time_bb # sets use_cpu_time
+    else
+        job_log_name="LOG.$job_name.%j"
+    fi
+
+    cdo='cdo'
+    cdo_diff='diffn'
+
+    cat >> "$output_script" << EOF
+#SBATCH --output=$output_folder/$job_log_name.o
+#SBATCH --error=$output_folder/$job_log_name.o
+#SBATCH --job-name=$job_name
+#SBATCH --nodes=${use_nodes}
+#SBATCH --partition=boost_usr_prod
+#SBATCH --account=DE360_GLORI
+#SBATCH --ntasks-per-node=$use_mpi_procs_pernode
+#SBATCH --time=$use_cpu_time
+EOF
+    if [[ "$use_gpu" == "yes" ]]; then
+    cat >> "$output_script" << EOF
+#SBATCH --gres=gpu:4
+EOF
+    fi
+
+    start_header
+
+    cat >> "$output_script" << EOF
+export PATH=/leonardo/prod/spack/03/install/0.19/linux-rhel8-icelake/gcc-11.3.0/cdo-2.1.0-2ltng25xbm7yakxoon4dyehxev5ynaw2/bin/:\$PATH
+export ECCODES_DEFINITION_PATH=/leonardo_scratch/fast/DE360_GLORI/definitions/2.32.0-2/definitions.edzw:/leonardo_scratch/fast/DE360_GLORI/definitions/2.32.0-2/definitions
+export NVCOMPILER_TERM=trace
+export OMPI_MCA_btl=self,tcp
+EOF
+}
+
+#=============================================================================
 create_target_header()
 {
     cdo="cdo"
