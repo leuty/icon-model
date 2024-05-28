@@ -56,10 +56,6 @@ MODULE mo_nh_vert_interp
   USE mo_dynamics_config,     ONLY: ldeepatmo
   USE mo_deepatmo,            ONLY: deepatmo_htrafo
 
-#ifdef _OPENACC
-  USE mo_mpi,                 ONLY: i_am_accel_node
-#endif
-
   IMPLICIT NONE
   PRIVATE
 
@@ -191,6 +187,7 @@ CONTAINS
   !! data (atmosphere only) interpolated horizontally by IFS2ICON to
   !! the ICON grid
   !!
+  !! Only used during initialization and no OpenACC support.
   SUBROUTINE vert_interp_atm(p_patch, p_nh_state, p_int, p_grf, initicon)
 
     TYPE(t_patch),          INTENT(INOUT)    :: p_patch(:)
@@ -222,11 +219,11 @@ CONTAINS
 
         jgc = p_patch(jg)%child_id(jn)
 
-        CALL interpol_scal_grf (p_patch(jg), p_patch(jgc), p_grf(jg)%p_dom(jn), &
-                                1, initicon(jg)%atm%w, initicon(jgc)%atm%w )
+        CALL interpol_scal_grf (p_pp=p_patch(jg), p_pc=p_patch(jgc), p_grf=p_grf(jg)%p_dom(jn), &
+                                nfields=1, lacc=.FALSE., f3din1=initicon(jg)%atm%w, f3dout1=initicon(jgc)%atm%w )
 
-        CALL interpol2_vec_grf (p_patch(jg), p_patch(jgc), p_grf(jg)%p_dom(jn), &
-                                1, initicon(jg)%atm%vn, initicon(jgc)%atm%vn )
+        CALL interpol2_vec_grf (p_pp=p_patch(jg), p_pc=p_patch(jgc), p_grf=p_grf(jg)%p_dom(jn), &
+                                nfields=1, lacc=.FALSE., f3din1=initicon(jg)%atm%vn, f3dout1=initicon(jgc)%atm%vn )
 
       ENDDO
     ENDDO
@@ -383,11 +380,9 @@ CONTAINS
 
 !-------------------------------------------------------------------------
 
-#ifdef _OPENACC
-    IF(i_am_accel_node) CALL finish(routine, "Does not support OpenACC (or is untested).")
+    ! Does not support OpenACC
     ! In order to support OpenACC, the lacc flags in the following code must be turned on.
     ! Additional porting might be necessary.
-#endif
 
     jg = p_patch%id
 

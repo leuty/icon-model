@@ -57,9 +57,6 @@ USE mo_decomposition_tools,  ONLY: t_glb2loc_index_lookup, get_local_index
 USE mo_parallel_config,      ONLY: blk_no, idx_no, idx_1d
 USE mo_communication_types,  ONLY: t_comm_pattern, t_p_comm_pattern, &
   &                                t_comm_pattern_collection, xfer_list
-#ifdef _OPENACC
-USE mo_mpi,                  ONLY: i_am_accel_node
-#endif
 
 
 IMPLICIT NONE
@@ -953,9 +950,10 @@ CONTAINS
   !================================================================================================
   ! REAL SECTION ----------------------------------------------------------------------------------
   !
-  SUBROUTINE exchange_data_r3d(p_pat, recv, send, add)
+  SUBROUTINE exchange_data_r3d(p_pat, lacc, recv, send, add)
 
     CLASS(t_comm_pattern_orig), TARGET, INTENT(INOUT) :: p_pat
+    LOGICAL, INTENT(IN) :: lacc ! If true, use openacc
     REAL(dp), INTENT(INOUT), TARGET           :: recv(:,:,:)
     REAL(dp), INTENT(IN), OPTIONAL, TARGET    :: send(:,:,:)
     REAL(dp), INTENT(IN), OPTIONAL, TARGET    :: add (:,:,:)
@@ -974,7 +972,7 @@ CONTAINS
 #ifdef _OPENACC
     LOGICAL :: lzacc  , use_g2g, use_staging
 
-    lzacc       = i_am_accel_node
+    lzacc       = lacc
     use_g2g     = lzacc .AND.       global_use_g2g
     use_staging = lzacc .AND. .NOT. global_use_g2g
 #endif
@@ -983,7 +981,7 @@ CONTAINS
     ! special treatment for trivial communication patterns of
     ! sequential runs
     IF(my_process_is_mpi_seq()) THEN
-      CALL exchange_data_r3d_seq(p_pat, recv, send, add)
+      CALL exchange_data_r3d_seq(p_pat, lacc, recv, send, add)
       RETURN
     END IF
 
@@ -1209,9 +1207,10 @@ CONTAINS
   !================================================================================================
   ! REAL SECTION ----------------------------------------------------------------------------------
   !
-  SUBROUTINE exchange_data_s3d(p_pat, recv, send, add)
+  SUBROUTINE exchange_data_s3d(p_pat, lacc, recv, send, add)
 
     CLASS(t_comm_pattern_orig), TARGET, INTENT(INOUT) :: p_pat
+    LOGICAL, INTENT(IN) :: lacc ! If true, use openacc
     REAL(sp), INTENT(INOUT), TARGET           :: recv(:,:,:)
     REAL(sp), INTENT(IN), OPTIONAL, TARGET    :: send(:,:,:)
     REAL(sp), INTENT(IN), OPTIONAL, TARGET    :: add (:,:,:)
@@ -1230,7 +1229,7 @@ CONTAINS
 #ifdef _OPENACC
     LOGICAL :: lzacc, use_g2g, use_staging
 
-    lzacc       = i_am_accel_node
+    lzacc       = lacc
     use_g2g     = lzacc .AND.       global_use_g2g
     use_staging = lzacc .AND. .NOT. global_use_g2g
 #endif
@@ -1239,7 +1238,7 @@ CONTAINS
     ! special treatment for trivial communication patterns of
     ! sequential runs
     IF(my_process_is_mpi_seq()) THEN
-      CALL exchange_data_s3d_seq(p_pat, recv, send, add)
+      CALL exchange_data_s3d_seq(p_pat, lacc, recv, send, add)
       RETURN
     END IF
 
@@ -1460,9 +1459,10 @@ CONTAINS
 
   ! SEQUENTIAL version of subroutine "exchange_data_r3d"
   !
-  SUBROUTINE exchange_data_r3d_seq(p_pat, recv, send, add)
+  SUBROUTINE exchange_data_r3d_seq(p_pat, lacc, recv, send, add)
 
     CLASS(t_comm_pattern_orig), INTENT(IN), TARGET :: p_pat
+    LOGICAL, INTENT(IN) :: lacc ! If true, use openacc
     REAL(dp), INTENT(INOUT), TARGET        :: recv(:,:,:)
     REAL(dp), INTENT(IN), OPTIONAL, TARGET :: send(:,:,:)
     REAL(dp), INTENT(IN), OPTIONAL, TARGET :: add (:,:,:)
@@ -1477,7 +1477,7 @@ CONTAINS
 #ifdef _OPENACC
     LOGICAL :: lzacc
 
-    lzacc = i_am_accel_node
+    lzacc = lacc
 #endif
 
     recv_src => p_pat%recv_src(:)
@@ -1561,9 +1561,10 @@ CONTAINS
 
   ! SEQUENTIAL version of subroutine "exchange_data_s3d"
   !
-  SUBROUTINE exchange_data_s3d_seq(p_pat, recv, send, add)
+  SUBROUTINE exchange_data_s3d_seq(p_pat, lacc, recv, send, add)
 
     CLASS(t_comm_pattern_orig), INTENT(IN), TARGET :: p_pat
+    LOGICAL, INTENT(IN) :: lacc ! If true, use openacc
     REAL(sp), INTENT(INOUT), TARGET        :: recv(:,:,:)
     REAL(sp), INTENT(IN), OPTIONAL, TARGET :: send(:,:,:)
     REAL(sp), INTENT(IN), OPTIONAL, TARGET :: add (:,:,:)
@@ -1578,7 +1579,7 @@ CONTAINS
 #ifdef _OPENACC
     LOGICAL :: lzacc
 
-    lzacc = i_am_accel_node
+    lzacc = lacc
 #endif
 
     recv_src => p_pat%recv_src(:)
@@ -1662,9 +1663,10 @@ CONTAINS
   !================================================================================================
   ! INTEGER SECTION -------------------------------------------------------------------------------
   !
-  SUBROUTINE exchange_data_i3d(p_pat, recv, send, add)
+  SUBROUTINE exchange_data_i3d(p_pat, lacc, recv, send, add)
 
     CLASS(t_comm_pattern_orig), TARGET, INTENT(INOUT) :: p_pat
+    LOGICAL, INTENT(IN) :: lacc ! If true, use openacc
     INTEGER, INTENT(INOUT), TARGET           :: recv(:,:,:)
     INTEGER, INTENT(IN), OPTIONAL, TARGET    :: send(:,:,:)
     INTEGER, INTENT(IN), OPTIONAL, TARGET    :: add (:,:,:)
@@ -1684,7 +1686,7 @@ CONTAINS
 #ifdef _OPENACC
     LOGICAL :: lzacc, use_g2g, use_staging
 
-    lzacc       = i_am_accel_node
+    lzacc       = lacc
     use_g2g     = lzacc .AND.       global_use_g2g
     use_staging = lzacc .AND. .NOT. global_use_g2g
 #endif
@@ -1697,7 +1699,7 @@ CONTAINS
 
     !-----------------------------------------------------------------------
     IF(my_process_is_mpi_seq()) THEN
-      CALL exchange_data_i3d_seq(p_pat, recv, send, add)
+      CALL exchange_data_i3d_seq(p_pat, lacc, recv, send, add)
       RETURN
 !      CALL finish(routine, 'must not be called on single PE/test PE')
     END IF
@@ -1905,9 +1907,10 @@ CONTAINS
 
   ! SEQUENTIAL version of subroutine "exchange_data_s3d"
   !
-  SUBROUTINE exchange_data_i3d_seq(p_pat, recv, send, add)
+  SUBROUTINE exchange_data_i3d_seq(p_pat, lacc, recv, send, add)
 
     CLASS(t_comm_pattern_orig), INTENT(IN), TARGET :: p_pat
+    LOGICAL, INTENT(IN) :: lacc ! If true, use openacc
     INTEGER, INTENT(INOUT), TARGET        :: recv(:,:,:)
     INTEGER, INTENT(IN), OPTIONAL, TARGET :: send(:,:,:)
     INTEGER, INTENT(IN), OPTIONAL, TARGET :: add (:,:,:)
@@ -1922,7 +1925,7 @@ CONTAINS
 #ifdef _OPENACC
     LOGICAL :: lzacc
 
-    lzacc = i_am_accel_node
+    lzacc = lacc
 #endif
 
     recv_src => p_pat%recv_src(:)
@@ -2007,9 +2010,10 @@ CONTAINS
   !================================================================================================
   ! LOGICAL SECTION -------------------------------------------------------------------------------
   !
-  SUBROUTINE exchange_data_l3d(p_pat, recv, send)
+  SUBROUTINE exchange_data_l3d(p_pat, lacc, recv, send)
 
     CLASS(t_comm_pattern_orig), TARGET, INTENT(INOUT) :: p_pat
+    LOGICAL, INTENT(IN) :: lacc ! If true, use openacc
     LOGICAL, INTENT(INOUT), TARGET           :: recv(:,:,:)
     LOGICAL, INTENT(IN), OPTIONAL, TARGET    :: send(:,:,:)
 
@@ -2028,7 +2032,7 @@ CONTAINS
 #ifdef _OPENACC
     LOGICAL :: lzacc, use_g2g, use_staging
 
-    lzacc       = i_am_accel_node
+    lzacc       = lacc
     use_g2g     = lzacc .AND.       global_use_g2g
     use_staging = lzacc .AND. .NOT. global_use_g2g
 #endif
@@ -2208,10 +2212,11 @@ CONTAINS
 
   !! Does data exchange according to a communication pattern (in p_pat).
   !!
-  SUBROUTINE exchange_data_mult(p_pat, ndim2tot, &
+  SUBROUTINE exchange_data_mult(p_pat, lacc, ndim2tot, &
        recv, send, nshift)
 
     CLASS(t_comm_pattern_orig), TARGET, INTENT(INOUT) :: p_pat
+    LOGICAL, INTENT(IN) :: lacc ! If true, use openacc
     INTEGER, INTENT(IN)           :: ndim2tot
     INTEGER, OPTIONAL, INTENT(IN) :: nshift
 
@@ -2237,7 +2242,7 @@ CONTAINS
 #ifdef _OPENACC
     LOGICAL :: lzacc, use_g2g, use_staging
 
-    lzacc       = i_am_accel_node
+    lzacc       = lacc
     use_g2g     = lzacc .AND.       global_use_g2g
     use_staging = lzacc .AND. .NOT. global_use_g2g
 #endif
@@ -2261,9 +2266,9 @@ CONTAINS
     IF(my_process_is_mpi_seq()) THEN
       DO n = 1, nfields
         IF(lsend) THEN
-          CALL exchange_data_r3d_seq(p_pat, recv(n)%p(:,:,:), send(n)%p(:,:,:))
+          CALL exchange_data_r3d_seq(p_pat, lacc, recv(n)%p(:,:,:), send(n)%p(:,:,:))
         ELSE
-          CALL exchange_data_r3d_seq(p_pat, recv(n)%p(:,:,:))
+          CALL exchange_data_r3d_seq(p_pat, lacc, recv(n)%p(:,:,:))
         ENDIF
       ENDDO
       stop_sync_timer(timer_exch_data)
@@ -2493,10 +2498,11 @@ CONTAINS
 
   !! Does data exchange according to a communication pattern (in p_pat).
   !!
-  SUBROUTINE exchange_data_mult_mixprec(p_pat, nfields_dp, ndim2tot_dp, &
+  SUBROUTINE exchange_data_mult_mixprec(p_pat, lacc, nfields_dp, ndim2tot_dp, &
        nfields_sp, ndim2tot_sp, recv_dp, send_dp, recv_sp, send_sp, nshift)
 
     CLASS(t_comm_pattern_orig), TARGET, INTENT(INOUT) :: p_pat
+    LOGICAL, INTENT(IN) :: lacc ! If true, use openacc
 
     INTEGER, INTENT(IN)           :: nfields_dp, ndim2tot_dp, nfields_sp, ndim2tot_sp
     TYPE(t_ptr_3d), PTR_INTENT(in), OPTIONAL :: recv_dp(:)
@@ -2542,7 +2548,7 @@ CONTAINS
 #ifdef _OPENACC
     LOGICAL :: lzacc, use_g2g, use_staging
 
-    lzacc       = i_am_accel_node
+    lzacc       = lacc
     use_g2g     = lzacc .AND.       global_use_g2g
     use_staging = lzacc .AND. .NOT. global_use_g2g
 #endif
@@ -2578,16 +2584,16 @@ CONTAINS
     IF(my_process_is_mpi_seq()) THEN
       DO n = 1, nfields_dp
         IF(lsend) THEN
-          CALL exchange_data_r3d_seq(p_pat, recv_dp(n)%p, send_dp(n)%p)
+          CALL exchange_data_r3d_seq(p_pat, lacc, recv_dp(n)%p, send_dp(n)%p)
         ELSE
-          CALL exchange_data_r3d_seq(p_pat, recv_dp(n)%p)
+          CALL exchange_data_r3d_seq(p_pat, lacc, recv_dp(n)%p)
         ENDIF
       ENDDO
       DO n = 1, nfields_sp
         IF(lsend) THEN
-          CALL exchange_data_s3d_seq(p_pat, recv_sp(n)%p, send_sp(n)%p)
+          CALL exchange_data_s3d_seq(p_pat, lacc, recv_sp(n)%p, send_sp(n)%p)
         ELSE
-          CALL exchange_data_s3d_seq(p_pat, recv_sp(n)%p)
+          CALL exchange_data_s3d_seq(p_pat, lacc, recv_sp(n)%p)
         ENDIF
       ENDDO
       stop_sync_timer(timer_exch_data)
@@ -2916,9 +2922,10 @@ CONTAINS
 
   !! Does data exchange according to a communication pattern (in p_pat).
   !!
-  SUBROUTINE exchange_data_4de1(p_pat, nfields, ndim2tot, recv, send)
+  SUBROUTINE exchange_data_4de1(p_pat, lacc, nfields, ndim2tot, recv, send)
 
     CLASS(t_comm_pattern_orig), TARGET, INTENT(INOUT) :: p_pat
+    LOGICAL, INTENT(IN) :: lacc ! If true, use openacc
 
     REAL(dp), INTENT(INOUT)           :: recv(:,:,:,:)
     REAL(dp), INTENT(IN   ), OPTIONAL :: send(:,:,:,:)
@@ -2945,7 +2952,7 @@ CONTAINS
 #ifdef _OPENACC
     LOGICAL :: lzacc, use_g2g, use_staging
 
-    lzacc       = i_am_accel_node
+    lzacc       = lacc
     use_g2g     = lzacc .AND.       global_use_g2g
     use_staging = lzacc .AND. .NOT. global_use_g2g
 #endif
@@ -3164,10 +3171,11 @@ CONTAINS
 
   !! Does data exchange according to a communication pattern (in p_pat).
   !!
-  SUBROUTINE exchange_data_grf(p_pat_coll, nfields, ndim2tot, recv, send)
+  SUBROUTINE exchange_data_grf(p_pat_coll, lacc, nfields, ndim2tot, recv, send)
 
     CLASS(t_comm_pattern_collection_orig), INTENT(INOUT), TARGET :: p_pat_coll
 
+    LOGICAL, INTENT(IN) :: lacc ! If true, use openacc
     CHARACTER(len=*), PARAMETER :: routine = modname//"::exchange_data_grf"
     INTEGER, INTENT(IN)           :: nfields  ! total number of input fields
     INTEGER, INTENT(IN)           :: ndim2tot ! sum of vertical levels of input fields
@@ -3205,7 +3213,7 @@ CONTAINS
 #ifdef _OPENACC
     LOGICAL :: lzacc, use_g2g, use_staging
 
-    lzacc       = i_am_accel_node
+    lzacc       = lacc
     use_g2g     = lzacc .AND.       global_use_g2g
     use_staging = lzacc .AND. .NOT. global_use_g2g
 #endif
@@ -3690,9 +3698,10 @@ CONTAINS
   !================================================================================================
   ! REAL SECTION ----------------------------------------------------------------------------------
   !
-  SUBROUTINE exchange_data_r2d(p_pat, recv, send, add, l_recv_exists)
+  SUBROUTINE exchange_data_r2d(p_pat, lacc, recv, send, add, l_recv_exists)
     !
     CLASS(t_comm_pattern_orig), INTENT(INOUT), TARGET :: p_pat
+    LOGICAL, INTENT(IN) :: lacc ! If true, use openacc
     REAL(dp), INTENT(INOUT), TARGET        :: recv(:,:)
     REAL(dp), INTENT(IN), OPTIONAL, TARGET :: send(:,:)
     REAL(dp), INTENT(IN), OPTIONAL, TARGET :: add (:,:)
@@ -3708,7 +3717,7 @@ CONTAINS
     ! special treatment for trivial communication patterns of
     ! sequential runs
     IF(my_process_is_mpi_seq()) THEN
-      CALL exchange_data_r2d_seq(p_pat, recv, send, add)
+      CALL exchange_data_r2d_seq(p_pat, lacc, recv, send, add)
       RETURN
     END IF
 
@@ -3720,15 +3729,15 @@ CONTAINS
 
     IF (PRESENT(send)) THEN
       IF (PRESENT(add)) THEN
-        CALL exchange_data_r3d(p_pat, recv3d, send=send3d, add=add3d)
+        CALL exchange_data_r3d(p_pat, lacc, recv3d, send=send3d, add=add3d)
       ELSE
-        CALL exchange_data_r3d(p_pat, recv3d, send=send3d)
+        CALL exchange_data_r3d(p_pat, lacc, recv3d, send=send3d)
       ENDIF
     ELSE
       IF (PRESENT(add)) THEN
-        CALL exchange_data_r3d(p_pat, recv3d, add=add3d)
+        CALL exchange_data_r3d(p_pat, lacc, recv3d, add=add3d)
       ELSE
-        CALL exchange_data_r3d(p_pat, recv3d)
+        CALL exchange_data_r3d(p_pat, lacc, recv3d)
       ENDIF
     ENDIF
 
@@ -3742,9 +3751,10 @@ CONTAINS
   !================================================================================================
   ! REAL SECTION ----------------------------------------------------------------------------------
   !
-  SUBROUTINE exchange_data_s2d(p_pat, recv, send, add, l_recv_exists)
+  SUBROUTINE exchange_data_s2d(p_pat, lacc, recv, send, add, l_recv_exists)
     !
     CLASS(t_comm_pattern_orig), INTENT(INOUT), TARGET :: p_pat
+    LOGICAL, INTENT(IN) :: lacc ! If true, use openacc
     REAL(sp), INTENT(INOUT), TARGET        :: recv(:,:)
     REAL(sp), INTENT(IN), OPTIONAL, TARGET :: send(:,:)
     REAL(sp), INTENT(IN), OPTIONAL, TARGET :: add (:,:)
@@ -3760,7 +3770,7 @@ CONTAINS
     ! special treatment for trivial communication patterns of
     ! sequential runs
     IF(my_process_is_mpi_seq()) THEN
-      CALL exchange_data_s2d_seq(p_pat, recv, send, add)
+      CALL exchange_data_s2d_seq(p_pat, lacc, recv, send, add)
       RETURN
     END IF
 
@@ -3772,15 +3782,15 @@ CONTAINS
 
     IF (PRESENT(send)) THEN
       IF (PRESENT(add)) THEN
-        CALL exchange_data_s3d(p_pat, recv3d, send=send3d, add=add3d)
+        CALL exchange_data_s3d(p_pat, lacc, recv3d, send=send3d, add=add3d)
       ELSE
-        CALL exchange_data_s3d(p_pat, recv3d, send=send3d)
+        CALL exchange_data_s3d(p_pat, lacc, recv3d, send=send3d)
       ENDIF
     ELSE
       IF (PRESENT(add)) THEN
-        CALL exchange_data_s3d(p_pat, recv3d, add=add3d)
+        CALL exchange_data_s3d(p_pat, lacc, recv3d, add=add3d)
       ELSE
-        CALL exchange_data_s3d(p_pat, recv3d)
+        CALL exchange_data_s3d(p_pat, lacc, recv3d)
       ENDIF
     ENDIF
 
@@ -3789,9 +3799,10 @@ CONTAINS
 
   ! SEQUENTIAL version of subroutine "exchange_data_r3d"
   !
-  SUBROUTINE exchange_data_r2d_seq(p_pat, recv, send, add)
+  SUBROUTINE exchange_data_r2d_seq(p_pat, lacc, recv, send, add)
 
     CLASS(t_comm_pattern_orig), INTENT(IN), TARGET :: p_pat
+    LOGICAL, INTENT(IN) :: lacc ! If true, use openacc
     REAL(dp), INTENT(INOUT), TARGET        :: recv(:,:)
     REAL(dp), INTENT(IN), OPTIONAL, TARGET :: send(:,:)
     REAL(dp), INTENT(IN), OPTIONAL, TARGET :: add (:,:)
@@ -3807,7 +3818,7 @@ CONTAINS
 #ifdef _OPENACC
     LOGICAL :: lzacc
 
-    lzacc = i_am_accel_node
+    lzacc = lacc
 #endif
 
     recv_src => p_pat%recv_src(:)
@@ -3868,9 +3879,10 @@ CONTAINS
 
   ! SEQUENTIAL version of subroutine "exchange_data_r3d"
   !
-  SUBROUTINE exchange_data_s2d_seq(p_pat, recv, send, add)
+  SUBROUTINE exchange_data_s2d_seq(p_pat, lacc, recv, send, add)
 
     CLASS(t_comm_pattern_orig), INTENT(IN), TARGET :: p_pat
+    LOGICAL, INTENT(IN) :: lacc ! If true, use openacc
     REAL(sp), INTENT(INOUT), TARGET        :: recv(:,:)
     REAL(sp), INTENT(IN), OPTIONAL, TARGET :: send(:,:)
     REAL(sp), INTENT(IN), OPTIONAL, TARGET :: add (:,:)
@@ -3886,7 +3898,7 @@ CONTAINS
 #ifdef _OPENACC
     LOGICAL :: lzacc
 
-    lzacc = i_am_accel_node
+    lzacc = lacc
 #endif
 
     recv_src => p_pat%recv_src(:)
@@ -3948,9 +3960,10 @@ CONTAINS
   !================================================================================================
   ! INTEGER SECTION -------------------------------------------------------------------------------
   !
-  SUBROUTINE exchange_data_i2d(p_pat, recv, send, add, l_recv_exists)
+  SUBROUTINE exchange_data_i2d(p_pat, lacc, recv, send, add, l_recv_exists)
     !
     CLASS(t_comm_pattern_orig), INTENT(INOUT), TARGET :: p_pat
+    LOGICAL, INTENT(IN) :: lacc ! If true, use openacc
     INTEGER, INTENT(INOUT), TARGET        :: recv(:,:)
     INTEGER, INTENT(IN), OPTIONAL, TARGET :: send(:,:)
     INTEGER, INTENT(IN), OPTIONAL, TARGET :: add (:,:)
@@ -3966,7 +3979,7 @@ CONTAINS
     ! special treatment for trivial communication patterns of
     ! sequential runs
     IF(my_process_is_mpi_seq()) THEN
-      CALL exchange_data_i2d_seq(p_pat, recv, send, add)
+      CALL exchange_data_i2d_seq(p_pat, lacc, recv, send, add)
       RETURN
     END IF
 
@@ -3978,15 +3991,15 @@ CONTAINS
 
     IF (PRESENT(send)) THEN
       IF (PRESENT(add)) THEN
-        CALL exchange_data_i3d(p_pat, recv3d, send=send3d, add=add3d)
+        CALL exchange_data_i3d(p_pat, lacc, recv3d, send=send3d, add=add3d)
       ELSE
-        CALL exchange_data_i3d(p_pat, recv3d, send=send3d)
+        CALL exchange_data_i3d(p_pat, lacc, recv3d, send=send3d)
       ENDIF
     ELSE
       IF (PRESENT(add)) THEN
-        CALL exchange_data_i3d(p_pat, recv3d, add=add3d)
+        CALL exchange_data_i3d(p_pat, lacc, recv3d, add=add3d)
       ELSE
-        CALL exchange_data_i3d(p_pat, recv3d)
+        CALL exchange_data_i3d(p_pat, lacc, recv3d)
       ENDIF
     ENDIF
 
@@ -3995,9 +4008,10 @@ CONTAINS
 
   ! SEQUENTIAL version of subroutine "exchange_data_r3d"
   !
-  SUBROUTINE exchange_data_i2d_seq(p_pat, recv, send, add)
+  SUBROUTINE exchange_data_i2d_seq(p_pat, lacc, recv, send, add)
 
     CLASS(t_comm_pattern_orig), INTENT(IN), TARGET :: p_pat
+    LOGICAL, INTENT(IN) :: lacc ! If true, use openacc
     INTEGER, INTENT(INOUT), TARGET        :: recv(:,:)
     INTEGER, INTENT(IN), OPTIONAL, TARGET :: send(:,:)
     INTEGER, INTENT(IN), OPTIONAL, TARGET :: add (:,:)
@@ -4013,7 +4027,7 @@ CONTAINS
 #ifdef _OPENACC
     LOGICAL :: lzacc
 
-    lzacc = i_am_accel_node
+    lzacc = lacc
 #endif
 
     recv_src => p_pat%recv_src(:)
@@ -4075,9 +4089,10 @@ CONTAINS
   !================================================================================================
   ! LOGICAL SECTION -------------------------------------------------------------------------------
   !
-  SUBROUTINE exchange_data_l2d(p_pat, recv, send, l_recv_exists)
+  SUBROUTINE exchange_data_l2d(p_pat, lacc, recv, send, l_recv_exists)
     !
     CLASS(t_comm_pattern_orig), INTENT(INOUT), TARGET :: p_pat
+    LOGICAL, INTENT(IN) :: lacc ! If true, use openacc
     LOGICAL, INTENT(INOUT), TARGET        :: recv(:,:)
     LOGICAL, INTENT(IN), OPTIONAL, TARGET :: send(:,:)
     LOGICAL, OPTIONAL :: l_recv_exists
@@ -4091,7 +4106,7 @@ CONTAINS
     ! special treatment for trivial communication patterns of
     ! sequential runs
     IF(my_process_is_mpi_seq()) THEN
-      CALL exchange_data_l2d_seq(p_pat, recv, send)
+      CALL exchange_data_l2d_seq(p_pat, lacc, recv, send)
       RETURN
     END IF
 
@@ -4101,9 +4116,9 @@ CONTAINS
     IF (PRESENT(send)) CALL insert_dimension(send3d, send, 2)
 
     IF (PRESENT(send)) THEN
-      CALL exchange_data_l3d(p_pat, recv3d, send=send3d)
+      CALL exchange_data_l3d(p_pat, lacc, recv3d, send=send3d)
     ELSE
-      CALL exchange_data_l3d(p_pat, recv3d)
+      CALL exchange_data_l3d(p_pat, lacc, recv3d)
     ENDIF
 
   END SUBROUTINE exchange_data_l2d
@@ -4111,9 +4126,10 @@ CONTAINS
 
   ! SEQUENTIAL version of subroutine "exchange_data_l3d"
   !
-  SUBROUTINE exchange_data_l2d_seq(p_pat, recv, send)
+  SUBROUTINE exchange_data_l2d_seq(p_pat, lacc, recv, send)
 
     CLASS(t_comm_pattern_orig), INTENT(IN), TARGET :: p_pat
+    LOGICAL, INTENT(IN) :: lacc ! If true, use openacc
     LOGICAL, INTENT(INOUT), TARGET        :: recv(:,:)
     LOGICAL, INTENT(IN), OPTIONAL, TARGET :: send(:,:)
     ! local variables
@@ -4128,7 +4144,7 @@ CONTAINS
 #ifdef _OPENACC
     LOGICAL :: lzacc
 
-    lzacc = i_am_accel_node
+    lzacc = lacc
 #endif
 
     recv_src => p_pat%recv_src(:)

@@ -391,7 +391,7 @@ CONTAINS
         END DO
       END IF
       DO i = 1, SIZE(iod)
-        CALL exchange_data(iod(i)%pat, vd(i)%p, bufo_i(:,:,1,1))
+        CALL exchange_data(p_pat=iod(i)%pat, lacc=.FALSE., recv=vd(i)%p, send=bufo_i(:,:,1,1))
       END DO
     END SUBROUTINE read_multi_var_2dint
 
@@ -411,7 +411,7 @@ CONTAINS
         END DO
       END IF
       DO i = 1, SIZE(iod)
-        CALL exchange_data(iod(i)%pat, vd(i)%p, bufo_d(:,:,1,1))
+        CALL exchange_data(p_pat=iod(i)%pat, lacc=.FALSE., recv=vd(i)%p, send=bufo_d(:,:,1,1))
       END DO
     END SUBROUTINE read_multi_var_2dwp
 
@@ -431,7 +431,7 @@ CONTAINS
         END DO
       END IF
       DO i = 1, SIZE(iod)
-        CALL exchange_data(iod(i)%pat, vd(i)%p, bufo_s(:,:,1,1))
+        CALL exchange_data(p_pat=iod(i)%pat, lacc=.FALSE., recv=vd(i)%p, send=bufo_s(:,:,1,1))
       END DO
     END SUBROUTINE read_multi_var_2dsp
 
@@ -470,10 +470,10 @@ CONTAINS
       DO i = 1, SIZE(iod)
         IF (o .EQ. idx_blk_time) THEN
           DO j = 1, ish(2)
-            CALL exchange_data(iod(i)%pat, vd(i)%p(:,:,j), bufo_i(:,:,j,1))
+            CALL exchange_data(p_pat=iod(i)%pat, lacc=.FALSE., recv=vd(i)%p(:,:,j), send=bufo_i(:,:,j,1))
           END DO
         ELSE IF(o .EQ. idx_lvl_blk) THEN
-          CALL exchange_data(iod(i)%pat, vd(i)%p, bufo_i(:,:,:,1))
+          CALL exchange_data(p_pat=iod(i)%pat, lacc=.FALSE., recv=vd(i)%p, send=bufo_i(:,:,:,1))
         END IF
       END DO
     END SUBROUTINE read_multi_var_3dint
@@ -511,10 +511,10 @@ CONTAINS
       DO i = 1, SIZE(iod)
         IF (o .EQ. idx_blk_time) THEN
           DO j = 1, ish(2)
-            CALL exchange_data(iod(i)%pat, vd(i)%p(:,:,j), bufo_d(:,:,j,1))
+            CALL exchange_data(p_pat=iod(i)%pat, lacc=.FALSE., recv=vd(i)%p(:,:,j), send=bufo_d(:,:,j,1))
           END DO
         ELSE IF(o .EQ. idx_lvl_blk) THEN
-          CALL exchange_data(iod(i)%pat, vd(i)%p, bufo_d(:,:,:,1))
+          CALL exchange_data(p_pat=iod(i)%pat, lacc=.FALSE., recv=vd(i)%p, send=bufo_d(:,:,:,1))
         END IF
       END DO
     END SUBROUTINE read_multi_var_3dwp
@@ -552,10 +552,10 @@ CONTAINS
       DO i = 1, SIZE(iod)
         IF (o .EQ. idx_blk_time) THEN
           DO j = 1, ish(2)
-            CALL exchange_data(iod(i)%pat, vd(i)%p(:,:,j), bufo_s(:,:,j,1))
+            CALL exchange_data(p_pat=iod(i)%pat, lacc=.FALSE., recv=vd(i)%p(:,:,j), send=bufo_s(:,:,j,1))
           END DO
         ELSE IF(o .EQ. idx_lvl_blk) THEN
-          CALL exchange_data(iod(i)%pat, vd(i)%p, bufo_s(:,:,:,1))
+          CALL exchange_data(p_pat=iod(i)%pat, lacc=.FALSE., recv=vd(i)%p, send=bufo_s(:,:,:,1))
         END IF
       END DO
     END SUBROUTINE read_multi_var_3dsp
@@ -583,7 +583,7 @@ CONTAINS
       END IF
       DO i = 1, SIZE(iod)
         DO j = 1, ish(3)
-          CALL exchange_data(iod(i)%pat, vd(i)%p(:,:,:,j), bufo_i(:,:,:,j))
+          CALL exchange_data(p_pat=iod(i)%pat, lacc=.FALSE., recv=vd(i)%p(:,:,:,j), send=bufo_i(:,:,:,j))
         END DO
       END DO
     END SUBROUTINE read_multi_var_4dint
@@ -609,7 +609,7 @@ CONTAINS
       END IF
       DO i = 1, SIZE(iod)
         DO j = 1, ish(3)
-          CALL exchange_data(iod(i)%pat, vd(i)%p(:,:,:,j), bufo_d(:,:,:,j))
+          CALL exchange_data(p_pat=iod(i)%pat, lacc=.FALSE., recv=vd(i)%p(:,:,:,j), send=bufo_d(:,:,:,j))
         END DO
       END DO
     END SUBROUTINE read_multi_var_4dwp
@@ -635,7 +635,7 @@ CONTAINS
       END IF
       DO i = 1, SIZE(iod)
         DO j = 1, ish(3)
-          CALL exchange_data(iod(i)%pat, vd(i)%p(:,:,:,j), bufo_s(:,:,:,j))
+          CALL exchange_data(p_pat=iod(i)%pat, lacc=.FALSE., recv=vd(i)%p(:,:,:,j), send=bufo_s(:,:,:,j))
         END DO
       END DO
     END SUBROUTINE read_multi_var_4dsp

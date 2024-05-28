@@ -977,7 +977,7 @@ CONTAINS
   
     ! --- Exchange of these fields on the parent grid
 
-    CALL exchange_data( p_pp%comm_pat_c, recv=p_vmean )
+    CALL exchange_data(p_pat=p_pp%comm_pat_c, lacc=lzacc, recv=p_vmean )
 
     ! --- Average over the neighbouring parent grid cells
 
@@ -1401,7 +1401,7 @@ CONTAINS
 !$OMP END PARALLEL
 
     ! --- Exchange of these fields on the parent grid
-    CALL exchange_data( p_pp%comm_pat_c, recv=p_nmbr_w )
+    CALL exchange_data(p_pat=p_pp%comm_pat_c, lacc=lzacc, recv=p_nmbr_w )
 
     ! --- Average over the neighbouring parent grid cells
 

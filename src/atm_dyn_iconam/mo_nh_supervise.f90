@@ -35,13 +35,12 @@ MODULE mo_nh_supervise
     &                               min_rlcell_int, min_rledge_int, iheldsuarez
   USE mo_physical_constants,  ONLY: cvd
   USE mo_mpi,                 ONLY: my_process_is_stdio, get_my_mpi_all_id, &
-    &                               process_mpi_stdio_id, i_am_accel_node
+    &                               process_mpi_stdio_id
   USE mo_io_units,            ONLY: find_next_free_unit
   USE mo_sync,                ONLY: global_sum_array, global_max
   USE mo_loopindices,         ONLY: get_indices_c, get_indices_e
   USE mo_impl_constants_grf,  ONLY: grf_bdywidth_c, grf_bdywidth_e
-  USE mo_fortran_tools,       ONLY: init, set_acc_host_or_device, assert_acc_device_only, &
-    & assert_lacc_equals_i_am_accel_node
+  USE mo_fortran_tools,       ONLY: init, set_acc_host_or_device, assert_acc_device_only
   USE mo_nh_diagnose_pres_temp,ONLY: calc_qsum
 
   IMPLICIT NONE
@@ -186,7 +185,6 @@ CONTAINS
     CHARACTER(*), PARAMETER :: routine = modname//"::supervise_total_integrals_nh"
     !-----------------------------------------------------------------------------
 
-    CALL assert_lacc_equals_i_am_accel_node(routine, lacc, i_am_accel_node)
     CALL assert_acc_device_only(routine, lacc)
 
     ! store IDs of all water tracers in a list, including vapor
@@ -866,7 +864,7 @@ CONTAINS
                          grf_bdywidth_e+1, min_rledge_int)
 
       max_hcfl_tmp = 0._wp
-      !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1) IF(i_am_accel_node)
+      !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1)
       !$ACC LOOP GANG VECTOR COLLAPSE(2) REDUCTION(MAX: max_hcfl_tmp)
       DO jk = 1, nlev_hcfl
         DO je = i_startidx, i_endidx

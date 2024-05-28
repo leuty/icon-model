@@ -942,11 +942,11 @@ SUBROUTINE xfer_var_r2(typ, pos_nproma, pos_nblks, p_p, p_lp, arri, arro)
   ! local variables
 
   IF(typ == SYNC_C) THEN
-    CALL exchange_data(comm_pat_glb_to_loc_c, RECV=arro, SEND=arri)
+    CALL exchange_data(p_pat=comm_pat_glb_to_loc_c, lacc=.false., RECV=arro, SEND=arri)
   ELSEIF(typ == SYNC_E) THEN
-    CALL exchange_data(comm_pat_glb_to_loc_e, RECV=arro, SEND=arri)
+    CALL exchange_data(p_pat=comm_pat_glb_to_loc_e, lacc=.false., RECV=arro, SEND=arri)
   ELSEIF(typ == SYNC_V) THEN
-    CALL exchange_data(comm_pat_glb_to_loc_v, RECV=arro, SEND=arri)
+    CALL exchange_data(p_pat=comm_pat_glb_to_loc_v, lacc=.false., RECV=arro, SEND=arri)
   ELSE
     CALL finish ('mo_interpolation:xfer_var','Illegal type for sync')
   ENDIF
