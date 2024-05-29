@@ -20,7 +20,7 @@ if test ! -z "${BB_NAME-}"; then
   set -x
 fi
 
-${ICON_DIR}/config/mpim/${LINUX_CODENAME}.intel --disable-yaxt --disable-openmp
+${ICON_DIR}/config/mpim/${LINUX_CODENAME}.intel --disable-yaxt --disable-openmp --enable-separate-mods
 
 MAKE_PROCS=8
 make -j ${MAKE_PROCS}

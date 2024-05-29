@@ -45,6 +45,7 @@ spack-configure-args.txt
 *.L
 *.a
 *.i
+*.i90
 *.il
 *.lst
 *.o
