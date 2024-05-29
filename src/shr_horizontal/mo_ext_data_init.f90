@@ -1364,6 +1364,10 @@ CONTAINS
           IF ( atm_phy_nwp_config(jg)%icpl_aero_gscp == 3  ) THEN
             ! cloud droplet climatology (time dependent monthly means)
             CALL read_extdata('cdnc',   arr3d=ext_data(jg)%atm_td%cdnc)
+!$OMP PARALLEL
+            ! cdnc climatology is in cm**-3, here is the conversion to m**-3
+            CALL var_scale(ext_data(jg)%atm_td%cdnc, 1.0e6_wp, lacc=.FALSE.)
+!$OMP END PARALLEL
           END IF
 
           !--------------------------------

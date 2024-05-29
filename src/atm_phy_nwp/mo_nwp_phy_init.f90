@@ -1926,9 +1926,8 @@ END SUBROUTINE init_nwp_phy
     INTEGER  :: imo1, imo2
     INTEGER  :: rl_start, rl_end, i_startblk, i_endblk, i_startidx, i_endidx
     INTEGER  :: jb, jc
-    LOGICAL  :: landpoint
 
-    REAL(wp) :: wgt, zlat, ncloud
+    REAL(wp) :: wgt
 
     TYPE(t_time_interpolation_weights) :: current_time_interpolation_weights
 
@@ -1952,45 +1951,16 @@ END SUBROUTINE init_nwp_phy
     i_endblk   = p_patch%cells%end_block(rl_end)
 
 !$OMP PARALLEL
-!$OMP DO PRIVATE(jb,jc,i_startidx,i_endidx,zlat,landpoint,ncloud)
+!$OMP DO PRIVATE(jb,jc,i_startidx,i_endidx)
     DO jb = i_startblk, i_endblk
 
       CALL get_indices_c(p_patch, jb, i_startblk, i_endblk, i_startidx, i_endidx, rl_start, rl_end)
-
         DO jc = i_startidx, i_endidx
-
-          zlat = p_patch%cells%center(jc,jb)%lat*rad2deg
- 
-          landpoint = (ext_data%atm%llsm_atm_c(jc,jb) .OR. ext_data%atm%llake_c(jc,jb))
-
-          ! Initialize a background value of 30 cm-3 
-          prm_diag%cloud_num(jc,jb) = 30e6_wp
-
-          ! Increase cloud_num in Southern Ocean toward pole
-          ncloud = 120e6_wp * MIN(ABS(zlat)/90.0_wp,1.0_wp)
-          ncloud = MAX(prm_diag%cloud_num(jc,jb),ncloud)
-          prm_diag%cloud_num(jc,jb) = MERGE(ncloud, prm_diag%cloud_num(jc,jb), zlat < 0.0_wp )
-
-          ! Now overwrite with cloud droplet number climatology 
-          ncloud = ( ext_data%atm_td%cdnc(jc,jb,imo1) + &
-                   ( ext_data%atm_td%cdnc(jc,jb,imo2) - ext_data%atm_td%cdnc(jc,jb,imo1) ) * wgt ) * 1e6_wp
-          prm_diag%cloud_num(jc,jb) = MERGE(ncloud, prm_diag%cloud_num(jc,jb), ncloud > 0.0e6_wp )
-          ! Over land except Antarctica should be at least 175 cm-3
-          IF ( landpoint .AND. zlat > -57.0_wp) THEN
-            prm_diag%cloud_num(jc,jb) = MAX(175e6_wp, prm_diag%cloud_num(jc,jb))
-          ENDIF
-
-          ! Replace too small values over ocean in Antarctica with 70 cm-3
-          IF ( zlat <= -57.0_wp) THEN
-            prm_diag%cloud_num(jc,jb) = MAX(70e6_wp, prm_diag%cloud_num(jc,jb))
-          ENDIF
-
-          ! Default 100cm-3 over ocean in towards Arctics 
-          IF ( .NOT. landpoint .AND. zlat > 57.0_wp) THEN
-            prm_diag%cloud_num(jc,jb) = MAX(100e6_wp, prm_diag%cloud_num(jc,jb))
-          ENDIF
-
+          ! Calculate the weighted average of monthly cloud droplet number
+          prm_diag%cloud_num(jc,jb) = ( ext_data%atm_td%cdnc(jc,jb,imo1) + &
+                   ( ext_data%atm_td%cdnc(jc,jb,imo2) - ext_data%atm_td%cdnc(jc,jb,imo1) ) * wgt )
         ENDDO
+
     ENDDO
 !$OMP END DO
 !$OMP END PARALLEL

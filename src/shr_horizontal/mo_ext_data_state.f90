@@ -1550,9 +1550,9 @@ CONTAINS
 
       END IF  ! albedo_type
 
-      ! cloud droplet climatology (2d array without time coordinate)
+      ! cloud droplet climatology
       IF ( atm_phy_nwp_config(jg)%icpl_aero_gscp == 3  ) THEN
-        cf_desc    = t_cf_var('Cloud_droplet_number_from_climatology', '-',         &
+        cf_desc    = t_cf_var('Cloud_droplet_number_from_climatology', 'm-3',       &
              &                'Cloud droplet number from climatology', datatype_flt)
         grib2_desc = grib2_var(255, 255, 255, ibits, GRID_UNSTRUCTURED, GRID_CELL)
         CALL add_var( p_ext_atm_list, 'cdnc_climatology', p_ext_atm%cdnc,           &
@@ -1799,7 +1799,7 @@ CONTAINS
 
     IF ( atm_phy_nwp_config(jg)%icpl_aero_gscp == 3  ) THEN
       ! cloud droplet number climatology
-      cf_desc    = t_cf_var('cdnc', '-',                                     &
+      cf_desc    = t_cf_var('cdnc', 'm-3',                                   &
         &                   'cloud droplet number climatology', datatype_flt)
       grib2_desc = grib2_var( 255, 255, 255, ibits, GRID_UNSTRUCTURED, GRID_CELL)
       CALL add_var( p_ext_atm_td_list, 'cdnc', p_ext_atm_td%cdnc,            &
