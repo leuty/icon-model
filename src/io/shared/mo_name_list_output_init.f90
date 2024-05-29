@@ -791,7 +791,7 @@ CONTAINS
       END DO
     END DO
     ! temporary variables needed for variable group parsing
-    ALLOCATE(varlist(ntotal_vars), grp_vars(ntotal_vars), stat=ierrstat)
+    ALLOCATE(varlist(ntotal_vars), stat=ierrstat)
     IF (ierrstat /= SUCCESS) CALL finish (routine, 'ALLOCATE failed.')
 
     ! -- loop over all output namelists
@@ -890,7 +890,7 @@ CONTAINS
 
     END DO ! p_onl
 
-    DEALLOCATE(varlist, grp_vars, STAT=ierrstat)
+    DEALLOCATE(varlist, STAT=ierrstat)
     IF (ierrstat /= SUCCESS) CALL finish (routine, 'DEALLOCATE failed.')
   END SUBROUTINE parse_variable_groups
 

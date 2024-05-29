@@ -118,7 +118,7 @@ CONTAINS
 
     TYPE(t_vl_register_iter) :: iter
     INTEGER :: group_id
-    CHARACTER(len=vname_len) :: savedGroup(1000)
+    CHARACTER(len=vname_len), ALLOCATABLE :: savedGroup(:)
     INTEGER :: savedGroupSize
     INTEGER :: i, jg
 #if defined(__PGI) || defined(__FLANG)
@@ -249,7 +249,7 @@ CONTAINS
     INTEGER :: group_id
 
     INTEGER :: i, jg
-    CHARACTER(len=vname_len) :: savedGroup(1000)
+    CHARACTER(len=vname_len), ALLOCATABLE :: savedGroup(:)
     INTEGER :: savedGroupSize
 
     IF (.NOT. p_patch%ldom_active) RETURN
@@ -359,7 +359,7 @@ CONTAINS
     TYPE(t_vl_register_iter) :: iter
     INTEGER :: group_id
     INTEGER :: i, jg
-    CHARACTER(len=vname_len) :: savedGroup(1000)
+    CHARACTER(len=vname_len), ALLOCATABLE :: savedGroup(:)
     INTEGER :: savedGroupSize
 
     IF (.NOT. p_patch%ldom_active) RETURN
