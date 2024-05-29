@@ -137,7 +137,7 @@ $addexp "checksuite.icon-dev/check.mch_opr_r19b07_2m"                     --buil
 # add tolerance check for 2-moment scheme using gscp=5
 $addexp "checksuite.icon-dev/check.mch_opr_r19b07_2m_gscp5"               --builders "balfrin_cpu_nvidia balfrin_cpu_nvidia_mixed alps_mch_test_cpu DAINT_CPU_nvidia DAINT_GPU_nvidia" --list $listname
 # add tolerance check for the explicit 2-moment scheme
-$addexp "checksuite.icon-dev/check.mch_opr_r19b07_2m_expl"                --builders "balfrin_cpu_nvidia balfrin_cpu_nvidia_mixed balfrin_gpu_nvidia balfrin_gpu_nvidia_mixed alps_mch_test_cpu alps_mch_test_gpu DAINT_CPU_nvidia DAINT_GPU_nvidia" --list $listname
+$addexp "checksuite.icon-dev/check.mch_opr_r19b07_2m_expl"                --builders "balfrin_cpu_nvidia balfrin_cpu_nvidia_mixed balfrin_gpu_nvidia balfrin_gpu_nvidia_mixed alps_mch_test_cpu alps_mch_test_gpu" --list $listname
 # add tolerance check for 3d-turbulence scheme
 $addexp "checksuite.icon-dev/check.mch_opr_r19b07_turb"                   --builders "balfrin_cpu_nvidia balfrin_cpu_nvidia_mixed balfrin_gpu_nvidia balfrin_gpu_nvidia_mixed alps_mch_test_cpu alps_mch_test_gpu DAINT_CPU_nvidia DAINT_GPU_nvidia" --list $listname
 # add tolerance check for c2sm seaice case

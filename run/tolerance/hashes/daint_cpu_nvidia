@@ -6,12 +6,11 @@ builder: daint_cpu_nvidia
 # The list below maps each experiment to its current experiment_hash
 "atm_qubicc_nc_test": 2ef5edaca65615a8da343385b5734536a9aee9d6
 "c2sm_clm_r13b03_seaice": 77dda8043ab4b030fc01d241057bdb27b80c7447
-"exclaim_ape_R02B04": 0d9dd5f1c9f28588db2d231d12a5b225df30485c
+"exclaim_ape_R02B04": 55b39dad85c7eb727d429e8667ea1d139bff6d33
 "mch_ch_r04b09_dace": 700ee1864a125205870b681d666558b384eddf8b
 "mch_ch_r04b09_dace_synsat": 48e12723a6c05517878bf3bf87b1ae9c0fefa322
 "mch_opr_r04b07_sstice_inst": fd6e23a08a345d046277739bb8f59d9c4dd84a2a
-"mch_opr_r19b07_2m": b62abbddf6392c7b2bfeb4a344520debd2c1074a
-"mch_opr_r19b07_2m_expl": 24c81ddc87d6752f9c91813b023457dc629fbc83
-"mch_opr_r19b07_2m_gscp5": ef6a0a385fb5885bde9f143ef2f89f7204a7d782
+"mch_opr_r19b07_2m": 00fcf71c6c68eb0e6bfc8b2283198f5db1a406a6
+"mch_opr_r19b07_2m_gscp5": 5f9a55d759ff0c01b6a2a959efe766b77facd194
 "mch_opr_r19b07_midnight": 9bcabf450a91f99213b5b89bf0051807dd5b36bd
-"mch_opr_r19b07_turb": b09023dfd30f5638e66acd6494e99f8ed32b2eff
+"mch_opr_r19b07_turb": 51e31b9b86096206da6f617030036d215b356a7a

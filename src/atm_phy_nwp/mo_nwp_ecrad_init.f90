@@ -176,12 +176,14 @@ CONTAINS
     ! Gas model and spectral bands: RRTMG or ecckd
     SELECT CASE (ecrad_igas_model)
       CASE(0)
-        ecrad_conf%i_gas_model = IGasModelIFSRRTMG  !< Use RRTM gas model
+        ecrad_conf%i_gas_model_sw = IGasModelIFSRRTMG  !< Use RRTM gas model
+        ecrad_conf%i_gas_model_lw = IGasModelIFSRRTMG  !< Use RRTM gas model
         ! Although the following switches are meant for ecckd, we set them to false to prevent unexpected behavior when accessing these switches
         ecrad_conf%do_cloud_aerosol_per_lw_g_point = .false.
         ecrad_conf%do_cloud_aerosol_per_sw_g_point = .false.
       CASE(1)
-        ecrad_conf%i_gas_model = IGasModelECCKD  !< Use ecckd gas model
+        ecrad_conf%i_gas_model_sw = IGasModelECCKD  !< Use ecckd gas model
+        ecrad_conf%i_gas_model_lw = IGasModelECCKD  !< Use ecckd gas model
         ecrad_conf%do_cloud_aerosol_per_lw_g_point = .true.
         ecrad_conf%do_cloud_aerosol_per_sw_g_point = .true.
       CASE DEFAULT
@@ -291,8 +293,10 @@ CONTAINS
 
     END IF
 
-    IF (ecrad_conf%i_gas_model == IGasModelIFSRRTMG) THEN
+    IF (ecrad_conf%i_gas_model_sw == IGasModelIFSRRTMG .AND. ecrad_conf%i_gas_model_lw == IGasModelIFSRRTMG) THEN
       ecrad_conf%do_setup_ifsrrtm = .true.
+    ELSE IF (ecrad_conf%i_gas_model_sw .NE. ecrad_conf%i_gas_model_lw) THEN
+      CALL finish(routine, "Differing gas models for LW and SW are currently unsupported. ")
     ELSE
       ecrad_conf%do_setup_ifsrrtm = .false.
     ENDIF
@@ -551,8 +555,11 @@ CONTAINS
       CALL finish(routine,'ecrad_conf%use_canopy_full_spectrum_sw not ported to GPU.')
     ENDIF
 
-    IF (ecrad_conf%i_gas_model == IGasModelMonochromatic .OR. ecrad_conf%i_gas_model == IGasModelECCKD) THEN
-      CALL finish(routine,'config%i_gas_model == IGasModelMonochromatic/IGasModelECCKD not ported to GPU.')
+    IF (ecrad_conf%i_gas_model_sw == IGasModelMonochromatic .OR. &
+        ecrad_conf%i_gas_model_sw == IGasModelECCKD .OR.         &
+        ecrad_conf%i_gas_model_lw == IGasModelMonochromatic .OR. &
+        ecrad_conf%i_gas_model_lw == IGasModelECCKD) THEN
+      CALL finish(routine,'config%i_gas_model_sw/lw == IGasModelMonochromatic/IGasModelECCKD not ported to GPU.')
     ENDIF
 
     IF (ecrad_conf%do_save_radiative_properties) THEN

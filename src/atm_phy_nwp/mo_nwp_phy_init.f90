@@ -959,8 +959,10 @@ SUBROUTINE init_nwp_phy ( p_patch, p_metrics,             &
           !
           ! Setup Tegen aerosol needs to be done only once for all domains
           IF (irad_aero == iRadAeroTegen .OR. irad_aero == iRadAeroART) THEN
-            IF (ecrad_conf%i_gas_model == IGasModelIFSRRTMG) THEN
+            IF (ecrad_conf%i_gas_model_sw == IGasModelIFSRRTMG .AND. ecrad_conf%i_gas_model_lw == IGasModelIFSRRTMG) THEN
               CALL init_aerosol_props_tegen_ecrad(ecrad_conf, .TRUE.)
+            ELSE IF (ecrad_conf%i_gas_model_sw .NE. ecrad_conf%i_gas_model_lw ) THEN
+              CALL finish(routine, "Differing gas models for LW and SW are currently unsupported. ")
             ELSE
               CALL init_aerosol_props_tegen_ecrad(ecrad_conf, .FALSE.)
             ENDIF !ecrad_conf%i_gas_model
