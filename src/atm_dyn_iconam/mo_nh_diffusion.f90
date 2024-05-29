@@ -309,10 +309,11 @@ MODULE mo_nh_diffusion
     !$ACC   CREATE(z_nabla4_e, z_nabla4_e2, z_nabla2_e, z_nabla2_c, enh_diffu_3d, icount) &
     !$ACC   CREATE(z_vn_ie, z_vt_ie) &
     !$ACC   COPYIN(nrdmax, diff_multfac_vn, diff_multfac_n2w, diff_multfac_smag, smag_limit, smag_blending) &
-    !$ACC   PRESENT(p_patch, p_int, p_nh_prog, p_nh_diag, p_nh_metrics) &
-    !$ACC   PRESENT(ividx, ivblk, iecidx, iecblk, icidx, icblk, ieidx, ieblk, kh_smag_e) &
     !$ACC   IF(i_am_accel_node)
 
+    !$ACC DATA PRESENT(p_patch, p_int, p_nh_prog, p_nh_diag, p_nh_metrics) &
+    !$ACC   PRESENT(ividx, ivblk, iecidx, iecblk, icidx, icblk, ieidx, ieblk) &
+    !$ACC   PRESENT(kh_smag_e) IF(i_am_accel_node)
 !!! Following variables may be present in certain situations, but we don't want it to fail in the general case.
 !!! Should actually be in a separate data region with correct IF condition.
 !!! !$ACC               p_nh_diag%div_ic, p_nh_diag%dwdx, p_nh_diag%dwdy, p_nh_diag%hdef_ic,                     &
@@ -1575,6 +1576,7 @@ MODULE mo_nh_diffusion
     IF (ltimer) CALL timer_stop(timer_nh_hdiffusion)
 
     !$ACC WAIT(1)
+    !$ACC END DATA
     !$ACC END DATA
 
 #ifdef _OPENACC
