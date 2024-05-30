@@ -45,7 +45,7 @@ MODULE mo_interface_aes_tmx
   USE mo_aes_vdf_config      ,ONLY: aes_vdf_config
   USE mo_model_domain        ,ONLY: t_patch
   USE mo_impl_constants_grf  ,ONLY: grf_bdywidth_c
-  USE mo_impl_constants      ,ONLY: min_rlcell_int, min_rlcell
+  USE mo_impl_constants      ,ONLY: min_rlcell_int, min_rlcell,max_dom
   USE mo_loopindices         ,ONLY: get_indices_c
   USE mo_nh_testcases_nml    ,ONLY: nh_test_name
 
@@ -60,9 +60,13 @@ MODULE mo_interface_aes_tmx
 
   IMPLICIT NONE
   PRIVATE
-  PUBLIC  :: interface_aes_tmx, init_tmx, vdf
+  PUBLIC  :: interface_aes_tmx, init_tmx, vdf_dom
 
-  TYPE(t_vdf), POINTER :: vdf
+  TYPE :: t_vdf_p
+    TYPE(t_vdf), POINTER :: p
+  END TYPE t_vdf_p
+
+  TYPE(t_vdf_p) :: vdf_dom(max_dom)
 
   LOGICAL, SAVE :: l_init_or_restart = .TRUE.
 
@@ -94,6 +98,8 @@ CONTAINS
     INTEGER :: fc_vdf
     TYPE(t_aes_phy_field)   ,POINTER    :: field
     TYPE(t_aes_phy_tend)    ,POINTER    :: tend
+
+    TYPE(t_vdf), POINTER :: vdf
 
     ! Local variables
     !
@@ -140,6 +146,7 @@ CONTAINS
     ! fc_vdf    =  aes_phy_config(jg)%fc_vdf
     field     => prm_field(jg)
     tend      => prm_tend (jg)
+    vdf       => vdf_dom  (jg)%p
 
     nlevm1 = nlev-1
     nlevp1 = nlev+1
@@ -160,7 +167,7 @@ CONTAINS
         jbs = patch%cells%start_block(rls)
         jbe = patch%cells%end_block  (rle)
 
-        IF (.NOT. aes_vdf_config(1)%use_tmx) THEN
+        IF (.NOT. aes_vdf_config(jg)%use_tmx) THEN
           CALL finish(routine, 'ERROR: namelist parameter aes_vdf_config%use_tmx=.FALSE.!')
         END IF
 
@@ -513,6 +520,8 @@ CONTAINS
     TYPE(t_nh_diag),      POINTER :: p_nh_diag
     TYPE(t_nh_prog),      POINTER :: p_nh_prog
 
+    TYPE(t_vdf), POINTER :: vdf
+
     TYPE(t_patch), POINTER :: patch
     INTEGER :: nlev, nlevp1, jg
     INTEGER :: rls, rle, jbs, jbe, jcs, jce, jb, jc
@@ -527,7 +536,7 @@ CONTAINS
 
     patch => p_patch
 
-    jg = 1
+    jg = patch%id
 
     nlev = patch%nlev
     nlevp1 = nlev + 1
@@ -556,11 +565,11 @@ CONTAINS
     END DO
 !$OMP END PARALLEL DO
 
-    field     => prm_field(1)
-    tend      => prm_tend (1)
-    p_nh_metrics => p_nh_state(1)%metrics
-    p_nh_diag => p_nh_state(1)%diag
-    p_nh_prog => p_nh_state(1)%prog(nnow(1))
+    field     => prm_field(jg)
+    tend      => prm_tend (jg)
+    p_nh_metrics => p_nh_state(jg)%metrics
+    p_nh_diag => p_nh_state(jg)%diag
+    p_nh_prog => p_nh_state(jg)%prog(nnow(jg))
 
     ! Question: use fields from AES field or from e.g. p_nh_state_lists(jg)%metrics p_nh_state_lists(jg)%diag? !!!!!!!!!!
 
@@ -589,15 +598,15 @@ CONTAINS
     ! Bind variables to atmo config list
     CALL bind_variable(vdf%atmo%config%list%Search('cpd'), cpd)
     CALL bind_variable(vdf%atmo%config%list%Search('cvd'), cvd)
-    CALL bind_variable(vdf%atmo%config%list%Search('minimum Km'),aes_vdf_config(1)%km_min)
-    CALL bind_variable(vdf%atmo%config%list%Search('reverse prandtl number'),aes_vdf_config(1)%rturb_prandtl)
-    CALL bind_variable(vdf%atmo%config%list%Search('prandtl number'),aes_vdf_config(1)%turb_prandtl)
-    CALL bind_variable(vdf%atmo%config%list%Search('switch to activate Louis formula'),aes_vdf_config(1)%use_louis)
-    CALL bind_variable(vdf%atmo%config%list%Search('Louis constant b'),aes_vdf_config(1)%louis_constant_b)
+    CALL bind_variable(vdf%atmo%config%list%Search('minimum Km'),aes_vdf_config(jg)%km_min)
+    CALL bind_variable(vdf%atmo%config%list%Search('reverse prandtl number'),aes_vdf_config(jg)%rturb_prandtl)
+    CALL bind_variable(vdf%atmo%config%list%Search('prandtl number'),aes_vdf_config(jg)%turb_prandtl)
+    CALL bind_variable(vdf%atmo%config%list%Search('switch to activate Louis formula'),aes_vdf_config(jg)%use_louis)
+    CALL bind_variable(vdf%atmo%config%list%Search('Louis constant b'),aes_vdf_config(jg)%louis_constant_b)
     CALL bind_variable(vdf%atmo%config%list%Search('time step'),dtime)
-    CALL bind_variable(vdf%atmo%config%list%Search('solver type'), aes_vdf_config(1)%solver_type)
-    CALL bind_variable(vdf%atmo%config%list%Search('energy type'), aes_vdf_config(1)%energy_type)
-    CALL bind_variable(vdf%atmo%config%list%Search('dissipation factor'), aes_vdf_config(1)%dissipation_factor)
+    CALL bind_variable(vdf%atmo%config%list%Search('solver type'), aes_vdf_config(jg)%solver_type)
+    CALL bind_variable(vdf%atmo%config%list%Search('energy type'), aes_vdf_config(jg)%energy_type)
+    CALL bind_variable(vdf%atmo%config%list%Search('dissipation factor'), aes_vdf_config(jg)%dissipation_factor)
 
     ! Bind variables to atmo input list
     ! 3d
@@ -794,6 +803,8 @@ CONTAINS
     CALL bind_variable(vdf%sfc%diagnostics%list%Search('10m meridional wind, tile'),                    field%vas_tile)
 
     CALL vdf%Lock_variable_sets()
+
+    vdf_dom(jg)%p => vdf
 
   END SUBROUTINE init_tmx
 

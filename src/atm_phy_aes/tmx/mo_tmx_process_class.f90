@@ -41,6 +41,7 @@ MODULE mo_tmx_process_class
     CHARACTER(LEN=:),      ALLOCATABLE :: name         !< Process name
     TYPE(t_domain),        POINTER     :: domain       !< Spatial domain
     REAL(wp)                           :: dt           !< Time step
+    LOGICAL                            :: is_initial_time
     TYPE(t_tmx_field_list)             :: states       !< State variables
     TYPE(t_variable_list)              :: tendencies   !< Tendency variables
     TYPE(t_variable_list)              :: new_states   !< New state variables
@@ -102,6 +103,7 @@ CONTAINS
     TYPE(t_domain),       POINTER,    OPTIONAL :: domain
 
     this%dt = dt
+    this%is_initial_time = .TRUE.
 
     IF (PRESENT(name)) THEN
       this%name = name

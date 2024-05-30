@@ -21,7 +21,7 @@ if test ! -z "${BB_NAME-}"; then
 fi
 
 # Make sure we disable all features that require MPI:
-${ICON_DIR}/config/mpim/${LINUX_CODENAME}.intel --disable-mpi --disable-parallel-netcdf --disable-coupling --disable-yaxt --enable-openmp
+${ICON_DIR}/config/mpim/${LINUX_CODENAME}.intel --disable-mpi --disable-parallel-netcdf --disable-coupling --disable-yaxt --enable-openmp --enable-separate-mods
 
 MAKE_PROCS=8
 make -j ${MAKE_PROCS}

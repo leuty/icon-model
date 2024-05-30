@@ -194,8 +194,6 @@ MODULE mo_vdf_sfc
     PROCEDURE :: Set_pointers => Set_pointers_diagnostics
   END TYPE t_vdf_sfc_diagnostics
 
-  LOGICAL, SAVE :: l_init = .TRUE.
-
   CHARACTER(len=*), PARAMETER :: modname = 'mo_vdf_sfc'
 
 CONTAINS
@@ -263,7 +261,7 @@ CONTAINS
 
     CHARACTER(len=*), PARAMETER :: routine = modname//':Compute'
 
-    jg = 1
+    jg = this%domain%patch%id
 
     !$ACC DATA CREATE(new_tsfc_rad, new_tsfc_eff, lwfl_net, swfl_net)
 
@@ -524,7 +522,7 @@ CONTAINS
 
     ! CALL message(routine, '')
 
-    jg = 1
+    jg = this%domain%patch%id
 
     SELECT TYPE (set => this%config)
     TYPE IS (t_vdf_sfc_config)
@@ -563,7 +561,7 @@ CONTAINS
     DO jtile=1,this%domain%ntiles
 
       ! Surface saturated humidity
-      CALL compute_sfc_sat_spec_humidity(l_init .AND. .NOT. isrestart(), this%domain, this%domain%sfc_types(jtile), &
+      CALL compute_sfc_sat_spec_humidity(this%is_initial_time .AND. .NOT. isrestart(), this%domain, this%domain%sfc_types(jtile), &
         & diags%nvalid(:,jtile), diags%indices(:,:,jtile), &
         & ins%psfc(:,:), ins%tsfc_tile(:,:,jtile), diags%qsat_tile(:,:,jtile))
 
@@ -572,7 +570,7 @@ CONTAINS
         ! & diags%qsat_tile(:,:,jtile), ins%psfc(:,:), ins%ta(:,:), diags%rho_tile(:,:,jtile))
         & diags%qsat_tile(:,:,jtile), ins%psfc(:,:), ins%tsfc_tile(:,:,jtile), diags%rho_tile(:,:,jtile))
 
-      IF (l_init .AND. .NOT. isrestart()) THEN
+      IF (this%is_initial_time .AND. .NOT. isrestart()) THEN
 
         IF (this%domain%sfc_types(jtile) == isfc_lnd) THEN
           ! Compute inital 10m wind for update_land
@@ -639,7 +637,7 @@ CONTAINS
         rough_min = 0._wp
       END IF
       ! Uses old value of km_tile before computation of new exchange coefficients (only in case of ocean)
-      CALL compute_sfc_roughness(l_init .AND. .NOT. isrestart(), this%domain, this%domain%sfc_types(jtile), &
+      CALL compute_sfc_roughness(this%is_initial_time .AND. .NOT. isrestart(), this%domain, this%domain%sfc_types(jtile), &
         & diags%nvalid(:,jtile), diags%indices(:,:,jtile), rough_min, conf%rough_m_oce, conf%rough_m_ice, &
         & diags%wind(:,:), diags%km_tile(:,:,jtile), diags%rough_h_tile(:,:,jtile), diags%rough_m_tile(:,:,jtile))
 
@@ -714,7 +712,8 @@ CONTAINS
 
     CHARACTER(len=*), PARAMETER :: routine = modname//':Update_diagnostics'
 
-    jg = 1
+
+    jg = this%domain%patch%id
 
     SELECT TYPE (set => this%config)
     TYPE IS (t_vdf_sfc_config)
@@ -753,7 +752,7 @@ CONTAINS
     CALL average_tiles(this%domain, ins%fract_tile, diags%nvalid, diags%indices, diags%km_tile, diags%km, 'km')
     CALL average_tiles(this%domain, ins%fract_tile, diags%nvalid, diags%indices, diags%kh_tile, diags%kh, 'kh')
 
-    IF (l_init) l_init = .FALSE.
+    IF (this%is_initial_time) this%is_initial_time = .FALSE.
 
     ! CALL message(routine, 'end')
 

@@ -1502,6 +1502,13 @@ CONTAINS
       &          dflt_g2_decl_cell,&
       &          ldims=(/nproma,alloc_cell_blocks/),in_group=groups_oce_dde)
 
+    ! bottom pressure
+    CALL add_var(ocean_default_list, 'bottom_pressure', ocean_state_diag%bottom_pressure , grid_unstructured_cell,za_surface, &
+      &          t_cf_var('bottom_pressure', 'Pa', 'ocean bottom pressure', datatype_flt),&
+      &          dflt_g2_decl_cell,&
+      &          ldims=(/nproma,alloc_cell_blocks/),in_group=groups_oce_diag) !, lopenacc=.TRUE.)
+    !__acc_attach(ocean_state_diag%bottom_pressure)
+
     IF (diagnose_for_heat_content) THEN
 
     CALL add_var(ocean_default_list, 'global_heat_content', ocean_state_diag%monitor%global_heat_content , &

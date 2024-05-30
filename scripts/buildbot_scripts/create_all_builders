@@ -90,9 +90,11 @@ machine=levante
 
 machine=jsc
 ./addmachine $machine --list $list
-./addbuilder cluster_gcc         --machine $machine  --build_script="config/buildbot/cluster_gcc"   --builderflags="Inactive" --list $list
-./addbuilder cluster_intel       --machine $machine  --build_script="config/buildbot/cluster_intel"   --builderflags="build_only" --list $list
-./addbuilder booster_nvhpc       --machine $machine  --build_script="config/buildbot/booster_nvhpc"   --builderflags="build_only" --list $list
+./addbuilder cluster_intel_ompi  --machine $machine  --build_script="config/buildbot/cluster_intel_ompi"   --builderflags="Inactive" --list $list
+./addbuilder cluster_intel_psmpi --machine $machine  --build_script="config/buildbot/cluster_intel_psmpi"  --builderflags="Inactive" --list $list
+./addbuilder cluster_nvhpc_psmpi --machine $machine  --build_script="config/buildbot/cluster_nvhpc_psmpi"  --builderflags="Inactive" --list $list
+./addbuilder booster_nvhpc_ompi  --machine $machine  --build_script="config/buildbot/booster_nvhpc_ompi"   --builderflags="Inactive" --list $list
+./addbuilder booster_nvhpc_psmpi --machine $machine  --build_script="config/buildbot/booster_nvhpc_psmpi"  --builderflags="Inactive" --list $list
 
 # KIT builders
 machine=horeka

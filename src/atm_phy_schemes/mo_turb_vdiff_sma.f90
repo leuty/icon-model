@@ -580,7 +580,7 @@ CONTAINS
 
     !Get rho at interfaces to be used later
     CALL vert_intp_full2half_cell_3d(p_patch, p_nh_metrics, rho, rho_ic, &
-                                     2, min_rlcell_int-2, lacc=.TRUE.)
+                                     1, min_rlcell_int-2, lacc=.TRUE.)
     
     ! Compute the Brunt Vaisala frequency where theta_v was defined
                                      
