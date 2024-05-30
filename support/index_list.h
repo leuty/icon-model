@@ -11,6 +11,9 @@
 
 #pragma once
 
+// Fortan interface to the following functions is
+// implemented in ../src/shared/mo_index_list.f90
+
 #ifdef __HIP__
 #include <iostream>
 #include <hip/hip_runtime.h>
@@ -20,7 +23,7 @@ using gpuStream_t = hipStream_t;
 using gpuStream_t = cudaStream_t;
 #endif
 
-#ifdef __cplusplus // Are we compiling this with a C++ compiler ?
+#ifdef __cplusplus
 extern "C"
 {
 #endif

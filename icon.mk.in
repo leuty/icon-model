@@ -108,7 +108,7 @@ find_files= $(sort $(patsubst $(srcdir)/%,%, \
                     -a \( $(foreach p,$(2),-name $(p) -o) -false \) -print)))
 
 # All source files:
-all_files:= $(call find_files,$(subdirs),'*.f90' '*.inc' '*.incf' '*.c' '*.cu')
+all_files:= $(call find_files,$(subdirs),'*.f90' '*.inc' '*.incf' '*.c' '*.cu' '*.hip.cc')
 
 # JSBACH sources (must be preprocessed with DSL4JSB):
 @JSBACH_ENABLED@JSBACH_subdir:= externals/jsbach/src
@@ -132,8 +132,8 @@ f90_files:= $(filter %.f90,$(all_files))
 c_files:= $(filter %.c,$(all_files))
 # CUDA '.cu' source files:
 @CUDA_ENABLED@cu_files:= $(filter %.cu,$(all_files))
-# HIP '.cu' source files (TODO: change the extension for HIP files):
-@HIP_ENABLED@hip_files:= $(filter %.cu,$(all_files))
+# HIP '.hip.cc' source files:
+@HIP_ENABLED@hip_files:= $(filter %.hip.cc,$(all_files))
 
 # Relative paths to the directories with Fortran include files:
 inc_subdirs:= $(patsubst %/,%,$(sort $(dir $(filter %.inc %.incf,$(all_files)))))
@@ -340,6 +340,7 @@ nodep_targets:= preprocess depend mostlyclean clean distclean config-bundled \
 vpath %.f90 $(srcdir)
 vpath %.c $(srcdir)
 vpath %.cu $(srcdir)
+vpath %.hip.cc $(srcdir)
 
 ################### PATTERN- AND TARGET-SPECIFIC ASSIGNMENTS ###################
 
@@ -560,7 +561,7 @@ sanitize-mod-proxies:
 @CUDA_ENABLED@	$(silent_CUDACXX)$(CUDACXX) -o $@ -c $(CUDAFLAGS) $<
 
 # HIP compilation rule:
-@HIP_ENABLED@%.@OBJEXT@: %.cu | $(dir_file)
+@HIP_ENABLED@%.@OBJEXT@: %.hip.cc | $(dir_file)
 @HIP_ENABLED@	$(silent_HIPCXX)$(HIPCXX) -o $@ -c $(HIPFLAGS) $<
 
 ######################### DSL4JSB PREPROCESSING RULES ##########################
@@ -655,8 +656,8 @@ version.c: force-create-version
 @CUDA_ENABLED@	$(silent_DEPGEN)$(DEPGEN) @depgen.c.config --pp-inc-sys -o $@ --obj-name $(@:.cu.d=.@OBJEXT@) -i $< -- $(CUDAFLAGS)
 
 # HIP dependency generation rule:
-@HIP_ENABLED@%.cu.d: %.cu icon.mk depgen.c.config | $(dir_files)
-@HIP_ENABLED@	$(silent_DEPGEN)$(DEPGEN) @depgen.c.config --pp-inc-sys -o $@ --obj-name $(@:.cu.d=.@OBJEXT@) -i $< -- $(HIPFLAGS)
+@HIP_ENABLED@%.hip.cc.d: %.hip.cc icon.mk depgen.c.config | $(dir_files)
+@HIP_ENABLED@	$(silent_DEPGEN)$(DEPGEN) @depgen.c.config --pp-inc-sys -o $@ --obj-name $(@:.hip.cc.d=.@OBJEXT@) -i $< -- $(HIPFLAGS)
 
 # Dependency generation rule for Fortran-to-C bindings:
 c_binding.d: icon.mk
@@ -665,7 +666,7 @@ c_binding.d: icon.mk
 	  echo '$(call get_obj_names,support/mo_util_uuid.f90): #-hint support/util_uuid.@OBJEXT@'; \
 	  echo '$(call get_obj_names,src/shared/mo_util_vcs.f90): #-hint version.@OBJEXT@'; \
 	  echo '@ART_ENABLED@$(call get_obj_names,$(ART_subdir)/shared/mo_art_util_vcs.f90): #-hint version.@OBJEXT@'; \
-	  echo '@GPU_ENABLED@$(call get_obj_names,src/shared/mo_index_list.f90): #-hint src/shared_cuda/index_list_cuda.@OBJEXT@'; \
+	  echo '@GPU_ENABLED@$(call get_obj_names,src/shared/mo_index_list.f90): #-hint support/index_list.@OBJEXT@'; \
 	  echo '@DACE_ENABLED@$(call get_obj_names,$(DACE_subdir)/mo_wigos.f90): #-hint $(DACE_subdir)/dace_md5_ifc.@OBJEXT@ $(DACE_subdir)/md5.@OBJEXT@'; \
 	} >$@
 
