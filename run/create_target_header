@@ -100,9 +100,10 @@ export OMP_STACKSIZE=${use_omp_stacksize:-200M}
 #
 # MPI variables
 # -------------
-no_of_nodes=${use_nodes}
+: \${no_of_nodes:=${use_nodes}} \${mpi_procs_pernode:=${use_mpi_procs_pernode}}
+export no_of_nodes
+export mpi_procs_pernode
 num_io_procs=${use_num_io_procs}
-mpi_procs_pernode=$use_mpi_procs_pernode
 ((mpi_total_procs=no_of_nodes * mpi_procs_pernode))
 #
 # blocking length

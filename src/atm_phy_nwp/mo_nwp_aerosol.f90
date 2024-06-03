@@ -394,7 +394,7 @@ CONTAINS
           IF (i_startidx>i_endidx) CYCLE
 
           CALL nwp_aerosol_kinne(mtime_datetime, zf(:,:,jb), zh(:,:,jb), dz(:,:,jb),   &
-            &                    pt_patch%id, jb, i_endidx, pt_patch%nlev,             &
+            &                    pt_patch%id, jb, i_startidx, i_endidx, pt_patch%nlev, &
             &                    nbands_lw, nbands_sw, wavenum1_sw(:), wavenum2_sw(:), &
             &                    od_lw(:,:,jb,:), od_sw(:,:,jb,:),                     &
             &                    ssa_sw(:,:,jb,:), g_sw(:,:,jb,:)                      )
@@ -518,7 +518,7 @@ CONTAINS
   END SUBROUTINE nwp_aerosol_daily_update_kinne
 
   !---------------------------------------------------------------------------------------
-  SUBROUTINE nwp_aerosol_kinne(mtime_datetime, zf, zh, dz, jg, jb, i_endidx, nlev, &
+  SUBROUTINE nwp_aerosol_kinne(mtime_datetime, zf, zh, dz, jg, jb, i_startidx, i_endidx, nlev, &
     &                          nbands_lw, nbands_sw, wavenum1_sw, wavenum2_sw,     &
     &                          od_lw, od_sw, ssa_sw, g_sw)
     TYPE(datetime), POINTER, INTENT(in) :: &
@@ -529,6 +529,7 @@ CONTAINS
       &  wavenum2_sw(:)                      !< Shortwave wavenumber upper band bounds
     INTEGER, INTENT(in) ::                 &
       &  jg, jb,                           & !< Domain and block index
+      &  i_startidx,                       & !< Loop bound
       &  i_endidx,                         & !< Loop bound
       &  nlev,                             & !< Number of vertical levels
       &  nbands_lw, nbands_sw                !< Number of short and long wave bands
@@ -554,7 +555,7 @@ CONTAINS
     ! Tropospheric Kinne aerosol
     IF (ANY( irad_aero == (/iRadAeroConstKinne,iRadAeroKinne,iRadAeroKinneVolc, &
       &                     iRadAeroKinneVolcSP,iRadAeroKinneSP/) )) THEN
-      CALL set_bc_aeropt_kinne(mtime_datetime, jg, 1, i_endidx, nproma, nlev, jb, &
+      CALL set_bc_aeropt_kinne(mtime_datetime, jg, i_startidx, i_endidx, nproma, nlev, jb, &
         &                      nbands_sw, nbands_lw, zf(:,:), dz(:,:),            &
         &                      od_sw_vr(:,:,:), ssa_sw_vr(:,:,:),                 &
         &                      g_sw_vr (:,:,:), od_lw_vr(:,:,:)                   )
@@ -562,7 +563,7 @@ CONTAINS
 
     ! Volcanic stratospheric aerosols for CMIP6
     IF (ANY( irad_aero == (/iRadAeroVolc,iRadAeroKinneVolc,iRadAeroKinneVolcSP/) )) THEN 
-     CALL add_bc_aeropt_cmip6_volc(mtime_datetime, jg, 1, i_endidx, nproma, nlev, jb, &
+     CALL add_bc_aeropt_cmip6_volc(mtime_datetime, jg, i_startidx, i_endidx, nproma, nlev, jb, &
        &                           nbands_sw, nbands_lw, zf(:,:), dz(:,:),            &
        &                           od_sw_vr(:,:,:), ssa_sw_vr(:,:,:),                 &
        &                           g_sw_vr (:,:,:), od_lw_vr(:,:,:)                   )
@@ -570,7 +571,7 @@ CONTAINS
 
     ! Simple plumes
     IF (ANY( irad_aero == (/iRadAeroKinneVolcSP,iRadAeroKinneSP/) )) THEN
-      CALL add_bc_aeropt_splumes(jg, 1, i_endidx, nproma, nlev, jb,  &
+      CALL add_bc_aeropt_splumes(jg, i_startidx, i_endidx, nproma, nlev, jb,  &
         &                        nbands_sw, mtime_datetime,          &
         &                        zf(:,:), dz(:,:), zh(:,nlev+1),     &
         &                        wavenum1_sw(:), wavenum2_sw(:),     &
