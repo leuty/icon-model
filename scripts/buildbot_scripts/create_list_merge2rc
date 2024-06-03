@@ -191,6 +191,7 @@ $addexp checksuite.rcnl.dwd.de/exp.run_ICON-SCM_02_REAL.run                    -
 $addexp checksuite.rcnl.dwd.de/exp.run_ICON-SCM_03_LANFEX.run                  --builders DWD_nec --list $listname
 # ART experiments
 $addexp checksuite.nwp/nwpexp.run_ICON-ART_01_R3B08_lam_initmode7_pollen       --builders DWD_nec --list $listname
+$addexp checksuite.icon-dev/check.dwd_art_dustrad_R2B4N5                       --builders DWD_nec --list $listname
 
 # DWD_nec_yac2
 $addexp checksuite.nwp/nwpexp.run_ICON_17_R2B4_AO_coupled                      --builders DWD_nec_yac2 --list $listname
