@@ -36,7 +36,7 @@ MODULE mo_nwp_aerosol
   USE mo_reader_cams,             ONLY: t_cams_reader
   USE mo_interpolate_time,        ONLY: t_time_intp, intModeLinearMonthlyClim, intModeLinear
   USE mo_io_units,                ONLY: filename_max
-  USE mo_fortran_tools,           ONLY: set_acc_host_or_device
+  USE mo_fortran_tools,           ONLY: set_acc_host_or_device, assert_acc_host_only
   USE mo_util_string,             ONLY: int2string, associate_keyword, t_keyword_list, with_keywords
 ! ICON configuration
   USE mo_atm_phy_nwp_config,      ONLY: atm_phy_nwp_config, iprog_aero, icpl_aero_conv
@@ -54,6 +54,8 @@ MODULE mo_nwp_aerosol
   USE mo_bc_aeropt_splumes,       ONLY: add_bc_aeropt_splumes
   USE mo_bcs_time_interpolation,  ONLY: t_time_interpolation_weights,         &
     &                                   calculate_time_interpolation_weights
+  USE mo_io_config,               ONLY: var_in_output
+
 #ifdef __ICON_ART
   USE mo_aerosol_util,            ONLY: tegen_scal_factors
   USE mo_art_radiation_interface, ONLY: art_rad_aero_interface
@@ -182,12 +184,15 @@ CONTAINS
       &  cams(:,:,:,:)           !< CAMS climatology fields taken from external file 
     INTEGER ::                 &
       &  jk, jc, jb, jt,       &
+      &  jg,                   & !< Domain index
       &  rl_start, rl_end,     &
       &  i_startblk, i_endblk, &
       &  i_startidx, i_endidx, &
       &  istat,                & !< Error code
       &  imo1 , imo2             !< Month index (current and next month)
     LOGICAL :: lzacc
+
+    jg     = pt_patch%id
 
     CALL set_acc_host_or_device(lzacc, lacc)
   
@@ -399,6 +404,10 @@ CONTAINS
             &                    od_lw(:,:,jb,:), od_sw(:,:,jb,:),                     &
             &                    ssa_sw(:,:,jb,:), g_sw(:,:,jb,:)                      )
 
+          IF ( var_in_output(jg)%aod_550nm ) THEN
+            CALL calc_aod550_kinne(i_startidx, i_endidx, pt_patch%nlev, od_sw(:,:,jb,10), &
+              &                    prm_diag%aod_550nm(:,jb), lacc)
+          END IF
 
           ! Compute cloud number concentration depending on aerosol climatology
           ! if aerosol-microphysics or aerosol-convection coupling is turned on
@@ -482,6 +491,38 @@ CONTAINS
     END SELECT
 
   END SUBROUTINE nwp_aerosol_interface
+
+
+  SUBROUTINE calc_aod550_kinne(i_startidx, i_endidx, nlev, od_sw_band10, aod_550nm, lacc)
+
+    INTEGER,  INTENT(in)                :: &
+      &  i_startidx, i_endidx, nlev             !< loop start and end indices (nproma, vertical)
+    REAL(wp), INTENT(in)                :: &
+      &  od_sw_band10(:,:)                      !< Shortwave optical thickness 10th band range (442 - 625nm)
+    REAL(wp), INTENT(inout)             :: &
+      &  aod_550nm(:)                           !< cloud droplet number concentration
+    LOGICAL,  INTENT(in), OPTIONAL      :: &
+      &  lacc                                   !< If true, use openacc
+
+    INTEGER :: jk, jc
+
+    ! Output AOD in SW band 550nm
+    ! 10th band range (442 - 625nm) is used to output aod_550 nm
+    ! due to a lack of spectrally resolved information for a particular wavelength
+
+    CALL assert_acc_host_only("calc_aod550_kinne", lacc)
+
+    DO jc = i_startidx, i_endidx
+      aod_550nm(jc) = 0.0_wp
+    ENDDO
+
+    DO jk = 1, nlev
+      DO jc = i_startidx, i_endidx
+        aod_550nm(jc) = aod_550nm(jc) + od_sw_band10(jc,jk)
+      ENDDO !jc
+    ENDDO !jk
+
+  END SUBROUTINE calc_aod550_kinne
 
   !---------------------------------------------------------------------------------------
   SUBROUTINE nwp_aerosol_daily_update_kinne(mtime_datetime, pt_patch, dt_rad, inwp_radiation, nbands_lw, nbands_sw)

@@ -505,7 +505,8 @@ MODULE mo_nwp_phy_types
       cloudtop(:,:),       & !< Cloud Top
       srh(:,:,:),          & !< Storm relative helicity with right-moving storm motion after Bunkers et al. (2000)
       tot_pr_max(:,:),     & !< Time maximum total precipitation rate
-      hpbl(:,:)              !< Boundary layer height  (m)
+      hpbl(:,:),           & !< Boundary layer height  (m)
+      aod_550nm(:,:)         !< aerosol optical depth visible 550 nm (spectral band 25)
 
     ! Buffer field needed when vertical nesting is combined with a reduced radiation
     ! grid and latm_above_top = .TRUE.

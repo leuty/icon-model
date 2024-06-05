@@ -76,7 +76,9 @@ USE mo_atm_phy_nwp_config,  ONLY: atm_phy_nwp_config, icpl_aero_conv, iprog_aero
 USE turb_data,              ONLY: ltkecon
 USE mo_initicon_config,     ONLY: icpl_da_sfcevap, icpl_da_snowalb, icpl_da_skinc, icpl_da_seaice
 USE mo_radiation_config,    ONLY: irad_aero, iRadAeroTegen, iRadAeroART, iRadAeroNone, &
-                                  iRadAeroConst, iRadAeroCAMSclim, iRadAeroCAMStd, islope_rad
+                                  iRadAeroConst, iRadAeroCAMSclim, iRadAeroCAMStd, islope_rad, &
+                                  iRadAeroConstKinne, iRadAeroKinne, iRadAeroVolc, iRadAeroKinneVolc, &
+                                  iRadAeroKinneVolcSP, iRadAeroKinneSP
 USE mo_lnd_nwp_config,      ONLY: ntiles_total, ntiles_water, nlev_soil
 USE mo_nwp_tuning_config,   ONLY: itune_gust_diag
 USE mo_var_list,            ONLY: add_var, add_ref, t_var_list_ptr
@@ -480,6 +482,7 @@ SUBROUTINE new_nwp_phy_diag_list( k_jg, klev, klevp1, kblks,    &
       &     diag%w_ctmax, &
       &     diag%wshear_u, &
       &     diag%wshear_v, &
+      &     diag%aod_550nm,   &
       &     diag%z_pbl)
 
 
@@ -2811,6 +2814,19 @@ SUBROUTINE new_nwp_phy_diag_list( k_jg, klev, klevp1, kblks,    &
       & GRID_UNSTRUCTURED_CELL, ZA_SURFACE, cf_desc, grib2_desc,          &
       & ldims=shape2d, lrestart=lrestart, lopenacc=.TRUE. )
     __acc_attach(diag%conv_eis)
+
+    IF (var_in_output%aod_550nm) THEN
+      IF (ANY (irad_aero == (/iRadAeroConstKinne, iRadAeroKinne, iRadAeroVolc, iRadAeroKinneVolc, iRadAeroKinneVolcSP,  &
+          iRadAeroKinneSP/))) THEN  ! Kinne aerosol climatology
+
+        ! &      diag%aod_550nm(nproma,nblks_c)
+        cf_desc    = t_cf_var('aod_550nm', '-', 'aerosol optical depth 550 nm', datatype_flt)
+        grib2_desc = grib2_var(255, 255, 255, ibits, GRID_UNSTRUCTURED, GRID_CELL)
+        CALL add_var( diag_list, 'aod_550nm', diag%aod_550nm,           &
+          & GRID_UNSTRUCTURED_CELL, ZA_SURFACE, cf_desc, grib2_desc, ldims=shape2d, lrestart=.FALSE., &
+          & lopenacc=.FALSE.)
+      ENDIF
+    ENDIF  ! var_in_output
 
     !------------------
     !Radiation 3D variables

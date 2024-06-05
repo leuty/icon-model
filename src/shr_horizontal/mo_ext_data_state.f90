@@ -562,7 +562,7 @@ CONTAINS
       grib2_desc = grib2_var( 2, 0, 192, ibits, GRID_UNSTRUCTURED, GRID_CELL)
       CALL add_var( p_ext_atm_list, 'fr_glac', p_ext_atm%fr_glac, &
         &           GRID_UNSTRUCTURED_CELL, ZA_SURFACE, cf_desc,          &
-        &           grib2_desc, ldims=shape2d_c, loutput=.FALSE.,         &
+        &           grib2_desc, ldims=shape2d_c, loutput=.TRUE.,         &
         &           lopenacc=.TRUE. )
       __acc_attach(p_ext_atm%fr_glac)
 
