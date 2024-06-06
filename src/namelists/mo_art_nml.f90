@@ -115,6 +115,10 @@ MODULE mo_art_nml
   INTEGER :: iart_aci_cold           !< Nucleation of aerosol to cloud ice
   INTEGER :: iart_ari                !< Direct interaction of aerosol with radiation
 
+  LOGICAL :: lart_dusty_cirrus       !< Dusty cirrus parameterization in cloud cover scheme
+  REAL(wp):: dustyci_crit            !< Dust threshold for dusty cirrus  [mug/kg]
+  REAL(wp):: dustyci_rhi             !< RHi  threshold for dusty cirrus  [-]
+
   ! Treatment of grid scale and convective precipitation in dust washout
   INTEGER :: iart_aero_washout       !< 0:gscp+con; 1:gscp,con; 2:gscp,rcucov*con
 
@@ -133,21 +137,21 @@ MODULE mo_art_nml
   REAL(wp):: radioact_maxtint(1:max_dom)
 
 
-  NAMELIST/art_nml/ cart_input_folder, lart_chem, lart_chemtracer, lart_mecca,         &
-   &                cart_io_suffix, lart_pntSrc, lart_aerosol, iart_seasalt, iart_dust,&
-   &                iart_anthro, iart_fire, iart_volcano, cart_volcano_file,           &
-   &                iart_fplume, iart_volc_numb ,cart_fplume_inp, iart_radioact,       &
-   &                cart_radioact_file, iart_pollen, iart_nonsph, iart_isorropia,      &
-   &                iart_seas_water,                                                   &
-   &                iart_modeshift, iart_aci_warm, iart_aci_cold, iart_ari,            &
-   &                iart_aero_washout, lart_conv, lart_turb, iart_init_aero,           &
-   &                iart_init_gas, lart_diag_out, cart_emiss_xml_file,                 &
-   &                cart_ext_data_xml, cart_vortex_init_date , cart_cheminit_file,     &
-   &                cart_cheminit_coord, cart_cheminit_type,                           &
-   &                lart_emiss_turbdiff, nart_substeps_sedi,                           &
-   &                cart_chemtracer_xml, cart_mecca_xml, cart_aerosol_xml,             &
-   &                cart_modes_xml, cart_pntSrc_xml, cart_diagnostics_xml,             &
-   &                lart_psc, cart_coag_xml, cart_aero_emiss_xml, cart_type_sedim,     &
+  NAMELIST/art_nml/ cart_input_folder, lart_chem, lart_chemtracer, lart_mecca,          &
+   &                cart_io_suffix, lart_pntSrc, lart_aerosol, iart_seasalt, iart_dust, &
+   &                iart_anthro, iart_fire, iart_volcano, cart_volcano_file,            &
+   &                iart_fplume, iart_volc_numb, cart_fplume_inp, iart_radioact,        &
+   &                cart_radioact_file, iart_pollen, iart_nonsph, iart_isorropia,       &
+   &                iart_seas_water, lart_dusty_cirrus, dustyci_crit, dustyci_rhi,      &
+   &                iart_modeshift, iart_aci_warm, iart_aci_cold, iart_ari,             &
+   &                iart_aero_washout, lart_conv, lart_turb, iart_init_aero,            &
+   &                iart_init_gas, lart_diag_out, cart_emiss_xml_file,                  &
+   &                cart_ext_data_xml, cart_vortex_init_date , cart_cheminit_file,      &
+   &                cart_cheminit_coord, cart_cheminit_type,                            &
+   &                lart_emiss_turbdiff, nart_substeps_sedi,                            &
+   &                cart_chemtracer_xml, cart_mecca_xml, cart_aerosol_xml,              &
+   &                cart_modes_xml, cart_pntSrc_xml, cart_diagnostics_xml,              &
+   &                lart_psc, cart_coag_xml, cart_aero_emiss_xml, cart_type_sedim,      &
    &                lart_debugRestart, radioact_maxtint
 
 CONTAINS
@@ -233,6 +237,10 @@ CONTAINS
     iart_aci_warm       = 0
     iart_aci_cold       = 0
     iart_ari            = 0
+    ! Dusty cirrus
+    lart_dusty_cirrus   = .FALSE.
+    dustyci_crit        = 70.0_wp
+    dustyci_rhi         = 0.90_wp
 
     ! Treatment of grid scale and convective precipitation in dust washout
     iart_aero_washout   = 0
@@ -318,6 +326,10 @@ CONTAINS
       IF (iart_aci_cold == 7 .AND. iart_dust == 0) THEN
         CALL finish('mo_art_nml:read_art_namelist',  &
           &         'Invalid combination: iart_aci_cold = 7 and iart_dust = 0')
+      ENDIF
+      IF (lart_dusty_cirrus .AND. iart_dust == 0) THEN
+        CALL finish('mo_art_nml:read_art_namelist',  &
+          &         'Invalid combination: lart_dusty_cirrus = .TRUE. and iart_dust = 0')
       ENDIF
   
       ! Emission paths and file
@@ -410,10 +422,14 @@ CONTAINS
       art_config(jg)%iart_pollen         = iart_pollen
       art_config(jg)%iart_modeshift      = iart_modeshift
       
-     ! Feedback processes (Details: cf. Tab. 2.4 ICON-ART User Guide)
+      ! Feedback processes (Details: cf. Tab. 2.4 ICON-ART User Guide)
       art_config(jg)%iart_aci_warm       = iart_aci_warm
       art_config(jg)%iart_aci_cold       = iart_aci_cold
       art_config(jg)%iart_ari            = iart_ari
+      ! Dusty cirrus
+      art_config(jg)%lart_dusty_cirrus   = lart_dusty_cirrus
+      art_config(jg)%dustyci_crit        = dustyci_crit
+      art_config(jg)%dustyci_rhi         = dustyci_rhi
 
       ! Treatment of grid scale and convective precipitation in dust washout
       art_config(jg)%iart_aero_washout   = iart_aero_washout
