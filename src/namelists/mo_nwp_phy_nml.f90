@@ -83,6 +83,7 @@ MODULE mo_nwp_phy_nml
 
   INTEGER  :: itype_z0           !! type of roughness length data
   INTEGER  :: icpl_aero_gscp     !! type of aerosol-microphysics coupling
+  LOGICAL  :: lscale_cdnc        !! switch to activate the scaling of external CDNCs
   INTEGER  :: icpl_aero_ice      !! type of aerosol-ice nucleation coupling
   INTEGER  :: icpl_aero_conv     !! type of coupling between aerosols and convection scheme
   INTEGER  :: iprog_aero         !! type of prognostic aerosol
@@ -128,7 +129,8 @@ MODULE mo_nwp_phy_nml
     &                    ldetrain_conv_prec, rain_n0_factor,         &
     &                    icalc_reff, lupatmo_phy, icpl_rad_reff,     &
     &                    lgrayzone_deepconv, ithermo_water,          &
-    &                    lsbm_warm_full, lcuda_graph_turb_tran
+    &                    lsbm_warm_full, lcuda_graph_turb_tran,      &
+    &                    lscale_cdnc
 
 CONTAINS
 
@@ -240,6 +242,10 @@ CONTAINS
                         ! 1 = simple coupling with aerosol climatology disregarding the dependency of aerosol activation on vertical wind speed
                         ! 2 = more accurate coupling with aerosol climatology as a function of vertical wind speed
                         ! 3 = like 1 but using the cdnc from external parameter 
+
+    ! scaling of external CDNCs (only for icpl_aero_gscp = 3), mainly for climate projections
+    lscale_cdnc = .FALSE.  ! FALSE - no scaling
+                           ! TRUE  - scaling according to the temporal evolution of the simple plumes
 
     ! coupling between aersols and ice nucleation
     icpl_aero_ice = 0   ! 0 = Cooper (1986)
@@ -529,6 +535,7 @@ CONTAINS
       atm_phy_nwp_config(jg)%rain_n0_factor  = rain_n0_factor
       atm_phy_nwp_config(jg)%mu_snow         = mu_snow
       atm_phy_nwp_config(jg)%icpl_aero_gscp  = icpl_aero_gscp
+      atm_phy_nwp_config(jg)%lscale_cdnc     = lscale_cdnc
       atm_phy_nwp_config(jg)%icalc_reff      = icalc_reff (jg)
       atm_phy_nwp_config(jg)%icpl_rad_reff   = icpl_rad_reff (jg)
       atm_phy_nwp_config(jg)%ithermo_water   = ithermo_water(jg)

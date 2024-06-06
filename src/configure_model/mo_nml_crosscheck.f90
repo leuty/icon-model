@@ -373,6 +373,15 @@ CONTAINS
             CALL finish(routine,'aerosol-precipitation coupling requires irad_aero=6,7,8,9,12,13,14,15,18 or 19')
           ENDIF
 
+          ! reset lscale_cdnc to .false. if the SP scheme or icpl_aero_gscp = 3 (or both) are not set
+          IF ( atm_phy_nwp_config(jg)%lscale_cdnc .AND. atm_phy_nwp_config(jg)%icpl_aero_gscp /= 3 ) THEN
+            IF ( .NOT. ANY ( irad_aero ==  (/iRadAeroKinneVolcSP, iRadAeroKinneSP/) ) ) THEN
+              atm_phy_nwp_config(jg)%lscale_cdnc = .false.
+              CALL message(routine,'cdnc scaling is only effective in combination with the simple plumes &
+                                   &(irad_aero=18,19) and icpl_aero_gscp = 3; reset lscale_cdnc to .false.')
+            ENDIF
+          ENDIF
+
           ! check if CAMS/Tegen aerosols are available for DeMott ice nucleation scheme
           IF (icpl_aero_ice == 1 .AND. .NOT. ANY(irad_aero == (/iRadAeroTegen, iRadAeroCAMSclim, iRadAeroCAMStd/) ) ) &
             & CALL finish(routine,'icpl_aero_ice = 1 requires irad_aero= 6,7 or 8')

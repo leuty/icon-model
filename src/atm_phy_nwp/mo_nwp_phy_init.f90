@@ -995,6 +995,12 @@ SUBROUTINE init_nwp_phy ( p_patch, p_metrics,             &
         ! Read ozone transient data
         IF (irad_o3 == 5) CALL read_bc_ozone(ini_date%date%year,p_patch,irad_o3,vmr2mmr_opt=o3mr2gg)
 
+        ! cloud_num_fac is used in clim_cdnc, but is only available after the 1st call of init_slowphys
+        ! however, clim_cdnc has to be called once before the 1st call of init_slowphys
+        IF (atm_phy_nwp_config(jg)%lscale_cdnc .AND. linit_mode) THEN
+          prm_diag%cloud_num_fac(:,:) = 1._wp
+        ENDIF
+
         !------------------------------------------------------------
         ! Initialize solar flux in SW bands and solar constant (W/m2)
         !------------------------------------------------------------
@@ -1959,6 +1965,11 @@ END SUBROUTINE init_nwp_phy
           ! Calculate the weighted average of monthly cloud droplet number
           prm_diag%cloud_num(jc,jb) = ( ext_data%atm_td%cdnc(jc,jb,imo1) + &
                    ( ext_data%atm_td%cdnc(jc,jb,imo2) - ext_data%atm_td%cdnc(jc,jb,imo1) ) * wgt )
+
+          ! scaling of external cdnc with a scaling factor derived from the simple plumes
+          IF ( atm_phy_nwp_config(p_patch%id)%lscale_cdnc ) THEN
+              prm_diag%cloud_num(jc,jb) = prm_diag%cloud_num_fac(jc,jb) * prm_diag%cloud_num(jc,jb)
+          ENDIF
         ENDDO
 
     ENDDO

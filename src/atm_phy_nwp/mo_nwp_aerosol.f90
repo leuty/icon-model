@@ -178,6 +178,7 @@ CONTAINS
       &  jk_vr, jband            !< Loop indices
 #endif
     REAL(wp) ::                &
+      &  cloud_num_fac(nproma),& !< Scaling factor (simple plumes) for CDNC
       &  latitude(nproma),     & !< Geographical latitude
       &  time_weight             !< Weihting for temporal interpolation
     REAL(wp),  ALLOCATABLE ::  &
@@ -402,7 +403,11 @@ CONTAINS
             &                    pt_patch%id, jb, i_startidx, i_endidx, pt_patch%nlev, &
             &                    nbands_lw, nbands_sw, wavenum1_sw(:), wavenum2_sw(:), &
             &                    od_lw(:,:,jb,:), od_sw(:,:,jb,:),                     &
-            &                    ssa_sw(:,:,jb,:), g_sw(:,:,jb,:)                      )
+            &                    ssa_sw(:,:,jb,:), g_sw(:,:,jb,:), cloud_num_fac(:)    )
+
+          IF ( atm_phy_nwp_config(pt_patch%id)%lscale_cdnc ) THEN
+            prm_diag%cloud_num_fac(:,jb) = cloud_num_fac(:)
+          ENDIF
 
           IF ( var_in_output(jg)%aod_550nm ) THEN
             CALL calc_aod550_kinne(i_startidx, i_endidx, pt_patch%nlev, od_sw(:,:,jb,10), &
@@ -561,7 +566,7 @@ CONTAINS
   !---------------------------------------------------------------------------------------
   SUBROUTINE nwp_aerosol_kinne(mtime_datetime, zf, zh, dz, jg, jb, i_startidx, i_endidx, nlev, &
     &                          nbands_lw, nbands_sw, wavenum1_sw, wavenum2_sw,     &
-    &                          od_lw, od_sw, ssa_sw, g_sw)
+    &                          od_lw, od_sw, ssa_sw, g_sw, cloud_num_fac)
     TYPE(datetime), POINTER, INTENT(in) :: &
       &  mtime_datetime                      !< Current datetime
     REAL(wp), INTENT(in) ::                &
@@ -576,17 +581,22 @@ CONTAINS
       &  nbands_lw, nbands_sw                !< Number of short and long wave bands
     REAL(wp), INTENT(out) ::               &
       &  od_lw(:,:,:), od_sw(:,:,:),       & !< LW/SW optical thickness
-      &  ssa_sw(:,:,:), g_sw(:,:,:)          !< SW asymmetry factor, SW single scattering albedo
+      &  ssa_sw(:,:,:), g_sw(:,:,:),       & !< SW asymmetry factor, SW single scattering albedo
+      &  cloud_num_fac(:)                    !< Scaling factor for Cloud Droplet Number Concentration;
+                                             !< if lscale_cdnc, cloud_num_fac = x_cdnc / x_cdnc_ref
     ! Local variables
+    TYPE(datetime), POINTER ::             &
+      & mtime_2005                           !< local copy of mtime_datetime, used for x_cdnc scaling
     REAL(wp) ::                            &
       &  od_lw_vr (nproma,nlev,nbands_lw), & !< LW optical thickness of aerosols    (vertically reversed)
       &  od_sw_vr (nproma,nlev,nbands_sw), & !< SW aerosol optical thickness        (vertically reversed)
       &  g_sw_vr  (nproma,nlev,nbands_sw), & !< SW aerosol asymmetry factor         (vertically reversed)
       &  ssa_sw_vr(nproma,nlev,nbands_sw)    !< SW aerosol single scattering albedo (vertically reversed)
     REAL(wp) ::                            &
-      &  x_cdnc(nproma)                      !< Scale factor for Cloud Droplet Number Concentration (currently not used)
+      &  x_cdnc(nproma),                   & !< Scale factor for Cloud Droplet Number Concentration
+      &  x_cdnc_ref(nproma)                  !< x_cdnc for the reference year 2005
     INTEGER ::                             &
-      &  jk                                  !< Loop index
+      &  jk, jc                              !< Loop index
 
     od_lw_vr(:,:,:)  = 0.0_wp
     od_sw_vr(:,:,:)  = 0.0_wp
@@ -612,12 +622,37 @@ CONTAINS
 
     ! Simple plumes
     IF (ANY( irad_aero == (/iRadAeroKinneVolcSP,iRadAeroKinneSP/) )) THEN
+
+      IF (atm_phy_nwp_config(jg)%lscale_cdnc) THEN
+        ! get x_cdnc_ref; the simple plume scheme uses 2005 as reference year
+        mtime_2005 => newDatetime(mtime_datetime)
+        mtime_2005%date%year = 2005
+        CALL add_bc_aeropt_splumes(jg, 1, i_endidx, nproma, nlev, jb,  &
+          &                        nbands_sw, mtime_2005,              &
+          &                        zf(:,:), dz(:,:), zh(:,nlev+1),     &
+          &                        wavenum1_sw(:), wavenum2_sw(:),     &
+          &                        od_sw_vr(:,:,:), ssa_sw_vr(:,:,:),  &
+          &                        g_sw_vr (:,:,:), x_cdnc_ref(:)     )
+
+        CALL deallocateDatetime(mtime_2005)
+      END IF
+
       CALL add_bc_aeropt_splumes(jg, i_startidx, i_endidx, nproma, nlev, jb,  &
         &                        nbands_sw, mtime_datetime,          &
         &                        zf(:,:), dz(:,:), zh(:,nlev+1),     &
         &                        wavenum1_sw(:), wavenum2_sw(:),     &
         &                        od_sw_vr(:,:,:), ssa_sw_vr(:,:,:),  &
         &                        g_sw_vr (:,:,:), x_cdnc(:)          )
+
+      IF (atm_phy_nwp_config(jg)%lscale_cdnc) THEN
+        ! apply scaling with safety limits:
+        DO jc = i_startidx, i_endidx
+          cloud_num_fac(jc) = x_cdnc(jc) / MAX(1e-6_wp, x_cdnc_ref(jc))
+          cloud_num_fac(jc) = MIN(MAX(0.1_wp, cloud_num_fac(jc)),3._wp)
+        END DO
+
+      END IF
+
     END IF
 
     ! Vertically reverse the fields:

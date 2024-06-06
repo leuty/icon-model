@@ -2806,6 +2806,15 @@ SUBROUTINE new_nwp_phy_diag_list( k_jg, klev, klevp1, kblks,    &
       & ldims=shape2d, lrestart=lrestart, lopenacc=.TRUE. )
     __acc_attach(diag%cloud_num)
 
+    IF (atm_phy_nwp_config(k_jg)%lscale_cdnc) THEN
+      ! &      diag%cloud_num_fac(nproma,nblks_c)
+      cf_desc    = t_cf_var('cloud_num_fac', '-', 'cloud droplet number concentration scaling factor', datatype_flt)
+      grib2_desc = grib2_var(255, 255, 255, ibits, GRID_UNSTRUCTURED, GRID_CELL)
+      CALL add_var( diag_list, 'cloud_num_fac', diag%cloud_num_fac,         &
+        & GRID_UNSTRUCTURED_CELL, ZA_SURFACE, cf_desc, grib2_desc,          &
+        & ldims=shape2d, lrestart=lrestart, lopenacc=.FALSE. )
+    ENDIF
+
     ! estimated inversion strength
     ! &      diag%conv_eis(nproma,nblks_c)
     cf_desc    = t_cf_var('conv_eis', 'm-3', 'estimated inversion strength', datatype_flt)
