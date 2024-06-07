@@ -66,6 +66,7 @@ MODULE mo_nwp_tuning_config
   PUBLIC :: tune_gustlim_agl, tune_gustlim_fac
   PUBLIC :: itune_gust_diag
   PUBLIC :: itune_albedo
+  PUBLIC :: tune_albedo_wso
   PUBLIC :: itune_slopecorr
   PUBLIC :: itune_o3
   PUBLIC :: lcalib_clcov
@@ -233,6 +234,11 @@ MODULE mo_nwp_tuning_config
   INTEGER :: &                     !< (MODIS) albedo tuning
     &  itune_albedo                ! 1: dimmed Sahara
                                    ! 2: dimmed Sahara and brighter Antarctica
+
+  REAL(wp):: &                     !< bare soil albedo correction for soil types 3-6
+    &  tune_albedo_wso(2)          ! tune_albedo_wso(1): albedo correction added over dry soil (w_so(1) < 0.001 m)
+                                   ! tune_albedo_wso(2): albedo correction added over wet soil (w_so(1) > 0.002 m)
+  !$ACC DECLARE CREATE(tune_albedo_wso)
 
   INTEGER :: &                     !< slope-dependent tuning of parameters affecting stable PBLs
     &  itune_slopecorr             ! 1: slope-dependent reduction of rlam_heat and near-surface tkhmin

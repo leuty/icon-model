@@ -396,6 +396,7 @@ cat > NAMELIST_${EXPID} << EOF
           tune_rcucov = 0.075
           tune_rhebc_land = 0.825
           tune_gust_factor=7.0
+          tune_albedo_wso=0.1,-0.1
 	/
 	&turbdiff_nml
           tkhmin  = 0.6

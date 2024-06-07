@@ -6066,6 +6066,18 @@ albedo\_type=2
 \tabularnewline
 
 \hline
+tune\_albedo\_wso&
+R(2)&
+0.0, 0.0&
+-&
+Add a correction to MODIS albedo over [dry,wet] soil for soil types 3-6. Valid range: [-0.03, 0.03]. Supposed to be negative for wet soil. &
+run\_nml:iforcing = inwp\\
+nwp\_phy\_nml:inwp\_surface = 1\\
+itype\_albedo = 2\\
+direct\_albedo = 3,4
+\tabularnewline
+
+\hline
 itune\_slopecorr&
 I&
 0&
