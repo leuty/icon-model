@@ -50,6 +50,7 @@ MODULE mo_lnd_nwp_nml
     &                               config_c_soil             => c_soil            , &
     &                               config_c_soil_urb         => c_soil_urb        , &
     &                               config_cr_bsmin           => cr_bsmin          , &
+    &                               config_rsmin_fac          => rsmin_fac         , &
     &                               config_itype_trvg         => itype_trvg        , &
     &                               config_itype_evsl         => itype_evsl        , &
     &                               config_itype_lndtbl       => itype_lndtbl      , &
@@ -133,6 +134,7 @@ CONTAINS
     REAL(wp)::  c_soil            !< surface area density of the (evaporative) soil surface
     REAL(wp)::  c_soil_urb        !< surface area density of the (evaporative) soil surface, urban areas
     REAL(wp)::  cr_bsmin          !< minimum bare soil evaporation resistance (see Schulz and Vogel 2020)
+    REAL(wp)::  rsmin_fac         !< factor for minimum stomata resistance for each land-cover class
     INTEGER ::  itype_canopy      !< type of canopy parameterisation with respect to the surface energy balance
                                   !< (see Schulz and Vogel 2020)
     REAL(wp)::  cskinc            !< skin conductivity (W/m**2/K)
@@ -187,7 +189,8 @@ CONTAINS
          &               sstice_mode                                          , &
          &               sst_td_filename                                      , &
          &               ci_td_filename, cwimax_ml, c_soil, c_soil_urb        , &
-         &               czbot_w_so, cr_bsmin, lcuda_graph_lnd
+         &               czbot_w_so, cr_bsmin, lcuda_graph_lnd                , &
+         &               rsmin_fac
 
     CHARACTER(len=*), PARAMETER ::  &
       &  routine = 'mo_lnd_nwp_nml:read_nwp_lnd_namelist'
@@ -248,6 +251,7 @@ CONTAINS
     c_soil         = 1._wp   ! surface area density of the (evaporative) soil surface
     c_soil_urb     = 1._wp   ! surface area density of the (evaporative) soil surface, urban areas
     cr_bsmin       = 110._wp ! minimum bare soil evaporation resistance (s/m) (see Schulz and Vogel 2020)
+    rsmin_fac      = 1._wp   ! factor for minimum stomata resistance for each land-cover class
     itype_hydbound = 1       ! type of hydraulic lower boundary condition
     !
     itype_canopy   = 1       ! type of canopy parameterisation with respect to the surface energy balance
@@ -427,6 +431,7 @@ CONTAINS
     config_c_soil             = c_soil
     config_c_soil_urb         = c_soil_urb
     config_cr_bsmin           = cr_bsmin
+    config_rsmin_fac          = rsmin_fac
     config_itype_hydbound     = itype_hydbound
     config_lana_rho_snow      = lana_rho_snow
     config_l2lay_rho_snow     = l2lay_rho_snow

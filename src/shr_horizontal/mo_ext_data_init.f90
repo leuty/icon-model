@@ -34,7 +34,7 @@ MODULE mo_ext_data_init
                                    frlndtile_thrhld, frlake_thrhld, frsea_thrhld, isub_water,       &
                                    isub_seaice, isub_lake, sstice_mode, sst_td_filename,            &
                                    ci_td_filename, itype_lndtbl, c_soil, c_soil_urb, cskinc,        &
-                                   lterra_urb, itype_eisa, cr_bsmin, itype_evsl, itype_ahf
+                                   lterra_urb, itype_eisa, cr_bsmin, itype_evsl, itype_ahf, rsmin_fac
   USE mo_atm_phy_nwp_config, ONLY: atm_phy_nwp_config, iprog_aero
   USE mo_extpar_config,      ONLY: itopo, itype_lwemiss, extpar_filename, generate_filename,    &
     &                              generate_td_filename, extpar_varnames_map_file,              &
@@ -1870,7 +1870,7 @@ CONTAINS
                ext_data(jg)%atm%skinc_t(jc,jb,1)    = ext_data(jg)%atm%skinc_lcc(ext_data(jg)%atm%lc_class_t(jc,jb,1))
 
                ! minimum stomatal resistance
-               ext_data(jg)%atm%rsmin2d_t(jc,jb,1)  = ext_data(jg)%atm%rsmin(jc,jb)
+               ext_data(jg)%atm%rsmin2d_t(jc,jb,1)  = ext_data(jg)%atm%rsmin(jc,jb) * rsmin_fac
 
                ! soil type
                ext_data(jg)%atm%soiltyp_t(jc,jb,1)  = ext_data(jg)%atm%soiltyp(jc,jb)
@@ -2119,7 +2119,7 @@ CONTAINS
                  ENDIF
 
                  ! minimum stomatal resistance
-                 ext_data(jg)%atm%rsmin2d_t(jc,jb,i_lu)  = ext_data(jg)%atm%stomresmin_lcc(lu_subs)
+                 ext_data(jg)%atm%rsmin2d_t(jc,jb,i_lu)  = ext_data(jg)%atm%stomresmin_lcc(lu_subs) * rsmin_fac
 
                  ! soil type
                  ext_data(jg)%atm%soiltyp_t(jc,jb,i_lu)  = ext_data(jg)%atm%soiltyp(jc,jb)

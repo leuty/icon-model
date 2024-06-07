@@ -404,6 +404,7 @@ cat > NAMELIST_${EXPID} << EOF
 	  pat_len       = 750.
           c_diff  =  0.2
           rlam_heat = 10.0
+          rat_lam =  1.0
           rat_sea =  0.8
           ltkesso = .true.
 	  frcsmot       = 0.2
@@ -437,6 +438,7 @@ cat > NAMELIST_${EXPID} << EOF
 	  c_soil         = 1.25
 	  c_soil_urb     = 0.5
           lprog_albsi    = .true.
+          rsmin_fac      = 1.0
 	/
 	&radiation_nml
           ecrad_data_path= '${ECRAD_DIR}'

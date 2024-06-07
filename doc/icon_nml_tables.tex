@@ -4092,6 +4092,11 @@ Note: c\_soil and c\_soil\_urb are ignored in this case & itype\_evsl = 5 or icp
 \tabularnewline
 
 %\hline
+rsmin\_fac &
+R & 1. &  & scaling factor for rsmin.
+\tabularnewline
+
+%\hline
 itype\_hydbound &
 I & 1 &  & type of hydraulic lower boundary condition \\
 1 = none \\
@@ -8960,6 +8965,12 @@ Type of diagnostics of synoptic near surface variables:\\
 rlam\_heat &
 R                &     10.0     & 1 &
 Scaling factor of the laminar boundary layer for heat (scalars). The larger rlam\_heat, the larger is the laminar resistance. &
+\tabularnewline
+
+%\hline
+rat\_lam &
+R                &     1.0     & 1 &
+Ratio of laminar scaling factors for vapour and heat. The larger rat\_lam, the larger is the laminar resistance for evaporation compared to sensible heat. &
 \tabularnewline
 
 %\hline

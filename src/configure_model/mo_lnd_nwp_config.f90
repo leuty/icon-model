@@ -40,6 +40,7 @@ MODULE mo_lnd_nwp_config
   PUBLIC :: itype_trvg, itype_evsl, itype_lndtbl, l2lay_rho_snow
   PUBLIC :: itype_root, itype_heatcond, itype_interception, &
             itype_hydbound, idiag_snowfrac, itype_snowevap, cwimax_ml, c_soil, c_soil_urb, cr_bsmin
+  PUBLIC :: rsmin_fac
   PUBLIC :: itype_canopy, cskinc, tau_skin
   PUBLIC :: lterra_urb, lurbalb, itype_ahf, itype_kbmo, itype_eisa
   PUBLIC :: lstomata, l2tls, lana_rho_snow
@@ -80,6 +81,7 @@ MODULE mo_lnd_nwp_config
   REAL(wp)::  c_soil             !< surface area density of the (evaporative) soil surface
   REAL(wp)::  c_soil_urb         !< surface area density of the (evaporative) soil surface, urban areas
   REAL(wp)::  cr_bsmin           !< minimum bare soil evaporation resistance (see Schulz and Vogel 2020)
+  REAL(wp)::  rsmin_fac          !< factor for minimum stomata resistance for each land-cover class
   INTEGER ::  itype_canopy       !< type of canopy parameterisation with respect to the surface energy balance
                                  !< (see Schulz and Vogel 2020)
   REAL(wp)::  cskinc             !< skin conductivity (W/m**2/K)
