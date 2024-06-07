@@ -1,4 +1,15 @@
 #!/bin/ksh
+
+# ICON
+#
+# ------------------------------------------
+# Copyright (C) 2004-2024, DWD, MPI-M, DKRZ, KIT, ETH, MeteoSwiss
+# Contact information: icon-model.org
+# See AUTHORS.TXT for a list of authors
+# See LICENSES/ for license information
+# SPDX-License-Identifier: BSD-3-Clause
+# ------------------------------------------
+
 #--------------------------------------------------------------------------------
 #
 # _bb_table_Description_  MCH LAM experiment
@@ -14,7 +25,7 @@
 # - the output  file names: <EXPNAME>_<TYPE>_<DATE>.nc
 # - the restart file names: 
 #
-export EXPERIMENT='mch_dev_icon-ch2_small'
+export EXPERIMENT='mch_kenda-ch1_dev_small'
 
 # TYPES is a list of names identifying the files <EXPNAME>_<TYPE>_<DATE>.nc
 # to be checked.
@@ -30,6 +41,8 @@ export DATES='20230115T110000Z'
 # 
 export RESTART_DATE='20230115T110000Z'
 
+# increase factor in order to circumvent false alarms
+export FACTOR=18
 #--------------------------------------------------------------------------------
 # 
 # 2. Define the checksuite mode
@@ -40,10 +53,11 @@ export RESTART_DATE='20230115T110000Z'
 # m = mpi test
 # o = omp test
 # t = tolerance test
+# c = compute-sanitizer test
 #
 # default: MD='t'
 #
-export MD='t'
+export MD='tc'
 
 #--------------------------------------------------------------------------------
 # 

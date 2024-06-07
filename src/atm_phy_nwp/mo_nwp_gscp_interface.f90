@@ -561,6 +561,9 @@ CONTAINS
         CASE(5)  ! two-moment scheme with prognostic cloud droplet number
                  ! and budget equations for CCN and IN
 
+#ifdef _OPENACC
+          CALL finish('mo_nwp_gscp_interface', 'inwp_gscp=5 supported by OpenACC but not tested')
+#endif
           CALL two_moment_mcrph(                       &
                        isize  = nproma,                &!in: array size
                        ke     = nlev,                  &!in: end level/array size

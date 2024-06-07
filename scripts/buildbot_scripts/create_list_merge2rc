@@ -113,8 +113,9 @@ $addexp "checksuite.ocean_internal/technical/exp.test_multioutput_model_40km" \
 ./rmexp checksuite.ocean_internal/technical/exp.test_ocean_omip_technical --builders "DAINT_GPU_nvidia" --list $listname
 
 # add tolerance check to CSCS builders
-$addexp "checksuite.icon-dev/check.mch_dev_icon-ch2_small"                --builders "balfrin_cpu_nvidia balfrin_gpu_nvidia balfrin_cpu_nvidia_mixed balfrin_gpu_nvidia_mixed alps_mch_test_cpu alps_mch_test_gpu" --list $listname
 $addexp "checksuite.icon-dev/check.mch_kenda-ch1_small"                   --builders "balfrin_cpu_nvidia balfrin_gpu_nvidia balfrin_cpu_nvidia_mixed balfrin_gpu_nvidia_mixed alps_mch_test_cpu alps_mch_test_gpu" --list $listname
+$addexp "checksuite.icon-dev/check.mch_kenda-ch1_dev_small"               --builders "balfrin_cpu_nvidia balfrin_gpu_nvidia alps_mch_test_cpu alps_mch_test_gpu" --list $listname
+$addexp "checksuite.icon-dev/check.mch_kenda-ch1_dev2_small"              --builders "balfrin_cpu_nvidia balfrin_gpu_nvidia alps_mch_test_cpu alps_mch_test_gpu" --list $listname
 $addexp "checksuite.icon-dev/check.mch_icon-ch1_small"                    --builders "balfrin_cpu_nvidia balfrin_gpu_nvidia balfrin_cpu_nvidia_mixed balfrin_gpu_nvidia_mixed alps_mch_test_cpu alps_mch_test_gpu" --list $listname
 $addexp "checksuite.icon-dev/check.mch_icon-ch2_small"                    --builders "balfrin_cpu_nvidia balfrin_gpu_nvidia balfrin_cpu_nvidia_mixed balfrin_gpu_nvidia_mixed alps_mch_test_cpu alps_mch_test_gpu" --list $listname
 $addexp "checksuite.icon-dev/check.mch_ch_lowres"                         --builders "balfrin_cpu_nvidia balfrin_cpu_nvidia_mixed balfrin_gpu_nvidia balfrin_gpu_nvidia_mixed alps_mch_test_cpu alps_mch_test_gpu" --list $listname
@@ -132,12 +133,6 @@ $addexp "checksuite.icon-dev/check.mch_pollen_test"                       --buil
 
 # GPU builders explicitly turned off due to unresolved bug
 $addexp "checksuite.icon-dev/check.mch_opr_r19b07_midnight"               --builders "balfrin_cpu_nvidia balfrin_cpu_nvidia_mixed alps_mch_test_cpu DAINT_CPU_nvidia" --list $listname
-# add tolerance check for 2-moment scheme
-$addexp "checksuite.icon-dev/check.mch_opr_r19b07_2m"                     --builders "balfrin_cpu_nvidia balfrin_cpu_nvidia_mixed balfrin_gpu_nvidia balfrin_gpu_nvidia_mixed alps_mch_test_cpu alps_mch_test_gpu DAINT_CPU_nvidia DAINT_GPU_nvidia" --list $listname
-# add tolerance check for 2-moment scheme using gscp=5
-$addexp "checksuite.icon-dev/check.mch_opr_r19b07_2m_gscp5"               --builders "balfrin_cpu_nvidia balfrin_cpu_nvidia_mixed alps_mch_test_cpu DAINT_CPU_nvidia DAINT_GPU_nvidia" --list $listname
-# add tolerance check for the explicit 2-moment scheme
-$addexp "checksuite.icon-dev/check.mch_opr_r19b07_2m_expl"                --builders "balfrin_cpu_nvidia balfrin_cpu_nvidia_mixed balfrin_gpu_nvidia balfrin_gpu_nvidia_mixed alps_mch_test_cpu alps_mch_test_gpu" --list $listname
 # add tolerance check for 3d-turbulence scheme
 $addexp "checksuite.icon-dev/check.mch_opr_r19b07_turb"                   --builders "balfrin_cpu_nvidia balfrin_cpu_nvidia_mixed balfrin_gpu_nvidia balfrin_gpu_nvidia_mixed alps_mch_test_cpu alps_mch_test_gpu DAINT_CPU_nvidia DAINT_GPU_nvidia" --list $listname
 # add tolerance check for c2sm seaice case

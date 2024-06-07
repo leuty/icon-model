@@ -4155,9 +4155,7 @@ CONTAINS
              lacc      = lzacc                             )
 
       CASE ( 4, 5, 6, 8 )
-#ifdef _OPENACC
-        CALL finish(routine, 'compute_field_dbz_2mom is supported by OpenACC, but never tested.')
-#endif
+
         CALL compute_field_dbz_2mom( npr       = nproma,                           &
              nlev      = ptr_patch%nlev,                   &
              nblks     = ptr_patch%nblks_c,                &
