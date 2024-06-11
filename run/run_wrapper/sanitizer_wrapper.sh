@@ -55,6 +55,7 @@ if [[ "${MPI_RANK}" < 4 ]]; then # change me to run the sanitizer on more than o
     --print-limit 10 \
     --error-exitcode 1 \
     --show-backtrace no \
+    --launch-timeout 180 \
     "$@" 2>&1 | tee "LOG.sanitizer.${MPI_RANK}.${SLURM_JOBID}.${MPI_RANK}"
 else
     "$@"
