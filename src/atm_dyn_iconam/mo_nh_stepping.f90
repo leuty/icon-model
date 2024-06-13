@@ -1037,6 +1037,10 @@ MODULE mo_nh_stepping
 
     ! update model date and time mtime based
     mtime_current = mtime_current + model_time_step
+#ifndef __NO_ICON_COMIN__
+    CALL datetimeToString(mtime_current, dstring)
+    CALL icon_update_current_datetime(dstring)
+#endif
 
     ! provisional implementation for checkpoint+stop on demand
     IF (checkpoint_on_demand) CALL check_for_checkpoint(lready_for_checkpoint, lchkp_allowed, lstop_on_demand)
