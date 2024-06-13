@@ -249,8 +249,8 @@ CONTAINS
         DO jc =  i_startidx, i_endidx
           ! grid scale + convective
           prm_diag%tot_prec_rate(jc,jb) = prm_diag%prec_gsp_rate(jc,jb) &
-            &                           + prm_diag%rain_con_rate(jc,jb) &
-            &                           + prm_diag%snow_con_rate(jc,jb)
+            &                           + prm_diag%rain_con_rate_corr(jc,jb) &
+            &                           + prm_diag%snow_con_rate_corr(jc,jb)
         ENDDO
         !$ACC END PARALLEL LOOP
       ELSE
@@ -2867,4 +2867,3 @@ CONTAINS
   END SUBROUTINE nwp_diag_global
 
 END MODULE mo_nwp_diagnosis
-

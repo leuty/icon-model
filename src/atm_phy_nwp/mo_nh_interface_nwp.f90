@@ -61,7 +61,7 @@ MODULE mo_nh_interface_nwp
   USE mo_run_config,              ONLY: ntracer, iqv, iqc, iqi, iqs, iqr, iqg, iqtke,  &
     &                                   msg_level, ltimer, timers_level, lart, ldass_lhn
   USE mo_grid_config,             ONLY: l_limited_area
-  USE mo_physical_constants,      ONLY: rd, rd_o_cpd, vtmpc1, p0ref, rcvd, cvd, cvv, tmelt, grav
+  USE mo_physical_constants,      ONLY: rd, rd_o_cpd, vtmpc1, p0ref, rcvd, cvd, cvv, grav
 
   USE mo_nh_diagnose_pres_temp,   ONLY: diagnose_pres_temp, diag_pres, diag_temp, calc_qsum
   USE mo_atm_phy_nwp_config,      ONLY: atm_phy_nwp_config, iprog_aero
@@ -236,7 +236,6 @@ CONTAINS
 
     INTEGER :: jc,jk,jb,jce,isubs!loop indices
     INTEGER :: jg,jgc            !domain id
-    INTEGER :: convind           !help variable to circument compiler issue
 
     LOGICAL :: ltemp, lpres, ltemp_ifc, l_any_fastphys, l_any_slowphys
     LOGICAL :: lcall_lhn, lcall_lhn_v, lapply_lhn, lcall_lhn_c  !< switches for latent heat nudging
@@ -254,7 +253,7 @@ CONTAINS
       & z_ddt_temp  (nproma,pt_patch%nlev)                      !< Temperature tendency
 
     REAL(wp) :: z_exner_sv(nproma,pt_patch%nlev,pt_patch%nblks_c), z_tempv, sqrt_ri(nproma), n2, dvdz2, &
-      zddt_u_raylfric(nproma,pt_patch%nlev), zddt_v_raylfric(nproma,pt_patch%nlev), convfac, wfac
+      zddt_u_raylfric(nproma,pt_patch%nlev), zddt_v_raylfric(nproma,pt_patch%nlev), wfac
 
     !< SBM microphysics:
     TYPE(t_sbm_storage), POINTER:: ptr_sbm_storage =>NULL()   ! pointer to SBM storage object
@@ -1993,7 +1992,7 @@ CONTAINS
 
 !$OMP PARALLEL
 !$OMP DO PRIVATE(jb,jk,jc,i_startidx,i_endidx,z_qsum,z_ddt_temp,z_ddt_alpha,vabs,nudgecoeff,&
-!$OMP  rfric_fac,zddt_u_raylfric,zddt_v_raylfric,convfac,convind,sqrt_ri,n2,dvdz2,wfac) ICON_OMP_DEFAULT_SCHEDULE
+!$OMP  rfric_fac,zddt_u_raylfric,zddt_v_raylfric,sqrt_ri,n2,dvdz2,wfac) ICON_OMP_DEFAULT_SCHEDULE
 !
       DO jb = i_startblk, i_endblk
 !
@@ -2228,24 +2227,6 @@ CONTAINS
 
         ENDIF ! END of LS forcing tendency accumulation
 #endif
-
-        IF (lcall_phy_jg(itconv)) THEN
-!DIR$ IVDEP
-          !$ACC DATA PRESENT(pt_diag%temp)
-          !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1) IF(lzacc)
-          !$ACC LOOP GANG VECTOR PRIVATE(convfac, convind)
-          DO jc = i_startidx, i_endidx
-            convind = prm_diag%k950(jc,jb) ! using this varibale directly in the next row gave a memory "memory not mapped to object" error in PGI (GPU) 20.8
-            ! rain-snow conversion factor to avoid 'snow showers' at temperatures when they don't occur in practice
-            convfac = MIN(1._wp,MAX(0._wp,pt_diag%temp(jc,convind,jb)-tmelt)* &
-              MAX(0._wp,prm_diag%t_2m(jc,jb)-(tmelt+1.5_wp)) )
-            prm_diag%rain_con_rate(jc,jb) = prm_diag%rain_con_rate_3d(jc,nlevp1,jb) + &
-              convfac*prm_diag%snow_con_rate_3d(jc,nlevp1,jb)
-            prm_diag%snow_con_rate(jc,jb) = (1._wp-convfac)*prm_diag%snow_con_rate_3d(jc,nlevp1,jb)
-          ENDDO
-          !$ACC END PARALLEL
-          !$ACC END DATA
-        ENDIF
 
       ENDDO  ! jb
 !$OMP END DO NOWAIT

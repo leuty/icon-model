@@ -15,7 +15,7 @@
 make_and_change_to_experiment_dir # function in ../add_run_routines
 
 # Combine START and MODEL if START_MODEL is not already set.
-# START_MODEL is used to ease the execution of a machine that uses a complex 
+# START_MODEL is used to ease the execution of a machine that uses a complex
 # mpirun command with multiple binaries
 START_MODEL="${START_MODEL:=$START $MODEL}"
 
@@ -76,12 +76,12 @@ ln -sf ${ICONDIR}/externals/ecrad/data ecrad_data
 atmo_namelist=NAMELIST_${EXP}
 
 # global timing
-start_date="2017-04-15T00:00:00Z"
+start_date="2017-04-14T22:30:00Z"
 ndays_restart=60
 dt_restart=`expr ${ndays_restart} \* 86400`
 
 dtime=360
-nsteps=20
+nsteps=30
 nsteps_per_hour=10
 
 # the grid parameters
@@ -92,22 +92,38 @@ atmo_rad_grids="iconR2B05_DOM00.nc"
 output_bounds=(
   "0., $((dtime * nsteps))., ${dtime}"
   "0., $((dtime * nsteps))., 3600."
-  "0., $((dtime * nsteps))., $((dtime * nsteps))." )
+  "0., $((dtime * nsteps))., ${dtime}"
+  )
 output_operation=(
   ""
   "mean"
-  "mean"
+  ""
   )
 output_filename=(
   "raw"
   "hr_mean"
-  "tim_mean"
+  "raw_gscp3"
+  )
+
+inwp_gscp=(
+  1
+  1
+  3
+  )
+extra_vars_flux=(
+  ""
+  ""
+  ""
+  )
+extra_vars_storage=(
+  ""
+  ""
+  ""
   )
 
 cp -p $MODEL icon
 
 
- ln -sf $INDIR/igaf${cymdg}.grb         an_R02B06_DOM01.grb
  ln -sf $INDIR/igfff${cymdgm3}-0130.grb fg_R02B06_DOM01.grb
  ln -sf $INDIR/iefff${cymdgm3}-0130.grb fg_R02B07_DOM02.grb
 
@@ -181,7 +197,7 @@ cat > ${atmo_namelist} << EOF
  radiation_grid_filename = ${radiation_grid_filename}
  dynamics_parent_grid_id = 0,1
  lredgrid_phys           = .true.,.true.,
- lfeedback               = .true.
+ lfeedback               = .false.        !!!.true.
  ifeedback_type          = 2
  start_time              = 0., -5400.,
  end_time                = 0., 432000.    ! ** bewirkt, dass das Nest nur bis vv=120h laueft **
@@ -204,13 +220,12 @@ cat > ${atmo_namelist} << EOF
 /
 &initicon_nml
  init_mode                    = 5
- dt_iau                       = 10800
- dt_shift                     = -5400
+ lread_ana                    = .false.
+ dt_iau                       = 0
  iterate_iau                  = .false.
  zpbl1                        = 500.
  zpbl2                        = 1000.
  dwdfg_filename               = "<path>fg_R<nroot0>B<jlev>_DOM<idom>.grb"
- dwdana_filename              = "<path>an_R<nroot0>B<jlev>_DOM<idom>.grb"
  ana_varnames_map_file        = "map_file.ana"
  ltile_coldstart              = .false.
  lvert_remap_fg               = .false.
@@ -225,7 +240,7 @@ cat > ${atmo_namelist} << EOF
  dt_checkpoint           = 2592000.  ! 30 days
 /
 &nwp_phy_nml
-inwp_gscp       = 1               ! 10 in test case 35
+inwp_gscp       = ${inwp_gscp[irun]}
 inwp_convection = 1
 inwp_radiation  = 4
 inwp_cldcover   = 1 ! 3 geaendert ab Test2
@@ -423,6 +438,34 @@ lsynsat=.false. ! .false.,.true., ! requires RTTOV library - left out for this t
  output_filename = 'initial'
  ml_varlist = 'group:dwd_fg_atm_vars', 'rh', 'pres_msl', 'tqv'
 /
+! native output for water conservation testing  - after IAU - operation_mean fluxes
+&output_nml
+ output_filename         = 'water_budget_flux_${irun}'       ! file name base
+ steps_per_file          = ${nsteps}
+ output_bounds           = 5400., $((dtime * nsteps))., ${dtime}
+ operation               = "mean"                    ! only working with remap=0, not accumulated!
+ filetype                = 4                         ! output format: 2=GRIB2, 4=NETCDFv2
+ dom                     = 1
+ mode                    = 1                         ! 1: forecast mode (relative t-axis)
+ remap                   = 0                         ! 1: latlon,  0: native grid
+ output_grid             = .TRUE.
+ ml_varlist              = 'rain_gsp_rate','snow_gsp_rate','ice_gsp_rate',
+                           'rain_con_rate_corr','snow_con_rate_corr','tot_prec_rate',
+                           'qhfl_s','qcfl_s','qifl_s'${extra_vars_flux[irun]}
+/
+! native output for water conservation testing - after IAU - normal variables
+&output_nml
+ output_filename         = 'water_budget_state_${irun}'      ! file name base
+ steps_per_file          = ${nsteps}
+ output_bounds           = 5400., $((dtime * nsteps))., ${dtime}
+ filetype                = 4                         ! output format: 2=GRIB2, 4=NETCDFv2
+ dom                     = 1
+ mode                    = 1                         ! 1: forecast mode (relative t-axis)
+ remap                   = 0                         ! 1: latlon,  0: native grid
+ output_grid             = .TRUE.
+ ml_varlist              = 'tqv','tqc','tqi','tqs','tqr'${extra_vars_storage[irun]}
+                         ! 'tqg'
+/
 EOF
 
 cat > map_file.ana << EOF2
@@ -516,7 +559,6 @@ ICON_COMPONENT1_VH_procs=$((num_restart_procs + num_io_procs + num_prefetch_proc
 
 $START_MODEL
 EXIT_STATUS=$?
-
 if [ "$EXIT_STATUS" -ne "0" ]; then
   echo "ICON EXIT_STATUS: $EXIT_STATUS"
   exit $EXIT_STATUS
@@ -531,16 +573,38 @@ done
 #          But when you worry you make it double ..."
 # ----------------------------------------------------------------------
 
+set +x
+
+# ----------------------------------------------------------------------
+# Test water budget
+# ----------------------------------------------------------------------
+
+echo 'Test water conservation ...'
+
+$ICONDIR/run/checksuite.nwp/nwpexp.run_ICON_27_R2B6_mvstream_qbudget.check.sh
+
+EXIT_STATUS=$?
+if [ "$EXIT_STATUS" -ne "0" ]; then
+  echo "Water conservation test not passed: $EXIT_STATUS"
+  exit $EXIT_STATUS
+fi
+
+
+# ----------------------------------------------------------------------
+# Test mvstream output
+# ----------------------------------------------------------------------
+
 echo 'Comparing means from raw output and mvstream...'
 
-set +x
 result=()
 diffs=()
 for dom in 01 02; do
-  $cdo -s --timestat_date=last timmean -seltimestep,2/$((nsteps+1)) raw_DOM${dom}_ML_0001.nc cdo_tim_mean_raw_DOM${dom}.nc > /dev/null
-  $cdo -s --timestat_date=last timmean -seltimestep,2/$((nsteps/nsteps_per_hour+1)) hr_mean_DOM${dom}_ML_0001.nc cdo_tim_mean_hr_mean_DOM${dom}.nc > /dev/null
-  $cdo -s --timestat_date=last seltimestep,2 tim_mean_DOM${dom}_ML_0001.nc cdo_tim_mean_tim_mean_DOM${dom}.nc > /dev/null
 
+  echo "DOM$dom: preparing time means from raw outputs..."
+  $cdo -s timmean -seltimestep,2/$((nsteps+1)) raw_DOM${dom}_ML_0001.nc cdo_tim_mean_raw_DOM${dom}.nc > /dev/null
+  $cdo -s timmean -seltimestep,2/$((nsteps/nsteps_per_hour+1)) hr_mean_DOM${dom}_ML_0001.nc cdo_tim_mean_hr_mean_DOM${dom}.nc > /dev/null
+
+  echo "DOM$dom: checking pressure and temperature..."
   set +e
   diff="$($cdo diffn,names=left,abslim=1,rellim=1e-5 -selvar,pres,pres_msl,pres_sfc,theta_v,temp,t_2m,td_2m \
     cdo_tim_mean_raw_DOM${dom}.nc cdo_tim_mean_hr_mean_DOM${dom}.nc)"
@@ -548,22 +612,11 @@ for dom in 01 02; do
     result+=( "DOM${dom}: pressure & temp: mean(raw) != mean(mvstream hourly mean) -- relative tolerance 1e-5" )
     diffs+=( "$diff" )
   }
+  echo "DOM$dom: checking remaining variables..."
   diff="$($cdo diffn,names=left,abslim=1e-5,rellim=1 -delvar,pres,pres_msl,pres_sfc,theta_v,temp,t_2m,td_2m \
     cdo_tim_mean_raw_DOM${dom}.nc cdo_tim_mean_hr_mean_DOM${dom}.nc)"
   (( $? == 0 )) || {
     result+=( "DOM${dom}: not pressure or temp: mean(raw) != mean(mvstream hourly mean) -- absolute tolerance 1e-5" )
-    diffs+=( "$diff" )
-  }
-  diff="$($cdo diffn,names=left,abslim=1,rellim=1e-5 -selvar,pres,pres_msl,pres_sfc,theta_v,temp,t_2m,td_2m \
-    cdo_tim_mean_raw_DOM${dom}.nc cdo_tim_mean_tim_mean_DOM${dom}.nc)"
-  (( $? == 0 )) || {
-    result+=( "DOM${dom}: pressure & temp: mean(raw) != mvstream mean -- relative tolerance 1e-5" )
-    diffs+=( "$diff" )
-  }
-  diff="$($cdo diffn,names=left,abslim=1e-5,rellim=1 -delvar,pres,pres_msl,pres_sfc,theta_v,temp,t_2m,td_2m \
-    cdo_tim_mean_raw_DOM${dom}.nc cdo_tim_mean_tim_mean_DOM${dom}.nc)"
-  (( $? == 0 )) || {
-    result+=( "DOM${dom}: not pressure or temp: mean(raw) != mvstream mean -- absolute tolerance 1e-5" )
     diffs+=( "$diff" )
   }
   set -e
@@ -580,4 +633,10 @@ else
   done
 fi
 
-exit ${#result[@]}
+#-- exit with exit code from mvstream test
+
+EXIT_STATUS=${#result[@]}
+if [ "$EXIT_STATUS" -ne "0" ]; then
+  echo "mvstream test not passed: $EXIT_STATUS"
+  exit $EXIT_STATUS
+fi

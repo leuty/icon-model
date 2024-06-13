@@ -180,6 +180,7 @@ $addexp checksuite.nwp/nwpexp.run_ICON_19_R2B4_cmip_forcing                    -
 $addexp checksuite.nwp/nwpexp.run_ICON_22_R3B08_lam_SBM_initmode4              --builders DWD_nec --list $listname
 # functionality to test in test 24 has been added to test 25
 $addexp checksuite.nwp/nwpexp.run_ICON_25_R19B7_RUC_fc                         --builders DWD_nec --list $listname
+$addexp checksuite.nwp/nwpexp.run_ICON_27_R2B6_mvstream_qbudget                --builders DWD_nec --list $listname
 # SCM experiments
 $addexp checksuite.rcnl.dwd.de/exp.run_ICON-SCM_01_BOMEX.run                   --builders DWD_nec --list $listname
 $addexp checksuite.rcnl.dwd.de/exp.run_ICON-SCM_02_REAL.run                    --builders DWD_nec --list $listname

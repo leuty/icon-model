@@ -273,8 +273,10 @@ MODULE mo_nwp_phy_types
       &  graupel_gsp_rate (:,:),  & !! grid_scale surface graupel rate                 [kg/m2/s]
       &  hail_gsp_rate    (:,:),  & !! grid_scale surface hail rate                    [kg/m2/s]
       !  convective
-      &  rain_con_rate    (:,:),  & !! convective surface rain rate                    [kg/m2/s]
-      &  snow_con_rate    (:,:),  & !! convective surface snow_rate                    [kg/m2/s]
+      &  rain_con_rate_corr(:,:), & !! convective surface rain rate (water-conserving) [kg/m2/s]
+      &  rain_con_rate    (:,:),  & !! convective surface rain rate (next time step)   [kg/m2/s]
+      &  snow_con_rate_corr(:,:), & !! convective surface snow_rate (water-conserving) [kg/m2/s]
+      &  snow_con_rate    (:,:),  & !! convective surface snow rate (next time step)   [kg/m2/s]
       &  rain_con_rate_3d (:,:,:),& !! 3d convective rain rate (convection scheme)     [kg/m2/s]
       &  snow_con_rate_3d (:,:,:),& !! 3d convective snow_rate (convection scheme)     [kg/m2/s]
       !

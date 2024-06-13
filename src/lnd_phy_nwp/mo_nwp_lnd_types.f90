@@ -143,6 +143,7 @@ MODULE mo_nwp_lnd_types
     &  freshsnow    (:,:)   , & ! indicator for age of snow in top of snow layer(  -  )
     &  freshsnow_t  (:,:,:) , & ! indicator for age of snow in top of snow layer(  -  )
     &  snow_age     (:,:)   , & ! duration of snow cover period                 (  d  )
+    &  qi_snowdrift_flx (:,:),& ! upward cloud-ice surface flux from drifting snow (kg/m2/s)
     &  hsnow_max    (:,:)   , & ! maximum snow depth during current snow-cover period (  m  )
     &  snowfrac     (:,:)   , & ! snow-cover fraction                           (  -  )
     &  snowfrac_lc  (:,:)   , & ! snow-cover fraction                           (  -  )

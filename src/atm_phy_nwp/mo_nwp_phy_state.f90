@@ -592,24 +592,47 @@ SUBROUTINE new_nwp_phy_diag_list( k_jg, klev, klevp1, kblks,    &
     END SELECT
 
 
+    ! &      diag%rain_con_rate_corr(nproma,nblks_c)
+    cf_desc    = t_cf_var('rain_con_rate_corr', 'kg m-2 s-1',                 &
+      & 'convective rain rate, corrected for water conservation',             &
+      &                   datatype_flt)
+    grib2_desc = grib2_var(255, 255, 255, ibits, GRID_UNSTRUCTURED, GRID_CELL)
+    CALL add_var( diag_list, 'rain_con_rate_corr', diag%rain_con_rate_corr,   &
+                & GRID_UNSTRUCTURED_CELL, ZA_SURFACE, cf_desc, grib2_desc,    &
+                & ldims=shape2d, loutput=.TRUE., lrestart=.FALSE.,            &
+                & isteptype=TSTEP_INSTANT, lopenacc=.TRUE.)
+    __acc_attach(diag%rain_con_rate_corr)
+
     ! &      diag%rain_con_rate(nproma,nblks_c)
-    cf_desc    = t_cf_var('rain_con_rate', 'kg m-2 s-1', 'convective rain rate', &
+    cf_desc    = t_cf_var('rain_con_rate', 'kg m-2 s-1',                 &
+      & 'convective rain rate (convection scheme output for next time step)', &
       &                   datatype_flt)
     grib2_desc = grib2_var(0, 1, 76, ibits, GRID_UNSTRUCTURED, GRID_CELL)
     CALL add_var( diag_list, 'rain_con_rate', diag%rain_con_rate,             &
                 & GRID_UNSTRUCTURED_CELL, ZA_SURFACE, cf_desc, grib2_desc,    &
-                & ldims=shape2d,                                              &
+                & ldims=shape2d, loutput=.TRUE., lrestart=.TRUE.,             &
                 & isteptype=TSTEP_INSTANT, lopenacc=.TRUE.)
     __acc_attach(diag%rain_con_rate)
 
+    ! &      diag%snow_con_rate_corr(nproma,nblks_c)
+    cf_desc    = t_cf_var('snow_con_rate_corr', 'kg m-2 s-1',                 &
+      & 'convective snow rate, corrected for water conservation',             &
+      &                   datatype_flt)
+    grib2_desc = grib2_var(255, 255, 255, ibits, GRID_UNSTRUCTURED, GRID_CELL)
+    CALL add_var( diag_list, 'snow_con_rate_corr', diag%snow_con_rate_corr,   &
+                & GRID_UNSTRUCTURED_CELL, ZA_SURFACE, cf_desc, grib2_desc,    &
+                & ldims=shape2d, loutput=.TRUE., lrestart=.FALSE.,            &
+                & isteptype=TSTEP_INSTANT, lopenacc=.TRUE.)
+    __acc_attach(diag%snow_con_rate_corr)
 
     ! &      diag%snow_con_rate(nproma,nblks_c)
-    cf_desc    = t_cf_var('snow_con_rate', 'kg m-2 s-1', 'convective snow rate', &
+    cf_desc    = t_cf_var('snow_con_rate', 'kg m-2 s-1',                      &
+      & 'convective snow rate (convection scheme output for next time step)', &
       &                   datatype_flt)
     grib2_desc = grib2_var(0, 1, 55, ibits, GRID_UNSTRUCTURED, GRID_CELL)
     CALL add_var( diag_list, 'snow_con_rate', diag%snow_con_rate,             &
                 & GRID_UNSTRUCTURED_CELL, ZA_SURFACE, cf_desc, grib2_desc,    &
-                & ldims=shape2d,                                              &
+                & ldims=shape2d, loutput=.TRUE., lrestart=.TRUE.,             &
                 & isteptype=TSTEP_INSTANT, lopenacc=.TRUE.)
     __acc_attach(diag%snow_con_rate)
 

@@ -1325,6 +1325,7 @@ MODULE mo_nwp_lnd_state
     &       p_diag_lnd%snowfrac_lcu_t, &
     &       p_diag_lnd%hsnow_max, &
     &       p_diag_lnd%snow_age, &
+    &       p_diag_lnd%qi_snowdrift_flx, &
     &       p_diag_lnd%t_snow_mult, &
     &       p_diag_lnd%rho_snow_mult, &
     &       p_diag_lnd%wliq_snow, &
@@ -1529,6 +1530,16 @@ MODULE mo_nwp_lnd_state
              & lopenacc=.TRUE.)
       __acc_attach(p_diag_lnd%snow_age)
 
+      ! cloud-ice flux from drifting snow
+      cf_desc    = t_cf_var('qi_snowdrift_flx', 'kg m-2 s', &
+          & 'upward cloud-ice surface flux from drifting snow', datatype_flt)
+      grib2_desc = grib2_var(255, 255, 255, ibits, GRID_UNSTRUCTURED, GRID_CELL)
+      CALL add_var( diag_list, 'qi_snowdrift_flx', p_diag_lnd%qi_snowdrift_flx,              &
+             & GRID_UNSTRUCTURED_CELL, ZA_SURFACE, cf_desc, grib2_desc,          &
+             & ldims=shape2d, lrestart=.FALSE.,                                  &
+             & in_group=groups('land_vars'),                                     &
+             & lopenacc=.TRUE.)
+      __acc_attach(p_diag_lnd%qi_snowdrift_flx)
     ENDIF
 
     ! & p_diag_lnd%t_so(nproma,nlev_soil+1,nblks_c)

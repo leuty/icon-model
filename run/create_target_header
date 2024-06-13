@@ -2489,7 +2489,7 @@ create_target_header()
                     ;;
             esac
             ;;
-        *run_ICON_16_R2B6_mvstream*)
+        *run_ICON_27_R2B6_mvstream_qbudget*)
             case $use_target in
                 daint*)
                     use_nodes=10
