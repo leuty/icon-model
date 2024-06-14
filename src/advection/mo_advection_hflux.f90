@@ -75,7 +75,6 @@ MODULE mo_advection_hflux
   USE mo_advection_hlimit,    ONLY: hflx_limiter_mo, hflx_limiter_pd
   USE mo_timer,               ONLY: timer_adv_hflx, timer_start, timer_stop
   USE mo_fortran_tools,       ONLY: init, copy
-  USE mo_mpi,                 ONLY: i_am_accel_node
 
 
   IMPLICIT NONE
@@ -175,9 +174,6 @@ CONTAINS
     REAL(wp) :: z_dthalf            !< 0.5 * pdtime
     REAL(wp) :: z_dthalf_cycl       !< z_dthalf/nsubsteps
 
-#ifdef _OPENACC
-    LOGICAL  :: save_i_am_accel_node
-#endif
     !-----------------------------------------------------------------------
 
 #ifdef __INTEL_COMPILER
@@ -203,7 +199,7 @@ CONTAINS
 
 
     !$ACC DATA PRESENT(p_cc, p_mass_flx_e, p_rhodz_now, p_rhodz_new, p_vn, p_upflux) &
-    !$ACC   CREATE(z_real_vt) IF(i_am_accel_node)
+    !$ACC   CREATE(z_real_vt)
 
     !*******************************************************************
     !
@@ -339,15 +335,7 @@ CONTAINS
         iadv_min_slev = advconf%ffsl_h%iadv_min_slev
 
 #ifdef _OPENACC
-! In GPU mode, copy data to HOST and perform upwind_hflux_ffsl there, then update device
-! NOTE: this is only for testing; use upwind_hflux_miura/miura3 for performance
-        WRITE(message_text,'(a)') 'GPU mode: performing upwind_hflux_ffsl on host; for performance use upwind_hflux_miura'
-        CALL message(routine,message_text)
-        !$ACC UPDATE HOST(p_cc(:,:,:,jt), p_mass_flx_e, p_vn, p_rhodz_now, p_rhodz_new, z_real_vt) &
-        !$ACC   ASYNC(1) IF(i_am_accel_node)
-        !$ACC WAIT(1) IF(i_am_accel_node)
-        save_i_am_accel_node = i_am_accel_node
-        i_am_accel_node = .FALSE.     ! deactivate GPUs throughout upwind_hflux_ffsl
+        CALL finish(routine, "FFSL (ihadv_tracer == 4) not ported to GPU yet")
 #endif
 
         ! CALL Flux form semi Lagrangian scheme (extension of MIURA3-scheme)
@@ -363,11 +351,6 @@ CONTAINS
           &                 opt_rlend   = i_rlend,                    &! in
           &                 opt_slev    = advconf%iadv_slev(jt),      &! in
           &                 opt_ti_slev = iadv_min_slev               )! in
-
-#ifdef _OPENACC
-        i_am_accel_node =  save_i_am_accel_node    ! reactivate GPUs if appropriate
-        !$ACC UPDATE DEVICE(p_upflux(:,:,:,jt)) ASYNC(1) IF(i_am_accel_node)
-#endif
 
       CASE( FFSL_HYB )  ! ihadv_tracer = 5
 
@@ -508,15 +491,7 @@ CONTAINS
         qvsubstep_elev = advconf%iadv_qvsubstep_elev
 
 #ifdef _OPENACC
-! In GPU mode, copy data to HOST and perform upwind_hflux_ffsl there, then update device
-! NOTE: this is only for testing; use upwind_hflux_miura/miura3 for performance
-        WRITE(message_text,'(a)') 'GPU mode: performing upwind_hflux_ffsl on host; for performance use upwind_hflux_miura'
-        CALL message(routine,message_text)
-        !$ACC UPDATE HOST(p_cc(:,:,:,jt), p_mass_flx_e, p_vn, p_rhodz_now, p_rhodz_new, z_real_vt) &
-        !$ACC   ASYNC(1) IF(i_am_accel_node)
-        !$ACC WAIT(1) IF(i_am_accel_node)
-        save_i_am_accel_node = i_am_accel_node
-        i_am_accel_node = .FALSE.     ! deactivate GPUs throughout hflux_ffsl
+        CALL finish(routine, "FFSL_MCYCL (ihadv_tracer == 42) not ported to GPU yet")
 #endif
 
         ! CALL standard FFSL for lower atmosphere and the subcycling version of
@@ -534,11 +509,6 @@ CONTAINS
           &                 opt_elev    = p_patch%nlev,               &! in
           &                 opt_ti_slev = qvsubstep_elev+1,           &! in
           &                 opt_ti_elev = p_patch%nlev                )! in
-
-#ifdef _OPENACC
-        i_am_accel_node =  save_i_am_accel_node    ! reactivate GPUs if appropriate
-        !$ACC UPDATE DEVICE(p_upflux(:,:,:,jt)) ASYNC(1) IF(i_am_accel_node)
-#endif
 
         IF (qvsubstep_elev > 0) THEN
 
@@ -726,9 +696,9 @@ CONTAINS
    !-------------------------------------------------------------------------
 
     !$ACC DATA PRESENT(p_cc, p_mass_flx_e, btraj, p_out_e) CREATE(z_grad, z_lsq_coeff) &
-    !$ACC   PRESENT(btraj) IF(i_am_accel_node)
-    !$ACC DATA PRESENT(opt_rhodz_now) IF(PRESENT(opt_rhodz_now) .AND. i_am_accel_node)
-    !$ACC DATA PRESENT(opt_rhodz_new) IF(PRESENT(opt_rhodz_new) .AND. i_am_accel_node)
+    !$ACC   PRESENT(btraj)
+    !$ACC DATA PRESENT(opt_rhodz_now) IF(PRESENT(opt_rhodz_now))
+    !$ACC DATA PRESENT(opt_rhodz_new) IF(PRESENT(opt_rhodz_new))
 #ifdef __INTEL_COMPILER
 !DIR$ ATTRIBUTES ALIGN : 64 :: z_grad,z_lsq_coeff
 #endif
@@ -779,7 +749,7 @@ CONTAINS
 
 
     IF (p_test_run) THEN
-      !$ACC KERNELS DEFAULT(PRESENT) ASYNC(1) IF(i_am_accel_node)
+      !$ACC KERNELS DEFAULT(PRESENT) ASYNC(1)
 #ifdef __INTEL_COMPILER
 !$OMP PARALLEL DO SCHEDULE(STATIC)
       DO i = 1,SIZE(z_grad,4)
@@ -826,7 +796,7 @@ CONTAINS
         i_startblk = p_patch%cells%start_block(min_rlcell_int - 2)
         i_endblk   = p_patch%cells%end_block(min_rlcell_int - 2)
 !$OMP PARALLEL
-        CALL init(z_lsq_coeff(:,:,:,i_startblk:i_endblk), lacc=i_am_accel_node, opt_acc_async=.TRUE.)
+        CALL init(z_lsq_coeff(:,:,:,i_startblk:i_endblk), lacc=.TRUE., opt_acc_async=.TRUE.)
 !$OMP END PARALLEL
       ENDIF
 
@@ -880,7 +850,7 @@ CONTAINS
       i_startblk = p_patch%edges%start_block(i_rlend_e-1)
       i_endblk   = p_patch%edges%end_block(min_rledge_int-3)
 
-      CALL init(p_out_e(:,:,i_startblk:i_endblk), lacc=i_am_accel_node, opt_acc_async=.TRUE.)
+      CALL init(p_out_e(:,:,i_startblk:i_endblk), lacc=.TRUE., opt_acc_async=.TRUE.)
 !$OMP BARRIER
     ENDIF
 
@@ -889,7 +859,7 @@ CONTAINS
 
     ! initialize also nest boundary points with zero
     IF ( l_out_edgeval .AND. (p_patch%id > 1 .OR. l_limited_area)) THEN
-      CALL init(p_out_e(:,:,1:i_startblk), lacc=i_am_accel_node)
+      CALL init(p_out_e(:,:,1:i_startblk), lacc=.TRUE.)
 !$OMP BARRIER
     ENDIF
 
@@ -902,7 +872,7 @@ CONTAINS
       IF ( l_out_edgeval ) THEN   ! Calculate 'edge value' of advected quantity
 
 !$NEC outerloop_unroll(8)
-        !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1) IF(i_am_accel_node)
+        !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1)
         !$ACC LOOP GANG VECTOR PRIVATE(ilc0, ibc0) COLLAPSE(2)
         DO jk = slev, elev
           DO je = i_startidx, i_endidx
@@ -924,7 +894,7 @@ CONTAINS
       ELSE IF (use_zlsq) THEN
 
 !$NEC outerloop_unroll(8)
-        !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1) IF(i_am_accel_node)
+        !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1)
         !$ACC LOOP GANG VECTOR COLLAPSE(2) PRIVATE(ilc0, ibc0)
         DO jk = slev, elev
           DO je = i_startidx, i_endidx
@@ -947,7 +917,7 @@ CONTAINS
       ELSE
 
 !$NEC outerloop_unroll(8)
-        !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1) IF(i_am_accel_node)
+        !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1)
         !$ACC LOOP GANG VECTOR COLLAPSE(2) PRIVATE(ilc0, ibc0)
         DO jk = slev, elev
           DO je = i_startidx, i_endidx
@@ -1179,8 +1149,7 @@ CONTAINS
 
     !$ACC DATA PRESENT(p_cc, p_rhodz_now, p_mass_flx_e, p_out_e) &
     !$ACC   CREATE(z_grad, z_lsq_coeff, z_tracer_mflx, z_rhofluxdiv_c, z_fluxdiv_c, z_tracer, z_rho) &
-    !$ACC   PRESENT(iidx, iblk, btraj, p_int) &
-    !$ACC   IF(i_am_accel_node)
+    !$ACC   PRESENT(iidx, iblk, btraj, p_int)
 
     IF (p_test_run) THEN
       z_grad(:,:,:,:)   = 0._wp
@@ -1191,8 +1160,8 @@ CONTAINS
     nnow = 1
     nnew = 2
 !$OMP PARALLEL
-    CALL copy(p_cc (:,slev:elev,:), z_tracer(:,slev:elev,:,nnow), lacc=i_am_accel_node)
-    CALL copy(p_rhodz_now(:,slev:elev,:), z_rho   (:,slev:elev,:,nnow), lacc=i_am_accel_node)
+    CALL copy(p_cc (:,slev:elev,:), z_tracer(:,slev:elev,:,nnow), lacc=.TRUE.)
+    CALL copy(p_rhodz_now(:,slev:elev,:), z_rho   (:,slev:elev,:,nnow), lacc=.TRUE.)
 !$OMP END PARALLEL
 
 
@@ -1265,7 +1234,7 @@ CONTAINS
 
 
     IF ( p_patch%id > 1 .OR. l_limited_area) THEN
-      CALL init(z_tracer_mflx(:,:,1:i_startblk,nsub), lacc=i_am_accel_node)
+      CALL init(z_tracer_mflx(:,:,1:i_startblk,nsub), lacc=.TRUE.)
 !$OMP BARRIER
     ENDIF
 
@@ -1282,7 +1251,7 @@ CONTAINS
         ! 3.2 Compute intermediate tracer mass flux
         !
         IF (use_zlsq) THEN
-        !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1) IF(i_am_accel_node)
+        !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1)
         !$ACC LOOP GANG VECTOR PRIVATE(ilc0, ibc0) COLLAPSE(2)
 !$NEC outerloop_unroll(8)
           DO jk = slev, elev
@@ -1302,7 +1271,7 @@ CONTAINS
           ENDDO   ! loop over vertical levels
         !$ACC END PARALLEL
         ELSE
-        !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1) IF(i_am_accel_node)
+        !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1)
         !$ACC LOOP GANG VECTOR PRIVATE(ilc0, ibc0) COLLAPSE(2)
 !$NEC outerloop_unroll(8)
           DO jk = slev, elev
@@ -1363,7 +1332,7 @@ CONTAINS
     ! initialize nest boundary points at the second time level
     IF ( nsub == 1 .AND. (p_patch%id > 1 .OR. l_limited_area) ) THEN
       CALL copy(z_tracer(:,slev:elev,1:i_startblk,nnow), &
-           z_tracer(:,slev:elev,1:i_startblk,nnew), lacc=i_am_accel_node)
+           z_tracer(:,slev:elev,1:i_startblk,nnew), lacc=.TRUE.)
 !$OMP BARRIER
     ENDIF
 
@@ -1378,7 +1347,7 @@ CONTAINS
         ! This computation needs to be done only once, since the mass flux
         ! p_mass_flx_e is assumed to be constant in time.
         !
-      !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1) IF(i_am_accel_node)
+      !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1)
         IF ( nsub == 1 ) THEN
         !$ACC LOOP GANG(STATIC: 1) VECTOR COLLAPSE(2)
 #ifdef __LOOP_EXCHANGE
@@ -1477,7 +1446,7 @@ CONTAINS
         ! Calculate flux at cell edge (cc_bary*v_{n}* \Delta p)
         !
         IF (p_ncycl == 2) THEN
-          !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1) IF(i_am_accel_node)
+          !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1)
           !$ACC LOOP GANG VECTOR COLLAPSE(2)
           DO jk = slev, elev
 !NEC$ ivdep
@@ -1487,7 +1456,7 @@ CONTAINS
           ENDDO   ! loop over vertical levels
           !$ACC END PARALLEL
         ELSE IF (p_ncycl == 3) THEN
-          !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1) IF(i_am_accel_node)
+          !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1)
           !$ACC LOOP GANG VECTOR COLLAPSE(2)
           DO jk = slev, elev
 !NEC$ ivdep
@@ -1694,12 +1663,12 @@ CONTAINS
     i_nchdom = MAX(1,p_patch%n_childdom)
 
     !$ACC DATA PRESENT(p_cc, p_mass_flx_e, p_vn, p_vt, p_out_e) &
-    !$ACC   CREATE(z_lsq_coeff, z_coords_dreg_v) IF(i_am_accel_node)
-    !$ACC DATA PRESENT(opt_rhodz_now) IF(PRESENT(opt_rhodz_now) .AND. i_am_accel_node)
-    !$ACC DATA PRESENT(opt_rhodz_new) IF(PRESENT(opt_rhodz_new) .AND. i_am_accel_node)
+    !$ACC   CREATE(z_lsq_coeff, z_coords_dreg_v)
+    !$ACC DATA PRESENT(opt_rhodz_now) IF(PRESENT(opt_rhodz_now))
+    !$ACC DATA PRESENT(opt_rhodz_new) IF(PRESENT(opt_rhodz_new))
 
     IF (p_test_run) THEN
-      !$ACC KERNELS ASYNC(1) IF(i_am_accel_node)
+      !$ACC KERNELS ASYNC(1)
       z_lsq_coeff(:,:,:,:) = 0._wp
       !$ACC END KERNELS
     ENDIF
@@ -1740,8 +1709,7 @@ CONTAINS
           &  'z_cell_idx, z_cell_blk' )
       ENDIF
 
-      !$ACC ENTER DATA CREATE(z_quad_vector_sum, z_dreg_area, z_cell_idx, z_cell_blk) &
-      !$ACC   IF(i_am_accel_node)
+      !$ACC ENTER DATA CREATE(z_quad_vector_sum, z_dreg_area, z_cell_idx, z_cell_blk)
 
       ! compute vertex coordinates for the departure region using a first
       ! order accurate (O(\Delta t)) backward trajectory-method
@@ -1839,7 +1807,7 @@ CONTAINS
       i_startblk = p_patch%edges%start_blk(i_rlend-1,i_nchdom)
       i_endblk   = p_patch%edges%end_blk(min_rledge_int-3,i_nchdom)
 
-      CALL init(p_out_e(:,:,i_startblk:i_endblk), lacc=i_am_accel_node)
+      CALL init(p_out_e(:,:,i_startblk:i_endblk), lacc=.TRUE.)
 !$OMP BARRIER
     ENDIF
 
@@ -1848,7 +1816,7 @@ CONTAINS
 
     ! initialize also nest boundary points with zero
     IF ( l_out_edgeval .AND. (p_patch%id > 1 .OR. l_limited_area) ) THEN
-      CALL init(p_out_e(:,:,1:i_startblk), lacc=i_am_accel_node)
+      CALL init(p_out_e(:,:,1:i_startblk), lacc=.TRUE.)
 !$OMP BARRIER
     ENDIF
 
@@ -1868,7 +1836,7 @@ CONTAINS
         SELECT  CASE( lsq_high_ord )
         CASE( 2 )  ! quadratic reconstruction
 
-        !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1) IF(i_am_accel_node)
+        !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1)
         !$ACC LOOP GANG VECTOR COLLAPSE(2)
         DO jk = slev, elev
           DO je = i_startidx, i_endidx
@@ -1884,7 +1852,7 @@ CONTAINS
 
         CASE( 3 )  ! cubic reconstruction
 
-        !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1) IF(i_am_accel_node)
+        !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1)
         !$ACC LOOP GANG VECTOR COLLAPSE(2)
         DO jk = slev, elev
           DO je = i_startidx, i_endidx
@@ -1912,7 +1880,7 @@ CONTAINS
         SELECT  CASE( lsq_high_ord )
         CASE( 2 )  ! quadratic reconstruction
 
-        !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1) IF(i_am_accel_node)
+        !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1)
         !$ACC LOOP GANG VECTOR COLLAPSE(2)
         DO jk = slev, elev
           DO je = i_startidx, i_endidx
@@ -1929,7 +1897,7 @@ CONTAINS
 
         CASE( 3 )  ! cubic reconstruction
 
-        !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1) IF(i_am_accel_node)
+        !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1)
         !$ACC LOOP GANG VECTOR COLLAPSE(2)
         DO jk = slev, elev
           DO je = i_startidx, i_endidx
@@ -1982,8 +1950,7 @@ CONTAINS
       ! upwind cell indices
 
       !$ACC WAIT(1)
-      !$ACC EXIT DATA DELETE(z_quad_vector_sum, z_dreg_area, z_cell_idx, z_cell_blk) &
-      !$ACC   IF(i_am_accel_node)
+      !$ACC EXIT DATA DELETE(z_quad_vector_sum, z_dreg_area, z_cell_idx, z_cell_blk)
 
       DEALLOCATE( z_quad_vector_sum, z_dreg_area, z_cell_idx, z_cell_blk, &
         &         STAT=ist )
@@ -2731,10 +2698,10 @@ CONTAINS
     i_nchdom = MAX(1,p_patch%n_childdom)
 
     !$ACC DATA PRESENT(p_cc, p_rhodz_now, p_rhodz_new, p_mass_flx_e, p_vn, p_vt, p_out_e) &
-    !$ACC   CREATE(z_lsq_coeff, dreg_patch0) IF(i_am_accel_node)
+    !$ACC   CREATE(z_lsq_coeff, dreg_patch0)
 
     IF (p_test_run) THEN
-      !$ACC KERNELS ASYNC(1) IF(i_am_accel_node)
+      !$ACC KERNELS ASYNC(1)
       z_lsq_coeff(:,:,:,:) = 0._wp
       !$ACC END KERNELS
     ENDIF
@@ -2773,8 +2740,7 @@ CONTAINS
         CALL finish(routine,                                        &
           &  'allocation for patch0_cell_idx,  patch0_cell_blk, falist failed' )
       ENDIF
-      !$ACC ENTER DATA CREATE(falist, patch0_cell_idx, patch0_cell_blk, falist%eidx, falist%elev, falist%len) &
-      !$ACC   IF(i_am_accel_node)
+      !$ACC ENTER DATA CREATE(falist, patch0_cell_idx, patch0_cell_blk, falist%eidx, falist%elev, falist%len)
 
       ! compute vertex coordinates for the departure region using a first
       ! order accurate (O(\Delta t)) backward trajectory-method
@@ -2822,7 +2788,7 @@ CONTAINS
       !$ACC ENTER DATA CREATE(z_quad_vector_sum0, z_quad_vector_sum1) &
       !$ACC   CREATE(z_quad_vector_sum2, z_dreg_area, patch1_cell_idx) &
       !$ACC   CREATE(patch2_cell_idx, patch1_cell_blk, patch2_cell_blk, dreg_patch1) &
-      !$ACC   CREATE(dreg_patch2) IF(i_am_accel_node)
+      !$ACC   CREATE(dreg_patch2)
 
       ! Flux area (aka. departure region) is subdivided according to its overlap
       ! with the underlying grid.
@@ -2887,8 +2853,7 @@ CONTAINS
       ENDIF
 
       !$ACC WAIT(1)
-      !$ACC EXIT DATA DELETE(dreg_patch1, dreg_patch2) &
-      !$ACC   IF(i_am_accel_node)
+      !$ACC EXIT DATA DELETE(dreg_patch1, dreg_patch2)
       DEALLOCATE(dreg_patch1, dreg_patch2)
 
     END IF ! ld_compute
@@ -2970,7 +2935,7 @@ CONTAINS
       SELECT  CASE( lsq_high_ord )
       CASE( 1 )  ! linear reconstruction
 
-      !$ACC PARALLEL ASYNC(1) DEFAULT(PRESENT) IF(i_am_accel_node)
+      !$ACC PARALLEL ASYNC(1) DEFAULT(PRESENT)
       !$ACC LOOP GANG VECTOR COLLAPSE(2)
       DO jk = slev, elev
         DO je = i_startidx, i_endidx
@@ -2984,7 +2949,7 @@ CONTAINS
       !$ACC END PARALLEL
 
       ! Correction for points in index list
-      !$ACC PARALLEL ASYNC(1) DEFAULT(PRESENT) IF(i_am_accel_node)
+      !$ACC PARALLEL ASYNC(1) DEFAULT(PRESENT)
       !$ACC LOOP GANG VECTOR
 !$NEC ivdep
       DO ie = 1, falist%len(jb)
@@ -3004,7 +2969,7 @@ CONTAINS
 
       CASE( 2 )  ! quadratic reconstruction
 
-      !$ACC PARALLEL ASYNC(1) DEFAULT(PRESENT) IF(i_am_accel_node)
+      !$ACC PARALLEL ASYNC(1) DEFAULT(PRESENT)
       !$ACC LOOP GANG VECTOR COLLAPSE(2)
       DO jk = slev, elev
         DO je = i_startidx, i_endidx
@@ -3018,7 +2983,7 @@ CONTAINS
       !$ACC END PARALLEL
 
       ! Correction for points in index list
-      !$ACC PARALLEL ASYNC(1) DEFAULT(PRESENT) IF(i_am_accel_node)
+      !$ACC PARALLEL ASYNC(1) DEFAULT(PRESENT)
       !$ACC LOOP GANG VECTOR
 !$NEC ivdep
       DO ie = 1, falist%len(jb)
@@ -3038,7 +3003,7 @@ CONTAINS
 
       CASE( 3 )  ! cubic reconstruction
 
-      !$ACC PARALLEL ASYNC(1) DEFAULT(PRESENT) IF(i_am_accel_node)
+      !$ACC PARALLEL ASYNC(1) DEFAULT(PRESENT)
       !$ACC LOOP GANG VECTOR COLLAPSE(2)
       DO jk = slev, elev
 !NEC$ ivdep
@@ -3053,7 +3018,7 @@ CONTAINS
       !$ACC END PARALLEL
 
       ! Correction for points in index list
-      !$ACC PARALLEL ASYNC(1) DEFAULT(PRESENT) IF(i_am_accel_node)
+      !$ACC PARALLEL ASYNC(1) DEFAULT(PRESENT)
       !$ACC LOOP GANG VECTOR
 !$NEC ivdep
       DO ie = 1, falist%len(jb)
@@ -3073,7 +3038,7 @@ CONTAINS
       END SELECT
 
       ! Finally compute total flux
-      !$ACC PARALLEL ASYNC(1) DEFAULT(PRESENT) IF(i_am_accel_node)
+      !$ACC PARALLEL ASYNC(1) DEFAULT(PRESENT)
       !$ACC LOOP GANG VECTOR COLLAPSE(2)
       DO jk = slev, elev
         DO je = i_startidx, i_endidx
@@ -3110,8 +3075,7 @@ CONTAINS
       !$ACC EXIT DATA DELETE(z_quad_vector_sum0, z_quad_vector_sum1) &
       !$ACC   DELETE(z_quad_vector_sum2, z_dreg_area, patch0_cell_idx, patch1_cell_idx) &
       !$ACC   DELETE(patch2_cell_idx, patch0_cell_blk, patch1_cell_blk, patch2_cell_blk) &
-      !$ACC   DELETE(falist%eidx, falist%elev, falist%len, falist) &
-      !$ACC   IF(i_am_accel_node)
+      !$ACC   DELETE(falist%eidx, falist%elev, falist%len, falist)
       ! deallocate temporary arrays for quadrature, departure region and
       ! upwind cell indices
       DEALLOCATE( z_quad_vector_sum0, z_quad_vector_sum1, z_quad_vector_sum2, &

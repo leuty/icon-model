@@ -77,13 +77,11 @@
     &                                 makeInputParameters, deleteInputParameters
     USE mo_util_file,           ONLY: util_filesize
     USE mo_master_config,       ONLY: isRestart
-    USE mo_fortran_tools,       ONLY: copy, init
+    USE mo_fortran_tools,       ONLY: copy, init, assert_acc_device_only
     USE mo_util_string,         ONLY: tolower
     USE mo_util_sysinfo,        ONLY: check_file_exists
     USE mo_dictionary,          ONLY: t_dictionary
-#if defined( _OPENACC )
     USE mo_mpi,                 ONLY: i_am_accel_node, my_process_is_work
-#endif
 
     IMPLICIT NONE
     PRIVATE
@@ -563,14 +561,15 @@
       IF (nudging_config(1)%nudge_type==indg_type%ubn .AND. p_patch(1)%n_childdom > 0) THEN
         !
         prev_latbc_tlev = 3 - timelev
-        ! 
+        !
+        CALL assert_acc_device_only("read_init_latbc_data", i_am_accel_node)
         DO jn = 1, p_patch(1)%n_childdom
           CALL intp_nestubc_nudging (p_patch     = p_patch(1:),               &
             &                        latbc_data  = latbc%latbc_data(timelev), &
-            &                        jg          = p_patch(1)%child_id(jn) )
+            &                        jg          = p_patch(1)%child_id(jn), lacc=.TRUE. )
           CALL intp_nestubc_nudging (p_patch     = p_patch(1:),                       &
             &                        latbc_data  = latbc%latbc_data(prev_latbc_tlev), &
-            &                        jg          = p_patch(1)%child_id(jn) )
+            &                        jg          = p_patch(1)%child_id(jn), lacc=.TRUE. )
         ENDDO
       ENDIF
 
@@ -1355,7 +1354,7 @@
         DO jn = 1, p_patch(1)%n_childdom
           CALL intp_nestubc_nudging (p_patch     = p_patch(1:),            &
             &                        latbc_data  = latbc%latbc_data(tlev), &
-            &                        jg          = p_patch(1)%child_id(jn) )
+            &                        jg          = p_patch(1)%child_id(jn), lacc=.FALSE. )
         ENDDO
       ENDIF
 

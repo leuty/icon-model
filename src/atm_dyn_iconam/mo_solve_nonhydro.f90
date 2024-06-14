@@ -51,7 +51,7 @@ MODULE mo_solve_nonhydro
   USE mo_impl_constants_grf,ONLY: grf_bdywidth_c, grf_bdywidth_e
   USE mo_sync,              ONLY: SYNC_E, SYNC_C, sync_patch_array,                             &
                                   sync_patch_array_mult, sync_patch_array_mult_mp
-  USE mo_mpi,               ONLY: my_process_is_mpi_all_seq, work_mpi_barrier, i_am_accel_node
+  USE mo_mpi,               ONLY: my_process_is_mpi_all_seq, work_mpi_barrier
   USE mo_timer,             ONLY: timer_solve_nh, timer_barrier, timer_start, timer_stop,       &
                                   timer_solve_nh_cellcomp, timer_solve_nh_edgecomp,             &
                                   timer_solve_nh_vnupd, timer_solve_nh_vimpl, timer_solve_nh_exch
@@ -59,7 +59,8 @@ MODULE mo_solve_nonhydro
   USE mo_vertical_coord_table,ONLY: vct_a
   USE mo_prepadv_types,     ONLY: t_prepare_adv
   USE mo_initicon_config,   ONLY: is_iau_active, iau_wgt_dyn
-  USE mo_fortran_tools,     ONLY: init_zero_contiguous_dp, init_zero_contiguous_sp ! Import both for mixed prec.
+  USE mo_fortran_tools,     ONLY: init_zero_contiguous_dp, init_zero_contiguous_sp,             & ! Import both for mixed prec.
+    &                             assert_acc_device_only
 #ifdef _OPENACC
   USE mo_mpi,               ONLY: my_process_is_work
 #endif
@@ -100,7 +101,7 @@ MODULE mo_solve_nonhydro
   !! Main solver routine for nonhydrostatic dynamical core
   !!
   SUBROUTINE solve_nh (p_nh, p_patch, p_int, prep_adv, nnow, nnew, l_init, l_recompute, lsave_mflx, &
-                       lprep_adv, lclean_mflx, idyn_timestep, jstep, dtime)
+                       lprep_adv, lclean_mflx, idyn_timestep, jstep, dtime, lacc)
 
     TYPE(t_nh_state),    TARGET, INTENT(INOUT) :: p_nh
     TYPE(t_int_state),   TARGET, INTENT(IN)    :: p_int
@@ -125,6 +126,7 @@ MODULE mo_solve_nonhydro
     INTEGER,                   INTENT(IN)    :: nnow, nnew
     ! Dynamics time step
     REAL(wp),                  INTENT(IN)    :: dtime
+    LOGICAL, INTENT(IN), OPTIONAL            :: lacc ! If true, use openacc
 
     ! Local variables
     INTEGER  :: jb, jk, jc, je, jks, jg
@@ -257,6 +259,8 @@ MODULE mo_solve_nonhydro
       REAL(wp) :: z_rho_tavg_m1_v(nproma), z_theta_tavg_m1_v(nproma)
       REAL(vp) :: z_theta_v_pr_mc_m1_v(nproma)
 #endif
+    CALL assert_acc_device_only("solve_nh", lacc)
+
     !-------------------------------------------------------------------
     IF (use_dycore_barrier) THEN
       CALL timer_start(timer_barrier)
@@ -385,8 +389,7 @@ MODULE mo_solve_nonhydro
     !$ACC   COPYIN(z_raylfac, ndyn_substeps_var, scal_divdamp, bdy_divdamp) &
     !$ACC   PRESENT(prep_adv, p_int, p_patch, p_nh) &
     !$ACC   PRESENT(icidx, icblk, ividx, ivblk, ieidx, ieblk, ikidx, iqidx, iqblk) &
-    !$ACC   PRESENT(ipeidx, ipeblk, iplev) &
-    !$ACC   IF(i_am_accel_node)
+    !$ACC   PRESENT(ipeidx, ipeblk, iplev)
 
     ! scaling factor for second-order divergence damping: divdamp_fac_o2*delta_x**2
     ! delta_x**2 is approximated by the mean cell area
@@ -394,7 +397,7 @@ MODULE mo_solve_nonhydro
 
 
     IF (p_test_run) THEN
-      !$ACC KERNELS IF(i_am_accel_node) DEFAULT(PRESENT) ASYNC(1)
+      !$ACC KERNELS DEFAULT(PRESENT) ASYNC(1)
       z_rho_e     = 0._wp
       z_theta_v_e = 0._wp
       z_dwdz_dd   = 0._wp
@@ -479,22 +482,22 @@ MODULE mo_solve_nonhydro
 #ifdef __SWAPDIM
 #ifdef __MIXED_PRECISION
           CALL init_zero_contiguous_sp(z_rth_pr(1,1,1,1), nproma*nlev*i_startblk, opt_acc_async=.TRUE., &
-            & lacc=i_am_accel_node)
+            & lacc=.TRUE.)
           CALL init_zero_contiguous_sp(z_rth_pr(1,1,1,2), nproma*nlev*i_startblk, opt_acc_async=.TRUE., &
-            & lacc=i_am_accel_node)
+            & lacc=.TRUE.)
 #else
           CALL init_zero_contiguous_dp(z_rth_pr(1,1,1,1), nproma*nlev*i_startblk, opt_acc_async=.TRUE., &
-            & lacc=i_am_accel_node)
+            & lacc=.TRUE.)
           CALL init_zero_contiguous_dp(z_rth_pr(1,1,1,2), nproma*nlev*i_startblk, opt_acc_async=.TRUE., &
-            & lacc=i_am_accel_node)
+            & lacc=.TRUE.)
 #endif
 #else
 #ifdef __MIXED_PRECISION
           CALL init_zero_contiguous_sp(z_rth_pr(1,1,1,1), 2*nproma*nlev*i_startblk, opt_acc_async=.TRUE., &
-            & lacc=i_am_accel_node)
+            & lacc=.TRUE.)
 #else
           CALL init_zero_contiguous_dp(z_rth_pr(1,1,1,1), 2*nproma*nlev*i_startblk, opt_acc_async=.TRUE., &
-            & lacc=i_am_accel_node)
+            & lacc=.TRUE.)
 #endif
 #endif
 
@@ -514,7 +517,7 @@ MODULE mo_solve_nonhydro
 
         IF (istep == 1) THEN ! to be executed in predictor step only
 
-          !$ACC PARALLEL IF(i_am_accel_node) DEFAULT(PRESENT) ASYNC(1)
+          !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1)
           !$ACC LOOP GANG VECTOR COLLAPSE(2)
           DO jk = 1, nlev
 !DIR$ IVDEP
@@ -534,7 +537,7 @@ MODULE mo_solve_nonhydro
 
           ! The purpose of the extra level of exner_pr is to simplify coding for
           ! igradp_method=4/5. It is multiplied with zero and thus actually not used
-          !$ACC KERNELS IF(i_am_accel_node) DEFAULT(PRESENT) ASYNC(1)
+          !$ACC KERNELS DEFAULT(PRESENT) ASYNC(1)
           z_exner_ex_pr(:,nlevp1,jb) = 0._wp
           !$ACC END KERNELS
 
@@ -542,7 +545,7 @@ MODULE mo_solve_nonhydro
           IF (igradp_method <= 3) THEN
             ! Perturbation Exner pressure on bottom half level
 !DIR$ IVDEP
-            !$ACC PARALLEL IF(i_am_accel_node) DEFAULT(PRESENT) ASYNC(1)
+            !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1)
             !$ACC LOOP GANG VECTOR
             DO jc = i_startidx, i_endidx
               z_exner_ic(jc,nlevp1) =                                         &
@@ -554,7 +557,7 @@ MODULE mo_solve_nonhydro
 
 ! WS: moved full z_exner_ic calculation here to avoid OpenACC dependency on jk+1 below
 !     possibly GZ will want to consider the cache ramifications of this change for CPU
-            !$ACC PARALLEL IF(i_am_accel_node) DEFAULT(PRESENT) ASYNC(1)
+            !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1)
             !$ACC LOOP GANG VECTOR TILE(32, 4)
             DO jk = nlev, MAX(2,nflatlev(jg)), -1
 !DIR$ IVDEP
@@ -567,7 +570,7 @@ MODULE mo_solve_nonhydro
             ENDDO
             !$ACC END PARALLEL
 
-            !$ACC PARALLEL IF(i_am_accel_node) DEFAULT(PRESENT) ASYNC(1)
+            !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1)
             !$ACC LOOP GANG VECTOR TILE(32, 4)
             DO jk = nlev, MAX(2,nflatlev(jg)), -1
 !DIR$ IVDEP
@@ -588,7 +591,7 @@ MODULE mo_solve_nonhydro
             IF (nflatlev(jg) == 1) THEN
               ! Perturbation Exner pressure on top half level
 !DIR$ IVDEP
-              !$ACC PARALLEL IF(i_am_accel_node) DEFAULT(PRESENT) ASYNC(1)
+              !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1)
               !$ACC LOOP GANG VECTOR
               DO jc = i_startidx, i_endidx
                 z_exner_ic(jc,1) =                                          &
@@ -610,7 +613,7 @@ MODULE mo_solve_nonhydro
 
           ENDIF
 
-          !$ACC PARALLEL IF(i_am_accel_node) DEFAULT(PRESENT) ASYNC(1)
+          !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1)
 #ifdef __SWAPDIM
           !$ACC LOOP GANG VECTOR
           DO jc = i_startidx, i_endidx
@@ -630,7 +633,7 @@ MODULE mo_solve_nonhydro
 #endif
           !$ACC END PARALLEL
 
-          !$ACC PARALLEL IF(i_am_accel_node) DEFAULT(PRESENT) ASYNC(1)
+          !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1)
           !$ACC LOOP GANG VECTOR TILE(32, 4)
           DO jk = 2, nlev
 !DIR$ IVDEP
@@ -653,7 +656,7 @@ MODULE mo_solve_nonhydro
           ENDDO
           !$ACC END PARALLEL
 
-          !$ACC PARALLEL IF(i_am_accel_node) DEFAULT(PRESENT) ASYNC(1)
+          !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1)
           !$ACC LOOP GANG VECTOR COLLAPSE(2)
           DO jk = 2, nlev
 !DIR$ IVDEP
@@ -698,7 +701,7 @@ MODULE mo_solve_nonhydro
             ENDDO
 #endif
 
-          !$ACC PARALLEL IF(i_am_accel_node) DEFAULT(PRESENT) ASYNC(1)
+          !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1)
           !$ACC LOOP GANG VECTOR TILE(128, 1) &
           !$ACC   PRIVATE(z_w_backtraj, z_rho_tavg_m1, z_theta_tavg_m1, z_rho_tavg) &
           !$ACC   PRIVATE(z_theta_tavg, z_theta_v_pr_mc_m1, z_theta_v_pr_mc)
@@ -772,7 +775,7 @@ MODULE mo_solve_nonhydro
         IF (istep == 1) THEN
 
           ! Perturbation theta at top and surface levels
-          !$ACC PARALLEL IF(i_am_accel_node) DEFAULT(PRESENT) ASYNC(1)
+          !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1)
 !DIR$ IVDEP
           !$ACC LOOP GANG VECTOR
           DO jc = i_startidx, i_endidx
@@ -794,7 +797,7 @@ MODULE mo_solve_nonhydro
 
           IF (igradp_method <= 3) THEN
 
-            !$ACC PARALLEL IF(i_am_accel_node) DEFAULT(PRESENT) ASYNC(1)
+            !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1)
             !$ACC LOOP GANG VECTOR TILE(32, 4)
             DO jk = nflat_gradp(jg), nlev
 !DIR$ IVDEP
@@ -834,7 +837,7 @@ MODULE mo_solve_nonhydro
 
           CALL get_indices_c(p_patch, jb, i_startblk, i_endblk, i_startidx, i_endidx, rl_start, rl_end)
 
-          !$ACC PARALLEL IF(i_am_accel_node) DEFAULT(PRESENT) ASYNC(1)
+          !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1)
           !$ACC LOOP GANG VECTOR COLLAPSE(2)
           DO jk = 1, nlev
 !DIR$ IVDEP
@@ -891,9 +894,9 @@ MODULE mo_solve_nonhydro
 
         IF (i_endblk >= i_startblk) THEN
           CALL init_zero_contiguous_dp(z_rho_e    (1,1,i_startblk), nproma*nlev*(i_endblk-i_startblk+1), &
-            & opt_acc_async=.TRUE., lacc=i_am_accel_node)
+            & opt_acc_async=.TRUE., lacc=.TRUE.)
           CALL init_zero_contiguous_dp(z_theta_v_e(1,1,i_startblk), nproma*nlev*(i_endblk-i_startblk+1), &
-            & opt_acc_async=.TRUE., lacc=i_am_accel_node)
+            & opt_acc_async=.TRUE., lacc=.TRUE.)
 !$OMP BARRIER
         ENDIF
 
@@ -906,9 +909,9 @@ MODULE mo_solve_nonhydro
         ! initialize also nest boundary points with zero
         IF (jg > 1 .OR. l_limited_area) THEN
           CALL init_zero_contiguous_dp(z_rho_e    (1,1,1), nproma*nlev*i_startblk, opt_acc_async=.TRUE., &
-          & lacc=i_am_accel_node)
+          & lacc=.TRUE.)
           CALL init_zero_contiguous_dp(z_theta_v_e(1,1,1), nproma*nlev*i_startblk, opt_acc_async=.TRUE., &
-          & lacc=i_am_accel_node)
+          & lacc=.TRUE.)
 !$OMP BARRIER
         ENDIF
 
@@ -924,7 +927,7 @@ MODULE mo_solve_nonhydro
             ! Operations from upwind_hflux_miura are inlined in order to process both
             ! fields in one step
 
-            !$ACC PARALLEL IF(i_am_accel_node) DEFAULT(PRESENT) ASYNC(1)
+            !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1)
 
             ! Also the back-trajectory computation is inlined to improve efficiency
             !$ACC LOOP GANG(STATIC: 1) VECTOR TILE(32, 4) &
@@ -1000,7 +1003,7 @@ MODULE mo_solve_nonhydro
 
           ELSE
 
-            !$ACC PARALLEL IF(i_am_accel_node) DEFAULT(PRESENT) ASYNC(1)
+            !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1)
             !$ACC LOOP GANG VECTOR TILE(32, 4)
 #ifdef __LOOP_EXCHANGE
             DO je = i_startidx, i_endidx
@@ -1057,7 +1060,7 @@ MODULE mo_solve_nonhydro
 
           CALL get_indices_e(p_patch, jb, i_startblk, i_endblk, &
                              i_startidx, i_endidx, rl_start, rl_end)
-          !$ACC PARALLEL IF(i_am_accel_node) DEFAULT(PRESENT) ASYNC(1)
+          !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1)
           !$ACC LOOP GANG VECTOR COLLAPSE(2)
 #ifdef __LOOP_EXCHANGE
           DO je = i_startidx, i_endidx
@@ -1100,7 +1103,7 @@ MODULE mo_solve_nonhydro
           ! Store values at nest interface levels; this is done here for the first sub-time step,
           ! the final averaging is done in mo_nh_nest_utilities:compute_tendencies
           IF (idyn_timestep == 1 .AND. l_child_vertnest) THEN
-          !$ACC PARALLEL IF(i_am_accel_node) DEFAULT(PRESENT) ASYNC(1)
+          !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1)
           !$ACC LOOP GANG VECTOR
             DO je = i_startidx, i_endidx
               p_nh%diag%vn_ie_int(je,1,jb) = p_nh%diag%vn_ie(je,nshift,jb)
@@ -1108,7 +1111,7 @@ MODULE mo_solve_nonhydro
             !$ACC END PARALLEL
           ENDIF
 
-          !$ACC PARALLEL IF(i_am_accel_node) DEFAULT(PRESENT) ASYNC(1)
+          !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1)
           !$ACC LOOP GANG VECTOR COLLAPSE(2)
 #ifdef __LOOP_EXCHANGE
           DO je = i_startidx, i_endidx
@@ -1128,7 +1131,7 @@ MODULE mo_solve_nonhydro
 
           IF (igradp_method <= 3) THEN
 
-            !$ACC PARALLEL IF(i_am_accel_node) DEFAULT(PRESENT) ASYNC(1)
+            !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1)
             !$ACC LOOP GANG VECTOR COLLAPSE(2)
 #ifdef __LOOP_EXCHANGE
             DO je = i_startidx, i_endidx
@@ -1156,7 +1159,7 @@ MODULE mo_solve_nonhydro
             ENDDO
             !$ACC END PARALLEL
 
-            !$ACC PARALLEL IF(i_am_accel_node) DEFAULT(PRESENT) ASYNC(1)
+            !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1)
             !$ACC LOOP GANG VECTOR TILE(32, 4)
 #ifdef __LOOP_EXCHANGE
             DO je = i_startidx, i_endidx
@@ -1197,7 +1200,7 @@ MODULE mo_solve_nonhydro
 
           ELSE IF (igradp_method == 4 .OR. igradp_method == 5) THEN
 
-            !$ACC PARALLEL IF(i_am_accel_node) DEFAULT(PRESENT) ASYNC(1)
+            !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1)
             !$ACC LOOP GANG VECTOR TILE(32, 4)
 #ifdef __LOOP_EXCHANGE
             DO je = i_startidx, i_endidx
@@ -1234,7 +1237,7 @@ MODULE mo_solve_nonhydro
           ! compute hydrostatically approximated correction term that replaces downward extrapolation
           IF (igradp_method == 3) THEN
 
-            !$ACC PARALLEL IF(i_am_accel_node) DEFAULT(PRESENT) ASYNC(1)
+            !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1)
             !$ACC LOOP GANG VECTOR PRIVATE(z_theta1, z_theta2)
             DO je = i_startidx, i_endidx
 
@@ -1260,7 +1263,7 @@ MODULE mo_solve_nonhydro
 
           ELSE IF (igradp_method == 5) THEN
 
-            !$ACC PARALLEL IF(i_am_accel_node) DEFAULT(PRESENT) ASYNC(1)
+            !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1)
             !$ACC LOOP GANG VECTOR PRIVATE(ikp1, ikp2, z_theta1, z_theta2)
             DO je = i_startidx, i_endidx
 
@@ -1310,7 +1313,7 @@ MODULE mo_solve_nonhydro
             nlen_gradp = nproma_gradp
           ENDIF
           ishift = (jb-1)*nproma_gradp
-          !$ACC PARALLEL IF(i_am_accel_node) DEFAULT(PRESENT) ASYNC(1)
+          !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1)
 !$NEC ivdep
           !$ACC LOOP GANG VECTOR
           DO je = 1, nlen_gradp
@@ -1338,7 +1341,7 @@ MODULE mo_solve_nonhydro
         CALL get_indices_e(p_patch, jb, i_startblk, i_endblk, &
           i_startidx, i_endidx, rl_start, rl_end)
 
-        !$ACC PARALLEL IF(i_am_accel_node) DEFAULT(PRESENT) ASYNC(1)
+        !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1)
         IF ((itime_scheme >= 4) .AND. istep == 2) THEN ! use temporally averaged velocity advection terms
 
           !$ACC LOOP GANG(STATIC: 1) VECTOR PRIVATE(z_ddt_vn_dyn, z_ddt_vn_apc, z_ddt_vn_cor, z_ddt_vn_pgr) TILE(32, 4)
@@ -1550,7 +1553,7 @@ MODULE mo_solve_nonhydro
         !
         IF ( rayleigh_type == RAYLEIGH_CLASSIC ) THEN
 
-          !$ACC PARALLEL IF(i_am_accel_node) DEFAULT(PRESENT) ASYNC(1)
+          !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1)
           !$ACC LOOP GANG VECTOR COLLAPSE(2) PRIVATE(z_ddt_vn_ray)
           DO jk = 1, nrdmax(jg)
 !DIR$ IVDEP
@@ -1593,7 +1596,7 @@ MODULE mo_solve_nonhydro
           CALL get_indices_e(p_patch, jb, i_startblk, i_endblk, &
             i_startidx, i_endidx, rl_start, rl_end)
 
-          !$ACC PARALLEL IF(i_am_accel_node) DEFAULT(PRESENT) ASYNC(1)
+          !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1)
           !$ACC LOOP GANG VECTOR COLLAPSE(2)
           DO jk = 1, nlev
 !DIR$ IVDEP
@@ -1622,7 +1625,7 @@ MODULE mo_solve_nonhydro
       ! Preparations for nest boundary interpolation of mass fluxes from parent domain
       IF (jg > 1 .AND. grf_intmethod_e == 6 .AND. jstep == 0 .AND. istep == 1) THEN
 
-        !$ACC PARALLEL IF(i_am_accel_node) DEFAULT(PRESENT) ASYNC(1)
+        !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1)
         !$ACC LOOP GANG
 
 !$OMP DO PRIVATE(ic,je,jb,jk) ICON_OMP_DEFAULT_SCHEDULE
@@ -1679,7 +1682,7 @@ MODULE mo_solve_nonhydro
         CALL get_indices_e(p_patch, jb, i_startblk, i_endblk, &
                          i_startidx, i_endidx, rl_start, rl_end)
 
-        !$ACC PARALLEL IF(i_am_accel_node) DEFAULT(PRESENT) ASYNC(1)
+        !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1)
         IF (istep == 1) THEN
 
           !$ACC LOOP GANG(STATIC: 1) VECTOR TILE(32, 4)
@@ -1840,7 +1843,7 @@ MODULE mo_solve_nonhydro
         IF (istep == 1 .OR. itime_scheme >= 5) THEN
           ! Compute contravariant correction for vertical velocity at full levels
 
-          !$ACC PARALLEL IF(i_am_accel_node) DEFAULT(PRESENT) ASYNC(1)
+          !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1)
           !$ACC LOOP GANG VECTOR COLLAPSE(2)
           DO jk = nflatlev(jg), nlev
 !DIR$ IVDEP
@@ -1857,7 +1860,7 @@ MODULE mo_solve_nonhydro
           ! Interpolate vn to interface levels and compute horizontal part of kinetic energy on edges
           ! (needed in velocity tendencies called at istep=2)
 
-          !$ACC PARALLEL IF(i_am_accel_node) DEFAULT(PRESENT) ASYNC(1)
+          !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1)
           !$ACC LOOP GANG VECTOR COLLAPSE(2)
 !$NEC outerloop_unroll(3)
           DO jk = 2, nlev
@@ -1877,7 +1880,7 @@ MODULE mo_solve_nonhydro
           IF (.NOT. l_vert_nested) THEN
             ! Top and bottom levels
 !DIR$ IVDEP
-            !$ACC PARALLEL IF(i_am_accel_node) DEFAULT(PRESENT) ASYNC(1)
+            !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1)
             !$ACC LOOP GANG VECTOR
             DO je = i_startidx, i_endidx
               ! Quadratic extrapolation at the top turned out to cause numerical instability in pathological cases,
@@ -1895,7 +1898,7 @@ MODULE mo_solve_nonhydro
             !$ACC END PARALLEL
           ELSE
             ! vn_ie(jk=1) is interpolated horizontally from the parent domain, and linearly interpolated in time
-            !$ACC PARALLEL IF(i_am_accel_node) DEFAULT(PRESENT) ASYNC(1)
+            !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1)
             !$ACC LOOP GANG VECTOR
 !DIR$ IVDEP
             DO je = i_startidx, i_endidx
@@ -1919,7 +1922,7 @@ MODULE mo_solve_nonhydro
       ! Apply mass fluxes across lateral nest boundary interpolated from parent domain
       IF (jg > 1 .AND. grf_intmethod_e == 6) THEN
 
-        !$ACC PARALLEL IF(i_am_accel_node) DEFAULT(PRESENT) ASYNC(1)
+        !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1)
         ! PGI 21.2 requires GANG-VECTOR on this level. (Having the jk as VECTOR crashes.)
         ! PRIVATE clause is required as je,jb are used in each vector thread.
         !$ACC LOOP GANG VECTOR PRIVATE(je, jb)
@@ -1988,7 +1991,7 @@ MODULE mo_solve_nonhydro
             i_startidx, i_endidx, rl_start, rl_end)
 
           ! ... and to interface levels
-          !$ACC PARALLEL IF(i_am_accel_node) DEFAULT(PRESENT) ASYNC(1)
+          !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1)
           !$ACC LOOP GANG VECTOR TILE(32, 4) PRIVATE(z_w_concorr_mc_m1, z_w_concorr_mc_m0)
           DO jk = nflatlev(jg)+1, nlev
 !DIR$ IVDEP
@@ -2010,7 +2013,7 @@ MODULE mo_solve_nonhydro
           ENDDO
           !$ACC END PARALLEL
 
-          !$ACC PARALLEL IF(i_am_accel_node) DEFAULT(PRESENT) ASYNC(1)
+          !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1)
           !$ACC LOOP GANG VECTOR PRIVATE(z_w_concorr_mc_m2, z_w_concorr_mc_m1, z_w_concorr_mc_m0)
 !DIR$ IVDEP
           DO jc = i_startidx, i_endidx
@@ -2118,7 +2121,7 @@ MODULE mo_solve_nonhydro
 
         ! horizontal divergences of rho and rhotheta are inlined and processed in one step for efficiency
 
-        !$ACC PARALLEL IF(i_am_accel_node) DEFAULT(PRESENT) ASYNC(1)
+        !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1)
         !$ACC LOOP GANG VECTOR COLLAPSE(2)
 #ifdef __LOOP_EXCHANGE
         DO jc = i_startidx, i_endidx
@@ -2149,7 +2152,7 @@ MODULE mo_solve_nonhydro
         ! each dynamics substep. 
         ! Hence, copying them every dynamics substep during the predictor step (istep=1) is sufficient. 
         IF (l_vert_nested .AND. istep == 1) THEN
-          !$ACC PARALLEL IF(i_am_accel_node) DEFAULT(PRESENT) ASYNC(1)
+          !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1)
           !$ACC LOOP GANG VECTOR
 !DIR$ IVDEP
           DO jc = i_startidx, i_endidx
@@ -2172,7 +2175,7 @@ MODULE mo_solve_nonhydro
         !
         IF (istep == 2 .AND. (itime_scheme >= 4)) THEN
 
-          !$ACC PARALLEL IF(i_am_accel_node) DEFAULT(PRESENT) ASYNC(1)
+          !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1)
           !$ACC LOOP GANG VECTOR COLLAPSE(2)
           DO jk = 2, nlev
 !DIR$ IVDEP
@@ -2195,7 +2198,7 @@ MODULE mo_solve_nonhydro
           !$ACC END PARALLEL
         ELSE
 
-          !$ACC PARALLEL IF(i_am_accel_node) DEFAULT(PRESENT) ASYNC(1)
+          !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1)
           !$ACC LOOP GANG VECTOR COLLAPSE(2)
           DO jk = 2, nlev
 !DIR$ IVDEP
@@ -2216,7 +2219,7 @@ MODULE mo_solve_nonhydro
         ENDIF
 
 
-        !$ACC PARALLEL IF(i_am_accel_node) DEFAULT(PRESENT) ASYNC(1)
+        !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1)
         !$ACC LOOP GANG VECTOR COLLAPSE(2)
         DO jk = 1, nlev
 !DIR$ IVDEP
@@ -2232,7 +2235,7 @@ MODULE mo_solve_nonhydro
         !$ACC END PARALLEL
 
 
-        !$ACC PARALLEL IF(i_am_accel_node) DEFAULT(PRESENT) ASYNC(1)
+        !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1)
         !$ACC LOOP GANG VECTOR
         DO jc = i_startidx, i_endidx
           z_alpha(jc,nlevp1) = 0.0_wp
@@ -2249,7 +2252,7 @@ MODULE mo_solve_nonhydro
         ! interpolated from parent domain in case of vertical nesting, and
         ! rigid lid otherwise
         IF (.NOT. l_vert_nested) THEN
-          !$ACC PARALLEL IF(i_am_accel_node) DEFAULT(PRESENT) ASYNC(1)
+          !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1)
           !$ACC LOOP GANG VECTOR
           DO jc = i_startidx, i_endidx
             p_nh%prog(nnew)%w(jc,1,jb) = 0._wp
@@ -2257,7 +2260,7 @@ MODULE mo_solve_nonhydro
           ENDDO
           !$ACC END PARALLEL
         ELSE  ! l_vert_nested
-          !$ACC PARALLEL IF(i_am_accel_node) DEFAULT(PRESENT) ASYNC(1)
+          !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1)
           !$ACC LOOP GANG VECTOR
 !DIR$ IVDEP
           DO jc = i_startidx, i_endidx
@@ -2272,7 +2275,7 @@ MODULE mo_solve_nonhydro
         ENDIF
 
         ! lower boundary condition for w, consistent with contravariant correction
-        !$ACC PARALLEL IF(i_am_accel_node) DEFAULT(PRESENT) ASYNC(1)
+        !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1)
         !$ACC LOOP GANG VECTOR
 !DIR$ IVDEP
         DO jc = i_startidx, i_endidx
@@ -2285,7 +2288,7 @@ MODULE mo_solve_nonhydro
         ! Explicit parts of density and Exner pressure
         !
         ! Top level first
-        !$ACC PARALLEL IF(i_am_accel_node) DEFAULT(PRESENT) ASYNC(1)
+        !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1)
         !$ACC LOOP GANG VECTOR
 !DIR$ IVDEP
         DO jc = i_startidx, i_endidx
@@ -2308,7 +2311,7 @@ MODULE mo_solve_nonhydro
         !$ACC END PARALLEL
 
         ! Other levels
-        !$ACC PARALLEL IF(i_am_accel_node) DEFAULT(PRESENT) ASYNC(1)
+        !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1)
         !$ACC LOOP GANG VECTOR COLLAPSE(2)
         DO jk = 2, nlev
 !DIR$ IVDEP
@@ -2334,7 +2337,7 @@ MODULE mo_solve_nonhydro
 
         IF (is_iau_active) THEN ! add analysis increments from data assimilation to density and exner pressure
           
-          !$ACC PARALLEL IF(i_am_accel_node) DEFAULT(PRESENT) ASYNC(1)
+          !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1)
           !$ACC LOOP GANG VECTOR COLLAPSE(2)
           DO jk = 1, nlev
 !DIR$ IVDEP
@@ -2350,7 +2353,7 @@ MODULE mo_solve_nonhydro
         ! Solve tridiagonal matrix for w
         !
 ! TODO: not parallelized
-        !$ACC PARALLEL IF(i_am_accel_node) DEFAULT(PRESENT) ASYNC(1)
+        !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1)
         !$ACC LOOP SEQ
         DO jk = 2, nlev
 !DIR$ IVDEP
@@ -2373,7 +2376,7 @@ MODULE mo_solve_nonhydro
         ENDDO
         !$ACC END PARALLEL
 
-        !$ACC PARALLEL IF(i_am_accel_node) DEFAULT(PRESENT) ASYNC(1)
+        !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1)
         !$ACC LOOP SEQ
         DO jk = nlev-1, 2, -1
 !DIR$ IVDEP
@@ -2390,7 +2393,7 @@ MODULE mo_solve_nonhydro
         !
         IF ( rayleigh_type == RAYLEIGH_KLEMP ) THEN
 
-          !$ACC PARALLEL IF(i_am_accel_node) DEFAULT(PRESENT) ASYNC(1)
+          !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1)
           !$ACC LOOP GANG VECTOR COLLAPSE(2)
           DO jk = 2, nrdmax(jg)
 !DIR$ IVDEP
@@ -2404,7 +2407,7 @@ MODULE mo_solve_nonhydro
         !
         ELSE IF ( rayleigh_type == RAYLEIGH_CLASSIC ) THEN
 
-          !$ACC PARALLEL IF(i_am_accel_node) DEFAULT(PRESENT) ASYNC(1)
+          !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1)
           !$ACC LOOP GANG VECTOR COLLAPSE(2)
           DO jk = 2, nrdmax(jg)
 !DIR$ IVDEP
@@ -2420,7 +2423,7 @@ MODULE mo_solve_nonhydro
 
         ! Results for thermodynamic variables
 
-        !$ACC PARALLEL IF(i_am_accel_node) DEFAULT(PRESENT) ASYNC(1)
+        !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1)
         !$ACC LOOP GANG VECTOR TILE(128, 1)
 !$NEC outerloop_unroll(8)
         DO jk = jk_start, nlev
@@ -2455,7 +2458,7 @@ MODULE mo_solve_nonhydro
 
         ! Special treatment of uppermost layer in the case of vertical nesting
         IF (l_vert_nested) THEN
-          !$ACC PARALLEL IF(i_am_accel_node) DEFAULT(PRESENT) ASYNC(1)
+          !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1)
           !$ACC LOOP GANG VECTOR
 !DIR$ IVDEP
           DO jc = i_startidx, i_endidx
@@ -2489,7 +2492,7 @@ MODULE mo_solve_nonhydro
         ! compute dw/dz for divergence damping term
         IF (istep == 1 .AND. divdamp_type >= 3) THEN
 
-          !$ACC PARALLEL IF(i_am_accel_node) DEFAULT(PRESENT) ASYNC(1)
+          !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1)
           !$ACC LOOP GANG VECTOR TILE(32, 4)
           DO jk = kstart_dd3d(jg), nlev
 !DIR$ IVDEP
@@ -2505,7 +2508,7 @@ MODULE mo_solve_nonhydro
         ! Preparations for tracer advection
         IF (lprep_adv .AND. istep == 2) THEN
           IF (lclean_mflx) THEN 
-            !$ACC PARALLEL IF(i_am_accel_node) DEFAULT(PRESENT) ASYNC(1)
+            !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1)
             !$ACC LOOP GANG VECTOR COLLAPSE(2)
             DO jk = 1, nlev
               DO jc = i_startidx, i_endidx
@@ -2515,7 +2518,7 @@ MODULE mo_solve_nonhydro
             ENDDO
             !$ACC END PARALLEL
           ENDIF
-          !$ACC PARALLEL IF(i_am_accel_node) DEFAULT(PRESENT) ASYNC(1)
+          !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1)
           !$ACC LOOP GANG VECTOR COLLAPSE(2) PRIVATE(z_a)
           DO jk = 2, nlev
             DO jc = i_startidx, i_endidx
@@ -2531,7 +2534,7 @@ MODULE mo_solve_nonhydro
             ! This mass flux is also seen by the mass continuity equation (rho).
             ! Hence, by using the same mass flux for the tracer mass continuity equations,
             ! consistency with continuity (CWC) is ensured.
-            !$ACC PARALLEL IF(i_am_accel_node) DEFAULT(PRESENT) ASYNC(1)
+            !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1)
             !$ACC LOOP GANG VECTOR
             DO jc = i_startidx, i_endidx
               prep_adv%mass_flx_ic(jc,1,jb) = prep_adv%mass_flx_ic(jc,1,jb) + &
@@ -2547,7 +2550,7 @@ MODULE mo_solve_nonhydro
         ! the conversion into a temperature tendency is done in the NWP interface
         IF (istep == 1 .AND. idyn_timestep == 1) THEN
 
-          !$ACC PARALLEL IF(i_am_accel_node) DEFAULT(PRESENT) ASYNC(1)
+          !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1)
           !$ACC LOOP GANG VECTOR COLLAPSE(2)
           DO jk = kstart_moist(jg), nlev
 !DIR$ IVDEP
@@ -2557,7 +2560,7 @@ MODULE mo_solve_nonhydro
           ENDDO
           !$ACC END PARALLEL
         ELSE IF (istep == 2 .AND. idyn_timestep == ndyn_substeps_var(jg)) THEN
-          !$ACC PARALLEL IF(i_am_accel_node) DEFAULT(PRESENT) ASYNC(1)
+          !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1)
           !$ACC LOOP GANG VECTOR COLLAPSE(2)
           DO jk = kstart_moist(jg), nlev
 !DIR$ IVDEP
@@ -2572,7 +2575,7 @@ MODULE mo_solve_nonhydro
         IF (istep == 2 .AND. l_child_vertnest) THEN
           ! Store values at nest interface levels
 !DIR$ IVDEP
-          !$ACC PARALLEL IF(i_am_accel_node) DEFAULT(PRESENT) ASYNC(1)
+          !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1)
           !$ACC LOOP GANG VECTOR
           DO jc = i_startidx, i_endidx
 
@@ -2611,7 +2614,7 @@ MODULE mo_solve_nonhydro
           ! non-MPI-parallelized (serial) case
           IF (istep == 1 .AND. my_process_is_mpi_all_seq() ) THEN
 
-            !$ACC PARALLEL IF(i_am_accel_node) DEFAULT(PRESENT) ASYNC(1)
+            !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1)
             !$ACC LOOP GANG VECTOR COLLAPSE(2)
             DO jk = 1, nlev
 #if __INTEL_COMPILER != 1400 || __INTEL_COMPILER_UPDATE != 3
@@ -2636,7 +2639,7 @@ MODULE mo_solve_nonhydro
             ENDDO
             !$ACC END PARALLEL
 
-            !$ACC PARALLEL IF(i_am_accel_node) DEFAULT(PRESENT) ASYNC(1)
+            !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1)
             !$ACC LOOP GANG VECTOR
             DO jc = i_startidx, i_endidx
               p_nh%prog(nnew)%w(jc,nlevp1,jb) = p_nh%prog(nnow)%w(jc,nlevp1,jb) + &
@@ -2650,7 +2653,7 @@ MODULE mo_solve_nonhydro
             ! and theta_v is preliminarily stored on exner in order to save
             ! halo communications
 
-            !$ACC PARALLEL IF(i_am_accel_node) DEFAULT(PRESENT) ASYNC(1)
+            !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1)
             !$ACC LOOP GANG VECTOR COLLAPSE(2)
             DO jk = 1, nlev
 #if __INTEL_COMPILER != 1400 || __INTEL_COMPILER_UPDATE != 3
@@ -2673,7 +2676,7 @@ MODULE mo_solve_nonhydro
             ENDDO
             !$ACC END PARALLEL
 
-            !$ACC PARALLEL IF(i_am_accel_node) DEFAULT(PRESENT) ASYNC(1)
+            !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1)
             !$ACC LOOP GANG VECTOR
             DO jc = i_startidx, i_endidx
               p_nh%prog(nnew)%w(jc,nlevp1,jb) = p_nh%prog(nnow)%w(jc,nlevp1,jb) + &
@@ -2686,7 +2689,7 @@ MODULE mo_solve_nonhydro
           ! compute dw/dz for divergence damping term
           IF (istep == 1 .AND. divdamp_type >= 3) THEN
 
-            !$ACC PARALLEL IF(i_am_accel_node) DEFAULT(PRESENT) ASYNC(1)
+            !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1)
             !$ACC LOOP GANG VECTOR TILE(32, 4)
             DO jk = kstart_dd3d(jg), nlev
 !DIR$ IVDEP
@@ -2705,11 +2708,11 @@ MODULE mo_solve_nonhydro
           ! vertical tracer transport precedes horizontal tracer transport.
           IF (lprep_adv .AND. istep == 2) THEN
             IF (lclean_mflx) THEN
-              !$ACC KERNELS IF(i_am_accel_node) DEFAULT(PRESENT) ASYNC(1)
+              !$ACC KERNELS DEFAULT(PRESENT) ASYNC(1)
               prep_adv%mass_flx_ic(i_startidx:i_endidx,:,jb) = 0._wp
               !$ACC END KERNELS
             ENDIF
-            !$ACC PARALLEL IF(i_am_accel_node) DEFAULT(PRESENT) ASYNC(1)
+            !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1)
             !$ACC LOOP GANG VECTOR COLLAPSE(2)
             DO jk = 2, nlev
 !DIR$ IVDEP
@@ -2722,7 +2725,7 @@ MODULE mo_solve_nonhydro
             ENDDO
             !$ACC END PARALLEL
             IF (l_vert_nested) THEN
-              !$ACC PARALLEL IF(i_am_accel_node) DEFAULT(PRESENT) ASYNC(1)
+              !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1)
               !$ACC LOOP GANG VECTOR
               DO jc = i_startidx, i_endidx
                 prep_adv%mass_flx_ic(jc,1,jb) = prep_adv%mass_flx_ic(jc,1,jb) + &
@@ -2787,7 +2790,7 @@ MODULE mo_solve_nonhydro
         ! Index list over halo points lying in the boundary interpolation zone
         ! Note: this list typically contains at most 10 grid points
 
-        !$ACC PARALLEL IF(i_am_accel_node) DEFAULT(PRESENT) ASYNC(1)
+        !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1)
         !$ACC LOOP GANG
 #ifndef __SX__
 !$OMP DO PRIVATE(jb,ic,jk,jc) ICON_OMP_DEFAULT_SCHEDULE
@@ -2826,7 +2829,7 @@ MODULE mo_solve_nonhydro
           CALL get_indices_c(p_patch, jb, i_startblk, i_endblk, &
                              i_startidx, i_endidx, rl_start, rl_end)
 
-          !$ACC PARALLEL IF(i_am_accel_node) DEFAULT(PRESENT) ASYNC(1)
+          !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1)
           !$ACC LOOP GANG VECTOR COLLAPSE(2)
           DO jk = 1, nlev
 !DIR$ IVDEP
@@ -2861,7 +2864,7 @@ MODULE mo_solve_nonhydro
         CALL get_indices_c(p_patch, jb, i_startblk, i_endblk, &
                          i_startidx, i_endidx, rl_start, rl_end)
 
-        !$ACC PARALLEL IF(i_am_accel_node) DEFAULT(PRESENT) ASYNC(1)
+        !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1)
 
 #ifdef __LOOP_EXCHANGE
         !$ACC LOOP GANG

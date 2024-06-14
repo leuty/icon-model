@@ -36,9 +36,8 @@ MODULE mo_nh_vert_interp_ipz
     &                               PRES_MSL_METHOD_DWD, PRES_MSL_METHOD_IFS_CORR,          &
     &                               SUCCESS
   USE mo_exception,           ONLY: finish
-  USE mo_fortran_tools,       ONLY: copy, init, assert_acc_device_only, assert_lacc_equals_i_am_accel_node, &
+  USE mo_fortran_tools,       ONLY: copy, init, assert_acc_device_only, &
     &                               set_acc_host_or_device, assert_acc_host_only, minval_1d
-  USE mo_mpi,                 ONLY: i_am_accel_node
   USE mo_initicon_config,     ONLY: zpbl1, zpbl2
   USE mo_vertical_coord_table,ONLY: vct_a
   USE mo_sync,                ONLY: SYNC_E, sync_patch_array_mult
@@ -109,7 +108,6 @@ CONTAINS
 
     !-------------------------------------------------------------------------
     CALL assert_acc_device_only(routine, lacc)
-    CALL assert_lacc_equals_i_am_accel_node(routine, lacc, i_am_accel_node)
 
     vcoeff_z%l_initialized = .TRUE.
     IF (p_patch%n_patch_cells==0) RETURN
@@ -287,7 +285,6 @@ CONTAINS
     REAL(wp), POINTER, DIMENSION(:,:,:) :: ptr_tempv
 
     CALL assert_acc_device_only(routine, lacc)
-    CALL assert_lacc_equals_i_am_accel_node(routine, lacc, i_am_accel_node)
 
     vcoeff_p%l_initialized = .TRUE.
     IF (p_patch%n_patch_cells==0) RETURN

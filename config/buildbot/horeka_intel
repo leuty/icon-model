@@ -18,5 +18,5 @@ ICON_DIR=$(cd "${MY_DIR}/../.."; pwd)
 MAKE_PROCS=${SLURM_NTASKS:-8}
 echo "Building with $MAKE_PROCS tasks"
 
-${ICON_DIR}/config/kit/hk.cpu.intel
+${ICON_DIR}/config/kit/hk.cpu.intel --enable-separate-mods
 make --output-sync --no-print-directory -j ${MAKE_PROCS}

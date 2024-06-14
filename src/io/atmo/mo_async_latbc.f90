@@ -734,8 +734,6 @@ CONTAINS
     CHARACTER(LEN=CDI_MAX_NAME)             :: name, name_lc
 
     is_work = my_process_is_work()
-    ! allocating buffers containing name of variables
-    ALLOCATE(grp_vars(MAX_NUM_GRPVARS))
 
     !!!! FIXME !!!
     ! Strictly speaking, the group LATBC_PREFETCH_VARS is no longer necessary.
@@ -777,7 +775,7 @@ CONTAINS
 
       ! adding the variable 'GEOSP' to the list by add_to_list
       ! as the variable cannot be found in metadata variable list
-      CALL add_to_list( grp_vars, ngrp_prefetch_vars, (/latbc%buffer%geop_ml_var/) , 1)
+      CALL add_to_list( grp_vars, ngrp_prefetch_vars, latbc%buffer%geop_ml_var)
 
       ALLOCATE(grp_vars_lc(ngrp_prefetch_vars), stat=ierrstat)
       IF (ierrstat /= SUCCESS) CALL finish(routine, "ALLOCATE failed!")

@@ -19,7 +19,7 @@ ICON_DIR=$(cd "${MY_DIR}/../.."; pwd)
 #  MPI_LAUNCH='srun -A mh0156 -p compute -N 1'
 #fi
 
-${ICON_DIR}/config/jsc/juwels.gpu.ompi_nvhpc-21.5
+${ICON_DIR}/config/jsc/juwels_cluster.psmpi_intel-2022.1.0
 
 if [ ! -z "${BB_NAME}" ] ; then
   MAKE_PROCS=22

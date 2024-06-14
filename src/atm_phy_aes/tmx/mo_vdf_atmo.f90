@@ -266,9 +266,8 @@ CONTAINS
 
     CHARACTER(len=*), PARAMETER :: routine = modname//':Compute_diagnostics'
 
-    ! CALL message(routine, '')
 
-    jg = 1
+    jg = this%domain%patch%id
     jsfc = 1
 
     nlev = this%domain%nlev

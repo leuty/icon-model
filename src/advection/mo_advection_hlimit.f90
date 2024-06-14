@@ -42,7 +42,6 @@ MODULE mo_advection_hlimit
 #ifndef USE_LAXFR_MACROS
   USE mo_advection_utils,     ONLY: laxfr_upflux
 #endif
-  USE mo_mpi,                 ONLY: i_am_accel_node
 
   IMPLICIT NONE
 
@@ -212,11 +211,10 @@ CONTAINS
     !$ACC DATA CREATE(z_mflx_low, z_anti, z_mflx_anti_in, z_mflx_anti_out, r_m, r_p) &
     !$ACC   CREATE(z_tracer_new_low, z_tracer_max, z_tracer_min, z_min, z_max) &
     !$ACC   PRESENT(p_cc, p_mass_flx_e, p_rhodz_now, p_rhodz_new) PRESENT(p_mflx_tracer_h) &
-    !$ACC   PRESENT(ptr_patch, ptr_int, iilc, iibc, iilnc, iibnc, iidx, iblk) &
-    !$ACC   IF(i_am_accel_node)
+    !$ACC   PRESENT(ptr_patch, ptr_int, iilc, iibc, iilnc, iibnc, iidx, iblk)
 
     IF (p_test_run) THEN
-      !$ACC KERNELS PRESENT(r_p, r_m) ASYNC(1) IF(i_am_accel_node)
+      !$ACC KERNELS PRESENT(r_p, r_m) ASYNC(1)
       r_p = 0._wp
       r_m = 0._wp
       !$ACC END KERNELS
@@ -240,7 +238,7 @@ CONTAINS
       CALL get_indices_e(ptr_patch, jb, i_startblk, i_endblk, &
         &                i_startidx, i_endidx, i_rlstart_e, i_rlend_e)
 
-      !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1) IF(i_am_accel_node)
+      !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1)
       !$ACC LOOP GANG VECTOR COLLAPSE(2)
 #ifdef __LOOP_EXCHANGE
       DO je = i_startidx, i_endidx
@@ -290,7 +288,7 @@ CONTAINS
       CALL get_indices_c(ptr_patch, jb, i_startblk, i_endblk,        &
                          i_startidx, i_endidx, i_rlstart_c, i_rlend_c)
 
-      !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1) IF(i_am_accel_node)
+      !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1)
       !$ACC LOOP GANG VECTOR COLLAPSE(2) PRIVATE(z_mflx_anti_1, z_mflx_anti_2, z_mflx_anti_3, z_fluxdiv_c)
 #ifdef __LOOP_EXCHANGE
 !DIR$ IVDEP,PREFERVECTOR
@@ -367,7 +365,7 @@ CONTAINS
         ! in the boundary interpolation zone, the low-order advected tracer fields may be
         ! nonsense and therefore need artificial limitation
 
-        !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1) IF(i_am_accel_node)
+        !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1)
         !$ACC LOOP GANG VECTOR
         DO jc = i_startidx, i_endidx
           IF (ptr_patch%cells%refin_ctrl(jc,jb) == grf_bdywidth_c-1 .OR. &
@@ -395,8 +393,8 @@ CONTAINS
       i_startblk   = ptr_patch%cells%start_blk(1,1)
       i_endblk     = ptr_patch%cells%end_blk(grf_bdywidth_c-1,1)
 
-      CALL init(r_m(:,:,i_startblk:i_endblk), lacc=i_am_accel_node, opt_acc_async=.TRUE.)
-      CALL init(r_p(:,:,i_startblk:i_endblk), lacc=i_am_accel_node, opt_acc_async=.TRUE.)
+      CALL init(r_m(:,:,i_startblk:i_endblk), lacc=.TRUE., opt_acc_async=.TRUE.)
+      CALL init(r_p(:,:,i_startblk:i_endblk), lacc=.TRUE., opt_acc_async=.TRUE.)
 
 !$OMP BARRIER
 
@@ -416,7 +414,7 @@ CONTAINS
       CALL get_indices_c(ptr_patch, jb, i_startblk, i_endblk, &
                          i_startidx, i_endidx, i_rlstart_c, i_rlend_c)
 
-      !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1) IF(i_am_accel_node)
+      !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1)
 #ifdef __LOOP_EXCHANGE
       DO jc = i_startidx, i_endidx
         DO jk = slev, elev
@@ -495,7 +493,7 @@ CONTAINS
       !
       ! compute final limited fluxes
       !
-      !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1) IF(i_am_accel_node)
+      !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1)
       !$ACC LOOP GANG VECTOR COLLAPSE(2) PRIVATE(z_signum, r_frac)
 #ifdef __LOOP_EXCHANGE
       DO je = i_startidx, i_endidx
@@ -642,11 +640,10 @@ CONTAINS
 
     !$ACC ENTER DATA CREATE(r_m) ASYNC(1)
     !$ACC DATA PRESENT(p_cc, p_rhodz_now, p_mflx_tracer_h, r_m) &
-    !$ACC   PRESENT(ptr_patch, ptr_int, iilc, iibc, iidx, iblk) &
-    !$ACC   IF(i_am_accel_node)
+    !$ACC   PRESENT(ptr_patch, ptr_int, iilc, iibc, iidx, iblk)
 
     IF (p_test_run) THEN
-      !$ACC KERNELS DEFAULT(PRESENT) ASYNC(1) IF(i_am_accel_node)
+      !$ACC KERNELS DEFAULT(PRESENT) ASYNC(1)
       r_m = 0._wp
       !$ACC END KERNELS
     ENDIF
@@ -663,7 +660,7 @@ CONTAINS
       i_startblk   = ptr_patch%cells%start_block(1)
       i_endblk     = ptr_patch%cells%end_block(i_rlstart_c-1)
 
-      CALL init(r_m(:,:,i_startblk:i_endblk), lacc=i_am_accel_node)
+      CALL init(r_m(:,:,i_startblk:i_endblk), lacc=.TRUE.)
 !$OMP BARRIER
     ENDIF
 
@@ -684,7 +681,7 @@ CONTAINS
       CALL get_indices_c(ptr_patch, jb, i_startblk, i_endblk,        &
                          i_startidx, i_endidx, i_rlstart_c, i_rlend_c)
 
-      !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1) IF(i_am_accel_node)
+      !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1)
 #ifdef __LOOP_EXCHANGE
       DO jc = i_startidx, i_endidx
         DO jk = slev, elev
@@ -753,7 +750,7 @@ CONTAINS
       CALL get_indices_e(ptr_patch, jb, i_startblk, i_endblk,    &
                          i_startidx, i_endidx, i_rlstart, i_rlend)
 
-      !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1) IF(i_am_accel_node)
+      !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1)
 #ifdef __LOOP_EXCHANGE
       DO je = i_startidx, i_endidx
         DO jk = slev, elev

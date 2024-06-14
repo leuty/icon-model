@@ -169,7 +169,7 @@ CONTAINS
       input(idx_no(i), blk_no(i)) = REAL(provGlbIdces(i), dp)
     END DO
 !ICON_OMP END PARALLEL
-    CALL exchange_data(pat, output, input)
+    CALL exchange_data(p_pat=pat, lacc=.FALSE., recv=output, send=input)
     error = 0
 !ICON_OMP PARALLEL DO SCHEDULE(STATIC)
     DO i = 1, oSize
@@ -464,7 +464,7 @@ CONTAINS
           IF (timers_level >= 7) CALL timer_stop(timer_load_restart_io)
           IF (timers_level >= 7) CALL timer_start(timer_load_restart_communication)
           IF (.NOT.en_bloc) CALL C_F_POINTER(cptr_r, buf_3d_d, [nproma,1,nblk])
-          CALL exchange_data(cpat(hgrid)%p, ptr_3d_d(:,llId:MERGE(lCnt, llId, en_bloc),:), buf_3d_d)
+          CALL exchange_data(p_pat=cpat(hgrid)%p, lacc=.FALSE., recv=ptr_3d_d(:,llId:MERGE(lCnt, llId, en_bloc),:), send=buf_3d_d)
           IF (timers_level >= 7) CALL timer_stop(timer_load_restart_communication)
         END DO
       CASE(SINGLE_T)
@@ -494,7 +494,7 @@ CONTAINS
           IF (timers_level >= 7) CALL timer_stop(timer_load_restart_io)
           IF (timers_level >= 7) CALL timer_start(timer_load_restart_communication)
           IF (.NOT.en_bloc) CALL C_F_POINTER(cptr_r, buf_3d_s, [nproma,1,nblk])
-          CALL exchange_data(cpat(hgrid)%p, ptr_3d_s(:,llId:MERGE(lCnt, llId, en_bloc),:), buf_3d_s)
+          CALL exchange_data(p_pat=cpat(hgrid)%p, lacc=.FALSE., recv=ptr_3d_s(:,llId:MERGE(lCnt, llId, en_bloc),:), send=buf_3d_s)
           IF (timers_level >= 7) CALL timer_stop(timer_load_restart_communication)
         END DO
       CASE(INT_T)
@@ -541,7 +541,7 @@ CONTAINS
           IF (timers_level >= 7) CALL timer_stop(timer_load_restart_io)
           IF (timers_level >= 7) CALL timer_start(timer_load_restart_communication)
           IF (.NOT.en_bloc .AND. int_is_int) CALL C_F_POINTER(cptr_r, buf_3d_i, [nproma,1,nblk])
-          CALL exchange_data(cpat(hgrid)%p, ptr_3d_i(:,llId:MERGE(lCnt, llId, en_bloc),:), buf_3d_i)
+          CALL exchange_data(p_pat=cpat(hgrid)%p, lacc=.FALSE., recv=ptr_3d_i(:,llId:MERGE(lCnt, llId, en_bloc),:), send=buf_3d_i)
           IF (timers_level >= 7) CALL timer_stop(timer_load_restart_communication)
         END DO
       END SELECT

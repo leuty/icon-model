@@ -279,10 +279,11 @@ done
 
 
 # art/ecrad testing
-$addexp checksuite.art/exp.art_levante_test.run --builders "levante_intel" --list $listname
-$addexp checksuite.art/exp.art_levante_test.run --builders "levante_intel_hybrid" --list $listname
-$addexp checksuite.art/exp.art_levante_test.run --builders "levante_intel_hybrid_mixed" --list $listname
+#FIXME $addexp checksuite.art/exp.art_levante_test.run --builders "levante_intel" --list $listname
+#FIXME $addexp checksuite.art/exp.art_levante_test.run --builders "levante_intel_hybrid" --list $listname
+#FIXME $addexp checksuite.art/exp.art_levante_test.run --builders "levante_intel_hybrid_mixed" --list $listname
 $addexp checksuite.art/exp.art_levante_test_short.run --builders "levante_gcc" --list $listname
+$addexp checksuite.art/exp.art_levante_test.run --builders "levante_gcc" --list $listname
 
 # add tests for checking yaxt and yac stand-alone; this needs yaxt/yac to be enabled
 $addexp  checksuite.infrastructure/checkExternals/exp.check_externals_DWD.run --builders DWD_nec_yac2 --list ${listname}

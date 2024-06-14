@@ -457,7 +457,7 @@ cat >> ${ocean_namelist} << EOF
   output_grid                     = .TRUE.
   m_levels                        = "1,${levidx_100m},${levidx_2000m}"
   ml_varlist                      = 'zos','mlotst','hi','hs','conc','ice_u','ice_v','u','v','to','so',
-                                    'kin','vort'
+                                    'kin','vort','bottom_pressure'
 /
 
 &output_nml

@@ -461,42 +461,42 @@ MODULE mo_nh_init_nest_utils
 
     ! Step 1b: execute boundary interpolation
 
-    CALL interpol2_vec_grf (p_patch(jg), p_pc, p_grf_state(jg)%p_dom(i_chidx), 1, &
-      p_parent_prog%vn, p_child_prog%vn)
+    CALL interpol2_vec_grf (p_pp=p_patch(jg), p_pc=p_pc, p_grf=p_grf_state(jg)%p_dom(i_chidx), nfields=1, lacc=.FALSE., &
+      f3din1=p_parent_prog%vn, f3dout1=p_child_prog%vn)
 
-    CALL interpol_scal_grf (p_patch(jg), p_pc, p_grf_state(jg)%p_dom(i_chidx), 3, &
-      rho_pr_par,      p_child_prog%rho,                                          &
-      thv_pr_par,      p_child_prog%theta_v,                                      &
-      p_parent_prog%w, p_child_prog%w                                             )
+    CALL interpol_scal_grf (p_pp=p_patch(jg), p_pc=p_pc, p_grf=p_grf_state(jg)%p_dom(i_chidx), nfields=3, lacc=.FALSE.,&
+      f3din1=rho_pr_par,      f3dout1=p_child_prog%rho,     &
+      f3din2=thv_pr_par,      f3dout2=p_child_prog%theta_v, &
+      f3din3=p_parent_prog%w, f3dout3=p_child_prog%w        )
 
     IF (ltransport) THEN
       l_limit(:) = .TRUE. ! apply positive definite limiter on tracers
 
-      CALL interpol_scal_grf ( p_patch(jg), p_pc, p_grf_state(jg)%p_dom(i_chidx), ntracer,   &
+      CALL interpol_scal_grf ( p_pp=p_patch(jg), p_pc=p_pc, p_grf=p_grf_state(jg)%p_dom(i_chidx), nfields=ntracer, lacc=.FALSE.,  &
         f4din1=p_parent_prog_rcf%tracer, f4dout1=p_child_prog_rcf%tracer, llimit_nneg=l_limit)
     ENDIF
 
     IF (ltransport .AND. iprog_aero >= 1) THEN
-      CALL interpol_scal_grf ( p_patch(jg), p_pc, p_grf_state(jg)%p_dom(i_chidx), 1,   &
-        prm_diag(jg)%aerosol, prm_diag(jgc)%aerosol, llimit_nneg=(/.TRUE./), lnoshift=.TRUE.)
+      CALL interpol_scal_grf ( p_pp=p_patch(jg), p_pc=p_pc, p_grf=p_grf_state(jg)%p_dom(i_chidx), nfields=1, lacc=.FALSE.,  &
+        f3din1=prm_diag(jg)%aerosol, f3dout1=prm_diag(jgc)%aerosol, llimit_nneg=(/.TRUE./), lnoshift=.TRUE.)
     ENDIF
 
     IF (iforcing == inwp) THEN
       CALL sync_patch_array(SYNC_C,p_patch(jg),phdiag_par)
-      CALL interpol_scal_grf (p_patch(jg), p_pc, p_grf_state(jg)%p_dom(i_chidx), 1, &
-        phdiag_par, phdiag_chi, lnoshift=.TRUE.                 )
+      CALL interpol_scal_grf (p_pp=p_patch(jg), p_pc=p_pc, p_grf=p_grf_state(jg)%p_dom(i_chidx), nfields=1, lacc=.FALSE., &
+        f3din1=phdiag_par, f3dout1=phdiag_chi, lnoshift=.TRUE.                 )
     ENDIF
 
     IF (atm_phy_nwp_config(jg)%inwp_surface == 1) THEN
       CALL sync_patch_array(SYNC_C,p_patch(jg),lndvars_par)
-      CALL interpol_scal_grf (p_patch(jg), p_pc, p_grf_state(jg)%p_dom(i_chidx), 1,  &
-        lndvars_par, lndvars_chi, lnoshift=.TRUE.                 )
+      CALL interpol_scal_grf (p_pp=p_patch(jg), p_pc=p_pc, p_grf=p_grf_state(jg)%p_dom(i_chidx), nfields=1, lacc=.FALSE., &
+        f3din1=lndvars_par, f3dout1=lndvars_chi, lnoshift=.TRUE.                 )
     ENDIF
 
     IF (atm_phy_nwp_config(jg)%inwp_surface == 1 .AND. lseaice) THEN
       CALL sync_patch_array(SYNC_C,p_patch(jg),wtrvars_par)
-      CALL interpol_scal_grf (p_patch(jg), p_pc, p_grf_state(jg)%p_dom(i_chidx), 1, &
-        wtrvars_par, wtrvars_chi, lnoshift=.TRUE.                 )
+      CALL interpol_scal_grf (p_pp=p_patch(jg), p_pc=p_pc, p_grf=p_grf_state(jg)%p_dom(i_chidx), nfields=1, lacc=.FALSE., &
+        f3din1=wtrvars_par, f3dout1=wtrvars_chi, lnoshift=.TRUE.                 )
     ENDIF
 
     ! Step 2: Interpolation of fields in the model interior
@@ -504,42 +504,48 @@ MODULE mo_nh_init_nest_utils
     ! Step 2a: Copy prognostic variables from parent grid to fields on feedback-parent grid
     ! (trivial without MPI parallelization, but communication call needed for MPI)
 
-    CALL exchange_data_mult(p_pp%comm_pat_glb_to_loc_c, 3, 3*nlev_p+1, &
+    CALL exchange_data_mult(p_pat=p_pp%comm_pat_glb_to_loc_c,          &
+      &                     lacc=.FALSE.,                              &
+      &                     nfields=3,       ndim2tot=3*nlev_p+1,      &
       &                     RECV1=rho_pr_lp, SEND1=rho_pr_par,         &
       &                     RECV2=thv_pr_lp, SEND2=thv_pr_par,         &
       &                     RECV3=w_lp,      SEND3=p_parent_prog%w     )
 
-    CALL exchange_data(p_pp%comm_pat_glb_to_loc_e, RECV=vn_lp, SEND=p_parent_prog%vn)
+    CALL exchange_data(p_pat=p_pp%comm_pat_glb_to_loc_e, lacc=.FALSE., RECV=vn_lp, SEND=p_parent_prog%vn)
 
     IF (ltransport) THEN
-      CALL exchange_data_mult(p_pp%comm_pat_glb_to_loc_c, ntracer, ntracer*nlev_p, &
+      CALL exchange_data_mult(p_pat=p_pp%comm_pat_glb_to_loc_c,                    &
+        &                     lacc=.FALSE.,                                        &
+        &                     nfields=ntracer,  ndim2tot=ntracer*nlev_p,           &
         &                     RECV4D=tracer_lp, SEND4D=p_parent_prog_rcf%tracer    )
     ENDIF
 
     IF (ltransport .AND. iprog_aero >= 1) THEN
-      CALL exchange_data(p_pp%comm_pat_glb_to_loc_c, RECV=aero_lp, SEND=prm_diag(jg)%aerosol)
+      CALL exchange_data(p_pat=p_pp%comm_pat_glb_to_loc_c, lacc=.FALSE., RECV=aero_lp, SEND=prm_diag(jg)%aerosol)
     ENDIF
 
     IF (iforcing == inwp) &
-      &      CALL exchange_data(p_pp%comm_pat_glb_to_loc_c, RECV=phdiag_lp, SEND=phdiag_par)
+      &      CALL exchange_data(p_pat=p_pp%comm_pat_glb_to_loc_c, lacc=.FALSE., RECV=phdiag_lp, SEND=phdiag_par)
 
     IF (atm_phy_nwp_config(jg)%inwp_surface == 1) &
-      &      CALL exchange_data(p_pp%comm_pat_glb_to_loc_c, RECV=lndvars_lp, SEND=lndvars_par)
+      &      CALL exchange_data(p_pat=p_pp%comm_pat_glb_to_loc_c, lacc=.FALSE., RECV=lndvars_lp, SEND=lndvars_par)
 
     IF (atm_phy_nwp_config(jg)%inwp_surface == 1 .AND. lseaice) &
-      &      CALL exchange_data(p_pp%comm_pat_glb_to_loc_c, RECV=wtrvars_lp, SEND=wtrvars_par)
+      &      CALL exchange_data(p_pat=p_pp%comm_pat_glb_to_loc_c, lacc=.FALSE., RECV=wtrvars_lp, SEND=wtrvars_par)
 
     ! Step 2b: Perform interpolation from local parent to child grid
 
     ! Note: the sync routines cannot be used for the synchronization on the local
     ! parent grid
 
-    IF(l_parallel) CALL exchange_data(p_pp%comm_pat_e, vn_lp)
+    IF(l_parallel) CALL exchange_data(p_pat=p_pp%comm_pat_e, lacc=.FALSE., recv=vn_lp)
     CALL interpol_vec_nudging (p_pp, p_pc, p_int, p_grf%p_dom(i_chidx), &
-                               nshift, 1, vn_lp, p_child_prog%vn        )
+                               nshift, 1, vn_lp, p_child_prog%vn, lacc=.FALSE.)
     CALL sync_patch_array(SYNC_E,p_pc,p_child_prog%vn)
 
-    IF(l_parallel) CALL exchange_data_mult(p_pp%comm_pat_c, 3, 3*nlev_p+1, &
+    IF(l_parallel) CALL exchange_data_mult(p_pat=p_pp%comm_pat_c,                         &
+                               lacc=.FALSE.,                                              &
+                               nfields=3,  ndim2tot=3*nlev_p+1,                           &
                                recv1=thv_pr_lp, recv2=rho_pr_lp, recv3=w_lp)
     CALL interpol_scal_nudging (p_pp, p_int, p_grf%p_dom(i_chidx), nshift, 3, 1,          &
                                 f3din1=thv_pr_lp, f3dout1=p_child_prog%theta_v,           &
@@ -549,7 +555,10 @@ MODULE mo_nh_init_nest_utils
                                p_child_prog%w)
 
     IF (ltransport) THEN
-      IF(l_parallel) CALL exchange_data_mult(p_pp%comm_pat_c, ntracer, ntracer*nlev_p, &
+      IF(l_parallel) CALL exchange_data_mult(p_pat=p_pp%comm_pat_c,   &
+                                             lacc=.FALSE.,            &
+                                             nfields=ntracer,         &
+                                             ndim2tot=ntracer*nlev_p, &
                                              recv4d=tracer_lp)
       l_limit(:) = .TRUE. ! apply positive definite limiter
       CALL interpol_scal_nudging (p_pp, p_int, p_grf%p_dom(i_chidx),          &
@@ -559,28 +568,28 @@ MODULE mo_nh_init_nest_utils
     ENDIF
 
     IF (ltransport .AND. iprog_aero >= 1) THEN
-      IF(l_parallel) CALL exchange_data(p_pp%comm_pat_c, aero_lp)
+      IF(l_parallel) CALL exchange_data(p_pat=p_pp%comm_pat_c, lacc=.FALSE., recv=aero_lp)
       CALL interpol_scal_nudging (p_pp, p_int, p_grf%p_dom(i_chidx),          &
          0, 1, 1, f3din1=aero_lp, f3dout1=prm_diag(jgc)%aerosol, llimit_nneg=(/.TRUE./))
       CALL sync_patch_array(SYNC_C,p_pc,prm_diag(jgc)%aerosol)
     ENDIF
 
     IF (iforcing == inwp) THEN
-      IF(l_parallel) CALL exchange_data(p_pp%comm_pat_c, phdiag_lp)
+      IF(l_parallel) CALL exchange_data(p_pat=p_pp%comm_pat_c, lacc=.FALSE., recv=phdiag_lp)
       CALL interpol_scal_nudging (p_pp, p_int, p_grf%p_dom(i_chidx), 0,      &
                                   1, 1, f3din1=phdiag_lp, f3dout1=phdiag_chi, overshoot_fac=1.005_wp )
       CALL sync_patch_array(SYNC_C,p_pc,phdiag_chi)
     ENDIF
 
     IF (atm_phy_nwp_config(jg)%inwp_surface == 1) THEN
-      IF(l_parallel) CALL exchange_data(p_pp%comm_pat_c, lndvars_lp)
+      IF(l_parallel) CALL exchange_data(p_pat=p_pp%comm_pat_c, lacc=.FALSE., recv=lndvars_lp)
       CALL interpol_scal_nudging (p_pp, p_int, p_grf%p_dom(i_chidx), 0,      &
                                   1, 1, f3din1=lndvars_lp, f3dout1=lndvars_chi, overshoot_fac=1.005_wp )
       CALL sync_patch_array(SYNC_C,p_pc,lndvars_chi)
     ENDIF
 
     IF (atm_phy_nwp_config(jg)%inwp_surface == 1 .AND. lseaice) THEN
-      IF(l_parallel) CALL exchange_data(p_pp%comm_pat_c, wtrvars_lp)
+      IF(l_parallel) CALL exchange_data(p_pat=p_pp%comm_pat_c, lacc=.FALSE., recv=wtrvars_lp)
       CALL interpol_scal_nudging (p_pp, p_int, p_grf%p_dom(i_chidx), 0,      &
                                   1, 1, f3din1=wtrvars_lp, f3dout1=wtrvars_chi, overshoot_fac=1.005_wp )
       CALL sync_patch_array(SYNC_C,p_pc,wtrvars_chi)
@@ -888,10 +897,10 @@ MODULE mo_nh_init_nest_utils
     ! Step 1: boundary interpolation
     !
 
-    CALL interpol_scal_grf (p_patch(jg), p_pc, p_grf_state(jg)%p_dom(i_chidx), 3, &
-      initicon(jg)%atm_inc%temp,      initicon(jgc)%atm_inc%temp,                 &
-      initicon(jg)%atm_inc%pres,      initicon(jgc)%atm_inc%pres,                 &
-      initicon(jg)%atm_inc%qv,        initicon(jgc)%atm_inc%qv                    )
+    CALL interpol_scal_grf (p_pp=p_patch(jg), p_pc=p_pc, p_grf=p_grf_state(jg)%p_dom(i_chidx), nfields=3, lacc=.FALSE., &
+      f3din1=initicon(jg)%atm_inc%temp, f3dout1=initicon(jgc)%atm_inc%temp, &
+      f3din2=initicon(jg)%atm_inc%pres, f3dout2=initicon(jgc)%atm_inc%pres, &
+      f3din3=initicon(jg)%atm_inc%qv,   f3dout3=initicon(jgc)%atm_inc%qv    )
 
     ! Step 2: Interpolation of fields in the model interior
 
@@ -899,14 +908,17 @@ MODULE mo_nh_init_nest_utils
     ! (trivial without MPI parallelization, but communication call needed for MPI)
 
 
-    CALL exchange_data_mult(p_pp%comm_pat_glb_to_loc_c, 3, 3*nlev_p,         &
+    CALL exchange_data_mult(p_pat=p_pp%comm_pat_glb_to_loc_c,                &
+      &                     lacc=.FALSE.,                                    &
+      &                     nfields=3, ndim2tot=3*nlev_p,                    &
       &                     RECV1=temp_lp, SEND1=initicon(jg)%atm_inc%temp,  &
       &                     RECV2=pres_lp, SEND2=initicon(jg)%atm_inc%pres,  &
       &                     RECV3=qv_lp,   SEND3=initicon(jg)%atm_inc%qv     )
 
     ! Step 2b: Synchronize variables on local parent grids. Note that the sync routines cannot be used in this case
     IF (l_parallel) THEN
-      CALL exchange_data_mult(p_pp%comm_pat_c, 3, 3*nlev_p,            &
+      CALL exchange_data_mult(p_pat=p_pp%comm_pat_c,                      &
+                              lacc=.FALSE., nfields=3, ndim2tot=3*nlev_p, &
                               recv1=temp_lp, recv2=pres_lp, recv3=qv_lp)
     ENDIF
 
@@ -976,25 +988,25 @@ MODULE mo_nh_init_nest_utils
     !
     ! Step 1: boundary interpolation
     !
-    CALL interpol2_vec_grf (p_patch(jg), p_pc, p_grf_state(jg)%p_dom(i_chidx), 1, &
-      initicon(jg)%atm_inc%vn,        initicon(jgc)%atm_inc%vn                    )
+    CALL interpol2_vec_grf (p_pp=p_patch(jg), p_pc=p_pc, p_grf=p_grf_state(jg)%p_dom(i_chidx), nfields=1, lacc=.FALSE., &
+      f3din1=initicon(jg)%atm_inc%vn, f3dout1=initicon(jgc)%atm_inc%vn)
 
     ! Step 2: Interpolation of fields in the model interior
 
     ! Step 2a: Copy prognostic variables from parent grid to fields on local parent grid
     ! (trivial without MPI parallelization, but communication call needed for MPI)
 
-    CALL exchange_data(p_pp%comm_pat_glb_to_loc_e, RECV=vn_lp, SEND=initicon(jg)%atm_inc%vn)
+    CALL exchange_data(p_pat=p_pp%comm_pat_glb_to_loc_e, lacc=.FALSE., RECV=vn_lp, SEND=initicon(jg)%atm_inc%vn)
 
 
     ! Step 2b: Synchronize variables on local parent grids. Note that the sync routines cannot be used in this case
     IF (l_parallel) THEN
-      CALL exchange_data(p_pp%comm_pat_e, vn_lp)
+      CALL exchange_data(p_pat=p_pp%comm_pat_e, lacc=.FALSE., recv=vn_lp)
     ENDIF
 
     ! Step 2c: Perform interpolation from local parent to child grid
     CALL interpol_vec_nudging (p_pp, p_pc, p_int, p_grf%p_dom(i_chidx),   &
-                               nshift, 1, vn_lp, initicon(jgc)%atm_inc%vn )
+                               nshift, 1, vn_lp, initicon(jgc)%atm_inc%vn, lacc=.FALSE.)
     CALL sync_patch_array(SYNC_E,p_pc,initicon(jgc)%atm_inc%vn)
 
     DEALLOCATE(vn_lp)
@@ -1141,8 +1153,8 @@ MODULE mo_nh_init_nest_utils
 
     ! Step 1b: execute boundary interpolation
     CALL sync_patch_array(SYNC_C,p_patch(jg),lndvars_par)
-    CALL interpol_scal_grf (p_patch(jg), p_pc, p_grf_state(jg)%p_dom(i_chidx), 1,  &
-      lndvars_par, lndvars_chi, lnoshift=.TRUE.                 )
+    CALL interpol_scal_grf (p_pp=p_patch(jg), p_pc=p_pc, p_grf=p_grf_state(jg)%p_dom(i_chidx), nfields=1, lacc=.FALSE., &
+      f3din1=lndvars_par, f3dout1=lndvars_chi, lnoshift=.TRUE.                 )
 
 
     ! Step 2: Interpolation of fields in the model interior
@@ -1150,14 +1162,14 @@ MODULE mo_nh_init_nest_utils
     ! Step 2a: Copy variables from parent grid to fields on feedback-parent grid
     ! (trivial without MPI parallelization, but communication call needed for MPI)
 
-    CALL exchange_data(p_pp%comm_pat_glb_to_loc_c, RECV=lndvars_lp, SEND=lndvars_par)
+    CALL exchange_data(p_pat=p_pp%comm_pat_glb_to_loc_c, lacc=.FALSE., RECV=lndvars_lp, SEND=lndvars_par)
 
     ! Step 2b: Perform interpolation from local parent to child grid
 
     ! Note: the sync routines cannot be used for the synchronization on the local
     ! parent grid
 
-    IF(l_parallel) CALL exchange_data(p_pp%comm_pat_c, lndvars_lp)
+    IF(l_parallel) CALL exchange_data(p_pat=p_pp%comm_pat_c, lacc=.FALSE., RECV=lndvars_lp)
     CALL interpol_scal_nudging (p_pp, p_int, p_grf%p_dom(i_chidx), 0, &
                                 1, 1, f3din1=lndvars_lp, f3dout1=lndvars_chi, overshoot_fac=1.005_wp )
     CALL sync_patch_array(SYNC_C,p_pc,lndvars_chi)
@@ -1365,12 +1377,12 @@ MODULE mo_nh_init_nest_utils
 
     ! 1.(b) Copy this auxiliary field to the local parent in case of MPI parallelization
 
-    CALL exchange_data(ptr_pp%comm_pat_glb_to_loc_c, RECV=z_topo_clp, SEND=z_topo_cp)
+    CALL exchange_data(p_pat=ptr_pp%comm_pat_glb_to_loc_c, lacc=.FALSE., RECV=z_topo_clp, SEND=z_topo_cp)
     ptr_topo_cp => z_topo_clp
 
     IF (my_process_is_mpi_parallel()) THEN
       ! synchronization (CALL sync does not work on local parent)
-      CALL exchange_data(ptr_pp%comm_pat_c, ptr_topo_cp)
+      CALL exchange_data(p_pat=ptr_pp%comm_pat_c, lacc=.FALSE., RECV=ptr_topo_cp)
     END IF
 
     ! 1.(c) Interpolate coarse topography on fine mesh
@@ -1381,7 +1393,8 @@ MODULE mo_nh_init_nest_utils
     ! would not be needed anywhere else, and terrain blending is not runtime-critical
 
     ! Lateral boundary zone
-    CALL interpol_scal_grf (p_pp, p_pc, p_grf, 1, f3din1=z_topo_cp, f3dout1=z_topo_cc, lnoshift=.TRUE.)
+    CALL interpol_scal_grf (p_pp=p_pp, p_pc=p_pc, p_grf=p_grf, nfields=1, lacc=.FALSE., &
+      f3din1=z_topo_cp, f3dout1=z_topo_cc, lnoshift=.TRUE.)
 
     ! Prognostic part of the model domain
     ! Note: in contrast to boundary interpolation, nudging expects the input on the local parent grid
@@ -1514,7 +1527,7 @@ MODULE mo_nh_init_nest_utils
     ENDDO
 
     ! Attention: the feedback communication pattern is defined on the local parent (ptr_pp), ...
-    CALL exchange_data(ptr_pp%comm_pat_loc_to_glb_c_fbk, RECV=topo_cp, SEND=ptr_topo_cp, &
+    CALL exchange_data(p_pat=ptr_pp%comm_pat_loc_to_glb_c_fbk, lacc=.FALSE., RECV=topo_cp, SEND=ptr_topo_cp, &
       &                l_recv_exists=.TRUE.)
 
     ! ... whereas the subsequent halo communication needs to be done on the parent grid (p_pp)

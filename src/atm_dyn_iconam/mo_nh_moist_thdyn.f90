@@ -30,9 +30,6 @@ MODULE mo_nh_moist_thdyn
   USE mo_loopindices,         ONLY: get_indices_c, get_indices_e
   USE mo_physical_constants,  ONLY: rd, cvv, cvd, cpv, cpd, cvd_o_rd, clw, ci
   USE mo_parallel_config,     ONLY: nproma
-#ifdef _OPENACC
-  USE mo_mpi,                 ONLY: i_am_accel_node
-#endif
 
   IMPLICIT NONE
 
@@ -80,9 +77,7 @@ MODULE mo_nh_moist_thdyn
     p_prog_rcf => p_nh%prog(nnow_rcf)
     p_prog     => p_nh%prog(nnew)
 
-    !$ACC DATA CREATE(qsum_liq, qsum_ice, chi_q, v_flxdiv) &
-    !$ACC   COPYIN(kstart_moist) &
-    !$ACC   IF(i_am_accel_node)
+    !$ACC DATA CREATE(qsum_liq, qsum_ice, chi_q, v_flxdiv) COPYIN(kstart_moist)
 
 !$OMP PARALLEL PRIVATE(i_rlstart, i_rlend, i_startblk, i_endblk)
 
@@ -100,7 +95,7 @@ MODULE mo_nh_moist_thdyn
       &                   i_startidx, i_endidx, i_rlstart, i_rlend )
 
 
-      !$ACC PARALLEL IF(i_am_accel_node) DEFAULT(PRESENT) ASYNC(1)
+      !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1)
       !$ACC LOOP GANG VECTOR COLLAPSE(2)
 #ifdef __LOOP_EXCHANGE
       DO jc = i_startidx, i_endidx
@@ -134,7 +129,7 @@ MODULE mo_nh_moist_thdyn
           CYCLE
         END IF
 
-        !$ACC PARALLEL IF(i_am_accel_node) DEFAULT(PRESENT) ASYNC(1)
+        !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1)
         !$ACC LOOP GANG VECTOR COLLAPSE(2)
          DO jk = kstart_moist(jg),nlev
            DO jc = i_startidx, i_endidx
@@ -147,7 +142,7 @@ MODULE mo_nh_moist_thdyn
 
       END DO ! jt
 
-      !$ACC PARALLEL IF(i_am_accel_node) DEFAULT(PRESENT) ASYNC(1)
+      !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1)
       !$ACC LOOP GANG VECTOR COLLAPSE(2) PRIVATE(z_a, z_b)
       DO jk = kstart_moist(jg),nlev
         DO jc = i_startidx, i_endidx
@@ -164,7 +159,7 @@ MODULE mo_nh_moist_thdyn
       END DO ! jk
       !$ACC END PARALLEL
 
-      !$ACC PARALLEL IF(i_am_accel_node) DEFAULT(PRESENT) ASYNC(1)
+      !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1)
       !$ACC LOOP GANG VECTOR COLLAPSE(2) PRIVATE(z_a)
       DO jk = 2, kstart_moist(jg)-1
         DO jc = i_startidx, i_endidx
@@ -179,7 +174,7 @@ MODULE mo_nh_moist_thdyn
       END DO ! jk
       !$ACC END PARALLEL
 
-      !$ACC PARALLEL IF(i_am_accel_node) DEFAULT(PRESENT) ASYNC(1)
+      !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1)
       !$ACC LOOP GANG VECTOR COLLAPSE(2) PRIVATE(beta_q, exner_sv)
       DO jk = 2, nlev
         DO jc = i_startidx, i_endidx

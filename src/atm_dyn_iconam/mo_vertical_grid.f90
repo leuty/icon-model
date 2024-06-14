@@ -1743,9 +1743,9 @@ MODULE mo_vertical_grid
     !PREPARE LES, Anurag Dipankar MPIM (2013-04)
     DO jg = 1 , n_dom
 #ifndef __NO_ICON_LES__
-      IF(atm_phy_nwp_config(jg)%is_les_phy .OR. aes_vdf_config(1)%turb == VDIFF_TURB_3DSMAGORINSKY) THEN
+      IF(atm_phy_nwp_config(jg)%is_les_phy .OR. aes_vdf_config(jg)%turb == VDIFF_TURB_3DSMAGORINSKY) THEN
 #else
-      IF(aes_vdf_config(1)%turb == VDIFF_TURB_3DSMAGORINSKY) THEN
+      IF(aes_vdf_config(jg)%turb == VDIFF_TURB_3DSMAGORINSKY) THEN
 #endif
         CALL prepare_les_model(p_patch(jg), p_nh(jg), p_int(jg), jg)
       END IF
@@ -2098,7 +2098,7 @@ MODULE mo_vertical_grid
 !DIR$ ATTRIBUTES ALIGN : 64 :: z_aux
 #endif
 
-    IF ( aes_vdf_config(1)%turb == VDIFF_TURB_3DSMAGORINSKY ) THEN
+    IF ( aes_vdf_config(jg)%turb == VDIFF_TURB_3DSMAGORINSKY ) THEN
       smag_constant  = aes_vdf_config(jg)%smag_constant
       max_turb_scale = aes_vdf_config(jg)%max_turb_scale
     ELSE

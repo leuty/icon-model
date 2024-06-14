@@ -26,6 +26,7 @@ use_compiler
 use_compiler_version
 use_gpu
 use_host
+use_purge_modules
 use_load_modules
 use_load_profile
 use_mpi
@@ -55,6 +56,7 @@ VERSION_='@PACKAGE_VERSION@'
 use_host='@host_fqdn@'
 use_site='local.net'
 case "$use_host" in
+  kfa-juelich.de|fz-juelich.de|*jureca*|*juwels*) use_site=juelich.de ;;
   l*.lvt.dkrz.de|aurora*) use_site=dkrz.de ;;
   daint*|tave*|santis*|kesch*|tsa*|nid*|balfrin*|tasna*) use_site=cscs.ch ;;
   uc2*|fh2*|hk*) use_site=kit.edu ;;
@@ -220,12 +222,14 @@ case "$use_site" in
     esac
   ;;
 
-  kfa-juelich.de|fz-juelich.de|*jureca*|*juwels*)
+  juelich.de)
     case "$use_host" in
-      jrl*|juwels*)
+      jrl*|jwlogin*|*juwels*)
         use_submit='sbatch'
+        use_sync_submit='sbatch --wait'
         use_mpi_startrun='srun'
-        use_target='jureca'
+        use_target='juwels'
+        use_load_profile='. /etc/profile'
       ;;
       juqueen*)
         use_submit='llsubmit'
