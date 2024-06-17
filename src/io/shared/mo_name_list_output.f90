@@ -2484,7 +2484,7 @@ CONTAINS
 
     USE mo_exception,           ONLY: message_text
     USE mo_var_metadata,        ONLY: get_var_name
-    USE mo_yac_finterface,      ONLY: yac_fput, yac_fget_action, &
+    USE yac,                    ONLY: yac_fput, yac_fget_action, &
       &                               yac_fupdate, YAC_ACTION_NONE, &
       &                               YAC_ACTION_OUT_OF_BOUND, yac_dble_ptr
 

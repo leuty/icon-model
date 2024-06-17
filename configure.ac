@@ -2250,7 +2250,7 @@ interface of YAC 2.x library: either disable the coupling dnl
 (--without-external-yac), or set FCFLAGS, LDFLAGS and LIBS accordingly])])],
 dnl
      [icon_subdir_srcdir="$srcdir/externals/yac"
-      icon_subdir_unique_file="src/grid.c"
+      icon_subdir_unique_file="src/mci/yac_module.F90"
       AS_IF([test ! -r "$icon_subdir_srcdir/$icon_subdir_unique_file"],
         [AC_MSG_ERROR([unable to find sources of the bundled version of YAC dnl
 library ($icon_subdir_unique_file) in '$icon_subdir_srcdir': either dnl
@@ -2274,7 +2274,14 @@ version of YAC library @<:@default=$ICON_BUNDLED_CFLAGS@:>@])dnl
         [MTIME_CFLAGS=*|MTIME_CLIBS=*|FORTRAN_LAPACK_CLIBS=*],
         [ACX_SUBDIR_CONFIG_PATTERN_ENABLE([silent-rules])],
         [ACX_SUBDIR_CONFIG_PATTERN_ENABLE([maintainer-mode])],
-        [ACX_SUBDIR_CONFIG_PATTERN_ENABLE([lib-only])],
+        [ACX_SUBDIR_CONFIG_PATTERN_ENABLE([rpaths])],
+        [ACX_SUBDIR_CONFIG_PATTERN_ENABLE([openmp])],
+        [ACX_SUBDIR_CONFIG_PATTERN_ENABLE([mci])],
+        [ACX_SUBDIR_CONFIG_PATTERN_ENABLE([utils])],
+        [ACX_SUBDIR_CONFIG_PATTERN_ENABLE([examples])],
+        [ACX_SUBDIR_CONFIG_PATTERN_ENABLE([tools])],
+        [ACX_SUBDIR_CONFIG_PATTERN_ENABLE([lib-core-only])],
+        [ACX_SUBDIR_CONFIG_PATTERN_ENABLE([deprecated])],
         [ACX_SUBDIR_CONFIG_PATTERN_ENABLE([netcdf])],
         [ACX_SUBDIR_CONFIG_PATTERN_WITH([external-lapack])],
         [ACX_SUBDIR_CONFIG_PATTERN_WITH([external-mtime])])
@@ -2285,8 +2292,11 @@ version of YAC library @<:@default=$ICON_BUNDLED_CFLAGS@:>@])dnl
         [YAXT_CLIBS=], [YAXT_FCLIBS=], [NETCDF_CFLAGS=], [NETCDF_CLIBS=],
         [FYAML_CFLAGS=], [FYAML_CLIBS=], [MTIME_CLIBS=],
         [FORTRAN_LAPACK_CLIBS=], [--enable-silent-rules="$enable_silent_rules"],
-        [--disable-maintainer-mode], [--enable-lib-only], [--enable-netcdf],
-        [--with-external-lapack=fortran], [--with-external-mtime])
+        [--disable-maintainer-mode], [--enable-rpaths="$enable_rpaths"],
+        [--disable-openmp], [--enable-mci], [--disable-utils],
+        [--disable-examples], [--disable-tools], [--enable-deprecated],
+        [--enable-netcdf], [--with-external-lapack=fortran],
+        [--with-external-mtime])
       AS_VAR_SET_IF([MPI_LAUNCH],
         [ACX_SUBDIR_APPEND_ARGS([externals/yac], [MPI_LAUNCH="$MPI_LAUNCH"])])
       AS_VAR_IF([with_external_yaxt], [yes],
@@ -2317,8 +2327,9 @@ ${icon_abs_top_builddir}/externals/yaxt/src/.libs/libyaxt_c.a"])],
            [MTIME_CFLAGS="-I${icon_abs_top_srcdir}/externals/mtime/include"],
            [acx_cv_c_lib_func_datetimeToString=dnl
 "${icon_abs_top_builddir}/externals/mtime/src/.libs/libmtime.a"])])
-      AS_VAR_APPEND([bundled_includes], ["${FC_MOD_IN}externals/yac/src "])
-      BUNDLED_LIBFILES="externals/yac/src/libyac.a $BUNDLED_LIBFILES"])])
+      AS_VAR_APPEND([bundled_includes], ["${FC_MOD_IN}externals/yac/src/mci "])
+      BUNDLED_LIBFILES="externals/yac/src/mci/libyac_mci.a dnl
+externals/yac/src/core/libyac_core.a $BUNDLED_LIBFILES"])])
 
 AS_VAR_IF([enable_art], [yes],
   [AS_VAR_IF([with_external_tixi], [yes],
@@ -2549,7 +2560,8 @@ bundled version of HD model @<:@default=$ICON_BUNDLED_FCFLAGS@:>@])dnl
         [AS_VAR_IF([with_external_yac], [yes],
            [ACX_SUBDIR_APPEND_ARGS([externals/hd], [YAC_FCFLAGS=])],
            [icon_hd_yac_lib=dnl
-"${icon_abs_top_builddir}/externals/yac/src/libyac.a"
+"${icon_abs_top_builddir}/externals/yac/src/mci/libyac_mci.a dnl
+${icon_abs_top_builddir}/externals/yac/src/core/libyac_core.a"
             AS_VAR_IF([with_external_mtime], [no],
               [AS_VAR_APPEND([icon_hd_yac_lib],
                  [dnl
@@ -2560,7 +2572,7 @@ bundled version of HD model @<:@default=$ICON_BUNDLED_FCFLAGS@:>@])dnl
 " ${icon_abs_top_builddir}/externals/yaxt/src/.libs/libyaxt_c.a"])])
             ACX_SUBDIR_APPEND_ARGS([externals/hd],
               [YAC_FCFLAGS=dnl
-"${FC_MOD_IN}${icon_abs_top_builddir}/externals/yac/src"],
+"${FC_MOD_IN}${icon_abs_top_builddir}/externals/yac/src/mci"],
               [acx_cv_fc_module_MO_YAC_FINTERFACE=yes],
               [acx_cv_fc_lib_func_YAC_FGET_VERSION="${icon_hd_yac_lib}"])])])])
 
