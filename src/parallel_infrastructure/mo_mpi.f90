@@ -2736,8 +2736,8 @@ CONTAINS
       USE comin_host_interface, handshake => mpi_handshake
       INTEGER, PARAMETER :: GROUP_NAME_LENGTH = 256
 #elif defined YAC_coupling
-      USE mo_yac_finterface, handshake => yac_fmpi_handshake
-      USE mo_yac_finterface, ONLY: YAC_MAX_CHARLEN
+      USE yac, handshake => yac_fmpi_handshake
+      USE yac, ONLY: YAC_MAX_CHARLEN
       INTEGER, PARAMETER :: GROUP_NAME_LENGTH = YAC_MAX_CHARLEN
 #endif
 

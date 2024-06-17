@@ -66,7 +66,7 @@ CONTAINS
     USE mo_var,                 ONLY: level_type_ml
     USE mo_coupling_utils,      ONLY: cpl_get_instance_id
 #ifdef YAC_coupling
-    USE mo_yac_finterface      ,ONLY: yac_fdef_field, YAC_TIME_UNIT_ISO_FORMAT, &
+    USE yac,                    ONLY: yac_fdef_field, YAC_TIME_UNIT_ISO_FORMAT, &
          yac_fdef_field_metadata, yac_fget_component_name, yac_fget_grid_name
 #endif
 
@@ -258,7 +258,7 @@ CONTAINS
    CALL finish(str_module // 'construct_output_coupling_finalize', &
                "built without coupling support.")
 #else
-    USE mo_yac_finterface, ONLY: yac_fget_role_from_field_id, &
+    USE yac, ONLY: yac_fget_role_from_field_id, &
          YAC_EXCHANGE_TYPE_NONE, YAC_EXCHANGE_TYPE_SOURCE
     TYPE(t_exposed_var), POINTER :: exposed_var, tmp
     INTEGER :: role, count = 1
@@ -311,7 +311,7 @@ CONTAINS
     USE mo_impl_constants      ,ONLY: TLEV_NNOW, TLEV_NNEW, TLEV_NNOW_RCF, TLEV_NNEW_RCF
     USE mo_dynamics_config,     ONLY: nnow, nnow_rcf, nnew, nnew_rcf
 #ifdef YAC_coupling
-    USE mo_yac_finterface,      ONLY: yac_fget_field_collection_size, yac_fput, yac_fget_action, &
+    USE yac,                    ONLY: yac_fget_field_collection_size, yac_fput, yac_fget_action, &
       &                               yac_fupdate, YAC_ACTION_NONE, yac_dble_ptr
 #endif
 
@@ -460,7 +460,7 @@ CONTAINS
     USE mo_var_metadata,           ONLY: get_var_name
     USE mo_var_metadata_types,     ONLY: t_var_metadata
 #ifdef YAC_coupling
-    USE mo_yac_finterface,         ONLY: yac_fdef_field, YAC_TIME_UNIT_ISO_FORMAT
+    USE yac,                       ONLY: yac_fdef_field, YAC_TIME_UNIT_ISO_FORMAT
 #endif
 
     INTEGER, INTENT(IN) :: comp_id

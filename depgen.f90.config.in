@@ -50,7 +50,7 @@
 #   MTIME:
 --fc-external-mods=mtime,mtime_datetime
 #   YAC:
---fc-external-mods=mo_yac_finterface
+--fc-external-mods=yac,mo_yac_finterface
 #   TIXI:
 --fc-external-mods=tixi
 #   NETCDF:

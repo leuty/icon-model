@@ -34,7 +34,7 @@ MODULE mo_coupling_utils
     &                           timer_coupling_init_enddef
 #ifdef YAC_coupling
   USE mo_mpi,             ONLY: p_comm_yac
-  USE mo_yac_finterface,  ONLY: yac_finit, yac_finit_comm, &
+  USE yac,                ONLY: yac_finit, yac_finit_comm, &
     &                           yac_fread_config_yaml, &
     &                           yac_ffinalize, yac_fdef_comp, &
     &                           yac_fdef_comps, yac_fdef_grid, &
@@ -46,6 +46,7 @@ MODULE mo_coupling_utils
     &                           yac_dble_ptr, yac_fput, yac_fget, &
     &                           yac_fget_field_collection_size, &
     &                           yac_fsync_def, yac_fenddef, &
+    &                           yac_fget_grid_size, &
     &                           YAC_LOCATION_CELL, &
     &                           YAC_LOCATION_CORNER, &
     &                           YAC_LOCATION_EDGE, &
@@ -483,28 +484,9 @@ CONTAINS
     INTEGER, INTENT(OUT) :: mask_id        ! mask identifier
 
 #ifdef YAC_coupling
-
-    ! define iso C interface to YAC routine, until the respective Fortran
-    ! one is available
-    INTERFACE
-
-      FUNCTION yac_get_grid_size_c (location, grid_id ) &
-        BIND( c, name='yac_get_grid_size' )
-
-        USE, INTRINSIC :: iso_c_binding, ONLY : c_size_t, c_int
-
-        INTEGER ( KIND=c_int ), VALUE :: location
-        INTEGER ( KIND=c_int ), VALUE :: grid_id
-
-        INTEGER ( KIND=c_size_t ) :: yac_get_grid_size_c
-
-      END FUNCTION yac_get_grid_size_c
-
-    END INTERFACE
-
     CALL yac_fdef_mask (                  &
       & grid_id,                          &
-      & INT(yac_get_grid_size_c(          &
+      & INT(yac_fget_grid_size(           &
       &     YAC_LOCATION_CELL, grid_id)), &
       & YAC_LOCATION_CELL,                &
       & is_valid,                         &
