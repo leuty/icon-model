@@ -942,11 +942,12 @@ CONTAINS
           &   art_config(jg)%iart_init_aero >  0  .OR.  &
           &   art_config(jg)%iart_radioact  >  0  .OR.  &
           &   art_config(jg)%iart_seasalt   >  0  .OR.  &
-          &   art_config(jg)%iart_volcano   >  0  .OR.  &
-          &   art_config(jg)%lart_chem            .OR.  &
-          &   art_config(jg)%lart_chemtracer            ) THEN
+          &   art_config(jg)%iart_volcano   >  0  ) THEN
         CALL finish(routine,  &
           &  'mo_nml_crosscheck: art_crosscheck: some activated art switches are currently not supported on GPU.')
+      ELSEIF (    art_config(jg)%lart_chem            .OR.  &
+              &   art_config(jg)%lart_chemtracer            ) THEN 
+        CALL message(routine, 'WARNING: The switches lartchem and lart_chemtracer are not supported on GPU. Use them at your own risk. However, using this with OEM-specific cases is safe at the moment.') 
       END IF
     ENDDO
 #endif

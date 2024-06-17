@@ -246,7 +246,7 @@ case "$use_site" in
     use_sync_submit='sbatch --wait'
     use_load_profile='. /etc/profile'
     use_mpi_startrun='@MPI_LAUNCH@ -n ${SLURM_NPROCS}'
-    use_load_modules=""
+    use_load_modules="${MODULELIST}"
     case "$use_host" in
       uc2*) use_target='uc2' ;;
       fh2*) use_target='fh2' ;;

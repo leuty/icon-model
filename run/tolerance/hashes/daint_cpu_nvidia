@@ -15,3 +15,4 @@ builder: daint_cpu_nvidia
 "mch_opr_r19b07_2m_gscp5": 5acbf9c21944da8f9fc0b85ed9eb22634a94f0bf
 "mch_opr_r19b07_midnight": bfb58504d5b8434c68c537de19c79274b06ffb89
 "mch_opr_r19b07_turb": 16e987b965d929f6f9465180d50422972d985690
+"art_oem": 78ecb5e7cf22a5ffbdc801759879a79432fc4f6d

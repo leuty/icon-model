@@ -189,6 +189,12 @@ case $EXPERIMENT in
         --file-id latlon "iga_fg_latlon_DOM01_PL_0000000.nc"
         )
         ;;
+    *art_oem*)
+        probtest_file_id=(
+        --file-id NetCDF "*atm_3d_ml*.nc"
+        --file-id NetCDF "*CH4_ml*.nc"
+        )
+        ;;
     *c2sm*)
         probtest_file_id=(
         --file-id NetCDF "*atm_3d*.nc"

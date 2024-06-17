@@ -2146,6 +2146,7 @@ MODULE mo_nh_stepping
               &      dt_loc,                                   &!in
               &      p_lnd_state(jg)%diag_lnd,                 &!in
               &      datetime_local(jg)%ptr,                   &!in
+              &      iau_iter,                                 &!in
               &      p_nh_state(jg)%prog(n_now_rcf)%tracer,    &!inout
               &      lacc=.TRUE.                               )
           ENDIF

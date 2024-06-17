@@ -93,12 +93,16 @@ MODULE mo_nh_interface_nwp
   USE mo_nwp_diagnosis,           ONLY: nwp_statistics, nwp_opt_diagnostics_2, &
                                     &   nwp_diag_output_1, nwp_diag_output_2
 #ifdef __ICON_ART
+  USE mo_art_config,              ONLY: art_config
+  USE mo_art_data,                ONLY: p_art_data
+  USE mo_art_atmo_data,           ONLY: t_art_atmo
   USE mo_art_diagnostics_interface,ONLY: art_diagnostics_interface
 
   USE mo_art_washout_interface,   ONLY: art_washout_interface
   USE mo_art_coagulation_interface, ONLY: art_coagulation_interface
   USE mo_art_reaction_interface,  ONLY: art_reaction_interface
   USE mo_art_aerodyn_interface,   ONLY: art_aerodyn_interface
+  USE mo_art_cover_koe,           ONLY: art_cover_dusty
 #endif
   USE mo_var_list,                ONLY: t_var_list_ptr
 #ifndef __NO_ICON_LES__
@@ -299,6 +303,12 @@ CONTAINS
     
     ! SCM Nudging
     REAL(wp) :: nudgecoeff
+
+#ifdef __ICON_ART
+    ! For ICON-ART dusty cirrus
+    TYPE(t_art_atmo), POINTER    :: &
+      &  art_atmo           !< Pointer to ART atmospheric fields
+#endif
 
     CALL set_acc_host_or_device(lzacc, lacc)
 
@@ -1365,7 +1375,7 @@ CONTAINS
           ENDDO
           !$ACC END PARALLEL
         ENDIF
-        
+
         CALL cover_koe &
 &             (kidia  = i_startidx ,   kfdia  = i_endidx  ,       & !! in:  horizonal begin, end indices
 &              klon = nproma,  kstart = kstart_moist(jg)  ,       & !! in:  horiz. and vert. vector length
@@ -1406,6 +1416,29 @@ CONTAINS
 &              qc_sgs = prm_diag%qc_sgs      (:,:,jb) ,           & !! inout: sgs clw from RH scheme
 &              qi_tot = prm_diag%tot_cld     (:,:,jb,iqi)         ) !! out: ci       -"-
 
+#ifdef __ICON_ART
+        ! dusty cirrus parameterization for ICON-ART prognostic 3D mineral dust
+        IF (lart .AND. art_config(jg)%lart_dusty_cirrus) THEN
+          art_atmo => p_art_data(jg)%atmo
+          CALL art_cover_dusty &
+&               (kidia  = i_startidx ,   kfdia  = i_endidx  ,       & !! in:  horizonal begin, end indices
+&                klon = nproma,  kstart = kstart_moist(jg)  ,       & !! in:  horiz. and vert. vector length
+&                klev   = nlev                              ,       &
+&                deltaz = p_metrics%ddqz_z_full(:,:,jb)     ,       & !! in:  layer thickness
+&                tt     = pt_diag%temp         (:,:,jb)     ,       & !! in:  temperature at full levels
+&                rho    = pt_prog%rho          (:,:,jb)     ,       & !! in:  density
+&                qv     = pt_prog_rcf%tracer   (:,:,jb,iqv) ,       & !! in:  water vapor
+&                dusta  = pt_prog_rcf%tracer   (:,:,jb,art_atmo%idust_insol_acc) ,  & !! in:  dust_insol_acc (resp. dusta)
+&                dustb  = pt_prog_rcf%tracer   (:,:,jb,art_atmo%idust_insol_coa) ,  & !! in:  dust_insol_coa (resp. dustb) 
+&                dustc  = pt_prog_rcf%tracer   (:,:,jb,art_atmo%idust_giant) ,      & !! in:  dust_giant     (resp. dustc)
+&                dustyci_crit = art_config(jg)%rart_dustyci_crit ,  & !! in:  dust threshold for dusty cirrus
+&                dustyci_rhi  = art_config(jg)%rart_dustyci_rhi  ,  & !! in:  rhi  threshold for dusty cirrus
+&                lacc   = lzacc                             ,       & !! in
+&                cc_tot = prm_diag%clc         (:,:,jb)     ,       & !! out: cloud fraction
+&                qi_tot = prm_diag%tot_cld     (:,:,jb,iqi)         ) !! out: qi
+          NULLIFY(art_atmo)
+        ENDIF ! lart, lart_dusty_cirrus
+#endif
       ENDDO
 #ifndef __GFORTRAN__
 !$OMP END PARALLEL DO
