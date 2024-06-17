@@ -21,9 +21,6 @@ case $EXPERIMENT in
     *c2sm*)
         probtest_ensemble_num=1,2,3,4,5,6,7,8,9,10,12,13,18,32,40
         ;;
-    mch_opr_r19b07_2m)
-        probtest_ensemble_num=1,2,3,4,5,6,7,8,9,10,39
-        ;;
     mch_icon-ch2_small)
         probtest_ensemble_num=1,2,3,4,5,6,7,8,9,12
         ;;
@@ -31,10 +28,10 @@ case $EXPERIMENT in
         probtest_ensemble_num=1,2,3,4,5,6,7,8,9,10,20
         ;;
     dwd_run_ICON_09_R2B4N5_EPS)
-        probtest_ensemble_num=7,8,9,15,18,19,38,48,58,59,64
+        probtest_ensemble_num=4,7,8,9,15,18,19,38,48,58,59,64,82
         ;;
-    mch_dev_icon-ch2_small)
-        probtest_ensemble_num=2,3,4,8,9,12,13,14,15,16
+    mch_kenda-ch1_*)
+        probtest_ensemble_num=1,2,3,4,5,6,7,18,21,34
         ;;
     *)
         probtest_ensemble_num=10
