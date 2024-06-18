@@ -1239,16 +1239,21 @@ CONTAINS
         ! If ocean coupling is used, then try to read the land sea masks. If no LSM is present
         ! in the extpar file, we assume that the file fits the ocean LSM.
 
-        IF ( is_coupled_to_ocean() .AND. read_inq_varexists(stream_id, 'cell_sea_land_mask')) THEN
+        IF (is_coupled_to_ocean()) THEN
+          IF (read_netcdf_parallel) THEN
+            do_patch_land_sea_mask = read_inq_varexists(stream_id, 'cell_sea_land_mask')
+          ELSE
+            do_patch_land_sea_mask = parameters%inqVarId('cell_sea_land_mask') >= 0
+          END IF
 
           ! --- option NWP grids for coupling: Read fraction of land (land-sea mask) from
           ! interpolated ocean grid (ocean: integer 0/1 lsm). lsm_ctr_c is the fraction of land.
           ! 0.0 is ocean, 1.0 is land, fractions on coasts (lakes are land).
           ! Used in routine lsm_ocean_atmo.
 
-          CALL read_extdata('cell_sea_land_mask', ext_data(jg)%atm%lsm_ctr_c)
-
-          do_patch_land_sea_mask = .TRUE.
+          IF (do_patch_land_sea_mask) THEN
+            CALL read_extdata('cell_sea_land_mask', ext_data(jg)%atm%lsm_ctr_c)
+          END IF
 
         ENDIF
 
