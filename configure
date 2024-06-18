@@ -10967,7 +10967,7 @@ else
   if ${PYTHON+:} false; then :
   set dummy "$PYTHON"
 else
-  set dummy python python3
+  set dummy python3 python
 fi
       shift
       for acx_candidate in "$@"; do

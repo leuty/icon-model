@@ -2636,7 +2636,7 @@ AC_ARG_VAR([RANLIB], [archive indexer command])dnl
 AC_PROG_RANLIB
 
 AC_ARG_VAR([PYTHON], [Python interpreter command])dnl
-ACX_PROG_SEARCH([PYTHON], [python python3],
+ACX_PROG_SEARCH([PYTHON], [python3 python],
   [icon_prog_try=dnl
 '$acx_candidate $srcdir/utils/mkhelper/depgen.py -h >/dev/null'
    AC_TRY_EVAL([icon_prog_try])],
