@@ -98,7 +98,7 @@ CONTAINS
     uadd_sso = MAX(0._wp, SQRT(u_env**2 + v_env**2) - SQRT(u1**2 + v1**2))
     SELECT CASE (itune_gust_diag)
     CASE (4)     ! gust param based on 10-min averaged wind
-      offset = 6._wp
+      offset = 6._wp+6._wp*fr_oce
     CASE (3)     ! ICON-D2 with subgrid-scale condensation
       offset = 10._wp+6._wp*fr_oce
     CASE (2)     ! ICON global with MERIT/REMA orography data
