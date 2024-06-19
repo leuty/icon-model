@@ -586,6 +586,7 @@ extra_src_subdirs=
 ac_subst_vars='LTLIBOBJS
 LIBOBJS
 PGI_INLIB_ENABLED
+HIP_OVERRIDES_ENABLED
 SB2_ENABLED
 FPP_ENABLED
 HIP_ENABLED
@@ -783,6 +784,7 @@ enable_realloc_buf
 enable_vectorized_lrtm
 enable_mixed_precision
 enable_intel_consistency
+enable_hip_overrides
 enable_pgi_inlib
 enable_nccl
 enable_cuda_graphs
@@ -1615,6 +1617,9 @@ Optimization Features:
   --enable-intel-consistency
                           enable Intel compiler directives enforcing
                           consistency [default=auto]
+  --enable-hip-overrides  enable HIP overrides, which improves the performance
+                          on AMD GPUs by suppressing the HIP event handling in
+                          the Cray OpenACC runtime [default=auto]
   --enable-pgi-inlib      enable PGI/NVIDIA cross-file function inlining via
                           an inline library [default=no]
   --enable-nccl           enable NCCL for communication [default=no]
@@ -3522,6 +3527,16 @@ else
 fi
 
 
+# Check whether --enable-hip-overrides was given.
+if test "${enable_hip_overrides+set}" = set; then :
+  enableval=$enable_hip_overrides; if test x"$enableval" != xno && test x"$enableval" != xauto; then :
+  enable_hip_overrides=yes
+fi
+else
+  enable_hip_overrides=auto
+fi
+
+
 # Check whether --enable-pgi-inlib was given.
 if test "${enable_pgi_inlib+set}" = set; then :
   enableval=$enable_pgi_inlib; if test x"$enableval" != xno && test x"$enableval" != xauto; then :
@@ -4570,6 +4585,18 @@ $as_echo "$as_me: Intel compiler directives enforcing consistency are enabled be
 else
   enable_intel_consistency=no
 fi
+fi
+
+if test "x$enable_hip_overrides" = xauto; then :
+  if test x"$FC_VENDOR$icon_gpu_secondary" = xcrayhip; then :
+  { $as_echo "$as_me:${as_lineno-$LINENO}: HIP overrides are enabled because $FC is recognized as Cray and the secondary GPU compiler is HIP: disable the overrides if required (--disable-hip-overrides)" >&5
+$as_echo "$as_me: HIP overrides are enabled because $FC is recognized as Cray and the secondary GPU compiler is HIP: disable the overrides if required (--disable-hip-overrides)" >&6;}
+      enable_hip_overrides=yes
+else
+  enable_hip_overrides=no
+fi
+elif test "x$enable_hip_overrides" = xyes && test "x$icon_gpu_secondary" != xhip; then :
+  as_fn_error $? "unsupported combination of the configure options: you are trying to configure with the HIP overrides enabled but the GPU support is disabled or the secondary GPU compiler is not HIP: either disable the HIP overrides (--disable-hip-overrides) or enable the GPU support with HIP (e.g. --enable-gpu=openacc+hip)" "$LINENO" 5
 fi
 
 if test "x$enable_pgi_inlib" = xauto; then :
@@ -11402,6 +11429,14 @@ if test x"$enable_serialization" != xno; then :
 
 else
   SB2_ENABLED='#'
+
+fi
+
+if test "x$enable_hip_overrides" = xyes; then :
+  HIP_OVERRIDES_ENABLED=''
+
+else
+  HIP_OVERRIDES_ENABLED='#'
 
 fi
 

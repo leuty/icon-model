@@ -681,7 +681,6 @@ EOF
 export FI_MR_CACHE_MONITOR=memhooks
 export MPICH_OFI_NIC_POLICY=GPU
 export MPICH_GPU_SUPPORT_ENABLED=1
-export LD_PRELOAD=/appl/local/climatedt/sw/wtf/libpreload-me.so
 ${cpu_bind:+"export SLURM_CPU_BIND='${cpu_bind}'"}
 EOF
 }
@@ -751,7 +750,6 @@ EOF
 
 export OMP_PLACES=cores
 export FI_MR_CACHE_MONITOR=memhooks
-export LD_PRELOAD=/appl/local/climatedt/sw/wtf/libpreload-me.so
 EOF
 }
 

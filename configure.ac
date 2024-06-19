@@ -463,6 +463,15 @@ AC_ARG_ENABLE([intel-consistency],
      [enable_intel_consistency=yes])],
   [enable_intel_consistency=auto])
 
+AC_ARG_ENABLE([hip-overrides],
+  [AS_HELP_STRING([--enable-hip-overrides],
+     [enable HIP overrides, which improves the performance on AMD GPUs by
+suppressing the HIP event handling in the Cray OpenACC runtime
+@<:@default=auto@:>@])],
+  [AS_IF([test x"$enableval" != xno && test x"$enableval" != xauto],
+     [enable_hip_overrides=yes])],
+  [enable_hip_overrides=auto])
+
 AC_ARG_ENABLE([pgi-inlib],
   [AS_HELP_STRING([--enable-pgi-inlib],
      [enable PGI/NVIDIA cross-file function inlining via an inline library
@@ -767,6 +776,20 @@ enabled because $FC is recognized as the Intel Fortran compiler: disable dnl
 the directives if required (--disable-intel-consistency)])
       enable_intel_consistency=yes],
      [enable_intel_consistency=no])])
+
+AS_IF([test "x$enable_hip_overrides" = xauto],
+  [AS_IF([test x"$FC_VENDOR$icon_gpu_secondary" = xcrayhip],
+     [AC_MSG_NOTICE([HIP overrides are enabled because $FC is recognized as dnl
+Cray and the secondary GPU compiler is HIP: disable the overrides if dnl
+required (--disable-hip-overrides)])
+      enable_hip_overrides=yes],
+     [enable_hip_overrides=no])],
+  [test "x$enable_hip_overrides" = xyes && test "x$icon_gpu_secondary" != xhip],
+  [AC_MSG_ERROR([unsupported combination of the configure options: you are dnl
+trying to configure with the HIP overrides enabled but the GPU support is dnl
+disabled or the secondary GPU compiler is not HIP: either disable the HIP dnl
+overrides (--disable-hip-overrides) or enable the GPU support with HIP dnl
+(e.g. --enable-gpu=openacc+hip)])])
 
 AS_VAR_IF([enable_pgi_inlib], [auto],
   [AS_VAR_IF([FC_VENDOR], [portland],
@@ -2776,6 +2799,10 @@ AS_VAR_IF([enable_explicit_fpp], [yes],
 AS_IF([test x"$enable_serialization" != xno],
   [AC_SUBST([SB2_ENABLED], [''])],
   [AC_SUBST([SB2_ENABLED], ['#'])])
+
+AS_VAR_IF([enable_hip_overrides], [yes],
+  [AC_SUBST([HIP_OVERRIDES_ENABLED], [''])],
+  [AC_SUBST([HIP_OVERRIDES_ENABLED], ['#'])])
 
 AS_VAR_IF([enable_pgi_inlib], [yes],
   [AC_SUBST([PGI_INLIB_ENABLED], [''])
