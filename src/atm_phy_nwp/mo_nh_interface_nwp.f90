@@ -61,7 +61,7 @@ MODULE mo_nh_interface_nwp
   USE mo_run_config,              ONLY: ntracer, iqv, iqc, iqi, iqs, iqr, iqg, iqtke,  &
     &                                   msg_level, ltimer, timers_level, lart, ldass_lhn
   USE mo_grid_config,             ONLY: l_limited_area
-  USE mo_physical_constants,      ONLY: rd, rd_o_cpd, vtmpc1, p0ref, rcvd, cvd, cvv, tmelt, grav
+  USE mo_physical_constants,      ONLY: rd, rd_o_cpd, vtmpc1, p0ref, rcvd, cvd, cvv, grav
 
   USE mo_nh_diagnose_pres_temp,   ONLY: diagnose_pres_temp, diag_pres, diag_temp, calc_qsum
   USE mo_atm_phy_nwp_config,      ONLY: atm_phy_nwp_config, iprog_aero
@@ -72,7 +72,7 @@ MODULE mo_nh_interface_nwp
   USE mo_satad,                   ONLY: satad_v_3D, satad_v_3D_gpu, latent_heat_sublimation
   USE mo_aerosol_util,            ONLY: prog_aerosol_2D
   USE mo_radiation,               ONLY: radheat, pre_radiation_nwp
-  USE mo_radiation_config,        ONLY: irad_aero, iRadAeroTegen, iRadAeroCAMSclim, iRadAeroART
+  USE mo_radiation_config,        ONLY: irad_aero, iRadAeroTegen, iRadAeroCAMSclim, iRadAeroCAMStd, iRadAeroART
   USE mo_nwp_gw_interface,        ONLY: nwp_gwdrag
   USE mo_nwp_gscp_interface,      ONLY: nwp_microphysics
   USE mo_nwp_turbtrans_interface, ONLY: nwp_turbtrans
@@ -240,7 +240,6 @@ CONTAINS
 
     INTEGER :: jc,jk,jb,jce,isubs!loop indices
     INTEGER :: jg,jgc            !domain id
-    INTEGER :: convind           !help variable to circument compiler issue
 
     LOGICAL :: ltemp, lpres, ltemp_ifc, l_any_fastphys, l_any_slowphys
     LOGICAL :: lcall_lhn, lcall_lhn_v, lapply_lhn, lcall_lhn_c  !< switches for latent heat nudging
@@ -258,7 +257,7 @@ CONTAINS
       & z_ddt_temp  (nproma,pt_patch%nlev)                      !< Temperature tendency
 
     REAL(wp) :: z_exner_sv(nproma,pt_patch%nlev,pt_patch%nblks_c), z_tempv, sqrt_ri(nproma), n2, dvdz2, &
-      zddt_u_raylfric(nproma,pt_patch%nlev), zddt_v_raylfric(nproma,pt_patch%nlev), convfac, wfac
+      zddt_u_raylfric(nproma,pt_patch%nlev), zddt_v_raylfric(nproma,pt_patch%nlev), wfac
 
     !< SBM microphysics:
     TYPE(t_sbm_storage), POINTER:: ptr_sbm_storage =>NULL()   ! pointer to SBM storage object
@@ -1255,7 +1254,8 @@ CONTAINS
 
       ! Temperature at interface levels is needed if irad_aero = 6/7/9
       IF ( lcall_phy_jg(itrad) .AND.  &
-        & ( irad_aero == iRadAeroTegen .OR. irad_aero == iRadAeroCAMSclim .OR. irad_aero == iRadAeroART ) ) THEN
+        & ( irad_aero == iRadAeroTegen .OR. irad_aero == iRadAeroCAMSclim .OR. irad_aero == iRadAeroCAMStd .OR. &
+        &   irad_aero == iRadAeroART ) ) THEN
         ltemp_ifc = .TRUE.
       ELSE
         ltemp_ifc = .FALSE.
@@ -1353,6 +1353,9 @@ CONTAINS
 &                       i_startidx, i_endidx, rl_start, rl_end)
 
         IF (lcalc_inv) THEN
+#ifdef _OPENACC
+          IF (lzacc) CALL finish("mo_nh_interface_nwp:nwp_nh_interface", "inversion_height_index() is not yet ported with OpenACC.")
+#endif
           ! inversion height diagnostic for EIS-based stratocumulus parameterization in cover_koe
           ! ( for efficiency reasons this could be integrated in cover_koe and called with an index list )
           CALL inversion_height_index(                             &
@@ -2022,7 +2025,7 @@ CONTAINS
 
 !$OMP PARALLEL
 !$OMP DO PRIVATE(jb,jk,jc,i_startidx,i_endidx,z_qsum,z_ddt_temp,z_ddt_alpha,vabs,nudgecoeff,&
-!$OMP  rfric_fac,zddt_u_raylfric,zddt_v_raylfric,convfac,convind,sqrt_ri,n2,dvdz2,wfac) ICON_OMP_DEFAULT_SCHEDULE
+!$OMP  rfric_fac,zddt_u_raylfric,zddt_v_raylfric,sqrt_ri,n2,dvdz2,wfac) ICON_OMP_DEFAULT_SCHEDULE
 !
       DO jb = i_startblk, i_endblk
 !
@@ -2257,24 +2260,6 @@ CONTAINS
 
         ENDIF ! END of LS forcing tendency accumulation
 #endif
-
-        IF (lcall_phy_jg(itconv)) THEN
-!DIR$ IVDEP
-          !$ACC DATA PRESENT(pt_diag%temp)
-          !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1) IF(lzacc)
-          !$ACC LOOP GANG VECTOR PRIVATE(convfac, convind)
-          DO jc = i_startidx, i_endidx
-            convind = prm_diag%k950(jc,jb) ! using this varibale directly in the next row gave a memory "memory not mapped to object" error in PGI (GPU) 20.8
-            ! rain-snow conversion factor to avoid 'snow showers' at temperatures when they don't occur in practice
-            convfac = MIN(1._wp,MAX(0._wp,pt_diag%temp(jc,convind,jb)-tmelt)* &
-              MAX(0._wp,prm_diag%t_2m(jc,jb)-(tmelt+1.5_wp)) )
-            prm_diag%rain_con_rate(jc,jb) = prm_diag%rain_con_rate_3d(jc,nlevp1,jb) + &
-              convfac*prm_diag%snow_con_rate_3d(jc,nlevp1,jb)
-            prm_diag%snow_con_rate(jc,jb) = (1._wp-convfac)*prm_diag%snow_con_rate_3d(jc,nlevp1,jb)
-          ENDDO
-          !$ACC END PARALLEL
-          !$ACC END DATA
-        ENDIF
 
       ENDDO  ! jb
 !$OMP END DO NOWAIT

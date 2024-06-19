@@ -12,8 +12,8 @@
 
 #--------------------------------------------------------------------------------
 #
-# _bb_table_Description_  MCH LAM experiment
-# _bb_table_Model_        non-hydrostatic atmosphere with NWP physics
+# _bb_table_Description_  DWD ART mineral dust experiment on R2B4N5
+# _bb_table_Model_        non-hydrostatic atmosphere with NWP physics with ART dust
 
 #--------------------------------------------------------------------------------
 #
@@ -25,31 +25,32 @@
 # - the output  file names: <EXPNAME>_<TYPE>_<DATE>.nc
 # - the restart file names: 
 #
-export EXPERIMENT='mch_opr_r19b07_2m_expl'
-
-# TYPES is a list of names identifying the files <EXPNAME>_<TYPE>_<DATE>.nc
-# to be checked.
-#
-export TYPES='atm_3d_ml'
-
-# DATES is a list of dates identifying the files <EXPNAME>_<TYPE>_<DATE>.nc
-# to be checked.
-#
-export DATES='20210620T150000Z'
-
-# RESTART_DATE defines the date and time from which restarts should be performed.
-# 
-export RESTART_DATE='20210620T150000Z'
+export EXPERIMENT='dwd_art_dustrad_R2B4N5'
+export TYPES="DOM01_ML DOM02_ML"
+export DATES="00030000"
+export RESTART_DATE="void"
 
 #--------------------------------------------------------------------------------
 # 
 # 2. Define the checksuite mode
 #
-export MD='t'
+# u = update test
+# r = restart test
+# n = nproma test
+# m = mpi test
+# o = omp test
+# t = tolerance test
+#
+export MD='nm'
 
 #--------------------------------------------------------------------------------
 # 
 # 3. Launch the checksuite from run/
+
+# If cdo is not in path, try to add it from $cdo.
+if [[ ! -x "$(command -v cdo)" ]] && [[ ! -z ${cdo} ]] && [[ -f ${cdo} ]]; then
+    export PATH="$(dirname ${cdo}):${PATH}"
+fi
 
 rundir=`pwd`
 cd checksuite.icon-dev
@@ -62,5 +63,3 @@ check_final_status $STATUS "$EXPERIMENT"
 
 #--------------------------------------------------------------------------------
 exit
-
-
