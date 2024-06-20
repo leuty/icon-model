@@ -22,7 +22,6 @@
 
 MODULE mo_model_domimp_setup
   !-------------------------------------------------------------------------
-  USE mo_kind,               ONLY: wp
   USE mo_exception,          ONLY: finish, warning
   USE mo_model_domain,       ONLY: t_patch
   USE mo_parallel_config,    ONLY: nproma
@@ -36,7 +35,7 @@ MODULE mo_model_domimp_setup
   USE mo_impl_constants
   USE mo_math_types
   USE mo_math_utilities
-  USE mo_grid_geometry_info, ONLY: planar_torus_geometry, planar_channel_geometry
+  USE mo_lib_grid_geometry_info, ONLY: planar_torus_geometry, planar_channel_geometry
   USE mo_master_control,     ONLY: my_process_is_oceanic
   USE mo_fortran_tools,      ONLY: init
 

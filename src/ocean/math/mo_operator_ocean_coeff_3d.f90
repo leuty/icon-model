@@ -47,6 +47,9 @@ MODULE mo_operator_ocean_coeff_3d
   USE mo_grib2,               ONLY: t_grib2_var
   USE mo_util_dbg_prnt,       ONLY: dbg_print
   USE mo_grid_geometry_info
+  USE mo_lib_grid_geometry_info, ONLY: sphere_geometry, planar_torus_geometry, &
+                                       planar_channel_geometry, planar_geometry, &
+                                       t_grid_geometry_info
   USE mo_fortran_tools,       ONLY: set_acc_host_or_device
 
   IMPLICIT NONE

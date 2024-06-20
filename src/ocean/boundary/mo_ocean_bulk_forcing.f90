@@ -62,7 +62,7 @@ MODULE mo_ocean_bulk_forcing
   USE mtime,                  ONLY: datetime, getDayOfYearFromDateTime, getNoOfDaysInYearDateTime
   USE mo_ocean_time_events,   ONLY: isEndOfThisRun 
   USE mo_statistics,         ONLY: subset_sum
-  USE mo_grid_geometry_info,  ONLY: planar_torus_geometry
+  USE mo_lib_grid_geometry_info,  ONLY: planar_torus_geometry
   USE mo_fortran_tools,       ONLY: set_acc_host_or_device
 
 #ifdef _OPENACC

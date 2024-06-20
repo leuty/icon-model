@@ -163,10 +163,13 @@ Granules:
         - .gitlab-ci.yml
         - .gitlab/ci/granules.yml
         - externals/fortran-support
+        - externals/math-support
         - externals/probtest
         - src/atm_phy_schemes/mo_lookup_tables_constants.f90
         - src/atm_phy_schemes/mo_satad.f90
         - src/granules/microphysics_1mom_schemes/**/*
+        - src/shared/mo_kind.f90
+        - src/shared/mo_physical_constants.f90
         - test/microphysics_1mom_schemes/**/*
     - if: $CI_PIPELINE_SOURCE != "merge_request_event"
 

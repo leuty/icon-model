@@ -61,9 +61,10 @@ MODULE mo_model_domimp_patches
   USE mo_util_uuid,          ONLY: uuid_parse, clear_uuid
   USE mo_name_list_output_config, ONLY: is_grib_output
   USE mo_netcdf_errhandler,  ONLY: nf
-  USE mo_grid_geometry_info, ONLY: planar_torus_geometry, sphere_geometry, &
-    &  set_grid_geometry_derived_info, copy_grid_geometry_info,            &
-    & parallel_read_geometry_info, triangular_cell, planar_channel_geometry
+  USE mo_lib_grid_geometry_info,  ONLY: planar_torus_geometry, sphere_geometry, &
+    &                                   triangular_cell, planar_channel_geometry
+  USE mo_grid_geometry_info, ONLY: set_grid_geometry_derived_info, copy_grid_geometry_info, &
+    & parallel_read_geometry_info
   USE mo_alloc_patches,      ONLY: allocate_pre_patch, allocate_remaining_patch
   USE mo_math_constants,     ONLY: pi
   USE mo_reorder_patches,    ONLY: reorder_cells, reorder_edges, &

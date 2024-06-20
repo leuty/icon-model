@@ -26,7 +26,8 @@ MODULE mo_loopindices
 
 USE mo_model_domain,    ONLY: t_patch
 USE mo_impl_constants,  ONLY: min_rlcell, min_rledge, min_rlvert
-USE mo_parallel_config,  ONLY: nproma
+USE mo_parallel_config, ONLY: nproma
+USE mo_lib_loopindices, ONLY: get_indices_c_lib, get_indices_e_lib, get_indices_v_lib
 
 IMPLICIT NONE
 
@@ -58,7 +59,9 @@ SUBROUTINE get_indices_c(p_patch, i_blk, i_startblk, i_endblk, i_startidx, &
 
   ! Local variables
 
-  INTEGER :: irl_end
+  INTEGER :: irl_end, i_startidx_in, i_endidx_in
+
+  i_startidx_in = p_patch%cells%start_index(irl_start)
 
   IF (PRESENT(opt_rl_end)) THEN
     irl_end = opt_rl_end
@@ -66,17 +69,10 @@ SUBROUTINE get_indices_c(p_patch, i_blk, i_startblk, i_endblk, i_startidx, &
     irl_end = min_rlcell
   ENDIF
 
-  IF (i_blk == i_startblk) THEN
-    i_startidx = MAX(1,p_patch%cells%start_index(irl_start))
-    i_endidx   = nproma
-    IF (i_blk == i_endblk) i_endidx = p_patch%cells%end_index(irl_end)
-  ELSE IF (i_blk == i_endblk) THEN
-    i_startidx = 1
-    i_endidx   = p_patch%cells%end_index(irl_end)
-  ELSE
-    i_startidx = 1
-    i_endidx = nproma
-  ENDIF
+  i_endidx_in = p_patch%cells%end_index(irl_end)
+
+  CALL get_indices_c_lib(i_startidx_in, i_endidx_in, nproma, i_blk, i_startblk, i_endblk, &
+                         i_startidx, i_endidx)
 
 END SUBROUTINE get_indices_c
 
@@ -101,7 +97,9 @@ SUBROUTINE get_indices_e(p_patch, i_blk, i_startblk, i_endblk, i_startidx, &
 
   ! Local variables
 
-  INTEGER :: irl_end
+  INTEGER :: irl_end, i_startidx_in, i_endidx_in
+
+  i_startidx_in = p_patch%edges%start_index(irl_start)
 
   IF (PRESENT(opt_rl_end)) THEN
     irl_end = opt_rl_end
@@ -109,11 +107,10 @@ SUBROUTINE get_indices_e(p_patch, i_blk, i_startblk, i_endblk, i_startidx, &
     irl_end = min_rledge
   ENDIF
 
-  i_startidx = MERGE(1, &
-    &                MAX(1,p_patch%edges%start_index(irl_start)), &
-    &                i_blk /= i_startblk)
-  i_endidx   = MERGE(nproma,           p_patch%edges%end_index(irl_end), &
-    &                i_blk /= i_endblk)
+  i_endidx_in = p_patch%edges%end_index(irl_end)
+
+  CALL get_indices_e_lib(i_startidx_in, i_endidx_in, nproma, i_blk, i_startblk, i_endblk, &
+                         i_startidx, i_endidx)
 
 END SUBROUTINE get_indices_e
 
@@ -137,7 +134,9 @@ SUBROUTINE get_indices_v(p_patch, i_blk, i_startblk, i_endblk, i_startidx, &
 
   ! Local variables
 
-  INTEGER :: irl_end
+  INTEGER :: irl_end, i_startidx_in, i_endidx_in
+
+  i_startidx_in = p_patch%verts%start_index(irl_start)
 
   IF (PRESENT(opt_rl_end)) THEN
     irl_end = opt_rl_end
@@ -145,20 +144,12 @@ SUBROUTINE get_indices_v(p_patch, i_blk, i_startblk, i_endblk, i_startidx, &
     irl_end = min_rlvert
   ENDIF
 
-  IF (i_blk == i_startblk) THEN
-    i_startidx = p_patch%verts%start_index(irl_start)
-    i_endidx   = nproma
-    IF (i_blk == i_endblk) i_endidx = p_patch%verts%end_index(irl_end)
-  ELSE IF (i_blk == i_endblk) THEN
-    i_startidx = 1
-    i_endidx   = p_patch%verts%end_index(irl_end)
-  ELSE
-    i_startidx = 1
-    i_endidx = nproma
-  ENDIF
+  i_endidx_in = p_patch%verts%end_index(irl_end)
+
+  CALL get_indices_v_lib(i_startidx_in, i_endidx_in, nproma, i_blk, i_startblk, i_endblk, &
+                         i_startidx, i_endidx)
 
 END SUBROUTINE get_indices_v
-
 
 END MODULE mo_loopindices
 

@@ -22,7 +22,6 @@
 
 MODULE mo_ocean_patch_setup
   !-------------------------------------------------------------------------
-  USE mo_kind,               ONLY: wp
   USE mo_exception,          ONLY: finish, warning, message
   USE mo_model_domain,       ONLY: t_patch
   USE mo_parallel_config,    ONLY: nproma

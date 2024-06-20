@@ -647,20 +647,23 @@ AC_ARG_WITH([external-tixi],
   [AS_IF([test x"$withval" != xno], [with_external_tixi=yes])],
   [with_external_tixi=no])
 
+AC_ARG_WITH([external-math-support],
+  [AS_HELP_STRING([--with-external-math-support],
+      [use external MATH-SUPPORT library @<:@default=no@:>@])],
+  [AS_IF([test x"$withval" != xno], [with_external_math_support=yes])],
+  [with_external_math_support=no])
+
 AC_ARG_WITH([external-fortran-support],
   [AS_HELP_STRING([--with-external-fortran-support],
      [use external FORTRAN-SUPPORT library @<:@default=no@:>@])],
-  [AS_IF([test x"$withval" != xno],
-     [with_external_fortran_support=yes])],
+  [AS_IF([test x"$withval" != xno], [with_external_fortran_support=yes])],
   [with_external_fortran_support=no])
 
 AC_ARG_WITH([external-comin],
   [AS_HELP_STRING([--with-external-comin],
      [use external ComIn library @<:@default=no@:>@])],
-  [AS_IF([test x"$withval" != xno],
-     [with_external_comin=yes])],
+  [AS_IF([test x"$withval" != xno], [with_external_comin=yes])],
   [with_external_comin=no])
-
 
 ############################# CODEBASE EXTENSIONS ##############################
 
@@ -1159,12 +1162,13 @@ esac
 dnl One of the topological orderings of the ICON dependency graph
 dnl (run ./utils/icon_sorted_deps.sh):
 dnl
-dnl '-licon_tixi', '-lyac', '-lmtime', '-lSerialboxFortranShared',
-dnl '-lcdi_f2003 -lcdipio -lcdi', '-lscalesppmcore', '-leccodes_f90',
-dnl '-lyaxt -lyaxt_c', '-lsct', '-lrttov_other -lrttov_emis_atlas (etc.)',
-dnl '-llapack -lblas (or other)', '-lradiation -lifsrrtm -lutilities -lifsaux',
-dnl '-lrrtmgp -lrte', '-lnetcdff', '-lhdf5hl_fortran -lhdf5_fortran', '-lz',
-dnl '-lgomp (or other)', '-lmpifort -lmpi (or other)'
+dnl '-lmath-support', '-lfortran-support', '-lcomin', '-licon_tixi', '-lyac',
+dnl '-lmtime', '-lSerialboxFortranShared', '-lcdi_f2003 -lcdipio -lcdi',
+dnl '-lscalesppmcore', '-leccodes_f90', '-lyaxt -lyaxt_c', '-lsct',
+dnl '-lrttov_other -lrttov_emis_atlas (etc.)', '-llapack -lblas (or other)',
+dnl '-lradiation -lifsrrtm -lutilities -lifsaux', '-lrrtmgp -lrte', '-lnetcdff',
+dnl '-lhdf5hl_fortran -lhdf5_fortran', '-lz', '-lgomp (or other)',
+dnl '-lmpifort -lmpi (or other)'
 dnl
 dnl We check these dependencies in the reverse order.
 
@@ -2454,8 +2458,8 @@ bundled version of COMIN library @<:@default=$ICON_BUNDLED_FCFLAGS@:>@])dnl
        [C compiler flags to be appended to CFLAGS when configuring the bundled
 version of COMIN library @<:@default=$ICON_BUNDLED_CFLAGS@:>@])dnl
      AC_ARG_VAR([ICON_COMIN_CXXFLAGS],
-       [C++ compiler flags to be appended to CXXFLAGS when configuring the bundled
-version of COMIN library @<:@default=$ICON_BUNDLED_CXXFLAGS@:>@])dnl
+       [C++ compiler flags to be appended to CXXFLAGS when configuring the
+bundled version of COMIN library @<:@default=$ICON_BUNDLED_CXXFLAGS@:>@])dnl
      ICON_COMIN_CFLAGS=${ICON_COMIN_CFLAGS-$ICON_BUNDLED_CFLAGS}
      ACX_SUBDIR_INIT_CMAKE([externals/comin], [no-run no-adjust-compilers], [],
        [AS_ESCAPE(["${CMAKE}"])])
@@ -2527,6 +2531,9 @@ dnl We build static libraries only:
      [-DCMAKE_SHARED_LINKER_FLAGS=*|-DCMAKE_MODULE_LINKER_FLAGS=*],
 dnl The interprocedural optimization is not enabled in the project:
      [-DCMAKE_*_COMPILER_AR=*|-DCMAKE_*_COMPILER_RANLIB=*])
+   AS_VAR_IF([icon_gpu_primary], [openacc],
+     [icon_fs_openacc=ON],
+     [icon_fs_openacc=OFF])
    ACX_SUBDIR_APPEND_ARGS([externals/fortran-support],
 dnl Extend C and Fortran compiler flags:
      [-DCMAKE_C_FLAGS=dnl
@@ -2535,7 +2542,7 @@ dnl Extend C and Fortran compiler flags:
 dnl Set up library-specific compiler flags:
      [-DFS_ENABLE_OMP=$enable_openmp],
      [-DFS_ENABLE_MIXED_PRECISION=$enable_mixed_precision],
-     [-DFS_ENABLE_OPENACC=`test "x$icon_gpu_primary" = xopenacc && AS_ECHO_N(['ON']) || AS_ECHO_N(['OFF'])`],
+     [-DFS_ENABLE_OPENACC=$icon_fs_openacc],
 dnl Build the static version of the library and disable the tests:
      [-DBUILD_SHARED_LIBS:BOOL=OFF], [-DBUILD_TESTING:BOOL=OFF],
 dnl Set non-existing build type to avoid extra compiler flags:
@@ -2544,6 +2551,81 @@ dnl Set non-existing build type to avoid extra compiler flags:
      ["${FC_MOD_IN}externals/fortran-support/build/src/mod "])
    BUNDLED_LIBFILES=dnl
 "externals/fortran-support/build/src/libfortran-support.a $BUNDLED_LIBFILES"])
+
+AS_VAR_IF([with_external_math_support], [yes],
+  [AC_CACHE_CHECK([whether Math support library is available],
+     [icon_cv_have_math_support],
+     [icon_cv_have_math_support=no
+      AC_LINK_IFELSE([AC_LANG_PROGRAM([], [[
+      use mo_math_utilities, only: vector_product
+      use mo_math_types, only: t_cartesian_coordinates
+      implicit none
+      TYPE(t_cartesian_coordinates) :: x1, x2, x3
+      x1%x = (/1.0_wp, 0.0_wp, 0.0_wp/)
+      x2%x = (/0.0_wp, 1.0_wp, 0.0_wp/)
+      x3 = vector_product(x1, x2)]])],
+        [icon_cv_have_math_support=yes])])
+   AS_VAR_IF([icon_cv_have_math_support], [no],
+     [AC_MSG_FAILURE([unable to link a test program using Math support dnl
+library: either use the bundled version of MATH-SUPPORT dnl
+(--without-external-math-support) or set FCFLAGS, LDFLAGS and LIBS dnl
+accordingly])])],
+dnl
+  [icon_subdir_srcdir="$srcdir/externals/math-support"
+   icon_subdir_unique_file="src/mo_math_constants.f90"
+   AS_IF([test ! -r "$icon_subdir_srcdir/$icon_subdir_unique_file"],
+     [AC_MSG_ERROR([unable to find sources of the bundled version of dnl
+MATH-SUPPORT library ($icon_subdir_unique_file) in '$icon_subdir_srcdir': dnl
+provide an external version of MATH-SUPPORT library dnl
+(--with-external-math-support) by setting FCFLAGS, LDFLAGS and LIBS dnl
+accordingly])])
+   AC_ARG_VAR([ICON_MATH_SUPPORT_FCFLAGS],
+     [Fortran compiler flags to be appended to FCFLAGS when configuring the
+bundled version of MATH-SUPPORT library
+@<:@default=$ICON_BUNDLED_FCFLAGS@:>@])dnl
+ICON_MATH_SUPPORT_FCFLAGS=${ICON_MATH_SUPPORT_FCFLAGS-$ICON_BUNDLED_FCFLAGS}
+   AC_ARG_VAR([ICON_MATH_SUPPORT_CFLAGS],
+     [Fortran compiler flags to be appended to CFLAGS when configuring the
+bundled version of MATH-SUPPORT library
+@<:@default=$ICON_BUNDLED_CFLAGS@:>@])dnl
+   ICON_MATH_SUPPORT_CFLAGS=${ICON_MATH_SUPPORT_CFLAGS-$ICON_BUNDLED_CFLAGS}
+   ACX_SUBDIR_INIT_CMAKE([externals/math-support], [no-run], [],
+     [AS_ESCAPE(["${CMAKE}"])])
+   ACX_SUBDIR_REMOVE_ARGS([externals/math-support],
+dnl C and Fortran compiler flags are replaced below:
+     [-DCMAKE_C_FLAGS=*|-DCMAKE_Fortran_FLAGS=*],
+dnl C++ compiler is used for tests only, which we currently disable:
+     [-DCMAKE_CXX_*=*],
+dnl We build static libraries only:
+     [-DCMAKE_SHARED_LINKER_FLAGS=*|-DCMAKE_MODULE_LINKER_FLAGS=*],
+dnl The interprocedural optimization is not enabled in the project:
+     [-DCMAKE_*_COMPILER_AR=*|-DCMAKE_*_COMPILER_RANLIB=*])
+   AS_VAR_IF([icon_gpu_primary], [openacc],
+     [icon_ms_openacc=ON],
+     [icon_ms_openacc=OFF])
+   ACX_SUBDIR_APPEND_ARGS([externals/math-support],
+dnl Extend C and Fortran compiler flags:
+     [-DCMAKE_C_FLAGS=dnl
+"$subdir_CFLAGS $ICON_MATH_SUPPORT_CFLAGS $subdir_CPPFLAGS"],
+     [-DCMAKE_Fortran_FLAGS="$subdir_FCFLAGS $ICON_MATH_SUPPORT_FCFLAGS"],
+dnl Set up library-specific compiler flags:
+     [-DMS_ENABLE_LOOP_EXCHANGE=$enable_loop_exchange],
+     [-DMS_ENABLE_MIXED_PRECISION=$enable_mixed_precision],
+     [-DMS_ENABLE_DIM_SWAP=$enable_dim_swap],
+     [-DMS_ENABLE_OPENACC=$icon_ms_openacc],
+dnl Set the prefix path to find fortran-support
+     [-DCMAKE_PREFIX_PATH:PATH=dnl
+"${icon_abs_top_builddir}/externals/fortran-support/build"],
+dnl Build the static version of the library and disable the tests:
+     [-DBUILD_SHARED_LIBS:BOOL=OFF], [-DBUILD_TESTING:BOOL=OFF],
+dnl Building a standalone version of the library is not required:
+     [-DBUILD_STANDALONE:BOOL=OFF],
+dnl Set non-existing build type to avoid extra compiler flags:
+     [-DCMAKE_BUILD_TYPE:STRING=NOEXTRAFLAGS])
+   AS_VAR_APPEND([bundled_includes],
+     ["${FC_MOD_IN}externals/math-support/build/src/mod "])
+   BUNDLED_LIBFILES="externals/math-support/build/src/libmath-support.a dnl
+$BUNDLED_LIBFILES"])
 
 dnl Prepend the include search flags to FCFLAGS:
 AS_IF([test -n "$bundled_includes"], [FCFLAGS="${bundled_includes}${FCFLAGS}"])

@@ -51,6 +51,9 @@ MODULE mo_advection_vflux
   USE mo_mpi,                 ONLY: process_mpi_stdio_id, my_process_is_stdio, get_my_mpi_work_id, &
                                     get_glob_proc0, comm_lev
   USE mo_fortran_tools,       ONLY: set_acc_host_or_device
+#ifdef _OPENACC
+  USE mo_mpi,                 ONLY: i_am_accel_node
+#endif
   USE mo_timer,               ONLY: timer_adv_vflx, timer_start, timer_stop
 
 
@@ -64,6 +67,10 @@ MODULE mo_advection_vflux
   PUBLIC :: upwind_vflux_ppm
   PUBLIC :: upwind_vflux_ppm4gpu
   PUBLIC :: implicit_sedim_tracer
+
+#ifndef _OPENACC
+  LOGICAL :: i_am_accel_node=.FALSE.
+#endif
 
   CHARACTER(len=*), PARAMETER :: modname = 'mo_advection_vflux'
 

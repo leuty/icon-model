@@ -622,6 +622,13 @@ externals/cdi: $(filter externals/yaxt externals/ppm,$(bundled_subdirs))
 # Build the bundled yac before the bundled hd:
 externals/hd: $(filter externals/yac,$(bundled_subdirs))
 
+# Configure the bundled fortran support before configuring the bundled math
+# support:
+externals/math-support/build/Makefile: $(filter externals/fortran-support/build/Makefile,$(addsuffix /Makefile,$(bundled_subdirs)))
+
+# Build the bundled fortran support before building the bundled math support:
+externals/math-support/build: $(filter externals/fortran-support/build,$(bundled_subdirs))
+
 # Configure delayed bundled libraries:
 @ICON_DELAYED_CONFIG_RULES@
 

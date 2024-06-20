@@ -40,7 +40,7 @@ MODULE mo_nh_wk_exp
    USE mo_math_types,           ONLY: t_cartesian_coordinates, t_geographical_coordinates
    USE mo_math_constants,       ONLY: pi, deg2rad
    USE mo_math_utilities,       ONLY: gc2cc, arc_length, plane_torus_distance
-   USE mo_grid_geometry_info,   ONLY: planar_torus_geometry, sphere_geometry
+   USE mo_lib_grid_geometry_info,  ONLY: planar_torus_geometry, sphere_geometry
    USE mo_model_domain,         ONLY: t_patch
    USE mo_nonhydro_types,       ONLY: t_nh_prog, t_nh_diag, t_nh_metrics
    USE mo_run_config,           ONLY: iqv
