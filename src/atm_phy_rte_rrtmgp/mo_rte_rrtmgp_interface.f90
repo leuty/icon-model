@@ -16,7 +16,6 @@ MODULE mo_rte_rrtmgp_interface
   USE mo_exception,                  ONLY: finish, warning
   USE mo_parallel_config,            ONLY: nproma_sub
   USE mo_bc_aeropt_kinne,            ONLY: set_bc_aeropt_kinne
-  USE mo_bc_aeropt_stenchikov,       ONLY: add_bc_aeropt_stenchikov
   USE mo_bc_aeropt_splumes,          ONLY: add_bc_aeropt_splumes
 
   USE mo_optical_props,              ONLY: ty_optical_props_1scl, &
@@ -206,9 +205,6 @@ CONTAINS
     INTEGER :: ncol_supplied, ncol_needed, jchunk_start, jchunk_end
     INTEGER :: nbndsw, nbndlw
     ! --- Aerosol optical properites - vertically reversed fields
-    REAL(wp) ::                &
-         x_cdnc       (nproma)  !< Scale factor for Cloud Droplet Number Concentration
-                                !<  baustelle - x_cndc should be used in cloud optics but isn't
     REAL(wp), ALLOCATABLE :: &
          aer_tau_lw(:,:,:),  & !< LW optical thickness of aerosols
          aer_tau_sw(:,:,:),  & !< aerosol optical thickness
@@ -220,11 +216,6 @@ CONTAINS
     !   geographic and temporal information; the geographic information is lost
     !   when the data provided to RTE+RRTMGP are extracted from larger arrarys
     !
-    ! IF (aero == ...) THEN
-    ! iaero=0: No aerosol
-    ! iaero=13: only tropospheric Kinne aerosols
-    ! iaero=14: only Stenchikov's volcanic aerosols
-    ! iaero=15: tropospheric Kinne aerosols + volcanic Stenchikov's aerosols
     ! set all aerosols to zero first
 
     lneed_aerosols = (irad_aero /= 0)
@@ -246,40 +237,24 @@ CONTAINS
       aer_asy_sw(:,:,:) = 0.0_wp
       !$ACC END KERNELS
 
-      IF (irad_aero==13 .OR. irad_aero==15 .OR. irad_aero==18) THEN
-      ! iaero=13: only Kinne aerosols are used
-      ! iaero=15: Kinne aerosols plus Stenchikov's volcanic aerosols are used
-      ! iaero=18: Kinne background aerosols (of natural origin, 1850) are set
+      IF (irad_aero==12 .OR. irad_aero==13 .OR. irad_aero==19) THEN
+      ! irad_aero=12 Kinne aerosols (natural background, data are read
+      !      from a file without year in its name.
+      ! irad_aero=13: only Kinne aerosols are used
+      ! irad_aero=19: Kinne aerosols (background of natural origin,
+      ! read from a file without year in its name!) + simple plumes
         CALL set_bc_aeropt_kinne(this_datetime,                        &
               & jg,                                                    &
-              & jcs, nproma,    nproma,                klev,           &
-              & jb,             nbndsw,                nbndlw,         &
+              & jcs,            jce,                   nproma,         &
+              & klev,           jb,                                    &
+              & nbndsw,         nbndlw,                                &
               & zf,             dz,                                    &
               & aer_tau_sw,     aer_ssa_sw,            aer_asy_sw,     &
-              & aer_tau_lw, opt_from_coupler=lrad_coupled, opt_use_acc=use_acc)
+              & aer_tau_lw,                                            &
+              & opt_from_coupler=lrad_coupled, opt_use_acc=use_acc     )
       END IF
-      IF (irad_aero==14 .OR. irad_aero==15 .OR. irad_aero==18) THEN
-      ! iaero=14: only Stechnikov's volcanic aerosols are used (added to zero)
-      ! iaero=15: Stenchikov's volcanic aerosols are added to Kinne aerosols
-      ! iaero=18: Stenchikov's volcanic aerosols are added to Kinne background
-      !           aerosols (of natural origin, 1850)
-#ifdef _OPENACC
-        CALL warning('mo_rte_rrtmgp_interface/rte_rrtmgp_interface','Stenchikov aerosols ACC not implemented')
-#endif
-        !$ACC UPDATE HOST(aer_tau_lw, aer_tau_sw, aer_ssa_sw, aer_asy_sw, dz, pp_fl) ASYNC(1)
-        !$ACC WAIT(1)
-        CALL add_bc_aeropt_stenchikov(this_datetime,    jg,               &
-              & jcs, nproma,      nproma,                 klev,       &
-              & jb,               nbndsw,                nbndlw,           &
-              & dz,               pp_fl,                                   &
-              & aer_tau_sw,    aer_ssa_sw,         aer_asy_sw,     &
-              & aer_tau_lw                                              )
-        !$ACC UPDATE DEVICE(aer_tau_lw, aer_tau_sw, aer_ssa_sw, aer_asy_sw) ASYNC(1)
-      END IF
-      IF (irad_aero==18 .OR. irad_aero==19) THEN
+      IF (irad_aero==19) THEN
       ! Simple plumes are added to ...
-      ! iaero=18: ... Stennchikov's volcanic aerosols and
-      !               Kinne background aerosols (of natural origin, 1850)
       ! iaero=19: ... Kinne background aerosols (of natural origin, 1850)
 #ifdef _OPENACC
         CALL warning('mo_rte_rrtmgp_interface/rte_rrtmgp_interface','Plumes ACC not implemented')
@@ -287,11 +262,10 @@ CONTAINS
         !$ACC UPDATE HOST(aer_tau_lw, aer_tau_sw, aer_ssa_sw, aer_asy_sw, zf, dz, zh(:,klev+1)) ASYNC(1)
         !$ACC WAIT(1)
         CALL add_bc_aeropt_splumes(                                      &
-              & jg,          jcs,         nproma,        nproma,         & 
+              & jg,          jcs,         jce,           nproma,         & 
               & klev,        jb,          nbndsw,        this_datetime,  &
               & zf,          dz,          zh(:,klev+1),  wavenum1,       &
-              & wavenum2,    aer_tau_sw,  aer_ssa_sw,    aer_asy_sw,     &
-              & x_cdnc                                                   )
+              & wavenum2,    aer_tau_sw,  aer_ssa_sw,    aer_asy_sw      )
         !$ACC UPDATE DEVICE(aer_tau_sw, aer_ssa_sw, aer_asy_sw) ASYNC(1)
       END IF
 
@@ -602,7 +576,7 @@ CONTAINS
     ! into the arrays before accordingly.
 
     INTEGER  :: jk, jl !< loop indices
-    INTEGER  :: nbndlw, nbndsw, ngptsw
+    INTEGER  :: nbndlw, nbndsw !, ngptsw
     REAL(wp) ::                      &
          zsemiss(k_dist_lw%get_nband(),ncol) !< LW surface emissivity by band
     ! --- local scaled variables
@@ -622,7 +596,7 @@ CONTAINS
     !
     ! Random seeds for sampling. Needs to get somewhere upstream
     !
-    INTEGER :: band, gpt, i, j
+    INTEGER :: band, i, j
     REAL(wp) :: low, high
 
     TYPE(ty_source_func_lw)     :: source_lw !check types regarding acc later
@@ -679,7 +653,7 @@ CONTAINS
 
     nbndlw = k_dist_lw%get_nband()
     nbndsw = k_dist_sw%get_nband()
-    ngptsw = k_dist_sw%get_ngpt()
+!    ngptsw = k_dist_sw%get_ngpt()
     cld_frc_thresh = 4._wp*spacing(1._wp)
 
     ! 1.0 Constituent properties
@@ -824,13 +798,9 @@ CONTAINS
     !
     ! Boundary conditions
     !
-    ! baustelle - shouldn't the min solar zenith cosine be parameterized?
-!!debug++
     !$ACC KERNELS DEFAULT(PRESENT) ASYNC(1)
     mu0(:) = MAX(1.e-10_wp,MIN(1.0_wp,pcos_mu0(:)))
     !$ACC END KERNELS
-!!debug--
-
 
     ! 2.0 Surface Properties
     ! --------------------------------
@@ -887,7 +857,6 @@ CONTAINS
     !$ACC WAIT
     CALL stop_on_err(source_lw%alloc    (ncol, klev, k_dist_lw))
     CALL stop_on_err(atmos_lw%alloc_1scl(ncol, klev, k_dist_lw))
-    ! baustelle - surface and lowest layer temperature are considered the same
     !$ACC DATA CREATE(source_lw, atmos_lw)
 
     !$ACC DATA CREATE(source_lw%lay_source, source_lw%lev_source_inc) &
