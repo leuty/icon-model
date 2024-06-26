@@ -36,7 +36,7 @@ MODULE mo_nwp_aerosol
   USE mo_reader_cams,             ONLY: t_cams_reader
   USE mo_interpolate_time,        ONLY: t_time_intp, intModeLinearMonthlyClim, intModeLinear
   USE mo_io_units,                ONLY: filename_max
-  USE mo_fortran_tools,           ONLY: set_acc_host_or_device, assert_acc_host_only
+  USE mo_fortran_tools,           ONLY: init, set_acc_host_or_device, assert_acc_host_only
   USE mo_util_string,             ONLY: int2string, associate_keyword, t_keyword_list, with_keywords
 ! ICON configuration
   USE mo_atm_phy_nwp_config,      ONLY: atm_phy_nwp_config, iprog_aero, icpl_aero_conv
@@ -359,11 +359,21 @@ CONTAINS
 !---------------------------------------------------------------------------------------
       CASE(iRadAeroConstKinne, iRadAeroKinne, iRadAeroVolc, iRadAeroKinneVolc, iRadAeroKinneVolcSP, iRadAeroKinneSP)
 
+!$OMP PARALLEL
+        ! These Tegen climatological aerosol fields are not used here but need to be initialized
+        ! to avoid runtime error in the upscaling to the reduced radiation grid (upscale_rad_input)
+        CALL init(zaeq1(:,:,:), lacc=.FALSE.)
+        CALL init(zaeq2(:,:,:), lacc=.FALSE.)
+        CALL init(zaeq3(:,:,:), lacc=.FALSE.)
+        CALL init(zaeq4(:,:,:), lacc=.FALSE.)
+        CALL init(zaeq5(:,:,:), lacc=.FALSE.)
+!$OMP END PARALLEL
+
         rl_start   = grf_bdywidth_c-1
         rl_end     = min_rlcell_int
         i_startblk = pt_patch%cells%start_block(rl_start)
         i_endblk   = pt_patch%cells%end_block(rl_end)
-      
+
         ! Compatibility checks
 #ifdef __ECRAD
         IF (inwp_radiation /= 4) THEN
@@ -427,6 +437,16 @@ CONTAINS
 
       ! CAMS climatology/forecasted aerosols
       CASE(iRadAeroCAMSclim,iRadAeroCAMStd)
+
+!$OMP PARALLEL
+        ! These Tegen climatological aerosol fields are not used here but need to be initialized
+        ! to avoid runtime error in the upscaling to the reduced radiation grid (upscale_rad_input)
+        CALL init(zaeq1(:,:,:), lacc=.FALSE.)
+        CALL init(zaeq2(:,:,:), lacc=.FALSE.)
+        CALL init(zaeq3(:,:,:), lacc=.FALSE.)
+        CALL init(zaeq4(:,:,:), lacc=.FALSE.)
+        CALL init(zaeq5(:,:,:), lacc=.FALSE.)
+!$OMP END PARALLEL
 
         rl_start   = grf_bdywidth_c+1
         rl_end     = min_rlcell_int
