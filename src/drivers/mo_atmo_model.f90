@@ -111,7 +111,7 @@ MODULE mo_atmo_model
   USE mo_util_vgrid,              ONLY: construct_vertical_grid
 
   ! external data, physics
-  USE mo_ext_data_state,          ONLY: ext_data, destruct_ext_data
+  USE mo_ext_data_state,          ONLY: ext_data, construct_ext_data, destruct_ext_data
   USE mo_ext_data_init,           ONLY: init_ext_data
 
   USE mo_diffusion_config,        ONLY: configure_diffusion
@@ -591,14 +591,11 @@ CONTAINS
     !------------------------------------------------------------------
     ! Create and optionally read external data fields
     !------------------------------------------------------------------
-    ALLOCATE (ext_data(n_dom), STAT=error_status)
-    IF (error_status /= SUCCESS) THEN
-      CALL finish(routine, 'allocation for ext_data failed')
-    ENDIF
 
     ! allocate memory for atmospheric/oceanic external data and
     ! optionally read those data from netCDF file.
     IF (timers_level > 4) CALL timer_start(timer_ext_data)
+    CALL construct_ext_data (p_patch(1:), ext_data)
     CALL init_ext_data (p_patch(1:), p_int_state(1:), ext_data)
     IF (timers_level > 4) CALL timer_stop(timer_ext_data)
 
