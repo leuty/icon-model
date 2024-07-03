@@ -212,7 +212,7 @@ cat > ${basedir}/run/${atmo_namelist} << EOF
   ltile_init                  = .TRUE.
   ltile_coldstart             = .true.
   pinit_seed                  = 0
-  pinit_amplitude             = 1e-14
+  pinit_amplitude             = 0
 /
 
 ! grid_nml: horizontal grid --------------------------------------------------
@@ -359,6 +359,10 @@ cat > ${basedir}/run/${atmo_namelist} << EOF
  tune_rcucov = 0.075
  tune_rhebc_land = 0.825
  tune_gust_factor=7.0
+ tune_eiscrit = 6.
+ tune_sc_eis = 6.
+ tune_sc_invmin = 100.
+ tune_sc_invmax = 2500.
 /
 
 ! output_nml: control the output ------------------------------------------------ 
