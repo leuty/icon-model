@@ -146,9 +146,8 @@ CONTAINS
     !
     CALL message(routine,'Setting default names for tracers: q<no>')
     DO it=1, MAX_NTRACER
-      WRITE(tname,'(i3)') it
+      WRITE(tname,'(i4)') it
       tracer_names(it) = 'q'//TRIM(ADJUSTL(tname))
-      CALL print_value('tracer name '//TRIM(ADJUSTL(tracer_names(it)))//' in position',it)
     END DO
     CALL message(' ',' ')
 

@@ -1585,7 +1585,7 @@ MODULE mo_nh_stepping
     !
     ! default is to assume we do not write a checkpoint/restart file
     lwrite_checkpoint = .FALSE.
-    ! if thwe model is not supposed to write output, do not write checkpoints
+    ! if the model is not supposed to write output, do not write checkpoints
     IF (.NOT. output_mode%l_none ) THEN
       ! to clarify the decision tree we use shorter and more expressive names:
 
