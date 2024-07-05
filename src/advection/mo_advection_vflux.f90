@@ -101,7 +101,7 @@ CONTAINS
     REAL(wp), INTENT(IN) ::  &      !< advected cell centered variable
       &  p_cc(:,:,:,:)              !< dim: (nproma,nlev,nblks_c,ntracer)
 
-    REAL(wp), INTENT(INOUT) ::  &   !< contravariant vertical mass flux
+    REAL(wp), INTENT(IN) ::  &      !< contravariant vertical mass flux
       &  p_mflx_contra_v(:,:,:)     !< dim: (nproma,nlevp1,nblks_c)
 
     REAL(wp), INTENT(IN) :: p_dtime !< time step
@@ -445,7 +445,7 @@ CONTAINS
     INTEGER, INTENT(IN)  ::  &    !< selects upper boundary condition
       &  p_iubc_adv
 
-    REAL(wp), INTENT(INOUT) ::  & !< contravariant vertical mass flux
+    REAL(wp), INTENT(IN) ::  &    !< contravariant vertical mass flux
       &  p_mflx_contra_v(:,:,:)   !< dim: (nproma,nlevp1,nblks_c)
 
     REAL(wp), INTENT(IN) ::  &    !< time step
@@ -711,17 +711,6 @@ CONTAINS
 
     CALL get_indices_c( p_patch, jb, i_startblk, i_endblk,       &
       &                 i_startidx, i_endidx, i_rlstart, i_rlend )
-
-
-    ! The contravariant mass flux should never exactly vanish
-    !
-    IF (l_out_edgeval) THEN
-      DO jk = slevp1, elev
-        p_mflx_contra_v(i_startidx:i_endidx,jk,jb) =                            &
-        &              p_mflx_contra_v(i_startidx:i_endidx,jk,jb)               &
-        &              + SIGN(dbl_eps,p_mflx_contra_v(i_startidx:i_endidx,jk,jb))
-      ENDDO
-    ENDIF
 
     !
     ! 1. Compute density weighted (fractional) Courant number 
@@ -1077,7 +1066,8 @@ CONTAINS
 
         DO jk = slevp1, nlev
           DO jc = i_startidx, i_endidx
-            p_upflux(jc,jk,jb) = p_upflux(jc,jk,jb)/p_mflx_contra_v(jc,jk,jb)
+            p_upflux(jc,jk,jb) = p_upflux(jc,jk,jb) / SIGN( MAX(ABS(p_mflx_contra_v(jc,jk,jb)),dbl_eps), &
+                                                            p_mflx_contra_v(jc,jk,jb)                    )
           ENDDO
         ENDDO
 
@@ -1194,7 +1184,7 @@ CONTAINS
     INTEGER, INTENT(IN)  ::   &   !< selects upper boundary condition
       &  p_iubc_adv
 
-    REAL(wp), INTENT(INOUT) ::  & !< contravariant vertical mass flux [kg/m**2/s]
+    REAL(wp), INTENT(IN) ::  &    !< contravariant vertical mass flux [kg/m**2/s]
       &  p_mflx_contra_v(:,:,:)   !< dim: (nproma,nlevp1,nblks_c)
 
     REAL(wp), INTENT(IN) ::  &    !< time step [s]
@@ -1431,22 +1421,6 @@ CONTAINS
 
       CALL get_indices_c( p_patch, jb, i_startblk, i_endblk,       &
         &                 i_startidx, i_endidx, i_rlstart, i_rlend )
-
-
-      ! The contravariant mass flux should never exactly vanish
-      !
-      IF (l_out_edgeval) THEN
-        !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1)
-        !$ACC LOOP GANG VECTOR COLLAPSE(2)
-        DO jk = slevp1, elev
-          DO jc = i_startidx, i_endidx
-            p_mflx_contra_v(jc,jk,jb) =                            &
-          &              p_mflx_contra_v(jc,jk,jb)               &
-          &              + SIGN(dbl_eps,p_mflx_contra_v(jc,jk,jb))
-          ENDDO
-        ENDDO
-        !$ACC END PARALLEL
-      ENDIF
 
       !
       ! 1. Compute density weighted Courant number for w<0 and w>0. 
@@ -1780,7 +1754,8 @@ CONTAINS
         !$ACC LOOP GANG VECTOR COLLAPSE(2)
         DO jk = slevp1, nlev
           DO jc = i_startidx, i_endidx
-            p_upflux(jc,jk,jb) = p_upflux(jc,jk,jb)/p_mflx_contra_v(jc,jk,jb)
+            p_upflux(jc,jk,jb) = p_upflux(jc,jk,jb) / SIGN( MAX(ABS(p_mflx_contra_v(jc,jk,jb)),dbl_eps), &
+                                                            p_mflx_contra_v(jc,jk,jb)                    )
           ENDDO
         ENDDO
         !$ACC END PARALLEL
