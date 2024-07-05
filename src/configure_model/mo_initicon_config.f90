@@ -53,7 +53,7 @@ MODULE mo_initicon_config
   PUBLIC :: ltile_coldstart
   PUBLIC :: ltile_init
   PUBLIC :: icpl_da_sfcevap, icpl_da_skinc, icpl_da_snowalb, icpl_da_sfcfric, icpl_da_tkhmin, dt_ana
-  PUBLIC :: scalfac_da_sfcfric, smi_relax_timescale
+  PUBLIC :: scalfac_da_sfcfric, smi_relax_timescale, itype_sma
   PUBLIC :: adjust_tso_tsnow, icpl_da_seaice
   PUBLIC :: lvert_remap_fg
   PUBLIC :: ifs2icon_filename
@@ -143,6 +143,8 @@ MODULE mo_initicon_config
   INTEGER  :: icpl_da_tkhmin   ! Coupling between data assimilation and near-surface profiles of minimum vertical diffusion
 
   INTEGER  :: icpl_da_seaice   ! Coupling between data assimilation and sea ice
+
+  INTEGER  :: itype_sma        ! Type of soil moisture analysis used
 
   REAL(wp) :: dt_ana           ! Time interval of assimilation cycle [s] (relevant for icpl_da_sfcevap >= 2)
 

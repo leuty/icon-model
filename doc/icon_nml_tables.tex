@@ -2483,13 +2483,21 @@ Setting the time scale to zero turns off the soil moisture adjustment. &
 icpl\_da\_sfcevap $>=$ 2
 \tabularnewline
 
+itype\_sma&
+I & 1 & &
+Type of soil moisture analysis used \\
+1: use external soil moisture analysis provided by the data assimilation \\
+2: use ICON-internal SMA based on adaptive parameter tuning &
+init\_mode=5; icpl\_da\_sfcevap$>=$3
+\tabularnewline
+
 icpl\_da\_snowalb&
 I & 0 & &
 Coupling between temperature bias inferred from data assimilation and snow albedo\\
 0: off \\
 1: on; requires assimilation of T2M and cycling of a time-filtered temperature increment at the lowest model level \\
 2: as option 1, but additional adaptation of sea-ice albedo &
-init\_mode=5; icpl\_da\_sfcevap=3
+init\_mode=5; icpl\_da\_sfcevap$>=$3
 \tabularnewline
 
 icpl\_da\_seaice&
@@ -2498,7 +2506,7 @@ Coupling between temperature bias inferred from data assimilation and seaice sch
 0: off \\
 1: add filtered T increment to initial seaice temperature \\
 2: as above, and additional adaptive tuning of bottom heat flux if lbottom\_hflux = true &
-init\_mode=5; icpl\_da\_sfcevap=3
+init\_mode=5; icpl\_da\_sfcevap$>=$3
 \tabularnewline
 
 icpl\_da\_skinc&

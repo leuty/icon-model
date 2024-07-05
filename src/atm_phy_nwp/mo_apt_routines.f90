@@ -22,13 +22,14 @@ MODULE mo_apt_routines
 
   USE mo_kind,                ONLY: wp
   USE mo_math_constants,      ONLY: rad2deg, pi2
+  USE mo_physical_constants,  ONLY: tmelt
   USE mo_nwp_phy_types,       ONLY: t_nwp_phy_diag
-  USE mo_nwp_lnd_types,       ONLY: t_wtr_prog, t_lnd_diag
+  USE mo_nwp_lnd_types,       ONLY: t_wtr_prog, t_lnd_diag, t_lnd_prog
   USE mo_ext_data_types,      ONLY: t_external_data
   USE mo_nonhydro_types,      ONLY: t_nh_prog, t_nh_diag, t_nh_state
   USE mo_intp_data_strc,      ONLY: t_int_state
   USE mo_model_domain,        ONLY: t_patch
-  USE mo_impl_constants,      ONLY: min_rlcell_int
+  USE mo_impl_constants,      ONLY: min_rlcell_int, min_rlcell
   USE mo_impl_constants_grf,  ONLY: grf_bdywidth_c
   USE mo_loopindices,         ONLY: get_indices_c
   USE mo_parallel_config,     ONLY: nproma
@@ -37,7 +38,8 @@ MODULE mo_apt_routines
   USE mo_grid_config,         ONLY: n_dom
   USE mo_lnd_nwp_config,      ONLY: ntiles_total, ntiles_water, ntiles_lnd, &
     &                               itype_canopy, itype_lndtbl, c_soil, c_soil_urb,  &
-                                    lterra_urb, itype_eisa, cr_bsmin
+                                    lterra_urb, itype_eisa, cr_bsmin, nlev_soil, dzsoil, depth_hl, zml_soil
+  USE sfc_terra_data,         ONLY: cporv, cadp, cpwp, cfcap
   USE mo_satad,               ONLY: sat_pres_water, &  !! saturation vapor pressure w.r.t. water
     &                               spec_humi          !! Specific humidity
   USE mo_input_instructions,  ONLY: t_readInstructionListPtr, kInputSourceAna, kInputSourceAnaI
@@ -58,7 +60,8 @@ MODULE mo_apt_routines
   PRIVATE
 
 
-  PUBLIC  :: compute_filtincs, init_apt_fields
+
+  PUBLIC  :: compute_filtincs, init_apt_fields, apply_sma
 
 
   CONTAINS
@@ -414,6 +417,138 @@ MODULE mo_apt_routines
 
   END SUBROUTINE init_apt_fields
 
+
+  !-------------------------------------------------------------------------
+  !>
+  !! SUBROUTINE apply_sma
+  !!
+  !! Applies ICON-internal soil moisture adjustment building upon the APT predictors
+  !!
+  !-------------------------------------------------------------------------
+  SUBROUTINE apply_sma (p_patch, p_diag, ext_data, lnd_diag, lnd_prog)
+
+    TYPE(t_patch)             ,INTENT(IN)    :: p_patch
+    TYPE(t_nh_diag)           ,INTENT(IN)    :: p_diag
+    TYPE(t_external_data)     ,INTENT(IN)    :: ext_data
+    TYPE(t_lnd_diag)          ,INTENT(IN)    :: lnd_diag
+    TYPE(t_lnd_prog)          ,INTENT(INOUT) :: lnd_prog
+
+
+
+    INTEGER :: jb, jt, jk, jc, ic              ! loop indices
+    INTEGER :: nblks_c                         ! number of blocks
+    INTEGER :: rl_start, rl_end
+    INTEGER :: i_startidx, i_endidx
+    INTEGER :: ist
+    INTEGER, PARAMETER :: nlev_soil_sma=6 ! equals the number of hydrologically active layers in TERRA
+
+
+    REAL(wp) :: zsoil_hl(0:nlev_soil),smi_lim,rdp,wso_inc(6),scalfac_sma
+    REAL(wp), DIMENSION(nproma) :: trh_avginc,plevap_pot,bsevap_pot,delta_h2o,smi_incint,smi_int
+    REAL(wp), DIMENSION(nproma,nlev_soil) :: smi,smi_inc
+  !-------------------------------------------------------------------------
+
+
+    zsoil_hl(0) = 0
+    zsoil_hl(1:nlev_soil) = depth_hl(1:nlev_soil)
+
+    nblks_c   = p_patch%nblks_c
+    rl_start  = 1
+    rl_end    = min_rlcell
+
+    ! Scaling factor for the integrated amount of soil water change, given a combined T-RH assimilation increment of 0.01
+    ! Could be changed into a namelist parameter
+    scalfac_sma = 6.e-3_wp ! = 6 mm H2O
+
+
+!$OMP PARALLEL
+!$OMP DO PRIVATE(jb,jt,jk,ic,jc,i_startidx,i_endidx,ist,smi,smi_lim,rdp,trh_avginc,plevap_pot,bsevap_pot,&
+!$OMP            delta_h2o,smi_incint,wso_inc,smi_inc,smi_int)
+    DO jb = 1, nblks_c
+
+
+      CALL get_indices_c(p_patch, jb, 1, nblks_c, &
+                         i_startidx, i_endidx, rl_start, rl_end)
+
+      ! soil water on snow tiles is not touched
+      DO jt = 1, ntiles_lnd
+
+        smi_int(:) = 0._wp
+        smi_incint(:) = 0._wp
+        smi_inc(:,:) = 0._wp
+
+!NEC$ ivdep
+        DO ic = 1, ext_data%atm%lp_count_t(jb,jt)
+          jc  = ext_data%atm%idx_lst_lp_t(ic,jb,jt)
+          ist = ext_data%atm%soiltyp_t(jc,jb,jt)
+          SELECT CASE(ist)
+            CASE (3,4,5,6,7,8) ! soil types with non-zero water content
+
+            rdp = MAX(1.e-3_wp,ext_data%atm%rootdp_t(jc,jb,jt))
+
+            ! Calculate vertically integrated SMI, weighted by exponential root density profile assumed in TERRA
+            ! Only the interval between the wilting point (SMI=0) and the field capacity (SMI=1) is taken into account
+            DO jk= 1, nlev_soil_sma
+              smi(jc,jk) = (lnd_prog%w_so_t(jc,jk,jb,jt)/dzsoil(jk)-cpwp(ist))/(cfcap(ist)-cpwp(ist))
+              smi_lim = MIN(1._wp,MAX(0._wp,smi(jc,jk)))
+              IF (rdp > zsoil_hl(jk-1)) THEN
+                smi_int(jc) = smi_int(jc) + smi_lim*EXP(-3._wp/rdp*zml_soil(jk))*dzsoil(jk)
+              ENDIF
+            ENDDO
+
+            ! potential for plant evaporation
+            plevap_pot(jc) = smi_int(jc)*ext_data%atm%tai_t(jc,jb,jt)
+
+            ! potential for base-soil evaporation
+            bsevap_pot(jc) = (SUM(lnd_prog%w_so_t(jc,1:3,jb,jt))/SUM(dzsoil(1:3))-cadp(ist))* &
+              ext_data%atm%eai_t(jc,jb,jt)/ext_data%atm%sai_t(jc,jb,jt)
+
+            ! combined filtered assimilation increment for T and RH
+            trh_avginc(jc) = &
+              MERGE(p_diag%rh_avginc(jc,jb),MIN(0._wp,p_diag%rh_avginc(jc,jb)+0.01_wp),p_diag%rh_avginc(jc,jb)>0._wp) - &
+              (0.025_wp + 0.05_wp*smi_int(jc))*(p_diag%t_avginc(jc,jb)-0.333_wp*p_diag%t_wgt_avginc(jc,jb))
+
+            ! integrated soil water increment
+            delta_h2o(jc) = trh_avginc(jc)*100._wp*scalfac_sma*dt_ana/86400._wp
+
+            ! compute vertical distribution of soil water increments
+            DO jk= 1, nlev_soil_sma
+
+              ! part relevant for bare-soil evap: consider only the upper layers ...
+              IF (jk <= 4) smi_inc(jc,jk) = 4.e-3_wp*bsevap_pot(jc)/MAX(0.02_wp,zml_soil(jk))**1.5_wp
+              ! ... and suppress moistening the upper two soil layers in case of dry soil in order avoid a 
+              ! short-lived impact that quickly disappears during the forecast
+              IF (lnd_diag%snowfrac_lc_t(jc,jb,jt) > 0.25_wp .OR. &
+                  trh_avginc(jc) > 0._wp .AND. smi(jc,3) <= 0.25_wp .AND. jk <= 2) smi_inc(jc,jk) = 0._wp
+
+              ! consider plant evaporation in the root zone
+              IF (lnd_diag%snowfrac_lc_t(jc,jb,jt) <= 0.25_wp .AND. lnd_prog%t_so_t(jc,jk+1,jb,jt) > tmelt &
+                  .AND. ext_data%atm%rootdp_t(jc,jb,jt) > zsoil_hl(jk-1)) THEN
+                smi_inc(jc,jk) = smi_inc(jc,jk)+plevap_pot(jc)*EXP(-2.5_wp/rdp*zml_soil(jk))
+              ENDIF
+              smi_incint(jc) = smi_incint(jc)+smi_inc(jc,jk)*dzsoil(jk)
+            ENDDO
+
+            ! apply soil water increments; drying below the wilting point and moistening above the 
+            ! field capacity are suppressed
+            DO jk= 1, nlev_soil_sma
+              smi_inc(jc,jk) = smi_inc(jc,jk)/MAX(1.e-10_wp,smi_incint(jc))
+              IF (smi(jc,jk) < 0._wp .AND. delta_h2o(jc) < 0._wp) smi_inc(jc,jk) = 0._wp
+              IF (smi(jc,jk) > 1._wp .AND. delta_h2o(jc) > 0._wp) smi_inc(jc,jk) = 0._wp
+              wso_inc(jk) = smi_inc(jc,jk)*dzsoil(jk)*delta_h2o(jc)
+              lnd_prog%w_so_t(jc,jk,jb,jt) = MIN(dzsoil(jk)*cporv(ist),          &
+                 MAX(lnd_prog%w_so_t(jc,jk,jb,jt)+wso_inc(jk), dzsoil(jk)*cadp(ist)) )
+            ENDDO
+          END SELECT
+
+        ENDDO
+      ENDDO
+
+    ENDDO  ! jb
+!$OMP END DO NOWAIT
+!$OMP END PARALLEL
+
+  END SUBROUTINE apply_sma
 
 END MODULE mo_apt_routines
 

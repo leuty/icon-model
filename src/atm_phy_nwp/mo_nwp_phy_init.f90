@@ -108,8 +108,8 @@ MODULE mo_nwp_phy_init
   USE mo_master_config,       ONLY: isRestart
   USE mo_nwp_parameters,      ONLY: t_phy_params
 
-  USE mo_initicon_config,     ONLY: init_mode, lread_tke
-  USE mo_apt_routines,        ONLY: init_apt_fields
+  USE mo_initicon_config,     ONLY: init_mode, lread_tke, itype_sma
+  USE mo_apt_routines,        ONLY: init_apt_fields, apply_sma
   USE mo_nwp_tuning_config,   ONLY: tune_zceff_min, tune_v0snow, tune_zvz0i, tune_icesedi_exp, tune_box_liq_sfc_fac
   USE mo_cuparameters,        ONLY: sugwd
   USE mtime,                  ONLY: datetime, MAX_DATETIME_STR_LEN, &
@@ -348,6 +348,9 @@ SUBROUTINE init_nwp_phy ( p_patch, p_metrics,             &
   ENDIF
 
   CALL init_apt_fields(p_patch, p_diag, prm_diag, ext_data, p_diag_lnd, p_prog_wtr_now)
+
+  IF (itype_sma >= 2 .AND. .NOT. isRestart()) &
+    CALL apply_sma (p_patch, p_diag, ext_data, p_diag_lnd, p_prog_lnd_now)
 
   ! Diagnose aggregated external parameter fields
   ! (mainly for output purposes)
