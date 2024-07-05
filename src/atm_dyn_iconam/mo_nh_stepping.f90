@@ -36,7 +36,7 @@ MODULE mo_nh_stepping
   USE mo_nonhydrostatic_config,    ONLY: itime_scheme, divdamp_order,                                 &
     &                                    divdamp_fac, divdamp_fac_o2, ih_clch, ih_clcm, kstart_moist, &
     &                                    ndyn_substeps, ndyn_substeps_var, ndyn_substeps_max, vcfl_threshold, &
-    &                                    nlev_hcfl
+    &                                    nlev_hcfl, cfl_monitoring_freq
   USE mo_diffusion_config,         ONLY: diffusion_config
   USE mo_dynamics_config,          ONLY: nnow, nnew, nnow_rcf, nnew_rcf, nsav1, nsav2, lmoist_thdyn, ldeepatmo
   USE mo_io_config,                ONLY: is_totint_time, n_diag, var_in_output, checkpoint_on_demand
@@ -1461,7 +1461,7 @@ MODULE mo_nh_stepping
 
     ! Adapt number of dynamics substeps if necessary
     !
-    IF (lcfl_watch_mode .OR. MOD(jstep-jstep_shift,5) == 0 .OR. jstep-jstep_shift <= 2) THEN
+    IF (lcfl_watch_mode .OR. MOD(jstep-jstep_shift,cfl_monitoring_freq) == 0 .OR. jstep-jstep_shift <= 2) THEN
       IF (ANY((/MODE_IFSANA,MODE_COMBINED,MODE_COSMO,MODE_ICONVREMAP/) == init_mode)) THEN
         ! For interpolated initial conditions, apply more restrictive criteria for timestep reduction during the spinup phase
         CALL set_ndyn_substeps(lcfl_watch_mode,jstep <= 100)
