@@ -2560,9 +2560,15 @@ MODULE mo_nh_stepping
           IF (p_patch(jgc)%ldom_active) THEN
             !$ser verbatim CALL serialize_all(nproma, jg, "nesting_boundary_interpolation", .TRUE., opt_id=jstep + num_steps*iau_iter)
             !$ser verbatim CALL serialize_all(nproma, jgc, "nesting_boundary_interpolation", .TRUE., opt_id=jstep + num_steps + num_steps*iau_iter)
-            CALL boundary_interpolation(jg, jgc,                   &
-              &  n_now_grf,nnow(jgc),n_now_rcf,nnow_rcf(jgc),      &
-              &  p_patch(1:),p_nh_state(:),prep_adv(:),prm_diag(:),p_grf_state(1:), lacc=.TRUE.)
+            IF (iforcing == inwp) THEN
+              CALL boundary_interpolation(jg, jgc,                   &
+                &  n_now_grf,nnow(jgc),n_now_rcf,nnow_rcf(jgc),      &
+                &  p_patch(1:),p_nh_state(:),prep_adv(:),p_grf_state(1:), prm_diag=prm_diag(:),lacc=.TRUE.)
+            ELSE !no use for prm_diag
+              CALL boundary_interpolation(jg, jgc,                   &
+                &  n_now_grf,nnow(jgc),n_now_rcf,nnow_rcf(jgc),      &
+                &  p_patch(1:),p_nh_state(:),prep_adv(:),p_grf_state(1:), lacc=.TRUE.)
+            ENDIF
             !$ser verbatim CALL serialize_all(nproma, jg, "nesting_boundary_interpolation", .FALSE., opt_id=jstep + num_steps*iau_iter)
             !$ser verbatim CALL serialize_all(nproma, jgc, "nesting_boundary_interpolation", .FALSE., opt_id=jstep + num_steps + num_steps*iau_iter)
           ENDIF

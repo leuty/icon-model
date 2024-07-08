@@ -476,7 +476,7 @@ MODULE mo_nh_init_nest_utils
         f4din1=p_parent_prog_rcf%tracer, f4dout1=p_child_prog_rcf%tracer, llimit_nneg=l_limit)
     ENDIF
 
-    IF (ltransport .AND. iprog_aero >= 1) THEN
+    IF (ltransport .AND. iprog_aero >= 1 .AND. iforcing == inwp) THEN
       CALL interpol_scal_grf ( p_pp=p_patch(jg), p_pc=p_pc, p_grf=p_grf_state(jg)%p_dom(i_chidx), nfields=1, lacc=.FALSE.,  &
         f3din1=prm_diag(jg)%aerosol, f3dout1=prm_diag(jgc)%aerosol, llimit_nneg=(/.TRUE./), lnoshift=.TRUE.)
     ENDIF
@@ -520,7 +520,7 @@ MODULE mo_nh_init_nest_utils
         &                     RECV4D=tracer_lp, SEND4D=p_parent_prog_rcf%tracer    )
     ENDIF
 
-    IF (ltransport .AND. iprog_aero >= 1) THEN
+    IF (ltransport .AND. iprog_aero >= 1 .AND. iforcing == inwp) THEN
       CALL exchange_data(p_pat=p_pp%comm_pat_glb_to_loc_c, lacc=.FALSE., RECV=aero_lp, SEND=prm_diag(jg)%aerosol)
     ENDIF
 
@@ -567,7 +567,7 @@ MODULE mo_nh_init_nest_utils
       CALL sync_patch_array_mult(SYNC_C,p_pc,ntracer,f4din=p_child_prog_rcf%tracer)
     ENDIF
 
-    IF (ltransport .AND. iprog_aero >= 1) THEN
+    IF (ltransport .AND. iprog_aero >= 1 .AND. iforcing == inwp) THEN
       IF(l_parallel) CALL exchange_data(p_pat=p_pp%comm_pat_c, lacc=.FALSE., recv=aero_lp)
       CALL interpol_scal_nudging (p_pp, p_int, p_grf%p_dom(i_chidx),          &
          0, 1, 1, f3din1=aero_lp, f3dout1=prm_diag(jgc)%aerosol, llimit_nneg=(/.TRUE./))
