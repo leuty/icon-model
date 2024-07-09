@@ -446,7 +446,7 @@ add_link_file ${datadir}/ic_land_soil_${refyear}.nc                     ./ic_lan
 # boundary conditions
 #
 # - well mixed greenhouse gases
-datadir=${icon_data_poolFolder}/independent/greenhouse_gases
+datadir=${icon_data_poolFolder}/common/greenhouse_gases
 add_link_file $datadir/greenhouse_historical_plus.nc                    ./bc_greenhouse_gases.nc
 #
 # - land parameters
