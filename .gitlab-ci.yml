@@ -22,6 +22,26 @@ stages:
     DEFAULT: '\033[0m'
     RED: '\033[0;31m'
 
+Licenses:
+  stage: basic
+
+  variables:
+    GIT_DEPTH: 1
+    GIT_SUBMODULE_STRATEGY: none
+
+  before_script:
+    - python3 -m pip install --upgrade pip
+    - python3 -m pip install reuse
+    - reuse --version
+
+  script:
+    - reuse lint
+
+  tags:
+    - sphinx
+
+  interruptible: true
+
 OpenACC Style:
   stage: basic
 
