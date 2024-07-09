@@ -25,7 +25,7 @@ MODULE mo_tmx_surface_interface
   USE mo_physical_constants, ONLY: grav, rgrav, tmelt, Tf, stbo, rhos, alf, cvv, clw, ci, vtmpc1, rd
   USE mo_aes_thermo, ONLY: &
     & lvc, lsc, &
-    & sat_pres_water, sat_pres_ice, specific_humidity
+    & sat_pres_water, sat_pres_ice, specific_humidity, dewpoint_temperature
   USE mo_turb_vdiff_params, ONLY: ckap
   USE mo_coupling_config,   ONLY: is_coupled_to_ocean
   USE mo_aes_phy_config,    ONLY: aes_phy_config  ! TODO: replace USE
@@ -43,7 +43,7 @@ MODULE mo_tmx_surface_interface
   PUBLIC :: update_land, update_sea_ice, &
     & compute_sfc_sat_spec_humidity, compute_sfc_fluxes, compute_sfc_roughness, &
     & compute_lw_rad_net, compute_sw_rad_net, compute_albedo, compute_energy_fluxes, &
-    & compute_2m_temperature, compute_2m_humidity, compute_10m_wind
+    & compute_2m_temperature, compute_2m_humidity_and_dewpoint, compute_10m_wind
 
   CHARACTER(len=*), PARAMETER :: modname = 'mo_tmx_surface_interface'
   
@@ -1084,12 +1084,12 @@ CONTAINS
   !
   !=================================================================
   !
-  SUBROUTINE compute_2m_humidity( &
+  SUBROUTINE compute_2m_humidity_and_dewpoint( &
     & domain, nvalid, indices,    &
     & patm, psfc,                 &
     & tatm, t2m,                  &
     & qv_atm, qc_atm, qi_atm,     &
-    & hus2m)
+    & hus2m, dew2m)
 
     ! Domain information
     TYPE(t_domain),  INTENT(in), POINTER :: domain
@@ -1104,7 +1104,8 @@ CONTAINS
       & tatm, t2m,              & ! temperature in lowest model level and at surface
       & qv_atm, qc_atm, qi_atm    ! water vapor, cloud water and cloud ice in lowest model level
     REAL(wp), DIMENSION(:,:), INTENT(out) :: &
-      & hus2m                     ! specific humidity at 2 meter
+      & hus2m,                  & ! specific humidity at 2 meter
+      & dew2m                     ! dewpoint temperature at 2 meter
 
     INTEGER :: jb, jls, js
     REAL(wp) :: &
@@ -1136,12 +1137,13 @@ CONTAINS
           &  (1._wp - 2._wp * grav / ( rd * t2m(js,jb) * (1._wp + vtmpc1 * qv_atm(js,jb) - qc_atm(js,jb) - qi_atm(js,jb))))
         qsat_2m = specific_humidity(sat_pres_water(t2m(js,jb)),pres2m)
         hus2m(js,jb) = qrel_atm * qsat_2m
+        dew2m(js,jb) = dewpoint_temperature(t2m(js,jb), hus2m(js,jb), pres2m)
       END DO
       !$ACC END PARALLEL LOOP
     ENDDO
 !$OMP END PARALLEL DO
 
-  END SUBROUTINE compute_2m_humidity
+  END SUBROUTINE compute_2m_humidity_and_dewpoint
   !
   !=================================================================
   !

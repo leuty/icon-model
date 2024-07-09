@@ -1613,7 +1613,7 @@ CONTAINS
 
   SUBROUTINE Update_diagnostics(this)
 
-    USE mo_tmx_surface_interface, ONLY: compute_2m_temperature, compute_2m_humidity, compute_10m_wind
+    USE mo_tmx_surface_interface, ONLY: compute_2m_temperature, compute_2m_humidity_and_dewpoint, compute_10m_wind
     USE mo_vdf_sfc,               ONLY: average_tiles
 
     CLASS(t_vdf), INTENT(inout), TARGET :: this
@@ -1713,18 +1713,20 @@ CONTAINS
           & diags_sfc%t2m_tile(:,:,jtile) &
           & )
 
-      CALL compute_2m_humidity( &
+      CALL compute_2m_humidity_and_dewpoint( &
         & domain_sfc, diags_sfc%nvalid(:,jtile), diags_sfc%indices(:,:,jtile), &
         & ins_sfc%pa(:,:), ins_sfc%psfc(:,:), &
         & new_ta(:,nlev,:), diags_sfc%t2m_tile(:,:,jtile), &
         & new_qv(:,nlev,:), new_qc(:,nlev,:), new_qi(:,nlev,:), &
-        & diags_sfc%hus2m_tile(:,:,jtile) &
+        & diags_sfc%hus2m_tile(:,:,jtile), &
+        & diags_sfc%dew2m_tile(:,:,jtile) &
         & )
 
     END DO
 
     CALL average_tiles(domain_sfc, ins_sfc%fract_tile, diags_sfc%nvalid, diags_sfc%indices, diags_sfc%t2m_tile,   diags_sfc%t2m)
     CALL average_tiles(domain_sfc, ins_sfc%fract_tile, diags_sfc%nvalid, diags_sfc%indices, diags_sfc%hus2m_tile, diags_sfc%hus2m)
+    CALL average_tiles(domain_sfc, ins_sfc%fract_tile, diags_sfc%nvalid, diags_sfc%indices, diags_sfc%dew2m_tile, diags_sfc%dew2m)
     CALL average_tiles(domain_sfc, ins_sfc%fract_tile, diags_sfc%nvalid, diags_sfc%indices, diags_sfc%u10m_tile,  diags_sfc%u10m)
     CALL average_tiles(domain_sfc, ins_sfc%fract_tile, diags_sfc%nvalid, diags_sfc%indices, diags_sfc%v10m_tile,  diags_sfc%v10m)
     CALL average_tiles(domain_sfc, ins_sfc%fract_tile, diags_sfc%nvalid, diags_sfc%indices, &

@@ -47,6 +47,7 @@ USE mo_physical_constants, ONLY: rv     , & !> gas constant for water vapour
   PUBLIC  :: sat_pres_ice          ! saturation pressure over ice
   PUBLIC  :: specific_humidity     ! calculate specific humidity from vapor and total pressure
   PUBLIC  :: potential_temperature ! calculate potential temperature
+  PUBLIC  :: dewpoint_temperature  ! calculate dewpoint temperature
 
   PUBLIC  :: lvc                   ! invariant part of vaporization enthalpy
   PUBLIC  :: lsc                   ! invariant part of sublimation enthalpy
@@ -230,9 +231,6 @@ END FUNCTION T_from_internal_energy
 
 !!!=============================================================================================
 
-#ifndef _OPENACC
-ELEMENTAL &
-#endif
 PURE FUNCTION potential_temperature(TK, pres)
 
   REAL(wp) :: potential_temperature
@@ -245,6 +243,33 @@ PURE FUNCTION potential_temperature(TK, pres)
   potential_temperature = TK * EXP(rd_o_cpd * LOG(p0ref/pres))
 
 END FUNCTION potential_temperature
+
+!!!=============================================================================================
+
+PURE FUNCTION dewpoint_temperature(TK, qv, pres)
+
+  REAL(wp) :: dewpoint_temperature
+  REAL(wp), INTENT(in) :: &
+    & TK, & !! temperature
+    & qv, & !! specific humidity
+    & pres  !! pressure
+
+  REAL(wp) :: zfrac, zcvm3, zcvm4
+
+  !$ACC ROUTINE SEQ
+
+  IF (TK > tmelt) THEN
+    zcvm3 = c3les
+    zcvm4 = c4les
+  ELSE
+    zcvm3 = c3ies
+    zcvm4 = c4ies
+  ENDIF
+
+  zfrac = LOG(pres * qv / (c2es * (1._wp + vtmpc1 * qv))) / zcvm3
+  dewpoint_temperature = MIN(TK, (tmelt - zfrac * zcvm4) / (1._wp - zfrac))
+
+END FUNCTION dewpoint_temperature
 
 !!!=============================================================================================
 
