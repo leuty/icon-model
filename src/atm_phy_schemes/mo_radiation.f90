@@ -46,7 +46,7 @@ MODULE mo_radiation
   USE mo_model_domain,         ONLY: t_patch
   USE mo_nonhydro_state,       ONLY: p_nh_state
 
-  USE mo_math_constants,       ONLY: pi, rpi, rad2deg
+  USE mo_math_constants,       ONLY: pi, rpi, rad2deg, dbl_eps
   USE mo_math_types,           ONLY: t_geographical_coordinates
   USE mo_physical_constants,   ONLY: grav,  rd,    avo,   amd,  amw,  &
     &                                amco2, amch4, amn2o, amo3, amo2, &
@@ -1615,7 +1615,7 @@ CONTAINS
             aer_tau_sw_vr(jl,jk,jspec-jpband) = z_sum_aea + z_sum_aes
 
             ! sw aerosol single scattering albedo
-            aer_piz_sw_vr(jl,jk,jspec-jpband) = z_sum_aes / ( z_sum_aea + z_sum_aes )
+            aer_piz_sw_vr(jl,jk,jspec-jpband) = z_sum_aes / MAX(dbl_eps, z_sum_aea + z_sum_aes)
 
             ! sw aerosol asymmetry factor
             aer_cg_sw_vr(jl,jk,jspec-jpband) =                                  &
@@ -1623,7 +1623,7 @@ CONTAINS
               &   + zaeq2(jl,jkb) * zaes_rrtm(jspec,2) * zaeg_rrtm(jspec,2)   &
               &   + zaeq3(jl,jkb) * zaes_rrtm(jspec,3) * zaeg_rrtm(jspec,3)   &
               &   + zaeq4(jl,jkb) * zaes_rrtm(jspec,4) * zaeg_rrtm(jspec,4)   &
-              &   + zaeq5(jl,jkb) * zaes_rrtm(jspec,5) * zaeg_rrtm(jspec,5) ) / z_sum_aes
+              &   + zaeq5(jl,jkb) * zaes_rrtm(jspec,5) * zaeg_rrtm(jspec,5) ) / MAX(dbl_eps, z_sum_aes)
           ENDDO
         ENDDO
       ENDDO
