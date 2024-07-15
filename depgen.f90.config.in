@@ -50,7 +50,7 @@
 #   SERIALBOX2:
 --fc-external-mods=m_serialize,utils_ppser
 #   MTIME:
---fc-external-mods=mtime,mtime_datetime
+--fc-external-mods=mtime
 #   YAC:
 --fc-external-mods=yac,mo_yac_finterface
 #   TIXI:

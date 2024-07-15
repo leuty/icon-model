@@ -9969,9 +9969,9 @@ esac
      ;; #(
   -enable-examples|-enable-examples=*|--enable-examples|--enable-examples=*|-disable-examples|--disable-examples) :
      ;; #(
-  -enable-check|-enable-check=*|--enable-check|--enable-check=*|-disable-check|--disable-check) :
+  -enable-fortran-hl|-enable-fortran-hl=*|--enable-fortran-hl|--enable-fortran-hl=*|-disable-fortran-hl|--disable-fortran-hl) :
      ;; #(
-  -enable-openmp|-enable-openmp=*|--enable-openmp|--enable-openmp=*|-disable-openmp|--disable-openmp) :
+  -enable-check|-enable-check=*|--enable-check|--enable-check=*|-disable-check|--disable-check) :
      ;; #(
   *) :
            case $acx_tmp in #(
@@ -9984,7 +9984,7 @@ esac
 esac
      shift
    done
-   set dummy CFLAGS="$subdir_CFLAGS $ICON_MTIME_CFLAGS" FCFLAGS="$subdir_FCFLAGS $ICON_MTIME_FCFLAGS" --enable-static --disable-shared --disable-maintainer-mode --enable-silent-rules="$enable_silent_rules" --disable-examples      --disable-check --enable-openmp="$enable_openmp"; shift
+   set dummy CFLAGS="$subdir_CFLAGS $ICON_MTIME_CFLAGS" FCFLAGS="$subdir_FCFLAGS $ICON_MTIME_FCFLAGS" --enable-static --disable-shared --disable-maintainer-mode --enable-silent-rules="$enable_silent_rules" --disable-examples --disable-fortran-hl      --disable-check; shift
    for acx_tmp; do
      case $acx_tmp in #(
   *\'*) :
