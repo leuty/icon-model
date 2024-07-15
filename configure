@@ -621,7 +621,6 @@ ICON_DELAYED_CONFIG_RULES
 icon_bundled_cmake_subdirs
 icon_bundled_config_subdirs
 ICON_HD_FCFLAGS
-ICON_MATH_SUPPORT_CFLAGS
 ICON_MATH_SUPPORT_FCFLAGS
 ICON_FORTRAN_SUPPORT_CFLAGS
 ICON_FORTRAN_SUPPORT_FCFLAGS
@@ -848,7 +847,6 @@ ICON_COMIN_CXXFLAGS
 ICON_FORTRAN_SUPPORT_FCFLAGS
 ICON_FORTRAN_SUPPORT_CFLAGS
 ICON_MATH_SUPPORT_FCFLAGS
-ICON_MATH_SUPPORT_CFLAGS
 ICON_HD_FCFLAGS
 AR
 ARFLAGS
@@ -1555,7 +1553,8 @@ Model Features:
                           [default=no]
   --enable-art-gpl        enable GPL-licensed code parts of the ART component
                           [default=no]
-  --enable-comin          enable the ICON community interfaces [default=no]
+  --enable-comin          enable the ICON community interface (COMIN)
+                          [default=no]
   --enable-hd             enable the Hydrological Discharge (HD) model. The
                           value of the argument must be one of the following
                           [default=no]:
@@ -1665,7 +1664,7 @@ Optional Packages:
                           use external MATH-SUPPORT library [default=no]
   --with-external-fortran-support
                           use external FORTRAN-SUPPORT library [default=no]
-  --with-external-comin   use external ComIn library [default=no]
+  --with-external-comin   use external COMIN library [default=no]
 
 Some influential environment variables:
   BUILD_ENV   initialization code to set up the building environment (must be
@@ -1790,10 +1789,6 @@ Some influential environment variables:
               Fortran compiler flags to be appended to FCFLAGS when
               configuring the bundled version of MATH-SUPPORT library
               [default=$ICON_BUNDLED_FCFLAGS]
-  ICON_MATH_SUPPORT_CFLAGS
-              Fortran compiler flags to be appended to CFLAGS when configuring
-              the bundled version of MATH-SUPPORT library
-              [default=$ICON_BUNDLED_CFLAGS]
   ICON_HD_FCFLAGS
               Fortran compiler flags to be appended to FCFLAGS when
               configuring the bundled version of HD model
@@ -10006,8 +10001,8 @@ fi
       if test "x$with_external_yaxt" = xno; then :
   as_fn_error $? "unsupported combination of the configure options: you are trying to configure with an external YAC library and the bundled YAXT library: either disable the coupling (--disable-coupling) or use the bundled version of YAC library (--without-external-yac), or provide the version of YAXT library (--with-external-yaxt) that the provided YAC library has been built with by setting FCFLAGS, LDFLAGS and LIBS accordingly" "$LINENO" 5
 fi
-      { $as_echo "$as_me:${as_lineno-$LINENO}: checking whether the Fortran interface of YAC 2.x library is available" >&5
-$as_echo_n "checking whether the Fortran interface of YAC 2.x library is available... " >&6; }
+      { $as_echo "$as_me:${as_lineno-$LINENO}: checking whether the Fortran interface of YAC library is available" >&5
+$as_echo_n "checking whether the Fortran interface of YAC library is available... " >&6; }
 if ${icon_cv_have_yac+:} false; then :
   $as_echo_n "(cached) " >&6
 else
@@ -10034,7 +10029,7 @@ $as_echo "$icon_cv_have_yac" >&6; }
       if test "x$icon_cv_have_yac" = xno; then :
   { { $as_echo "$as_me:${as_lineno-$LINENO}: error: in \`$ac_pwd':" >&5
 $as_echo "$as_me: error: in \`$ac_pwd':" >&2;}
-as_fn_error $? "unable to link a test program using the Fortran interface of YAC 2.x library: either disable the coupling (--disable-coupling) or use the bundled version of YAC library (--without-external-yac), or set FCFLAGS, LDFLAGS and LIBS accordingly
+as_fn_error $? "unable to link a test program using the Fortran interface of YAC library: either disable the coupling (--disable-coupling) or use the bundled version of YAC library (--without-external-yac), or set FCFLAGS, LDFLAGS and LIBS accordingly
 See \`config.log' for more details
 ${icon_usr_note}" "$LINENO" 5; }
 fi
@@ -10485,8 +10480,8 @@ fi
 fi
 
 if test "x$with_external_fortran_support" = xyes; then :
-  { $as_echo "$as_me:${as_lineno-$LINENO}: checking whether Fortran support library is available" >&5
-$as_echo_n "checking whether Fortran support library is available... " >&6; }
+  { $as_echo "$as_me:${as_lineno-$LINENO}: checking whether FORTRAN-SUPPORT library is available" >&5
+$as_echo_n "checking whether FORTRAN-SUPPORT library is available... " >&6; }
 if ${icon_cv_have_fortran_support+:} false; then :
   $as_echo_n "(cached) " >&6
 else
@@ -10510,7 +10505,7 @@ $as_echo "$icon_cv_have_fortran_support" >&6; }
    if test "x$icon_cv_have_fortran_support" = xno; then :
   { { $as_echo "$as_me:${as_lineno-$LINENO}: error: in \`$ac_pwd':" >&5
 $as_echo "$as_me: error: in \`$ac_pwd':" >&2;}
-as_fn_error $? "unable to link a test program using Fortran support library: either use the bundled version of FORTRAN-SUPPORT (--without-external-fortran-support) or set FCFLAGS, LDFLAGS and LIBS accordingly
+as_fn_error $? "unable to link a test program using FORTRAN-SUPPORT library: either use the bundled version of FORTRAN-SUPPORT (--without-external-fortran-support) or set FCFLAGS, LDFLAGS and LIBS accordingly
 See \`config.log' for more details
 ${icon_usr_note}" "$LINENO" 5; }
 fi
@@ -10572,7 +10567,7 @@ esac
 else
   icon_fs_openacc=OFF
 fi
-   set dummy      -DCMAKE_C_FLAGS="$subdir_CFLAGS $ICON_FORTRAN_SUPPORT_CFLAGS $subdir_CPPFLAGS" -DCMAKE_Fortran_FLAGS="$subdir_FCFLAGS $ICON_FORTRAN_SUPPORT_FCFLAGS"      -DFS_ENABLE_OMP=$enable_openmp -DFS_ENABLE_MIXED_PRECISION=$enable_mixed_precision -DFS_ENABLE_OPENACC=$icon_fs_openacc      -DBUILD_SHARED_LIBS:BOOL=OFF -DBUILD_TESTING:BOOL=OFF      -DCMAKE_BUILD_TYPE:STRING=NOEXTRAFLAGS; shift
+   set dummy      -DCMAKE_C_FLAGS="$subdir_CFLAGS $ICON_FORTRAN_SUPPORT_CFLAGS $subdir_CPPFLAGS" -DCMAKE_Fortran_FLAGS="$subdir_FCFLAGS $ICON_FORTRAN_SUPPORT_FCFLAGS"      -DFS_ENABLE_OMP="$enable_openmp" -DFS_ENABLE_MIXED_PRECISION="$enable_mixed_precision" -DFS_ENABLE_OPENACC="$icon_fs_openacc"      -DBUILD_SHARED_LIBS:BOOL=OFF -DBUILD_TESTING:BOOL=OFF      -DCMAKE_BUILD_TYPE:STRING=NOEXTRAFLAGS; shift
    for acx_tmp; do
      case $acx_tmp in #(
   *\'*) :
@@ -10587,8 +10582,11 @@ esac
 fi
 
 if test "x$with_external_math_support" = xyes; then :
-  { $as_echo "$as_me:${as_lineno-$LINENO}: checking whether Math support library is available" >&5
-$as_echo_n "checking whether Math support library is available... " >&6; }
+  if test "x$with_external_fortran_support" = xno; then :
+  as_fn_error $? "unsupported combination of the configure options: you are trying to configure with an external MATH-SUPPORT library and the bundled FORTRAN-SUPPORT library: use the bundled version of MATH-SUPPORT library (--without-external-math-support), or provide the version of FORTRAN-SUPPORT library (--with-external-fortran-support) that the provided MATH-SUPPORT library has been built with by setting FCFLAGS, LDFLAGS and LIBS accordingly" "$LINENO" 5
+fi
+  { $as_echo "$as_me:${as_lineno-$LINENO}: checking whether MATH-SUPPORT library is available" >&5
+$as_echo_n "checking whether MATH-SUPPORT library is available... " >&6; }
 if ${icon_cv_have_math_support+:} false; then :
   $as_echo_n "(cached) " >&6
 else
@@ -10616,7 +10614,7 @@ $as_echo "$icon_cv_have_math_support" >&6; }
    if test "x$icon_cv_have_math_support" = xno; then :
   { { $as_echo "$as_me:${as_lineno-$LINENO}: error: in \`$ac_pwd':" >&5
 $as_echo "$as_me: error: in \`$ac_pwd':" >&2;}
-as_fn_error $? "unable to link a test program using Math support library: either use the bundled version of MATH-SUPPORT (--without-external-math-support) or set FCFLAGS, LDFLAGS and LIBS accordingly
+as_fn_error $? "unable to link a test program using MATH-SUPPORT library: either use the bundled version of MATH-SUPPORT (--without-external-math-support) or set FCFLAGS, LDFLAGS and LIBS accordingly
 See \`config.log' for more details
 ${icon_usr_note}" "$LINENO" 5; }
 fi
@@ -10626,8 +10624,7 @@ else
    if test ! -r "$icon_subdir_srcdir/$icon_subdir_unique_file"; then :
   as_fn_error $? "unable to find sources of the bundled version of MATH-SUPPORT library ($icon_subdir_unique_file) in '$icon_subdir_srcdir': provide an external version of MATH-SUPPORT library (--with-external-math-support) by setting FCFLAGS, LDFLAGS and LIBS accordingly" "$LINENO" 5
 fi
-   ICON_MATH_SUPPORT_FCFLAGS=${ICON_MATH_SUPPORT_FCFLAGS-$ICON_BUNDLED_FCFLAGS}
-      ICON_MATH_SUPPORT_CFLAGS=${ICON_MATH_SUPPORT_CFLAGS-$ICON_BUNDLED_CFLAGS}
+      ICON_MATH_SUPPORT_FCFLAGS=${ICON_MATH_SUPPORT_FCFLAGS-$ICON_BUNDLED_FCFLAGS}
                   acx_subdir_run_cmd_externals_math_support="\"\${CMAKE}\""
    acx_subdir_run_dir_externals_math_support="externals/math-support/build"
    acx_subdir_build_type_externals_math_support='cmake'
@@ -10654,9 +10651,9 @@ esac
    while test $# != 0; do
      acx_tmp=$1
      case $acx_tmp in #(
-       -DCMAKE_C_FLAGS=*|-DCMAKE_Fortran_FLAGS=*) :
+       -DCMAKE_Fortran_FLAGS=*) :
      ;; #(
-       -DCMAKE_CXX_*=*) :
+       -DCMAKE_C_*=*|-DCMAKE_CXX_*=*) :
      ;; #(
        -DCMAKE_SHARED_LINKER_FLAGS=*|-DCMAKE_MODULE_LINKER_FLAGS=*) :
      ;; #(
@@ -10678,7 +10675,7 @@ esac
 else
   icon_ms_openacc=OFF
 fi
-   set dummy      -DCMAKE_C_FLAGS="$subdir_CFLAGS $ICON_MATH_SUPPORT_CFLAGS $subdir_CPPFLAGS" -DCMAKE_Fortran_FLAGS="$subdir_FCFLAGS $ICON_MATH_SUPPORT_FCFLAGS"      -DMS_ENABLE_LOOP_EXCHANGE=$enable_loop_exchange -DMS_ENABLE_MIXED_PRECISION=$enable_mixed_precision -DMS_ENABLE_DIM_SWAP=$enable_dim_swap -DMS_ENABLE_OPENACC=$icon_ms_openacc      -DCMAKE_PREFIX_PATH:PATH="${icon_abs_top_builddir}/externals/fortran-support/build"      -DBUILD_SHARED_LIBS:BOOL=OFF -DBUILD_TESTING:BOOL=OFF      -DBUILD_STANDALONE:BOOL=OFF      -DCMAKE_BUILD_TYPE:STRING=NOEXTRAFLAGS; shift
+   set dummy      -DCMAKE_Fortran_FLAGS="$subdir_FCFLAGS $ICON_MATH_SUPPORT_FCFLAGS"      -DMS_ENABLE_LOOP_EXCHANGE="$enable_loop_exchange" -DMS_ENABLE_MIXED_PRECISION="$enable_mixed_precision" -DMS_ENABLE_DIM_SWAP="$enable_dim_swap" -DMS_ENABLE_OPENACC="$icon_ms_openacc"      -DCMAKE_PREFIX_PATH:PATH="${icon_abs_top_builddir}/externals/fortran-support/build"      -DBUILD_SHARED_LIBS:BOOL=OFF -DBUILD_TESTING:BOOL=OFF      -DBUILD_STANDALONE:BOOL=OFF      -DCMAKE_BUILD_TYPE:STRING=NOEXTRAFLAGS; shift
    for acx_tmp; do
      case $acx_tmp in #(
   *\'*) :

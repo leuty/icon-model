@@ -222,7 +222,7 @@ AC_ARG_ENABLE([art-gpl],
 
 AC_ARG_ENABLE([comin],
   [AS_HELP_STRING([--enable-comin],
-     [enable the ICON community interfaces @<:@default=no@:>@])],
+     [enable the ICON community interface (COMIN) @<:@default=no@:>@])],
   [AS_IF([test x"$enableval" != xno], [enable_comin=yes])],
   [enable_comin=no])
 
@@ -649,7 +649,7 @@ AC_ARG_WITH([external-tixi],
 
 AC_ARG_WITH([external-math-support],
   [AS_HELP_STRING([--with-external-math-support],
-      [use external MATH-SUPPORT library @<:@default=no@:>@])],
+     [use external MATH-SUPPORT library @<:@default=no@:>@])],
   [AS_IF([test x"$withval" != xno], [with_external_math_support=yes])],
   [with_external_math_support=no])
 
@@ -661,7 +661,7 @@ AC_ARG_WITH([external-fortran-support],
 
 AC_ARG_WITH([external-comin],
   [AS_HELP_STRING([--with-external-comin],
-     [use external ComIn library @<:@default=no@:>@])],
+     [use external COMIN library @<:@default=no@:>@])],
   [AS_IF([test x"$withval" != xno], [with_external_comin=yes])],
   [with_external_comin=no])
 
@@ -2259,7 +2259,7 @@ YAXT library: either disable the coupling (--disable-coupling) or use the dnl
 bundled version of YAC library (--without-external-yac), or provide the dnl
 version of YAXT library (--with-external-yaxt) that the provided YAC dnl
 library has been built with by setting FCFLAGS, LDFLAGS and LIBS accordingly])])
-      AC_CACHE_CHECK([whether the Fortran interface of YAC 2.x library is dnl
+      AC_CACHE_CHECK([whether the Fortran interface of YAC library is dnl
 available], [icon_cv_have_yac],
         [icon_cv_have_yac=no
          AC_LINK_IFELSE([AC_LANG_PROGRAM([], [[
@@ -2272,9 +2272,9 @@ available], [icon_cv_have_yac],
            [icon_cv_have_yac=yes])])
       AS_VAR_IF([icon_cv_have_yac], [no],
         [AC_MSG_FAILURE([unable to link a test program using the Fortran dnl
-interface of YAC 2.x library: either disable the coupling dnl
-(--disable-coupling) or use the bundled version of YAC library dnl
-(--without-external-yac), or set FCFLAGS, LDFLAGS and LIBS accordingly])])],
+interface of YAC library: either disable the coupling (--disable-coupling) dnl
+or use the bundled version of YAC library (--without-external-yac), or set dnl
+FCFLAGS, LDFLAGS and LIBS accordingly])])],
 dnl
      [icon_subdir_srcdir="$srcdir/externals/yac"
       icon_subdir_unique_file="src/mci/yac_module.F90"
@@ -2485,7 +2485,7 @@ dnl Set non-existing build type to avoid extra compiler flags:
      BUNDLED_LIBFILES="externals/comin/build/libcomin.a $BUNDLED_LIBFILES"])])
 
 AS_VAR_IF([with_external_fortran_support], [yes],
-  [AC_CACHE_CHECK([whether Fortran support library is available],
+  [AC_CACHE_CHECK([whether FORTRAN-SUPPORT library is available],
      [icon_cv_have_fortran_support],
      [icon_cv_have_fortran_support=no
       AC_LINK_IFELSE([AC_LANG_PROGRAM([], [[
@@ -2494,7 +2494,7 @@ AS_VAR_IF([with_external_fortran_support], [yes],
       call ftn_util_backtrace()]])],
         [icon_cv_have_fortran_support=yes])])
    AS_VAR_IF([icon_cv_have_fortran_support], [no],
-     [AC_MSG_FAILURE([unable to link a test program using Fortran support dnl
+     [AC_MSG_FAILURE([unable to link a test program using FORTRAN-SUPPORT dnl
 library: either use the bundled version of FORTRAN-SUPPORT dnl
 (--without-external-fortran-support) or set FCFLAGS, LDFLAGS and LIBS dnl
 accordingly])])],
@@ -2540,9 +2540,9 @@ dnl Extend C and Fortran compiler flags:
 "$subdir_CFLAGS $ICON_FORTRAN_SUPPORT_CFLAGS $subdir_CPPFLAGS"],
      [-DCMAKE_Fortran_FLAGS="$subdir_FCFLAGS $ICON_FORTRAN_SUPPORT_FCFLAGS"],
 dnl Set up library-specific compiler flags:
-     [-DFS_ENABLE_OMP=$enable_openmp],
-     [-DFS_ENABLE_MIXED_PRECISION=$enable_mixed_precision],
-     [-DFS_ENABLE_OPENACC=$icon_fs_openacc],
+     [-DFS_ENABLE_OMP="$enable_openmp"],
+     [-DFS_ENABLE_MIXED_PRECISION="$enable_mixed_precision"],
+     [-DFS_ENABLE_OPENACC="$icon_fs_openacc"],
 dnl Build the static version of the library and disable the tests:
      [-DBUILD_SHARED_LIBS:BOOL=OFF], [-DBUILD_TESTING:BOOL=OFF],
 dnl Set non-existing build type to avoid extra compiler flags:
@@ -2553,7 +2553,15 @@ dnl Set non-existing build type to avoid extra compiler flags:
 "externals/fortran-support/build/src/libfortran-support.a $BUNDLED_LIBFILES"])
 
 AS_VAR_IF([with_external_math_support], [yes],
-  [AC_CACHE_CHECK([whether Math support library is available],
+  [AS_VAR_IF([with_external_fortran_support], [no],
+     [AC_MSG_ERROR([unsupported combination of the configure options: dnl
+you are trying to configure with an external MATH-SUPPORT library and the dnl
+bundled FORTRAN-SUPPORT library: use the bundled version of MATH-SUPPORT dnl
+library (--without-external-math-support), or provide the version of dnl
+FORTRAN-SUPPORT library (--with-external-fortran-support) that the provided dnl
+MATH-SUPPORT library has been built with by setting FCFLAGS, LDFLAGS and dnl
+LIBS accordingly])])
+  AC_CACHE_CHECK([whether MATH-SUPPORT library is available],
      [icon_cv_have_math_support],
      [icon_cv_have_math_support=no
       AC_LINK_IFELSE([AC_LANG_PROGRAM([], [[
@@ -2566,7 +2574,7 @@ AS_VAR_IF([with_external_math_support], [yes],
       x3 = vector_product(x1, x2)]])],
         [icon_cv_have_math_support=yes])])
    AS_VAR_IF([icon_cv_have_math_support], [no],
-     [AC_MSG_FAILURE([unable to link a test program using Math support dnl
+     [AC_MSG_FAILURE([unable to link a test program using MATH-SUPPORT dnl
 library: either use the bundled version of MATH-SUPPORT dnl
 (--without-external-math-support) or set FCFLAGS, LDFLAGS and LIBS dnl
 accordingly])])],
@@ -2583,19 +2591,14 @@ accordingly])])
      [Fortran compiler flags to be appended to FCFLAGS when configuring the
 bundled version of MATH-SUPPORT library
 @<:@default=$ICON_BUNDLED_FCFLAGS@:>@])dnl
-ICON_MATH_SUPPORT_FCFLAGS=${ICON_MATH_SUPPORT_FCFLAGS-$ICON_BUNDLED_FCFLAGS}
-   AC_ARG_VAR([ICON_MATH_SUPPORT_CFLAGS],
-     [Fortran compiler flags to be appended to CFLAGS when configuring the
-bundled version of MATH-SUPPORT library
-@<:@default=$ICON_BUNDLED_CFLAGS@:>@])dnl
-   ICON_MATH_SUPPORT_CFLAGS=${ICON_MATH_SUPPORT_CFLAGS-$ICON_BUNDLED_CFLAGS}
+   ICON_MATH_SUPPORT_FCFLAGS=${ICON_MATH_SUPPORT_FCFLAGS-$ICON_BUNDLED_FCFLAGS}
    ACX_SUBDIR_INIT_CMAKE([externals/math-support], [no-run], [],
      [AS_ESCAPE(["${CMAKE}"])])
    ACX_SUBDIR_REMOVE_ARGS([externals/math-support],
-dnl C and Fortran compiler flags are replaced below:
-     [-DCMAKE_C_FLAGS=*|-DCMAKE_Fortran_FLAGS=*],
-dnl C++ compiler is used for tests only, which we currently disable:
-     [-DCMAKE_CXX_*=*],
+dnl Fortran compiler flags are replaced below:
+     [-DCMAKE_Fortran_FLAGS=*],
+dnl C and C++ compilers are not used:
+     [-DCMAKE_C_*=*|-DCMAKE_CXX_*=*],
 dnl We build static libraries only:
      [-DCMAKE_SHARED_LINKER_FLAGS=*|-DCMAKE_MODULE_LINKER_FLAGS=*],
 dnl The interprocedural optimization is not enabled in the project:
@@ -2604,15 +2607,13 @@ dnl The interprocedural optimization is not enabled in the project:
      [icon_ms_openacc=ON],
      [icon_ms_openacc=OFF])
    ACX_SUBDIR_APPEND_ARGS([externals/math-support],
-dnl Extend C and Fortran compiler flags:
-     [-DCMAKE_C_FLAGS=dnl
-"$subdir_CFLAGS $ICON_MATH_SUPPORT_CFLAGS $subdir_CPPFLAGS"],
+dnl Extend Fortran compiler flags:
      [-DCMAKE_Fortran_FLAGS="$subdir_FCFLAGS $ICON_MATH_SUPPORT_FCFLAGS"],
 dnl Set up library-specific compiler flags:
-     [-DMS_ENABLE_LOOP_EXCHANGE=$enable_loop_exchange],
-     [-DMS_ENABLE_MIXED_PRECISION=$enable_mixed_precision],
-     [-DMS_ENABLE_DIM_SWAP=$enable_dim_swap],
-     [-DMS_ENABLE_OPENACC=$icon_ms_openacc],
+     [-DMS_ENABLE_LOOP_EXCHANGE="$enable_loop_exchange"],
+     [-DMS_ENABLE_MIXED_PRECISION="$enable_mixed_precision"],
+     [-DMS_ENABLE_DIM_SWAP="$enable_dim_swap"],
+     [-DMS_ENABLE_OPENACC="$icon_ms_openacc"],
 dnl Set the prefix path to find fortran-support
      [-DCMAKE_PREFIX_PATH:PATH=dnl
 "${icon_abs_top_builddir}/externals/fortran-support/build"],
