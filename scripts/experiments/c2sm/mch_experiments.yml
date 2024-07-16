@@ -1,0 +1,51 @@
+experiments:
+  - name: mch_ch_lowres
+    check: checksuite.icon-dev/check.mch_ch_lowres
+  - name: mch_ch_r04b09_dace
+    check: checksuite.icon-dev/check.mch_ch_r04b09_dace
+  - name: mch_ch_r04b09_dace_synsat
+    check: checksuite.icon-dev/check.mch_ch_r04b09_dace_synsat
+  - name: mch_kenda-ch1_small
+    check: checksuite.icon-dev/check.mch_kenda-ch1_small
+  - name: mch_pollen_test
+    check: checksuite.icon-dev/check.mch_pollen_test
+  - name: mch_icon-ch1
+    check: checksuite.icon-dev/check.mch_icon-ch1
+  - name: mch_icon-ch1_small
+    check: checksuite.icon-dev/check.mch_icon-ch1_small
+  - name: mch_icon-ch2
+    check: checksuite.icon-dev/check.mch_icon-ch2
+  - name: mch_icon-ch2_small
+    check: checksuite.icon-dev/check.mch_icon-ch2_small
+    tolerance:
+      ensemble_num: [1,2,3,4,5,6,7,8,9,12]
+  - name: mch_kenda-ch1
+    check: checksuite.icon-dev/check.mch_kenda-ch1
+  - name: mch_opr_r04b07
+    check: checksuite.icon-dev/check.mch_opr_r04b07
+  - name: mch_opr_r04b07_lhn_00
+    check: checksuite.icon-dev/check.mch_opr_r04b07_lhn_00
+    tolerance:
+      ensemble_num: [1,2,3,4,5,6,7,8,9,10,20]
+  - name: mch_opr_r04b07_lhn_12_emvorado
+    check: checksuite.icon-dev/check.mch_opr_r04b07_lhn_12_emvorado
+  - name: mch_opr_r04b07_nest
+    check: checksuite.icon-dev/check.mch_opr_r04b07_nest
+  - name: mch_opr_r04b07_performance
+    check: checksuite.icon-dev/check.mch_opr_r04b07_performance
+  - name: mch_opr_r04b07_sstice_inst
+    check: checksuite.icon-dev/check.mch_opr_r04b07_sstice_inst
+  - name: mch_opr_r19b07_lpi
+    check: checksuite.icon-dev/check.mch_opr_r19b07_lpi
+  - name: mch_opr_r19b07_midnight
+    check: checksuite.icon-dev/check.mch_opr_r19b07_midnight
+  - name: mch_opr_r19b07_turb
+    check: checksuite.icon-dev/check.mch_opr_r19b07_turb
+  - name: mch_kenda-ch1_dev_small
+    check: checksuite.icon-dev/check.mch_kenda-ch1_dev_small
+    tolerance:
+      ensemble_num: [1,2,3,4,5,6,7,18,21,34]
+  - name: mch_kenda-ch1_dev2_small
+    check: checksuite.icon-dev/check.mch_kenda-ch1_dev2_small
+    tolerance:
+      ensemble_num: [1,2,3,4,5,6,7,18,21,34]

@@ -1,0 +1,8 @@
+tests:
+
+  - name: atm_qubicc_nc
+    machines:
+      - name: daint
+        runflags: ['cpu_time=00:30:00']
+    refgen: ['DAINT_CPU_nvidia','DAINT_CPU_cce']
+    tags: ['merge2rc','atm','tolerance']

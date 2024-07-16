@@ -1,0 +1,4 @@
+experiments:
+
+  - name: atm_qubicc_nc
+    check: checksuite.icon-dev/check.atm_qubicc_nc

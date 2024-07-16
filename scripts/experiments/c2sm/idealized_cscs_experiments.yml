@@ -1,0 +1,9 @@
+experiments:
+  - name: atm_heldsuarez
+    check: checksuite.icon-dev/check.atm_heldsuarez
+
+  - name: exclaim_ape_R02B04
+    check: checksuite.icon-dev/check.exclaim_ape_R02B04
+
+  - name: atm_tracer_Hadley
+    check: checksuite.icon-dev/check.atm_tracer_Hadley 

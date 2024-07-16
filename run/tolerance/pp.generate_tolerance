@@ -47,7 +47,8 @@ if (( ${#probtest_file_id[@]} < 3 )) ; then
     echo "    ${probtest_file_id[*]}"
     exit 2
 fi
-source tolerance/set_probtest_ensemble_num "$probtest_exp"
+
+probtest_ensemble_num=$(${basedir}/scripts/experiments/get_probtest_ensemble_num --exp-yml ${basedir}/scripts/experiments/all_experiments.yml --test-yml ${basedir}/scripts/experiments/all_tests.yml --experiment $probtest_exp)
 
 # set up probtest config file
 export PROBTEST_CONFIG="${probtest_exp}-config.json"

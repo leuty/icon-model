@@ -1,0 +1,7 @@
+tests:
+  - name: dwd_run_ICON_09_R2B4N5_EPS 
+    machines:
+      - name: balfrin
+        include_only: ['balfrin_cpu_nvidia', 'balfrin_gpu_nvidia']
+    refgen: ['balfrin_cpu_nvidia']
+    tags: ['merge2rc','tolerance']

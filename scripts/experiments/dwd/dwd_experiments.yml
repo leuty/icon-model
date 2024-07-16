@@ -1,0 +1,3 @@
+experiments:
+  - name: dwd_run_ICON_09_R2B4N5_EPS 
+    check: checksuite.icon-dev/check.dwd_run_ICON_09_R2B4N5_EPS

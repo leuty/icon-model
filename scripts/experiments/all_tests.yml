@@ -1,0 +1,6 @@
+include:
+  - c2sm/mch_tests.yml
+  - c2sm/clm_tests.yml
+  - c2sm/idealized_cscs_tests.yml
+  - dwd/dwd_tests.yml
+  - mpim/qubicc_tests.yml
