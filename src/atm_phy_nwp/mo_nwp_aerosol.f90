@@ -152,7 +152,7 @@ CONTAINS
     REAL(wp), POINTER, INTENT(in) :: &
       &  wavenum1_sw(:),       & !< Shortwave wavenumber lower band bounds
       &  wavenum2_sw(:)          !< Shortwave wavenumber upper band bounds
-    REAL(wp), INTENT(inout) :: &
+    REAL(wp), ALLOCATABLE, TARGET, INTENT(inout) :: &
       &  zaeq1(:,:,:),         & !< Tegen optical thicknesses       1: continental
       &  zaeq2(:,:,:),         & !< relative to 550 nm, including   2: maritime
       &  zaeq3(:,:,:),         & !< a vertical profile              3: desert
@@ -196,7 +196,7 @@ CONTAINS
     jg     = pt_patch%id
 
     CALL set_acc_host_or_device(lzacc, lacc)
-  
+
     SELECT CASE(irad_aero)
 !---------------------------------------------------------------------------------------
 ! Tegen aerosol (+ART if chosen)
@@ -204,6 +204,13 @@ CONTAINS
       CASE(iRadAeroTegen, iRadAeroART)
 
         !$ACC DATA CREATE(latitude) IF(lzacc)
+
+        ALLOCATE( zaeq1( nproma, pt_patch%nlev, pt_patch%nblks_c), &
+          &       zaeq2( nproma, pt_patch%nlev, pt_patch%nblks_c), &
+          &       zaeq3( nproma, pt_patch%nlev, pt_patch%nblks_c), &
+          &       zaeq4( nproma, pt_patch%nlev, pt_patch%nblks_c), &
+          &       zaeq5( nproma, pt_patch%nlev, pt_patch%nblks_c)  )
+        !$ACC ENTER DATA CREATE(zaeq1, zaeq2, zaeq3, zaeq4, zaeq5) IF(lzacc)
 
         ! Outer two rows need dummy values as RRTM always starts at 1
         rl_start   = 1
@@ -224,7 +231,7 @@ CONTAINS
               zaeq3(jc,jk,jb) = 0._wp
               zaeq4(jc,jk,jb) = 0._wp
               zaeq5(jc,jk,jb) = 0._wp
-              ENDDO
+            ENDDO
           ENDDO
           !$ACC END PARALLEL
         ENDDO
@@ -359,16 +366,6 @@ CONTAINS
 !---------------------------------------------------------------------------------------
       CASE(iRadAeroConstKinne, iRadAeroKinne, iRadAeroVolc, iRadAeroKinneVolc, iRadAeroKinneVolcSP, iRadAeroKinneSP)
 
-!$OMP PARALLEL
-        ! These Tegen climatological aerosol fields are not used here but need to be initialized
-        ! to avoid runtime error in the upscaling to the reduced radiation grid (upscale_rad_input)
-        CALL init(zaeq1(:,:,:), lacc=.FALSE.)
-        CALL init(zaeq2(:,:,:), lacc=.FALSE.)
-        CALL init(zaeq3(:,:,:), lacc=.FALSE.)
-        CALL init(zaeq4(:,:,:), lacc=.FALSE.)
-        CALL init(zaeq5(:,:,:), lacc=.FALSE.)
-!$OMP END PARALLEL
-
         rl_start   = grf_bdywidth_c-1
         rl_end     = min_rlcell_int
         i_startblk = pt_patch%cells%start_block(rl_start)
@@ -437,16 +434,6 @@ CONTAINS
 
       ! CAMS climatology/forecasted aerosols
       CASE(iRadAeroCAMSclim,iRadAeroCAMStd)
-
-!$OMP PARALLEL
-        ! These Tegen climatological aerosol fields are not used here but need to be initialized
-        ! to avoid runtime error in the upscaling to the reduced radiation grid (upscale_rad_input)
-        CALL init(zaeq1(:,:,:), lacc=.FALSE.)
-        CALL init(zaeq2(:,:,:), lacc=.FALSE.)
-        CALL init(zaeq3(:,:,:), lacc=.FALSE.)
-        CALL init(zaeq4(:,:,:), lacc=.FALSE.)
-        CALL init(zaeq5(:,:,:), lacc=.FALSE.)
-!$OMP END PARALLEL
 
         rl_start   = grf_bdywidth_c+1
         rl_end     = min_rlcell_int
@@ -1175,17 +1162,49 @@ CONTAINS
   END SUBROUTINE get_time_intp_weights
 
   !---------------------------------------------------------------------------------------
-  SUBROUTINE nwp_aerosol_cleanup(od_lw, od_sw, ssa_sw, g_sw)
+  SUBROUTINE nwp_aerosol_cleanup(zaeq1, zaeq2, zaeq3, zaeq4, zaeq5, od_lw, od_sw, ssa_sw, g_sw)
     CHARACTER(len=*), PARAMETER :: &
       &  routine = modname//':nwp_aerosol_cleanup'
 
     REAL(wp), ALLOCATABLE, INTENT(inout) :: &
+      &  zaeq1(:,:,:),         & !< Tegen optical thicknesses       1: continental
+      &  zaeq2(:,:,:),         & !< relative to 550 nm, including   2: maritime
+      &  zaeq3(:,:,:),         & !< a vertical profile              3: desert
+      &  zaeq4(:,:,:),         & !< for 5 different                 4: urban
+      &  zaeq5(:,:,:),         & !< aerosol species.                5: stratospheric background
       &  od_lw(:,:,:,:),       & !< Longwave optical thickness
       &  od_sw(:,:,:,:),       & !< Shortwave optical thickness
       &  ssa_sw(:,:,:,:),      & !< Shortwave asymmetry factor
       &  g_sw(:,:,:,:)           !< Shortwave single scattering albedo
     ! Local variables
     INTEGER :: istat
+
+    !$ACC WAIT
+    IF( ALLOCATED(zaeq1) ) THEN
+      !$ACC EXIT DATA DELETE(zaeq1)
+      DEALLOCATE(zaeq1, STAT=istat)
+      IF(istat /= SUCCESS) CALL finish(routine, 'Deallocation of zaeq1 failed.')
+    ENDIF
+    IF( ALLOCATED(zaeq2) ) THEN
+      !$ACC EXIT DATA DELETE(zaeq2)
+      DEALLOCATE(zaeq2, STAT=istat)
+      IF(istat /= SUCCESS) CALL finish(routine, 'Deallocation of zaeq2 failed.')
+    ENDIF
+    IF( ALLOCATED(zaeq3) ) THEN
+      !$ACC EXIT DATA DELETE(zaeq3)
+      DEALLOCATE(zaeq3, STAT=istat)
+      IF(istat /= SUCCESS) CALL finish(routine, 'Deallocation of zaeq3 failed.')
+    ENDIF
+    IF( ALLOCATED(zaeq4) ) THEN
+      !$ACC EXIT DATA DELETE(zaeq4)
+      DEALLOCATE(zaeq4, STAT=istat)
+      IF(istat /= SUCCESS) CALL finish(routine, 'Deallocation of zaeq4 failed.')
+    ENDIF
+    IF( ALLOCATED(zaeq5) ) THEN
+      !$ACC EXIT DATA DELETE(zaeq5)
+      DEALLOCATE(zaeq5, STAT=istat)
+      IF(istat /= SUCCESS) CALL finish(routine, 'Deallocation of zaeq5 failed.')
+    ENDIF
 
     IF( ALLOCATED(od_lw) ) THEN
       DEALLOCATE(od_lw, STAT=istat)

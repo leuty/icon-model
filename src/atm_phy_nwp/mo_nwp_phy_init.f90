@@ -956,7 +956,7 @@ SUBROUTINE init_nwp_phy ( p_patch, p_metrics,             &
         !
         ! Do ecrad initialization only once
         IF (.NOT.lreset_mode .AND. jg==1) THEN
-          CALL setup_ecrad(p_patch,ecrad_conf,ini_date)
+          CALL setup_ecrad(ecrad_conf)
           !
           ! Setup Tegen aerosol needs to be done only once for all domains
           IF (irad_aero == iRadAeroTegen .OR. irad_aero == iRadAeroART) THEN
