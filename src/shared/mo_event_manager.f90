@@ -15,7 +15,11 @@
 MODULE mo_event_manager
 
   USE mo_exception, ONLY: finish, message, message_text
-  USE mtime
+  USE mtime, ONLY: MAX_EVENTNAME_STR_LEN, MAX_GROUPNAME_STR_LEN, &
+    & MAX_REPETITION_STR_LEN, datetime, event, eventToString, eventgroup, &
+    & getEventGroupName, getFirstEventFromEventGroup, &
+    & getNextEventFromEventGroup, getRepetitions, newDatetime, newEventGroup, &
+    & newTimedelta, splitRepetitionString, timedelta
 
   IMPLICIT NONE
 

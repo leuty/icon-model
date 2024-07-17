@@ -237,8 +237,6 @@ MODULE mo_async_latbc
   IMPLICIT NONE
   PRIVATE
 
-  INCLUDE 'netcdf.inc'
-
 #ifndef NOMPI
     PUBLIC :: prefetch_main_proc
 #endif

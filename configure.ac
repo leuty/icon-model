@@ -1391,17 +1391,33 @@ HDF5 library are available], [icon_cv_have_hdf5],
 low- and high-level interfaces of HDF5 library: set FCFLAGS, LDFLAGS and dnl
 LIBS accordingly])])])
 
-AC_CACHE_CHECK([whether the Fortran 77 interface of NetCDF library is dnl
+AS_IF([test "x$enable_dace" = xyes || test "x$enable_art" = xyes],
+  [AC_CACHE_CHECK([whether the Fortran 77 interface of NetCDF library is dnl
 available], [icon_cv_have_netcdf77],
-  [icon_cv_have_netcdf77=no
-   AC_LINK_IFELSE([AC_LANG_PROGRAM([], [[
+     [icon_cv_have_netcdf77=no
+      AC_LINK_IFELSE([AC_LANG_PROGRAM([], [[
       implicit none
       include 'netcdf.inc'
       integer :: status, ncid
       status = nf_open('conftest.nc', nf_nowrite, ncid)]])],
-  [icon_cv_have_netcdf77=yes])])
-AS_VAR_IF([icon_cv_have_netcdf77], [no],
-  [AC_MSG_FAILURE([unable to link a test program using the Fortran 77 dnl
+     [icon_cv_have_netcdf77=yes])])
+   AS_VAR_IF([icon_cv_have_netcdf77], [no],
+     [AC_MSG_FAILURE([unable to link a test program using the Fortran 77 dnl
+interface of NetCDF library: set FCFLAGS, LDFLAGS and LIBS accordingly])])])
+dnl
+AC_CACHE_CHECK([whether the Fortran 90 interface of NetCDF library is dnl
+available], [icon_cv_have_netcdf90],
+  [icon_cv_have_netcdf90=no
+   AC_LINK_IFELSE([AC_LANG_PROGRAM([], [[
+      use netcdf, only: nf90_open, nf90_nowrite
+      implicit none
+      integer :: status, ncid
+      status = nf90_open('conftest.nc', nf90_nowrite, ncid)]])],
+  [icon_cv_have_netcdf90=yes])])
+AS_VAR_IF([icon_cv_have_netcdf90], [yes],
+  [AS_VAR_IF([enable_emvorado], [yes],
+     [AS_VAR_APPEND([FCFLAGS], [" ${FC_PP_DEF}NETCDF"])])],
+  [AC_MSG_FAILURE([unable to link a test program using the Fortran 90 dnl
 interface of NetCDF library: set FCFLAGS, LDFLAGS and LIBS accordingly])])
 dnl
 AS_VAR_IF([enable_parallel_netcdf], [yes],
@@ -1429,16 +1445,17 @@ dnl the expected output from the test program and issue a warning.
       AC_LINK_IFELSE([AC_LANG_PROGRAM([], [[
       use mpi, only: mpi_init, mpi_finalize, &
                    & MPI_COMM_WORLD, MPI_INFO_NULL
+      use netcdf, only: nf90_create_par, NF90_MPIIO, &
+                        NF90_ENOPAR
       implicit none
-      include 'netcdf.inc'
       integer :: result, tmp
       call mpi_init(tmp)
-      result = nf_create_par('conftest.nc', &
-                           & NF_MPIIO, &
+      result = nf90_create_par('conftest.nc', &
+                           & NF90_MPIIO, &
                            & MPI_COMM_WORLD, &
                            & MPI_INFO_NULL, &
                            & tmp)
-      if (result == NF_ENOPAR) then
+      if (result == NF90_ENOPAR) then
         write(*,"(a)") "conftest_parallel_no"
       else
         write(*,"(a)") "conftest_parallel_yes"
@@ -1462,21 +1479,6 @@ parallel features: either disable usage of the parallel features of NetCDF dnl
      [test x"$icon_cv_have_netcdf_parallel" = xunknown],
      [AC_MSG_WARN([unable to check whether the provided version of NetCDF dnl
 supports the parallel features])])])
-dnl
-AC_CACHE_CHECK([whether the Fortran 90 interface of NetCDF library is dnl
-available], [icon_cv_have_netcdf90],
-  [icon_cv_have_netcdf90=no
-   AC_LINK_IFELSE([AC_LANG_PROGRAM([], [[
-      use netcdf, only: nf90_open, nf90_nowrite
-      implicit none
-      integer :: status, ncid
-      status = nf90_open('conftest.nc', nf90_nowrite, ncid)]])],
-  [icon_cv_have_netcdf90=yes])])
-AS_VAR_IF([icon_cv_have_netcdf90], [yes],
-  [AS_VAR_IF([enable_emvorado], [yes],
-     [AS_VAR_APPEND([FCFLAGS], [" ${FC_PP_DEF}NETCDF"])])],
-  [AC_MSG_FAILURE([unable to link a test program using the Fortran 90 dnl
-interface of NetCDF library: set FCFLAGS, LDFLAGS and LIBS accordingly])])
 
 AS_VAR_IF([enable_rte_rrtmgp], [yes],
   [AS_VAR_IF([with_external_rte_rrtmgp], [yes],
