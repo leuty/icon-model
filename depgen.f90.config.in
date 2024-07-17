@@ -52,7 +52,7 @@
 #   MTIME:
 --fc-external-mods=mtime
 #   YAC:
---fc-external-mods=yac,mo_yac_finterface
+--fc-external-mods=yac
 #   TIXI:
 --fc-external-mods=tixi
 #   NETCDF:
