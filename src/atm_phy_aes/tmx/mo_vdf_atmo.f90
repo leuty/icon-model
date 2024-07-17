@@ -1990,8 +1990,7 @@ END IF
     END IF
 
     ! Set up the tri-diagonal matrix
-    !$ACC PARALLEL DEFAULT(PRESENT) PRIVATE(jk_corr_a, jk_corr_c) ASYNC(1)
-    !$ACC LOOP GANG VECTOR COLLAPSE(2)
+    !$ACC PARALLEL LOOP DEFAULT(PRESENT) GANG VECTOR PRIVATE(jk_corr_a, jk_corr_c) COLLAPSE(2) ASYNC(1)
     DO jk=minlvl+1,maxlvl-1
       DO jc = ics, ice
         jk_corr_a = jk + lvlcorr_a
@@ -2001,27 +2000,29 @@ END IF
         b(jc,jk) = - a(jc,jk) - c(jc,jk)
       END DO
     END DO
+    !$ACC END PARALLEL LOOP
 
     jk_corr_a = minlvl + lvlcorr_a
     jk_corr_c = minlvl + lvlcorr_c
     ! Set up the upper boundary condition
-    !$ACC LOOP GANG(STATIC: 1) VECTOR
+    !$ACC PARALLEL LOOP DEFAULT(PRESENT) GANG VECTOR ASYNC(1)
     DO jc = ics, ice
       a(jc,minlvl) = 0._wp
       c(jc,minlvl) = - zmulti * zk(jc,jk_corr_c) * inv_dz(jc,jk_corr_c) * inv_mair(jc,minlvl)
       b(jc,minlvl) = - c(jc,minlvl)
     END DO
+    !$ACC END PARALLEL LOOP
 
     jk_corr_a = maxlvl + lvlcorr_a
     jk_corr_c = maxlvl + lvlcorr_c
     ! Set up the lower boundary condition
-    !$ACC LOOP GANG(STATIC: 1) VECTOR
+    !$ACC PARALLEL LOOP DEFAULT(PRESENT) GANG VECTOR ASYNC(1)
     DO jc = ics, ice
       a(jc,maxlvl) = - zmulti * zk(jc,jk_corr_a) * inv_dz(jc,jk_corr_a) * inv_mair(jc,maxlvl)
       c(jc,maxlvl) = 0._wp
       b(jc,maxlvl) = - a(jc,maxlvl)
     END DO
-    !$ACC END PARALLEL
+    !$ACC END PARALLEL LOOP
     !$ACC WAIT(1)
 
   END SUBROUTINE prepare_diffusion_matrix_dp
@@ -2103,8 +2104,7 @@ END IF
     END IF
 
     ! Set up the tri-diagonal matrix
-    !$ACC PARALLEL DEFAULT(PRESENT) PRIVATE(jk_corr_a, jk_corr_c) ASYNC(1)
-    !$ACC LOOP GANG VECTOR COLLAPSE(2)
+    !$ACC PARALLEL LOOP DEFAULT(PRESENT) GANG VECTOR PRIVATE(jk_corr_a, jk_corr_c) COLLAPSE(2) ASYNC(1)
     DO jk=minlvl+1,maxlvl-1
       DO jc = ics, ice
         jk_corr_a = jk + lvlcorr_a
@@ -2114,27 +2114,29 @@ END IF
         b(jc,jk) = - a(jc,jk) - c(jc,jk)
       END DO
     END DO
+    !$ACC END PARALLEL LOOP
 
     jk_corr_a = minlvl + lvlcorr_a
     jk_corr_c = minlvl + lvlcorr_c
     ! Set up the upper boundary condition
-    !$ACC LOOP GANG(STATIC: 1) VECTOR
+    !$ACC PARALLEL LOOP DEFAULT(PRESENT) GANG VECTOR ASYNC(1)
     DO jc = ics, ice
       a(jc,minlvl) = 0._wp
       c(jc,minlvl) = - zmulti * zk(jc,jk_corr_c) * inv_dz(jc,jk_corr_c) * inv_mair(jc,minlvl)
       b(jc,minlvl) = - c(jc,minlvl)
     END DO
+    !$ACC END PARALLEL LOOP
 
     jk_corr_a = maxlvl + lvlcorr_a
     jk_corr_c = maxlvl + lvlcorr_c
     ! Set up the lower boundary condition
-    !$ACC LOOP GANG(STATIC: 1) VECTOR
+    !$ACC PARALLEL LOOP DEFAULT(PRESENT) GANG VECTOR ASYNC(1)
     DO jc = ics, ice
       a(jc,maxlvl) = - zmulti * zk(jc,jk_corr_a) * inv_dz(jc,jk_corr_a) * inv_mair(jc,maxlvl)
       c(jc,maxlvl) = 0._wp
       b(jc,maxlvl) = - a(jc,maxlvl)
     END DO
-    !$ACC END PARALLEL
+    !$ACC END PARALLEL LOOP
     !$ACC WAIT(1)
 
   END SUBROUTINE prepare_diffusion_matrix_sp
