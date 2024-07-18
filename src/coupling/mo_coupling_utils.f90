@@ -344,7 +344,7 @@ CONTAINS
     DEALLOCATE (buffer_lon, buffer_lat, buffer_c)
 
     nblks = &
-      MAX(p_patch%n_patch_cells, p_patch%nblks_v, p_patch%nblks_e)
+      MAX(p_patch%nblks_c, p_patch%nblks_v)
     ALLOCATE(is_valid(nproma*nblks))
 
     ! set global indices and core masks
