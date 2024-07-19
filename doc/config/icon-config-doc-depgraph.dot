@@ -21,7 +21,8 @@ digraph ICON {
 			       "NetCDF-Fortran"; "RTE+RRTMGP"; "ECRAD"; "BLAS";
 			       "LAPACK"; "RTTOV"; "SCT"; "YAXT"; "ECCODES";
 			       "CDI"; "SERIALBOX"; "MTIME"; "YAC"; "ICON-TIXI";
-			       "COMIN"; "FORTRAN-SUPPORT"; "MATH-SUPPORT"};
+			       "COMIN"; "FORTRAN-SUPPORT"; "MATH-SUPPORT";
+			       "MATH-INTERPOLATION"};
 
 		"STDC++";
 
@@ -83,6 +84,9 @@ digraph ICON {
 
 		"MATH-SUPPORT" [shape=box; fillcolor="#47A1F1"];
 		"MATH-SUPPORT" -> {"FORTRAN-SUPPORT"};
+
+		"MATH-INTERPOLATION" [shape=box; fillcolor="#47A1F1"];
+		"MATH-INTERPOLATION" -> {"FORTRAN-SUPPORT"; "MATH-SUPPORT"};
 
 		"AEC / SZIP" [fillcolor="#DEF1D1"];
 		"AEC / SZIP";
