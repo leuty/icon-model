@@ -113,18 +113,33 @@ Autoreconf:
   variables:
     AUTOCONF_VERSION: "2.69"
     AUTOCONF_SHA256: 954bd69b391edc12d6a4a51a2dd1476543da5c6bbf05a95b59dc0dd6fd4c2969
+    AUTOCONF_DIR: ${CI_PROJECT_DIR}/autoconf
     GIT_SUBMODULE_STRATEGY: none
 
   before_script:
     - apk add --no-cache automake curl git m4 make perl
     - |
+      # Fetching Autoconf
+      test -f "${AUTOCONF_DIR}/autoconf-${AUTOCONF_VERSION}.tar.gz" && \
+      echo "${AUTOCONF_SHA256} ${AUTOCONF_DIR}/autoconf-${AUTOCONF_VERSION}.tar.gz" | sha256sum -c || \
+      (
+        set -x
+        mkdir -p "${AUTOCONF_DIR}" && \
+        cd "${AUTOCONF_DIR}" && \
+        {
+          curl -OL --connect-timeout 10 "https://ftpmirror.gnu.org/gnu/autoconf/autoconf-${AUTOCONF_VERSION}.tar.gz" || \
+          curl -L -o "autoconf-${AUTOCONF_VERSION}.tar.gz" "https://mirror.spack.io/_source-cache/archive/${AUTOCONF_SHA256:0:2}/${AUTOCONF_SHA256}.tar.gz"
+        } && \
+        echo "${AUTOCONF_SHA256} autoconf-${AUTOCONF_VERSION}.tar.gz" | sha256sum -c
+      ) || {
+        printf "${RED}ERROR: failed to fetch Autoconf ${AUTOCONF_VERSION}${DEFAULT}\n"
+        exit 1
+      }
+    - |
       # Installing Autoconf
       (
         set -x
-        mkdir autoconf && \
-        cd autoconf && \
-        curl -OL https://ftpmirror.gnu.org/gnu/autoconf/autoconf-${AUTOCONF_VERSION}.tar.gz && \
-        echo "${AUTOCONF_SHA256} autoconf-${AUTOCONF_VERSION}.tar.gz" | sha256sum -c && \
+        cd "${AUTOCONF_DIR}" && \
         tar xfz autoconf-${AUTOCONF_VERSION}.tar.gz --strip-components=1 && \
         ./configure && \
         make -j4 install
@@ -147,6 +162,12 @@ Autoreconf:
 
   tags:
     - alpine
+
+  cache:
+    policy: push
+    key: ${AUTOCONF_SHA256}
+    paths:
+      - ${AUTOCONF_DIR}/autoconf-${AUTOCONF_VERSION}.tar.gz
 
   artifacts:
     paths:
