@@ -647,18 +647,6 @@ AC_ARG_WITH([external-tixi],
   [AS_IF([test x"$withval" != xno], [with_external_tixi=yes])],
   [with_external_tixi=no])
 
-AC_ARG_WITH([external-math-interpolation],
-  [AS_HELP_STRING([--with-external-math-interpolation],
-     [use external MATH-INTERPOLATION library @<:@default=no@:>@])],
-  [AS_IF([test x"$withval" != xno], [with_external_math_interpolation=yes])],
-  [with_external_math_interpolation=no])
-
-AC_ARG_WITH([external-math-support],
-  [AS_HELP_STRING([--with-external-math-support],
-     [use external MATH-SUPPORT library @<:@default=no@:>@])],
-  [AS_IF([test x"$withval" != xno], [with_external_math_support=yes])],
-  [with_external_math_support=no])
-
 AC_ARG_WITH([external-fortran-support],
   [AS_HELP_STRING([--with-external-fortran-support],
      [use external FORTRAN-SUPPORT library @<:@default=no@:>@])],
@@ -1168,13 +1156,13 @@ esac
 dnl One of the topological orderings of the ICON dependency graph
 dnl (run ./utils/icon_sorted_deps.sh):
 dnl
-dnl '-lmath-interpolation', '-lmath-support', '-lfortran-support', '-lcomin',
-dnl '-licon_tixi', '-lyac', '-lmtime', '-lSerialboxFortranShared',
-dnl '-lcdi_f2003 -lcdipio -lcdi', '-lscalesppmcore', '-leccodes_f90',
-dnl '-lyaxt -lyaxt_c', '-lsct', '-lrttov_other -lrttov_emis_atlas (etc.)',
-dnl '-llapack -lblas (or other)', '-lradiation -lifsrrtm -lutilities -lifsaux',
-dnl '-lrrtmgp -lrte', '-lnetcdff', '-lhdf5hl_fortran -lhdf5_fortran', '-lz',
-dnl '-lgomp (or other)', '-lmpifort -lmpi (or other)'
+dnl '-lfortran-support', '-lcomin', '-licon_tixi', '-lyac', '-lmtime',
+dnl '-lSerialboxFortranShared', '-lcdi_f2003 -lcdipio -lcdi', '-lscalesppmcore',
+dnl '-leccodes_f90', '-lyaxt -lyaxt_c', '-lsct',
+dnl '-lrttov_other -lrttov_emis_atlas (etc.)', '-llapack -lblas (or other)',
+dnl '-lradiation -lifsrrtm -lutilities -lifsaux', '-lrrtmgp -lrte', '-lnetcdff',
+dnl '-lhdf5hl_fortran -lhdf5_fortran', '-lz', '-lgomp (or other)',
+dnl '-lmpifort -lmpi (or other)'
 dnl
 dnl We check these dependencies in the reverse order.
 
@@ -2560,168 +2548,101 @@ dnl Set non-existing build type to avoid extra compiler flags:
    BUNDLED_LIBFILES=dnl
 "externals/fortran-support/build/src/libfortran-support.a $BUNDLED_LIBFILES"])
 
-AS_VAR_IF([with_external_math_support], [yes],
-  [AS_VAR_IF([with_external_fortran_support], [no],
-     [AC_MSG_ERROR([unsupported combination of the configure options: dnl
-you are trying to configure with an external MATH-SUPPORT library and the dnl
-bundled FORTRAN-SUPPORT library: use the bundled version of MATH-SUPPORT dnl
-library (--without-external-math-support), or provide the version of dnl
-FORTRAN-SUPPORT library (--with-external-fortran-support) that the provided dnl
-MATH-SUPPORT library has been built with by setting FCFLAGS, LDFLAGS and dnl
-LIBS accordingly])])
-  AC_CACHE_CHECK([whether MATH-SUPPORT library is available],
-     [icon_cv_have_math_support],
-     [icon_cv_have_math_support=no
-      AC_LINK_IFELSE([AC_LANG_PROGRAM([], [[
-      use mo_math_utilities, only: vector_product
-      use mo_math_types, only: t_cartesian_coordinates
-      implicit none
-      type(t_cartesian_coordinates) :: x1, x2, x3
-      x3 = vector_product(x1, x2)]])],
-        [icon_cv_have_math_support=yes])])
-   AS_VAR_IF([icon_cv_have_math_support], [no],
-     [AC_MSG_FAILURE([unable to link a test program using MATH-SUPPORT dnl
-library: either use the bundled version of MATH-SUPPORT dnl
-(--without-external-math-support) or set FCFLAGS, LDFLAGS and LIBS dnl
-accordingly])])],
-dnl
-  [icon_subdir_srcdir="$srcdir/externals/math-support"
-   icon_subdir_unique_file="src/mo_math_constants.f90"
-   AS_IF([test ! -r "$icon_subdir_srcdir/$icon_subdir_unique_file"],
-     [AC_MSG_ERROR([unable to find sources of the bundled version of dnl
-MATH-SUPPORT library ($icon_subdir_unique_file) in '$icon_subdir_srcdir': dnl
-provide an external version of MATH-SUPPORT library dnl
-(--with-external-math-support) by setting FCFLAGS, LDFLAGS and LIBS dnl
-accordingly])])
-   AC_ARG_VAR([ICON_MATH_SUPPORT_FCFLAGS],
-     [Fortran compiler flags to be appended to FCFLAGS when configuring the
+icon_subdir_srcdir="$srcdir/externals/math-support"
+icon_subdir_unique_file="src/mo_math_constants.f90"
+AS_IF([test ! -r "$icon_subdir_srcdir/$icon_subdir_unique_file"],
+  [AC_MSG_ERROR([unable to find sources of the bundled version of dnl
+MATH-SUPPORT library ($icon_subdir_unique_file) in '$icon_subdir_srcdir'])])
+AC_ARG_VAR([ICON_MATH_SUPPORT_FCFLAGS],
+  [Fortran compiler flags to be appended to FCFLAGS when configuring the
 bundled version of MATH-SUPPORT library
 @<:@default=$ICON_BUNDLED_FCFLAGS@:>@])dnl
-   ICON_MATH_SUPPORT_FCFLAGS=${ICON_MATH_SUPPORT_FCFLAGS-$ICON_BUNDLED_FCFLAGS}
-   ACX_SUBDIR_INIT_CMAKE([externals/math-support], [no-run], [],
-     [AS_ESCAPE(["${CMAKE}"])])
-   ACX_SUBDIR_REMOVE_ARGS([externals/math-support],
+ICON_MATH_SUPPORT_FCFLAGS=${ICON_MATH_SUPPORT_FCFLAGS-$ICON_BUNDLED_FCFLAGS}
+ACX_SUBDIR_INIT_CMAKE([externals/math-support], [no-run], [],
+  [AS_ESCAPE(["${CMAKE}"])])
+ACX_SUBDIR_REMOVE_ARGS([externals/math-support],
 dnl Fortran compiler flags are replaced below:
-     [-DCMAKE_Fortran_FLAGS=*],
+  [-DCMAKE_Fortran_FLAGS=*],
 dnl C and C++ compilers are not used:
-     [-DCMAKE_C_*=*|-DCMAKE_CXX_*=*],
+  [-DCMAKE_C_*=*|-DCMAKE_CXX_*=*],
 dnl We build static libraries only:
-     [-DCMAKE_SHARED_LINKER_FLAGS=*|-DCMAKE_MODULE_LINKER_FLAGS=*],
+  [-DCMAKE_SHARED_LINKER_FLAGS=*|-DCMAKE_MODULE_LINKER_FLAGS=*],
 dnl The interprocedural optimization is not enabled in the project:
-     [-DCMAKE_*_COMPILER_AR=*|-DCMAKE_*_COMPILER_RANLIB=*])
-   AS_VAR_IF([icon_gpu_primary], [openacc],
-     [icon_ms_openacc=ON],
-     [icon_ms_openacc=OFF])
-   ACX_SUBDIR_APPEND_ARGS([externals/math-support],
+  [-DCMAKE_*_COMPILER_AR=*|-DCMAKE_*_COMPILER_RANLIB=*])
+AS_VAR_IF([icon_gpu_primary], [openacc],
+  [icon_ms_openacc=ON],
+  [icon_ms_openacc=OFF])
+ACX_SUBDIR_APPEND_ARGS([externals/math-support],
 dnl Extend Fortran compiler flags:
-     [-DCMAKE_Fortran_FLAGS="$subdir_FCFLAGS $ICON_MATH_SUPPORT_FCFLAGS"],
+  [-DCMAKE_Fortran_FLAGS="$subdir_FCFLAGS $ICON_MATH_SUPPORT_FCFLAGS"],
 dnl Set up library-specific compiler flags:
-     [-DMS_ENABLE_LOOP_EXCHANGE="$enable_loop_exchange"],
-     [-DMS_ENABLE_MIXED_PRECISION="$enable_mixed_precision"],
-     [-DMS_ENABLE_DIM_SWAP="$enable_dim_swap"],
-     [-DMS_ENABLE_OPENACC="$icon_ms_openacc"],
+  [-DMS_ENABLE_LOOP_EXCHANGE="$enable_loop_exchange"],
+  [-DMS_ENABLE_MIXED_PRECISION="$enable_mixed_precision"],
+  [-DMS_ENABLE_DIM_SWAP="$enable_dim_swap"],
+  [-DMS_ENABLE_OPENACC="$icon_ms_openacc"],
 dnl Set the prefix path to find fortran-support
-     [-DCMAKE_PREFIX_PATH:PATH=dnl
+  [-DCMAKE_PREFIX_PATH:PATH=dnl
 "${icon_abs_top_builddir}/externals/fortran-support/build"],
 dnl Build the static version of the library and disable the tests:
-     [-DBUILD_SHARED_LIBS:BOOL=OFF], [-DBUILD_TESTING:BOOL=OFF],
+  [-DBUILD_SHARED_LIBS:BOOL=OFF], [-DBUILD_TESTING:BOOL=OFF],
 dnl Building a standalone version of the library is not required:
-     [-DBUILD_STANDALONE:BOOL=OFF],
+  [-DBUILD_STANDALONE:BOOL=OFF],
 dnl Set non-existing build type to avoid extra compiler flags:
-     [-DCMAKE_BUILD_TYPE:STRING=NOEXTRAFLAGS])
-   AS_VAR_APPEND([bundled_includes],
-     ["${FC_MOD_IN}externals/math-support/build/src/mod "])
-   BUNDLED_LIBFILES="externals/math-support/build/src/libmath-support.a dnl
-$BUNDLED_LIBFILES"])
+  [-DCMAKE_BUILD_TYPE:STRING=NOEXTRAFLAGS])
+AS_VAR_APPEND([bundled_includes],
+  ["${FC_MOD_IN}externals/math-support/build/src/mod "])
+BUNDLED_LIBFILES="externals/math-support/build/src/libmath-support.a dnl
+$BUNDLED_LIBFILES"
 
-AS_VAR_IF([with_external_math_interpolation], [yes],
-  [AS_VAR_IF([with_external_fortran_support], [no],
-     [AC_MSG_ERROR([unsupported combination of the configure options: dnl
-you are trying to configure with an external MATH-INTERPOLATION library and dnl
-the bundled FORTRAN-SUPPORT library: use the bundled version of dnl
-MATH-INTERPOLATION library (--without-external-math-interpolation), or dnl
-provide the version of FORTRAN-SUPPORT library dnl
-(--with-external-fortran-support) that the provided MATH-INTERPOLATION dnl
-library has been built with by setting FCFLAGS, LDFLAGS and LIBS accordingly])])
-   AS_VAR_IF([with_external_math_support], [no],
-     [AC_MSG_ERROR([unsupported combination of the configure options: dnl
-you are trying to configure with an external MATH-INTERPOLATION library and dnl
-the bundled MATH-SUPPORT library: use the bundled version of dnl
-MATH-INTERPOLATION library (--without-external-math-interpolation), or dnl
-provide the version of MATH-SUPPORT library (--with-external-math-support) dnl
-that the provided MATH-INTERPOLATION library has been built with by setting dnl
-FCFLAGS, LDFLAGS and LIBS accordingly])])
-  AC_CACHE_CHECK([whether MATH-INTERPOLATION library is available],
-     [icon_cv_have_math_interpolation],
-     [icon_cv_have_math_interpolation=no
-      AC_LINK_IFELSE([AC_LANG_PROGRAM([], [[
-      use, intrinsic :: iso_fortran_env, only: real64
-      use mo_lib_interpolation_scalar, only: verts2edges_scalar_lib
-      implicit none
-      real(real64) :: vin(2,2,2), eout(2,2,2), c(2,2,2)
-      integer :: evidx(2,2,2), evblk(2,2,2), &
-        & sblk, eblk, sidx, eidx, slev, elev, nproma
-      logical :: acc
-      call verts2edges_scalar_lib(vin, evidx, evblk, c, eout, sblk, &
-        & eblk, sidx, eidx, slev, elev, nproma, acc)]])],
-          [icon_cv_have_math_interpolation=yes])])
-   AS_VAR_IF([icon_cv_have_math_interpolation], [no],
-     [AC_MSG_FAILURE([unable to link a test program using MATH-INTERPOLATION dnl
-library: either use the bundled version of MATH-INTERPOLATION dnl
-(--without-external-math-interpolation) or set FCFLAGS, LDFLAGS and LIBS dnl
-accordingly])])],
-dnl
-  [icon_subdir_srcdir="$srcdir/externals/math-interpolation"
-   icon_subdir_unique_file="src/mo_lib_interpolation_vector.F90"
-   AS_IF([test ! -r "$icon_subdir_srcdir/$icon_subdir_unique_file"],
-     [AC_MSG_ERROR([unable to find sources of the bundled version of dnl
+icon_subdir_srcdir="$srcdir/externals/math-interpolation"
+icon_subdir_unique_file="src/mo_lib_interpolation_vector.F90"
+AS_IF([test ! -r "$icon_subdir_srcdir/$icon_subdir_unique_file"],
+  [AC_MSG_ERROR([unable to find sources of the bundled version of dnl
 MATH-INTERPOLATION library ($icon_subdir_unique_file) in dnl
-'$icon_subdir_srcdir': provide an external version of MATH-INTERPOLATION dnl
-library (--with-external-math-interpolation) by setting FCFLAGS, LDFLAGS and dnl
-LIBS accordingly])])
-   AC_ARG_VAR([ICON_MATH_INTERPOLATION_FCFLAGS],
-     [Fortran compiler flags to be appended to FCFLAGS when configuring the
+'$icon_subdir_srcdir'])])
+AC_ARG_VAR([ICON_MATH_INTERPOLATION_FCFLAGS],
+  [Fortran compiler flags to be appended to FCFLAGS when configuring the
 bundled version of MATH-INTERPOLATION library
 @<:@default=$ICON_BUNDLED_FCFLAGS@:>@])dnl
-   ICON_MATH_INTERPOLATION_FCFLAGS=dnl
+ICON_MATH_INTERPOLATION_FCFLAGS=dnl
 ${ICON_MATH_INTERPOLATION_FCFLAGS-$ICON_BUNDLED_FCFLAGS}
-   ACX_SUBDIR_INIT_CMAKE([externals/math-interpolation], [no-run], [],
-     [AS_ESCAPE(["${CMAKE}"])])
-   ACX_SUBDIR_REMOVE_ARGS([externals/math-interpolation],
+ACX_SUBDIR_INIT_CMAKE([externals/math-interpolation], [no-run], [],
+  [AS_ESCAPE(["${CMAKE}"])])
+ACX_SUBDIR_REMOVE_ARGS([externals/math-interpolation],
 dnl Fortran compiler flags are replaced below:
-     [-DCMAKE_Fortran_FLAGS=*],
+  [-DCMAKE_Fortran_FLAGS=*],
 dnl C and C++ compilers are not used:
-     [-DCMAKE_C_*=*|-DCMAKE_CXX_*=*],
+  [-DCMAKE_C_*=*|-DCMAKE_CXX_*=*],
 dnl We build static libraries only:
-     [-DCMAKE_SHARED_LINKER_FLAGS=*|-DCMAKE_MODULE_LINKER_FLAGS=*],
+  [-DCMAKE_SHARED_LINKER_FLAGS=*|-DCMAKE_MODULE_LINKER_FLAGS=*],
 dnl The interprocedural optimization is not enabled in the project:
-     [-DCMAKE_*_COMPILER_AR=*|-DCMAKE_*_COMPILER_RANLIB=*])
-   AS_VAR_IF([icon_gpu_primary], [openacc],
-     [icon_mi_openacc=ON],
-     [icon_mi_openacc=OFF])
-   ACX_SUBDIR_APPEND_ARGS([externals/math-interpolation],
+  [-DCMAKE_*_COMPILER_AR=*|-DCMAKE_*_COMPILER_RANLIB=*])
+AS_VAR_IF([icon_gpu_primary], [openacc],
+  [icon_mi_openacc=ON],
+  [icon_mi_openacc=OFF])
+ACX_SUBDIR_APPEND_ARGS([externals/math-interpolation],
 dnl Extend Fortran compiler flags:
-     [-DCMAKE_Fortran_FLAGS="$subdir_FCFLAGS $ICON_MATH_INTERPOLATION_FCFLAGS"],
+  [-DCMAKE_Fortran_FLAGS="$subdir_FCFLAGS $ICON_MATH_INTERPOLATION_FCFLAGS"],
 dnl Set up library-specific compiler flags:
-     [-DMI_ENABLE_LOOP_EXCHANGE="$enable_loop_exchange"],
-     [-DMI_ENABLE_MIXED_PRECISION="$enable_mixed_precision"],
-     [-DMI_ENABLE_DIM_SWAP="$enable_dim_swap"],
-     [-DMI_ENABLE_OPENACC="$icon_mi_openacc"],
+  [-DMI_ENABLE_LOOP_EXCHANGE="$enable_loop_exchange"],
+  [-DMI_ENABLE_MIXED_PRECISION="$enable_mixed_precision"],
+  [-DMI_ENABLE_DIM_SWAP="$enable_dim_swap"],
+  [-DMI_ENABLE_OPENACC="$icon_mi_openacc"],
 dnl Set the prefix path to find fortran-support and math-support
-     [-DCMAKE_PREFIX_PATH:PATH=dnl
+  [-DCMAKE_PREFIX_PATH:PATH=dnl
 "${icon_abs_top_builddir}/externals/fortran-support/build;dnl
 ${icon_abs_top_builddir}/externals/math-support/build"],
 dnl Build the static version of the library and disable the tests:
-     [-DBUILD_SHARED_LIBS:BOOL=OFF], [-DBUILD_TESTING:BOOL=OFF],
+  [-DBUILD_SHARED_LIBS:BOOL=OFF], [-DBUILD_TESTING:BOOL=OFF],
 dnl Building a standalone version of the library is not required:
-     [-DBUILD_STANDALONE:BOOL=OFF],
+  [-DBUILD_STANDALONE:BOOL=OFF],
 dnl Set non-existing build type to avoid extra compiler flags:
-     [-DCMAKE_BUILD_TYPE:STRING=NOEXTRAFLAGS])
-   AS_VAR_APPEND([bundled_includes],
-     ["${FC_MOD_IN}externals/math-interpolation/build/src/mod "])
-   BUNDLED_LIBFILES=dnl
+  [-DCMAKE_BUILD_TYPE:STRING=NOEXTRAFLAGS])
+AS_VAR_APPEND([bundled_includes],
+  ["${FC_MOD_IN}externals/math-interpolation/build/src/mod "])
+BUNDLED_LIBFILES=dnl
 "externals/math-interpolation/build/src/libmath-interpolation.a dnl
-$BUNDLED_LIBFILES"])
+$BUNDLED_LIBFILES"
 
 dnl Prepend the include search flags to FCFLAGS:
 AS_IF([test -n "$bundled_includes"], [FCFLAGS="${bundled_includes}${FCFLAGS}"])

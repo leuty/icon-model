@@ -166,8 +166,6 @@ recommended (topologically sorted) order for the `LIBS` argument is presented in
 
 | Package | Dependency condition<sup><a name="f1-back" href="#f1">1</a></sup> | Required flags<sup><a href="#f1">1</a></sup> |
 | :---: | :---: | :---: |
-| [MATH-INTERPOLATION](https://gitlab.dkrz.de/icon-libraries/libmath-interpolation) | `--with-external-math-interpolation` | `FCFLAGS='-I/path/to/math-interpolation/include' LDFLAGS='-L/path/to/math-interpolation/lib' LIBS='-lmath-interpolation'` |
-| [MATH-SUPPORT](https://gitlab.dkrz.de/icon-libraries/libmath-support) | `--with-external-math-support` | `FCFLAGS='-I/path/to/math-support/include' LDFLAGS='-L/path/to/math-support/lib' LIBS='-lmath-support'` |
 | [FORTRAN-SUPPORT](https://gitlab.dkrz.de/icon-libraries/libfortran-support) | `--with-external-fortran-support` | `FCFLAGS='-I/path/to/fortran-support/include' LDFLAGS='-L/path/to/fortran-support/lib' LIBS='-lfortran-support'` |
 | [ICON-TIXI](https://gitlab.dkrz.de/icon-libraries/libtixi) (a modified version of [TIXI](https://github.com/DLR-SC/tixi)) | `--enable-art --with-external-tixi` | `FCFLAGS='-I/path/to/tixi/include' LDFLAGS='-L/path/to/tixi/lib' LIBS='-licon_tixi'` |
 | [XML2](http://www.xmlsoft.org/) |  `--enable-art`<sup><a name="f2-back" href="#f2">2</a></sup>| `CPPFLAGS='-I/path/to/libxml2/include/libxml2' LDFLAGS='-L/path/to/libxml2/lib' LIBS='-lxml2'` |

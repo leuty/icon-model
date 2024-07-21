@@ -799,8 +799,6 @@ with_external_cdi
 with_external_mtime
 with_external_yac
 with_external_tixi
-with_external_math_interpolation
-with_external_math_support
 with_external_fortran_support
 with_external_comin
 '
@@ -1663,10 +1661,6 @@ Optional Packages:
   --with-external-mtime   use external MTIME library [default=no]
   --with-external-yac     use external YAC library [default=no]
   --with-external-tixi    use external TIXI library [default=no]
-  --with-external-math-interpolation
-                          use external MATH-INTERPOLATION library [default=no]
-  --with-external-math-support
-                          use external MATH-SUPPORT library [default=no]
   --with-external-fortran-support
                           use external FORTRAN-SUPPORT library [default=no]
   --with-external-comin   use external COMIN library [default=no]
@@ -3803,28 +3797,6 @@ if test "${with_external_tixi+set}" = set; then :
 fi
 else
   with_external_tixi=no
-fi
-
-
-
-# Check whether --with-external-math-interpolation was given.
-if test "${with_external_math_interpolation+set}" = set; then :
-  withval=$with_external_math_interpolation; if test x"$withval" != xno; then :
-  with_external_math_interpolation=yes
-fi
-else
-  with_external_math_interpolation=no
-fi
-
-
-
-# Check whether --with-external-math-support was given.
-if test "${with_external_math_support+set}" = set; then :
-  withval=$with_external_math_support; if test x"$withval" != xno; then :
-  with_external_math_support=yes
-fi
-else
-  with_external_math_support=no
 fi
 
 
@@ -10604,49 +10576,13 @@ esac
    BUNDLED_LIBFILES="externals/fortran-support/build/src/libfortran-support.a $BUNDLED_LIBFILES"
 fi
 
-if test "x$with_external_math_support" = xyes; then :
-  if test "x$with_external_fortran_support" = xno; then :
-  as_fn_error $? "unsupported combination of the configure options: you are trying to configure with an external MATH-SUPPORT library and the bundled FORTRAN-SUPPORT library: use the bundled version of MATH-SUPPORT library (--without-external-math-support), or provide the version of FORTRAN-SUPPORT library (--with-external-fortran-support) that the provided MATH-SUPPORT library has been built with by setting FCFLAGS, LDFLAGS and LIBS accordingly" "$LINENO" 5
+icon_subdir_srcdir="$srcdir/externals/math-support"
+icon_subdir_unique_file="src/mo_math_constants.f90"
+if test ! -r "$icon_subdir_srcdir/$icon_subdir_unique_file"; then :
+  as_fn_error $? "unable to find sources of the bundled version of MATH-SUPPORT library ($icon_subdir_unique_file) in '$icon_subdir_srcdir'" "$LINENO" 5
 fi
-  { $as_echo "$as_me:${as_lineno-$LINENO}: checking whether MATH-SUPPORT library is available" >&5
-$as_echo_n "checking whether MATH-SUPPORT library is available... " >&6; }
-if ${icon_cv_have_math_support+:} false; then :
-  $as_echo_n "(cached) " >&6
-else
-  icon_cv_have_math_support=no
-      cat > conftest.$ac_ext <<_ACEOF
-      program main
-
-      use mo_math_utilities, only: vector_product
-      use mo_math_types, only: t_cartesian_coordinates
-      implicit none
-      type(t_cartesian_coordinates) :: x1, x2, x3
-      x3 = vector_product(x1, x2)
-      end
-_ACEOF
-if ac_fn_fc_try_link "$LINENO"; then :
-  icon_cv_have_math_support=yes
-fi
-rm -f core conftest.err conftest.$ac_objext \
-    conftest$ac_exeext conftest.$ac_ext
-fi
-{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $icon_cv_have_math_support" >&5
-$as_echo "$icon_cv_have_math_support" >&6; }
-   if test "x$icon_cv_have_math_support" = xno; then :
-  { { $as_echo "$as_me:${as_lineno-$LINENO}: error: in \`$ac_pwd':" >&5
-$as_echo "$as_me: error: in \`$ac_pwd':" >&2;}
-as_fn_error $? "unable to link a test program using MATH-SUPPORT library: either use the bundled version of MATH-SUPPORT (--without-external-math-support) or set FCFLAGS, LDFLAGS and LIBS accordingly
-See \`config.log' for more details
-${icon_usr_note}" "$LINENO" 5; }
-fi
-else
-    icon_subdir_srcdir="$srcdir/externals/math-support"
-   icon_subdir_unique_file="src/mo_math_constants.f90"
-   if test ! -r "$icon_subdir_srcdir/$icon_subdir_unique_file"; then :
-  as_fn_error $? "unable to find sources of the bundled version of MATH-SUPPORT library ($icon_subdir_unique_file) in '$icon_subdir_srcdir': provide an external version of MATH-SUPPORT library (--with-external-math-support) by setting FCFLAGS, LDFLAGS and LIBS accordingly" "$LINENO" 5
-fi
-      ICON_MATH_SUPPORT_FCFLAGS=${ICON_MATH_SUPPORT_FCFLAGS-$ICON_BUNDLED_FCFLAGS}
-                  acx_subdir_run_cmd_externals_math_support="\"\${CMAKE}\""
+ICON_MATH_SUPPORT_FCFLAGS=${ICON_MATH_SUPPORT_FCFLAGS-$ICON_BUNDLED_FCFLAGS}
+               acx_subdir_run_cmd_externals_math_support="\"\${CMAKE}\""
    acx_subdir_run_dir_externals_math_support="externals/math-support/build"
    acx_subdir_build_type_externals_math_support='cmake'
          acx_subdir_pre_adjust_cmake_args
@@ -10667,18 +10603,18 @@ esac
       as_fn_append acx_subdir_run_args_externals_math_support " '$acx_tmp'"
       as_fn_append extra_src_subdirs " externals/math-support"
    acx_subdir_run_condition_externals_math_support=no
-   eval "set dummy $acx_subdir_run_args_externals_math_support"; shift
+eval "set dummy $acx_subdir_run_args_externals_math_support"; shift
    acx_subdir_run_args_externals_math_support=
    while test $# != 0; do
      acx_tmp=$1
      case $acx_tmp in #(
-       -DCMAKE_Fortran_FLAGS=*) :
+    -DCMAKE_Fortran_FLAGS=*) :
      ;; #(
-       -DCMAKE_C_*=*|-DCMAKE_CXX_*=*) :
+    -DCMAKE_C_*=*|-DCMAKE_CXX_*=*) :
      ;; #(
-       -DCMAKE_SHARED_LINKER_FLAGS=*|-DCMAKE_MODULE_LINKER_FLAGS=*) :
+    -DCMAKE_SHARED_LINKER_FLAGS=*|-DCMAKE_MODULE_LINKER_FLAGS=*) :
      ;; #(
-       -DCMAKE_*_COMPILER_AR=*|-DCMAKE_*_COMPILER_RANLIB=*) :
+    -DCMAKE_*_COMPILER_AR=*|-DCMAKE_*_COMPILER_RANLIB=*) :
      ;; #(
   *) :
            case $acx_tmp in #(
@@ -10691,12 +10627,12 @@ esac
 esac
      shift
    done
-   if test "x$icon_gpu_primary" = xopenacc; then :
+if test "x$icon_gpu_primary" = xopenacc; then :
   icon_ms_openacc=ON
 else
   icon_ms_openacc=OFF
 fi
-   set dummy      -DCMAKE_Fortran_FLAGS="$subdir_FCFLAGS $ICON_MATH_SUPPORT_FCFLAGS"      -DMS_ENABLE_LOOP_EXCHANGE="$enable_loop_exchange" -DMS_ENABLE_MIXED_PRECISION="$enable_mixed_precision" -DMS_ENABLE_DIM_SWAP="$enable_dim_swap" -DMS_ENABLE_OPENACC="$icon_ms_openacc"      -DCMAKE_PREFIX_PATH:PATH="${icon_abs_top_builddir}/externals/fortran-support/build"      -DBUILD_SHARED_LIBS:BOOL=OFF -DBUILD_TESTING:BOOL=OFF      -DBUILD_STANDALONE:BOOL=OFF      -DCMAKE_BUILD_TYPE:STRING=NOEXTRAFLAGS; shift
+set dummy   -DCMAKE_Fortran_FLAGS="$subdir_FCFLAGS $ICON_MATH_SUPPORT_FCFLAGS"   -DMS_ENABLE_LOOP_EXCHANGE="$enable_loop_exchange" -DMS_ENABLE_MIXED_PRECISION="$enable_mixed_precision" -DMS_ENABLE_DIM_SWAP="$enable_dim_swap" -DMS_ENABLE_OPENACC="$icon_ms_openacc"   -DCMAKE_PREFIX_PATH:PATH="${icon_abs_top_builddir}/externals/fortran-support/build"   -DBUILD_SHARED_LIBS:BOOL=OFF -DBUILD_TESTING:BOOL=OFF   -DBUILD_STANDALONE:BOOL=OFF   -DCMAKE_BUILD_TYPE:STRING=NOEXTRAFLAGS; shift
    for acx_tmp; do
      case $acx_tmp in #(
   *\'*) :
@@ -10706,60 +10642,16 @@ fi
 esac
      as_fn_append acx_subdir_run_args_externals_math_support " '$acx_tmp'"
    done
-   as_fn_append bundled_includes "${FC_MOD_IN}externals/math-support/build/src/mod "
-   BUNDLED_LIBFILES="externals/math-support/build/src/libmath-support.a $BUNDLED_LIBFILES"
-fi
+as_fn_append bundled_includes "${FC_MOD_IN}externals/math-support/build/src/mod "
+BUNDLED_LIBFILES="externals/math-support/build/src/libmath-support.a $BUNDLED_LIBFILES"
 
-if test "x$with_external_math_interpolation" = xyes; then :
-  if test "x$with_external_fortran_support" = xno; then :
-  as_fn_error $? "unsupported combination of the configure options: you are trying to configure with an external MATH-INTERPOLATION library and the bundled FORTRAN-SUPPORT library: use the bundled version of MATH-INTERPOLATION library (--without-external-math-interpolation), or provide the version of FORTRAN-SUPPORT library (--with-external-fortran-support) that the provided MATH-INTERPOLATION library has been built with by setting FCFLAGS, LDFLAGS and LIBS accordingly" "$LINENO" 5
+icon_subdir_srcdir="$srcdir/externals/math-interpolation"
+icon_subdir_unique_file="src/mo_lib_interpolation_vector.F90"
+if test ! -r "$icon_subdir_srcdir/$icon_subdir_unique_file"; then :
+  as_fn_error $? "unable to find sources of the bundled version of MATH-INTERPOLATION library ($icon_subdir_unique_file) in '$icon_subdir_srcdir'" "$LINENO" 5
 fi
-   if test "x$with_external_math_support" = xno; then :
-  as_fn_error $? "unsupported combination of the configure options: you are trying to configure with an external MATH-INTERPOLATION library and the bundled MATH-SUPPORT library: use the bundled version of MATH-INTERPOLATION library (--without-external-math-interpolation), or provide the version of MATH-SUPPORT library (--with-external-math-support) that the provided MATH-INTERPOLATION library has been built with by setting FCFLAGS, LDFLAGS and LIBS accordingly" "$LINENO" 5
-fi
-  { $as_echo "$as_me:${as_lineno-$LINENO}: checking whether MATH-INTERPOLATION library is available" >&5
-$as_echo_n "checking whether MATH-INTERPOLATION library is available... " >&6; }
-if ${icon_cv_have_math_interpolation+:} false; then :
-  $as_echo_n "(cached) " >&6
-else
-  icon_cv_have_math_interpolation=no
-      cat > conftest.$ac_ext <<_ACEOF
-      program main
-
-      use, intrinsic :: iso_fortran_env, only: real64
-      use mo_lib_interpolation_scalar, only: verts2edges_scalar_lib
-      implicit none
-      real(real64) :: vin(2,2,2), eout(2,2,2), c(2,2,2)
-      integer :: evidx(2,2,2), evblk(2,2,2), &
-        & sblk, eblk, sidx, eidx, slev, elev, nproma
-      logical :: acc
-      call verts2edges_scalar_lib(vin, evidx, evblk, c, eout, sblk, &
-        & eblk, sidx, eidx, slev, elev, nproma, acc)
-      end
-_ACEOF
-if ac_fn_fc_try_link "$LINENO"; then :
-  icon_cv_have_math_interpolation=yes
-fi
-rm -f core conftest.err conftest.$ac_objext \
-    conftest$ac_exeext conftest.$ac_ext
-fi
-{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $icon_cv_have_math_interpolation" >&5
-$as_echo "$icon_cv_have_math_interpolation" >&6; }
-   if test "x$icon_cv_have_math_interpolation" = xno; then :
-  { { $as_echo "$as_me:${as_lineno-$LINENO}: error: in \`$ac_pwd':" >&5
-$as_echo "$as_me: error: in \`$ac_pwd':" >&2;}
-as_fn_error $? "unable to link a test program using MATH-INTERPOLATION library: either use the bundled version of MATH-INTERPOLATION (--without-external-math-interpolation) or set FCFLAGS, LDFLAGS and LIBS accordingly
-See \`config.log' for more details
-${icon_usr_note}" "$LINENO" 5; }
-fi
-else
-    icon_subdir_srcdir="$srcdir/externals/math-interpolation"
-   icon_subdir_unique_file="src/mo_lib_interpolation_vector.F90"
-   if test ! -r "$icon_subdir_srcdir/$icon_subdir_unique_file"; then :
-  as_fn_error $? "unable to find sources of the bundled version of MATH-INTERPOLATION library ($icon_subdir_unique_file) in '$icon_subdir_srcdir': provide an external version of MATH-INTERPOLATION library (--with-external-math-interpolation) by setting FCFLAGS, LDFLAGS and LIBS accordingly" "$LINENO" 5
-fi
-      ICON_MATH_INTERPOLATION_FCFLAGS=${ICON_MATH_INTERPOLATION_FCFLAGS-$ICON_BUNDLED_FCFLAGS}
-                  acx_subdir_run_cmd_externals_math_interpolation="\"\${CMAKE}\""
+ICON_MATH_INTERPOLATION_FCFLAGS=${ICON_MATH_INTERPOLATION_FCFLAGS-$ICON_BUNDLED_FCFLAGS}
+               acx_subdir_run_cmd_externals_math_interpolation="\"\${CMAKE}\""
    acx_subdir_run_dir_externals_math_interpolation="externals/math-interpolation/build"
    acx_subdir_build_type_externals_math_interpolation='cmake'
          acx_subdir_pre_adjust_cmake_args
@@ -10780,18 +10672,18 @@ esac
       as_fn_append acx_subdir_run_args_externals_math_interpolation " '$acx_tmp'"
       as_fn_append extra_src_subdirs " externals/math-interpolation"
    acx_subdir_run_condition_externals_math_interpolation=no
-   eval "set dummy $acx_subdir_run_args_externals_math_interpolation"; shift
+eval "set dummy $acx_subdir_run_args_externals_math_interpolation"; shift
    acx_subdir_run_args_externals_math_interpolation=
    while test $# != 0; do
      acx_tmp=$1
      case $acx_tmp in #(
-       -DCMAKE_Fortran_FLAGS=*) :
+    -DCMAKE_Fortran_FLAGS=*) :
      ;; #(
-       -DCMAKE_C_*=*|-DCMAKE_CXX_*=*) :
+    -DCMAKE_C_*=*|-DCMAKE_CXX_*=*) :
      ;; #(
-       -DCMAKE_SHARED_LINKER_FLAGS=*|-DCMAKE_MODULE_LINKER_FLAGS=*) :
+    -DCMAKE_SHARED_LINKER_FLAGS=*|-DCMAKE_MODULE_LINKER_FLAGS=*) :
      ;; #(
-       -DCMAKE_*_COMPILER_AR=*|-DCMAKE_*_COMPILER_RANLIB=*) :
+    -DCMAKE_*_COMPILER_AR=*|-DCMAKE_*_COMPILER_RANLIB=*) :
      ;; #(
   *) :
            case $acx_tmp in #(
@@ -10804,12 +10696,12 @@ esac
 esac
      shift
    done
-   if test "x$icon_gpu_primary" = xopenacc; then :
+if test "x$icon_gpu_primary" = xopenacc; then :
   icon_mi_openacc=ON
 else
   icon_mi_openacc=OFF
 fi
-   set dummy      -DCMAKE_Fortran_FLAGS="$subdir_FCFLAGS $ICON_MATH_INTERPOLATION_FCFLAGS"      -DMI_ENABLE_LOOP_EXCHANGE="$enable_loop_exchange" -DMI_ENABLE_MIXED_PRECISION="$enable_mixed_precision" -DMI_ENABLE_DIM_SWAP="$enable_dim_swap" -DMI_ENABLE_OPENACC="$icon_mi_openacc"      -DCMAKE_PREFIX_PATH:PATH="${icon_abs_top_builddir}/externals/fortran-support/build;${icon_abs_top_builddir}/externals/math-support/build"      -DBUILD_SHARED_LIBS:BOOL=OFF -DBUILD_TESTING:BOOL=OFF      -DBUILD_STANDALONE:BOOL=OFF      -DCMAKE_BUILD_TYPE:STRING=NOEXTRAFLAGS; shift
+set dummy   -DCMAKE_Fortran_FLAGS="$subdir_FCFLAGS $ICON_MATH_INTERPOLATION_FCFLAGS"   -DMI_ENABLE_LOOP_EXCHANGE="$enable_loop_exchange" -DMI_ENABLE_MIXED_PRECISION="$enable_mixed_precision" -DMI_ENABLE_DIM_SWAP="$enable_dim_swap" -DMI_ENABLE_OPENACC="$icon_mi_openacc"   -DCMAKE_PREFIX_PATH:PATH="${icon_abs_top_builddir}/externals/fortran-support/build;${icon_abs_top_builddir}/externals/math-support/build"   -DBUILD_SHARED_LIBS:BOOL=OFF -DBUILD_TESTING:BOOL=OFF   -DBUILD_STANDALONE:BOOL=OFF   -DCMAKE_BUILD_TYPE:STRING=NOEXTRAFLAGS; shift
    for acx_tmp; do
      case $acx_tmp in #(
   *\'*) :
@@ -10819,9 +10711,8 @@ fi
 esac
      as_fn_append acx_subdir_run_args_externals_math_interpolation " '$acx_tmp'"
    done
-   as_fn_append bundled_includes "${FC_MOD_IN}externals/math-interpolation/build/src/mod "
-   BUNDLED_LIBFILES="externals/math-interpolation/build/src/libmath-interpolation.a $BUNDLED_LIBFILES"
-fi
+as_fn_append bundled_includes "${FC_MOD_IN}externals/math-interpolation/build/src/mod "
+BUNDLED_LIBFILES="externals/math-interpolation/build/src/libmath-interpolation.a $BUNDLED_LIBFILES"
 
 if test -n "$bundled_includes"; then :
   FCFLAGS="${bundled_includes}${FCFLAGS}"
