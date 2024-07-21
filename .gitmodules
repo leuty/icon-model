@@ -54,3 +54,9 @@
 [submodule "externals/fortran-support"]
 	path = externals/fortran-support
 	url = ../../icon-libraries/libfortran-support.git
+[submodule "externals/math-support"]
+	path = externals/math-support
+	url = ../../icon-libraries/libmath-support.git
+[submodule "externals/math-interpolation"]
+	path = externals/math-interpolation
+	url = ../../icon-libraries/libmath-interpolation.git

@@ -108,7 +108,7 @@ find_files= $(sort $(patsubst $(srcdir)/%,%, \
                     -a \( $(foreach p,$(2),-name $(p) -o) -false \) -print)))
 
 # All source files:
-all_files:= $(call find_files,$(subdirs),'*.f90' '*.inc' '*.incf' '*.c' '*.cu')
+all_files:= $(call find_files,$(subdirs),'*.f90' '*.inc' '*.incf' '*.c' '*.cu' '*.hip.cc')
 
 # JSBACH sources (must be preprocessed with DSL4JSB):
 @JSBACH_ENABLED@JSBACH_subdir:= externals/jsbach/src
@@ -132,8 +132,8 @@ f90_files:= $(filter %.f90,$(all_files))
 c_files:= $(filter %.c,$(all_files))
 # CUDA '.cu' source files:
 @CUDA_ENABLED@cu_files:= $(filter %.cu,$(all_files))
-# HIP '.cu' source files (TODO: change the extension for HIP files):
-@HIP_ENABLED@hip_files:= $(filter %.cu,$(all_files))
+# HIP '.hip.cc' source files:
+@HIP_ENABLED@hip_files:= $(filter %.hip.cc,$(all_files))
 
 # Relative paths to the directories with Fortran include files:
 inc_subdirs:= $(patsubst %/,%,$(sort $(dir $(filter %.inc %.incf,$(all_files)))))
@@ -188,7 +188,8 @@ get_obj_names= $(patsubst %.f90,%.@OBJEXT@,$(filter $(foreach f,$(1),$(f:f90=)%f
 
 # ICON executable:
 ICON_exec_file:= $(bindir)/icon@EXEEXT@
-ICON_prog_obj_file:= $(call get_obj_names,src/drivers/icon.f90)
+ICON_prog_obj_files:= $(call get_obj_names,src/drivers/icon.f90)
+@HIP_OVERRIDES_ENABLED@ICON_prog_obj_files+= support/dummy_hip_events.@OBJEXT@
 exec_files+= $(ICON_exec_file)
 
 ############################## GENERATED ARCHIVES ##############################
@@ -205,7 +206,7 @@ get_prereq_objs= $(filter-out $(1),$(filter %.@OBJEXT@, \
 # Common convenience library (holds prerequisite objects of the generated
 # executables):
 common_lib_file:= $(libdir)/libicon.a
-common_lib_prog_obj_files:= $(ICON_prog_obj_file)
+common_lib_prog_obj_files:= $(ICON_prog_obj_files)
 common_lib_obj_files:= $(call get_prereq_objs,$(common_lib_prog_obj_files))
 lib_files+= $(common_lib_file)
 
@@ -340,6 +341,7 @@ nodep_targets:= preprocess depend mostlyclean clean distclean config-bundled \
 vpath %.f90 $(srcdir)
 vpath %.c $(srcdir)
 vpath %.cu $(srcdir)
+vpath %.hip.cc $(srcdir)
 
 ################### PATTERN- AND TARGET-SPECIFIC ASSIGNMENTS ###################
 
@@ -389,7 +391,7 @@ depend: $(dep_files)
 # Generate a list of files that are going to be compiled in the current
 # configuration:
 srclist: $(dep_files)
-	$(silent_GEN)$(DEPLIST) -t $(ICON_prog_obj_file) -f $^ 2>/dev/null | sed '/\(\.@OBJEXT@\|\.@FC_MOD_FILE_EXT@\.proxy\|.@FC_SMOD_FILE_EXT@\.sproxy\)$$/d' | sort > $@
+	$(silent_GEN)$(DEPLIST) -t $(ICON_prog_obj_files) -f $^ 2>/dev/null | sed '/\(\.@OBJEXT@\|\.@FC_MOD_FILE_EXT@\.proxy\|.@FC_SMOD_FILE_EXT@\.sproxy\)$$/d' | sort > $@
 
 # Check rule:
 check: all check-bundled
@@ -487,7 +489,7 @@ check-bundled: config-bundled $(bundled_cmake_subdirs) $(if $(filter check,$(MAK
 ######################## COMPILATION AND LINKING RULES #########################
 
 # Dependencies of the ICON executable:
-$(ICON_exec_file): $(ICON_prog_obj_file) $(common_lib_file) $(BUNDLED_LIBFILES)
+$(ICON_exec_file): $(ICON_prog_obj_files) $(common_lib_file) $(BUNDLED_LIBFILES)
 
 # Common linking rule for the executables:
 $(exec_files): | $(dir_files)
@@ -560,7 +562,7 @@ sanitize-mod-proxies:
 @CUDA_ENABLED@	$(silent_CUDACXX)$(CUDACXX) -o $@ -c $(CUDAFLAGS) $<
 
 # HIP compilation rule:
-@HIP_ENABLED@%.@OBJEXT@: %.cu | $(dir_file)
+@HIP_ENABLED@%.@OBJEXT@: %.hip.cc | $(dir_file)
 @HIP_ENABLED@	$(silent_HIPCXX)$(HIPCXX) -o $@ -c $(HIPFLAGS) $<
 
 ######################### DSL4JSB PREPROCESSING RULES ##########################
@@ -620,6 +622,21 @@ externals/cdi: $(filter externals/yaxt externals/ppm,$(bundled_subdirs))
 # Build the bundled yac before the bundled hd:
 externals/hd: $(filter externals/yac,$(bundled_subdirs))
 
+# Configure the bundled fortran-support before configuring the bundled
+# math-support:
+externals/math-support/build/Makefile: $(filter externals/fortran-support/build/Makefile,$(addsuffix /Makefile,$(bundled_subdirs)))
+
+# Build the bundled fortran-support before building the bundled-math support:
+externals/math-support/build: $(filter externals/fortran-support/build,$(bundled_subdirs))
+
+# Configure the bundled fortran-support and math-support before configuring the
+# bundled math-interpolation:
+externals/math-interpolation/build/Makefile: $(filter externals/fortran-support/build/Makefile externals/math-support/build/Makefile,$(addsuffix /Makefile,$(bundled_subdirs)))
+
+# Build the bundled fortran-support and math-support before building the bundled
+# math-interpolation:
+externals/math-interpolation/build: $(filter externals/fortran-support/build externals/math-support/build,$(bundled_subdirs))
+
 # Configure delayed bundled libraries:
 @ICON_DELAYED_CONFIG_RULES@
 
@@ -655,8 +672,8 @@ version.c: force-create-version
 @CUDA_ENABLED@	$(silent_DEPGEN)$(DEPGEN) @depgen.c.config --pp-inc-sys -o $@ --obj-name $(@:.cu.d=.@OBJEXT@) -i $< -- $(CUDAFLAGS)
 
 # HIP dependency generation rule:
-@HIP_ENABLED@%.cu.d: %.cu icon.mk depgen.c.config | $(dir_files)
-@HIP_ENABLED@	$(silent_DEPGEN)$(DEPGEN) @depgen.c.config --pp-inc-sys -o $@ --obj-name $(@:.cu.d=.@OBJEXT@) -i $< -- $(HIPFLAGS)
+@HIP_ENABLED@%.hip.cc.d: %.hip.cc icon.mk depgen.c.config | $(dir_files)
+@HIP_ENABLED@	$(silent_DEPGEN)$(DEPGEN) @depgen.c.config --pp-inc-sys -o $@ --obj-name $(@:.hip.cc.d=.@OBJEXT@) -i $< -- $(HIPFLAGS)
 
 # Dependency generation rule for Fortran-to-C bindings:
 c_binding.d: icon.mk
@@ -665,7 +682,7 @@ c_binding.d: icon.mk
 	  echo '$(call get_obj_names,support/mo_util_uuid.f90): #-hint support/util_uuid.@OBJEXT@'; \
 	  echo '$(call get_obj_names,src/shared/mo_util_vcs.f90): #-hint version.@OBJEXT@'; \
 	  echo '@ART_ENABLED@$(call get_obj_names,$(ART_subdir)/shared/mo_art_util_vcs.f90): #-hint version.@OBJEXT@'; \
-	  echo '@GPU_ENABLED@$(call get_obj_names,src/shared/mo_index_list.f90): #-hint src/shared_cuda/index_list_cuda.@OBJEXT@'; \
+	  echo '@GPU_ENABLED@$(call get_obj_names,src/shared/mo_index_list.f90): #-hint support/index_list.@OBJEXT@'; \
 	  echo '@DACE_ENABLED@$(call get_obj_names,$(DACE_subdir)/mo_wigos.f90): #-hint $(DACE_subdir)/dace_md5_ifc.@OBJEXT@ $(DACE_subdir)/md5.@OBJEXT@'; \
 	} >$@
 

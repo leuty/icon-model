@@ -1036,7 +1036,9 @@ CONTAINS
        & za_depth_below_sea_half, &
        & t_cf_var('w_der','m s-1','physical vertical velocity at cells for zstar', datatype_flt),&
        & grib2_var(255, 255, 255, DATATYPE_PACK16, GRID_UNSTRUCTURED, grid_cell),&
-       & ldims=(/nproma,n_zlev+1,alloc_cell_blocks/),in_group=groups("oce_diag","oce_default"))
+       & ldims=(/nproma,n_zlev+1,alloc_cell_blocks/),in_group=groups("oce_diag","oce_default"),&
+       & lopenacc=.TRUE.)
+      __acc_attach(ocean_state_diag%w_deriv)
     ENDIF
 
     CALL add_var(ocean_default_list, 'ssh', ocean_state_diag%ssh , &
@@ -2275,7 +2277,8 @@ CONTAINS
     CALL add_var(ocean_default_list,'bc_tides_potential',ocean_state_aux%bc_tides_potential, grid_unstructured_cell,&
       & za_surface, t_cf_var('bc_tides_potential','fixme','bc_tides_potential', datatype_flt),&
       & dflt_g2_decl_cell,&
-      & ldims=(/nproma,alloc_cell_blocks/),in_group=groups_oce_aux, initval=0.0_wp)
+      & ldims=(/nproma,alloc_cell_blocks/),in_group=groups_oce_aux, lopenacc=.TRUE., initval=0.0_wp)
+    __acc_attach(ocean_state_aux%bc_tides_potential)
 
 !     this is used by default in the calculation of the total potential
 !    IF (use_tides_SAL) THEN
@@ -2296,7 +2299,8 @@ CONTAINS
       & grid_unstructured_cell,&
       & za_surface, t_cf_var('bc_SAL_potential','fixme','bc_SAL_potential', datatype_flt),&
       & dflt_g2_decl_cell,&
-      & ldims=(/nproma,alloc_cell_blocks/),in_group=groups_oce_aux, initval=0.0_wp)
+      & ldims=(/nproma,alloc_cell_blocks/),in_group=groups_oce_aux, lopenacc=.TRUE., initval=0.0_wp)
+    __acc_attach(ocean_state_aux%bc_SAL_potential)
 
     CALL add_var(ocean_default_list,'bc_bot_tracer',ocean_state_aux%bc_bot_tracer,grid_unstructured_cell,&
       & za_surface, t_cf_var('bc_bot_tracer','fixme','bc_bot_tracer', datatype_flt),&
@@ -2922,31 +2926,31 @@ CONTAINS
     !$ACC   COPYIN(patch_3d%p_patch_1d(1)%prism_thick_e) &
     !$ACC   COPYIN(patch_3d%p_patch_1d(1)%inv_prism_thick_e) &
     !$ACC   COPYIN(patch_3d%p_patch_2d(1)%alloc_cell_blocks) &
-    !$ACC   COPYIN(patch_3d%p_patch_2d(1)%nblks_v, patch_3d%p_patch_2D(1)%nblks_e) &
+    !$ACC   COPYIN(patch_3d%p_patch_2d(1)%nblks_v, patch_3d%p_patch_2d(1)%nblks_e) &
     !$ACC   COPYIN(patch_3d%p_patch_2d(1)%cells, patch_3d%p_patch_2d(1)%edges) &
     !$ACC   COPYIN(patch_3d%p_patch_2d(1)%edges%cell_idx, patch_3d%p_patch_2d(1)%edges%cell_blk) &
     !$ACC   COPYIN(patch_3d%p_patch_2d(1)%edges%in_domain) &
-    !$ACC   COPYIN(patch_3D%p_patch_2d(1)%edges%area_edge) &
-    !$ACC   COPYIN(patch_3D%p_patch_2D(1)%edges%vertex_idx) &
-    !$ACC   COPYIN(patch_3D%p_patch_2D(1)%edges%vertex_blk) &
-    !$ACC   COPYIN(patch_3D%p_patch_2D(1)%edges%primal_cart_normal) &
+    !$ACC   COPYIN(patch_3d%p_patch_2d(1)%edges%area_edge) &
+    !$ACC   COPYIN(patch_3d%p_patch_2d(1)%edges%vertex_idx) &
+    !$ACC   COPYIN(patch_3d%p_patch_2d(1)%edges%vertex_blk) &
+    !$ACC   COPYIN(patch_3d%p_patch_2d(1)%edges%primal_cart_normal) &
     !$ACC   COPYIN(patch_3d%p_patch_2d(1)%edges%inv_dual_edge_length) &
     !$ACC   COPYIN(patch_3d%p_patch_2d(1)%edges%primal_edge_length) &
     !$ACC   COPYIN(patch_3d%p_patch_2d(1)%edges%tangent_orientation) &
     !$ACC   COPYIN(patch_3d%p_patch_2d(1)%edges%inv_primal_edge_length) &
     !$ACC   COPYIN(patch_3d%p_patch_2d(1)%cells%edge_idx, patch_3d%p_patch_2d(1)%cells%edge_blk) &
     !$ACC   COPYIN(patch_3d%p_patch_2d(1)%cells%neighbor_idx, patch_3d%p_patch_2d(1)%cells%neighbor_blk) &
-    !$ACC   COPYIN(patch_3D%p_patch_2D(1)%cells%center) &
-    !$ACC   COPYIN(patch_3D%p_patch_2D(1)%cells%owned, patch_3D%p_patch_2D(1)%cells%owned%vertical_levels) &
-    !$ACC   COPYIN(patch_3D%p_patch_2D(1)%cells%all) &
-    !$ACC   COPYIN(patch_3D%p_patch_2D(1)%cells%all%vertical_levels, patch_3D%p_patch_2D(1)%cells%area) &
+    !$ACC   COPYIN(patch_3d%p_patch_2d(1)%cells%center, patch_3d%p_patch_2d(1)%cells%num_edges) &
+    !$ACC   COPYIN(patch_3d%p_patch_2d(1)%cells%owned, patch_3d%p_patch_2d(1)%cells%owned%vertical_levels) &
+    !$ACC   COPYIN(patch_3d%p_patch_2d(1)%cells%all) &
+    !$ACC   COPYIN(patch_3d%p_patch_2d(1)%cells%all%vertical_levels, patch_3d%p_patch_2d(1)%cells%area) &
     !$ACC   COPYIN(patch_3d%p_patch_2d(1)%cells%in_domain) &
     !$ACC   COPYIN(patch_3d%p_patch_2d(1)%cells%in_domain%vertical_levels) &
-    !$ACC   COPYIN(patch_3D%p_patch_2D(1)%verts, patch_3D%p_patch_2D(1)%verts%cell_idx) &
-    !$ACC   COPYIN(patch_3D%p_patch_2D(1)%verts%cell_blk, patch_3D%p_patch_2D(1)%verts%num_edges) &
-    !$ACC   COPYIN(patch_3D%p_patch_2D(1)%verts%edge_idx, patch_3D%p_patch_2D(1)%verts%edge_blk) &
+    !$ACC   COPYIN(patch_3d%p_patch_2d(1)%verts, patch_3d%p_patch_2d(1)%verts%cell_idx) &
+    !$ACC   COPYIN(patch_3d%p_patch_2d(1)%verts%cell_blk, patch_3d%p_patch_2d(1)%verts%num_edges) &
+    !$ACC   COPYIN(patch_3d%p_patch_2d(1)%verts%edge_idx, patch_3d%p_patch_2d(1)%verts%edge_blk) &
     !$ACC   COPYIN(patch_3d%p_patch_2d(1)%verts%f_v) &
-    !$ACC   COPYIN(patch_3D%p_patch_2D(1)%verts%all) &
+    !$ACC   COPYIN(patch_3d%p_patch_2d(1)%verts%all) &
     !$ACC   COPYIN(nold, nnew)
     
     !$ACC ENTER DATA COPYIN(operators_coefficients, operators_coefficients%verticaladvectionppmcoeffs)

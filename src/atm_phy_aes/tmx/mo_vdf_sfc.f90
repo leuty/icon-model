@@ -176,6 +176,8 @@ MODULE mo_vdf_sfc
       & t2m_tile(:,:,:)     => NULL(), &
       & hus2m(:,:)          => NULL(), &
       & hus2m_tile(:,:,:)   => NULL(), &
+      & dew2m(:,:)          => NULL(), &
+      & dew2m_tile(:,:,:)   => NULL(), &
       & wind10m(:,:)        => NULL(), &
       & u10m(:,:)           => NULL(), &
       & v10m(:,:)           => NULL(), &
@@ -696,8 +698,6 @@ CONTAINS
 
   SUBROUTINE Update_diagnostics(this)
 
-    USE mo_tmx_surface_interface, ONLY: compute_2m_temperature, compute_10m_wind
-
     CLASS(t_vdf_sfc), INTENT(inout), TARGET :: this
 
     TYPE(t_vdf_sfc_config),      POINTER :: conf
@@ -1170,6 +1170,8 @@ CONTAINS
     CALL diaglist%append(t_variable('2m temperature, tile', shape_3d, "K", type_id="real"))
     CALL diaglist%append(t_variable('2m specific humidity', shape_2d, "kg kg-1", type_id="real"))
     CALL diaglist%append(t_variable('2m specific humidity, tile', shape_3d, "kg kg-1", type_id="real"))
+    CALL diaglist%append(t_variable('2m dewpoint temperature', shape_2d, "K", type_id="real"))
+    CALL diaglist%append(t_variable('2m dewpoint temperature, tile', shape_3d, "K", type_id="real"))
     CALL diaglist%append(t_variable('10m wind speed', shape_2d, "m/s", type_id="real"))
     CALL diaglist%append(t_variable('10m zonal wind', shape_2d, "m/s", type_id="real"))
     CALL diaglist%append(t_variable('10m meridional wind', shape_2d, "m/s", type_id="real"))
@@ -1316,6 +1318,10 @@ CONTAINS
       __acc_attach(this%hus2m)
       this%hus2m_tile      => this%list%Get_ptr_r3d('2m specific humidity, tile')
       __acc_attach(this%hus2m_tile)
+      this%dew2m           => this%list%Get_ptr_r2d('2m dewpoint temperature')
+      __acc_attach(this%dew2m)
+      this%dew2m_tile      => this%list%Get_ptr_r3d('2m dewpoint temperature, tile')
+      __acc_attach(this%dew2m_tile)
       this%wind10m         => this%list%Get_ptr_r2d('10m wind speed')
       __acc_attach(this%wind10m)
       this%u10m            => this%list%Get_ptr_r2d('10m zonal wind')

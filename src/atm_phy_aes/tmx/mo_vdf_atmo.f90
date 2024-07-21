@@ -56,8 +56,8 @@ MODULE mo_vdf_atmo
   IMPLICIT NONE
   PRIVATE
 
-  PUBLIC :: t_vdf_atmo, t_vdf_atmo_inputs, t_vdf_atmo_config, t_vdf_atmo_diagnostics, test !, &
-    ! & compute_temp_from_static_energy
+  PUBLIC :: t_vdf_atmo, t_vdf_atmo_inputs, t_vdf_atmo_config, t_vdf_atmo_diagnostics, test, &
+    & prepare_diffusion_matrix ! , compute_temp_from_static_energy
 
   !Parameters for surface layer parameterizations: From Zeng_etal 1997 J. Clim
   REAL(wp), PARAMETER :: bsm = 5.0_wp  !Businger Stable Momentum
@@ -89,6 +89,11 @@ MODULE mo_vdf_atmo
   !     REAL(wp), INTENT(out) :: energy(:,:,:)
   !   END SUBROUTINE
   ! END INTERFACE
+
+  INTERFACE prepare_diffusion_matrix
+    MODULE PROCEDURE prepare_diffusion_matrix_dp
+    MODULE PROCEDURE prepare_diffusion_matrix_sp
+  END INTERFACE prepare_diffusion_matrix
 
   INTERFACE t_vdf_atmo
     MODULE PROCEDURE t_vdf_atmo_construct
@@ -1906,6 +1911,235 @@ END IF
     END ASSOCIATE
 
   END SUBROUTINE compute_exchange_coefficient
+  !
+  !=================================================================
+  ! double precision version of prepare_diffusion_matrix.
+  ! The coefficients of the system of equations for the
+  ! implicit calculation of the tendencies are set up here.
+  ! The coefficients for explicit calculations differ from
+  ! those for implicit calculations only by one term. This
+  ! terms is depending on the time increment and is omitted
+  ! at this point. This allows to use the subroutine for
+  ! calculating both, the explicit and the implicit
+  ! coefficients. In case of implicit treatment it is added
+  ! to the coefficient b later (see module mo_tmx_numerics;
+  ! subroutine diffuse_vertical_implicit).
+  SUBROUTINE prepare_diffusion_matrix_dp( &
+    & ics, ice,              & ! in
+    & minlvl, maxlvl,        & ! in
+    & lhalflvl,              & ! in
+    & inv_mair,              & ! in
+    & inv_dz,                & ! in
+    & zk,                    & ! in
+    & zprefac,               & ! in
+    & a, b, c                & ! out
+    & )
+
+    ! Logical variable that takes into account whether the
+    ! calculation is done on half or full levels
+    LOGICAL, INTENT(in) :: lhalflvl
+
+    ! Iteration boundaries for blocks, cells, and level
+    INTEGER, INTENT(in) :: ics, ice, minlvl, maxlvl
+
+    REAL(wp), INTENT(in), DIMENSION(:,:) :: &
+      & inv_dz       ! inverse distance between cell centers/interfaces [1 / m]
+
+    REAL(wp), INTENT(in), DIMENSION(:,:) :: &
+      & inv_mair,  & ! inverse moist air mass [m2 / kg]
+      & zk           ! turbulent diffusion coefficient multiplied by density [kg / (m * s)]
+
+    ! factor containing the turbulent diffusion coefficient
+    REAL(wp), OPTIONAL, INTENT(in) ::  zprefac
+
+    ! Set up the system of equations of shape
+    ! a*x_(k-1) + b*x_(k) + c*x_(k+1) = rhs,
+    ! where x is the variable at time step t+1.
+    REAL(wp), INTENT(out), DIMENSION(:,:) :: a, b, c
+
+    ! Iterators for blocks, cells, and levels
+    ! The correction factors lvlcorr_a and lvlcorr_c
+    ! are used to address the difference between computations
+    ! on half levels and on full levels.
+    INTEGER  :: jc, jk, lvlcorr_a, lvlcorr_c, jk_corr_a, jk_corr_c
+
+    ! Multiplier requiered for some coefficients
+    REAL(wp) :: zmulti
+
+    CHARACTER(len=*), PARAMETER :: routine = modname//':prepare_diffusion_matrix'
+
+    ! For half levels the coefficient "a" is calclated using
+    ! infomation on the upper half level, i.e. jk-1, and the
+    ! coefficient "c" using information on the current level jk.
+    ! For full levels this is shifted, so that the coefficient
+    ! "a" is calculated using information on the current level jk
+    ! and coefficient "c" using information on the lower full level,
+    ! i.e. a cell with index jk+1.
+    IF(lhalflvl) THEN
+      lvlcorr_a = -1
+      lvlcorr_c =  0
+    ELSE
+      lvlcorr_a =  0
+      lvlcorr_c =  1
+    ENDIF
+
+    IF(PRESENT(zprefac)) THEN
+      zmulti = zprefac
+    ELSE
+      zmulti= 1._wp
+    END IF
+
+    ! Set up the tri-diagonal matrix
+    !$ACC PARALLEL LOOP DEFAULT(PRESENT) GANG VECTOR PRIVATE(jk_corr_a, jk_corr_c) COLLAPSE(2) ASYNC(1)
+    DO jk=minlvl+1,maxlvl-1
+      DO jc = ics, ice
+        jk_corr_a = jk + lvlcorr_a
+        jk_corr_c = jk + lvlcorr_c
+        a(jc,jk) = - zmulti * zk(jc,jk_corr_a) * inv_dz(jc,jk_corr_a) * inv_mair(jc,jk)
+        c(jc,jk) = - zmulti * zk(jc,jk_corr_c) * inv_dz(jc,jk_corr_c) * inv_mair(jc,jk)
+        b(jc,jk) = - a(jc,jk) - c(jc,jk)
+      END DO
+    END DO
+    !$ACC END PARALLEL LOOP
+
+    jk_corr_a = minlvl + lvlcorr_a
+    jk_corr_c = minlvl + lvlcorr_c
+    ! Set up the upper boundary condition
+    !$ACC PARALLEL LOOP DEFAULT(PRESENT) GANG VECTOR ASYNC(1)
+    DO jc = ics, ice
+      a(jc,minlvl) = 0._wp
+      c(jc,minlvl) = - zmulti * zk(jc,jk_corr_c) * inv_dz(jc,jk_corr_c) * inv_mair(jc,minlvl)
+      b(jc,minlvl) = - c(jc,minlvl)
+    END DO
+    !$ACC END PARALLEL LOOP
+
+    jk_corr_a = maxlvl + lvlcorr_a
+    jk_corr_c = maxlvl + lvlcorr_c
+    ! Set up the lower boundary condition
+    !$ACC PARALLEL LOOP DEFAULT(PRESENT) GANG VECTOR ASYNC(1)
+    DO jc = ics, ice
+      a(jc,maxlvl) = - zmulti * zk(jc,jk_corr_a) * inv_dz(jc,jk_corr_a) * inv_mair(jc,maxlvl)
+      c(jc,maxlvl) = 0._wp
+      b(jc,maxlvl) = - a(jc,maxlvl)
+    END DO
+    !$ACC END PARALLEL LOOP
+    !$ACC WAIT(1)
+
+  END SUBROUTINE prepare_diffusion_matrix_dp
+
+  ! single precision version of prepare_diffusion_matrix.
+  ! The coefficients of the system of equations for the
+  ! implicit calculation of the tendencies are set up here.
+  ! The coefficients for explicit calculations differ from
+  ! those for implicit calculations only by one term. This
+  ! terms is depending on the time increment and is omitted
+  ! at this point. This allows to use the subroutine for
+  ! calculating both, the explicit and the implicit
+  ! coefficients. In case of implicit treatment it is added 
+  ! to the coefficient b later (see module mo_tmx_numerics;
+  ! subroutine diffuse_vertical_implicit).
+  SUBROUTINE prepare_diffusion_matrix_sp( &
+    & ics, ice,              & ! in
+    & minlvl, maxlvl,        & ! in
+    & lhalflvl,              & ! in
+    & inv_mair,              & ! in
+    & inv_dz,                & ! in
+    & zk,                    & ! in
+    & zprefac,               & ! in
+    & a, b, c                & ! out
+    & )
+
+    ! Logical variable that takes into account whether the
+    ! calculation is done on half or full levels
+    LOGICAL, INTENT(in) :: lhalflvl
+
+    ! Iteration boundaries for blocks, cells, and level
+    INTEGER, INTENT(in) :: ics, ice, minlvl, maxlvl
+
+    REAL(sp), INTENT(in), DIMENSION(:,:) :: &
+      & inv_dz       ! inverse distance between cell centers/interfaces [1 / m]
+
+    REAL(wp), INTENT(in), DIMENSION(:,:) :: &
+      & inv_mair,  & ! inverse moist air mass [m2 / kg]
+      & zk           ! turbulent diffusion coefficient multiplied by density [kg / (m * s)]
+
+    ! factor containing the turbulent diffusion coefficient
+    REAL(wp), OPTIONAL, INTENT(in) ::  zprefac
+
+    ! Set up the system of equations of shape
+    ! a*x_(k-1) + b*x_(k) + c*x_(k+1) = rhs,
+    ! where x is the variable at time step t+1.
+    REAL(wp), INTENT(out), DIMENSION(:,:) :: a, b, c
+
+    ! Iterators for blocks, cells, and levels
+    ! The correction factors lvlcorr_a and lvlcorr_c
+    ! are used to address the difference between computations
+    ! on half levels and on full levels.
+    INTEGER  :: jc, jk, lvlcorr_a, lvlcorr_c, jk_corr_a, jk_corr_c
+
+    ! Multiplier requiered for some coefficients
+    REAL(wp) :: zmulti
+
+    CHARACTER(len=*), PARAMETER :: routine = modname//':prepare_diffusion_matrix'
+
+    ! For half levels the coefficient "a" is calclated using
+    ! infomation on the upper half level, i.e. jk-1, and the
+    ! coefficient "c" using information on the current level jk.
+    ! For full levels this is shifted, so that the coefficient
+    ! "a" is calculated using information on the current level jk
+    ! and coefficient "c" using information on the lower full level,
+    ! i.e. a cell with index jk+1.
+    IF(lhalflvl) THEN
+      lvlcorr_a = -1
+      lvlcorr_c =  0
+    ELSE
+      lvlcorr_a =  0
+      lvlcorr_c =  1
+    ENDIF
+
+    IF(PRESENT(zprefac)) THEN
+      zmulti = zprefac
+    ELSE
+      zmulti= 1._wp
+    END IF
+
+    ! Set up the tri-diagonal matrix
+    !$ACC PARALLEL LOOP DEFAULT(PRESENT) GANG VECTOR PRIVATE(jk_corr_a, jk_corr_c) COLLAPSE(2) ASYNC(1)
+    DO jk=minlvl+1,maxlvl-1
+      DO jc = ics, ice
+        jk_corr_a = jk + lvlcorr_a
+        jk_corr_c = jk + lvlcorr_c
+        a(jc,jk) = - zmulti * zk(jc,jk_corr_a) * inv_dz(jc,jk_corr_a) * inv_mair(jc,jk)
+        c(jc,jk) = - zmulti * zk(jc,jk_corr_c) * inv_dz(jc,jk_corr_c) * inv_mair(jc,jk)
+        b(jc,jk) = - a(jc,jk) - c(jc,jk)
+      END DO
+    END DO
+    !$ACC END PARALLEL LOOP
+
+    jk_corr_a = minlvl + lvlcorr_a
+    jk_corr_c = minlvl + lvlcorr_c
+    ! Set up the upper boundary condition
+    !$ACC PARALLEL LOOP DEFAULT(PRESENT) GANG VECTOR ASYNC(1)
+    DO jc = ics, ice
+      a(jc,minlvl) = 0._wp
+      c(jc,minlvl) = - zmulti * zk(jc,jk_corr_c) * inv_dz(jc,jk_corr_c) * inv_mair(jc,minlvl)
+      b(jc,minlvl) = - c(jc,minlvl)
+    END DO
+    !$ACC END PARALLEL LOOP
+
+    jk_corr_a = maxlvl + lvlcorr_a
+    jk_corr_c = maxlvl + lvlcorr_c
+    ! Set up the lower boundary condition
+    !$ACC PARALLEL LOOP DEFAULT(PRESENT) GANG VECTOR ASYNC(1)
+    DO jc = ics, ice
+      a(jc,maxlvl) = - zmulti * zk(jc,jk_corr_a) * inv_dz(jc,jk_corr_a) * inv_mair(jc,maxlvl)
+      c(jc,maxlvl) = 0._wp
+      b(jc,maxlvl) = - a(jc,maxlvl)
+    END DO
+    !$ACC END PARALLEL LOOP
+    !$ACC WAIT(1)
+
+  END SUBROUTINE prepare_diffusion_matrix_sp
   !
   !=================================================================
   !

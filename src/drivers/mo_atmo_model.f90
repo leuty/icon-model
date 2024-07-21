@@ -145,6 +145,7 @@ MODULE mo_atmo_model
     &                                   art_calc_ntracer_and_names
 #endif
   USE mo_sync,                    ONLY: global_max
+  USE mo_check_ext_constants,     ONLY: check_ext_constants
 
 #ifndef __NO_ICON_COMIN__
   USE comin_host_interface,       ONLY: comin_parallel_mpi_handshake,     &
@@ -306,7 +307,8 @@ CONTAINS
     ! complete initicon config-state
     CALL configure_initicon()
 
-
+    ! check whether the external impl_constants are still the same as their original values
+    CALL check_ext_constants()
     !-------------------------------------------------------------------
     ! 3.1 Initialize the mpi work groups
     !-------------------------------------------------------------------

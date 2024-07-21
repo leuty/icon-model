@@ -27,7 +27,7 @@ cd $ICON_DIR/externals
 rm -rf mtime_shared
 git clone mtime mtime_shared
 cd mtime_shared
-./configure CC="$CC" FC="$FC" --prefix="$ICON_DIR"
+./configure CC="$CC" FC="$FC" --prefix="$ICON_DIR" --disable-examples --disable-fortran-hl --disable-static
 make install
 cd ..
 rm -rf mtime_shared

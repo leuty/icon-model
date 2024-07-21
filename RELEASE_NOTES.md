@@ -1,3 +1,61 @@
+# Release notes for icon-YYYY.MM
+
+### ICON-Atmo
+
+- Revise the aerosol submodules [RTE-RRTMGP] (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/464)
+- Refactoring of vertical diffusion in tmx (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/396)
+- Fix faulty call to prm_diag (nwp variable) in aes mode when using nested domains (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/468)
+- Add 2m dewpoint temperature diagnostic to TMX turbulence package (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/467)
+- Fix for OpenACC in tmx on lumi (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/478)
+
+### ICON-Ocean
+
+- Continue porting zstar timeloop to GPU  (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/303)
+
+### ICON-Land
+
+- Fixes for using older restart files (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/433)
+- Fix for OpenACC loop in JSBACH hydrology (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/451)
+- Improvements in JSBACH soil hydrology (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/402)
+- New option for soil moisture initialization (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/456)
+- Fixes for OpenACC loops (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/457)
+- Bug fix for JSBACH pond scheme (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/458)
+- Implement daily anthropogenic land cover change (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/448)
+- QUINCY update incl. first implementation of coupling with AES atmosphere (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/465)
+- Switch from deprecated yac interface in HD model (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/477)
+- Fixes for DSL script (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/479)
+- Update externals/jsbach to commit master@ee53f2b3 (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/484)
+
+### Externals
+
+- Switch to YAC 3.2.0_p1 (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/332, https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/475)
+- Introduce the math-support library (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/425)
+- Update to MTIME 1.2.0 (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/447)
+- Introduce the math-interpolation library (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/463)
+
+### Infrastructure
+
+#### Coupling
+
+- Fix OpenACC bugs that affect coupled het jobs (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/470)
+
+#### Scripting
+
+- Experiment setup features from nextGEMS production/EERIE spinup (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/443)
+- Adjust LUMI-G defaults in create_target_header (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/445)
+- Cleanup nextGEMS scripting (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/473)
+
+#### Building
+
+- Fixes for the configure script (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/474)
+- Fix USE MTIME and INCLUDE netcdf.inc (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/476)
+
+#### Other
+
+- Move and split CUDA/HIP source files (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/67)
+- Optionally suppress HIP event handling of the Cray OpenACC runtime (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/417)
+- Adjust nproma to 256 B alignment to improve GPU performance (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/444)
+
 # Release notes for icon-2024.07
 
 These are the release notes of the ICON model.

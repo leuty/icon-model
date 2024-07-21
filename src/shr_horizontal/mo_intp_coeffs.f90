@@ -55,7 +55,7 @@ MODULE mo_intp_coeffs
   USE mo_intp_data_strc,      ONLY: t_int_state
   USE mo_interpol_config,     ONLY: nudge_zone_width, nudge_max_coeff, nudge_efold_width
   USE mo_grid_subset,         ONLY: get_index_range
-  USE mo_grid_geometry_info,  ONLY: planar_torus_geometry, sphere_geometry
+  USE mo_lib_grid_geometry_info,  ONLY: planar_torus_geometry, sphere_geometry
   USE mo_grid_subset,         ONLY: get_index_range
   USE mo_fortran_tools,       ONLY: init
 

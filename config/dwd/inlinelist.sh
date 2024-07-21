@@ -40,8 +40,11 @@ INLINE_LIST_ICON=(
   src/configure_model/mo_parallel_config.f90
   src/lnd_phy_nwp/mo_nwp_sfc_interp.f90
   src/parallel_infrastructure/mo_extents.f90
-  src/shared/mo_math_utilities.f90
   src/shared/mo_statistics.f90
+)
+
+INLINE_LIST_ICON+=(
+  externals/math-support/src/mo_math_utilities.F90
 )
 
 

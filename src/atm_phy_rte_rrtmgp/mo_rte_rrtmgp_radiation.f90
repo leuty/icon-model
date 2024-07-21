@@ -26,7 +26,6 @@
 MODULE mo_rte_rrtmgp_radiation
 
   USE mo_kind,                ONLY: wp, i8
-  USE mo_mpi,                 ONLY: my_process_is_stdio
   USE mo_model_domain,        ONLY: t_patch
 
   USE mo_physical_constants,  ONLY: rae
@@ -69,7 +68,8 @@ MODULE mo_rte_rrtmgp_radiation
     TYPE(t_patch),           INTENT(in) :: p_patch
     TYPE(datetime), POINTER, INTENT(in) :: datetime_radiation, & !< date and time of radiative transfer calculation
          &                                 current_datetime       !< current time step
-    LOGICAL,                 INTENT(in) :: ltrig_rad !< .true. if SW radiative transfer calculation has to be done at current time step
+    LOGICAL,                 INTENT(in) :: ltrig_rad !< .true. if SW radiative transfer calculation has
+                                                     !< to be done at current time step
     REAL(wp),                INTENT(out) :: amu0_x(:,:), rdayl_x(:,:), &
          &                                  amu0m_x(:,:), rdaylm_x(:,:)
 

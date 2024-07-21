@@ -69,7 +69,7 @@ MODULE mo_nh_testcases
                                    & itype_atmo_ana, init_nh_atmo_ana_poly
   USE mo_nh_prog_util,         ONLY: nh_prog_add_random
   USE mo_random_util,          ONLY: add_random_noise_global
-  USE mo_grid_geometry_info,   ONLY: planar_torus_geometry
+  USE mo_lib_grid_geometry_info,   ONLY: planar_torus_geometry
   USE mo_nh_rce_exp,           ONLY: init_nh_state_rce_glb,                       &
                                    & init_nh_state_rce_tprescr_glb
   USE mo_aes_bubble,           ONLY: init_aes_bubble

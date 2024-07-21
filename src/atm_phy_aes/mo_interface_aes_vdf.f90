@@ -1434,6 +1434,7 @@ CONTAINS
             &          field%sfcWind(:,  jb),           &! out 10m windspeed
             &          field%    tas(:,  jb),           &! out temperature in 2m
             &          field%   dew2(:,  jb),           &! out dew point temperature in 2m
+            &          field%   qv2m(:,  jb),           &! out specific humidity in 2m
             &          field%    uas(:,  jb),           &! out zonal wind in 10m
             &          field%    vas(:,  jb),           &! out meridional wind in 10m
             &          field%tasmax (:,  jb),           &! out max 2m temperature
@@ -1441,6 +1442,7 @@ CONTAINS
             &          field%sfcWind_tile(:,jb,:),      &! out 10m windspeed on tiles
             &          field%    tas_tile(:,jb,:),      &! out temperature in 2m on tiles
             &          field%   dew2_tile(:,jb,:),      &! out dew point temperature in 2m on tiles
+            &          field%   qv2m_tile(:,jb,:),      &! out specific humidity in 2m on tiles
             &          field%    uas_tile(:,jb,:),      &! out zonal wind in 10m on tiles
             &          field%    vas_tile(:,jb,:)       )! out meridional wind in 10m on tiles
 

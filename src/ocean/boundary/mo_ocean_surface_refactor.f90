@@ -661,12 +661,13 @@ CONTAINS
       
       ! apply volume flux to surface elevation
 #ifdef __LVECTOR__
+      !$ACC DATA CREATE(dz_new, z_change, temp_stretch) IF(lzacc)
       DO jb = all_cells%start_block, all_cells%end_block
         CALL get_index_range(all_cells, jb, i_startidx_c, i_endidx_c)
 
         max_lev = MAXVAL(dolic_c(i_startidx_c:i_endidx_c, jb))
 
-        !$ACC PARALLEL LOOP GANG VECTOR DEFAULT(PRESENT) PRIVATE(dz_new, z_change, temp_stretch) ASYNC(1) IF(lzacc)
+        !$ACC PARALLEL LOOP GANG VECTOR DEFAULT(PRESENT) ASYNC(1) IF(lzacc)
         DO jc = i_startidx_c, i_endidx_c
           IF (dolic_c(jc,jb) > 0) THEN
 
@@ -782,6 +783,7 @@ CONTAINS
         !$ACC END PARALLEL
         !$ACC WAIT(1)
       END DO ! jb
+      !$ACC END DATA
 #else
       DO jb = all_cells%start_block, all_cells%end_block
         CALL get_index_range(all_cells, jb, i_startidx_c, i_endidx_c)

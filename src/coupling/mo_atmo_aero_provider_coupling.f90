@@ -71,10 +71,7 @@ CONTAINS
       routine = str_module // ':construct_atmo_aero_provider_coupling_post_sync'
 
     IF (.NOT. is_coupled_to_aero() .OR. &
-        (aes_rad_config(jg)%irad_aero /= 12 .AND. &
-         aes_rad_config(jg)%irad_aero /= 13 .AND. &
-         aes_rad_config(jg)%irad_aero /= 15 .AND. &
-         aes_rad_config(jg)%irad_aero /= 18 .AND. &
+        (aes_rad_config(jg)%irad_aero /= 13 .AND. &
          aes_rad_config(jg)%irad_aero /= 19)) &
       CALL finish(routine, "invalid configuration")
 

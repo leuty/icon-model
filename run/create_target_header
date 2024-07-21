@@ -620,13 +620,13 @@ set_run_target_lumi_gpu()
     # LUMI at CSC
     icon_data_rootFolder=${icon_data_rootFolder:=/appl/local/climatedt/pool/data/ICON}
 
-    set_default use_nproma 14080
-    set_default use_nproma_sub 7040
-    set_default use_nblocks_c 0
+    set_default use_nproma 0
+    set_default use_nproma_sub 0
+    set_default use_nblocks_c 1
     set_default use_prefetch_procs 0
     set_default use_account_no "project_465000454"
     set_default use_nodes 1
-    set_default use_queue "ju-standard-g"
+    set_default use_queue "standard-g"
 
     use_OMP_SCHEDULE="static,1"
 
@@ -646,11 +646,11 @@ set_run_target_lumi_gpu()
     if [[ "x$BB_SYSTEM" != "x" ]]
     then
 	# this buildbot, do not use job id
-	job_log_name="LOG.$job_name"
+	job_log_name="LOG.%x"
         # do not bind cpus
         cpu_bind=
     else
-	job_log_name="LOG.$job_name.%j"
+	job_log_name="LOG.%x.%j"
     fi
     # ------------------------------------
     s_cpu_time="00:30:00"
@@ -682,7 +682,6 @@ EOF
 export FI_MR_CACHE_MONITOR=memhooks
 export MPICH_OFI_NIC_POLICY=GPU
 export MPICH_GPU_SUPPORT_ENABLED=1
-export LD_PRELOAD=/appl/local/climatedt/sw/wtf/libpreload-me.so
 ${cpu_bind:+"export SLURM_CPU_BIND='${cpu_bind}'"}
 EOF
 }
@@ -719,9 +718,9 @@ set_run_target_lumi_cpu()
     if [[ "x$BB_SYSTEM" != "x" ]]
     then
 	# this buildbot, do not use job id
-	job_log_name="LOG.$job_name"
+	job_log_name="LOG.%x"
     else
-	job_log_name="LOG.$job_name.%j"
+	job_log_name="LOG.%x.%j"
     fi
     # ------------------------------------
     s_cpu_time="00:30:00"
@@ -752,7 +751,6 @@ EOF
 
 export OMP_PLACES=cores
 export FI_MR_CACHE_MONITOR=memhooks
-export LD_PRELOAD=/appl/local/climatedt/sw/wtf/libpreload-me.so
 EOF
 }
 

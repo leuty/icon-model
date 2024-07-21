@@ -120,14 +120,6 @@ CONTAINS
 
     ALLOCATE(put_buffer(nproma,p_patch%nblks_c,2))
 
-    ! As YAC does not touch masked data an explicit initialisation
-    ! is required as some compilers are asked to initialise with NaN
-    ! and as we loop over the full array.
-
-!ICON_OMP_PARALLEL
-    CALL init(put_buffer(:,:,:))
-!ICON_OMP_END_PARALLEL
-
     ! adjust size if larger bundles are used (no_arr > 4 below)
 
     nbr_hor_cells = p_patch%n_patch_cells
@@ -192,7 +184,15 @@ CONTAINS
     !  - if no lake part is present, subtract land part only
     !  - if no jsbach is present (aquaplanet), frac_oce is 1.
 
-    !$ACC DATA CREATE(frac_oce)
+    !$ACC DATA CREATE(frac_oce, get_buffer, put_buffer)
+
+    ! As YAC does not touch masked data an explicit initialisation
+    ! is required as some compilers are asked to initialise with NaN
+    ! and as we loop over the full array.
+
+!ICON_OMP_PARALLEL
+    CALL init(put_buffer(:,:,:))
+!ICON_OMP_END_PARALLEL
 
     IF ( mask_checksum > 0 .AND. aes_phy_config(jg)%ljsb ) THEN
       IF ( aes_phy_config(jg)%llake ) THEN
@@ -282,6 +282,7 @@ CONTAINS
 
     ! total rates of rain and snow over whole cell
     !$ACC UPDATE HOST(prm_field(jg)%rsfl, prm_field(jg)%ssfl) ASYNC(1)
+    !$ACC WAIT(1)
 
     ! Aquaplanet coupling: surface types ocean and ice only
     IF (nsfc_type == 2) THEN
@@ -293,7 +294,7 @@ CONTAINS
         ELSE
           nlen = p_patch%npromz_c
         END IF
-        !$ACC PARALLEL LOOP DEFAULT(PRESENT) ASYNC(1) COPYOUT(put_buffer(1:nlen,i_blk,1))
+        !$ACC PARALLEL LOOP DEFAULT(PRESENT) ASYNC(1)
         DO n = 1, nlen
 
           ! evaporation over ice-free and ice-covered water fraction - of whole ocean part
@@ -304,9 +305,15 @@ CONTAINS
             prm_field(jg)%frac_tile(n,i_blk,iice)
         ENDDO
       ENDDO
+      !$ACC UPDATE HOST(put_buffer(:,:,1)) ASYNC(1)
       !$ACC WAIT(1)
 !ICON_OMP_END_PARALLEL_DO
 
+    ! We zero out explicitly the put_buffer after the end of the last (possibly shorter) block
+    ! in case it contains NaNs, Infs or other problematic stuff after transfer from the GPU
+    ! This may not be necessary when running on CPUs, but the cost is negligble so we do it
+    ! anyway. 
+    put_buffer(p_patch%npromz_c+1:nproma, p_patch%nblks_c,1) = 0.0_wp
     ! Full coupling including jsbach: surface types ocean, ice, land
     ELSE IF (nsfc_type == 3) THEN
 
@@ -318,7 +325,7 @@ CONTAINS
         ELSE
           nlen = p_patch%npromz_c
         END IF
-        !$ACC PARALLEL LOOP DEFAULT(PRESENT) ASYNC(1) COPYOUT(put_buffer(1:nlen,i_blk,1)) NO_CREATE(scr)
+        !$ACC PARALLEL LOOP DEFAULT(PRESENT) ASYNC(1) NO_CREATE(scr)
         DO n = 1, nlen
 
           ! evaporation over ice-free and ice-covered water fraction, of whole ocean part, without land part
@@ -338,10 +345,13 @@ CONTAINS
           IF ( idbg_mxmn >= 1 .OR. idbg_val >=1 ) &
             scr(n,i_blk) = put_buffer(n,i_blk,1)
         ENDDO
-      ENDDO
+      ENDDO 
+      !$ACC UPDATE HOST(put_buffer(:,:,1)) ASYNC(1)
       !$ACC WAIT(1)
       !$ACC END DATA
 !ICON_OMP_END_PARALLEL_DO
+      put_buffer(p_patch%npromz_c+1:nproma, p_patch%nblks_c,1) = 0.0_wp
+
       IF ( idbg_mxmn >= 1 .OR. idbg_val >=1 )  &
         &  CALL dbg_print('AESOce: evapo-cpl',scr,str_module,3,in_subset=p_patch%cells%owned)
     ELSE
@@ -363,7 +373,7 @@ CONTAINS
     !$ACC UPDATE HOST(prm_field(jg)%swflxsfc_tile(:,:,iwtr)) ASYNC(1)
     !$ACC UPDATE HOST(prm_field(jg)%lwflxsfc_tile(:,:,iwtr)) ASYNC(1)
     !$ACC UPDATE HOST(prm_field(jg)%lhflx_tile(:,:,iwtr)) ASYNC(1)
-
+    !$ACC WAIT(1)
     IF (aes_phy_config(jg)%use_shflx_adjustment .AND. &
         .NOT. aes_vdf_config(jg)%use_tmx) THEN
 
@@ -376,14 +386,16 @@ CONTAINS
         ELSE
           nlen = p_patch%npromz_c
         END IF
-        !$ACC PARALLEL LOOP DEFAULT(PRESENT) ASYNC(1) COPYOUT(put_buffer(1:nlen,i_blk,1))
+        !$ACC PARALLEL LOOP DEFAULT(PRESENT) ASYNC(1)
         DO n = 1, nlen
           put_buffer(n,i_blk,1) = &
             shflx_adjustment_factor*prm_field(jg)%shflx_tile(n,i_blk,iwtr)
         ENDDO
-      ENDDO
+      ENDDO 
+      !$ACC UPDATE HOST(put_buffer(:,:,1)) ASYNC(1)
       !$ACC WAIT(1)
 !ICON_OMP_END_PARALLEL_DO
+      put_buffer(p_patch%npromz_c+1:nproma, p_patch%nblks_c,1) = 0.0_wp
 
       CALL cpl_put_field( &
         routine, field_id_heatflx, 'heat flux', nbr_hor_cells, &
@@ -417,14 +429,17 @@ CONTAINS
       ELSE
         nlen = p_patch%npromz_c
       END IF
-      !$ACC PARALLEL LOOP DEFAULT(PRESENT) ASYNC(1) COPYOUT(put_buffer(1:nlen,i_blk,1:2))
+      !$ACC PARALLEL LOOP DEFAULT(PRESENT) ASYNC(1)
       DO n = 1, nlen
         put_buffer(n,i_blk,1) = prm_field(jg)%Qtop(n,1,i_blk)
         put_buffer(n,i_blk,2) = prm_field(jg)%Qbot(n,1,i_blk)
       ENDDO
     ENDDO
+
+    !$ACC UPDATE HOST(put_buffer(:,:,1:2)) ASYNC(1)
     !$ACC WAIT(1)
 !ICON_OMP_END_PARALLEL_DO
+    put_buffer(p_patch%npromz_c+1:nproma, p_patch%nblks_c,1:2) = 0.0_wp
 
     CALL cpl_put_field( &
       routine, field_id_seaice_atm, 'atmos sea ice', nbr_hor_cells, &
@@ -469,29 +484,31 @@ CONTAINS
           END IF
           SELECT CASE (ccycle_config(jg)%iccycle)
           CASE (1) ! c-cycle with interactive atm. co2 concentration, qtrc_phy in kg/kg
-             !$ACC PARALLEL LOOP DEFAULT(PRESENT) ASYNC(1) COPYOUT(put_buffer(1:nlen,i_blk,1))
+             !$ACC PARALLEL LOOP DEFAULT(PRESENT) ASYNC(1)
              DO n = 1, nlen
                 put_buffer(n,i_blk,1) = amd/amco2 * 1.0e6_wp * prm_field(jg)%qtrc_phy(n,nlev,i_blk,ico2)
              END DO
           CASE (2) ! c-cycle with prescribed  atm. co2 concentration
              SELECT CASE (ccycle_config(jg)%ico2conc)
              CASE (2) ! constant  co2 concentration, vmr_co2 in m3/m3
-                !$ACC PARALLEL LOOP DEFAULT(PRESENT) ASYNC(1) COPYOUT(put_buffer(1:nlen,i_blk,1))
+                !$ACC PARALLEL LOOP DEFAULT(PRESENT) ASYNC(1)
                 DO n = 1, nlen
                    put_buffer(n,i_blk,1) = 1.0e6_wp * ccycle_config(jg)%vmr_co2
                 END DO
              CASE (4) ! transient co2 concentration, ghg_co2vmr in m3/m3
-                !$ACC PARALLEL LOOP DEFAULT(PRESENT) ASYNC(1) COPYOUT(put_buffer(1:nlen,i_blk,1))
+                !$ACC PARALLEL LOOP DEFAULT(PRESENT) ASYNC(1)
                 DO n = 1, nlen
                    put_buffer(n,i_blk,1) = 1.0e6_wp * ghg_co2vmr
                 END DO
              END SELECT
           END SELECT
        ENDDO
+       !$ACC UPDATE HOST(put_buffer(:,:,1)) ASYNC(1)
        !$ACC WAIT(1)
 !!ICON_OMP_END_PARALLEL_DO
+       put_buffer(p_patch%npromz_c+1:nproma, p_patch%nblks_c,1) = 0.0_wp
 
-      CALL cpl_put_field( &
+       CALL cpl_put_field( &
         routine, field_id_co2_vmr, 'co2 mr', nbr_hor_cells, &
         put_buffer(:,:,1))
 
@@ -505,13 +522,15 @@ CONTAINS
     !  Receive fields, only assign values if something was received
     !   - ocean fields have undefined values on land, which are not sent to the atmosphere,
     !     therefore get_buffer is set to zero to avoid unintended usage of ocean values over land
-!ICON_OMP_PARALLEL
-    CALL init(get_buffer(:,:), lacc=.TRUE.)
-!ICON_OMP_END_PARALLEL
 
     ! ------------------------------
     !  Receive SST
     !   "sea_surface_temperature" - SST
+
+!ICON_OMP_PARALLEL
+    CALL init(get_buffer(:,:))
+!ICON_OMP_END_PARALLEL
+
     no_arr = 1
     CALL cpl_get_field( &
       routine, field_id_sst, 'SST', &
@@ -521,6 +540,7 @@ CONTAINS
     IF (received_data) THEN
 
 !ICON_OMP_PARALLEL_DO PRIVATE(i_blk, n, nn, nlen) ICON_OMP_RUNTIME_SCHEDULE
+      !$ACC UPDATE DEVICE(get_buffer(:,1)) ASYNC(1)
       !$ACC DATA COPYOUT(scr) IF(idbg_mxmn >= 1 .OR. idbg_val >=1)
       DO i_blk = 1, p_patch%nblks_c
         nn = (i_blk-1)*nproma
@@ -529,9 +549,8 @@ CONTAINS
         ELSE
           nlen = p_patch%npromz_c
         END IF
-        !$ACC PARALLEL LOOP DEFAULT(PRESENT) ASYNC(1) COPYIN(get_buffer(nn+1:nn+nlen, 1)) NO_CREATE(scr)
+        !$ACC PARALLEL LOOP DEFAULT(PRESENT) ASYNC(1) NO_CREATE(scr)
         DO n = 1, nlen
-
           !  - lake part is included in land part, must be subtracted as well, see frac_oce
 
           IF ( nn+n > nbr_inner_cells ) THEN
@@ -570,6 +589,7 @@ CONTAINS
     IF (received_data) THEN
 
 !ICON_OMP_PARALLEL_DO PRIVATE(i_blk, n, nn, nlen) ICON_OMP_RUNTIME_SCHEDULE
+      !$ACC UPDATE DEVICE(get_buffer(:,1)) ASYNC(1)
       DO i_blk = 1, p_patch%nblks_c
         nn = (i_blk-1)*nproma
         IF (i_blk /= p_patch%nblks_c) THEN
@@ -577,7 +597,7 @@ CONTAINS
         ELSE
           nlen = p_patch%npromz_c
         END IF
-        !$ACC PARALLEL LOOP DEFAULT(PRESENT) ASYNC(1) COPYIN(get_buffer(nn+1:nn+nlen, 1))
+        !$ACC PARALLEL LOOP DEFAULT(PRESENT) ASYNC(1)
         DO n = 1, nlen
           IF ( nn+n > nbr_inner_cells ) THEN
             prm_field(jg)%ocu(n,i_blk) = dummy
@@ -604,6 +624,7 @@ CONTAINS
     IF (received_data) THEN
 
 !ICON_OMP_PARALLEL_DO PRIVATE(i_blk, n, nn, nlen) ICON_OMP_RUNTIME_SCHEDULE
+      !$ACC UPDATE DEVICE(get_buffer(:,1)) ASYNC(1)
       DO i_blk = 1, p_patch%nblks_c
         nn = (i_blk-1)*nproma
         IF (i_blk /= p_patch%nblks_c) THEN
@@ -611,7 +632,7 @@ CONTAINS
         ELSE
           nlen = p_patch%npromz_c
         END IF
-        !$ACC PARALLEL LOOP DEFAULT(PRESENT) ASYNC(1) COPYIN(get_buffer(nn+1:nn+nlen, 1))
+        !$ACC PARALLEL LOOP DEFAULT(PRESENT) ASYNC(1)
         DO n = 1, nlen
           IF ( nn+n > nbr_inner_cells ) THEN
             prm_field(jg)%ocv(n,i_blk) = dummy
@@ -638,6 +659,7 @@ CONTAINS
     IF (received_data) THEN
 
 !ICON_OMP_PARALLEL_DO PRIVATE(i_blk, n, nn, nlen) ICON_OMP_RUNTIME_SCHEDULE
+      !$ACC UPDATE DEVICE(get_buffer(:,1:3)) ASYNC(1)
       DO i_blk = 1, p_patch%nblks_c
         nn = (i_blk-1)*nproma
         IF (i_blk /= p_patch%nblks_c) THEN
@@ -645,7 +667,7 @@ CONTAINS
         ELSE
           nlen = p_patch%npromz_c
         END IF
-        !$ACC PARALLEL LOOP DEFAULT(PRESENT) ASYNC(1) COPYIN(get_buffer(nn+1:nn+nlen, 1:3))
+        !$ACC PARALLEL LOOP DEFAULT(PRESENT) ASYNC(1)
         DO n = 1, nlen
           IF ( nn+n > nbr_inner_cells ) THEN
             prm_field(jg)%hi  (n,1,i_blk) = dummy
@@ -698,6 +720,7 @@ CONTAINS
        IF (received_data) THEN
 
 !ICON_OMP_PARALLEL_DO PRIVATE(i_blk, n, nn, nlen) ICON_OMP_RUNTIME_SCHEDULE
+          !$ACC UPDATE DEVICE(get_buffer(:,1)) ASYNC(1)
           DO i_blk = 1, p_patch%nblks_c
              nn = (i_blk-1)*nproma
              IF (i_blk /= p_patch%nblks_c) THEN
@@ -705,7 +728,7 @@ CONTAINS
              ELSE
                 nlen = p_patch%npromz_c
              END IF
-             !$ACC PARALLEL LOOP DEFAULT(PRESENT) ASYNC(1) COPYIN(get_buffer(nn+1:nn+nlen, 1))
+             !$ACC PARALLEL LOOP DEFAULT(PRESENT) ASYNC(1)
              DO n = 1, nlen
                 IF ( nn+n > nbr_inner_cells ) THEN
                    prm_field(jg)%co2_flux_tile(n,i_blk,iwtr) = dummy
@@ -790,6 +813,7 @@ CONTAINS
           & CALL dbg_print('AESOce: frac_alake   ',prm_field(jg)%alake,str_module,4,in_subset=p_patch%cells%owned)
       ENDIF
     ENDIF
+    !$ACC WAIT
     !$ACC END DATA ! frac_oce
 
     !---------------------------------------------------------------------

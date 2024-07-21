@@ -178,7 +178,7 @@ CONTAINS
     aes_rad_config(:)% irad_o2        = 2
     aes_rad_config(:)% irad_cfc11     = 2
     aes_rad_config(:)% irad_cfc12     = 2
-    aes_rad_config(:)% irad_aero      = 2
+    aes_rad_config(:)% irad_aero      = 0
     !
     ! Default volume mixing ratios: 1990 values (CMIP5)
     aes_rad_config(:)% vmr_co2        =  348.0e-06_wp
@@ -521,6 +521,16 @@ CONTAINS
        SELECT CASE (irad_aero)
        CASE(0)
           CALL message('','No aerosol in radiation')
+       CASE(12)
+          CALL message('','only Kinne natural background aerosols are used')
+       CASE(13)
+          CALL message('','time dependent Kinne aerosols are used')
+       CASE(19)
+          CALL message('','Kinne natural background aerosols + simple plume anthropogenic aerosols are used')
+       CASE default
+          WRITE (message_text, '(a,i0,a)') &
+               'ERROR: irad_aero   =',irad_aero, ' is not supported'
+          CALL finish(routine,message_text)
        END SELECT
        !
        ! --- Check scaling factors
