@@ -2196,7 +2196,6 @@ MODULE mo_nh_stepping
 #ifdef _OPENACC
             CALL finish (routine, 'aerosol_2D_advection: OpenACC version currently not implemented')
 #endif
-            CALL sync_patch_array(SYNC_C, p_patch(jg), prm_diag(jg)%aerosol)
             CALL aerosol_2D_advection( p_patch(jg), p_int_state(jg), iprog_aero,   & !in
               &          dt_loc, prm_diag(jg)%aerosol, prep_adv(jg)%vn_traj,       & !in, inout, in
               &          prep_adv(jg)%mass_flx_me, prep_adv(jg)%mass_flx_ic,       & !in

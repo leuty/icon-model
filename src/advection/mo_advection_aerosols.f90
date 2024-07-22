@@ -60,7 +60,7 @@ CONTAINS
     zstart(1) =  500._wp
     zend(1)   = 1500._wp
     ! 2. dust (has a larger decay scale than the others)
-    zstart(2) = 1500._wp
+    zstart(2) = 2000._wp
     zend(2)   = 6000._wp
 
     ! Compute corresponding level indices
