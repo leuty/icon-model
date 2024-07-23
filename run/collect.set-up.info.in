@@ -58,7 +58,7 @@ use_site='local.net'
 case "$use_host" in
   kfa-juelich.de|fz-juelich.de|*jureca*|*juwels*) use_site=juelich.de ;;
   l*.lvt.dkrz.de|aurora*) use_site=dkrz.de ;;
-  daint*|tave*|santis*|kesch*|tsa*|nid*|balfrin*|tasna*) use_site=cscs.ch ;;
+  daint*|tave*|santis*|kesch*|tsa*|balfrin*|tasna*) use_site=cscs.ch ;;
   uc2*|fh2*|hk*) use_site=kit.edu ;;
   xc*|rcnl*|oflws*|omlws*|gpnl*) use_site=dwd.de ;;
   *euler.ethz.ch) use_site=ethz.ch ;;
@@ -70,6 +70,18 @@ case "$use_host" in
     # server (buildmac1.mpimet.mpg.de) in the same way:
     echo "$use_host" | grep '^\([dw]14[6-9]-[1-9][0-9]\{0,2\}\|buildmac1\)\.mpimet\.mpg\.de$' >/dev/null 2>&1 || use_site=mpg.de ;;
   uan0?) use_site=csc.fi ;;
+  nid*)
+    case $(sacctmgr -nP show cluster Format=Cluster | head -1) in
+      balfrin|daint) use_site=cscs.ch ;;
+      lumi) use_site=csc.fi ;;
+      *)
+        case ${SLURM_CLUSTER_NAME} in
+          balfrin|daint) use_site=cscs.ch ;;
+          lumi) use_site=csc.fi ;;
+        esac
+        ;;
+    esac
+    ;;
   *.leonardo.local) use_site=cineca.it ;;
 esac
 test x"$ICON_DOCKER" = x1 && use_site=docker

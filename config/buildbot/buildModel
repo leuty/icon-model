@@ -83,9 +83,16 @@ case $(echo ${BB_NAME} | tr '[:upper:]' '[:lower:]') in
       exit 1
     fi
     ;;
-  lumi*)
-    # CSC super computer; currently run locally
-    cd ${ICON_DIR} && ${ICON_DIR}/config/buildbot/buildModel.sbatch > ${LOGFILE} 2>&1
+  lumi_cpu)
+    # CSC super computer; CPU partition
+    sbatch --wait -A project_465000454 -p debug --time=00:30:00 -n ${MAKE_PROCS} -o ${LOGFILE} -D $(pwd) ${ICON_DIR}/config/buildbot/buildModel.sbatch
+    if test 0 -ne "$?" ; then
+      exit 1
+    fi
+    ;;
+  lumi_gpu)
+    # CSC super computer; GPU partition
+    sbatch --wait -A project_465000454 -p dev-g -n ${MAKE_PROCS} -o ${LOGFILE} -D $(pwd) ${ICON_DIR}/config/buildbot/buildModel.sbatch
     if test 0 -ne "$?" ; then
       exit 1
     fi

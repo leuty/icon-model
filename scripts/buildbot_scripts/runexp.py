@@ -97,9 +97,9 @@ def runexp():
             else:
                 N = len(incomplete_jobs) - len(completed_jobs)
                 if N > 1:
-                    print(f"Still waiting for {N} jobs.")
+                    print(f"Still waiting for {N} jobs: {' '.join([str(e.batch_job.jobid) for e in (set(incomplete_jobs) - set(completed_jobs))])}")
                 elif N == 1:
-                    print(f"Still waiting for the last job.")
+                    print(f"Still waiting for the last job: {[*incomplete_jobs][0].batch_job.jobid}")
         incomplete_jobs.difference_update(completed_jobs)
 
     # wait a bit longer, because queing or file system might create logfiles
