@@ -47,7 +47,7 @@ MODULE mo_ensemble_pert_config
                                   get_terminal_fall_velocity_ice, &
                                   set_terminal_fall_velocity_ice
   USE mo_ext_data_types,     ONLY: t_external_data
-  USE mo_extpar_config,      ONLY: nclass_lu
+  USE mo_extpar_config,      ONLY: ext_atm_attr
   USE mo_exception,          ONLY: message_text, message, finish
   USE mtime,                 ONLY: datetime, getDayOfYearFromDateTime
   USE mo_mpi,                ONLY: p_io, p_comm_work, p_bcast
@@ -324,13 +324,13 @@ MODULE mo_ensemble_pert_config
         CALL RANDOM_NUMBER(rnd_num)
       ENDDO
 
-      ALLOCATE(rnd_tkred_sfc(nclass_lu(1)), rnd_fac_ccqc(nclass_lu(1)))
+      ALLOCATE(rnd_tkred_sfc(ext_atm_attr(1)%nclass_lu), rnd_fac_ccqc(ext_atm_attr(1)%nclass_lu))
 
       CALL message('','')
       CALL message('','Perturbed external parameters: roughness length, root depth, min. stomata resistance,&
                    & max. leaf area index; defaults in brackets')
       ! Perturbations for external parameters specified depending on the land cover class
-      DO i = 1, nclass_lu(1) ! we assume here that the same land cover dataset is used for all model domains
+      DO i = 1, ext_atm_attr(1)%nclass_lu ! we assume here that the same land cover dataset is used for all model domains
 
         ! roughness length
         CALL random_gen(dum,rnd_num)

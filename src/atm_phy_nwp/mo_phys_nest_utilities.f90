@@ -199,11 +199,10 @@ SUBROUTINE upscale_rad_input(jg, jgp, nlev_rg, emis_rad,                   &
   cosmu0, albvisdir, albnirdir, albvisdif, albnirdif, albdif,              &
   tsfc, ktype, pres_ifc, pres, temp,                                       &
   tot_cld, clc, q_o3,                                                      &
-  aeq1, aeq2, aeq3, aeq4, aeq5,                                            &
   rg_emis_rad,                                                             &
   rg_cosmu0, rg_albvisdir, rg_albnirdir, rg_albvisdif, rg_albnirdif,       &
   rg_albdif, rg_tsfc, rg_rtype, rg_pres_ifc, rg_pres, rg_temp,             &
-  rg_tot_cld, rg_clc, rg_q_o3, rg_aeq1, rg_aeq2, rg_aeq3, rg_aeq4, rg_aeq5,&
+  rg_tot_cld, rg_clc, rg_q_o3,                                             &
   z_pres_ifc, z_tot_cld, buffer_rrg,                                       &
   icpl_rad_reff, reff_liq, reff_frz, rg_reff_liq, rg_reff_frz,             &
   input_extra_flds, rg_extra_flds, input_extra_2D, rg_extra_2D,            &     
@@ -221,8 +220,7 @@ SUBROUTINE upscale_rad_input(jg, jgp, nlev_rg, emis_rad,                   &
     emis_rad(:,:),                                                                        &
     cosmu0(:,:), albvisdir(:,:), albnirdir(:,:), albvisdif(:,:), albnirdif(:,:),          &
     albdif(:,:), tsfc(:,:), pres_ifc(:,:,:), pres(:,:,:), temp(:,:,:),                    &
-    tot_cld(:,:,:,:), clc(:,:,:), q_o3(:,:,:), aeq1(:,:,:), aeq2(:,:,:), aeq3(:,:,:),     &
-    aeq4(:,:,:), aeq5(:,:,:)
+    tot_cld(:,:,:,:), clc(:,:,:), q_o3(:,:,:)
 
   REAL(wp), INTENT(IN), OPTIONAL ::  reff_liq(:,:,:), reff_frz(:,:,:)
   
@@ -239,8 +237,7 @@ SUBROUTINE upscale_rad_input(jg, jgp, nlev_rg, emis_rad,                   &
     rg_cosmu0(:,:), rg_albvisdir(:,:), rg_albnirdir(:,:), rg_albvisdif(:,:), &
     rg_albnirdif(:,:), rg_albdif(:,:), rg_tsfc(:,:), rg_rtype(:,:),          &
     rg_pres_ifc(:,:,:), rg_pres(:,:,:), rg_temp(:,:,:),                      &
-    rg_tot_cld(:,:,:,:), rg_clc(:,:,:), rg_q_o3(:,:,:), rg_aeq1(:,:,:),      &
-    rg_aeq2(:,:,:), rg_aeq3(:,:,:), rg_aeq4(:,:,:),rg_aeq5(:,:,:),           &
+    rg_tot_cld(:,:,:,:), rg_clc(:,:,:), rg_q_o3(:,:,:),                      &
     ! these have the same function as the intermediate storage fields below but are passed to the calling routine
     z_pres_ifc(:,:,:), z_tot_cld(:,:,:,:)
 
@@ -254,8 +251,7 @@ SUBROUTINE upscale_rad_input(jg, jgp, nlev_rg, emis_rad,                   &
     z_emis_rad(:,:),                                                           &
     z_cosmu0(:,:), z_albvisdir(:,:), z_albnirdir(:,:), z_albvisdif(:,:),       &
     z_albnirdif(:,:), z_albdif(:,:), z_tsfc(:,:), z_rtype(:,:),                &
-    z_pres(:,:,:), z_temp(:,:,:), z_clc(:,:,:), z_q_o3(:,:,:),                 & 
-    z_aeq1(:,:,:), z_aeq2(:,:,:), z_aeq3(:,:,:), z_aeq4(:,:,:), z_aeq5(:,:,:), &
+    z_pres(:,:,:), z_temp(:,:,:), z_clc(:,:,:), z_q_o3(:,:,:),                 &
     z_aux3d(:,:,:), zrg_aux3d(:,:,:), z_reff_liq(:,:,:), z_reff_frz(:,:,:),    &
     z_extra_flds(:,:,:,:), z_extra_2D(:,:,:), z_extra_reff(:,:,:,:)
 
@@ -268,8 +264,7 @@ SUBROUTINE upscale_rad_input(jg, jgp, nlev_rg, emis_rad,                   &
     p_pres_ifc(:,:,:), p_pres(:,:,:), p_temp(:,:,:),                     &
     p_reff_liq(:,:,:), p_reff_frz(:,:,:),                                &
     p_extra_flds(:,:,:,:), p_extra_2D(:,:,:), p_extra_reff(:,:,:,:),     &
-    p_tot_cld(:,:,:,:), p_clc(:,:,:), p_q_o3(:,:,:), p_aeq1(:,:,:),      &
-    p_aeq2(:,:,:), p_aeq3(:,:,:), p_aeq4(:,:,:),p_aeq5(:,:,:)
+    p_tot_cld(:,:,:,:), p_clc(:,:,:), p_q_o3(:,:,:)
 
   ! Buffer for auxiliary temperature and pressure levels above the vertical nest interface
   REAL(wp), INTENT(IN) :: buffer_rrg(:,:,:)
@@ -306,11 +301,11 @@ SUBROUTINE upscale_rad_input(jg, jgp, nlev_rg, emis_rad,                   &
   ! arguments intent(in/out)
   !$ACC DATA PRESENT(emis_rad, cosmu0, albvisdir, albnirdir, albvisdif, albnirdif) &
   !$ACC   PRESENT(albdif, tsfc, pres_ifc, pres, temp) &
-  !$ACC   PRESENT(tot_cld, clc, q_o3, aeq1, aeq2, aeq3, aeq4, aeq5) &
+  !$ACC   PRESENT(tot_cld, clc, q_o3) &
   !$ACC   PRESENT(ktype, buffer_rrg) &
   !$ACC   PRESENT(rg_emis_rad, rg_cosmu0, rg_albvisdir, rg_albnirdir, rg_albvisdif, rg_albnirdif) &
   !$ACC   PRESENT(rg_albdif, rg_tsfc, rg_pres_ifc, rg_pres, rg_temp) &
-  !$ACC   PRESENT(rg_tot_cld, rg_clc, rg_q_o3, rg_aeq1, rg_aeq2, rg_aeq3, rg_aeq4, rg_aeq5, z_pres_ifc, z_tot_cld) &
+  !$ACC   PRESENT(rg_tot_cld, rg_clc, rg_q_o3, z_pres_ifc, z_tot_cld) &
   !$ACC   PRESENT(input_extra_flds, input_extra_2D, input_extra_reff) &
   !$ACC   PRESENT(rg_extra_flds, rg_extra_2D, rg_extra_reff) IF(lzacc)
 
@@ -383,16 +378,13 @@ SUBROUTINE upscale_rad_input(jg, jgp, nlev_rg, emis_rad,                   &
              z_albnirdif(nproma,nblks_c_lp), z_albdif(nproma,nblks_c_lp),               &
              z_tsfc(nproma,nblks_c_lp), z_rtype(nproma,nblks_c_lp),                     &
              z_pres(nproma,nlev_rg,nblks_c_lp), z_temp(nproma,nlev_rg,nblks_c_lp),      &
-             z_clc(nproma,nlev_rg,nblks_c_lp),                                          &
-             z_q_o3(nproma,nlev_rg,nblks_c_lp), z_aeq1(nproma,nlev_rg,nblks_c_lp),      &
-             z_aeq2(nproma,nlev_rg,nblks_c_lp), z_aeq3(nproma,nlev_rg,nblks_c_lp),      &
-             z_aeq4(nproma,nlev_rg,nblks_c_lp), z_aeq5(nproma,nlev_rg,nblks_c_lp),      &
+             z_clc(nproma,nlev_rg,nblks_c_lp), z_q_o3(nproma,nlev_rg,nblks_c_lp),       &
              z_aux3d(nproma,n2d_upsc,nblks_c_lp), zrg_aux3d(nproma,n2d_upsc,p_patch(jgp)%nblks_c) )
 
     ! enter data for local arrays
     !$ACC ENTER DATA CREATE(z_emis_rad, z_cosmu0, z_albvisdir, z_albnirdir, z_albvisdif) &
     !$ACC   CREATE(z_albnirdif, z_albdif, z_tsfc, z_rtype, z_pres, z_temp, z_clc) &
-    !$ACC   CREATE(z_q_o3, z_aeq1, z_aeq2, z_aeq3, z_aeq4, z_aeq5, z_aux3d, zrg_aux3d) IF(lzacc)
+    !$ACC   CREATE(z_q_o3, z_aux3d, zrg_aux3d) IF(lzacc)
 
     IF ( l_upsc_reff ) THEN
       ALLOCATE ( z_reff_liq(nproma,nlev_rg,nblks_c_lp), z_reff_frz(nproma,nlev_rg,nblks_c_lp) )
@@ -438,11 +430,6 @@ SUBROUTINE upscale_rad_input(jg, jgp, nlev_rg, emis_rad,                   &
     p_tot_cld    => z_tot_cld
     p_clc        => z_clc
     p_q_o3       => z_q_o3
-    p_aeq1       => z_aeq1
-    p_aeq2       => z_aeq2
-    p_aeq3       => z_aeq3
-    p_aeq4       => z_aeq4
-    p_aeq5       => z_aeq5
   ELSE
     p_emis_rad   => rg_emis_rad
     p_cosmu0     => rg_cosmu0
@@ -466,17 +453,12 @@ SUBROUTINE upscale_rad_input(jg, jgp, nlev_rg, emis_rad,                   &
     p_tot_cld    => rg_tot_cld
     p_clc        => rg_clc
     p_q_o3       => rg_q_o3
-    p_aeq1       => rg_aeq1
-    p_aeq2       => rg_aeq2
-    p_aeq3       => rg_aeq3
-    p_aeq4       => rg_aeq4
-    p_aeq5       => rg_aeq5
   ENDIF
 
   ! data present for pointers
   !$ACC DATA PRESENT(p_patch, p_emis_rad, p_cosmu0, p_albvisdir, p_albnirdir, p_albvisdif, p_albnirdif) &
   !$ACC   PRESENT(p_albdif, p_tsfc, p_rtype, p_pres_ifc, p_pres, p_temp) &
-  !$ACC   PRESENT(p_tot_cld, p_clc, p_q_o3, p_aeq1, p_aeq2, p_aeq3, p_aeq4, p_aeq5) IF(lzacc)
+  !$ACC   PRESENT(p_tot_cld, p_clc, p_q_o3) IF(lzacc)
 
   ! data present for optional pointers
   !$ACC DATA PRESENT(p_extra_flds) IF(l_upsc_extra_flds .AND. lzacc)
@@ -508,11 +490,6 @@ SUBROUTINE upscale_rad_input(jg, jgp, nlev_rg, emis_rad,                   &
     p_tot_cld    = 0._wp
     p_clc        = 0._wp
     p_q_o3       = 0._wp
-    p_aeq1       = 0._wp
-    p_aeq2       = 0._wp
-    p_aeq3       = 0._wp
-    p_aeq4       = 0._wp
-    p_aeq5       = 0._wp
     !$ACC END KERNELS
   ENDIF
 
@@ -694,36 +671,6 @@ SUBROUTINE upscale_rad_input(jg, jgp, nlev_rg, emis_rad,                   &
           q_o3(iidx(jc,jb,2),jk,iblk(jc,jb,2))*p_fbkwgt(jc,jb,2) + &
           q_o3(iidx(jc,jb,3),jk,iblk(jc,jb,3))*p_fbkwgt(jc,jb,3) + &
           q_o3(iidx(jc,jb,4),jk,iblk(jc,jb,4))*p_fbkwgt(jc,jb,4)
-
-        p_aeq1(jc,jk1,jb) =                                        &
-          aeq1(iidx(jc,jb,1),jk,iblk(jc,jb,1))*p_fbkwgt(jc,jb,1) + &
-          aeq1(iidx(jc,jb,2),jk,iblk(jc,jb,2))*p_fbkwgt(jc,jb,2) + &
-          aeq1(iidx(jc,jb,3),jk,iblk(jc,jb,3))*p_fbkwgt(jc,jb,3) + &
-          aeq1(iidx(jc,jb,4),jk,iblk(jc,jb,4))*p_fbkwgt(jc,jb,4)
-
-        p_aeq2(jc,jk1,jb) =                                        &
-          aeq2(iidx(jc,jb,1),jk,iblk(jc,jb,1))*p_fbkwgt(jc,jb,1) + &
-          aeq2(iidx(jc,jb,2),jk,iblk(jc,jb,2))*p_fbkwgt(jc,jb,2) + &
-          aeq2(iidx(jc,jb,3),jk,iblk(jc,jb,3))*p_fbkwgt(jc,jb,3) + &
-          aeq2(iidx(jc,jb,4),jk,iblk(jc,jb,4))*p_fbkwgt(jc,jb,4)
-
-        p_aeq3(jc,jk1,jb) =                                        &
-          aeq3(iidx(jc,jb,1),jk,iblk(jc,jb,1))*p_fbkwgt(jc,jb,1) + &
-          aeq3(iidx(jc,jb,2),jk,iblk(jc,jb,2))*p_fbkwgt(jc,jb,2) + &
-          aeq3(iidx(jc,jb,3),jk,iblk(jc,jb,3))*p_fbkwgt(jc,jb,3) + &
-          aeq3(iidx(jc,jb,4),jk,iblk(jc,jb,4))*p_fbkwgt(jc,jb,4)
-
-        p_aeq4(jc,jk1,jb) =                                        &
-          aeq4(iidx(jc,jb,1),jk,iblk(jc,jb,1))*p_fbkwgt(jc,jb,1) + &
-          aeq4(iidx(jc,jb,2),jk,iblk(jc,jb,2))*p_fbkwgt(jc,jb,2) + &
-          aeq4(iidx(jc,jb,3),jk,iblk(jc,jb,3))*p_fbkwgt(jc,jb,3) + &
-          aeq4(iidx(jc,jb,4),jk,iblk(jc,jb,4))*p_fbkwgt(jc,jb,4)
-
-        p_aeq5(jc,jk1,jb) =                                        &
-          aeq5(iidx(jc,jb,1),jk,iblk(jc,jb,1))*p_fbkwgt(jc,jb,1) + &
-          aeq5(iidx(jc,jb,2),jk,iblk(jc,jb,2))*p_fbkwgt(jc,jb,2) + &
-          aeq5(iidx(jc,jb,3),jk,iblk(jc,jb,3))*p_fbkwgt(jc,jb,3) + &
-          aeq5(iidx(jc,jb,4),jk,iblk(jc,jb,4))*p_fbkwgt(jc,jb,4)
 
 #ifndef _OPENACC
       ENDDO
@@ -952,11 +899,6 @@ SUBROUTINE upscale_rad_input(jg, jgp, nlev_rg, emis_rad,                   &
       DO jk = 1, nshift
 !$NEC ivdep
         DO jc = i_startidx, i_endidx
-          p_aeq1(jc,jk,jb) = p_aeq1(jc,jk1,jb)
-          p_aeq2(jc,jk,jb) = p_aeq2(jc,jk1,jb)
-          p_aeq3(jc,jk,jb) = p_aeq3(jc,jk1,jb)
-          p_aeq4(jc,jk,jb) = p_aeq4(jc,jk1,jb)
-          p_aeq5(jc,jk,jb) = p_aeq5(jc,jk1,jb)
           p_tot_cld(jc,jk,jb,1:3) = p_tot_cld(jc,jk1,jb,1:3)
           p_clc (jc,jk,jb) = p_clc(jc,jk1,jb)
           p_q_o3(jc,jk,jb) = p_q_o3(jc,jk1,jb)
@@ -1050,13 +992,8 @@ SUBROUTINE upscale_rad_input(jg, jgp, nlev_rg, emis_rad,                   &
 
     CALL exchange_data_mult(p_pat=p_pp%comm_pat_loc_to_glb_c_fbk,         &
                             lacc=lzacc,                                   &
-                            nfields=9, ndim2tot=9*nlev_rg,                &
-                            RECV1=rg_aeq1,     SEND1=z_aeq1,              &
-                            RECV2=rg_aeq2,     SEND2=z_aeq2,              &
-                            RECV3=rg_aeq3,     SEND3=z_aeq3,              &
-                            RECV4=rg_aeq4,     SEND4=z_aeq4,              &
-                            RECV5=rg_aeq5,     SEND5=z_aeq5,              &
-                            RECV6=rg_clc,      SEND6=z_clc,               &
+                            nfields=4, ndim2tot=4*nlev_rg,                &
+                            RECV1=rg_clc,      SEND1=z_clc,               &
                             RECV4D=rg_tot_cld, SEND4D=z_tot_cld           )
 
 ! Maximum number of SEND/RECIV is 7. Put this into first call when acdnc is not used
@@ -1147,11 +1084,11 @@ SUBROUTINE upscale_rad_input(jg, jgp, nlev_rg, emis_rad,                   &
     ! exit data for local arrays
     !$ACC EXIT DATA DELETE(z_emis_rad, z_cosmu0, z_albvisdir, z_albnirdir, z_albvisdif) &
     !$ACC   DELETE(z_albnirdif, z_albdif, z_tsfc, z_rtype, z_pres, z_temp, z_clc) &
-    !$ACC   DELETE(z_q_o3, z_aeq1, z_aeq2, z_aeq3, z_aeq4, z_aeq5, z_aux3d, zrg_aux3d) IF(lzacc)
+    !$ACC   DELETE(z_q_o3, z_aux3d, zrg_aux3d) IF(lzacc)
 
     DEALLOCATE(z_emis_rad, z_cosmu0, z_albvisdir, z_albnirdir,                       &
       & z_albvisdif, z_albnirdif, z_albdif, z_tsfc, z_rtype, z_pres, z_temp,         &
-      & z_clc, z_q_o3, z_aeq1, z_aeq2, z_aeq3, z_aeq4, z_aeq5, z_aux3d, zrg_aux3d)
+      & z_clc, z_q_o3, z_aux3d, zrg_aux3d)
 
     IF ( l_upsc_reff ) THEN
       !$ACC EXIT DATA DELETE(z_reff_liq, z_reff_frz) IF(lzacc)

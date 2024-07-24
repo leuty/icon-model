@@ -12,9 +12,13 @@
 #
 # ICON-waves.
 #
-# The purpose is the technical testing of the ICON-waves.
+# The purpose is the technical testing of the ICON-waves in standalone (non-coupled) mode.
+# Runs globally on a R2B4 grid.
+# The experiment writes checkpoint files asychronously, and restarts from the
+# latest checkpoint file, in order to check the correctness of the restart
+# functionality.
 #
-# Mikhail Dobrynin, 2022
+# Mikhail Dobrynin, Daniel Reinert 2024
 #
 #=============================================================================
 
@@ -78,7 +82,6 @@ for gridfile in ${wave_grid}; do
 done
 
 num_io_procs=2
-num_restart_procs=0
 num_prefetch_proc=0
 num_io_procs_radar=0
 proc0_shift=0 # proc0_shift does not work yet with WAVES
@@ -90,13 +93,45 @@ nf=25          # NUMBER OF FREQUENCIES
 wave_namelist=NAMELIST_${EXPNAME}
 
 start_date="1979-01-01T00:00:00Z"
-  end_date="1979-01-06T00:00:00Z"
+  end_date="1979-01-06T12:00:00Z"
 
 dtime=600
 
+# ----------------------------------------------------------------------------
+# ============================================================================
+#                        LOOP: MODEL IS EXECUTED TWO TIMES
+# ============================================================================
+for iter in 1 2 ; do
+
+
+if [ $iter -eq 1 ] ; then
+
+echo "##############################################################"
+echo "###       Reference run                                    ###"
+echo "##############################################################"
+
+restart="       .FALSE. "
+num_restart_procs="   1 "
+checkpoint_intval="P03D"
+ofile_prfx="wave-REF"
+
+else
+
+echo "##############################################################"
+echo "###       Restart run                                      ###"
+echo "##############################################################"
+
+restart="        .TRUE. "
+num_restart_procs="   1 "
+checkpoint_intval="P03D"
+ofile_prfx="wave-RST"
+
+fi
+
+
 cat > icon_master.namelist << EOF
 &master_nml
- lrestart                     = .false.
+ lrestart                     = ${restart}
 /
 &time_nml
  is_relative_time = .false.
@@ -105,6 +140,7 @@ cat > icon_master.namelist << EOF
  calendar             = "proleptic gregorian"
  experimentStartDate  = "$start_date"
  experimentStopDate   = "$end_date"
+ checkpointTimeIntVal = "${checkpoint_intval}"
 /
 &master_model_nml
  model_type                  = 98
@@ -125,10 +161,10 @@ cat > ${wave_namelist} << EOF
  dtime                = ${dtime}     ! [s] timestep in seconds
  ltimer               = .true.
  timers_level         = 10
- msg_level            = 15
+ msg_level            = 14
  ltestcase            = .FALSE.       ! run testcase
  ldynamics            = .TRUE.
- ltransport           = .FALSE.       ! no horizontal transport of wave energy
+ ltransport           = .TRUE.       ! no horizontal transport of wave energy
  ntracer              = $((${nd}*${nf}))
  output               = "nml"
 /
@@ -148,6 +184,9 @@ cat > ${wave_namelist} << EOF
 &grid_nml
  dynamics_grid_filename  = ${dynamics_grid_filename}
 /
+&io_nml
+ restart_write_mode      = "async"
+/
 &extpar_nml
  itopo = 0 !do not read atmospheric exp file
  extpar_filename = '${wave_extpar}'
@@ -157,25 +196,28 @@ cat > ${wave_namelist} << EOF
  nfreqs      = ${nf}   ! number of frequencies
  forc_file_prefix = 'ocean_waves_R2B4_19790101T000000' ! prefix of forcing file name
 /
-&output_nml
- filetype                =                          4         ! output format: 2=GRIB2, 4=NETCDFv2
- dom                     =                         -1         ! write all domains
- output_bounds           =        0., 10000000., 3600         ! output: start, end, increment
- steps_per_file          =                       1000         ! number of output steps in one output file
- mode                    =                          1         ! 1: forecast mode (relative t-axis), 2: climate mode (absolute t-axis)
- include_last            =                      .TRUE.        ! flag whether to include the last time step
- output_filename         =                      'wave'        ! file name base
- output_grid             =                      .TRUE.        ! flag whether grid information is added to output.
- ml_varlist              = 'group:wave_short'
+&energy_propagation_nml
+ itype_limit  = 4     ! positive definite flux limiter
 /
 &output_nml
  filetype                =                          4         ! output format: 2=GRIB2, 4=NETCDFv2
  dom                     =                         -1         ! write all domains
- output_bounds           =        0., 10000000., 7200         ! output: start, end, increment
- steps_per_file          =                       1000         ! number of output steps in one output file
+ output_bounds           =        0., 10000000., 43200.       ! output: start, end, increment
+ steps_per_file          =                          1         ! number of output steps in one output file
  mode                    =                          1         ! 1: forecast mode (relative t-axis), 2: climate mode (absolute t-axis)
  include_last            =                      .TRUE.        ! flag whether to include the last time step
- output_filename         =                   'wave_ll'        ! file name base
+ output_filename         =             '${ofile_prfx}'        ! file name base
+ output_grid             =                      .TRUE.        ! flag whether grid information is added to output.
+ ml_varlist              = 'group:wave_short', 'group:wave_spectrum', 'group:wave_phy', 'group:wave_debug'
+/
+&output_nml
+ filetype                =                          4         ! output format: 2=GRIB2, 4=NETCDFv2
+ dom                     =                         -1         ! write all domains
+ output_bounds           =        0., 10000000., 10800.       ! output: start, end, increment
+ steps_per_file          =                          1         ! number of output steps in one output file
+ mode                    =                          1         ! 1: forecast mode (relative t-axis), 2: climate mode (absolute t-axis)
+ include_last            =                      .TRUE.        ! flag whether to include the last time step
+ output_filename         =          '${ofile_prfx}_ll'        ! file name base
  output_grid             =                      .TRUE.        ! flag whether grid information is added to output.
  remap                   =                          1         ! output on regular lat-lon grid
  reg_lon_def             =                 0., 1, 360.
@@ -185,22 +227,22 @@ cat > ${wave_namelist} << EOF
 &output_nml
  filetype                =                          2         ! output format: 2=GRIB2, 4=NETCDFv2
  dom                     =                         -1         ! write all domains
- output_bounds           =        0., 10000000., 3600         ! output: start, end, increment
- steps_per_file          =                       1000         ! number of output steps in one output file
+ output_bounds           =        0., 10000000., 43200.       ! output: start, end, increment
+ steps_per_file          =                          1         ! number of output steps in one output file
  mode                    =                          1         ! 1: forecast mode (relative t-axis), 2: climate mode (absolute t-axis)
  include_last            =                      .TRUE.        ! flag whether to include the last time step
- output_filename         =              'wave_forcing'        ! file name base
+ output_filename         =     '${ofile_prfx}_forcing'        ! file name base
  output_grid             =                      .TRUE.        ! flag whether grid information is added to output.
  ml_varlist              = 'group:wave_forcing'
 /
 &output_nml
  filetype                =                          4         ! output format: 2=GRIB2, 4=NETCDFv2
  dom                     =                         -1         ! write all domains
- output_bounds           =        0., 10000000., 3600         ! output: start, end, increment
- steps_per_file          =                       1000         ! number of output steps in one output file
+ output_bounds           =        0., 10000000., 43200.       ! output: start, end, increment
+ steps_per_file          =                          1         ! number of output steps in one output file
  mode                    =                          1         ! 1: forecast mode (relative t-axis), 2: climate mode (absolute t-axis)
  include_last            =                      .TRUE.        ! flag whether to include the last time step
- output_filename         =                'wave2ocean'        ! file name base
+ output_filename         =      '${ofile_prfx}_2ocean'        ! file name base
  output_grid             =                      .TRUE.        ! flag whether grid information is added to output.
  ml_varlist              = 'u_stokes','v_stokes'
 /
@@ -211,25 +253,96 @@ EOF
 #
 # configure START_MODEL_function
 #
-# requesting VH procs is disabled until waves supports proc0_shift=1.
-# ICON_COMPONENT1_VH_procs=$((num_restart_procs + num_io_procs + num_prefetch_proc + num_io_procs_radar))
+#ICON_COMPONENT1_VH_procs=$((num_restart_procs + num_io_procs + num_prefetch_proc + num_io_procs_radar))
 
 # ----------------------------------------------------------------------------
 # run the model!
 # ----------------------------------------------------------------------------
 
 $START_MODEL
-EXIT_STATUS=$?
+
+# ----------------------------------------------------------------------------
+done # iterations for restart testing
+# ----------------------------------------------------------------------------
+
+# ----------------------------------------------------------------------------
+# check model output
+# ----------------------------------------------------------------------------
+
+SCRIPT_STATUS=0
+TEST_STATUS=0
+
+# 2ocean output filenames
+FILE_REF="wave-REF_2ocean_DOM01_ML_0011.nc"
+FILE_RST="wave-RST_2ocean_DOM01_ML_0011.nc"
+
+if [ ! -f ${FILE_REF} ] || [ ! -f ${FILE_RST} ]; then
+  echo " Both or either of the files ${FILE_RFF} and ${FILE_RST} do not exist"
+  SCRIPT_STATUS=$(($SCRIPT_STATUS + 1))
+  exit $SCRIPT_STATUS
+fi
+
+echo "##############################################################"
+echo "###       Restart test: check match of output files        ###"
+echo "##############################################################"
+
+# compare_output_files is defined in ./add_run_routines
+compare_output_files "${FILE_REF}" "${FILE_RST}"
+TEST_STATUS=$((TEST_STATUS + $?))
+
+# forcing output filenames
+FILE_REF="wave-REF_forcing_DOM01_ML_0011.grb"
+FILE_RST="wave-RST_forcing_DOM01_ML_0011.grb"
+
+if [ ! -f ${FILE_REF} ] || [ ! -f ${FILE_RST} ]; then
+  echo " Both or either of the files ${FILE_RFF} and ${FILE_RST} do not exist"
+  SCRIPT_STATUS=$(($SCRIPT_STATUS + 1))
+  exit $SCRIPT_STATUS
+fi
+
+echo "##############################################################"
+echo "###       Restart test: check match of output files        ###"
+echo "##############################################################"
+
+# compare_output_files is defined in ./add_run_routines
+compare_output_files "${FILE_REF}" "${FILE_RST}"
+TEST_STATUS=$((TEST_STATUS + $?))
+
+# output filenames
+FILE_REF="wave-REF_DOM01_ML_0011.nc"
+FILE_RST="wave-RST_DOM01_ML_0011.nc"
+
+if [ ! -f ${FILE_REF} ] || [ ! -f ${FILE_RST} ]; then
+  echo " Both or either of the files ${FILE_RFF} and ${FILE_RST} do not exist"
+  SCRIPT_STATUS=$(($SCRIPT_STATUS + 1))
+  exit $SCRIPT_STATUS
+fi
+
+echo "##############################################################"
+echo "###       Restart test: check match of output files        ###"
+echo "##############################################################"
+
+# compare_output_files is defined in ./add_run_routines
+compare_output_files "${FILE_REF}" "${FILE_RST}"
+TEST_STATUS=$((TEST_STATUS + $?))
+
+
+if [ $TEST_STATUS == 0 ]; then
+  echo " "
+  echo "NWP test SUCCESSFUL"
+  echo " "
+else
+  echo " "
+  echo "NWP test FAILED:"
+  echo " "
+fi
+
+EXIT_STATUS=$((TEST_STATUS + $?))
 
 if [ "$EXIT_STATUS" -ne "0" ]; then
   echo "EXIT_STATUS: $EXIT_STATUS"
   exit $EXIT_STATUS
 fi
 
-# ----------------------------------------------------------------------------
-#done # iterations for restart testing
-# ----------------------------------------------------------------------------
 
-echo "EXIT_STATUS: $EXIT_STATUS"
-echo $EXPDIR
-exit $EXIT_STATUS
+

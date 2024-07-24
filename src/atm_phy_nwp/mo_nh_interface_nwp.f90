@@ -1353,9 +1353,6 @@ CONTAINS
 &                       i_startidx, i_endidx, rl_start, rl_end)
 
         IF (lcalc_inv) THEN
-#ifdef _OPENACC
-          IF (lzacc) CALL finish("mo_nh_interface_nwp:nwp_nh_interface", "inversion_height_index() is not yet ported with OpenACC.")
-#endif
           ! inversion height diagnostic for EIS-based stratocumulus parameterization in cover_koe
           ! ( for efficiency reasons this could be integrated in cover_koe and called with an index list )
           CALL inversion_height_index(                             &
@@ -1367,7 +1364,8 @@ CONTAINS
              &  i_startidx,i_endidx,kstart_moist(jg),nlev,nlev,  &
              &  kc_inversion(:),                                 &
              &  kc_entr_zone(:),                                 &
-             &  lfound_inversion(:))
+             &  lfound_inversion(:),                             &
+             &  lacc=lzacc)
         ELSE
           !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1) IF(lzacc)
           !$ACC LOOP GANG VECTOR

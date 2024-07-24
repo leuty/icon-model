@@ -24,11 +24,9 @@ MODULE mo_nwp_phy_init
   USE mo_math_constants,      ONLY: rad2deg
   USE mo_physical_constants,  ONLY: grav, rd_o_cpd, cpd, p0ref, rd, p0sl_bg,         &
     &                               dtdz_standardatm, lh_v=>alv, o3mr2gg 
-!   USE mo_math_utilities,      ONLY: sphere_cell_mean_char_length
   USE mo_nwp_phy_types,       ONLY: t_nwp_phy_diag,t_nwp_phy_tend
   USE mo_nwp_lnd_types,       ONLY: t_lnd_prog, t_wtr_prog, t_lnd_diag
   USE mo_ext_data_types,      ONLY: t_external_data
-  USE mo_ext_data_state,      ONLY: nlev_o3, nmonths
   USE mo_ext_data_init,       ONLY: diagnose_ext_aggr, vege_clim
   USE mo_nonhydro_types,      ONLY: t_nh_prog, t_nh_diag, t_nh_metrics
   USE mo_exception,           ONLY: message, finish, message_text
@@ -46,7 +44,7 @@ MODULE mo_nwp_phy_init
   USE mo_run_config,          ONLY: ltestcase, iqv, iqc, inccn, ininpot, msg_level 
   USE mo_atm_phy_nwp_config,  ONLY: atm_phy_nwp_config, lrtm_filename,               &
     &                               cldopt_filename, icpl_aero_conv, iprog_aero
-  USE mo_extpar_config,       ONLY: itype_vegetation_cycle
+  USE mo_extpar_config,       ONLY: ext_o3_attr, itype_vegetation_cycle
   !radiation
   USE mo_newcld_optics,       ONLY: setup_newcld_optics
   USE mo_lrtm_setup,          ONLY: lrtm_setup
@@ -110,8 +108,8 @@ MODULE mo_nwp_phy_init
   USE mo_master_config,       ONLY: isRestart
   USE mo_nwp_parameters,      ONLY: t_phy_params
 
-  USE mo_initicon_config,     ONLY: init_mode, lread_tke
-  USE mo_apt_routines,        ONLY: init_apt_fields
+  USE mo_initicon_config,     ONLY: init_mode, lread_tke, itype_sma
+  USE mo_apt_routines,        ONLY: init_apt_fields, apply_sma
   USE mo_nwp_tuning_config,   ONLY: tune_zceff_min, tune_v0snow, tune_zvz0i, tune_icesedi_exp, tune_box_liq_sfc_fac
   USE mo_cuparameters,        ONLY: sugwd
   USE mtime,                  ONLY: datetime, MAX_DATETIME_STR_LEN, &
@@ -350,6 +348,9 @@ SUBROUTINE init_nwp_phy ( p_patch, p_metrics,             &
   ENDIF
 
   CALL init_apt_fields(p_patch, p_diag, prm_diag, ext_data, p_diag_lnd, p_prog_wtr_now)
+
+  IF (itype_sma >= 2 .AND. .NOT. isRestart()) &
+    CALL apply_sma (p_patch, p_diag, ext_data, p_diag_lnd, p_prog_lnd_now)
 
   ! Diagnose aggregated external parameter fields
   ! (mainly for output purposes)
@@ -955,7 +956,7 @@ SUBROUTINE init_nwp_phy ( p_patch, p_metrics,             &
         !
         ! Do ecrad initialization only once
         IF (.NOT.lreset_mode .AND. jg==1) THEN
-          CALL setup_ecrad(p_patch,ecrad_conf,ini_date)
+          CALL setup_ecrad(ecrad_conf)
           !
           ! Setup Tegen aerosol needs to be done only once for all domains
           IF (irad_aero == iRadAeroTegen .OR. irad_aero == iRadAeroART) THEN
@@ -1129,22 +1130,24 @@ SUBROUTINE init_nwp_phy ( p_patch, p_metrics,             &
            & .OR. nh_test_name == 'RCE_Tprescr'                      ) THEN
           CALL o3_pl2ml (jcs=i_startidx, jce=i_endidx,     &
             & kbdim=nproma,                                &
-            & nlev_pres = nlev_o3,klev= nlev ,             &
+            & nlev_pres = ext_o3_attr(jg)%nlev_o3,         &
+            & klev= nlev ,                                 &
             & pfoz = ext_data%atm_td%pfoz(:),              &
             & phoz = ext_data%atm_td%phoz(:),              &! in o3-levs
             & ppf = zrefpres (:,:,jb),                  &! in  pres
             & pph = zpres_ifc(:,:,jb),               &! in  pres_halfl
-            & o3_time_int = ext_data%atm_td%o3(:,:,jb,nmonths),     &! in
+            & o3_time_int = ext_data%atm_td%o3(:,:,jb,ext_o3_attr(jg)%nmonths),     &! in
             & o3_clim     = ext_data%atm%o3(:,:,jb) )         ! OUT
         ELSE ! default behaviour
           CALL o3_pl2ml (jcs=i_startidx, jce=i_endidx,     &
             & kbdim=nproma,                                &
-            & nlev_pres = nlev_o3,klev= nlev ,             &
+            & nlev_pres = ext_o3_attr(jg)%nlev_o3,         &
+            & klev= nlev ,                                 &
             & pfoz = ext_data%atm_td%pfoz(:),              &
             & phoz = ext_data%atm_td%phoz(:),              &! in o3-levs
             & ppf = p_diag%pres (:,:,jb),                  &! in  pres
             & pph = p_diag%pres_ifc(:,:,jb),               &! in  pres_halfl
-            & o3_time_int = ext_data%atm_td%o3(:,:,jb,nmonths),     &! in
+            & o3_time_int = ext_data%atm_td%o3(:,:,jb,ext_o3_attr(jg)%nmonths),     &! in
             & o3_clim     = ext_data%atm%o3(:,:,jb) )         ! OUT
         ENDIF
       ENDIF

@@ -56,6 +56,7 @@ MODULE mo_initicon_nml
     & config_scalfac_da_sfcfric  => scalfac_da_sfcfric,  &
     & config_icpl_da_tkhmin      => icpl_da_tkhmin,      &
     & config_icpl_da_seaice      => icpl_da_seaice,      &
+    & config_itype_sma           => itype_sma,           &
     & config_dt_ana              => dt_ana,              &
     & config_adjust_tso_tsnow    => adjust_tso_tsnow,    &
     & config_filetype            => filetype,            &
@@ -151,6 +152,8 @@ CONTAINS
 
   INTEGER  :: icpl_da_seaice   ! Coupling between data assimilation and sea ice
 
+  INTEGER  :: itype_sma        ! Type of soil moisture analysis used
+
   REAL(wp) :: dt_ana           ! Time interval of assimilation cycle [s] (relevant for icpl_da_sfcevap >= 2)
 
   LOGICAL  :: adjust_tso_tsnow ! Apply T increments for lowest model level also to snow and upper soil layers
@@ -243,7 +246,7 @@ CONTAINS
                           icpl_da_skinc, icpl_da_snowalb, adjust_tso_tsnow, &
                           icpl_da_sfcfric, lcouple_ocean_coldstart,         &
                           icpl_da_tkhmin, icpl_da_seaice, fire2d_filename,  &
-                          scalfac_da_sfcfric, smi_relax_timescale
+                          scalfac_da_sfcfric, smi_relax_timescale, itype_sma
 
   !------------------------------------------------------------
   ! 2.0 set up the default values for initicon
@@ -310,6 +313,9 @@ CONTAINS
                         ! 4: as 3, but uses cr_bsmin instead of c_soil for adapting bare-soil evaporation
 
   smi_relax_timescale = 20._wp ! Time scale (days) for ICON-internal soil moisture relaxation
+
+  itype_sma           = 1  ! 1: use external soil moisture analysis from the DA input file
+                           ! 2: use ICON-internal SMA based on adaptive parameter tuning
 
   icpl_da_skinc = 0     ! Coupling between data assimilation and skin conductivity
                         ! 0: off, 1: on, 2: as 1, plus soil heat conductivity and capacity
@@ -420,6 +426,11 @@ CONTAINS
     CALL finish(TRIM(routine),message_text)
   ENDIF
 
+  IF (itype_sma > 1 .AND. icpl_da_sfcevap < 3) THEN
+    WRITE(message_text,'(a)') 'itype_sma > 1 must be combined with icpl_da_sfcevap >= 3'
+    CALL finish(TRIM(routine),message_text)
+  ENDIF
+
   ! IAU iteration is meaningless if the model starts without backward time shift
   IF (dt_shift == 0._wp) THEN
     iterate_iau = .FALSE.
@@ -465,6 +476,7 @@ CONTAINS
   config_scalfac_da_sfcfric  = scalfac_da_sfcfric
   config_icpl_da_tkhmin      = icpl_da_tkhmin
   config_icpl_da_seaice      = icpl_da_seaice
+  config_itype_sma           = itype_sma
   config_dt_ana              = dt_ana
   config_adjust_tso_tsnow    = adjust_tso_tsnow
   config_lvert_remap_fg      = lvert_remap_fg

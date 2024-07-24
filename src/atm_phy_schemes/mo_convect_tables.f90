@@ -103,6 +103,9 @@ MODULE mo_convect_tables
   REAL(wp), PARAMETER :: flucupmin = 1000._wp
   REAL(wp), PARAMETER :: flucupmax = 8000._wp
 
+  !> Maximum temperature when the upper bound has been extended [K].
+  REAL(wp), PARAMETER :: tmax_extended = 3000._wp
+
   ! logical is fine and logical, but fp faster
   LOGICAL  :: lookupoverflow = .FALSE.          ! preset with false
   REAL(wp) :: flookupoverflow = 0._wp           ! preset with false
@@ -785,7 +788,7 @@ CONTAINS
 
   SUBROUTINE prepare_ua_index_spline(name,jcs,size,temp,idx,zalpha, &
     &                                xi,nphase,zphase,iphase,       &
-    &                                klev,kblock,kblock_size)
+    &                                klev,kblock,kblock_size,extend_upper_limit)
 
     CHARACTER(len=*),   INTENT(in) :: name
 
@@ -804,8 +807,12 @@ CONTAINS
     REAL(wp), OPTIONAL, INTENT(out) :: zphase(size)
     INTEGER,  OPTIONAL, INTENT(out) :: iphase(size)
 
+    !> Extend upper temperature limit beyond table bounds.
+    LOGICAL, OPTIONAL, INTENT(IN) :: extend_upper_limit
+
     REAL(wp) :: ztt, ztshft, zinbounds, ztmin,ztmax,znphase,ztest
     INTEGER  ::  jl
+    LOGICAL :: lextend_upper_limit
 
     !---- Argument arrays - intent(in)
     !$ACC DATA PRESENT(temp)
@@ -819,6 +826,9 @@ CONTAINS
     ztmin = flucupmin
     ztmax = flucupmax
 
+    lextend_upper_limit = .FALSE.
+    IF (PRESENT(extend_upper_limit)) lextend_upper_limit = extend_upper_limit
+
     IF (PRESENT(xi)) THEN
 
       znphase = 0.0_wp
@@ -829,6 +839,8 @@ CONTAINS
 
         ztshft = FSEL(temp(jl)-tmelt,0._wp,1._wp)
         ztt = 20._wp*temp(jl)
+        IF (lextend_upper_limit .AND. ztt >= ztmax .AND. ztt < 20._wp * tmax_extended) &
+            & ztt = ztmax - 1e-6_wp
         zalpha(jl) = ztt - DINT(ztt)
         idx(jl) = INT(ztt-ztshft)
 
@@ -860,6 +872,8 @@ CONTAINS
 
         ztshft = FSEL(temp(jl)-tmelt,0._wp,1._wp)
         ztt = 20._wp*temp(jl)
+        IF (lextend_upper_limit .AND. ztt >= ztmax .AND. ztt < 20._wp * tmax_extended) &
+            & ztt = ztmax - 1e-6_wp
         zalpha(jl) = ztt - DINT(ztt)
         idx(jl) = INT(ztt-ztshft)
 
@@ -881,7 +895,9 @@ CONTAINS
 
         DO jl = 1, size
           ztt = 20._wp*temp(jl)
-          IF ( ztt <= ztmin .OR. ztt >= ztmax ) THEN
+          IF (ztt <= ztmin &
+              & .OR. (.NOT. lextend_upper_limit .AND. ztt >= ztmax) &
+              & .OR. (lextend_upper_limit .AND. ztt >= 20._wp * tmax_extended)) THEN
 
             WRITE ( 0 , '(a,a,a,a,i5,a,i8,a,f8.2,a,f8.2,a,f8.2)' )                                 &
                  & ' Lookup table problem in ', TRIM(name), ' at ',                                &

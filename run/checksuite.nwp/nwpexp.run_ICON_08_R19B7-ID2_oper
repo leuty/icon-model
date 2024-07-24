@@ -8,6 +8,11 @@
 # SPDX-License-Identifier: BSD-3-Clause
 # ------------------------------------------
 
+##########################################################################
+## For generation of new references (requires manual script execution)
+## grep for "work_mode" and see related documentation
+##########################################################################
+
 # ----------------------------------------------------------------------
 # path definitions
 # ----------------------------------------------------------------------
@@ -966,7 +971,7 @@ files2report=${files2check%.*}.diff
 # ---------------------------------------
 # path to reference files
 # ---------------------------------------
-refdir=${DATADIR}/ref_967bee30
+refdir=${DATADIR}/ref_efb9782f
 
 # check if the reference folder actually contains the required GRIB files
 if [ ${work_mode} -eq ${mode_def} ] || [ ${work_mode} -eq ${mode_frc} ]; then
