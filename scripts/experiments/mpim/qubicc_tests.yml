@@ -1,6 +1,6 @@
 tests:
 
-  - name: atm_qubicc_nc
+  - name: atm_qubicc_nc_test
     machines:
       - name: daint
         runflags: ['cpu_time=00:30:00']
