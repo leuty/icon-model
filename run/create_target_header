@@ -32,6 +32,9 @@ set -eu
 
 BB_SYSTEM=${BB_SYSTEM:=""}
 BB_NAME=${BB_NAME:=""}
+DEADLINE="--deadline=now+2hours"
+MINIMAL_TIME="--time-min=00:10:00"
+TIME_LIMITS="${MINIMAL_TIME} ${DEADLINE}"
 
 add_free_var()
 {
@@ -395,9 +398,9 @@ set_run_target_bull_milan()
 #SBATCH --account=$use_account_no
 $(if [[ "x$BB_SYSTEM" != 'x' ]]
  then
-  printf '#SBATCH --qos=buildbot
-#SBATCH --deadline=now+2hours
-';fi)
+  printf "#SBATCH --qos=buildbot
+#SBATCH ${TIME_LIMITS}
+";fi)
 #SBATCH --job-name=$job_name
 #SBATCH --partition=$queue
 #SBATCH --nodes=$use_nodes
@@ -510,8 +513,9 @@ set_run_target_bullx_gpu()
 #SBATCH --account=$use_account_no
 $(if [[ "x$BB_SYSTEM" != 'x' ]]
  then
-  printf '#SBATCH --qos=buildbot
-';fi)
+  printf "#SBATCH --qos=buildbot
+#SBATCH ${TIME_LIMITS}
+";fi)
 #SBATCH --job-name=$job_name
 #SBATCH --partition=$queue
 #SBATCH --chdir=$output_folder
@@ -525,7 +529,6 @@ $(if [[ "x$BB_SYSTEM" != 'x' ]]
 $(if [[ "x${BB_SYSTEM}" = 'x' ]]
   then
   printf '#SBATCH --constraint=a100_80
-#SBATCH --export=BB_SYSTEM=${BB_SYSTEM}
 ';fi)
 $(if [[ "$use_mpi_root" == *intel*mpi* ]]
  then
@@ -674,6 +677,10 @@ set_run_target_lumi_gpu()
 #SBATCH --gpus-per-node=${tasks_per_node}
 #SBATCH --time=${s_cpu_time}
 #SBATCH --partition=${use_queue}
+$(if [[ "x$BB_SYSTEM" != 'x' ]]
+ then
+  printf "#SBATCH ${TIME_LIMITS}
+";fi)
 EOF
 
     start_header
@@ -744,6 +751,10 @@ set_run_target_lumi_cpu()
 #$SBATCH_cpus_per_task
 #SBATCH --time=${s_cpu_time}
 #SBATCH --partition=${use_queue}
+$(if [[ "x$BB_SYSTEM" != 'x' ]]
+ then
+  printf "#SBATCH ${TIME_LIMITS}
+";fi)
 EOF
 
     start_header
@@ -1142,6 +1153,10 @@ set_run_target_tsa_cpu()
 #SBATCH --job-name=$job_name
 #SBATCH --output=$output_folder/$job_log_name.o
 #SBATCH --error=$output_folder/$job_log_name.o
+$(if [[ "x$BB_SYSTEM" != 'x' ]]
+ then
+  printf "#SBATCH ${TIME_LIMITS}
+";fi)
 #$SBATCH_nodes
 #$SBATCH_ntasks_per_node
 #$s_cpu_time
@@ -1250,6 +1265,10 @@ set_run_target_tsa_gpu()
 #$SBATCH_ntasks_per_node
 #SBATCH --gres=gpu:${tasks_per_node}
 #SBATCH --partition=dev
+$(if [[ "x$BB_SYSTEM" != 'x' ]]
+ then
+  printf "#SBATCH ${TIME_LIMITS}
+";fi)
 #$s_cpu_time
 EOF
 
@@ -1373,8 +1392,8 @@ set_run_target_daint_cpu()
 #$s_cpu_time
 $(if [[ "x$BB_SYSTEM" != 'x' ]]
  then
-  printf '#SBATCH --deadline=now+2hours
-';fi)
+  printf "#SBATCH ${TIME_LIMITS}
+";fi)
 EOF
 
   start_header
@@ -1482,8 +1501,8 @@ set_run_target_daint_gpu()
 #$s_cpu_time
 $(if [[ "x$BB_SYSTEM" != 'x' ]]
  then
-  printf '#SBATCH --deadline=now+2hours
-';fi)
+  printf "#SBATCH ${TIME_LIMITS}
+";fi)
 EOF
 
     start_header
@@ -1560,6 +1579,10 @@ set_run_target_alps_mch_gpu()
 #SBATCH --output=$output_folder/$job_log_name.o
 #SBATCH --error=$output_folder/$job_log_name.o
 #SBATCH --gpus-per-node=4
+$(if [[ "x$BB_SYSTEM" != 'x' ]]
+ then
+  printf "#SBATCH ${TIME_LIMITS}
+";fi)
 #$SBATCH_nodes
 #$SBATCH_ntasks_per_node
 #$s_cpu_time
@@ -1640,6 +1663,10 @@ set_run_target_alps_mch_cpu()
 #SBATCH --partition=$partition
 #SBATCH --exclusive
 #SBATCH --hint=nomultithread
+$(if [[ "x$BB_SYSTEM" != 'x' ]]
+ then
+  printf "#SBATCH ${TIME_LIMITS}
+";fi)
 #$SBATCH_nodes
 #$SBATCH_ntasks_per_node
 #$s_cpu_time
@@ -1725,6 +1752,10 @@ set_run_target_dom_gpu()
 # dom gpu batch job parameters
 # ----------------------------
 #SBATCH --account=csstaff
+$(if [[ "x$BB_SYSTEM" != 'x' ]]
+ then
+  printf "#SBATCH ${TIME_LIMITS}
+";fi)
 #SBATCH --job-name=$job_name
 #SBATCH --output=$job_log_name.o
 #SBATCH --error=$job_log_name.o
@@ -1820,6 +1851,10 @@ set_run_target_tave_knl()
 # tave batch job parameters
 #--------------------------
 #SBATCH --account=csstaff
+$(if [[ "x$BB_SYSTEM" != 'x' ]]
+ then
+  printf "#SBATCH ${TIME_LIMITS}
+";fi)
 #SBATCH --job-name=$job_name
 #SBATCH --output=$output_folder/$job_log_name.o
 #SBATCH --error=$output_folder/$job_log_name.o
@@ -1867,6 +1902,10 @@ set_run_target_euler()
 #SBATCH --output=$output_folder/$job_log_name.o
 #SBATCH --error=$output_folder/$job_log_name.o
 #SBATCH --constraint=EPYC_7H12
+$(if [[ "x$BB_SYSTEM" != 'x' ]]
+ then
+  printf "#SBATCH ${TIME_LIMITS}
+";fi)
 #$SBATCH_nodes
 #$s_cpu_time
 # ===========================
@@ -1989,6 +2028,10 @@ set_run_target_hk()
 #SBATCH --job-name=$job_name
 #SBATCH --nodes=${use_nodes}
 #SBATCH --partition=cpuonly
+$(if [[ "x$BB_SYSTEM" != 'x' ]]
+ then
+  printf "#SBATCH ${TIME_LIMITS}
+";fi)
 #SBATCH --account=hk-project-glori-init
 #SBATCH --ntasks-per-node=$use_mpi_procs_pernode
 #SBATCH --time=$use_cpu_time
@@ -2047,6 +2090,10 @@ set_run_target_hk_gpu()
 #SBATCH --error=$output_folder/$job_log_name.o
 #SBATCH --job-name=$job_name
 #SBATCH --partition=accelerated
+$(if [[ "x$BB_SYSTEM" != 'x' ]]
+ then
+  printf "#SBATCH ${TIME_LIMITS}
+";fi)
 #SBATCH --account=hk-project-glori-init
 #SBATCH --ntasks-per-node=$use_mpi_procs_pernode
 #SBATCH --gres=gpu:4
@@ -2141,6 +2188,10 @@ set_run_target_juwels()
 #SBATCH --job-name=$job_name
 #SBATCH --nodes=${use_nodes}
 #SBATCH --partition=${partition}
+$(if [[ "x$BB_SYSTEM" != 'x' ]]
+ then
+  printf "#SBATCH ${TIME_LIMITS}
+";fi)
 #SBATCH --account=exaww
 #SBATCH --ntasks-per-node=$use_mpi_procs_pernode
 #SBATCH --time=$use_cpu_time
@@ -2198,6 +2249,10 @@ set_run_target_leo()
 #SBATCH --job-name=$job_name
 #SBATCH --nodes=${use_nodes}
 #SBATCH --partition=boost_usr_prod
+$(if [[ "x$BB_SYSTEM" != 'x' ]]
+ then
+  printf "#SBATCH ${TIME_LIMITS}
+";fi)
 #SBATCH --account=DE360_GLORI
 #SBATCH --ntasks-per-node=$use_mpi_procs_pernode
 #SBATCH --time=$use_cpu_time

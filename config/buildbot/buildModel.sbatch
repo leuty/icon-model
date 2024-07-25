@@ -13,7 +13,6 @@
 #=============================================================================
 #SBATCH --job-name=build-icon
 #SBATCH --nodes=1
-#SBATCH --time=01:00:00
 
 #set -x
 # abort on error
