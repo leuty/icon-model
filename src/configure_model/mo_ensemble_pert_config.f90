@@ -476,8 +476,8 @@ MODULE mo_ensemble_pert_config
 #ifdef __ICON_ART
     ! Dusty Cirrus
     IF (lart .AND. art_config(1)%lart_dusty_cirrus) THEN
-      dustyci_crit_sv(1:max_dom) = art_config(1:max_dom)%dustyci_crit
-      dustyci_rhi_sv(1:max_dom)  = art_config(1:max_dom)%dustyci_rhi
+      dustyci_crit_sv(1:max_dom) = art_config(1:max_dom)%rart_dustyci_crit
+      dustyci_rhi_sv(1:max_dom)  = art_config(1:max_dom)%rart_dustyci_rhi
     ENDIF ! lart, lart_dusty_cirrus
 #endif
 
@@ -644,9 +644,9 @@ MODULE mo_ensemble_pert_config
     ! Dusty Cirrus
     IF (lart .AND. art_config(1)%lart_dusty_cirrus) THEN
       CALL random_gen(rnd_dustyci_crit, rnd_num)
-      art_config(1:max_dom)%dustyci_crit = dustyci_crit_sv(1:max_dom) + 2._wp*(rnd_num-0.5_wp)*range_dustyci_crit
+      art_config(1:max_dom)%rart_dustyci_crit = dustyci_crit_sv(1:max_dom) + 2._wp*(rnd_num-0.5_wp)*range_dustyci_crit
       CALL random_gen(rnd_dustyci_rhi, rnd_num)
-      art_config(1:max_dom)%dustyci_rhi  = dustyci_rhi_sv(1:max_dom)  + 2._wp*(rnd_num-0.5_wp)*range_dustyci_rhi
+      art_config(1:max_dom)%rart_dustyci_rhi  = dustyci_rhi_sv(1:max_dom)  + 2._wp*(rnd_num-0.5_wp)*range_dustyci_rhi
     ENDIF ! lart, lart_dusty_cirrus
 #endif
 
@@ -783,7 +783,7 @@ MODULE mo_ensemble_pert_config
 #ifdef __ICON_ART
       ! Dusty Cirrus
       IF (lart .AND. art_config(1)%lart_dusty_cirrus) THEN
-        WRITE(message_text,'(2f8.4)') art_config(1)%dustyci_crit, art_config(1)%dustyci_rhi
+        WRITE(message_text,'(2f8.4)') art_config(1)%rart_dustyci_crit, art_config(1)%rart_dustyci_rhi
         CALL message('Perturbed values, dustyci_crit, dustyci_rhi', TRIM(message_text))
       ENDIF ! lart, lart_dusty_cirrus
 #endif

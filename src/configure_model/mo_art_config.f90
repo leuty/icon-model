@@ -122,8 +122,8 @@ MODULE mo_art_config
     INTEGER :: iart_ari                !< Direct interaction of aerosol with radiation
 
     LOGICAL :: lart_dusty_cirrus       !< Dusty cirrus parameterization in cloud cover scheme
-    REAL(wp):: dustyci_crit            !< Dust threshold for dusty cirrus  [mug/kg]
-    REAL(wp):: dustyci_rhi             !< RHi  threshold for dusty cirrus  [-]
+    REAL(wp):: rart_dustyci_crit       !< Dust threshold for dusty cirrus  [mug/kg]
+    REAL(wp):: rart_dustyci_rhi        !< RHi  threshold for dusty cirrus  [-]
 
     ! Treatment of grid scale and convective precipitation in dust washout
     INTEGER :: iart_aero_washout       !< 0:gscp+con; 1:gscp,con; 2:gscp,rcucov*con
