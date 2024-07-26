@@ -42,8 +42,9 @@ MODULE mo_nh_interface_nwp
   USE mo_exception,               ONLY: message, message_text, finish
   USE mo_impl_constants,          ONLY: itconv, itccov, itrad, itgscp,                        &
     &                                   itsatad, itturb, itsfc, itradheat,                    &
-    &                                   itsso, itgwd, itfastphy, icosmo, igme, ivdiff,        &
-    &                                   min_rlcell_int, min_rledge_int, min_rlcell, ismag, iprog
+    &                                   itsso, itgwd, itfastphy, icosmo, igme, ivdiff,               &
+    &                                   min_rlcell_int, min_rledge_int, min_rlcell,           &
+    &                                   ismag, iprog, io3_art
   USE mo_impl_constants_grf,      ONLY: grf_bdywidth_c, grf_bdywidth_e
   USE mo_loopindices,             ONLY: get_indices_c, get_indices_e
   USE mo_intp_rbf,                ONLY: rbf_vec_interpol_cell
@@ -72,7 +73,7 @@ MODULE mo_nh_interface_nwp
   USE mo_satad,                   ONLY: satad_v_3D, satad_v_3D_gpu, latent_heat_sublimation
   USE mo_aerosol_util,            ONLY: prog_aerosol_2D
   USE mo_radiation,               ONLY: radheat, pre_radiation_nwp
-  USE mo_radiation_config,        ONLY: irad_aero, iRadAeroTegen, iRadAeroCAMSclim, iRadAeroCAMStd, iRadAeroART
+  USE mo_radiation_config,        ONLY: irad_aero, irad_o3, iRadAeroTegen, iRadAeroCAMSclim, iRadAeroCAMStd, iRadAeroART
   USE mo_nwp_gw_interface,        ONLY: nwp_gwdrag
   USE mo_nwp_gscp_interface,      ONLY: nwp_microphysics
   USE mo_nwp_turbtrans_interface, ONLY: nwp_turbtrans
@@ -834,7 +835,9 @@ CONTAINS
 #ifdef __ICON_ART
     IF (lart) THEN
 
-      CALL calc_o3_gems(pt_patch,mtime_datetime,pt_diag,prm_diag,ext_data%atm%o3,use_acc=lzacc)
+      IF (irad_o3 == io3_art) THEN
+        CALL calc_o3_gems(pt_patch,mtime_datetime,pt_diag,prm_diag,ext_data%atm%o3)
+      ENDIF
 
       IF (.NOT. linit) THEN
         CALL art_reaction_interface(jg,                    & !> in
