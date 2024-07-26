@@ -1,10 +1,3 @@
-!
-! Module to provide updated radiative fluxes and heating rates
-!
-!   This module contains the "radheating" routine that diagnoses
-!   SW and LW fluxes at TOA and at the surface and the heating
-!   in the atmosphere for the current time.
-!
 ! ICON
 !
 ! ---------------------------------------------------------------
@@ -15,6 +8,12 @@
 ! See LICENSES/ for license information
 ! SPDX-License-Identifier: BSD-3-Clause
 ! ---------------------------------------------------------------
+
+! Module to provide updated radiative fluxes and heating rates
+!
+!   This module contains the "radheating" routine that diagnoses
+!   SW and LW fluxes at TOA and at the surface and the heating
+!   in the atmosphere for the current time.
 
 MODULE mo_radheating
 

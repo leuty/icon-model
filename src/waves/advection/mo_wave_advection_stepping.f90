@@ -1,12 +1,3 @@
-! Horizontal transport and refraction of spectral surface wave energy
-!
-! Main routine for the horizontal transport of surface wave energy.
-! Here, we integrate the spectral energy equation in time without
-! sources and sinks, only taking into account advection and refraction.
-!
-! For the advection part, we make use of the horizontal transport scheme for
-! tracers of the atmospheric model.
-!
 ! ICON
 !
 ! ---------------------------------------------------------------
@@ -17,7 +8,16 @@
 ! See LICENSES/ for license information
 ! SPDX-License-Identifier: BSD-3-Clause
 ! ---------------------------------------------------------------
+
+! Horizontal transport and refraction of spectral surface wave energy
 !
+! Main routine for the horizontal transport of surface wave energy.
+! Here, we integrate the spectral energy equation in time without
+! sources and sinks, only taking into account advection and refraction.
+!
+! For the advection part, we make use of the horizontal transport scheme for
+! tracers of the atmospheric model.
+
 !----------------------------
 #include "omp_definitions.inc"
 !----------------------------

@@ -1,8 +1,3 @@
-!
-! This module prepares aerosol for the use in radiation
-!
-!
-!
 ! ICON
 !
 ! ---------------------------------------------------------------
@@ -13,6 +8,8 @@
 ! See LICENSES/ for license information
 ! SPDX-License-Identifier: BSD-3-Clause
 ! ---------------------------------------------------------------
+
+! This module prepares aerosol for the use in radiation
 
 !----------------------------
 #include "omp_definitions.inc"

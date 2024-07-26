@@ -1,4 +1,14 @@
+! ICON
 !
+! ---------------------------------------------------------------
+! Copyright (C) 2004-2024, DWD, MPI-M, DKRZ, KIT, ETH, MeteoSwiss
+! Contact information: icon-model.org
+!
+! See AUTHORS.TXT for a list of authors
+! See LICENSES/ for license information
+! SPDX-License-Identifier: BSD-3-Clause
+! ---------------------------------------------------------------
+
 ! Description:  Contains the data structures
 !  to store the physical model state and other auxiliary variables
 !  in order to run the ECHAM physics.
@@ -15,17 +25,6 @@
 !     - fill the physics tendency construction/destruction subroutine
 !     - later implement already calculated icon gradients for echam physics
 !     - think about variables for flexible time steps
-!
-! ICON
-!
-! ---------------------------------------------------------------
-! Copyright (C) 2004-2024, DWD, MPI-M, DKRZ, KIT, ETH, MeteoSwiss
-! Contact information: icon-model.org
-!
-! See AUTHORS.TXT for a list of authors
-! See LICENSES/ for license information
-! SPDX-License-Identifier: BSD-3-Clause
-! ---------------------------------------------------------------
 
 MODULE mo_nwp_phy_types
 

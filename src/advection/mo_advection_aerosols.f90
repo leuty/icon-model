@@ -1,6 +1,3 @@
-! Routines for idealized transport of 2D aerosol fields
-!
-!
 ! ICON
 !
 ! ---------------------------------------------------------------
@@ -11,6 +8,8 @@
 ! See LICENSES/ for license information
 ! SPDX-License-Identifier: BSD-3-Clause
 ! ---------------------------------------------------------------
+
+! Routines for idealized transport of 2D aerosol fields
 
 MODULE mo_advection_aerosols
 

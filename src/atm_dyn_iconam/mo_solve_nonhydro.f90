@@ -1,10 +1,3 @@
-!
-! This module contains the nonhydrostatic dynamical core for the triangular version
-! Its routines were previously contained in mo_divergent_modes and mo_vector_operations
-! but have been extracted for better memory efficiency
-!
-!
-!
 ! ICON
 !
 ! ---------------------------------------------------------------
@@ -15,6 +8,10 @@
 ! See LICENSES/ for license information
 ! SPDX-License-Identifier: BSD-3-Clause
 ! ---------------------------------------------------------------
+
+! This module contains the nonhydrostatic dynamical core for the triangular version
+! Its routines were previously contained in mo_divergent_modes and mo_vector_operations
+! but have been extracted for better memory efficiency
 
 !----------------------------
 #include "omp_definitions.inc"

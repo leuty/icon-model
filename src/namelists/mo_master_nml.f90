@@ -1,6 +1,3 @@
-! Master namelist.
-!
-!
 ! ICON
 !
 ! ---------------------------------------------------------------
@@ -11,6 +8,8 @@
 ! See LICENSES/ for license information
 ! SPDX-License-Identifier: BSD-3-Clause
 ! ---------------------------------------------------------------
+
+! Master namelist.
 
 MODULE mo_master_nml
 

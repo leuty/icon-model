@@ -1,8 +1,3 @@
-!
-! Subroutine interface_aes_rad calls the radiative transfer scheme.
-!
-!
-!
 ! ICON
 !
 ! ---------------------------------------------------------------
@@ -13,6 +8,8 @@
 ! See LICENSES/ for license information
 ! SPDX-License-Identifier: BSD-3-Clause
 ! ---------------------------------------------------------------
+
+! Subroutine interface_aes_rad calls the radiative transfer scheme.
 
 !----------------------------
 #include "omp_definitions.inc"

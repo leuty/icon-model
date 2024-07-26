@@ -1,4 +1,14 @@
+! ICON
 !
+! ---------------------------------------------------------------
+! Copyright (C) 2004-2024, DWD, MPI-M, DKRZ, KIT, ETH, MeteoSwiss
+! Contact information: icon-model.org
+!
+! See AUTHORS.TXT for a list of authors
+! See LICENSES/ for license information
+! SPDX-License-Identifier: BSD-3-Clause
+! ---------------------------------------------------------------
+
 ! This module is the interface between ICON:nwp_radiation to the radiation scheme ecRad
 !
 ! - There are two interfaces within this module: nwp_ecrad_radiation and
@@ -17,19 +27,6 @@
 ! - The transfer of data from ICON to ecRad and vice versa is performed within
 !   routines from mo_nwp_ecrad_utilities and mo_nwp_ecrad_prep_aerosol, independent of
 !   the choice to use a reduced radiation grid or not.
-!
-!
-!
-! ICON
-!
-! ---------------------------------------------------------------
-! Copyright (C) 2004-2024, DWD, MPI-M, DKRZ, KIT, ETH, MeteoSwiss
-! Contact information: icon-model.org
-!
-! See AUTHORS.TXT for a list of authors
-! See LICENSES/ for license information
-! SPDX-License-Identifier: BSD-3-Clause
-! ---------------------------------------------------------------
 
 !----------------------------
 #include "omp_definitions.inc"

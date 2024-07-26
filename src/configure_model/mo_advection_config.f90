@@ -1,5 +1,3 @@
-! configuration setup for atmospheric tracer transport
-!
 ! ICON
 !
 ! ---------------------------------------------------------------
@@ -10,6 +8,8 @@
 ! See LICENSES/ for license information
 ! SPDX-License-Identifier: BSD-3-Clause
 ! ---------------------------------------------------------------
+
+! configuration setup for atmospheric tracer transport
 
 MODULE mo_advection_config
 

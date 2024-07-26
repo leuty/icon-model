@@ -1,10 +1,3 @@
-!
-! This module contains the subroutine calculating the velocity advection tendencies
-! for the nonhydrostatic dynamical core. Separated from mo_solve_nonhydro in order
-! to speed up compile time
-!
-!
-!
 ! ICON
 !
 ! ---------------------------------------------------------------
@@ -15,6 +8,10 @@
 ! See LICENSES/ for license information
 ! SPDX-License-Identifier: BSD-3-Clause
 ! ---------------------------------------------------------------
+
+! This module contains the subroutine calculating the velocity advection tendencies
+! for the nonhydrostatic dynamical core. Separated from mo_solve_nonhydro in order
+! to speed up compile time
 
 !----------------------------
 #include "omp_definitions.inc"

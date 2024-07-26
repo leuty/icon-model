@@ -1,7 +1,3 @@
-! Refraction of spectral surface wave energy
-!
-! Literature: The WAM model - A third Generation Ocean Wave Prediction Model, 1988
-!
 ! ICON
 !
 ! ---------------------------------------------------------------
@@ -12,7 +8,11 @@
 ! See LICENSES/ for license information
 ! SPDX-License-Identifier: BSD-3-Clause
 ! ---------------------------------------------------------------
+
+! Refraction of spectral surface wave energy
 !
+! Literature: The WAM model - A third Generation Ocean Wave Prediction Model, 1988
+
 !----------------------------
 #include "omp_definitions.inc"
 !----------------------------

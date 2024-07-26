@@ -1,15 +1,3 @@
-! This module provides physical constants for the ICON general circulation models.
-!
-! Physical constants are grouped as follows:
-! - Natural constants
-! - Molar weights
-! - Earth and Earth orbit constants
-! - Thermodynamic constants for the dry and moist atmosphere
-! - Constants used for the computation of lookup tables of the saturation
-!    mixing ratio over liquid water (*c_les*) or ice(*c_ies*)
-!    (to be shifted to the module that computes the lookup tables)
-!
-!
 ! ICON
 !
 ! ---------------------------------------------------------------
@@ -20,6 +8,17 @@
 ! See LICENSES/ for license information
 ! SPDX-License-Identifier: BSD-3-Clause
 ! ---------------------------------------------------------------
+
+! This module provides physical constants for the ICON general circulation models.
+!
+! Physical constants are grouped as follows:
+! - Natural constants
+! - Molar weights
+! - Earth and Earth orbit constants
+! - Thermodynamic constants for the dry and moist atmosphere
+! - Constants used for the computation of lookup tables of the saturation
+!    mixing ratio over liquid water (*c_les*) or ice(*c_ies*)
+!    (to be shifted to the module that computes the lookup tables)
 
 MODULE mo_physical_constants
 

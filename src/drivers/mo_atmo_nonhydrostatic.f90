@@ -1,5 +1,3 @@
-! @brief branch for the non-hydrostatic ICON workflow
-!
 ! ICON
 !
 ! ---------------------------------------------------------------
@@ -10,6 +8,8 @@
 ! See LICENSES/ for license information
 ! SPDX-License-Identifier: BSD-3-Clause
 ! ---------------------------------------------------------------
+
+! @brief branch for the non-hydrostatic ICON workflow
 
 MODULE mo_atmo_nonhydrostatic
 

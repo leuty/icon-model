@@ -1,6 +1,3 @@
-! Interface between NWP physics and the hydrological discharge model, through a coupler.
-! Based on the ocean coupling interface
-!
 ! ICON
 !
 ! ---------------------------------------------------------------
@@ -11,7 +8,10 @@
 ! See LICENSES/ for license information
 ! SPDX-License-Identifier: BSD-3-Clause
 ! ---------------------------------------------------------------
-!
+
+! Interface between NWP physics and the hydrological discharge model, through a coupler.
+! Based on the ocean coupling interface
+
 !----------------------------
 #include "omp_definitions.inc"
 !----------------------------

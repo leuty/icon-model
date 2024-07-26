@@ -1,6 +1,3 @@
-! Computes diagnostic parameters and some diagnostics in the wave model
-!
-!
 ! ICON
 !
 ! ---------------------------------------------------------------
@@ -11,7 +8,9 @@
 ! See LICENSES/ for license information
 ! SPDX-License-Identifier: BSD-3-Clause
 ! ---------------------------------------------------------------
-!
+
+! Computes diagnostic parameters and some diagnostics in the wave model
+
 !----------------------------
 #include "omp_definitions.inc"
 !----------------------------

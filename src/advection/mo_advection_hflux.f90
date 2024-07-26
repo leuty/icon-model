@@ -1,3 +1,14 @@
+! ICON
+!
+! ---------------------------------------------------------------
+! Copyright (C) 2004-2024, DWD, MPI-M, DKRZ, KIT, ETH, MeteoSwiss
+! Contact information: icon-model.org
+!
+! See AUTHORS.TXT for a list of authors
+! See LICENSES/ for license information
+! SPDX-License-Identifier: BSD-3-Clause
+! ---------------------------------------------------------------
+
 ! Computation of horizontal tracer flux
 !
 ! This routine computes the upwind fluxes for all edges of a uniform
@@ -20,18 +31,6 @@
 ! An improved, fully 2D version without splitting error is
 ! implemeted, too.
 ! See Miura, H. (2007), Mon. Wea. Rev., 135, 4038-4044
-!
-!
-! ICON
-!
-! ---------------------------------------------------------------
-! Copyright (C) 2004-2024, DWD, MPI-M, DKRZ, KIT, ETH, MeteoSwiss
-! Contact information: icon-model.org
-!
-! See AUTHORS.TXT for a list of authors
-! See LICENSES/ for license information
-! SPDX-License-Identifier: BSD-3-Clause
-! ---------------------------------------------------------------
 
 !----------------------------
 #include "omp_definitions.inc"

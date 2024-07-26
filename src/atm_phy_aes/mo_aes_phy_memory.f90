@@ -1,16 +1,3 @@
-!NEC$ options "-O1"
-!
-! Data types and variables used by the AES physics package.
-!
-! This module contains
-! 
-!  definition of data types for organising the physical quantities in the
-!    AES physics package,
-!  the actual variables that are declared of these types, and
-!  subroutines for (de-)allocating memory for the variables.
-! 
-! This module uses derived data types in order to allow for local refinement.
-!
 ! ICON
 !
 ! ---------------------------------------------------------------
@@ -21,6 +8,19 @@
 ! See LICENSES/ for license information
 ! SPDX-License-Identifier: BSD-3-Clause
 ! ---------------------------------------------------------------
+
+! Data types and variables used by the AES physics package.
+!
+! This module contains
+! 
+!  definition of data types for organising the physical quantities in the
+!    AES physics package,
+!  the actual variables that are declared of these types, and
+!  subroutines for (de-)allocating memory for the variables.
+! 
+! This module uses derived data types in order to allow for local refinement.
+
+!NEC$ options "-O1"
 
 MODULE mo_aes_phy_memory
 

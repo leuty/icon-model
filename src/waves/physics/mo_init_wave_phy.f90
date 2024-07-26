@@ -1,8 +1,3 @@
-! Description:  Contains the data structures
-! for initialisation of the physical model state and other auxiliary variables
-! in order to run wave physics.
-!
-!
 ! ICON
 !
 ! ---------------------------------------------------------------
@@ -13,6 +8,10 @@
 ! See LICENSES/ for license information
 ! SPDX-License-Identifier: BSD-3-Clause
 ! ---------------------------------------------------------------
+
+! Description:  Contains the data structures
+! for initialisation of the physical model state and other auxiliary variables
+! in order to run wave physics.
 
 !----------------------------
 #include "omp_definitions.inc"

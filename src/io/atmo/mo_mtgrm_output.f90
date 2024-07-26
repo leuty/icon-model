@@ -1,5 +1,3 @@
-! Data structures and subroutines for meteogram output.
-!
 ! ICON
 !
 ! ---------------------------------------------------------------
@@ -10,8 +8,9 @@
 ! See LICENSES/ for license information
 ! SPDX-License-Identifier: BSD-3-Clause
 ! ---------------------------------------------------------------
-!
-!
+
+! Data structures and subroutines for meteogram output.
+
 ! The sampling intervals for meteogram data are independent
 ! from global output steps. Values are buffered in memory until
 ! the next field output is invoked.

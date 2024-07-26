@@ -1,13 +1,3 @@
-!
-! mo_vertical_grid provides all subroutines for handling of the vertical
-! grid in the nonhydrostatic model branch.
-! Routines are provided for
-!  1) Creating the hybrid height based coordinate system.
-!  2) (De)Allocations of related metric fields. Note, that they are defined
-!     in mo_model_domain
-!
-!
-!
 ! ICON
 !
 ! ---------------------------------------------------------------
@@ -18,6 +8,13 @@
 ! See LICENSES/ for license information
 ! SPDX-License-Identifier: BSD-3-Clause
 ! ---------------------------------------------------------------
+
+! mo_vertical_grid provides all subroutines for handling of the vertical
+! grid in the nonhydrostatic model branch.
+! Routines are provided for
+!  1) Creating the hybrid height based coordinate system.
+!  2) (De)Allocations of related metric fields. Note, that they are defined
+!     in mo_model_domain
 
 !----------------------------
 #include "omp_definitions.inc"

@@ -1,5 +1,3 @@
-!NEC$ options "-finline-max-depth=3 -finline-max-function-size=1000"
-!
 ! ICON
 !
 ! ---------------------------------------------------------------
@@ -10,6 +8,8 @@
 ! See LICENSES/ for license information
 ! SPDX-License-Identifier: BSD-3-Clause
 ! ---------------------------------------------------------------
+
+!NEC$ options "-finline-max-depth=3 -finline-max-function-size=1000"
 
 MODULE mo_emvorado_warmbubbles
 

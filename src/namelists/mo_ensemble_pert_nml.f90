@@ -1,9 +1,3 @@
-! Namelist for perturbing nwp physics
-!
-! These subroutines are called by read_atmo_namelists and set the ranges
-! for ensemble physics perturbations
-!
-!
 ! ICON
 !
 ! ---------------------------------------------------------------
@@ -14,6 +8,11 @@
 ! See LICENSES/ for license information
 ! SPDX-License-Identifier: BSD-3-Clause
 ! ---------------------------------------------------------------
+
+! Namelist for perturbing nwp physics
+!
+! These subroutines are called by read_atmo_namelists and set the ranges
+! for ensemble physics perturbations
 
 MODULE mo_ensemble_pert_nml
 

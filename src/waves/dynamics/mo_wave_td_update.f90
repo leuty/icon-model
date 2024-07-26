@@ -1,7 +1,3 @@
-! Contains the subroutines for updating time-dependent
-! wave physics parameters
-!
-!
 ! ICON
 !
 ! ---------------------------------------------------------------
@@ -12,6 +8,9 @@
 ! See LICENSES/ for license information
 ! SPDX-License-Identifier: BSD-3-Clause
 ! ---------------------------------------------------------------
+
+! Contains the subroutines for updating time-dependent
+! wave physics parameters
 
 !----------------------------
 #include "omp_definitions.inc"

@@ -1,7 +1,3 @@
-! This module checks the read-in namelist parameters and, in case of
-! inconsistencies, it tries to correct these.
-!
-!
 ! ICON
 !
 ! ---------------------------------------------------------------
@@ -12,6 +8,9 @@
 ! See LICENSES/ for license information
 ! SPDX-License-Identifier: BSD-3-Clause
 ! ---------------------------------------------------------------
+
+! This module checks the read-in namelist parameters and, in case of
+! inconsistencies, it tries to correct these.
 
 MODULE mo_wave_crosscheck
 

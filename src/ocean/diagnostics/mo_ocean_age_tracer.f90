@@ -1,5 +1,3 @@
-! Contains code for age tacer dynamics
-!
 ! ICON
 !
 ! ---------------------------------------------------------------
@@ -10,6 +8,9 @@
 ! See LICENSES/ for license information
 ! SPDX-License-Identifier: BSD-3-Clause
 ! ---------------------------------------------------------------
+
+! Contains code for age tacer dynamics
+
 !----------------------------
 #include "omp_definitions.inc"
 !----------------------------

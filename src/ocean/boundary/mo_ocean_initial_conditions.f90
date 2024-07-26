@@ -1,10 +1,3 @@
-! Contains the implementation of the initial conditions for the hydrostatic ocean model.
-!
-! Contains the implementation of the initial conditions for the hydrostatic ocean model.
-! This module controls the initial conditions as well as the initialisation of
-! test cases, the top and bottom boundary conditions, and the structure of the
-! forcing quantities.
-!
 ! ICON
 !
 ! ---------------------------------------------------------------
@@ -15,6 +8,13 @@
 ! See LICENSES/ for license information
 ! SPDX-License-Identifier: BSD-3-Clause
 ! ---------------------------------------------------------------
+
+! Contains the implementation of the initial conditions for the hydrostatic ocean model.
+!
+! Contains the implementation of the initial conditions for the hydrostatic ocean model.
+! This module controls the initial conditions as well as the initialisation of
+! test cases, the top and bottom boundary conditions, and the structure of the
+! forcing quantities.
 
 MODULE mo_ocean_initial_conditions
   !-------------------------------------------------------------------------

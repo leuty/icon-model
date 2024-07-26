@@ -1,18 +1,3 @@
-!
-!
-! Prepares and postprocesses the fields for and from nwp physics
-!
-! Depending on the action item different sets of physics will be called:
-! this is
-! 1. condensation only so to apply saturation adjustment where needed
-! 2. 'slow physics' means up to now the whole physical package beside
-!     microphysics.
-! 3. turbulence, microphysics and condensation are considered fast physical package
-! 4. Updating the moist tracers in synchrone time intervalls to
-!    advection and saturation adjustment
-!
-!
-!
 ! ICON
 !
 ! ---------------------------------------------------------------
@@ -23,6 +8,17 @@
 ! See LICENSES/ for license information
 ! SPDX-License-Identifier: BSD-3-Clause
 ! ---------------------------------------------------------------
+
+! Prepares and postprocesses the fields for and from nwp physics
+!
+! Depending on the action item different sets of physics will be called:
+! this is
+! 1. condensation only so to apply saturation adjustment where needed
+! 2. 'slow physics' means up to now the whole physical package beside
+!     microphysics.
+! 3. turbulence, microphysics and condensation are considered fast physical package
+! 4. Updating the moist tracers in synchrone time intervalls to
+!    advection and saturation adjustment
 
 !----------------------------
 #include "omp_definitions.inc"

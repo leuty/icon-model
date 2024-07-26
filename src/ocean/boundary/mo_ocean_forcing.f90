@@ -1,9 +1,3 @@
-! Provide an implementation of the ocean forcing.
-!
-! Provide an implementation of the parameters used for surface forcing
-! of the hydrostatic ocean model.
-!
-!
 ! ICON
 !
 ! ---------------------------------------------------------------
@@ -14,6 +8,11 @@
 ! See LICENSES/ for license information
 ! SPDX-License-Identifier: BSD-3-Clause
 ! ---------------------------------------------------------------
+
+! Provide an implementation of the ocean forcing.
+!
+! Provide an implementation of the parameters used for surface forcing
+! of the hydrostatic ocean model.
 
 !----------------------------
 #include "omp_definitions.inc"

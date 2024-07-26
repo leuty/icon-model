@@ -1,6 +1,3 @@
-!
-! Subroutines for computing turbulent exchange coefficients.
-!
 ! ICON
 !
 ! ---------------------------------------------------------------
@@ -11,6 +8,8 @@
 ! See LICENSES/ for license information
 ! SPDX-License-Identifier: BSD-3-Clause
 ! ---------------------------------------------------------------
+
+! Subroutines for computing turbulent exchange coefficients.
 
 !------------------
 #include "fsel.inc"

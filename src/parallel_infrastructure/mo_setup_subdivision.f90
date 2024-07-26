@@ -1,10 +1,3 @@
-#ifdef __PGI
-!pgi$g opt=1
-#endif
-! This module provides all routines for dividing patches
-! (including interpolation state) and setting up communication.
-!
-!
 ! ICON
 !
 ! ---------------------------------------------------------------
@@ -15,6 +8,9 @@
 ! See LICENSES/ for license information
 ! SPDX-License-Identifier: BSD-3-Clause
 ! ---------------------------------------------------------------
+
+! This module provides all routines for dividing patches
+! (including interpolation state) and setting up communication.
 !
 ! Much of the code in this module is duplicated due to different
 ! synchronization MPI RMA methods, which perform differently on
@@ -29,6 +25,11 @@
 ! active target synchronization and extra dist_mult_array_rma_sync
 ! calls need to be executed before requested remote data can be
 ! accessed.
+
+#ifdef __PGI
+!pgi$g opt=1
+#endif
+
 MODULE mo_setup_subdivision
   !
   !-------------------------------------------------------------------------

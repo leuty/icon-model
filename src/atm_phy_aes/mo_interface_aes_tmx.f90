@@ -1,7 +1,3 @@
-!
-! Subroutine interface_aes_tmx calls the turbulent mixing scheme
-! and the surface schemes using tmx.
-!
 ! ICON
 !
 ! ---------------------------------------------------------------
@@ -12,6 +8,9 @@
 ! See LICENSES/ for license information
 ! SPDX-License-Identifier: BSD-3-Clause
 ! ---------------------------------------------------------------
+
+! Subroutine interface_aes_tmx calls the turbulent mixing scheme
+! and the surface schemes using tmx.
 
 !----------------------------
 #include "omp_definitions.inc"

@@ -1,8 +1,3 @@
-! @brief configuration setup for Grib output
-!
-! configuration setup for tracer transport
-!
-!
 ! ICON
 !
 ! ---------------------------------------------------------------
@@ -13,6 +8,10 @@
 ! See LICENSES/ for license information
 ! SPDX-License-Identifier: BSD-3-Clause
 ! ---------------------------------------------------------------
+
+! @brief configuration setup for Grib output
+!
+! configuration setup for tracer transport
 
 MODULE mo_gribout_config
 

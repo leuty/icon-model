@@ -1,15 +1,3 @@
-! Pure 3D-Advection test case adapted to the NH-Core
-!
-! This module contains parameters, initialization subroutines and
-! functions to be used in the Pure 3D-Advection test case of the
-! non-hydrostatic dynamical core.
-!
-! Literature
-! - Jablonowski et al. (2008): Idealized test cases for the dynamical cores
-!   of Atmospheric General Circulation Models: A proposal for the NCAR ASP
-!   2008 summer colloquium
-!
-!
 ! ICON
 !
 ! ---------------------------------------------------------------
@@ -20,6 +8,17 @@
 ! See LICENSES/ for license information
 ! SPDX-License-Identifier: BSD-3-Clause
 ! ---------------------------------------------------------------
+
+! Pure 3D-Advection test case adapted to the NH-Core
+!
+! This module contains parameters, initialization subroutines and
+! functions to be used in the Pure 3D-Advection test case of the
+! non-hydrostatic dynamical core.
+!
+! Literature
+! - Jablonowski et al. (2008): Idealized test cases for the dynamical cores
+!   of Atmospheric General Circulation Models: A proposal for the NCAR ASP
+!   2008 summer colloquium
 
 MODULE mo_nh_pa_test
 

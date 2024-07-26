@@ -1,6 +1,3 @@
-! Utility routines related to the TERRA surface model
-!
-!
 ! ICON
 !
 ! ---------------------------------------------------------------
@@ -11,6 +8,8 @@
 ! See LICENSES/ for license information
 ! SPDX-License-Identifier: BSD-3-Clause
 ! ---------------------------------------------------------------
+
+! Utility routines related to the TERRA surface model
 
 !----------------------------
 #include "omp_definitions.inc"

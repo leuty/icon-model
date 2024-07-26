@@ -1,5 +1,3 @@
-! Interface DACE observation operators from ICON
-!
 ! ICON
 !
 ! ---------------------------------------------------------------
@@ -10,6 +8,8 @@
 ! See LICENSES/ for license information
 ! SPDX-License-Identifier: BSD-3-Clause
 ! ---------------------------------------------------------------
+
+! Interface DACE observation operators from ICON
 
 MODULE mo_icon2dace
 

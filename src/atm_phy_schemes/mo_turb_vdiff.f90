@@ -1,7 +1,3 @@
-!
-! VDIFF turbulent mixing scheme
-!
-!
 ! ICON
 !
 ! ---------------------------------------------------------------
@@ -12,6 +8,8 @@
 ! See LICENSES/ for license information
 ! SPDX-License-Identifier: BSD-3-Clause
 ! ---------------------------------------------------------------
+
+! VDIFF turbulent mixing scheme
 
 #if defined __xlC__ && !defined NOXLFPROCESS
 @PROCESS HOT

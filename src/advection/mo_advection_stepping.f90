@@ -1,3 +1,14 @@
+! ICON
+!
+! ---------------------------------------------------------------
+! Copyright (C) 2004-2024, DWD, MPI-M, DKRZ, KIT, ETH, MeteoSwiss
+! Contact information: icon-model.org
+!
+! See AUTHORS.TXT for a list of authors
+! See LICENSES/ for license information
+! SPDX-License-Identifier: BSD-3-Clause
+! ---------------------------------------------------------------
+
 ! Tracer transport module
 ! Contains solver for the tracer mass continuity equation(s)
 !
@@ -13,18 +24,6 @@
 ! @Literature:
 ! Reinert, D. (2020): A Mass Consistent Finite Volume Approach with Fractional Steps.
 !                     Reports on ICON, Issue 4
-!
-!
-! ICON
-!
-! ---------------------------------------------------------------
-! Copyright (C) 2004-2024, DWD, MPI-M, DKRZ, KIT, ETH, MeteoSwiss
-! Contact information: icon-model.org
-!
-! See AUTHORS.TXT for a list of authors
-! See LICENSES/ for license information
-! SPDX-License-Identifier: BSD-3-Clause
-! ---------------------------------------------------------------
 
 !----------------------------
 #include "omp_definitions.inc"

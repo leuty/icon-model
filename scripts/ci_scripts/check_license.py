@@ -108,9 +108,8 @@ FILE_TYPES = [
         name="Fortran",
         glob_patterns=["*.F90", "*.f90", "*.inc", "*.incf"],
         line_comment_start="!",
-        re_license_prefix=r"^(?:\s*(?:[!#][^\n]*)?\n)*?",
-        license_format_message="should start on the first line of the file but can be "
-        "prefixed with commented, preprocessor and space-only lines",
+        re_license_prefix=None,
+        license_format_message="must start on the first line of the file",
     ),
     FileType(
         name="C/C++/CUDA/HIP",

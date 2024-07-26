@@ -1,9 +1,3 @@
-! Namelist for turbulent diffusion (turbdiff)
-!
-! These subroutines are called by read_atmo_namelists and do the turbulent
-! diffusion setup (for turbdiff).
-!
-!
 ! ICON
 !
 ! ---------------------------------------------------------------
@@ -14,6 +8,11 @@
 ! See LICENSES/ for license information
 ! SPDX-License-Identifier: BSD-3-Clause
 ! ---------------------------------------------------------------
+
+! Namelist for turbulent diffusion (turbdiff)
+!
+! These subroutines are called by read_atmo_namelists and do the turbulent
+! diffusion setup (for turbdiff).
 
 MODULE mo_turbdiff_nml
 

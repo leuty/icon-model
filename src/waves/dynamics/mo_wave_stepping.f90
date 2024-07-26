@@ -1,6 +1,3 @@
-! Initializes and controls the time stepping in the wave model.
-!
-!
 ! ICON
 !
 ! ---------------------------------------------------------------
@@ -11,6 +8,8 @@
 ! See LICENSES/ for license information
 ! SPDX-License-Identifier: BSD-3-Clause
 ! ---------------------------------------------------------------
+
+! Initializes and controls the time stepping in the wave model.
 
 MODULE mo_wave_stepping
   USE mo_kind,                     ONLY: wp

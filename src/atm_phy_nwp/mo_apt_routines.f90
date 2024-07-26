@@ -1,8 +1,3 @@
-!
-!  Setup routines for adaptive parameter tuning and related computations
-!
-!
-!
 ! ICON
 !
 ! ---------------------------------------------------------------
@@ -13,6 +8,8 @@
 ! See LICENSES/ for license information
 ! SPDX-License-Identifier: BSD-3-Clause
 ! ---------------------------------------------------------------
+
+! Setup routines for adaptive parameter tuning and related computations
 
 !----------------------------
 #include "omp_definitions.inc"

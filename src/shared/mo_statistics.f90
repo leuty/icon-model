@@ -1,7 +1,3 @@
-! Set of methods for simple statistics
-! NOTE: in order to get correct results make sure you provide the proper in_subset!
-!
-!
 ! ICON
 !
 ! ---------------------------------------------------------------
@@ -12,6 +8,9 @@
 ! See LICENSES/ for license information
 ! SPDX-License-Identifier: BSD-3-Clause
 ! ---------------------------------------------------------------
+
+! Set of methods for simple statistics
+! NOTE: in order to get correct results make sure you provide the proper in_subset!
 
 !----------------------------
 #include "omp_definitions.inc"

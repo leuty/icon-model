@@ -1,8 +1,3 @@
-!
-! Source module for computing implicit vertical diffusion
-!
-!-------------------------------------------------------------------------------
-!
 ! ICON
 !
 ! ---------------------------------------------------------------
@@ -13,6 +8,8 @@
 ! See LICENSES/ for license information
 ! SPDX-License-Identifier: BSD-3-Clause
 ! ---------------------------------------------------------------
+
+! Source module for computing implicit vertical diffusion
 
 MODULE turb_vertdiff
 

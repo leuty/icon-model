@@ -1,8 +1,3 @@
-! This module is the interface between nwp_nh_interface to the
-! surface parameterisations:
-! inwp_sfc  == 1 == surface scheme TERRA run in COSMO
-!
-!
 ! ICON
 !
 ! ---------------------------------------------------------------
@@ -13,6 +8,10 @@
 ! See LICENSES/ for license information
 ! SPDX-License-Identifier: BSD-3-Clause
 ! ---------------------------------------------------------------
+
+! This module is the interface between nwp_nh_interface to the
+! surface parameterisations:
+! inwp_sfc  == 1 == surface scheme TERRA run in COSMO
 
 !----------------------------
 #include "omp_definitions.inc"

@@ -1,10 +1,3 @@
-!
-! Initializes and controls the time stepping in the nonhydrostatic model.
-!
-! The time stepping does eventually perform an (iterative) Incremental Analysis
-! Update (IAU). See mo_iau.f90 for details.
-!
-!
 ! ICON
 !
 ! ---------------------------------------------------------------
@@ -15,6 +8,11 @@
 ! See LICENSES/ for license information
 ! SPDX-License-Identifier: BSD-3-Clause
 ! ---------------------------------------------------------------
+
+! Initializes and controls the time stepping in the nonhydrostatic model.
+!
+! The time stepping does eventually perform an (iterative) Incremental Analysis
+! Update (IAU). See mo_iau.f90 for details.
 
 !----------------------------
 #include "omp_definitions.inc"

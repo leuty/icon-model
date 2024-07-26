@@ -1,6 +1,3 @@
-! Contains utility routines for reading NetCDF and GRIB2 files (using
-! the CDI library) and communicating fields in parallel.
-!
 ! ICON
 !
 ! ---------------------------------------------------------------
@@ -11,6 +8,9 @@
 ! See LICENSES/ for license information
 ! SPDX-License-Identifier: BSD-3-Clause
 ! ---------------------------------------------------------------
+
+! Contains utility routines for reading NetCDF and GRIB2 files (using
+! the CDI library) and communicating fields in parallel.
 
 MODULE mo_util_cdi
 

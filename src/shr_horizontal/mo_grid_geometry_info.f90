@@ -1,7 +1,3 @@
-! Contains the definition of basic structures and geometry parameters
-! These are included in the grid/patch info
-!
-!
 ! ICON
 !
 ! ---------------------------------------------------------------
@@ -12,6 +8,9 @@
 ! See LICENSES/ for license information
 ! SPDX-License-Identifier: BSD-3-Clause
 ! ---------------------------------------------------------------
+
+! Contains the definition of basic structures and geometry parameters
+! These are included in the grid/patch info
 
 MODULE mo_grid_geometry_info
 

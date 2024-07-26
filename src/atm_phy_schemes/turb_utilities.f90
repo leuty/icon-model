@@ -1,5 +1,3 @@
-! Source module for turbulence utility routines
-!
 ! ICON
 !
 ! ---------------------------------------------------------------
@@ -10,6 +8,8 @@
 ! See LICENSES/ for license information
 ! SPDX-License-Identifier: BSD-3-Clause
 ! ---------------------------------------------------------------
+
+! Source module for turbulence utility routines
 
 MODULE  turb_utilities
 

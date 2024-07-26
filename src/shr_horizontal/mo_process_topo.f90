@@ -1,6 +1,3 @@
-! Contains routine for topography smoothing
-!
-!
 ! ICON
 !
 ! ---------------------------------------------------------------
@@ -11,6 +8,8 @@
 ! See LICENSES/ for license information
 ! SPDX-License-Identifier: BSD-3-Clause
 ! ---------------------------------------------------------------
+
+! Contains routine for topography smoothing
 
 MODULE mo_process_topo
 

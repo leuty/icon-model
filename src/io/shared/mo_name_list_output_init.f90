@@ -1,5 +1,3 @@
-! Module handling the initialization of synchronous and asynchronous output.
-!
 ! ICON
 !
 ! ---------------------------------------------------------------
@@ -10,7 +8,11 @@
 ! See LICENSES/ for license information
 ! SPDX-License-Identifier: BSD-3-Clause
 ! ---------------------------------------------------------------
+
+! Module handling the initialization of synchronous and asynchronous output.
+
 !NEC$ options "-fno-loop-unroll"
+
 MODULE mo_name_list_output_init
 
   USE, INTRINSIC :: ISO_C_BINDING, ONLY: c_ptr, c_f_pointer, c_int64_t, c_double

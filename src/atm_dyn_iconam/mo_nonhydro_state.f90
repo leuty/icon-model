@@ -1,12 +1,3 @@
-!NEC$ options "-O0"
-!
-! Constructs and destructs the state vector of the nonhydrostatic.
-!
-! Constructs and destructs the state vector of the nonhydrostatic
-! model variables. They are subdivided in several classes: prognostics
-! and diagnostics.
-!
-!
 ! ICON
 !
 ! ---------------------------------------------------------------
@@ -17,6 +8,14 @@
 ! See LICENSES/ for license information
 ! SPDX-License-Identifier: BSD-3-Clause
 ! ---------------------------------------------------------------
+
+! Constructs and destructs the state vector of the nonhydrostatic.
+!
+! Constructs and destructs the state vector of the nonhydrostatic
+! model variables. They are subdivided in several classes: prognostics
+! and diagnostics.
+
+!NEC$ options "-O0"
 
 MODULE mo_nonhydro_state
 

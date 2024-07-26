@@ -1,9 +1,3 @@
-!
-! This module contains the driver routines needed for initializing nested
-! domains that are started sometime during the integration
-!
-!
-!
 ! ICON
 !
 ! ---------------------------------------------------------------
@@ -14,6 +8,9 @@
 ! See LICENSES/ for license information
 ! SPDX-License-Identifier: BSD-3-Clause
 ! ---------------------------------------------------------------
+
+! This module contains the driver routines needed for initializing nested
+! domains that are started sometime during the integration
 
 !----------------------------
 #include "omp_definitions.inc"

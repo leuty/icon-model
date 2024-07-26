@@ -1,7 +1,3 @@
-!
-! Prepares boundary conditions needed for ECHAM physics
-!
-!
 ! ICON
 !
 ! ---------------------------------------------------------------
@@ -12,6 +8,8 @@
 ! See LICENSES/ for license information
 ! SPDX-License-Identifier: BSD-3-Clause
 ! ---------------------------------------------------------------
+
+! Prepares boundary conditions needed for ECHAM physics
 
 !----------------------------
 #include "omp_definitions.inc"

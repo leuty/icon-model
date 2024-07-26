@@ -1,6 +1,3 @@
-! contains extended lhs-matrix-generator type
-! provides the primal flip flop lhs for the "mass matrix inversion" - solve
-!
 ! ICON
 !
 ! ---------------------------------------------------------------
@@ -11,6 +8,10 @@
 ! See LICENSES/ for license information
 ! SPDX-License-Identifier: BSD-3-Clause
 ! ---------------------------------------------------------------
+
+! contains extended lhs-matrix-generator type
+! provides the primal flip flop lhs for the "mass matrix inversion" - solve
+
 MODULE mo_primal_flip_flop_lhs
 
   USE mo_exception, ONLY: finish

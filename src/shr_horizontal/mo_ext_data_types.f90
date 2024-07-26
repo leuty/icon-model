@@ -1,6 +1,3 @@
-! External data type definition.
-!
-!
 ! ICON
 !
 ! ---------------------------------------------------------------
@@ -11,6 +8,8 @@
 ! See LICENSES/ for license information
 ! SPDX-License-Identifier: BSD-3-Clause
 ! ---------------------------------------------------------------
+
+! External data type definition.
 
 MODULE mo_ext_data_types
 

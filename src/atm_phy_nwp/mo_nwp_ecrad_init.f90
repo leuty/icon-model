@@ -1,4 +1,14 @@
+! ICON
 !
+! ---------------------------------------------------------------
+! Copyright (C) 2004-2024, DWD, MPI-M, DKRZ, KIT, ETH, MeteoSwiss
+! Contact information: icon-model.org
+!
+! See AUTHORS.TXT for a list of authors
+! See LICENSES/ for license information
+! SPDX-License-Identifier: BSD-3-Clause
+! ---------------------------------------------------------------
+
 ! In this module the configuration state for the ecRad radiation code is being set up.
 !
 ! - Setup information is stored inside the object ecrad_conf of the derived type t_ecrad_conf
@@ -13,19 +23,6 @@
 !   currently not changed from the default as the SPARTACUS Solver was not tested in
 !   ICON so far. For a full list of ecRad settings, please have a look at
 !   externals/ecrad/radiation/radiation_config.F90
-!
-!
-!
-! ICON
-!
-! ---------------------------------------------------------------
-! Copyright (C) 2004-2024, DWD, MPI-M, DKRZ, KIT, ETH, MeteoSwiss
-! Contact information: icon-model.org
-!
-! See AUTHORS.TXT for a list of authors
-! See LICENSES/ for license information
-! SPDX-License-Identifier: BSD-3-Clause
-! ---------------------------------------------------------------
 
 !----------------------------
 #include "omp_definitions.inc"

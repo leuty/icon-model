@@ -1,11 +1,3 @@
-! provides extended communication / transfer infrastructure object
-! derived from abstract t_transfer - type to be used by solvers
-!
-! trivial transfer : group of solver-PEs is same as group od
-! solver-PEs arrays are just locally copied... (and converted between
-! different real-kinds, if necessary)
-!
-!
 ! ICON
 !
 ! ---------------------------------------------------------------
@@ -16,6 +8,13 @@
 ! See LICENSES/ for license information
 ! SPDX-License-Identifier: BSD-3-Clause
 ! ---------------------------------------------------------------
+
+! provides extended communication / transfer infrastructure object
+! derived from abstract t_transfer - type to be used by solvers
+!
+! trivial transfer : group of solver-PEs is same as group od
+! solver-PEs arrays are just locally copied... (and converted between
+! different real-kinds, if necessary)
 
 #if (defined(_OPENMP) && defined(OCE_SOLVE_OMP))
 #include "omp_definitions.inc"

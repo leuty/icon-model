@@ -1,5 +1,3 @@
-! Main program for the ICON ocean waves model
-!
 ! ICON
 !
 ! ---------------------------------------------------------------
@@ -10,6 +8,8 @@
 ! See LICENSES/ for license information
 ! SPDX-License-Identifier: BSD-3-Clause
 ! ---------------------------------------------------------------
+
+! Main program for the ICON ocean waves model
 
 MODULE mo_wave_model
 

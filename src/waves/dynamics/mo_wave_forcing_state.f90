@@ -1,7 +1,3 @@
-! Allocation/deallocation of wave forcing state
-!
-! This module contains routines for setting up the external data state.
-!
 ! ICON
 !
 ! ---------------------------------------------------------------
@@ -12,6 +8,10 @@
 ! See LICENSES/ for license information
 ! SPDX-License-Identifier: BSD-3-Clause
 ! ---------------------------------------------------------------
+
+! Allocation/deallocation of wave forcing state
+!
+! This module contains routines for setting up the external data state.
 
 MODULE mo_wave_forcing_state
 

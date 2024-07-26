@@ -1,8 +1,3 @@
-! Namelist for ART-package
-!
-!
-! Subroutine is called by read_atmo_namelists for setting up the ART-package
-!
 ! ICON
 !
 ! ---------------------------------------------------------------
@@ -13,6 +8,10 @@
 ! See LICENSES/ for license information
 ! SPDX-License-Identifier: BSD-3-Clause
 ! ---------------------------------------------------------------
+
+! Namelist for ART-package
+!
+! Subroutine is called by read_atmo_namelists for setting up the ART-package
 
 MODULE mo_art_nml
  

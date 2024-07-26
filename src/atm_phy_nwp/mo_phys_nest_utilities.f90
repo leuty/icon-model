@@ -1,10 +1,3 @@
-!
-!  This module contains (not yet) utility programs for boundary interpolation and feedback
-!  of diagnostic variables and the upscaling and downscaling routines needed
-!  for the reduced physics grid
-!
-!
-!
 ! ICON
 !
 ! ---------------------------------------------------------------
@@ -15,6 +8,10 @@
 ! See LICENSES/ for license information
 ! SPDX-License-Identifier: BSD-3-Clause
 ! ---------------------------------------------------------------
+
+! This module contains (not yet) utility programs for boundary interpolation and feedback
+! of diagnostic variables and the upscaling and downscaling routines needed
+! for the reduced physics grid
 
 !----------------------------
 #include "omp_definitions.inc"

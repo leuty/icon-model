@@ -1,5 +1,14 @@
+! ICON
 !
+! ---------------------------------------------------------------
+! Copyright (C) 2004-2024, DWD, MPI-M, DKRZ, KIT, ETH, MeteoSwiss
+! Contact information: icon-model.org
 !
+! See AUTHORS.TXT for a list of authors
+! See LICENSES/ for license information
+! SPDX-License-Identifier: BSD-3-Clause
+! ---------------------------------------------------------------
+
 !------------------------------------------------------------------------------
 ! This module provides the interface between dynamics&transport and physics.
 !
@@ -28,17 +37,6 @@
 ! - Tendencies dx/dt resulting from physics are stored in the 'tend' (t) data
 !   type, which has its own memory. These physics tendencies are used for the
 !   final update of the prognostic variables before the end of the interface.
-!
-! ICON
-!
-! ---------------------------------------------------------------
-! Copyright (C) 2004-2024, DWD, MPI-M, DKRZ, KIT, ETH, MeteoSwiss
-! Contact information: icon-model.org
-!
-! See AUTHORS.TXT for a list of authors
-! See LICENSES/ for license information
-! SPDX-License-Identifier: BSD-3-Clause
-! ---------------------------------------------------------------
 
 !----------------------------
 #include "omp_definitions.inc"

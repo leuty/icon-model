@@ -1,6 +1,3 @@
-! Contains the subroutines with wave physics parametrisation
-!
-!
 ! ICON
 !
 ! ---------------------------------------------------------------
@@ -11,6 +8,8 @@
 ! See LICENSES/ for license information
 ! SPDX-License-Identifier: BSD-3-Clause
 ! ---------------------------------------------------------------
+
+! Contains the subroutines with wave physics parametrisation
 
 !----------------------------
 #include "omp_definitions.inc"

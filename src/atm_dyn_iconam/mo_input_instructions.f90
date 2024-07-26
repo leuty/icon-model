@@ -1,7 +1,3 @@
-!
-! This module provides an input instruction list that is used to
-! determine, which variables may be read from which input file.
-!
 ! ICON
 !
 ! ---------------------------------------------------------------
@@ -12,6 +8,9 @@
 ! See LICENSES/ for license information
 ! SPDX-License-Identifier: BSD-3-Clause
 ! ---------------------------------------------------------------
+
+! This module provides an input instruction list that is used to
+! determine, which variables may be read from which input file.
 
 MODULE mo_input_instructions
 

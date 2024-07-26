@@ -1,8 +1,3 @@
-!
-! Implementation of physics utility routines.
-!
-!
-!
 ! ICON
 !
 ! ---------------------------------------------------------------
@@ -13,6 +8,8 @@
 ! See LICENSES/ for license information
 ! SPDX-License-Identifier: BSD-3-Clause
 ! ---------------------------------------------------------------
+
+! Implementation of physics utility routines.
 
 !----------------------------
 #include "omp_definitions.inc"

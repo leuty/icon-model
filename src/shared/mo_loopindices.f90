@@ -1,7 +1,3 @@
-! This module contains subroutines needed to determine the start and end
-! indices of do loops for a given patch and block index.
-!
-!
 ! ICON
 !
 ! ---------------------------------------------------------------
@@ -12,6 +8,9 @@
 ! See LICENSES/ for license information
 ! SPDX-License-Identifier: BSD-3-Clause
 ! ---------------------------------------------------------------
+
+! This module contains subroutines needed to determine the start and end
+! indices of do loops for a given patch and block index.
 
 MODULE mo_loopindices
 !-------------------------------------------------------------------------

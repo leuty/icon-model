@@ -1,8 +1,3 @@
-! @brief configuration setup for NWP land scheme TERRA
-!
-! configuration setup for NWP land scheme TERRA
-!
-!
 ! ICON
 !
 ! ---------------------------------------------------------------
@@ -13,6 +8,10 @@
 ! See LICENSES/ for license information
 ! SPDX-License-Identifier: BSD-3-Clause
 ! ---------------------------------------------------------------
+
+! @brief configuration setup for NWP land scheme TERRA
+!
+! configuration setup for NWP land scheme TERRA
 
 MODULE mo_lnd_nwp_config
 

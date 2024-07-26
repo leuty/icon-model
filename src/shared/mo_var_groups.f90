@@ -1,6 +1,3 @@
-! Group information for ICON variables.
-!
-!
 ! ICON
 !
 ! ---------------------------------------------------------------
@@ -11,6 +8,8 @@
 ! See LICENSES/ for license information
 ! SPDX-License-Identifier: BSD-3-Clause
 ! ---------------------------------------------------------------
+
+! Group information for ICON variables.
 
 MODULE mo_var_groups
 

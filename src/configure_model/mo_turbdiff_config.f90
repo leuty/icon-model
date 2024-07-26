@@ -1,8 +1,3 @@
-! @brief configuration setup for turbulent diffusion (turbdiff)
-!
-! configuration setup for turbulent diffusion
-!
-!
 ! ICON
 !
 ! ---------------------------------------------------------------
@@ -13,6 +8,10 @@
 ! See LICENSES/ for license information
 ! SPDX-License-Identifier: BSD-3-Clause
 ! ---------------------------------------------------------------
+
+! @brief configuration setup for turbulent diffusion (turbdiff)
+!
+! configuration setup for turbulent diffusion
 
 MODULE mo_turbdiff_config
 

@@ -1,11 +1,3 @@
-! The module <i>mo_scalar_product</i>
-! implements discrete scalar products which depend on the grid geometry only
-! are used to formulate the primitive equations in weak form.
-! The coefficients used for projections from triangular edges to cell centers
-! and vice versa are contained in the ocean part of the model domain and
-! are calculated in <i>mo_ocean_topo</i>.
-!
-!
 ! ICON
 !
 ! ---------------------------------------------------------------
@@ -16,6 +8,13 @@
 ! See LICENSES/ for license information
 ! SPDX-License-Identifier: BSD-3-Clause
 ! ---------------------------------------------------------------
+
+! The module <i>mo_scalar_product</i>
+! implements discrete scalar products which depend on the grid geometry only
+! are used to formulate the primitive equations in weak form.
+! The coefficients used for projections from triangular edges to cell centers
+! and vice versa are contained in the ocean part of the model domain and
+! are calculated in <i>mo_ocean_topo</i>.
 
 !----------------------------
 #include "omp_definitions.inc"

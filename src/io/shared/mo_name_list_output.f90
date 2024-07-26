@@ -1,6 +1,3 @@
-! Module handling synchronous and asynchronous output; supporting
-! multiple I/O PEs and horizontal interpolation.
-!
 ! ICON
 !
 ! ---------------------------------------------------------------
@@ -11,7 +8,9 @@
 ! See LICENSES/ for license information
 ! SPDX-License-Identifier: BSD-3-Clause
 ! ---------------------------------------------------------------
-! 
+
+! Module handling synchronous and asynchronous output; supporting
+! multiple I/O PEs and horizontal interpolation.
 !
 ! @todo In asynchronous I/O mode, windows are created but not freed
 !

@@ -1,14 +1,3 @@
-!OPTION! -cont -msg o
-! this command should fix the problem of copying arrays in a subroutine call
-!
-! This module is the interface between nwp_nh_interface and the
-! turbulence parameterisations:
-! inwp_turb == icosmo == turbulence scheme by from COSMO (Raschendorfer)
-! inwp_turb == igme   == turbulence scheme imported from the GME
-! This module handles the atmospheric turbulent above the surface layer diffusion.
-!
-!
-!
 ! ICON
 !
 ! ---------------------------------------------------------------
@@ -19,6 +8,15 @@
 ! See LICENSES/ for license information
 ! SPDX-License-Identifier: BSD-3-Clause
 ! ---------------------------------------------------------------
+
+! This module is the interface between nwp_nh_interface and the
+! turbulence parameterisations:
+! inwp_turb == icosmo == turbulence scheme by from COSMO (Raschendorfer)
+! inwp_turb == igme   == turbulence scheme imported from the GME
+! This module handles the atmospheric turbulent above the surface layer diffusion.
+
+!OPTION! -cont -msg o
+! this command should fix the problem of copying arrays in a subroutine call
 
 !----------------------------
 #include "omp_definitions.inc"

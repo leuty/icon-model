@@ -1,6 +1,3 @@
-! Module provides a grouping structure for mtime events.
-!
-!
 ! ICON
 !
 ! ---------------------------------------------------------------
@@ -11,6 +8,8 @@
 ! See LICENSES/ for license information
 ! SPDX-License-Identifier: BSD-3-Clause
 ! ---------------------------------------------------------------
+
+! Module provides a grouping structure for mtime events.
 
 MODULE mo_event_manager
 

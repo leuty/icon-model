@@ -1,7 +1,3 @@
-! Soil Vegetation Atmosphere Transfer (SVAT) scheme TERRA
-! "Nihil in TERRA sine causa fit." (Cicero)!!
-!
-!
 ! ICON
 !
 ! ---------------------------------------------------------------
@@ -12,6 +8,9 @@
 ! See LICENSES/ for license information
 ! SPDX-License-Identifier: BSD-3-Clause
 ! ---------------------------------------------------------------
+
+! Soil Vegetation Atmosphere Transfer (SVAT) scheme TERRA
+! "Nihil in TERRA sine causa fit." (Cicero)!!
 
 MODULE sfc_terra
 

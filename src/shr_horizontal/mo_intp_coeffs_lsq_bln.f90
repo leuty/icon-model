@@ -1,8 +1,3 @@
-! Contains the implementation of interpolation and reconstruction
-! routines used by the shallow water model, including the RBF
-! reconstruction routines.
-!
-!
 ! ICON
 !
 ! ---------------------------------------------------------------
@@ -12,7 +7,11 @@
 ! See AUTHORS.TXT for a list of authors
 ! See LICENSES/ for license information
 ! SPDX-License-Identifier: BSD-3-Clause
-! ---------------------------------------------------------------  
+! ---------------------------------------------------------------
+
+! Contains the implementation of interpolation and reconstruction
+! routines used by the shallow water model, including the RBF
+! reconstruction routines.
 
 #ifdef __xlC__
 ! @PROCESS nosmp

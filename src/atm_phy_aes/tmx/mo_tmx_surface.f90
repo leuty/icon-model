@@ -1,6 +1,3 @@
-!
-! Interface for the surface component of the turbulent mixing package (tmx)
-!
 ! ICON
 !
 ! ---------------------------------------------------------------
@@ -11,6 +8,8 @@
 ! See LICENSES/ for license information
 ! SPDX-License-Identifier: BSD-3-Clause
 ! ---------------------------------------------------------------
+
+! Interface for the surface component of the turbulent mixing package (tmx)
 
 !----------------------------
 #include "omp_definitions.inc"

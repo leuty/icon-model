@@ -1,3 +1,14 @@
+! ICON
+!
+! ---------------------------------------------------------------
+! Copyright (C) 2004-2024, DWD, MPI-M, DKRZ, KIT, ETH, MeteoSwiss
+! Contact information: icon-model.org
+!
+! See AUTHORS.TXT for a list of authors
+! See LICENSES/ for license information
+! SPDX-License-Identifier: BSD-3-Clause
+! ---------------------------------------------------------------
+
 ! Global registry for vertical axis types.
 !
 ! Please note: The purpose of this module is to register vertical axis types
@@ -12,18 +23,6 @@
 ! you probably need to add the meta-data definition for this type in
 ! "mo_name_list_output_zaxes.f90", otherwise you won't be able
 ! to read/write the variable.
-!
-!
-! ICON
-!
-! ---------------------------------------------------------------
-! Copyright (C) 2004-2024, DWD, MPI-M, DKRZ, KIT, ETH, MeteoSwiss
-! Contact information: icon-model.org
-!
-! See AUTHORS.TXT for a list of authors
-! See LICENSES/ for license information
-! SPDX-License-Identifier: BSD-3-Clause
-! ---------------------------------------------------------------
 
 MODULE mo_zaxis_type
 

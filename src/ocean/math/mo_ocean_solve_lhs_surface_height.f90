@@ -1,6 +1,3 @@
-! contains extended lhs-matrix-generator type
-! provides surface height lhs for free ocean surface solve
-!
 ! ICON
 !
 ! ---------------------------------------------------------------
@@ -11,6 +8,9 @@
 ! See LICENSES/ for license information
 ! SPDX-License-Identifier: BSD-3-Clause
 ! ---------------------------------------------------------------
+
+! contains extended lhs-matrix-generator type
+! provides surface height lhs for free ocean surface solve
 
 #if (defined(_OPENMP) && defined(OCE_SOLVE_OMP))
 #include "omp_definitions.inc"

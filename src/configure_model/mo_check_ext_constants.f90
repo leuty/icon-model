@@ -1,9 +1,3 @@
-!>
-!! This module checks whether the constants once copied from `mo_impl_constants`
-!! to `mo_gridman_constants` located in the external math-library sill match
-!! their original values. If there is any change in the original value, the 
-!! subroutine here will send an error message and finish the calculation
-!
 ! ICON
 !
 ! ---------------------------------------------------------------
@@ -14,6 +8,12 @@
 ! See LICENSES/ for license information
 ! SPDX-License-Identifier: BSD-3-Clause
 ! ---------------------------------------------------------------
+
+! This module checks whether the constants once copied from `mo_impl_constants`
+! to `mo_gridman_constants` located in the external math-library sill match
+! their original values. If there is any change in the original value, the
+! subroutine here will send an error message and finish the calculation
+
 MODULE mo_check_ext_constants
 
 

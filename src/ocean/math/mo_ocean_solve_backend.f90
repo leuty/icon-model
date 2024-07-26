@@ -1,7 +1,3 @@
-! contains abstact type for actual solver backends
-! this is an abstract interposer layer,
-! in order to use a single interface for all backend solvers
-!
 ! ICON
 !
 ! ---------------------------------------------------------------
@@ -12,6 +8,11 @@
 ! See LICENSES/ for license information
 ! SPDX-License-Identifier: BSD-3-Clause
 ! ---------------------------------------------------------------
+
+! contains abstact type for actual solver backends
+! this is an abstract interposer layer,
+! in order to use a single interface for all backend solvers
+
 #include "icon_definitions.inc"
 
 MODULE mo_ocean_solve_backend

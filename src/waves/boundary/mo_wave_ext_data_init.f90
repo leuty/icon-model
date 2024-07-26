@@ -1,8 +1,3 @@
-! Initialization/reading reading of external datasets
-!
-! This module contains read and initialization routines for the external data state.
-!
-!
 ! ICON
 !
 ! ---------------------------------------------------------------
@@ -13,6 +8,10 @@
 ! See LICENSES/ for license information
 ! SPDX-License-Identifier: BSD-3-Clause
 ! ---------------------------------------------------------------
+
+! Initialization/reading reading of external datasets
+!
+! This module contains read and initialization routines for the external data state.
 
 !----------------------------
 #include "omp_definitions.inc"

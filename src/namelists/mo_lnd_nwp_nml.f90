@@ -1,9 +1,3 @@
-! Namelist for surface physics
-!
-! these Subroutines are called by control model and construct the
-! surface scheme composition
-!
-!
 ! ICON
 !
 ! ---------------------------------------------------------------
@@ -14,6 +8,11 @@
 ! See LICENSES/ for license information
 ! SPDX-License-Identifier: BSD-3-Clause
 ! ---------------------------------------------------------------
+
+! Namelist for surface physics
+!
+! these Subroutines are called by control model and construct the
+! surface scheme composition
 
 MODULE mo_lnd_nwp_nml
 

@@ -1,7 +1,3 @@
-! Contains the implementation of the semi-implicit Adams-Bashforth timestepping
-! for the ICON ocean model based on the mimetic spatial discretization approach.
-!
-!
 ! ICON
 !
 ! ---------------------------------------------------------------
@@ -12,6 +8,9 @@
 ! See LICENSES/ for license information
 ! SPDX-License-Identifier: BSD-3-Clause
 ! ---------------------------------------------------------------
+
+! Contains the implementation of the semi-implicit Adams-Bashforth timestepping
+! for the ICON ocean model based on the mimetic spatial discretization approach.
 
 !----------------------------
 #include "iconfor_dsl_definitions.inc"

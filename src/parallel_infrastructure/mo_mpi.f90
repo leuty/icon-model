@@ -1,7 +1,3 @@
-! Basic module initializing the MPI communication and handling most
-! of the MPI calls (wrapper functions).
-!
-!
 ! ICON
 !
 ! ---------------------------------------------------------------
@@ -12,7 +8,10 @@
 ! See LICENSES/ for license information
 ! SPDX-License-Identifier: BSD-3-Clause
 ! ---------------------------------------------------------------
-!
+
+! Basic module initializing the MPI communication and handling most
+! of the MPI calls (wrapper functions).
+
 !  MPI-Handshake
 !  -------------
 !

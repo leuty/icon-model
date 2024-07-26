@@ -1,6 +1,3 @@
-! @brief Initialisation of atmosphere coupling
-!
-!
 ! ICON
 !
 ! ---------------------------------------------------------------
@@ -11,6 +8,8 @@
 ! See LICENSES/ for license information
 ! SPDX-License-Identifier: BSD-3-Clause
 ! ---------------------------------------------------------------
+
+! @brief Initialisation of atmosphere coupling
 
 !----------------------------
 #include "omp_definitions.inc"

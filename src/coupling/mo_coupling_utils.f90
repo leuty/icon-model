@@ -1,5 +1,3 @@
-! Set of routines shared by various coupling related modules
-!
 ! ICON
 !
 ! ---------------------------------------------------------------
@@ -10,6 +8,8 @@
 ! See LICENSES/ for license information
 ! SPDX-License-Identifier: BSD-3-Clause
 ! ---------------------------------------------------------------
+
+! Set of routines shared by various coupling related modules
 
 !----------------------------
 #include "omp_definitions.inc"

@@ -1,8 +1,3 @@
-!
-! This module contains the I/O routines for initicon
-!
-!
-!
 ! ICON
 !
 ! ---------------------------------------------------------------
@@ -13,6 +8,8 @@
 ! See LICENSES/ for license information
 ! SPDX-License-Identifier: BSD-3-Clause
 ! ---------------------------------------------------------------
+
+! This module contains the I/O routines for initicon
 
 !----------------------------
 #include "omp_definitions.inc"

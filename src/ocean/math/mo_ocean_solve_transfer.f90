@@ -1,7 +1,3 @@
-! provides abstract communication / transfer infrastructure object to
-! be used by solvers
-!
-!
 ! ICON
 !
 ! ---------------------------------------------------------------
@@ -12,6 +8,9 @@
 ! See LICENSES/ for license information
 ! SPDX-License-Identifier: BSD-3-Clause
 ! ---------------------------------------------------------------
+
+! provides abstract communication / transfer infrastructure object to
+! be used by solvers
 
 #if (defined(_OPENMP) && defined(OCE_SOLVE_OMP))
 #include "omp_definitions.inc"

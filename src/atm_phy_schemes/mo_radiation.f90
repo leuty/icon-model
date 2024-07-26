@@ -1,4 +1,14 @@
+! ICON
 !
+! ---------------------------------------------------------------
+! Copyright (C) 2004-2024, DWD, MPI-M, DKRZ, KIT, ETH, MeteoSwiss
+! Contact information: icon-model.org
+!
+! See AUTHORS.TXT for a list of authors
+! See LICENSES/ for license information
+! SPDX-License-Identifier: BSD-3-Clause
+! ---------------------------------------------------------------
+
 ! Module to provide interface to radiation routines.
 !
 ! Remarks
@@ -24,17 +34,6 @@
 !   code previously contained in the ECHAM5 routines rad_int.f90,
 !   radiation.f90 and prerad.f90.  Modifications were also made to provide
 !   a cleaner interface to the aerosol and cloud properties. 
-!
-! ICON
-!
-! ---------------------------------------------------------------
-! Copyright (C) 2004-2024, DWD, MPI-M, DKRZ, KIT, ETH, MeteoSwiss
-! Contact information: icon-model.org
-!
-! See AUTHORS.TXT for a list of authors
-! See LICENSES/ for license information
-! SPDX-License-Identifier: BSD-3-Clause
-! ---------------------------------------------------------------
 
 MODULE mo_radiation
 

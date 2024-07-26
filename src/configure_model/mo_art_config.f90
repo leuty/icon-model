@@ -1,6 +1,3 @@
-! @brief configuration setup for ART-package
-!
-!
 ! ICON
 !
 ! ---------------------------------------------------------------
@@ -11,6 +8,8 @@
 ! See LICENSES/ for license information
 ! SPDX-License-Identifier: BSD-3-Clause
 ! ---------------------------------------------------------------
+
+! @brief configuration setup for ART-package
 
 MODULE mo_art_config
 

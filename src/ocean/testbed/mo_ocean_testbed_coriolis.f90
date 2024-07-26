@@ -1,7 +1,3 @@
-! Contains the implementation of the mathematical operators for the ocean.
-!
-!
-!
 ! ICON
 !
 ! ---------------------------------------------------------------
@@ -12,6 +8,8 @@
 ! See LICENSES/ for license information
 ! SPDX-License-Identifier: BSD-3-Clause
 ! ---------------------------------------------------------------
+
+! Contains the implementation of the mathematical operators for the ocean.
 
 MODULE mo_ocean_testbed_coriolis
   !-------------------------------------------------------------------------

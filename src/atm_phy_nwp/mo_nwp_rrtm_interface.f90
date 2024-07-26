@@ -1,8 +1,3 @@
-!
-! This module is the interface between nwp_nh_interface to the radiation scheme RRTM.
-!
-!
-!
 ! ICON
 !
 ! ---------------------------------------------------------------
@@ -13,6 +8,8 @@
 ! See LICENSES/ for license information
 ! SPDX-License-Identifier: BSD-3-Clause
 ! ---------------------------------------------------------------
+
+! This module is the interface between nwp_nh_interface to the radiation scheme RRTM.
 
 !----------------------------
 #include "omp_definitions.inc"

@@ -1,12 +1,3 @@
-!   Contains the implementation of the nabla mathematical operators.
-!
-!   Contains the implementation of the mathematical operators
-!   employed by the shallow water prototype.
-!
-! @par To Do
-! Boundary exchange, nblks in presence of halos and dummy edge
-!
-!
 ! ICON
 !
 ! ---------------------------------------------------------------
@@ -17,6 +8,14 @@
 ! See LICENSES/ for license information
 ! SPDX-License-Identifier: BSD-3-Clause
 ! ---------------------------------------------------------------
+
+! Contains the implementation of the nabla mathematical operators.
+!
+! Contains the implementation of the mathematical operators
+! employed by the shallow water prototype.
+!
+! @par To Do
+! Boundary exchange, nblks in presence of halos and dummy edge
 
 !----------------------------
 #include "omp_definitions.inc"

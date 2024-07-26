@@ -1,8 +1,3 @@
-!
-!  Initialize the physical schemes at start time
-!
-!
-!
 ! ICON
 !
 ! ---------------------------------------------------------------
@@ -13,6 +8,8 @@
 ! See LICENSES/ for license information
 ! SPDX-License-Identifier: BSD-3-Clause
 ! ---------------------------------------------------------------
+
+! Initialize the physical schemes at start time
 
 !----------------------------
 #include "omp_definitions.inc"

@@ -1,6 +1,3 @@
-! Allocation/deallocation and reading of ocean external datasets
-!
-!
 ! ICON
 !
 ! ---------------------------------------------------------------
@@ -11,8 +8,10 @@
 ! See LICENSES/ for license information
 ! SPDX-License-Identifier: BSD-3-Clause
 ! ---------------------------------------------------------------
+
+! Allocation/deallocation and reading of ocean external datasets
+
 #include "omp_definitions.inc"
-!----------------------------
 
 MODULE mo_ocean_ext_data
 

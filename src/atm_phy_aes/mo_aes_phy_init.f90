@@ -1,7 +1,3 @@
-!
-! Contains subroutines for initializing the AES physics package.
-!
-!
 ! ICON
 !
 ! ---------------------------------------------------------------
@@ -12,6 +8,8 @@
 ! See LICENSES/ for license information
 ! SPDX-License-Identifier: BSD-3-Clause
 ! ---------------------------------------------------------------
+
+! Contains subroutines for initializing the AES physics package.
 
 !----------------------------
 #include "omp_definitions.inc"

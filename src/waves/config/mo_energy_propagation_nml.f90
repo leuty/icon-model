@@ -1,8 +1,3 @@
-! Namelist for wave energy propagation
-!
-! The following routine is called by read_wave_namelist and controls
-! specifics of the wave energy propagation.
-!
 ! ICON
 !
 ! ---------------------------------------------------------------
@@ -13,7 +8,12 @@
 ! See LICENSES/ for license information
 ! SPDX-License-Identifier: BSD-3-Clause
 ! ---------------------------------------------------------------
+
+! Namelist for wave energy propagation
 !
+! The following routine is called by read_wave_namelist and controls
+! specifics of the wave energy propagation.
+
 MODULE mo_energy_propagation_nml
 
   USE mo_kind,                      ONLY: wp

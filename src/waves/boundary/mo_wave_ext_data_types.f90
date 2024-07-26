@@ -1,9 +1,3 @@
-! Data type defintion for wave external data state
-!
-! Defines the data type for storing wave-specific external parameter
-! fields such as bathymetry.
-!
-!
 ! ICON
 !
 ! ---------------------------------------------------------------
@@ -14,6 +8,11 @@
 ! See LICENSES/ for license information
 ! SPDX-License-Identifier: BSD-3-Clause
 ! ---------------------------------------------------------------
+
+! Data type defintion for wave external data state
+!
+! Defines the data type for storing wave-specific external parameter
+! fields such as bathymetry.
 
 MODULE mo_wave_ext_data_types
 

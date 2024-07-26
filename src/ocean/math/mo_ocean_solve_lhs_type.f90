@@ -1,5 +1,3 @@
-! abstract type for lhs-matrix generators
-!
 ! ICON
 !
 ! ---------------------------------------------------------------
@@ -10,6 +8,9 @@
 ! See LICENSES/ for license information
 ! SPDX-License-Identifier: BSD-3-Clause
 ! ---------------------------------------------------------------
+
+! abstract type for lhs-matrix generators
+
 MODULE mo_ocean_solve_lhs_type
 
   IMPLICIT NONE

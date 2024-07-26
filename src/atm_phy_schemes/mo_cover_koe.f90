@@ -1,13 +1,3 @@
-!
-! Computation of cloud cover and grid mean cloud liquid water and cloud ice
-!
-! This routine takes information from turbulence, convection and grid-scale
-! to produce cloud properties used in radiation (and microphysics).
-!
-! Possible future options
-! - simple diagnostic (from turbulence, convection and grid scale)
-! - prognostic total water variance AND prognostic ice
-!
 ! ICON
 !
 ! ---------------------------------------------------------------
@@ -18,6 +8,15 @@
 ! See LICENSES/ for license information
 ! SPDX-License-Identifier: BSD-3-Clause
 ! ---------------------------------------------------------------
+
+! Computation of cloud cover and grid mean cloud liquid water and cloud ice
+!
+! This routine takes information from turbulence, convection and grid-scale
+! to produce cloud properties used in radiation (and microphysics).
+!
+! Possible future options
+! - simple diagnostic (from turbulence, convection and grid scale)
+! - prognostic total water variance AND prognostic ice
 
 !----------------------------
 #include "consistent_fma.inc"

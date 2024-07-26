@@ -1,5 +1,3 @@
-!NEC$ options "-O0"
-!
 ! ICON
 !
 ! ---------------------------------------------------------------
@@ -10,6 +8,8 @@
 ! See LICENSES/ for license information
 ! SPDX-License-Identifier: BSD-3-Clause
 ! ---------------------------------------------------------------
+
+!NEC$ options "-O0"
 
 MODULE mo_nwp_phy_state
 

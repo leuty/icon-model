@@ -1,9 +1,3 @@
-! Namelist for Grib output
-!
-! These subroutines are called by  read_atmo_namelists and do the transport
-! setup.
-!
-!
 ! ICON
 !
 ! ---------------------------------------------------------------
@@ -14,6 +8,11 @@
 ! See LICENSES/ for license information
 ! SPDX-License-Identifier: BSD-3-Clause
 ! ---------------------------------------------------------------
+
+! Namelist for Grib output
+!
+! These subroutines are called by  read_atmo_namelists and do the transport
+! setup.
 
 MODULE mo_gribout_nml
 

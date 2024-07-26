@@ -1,6 +1,3 @@
-!
-! Interface to the VDIFF turbulence scheme and JSBACH land-surface scheme.
-!
 ! ICON
 !
 ! ---------------------------------------------------------------
@@ -11,6 +8,8 @@
 ! See LICENSES/ for license information
 ! SPDX-License-Identifier: BSD-3-Clause
 ! ---------------------------------------------------------------
+
+! Interface to the VDIFF turbulence scheme and JSBACH land-surface scheme.
 
 MODULE mo_nwp_vdiff_interface
 

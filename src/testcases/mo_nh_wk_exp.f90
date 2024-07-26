@@ -1,13 +1,3 @@
-! Subroutine to initialized the Weisman Klemp test case
-! for the NH-Core in limited area mode
-!
-! Literature
-! -M. L. Weisman and J. B. Klemp, 1982
-!  The Dependence of Numerically Simulated Convective Storms on
-!  Vertical Wind Shear and Buoyancy.
-!  Monthly Weather Review, 110,504-520
-!
-!
 ! ICON
 !
 ! ---------------------------------------------------------------
@@ -18,6 +8,15 @@
 ! See LICENSES/ for license information
 ! SPDX-License-Identifier: BSD-3-Clause
 ! ---------------------------------------------------------------
+
+! Subroutine to initialized the Weisman Klemp test case
+! for the NH-Core in limited area mode
+!
+! Literature
+! -M. L. Weisman and J. B. Klemp, 1982
+!  The Dependence of Numerically Simulated Convective Storms on
+!  Vertical Wind Shear and Buoyancy.
+!  Monthly Weather Review, 110,504-520
 
 MODULE mo_nh_wk_exp
 

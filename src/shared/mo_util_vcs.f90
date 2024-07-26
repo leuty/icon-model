@@ -1,10 +1,3 @@
-! Auxiliary module for status information of the version control system (VCS).
-!
-! Most of the routines which are defined within this module are
-! ISO-C bindings to a related C program "build/version.c". This
-! program is automatically generated during ICON's make process.
-!
-!
 ! ICON
 !
 ! ---------------------------------------------------------------
@@ -15,6 +8,12 @@
 ! See LICENSES/ for license information
 ! SPDX-License-Identifier: BSD-3-Clause
 ! ---------------------------------------------------------------
+
+! Auxiliary module for status information of the version control system (VCS).
+!
+! Most of the routines which are defined within this module are
+! ISO-C bindings to a related C program "build/version.c". This
+! program is automatically generated during ICON's make process.
 
 MODULE mo_util_vcs
 

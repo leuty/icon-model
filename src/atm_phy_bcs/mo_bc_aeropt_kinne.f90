@@ -1,7 +1,3 @@
-!
-! Read and apply monthly aerosol optical properties of S. Kinne
-! from yearly files.
-!
 ! ICON
 !
 ! ---------------------------------------------------------------
@@ -12,6 +8,9 @@
 ! See LICENSES/ for license information
 ! SPDX-License-Identifier: BSD-3-Clause
 ! ---------------------------------------------------------------
+
+! Read and apply monthly aerosol optical properties of S. Kinne
+! from yearly files.
 
 MODULE mo_bc_aeropt_kinne
 

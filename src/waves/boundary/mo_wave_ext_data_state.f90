@@ -1,8 +1,3 @@
-! Allocation/deallocation of external parameter state
-!
-! This module contains routines for setting up the external data state.
-!
-!
 ! ICON
 !
 ! ---------------------------------------------------------------
@@ -13,6 +8,10 @@
 ! See LICENSES/ for license information
 ! SPDX-License-Identifier: BSD-3-Clause
 ! ---------------------------------------------------------------
+
+! Allocation/deallocation of external parameter state
+!
+! This module contains routines for setting up the external data state.
 
 !----------------------------
 #include "omp_definitions.inc"

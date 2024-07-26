@@ -1,6 +1,3 @@
-! Data module for all parametric data in the soil model "terra"!
-!
-!
 ! ICON
 !
 ! ---------------------------------------------------------------
@@ -11,6 +8,8 @@
 ! See LICENSES/ for license information
 ! SPDX-License-Identifier: BSD-3-Clause
 ! ---------------------------------------------------------------
+
+! Data module for all parametric data in the soil model "terra"!
 
 MODULE sfc_terra_data
 

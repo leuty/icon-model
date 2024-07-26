@@ -1,6 +1,3 @@
-!
-! Lookup tables for convective adjustment code
-!
 ! ICON
 !
 ! ---------------------------------------------------------------
@@ -11,7 +8,8 @@
 ! See LICENSES/ for license information
 ! SPDX-License-Identifier: BSD-3-Clause
 ! ---------------------------------------------------------------
-!
+
+! Lookup tables for convective adjustment code
 !  D. Salmond, CRAY (UK), August 1991, original code
 
 #if defined __xlC__ && !defined NOXLFPROCESS

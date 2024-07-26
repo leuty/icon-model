@@ -1,9 +1,3 @@
-!
-! Contains surface type (tile) indices used by the turbulent mixing parameterization.
-!
-! Contains subroutines for initializing the AES physics package
-!
-!
 ! ICON
 !
 ! ---------------------------------------------------------------
@@ -14,6 +8,10 @@
 ! See LICENSES/ for license information
 ! SPDX-License-Identifier: BSD-3-Clause
 ! ---------------------------------------------------------------
+
+! Contains surface type (tile) indices used by the turbulent mixing parameterization.
+!
+! Contains subroutines for initializing the AES physics package
 
 MODULE mo_aes_sfc_indices
 

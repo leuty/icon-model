@@ -1,6 +1,3 @@
-!
-! Subroutine interface_aes_vdf calls the vertical diffusion and the surface schemes.
-!
 ! ICON
 !
 ! ---------------------------------------------------------------
@@ -11,6 +8,8 @@
 ! See LICENSES/ for license information
 ! SPDX-License-Identifier: BSD-3-Clause
 ! ---------------------------------------------------------------
+
+! Subroutine interface_aes_vdf calls the vertical diffusion and the surface schemes.
 
 MODULE mo_interface_aes_vdf
 

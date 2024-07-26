@@ -1,7 +1,3 @@
-! @brief Ensemble perturbations of nwp physics
-!
-! configuration setup for ensemble physics perturbations
-!
 ! ICON
 !
 ! ---------------------------------------------------------------
@@ -12,6 +8,10 @@
 ! See LICENSES/ for license information
 ! SPDX-License-Identifier: BSD-3-Clause
 ! ---------------------------------------------------------------
+
+! @brief Ensemble perturbations of nwp physics
+!
+! configuration setup for ensemble physics perturbations
 
 MODULE mo_ensemble_pert_config
 

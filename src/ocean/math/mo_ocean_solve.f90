@@ -1,5 +1,3 @@
-! contains general interface to the actual solver backends (init, solve, destruct)
-!
 ! ICON
 !
 ! ---------------------------------------------------------------
@@ -10,6 +8,8 @@
 ! See LICENSES/ for license information
 ! SPDX-License-Identifier: BSD-3-Clause
 ! ---------------------------------------------------------------
+
+! contains general interface to the actual solver backends (init, solve, destruct)
 
 #include "icon_definitions.inc"
 

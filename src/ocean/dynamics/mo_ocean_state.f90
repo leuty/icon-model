@@ -1,10 +1,3 @@
-!  Contains the data structures for the hydrostatic ocean model.
-!
-!  Contains the data structures to store the hydrostatic & boussinesq ocean model state.
-!  Implementation is based on ICON-Shallow-Water model
-!  to store the shallow water model state and other auxiliary variables.
-!  Constructors and destructors for these data structures are also defined here.
-!
 ! ICON
 !
 ! ---------------------------------------------------------------
@@ -15,6 +8,13 @@
 ! See LICENSES/ for license information
 ! SPDX-License-Identifier: BSD-3-Clause
 ! ---------------------------------------------------------------
+
+! Contains the data structures for the hydrostatic ocean model.
+!
+! Contains the data structures to store the hydrostatic & boussinesq ocean model state.
+! Implementation is based on ICON-Shallow-Water model
+! to store the shallow water model state and other auxiliary variables.
+! Constructors and destructors for these data structures are also defined here.
 
 MODULE mo_ocean_state
 #include "add_var_acc_macro.inc"

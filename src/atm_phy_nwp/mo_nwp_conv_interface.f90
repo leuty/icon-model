@@ -1,12 +1,3 @@
-!OPTION! -cont
-! this command should fix the problem of copying arrays in a subroutine call
-!
-! This module is the interface between nwp_nh_interface to the
-! convection parameterisation(s):
-! inwp_conv == 1 == Tiedtke-Bechtold convection
-!
-!
-!
 ! ICON
 !
 ! ---------------------------------------------------------------
@@ -17,6 +8,13 @@
 ! See LICENSES/ for license information
 ! SPDX-License-Identifier: BSD-3-Clause
 ! ---------------------------------------------------------------
+
+! This module is the interface between nwp_nh_interface to the
+! convection parameterisation(s):
+! inwp_conv == 1 == Tiedtke-Bechtold convection
+
+!OPTION! -cont
+! this command should fix the problem of copying arrays in a subroutine call
 
 !----------------------------
 #include "omp_definitions.inc"

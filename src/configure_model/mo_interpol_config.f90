@@ -1,5 +1,3 @@
-! Configuration for interpolation and reconstruction.
-!
 ! ICON
 !
 ! ---------------------------------------------------------------
@@ -10,6 +8,8 @@
 ! See LICENSES/ for license information
 ! SPDX-License-Identifier: BSD-3-Clause
 ! ---------------------------------------------------------------
+
+! Configuration for interpolation and reconstruction.
 
 MODULE mo_interpol_config
 

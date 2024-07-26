@@ -1,9 +1,3 @@
-! The module contains the definition of the grid and patch data
-! structure that is actually used by the model.  It contains abstract
-! data types that are copies of those in m_grid, m_hierarchy and
-! m_base_geometry.
-!
-!
 ! ICON
 !
 ! ---------------------------------------------------------------
@@ -15,7 +9,11 @@
 ! SPDX-License-Identifier: BSD-3-Clause
 ! ---------------------------------------------------------------
 
-  
+! The module contains the definition of the grid and patch data
+! structure that is actually used by the model.  It contains abstract
+! data types that are copies of those in m_grid, m_hierarchy and
+! m_base_geometry.
+
 !! I can't say why xlf takes ages to optimize this file,
 !! but since it contains declarations only, it's sufficient to leave
 !! it unoptimized

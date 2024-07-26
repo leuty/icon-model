@@ -1,10 +1,3 @@
-! Held-Suarez test for the NH-Core
-!
-! Literature
-! - Held, I. M. and Suarez, M. J. (1994): A Proposal for the Intercomparison
-!   of the Dynamical Cores of Atmospheric General Circulation Models
-!
-!
 ! ICON
 !
 ! ---------------------------------------------------------------
@@ -15,6 +8,12 @@
 ! See LICENSES/ for license information
 ! SPDX-License-Identifier: BSD-3-Clause
 ! ---------------------------------------------------------------
+
+! Held-Suarez test for the NH-Core
+!
+! Literature
+! - Held, I. M. and Suarez, M. J. (1994): A Proposal for the Intercomparison
+!   of the Dynamical Cores of Atmospheric General Circulation Models
 
 MODULE mo_nh_hs_test
 

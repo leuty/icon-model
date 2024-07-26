@@ -1,10 +1,3 @@
-! Contains the definition of coefficients used for div-grad-curl and reconstruction/scalar product.
-! All coefficients are three-dimensional arrays including the number of vertical levels. This is necessary
-! if one has coefficients that vary within the vertical level but not in time such that one can precompute the
-! coefficients. This is in the ocean model where the land-sea mask is different at each level and therefore
-! the expansion coefficients associated with land and boundary vary with the vertical level but are constant in time.
-!
-!
 ! ICON
 !
 ! ---------------------------------------------------------------
@@ -15,6 +8,12 @@
 ! See LICENSES/ for license information
 ! SPDX-License-Identifier: BSD-3-Clause
 ! ---------------------------------------------------------------
+
+! Contains the definition of coefficients used for div-grad-curl and reconstruction/scalar product.
+! All coefficients are three-dimensional arrays including the number of vertical levels. This is necessary
+! if one has coefficients that vary within the vertical level but not in time such that one can precompute the
+! coefficients. This is in the ocean model where the land-sea mask is different at each level and therefore
+! the expansion coefficients associated with land and boundary vary with the vertical level but are constant in time.
 
 !----------------------------
 #include "omp_definitions.inc"

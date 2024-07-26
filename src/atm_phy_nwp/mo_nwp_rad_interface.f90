@@ -1,9 +1,3 @@
-!
-! This module is the interface between nwp_nh_interface to the radiation schemes
-! (ecRad and RRTM).
-!
-!
-!
 ! ICON
 !
 ! ---------------------------------------------------------------
@@ -14,6 +8,9 @@
 ! See LICENSES/ for license information
 ! SPDX-License-Identifier: BSD-3-Clause
 ! ---------------------------------------------------------------
+
+! This module is the interface between nwp_nh_interface to the radiation schemes
+! (ecRad and RRTM).
 
 !----------------------------
 #include "omp_definitions.inc"

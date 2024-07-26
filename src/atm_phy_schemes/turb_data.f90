@@ -1,5 +1,3 @@
-! Data module for variables of the turbulence parameterization!
-!
 ! ICON
 !
 ! ---------------------------------------------------------------
@@ -10,6 +8,8 @@
 ! See LICENSES/ for license information
 ! SPDX-License-Identifier: BSD-3-Clause
 ! ---------------------------------------------------------------
+
+! Data module for variables of the turbulence parameterization!
 
 MODULE turb_data
 

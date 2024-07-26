@@ -1,7 +1,3 @@
-!
-! Subroutines for computing turbulent exchange coefficients of
-! 3D Smagorinsky turbulent scheme.
-!
 ! ICON
 !
 ! ---------------------------------------------------------------
@@ -12,6 +8,9 @@
 ! See LICENSES/ for license information
 ! SPDX-License-Identifier: BSD-3-Clause
 ! ---------------------------------------------------------------
+
+! Subroutines for computing turbulent exchange coefficients of
+! 3D Smagorinsky turbulent scheme.
 
 !------------------
 #include "fsel.inc"
