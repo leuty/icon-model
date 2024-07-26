@@ -191,6 +191,31 @@ Autoreconf:
     - when: always
   interruptible: true
 
+Iconbot:
+  stage: basic
+  variables:
+    ICONBOT_TAG: production
+    ICONBOT_REPO: "https://gitlab-ci-token:${CI_JOB_TOKEN}@gitlab.dkrz.de/mpim-sw/iconbot.git"
+    ICONBOT_DIR: ${CI_PROJECT_DIR}/iconbot
+    ICONBOT_CONFIG: ${CI_PROJECT_DIR}/.gitlab/iconbot/notifier.yml
+    GIT_SUBMODULE_STRATEGY: none
+  before_script:
+    - git clone --branch "${ICONBOT_TAG}" --depth 1 "${ICONBOT_REPO}" "${ICONBOT_DIR}"
+  script:
+    - python3 -m pip install -r "${ICONBOT_DIR}/requirements/notifier/config.txt"
+    - python3 "${ICONBOT_DIR}/src/notifier/config.py" "${ICONBOT_CONFIG}"
+  tags:
+    - sphinx
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+      changes:
+        - ${CI_CONFIG_PATH}
+        - ${ICONBOT_CONFIG}
+    - if: $CI_PIPELINE_SOURCE == "web"
+      when: manual
+    - when: always
+  interruptible: true
+
 Granules:
   stage: test
   needs: []
