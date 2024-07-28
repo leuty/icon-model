@@ -80,13 +80,13 @@ MODULE mo_nwp_gscp_interface
                                      ice_nucleation
   USE mo_grid_config,          ONLY: l_limited_area
   USE mo_satad,                ONLY: satad_v_3D, satad_v_3D_gpu
-  USE mo_methane_oxidation,    ONLY: methox
+
   USE mo_timer,                ONLY: timers_level, timer_start, timer_stop,    &
       &                              timer_phys_micro_specific,                &
       &                              timer_phys_micro_satad
   USE mo_fortran_tools,        ONLY: assert_acc_device_only
   USE mo_atm_phy_nwp_config,   ONLY: icpl_aero_ice
-
+                                 
   IMPLICIT NONE
 
   PRIVATE
@@ -139,8 +139,7 @@ CONTAINS
 
     ! Variables for tendencies
     REAL(wp), DIMENSION(nproma,p_patch%nlev) :: ddt_tend_t , ddt_tend_qv, ddt_tend_qc, &
-                                                ddt_tend_qi, ddt_tend_qr, ddt_tend_qs, &
-                                                ddt_tend_qv_methox
+                                                ddt_tend_qi, ddt_tend_qr, ddt_tend_qs
 
     ! Local scalars:
 
@@ -197,10 +196,10 @@ CONTAINS
           l_nest_other_micro = .false.
        END IF
     ELSE
-      l_nest_other_micro = .false.
+      l_nest_other_micro = .false. 
     END IF
 
-    !$ACC DATA CREATE(ddt_tend_t, ddt_tend_qv, ddt_tend_qc, ddt_tend_qi, ddt_tend_qr, ddt_tend_qs, ddt_tend_qv_mox) &
+    !$ACC DATA CREATE(ddt_tend_t, ddt_tend_qv, ddt_tend_qc, ddt_tend_qi, ddt_tend_qr, ddt_tend_qs) &
     !$ACC   CREATE(zncn, qnc, qnc_s, zninc)
 
     SELECT CASE (atm_phy_nwp_config(jg)%inwp_gscp)
@@ -249,7 +248,7 @@ CONTAINS
        ! Nothing to do for other schemes
     END SELECT
 
-
+   
     ! exclude boundary interpolation zone of nested domains
     i_rlstart = grf_bdywidth_c+1
     i_rlend   = min_rlcell_int
@@ -261,7 +260,7 @@ CONTAINS
     IF (msg_level>14 .AND. atm_phy_nwp_config(jg)%l2moment) THEN
        CALL nwp_diag_output_minmax_micro(p_patch, p_prog, p_diag, ptr_tracer)
     END IF
-
+    
 !$OMP PARALLEL
 !$OMP DO PRIVATE(jb,jc,jk,i_startidx,i_endidx,zncn,qnc,qnc_s,ddt_tend_t,ddt_tend_qv,aerncn,zninc,   &
 !$OMP            ddt_tend_qc,ddt_tend_qi,ddt_tend_qr,ddt_tend_qs) ICON_OMP_GUIDED_SCHEDULE
@@ -270,8 +269,8 @@ CONTAINS
 
         CALL get_indices_c(p_patch, jb, i_startblk, i_endblk, &
           &                i_startidx, i_endidx, i_rlstart, i_rlend)
-
-        ! Check if there is tke
+        
+        ! Check if there is tke 
         IF (lavail_tke) THEN
           ptr_tke_loc => ptr_tke(:,:,jb)
         ELSE
@@ -314,7 +313,7 @@ CONTAINS
             ENDDO
 !!$ UB: formally qnc_s is in the wrong unit (1/m^3) for the 1-moment schemes. Should be 1/kg.
 !!$   However: since only the near-surface value of level nlev is used and the vertical profile is disregarded
-!!$            anyways, we neglect this small near-surface difference and assume rho approx. 1.0.
+!!$            anyways, we neglect this small near-surface difference and assume rho approx. 1.0. 
             qnc_s(i_startidx:i_endidx) = prm_diag%cloud_num(i_startidx:i_endidx,jb)
 
           ENDIF
@@ -388,12 +387,12 @@ CONTAINS
           !$ACC END PARALLEL
         ENDIF
 
-        IF (timers_level > 10) CALL timer_start(timer_phys_micro_specific)
+        IF (timers_level > 10) CALL timer_start(timer_phys_micro_specific) 
         SELECT CASE (atm_phy_nwp_config(jg)%inwp_gscp)
 
-
+          
         CASE(0)  ! no microphysics scheme - in this case, this interface should not be called anyway
-
+          
           WRITE(0,*) "                           "
 
         CASE(1)  ! COSMO-EU scheme (2-cat ice: cloud ice, snow)
@@ -407,8 +406,8 @@ CONTAINS
             & ivend  =i_endidx                         ,    & !< in:  end index of calculation
             & kstart =kstart_moist(jg)                 ,    & !< in:  vertical start index
             & zdt    =tcall_gscp_jg                    ,    & !< in:  timestep
-            & qi0    =atm_phy_nwp_config(jg)%qi0       ,    &
-            & qc0    =atm_phy_nwp_config(jg)%qc0       ,    &
+            & qi0    =atm_phy_nwp_config(jg)%qi0       ,    & 
+            & qc0    =atm_phy_nwp_config(jg)%qc0       ,    & 
             & dz     =p_metrics%ddqz_z_full(:,:,jb)    ,    & !< in:  vertical layer thickness
             & t      =p_diag%temp   (:,:,jb)           ,    & !< inout:  temp,tracer,...
             & p      =p_diag%pres   (:,:,jb)           ,    & !< in:  full level pres
@@ -436,7 +435,7 @@ CONTAINS
             & l_cv=.TRUE.                              ,    &
             & ldass_lhn = ldass_lhn                    ,    &
             & ithermo_water=atm_phy_nwp_config(jg)%ithermo_water) !< in: latent heat choice
-
+          
         CASE(2)  ! COSMO-DE (3-cat ice: snow, cloud ice, graupel)
 
           CALL graupel_run (                                     &
@@ -446,8 +445,8 @@ CONTAINS
             & ivend  =i_endidx                          ,    & !< in:  end index of calculation
             & kstart =kstart_moist(jg)                  ,    & !< in:  vertical start index
             & zdt    =tcall_gscp_jg                     ,    & !< in:  timestep
-            & qi0    =atm_phy_nwp_config(jg)%qi0        ,    &
-            & qc0    =atm_phy_nwp_config(jg)%qc0        ,    &
+            & qi0    =atm_phy_nwp_config(jg)%qi0        ,    & 
+            & qc0    =atm_phy_nwp_config(jg)%qc0        ,    & 
             & dz     =p_metrics%ddqz_z_full(:,:,jb)     ,    & !< in:  vertical layer thickness
             & t      =p_diag%temp   (:,:,jb)            ,    & !< in:  temp,tracer,...
             & p      =p_diag%pres   (:,:,jb)            ,    & !< in:  full level pres
@@ -487,8 +486,8 @@ CONTAINS
             & ivend  =i_endidx                         ,    & !< in:  end index of calculation
             & kstart =kstart_moist(jg)                 ,    & !< in:  vertical start index
             & zdt    =tcall_gscp_jg                    ,    & !< in:  timestep
-            & qi0    =atm_phy_nwp_config(jg)%qi0       ,    &
-            & qc0    =atm_phy_nwp_config(jg)%qc0       ,    &
+            & qi0    =atm_phy_nwp_config(jg)%qi0       ,    & 
+            & qc0    =atm_phy_nwp_config(jg)%qc0       ,    & 
             & dz     =p_metrics%ddqz_z_full(:,:,jb)    ,    & !< in:  vertical layer thickness
             & t      =p_diag%temp   (:,:,jb)           ,    & !< inout:  temp,tracer,...
             & p      =p_diag%pres   (:,:,jb)           ,    & !< in:  full level pres
@@ -519,7 +518,7 @@ CONTAINS
             & ldass_lhn = ldass_lhn                    ,    &
             & ithermo_water=atm_phy_nwp_config(jg)%ithermo_water) !< in: latent heat choice
 
-        CASE(4)  ! two-moment scheme
+        CASE(4)  ! two-moment scheme 
 
           CALL two_moment_mcrph(                       &
                        isize  = nproma,                &!in: array size
@@ -547,7 +546,7 @@ CONTAINS
                        qh     = ptr_tracer (:,:,jb,iqh), &!inout: hail
                        qnh    = ptr_tracer (:,:,jb,iqnh),&!inout: hail number
                        ninact = ptr_tracer (:,:,jb,ininact), &!inout: IN number
-                       tk     = p_diag%temp(:,:,jb),            &!inout: temp
+                       tk     = p_diag%temp(:,:,jb),            &!inout: temp 
                        w      = p_prog%w(:,:,jb),               &!inout: w (on half levels, size nlev+1)
                        prec_r = prm_diag%rain_gsp_rate (:,jb),  &!inout precp rate rain
                        prec_i = prm_diag%ice_gsp_rate (:,jb),   &!inout precp rate ice
@@ -593,7 +592,7 @@ CONTAINS
                        nccn   = ptr_tracer (:,:,jb,inccn),&!inout: CCN number
                        ninpot = ptr_tracer (:,:,jb,ininpot), &!inout: IN number
                        ninact = ptr_tracer (:,:,jb,ininact), &!inout: IN number
-                       tk     = p_diag%temp(:,:,jb),            &!inout: temp
+                       tk     = p_diag%temp(:,:,jb),            &!inout: temp 
                        w      = p_prog%w(:,:,jb),               &!inout: w (on half levels, size nlev+1)
                        prec_r = prm_diag%rain_gsp_rate (:,jb),  &!inout precp rate rain
                        prec_i = prm_diag%ice_gsp_rate (:,jb),   &!inout precp rate ice
@@ -623,7 +622,7 @@ CONTAINS
                        pres   = p_diag%pres(:,:,jb  )      ,     &!in:  pressure
                        tke    = ptr_tke_loc,                 &!in:  turbulent kinetik energy (on half levels, size nlev+1)
                        p_trac = ptr_tracer (:,:,jb,:),           &!inout: all tracers
-                       tk     = p_diag%temp(:,:,jb),             &!inout: temp
+                       tk     = p_diag%temp(:,:,jb),             &!inout: temp 
                        w      = p_prog%w(:,:,jb),                &!inout: w (on half levels, size nlev+1)
                        prec_r = prm_diag%rain_gsp_rate (:,jb),   &!inout precp rate rain
                        prec_i = prm_diag%ice_gsp_rate (:,jb),    &!inout precp rate ice
@@ -664,7 +663,7 @@ CONTAINS
                        qnh    = ptr_tracer (:,:,jb,iqnh),&!inout: hail number
                        qhl    = ptr_tracer (:,:,jb,iqhl),&!inout: liquid water on hail
                        ninact = ptr_tracer (:,:,jb,ininact), &!inout: IN number
-                       tk     = p_diag%temp(:,:,jb),            &!inout: temp
+                       tk     = p_diag%temp(:,:,jb),            &!inout: temp 
                        w      = p_prog%w(:,:,jb),               &!inout: w (on half levels, size nlev+1)
                        prec_r = prm_diag%rain_gsp_rate (:,jb),  &!inout precp rate rain
                        prec_i = prm_diag%ice_gsp_rate (:,jb),   &!inout precp rate ice
@@ -737,7 +736,7 @@ CONTAINS
             & ivend   =i_endidx                         ,    & ! in:  end index of calculation
             & kstart =kstart_moist(jg)                  ,    & ! in:  vertical start index
             & zdt    =tcall_gscp_jg                     ,    & ! in:  timestep
-            & qc0    = atm_phy_nwp_config(jg)%qc0       ,    &
+            & qc0    = atm_phy_nwp_config(jg)%qc0       ,    & 
             & dz     =p_metrics%ddqz_z_full(:,:,jb)     ,    & ! in:  vertical layer thickness
             & t      =p_diag%temp   (:,:,jb)            ,    & ! in:  temp,tracer,...
             & p      =p_diag%pres   (:,:,jb)            ,    & ! in:  full level pres
@@ -768,28 +767,7 @@ CONTAINS
 
         END SELECT
 
-!un++: 2024-07-26
-        !DRAFT: names are updated to the once used in nwp physics ...
-        !
-        CALL methox( i_startidx, i_endidx, nproma, &
-             &       kstart_moist(jg), nlev, nlev, &
-             &       p_diag%pres(:,:,jb),          & ! that's p_full
-             &       ptr_tracer(:,:,jb,iqv),       & ! that's qv
-             &       ddt_tend_qv_methox(:,:)       ) ! out: tendency of qv due to methox: ddt_tend_qv_methox
-        !
-        ! update of tendency should be something like
-        !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1)
-        !$ACC LOOP GANG VECTOR COLLAPSE(2)
-        DO jk = kstart_moist(jg), nlev
-          DO jc = i_startidx, i_endidx
-            ddt_tend_qv(jc,jk) = ddt_tend_qv(jc,jk)+ ddt_tend_qv_methox(jc,jk)   ! add qv tendencies
-          ENDDO
-        ENDDO
-        !$ACC END PARALLEL
-        ! do we need an ACC WAIT? I think so ...
-!un++: 2024-07-26
-
-        IF (timers_level > 10) CALL timer_stop(timer_phys_micro_specific)
+        IF (timers_level > 10) CALL timer_stop(timer_phys_micro_specific) 
 
         IF (ldiag_ttend) THEN
           !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1)
@@ -816,7 +794,7 @@ CONTAINS
           !$ACC END PARALLEL
         ENDIF
 
-
+        
         !-------------------------------------------------------------------------
         !>
         !! Calculate surface precipitation
@@ -829,7 +807,7 @@ CONTAINS
         !    because it is needed for the improved lower boundary condition
         !    of mass and momentum:
 
-
+          
         SELECT CASE (atm_phy_nwp_config(jg)%inwp_gscp)
         CASE(4,5,6,7,8)
 
@@ -845,7 +823,7 @@ CONTAINS
                &                           + prm_diag%graupel_gsp_rate(jc,jb)
 
             IF (atm_phy_nwp_config(jg)%lcalc_acc_avg) THEN
-
+          
               prm_diag%rain_gsp(jc,jb) = prm_diag%rain_gsp(jc,jb)                         &
                  &                     + tcall_gscp_jg * prm_diag%rain_gsp_rate (jc,jb)
               prm_diag%ice_gsp(jc,jb)  = prm_diag%ice_gsp(jc,jb)                          &
@@ -869,10 +847,10 @@ CONTAINS
                  &                       * prm_diag%prec_gsp_rate(jc,jb)
 
             END IF
-
+             
           END DO
           !$ACC END PARALLEL
-
+             
         CASE(2)
 
 !DIR$ IVDEP
@@ -912,7 +890,7 @@ CONTAINS
                 &                        * prm_diag%prec_gsp_rate(jc,jb)
 
             END IF
-
+            
           END DO
           !$ACC END PARALLEL
 
@@ -926,7 +904,7 @@ CONTAINS
             prm_diag%prec_gsp_rate(jc,jb) = prm_diag%rain_gsp_rate(jc,jb)
 
             IF (atm_phy_nwp_config(jg)%lcalc_acc_avg) THEN
-
+          
               prm_diag%rain_gsp(jc,jb) = prm_diag%rain_gsp(jc,jb)         &
                 &                      + tcall_gscp_jg                    &
                 &                      * prm_diag%rain_gsp_rate (jc,jb)
@@ -941,7 +919,7 @@ CONTAINS
                 &                      * prm_diag%prec_gsp_rate(jc,jb)
 
             END IF
-
+            
           END DO
           !$ACC END PARALLEL
 
@@ -957,7 +935,7 @@ CONTAINS
               &                           + prm_diag%snow_gsp_rate(jc,jb)
 
             IF (atm_phy_nwp_config(jg)%lcalc_acc_avg) THEN
-
+          
               prm_diag%rain_gsp(jc,jb) = prm_diag%rain_gsp(jc,jb)           &
                 &                      + tcall_gscp_jg                      &
                 &                      * prm_diag%rain_gsp_rate (jc,jb)
@@ -982,7 +960,7 @@ CONTAINS
             END IF
           END DO
           !$ACC END PARALLEL
-
+             
         END SELECT
 
 
@@ -990,7 +968,7 @@ CONTAINS
         ! - this is the second satad call
         ! - first satad in physics interface before microphysics
 
-        IF (timers_level > 10) CALL timer_start(timer_phys_micro_satad)
+        IF (timers_level > 10) CALL timer_start(timer_phys_micro_satad) 
         IF (lsatad) THEN
 
 #ifdef _OPENACC
@@ -1014,7 +992,7 @@ CONTAINS
 
         ENDIF
 
-        IF (timers_level > 10) CALL timer_stop(timer_phys_micro_satad)
+        IF (timers_level > 10) CALL timer_stop(timer_phys_micro_satad) 
 
         ! Update tt_lheat to be used in LHN
         IF (lcompute_tt_lheat) THEN
@@ -1039,7 +1017,8 @@ CONTAINS
 
     !$ACC WAIT
     !$ACC END DATA
-
+     
   END SUBROUTINE nwp_microphysics
 
 END MODULE mo_nwp_gscp_interface
+
