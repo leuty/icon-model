@@ -17,6 +17,7 @@ include:
     file: ".slurm-ci.yml"
 
 .common:
+  extends: .default
   variables:
     GIT_SUBMODULE_STRATEGY: normal
     GIT_SUBMODULE_PATHS: externals/fortran-support externals/math-support externals/probtest
