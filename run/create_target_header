@@ -1621,13 +1621,20 @@ set_run_target_alps_mch_cpu()
     use_nodes=${use_nodes}
     use_mpi_procs_pernode=${use_mpi_procs_pernode}
 
+    target_partition=pp-short
     # check if pp-short partition exists
-    pp_short_nodes=`sinfo -p pp-short -h`
-    partition=${pp_short_nodes%% *}
+    partition=`sinfo --noheader --partition $target_partition --format %R`
 
     if test -z $partition; then
         partition="normal"
+    else
+        # in case not normal partition is used: Check partition status
+        status=`sinfo --noheader --partition $target_partition --format %a`
+        if [[ "$status" != "up" ]]; then
+            partition="normal"
+        fi
     fi
+        
 
     cat >> "$output_script" << EOF
 #=============================================================================
