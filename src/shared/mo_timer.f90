@@ -98,6 +98,9 @@ MODULE mo_timer
   PUBLIC :: timer_qvi
   PUBLIC :: timer_uvi
   PUBLIC :: timer_ene
+  PUBLIC :: timer_atm_energy_diag
+  PUBLIC :: timer_atm_energy_hint
+  PUBLIC :: timer_atm_energy_vint
   !
   ! aes radiation
   PUBLIC :: timer_rrtm_prep, timer_rrtm_post
@@ -369,6 +372,9 @@ MODULE mo_timer
   INTEGER :: timer_qvi
   INTEGER :: timer_uvi
   INTEGER :: timer_ene
+  INTEGER :: timer_atm_energy_diag
+  INTEGER :: timer_atm_energy_hint
+  INTEGER :: timer_atm_energy_vint
   !
   ! aes radiation
   INTEGER :: timer_rrtm_prep, timer_rrtm_post
@@ -704,6 +710,9 @@ CONTAINS
        timer_qvi    = new_timer("diagnose_qvi")
        timer_uvi    = new_timer("diagnose_uvi")
        timer_ene    = new_timer("diagnose_ene")
+       timer_atm_energy_diag = new_timer("atm_energy_diag")
+       timer_atm_energy_hint = new_timer("atm_energy_hint")
+       timer_atm_energy_vint = new_timer("atm_energy_vint")
        timer_cov    = new_timer("diagnose_cov")
        !
     END IF

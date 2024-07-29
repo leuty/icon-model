@@ -125,6 +125,7 @@ USE mo_aes_phy_memory,      ONLY: construct_aes_phy_memory
 USE mo_cloud_mig_memory,    ONLY: construct_cloud_mig_memory
 USE mo_cloud_two_memory,    ONLY: construct_cloud_two_memory
 USE mo_radiation_forcing_memory, ONLY: construct_rad_forcing_list => construct_radiation_forcing_list
+USE mo_atm_energy_memory,   ONLY: construct_atm_energy
 USE mo_physical_constants,  ONLY: amd, amco2
 USE mo_aes_phy_dims,        ONLY: init_aes_phy_dims
 USE mo_aes_phy_init,        ONLY: init_aes_phy_params, init_aes_phy_external, &
@@ -441,6 +442,7 @@ CONTAINS
       CALL construct_cloud_mig_memory  ( p_patch(1:) )
       CALL construct_cloud_two_memory  ( p_patch(1:) )
       CALL construct_rad_forcing_list  ( p_patch(1:) )
+      CALL construct_atm_energy        ( p_patch(1:) )
 #endif
     END IF
 
