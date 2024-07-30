@@ -56,6 +56,7 @@ MODULE mo_art_config
       &  cart_fplume_inp                 !< Path to FPlume input files (insert without extension)
     LOGICAL :: lart_diag_out             !< Enable output of diagnostic fields
     LOGICAL :: lart_pntSrc               !< Enables point sources
+    LOGICAL :: lart_excl_end_pntSrc      !< Main switch to exclude endTime from active time interval of point sources
     LOGICAL :: lart_emiss_turbdiff       !< Switch if emission should be included as surface flux condition
     CHARACTER(LEN=20) :: cart_io_suffix  !< user given suffix instead of automatically generated grid number 
                                          !  in ICON-ART input filename convention: 
