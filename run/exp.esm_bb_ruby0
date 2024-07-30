@@ -1398,7 +1398,7 @@ add_link_file ${ocean_grid_folder}/${ocean_grid} $ocean_grid
 
 if [[ "$START" == *"srun"* ]]; then
     (
-        eval "$(echo '@BUILD_ENV@' | ${basedir}/config.status -q --file=-)"
+        eval $(make -C ${basedir} env)
         make -C ${basedir}/externals/yac/examples toy_output/toy_output.x
     )
 
