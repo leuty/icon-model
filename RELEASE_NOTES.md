@@ -25,6 +25,7 @@
 - Switch from deprecated yac interface in HD model (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/477)
 - Fixes for DSL script (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/479)
 - Update externals/jsbach to commit master@ee53f2b3 (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/484)
+- QUINCY: implementation of a spin-up accelerator for the slow biogeochemical soil pools
 
 ### Externals
 

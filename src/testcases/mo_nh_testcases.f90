@@ -431,10 +431,6 @@ MODULE mo_nh_testcases
 !!$    END DO
 !!$    CALL message(TRIM(routine),'running the dcmip_mw_2x (schaer-type dcmip) test')
 
-  CASE ('dcmip_tc_51')
-    ! itopo == 0 --> The topography is initialized to 0 at the begining of this subroutine
-    CALL message(TRIM(routine),'running DCMIP tropical cyclone testcase 51')
-
   CASE ('dcmip_tc_52')
     ! itopo == 0 --> The topography is initialized to 0 at the begining of this subroutine
     CALL message(TRIM(routine),'running DCMIP tropical cyclone testcase 52')
@@ -1171,9 +1167,7 @@ MODULE mo_nh_testcases
     CALL message(TRIM(routine),'End setup dcmip_mw_2x test')
 
 
-  CASE ('dcmip_tc_51','dcmip_tc_52')
-
-    ! 'dcmip_tc_51' and 'dcmip_tc_52' have the same initial state.
+  CASE ('dcmip_tc_52')
 
     DO jg = 1, n_dom
 
@@ -1188,7 +1182,7 @@ MODULE mo_nh_testcases
 
     END DO !jg
 
-    CALL message(TRIM(routine),'End setup dcmip_tc_51/52')
+    CALL message(TRIM(routine),'End setup dcmip_tc_52')
 
 
   CASE ('CBL')
