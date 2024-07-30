@@ -32,8 +32,9 @@ export TYPES="void"
 export DATES="void"
 export RESTART_DATE="void"
 
-# increase factor in order to circumvent false alarms
-export FACTOR=22
+# Increase tolerance factor to 10 based on member selection for balfrin_cpu_nivida
+#
+export FACTOR=10
 
 #--------------------------------------------------------------------------------
 # 

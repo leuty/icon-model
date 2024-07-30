@@ -10,6 +10,7 @@
 # SPDX-License-Identifier: BSD-3-Clause
 # ------------------------------------------
 import click
+import os
 from yaml_experiment_test_processor import ExperimentTestCollection
 
 @click.command()
@@ -17,8 +18,9 @@ from yaml_experiment_test_processor import ExperimentTestCollection
 @click.option("--test-yml", "test_yml", type=str, required=True)
 @click.option("--experiment", "exp", type=str, required=True)
 def main(exp_yml, test_yml, exp):
+    bb_name = os.getenv('BB_NAME')
     tests = ExperimentTestCollection(exp_yml, test_yml)
-    tests.print_ensemble_num_for_exp(exp)
+    tests.print_ensemble_num_for_exp(exp, bb_name)
 
 if __name__ == '__main__':
     main()

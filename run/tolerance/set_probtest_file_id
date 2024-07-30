@@ -85,7 +85,7 @@ case $EXPERIMENT in
         --file-id NetCDF "*atm_3d_pl*.nc"
         )
         ;;
-    *mch_kenda-ch1_*)
+    *mch_kenda-ch1_small)
         probtest_file_id=(
         --file-id NetCDF "*atm_3d_ml*.nc"
         --file-id NetCDF "*iaf*"
@@ -94,9 +94,16 @@ case $EXPERIMENT in
         --file-id dace "*fofTEMP*.nc"
         )
         ;;
-    *mch_icon-ch1_small*)
+    *mch_kenda-ch1_dev*)
         probtest_file_id=(
         --file-id NetCDF "*atm_3d_ml*.nc"
+        --file-id NetCDF "*iaf*"
+        --file-id NetCDF "*lfff0*"
+        --file-id NetCDF_no_time_dim "*lfff_ml*"
+        )
+        ;;
+    *mch_icon-ch1_small*)
+        probtest_file_id=(
         --file-id NetCDF "*lfff0*c"
         --file-id NetCDF "*lfff0*p"
         --file-id NetCDF "*lfff0*z"
@@ -128,11 +135,10 @@ case $EXPERIMENT in
         --file-id NetCDF "*atm_3d_DOM01_ml*.nc"
         --file-id NetCDF "*atm_3d_DOM02_ml*.nc"
         --file-id NetCDF "*atm_3d_DOM01_hl*.nc"
-        --file-id NetCDF "*atm_3d_DOM02_hl*.nc"
         --file-id NetCDF "*atm_3d_DOM01_pl*.nc"
         --file-id NetCDF "*atm_3d_DOM02_pl*.nc"
         --file-id latlon "*atm_3d_ll_DOM01_ml*.nc"
-        --file-id latlon "*atm_3d_ll_DOM02_ml"
+        --file-id latlon "*atm_3d_ll_DOM02_ml*.nc"
         )
         ;;
     *mch_*dace_synsat*)

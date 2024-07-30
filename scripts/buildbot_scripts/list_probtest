@@ -10,17 +10,17 @@
 # SPDX-License-Identifier: BSD-3-Clause
 # ------------------------------------------
 
-# Usage: list_part_tolerance listname
-# generate tolerances for all experiments.
-#
-# Usage: list_part_tolerance listname SINGLE_EXPERIMENT
-# Generate tolerance experiments for just one experiment
-# SINGLE_EXPERIMENT should not start with `exp.`
-
 # This script generates the ensemble runscript templates needed for computing
 # probtest tolerances and adds them to the list specified by `listname`.
 # Note: This list must always be called as part of a full `create_list_<list>`,
 #       it does not initialize any machines and builders.
+
+# Usage: list_tolerance listname
+# Generate ensemble runscripts for all experiments.
+#
+# Usage: list_tolerance listname SINGLE_EXPERIMENT
+# Generate ensemble runscripts for just one experiment.
+# SINGLE_EXPERIMENT should not start with `exp.`
 
 # abort on error
 set -euo pipefail

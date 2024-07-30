@@ -15,4 +15,8 @@ tests:
       - name: daint
         exclude: ['DAINT_CPU_cce']
     refgen: ['balfrin_cpu_nvidia','balfrin_cpu_nvidia_mixed','DAINT_CPU_nvidia']
-    tags: ['atm', 'merge2rc','tolerance']
+    tags: ['atm', 'merge2rc','probtest']
+    ensemble_num:
+      - balfrin_cpu_nvidia: [39,29,24,48,13,21,49,14,36,11,25,37,31,32,47]
+      - balfrin_cpu_nvidia_mixed: [28,39,5,23,33,7,2]
+      - DAINT_CPU_nvidia: [31,12,30,34,48,22,15,20,14,49,17,41,4,5,47]

@@ -14,5 +14,8 @@ tests:
     machines:
       - name: daint
         runflags: ['cpu_time=00:30:00']
+    tags: ['merge2rc','atm','probtest']
     refgen: ['DAINT_CPU_nvidia','DAINT_CPU_cce']
-    tags: ['merge2rc','atm','tolerance']
+    ensemble_num:
+      - DAINT_CPU_nvidia: [50,21,39,38,17]
+      - DAINT_CPU_cce: [50,21,39,38,17]

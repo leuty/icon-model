@@ -19,7 +19,7 @@ from exp_utils import addexp, rmexp, adddep
 class ExperimentTestCollection:
     def __init__(self, exp_yml, test_yml):
         self.items = self._expand_tests_with_experiment_config(self._load_yaml(test_yml,'tests'),
-                                                                     self._load_yaml(exp_yml,'experiments'))
+                                                               self._load_yaml(exp_yml,'experiments'))
 
     def get_items_by_tag(self,tag_name):
         items_by_tag = []
@@ -40,9 +40,9 @@ class ExperimentTestCollection:
         return item_by_name
 
 
-    def print_ensemble_num_for_exp(self,name):
+    def print_ensemble_num_for_exp(self,name,bb_name):
         # print to stdout for usage in bash scripts
-        print(self._get_ensemble_num_for_exp_as_string(name))
+        print(self._get_ensemble_num_for_exp_as_string(name,bb_name))
 
     def check(self):
         basepath = os.path.join(os.path.dirname(__file__),'../../run')
@@ -63,12 +63,26 @@ class ExperimentTestCollection:
             for machine in experiment.get('machines', []):
                 # Check that 'include_only' and 'exclude' are not both present
                 if 'include_only' in machine and 'exclude' in machine:
-                    raise Exception(f"Machine {machine['name']} in experiment {experiment['name']} has both 'include_only' and 'exclude'")
+                    raise Exception(
+                        f"Machine {machine['name']} in experiment {experiment['name']} "
+                        "has both 'include_only' and 'exclude'"
+                    )
 
-            # Check that 'refgen' is present when 'tolerance' is in 'tags'
-            if 'tolerance' in experiment['tags'] and 'refgen' not in experiment:
-                raise Exception(f"Experiment {experiment['name']} has 'tolerance' in 'tags' but no 'refgen")
-
+            # Check that 'refgen' is present when 'probtest' is in 'tags'
+            if 'probtest' in experiment['tags'] and 'refgen' not in experiment:
+                raise Exception(
+                    f"Experiment {experiment['name']} has 'probtest' in 'tags' "
+                    "but no 'refgen'"
+                )
+            # Check that builders for which there is an ensemble_num give are in refgen
+            if 'refgen' in experiment and 'ensemble_num' in experiment:
+                for builder in experiment['ensemble_num']:
+                    builder_name = list(builder.keys())[0]
+                    if builder_name not in experiment['refgen']:
+                        raise Exception(
+                            f"Builder {builder_name} in ensemble_num but not in refgen "
+                            f"for experiment {experiment['name']}"
+                        )
     def _load_yaml(self, file_path, valid_key):
         with open(file_path, 'r') as file:
             data = yaml.safe_load(file)
@@ -78,8 +92,10 @@ class ExperimentTestCollection:
                 include_file_path = os.path.join(os.path.dirname(file_path), include_file)
                 include_data = self._load_yaml(include_file_path,valid_key)  # recursive call
                 if valid_key not in include_data:
-                    raise Exception(f"The included file {include_file} does not contain {valid_key} key")
-
+                    raise Exception(
+                        f"The included file {include_file} does not contain "
+                        f"{valid_key} key"
+                    )
                 if valid_key not in data:
                     data[valid_key] = []
 
@@ -110,16 +126,20 @@ class ExperimentTestCollection:
 
         return default['vp'] if member_type == "mixed" else default['dp']
 
-    def _get_ensemble_num_for_exp_as_string(self,name):
-        return ','.join(map(str,self._get_ensemble_num_for_exp(name)))
+    def _get_ensemble_num_for_exp_as_string(self,name,bb_name):
+        return ','.join(map(str,self._get_ensemble_num_for_exp(name,bb_name)))
 
-    def _get_ensemble_num_for_exp(self,name):
+    def _get_ensemble_num_for_exp(self,name,bb_name):
         default = [1,2,3,4,5,6,6,7,8,9,10]
         num = default
-        tolexp = self.get_item_by_name(name).get('tolerance')
-        if tolexp is not None:
-            if 'ensemble_num' in tolexp:
-                num = tolexp['ensemble_num']
+        test_item = self.get_item_by_name(name)
+        if test_item is not None:
+            if 'ensemble_num' in test_item:
+                ensemble_num = test_item['ensemble_num']
+                for item in ensemble_num:
+                    if bb_name in item:
+                        num = item[bb_name]
+                        break
         return num
 
     def _expand_tests_with_experiment_config(self,tests,experiments):
@@ -144,8 +164,10 @@ class BuildBotInterface(ExperimentTestCollection):
             raise Exception("Environment variable BB_NAME is not set")
 
     def items_to_bb(self):
-        if self.list_name == 'tolerance':
+        if (self.list_name == 'tolerance' or self.list_name == 'tolerance-update'):
             self._register_tolerance_list()
+        elif self.list_name == 'select-members':
+            self._register_select_members_list()
         else:
             self._register_default_list()
 
@@ -164,9 +186,54 @@ class BuildBotInterface(ExperimentTestCollection):
 
         # now we need to collect the hashes
         pp = ['tolerance/pp.collect_tolerance_hashes']
-        self._add_to_bb_list(pp, builders=[self.bb_name], runflags=f"tolerance_experiments={','.join(all_tolerance_exps)}")
-        self._add_dep_to_bb_list(builders=[self.bb_name], from_experiment=pp, to_experiment=all_pp_gentol)
+        self._add_to_bb_list(
+            pp,
+            builders=[self.bb_name],
+            runflags=f"tolerance_experiments={','.join(all_tolerance_exps)}"
+        )
+        self._add_dep_to_bb_list(
+            builders=[self.bb_name],
+            from_experiment=pp,
+            to_experiment=all_pp_gentol
+        )
 
+    def _register_select_members_list(self):
+        all_select_members_exps = []
+        all_pp_selmem = []
+        for exp in self.items['tests']:
+            for builder in exp['refgen']:
+                if builder != self.bb_name:
+                    continue # we are not interested in other builders
+                pp_selmem = self._register_select_members_for_current_builder(exp,builder)
+                # safety check
+                if pp_selmem is not None:
+                    all_pp_selmem.append(pp_selmem)
+                    all_select_members_exps.append(exp['name'])
+
+        # now we need to collect the hashes and the selected members
+        pp = ['tolerance/pp.collect_tolerance_hashes']
+        self._add_to_bb_list(
+            pp,
+            builders=[self.bb_name],
+            runflags=f"tolerance_experiments={','.join(all_select_members_exps)}"
+        )
+        self._add_dep_to_bb_list(
+            builders=[self.bb_name],
+            from_experiment=pp,
+            to_experiment=all_pp_selmem
+        )
+
+        pp = ['tolerance/pp.collect_selected_members']
+        self._add_to_bb_list(
+            pp,
+            builders=[self.bb_name],
+            runflags=f"tolerance_experiments={','.join(all_select_members_exps)}"
+        )
+        self._add_dep_to_bb_list(
+            builders=[self.bb_name],
+            from_experiment=pp,
+            to_experiment=all_pp_selmem
+        )
 
     def _register_default_list(self):
         for exp in self.items['tests']:
@@ -201,9 +268,7 @@ class BuildBotInterface(ExperimentTestCollection):
         if runflags:
             return dict(item.split('=') for item in ''.join(runflags).split())
 
-
-    def _register_tolerance_for_current_builder(self,exp,builder):
-        basedir = os.path.abspath(os.path.join(os.path.dirname(__file__), '../..'))
+    def _add_probtest_ensemble_for_member_num(self,basedir,exp,builder,member_num):
         # set path to probtest entry script
         PROBTEST = os.path.join(basedir, 'externals/probtest/probtest.py')
         # define member_type (must be in sync with add_refgen_routines)
@@ -218,7 +283,7 @@ class BuildBotInterface(ExperimentTestCollection):
                         '--experiment-name', exp['name'],
                         '--member-type', member_type,
                         '--perturb-amplitude', self._get_perturb_amplitude_as_string(exp['name'], member_type),
-                        '--member-num', self._get_ensemble_num_for_exp_as_string(exp['name'])],check=True)
+                        '--member-num', member_num],check=True)
 
         # create the runscripts for the ensemble (exp.<EXP>_seed_N)
         # needs to be overwritten from namelist because here we deal with the templates
@@ -229,22 +294,45 @@ class BuildBotInterface(ExperimentTestCollection):
 
         self._add_to_bb_list([f"exp.{exp['name']}"], builders=[builder], runflags="tolerance=true")
 
+        perturbed_experiments = []
+        member_ids = map(int, member_num.split(','))
+        for member_id in member_ids:
+            perturbed_experiments.append(f"exp.{exp['name']}_member_id_{member_type}_{member_id}")
+        return perturbed_experiments
 
-        # Make a copy of the generic pp.generate_tolerance for each exp. This copy is needed as unique identifier in adddep.
+    def _register_tolerance_for_current_builder(self,exp,builder):
+        basedir = os.path.abspath(os.path.join(os.path.dirname(__file__), '../..'))
+        # Add probtest ensemble runs
+        member_num = self._get_ensemble_num_for_exp_as_string(exp['name'],self.bb_name)
+        perturbed_experiments = self._add_probtest_ensemble_for_member_num(basedir,exp,builder,member_num)
+
+        # Make a copy of the generic pp.generate_tolerance for each exp.
+        # This copy is needed as unique identifier in adddep.
         pp_gentol = f"tolerance/pp.generate_tolerance_{exp['name']}"
         shutil.copy(os.path.join(basedir, 'run/tolerance/pp.generate_tolerance'),
                     os.path.join(basedir, f'run/{pp_gentol}'))
         self._add_to_bb_list([pp_gentol], builders=[builder])
-
-        perturbed_experiments = []
-        for member_id in self._get_ensemble_num_for_exp(exp['name']):
-            perturbed_experiments.append(f"exp.{exp['name']}_member_id_{member_type}_{member_id}")
-
             
         self._add_to_bb_list(perturbed_experiments, builders=[builder], runflags="tolerance_run=true")
         self._add_dep_to_bb_list(from_experiment=[pp_gentol], to_experiment=perturbed_experiments, builders=[builder])
         return pp_gentol
 
+    def _register_select_members_for_current_builder(self,exp,builder):
+        basedir = os.path.abspath(os.path.join(os.path.dirname(__file__), '../..'))
+        # Add probtest ensemble runs
+        member_num = ",".join(map(str, range(1, 51)))
+        perturbed_experiments = self._add_probtest_ensemble_for_member_num(basedir,exp,builder,member_num)
+
+        # Make a copy of the generic pp.select_members for each exp.
+        # This copy is needed as unique identifier in adddep.
+        pp_selmem = f"tolerance/pp.select_members_{exp['name']}"
+        shutil.copy(os.path.join(basedir, 'run/tolerance/pp.select_members'),
+                    os.path.join(basedir, f'run/{pp_selmem}'))
+        self._add_to_bb_list([pp_selmem], builders=[builder], runflags="cpu_time=01:00:00")
+
+        self._add_to_bb_list(perturbed_experiments, builders=[builder], runflags="tolerance_run=true")
+        self._add_dep_to_bb_list(from_experiment=[pp_selmem], to_experiment=perturbed_experiments, builders=[builder])
+        return pp_selmem
 
 # main entrypoint
 def register_experiments_for_bb(list_name, exp_yml, test_yml, exp=None):
@@ -253,8 +341,14 @@ def register_experiments_for_bb(list_name, exp_yml, test_yml, exp=None):
     # only keep entry with name of single_exp
     if exp:
         bbi.items = bbi.get_items_by_name(exp)
-    # only keep the etries for list list_name
-    bbi.items = bbi.get_items_by_tag(list_name)
+
+    # The lists 'tolerance' and 'select-members' have the same tag
+    if (list_name == 'tolerance' or list_name == 'select-members' or 'tolerance-update'):
+        tag_name = 'probtest'
+    else:
+        tag_name = list_name
+    # only keep the relevent entries for list list_name
+    bbi.items = bbi.get_items_by_tag(tag_name)
 
     bbi.items_to_bb()
 

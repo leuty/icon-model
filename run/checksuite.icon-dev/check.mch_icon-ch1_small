@@ -40,9 +40,6 @@ export DATES='20210620T120100Z'
 # RESTART_DATE defines the date and time from which restarts should be performed.
 # 
 export RESTART_DATE='20210620T120000Z'
-
-# increase factor in order to circumvent false alarms
-export FACTOR=10
 #--------------------------------------------------------------------------------
 # 
 # 2. Define the checksuite mode

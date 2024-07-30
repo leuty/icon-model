@@ -27,16 +27,12 @@ experiments:
     check: checksuite.icon-dev/check.mch_icon-ch2
   - name: mch_icon-ch2_small
     check: checksuite.icon-dev/check.mch_icon-ch2_small
-    tolerance:
-      ensemble_num: [1,2,3,4,5,6,7,8,9,12]
   - name: mch_kenda-ch1
     check: checksuite.icon-dev/check.mch_kenda-ch1
   - name: mch_opr_r04b07
     check: checksuite.icon-dev/check.mch_opr_r04b07
   - name: mch_opr_r04b07_lhn_00
     check: checksuite.icon-dev/check.mch_opr_r04b07_lhn_00
-    tolerance:
-      ensemble_num: [1,2,3,4,5,6,7,8,9,10,20]
   - name: mch_opr_r04b07_lhn_12_emvorado
     check: checksuite.icon-dev/check.mch_opr_r04b07_lhn_12_emvorado
   - name: mch_opr_r04b07_nest
@@ -53,9 +49,5 @@ experiments:
     check: checksuite.icon-dev/check.mch_opr_r19b07_turb
   - name: mch_kenda-ch1_dev_small
     check: checksuite.icon-dev/check.mch_kenda-ch1_dev_small
-    tolerance:
-      ensemble_num: [1,2,3,4,5,6,7,18,21,34]
   - name: mch_kenda-ch1_dev2_small
     check: checksuite.icon-dev/check.mch_kenda-ch1_dev2_small
-    tolerance:
-      ensemble_num: [1,2,3,4,5,6,7,18,21,34]

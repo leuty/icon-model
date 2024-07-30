@@ -12,15 +12,16 @@
 
 set -euo pipefail
 
-# This is the generic file that is used to generate probtest tolerances
+# This is the generic file that is used to select the best members for creating
+# tolerances and creating the tolerances with the selected members
 
 # This file will be copied on the fly by scripts/experiments/yaml_experiment_test_processor.py
 # before adding it with addexp.
 
 # set basic name
-probtest_exp=${EXPNAME#generate_tolerance_}
+probtest_exp=${EXPNAME#select_members_}
 
-echo "Generate new tolerance data for '$probtest_exp' (using job $EXPNAME)"
+echo "Find the best members for '$probtest_exp' (using job $EXPNAME)"
 
 base_exp="${base_exp:-${probtest_exp}}"
 
@@ -39,7 +40,7 @@ reference_file_name="${model_output_dir}/${probtest_exp}_reference.csv"
 
 if [[ -z "$probtest_exp" ]]; then
     echo "ERROR: \$probtest_exp not set"
-    echo "probtest_exp is required for pp.generate_tolerance"
+    echo "probtest_exp is required for pp.select_members"
     exit 1
 fi
 source tolerance/set_probtest_file_id "$probtest_exp"
@@ -48,8 +49,6 @@ if (( ${#probtest_file_id[@]} < 3 )) ; then
     echo "    ${probtest_file_id[*]}"
     exit 2
 fi
-
-probtest_ensemble_num=$(${basedir}/scripts/experiments/get_probtest_ensemble_num --exp-yml ${basedir}/scripts/experiments/all_experiments.yml --test-yml ${basedir}/scripts/experiments/all_tests.yml --experiment $probtest_exp)
 
 # set up probtest config file
 export PROBTEST_CONFIG="${probtest_exp}-config.json"
@@ -67,7 +66,7 @@ fi
     --config "${PROBTEST_CONFIG}" \
     --reference "${model_output_dir}" \
     --member-type "${member_type}" \
-    --member-num "${probtest_ensemble_num}"
+    --member-num 50
 
 # create stats file for each seed (layer-wise max/min/mean)
 "$PROBTEST" stats --ensemble --stats-file-name "$stats_file_name" || exit 3
@@ -76,8 +75,18 @@ fi
 echo "storing reference ${default_reference_stats_file_name} to ${reference_file_name}"
 cp "$default_reference_stats_file_name" "$reference_file_name" || exit 4
 
-# compute tolerance range from above stats files (maximum spread across all pairs of stats files and maximum across all layers)
-"$PROBTEST" tolerance --stats-file-name "$stats_file_name" || exit 5
+# Select members for the tolerance generation
+"$PROBTEST" select-members \
+    --stats-file-name "$stats_file_name" \
+    --member-type "${member_type}" \
+    --min-member-num 5 \
+    --max-member-num 15 \
+    --total-member-num 50 \
+    --min-factor 5 \
+    --max-factor 50 || exit 5
+
+# compute tolerance range from all 50 stats files (simple because they were anyway generated)
+"$PROBTEST" tolerance --stats-file-name "$stats_file_name" || exit 6
 
 # exit 0 on success (and don't execute any appended scripts)
 exit 0

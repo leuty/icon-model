@@ -1347,8 +1347,16 @@ set_run_target_daint_cpu()
     fi
     if [[ "x$BB_SYSTEM" != "x" ]]
     then
-        # this is buldbot, do not run more than 30 minutes on Daint (SLURM delays)
-        limit="00:30:00"
+        # this is buildbot, do not run more than 30 minutes on Daint (SLURM delays)
+        # Exception: member selection for generating tolerances
+        case $job_name in
+            pp.select_members*)
+                limit="01:00:00"
+            ;;
+            *)
+                limit="00:30:00"
+            ;;
+        esac
         default=${limit}
         limit_time_bb # sets use_cpu_time
         s_cpu_time="SBATCH --time=$use_cpu_time"
@@ -1610,8 +1618,16 @@ set_run_target_alps_mch_cpu()
     fi
     if [[ "x$BB_SYSTEM" != "x" ]]
     then
-        # this is buldbot, do not run more than 15 minutes on Alps (SLURM delays)
-        limit="00:15:00"
+        # this is buildbot, do not run more than 15 minutes on Alps (SLURM delays)
+        # Exception: member selection for generating tolerances and tolerance generation
+        case $job_name in
+            pp.select_members*)
+                limit="01:00:00"
+            ;;
+            *)
+                limit="00:15:00"
+            ;;
+        esac
         default=${limit}
         limit_time_bb # sets use_cpu_time
         s_cpu_time="SBATCH --time=$use_cpu_time"

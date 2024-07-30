@@ -108,7 +108,6 @@ if ! "${PROBTEST}" --log-file "${LOG}.init" init \
     "${probtest_file_id[@]}" \
     --config "${PROBTEST_CONFIG}"
 then
-    cat "${LOG}.init"
     echo "probtest did not initialized successfully"
     exit 1
 fi
@@ -118,7 +117,6 @@ if ! "${PROBTEST}" --log-file "${LOG}.stats" stats \
     --stats-file-name "${EXPERIMENT}.csv" \
     --no-ensemble
 then
-    cat "${LOG}.stats"
     echo "probtest did not generate stats successfully"
     exit 1
 fi
@@ -130,7 +128,6 @@ if ! "${PROBTEST}" --log-file "${LOG}.check" check \
     --tolerance-file-name "${CPU_REFERENCE}/${EXPERIMENT}_tolerance.csv" \
     --factor $FACTOR
 then
-    cat "${LOG}.check"
     echo "probtest tolerance test did not complete successfully"
     exit 1
 fi

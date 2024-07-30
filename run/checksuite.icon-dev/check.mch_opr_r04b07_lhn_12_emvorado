@@ -41,6 +41,10 @@ export DATES='20190615T120000Z'
 # 
 export RESTART_DATE='20190615T120000Z'
 
+# Increase tolerance factor to 10 based on member selection for balfrin_cpu_nivida_mixed
+#
+export FACTOR=10
+
 #--------------------------------------------------------------------------------
 # 
 # 2. Define the checksuite mode

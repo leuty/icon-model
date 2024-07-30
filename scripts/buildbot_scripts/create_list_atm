@@ -53,7 +53,7 @@ $addexp "checksuite.les/exp.ac3_les_20210211.run" --builders "levante_intel_hybr
 
 #-----------------------------------------------------------
 # CSCS
-# add experiments relevante for C2SM from yml-config
+# add experiments relevant for C2SM from yml-config
 ./../experiments/addexp_from_yml --list $listname --exp-yml ../experiments/all_experiments.yml --test-yml ../experiments/all_tests.yml
 
 #-----------------------------------------------------------

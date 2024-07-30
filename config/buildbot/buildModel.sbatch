@@ -50,8 +50,14 @@ echo "experimentLogfile: |${experimentLogfile}|"
 if [[ -n "${BB_EXPERIMENT-}" ]] && [[ "${experimentList}" = "tolerance" ]]; then
   cd "${ICON_DIR}/scripts/buildbot_scripts";
   ./create_list_tolerance "${BB_EXPERIMENT}"
-
 # }}}
+
+# In case an experiment is given and the list is `select-members`, select the members for that experiment! {{{
+elif [[ -n "${BB_EXPERIMENT-}" ]] && [[ "${experimentList}" = "select-members" ]]; then
+  cd "${ICON_DIR}/scripts/buildbot_scripts";
+  ./create_list_select-members "${BB_EXPERIMENT}"
+# }}}
+
 # In case only an experiment is given {{{
 elif [ -n "${BB_EXPERIMENT}" ]; then
 
