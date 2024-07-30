@@ -465,6 +465,8 @@ distclean: clean
 install: all
 	$(INSTALL) -d $(DESTDIR)@bindir@ && $(INSTALL) $(exec_files) $(DESTDIR)@bindir@
 @HD_ENABLED@	$(silent_none)$(MAKE) -C externals/hd $@ V=$(V)
+@MTIME_PYTHON_ENABLED@	$(silent_none)$(MAKE) -C externals/mtime/python $@ V=$(V)
+@YAC_PYTHON_ENABLED@	$(silent_none)$(MAKE) -C externals/yac/python $@ V=$(V)
 
 # Explicit bundled libraries configuration rule:
 config-bundled: $(addsuffix /Makefile,$(bundled_subdirs))

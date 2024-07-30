@@ -312,7 +312,6 @@ AC_ARG_ENABLE([gpu],
 --enable-gpu='$enableval'; valid values are 'openacc+cuda', 'openacc+hip', dnl
 'openacc' (same as 'openacc+cuda'), 'yes' (same as 'openacc+cuda'), 'no'])])],
 [enable_gpu=no])
-
 AS_CASE([$enable_gpu],
   [openacc+*], [icon_gpu_primary=openacc],
   [icon_gpu_primary=no])
@@ -404,6 +403,41 @@ AC_ARG_ENABLE([memory-tracing],
 --enable-memory-tracing='$enableval'; valid values are 'mtrace', 'yes' (same dnl
 as 'mtrace'), 'no'])])],
 [enable_memory_tracing=no])
+
+m4_define([icon_supported_bundled_python], [mtime, yac])dnl
+AC_ARG_ENABLE([bundled-python],
+[  --enable-bundled-python enable Python interfaces of the bundled libraries.
+                          The value of the argument must be either one of the
+                          following @<:@default=no@:>@:
+                            yes  enable all supported interfaces
+                            no   disable Python interfaces
+                          or a comma-separated list of libraries to enable the
+m4_text_wrap([Python interfaces for: ]m4_join([, ], icon_supported_bundled_python),
+[                          ])],
+[AS_CASE([$enableval],
+   [yes|no], [],
+   [icon_save_IFS=$IFS
+    IFS=','
+    for icon_bundled_name in $enableval; do
+      IFS=$icon_save_IFS
+      AS_CASE([$icon_bundled_name],
+        [''|m4_join([|], icon_supported_bundled_python)], [],
+        [AC_MSG_ERROR([unexpected value for the argument dnl
+--enable-bundled-python='$enableval'; valid values are 'yes', 'no' or a dnl
+comma-separated subset of the following: dnl
+'m4_join([', '], icon_supported_bundled_python)'])])
+    done
+    IFS=$icon_save_IFS])],
+[enable_bundled_python=no])
+for icon_bundled_name in m4_join([ ], icon_supported_bundled_python); do
+  AS_CASE([$enable_bundled_python],
+    [yes|no],
+    [AS_VAR_SET([icon_${icon_bundled_name}_python], [$enable_bundled_python])],
+    [AS_CASE([",${enable_bundled_python},"],
+       [*",${icon_bundled_name},"*],
+       [AS_VAR_SET([icon_${icon_bundled_name}_python], [yes])],
+       [AS_VAR_SET([icon_${icon_bundled_name}_python], [no])])])
+done
 
 m4_divert_once([HELP_ENABLE], [[
 Optimization Features:]])
@@ -1184,6 +1218,10 @@ dnl A list of include search flags targeting directories of the bundled
 dnl libraries:
 bundled_includes=
 
+dnl PYTHONPATH to the bundled Python interfaces:
+AC_SUBST([BUNDLED_PYTHONPATH])dnl
+AS_UNSET([BUNDLED_PYTHONPATH])
+
 dnl Get absolute paths to the source and build directories:
 ASX_SRCDIRS([.])
 icon_abs_top_srcdir=$ac_abs_top_srcdir
@@ -1761,6 +1799,7 @@ version of YAXT library @<:@default=$ICON_BUNDLED_CFLAGS@:>@])dnl
         [ACX_SUBDIR_CONFIG_PATTERN_ENABLE([maintainer-mode])],
         [ACX_SUBDIR_CONFIG_PATTERN_ENABLE([shared])],
         [ACX_SUBDIR_CONFIG_PATTERN_ENABLE([static])],
+        [ACX_SUBDIR_CONFIG_PATTERN_WITH([pic])],
         [ACX_SUBDIR_CONFIG_PATTERN_WITH([mpi-root])],
         [ACX_SUBDIR_CONFIG_PATTERN_WITH([mpi-include])],
         [ACX_SUBDIR_CONFIG_PATTERN_WITH([mpi-lib])],
@@ -1775,21 +1814,13 @@ version of YAXT library @<:@default=$ICON_BUNDLED_CFLAGS@:>@])dnl
         [FCFLAGS="$subdir_FCFLAGS $ICON_YAXT_FCFLAGS"],
         [MPI_LAUNCH="$MPI_LAUNCH"], [MPIROOT=], [MPI_C_INCLUDE=], [MPI_C_LIB=],
         [MPI_FC_MOD=], [MPI_FC_LIB=], [BUILD_CFLAGS=], [BUILD_FCFLAGS=],
-        [BUILD_LDFLAGS=], [BUILD_LIBS=],
+        [BUILD_LDFLAGS=], [BUILD_LIBS=], [BUILD_CC=], [BUILD_FC=],
         [--enable-silent-rules="$enable_silent_rules"],
         [--disable-maintainer-mode], [--disable-shared], [--enable-static],
+        [--with-pic="$icon_yac_python"],
         [--with-regard-for-quality="$enable_mpi_checks"],
         [--with-on-demand-check-programs], [--without-example-programs],
         [--without-perf-programs])
-dnl Currently, we cannot properly override the environment variables BUILD_CC
-dnl and BUILD_FC on the command line when configuring YAXT because the variables
-dnl are used even if they are set to empty strings. We could set the variables
-dnl on the command line to "$CC" and "$FC", respectively, but that would discard
-dnl any compiler flags that the configure script of YAXT might append to CC and
-dnl FC instead of CFLAGS and FCFLAGS. As a temporary solution we unset BUILD_CC
-dnl and BUILD_FC here (and hope that they will not be unexpectedly set anywhere
-dnl below) since it should not affect any other bundled libraries.
-      AS_UNSET([BUILD_CC]); AS_UNSET([BUILD_FC])
       AS_CASE([$icon_bundled_yaxt_c],
         [direct],
         [dnl TODO: extend CPPFLAGS when this becomes a real case
@@ -2186,8 +2217,14 @@ interface of SERIALBOX2 library: either disable the serialization dnl
 (--disable-serialization) or set FCFLAGS, LDFLAGS and LIBS accordingly])])])
 
 AS_VAR_IF([with_external_mtime], [yes],
-  [AC_CACHE_CHECK([whether the Fortran interface of MTIME library is dnl
-available], [icon_cv_have_mtime],
+  [AS_VAR_IF([icon_mtime_python], [yes],
+     [AC_MSG_ERROR([unsupported combination of the configure options: you are trying dnl
+to configure with an external MTIME library and the Python interface of the bundled dnl
+MTIME library: either disable the Python interface of the bundled MTIME (see dnl
+--enable-bundled-python) or use the bundled version of MTIME library dnl
+(--without-external-mtime)])])
+   AC_CACHE_CHECK([whether the Fortran interface of MTIME library is available],
+     [icon_cv_have_mtime],
      [icon_cv_have_mtime=no
       AC_LINK_IFELSE([AC_LANG_PROGRAM([], [[
       use mtime, only: max_date_str_len, date, &
@@ -2218,26 +2255,32 @@ bundled version of MTIME library @<:@default=$ICON_BUNDLED_FCFLAGS@:>@])dnl
      [C compiler flags to be appended to CFLAGS when configuring the bundled
 version of MTIME library @<:@default=$ICON_BUNDLED_CFLAGS@:>@])dnl
    ICON_MTIME_CFLAGS=${ICON_MTIME_CFLAGS-$ICON_BUNDLED_CFLAGS}
+   AS_IF([test x"${icon_mtime_python}" = xyes || test x"${icon_yac_python}" = xyes],
+     [icon_mtime_pic=yes], [icon_mtime_pic=no])
    ACX_SUBDIR_INIT_CONFIG([externals/mtime], [no-run])
    ACX_SUBDIR_REMOVE_ARGS([externals/mtime],
      [BUILD_ENV=*|ICON_*FLAGS=*|CFLAGS=*|FCFLAGS=*],
-     [ACX_SUBDIR_CONFIG_PATTERN_ENABLE([static])],
-     [ACX_SUBDIR_CONFIG_PATTERN_ENABLE([shared])],
-     [ACX_SUBDIR_CONFIG_PATTERN_ENABLE([maintainer-mode])],
      [ACX_SUBDIR_CONFIG_PATTERN_ENABLE([silent-rules])],
+     [ACX_SUBDIR_CONFIG_PATTERN_ENABLE([maintainer-mode])],
+     [ACX_SUBDIR_CONFIG_PATTERN_ENABLE([shared])],
+     [ACX_SUBDIR_CONFIG_PATTERN_ENABLE([static])],
      [ACX_SUBDIR_CONFIG_PATTERN_ENABLE([examples])],
      [ACX_SUBDIR_CONFIG_PATTERN_ENABLE([fortran-hl])],
-     [ACX_SUBDIR_CONFIG_PATTERN_ENABLE([check])])
+     [ACX_SUBDIR_CONFIG_PATTERN_ENABLE([python])],
+     [ACX_SUBDIR_CONFIG_PATTERN_WITH([pic])])
    ACX_SUBDIR_APPEND_ARGS([externals/mtime],
      [CFLAGS="$subdir_CFLAGS $ICON_MTIME_CFLAGS"],
      [FCFLAGS="$subdir_FCFLAGS $ICON_MTIME_FCFLAGS"],
-     [--enable-static], [--disable-shared], [--disable-maintainer-mode],
-     [--enable-silent-rules="$enable_silent_rules"], [--disable-examples],
-     [--disable-fortran-hl],
-dnl Disable the broken unit test:
-     [--disable-check])
+     [--enable-silent-rules="$enable_silent_rules"], [--disable-maintainer-mode],
+     [--enable-shared="$icon_mtime_python"], [--enable-static], [--disable-examples],
+     [--disable-fortran-hl], [--enable-python="$icon_mtime_python"],
+     [--with-pic="$icon_mtime_pic"])
    AS_VAR_APPEND([bundled_includes], ["${FC_MOD_IN}externals/mtime/src "])
-   BUNDLED_LIBFILES="externals/mtime/src/.libs/libmtime.a $BUNDLED_LIBFILES"])
+   BUNDLED_LIBFILES="externals/mtime/src/.libs/libmtime.a $BUNDLED_LIBFILES"
+   AS_VAR_IF([icon_mtime_python], [yes],
+     [AS_VAR_APPEND([BUNDLED_PYTHONPATH],
+        ["${BUNDLED_PYTHONPATH+"${PATH_SEPARATOR}"}dnl
+${icon_abs_top_builddir}/externals/mtime/python"])])])
 
 AS_VAR_IF([enable_coupling], [yes],
   [AS_VAR_IF([with_external_yac], [yes],
@@ -2255,6 +2298,12 @@ YAXT library: either disable the coupling (--disable-coupling) or use the dnl
 bundled version of YAC library (--without-external-yac), or provide the dnl
 version of YAXT library (--with-external-yaxt) that the provided YAC dnl
 library has been built with by setting FCFLAGS, LDFLAGS and LIBS accordingly])])
+      AS_VAR_IF([icon_yac_python], [yes],
+        [AC_MSG_ERROR([unsupported combination of the configure options: you are dnl
+trying to configure with an external YAC library and the Python interface of the dnl
+bundled YAC library: either disable the Python interface of the bundled YAC (see dnl
+--enable-bundled-python) or use the bundled version of YAC library dnl
+(--without-external-yac)])])
       AC_CACHE_CHECK([whether the Fortran interface of YAC library is dnl
 available], [icon_cv_have_yac],
         [icon_cv_have_yac=no
@@ -2306,6 +2355,8 @@ version of YAC library @<:@default=$ICON_BUNDLED_CFLAGS@:>@])dnl
         [ACX_SUBDIR_CONFIG_PATTERN_ENABLE([lib-core-only])],
         [ACX_SUBDIR_CONFIG_PATTERN_ENABLE([deprecated])],
         [ACX_SUBDIR_CONFIG_PATTERN_ENABLE([netcdf])],
+        [ACX_SUBDIR_CONFIG_PATTERN_ENABLE([python-bindings])],
+        [ACX_SUBDIR_CONFIG_PATTERN_WITH([pic])],
         [ACX_SUBDIR_CONFIG_PATTERN_WITH([external-lapack])],
         [ACX_SUBDIR_CONFIG_PATTERN_WITH([external-mtime])])
       ACX_SUBDIR_APPEND_ARGS([externals/yac],
@@ -2318,7 +2369,8 @@ version of YAC library @<:@default=$ICON_BUNDLED_CFLAGS@:>@])dnl
         [--disable-maintainer-mode], [--enable-rpaths="$enable_rpaths"],
         [--disable-openmp], [--enable-mci], [--disable-utils],
         [--disable-examples], [--disable-tools], [--enable-deprecated],
-        [--enable-netcdf], [--with-external-lapack=fortran],
+        [--enable-netcdf], [--enable-python-bindings="$icon_yac_python"],
+        [--with-pic="$icon_yac_python"], [--with-external-lapack=fortran],
         [--with-external-mtime])
       AS_VAR_SET_IF([MPI_LAUNCH],
         [ACX_SUBDIR_APPEND_ARGS([externals/yac], [MPI_LAUNCH="$MPI_LAUNCH"])])
@@ -2352,7 +2404,11 @@ ${icon_abs_top_builddir}/externals/yaxt/src/.libs/libyaxt_c.a"])],
 "${icon_abs_top_builddir}/externals/mtime/src/.libs/libmtime.a"])])
       AS_VAR_APPEND([bundled_includes], ["${FC_MOD_IN}externals/yac/src/mci "])
       BUNDLED_LIBFILES="externals/yac/src/mci/libyac_mci.a dnl
-externals/yac/src/core/libyac_core.a $BUNDLED_LIBFILES"])])
+externals/yac/src/core/libyac_core.a $BUNDLED_LIBFILES"
+      AS_VAR_IF([icon_yac_python], [yes],
+        [AS_VAR_APPEND([BUNDLED_PYTHONPATH],
+           ["${BUNDLED_PYTHONPATH+"${PATH_SEPARATOR}"}dnl
+${icon_abs_top_builddir}/externals/yac/python"])])])])
 
 AS_VAR_IF([enable_art], [yes],
   [AS_VAR_IF([with_external_tixi], [yes],
@@ -2898,6 +2954,13 @@ AS_VAR_IF([enable_explicit_fpp], [yes],
 AS_IF([test x"$enable_serialization" != xno],
   [AC_SUBST([SB2_ENABLED], [''])],
   [AC_SUBST([SB2_ENABLED], ['#'])])
+
+m4_foreach([x], [icon_supported_bundled_python],
+  [AC_SUBST(AS_TR_CPP([x])[_PYTHON_ENABLED], ['#'])])dnl
+for icon_bundled_name in m4_join([ ], icon_supported_bundled_python); do
+  AS_VAR_IF([icon_${icon_bundled_name}_python], [yes],
+    [AS_VAR_SET([AS_TR_CPP([${icon_bundled_name}_PYTHON_ENABLED])], [''])])
+done
 
 AS_VAR_IF([enable_hip_overrides], [yes],
   [AC_SUBST([HIP_OVERRIDES_ENABLED], [''])],

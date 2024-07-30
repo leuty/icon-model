@@ -43,14 +43,18 @@ use_sync_submit
 use_target
 use_flags_group
 VERSION_
+BUNDLED_PYTHONPATH
 '
 
 # Set directories:
 use_srcdir='@abs_top_srcdir@'
 use_builddir='@abs_top_builddir@'
 
-# Version info required by mkexp
+# Version info required by mkexp:
 VERSION_='@PACKAGE_VERSION@'
+
+# PYTHONPATH to the bundled Python interfaces:
+BUNDLED_PYTHONPATH='@BUNDLED_PYTHONPATH@'
 
 # Set use_site:
 use_host='@host_fqdn@'

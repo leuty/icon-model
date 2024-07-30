@@ -36,12 +36,6 @@ fi
 
 make -j ${MAKE_PROCS}
 
-# Create shared mtime library for use in scripting
-# TODO: 'module rm' works around module python3 being hidden in buildbot
-module rm python3
-module load $ICON_DIR/etc/Modules/icon-levante intel-oneapi-compilers
-"$ICON_DIR/scripts/building/build_mtime_shared" icc ifort
-
 if [ ! -z "${BB_NAME-}" ] ; then
   "${ICON_DIR}/scripts/buildbot_scripts/build_checks/check_depgen_warnings.sh"
   "${ICON_DIR}/scripts/buildbot_scripts/build_checks/check_remake.sh"
