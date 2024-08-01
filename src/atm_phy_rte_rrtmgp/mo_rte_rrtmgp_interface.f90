@@ -33,7 +33,6 @@ MODULE mo_rte_rrtmgp_interface
   USE mo_rad_diag,                   ONLY: rad_aero_diag
   USE mo_timer,                      ONLY: ltimer, timer_start, timer_stop, &
    &                                       timer_lrtm, timer_srtm
-  USE mo_radiation_config,           ONLY: lrad_aero_diag
   USE mo_radiation_general,          ONLY: wavenum1, wavenum2
   USE mo_aes_rad_config,             ONLY: aes_rad_config
   USE mtime,                         ONLY: datetime
@@ -86,7 +85,7 @@ CONTAINS
   !-------------------------------------------------------------------
   SUBROUTINE rte_rrtmgp_interface(                                          &
       & jg, jb, jcs, jce, nproma, klev                                     ,&
-      & irad_aero       , lrad_coupled                                     ,&
+      & irad_aero       , lrad_aero_diag, lrad_coupled                     ,&
       & psctm           , ssi_factor                                       ,&
       & loland          ,loglac          ,this_datetime                    ,&
       & pcos_mu0        ,daylght_frc                                       ,&
@@ -121,6 +120,7 @@ CONTAINS
          nproma, klev, & !< array dimensions(?)
          irad_aero       !< aerosol control
 
+    LOGICAL, INTENT(IN) :: lrad_aero_diag                !< diagnose aerosol optical properties
     LOGICAL, INTENT(IN) :: lrad_coupled                  !< kinne aerosol from coupler (true) or file
     REAL(wp),INTENT(IN) :: psctm                         !< orbit and time dependent solar constant for radiation time step
     REAL(wp),INTENT(IN) :: ssi_factor(:)                 !< fraction of TSI in the 14 RRTM SW bands
@@ -236,7 +236,6 @@ CONTAINS
       aer_ssa_sw(:,:,:) = 1.0_wp
       aer_asy_sw(:,:,:) = 0.0_wp
       !$ACC END KERNELS
-
       IF (irad_aero==12 .OR. irad_aero==13 .OR. irad_aero==19) THEN
       ! irad_aero=12 Kinne aerosols (natural background, data are read
       !      from a file without year in its name.
@@ -272,7 +271,7 @@ CONTAINS
       ! this should be decativated in the concurrent version and make the aer_* global variables for output
       IF (lrad_aero_diag) THEN
         CALL rad_aero_diag (                                  &
-          & 1,               nproma,          nproma,         &
+          & jcs,             jce,             nproma,         &
           & klev,            nbndlw,          nbndsw,         &
           & aer_tau_lw,      aer_tau_sw,      aer_ssa_sw,     &
           & aer_asy_sw,                                       &
@@ -1502,6 +1501,8 @@ CONTAINS
   sw_upw_clr     (jcs:jce,:) = s_sw_upw_clr     (1:ncol,:)
   sw_dnw         (jcs:jce,:) = s_sw_dnw         (1:ncol,:)
   sw_dnw_clr     (jcs:jce,:) = s_sw_dnw_clr     (1:ncol,:)
+  tau_snow       (jcs:jce,:) = s_tau_snow       (1:ncol,:)
+  tau_ice        (jcs:jce,:) = s_tau_ice        (1:ncol,:)
   !$ACC END KERNELS
 
   !$ACC WAIT(1)
