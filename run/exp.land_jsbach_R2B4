@@ -331,7 +331,7 @@ cat >> $jsbach_namelist << EOF
   ic_filename     = 'ic_land_soil.nc'
 /
 &jsb_hydro_nml
-  l_organic       = .TRUE.
+  l_organic       = .FALSE.
   l_socmap        = .TRUE.
   bc_filename     = 'bc_land_soil.nc'
   ic_filename     = 'ic_land_soil.nc'
