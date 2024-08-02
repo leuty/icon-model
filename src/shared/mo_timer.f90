@@ -80,6 +80,8 @@ MODULE mo_timer
   PUBLIC :: timer_coupling_init_def_comp, timer_coupling_init_enddef
   PUBLIC :: timer_coupling_very_1stget, timer_coupling_1stget
   PUBLIC :: timer_coupling_get, timer_coupling_put
+  PUBLIC :: timer_coupling_output, timer_coupling_output_buf_prep
+  PUBLIC :: timer_coupling_output_1stput, timer_coupling_output_put
 
   ! iconam - aes coupling
   PUBLIC :: timer_iconam_aes
@@ -349,6 +351,8 @@ MODULE mo_timer
   INTEGER :: timer_coupling_init_def_comp, timer_coupling_init_enddef
   INTEGER :: timer_coupling_very_1stget, timer_coupling_1stget
   INTEGER :: timer_coupling_get, timer_coupling_put
+  INTEGER :: timer_coupling_output, timer_coupling_output_buf_prep
+  INTEGER :: timer_coupling_output_1stput, timer_coupling_output_put
 
   ! Timer ID's for physics-dynamics coupling
 
@@ -665,14 +669,18 @@ CONTAINS
     timer_intp      = new_timer("intp")
 
     ! atmosphere-ocean coupling
-    timer_coupling               = new_timer("coupling")
-    timer_coupling_init          = new_timer("coupling_init")
-    timer_coupling_init_def_comp = new_timer("coupling_init_def_comp")
-    timer_coupling_init_enddef   = new_timer("coupling_init_enddef")
-    timer_coupling_very_1stget   = new_timer("coupling_very_1stget")
-    timer_coupling_1stget        = new_timer("coupling_1stget")
-    timer_coupling_get           = new_timer("coupling_get")
-    timer_coupling_put           = new_timer("coupling_put")
+    timer_coupling                    = new_timer("coupling")
+    timer_coupling_init               = new_timer("coupling_init")
+    timer_coupling_init_def_comp      = new_timer("coupling_init_def_comp")
+    timer_coupling_init_enddef        = new_timer("coupling_init_enddef")
+    timer_coupling_very_1stget        = new_timer("coupling_very_1stget")
+    timer_coupling_1stget             = new_timer("coupling_1stget")
+    timer_coupling_get                = new_timer("coupling_get")
+    timer_coupling_put                = new_timer("coupling_put")
+    timer_coupling_output             = new_timer("coupling_output")
+    timer_coupling_output_buf_prep    = new_timer("coupling_output_buf_prep")
+    timer_coupling_output_1stput      = new_timer("coupling_output_1stput")
+    timer_coupling_output_put         = new_timer("coupling_output_put")
 
     IF (iforcing == iaes) THEN
        !

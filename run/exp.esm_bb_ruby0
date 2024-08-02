@@ -1405,6 +1405,7 @@ if [[ "$START" == *"srun"* ]]; then
     cat > ${basedir}/run/mpmd.conf << EOF
 0 ${basedir}/externals/yac/examples/toy_output/toy_output.x atmo_output icon_atmos_grid tas
 1 ${basedir}/externals/yac/examples/toy_output/toy_output.x ocean_output icon_ocean_grid to
+2 ${basedir}/externals/yac/examples/toy_output/toy_output.x atmo_output icon_atmos_grid temp
 * ${MODEL}
 EOF
     add_required_file ${basedir}/run/mpmd.conf                        ./

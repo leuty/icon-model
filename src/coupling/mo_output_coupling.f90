@@ -18,7 +18,8 @@ MODULE mo_output_coupling
   USE mo_run_config          ,ONLY: nlev, msg_level
   USE mo_run_config          ,ONLY: ltimer
   USE mo_timer               ,ONLY: timer_start, timer_stop, &
-       &                            timer_coupling_put
+       &                            timer_coupling_output_put, timer_coupling_output_1stput, &
+       &                            timer_coupling_output, timer_coupling_output_buf_prep
   USE mo_util_string         ,ONLY: int2string
   USE mo_exception           ,ONLY: message, finish
   USE mo_parallel_config     ,ONLY: nproma
@@ -319,18 +320,23 @@ CONTAINS
    CALL finish(str_module // 'output_coupling', &
                'built without coupling support')
 #else
-    INTEGER               :: info, ierror, collection_size, nn, now, ncontained, var_size, var_ref_pos
-    REAL(wp), ALLOCATABLE, TARGET, SAVE :: buffer(:,:)
-    REAL(wp), CONTIGUOUS, POINTER :: tmp_buffer(:,:)
-    TYPE(t_exposed_var), POINTER :: cur_field
-    TYPE(t_var_ptr) :: var_now
-    TYPE(yac_dble_ptr), ALLOCATABLE :: buffer_ptr(:, :)
+   INTEGER                             :: info, ierror, collection_size, nn, now
+   INTEGER                             :: ncontained, var_size, var_ref_pos, timer_put
+   REAL(wp), ALLOCATABLE, TARGET, SAVE :: buffer(:,:)
+   REAL(wp), CONTIGUOUS, POINTER       :: tmp_buffer(:,:)
+   TYPE(t_exposed_var), POINTER        :: cur_field
+   TYPE(t_var_ptr)                     :: var_now
+   TYPE(yac_dble_ptr), ALLOCATABLE     :: buffer_ptr(:, :)
+
+    IF (ltimer) CALL timer_start(timer_coupling_output)
+    timer_put = timer_coupling_output_1stput
 
     cur_field => exposed_vars_head
     IF (.NOT. ALLOCATED(buffer)) ALLOCATE(buffer(max_hor_size, max_collection_size))
     IF (.NOT. ALLOCATED(buffer_ptr)) ALLOCATE(buffer_ptr(1, max_collection_size))
 
     DO WHILE (ASSOCIATED(cur_field))
+       IF (ltimer) CALL timer_start(timer_coupling_output_buf_prep)
        IF (cur_field%tlev_source == -1) THEN
           now = 1
        ELSE
@@ -424,14 +430,17 @@ CONTAINS
                 buffer_ptr(1, nn)%p = ieee_value(buffer_ptr(1, nn)%p, ieee_quiet_nan)
              ENDWHERE
           ENDDO
-       ENDIF
+        ENDIF
+        IF (ltimer) CALL timer_stop(timer_coupling_output_buf_prep)
 
-       IF (ltimer) CALL timer_start(timer_coupling_put)
-       CALL yac_fput(cur_field%yac_field_id, 1, &
-            collection_size, buffer_ptr(:, 1:collection_size), info, ierror)
-       IF (ltimer) CALL timer_stop(timer_coupling_put)
-       cur_field => cur_field%next
-    ENDDO
+        IF (ltimer) CALL timer_start(timer_put)
+        CALL yac_fput(cur_field%yac_field_id, 1, &
+             collection_size, buffer_ptr(:, 1:collection_size), info, ierror)
+        IF (ltimer) CALL timer_stop(timer_put)
+        timer_put = timer_coupling_output_put
+        cur_field => cur_field%next
+     ENDDO
+     IF (ltimer) CALL timer_stop(timer_coupling_output)
 ! YAC_coupling
 #endif
   END SUBROUTINE output_coupling
