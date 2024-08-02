@@ -25,12 +25,13 @@
 - Switch from deprecated yac interface in HD model (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/477)
 - Fixes for DSL script (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/479)
 - Update externals/jsbach to commit master@ee53f2b3 (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/484)
+- QUINCY: implementation of a spin-up accelerator for the slow biogeochemical soil pools
 
 ### Externals
 
 - Switch to YAC 3.2.0_p1 (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/332, https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/475)
 - Introduce the math-support library (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/425)
-- Update to MTIME 1.2.0 (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/447)
+- Update to MTIME 1.2.1
 - Introduce the math-interpolation library (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/463)
 
 ### Infrastructure
@@ -49,6 +50,8 @@
 
 - Fixes for the configure script (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/474)
 - Fix USE MTIME and INCLUDE netcdf.inc (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/476)
+- New makefile target 'env' to retreive the build environment (`BUILD_ENV`) set in a configure wrapper
+- Introduce configure option `--enable-bundled-python` to build the Python interfaces of `MTIME` and `YAC`
 
 #### Other
 

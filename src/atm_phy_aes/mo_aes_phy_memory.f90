@@ -154,6 +154,7 @@ MODULE mo_aes_phy_memory
       & pv        (:,:,:)=>NULL(),  &!< [K/m2/kg/s] Ertel potential vorticity (NWP pp)
       & geoi      (:,:,:)=>NULL(),  &!< [m2/s2] geopotential above ground at half levels (vertical interfaces)
       & geom      (:,:,:)=>NULL(),  &!< [m2/s2] geopotential above ground at full levels (layer ave. or mid-point value)
+      & geop      (:,:,:)=>NULL(),  &!< [m2/s2] geopotential at full levels (layer ave. or mid-point value)
       & pfull     (:,:,:)=>NULL(),  &!< [Pa]    air pressure at model levels
       & phalf     (:,:,:)=>NULL()    !< [Pa]    air pressure at model half levels
 
@@ -1302,6 +1303,20 @@ CONTAINS
     grib2_desc = grib2_var(0, 3, 4, ibits, GRID_UNSTRUCTURED, GRID_CELL)
     CALL add_ref( metrics_list, 'geopot_agl',                                  &
                 & prefix//'gpsm', field%geom,                                  &
+                & GRID_UNSTRUCTURED_CELL, ZA_REFERENCE,                        &
+                & cf_desc, grib2_desc,                                         &
+                & ref_idx=1, ldims=shape3d,                                    &
+                & vert_interp = create_vert_interp_metadata(                   &
+                &               vert_intp_type=vintp_types("P","Z","I"),       &
+                &               vert_intp_method=VINTP_METHOD_LIN,             &
+                &               l_extrapol=.TRUE., l_pd_limit=.FALSE.)         )
+    __acc_attach(field%geom)
+
+    ! &       field% geop      (nproma,nlev  ,nblks),          &
+    cf_desc    = t_cf_var('geopotential', 'm2 s-2', 'geopotential', datatype_flt)
+    grib2_desc = grib2_var(0, 3, 4, ibits, GRID_UNSTRUCTURED, GRID_CELL)
+    CALL add_ref( metrics_list, 'geopot',                                      &
+                & prefix//'geop', field%geop,                                  &
                 & GRID_UNSTRUCTURED_CELL, ZA_REFERENCE,                        &
                 & cf_desc, grib2_desc,                                         &
                 & ref_idx=1, ldims=shape3d,                                    &

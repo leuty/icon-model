@@ -444,7 +444,8 @@ MODULE mo_rte_rrtmgp_radiation
          &                klev,         xq_trc, xm_air, xm_snw            )
 
     CALL rte_rrtmgp_interface(jg, jb, jcs, jce, nproma, klev             ,&
-      aes_rad_config(jg)%irad_aero, is_coupled_to_aero()                 ,&
+      aes_rad_config(jg)%irad_aero                                       ,&
+      aes_rad_config(jg)%lrad_aero_diag   ,is_coupled_to_aero()          ,&
       psctm(jg), ssi_factor, loland, loglac, this_datetime               ,&
       pcos_mu0        ,daylght_frc                                       ,&
       alb_vis_dir     ,alb_nir_dir     ,alb_vis_dif     ,alb_nir_dif     ,&

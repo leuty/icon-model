@@ -587,6 +587,8 @@ ac_subst_vars='LTLIBOBJS
 LIBOBJS
 PGI_INLIB_ENABLED
 HIP_OVERRIDES_ENABLED
+YAC_PYTHON_ENABLED
+MTIME_PYTHON_ENABLED
 SB2_ENABLED
 FPP_ENABLED
 HIP_ENABLED
@@ -644,6 +646,7 @@ ICON_SCT_CFLAGS
 ICON_SCT_FCFLAGS
 ICON_ECRAD_FCFLAGS
 ICON_RTE_RRTMGP_FCFLAGS
+BUNDLED_PYTHONPATH
 BUNDLED_LIBFILES
 DEPGEN_FCFLAGS
 HIPFLAGS
@@ -780,6 +783,7 @@ enable_explicit_fpp
 enable_serialization
 enable_testbed
 enable_memory_tracing
+enable_bundled_python
 enable_loop_exchange
 enable_dim_swap
 enable_realloc_buf
@@ -1608,6 +1612,13 @@ Infrastructural Features:
                             mtrace  enable tracing with mtrace (glibc)
                             yes     alias for 'mtrace'
                             no      disable memory tracing
+  --enable-bundled-python enable Python interfaces of the bundled libraries.
+                          The value of the argument must be either one of the
+                          following [default=no]:
+                            yes  enable all supported interfaces
+                            no   disable Python interfaces
+                          or a comma-separated list of libraries to enable the
+                          Python interfaces for: mtime, yac
 
 Optimization Features:
   --enable-loop-exchange  enable loop exchange [default=auto]
@@ -3332,7 +3343,6 @@ else
   enable_gpu=no
 fi
 
-
 case $enable_gpu in #(
   openacc+*) :
     icon_gpu_primary=openacc ;; #(
@@ -3457,6 +3467,43 @@ else
   enable_memory_tracing=no
 fi
 
+
+# Check whether --enable-bundled-python was given.
+if test "${enable_bundled_python+set}" = set; then :
+  enableval=$enable_bundled_python; case $enableval in #(
+  yes|no) :
+     ;; #(
+  *) :
+    icon_save_IFS=$IFS
+    IFS=','
+    for icon_bundled_name in $enableval; do
+      IFS=$icon_save_IFS
+      case $icon_bundled_name in #(
+  ''|mtime|yac) :
+     ;; #(
+  *) :
+    as_fn_error $? "unexpected value for the argument --enable-bundled-python='$enableval'; valid values are 'yes', 'no' or a comma-separated subset of the following: 'mtime', 'yac'" "$LINENO" 5 ;;
+esac
+    done
+    IFS=$icon_save_IFS ;;
+esac
+else
+  enable_bundled_python=no
+fi
+
+for icon_bundled_name in mtime yac; do
+  case $enable_bundled_python in #(
+  yes|no) :
+    eval "icon_${icon_bundled_name}_python=\$enable_bundled_python" ;; #(
+  *) :
+    case ",${enable_bundled_python}," in #(
+  *",${icon_bundled_name},"*) :
+    eval "icon_${icon_bundled_name}_python=yes" ;; #(
+  *) :
+    eval "icon_${icon_bundled_name}_python=no" ;;
+esac ;;
+esac
+done
 
 
 
@@ -7720,6 +7767,8 @@ BUNDLED_LIBFILES=''
 
 bundled_includes=
 
+{ BUNDLED_PYTHONPATH=; unset BUNDLED_PYTHONPATH;}
+
    acx_subdir_srcdirs_fn .
 icon_abs_top_srcdir=$ac_abs_top_srcdir
 icon_abs_top_builddir=$ac_abs_top_builddir
@@ -9266,6 +9315,8 @@ esac
      ;; #(
   -enable-static|-enable-static=*|--enable-static|--enable-static=*|-disable-static|--disable-static) :
      ;; #(
+  -with-pic|-with-pic=*|--with-pic|--with-pic=*|-without-pic|--without-pic) :
+     ;; #(
   -with-mpi-root|-with-mpi-root=*|--with-mpi-root|--with-mpi-root=*|-without-mpi-root|--without-mpi-root) :
      ;; #(
   -with-mpi-include|-with-mpi-include=*|--with-mpi-include|--with-mpi-include=*|-without-mpi-include|--without-mpi-include) :
@@ -9295,7 +9346,7 @@ esac
 esac
      shift
    done
-      set dummy CFLAGS="$subdir_CFLAGS $ICON_YAXT_CFLAGS" FCFLAGS="$subdir_FCFLAGS $ICON_YAXT_FCFLAGS" MPI_LAUNCH="$MPI_LAUNCH" MPIROOT= MPI_C_INCLUDE= MPI_C_LIB= MPI_FC_MOD= MPI_FC_LIB= BUILD_CFLAGS= BUILD_FCFLAGS= BUILD_LDFLAGS= BUILD_LIBS= --enable-silent-rules="$enable_silent_rules" --disable-maintainer-mode --disable-shared --enable-static --with-regard-for-quality="$enable_mpi_checks" --with-on-demand-check-programs --without-example-programs --without-perf-programs; shift
+      set dummy CFLAGS="$subdir_CFLAGS $ICON_YAXT_CFLAGS" FCFLAGS="$subdir_FCFLAGS $ICON_YAXT_FCFLAGS" MPI_LAUNCH="$MPI_LAUNCH" MPIROOT= MPI_C_INCLUDE= MPI_C_LIB= MPI_FC_MOD= MPI_FC_LIB= BUILD_CFLAGS= BUILD_FCFLAGS= BUILD_LDFLAGS= BUILD_LIBS= BUILD_CC= BUILD_FC= --enable-silent-rules="$enable_silent_rules" --disable-maintainer-mode --disable-shared --enable-static --with-pic="$icon_yac_python" --with-regard-for-quality="$enable_mpi_checks" --with-on-demand-check-programs --without-example-programs --without-perf-programs; shift
    for acx_tmp; do
      case $acx_tmp in #(
   *\'*) :
@@ -9305,7 +9356,6 @@ esac
 esac
      as_fn_append acx_subdir_run_args_externals_yaxt " '$acx_tmp'"
    done
-      { BUILD_CC=; unset BUILD_CC;}; { BUILD_FC=; unset BUILD_FC;}
       case $icon_bundled_yaxt_c in #(
   direct) :
              BUNDLED_LIBFILES="externals/yaxt/src/.libs/libyaxt_c.a $BUNDLED_LIBFILES" ;; #(
@@ -9872,7 +9922,10 @@ fi
 fi
 
 if test "x$with_external_mtime" = xyes; then :
-  { $as_echo "$as_me:${as_lineno-$LINENO}: checking whether the Fortran interface of MTIME library is available" >&5
+  if test "x$icon_mtime_python" = xyes; then :
+  as_fn_error $? "unsupported combination of the configure options: you are trying to configure with an external MTIME library and the Python interface of the bundled MTIME library: either disable the Python interface of the bundled MTIME (see --enable-bundled-python) or use the bundled version of MTIME library (--without-external-mtime)" "$LINENO" 5
+fi
+   { $as_echo "$as_me:${as_lineno-$LINENO}: checking whether the Fortran interface of MTIME library is available" >&5
 $as_echo_n "checking whether the Fortran interface of MTIME library is available... " >&6; }
 if ${icon_cv_have_mtime+:} false; then :
   $as_echo_n "(cached) " >&6
@@ -9913,6 +9966,11 @@ else
 fi
       ICON_MTIME_FCFLAGS=${ICON_MTIME_FCFLAGS-$ICON_BUNDLED_FCFLAGS}
       ICON_MTIME_CFLAGS=${ICON_MTIME_CFLAGS-$ICON_BUNDLED_CFLAGS}
+   if test x"${icon_mtime_python}" = xyes || test x"${icon_yac_python}" = xyes; then :
+  icon_mtime_pic=yes
+else
+  icon_mtime_pic=no
+fi
                         acx_subdir_srcdirs_fn "externals/mtime"
    acx_subdir_run_cmd_externals_mtime="'$ac_srcdir/configure'"
    acx_subdir_run_dir_externals_mtime="externals/mtime"
@@ -9949,19 +10007,21 @@ esac
      case $acx_tmp in #(
   BUILD_ENV=*|ICON_*FLAGS=*|CFLAGS=*|FCFLAGS=*) :
      ;; #(
-  -enable-static|-enable-static=*|--enable-static|--enable-static=*|-disable-static|--disable-static) :
-     ;; #(
-  -enable-shared|-enable-shared=*|--enable-shared|--enable-shared=*|-disable-shared|--disable-shared) :
+  -enable-silent-rules|-enable-silent-rules=*|--enable-silent-rules|--enable-silent-rules=*|-disable-silent-rules|--disable-silent-rules) :
      ;; #(
   -enable-maintainer-mode|-enable-maintainer-mode=*|--enable-maintainer-mode|--enable-maintainer-mode=*|-disable-maintainer-mode|--disable-maintainer-mode) :
      ;; #(
-  -enable-silent-rules|-enable-silent-rules=*|--enable-silent-rules|--enable-silent-rules=*|-disable-silent-rules|--disable-silent-rules) :
+  -enable-shared|-enable-shared=*|--enable-shared|--enable-shared=*|-disable-shared|--disable-shared) :
+     ;; #(
+  -enable-static|-enable-static=*|--enable-static|--enable-static=*|-disable-static|--disable-static) :
      ;; #(
   -enable-examples|-enable-examples=*|--enable-examples|--enable-examples=*|-disable-examples|--disable-examples) :
      ;; #(
   -enable-fortran-hl|-enable-fortran-hl=*|--enable-fortran-hl|--enable-fortran-hl=*|-disable-fortran-hl|--disable-fortran-hl) :
      ;; #(
-  -enable-check|-enable-check=*|--enable-check|--enable-check=*|-disable-check|--disable-check) :
+  -enable-python|-enable-python=*|--enable-python|--enable-python=*|-disable-python|--disable-python) :
+     ;; #(
+  -with-pic|-with-pic=*|--with-pic|--with-pic=*|-without-pic|--without-pic) :
      ;; #(
   *) :
            case $acx_tmp in #(
@@ -9974,7 +10034,7 @@ esac
 esac
      shift
    done
-   set dummy CFLAGS="$subdir_CFLAGS $ICON_MTIME_CFLAGS" FCFLAGS="$subdir_FCFLAGS $ICON_MTIME_FCFLAGS" --enable-static --disable-shared --disable-maintainer-mode --enable-silent-rules="$enable_silent_rules" --disable-examples --disable-fortran-hl      --disable-check; shift
+   set dummy CFLAGS="$subdir_CFLAGS $ICON_MTIME_CFLAGS" FCFLAGS="$subdir_FCFLAGS $ICON_MTIME_FCFLAGS" --enable-silent-rules="$enable_silent_rules" --disable-maintainer-mode --enable-shared="$icon_mtime_python" --enable-static --disable-examples --disable-fortran-hl --enable-python="$icon_mtime_python" --with-pic="$icon_mtime_pic"; shift
    for acx_tmp; do
      case $acx_tmp in #(
   *\'*) :
@@ -9986,6 +10046,9 @@ esac
    done
    as_fn_append bundled_includes "${FC_MOD_IN}externals/mtime/src "
    BUNDLED_LIBFILES="externals/mtime/src/.libs/libmtime.a $BUNDLED_LIBFILES"
+   if test "x$icon_mtime_python" = xyes; then :
+  as_fn_append BUNDLED_PYTHONPATH "${BUNDLED_PYTHONPATH+"${PATH_SEPARATOR}"}${icon_abs_top_builddir}/externals/mtime/python"
+fi
 fi
 
 if test "x$enable_coupling" = xyes; then :
@@ -9995,6 +10058,9 @@ if test "x$enable_coupling" = xyes; then :
 fi
       if test "x$with_external_yaxt" = xno; then :
   as_fn_error $? "unsupported combination of the configure options: you are trying to configure with an external YAC library and the bundled YAXT library: either disable the coupling (--disable-coupling) or use the bundled version of YAC library (--without-external-yac), or provide the version of YAXT library (--with-external-yaxt) that the provided YAC library has been built with by setting FCFLAGS, LDFLAGS and LIBS accordingly" "$LINENO" 5
+fi
+      if test "x$icon_yac_python" = xyes; then :
+  as_fn_error $? "unsupported combination of the configure options: you are trying to configure with an external YAC library and the Python interface of the bundled YAC library: either disable the Python interface of the bundled YAC (see --enable-bundled-python) or use the bundled version of YAC library (--without-external-yac)" "$LINENO" 5
 fi
       { $as_echo "$as_me:${as_lineno-$LINENO}: checking whether the Fortran interface of YAC library is available" >&5
 $as_echo_n "checking whether the Fortran interface of YAC library is available... " >&6; }
@@ -10102,6 +10168,10 @@ esac
      ;; #(
   -enable-netcdf|-enable-netcdf=*|--enable-netcdf|--enable-netcdf=*|-disable-netcdf|--disable-netcdf) :
      ;; #(
+  -enable-python-bindings|-enable-python-bindings=*|--enable-python-bindings|--enable-python-bindings=*|-disable-python-bindings|--disable-python-bindings) :
+     ;; #(
+  -with-pic|-with-pic=*|--with-pic|--with-pic=*|-without-pic|--without-pic) :
+     ;; #(
   -with-external-lapack|-with-external-lapack=*|--with-external-lapack|--with-external-lapack=*|-without-external-lapack|--without-external-lapack) :
      ;; #(
   -with-external-mtime|-with-external-mtime=*|--with-external-mtime|--with-external-mtime=*|-without-external-mtime|--without-external-mtime) :
@@ -10117,7 +10187,7 @@ esac
 esac
      shift
    done
-      set dummy CFLAGS="$subdir_CFLAGS $ICON_YAC_CFLAGS" FCFLAGS="$subdir_FCFLAGS $ICON_YAC_FCFLAGS" MPI_CFLAGS= MPI_CLIBS= MPI_FCFLAGS= MPI_FCLIBS= YAXT_CLIBS= YAXT_FCLIBS= NETCDF_CFLAGS= NETCDF_CLIBS= FYAML_CFLAGS= FYAML_CLIBS= MTIME_CLIBS= FORTRAN_LAPACK_CLIBS= --enable-silent-rules="$enable_silent_rules" --disable-maintainer-mode --enable-rpaths="$enable_rpaths" --disable-openmp --enable-mci --disable-utils --disable-examples --disable-tools --enable-deprecated --enable-netcdf --with-external-lapack=fortran --with-external-mtime; shift
+      set dummy CFLAGS="$subdir_CFLAGS $ICON_YAC_CFLAGS" FCFLAGS="$subdir_FCFLAGS $ICON_YAC_FCFLAGS" MPI_CFLAGS= MPI_CLIBS= MPI_FCFLAGS= MPI_FCLIBS= YAXT_CLIBS= YAXT_FCLIBS= NETCDF_CFLAGS= NETCDF_CLIBS= FYAML_CFLAGS= FYAML_CLIBS= MTIME_CLIBS= FORTRAN_LAPACK_CLIBS= --enable-silent-rules="$enable_silent_rules" --disable-maintainer-mode --enable-rpaths="$enable_rpaths" --disable-openmp --enable-mci --disable-utils --disable-examples --disable-tools --enable-deprecated --enable-netcdf --enable-python-bindings="$icon_yac_python" --with-pic="$icon_yac_python" --with-external-lapack=fortran --with-external-mtime; shift
    for acx_tmp; do
      case $acx_tmp in #(
   *\'*) :
@@ -10211,6 +10281,9 @@ esac
 fi
       as_fn_append bundled_includes "${FC_MOD_IN}externals/yac/src/mci "
       BUNDLED_LIBFILES="externals/yac/src/mci/libyac_mci.a externals/yac/src/core/libyac_core.a $BUNDLED_LIBFILES"
+      if test "x$icon_yac_python" = xyes; then :
+  as_fn_append BUNDLED_PYTHONPATH "${BUNDLED_PYTHONPATH+"${PATH_SEPARATOR}"}${icon_abs_top_builddir}/externals/yac/python"
+fi
 fi
 fi
 
@@ -11589,6 +11662,14 @@ else
   SB2_ENABLED='#'
 
 fi
+
+MTIME_PYTHON_ENABLED='#'
+YAC_PYTHON_ENABLED='#'
+for icon_bundled_name in mtime yac; do
+  if eval test \"x\$"icon_${icon_bundled_name}_python"\" = x"yes"; then :
+  eval "`$as_echo "${icon_bundled_name}_PYTHON_ENABLED" | $as_tr_cpp`=''"
+fi
+done
 
 if test "x$enable_hip_overrides" = xyes; then :
   HIP_OVERRIDES_ENABLED=''

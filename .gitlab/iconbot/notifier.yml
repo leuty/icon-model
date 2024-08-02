@@ -110,6 +110,8 @@ icon/icon-mpim:
     title_regexps: ['(?i)^(?:(?!merge.*to.*rc).)*$']
   notifications:
     - *common-notifications
+    - title_regexps: ['^Intermediate merge to RC$']
+      labels: [RC-to-master]
 
 icon/icon-nwp:
   default:
