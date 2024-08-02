@@ -186,6 +186,8 @@ Autoreconf:
         - utils/config.guess
         - utils/config.sub
         - utils/install-sh
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+      when: never
     - if: $CI_PIPELINE_SOURCE == "web"
       when: manual
     - when: always
@@ -211,6 +213,8 @@ Iconbot:
       changes:
         - ${CI_CONFIG_PATH}
         - ${ICONBOT_CONFIG}
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+      when: never
     - if: $CI_PIPELINE_SOURCE == "web"
       when: manual
     - when: always
@@ -236,6 +240,8 @@ Granules:
         - src/shared/mo_kind.f90
         - src/shared/mo_physical_constants.f90
         - test/microphysics_1mom_schemes/**/*
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+      when: never
     - if: $CI_PIPELINE_SOURCE == "web"
       when: manual
     - when: always
