@@ -17,7 +17,10 @@ _collected_set_up_info=
 test "$#" -gt 0 && test -n "$1" && rm -f "$1" && _collected_set_up_info=$1
 
 # Silently initialize the environment:
-{ @BUILD_ENV@:; } >/dev/null 2>&1
+BUILD_ENV=`cat <<\_EOF
+@BUILD_ENV@
+_EOF`
+eval "$BUILD_ENV" >/dev/null 2>&1
 
 # List of output variables
 output_vars='
@@ -26,6 +29,7 @@ use_compiler
 use_compiler_version
 use_gpu
 use_host
+use_build_env
 use_purge_modules
 use_load_modules
 use_load_profile
@@ -118,6 +122,9 @@ use_gpu='no'
 
 # Set use_mpi_startrun:
 test -n '@MPI_LAUNCH@' && use_mpi_startrun='@MPI_LAUNCH@ -n $mpi_total_procs'
+
+# Set use_build_env:
+use_build_env=$BUILD_ENV
 
 # Set site-specific values:
 case "$use_site" in
