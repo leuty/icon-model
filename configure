@@ -596,7 +596,6 @@ CUDA_ENABLED
 GPU_ENABLED
 OPENMP_ENABLED
 MPI_ENABLED
-HD_ENABLED
 ART_ENABLED
 EMVORADO_ENABLED
 DACE_ENABLED
@@ -1615,8 +1614,9 @@ Infrastructural Features:
   --enable-bundled-python enable Python interfaces of the bundled libraries.
                           The value of the argument must be either one of the
                           following [default=no]:
-                            yes  enable all supported interfaces
-                            no   disable Python interfaces
+                            auto|yes  enable all supported interfaces of the
+                                      enabled bundled libraries
+                            no        disable Python interfaces
                           or a comma-separated list of libraries to enable the
                           Python interfaces for: mtime, yac
 
@@ -3098,10 +3098,6 @@ else
 fi
 
 
-if test "x$enable_jsbach_hd" = xauto; then :
-  enable_jsbach_hd=$enable_jsbach
-fi
-
 # Check whether --enable-quincy was given.
 if test "${enable_quincy+set}" = set; then :
   enableval=$enable_quincy; if test x"$enableval" != xno; then :
@@ -3471,8 +3467,10 @@ fi
 # Check whether --enable-bundled-python was given.
 if test "${enable_bundled_python+set}" = set; then :
   enableval=$enable_bundled_python; case $enableval in #(
-  yes|no) :
+  auto|no) :
      ;; #(
+  yes) :
+    enable_bundled_python=auto ;; #(
   *) :
     icon_save_IFS=$IFS
     IFS=','
@@ -3482,7 +3480,7 @@ if test "${enable_bundled_python+set}" = set; then :
   ''|mtime|yac) :
      ;; #(
   *) :
-    as_fn_error $? "unexpected value for the argument --enable-bundled-python='$enableval'; valid values are 'yes', 'no' or a comma-separated subset of the following: 'mtime', 'yac'" "$LINENO" 5 ;;
+    as_fn_error $? "unexpected value for the argument --enable-bundled-python='$enableval'; valid values are 'auto', 'yes' (same as 'auto'), 'no' or a comma-separated subset of the following: 'mtime', 'yac'" "$LINENO" 5 ;;
 esac
     done
     IFS=$icon_save_IFS ;;
@@ -3493,7 +3491,7 @@ fi
 
 for icon_bundled_name in mtime yac; do
   case $enable_bundled_python in #(
-  yes|no) :
+  auto|no) :
     eval "icon_${icon_bundled_name}_python=\$enable_bundled_python" ;; #(
   *) :
     case ",${enable_bundled_python}," in #(
@@ -3868,6 +3866,73 @@ else
   with_external_comin=no
 fi
 
+
+############################# OPTION CROSS-CHECKS ##############################
+
+if test "x$enable_hip_overrides" = xyes && test "x$icon_gpu_secondary" != xhip; then :
+  as_fn_error $? "unsupported combination of the configure options: you are trying to configure with the HIP overrides enabled but the GPU support is disabled or the secondary GPU compiler is not HIP: either disable the HIP overrides (--disable-hip-overrides) or enable the GPU support with HIP (e.g. --enable-gpu=openacc+hip)" "$LINENO" 5
+fi
+
+if test "x$enable_jsbach" = xno; then :
+  if test "x$enable_jsbach_hd" = xyes; then :
+  as_fn_error $? "unsupported combination of the configure options: you are trying to configure with the internal hydrological discharge (HD) scheme but the land component of ICON is disabled: either disable the internal HD scheme (--disable-jsbach-hd) or enable the land component (--enable-jsbach)" "$LINENO" 5
+fi
+   if test "x$enable_quincy" = xyes; then :
+  as_fn_error $? "unsupported combination of the configure options: you are trying to configure with the QUINCY biogeochemistry model but the ICON land component is disabled: either disable the QUINCY model (--disable-quincy) or enable the ICON land component (--enable-jsbach)" "$LINENO" 5
+fi
+fi
+
+if test "x$enable_jsbach_hd" = xauto; then :
+  enable_jsbach_hd=$enable_jsbach
+fi
+
+if test "x$enable_art" = xno; then :
+  if test "x$enable_art_gpl" = xyes; then :
+  as_fn_error $? "unsupported combination of the configure options: you are trying to configure with the GPL-licensed code parts of the ART component but the ART component is disabled: either disable the the GPL-licensed code of the component (--disable-art-gpl) or enable the ART component (--enable-art)" "$LINENO" 5
+fi
+fi
+
+if test "x$enable_cdi_pio" = xyes; then :
+  if test "x$enable_mpi" = xno; then :
+  as_fn_error $? "unsupported combination of the configure options: you are trying to configure with the parallel features of CDI but MPI (parallelization) support is disabled: either disable usage of the parallel features of CDI (--disable-cdi-pio) or enable MPI (parallelization) support (--enable-mpi)" "$LINENO" 5
+fi
+   if test "x$with_external_cdi" = xyes && test "x$with_external_yaxt" = xno; then :
+  as_fn_error $? "unsupported combination of the configure options: you are trying to configure with the parallel features of an external CDI library and the bundled YAXT library: either disable usage of the parallel features of CDI (--disable-cdi-pio) or use the bundled version of CDI library (--without-external-cdi), or provide the version of YAXT library (--with-external-yaxt) that the provided CDI library has been built with by setting FCFLAGS, LDFLAGS and LIBS accordingly" "$LINENO" 5
+fi
+fi
+
+case "$with_external_mtime$icon_mtime_python" in #(
+  yesyes) :
+    as_fn_error $? "unsupported combination of the configure options: you are trying to configure with the Python interface of the bundled MTIME library and an external MTIME library: either disable the Python interface of the bundled MTIME (see --enable-bundled-python) or use the bundled version of MTIME library (--without-external-mtime)" "$LINENO" 5 ;; #(
+  noauto) :
+    icon_mtime_python=yes ;; #(
+  *auto) :
+    icon_mtime_python=no ;; #(
+  *) :
+     ;;
+esac
+
+if test "x$enable_coupling" = xyes && test "x$with_external_yac" = xyes; then :
+  if test "x$with_external_mtime" = xno; then :
+  as_fn_error $? "unsupported combination of the configure options: you are trying to configure with an external YAC library and the bundled MTIME library: either disable the coupling (--disable-coupling) or use the bundled version of YAC library (--without-external-yac), or provide the version of MTIME library (--with-external-mtime) that the provided YAC library has been built with by setting FCFLAGS, LDFLAGS and LIBS accordingly" "$LINENO" 5
+fi
+   if test "x$with_external_yaxt" = xno; then :
+  as_fn_error $? "unsupported combination of the configure options: you are trying to configure with an external YAC library and the bundled YAXT library: either disable the coupling (--disable-coupling) or use the bundled version of YAC library (--without-external-yac), or provide the version of YAXT library (--with-external-yaxt) that the provided YAC library has been built with by setting FCFLAGS, LDFLAGS and LIBS accordingly" "$LINENO" 5
+fi
+fi
+
+case "$enable_coupling$with_external_yac$icon_yac_python" in #(
+  no*yes) :
+    as_fn_error $? "unsupported combination of the configure options: you are trying to configure with the Python interface of the bundled YAC library but the coupling is disabled: either disable the Python interface of the bundled YAC (see --enable-bundled-python) or enable the coupling (--enable-coupling)" "$LINENO" 5 ;; #(
+  *yesyes) :
+    as_fn_error $? "unsupported combination of the configure options: you are trying to configure with the Python interface of the bundled YAC library and an external YAC library: either disable the Python interface of the bundled YAC (see --enable-bundled-python) or use the bundled version of YAC library (--without-external-yac)" "$LINENO" 5 ;; #(
+  yesnoauto) :
+    icon_yac_python=yes ;; #(
+  *auto) :
+    icon_yac_python=no ;; #(
+  *) :
+     ;;
+esac
 
 ############################# CODEBASE EXTENSIONS ##############################
 
@@ -4654,8 +4719,6 @@ $as_echo "$as_me: HIP overrides are enabled because $FC is recognized as Cray an
 else
   enable_hip_overrides=no
 fi
-elif test "x$enable_hip_overrides" = xyes && test "x$icon_gpu_secondary" != xhip; then :
-  as_fn_error $? "unsupported combination of the configure options: you are trying to configure with the HIP overrides enabled but the GPU support is disabled or the secondary GPU compiler is not HIP: either disable the HIP overrides (--disable-hip-overrides) or enable the GPU support with HIP (e.g. --enable-gpu=openacc+hip)" "$LINENO" 5
 fi
 
 if test "x$enable_pgi_inlib" = xauto; then :
@@ -5720,18 +5783,10 @@ fi
 
 if test "x$enable_jsbach_hd" = xno; then :
   as_fn_append FCFLAGS " ${FC_PP_DEF}__NO_JSBACH_HD__"
-else
-  if test "x$enable_jsbach" = xno; then :
-  as_fn_error $? "unsupported combination of the configure options: you are trying to configure with the internal hydrological discharge (HD) scheme but the land component of ICON is disabled: either disable the internal HD scheme (--disable-jsbach-hd) or enable the land component (--enable-jsbach)" "$LINENO" 5
-fi
 fi
 
 if test "x$enable_quincy" = xno; then :
   as_fn_append FCFLAGS " ${FC_PP_DEF}__NO_QUINCY__"
-else
-  if test "x$enable_jsbach" = xno; then :
-  as_fn_error $? "unsupported combination of the configure options: you are trying to configure with the QUINCY biogeochemistry model but the ICON land component is disabled: either disable the QUINCY model (--disable-quincy) or enable the ICON land component (--enable-jsbach)" "$LINENO" 5
-fi
 fi
 
 if test "x$enable_waves" = xno; then :
@@ -5778,11 +5833,7 @@ if test "x$enable_art" = xyes; then :
 fi
 
 if test "x$enable_art_gpl" = xyes; then :
-  if test "x$enable_art" = xyes; then :
   as_fn_append FCFLAGS " ${FC_PP_DEF}__ART_GPL"
-else
-  as_fn_error $? "unsupported combination of the configure options: you are trying to configure with the GPL-licensed code parts of the ART component but the ART component is disabled: either disable the the GPL-licensed code of the component (--disable-art-gpl) or enable the ART component (--enable-art)" "$LINENO" 5
-fi
 fi
 
 if test "x$enable_comin" = xno; then :
@@ -9551,10 +9602,6 @@ esac
 fi
 fi
 
-if test "x$enable_mpi" = xno && test "x$enable_cdi_pio" = xyes; then :
-    as_fn_error $? "unsupported combination of the configure options: you are trying to configure with the parallel features of CDI but MPI (parallelization) support is disabled: either disable usage of the parallel features of CDI (--disable-cdi-pio) or enable MPI (parallelization) support (--enable-mpi)" "$LINENO" 5
-fi
-
 if test "x$with_external_cdi" = xyes; then :
     { $as_echo "$as_me:${as_lineno-$LINENO}: checking whether the Fortran 90 interface of CDI 1.8.x library is available" >&5
 $as_echo_n "checking whether the Fortran 90 interface of CDI 1.8.x library is available... " >&6; }
@@ -9671,10 +9718,7 @@ $as_echo "$as_me: WARNING: unable to check whether the provided version of CDI s
 fi
         done
    if test "x$enable_cdi_pio" = xyes; then :
-  if test "x$with_external_yaxt" = xno; then :
-  as_fn_error $? "unsupported combination of the configure options: you are trying to configure with the parallel features of an external CDI library and the bundled YAXT library: either disable usage of the parallel features of CDI (--disable-cdi-pio) or use the bundled version of CDI library (--without-external-cdi), or provide the version of YAXT library (--with-external-yaxt) that the provided CDI library has been built with by setting FCFLAGS, LDFLAGS and LIBS accordingly" "$LINENO" 5
-fi
-      { $as_echo "$as_me:${as_lineno-$LINENO}: checking whether the Fortran 77 parallel I/O interface of CDI library is available" >&5
+  { $as_echo "$as_me:${as_lineno-$LINENO}: checking whether the Fortran 77 parallel I/O interface of CDI library is available" >&5
 $as_echo_n "checking whether the Fortran 77 parallel I/O interface of CDI library is available... " >&6; }
 if ${icon_cv_have_cdi_parallel+:} false; then :
   $as_echo_n "(cached) " >&6
@@ -9922,10 +9966,7 @@ fi
 fi
 
 if test "x$with_external_mtime" = xyes; then :
-  if test "x$icon_mtime_python" = xyes; then :
-  as_fn_error $? "unsupported combination of the configure options: you are trying to configure with an external MTIME library and the Python interface of the bundled MTIME library: either disable the Python interface of the bundled MTIME (see --enable-bundled-python) or use the bundled version of MTIME library (--without-external-mtime)" "$LINENO" 5
-fi
-   { $as_echo "$as_me:${as_lineno-$LINENO}: checking whether the Fortran interface of MTIME library is available" >&5
+  { $as_echo "$as_me:${as_lineno-$LINENO}: checking whether the Fortran interface of MTIME library is available" >&5
 $as_echo_n "checking whether the Fortran interface of MTIME library is available... " >&6; }
 if ${icon_cv_have_mtime+:} false; then :
   $as_echo_n "(cached) " >&6
@@ -10053,16 +10094,7 @@ fi
 
 if test "x$enable_coupling" = xyes; then :
   if test "x$with_external_yac" = xyes; then :
-  if test "x$with_external_mtime" = xno; then :
-  as_fn_error $? "unsupported combination of the configure options: you are trying to configure with an external YAC library and the bundled MTIME library: either disable the coupling (--disable-coupling) or use the bundled version of YAC library (--without-external-yac), or provide the version of MTIME library (--with-external-mtime) that the provided YAC library has been built with by setting FCFLAGS, LDFLAGS and LIBS accordingly" "$LINENO" 5
-fi
-      if test "x$with_external_yaxt" = xno; then :
-  as_fn_error $? "unsupported combination of the configure options: you are trying to configure with an external YAC library and the bundled YAXT library: either disable the coupling (--disable-coupling) or use the bundled version of YAC library (--without-external-yac), or provide the version of YAXT library (--with-external-yaxt) that the provided YAC library has been built with by setting FCFLAGS, LDFLAGS and LIBS accordingly" "$LINENO" 5
-fi
-      if test "x$icon_yac_python" = xyes; then :
-  as_fn_error $? "unsupported combination of the configure options: you are trying to configure with an external YAC library and the Python interface of the bundled YAC library: either disable the Python interface of the bundled YAC (see --enable-bundled-python) or use the bundled version of YAC library (--without-external-yac)" "$LINENO" 5
-fi
-      { $as_echo "$as_me:${as_lineno-$LINENO}: checking whether the Fortran interface of YAC library is available" >&5
+  { $as_echo "$as_me:${as_lineno-$LINENO}: checking whether the Fortran interface of YAC library is available" >&5
 $as_echo_n "checking whether the Fortran interface of YAC library is available... " >&6; }
 if ${icon_cv_have_yac+:} false; then :
   $as_echo_n "(cached) " >&6
@@ -11596,14 +11628,6 @@ if test "x$enable_art" = xyes; then :
 
 else
   ART_ENABLED='#'
-
-fi
-
-if test "x$enable_hd" = xno; then :
-  HD_ENABLED='#'
-
-else
-  HD_ENABLED=''
 
 fi
 

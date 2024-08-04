@@ -464,7 +464,9 @@ distclean: clean
 # Installation rule:
 install: all
 	$(INSTALL) -d $(DESTDIR)@bindir@ && $(INSTALL) $(exec_files) $(DESTDIR)@bindir@
-@HD_ENABLED@	$(silent_none)$(MAKE) -C externals/hd $@ V=$(V)
+	$(silent_none)for d in $(filter externals/hd,$(bundled_subdirs)); do \
+	  $(MAKE) -C "$$d" $@ V=$(V); \
+	done
 @MTIME_PYTHON_ENABLED@	$(silent_none)$(MAKE) -C externals/mtime/python $@ V=$(V)
 @YAC_PYTHON_ENABLED@	$(silent_none)$(MAKE) -C externals/yac/python $@ V=$(V)
 

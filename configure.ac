@@ -141,9 +141,6 @@ component @<:@default=auto@:>@])],
      [enable_jsbach_hd=yes])],
   [enable_jsbach_hd=auto])
 
-AS_VAR_IF([enable_jsbach_hd], [auto],
-  [AS_VAR_COPY([enable_jsbach_hd], [enable_jsbach])])
-
 AC_ARG_ENABLE([quincy],
   [AS_HELP_STRING([--enable-quincy],
      [enable the QUINCY biogeochemistry model in the land component
@@ -409,13 +406,15 @@ AC_ARG_ENABLE([bundled-python],
 [  --enable-bundled-python enable Python interfaces of the bundled libraries.
                           The value of the argument must be either one of the
                           following @<:@default=no@:>@:
-                            yes  enable all supported interfaces
-                            no   disable Python interfaces
+                            auto|yes  enable all supported interfaces of the
+                                      enabled bundled libraries
+                            no        disable Python interfaces
                           or a comma-separated list of libraries to enable the
 m4_text_wrap([Python interfaces for: ]m4_join([, ], icon_supported_bundled_python),
 [                          ])],
 [AS_CASE([$enableval],
-   [yes|no], [],
+   [auto|no], [],
+   [yes], [enable_bundled_python=auto],
    [icon_save_IFS=$IFS
     IFS=','
     for icon_bundled_name in $enableval; do
@@ -423,15 +422,15 @@ m4_text_wrap([Python interfaces for: ]m4_join([, ], icon_supported_bundled_pytho
       AS_CASE([$icon_bundled_name],
         [''|m4_join([|], icon_supported_bundled_python)], [],
         [AC_MSG_ERROR([unexpected value for the argument dnl
---enable-bundled-python='$enableval'; valid values are 'yes', 'no' or a dnl
-comma-separated subset of the following: dnl
+--enable-bundled-python='$enableval'; valid values are 'auto', 'yes' (same as dnl
+'auto'), 'no' or a comma-separated subset of the following: dnl
 'm4_join([', '], icon_supported_bundled_python)'])])
     done
     IFS=$icon_save_IFS])],
 [enable_bundled_python=no])
 for icon_bundled_name in m4_join([ ], icon_supported_bundled_python); do
   AS_CASE([$enable_bundled_python],
-    [yes|no],
+    [auto|no],
     [AS_VAR_SET([icon_${icon_bundled_name}_python], [$enable_bundled_python])],
     [AS_CASE([",${enable_bundled_python},"],
        [*",${icon_bundled_name},"*],
@@ -693,6 +692,94 @@ AC_ARG_WITH([external-comin],
   [AS_IF([test x"$withval" != xno], [with_external_comin=yes])],
   [with_external_comin=no])
 
+############################# OPTION CROSS-CHECKS ##############################
+
+AS_IF(
+  [test "x$enable_hip_overrides" = xyes && test "x$icon_gpu_secondary" != xhip],
+  [AC_MSG_ERROR([unsupported combination of the configure options: you are dnl
+trying to configure with the HIP overrides enabled but the GPU support is dnl
+disabled or the secondary GPU compiler is not HIP: either disable the HIP dnl
+overrides (--disable-hip-overrides) or enable the GPU support with HIP dnl
+(e.g. --enable-gpu=openacc+hip)])])
+
+AS_VAR_IF([enable_jsbach], [no],
+  [AS_VAR_IF([enable_jsbach_hd], [yes],
+     [AC_MSG_ERROR([unsupported combination of the configure options: you dnl
+are trying to configure with the internal hydrological discharge (HD) scheme dnl
+but the land component of ICON is disabled: either disable the internal HD dnl
+scheme (--disable-jsbach-hd) or enable the land component (--enable-jsbach)])])
+   AS_VAR_IF([enable_quincy], [yes],
+     [AC_MSG_ERROR([unsupported combination of the configure options: you dnl
+are trying to configure with the QUINCY biogeochemistry model but the ICON dnl
+land component is disabled: either disable the QUINCY model dnl
+(--disable-quincy) or enable the ICON land component (--enable-jsbach)])])])
+
+AS_VAR_IF([enable_jsbach_hd], [auto], [enable_jsbach_hd=$enable_jsbach])
+
+AS_VAR_IF([enable_art], [no],
+  [AS_VAR_IF([enable_art_gpl], [yes],
+     [AC_MSG_ERROR([unsupported combination of the configure options: you dnl
+are trying to configure with the GPL-licensed code parts of the ART dnl
+component but the ART component is disabled: either disable the the dnl
+GPL-licensed code of the component (--disable-art-gpl) or enable the ART dnl
+component (--enable-art)])])])
+
+AS_VAR_IF([enable_cdi_pio], [yes],
+  [AS_VAR_IF([enable_mpi], [no],
+     [AC_MSG_ERROR([unsupported combination of the configure options: you dnl
+are trying to configure with the parallel features of CDI but MPI dnl
+(parallelization) support is disabled: either disable usage of the parallel dnl
+features of CDI (--disable-cdi-pio) or enable MPI (parallelization) support dnl
+(--enable-mpi)])])
+   AS_IF(
+     [test "x$with_external_cdi" = xyes && test "x$with_external_yaxt" = xno],
+     [AC_MSG_ERROR([unsupported combination of the configure options: you dnl
+are trying to configure with the parallel features of an external CDI dnl
+library and the bundled YAXT library: either disable usage of the parallel dnl
+features of CDI (--disable-cdi-pio) or use the bundled version of CDI dnl
+library (--without-external-cdi), or provide the version of YAXT library dnl
+(--with-external-yaxt) that the provided CDI library has been built with by dnl
+setting FCFLAGS, LDFLAGS and LIBS accordingly])])])
+
+AS_CASE(["$with_external_mtime$icon_mtime_python"],
+  [yesyes], [AC_MSG_ERROR([unsupported combination of the configure options: dnl
+you are trying to configure with the Python interface of the bundled MTIME dnl
+library and an external MTIME library: either disable the Python interface dnl
+of the bundled MTIME (see --enable-bundled-python) or use the bundled dnl
+version of MTIME library (--without-external-mtime)])],
+  [noauto], [icon_mtime_python=yes],
+  [*auto], [icon_mtime_python=no])
+
+AS_IF([test "x$enable_coupling" = xyes && test "x$with_external_yac" = xyes],
+  [AS_VAR_IF([with_external_mtime], [no],
+     [AC_MSG_ERROR([unsupported combination of the configure options: you dnl
+are trying to configure with an external YAC library and the bundled MTIME dnl
+library: either disable the coupling (--disable-coupling) or use the bundled dnl
+version of YAC library (--without-external-yac), or provide the version of dnl
+MTIME library (--with-external-mtime) that the provided YAC library has been dnl
+built with by setting FCFLAGS, LDFLAGS and LIBS accordingly])])
+   AS_VAR_IF([with_external_yaxt], [no],
+     [AC_MSG_ERROR([unsupported combination of the configure options: you dnl
+are trying to configure with an external YAC library and the bundled YAXT dnl
+library: either disable the coupling (--disable-coupling) or use the bundled dnl
+version of YAC library (--without-external-yac), or provide the version of dnl
+YAXT library (--with-external-yaxt) that the provided YAC library has been dnl
+built with by setting FCFLAGS, LDFLAGS and LIBS accordingly])])])
+
+AS_CASE(["$enable_coupling$with_external_yac$icon_yac_python"],
+  [no*yes], [AC_MSG_ERROR([unsupported combination of the configure options: dnl
+you are trying to configure with the Python interface of the bundled YAC dnl
+library but the coupling is disabled: either disable the Python interface of dnl
+the bundled YAC (see --enable-bundled-python) or enable the coupling dnl
+(--enable-coupling)])],
+  [*yesyes], [AC_MSG_ERROR([unsupported combination of the configure dnl
+options: you are trying to configure with the Python interface of the dnl
+bundled YAC library and an external YAC library: either disable the Python dnl
+interface of the bundled YAC (see --enable-bundled-python) or use the dnl
+bundled version of YAC library (--without-external-yac)])],
+  [yesnoauto], [icon_yac_python=yes],
+  [*auto], [icon_yac_python=no])
+
 ############################# CODEBASE EXTENSIONS ##############################
 
 AS_VAR_IF([enable_jsbach], [yes],
@@ -814,13 +901,7 @@ AS_IF([test "x$enable_hip_overrides" = xauto],
 Cray and the secondary GPU compiler is HIP: disable the overrides if dnl
 required (--disable-hip-overrides)])
       enable_hip_overrides=yes],
-     [enable_hip_overrides=no])],
-  [test "x$enable_hip_overrides" = xyes && test "x$icon_gpu_secondary" != xhip],
-  [AC_MSG_ERROR([unsupported combination of the configure options: you are dnl
-trying to configure with the HIP overrides enabled but the GPU support is dnl
-disabled or the secondary GPU compiler is not HIP: either disable the HIP dnl
-overrides (--disable-hip-overrides) or enable the GPU support with HIP dnl
-(e.g. --enable-gpu=openacc+hip)])])
+     [enable_hip_overrides=no])])
 
 AS_VAR_IF([enable_pgi_inlib], [auto],
   [AS_VAR_IF([FC_VENDOR], [portland],
@@ -904,20 +985,10 @@ AS_VAR_IF([enable_jsbach], [no],
   [AS_VAR_APPEND([FCFLAGS], [" ${FC_PP_DEF}__NO_JSBACH__"])])
 
 AS_VAR_IF([enable_jsbach_hd], [no],
-  [AS_VAR_APPEND([FCFLAGS], [" ${FC_PP_DEF}__NO_JSBACH_HD__"])],
-  [AS_VAR_IF([enable_jsbach], [no],
-     [AC_MSG_ERROR([unsupported combination of the configure options: you dnl
-are trying to configure with the internal hydrological discharge (HD) scheme dnl
-but the land component of ICON is disabled: either disable the internal HD dnl
-scheme (--disable-jsbach-hd) or enable the land component (--enable-jsbach)])])])
+  [AS_VAR_APPEND([FCFLAGS], [" ${FC_PP_DEF}__NO_JSBACH_HD__"])])
 
 AS_VAR_IF([enable_quincy], [no],
-  [AS_VAR_APPEND([FCFLAGS], [" ${FC_PP_DEF}__NO_QUINCY__"])],
-  [AS_VAR_IF([enable_jsbach], [no],
-     [AC_MSG_ERROR([unsupported combination of the configure options: you dnl
-are trying to configure with the QUINCY biogeochemistry model but the ICON dnl
-land component is disabled: either disable the QUINCY model dnl
-(--disable-quincy) or enable the ICON land component (--enable-jsbach)])])])
+  [AS_VAR_APPEND([FCFLAGS], [" ${FC_PP_DEF}__NO_QUINCY__"])])
 
 AS_VAR_IF([enable_waves], [no],
   [AS_VAR_APPEND([FCFLAGS], [" ${FC_PP_DEF}__NO_ICON_WAVES__"])])
@@ -954,13 +1025,7 @@ AS_VAR_IF([enable_art], [yes],
      [" ${FC_PP_DEF}__ICON_ART ${FC_PP_DEF}__ART_TMP_IFDEF"])])
 
 AS_VAR_IF([enable_art_gpl], [yes],
-  [AS_VAR_IF([enable_art], [yes],
-     [AS_VAR_APPEND([FCFLAGS], [" ${FC_PP_DEF}__ART_GPL"])],
-     [AC_MSG_ERROR([unsupported combination of the configure options: you dnl
-are trying to configure with the GPL-licensed code parts of the ART dnl
-component but the ART component is disabled: either disable the the dnl
-GPL-licensed code of the component (--disable-art-gpl) or enable the ART dnl
-component (--enable-art)])])])
+  [AS_VAR_APPEND([FCFLAGS], [" ${FC_PP_DEF}__ART_GPL"])])
 
 AS_VAR_IF([enable_comin], [no],
   [AS_VAR_APPEND([FCFLAGS], [" ${FC_PP_DEF}__NO_ICON_COMIN__"])])
@@ -1934,18 +1999,6 @@ dnl There is currently no need in the Fortran interface of the library:
    BUNDLED_LIBFILES="externals/ppm/src/.libs/libscalesppmcore.a dnl
 $BUNDLED_LIBFILES"])])
 
-AS_IF([test "x$enable_mpi" = xno && test "x$enable_cdi_pio" = xyes],
-  [dnl
-dnl Fail the configuration because we get the following at the linking stage:
-dnl lib/libicon.a(mo_name_list_output.o): In function `data_write_cdipio':
-dnl src/io/shared/mo_name_list_output.f90:2445: undefined reference to `var2buf_'
-dnl src/io/shared/mo_name_list_output.f90:2451: undefined reference to `var2buf_'
-  AC_MSG_ERROR([unsupported combination of the configure options: dnl
-you are trying to configure with the parallel features of CDI but MPI dnl
-(parallelization) support is disabled: either disable usage of the parallel dnl
-features of CDI (--disable-cdi-pio) or enable MPI (parallelization) support dnl
-(--enable-mpi)])])
-
 AS_VAR_IF([with_external_cdi], [yes],
 dnl Check whether an external version of CDI is provided:
   [AC_CACHE_CHECK([whether the Fortran 90 interface of CDI 1.8.x library is dnl
@@ -2016,15 +2069,7 @@ supports $icon_cdi_format_name])])
    done
 dnl Check whether the provided external version supports the parallel features:
    AS_VAR_IF([enable_cdi_pio], [yes],
-     [AS_VAR_IF([with_external_yaxt], [no],
-        [AC_MSG_ERROR([unsupported combination of the configure options: dnl
-you are trying to configure with the parallel features of an external CDI dnl
-library and the bundled YAXT library: either disable usage of the parallel dnl
-features of CDI (--disable-cdi-pio) or use the bundled version of CDI dnl
-library (--without-external-cdi), or provide the version of YAXT library dnl
-(--with-external-yaxt) that the provided CDI library has been built with by dnl
-setting FCFLAGS, LDFLAGS and LIBS accordingly])])
-      AC_CACHE_CHECK([whether the Fortran 77 parallel I/O interface of CDI dnl
+     [AC_CACHE_CHECK([whether the Fortran 77 parallel I/O interface of CDI dnl
 library is available], [icon_cv_have_cdi_parallel],
         [icon_cv_have_cdi_parallel=no
          AC_LINK_IFELSE([AC_LANG_PROGRAM([], [[
@@ -2217,13 +2262,7 @@ interface of SERIALBOX2 library: either disable the serialization dnl
 (--disable-serialization) or set FCFLAGS, LDFLAGS and LIBS accordingly])])])
 
 AS_VAR_IF([with_external_mtime], [yes],
-  [AS_VAR_IF([icon_mtime_python], [yes],
-     [AC_MSG_ERROR([unsupported combination of the configure options: you are trying dnl
-to configure with an external MTIME library and the Python interface of the bundled dnl
-MTIME library: either disable the Python interface of the bundled MTIME (see dnl
---enable-bundled-python) or use the bundled version of MTIME library dnl
-(--without-external-mtime)])])
-   AC_CACHE_CHECK([whether the Fortran interface of MTIME library is available],
+  [AC_CACHE_CHECK([whether the Fortran interface of MTIME library is available],
      [icon_cv_have_mtime],
      [icon_cv_have_mtime=no
       AC_LINK_IFELSE([AC_LANG_PROGRAM([], [[
@@ -2255,7 +2294,8 @@ bundled version of MTIME library @<:@default=$ICON_BUNDLED_FCFLAGS@:>@])dnl
      [C compiler flags to be appended to CFLAGS when configuring the bundled
 version of MTIME library @<:@default=$ICON_BUNDLED_CFLAGS@:>@])dnl
    ICON_MTIME_CFLAGS=${ICON_MTIME_CFLAGS-$ICON_BUNDLED_CFLAGS}
-   AS_IF([test x"${icon_mtime_python}" = xyes || test x"${icon_yac_python}" = xyes],
+   AS_IF(
+     [test x"${icon_mtime_python}" = xyes || test x"${icon_yac_python}" = xyes],
      [icon_mtime_pic=yes], [icon_mtime_pic=no])
    ACX_SUBDIR_INIT_CONFIG([externals/mtime], [no-run])
    ACX_SUBDIR_REMOVE_ARGS([externals/mtime],
@@ -2271,10 +2311,10 @@ version of MTIME library @<:@default=$ICON_BUNDLED_CFLAGS@:>@])dnl
    ACX_SUBDIR_APPEND_ARGS([externals/mtime],
      [CFLAGS="$subdir_CFLAGS $ICON_MTIME_CFLAGS"],
      [FCFLAGS="$subdir_FCFLAGS $ICON_MTIME_FCFLAGS"],
-     [--enable-silent-rules="$enable_silent_rules"], [--disable-maintainer-mode],
-     [--enable-shared="$icon_mtime_python"], [--enable-static], [--disable-examples],
-     [--disable-fortran-hl], [--enable-python="$icon_mtime_python"],
-     [--with-pic="$icon_mtime_pic"])
+     [--enable-silent-rules="$enable_silent_rules"],
+     [--disable-maintainer-mode], [--enable-shared="$icon_mtime_python"],
+     [--enable-static], [--disable-examples], [--disable-fortran-hl],
+     [--enable-python="$icon_mtime_python"], [--with-pic="$icon_mtime_pic"])
    AS_VAR_APPEND([bundled_includes], ["${FC_MOD_IN}externals/mtime/src "])
    BUNDLED_LIBFILES="externals/mtime/src/.libs/libmtime.a $BUNDLED_LIBFILES"
    AS_VAR_IF([icon_mtime_python], [yes],
@@ -2284,27 +2324,7 @@ ${icon_abs_top_builddir}/externals/mtime/python"])])])
 
 AS_VAR_IF([enable_coupling], [yes],
   [AS_VAR_IF([with_external_yac], [yes],
-     [AS_VAR_IF([with_external_mtime], [no],
-        [AC_MSG_ERROR([unsupported combination of the configure options: dnl
-you are trying to configure with an external YAC library and the bundled dnl
-MTIME library: either disable the coupling (--disable-coupling) or use the dnl
-bundled version of YAC library (--without-external-yac), or provide the dnl
-version of MTIME library (--with-external-mtime) that the provided YAC dnl
-library has been built with by setting FCFLAGS, LDFLAGS and LIBS accordingly])])
-      AS_VAR_IF([with_external_yaxt], [no],
-        [AC_MSG_ERROR([unsupported combination of the configure options: dnl
-you are trying to configure with an external YAC library and the bundled dnl
-YAXT library: either disable the coupling (--disable-coupling) or use the dnl
-bundled version of YAC library (--without-external-yac), or provide the dnl
-version of YAXT library (--with-external-yaxt) that the provided YAC dnl
-library has been built with by setting FCFLAGS, LDFLAGS and LIBS accordingly])])
-      AS_VAR_IF([icon_yac_python], [yes],
-        [AC_MSG_ERROR([unsupported combination of the configure options: you are dnl
-trying to configure with an external YAC library and the Python interface of the dnl
-bundled YAC library: either disable the Python interface of the bundled YAC (see dnl
---enable-bundled-python) or use the bundled version of YAC library dnl
-(--without-external-yac)])])
-      AC_CACHE_CHECK([whether the Fortran interface of YAC library is dnl
+     [AC_CACHE_CHECK([whether the Fortran interface of YAC library is dnl
 available], [icon_cv_have_yac],
         [icon_cv_have_yac=no
          AC_LINK_IFELSE([AC_LANG_PROGRAM([], [[
@@ -2922,10 +2942,6 @@ AS_VAR_IF([enable_emvorado], [yes],
 AS_VAR_IF([enable_art], [yes],
   [AC_SUBST([ART_ENABLED], [''])],
   [AC_SUBST([ART_ENABLED], ['#'])])
-
-AS_VAR_IF([enable_hd], [no],
-  [AC_SUBST([HD_ENABLED], ['#'])],
-  [AC_SUBST([HD_ENABLED], [''])])
 
 AS_VAR_IF([enable_mpi], [yes],
   [AC_SUBST([MPI_ENABLED], [''])],
