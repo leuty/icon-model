@@ -104,7 +104,7 @@ CONTAINS
     REAL(wp) ::                &    !< weights times determinant of Jacobian for
       &  wgt_t_detjac               !< gaussian quadrature point.
 
-    REAL(wp) :: z_x(nproma,4), z_y(nproma,4) !< storage for local coordinates
+    REAL(wp) :: z_x(4), z_y(4) !< storage for local coordinates
 
     INTEGER  :: jb, je, jk          !< loop index for blocks and edges, levels
     INTEGER  :: i_startidx, i_endidx, i_startblk, i_endblk
@@ -148,7 +148,8 @@ CONTAINS
     i_startblk = p_patch%edges%start_blk(i_rlstart,1)
     i_endblk   = p_patch%edges%end_blk(i_rlend,i_nchdom)
 
-    !$ACC DATA PRESENT(p_coords_dreg_v, p_quad_vector_sum, p_dreg_area) PRESENT(shape_func_l)
+    !$ACC DATA PRESENT(p_coords_dreg_v, p_quad_vector_sum, p_dreg_area) PRESENT(shape_func_l) &
+    !$ACC   CREATE(z_x, z_y)
 
 !$OMP PARALLEL
 !$OMP DO PRIVATE(je,jk,jb,i_startidx,i_endidx,z_gauss_pts_1,z_gauss_pts_2,wgt_t_detjac,z_x,z_y &
@@ -164,21 +165,20 @@ CONTAINS
 !$NEC ivdep
         DO je = i_startidx, i_endidx
 
-          z_x(je,1:4) = p_coords_dreg_v(je,1:4,1,jk,jb)
-          z_y(je,1:4) = p_coords_dreg_v(je,1:4,2,jk,jb)
+          z_x(1:4) = p_coords_dreg_v(je,1:4,1,jk,jb)
+          z_y(1:4) = p_coords_dreg_v(je,1:4,2,jk,jb)
 
           ! get coordinates of the quadrature points in physical space (mapping)
 !WS: TODO:  make sure that DOT_PRODUCT is supported in this OpenACC context
-          z_gauss_pts_1 = DOT_PRODUCT(shape_func_l(1:4),z_x(je,1:4))
-          z_gauss_pts_2 = DOT_PRODUCT(shape_func_l(1:4),z_y(je,1:4))
+          z_gauss_pts_1 = DOT_PRODUCT(shape_func_l(1:4),z_x(1:4))
+          z_gauss_pts_2 = DOT_PRODUCT(shape_func_l(1:4),z_y(1:4))
 
 
           ! get Jacobian determinant for each quadrature point and multiply with
           ! corresponding weights
           ! Note: dbl_eps is added, in order to have a meaningful 'edge value' 
           ! (better: area-average) even when the integration-area tends to zero.
-          wgt_t_detjac = ( jac(z_x(je,1:4),z_y(je,1:4),zeta_l,eta_l) &
-            &                    * wgt_zeta_l * wgt_eta_l ) + dbl_eps
+          wgt_t_detjac = ( jac(z_x(1:4),z_y(1:4),zeta_l,eta_l) * wgt_zeta_l * wgt_eta_l ) + dbl_eps
 
 
           ! Get quadrature vector for each integration point and multiply by
@@ -257,7 +257,7 @@ CONTAINS
     REAL(wp) ::                &    !< weights times determinant of Jacobian for
       &  wgt_t_detjac               !< gaussian quadrature point.
 
-    REAL(wp) :: z_x(nproma,4), z_y(nproma,4) !< storage for local coordinates
+    REAL(wp) :: z_x(4), z_y(4) !< storage for local coordinates
 
     INTEGER  :: jb, je, jk          !< loop index for blocks and edges, levels
     INTEGER  :: ie                  !< index list loop counter
@@ -290,7 +290,8 @@ CONTAINS
     i_endblk   = p_patch%edges%end_blk(i_rlend,i_nchdom)
 
     !$ACC DATA PRESENT(p_coords_dreg_v, falist, falist%len, falist%eidx, falist%elev, p_dreg_area) &
-    !$ACC   PRESENT(shape_func_l, p_quad_vector_sum)
+    !$ACC   PRESENT(shape_func_l, p_quad_vector_sum) &
+    !$ACC   CREATE(z_x, z_y)
 
 !$OMP PARALLEL
 !$OMP DO PRIVATE(je,jk,jb,ie,z_gauss_pts_1,z_gauss_pts_2,wgt_t_detjac,z_x,z_y) ICON_OMP_DEFAULT_SCHEDULE
@@ -304,20 +305,19 @@ CONTAINS
         je = falist%eidx(ie,jb)
         jk = falist%elev(ie,jb)
 
-        z_x(ie,1:4) = p_coords_dreg_v(ie,1:4,1,jb)
-        z_y(ie,1:4) = p_coords_dreg_v(ie,1:4,2,jb)
+        z_x(1:4) = p_coords_dreg_v(ie,1:4,1,jb)
+        z_y(1:4) = p_coords_dreg_v(ie,1:4,2,jb)
 
         ! get coordinates of the quadrature points in physical space (mapping)
-        z_gauss_pts_1 = DOT_PRODUCT(shape_func_l(1:4),z_x(ie,1:4))
-        z_gauss_pts_2 = DOT_PRODUCT(shape_func_l(1:4),z_y(ie,1:4))
+        z_gauss_pts_1 = DOT_PRODUCT(shape_func_l(1:4),z_x(1:4))
+        z_gauss_pts_2 = DOT_PRODUCT(shape_func_l(1:4),z_y(1:4))
 
 
         ! get Jacobian determinant for each quadrature point and multiply with
         ! corresponding weights
         ! Note: dbl_eps is added, in order to have a meaningful 'edge value' 
         ! (better: area-average) even when the integration-area tends to zero.
-        wgt_t_detjac = ( jac(z_x(ie,1:4),z_y(ie,1:4),zeta_l,eta_l) &
-          &                     * wgt_zeta_l * wgt_eta_l ) + dbl_eps
+        wgt_t_detjac = ( jac(z_x(1:4),z_y(1:4),zeta_l,eta_l) * wgt_zeta_l * wgt_eta_l ) + dbl_eps
 
 
         ! Get quadrature vector for each integration point and multiply by
