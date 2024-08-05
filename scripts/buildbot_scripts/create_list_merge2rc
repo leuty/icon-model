@@ -109,7 +109,7 @@ $addexp "checksuite.ocean_internal/technical/exp.test_multioutput_model_40km" \
 ./rmexp checksuite.ocean_internal/technical/exp.test_ocean_omip_technical --builders "DAINT_GPU_nvidia" --list $listname
 
 
-# add experiments relevant for C2SM from yml-config
+# add experiments from yml-config
 ./../experiments/addexp_from_yml --list $listname --exp-yml ../experiments/all_experiments.yml --test-yml ../experiments/all_tests.yml
 
 #-----------------------------------------------------------
@@ -318,7 +318,6 @@ $addexp "checksuite.infrastructure/aurora/exp.host_and_vector_only_tests.run" --
 # HoreKa at KIT
 ./set_builder_flags Active --builders 'horeka_gpu_nvhpc horeka_cpu_nvhpc horeka_gcc horeka_intel' --list $listname
 $addexp "checksuite.icon-dev/check.atm_bubble_test" --machines "horeka" --list $listname
-$addexp "checksuite.icon-dev/check.dwd_run_ICON_09_R2B4N5_EPS" --builders "horeka_gpu_nvhpc horeka_cpu_nvhpc " --list $listname
 $addexp "exp.dwd_run_ICON_09_R2B4N5_EPS" --builders "horeka_gcc" --list $listname # icon/icon-nwp!370 may have introduced changes breaking this test on horeka_intel
 
 # Lumi at CSC

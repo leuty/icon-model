@@ -12,7 +12,9 @@ tests:
   - name: dwd_run_ICON_09_R2B4N5_EPS 
     machines:
       - name: balfrin
-        include_only: ['balfrin_cpu_nvidia','balfrin_gpu_nvidia','horeka_cpu_nvhpc','horeka_gpu_nvhpc']
+        include_only: ['balfrin_cpu_nvidia','balfrin_gpu_nvidia']
+      - name: horeka
+        include_only: ['horeka_cpu_nvhpc','horeka_gpu_nvhpc']
     refgen: ['balfrin_cpu_nvidia','horeka_cpu_nvhpc']
     tags: ['merge2rc','probtest']
     ensemble_num:
