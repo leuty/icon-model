@@ -1380,9 +1380,52 @@ CONTAINS
 
     REAL(wp), INTENT(out)    :: xgi(:)                                  !< globally integrated field
 
-    xgi(1) = 0.0_wp
+    ! -----------------------------------------------------------------
+    ! WORKAROUND START
+    !
+    ! Using 'horizontal_sum' of mo_statistics with a 2d input field on GPUs
+    ! currently does not work: The resulting horizontal weighted sum is zero.
+    ! 'horizontal_sum' is the public interface to private subroutines, which
+    ! differ in the dimensionality of the arguments:
+    ! - 2d input arrays and  2d weights :      'HorizontalSum_2D_InRange_2Dweights'
+    ! - 3d input arrays with 2d weights : 'LevelHorizontalSum_3D_InRange_2Dweights'
+    !
+    ! As the subroutine for 3d input fields works on GPUs, this workaround simply
+    ! uses the 3d variant to process the 2d field as a 3d field with 1 level.
+    !
+    ! => create a 3d field with 1 level
+    !    copy the 2d field to the provisional 3d field
+    !    compute the weighted sum using the 3d variant of 'horizontal_sum'
 
-    CALL horizontal_sum(x, p(jg)%cells%area, p(jg)%cells%owned, xgi(1), lopenacc=.TRUE.)
+    REAL(wp) :: x3d(SIZE(x,1), 1, SIZE(x,2))                            !< 3d variable for x
+
+    INTEGER  :: jb, jc                                                  !< loop indices
+
+    !$ACC DATA CREATE(x3d) PRESENT(x)
+
+    !$ACC PARALLEL DEFAULT(NONE) ASYNC(1)
+    !$ACC LOOP GANG(STATIC: 1) VECTOR COLLAPSE(2)
+    DO jb = 1, SIZE(x,2)
+       DO jc = 1, SIZE(x,1)
+
+          x3d(jc,1,jb) = x(jc,jb)                                       !< copy over
+
+       END DO
+    END DO
+    !$ACC END PARALLEL
+
+    CALL horizontal_sum(x3d, p(jg)%cells%area, p(jg)%cells%owned, xgi, lopenacc=.TRUE.)
+
+    !$ACC END DATA
+
+    ! WORKAROUND END
+    ! -----------------------------------------------------------------
+    ! ORIGINAL START
+
+!!$    CALL horizontal_sum(x, p(jg)%cells%area, p(jg)%cells%owned, xgi(1), lopenacc=.TRUE.)
+
+    ! ORIGINAL END
+    ! -----------------------------------------------------------------
 
   END SUBROUTINE atm_energy_hint_vi
 

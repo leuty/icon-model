@@ -725,8 +725,10 @@ CONTAINS
     !
     !   - 2nd stage, for difference ..2.. - ..1.. and ..2.. - ..3.., and for output at the end of the time step
     !
-    IF (   lekh   .OR. ltend_ekhdyn   .OR. ltend_ekhtmx   .OR. ltend_ekhphy .OR. &
-         & lekhhi .OR. ltend_ekhdynhi .OR. ltend_ekhtmxhi .OR. ltend_ekhphyhi) THEN
+    IF (   lekh   .OR. lekhdyn   .OR. lekhphy   .OR. &
+         & lekhhi .OR. lekhdynhi .OR. lekhphyhi .OR. &
+         & ltend_ekhdyn   .OR. ltend_ekhtmx   .OR. ltend_ekhphy .OR. &
+         & ltend_ekhdynhi .OR. ltend_ekhtmxhi .OR. ltend_ekhphyhi) THEN
        cf_desc    = t_cf_var('atmosphere_horizontal_kinetic_energy_density', 'J m-3', &
             &                'Atmosphere Horizontal Kinetic Energy Density', datatype_flt)
        grib2_desc = grib2_var(255,255,255, datatype_grb, grid_unstructured, grid_cell)
@@ -740,8 +742,10 @@ CONTAINS
        __acc_attach(atm_energy%ekh2)
     END IF
     !
-    IF (   lekhvi .OR. ltend_ekhdynvi .OR. ltend_ekhtmxvi .OR. ltend_ekhphyvi .OR. &
-         & lekhti .OR. ltend_ekhdynti .OR. ltend_ekhtmxti .OR. ltend_ekhphyti) THEN
+    IF (   lekhvi .OR. lekhdynvi .OR. lekhphyvi .OR. &
+         & lekhti .OR. lekhdynti .OR. lekhphyti .OR. &
+         & ltend_ekhdynvi .OR. ltend_ekhtmxvi .OR. ltend_ekhphyvi .OR. &
+         & ltend_ekhdynti .OR. ltend_ekhtmxti .OR. ltend_ekhphyti) THEN
        cf_desc    = t_cf_var('atmosphere_horizontal_kinetic_energy_content', 'J m-2', &
             &                'Atmosphere Horizontal Kinetic Energy Content', datatype_flt)
        grib2_desc = grib2_var(255,255,255, datatype_grb, grid_unstructured, grid_cell)
@@ -755,7 +759,8 @@ CONTAINS
        __acc_attach(atm_energy%ekh2vi)
     END IF
     !
-    IF (lekhhi .OR. ltend_ekhdynhi .OR. ltend_ekhtmxhi .OR. ltend_ekhphyhi) THEN
+    IF (   lekhhi .OR. lekhdynhi .OR. lekhphyhi .OR. &
+         & ltend_ekhdynhi .OR. ltend_ekhtmxhi .OR. ltend_ekhphyhi) THEN
        cf_desc    = t_cf_var('atmosphere_horizontal_kinetic_energy_profile', 'J m-1', &
             &                'Atmosphere Horizontal Kinetic Energy Profile', datatype_flt)
        grib2_desc = grib2_var(255,255,255, datatype_grb, grid_unstructured, grid_lonlat)
@@ -769,7 +774,8 @@ CONTAINS
        __acc_attach(atm_energy%ekh2hi)
     END IF
     !
-    IF (lekhti .OR. ltend_ekhdynti .OR. ltend_ekhtmxti .OR. ltend_ekhphyti) THEN
+    IF (   lekhti .OR. lekhdynti .OR. lekhphyti .OR. &
+         & ltend_ekhdynti .OR. ltend_ekhtmxti .OR. ltend_ekhphyti) THEN
        cf_desc    = t_cf_var('atmosphere_horizontal_kinetic_energy', 'J', &
             &                'Atmosphere Horizontal Kinetic Energy', datatype_flt)
        grib2_desc = grib2_var(255,255,255, datatype_grb, grid_unstructured, grid_lonlat)
@@ -908,8 +914,10 @@ CONTAINS
     !
     !   - 2nd stage, for difference ..2.. - ..1.. and ..2.. - ..3.., and for output at the end of the time step
     !
-    IF (   lekv   .OR. ltend_ekvdyn   .OR. ltend_ekvtmx   .OR. ltend_ekvphy .OR. &
-         & lekvhi .OR. ltend_ekvdynhi .OR. ltend_ekvtmxhi .OR. ltend_ekvphyhi) THEN
+    IF (   lekv   .OR. lekvdyn   .OR. lekvphy   .OR. &
+         & lekvhi .OR. lekvdynhi .OR. lekvphyhi .OR. &
+         & ltend_ekvdyn   .OR. ltend_ekvtmx   .OR. ltend_ekvphy .OR. &
+         & ltend_ekvdynhi .OR. ltend_ekvtmxhi .OR. ltend_ekvphyhi) THEN
        cf_desc    = t_cf_var('atmosphere_vertical_kinetic_energy_density', 'J m-3', &
             &                'Atmosphere Vertical Kinetic Energy Density', datatype_flt)
        grib2_desc = grib2_var(255,255,255, datatype_grb, grid_unstructured, grid_cell)
@@ -923,8 +931,10 @@ CONTAINS
        __acc_attach(atm_energy%ekv2)
     END IF
     !
-    IF (   lekvvi .OR. ltend_ekvdynvi .OR. ltend_ekvtmxvi .OR. ltend_ekvphyvi .OR. &
-         & lekvti .OR. ltend_ekvdynti .OR. ltend_ekvtmxti .OR. ltend_ekvphyti) THEN
+    IF (   lekvvi .OR. lekvdynvi .OR. lekvphyvi .OR. &
+         & lekvti .OR. lekvdynti .OR. lekvphyti .OR. &
+         & ltend_ekvdynvi .OR. ltend_ekvtmxvi .OR. ltend_ekvphyvi .OR. &
+         & ltend_ekvdynti .OR. ltend_ekvtmxti .OR. ltend_ekvphyti) THEN
        cf_desc    = t_cf_var('atmosphere_vertical_kinetic_energy_content', 'J m-2', &
             &                'Atmosphere Vertical Kinetic Energy Content', datatype_flt)
        grib2_desc = grib2_var(255,255,255, datatype_grb, grid_unstructured, grid_cell)
@@ -938,7 +948,8 @@ CONTAINS
        __acc_attach(atm_energy%ekv2vi)
     END IF
     !
-    IF (lekvhi .OR. ltend_ekvdynhi .OR. ltend_ekvtmxhi .OR. ltend_ekvphyhi) THEN
+    IF (   lekvhi .OR. lekvdynhi .OR. lekvphyhi .OR. &
+         & ltend_ekvdynhi .OR. ltend_ekvtmxhi .OR. ltend_ekvphyhi) THEN
        cf_desc    = t_cf_var('atmosphere_vertical_kinetic_energy_profile', 'J m-1', &
             &                'Atmosphere Vertical Kinetic Energy Profile', datatype_flt)
        grib2_desc = grib2_var(255,255,255, datatype_grb, grid_unstructured, grid_lonlat)
@@ -952,7 +963,8 @@ CONTAINS
        __acc_attach(atm_energy%ekv2hi)
     END IF
     !
-    IF (lekvti .OR. ltend_ekvdynti .OR. ltend_ekvtmxti .OR. ltend_ekvphyti) THEN
+    IF (   lekvti .OR. lekvdynti .OR. lekvphyti .OR. &
+         & ltend_ekvdynti .OR. ltend_ekvtmxti .OR. ltend_ekvphyti) THEN
        cf_desc    = t_cf_var('atmosphere_vertical_kinetic_energy', 'J', &
             &                'Atmosphere Vertical Kinetic Energy', datatype_flt)
        grib2_desc = grib2_var(255,255,255, datatype_grb, grid_unstructured, grid_lonlat)
@@ -1091,8 +1103,10 @@ CONTAINS
     !
     !   - 2nd stage, for difference ..2.. - ..1.. and ..2.. - ..3.., and for output at the end of the time step
     !
-    IF (   legp   .OR. ltend_egpdyn   .OR. ltend_egpphy .OR. &
-         & legphi .OR. ltend_egpdynhi .OR. ltend_egpphyhi) THEN
+    IF (   legp   .OR. legpdyn   .OR. legpphy   .OR. &
+         & legphi .OR. legpdynhi .OR. legpphyhi .OR. &
+         & ltend_egpdyn   .OR. ltend_egpphy .OR. &
+         & ltend_egpdynhi .OR. ltend_egpphyhi) THEN
        cf_desc    = t_cf_var('atmosphere_geopotential_energy_density', 'J m-3', &
             &                'Atmosphere Geopotential Energy Density', datatype_flt)
        grib2_desc = grib2_var(255,255,255, datatype_grb, grid_unstructured, grid_cell)
@@ -1106,8 +1120,10 @@ CONTAINS
        __acc_attach(atm_energy%egp2)
     END IF
     !
-    IF (   legpvi .OR. ltend_egpdynvi .OR. ltend_egpphyvi .OR. &
-         & legpti .OR. ltend_egpdynti .OR. ltend_egpphyti) THEN
+    IF (   legpvi .OR. legpdynvi .OR. legpphyvi .OR. &
+         & legpti .OR. legpdynti .OR. legpphyti .OR. &
+         & ltend_egpdynvi .OR. ltend_egpphyvi .OR. &
+         & ltend_egpdynti .OR. ltend_egpphyti) THEN
        cf_desc    = t_cf_var('atmosphere_geopotential_energy_content', 'J m-2', &
             &                'Atmosphere Geopotential Energy Content', datatype_flt)
        grib2_desc = grib2_var(255,255,255, datatype_grb, grid_unstructured, grid_cell)
@@ -1121,7 +1137,8 @@ CONTAINS
        __acc_attach(atm_energy%egp2vi)
     END IF
     !
-    IF (legphi .OR. ltend_egpdynhi .OR. ltend_egpphyhi) THEN
+    IF (   legphi .OR. legpdynhi .OR. legpphyhi .OR. &
+         & ltend_egpdynhi .OR. ltend_egpphyhi) THEN
        cf_desc    = t_cf_var('atmosphere_geopotential_energy_profile', 'J m-1', &
             &                'Atmosphere Geopotential Energy Profile', datatype_flt)
        grib2_desc = grib2_var(255,255,255, datatype_grb, grid_unstructured, grid_lonlat)
@@ -1135,7 +1152,8 @@ CONTAINS
        __acc_attach(atm_energy%egp2hi)
     END IF
     !
-    IF (legpti .OR. ltend_egpdynti .OR. ltend_egpphyti) THEN
+    IF (   legpti .OR. legpdynti .OR. legpphyti .OR. &
+         & ltend_egpdynti .OR. ltend_egpphyti) THEN
        cf_desc    = t_cf_var('atmosphere_geopotential_energy', 'J', &
             &                'Atmosphere Geopotential Energy', datatype_flt)
        grib2_desc = grib2_var(255,255,255, datatype_grb, grid_unstructured, grid_lonlat)
@@ -1274,8 +1292,10 @@ CONTAINS
     !
     !   - 2nd stage, for difference ..2.. - ..1.. and ..2.. - ..3.., and for output at the end of the time step
     !
-    IF (   leto   .OR. ltend_etodyn   .OR. ltend_etophy .OR. &
-         & letohi .OR. ltend_etodynhi .OR. ltend_etophyhi) THEN
+    IF (   leto   .OR. letodyn   .OR. letophy   .OR. &
+         & letohi .OR. letodynhi .OR. letophyhi .OR. &
+         & ltend_etodyn   .OR. ltend_etophy .OR. &
+         & ltend_etodynhi .OR. ltend_etophyhi) THEN
        cf_desc    = t_cf_var('atmosphere_total_energy_density', 'J m-3', &
             &                'Atmosphere Total Energy Density', datatype_flt)
        grib2_desc = grib2_var(255,255,255, datatype_grb, grid_unstructured, grid_cell)
@@ -1289,8 +1309,10 @@ CONTAINS
        __acc_attach(atm_energy%eto2)
     END IF
     !
-    IF (   letovi .OR. ltend_etodynvi .OR. ltend_etophyvi .OR. &
-         & letoti .OR. ltend_etodynti .OR. ltend_etophyti) THEN
+    IF (   letovi .OR. letodynvi .OR. letophyvi .OR. &
+         & letoti .OR. letodynti .OR. letophyti .OR. &
+         & ltend_etodynvi .OR. ltend_etophyvi .OR. &
+         & ltend_etodynti .OR. ltend_etophyti) THEN
        cf_desc    = t_cf_var('atmosphere_total_energy_content', 'J m-2', &
             &                'Atmosphere Total Energy Content', datatype_flt)
        grib2_desc = grib2_var(255,255,255, datatype_grb, grid_unstructured, grid_cell)
@@ -1304,7 +1326,8 @@ CONTAINS
        __acc_attach(atm_energy%eto2vi)
     END IF
     !
-    IF (letohi .OR. ltend_etodynhi .OR. ltend_etophyhi) THEN
+    IF (   letohi .OR. letodynhi .OR. letophyhi .OR. &
+         & ltend_etodynhi .OR. ltend_etophyhi) THEN
        cf_desc    = t_cf_var('atmosphere_total_energy_profile', 'J m-1', &
             &                'Atmosphere Total Energy Profile', datatype_flt)
        grib2_desc = grib2_var(255,255,255, datatype_grb, grid_unstructured, grid_lonlat)
@@ -1318,7 +1341,8 @@ CONTAINS
        __acc_attach(atm_energy%eto2hi)
     END IF
     !
-    IF (letoti .OR. ltend_etodynti .OR. ltend_etophyti) THEN
+    IF (   letoti .OR. letodynti .OR. letophyti .OR. &
+         & ltend_etodynti .OR. ltend_etophyti) THEN
        cf_desc    = t_cf_var('atmosphere_total_energy', 'J', &
             &                'Atmosphere Total Energy', datatype_flt)
        grib2_desc = grib2_var(255,255,255, datatype_grb, grid_unstructured, grid_lonlat)
