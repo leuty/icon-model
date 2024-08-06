@@ -68,19 +68,24 @@ class BuildbotConfig(object):
     def add_experiment(self, exp, builders=None, machines=None, with_config=None, without_config=None, run_flags=None):
         midx, bidx = self.get_indices_from_args(machines, builders, with_config, without_config)
 
+
         # if experiment exists, add object to selected builders/machines
         if exp not in self.data.index:
             df = pd.DataFrame(None, columns=self.data.columns, index=[exp])
             self.data = pd.concat([self.data, df], axis=0)
             self.data.sort_index(axis=0, inplace=True)
 
-        # first get all the builder names that are in the intersection of machines and builders determined by with/without  
-        # configure flags.
-        # Then add a unique experiment to the table. The experiments take the builder object in their constructor.
-        builder_names = self.data.loc[(exp, (midx, bidx))].index.get_level_values(1)
-        self.data.loc[(exp, (midx, bidx))] = [Experiment(exp, self.builder_meta[bname], run_flags) for bname in builder_names]
+        try:
+            # first get all the builder names that are in the intersection of
+            # machines and builders determined by with/without configure flags.
+            # Then add a unique experiment to the table. The experiments take
+            # the builder object in their constructor.
+            builder_names = self.data.loc[(exp, (midx, bidx))].index.get_level_values(1)
+            self.data.loc[(exp, (midx, bidx))] = [Experiment(exp, self.builder_meta[bname], run_flags) for bname in builder_names]
 
-        print("added experiment {} to {} configuration".format(exp, ", ".join(bidx)))
+            print("added experiment {} to {} configuration".format(exp, ", ".join(bidx)))
+        except:
+            print("Could not find machine or builder - skipping experiments")
 
 
     def remove_experiments(self, exps, builders=None, machines=None, with_config=None, without_config=None):

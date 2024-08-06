@@ -93,14 +93,18 @@ def runexp():
         completed_jobs = set()
         for eobj in incomplete_jobs:
             if eobj.batch_job.poll(timeout=60):
-                print(f"job finished (jobID:{eobj.batch_job.jobid})")
+                _status = f"{'OK' if eobj.batch_job.returncode == 0 else 'FAILED'}"
+                print(f"job finished: {eobj.get_run_name(relative=True)} (jobID:{eobj.batch_job.jobid}): {_status}")
                 completed_jobs.add(eobj)
             else:
                 N = len(incomplete_jobs) - len(completed_jobs)
                 if N > 1:
-                    print(f"Still waiting for {N} jobs: {' '.join([str(e.batch_job.jobid) for e in (set(incomplete_jobs) - set(completed_jobs))])}")
+                    print(f"Waiting for {N} jobs:")
+                    for e in (set(incomplete_jobs) - set(completed_jobs)):
+                        print(f"\t{e.get_run_name(relative=True)} ({str(e.batch_job.jobid)})")
                 elif N == 1:
-                    print(f"Still waiting for the last job: {[*incomplete_jobs][0].batch_job.jobid}")
+                    e = [*incomplete_jobs][0]
+                    print(f"Waiting for the last job: {e.get_run_name(relative=True)} ({e.batch_job.jobid})")
         incomplete_jobs.difference_update(completed_jobs)
 
     # wait a bit longer, because queing or file system might create logfiles
@@ -128,7 +132,6 @@ def runexp():
                 print(f"internal error, did not get returncode for {eobj.name} (jobID:{exp_jobid})")
                 exit_msg = "FAILED"
 
-            print(f"exit code for {exp_file}: {exit_msg} (code:{int(eobj.batch_job.returncode)})")
             file.write("{0:50}: {1}\n".format(exp_file.name, exit_msg))
 
     if True in experimentsFailed:
