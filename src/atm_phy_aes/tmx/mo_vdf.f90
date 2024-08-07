@@ -350,7 +350,7 @@ CONTAINS
 
 !$OMP PARALLEL DO PRIVATE(jb,jc,jk) ICON_OMP_DEFAULT_SCHEDULE
     DO jb = i_startblk_c,i_endblk_c
-      !$ACC PARALLEL DEFAULT(PRESENT)
+      !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1)
       !$ACC LOOP GANG VECTOR COLLAPSE(2)
       DO jk = 1, nlev
         DO jc = i_startidx_c(jb), i_endidx_c(jb)
@@ -413,7 +413,7 @@ CONTAINS
       DO jb = i_startblk_c,i_endblk_c
 
         ! Set the right hand side
-        !$ACC PARALLEL LOOP DEFAULT(PRESENT) GANG(STATIC: 1) VECTOR
+        !$ACC PARALLEL LOOP DEFAULT(PRESENT) GANG(STATIC: 1) VECTOR ASYNC(1)
         DO jc = i_startidx_c(jb), i_endidx_c(jb)
           rhs(jc,nlev,jb) = - sfc_flx(jc,jb) * inv_mair(jc,nlev,jb)
           rhs(jc,1   ,jb) = + top_flx(jc,jb) * inv_mair(jc,1   ,jb)
