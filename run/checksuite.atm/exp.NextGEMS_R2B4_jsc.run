@@ -1,6 +1,6 @@
 #! /bin/bash
 #SBATCH --job-name='exp.NextGEMS_R2B4_jsc.run'
-#SBATCH --output=LOG.exp.NextGEMS_R2B4_jsc.run.o
+#SBATCH --output=LOG.exp.NextGEMS_R2B4_jsc.run.run.o
 #SBATCH --partition=develbooster
 #SBATCH --constraint=gpu
 #SBATCH --gres=gpu:4
@@ -9,6 +9,9 @@
 #SBATCH --cpus-per-task=1      # number of OpenMP threads / MPI task (1 == no OpennMP, eg. on GPUs)
 #SBATCH --time=00:06:00
 #SBATCH --account=exaww
+#SBATCH --mail-user=duras@dkrz.de
+#SBATCH --mail-type=FAIL,TIME_LIMIT,REQUEUE
+
 
 
 module --force purge 
@@ -137,7 +140,7 @@ author_list='Monika Esch, MPIM'
 # nproma_sub             = radiation blocking length
 #                          which is set in run/create_target_header for the used machine
 #
-icon_data_poolFolder="/p/fastdata/slmet/slmet111/model_data/ICON"
+icon_data_poolFolder="/p/data1/slmet/model_data/ICON"
 
 
 #--------------------------------------------------------------------------------------------------

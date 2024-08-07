@@ -251,9 +251,9 @@ case "$use_site" in
       jrl*|jwlogin*|*juwels*)
         use_submit='sbatch'
         use_sync_submit='sbatch --wait'
-        use_mpi_startrun='srun'
+        use_mpi_startrun='srun --label --ntasks=${mpi_total_procs}'
+        test xyes != x"${use_openmp}" || use_mpi_startrun+=' --cpus-per-task=${OMP_NUM_THREADS}'
         use_target='juwels'
-        use_load_profile='. /etc/profile'
       ;;
       juqueen*)
         use_submit='llsubmit'
