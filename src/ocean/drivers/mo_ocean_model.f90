@@ -18,7 +18,7 @@ MODULE mo_ocean_model
   USE mo_master_control,      ONLY: get_my_process_name, get_my_process_type
   USE mo_master_config,       ONLY: isRestart
   USE mo_parallel_config,     ONLY: p_test_run, l_test_openmp, num_io_procs, &
-       &                            pio_type, num_test_pe, num_prefetch_proc
+       &                            pio_type, num_test_pe, num_prefetch_proc, proc0_shift
   USE mo_mpi,                 ONLY: set_mpi_work_communicators
 #ifdef HAVE_CDI_PIO
   USE mo_impl_constants,      ONLY: pio_type_cdipio
@@ -391,7 +391,7 @@ MODULE mo_ocean_model
 !orig
 !pa
     num_io_procs_radar = 0
-    num_dio_procs      = 0
+    num_dio_procs      = proc0_shift
     radar_flag_doms_model(1) = .FALSE.
 
     CALL set_mpi_work_communicators(p_test_run, l_test_openmp, &
