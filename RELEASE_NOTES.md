@@ -3,10 +3,11 @@
 ### ICON-Atmo
 
 - Revise the aerosol submodules [RTE-RRTMGP] (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/464)
-- Refactoring of vertical diffusion in tmx (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/396)
+- Refactoring of vertical diffusion in TMX turbulence package
 - Fix faulty call to prm_diag (nwp variable) in aes mode when using nested domains (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/468)
-- Add 2m dewpoint temperature diagnostic to TMX turbulence package (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/467)
-- Fix for OpenACC in tmx on lumi (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/478)
+- Add 2m dewpoint temperature diagnostic to TMX turbulence package
+- Fixes for OpenACC in TMX turbulence package
+- OpenACC bugfix in interpolation of ozone from pressure levels to model levels
 
 ### ICON-Ocean
 
@@ -14,17 +15,18 @@
 
 ### ICON-Land
 
-- Fixes for using older restart files (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/433)
-- Fix for OpenACC loop in JSBACH hydrology (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/451)
-- Improvements in JSBACH soil hydrology (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/402)
-- New option for soil moisture initialization (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/456)
-- Fixes for OpenACC loops (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/457)
-- Bug fix for JSBACH pond scheme (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/458)
-- Implement daily anthropogenic land cover change (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/448)
-- QUINCY update incl. first implementation of coupling with AES atmosphere (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/465)
-- Switch from deprecated yac interface in HD model (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/477)
-- Fixes for DSL script (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/479)
-- Update externals/jsbach to commit master@ee53f2b3 (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/484)
+- Fixes for using older restart files from beforee the JSBACH pond scheme was implemented
+- Improvements in JSBACH soil hydrology
+  - change lower and upper limits of soil moisture
+  - add option to use uniform distribution of soil moisture for infiltration and drainage as alternative
+    to semi-distributed parameterization that accounts for sub-grid variability (Arno scheme)
+- New option to force initialization of soil moisture from a file instead of from IFS analysis
+- Fixes for OpenACC loops in JSBACH hydrology
+- Bug fix for JSBACH pond scheme
+- Implement daily execution of anthropogenic land cover change by interpolation of annual maps
+- QUINCY: updates incl. first implementation of coupling with ICON-Atmo
+- Switch from deprecated YAC interface in HD model
+- Several fixes for DSL pre-processor script `dsl4jsb.py`
 - QUINCY: implementation of a spin-up accelerator for the slow biogeochemical soil pools
 - Port JSBACH carbon and disturbance modules to GPU
 
