@@ -52,7 +52,7 @@
 - Fixes for the configure script (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/474)
 - Fix USE MTIME and INCLUDE netcdf.inc (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/476)
 - New makefile target 'env' to retreive the build environment (`BUILD_ENV`) set in a configure wrapper
-- Introduce configure option `--enable-bundled-python` to build the Python interfaces of `MTIME` and `YAC`
+- Introduce configure option `--enable-bundled-python` to build the Python interfaces of `MTIME`, `YAC` and `COMIN`
 
 #### Other
 

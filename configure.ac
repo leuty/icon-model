@@ -401,7 +401,7 @@ AC_ARG_ENABLE([memory-tracing],
 as 'mtrace'), 'no'])])],
 [enable_memory_tracing=no])
 
-m4_define([icon_supported_bundled_python], [mtime, yac])dnl
+m4_define([icon_supported_bundled_python], [mtime, yac, comin])dnl
 AC_ARG_ENABLE([bundled-python],
 [  --enable-bundled-python enable Python interfaces of the bundled libraries.
                           The value of the argument must be either one of the
@@ -779,6 +779,20 @@ interface of the bundled YAC (see --enable-bundled-python) or use the dnl
 bundled version of YAC library (--without-external-yac)])],
   [yesnoauto], [icon_yac_python=yes],
   [*auto], [icon_yac_python=no])
+
+AS_CASE(["$enable_comin$with_external_comin$icon_comin_python"],
+  [no*yes], [AC_MSG_ERROR([unsupported combination of the configure options: dnl
+you are trying to configure with the Python interface of the bundled COMIN dnl
+library but the ICON community interface (COMIN) is disabled: either disable dnl
+the Python interface of the bundled COMIN (see --enable-bundled-python) or dnl
+enable the community interface (--enable-comin)])],
+  [*yesyes], [AC_MSG_ERROR([unsupported combination of the configure dnl
+options: you are trying to configure with the Python interface of the dnl
+bundled COMIN library and an external COMIN library: either disable the dnl
+Python interface of the bundled COMIN (see --enable-bundled-python) or use dnl
+the bundled version of COMIN library (--without-external-comin)])],
+  [yesnoauto], [icon_comin_python=yes],
+  [*auto], [icon_comin_python=no])
 
 ############################# CODEBASE EXTENSIONS ##############################
 
@@ -2551,7 +2565,8 @@ dnl Build the static version of the library:
 dnl Turn off the examples (only build the static lib)
        [-DCOMIN_ENABLE_EXAMPLES:BOOL=OFF],
 dnl Set non-existing build type to avoid extra compiler flags:
-       [-DCMAKE_BUILD_TYPE:STRING=NOEXTRAFLAGS])
+       [-DCMAKE_BUILD_TYPE:STRING=NOEXTRAFLAGS],
+       [-DCOMIN_ENABLE_PYTHON_ADAPTER="$icon_comin_python"])
      AS_VAR_APPEND([bundled_includes],
        ["${FC_MOD_IN}externals/comin/build/mod "])
      BUNDLED_LIBFILES="externals/comin/build/libcomin.a $BUNDLED_LIBFILES"])])

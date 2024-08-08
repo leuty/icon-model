@@ -587,6 +587,7 @@ ac_subst_vars='LTLIBOBJS
 LIBOBJS
 PGI_INLIB_ENABLED
 HIP_OVERRIDES_ENABLED
+COMIN_PYTHON_ENABLED
 YAC_PYTHON_ENABLED
 MTIME_PYTHON_ENABLED
 SB2_ENABLED
@@ -1618,7 +1619,7 @@ Infrastructural Features:
                                       enabled bundled libraries
                             no        disable Python interfaces
                           or a comma-separated list of libraries to enable the
-                          Python interfaces for: mtime, yac
+                          Python interfaces for: mtime, yac, comin
 
 Optimization Features:
   --enable-loop-exchange  enable loop exchange [default=auto]
@@ -3477,10 +3478,10 @@ if test "${enable_bundled_python+set}" = set; then :
     for icon_bundled_name in $enableval; do
       IFS=$icon_save_IFS
       case $icon_bundled_name in #(
-  ''|mtime|yac) :
+  ''|mtime|yac|comin) :
      ;; #(
   *) :
-    as_fn_error $? "unexpected value for the argument --enable-bundled-python='$enableval'; valid values are 'auto', 'yes' (same as 'auto'), 'no' or a comma-separated subset of the following: 'mtime', 'yac'" "$LINENO" 5 ;;
+    as_fn_error $? "unexpected value for the argument --enable-bundled-python='$enableval'; valid values are 'auto', 'yes' (same as 'auto'), 'no' or a comma-separated subset of the following: 'mtime', 'yac', 'comin'" "$LINENO" 5 ;;
 esac
     done
     IFS=$icon_save_IFS ;;
@@ -3489,7 +3490,7 @@ else
   enable_bundled_python=no
 fi
 
-for icon_bundled_name in mtime yac; do
+for icon_bundled_name in mtime yac comin; do
   case $enable_bundled_python in #(
   auto|no) :
     eval "icon_${icon_bundled_name}_python=\$enable_bundled_python" ;; #(
@@ -3930,6 +3931,19 @@ case "$enable_coupling$with_external_yac$icon_yac_python" in #(
     icon_yac_python=yes ;; #(
   *auto) :
     icon_yac_python=no ;; #(
+  *) :
+     ;;
+esac
+
+case "$enable_comin$with_external_comin$icon_comin_python" in #(
+  no*yes) :
+    as_fn_error $? "unsupported combination of the configure options: you are trying to configure with the Python interface of the bundled COMIN library but the ICON community interface (COMIN) is disabled: either disable the Python interface of the bundled COMIN (see --enable-bundled-python) or enable the community interface (--enable-comin)" "$LINENO" 5 ;; #(
+  *yesyes) :
+    as_fn_error $? "unsupported combination of the configure options: you are trying to configure with the Python interface of the bundled COMIN library and an external COMIN library: either disable the Python interface of the bundled COMIN (see --enable-bundled-python) or use the bundled version of COMIN library (--without-external-comin)" "$LINENO" 5 ;; #(
+  yesnoauto) :
+    icon_comin_python=yes ;; #(
+  *auto) :
+    icon_comin_python=no ;; #(
   *) :
      ;;
 esac
@@ -10564,7 +10578,7 @@ esac
 esac
      shift
    done
-     set dummy        -DCMAKE_C_FLAGS="$subdir_CFLAGS $ICON_COMIN_CFLAGS $subdir_CPPFLAGS" -DCMAKE_Fortran_FLAGS="$subdir_FCFLAGS $ICON_COMIN_FCFLAGS" -DCMAKE_CXX_FLAGS="$subdir_CXXFLAGS $ICON_COMIN_CXXFLAGS $subdir_CPPFLAGS"        -DBUILD_SHARED_LIBS:BOOL=OFF        -DCOMIN_ENABLE_EXAMPLES:BOOL=OFF        -DCMAKE_BUILD_TYPE:STRING=NOEXTRAFLAGS; shift
+     set dummy        -DCMAKE_C_FLAGS="$subdir_CFLAGS $ICON_COMIN_CFLAGS $subdir_CPPFLAGS" -DCMAKE_Fortran_FLAGS="$subdir_FCFLAGS $ICON_COMIN_FCFLAGS" -DCMAKE_CXX_FLAGS="$subdir_CXXFLAGS $ICON_COMIN_CXXFLAGS $subdir_CPPFLAGS"        -DBUILD_SHARED_LIBS:BOOL=OFF        -DCOMIN_ENABLE_EXAMPLES:BOOL=OFF        -DCMAKE_BUILD_TYPE:STRING=NOEXTRAFLAGS -DCOMIN_ENABLE_PYTHON_ADAPTER="$icon_comin_python"; shift
    for acx_tmp; do
      case $acx_tmp in #(
   *\'*) :
@@ -11689,7 +11703,8 @@ fi
 
 MTIME_PYTHON_ENABLED='#'
 YAC_PYTHON_ENABLED='#'
-for icon_bundled_name in mtime yac; do
+COMIN_PYTHON_ENABLED='#'
+for icon_bundled_name in mtime yac comin; do
   if eval test \"x\$"icon_${icon_bundled_name}_python"\" = x"yes"; then :
   eval "`$as_echo "${icon_bundled_name}_PYTHON_ENABLED" | $as_tr_cpp`=''"
 fi
