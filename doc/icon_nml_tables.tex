@@ -3962,7 +3962,7 @@ idiag\_snowfrac &
 I & 1 &  & Type of snow-fraction diagnosis:\\
 1 = based on SWE only\\
 2 = more advanced method used operationally \\
-20 = same as 2, but with artificial reduction of snow fraction in case of melting snow
+20 = same as "2", but with artificial reduction of snow fraction in case of melting snow
 (should be used only in combination with lsnowtile=.TRUE.&
 \tabularnewline
 
@@ -8373,7 +8373,7 @@ Defined and used in: \verb+src/namelists/mo_synsat_nml.f90+
   improving the simulation of the so-called "bright band", the enhanced reflectivity in the melting layer.
 
 %
-EMVORADO is the Efficient Modular VOlume RADar Operator for simulating radar volume scans for cloud- and weather radar wavelenghts, see
+EMVORADO is the Efficient Modular VOlume RADar Operator for simulating radar volume scans for cloud- and weather radar wavelengths, see
 \begin{itemize}
 \item EMVORADO User's Guide\\
   in ICON's EMVORADO submodule \verb+./externals/emvorado/DOC/TEX/emvorado_userguide.pdf+\\
@@ -8789,13 +8789,13 @@ I                &      1      & &
 Mode of solving the TKE equation for atmosph. layers:\\
 0: diagnostic equation\\
 1: prognostic equation (current version)\\
-2: prognostic equation (intrinsically positive definite) &
+2: prognostic equation (intrinsically positive definite). &
 \tabularnewline
 
 %\hline
 imode\_tran &
 I                &      0      & &
-Same as \emph{imode\_turb} but only for the transfer layer &
+Same as \emph{imode\_turb} but only for the transfer layer. &
 \tabularnewline
 
 %\hline
@@ -8805,27 +8805,27 @@ Mode of water cloud representation in turbulence for atmosph. layers:\\
 -1: ignoring cloud water completely (pure dry scheme)\\
  0: no clouds considered (all cloud water is evaporated)\\
  1: only grid scale condensation possible\\
- 2: also sub grid (turbulent) condensation considered  &
+ 2: also sub grid (turbulent) condensation considered.  &
 \tabularnewline
 
 %\hline
 icldm\_tran &
 I                &      2      & &
-Same as \emph{icldm\_turb} but only for the transfer layer &
-\tabularnewline
-
-%\hline
-q\_crit &
-R                &    1.6      & &
-critical value for normalized super-saturation &
+Same as \emph{icldm\_turb} but only for the transfer layer. &
 \tabularnewline
 
 %\hline
 itype\_wcld &
 I                &     2      & &
-type of water cloud diagnosis within the turbulence scheme:\\
+Type of water cloud diagnosis within the turbulence scheme:\\
 1: employing a scheme based on relative humitidy\\
-2: employing a statistical saturation adjustment & icldm\_turb=2 or icldm\_tran=2
+2: employing a statistical saturation adjustment. & icldm\_turb=2 or icldm\_tran=2
+\tabularnewline
+
+%\hline
+q\_crit &
+R                &    1.6      & &
+Critical value for normalized super-saturation. & itype\_wcld=2
 \tabularnewline
 
 %\hline
@@ -8834,267 +8834,270 @@ I                &      0      & &
 Type of shear forcing used in turbulence:\\
 0: only vertical shear of horizontal wind\\
 1: previous plus horizontal shear correction \\
-2: previous plus shear from vertical velocity \\
-3: same as option 1, but (when combined with ltkeshs=.TRUE.) scaling of
-coarse-grid horizontal shear production term with $\frac{1}{\sqrt{Ri}}$ &
+2: previous plus shear from vertical velocity. & 
 \tabularnewline
 
 %\hline
 ltkeshs &
-L                &     .FALSE.      & &
-Include correction term for coarse grids in horizontal shear production term (needed
-at non-convection-resolving model resolutions in order to get a non-negligible impact) & itype\_sher $\ge$ 1
+L                &     .TRUE.      & &
+Consider TKE-production by separated horizontal shear eddies. &
+\tabularnewline
+
+%\hline
+imode\_shshear &
+I                &      2      & &
+Mode of calculat. the separated horizontal shear mode:\\
+0: with a constant length scale and based on 3D-shear and incompressibility \\
+1: with a constant length scale and considering the trace constraint for the 2D-strain tensor \\
+2: with a Ri-number depend. length-scale correct. and the trace constraint for the 2D-strain tensor. & ltkeshs=.TRUE. and a\_hshr$>$0
 \tabularnewline
 
 %\hline
 ltkesso &
 L                &     .TRUE.      & &
-Consider TKE-production by sub grid SSO wakes & inwp\_sso = 1
+Consider TKE-production by sub grid SSO wakes. & inwp\_sso = 1
 \tabularnewline
 
 %\hline
 imode\_tkesso &
 I                &      1      & &
-mode of calculat. the SSO source term for TKE production:\\
+Mode of calculat. the SSO source term for TKE production:\\
 1: original implementation\\
-2: Ri-dependent reduction factor for Ri$>$1\\
-3: as 2 with additional reductoin for dx $<$ 2 km  &
+2: with Ri-number dependent reduction factor for Ri$>$1\\
+3: as "2", but with additional reduction for dx $<$ 2 km.  & ltkesso=.TRUE.
 \tabularnewline
 
 %\hline
 ltkecon &
 L                &     .FALSE.      & &
-Consider TKE-production by sub grid convective plumes (inactive) & inwp\_conv = 1
-\tabularnewline
-
-%\hline
-ltkeshs &
-L                &     .FALSE.      & &
-Consider TKE-production by separated horizontal shear eddies (inactive) &
+Consider TKE-production by sub grid convective plumes. & inwp\_conv = 1
 \tabularnewline
 
 %\hline
 ltmpcor &
 L                &     .FALSE.      & &
-Consider thermal TKE sources in enthalpy equation &
+Consider thermal TKE sources in enthalpy equation. &
 \tabularnewline
 
 %\hline
-lsflcnd &
-L                &     .TRUE.      & &
-Use lower flux condition for vertical diffusion calculation (TRUE) instead of a lower concentration condition (FALSE) &
+lcpfluc &
+L                &     .FALSE.      & &
+Consideration of fluctuations of the heat capacity of air. &
 \tabularnewline
 
 %\hline
 lexpcor &
 L                &     .FALSE.      & &
-Explicit corrections of implicitly calculated vertical diffusion of non-conservative scalars that are involved in sub grid condensation processes &
+Explicit corrections of implicitly calculated vertical diffusion of non-conservative scalars 
+that are involved in sub grid condensation processes (inactive). &
+\tabularnewline
+
+%\hline
+lnonloc &
+L                &     .FALSE.      & &
+Nonlocal calculation of vertical gradients used for turbul. diff. (inactive). &
 \tabularnewline
 
 %\hline
 tur\_len &
 R                &     500.0      & m &
-Asymptotic maximal turbulent distance ($\kappa * tur\_len$ is the integral turbulent master length scale) &
+Asymptotic maximal turbulent distance (where $\kappa \cdot$ \emph{tur\_len} is the integral turbulent master length-scale). &
 \tabularnewline
 
 %\hline
 pat\_len &
 R                &     100.0      & m &
-Effective length scale of thermal surface patterns controlling TKE-production by sub grid kata/ana-batic circulations. In case of $pat\_len=0$,
-this production is switched off.&
+Effective length scale of thermal surface patterns controlling TKE-production by sub grid kata/ana-batic circulations. 
+In case of \emph{pat\_len}=0, this production is switched off. &
 \tabularnewline
 
 %\hline
 c\_diff &
 R                &     0.2      & 1 &
-Length scale factor for vertical diffusion of TKE. In case of $c\_diff=0$, TKE is not diffused vertically.&
+Length scale factor for vertical diffusion of TKE. In case of \emph{c\_diff}=0, TKE is not diffused vertically. &
 \tabularnewline
 
 %\hline
 a\_stab &
 R                &     0.0      & 1 &
-Factor for stability correction of turbulent length scale. In case of $a\_stab=0$, the turbulent length scale is not reduced for stable stratification.&
+Factor for stability correction of turbulent master length-scale. 
+In case of \emph{a\_stab}=0, this turbulent length scale is not reduced for stable stratification. &
 \tabularnewline
 
 %\hline
 a\_hshr &
 R                &     0.20      & 1 &
-Length scale factor for the separated horizontal shear mode. In case of $a\_hshr=0$, this shear mode has no effect.& ltkeshs=.TRUE.
+Length scale factor for the separated horizontal shear mode. In case of \emph{a\_hshr}=0, this shear mode has no effect. & ltkeshs=.TRUE.
+\tabularnewline
+
+%\hline
+tkhmin &
+R                &     0.75      & $\mathrm{m^2/s}$ &
+Basic minimum vertical diffusion coefficient for scalar properties like heat and moisture
+(being corrected by an empirical factor proportional to ${Ri}^{-2/3}$). &
+\tabularnewline
+
+%\hline
+tkhmin\_strat &
+R                &     0.75      & $\mathrm{m^2/s}$ &
+Enhanced value of \emph{tkhmin} valid for the stratosphere above 17.5 km (tropics above 22.5 km) 
+(being corrected by an empirical factor proportional to ${Ri}^{-1/3}$). &
+\tabularnewline
+
+%\hline
+tkmmin &
+R                &     0.75      & $\mathrm{m^2/s}$ &
+Basic minimum vertical diffusion coefficient for momentum 
+(being corrected by an empirical factor proportional to ${Ri}^{-2/3}$). &
+\tabularnewline
+
+%\hline
+tkmmin\_strat &
+R                &    4      & $\mathrm{m^2/s}$ &
+Enhanced value of \emph{tkmmin} valid for the stratosphere above 17.5 km (tropics above 22.5 km) 
+(being corrected by an empirical factor proportional to ${Ri}^{-1/3}$). &
+\tabularnewline
+
+%\hline
+lprfcor &
+L                &     .FALSE.      & &
+Using the profile values of the lowest main level instead of the mean value of the lowest layer 
+for surface flux calculations (inactive). &
 \tabularnewline
 
 %\hline
 alpha0 &
 R                &     0.0123      & 1 &
-Lower bound of velocity-dependent Charnock parameter &
+Standard Charnock parameter. &
 \tabularnewline
 
 %\hline
 alpha0\_max &
 R                &     0.0335      & 1 &
-Upper bound of velocity-dependent Charnock parameter. Setting this parameter to 0.0335 or higher values implies unconstrained
-velocity dependence &
+Upper bound of velocity-dependent Charnock parameter. Setting this parameter to 0.0335 or higher values, 
+implies unconstrained velocity dependence. &
 \tabularnewline
 
 %\hline
 alpha1 &
 R                &     0.75      & 1 &
-Scaling parameter for molecular roughness of ocean waves  &
+Scaling parameter for molecular roughness of ocean waves.  &
 \tabularnewline
 
 %\hline
 imode\_charpar &
 I                &     2      & 1 &
 Options for specifying the Charnock parameter: \\
-1: constant at alpha0 \\
-2: wind-speed dependent with maximum at alpha0\_max \\
-3: as 2, but decreasing again at speeds above about 25 m/s in order to improve pressure-speed relationship in tropical cyclones  & 
-\tabularnewline
-
-
-%\hline
-tkhmin &
-R                &     0.75      & $\mathrm{m^2/s}$ &
-Scaling factor for minimum vertical diffusion coefficient (proportional to ${Ri}^{-2/3}$)
-for heat and moisture &
+1: constant at \emph{alpha0} \\
+2: wind-speed dependent with maximum at \emph{alpha0\_max} \\
+3: as "2", but decreasing again at speeds above about 25 m/s in order to improve pressure-speed relationship in tropical cyclones. & 
 \tabularnewline
 
 %\hline
-tkmmin &
-R                &     0.75      & $\mathrm{m^2/s}$ &
-Scaling factor for minimum vertical diffusion coefficient (proportional to ${Ri}^{-2/3}$)
- for momentum &
+lconst\_z0 &
+L                &     .FALSE.      & &
+TRUE: horizontally homogeneous roughness length z0. &
 \tabularnewline
 
-
-tkmmin\_strat &
-R                &    4      & $\mathrm{m^2/s}$ &
-Scaling factor for stratospheric minimum vertical diffusion coefficient (proportional to ${Ri}^{-1/3}$)
- for momentum, valid above 17.5 km (tropics above 22.5 km)&
+%\hline
+const\_z0 &
+R                &     0.001      & m &
+Value for horizontally homogeneous roughness length z0. & lconst\_z0=.TRUE.
 \tabularnewline
-
-tkhmin\_strat &
-R                &     0.75      & $\mathrm{m^2/s}$ &
-Scaling factor for stratospheric minimum vertical diffusion coefficient (proportional to ${Ri}^{-1/3}$)
-for heat and moisture, valid above 17.5 km (tropics above 22.5 km)  &
-\tabularnewline
-
 
 %\hline
 itype\_synd &
 I                &     2      & &
 Type of diagnostics of synoptic near surface variables:\\
 1: Considering the mean surface roughness of a grid box\\
-2: Considering a fictive surface roughness of a SYNOP lawn &
+2: Considering a fictive surface roughness of a SYNOP lawn. &
 \tabularnewline
 
 %\hline
 rlam\_heat &
 R                &     10.0     & 1 &
-Scaling factor of the laminar boundary layer for heat (scalars). The larger rlam\_heat, the larger is the laminar resistance. &
+Scaling factor of the laminar boundary layer for scalars (heat and vapor). The larger rlam\_heat, the larger is the laminar resistance. &
 \tabularnewline
 
 %\hline
 rat\_lam &
 R                &     1.0     & 1 &
-Ratio of laminar scaling factors for vapour and heat. The larger rat\_lam, the larger is the laminar resistance for evaporation compared to sensible heat. &
+Vapour/Heat ratio of laminar scaling factors (over land).  
+The larger \emph{rat\_lam}, the larger is the laminar resistance for evaporation compared to sensible heat. &
 \tabularnewline
 
 %\hline
 rat\_sea &
 R                &     0.8     & 1 &
-Ratio of laminar scaling factors for scalars over sea and land. The larger rat\_sea, the larger is the laminar resistance
-for a sea surface compared to a land surface. &
+Sea/Land ratio of laminar scaling factors for scalars (heat and vapor).
+The larger \emph{rat\_sea}, the larger is the laminar resistance for a sea surface compared to a land surface. &
 \tabularnewline
 
 %\hline
 rat\_glac &
 R                &     3.0     & 1 &
-Ratio of laminar scaling factors for scalars over glaciers. The larger rat\_glac, the larger is the laminar resistance
-over glaciers compared to other land surfaces. &
+Glacier/Land ratio of laminar scaling factors for scalars (heat and vapor).
+The larger \emph{rat\_glac}, the larger is the laminar resistance over glaciers compared to other land surfaces. &
 \tabularnewline
 
 %\hline
 tkesmot &
 R                &     0.15     & 1 &
-Time smoothing factor within $[0, 1]$ for TKE. In case of $tkesmot=0$, no smoothing is active. &
+Time smoothing factor within $[0, 1]$ for TKE. In case of \emph{tkesmot}=0, no smoothing is active. &
 \tabularnewline
 
 %\hline
 frcsmot &
 R                &     0.0     & 1 &
-Vertical smoothing factor within $[0, 1]$ for TKE forcing terms. In case of $frcmot=0$, no smoothing is active. &
+Vertical smoothing factor within $[0, 1]$ for TKE forcing terms. In case of \emph{frcsmot}=0, no smoothing is active. &
 \tabularnewline
 
 %\hline
 imode\_frcsmot &
 I                &     1     &  &
-1 = apply vertical smoothing (if frcsmot$>$0) uniformly over the globe \\
-2 = restrict vertical smoothing to the tropics (reduces the moist bias in the tropics while avoiding
-    adverse effects on NWP skill scores in the extratropics) &
+1: Apply vertical smoothing uniformly over the globe \\
+2: Restrict vertical smoothing to the tropics (reduces the moist bias in the tropics while avoiding
+   adverse effects on NWP skill scores in the extratropics). & frcsmot$>$0
 \tabularnewline
 
 %\hline
-impl\_s &
-R                &     1.20     & 1 &
-Implicit weight near the surface (maximal value) &
+imode\_snowsmot &
+I                &     1     &  &
+Mode to treating the aerodynamic surface-smoothing by snow: \\ 
+0: no smoothing active at all \\
+1: no impact on SAI, but full smoothing of land-use R-length \\
+2: "1", but with full smoothing of SAI: full smoothing of R-length and SAI \\
+3: dynamical smoothing of R-length and SAI dependent on snow- and R-height. & itype\_z0 $\ge$ 2
 \tabularnewline
 
 %\hline
-impl\_t &
-R                &     0.75     & 1 &
-Implicit weight near top of the atmosphere (minimal value) &
-\tabularnewline
-
-%\hline
-lconst\_z0 &
-L                &     .FALSE.      & &
-TRUE: horizontally homogeneous roughness length z0 &
-\tabularnewline
-
-%\hline
-const\_z0 &
-R                &     0.001      & m &
-value for horizontally homogeneous roughness length z0 & lconst\_z0=.TRUE.
-\tabularnewline
-
-
-%\hline
-ldiff\_qi &
-L                &     .FALSE.     &  &
-Turbulent diffusion of cloud ice, if .TRUE.
-\tabularnewline
-
-
-
-
-%\hline
-itype\_tran &
-I            & 2      &&
-type of surface-atmosphere transfer&
-\tabularnewline
-
-%\hline
-lprfcor &
-L                &     .FALSE.      & &
-using the profile values of the lowest main level instead of the mean value of the lowest layer for surface flux calculations &
-\tabularnewline
-
-%\hline
-lnonloc &
-L                &     .FALSE.      & &
-nonlocal calculation of vertical gradients used for turbul. diff. &
+lsflcnd &
+L                &     .TRUE.      & &
+Use lower flux condition for vertical diffusion calculation (TRUE) instead of a lower concentration condition (FALSE). &
 \tabularnewline
 
 %\hline
 lfreeslip &
 L                &     .FALSE.      & &
-.TRUE.: use a free-slip lower boundary condition, i.e. neither momentum nor heat/moisture fluxes (use for idealized runs only!) &
+Use a free-slip lower boundary condition (TRUE), i.e. neither momentum nor heat/moisture fluxes (use for idealized runs only!). &
 \tabularnewline
 
 %\hline
-lcpfluc &
-L                &     .FALSE.      & &
-consideration of fluctuations of the heat capacity of air &
+impl\_s &
+R                &     1.20     & 1 &
+Implicit weight near the surface (maximal value). &
+\tabularnewline
+
+%\hline
+impl\_t &
+R                &     0.75     & 1 &
+Implicit weight near top of the atmosphere (minimal value). &
+\tabularnewline
+
+%\hline
+ldiff\_qi &
+L                &     .FALSE.     &  &
+Turbulent diffusion of cloud ice (TRUE).
 \tabularnewline
 
 
@@ -10212,7 +10215,7 @@ nh\_test\_name=\\'dcmip\_mw\_2x'
 %\hline
 halfwidth\_2d&
 R& 10000. & m &
-half lenght of the finite ridge in the north-south
+half length of the finite ridge in the north-south
 direction&
 nh\_test\_name=\\'g\_lim\_area' and
 itype\_topo\_ana=1,2

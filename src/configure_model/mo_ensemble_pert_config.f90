@@ -586,13 +586,13 @@ MODULE mo_ensemble_pert_config
     ! turbulence
     CALL random_gen(rnd_tkhmin, rnd_num)
     tkfac = tkhmin_strat_sv(1)/tkhmin_sv(1)
-    turbdiff_config(1:max_dom)%tkhmin = tkhmin_sv(1:max_dom) + 2._wp*(rnd_num-0.5_wp)*range_tkhmin
-    turbdiff_config(1:max_dom)%tkhmin_strat = tkhmin_strat_sv(1:max_dom) + 2._wp*tkfac*(rnd_num-0.5_wp)*range_tkhmin
+    turbdiff_config(1:max_dom)%tkhmin = MAX(0._wp, tkhmin_sv(1:max_dom) + 2._wp*(rnd_num-0.5_wp)*range_tkhmin)
+    turbdiff_config(1:max_dom)%tkhmin_strat = MAX(0._wp, tkhmin_strat_sv(1:max_dom) + 2._wp*tkfac*(rnd_num-0.5_wp)*range_tkhmin)
 
     CALL random_gen(rnd_tkmmin, rnd_num)
     tkfac = tkmmin_strat_sv(1)/tkmmin_sv(1)
-    turbdiff_config(1:max_dom)%tkmmin = tkmmin_sv(1:max_dom) + 2._wp*(rnd_num-0.5_wp)*range_tkmmin
-    turbdiff_config(1:max_dom)%tkmmin_strat = tkmmin_strat_sv(1:max_dom) + 2._wp*tkfac*(rnd_num-0.5_wp)*range_tkmmin
+    turbdiff_config(1:max_dom)%tkmmin = MAX(0._wp, tkmmin_sv(1:max_dom) + 2._wp*(rnd_num-0.5_wp)*range_tkmmin)
+    turbdiff_config(1:max_dom)%tkmmin_strat = MAX(0._wp, tkmmin_strat_sv(1:max_dom) + 2._wp*tkfac*(rnd_num-0.5_wp)*range_tkmmin)
 
     CALL random_gen(rnd_rlam_heat, rnd_num)
     turbdiff_config(1:max_dom)%rlam_heat = MAX(0.1_wp, rlam_heat_sv(1:max_dom) + 2._wp*(rnd_num-0.5_wp)*range_rlam_heat)
@@ -600,10 +600,10 @@ MODULE mo_ensemble_pert_config
     turbdiff_config(1:max_dom)%rat_sea   = rat_sea_sv(1:max_dom)*rlam_heat_sv(1:max_dom)/turbdiff_config(1:max_dom)%rlam_heat
 
     CALL random_gen(rnd_turlen, rnd_num)
-    turbdiff_config(1:max_dom)%tur_len = tur_len_sv(1:max_dom) + 2._wp*(rnd_num-0.5_wp)*range_turlen
+    turbdiff_config(1:max_dom)%tur_len = MAX(0._wp, tur_len_sv(1:max_dom) + 2._wp*(rnd_num-0.5_wp)*range_turlen)
 
     CALL random_gen(rnd_a_hshr, rnd_num)
-    turbdiff_config(1:max_dom)%a_hshr = a_hshr_sv(1:max_dom) + 2._wp*(rnd_num-0.5_wp)*range_a_hshr
+    turbdiff_config(1:max_dom)%a_hshr = MAX(0._wp, a_hshr_sv(1:max_dom) + 2._wp*(rnd_num-0.5_wp)*range_a_hshr)
 
     ! a_stab has default value 0 and needs positive definite perturbations
     CALL random_gen(rnd_a_stab, rnd_num)
@@ -614,7 +614,7 @@ MODULE mo_ensemble_pert_config
     turbdiff_config(1:max_dom)%c_diff = c_diff_sv(1:max_dom) * rnd_fac
 
     CALL random_gen(rnd_q_crit, rnd_num)
-    turbdiff_config(1:max_dom)%q_crit = q_crit_sv(1:max_dom) + 2._wp*(rnd_num-0.5_wp)*range_q_crit
+    turbdiff_config(1:max_dom)%q_crit = MAX(0._wp, q_crit_sv(1:max_dom) + 2._wp*(rnd_num-0.5_wp)*range_q_crit)
 
     CALL random_gen(rnd_alpha0, rnd_num)
     rnd_fac   = range_charnock**(2._wp*(rnd_num-0.5_wp))
@@ -630,7 +630,7 @@ MODULE mo_ensemble_pert_config
 
     ! TERRA
     CALL random_gen(rnd_minsnowfrac, rnd_num)
-    tune_minsnowfrac = minsnowfrac_sv + 2._wp*(rnd_num-0.5_wp)*range_minsnowfrac
+    tune_minsnowfrac =  MAX(0._wp, minsnowfrac_sv + 2._wp*(rnd_num-0.5_wp)*range_minsnowfrac)
 
     CALL random_gen(rnd_c_soil, rnd_num)
     c_soil = c_soil_sv + 2._wp*(rnd_num-0.5_wp)*range_c_soil

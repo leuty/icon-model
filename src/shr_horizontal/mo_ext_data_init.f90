@@ -62,7 +62,7 @@ MODULE mo_ext_data_init
     &                              read_2D, read_2D_int, read_3D_extdim, read_2D_extdim, read_inq_varexists
   USE mo_netcdf_errhandler,  ONLY: nf
   USE mo_netcdf
-  USE turb_data,             ONLY: c_lnd, c_sea
+  USE turb_data,             ONLY: c_lnd, c_sea, c_stm
   USE mo_util_cdi,           ONLY: read_cdi_2d, read_cdi_3d, t_inputParameters,   &
     &                              makeInputParameters, deleteInputParameters
   USE mo_cdi,                ONLY: FILETYPE_GRB2, streamClose, cdi_undefid
@@ -1515,11 +1515,12 @@ CONTAINS
                ! surface area index
                IF (lterra_urb) THEN
                  ext_data(jg)%atm%sai_t  (jc,jb,1)  = c_lnd * (1.0_wp - ext_data(jg)%atm%urb_isa_t(jc,jb,1))                 &
-                                                    + ext_data(jg)%atm%urb_ai_t(jc,jb,1)*ext_data(jg)%atm%urb_isa_t(jc,jb,1) &
-                                                    + ext_data(jg)%atm%tai_t(jc,jb,1)
+                                   + ext_data(jg)%atm%urb_ai_t(jc,jb,1)*ext_data(jg)%atm%urb_isa_t(jc,jb,1)
                ELSE
-                 ext_data(jg)%atm%sai_t  (jc,jb,1)  = c_lnd + ext_data(jg)%atm%tai_t(jc,jb,1)
+                 ext_data(jg)%atm%sai_t  (jc,jb,1)  = c_lnd
                END IF
+               ext_data(jg)%atm%sai_t    (jc,jb,1)  = ext_data(jg)%atm%sai_t(jc,jb,1) + ext_data(jg)%atm%tai_t  (jc,jb,1)    &
+                                                                                + c_stm*ext_data(jg)%atm%plcov_t(jc,jb,1)
 
                ! evaporative soil area index
                IF (icpl_da_sfcevap >= 4 .OR. itype_evsl == 5) THEN
@@ -1754,11 +1755,13 @@ CONTAINS
                  ! surface area index
                  IF (lterra_urb) THEN
                    ext_data(jg)%atm%sai_t  (jc,jb,i_lu)  = c_lnd * (1.0_wp - ext_data(jg)%atm%urb_isa_t(jc,jb,i_lu))       &
-                                          + ext_data(jg)%atm%urb_ai_t(jc,jb,i_lu) * ext_data(jg)%atm%urb_isa_t(jc,jb,i_lu) &
-                                          + ext_data(jg)%atm%tai_t(jc,jb,i_lu)
+                                     + ext_data(jg)%atm%urb_ai_t(jc,jb,i_lu)*ext_data(jg)%atm%urb_isa_t(jc,jb,i_lu)
                  ELSE
-                   ext_data(jg)%atm%sai_t  (jc,jb,i_lu)  = c_lnd + ext_data(jg)%atm%tai_t(jc,jb,i_lu)
+                   ext_data(jg)%atm%sai_t  (jc,jb,i_lu)  = c_lnd
                  END IF
+                 ext_data(jg)%atm%sai_t    (jc,jb,i_lu)  = ext_data(jg)%atm%sai_t  (jc,jb,i_lu)                            &
+                                                         + ext_data(jg)%atm%tai_t  (jc,jb,i_lu)                            &
+                                                   + c_stm*ext_data(jg)%atm%plcov_t(jc,jb,i_lu)
 
                  ! evaporative soil area index
                  IF (icpl_da_sfcevap >= 4 .OR. itype_evsl == 5) THEN
@@ -1963,7 +1966,6 @@ CONTAINS
 
          ENDDO  ! jc
 
-
          IF (lsnowtile) THEN ! copy external data fields to snow tile grid points
            DO jt = ntiles_lnd+1, ntiles_total
 
@@ -2150,7 +2152,6 @@ CONTAINS
       CALL get_indices_c(p_patch, jb, i_startblk, i_endblk, &
         & i_startidx, i_endidx, rl_start, rl_end)
 
-!
       ext_data%atm%urb_isa    (i_startidx:i_endidx,jb) = 0._wp
       IF (lterra_urb) THEN
         ext_data%atm%urb_ai     (i_startidx:i_endidx,jb) = 0._wp
@@ -2507,13 +2508,14 @@ CONTAINS
             (wfac*ext_data%atm%laimax_lcc(ilu) + (1._wp-wfac)*laimin(ilu))/MAX(0.01_wp,ext_data%atm%laimax_lcc(ilu))
 
           IF (lterra_urb) THEN
-            ext_data%atm%sai_t(jc,jb,jt) = c_lnd * (1.0_wp - ext_data%atm%urb_isa_t(jc,jb,jt))                &
-                                         + ext_data%atm%urb_ai_t(jc,jb,jt) * ext_data%atm%urb_isa_t(jc,jb,jt) &
-                                         + ext_data%atm%tai_t(jc,jb,jt)
+            ext_data%atm%sai_t(jc,jb,jt) = c_lnd * (1.0_wp - ext_data%atm%urb_isa_t(jc,jb,jt)) &
+                                         + ext_data%atm%urb_ai_t(jc,jb,jt)*ext_data%atm%urb_isa_t(jc,jb,jt)
           ELSE
-            ext_data%atm%sai_t(jc,jb,jt) = c_lnd + ext_data%atm%tai_t(jc,jb,jt)
+            ext_data%atm%sai_t(jc,jb,jt) = c_lnd
           END IF
-
+          ext_data%atm%sai_t  (jc,jb,jt) = ext_data%atm%sai_t  (jc,jb,jt) &
+                                         + ext_data%atm%tai_t  (jc,jb,jt) &
+                                   + c_stm*ext_data%atm%plcov_t(jc,jb,jt)
 
           ! modification of root depth
           ext_data%atm%rootdp_t(jc,jb,jt) = ext_data%atm%rootdmax_lcc(ilu) ! reset to table-based value
@@ -2545,7 +2547,6 @@ CONTAINS
 
 
   END SUBROUTINE vege_clim
-
 
   !-------------------------------------------------------------------------
   !! adjust atmo LSM to ocean LSM for coupled simulation and initialize new land points

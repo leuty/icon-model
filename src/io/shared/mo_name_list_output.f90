@@ -1407,6 +1407,7 @@ CONTAINS
           i_ptr => i_ptr_5d(:,:,:,nindex,1)
         END SELECT
       END IF
+
     CASE DEFAULT
       WRITE (message_text, '(2a,i0)') TRIM(info%name), &
            ": internal error! unhandled info%ndims=", info%ndims

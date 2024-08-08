@@ -51,7 +51,7 @@ MODULE mo_nwp_sfc_utils
   USE sfc_flake,              ONLY: flake_init
   USE sfc_seaice,             ONLY: seaice_init_nwp, seaice_coldinit_albsi_nwp
   USE sfc_terra_data,         ONLY: cadp, cf_snow, crhosmin_ml, crhosmax_ml
-  USE turb_data,              ONLY: c_lnd, c_sea
+  USE turb_data,              ONLY: c_lnd, c_sea, c_stm
   USE mo_satad,               ONLY: sat_pres_water, sat_pres_ice, spec_humi
   USE mo_sync,                ONLY: global_max, global_min
   USE mo_nonhydro_types,      ONLY: t_nh_diag
@@ -75,8 +75,6 @@ MODULE mo_nwp_sfc_utils
   IMPLICIT NONE
 
   PRIVATE
-
-
 
 #ifdef __SX__
 ! parameter for loop unrolling
@@ -387,11 +385,7 @@ CONTAINS
           rootdp_t(ic,jb,isubs)              =  ext_data%atm%rootdp_t(jc,jb,isubs)
           plcov_t(ic,jb,isubs)               =  ext_data%atm%plcov_t(jc,jb,isubs)
 
-          IF (isubs > ntiles_lnd) THEN
-            z0_t(ic,jb,isubs)                =  prm_diag%gz0_t(jc,jb,isubs-ntiles_lnd)/grav
-          ELSE
-            z0_t(ic,jb,isubs)                =  prm_diag%gz0_t(jc,jb,isubs)/grav
-          ENDIF
+          z0_t(ic,jb,isubs)                  =  prm_diag%gz0_t(jc,jb,isubs)/grav
 
           IF (itype_vegetation_cycle >= 2) THEN ! use climatological temperature to specify snow density on glaciers
             t_rhosnowini_t(ic,jb,isubs)      = ext_data%atm%t2m_clim_hc(jc,jb)
@@ -3501,11 +3495,12 @@ CONTAINS
            ! surface area index
            IF (lterra_urb) THEN
              ext_data%atm%sai_t  (jc,jb,1)  = c_lnd * (1.0_wp - ext_data%atm%urb_isa_t(jc,jb,1))                 &
-                                            + ext_data%atm%urb_ai_t(jc,jb,1) * ext_data%atm%urb_isa_t(jc,jb,1)   &
-                                            + ext_data%atm%tai_t(jc,jb,1)
+                                            + ext_data%atm%urb_ai_t(jc,jb,1) * ext_data%atm%urb_isa_t(jc,jb,1)
            ELSE
-             ext_data%atm%sai_t  (jc,jb,1)  = c_lnd + ext_data%atm%tai_t(jc,jb,1)
+             ext_data%atm%sai_t  (jc,jb,1)  = c_lnd
            END IF
+           ext_data%atm%sai_t(jc,jb,1) = ext_data%atm%sai_t(jc,jb,1) + ext_data%atm%tai_t  (jc,jb,1)             &
+                                                                 + c_stm*ext_data%atm%plcov_t(jc,jb,1)
 
          END DO
        ELSE ! ntiles_lnd > 1
@@ -3536,11 +3531,12 @@ CONTAINS
              ! surface area index
              IF (lterra_urb) THEN
                ext_data%atm%sai_t(jc,jb,jt) = c_lnd * (1.0_wp - ext_data%atm%urb_isa_t(jc,jb,jt))                &
-                                            + ext_data%atm%urb_ai_t(jc,jb,jt) * ext_data%atm%urb_isa_t(jc,jb,jt) &
-                                            + ext_data%atm%tai_t(jc,jb,jt)
+                                            + ext_data%atm%urb_ai_t(jc,jb,jt) * ext_data%atm%urb_isa_t(jc,jb,jt)
              ELSE
-               ext_data%atm%sai_t(jc,jb,jt) = c_lnd + ext_data%atm%tai_t(jc,jb,jt)
+               ext_data%atm%sai_t(jc,jb,jt) = c_lnd
              END IF
+             ext_data%atm%sai_t  (jc,jb,jt) = ext_data%atm%sai_t(jc,jb,jt) + ext_data%atm%tai_t  (jc,jb,jt)      &
+                                                                     + c_stm*ext_data%atm%plcov_t(jc,jb,jt)
 
            END DO !ic
          END DO !jt

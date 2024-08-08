@@ -52,7 +52,7 @@ USE sfc_terra_data  ! All variables from this data module are used by
 
 USE mo_mpi,                ONLY : get_my_global_mpi_id
 !
-USE mo_parallel_config,     ONLY: nproma
+USE mo_parallel_config,    ONLY: nproma
 USE mo_kind,               ONLY: wp
 USE mo_math_constants    , ONLY: pi
 !
@@ -163,6 +163,8 @@ CONTAINS
                   v                , & ! meridional wind speed                         ( m/s )
                   t                , & ! temperature                                   (  k  )
                   qv               , & ! specific water vapor content                  (kg/kg)
+                  qc               , & ! specific liquid-water content                 (kg/kg)
+                  qi               , & ! specific frozen-water content                 (kg/kg)
                   ptot             , & ! full pressure                                 ( Pa  )
                   ps               , & ! surface pressure                              ( Pa  )
 !
@@ -261,7 +263,9 @@ CONTAINS
                   rstom            , & ! stomatal resistance                           ( s/m )
                   zshfl_sfc        , & ! sensible heat flux surface interface          (W/m2)
                   zlhfl_sfc        , & ! latent   heat flux surface interface          (W/m2)
-                  zqhfl_sfc        , & ! moisture      flux surface interface          (kg/m2/s)
+                  zqhfl_sfc        , & ! water vapor   flux surface interface          (kg/m2/s)
+                  ldiff_qi         , & ! turbulent diffusion of frozen water is active
+                  ldepo_qw         , & ! deposition of (frozen or liquid) cloud water required
                   lres_soilwatb    , & ! flag for computing the soil water budget
                   lacc             , & ! flag for activating OpenACC
                   opt_acc_async_queue) ! OpenACC stream
@@ -316,6 +320,8 @@ CONTAINS
                   v                , & ! meridional wind speed                         ( m/s )
                   t                , & ! temperature                                   (  k  )
                   qv               , & ! specific water vapor content                  (kg/kg)
+                  qc               , & ! specific liquid-water content                 (kg/kg)
+                  qi               , & ! specific frozen-water content                 (kg/kg)
                   ptot             , & ! full pressure                                 ( Pa )
                   ps               , & ! surface pressure                              ( pa  )
                   h_snow_gp        , & ! grid-point averaged snow depth
@@ -425,7 +431,11 @@ CONTAINS
                   zlhfl_sfc        , & ! latent   heat flux surface interface          (W/m2)
                   zqhfl_sfc            ! latent   heat flux surface interface          (W/m2)
 
-  LOGICAL, INTENT(IN)           :: lres_soilwatb
+  LOGICAL, INTENT(IN) ::  &
+                  ldiff_qi         , & ! turbulent diffusion of frozen water is active
+                  ldepo_qw         , & ! deposition of (frozen or liquid) cloud water required
+                  lres_soilwatb        ! calculation soil water budget desired
+
   LOGICAL, OPTIONAL, INTENT(IN) :: lacc
   INTEGER, OPTIONAL, INTENT(IN) :: opt_acc_async_queue
 
@@ -732,8 +742,8 @@ CONTAINS
   REAL(KIND=wp)                  ::  &
 
     ! Connection to the atmosphere
-    zrr            (nvec)          , & ! total rain rate including formation of dew
-    zrs            (nvec)          , & ! total snow rate including formation of rime
+    zrr            (nvec)          , & ! total rain rate including formation of dew and deposition of water droplets
+    zrs            (nvec)          , & ! total snow rate including formation of rime and deposition of frozen particles
     zesoil         (nvec)          , & ! evaporation from bare soil
     zsfc_frac_bs   (nvec)          , & ! relative source surface of the bare soil
     zrhoch         (nvec)          , & ! transfer coefficient*rho*g
@@ -1028,6 +1038,11 @@ mvid =   8
         WRITE(*,'(A,F28.16)') '   v     ke         :  ', v           (i)
         WRITE(*,'(A,F28.16)') '   t     ke         :  ', t           (i)
         WRITE(*,'(A,F28.16)') '   qv    ke         :  ', qv          (i)
+      IF (ldepo_qw) THEN
+        WRITE(*,'(A,F28.16)') '   qc    ke         :  ', qc          (i)
+       IF (ldiff_qi) &
+        WRITE(*,'(A,F28.16)') '   qi    ke         :  ', qi          (i)
+      END IF
         WRITE(*,'(A,F28.16)') '   ptot  ke         :  ', ptot        (i)
         WRITE(*,'(A,F28.16)') '   ps               :  ', ps          (i)
         WRITE(*,'(A,F28.16)') '   h_snow_gp        :  ', h_snow_gp   (i)
@@ -1125,7 +1140,7 @@ ENDDO
   !$ACC   PRESENT(urb_hcap, urb_hcon, ahf) &
   !$ACC   PRESENT(plcov, rootdp, sai, eai, tai, laifac, skinc) &
   !$ACC   PRESENT(heatcond_fac, heatcap_fac) &
-  !$ACC   PRESENT(rsmin2d, u, v, t, qv, ptot, ps, h_snow_gp, u_10m) &
+  !$ACC   PRESENT(rsmin2d, r_bsmin, u, v, t, qv, qc, qi, ptot, ps, h_snow_gp, u_10m) &
   !$ACC   PRESENT(v_10m, prr_con, prs_con, conv_frac, prr_gsp, prs_gsp, pri_gsp) &
 #ifdef TWOMOM_SB
   !$ACC   PRESENT(prh_gsp) &
@@ -1588,7 +1603,7 @@ ENDDO
 
         ! heat conductivity is also artificially reduced on snow-free forest-covered tiles generated
         ! by the melting-rate parameterization
-        IF (tsnred(i) < -1.0_wp .AND. z0(i) >= 0.2_wp) THEN
+        IF (tsnred(i) < -1.0_wp .AND. z0(i) >= 0.4_wp) THEN
           zxx = MAX(0.0_wp,2.0_wp - ABS(tsnred(i)))
           hzalam(i,kso) = zxx*hzalam(i,kso) + (1.0_wp-zxx)*0.06_wp
         ENDIF
@@ -2782,6 +2797,7 @@ ENDDO
       zrr(i) = zrr(i) + prr_con(i) + prr_gsp(i)
       zrime  = zrs(i)
       zrs(i) = zrs(i) + prs_con(i) + prs_gsp(i) + pri_gsp(i)
+
       IF ( nclass_gscp >= 2000 ) THEN
         ! only possible when running 2-moment microphysics
 #ifdef TWOMOM_SB
@@ -2790,6 +2806,12 @@ ENDDO
       ELSEIF ( nclass_gscp >= 6 ) THEN
         zrs(i) = zrs(i) + prg_gsp(i)
       ENDIF
+
+      ! add possible deposition of water droplets or ice particles:
+      IF (ldepo_qw) THEN !cloud-particle deposition related to vertical diffsuion with zero-concentration condition
+                      zrr(i) = zrr(i) + zrhoch(i)*qc(i) !dew -fall + liquid precipitation including deposition
+        IF (ldiff_qi) zrs(i) = zrs(i) + zrhoch(i)*qi(i) !rime-fall + frozn. precipitation including deposition
+      END IF  
 
       ! Decide whether riming is added to interception store or to snow cover
       IF (zrs(i) >= 1.05_wp*zrime .OR. zf_snow(i) >= 0.9_wp) zrime = 0._wp
@@ -2932,6 +2954,12 @@ ENDDO
       ELSE
         zrs(i) = zrrs(i) + prs_con(i) + prs_gsp(i) + pri_gsp(i)
       ENDIF
+
+      ! add possible deposition of water droplets or ice particles:
+      IF (ldepo_qw) THEN !cloud-particle deposition related to vertical diffsuion with zero-concentration condition
+                      zrr(i) = zrr(i) + zrhoch(i)*qc(i) !dew -fall + liquid precipitation including deposition
+        IF (ldiff_qi) zrs(i) = zrs(i) + zrhoch(i)*qi(i) !rime-fall + frozn. precipitation including deposition
+      END IF  
 
       ! Preliminary interception store budget
       ! According to Wang et al. (Evaluation of canopy interception schemes in land 

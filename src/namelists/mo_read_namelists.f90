@@ -263,5 +263,4 @@ CONTAINS
   END SUBROUTINE read_atmo_namelists
   !-------------------------------------------------------------------------
 
-
 END MODULE mo_read_namelists

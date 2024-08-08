@@ -93,7 +93,7 @@ MODULE mo_nml_crosscheck
 #endif
 
 #ifdef HAVE_RADARFWO
-  USE radar_data,            ONLY: ndoms_max_radar => ndoms_max
+  USE radar_data,                  ONLY: ndoms_max_radar => ndoms_max
 #endif
 
   USE mo_sppt_config,              ONLY: sppt_config, crosscheck_sppt

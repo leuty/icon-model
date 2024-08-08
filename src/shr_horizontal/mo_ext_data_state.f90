@@ -1060,7 +1060,7 @@ CONTAINS
       CALL add_var( p_ext_atm_list, 'sai_t', p_ext_atm%sai_t,     &
         &           GRID_UNSTRUCTURED_CELL, ZA_SURFACE, cf_desc,  &
         &           grib2_desc, ldims=shape3d_ntw, loutput=.FALSE., &
-        &           lopenacc=.TRUE. )
+        &           initval=1._wp, lopenacc=.TRUE. ) !Attention(MR): initialization with general default value
       __acc_attach(p_ext_atm%sai_t)
 
       ! Transpiration area index (aggregated)

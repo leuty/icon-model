@@ -81,6 +81,7 @@ MODULE mo_nwp_phy_types
     TYPE(t_ptr_2d3d),ALLOCATABLE :: tvs_s_t_ptr(:)  !< pointer array: turbulent velocity scale at surface
     TYPE(t_ptr_2d3d),ALLOCATABLE :: tkvm_s_t_ptr(:) !< pointer array: exchange coefficient for momentum at surface
     TYPE(t_ptr_2d3d),ALLOCATABLE :: tkvh_s_t_ptr(:) !< pointer array: exchange coefficient for heat at surface
+    TYPE(t_ptr_2d3d),ALLOCATABLE :: rcld_s_t_ptr(:) !< pointer array: standard deviation of the saturation deficit at surface
     TYPE(t_ptr_2d3d),ALLOCATABLE :: u_10m_t_ptr(:)  !< pointer array: zonal wind at 10m
     TYPE(t_ptr_2d3d),ALLOCATABLE :: v_10m_t_ptr(:)  !< pointer array: meridional wind at 10m
     TYPE(t_ptr_2d3d),ALLOCATABLE :: shfl_s_t_ptr(:) !< pointer array: surface sensible heat flux 
@@ -331,7 +332,6 @@ MODULE mo_nwp_phy_types
       tfv(:,:)        ,    & !! laminar reduction factor for evaporation        --
       tvm(:,:)        ,    & !! turbulent transfer velocity for momentum      (m/s)
       tvh(:,:)        ,    & !! factor of laminar transfer of scalars           --
-      tkr(:,:)        ,    & !! turbulent reference surface diffusion coeff.  (m2/s) (Ustar*kap*z0)
       tkred_sfc(:,:)  ,    & !! reduction factor for minimum diffusion coefficients near the surface
                              !! (affects heat and momentum; used for EPS perturbations)
       tkred_sfc_h(:,:),    & !! reduction factor for minimum diffusion coefficient for heat near the surface
@@ -343,6 +343,7 @@ MODULE mo_nwp_phy_types
       z0_waves(:,:),       & !! wave-dependent roughness length               (  m  )
       tkvm(:,:,:),         & !! turbulent diffusion coefficients for momentum (m/s2 )
       tkvh(:,:,:),         & !! turbulent diffusion coefficients for heat     (m/s2 )
+      tprn(:,:,:),         & !! turbulent Prandtl-number                        --   
       t_2m(:,:)       ,    & !! temperature in 2m                             (  K  )
       t_2m_land(:,:)  ,    & !! temperature in 2m (land tiles only)           (  K  )
       tmax_2m(:,:)    ,    & !! maximum temperature in 2m (for specified timerange) ( K )
@@ -376,6 +377,8 @@ MODULE mo_nwp_phy_types
       tkvm_s_t(:,:,:)  ,   & !! surface turbulent diffusion coefficients for momentum (m/s2)
                              !! (tile based)
       tkvh_s_t(:,:,:)  ,   & !! surface turbulent diffusion coefficients for heat (m/s2)
+                             !! (tile based)
+      rcld_s_t(:,:,:)  ,   & !! standard deviation of the saturation deficit at surface --
                              !! (tile based)
       u_10m_t(:,:,:)   ,   & !! zonal wind at 10m                             ( m/s )
       v_10m_t(:,:,:)   ,   & !! meridional wind at 10m                        ( m/s )

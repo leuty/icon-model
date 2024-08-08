@@ -280,8 +280,9 @@ PUBLIC           ! All constants and variables in this module are public
 
 ! 5. Additional control variables
 ! -------------------------------
-
+                                                                                                        
   LOGICAL                   ::  &
+
     lsoilinit_dfi = .FALSE.         ! initialize soil after dfi forward launching
 
 ! 6. Epsilons (security constants)

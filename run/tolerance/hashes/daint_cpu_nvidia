@@ -5,10 +5,10 @@ icon_data_rootFolder: /users/icontest/pool/data/ICON
 builder: daint_cpu_nvidia
 # The list below maps each experiment to its current experiment_hash
 "atm_qubicc_nc_test": 575256c9750a0ab2117680b6867ed8061956899b
-"c2sm_clm_r13b03_seaice": 6a13aca61b4f32b15f381726e417dc105b05e233
-"exclaim_ape_R02B04": 6ae9461cbd0b6c84cadf606024d0d09e8e772641
-"mch_ch_r04b09_dace": 700ee1864a125205870b681d666558b384eddf8b
-"mch_ch_r04b09_dace_synsat": b360bf740d92061c338dff723739bafd4c057a24
-"mch_opr_r04b07_sstice_inst": 077af1428fe6a2e86937b4e8c6de9fbe3cac278d
-"mch_opr_r19b07_midnight": 7f0282c410762da167a83a50b4d964d44cc3516a
-"mch_opr_r19b07_turb": f30e62a29f4356316b9993e222bc0c6923e03888
+"c2sm_clm_r13b03_seaice": 50f489a04b9f4aba7425252022d1969741e94d2c
+"exclaim_ape_R02B04": 07f16f9e31e53471f32b861cd4b908489dd17594
+"mch_ch_r04b09_dace": f9a89c3a58593808d6d1c831826978d30b7e9072
+"mch_ch_r04b09_dace_synsat": 1549e5f0c71881a598dc5fdc337647df6d8f9039
+"mch_opr_r04b07_sstice_inst": edef343e247130ff44405bb5d6d4d6a16f949796
+"mch_opr_r19b07_midnight": a3a7299a2f480b5b3236e0b9820b2294f91207fd
+"mch_opr_r19b07_turb": c51fa53053098d56fd8d6270cb74ccef6fe71e6c

@@ -73,7 +73,8 @@ USE mo_exception,           ONLY: message, finish !,message_text
 USE mo_model_domain,        ONLY: t_patch, p_patch, p_patch_local_parent
 USE mo_grid_config,         ONLY: n_dom, n_dom_start, nexlevs_rrg_vnest
 USE mo_atm_phy_nwp_config,  ONLY: atm_phy_nwp_config, icpl_aero_conv, iprog_aero
-USE turb_data,              ONLY: ltkecon
+USE turb_data,              ONLY: ltkecon, imode_tkemini, imode_trancnf, &
+                                  rsur_sher   
 USE mo_initicon_config,     ONLY: icpl_da_sfcevap, icpl_da_snowalb, icpl_da_skinc, icpl_da_seaice
 USE mo_radiation_config,    ONLY: irad_aero, iRadAeroTegen, iRadAeroART, iRadAeroNone, &
                                   iRadAeroConst, iRadAeroCAMSclim, iRadAeroCAMStd, islope_rad, &
@@ -328,6 +329,7 @@ SUBROUTINE new_nwp_phy_diag_list( k_jg, klev, klevp1, kblks,    &
       &        shape3dsubsw(3), shape3d_synsat(3),     &
       &        shape2d_synsat(2), shape3d_aero(3), shape3dechotop(3), shape3dwshear(3),shape3d_hail(3)
     INTEGER :: shape3dkp1(3), shape3dflux(3), shape3d_uh_max(3), shape3dturb(3), shape3dsrh(3)
+    INTEGER :: shape3duse(3) ! used shape for conditionally allocated 3D arrays
     INTEGER :: ibits,  kcloud
     INTEGER :: jsfc, ist
     CHARACTER(len=NF90_MAX_NAME) :: long_name
@@ -3103,7 +3105,7 @@ SUBROUTINE new_nwp_phy_diag_list( k_jg, klev, klevp1, kblks,    &
     grib2_desc = grib2_var(255, 255, 255, ibits, GRID_UNSTRUCTURED, GRID_CELL)
     CALL add_var( diag_list, 'qcfl_s', diag%qcfl_s,                       &
       & GRID_UNSTRUCTURED_CELL, ZA_SURFACE, cf_desc, grib2_desc,          &
-      & ldims=shape2d, lopenacc=.TRUE.)
+      & ldims=shape2d, initval=0.0_wp, lopenacc=.TRUE.)
     __acc_attach(diag%qcfl_s)
 
     cf_desc    = t_cf_var('qifl_s', 'kg m-2 s-1',                         &
@@ -3112,7 +3114,7 @@ SUBROUTINE new_nwp_phy_diag_list( k_jg, klev, klevp1, kblks,    &
     grib2_desc = grib2_var(255, 255, 255, ibits, GRID_UNSTRUCTURED, GRID_CELL)
     CALL add_var( diag_list, 'qifl_s', diag%qifl_s,                       &
       & GRID_UNSTRUCTURED_CELL, ZA_SURFACE, cf_desc, grib2_desc,          &
-      & ldims=shape2d, lopenacc=.TRUE.)
+      & ldims=shape2d, initval=0.0_wp, lopenacc=.TRUE.)
     __acc_attach(diag%qifl_s)
 
     ! Effective radius fields
@@ -3298,16 +3300,6 @@ SUBROUTINE new_nwp_phy_diag_list( k_jg, klev, klevp1, kblks,    &
       & ldims=shape2d,                                                    &
       & in_group=groups("pbl_vars"), lopenacc=.TRUE. )
     __acc_attach(diag%tvh)
-
-    ! &      diag%tkr(nproma,nblks_c)
-    cf_desc    = t_cf_var('tkr', 'm2 s-1 ','turbulent reference surface diffusion coefficient', &
-         &                DATATYPE_FLT32)
-    grib2_desc = grib2_var(255, 255, 255, ibits, GRID_UNSTRUCTURED, GRID_CELL)
-    CALL add_var( diag_list, 'tkr', diag%tkr,                             &
-      & GRID_UNSTRUCTURED_CELL, ZA_SURFACE, cf_desc, grib2_desc,          &
-      & ldims=shape2d, lrestart=.FALSE.,                                  &
-      & in_group=groups("pbl_vars"), lopenacc=.TRUE. )
-    __acc_attach(diag%tkr)
 
     ! &      diag%tkred_sfc(nproma,nblks_c)
     cf_desc    = t_cf_var('tkred_sfc', ' ','reduction factor for minimum diffusion coefficients for EPS perturbations', &
@@ -3738,9 +3730,9 @@ SUBROUTINE new_nwp_phy_diag_list( k_jg, klev, klevp1, kblks,    &
       CALL add_ref( diag_list, 'tcm_t',                               &
          & 'tcm_t_'//TRIM(ADJUSTL(csfc)),                             &
          & diag%tcm_t_ptr(jsfc)%p_2d,                                 &
-         & GRID_UNSTRUCTURED_CELL, ZA_SURFACE,                        &
+         & GRID_UNSTRUCTURED_CELL, ZA_SURFACE,                        & 
          & t_cf_var('tcm_t_'//csfc, '', '', datatype_flt),            &
-         & grib2_var(0, 2, 29, ibits, GRID_UNSTRUCTURED, GRID_CELL),  &
+         & grib2_var(0, 2, 29, ibits, GRID_UNSTRUCTURED, GRID_CELL),  & 
          & ref_idx=jsfc, ldims=shape2d,                               &
          & var_class=CLASS_TILE,                                      &
          & lrestart=.TRUE., loutput=.TRUE.)
@@ -3817,8 +3809,7 @@ SUBROUTINE new_nwp_phy_diag_list( k_jg, klev, klevp1, kblks,    &
          & grib2_var(255, 255, 255, ibits, GRID_UNSTRUCTURED, GRID_CELL),   &
          & ref_idx=jsfc, ldims=shape2d,                               &
          & var_class=CLASS_TILE,                                      &
-!        & lrestart=.TRUE., loutput=.TRUE.)  !nec. for rest. only if 'tvm' substitutes 'tcm'
-         & lrestart=.FALSE., loutput=.TRUE.)
+         & lrestart=.TRUE., loutput=.TRUE.)
     ENDDO
 
     ! &      diag%tvh_t(nproma,nblks_c,ntiles_total+ntiles_water)
@@ -3843,13 +3834,12 @@ SUBROUTINE new_nwp_phy_diag_list( k_jg, klev, klevp1, kblks,    &
          & grib2_var(255, 255, 255, ibits, GRID_UNSTRUCTURED, GRID_CELL),   &
          & ref_idx=jsfc, ldims=shape2d,                               &
          & var_class=CLASS_TILE,                                      &
-!        & lrestart=.TRUE., loutput=.TRUE.) !nec. for rest. only if 'tvm' substitutes 'tcm'
-         & lrestart=.FALSE., loutput=.TRUE.)
+         & lrestart=.TRUE. , loutput=.TRUE.)
     ENDDO
 
     ! &      diag%tkr_t(nproma,nblks_c,ntiles_total+ntiles_water)
-    cf_desc    = t_cf_var('tkr_t', 'm2 s-1', &
-      & 'tile-based turbulent reference surface diffusion coefficient', DATATYPE_FLT32)
+    cf_desc    = t_cf_var('tkr_t', ' ', &
+      & 'tile-based reciprocal dimensionless diffusion coefficient at top of RL', DATATYPE_FLT32)
     grib2_desc = grib2_var(255, 255, 255, ibits, GRID_UNSTRUCTURED, GRID_CELL)
     CALL add_var( diag_list, 'tkr_t', diag%tkr_t,                                   &
       & GRID_UNSTRUCTURED_CELL, ZA_SURFACE, cf_desc, grib2_desc, ldims=shape3dsubsw,&
@@ -3868,8 +3858,7 @@ SUBROUTINE new_nwp_phy_diag_list( k_jg, klev, klevp1, kblks,    &
          & grib2_var(255, 255, 255, ibits, GRID_UNSTRUCTURED, GRID_CELL),   &
          & ref_idx=jsfc, ldims=shape2d,                               &
          & var_class=CLASS_TILE,                                      &
-!        & lrestart=.TRUE., loutput=.TRUE.) !nec. for rest. only if 'imode_trancnf>=4'
-         & lrestart=.FALSE., loutput=.TRUE.)
+         & lrestart=(imode_trancnf.GE.4), loutput=.TRUE.)
     ENDDO
 
 
@@ -3883,7 +3872,6 @@ SUBROUTINE new_nwp_phy_diag_list( k_jg, klev, klevp1, kblks,    &
       & in_group=groups("iau_restore_vars"),                                         &
       & lopenacc=.TRUE.)
     __acc_attach(diag%gz0_t)
-
 
 
     ! fill the separate variables belonging to the container gz0_t
@@ -3929,7 +3917,6 @@ SUBROUTINE new_nwp_phy_diag_list( k_jg, klev, klevp1, kblks,    &
     ENDDO
 
 
-
     ! &      diag%tkvm_s_t(nproma,nblks_c,ntiles_total+ntiles_water)
     cf_desc    = t_cf_var('tkvm_s_t', 'm s-2 ',                                       &
          &                'tile-based turbulent diff. coeff for momentum at surface', &
@@ -3968,7 +3955,7 @@ SUBROUTINE new_nwp_phy_diag_list( k_jg, klev, klevp1, kblks,    &
     __acc_attach(diag%tkvh_s_t)
 
 
-    ! fill the separate variables belonging to the container tkvm_s_t
+    ! fill the separate variables belonging to the container tkvh_s_t
     ALLOCATE(diag%tkvh_s_t_ptr(ntiles_total+ntiles_water))
     DO jsfc = 1,ntiles_total+ntiles_water
       WRITE(csfc,'(i1)') jsfc
@@ -3983,6 +3970,31 @@ SUBROUTINE new_nwp_phy_diag_list( k_jg, klev, klevp1, kblks,    &
          & lrestart=.TRUE., loutput=.FALSE.)
     ENDDO
 
+    ! &      diag%rcld_s_t(nproma,nblks_c,ntiles_total+ntiles_water)
+    cf_desc    = t_cf_var('rcld_s_t', '',                                      &
+         &                'tile-based standard deviation of the saturation deficit',    &
+         &                datatype_flt)
+    grib2_desc = grib2_var(255, 255, 255, ibits, GRID_UNSTRUCTURED, GRID_CELL)
+    CALL add_var( diag_list, 'rcld_s_t', diag%rcld_s_t,                              &
+      & GRID_UNSTRUCTURED_CELL, ZA_SURFACE, cf_desc, grib2_desc, ldims=shape3dsubsw, &
+      & lcontainer=.TRUE., lrestart=.FALSE., loutput=.FALSE., lopenacc=.TRUE.)
+    __acc_attach(diag%rcld_s_t)
+
+
+    ! fill the separate variables belonging to the container rcld_s_t
+    ALLOCATE(diag%rcld_s_t_ptr(ntiles_total+ntiles_water))
+    DO jsfc = 1,ntiles_total+ntiles_water
+      WRITE(csfc,'(i1)') jsfc
+      CALL add_ref( diag_list, 'rcld_s_t',                                &
+         & 'rcld_s_t_'//TRIM(ADJUSTL(csfc)),                              &
+         & diag%rcld_s_t_ptr(jsfc)%p_2d,                                  &
+         & GRID_UNSTRUCTURED_CELL, ZA_SURFACE,                            &
+         & t_cf_var('rcld_s_t_'//TRIM(csfc), '', '', datatype_flt),       &
+         & grib2_var(255, 255, 255, ibits, GRID_UNSTRUCTURED, GRID_CELL), &
+         & ref_idx=jsfc, ldims=shape2d,                                   & 
+         & var_class=CLASS_TILE,                                          &
+         & lrestart=.TRUE., loutput=.FALSE.) 
+    ENDDO
 
 
     ! &      diag%u_10m_t(nproma,nblks_c,ntiles_total+ntiles_water)
@@ -4033,7 +4045,6 @@ SUBROUTINE new_nwp_phy_diag_list( k_jg, klev, klevp1, kblks,    &
          & var_class=CLASS_TILE,                                      &
          & lrestart=.TRUE., loutput=.TRUE.)
     ENDDO
-
 
 
     ! &      diag%umfl_s_t(nproma,nblks_c,ntiles_total+ntiles_water)
@@ -4333,25 +4344,50 @@ SUBROUTINE new_nwp_phy_diag_list( k_jg, klev, klevp1, kblks,    &
 #ifndef __NO_ICON_LES__
     IF (.NOT.atm_phy_nwp_config(k_jg)%is_les_phy) THEN
 #endif
-    ! &      diag%tkvm(nproma,nlevp1,nblks_c)
-    cf_desc    = t_cf_var('tkvm', 'm**2/s', ' turbulent diffusion coefficients for momentum', &
-         &                datatype_flt)
-    grib2_desc = grib2_var(0, 2, 31, ibits, GRID_UNSTRUCTURED, GRID_CELL)
-    CALL add_var( diag_list, 'tkvm', diag%tkvm,                             &
-      & GRID_UNSTRUCTURED_CELL, ZA_REFERENCE_HALF, cf_desc, grib2_desc,        &
-      & ldims=shape3dkp1, in_group=groups("pbl_vars"), lopenacc=.TRUE. )
-    __acc_attach(diag%tkvm)
 
-   ! &      diag%tkvh(nproma,nlevp1,nblks_c)
-    cf_desc    = t_cf_var('tkvh', 'm**2/s', ' turbulent diffusion coefficients for heat', &
-         &                datatype_flt)
-    grib2_desc = grib2_var(0, 0, 20, ibits, GRID_UNSTRUCTURED, GRID_CELL)
-    CALL add_var( diag_list, 'tkvh', diag%tkvh,                             &
-      & GRID_UNSTRUCTURED_CELL, ZA_REFERENCE_HALF, cf_desc, grib2_desc,        &
-      & ldims=shape3dkp1, in_group=groups("pbl_vars"), lopenacc=.TRUE.) 
-    __acc_attach(diag%tkvh)
+     ! &      diag%tkvm(nproma,nlevp1,nblks_c)
+     cf_desc    = t_cf_var('tkvm', 'm**2/s', ' turbulent diffusion coefficients for momentum', &
+          &                datatype_flt)
+     grib2_desc = grib2_var(0, 2, 31, ibits, GRID_UNSTRUCTURED, GRID_CELL)
+     CALL add_var( diag_list, 'tkvm', diag%tkvm,                             &
+       & GRID_UNSTRUCTURED_CELL, ZA_REFERENCE_HALF, cf_desc, grib2_desc,        &
+       & ldims=shape3dkp1, in_group=groups("pbl_vars"), lopenacc=.TRUE. )
+     __acc_attach(diag%tkvm)
+
+     ! &      diag%tkvh(nproma,nlevp1,nblks_c)
+     cf_desc    = t_cf_var('tkvh', 'm**2/s', ' turbulent diffusion coefficients for heat', &
+          &                datatype_flt)
+     grib2_desc = grib2_var(0, 0, 20, ibits, GRID_UNSTRUCTURED, GRID_CELL)
+     CALL add_var( diag_list, 'tkvh', diag%tkvh,                             &
+       & GRID_UNSTRUCTURED_CELL, ZA_REFERENCE_HALF, cf_desc, grib2_desc,        &
+       & ldims=shape3dkp1, in_group=groups("pbl_vars"), lopenacc=.TRUE.) 
+     __acc_attach(diag%tkvh)
+ 
+     IF (imode_tkemini.EQ.2 .OR. rsur_sher.GT.0_wp) THEN !TKE-adaptation to shear-related part of LLDCc
+       shape3duse=shape3dkp1 !shape of 3D half-level variable
+       lrestart=.TRUE.       !needs to be saved for restart
+     ELSE
+       shape3duse=(/1, 1, kblks /) !shape for dummy array only
+       lrestart=.FALSE.            !not required for restart
+     END IF
+     !Attention: 
+     !As soon as 'rsur_sher' is going to be perturbed, the condition "rsur_sher.GT.0_wp"
+     ! needs to be substituted by a logical NAMELIST switch!
+     !As soon as arranged as input for SUB 'turbdiff', "lrestart=T" needs to be set also at "l3dturb=T"!
+       
+     ! &      diag%tprn(nproma,nlevp1,nblks_c)
+     cf_desc    = t_cf_var('tprn', '', ' turbulent Prandtl-number', &
+            &                datatype_flt)
+     grib2_desc = grib2_var(255, 255, 255, ibits, GRID_UNSTRUCTURED, GRID_CELL)
+     CALL add_var( diag_list, 'tprn', diag%tprn,                             &
+       & GRID_UNSTRUCTURED_CELL, ZA_REFERENCE_HALF, cf_desc, grib2_desc,        &
+       & ldims=shape3duse, lrestart=lrestart, loutput=.FALSE., in_group=groups("pbl_vars"),    &
+       & lopenacc=.TRUE. ) 
+     __acc_attach(diag%tprn)
+
 #ifndef __NO_ICON_LES__
     ELSE
+
      ! &      diag%tkvm(nproma,nlevp1,nblks_c)
       cf_desc    = t_cf_var('tkvm', 'kg/(ms)', ' mass weighted turbulent viscosity', &
            &                datatype_flt)
@@ -4371,6 +4407,7 @@ SUBROUTINE new_nwp_phy_diag_list( k_jg, klev, klevp1, kblks,    &
         & ldims=shape3dkp1, lrestart=.FALSE., in_group=groups("pbl_vars"),    &
         & lopenacc=.TRUE. )
       __acc_attach(diag%tkvh) 
+
     ENDIF
 #endif
 
@@ -4425,6 +4462,12 @@ SUBROUTINE new_nwp_phy_diag_list( k_jg, klev, klevp1, kblks,    &
        __acc_attach(diag%liqfl_turb)
 
     END IF
+
+    !Note:
+    !In order to limit the amount of data that needs to be stored and read in to what is really necessary
+    ! most of the 3D and 2D turbulence variables are not included into the saved and restored variables 
+    ! for iau (in_group=groups(... "iau_restore_vars" ...).
+    !Rather, they are diagnosed from a "soft initialization" using at least the saved tke.
 
     !------------------
     ! Optional computation of diagnostic fields
@@ -6098,17 +6141,19 @@ SUBROUTINE new_nwp_phy_tend_list( k_jg, klev,  kblks,   &
                 & in_group=groups("phys_tendencies"), lopenacc=.TRUE. )
     __acc_attach(phy_tend%ddt_temp_clcov)
 
-    cf_desc    = t_cf_var('ddt_temp_drag', 'K s-1', &
-           &                'sso + gwdrag temperature tendency', datatype_flt)
-    grib2_desc = grib2_var(192, 162, 125, ibits, GRID_UNSTRUCTURED, GRID_CELL)
-    CALL add_var( phy_tend_list, 'ddt_temp_drag', phy_tend%ddt_temp_drag,       &
-                  & GRID_UNSTRUCTURED_CELL, ZA_REFERENCE, cf_desc, grib2_desc,    &
-                  & vert_interp=create_vert_interp_metadata(                      &
-                  & vert_intp_type=vintp_types("P","Z","I"),                      &
-                  & vert_intp_method=VINTP_METHOD_LIN),                           &
-                  & ldims=shape3d, lrestart=.FALSE.,                              &
-                  & in_group=groups("phys_tendencies"), lopenacc=.TRUE. )
-                  __acc_attach(phy_tend%ddt_temp_drag)
+    IF (is_variable_in_output(var_name="ddt_temp_drag")) THEN
+      cf_desc    = t_cf_var('ddt_temp_drag', 'K s-1', &
+             &                'sso + gwdrag temperature tendency', datatype_flt)
+      grib2_desc = grib2_var(192, 162, 125, ibits, GRID_UNSTRUCTURED, GRID_CELL)
+      CALL add_var( phy_tend_list, 'ddt_temp_drag', phy_tend%ddt_temp_drag,       &
+                    & GRID_UNSTRUCTURED_CELL, ZA_REFERENCE, cf_desc, grib2_desc,    &
+                    & vert_interp=create_vert_interp_metadata(                      &
+                    & vert_intp_type=vintp_types("P","Z","I"),                      &
+                    & vert_intp_method=VINTP_METHOD_LIN),                           &
+                    & ldims=shape3d, lrestart=.FALSE.,                              &
+                    & in_group=groups("phys_tendencies"), lopenacc=.TRUE. )
+                    __acc_attach(phy_tend%ddt_temp_drag)
+      END IF
 
     ! &      phy_tend%ddt_temp_pconv(nproma,nlev,nblks)
     cf_desc    = t_cf_var('ddt_temp_pconv', 'K s-1', &
