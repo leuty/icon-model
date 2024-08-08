@@ -48,7 +48,7 @@ MODULE mo_apt_routines
 
   USE mo_master_config,       ONLY: isRestart
   USE mo_initicon_types,      ONLY: t_initicon_state
-  USE mo_initicon_config,     ONLY: icpl_da_sfcevap, dt_ana, icpl_da_snowalb, icpl_da_skinc,          &
+  USE mo_initicon_config,     ONLY: icpl_da_sfcevap, dt_ana, icpl_da_snowalb, icpl_da_landalb, icpl_da_skinc, &
                                     icpl_da_sfcfric, icpl_da_tkhmin, icpl_da_seaice, scalfac_da_sfcfric
 
   USE mo_nwp_tuning_config,   ONLY: itune_slopecorr
@@ -60,8 +60,7 @@ MODULE mo_apt_routines
   PRIVATE
 
 
-
-  PUBLIC  :: compute_filtincs, init_apt_fields, apply_sma
+  PUBLIC  :: compute_filtincs, init_apt_fields, apply_landalb_tuning, apply_sma
 
 
   CONTAINS
@@ -81,7 +80,7 @@ MODULE mo_apt_routines
     TYPE(t_nh_state) , TARGET     ,INTENT(IN)    :: p_nh_state(:)
     TYPE(t_int_state),             INTENT(IN)    :: p_int_state(:)
     TYPE(t_initicon_state)        ,INTENT(INOUT) :: initicon(:)
-    TYPE(t_readInstructionListPtr),INTENT(INOUT) :: inputInstructions(:)
+    TYPE(t_readInstructionListPtr),INTENT(IN)    :: inputInstructions(:)
 
     TYPE(t_nh_diag) , POINTER :: p_diag
     TYPE(t_nh_prog),  POINTER :: p_prog_now
@@ -91,7 +90,7 @@ MODULE mo_apt_routines
     INTEGER :: i_startidx, i_endidx, i_startblk, i_endblk
 
 
-    REAL(wp) :: rh_inc, localtime_fac
+    REAL(wp) :: rh_inc(nproma), localtime_fac, dtfac
 
   !-------------------------------------------------------------------------
 
@@ -110,6 +109,8 @@ MODULE mo_apt_routines
       i_startblk = p_patch(jg)%cells%start_block(rl_start)
       i_endblk   = p_patch(jg)%cells%end_block(rl_end)
 
+      ! weighting factor for standard filtering time scale of 2.5 days
+      dtfac      = dt_ana/216000._wp
 
       ! interpolate wind and its increments to mass points
       IF (icpl_da_sfcfric >= 1) THEN
@@ -140,7 +141,7 @@ MODULE mo_apt_routines
           ! this serves as a proxy for the averaged T2M bias
           DO jc = i_startidx, i_endidx
             p_diag%t_avginc(jc,jb) = p_diag%t_avginc(jc,jb) + &
-              dt_ana/216000._wp*(initicon(jg)%atm_inc%temp(jc,nlev,jb)-p_diag%t_avginc(jc,jb))
+              dtfac*(initicon(jg)%atm_inc%temp(jc,nlev,jb)-p_diag%t_avginc(jc,jb))
           ENDDO
         ENDIF
 
@@ -148,9 +149,9 @@ MODULE mo_apt_routines
           ! Calculate time-filtered RH assimilation increment at lowest model level (time scale 2.5 days);
           ! this serves as a proxy for the averaged RH2M bias
           DO jc = i_startidx, i_endidx
-            rh_inc = initicon(jg)%atm_inc%qv(jc,nlev,jb)/ &
+            rh_inc(jc) = initicon(jg)%atm_inc%qv(jc,nlev,jb)/ &
               spec_humi(sat_pres_water(p_diag%temp(jc,nlev,jb)),p_diag%pres_sfc(jc,jb))
-            p_diag%rh_avginc(jc,jb) = p_diag%rh_avginc(jc,jb) + dt_ana/216000._wp*(rh_inc-p_diag%rh_avginc(jc,jb))
+            p_diag%rh_avginc(jc,jb) = p_diag%rh_avginc(jc,jb) + dtfac*(rh_inc(jc)-p_diag%rh_avginc(jc,jb))
           ENDDO
         ENDIF
 
@@ -160,17 +161,30 @@ MODULE mo_apt_routines
             localtime_fac = COS(p_patch(jg)%cells%center(jc,jb)%lon + pi2/86400._wp *                           &
               (time_config%tc_exp_startdate%time%hour*3600._wp+time_config%tc_exp_startdate%time%minute*60._wp) )
             p_diag%t_wgt_avginc(jc,jb) = p_diag%t_wgt_avginc(jc,jb) + &
-              dt_ana/216000._wp*(initicon(jg)%atm_inc%temp(jc,nlev,jb)*localtime_fac-p_diag%t_wgt_avginc(jc,jb))
+              dtfac*(initicon(jg)%atm_inc%temp(jc,nlev,jb)*localtime_fac-p_diag%t_wgt_avginc(jc,jb))
           ENDDO
         ENDIF
 
         IF (icpl_da_sfcfric >= 1) THEN
           ! weighted wind speed increment for adaptive surface friction
           DO jc = i_startidx, i_endidx
-            p_diag%vabs_avginc(jc,jb) = p_diag%vabs_avginc(jc,jb) + dt_ana/216000._wp * (         &
+            p_diag%vabs_avginc(jc,jb) = p_diag%vabs_avginc(jc,jb) + dtfac * (                     &
               SQRT( (p_diag%u(jc,nlev,jb)+initicon(jg)%atm_inc%u(jc,nlev,jb))**2 +                &
                     (p_diag%v(jc,nlev,jb)+initicon(jg)%atm_inc%v(jc,nlev,jb))**2 ) -              &
               SQRT(p_diag%u(jc,nlev,jb)**2 + p_diag%v(jc,nlev,jb)**2) - p_diag%vabs_avginc(jc,jb) )
+          ENDDO
+        ENDIF
+
+        IF (icpl_da_sfcevap >= 5) THEN
+          ! Daytime-weighted T and RH increments peaking at 16:30 LT, approximating the time at which the
+          ! maximum temperature is reached in summer
+          DO jc = i_startidx, i_endidx
+            localtime_fac = MAX(0._wp, -SIN(p_patch(jg)%cells%center(jc,jb)%lon + pi2/16._wp + pi2/86400._wp *   &
+              (time_config%tc_exp_startdate%time%hour*3600._wp+time_config%tc_exp_startdate%time%minute*60._wp) ))
+            p_diag%t_daywgt_avginc(jc,jb) = p_diag%t_daywgt_avginc(jc,jb) +           &
+              dtfac*localtime_fac*(initicon(jg)%atm_inc%temp(jc,nlev,jb)-p_diag%t_daywgt_avginc(jc,jb))
+            p_diag%rh_daywgt_avginc(jc,jb) = p_diag%rh_daywgt_avginc(jc,jb) +         &
+              dtfac*localtime_fac*(rh_inc(jc)-p_diag%rh_daywgt_avginc(jc,jb))
           ENDDO
         ENDIF
 
@@ -207,10 +221,16 @@ MODULE mo_apt_routines
     INTEGER :: i_count, ilu
 
 
-    REAL(wp) :: dtfac_heatc, tbias_wgt, zlat, zlon, slope(nproma), skinc_fac, trh_bias, scal
+    REAL(wp) :: dtfac, dtfac_heatc, tbias_wgt, zlat, zlon, slope(nproma), skinc_fac, trh_bias, scal, rlamh_offset, rlamh_offset_glac, &
+                zrlamh
 
-    ! adaptation factor to analysis interval for adaptive heat conductivity/capacity and skin conductivity
+    ! adaptation factor to analysis interval, standard value and value for adaptive heat conductivity/capacity and skin conductivity
+    dtfac       =  10800._wp/dt_ana
     dtfac_heatc = (10800._wp/dt_ana)**(2._wp/3._wp)
+
+    ! offset for adaptation of rlam_heat
+    rlamh_offset      = MERGE(0.4_wp, 0.2_wp, icpl_da_sfcevap <= 4)
+    rlamh_offset_glac =       0.4_wp ! always use 0.4 over full glacier points
 
     rl_start   = grf_bdywidth_c+1
     rl_end     = min_rlcell_int
@@ -219,7 +239,7 @@ MODULE mo_apt_routines
 
 
 !$OMP PARALLEL
-!$OMP DO PRIVATE(jb,jc,jt,i_startidx,i_endidx,i_count,ilu,tbias_wgt,zlat,zlon,slope,skinc_fac,trh_bias,scal)
+!$OMP DO PRIVATE(jb,jc,jt,i_startidx,i_endidx,i_count,ilu,tbias_wgt,zlat,zlon,slope,skinc_fac,trh_bias,scal,zrlamh)
     DO jb = i_startblk, i_endblk
 
       CALL get_indices_c(p_patch, jb, i_startblk, i_endblk, i_startidx, i_endidx, rl_start, rl_end)
@@ -230,11 +250,12 @@ MODULE mo_apt_routines
         DO jt = 1, ntiles_total + ntiles_water
           DO jc = i_startidx,i_endidx
             IF (jt <= ntiles_lnd) THEN ! snow-free land points
-              prm_diag%rlamh_fac_t(jc,jb,jt) = 1._wp - 0.9_wp*MAX(0._wp, MIN(1._wp,                              &
-                2.5_wp*(10800._wp/dt_ana*(100._wp*p_diag%rh_avginc(jc,jb)-4._wp*p_diag%t_avginc(jc,jb))-0.4_wp) ))
+              prm_diag%rlamh_fac_t(jc,jb,jt) = 1._wp - 0.9_wp*MAX(0._wp, MIN(1._wp,                         &
+                2.5_wp*(dtfac*(100._wp*p_diag%rh_avginc(jc,jb)-4._wp*p_diag%t_avginc(jc,jb))-rlamh_offset) ))
             ELSE IF (jt <= ntiles_total) THEN ! snow-covered land points
+              zrlamh = MERGE(rlamh_offset, rlamh_offset_glac, ext_data%atm%fr_glac(jc,jb) <= 0.99_wp)
               prm_diag%rlamh_fac_t(jc,jb,jt) = 1._wp - 0.9_wp*MAX(0._wp, MIN(1._wp, &
-                2.5_wp*(10800._wp/dt_ana*(MAX(0._wp,100._wp*p_diag%rh_avginc(jc,jb))-4._wp*p_diag%t_avginc(jc,jb))-0.4_wp) ))
+                2.5_wp*(dtfac*(MAX(0._wp,100._wp*p_diag%rh_avginc(jc,jb))-4._wp*p_diag%t_avginc(jc,jb))-zrlamh) ))
             ELSE IF (jt == ntiles_total + ntiles_water) THEN ! seaice points
               prm_diag%rlamh_fac_t(jc,jb,jt) = 0.25_wp
             ELSE
@@ -246,9 +267,9 @@ MODULE mo_apt_routines
         DO jt = 1, ntiles_total + ntiles_water
           DO jc = i_startidx,i_endidx
             IF (jt <= ntiles_total) THEN
-              prm_diag%rlamh_fac_t(jc,jb,jt) =                                                                              &
-                1._wp - 0.9_wp*MAX(0._wp,MIN(1._wp,(60._wp-ext_data%atm%skinc_t(jc,jb,jt))/30._wp)) *                       &
-                MAX(0._wp,MIN(1._wp,2.5_wp*(p_diag%t2m_bias(jc,jb)+100._wp*10800._wp/dt_ana*p_diag%rh_avginc(jc,jb)-0.4_wp)))
+              prm_diag%rlamh_fac_t(jc,jb,jt) =                                                                         &
+                1._wp - 0.9_wp*MAX(0._wp,MIN(1._wp,(60._wp-ext_data%atm%skinc_t(jc,jb,jt))/30._wp)) *                  &
+                MAX(0._wp,MIN(1._wp,2.5_wp*(p_diag%t2m_bias(jc,jb)+100._wp*dtfac*p_diag%rh_avginc(jc,jb)-rlamh_offset)))
             ELSE IF (jt == ntiles_total + ntiles_water) THEN ! seaice points
               prm_diag%rlamh_fac_t(jc,jb,jt) = 0.25_wp
             ELSE
@@ -257,22 +278,45 @@ MODULE mo_apt_routines
           ENDDO
         ENDDO
       ENDIF
-      IF (icpl_da_snowalb >= 1 .AND. .NOT. isRestart()) THEN
-        ! Tuning factor for snow albedo
+
+      IF (icpl_da_landalb >= 1 .AND. .NOT. isRestart()) THEN
+        ! Tuning increment for land albedo, applied to snow-free dominant land points
         DO jc = i_startidx,i_endidx
-          IF (ANY(p_diag_lnd%h_snow_t(jc,jb,1:ntiles_total) > 0._wp) .OR. p_prog_wtr_now%h_ice(jc,jb) > 0._wp) THEN
-            IF (p_diag%t_avginc(jc,jb) > 0._wp) THEN
-              prm_diag%snowalb_fac(jc,jb) = MAX(0.75_wp,1._wp/(1._wp+10800._wp/dt_ana*0.8_wp*p_diag%t_avginc(jc,jb)))
-            ELSE
-              prm_diag%snowalb_fac(jc,jb) = MIN(4._wp/3._wp,1._wp-10800._wp/dt_ana*0.8_wp*p_diag%t_avginc(jc,jb))
-            ENDIF
-          ENDIF
-          IF (icpl_da_snowalb >= 2) THEN ! albedo factor is also applied to sea ice and needs to be restricted to the vicinity of land
-            tbias_wgt = MIN(1._wp,100._wp*ext_data%atm%fr_land_smt(jc,jb))
-            prm_diag%snowalb_fac(jc,jb) = tbias_wgt*prm_diag%snowalb_fac(jc,jb) + (1._wp-tbias_wgt)
+          IF (MAXVAL(p_diag_lnd%h_snow_t(jc,jb,1:ntiles_total)) == 0._wp .AND. ext_data%atm%fr_land(jc,jb) >= 0.5_wp) THEN
+            ! albedo tuning is applied when a cold (warm) bias concides with a dry (moist) bias, implying that the bias
+            ! is not related to an incorrect Bowen ratio
+            trh_bias = dtfac*(p_diag%t_daywgt_avginc(jc,jb) + 30._wp*(p_diag%rh_daywgt_avginc(jc,jb)+0.25_wp*p_diag%rh_avginc(jc,jb)))
+            scal = MERGE(0.2_wp, 0.3_wp, trh_bias > 0._wp)
+            prm_diag%landalb_inc(jc,jb) = SIGN(scal*trh_bias**2,-trh_bias)
           ENDIF
         ENDDO
       ENDIF
+
+      IF (icpl_da_snowalb >= 1 .AND. .NOT. isRestart()) THEN
+        ! Tuning factor for snow albedo, including coastal sea ice for icpl_da_snowalb>=2
+        DO jc = i_startidx,i_endidx
+          IF (ANY(p_diag_lnd%h_snow_t(jc,jb,1:ntiles_total) > 0._wp) .OR. p_prog_wtr_now%h_ice(jc,jb) > 0._wp) THEN
+            IF (p_diag%t_avginc(jc,jb) > 0._wp) THEN
+              prm_diag%snowalb_fac(jc,jb) = MAX(0.75_wp,1._wp/(1._wp+dtfac*0.8_wp*p_diag%t_avginc(jc,jb)))
+            ELSE
+              prm_diag%snowalb_fac(jc,jb) = MIN(4._wp/3._wp,1._wp-dtfac*0.8_wp*p_diag%t_avginc(jc,jb))
+            ENDIF
+          ENDIF
+          IF (icpl_da_snowalb >= 2) THEN ! albedo factor is also applied to sea ice and needs to be restricted to the vicinity of land
+            scal = MIN(1._wp,100._wp*ext_data%atm%fr_land_smt(jc,jb))
+            prm_diag%snowalb_fac(jc,jb) = scal*prm_diag%snowalb_fac(jc,jb) + (1._wp-scal)
+          ENDIF
+          IF (icpl_da_snowalb >= 3) THEN ! additional adjustment of snow-cover fraction diagnosis, relevant for small snow depths
+            tbias_wgt = dtfac*(p_diag%t_avginc(jc,jb)+0.5_wp*p_diag%t_wgt_avginc(jc,jb))
+            IF (tbias_wgt < 0._wp) THEN
+              prm_diag%snowfrac_fac(jc,jb) = 1._wp/MAX(0.25_wp, 1._wp+1.5_wp*tbias_wgt)
+            ELSE
+              prm_diag%snowfrac_fac(jc,jb) = MAX(0.25_wp, 1._wp-1.5_wp*tbias_wgt)
+            ENDIF
+          ENDIF
+        ENDDO
+      ENDIF
+
       IF (icpl_da_seaice >= 2) THEN
         ! Tuning factor for sea ice bottom heat flux
         DO jc = i_startidx,i_endidx
@@ -280,6 +324,7 @@ MODULE mo_apt_routines
             MIN(1._wp,100._wp*ext_data%atm%fr_land_smt(jc,jb))
         ENDDO
       ENDIF
+
       IF (icpl_da_skinc >= 2) THEN
         ! Tuning factors for soil heat capacity and conductivity
         DO jc = i_startidx,i_endidx
@@ -292,10 +337,11 @@ MODULE mo_apt_routines
           ENDIF
         ENDDO
       ENDIF
+
       IF (icpl_da_tkhmin >= 1) THEN
         ! Adaptive tuning of near-surface minimum vertical diffusion for heat
         DO jc = i_startidx,i_endidx
-          tbias_wgt = 10800._wp/dt_ana*(p_diag%t_avginc(jc,jb)+0.5_wp*p_diag%t_wgt_avginc(jc,jb))
+          tbias_wgt = dtfac*(p_diag%t_avginc(jc,jb)+0.5_wp*p_diag%t_wgt_avginc(jc,jb))
           IF (tbias_wgt < 0._wp) THEN
             prm_diag%tkred_sfc_h(jc,jb) = MAX(0.25_wp, 1._wp+2._wp*tbias_wgt)
           ELSE
@@ -303,13 +349,28 @@ MODULE mo_apt_routines
           ENDIF
         ENDDO
       ENDIF
+
+      IF (itune_slopecorr >= 1) THEN
+        ! Tuning for steep slopes (relevant for ICON-D05), involving a postprocessing of tkred_sfc_h and rlamh_fac_t
+        DO jc = i_startidx,i_endidx
+          slope(jc) = SQRT(ext_data%atm%grad_topo(1,jc,jb)**2 + ext_data%atm%grad_topo(2,jc,jb)**2)
+          prm_diag%tkred_sfc_h(jc,jb) = prm_diag%tkred_sfc_h(jc,jb)/MIN(7.5_wp,1._wp+10._wp*SQRT(MAX(0._wp,slope(jc)-0.05_wp)))
+        ENDDO
+        DO jt = 1, ntiles_total + ntiles_water
+          DO jc = i_startidx,i_endidx
+            prm_diag%rlamh_fac_t(jc,jb,jt) = prm_diag%rlamh_fac_t(jc,jb,jt)/ &
+              MIN(10._wp,1._wp+15._wp*SQRT(MAX(0._wp,slope(jc)-0.05_wp)))
+           ENDDO
+        ENDDO
+      ENDIF
+
       IF (icpl_da_sfcfric >= 1) THEN
         ! Tuning factor for surface friction (roughness length and SSO blocking)
         DO jc = i_startidx,i_endidx
           IF (p_diag%vabs_avginc(jc,jb) > 0._wp) THEN
-            prm_diag%sfcfric_fac(jc,jb) = MAX(0.25_wp, 1._wp-scalfac_da_sfcfric*10800._wp/dt_ana*p_diag%vabs_avginc(jc,jb))
+            prm_diag%sfcfric_fac(jc,jb) = MAX(0.25_wp, 1._wp-scalfac_da_sfcfric*dtfac*p_diag%vabs_avginc(jc,jb))
           ELSE
-            prm_diag%sfcfric_fac(jc,jb) = 1._wp/MAX(0.25_wp, 1._wp+scalfac_da_sfcfric*10800._wp/dt_ana*p_diag%vabs_avginc(jc,jb))
+            prm_diag%sfcfric_fac(jc,jb) = 1._wp/MAX(0.25_wp, 1._wp+scalfac_da_sfcfric*dtfac*p_diag%vabs_avginc(jc,jb))
           ENDIF
 
           zlat = p_patch%cells%center(jc,jb)%lat*rad2deg
@@ -329,18 +390,7 @@ MODULE mo_apt_routines
 
         ENDDO
       ENDIF
-      IF (itune_slopecorr >= 1) THEN
-        DO jc = i_startidx,i_endidx
-          slope(jc) = SQRT(ext_data%atm%grad_topo(1,jc,jb)**2 + ext_data%atm%grad_topo(2,jc,jb)**2)
-          prm_diag%tkred_sfc_h(jc,jb) = prm_diag%tkred_sfc_h(jc,jb)/MIN(7.5_wp,1._wp+10._wp*SQRT(MAX(0._wp,slope(jc)-0.05_wp)))
-        ENDDO
-        DO jt = 1, ntiles_total + ntiles_water
-          DO jc = i_startidx,i_endidx
-            prm_diag%rlamh_fac_t(jc,jb,jt) = prm_diag%rlamh_fac_t(jc,jb,jt)/ &
-              MIN(10._wp,1._wp+15._wp*SQRT(MAX(0._wp,slope(jc)-0.05_wp)))
-           ENDDO
-        ENDDO
-      ENDIF
+
 
       DO jt = 1, ntiles_total
         i_count = ext_data%atm%lp_count_t(jb,jt)
@@ -351,24 +401,28 @@ MODULE mo_apt_routines
 
           ilu = ext_data%atm%lc_class_t(jc,jb,jt)
 
-
+          ! compute combined temperature-humidity bias as optimization target for evaporation tuning
+          !
           IF (icpl_da_sfcevap >= 3 .AND. icpl_da_skinc >= 1) THEN
-            trh_bias = 10800._wp/dt_ana*(125._wp*p_diag%rh_avginc(jc,jb) - &
+            trh_bias = dtfac*(125._wp*p_diag%rh_avginc(jc,jb) - &
               4._wp*(p_diag%t_avginc(jc,jb)-0.5_wp*p_diag%t_wgt_avginc(jc,jb)))
           ELSE IF (icpl_da_sfcevap >= 3) THEN
-            trh_bias = 10800._wp/dt_ana*(100._wp*p_diag%rh_avginc(jc,jb)-4._wp*p_diag%t_avginc(jc,jb))
+            trh_bias = dtfac*(100._wp*p_diag%rh_avginc(jc,jb)-4._wp*p_diag%t_avginc(jc,jb))
           ELSE IF (icpl_da_sfcevap >= 2) THEN
-            trh_bias = p_diag%t2m_bias(jc,jb) + 100._wp*10800._wp/dt_ana*p_diag%rh_avginc(jc,jb)
+            trh_bias = p_diag%t2m_bias(jc,jb) + 100._wp*dtfac*p_diag%rh_avginc(jc,jb)
           ELSE IF (icpl_da_sfcevap == 1) THEN
             trh_bias = p_diag%t2m_bias(jc,jb)
           ELSE
             trh_bias = 0._wp
           ENDIF
 
+
           IF (icpl_da_sfcevap >= 4) THEN
+            ! minimum stomata resistance and bare soil evap resistance
+            scal = MERGE(1.0_wp, 1.5_wp, icpl_da_sfcevap == 4) ! option 5 uses compensating asymmetric scaling for r_bsmin and hydiffu
             IF (trh_bias < 0._wp) THEN
               ext_data%atm%rsmin2d_t(jc,jb,jt) = ext_data%atm%stomresmin_lcc(ilu)*(1._wp-0.75_wp*trh_bias)
-              ext_data%atm%r_bsmin(jc,jb)      = cr_bsmin*(1._wp-trh_bias)
+              ext_data%atm%r_bsmin(jc,jb)      = cr_bsmin*(1._wp-scal*trh_bias)
             ELSE
               ext_data%atm%rsmin2d_t(jc,jb,jt) = ext_data%atm%stomresmin_lcc(ilu)/(1._wp+0.75_wp*trh_bias)
               ext_data%atm%r_bsmin(jc,jb)      = cr_bsmin/(1._wp+trh_bias)
@@ -411,12 +465,90 @@ MODULE mo_apt_routines
         ENDDO
       ENDDO
 
+      ! Tuning factor for hydraulic diffusivity
+      IF (icpl_da_sfcevap >= 5 .AND. icpl_da_skinc >= 1) THEN
+        DO jc = i_startidx,i_endidx
+
+          trh_bias = dtfac*(150._wp*(p_diag%rh_daywgt_avginc(jc,jb)+0.25_wp*p_diag%rh_avginc(jc,jb)) - &
+                     3._wp*p_diag%t_daywgt_avginc(jc,jb))
+          ! Asymmetric scaling (smaller for reduced than for increased diffusivity) because reducing the hydraulic
+          ! diffusivity too strongly may lead to a dry bias increasing with forecast lead time. As a compensation,
+          ! an opposing asymetric scaling is applied for r_bsmin (see above)
+          IF (trh_bias < 0._wp) THEN
+            prm_diag%hydiffu_fac(jc,jb)  = MAX(0.4_wp, 1._wp+0.25_wp*trh_bias)
+          ELSE
+            prm_diag%hydiffu_fac(jc,jb)  = 1._wp/MAX(0.2_wp, 1._wp-0.5_wp*trh_bias)
+          ENDIF
+
+        ENDDO
+      ENDIF
+
     ENDDO
 !$OMP END DO NOWAIT
 !$OMP END PARALLEL
 
   END SUBROUTINE init_apt_fields
 
+  !-------------------------------------------------------------------------
+  !>
+  !! SUBROUTINE apply_landalb_tuning
+  !!
+  !! Applies adaptive parameter tuning to the time-interpolated MODIS albedo fields
+  !!
+  !-------------------------------------------------------------------------
+  SUBROUTINE apply_landalb_tuning (p_patch, prm_diag, ext_data)
+
+    TYPE(t_patch),           INTENT(in)    :: p_patch
+    TYPE(t_nwp_phy_diag),    INTENT(in)    :: prm_diag
+    TYPE(t_external_data),   INTENT(inout) :: ext_data
+ 
+    INTEGER :: jb, jc
+    INTEGER :: rl_start, rl_end
+    INTEGER :: i_startblk, i_endblk    !> blocks
+    INTEGER :: i_startidx, i_endidx    !! slices
+
+
+    REAL(wp) :: albuv, albni, albdif_fac
+
+    rl_start   = grf_bdywidth_c+1
+    rl_end     = min_rlcell_int
+    i_startblk = p_patch%cells%start_block(rl_start)
+    i_endblk   = p_patch%cells%end_block(rl_end)
+
+    IF (icpl_da_landalb >= 1) THEN
+
+!$OMP PARALLEL
+!$OMP DO PRIVATE(jb,jc,i_startidx,i_endidx,albuv,albni,albdif_fac)
+      DO jb = i_startblk, i_endblk
+
+        CALL get_indices_c(p_patch, jb, i_startblk, i_endblk, i_startidx, i_endidx, rl_start, rl_end)
+
+        DO jc = i_startidx,i_endidx
+
+          albuv = ext_data%atm%albuv_dif(jc,jb)+prm_diag%landalb_inc(jc,jb)
+          albni = ext_data%atm%albni_dif(jc,jb)+prm_diag%landalb_inc(jc,jb)
+          IF (prm_diag%landalb_inc(jc,jb) > 0._wp) THEN
+            albuv = MIN(albuv, ext_data%atm%albuv_dif(jc,jb)+0.1_wp,  0.5_wp)
+            albni = MIN(albni, ext_data%atm%albni_dif(jc,jb)+0.15_wp, 0.7_wp)
+          ELSE
+            albuv = MAX(albuv, ext_data%atm%albuv_dif(jc,jb)-0.1_wp,  0.02_wp)
+            albni = MAX(albni, ext_data%atm%albni_dif(jc,jb)-0.15_wp, 0.08_wp)
+          ENDIF
+          albdif_fac = (albuv+albni)/(ext_data%atm%albuv_dif(jc,jb)+ext_data%atm%albni_dif(jc,jb))
+
+          ext_data%atm%albuv_dif(jc,jb) = albuv
+          ext_data%atm%albni_dif(jc,jb) = albni
+          ext_data%atm%alb_dif(jc,jb)   = MAX(0.05_wp,ext_data%atm%alb_dif(jc,jb)*albdif_fac)
+
+        ENDDO
+
+      ENDDO
+!$OMP END DO NOWAIT
+!$OMP END PARALLEL
+
+    ENDIF
+
+  END SUBROUTINE apply_landalb_tuning
 
   !-------------------------------------------------------------------------
   !>

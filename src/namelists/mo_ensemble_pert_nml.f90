@@ -73,6 +73,7 @@ MODULE mo_ensemble_pert_nml
     &                               config_stdev_sst_pert  => stdev_sst_pert,  &
     &                               config_itype_pert_gen  => itype_pert_gen,  &
     &                               config_timedep_pert    => timedep_pert,    &
+    &                               config_fac_rng_spinup  => fac_rng_spinup,  &
     &                               config_use_ensemble_pert => use_ensemble_pert
 
   
@@ -227,6 +228,7 @@ MODULE mo_ensemble_pert_nml
 
   INTEGER :: itype_pert_gen        !< type of ensemble perturbation generation
   INTEGER :: timedep_pert          !< time dependence of ensemble perturbations
+  INTEGER :: fac_rng_spinup        !< factor for number of RNG spinup calls
   LOGICAL :: use_ensemble_pert     !< main switch
 
   NAMELIST/ensemble_pert_nml/ use_ensemble_pert, range_gkwake, range_gkdrag, range_gfluxlaun, range_zvz0i, &
@@ -239,7 +241,7 @@ MODULE mo_ensemble_pert_nml
     &                         range_rdepths, range_turlen, range_rain_n0fac, range_a_hshr, range_qexc,     &
     &                         range_rprcon, range_thicklayfac, range_lhn_coef, range_lhn_artif_fac,        &
     &                         range_fac_lhn_down, range_fac_lhn_up, range_fac_ccqc, range_rmfdeps,         &
-    &                         range_entrorg_mult, range_dustyci_crit, range_dustyci_rhi
+    &                         range_entrorg_mult, range_dustyci_crit, range_dustyci_rhi, fac_rng_spinup
 
 
 CONTAINS
@@ -353,6 +355,7 @@ CONTAINS
     timedep_pert      = 0           ! 0: no time-dependence of ensemble perturbations
                                     ! 1: perturbations depend on start date, but remain fixed during forecast 
                                     ! 2: time-dependent perturbations varying sinusoidally within their range
+    fac_rng_spinup    = 1           ! factor for RNG spinup calls
 
     stdev_sst_pert    = 0._wp       ! No compensation for SST perturbations is applied by default
 
@@ -445,6 +448,7 @@ CONTAINS
     config_stdev_sst_pert     = stdev_sst_pert
     config_use_ensemble_pert  = use_ensemble_pert
     config_itype_pert_gen     = itype_pert_gen
+    config_fac_rng_spinup     = fac_rng_spinup
     config_timedep_pert       = timedep_pert
 
     !-----------------------------------------------------

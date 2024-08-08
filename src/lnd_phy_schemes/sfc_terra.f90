@@ -154,6 +154,7 @@ CONTAINS
 !
                   heatcond_fac     , & ! tuning factor for soil thermal conductivity
                   heatcap_fac      , & ! tuning factor for soil heat capacity
+                  hydiffu_fac      , & ! tuning factor for hydraulic diffusivity
 !
                   rsmin2d          , & ! minimum stomatal resistance                   ( s/m )
                   r_bsmin          , & ! minimum bare soil evap resistance             ( s/m )
@@ -313,6 +314,7 @@ CONTAINS
 !
                   heatcond_fac     , & ! tuning factor for soil thermal conductivity
                   heatcap_fac      , & ! tuning factor for soil heat capacity
+                  hydiffu_fac      , & ! tuning factor for hydraulic diffusivity
 !
                   rsmin2d          , & ! minimum stomata resistance                    ( s/m )
                   r_bsmin          , & ! minimum bare soil evap resistance             ( s/m )
@@ -1139,7 +1141,7 @@ ENDDO
   !$ACC   PRESENT(soiltyp_subs, urb_isa, urb_ai, urb_h_bld) &
   !$ACC   PRESENT(urb_hcap, urb_hcon, ahf) &
   !$ACC   PRESENT(plcov, rootdp, sai, eai, tai, laifac, skinc) &
-  !$ACC   PRESENT(heatcond_fac, heatcap_fac) &
+  !$ACC   PRESENT(heatcond_fac, heatcap_fac, hydiffu_fac) &
   !$ACC   PRESENT(rsmin2d, r_bsmin, u, v, t, qv, qc, qi, ptot, ps, h_snow_gp, u_10m) &
   !$ACC   PRESENT(v_10m, prr_con, prs_con, conv_frac, prr_gsp, prs_gsp, pri_gsp) &
 #ifdef TWOMOM_SB
@@ -1338,6 +1340,10 @@ ENDDO
     !                                                    doi:10.5194/bg-13-1991-2016
     zw_m_soil(i) = 0.01_wp*(zsandf(i)*zd1 + zclayf(i)*zd2 + zsiltf(i)*zd3)
     zw_m_org(i) = zd4
+
+    ! adaptive parameter tuning for near-surface hydraulic diffusivity
+    zdw(i,1) = zdw(i,1)*hydiffu_fac(i)**2
+    zdw(i,2) = zdw(i,2)*hydiffu_fac(i)
   ENDDO
 
   ! zkw0 will not be needed anymore if 'itype_interception = 2' is removed

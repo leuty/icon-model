@@ -73,9 +73,8 @@ USE mo_exception,           ONLY: message, finish !,message_text
 USE mo_model_domain,        ONLY: t_patch, p_patch, p_patch_local_parent
 USE mo_grid_config,         ONLY: n_dom, n_dom_start, nexlevs_rrg_vnest
 USE mo_atm_phy_nwp_config,  ONLY: atm_phy_nwp_config, icpl_aero_conv, iprog_aero
-USE turb_data,              ONLY: ltkecon, imode_tkemini, imode_trancnf, &
-                                  rsur_sher   
-USE mo_initicon_config,     ONLY: icpl_da_sfcevap, icpl_da_snowalb, icpl_da_skinc, icpl_da_seaice
+USE turb_data,              ONLY: ltkecon, imode_tkemini, imode_trancnf, rsur_sher   
+USE mo_initicon_config,     ONLY: icpl_da_sfcevap, icpl_da_snowalb, icpl_da_landalb, icpl_da_skinc, icpl_da_seaice
 USE mo_radiation_config,    ONLY: irad_aero, iRadAeroTegen, iRadAeroART, iRadAeroNone, &
                                   iRadAeroConst, iRadAeroCAMSclim, iRadAeroCAMStd, islope_rad, &
                                   iRadAeroConstKinne, iRadAeroKinne, iRadAeroVolc, iRadAeroKinneVolc, &
@@ -434,6 +433,8 @@ SUBROUTINE new_nwp_phy_diag_list( k_jg, klev, klevp1, kblks,    &
       &     diag%hbas_sc, &
       &     diag%heatcap_fac, &
       &     diag%heatcond_fac, &
+      &     diag%hydiffu_fac, &
+      &     diag%snowfrac_fac, &
       &     diag%htop_sc, &
       &     diag%ice_gsp, &
       &     diag%ice_gsp_rate, &
@@ -461,6 +462,7 @@ SUBROUTINE new_nwp_phy_diag_list( k_jg, klev, klevp1, kblks,    &
       &     diag%rh, &
       &     diag%sdi2, &
       &     diag%snowalb_fac, &
+      &     diag%landalb_inc, &
       &     diag%srh, &
       &     diag%tot_pr_max, &
       &     diag%swflxsfc_t, &
@@ -1795,6 +1797,30 @@ SUBROUTINE new_nwp_phy_diag_list( k_jg, klev, klevp1, kblks,    &
         __acc_attach(diag%snowalb_fac)
     ENDIF
 
+    IF (icpl_da_landalb >= 1) THEN
+      ! Increment for adaptive land albedo tuning
+      !
+      ! landalb_inc     diag%landalb_inc(nproma,nblks_c)
+      cf_desc    = t_cf_var('landalb_inc', '-', 'tuning increment for land albedo', datatype_flt)
+      grib2_desc = grib2_var( 255, 255, 255, ibits, GRID_UNSTRUCTURED, GRID_CELL)
+      CALL add_var( diag_list, 'landalb_inc', diag%landalb_inc,   &
+        &           GRID_UNSTRUCTURED_CELL, ZA_SURFACE, cf_desc,  &
+        &           grib2_desc, ldims=shape2d, loutput=.TRUE.,    &
+        &           initval=0.0_wp, lrestart=.TRUE., lopenacc=.TRUE.)
+        __acc_attach(diag%landalb_inc)
+    ENDIF
+
+    IF (icpl_da_snowalb >= 3) THEN
+      ! snowfrac_fac     diag%snowfrac_fac(nproma,nblks_c)
+      cf_desc    = t_cf_var('snowfrac_fac', '-', 'tuning factor for snow-cover fraction', datatype_flt)
+      grib2_desc = grib2_var( 255, 255, 255, ibits, GRID_UNSTRUCTURED, GRID_CELL)
+      CALL add_var( diag_list, 'snowfrac_fac', diag%snowfrac_fac,   &
+        &           GRID_UNSTRUCTURED_CELL, ZA_SURFACE, cf_desc,  &
+        &           grib2_desc, ldims=shape2d, loutput=.TRUE.,    &
+        &           initval=1.0_wp, lrestart=.TRUE., lopenacc=.TRUE.)
+        __acc_attach(diag%snowfrac_fac)
+    ENDIF
+
     IF (icpl_da_seaice >= 2) THEN
       ! Factor for adaptive bottom heat flux tuning
       !
@@ -1828,7 +1854,17 @@ SUBROUTINE new_nwp_phy_diag_list( k_jg, klev, klevp1, kblks,    &
         &           grib2_desc, ldims=shape2d, loutput=.TRUE.,    &
         &           initval=1.0_wp, lrestart=.TRUE., lopenacc=.TRUE.)
         __acc_attach(diag%heatcond_fac)
+    ENDIF
 
+    IF (icpl_da_sfcevap >= 5) THEN
+      ! Factor for hydraulic diffusivity
+      cf_desc    = t_cf_var('hydiffu_fac', '-', 'tuning factor for hydraulic diffusivity', datatype_flt)
+      grib2_desc = grib2_var( 255, 255, 255, ibits, GRID_UNSTRUCTURED, GRID_CELL)
+      CALL add_var( diag_list, 'hydiffu_fac', diag%hydiffu_fac,   &
+        &           GRID_UNSTRUCTURED_CELL, ZA_SURFACE, cf_desc,  &
+        &           grib2_desc, ldims=shape2d, loutput=.TRUE.,    &
+        &           initval=1.0_wp, lrestart=.TRUE., lopenacc=.TRUE.)
+        __acc_attach(diag%hydiffu_fac)
     ENDIF
 
     ! Factor for adaptive surface friction tuning

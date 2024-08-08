@@ -45,7 +45,8 @@ MODULE mo_nwp_sfc_utils
                                     itype_snowevap, zml_soil, dzsoil, frsi_min, hice_min
   USE mo_atm_phy_nwp_config,  ONLY: atm_phy_nwp_config
   USE mo_nwp_tuning_config,   ONLY: tune_minsnowfrac
-  USE mo_initicon_config,     ONLY: init_mode_soil, ltile_coldstart, init_mode, lanaread_tseasfc, use_lakeiceana
+  USE mo_initicon_config,     ONLY: init_mode_soil, ltile_coldstart, init_mode, lanaread_tseasfc, use_lakeiceana, &
+                                    icpl_da_snowalb
   USE mo_run_config,          ONLY: msg_level
   USE sfc_terra_init,         ONLY: terra_init
   USE sfc_flake,              ONLY: flake_init
@@ -266,6 +267,9 @@ CONTAINS
     REAL(wp) :: hsnow_new(nproma)   ! snow thickness at new time level
     REAL(wp) :: albsi_new(nproma)   ! sea-ice albedo at new time level
 
+    ! local field for APT factors
+    REAL(wp) :: snowfrac_fac(nproma)
+
     INTEGER  :: icount_flk          ! total number of lake points per block
     !
     INTEGER  :: icount_ice          ! total number of sea-ice points per block
@@ -300,7 +304,7 @@ CONTAINS
 !$OMP            h_snow_lk_now,t_ice_now,h_ice_now,t_mnw_lk_now,t_wml_lk_now,        &
 !$OMP            t_bot_lk_now,c_t_lk_now,h_ml_lk_now,t_b1_lk_now,h_b1_lk_now,        &
 !$OMP            t_scf_lk_now,zfrice_thrhld,lake_mask,albsi_now,albsi_new,           &
-!$OMP            iceana_mask,deglat,deglon), SCHEDULE(guided)
+!$OMP            iceana_mask,deglat,deglon,snowfrac_fac), SCHEDULE(guided)
     DO jb = i_startblk, i_endblk
 
       CALL get_indices_c(p_patch, jb, i_startblk, i_endblk, &
@@ -392,6 +396,12 @@ CONTAINS
           ELSE
             t_rhosnowini_t(ic,jb,isubs)      = t_snow_now_t(ic,jb,isubs)
           ENDIF
+
+          IF (icpl_da_snowalb >= 3) THEN
+            snowfrac_fac(ic)  = prm_diag%snowfrac_fac(jc,jb)
+          ELSE
+            snowfrac_fac(ic)  = 1._wp
+          ENDIF
         ENDDO
 
         IF(l2lay_rho_snow .OR. lmulti_snow) THEN
@@ -459,6 +469,7 @@ CONTAINS
             &  freshsnow = freshsnow_t       (:,jb,isubs), & ! fresh snow fraction
             &  sso_sigma = sso_sigma_t       (:,jb,isubs), & ! sso stdev
             &  z0        = z0_t              (:,jb,isubs), & ! vegetation roughness length
+            &  snowfrac_fac = snowfrac_fac   (:)         , & ! APT tuning factor for snow-cover fraction
             &  snowfrac  = snowfrac_t        (:,jb,isubs), & ! OUT: snow cover fraction
             &  t_g       = t_g_t             (:,jb,isubs)  ) ! OUT: averaged ground temp
 
@@ -539,6 +550,7 @@ CONTAINS
             &  freshsnow  = freshsnow_t             (:,jb,isubs), & ! fresh snow fraction
             &  sso_sigma  = sso_sigma_t             (:,jb,isubs), & ! sso stdev
             &  z0         = z0_t                    (:,jb,isubs), & ! vegetation roughness length
+            &  snowfrac_fac = snowfrac_fac          (:)         , & ! APT tuning factor for snow-cover fraction
             &  snowfrac   = snowfrac_t              (:,jb,isubs), & ! OUT: snow cover fraction
             &  t_g        = t_g_t                   (:,jb,isubs)  ) ! OUT: averaged ground temperature
 
@@ -2074,15 +2086,16 @@ CONTAINS
 
   !-------------------------------------------------------------------------
 
-  SUBROUTINE diag_snowfrac_tg(istart, iend, lc_class, i_lc_urban, t_snow, t_soiltop, w_snow, &
-    & rho_snow, freshsnow, sso_sigma, z0, snowfrac, t_g, meltrate, snowfrac_u, lacc, opt_acc_async_queue)
+  SUBROUTINE diag_snowfrac_tg(istart, iend, lc_class, i_lc_urban, t_snow, t_soiltop, w_snow,  &
+    & rho_snow, freshsnow, sso_sigma, z0, snowfrac_fac, snowfrac, t_g, meltrate,              &
+    & snowfrac_u, lacc, opt_acc_async_queue)
 
     INTEGER, INTENT (IN) :: istart, iend ! start and end-indices of the computation
 
     INTEGER, INTENT (IN) :: lc_class(:)  ! list of land-cover classes
     INTEGER, INTENT (IN) :: i_lc_urban   ! land-cover class index for urban / artificial surface
     REAL(wp), DIMENSION(:), INTENT(IN) :: t_snow, t_soiltop, w_snow, rho_snow, &
-      freshsnow, sso_sigma, z0
+      freshsnow, sso_sigma, z0, snowfrac_fac
     REAL(wp), DIMENSION(:), INTENT(IN), OPTIONAL :: meltrate ! snow melting rate in kg/(m**2*s)
 
     REAL(wp), DIMENSION(:), INTENT(INOUT) :: snowfrac, t_g
@@ -2130,7 +2143,7 @@ CONTAINS
           ELSE
             lc_limit = 1._wp
           ENDIF
-          snowfrac(ic) = MAX(0.05_wp,MIN(lc_limit,snowdepth_fac/lc_fac))
+          snowfrac(ic) = MAX(0.05_wp,MIN(lc_limit,snowfrac_fac(ic)*snowdepth_fac/lc_fac))
         ENDIF
         t_g(ic) = t_snow(ic) + (1.0_wp - snowfrac(ic))*(t_soiltop(ic) - t_snow(ic))
       ENDDO

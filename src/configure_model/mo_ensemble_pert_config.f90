@@ -70,7 +70,7 @@ MODULE mo_ensemble_pert_config
             itype_pert_gen, timedep_pert, range_a_stab, range_c_diff, range_q_crit, range_thicklayfac,  &
             box_liq_sv, thicklayfac_sv, box_liq_asy_sv, range_lhn_coef, range_lhn_artif_fac,            &
             range_fac_lhn_down, range_fac_lhn_up, range_fac_ccqc, range_rmfdeps, range_entrorg_mult,    &
-            range_dustyci_crit, range_dustyci_rhi
+            range_dustyci_crit, range_dustyci_rhi, fac_rng_spinup
 
   !!--------------------------------------------------------------------------
   !! Basic configuration setup for ensemble perturbations
@@ -228,6 +228,7 @@ MODULE mo_ensemble_pert_config
 
   INTEGER :: itype_pert_gen        !< type of ensemble perturbation generation
   INTEGER :: timedep_pert          !< time dependence of ensemble perturbations
+  INTEGER :: fac_rng_spinup        !< factor for number of RNG spinup calls
   LOGICAL :: use_ensemble_pert     !< main switch
   LOGICAL :: linit                 !< internal switch to decide between initializing and applying random numbers
 
@@ -290,7 +291,7 @@ MODULE mo_ensemble_pert_config
       ENDIF
 
       CALL RANDOM_SEED(PUT=rnd_seed)
-      DO i = 1, 10+ipn
+      DO i = 1, (10+ipn)*fac_rng_spinup
         CALL RANDOM_NUMBER(rnd_num)
       ENDDO
 
@@ -300,13 +301,12 @@ MODULE mo_ensemble_pert_config
 
       ! Renitialize random number generator with the same seed as before, 
       ! excluding the time dependence applied to the physics perturbations in the case of timedep_pert=1
-      ipn = gribout_config(1)%perturbationNumber
       DO i = 1, rnd_size
         rnd_seed(i) = (135+i)*ipn - (21+i**2)*(5+MOD(ipn,10))**2 + 3*i**3
       ENDDO
 
       CALL RANDOM_SEED(PUT=rnd_seed)
-      DO i = 1, 10+ipn
+      DO i = 1, (10+ipn)*fac_rng_spinup
         CALL RANDOM_NUMBER(rnd_num)
       ENDDO
 
@@ -320,7 +320,7 @@ MODULE mo_ensemble_pert_config
         rnd_seed(i) = (139+i)*ipn - (23+i**2)*(5+MOD(ipn,12))**2 + 4*i**3
       ENDDO
       CALL RANDOM_SEED(PUT=rnd_seed)
-      DO i = 1, 10+ipn
+      DO i = 1, (10+ipn)*fac_rng_spinup
         CALL RANDOM_NUMBER(rnd_num)
       ENDDO
 
@@ -375,6 +375,9 @@ MODULE mo_ensemble_pert_config
 
       CALL RANDOM_NUMBER(rnd_num)
       rnd_rmfdeps = rnd_num
+
+      WRITE(message_text,'(a,2f8.4)') 'rnd_entrorg_mult, rnd_rmfdeps: ', rnd_entrorg_mult, rnd_rmfdeps
+      CALL message('', TRIM(message_text))
 
       !$ACC ENTER DATA COPYIN(rnd_tkred_sfc, rnd_fac_ccqc, rnd_entrorg_mult, rnd_rmfdeps)
 

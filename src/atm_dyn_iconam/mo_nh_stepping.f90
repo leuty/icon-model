@@ -116,6 +116,7 @@ MODULE mo_nh_stepping
   USE mo_nh_interface_nwp,         ONLY: nwp_nh_interface
   USE mo_phy_events,               ONLY: mtime_ctrl_physics
   USE mo_nwp_phy_init,             ONLY: init_nwp_phy, init_cloud_aero_cpl, clim_cdnc
+  USE mo_apt_routines,             ONLY: apply_landalb_tuning
   USE mo_nwp_sfc_utils,            ONLY: aggregate_landvars, aggr_landvars, process_sst_and_seaice
   USE mo_nwp_diagnosis,            ONLY: nwp_diag_for_output, nwp_opt_diagnostics, nwp_diag_global
   USE mo_nwp_vdiff_interface,      ONLY: nwp_vdiff_update_seaice
@@ -1142,6 +1143,10 @@ MODULE mo_nh_stepping
             &                      ref_datetime    = ref_datetime,     &
             &                      target_datetime = target_datetime,  &
             &                      mtime_old       = mtime_old         )
+
+          ! Apply adaptive parameter tuning if selected by namelist; the tuning needs to be re-applied
+          ! after each update of the time-interpolated albedo fields
+          CALL apply_landalb_tuning (p_patch(jg), prm_diag(jg), ext_data(jg))
 
         ENDDO  ! jg
 

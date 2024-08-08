@@ -1457,6 +1457,14 @@ Note: LHN perturbations always follow option 2 if the time dependence is not tur
 \tabularnewline
 
 \hline
+fac\_rng\_spinup&
+I&
+1&
+&
+Factor for number of spinup calls for random number generator&
+\tabularnewline
+
+\hline
 range\_gkwake&
 R&
 1.5&
@@ -2472,7 +2480,8 @@ Choosing values $>$ 0 requires itype\_vegetation\_cycle=2 (in extpar\_nml) :\\
 3: as option 2, but use a time-filtered temperature increment at the lowest model level instead of the T2M bias provided by the SMA
 (requires assimilation of T2M and RH2M) \\
 4: as option 3, but uses the minimum evaporation resistance (default set by cr\_bsmin) instead of c\_soil for adaptive
-tuning of bare-soil evaporation &
+tuning of bare-soil evaporation \\
+5: as option 4, but additional adjustment of hydraulic diffusivity (capillary transport) and asymmetry factor for stomata resistance &
 init\_mode=5
 \tabularnewline
 
@@ -2480,7 +2489,7 @@ smi\_relax\_timescale&
 R & 20. & days &
 Relaxation time scale for ICON-internal soil moisture adjustment, referring to a filtered RH increment of 1\%.
 Setting the time scale to zero turns off the soil moisture adjustment. &
-icpl\_da\_sfcevap $>=$ 2
+icpl\_da\_sfcevap $\ge$ 2
 \tabularnewline
 
 itype\_sma&
@@ -2488,7 +2497,7 @@ I & 1 & &
 Type of soil moisture analysis used \\
 1: use external soil moisture analysis provided by the data assimilation \\
 2: use ICON-internal SMA based on adaptive parameter tuning &
-init\_mode=5; icpl\_da\_sfcevap$>=$3
+init\_mode=5; icpl\_da\_sfcevap$\ge$3
 \tabularnewline
 
 icpl\_da\_snowalb&
@@ -2496,8 +2505,18 @@ I & 0 & &
 Coupling between temperature bias inferred from data assimilation and snow albedo\\
 0: off \\
 1: on; requires assimilation of T2M and cycling of a time-filtered temperature increment at the lowest model level \\
-2: as option 1, but additional adaptation of sea-ice albedo &
-init\_mode=5; icpl\_da\_sfcevap$>=$3
+2: as option 1, but additional adaptation of sea-ice albedo \\
+3: as option 2, but additional adaptation of snow-cover fraction diagnosis
+init\_mode=5; icpl\_da\_sfcevap$\ge$3
+\tabularnewline
+
+icpl\_da\_landalb&
+I & 0 & &
+Coupling between temperature/humidity bias inferred from data assimilation and albedo of snow-free land\\
+0: off \\
+1: on; requires assimilation of T2M and RH2M and cycling of the full set of filtered assimilation increments
+coming along with icpl\_da\_sfcevap$\ge$5
+init\_mode=5; icpl\_da\_sfcevap$\ge$5
 \tabularnewline
 
 icpl\_da\_seaice&
@@ -2506,7 +2525,7 @@ Coupling between temperature bias inferred from data assimilation and seaice sch
 0: off \\
 1: add filtered T increment to initial seaice temperature \\
 2: as above, and additional adaptive tuning of bottom heat flux if lbottom\_hflux = true &
-init\_mode=5; icpl\_da\_sfcevap$>=$3
+init\_mode=5; icpl\_da\_sfcevap$\ge$3
 \tabularnewline
 
 icpl\_da\_skinc&
@@ -10338,7 +10357,7 @@ n\_iter\_smooth\_topo $>$ 0
 
 %\hline
 hgtdiff\_max\_smooth\_topo&
-R &
+R(n\_dom)  &
 0. &
 m &
 RMS height difference to neighbor grid points at which the smoothing pre-factor fac\_smooth\_topo

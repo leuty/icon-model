@@ -54,7 +54,7 @@ MODULE mo_initicon_config
   PUBLIC :: ltile_init
   PUBLIC :: icpl_da_sfcevap, icpl_da_skinc, icpl_da_snowalb, icpl_da_sfcfric, icpl_da_tkhmin, dt_ana
   PUBLIC :: scalfac_da_sfcfric, smi_relax_timescale, itype_sma
-  PUBLIC :: adjust_tso_tsnow, icpl_da_seaice
+  PUBLIC :: adjust_tso_tsnow, icpl_da_seaice, icpl_da_landalb
   PUBLIC :: lvert_remap_fg
   PUBLIC :: ifs2icon_filename
   PUBLIC :: dwdfg_filename
@@ -135,6 +135,8 @@ MODULE mo_initicon_config
   INTEGER  :: icpl_da_skinc    ! Coupling between data assimilation and skin conductivity
 
   INTEGER  :: icpl_da_snowalb  ! Coupling between data assimilation and snow albedo
+
+  INTEGER  :: icpl_da_landalb  ! Coupling between data assimilation and land albedo
 
   INTEGER  :: icpl_da_sfcfric  ! Coupling between data assimilation and surface friction (roughness length and SSO blocking)
 

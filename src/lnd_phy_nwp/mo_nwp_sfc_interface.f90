@@ -45,7 +45,7 @@ MODULE mo_nwp_sfc_interface
   USE mo_nwp_tuning_config,   ONLY: itune_gust_diag
   USE mo_radiation_config,    ONLY: islope_rad
   USE mo_extpar_config,       ONLY: itype_vegetation_cycle
-  USE mo_initicon_config,     ONLY: icpl_da_sfcevap, dt_ana, icpl_da_skinc, icpl_da_seaice
+  USE mo_initicon_config,     ONLY: icpl_da_sfcevap, dt_ana, icpl_da_skinc, icpl_da_seaice, icpl_da_snowalb
   USE mo_coupling_config,     ONLY: is_coupled_to_ocean
   USE mo_ensemble_pert_config,ONLY: sst_pert_corrfac
   USE mo_satad,               ONLY: sat_pres_water, sat_pres_ice, spec_humi, dqsatdT_ice
@@ -257,7 +257,8 @@ CONTAINS
     INTEGER  :: init_list(nproma), it1(nproma), it2(nproma)
     REAL(wp) :: tmp1, tmp2, tmp3, qsat1, dqsdt1, qsat2, dqsdt2, qi_snowdrift_flx_t
     REAL(wp) :: frac_sv(nproma), frac_snow_sv(nproma), fact1(nproma), fact2(nproma), tsnred(nproma), &
-                sntunefac(nproma), sntunefac2(nproma, ntiles_total), heatcond_fac(nproma), heatcap_fac(nproma)
+                sntunefac(nproma), sntunefac2(nproma, ntiles_total), heatcond_fac(nproma), heatcap_fac(nproma), &
+                hydiffu_fac(nproma), snowfrac_fac(nproma)
     REAL(wp) :: rain_gsp_rate(nproma, ntiles_total)
     REAL(wp) :: snow_gsp_rate(nproma, ntiles_total)
     REAL(wp) :: ice_gsp_rate (nproma, ntiles_total)
@@ -412,8 +413,8 @@ CONTAINS
 !$OMP   wliq_snow_new_t,wtot_snow_new_t,dzh_snow_new_t,w_so_new_t,w_so_ice_new_t,lhfl_pl_t,                 &
 !$OMP   shfl_soil_t,lhfl_soil_t,shfl_snow_t,lhfl_snow_t,t_snow_new_t,graupel_gsp_rate,prg_gsp_t,            &
 !$OMP   snow_melt_flux_t,h_snow_gp_t,conv_frac,t_sk_now_t,t_sk_new_t,skinc_t,tsnred,plevap_t,z0_t,laifac_t, &
-!$OMP   cond,init_list_tmp,i_count_init_tmp,heatcond_fac,heatcap_fac,qi_snowdrift_flx_t,                    &
-!$OMP   qsat1,dqsdt1,qsat2,dqsdt2,sntunefac,sntunefac2,snowfrac_lcu_t) ICON_OMP_GUIDED_SCHEDULE
+!$OMP   cond,init_list_tmp,i_count_init_tmp,heatcond_fac,heatcap_fac,hydiffu_fac,qi_snowdrift_flx_t,        &
+!$OMP   snowfrac_fac,qsat1,dqsdt1,qsat2,dqsdt2,sntunefac,sntunefac2,snowfrac_lcu_t) ICON_OMP_GUIDED_SCHEDULE
 
     DO jb = i_startblk, i_endblk
 
@@ -669,8 +670,8 @@ CONTAINS
         !$ACC   CREATE(rstom_t, lhfl_bs_t, t_snow_mult_new_t, rho_snow_mult_new_t) &
         !$ACC   CREATE(wliq_snow_new_t, wtot_snow_new_t, dzh_snow_new_t, t_so_new_t) &
         !$ACC   CREATE(w_so_new_t, w_so_ice_new_t, lhfl_pl_t, shfl_s_t, lhfl_s_t) &
-        !$ACC   CREATE(qhfl_s_t, plevap_t, z0_t, sso_sigma_t, heatcond_fac, heatcap_fac) &
-        !$ACC   CREATE(snowfrac_lcu_t, lc_class_t, i_count) ASYNC(acc_async_queue)
+        !$ACC   CREATE(qhfl_s_t, plevap_t, z0_t, sso_sigma_t, heatcond_fac, heatcap_fac, hydiffu_fac) &
+        !$ACC   CREATE(snowfrac_fac, snowfrac_lcu_t, lc_class_t, i_count) ASYNC(acc_async_queue)
 
         !$ACC KERNELS ASYNC(acc_async_queue) IF(lzacc)
         i_count = ext_data%atm%gp_count_t(jb,isubs) 
@@ -760,6 +761,18 @@ CONTAINS
           ELSE
             heatcond_fac(ic)        =  1._wp
             heatcap_fac(ic)         =  1._wp
+          ENDIF
+
+          IF (icpl_da_snowalb >= 3) THEN
+            snowfrac_fac(ic)       =  prm_diag%snowfrac_fac(jc,jb)
+          ELSE
+            snowfrac_fac(ic)       =  1._wp
+          ENDIF
+
+          IF (icpl_da_sfcevap >= 5) THEN
+            hydiffu_fac(ic)       =  prm_diag%hydiffu_fac(jc,jb)
+          ELSE
+            hydiffu_fac(ic)       =  1._wp
           ENDIF
 
           ! note: we reset "runoff_s_inst_t", "runoff_g_inst_t" in
@@ -953,6 +966,7 @@ CONTAINS
 !
         &  heatcond_fac = heatcond_fac                       , & !IN tuning factor for soil thermal conductivity
         &  heatcap_fac  = heatcap_fac                        , & !IN tuning factor for soil heat capacity
+        &  hydiffu_fac  = hydiffu_fac                        , & !IN tuning factor for hydraulic diffusivity
 !
         &  rsmin2d      = rsmin2d_t                          , & !IN minimum stomatal resistance       ( s/m )
         &  r_bsmin      = r_bsmin                            , & !IN minimum bare soil evap resistance ( s/m )
@@ -1100,6 +1114,7 @@ CONTAINS
           &  meltrate   = snow_melt_flux_t        , & ! snow melting rate
           &  sso_sigma  = sso_sigma_t             , & ! sso stdev
           &  z0         = z0_t                    , & ! vegetation roughness length
+          &  snowfrac_fac = snowfrac_fac          , & ! APT tuning factor for snow-cover fraction
           &  snowfrac   = snowfrac_t              , & ! OUT: snow cover fraction
           &  snowfrac_u = snowfrac_lcu_t          , & ! OUT: unmodified snow cover fraction
           &  t_g        = t_g_t                   , & ! OUT: averaged ground temperature

@@ -1800,6 +1800,10 @@ MODULE mo_initicon_io
             IF (icpl_da_skinc >= 1) THEN
               CALL fetchSurface(params, 't_wgt_avginc', jg, nh_diag%t_wgt_avginc)
             ENDIF
+            IF (icpl_da_sfcevap >= 5) THEN
+              CALL fetchSurface(params, 't_daywgt_avginc', jg, nh_diag%t_daywgt_avginc)
+              CALL fetchSurface(params, 'rh_daywgt_avginc', jg, nh_diag%rh_daywgt_avginc)
+            ENDIF
             IF (latbc_config%fac_latbc_presbiascor > 0._wp) THEN
               CALL fetchSurface(params, 'p_avginc', jg, nh_diag%p_avginc)
             ENDIF
