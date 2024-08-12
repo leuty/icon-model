@@ -31,11 +31,11 @@ tests:
   - name: mch_ch_r04b09_dace_synsat
     tags: ['atm','merge2rc','probtest']
     machines:
-      - name: daint
-        exclude: ['DAINT_CPU_cce']
-    refgen: ['DAINT_CPU_nvidia']
+      - name: horeka
+        include_only: ['horeka_cpu_nvhpc','horeka_gpu_nvhpc']
+    refgen: ['horeka_cpu_nvhpc']
     ensemble_num:
-      - DAINT_CPU_nvidia: [25,12,13,20,19]
+      - horeka_cpu_nvhpc: [25,12,13,20,19]
   - name: mch_kenda-ch1_small
     tags: ['atm','merge2rc','probtest']
     machines:
