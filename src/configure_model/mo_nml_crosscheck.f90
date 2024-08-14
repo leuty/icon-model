@@ -97,6 +97,7 @@ MODULE mo_nml_crosscheck
 #endif
 
   USE mo_sppt_config,              ONLY: sppt_config, crosscheck_sppt
+  USE mo_gribout_config,           ONLY: gribout_crosscheck
 
 
   IMPLICIT NONE
@@ -701,6 +702,9 @@ CONTAINS
         CALL finish(routine, message_text)
       END IF
     END DO
+
+    ! Output in file format GRIB2
+    CALL gribout_crosscheck(n_dom=n_dom, verbose=(msg_level >= 15))
 
 
     !--------------------------------------------------------------------

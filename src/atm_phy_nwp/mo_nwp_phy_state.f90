@@ -5079,6 +5079,8 @@ SUBROUTINE new_nwp_phy_diag_list( k_jg, klev, klevp1, kblks,    &
     END IF
 
     luh_max_out(k_jg, :) = (/var_in_output%uh_max_low, var_in_output%uh_max_med, var_in_output%uh_max/)
+    ! Please note: the following height indications should be in full meter,
+    ! as "scaleFactorOfFirst/SecondFixedSurface" are explicitly set to 0 below.
     uh_max_zmin          = (/                   0._wp,                 2000._wp,             2000._wp/)
     uh_max_zmax          = (/                3000._wp,                 5000._wp,             8000._wp/)
 
@@ -5118,7 +5120,9 @@ SUBROUTINE new_nwp_phy_diag_list( k_jg, klev, klevp1, kblks,    &
           grib2_desc = grib2_var( 0, 7, 15, ibits, GRID_UNSTRUCTURED, GRID_CELL)                  &
             &           + t_grib2_int_key("typeOfFirstFixedSurface",          102)                &
             &           + t_grib2_int_key("typeOfSecondFixedSurface",         102)                &
-            &           + t_grib2_int_key("scaledValueOfFirstFixedSurface",  int(uh_max_zmin(k))) &
+            &           + t_grib2_int_key("scaleFactorOfFirstFixedSurface",     0)                &
+            &           + t_grib2_int_key("scaledValueOfFirstFixedSurface",  INT(uh_max_zmin(k))) &
+            &           + t_grib2_int_key("scaleFactorOfSecondFixedSurface",    0)                &
             &           + t_grib2_int_key("scaledValueOfSecondFixedSurface", int(uh_max_zmax(k)))
           CALL add_ref( diag_list, 'uh_max_3d', TRIM(shortname), diag%uh_max_ptr(k)%p_2d, &
                       & GRID_UNSTRUCTURED_CELL, ZA_SURFACE,                               &
@@ -5140,7 +5144,9 @@ SUBROUTINE new_nwp_phy_diag_list( k_jg, klev, klevp1, kblks,    &
       grib2_desc = grib2_var( 0, 2, 206, ibits, GRID_UNSTRUCTURED, GRID_CELL)   &
         &           + t_grib2_int_key("typeOfFirstFixedSurface",          102)  &
         &           + t_grib2_int_key("typeOfSecondFixedSurface",         102)  &
+        &           + t_grib2_int_key("scaleFactorOfFirstFixedSurface",     0)  &
         &           + t_grib2_int_key("scaledValueOfFirstFixedSurface",     0)  &
+        &           + t_grib2_int_key("scaleFactorOfSecondFixedSurface",    0)  &
         &           + t_grib2_int_key("scaledValueOfSecondFixedSurface", 3000)
       CALL add_var( diag_list, 'vorw_ctmax', diag%vorw_ctmax,                &
                   & GRID_UNSTRUCTURED_CELL, ZA_SURFACE,                      &
@@ -5159,7 +5165,9 @@ SUBROUTINE new_nwp_phy_diag_list( k_jg, klev, klevp1, kblks,    &
       grib2_desc = grib2_var( 0, 1, 26, ibits, GRID_UNSTRUCTURED, GRID_CELL)   &
         &           + t_grib2_int_key("typeOfFirstFixedSurface",          103) &
         &           + t_grib2_int_key("typeOfSecondFixedSurface",         103) &
+        &           + t_grib2_int_key("scaleFactorOfFirstFixedSurface",     0) &
         &           + t_grib2_int_key("scaledValueOfFirstFixedSurface",  1000) &
+        &           + t_grib2_int_key("scaleFactorOfSecondFixedSurface",    0) &
         &           + t_grib2_int_key("scaledValueOfSecondFixedSurface",    0)
       CALL add_var( diag_list,                                               &
                   & 'mconv', diag%mconv,                                     &
@@ -5179,7 +5187,9 @@ SUBROUTINE new_nwp_phy_diag_list( k_jg, klev, klevp1, kblks,    &
       grib2_desc = grib2_var( 0, 2, 207, ibits, GRID_UNSTRUCTURED, GRID_CELL)    &
         &           + t_grib2_int_key("typeOfFirstFixedSurface",           102)  &
         &           + t_grib2_int_key("typeOfSecondFixedSurface",          102)  &
+        &           + t_grib2_int_key("scaleFactorOfFirstFixedSurface",      0)  &
         &           + t_grib2_int_key("scaledValueOfFirstFixedSurface",      0)  &
+        &           + t_grib2_int_key("scaleFactorOfSecondFixedSurface",     0)  &
         &           + t_grib2_int_key("scaledValueOfSecondFixedSurface", 10000)
       CALL add_var( diag_list, 'w_ctmax', diag%w_ctmax,                      &
                   & GRID_UNSTRUCTURED_CELL, ZA_SURFACE,                      &

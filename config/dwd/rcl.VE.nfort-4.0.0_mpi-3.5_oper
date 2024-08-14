@@ -64,6 +64,9 @@ RTTOV_LIBS='-lrttov13'
 # FYAML
 FYAML_LIB='-lfyaml'
 
+# C++ library (for eccodes > 2.31.0)
+CXX_LIB='-lnc++'
+
 ################################################################################
 
 
@@ -108,7 +111,7 @@ ICON_FORTRAN_SUPPORT_FCFLAGS='-fpp'
 
 LDFLAGS="-L${ZLIBROOT}/lib -L${AEC_DIR}/lib -L${SZIPROOT}/lib -L${HDF5_DIR}/lib -L${NETCDF_DIR}/lib -L${RTTOV_ROOT}/lib -L${ECCODES_LIB_DIR} -L${LAPACKROOT}/lib -L${XML2ROOT}/lib -L/opt/nec/ve/nfort/4.0.0/lib -traceback=verbose -static -static-nec -shared-mpi"
 
-LIBS="-Wl,--as-needed ${XML2_LIBS} ${RTTOV_LIBS} ${LAPACK_LIBS} ${ECCODES__LIBS} ${NETCDFF_LIBS} ${NETCDF_LIBS} ${HDF5_LIBS} ${SZIP_LIB} ${AEC_LIB} ${ZLIB_LIB} ${FYAML_LIB}"
+LIBS="-Wl,--as-needed ${XML2_LIBS} ${RTTOV_LIBS} ${LAPACK_LIBS} ${ECCODES__LIBS} ${NETCDFF_LIBS} ${NETCDF_LIBS} ${HDF5_LIBS} ${SZIP_LIB} ${AEC_LIB} ${ZLIB_LIB} ${FYAML_LIB} ${CXX_LIB}"
 
 MPI_LAUNCH='/opt/nec/ve/mpi/3.3.0/bin/runtime/mpirun'  # needed e.g. for YAXT and YAC configuration as well as make_runscripts
 

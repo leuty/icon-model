@@ -1843,6 +1843,9 @@ Defined and used in: \verb+src/namelists/mo_ensemble_pert_nml.f90+
 % gribout_nml:
 %------------------------------------------------------------------------------
 \subsection{gribout\_nml}
+\begingroup
+% Increase vertical spacing after tabularnewline for better readability
+\renewcommand*{\arraystretch}{1.4}
 \begin{longtab}
 
 %\hline
@@ -1852,7 +1855,15 @@ Setting this different to ''none'' enables a couple of defaults for
 the other \texttt{gribout\_nml} namelist parameters. If, additionally, the
 user tries to set any of these other parameters to a conflicting
 value, an error message is thrown.
-Possible values are ''none'', ''deterministic'', ''ensemble''.
+Possible values are:\\
+{\textasteriskcentered} ''none''\\
+{\textasteriskcentered} ''\textcolor{blue}{deterministic}''\\
+{\textasteriskcentered} ''\textcolor{cyan}{ensemble}''\\
+They correspond to:\\
+typeOfGeneratingProcess = \textcolor{blue}{2}/\textcolor{cyan}{4}\\
+localDefinitionNumber = \textcolor{blue}{254}/\textcolor{cyan}{253}\\
+typOfProcessedData = \textcolor{blue}{1}/\textcolor{cyan}{5}\\
+typeOfEnsembleForecast = \textcolor{cyan}{192}
 &
 filetype=2
 \tabularnewline
@@ -1876,9 +1887,10 @@ filetype=2
 generatingCenter&
 I& -1 & &
 Output generating center. If this key is not set, center information is taken from the grid file\\
-DWD: 78 \\
-MPIMET: 98 \\
-ECMWF: 98 &
+{\textasteriskcentered} 78: DWD \\
+{\textasteriskcentered} 98: MPIMET \textsuperscript{\textbf{+}} \\
+{\textasteriskcentered} 98: ECMWF\\
+({}\textsuperscript{\textbf{+}} The official WMO code for the MIPMET is 252.)&
 filetype=2
 \tabularnewline
 
@@ -1886,14 +1898,14 @@ filetype=2
 generatingSubcenter&
 I& -1 & &
 Output generating Subcenter. If this key is not set, subcenter information is taken from the grid file\\
-DWD: 255\\
-MPIMET: 232\\
-ECMWF: 0 &
+{\textasteriskcentered} 255:           DWD\\
+{\textasteriskcentered} 232:           MPIMET\\
+{\textasteriskcentered} 0\phantom{00}: ECMWF &
 filetype=2
 \tabularnewline
 
 %\hline
-generatingProcess\par Identifier&
+generatingProcess\-Identifier&
 I(n\_dom)& 1 & &
 generating Process Identifier \\
 - GRIB2 code table generatingProcessIdentifier.table &
@@ -1901,7 +1913,7 @@ filetype=2
 \tabularnewline
 
 %\hline
-numberOfForecastsIn- Ensemble&
+numberOfForecastsIn\-Ensemble&
 I& -1 & &
 Local definiton for ensemble products,
 (only set if value changed from default) &
@@ -1917,7 +1929,7 @@ filetype=2
 \tabularnewline
 
 %\hline
-productionStatusOfPro-\par cessedData&
+productionStatusOf\-Processed\-Data&
 I& 1 & &
 Production status of data\\
 - GRIB2 code table 1.3 &
@@ -1925,7 +1937,7 @@ filetype=2
 \tabularnewline
 
 %\hline
-significanceOfReferenceTime &
+significanceOf\-Reference\-Time &
 I& 1& &
 Significance of reference time\\
 - GRIB2 code table 1.2 &
@@ -1933,7 +1945,7 @@ filetype=2
 \tabularnewline
 
 %\hline
-typeOfEnsembleForecast&
+typeOfEnsemble\-Forecast&
 I& -1 & &
 Local definiton for ensemble products
 (only set if value changed from default) &
@@ -1941,7 +1953,7 @@ filetype=2
 \tabularnewline
 
 %\hline
-typeOfGeneratingProcess&
+typeOfGenerating\-Process&
 I& -1 & &
 Type of generating process \\
 - GRIB2 code table 4.3 &
@@ -1949,7 +1961,7 @@ filetype=2
 \tabularnewline
 
 %\hline
-typeOfProcessedData&
+typeOfProcessed\-Data&
 I& -1 & &
 Type of data \\
 - GRIB2 code table 1.4 &
@@ -1957,41 +1969,46 @@ filetype=2
 \tabularnewline
 
 %\hline
-localDefinitionNumber&
+localDefinition\-Number&
 I& -1 & &
-local Definition Number\\
+local Definition Number:\\
+{\textasteriskcentered} 254: Deterministic system \\
+{\textasteriskcentered} 253: Ensemble system: \\
 - GRIB2 code table grib2LocalSectionNumber.78.table &
-filetype=2
+filetype=2\\
+generatingCenter=78/80/215
 \tabularnewline
 
 %\hline
-localNumberOfExperiment&
+localNumberOf\-Experiment&
 I& 1 & &
 local Number of Experiment &
-filetype=2
+filetype=2\\
+generatingCenter=78/80/215
 \tabularnewline
 
 %\hline
-localTypeOfEnsemble-\par Forecast&
+localTypeOf\-Ensemble\-Forecast&
 I& -1 & &
 Local definiton for ensemble products
 (only set if value changed from default) &
-filetype=2
+filetype=2\\
+generatingCenter=78/80/215
 \tabularnewline
 
-typeOfGrib2TileTemplate&
+typeOfGrib2\-Tile\-Template&
 C& ``DWD'' &&
-type of GRIB2 templates which are used for decoding tiled surface fields\\
-WMO: official WMO templates (55, 59)\\
-DWD: local DWD templates (40455, 40456)&
+Type of GRIB2 templates which are used for decoding tiled surface fields\\
+{\textasteriskcentered} ''WMO'': official WMO templates (55, 59)\\
+{\textasteriskcentered} ''DWD'': local DWD templates (40455, 40456)&
 filetype = 2
 \tabularnewline
 
 lspecialdate\_invar&
 L& .FALSE. &&
 Special reference date for invariant and climatological fields\\
-.TRUE.: set special reference date 0001-01-01, 00:00\\
-.FASLE.: no special reference date &
+{\textasteriskcentered} .TRUE.: set special reference date 0001-01-01, 00:00\\
+{\textasteriskcentered} .FASLE.: no special reference date &
 filetype = 2
 \tabularnewline
 
@@ -1999,8 +2016,8 @@ filetype = 2
 ldate\_grib\_act&
 L& .TRUE. & &
 GRIB creation date\\
-.TRUE.: add creation date\\
-.FALSE.: add dummy date &
+{\textasteriskcentered} .TRUE.: add creation date\\
+{\textasteriskcentered} .FALSE.: add dummy date &
 filetype=2
 \tabularnewline
 
@@ -2012,7 +2029,80 @@ filetype=2
 \tabularnewline
 
 %\hline
+grib\_lib\_\-compat&
+C& ''current'' & &
+Type of GRIB library backward compatibility adjustment:\\
+{\textasteriskcentered} ''current'': No adjustment\\
+{\textasteriskcentered} ''eccodes:2.31.0'': Please see Section \ref{subsec:griblibcompat} below. &
+filetype=2\\
+ecCodes version >= 2.32.0
+\tabularnewline
+
+%\hline
 \end{longtab}
+\endgroup
+
+% -------------------------------------------------------------
+\subsubsection{Notes on the GRIB library backward compatiblity adjustment:}\label{subsec:griblibcompat}
+% -------------------------------------------------------------
+
+
+\emph{Why do we need the namelist parameter} \texttt{grib\_lib\_compat}\emph{?}\\
+The I/O library CDI uses the ecCodes library for GRIB file handling.
+Sometimes, version updates of ecCodes come along with a change in behavior
+that results in some GRIB metadata having different values in GRIB output files (which cannot be avoided without additional measures).
+This is undesirable, at least in operational NWP.
+In order to allow for maintaining continuity, we try to ``overwrite'' such new behavior with an explicit reproduction of the prior behavior, if possible.
+The following Table \ref{tab:griblibcompat} describes the options of the associated namelist parameter \texttt{grib\_lib\_compat}
+in more detail.
+
+\begingroup
+\renewcommand*{\arraystretch}{1.2}
+\begin{longtable}
+{|>{\raggedright}p{0.16\textwidth}   % grib_lib_compat
+ |>{\raggedright}p{0.44\textwidth}   % Description
+ |>{\raggedright}p{0.17\textwidth}   % Applies to GRIB lib version
+ |>{\raggedright}p{0.18\textwidth}|} % Notes
+\caption{Options for parameter: \texttt{grib\_lib\_compat}}\label{tab:griblibcompat}\\
+\hline
+\textbf{\texttt{grib\_lib\_compat}} & \textbf{Description} & \textbf{Applies to GRIB lib\\ version} & \textbf{Notes} 
+\tabularnewline
+\hline
+\endhead
+
+''current'' & No adjustment applied. & &
+\tabularnewline
+%
+
+''eccodes:2.31.0'' &
+CDI uses the ecCodes sample GRIB file ``GRIB2.tmpl'' as a starting file for ecCodes.
+The \texttt{SecondFixedSurface} GRIB keys are assigned the following values in GRIB2.tmpl:\\[0.5em]
+{\textasteriskcentered} \texttt{typeOfSecondFixedSurface\phantom{Surface} = 255 (MISSING)}\\
+{\textasteriskcentered} \texttt{scaleFactorOfSecondFixedSurface = 255 (MISSING)}\\
+{\textasteriskcentered} \texttt{scaledValueOfSecondFixedSurface = 2,147,483,647 (MISSING)}\\[0.5em]
+Now, if \texttt{typeOfSecondFixedSurface} is set to a value >= 10, 102 say (``Specific altitude above mean sea level''),
+but \texttt{scaleFactorOfSecondFixedSurface} and \texttt{scaledValueOfSecondFixedSurface}
+are not explicitly set, the result is as follows:\\[0.5em]
+\underline{(1) \emph{For ecCodes version < 2.32.0}}\\
+{\textasteriskcentered} \texttt{typeOfSecondFixedSurface\phantom{Surface} = 102}\\
+{\textasteriskcentered} \texttt{scaleFactorOfSecondFixedSurface = 0}\\
+{\textasteriskcentered} \texttt{scaledValueOfSecondFixedSurface = 0}\\[0.5em]
+\underline{(2) \emph{For ecCodes version >= 2.32.0}}\\
+{\textasteriskcentered} \texttt{typeOfSecondFixedSurface\phantom{Surface} = 102}\\
+{\textasteriskcentered} \texttt{scaleFactorOfSecondFixedSurface = MISSING}\\
+{\textasteriskcentered} \texttt{scaledValueOfSecondFixedSurface = MISSING}\\[0.5em]
+With \texttt{grib\_lib\_compat = }''eccodes:2.31.0'', we try to reproduce behavior (1)
+even for ecCodes version >= 2.32.0.
+& ecCodes version >= 2.32.0
+& If the used ecCodes version is < 2.32.0,
+''eccodes:2.31.0'' will be overwritten with ''current''.
+\tabularnewline
+%
+
+\hline
+\end{longtable}
+\endgroup
+%
 
 Defined and used in: \verb+src/namelists/mo_gribout_nml.f90+
 

@@ -470,6 +470,7 @@ cat > ${atmo_namelist} << EOF
  preset                          = "deterministic"
  productionStatusOfProcessedData = 0
  tablesVersion                   = 19
+ grib_lib_compat                 = 'eccodes:2.31.0'
 /
 &assimilation_nml
  dace_coupling   = .false.
