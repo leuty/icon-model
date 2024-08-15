@@ -29,6 +29,7 @@
 - Several fixes for DSL pre-processor script `dsl4jsb.py`
 - QUINCY: implementation of a spin-up accelerator for the slow biogeochemical soil pools
 - Port JSBACH carbon and disturbance modules to GPU
+- New options to reduce diagnostic output in log file from water balance checks
 
 ### Externals
 
