@@ -52,9 +52,8 @@ IFS=',' read -ra experiments <<< "${tolerance_experiments}"
 declare -A experiment_hashes
 
 for exp in "${experiments[@]}"; do
-    model_output_dir="${basedir}/experiments/${exp}"
-    reference_file_name="${model_output_dir}/${exp}_reference.csv"
-    tolerance_file_name="${model_output_dir}/${exp}_tolerance.csv"
+    reference_file_name="${basedir}/${exp}_reference.csv"
+    tolerance_file_name="${basedir}/${exp}_tolerance.csv"
 
     if [ -f "$tolerance_file_name" ]; then
         experiment_hash=$(cat "$reference_file_name" "$tolerance_file_name" | sha256sum | cut -b -40 )

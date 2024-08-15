@@ -109,8 +109,8 @@ $addexp "checksuite.ocean_internal/technical/exp.test_multioutput_model_40km" \
 ./rmexp checksuite.ocean_internal/technical/exp.test_ocean_omip_technical --builders "DAINT_GPU_nvidia" --list $listname
 
 
-# add experiments from yml-config
-./../experiments/addexp_from_yml --list $listname --exp-yml ../experiments/all_experiments.yml --test-yml ../experiments/all_tests.yml
+# add experiments relevant for C2SM from yml-config
+./../experiments/addexp_from_yml --list $listname
 
 #-----------------------------------------------------------
 # DWD

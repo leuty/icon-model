@@ -34,33 +34,25 @@ yaml_path=scripts/buildbot_scripts/experiments
 
 # Update the selected members in the corresponding file 
 echo ""
-echo "Please update or add the lines with the selected members in '${yaml_path}/<group>/<test-type>_tests.yml'"
-echo "under 'ensemble_num:' of the corresponding experiment."
+echo "Please update or add the following lines with the selected members and the "
+echo "tolerance factor (if not the default value of 5) to the corresponding experiment "
+echo "in '${yaml_path}/<group>/<test-type>_tests.yml'."
 echo "If any of the experiments is not yet in the list, please add it in alphabetical order."
 echo ""
 for exp in "${sorted_experiments[@]}"; do
-    model_output_dir="${basedir}/experiments/${exp}"
-    if [ -f "${model_output_dir}/${exp}_selected_members.csv" ]; then
-        selected_members=$(sed -n '1p' "${model_output_dir}/${exp}_selected_members.csv")
+    if [ -f "${basedir}/${exp}_selected_members.csv" ]; then
+        selected_members=$(sed -n '1p' "${basedir}/${exp}_selected_members.csv")
+        export_factor=$(sed -n '2p' "${basedir}/${exp}_selected_members.csv")
+        # Extract the factor from the second line
+        factor=$(echo "$export_factor" | grep -oE '[0-9]+')
         echo "- name: ${exp}"
         echo "  ensemble_num:"
         echo "    - ${BB_NAME}: $selected_members"
+        echo "  tolerance_factor:"
+        echo "    - ${BB_SYSTEM}: $factor"
         echo ""
     else
         echo "WARNING: The member selection failed for ${exp}."
-        echo ""
-    fi
-done
-
-echo "In case the factor does not have the default value of 5, please add the line "
-echo "below the experiment name in its corresponding checksuite file."
-echo ""
-for exp in "${sorted_experiments[@]}"; do
-    model_output_dir="${basedir}/experiments/${exp}"
-    if [ -f "${model_output_dir}/${exp}_selected_members.csv" ]; then
-        factor=$(sed -n '2p' "${model_output_dir}/${exp}_selected_members.csv")
-        echo "${exp}"
-        echo "${factor}"
         echo ""
     fi
 done

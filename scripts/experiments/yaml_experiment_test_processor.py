@@ -17,9 +17,13 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'buildbot_scrip
 from exp_utils import addexp, rmexp, adddep
 
 class ExperimentTestCollection:
-    def __init__(self, exp_yml, test_yml):
-        self.items = self._expand_tests_with_experiment_config(self._load_yaml(test_yml,'tests'),
-                                                               self._load_yaml(exp_yml,'experiments'))
+    def __init__(self):
+        test_yml = os.path.join(os.path.dirname(__file__),'../experiments/all_tests.yml')
+        exp_yml = os.path.join(os.path.dirname(__file__),'../experiments/all_experiments.yml')
+        self.items = self._expand_tests_with_experiment_config(self._load_yaml_with_key(test_yml,'tests'),
+                                                               self._load_yaml_with_key(exp_yml,'experiments'))
+        self.defaults = self._load_defaults()
+
 
     def get_items_by_tag(self,tag_name):
         items_by_tag = []
@@ -40,12 +44,24 @@ class ExperimentTestCollection:
         return item_by_name
 
 
-    def print_ensemble_num_for_exp(self,name,bb_name):
+    def print_file_ids_for_exp(self,name):
         # print to stdout for usage in bash scripts
-        print(self._get_ensemble_num_for_exp_as_string(name,bb_name))
+        print(self._get_file_ids_for_exp_as_string(name))
+
+    def print_param_for_exp_by_machine(self,exp,param,bb_name):
+        # print to stdout for usage in bash scripts
+        print(self._get_param_for_exp_by_machine_as_string(exp,param,bb_name))
+
+    def print_checksuite_param_for_exp(self,param,exp):
+        # print to stdout for usage in bash scripts
+        print(self._get_checksuite_param_for_exp_as_string(param,exp))
 
     def check(self):
         basepath = os.path.join(os.path.dirname(__file__),'../../run')
+
+        # Check that tests has entries
+        if not self.items['tests']:
+            raise Exception("No entries in tests")
 
         checks = set()
         for experiment in self.items['tests']:
@@ -83,14 +99,35 @@ class ExperimentTestCollection:
                             f"Builder {builder_name} in ensemble_num but not in refgen "
                             f"for experiment {experiment['name']}"
                         )
-    def _load_yaml(self, file_path, valid_key):
+
+            # Check that builders for which there is a checksuite_mode "t" are in refgen
+            checksuite_modes = experiment.get('checksuite_modes', [])
+            for mode in checksuite_modes:
+                for machine, cm in mode.items():
+                    if 't' in cm:
+                        refgen = experiment.get('refgen', [])
+                        if not any(machine.lower() in ref.lower() for ref in refgen):
+                            raise Exception(
+                                f"Builder {machine} has checksuite mode {cm}, but no corresponding refgen "
+                                f"for experiment {experiment['name']}"
+                            )
+    def _load_defaults(self):
+        exp_defaults = self._load_yaml(os.path.join(os.path.dirname(__file__),'../experiments/defaults_experiments.yml'))
+        test_defaults = self._load_yaml(os.path.join(os.path.dirname(__file__),'../experiments/defaults_tests.yml'))
+        return {**exp_defaults, **test_defaults}
+
+    def _load_yaml(self, file_path):
         with open(file_path, 'r') as file:
             data = yaml.safe_load(file)
+        return data
+
+    def _load_yaml_with_key(self, file_path, valid_key):
+        data = self._load_yaml(file_path)
 
         if 'include' in data:
             for include_file in data['include']:
                 include_file_path = os.path.join(os.path.dirname(file_path), include_file)
-                include_data = self._load_yaml(include_file_path,valid_key)  # recursive call
+                include_data = self._load_yaml_with_key(include_file_path,valid_key)  # recursive call
                 if valid_key not in include_data:
                     raise Exception(
                         f"The included file {include_file} does not contain "
@@ -108,30 +145,37 @@ class ExperimentTestCollection:
         return str(self._get_perturb_amplitude(name, member_type))
 
     def _get_perturb_amplitude(self, name, member_type):
-        default = {'vp': 1e-7, 'dp': 1e-14}
+        default = next((item.get(member_type) for item in self.defaults.get('perturb_amplitude') if member_type in item))
 
         tolexp = self.get_item_by_name(name).get('tolerance')
-        if tolexp is not None:
-            if 'perturb_amplitude' in tolexp:
-                if member_type == "mixed":
-                    if 'vp' in tolexp['perturb_amplitude']:
-                        return tolexp['perturb_amplitude']['vp']
-                    else:
-                        return default['vp']
-                else:
-                    if 'dp' in tolexp['perturb_amplitude']:
-                        return tolexp['perturb_amplitude']['dp']
-                    else:
-                        return default['dp']
+        # use default value because no 'tolerance' section in yml
+        if tolexp is None:
+            return default
+        else:
+            actual = next((item.get(member_type) for item in tolexp.get('perturb_amplitude', []) if member_type in item), None)
+            return actual if actual is not None else default
 
-        return default['vp'] if member_type == "mixed" else default['dp']
+    def _get_file_ids_for_exp_as_string(self, name):
+        return ' '.join(self._get_file_ids_for_exp_as_list(name))
+
+    def _get_file_ids_for_exp_as_list(self, name):
+        file_ids = self.defaults['file_id']
+        tolexp = self.get_item_by_name(name).get('tolerance')
+        if tolexp is not None:
+            file_id_list = tolexp.get('file_id')
+            if file_id_list is not None:
+                file_ids = []
+                for id_dict in file_id_list:
+                    for file_group, glob_patterns in id_dict.items():
+                        for glob_pattern in glob_patterns:
+                            file_ids.extend(['--file-id', file_group, glob_pattern])
+        return file_ids
 
     def _get_ensemble_num_for_exp_as_string(self,name,bb_name):
         return ','.join(map(str,self._get_ensemble_num_for_exp(name,bb_name)))
 
     def _get_ensemble_num_for_exp(self,name,bb_name):
-        default = [1,2,3,4,5,6,6,7,8,9,10]
-        num = default
+        num = self.defaults['ensemble_num']
         test_item = self.get_item_by_name(name)
         if test_item is not None:
             if 'ensemble_num' in test_item:
@@ -141,6 +185,29 @@ class ExperimentTestCollection:
                         num = item[bb_name]
                         break
         return num
+    def _get_param_for_exp_by_machine_as_string(self,exp,param,bb_name):
+        return self._get_param_for_exp_by_machine(exp,param,bb_name)
+
+    def _get_checksuite_param_for_exp_as_string(self,param,exp):
+        return ' '.join(self._get_checksuite_param_for_exp(param,exp))
+
+    def _get_param_for_exp_by_machine(self,exp,param,bb_name):
+        default = self.defaults[param]
+        tests_item = self.get_item_by_name(exp)
+        if tests_item is not None:
+            if param in tests_item:
+                cm = tests_item[param]
+                for item in cm:
+                    # check if the key is in the bb_name
+                    # i.e. balfrin in balfrin_cpu_nvidia
+                    for key, value in item.items():
+                        # lowercase, i.e DAINT_CPU_nvidia -> daint_cpu_nvidia
+                        if key in bb_name.lower():
+                            return value
+        return default
+        
+    def _get_checksuite_param_for_exp(self,param,exp):
+        return self.get_item_by_name(exp).get(param)
 
     def _expand_tests_with_experiment_config(self,tests,experiments):
         expanded = []
@@ -156,8 +223,8 @@ class ExperimentTestCollection:
 
 
 class BuildBotInterface(ExperimentTestCollection):
-    def __init__(self, exp_yml, test_yml, list_name):
-        super().__init__(exp_yml, test_yml)
+    def __init__(self, list_name):
+        super().__init__()
         self.list_name = list_name
         self.bb_name = os.getenv('BB_NAME')
         if not self.bb_name:
@@ -277,13 +344,19 @@ class BuildBotInterface(ExperimentTestCollection):
         else:
             member_type = "double"
 
+        probtest_config = os.path.join(basedir, exp['name'] + "-config.json")
+        # Set environment variable for probtest to identify json file for each experiment by probtest
+        os.environ['PROBTEST_CONFIG'] = probtest_config
         # initialize probtest namelist (most of it is unused, but makes life easier)
-        subprocess.run(['python3', PROBTEST, 'init',
+        cmd = ['python3', PROBTEST, 'init',
+                        '--config', probtest_config,
                         '--codebase-install', basedir,
                         '--experiment-name', exp['name'],
                         '--member-type', member_type,
                         '--perturb-amplitude', self._get_perturb_amplitude_as_string(exp['name'], member_type),
-                        '--member-num', member_num],check=True)
+                        '--member-num', member_num]
+        cmd.extend(self._get_file_ids_for_exp_as_list(exp['name']))
+        subprocess.run(cmd, check=True)
 
         # create the runscripts for the ensemble (exp.<EXP>_seed_N)
         # needs to be overwritten from namelist because here we deal with the templates
@@ -335,9 +408,9 @@ class BuildBotInterface(ExperimentTestCollection):
         return pp_selmem
 
 # main entrypoint
-def register_experiments_for_bb(list_name, exp_yml, test_yml, exp=None):
+def register_experiments_for_bb(list_name, exp=None):
 
-    bbi = BuildBotInterface(exp_yml,test_yml,list_name)
+    bbi = BuildBotInterface(list_name)
     # only keep entry with name of single_exp
     if exp:
         bbi.items = bbi.get_items_by_name(exp)
@@ -353,5 +426,5 @@ def register_experiments_for_bb(list_name, exp_yml, test_yml, exp=None):
     bbi.items_to_bb()
 
 if __name__ == '__main__':
-    tests = ExperimentTestCollection('scripts/experiments/all_experiments.yml','scripts/experiments/all_tests.yml')
+    tests = ExperimentTestCollection()
     tests.check()

@@ -9,11 +9,27 @@
 # ------------------------------------------
 
 experiments:
-  - name: atm_heldsuarez
+  - name: atm_heldsuarez_test
     check: checksuite.icon-dev/check.atm_heldsuarez
+    types: ['ml pl hl']
+    dates: [
+      '00010101T000000Z', '00010101T001000Z', '00010101T002000Z',
+      '00010101T003000Z', '00010101T004000Z', '00010101T005000Z',
+      '00010101T010000Z'
+    ]
+    restart_date: ['00010101T003000Z']
 
   - name: exclaim_ape_R02B04
     check: checksuite.icon-dev/check.exclaim_ape_R02B04
+    types: ['atm_2d atm_3d_pl']
+    dates: ['20000101T000000Z']
+    restart_date: ['20000101T001600Z']
+    tolerance:
+      file_id:
+        - NetCDF: ['*atm_3d_pl*.nc', '*atm_2d*.nc']
 
   - name: atm_tracer_Hadley
-    check: checksuite.icon-dev/check.atm_tracer_Hadley 
+    check: checksuite.icon-dev/check.atm_tracer_Hadley
+    types: ['atm_3d_ml']
+    dates: ['20080902T000000Z']
+    restart_date: ['20080901T000000Z']

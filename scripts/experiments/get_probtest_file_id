@@ -10,13 +10,13 @@
 # SPDX-License-Identifier: BSD-3-Clause
 # ------------------------------------------
 import click
-from yaml_experiment_test_processor import register_experiments_for_bb
+from yaml_experiment_test_processor import ExperimentTestCollection
 
 @click.command()
-@click.option("--list", "list_name", type=str, required=True)
-@click.option("--experiment", "exp", type=str)
-def main(list_name, exp=None):
-    register_experiments_for_bb(list_name, exp)
+@click.option("--experiment", "exp", type=str, required=True)
+def main(exp):
+    tests = ExperimentTestCollection()
+    tests.print_file_ids_for_exp(exp)
 
 if __name__ == '__main__':
     main()

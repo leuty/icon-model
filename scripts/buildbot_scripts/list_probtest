@@ -34,7 +34,7 @@ SINGLE_EXPERIMENT=${2-}
 
 # add experiments relevant for C2SM from yml-config
 if [[ -n "$SINGLE_EXPERIMENT" ]]; then
-  ./../experiments/addexp_from_yml --list $listname --exp-yml ../experiments/all_experiments.yml --test-yml ../experiments/all_tests.yml --experiment $SINGLE_EXPERIMENT
+  ./../experiments/addexp_from_yml --list $listname --experiment $SINGLE_EXPERIMENT
 else
-  ./../experiments/addexp_from_yml --list $listname --exp-yml ../experiments/all_experiments.yml --test-yml ../experiments/all_tests.yml
+  ./../experiments/addexp_from_yml --list $listname
 fi

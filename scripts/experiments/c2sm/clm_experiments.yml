@@ -11,7 +11,12 @@
 experiments:
   - name: c2sm_clm_r13b03_seaice
     check: checksuite.icon-dev/check.c2sm_clm_r13b03_seaice
+    types: ['atm_3d_ml']
+    dates: [19790201T180000Z]
+    restart_date: [19790201T180000Z]
     tolerance:
       perturb_amplitude:
-        - vp: 1e-7
-        - dp: 1e-14
+        - mixed: 1e-7
+        - double: 1e-14
+      file_id:
+        - NetCDF: ['*atm_3d*.nc']

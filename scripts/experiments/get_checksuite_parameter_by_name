@@ -10,17 +10,16 @@
 # SPDX-License-Identifier: BSD-3-Clause
 # ------------------------------------------
 import click
-import os
 from yaml_experiment_test_processor import ExperimentTestCollection
 
+ALLOWED_PARAMETERS = ['dates', 'types', 'restart_date']
+
 @click.command()
-@click.option("--exp-yml", "exp_yml", type=str, required=True)
-@click.option("--test-yml", "test_yml", type=str, required=True)
 @click.option("--experiment", "exp", type=str, required=True)
-def main(exp_yml, test_yml, exp):
-    bb_name = os.getenv('BB_NAME')
-    tests = ExperimentTestCollection(exp_yml, test_yml)
-    tests.print_ensemble_num_for_exp(exp, bb_name)
+@click.option("--param", "param", type=click.Choice(ALLOWED_PARAMETERS), required=True)
+def main(exp, param):
+    tests = ExperimentTestCollection()
+    tests.print_checksuite_param_for_exp(param,exp)
 
 if __name__ == '__main__':
     main()
