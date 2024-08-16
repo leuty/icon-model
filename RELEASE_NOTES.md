@@ -15,14 +15,15 @@
 
 ### ICON-Land
 
-- Fixes for using older restart files from beforee the JSBACH pond scheme was implemented
+- Fixes for using older restart files from before the JSBACH pond scheme was implemented
 - Improvements in JSBACH soil hydrology
-  - change lower and upper limits of soil moisture
-  - add option to use uniform distribution of soil moisture for infiltration and drainage as alternative
+  - Change lower and upper limits of soil moisture
+  - Add option to use uniform distribution of soil moisture for infiltration and drainage as alternative
     to semi-distributed parameterization that accounts for sub-grid variability (Arno scheme)
-- New option to force initialization of soil moisture from a file instead of from IFS analysis
-- Fixes for OpenACC loops in JSBACH hydrology
-- Bug fix for JSBACH pond scheme
+  - New option to force initialization of soil moisture from a file instead of from IFS analysis
+  - Fixes for OpenACC loops in JSBACH hydrology
+  - Bug fix for JSBACH pond scheme
+- Update of the scripts to generate ICON-Land initial (ic) and boundary condition (bc) files
 - Implement daily execution of anthropogenic land cover change by interpolation of annual maps
 - QUINCY: updates incl. first implementation of coupling with ICON-Atmo
 - Switch from deprecated YAC interface in HD model
