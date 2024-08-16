@@ -31,6 +31,8 @@
 - QUINCY: implementation of a spin-up accelerator for the slow biogeochemical soil pools
 - Port JSBACH carbon and disturbance modules to GPU
 - New options to reduce diagnostic output in log file from water balance checks
+- Fix for the land cover fraction diagnostics of simulations with natural or anthropogenic
+  land cover change
 
 ### Externals
 
