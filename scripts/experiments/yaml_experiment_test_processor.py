@@ -415,8 +415,8 @@ def register_experiments_for_bb(list_name, exp=None):
     if exp:
         bbi.items = bbi.get_items_by_name(exp)
 
-    # The lists 'tolerance' and 'select-members' have the same tag
-    if (list_name == 'tolerance' or list_name == 'select-members' or 'tolerance-update'):
+    # The lists 'tolerance' and 'select-members' and 'tolerance-update' have the same tag
+    if (list_name == 'tolerance' or list_name == 'select-members' or list_name == 'tolerance-update'):
         tag_name = 'probtest'
     else:
         tag_name = list_name
