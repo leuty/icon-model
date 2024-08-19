@@ -323,7 +323,6 @@ cat > ${atmo_namelist} << EOF
  aes_rad_config(1)%irad_cfc11 = 3
  aes_rad_config(1)%irad_cfc12 = 3
  aes_rad_config(1)%irad_aero  = 13 ! tropospheric aerosol optical properties after S. Kinne, filename with year
- aes_rad_config(1)%lclearsky = .FALSE.  ! true is default
  aes_rad_config(1)%inhom_lts  = .TRUE.
  aes_rad_config(1)%inhom_lts_max = 0.725
 /

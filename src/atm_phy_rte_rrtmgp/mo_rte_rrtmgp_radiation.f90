@@ -49,6 +49,8 @@ MODULE mo_rte_rrtmgp_radiation
 
   USE mtime, ONLY: datetime, getTotalSecondsTimeDelta !, datetimeToString
 
+  USE mo_timer,               ONLY: ltimer, timer_start, timer_stop, timer_rte_rrtmgp_rad
+
   IMPLICIT NONE
   
   PRIVATE
@@ -417,6 +419,8 @@ MODULE mo_rte_rrtmgp_radiation
     !$ACC   CREATE(xvmr_vap, xvmr_co2, xvmr_o3, xvmr_o2, xvmr_ch4) &
     !$ACC   CREATE(xvmr_n2o, xvmr_cfc)
 
+    IF (ltimer) CALL timer_start(timer_rte_rrtmgp_rad)
+
     CALL calculate_temperature_pressure(jcs, jce, nproma, klev, &
       pp_hl(:,:), pp_fl(:,:), tk_fl(:,:), tk_sfc(:), pp_sfc, tk_hl)
 
@@ -470,6 +474,8 @@ MODULE mo_rte_rrtmgp_radiation
     !$ACC WAIT
     !$ACC END DATA
     !-------------------------------------------------------------------
+
+    IF (ltimer) CALL timer_stop(timer_rte_rrtmgp_rad)
 
   END SUBROUTINE rte_rrtmgp_radiation
   !---------------------------------------------------------------------

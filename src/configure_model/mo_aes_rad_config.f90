@@ -126,9 +126,10 @@ MODULE mo_aes_rad_config
      REAL(wp) :: frad_cfc11
      REAL(wp) :: frad_cfc12
      !
-     ! --- Flag for clear-sky computations
+     ! --- Internal flags for clear-sky computations
      !
-     LOGICAL  :: lclearsky
+     LOGICAL  :: lclrsky_lw
+     LOGICAL  :: lclrsky_sw
      !
 ! For stratocumulus calculations
      INTEGER  :: k_lts      ! first level > 3.2km
@@ -198,7 +199,8 @@ CONTAINS
     aes_rad_config(:)% frad_cfc11     = 1.0_wp
     aes_rad_config(:)% frad_cfc12     = 1.0_wp
     !
-    aes_rad_config(:)% lclearsky      = .TRUE.
+    aes_rad_config(:)% lclrsky_lw     = .FALSE.
+    aes_rad_config(:)% lclrsky_sw     = .FALSE.
     !
     aes_rad_config(:)% inhom_lts      = .FALSE.
     aes_rad_config(:)% inhom_lts_max  = 0.8_wp
@@ -228,7 +230,7 @@ CONTAINS
     INTEGER , POINTER :: irad_h2o, irad_co2, irad_ch4, irad_n2o, irad_o3, irad_o2, irad_cfc11, irad_cfc12, irad_aero
     REAL(wp), POINTER ::            vmr_co2,  vmr_ch4,  vmr_n2o,           vmr_o2,  vmr_cfc11,  vmr_cfc12
     REAL(wp), POINTER :: frad_h2o, frad_co2, frad_ch4, frad_n2o, frad_o3, frad_o2
-    LOGICAL , POINTER :: lclearsky, inhom_lts, lrad_aero_diag
+    LOGICAL , POINTER :: inhom_lts, lrad_aero_diag
     REAL(wp), POINTER :: inhom_lts_max
     REAL(wp), POINTER :: frad_cfc11, frad_cfc12
 
@@ -282,8 +284,6 @@ CONTAINS
        frad_o2    => aes_rad_config(jg)% frad_o2
        frad_cfc11 => aes_rad_config(jg)% frad_cfc11
        frad_cfc12 => aes_rad_config(jg)% frad_cfc12
-       !
-       lclearsky  => aes_rad_config(jg)% lclearsky
        !
        inhom_lts  => aes_rad_config(jg)% inhom_lts
        inhom_lts_max  => aes_rad_config(jg)% inhom_lts_max
@@ -593,16 +593,6 @@ CONTAINS
           CALL finish(routine,'ERROR: Negative frad_cfc12 is not allowed')
        END IF
        !
-       CALL message('','')
-       CALL message('','Computing efficiency')
-       CALL message('','--------------------')
-       !
-       IF (lclearsky) THEN
-          CALL message('','Clear sky fluxes are computed')
-       ELSE
-          CALL message('','Clear sky fluxes are not computed')
-       END IF
-       !
        CALL message   ('','')
        !
     END DO ! jg loop
@@ -684,8 +674,6 @@ CONTAINS
        CALL print_value('    aes_rad_config('//TRIM(cg)//')% frad_o2       ',aes_rad_config(jg)% frad_o2       )
        CALL print_value('    aes_rad_config('//TRIM(cg)//')% frad_cfc11    ',aes_rad_config(jg)% frad_cfc11    )
        CALL print_value('    aes_rad_config('//TRIM(cg)//')% frad_cfc12    ',aes_rad_config(jg)% frad_cfc12    )
-       CALL message    ('','')
-       CALL print_value('    aes_rad_config('//TRIM(cg)//')% lclearsky     ',aes_rad_config(jg)% lclearsky     )
        CALL message    ('','')
        !
     END DO
