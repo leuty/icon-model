@@ -28,7 +28,7 @@ MODULE mo_nwp_sfc_utils
   USE mo_impl_constants,      ONLY: min_rlcell_int, min_rlcell, LSS_JSBACH, &
     &                               MODE_IAU, ALB_SI_MISSVAL, MAX_CHAR_LENGTH
   USE mo_impl_constants_grf,  ONLY: grf_bdywidth_c
-  USE sfc_flake_data,         ONLY: tpl_T_r, C_T_min, rflk_depth_bs_ref
+  USE sfc_flake_data,         ONLY: tpl_T_r, C_T_min, rflk_depth_bs_ref, h_Ice_min_flk
   USE mo_loopindices,         ONLY: get_indices_c
   USE mo_ext_data_types,      ONLY: t_external_data
   USE mo_ext_data_init,       ONLY: diagnose_ext_aggr, interpol_monthly_mean, vege_clim
@@ -82,6 +82,9 @@ MODULE mo_nwp_sfc_utils
 INTEGER, PARAMETER :: nlsoil= 8
 #endif
 
+  REAL(KIND=wp), PARAMETER ::            &
+   & csmall_hice = 0.5_wp*h_Ice_min_flk    !< small value to handle lake-ice fraction 
+                                           !< (1/2 of minimum lake-ice thickness)
 
   PUBLIC :: nwp_surface_init
   PUBLIC :: diag_snowfrac_tg
@@ -797,7 +800,7 @@ CONTAINS
           ! keep fr_seaice synchronized with h_ice
           ! i.e. set fr_seaice=1 for frozen lakes
           p_lnd_diag%fr_seaice(jc,jb) = MERGE(1.0_wp, 0.0_wp, &
-            &                           p_prog_wtr_now%h_ice(jc,jb)>0._wp)
+            &                           p_prog_wtr_now%h_ice(jc,jb) > csmall_hice)
         ENDDO  ! ic
 
         ! Re-Initialize lake-specific fields
@@ -813,7 +816,9 @@ CONTAINS
         ! for non-lake points, because values might be inconsistent due to GRIB-packing
         !
         ! Create lake-mask, in order to re-initialize only non-lake points
-        lake_mask(i_startidx:i_endidx) = .FALSE.
+        DO jc = i_startidx, i_endidx
+          lake_mask(jc) = .FALSE.
+        END DO
         ! set lake-mask to .TRUE. for lake points
         DO ic = 1, icount_flk
           jc = ext_data%atm%list_lake%idx(ic,jb)
