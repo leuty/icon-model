@@ -34,7 +34,7 @@ MODULE mo_nh_stepping
   USE mo_nonhydrostatic_config,    ONLY: itime_scheme, divdamp_order,                                 &
     &                                    divdamp_fac, divdamp_fac_o2, ih_clch, ih_clcm, kstart_moist, &
     &                                    ndyn_substeps, ndyn_substeps_var, ndyn_substeps_max, vcfl_threshold, &
-    &                                    nlev_hcfl
+    &                                    nlev_hcfl, cfl_monitoring_freq
   USE mo_diffusion_config,         ONLY: diffusion_config
   USE mo_dynamics_config,          ONLY: nnow, nnew, nnow_rcf, nnew_rcf, nsav1, nsav2, lmoist_thdyn, ldeepatmo
   USE mo_io_config,                ONLY: is_totint_time, n_diag, var_in_output, checkpoint_on_demand
@@ -114,6 +114,7 @@ MODULE mo_nh_stepping
   USE mo_nh_interface_nwp,         ONLY: nwp_nh_interface
   USE mo_phy_events,               ONLY: mtime_ctrl_physics
   USE mo_nwp_phy_init,             ONLY: init_nwp_phy, init_cloud_aero_cpl, clim_cdnc
+  USE mo_apt_routines,             ONLY: apply_landalb_tuning
   USE mo_nwp_sfc_utils,            ONLY: aggregate_landvars, aggr_landvars, process_sst_and_seaice
   USE mo_nwp_diagnosis,            ONLY: nwp_diag_for_output, nwp_opt_diagnostics, nwp_diag_global
   USE mo_nwp_vdiff_interface,      ONLY: nwp_vdiff_update_seaice
@@ -1141,6 +1142,10 @@ MODULE mo_nh_stepping
             &                      target_datetime = target_datetime,  &
             &                      mtime_old       = mtime_old         )
 
+          ! Apply adaptive parameter tuning if selected by namelist; the tuning needs to be re-applied
+          ! after each update of the time-interpolated albedo fields
+          CALL apply_landalb_tuning (p_patch(jg), prm_diag(jg), ext_data(jg))
+
         ENDDO  ! jg
 
         mtime_old = mtime_current
@@ -1459,7 +1464,7 @@ MODULE mo_nh_stepping
 
     ! Adapt number of dynamics substeps if necessary
     !
-    IF (lcfl_watch_mode .OR. MOD(jstep-jstep_shift,5) == 0 .OR. jstep-jstep_shift <= 2) THEN
+    IF (lcfl_watch_mode .OR. MOD(jstep-jstep_shift,cfl_monitoring_freq) == 0 .OR. jstep-jstep_shift <= 2) THEN
       IF (ANY((/MODE_IFSANA,MODE_COMBINED,MODE_COSMO,MODE_ICONVREMAP/) == init_mode)) THEN
         ! For interpolated initial conditions, apply more restrictive criteria for timestep reduction during the spinup phase
         CALL set_ndyn_substeps(lcfl_watch_mode,jstep <= 100)
@@ -1583,7 +1588,7 @@ MODULE mo_nh_stepping
     !
     ! default is to assume we do not write a checkpoint/restart file
     lwrite_checkpoint = .FALSE.
-    ! if thwe model is not supposed to write output, do not write checkpoints
+    ! if the model is not supposed to write output, do not write checkpoints
     IF (.NOT. output_mode%l_none ) THEN
       ! to clarify the decision tree we use shorter and more expressive names:
 
@@ -2194,7 +2199,6 @@ MODULE mo_nh_stepping
 #ifdef _OPENACC
             CALL finish (routine, 'aerosol_2D_advection: OpenACC version currently not implemented')
 #endif
-            CALL sync_patch_array(SYNC_C, p_patch(jg), prm_diag(jg)%aerosol)
             CALL aerosol_2D_advection( p_patch(jg), p_int_state(jg), iprog_aero,   & !in
               &          dt_loc, prm_diag(jg)%aerosol, prep_adv(jg)%vn_traj,       & !in, inout, in
               &          prep_adv(jg)%mass_flx_me, prep_adv(jg)%mass_flx_ic,       & !in
