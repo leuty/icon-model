@@ -3,7 +3,7 @@
 ### ICON-Atmo
 
 - Revise the aerosol submodules [RTE-RRTMGP] (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/464)
-- Refactoring of vertical diffusion in TMX turbulence package
+- Refactoring in TMX turbulence package for increased modularization
 - Fix faulty call to prm_diag (nwp variable) in aes mode when using nested domains (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/468)
 - Add 2m dewpoint temperature diagnostic to TMX turbulence package
 - Fixes for OpenACC in TMX turbulence package

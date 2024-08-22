@@ -2076,6 +2076,17 @@ MODULE mo_vertical_grid
   !----------------------------------------------------------------------------
   !>
   !! Computation of coefficients for LES model in mo_sgs_turbulence
+  !! Computes the square of the mixing length.
+  !!
+  !! lambda^2 = (Cs * Delta)^2 *(kappa*x_3)^2 / ((Cs * Delta)^2 + (kappa*x_3)^2) 
+  !!          = (Cs * Delta * x_3)^2 / ( (Cs * Delta / kappa)^2 + x_3^2 )
+  !!
+  !! with   Cs    : Smagorinsky constant
+  !!        Delta : filter/grid width
+  !!        x_3   : vertical coordinate
+  !!        kappa : von Karman constant
+  !!
+  !! See Dipankar et al. (2015) "LES using ... ICON"
   !!
   SUBROUTINE prepare_les_model(p_patch, p_nh, p_int, jg)
 
@@ -2132,7 +2143,7 @@ MODULE mo_vertical_grid
 
           les_filter = smag_constant * MIN( max_turb_scale, &
                       (p_nh%metrics%ddqz_z_half(jc,jk,jb)*p_patch%cells%area(jc,jb))**0.33333_wp )
-
+          
           p_nh%metrics%mixing_length_sq(jc,jk,jb) = (les_filter*z_mc)**2    &
                / ((les_filter/akt)**2+z_mc**2)
 

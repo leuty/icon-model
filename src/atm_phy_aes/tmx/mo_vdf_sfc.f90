@@ -41,6 +41,7 @@ MODULE mo_vdf_sfc
 
   TYPE, EXTENDS(t_tmx_process) :: t_vdf_sfc
   CONTAINS
+    PROCEDURE :: Init => Init_vdf_sfc
     PROCEDURE :: Compute
     PROCEDURE :: Compute_diagnostics
     PROCEDURE :: Update_diagnostics
@@ -213,7 +214,7 @@ CONTAINS
     ALLOCATE(t_vdf_sfc::result)
     !$ACC ENTER DATA COPYIN(result)
     ! Call Init of abstract parent class
-    CALL result%Init(dt=dt, name=name, domain=domain)
+    CALL result%Init_process(dt=dt, name=name, domain=domain)
 
     ! Initialize variable sets
     ALLOCATE(t_vdf_sfc_config :: result%config)
@@ -233,6 +234,15 @@ CONTAINS
     ! CALL result%diagnostics%Set_pointers()
 
   END FUNCTION t_vdf_sfc_construct
+
+  SUBROUTINE Init_vdf_sfc(this)
+    CLASS(t_vdf_sfc), INTENT(inout), TARGET :: this
+
+    CHARACTER(len=*), PARAMETER :: routine = modname//':Init'
+
+    !CALL message(routine, '')
+
+  END SUBROUTINE Init_vdf_sfc
 
   SUBROUTINE Compute(this, datetime)
 
