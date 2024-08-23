@@ -264,6 +264,8 @@ MODULE mo_nh_stepping
     &                                    icon_call_callback
 #endif
 
+  USE mo_coupling_config       ,ONLY: is_coupled_to_ocean
+  USE mo_aes_ocean_coupling    ,ONLY: interface_aes_ocean
   USE mo_coupling_config       ,ONLY: is_coupled_to_output
   USE mo_output_coupling       ,ONLY: output_coupling
 
@@ -1289,6 +1291,22 @@ MODULE mo_nh_stepping
     ! dynamics stepping
     !
     CALL integrate_nh(time_config, datetime_current, 1, jstep-jstep_shift, iau_iter, dtime, model_time_step, 1, latbc)
+
+
+    !--------------------------------------------------------------------------
+    !
+    ! Couple atmosphere and ocean, if needed
+    !
+    IF (is_coupled_to_ocean()) THEN
+      IF ( iforcing==iaes ) THEN
+        IF (ltimer) CALL timer_start(timer_coupling)
+        ! CALL message("nh_stepping","CALL interface_aes_ocean...")
+        CALL interface_aes_ocean(p_patch(1) , p_nh_state(1)%diag)
+        IF (ltimer) CALL timer_stop(timer_coupling)
+      END IF
+    END IF
+    !
+    !=====================================================================================
 
 #ifndef __NO_ICON_COMIN__
     CALL icon_call_callback(EP_ATM_INTEGRATE_AFTER, COMIN_DOMAIN_OUTSIDE_LOOP)
