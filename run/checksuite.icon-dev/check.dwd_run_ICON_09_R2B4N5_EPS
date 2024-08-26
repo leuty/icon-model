@@ -52,10 +52,6 @@ export MD=$("${basedir}/scripts/experiments/get_param_for_exp_by_machine" --expe
 #
 export FACTOR=$("${basedir}/scripts/experiments/get_param_for_exp_by_machine" --experiment "$EXPERIMENT" --param tolerance_factor)
 
-# Increase tolerance factor to 15 based on member selection for balfrin_cpu_nivida
-#
-export FACTOR=15
-
 #--------------------------------------------------------------------------------
 # 
 # 2. Launch the checksuite from run/
