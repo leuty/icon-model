@@ -35,7 +35,7 @@ If your changes require the generation of new reference data, please refer to th
 
 #### Scientific Review
 - [ ] _Author:_ Select a scientific reviewer and add the label ![inScientificReview](https://img.shields.io/badge/-inScientificReview-orange)
-- [ ] _Scientific Reviewer:_ Review
+- [ ] _Scientific Reviewer:_ Review according to the [guidelines](https://gitlab.dkrz.de/icon/icon-nwp/-/wikis/ICON-NWP%20Scientific%20Review%20Guidelines)
 - [ ] _Scientific Reviewer:_ Approve the merge request using Gitlab's approve button.
 - [ ] _Scientific Reviewer:_ Remove label ![inScientificReview](https://img.shields.io/badge/-inScientificReview-orange)
 
