@@ -192,8 +192,9 @@ MODULE mo_nh_init_nest_utils
     ! turned out to cause occasional conflicts with directly interpolating those variables here; thus
     ! the interpolation of the multi-layer snow fields has been completely removed from this routine
     num_lndvars = 2*nlev_soil+1+ &     ! multi-layer soil variables t_so and w_so (w_so_ice is initialized in terra_multlay_init)
-                  5+12+1               ! single-layer prognostic variables + t_g, t_sk, freshsnow, t_seasfc, qv_s, plantevap, hsnow_max, 
-                                       ! snow_age, t_avginc, t_sk, rh_avginc, t_wgt_avginc, vabs_avginc + aux variable for lake temp
+                  5+14+1               ! single-layer prognostic variables + t_g, t_sk, freshsnow, t_seasfc, qv_s, plantevap, hsnow_max, 
+                                       ! snow_age, t_avginc, t_sk, rh_avginc, t_wgt_avginc, rh_daywgt_avginc, t_daywgt_avginc, vabs_avginc
+                                       ! + aux variable for lake temp
     num_wtrvars  = 6                   ! water state fields + fr_seaice + alb_si
     num_phdiagvars = 32                ! number of physics diagnostic variables (copied from interpol_phys_grf)
 
@@ -425,6 +426,14 @@ MODULE mo_nh_init_nest_utils
           ELSE
             lndvars_par(jc,jk1+17,jb) = 0._wp
           ENDIF
+          IF (icpl_da_sfcevap >= 5) THEN
+            lndvars_par(jc,jk1+18,jb) = p_parent_diag%t_daywgt_avginc(jc,jb)
+            lndvars_par(jc,jk1+19,jb) = p_parent_diag%rh_daywgt_avginc(jc,jb)
+          ELSE
+            lndvars_par(jc,jk1+18,jb) = 0._wp
+            lndvars_par(jc,jk1+19,jb) = 0._wp
+          ENDIF
+
         ENDDO
       ENDIF
 
@@ -752,6 +761,10 @@ MODULE mo_nh_init_nest_utils
             ENDIF
             IF (icpl_da_sfcfric >= 1) THEN
               p_child_diag%vabs_avginc(jc,jb) = lndvars_chi(jc,jk1+17,jb)
+            ENDIF
+            IF (icpl_da_sfcevap >= 5) THEN
+              p_child_diag%t_daywgt_avginc(jc,jb) = lndvars_chi(jc,jk1+18,jb)
+              p_child_diag%rh_daywgt_avginc(jc,jb) = lndvars_chi(jc,jk1+19,jb)
             ENDIF
           ENDDO
         ENDDO

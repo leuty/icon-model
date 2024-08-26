@@ -119,6 +119,8 @@ MODULE mo_nonhydro_types
     &  rh_avginc(:,:),       & !! time-averaged/filtered RH increments from DA at lowest model level
     &  t_avginc(:,:),        & !! time-averaged/filtered T increments from DA at lowest model level
     &  t_wgt_avginc(:,:),    & !! time-averaged/filtered T increments from DA at lowest model level, weighted with COS(local time)
+    &  t_daywgt_avginc(:,:), & !! time-averaged/filtered T increments from DA at lowest model level, weighted with peak in afternoon
+    &  rh_daywgt_avginc(:,:),& !! time-averaged/filtered RH increments from DA at lowest model level, weighted with peak in afternoon
     &  p_avginc(:,:),        & !! time-averaged/filtered P increments from DA at lowest model level
     &  vabs_avginc(:,:),     & !! time-averaged/filtered wind speed increments from DA at lowest model level
 

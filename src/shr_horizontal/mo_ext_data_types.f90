@@ -14,7 +14,7 @@
 MODULE mo_ext_data_types
 
   USE mo_kind,               ONLY: wp
-  USE mo_fortran_tools,      ONLY: t_ptr_2d3d, t_ptr_i2d3d 
+  USE mo_fortran_tools,      ONLY: t_ptr_2d3d, t_ptr_i2d3d
   USE mo_var_list,           ONLY: t_var_list_ptr
   USE mo_idx_list,           ONLY: t_idx_list_blocked
 
@@ -23,12 +23,12 @@ MODULE mo_ext_data_types
 
   PRIVATE
 
+
   PUBLIC :: t_external_data
   PUBLIC :: t_external_atmos
   PUBLIC :: t_external_atmos_td
   PUBLIC :: t_external_ocean
   PUBLIC :: t_external_bgc
-
 
 
   !>
@@ -526,18 +526,18 @@ MODULE mo_ext_data_types
 
 
   TYPE :: t_external_bgc
-   REAL(wp), POINTER ::   &   !< (monthly) dust deposition
-      &  dust(:,:,:)   
-   REAL(wp), POINTER ::   &   !< (monthly) nitrogen deposition
-      &  nitro(:,:,:)   
-   REAL(wp), POINTER ::   &   !< org. C flux for offline sed.
-      &  prorca(:,:)          !  index1=1,nproma, index2=1,nblks_c
-   REAL(wp), POINTER ::   &   !< inorg. C flux for offline sed.
-      &  prcaca(:,:)          !  index1=1,nproma, index2=1,nblks_c
-   REAL(wp), POINTER ::   &   !< Si flux for offline sed.
-      &  silpro(:,:)          !  index1=1,nproma, index2=1,nblks_c
-   REAL(wp), POINTER ::   &   !< dust flux for offline sed.
-      &  produs(:,:)          !  index1=1,nproma, index2=1,nblks_c
+    REAL(wp), POINTER ::   &   !< (monthly) dust deposition
+      &  dust(:,:,:)
+    REAL(wp), POINTER ::   &   !< (monthly) nitrogen deposition
+      &  nitro(:,:,:)
+    REAL(wp), POINTER ::   &   !< org. C flux for offline sed.
+      &  prorca(:,:)           !  index1=1,nproma, index2=1,nblks_c
+    REAL(wp), POINTER ::   &   !< inorg. C flux for offline sed.
+      &  prcaca(:,:)           !  index1=1,nproma, index2=1,nblks_c
+    REAL(wp), POINTER ::   &   !< Si flux for offline sed.
+      &  silpro(:,:)           !  index1=1,nproma, index2=1,nblks_c
+    REAL(wp), POINTER ::   &   !< dust flux for offline sed.
+      &  produs(:,:)           !  index1=1,nproma, index2=1,nblks_c
 
   END TYPE t_external_bgc
 
@@ -576,20 +576,6 @@ MODULE mo_ext_data_types
   END TYPE t_external_ocean
 
 
-
-!  !>
-!  !! ocean external data class (time dependent)
-!  !!
-!  !! This data type contains auxiliary time dependent versions of
-!  !! some external oceanic data fields already defined in external_ocean. These
-!  !! fields will be used to store e.g. montly means from which interpolated external
-!  !! data can be derived. The updated fields are copied into the time independent
-!  !! counterparts which are defined in external_ocean.
-!  !!
-!  TYPE :: external_ocean_td
-!  END TYPE external_ocean_td
-
-
   !>
   !! External data class including lists
   !!
@@ -609,12 +595,7 @@ MODULE mo_ext_data_types
     TYPE(t_external_bgc)      :: bgc
     TYPE(t_var_list_ptr)          :: bgc_list
 
-!    TYPE(t_external_ocean_td) :: oce_td
-!    TYPE(t_var_list_ptr), POINTER :: oce_td_list
-
   END TYPE t_external_data
-
-
 
 END MODULE mo_ext_data_types
 

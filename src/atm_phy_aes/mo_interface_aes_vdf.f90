@@ -433,6 +433,7 @@ CONTAINS
               !
               &          field%   zf(:,:,:),                &! in, geopot. height above sea level, full level
               &          field%   zh(:,:,:),                &! in, geopot. height above sea level, half level
+              &          field% geom(:,:,:),                &! in, geopotential above ground, full level
               &          field%frac_tile(:,:,:),            &! in, area fraction of each sfc type
               &                 ts_tile(:,:,:),             &! in, surface temperature
               &          field% ocu (:,:),                  &! in, ocean sfc velocity, u-component

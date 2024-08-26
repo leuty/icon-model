@@ -90,6 +90,9 @@ General Style:
   stage: basic
   variables:
     GIT_SUBMODULE_STRATEGY: normal
+
+  before_script:
+    - pip install pyyaml click pandas
   script:
     # TODO: we should check all ICON source files, as well as all source files
     # of the bundled libraries that are built as part of ICON:
@@ -103,6 +106,8 @@ General Style:
     - ./scripts/ci_scripts/check_src_noexec.sh 'src' 'support'
     - ./scripts/ci_scripts/check_omp_sentinels.sh 'src' 'support' 'externals/jsbach' 'externals/emvorado' 'externals/art'
     - ./scripts/ci_scripts/check_granule_encapsulation.sh
+    - python scripts/experiments/yaml_experiment_test_processor.py
+
   tags:
     # Choose a runner with GNU find, GNU grep and bash:
     - conda
@@ -245,4 +250,3 @@ Granules:
     - if: $CI_PIPELINE_SOURCE == "web"
       when: manual
     - when: always
-  allow_failure: true

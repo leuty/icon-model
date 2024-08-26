@@ -596,6 +596,7 @@ CONTAINS
         & patch=patch, &
         & pzf=nh_metrics%z_mc(:,:,:), &
         & pzh=nh_metrics%z_ifc(:,:,:), &
+        & pgeom1=nh_metrics%geopot_agl(:,:,:), &
         & pfrc=fr_sfc(:,:,:), &
         & ptsfc_tile=temp_sfc(:,:,:), &
         & pocu=ocean_u(:,:), &

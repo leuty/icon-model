@@ -1724,6 +1724,23 @@ CONTAINS
        ENDIF
     ENDIF
 
+#if defined(__NEC__) || defined(__NEC_VH__)
+# ifdef __NEC__
+    my_arch = IBSET(0, 1) ! NEC-SX
+# else
+    my_arch = IBSET(0, 0)
+# endif
+
+    ! Each present different arch sets a bit in the result. If more than one bit
+    ! is set, workers run on different architectures.
+    IF (my_mpi_function == work_mpi_process) THEN
+      p = p_reduce(my_arch, MPI_BOR, 0, p_comm_work_only)
+      IF (p_pe_work_only == 0 .AND. POPCNT(p) > 1) THEN
+        CALL finish(routine, "All worker PEs must run on same architecture!")
+      END IF
+    END IF
+#endif
+
     ! Create p_comm_work_io, the communicator spanning work group and I/O PEs
     IF (num_io_procs > 0) THEN
       my_color = MERGE(2, &
@@ -1734,13 +1751,8 @@ CONTAINS
       CALL mpi_comm_split(process_mpi_all_comm, my_color, p_pe, &
            p_comm_work_io, p_error)
 
+#if defined(__NEC__) || defined(__NEC_VH__)
       ! Check whether all detached std I/O PEs and I/O PEs run on same architecture
-#ifdef __NEC__
-      my_arch = 1 ! NEC-SX
-#else
-      my_arch = 0
-#endif
-
       IF (p_comm_work_io /= MPI_COMM_NULL .AND. PRESENT(num_dio_procs)) THEN
         ! gather all architectures on PE0
         ALLOCATE(glb_arch(num_work_procs + num_io_procs))
@@ -1768,6 +1780,7 @@ CONTAINS
           END IF
         END IF
       END IF
+#endif
 
       IF (pio_type_ == pio_type_async &
         & .AND. (     my_mpi_function == work_mpi_process &
