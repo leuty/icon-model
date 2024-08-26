@@ -33,6 +33,7 @@
 - New options to reduce diagnostic output in log file from water balance checks
 - Fix for the land cover fraction diagnostics of simulations with natural or anthropogenic
   land cover change
+- fix too cold soil temperatures for partially snow-covered grid cells
 
 ### Externals
 
