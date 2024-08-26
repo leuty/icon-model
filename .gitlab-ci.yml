@@ -250,4 +250,3 @@ Granules:
     - if: $CI_PIPELINE_SOURCE == "web"
       when: manual
     - when: always
-  allow_failure: true
