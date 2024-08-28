@@ -22,7 +22,7 @@
     to semi-distributed parameterization that accounts for sub-grid variability (Arno scheme)
   - New option to force initialization of soil moisture from a file instead of from IFS analysis
   - Fixes for OpenACC loops in JSBACH hydrology
-  - Bug fix for JSBACH pond scheme
+  - Bug fixes for JSBACH pond scheme
 - Update of the scripts to generate ICON-Land initial (ic) and boundary condition (bc) files
 - Implement daily execution of anthropogenic land cover change by interpolation of annual maps
 - QUINCY: updates incl. first implementation of coupling with ICON-Atmo
@@ -53,6 +53,7 @@
 - Experiment setup features from nextGEMS production/EERIE spinup (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/443)
 - Adjust LUMI-G defaults in create_target_header (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/445)
 - Cleanup nextGEMS scripting (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/473)
+- Additional exp. runscript to test NWP atmosphere simulations with jsbach and carbon cycle
 
 #### Building
 
