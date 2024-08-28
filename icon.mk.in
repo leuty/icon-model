@@ -15,14 +15,16 @@ srcdir:= @srcdir@
 # Relative paths to the directories with the ICON source code:
 subdirs:= src support
 
-# Relative paths to the directories of the Autoconf-based bundled packages:
-bundled_config_subdirs= @icon_bundled_config_subdirs@
+# Relative paths to the root build directories of all bundled packages:
+bundled_builddirs= @icon_bundled_builddirs@
 
-# Relative paths to the directories of the CMake-based bundled packages:
-bundled_cmake_subdirs= @icon_bundled_cmake_subdirs@
+# Relative paths to the root build directories of the CMake-based bundled
+# packages:
+bundled_cmake_builddirs= @icon_bundled_cmake_builddirs@
 
-# Relative paths to the directories of all bundled packages:
-bundled_subdirs= $(bundled_config_subdirs) $(bundled_cmake_subdirs)
+# Relative paths to the root build directories of the Autoconf-based bundled
+# packages:
+bundled_config_builddirs= $(filter-out $(bundled_cmake_builddirs),$(bundled_builddirs))
 
 # Relative path to the directory with the Fortran module files:
 moddir:= mod
@@ -329,12 +331,16 @@ endif
 .DELETE_ON_ERROR:
 # Targets not associated with files:
 .PHONY: all preprocess depend check install mostlyclean clean distclean \
-        config-bundled check-bundled dummy-depend force-create-version \
-        sanitize-mod-proxies
+        config-bundled check-bundled dummy-depend $(bundled_builddirs) \
+        force-create-version sanitize-mod-proxies
+
+# Makefiles of the bundled packages:
+bundled_makefiles= $(addsuffix /Makefile,$(bundled_builddirs))
 
 # Targets that do not need the dependency files:
 nodep_targets:= preprocess depend mostlyclean clean distclean config-bundled \
-                check-bundled dummy-depend $(bundled_subdirs) $(dep_files) \
+                check-bundled dummy-depend $(bundled_builddirs) \
+                $(bundled_makefiles) version.c version.@OBJEXT@ $(dep_files) \
                 $(pp_files)
 
 # Selective search paths:
@@ -402,7 +408,7 @@ check: all check-bundled
 # Python's cache files, etc.
 
 # Delete the results of compilation and linking:
-mostlyclean: $(bundled_subdirs)
+mostlyclean: $(bundled_builddirs)
 	rm -f $(exec_files) $(lib_files) $(addsuffix .@OBJEXT@,$(basename $(f90_files) $(c_files) $(cu_files) $(hip_files))) version.@OBJEXT@
 	rm -f $(moddir)/*.@FC_MOD_FILE_EXT@ $(moddir)/*.@FC_MOD_FILE_EXT@.proxy
 	rm -f $(moddir)/*.@FC_SMOD_FILE_EXT@ $(moddir)/*.@FC_SMOD_FILE_EXT@.sproxy
@@ -410,7 +416,7 @@ mostlyclean: $(bundled_subdirs)
 @PGI_INLIB_ENABLED@	rm -rf $(pgi_inlib_name)
 
 # Delete files generated at the building stage (strictly speaking, we should
-# also translate 'clean' into 'distclean' for the bundled libraries when the
+# also translate 'clean' into 'distclean' for the bundled packages when the
 # delayed configuration is enabled but that would be counterproductive,
 # therefore, we do not do that):
 clean_files= srclist version.c $(pp_files)
@@ -444,7 +450,7 @@ distclean: clean
 	rm -f run/collect.set-up.info run/set-up.info run/SETUP.config
 	rm -f $(dep_files)
 	rm -f $(dir_files)
-	test -z "$(bundled_cmake_subdirs)" || rm -rf $(bundled_cmake_subdirs)
+	test -z "$(bundled_cmake_builddirs)" || rm -rf $(bundled_cmake_builddirs)
 	@for dir in $(bindir) $(libdir) $(moddir); do \
           if test -d "$$dir"; then \
             echo "find '$$dir' -type d -empty -delete"; \
@@ -466,20 +472,20 @@ install: all
 	$(INSTALL) -d $(DESTDIR)@bindir@ && $(INSTALL) $(exec_files) $(DESTDIR)@bindir@
 @HD_ENABLED@	$(silent_none)$(MAKE) -C externals/hd $@ V=$(V)
 
-# Explicit bundled libraries configuration rule:
-config-bundled: $(addsuffix /Makefile,$(bundled_subdirs))
+# Explicit configuration rule for the bundled packages:
+config-bundled: $(bundled_makefiles)
 
-# Check rule for the bundled libraries (run the tests serially to make the
-# output readable and prevent from possible overloading due to multiple
-# simultaneous MPI runs):
-check-bundled: config-bundled $(bundled_cmake_subdirs) $(if $(filter check,$(MAKECMDGOALS)),all) # run the tests after 'all' when 'make check'
-	@test -z '$(bundled_subdirs)' && echo "The list of bundled libraries is empty: nothing to check." && exit 0; \
+# Check rule for the bundled packages (run the tests serially to make the output
+# readable and prevent from possible overloading due to multiple simultaneous
+# MPI runs):
+check-bundled: config-bundled $(bundled_cmake_builddirs) $(if $(filter check,$(MAKECMDGOALS)),all) # run the tests after 'all' when 'make check'
+	@test -z '$(bundled_builddirs)' && echo "The list of bundled packages is empty: nothing to check." && exit 0; \
 	fail=; pass=; \
-	for d in $(bundled_config_subdirs); do \
+	for d in $(bundled_config_builddirs); do \
 	  if $(MAKE) -C "$$d" check V=$(V); then pass="$$pass$$d "; \
 	  else fail="$$fail$$d "; fi; \
 	done; \
-	for d in $(bundled_cmake_subdirs); do \
+	for d in $(bundled_cmake_builddirs); do \
 	  if $(MAKE) -C "$$d" test VERBOSE=$(filter-out 0,$(V)); then pass="$$pass$$d "; \
 	  else fail="$$fail$$d "; fi; \
 	done; \
@@ -519,14 +525,14 @@ $(lib_files): | $(dir_files)
 @PGI_INLIB_ENABLED@	$(silent_FCEX)rm -rf $(@D) && $(FC) $(pgi_inlib_ex_FCFLAGS) $(make_FCFLAGS) $(FCFLAGS) $(ICON_FCFLAGS) @FCFLAGS_f90@ $(filter %.f90,$^)
 
 # Fortran compilation rule:
-@SEPARATE_MODS_ENABLED@%.@OBJEXT@: %.f90 | $(dir_files) $(bundled_subdirs) sanitize-mod-proxies
+@SEPARATE_MODS_ENABLED@%.@OBJEXT@: %.f90 | $(dir_files) $(bundled_builddirs) sanitize-mod-proxies
 @SEPARATE_MODS_ENABLED@	$(silent_FC)@MKDIR_P@ $(moddir_null)/$@ && $(FC) -o $@ -c @FC_MOD_OUT@$(moddir_null)/$@ $(make_FCFLAGS) $(FCFLAGS) $(ICON_FCFLAGS) @FCFLAGS_f90@ $<
 
-@SEPARATE_MODS_DISABLED@%.@OBJEXT@: %.f90 | $(dir_files) $(bundled_subdirs) sanitize-mod-proxies
+@SEPARATE_MODS_DISABLED@%.@OBJEXT@: %.f90 | $(dir_files) $(bundled_builddirs) sanitize-mod-proxies
 @SEPARATE_MODS_DISABLED@	$(silent_FC)$(FC) -o $@ -c @FC_MOD_OUT@$(moddir) $(make_FCFLAGS) $(FCFLAGS) $(ICON_FCFLAGS) @FCFLAGS_f90@ $<
 
 # Fortran module file generation rule:
-@SEPARATE_MODS_ENABLED@%$(pp_infix)modstamp.f90: %.f90 | $(dir_files) $(bundled_subdirs) sanitize-mod-proxies
+@SEPARATE_MODS_ENABLED@%$(pp_infix)modstamp.f90: %.f90 | $(dir_files) $(bundled_builddirs) sanitize-mod-proxies
 @SEPARATE_MODS_ENABLED@	$(silent_MOD)$(FC) -c @FC_MOD_OUT@$(moddir) $(make_FCFLAGS) $(FCFLAGS) $(ICON_FCFLAGS) @FC_MOD_ONLY@ @FCFLAGS_f90@ $< && touch $@
 
 # Fortran module file tracking and recovery rule:
@@ -580,30 +586,26 @@ sanitize-mod-proxies:
 @SB2_ENABLED@%$(SB2_infix).f90: %.f90  | $(dir_files)
 @SB2_ENABLED@	$(silent_SB2)$(SB2PP) -o $@ $<
 
-############################ BUNDLED LIBRARY RULES #############################
+############################ BUNDLED PACKAGE RULES #############################
 
-# Call make inside the subdirectories unconditionally:
-.PHONY: $(bundled_subdirs)
-
-# We need to tolerate the absence of makefiles in the bundled
-# libraries when running clean rules. If the delayed configuration is disabled,
-# we tolerate the absence of the makefiles for the 'distclean' target only.
-# Otherwise, we additionally enable the tolerance for the 'mostlyclean' and
-# 'clean' targets because they can be requested before the bundled directories
-# get configured:
+# We need to tolerate the absence of makefiles in the bundled packages when
+# running clean rules. If the delayed configuration is disabled, we tolerate the
+# absence of the makefiles for the 'distclean' target only. Otherwise, we
+# additionally enable the tolerance for the 'mostlyclean' and 'clean' targets
+# because they can be requested before the bundled packages are configured:
 nomakefile_bundled_targets:= distclean
 @DELAYED_CONFIG_ENABLED@nomakefile_bundled_targets+= mostlyclean clean
 
-# Make Autoconf-based bundled libraries:
-$(bundled_config_subdirs):
+# Make Autoconf-based bundled packages:
+$(bundled_config_builddirs):
 	@if test -f '$@/Makefile'; then \
 	  $(MAKE) -C $@ $(filter all mostlyclean clean distclean,$(MAKECMDGOALS)) V=$(V); \
 	else \
 	  test -z '$(filter-out $(nomakefile_bundled_targets),$(or $(MAKECMDGOALS),all))'; \
 	fi
 
-# Make CMake-based bundled libraries:
-$(bundled_cmake_subdirs):
+# Make CMake-based bundled packages:
+$(bundled_cmake_builddirs):
 	@if test -f '$@/Makefile'; then \
 	  $(MAKE) -C $@ $(filter all clean,$(MAKECMDGOALS) $(if $(filter mostlyclean distclean,$(MAKECMDGOALS)),clean)) VERBOSE=$(filter-out 0,$(V)); \
 	else \
@@ -611,38 +613,38 @@ $(bundled_cmake_subdirs):
 	fi
 
 # Build the bundled yaxt before configuring the bundled yac:
-externals/yac/Makefile:| @DELAYED_CONFIG_ENABLED@ $(filter externals/yaxt,$(bundled_subdirs))
+externals/yac/Makefile:| @DELAYED_CONFIG_ENABLED@ $(filter externals/yaxt,$(bundled_builddirs))
 
 # Build the bundled mtime and yaxt before building the bundled yac:
-externals/yac: $(filter externals/mtime externals/yaxt,$(bundled_subdirs))
+externals/yac: $(filter externals/mtime externals/yaxt,$(bundled_builddirs))
 
 # Build the bundled yaxt and ppm before building the bundled cdi:
-externals/cdi: $(filter externals/yaxt externals/ppm,$(bundled_subdirs))
+externals/cdi: $(filter externals/yaxt externals/ppm,$(bundled_builddirs))
 
 # Build the bundled yac before the bundled hd:
-externals/hd: $(filter externals/yac,$(bundled_subdirs))
+externals/hd: $(filter externals/yac,$(bundled_builddirs))
 
 # Configure the bundled fortran-support before configuring the bundled
 # math-support:
-externals/math-support/build/Makefile: $(filter externals/fortran-support/build/Makefile,$(addsuffix /Makefile,$(bundled_subdirs)))
+externals/math-support/build/Makefile: $(filter externals/fortran-support/build/Makefile,$(bundled_makefiles))
 
 # Build the bundled fortran-support before building the bundled-math support:
-externals/math-support/build: $(filter externals/fortran-support/build,$(bundled_subdirs))
+externals/math-support/build: $(filter externals/fortran-support/build,$(bundled_builddirs))
 
 # Configure the bundled fortran-support and math-support before configuring the
 # bundled math-interpolation:
-externals/math-interpolation/build/Makefile: $(filter externals/fortran-support/build/Makefile externals/math-support/build/Makefile,$(addsuffix /Makefile,$(bundled_subdirs)))
+externals/math-interpolation/build/Makefile: $(filter externals/fortran-support/build/Makefile externals/math-support/build/Makefile,$(bundled_makefiles))
 
 # Build the bundled fortran-support and math-support before building the bundled
 # math-interpolation:
-externals/math-interpolation/build: $(filter externals/fortran-support/build externals/math-support/build,$(bundled_subdirs))
+externals/math-interpolation/build: $(filter externals/fortran-support/build externals/math-support/build,$(bundled_builddirs))
 
-# Configure delayed bundled libraries:
+# Configure delayed bundled packages:
 @ICON_DELAYED_CONFIG_RULES@
 
-# Relink executables if any of the source files of the bundled libraries
-# is updated (the semicolon is required to support parallel rebuild):
-$(BUNDLED_LIBFILES): $(bundled_subdirs);
+# Relink executables if any of the bundled libraries is updated (the semicolon
+# is required to support parallel rebuild):
+$(BUNDLED_LIBFILES): $(bundled_builddirs);
 
 ############################### AUXILIARY RULES ################################
 

@@ -618,8 +618,9 @@ INSTALL_DATA
 INSTALL_SCRIPT
 INSTALL_PROGRAM
 ICON_DELAYED_CONFIG_RULES
-icon_bundled_cmake_subdirs
-icon_bundled_config_subdirs
+icon_bundled_cmake_builddirs
+icon_bundled_builddirs
+icon_bundled_srcdirs
 ICON_HD_FCFLAGS
 ICON_MATH_INTERPOLATION_FCFLAGS
 ICON_MATH_SUPPORT_FCFLAGS
@@ -1513,7 +1514,7 @@ Optional Features:
                           [default=yes]
   --enable-silent-rules   less verbose build output (undo: "make V=1")
                           [default=yes]
-  --enable-delayed-config configure the bundled libraries at the build time
+  --enable-delayed-config configure the bundled packages at the build time
                           [default=yes]
   --enable-separate-mods  enable the two-step compilation of the Fortran
                           source files (increases the total overhead but
@@ -1690,7 +1691,7 @@ Some influential environment variables:
               group <NAME> (see --enable-fcgroup-<NAME>)
   ICON_BUNDLED_FCFLAGS
               Fortran compiler flags to be appended to FCFLAGS when
-              configuring the bundled libraries [default=$ICON_FCFLAGS]
+              configuring the bundled packages [default=$ICON_FCFLAGS]
   CC          C compiler command
   CFLAGS      C compiler flags
   CPPFLAGS    (Objective) C/C++ preprocessor flags, e.g. -I<include dir> if
@@ -1698,12 +1699,12 @@ Some influential environment variables:
   ICON_CFLAGS C compiler flags to be appended to CFLAGS when configuring ICON
   ICON_BUNDLED_CFLAGS
               C compiler flags to be appended to CFLAGS when configuring the
-              bundled libraries [default=$ICON_CFLAGS]
+              bundled packages [default=$ICON_CFLAGS]
   CXX         C++ compiler command
   CXXFLAGS    C++ compiler flags
   ICON_BUNDLED_CXXFLAGS
               C++ compiler flags to be appended to CXXFLAGS when configuring
-              the bundled libraries
+              the bundled packages
   CUDACXX     CUDA C++ compiler command
   CUDAFLAGS   CUDA C++ compiler flags
   HIPCXX      HIP C++ compiler command
@@ -4050,7 +4051,7 @@ ac_compiler_gnu=$ac_cv_fc_compiler_gnu
 FCFLAGS=${FCFLAGS-}
 subdir_FCFLAGS=$FCFLAGS
 
-test -n "${ICON_LDFLAGS}" && as_fn_append LDFLAGS " ${ICON_LDFLAGS}"
+as_fn_append LDFLAGS "${ICON_LDFLAGS:+ }${ICON_LDFLAGS}"
 
 acx_save_cross_compiling=$cross_compiling
    acx_save_ac_tool_warned=$ac_tool_warned
@@ -5887,7 +5888,7 @@ CFLAGS=${CFLAGS-}
 subdir_CFLAGS=$CFLAGS
 subdir_CPPFLAGS=$CPPFLAGS
 
-test -n "${ICON_CFLAGS}" && as_fn_append CFLAGS " ${ICON_CFLAGS}"
+as_fn_append CFLAGS "${ICON_CFLAGS:+ }${ICON_CFLAGS}"
 
 ac_ext=c
 ac_cpp='$CPP $CPPFLAGS'
@@ -8083,8 +8084,8 @@ esac
    { $as_echo "$as_me:${as_lineno-$LINENO}: result: $acx_prog_search_abspath" >&5
 $as_echo "$acx_prog_search_abspath" >&6; }
    if test "x$acx_prog_search_abspath" = xunknown; then :
-  { $as_echo "$as_me:${as_lineno-$LINENO}: WARNING: unable to find the absolute path to $MPI_LAUNCH: the bundled libraries might pick other MPI launcher commands for their tests" >&5
-$as_echo "$as_me: WARNING: unable to find the absolute path to $MPI_LAUNCH: the bundled libraries might pick other MPI launcher commands for their tests" >&2;}
+  { $as_echo "$as_me:${as_lineno-$LINENO}: WARNING: unable to find the absolute path to $MPI_LAUNCH: the bundled packages might pick other MPI launcher commands for their tests" >&5
+$as_echo "$as_me: WARNING: unable to find the absolute path to $MPI_LAUNCH: the bundled packages might pick other MPI launcher commands for their tests" >&2;}
 else
   if test -n "$acx_prog_args"; then :
   as_fn_append acx_prog_search_abspath " $acx_prog_args"
@@ -10714,9 +10715,7 @@ esac
 as_fn_append bundled_includes "${FC_MOD_IN}externals/math-interpolation/build/src/mod "
 BUNDLED_LIBFILES="externals/math-interpolation/build/src/libmath-interpolation.a $BUNDLED_LIBFILES"
 
-if test -n "$bundled_includes"; then :
-  FCFLAGS="${bundled_includes}${FCFLAGS}"
-fi
+FCFLAGS="${bundled_includes}${FCFLAGS}"
 
 ############################# BUNDLED EXECUTABLES ##############################
 
@@ -10834,17 +10833,18 @@ fi
 
 ######################## BUNDLED PACKAGES FINALIZATION #########################
 
-icon_bundled_config_subdirs=''
+icon_bundled_srcdirs=$extra_src_subdirs
 
-icon_bundled_cmake_subdirs=''
+icon_bundled_builddirs=''
 
-for icon_bundled_srcdir in $extra_src_subdirs; do
+icon_bundled_cmake_builddirs=''
+
+for icon_bundled_srcdir in $icon_bundled_srcdirs; do
   eval icon_bundled_builddir=\$acx_subdir_run_dir_`$as_echo "$icon_bundled_srcdir" | $as_tr_sh`
+  as_fn_append icon_bundled_builddirs "${icon_bundled_builddirs:+ }$icon_bundled_builddir"
   eval icon_bundled_type=\$acx_subdir_build_type_`$as_echo "$icon_bundled_srcdir" | $as_tr_sh`
-  if eval \${icon_bundled_${icon_bundled_type}_subdirs:+false} :; then :
-  eval icon_bundled_${icon_bundled_type}_subdirs=\$icon_bundled_builddir
-else
-  as_fn_append icon_bundled_${icon_bundled_type}_subdirs " $icon_bundled_builddir"
+  if test "x$icon_bundled_type" = xcmake; then :
+  as_fn_append icon_bundled_cmake_builddirs "${icon_bundled_cmake_builddirs:+ }$icon_bundled_builddir"
 fi
 done
 
@@ -11239,7 +11239,7 @@ ${icon_usr_note}" "$LINENO" 5; }
 fi
 
 
-if test -n "$icon_bundled_cmake_subdirs"; then :
+if test -n "$icon_bundled_cmake_builddirs"; then :
      { $as_echo "$as_me:${as_lineno-$LINENO}: checking for cmake" >&5
 $as_echo_n "checking for cmake... " >&6; }
    if ${acx_cv_prog_CMAKE+:} false; then :
@@ -12993,9 +12993,9 @@ $as_echo "$as_me: WARNING: unrecognized options: $ac_unrecognized_opts" >&2;}
 fi
 
 
-if test "x$enable_delayed_config" = xyes && test -n "$extra_src_subdirs"; then :
+if test "x$enable_delayed_config${extra_src_subdirs:+yes}" = xyesyes; then :
   $as_echo "
-The following bundled libraries will be configured at the build time:`$as_echo "$extra_src_subdirs" | tr ' ' '
+The following bundled packages will be configured at the build time:`$as_echo "$extra_src_subdirs" | tr ' ' '
 '`
 " >&6
 fi

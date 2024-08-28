@@ -41,7 +41,7 @@ dnl message is not needed anymore.
 
 dnl We need to make sure that the source directory is clean when building
 dnl out-of-source for two reasons:
-dnl   1. Building systems of most of the bundled libraries are Automake-based
+dnl   1. Building systems of most of the bundled packages are Automake-based
 dnl      and, therefore, they rely on the standard non-selective search path
 dnl      (i.e., VPATH) feature of make for out-of-source builds. This makes
 dnl      having a clean source directory a hard requirement for them. Otherwise,
@@ -88,7 +88,7 @@ AC_ARG_ENABLE([silent-rules],
 
 AC_ARG_ENABLE([delayed-config],
   [AS_HELP_STRING([--enable-delayed-config],
-     [configure the bundled libraries at the build time @<:@default=yes@:>@])],
+     [configure the bundled packages at the build time @<:@default=yes@:>@])],
   [AS_IF([test x"$enableval" != xno], [enable_delayed_config=yes])],
   [enable_delayed_config=yes])
 
@@ -709,11 +709,11 @@ AC_SUBST([host_fqdn], [$acx_cv_host_fqdn])
 AC_LANG([Fortran])
 dnl Override the default flags set by AC_PROG_FC:
 FCFLAGS=${FCFLAGS-}
-dnl Save the flags to pass them later to the bundled libraries:
+dnl Save the flags to pass them later to the bundled packages:
 subdir_FCFLAGS=$FCFLAGS
 
 dnl Make sure the configure checks are run with ICON_*FLAGS:
-test -n "${ICON_LDFLAGS}" && AS_VAR_APPEND([LDFLAGS], [" ${ICON_LDFLAGS}"])
+AS_VAR_APPEND([LDFLAGS], ["${ICON_LDFLAGS:+ }${ICON_LDFLAGS}"])
 dnl We cannot literally append ICON_FCFLAGS to FCFLAGS now because it will be
 dnl difficult to replace ICON_FCFLAGS with ICON_OCEAN_FCFLAGS afterwards.
 dnl Instead, we make sure that all the checks are run with
@@ -725,7 +725,7 @@ m4_pushdef([AC_LANG(Fortran)],
 dnl Delay the cross-compilation check:
 ACX_COMPILER_CROSS_CHECK_DELAY
 AC_PROG_FC
-dnl Make sure that the bundled libraries pick up the same FC if not set by the
+dnl Make sure that the bundled packages pick up the same FC if not set by the
 dnl user on the command line:
 export FC
 
@@ -759,7 +759,7 @@ done
 
 AC_ARG_VAR([ICON_BUNDLED_FCFLAGS],
   [Fortran compiler flags to be appended to FCFLAGS when configuring the bundled
-libraries @<:@default=$ICON_FCFLAGS@:>@])dnl
+packages @<:@default=$ICON_FCFLAGS@:>@])dnl
 ICON_BUNDLED_FCFLAGS=${ICON_BUNDLED_FCFLAGS-$ICON_FCFLAGS}
 
 ACX_FC_PP_SRCEXT([f90])
@@ -1013,12 +1013,12 @@ AS_VAR_IF([enable_cuda_graphs], [yes],
 AC_LANG([C])
 dnl Override the default flags set by AC_PROG_CC:
 CFLAGS=${CFLAGS-}
-dnl Save the flags to pass them later to the bundled libraries:
+dnl Save the flags to pass them later to the bundled packages:
 subdir_CFLAGS=$CFLAGS
 subdir_CPPFLAGS=$CPPFLAGS
 
 dnl Make sure the configure checks are run with ICON_CFLAGS:
-test -n "${ICON_CFLAGS}" && AS_VAR_APPEND([CFLAGS], [" ${ICON_CFLAGS}"])
+AS_VAR_APPEND([CFLAGS], ["${ICON_CFLAGS:+ }${ICON_CFLAGS}"])
 
 dnl Fix a bug in Autoconf 2.70 (see https://savannah.gnu.org/support/?110396):
 m4_if(m4_version_compare(m4_defn([AC_AUTOCONF_VERSION]), [2.70]), [0],
@@ -1033,7 +1033,7 @@ m4_if(m4_version_compare(m4_defn([AC_AUTOCONF_VERSION]), [2.70]), [-1],
   [AC_PROG_CC_C99])
 AS_VAR_IF([ac_cv_prog_cc_c99], [no],
   [AC_MSG_FAILURE([C compiler does not support ISO C99])])
-dnl Make sure that the bundled libraries pick up the same CC if not set by the
+dnl Make sure that the bundled packages pick up the same CC if not set by the
 dnl user on the command line:
 export CC
 
@@ -1044,7 +1044,7 @@ AC_ARG_VAR([ICON_CFLAGS],
 
 AC_ARG_VAR([ICON_BUNDLED_CFLAGS],
   [C compiler flags to be appended to CFLAGS when configuring the bundled
-libraries @<:@default=$ICON_CFLAGS@:>@])dnl
+packages @<:@default=$ICON_CFLAGS@:>@])dnl
 ICON_BUNDLED_CFLAGS=${ICON_BUNDLED_CFLAGS-$ICON_CFLAGS}
 
 ACX_COMPILER_CC_VENDOR_SIMPLE
@@ -1063,22 +1063,22 @@ AC_CHECK_HEADERS([stdlib.h stdio.h math.h time.h ctype.h string.h assert.h ]dnl
 
 dnl Override the default flags set by AC_PROG_CXX:
 CXXFLAGS=${CXXFLAGS-}
-dnl Save the flags to pass them later to the bundled libraries:
+dnl Save the flags to pass them later to the bundled packages:
 subdir_CXXFLAGS=$CXXFLAGS
 
 dnl We do not expand AC_PROG_CXX because ICON itself does not need a C++
-dnl compiler yet. However, some of the bundled libraries might need it.
-dnl Therefore we simply declare the following variables to document them in the
+dnl compiler yet. However, some of the bundled packages might need it.
+dnl Therefore, we simply declare the following variables to document them in the
 dnl help message:
 AC_ARG_VAR([CXX], [C++ compiler command])dnl
 AC_ARG_VAR([CXXFLAGS], [C++ compiler flags])dnl
-dnl Make sure that the bundled libraries pick up the same CXX if not set by the
+dnl Make sure that the bundled packages pick up the same CXX if not set by the
 dnl user on the command line:
 export CXX
 
 AC_ARG_VAR([ICON_BUNDLED_CXXFLAGS],
   [C++ compiler flags to be appended to CXXFLAGS when configuring the bundled
-libraries])dnl
+packages])dnl
 
 ###################### SECONDARY GPU COMPILERS AND FLAGS #######################
 
@@ -1167,7 +1167,7 @@ dnl
 dnl We check these dependencies in the reverse order.
 
 dnl Currently, we assume that the Fortran compiler implicitly links to libm and
-dnl libc, which are required by ICON itself and some of the bundled libraries
+dnl libc, which are required by ICON itself and some of the bundled packages
 dnl (including the mandatory ones).
 
 dnl Most of the following checks are for Fortran compiler:
@@ -1177,11 +1177,11 @@ dnl Additional macro definitions to aid the dependency generator,
 dnl e.g. compiler intrinsic macros:
 AC_SUBST([DEPGEN_FCFLAGS], [''])
 
-dnl A list of library files (i.e. *.a files) of the enabled bundled libraries:
+dnl A list of library files (i.e. *.a files) of the enabled bundled packages:
 AC_SUBST([BUNDLED_LIBFILES], [''])
 
 dnl A list of include search flags targeting directories of the bundled
-dnl libraries:
+dnl packages:
 bundled_includes=
 
 dnl Get absolute paths to the source and build directories:
@@ -1291,16 +1291,16 @@ dnl ######################################################################
       [AS_VAR_APPEND([FCFLAGS], [" ${FC_PP_DEF}NO_MPI_CPTR_ARG"])])
 dnl ######################################################################
 
-dnl The configure scripts of the most of the bundled libraries expect
-dnl MPI_LAUNCH to be set in the form of an absolute path, which we try to
-dnl accommodate when required and if possible:
+dnl The configure scripts of the most of the bundled packages expect MPI_LAUNCH
+dnl to be set in the form of an absolute path, which we try to accommodate when
+dnl required and if possible:
 AS_IF([test -n "$MPI_LAUNCH"],
   [AS_CASE([$MPI_LAUNCH],
      [[[\\/]]* | ?:[[\\/]]*], [],
      [ACX_PROG_SEARCH_ABSPATH([$MPI_LAUNCH],
         [MPI_LAUNCH="$acx_prog_search_abspath"],
         [AC_MSG_WARN([unable to find the absolute path to $MPI_LAUNCH: the dnl
-bundled libraries might pick other MPI launcher commands for their tests])])])])
+bundled packages might pick other MPI launcher commands for their tests])])])])
 
 AS_VAR_IF([enable_openmp], [yes],
   [ACX_LANG_OPENMP_FLAG(
@@ -1432,7 +1432,7 @@ dnl the standard output stream, therefore we cannot compare the output
 dnl literally). If the output contains, 'conftest_parallel_yes', the test is
 dnl considered successful. In all other cases, we issue a warning. Note that we
 dnl do not run a proper check whether MPI_LAUNCH is a valid interactive MPI
-dnl launcher command (as some of the bundled libraries do) because the main
+dnl launcher command (as some of the bundled packages do) because the main
 dnl purpose of the test is to bring the user's attention to the fact that
 dnl something is wrong, and if MPI_LAUNCH command is invalid, we will not get
 dnl the expected output from the test program and issue a warning.
@@ -1788,7 +1788,7 @@ dnl on the command line to "$CC" and "$FC", respectively, but that would discard
 dnl any compiler flags that the configure script of YAXT might append to CC and
 dnl FC instead of CFLAGS and FCFLAGS. As a temporary solution we unset BUILD_CC
 dnl and BUILD_FC here (and hope that they will not be unexpectedly set anywhere
-dnl below) since it should not affect any other bundled libraries.
+dnl below) since it should not affect any other bundled packages.
       AS_UNSET([BUILD_CC]); AS_UNSET([BUILD_FC])
       AS_CASE([$icon_bundled_yaxt_c],
         [direct],
@@ -2436,10 +2436,9 @@ AS_VAR_IF([enable_comin], [yes],
       version = comin_setup_get_version()]])],
           [icon_cv_have_comin=yes])])
      AS_VAR_IF([icon_cv_have_comin], [no],
-        [AC_MSG_FAILURE([unable to link a test program using COMIN dnl
-library: either use the bundled version of COMIN dnl
-(--without-external-comin) or set FCFLAGS, LDFLAGS and LIBS dnl
-accordingly])])],
+        [AC_MSG_FAILURE([unable to link a test program using COMIN library: dnl
+either use the bundled version of COMIN (--without-external-comin) or set dnl
+FCFLAGS, LDFLAGS and LIBS accordingly])])],
 dnl
     [icon_subdir_srcdir="$srcdir/externals/comin"
      icon_subdir_unique_file="src/comin_setup.F90"
@@ -2645,7 +2644,7 @@ BUNDLED_LIBFILES=dnl
 $BUNDLED_LIBFILES"
 
 dnl Prepend the include search flags to FCFLAGS:
-AS_IF([test -n "$bundled_includes"], [FCFLAGS="${bundled_includes}${FCFLAGS}"])
+FCFLAGS="${bundled_includes}${FCFLAGS}"
 
 ############################# BUNDLED EXECUTABLES ##############################
 
@@ -2700,28 +2699,32 @@ ${icon_abs_top_builddir}/externals/yac/src/core/libyac_core.a"
 
 ######################## BUNDLED PACKAGES FINALIZATION #########################
 
-dnl Generate lists of the build directories of all active Autoconf-based and
-dnl CMake-based bundled libraries:
-AC_SUBST([icon_bundled_config_subdirs], [''])
-AC_SUBST([icon_bundled_cmake_subdirs], [''])
-for icon_bundled_srcdir in $extra_src_subdirs; do
+dnl A list of source directories of all enabled bundled packages:
+AC_SUBST([icon_bundled_srcdirs], [$extra_src_subdirs])
+dnl A list of build directories of all enabled bundled packages (in the same
+dnl order):
+AC_SUBST([icon_bundled_builddirs], [''])
+dnl A list of build directories of all enabled CMake-based bundled packages (the
+dnl rest are assumed to be Autoconf-based):
+AC_SUBST([icon_bundled_cmake_builddirs], [''])
+for icon_bundled_srcdir in $icon_bundled_srcdirs; do
   ACX_SUBDIR_GET_BUILD_DIR([icon_bundled_builddir], [$icon_bundled_srcdir])
+  AS_VAR_APPEND([icon_bundled_builddirs],
+    ["${icon_bundled_builddirs:+ }$icon_bundled_builddir"])
   ACX_SUBDIR_GET_BUILD_TYPE([icon_bundled_type], [$icon_bundled_srcdir])
-  AS_VAR_IF([icon_bundled_${icon_bundled_type}_subdirs], [],
-    [AS_VAR_COPY([icon_bundled_${icon_bundled_type}_subdirs],
-       [icon_bundled_builddir])],
-    [AS_VAR_APPEND([icon_bundled_${icon_bundled_type}_subdirs],
-       [" $icon_bundled_builddir"])])
+  AS_VAR_IF([icon_bundled_type], [cmake],
+    [AS_VAR_APPEND([icon_bundled_cmake_builddirs],
+       ["${icon_bundled_cmake_builddirs:+ }$icon_bundled_builddir"])])
 done
 
-dnl Either generate rules for the delayed configuration of the bundled
-dnl libraries or register all the libraries for the configuration by this
-dnl top-level configure script:
+dnl Either generate rules for the delayed configuration of the bundled packages
+dnl or register all the libraries for the configuration by this top-level
+dnl configure script:
 AC_SUBST([ICON_DELAYED_CONFIG_RULES], [''])
 AS_VAR_IF([enable_delayed_config], [yes],
   [dnl
-dnl Make sure that the bundled libraries pick up the same FC and CC if not set
-dnl by the user on the command line when configuring ICON:
+dnl Make sure that the bundled packages pick up the same FC, CC and CXX if not
+dnl set by the user on the command line when configuring ICON:
    ICON_DELAYED_CONFIG_RULES="export FC CC CXX$as_nl$as_nl"
    icon_rule_sep=''
    for icon_bundled_srcdir in $extra_src_subdirs; do
@@ -2784,7 +2787,7 @@ ACX_PROG_SEARCH([PERL], [perl],
   [PERL=$acx_cv_prog_PERL])
 
 AC_ARG_VAR([CMAKE], [CMake command])dnl
-AS_IF([test -n "$icon_bundled_cmake_subdirs"],
+AS_IF([test -n "$icon_bundled_cmake_builddirs"],
   [ACX_PROG_SEARCH([CMAKE], [cmake],
      [icon_prog_try='$acx_candidate --version >&AS_MESSAGE_LOG_FD'
       AC_TRY_EVAL([icon_prog_try])],
@@ -2960,9 +2963,9 @@ AC_CONFIG_COMMANDS([depfiles],
 
 AC_OUTPUT
 
-AS_IF([test "x$enable_delayed_config" = xyes && test -n "$extra_src_subdirs"],
+AS_IF([test "x$enable_delayed_config${extra_src_subdirs:+yes}" = xyesyes],
   [AS_ECHO(["
-The following bundled libraries will be configured at the build time:dnl
+The following bundled packages will be configured at the build time:dnl
 `AS_ECHO(["$extra_src_subdirs"]) | tr ' ' '
 '`
 "]) >&AS_MESSAGE_FD])
