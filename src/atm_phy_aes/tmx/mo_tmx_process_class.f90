@@ -50,8 +50,8 @@ MODULE mo_tmx_process_class
     CLASS(t_time_scheme),  ALLOCATABLE :: time_scheme  !< Time integration scheme
     TYPE(t_tmx_process_p), POINTER     :: processes(:) => NULL() !< Subprocesses
   CONTAINS
-    PROCEDURE                          :: Init => Init_process
-    ! PROCEDURE(init_iface),     DEFERRED :: Init
+    PROCEDURE                          :: Init_process => Init_tmx_process
+    PROCEDURE(init_iface),         DEFERRED :: Init
     PROCEDURE                          :: Lock_variable_sets
     PROCEDURE                          :: Add_process
     PROCEDURE                          :: Add_state_r2d
@@ -74,11 +74,11 @@ MODULE mo_tmx_process_class
   END TYPE t_tmx_process_p
 
   ABSTRACT INTERFACE
-    ! SUBROUTINE init_iface(this, config)
-    !   IMPORT :: t_tmx_process, t_variable_list
-    !   CLASS(t_tmx_process),  INTENT(inout) :: this
-    !   TYPE(t_variable_list), INTENT(in)    :: config
-    ! END SUBROUTINE
+    SUBROUTINE init_iface(this) !, config)
+       IMPORT :: t_tmx_process  !, t_variable_list
+       CLASS(t_tmx_process), INTENT(inout), TARGET :: this
+       !TYPE(t_variable_list), INTENT(in)    :: config
+     END SUBROUTINE
     SUBROUTINE compute_iface(this, datetime)
       IMPORT :: t_tmx_process, t_datetime
       CLASS(t_tmx_process),     INTENT(inout), TARGET :: this
@@ -94,7 +94,7 @@ MODULE mo_tmx_process_class
   
 CONTAINS
 
-  SUBROUTINE Init_process(this, dt, name, domain)
+  SUBROUTINE Init_tmx_process(this, dt, name, domain)
 
     CLASS(t_tmx_process), INTENT(inout)        :: this
     REAL(wp),             INTENT(in)           :: dt
@@ -126,7 +126,7 @@ CONTAINS
     ! this%inputs      = t_variable_list ('inputs')
     ! this%diagnostics = t_variable_list ('diagnostics')
 
-  END SUBROUTINE Init_process
+  END SUBROUTINE Init_tmx_process
 
   RECURSIVE SUBROUTINE Lock_variable_sets(this)
 

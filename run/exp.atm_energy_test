@@ -103,8 +103,8 @@ start_date=1979-01-01T00:00:00Z
   end_date=1979-01-01T00:04:00Z
 
 # restart intervals
-checkpoint_interval=PT5M
-   restart_interval=PT5M
+checkpoint_interval=PT2M
+   restart_interval=PT4M
 
 # output intervals
 first_output_date=1979-01-01T00:00:40Z
@@ -126,6 +126,11 @@ output_atm_state_3d_sim=on  # 1 file/variable/date        , first_output_date to
 output_atm_state_2d_sim=on  # 1 file/(variable group)/date, first_output_date to last__output_date
 output_atm_tend_3d=on       # 1 file/variable/date        , first_output_date to last__output_date
 output_atm_flux_2d=on       # 1 file/(variable group)/date, first_output_date to last__output_date
+
+output_atm_energy_3d=on
+output_atm_energy_2d=on
+output_atm_energy_1d=on
+output_atm_energy_0d=on
 
 #--------------------------------------------------------------------------------------------------
 
@@ -226,6 +231,9 @@ cat >> ${atmo_namelist} << EOF
  thhgtd_zdiffu      = 125.
  htop_moist_proc    = ${htop_cloudy}
 /
+&dynamics_nml
+ lmoist_thdyn   = .TRUE.
+/
 &diffusion_nml
  hdiff_order        = 5
  hdiff_efdt_ratio   = 24.0        ! change from default 36.0 to 24.0
@@ -276,7 +284,7 @@ cat >> ${atmo_namelist} << EOF
  aes_phy_config(1)%lamip      = .TRUE.
  aes_phy_config(1)%lice       = .TRUE.
  aes_phy_config(1)%lmlo       = .FALSE.
- aes_phy_config(1)%llake      = .FALSE.
+ aes_phy_config(1)%llake      = .${jsbach_with_lakes}.
 !
 ! top height for cloud processes
  aes_phy_config(1)%zmaxcloudy = ${htop_cloudy}
@@ -327,12 +335,8 @@ then
 cat >> ${atmo_namelist} << EOF
 !
 &aes_vdf_nml ! grid(1)
- aes_vdf_config(1)%lmix_max    =  150.
- aes_vdf_config(1)%pr0         =  0.7
- aes_vdf_config(1)%use_tmx     = .TRUE.
- aes_vdf_config(1)%turb        = 2    ! 1: TTE, 2: Smagorinsky (only 2 for use_tmx=true)
- aes_vdf_config(1)%solver_type = 2   ! for tmx; 1: explicit, 2: implicit solver
- aes_vdf_config(1)%energy_type = 2   ! for tmx; use 1: dry static energy, 2: internal energy for thermal vert. diffusion
+ aes_vdf_config(1)%lmix_max   =  150.
+ aes_vdf_config(1)%pr0        =  0.7
 /
 EOF
 fi # ${dt_vdf}
@@ -360,12 +364,11 @@ cat > ${jsbach_namelist} << EOF
   usecase                 = 'jsbach_lite'
   use_lakes               = .${jsbach_with_lakes}.
   fract_filename          = 'bc_land_frac.nc'
-  use_tmx                 = .TRUE.
+  enforce_water_budget    = 'error'     ! Error: stop in case of water conservation problem
 /
 &jsb_seb_nml
   bc_filename             = 'bc_land_phys.nc'
   ic_filename             = 'ic_land_soil.nc'
-  niter_tmx               = 0 ! Number of iterations for explicit coupling (tmx)
 /
 &jsb_rad_nml
   use_alb_veg_simple      = .TRUE.
@@ -375,7 +378,7 @@ cat > ${jsbach_namelist} << EOF
 &jsb_turb_nml
   bc_filename             = 'bc_land_phys.nc'
   ic_filename             = 'ic_land_soil.nc'
-  max_ini_rough_m         = 5.0 ! > 0: limit for roughness length from initial file
+  max_ini_rough_m         = -1.0 ! > 0: limit for roughness length from initial file
 /
 &jsb_sse_nml
   l_heat_cap_map          = .FALSE.
@@ -826,6 +829,162 @@ EOF
 fi # varlist
 #
 fi # ${output_atm_flux_2d}
+
+# atmospheric energies
+# --------------------
+# - instantaneous values
+# - from first_output_date to last__output_date
+# - only if physics is active!
+#
+if [ ${iforcing} -eq 2 ]
+then
+#
+#
+if [ ${output_atm_energy_3d} = on ]
+then
+#
+# - all levels
+#
+varlist=""
+varlist="${varlist} 'eindyn' 'ekhdyn' 'ekvdyn' 'egpdyn' 'etodyn'"
+varlist="${varlist} 'einphy' 'ekhphy' 'ekvphy' 'egpphy' 'etophy'"
+varlist="${varlist} 'ein'    'ekh'    'ekv'    'egp'    'eto'"
+varlist="${varlist} 'tend_eindyn' 'tend_ekhdyn' 'tend_ekvdyn' 'tend_egpdyn' 'tend_etodyn'"
+varlist="${varlist} 'tend_eincld'"
+varlist="${varlist} 'tend_einrad'"
+varlist="${varlist} 'tend_eintmx' 'tend_ekhtmx' 'tend_ekvtmx'"
+varlist="${varlist} 'tend_einphy' 'tend_ekhphy' 'tend_ekvphy' 'tend_egpphy' 'tend_etophy'"
+#
+var="'e3d'"
+  cat >> ${atmo_namelist} << EOF
+&output_nml
+ output_filename  = '${EXPNAME}_${var//\'}'
+ filename_format  = '${EXPNAME}_${var//\'}_ml_<datetime2>'
+ ready_file       = '${EXPNAME}_${var//\'}_ml_<datetime2>.ready'
+ filetype         = ${output_format}
+ remap            = 0
+ output_grid      = .FALSE.
+ output_start     = '${first_output_date}'
+ output_end       = '${last__output_date}'
+ output_interval  = '${atm_output_interval}'
+ file_interval    = '${atm_file_interval}'
+ include_last     = .FALSE.
+ ml_varlist       = ${varlist}
+/
+EOF
+#
+fi # ${output_atm_energy_3d}
+#
+#
+if [ ${output_atm_energy_2d} = on ]
+then
+#
+# - vertical integrals
+#
+varlist=""
+varlist="${varlist} 'eindynvi' 'ekhdynvi' 'ekvdynvi' 'egpdynvi' 'etodynvi'"
+varlist="${varlist} 'einphyvi' 'ekhphyvi' 'ekvphyvi' 'egpphyvi' 'etophyvi'"
+varlist="${varlist} 'einvi'    'ekhvi'    'ekvvi'    'egpvi'    'etovi'"
+varlist="${varlist} 'tend_eindynvi' 'tend_ekhdynvi' 'tend_ekvdynvi' 'tend_egpdynvi' 'tend_etodynvi'"
+varlist="${varlist} 'tend_eincldvi'"
+varlist="${varlist} 'tend_einradvi'"
+varlist="${varlist} 'tend_eintmxvi' 'tend_ekhtmxvi' 'tend_ekvtmxvi'"
+varlist="${varlist} 'tend_einphyvi' 'tend_ekhphyvi' 'tend_ekvphyvi' 'tend_egpphyvi' 'tend_etophyvi'"
+#
+var="'e2d'"
+  cat >> ${atmo_namelist} << EOF
+&output_nml
+ output_filename  = '${EXPNAME}_${var//\'}'
+ filename_format  = '${EXPNAME}_${var//\'}_ml_<datetime2>'
+ ready_file       = '${EXPNAME}_${var//\'}_ml_<datetime2>.ready'
+ filetype         = ${output_format}
+ remap            = 0
+ output_grid      = .FALSE.
+ output_start     = '${first_output_date}'
+ output_end       = '${last__output_date}'
+ output_interval  = '${atm_output_interval}'
+ file_interval    = '${atm_file_interval}'
+ include_last     = .FALSE.
+ ml_varlist       = ${varlist}
+/
+EOF
+#
+fi # ${output_atm_energy_2d}
+#
+#
+if [ ${output_atm_energy_1d} = on ]
+then
+#
+# - global means
+#
+varlist=""
+varlist="${varlist} 'eindynhi' 'ekhdynhi' 'ekvdynhi' 'egpdynhi' 'etodynhi'"
+varlist="${varlist} 'einphyhi' 'ekhphyhi' 'ekvphyhi' 'egpphyhi' 'etophyhi'"
+varlist="${varlist} 'einhi'    'ekhhi'    'ekvhi'    'egphi'    'etohi'"
+varlist="${varlist} 'tend_eindynhi' 'tend_ekhdynhi' 'tend_ekvdynhi' 'tend_egpdynhi' 'tend_etodynhi'"
+varlist="${varlist} 'tend_eincldhi'"
+varlist="${varlist} 'tend_einradhi'"
+varlist="${varlist} 'tend_eintmxhi' 'tend_ekhtmxhi' 'tend_ekvtmxhi'"
+varlist="${varlist} 'tend_einphyhi' 'tend_ekhphyhi' 'tend_ekvphyhi' 'tend_egpphyhi' 'tend_etophyhi'"
+#
+var="'e1d'"
+  cat >> ${atmo_namelist} << EOF
+&output_nml
+ output_filename  = '${EXPNAME}_${var//\'}'
+ filename_format  = '${EXPNAME}_${var//\'}_ml_<datetime2>'
+ ready_file       = '${EXPNAME}_${var//\'}_ml_<datetime2>.ready'
+ filetype         = ${output_format}
+ remap            = 0
+ output_grid      = .FALSE.
+ output_start     = '${first_output_date}'
+ output_end       = '${last__output_date}'
+ output_interval  = '${atm_output_interval}'
+ file_interval    = '${atm_file_interval}'
+ include_last     = .FALSE.
+ ml_varlist       = ${varlist}
+/
+EOF
+#
+fi # ${output_atm_energy_1d}
+#
+#
+if [ ${output_atm_energy_0d} = on ]
+then
+#
+# - global means of vertical integrals
+#
+varlist=""
+varlist="${varlist} 'eindynti' 'ekhdynti' 'ekvdynti' 'egpdynti' 'etodynti'"
+varlist="${varlist} 'einphyti' 'ekhphyti' 'ekvphyti' 'egpphyti' 'etophyti'"
+varlist="${varlist} 'einti'    'ekhti'    'ekvti'    'egpti'    'etoti'"
+varlist="${varlist} 'tend_eindynti' 'tend_ekhdynti' 'tend_ekvdynti' 'tend_egpdynti' 'tend_etodynti'"
+varlist="${varlist} 'tend_eincldti'"
+varlist="${varlist} 'tend_einradti'"
+varlist="${varlist} 'tend_eintmxti' 'tend_ekhtmxti' 'tend_ekvtmxti'"
+varlist="${varlist} 'tend_einphyti' 'tend_ekhphyti' 'tend_ekvphyti' 'tend_egpphyti' 'tend_etophyti'"
+#
+var="'e0d'"
+  cat >> ${atmo_namelist} << EOF
+&output_nml
+ output_filename  = '${EXPNAME}_${var//\'}'
+ filename_format  = '${EXPNAME}_${var//\'}_ml_<datetime2>'
+ ready_file       = '${EXPNAME}_${var//\'}_ml_<datetime2>.ready'
+ filetype         = ${output_format}
+ remap            = 0
+ output_grid      = .FALSE.
+ output_start     = '${first_output_date}'
+ output_end       = '${last__output_date}'
+ output_interval  = '${atm_output_interval}'
+ file_interval    = '${atm_file_interval}'
+ include_last     = .FALSE.
+ ml_varlist       = ${varlist}
+/
+EOF
+#
+fi # ${output_atm_energy_0d}
+#
+#
+fi # ${iforcing}
 
 set +x
 echo

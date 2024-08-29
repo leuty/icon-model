@@ -81,6 +81,10 @@
   - file_names:
       - externals/fortran-support
     mentions: [b382190]
+  - file_names:
+      - externals/jsbach
+      - shared/mo_util_jsbach.f90
+    labels: [ICON-Land]
   # Various personal notifications:
   - file_names:
       - src/shr_horizontal/mo_math_divrot.f90
@@ -110,6 +114,8 @@ icon/icon-mpim:
     title_regexps: ['(?i)^(?:(?!merge.*to.*rc).)*$']
   notifications:
     - *common-notifications
+    - title_regexps: ['^Intermediate merge to RC$']
+      labels: [RC-to-master]
 
 icon/icon-nwp:
   default:

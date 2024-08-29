@@ -513,7 +513,7 @@ cat > ${jsbach_namelist} << EOF
 &jsb_model_nml
   usecase              = "${jsbach_usecase}"
   use_lakes            = ${llake}
-  enforce_water_budget = .FALSE.         ! TRUE: stop in case of water conservation problem
+  enforce_water_budget = 'ignore'        ! Error: stop in case of water conservation problem
   fract_filename       = "bc_land_frac.nc"
 /
 &jsb_seb_nml
@@ -1398,7 +1398,7 @@ add_link_file ${ocean_grid_folder}/${ocean_grid} $ocean_grid
 
 if [[ "$START" == *"srun"* ]]; then
     (
-        eval "$(echo '@BUILD_ENV@' | ${basedir}/config.status -q --file=-)"
+        eval $(make -C ${basedir} env)
         make -C ${basedir}/externals/yac/examples toy_output/toy_output.x
     )
 

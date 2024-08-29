@@ -12,14 +12,12 @@
 
 SHELL= @SHELL@
 BUILD_ENV= @BUILD_ENV_MAKE@
-# The same build environment in the shell-compatible syntax:
-# @BUILD_ENV@
 
 DELEGATEE_FILE= icon.mk
 
 .SUFFIXES:
 .NOTPARALLEL:
-.PHONY: all distclean help dist snapshot force-delegate
+.PHONY: all distclean env help dist snapshot force-delegate
 
 # Default target:
 all:
@@ -41,6 +39,9 @@ Makefile:;
 distclean:
 	@$(BUILD_ENV) $(MAKE) -f $(DELEGATEE_FILE) $@
 	rm -f Makefile
+
+env:
+	@echo '@''BUILD_ENV@' | ./config.status -q --file=-
 
 help:
 	@echo "Usage:"; \
@@ -64,7 +65,8 @@ help:
 	echo "  'dist'           create a tarball containing files from the current HEAD of"; \
 	echo "                   the ICON git repository and its submodules"; \
 	echo "  'snapshot'       create a tarball containing all files in the source directory"; \
-	echo "                   that are not ignored by git in their current state"
+	echo "                   that are not ignored by git in their current state"; \
+	echo "  'env'            print the build invironment initialization script"
 
 GIT= git
 TAR= tar

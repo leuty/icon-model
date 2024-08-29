@@ -8,9 +8,11 @@
 # SPDX-License-Identifier: BSD-3-Clause
 # ------------------------------------------
 
-# ------------------------------------------------------------------------------------
-# Atmosphere standalone script template, NextGEMS namelist, R02B04 for technical tests
-# ------------------------------------------------------------------------------------
+# -------------------------------------------------------------
+# Atmosphere standalone script template
+#   NextGEMS namelist, R02B08, R02B09, R02B10 for production,
+#   R02B04 for testing purposes only
+# -------------------------------------------------------------
 #
 author_list='Monika Esch, MPIM'
 #--------------------------------------------------------------------------------------------------
@@ -40,11 +42,77 @@ icon_data_poolFolder="${icon_data_rootFolder:-/pool/data/ICON}/grids/public/mpim
 #
 # Define resolution:
 #
-grid_refinement=R02B04
+grid_refinement=R02B08
 #
 # Set various parameters, time steps, start and end date etc for
 #  the different resolutions first
 #
+if [ ${grid_refinement} == R02B08 ] ; then
+
+   grid_id=0054
+   # start and end date+time
+   start_date=${start_date:="1979-01-01T00:00:00Z"}
+       end_date=${end_date:="1982-01-01T00:00:00Z"}
+
+   # time steps
+   radTimeStep="PT20M"
+   atmTimeStep="PT60S"
+
+   # restart intervals
+   checkpoint_interval="P3M"
+   restart_interval="P3M"
+
+   # namelist variables
+   #
+   num_restart_procs=10
+   cinhoml=0.4
+   l_soil_texture=.TRUE.
+
+elif [ ${grid_refinement} == R02B09 ] ; then
+
+   grid_id=0055
+   # start and end date+time
+   start_date=${start_date:="1979-01-01T00:00:00Z"}
+       end_date=${end_date:="1979-02-01T00:00:00Z"}
+
+   # time steps
+   radTimeStep="PT20M"
+   atmTimeStep="PT40S"
+
+   # restart intervals
+   checkpoint_interval="P10D"
+   restart_interval="P10D"
+
+   #
+   # namelist variables
+   #
+   num_restart_procs=992
+   cinhoml=0.45
+   l_soil_texture=.FALSE.
+
+elif [ ${grid_refinement} == R02B10 ] ; then
+
+   grid_id=0056
+   # start and end date+time
+   start_date=${start_date:="1979-01-01T00:00:00Z"}
+       end_date=${end_date:="1979-02-01T00:00:00Z"}
+
+   # time steps
+   radTimeStep="PT10M"
+   atmTimeStep="PT20S"
+
+   # restart intervals
+   checkpoint_interval="P5D"
+   restart_interval="P5D"
+
+   # namelist variables
+   #
+   num_restart_procs=992
+   cinhoml=0.5
+   l_soil_texture=.FALSE.
+
+elif [ ${grid_refinement} == R02B04 ] ; then
+
    grid_id=0049
    # start and end date+time
    start_date=${start_date:="1979-01-01T00:00:00Z"}
@@ -58,12 +126,13 @@ grid_refinement=R02B04
    checkpoint_interval="P3D"
    restart_interval="P3D"
 
-   #
    # namelist variables
    #
    num_restart_procs=1
    cinhoml=0.4
    l_soil_texture=.TRUE.
+
+fi
 
 # domain globe
 grids_folder=${icon_data_poolFolder}/${grid_id}
@@ -112,6 +181,7 @@ atm_file_interval="P1M"
 # ---------------------
 
 # output_<xyz>=yes : yes --> output files for <xyz>, any other value --> no files for <xyz>
+# set output_atm_2/3d_hiopy=yes if you want to generate data as in coupled runs and 3D data on 26 levels only
 
 output_atm_vgrid=no              # produces 1 file, but only once
 output_atm_2d_hiopy=no            # produces 3 files (15M, 3H, 1D)
@@ -253,7 +323,6 @@ cat > ${atmo_namelist} << EOF
  aes_rad_config(1)%irad_cfc11 = 3
  aes_rad_config(1)%irad_cfc12 = 3
  aes_rad_config(1)%irad_aero  = 13 ! tropospheric aerosol optical properties after S. Kinne, filename with year
- aes_rad_config(1)%lclearsky = .FALSE.  ! true is default
  aes_rad_config(1)%inhom_lts  = .TRUE.
  aes_rad_config(1)%inhom_lts_max = 0.725
 /
@@ -398,11 +467,30 @@ add_required_file ${basedir}/run/${dict_file}                             ./
 # initial and boundary conditions
 # 
 datadir=${icon_data_poolFolder}/${grid_id}/initial_conditions/r0100
+if [ ${grid_refinement} == R02B08 ] ; then
+   add_link_file $datadir/ifs2icon_1979010100_0054_R02B08_G.nc               ./ifs2icon.nc
+elif [ ${grid_refinement} == R02B09 ] ; then
+   add_link_file $datadir/ifs2icon_1979010100_0055_R02B09_G.nc               ./ifs2icon.nc
+elif [ ${grid_refinement} == R02B10 ] ; then
+   add_link_file $datadir/ifs2icon_1979010100_0056_R02B10_G.nc               ./ifs2icon.nc
+elif [ ${grid_refinement} == R02B04 ] ; then
    add_link_file $datadir/ifs2icon_1979010100_0049_R02B04_G.nc               ./ifs2icon.nc
+fi
 
 datadir=${icon_data_poolFolder}/${grid_id}/sst_and_seaice/r0100
+if [ ${grid_refinement} == R02B08 ] ; then
+   add_link_file $datadir/bc_sst_1978-2016.nc                                ./bc_sst.nc
+   add_link_file $datadir/bc_sic_1978-2016.nc                                ./bc_sic.nc
+elif [ ${grid_refinement} == R02B09 ] ; then
+   add_link_file $datadir/bc_sst_1978-1980.nc                                ./bc_sst.nc
+   add_link_file $datadir/bc_sic_1978-1980.nc                                ./bc_sic.nc
+elif [ ${grid_refinement} == R02B10 ] ; then
+   add_link_file $datadir/bc_sst_1978-1980.nc                                ./bc_sst.nc
+   add_link_file $datadir/bc_sic_1978-1980.nc                                ./bc_sic.nc
+elif [ ${grid_refinement} == R02B04 ] ; then
    add_link_file $datadir/bc_sst_1978-2021.nc                                ./bc_sst.nc
    add_link_file $datadir/bc_sic_1978-2021.nc                                ./bc_sic.nc
+fi
 #
 # range of years for yearly files
 # assume start_date and end_date have the format yyyy-...
@@ -424,9 +512,6 @@ do
   (( year = year+1 ))
 done
 # 
-# Ozone and aerosol data for 1978
-add_link_file $datadir/bc_ozone_historical_1978.nc                        ./bc_ozone_1978.nc
-add_link_file $dataaero/bc_aeropt_kinne_sw_b14_fin_1978.nc                ./bc_aeropt_kinne_sw_b14_fin_1978.nc
 # Kinne aerosol 
 add_link_file $dataaero/bc_aeropt_kinne_lw_b16_coa.nc                     ./
 add_link_file $dataaero/bc_aeropt_kinne_sw_b14_coa.nc                     ./
