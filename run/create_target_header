@@ -2098,7 +2098,11 @@ set_run_target_juwels()
     set_default use_cpu_time 01:00:00
 
     if [[ $use_mpi == "yes" ]]; then
-        set_default use_mpi_procs_pernode 48
+	if [[ $use_openmp == "yes" ]]; then
+		set_default use_mpi_procs_pernode 24
+	else 
+		set_default use_mpi_procs_pernode 48
+	fi
     fi
     if [[ $use_openmp == "yes" ]]; then
         set_default use_openmp_threads 2

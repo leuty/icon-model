@@ -7,8 +7,6 @@
 #SBATCH --cpus-per-task=1      # number of OpenMP threads / MPI task (1 == no OpennMP, eg. on GPUs)
 #SBATCH --time=00:06:00
 #SBATCH --account=exaww
-#SBATCH --mail-user=duras@dkrz.de
-#SBATCH --mail-type=FAIL,TIME_LIMIT,REQUEUE
 
 
 module --force purge 
