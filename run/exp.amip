@@ -95,15 +95,15 @@ elif [ ${grid_refinement} == R02B10 ] ; then
    grid_id=0056
    # start and end date+time
    start_date=${start_date:="1979-01-01T00:00:00Z"}
-       end_date=${end_date:="1979-02-01T00:00:00Z"}
+       end_date=${end_date:="1979-03-01T00:00:00Z"}
 
    # time steps
    radTimeStep="PT10M"
    atmTimeStep="PT20S"
 
    # restart intervals
-   checkpoint_interval="P5D"
-   restart_interval="P5D"
+   checkpoint_interval="P4D"
+   restart_interval="P4D"
 
    # namelist variables
    #
@@ -218,6 +218,7 @@ cat > ${atmo_namelist} << EOF
  nblocks_c            = ${nblocks_c}
  nproma_sub           = ${nproma_sub}
  num_io_procs         = ${mpi_atm_io_procs}
+ iorder_sendrecv      = 3
  io_proc_chunk_size   = 46
  io_process_stride    = 8
  num_restart_procs    = ${num_restart_procs} !prelim
@@ -332,7 +333,7 @@ cat > ${atmo_namelist} << EOF
  aes_vdf_config(1)%use_tmx    = .TRUE.
  aes_vdf_config(1)%energy_type        = 2   ! Only used for tmx
  aes_vdf_config(1)%dissipation_factor = 1.3 ! Only used for tmx
- aes_vdf_config(1)%min_sfc_wind = 4.
+! aes_vdf_config(1)%min_sfc_wind i     = 1.  ! 1 is default
 ! aes_vdf_config(1)%louis_constant_b   = 4.2 ! !automatically scaled in tmx
 ! aes_vdf_config(1)%lmix_max   = 150.
 /
@@ -567,7 +568,6 @@ if [[ "$output_atm_vgrid" == "yes" ]]; then
  output_interval  = "${atm_output_interval_2d}" !     the output interval and
  file_interval    = "${atm_file_interval}"      !     the file interval
  ml_varlist       = 'zghalf'  , 'zg'      , 'dzghalf'
- m_levels         = "${m_levels}"
 /
 EOF
 fi
