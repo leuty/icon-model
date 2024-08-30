@@ -1578,6 +1578,8 @@ set_run_target_alps_mch_gpu()
     use_nodes=${use_nodes}
     use_mpi_procs_pernode=${use_mpi_procs_pernode}
 
+    partition="normal"
+
     cat >> "$output_script" << EOF
 #=============================================================================
 
@@ -1587,6 +1589,7 @@ set_run_target_alps_mch_gpu()
 #SBATCH --output=$output_folder/$job_log_name.o
 #SBATCH --error=$output_folder/$job_log_name.o
 #SBATCH --gpus-per-node=4
+#SBATCH --partition=$partition
 $(if [[ "x$BB_SYSTEM" != 'x' ]]
  then
   printf "#SBATCH ${TIME_LIMITS}
