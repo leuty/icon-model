@@ -25,10 +25,12 @@
   - Bug fixes for JSBACH pond scheme
 - Update of the scripts to generate ICON-Land initial (ic) and boundary condition (bc) files
 - Implement daily execution of anthropogenic land cover change by interpolation of annual maps
-- QUINCY
+- QUINCY development
   - refactoring of the quincy soil physics process
   - updates incl. first implementation of coupling with ICON-Atmo
   - implementation of a spin-up accelerator for the slow biogeochemical soil pools
+  - implementation of wood product pools
+  - implementation of a carbon conservation test
 - Switch from deprecated YAC interface in HD model
 - Several fixes for DSL pre-processor script `dsl4jsb.py`
 - Port JSBACH carbon and disturbance modules to GPU
