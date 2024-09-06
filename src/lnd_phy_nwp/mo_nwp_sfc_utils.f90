@@ -270,7 +270,7 @@ CONTAINS
     REAL(wp) :: albsi_new(nproma)   ! sea-ice albedo at new time level
 
     ! local field for APT factors
-    REAL(wp) :: snowfrac_fac(nproma)
+    REAL(wp) :: snowfrac_fac(nproma, ntiles_total)
 
     INTEGER  :: icount_flk          ! total number of lake points per block
     !
@@ -400,9 +400,9 @@ CONTAINS
           ENDIF
 
           IF (icpl_da_snowalb >= 3) THEN
-            snowfrac_fac(ic)  = prm_diag%snowfrac_fac(jc,jb)
+            snowfrac_fac(ic,isubs)  = prm_diag%snowfrac_fac(jc,jb)
           ELSE
-            snowfrac_fac(ic)  = 1._wp
+            snowfrac_fac(ic,isubs)  = 1._wp
           ENDIF
         ENDDO
 
@@ -471,7 +471,7 @@ CONTAINS
             &  freshsnow = freshsnow_t       (:,jb,isubs), & ! fresh snow fraction
             &  sso_sigma = sso_sigma_t       (:,jb,isubs), & ! sso stdev
             &  z0        = z0_t              (:,jb,isubs), & ! vegetation roughness length
-            &  snowfrac_fac = snowfrac_fac   (:)         , & ! APT tuning factor for snow-cover fraction
+            &  snowfrac_fac = snowfrac_fac   (:,   isubs), & ! APT tuning factor for snow-cover fraction
             &  snowfrac  = snowfrac_t        (:,jb,isubs), & ! OUT: snow cover fraction
             &  t_g       = t_g_t             (:,jb,isubs)  ) ! OUT: averaged ground temp
 
@@ -552,7 +552,7 @@ CONTAINS
             &  freshsnow  = freshsnow_t             (:,jb,isubs), & ! fresh snow fraction
             &  sso_sigma  = sso_sigma_t             (:,jb,isubs), & ! sso stdev
             &  z0         = z0_t                    (:,jb,isubs), & ! vegetation roughness length
-            &  snowfrac_fac = snowfrac_fac          (:)         , & ! APT tuning factor for snow-cover fraction
+            &  snowfrac_fac = snowfrac_fac          (:,   isubs), & ! APT tuning factor for snow-cover fraction
             &  snowfrac   = snowfrac_t              (:,jb,isubs), & ! OUT: snow cover fraction
             &  t_g        = t_g_t                   (:,jb,isubs)  ) ! OUT: averaged ground temperature
 

@@ -126,6 +126,10 @@ num_restart_procs="   1 "
 checkpoint_intval="P03D"
 ofile_prfx="wave-RST"
 
+# remove output files written after restart because existing output files are opened
+# in append mode in case of a restart (only relevant for manually executed tests)
+rm -f ${ofile_prfx}*.nc ${ofile_prfx}*.grb
+
 fi
 
 
