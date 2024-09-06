@@ -31,6 +31,11 @@
   - implementation of a spin-up accelerator for the slow biogeochemical soil pools
   - implementation of wood product pools
   - implementation of a carbon conservation test
+  - minor code fixes towards usability and style recommendations
+  - minor scientific updates
+    - first step to include stem area (SAI, stem area index) into radiation scheme
+    - fix of slow growth in early season in cold grassland sites
+    - calibration of self-thinning for trees
 - Switch from deprecated YAC interface in HD model
 - Several fixes for DSL pre-processor script `dsl4jsb.py`
 - Port JSBACH carbon and disturbance modules to GPU
