@@ -992,6 +992,11 @@ MODULE mo_ocean_nml
   INTEGER  :: n_age_tracer = 1
   REAL(wp) :: age_tracer_inv_relax_time = 1._wp/864000.0_wp    ! 1 / (10 days)
   LOGICAL  :: l_relaxage_ice        = .TRUE.     ! TRUE: relax age tracer below sea ice
+  ! layers package ! by_nils
+  LOGICAL :: use_layers = .FALSE.                ! switch for layer package
+  INTEGER :: n_dlev = 5                          ! number of density layers
+  INTEGER :: mode_layers = 1                     ! mode to derive layer transport
+  REAL(wp) :: rho_lev_in(max_allocated_levels)   ! density levels rho_lev_in(n_dlev+1)
   
   ! run eddy diagnostics
   LOGICAL  :: eddydiag             = .FALSE.
@@ -1020,6 +1025,10 @@ MODULE mo_ocean_nml
     & n_age_tracer, & ! by_nils
     & age_tracer_inv_relax_time, &
     & l_relaxage_ice, & ! by_fraser
+    & use_layers, &   ! by_nils
+    & n_dlev, &       ! by_nils
+    & mode_layers, &  ! by_nils
+    & rho_lev_in, &  ! by_nils
     & check_total_volume
   ! ------------------------------------------------------------------------
   ! 3.0 Namelist variables and auxiliary parameters for octst_nml
@@ -1081,6 +1090,7 @@ MODULE mo_ocean_nml
 
     n_zlev            = -1 ! 5
     dzlev_m(:)        = -1.0_wp
+    rho_lev_in(:) = -1.0_wp ! by_nils
 
     !dzlev_m(1:n_zlev) =  (/ 50.0_wp, 150.0_wp, 500.0_wp, 1300.0_wp, 2500.0_wp  /)
     !  lower level of layers:  50       200       700       2000       4500

@@ -66,6 +66,7 @@ MODULE mo_zaxis_type
     &   ZA_PRESSURE_400, ZA_PRESSURE_0, ZA_DEPTH_RUNOFF_S, ZA_DEPTH_RUNOFF_G,           &
     &   ZA_LAKE_BOTTOM, ZA_LAKE_BOTTOM_HALF, ZA_MIX_LAYER ,                             &
     &   ZA_SEDIMENT_BOTTOM_TW_HALF, ZA_DEPTH_BELOW_SEA, ZA_DEPTH_BELOW_SEA_HALF,        &
+    &   ZA_OCE_LAYER_INTERFACE, ZA_OCE_LAYER_CENTRE,                                    &
     &   ZA_GENERIC_ICE, ZA_OCEAN_SEDIMENT, ZA_PRES_FL_BOT_TOP, ZA_ATMOSPHERE,           &
     &   ZA_HEIGHT_2M_LAYER, ZA_ECHOTOP, ZA_TROPOPAUSE, ZA_wshear,                       &
     &   ZA_PRESSURE_LAPSERATE, ZA_SRH
@@ -225,6 +226,9 @@ CONTAINS
     ZA_DEPTH_BELOW_SEA         = za_list%register(cdi_zaxis_type=ZAXIS_DEPTH_BELOW_SEA    , is_2D=.FALSE.)
     ZA_DEPTH_BELOW_SEA_HALF    = za_list%register(cdi_zaxis_type=ZAXIS_DEPTH_BELOW_SEA    , is_2D=.FALSE.)
     ZA_GENERIC_ICE             = za_list%register(cdi_zaxis_type=ZAXIS_GENERIC            , is_2D=.FALSE.)
+    ! Layers package ocean
+    ZA_OCE_LAYER_INTERFACE     = za_list%register(cdi_zaxis_type=ZAXIS_GENERIC        , is_2D=.FALSE.)
+    ZA_OCE_LAYER_CENTRE        = za_list%register(cdi_zaxis_type=ZAXIS_GENERIC        , is_2D=.FALSE.)
     ! HAMOCC sediment
     ZA_OCEAN_SEDIMENT          = za_list%register(cdi_zaxis_type=ZAXIS_GENERIC            , is_2D=.FALSE.)
     ! needed for ICON-ART

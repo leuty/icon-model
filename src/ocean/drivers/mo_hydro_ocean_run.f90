@@ -35,6 +35,7 @@ MODULE mo_hydro_ocean_run
     &  atm_pressure_included_in_ocedyn, &
     &  vert_mix_type, vmix_pp, lcheck_salt_content, &
     &  use_age_tracer, & ! by_nils
+    &  use_layers, & ! by_nils
     &  use_draftave_for_transport_h, &
     & vert_cor_type, use_tides, check_total_volume
   USE mo_ocean_nml,              ONLY: iforc_oce, Coupled_FluxFromAtmo
@@ -102,6 +103,7 @@ MODULE mo_hydro_ocean_run
   USE mo_ocean_tracer_dev,       ONLY: advect_ocean_tracers_GMRedi_zstar
 
   USE mo_grid_subset,            ONLY: t_subset_range, get_index_range
+  USE mo_ocean_layers,           ONLY: calc_layers ! by_nils
   USE mo_physical_constants,     ONLY: rho_ref, grav
   USE mo_ocean_pressure_bc_conditions,  ONLY: create_pressure_bc_conditions
   USE mo_ocean_state,            ONLY: transfer_ocean_state
@@ -759,6 +761,11 @@ CONTAINS
 !         ocean_state(jg)%p_prog(nold(1))%h(:,:), patch_3D%p_patch_1d(1)%prism_thick_flat_sfc_c(:,:,:),&
 !         sea_ice,0)
 
+        ! by_nils: layer diagnostic
+        IF (use_layers) THEN
+          CALL calc_layers(patch_3d, ocean_state(jg), p_oce_sfc, operators_coefficients, p_phys_param)
+        END IF
+
         ! check whether time has come for writing restart file
         IF (isCheckpoint()) THEN
           IF (.NOT. output_mode%l_none ) THEN
@@ -1274,6 +1281,11 @@ CONTAINS
 
         ! update intermediate timestepping variables for the tracers
         CALL update_time_g_n(ocean_state(jg))
+
+        ! by_nils: layer diagnostic
+        IF (use_layers) THEN
+          CALL calc_layers(patch_3d, ocean_state(jg), p_oce_sfc, operators_coefficients, p_phys_param, ocean_state(jg)%p_prog(nold(1))%stretch_c, stretch_e)
+        END IF
 
         ! check whether time has come for writing restart file
         IF (isCheckpoint()) THEN
