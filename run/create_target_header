@@ -32,7 +32,7 @@ set -eu
 
 BB_SYSTEM=${BB_SYSTEM:=""}
 BB_NAME=${BB_NAME:=""}
-DEADLINE="--deadline=now+2hours"
+DEADLINE="--deadline=now+130minutes"
 MINIMAL_TIME="--time-min=00:10:00"
 TIME_LIMITS="${MINIMAL_TIME} ${DEADLINE}"
 
@@ -1566,7 +1566,7 @@ set_run_target_alps_mch_gpu()
     fi
     if [[ "x$BB_SYSTEM" != "x" ]]
     then
-        # this is buldbot, do not run more than 80 minutes
+        # this is buldbot, do not run more than 120 minutes
         limit="02:00:00"
         default="00:15:00"
         limit_time_bb # sets use_cpu_time
