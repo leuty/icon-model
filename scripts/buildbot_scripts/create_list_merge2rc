@@ -178,6 +178,10 @@ $addexp checksuite.nwp/nwpexp.run_ICON_19_R2B4_cmip_forcing                    -
 $addexp checksuite.nwp/nwpexp.run_ICON_18_R2B4_waves_adv_nophys                --builders DWD_nec_hybrid --list $listname
 $addexp checksuite.nwp/nwpexp.run_ICON_21_R2B4_waves_standalone_restart        --builders DWD_nec_hybrid --list $listname
 
+
+# pure atmospheric transport tests
+$addexp "checksuite.icon-dev/check.atm_tracer_df4" --builders "DWD_nec levante_intel_hybrid levante_nag" --list $listname
+
 #-----------------------------------------------------------
 # ICON Coupled Setups
 # Ruby0 coupled tests, only with mpi
