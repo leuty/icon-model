@@ -1607,7 +1607,8 @@ set_run_target_alps_mch_cpu()
     rootFolder_prefix=/scratch/mch/jenkins/icon
     icon_data_rootFolder=${icon_data_rootFolder:=${rootFolder_prefix}/pool/data/ICON}
 
-    set_default use_nproma 16
+    set_default use_nproma 8
+    set default use_nproma_sub 8
     set_default use_nblocks_c 0
     set_default use_nodes 1
     use_OMP_SCHEDULE="static,12"
@@ -2407,6 +2408,10 @@ create_target_header()
                     use_nodes=2
                     use_mpi_procs_pernode=5
                     use_nproma_sub=6054
+                ;;
+                alps_mch_cpu*)
+                    use_nodes=4
+                    use_mpi_procs_pernode=128
                 ;;
             esac
             ;;
