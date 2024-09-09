@@ -62,7 +62,7 @@ CONTAINS
   SUBROUTINE lhs_primal_flip_flop_wp(this, x, ax, lacc)
     CLASS(t_primal_flip_flop_lhs), INTENT(INOUT) :: this
     REAL(KIND=wp), INTENT(IN) :: x(:,:)
-    REAL(KIND=wp), INTENT(OUT) ::ax(:,:)
+    REAL(KIND=wp), INTENT(INOUT) ::ax(:,:)
     LOGICAL, INTENT(IN), OPTIONAL :: lacc
     LOGICAL :: lzacc
 

@@ -607,7 +607,7 @@ CONTAINS
   SUBROUTINE lhs_doit_wp(this, x, ax, a , b, i, lacc)
     CLASS(t_lhs), INTENT(IN) :: this
     REAL(KIND=wp), INTENT(IN), DIMENSION(:,:), CONTIGUOUS :: x
-    REAL(KIND=wp), INTENT(OUT), DIMENSION(:,:), CONTIGUOUS :: ax
+    REAL(KIND=wp), INTENT(INOUT), DIMENSION(:,:), CONTIGUOUS :: ax
     REAL(KIND=wp), INTENT(IN), DIMENSION(:,:,:), CONTIGUOUS :: a
     INTEGER, INTENT(IN), DIMENSION(:,:,:), CONTIGUOUS :: i, b
     LOGICAL, INTENT(IN), OPTIONAL :: lacc
@@ -652,7 +652,7 @@ CONTAINS
   PURE_OR_OMP SUBROUTINE lhs_noaii_doit_wp(this, x, ax, a , b, i)
     CLASS(t_lhs), INTENT(IN) :: this
     REAL(KIND=wp), INTENT(IN), DIMENSION(:,:), CONTIGUOUS :: x
-    REAL(KIND=wp), INTENT(OUT), DIMENSION(:,:), CONTIGUOUS :: ax
+    REAL(KIND=wp), INTENT(INOUT), DIMENSION(:,:), CONTIGUOUS :: ax
     REAL(KIND=wp), INTENT(IN), DIMENSION(:,:,:), CONTIGUOUS :: a
     INTEGER, INTENT(IN), DIMENSION(:,:,:), CONTIGUOUS :: i, b
     INTEGER :: iidx, iblk, inz
@@ -689,7 +689,7 @@ CONTAINS
   SUBROUTINE lhs_apply_wp(this, x, ax, opt_direct, lacc)
     CLASS(t_lhs), INTENT(INOUT) :: this
     REAL(KIND=wp), INTENT(IN), DIMENSION(:,:), CONTIGUOUS :: x
-    REAL(KIND=wp), INTENT(OUT), DIMENSION(:,:), CONTIGUOUS :: ax
+    REAL(KIND=wp), INTENT(INOUT), DIMENSION(:,:), CONTIGUOUS :: ax
     LOGICAL, INTENT(IN), OPTIONAL :: opt_direct
     LOGICAL, INTENT(in), OPTIONAL :: lacc
 
@@ -716,7 +716,7 @@ CONTAINS
   SUBROUTINE lhs_apply_noaii_wp(this, x, ax)
     CLASS(t_lhs), INTENT(IN) :: this
     REAL(KIND=wp), INTENT(IN), DIMENSION(:,:), CONTIGUOUS :: x
-    REAL(KIND=wp), INTENT(OUT), DIMENSION(:,:), CONTIGUOUS :: ax
+    REAL(KIND=wp), INTENT(INOUT), DIMENSION(:,:), CONTIGUOUS :: ax
     CHARACTER(LEN=*),PARAMETER :: routine = module_name//":lhs_apply_noaii_wp()"
 
     IF (.NOT.this%is_init) CALL finish(routine, "t_lhs was not initiaized-...!")
@@ -733,7 +733,7 @@ CONTAINS
   SUBROUTINE lhs_doit_sp(this, x, ax, a, b, i, lacc)
     CLASS(t_lhs), INTENT(IN) :: this
     REAL(KIND=sp), INTENT(IN), DIMENSION(:,:), CONTIGUOUS :: x
-    REAL(KIND=sp), INTENT(OUT), DIMENSION(:,:), CONTIGUOUS :: ax
+    REAL(KIND=sp), INTENT(INOUT), DIMENSION(:,:), CONTIGUOUS :: ax
     REAL(KIND=sp), INTENT(IN), DIMENSION(:,:,:), CONTIGUOUS :: a
     INTEGER, INTENT(IN), DIMENSION(:,:,:), CONTIGUOUS :: i, b
     LOGICAL, INTENT(IN), OPTIONAL :: lacc
@@ -776,7 +776,7 @@ CONTAINS
   SUBROUTINE lhs_apply_sp(this, x, ax, opt_direct)
     CLASS(t_lhs), INTENT(IN) :: this
     REAL(KIND=sp), INTENT(IN), DIMENSION(:,:), CONTIGUOUS :: x
-    REAL(KIND=sp), INTENT(OUT), DIMENSION(:,:), CONTIGUOUS :: ax
+    REAL(KIND=sp), INTENT(INOUT), DIMENSION(:,:), CONTIGUOUS :: ax
     LOGICAL, INTENT(IN), OPTIONAL :: opt_direct
     LOGICAL :: l_direct
     CHARACTER(LEN=*),PARAMETER :: routine = module_name//":lhs_apply_sp()"
@@ -798,7 +798,7 @@ CONTAINS
   SUBROUTINE lhs_noaii_doit_sp(this, x, ax, a , b, i)
     CLASS(t_lhs), INTENT(IN) :: this
     REAL(KIND=sp), INTENT(IN), DIMENSION(:,:), CONTIGUOUS :: x
-    REAL(KIND=sp), INTENT(OUT), DIMENSION(:,:), CONTIGUOUS :: ax
+    REAL(KIND=sp), INTENT(INOUT), DIMENSION(:,:), CONTIGUOUS :: ax
     REAL(KIND=sp), INTENT(IN), DIMENSION(:,:,:), CONTIGUOUS :: a
     INTEGER, INTENT(IN), DIMENSION(:,:,:), CONTIGUOUS :: i, b
     INTEGER :: iidx, iblk, inz
@@ -832,7 +832,7 @@ CONTAINS
   SUBROUTINE lhs_apply_noaii_sp(this, x, ax)
     CLASS(t_lhs), INTENT(IN) :: this
     REAL(KIND=sp), INTENT(IN), DIMENSION(:,:), CONTIGUOUS :: x
-    REAL(KIND=sp), INTENT(OUT), DIMENSION(:,:), CONTIGUOUS :: ax
+    REAL(KIND=sp), INTENT(INOUT), DIMENSION(:,:), CONTIGUOUS :: ax
     CHARACTER(LEN=*),PARAMETER :: routine = module_name//":lhs_apply_noaii_sp()"
 
     IF (.NOT.this%is_init) CALL finish(routine, "t_lhs was not initiaized-...!")

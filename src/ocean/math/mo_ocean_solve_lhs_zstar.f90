@@ -114,7 +114,7 @@ MODULE mo_surface_height_lhs_zstar
       SUBROUTINE lhs_surface_height_zstar(this, x, ax, lacc)
         CLASS(t_surface_height_lhs_zstar), INTENT(INOUT) :: this
         REAL(wp), INTENT(IN) :: x(:,:)
-        REAL(wp), INTENT(OUT) :: ax(:,:)
+        REAL(wp), INTENT(INOUT) :: ax(:,:)
         LOGICAL, INTENT(IN), OPTIONAL :: lacc
         LOGICAL :: lzacc
 
@@ -194,7 +194,7 @@ MODULE mo_surface_height_lhs_zstar
       SUBROUTINE lhs_surface_height_ab_mim_zstar(this, x, lhs)
         CLASS(t_surface_height_lhs_zstar), INTENT(INOUT) :: this
         REAL(wp), INTENT(IN), CONTIGUOUS :: x(:,:)
-        REAL(wp), INTENT(OUT), CONTIGUOUS :: lhs(:,:)
+        REAL(wp), INTENT(INOUT), CONTIGUOUS :: lhs(:,:)
         REAL(wp) :: gdt2_inv, gam_times_beta
         INTEGER :: start_index, end_index, jc, blkNo
         TYPE(t_subset_range), POINTER :: cells_in_domain, edges_in_domain
@@ -256,7 +256,7 @@ MODULE mo_surface_height_lhs_zstar
       SUBROUTINE lhs_surface_height_ab_mim_matrix_wp(this, x, lhs)
         CLASS(t_surface_height_lhs_zstar), INTENT(INOUT) :: this
         REAL(wp), INTENT(IN), CONTIGUOUS :: x(:,:)
-        REAL(wp), INTENT(OUT), CONTIGUOUS :: lhs(:,:)
+        REAL(wp), INTENT(INOUT), CONTIGUOUS :: lhs(:,:)
         INTEGER :: start_index, end_index, jc, blkNo, ico
         TYPE(t_subset_range), POINTER :: cells_in_domain
         REAL(wp), POINTER, DIMENSION(:,:,:), CONTIGUOUS :: lhs_coeffs

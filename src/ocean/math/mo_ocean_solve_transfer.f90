@@ -93,7 +93,7 @@ MODULE mo_ocean_solve_transfer
       IMPORT t_transfer
       CLASS(t_transfer), INTENT(IN) :: this
       REAL(KIND=wp), INTENT(IN), DIMENSION(:,:) :: data_in
-      REAL(KIND=wp), INTENT(OUT), DIMENSION(:,:), ALLOCATABLE :: data_out
+      REAL(KIND=wp), INTENT(INOUT), DIMENSION(:,:), ALLOCATABLE :: data_out
       INTEGER, INTENT(IN) :: tt
       LOGICAL, INTENT(IN), OPTIONAL :: lacc
     END SUBROUTINE a_trans_into_once_2d_wp
@@ -102,7 +102,7 @@ MODULE mo_ocean_solve_transfer
       IMPORT t_transfer
       CLASS(t_transfer), INTENT(IN) :: this
       REAL(KIND=wp), INTENT(IN), DIMENSION(:,:) :: di1, di2
-      REAL(KIND=wp), INTENT(OUT), DIMENSION(:,:), CONTIGUOUS :: do1, do2
+      REAL(KIND=wp), INTENT(INOUT), DIMENSION(:,:), CONTIGUOUS :: do1, do2
       INTEGER, INTENT(IN) :: tt
       LOGICAL, INTENT(IN), OPTIONAL :: lacc
     END SUBROUTINE a_trans_into_2d_wp_2
@@ -111,7 +111,7 @@ MODULE mo_ocean_solve_transfer
       IMPORT t_transfer
       CLASS(t_transfer), INTENT(IN) :: this
       REAL(KIND=wp), INTENT(IN), DIMENSION(:,:,:), CONTIGUOUS :: data_in
-      REAL(KIND=wp), INTENT(OUT), DIMENSION(:,:,:), ALLOCATABLE :: data_out
+      REAL(KIND=wp), INTENT(INOUT), DIMENSION(:,:,:), ALLOCATABLE :: data_out
       INTEGER, INTENT(IN) :: tt
       LOGICAL, INTENT(IN), OPTIONAL :: lacc
     END SUBROUTINE a_trans_into_once_3d_wp
@@ -120,7 +120,7 @@ MODULE mo_ocean_solve_transfer
       IMPORT t_transfer
       CLASS(t_transfer), INTENT(IN) :: this
       INTEGER, INTENT(IN), DIMENSION(:,:,:), CONTIGUOUS :: data_in_idx, data_in_blk
-      INTEGER, INTENT(OUT), DIMENSION(:,:,:), ALLOCATABLE :: &
+      INTEGER, INTENT(INOUT), DIMENSION(:,:,:), ALLOCATABLE :: &
         & data_out_idx, data_out_blk
       INTEGER, INTENT(IN) :: tt
       LOGICAL, INTENT(IN), OPTIONAL :: lacc
@@ -130,7 +130,7 @@ MODULE mo_ocean_solve_transfer
       IMPORT t_transfer
       CLASS(t_transfer), INTENT(IN) :: this
       REAL(KIND=wp), INTENT(IN), DIMENSION(:,:) :: data_in
-      REAL(KIND=wp), INTENT(OUT), DIMENSION(:,:), CONTIGUOUS :: data_out
+      REAL(KIND=wp), INTENT(INOUT), DIMENSION(:,:), CONTIGUOUS :: data_out
       INTEGER, INTENT(IN) :: tt
       LOGICAL, INTENT(IN), OPTIONAL :: lacc
     END SUBROUTINE a_trans_into_2d_wp
@@ -139,7 +139,7 @@ MODULE mo_ocean_solve_transfer
       IMPORT t_transfer
       CLASS(t_transfer), INTENT(IN) :: this
       REAL(KIND=wp), INTENT(IN), DIMENSION(:,:,:), CONTIGUOUS :: data_in
-      REAL(KIND=wp), INTENT(OUT), DIMENSION(:,:,:), CONTIGUOUS :: data_out
+      REAL(KIND=wp), INTENT(INOUT), DIMENSION(:,:,:), CONTIGUOUS :: data_out
       INTEGER, INTENT(IN) :: tt
       LOGICAL, INTENT(IN), OPTIONAL :: lacc
     END SUBROUTINE a_trans_into_3d_wp
@@ -148,7 +148,7 @@ MODULE mo_ocean_solve_transfer
       IMPORT t_transfer
       CLASS(t_transfer), INTENT(IN) :: this
       INTEGER, INTENT(IN), DIMENSION(:,:,:), CONTIGUOUS :: data_in_blk, data_in_idx
-      INTEGER, INTENT(OUT), DIMENSION(:,:,:), CONTIGUOUS :: data_out_blk, data_out_idx
+      INTEGER, INTENT(INOUT), DIMENSION(:,:,:), CONTIGUOUS :: data_out_blk, data_out_idx
       INTEGER, INTENT(IN) :: tt
       LOGICAL, INTENT(IN), OPTIONAL :: lacc
     END SUBROUTINE a_trans_into_idx
@@ -157,7 +157,7 @@ MODULE mo_ocean_solve_transfer
       IMPORT t_transfer
       CLASS(t_transfer), INTENT(IN) :: this
       REAL(KIND=wp), INTENT(IN), DIMENSION(:,:), CONTIGUOUS :: data_in
-      REAL(KIND=wp), INTENT(OUT), DIMENSION(:,:), CONTIGUOUS :: data_out
+      REAL(KIND=wp), INTENT(INOUT), DIMENSION(:,:), CONTIGUOUS :: data_out
       LOGICAL, INTENT(IN), OPTIONAL :: lacc
     END SUBROUTINE a_trans_out_2d_wp
     SUBROUTINE a_trans_bcst_1d_wp(this, data_in, data_out, lacc)
@@ -165,14 +165,14 @@ MODULE mo_ocean_solve_transfer
       IMPORT t_transfer
       CLASS(t_transfer), INTENT(IN) :: this
       REAL(KIND=wp), INTENT(IN), DIMENSION(:), CONTIGUOUS :: data_in
-      REAL(KIND=wp), INTENT(OUT), DIMENSION(:), CONTIGUOUS :: data_out
+      REAL(KIND=wp), INTENT(INOUT), DIMENSION(:), CONTIGUOUS :: data_out
       LOGICAL, INTENT(IN), OPTIONAL :: lacc
     END SUBROUTINE a_trans_bcst_1d_wp
     SUBROUTINE a_trans_bcst_1d_i(this, data_in, data_out, lacc)
       IMPORT t_transfer
       CLASS(t_transfer), INTENT(IN) :: this
       INTEGER, INTENT(IN), DIMENSION(:), CONTIGUOUS :: data_in
-      INTEGER, INTENT(OUT), DIMENSION(:), CONTIGUOUS :: data_out
+      INTEGER, INTENT(INOUT), DIMENSION(:), CONTIGUOUS :: data_out
       LOGICAL, INTENT(IN), OPTIONAL :: lacc
     END SUBROUTINE a_trans_bcst_1d_i
     SUBROUTINE a_trans_sync_2d_wp(this, data_inout)

@@ -51,7 +51,7 @@ CONTAINS
 ! get solver arrays (alloc them, if not done so, yet) - wp-variant
   SUBROUTINE ocean_solve_cg_recover_arrays_wp(this, x, b, z, d, r, r2)
     CLASS(t_ocean_solve_cg), INTENT(INOUT), TARGET :: this
-    REAL(KIND=wp), INTENT(OUT), POINTER, DIMENSION(:,:) :: &
+    REAL(KIND=wp), INTENT(INOUT), POINTER, DIMENSION(:,:) :: &
       & x, b, z, d, r, r2
 
     INTEGER :: nblk_e
@@ -65,6 +65,8 @@ CONTAINS
         & this%rsq_wp(this%trans%nidx, nblk_e))
       this%d_wp(:, this%trans%nblk+1:this%trans%nblk_a) = 0._wp
       !$ACC ENTER DATA COPYIN(this%z_wp, this%d_wp, this%r_wp, this%rsq_wp)
+    ELSE
+      !$ACC UPDATE DEVICE(this%z_wp, this%d_wp, this%r_wp, this%rsq_wp)
     END IF
     x => this%x_wp
     b => this%b_wp
@@ -223,7 +225,7 @@ SUBROUTINE ocean_solve_cg_cal_wp(this, lacc)
 ! get solver arrays (alloc them, if not done so, yet) - sp-variant
   SUBROUTINE ocean_solve_cg_recover_arrays_sp(this, x, b, z, d, r, r2)
     CLASS(t_ocean_solve_cg), INTENT(INOUT), TARGET :: this
-    REAL(KIND=sp), INTENT(OUT), POINTER, DIMENSION(:,:) :: &
+    REAL(KIND=sp), INTENT(INOUT), POINTER, DIMENSION(:,:) :: &
       & x, b, z, d, r, r2
 
     IF (.NOT.ALLOCATED(this%z_sp)) THEN

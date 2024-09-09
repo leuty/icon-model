@@ -97,7 +97,7 @@ CONTAINS
   SUBROUTINE lhs_surface_height_wp(this, x, ax, lacc)
     CLASS(t_surface_height_lhs), INTENT(INOUT) :: this
     REAL(wp), INTENT(IN) :: x(:,:)
-    REAL(wp), INTENT(OUT) :: ax(:,:)
+    REAL(wp), INTENT(INOUT) :: ax(:,:)
     LOGICAL, INTENT(IN), OPTIONAL :: lacc
     LOGICAL :: lzacc
 
@@ -130,7 +130,7 @@ CONTAINS
   SUBROUTINE lhs_surface_height_ab_mim_matrix_wp(this, x, lhs, lacc)
     CLASS(t_surface_height_lhs), INTENT(INOUT) :: this
     REAL(wp), INTENT(IN), CONTIGUOUS :: x(:,:)
-    REAL(wp), INTENT(OUT), CONTIGUOUS :: lhs(:,:)
+    REAL(wp), INTENT(INOUT), CONTIGUOUS :: lhs(:,:)
     LOGICAL, INTENT(IN), OPTIONAL :: lacc
 
     INTEGER :: start_index, end_index, jc, blkNo, ico
@@ -204,7 +204,7 @@ CONTAINS
   SUBROUTINE lhs_surface_height_ab_mim_wp(this, x, lhs)
     CLASS(t_surface_height_lhs), INTENT(INOUT) :: this
     REAL(wp), INTENT(IN), CONTIGUOUS :: x(:,:)
-    REAL(wp), INTENT(OUT), CONTIGUOUS :: lhs(:,:)
+    REAL(wp), INTENT(INOUT), CONTIGUOUS :: lhs(:,:)
     REAL(wp) :: gdt2_inv, gam_times_beta
     INTEGER :: start_index, end_index, jc, blkNo, je
     TYPE(t_subset_range), POINTER :: cells_in_domain, edges_in_domain

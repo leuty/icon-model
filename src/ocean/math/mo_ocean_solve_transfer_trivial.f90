@@ -158,7 +158,7 @@ CONTAINS
   SUBROUTINE trivial_transfer_into_once_2d_wp(this, data_in, data_out, tt, lacc)
     CLASS(t_trivial_transfer), INTENT(IN) :: this
     REAL(KIND=wp), INTENT(IN), DIMENSION(:,:) :: data_in
-    REAL(KIND=wp), INTENT(OUT), DIMENSION(:,:), ALLOCATABLE :: data_out
+    REAL(KIND=wp), INTENT(INOUT), DIMENSION(:,:), ALLOCATABLE :: data_out
     INTEGER, INTENT(IN) :: tt
     LOGICAL, INTENT(IN), OPTIONAL :: lacc
 
@@ -188,7 +188,7 @@ CONTAINS
   SUBROUTINE trivial_transfer_into_once_3d_wp(this, data_in, data_out, tt, lacc)
     CLASS(t_trivial_transfer), INTENT(IN) :: this
     REAL(KIND=wp), INTENT(IN), DIMENSION(:,:,:), CONTIGUOUS :: data_in
-    REAL(KIND=wp), INTENT(OUT), DIMENSION(:,:,:), ALLOCATABLE :: data_out
+    REAL(KIND=wp), INTENT(INOUT), DIMENSION(:,:,:), ALLOCATABLE :: data_out
     INTEGER, INTENT(IN) :: tt
     LOGICAL, INTENT(IN), OPTIONAL :: lacc
 
@@ -207,7 +207,7 @@ CONTAINS
      &  data_out_idx, data_out_blk, tt, lacc)
     CLASS(t_trivial_transfer), INTENT(IN) :: this
     INTEGER, INTENT(IN), DIMENSION(:,:,:), CONTIGUOUS :: data_in_idx, data_in_blk
-    INTEGER, INTENT(OUT), DIMENSION(:,:,:), ALLOCATABLE :: &
+    INTEGER, INTENT(INOUT), DIMENSION(:,:,:), ALLOCATABLE :: &
       & data_out_idx, data_out_blk
     INTEGER, INTENT(IN) :: tt
     LOGICAL, INTENT(IN), OPTIONAL :: lacc
@@ -230,7 +230,7 @@ CONTAINS
   SUBROUTINE trivial_transfer_into_2d_wp(this, data_in, data_out, tt, lacc)
     CLASS(t_trivial_transfer), INTENT(IN) :: this
     REAL(KIND=wp), INTENT(IN), DIMENSION(:,:) :: data_in
-    REAL(KIND=wp), INTENT(OUT), DIMENSION(:,:), CONTIGUOUS :: data_out
+    REAL(KIND=wp), INTENT(INOUT), DIMENSION(:,:), CONTIGUOUS :: data_out
     INTEGER, INTENT(IN) :: tt
     LOGICAL, INTENT(IN), OPTIONAL :: lacc
 
@@ -257,7 +257,7 @@ CONTAINS
   SUBROUTINE trivial_transfer_into_2d_wp_2(this, di1, do1, di2, do2, tt, lacc)
     CLASS(t_trivial_transfer), INTENT(IN) :: this
     REAL(KIND=wp), INTENT(IN), DIMENSION(:,:) :: di1, di2
-    REAL(KIND=wp), INTENT(OUT), DIMENSION(:,:), CONTIGUOUS :: do1, do2
+    REAL(KIND=wp), INTENT(INOUT), DIMENSION(:,:), CONTIGUOUS :: do1, do2
     INTEGER, INTENT(IN) :: tt
     LOGICAL, INTENT(IN), OPTIONAL :: lacc
 
@@ -285,7 +285,7 @@ CONTAINS
   SUBROUTINE trivial_transfer_into_3d_wp(this, data_in, data_out, tt, lacc)
     CLASS(t_trivial_transfer), INTENT(IN) :: this
     REAL(KIND=wp), INTENT(IN), DIMENSION(:,:,:), CONTIGUOUS :: data_in
-    REAL(KIND=wp), INTENT(OUT), DIMENSION(:,:,:), CONTIGUOUS :: data_out
+    REAL(KIND=wp), INTENT(INOUT), DIMENSION(:,:,:), CONTIGUOUS :: data_out
     INTEGER, INTENT(IN) :: tt
     LOGICAL, INTENT(IN), OPTIONAL :: lacc
 
@@ -320,7 +320,7 @@ CONTAINS
      &  data_out_idx, data_out_blk, tt, lacc)
     CLASS(t_trivial_transfer), INTENT(IN) :: this
     INTEGER, INTENT(IN), DIMENSION(:,:,:), CONTIGUOUS :: data_in_blk, data_in_idx
-    INTEGER, INTENT(OUT), DIMENSION(:,:,:), CONTIGUOUS :: data_out_blk, data_out_idx
+    INTEGER, INTENT(INOUT), DIMENSION(:,:,:), CONTIGUOUS :: data_out_blk, data_out_idx
     INTEGER, INTENT(IN) :: tt
     LOGICAL, INTENT(IN), OPTIONAL :: lacc
     INTEGER :: i
@@ -354,7 +354,7 @@ CONTAINS
   SUBROUTINE trivial_transfer_out_2d_wp(this, data_in, data_out, lacc)
     CLASS(t_trivial_transfer), INTENT(IN) :: this
     REAL(KIND=wp), INTENT(IN), DIMENSION(:,:), CONTIGUOUS :: data_in
-    REAL(KIND=wp), INTENT(OUT), DIMENSION(:,:), CONTIGUOUS :: data_out
+    REAL(KIND=wp), INTENT(INOUT), DIMENSION(:,:), CONTIGUOUS :: data_out
     LOGICAL, INTENT(IN), OPTIONAL :: lacc
 
     LOGICAL :: lzacc
@@ -380,7 +380,7 @@ CONTAINS
   SUBROUTINE trivial_transfer_bcst_1d_wp(this, data_in, data_out, lacc)
     CLASS(t_trivial_transfer), INTENT(IN) :: this
     REAL(KIND=wp), INTENT(IN), DIMENSION(:), CONTIGUOUS :: data_in
-    REAL(KIND=wp), INTENT(OUT), DIMENSION(:), CONTIGUOUS :: data_out
+    REAL(KIND=wp), INTENT(INOUT), DIMENSION(:), CONTIGUOUS :: data_out
     LOGICAL, INTENT(IN), OPTIONAL :: lacc
 
     LOGICAL :: lzacc
@@ -406,7 +406,7 @@ CONTAINS
   SUBROUTINE trivial_transfer_bcst_1d_i(this, data_in, data_out, lacc)
     CLASS(t_trivial_transfer), INTENT(IN) :: this
     INTEGER, INTENT(IN), DIMENSION(:), CONTIGUOUS :: data_in
-    INTEGER, INTENT(OUT), DIMENSION(:), CONTIGUOUS :: data_out
+    INTEGER, INTENT(INOUT), DIMENSION(:), CONTIGUOUS :: data_out
     LOGICAL, INTENT(IN), OPTIONAL :: lacc
 
     LOGICAL :: lzacc
