@@ -920,12 +920,20 @@ CONTAINS
 
         !------------------------------------------------------------------------
         ! calculate in situ density here, as it may be used fotr the tides load
-        CALL calculate_density_zstar( patch_3d,                         &
+!        CALL calculate_density_zstar( patch_3d,                         &
+!          & ocean_state(jg)%p_prog(nold(1))%tracer(:,:,:,:),      &
+!          & ocean_state(jg)%p_prog(nold(1))%eta_c, &
+!          & ocean_state(jg)%p_prog(nold(1))%stretch_c, &
+!          & ocean_state(jg)%p_diag%rho(:,:,:), &
+!          & lacc=lzacc )
+!--------------------------------------------------------------------------
+        !! zlev density is calculated on fixed depth and ignores any surface
+        !! variation ; to simplify the implementation for zstar we do the same ; 
+        !! calculate in situ density on fixed levels
+        CALL calculate_density( patch_3d,                         &
           & ocean_state(jg)%p_prog(nold(1))%tracer(:,:,:,:),      &
-          & ocean_state(jg)%p_prog(nold(1))%eta_c, &
-          & ocean_state(jg)%p_prog(nold(1))%stretch_c, &
-          & ocean_state(jg)%p_diag%rho(:,:,:), &
-          & lacc=lzacc )
+          & ocean_state(jg)%p_diag%rho(:,:,:), lacc = lzacc)
+
 
         !--------------------------------------------------------------------------
         CALL create_pressure_bc_conditions(patch_3d,ocean_state(jg), p_as, sea_ice, current_time, lacc=lzacc)

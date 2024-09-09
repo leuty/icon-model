@@ -715,9 +715,9 @@ CONTAINS
     !! z ignores any surface variations for density 
     !! To simplify the implementation for zstar and to keep
     !! well-balancedness we use the same subroutine for zstar
-    CALL calculate_density( patch_3d,                         &
-     & ocean_state%p_prog(nold(1))%tracer(:,:,:,1:no_tracer),&
-     & ocean_state%p_diag%rho(:,:,:) )
+!    CALL calculate_density( patch_3d,                         &
+!     & ocean_state%p_prog(nold(1))%tracer(:,:,:,1:no_tracer),&
+!     & ocean_state%p_diag%rho(:,:,:) )
 
    IF ( press_grad_type .EQ. 0 ) THEN
     CALL calc_internal_press_grad_zstar( patch_3d,&
