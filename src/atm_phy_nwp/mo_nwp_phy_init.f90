@@ -883,6 +883,15 @@ SUBROUTINE init_nwp_phy ( p_patch, p_metrics,             &
   cover_koe_config(jg)%lsgs_cond   = atm_phy_nwp_config(jg)%lsgs_cond
   cover_koe_config(jg)%tune_box_liq_sfc_fac = tune_box_liq_sfc_fac(jg)
 
+#ifdef _OPENACC
+  SELECT CASE( cover_koe_config(jg)%icldscheme )
+    CASE( 3 )
+      CALL finish(routine, "inwp_cldcover=3 is not possible with OpenACC.")
+    CASE( 4 )
+      CALL finish(routine, "inwp_cldcover=4 is not possible with OpenACC.")
+  END SELECT
+#endif
+
   !$ACC ENTER DATA CREATE(cover_koe_config(jg:jg))
   !$ACC UPDATE DEVICE(cover_koe_config(jg:jg)) ASYNC(1) ! This updates all components of cover_koe_config as they are statically allocated
 
