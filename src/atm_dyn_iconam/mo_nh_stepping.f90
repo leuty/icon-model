@@ -3288,7 +3288,10 @@ MODULE mo_nh_stepping
         &                      p_nh_state(jg)%prog(nnow_rcf(jg)),                     &
         &                      p_nh_state(jg)%diag,p_patch(jg),                       &
         &                      opt_calc_temp=.TRUE.,                                  &
-        &                      opt_calc_pres=.TRUE.                                   )
+        &                      opt_calc_pres=(p_patch(jg)%nlev>=3)                    )
+                                             ! avoid out-of-bounds memory access during
+                                             ! pres_sfc diagnosis for idealized test cases
+                                             ! with nlev<3.
 
     ENDDO ! jg-loop
 

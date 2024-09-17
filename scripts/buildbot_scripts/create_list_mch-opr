@@ -37,7 +37,7 @@ machine=balfrin
 add_store_performance_exp () {
     exp=$1
     cp ${basedir}/run/performance/pp.store_performance ${basedir}/run/performance/pp.store_performance_${exp}
-    ./addexp "performance/pp.store_performance_${exp}"  --builders "balfrin_gpu_nvidia_mixed alps_mch_test_gpu" --list $listname --runflags "cpu_time=00:05:00"
+    ./addexp "performance/pp.store_performance_${exp}"  --builders "balfrin_gpu_nvidia_mixed alps_mch_test_gpu" --list $listname --runflags "cpu_time=00:10:00"
     ./adddep --from-experiment "performance/pp.store_performance_${exp}" --to-experiment "checksuite.icon-dev/check.${exp}" --builders "balfrin_gpu_nvidia_mixed alps_mch_test_gpu" --list $listname
 }
 

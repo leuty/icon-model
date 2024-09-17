@@ -122,9 +122,6 @@ CONTAINS
     yac_is_initialised = .TRUE.
 
     CALL yac_finit_comm ( p_comm_yac, yac_instance_id )
-    CALL MPI_COMM_RANK ( p_comm_yac, global_rank, ierror )
-    IF ( global_rank == 0 .AND. cpl_config_file_exists()) &
-      CALL yac_fread_config_yaml( yac_instance_id, TRIM(yaml_filename) )
 
     IF (ltimer) CALL timer_stop(timer_coupling_init)
 
@@ -209,6 +206,7 @@ CONTAINS
     CHARACTER(LEN=MAX_DATETIME_STR_LEN) :: stopdatestring
 
     INTEGER :: jc, jv, jb, nblks, nn, comp_ids(2)
+    INTEGER :: comp_comm, comp_rank, ierror
 
     REAL(wp), ALLOCATABLE :: buffer_lon(:)
     REAL(wp), ALLOCATABLE :: buffer_lat(:)
@@ -255,6 +253,13 @@ CONTAINS
       output_comp_id = -1
     END IF
     IF (ltimer) CALL timer_stop(timer_coupling_init_def_comp)
+
+    ! root process of the component reads in the configuration file
+    CALL yac_fget_comp_comm(comp_id, comp_comm)
+    CALL MPI_COMM_RANK(comp_comm, comp_rank, ierror)
+    IF (comp_rank == 0 .AND. cpl_config_file_exists()) &
+      CALL yac_fread_config_yaml( yac_instance_id, TRIM(yaml_filename) )
+    CALL MPI_Comm_free(comp_comm, ierror)
 
     ! Extract cell information
     !

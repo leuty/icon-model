@@ -137,7 +137,7 @@ case "$use_site" in
           use_sync_submit='sbatch --wait'
           if test xyes = x"${use_gpu}"; then
             use_target='alps_mch_gpu'
-            use_mpi_startrun='srun -n $mpi_total_procs --ntasks-per-node $mpi_procs_pernode --threads-per-core=1 --distribution=cyclic ${basedir}/run/run_wrapper/alps_mch_gpu.sh'
+            use_mpi_startrun='srun -n $mpi_total_procs --ntasks-per-node $mpi_procs_pernode --threads-per-core=1 --distribution=plane=4 ${basedir}/run/run_wrapper/alps_mch_gpu.sh'
           else
             use_target='alps_mch_cpu'
             use_mpi_startrun='srun -n $mpi_total_procs --ntasks-per-node $mpi_procs_pernode --threads-per-core=1'
