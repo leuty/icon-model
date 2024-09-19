@@ -54,7 +54,8 @@ MODULE mo_ocean_physics_types
     &  LeithBiharmonicViscosity_background, LeithBiharmonicViscosity_reference,&
     &  LeithBiharmonicViscosity_scaling,                       &
     &  LeithClosure_order,   LeithClosure_form, &
-    &  TracerDiffusion_LeithWeight,l_lc
+    &  TracerDiffusion_LeithWeight,l_lc, &
+    &  l_couple_icon_waves
 
    !, l_convection, l_pp_scheme
   USE mo_parallel_config,     ONLY: nproma
@@ -149,7 +150,9 @@ MODULE mo_ocean_physics_types
       & HarmonicViscosity_coeff(:,:,:),       & ! coefficient of total diffusion
       & BiharmonicViscosity_coeff(:,:,:),     & ! coefficient of total diffusion
       & TracerDiffusion_BasisCoeff(:,:,:),    &  ! coefficient of horizontal tracer diffusion
-      & TracerDiffusion_coeff(:,:,:,:)  ! coefficient of horizontal tracer diffusion
+      & TracerDiffusion_coeff(:,:,:,:),       &  ! coefficient of horizontal tracer diffusion
+      & u3d_stokes(:,:,:),                    & ! zonal Stokes velocity component from surface waves (m/s)
+      & v3d_stokes(:,:,:)                       ! meridional Stokes velocity component from surface waves (m/s)
 !       & TracerDiffusion_coeff(:,:,:,:)  ! coefficient of horizontal tracer diffusion
     TYPE(t_onEdges_Pointer_3d_wp),ALLOCATABLE :: tracer_h_ptr(:)
 
@@ -452,6 +455,24 @@ CONTAINS
 
     ENDIF
 
+    ENDIF
+
+    IF (l_couple_icon_waves) THEN
+      CALL add_var(ocean_params_list, 'u3d_stokes',params_oce%u3d_stokes, &
+         & grid_unstructured_cell, za_depth_below_sea, &
+         & t_cf_var('u3d_stokes', 'm s-1', '3d zonal Stokes drift component', datatype_flt),&
+         & grib2_var(255, 255, 255, datatype_pack16,GRID_UNSTRUCTURED,grid_cell),&
+         & ldims=(/nproma,n_zlev,alloc_cell_blocks/), &
+         & in_group=groups("oce_waves"), lopenacc=.TRUE.)
+      __acc_attach(params_oce%u3d_stokes)
+
+      CALL add_var(ocean_params_list, 'v3d_stokes',params_oce%v3d_stokes, &
+         & grid_unstructured_cell, za_depth_below_sea, &
+         & t_cf_var('v3d_stokes', 'm s-1', '3d meridonal Stokes drift component', datatype_flt),&
+         & grib2_var(255, 255, 255, datatype_pack16,GRID_UNSTRUCTURED,grid_cell),&
+         & ldims=(/nproma,n_zlev,alloc_cell_blocks/), &
+         & in_group=groups("oce_waves"), lopenacc=.TRUE.)
+      __acc_attach(params_oce%v3d_stokes)
     ENDIF
 
     ! --- IWE variables

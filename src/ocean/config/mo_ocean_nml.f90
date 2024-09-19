@@ -693,6 +693,7 @@ MODULE mo_ocean_nml
   LOGICAL  :: lbgcadv=.FALSE.
   LOGICAL  :: lsediment_only=.FALSE.
   INTEGER  :: nbgctra, nbgcadv 
+  LOGICAL  :: l_couple_icon_waves = .FALSE.
                                  
   
   NAMELIST/ocean_physics_nml/&
@@ -702,7 +703,8 @@ MODULE mo_ocean_nml
     &  LinearThermoExpansionCoefficient,  &
     &  LinearHalineContractionCoefficient,&
     &  OceanReferenceDensity,       &
-    &  lhamocc, lbgcadv, lsediment_only
+    &  lhamocc, lbgcadv, lsediment_only, &
+    &  l_couple_icon_waves
 
   ! ------------------------------------------------------------------------
   ! FORCING {
