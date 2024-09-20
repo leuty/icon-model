@@ -294,7 +294,7 @@ CONTAINS
           ENDDO  ! jc
         ENDDO  ! jk
         !$ACC END PARALLEL
-        !
+
         !$ACC PARALLEL ASYNC(1) DEFAULT(PRESENT)
         !$ACC LOOP GANG VECTOR
         DO jc=i_startidx, i_endidx
@@ -304,6 +304,10 @@ CONTAINS
 
         ENDDO  ! jc
         !$ACC END PARALLEL
+
+        !Attention(MR):
+        !Advection tendencies for TVS should be provided to 'turbdiff' via 'tketadv'!
+        !At the zero-level (nlevp1), there should be no transport of TVS at all!
       ENDIF
 
 

@@ -73,7 +73,7 @@ USE mo_exception,           ONLY: message, finish !,message_text
 USE mo_model_domain,        ONLY: t_patch, p_patch, p_patch_local_parent
 USE mo_grid_config,         ONLY: n_dom, n_dom_start, nexlevs_rrg_vnest
 USE mo_atm_phy_nwp_config,  ONLY: atm_phy_nwp_config, icpl_aero_conv, iprog_aero
-USE turb_data,              ONLY: ltkecon, imode_tkemini, imode_trancnf, rsur_sher   
+USE turb_data,              ONLY: ltkecon, imode_tkemini, imode_trancnf, rsur_sher
 USE mo_initicon_config,     ONLY: icpl_da_sfcevap, icpl_da_snowalb, icpl_da_landalb, icpl_da_skinc, icpl_da_seaice
 USE mo_radiation_config,    ONLY: irad_aero, iRadAeroTegen, iRadAeroART, iRadAeroNone, &
                                   iRadAeroConst, iRadAeroCAMSclim, iRadAeroCAMStd, islope_rad, &

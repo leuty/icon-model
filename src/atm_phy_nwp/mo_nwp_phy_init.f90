@@ -1651,10 +1651,13 @@ SUBROUTINE init_nwp_phy ( p_patch, p_metrics,             &
         &  tfh=prm_diag%tfh(:,jb),                                             &
         &  tfv=prm_diag%tfv(:,jb),                                             &
         &  tkr=prm_diag%tkr_t(:,jb,1),                                         &
+!
         &  tke=p_prog_now%tke(:,nlev-1:nlevp1,jb),                             &
         &  tkvm=prm_diag%tkvm(:,nlev-1:nlevp1,jb),                             &
         &  tkvh=prm_diag%tkvh(:,nlev-1:nlevp1,jb),                             &
         &  rcld=prm_diag%rcld(:,nlev-1:nlevp1,jb),                             &
+        ! Note: 'ddt_tke' is only employed here in order to transfer "0"-values for the surface level!
+        &  tketens=prm_nwp_tend%ddt_tke(:,nlevp1:nlevp1,jb),                   &
 !
         &  t_2m=prm_diag%t_2m(:,jb),                                           &
         &  qv_2m=prm_diag%qv_2m(:,jb),                                         &
@@ -1724,10 +1727,6 @@ SUBROUTINE init_nwp_phy ( p_patch, p_metrics,             &
         &  innertrop_mask=prm_diag%innertropics_mask(:,jb),         & !in
 !
         &  tketens=prm_nwp_tend%ddt_tke(:,:,jb),                    &
-        &  ut_sso=REAL(prm_nwp_tend%ddt_u_sso(:,:,jb),wp),          &
-        &  vt_sso=REAL(prm_nwp_tend%ddt_v_sso(:,:,jb),wp),          &
-        &  u_tens=prm_nwp_tend%ddt_u_turb(:,:,jb),                  &
-        &  v_tens=prm_nwp_tend%ddt_v_turb(:,:,jb),                  &
 !
         &  zvari=zvari                                              & !out
         &                                                           ) !end of 'turbdiff' call

@@ -98,7 +98,7 @@ MODULE mo_turbdiff_config
 
     INTEGER:: &    ! mode to treating the aerodynamic surface-smoothing by snow 
       & imode_charpar
-    REAL(wp):: &   ! mode to treating the aerodynamic surface-smoothing by snow
+    INTEGER:: &    ! mode to treating the aerodynamic surface-smoothing by snow
       & imode_snowsmot
     REAL(wp):: &   ! lower limit of velocity-dependent Charnock-parameter
       &  alpha0    !

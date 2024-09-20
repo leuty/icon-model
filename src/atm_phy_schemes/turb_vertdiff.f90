@@ -306,8 +306,7 @@ REAL (KIND=wp), DIMENSION(:,:), TARGET, INTENT(INOUT) :: &
   tkvm,         & ! turbulent diffusion coefficient for momentum  (m2/s )
   tkvh            ! turbulent diffusion coefficient for heat      (m2/s )
                      ! (and other scalars)
-
-REAL (KIND=wp), DIMENSION(:,:), OPTIONAL, TARGET, INTENT(INOUT) :: &
+REAL (KIND=wp), DIMENSION(:,:), TARGET, INTENT(INOUT) :: &
 !
 ! Tendency fields for the prognostic variables:
 ! -----------------------------------------------
@@ -344,7 +343,6 @@ REAL (KIND=wp), DIMENSION(:), OPTIONAL, TARGET, INTENT(INOUT) :: &
     leff_flux    !calculation of effective flux density required
 
   LOGICAL ::  &
-    ltend(nmvar+ndtr), &  !calculation of tendencies required
     lsfli(nmvar+ndtr)     !surface value input is a flux density instead of a concentration
 
 ! Local integers:
@@ -372,11 +370,6 @@ REAL (KIND=wp), DIMENSION(:), OPTIONAL, TARGET, INTENT(INOUT) :: &
     fakt, wert,      & !for any factors
     virt               !z1+(Rv/Rd-1)*qv-qc
 
-! Time increment and inverse time increment of ordinary prognostic variables:
-  REAL (KIND=wp), TARGET :: &
-    tinc(nmvar+ndtr)
-
-
   REAL (KIND=wp), TARGET ::   &
     ! Already allocated variables of the turbulence model used for various purposes :
 
@@ -396,12 +389,6 @@ REAL (KIND=wp), DIMENSION(:), OPTIONAL, TARGET, INTENT(INOUT) :: &
     dicke    (nvec,ke1),      & ! storage mainly for diffusion tendencies  (dif_tend)
     hlp      (nvec,ke1)         ! storage for current variable profiles    (cur_prof)
 
-  REAL (KIND=wp), POINTER, CONTIGUOUS :: &
-!
-!   Pointer fuer Tendenzfelder:
-    utens(:,:), vtens(:,:), &
-    ttens(:,:), qvtens(:,:), qctens(:,:)
-
 ! Note:
 ! The following buffers wouldn't be necessary, if the related pointers above
 ! were allowed to be allocated at run time:
@@ -411,7 +398,8 @@ REAL (KIND=wp), DIMENSION(:), OPTIONAL, TARGET, INTENT(INOUT) :: &
     cur_prof, dvar_av, dvar_at, vtyp_tkv
 
   REAL (KIND=wp), POINTER, CONTIGUOUS :: &
-  dvar_sv(:)
+!
+    dvar_sv(:)
 
 ! Local parameters of derived types:
 
@@ -422,11 +410,11 @@ REAL (KIND=wp), DIMENSION(:), OPTIONAL, TARGET, INTENT(INOUT) :: &
 ! TYPE (varprf) :: pvar(0) !vertical variable profile at main- and boundary levels
   TYPE (varprf) :: pvar(0:0) !vertical variable profile at main- and boundary levels
 
-! technical parameters:
+! Technical parameters:
 
-LOGICAL :: ldebug=.FALSE.
+  LOGICAL :: ldebug=.FALSE.
 
-INTEGER :: my_cart_id, my_thrd_id
+  INTEGER :: my_cart_id, my_thrd_id
 
 !---- End of header ------------------------------------------------------------
 
@@ -468,51 +456,20 @@ INTEGER :: my_cart_id, my_thrd_id
 
   !Begin of GPU data region
   !$ACC DATA &
-  !$ACC   CREATE(len_scale, frh, frm, eprs, dicke, hlp, zaux, tinc)
-
-  ltend(u_m)=PRESENT(u_tens)
-  IF (ltend(u_m)) THEN !calculation of tendencies required
-    utens => u_tens    !'utens' points to the tendency
-  ELSE                 !update of ordinary prognostic variables required
-    utens => u         !'utens' points to the prognostic variables
-  END IF
-  ltend(v_m)=PRESENT(v_tens)
-  IF (ltend(v_m)) THEN
-    vtens => v_tens
-  ELSE
-    vtens => v
-  END IF
-  ltend(tem)=PRESENT(t_tens)
-  IF (ltend(tem)) THEN
-    ttens => t_tens
-  ELSE
-    ttens => t
-  END IF
-  ltend(vap)=PRESENT(qv_tens)
-  IF (ltend(vap)) THEN
-    qvtens => qv_tens
-  ELSE
-    qvtens => qv
-  END IF
-  ltend(liq)=PRESENT(qc_tens)
-  IF (ltend(liq)) THEN
-    qctens => qc_tens
-  ELSE
-    qctens => qc
-  END IF
+  !$ACC   CREATE(len_scale, frh, frm, eprs, dicke, hlp, zaux)
 
   lsfli(:)=.FALSE. !surface values are concentrations by default
 
-  dvar(u_m)%av  => u  ; dvar(u_m)%at => utens  ; dvar(u_m)%sv => NULL() ; dvar(u_m)%kstart = 1
-  dvar(v_m)%av  => v  ; dvar(v_m)%at => vtens  ; dvar(v_m)%sv => NULL() ; dvar(v_m)%kstart = 1
+  dvar(u_m)%av  => u  ; dvar(u_m)%at => u_tens  ; dvar(u_m)%sv => NULL() ; dvar(u_m)%kstart = 1
+  dvar(v_m)%av  => v  ; dvar(v_m)%at => v_tens  ; dvar(v_m)%sv => NULL() ; dvar(v_m)%kstart = 1
 
 !Note: Use                                       dvar(u_m)%sv => u(:,ke)
 !      and                                       dvar(v_m)%sv => v(:,ke)
 !      in order to force a "free-slip condition"!
 
-  dvar(tem)%av  => t  ; dvar(tem)%at => ttens  ; dvar(tem)%sv => t_g    ; dvar(tem)%kstart = 1
-  dvar(vap)%av  => qv ; dvar(vap)%at => qvtens ; dvar(vap)%sv => qv_s   ; dvar(vap)%kstart = 1
-  dvar(liq)%av  => qc ; dvar(liq)%at => qctens ; dvar(liq)%sv => NULL() ; dvar(liq)%kstart = kstart_cloud
+  dvar(tem)%av  => t  ; dvar(tem)%at => t_tens  ; dvar(tem)%sv => t_g    ; dvar(tem)%kstart = 1
+  dvar(vap)%av  => qv ; dvar(vap)%at => qv_tens ; dvar(vap)%sv => qv_s   ; dvar(vap)%kstart = 1
+  dvar(liq)%av  => qc ; dvar(liq)%at => qc_tens ; dvar(liq)%sv => NULL() ; dvar(liq)%kstart = kstart_cloud
 
 !SCLM --------------------------------------------------------------------------------
 #ifdef SCLM
@@ -546,12 +503,7 @@ INTEGER :: my_cart_id, my_thrd_id
     DO m=1, ndtr
       n=liq+m
       dvar(n)%av => ptr(m)%av
-      ltend(n)=ASSOCIATED(ptr(m)%at)
-      IF (ltend(n)) THEN
-        dvar(n)%at => ptr(m)%at
-      ELSE
-        dvar(n)%at => ptr(m)%av
-      END IF
+      dvar(n)%at => ptr(m)%at
       IF (ASSOCIATED(ptr(m)%sv)) THEN
         dvar(n)%sv => ptr(m)%sv; lsfli(n)=ptr(m)%fc
       ELSE
@@ -571,15 +523,6 @@ INTEGER :: my_cart_id, my_thrd_id
   !It always holds: "lsfli(liq)=F"!
 
   fakt=z1/dt_var
-
-  DO n=1,ndiff
-    IF (ltend(n)) THEN  !calculation of tendencies required
-      tinc(n)=z1        !no time increment multiplication for tendencies
-    ELSE                !update of prognostic variables required
-      tinc(n)=dt_var    !time increment multiplication for tendencies
-    END IF
-  END DO
-  !$ACC UPDATE DEVICE(tinc) ASYNC(1)
 
 !--------------------------------------------------
   IF (ldovardif .OR. ldogrdcor) THEN !Vertikaldiffusion wird hier berechnet
@@ -681,11 +624,7 @@ my_thrd_id = omp_get_thread_num()
                igrdcon=3 !addiere Gradientkorrektur zum vorhandenen Profil
             END IF
 
-            IF (.NOT.ltend(n)) THEN !tendency array not present
-               itndcon=0 !no explicit tendency consideration
-            ELSE
-               itndcon=itnd !use chosen mode of tendency consideration
-            END IF
+            itndcon=itnd !use chosen mode of tendency consideration
             IF (igrdcon.EQ.2) THEN !full vertical diffusion of given non-gradient fluxes
                k_st_up=ke !only level "k=ke" needs to be provided for bottom-up integration
             ELSE !vertical profiles needs to be provided 
@@ -873,7 +812,7 @@ my_thrd_id = omp_get_thread_num()
 !DIR$ IVDEP
 !$NEC ivdep
                   DO i=ivstart, ivend
-                     dvar_at(i,k)=dvar_at(i,k)+epr(i,k)*dicke(i,k)*tinc(n)
+                     dvar_at(i,k)=dvar_at(i,k)+epr(i,k)*dicke(i,k)
                   END DO
                END DO
                !$ACC END PARALLEL
@@ -885,7 +824,7 @@ my_thrd_id = omp_get_thread_num()
 !DIR$ IVDEP
 !$NEC ivdep
                   DO i=ivstart, ivend
-                     dvar_at(i,k)=dvar_at(i,k)+dicke(i,k)*tinc(n)
+                     dvar_at(i,k)=dvar_at(i,k)+dicke(i,k)
                   END DO
                END DO
                !$ACC END PARALLEL

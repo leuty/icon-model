@@ -1339,7 +1339,7 @@ REAL (KIND=wp), DIMENSION(:,khi:), TARGET, INTENT(IN) :: &
 !
   tvt      !turbulent transport of turbulent velocity scale [m/s2]
 
-REAL (KIND=wp), DIMENSION(:,khi:), OPTIONAL, INTENT(IN) :: &
+REAL (KIND=wp), DIMENSION(:,:), OPTIONAL, INTENT(IN) :: &
 !
   avt      !advective transport of turbulent velocity scale [m/s2]
 
