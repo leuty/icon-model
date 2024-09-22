@@ -175,21 +175,24 @@ MODULE mo_ocean_solve_transfer
       INTEGER, INTENT(INOUT), DIMENSION(:), CONTIGUOUS :: data_out
       LOGICAL, INTENT(IN), OPTIONAL :: lacc
     END SUBROUTINE a_trans_bcst_1d_i
-    SUBROUTINE a_trans_sync_2d_wp(this, data_inout)
+    SUBROUTINE a_trans_sync_2d_wp(this, data_inout, lacc)
       USE mo_kind, ONLY: wp
       IMPORT t_transfer
       CLASS(t_transfer), INTENT(INOUT) :: this
       REAL(KIND=wp), INTENT(INOUT), DIMENSION(:,:), CONTIGUOUS :: data_inout
+      LOGICAL, INTENT(IN), OPTIONAL :: lacc
     END SUBROUTINE a_trans_sync_2d_wp
-    SUBROUTINE a_trans_sync_2d_sp(this, data_inout)
+    SUBROUTINE a_trans_sync_2d_sp(this, data_inout, lacc)
       USE mo_kind, ONLY: sp
       IMPORT t_transfer
       CLASS(t_transfer), INTENT(INOUT) :: this
       REAL(KIND=sp), INTENT(INOUT), DIMENSION(:,:), CONTIGUOUS :: data_inout
+      LOGICAL, INTENT(IN), OPTIONAL :: lacc
     END SUBROUTINE a_trans_sync_2d_sp
-    SUBROUTINE a_trans_destruct(this)
+    SUBROUTINE a_trans_destruct(this, lacc)
       IMPORT t_transfer
       CLASS(t_transfer), INTENT(INOUT) :: this
+      LOGICAL, INTENT(IN), OPTIONAL :: lacc
     END SUBROUTINE a_trans_destruct
   END INTERFACE
 

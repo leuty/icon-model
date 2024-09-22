@@ -28,7 +28,7 @@ MODULE mo_ocean_solve_subset_transfer
     & solve_trans_compact, solve_cell, solve_edge, solve_vert
   USE mo_model_domain, ONLY: t_patch
   USE mo_mpi, ONLY: p_n_work, p_pe_work, p_comm_work, p_sum, p_int, &
-    & p_bcast, my_process_is_mpi_parallel, i_am_accel_node
+    & p_bcast, my_process_is_mpi_parallel
   USE mo_parallel_config, ONLY: nproma
   USE mo_timer, ONLY: timer_start, timer_stop, new_timer
   USE mo_run_config, ONLY: ltimer
@@ -79,10 +79,11 @@ MODULE mo_ocean_solve_subset_transfer
 
 CONTAINS
 
-  SUBROUTINE subset_transfer_construct(this, sync_type, patch_2d, redfac, mode)
+  SUBROUTINE subset_transfer_construct(this, sync_type, patch_2d, redfac, mode, lacc)
     CLASS(t_subset_transfer), INTENT(INOUT) :: this
     INTEGER, INTENT(IN) :: sync_type, redfac, mode
     TYPE(t_patch), POINTER :: patch_2d
+    LOGICAL, INTENT(IN), OPTIONAL :: lacc
     CHARACTER(LEN=*), PARAMETER :: routine = module_name// &
       & "::subset_transfer_construct()"
 #ifdef NOMPI
@@ -97,14 +98,23 @@ CONTAINS
       & n_glb, n_core_sv, n_alloc_sv, nidx, n_core_cl, dum(3), dum2(3)
     TYPE(t_glb2loc_index_lookup) :: lookupTable
     CLASS(t_comm_pattern), POINTER :: cpat_sync_c
-    LOGICAL :: done
+    LOGICAL :: done, lzacc
 #ifdef __INTEL_COMPILER
 !DIR$ ATTRIBUTES ALIGN : 64 :: tmp_owners_cl, tmp_gIDs_sv, tmp_owners_sv
 !DIR$ ATTRIBUTES ALIGN : 64 :: tmp_gIDs_sv_2, tmp_owners_sv_2, cl_ncor
 !DIR$ ATTRIBUTES ALIGN : 64 :: cl_ntot, cl_rnk, gID_tmp, cl_nbnd
 #endif
 
+    CALL set_acc_host_or_device(lzacc, lacc)
+
+#ifdef _OPENACC
+    if (lzacc) CALL finish(routine, "not ported to GPU yet")
+#endif
+
     IF (this%is_init) RETURN
+
+    !$ACC ENTER DATA COPYIN(this) ASYNC(1) IF(lzacc)
+    !$ACC WAIT(1)
     IF (ltimer) THEN
       this%timer_init = new_timer("triv-t init")
       CALL timer_start(this%timer_init)
@@ -182,10 +192,14 @@ CONTAINS
     n_core_cl = (this%nblk_l - 1) * this%nidx_l + this%nidx_e_l
     n_glb = p_sum(n_core_cl, comm=p_comm_work)
     IF (my_process_is_mpi_parallel()) &
-      & CALL exchange_data(p_pat=cpat_sync_c, lacc=i_am_accel_node, recv=gID_tmp)
+      & CALL exchange_data(p_pat=cpat_sync_c, lacc=lzacc, recv=gID_tmp)
     this%ngid_a_l = COUNT(gID_tmp(:,:) .NE. -1)
+
+    !$ACC EXIT DATA DELETE(this%glb_idx_loc) ASYNC(1) IF(lzacc)
+    !$ACC WAIT(1)
     NULLIFY(this%glb_idx_loc)
     ALLOCATE(this%glb_idx_loc(this%ngid_a_l))
+
     done = .FALSE.
     DO iblk = 1, this%nblk_a_l
       DO iidx = 1, this%nidx_l
@@ -198,6 +212,9 @@ CONTAINS
       END DO
       IF (done) EXIT
     END DO
+    !$ACC ENTER DATA COPYIN(this%glb_idx_loc) ASYNC(1) IF(lzacc)
+    !$ACC WAIT(1)
+
     DO iblk = 1, this%nblk_l
       nidx = MERGE(this%nidx_l, this%nidx_e_l, this%nblk_l .NE. iblk)
       gID_tmp(1:nidx, iblk) = p_pe_work
@@ -207,7 +224,7 @@ CONTAINS
       gID_tmp(1:this%nidx_l, iblk) = -1
     ENDDO
     IF (my_process_is_mpi_parallel()) &
-      & CALL exchange_data(p_pat=cpat_sync_c, lacc=i_am_accel_node, recv=gID_tmp)
+      & CALL exchange_data(p_pat=cpat_sync_c, lacc=lzacc, recv=gID_tmp)
     ALLOCATE(tmp_owners_cl(this%ngid_a_l))
     done = .FALSE.
     DO iblk = 1, this%nblk_a_l
@@ -341,8 +358,12 @@ CONTAINS
 #endif !! ifndef NOMPI
   END SUBROUTINE subset_transfer_construct
 
-  SUBROUTINE subset_transfer_destruct(this)
+  SUBROUTINE subset_transfer_destruct(this, lacc)
     CLASS(t_subset_transfer), INTENT(INOUT) :: this
+    LOGICAL, INTENT(IN), OPTIONAL :: lacc
+    LOGICAL :: lzacc
+
+    CALL set_acc_host_or_device(lzacc, lacc)
 
     IF (ASSOCIATED(this%cpat_in)) THEN
       CALL delete_comm_pattern(this%cpat_in)
@@ -351,8 +372,16 @@ CONTAINS
     END IF
     IF (ASSOCIATED(this%cpat_sync)) &
       & CALL delete_comm_pattern(this%cpat_sync)
-    IF (ASSOCIATED(this%glb_idx_loc)) DEALLOCATE(this%glb_idx_loc)
-    IF (ASSOCIATED(this%glb_idx_cal)) DEALLOCATE(this%glb_idx_cal)
+    IF (ASSOCIATED(this%glb_idx_loc)) THEN
+      !$ACC EXIT DATA DELETE(this%glb_idx_loc) ASYNC(1) IF(lzacc)
+      !$ACC WAIT(1)
+      DEALLOCATE(this%glb_idx_loc)
+    END IF
+    IF (ASSOCIATED(this%glb_idx_cal)) THEN
+      !$ACC EXIT DATA DELETE(this%glb_idx_cal) ASYNC(1) IF(lzacc)
+      !$ACC WAIT(1)
+      DEALLOCATE(this%glb_idx_cal)
+    END IF
     NULLIFY(this%glb_idx_loc, this%glb_idx_cal)
     this%is_init = .false.
   END SUBROUTINE subset_transfer_destruct
@@ -681,9 +710,13 @@ CONTAINS
     IF (ltimer) CALL timer_stop(this%timer_out)
   END SUBROUTINE subset_transfer_bcst_1d_i
 
-  SUBROUTINE subset_transfer_sync_2d_wp(this, data_inout)
+  SUBROUTINE subset_transfer_sync_2d_wp(this, data_inout, lacc)
     CLASS(t_subset_transfer), INTENT(INOUT) :: this
     REAL(KIND=wp), INTENT(INOUT), DIMENSION(:,:), CONTIGUOUS :: data_inout
+    LOGICAL, INTENT(IN), OPTIONAL :: lacc
+    LOGICAL :: lzacc
+
+    CALL set_acc_host_or_device(lzacc, lacc)
 
     IF (ltimer) CALL timer_start(this%timer_sync)
     IF (my_process_is_mpi_parallel()) THEN
@@ -691,14 +724,18 @@ CONTAINS
       CALL finish("subset_transfer_sync_2d_wp is not tested with OPENACC")
       ! TODO: lacc=.flase. or .true.?
 #endif
-      CALL exchange_data(p_pat=this%cpat_sync, lacc=i_am_accel_node, recv=data_inout)
+      CALL exchange_data(p_pat=this%cpat_sync, lacc=lzacc, recv=data_inout)
     END IF
     IF (ltimer) CALL timer_stop(this%timer_sync)
   END SUBROUTINE subset_transfer_sync_2d_wp
 
-  SUBROUTINE subset_transfer_sync_2d_sp(this, data_inout)
+  SUBROUTINE subset_transfer_sync_2d_sp(this, data_inout, lacc)
     CLASS(t_subset_transfer), INTENT(INOUT) :: this
     REAL(KIND=sp), INTENT(INOUT), DIMENSION(:,:), CONTIGUOUS :: data_inout
+    LOGICAL, INTENT(IN), OPTIONAL :: lacc
+    LOGICAL :: lzacc
+
+    CALL set_acc_host_or_device(lzacc, lacc)
 
     IF (ltimer) CALL timer_start(this%timer_sync)
     IF (my_process_is_mpi_parallel()) THEN
@@ -706,7 +743,7 @@ CONTAINS
       CALL finish("subset_transfer_sync_2d_sp is not tested with OPENACC")
       ! TODO: lacc=.flase. or .true.?
 #endif
-      CALL exchange_data(p_pat=this%cpat_sync, lacc=i_am_accel_node, recv=data_inout)
+      CALL exchange_data(p_pat=this%cpat_sync, lacc=lzacc, recv=data_inout)
     END IF
     IF (ltimer) CALL timer_stop(this%timer_sync)
   END SUBROUTINE subset_transfer_sync_2d_sp

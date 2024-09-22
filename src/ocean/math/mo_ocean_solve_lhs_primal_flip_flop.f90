@@ -43,11 +43,19 @@ MODULE mo_primal_flip_flop_lhs
 CONTAINS
 
 ! init generator object
-  SUBROUTINE lhs_primal_flip_flop_construct(this, patch_3d, op_coeffs, jk)
+  SUBROUTINE lhs_primal_flip_flop_construct(this, patch_3d, op_coeffs, jk, lacc)
     CLASS(t_primal_flip_flop_lhs), INTENT(INOUT) :: this
     TYPE(t_patch_3d), TARGET, INTENT(IN) :: patch_3d
     TYPE(t_operator_coeff), TARGET, INTENT(IN) :: op_coeffs
     INTEGER, INTENT(IN) :: jk
+    LOGICAL, INTENT(IN), OPTIONAL :: lacc
+    LOGICAL :: lzacc
+
+    CALL set_acc_host_or_device(lzacc, lacc)
+
+#ifdef _OPENACC
+    IF (lzacc) CALL finish("lhs_primal_flip_flop_wp()", "OpenACC version not implemented yet")
+#endif
 
     this%is_const = .false.
     this%patch_3d => patch_3d
@@ -80,10 +88,11 @@ CONTAINS
 
 ! clear object internals
 
-  SUBROUTINE lhs_primal_flip_flop_matrix_shortcut(this, idx, blk, coeff)
+  SUBROUTINE lhs_primal_flip_flop_matrix_shortcut(this, idx, blk, coeff, lacc)
     CLASS(t_primal_flip_flop_lhs), INTENT(INOUT) :: this
     INTEGER, INTENT(INOUT), ALLOCATABLE, DIMENSION(:,:,:) :: idx, blk
     REAL(KIND=wp), INTENT(INOUT), ALLOCATABLE, DIMENSION(:,:,:) :: coeff
+    LOGICAL, INTENT(IN), OPTIONAL :: lacc
 
     CALL finish("lhs_primal_flip_flop_matrix_shortcut", &
       & "not implemented -- go away!")

@@ -19,7 +19,7 @@ MODULE mo_ocean_solve_trivial_transfer
   USE mo_ocean_solve_transfer, ONLY: t_transfer
   USE mo_ocean_solve_aux, ONLY: solve_cell, solve_edge, solve_vert
   USE mo_model_domain, ONLY: t_patch
-  USE mo_mpi, ONLY: p_pe_work, p_comm_work, my_process_is_mpi_parallel, i_am_accel_node
+  USE mo_mpi, ONLY: p_pe_work, p_comm_work, my_process_is_mpi_parallel
   USE mo_parallel_config, ONLY: nproma
   USE mo_timer, ONLY: timer_start, timer_stop, new_timer
   USE mo_run_config, ONLY: ltimer
@@ -62,17 +62,21 @@ MODULE mo_ocean_solve_trivial_transfer
 
 CONTAINS
 
-  SUBROUTINE trivial_transfer_construct(this, sync_type, patch_2d)
+  SUBROUTINE trivial_transfer_construct(this, sync_type, patch_2d, lacc)
     CLASS(t_trivial_transfer), INTENT(INOUT) :: this
     INTEGER, INTENT(IN) :: sync_type
     TYPE(t_patch), POINTER :: patch_2d
+    LOGICAL, INTENT(IN), OPTIONAL :: lacc
     CHARACTER(LEN=*), PARAMETER :: routine = module_name// &
       & "::trivial_transfer_construct()"
     INTEGER, ALLOCATABLE, DIMENSION(:,:) :: gID_tmp
     INTEGER :: iidx, iblk, nidx
+    LOGICAL :: lzacc
 #ifdef __INTEL_COMPILER
 !DIR$ ATTRIBUTES ALIGN : 64 :: gID_tmp
 #endif
+
+    CALL set_acc_host_or_device(lzacc, lacc)
 
     IF (this%is_init) RETURN
     IF (ltimer) THEN
@@ -123,7 +127,7 @@ CONTAINS
       gID_tmp(1:this%nidx_l, iblk) = -1
     ENDDO
     IF(my_process_is_mpi_parallel()) &
-      & CALL exchange_data(p_pat=this%comm_pat_sync, lacc=i_am_accel_node, recv=gID_tmp)
+      & CALL exchange_data(p_pat=this%comm_pat_sync, lacc=lzacc, recv=gID_tmp)
     NULLIFY(this%glb_idx_loc)
     ALLOCATE(this%glb_idx_loc(this%nidx_l * this%nblk_a))
     DO iblk = 1, this%nblk_a
@@ -147,10 +151,17 @@ CONTAINS
     this%is_init = .true.
   END SUBROUTINE trivial_transfer_construct
 
-  SUBROUTINE trivial_transfer_destruct(this)
+  SUBROUTINE trivial_transfer_destruct(this, lacc)
     CLASS(t_trivial_transfer), INTENT(INOUT) :: this
+    LOGICAL, INTENT(IN), OPTIONAL :: lacc
 
-    IF (ASSOCIATED(this%glb_idx_loc)) DEALLOCATE(this%glb_idx_loc)
+    LOGICAL :: lzacc
+
+    CALL set_acc_host_or_device(lzacc, lacc)
+
+    IF (ASSOCIATED(this%glb_idx_loc)) THEN
+      DEALLOCATE(this%glb_idx_loc)
+    END IF
     NULLIFY(this%glb_idx_loc, this%glb_idx_cal)
     this%is_init = .false.
   END SUBROUTINE trivial_transfer_destruct
@@ -171,7 +182,8 @@ CONTAINS
     IF (ltimer) CALL timer_start(this%timer_in(tt))
     IF (.NOT.ALLOCATED(data_out)) THEN
         ALLOCATE(data_out(SIZE(data_in, 1), SIZE(data_in, 2)))
-        !$ACC ENTER DATA CREATE(data_out) IF(lzacc)
+        !$ACC ENTER DATA CREATE(data_out) ASYNC(1) IF(lzacc)
+        !$ACC WAIT(1)
     END IF
 !ICON_OMP PARALLEL WORKSHARE
     !$ACC KERNELS DEFAULT(PRESENT) ASYNC(1) IF(lzacc)
@@ -196,8 +208,10 @@ CONTAINS
 
     CALL set_acc_host_or_device(lzacc, lacc)
 
-    IF (.NOT.ALLOCATED(data_out)) &
-      & ALLOCATE(data_out(SIZE(data_in, 1), SIZE(data_in, 2), SIZE(data_in, 3)))
+    IF (.NOT.ALLOCATED(data_out)) THEN
+      ALLOCATE(data_out(SIZE(data_in, 1), SIZE(data_in, 2), SIZE(data_in, 3)))
+      !$ACC ENTER DATA COPYIN(data_out) IF(lzacc)
+    END IF
 
     CALL this%into(data_in, data_out, tt, lacc=lzacc)
 
@@ -216,11 +230,14 @@ CONTAINS
 
     CALL set_acc_host_or_device(lzacc, lacc)
 
-    IF (.NOT.ALLOCATED(data_out_idx)) &
-      & ALLOCATE(data_out_idx(SIZE(data_in_idx, 1), &
+    IF (.NOT.ALLOCATED(data_out_idx)) THEN
+      ALLOCATE(data_out_idx(SIZE(data_in_idx, 1), &
         & SIZE(data_in_idx, 2), SIZE(data_in_idx, 3)), &
         & data_out_blk(SIZE(data_in_blk, 1), &
         & SIZE(data_in_blk, 2), SIZE(data_in_blk, 3)))
+      !$ACC ENTER DATA COPYIN(data_out_idx, data_out_blk) ASYNC(1) IF(lzacc)
+      !$ACC WAIT(1)
+    END IF
 
     CALL this%into(data_in_idx, data_in_blk, &
       & data_out_idx, data_out_blk, tt, lacc=lzacc)
@@ -429,24 +446,34 @@ CONTAINS
 
   END SUBROUTINE trivial_transfer_bcst_1d_i
 
-  SUBROUTINE trivial_transfer_sync_2d_wp(this, data_inout)
+  SUBROUTINE trivial_transfer_sync_2d_wp(this, data_inout, lacc)
     CLASS(t_trivial_transfer), INTENT(INOUT) :: this
     REAL(KIND=wp), INTENT(INOUT), DIMENSION(:,:), CONTIGUOUS :: data_inout
+    LOGICAL, INTENT(IN), OPTIONAL :: lacc
 
+    LOGICAL :: lzacc
+
+    CALL set_acc_host_or_device(lzacc, lacc)
+    
     IF (ltimer) CALL timer_start(this%timer_sync)
     IF(my_process_is_mpi_parallel()) THEN
-      CALL exchange_data(p_pat=this%comm_pat_sync, lacc=i_am_accel_node, recv=data_inout)
+      CALL exchange_data(p_pat=this%comm_pat_sync, lacc=lzacc, recv=data_inout)
     END IF
     IF (ltimer) CALL timer_stop(this%timer_sync)
   END SUBROUTINE trivial_transfer_sync_2d_wp
 
-  SUBROUTINE trivial_transfer_sync_2d_sp(this, data_inout)
+  SUBROUTINE trivial_transfer_sync_2d_sp(this, data_inout, lacc)
     CLASS(t_trivial_transfer), INTENT(INOUT) :: this
     REAL(KIND=sp), INTENT(INOUT), DIMENSION(:,:), CONTIGUOUS :: data_inout
+    LOGICAL, INTENT(IN), OPTIONAL :: lacc
+
+    LOGICAL :: lzacc
+
+    CALL set_acc_host_or_device(lzacc, lacc)
 
     IF (ltimer) CALL timer_start(this%timer_sync)
     IF(my_process_is_mpi_parallel()) THEN
-      CALL exchange_data(p_pat=this%comm_pat_sync, lacc=i_am_accel_node, recv=data_inout)
+      CALL exchange_data(p_pat=this%comm_pat_sync, lacc=lzacc, recv=data_inout)
     END IF
     IF (ltimer) CALL timer_stop(this%timer_sync)
   END SUBROUTINE trivial_transfer_sync_2d_sp

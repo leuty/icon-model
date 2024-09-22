@@ -270,7 +270,8 @@ CONTAINS
         & za_depth_below_sea, &
         & t_cf_var('BiharmonicViscosity_coeff', 'm4 s-1', 'ocean_momentum_xy_biharmonic_diffusivity', datatype_flt),&
         & grib2_var(255, 255, 255, datatype_pack16, GRID_UNSTRUCTURED, grid_edge),&
-        & ldims=(/nproma,n_zlev,nblks_e/),in_group=groups("oce_physics"))
+        & ldims=(/nproma,n_zlev,nblks_e/),in_group=groups("oce_physics"), lopenacc = .TRUE.)
+      __acc_attach(params_oce%BiharmonicViscosity_coeff)
    ENDIF
    
     IF (LeithClosure_order == 1 .or.  LeithClosure_order == 21) THEN
