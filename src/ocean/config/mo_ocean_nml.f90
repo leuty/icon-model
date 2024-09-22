@@ -23,6 +23,13 @@ MODULE mo_ocean_nml
   USE mo_io_units,           ONLY: filename_max
   USE mo_physical_constants, ONLY: a_T, b_S,rho_ref, grav, sitodbar
   USE mo_param1_bgc,         ONLY: n_bgctra, ntraad
+  USE mtime,             ONLY: max_calendar_str_len, setCalendar,                            &
+       &                       proleptic_gregorian, year_of_365_days,  year_of_360_days,     &
+       &                       max_datetime_str_len, max_timedelta_str_len,                  &
+       &                       datetime, newDatetime, deallocateDatetime,                    &
+       &                       timedelta, newTimedelta, deallocateTimedelta,                 &
+       &                       datetimeToString, OPERATOR(+),&
+       &                       getTimeDeltaFromDateTime, getTotalSecondsTimeDelta
 
 #ifndef __NO_ICON_ATMO__
   USE mo_coupling_config,    ONLY: is_coupled_to_atmo
@@ -923,6 +930,8 @@ MODULE mo_ocean_nml
   INTEGER  :: sea_surface_height_type     = 0          ! >= 200 sea_surface_height
   INTEGER  :: initial_salinity_type       = 0
   INTEGER  :: initial_temperature_type    = 0
+  INTEGER  :: initial_age_type            = 0
+  INTEGER  :: initial_green_type          = 0
   CHARACTER(LEN= max_char_length) :: initial_sst_type = 'sst1'
   INTEGER  :: initial_velocity_type       = 0
   REAL(wp) :: initial_velocity_amplitude  = 0.0_wp
@@ -953,6 +962,8 @@ MODULE mo_ocean_nml
     & initial_salinity_bottom    , &
     & initial_salinity_type      , &
     & initial_temperature_type   , &
+    & initial_age_type           , &
+    & initial_green_type         , &
     & initial_sst_type           , &
     & initial_velocity_type      , &
     & initial_velocity_amplitude , &
@@ -990,10 +1001,24 @@ MODULE mo_ocean_nml
   LOGICAL :: diagnose_for_horizontalVelocity = .false.
 
   ! by_nils age tracer
-  LOGICAL  :: use_age_tracer = .FALSE.            ! switch for age tracer
-  INTEGER  :: n_age_tracer = 1
+  LOGICAL  :: use_age_tracer = .FALSE.          ! switch for age tracer
+  LOGICAL  :: diagnose_age = .FALSE.
+  LOGICAL  :: diagnose_green = .FALSE.
+  INTEGER  :: age_idx = 0
+  INTEGER  :: green_idx = 0
+  INTEGER  :: n_age_tracer = 0
+  CHARACTER(len=max_datetime_str_len) :: greenStartDate      = ''
+  CHARACTER(len=max_datetime_str_len) :: greenStopDate       = ''
+
+  TYPE(datetime),  POINTER :: green_start_date, green_stop_date
+  TYPE(timedelta) :: green_duration_td
+  REAL(wp) :: green_duration
+  
+  REAL(wp) :: Green_tracer_width = 365._wp * 24._wp * 60._wp * 60._wp  ! Tracer impulse duration in seconds
+  
   REAL(wp) :: age_tracer_inv_relax_time = 1._wp/864000.0_wp    ! 1 / (10 days)
   LOGICAL  :: l_relaxage_ice        = .TRUE.     ! TRUE: relax age tracer below sea ice
+ 
   ! layers package ! by_nils
   LOGICAL :: use_layers = .FALSE.                ! switch for layer package
   INTEGER :: n_dlev = 5                          ! number of density layers
@@ -1023,14 +1048,16 @@ MODULE mo_ocean_nml
     & eddydiag, &
     & diagnose_for_tendencies, &
     & diagnose_for_heat_content, &
-    & use_age_tracer, & ! by_nils
-    & n_age_tracer, & ! by_nils
+    & diagnose_age, &
+    & diagnose_green, &
     & age_tracer_inv_relax_time, &
     & l_relaxage_ice, & ! by_fraser
     & use_layers, &   ! by_nils
     & n_dlev, &       ! by_nils
     & mode_layers, &  ! by_nils
     & rho_lev_in, &  ! by_nils
+    & greenStartDate, greenStopDate, &
+    & Green_tracer_width, &
     & check_total_volume
   ! ------------------------------------------------------------------------
   ! 3.0 Namelist variables and auxiliary parameters for octst_nml
@@ -1260,6 +1287,36 @@ MODULE mo_ocean_nml
       END IF
     END SELECT
 
+    IF (diagnose_age .OR. diagnose_green) THEN
+      use_age_tracer = .TRUE.
+      IF (diagnose_age .AND. diagnose_green) THEN
+        n_age_tracer = 2
+        age_idx = 3
+        green_idx = 4
+      ELSEIF (diagnose_age) THEN
+        n_age_tracer = 1
+        age_idx = 3
+        green_idx = 0
+      ELSEIF (diagnose_green) THEN
+        n_age_tracer = 1
+        age_idx = 0
+        green_idx = 3
+      END IF
+
+      IF (diagnose_green) THEN
+        IF (greenStartDate /= "") THEN
+          IF (greenStopDate /= "") THEN
+            green_start_date => newDatetime(TRIM(greenStartDate))
+            green_stop_date => newDatetime(TRIM(greenStopDate))
+            green_duration_td = getTimeDeltaFromDateTime(green_stop_date, green_start_date)
+            green_duration = REAL(getTotalSecondsTimeDelta(green_duration_td, green_start_date))
+          ELSE
+            CALL finish(method_name, "using the Green's tracer and green_start_date or green_stop_date are not set")
+          END IF
+        END IF
+      END IF
+    END IF
+
     !------------------------------------------------------------
     ! 6.0 check the consistency of the parameters
     !------------------------------------------------------------
@@ -1367,23 +1424,6 @@ MODULE mo_ocean_nml
       CALL finish(method_name, &
         &  'bottom boundary condition for velocity currently not supported: choose = 0, 1, 2')
     ENDIF
-
-    ! Check age tracer settings
-    IF (use_age_tracer .AND. GMRedi_configuration/=0) THEN
-      CALL finish(method_name, &
-        & 'age tracer incompatible with GM parameterisation: choose use_age_tracer=.false. or GMRedi_configuration=0')
-    ENDIF 
-
-
-!      IF(no_tracer == 1 .OR. no_tracer < 0 .OR. no_tracer > 2) THEN
-!        IF(no_tracer == 1) THEN
-!          CALL message(method_name, 'WARNING - You have chosen tracer temperature only')
-!          CALL message(method_name, ' - this generates error in mo_varlist/mo_ocean_state')
-!          CALL finish(method_name,  'no_tracer=1 not supported - choose =0 or =2')
-!        ENDIF
-!        CALL finish(method_name,  'no_tracer not supported - choose =0 or =2')
-!      ENDIF
-
 
 !     IF (solver_start_tolerance <= 0.0_wp) THEN
 !       solver_start_tolerance = solver_tolerance

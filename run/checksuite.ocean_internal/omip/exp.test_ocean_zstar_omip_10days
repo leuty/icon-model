@@ -113,6 +113,21 @@ cat > ${ocean_namelist} << EOF
   filename_format  = "<output_filename>_<datetime2>"
   ml_varlist       = 'group:oce_default','group:oce_essentials', 'group:ice_default'
 /
+
+&output_nml
+  filetype         =  5 ! output format: 2=GRIB2, 4=NETCDFv2
+  output_filename  = "${EXPNAME}_age"
+  output_start     = "${start_date}"                  ! start in ISO-format
+  output_end       = "${end_date}"                    ! end in ISO-format
+  output_interval  = "${daily}"
+  file_interval    = "${file_interval}"
+  mode             =  1                               ! 1: forecast mode (relative t-axis), 2: climate mode (absolute t-axis)
+  include_last     = .false.
+  output_grid      = .TRUE.
+  filename_format  = "<output_filename>_<datetime2>"
+  ml_varlist       = 'age_tracer','green_tracer'
+/
+
 &output_nml
   filetype         =  5 ! output format: 2=GRIB2, 4=NETCDFv2
   output_filename  = "${EXPNAME}_max"
@@ -212,6 +227,7 @@ cat > ${ocean_namelist} << EOF
   fct_high_order_flux   = 5      ! horizontal high order method: 1=upwind, 2=central, 3=lax_friedrichs, 4=miura_order1
   fct_limiter_horz      = 100    ! zalesak
   threshold_min_T       = -2.0   ! to avoid abort
+  no_tracer             = 4      ! 2 normal setup; 3 with age tracer; 4 with age tracer squared
 /
 &ocean_horizontal_diffusion_nml
   laplacian_form = 1                   ! 1=curlcurl-graddiv
@@ -344,6 +360,10 @@ cat > ${ocean_namelist} << EOF
    agulhas(1:10)                = 8024,8022
    agulhas_long(1:10)           = 8024,8022,6036
    agulhas_longer(1:10)         = 8024,8022,6036,6025
+   diagnose_age = .true.
+   diagnose_green = .true.
+   greenStartDate = '2001-01-01'
+   greenStopDate = '2001-01-10'
    use_layers = .true.
    n_dlev = 84
    mode_layers = 2

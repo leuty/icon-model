@@ -583,7 +583,7 @@ CONTAINS
 
         IF (use_age_tracer) THEN
           !$ACC DATA COPYIN(p_as%pao) IF(lzacc)
-          CALL calc_age_tracer(patch_3d, ocean_state(jg), jstep, sea_ice, lacc=lzacc)
+          CALL calc_age_tracer(patch_3d, ocean_state(jg), sea_ice, lacc=lzacc)
           !$ACC END DATA
         ENDIF
 
@@ -1103,7 +1103,7 @@ CONTAINS
           & lacc=lzacc)
 
         IF (use_age_tracer) THEN
-          CALL calc_age_tracer(patch_3d, ocean_state(jg), jstep, sea_ice, lacc=lzacc)
+          CALL calc_age_tracer(patch_3d, ocean_state(jg), sea_ice, lacc=lzacc)
         ENDIF
 
         !$ACC WAIT(1)
