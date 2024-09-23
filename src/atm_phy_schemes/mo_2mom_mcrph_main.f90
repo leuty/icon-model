@@ -96,23 +96,22 @@ MODULE mo_2mom_mcrph_main
        &  autoconversionKK, accretionKK, rain_evaporation, evaporation,      &
        &  cloud_freeze, ice_nucleation_homhet,                               &
        &  vapor_dep_relaxation, rain_freeze_gamlook,                         &
-       &  setup_particle_coeffs, setup_cloud_autoconversion,                 &
-       &  setup_ice_selfcollection, ice_selfcollection,                      &
-       &  setup_snow_selfcollection, snow_selfcollection,                    &
-       &  setup_particle_collection_type1,                                   &
-       &  setup_particle_collection_type2,                                   &
-       &  setup_particle_coll_pm_type1_bfull,                                &
        &  snow_melting, particle_particle_collection,                        &
        &  particle_melting_lwf,prepare_melting_lwf,                          &
-       &  setup_graupel_selfcollection, graupel_selfcollection, ice_melting, &
+       &  ice_selfcollection, snow_selfcollection,                           &
+       &  graupel_selfcollection, ice_melting,                               &
        &  particle_cloud_riming, particle_rain_riming, graupel_melting,      &
        &  hail_melting_simple, graupel_hail_conv_wet_gamlook, ice_riming,    &
        &  snow_riming, ccn_activation_sk, ccn_activation_hdcp2,              &
-       &  ccn_activation_sk_4d, set_default_n, cfg_params
-
-  ! Some switches...
-  USE mo_2mom_mcrph_processes, ONLY:                                         &
+       &  ccn_activation_sk_4d, set_default_n, cfg_params,                   &
        &  ice_typ, nuc_i_typ, nuc_c_typ, auto_typ, isdebug, isprint
+  USE mo_2mom_mcrph_setup, ONLY:                                             &
+       &  setup_particle_coeffs, setup_cloud_autoconversion_sb,              &
+       &  setup_ice_selfcollection, setup_snow_selfcollection,               &
+       &  setup_graupel_selfcollection,                                      &
+       &  setup_particle_collection_type1,                                   &
+       &  setup_particle_collection_type2,                                   &
+       &  setup_particle_coll_pm_type1_bfull
 
   USE mo_timer, ONLY: timers_level, timer_start, timer_stop, timer_phys_2mom_wetgrowth
 
@@ -1442,7 +1441,7 @@ CONTAINS
 
     ! setup run-time coeffs for cloud, e.g., used in cloud_freeze and autoconversionSB
     CALL setup_particle_coeffs(cloud,cloud_coeffs)
-    CALL setup_cloud_autoconversion(cloud,cloud_coeffs)
+    CALL setup_cloud_autoconversion_sb(cloud,cloud_coeffs)
 
     IF (isprint) THEN
       CALL message(routine, "rain_coeffs:")

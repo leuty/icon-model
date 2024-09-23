@@ -9,12 +9,14 @@
 ! SPDX-License-Identifier: BSD-3-Clause
 ! ---------------------------------------------------------------
 
+!NEC$ options "-finline-max-depth=3 -finline-max-function-size=1000"
+
+!
 ! Two-moment bulk microphysics after Seifert, Beheng and Blahak
 !
 ! Description:
 ! Provides various subroutines and functions for the two-moment microphysics
-
-!NEC$ options "-finline-max-depth=3 -finline-max-function-size=1000"
+!
 
 MODULE mo_2mom_mcrph_util
 
@@ -64,9 +66,10 @@ MODULE mo_2mom_mcrph_util
        & set_qng,                    &
        & set_qnh_Dmean,              &
        & set_qnh_expPSD_N0const,     &
-       & e_stick,                     &
+       & e_stick,                    &
        & init_estick_ltab_equi,      &
-       & estick_ltab_equi
+       & estick_ltab_equi,           &
+       & get_otab, equi_table, otab, tab
 
 
   CHARACTER(len=*), PARAMETER :: modname = 'mo_2mom_mcrph_util'
@@ -94,6 +97,9 @@ MODULE mo_2mom_mcrph_util
   ! dummy of internal number of bins (high res part) in case the high resolution part is not really needed:
   INTEGER, PARAMETER                     :: nlookuphr_dummy = 10
 
+  !..Tables for 4D Segal-Khain activation
+  TYPE(lookupt_4D) :: otab, tab
+  
   ! Type to hold the lookup table for the incomplete gamma functions.
   ! The table is divided into a low resolution part, which spans the
   ! whole range of x-values up to the 99.5 % x-value, and a high resolution part for the
@@ -1528,7 +1534,254 @@ CONTAINS
 
     RETURN
   END FUNCTION dmin_wg_gr_ltab_equi
+  
+  SUBROUTINE get_otab(n_r2,n_lsigs,n_ncn,n_wcb)
 
+    INTEGER, INTENT(IN) :: n_r2,n_lsigs,n_ncn,n_wcb
+
+    otab%n1 = n_r2
+    otab%n2 = n_lsigs
+    otab%n3 = n_ncn + 1
+    otab%n4 = n_wcb + 1
+    
+    IF (.NOT. ASSOCIATED(otab%x1) ) THEN
+      ALLOCATE( otab%x1(otab%n1) )
+      ALLOCATE( otab%x2(otab%n2) )
+      ALLOCATE( otab%x3(otab%n3) )
+      ALLOCATE( otab%x4(otab%n4) )
+      ALLOCATE( otab%ltable(otab%n1,otab%n2,otab%n3,otab%n4) )
+    END IF
+    
+    ! original (non-)equidistant table vectors:
+    ! r2:
+    otab%x1  = (/0.02d0, 0.03d0, 0.04d0/)     ! in 10^(-6) m
+    ! lsigs:
+    otab%x2  = (/0.1d0, 0.2d0, 0.3d0, 0.4d0, 0.5d0/)
+    ! n_cn: (UB: um 0.0 m**-3 ergaenzt zur linearen Interpolation zw. 0.0 und 50e6 m**-3)
+    otab%x3  = (/0.0d6, 50.d06, 100.d06, 200.d06, 400.d06, 800.d06, 1600.d06, 3200.d06, 6400.d06/) ! in m**-3
+    ! wcb: (UB: um 0.0 m/s ergaenzt zur linearen Interpolation zw. 0.0 und 0.5 m/s)
+    otab%x4  = (/0.0d0, 0.5d0, 1.0d0, 2.5d0, 5.0d0/)
+    
+    ! look up table for NCCN activated at given R2, lsigs, Ncn and wcb:
+    
+    ! Ncn              50       100       200       400       800       1600      3200      6400
+    ! table4a (R2=0.02mum, wcb=0.5m/s) (for Ncn=3200  and Ncn=6400 "extrapolated")
+    otab%ltable(1,1,2:otab%n3,2) =  (/  42.2d06,  70.2d06, 112.2d06, 173.1d06, 263.7d06, 397.5d06, 397.5d06, 397.5d06/)
+    otab%ltable(1,2,2:otab%n3,2) =  (/  35.5d06,  60.1d06, 100.0d06, 163.9d06, 264.5d06, 418.4d06, 418.4d06, 418.4d06/)
+    otab%ltable(1,3,2:otab%n3,2) =  (/  32.6d06,  56.3d06,  96.7d06, 163.9d06, 272.0d06, 438.5d06, 438.5d06, 438.5d06/)
+    otab%ltable(1,4,2:otab%n3,2) =  (/  30.9d06,  54.4d06,  94.6d06, 162.4d06, 271.9d06, 433.5d06, 433.5d06, 433.5d06/)
+    otab%ltable(1,5,2:otab%n3,2) =  (/  29.4d06,  51.9d06,  89.9d06, 150.6d06, 236.5d06, 364.4d06, 364.4d06, 364.4d06/)
+    ! table4b (R2=0.02mum, wcb=1.0m/s) (for Ncn=50 "interpolted" and Ncn=6400 extrapolated)
+    otab%ltable(1,1,2:otab%n3,3) =  (/  45.3d06,  91.5d06, 158.7d06, 264.4d06, 423.1d06, 672.5d06, 397.5d06, 397.5d06/)
+    otab%ltable(1,2,2:otab%n3,3) =  (/  38.5d06,  77.1d06, 133.0d06, 224.9d06, 376.5d06, 615.7d06, 418.4d06, 418.4d06/)
+    otab%ltable(1,3,2:otab%n3,3) =  (/  35.0d06,  70.0d06, 122.5d06, 212.0d06, 362.1d06, 605.3d06, 438.5d06, 438.5d06/)
+    otab%ltable(1,4,2:otab%n3,3) =  (/  32.4d06,  65.8d06, 116.4d06, 204.0d06, 350.6d06, 584.4d06, 433.5d06, 433.5d06/)
+    otab%ltable(1,5,2:otab%n3,3) =  (/  31.2d06,  62.3d06, 110.1d06, 191.3d06, 320.6d06, 501.3d06, 364.4d06, 364.4d06/)
+    ! table4c (R2=0.02mum, wcb=2.5m/s) (for Ncn=50 and Ncn=100 "interpolated")
+    otab%ltable(1,1,2:otab%n3,4) =  (/  50.3d06, 100.5d06, 201.1d06, 373.1d06, 664.7d06,1132.8d06,1876.8d06,2973.7d06/)
+    otab%ltable(1,2,2:otab%n3,4) =  (/  44.1d06,  88.1d06, 176.2d06, 314.0d06, 546.9d06, 941.4d06,1579.2d06,2542.2d06/)
+    otab%ltable(1,3,2:otab%n3,4) =  (/  39.7d06,  79.5d06, 158.9d06, 283.4d06, 498.9d06, 865.9d06,1462.6d06,2355.8d06/)
+    otab%ltable(1,4,2:otab%n3,4) =  (/  37.0d06,  74.0d06, 148.0d06, 264.6d06, 468.3d06, 813.3d06,1371.3d06,2137.2d06/)
+    otab%ltable(1,5,2:otab%n3,4) =  (/  34.7d06,  69.4d06, 138.8d06, 246.9d06, 432.9d06, 737.8d06,1176.7d06,1733.0d06/)
+    ! table4d (R2=0.02mum, wcb=5.0m/s) (for Ncn=50,100,200 "interpolated")
+    otab%ltable(1,1,2:otab%n3,5) =  (/  51.5d06, 103.1d06, 206.1d06, 412.2d06, 788.1d06,1453.1d06,2585.1d06,4382.5d06/)
+    otab%ltable(1,2,2:otab%n3,5) =  (/  46.6d06,  93.2d06, 186.3d06, 372.6d06, 657.2d06,1202.8d06,2098.0d06,3556.9d06/)
+    otab%ltable(1,3,2:otab%n3,5) =  (/  70.0d06,  70.0d06, 168.8d06, 337.6d06, 606.7d06,1078.5d06,1889.0d06,3206.9d06/)
+    otab%ltable(1,4,2:otab%n3,5) =  (/  42.2d06,  84.4d06, 166.4d06, 312.7d06, 562.2d06,1000.3d06,1741.1d06,2910.1d06/)
+    otab%ltable(1,5,2:otab%n3,5) =  (/  36.5d06,  72.9d06, 145.8d06, 291.6d06, 521.0d06, 961.1d06,1551.1d06,2444.6d06/)
+    ! table5a (R2=0.03mum, wcb=0.5m/s)  (for Ncn=3200  and Ncn=6400 "extrapolated")
+    otab%ltable(2,1,2:otab%n3,2) =  (/  50.0d06,  95.8d06, 176.2d06, 321.6d06, 562.3d06, 835.5d06, 835.5d06, 835.5d06/)
+    otab%ltable(2,2,2:otab%n3,2) =  (/  44.7d06,  81.4d06, 144.5d06, 251.5d06, 422.7d06, 677.8d06, 677.8d06, 677.8d06/)
+    otab%ltable(2,3,2:otab%n3,2) =  (/  40.2d06,  72.8d06, 129.3d06, 225.9d06, 379.9d06, 606.5d06, 606.5d06, 606.5d06/)
+    otab%ltable(2,4,2:otab%n3,2) =  (/  37.2d06,  67.1d06, 119.5d06, 206.7d06, 340.5d06, 549.4d06, 549.4d06, 549.4d06/)
+    otab%ltable(2,5,2:otab%n3,2) =  (/  33.6d06,  59.0d06,  99.4d06, 150.3d06, 251.8d06, 466.0d06, 466.0d06, 466.0d06/)
+    ! table5b (R2=0.03mum, wcb=1.0m/s) (Ncn=50 "interpolated", Ncn=6400 "extrapolated)
+    otab%ltable(2,1,2:otab%n3,3) =  (/  50.7d06, 101.4d06, 197.6d06, 357.2d06, 686.6d06,1186.4d06,1892.2d06,1892.2d06/)
+    otab%ltable(2,2,2:otab%n3,3) =  (/  46.6d06,  93.3d06, 172.2d06, 312.1d06, 550.7d06, 931.6d06,1476.6d06,1476.6d06/)
+    otab%ltable(2,3,2:otab%n3,3) =  (/  42.2d06,  84.4d06, 154.0d06, 276.3d06, 485.6d06, 811.2d06,1271.7d06,1271.7d06/)
+    otab%ltable(2,4,2:otab%n3,3) =  (/  39.0d06,  77.9d06, 141.2d06, 251.8d06, 436.7d06, 708.7d06,1117.7d06,1117.7d06/)
+    otab%ltable(2,5,2:otab%n3,3) =  (/  35.0d06,  70.1d06, 123.9d06, 210.2d06, 329.9d06, 511.9d06, 933.4d06, 933.4d06/)
+    ! table5c (R2=0.03mum, wcb=2.5m/s) (for Ncn=50 and Ncn=100 "interpolated")
+    otab%ltable(2,1,2:otab%n3,4) =  (/  51.5d06, 103.0d06, 205.9d06, 406.3d06, 796.4d06,1524.0d06,2781.4d06,4609.3d06/)
+    otab%ltable(2,2,2:otab%n3,4) =  (/  49.6d06,  99.1d06, 198.2d06, 375.5d06, 698.3d06,1264.1d06,2202.8d06,3503.6d06/)
+    otab%ltable(2,3,2:otab%n3,4) =  (/  45.8d06,  91.6d06, 183.2d06, 339.5d06, 618.9d06,1105.2d06,1881.8d06,2930.9d06/)
+    otab%ltable(2,4,2:otab%n3,4) =  (/  42.3d06,  84.7d06, 169.3d06, 310.3d06, 559.5d06, 981.7d06,1611.6d06,2455.6d06/)
+    otab%ltable(2,5,2:otab%n3,4) =  (/  38.2d06,  76.4d06, 152.8d06, 237.3d06, 473.3d06, 773.1d06,1167.9d06,1935.0d06/)
+    ! table5d (R2=0.03mum, wcb=5.0m/s) (for Ncn=50,100,200 "interpolated")
+    otab%ltable(2,1,2:otab%n3,5) =  (/  51.9d06, 103.8d06, 207.6d06, 415.1d06, 819.6d06,1616.4d06,3148.2d06,5787.9d06/)
+    otab%ltable(2,2,2:otab%n3,5) =  (/  50.7d06, 101.5d06, 203.0d06, 405.9d06, 777.0d06,1463.8d06,2682.6d06,4683.0d06/)
+    otab%ltable(2,3,2:otab%n3,5) =  (/  47.4d06,  94.9d06, 189.7d06, 379.4d06, 708.7d06,1301.3d06,2334.3d06,3951.8d06/)
+    otab%ltable(2,4,2:otab%n3,5) =  (/  44.0d06,  88.1d06, 176.2d06, 352.3d06, 647.8d06,1173.0d06,2049.7d06,3315.6d06/)
+    otab%ltable(2,5,2:otab%n3,5) =  (/  39.7d06,  79.4d06, 158.8d06, 317.6d06, 569.5d06, 988.5d06,1615.6d06,2430.3d06/)
+    ! table6a (R2=0.04mum, wcb=0.5m/s) (for Ncn=3200  and Ncn=6400 "extrapolated")
+    otab%ltable(3,1,2:otab%n3,2) =  (/  50.6d06, 100.3d06, 196.5d06, 374.7d06, 677.3d06,1138.9d06,1138.9d06,1138.9d06/)
+    otab%ltable(3,2,2:otab%n3,2) =  (/  48.4d06,  91.9d06, 170.6d06, 306.9d06, 529.2d06, 862.4d06, 862.4d06, 862.4d06/)
+    otab%ltable(3,3,2:otab%n3,2) =  (/  44.4d06,  82.5d06, 150.3d06, 266.4d06, 448.0d06, 740.7d06, 740.7d06, 740.7d06/)
+    otab%ltable(3,4,2:otab%n3,2) =  (/  40.9d06,  75.0d06, 134.7d06, 231.9d06, 382.1d06, 657.6d06, 657.6d06, 657.6d06/)
+    otab%ltable(3,5,2:otab%n3,2) =  (/  34.7d06,  59.3d06,  93.5d06, 156.8d06, 301.9d06, 603.8d06, 603.8d06, 603.8d06/)
+    ! table6b (R2=0.04mum, wcb=1.0m/s) (Ncn=50 "interpolated", Ncn=6400 "extrapolated)
+    otab%ltable(3,1,2:otab%n3,3) =  (/  50.9d06, 101.7d06, 201.8d06, 398.8d06, 773.7d06,1420.8d06,2411.8d06,2411.8d06/)
+    otab%ltable(3,2,2:otab%n3,3) =  (/  49.4d06,  98.9d06, 189.7d06, 356.2d06, 649.5d06,1117.9d06,1805.2d06,1805.2d06/)
+    otab%ltable(3,3,2:otab%n3,3) =  (/  45.6d06,  91.8d06, 171.5d06, 314.9d06, 559.0d06, 932.8d06,1501.6d06,1501.6d06/)
+    otab%ltable(3,4,2:otab%n3,3) =  (/  42.4d06,  84.7d06, 155.8d06, 280.5d06, 481.9d06, 779.0d06,1321.9d06,1321.9d06/)
+    otab%ltable(3,5,2:otab%n3,3) =  (/  36.1d06,  72.1d06, 124.4d06, 198.4d06, 319.1d06, 603.8d06,1207.6d06,1207.6d06/)
+    ! table6c (R2=0.04mum, wcb=2.5m/s) (for Ncn=50 and Ncn=100 "interpolated")
+    otab%ltable(3,1,2:otab%n3,4) =  (/  51.4d06, 102.8d06, 205.7d06, 406.9d06, 807.6d06,1597.5d06,3072.2d06,5393.9d06/)
+    otab%ltable(3,2,2:otab%n3,4) =  (/  50.8d06, 101.8d06, 203.6d06, 396.0d06, 760.4d06,1422.1d06,2517.4d06,4062.8d06/)
+    otab%ltable(3,3,2:otab%n3,4) =  (/  48.2d06,  96.4d06, 193.8d06, 367.3d06, 684.0d06,1238.3d06,2087.3d06,3287.1d06/)
+    otab%ltable(3,4,2:otab%n3,4) =  (/  45.2d06,  90.4d06, 180.8d06, 335.7d06, 611.2d06,1066.3d06,1713.4d06,2780.3d06/)
+    otab%ltable(3,5,2:otab%n3,4) =  (/  38.9d06,  77.8d06, 155.5d06, 273.7d06, 455.2d06, 702.2d06,1230.7d06,2453.7d06/)
+    ! table6d (R2=0.04mum, wcb=5.0m/s) (for Ncn=50,100,200 "interpolated")
+    otab%ltable(3,1,2:otab%n3,5) =  (/  53.1d06, 106.2d06, 212.3d06, 414.6d06, 818.3d06,1622.2d06,3216.8d06,6243.9d06/)
+    otab%ltable(3,2,2:otab%n3,5) =  (/  51.6d06, 103.2d06, 206.3d06, 412.5d06, 805.3d06,1557.4d06,2940.4d06,5210.1d06/)
+    otab%ltable(3,3,2:otab%n3,5) =  (/  49.6d06,  99.2d06, 198.4d06, 396.7d06, 755.5d06,1414.5d06,2565.3d06,4288.1d06/)
+    otab%ltable(3,4,2:otab%n3,5) =  (/  46.5d06,  93.0d06, 186.0d06, 371.9d06, 692.9d06,1262.0d06,2188.3d06,3461.2d06/)
+    otab%ltable(3,5,2:otab%n3,5) =  (/  39.9d06,  79.9d06, 159.7d06, 319.4d06, 561.7d06, 953.9d06,1493.9d06,2464.7d06/)
+    
+    ! Additional values for wcb = 0.0 m/s, which are used for linear interpolation between
+    ! wcb = 0.0 and 0.5 m/s. Values of 0.0 are reasonable here, because if no
+    ! updraft is present, no new nucleation will take place:
+    otab%ltable(:,:,:,1) = 0.0d0
+    ! Additional values for n_cn = 0.0 m**-3, which are used for linear interpolation between
+    ! n_cn = 0.0 and 50 m**-3. Values of 0.0 are reasonable, because if no aerosol
+    ! particles are present, no nucleation will take place:
+    otab%ltable(:,:,1,:) = 0.0d0
+    
+    !!! otab%dx1 ... otab%odx4 remain empty because this is a non-equidistant table.
+    
+  END SUBROUTINE get_otab
+    
+  SUBROUTINE equi_table(nr2,nlsigs,nncn,nwcb)
+    
+    INTEGER, INTENT(IN) :: nr2,nlsigs,nncn,nwcb
+    
+    INTEGER :: i, j, k, l, ii, iu, ju,ku, lu
+    INTEGER, ALLOCATABLE, DIMENSION(:) :: iuv, juv, kuv, luv
+    DOUBLE PRECISION :: odx1, odx2, odx3, odx4
+    DOUBLE PRECISION :: hilf1(2,2,2,2), hilf2(2,2,2), hilf3(2,2), hilf4(2)
+    
+    tab%n1 = nr2
+    tab%n2 = nlsigs
+    tab%n3 = nncn
+    tab%n4 = nwcb
+    
+    IF (.NOT. ASSOCIATED(tab%x1)) THEN
+      ALLOCATE( tab%x1(tab%n1) )
+      ALLOCATE( tab%x2(tab%n2) )
+      ALLOCATE( tab%x3(tab%n3) )
+      ALLOCATE( tab%x4(tab%n4) )
+      ALLOCATE( tab%ltable(tab%n1,tab%n2,tab%n3,tab%n4) )
+    END IF
+    
+    !===========================================================
+    ! construct equidistant table:
+    !===========================================================
+    
+    ! grid distances (also inverse):
+    tab%dx1  = (otab%x1(otab%n1) - otab%x1(1)) / (tab%n1 - 1.0d0)  ! dr2
+    tab%odx1 = 1.0d0 / tab%dx1
+    tab%dx2  = (otab%x2(otab%n2) - otab%x2(1)) / (tab%n2 - 1.0d0)  ! dlsigs
+    tab%odx2 = 1.0d0 / tab%dx2
+    tab%dx3  = (otab%x3(otab%n3) - otab%x3(1)) / (tab%n3 - 1.0d0)  ! dncn
+    tab%odx3 = 1.0d0 / tab%dx3
+    tab%dx4  = (otab%x4(otab%n4) - otab%x4(1)) / (tab%n4 - 1.0d0)  ! dwcb
+    tab%odx4 = 1.0d0 / tab%dx4
+    
+    ! grid vectors:
+    DO i=1, tab%n1
+      tab%x1(i) = otab%x1(1) + (i-1) * tab%dx1
+    END DO
+    DO i=1, tab%n2
+      tab%x2(i) = otab%x2(1) + (i-1) * tab%dx2
+    END DO
+    DO i=1, tab%n3
+      tab%x3(i) = otab%x3(1) + (i-1) * tab%dx3
+    END DO
+    DO i=1, tab%n4
+      tab%x4(i) = otab%x4(1) + (i-1) * tab%dx4
+    END DO
+      
+    ! Tetra-linear interpolation of the new equidistant lookuptable from
+    ! the original non-equidistant table:
+    
+    ALLOCATE(iuv(tab%n1))
+    ALLOCATE(juv(tab%n2))
+    ALLOCATE(kuv(tab%n3))
+    ALLOCATE(luv(tab%n4))
+    
+    DO l=1, tab%n1
+      iuv(l) = 1
+      DO ii=1, otab%n1 - 1
+        IF (tab%x1(l) >= otab%x1(ii) .AND. tab%x1(l) <= otab%x1(ii+1)) THEN
+          iuv(l) = ii
+          EXIT
+        END IF
+      END DO
+    END DO
+    
+    DO l=1, tab%n2
+      juv(l) = 1
+      DO ii=1, otab%n2 - 1
+        IF (tab%x2(l) >= otab%x2(ii) .AND. tab%x2(l) <= otab%x2(ii+1)) THEN
+          juv(l) = ii
+          EXIT
+        END IF
+      END DO
+    END DO
+    
+    DO l=1, tab%n3
+      kuv(l) = 1
+      DO ii=1, otab%n3 - 1
+        IF (tab%x3(l) >= otab%x3(ii) .AND. tab%x3(l) <= otab%x3(ii+1)) THEN
+          kuv(l) = ii
+          EXIT
+        END IF
+      END DO
+    END DO
+    
+    DO l=1, tab%n4
+      luv(l) = 1
+      DO ii=1, otab%n4 - 1
+        IF (tab%x4(l) >= otab%x4(ii) .AND. tab%x4(l) <= otab%x4(ii+1)) THEN
+          luv(l) = ii
+          EXIT
+        END IF
+      END DO
+    END DO
+    
+    ! Tetra-linear interpolation:
+    
+    DO l=1, tab%n4
+      lu = luv(l)
+      odx4 = 1.0d0 / ( otab%x4(lu+1) - otab%x4(lu) )
+!NEC$ ivdep
+      DO k=1, tab%n3
+        ku = kuv(k)
+        odx3 = 1.0d0 / ( otab%x3(ku+1) - otab%x3(ku) )
+!NEC$ unroll_completely
+        DO j=1, nlsigs ! It should be equal to tab%n2, but the variable is needed by the Vector compiler
+          ju = juv(j)
+          odx2 = 1.0d0 / ( otab%x2(ju+1) - otab%x2(ju) )
+!NEC$ unroll_completely
+          DO i=1, nr2 !  It should be equal to tab%n1, but the variable is needed by the Vector compiler
+            iu = iuv(i)
+            odx1 = 1.0d0 / ( otab%x1(iu+1) - otab%x1(iu) )
+            hilf1 = otab%ltable( iu:iu+1, ju:ju+1, ku:ku+1, lu:lu+1)
+            hilf2 = hilf1(1,1:2,1:2,1:2) + (hilf1(2,1:2,1:2,1:2) - hilf1(1,1:2,1:2,1:2)) * odx1 * ( tab%x1(i) - otab%x1(iu) )
+            hilf3 = hilf2(1,1:2,1:2)     + (hilf2(2,1:2,1:2)     - hilf2(1,1:2,1:2)  )   * odx2 * ( tab%x2(j) - otab%x2(ju) )
+            hilf4 = hilf3(1,1:2)         + (hilf3(2,1:2)         - hilf3(1,1:2)    )     * odx3 * ( tab%x3(k) - otab%x3(ku) )
+            tab%ltable(i,j,k,l) = hilf4(1) +  ( hilf4(2) - hilf4(1) ) * odx4 * ( tab%x4(l) - otab%x4(lu) )
+          END DO
+        END DO
+      END DO
+    END DO
+    
+    ! clean up memory:
+    DEALLOCATE(iuv,juv,kuv,luv)
+
+    RETURN
+  END SUBROUTINE equi_table 
+  
   !*******************************************************************************
   ! 4D rational function to approximate the dmin_wetgrowth_table                 *
   ! for dmin_graupelhail2test4_wetgrowth_lookup.dat                              *
