@@ -12,14 +12,9 @@ tests:
 
   - name: atm_qubicc_nc_test
     machines:
-      - name: daint
-        runflags: ['cpu_time=00:30:00']
-    tags: ['merge2rc','atm','probtest']
-    refgen: ['DAINT_CPU_nvidia','DAINT_CPU_cce']
+      - name: levante
+        include_only: ['levante_cpu_nvhpc','levante_gpu_nvhpc']
+    tags: ['merge2rc','atm']
     checksuite_modes:
-      - daint: 't'
       - levante_cpu_nvhpc: 'rnmo'
       - levante_gpu_nvhpc: 'rmo'
-    ensemble_num:
-      - DAINT_CPU_nvidia: [50,21,39,38,17]
-      - DAINT_CPU_cce: [50,21,39,38,17]

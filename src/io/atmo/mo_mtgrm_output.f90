@@ -2004,18 +2004,6 @@ CONTAINS
             = sfc_var_info(ivar)%p_source(iidx, iblk)
         END DO
         ! convert some units of variables to the desired output units:
-!!! THE FOLLOWING WOULD BE THE CONVENIENT FORTRAN SOLUTION,
-!!! BUT TRIM() IN THIS CONTEXT SEEMS NOT TO BE SUPPORTED ON DAINT_GPU
-!        SELECT CASE (TRIM(sfc_var_info(ivar)%cf%standard_name))
-!        CASE ('DBZLMX_LOW','DBZ_850','DBZ_CMAX','DBZ_CTMAX')
-!          !$ACC LOOP VECTOR PRIVATE(istation_buf)
-!          DO istation = 1, ithis_nlocal_pts
-!            istation_buf = buf_idx(istation)
-!            out_buf%sfc_vars(ivar)%a(istation_buf, i_tstep) &
-!              =  z10olog10 * LOG( MAX(out_buf%sfc_vars(ivar)%a(istation_buf, i_tstep), eps_dbz) )
-!          END DO
-!        END SELECT
-!!! SO WE TRY THIS HACK INSTEAD:
         IF (sfc_var_info(ivar)%cf%standard_name(1:3) == 'DBZ') THEN
           !$ACC LOOP VECTOR PRIVATE(istation_buf)
           DO istation = 1, ithis_nlocal_pts
