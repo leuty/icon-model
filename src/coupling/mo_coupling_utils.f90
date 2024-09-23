@@ -358,9 +358,9 @@ CONTAINS
 
     ! set global indices and core masks
     CALL set_basic_info( &
-      p_patch%cells%decomp_info, YAC_LOCATION_CELL, nbr_inner_cells)
+      p_patch%cells%decomp_info, YAC_LOCATION_CELL, .TRUE., nbr_inner_cells)
     CALL set_basic_info( &
-      p_patch%verts%decomp_info, YAC_LOCATION_CORNER)
+      p_patch%verts%decomp_info, YAC_LOCATION_CORNER, .FALSE.)
 !     CALL set_basic_info( &
 !       p_patch%edges%decomp_info, YAC_LOCATION_EDGE)
 
@@ -368,10 +368,11 @@ CONTAINS
 
   CONTAINS
 
-    SUBROUTINE set_basic_info(decomp_info, location, core_count)
+    SUBROUTINE set_basic_info(decomp_info, location, set_core_mask, core_count)
 
       TYPE(t_grid_domain_decomp_info), INTENT(IN) :: decomp_info
       INTEGER, INTENT(IN) :: location
+      LOGICAL, INTENT(IN) :: set_core_mask
       INTEGER, OPTIONAL, INTENT(OUT) :: core_count
 
       INTEGER :: i, point_count
@@ -402,8 +403,10 @@ CONTAINS
 !ICON_OMP_END_PARALLEL_DO
       END IF
 
-      ! Define core mask
-      CALL yac_fset_core_mask ( is_valid, location, grid_id )
+      IF (set_core_mask) THEN
+        ! Define core mask
+        CALL yac_fset_core_mask ( is_valid, location, grid_id )
+      END IF
 
     END SUBROUTINE set_basic_info
 
