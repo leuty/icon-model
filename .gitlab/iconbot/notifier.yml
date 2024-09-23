@@ -35,7 +35,9 @@
       - configure.ac
       - dep*.config.in
       - m4/*
+      - src/shared/mo_util_vcs.f90
       - utils/mkhelper/*
+      - utils/pvcs.py
     labels: [Build system]
     mentions: [m300488]
   # GPU-related changes:

@@ -504,7 +504,7 @@ CONTAINS
 #ifdef __SCT__
 
     USE mo_util_sysinfo,    ONLY: util_user_name, util_os_system, util_node_name
-    USE mo_util_vcs,        ONLY: util_repository_url, util_branch_name, util_revision_key
+    USE mo_util_vcs,        ONLY: get_revision, get_remote_url, get_local_branch
     USE mtime,              ONLY: timedelta, newTimedelta, deallocateTimedelta, &
          &                        OPERATOR(-), timedeltaToString, max_timedelta_str_len
     USE mo_time_config,     ONLY: time_config 
@@ -514,9 +514,6 @@ CONTAINS
     
     INTEGER :: istat
     
-    CHARACTER(len=256) :: repository  = ''
-    CHARACTER(len=256) :: branch      = ''
-    CHARACTER(len=256) :: revision    = ''
     CHARACTER(len=256) :: executable  = ''
     CHARACTER(len=256) :: user_name   = ''
     CHARACTER(len=256) :: os_name     = ''
@@ -527,19 +524,12 @@ CONTAINS
     CHARACTER(len=256) :: submit_date = ''        
     CHARACTER(len=256) :: tmp_string  = ''
     
-    INTEGER :: nlen, nlena, nlenb, nlenc, nlend
+    INTEGER :: nlena, nlenb, nlenc, nlend
 
     CHARACTER(len=max_timedelta_str_len) :: tdstring
     TYPE(timedelta), POINTER :: length_of_run
 
     CHARACTER(len=6) :: gridstring
-    
-    nlen = 256
-    call util_repository_url(repository, nlen)
-    nlen = 256
-    call util_branch_name(branch, nlen)
-    nlen = 256
-    call util_revision_key(revision, nlen)
     
     tmp_string = ''
     CALL util_os_system (tmp_string, nlena)
@@ -571,9 +561,9 @@ CONTAINS
     
     CALL sct_add_report_attribute('model',                 'icon')
     CALL sct_add_report_attribute('executable',            executable)
-    CALL sct_add_report_attribute('repository',            repository)
-    CALL sct_add_report_attribute('branch',                branch)
-    CALL sct_add_report_attribute('revision',              revision)
+    CALL sct_add_report_attribute('revision',              get_revision('icon'))
+    CALL sct_add_report_attribute('remote_url',            get_remote_url('icon'))
+    CALL sct_add_report_attribute('branch',                get_local_branch('icon'))
     CALL sct_add_report_attribute('user name',             user_name)
     CALL sct_add_report_attribute('operating system name', os_name)
     CALL sct_add_report_attribute('experiment name',       expname)

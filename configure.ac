@@ -2779,13 +2779,6 @@ ACX_PROG_SEARCH([PYTHON], [python3 python],
    AC_TRY_EVAL([icon_prog_try])],
   [PYTHON=$acx_cv_prog_PYTHON])
 
-AC_ARG_VAR([PERL], [Perl interpreter command])dnl
-ACX_PROG_SEARCH([PERL], [perl],
-  [icon_prog_try='$acx_candidate $srcdir/utils/pvcs.pl --help >/dev/null'
-   AC_TRY_EVAL([icon_prog_try])
-   test $ac_status -eq 0 || test $ac_status -eq 1],
-  [PERL=$acx_cv_prog_PERL])
-
 AC_ARG_VAR([CMAKE], [CMake command])dnl
 AS_IF([test -n "$icon_bundled_cmake_builddirs"],
   [ACX_PROG_SEARCH([CMAKE], [cmake],

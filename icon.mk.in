@@ -15,6 +15,10 @@ srcdir:= @srcdir@
 # Relative paths to the directories with the ICON source code:
 subdirs:= src support
 
+# Relative (to $(srcdir)) paths to the root source directories of all bundled
+# packages:
+bundled_srcdirs = @icon_bundled_srcdirs@
+
 # Relative paths to the root build directories of all bundled packages:
 bundled_builddirs= @icon_bundled_builddirs@
 
@@ -59,8 +63,8 @@ CXX= @CXX@
 CUDACXX= @CUDACXX@
 HIPCXX= @HIPCXX@
 PYTHON= @PYTHON@
-PERL= @PERL@
 CMAKE= @CMAKE@
+PVCS= ${PYTHON} $(srcdir)/utils/pvcs.py
 DEPLIST= ${PYTHON} $(srcdir)/utils/mkhelper/deplist.py
 DEPGEN= ${PYTHON} $(srcdir)/utils/mkhelper/depgen.py
 MODCMP= ${PYTHON} $(srcdir)/utils/mkhelper/fortmodcmp.py
@@ -112,21 +116,29 @@ find_files= $(sort $(patsubst $(srcdir)/%,%, \
 # All source files:
 all_files:= $(call find_files,$(subdirs),'*.f90' '*.inc' '*.incf' '*.c' '*.cu' '*.hip.cc')
 
+# Relative (to $(srcdir)) paths to the root source directories of all extra
+# packages to be passed to the version provenance collection tool:
+PVCS_subdirs= $(bundled_srcdirs)
+
 # JSBACH sources (must be preprocessed with DSL4JSB):
 @JSBACH_ENABLED@JSBACH_subdir:= externals/jsbach/src
 @JSBACH_ENABLED@JSBACH_dsl_files:= $(call find_files,$(JSBACH_subdir),'*.f90')
+@JSBACH_ENABLED@PVCS_subdirs+= externals/jsbach
 
 # DACE sources:
 @DACE_ENABLED@DACE_subdir:= externals/dace_icon/src_for_icon
 @DACE_ENABLED@all_files+= $(call find_files,$(DACE_subdir),'*.f90' '*.inc' '*.incf' '*.c')
+@DACE_ENABLED@PVCS_subdirs+= externals/dace_icon
 
 # EMVORADO sources:
 @EMVORADO_ENABLED@EMVORADO_subdir:= externals/emvorado
 @EMVORADO_ENABLED@all_files+= $(call find_files,$(EMVORADO_subdir),'*.f90' '*.incf')
+@EMVORADO_ENABLED@PVCS_subdirs+= $(EMVORADO_subdir)
 
 # ART sources:
 @ART_ENABLED@ART_subdir:= externals/art
 @ART_ENABLED@all_files+= $(call find_files,$(ART_subdir),'*.f90' '*.inc' '*.incf')
+@ART_ENABLED@PVCS_subdirs+= $(ART_subdir)
 
 # Fortran '.f90' source files:
 f90_files:= $(filter %.f90,$(all_files))
@@ -190,7 +202,7 @@ get_obj_names= $(patsubst %.f90,%.@OBJEXT@,$(filter $(foreach f,$(1),$(f:f90=)%f
 
 # ICON executable:
 ICON_exec_file:= $(bindir)/icon@EXEEXT@
-ICON_prog_obj_files:= $(call get_obj_names,src/drivers/icon.f90)
+ICON_prog_obj_files:= $(call get_obj_names,src/drivers/icon.f90) version.@OBJEXT@
 @HIP_OVERRIDES_ENABLED@ICON_prog_obj_files+= support/dummy_hip_events.@OBJEXT@
 exec_files+= $(ICON_exec_file)
 
@@ -648,9 +660,10 @@ $(BUNDLED_LIBFILES): $(bundled_builddirs);
 
 ############################### AUXILIARY RULES ################################
 
-# Version source file generation rule:
+# Version file generation rules:
+version.@OBJEXT@: config.h
 version.c: force-create-version
-	$(silent_GEN)$(PERL) $(srcdir)/utils/pvcs.pl --srcdir $(srcdir) --builddir .
+	$(silent_GEN)$(PVCS) --srcdir $(srcdir) --output $@ --subdirs $(PVCS_subdirs)
 
 # Directory creation rule:
 %/.dirstamp:
@@ -682,8 +695,6 @@ c_binding.d: icon.mk
 	$(silent_DEPGEN):;{ \
 	  echo '$(call get_obj_names,src/io/restart/mo_c_restart_util.f90): #-hint support/util_multifile_restart.@OBJEXT@'; \
 	  echo '$(call get_obj_names,support/mo_util_uuid.f90): #-hint support/util_uuid.@OBJEXT@'; \
-	  echo '$(call get_obj_names,src/shared/mo_util_vcs.f90): #-hint version.@OBJEXT@'; \
-	  echo '@ART_ENABLED@$(call get_obj_names,$(ART_subdir)/shared/mo_art_util_vcs.f90): #-hint version.@OBJEXT@'; \
 	  echo '@GPU_ENABLED@$(call get_obj_names,src/shared/mo_index_list.f90): #-hint support/index_list.@OBJEXT@'; \
 	  echo '@DACE_ENABLED@$(call get_obj_names,$(DACE_subdir)/mo_wigos.f90): #-hint $(DACE_subdir)/dace_md5_ifc.@OBJEXT@ $(DACE_subdir)/md5.@OBJEXT@'; \
 	} >$@
