@@ -95,6 +95,20 @@ $addexp "checksuite.ocean_internal/hamocc/exp.test_concurrent_hamocc_omip_10days
 $addexp "checksuite.ocean_internal/technical/exp.test_multioutput_model_40km" \
 	--machines levante --without-configureflags "--without-mpi --with-openmp --enable-mixed" --runflags "cpu_time=00:30:00 no_of_nodes=2 queue=compute" --list $listname
 
+#-----------------------------------------------------------
+# communication + seamless + oce lrestart cont
+# These mistral tests need to be re-added
+
+#-----------------------------------------------------------
+# CSCS
+# Additional tests for GPU
+
+# NVIDIA for GPU: failing currently because:
+#              mo_ice_interface:ice_fast_interface: This part has not been ported to GPU.
+./rmexp checksuite.ocean_internal/technical/exp.ocean_omip_ptest          --builders "DAINT_GPU_nvidia" --list $listname
+./rmexp checksuite.ocean_internal/technical/exp.test_ocean_omip_technical --builders "DAINT_GPU_nvidia" --list $listname
+
+
 # add experiments relevant for C2SM from yml-config
 ./../experiments/addexp_from_yml --list $listname
 

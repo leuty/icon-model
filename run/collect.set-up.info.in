@@ -58,7 +58,7 @@ use_site='local.net'
 case "$use_host" in
   kfa-juelich.de|fz-juelich.de|*jureca*|*juwels*) use_site=juelich.de ;;
   l*.lvt.dkrz.de|aurora*) use_site=dkrz.de ;;
-  tave*|santis*|balfrin*|tasna*) use_site=cscs.ch ;;
+  daint*|tave*|santis*|kesch*|tsa*|balfrin*|tasna*) use_site=cscs.ch ;;
   uc2*|fh2*|hk*) use_site=kit.edu ;;
   xc*|rcnl*|oflws*|omlws*|gpnl*) use_site=dwd.de ;;
   *euler.ethz.ch) use_site=ethz.ch ;;
@@ -72,11 +72,11 @@ case "$use_host" in
   uan0?) use_site=csc.fi ;;
   nid*)
     case $(sacctmgr -nP show cluster Format=Cluster | head -1) in
-      balfrin) use_site=cscs.ch ;;
+      balfrin|daint) use_site=cscs.ch ;;
       lumi) use_site=csc.fi ;;
       *)
         case ${SLURM_CLUSTER_NAME} in
-          balfrin) use_site=cscs.ch ;;
+          balfrin|daint) use_site=cscs.ch ;;
           lumi) use_site=csc.fi ;;
         esac
         ;;
@@ -119,6 +119,14 @@ test -n '@MPI_LAUNCH@' && use_mpi_startrun='@MPI_LAUNCH@ -n $mpi_total_procs'
 case "$use_site" in
   cscs.ch)
     case "${HOST:-$(hostname)}" in
+      *daint*|*dom*)
+        use_load_profile='. /opt/modules/default/etc/modules.sh'
+        use_submit='sbatch'
+        use_sync_submit='sbatch --wait'
+        use_mpi_startrun='srun -n $mpi_total_procs --ntasks-per-node $mpi_procs_pernode --threads-per-core=1 --cpus-per-task $OMP_NUM_THREADS'
+        if test xyes = x"${use_gpu}"; then use_target='daint_gpu'; else use_target='daint_cpu'; fi
+      ;;
+
       # alps_mch (nid will be changed to balfrin)
       *nid*|*balfrin*|*tasna*)
         if test -f "/etc/xthostname"; then
@@ -145,6 +153,21 @@ case "$use_site" in
         use_target='tave_knl'
       ;;
 
+      *tsa*)
+        use_load_profile='. /etc/profile.d/modules.sh'
+        use_submit='sbatch'
+        use_sync_submit='sbatch --wait'
+        use_mpi_startrun='srun -n $mpi_total_procs --ntasks-per-node $mpi_procs_pernode --threads-per-core=1 --cpus-per-task $OMP_NUM_THREADS'
+        if test xyes = x"${use_gpu}"; then use_target='tsa_gpu'; else use_target='tsa_cpu'; fi
+      ;;
+
+      *kesch*)
+        use_load_profile='. /etc/profile.d/modules.sh'
+        use_submit='sbatch'
+        use_sync_submit='sbatch --wait'
+        use_mpi_startrun='srun -n $mpi_total_procs --ntasks-per-node $mpi_procs_pernode --threads-per-core=1 --cpus-per-task $OMP_NUM_THREADS'
+        if test xyes = x"${use_gpu}"; then use_target='kesch_gpu'; else use_target='kesch_cpu'; fi
+      ;;
     esac
   ;;
 

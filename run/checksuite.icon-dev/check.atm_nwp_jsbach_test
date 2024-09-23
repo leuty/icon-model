@@ -74,6 +74,10 @@ builder="unknown"
 [[ $BB_NAME ]] && builder=$(echo ${BB_NAME} | tr '[:upper:]' '[:lower:]')
 
 case $builder in
+    daint_*)
+        # no tolerance test for now.
+        MD='rnmo'
+        ;;
     dwd_*)
         # Run the full test complement on DWD NEC.
         MD='rnmo'

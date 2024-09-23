@@ -202,7 +202,7 @@ class ExperimentTestCollection:
                     # check if the key is in the bb_name
                     # i.e. balfrin in balfrin_cpu_nvidia
                     for key, value in item.items():
-                        # lowercase, i.e BALFRIN_CPU_nvidia -> balfrin_cpu_nvidia
+                        # lowercase, i.e DAINT_CPU_nvidia -> daint_cpu_nvidia
                         if key in bb_name.lower():
                             return value
         return default
@@ -305,7 +305,7 @@ class BuildBotInterface(ExperimentTestCollection):
 
     def _register_default_list(self):
         for exp in self.items['tests']:
-            for machine in exp.get('machines', []):
+            for machine in exp['machines']:
                 if 'include_only' in machine:
                     self._add_to_bb_list([exp['check']],
                         builders=machine['include_only'], 

@@ -2059,6 +2059,8 @@ my_thrd_id = omp_get_thread_num()
   END DO
   !$ACC END PARALLEL
   
+  !Attention(MR): Employing precalculation of "wert=z1/tke" introduces differences on 'DAINT_CPU'!
+
   IF (ltmpcor .AND. lcpfluc) THEN !consideration of temperature tendency due to phase-diffusion 
     !  Berechnung des vert. Temp.grad. fuer den Phasendiffusionsterm:
 

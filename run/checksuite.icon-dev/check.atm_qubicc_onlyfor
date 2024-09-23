@@ -72,6 +72,14 @@ export MD='rnmo'
 rundir=`pwd`
 cd checksuite.icon-dev
 
+# load python packages
+case $HOST in
+    *daint*)
+##        export MD='rnmot' # <-- PROVISIONAL, do not add tolerance test, references are missing
+        export PYTHONPATH=""
+        source /project/g110/icon/probtest/conda/miniconda/bin/activate probtest
+esac
+
 ./icon-dev.checksuite
 STATUS=$?
 

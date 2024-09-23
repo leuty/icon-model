@@ -11,11 +11,28 @@
 tests:
   - name: atm_heldsuarez_test
     check: checksuite.icon-dev/check.atm_heldsuarez
+    machines:
+      - name: daint
     tags: ['merge2rc']
+    checksuite_modes:
+      - daint: 'rnmo'
 
   - name: exclaim_ape_R02B04
     check: checksuite.icon-dev/check.exclaim_ape_R02B04
-    tags: ['merge2rc']
+    machines:
+      - name: daint
+        exclude: ['DAINT_CPU_cce']
+    refgen: ['DAINT_CPU_nvidia']
+    tags: ['merge2rc','probtest']
+    ensemble_num:
+      - DAINT_CPU_nvidia: [25,12,13,20,19]
+    checksuite_modes:
+      - daint: 't'
 
   - name: atm_tracer_Hadley
+    machines:
+      - name: daint
+        include_only: ['DAINT_CPU_nvidia']
     tags: ['merge2rc']
+    checksuite_modes:
+      - daint: 'b'
