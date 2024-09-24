@@ -39,7 +39,7 @@ MODULE mo_ocean_output
   USE mo_sea_ice_nml,            ONLY: i_ice_dyn
   USE mo_util_dbg_prnt,          ONLY: dbg_print
   USE mtime,                     ONLY: datetime, MAX_DATETIME_STR_LEN, datetimeToPosixString
-  USE mo_mpi,                    ONLY: i_am_accel_node
+  USE mo_fortran_tools,          ONLY: set_acc_host_or_device
   
   IMPLICIT NONE
 
@@ -63,7 +63,8 @@ CONTAINS
     & surface_fluxes,  &
     & sea_ice,         &
     & jstep, jstep0,   &
-    & force_output)
+    & force_output,    &
+    & lacc)
 
     TYPE(t_patch_3d ),TARGET, INTENT(inout)          :: patch_3d
     TYPE(t_hydro_ocean_state), TARGET, INTENT(inout) :: ocean_state(n_dom)
@@ -72,6 +73,7 @@ CONTAINS
     TYPE (t_sea_ice),         INTENT(inout)          :: sea_ice
     INTEGER,   INTENT(in)                            :: jstep, jstep0
     LOGICAL, OPTIONAL                                :: force_output
+    LOGICAL, INTENT(IN), OPTIONAL :: lacc
    
     ! local variables
     LOGICAL :: use_force_output
@@ -89,7 +91,10 @@ CONTAINS
     !CHARACTER(LEN=filename_max)  :: outputfile, gridfile
     CHARACTER(LEN=max_char_length), PARAMETER :: &
       & routine = 'mo_ocean_output:output_ocean'
+    LOGICAL :: lzacc
     !------------------------------------------------------------------
+
+    CALL set_acc_host_or_device(lzacc, lacc)
 
     patch_2D      => patch_3d%p_patch_2d(1)
     jg = 1
@@ -115,7 +120,7 @@ CONTAINS
     CALL message (TRIM(routine),message_text)
 
 #ifdef _OPENACC
-    IF (output_mode%l_nml) CALL write_name_list_output(out_step, lacc=i_am_accel_node)
+    IF (output_mode%l_nml) CALL write_name_list_output(out_step, lacc=lzacc)
 #else
     IF (output_mode%l_nml) CALL write_name_list_output(out_step)
 #endif

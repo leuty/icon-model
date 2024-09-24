@@ -526,6 +526,9 @@ CONTAINS
     !-------------------------------------------------------------------------
     CALL message(TRIM(routine), 'start' )
 
+    !$ACC EXIT DATA &
+    !$ACC   DELETE(p_as%tafo, p_as%ftdew, p_as%fclou, p_as%fu10, p_as%co2) &
+    !$ACC   DELETE(p_as%co2flx, p_as%fswr, p_as%pao, p_as%u, p_as%v)
 
     DEALLOCATE(p_as%tafo, STAT=ist)
     IF (ist/=SUCCESS) THEN

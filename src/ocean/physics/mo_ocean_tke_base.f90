@@ -977,8 +977,10 @@ subroutine integrate_tke_block( &
   nlev_p1(si:ei) = nlev(si:ei) + 1
 
   !$ACC END KERNELS
+  !$ACC WAIT(1)
 
-  !$ACC UPDATE HOST(nlev_p1) WAIT(1)
+  !$ACC UPDATE SELF(nlev_p1) ASYNC(1) IF(lzacc)
+  !$ACC WAIT(1)
 
   !---------------------------------------------------------------------------------
   ! set tke_constants locally

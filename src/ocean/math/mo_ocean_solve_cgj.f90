@@ -51,7 +51,7 @@ CONTAINS
 SUBROUTINE ocean_solve_cgj_recover_arrays_wp(this, x, b, z, d, r, r2, &
     & h)
     CLASS(t_ocean_solve_cgj), INTENT(INOUT), TARGET :: this
-    REAL(KIND=wp), INTENT(OUT), POINTER, DIMENSION(:,:) :: &
+    REAL(KIND=wp), INTENT(INOUT), POINTER, DIMENSION(:,:) :: &
       & x, b, z, d, r, r2, h
 
     IF (.NOT.ALLOCATED(this%z_wp)) THEN

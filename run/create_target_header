@@ -75,10 +75,10 @@ start_header()
     set_default use_proc0_shift 0 # VH offloading mode: off
 
     cat >> "$output_script" << EOF
-#=============================================================================
+#-----------------------------------------------------------------------------
 set +x
 $(test x"${use_ulimit:-yes}" != xyes || printf 'ulimit -s unlimited')
-#=============================================================================
+#-----------------------------------------------------------------------------
 #
 # ICON run script:
 # !ATTENTION! Do not change the format of the following lines.
@@ -92,7 +92,7 @@ $(test x"${use_ulimit:-yes}" != xyes || printf 'ulimit -s unlimited')
 # submit with $use_submit
 #
 builder=${use_target}_${use_compiler}
-#=============================================================================
+#-----------------------------------------------------------------------------
 #
 # OpenMP environment variables
 # ----------------------------
@@ -121,7 +121,7 @@ proc0_shift=$use_proc0_shift
 # ------------------------------------------
 radiation_ecrad_isolver=${use_ecrad_isolver}
 #
-#=============================================================================
+#-----------------------------------------------------------------------------
 
 # load local setting, if existing
 # -------------------------------
@@ -160,7 +160,7 @@ EOF
     # clean the module system
     if [[ -n "$use_purge_modules" ]]; then
       cat >> "$output_script" << EOF
-#=============================================================================
+#-----------------------------------------------------------------------------
 # clean the module environment
 ${use_purge_modules}
 EOF
@@ -169,18 +169,18 @@ EOF
     # load user defined modules
     if [[ -n "$use_load_modules" ]]; then
       cat >> "$output_script" << EOF
-#=============================================================================
+#-----------------------------------------------------------------------------
 # load modules
 loadmodule="$use_load_modules"
 module load \$loadmodule
 module list
-#=============================================================================
+#-----------------------------------------------------------------------------
 EOF
     fi
 
     cat >> "$output_script" << EOF
 
-#=============================================================================
+#-----------------------------------------------------------------------------
 # directories with absolute paths
 # -------------------------------
 thisdir=\$(pwd)
@@ -210,15 +210,18 @@ cdo_diff="${cdo} ${cdo_diff}"
 # ---------------------------------------------------------
 . \${basedir}/run/add_run_routines
 
-#=============================================================================
+#-----------------------------------------------------------------------------
 
 EOF
 
 }
 
-# Limits the time for slurm jobs started with BB
+# Limits the run time for slurm jobs started with BB
 limit_time_bb()
 {
+    local limit=$1
+    local default=$2
+
     if [[ "x$use_cpu_time" = "x" ]]; then # time is not set
         use_cpu_time=$default
         return 0
@@ -244,7 +247,7 @@ limit_time_bb()
     fi
 }
 
-#=============================================================================
+#-----------------------------------------------------------------------------
 set_run_target_default()
 {
     # Default configuration for unknown systems
@@ -272,7 +275,7 @@ set_run_target_default()
 
 }
 
-#=============================================================================
+#-----------------------------------------------------------------------------
 set_run_target_()
 {
   echo "!! THIS IS A FALLBACK SETUP !!"
@@ -280,7 +283,7 @@ set_run_target_()
   set_run_target_default
 }
 
-#=============================================================================
+#-----------------------------------------------------------------------------
 # setup for levante.dkrz.de
 # - compute partions is always exclusive
 # - runscript generation should respect slurm settings when run by another job
@@ -394,7 +397,7 @@ set_run_target_bull_milan()
     # ------------------------------------
 
     cat >> "$output_script" << EOF
-#=============================================================================
+#-----------------------------------------------------------------------------
 #SBATCH --account=$use_account_no
 $(if [[ "x$BB_SYSTEM" != 'x' ]]
  then
@@ -432,7 +435,7 @@ $(case $use_flags_group in
   esac)
 EOF
 }
-#=============================================================================
+#-----------------------------------------------------------------------------
 set_run_target_bullx_gpu()
 {
     icon_data_rootFolder=${icon_data_rootFolder:=/pool/data/ICON}
@@ -506,7 +509,7 @@ set_run_target_bullx_gpu()
     # ------------------------------------
 
     cat >> "$output_script" << EOF
-#=============================================================================
+#-----------------------------------------------------------------------------
 
 # levante gpu batch job parameters
 # --------------------------------
@@ -532,11 +535,11 @@ $(if [[ "x${BB_SYSTEM}" = 'x' ]]
 ';fi)
 $(if [[ "$use_mpi_root" == *intel*mpi* ]]
  then
-  printf '#========================================
+  printf '#----------------------------------------
 # the following line is only needed for srun to work with Intel MPI
 # but should be commented when using BullX MPI
 export I_MPI_PMI_LIBRARY=/usr/lib64/libpmi.so
-#========================================' ; fi)
+#----------------------------------------' ; fi)
 EOF
 
     # for the rest use the SLURM_JOB_NUM_NODES by default
@@ -563,7 +566,7 @@ export UCX_MEMTYPE_CACHE=n
 EOF
 }
 
-#=============================================================================
+#-----------------------------------------------------------------------------
 set_run_target_levante_aurora()
 {
     # Aurora nodes at DKRZ
@@ -589,7 +592,7 @@ set_run_target_levante_aurora()
 
 }
 
-#=============================================================================
+#-----------------------------------------------------------------------------
 set_run_target_mpipc()
 {
     # *.mpimet.mpg.de with Linux (workstations and breeze)
@@ -617,7 +620,7 @@ set_run_target_mpipc()
     start_header
 }
 
-#=============================================================================
+#-----------------------------------------------------------------------------
 set_run_target_lumi_gpu()
 {
     # LUMI at CSC
@@ -664,7 +667,7 @@ set_run_target_lumi_gpu()
     # ------------------------------------
 
     cat >> $output_script << EOF
-#=============================================================================
+#-----------------------------------------------------------------------------
 
 # LUMI gpu batch job parameters
 # ------------------------------
@@ -693,7 +696,7 @@ ${cpu_bind:+"export SLURM_CPU_BIND='${cpu_bind}'"}
 EOF
 }
 
-#=============================================================================
+#-----------------------------------------------------------------------------
 set_run_target_lumi_cpu()
 {
     # LUMI at CSC
@@ -738,7 +741,7 @@ set_run_target_lumi_cpu()
     # ------------------------------------
 
     cat >> $output_script << EOF
-#=============================================================================
+#-----------------------------------------------------------------------------
 
 # LUMI cpu batch job parameters
 # ------------------------------
@@ -765,7 +768,7 @@ export FI_MR_CACHE_MONITOR=memhooks
 EOF
 }
 
-#=============================================================================
+#-----------------------------------------------------------------------------
 set_run_target_docker_cpu()
 {
     # Docker container
@@ -784,7 +787,7 @@ set_run_target_docker_cpu()
     start_header
 }
 
-#=============================================================================
+#-----------------------------------------------------------------------------
 set_run_target_docker_gpu()
 {
     # Docker container with GPU
@@ -803,7 +806,7 @@ set_run_target_docker_gpu()
     start_header
 }
 
-#=============================================================================
+#-----------------------------------------------------------------------------
 set_run_target_rcl()
 {
   # rcl.dwd.de
@@ -958,7 +961,7 @@ cat "${use_builddir}/run/add_START_MODEL_function" >> "$output_script"
 
 }
 
-#=============================================================================
+#-----------------------------------------------------------------------------
 set_run_target_gpnl()
 {
   # gpnl*.dwd.de GPU Node with Linux (login node)
@@ -983,7 +986,7 @@ set_run_target_gpnl()
 
     start_header
     cat >> "$output_script" <<EOF
-#=============================================================================
+#-----------------------------------------------------------------------------
 set +x
 ulimit -Sv unlimited
 
@@ -994,7 +997,7 @@ EOF
         echo "export ENABLE_NVIDIA_SMI_LOGGER=yes" >> "$output_script"
     fi
 }
-#=============================================================================
+#-----------------------------------------------------------------------------
 set_run_target_oflws()
 {
   # *.dwd.de with Linux (workstations)
@@ -1017,7 +1020,7 @@ set_run_target_oflws()
     start_header
 }
 
-#=============================================================================
+#-----------------------------------------------------------------------------
 set_run_target_hpc()
 {
     # xce.dwd.de
@@ -1042,7 +1045,7 @@ set_run_target_hpc()
 #PBS -o LOG.$job_name.o
 #PBS -l select=$use_nodes:ncpus=$use_mpi_procs_pernode
 #PBS -m n
-# ===========================
+# ---------------------------
 #-----------------------------------------------------------------------------
 # for PBS change to directory where job was submitted
 # (without this job is started in HOME)
@@ -1057,7 +1060,7 @@ EOF
     start_header
 }
 
-#=============================================================================
+#-----------------------------------------------------------------------------
 set_run_target_tsa_cpu()
 {
     rootFolder_prefix=/scratch/jenkins/icon
@@ -1134,10 +1137,8 @@ set_run_target_tsa_cpu()
     fi
     if [[ "x$BB_SYSTEM" != "x" ]]
     then
-        # this is buldbot, do not run more than 15 minutes on Tsa (SLURM delays)
-        limit="00:15:00"
-        default=${limit}
-        limit_time_bb # sets use_cpu_time
+        # do not run more bb jobs longer than 15 minutes on Tsa (SLURM delays)
+        limit_time_bb "00:15:00" "00:15:00"
         s_cpu_time="SBATCH --time=$use_cpu_time"
     fi
     # ------------------------------------
@@ -1146,7 +1147,7 @@ set_run_target_tsa_cpu()
     use_mpi_procs_pernode=${use_mpi_procs_pernode}
 
     cat >> "$output_script" << EOF
-#=============================================================================
+#-----------------------------------------------------------------------------
 
 # tsa cpu batch job parameters
 # ------------------------------
@@ -1242,9 +1243,7 @@ set_run_target_tsa_gpu()
     if [[ "x$BB_SYSTEM" != "x" ]]
     then
         # this is buldbot, do not run more than 45 minutes
-        limit="00:45:00"
-        default=${limit}
-        limit_time_bb # sets use_cpu_time
+        limit_time_bb "00:45:00" "00:45:00"
         s_cpu_time="SBATCH --time=$use_cpu_time"
     fi
 
@@ -1254,7 +1253,7 @@ set_run_target_tsa_gpu()
     use_mpi_procs_pernode=${use_mpi_procs_pernode}
 
     cat >> "$output_script" << EOF
-#=============================================================================
+#-----------------------------------------------------------------------------
 
 # tsa gpu batch job parameters
 # ------------------------------
@@ -1289,7 +1288,7 @@ fi
 EOF
 }
 
-#=============================================================================
+#-----------------------------------------------------------------------------
 set_run_target_daint_cpu()
 {
     rootFolder_prefix=/users/icontest
@@ -1376,8 +1375,7 @@ set_run_target_daint_cpu()
                 limit="00:30:00"
             ;;
         esac
-        default=${limit}
-        limit_time_bb # sets use_cpu_time
+        limit_time_bb "${limit}" "${limit}"
         s_cpu_time="SBATCH --time=$use_cpu_time"
     fi
     # ------------------------------------
@@ -1386,7 +1384,7 @@ set_run_target_daint_cpu()
     use_mpi_procs_pernode=${use_mpi_procs_pernode}
 
     cat >> "$output_script" << EOF
-#=============================================================================
+#-----------------------------------------------------------------------------
 
 # daint cpu batch job parameters
 # ------------------------------
@@ -1412,8 +1410,7 @@ export NVCOMPILER_TERM=trace
 EOF
 }
 
-#=============================================================================
-#=============================================================================
+#-----------------------------------------------------------------------------
 set_run_target_daint_gpu()
 {
     rootFolder_prefix=/users/icontest
@@ -1483,9 +1480,7 @@ set_run_target_daint_gpu()
     if [[ "x$BB_SYSTEM" != "x" ]]
     then
         # this is buldbot, do not run more than 45 minutes
-        limit="00:45:00"
-        default=${limit}
-        limit_time_bb # sets use_cpu_time
+        limit_time_bb "00:45:00" "00:45:00"
         s_cpu_time="SBATCH --time=$use_cpu_time"
     fi
 
@@ -1495,7 +1490,7 @@ set_run_target_daint_gpu()
     use_mpi_procs_pernode=${use_mpi_procs_pernode}
 
     cat >> "$output_script" << EOF
-#=============================================================================
+#-----------------------------------------------------------------------------
 
 # daint gpu batch job parameters
 # ------------------------------
@@ -1523,7 +1518,7 @@ export NVCOMPILER_TERM=trace
 EOF
 }
 
-#=============================================================================
+#-----------------------------------------------------------------------------
 set_run_target_alps_mch_gpu()
 {
     rootFolder_prefix=/scratch/mch/jenkins/icon
@@ -1567,9 +1562,7 @@ set_run_target_alps_mch_gpu()
     if [[ "x$BB_SYSTEM" != "x" ]]
     then
         # this is buldbot, do not run more than 120 minutes
-        limit="02:00:00"
-        default="00:15:00"
-        limit_time_bb # sets use_cpu_time
+        limit_time_bb "02:00:00" "00:15:00"
         s_cpu_time="SBATCH --time=$use_cpu_time"
     fi
 
@@ -1581,7 +1574,7 @@ set_run_target_alps_mch_gpu()
     partition="normal"
 
     cat >> "$output_script" << EOF
-#=============================================================================
+#-----------------------------------------------------------------------------
 
 # alps_mch gpu batch job parameters
 # ------------------------------
@@ -1604,7 +1597,7 @@ EOF
 EOF
 }
 
-#=============================================================================
+#-----------------------------------------------------------------------------
 set_run_target_alps_mch_cpu()
 {
     rootFolder_prefix=/scratch/mch/jenkins/icon
@@ -1655,8 +1648,7 @@ set_run_target_alps_mch_cpu()
                 limit="00:15:00"
             ;;
         esac
-        default=${limit}
-        limit_time_bb # sets use_cpu_time
+        limit_time_bb "${limit}" "${limit}"
         s_cpu_time="SBATCH --time=$use_cpu_time"
     fi
     # ------------------------------------
@@ -1680,7 +1672,7 @@ set_run_target_alps_mch_cpu()
         
 
     cat >> "$output_script" << EOF
-#=============================================================================
+#-----------------------------------------------------------------------------
 
 # alps_mch cpu batch job parameters
 # ------------------------------
@@ -1705,7 +1697,7 @@ EOF
 EOF
 }
 
-#=============================================================================
+#-----------------------------------------------------------------------------
 set_run_target_dom_gpu()
 {
     rootFolder_prefix=/users/icontest
@@ -1764,17 +1756,14 @@ set_run_target_dom_gpu()
     fi
     if [[ "x$BB_SYSTEM" != "x" ]]
     then
-        # this is buldbot, do not run more than 45 minutes
-        limit="00:45:00"
-        default=${limit}
-        limit_time_bb # sets use_cpu_time
+        limit_time_bb "00:45:00" "00:45:00"
         s_cpu_time="SBATCH --time=$use_cpu_time"
     fi
 
     # ------------------------------------
 
     cat >> "$output_script" << EOF
-#=============================================================================
+#-----------------------------------------------------------------------------
 
 # dom gpu batch job parameters
 # ----------------------------
@@ -1794,7 +1783,7 @@ EOF
     start_header
 }
 
-#=============================================================================
+#-----------------------------------------------------------------------------
 set_run_target_tave_knl()
 {
     rootFolder_prefix=/users/icontest
@@ -1862,10 +1851,7 @@ set_run_target_tave_knl()
     fi
     if [[ "x$BB_SYSTEM" != "x" ]]
     then
-	    # this is buldbot, do not run more than 45 minutes
-        limit="00:45:00"
-        default=${limit}
-        limit_time_bb # sets use_cpu_time
+        limit_time_bb "00:45:00" "00:45:00"
         s_cpu_time="SBATCH --time=$use_cpu_time"
     fi
     # ------------------------------------
@@ -1874,7 +1860,7 @@ set_run_target_tave_knl()
     use_mpi_procs_pernode=${use_mpi_procs_pernode}
 
     cat >> "$output_script" << EOF
-#=============================================================================
+#-----------------------------------------------------------------------------
 # tave batch job parameters
 #--------------------------
 #SBATCH --account=csstaff
@@ -1892,8 +1878,7 @@ EOF
     start_header
 }
 
-#=============================================================================
-#=============================================================================
+#-----------------------------------------------------------------------------
 set_run_target_euler()
 {
   # euler.ethz.ch
@@ -1922,7 +1907,7 @@ set_run_target_euler()
   SBATCH_nodes="SBATCH --ntasks=${use_nodes}"
 
   cat >> "$output_script" << EOF
-# ===========================
+# ---------------------------
 #### BATCH_SYSTEM=SBATCH ####
 #-----------------------------------------------------------------------------
 #SBATCH --job-name=$job_name
@@ -1935,7 +1920,7 @@ $(if [[ "x$BB_SYSTEM" != 'x' ]]
 ";fi)
 #$SBATCH_nodes
 #$s_cpu_time
-# ===========================
+# ---------------------------
 EOF
 
   # create header
@@ -1943,9 +1928,7 @@ EOF
 
 }
 
-#=============================================================================
-
-#=============================================================================
+#-----------------------------------------------------------------------------
 set_run_target_pacluster()
 {  
     set_default use_nproma 32
@@ -2011,7 +1994,7 @@ EOF
     start_header
 }
 
-#=============================================================================
+#-----------------------------------------------------------------------------
 set_run_target_hk()
 {
     icon_data_rootFolder=${icon_data_rootFolder:=/hkfs/home/dataset/datasets/icon/pool/data/ICON}
@@ -2040,9 +2023,7 @@ set_run_target_hk()
     fi
 
     if [[ -n "$BB_SYSTEM" ]]; then
-        # this is buldbot, do not run more than 45 minutes
-        limit="00:45:00"
-        limit_time_bb # sets use_cpu_time
+        limit_time_bb "00:45:00" "00:45:00"
     fi
 
 
@@ -2096,16 +2077,13 @@ set_run_target_hk_gpu()
     fi
 
     if [[ -n "$BB_SYSTEM" ]]; then
-    # this buildbot, do not use job id
         job_log_name="LOG.$job_name"
     else
         job_log_name="LOG.$job_name.%j"
     fi
 
     if [[ -n "$BB_SYSTEM" ]]; then
-        # this is buldbot, do not run more than 45 minutes
-        limit="00:45:00"
-        limit_time_bb # sets use_cpu_time
+        limit_time_bb "00:45:00" "00:45:00"
     fi
 
     cdo='cdo'
@@ -2135,10 +2113,10 @@ export ECCODES_DEFINITION_PATH=/hkfs/home/dataset/datasets/icon/bacy_data/defini
 export NVCOMPILER_TERM=trace
 EOF
 }
-#=============================================================================
+#-----------------------------------------------------------------------------
 set_run_target_juwels()
 {
-    icon_data_rootFolder=${icon_data_rootFolder:=/p/fastdata/slmet/slmet111/model_data/ICON-BB}
+    icon_data_rootFolder=${icon_data_rootFolder:=/p/data1/slmet/model_data/ICON-BB}
 
     set_default use_nproma 8
     set_default use_nproma_sub 8
@@ -2148,62 +2126,33 @@ set_run_target_juwels()
     set_default use_cpu_time 01:00:00
 
     if [[ $use_mpi == "yes" ]]; then
-        set_default use_mpi_procs_pernode 48
-	use_mpi_startrun="srun --label --ntasks=\${mpi_total_procs}"
+	if [[ $use_openmp == "yes" ]]; then
+		set_default use_mpi_procs_pernode 24
+	else 
+		set_default use_mpi_procs_pernode 48
+	fi
     fi
     if [[ $use_openmp == "yes" ]]; then
         set_default use_openmp_threads 2
-	use_mpi_startrun+=" --cpus-per-task=\${OMP_NUM_THREADS}"
     else
         set_default use_openmp_threads 1
     fi
 
-
     if [[ -n "$BB_SYSTEM" ]]; then
-    # this buildbot, do not use job id
         job_log_name="LOG.$job_name"
+        use_cpu_time="00:15:00"
     else
         job_log_name="LOG.$job_name.%j"
     fi
 
-    if [[ -n "$BB_SYSTEM" ]]; then
-        # this is bildbot, do not run more than 45 minutes
-        use_cpu_time="00:15:00"
-    fi
-
-
-    use_purge_modules='module --force purge'
-    add_free_var USERINSTALLATIONS "/p/usersoftware/slmet/easybuild/stages/2023/"
-    login_node_number=$(hostname | sed 's/[^0-9]*//g' | sed 's/^0*//')
-
-    if [ "$login_node_number" -gt 12 ]; then
-      partition='booster'
-      use_nblocks_c=1
-      use_nproma=0
-
-      # Default GPU builder is booster_nvhpc_psmpi
-      use_load_modules="Stages/2023 NVHPC/23.1 netCDF-Fortran ecCodes libfyaml CMake/3.26.3"
-      case "${BB_NAME}" in
-        *booster*ompi)
-        use_load_modules+=" OpenMPI"
-        ;;
-        *)
-        use_load_modules+=" ParaStationMPI/5.8.0-1"
-        ;;
-      esac
+    if [ "$use_gpu" == "yes" ]; then
+      set_default use_queue 'booster'
+      set_default use_nproma 0
+      set_default use_nblocks_c 1
     else
-      partition='batch'
-
-      # Default CPU builder is cluster_intel_psmpi
-      use_load_modules="Stages/2023 GCCcore/.11.3.0 CMake/3.26.3 netCDF-Fortran ecCodes libfyaml ParaStationMPI/5.8.0-1"
-      case "${BB_NAME}" in
-        cluster_intel_psmpi)
-        use_load_modules+=" imkl/2022.1.0 Intel/2022.1.0"
-        ;;
-        cluster_nvhpc_psmpi)
-        use_load_modules+=" NVHPC/23.1"
-        ;;
-      esac
+      set_default use_queue 'batch'
+      set_default use_nproma 8
+      set_default use_nblocks_c 0
     fi
 
     cdo='cdo'
@@ -2214,7 +2163,7 @@ set_run_target_juwels()
 #SBATCH --error=$output_folder/$job_log_name.o
 #SBATCH --job-name=$job_name
 #SBATCH --nodes=${use_nodes}
-#SBATCH --partition=${partition}
+#SBATCH --partition=${use_queue}
 $(if [[ "x$BB_SYSTEM" != 'x' ]]
  then
   printf "#SBATCH ${TIME_LIMITS}
@@ -2222,13 +2171,15 @@ $(if [[ "x$BB_SYSTEM" != 'x' ]]
 #SBATCH --account=exaww
 #SBATCH --ntasks-per-node=$use_mpi_procs_pernode
 #SBATCH --time=$use_cpu_time
+
+$use_build_env
 EOF
 
     start_header
 
 }
 
-#=============================================================================
+#-----------------------------------------------------------------------------
 set_run_target_leo()
 {
     icon_data_rootFolder=${icon_data_rootFolder:=/leonardo_work/DE360_GLORI/pool/data/ICON/}
@@ -2259,10 +2210,8 @@ set_run_target_leo()
 
 
     if [[ -n "$BB_SYSTEM" ]]; then
-        # this buildbot, do not use job id and do not run more than 45 minutes
         job_log_name="LOG.$job_name"
-        limit="00:45:00"
-        limit_time_bb # sets use_cpu_time
+        limit_time_bb "00:45:00" "00:45:00"
     else
         job_log_name="LOG.$job_name.%j"
     fi
@@ -2300,7 +2249,7 @@ export OMPI_MCA_btl=self,tcp
 EOF
 }
 
-#=============================================================================
+#-----------------------------------------------------------------------------
 create_target_header()
 {
     cdo="cdo"

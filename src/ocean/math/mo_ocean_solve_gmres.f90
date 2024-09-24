@@ -57,7 +57,7 @@ CONTAINS
     & h, s, c, res)
     IMPLICIT NONE
     CLASS(t_ocean_solve_gmres), TARGET, INTENT(INOUT) :: this
-    REAL(KIND=wp), INTENT(OUT), POINTER :: v(:,:,:), x(:,:), &
+    REAL(KIND=wp), INTENT(INOUT), POINTER :: v(:,:,:), x(:,:), &
       & b(:,:), w(:,:), z(:,:), h(:,:), s(:), c(:), res(:)
 
     IF (.NOT.ALLOCATED(this%z_wp)) THEN
@@ -215,7 +215,7 @@ CONTAINS
     & h, s, c, res)
     IMPLICIT NONE
     CLASS(t_ocean_solve_gmres), TARGET, INTENT(INOUT) :: this
-    REAL(KIND=sp), INTENT(OUT), POINTER :: v(:,:,:), x(:,:), &
+    REAL(KIND=sp), INTENT(INOUT), POINTER :: v(:,:,:), x(:,:), &
       & b(:,:), w(:,:), z(:,:), h(:,:), s(:), c(:), res(:)
 
     IF (.NOT.ALLOCATED(this%z_sp)) THEN

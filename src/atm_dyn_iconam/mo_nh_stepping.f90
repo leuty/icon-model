@@ -132,6 +132,12 @@ MODULE mo_nh_stepping
   USE mo_diagnose_qvi,             ONLY: diagnose_qvi
   USE mo_diagnose_uvi,             ONLY: diagnose_uvd, diagnose_uvp
   USE mo_aes_diagnostics,          ONLY: aes_global_diagnostics
+  USE mo_atm_energy_memory,        ONLY: atm_energy_config
+  USE mo_atm_energy_diag,          ONLY: atm_energy_diag_d1, atm_energy_hint_1, &
+       &                                 atm_energy_diag_d2, atm_energy_hint_2, &
+       &                                 atm_energy_copy_2_3_3d_vi, atm_energy_copy_2_3_hi_ti, &
+       &                                 atm_energy_tend_dyn_3d_vi, atm_energy_tend_dyn_hi_ti, &
+       &                                 atm_energy_tend_phy_3d_vi, atm_energy_tend_phy_hi_ti
   USE mo_interface_iconam_aes,     ONLY: interface_iconam_aes
 #endif
   USE mo_phys_nest_utilities,      ONLY: interpol_phys_grf, feedback_phys_diag, interpol_rrg_grf, copy_rrg_ubc
@@ -259,6 +265,8 @@ MODULE mo_nh_stepping
     &                                    icon_call_callback
 #endif
 
+  USE mo_coupling_config       ,ONLY: is_coupled_to_ocean
+  USE mo_aes_ocean_coupling    ,ONLY: interface_aes_ocean
   USE mo_coupling_config       ,ONLY: is_coupled_to_output
   USE mo_output_coupling       ,ONLY: output_coupling
 
@@ -1289,6 +1297,22 @@ MODULE mo_nh_stepping
     !
     CALL integrate_nh(time_config, datetime_current, 1, jstep-jstep_shift, iau_iter, dtime, model_time_step, 1, latbc)
 
+
+    !--------------------------------------------------------------------------
+    !
+    ! Couple atmosphere and ocean, if needed
+    !
+    IF (is_coupled_to_ocean()) THEN
+      IF ( iforcing==iaes ) THEN
+        IF (ltimer) CALL timer_start(timer_coupling)
+        ! CALL message("nh_stepping","CALL interface_aes_ocean...")
+        CALL interface_aes_ocean(p_patch(1) , p_nh_state(1)%diag)
+        IF (ltimer) CALL timer_stop(timer_coupling)
+      END IF
+    END IF
+    !
+    !=====================================================================================
+
 #ifndef __NO_ICON_COMIN__
     CALL icon_call_callback(EP_ATM_INTEGRATE_AFTER, COMIN_DOMAIN_OUTSIDE_LOOP)
 #endif
@@ -2086,6 +2110,38 @@ MODULE mo_nh_stepping
 
 
 
+#ifndef __NO_AES__
+        IF (iforcing==iaes) THEN
+           !
+           !$ACC WAIT(1)
+           !
+           ! energy diagnostics for initial state of the time step
+           ! -----------------------------------------------------
+           !
+           ! temperature
+           CALL diagnose_pres_temp   (p_nh_state(jg)%metrics,                     &
+                &                     p_nh_state(jg)%prog(nnow(jg)),              &
+                &                     p_nh_state(jg)%prog(nnow_rcf(jg)),          &
+                &                     p_nh_state(jg)%diag,                        &
+                &                     p_patch(jg),                                &
+                &                     opt_calc_temp=.TRUE.,                       &
+                &                     opt_calc_pres=.TRUE.                        )
+           !
+           ! wind (u,v)
+           CALL sync_patch_array     (SYNC_E, p_patch(jg),                        &!in
+                &                     p_nh_state(jg)%prog(nnow(jg))%vn            )!inout
+           CALL rbf_vec_interpol_cell(p_nh_state(jg)%prog(nnow(jg))%vn,           &!in
+                &                     p_patch(jg), p_int_state(jg),               &!in
+                &                     p_nh_state(jg)%diag%u, p_nh_state(jg)%diag%v)!out
+           !
+           ! energy
+           IF (atm_energy_config(jg)%l_atm_energy) THEN
+              CALL omp_block_loop_cell  (p_patch(jg), atm_energy_diag_d1) ; CALL atm_energy_hint_1(jg)
+           END IF
+           !
+        END IF
+#endif
+
         IF (ldynamics) THEN
 
           !$ser verbatim CALL serialize_all(nproma, jg, "dynamics", .TRUE., opt_dt=datetime_local(jg)%ptr, opt_id=iau_iter)
@@ -2263,6 +2319,40 @@ MODULE mo_nh_stepping
         CALL icon_call_callback(EP_ATM_PHYSICS_BEFORE, jg)
 #endif
 
+#ifndef __NO_AES__
+        IF (iforcing==iaes) THEN
+          !
+          !$ACC WAIT(1)
+          !
+          ! energy diagnostics after dynamics
+          !----------------------------------
+          !
+          ! temperature
+          CALL diagnose_pres_temp   (p_nh_state(jg)%metrics,                     &
+              &                      p_nh_state(jg)%prog(nnew(jg)),              &
+              &                      p_nh_state(jg)%prog(nnew_rcf(jg)),          &
+              &                      p_nh_state(jg)%diag,                        &
+              &                      p_patch(jg),                                &
+              &                      opt_calc_temp=.TRUE.,                       &
+              &                      opt_calc_pres=.TRUE.                        )
+          !
+          ! wind (u,v)
+          CALL sync_patch_array     (SYNC_E, p_patch(jg),                        & !in
+               &                     p_nh_state(jg)%prog(nnew(jg))%vn            ) !inout
+          CALL rbf_vec_interpol_cell(p_nh_state(jg)%prog(nnew(jg))%vn,           & !in
+               &                     p_patch(jg), p_int_state(jg),               & !in
+               &                     p_nh_state(jg)%diag%u, p_nh_state(jg)%diag%v) !out
+          !
+          ! energy
+          IF (atm_energy_config(jg)%l_atm_energy) THEN
+             CALL omp_block_loop_cell  (p_patch(jg), atm_energy_diag_d2)       ; CALL atm_energy_hint_2        (jg)
+             CALL omp_block_loop_cell  (p_patch(jg), atm_energy_tend_dyn_3d_vi); CALL atm_energy_tend_dyn_hi_ti(jg)
+             CALL omp_block_loop_cell  (p_patch(jg), atm_energy_copy_2_3_3d_vi); CALL atm_energy_copy_2_3_hi_ti(jg)
+          END IF
+          !
+        END IF
+#endif
+
         IF ( ( iforcing==inwp .OR. iforcing==iaes ) ) THEN
 
           SELECT CASE (iforcing)
@@ -2315,15 +2405,6 @@ MODULE mo_nh_stepping
             ! aes physics
             IF (ltimer) CALL timer_start(timer_iconam_aes)
             !
-            !$ACC WAIT(1)
-            CALL diagnose_pres_temp  ( p_nh_state(jg)%metrics,                          &
-                &                      p_nh_state(jg)%prog(nnew(jg)),                   &
-                &                      p_nh_state(jg)%prog(nnew_rcf(jg)),               &
-                &                      p_nh_state(jg)%diag,                             &
-                &                      p_patch(jg),                                     &
-                &                      opt_calc_temp=.TRUE.,                            &
-                &                      opt_calc_pres=.TRUE.                             )
-            !
             CALL omp_block_loop_cell ( p_patch(jg), diagnose_uvd ) ! internal energy vertical integral after dynamics
             !
             CALL interface_iconam_aes(     dt_loc                                    & !in
@@ -2343,6 +2424,39 @@ MODULE mo_nh_stepping
             IF (ltimer) CALL timer_stop(timer_iconam_aes)
 #endif
           END SELECT ! iforcing
+
+#ifndef __NO_AES__
+          IF (iforcing==iaes) THEN
+            !
+            !$ACC WAIT(1)
+            !
+            ! energy diagnostics after physics
+            ! --------------------------------
+            !
+            ! temperature
+            CALL diagnose_pres_temp   (p_nh_state(jg)%metrics,                     &
+                &                      p_nh_state(jg)%prog(nnew(jg)),              &
+                &                      p_nh_state(jg)%prog(nnew_rcf(jg)),          &
+                &                      p_nh_state(jg)%diag,                        &
+                &                      p_patch(jg),                                &
+                &                      opt_calc_temp=.TRUE.,                       &
+                &                      opt_calc_pres=.TRUE.                        )
+            !
+            ! wind (u,v)
+            CALL sync_patch_array     (SYNC_E, p_patch(jg),                        &!in
+                 &                     p_nh_state(jg)%prog(nnew(jg))%vn            )!inout
+            CALL rbf_vec_interpol_cell(p_nh_state(jg)%prog(nnew(jg))%vn,           &!in
+                 &                     p_patch(jg), p_int_state(jg),               &!in
+                 &                     p_nh_state(jg)%diag%u, p_nh_state(jg)%diag%v)!out
+            !
+            ! energy
+            IF (atm_energy_config(jg)%l_atm_energy) THEN
+               CALL omp_block_loop_cell  (p_patch(jg), atm_energy_diag_d2)       ; CALL atm_energy_hint_2      (jg)
+               CALL omp_block_loop_cell  (p_patch(jg), atm_energy_tend_phy_3d_vi); CALL atm_energy_tend_phy_hi_ti(jg)
+            END IF
+            !
+         END IF
+#endif
 
           ! Boundary interpolation of land state variables entering into radiation computation
           ! if a reduced grid is used in the child domain(s)

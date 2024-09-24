@@ -28,7 +28,8 @@ MODULE mo_nh_hs_test
 !
 
   USE mo_kind,                ONLY: wp
-  USE mo_physical_constants,  ONLY: rd, rd_o_cpd, p0ref, grav, cpd, cvd, rdaylen
+  USE mo_physical_constants,  ONLY: rd, rd_o_cpd, p0ref, grav, cpd, cvd
+  USE mo_time_base,           ONLY: rdaylen
   USE mo_model_domain,        ONLY: t_patch
   USE mo_ext_data_types,      ONLY: t_external_data
   USE mo_nonhydro_types,      ONLY: t_nh_prog, t_nh_diag, t_nh_metrics

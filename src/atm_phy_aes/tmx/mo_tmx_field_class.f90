@@ -85,7 +85,7 @@ MODULE mo_tmx_field_class
       & i_startidx_e(:),    & ! Start indices on edges (for each block)
       & i_endidx_e(:)         ! End indices on edges (for each block)
     REAL(wp), ALLOCATABLE :: &
-      & lon(:,:), lat(:,:)
+      & lon(:,:), lat(:,:), area(:,:)
     TYPE(t_patch), POINTER :: patch
   END TYPE
 
@@ -245,6 +245,8 @@ CONTAINS
     ALLOCATE(domain%lat(nproma,patch%nblks_c))
     domain%lon(:,:) = rad2deg * patch%cells%center(:,:)%lon
     domain%lat(:,:) = rad2deg * patch%cells%center(:,:)%lat
+    ALLOCATE(domain%area(nproma,patch%nblks_c))
+    domain%area(:,:) = patch%cells%area(:,:)
 
     IF (PRESENT(ntiles)) THEN
       domain%ntiles = ntiles
@@ -282,7 +284,7 @@ CONTAINS
     END DO
 
     !$ACC ENTER DATA COPYIN(domain)
-    !$ACC ENTER DATA COPYIN(domain%lon, domain%lat)
+    !$ACC ENTER DATA COPYIN(domain%lon, domain%lat, domain%area)
     !$ACC ENTER DATA COPYIN(domain%i_startidx_c, domain%i_endidx_c, domain%i_startidx_e, domain%i_endidx_e)
     !$ACC ENTER DATA COPYIN(domain%sfc_types)
 

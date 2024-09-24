@@ -23,6 +23,7 @@ MODULE mo_tmx_numerics
   USE mo_surrogate_class,   ONLY: t_surrogate
   USE mo_tmx_process_class, ONLY: t_tmx_process
   USE mo_tmx_time_integration_class, ONLY: t_time_scheme
+  USE mo_model_domain,      ONLY: t_patch
   ! USE mo_variable_list, ONLY: t_variable_list
 
   IMPLICIT NONE
@@ -30,7 +31,9 @@ MODULE mo_tmx_numerics
 
   PUBLIC :: &
     & t_time_scheme_explicit_euler, &
-    & diffuse_vertical_explicit, diffuse_vertical_implicit
+    & diffuse_vertical_explicit, diffuse_vertical_implicit,                     &
+    & get_normal_velocity_vertex, get_tangential_velocity_vertex,               &
+    & vertical_interpolation_scalar_cell, vertical_interpolation_scalar_vertex
 
   TYPE, EXTENDS(t_time_scheme) :: t_time_scheme_explicit_euler
   CONTAINS
@@ -40,7 +43,7 @@ MODULE mo_tmx_numerics
   CHARACTER(len=*), PARAMETER :: modname = 'mo_tmx_numerics'
   
 CONTAINS
-
+  !============================================================================
   SUBROUTINE step_forward_explicit_euler(process, dt)
     CLASS(t_surrogate), INTENT(inout) :: process
     REAL(wp), INTENT(in) :: dt
@@ -57,12 +60,13 @@ CONTAINS
     END SELECT
 
   END SUBROUTINE step_forward_explicit_euler
-
+  !============================================================================
   ! Explicit vertical diffusion of any physical
   ! quantity. The coefficients of the system of
   ! equations are set in prepare_diffusion_matrix
   ! in mo_vdf_atmo. They are the same as for the
   ! implicit treatment.
+  !============================================================================
   SUBROUTINE diffuse_vertical_explicit( &
     & ics, ice,       & ! in
     & minlvl, maxlvl, & ! in
@@ -127,11 +131,12 @@ CONTAINS
     !$ACC WAIT(1)
 
   END SUBROUTINE diffuse_vertical_explicit
-
+  !============================================================================
   ! Implicit vertical diffusion of any physical
   ! quantity. The coefficients of the system of
   ! equations are set in prepare_diffusion_matrix
   ! in mo_vdf_atmo.
+  !============================================================================
   SUBROUTINE diffuse_vertical_implicit( &
     & ics, ice,       & ! in
     & minlvl, maxlvl, & ! in
@@ -214,5 +219,91 @@ CONTAINS
     !$ACC END DATA
 
   END SUBROUTINE diffuse_vertical_implicit
+  !============================================================================
+  ! Determines horizontal velocity component at vertex. 
+  ! jv: vertex index of target edge following the numbering in figure 1 in Zaengl et al. 
+  ! 2015, Q. J. R. Meteorol. Soc..
+  !============================================================================
+  FUNCTION get_normal_velocity_vertex(                         &
+    u_vert, v_vert, patch, je, jb, jk, jv                           &
+    ) RESULT(vn_vert)
 
+    REAL(wp), INTENT(in), POINTER :: u_vert(:,:,:), v_vert(:,:,:)
+    TYPE(t_patch), INTENT(in), POINTER :: patch
+
+    INTEGER, INTENT(in) :: je, jb, jk, jv
+    REAL(wp) :: vn_vert
+   
+    vn_vert =   u_vert(patch%edges%vertex_idx(je,jb,jv),jk,patch%edges%vertex_blk(je,jb,jv)) &    
+                * patch%edges%primal_normal_vert(je,jb,jv)%v1                                &
+              + v_vert(patch%edges%vertex_idx(je,jb,jv),jk,patch%edges%vertex_blk(je,jb,jv)) &    
+                * patch%edges%primal_normal_vert(je,jb,jv)%v2
+
+  END FUNCTION get_normal_velocity_vertex
+  !============================================================================
+  ! Determines tangential velocity component at vertex. 
+  ! jv: vertex index of target edge following the numbering in figure 1 in Zaengl et al. 
+  ! 2015, Q. J. R. Meteorol. Soc..
+  !============================================================================
+  FUNCTION get_tangential_velocity_vertex(                          &
+    u_vert, v_vert, patch, je, jb, jk, jv                           &
+    ) RESULT(vt_vert)
+
+    REAL(wp), INTENT(in), POINTER :: u_vert(:,:,:), v_vert(:,:,:)
+    TYPE(t_patch), INTENT(in), POINTER :: patch
+
+    INTEGER, INTENT(in) :: je, jb, jk, jv
+    REAL(wp) :: vt_vert
+   
+    vt_vert =   u_vert(patch%edges%vertex_idx(je,jb,jv),jk,patch%edges%vertex_blk(je,jb,jv)) &    
+                * patch%edges%dual_normal_vert(je,jb,jv)%v1                                  &
+              + v_vert(patch%edges%vertex_idx(je,jb,jv),jk,patch%edges%vertex_blk(je,jb,jv)) &    
+                * patch%edges%dual_normal_vert(je,jb,jv)%v2
+
+  END FUNCTION get_tangential_velocity_vertex 
+  !============================================================================
+  ! Local vertical interpolation of pointer scalar variable at cell center. 
+  ! Interpolates between jk and jk+1. 
+  ! jc: cell index to interpolate (cell numbering see figure A1 in Zaengl et al. 
+  ! 2015, Q. J. R. Meteorol. Soc.).
+  !============================================================================
+  FUNCTION vertical_interpolation_scalar_cell(                      &
+    pc,patch,je,jb,jk,jc                                            &
+    ) RESULT(pcint)
+
+    REAL(wp), INTENT(in), POINTER :: pc(:,:,:)
+    TYPE(t_patch), INTENT(in), POINTER :: patch
+
+    INTEGER, INTENT(in) :: je, jb, jk, jc
+    REAL(wp) :: pcint
+   
+    pcint = 0.5_wp * ( & 
+                pc(patch%edges%cell_idx(je,jb,jc),jk,  patch%edges%cell_blk(je,jb,jc)) &   
+              + pc(patch%edges%cell_idx(je,jb,jc),jk+1,patch%edges%cell_blk(je,jb,jc)) &  
+              )
+
+  END FUNCTION vertical_interpolation_scalar_cell 
+  !============================================================================
+  ! Local vertical interpolation of pointer scalar variable at vertex. 
+  ! Interpolates between jk and jk+1. 
+  ! jv: vertex index to interpolate (vertex numbering see figure 1 in Zaengl et al. 
+  ! 2015, Q. J. R. Meteorol. Soc.).
+  !============================================================================
+  FUNCTION vertical_interpolation_scalar_vertex(                      &
+    pv,patch,je,jb,jk,jv                                            &
+    ) RESULT(pvint)
+
+    REAL(wp), INTENT(in), POINTER :: pv(:,:,:)
+    TYPE(t_patch), INTENT(in), POINTER :: patch
+
+    INTEGER, INTENT(in) :: je, jb, jk, jv
+    REAL(wp) :: pvint
+   
+    pvint = 0.5_wp * ( & 
+                pv(patch%edges%vertex_idx(je,jb,jv),jk,  patch%edges%vertex_blk(je,jb,jv)) &   
+              + pv(patch%edges%vertex_idx(je,jb,jv),jk+1,patch%edges%vertex_blk(je,jb,jv)) &  
+              )
+
+  END FUNCTION vertical_interpolation_scalar_vertex
+  !============================================================================
 END MODULE mo_tmx_numerics

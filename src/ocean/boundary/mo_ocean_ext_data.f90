@@ -440,6 +440,9 @@ CONTAINS
     !
     CALL closeFile(stream_id)
 
+    !$ACC ENTER DATA COPYIN(ext_data(jg)%oce%bathymetry_c, ext_data(jg)%oce%bathymetry_e) &
+    !$ACC   COPYIN(ext_data(jg)%oce%lsm_ctr_c, ext_data(jg)%oce%lsm_ctr_e)
+
     !ENDDO ! jg
 
     CALL message( TRIM(routine),'Ocean bathymetry for external data read' )
@@ -656,6 +659,8 @@ CONTAINS
       ! close file
       !
       CALL closeFile(stream_id)
+
+      !$ACC ENTER DATA COPYIN(ext_data(jg)%oce%flux_forc_mon_c)
 
     !ENDDO
 

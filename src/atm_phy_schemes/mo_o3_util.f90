@@ -413,7 +413,7 @@ CONTAINS
           END DO
        END DO
 
-       !$ACC LOOP GANG(STATIC: 1) VECTOR
+       !$ACC LOOP GANG(STATIC: 1) VECTOR PRIVATE(jkk, zdp1, zdp2)
        DO jl=jcs,jce
           IF(jk >= jk1(jl) .AND. jk <= jkn(jl))  THEN
                 jkk = kwork(jl)

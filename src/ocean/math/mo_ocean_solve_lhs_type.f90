@@ -35,15 +35,16 @@ MODULE mo_ocean_solve_lhs_type
       IMPORT t_lhs_agen
       CLASS(t_lhs_agen), INTENT(INOUT) :: this
       REAL(KIND=wp), INTENT(IN) :: x(:,:)
-      REAL(KIND=wp), INTENT(OUT) :: ax(:,:)
+      REAL(KIND=wp), INTENT(INOUT) :: ax(:,:)
       LOGICAL, INTENT(IN), OPTIONAL :: lacc
     END SUBROUTINE a_lhs_agen_wp
-    SUBROUTINE a_lhs_matrix_shortcut(this, idx, blk, coeff)
+    SUBROUTINE a_lhs_matrix_shortcut(this, idx, blk, coeff, lacc)
       USE mo_kind, ONLY: wp
       IMPORT t_lhs_agen
       CLASS(t_lhs_agen), INTENT(INOUT) :: this
       INTEGER, INTENT(INOUT), ALLOCATABLE, DIMENSION(:,:,:) :: idx, blk
       REAL(KIND=wp), INTENT(INOUT), ALLOCATABLE, DIMENSION(:,:,:) :: coeff
+      LOGICAL, INTENT(IN), OPTIONAL :: lacc
     END SUBROUTINE a_lhs_matrix_shortcut
   END INTERFACE
 
