@@ -1306,11 +1306,10 @@ SUBROUTINE new_nwp_phy_diag_list( k_jg, klev, klevp1, kblks,    &
       ! like ceiling, clct, clch, clcm, clcl. For example,
       ! if it rains, the ceiling should be where the cloud base (qc) is and not
       ! at the ground, where only raindrops are present.
-      ! Currently saved with shortname DUMMY_1 in Grib Files.
            
       cf_desc      = t_cf_var('clc_rad', '',  'cloud cover for radiation scheme', datatype_flt)
       new_cf_desc  = t_cf_var('clc_rad', '%', 'cloud cover for radiation scheme', datatype_flt)
-      grib2_desc   = grib2_var(0, 254, 1, ibits, GRID_UNSTRUCTURED, GRID_CELL)
+      grib2_desc   = grib2_var(0, 6, 215, ibits, GRID_UNSTRUCTURED, GRID_CELL)
       CALL add_var( diag_list, 'clc_rad', diag%clc_rad,                            &
            & GRID_UNSTRUCTURED_CELL, ZA_REFERENCE, cf_desc, grib2_desc,            &
            & ldims=shape3d, lrestart=.FALSE.,                                      &
