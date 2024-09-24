@@ -23,8 +23,9 @@ MODULE mo_gribout_nml
   USE mo_mpi,                 ONLY: my_process_is_stdio
   USE mo_restart_nml_and_att, ONLY: open_tmpfile, store_and_close_namelist,     &
     &                               open_and_restore_namelist, close_tmpfile
-  USE mo_gribout_config,      ONLY: gribout_config, GRIB_UNDEFVAL, GRIB_NOTINUSEVAL, &
-    &                               GRIB_LIB_COMPAT_ECC_2_31_0
+  USE mo_gribout_config,      ONLY: gribout_config, GRIB_UNDEFVAL, GRIB_NOTINUSEVAL,   &
+    &                               GRIB_LIB_COMPAT_ECC_2_31_0, GRIB_MAX_NUM_MOD_COMP, &
+    &                               GRIB_MAX_STR_LEN_MOD_COMP
   USE mo_grib2_tile,          ONLY: grib2_keys_tile
   USE mo_nml_annotate,        ONLY: temp_defaults, temp_settings
   USE mo_util_string,         ONLY: int2string, tolower, one_of
@@ -48,6 +49,8 @@ MODULE mo_gribout_nml
   !  - "none"
   !  - "deterministic"
   !  - "ensemble"
+  !  - "modcomp:deterministic"
+  !  - "modcomp:ensemble"
   !
   ! Setting this different to "none" enables a couple of defaults for
   ! the other gribout_nml namelist parameters. If, additionally, the
@@ -99,6 +102,7 @@ MODULE mo_gribout_nml
     & localDefinitionNumber             ! 252: Ensemble system incl. postprocessing
                                         ! 253: Ensemble system
                                         ! 254: Deterministic system
+                                        ! 230: Model composition
 
   INTEGER :: &                          ! Table: local.78.254.def
     & localNumberOfExperiment           !
@@ -139,6 +143,12 @@ MODULE mo_gribout_nml
     & grib_lib_compat                   ! 'current'
                                         ! 'eccodes:2.31.0'
 
+  CHARACTER(LEN=GRIB_MAX_STR_LEN_MOD_COMP) :: &  ! model components for localDefinitionNumber = 230
+    &  model_components(GRIB_MAX_NUM_MOD_COMP)   ! ("Model composition"):
+                                                 ! "icon-nwp"
+                                                 ! "art-nwp"
+                                                 ! "ocean-nwp"
+
   NAMELIST/gribout_nml/  &
     &                    preset, tablesVersion,           &
     &                    localTablesVersion,              &
@@ -161,7 +171,8 @@ MODULE mo_gribout_nml
     &                    lgribout_24bit,                  &
     &                    lgribout_compress_ccsds,         &
     &                    typeOfGrib2TileTemplate,         &
-    &                    grib_lib_compat
+    &                    grib_lib_compat,                 &
+    &                    model_components
 
 
 CONTAINS
@@ -187,6 +198,11 @@ CONTAINS
     INTEGER :: jg          !< patch loop index
     INTEGER :: iunit
     INTEGER :: grib_lib_compat_int
+    INTEGER :: model_components_int(GRIB_MAX_NUM_MOD_COMP) !< integers corresponding to
+                                                           !< model component strings
+    INTEGER :: localProductionSystem  !< local production system (for localDefinitionNumber = 230):
+                                      !< 253: "ensemble system"
+                                      !< 254: "deterministic system"
 
     CHARACTER(len=*), PARAMETER :: routine = modname//"::read_gribout_nml"
 
@@ -221,6 +237,8 @@ CONTAINS
     perturbationNumber                   = GRIB_UNDEFVAL  ! (undefined, will not be set if unchanged)
 
     grib_lib_compat                      = 'current'      ! i.e. switched off
+
+    model_components(:)                  = ' '
 
     !------------------------------------------------------------------
     ! 2. If this is a resumed integration, overwrite the defaults above
@@ -307,6 +325,16 @@ CONTAINS
       ENDIF
     ENDIF
 
+    ! Check namelist settings for Local-Use-Section (Section 2) template: 230: "Model composition"
+    ! (as this is relatively extensive, it is moved to a separate subroutine)
+    CALL evaluate_model_composition(generatingCenter        = generatingCenter,        & ! in
+      &                             localDefinitionNumber   = localDefinitionNumber,   & ! in
+      &                             typeOfGeneratingProcess = typeOfGeneratingProcess, & ! in
+      &                             preset                  = preset,                  & ! in
+      &                             model_components_char   = model_components(:),     & ! in
+      &                             model_components_int    = model_components_int(:), & ! out
+      &                             localProductionSystem   = localProductionSystem    ) ! out
+
     !----------------------------------------------------
     ! 5. Fill the configuration state
     !----------------------------------------------------
@@ -356,6 +384,10 @@ CONTAINS
         &                tolower(typeOfGrib2TileTemplate)
       gribout_config(jg)%grib_lib_compat                   = &
         &                grib_lib_compat_int
+      gribout_config(jg)%localProductionSystem             = &
+        &                localProductionSystem
+      gribout_config(jg)%model_components                  = &
+        &                model_components_int
     ENDDO
 
 
@@ -465,6 +497,32 @@ CONTAINS
       !       statistically processed data      -> 11
       CALL preset_value("typeOfEnsembleForecast",          typeOfEnsembleForecast,            192 , quiet=.FALSE. )
 
+    ELSE IF (TRIM(preset) == "modcomp:deterministic") THEN
+      !
+      ! model composition: deterministic production system
+      !
+      ! 2: Forecast
+      CALL preset_value("typeOfGeneratingProcess", typeOfGeneratingProcess, 2, quiet=.TRUE.)
+      ! 230: Model composition
+      CALL preset_value("localDefinitionNumber", localDefinitionNumber, 230, quiet=.TRUE.)
+      ! 1: Forecast products
+      CALL preset_value("typeOfProcessedData", typeOfProcessedData, 1, quiet=.TRUE.)
+      
+    ELSE IF (TRIM(preset) == "modcomp:ensemble") THEN
+      !
+      ! model composition: ensemble production system
+      !
+      ! 4: Ensemble forecast
+      CALL preset_value("typeOfGeneratingProcess", typeOfGeneratingProcess, 4, quiet=.FALSE.)
+      ! 230: Model composition
+      CALL preset_value("localDefinitionNumber", localDefinitionNumber, 230, quiet=.TRUE.)
+      ! 5 : Control and perturbed forecast products
+      CALL preset_value("typeOfProcessedData", typeOfProcessedData, 5, quiet=.FALSE.)
+      ! 192: other types of ensemble forecasts
+      ! Note: atmospheric chemical constituents -> 41
+      !       statistically processed data      -> 11
+      CALL preset_value("typeOfEnsembleForecast", typeOfEnsembleForecast, 192, quiet=.FALSE.) 
+
     ELSE IF (LEN_TRIM(preset) > 0) THEN
       !
       ! invalid namelist entry for preset
@@ -504,5 +562,157 @@ CONTAINS
     END IF
 
   END SUBROUTINE preset_value
+
+  !> Evaluate possible namelist input for the model composition
+  !
+  SUBROUTINE evaluate_model_composition(generatingCenter, localDefinitionNumber, typeOfGeneratingProcess, preset, &
+    &                                   model_components_char, model_components_int, localProductionSystem)
+
+    ! Arguments
+    INTEGER,                                  INTENT(IN)  :: generatingCenter
+    INTEGER,                                  INTENT(IN)  :: localDefinitionNumber
+    INTEGER,                                  INTENT(IN)  :: typeOfGeneratingProcess
+    CHARACTER(LEN=*),                         INTENT(IN)  :: preset
+    CHARACTER(LEN=GRIB_MAX_STR_LEN_MOD_COMP), INTENT(IN)  :: model_components_char(GRIB_MAX_NUM_MOD_COMP)
+    INTEGER,                                  INTENT(OUT) :: model_components_int(GRIB_MAX_NUM_MOD_COMP)
+    INTEGER,                                  INTENT(OUT) :: localProductionSystem
+
+    ! Local variables
+    INTEGER :: jmc, counter
+    LOGICAL :: found_icon_nwp, found_art_nwp, found_ocean_nwp
+    CHARACTER(LEN=GRIB_MAX_STR_LEN_MOD_COMP) :: component
+
+    CHARACTER(LEN=*), PARAMETER :: routine = modname//"::evaluate_model_composition"
+
+    !-------------------------------------
+
+    ! Initialize intent-out arguments:
+    ! * Integer values, which correspond to the model component strings:
+    !   0: "Not in use/Does not apply" (local table 2.231.1)
+    model_components_int(:) = GRIB_NOTINUSEVAL
+    ! * Production system:
+    !   0: "Not in use/Does not apply" (local table 2.230)
+    localProductionSystem = GRIB_NOTINUSEVAL
+
+    ! The following is necessary only for
+    ! Local-Use-Section (Section 2) template: 230: "Model composition"
+    IF (localDefinitionNumber == 230) THEN
+
+      ! Some checks
+      IF (.NOT. ANY([GRIB_UNDEFVAL, 78, 80, 215] == generatingCenter)) THEN
+        ! This is only available for centres:
+        ! * 78  Offenbach
+        ! * 80  Rome
+        ! * 215 Zurich
+        CALL finish(routine, "Local template 230 is not available for generatingCenter: " &
+          &                  //TRIM(int2string(generatingCenter)))
+      ELSEIF ((TRIM(preset) /= "modcomp:deterministic") .AND. (TRIM(preset) /= "modcomp:ensemble")) THEN
+        CALL finish(routine, "Local template 230 requires preset = 'modcomp:deterministic' or 'modcomp:ensemble'")
+      ENDIF
+
+      !-------------------
+      ! Production system
+      !-------------------
+      
+      IF (typeOfGeneratingProcess == 2) THEN
+        ! typeOfGeneratingProcess = 2: "Forecast"
+        ! => deterministic productions system
+        localProductionSystem = 254
+      ELSEIF (typeOfGeneratingProcess == 4) THEN
+        ! typeOfGeneratingProcess = 4: "Ensemble forecast"
+        ! ensemble productions system
+        localProductionSystem = 253          
+      ENDIF
+
+      !-------------------
+      ! Model composition
+      !-------------------
+      
+      ! Template 230 allows for 8 model components in total.
+      ! Currently, we allow for 3 components at most:
+      ! * localDrivingModelComponent   = 1000: "ICON-NWP" (local table 2.231.1)
+      ! * local(2nd/3rd)ModelComponent = 2000: "ART-NWP"
+      ! * local(2nd/3rd)ModelComponent = 3000: "OCEAN-NWP"
+
+      ! Note: "art-nwp" (2000) and "ocean-nwp" (3000) require "icon-nwp" (1000) as the driving model.
+      ! The following handful of examples shall demonstrate what the few code lines after effectively try to do:
+      !
+      !  - model_components = "icon-nwp", "art-nwp"              ==> model_components = "icon-nwp", "art-nwp"
+      !
+      !  - model_components = "ocean-nwp"                        ==> model_components = "icon-nwp", "ocean-nwp"
+      !
+      !  - model_components = "art-nwp", "icon-nwp", "ocean-nwp" ==> model_components = "icon-nwp", "art-nwp", "ocean-nwp"
+      !
+      !  - model_components = "ocean-nwp", "icon-nwp", "art-nwp" ==> model_components = "icon-nwp", "ocean-nwp", "art-nwp"
+      !
+      !  - model_components = "art-nwp", "ocean-nwp", "art-nwp"  ==> model_components = "icon-nwp", "art-nwp", "ocean-nwp"
+      !
+      !  - model_components = "bla"                              ==> error
+      !
+      !  - model_components = " "                                ==> error
+
+      component       = " "
+      counter         = 1
+      found_icon_nwp  = .FALSE.
+      found_art_nwp   = .FALSE.
+      found_ocean_nwp = .FALSE.
+
+      DO jmc = 1, GRIB_MAX_NUM_MOD_COMP
+        IF (LEN_TRIM(model_components_char(jmc)) > 0) THEN
+          ! lowercase namelist entry
+          component = tolower(model_components_char(jmc))
+          IF (TRIM(component) == "icon-nwp") THEN
+            IF ((.NOT. found_icon_nwp) .AND. (counter == 1)) THEN
+              ! found model component: "icon-nwp"
+              ! (if counter > 1, as the case may be,
+              ! this is covered by the following elseif-branches)
+              model_components_int(counter) = 1000
+              found_icon_nwp                = .TRUE.
+              counter                       = counter + 1
+            ENDIF
+          ELSEIF (TRIM(component) == "art-nwp") THEN
+            IF (.NOT. found_art_nwp) THEN
+              ! found model component: "art-nwp"
+              IF (counter == 1) THEN
+                ! it needs "icon-nwp"
+                model_components_int(counter) = 1000
+                ! we have to shift the counter by 1 in this case
+                counter        = counter + 1
+                found_icon_nwp = .TRUE.
+              ENDIF
+              model_components_int(counter) = 2000
+              found_art_nwp                 = .TRUE.
+              counter                       = counter + 1
+            ENDIF
+          ELSEIF (TRIM(component) == "ocean-nwp") THEN
+            IF (.NOT. found_ocean_nwp) THEN
+              ! found model component: "ocean-nwp"
+              IF (counter == 1) THEN
+                model_components_int(counter) = 1000
+                counter                       = counter + 1
+                found_icon_nwp                = .TRUE.
+              ENDIF
+              model_components_int(counter) = 3000
+              found_ocean_nwp               = .TRUE.
+              counter                       = counter + 1
+            ENDIF
+          ELSE
+            ! invalid string
+            CALL finish(routine, "Invalid setting for model_components: "//TRIM(model_components_char(jmc)))
+          ENDIF ! IF (valid component)
+        ENDIF ! IF (LEN_TRIM(model_components_char(jmc)) > 0)
+      ENDDO ! jmc
+
+      IF (counter == 0) THEN
+        CALL finish(routine, "Local template 230 requires to specify model_components")
+      ELSE
+        ! Inform the user about her/his responsibility
+        CALL message(routine, "Please note: it is the user's responsibility that the namelist setting 'model_components'" &
+          &                 //" and the actual model composition correspond with each other!")
+      ENDIF
+
+    ENDIF ! IF (localDefinitionNumber == 230)
+
+  END SUBROUTINE evaluate_model_composition
 
 END MODULE mo_gribout_nml
