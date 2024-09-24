@@ -272,7 +272,8 @@ $addexp  checksuite.infrastructure/checkExternals/exp.check_externals_LEVANTE.ru
 $addexp  checksuite.infrastructure/checkExternals/exp.check_externals_LEVANTE_gpu.run --builders levante_gpu_nvhpc --list ${listname}
 
 # icon-clm tests
-$addexp "checksuite.clm/check.ICON_CLM" --builders "levante_intel levante_gcc_hybrid" --list ${listname} --runflags="ntasks=32 queue=shared"
+$addexp "checksuite.clm/check.ICON_CLM" --builders "levante_intel levante_gcc_hybrid levante_cpu_nvhpc" --list ${listname} --runflags="ntasks=32 queue=shared"
+$addexp "checksuite.clm/clmexp.ICON_CLM" --builders "levante_gpu_nvhpc" --list ${listname}
 $addexp "checksuite.clm/check.ICON_CLM" --builders "DWD_nec_hybrid" --list ${listname}
 $addexp "checksuite.clm/clmexp.ICON_CLM_global_mean_no_boundary" --builders "levante_intel_hybrid levante_gcc_hybrid" --list $listname
 

@@ -443,6 +443,8 @@ set_run_target_bullx_gpu()
     set_default use_nodes 1
     set_default use_num_io_procs 1
     set_default use_account_no "$(id -gn)"
+    set_default use_ecrad_isolver 2 # McICA for OpenACC
+
     if [[ "x$BB_SYSTEM" != "x" ]]
     then
 	# this buildbot, do not use job id
@@ -2135,6 +2137,13 @@ create_target_header()
                 ;;
             esac
             ;;    
+        *ICON_CLM*)
+            case $use_target in
+            bullx_gpu*)
+                use_mpi_procs_pernode=4
+                ;;
+            esac
+            ;;
         esac
 
     # set more default values

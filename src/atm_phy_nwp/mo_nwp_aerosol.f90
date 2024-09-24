@@ -33,7 +33,7 @@ MODULE mo_nwp_aerosol
   USE mo_reader_cams,             ONLY: t_cams_reader
   USE mo_interpolate_time,        ONLY: t_time_intp, intModeLinearMonthlyClim, intModeLinear
   USE mo_io_units,                ONLY: filename_max
-  USE mo_fortran_tools,           ONLY: init, set_acc_host_or_device, assert_acc_host_only
+  USE mo_fortran_tools,           ONLY: init, set_acc_host_or_device, assert_acc_device_only
   USE mo_util_string,             ONLY: int2string, associate_keyword, t_keyword_list, with_keywords
 ! ICON configuration
   USE mo_atm_phy_nwp_config,      ONLY: atm_phy_nwp_config, iprog_aero, icpl_aero_conv
@@ -381,9 +381,6 @@ CONTAINS
         WRITE(message_text,'(a,i2,a)') 'irad_aero = ', irad_aero,' requires to compile with --enable-ecrad.'
         CALL finish(routine, message_text)
 #endif
-#ifdef _OPENACC
-        IF (lzacc) CALL finish(routine, "irad_aero==*Kinne* is not ported to openACC.")
-#endif
 
         ! Update Kinne aerosol from files once per day
         CALL nwp_aerosol_daily_update_kinne(mtime_datetime, pt_patch, dt_rad, inwp_radiation, &
@@ -395,6 +392,7 @@ CONTAINS
           &      ssa_sw(nproma,pt_patch%nlev,pt_patch%nblks_c,nbands_sw)  , &
           &      g_sw  (nproma,pt_patch%nlev,pt_patch%nblks_c,nbands_sw)  , &
           &      STAT=istat)
+        !$ACC ENTER DATA CREATE(od_lw, od_sw, ssa_sw, g_sw) IF(lzacc)
         IF(istat /= SUCCESS) &
           &  CALL finish(routine, 'Allocation of od_lw, od_sw, ssa_sw, g_sw failed')
 
@@ -410,22 +408,27 @@ CONTAINS
             &                    pt_patch%id, jb, i_startidx, i_endidx, pt_patch%nlev, &
             &                    nbands_lw, nbands_sw, wavenum1_sw(:), wavenum2_sw(:), &
             &                    od_lw(:,:,jb,:), od_sw(:,:,jb,:),                     &
-            &                    ssa_sw(:,:,jb,:), g_sw(:,:,jb,:), cloud_num_fac(:)    )
+            &                    ssa_sw(:,:,jb,:), g_sw(:,:,jb,:), cloud_num_fac(:),   &
+            &                    lacc=lzacc)
 
           IF ( atm_phy_nwp_config(pt_patch%id)%lscale_cdnc ) THEN
+#ifdef _OPENACC
+            IF (lzacc) CALL finish(routine, "lscale_cdnc not ported to OpenACC.")
+#endif
             prm_diag%cloud_num_fac(:,jb) = cloud_num_fac(:)
           ENDIF
 
           IF ( var_in_output(jg)%aod_550nm ) THEN
             CALL calc_aod550_kinne(i_startidx, i_endidx, pt_patch%nlev, od_sw(:,:,jb,10), &
-              &                    prm_diag%aod_550nm(:,jb), lacc)
+              &                    prm_diag%aod_550nm(:,jb), lacc=lzacc)
           END IF
 
           ! Compute cloud number concentration depending on aerosol climatology
           ! if aerosol-microphysics or aerosol-convection coupling is turned on
           IF (atm_phy_nwp_config(pt_patch%id)%icpl_aero_gscp == 3 .OR. icpl_aero_conv == 1) THEN
-            CALL nwp_cpl_aero_gscp_conv(i_startidx, i_endidx, pt_patch%nlev, pt_diag%pres_sfc(:,jb), pt_diag%pres(:,:,jb), &
-              &                         prm_diag%acdnc(:,:,jb), prm_diag%cloud_num(:,jb), lacc)
+            CALL nwp_cpl_aero_gscp_conv(i_startidx, i_endidx, pt_patch%nlev, pt_diag%pres_sfc(:,jb), &
+                                        pt_diag%pres(:,:,jb), prm_diag%acdnc(:,:,jb), prm_diag%cloud_num(:,jb), &
+                                        lacc=lzacc)
           ENDIF
 
         END DO
@@ -434,6 +437,13 @@ CONTAINS
 
       ! CAMS climatology/forecasted aerosols
       CASE(iRadAeroCAMSclim,iRadAeroCAMStd)
+
+#ifdef _OPENACC
+        IF (lzacc) THEN
+          WRITE(message_text,'(a,i2,a)') 'irad_aero = ', irad_aero,' not ported to OpenACC.'
+          CALL finish(routine, message_text)
+        ENDIF
+#endif
 
         rl_start   = grf_bdywidth_c+1
         rl_end     = min_rlcell_int
@@ -522,17 +532,22 @@ CONTAINS
     ! 10th band range (442 - 625nm) is used to output aod_550 nm
     ! due to a lack of spectrally resolved information for a particular wavelength
 
-    CALL assert_acc_host_only("calc_aod550_kinne", lacc)
+    CALL assert_acc_device_only("calc_aod550_kinne", lacc)
 
+    !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1)
+    !$ACC LOOP GANG(STATIC: 1) VECTOR
     DO jc = i_startidx, i_endidx
       aod_550nm(jc) = 0.0_wp
     ENDDO
 
+    !$ACC LOOP SEQ
     DO jk = 1, nlev
+      !$ACC LOOP GANG(STATIC: 1) VECTOR
       DO jc = i_startidx, i_endidx
         aod_550nm(jc) = aod_550nm(jc) + od_sw_band10(jc,jk)
       ENDDO !jc
     ENDDO !jk
+    !$ACC END PARALLEL
 
   END SUBROUTINE calc_aod550_kinne
 
@@ -573,7 +588,7 @@ CONTAINS
   !---------------------------------------------------------------------------------------
   SUBROUTINE nwp_aerosol_kinne(mtime_datetime, zf, zh, dz, jg, jb, i_startidx, i_endidx, nlev, &
     &                          nbands_lw, nbands_sw, wavenum1_sw, wavenum2_sw,     &
-    &                          od_lw, od_sw, ssa_sw, g_sw, cloud_num_fac)
+    &                          od_lw, od_sw, ssa_sw, g_sw, cloud_num_fac, lacc)
     TYPE(datetime), POINTER, INTENT(in) :: &
       &  mtime_datetime                      !< Current datetime
     REAL(wp), INTENT(in) ::                &
@@ -603,12 +618,40 @@ CONTAINS
       &  x_cdnc(nproma),                   & !< Scale factor for Cloud Droplet Number Concentration
       &  x_cdnc_ref(nproma)                  !< x_cdnc for the reference year 2005
     INTEGER ::                             &
-      &  jk, jc                              !< Loop index
+      &  jk, jc, jwl                         !< Loop indices
+    CHARACTER(len=*), PARAMETER :: &
+      &  routine = modname//':nwp_aerosol_kinne'
+    LOGICAL, INTENT(in), OPTIONAL :: lacc   !< If true, use openacc
+    LOGICAL :: lzacc
 
-    od_lw_vr(:,:,:)  = 0.0_wp
-    od_sw_vr(:,:,:)  = 0.0_wp
-    ssa_sw_vr(:,:,:) = 1.0_wp
-    g_sw_vr (:,:,:)  = 0.0_wp
+    CALL set_acc_host_or_device(lzacc, lacc)
+
+    !$ACC DATA CREATE(od_lw_vr, od_sw_vr, g_sw_vr, ssa_sw_vr, x_cdnc) IF(lzacc)
+
+    !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1) IF(lzacc)
+    !$ACC LOOP SEQ
+    DO jwl = 1, nbands_lw
+      !$ACC LOOP GANG(STATIC: 1) VECTOR COLLAPSE(2)
+      DO jk = 1, nlev
+        DO jc = 1, nproma
+          od_lw_vr(jc,jk,jwl)  = 0.0_wp
+        END DO
+      END DO
+    END DO
+
+    !$ACC LOOP SEQ
+    DO jwl = 1, nbands_sw
+      !$ACC LOOP GANG(STATIC: 1) VECTOR COLLAPSE(2)
+      DO jk = 1, nlev
+        DO jc = 1, nproma
+          od_sw_vr(jc,jk,jwl)  = 0.0_wp
+          ssa_sw_vr(jc,jk,jwl) = 1.0_wp
+          g_sw_vr(jc,jk,jwl)   = 0.0_wp
+        END DO
+      END DO
+    END DO
+    !$ACC END PARALLEL
+
 
     ! Tropospheric Kinne aerosol
     IF (ANY( irad_aero == (/iRadAeroConstKinne,iRadAeroKinne,iRadAeroKinneVolc, &
@@ -616,21 +659,24 @@ CONTAINS
       CALL set_bc_aeropt_kinne(mtime_datetime, jg, i_startidx, i_endidx, nproma, nlev, jb, &
         &                      nbands_sw, nbands_lw, zf(:,:), dz(:,:),            &
         &                      od_sw_vr(:,:,:), ssa_sw_vr(:,:,:),                 &
-        &                      g_sw_vr (:,:,:), od_lw_vr(:,:,:)                   )
+        &                      g_sw_vr (:,:,:), od_lw_vr(:,:,:), lacc=lzacc)
     ENDIF
 
     ! Volcanic stratospheric aerosols for CMIP6
     IF (ANY( irad_aero == (/iRadAeroVolc,iRadAeroKinneVolc,iRadAeroKinneVolcSP/) )) THEN 
-     CALL add_bc_aeropt_cmip6_volc(mtime_datetime, jg, i_startidx, i_endidx, nproma, nlev, jb, &
-       &                           nbands_sw, nbands_lw, zf(:,:), dz(:,:),            &
-       &                           od_sw_vr(:,:,:), ssa_sw_vr(:,:,:),                 &
-       &                           g_sw_vr (:,:,:), od_lw_vr(:,:,:)                   )
+      CALL add_bc_aeropt_cmip6_volc(mtime_datetime, jg, i_startidx, i_endidx, nproma, nlev, jb, &
+        &                           nbands_sw, nbands_lw, zf(:,:), dz(:,:),            &
+        &                           od_sw_vr(:,:,:), ssa_sw_vr(:,:,:),                 &
+        &                           g_sw_vr (:,:,:), od_lw_vr(:,:,:), lacc=lzacc       )
     END IF
 
     ! Simple plumes
     IF (ANY( irad_aero == (/iRadAeroKinneVolcSP,iRadAeroKinneSP/) )) THEN
 
       IF (atm_phy_nwp_config(jg)%lscale_cdnc) THEN
+#ifdef _OPENACC
+        CALL finish(routine, "lscale_cdnc not ported to OpenACC.")
+#endif
         ! get x_cdnc_ref; the simple plume scheme uses 2005 as reference year
         mtime_2005 => newDatetime(mtime_datetime)
         mtime_2005%date%year = 2005
@@ -646,12 +692,16 @@ CONTAINS
 
       CALL add_bc_aeropt_splumes(jg, i_startidx, i_endidx, nproma, nlev, jb,  &
         &                        nbands_sw, mtime_datetime,          &
-        &                        zf(:,:), dz(:,:), zh(:,nlev+1),     &
-        &                        wavenum1_sw(:), wavenum2_sw(:),     &
-        &                        od_sw_vr(:,:,:), ssa_sw_vr(:,:,:),  &
-        &                        g_sw_vr (:,:,:), x_cdnc(:)          )
+        &                        zf(:,:), dz(:,:), zh(:,nlev+1),     & ! in
+        &                        wavenum1_sw(:), wavenum2_sw(:),     & ! in
+        &                        od_sw_vr(:,:,:), ssa_sw_vr(:,:,:),  & ! inout
+        &                        g_sw_vr (:,:,:), x_cdnc(:),         & ! inout
+        &                        lacc=lzacc                          )
 
       IF (atm_phy_nwp_config(jg)%lscale_cdnc) THEN
+#ifdef _OPENACC
+        CALL finish(routine, "lscale_cdnc not ported to OpenACC.")
+#endif
         ! apply scaling with safety limits:
         DO jc = i_startidx, i_endidx
           cloud_num_fac(jc) = x_cdnc(jc) / MAX(1e-6_wp, x_cdnc_ref(jc))
@@ -662,13 +712,32 @@ CONTAINS
 
     END IF
 
+    !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1) IF(lzacc)
     ! Vertically reverse the fields:
+    !$ACC LOOP SEQ
     DO jk = 1, nlev
-      od_lw (:,jk,:) = od_lw_vr (:,nlev-jk+1,:)
-      od_sw (:,jk,:) = od_sw_vr (:,nlev-jk+1,:)
-      ssa_sw(:,jk,:) = ssa_sw_vr(:,nlev-jk+1,:)
-      g_sw  (:,jk,:) = g_sw_vr  (:,nlev-jk+1,:)
-    ENDDO
+      !$ACC LOOP SEQ
+      DO jwl = 1, nbands_lw
+        !$ACC LOOP GANG(STATIC: 1) VECTOR
+        DO jc = 1, nproma
+          od_lw (jc,jk,jwl) = od_lw_vr (jc,nlev-jk+1,jwl)
+        END DO
+      END DO
+
+      !$ACC LOOP SEQ
+      DO jwl = 1, nbands_sw
+        !$ACC LOOP GANG(STATIC: 1) VECTOR
+        DO jc = 1, nproma
+          od_sw (jc,jk,jwl) = od_sw_vr (jc,nlev-jk+1,jwl)
+          ssa_sw(jc,jk,jwl) = ssa_sw_vr(jc,nlev-jk+1,jwl)
+          g_sw  (jc,jk,jwl) = g_sw_vr  (jc,nlev-jk+1,jwl)
+        END DO
+      END DO
+    END DO
+    !$ACC END PARALLEL
+
+    !$ACC WAIT(1)
+    !$ACC END DATA
 
   END SUBROUTINE nwp_aerosol_kinne
 
@@ -1168,7 +1237,8 @@ CONTAINS
   END SUBROUTINE get_time_intp_weights
 
   !---------------------------------------------------------------------------------------
-  SUBROUTINE nwp_aerosol_cleanup(zaeq1, zaeq2, zaeq3, zaeq4, zaeq5, od_lw, od_sw, ssa_sw, g_sw)
+  SUBROUTINE nwp_aerosol_cleanup(zaeq1, zaeq2, zaeq3, zaeq4, zaeq5, od_lw, od_sw, ssa_sw, g_sw, lacc)
+
     CHARACTER(len=*), PARAMETER :: &
       &  routine = modname//':nwp_aerosol_cleanup'
 
@@ -1184,6 +1254,9 @@ CONTAINS
       &  g_sw(:,:,:,:)           !< Shortwave single scattering albedo
     ! Local variables
     INTEGER :: istat
+    LOGICAL, INTENT(IN), OPTIONAL :: lacc
+
+    CALL assert_acc_device_only("nwp_aerosol_cleanup", lacc)
 
     !$ACC WAIT
     IF( ALLOCATED(zaeq1) ) THEN
@@ -1213,18 +1286,22 @@ CONTAINS
     ENDIF
 
     IF( ALLOCATED(od_lw) ) THEN
+      !$ACC EXIT DATA DELETE(od_lw)
       DEALLOCATE(od_lw, STAT=istat)
       IF(istat /= SUCCESS) CALL finish(routine, 'Deallocation of od_lw failed.')
     ENDIF
     IF( ALLOCATED(od_sw) ) THEN
+      !$ACC EXIT DATA DELETE(od_sw)
       DEALLOCATE(od_sw, STAT=istat)
       IF(istat /= SUCCESS) CALL finish(routine, 'Deallocation of od_sw failed.')
     ENDIF
     IF( ALLOCATED(ssa_sw) ) THEN
+      !$ACC EXIT DATA DELETE(ssa_sw)
       DEALLOCATE(ssa_sw, STAT=istat)
       IF(istat /= SUCCESS) CALL finish(routine, 'Deallocation of ssa_sw failed.')
     ENDIF
     IF( ALLOCATED(g_sw) ) THEN
+      !$ACC EXIT DATA DELETE(g_sw)
       DEALLOCATE(g_sw, STAT=istat)
       IF(istat /= SUCCESS) CALL finish(routine, 'Deallocation of g_sw failed.')
     ENDIF
@@ -1232,4 +1309,3 @@ CONTAINS
   END SUBROUTINE nwp_aerosol_cleanup
 
 END MODULE mo_nwp_aerosol
-

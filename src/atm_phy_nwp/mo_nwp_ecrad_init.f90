@@ -404,12 +404,17 @@ CONTAINS
     !$ACC   COPYIN(ecrad_conf%i_g_from_reordered_g_lw) &
     !$ACC   COPYIN(ecrad_conf%i_emiss_from_band_lw) &
     !$ACC   COPYIN(ecrad_conf%pdf_sampler) &
-    !$ACC   COPYIN(ecrad_conf%sw_albedo_weights)
+    !$ACC   COPYIN(ecrad_conf%sw_albedo_weights) &
+    !$ACC   COPYIN(ecrad_conf%gas_optics_sw)
     !$ACC ENTER DATA COPYIN(ecrad_conf%cloud_optics%liq_coeff_lw) &
     !$ACC   COPYIN(ecrad_conf%cloud_optics%liq_coeff_sw) &
     !$ACC   COPYIN(ecrad_conf%cloud_optics%ice_coeff_lw) &
     !$ACC   COPYIN(ecrad_conf%cloud_optics%ice_coeff_sw) &
-    !$ACC   COPYIN(ecrad_conf%pdf_sampler%val)
+    !$ACC   COPYIN(ecrad_conf%pdf_sampler%val) &
+    !$ACC   COPYIN(ecrad_conf%gas_optics_sw%spectral_def) &
+    !$ACC   COPYIN(ecrad_conf%gas_optics_sw%spectral_def)
+    !$ACC ENTER DATA COPYIN(ecrad_conf%gas_optics_sw%spectral_def%wavenumber1_band) &
+    !$ACC   COPYIN(ecrad_conf%gas_optics_sw%spectral_def%wavenumber2_band)
 
 #ifdef _OPENACC
     CALL ecrad_openacc_crosscheck(ecrad_conf)
@@ -472,8 +477,7 @@ CONTAINS
         CALL finish(routine,'ecrad_conf%i_solver_sw == ISolverCloudless not ported to GPU')
     END SELECT
 
-
-    IF (ecrad_conf%use_aerosols == .FALSE.) THEN
+    IF (.NOT. ecrad_conf%use_aerosols) THEN
       CALL finish(routine,'ecrad_conf%use_aerosols == .FALSE. not ported to GPU.')
     ENDIF
 

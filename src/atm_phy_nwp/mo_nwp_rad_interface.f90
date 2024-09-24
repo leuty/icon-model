@@ -47,11 +47,10 @@ MODULE mo_nwp_rad_interface
     &                                operator(+), operator(-), newTimedelta, deallocateTimedelta, &
     &                                getPTStringFromSeconds, newDatetime, deallocateDatetime
   USE mo_timer,                ONLY: timer_start, timer_stop, timers_level, timer_preradiaton
-  USE mo_nwp_gpu_util,         ONLY: gpu_d2h_nh_nwp
   USE mo_bc_greenhouse_gases,  ONLY: bc_greenhouse_gases_time_interpolation
 #ifdef _OPENACC
   USE mo_mpi,                  ONLY: i_am_accel_node, my_process_is_work
-  USE mo_nwp_gpu_util,         ONLY: gpu_h2d_nh_nwp
+  USE mo_nwp_gpu_util,         ONLY: gpu_h2d_nh_nwp, gpu_d2h_nh_nwp
 #endif
   USE mo_bc_solar_irradiance,  ONLY: read_bc_solar_irradiance, ssi_time_interpolation
   USE mo_bcs_time_interpolation,ONLY: t_time_interpolation_weights,   &
@@ -174,6 +173,8 @@ MODULE mo_nwp_rad_interface
         nbands_sw   = ecrad_conf%n_bands_sw ! With ecckd, this might actually be g-points if ecrad_conf%do_cloud_aerosol_per_sw_g_point
         wavenum1_sw => ecrad_conf%gas_optics_sw%spectral_def%wavenumber1_band
         wavenum2_sw => ecrad_conf%gas_optics_sw%spectral_def%wavenumber2_band
+        !$ACC ENTER DATA CREATE(wavenum1_sw, wavenum2_sw) IF(lzacc)
+        !$ACC UPDATE DEVICE(wavenum1_sw, wavenum2_sw) IF(lzacc)
     END SELECT
 #endif
 
@@ -304,17 +305,18 @@ MODULE mo_nwp_rad_interface
 #ifdef __ECRAD
       IF (.NOT. lredgrid) THEN
         !$ACC WAIT
-        CALL nwp_ecRad_radiation ( mtime_datetime, pt_patch, ext_data,      &
+        CALL nwp_ecrad_radiation ( mtime_datetime, pt_patch, ext_data,      &
           & zaeq1, zaeq2, zaeq3, zaeq4, zaeq5,                              &
           & od_lw, od_sw, ssa_sw, g_sw,                                     &
           & pt_diag, prm_diag, pt_prog, lnd_prog, zsct, ecrad_conf, lzacc )
       ELSE
         !$ACC WAIT
-        CALL nwp_ecRad_radiation_reduced ( mtime_datetime, pt_patch,pt_par_patch, &
+        CALL nwp_ecrad_radiation_reduced ( mtime_datetime, pt_patch,pt_par_patch, &
           & ext_data, zaeq1, zaeq2, zaeq3, zaeq4, zaeq5,                          &
           & od_lw, od_sw, ssa_sw, g_sw,                                           &
           & pt_diag, prm_diag, pt_prog, lnd_prog, zsct, ecrad_conf, lacc=lzacc )
       ENDIF
+      !$ACC EXIT DATA DELETE(wavenum1_sw, wavenum2_sw) IF(lzacc)
 #else
       CALL finish(routine,  &
         &      'atm_phy_nwp_config(jg)%inwp_radiation = 4 needs -D__ECRAD.')
@@ -326,7 +328,7 @@ MODULE mo_nwp_rad_interface
       CALL finish(routine,message_text)
     END SELECT ! inwp_radiation
 
-    CALL nwp_aerosol_cleanup(zaeq1, zaeq2, zaeq3, zaeq4, zaeq5, od_lw, od_sw, ssa_sw, g_sw)
+    CALL nwp_aerosol_cleanup(zaeq1, zaeq2, zaeq3, zaeq4, zaeq5, od_lw, od_sw, ssa_sw, g_sw, lacc=lzacc)
 
   END SUBROUTINE nwp_radiation
 

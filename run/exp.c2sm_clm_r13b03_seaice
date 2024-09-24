@@ -110,6 +110,20 @@ add_required_file ${latbc_path}/bc_greenhouse_rcp45_1765-2500.nc .
 add_required_file ${latbc_path}/LOWBC_1979_02.nc .
 add_required_file ${latbc_path}/LOWBC_1979_02.nc .
 
+# Add required files for iRadAeroKinnVolcSP (irad_aero=18)
+add_required_file ${icon_data_poolFolder}/input/clm_r13b03_seaice/CMIP6Forcing/bc_aeropt_cmip6_volc_lw_b16_sw_b14_1979.nc .
+
+# - tropospheric anthropogenic aerosols, simple plumes
+add_link_file ${icon_data_poolFolder}/input/clm_r13b03_seaice/MACv2.0-SP_v1.nc                          ./MACv2.0-SP_v1.nc
+#
+# - Kinne background aerosols are needed for the year 1850 (irad_aero=18,19)
+#
+datadir=${icon_data_poolFolder}/input/clm_r13b03_seaice
+#
+add_link_file $datadir/bc_aeropt_kinne_lw_b16_coa.nc                    ./
+add_link_file $datadir/bc_aeropt_kinne_sw_b14_coa.nc                    ./
+add_link_file $datadir/bc_aeropt_kinne_sw_b14_fin_1850.nc               ./bc_aeropt_kinne_sw_b14_fin.nc
+
 icon_preprocessing_source=${icon_data_rootFolder}/grids/private/mpim/icon_preprocessing/source
 # boundary conditions
 # horizontal grid(s)
@@ -362,8 +376,8 @@ cat > ${basedir}/run/${atmo_namelist} << EOF
  efdt_min_raylfric  = 7200.
  itype_z0         = 2
  icapdcycl        = 3
- icpl_aero_conv   = 1
- icpl_aero_gscp   = 1
+ icpl_aero_conv   = 0
+ icpl_aero_gscp   = 0
  icpl_o3_tp       = 1
  iprog_aero       = 0
  dt_rad           = 2400
@@ -431,7 +445,7 @@ cat > ${basedir}/run/${atmo_namelist} << EOF
   irad_cfc11  = 4           ! 4: from greenhouse gas scenario
   irad_cfc12  = 4           ! 4: from greenhouse gas scenario
   irad_o3     = 5
-  irad_aero   = 6
+  irad_aero   = 18
   albedo_type = 2          ! Modis albedo
   direct_albedo = 4
   albedo_whitecap = 1

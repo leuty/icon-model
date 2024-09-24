@@ -900,6 +900,8 @@ CONTAINS
         & patch, init_hice, fr_seaice(:,:), new_ice_list, prog_wtr, lacc=lzacc &
       )
 
+    CALL new_ice_list%finalize()
+
   END SUBROUTINE nwp_vdiff_update_seaice
 
   !>
