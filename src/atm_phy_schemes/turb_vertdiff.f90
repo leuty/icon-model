@@ -668,21 +668,30 @@ my_thrd_id = omp_get_thread_num()
             cur_prof => hlp
             dvar_av  => dvar(n)%av    ! OpenACC issue with derived type
 
-            !$ACC PARALLEL ASYNC(1) DEFAULT(PRESENT)
-            !$ACC LOOP GANG VECTOR COLLAPSE(2)
-            DO k=k_st_up,ke !necessary profile-levels (for bottom-up integration at "igrdcon.EQ.2")
+            IF (n.EQ.tem) THEN !temperature needs to be transformed
+              !$ACC PARALLEL ASYNC(1) DEFAULT(PRESENT)
+              !$ACC LOOP GANG VECTOR COLLAPSE(2)
+              DO k=k_st_up,ke !necessary profile-levels (for bottom-up integration at "igrdcon.EQ.2")
 !DIR$ IVDEP
 !$NEC ivdep
-               DO i=ivstart, ivend
-                  IF (n.EQ.tem) THEN !temperature needs to be transformed
-                     cur_prof(i,k)=dvar_av(i,k)/epr(i,k) !potential temperature
-                     !Note: Here, '=dvar_av' points to ordinary temperature 't'.
-                  ELSE
-                     cur_prof(i,k)=dvar_av(i,k)
-                  END IF
-               END DO
-            END DO
-            !$ACC END PARALLEL
+                 DO i=ivstart, ivend
+                   cur_prof(i,k)=dvar_av(i,k)/epr(i,k) !potential temperature
+                   !Note: Here, '=dvar_av' points to ordinary temperature 't'.
+                 END DO
+              END DO
+              !$ACC END PARALLEL
+            ELSE
+              !$ACC PARALLEL ASYNC(1) DEFAULT(PRESENT)
+              !$ACC LOOP GANG VECTOR COLLAPSE(2)
+              DO k=k_st_up,ke !necessary profile-levels (for bottom-up integration at "igrdcon.EQ.2")
+!DIR$ IVDEP
+!$NEC ivdep
+                 DO i=ivstart, ivend
+                   cur_prof(i,k)=dvar_av(i,k)
+                 END DO
+              END DO
+              !$ACC END PARALLEL
+            END IF
 
             !Surface concentrations:
 
@@ -769,8 +778,6 @@ my_thrd_id = omp_get_thread_num()
 !           Berechnung der vertikalen Diffusionstendenzen:
 !XL_COMMENTS : this print seems to occurs for any debug level, on purpose ?
 !            print*, ivtype, associated(vtyp(ivtype)%tkv)
-
-            !$ACC WAIT(1)
 
             CALL vert_grad_diff( kcm,                                &
 !
