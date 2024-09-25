@@ -1,3 +1,97 @@
+# Release notes for icon-YYYY.MM
+
+### ICON-Atmo
+
+- Revise the aerosol submodules RTE-RRTMGP (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/464)
+- Refactoring in TMX turbulence package for increased modularization
+- Fix faulty call to prm_diag (nwp variable) in aes mode when using nested domains (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/468)
+- Add 2m dewpoint temperature diagnostic to TMX turbulence package
+- Fixes for OpenACC in TMX turbulence package
+- OpenACC bugfix in interpolation of ozone from pressure levels to model levels
+- DCMIP Tropical Cyclone experiments (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/480)
+- Atmospheric energy diagnostics (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/488, https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/500)
+- Diagnose aerosols used with RTE-RRTMGP (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/489)
+- Revise clear sky radiation computations (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/512)
+
+### ICON-Ocean
+
+- Continue porting zstar timeloop to GPU  (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/303)
+- Ocean isopycnal transport diagnostic (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/513)
+- Reduce amount of re-allocation in ocean surface solver (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/462)
+- Calculate sea water density on fixed depth levels (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/501)
+- Prepare coupling of surface waves (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/535)
+- Refactoring of the ocean age tracer (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/426)
+- Continue GPU porting of ocean timeloop (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/526)
+
+### ICON-Land
+
+- Fixes for using older restart files from before the JSBACH pond scheme was implemented
+- Improvements in JSBACH soil hydrology
+  - Change lower and upper limits of soil moisture
+  - Add option to use uniform distribution of soil moisture for infiltration and drainage as alternative
+    to semi-distributed parameterization that accounts for sub-grid variability (Arno scheme)
+  - New option to force initialization of soil moisture from a file instead of from IFS analysis
+  - Fixes for OpenACC loops in JSBACH hydrology
+  - Bug fixes for JSBACH pond scheme
+- Update of the scripts to generate ICON-Land initial (ic) and boundary condition (bc) files
+- Implement daily execution of anthropogenic land cover change by interpolation of annual maps
+- QUINCY development
+  - refactoring of the quincy soil physics process
+  - updates incl. first implementation of coupling with ICON-Atmo
+  - implementation of a spin-up accelerator for the slow biogeochemical soil pools
+  - implementation of wood product pools
+  - implementation of a carbon conservation test
+  - minor code fixes towards usability and style recommendations
+  - minor scientific updates
+    - first step to include stem area (SAI, stem area index) into radiation scheme
+    - fix of slow growth in early season in cold grassland sites
+    - calibration of self-thinning for trees
+- Switch from deprecated YAC interface in HD model
+- Several fixes for DSL pre-processor script `dsl4jsb.py`
+- Port JSBACH carbon and disturbance modules to GPU
+- New options to reduce diagnostic output in log file from water balance checks
+- Fix for the land cover fraction diagnostics of simulations with natural or anthropogenic
+  land cover change
+- Fix too cold soil temperatures for partially snow-covered grid cells
+- Fixes for natural land cover change
+
+### Externals
+
+- Switch to YAC 3.2.0_p1 (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/332, https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/475)
+- Introduce the math-support library (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/425)
+- Update to MTIME 1.2.1
+- Introduce the math-interpolation library (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/463)
+
+### Infrastructure
+
+#### Coupling
+
+- Fix OpenACC bugs that affect coupled het jobs (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/470)
+- Do runoff diagnostic only when received from yac (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/516)
+- Interface aes ocean: move coupling step from mo_interface_iconam_aes.f90 to mo_nh_stepping.f90 (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/509)
+
+#### Scripting
+
+- Experiment setup features from nextGEMS production/EERIE spinup (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/443)
+- Adjust LUMI-G defaults in create_target_header (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/445)
+- Cleanup nextGEMS scripting (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/473)
+- Additional exp. runscript to test NWP atmosphere simulations with jsbach and carbon cycle
+- Unify script for different resolutions and rename to simpler name (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/486)
+- Fix setting in run script, add forgotten updated Neamlist_overview.pdf (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/523)
+
+#### Building
+
+- Fixes for the configure script (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/474)
+- Fix USE MTIME and INCLUDE netcdf.inc (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/476)
+- New makefile target 'env' to retreive the build environment (`BUILD_ENV`) set in a configure wrapper
+- Introduce configure option `--enable-bundled-python` to build the Python interfaces of `MTIME`, `YAC` and `COMIN`
+
+#### Other
+
+- Move and split CUDA/HIP source files (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/67)
+- Optionally suppress HIP event handling of the Cray OpenACC runtime (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/417)
+- Adjust nproma to 256 B alignment to improve GPU performance (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/444)
+
 # Release notes for icon-2024.07
 
 These are the release notes of the ICON model.

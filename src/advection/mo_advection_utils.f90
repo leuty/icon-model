@@ -1,11 +1,3 @@
-! Some utilities which are specific to the transport algorithm.
-!
-! Module contains some functions and procedures which are specifically related
-! to the transport schemes. These subroutines or functions are needed at
-! various places within the transport scheme. Therefore outsourcing these
-! routines protects from possible circular dependencies.
-!
-!
 ! ICON
 !
 ! ---------------------------------------------------------------
@@ -16,6 +8,13 @@
 ! See LICENSES/ for license information
 ! SPDX-License-Identifier: BSD-3-Clause
 ! ---------------------------------------------------------------
+
+! Some utilities which are specific to the transport algorithm.
+!
+! Module contains some functions and procedures which are specifically related
+! to the transport schemes. These subroutines or functions are needed at
+! various places within the transport scheme. Therefore outsourcing these
+! routines protects from possible circular dependencies.
 
 !----------------------------
 #include "omp_definitions.inc"

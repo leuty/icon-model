@@ -1,6 +1,3 @@
-! @brief Initialisation of atmosphere coupling
-!
-!
 ! ICON
 !
 ! ---------------------------------------------------------------
@@ -11,6 +8,8 @@
 ! See LICENSES/ for license information
 ! SPDX-License-Identifier: BSD-3-Clause
 ! ---------------------------------------------------------------
+
+! @brief Initialisation of atmosphere coupling
 
 !----------------------------
 #include "omp_definitions.inc"
@@ -170,7 +169,7 @@ CONTAINS
       ! Define coupling of runoff if HD model is present and interface is coded
       !  - discrimination between Proto2 (no HD) and Proto3 (with HD) is needed
       ! preliminary: coupling to jsbach/hd is active
-      IF ( iforcing /= INWP .OR. ( atm_phy_nwp_config(jg)%inwp_surface == LSS_JSBACH .AND. .NOT. is_coupled_to_hydrodisc() ) ) THEN
+      IF ( (iforcing /= INWP .AND. aes_phy_config(jg)%ljsb) .OR. ( atm_phy_nwp_config(jg)%inwp_surface == LSS_JSBACH .AND. .NOT. is_coupled_to_hydrodisc() ) ) THEN
 
         ! Construct coupling frame for atmosphere/JSBACH-hydrological discharge
         CALL message(str_module, 'Constructing the coupling frame atmosphere/JSBACH-hydrological discharge.')

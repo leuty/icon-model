@@ -1,7 +1,3 @@
-!
-! Subroutine aes_phy_main calls all the parameterization schemes
-!
-!
 ! ICON
 !
 ! ---------------------------------------------------------------
@@ -12,6 +8,8 @@
 ! See LICENSES/ for license information
 ! SPDX-License-Identifier: BSD-3-Clause
 ! ---------------------------------------------------------------
+
+! Subroutine aes_phy_main calls all the parameterization schemes
 
 #if defined __xlC__ && !defined NOXLFPROCESS
 @PROCESS HOT
@@ -45,6 +43,14 @@ MODULE mo_aes_phy_main
 #endif
 
   USE mo_diagnose_cov        ,ONLY: diagnose_cov
+
+  USE mo_atm_energy_memory   ,ONLY: atm_energy_config
+  USE mo_atm_energy_diag     ,ONLY: atm_energy_diag_p1, atm_energy_hint_1, &
+       &                            atm_energy_diag_p2, atm_energy_hint_2, &
+       &                            atm_energy_copy_2_1_3d_vi, atm_energy_copy_2_1_hi_ti, &
+       &                            atm_energy_tend_cld_3d_vi, atm_energy_tend_cld_hi_ti, &
+       &                            atm_energy_tend_rad_3d_vi, atm_energy_tend_rad_hi_ti, &
+       &                            atm_energy_tend_tmx_3d_vi, atm_energy_tend_tmx_hi_ti
 
   USE mo_interface_aes_wmo   ,ONLY: interface_aes_wmo
   USE mo_interface_aes_rad   ,ONLY: interface_aes_rad
@@ -93,6 +99,14 @@ CONTAINS
     CALL omp_block_loop_cell(patch, initialize)        ! initialize q_phy and q_phy_vi
     CALL omp_block_loop_cell(patch, surface_fractions) ! surface fractions
 
+    ! energy diagnostics at the beginning of physics
+    !-----------------------------------------------
+    !
+    IF (atm_energy_config(jg)%l_atm_energy) THEN
+       CALL omp_block_loop_cell(patch, atm_energy_diag_p1)   ; CALL atm_energy_hint_1(jg)
+    END IF
+
+
     !-------------------------------------------------------------------
     ! single moment cloud microphysics "Graupel" (mig)
     !-------------------------------------------------------------------
@@ -138,6 +152,16 @@ CONTAINS
 #endif
     END IF
 
+    ! energy diagnostics after cloud microphysics
+    !--------------------------------------------
+    !
+    IF (atm_energy_config(jg)%l_atm_energy) THEN
+       CALL omp_block_loop_cell(patch, atm_energy_diag_p2)       ; CALL atm_energy_hint_2        (jg)
+       CALL omp_block_loop_cell(patch, atm_energy_tend_cld_3d_vi); CALL atm_energy_tend_cld_hi_ti(jg)
+       CALL omp_block_loop_cell(patch, atm_energy_copy_2_1_3d_vi); CALL atm_energy_copy_2_1_hi_ti(jg)
+    END IF
+
+
     !-------------------------------------------------------------------
     ! Radiation (LW+SW)
     !-------------------------------------------------------------------
@@ -169,6 +193,16 @@ CONTAINS
        !
     END IF
 
+    ! energy diagnostics after radiation
+    !-----------------------------------
+    !
+    IF (atm_energy_config(jg)%l_atm_energy) THEN
+       CALL omp_block_loop_cell(patch, atm_energy_diag_p2)       ; CALL atm_energy_hint_2        (jg)
+       CALL omp_block_loop_cell(patch, atm_energy_tend_rad_3d_vi); CALL atm_energy_tend_rad_hi_ti(jg)
+       CALL omp_block_loop_cell(patch, atm_energy_copy_2_1_3d_vi); CALL atm_energy_copy_2_1_hi_ti(jg)
+    END IF
+
+
     !-------------------------------------------------------------------
     ! Vertical diffusion, boundary layer and surface
     !-------------------------------------------------------------------
@@ -198,6 +232,16 @@ CONTAINS
        END IF
        !
     END IF
+
+    ! energy diagnostics after mixing
+    !--------------------------------
+    !
+    IF (atm_energy_config(jg)%l_atm_energy) THEN
+       CALL omp_block_loop_cell(patch, atm_energy_diag_p2)       ; CALL atm_energy_hint_2        (jg)
+       CALL omp_block_loop_cell(patch, atm_energy_tend_tmx_3d_vi); CALL atm_energy_tend_tmx_hi_ti(jg)
+       CALL omp_block_loop_cell(patch, atm_energy_copy_2_1_3d_vi); CALL atm_energy_copy_2_1_hi_ti(jg)
+    END IF
+
 
     !-------------------------------------------------------------------
     ! Linearized ozone chemistry of Cariolle

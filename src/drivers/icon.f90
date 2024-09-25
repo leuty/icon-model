@@ -1,5 +1,3 @@
-! This is the master program of the ICON model.
-!
 ! ICON
 !
 ! ---------------------------------------------------------------
@@ -10,6 +8,9 @@
 ! See LICENSES/ for license information
 ! SPDX-License-Identifier: BSD-3-Clause
 ! ---------------------------------------------------------------
+
+! This is the master program of the ICON model.
+
 PROGRAM icon
 
 #if defined (__INTEL_COMPILER) || defined (__PGI) || defined (NAGFOR)

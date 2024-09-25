@@ -78,6 +78,11 @@ esac
 # ECCODES_ROOT=$(spack find --format='{prefix}' "eccodes%${compiler} +fortran")
 ECCODES_ROOT='/sw/spack-levante/eccodes-2.27.0-dphsnu'
 ECCODES_LIBS='-leccodes_f90 -leccodes'
+# For whatever reason, the provided libeccodes.so, which might not be needed for
+# a particular configuration, contains symbols of the standard libm.so, which is
+# needed for every configuration. The following avoids the redundant dependency
+# on libeccodes.so:
+ECCODES_LIBS="-lm ${ECCODES_LIBS}"
 
 # XML2_ROOT=$(spack find --format='{prefix}' "libxml2%${compiler}")
 XML2_ROOT='/usr'
@@ -109,8 +114,18 @@ AR="$($CC -show | sed 's: .*$::;s:/[^/]*$::')/xiar"
 
 MPI_LAUNCH="${MPI_ROOT}/bin/mpiexec"
 
-EXTRA_CONFIG_ARGS='--enable-intel-consistency --enable-vectorized-lrtm --enable-parallel-netcdf --enable-grib2 --enable-fcgroup-OCEAN=src/hamocc:src/ocean:src/sea_ice'
-EXTRA_CONFIG_ARGS="${EXTRA_CONFIG_ARGS} --enable-yaxt --enable-art --enable-ecrad --enable-waves"
+EXTRA_CONFIG_ARGS="\
+--enable-art \
+--enable-bundled-python=mtime \
+--enable-ecrad \
+--enable-fcgroup-OCEAN=src/hamocc:src/ocean:src/sea_ice \
+--enable-grib2 \
+--enable-intel-consistency \
+--enable-parallel-netcdf \
+--enable-vectorized-lrtm \
+--enable-waves \
+--enable-yaxt \
+"
 
 ICON_BUNDLED_CFLAGS='-g -O2 -ftz -fPIC'
 ICON_YAC_CFLAGS=$ICON_BUNDLED_CFLAGS

@@ -1,5 +1,3 @@
-! @brief Main program for the ICON atmospheric model
-!
 ! ICON
 !
 ! ---------------------------------------------------------------
@@ -10,6 +8,8 @@
 ! See LICENSES/ for license information
 ! SPDX-License-Identifier: BSD-3-Clause
 ! ---------------------------------------------------------------
+
+! @brief Main program for the ICON atmospheric model
 
 MODULE mo_atmo_model
 
@@ -111,7 +111,7 @@ MODULE mo_atmo_model
   USE mo_util_vgrid,              ONLY: construct_vertical_grid
 
   ! external data, physics
-  USE mo_ext_data_state,          ONLY: ext_data, destruct_ext_data
+  USE mo_ext_data_state,          ONLY: ext_data, construct_ext_data, destruct_ext_data
   USE mo_ext_data_init,           ONLY: init_ext_data
 
   USE mo_diffusion_config,        ONLY: configure_diffusion
@@ -145,6 +145,7 @@ MODULE mo_atmo_model
     &                                   art_calc_ntracer_and_names
 #endif
   USE mo_sync,                    ONLY: global_max
+  USE mo_check_ext_constants,     ONLY: check_ext_constants
 
 #ifndef __NO_ICON_COMIN__
   USE comin_host_interface,       ONLY: comin_parallel_mpi_handshake,     &
@@ -306,7 +307,8 @@ CONTAINS
     ! complete initicon config-state
     CALL configure_initicon()
 
-
+    ! check whether the external impl_constants are still the same as their original values
+    CALL check_ext_constants()
     !-------------------------------------------------------------------
     ! 3.1 Initialize the mpi work groups
     !-------------------------------------------------------------------
@@ -591,14 +593,11 @@ CONTAINS
     !------------------------------------------------------------------
     ! Create and optionally read external data fields
     !------------------------------------------------------------------
-    ALLOCATE (ext_data(n_dom), STAT=error_status)
-    IF (error_status /= SUCCESS) THEN
-      CALL finish(routine, 'allocation for ext_data failed')
-    ENDIF
 
     ! allocate memory for atmospheric/oceanic external data and
     ! optionally read those data from netCDF file.
     IF (timers_level > 4) CALL timer_start(timer_ext_data)
+    CALL construct_ext_data (p_patch(1:), ext_data)
     CALL init_ext_data (p_patch(1:), p_int_state(1:), ext_data)
     IF (timers_level > 4) CALL timer_stop(timer_ext_data)
 

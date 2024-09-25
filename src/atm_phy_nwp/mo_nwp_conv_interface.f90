@@ -1,12 +1,3 @@
-!OPTION! -cont
-! this command should fix the problem of copying arrays in a subroutine call
-!
-! This module is the interface between nwp_nh_interface to the
-! convection parameterisation(s):
-! inwp_conv == 1 == Tiedtke-Bechtold convection
-!
-!
-!
 ! ICON
 !
 ! ---------------------------------------------------------------
@@ -17,6 +8,13 @@
 ! See LICENSES/ for license information
 ! SPDX-License-Identifier: BSD-3-Clause
 ! ---------------------------------------------------------------
+
+! This module is the interface between nwp_nh_interface to the
+! convection parameterisation(s):
+! inwp_conv == 1 == Tiedtke-Bechtold convection
+
+!OPTION! -cont
+! this command should fix the problem of copying arrays in a subroutine call
 
 !----------------------------
 #include "omp_definitions.inc"
@@ -299,9 +297,8 @@ CONTAINS
         END SELECT
 
         !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1) IF(lzacc)
-        !$ACC LOOP GANG
+        !$ACC LOOP GANG VECTOR COLLAPSE(2)
         DO jk = 1, kstart_moist(jg)-1
-          !$ACC LOOP VECTOR
           DO jc = 1, nproma
             z_omega_p (jc,jk) = 0._wp
             z_dtdqv   (jc,jk) = 0._wp
@@ -342,9 +339,8 @@ CONTAINS
         ! The following input fields must be reset to zero because the convective
         ! tendencies are added to them
         !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1) IF(lzacc)
-        !$ACC LOOP GANG
+        !$ACC LOOP GANG VECTOR COLLAPSE(2)
         DO jk = 1, nlev
-          !$ACC LOOP VECTOR
           DO jc = 1, nproma
             prm_nwp_tend%ddt_u_pconv (jc,jk,jb) = 0._wp
             prm_nwp_tend%ddt_v_pconv (jc,jk,jb) = 0._wp

@@ -1,5 +1,3 @@
-! @brief branch for the non-hydrostatic ICON workflow
-!
 ! ICON
 !
 ! ---------------------------------------------------------------
@@ -10,6 +8,8 @@
 ! See LICENSES/ for license information
 ! SPDX-License-Identifier: BSD-3-Clause
 ! ---------------------------------------------------------------
+
+! @brief branch for the non-hydrostatic ICON workflow
 
 MODULE mo_atmo_nonhydrostatic
 
@@ -125,6 +125,7 @@ USE mo_aes_phy_memory,      ONLY: construct_aes_phy_memory
 USE mo_cloud_mig_memory,    ONLY: construct_cloud_mig_memory
 USE mo_cloud_two_memory,    ONLY: construct_cloud_two_memory
 USE mo_radiation_forcing_memory, ONLY: construct_rad_forcing_list => construct_radiation_forcing_list
+USE mo_atm_energy_memory,   ONLY: construct_atm_energy
 USE mo_physical_constants,  ONLY: amd, amco2
 USE mo_aes_phy_dims,        ONLY: init_aes_phy_dims
 USE mo_aes_phy_init,        ONLY: init_aes_phy_params, init_aes_phy_external, &
@@ -441,6 +442,7 @@ CONTAINS
       CALL construct_cloud_mig_memory  ( p_patch(1:) )
       CALL construct_cloud_two_memory  ( p_patch(1:) )
       CALL construct_rad_forcing_list  ( p_patch(1:) )
+      CALL construct_atm_energy        ( p_patch(1:) )
 #endif
     END IF
 
@@ -661,31 +663,55 @@ CONTAINS
         CALL RANDOM_SEED(PUT = seed)
 
         DO jg=1,n_dom
-          CALL add_random_noise_3d(p_patch(jg)%cells%all, pinit_amplitude, &
-                                   p_nh_state(jg)%prog(nnow(jg))%w)
-          CALL add_random_noise_3d(p_patch(jg)%edges%all, pinit_amplitude, &
-                                   p_nh_state(jg)%prog(nnow(jg))%vn)
-          CALL add_random_noise_3d(p_patch(jg)%cells%all, pinit_amplitude, &
-                                   p_nh_state(jg)%prog(nnow(jg))%theta_v)
-          CALL add_random_noise_3d(p_patch(jg)%cells%all, pinit_amplitude, &
-                                   p_nh_state(jg)%prog(nnow(jg))%exner)
-          CALL add_random_noise_3d(p_patch(jg)%cells%all, pinit_amplitude, &
-                                   p_nh_state(jg)%prog(nnow(jg))%rho)
+          CALL add_random_noise_3d(subset=p_patch(jg)%cells%all, &
+                                   coordinates=p_patch(jg)%cells%center, &
+                                   amplitude=pinit_amplitude, &
+                                   field=p_nh_state(jg)%prog(nnow(jg))%w, &
+                                   seed_in=pinit_seed+5)
+          CALL add_random_noise_3d(subset=p_patch(jg)%edges%all, &
+                                   coordinates=p_patch(jg)%edges%center, &
+                                   amplitude=pinit_amplitude, &
+                                   field=p_nh_state(jg)%prog(nnow(jg))%vn, &
+                                   seed_in=pinit_seed+53)
+          CALL add_random_noise_3d(subset=p_patch(jg)%cells%all, &
+                                   coordinates=p_patch(jg)%cells%center, &
+                                   amplitude=pinit_amplitude, &
+                                   field=p_nh_state(jg)%prog(nnow(jg))%theta_v, &
+                                   seed_in=pinit_seed+157)
+          CALL add_random_noise_3d(subset=p_patch(jg)%cells%all, &
+                                   coordinates=p_patch(jg)%cells%center, &
+                                   amplitude=pinit_amplitude, &
+                                   field=p_nh_state(jg)%prog(nnow(jg))%exner, &
+                                   seed_in=pinit_seed+173)
+          CALL add_random_noise_3d(subset=p_patch(jg)%cells%all, &
+                                   coordinates=p_patch(jg)%cells%center, &
+                                   amplitude=pinit_amplitude, &
+                                   field=p_nh_state(jg)%prog(nnow(jg))%rho, &
+                                   seed_in=pinit_seed+211)
 
           IF (lseaice) THEN
-            CALL add_random_noise_2d(p_patch(jg)%cells%all, pinit_amplitude, &
-                                     p_lnd_state(jg)%prog_wtr(nnow_rcf(jg))%t_ice)
+            CALL add_random_noise_2d(subset=p_patch(jg)%cells%all, &
+                                    coordinates=p_patch(jg)%cells%center, &
+                                    amplitude=pinit_amplitude, &
+                                    field=p_lnd_state(jg)%prog_wtr(nnow_rcf(jg))%t_ice, &
+                                    seed_in=pinit_seed+257)
           ENDIF
 
           IF (.NOT. ltestcase .OR. nh_test_name == 'dcmip_pa_12') THEN
-            CALL add_random_noise_3d(p_patch(jg)%cells%all, pinit_amplitude, &
-                                     p_nh_state(jg)%prog(nnow_rcf(jg))%tracer(:,:,:,1))
+            CALL add_random_noise_3d(subset=p_patch(jg)%cells%all, &
+                                    coordinates=p_patch(jg)%cells%center, &
+                                    amplitude=pinit_amplitude, &
+                                    field=p_nh_state(jg)%prog(nnow_rcf(jg))%tracer(:,:,:,1), &
+                                    seed_in=pinit_seed+263)
           ENDIF
 
           IF (iforcing == inwp ) THEN
             DO jt = 1, SIZE(p_lnd_state(jg)%prog_lnd(nnow_rcf(jg))%t_so_t,4)
-              CALL add_random_noise_3d(p_patch(jg)%cells%all, pinit_amplitude, &
-                                  p_lnd_state(jg)%prog_lnd(nnow_rcf(jg))%t_so_t(:,:,:,jt) )
+              CALL add_random_noise_3d(subset=p_patch(jg)%cells%all, &
+                                      coordinates=p_patch(jg)%cells%center, &
+                                      amplitude=pinit_amplitude, &
+                                      field=p_lnd_state(jg)%prog_lnd(nnow_rcf(jg))%t_so_t(:,:,:,jt), &
+                                      seed_in=pinit_seed+373)
             ENDDO
           ENDIF
 
