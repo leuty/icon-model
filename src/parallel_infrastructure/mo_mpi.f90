@@ -2837,7 +2837,7 @@ CONTAINS
 
 #ifndef __NO_ICON_COMIN__
     ! we dont use timers here due to cycic dependencies...
-    CALL comin_callback_context_call(EP_FINISH, COMIN_DOMAIN_OUTSIDE_LOOP)
+    CALL comin_callback_context_call(EP_FINISH, COMIN_DOMAIN_OUTSIDE_LOOP, lacc=.FALSE.)
 #endif
 
 #ifndef NOMPI

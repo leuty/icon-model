@@ -189,6 +189,7 @@ USE mo_icon2dace,           ONLY: init_dace, finish_dace
     &                             EP_ATM_INIT_FINALIZE,               &
     &                             EP_DESTRUCTOR,                      &
     &                             comin_var_list_finalize,            &
+    &                             comin_var_request_list_finalize,    &
     &                             comin_descrdata_finalize,           &
     &                             comin_setup_finalize,               &
     &                             COMIN_DOMAIN_OUTSIDE_LOOP
@@ -220,7 +221,6 @@ CONTAINS
     CLASS(t_RestartDescriptor), POINTER  :: restartDescriptor
 
     CHARACTER(*), PARAMETER :: routine = "atmo_nonhydrostatic"
-    INTEGER :: ierr
 
 
     ! construct the atmospheric nonhydrostatic model
@@ -288,14 +288,12 @@ CONTAINS
     CALL deleteRestartDescriptor(restartDescriptor)
 
 #ifndef __NO_ICON_COMIN__
-    CALL icon_call_callback(EP_DESTRUCTOR, COMIN_DOMAIN_OUTSIDE_LOOP)
+    CALL icon_call_callback(EP_DESTRUCTOR, COMIN_DOMAIN_OUTSIDE_LOOP, lacc=.TRUE.)
 
-    CALL comin_var_list_finalize(ierr)
-    IF (ierr /= 0) STOP
-    CALL comin_descrdata_finalize(ierr)
-    IF (ierr /= 0) STOP
-    CALL comin_setup_finalize(ierr)
-    IF (ierr /= 0) STOP
+    CALL comin_var_list_finalize()
+    CALL comin_var_request_list_finalize()
+    CALL comin_descrdata_finalize()
+    CALL comin_setup_finalize()
 #endif
 
     !---------------------------------------------------------------------
@@ -433,6 +431,31 @@ CONTAINS
       ENDIF
 #endif
     END IF
+#ifndef __NO_ICON_COMIN__
+    ! ----------------------------------------------------------
+    ! ICON ComIn
+    !
+    ! loop over the total list of additional requested variables and
+    ! perform `add_var` / `add_ref` operations needed.
+    !
+    ! Remarks:
+    ! - Variables are added to a separate variable list.
+    !
+    ! - Further below, additional AES tracers are added. This happens
+    !   in a slightly different way than for NWP and subtly changes
+    !   the role of the `ncontained` counter in the tracer
+    !   container. ComIn, however, relies on the fact that
+    !   `ncontained` provides the total number of tracer references
+    !   added so far. This (and probably other ICON components) is
+    !   incompatible with the AES implementation. Calling the ComIn
+    !   tracer handling *before* the AES constructor is an imperfect
+    !   work-around which will be changed when a better solution on
+    !   the ICON side has been implemented.
+    CALL icon_append_comin_tracer_variables(p_patch(1:), p_nh_state, p_nh_state_lists)
+    CALL icon_append_comin_tracer_phys_tend(p_patch(1:))
+    CALL icon_append_comin_variables(p_patch(1:))
+    ! ----------------------------------------------------------
+#endif
 
     IF (iforcing == iaes) THEN
 #ifdef __NO_AES__   
@@ -464,15 +487,6 @@ CONTAINS
 
 #ifndef __NO_ICON_COMIN__
     ! ----------------------------------------------------------
-    ! UNDER DEVELOPMENT (ICON ComIn)
-    !
-    ! loop over the total list of additional requested variables and
-    ! perform `add_var` / `add_ref` operations needed.
-    ! remark: variables are added to a separate variable list.
-    CALL icon_append_comin_tracer_variables(p_patch(1:), p_nh_state, p_nh_state_lists)
-    CALL icon_append_comin_tracer_phys_tend(p_patch(1:))
-    CALL icon_append_comin_variables(p_patch(1:))
-
     ! expose ICON's variables to the ComIn infrastructure.
 
     CALL icon_expose_variables()
@@ -480,7 +494,7 @@ CONTAINS
     ! call to secondary constructor
     !   third party modules retrieve pointers to data arrays, telling
     !   ICON ComIn about the context where these will be accessed.
-    CALL icon_call_callback(EP_SECONDARY_CONSTRUCTOR, COMIN_DOMAIN_OUTSIDE_LOOP)
+    CALL icon_call_callback(EP_SECONDARY_CONSTRUCTOR, COMIN_DOMAIN_OUTSIDE_LOOP, lacc=.FALSE.)
     ! ----------------------------------------------------------
 #endif
 
@@ -906,7 +920,7 @@ CONTAINS
 #endif
 
 #ifndef __NO_ICON_COMIN__
-    CALL icon_call_callback(EP_ATM_INIT_FINALIZE, COMIN_DOMAIN_OUTSIDE_LOOP)
+    CALL icon_call_callback(EP_ATM_INIT_FINALIZE, COMIN_DOMAIN_OUTSIDE_LOOP, lacc=.FALSE.)
 #endif
     ! Determine if temporally averaged vertically integrated moisture quantities need to be computed
 

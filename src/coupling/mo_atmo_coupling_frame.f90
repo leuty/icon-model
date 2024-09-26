@@ -117,7 +117,7 @@ CONTAINS
     patch_horz => p_patch(jg)
 
 #ifndef __NO_ICON_COMIN__
-    CALL icon_call_callback(EP_ATM_YAC_DEFCOMP_BEFORE, COMIN_DOMAIN_OUTSIDE_LOOP)
+    CALL icon_call_callback(EP_ATM_YAC_DEFCOMP_BEFORE, COMIN_DOMAIN_OUTSIDE_LOOP, lacc=.FALSE.)
 #endif
 
     ! Do basic initialisation of the component
@@ -142,7 +142,7 @@ CONTAINS
     ENDIF
 
 #ifndef __NO_ICON_COMIN__
-    CALL icon_call_callback(EP_ATM_YAC_DEFCOMP_AFTER, COMIN_DOMAIN_OUTSIDE_LOOP)
+    CALL icon_call_callback(EP_ATM_YAC_DEFCOMP_AFTER, COMIN_DOMAIN_OUTSIDE_LOOP, lacc=.FALSE.)
 #endif
 
     ! get model timestep
@@ -202,14 +202,14 @@ CONTAINS
     END IF
 
 #ifndef __NO_ICON_COMIN__
-    CALL icon_call_callback(EP_ATM_YAC_SYNCDEF_BEFORE, COMIN_DOMAIN_OUTSIDE_LOOP)
+    CALL icon_call_callback(EP_ATM_YAC_SYNCDEF_BEFORE, COMIN_DOMAIN_OUTSIDE_LOOP, lacc=.FALSE.)
 #endif
 
     ! Synchronize all definitions until this point with other components
     CALL cpl_sync_def(str_module)
 
 #ifndef __NO_ICON_COMIN__
-    CALL icon_call_callback(EP_ATM_YAC_SYNCDEF_AFTER, COMIN_DOMAIN_OUTSIDE_LOOP)
+    CALL icon_call_callback(EP_ATM_YAC_SYNCDEF_AFTER, COMIN_DOMAIN_OUTSIDE_LOOP, lacc=.FALSE.)
 #endif
 
     ! add Ozone data field if needed
@@ -236,13 +236,13 @@ CONTAINS
     ! End definition of coupling fields and search
 
 #ifndef __NO_ICON_COMIN__
-    CALL icon_call_callback(EP_ATM_YAC_ENDDEF_BEFORE, COMIN_DOMAIN_OUTSIDE_LOOP)
+    CALL icon_call_callback(EP_ATM_YAC_ENDDEF_BEFORE, COMIN_DOMAIN_OUTSIDE_LOOP, lacc=.FALSE.)
 #endif
 
     CALL cpl_enddef(str_module)
 
 #ifndef __NO_ICON_COMIN__
-    CALL icon_call_callback(EP_ATM_YAC_ENDDEF_AFTER, COMIN_DOMAIN_OUTSIDE_LOOP)
+    CALL icon_call_callback(EP_ATM_YAC_ENDDEF_AFTER, COMIN_DOMAIN_OUTSIDE_LOOP, lacc=.FALSE.)
 #endif
 
     ! finalizes the output coupling

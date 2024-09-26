@@ -685,7 +685,7 @@ MODULE mo_nh_stepping
     END IF
 
 #ifndef __NO_ICON_COMIN__
-    CALL icon_call_callback(EP_ATM_WRITE_OUTPUT_BEFORE, COMIN_DOMAIN_OUTSIDE_LOOP)
+    CALL icon_call_callback(EP_ATM_WRITE_OUTPUT_BEFORE, COMIN_DOMAIN_OUTSIDE_LOOP, lacc=.TRUE.)
 #endif
 
     IF (output_mode%l_nml) THEN
@@ -693,7 +693,7 @@ MODULE mo_nh_stepping
     END IF
 
 #ifndef __NO_ICON_COMIN__
-    CALL icon_call_callback(EP_ATM_WRITE_OUTPUT_AFTER, COMIN_DOMAIN_OUTSIDE_LOOP)
+    CALL icon_call_callback(EP_ATM_WRITE_OUTPUT_AFTER, COMIN_DOMAIN_OUTSIDE_LOOP, lacc=.TRUE.)
 #endif
 
     !-----------------------------------------------
@@ -1010,7 +1010,7 @@ MODULE mo_nh_stepping
   !$ser verbatim ENDDO
   
 #ifndef __NO_ICON_COMIN__
-  CALL icon_call_callback(EP_ATM_TIMELOOP_BEFORE, COMIN_DOMAIN_OUTSIDE_LOOP)
+  CALL icon_call_callback(EP_ATM_TIMELOOP_BEFORE, COMIN_DOMAIN_OUTSIDE_LOOP, lacc=.TRUE.)
 #endif
 
   TIME_LOOP: DO
@@ -1028,7 +1028,7 @@ MODULE mo_nh_stepping
     ENDDO
 
 #ifndef __NO_ICON_COMIN__
-    CALL icon_call_callback(EP_ATM_TIMELOOP_START, COMIN_DOMAIN_OUTSIDE_LOOP)
+    CALL icon_call_callback(EP_ATM_TIMELOOP_START, COMIN_DOMAIN_OUTSIDE_LOOP, lacc=.TRUE.)
 #endif
 
 #ifndef __NO_NWP__
@@ -1288,7 +1288,7 @@ MODULE mo_nh_stepping
 
 
 #ifndef __NO_ICON_COMIN__
-    CALL icon_call_callback(EP_ATM_INTEGRATE_BEFORE, COMIN_DOMAIN_OUTSIDE_LOOP)
+    CALL icon_call_callback(EP_ATM_INTEGRATE_BEFORE, COMIN_DOMAIN_OUTSIDE_LOOP, lacc=.TRUE.)
 #endif
 
     !--------------------------------------------------------------------------
@@ -1314,7 +1314,7 @@ MODULE mo_nh_stepping
     !=====================================================================================
 
 #ifndef __NO_ICON_COMIN__
-    CALL icon_call_callback(EP_ATM_INTEGRATE_AFTER, COMIN_DOMAIN_OUTSIDE_LOOP)
+    CALL icon_call_callback(EP_ATM_INTEGRATE_AFTER, COMIN_DOMAIN_OUTSIDE_LOOP, lacc=.TRUE.)
 #endif
 
     ! --------------------------------------------------------------------------------
@@ -1546,7 +1546,7 @@ MODULE mo_nh_stepping
     !$ser verbatim ENDDO
 
 #ifndef __NO_ICON_COMIN__
-    CALL icon_call_callback(EP_ATM_WRITE_OUTPUT_BEFORE, COMIN_DOMAIN_OUTSIDE_LOOP)
+    CALL icon_call_callback(EP_ATM_WRITE_OUTPUT_BEFORE, COMIN_DOMAIN_OUTSIDE_LOOP, lacc=.TRUE.)
 #endif
 
     ! output of results
@@ -1556,7 +1556,7 @@ MODULE mo_nh_stepping
     ENDIF
 
 #ifndef __NO_ICON_COMIN__
-    CALL icon_call_callback(EP_ATM_WRITE_OUTPUT_AFTER, COMIN_DOMAIN_OUTSIDE_LOOP)
+    CALL icon_call_callback(EP_ATM_WRITE_OUTPUT_AFTER, COMIN_DOMAIN_OUTSIDE_LOOP, lacc=.TRUE.)
 #endif
 
     ! sample meteogram output
@@ -1680,7 +1680,7 @@ MODULE mo_nh_stepping
 
     IF (lwrite_checkpoint) THEN
 #ifndef __NO_ICON_COMIN__
-      CALL icon_call_callback(EP_ATM_CHECKPOINT_BEFORE, COMIN_DOMAIN_OUTSIDE_LOOP)
+      CALL icon_call_callback(EP_ATM_CHECKPOINT_BEFORE, COMIN_DOMAIN_OUTSIDE_LOOP, lacc=.TRUE.)
 #endif
 
       CALL diag_for_output_dyn (lacc=.TRUE.)
@@ -1737,7 +1737,7 @@ MODULE mo_nh_stepping
         ENDIF
 #endif
 #ifndef __NO_ICON_COMIN__
-        CALL icon_call_callback(EP_ATM_CHECKPOINT_AFTER, COMIN_DOMAIN_OUTSIDE_LOOP)
+        CALL icon_call_callback(EP_ATM_CHECKPOINT_AFTER, COMIN_DOMAIN_OUTSIDE_LOOP, lacc=.TRUE.)
 #endif
     END IF  ! lwrite_checkpoint
 
@@ -1767,7 +1767,7 @@ MODULE mo_nh_stepping
     !$ser verbatim ENDDO
 
 #ifndef __NO_ICON_COMIN__
-    CALL icon_call_callback(EP_ATM_TIMELOOP_END, COMIN_DOMAIN_OUTSIDE_LOOP)
+    CALL icon_call_callback(EP_ATM_TIMELOOP_END, COMIN_DOMAIN_OUTSIDE_LOOP, lacc=.TRUE.)
 #endif
 
     IF (mtime_current >= time_config%tc_stopdate .OR. lstop_on_demand) THEN
@@ -1782,7 +1782,7 @@ MODULE mo_nh_stepping
   ENDDO TIME_LOOP
 
 #ifndef __NO_ICON_COMIN__
-  CALL icon_call_callback(EP_ATM_TIMELOOP_AFTER, COMIN_DOMAIN_OUTSIDE_LOOP)
+  CALL icon_call_callback(EP_ATM_TIMELOOP_AFTER, COMIN_DOMAIN_OUTSIDE_LOOP, lacc=.TRUE.)
 #endif
 
   ! clean-up routine for mo_nh_supervise module (eg. closing of files)
@@ -1904,7 +1904,7 @@ MODULE mo_nh_stepping
 #endif
 
 #ifndef __NO_ICON_COMIN__
-      CALL icon_call_callback(EP_ATM_INTEGRATE_START, jg)
+      CALL icon_call_callback(EP_ATM_INTEGRATE_START, jg, lacc=.TRUE.)
 #endif
 
       IF (ifeedback_type == 1 .AND. (jstep == 1) .AND. jg > 1 ) THEN
@@ -2004,7 +2004,7 @@ MODULE mo_nh_stepping
         ENDIF
 
 #ifndef __NO_ICON_COMIN__
-        CALL icon_call_callback(EP_ATM_ADVECTION_BEFORE, jg)
+        CALL icon_call_callback(EP_ATM_ADVECTION_BEFORE, jg, lacc=.TRUE.)
 #endif
 
 #ifdef MESSY
@@ -2073,7 +2073,7 @@ MODULE mo_nh_stepping
           &       lacc              = .TRUE.                                 ) !optin
 
 #ifndef __NO_ICON_COMIN__
-        CALL icon_call_callback(EP_ATM_ADVECTION_AFTER, jg)
+        CALL icon_call_callback(EP_ATM_ADVECTION_AFTER, jg, lacc=.TRUE.)
 #endif
 
 #ifdef MESSY
@@ -2174,7 +2174,7 @@ MODULE mo_nh_stepping
 
 #ifndef __NO_ICON_COMIN__
         CALL icon_update_expose_variables(TLEV_NNOW, nnew(jg))
-        CALL icon_call_callback(EP_ATM_ADVECTION_BEFORE, jg)
+        CALL icon_call_callback(EP_ATM_ADVECTION_BEFORE, jg, lacc=.TRUE.)
 #endif
 
 #ifdef MESSY
@@ -2284,7 +2284,7 @@ MODULE mo_nh_stepping
         ENDIF !ltransport
 
 #ifndef __NO_ICON_COMIN__
-        CALL icon_call_callback(EP_ATM_ADVECTION_AFTER, jg)
+        CALL icon_call_callback(EP_ATM_ADVECTION_AFTER, jg, lacc=.TRUE.)
 #endif
 
 #ifdef MESSY
@@ -2316,7 +2316,7 @@ MODULE mo_nh_stepping
         ENDIF
 
 #ifndef __NO_ICON_COMIN__
-        CALL icon_call_callback(EP_ATM_PHYSICS_BEFORE, jg)
+        CALL icon_call_callback(EP_ATM_PHYSICS_BEFORE, jg, lacc=.TRUE.)
 #endif
 
 #ifndef __NO_AES__
@@ -2538,7 +2538,7 @@ MODULE mo_nh_stepping
         ENDIF
 
 #ifndef __NO_ICON_COMIN__
-        CALL icon_call_callback(EP_ATM_PHYSICS_AFTER, jg)
+        CALL icon_call_callback(EP_ATM_PHYSICS_AFTER, jg, lacc=.TRUE.)
 #endif
 
 #ifdef MESSY
@@ -2549,7 +2549,7 @@ MODULE mo_nh_stepping
       ENDIF  ! itime_scheme
 
 #ifndef __NO_ICON_COMIN__
-      CALL icon_call_callback(EP_ATM_NUDGING_BEFORE, jg)
+      CALL icon_call_callback(EP_ATM_NUDGING_BEFORE, jg, lacc=.TRUE.)
 #endif
 
       !
@@ -2635,7 +2635,7 @@ MODULE mo_nh_stepping
       ENDIF
 
 #ifndef __NO_ICON_COMIN__
-      CALL icon_call_callback(EP_ATM_NUDGING_AFTER, jg)
+      CALL icon_call_callback(EP_ATM_NUDGING_AFTER, jg, lacc=.TRUE.)
 #endif
 
       ! Check if at least one of the nested domains is active
@@ -2916,7 +2916,7 @@ MODULE mo_nh_stepping
       ENDIF
 
 #ifndef __NO_ICON_COMIN__
-      CALL icon_call_callback(EP_ATM_INTEGRATE_END, jg)
+      CALL icon_call_callback(EP_ATM_INTEGRATE_END, jg, lacc=.TRUE.)
 #endif
 
 #ifdef MESSY

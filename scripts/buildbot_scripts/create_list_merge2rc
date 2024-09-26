@@ -124,6 +124,11 @@ $addexp "exp.test_nwp_R02B04_R02B05_nest_comin" --builders "levante_gcc" --list 
 $addexp "exp.test_nwp_R02B04_R02B05_nest_comin_python" --without-configureflags "--without-mpi" --runflags "cpu_time=00:30:00 queue=shared,compute memory=32G ntasks=32" --builders "levante_gcc" --list $listname
 ./adddep --from-experiment "exp.test_nwp_R02B04_R02B05_nest_comin_python" --to-experiment "checksuite.infrastructure/comin/exp.build_comin_plugins_LEVANTE.run" --builders "levante_gcc" --list $listname
 $addexp "checksuite.nwp/nwpexp.run_ICON_19_R2B4_cmip_forcing"  --without-configureflags "--without-mpi" --runflags "cpu_time=00:30:00 no_of_nodes=1"  --machines levante --builders "levante_intel_hybrid levante_gcc_hybrid" --list $listname
+
+$addexp "checksuite.infrastructure/comin/nwpexp.build_comin_plugins_DWD_nec" --builders "DWD_nec_yac2" --list $listname
+$addexp "exp.test_nwp_R02B04_R02B05_nest_comin"                                  --builders "DWD_nec_yac2" --list $listname
+./adddep --from-experiment "exp.test_nwp_R02B04_R02B05_nest_comin" --to-experiment "checksuite.infrastructure/comin/nwpexp.build_comin_plugins_DWD_nec" --builders "DWD_nec_yac2" --list $listname
+
 # this experiment runs only with-mpi and without openmp
 #
 for builder in DWD_nec DWD_nec_yac2 DWD_nec_hybrid; do

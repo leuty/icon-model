@@ -63,6 +63,15 @@ MODULE mo_aes_phy_main
   USE mo_interface_cloud_mig ,ONLY: interface_cloud_mig
   !
   USE mo_interface_cloud_two ,ONLY: interface_cloud_two
+#ifndef __NO_ICON_COMIN__
+  USE comin_host_interface, ONLY: EP_ATM_MICROPHYSICS_BEFORE,      &
+    &                             EP_ATM_MICROPHYSICS_AFTER,       &
+    &                             EP_ATM_RADIATION_BEFORE,         &
+    &                             EP_ATM_RADIATION_AFTER,          &
+    &                             EP_ATM_RADHEAT_BEFORE,           &
+    &                             EP_ATM_RADHEAT_AFTER
+  USE mo_comin_adapter,     ONLY: icon_call_callback
+#endif
 
   IMPLICIT NONE
   PRIVATE
@@ -107,6 +116,9 @@ CONTAINS
     END IF
 
 
+#ifndef __NO_ICON_COMIN__
+    CALL icon_call_callback(EP_ATM_MICROPHYSICS_BEFORE, jg, lacc=.TRUE.)
+#endif
     !-------------------------------------------------------------------
     ! single moment cloud microphysics "Graupel" (mig)
     !-------------------------------------------------------------------
@@ -161,6 +173,9 @@ CONTAINS
        CALL omp_block_loop_cell(patch, atm_energy_copy_2_1_3d_vi); CALL atm_energy_copy_2_1_hi_ti(jg)
     END IF
 
+#ifndef __NO_ICON_COMIN__
+    CALL icon_call_callback(EP_ATM_MICROPHYSICS_AFTER, jg, lacc=.TRUE.)
+#endif
 
     !-------------------------------------------------------------------
     ! Radiation (LW+SW)
@@ -177,9 +192,17 @@ CONTAINS
        !
        ! cloud droplet number concentration
        CALL omp_block_loop_cell(patch, droplet_number)
+
+#ifndef __NO_ICON_COMIN__
+       CALL icon_call_callback(EP_ATM_RADIATION_BEFORE, jg, lacc=.TRUE.)
+#endif
        !
        ! radiative fluxes
        CALL omp_block_loop_cell(patch, interface_aes_rad)
+
+#ifndef __NO_ICON_COMIN__
+    CALL icon_call_callback(EP_ATM_RADIATION_AFTER, jg, lacc=.TRUE.)
+#endif
        !
        ! radiative heating is always active
        aes_phy_tc(jg)%is_active_rad = .TRUE.
@@ -187,10 +210,18 @@ CONTAINS
        CALL message_forcing_action('LW and SW radiation (rht:heating)',     &
             &                      aes_phy_tc(jg)%is_in_sd_ed_interval_rad, &
             &                      aes_phy_tc(jg)%is_active_rad)
+
+#ifndef __NO_ICON_COMIN__
+       CALL icon_call_callback(EP_ATM_RADHEAT_BEFORE, jg, lacc=.TRUE.)
+#endif
        !
        ! radiative heating
        CALL omp_block_loop_cell(patch, interface_aes_rht)
        !
+
+#ifndef __NO_ICON_COMIN__
+       CALL icon_call_callback(EP_ATM_RADHEAT_AFTER, jg, lacc=.TRUE.)
+#endif
     END IF
 
     ! energy diagnostics after radiation
