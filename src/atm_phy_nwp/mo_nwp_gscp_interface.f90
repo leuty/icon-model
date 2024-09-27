@@ -317,9 +317,12 @@ CONTAINS
           ENDIF
 
         ELSE IF (atm_phy_nwp_config(jg)%icpl_aero_gscp == 3) THEN
+          !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1)
+          !$ACC LOOP GANG VECTOR
           DO jc=i_startidx,i_endidx
             qnc_s(jc) = prm_diag%cloud_num(jc,jb)
           END DO
+          !$ACC END PARALLEL
 
         ELSE
 

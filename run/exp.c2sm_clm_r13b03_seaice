@@ -76,7 +76,7 @@ atmo_namelist=NAMELIST_${EXPNAME}_atm
 # Get required files together
 # ========================
 
-extpar_filename="external_parameter_icon_baltic_sea_DOM01_tiles.nc"
+extpar_filename="external_parameter_icon_baltic_sea_DOM01_tiles_cdnc.nc"
 add_required_file "${grids_folder}/${extpar_filename}" ./
 
 # files needed for radiation
@@ -376,8 +376,8 @@ cat > ${basedir}/run/${atmo_namelist} << EOF
  efdt_min_raylfric  = 7200.
  itype_z0         = 2
  icapdcycl        = 3
- icpl_aero_conv   = 0
- icpl_aero_gscp   = 0
+ icpl_aero_conv   = 0 
+ icpl_aero_gscp   = 3
  icpl_o3_tp       = 1
  iprog_aero       = 0
  dt_rad           = 2400
