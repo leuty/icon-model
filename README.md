@@ -22,9 +22,9 @@ ICON partner institutions are:
 More information about ICON is available in the [project's public web page](http://icon-model.org).
 
 
-# License
+# License and Data Protection
 
-ICON is available under a BSD 3-clause license. See [LICENSES/](./LICENSES) for license information and [AUTHORS.TXT](./AUTHORS.TXT) for a list of authors.
+ICON is available under a BSD 3-clause license. See [LICENSES/](./LICENSES) for license information and [AUTHORS.TXT](./AUTHORS.TXT) for a list of authors. Information about the policy regarding data protection and privacy is available in [this document](./doc/ICON-PrivacyPolicy.pdf).
 
 
 # Versioning
@@ -36,4 +36,4 @@ ICON versions are named using the scheme `icon-yyyy.mm` where `yyyy` is the year
 
 # Quick Start
 
-The [Quick Start](./doc/Quick_Start.md) provides technical details on how to build the model, as well as the description of basic steps required to run it. 
+The [Quick Start](./doc/Quick_Start.md) provides technical details on how to build the model, as well as the description of basic steps required to run it.
