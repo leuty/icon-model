@@ -322,7 +322,6 @@ MODULE mo_nh_diagnose_pres_temp
 
     ENDIF ! IF (.NOT. ldeepatmo)
 
-    !$ACC WAIT(1)
     !$ACC END DATA
 
   END SUBROUTINE diag_pres
@@ -489,7 +488,6 @@ MODULE mo_nh_diagnose_pres_temp
 !$OMP ENDDO NOWAIT
 !$OMP END PARALLEL
 
-    !$ACC WAIT(1)
     !$ACC END DATA
 
   END SUBROUTINE compute_airmass
