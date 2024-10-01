@@ -88,6 +88,9 @@ MODULE mo_nwp_vdiff_types
 
     !> Deallocate fields when structure is destroyed.
     LOGICAL :: deallocate = .FALSE.
+
+    !> Initialization flag.
+    LOGICAL :: initialized = .FALSE.
   CONTAINS
     PROCEDURE :: init => nwp_vdiff_albedos_init
 
@@ -133,6 +136,9 @@ MODULE mo_nwp_vdiff_types
 
     !> Time for last sea surface temperature update.
     TYPE(datetime) :: time_last_update_t_seasfc
+
+    !> Initialization flag.
+    LOGICAL :: initialized = .FALSE.
 
   CONTAINS
 
@@ -206,6 +212,9 @@ MODULE mo_nwp_vdiff_types
     !> Sea state.
     TYPE(t_nwp_vdiff_sea_state) :: sea_state
 
+    !> Initialization flag.
+    LOGICAL :: initialized = .FALSE.
+
   CONTAINS
     PROCEDURE :: init => nwp_vdiff_state_init
 
@@ -254,6 +263,7 @@ CONTAINS
 
     grib2_bits = DATATYPE_PACK16
 
+    self%initialized = .TRUE.
     !$ACC ENTER DATA ASYNC(1) COPYIN(self)
 
     ! self%exchange_coeff_h(nproma,nlev,nblks_c)
@@ -614,7 +624,7 @@ CONTAINS
     TYPE(t_nwp_vdiff_state), INTENT(INOUT) :: self !< Object to destroy.
 
     ! This routine gets called when entering init. Thanks, Fortran!
-    IF (.NOT. ASSOCIATED(self%fact_q_air)) RETURN
+    IF (.NOT. self%initialized) RETURN
 
     !$ACC WAIT
 
@@ -639,6 +649,7 @@ CONTAINS
           & self%lw_emissivity(kproma,nblks_c,SFT_NUM) &
         )
       self%deallocate = .TRUE.
+      self%initialized = .TRUE.
     !$OMP END SINGLE
 
     !$OMP WORKSHARE
@@ -720,7 +731,7 @@ CONTAINS
     TYPE(t_nwp_vdiff_albedos), INTENT(INOUT) :: self !< Object to destroy.
 
     ! This routine gets called when entering init. Thanks, Fortran!
-    IF (.NOT. ASSOCIATED(self%alb_nir_dif)) RETURN
+    IF (.NOT. self%initialized) RETURN
 
     !$ACC WAIT
     IF (.NOT. self%deallocate) THEN
@@ -782,6 +793,7 @@ CONTAINS
 
     self%time_ref_t_seasfc = assumePrevMidnight(time_config%tc_exp_startdate)
     self%time_last_update_t_seasfc = self%time_ref_t_seasfc
+    self%initialized = .TRUE.
     !$ACC ENTER DATA ASYNC(1) COPYIN(self)
 
     cf_desc = t_cf_var('t_seasfc_offset', 'K', 'Initial sea surface temperature', &
@@ -981,7 +993,7 @@ CONTAINS
     TYPE(t_nwp_vdiff_sea_state), INTENT(INOUT) :: self !< Object to destroy.
 
     ! This routine gets called when entering init. Thanks, Fortran!
-    IF (.NOT. ASSOCIATED(self%t_seasfc_offset)) RETURN
+    IF (.NOT. self%initialized) RETURN
 
     !$ACC WAIT
 

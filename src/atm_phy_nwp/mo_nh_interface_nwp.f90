@@ -742,9 +742,9 @@ CONTAINS
         !  The vdiff interface calls the land-surface scheme itself.
         CALL nwp_vdiff( &
             & mtime_datetime, dt_phy_jg(itfastphy), pt_patch, ccycle_config(jg), &
-            & vdiff_config(jg), pt_prog, pt_prog_rcf, pt_diag, p_metrics, prm_diag, ext_data, &
-            & lnd_diag, lnd_prog_new, wtr_prog_now, wtr_prog_new, prm_diag%nwp_vdiff_state, &
-            & prm_nwp_tend, initialize=linit, lacc=lzacc &
+            & vdiff_config(jg), pt_prog, pt_prog_rcf%tracer, pt_prog_rcf%tke, pt_diag, p_metrics, &
+            & prm_diag, ext_data, lnd_diag, lnd_prog_new, wtr_prog_now, wtr_prog_new, &
+            & prm_diag%nwp_vdiff_state, prm_nwp_tend, initialize=linit, lacc=lzacc &
           )
 
         IF (is_coupled_to_ocean()) THEN
