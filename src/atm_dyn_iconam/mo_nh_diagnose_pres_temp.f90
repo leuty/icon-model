@@ -252,15 +252,11 @@ MODULE mo_nh_diagnose_pres_temp
 
     REAL(wp) :: dz1, dz2, dz3
 
-    !$ACC DATA PRESENT(pt_diag%tempv, pt_diag%pres_sfc, pt_diag%pres_ifc, pt_diag%pres) &
-    !$ACC   PRESENT(pt_diag%dpres_mc, pt_prog%theta_v, pt_prog%exner, p_metrics%ddqz_z_full) &
-    !$ACC   IF(i_am_accel_node)
-
     IF (.NOT. ldeepatmo) THEN
 
       !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1) IF(i_am_accel_node)
 !DIR$ IVDEP
-      !$ACC LOOP GANG VECTOR PRIVATE(dz1, dz2, dz3)
+      !$ACC LOOP GANG(STATIC: 1) VECTOR PRIVATE(dz1, dz2, dz3)
       DO jc = i_startidx, i_endidx
         ! Height differences between surface and third-lowest main level
         dz1 = p_metrics%ddqz_z_full(jc,nlev,jb)
@@ -275,7 +271,6 @@ MODULE mo_nh_diagnose_pres_temp
         
         pt_diag%pres_ifc(jc,nlev+1,jb) = pt_diag%pres_sfc(jc,jb)
       ENDDO
-      !$ACC END PARALLEL
 
       
       !-------------------------------------------------------------------------
@@ -285,11 +280,10 @@ MODULE mo_nh_diagnose_pres_temp
       !! by a given model layer
       !-------------------------------------------------------------------------
       
-      !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1) IF(i_am_accel_node)
       !$ACC LOOP SEQ
       DO jk = nlev, slev,-1
 !DIR$ IVDEP
-        !$ACC LOOP GANG VECTOR
+        !$ACC LOOP GANG(STATIC: 1) VECTOR
         DO jc = i_startidx, i_endidx
           
           ! pressure at interface levels
@@ -321,8 +315,6 @@ MODULE mo_nh_diagnose_pres_temp
 #endif
 
     ENDIF ! IF (.NOT. ldeepatmo)
-
-    !$ACC END DATA
 
   END SUBROUTINE diag_pres
 

@@ -480,9 +480,16 @@ CONTAINS
 
       CALL get_indices_c(pt_patch, jb, i_startblk, i_endblk,  &
                          i_startidx, i_endidx, rl_start, rl_end)
-      !$ACC KERNELS ASYNC(1) IF(lzacc)
-      z_exner_sv(i_startidx:i_endidx,:,jb) = pt_prog%exner(i_startidx:i_endidx,:,jb)
-      !$ACC END KERNELS
+
+      !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1) IF(lzacc)
+      !$ACC LOOP GANG VECTOR COLLAPSE(2)
+      DO jk = 1, pt_patch%nlev
+        DO jc = i_startidx, i_endidx
+          z_exner_sv(jc, jk, jb) = pt_prog%exner(jc, jk, jb)
+        ENDDO
+      ENDDO
+      !$ACC END PARALLEL
+
     ENDDO
 !$OMP END DO NOWAIT
 
@@ -559,9 +566,14 @@ CONTAINS
 
 
       ! Save Exner pressure field (this is needed for a correction to reduce sound-wave generation by latent heating)
-      !$ACC KERNELS ASYNC(1) IF(lzacc)
-      z_exner_sv(i_startidx:i_endidx,:,jb) = pt_prog%exner(i_startidx:i_endidx,:,jb)
-      !$ACC END KERNELS
+      !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1) IF(lzacc)
+      !$ACC LOOP GANG VECTOR COLLAPSE(2)
+      DO jk = 1, pt_patch%nlev
+        DO jc = i_startidx, i_endidx
+          z_exner_sv(jc, jk, jb) = pt_prog%exner(jc, jk, jb)
+        ENDDO
+      ENDDO
+      !$ACC END PARALLEL
 
       !!-------------------------------------------------------------------------
       !> Initial saturation adjustment (a second one follows at the end of the microphysics)
