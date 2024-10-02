@@ -289,6 +289,9 @@ EOF
 #   START_MODEL="${START} --multi-prog mpmd.conf"
 #fi
 
+# load the python venv used for building comin
+[ ! -z $BB_NAME ] && . /fastdata/mh0156/buildbot/venv/bin/activate
+
 #-----------------------------------------------------------------------------
 #-----------------------------------------------------------------------------
 # add standard atmo_non-hydrostatic_files

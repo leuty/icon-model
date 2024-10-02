@@ -359,6 +359,7 @@ CONTAINS
           cur_field => cur_field%next
           IF (msg_level >= 15) &
              CALL message(str_module, " skipping field " // TRIM(var_now%p%info%name))
+          IF (ltimer) CALL timer_stop(timer_coupling_output_buf_prep)
           CYCLE
        ENDIF
        IF (msg_level >= 15) &
@@ -430,15 +431,15 @@ CONTAINS
                 buffer_ptr(1, nn)%p = ieee_value(buffer_ptr(1, nn)%p, ieee_quiet_nan)
              ENDWHERE
           ENDDO
-        ENDIF
-        IF (ltimer) CALL timer_stop(timer_coupling_output_buf_prep)
+       ENDIF
+       IF (ltimer) CALL timer_stop(timer_coupling_output_buf_prep)
 
-        IF (ltimer) CALL timer_start(timer_put)
-        CALL yac_fput(cur_field%yac_field_id, 1, &
-             collection_size, buffer_ptr(:, 1:collection_size), info, ierror)
-        IF (ltimer) CALL timer_stop(timer_put)
-        timer_put = timer_coupling_output_put
-        cur_field => cur_field%next
+       IF (ltimer) CALL timer_start(timer_put)
+       CALL yac_fput(cur_field%yac_field_id, 1, &
+            collection_size, buffer_ptr(:, 1:collection_size), info, ierror)
+       IF (ltimer) CALL timer_stop(timer_put)
+       timer_put = timer_coupling_output_put
+       cur_field => cur_field%next
      ENDDO
      IF (ltimer) CALL timer_stop(timer_coupling_output)
 ! YAC_coupling

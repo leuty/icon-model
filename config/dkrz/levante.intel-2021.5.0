@@ -92,6 +92,7 @@ XML2_LIBS='-lxml2'
 FYAML_ROOT='/sw/spack-levante/libfyaml-0.7.12-fvbhgo'
 FYAML_LIBS='-lfyaml'
 
+GCC_ROOT='/sw/spack-levante/gcc-11.2.0-bcn7mb'
 ################################################################################
 
 BUILD_ENV="export LD_LIBRARY_PATH=\"${FYAML_ROOT}/lib:${HDF5_ROOT}/lib:${NETCDF_ROOT}/lib:${NETCDFF_ROOT}/lib:${ECCODES_ROOT}/lib64:\${LD_LIBRARY_PATH}\"; export PATH=\"${HDF5_ROOT}/bin:\${PATH}\"; ${BLAS_LAPACK_BUILD_ENV}"
@@ -107,7 +108,7 @@ FCFLAGS="-I${HDF5_ROOT}/include -I${NETCDFF_ROOT}/include -I${ECCODES_ROOT}/incl
 ICON_FCFLAGS='-DDO_NOT_COMBINE_PUT_AND_NOCHECK'
 ICON_OCEAN_FCFLAGS='-O3 -assume norealloc_lhs -reentrancy threaded -qopt-report-file=stdout -qopt-report=0 -qopt-report-phase=vec'
 
-LDFLAGS="-L${HDF5_ROOT}/lib -L${NETCDF_ROOT}/lib -L${NETCDFF_ROOT}/lib ${BLAS_LAPACK_LDFLAGS} -L${ECCODES_ROOT}/lib64 -L${FYAML_ROOT}/lib"
+LDFLAGS="-L${HDF5_ROOT}/lib -L${NETCDF_ROOT}/lib -L${NETCDFF_ROOT}/lib ${BLAS_LAPACK_LDFLAGS} -L${ECCODES_ROOT}/lib64 -L${FYAML_ROOT}/lib -L${GCC_ROOT}/lib64 -lstdc++"
 LIBS="-Wl,--disable-new-dtags -Wl,--as-needed ${XML2_LIBS} ${FYAML_LIBS} ${ECCODES_LIBS} ${BLAS_LAPACK_LIBS} ${NETCDFF_LIBS} ${NETCDF_LIBS} ${HDF5_LIBS} ${ZLIB_LIBS}"
 
 AR="$($CC -show | sed 's: .*$::;s:/[^/]*$::')/xiar"
@@ -116,6 +117,7 @@ MPI_LAUNCH="${MPI_ROOT}/bin/mpiexec"
 
 EXTRA_CONFIG_ARGS="\
 --enable-art \
+--enable-comin \
 --enable-bundled-python=mtime \
 --enable-ecrad \
 --enable-fcgroup-OCEAN=src/hamocc:src/ocean:src/sea_ice \

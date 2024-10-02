@@ -57,9 +57,9 @@
 
 ### Externals
 
-- Switch to YAC 3.2.0_p1 (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/332, https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/475)
+- Switch to YAC 3.4.0_p2 (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/332, https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/475, https://gitlab.dkrz.de/icon/icon/-/merge_requests/447)
 - Introduce the math-support library (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/425)
-- Update to MTIME 1.2.1
+- Update to MTIME 1.2.2 (https://gitlab.dkrz.de/icon/icon/-/merge_requests/447)
 - Introduce the math-interpolation library (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/463)
 
 ### Infrastructure
