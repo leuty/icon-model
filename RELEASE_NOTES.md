@@ -46,6 +46,7 @@
     - first step to include stem area (SAI, stem area index) into radiation scheme
     - fix of slow growth in early season in cold grassland sites
     - calibration of self-thinning for trees
+  - Added experiment file for ICON-Land standalone runs using QUINCY in canopy mode (no biogeochemistry)
 - Switch from deprecated YAC interface in HD model
 - Several fixes for DSL pre-processor script `dsl4jsb.py`
 - Port JSBACH carbon and disturbance modules to GPU
