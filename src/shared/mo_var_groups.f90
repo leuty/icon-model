@@ -52,7 +52,7 @@ MODULE mo_var_groups
   ! Note that the statically defined group list "var_groups" is
   ! non-public. Its contents are copied to a dynamically growing list
   ! "var_groups_dyn".
-  INTEGER, PARAMETER :: N_VAR_GROUPS_STATIC = 75
+  INTEGER, PARAMETER :: N_VAR_GROUPS_STATIC = 76
 
   CHARACTER(LEN=vname_len), PARAMETER :: VAR_GROUPS_STATIC(N_VAR_GROUPS_STATIC) = &
      [ "ALL                   ",  &
@@ -117,6 +117,7 @@ MODULE mo_var_groups
     &  "ART_FPLUME            ",  &  ! ICON-ART fields for FPlume output
     &  "ART_DIAGNOSTICS       ",  &  ! ICON-ART fields for diagnostic fields
     &  "ART_ROUTINE_DIAG      ",  &  ! ICON-ART fields for routine diagnostic fields
+    &  "ART_DRE_MULTICALL     ",  &  ! ICON-ART fields for raditaion multiple call DRE
     &  "RTTOV                 ",  &
     &  "UPATMO_TENDENCIES     ",  &  ! Upper-atmosphere physics tendencies
     &  "UPATMO_RAD_GASES      ",  &  ! Upper-atmosphere radiatively active gases

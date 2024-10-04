@@ -144,6 +144,9 @@ MODULE mo_art_config
     
     ! Time interval over which maximum of air concentration of radionuclides is taken
     REAL(wp):: radioact_maxtint
+    
+    ! Type of radiation multiple call scheme to use
+    INTEGER :: irad_multicall
   END TYPE t_art_config
 
   TYPE(t_art_config), TARGET :: art_config(0:max_dom)
