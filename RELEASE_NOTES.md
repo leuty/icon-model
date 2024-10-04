@@ -26,6 +26,8 @@
 ### ICON-Land
 
 - Fixes for using older restart files from before the JSBACH pond scheme was implemented
+- Add per-process namelist option lrestart_cont to allow restarting from other experiments run
+  without that process
 - Improvements in JSBACH soil hydrology
   - Change lower and upper limits of soil moisture
   - Add option to use uniform distribution of soil moisture for infiltration and drainage as alternative
@@ -55,6 +57,8 @@
   land cover change
 - Fix too cold soil temperatures for partially snow-covered grid cells
 - Fixes for natural land cover change
+- Small fix for ICON-Land standalone concerning nproma
+- New optional tag for the memory usage report
 
 ### Externals
 
