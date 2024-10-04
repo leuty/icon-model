@@ -136,6 +136,9 @@ MODULE mo_art_nml
   ! Time interval over which maximum of air concentration of radionuclides is taken
   REAL(wp):: radioact_maxtint(1:max_dom)
 
+  ! Radiation multiple call
+  INTEGER  :: irad_multicall
+
 
   NAMELIST/art_nml/ cart_input_folder, lart_chem, lart_chemtracer, lart_mecca,          &
    &                cart_io_suffix, lart_pntSrc, lart_aerosol, iart_seasalt, iart_dust, &
@@ -153,7 +156,7 @@ MODULE mo_art_nml
    &                cart_chemtracer_xml, cart_mecca_xml, cart_aerosol_xml,              &
    &                cart_modes_xml, cart_pntSrc_xml, cart_diagnostics_xml,              &
    &                lart_psc, cart_coag_xml, cart_aero_emiss_xml, cart_type_sedim,      &
-   &                lart_debugRestart, radioact_maxtint
+   &                lart_debugRestart, radioact_maxtint, irad_multicall
 
 CONTAINS
   !-------------------------------------------------------------------------
@@ -261,6 +264,9 @@ CONTAINS
 
     ! Time interval over which maximum of air concentration of radionuclides is taken
     radioact_maxtint(:) = 3600._wp
+
+    ! Radiation multiple call
+    irad_multicall = 0
 
     !------------------------------------------------------------------
     ! 2. If this is a resumed integration, overwrite the defaults above
@@ -451,6 +457,9 @@ CONTAINS
 
       ! Time interval over which maximum of air concentration of radionuclides is taken
       art_config(jg)%radioact_maxtint    = radioact_maxtint(jg)
+
+      ! Radiation multiple call
+      art_config(jg)%irad_multicall      = irad_multicall
     ENDDO !jg
 
     !-----------------------------------------------------
