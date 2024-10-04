@@ -15,7 +15,7 @@
 ! This module contains the main subroutine for the two-moment microphysics, and
 ! the initialization subroutines that calculated the run-time coefficients
 
-!NEC$ options "-finline-max-depth=3 -finline-max-function-size=10000"
+!NEC$ options "-finline-max-depth=3 -finline-max-function-size=50000"
 
 MODULE mo_2mom_mcrph_main
 
