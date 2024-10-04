@@ -390,7 +390,7 @@ ENDDO
 !     ----------------------------------------------
       DO jk=1,klev
         DO jl=kidia,kfdia
-          zgdph=-grav  /(paphm1(jl,jk+1)-paphm1(jl,jk))
+          zgdph=-grav  /(paphm1(jl,jk)-paphm1(jl,jk-1))
           zstrdu(jl,jk+1)=psoteu(jl,jk)/zgdph + zstrdu(jl,jk)
           zstrdv(jl,jk+1)=psotev(jl,jk)/zgdph + zstrdv(jl,jk)
         END DO
