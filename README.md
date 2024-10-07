@@ -29,8 +29,6 @@ ICON is available under a BSD 3-clause license. See [LICENSES/](./LICENSES) for 
 
 # Versioning
 
-The name of the release version is documented in the [VERSION](./VERSION) file in the root folder.
-
 ICON versions are named using the scheme `icon-yyyy.mm` where `yyyy` is the year and `mm` is the month of the release. The very first open source release of ICON is version icon-2024.01, release date January 2024. If patches are needed for a particular release, they will be icon-yyyy.mm-n with n starting at 1. Note: The patch-level 0 is the basic release. The 0 is not explicitly written to the version string.
 
 
