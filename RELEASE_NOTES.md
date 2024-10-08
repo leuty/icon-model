@@ -1,3 +1,16 @@
+# Release notes for icon-YYYY.MM
+
+### Soil and Surface
+
+Climate: ICON-Land
+
+- Add per-process namelist option lrestart_cont to allow restarting from other experiments run
+  without that process
+- QUINCY development
+  - Added experiment file for ICON-Land standalone runs using QUINCY in canopy mode (no biogeochemistry)
+- Small fix for ICON-Land standalone concerning nproma
+- New optional tag for the memory usage report
+
 # Release notes for icon-2024.10
 
 The following lists give an overview on the main changes since the last release icon-2024.07.

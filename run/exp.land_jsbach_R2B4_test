@@ -170,6 +170,8 @@ fi
 cat > $jsbach_namelist << EOF
 &parallel_nml
  nproma           = ${nproma}
+ nproma_sub       = ${nproma_sub}
+ nblocks_c        = ${nblocks_c}
  num_io_procs     = 0     ! Number of procs for output (not more than number of output files!)
 ! pio_type         = 1          ! 1 is default and means pio_type_async
 ! num_restart_procs = 2         ! 0 for sync restart_write_mode
