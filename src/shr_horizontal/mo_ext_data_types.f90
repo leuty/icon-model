@@ -463,64 +463,79 @@ MODULE mo_ext_data_types
   !!
   TYPE :: t_external_atmos_td
 
+    ! *** ozone parameters ***
+    !> ozone mixing ratio    [ ]
+    !! index1=1,nproma, index2=nlev_o3, index3=1,nblks_c, index4=1,ntimes
+    REAL(wp), POINTER :: o3(:,:,:,:) => NULL()
+
+    !> full levels of ozone gemometric height
+    REAL(wp), POINTER :: zf  (:) => NULL()
+
+    !> full levels of of ozone pressure
+    REAL(wp), POINTER :: pfoz(:) => NULL()
+
+    !> half levels of ozone pressure field
+    REAL(wp), POINTER :: phoz(:) => NULL()
+
+
     ! *** radiation parameters ***
-    REAL(wp), POINTER ::   &   !< ozone mixing ratio    [ ]
-      &  o3(:,:,:,:)           ! index1=1,nproma, index2=nlev_o3,
-                               ! index3=1,nblks_c, index4=1,ntimes
+    !> aerosol optical thickness of black carbon    [ ]
+    !! index1=1,nproma, index2=1,nblks_c, index3=1,ntimes
+    REAL(wp), POINTER :: aer_bc(:,:,:) => NULL()
 
-    REAL(wp),POINTER::  &
-      &   zf  (:),      &      !full levels of ozone gemometric height
-      &   pfoz(:),      &      !full levels of of ozone pressure
-      &   phoz(:)              !half levels of ozone pressure field 
-    !
-    ! *** radiation parameters ***
-    REAL(wp), POINTER ::   &   !< aerosol optical thickness of black carbon    [ ]
-      &  aer_bc(:,:,:)         ! index1=1,nproma, index2=1,nblks_c, index3=1,ntimes
+    !> aerosol optical thickness of ambient aerosol [ ]
+    !! index1=1,nproma, index2=1,nblks_c, index3=1,ntimes
+    REAL(wp), POINTER :: aer_dust(:,:,:) => NULL()
 
-    REAL(wp), POINTER ::   &   !< aerosol optical thickness of ambient aerosol [ ]
-      &  aer_dust(:,:,:)       ! index1=1,nproma, index2=1,nblks_c, index3=1,ntimes
+    !> aerosol optical thickness of particulate organic_matter_ambient_aerosol [ ]
+    !! index1=1,nproma, index2=1,nblks_c, index3=1,ntimes
+    REAL(wp), POINTER :: aer_org(:,:,:) => NULL()
 
-    REAL(wp), POINTER ::   &   !< aerosol optical thickness of particulate     [ ]
-      &  aer_org(:,:,:)        !< organic_matter_ambient_aerosol             
-                               ! index1=1,nproma, index2=1,nblks_c, index3=1,ntimes
+    !> aerosol optical thickness of sulfate aerosol [ ]
+    !! index1=1,nproma, index2=1,nblks_c, index3=1,ntimes
+    REAL(wp), POINTER :: aer_so4(:,:,:) => NULL()
 
-    REAL(wp), POINTER ::   &   !< aerosol optical thickness of sulfate aerosol [ ]
-      &  aer_so4(:,:,:)        ! index1=1,nproma, index2=1,nblks_c, index3=1,ntimes
+    !> aerosol optical thickness of seasalt aerosol [ ]
+    !! index1=1,nproma, index2=1,nblks_c, index3=1,ntimes
+    REAL(wp), POINTER :: aer_ss(:,:,:) => NULL()
 
-    REAL(wp), POINTER ::   &   !< aerosol optical thickness of seasalt aerosol [ ]
-      &  aer_ss(:,:,:)         ! index1=1,nproma, index2=1,nblks_c, index3=1,ntimes
+    !> shortwave broadband albedo for diffuse radiation  [1] (0.3 - 5.0 um)
+    !! index1=1,nproma, index2=1,nblks_c, index3=1,ntimes
+    REAL(wp), POINTER :: alb_dif(:,:,:) => NULL()
 
-    REAL(wp), POINTER ::   &   !< shortwave broadband albedo for diffuse radiation  [1]
-      &  alb_dif(:,:,:)        !< (0.3 - 5.0 um)
-                               ! index1=1,nproma, index2=1,nblks_c, index3=1,ntimes
+    !> UV visible broadband albedo for diffuse radiation [1] (0.3 - 0.7 um)
+    !! index1=1,nproma, index2=1,nblks_c, index3=1,ntimes
+    REAL(wp), POINTER :: albuv_dif(:,:,:) => NULL()
 
-    REAL(wp), POINTER ::   &   !< UV visible broadband albedo for diffuse radiation [1]
-      &  albuv_dif(:,:,:)      !< (0.3 - 0.7 um)
-                               ! index1=1,nproma, index2=1,nblks_c, index3=1,ntimes
+    !> Near IR broadband albedo for diffuse radiation    [1] (0.7 - 5.0 um)
+    !! index1=1,nproma, index2=1,nblks_c, index3=1,ntimes
+    REAL(wp), POINTER :: albni_dif(:,:,:) => NULL()
 
-    REAL(wp), POINTER ::   &   !< Near IR broadband albedo for diffuse radiation    [1]
-      &  albni_dif(:,:,:)      !< (0.7 - 5.0 um)
-                               ! index1=1,nproma, index2=1,nblks_c, index3=1,ntimes
+    !> Broadband longwave (thermal) emissivity of the surface   [1]
+    !! index1=1,nproma, index2=1,nblks_c, index3=1,ntimes
+    REAL(wp), POINTER :: lw_emiss(:,:,:) => NULL()
 
-    REAL(wp), POINTER ::   &   !< Broadband longwave (thermal) emissivity of the surface   [1]
-      &  lw_emiss(:,:,:)       !< index1=1,nproma, index2=1,nblks_c, index3=1,ntimes
+    !< Cloud droplet number climatology, monthly-mean values [m-3]
+    REAL(wp), POINTER :: cdnc(:,:,:) => NULL()
 
-    REAL(wp), POINTER ::   &   !< Cloud droplet number climatology 
-      &  cdnc(:,:,:)           !< monthly-mean values [m-3]
 
-    !
     ! *** vegetation parameters ***
-    REAL(wp), POINTER ::   &   !< (monthly) proportion of actual value/maximum 
-      &  ndvi_mrat(:,:,:)      !< normalized differential vegetation index   [ ]
-                               ! index1=1,nproma, index2=1,nblks_c, index3=1,ntimes
-    !
+    !< (monthly) proportion of actual value/maximum normalized differential vegetation index   [ ]
+    !! index1=1,nproma, index2=1,nblks_c, index3=1,ntimes
+    REAL(wp), POINTER :: ndvi_mrat(:,:,:) => NULL()
+
     ! ***SST, sea ice fraction and T2M climatology
-    REAL(wp), POINTER ::   &   !< (monthly) SST
-      &  sst_m(:,:,:)          ! index1=1,nproma, index2=1,nblks_c, index3=1,ntimes
-    REAL(wp), POINTER ::   &   !< (monthly) sea ice fraction
-      &  fr_ice_m(:,:,:)       ! index1=1,nproma, index2=1,nblks_c, index3=1,ntimes
-    REAL(wp), POINTER ::   &   !< (monthly) T2M
-      &  t2m_m(:,:,:)          ! index1=1,nproma, index2=1,nblks_c, index3=1,ntimes
+    !> (monthly) SST climatology [K]
+    !! index1=1,nproma, index2=1,nblks_c, index3=1,ntimes
+    REAL(wp), POINTER :: sst_m(:,:,:) => NULL()
+
+    !> (monthly) sea ice fraction climatology [1]
+    !! index1=1,nproma, index2=1,nblks_c, index3=1,ntimes
+    REAL(wp), POINTER :: fr_ice_m(:,:,:) => NULL()
+
+    !> (monthly) T2M climatology [K]
+    !! index1=1,nproma, index2=1,nblks_c, index3=1,ntimes
+    REAL(wp), POINTER :: t2m_m(:,:,:) => NULL()
 
   END TYPE t_external_atmos_td
 

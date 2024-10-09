@@ -893,16 +893,33 @@ if [[ ${MD} =~ .*n.* ]]; then
         sed    s/${SCRIPT}/${EXP_TEST}/g < ${PREFIX}.${SCRIPT}.run > ${RUN_SCRIPT}
         sed -i s/data.${EXP_TEST}/data.${SCRIPT}/g             ${RUN_SCRIPT}
 
+        TEST_POSSIBLE=no
         N_NPROMA=`grep "nproma=" ${RUN_SCRIPT}`
         N_NPROMA=${N_NPROMA#nproma=}
-        ((N_NPROMA_NEW=N_NPROMA + 1))
-        sed s/nproma=$N_NPROMA/nproma=$N_NPROMA_NEW/g < ${RUN_SCRIPT} > ${RUN_SCRIPT}.out
-        mv ${RUN_SCRIPT}.out ${RUN_SCRIPT}
+        if ((N_NPROMA > 0)); then
+            ((N_NPROMA_NEW=N_NPROMA + 1))
+            sed s/nproma=$N_NPROMA/nproma=$N_NPROMA_NEW/g < ${RUN_SCRIPT} > ${RUN_SCRIPT}.out
+            mv ${RUN_SCRIPT}.out ${RUN_SCRIPT}
+            TEST_POSSIBLE=yes
+        else
+            N_NBLOCKS_C=$(grep "nblocks_c=" ${RUN_SCRIPT})
+            N_NBLOCKS_C=${N_NBLOCKS_C#nblocks_c=}
+            if ((N_NBLOCKS_C > 0)); then
+                sed s/nblocks_c=$N_NBLOCKS_C/nblocks_c=$((N_NBLOCKS_C+1))/g < ${RUN_SCRIPT} > ${RUN_SCRIPT}.out
+                mv ${RUN_SCRIPT}.out ${RUN_SCRIPT}
+                TEST_POSSIBLE=yes
+            fi
+        fi
 
-        echo "Perform $TEST run"
-        chmod 755 ${RUN_SCRIPT}
-        ${SCRIPT_DIR}/${RUN_SCRIPT}
-        RUN_STATUS=$?
+        if [[ $TEST_POSSIBLE == yes ]]; then
+            echo "Perform $TEST run"
+            chmod 755 ${RUN_SCRIPT}
+            ${SCRIPT_DIR}/${RUN_SCRIPT}
+            RUN_STATUS=$?
+        else
+            echo "ERROR: Could not determine nproma-setting mechanism (neither nproma nor nblocks_c are valid)"
+            RUN_STATUS=1
+        fi
 
     else
         echo "Found $TEST run"

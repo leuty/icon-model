@@ -63,7 +63,7 @@ MODULE mo_nwp_gpu_util
     !$ACC   HOST(ext_data%atm%z0_lcc, ext_data%atm%z0_lcc_min, ext_data%atm%plcovmax_lcc) &
     !$ACC   HOST(ext_data%atm%laimax_lcc, ext_data%atm%rootdmax_lcc, ext_data%atm%stomresmin_lcc) &
     !$ACC   HOST(ext_data%atm%snowalb_lcc, ext_data%atm%snowtile_lcc, ext_data%atm%t_cl, ext_data%atm%lc_frac_t) &
-    !$ACC   HOST(ext_data%atm%frac_t, ext_data%atm%sai_t) &
+    !$ACC   HOST(ext_data%atm%frac_t, ext_data%atm%sai_t, ext_data%atm%o3) &
     !$ACC   ASYNC(1) IF(PRESENT(ext_data))
 
     !$ACC UPDATE HOST(p_int%lsq_high, p_int%lsq_lin) &
@@ -173,7 +173,7 @@ MODULE mo_nwp_gpu_util
     !$ACC   DEVICE(ext_data%atm%z0_lcc, ext_data%atm%z0_lcc_min, ext_data%atm%plcovmax_lcc) &
     !$ACC   DEVICE(ext_data%atm%laimax_lcc, ext_data%atm%rootdmax_lcc, ext_data%atm%stomresmin_lcc) &
     !$ACC   DEVICE(ext_data%atm%snowalb_lcc, ext_data%atm%snowtile_lcc, ext_data%atm%t_cl, ext_data%atm%lc_frac_t) &
-    !$ACC   DEVICE(ext_data%atm%frac_t, ext_data%atm%sai_t) &
+    !$ACC   DEVICE(ext_data%atm%frac_t, ext_data%atm%sai_t, ext_data%atm%o3) &
     !$ACC   ASYNC(1) IF(PRESENT(ext_data))
 
     !$ACC UPDATE DEVICE(p_int%lsq_high, p_int%lsq_lin) &

@@ -95,20 +95,6 @@ $addexp "checksuite.ocean_internal/hamocc/exp.test_concurrent_hamocc_omip_10days
 $addexp "checksuite.ocean_internal/technical/exp.test_multioutput_model_40km" \
 	--machines levante --without-configureflags "--without-mpi --with-openmp --enable-mixed" --runflags "cpu_time=00:30:00 no_of_nodes=2 queue=compute" --list $listname
 
-#-----------------------------------------------------------
-# communication + seamless + oce lrestart cont
-# These mistral tests need to be re-added
-
-#-----------------------------------------------------------
-# CSCS
-# Additional tests for GPU
-
-# NVIDIA for GPU: failing currently because:
-#              mo_ice_interface:ice_fast_interface: This part has not been ported to GPU.
-./rmexp checksuite.ocean_internal/technical/exp.ocean_omip_ptest          --builders "DAINT_GPU_nvidia" --list $listname
-./rmexp checksuite.ocean_internal/technical/exp.test_ocean_omip_technical --builders "DAINT_GPU_nvidia" --list $listname
-
-
 # add experiments relevant for C2SM from yml-config
 ./../experiments/addexp_from_yml --list $listname
 
@@ -126,8 +112,9 @@ $addexp "exp.test_nwp_R02B04_R02B05_nest_comin_python" --without-configureflags 
 $addexp "checksuite.nwp/nwpexp.run_ICON_19_R2B4_cmip_forcing"  --without-configureflags "--without-mpi" --runflags "cpu_time=00:30:00 no_of_nodes=1"  --machines levante --builders "levante_intel_hybrid levante_gcc_hybrid" --list $listname
 
 $addexp "checksuite.infrastructure/comin/nwpexp.build_comin_plugins_DWD_nec" --builders "DWD_nec_yac2" --list $listname
-$addexp "exp.test_nwp_R02B04_R02B05_nest_comin"                                  --builders "DWD_nec_yac2" --list $listname
-./adddep --from-experiment "exp.test_nwp_R02B04_R02B05_nest_comin" --to-experiment "checksuite.infrastructure/comin/nwpexp.build_comin_plugins_DWD_nec" --builders "DWD_nec_yac2" --list $listname
+# deactivate COMIN expermiment for builder DWD_nec_yac2 until a fix is available.
+#$addexp "exp.test_nwp_R02B04_R02B05_nest_comin"                                  --builders "DWD_nec_yac2" --list $listname
+#./adddep --from-experiment "exp.test_nwp_R02B04_R02B05_nest_comin" --to-experiment "checksuite.infrastructure/comin/nwpexp.build_comin_plugins_DWD_nec" --builders "DWD_nec_yac2" --list $listname
 
 # this experiment runs only with-mpi and without openmp
 #
@@ -261,6 +248,7 @@ $addexp checksuite.art/exp.art_levante_test_short.run --builders "levante_gcc" -
 $addexp checksuite.art/exp.art_levante_test.run --builders "levante_gcc" --list $listname
 
 # add tests for checking yaxt and yac stand-alone; this needs yaxt/yac to be enabled
+#FIXME: exp.check_externals_DWD.run has been deactivated, since the MPI test fails for YAC
 $addexp  checksuite.infrastructure/checkExternals/exp.check_externals_DWD.run --builders DWD_nec_yac2 --list ${listname}
 $addexp  checksuite.infrastructure/checkExternals/exp.check_externals_LEVANTE.run --machines levante --list ${listname}
 ./adddep --from-experiment "checksuite.infrastructure/comin/exp.build_comin_plugins_LEVANTE.run" --to-experiment "checksuite.infrastructure/checkExternals/exp.check_externals_LEVANTE.run" --builders "levante_gcc" --list $listname
@@ -291,7 +279,8 @@ $addexp  checksuite.infrastructure/checkExternals/exp.check_externals_LEVANTE.ru
 $addexp  checksuite.infrastructure/checkExternals/exp.check_externals_LEVANTE_gpu.run --builders levante_gpu_nvhpc --list ${listname}
 
 # icon-clm tests
-$addexp "checksuite.clm/check.ICON_CLM" --builders "levante_intel levante_gcc_hybrid" --list ${listname} --runflags="ntasks=32 queue=shared"
+$addexp "checksuite.clm/check.ICON_CLM" --builders "levante_intel levante_gcc_hybrid levante_cpu_nvhpc" --list ${listname} --runflags="ntasks=32 queue=shared"
+$addexp "checksuite.clm/clmexp.ICON_CLM" --builders "levante_gpu_nvhpc" --list ${listname}
 $addexp "checksuite.clm/check.ICON_CLM" --builders "DWD_nec_hybrid" --list ${listname}
 $addexp "checksuite.clm/clmexp.ICON_CLM_global_mean_no_boundary" --builders "levante_intel_hybrid levante_gcc_hybrid" --list $listname
 $addexp "checksuite.clm/clmexp.ICON_CLM_output_coupling" --builders "levante_intel levante_gcc_hybrid" --list ${listname} --runflags="ntasks=32 queue=shared"
@@ -316,7 +305,7 @@ do
 done
 
 # JSBACH-NWP test, has to be down here because the GPU builders get deactivated at the top and activated later.
-jsbach_nwp_builders='DWD_nec DWD_nec_hybrid levante_gcc levante_intel levante_gpu_nvhpc'
+jsbach_nwp_builders='DWD_nec DWD_nec_hybrid levante_gcc levante_intel levante_gpu_nvhpc levante_nag'
 $addexp checksuite.icon-dev/check.atm_nwp_jsbach_test --builders "${jsbach_nwp_builders}" --list $listname
 
 # aurora node at DKRZ - not in production,yet

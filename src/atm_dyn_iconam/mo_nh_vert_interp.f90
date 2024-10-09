@@ -2967,7 +2967,7 @@ CONTAINS
                 ENDIF
               ENDIF
             ENDDO
-#ifdef _OPENACC
+#ifndef _OPENACC
             ! ACC: the following EXIT would be illegal within an OpenACC Kernel, thus we skip this CPU optimization
             IF (ALL(l_found(1:nlen))) EXIT
 #endif
@@ -3352,7 +3352,7 @@ CONTAINS
                 ENDIF
               ENDIF
             ENDDO
-#ifdef _OPENACC
+#ifndef _OPENACC
             ! ACC: the following EXIT would be illegal within an OpenACC Kernel, thus we skip this CPU optimization
             IF (ALL(l_found(1:nlen))) EXIT
 #endif

@@ -600,6 +600,11 @@ CONTAINS
     ELSE
       conv_list = (/iqv,iqc,iqi,-1,-1/)
     ENDIF
+    ! pos_qv holds the index of iqv in conv_list (defined above).
+    ! ATTENTION: Remember to change the value of pos_qv if the ordering of 
+    !            conv_list's elements is changed.
+    pos_qv = 1
+
     !$ACC DATA COPYIN(conv_list) IF(lzacc)
 
     !$ACC KERNELS DEFAULT(PRESENT) ASYNC(1) IF(lzacc)
@@ -608,15 +613,14 @@ CONTAINS
     !$ACC END KERNELS
 
     ! add tendency due to convection
-    !$ACC PARALLEL PRIVATE(pos_qv) DEFAULT(PRESENT) ASYNC(1) IF(lzacc)
+    !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1) IF(lzacc)
     !$ACC LOOP SEQ
     DO jt=1,SIZE(conv_list)
       idx = conv_list(jt)
       IF (idx <= 0) CYCLE
 
-      !$ACC LOOP SEQ
+      !$ACC LOOP GANG(STATIC: 1) VECTOR COLLAPSE(2)
       DO jk = kstart_moist(jg), kend
-        !$ACC LOOP GANG(STATIC: 1) VECTOR
         DO jc = i_startidx, i_endidx
           zrhox(jc,jk,jt) = p_rho_now(jc,jk)*pt_prog_rcf%tracer(jc,jk,jb,idx)  &
             &             + pdtime*prm_nwp_tend%ddt_tracer_pconv(jc,jk,jb,idx)
@@ -630,22 +634,20 @@ CONTAINS
       ENDDO
       !
       ! Re-diagnose tracer mass fraction from partial mass
-      IF (idx == iqv) THEN
-        pos_qv = jt   ! store local qv-position for later use
-        CYCLE         ! special treatment see below
-      ENDIF
+      IF (idx == iqv) CYCLE         ! special treatment see below
       !
-      !$ACC LOOP SEQ
+      !$ACC LOOP GANG(STATIC: 1) VECTOR COLLAPSE(2)
       DO jk = kstart_moist(jg), kend
-        !$ACC LOOP GANG(STATIC: 1) VECTOR
         DO jc = i_startidx, i_endidx
           pt_prog_rcf%tracer(jc,jk,jb,idx) = zrhox(jc,jk,jt)/p_rho_now(jc,jk)
         ENDDO
       ENDDO
     ENDDO ! jt
+    !$ACC END PARALLEL
     !
     ! Special treatment for qv.
     ! Rediagnose tracer mass fraction and substract mass created by artificial clipping.
+    !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1) IF(lzacc)
     !$ACC LOOP SEQ
     DO jk = kstart_moist(jg), kend
       !$ACC LOOP GANG(STATIC: 1) VECTOR PRIVATE(zrhoqv)
@@ -657,10 +659,8 @@ CONTAINS
         pt_prog_rcf%tracer(jc,jk,jb,iqv) = MAX(0._wp, zrhoqv/p_rho_now(jc,jk))
       ENDDO
     ENDDO
-    !$ACC END PARALLEL
 
-    !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1) IF(lzacc)
-    !$ACC LOOP GANG VECTOR
+    !$ACC LOOP GANG(STATIC: 1) VECTOR
     DO jc = i_startidx, i_endidx
       ! First remove clipped mass from rain, then from snow.
       prm_diag%rain_con_rate_corr(jc,jb) = MAX(0._wp, prm_diag%rain_con_rate(jc,jb) + zwtr_clip_rate(jc))

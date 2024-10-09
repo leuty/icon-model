@@ -575,9 +575,6 @@ CONTAINS
     IF ( irad_aero == iRadAeroCAMStd) THEN
         CALL finish(routine,'CAMS forecast irad_aero=8 is currently not supported on GPU.')
     END IF
-    IF ( atm_phy_nwp_config(jg)%icpl_aero_gscp == 3 ) THEN
-        CALL finish(routine,'Using cloud-droplet number climatology icpl_aero_gscp = 3 is currently not supported on GPU.')
-    END IF
 #endif
 
     END IF

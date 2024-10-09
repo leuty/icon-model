@@ -134,16 +134,16 @@ CONTAINS
 
     TYPE(t_vdiff_config), INTENT(IN) :: vdiff_config
 
-    REAL(wp),INTENT(OUT) :: ptottevn(:,:,:) !< TTE at intermediate time step
-    REAL(wp),INTENT(OUT) :: pcftotte(:,:,:) !< exchange coeff. for TTE
-    REAL(wp),INTENT(OUT) :: pcfthv  (:,:,:) !< exchange coeff. for var. of theta_v
-    REAL(wp),INTENT(OUT) :: pcfm    (:,:,:) !< exchange coeff. for u, v
-    REAL(wp),INTENT(OUT) :: pcfh    (:,:,:) !< exchange coeff. for cptgz and tracers
-    REAL(wp),INTENT(OUT) :: pcfv    (:,:,:) !< exchange coeff. for variance of qx
-    REAL(wp),INTENT(OUT) :: pzthvvar(:,:,:) !< variance of theta_v at interm. step
-    REAL(wp),INTENT(OUT) :: pcptgz  (:,:,:) !< dry static energy
-    REAL(wp),INTENT(OUT) :: pprfac  (:,:,:) !< prefactor for the exchange coeff.
-    REAL(wp),INTENT(OUT) :: pmixlen (:,:,:) !< prefactor for the exchange coeff.
+    REAL(wp),INTENT(INOUT) :: ptottevn(:,:,:) !< OUT TTE at intermediate time step
+    REAL(wp),INTENT(INOUT) :: pcftotte(:,:,:) !< OUT exchange coeff. for TTE
+    REAL(wp),INTENT(INOUT) :: pcfthv  (:,:,:) !< OUT exchange coeff. for var. of theta_v
+    REAL(wp),INTENT(INOUT) :: pcfm    (:,:,:) !< OUT exchange coeff. for u, v
+    REAL(wp),INTENT(INOUT) :: pcfh    (:,:,:) !< OUT exchange coeff. for cptgz and tracers
+    REAL(wp),INTENT(INOUT) :: pcfv    (:,:,:) !< OUT exchange coeff. for variance of qx
+    REAL(wp),INTENT(INOUT) :: pzthvvar(:,:,:) !< OUT variance of theta_v at interm. step
+    REAL(wp),INTENT(INOUT) :: pcptgz  (:,:,:) !< OUT dry static energy
+    REAL(wp),INTENT(INOUT) :: pprfac  (:,:,:) !< OUT prefactor for the exchange coeff.
+    REAL(wp),INTENT(INOUT) :: pmixlen (:,:,:) !< OUT prefactor for the exchange coeff.
 
     ! Local variables
     ! - Variables defined at full levels
@@ -164,16 +164,16 @@ CONTAINS
     INTEGER :: jc, jb, je
 
   !Variables for the module
-    REAL(wp), INTENT(OUT), DIMENSION(:,:,:)   :: km_c
-    REAL(wp), INTENT(OUT), DIMENSION(:,:,:)   :: km_iv
-    REAL(wp), INTENT(OUT), DIMENSION(:,:,:)   :: km_ie
-    REAL(wp), INTENT(OUT), DIMENSION(:,:,:)   :: kh_ic, km_ic
-    REAL(wp), INTENT(OUT), DIMENSION(:,:,:)   :: u_vert, v_vert
-    REAL(wp), INTENT(OUT), DIMENSION(:,:,:)   :: div_c
-    REAL(wp), INTENT(OUT), DIMENSION(:,:,:)   :: w_vert
-    REAL(wp), INTENT(OUT), DIMENSION(:,:,:)   :: w_ie
-    REAL(wp), INTENT(OUT), DIMENSION(:,:,:)   :: inv_rho_ic
-    REAL(wp), INTENT(OUT), DIMENSION(:,:,:)   :: vn !< normal wind vector
+    REAL(wp), INTENT(INOUT), DIMENSION(:,:,:) :: km_c !< OUT
+    REAL(wp), INTENT(INOUT), DIMENSION(:,:,:) :: km_iv !< OUT
+    REAL(wp), INTENT(INOUT), DIMENSION(:,:,:) :: km_ie !< OUT
+    REAL(wp), INTENT(INOUT), DIMENSION(:,:,:) :: kh_ic, km_ic !< OUT
+    REAL(wp), INTENT(INOUT), DIMENSION(:,:,:) :: u_vert, v_vert !< OUT
+    REAL(wp), INTENT(INOUT), DIMENSION(:,:,:) :: div_c !< OUT
+    REAL(wp), INTENT(INOUT), DIMENSION(:,:,:) :: w_vert !< OUT
+    REAL(wp), INTENT(INOUT), DIMENSION(:,:,:) :: w_ie !< OUT
+    REAL(wp), INTENT(INOUT), DIMENSION(:,:,:) :: inv_rho_ic !< OUT
+    REAL(wp), INTENT(INOUT), DIMENSION(:,:,:) :: vn !< OUT normal wind vector
 
     REAL(wp), DIMENSION(kbdim,klev,nblks_c)   :: theta_v
     REAL(wp), DIMENSION(kbdim,klevp1,nblks_c) :: bruvais
@@ -200,18 +200,18 @@ CONTAINS
     REAL(wp),OPTIONAL,INTENT(IN) :: pcsat  (:,:)  !< area fraction with wet land surface
     REAL(wp),OPTIONAL,INTENT(IN) :: pcair  (:,:)  !< area fraction with wet land surface (air)
 
-    REAL(wp),INTENT(OUT) :: pqsat_tile (:,:,:)!< saturation specific humidity
-    REAL(wp),INTENT(OUT) :: pcpt_tile (:,:,:) !< dry static energy
-    REAL(wp),INTENT(OUT) :: pcfm_tile (:,:,:) !< exchange coeff. of momentum,
+    REAL(wp),INTENT(INOUT) :: pqsat_tile (:,:,:)!< OUT saturation specific humidity
+    REAL(wp),INTENT(INOUT) :: pcpt_tile (:,:,:) !< OUT dry static energy
+    REAL(wp),INTENT(INOUT) :: pcfm_tile (:,:,:) !< OUT exchange coeff. of momentum,
                                                                 !< for each type of surface
-    REAL(wp),INTENT(OUT) :: pcfh_tile (:,:,:) !< exchange coeff. of heat and
+    REAL(wp),INTENT(INOUT) :: pcfh_tile (:,:,:) !< OUT exchange coeff. of heat and
                                                                 !<  vapor for each surface type
-    REAL(wp),INTENT(OUT) :: pbn_tile  (:,:,:) !< for diagnostics
-    REAL(wp),INTENT(OUT) :: pbhn_tile (:,:,:) !< for diagnostics
-    REAL(wp),INTENT(OUT) :: pbm_tile  (:,:,:) !< for diagnostics
-    REAL(wp),INTENT(OUT) :: pbh_tile  (:,:,:) !< for diagnostics
-    REAL(wp),INTENT(OUT) :: pch_tile  (:,:,:) !< for TTE boundary condition
-    REAL(wp),INTENT(OUT) :: pri_tile  (:,:,:) !< Richardson number for diagnostics
+    REAL(wp),INTENT(INOUT) :: pbn_tile  (:,:,:) !< OUT for diagnostics
+    REAL(wp),INTENT(INOUT) :: pbhn_tile (:,:,:) !< OUT for diagnostics
+    REAL(wp),INTENT(INOUT) :: pbm_tile  (:,:,:) !< OUT for diagnostics
+    REAL(wp),INTENT(INOUT) :: pbh_tile  (:,:,:) !< OUT for diagnostics
+    REAL(wp),INTENT(INOUT) :: pch_tile  (:,:,:) !< OUT for TTE boundary condition
+    REAL(wp),INTENT(INOUT) :: pri_tile  (:,:,:) !< OUT Richardson number for diagnostics
 
     REAL(wp) :: zqts
     REAL(wp) :: zvn1, zvn2
@@ -581,13 +581,13 @@ CONTAINS
     !Get rho at interfaces to be used later
     CALL vert_intp_full2half_cell_3d(p_patch, p_nh_metrics, rho, rho_ic, &
                                      1, min_rlcell_int-2, lacc=.TRUE.)
-    
+
     ! Compute the Brunt Vaisala frequency where theta_v was defined
-                                     
+
     CALL brunt_vaisala_freq(p_patch, p_nh_metrics, kbdim, theta_v, bruvais, &
                             opt_rlstart=3, lacc=.TRUE.)
-    
-    
+
+
 !#########################################################################
 !## Smagorinsky_model
   !!------------------------------------------------------------------------
@@ -1100,8 +1100,8 @@ CONTAINS
     REAL(wp), INTENT(IN), DIMENSION(nproma,p_patch%nlev,p_patch%nblks_c) :: div_c
     REAL(wp), INTENT(IN), DIMENSION(nproma,p_patch%nlev,p_patch%nblks_c) :: rho
 
-    REAL(wp), INTENT(out) :: ddt_u(nproma,p_patch%nlev,p_patch%nblks_c) !< u tendency
-    REAL(wp), INTENT(out) :: ddt_v(nproma,p_patch%nlev,p_patch%nblks_c) !< v tendency
+    REAL(wp), INTENT(INOUT) :: ddt_u(nproma,p_patch%nlev,p_patch%nblks_c) !< OUT u tendency
+    REAL(wp), INTENT(INOUT) :: ddt_v(nproma,p_patch%nlev,p_patch%nblks_c) !< OUT v tendency
 
     REAL(wp) :: flux_up_v, flux_dn_v, flux_up_c, flux_dn_c
     REAL(wp) :: vn_vert1, vn_vert2, vn_vert3, vn_vert4, dvt
@@ -1317,7 +1317,7 @@ CONTAINS
     REAL(wp), INTENT(IN), DIMENSION(nproma,p_patch%nlev,p_patch%nblks_c) :: div_c
     REAL(wp), INTENT(IN), DIMENSION(nproma,p_patch%nlev,p_patch%nblks_c) :: pum1, pvm1
     REAL(wp), INTENT(IN), DIMENSION(nproma,p_patch%nlevp1,p_patch%nblks_c) :: pwm1
-    REAL(wp), INTENT(OUT),DIMENSION(nproma,p_patch%nlevp1,p_patch%nblks_c) :: ddt_w
+    REAL(wp), INTENT(INOUT),DIMENSION(nproma,p_patch%nlevp1,p_patch%nblks_c) :: ddt_w !< OUT
 
     REAL(wp) :: flux_up_c, flux_dn_c, dvn1, dvn2, dvt1, dvt2, flux_up_v, flux_dn_v
     REAL(wp) :: vt_e(nproma,p_patch%nlev,p_patch%nblks_e), inv_dt
@@ -1642,7 +1642,7 @@ CONTAINS
     INTEGER,           INTENT(in)           :: scalar_name
     REAL(wp), INTENT(IN) :: rturb_prandtl !< inverse turbulent prandtl number
     REAL(wp), INTENT(IN)                    :: km_ie(nproma,p_patch%nlev+1,p_patch%nblks_e)
-    REAL(wp), INTENT(OUT)                   :: hori_tend(nproma,p_patch%nlev,p_patch%nblks_c) !< total tendency
+    REAL(wp), INTENT(INOUT)                 :: hori_tend(nproma,p_patch%nlev,p_patch%nblks_c) !< total tendency
     REAL(wp)                                :: var(nproma,p_patch%nlev,p_patch%nblks_c)      ! input scalar
 
     !Local variables

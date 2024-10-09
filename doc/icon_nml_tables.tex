@@ -1855,11 +1855,14 @@ Possible values are:\\
 {\textasteriskcentered} ''none''\\
 {\textasteriskcentered} ''\textcolor{blue}{deterministic}''\\
 {\textasteriskcentered} ''\textcolor{cyan}{ensemble}''\\
+{\textasteriskcentered} ''\textcolor{green}{modcomp:deterministic}''\\
+{\textasteriskcentered} ''\textcolor{magenta}{modcomp:ensemble}''\\
 They correspond to:\\
-typeOfGeneratingProcess = \textcolor{blue}{2}/\textcolor{cyan}{4}\\
-localDefinitionNumber = \textcolor{blue}{254}/\textcolor{cyan}{253}\\
-typOfProcessedData = \textcolor{blue}{1}/\textcolor{cyan}{5}\\
-typeOfEnsembleForecast = \textcolor{cyan}{192}
+typeOfGeneratingProcess = \textcolor{blue}{2}/\textcolor{cyan}{4}/\textcolor{green}{2}/\textcolor{magenta}{4}\\
+localDefinitionNumber = \textcolor{blue}{254}/\textcolor{cyan}{253}/\textcolor{green}{230}/\textcolor{magenta}{230}\\
+typOfProcessedData = \textcolor{blue}{1}/\textcolor{cyan}{5}/\textcolor{green}{1}/\textcolor{magenta}{5}\\
+typeOfEnsembleForecast = \textcolor{cyan}{192}/\textcolor{magenta}{192}\\
+(Note: ''modcomp:\ldots'' require ecCodes version >= 2.31.0)
 &
 filetype=2
 \tabularnewline
@@ -1970,7 +1973,11 @@ I& -1 & &
 local Definition Number:\\
 {\textasteriskcentered} 254: Deterministic system \\
 {\textasteriskcentered} 253: Ensemble system: \\
-- GRIB2 code table grib2LocalSectionNumber.78.table &
+{\textasteriskcentered} 230: Model composition \\
+- GRIB2 code table grib2LocalSectionNumber.78.table.\\
+Note that in case of 230 (''Model composition'') \texttt{preset} \texttt{=} \texttt{''modcomp:deterministic/ensemble''}
+has to be used to choose between deterministic or ensemble systems!\\
+In addition, 230 requires ecCodes version >= 2.31.0.&
 filetype=2\\
 generatingCenter=78/80/215
 \tabularnewline
@@ -2032,6 +2039,21 @@ Type of GRIB library backward compatibility adjustment:\\
 {\textasteriskcentered} ''eccodes:2.31.0'': Please see Section \ref{subsec:griblibcompat} below. &
 filetype=2\\
 ecCodes version >= 2.32.0
+\tabularnewline
+
+%\hline
+model\_components&
+C(3)& '' '', '' '', '' '' & &
+Model components. Currently, the following options are available:\\
+{\textasteriskcentered} ''icon-nwp''\\
+{\textasteriskcentered} ''icon-nwp'', ''art-nwp''\\
+{\textasteriskcentered} ''icon-nwp'', ''ocean-nwp''\\
+{\textasteriskcentered} ''icon-nwp'', ''art-nwp'', ''ocean-nwp''\\
+Note that it is the responsibility of the user, to choose a setting that is in line with the actual model composition! &
+filetype=2\\
+generatingCenter=78/80/215\\
+localDefinitionNumber=230\\
+ecCodes version >= 2.31.0
 \tabularnewline
 
 %\hline

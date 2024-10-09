@@ -206,9 +206,6 @@ USE turb_data, ONLY : &
     ilow_def_cond,& !type of the default condition at the lower boundary
                     ! 1: zero surface gradient
                     ! 2: zero surface value
-    imode_rat_sea,& ! mode of scaling the laminar resistance for heat over sea (related to 'rat_sea')
-                    ! 1: constant ratio compared to land surface
-                    ! 2: with a correction for a strongly overheated SST
     imode_vel_min,& ! mode of calculating the minimal turbulent velocity scale (in the surface layer only)
                     ! 1: with the constant value "tkesecu*vel_min"
                     ! 2: with a stability dependent correction
@@ -296,6 +293,7 @@ USE turb_utilities,          ONLY:   &
     zexner, zpsat_w,                 &
     alpha0_char
 
+
 !-------------------------------------------------------------------------------
 #ifdef SCLM
 USE data_1d_global, ONLY : &
@@ -316,6 +314,7 @@ PUBLIC  :: turbtran
 !-------------------------------------------------------------------------------
 
 REAL (KIND=wp), PARAMETER :: &
+
     z0 = 0.0_wp,    &
     z1 = 1.0_wp,    &
     z2 = 2.0_wp,    &
@@ -664,15 +663,15 @@ REAL (KIND=wp), DIMENSION(:,:), OPTIONAL, TARGET, INTENT(IN) :: &
      dwdx,         & ! zonal      derivative of vertical wind  ,,    ( 1/s )
      dwdy            ! meridional derivative of vertical wind  ,,    ( 1/s )
 
-REAL (KIND=wp), DIMENSION(:,:), TARGET, OPTIONAL, INTENT(INOUT) :: &
+REAL (KIND=wp), DIMENSION(:,:), TARGET, INTENT(IN) :: &
                      ! half-level values of:
      tketens         ! diffusion tendency of q=SQRT(2*TKE)           ( m/s2)
-
+  
 REAL (KIND=wp), DIMENSION(:,:), TARGET, OPTIONAL, INTENT(OUT) :: &
                      ! half-level values of:
      edr             ! eddy dissipation rate of TKE (EDR)            (m2/s3)
 
-REAL (KIND=wp), DIMENSION(:), OPTIONAL, INTENT(OUT) :: &
+REAL (KIND=wp), DIMENSION(:), INTENT(OUT) :: &
 !
 ! Diagnostic near surface variables:
 ! -----------------------------------------------
@@ -684,10 +683,13 @@ REAL (KIND=wp), DIMENSION(:), OPTIONAL, INTENT(OUT) :: &
      u_10m,        & ! zonal wind in 10m                             ( m/s )
      v_10m           ! meridional wind in 10m                        ( m/s )
 
-REAL (KIND=wp), DIMENSION(:), OPTIONAL, TARGET, INTENT(INOUT) :: &
+REAL (KIND=wp), DIMENSION(:), TARGET, INTENT(INOUT) :: &
 !
      shfl_s,       & ! sensible heat flux at the surface             (W/m2)    (positive downward)
-     qvfl_s,       & ! water vapor   flux at the surface             (kg/m2/s) (positive downward)
+     qvfl_s          ! water vapor   flux at the surface             (kg/m2/s) (positive downward)
+
+REAL (KIND=wp), DIMENSION(:), OPTIONAL, TARGET, INTENT(INOUT) :: &
+!
      umfl_s,       & ! u-momentum flux at the surface                (N/m2)    (positive downward)
      vmfl_s          ! v-momentum flux at the surface                (N/m2)    (positive downward)
 
@@ -779,18 +781,15 @@ REAL (KIND=wp), POINTER, CONTIGUOUS :: &
     vaps     (:,:),    & ! near-surface humidity-variable
     liqs     (:,:),    & ! near-surface liquid water content
 !
-    tvt      (:,:),    & ! surface tendency of turbulent velocity scale
     ediss    (:,:)       ! surface eddy-dissipation rate
 
 REAL (KIND=wp), TARGET    :: &
   ! targets of used pointers
   diss_tar    (nvec,ke1:ke1), & ! eddy dissipation rate (m2/s3)
-  tketens_tar (nvec,ke1:ke1), & ! turbulent transport of SQRT(TKE) (m/s2)
 
   ! internal atmospheric variables
   len_scale   (nvec,ke1:ke1), & ! turbulent length-scale (m)
-  l_scal      (nvec),         & ! reduced maximal turbulent length scale due to 
-                                !   horizontal grid spacing (m)
+  l_scal      (nvec),         & ! reduced maximal turbulent length scale due to horizontal grid spacing (m)
 
   fc_min      (nvec),         & ! minimal value for TKE-forcing (1/s2)
 
@@ -814,11 +813,9 @@ REAL (KIND=wp), TARGET    :: &
                                 !   (liquid water temperature) (K)
   qt_s_2d     (nvec),         & ! surface level value of conserved humidity    
                                 !   (total water)
-  vel_2d      (nvec,ke-1:ke), & ! wind speed (m/s) at the two lowest full model levels
+  vel_2d      (nvec,ke:ke),   & ! wind speed (m/s) at the lowest full model level
 
   velmin      (nvec),         & ! modified 'vel_min' used for tuning corrections (m/s)
-                                ! (hyper-parameterizations)
-  ratsea      (nvec),         & ! modified 'rat_sea' used for tuning corrections 
                                 ! (hyper-parameterizations)
 
   ! internal variables for the resistance model
@@ -890,9 +887,9 @@ LOGICAL        ::   ldebug = .FALSE.
   !GPU data region of all local variables except pointers which are set later on
   !$ACC DATA &
 ! local variables
-  !$ACC   CREATE(diss_tar, tketens_tar, len_scale, l_scal, fc_min) &
+  !$ACC   CREATE(diss_tar, len_scale, l_scal, fc_min) &
   !$ACC   CREATE(rhon, frh, frm, zaux, zvari, rcls) &
-  !$ACC   CREATE(tl_s_2d, qt_s_2d, vel_2d, velmin, ratsea) &
+  !$ACC   CREATE(tl_s_2d, qt_s_2d, vel_2d, velmin) &
   !$ACC   CREATE(hk_2d, hk1_2d, hk2_2d, h_top_2d, h_atm_2d, a_atm_2d, h_can_2d) &
   !$ACC   CREATE(edh, val_m, val_h, z0m_2d, z0d_2d, z2m_2d) &
   !$ACC   CREATE(z10m_2d, rat_m_2d, rat_h_2d, fac_h_2d, fac_m_2d) &
@@ -908,22 +905,6 @@ LOGICAL        ::   ldebug = .FALSE.
      ediss => edr
   ELSE
      ediss => diss_tar
-  END IF
-
-  IF (PRESENT(tketens)) THEN
-     tvt => tketens
-  ELSE
-     tvt => tketens_tar
-     ! This loop can't be OpenACC-collapsed yet because ivend is on the GPU
-     !$ACC PARALLEL DEFAULT(PRESENT) PRESENT(tvt) ASYNC(acc_async_queue) IF(lzacc)
-     !$ACC LOOP SEQ
-     DO k=ke1, ke1
-        !$ACC LOOP GANG VECTOR
-        DO i=ivstart, ivend
-           tvt(i,k) = z0
-        END DO
-     END DO
-     !$ACC END PARALLEL
   END IF
 
   prss(1:,ke-1:) => zvari(:,:,0)    ! near-surface pressure (Pa)
@@ -1038,30 +1019,9 @@ LOGICAL        ::   ldebug = .FALSE.
          END DO
       END DO
   
-!DIR$ IVDEP
-      !$ACC LOOP GANG(STATIC: 1) VECTOR
-      DO i=ivstart, ivend
-         ratsea(i) = rat_sea
-      END DO
-
-      IF (imode_rat_sea.EQ.2) THEN
-!<Tuning
-!---------------------------------------------------------------------------------------
-!DIR$ IVDEP
-         !$ACC LOOP GANG(STATIC: 1) VECTOR
-         DO i=ivstart, ivend
-            IF (t_g(i) - t(i,ke) > 8._wp) THEN
-               ! Increase rat_sea for very large temperature differences between water and adjacent air
-               ! in order to reduce excessive peaks in latent heat flux
-
-               ratsea(i) = rat_sea*(1._wp + 0.05_wp*(t_g(i) - t(i,ke) - 8._wp))
-            END IF
-         END DO
-      END IF
-
-      IF (imode_vel_min.EQ.2) THEN
 !<Tuning    
 !---------------------------------------------------------------------------------------
+      IF (imode_vel_min.EQ.2) THEN
 !DIR$ IVDEP
          !$ACC LOOP GANG(STATIC: 1) VECTOR
          DO i=ivstart, ivend
@@ -1293,7 +1253,7 @@ LOGICAL        ::   ldebug = .FALSE.
             tkvm(i,ke1)=MAX( con_m, tkvm(i,ke1) )
             tkvh(i,ke1)=MAX( con_h, tkvh(i,ke1) )
 
-            fakt=z1+(z1-REAL(NINT(fr_land(i)),wp))*(ratsea(i)-z1)
+            fakt=z1+(z1-REAL(NINT(fr_land(i)),wp))*(rat_sea-z1)
 
             ren_m=tkvm(i,ke1)/con_m
             ren_h=tkvh(i,ke1)/con_h
@@ -1738,7 +1698,7 @@ LOGICAL        ::   ldebug = .FALSE.
                                   fm2=frm, fh2=frh, ft2=frm,                                    & !in
                                   lsm=tkvm, lsh=tkvh, tls=len_scale,                            & !in(out)
 
-                                  tvt=tvt, velmin=velmin,                                       & !in 
+                                  tvt=tketens, velmin=velmin,                                   & !in
                                   tke=tke, ediss=ediss,                                         & !inout, out
 
                                   lactcnv=(icldm_tran.NE.-1 .AND. lsrflux),                     & !in (act. flux conversion)
@@ -1875,14 +1835,14 @@ LOGICAL        ::   ldebug = .FALSE.
 
 ! 4j) Berechnung der Enthalpie- und Impulsflussdichten sowie der EDR am Unterrand:
 
-      IF ((lsrflux.OR.lrunscm) .AND. (PRESENT(shfl_s).OR.PRESENT(qvfl_s))) THEN
+      IF (lsrflux.OR.lrunscm) THEN
 !DIR$ IVDEP
          !$ACC LOOP GANG(STATIC: 1) VECTOR PRIVATE(wert)
          DO i=ivstart, ivend
             wert=rhon(i,ke1)*tkvh(i,ke1)
 
-            IF (PRESENT(shfl_s)) shfl_s(i)=cp_d*wert*zvari(i,ke1,tet)*epr_2d(i)
-            IF (PRESENT(qvfl_s)) qvfl_s(i)=wert*zvari(i,ke1,vap)
+            shfl_s(i)=cp_d*wert*zvari(i,ke1,tet)*epr_2d(i)
+            qvfl_s(i)=wert*zvari(i,ke1,vap)
             !Note: 'shfl_s' and 'qvfl_s' are positive downward and 'shfl_s' belogns to the T-equation!
         END DO
       END IF
@@ -1903,26 +1863,22 @@ LOGICAL        ::   ldebug = .FALSE.
 !SCLM --------------------------------------------------------------------------------
 #ifdef SCLM
       IF (lsclm) THEN
-         IF (PRESENT(shfl_s)) THEN
-            IF (SHF%mod(0)%vst.GT.i_cal .AND. SHF%mod(0)%ist.EQ.i_mod) THEN
-               !measured SHF has to be used for forcing:
-               shfl_s(imb)=SHF%mod(0)%val
-            ELSEIF (lsurflu) THEN !SHF defined by explicit surface flux density
-               SHF%mod(0)%val=shfl_s(imb)
-               SHF%mod(0)%vst=MAX(i_upd, SHF%mod(0)%vst) !SHF is at least updated
-            END IF
+         IF (SHF%mod(0)%vst.GT.i_cal .AND. SHF%mod(0)%ist.EQ.i_mod) THEN
+            !measured SHF has to be used for forcing:
+            shfl_s(imb)=SHF%mod(0)%val
+         ELSEIF (lsurflu) THEN !SHF defined by explicit surface flux density
+            SHF%mod(0)%val=shfl_s(imb)
+            SHF%mod(0)%vst=MAX(i_upd, SHF%mod(0)%vst) !SHF is at least updated
          END IF
-         IF (PRESENT(qvfl_s)) THEN
-            IF (LHF%mod(0)%vst.GT.i_cal .AND. LHF%mod(0)%ist.EQ.i_mod) THEN
-               !measured LHF has to be used for forcing:
-               qvfl_s(imb)=LHF%mod(0)%val / lh_v
-            ELSEIF (lsurflu) THEN !LHF defined by explicit surface flux density
-               LHF%mod(0)%val=qvfl_s(imb) * lh_v
-               LHF%mod(0)%vst=MAX(i_upd, LHF%mod(0)%vst) !LHF is at least updated
-            END IF
-            !Note: LHF always is the latent heat flux connected with evaporation by definition,
-            !      independent whether the surface is frozen or not!
+         IF (LHF%mod(0)%vst.GT.i_cal .AND. LHF%mod(0)%ist.EQ.i_mod) THEN
+            !measured LHF has to be used for forcing:
+            qvfl_s(imb)=LHF%mod(0)%val / lh_v
+         ELSEIF (lsurflu) THEN !LHF defined by explicit surface flux density
+            LHF%mod(0)%val=qvfl_s(imb) * lh_v
+            LHF%mod(0)%vst=MAX(i_upd, LHF%mod(0)%vst) !LHF is at least updated
          END IF
+         !Note: LHF always is the latent heat flux connected with evaporation by definition,
+         !      independent whether the surface is frozen or not!
       END IF
 #endif
 !SCLM --------------------------------------------------------------------------------

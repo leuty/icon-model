@@ -61,7 +61,7 @@ MPI_LAUNCH="${MPI_ROOT}/bin/mpiexec"
 
 # The compiler fails one of the YAC configure-time tests, which we suppress and
 # hope for the best:
-EXTRA_CONFIG_ARGS='yac_cv_fc_is_contiguous_works=yes'
+EXTRA_CONFIG_ARGS='--enable-ecrad yac_cv_fc_is_contiguous_works=yes'
 
 # NVHPC 23.3 and older are even worse in detecting whether an array is
 # contiguous. Therefore, we have to disable the run-time checks too:

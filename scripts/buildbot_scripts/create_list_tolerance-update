@@ -18,10 +18,7 @@ listname=tolerance-update
 ./rmlist $listname
 ./create_all_builders $listname
 
-# Set levante and daint builders inactive, which are not needed
-./set_builder_flags Inactive --builders 'DAINT_GPU_nvidia' --list $listname
-./set_builder_flags Inactive --builders 'DAINT_CPU_nvidia_mixed' --list $listname
-./set_builder_flags Inactive --builders 'DAINT_GPU_nvidia_mixed' --list $listname
+# Disable Levante builders that are not in use
 ./set_builder_flags Inactive --builders "levante_aurora" --list $listname
 ./set_builder_flags Inactive --builders "levante_gpu_validation" --list $listname
 ./set_builder_flags Inactive --builders "levante_nag" --list $listname

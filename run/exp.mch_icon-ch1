@@ -205,7 +205,7 @@ cat > ${basedir}/run/${atmo_namelist} << EOF
  iforcing                    =                          3         ! forcing of dynamics and transport by parameterized processes
  msg_level                   =                         12         ! detailed report during integration
  ltimer                      =                      .TRUE.        ! timer for monitoring the runtime of specific routines
- timers_level                =                         10         ! performance timer granularity
+ timers_level                =                          1         ! performance timer granularity
  check_uuid_gracefully       =                      .FALSE.        ! give only warnings for non-matching uuids
  output                      =                        "nml"       ! main switch for enabling/disabling components of the model output
  ldass_lhn                   =                      .TRUE.

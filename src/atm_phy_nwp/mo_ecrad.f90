@@ -160,13 +160,17 @@ CONTAINS
   SUBROUTINE del_opt_ptrs(self)
     CLASS(t_opt_ptrs),INTENT(inout) :: self
 
+    !$ACC WAIT
     IF (ASSOCIATED(self%ptr_od) ) THEN
+      !$ACC EXIT DATA DELETE(self%ptr_od)
       NULLIFY(self%ptr_od)
     ENDIF
     IF (ASSOCIATED(self%ptr_ssa) ) THEN
+      !$ACC EXIT DATA DELETE(self%ptr_ssa)
       NULLIFY(self%ptr_ssa)
     ENDIF
     IF (ASSOCIATED(self%ptr_g) ) THEN
+      !$ACC EXIT DATA DELETE(self%ptr_g)
       NULLIFY(self%ptr_g)
     ENDIF
   END SUBROUTINE del_opt_ptrs

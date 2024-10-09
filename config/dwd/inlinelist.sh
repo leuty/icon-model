@@ -29,6 +29,7 @@ INLINE_LIST_ICON=(
   src/atm_phy_schemes/cloud_random_numbers.f90
   src/atm_phy_schemes/mo_2mom_mcrph_driver.f90
   src/atm_phy_schemes/mo_2mom_mcrph_processes.f90
+  src/atm_phy_schemes/mo_2mom_mcrph_setup.f90
   src/atm_phy_schemes/mo_2mom_mcrph_util.f90
   src/atm_phy_schemes/mo_aerosol_sources.f90
   src/atm_phy_schemes/mo_cpl_aerosol_microphys.f90

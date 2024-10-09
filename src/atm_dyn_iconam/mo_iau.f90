@@ -494,10 +494,8 @@ CONTAINS
                     jb, i_startidx, i_endidx, 1, kstart_moist(jg), kend)
     CALL diag_pres (pt_prog, pt_diag, p_metrics, jb, i_startidx, i_endidx, 1, kend)
 
-    !$ACC DATA CREATE(zrhw) PRESENT(pt_prog, p_metrics, pt_diag, pt_prog_rcf, atm_phy_nwp_config)
-
     ! Compute relative humidity w.r.t. water
-    !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1)
+    !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1) CREATE(zrhw)
     !$ACC LOOP SEQ
     DO jk = 1, kend
       !$ACC LOOP GANG(STATIC: 1) VECTOR
@@ -606,8 +604,6 @@ CONTAINS
     ENDDO
     !$ACC END PARALLEL
 
-    !$ACC WAIT
-    !$ACC END DATA
 
   END SUBROUTINE iau_update_tracer
 

@@ -211,7 +211,7 @@ CONTAINS
     !> Mixed-time saturation specific humidity over ice [kg/kg].
     REAL(wp) :: qsat_hat_ice(SIZE(t_acoef_wtr))
 
-    REAL(wp) :: t_ice_old !< Old ice temperature, sanitized [K].
+    REAL(wp) :: t_ice_old(SIZE(t_acoef_wtr)) !< Old ice temperature, sanitized [K].
     REAL(wp) :: qsat_ice_now !< Saturation specific humidity at time `t`.
 
     REAL(wp) :: wc_frac !< Whitecap fraction.
@@ -253,6 +253,7 @@ CONTAINS
         s_hat_ice, \
         qsat_hat_wtr, \
         qsat_hat_ice, \
+        t_ice_old, \
         qsen, \
         qlat, \
         qlwrnet, \
@@ -285,6 +286,16 @@ CONTAINS
     !$ACC DATA PRESENT(conductive_hflx_ice) IF(have_conductive_hflx_ice)
     !$ACC DATA PRESENT(melt_potential_ice) IF(have_melt_potential_ice)
     !$ACC DATA NO_CREATE(conductive_hflx_ice, melt_potential_ice)
+
+    !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1)
+      !$ACC LOOP GANG VECTOR
+      DO ic = ics, ice
+        ! Someone is messing with the old ice temperatures, setting them to zero for ice-free
+        ! cells.
+        t_ice_old(ic) = MERGE( &
+            & tf_fresh, prog_wtr_now%t_ice(ic,iblk), prog_wtr_now%t_ice(ic,iblk) < 100._wp)
+      END DO
+    !$ACC END PARALLEL
 
     IF (lseaice) THEN
 
@@ -511,15 +522,9 @@ CONTAINS
     ! old pressure. The sea surface temperature changes infrequently, so it can be considered
     ! constant.
     !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1)
-      !$ACC LOOP GANG VECTOR PRIVATE(t_ice_old, qsat_ice_now)
+      !$ACC LOOP GANG VECTOR PRIVATE(qsat_ice_now)
       DO ic = ics, ice
-
-        ! Someone is messing with the old ice temperatures, setting them to zero for ice-free
-        ! cells.
-        t_ice_old = MERGE( &
-            & tf_fresh, prog_wtr_now%t_ice(ic,iblk), prog_wtr_now%t_ice(ic,iblk) < 100._wp)
-
-        qsat_ice_now = spec_humi(sat_pres_ice(t_ice_old),  press_srf(ic))
+        qsat_ice_now = spec_humi(sat_pres_ice(t_ice_old(ic)),  press_srf(ic))
 
         qsat_wtr(ic) = salinity_fac * spec_humi(sat_pres_water(t_wtr(ic)), press_srf(ic))
         qsat_ice(ic) = spec_humi(sat_pres_ice(t_ice(ic)),  press_srf(ic))
@@ -530,7 +535,7 @@ CONTAINS
         s_wtr(ic) = cpd * t_wtr(ic)
         s_ice(ic) = cpd * t_ice(ic)
         s_hat_wtr(ic) = s_wtr(ic)
-        s_hat_ice(ic) = vdiff_mixed_time_value(s_ice(ic), cpd * t_ice_old)
+        s_hat_ice(ic) = vdiff_mixed_time_value(s_ice(ic), cpd * t_ice_old(ic))
       END DO
     !$ACC END PARALLEL
 
@@ -580,7 +585,7 @@ CONTAINS
     TYPE(t_external_data), INTENT(IN) :: ext_data !< Patch external data.
     REAL(wp), INTENT(IN) :: cos_zenith_angle(:,:) !< Cosine of the zenith angle [1].
     REAL(wp), INTENT(IN) :: t_seasfc(:,:) !< Sea-surface temperature [K].
-    REAL(wp), INTENT(IN) :: sst_m(:,:,:) !< Monthly mean SSTs [K].
+    REAL(wp), OPTIONAL, INTENT(IN) :: sst_m(:,:,:) !< Monthly mean SSTs (req'd for SSTICE_ANA_CLINC) [K].
     TYPE(t_nwp_vdiff_sea_state), INTENT(INOUT) :: sea_state !< sea model state structure.
 
     !> Climatological SST for experiment start date [K].
@@ -670,7 +675,7 @@ CONTAINS
     !> Current time.
     TYPE(datetime), INTENT(IN) :: current_datetime
     !> Monthly SST means [K].
-    REAL(wp), INTENT(IN) :: sst_m(:,:,:)
+    REAL(wp), OPTIONAL, INTENT(IN) :: sst_m(:,:,:)
     !> Sea-surface temperature [K].
     REAL(wp), INTENT(INOUT) :: t_seasfc(:,:)
 
@@ -899,6 +904,8 @@ CONTAINS
     CALL nwp_vdiff_update_seaice_vars ( &
         & patch, init_hice, fr_seaice(:,:), new_ice_list, prog_wtr, lacc=lzacc &
       )
+
+    CALL new_ice_list%finalize()
 
   END SUBROUTINE nwp_vdiff_update_seaice
 

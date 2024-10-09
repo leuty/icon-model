@@ -25,8 +25,6 @@ list_name = sys.argv[1]
 
 # Keep in sync with create_list_merge2rc:
 inactive_builders = {
-    "DAINT_CPU_nvidia_mixed",
-    "DAINT_GPU_nvidia_mixed",
     "levante_aurora",
     "levante_cpu_nvhpc",
     "levante_gpu_nvhpc",
@@ -39,7 +37,6 @@ test_handler = {
         "refgen": "checksuite.icon-dev/pp.refgen_atm_qubicc_nc_test_update-ref",
         "machines": {
             "levante": "ntasks=16 queue=shared,compute memory=32G",
-            "daint": "",
         },
         "extra_builders": {
             "levante_cpu_nvhpc": "ntasks=16 queue=shared memory=32G",

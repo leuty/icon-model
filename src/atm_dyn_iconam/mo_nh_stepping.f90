@@ -1203,7 +1203,7 @@ MODULE mo_nh_stepping
             CALL nwp_vdiff_update_seaice ( &
                 & p_patch(jg), .TRUE., p_lnd_state(jg)%diag_lnd%fr_seaice(:,:), &
                 & ext_data(jg)%atm%list_sea, ext_data(jg)%atm%list_seaice, &
-                & p_lnd_state(jg)%prog_wtr(nnow_rcf(jg)), lacc=.FALSE. &
+                & p_lnd_state(jg)%prog_wtr(nnow_rcf(jg)), lacc=.TRUE. &
               )
           ELSE
             ! rebuild index lists for water and seaice based on fr_seaice, 

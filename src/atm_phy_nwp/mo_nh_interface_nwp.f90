@@ -480,9 +480,16 @@ CONTAINS
 
       CALL get_indices_c(pt_patch, jb, i_startblk, i_endblk,  &
                          i_startidx, i_endidx, rl_start, rl_end)
-      !$ACC KERNELS ASYNC(1) IF(lzacc)
-      z_exner_sv(i_startidx:i_endidx,:,jb) = pt_prog%exner(i_startidx:i_endidx,:,jb)
-      !$ACC END KERNELS
+
+      !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1) IF(lzacc)
+      !$ACC LOOP GANG VECTOR COLLAPSE(2)
+      DO jk = 1, pt_patch%nlev
+        DO jc = i_startidx, i_endidx
+          z_exner_sv(jc, jk, jb) = pt_prog%exner(jc, jk, jb)
+        ENDDO
+      ENDDO
+      !$ACC END PARALLEL
+
     ENDDO
 !$OMP END DO NOWAIT
 
@@ -559,9 +566,14 @@ CONTAINS
 
 
       ! Save Exner pressure field (this is needed for a correction to reduce sound-wave generation by latent heating)
-      !$ACC KERNELS ASYNC(1) IF(lzacc)
-      z_exner_sv(i_startidx:i_endidx,:,jb) = pt_prog%exner(i_startidx:i_endidx,:,jb)
-      !$ACC END KERNELS
+      !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1) IF(lzacc)
+      !$ACC LOOP GANG VECTOR COLLAPSE(2)
+      DO jk = 1, pt_patch%nlev
+        DO jc = i_startidx, i_endidx
+          z_exner_sv(jc, jk, jb) = pt_prog%exner(jc, jk, jb)
+        ENDDO
+      ENDDO
+      !$ACC END PARALLEL
 
       !!-------------------------------------------------------------------------
       !> Initial saturation adjustment (a second one follows at the end of the microphysics)
@@ -730,9 +742,9 @@ CONTAINS
         !  The vdiff interface calls the land-surface scheme itself.
         CALL nwp_vdiff( &
             & mtime_datetime, dt_phy_jg(itfastphy), pt_patch, ccycle_config(jg), &
-            & vdiff_config(jg), pt_prog, pt_prog_rcf, pt_diag, p_metrics, prm_diag, ext_data, &
-            & lnd_diag, lnd_prog_new, wtr_prog_now, wtr_prog_new, prm_diag%nwp_vdiff_state, &
-            & prm_nwp_tend, initialize=linit, lacc=lzacc &
+            & vdiff_config(jg), pt_prog, pt_prog_rcf%tracer, pt_prog_rcf%tke, pt_diag, p_metrics, &
+            & prm_diag, ext_data, lnd_diag, lnd_prog_new, wtr_prog_now, wtr_prog_new, &
+            & prm_diag%nwp_vdiff_state, prm_nwp_tend, initialize=linit, lacc=lzacc &
           )
 
         IF (is_coupled_to_ocean()) THEN

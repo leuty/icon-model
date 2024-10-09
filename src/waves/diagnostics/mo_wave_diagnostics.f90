@@ -871,7 +871,7 @@ CONTAINS
 
         tauwn(jc,jb) = tauw(jc,jb) / (ustar(jc,jb)*ustar(jc,jb) + 0.0001_wp)
 
-        beta(jc,jb) = grav + z0(jc,jb) / MAX(ustar(jc,jb)*ustar(jc,jb), 1.0E-6_wp)
+        beta(jc,jb) = grav * z0(jc,jb) / MAX(ustar(jc,jb)*ustar(jc,jb), 1.0E-6_wp)
 
       END DO
     END DO

@@ -1339,7 +1339,7 @@ REAL (KIND=wp), DIMENSION(:,khi:), TARGET, INTENT(IN) :: &
 !
   tvt      !turbulent transport of turbulent velocity scale [m/s2]
 
-REAL (KIND=wp), DIMENSION(:,khi:), OPTIONAL, INTENT(IN) :: &
+REAL (KIND=wp), DIMENSION(:,:), OPTIONAL, INTENT(IN) :: &
 !
   avt      !advective transport of turbulent velocity scale [m/s2]
 
@@ -2306,9 +2306,8 @@ REAL (KIND=wp) :: &
 
   ! Local array
   !XL_ACCTMP : replace with allocatables wk array
-  !$ACC DATA CREATE(qt_tar, tl_tar) &
-  !$ACC   COPYIN(iend) &
-  !$ACC   ASYNC(acc_async_queue) IF(lzacc)
+  !$ACC DATA COPYIN(iend) ASYNC(acc_async_queue) IF(lzacc)
+  !$ACC DATA CREATE(qt_tar, tl_tar) ASYNC(acc_async_queue) IF(lzacc .AND. PRESENT(qc))
 
   IF (PRESENT(qc)) THEN
      qt => qt_tar
@@ -2409,6 +2408,7 @@ REAL (KIND=wp) :: &
   IF (.NOT. lcuda_graph_turb_tran) THEN
     !$ACC WAIT(acc_async_queue)
   END IF
+  !$ACC END DATA
   !$ACC END DATA
 
 END SUBROUTINE turb_cloud
@@ -2599,9 +2599,9 @@ REAL (KIND=wp), DIMENSION(:,:), POINTER, CONTIGUOUS :: &
 
      IF (linisetup .OR. .NOT.PRESENT(rho_n)) THEN
         !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1) IF(lzacc)
+        !$ACC LOOP GANG VECTOR COLLAPSE(2)
         DO k=k_hi,k_lw
 !DIR$ IVDEP
-           !$ACC LOOP GANG VECTOR
            DO i=i_st,i_en
               expl_mom(i,k)=hhl(i,k)-hhl(i,k+1)
            END DO
@@ -2638,9 +2638,9 @@ REAL (KIND=wp), DIMENSION(:,:), POINTER, CONTIGUOUS :: &
         !$ACC END PARALLEL
 
         !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1) IF(lzacc)
+        !$ACC LOOP GANG VECTOR COLLAPSE(2)
         DO k=k_hi+1,k_lw
 !DIR$ IVDEP
-           !$ACC LOOP GANG VECTOR
            DO i=i_st,i_en
               disc_mom(i,k)=rho(i,k)*expl_mom(i,k)*fr_var
               diff_dep(i,k)=0.5_wp*(expl_mom(i,k-1)+expl_mom(i,k))
@@ -2651,9 +2651,9 @@ REAL (KIND=wp), DIMENSION(:,:), POINTER, CONTIGUOUS :: &
 
 
      !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1) IF(lzacc)
+     !$ACC LOOP GANG VECTOR COLLAPSE(2)
      DO k=k_hi+1,k_lw
 !DIR$ IVDEP
-        !$ACC LOOP GANG VECTOR
         DO i=i_st,i_en
 !Achtung: Eventuell tkmin-Beschraenkung nur bei VDiff
          ! expl_mom(i,k)=MAX( tkmin, tkv(i,k) ) &
@@ -2677,9 +2677,9 @@ REAL (KIND=wp), DIMENSION(:,:), POINTER, CONTIGUOUS :: &
 
      IF (itndcon.EQ.3) THEN
         !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1) IF(lzacc)
+        !$ACC LOOP GANG VECTOR COLLAPSE(2)
         DO k=k_hi+1,k_sf
 !DIR$ IVDEP
-           !$ACC LOOP GANG VECTOR
            DO i=i_st,i_en
               diff_mom(i,k)=expl_mom(i,k)
            END DO
@@ -2854,9 +2854,9 @@ REAL (KIND=wp), DIMENSION(:,:), POINTER, CONTIGUOUS :: &
 
   !Calculation of time tendencies for pure vertical diffusion:
   !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1) IF(lzacc)
+  !$ACC LOOP GANG VECTOR COLLAPSE(2)
   DO k=k_hi,k_lw
 !DIR$ IVDEP
-     !$ACC LOOP GANG VECTOR
      DO i=i_st,i_en
         dif_tend(i,k)=(dif_tend(i,k)-cur_prof(i,k))*fr_var
      END DO
@@ -2867,19 +2867,11 @@ REAL (KIND=wp), DIMENSION(:,:), POINTER, CONTIGUOUS :: &
 
   IF (PRESENT(r_air)) THEN
      !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1) IF(lzacc)
+     !$ACC LOOP GANG VECTOR COLLAPSE(2)
      DO k=kcm,k_lw  !r_air-gradient within the roughness layer
 !DIR$ IVDEP
-        !$ACC LOOP GANG VECTOR
         DO i=i_st,i_en
            cur_prof(i,k)=(r_air(i,k)-r_air(i,k+1))/(dt_var*disc_mom(i,k))
-        END DO
-     END DO
-     !$ACC END PARALLEL
-     !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1) IF(lzacc)
-     DO k=kcm,k_lw  !within the roughness layer
-!DIR$ IVDEP
-        !$ACC LOOP GANG VECTOR
-        DO i=i_st,i_en
            dif_tend(i,k)=dif_tend(i,k)                        &
                         +0.5_wp*(eff_flux(i,k+1)+eff_flux(i,k)) & !flux on full level
                              *cur_prof(i,k)                     !r_air-gradient
@@ -2962,79 +2954,87 @@ INTEGER :: &
 
 !  Implicit and explicit weights:
 
-   !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1) IF(lzacc)
    IF (ldynimpwt) THEN !dynamical determination of implicit weights
-      !$ACC LOOP SEQ
+      !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1) IF(lzacc)
+      !$ACC LOOP GANG VECTOR COLLAPSE(2)
       DO k=k_tp+2, k_sf+1-m
 !DIR$ IVDEP
-         !$ACC LOOP GANG(STATIC: 1) VECTOR
          DO i=i_st, i_en
             impl_mom(i,k)=expl_mom(i,k) &
                             ! *MAX(MIN(expl_mom(i,k)/impl_mom(i,k), impl_s), impl_t)
                               *MAX(impl_s-0.5_wp*impl_mom(i,k)/expl_mom(i,k), impl_t)
          END DO
       END DO
-
+      !$ACC END PARALLEL
    ELSE !use precalculated implicit weights
-      !$ACC LOOP SEQ
+      !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1) IF(lzacc)
+      !$ACC LOOP GANG VECTOR COLLAPSE(2)
       DO k=k_tp+2, k_sf+1-m
 !DIR$ IVDEP
-         !$ACC LOOP GANG(STATIC: 1) VECTOR
          DO i=i_st, i_en
 !Achtung:
             impl_mom(i,k)=expl_mom(i,k)*impl_weight(k)
 !impl_mom(i,k)=expl_mom(i,k)*1.00_wp
          END DO
       END DO
+      !$ACC END PARALLEL
    END IF
 
-   !$ACC LOOP SEQ
+   !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1) IF(lzacc)
+   !$ACC LOOP GANG VECTOR COLLAPSE(2)
    DO k=k_tp+2, k_sf-1
 !DIR$ IVDEP
-      !$ACC LOOP GANG(STATIC: 1) VECTOR
       DO i=i_st, i_en
          expl_mom(i,k)=expl_mom(i,k)-impl_mom(i,k) 
       END DO
    END DO
+   !$ACC END PARALLEL
    !Notice that 'expl_mom' still contains the whole diffusion momentum at level 'k_sf'!
 
 !  Inverse momentum vector:
 
    IF (lprecondi) THEN !apply symmetric preconditioning of tridiagonal matrix
 !DIR$ IVDEP
-      !$ACC LOOP GANG(STATIC: 1) VECTOR
+      !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1) IF(lzacc)
+      !$ACC LOOP GANG VECTOR
       DO i=i_st, i_en
          scal_fac(i,k_tp+1)=1.0_wp/SQRT(disc_mom(i,k_tp+1)+impl_mom(i,k_tp+2))
          invs_mom(i,k_tp+1)=1.0_wp
       END DO
-      !$ACC LOOP SEQ
+      !$ACC END PARALLEL
+      !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1) IF(lzacc)
+      !$ACC LOOP GANG VECTOR COLLAPSE(2)
       DO k=k_tp+2, k_sf-m
 !DIR$ IVDEP
-         !$ACC LOOP GANG(STATIC: 1) VECTOR
          DO i=i_st, i_en
             scal_fac(i,k)=1.0_wp/SQRT(disc_mom(i,k)+impl_mom(i,k)+impl_mom(i,k+1))
          END DO
       END DO
-      !$ACC LOOP SEQ
+      !$ACC END PARALLEL
+      !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1) IF(lzacc)
+      !$ACC LOOP GANG VECTOR COLLAPSE(2)
       DO k=k_sf+1-m, k_sf-1 !only for a surface-flux condition and at level k_sf-1
 !DIR$ IVDEP
-         !$ACC LOOP GANG(STATIC: 1) VECTOR
          DO i=i_st, i_en
             scal_fac(i,k)=1.0_wp/SQRT(disc_mom(i,k)+impl_mom(i,k))
          END DO
       END DO
+      !$ACC END PARALLEL
+      !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1) IF(lzacc)
       !$ACC LOOP SEQ
       DO k=k_tp+2, k_sf-1
 !DIR$ IVDEP
-         !$ACC LOOP GANG(STATIC: 1) VECTOR
+         !$ACC LOOP GANG VECTOR
          DO i=i_st, i_en
             impl_mom(i,k)=scal_fac(i,k-1)*scal_fac(i,k)*impl_mom(i,k)
             invs_fac(i,k)=invs_mom(i,k-1)*impl_mom(i,k)
             invs_mom(i,k)=1.0_wp/( 1.0_wp-invs_fac(i,k)*impl_mom(i,k) )
          END DO
       END DO
+      !$ACC END PARALLEL
    ELSE !without preconditioning
 !DIR$ IVDEP
+      !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1) IF(lzacc)
       !$ACC LOOP GANG(STATIC: 1) VECTOR
       DO i=i_st, i_en
          invs_mom(i,k_tp+1)=1.0_wp/(disc_mom(i,k_tp+1)+impl_mom(i,k_tp+2))
@@ -3059,8 +3059,8 @@ INTEGER :: &
                               +impl_mom(i,k)*(1.0_wp-invs_fac(i,k)) )
          END DO
       END DO
+      !$ACC END PARALLEL
    END IF   
-   !$ACC END PARALLEL
 
 END SUBROUTINE prep_impl_vert_diff
 
@@ -3152,29 +3152,27 @@ REAL (KIND=wp), POINTER, CONTIGUOUS :: &
     rhs_prof => cur_prof
   END SELECT
 
-  !$ACC DATA NO_CREATE(expl_mom, impl_mom, disc_mom, invs_mom, invs_fac, scal_fac) &
-  !$ACC   NO_CREATE(cur_prof, upd_prof, eff_flux)
-
-  !$ACC DATA NO_CREATE(old_prof, rhs_prof) !data region for pointers old_prof,rhs_prof
 
   !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1) IF(lzacc)
-  !$ACC LOOP SEQ
+  !$ACC LOOP GANG VECTOR COLLAPSE(2)
   DO k=k_tp+2, k_sf
 !DIR$ IVDEP
-     !$ACC LOOP GANG(STATIC: 1) VECTOR
      DO i=i_st, i_en
         eff_flux(i,k) = expl_mom(i,k) * ( rhs_prof(i,k  ) - rhs_prof(i,k-1) )
      END DO
   END DO
+  !$ACC END PARALLEL
   !Notice that 'expl_mom(i,k_sf)' still contains the whole diffusion momentum!
 
 !Achtung: Korrektur: Richtige Behandlung der unteren Konzentrations-Randbedingung
   IF (.NOT.lsflucond) THEN !only for a surface-concentration condition
 !DIR$ IVDEP
-     !$ACC LOOP GANG(STATIC: 1) VECTOR
+     !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1) IF(lzacc)
+     !$ACC LOOP GANG VECTOR
      DO i=i_st, i_en
         eff_flux(i,k_sf) = eff_flux(i,k_sf) + impl_mom(i,k_sf) * rhs_prof(i,k_sf-1)
      END DO
+     !$ACC END PARALLEL
      !Note: 
      !At level 'k_sf' 'impl_mom' still contains the implicit part without scaling,
      ! and it vanishes at all in case of "lsflucond=T" (surface-flux condition)!
@@ -3185,6 +3183,7 @@ REAL (KIND=wp), POINTER, CONTIGUOUS :: &
 
   k=k_tp+1
 !DIR$ IVDEP
+  !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1) IF(lzacc)
   !$ACC LOOP GANG(STATIC: 1) VECTOR
   DO i=i_st, i_en
      eff_flux(i,k  ) = disc_mom(i,k  ) * old_prof(i,k ) + eff_flux(i,k+1)
@@ -3199,35 +3198,39 @@ REAL (KIND=wp), POINTER, CONTIGUOUS :: &
         eff_flux(i,k  ) = disc_mom(i,k  ) * old_prof(i,k  ) + eff_flux(i,k+1) - eff_flux(i,k  )
      END DO
   END DO
+  !$ACC END PARALLEL
 
   IF (lprecondi) THEN !preconditioning is active
-     !$ACC LOOP SEQ
+     !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1) IF(lzacc)
+     !$ACC LOOP GANG VECTOR COLLAPSE(2)
      DO k=k_tp+1, k_sf-1
 !DIR$ IVDEP
-        !$ACC LOOP GANG(STATIC: 1) VECTOR
         DO i=i_st, i_en
            eff_flux(i,k  ) = scal_fac(i,k  ) * eff_flux(i,k  )
         END DO
      END DO
+     !$ACC END PARALLEL
   END IF   
 
 !  Save updated profiles (including explicit increments of current tendencies):
         
   IF (itndcon.GT.0) THEN !consideration of explicit tendencies
-     !$ACC LOOP SEQ
+     !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1) IF(lzacc)
+     !$ACC LOOP GANG VECTOR COLLAPSE(2)
      DO k=k_tp+1, k_sf-1
 !DIR$ IVDEP
-        !$ACC LOOP GANG(STATIC: 1) VECTOR
         DO i=i_st, i_en
            cur_prof(i,k) = upd_prof(i,k) 
         END DO
      END DO
+     !$ACC END PARALLEL
   END IF
 
 !  Forward substitution:
 
    k=k_tp+1
 !DIR$ IVDEP
+  !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1) IF(lzacc)
   !$ACC LOOP GANG(STATIC: 1) VECTOR
   DO i=i_st, i_en
      upd_prof(i,k  ) = eff_flux(i,k  ) * invs_mom(i,k  )
@@ -3251,16 +3254,18 @@ REAL (KIND=wp), POINTER, CONTIGUOUS :: &
         upd_prof(i,k) = upd_prof(i,k  ) + invs_fac(i,k+1) * upd_prof(i,k+1)
      END DO
   END DO
+  !$ACC END PARALLEL
 
   IF (lprecondi) THEN !preconditioning is active
-     !$ACC LOOP SEQ
+     !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1) IF(lzacc)
+     !$ACC LOOP GANG VECTOR COLLAPSE(2)
      DO k=k_tp+1, k_sf-1
 !DIR$ IVDEP
-        !$ACC LOOP GANG(STATIC: 1) VECTOR
         DO i=i_st, i_en
            upd_prof(i,k  ) = scal_fac(i,k  ) * upd_prof(i,k  )
         END DO
      END DO
+     !$ACC END PARALLEL
   END IF
 
    !Note:
@@ -3271,6 +3276,7 @@ REAL (KIND=wp), POINTER, CONTIGUOUS :: &
 
   IF (leff_flux) THEN
      k=k_tp+1
+     !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1) IF(lzacc)
      !$ACC LOOP GANG(STATIC: 1) VECTOR
      DO i=i_st, i_en
        eff_flux(i,k) = 0.0_wp !upper zero-flux condition
@@ -3284,14 +3290,10 @@ REAL (KIND=wp), POINTER, CONTIGUOUS :: &
            eff_flux(i,k  ) = eff_flux(i,k-1) + (cur_prof(i,k-1) - upd_prof(i,k-1)) * disc_mom(i,k-1)
         END DO
      END DO
+     !$ACC END PARALLEL
      !Note:
      !'eff_flux' is the vertical flux density of pure diffusion now (positive downward)
   END IF
-  !$ACC END PARALLEL
-
-   !$ACC WAIT
-   !$ACC END DATA !data region for pointers old_prof,rhs_prof
-   !$ACC END DATA
 
 END SUBROUTINE calc_impl_vert_diff
 
@@ -3460,8 +3462,6 @@ INTEGER :: i,k,n
 
 LOGICAL :: ldepth, lauxil
 
-REAL (KIND=wp), POINTER, CONTIGUOUS :: blvar(:,:), mlvar(:,:)
-
    ldepth=PRESENT(depth) !'depth' has to be used
    lauxil=PRESENT(auxil) !'depth' contains boundary level height
 
@@ -3497,65 +3497,58 @@ REAL (KIND=wp), POINTER, CONTIGUOUS :: blvar(:,:), mlvar(:,:)
             DO i=i_st, i_en
                auxil(i,k)=depth(i,k-1)/(depth(i,k-1)+depth(i,k))
             END DO
-         END DO
-         !$ACC END PARALLEL
 
-         DO n=1, nvars
-            blvar => pvar(n)%bl; mlvar => pvar(n)%ml
-            !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1) IF(lzacc)
             !$ACC LOOP SEQ
-            DO k=k_en, k_st, -1
+            DO n=1, nvars
 !DIR$ IVDEP
                !$ACC LOOP GANG(STATIC: 1) VECTOR
                DO i=i_st, i_en
-                  blvar(i,k)=mlvar(i,k)*auxil(i,k)+mlvar(i,k-1)*(1._wp-auxil(i,k))
+                  pvar(n)%bl(i,k)=pvar(n)%ml(i,k)*auxil(i,k)+pvar(n)%ml(i,k-1)*(1._wp-auxil(i,k))
                END DO
             END DO
-            !$ACC END PARALLEL
          END DO
+         !$ACC END PARALLEL
 
       ELSE !no precalculation
 
+         !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1) IF(lzacc)
+         !$ACC LOOP SEQ
          DO n=1, nvars
-            blvar => pvar(n)%bl; mlvar => pvar(n)%ml
-            !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1) IF(lzacc)
             !$ACC LOOP SEQ
             DO k=k_en, k_st, -1
 !DIR$ IVDEP
                !$ACC LOOP GANG VECTOR
                DO i=i_st, i_en
-                  blvar(i,k)=zbnd_val(mlvar(i,k), mlvar(i,k-1), depth(i,k), depth(i,k-1))
+                  pvar(n)%bl(i,k)=zbnd_val(pvar(n)%ml(i,k), pvar(n)%ml(i,k-1), depth(i,k), depth(i,k-1))
                END DO
             END DO
-            !$ACC END PARALLEL
          END DO
+         !$ACC END PARALLEL
       END IF
 
    ELSE !inverse of main level interpolation
 
+      !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1) IF(lzacc)
+      !$ACC LOOP SEQ
       DO n=1, nvars
-         blvar => pvar(n)%bl; mlvar => pvar(n)%ml
-         !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1) IF(lzacc)
          !$ACC LOOP SEQ
          DO k=k_st, k_en
 !DIR$ IVDEP
             !$ACC LOOP GANG VECTOR
             DO i=i_st, i_en
-              blvar(i,k)=2.0_wp*mlvar(i,k)-mlvar(i,k+1)
+              pvar(n)%bl(i,k)=2.0_wp*pvar(n)%ml(i,k)-pvar(n)%ml(i,k+1)
             END DO
          END DO
-         !$ACC END PARALLEL
       END DO
+      !$ACC END PARALLEL
 
    END IF
 
-   IF (.NOT. lcuda_graph_turb_tran) THEN
-     !$ACC WAIT(1)
-   END IF
    ! See comment above
    DO n=1,nvars
 #ifdef _PGI_LEGACY_WAR
       IF(lzacc) THEN 
+         !$ACC WAIT(1)
          CALL acc_detach(pvar(n)%bl)
          CALL acc_detach(pvar(n)%ml)
       END IF

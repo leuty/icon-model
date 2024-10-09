@@ -127,7 +127,7 @@ CONTAINS
     TYPE(t_patch), INTENT(IN) :: patch !< Current patch.
     REAL(wp), INTENT(IN) :: albnirdif(:,:) !< diffuse NIR albedo.
     REAL(wp), INTENT(IN) :: albvisdif(:,:) !< diffuse VIS albedo.
-    REAL(wp), INTENT(OUT) :: albdif(:,:) !< average diffuse albedo.
+    REAL(wp), INTENT(INOUT) :: albdif(:,:) !< average diffuse albedo.
 
     !> Minimal reference flux for calculating albedos [W/m**2].
     REAL(wp), PARAMETER :: FLX_RAD_EPSILON = 1e-3_wp
