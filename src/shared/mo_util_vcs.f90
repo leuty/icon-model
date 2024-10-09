@@ -270,8 +270,7 @@ CONTAINS
 #endif
 
       CALL message('', 'infrastructure and support libraries:')
-      CALL message('', '  MATH-INTERPOLATION: '//get_revision('math-interpolation'))
-      CALL message('', '  MATH-SUPPORT: '//get_revision('math-support'))
+      CALL message('', '  ICONMATH: '//get_revision('iconmath'))
       CALL message('', '  FORTRAN-SUPPORT: '//get_revision('fortran-support'))
 #ifndef __NO_ICON_COMIN__
       CALL message('', '  COMIN:')

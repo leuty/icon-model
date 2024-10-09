@@ -45,7 +45,7 @@ INLINE_LIST_ICON=(
 )
 
 INLINE_LIST_ICON+=(
-  externals/math-support/src/mo_math_utilities.F90
+  externals/iconmath/src/support/mo_math_utilities.F90
 )
 
 

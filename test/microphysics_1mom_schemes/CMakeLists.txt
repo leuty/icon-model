@@ -40,7 +40,7 @@ find_package(Python3 COMPONENTS Interpreter REQUIRED)
 
 add_subdirectory("${ICON_SOURCE_DIR}/externals/fortran-support" fortran-support)
 
-add_subdirectory("${ICON_SOURCE_DIR}/externals/math-support" math-support)
+add_subdirectory("${ICON_SOURCE_DIR}/externals/iconmath" iconmath)
 
 #### Targets
 set(MICROPHYSICS_PATH "${ICON_SOURCE_DIR}/src/granules/microphysics_1mom_schemes")
@@ -64,7 +64,7 @@ add_library(microphysics_1mom_schemes
 target_link_libraries(microphysics_1mom_schemes
   PRIVATE
     fortran-support::fortran-support
-    math-support::math-support
+    iconmath::support
 )
 
 add_executable(microphysics_1mom_driver

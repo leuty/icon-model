@@ -641,19 +641,11 @@ externals/cdi: $(filter externals/yaxt externals/ppm,$(bundled_builddirs))
 externals/hd: $(filter externals/yac,$(bundled_builddirs))
 
 # Configure the bundled fortran-support before configuring the bundled
-# math-support:
-externals/math-support/build/Makefile: $(filter externals/fortran-support/build/Makefile,$(bundled_makefiles))
+# iconmath:
+externals/iconmath/build/Makefile: $(filter externals/fortran-support/build/Makefile,$(bundled_makefiles))
 
-# Build the bundled fortran-support before building the bundled-math support:
-externals/math-support/build: $(filter externals/fortran-support/build,$(bundled_builddirs))
-
-# Configure the bundled fortran-support and math-support before configuring the
-# bundled math-interpolation:
-externals/math-interpolation/build/Makefile: $(filter externals/fortran-support/build/Makefile externals/math-support/build/Makefile,$(bundled_makefiles))
-
-# Build the bundled fortran-support and math-support before building the bundled
-# math-interpolation:
-externals/math-interpolation/build: $(filter externals/fortran-support/build externals/math-support/build,$(bundled_builddirs))
+# Build the bundled fortran-support before building the bundled iconmath:
+externals/iconmath/build: $(filter externals/fortran-support/build,$(bundled_builddirs))
 
 # Configure delayed bundled packages:
 @ICON_DELAYED_CONFIG_RULES@
