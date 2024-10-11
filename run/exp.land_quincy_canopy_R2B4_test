@@ -262,7 +262,7 @@ cat > $jsbach_namelist << EOF
  iforcing         = 2           ! 0: none, 1: HS, 2: ECHAM, 3: NWP
  output           = 'nml'
  msg_level        = 12           ! e.g. 15. level of details report during integration 
- restart_filename = "${EXPNAME}_restart_jsbalone_<rsttime>.nc"  ! rsttime in JS4-ICON-Driver nicht vorhanden???
+ restart_filename = "${EXPNAME}_restart_jsbach_<rsttime>.nc"
  activate_sync_timers = .FALSE.
  ltimer           = .TRUE.     ! monitoring the runtime of specific routines
  timers_level     = 10

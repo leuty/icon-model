@@ -8,6 +8,10 @@ Climate: ICON-Land
   without that process
 - QUINCY development
   - Added experiment file for ICON-Land standalone runs using QUINCY in canopy mode (no biogeochemistry)
+  - Minor scientific updates
+    - Improvement in the first soil-layer hydrology
+    - Bugfix in snow melt calculation
+    - Clean-up calculation of stand-replacing harvest
 - Small fix for ICON-Land standalone concerning nproma
 - New optional tag for the memory usage report
 
