@@ -2497,9 +2497,9 @@ CONTAINS
        WRITE (nerr,'(a,i0)') " required: ", MPI_THREAD_MULTIPLE
        CALL MPI_Finalize(p_error)
 #ifdef __STANDALONE
-      CALL exit(iexit)
+      CALL exit(p_error)
 #else
-      CALL util_exit(iexit)
+      CALL util_exit(p_error)
 #endif
     END IF
 #else

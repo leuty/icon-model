@@ -44,7 +44,7 @@
 	url = ../../art/art.git
 [submodule "externals/ppm"]
 	path = externals/ppm
-	url = ../../jahns/ppm.git
+	url = ../../dkrz-sw/ppm.git
 [submodule "externals/comin"]
 	path = externals/comin
 	url = ../../icon-comin/comin.git
