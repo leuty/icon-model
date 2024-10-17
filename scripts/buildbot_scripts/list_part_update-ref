@@ -60,6 +60,12 @@ test_handler = {
             "levante_nag": "",
         },
     },
+    "exp.waves_R2B4_global_no_forcing_base": {
+        "refgen": "checksuite.icon-dev/pp.refgen_waves_R2B4_global_no_forcing_update-ref",
+        "extra_builders": {
+            "levante_intel_hybrid": "",
+        },
+    },
 }
 
 # Collect all extra builders from test_handler:

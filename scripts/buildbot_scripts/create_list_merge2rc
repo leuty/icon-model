@@ -60,13 +60,15 @@ $addexp "checksuite.icon-dev/check.atm_qubicc_nc_update"  --machines "levante" -
 $addexp "checksuite.les/exp.ac3_les_20210211.run" --builders "levante_intel_hybrid" --list $listname
 
 
-# DWD wave model test on levante
-$addexp "checksuite.nwp/nwpexp.run_ICON_18_R2B4_waves"                    --builders "levante_intel_hybrid levante_nag"  --list $listname
-$addexp "checksuite.nwp/nwpexp.run_ICON_18_R2B4_waves_adv_nophys"         --builders "levante_intel_hybrid levante_nag"  --list $listname
-$addexp "checksuite.nwp/nwpexp.run_ICON_21_R2B4_waves_standalone_restart" --builders "levante_intel_hybrid"  --list $listname
-# DWD coupled tests on levante
-$addexp "checksuite.infrastructure/coupling/exp.run_ICON_17_R2B4_AO_coupled_LEVANTE.run" --builders "levante_gcc levante_intel_hybrid" --list $listname
-$addexp "checksuite.nwp/nwpexp.run_ICON_23_R2B4_atmo_waves_coupled" --builders "levante_gcc levante_intel" --list $listname --runflags "queue=compute"
+# wave model tests, including coupled atmo-wave tests
+#
+$addexp "checksuite.nwp/nwpexp.run_ICON_18_R2B4_waves_adv_nophys"         --builders "levante_intel_hybrid levante_nag DWD_nec_hybrid"  --list $listname
+$addexp "checksuite.nwp/nwpexp.run_ICON_21_R2B4_waves_standalone_restart" --builders "levante_intel_hybrid DWD_nec_hybrid"  --list $listname
+$addexp "checksuite.icon-dev/check.waves_R2B4_global_no_forcing"          --builders "DWD_nec_hybrid levante_intel_hybrid levante_nag" --list $listname
+# coupled tests
+$addexp "checksuite.nwp/nwpexp.run_ICON_23_R2B4_atmo_waves_coupled"       --builders "levante_gcc levante_intel" --list $listname --runflags "queue=compute"
+
+
 
 # add bubble test
 #off#$addexp "checksuite.icon-dev/check.atm_2mom_bubble_rceTorus"               --list $listname
@@ -166,9 +168,6 @@ $addexp checksuite.nwp/nwpexp.run_ICON_23_R2B4_atmo_waves_coupled              -
 $addexp checksuite.nwp/nwpexp.run_ICON_11_R3B08_lam_initmode7_restarttest      --builders DWD_nec_hybrid --list $listname
 $addexp checksuite.nwp/nwpexp.run_ICON_14_R2B6N7_oper_IAU_and_restarttest      --builders DWD_nec_hybrid --list $listname
 $addexp checksuite.nwp/nwpexp.run_ICON_19_R2B4_cmip_forcing                    --builders DWD_nec_hybrid --list $listname
-# wave tests
-$addexp checksuite.nwp/nwpexp.run_ICON_18_R2B4_waves_adv_nophys                --builders DWD_nec_hybrid --list $listname
-$addexp checksuite.nwp/nwpexp.run_ICON_21_R2B4_waves_standalone_restart        --builders DWD_nec_hybrid --list $listname
 
 
 # pure atmospheric transport tests
@@ -180,6 +179,7 @@ $addexp "checksuite.icon-dev/check.atm_tracer_df4" --builders "DWD_nec levante_i
 $addexp exp.esm_bb_ruby0 --without-configureflags "--without-mpi" --machines levante --runflags "cpu_time=00:10:00 no_of_nodes=4" --list $listname
 $addexp "checksuite.infrastructure/output/exp.esm_bb_ruby0_check_output_LEVANTE.run" --builders "levante_gcc" --list $listname
 ./adddep --from-experiment "checksuite.infrastructure/output/exp.esm_bb_ruby0_check_output_LEVANTE.run" --to-experiment "exp.esm_bb_ruby0" --builders "levante_gcc" --list $listname
+$addexp "checksuite.infrastructure/coupling/exp.run_ICON_17_R2B4_AO_coupled_LEVANTE.run" --builders "levante_gcc levante_intel_hybrid" --list $listname
 
 ## new seamless entries for levante - hybrid with 4 openmp-threads with gcc (1 thread with intel_hybrid due to ecrad radiation)
 #-----------------------------------------------------------
