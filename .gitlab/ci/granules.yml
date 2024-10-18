@@ -26,6 +26,8 @@ include:
     GIT_CONFIG_KEY_0: url.https://gitlab-ci-token:${CI_JOB_TOKEN}@gitlab.dkrz.de/.insteadOf
     GIT_CONFIG_VALUE_0: "git@gitlab.dkrz.de:"
     PYVENV: ${CI_PROJECT_DIR}/venv
+    CONDA_PKGS_DIRS: ${CI_PROJECT_DIR}/.conda/pkgs
+    CONDA_ENVS_DIRS: ${CI_PROJECT_DIR}/.conda/envs
     CMAKE_EXTRA_ARGS:
     MAKEFLAGS: --jobs=8 VERBOSE=1
     CTEST_PARALLEL_LEVEL: 8
@@ -34,11 +36,7 @@ include:
       # Initialize Python environment
       set -eu
       if test ! -d ${PYVENV}; then
-        python3 -m venv ${PYVENV}
-        ${PYVENV}/bin/python3 -m pip install --verbose --no-cache-dir \
-          --upgrade pip
-        ${PYVENV}/bin/python3 -m pip install --verbose --no-cache-dir \
-          --requirement externals/probtest/requirements.txt
+          mamba env create -f externals/probtest/requirements/environment.yml -p ${PYVENV}
       fi
       export PATH="${PYVENV}/bin:${PATH}"
   script:
@@ -49,7 +47,7 @@ include:
   cache:
     key:
       files:
-        - externals/probtest/requirements.txt
+        - externals/probtest/requirements/environment.yml
     paths:
       - ${PYVENV}
     policy: pull
