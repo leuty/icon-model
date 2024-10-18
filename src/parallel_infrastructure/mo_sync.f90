@@ -983,7 +983,7 @@ END SUBROUTINE check_patch_array_4
 SUBROUTINE sync_idx(type_arr, type_idx, p_patch, idx, blk, opt_remap, opt_varname )
 
   INTEGER, INTENT(IN) :: type_arr, type_idx
-  TYPE(t_patch), TARGET, INTENT(INOUT) :: p_patch
+  TYPE(t_patch), TARGET, INTENT(IN) :: p_patch
   INTEGER, INTENT(INOUT) :: idx(:,:), blk(:,:)
   LOGICAL, INTENT(IN), OPTIONAL :: opt_remap
   CHARACTER(len=*), TARGET, INTENT(IN), OPTIONAL :: opt_varname
