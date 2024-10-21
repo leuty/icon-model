@@ -76,6 +76,8 @@ MODULE mo_io_config
 
   INTEGER :: itype_pres_msl             ! Specifies method for computation of mean sea level pressure
   INTEGER :: itype_rh                   ! Specifies method for computation of relative humidity
+  INTEGER :: force_calc_optvar(max_dom) ! Allows to force the computation of optional diagnostics in domains where no output is written,
+                                        ! e.g. to achieve proper lateral boundary filling
 
   CHARACTER(LEN=filename_max) :: &
     &        output_nml_dict,    &      !< maps variable names onto the internal ICON names.
@@ -272,7 +274,7 @@ CONTAINS
     LOGICAL, INTENT(in)  :: lnwp   ! true if ICON runs in NWP mode, implying that the full set of variables 
                                    ! needs to be computed
 
-    INTEGER :: jg, jgr
+    INTEGER :: jg, jgr, jg_nml
 
     ALLOCATE(var_in_output(n_dom))
     !$ACC ENTER DATA CREATE(var_in_output)
@@ -289,75 +291,80 @@ CONTAINS
 
     IF (lnwp) THEN
       DO jg=1,n_dom
-        var_in_output(jg)%rh          = is_variable_in_output_dom(var_name="rh", jg=jg)
-        var_in_output(jg)%pv          = is_variable_in_output_dom(var_name="pv", jg=jg)
-        var_in_output(jg)%sdi2        = is_variable_in_output_dom(var_name="sdi2", jg=jg)
-        var_in_output(jg)%lpi         = is_variable_in_output_dom(var_name="lpi", jg=jg)
-        var_in_output(jg)%lpi_max     = is_variable_in_output_dom(var_name="lpi_max", jg=jg)
-        var_in_output(jg)%lpi_con     = is_variable_in_output_dom(var_name="lpi_con", jg=jg)
-        var_in_output(jg)%mlpi_con    = is_variable_in_output_dom(var_name="mlpi_con", jg=jg)
-        var_in_output(jg)%lpi_con_max = is_variable_in_output_dom(var_name="lpi_con_max", jg=jg)
-        var_in_output(jg)%mlpi_con_max= is_variable_in_output_dom(var_name="mlpi_con_max", jg=jg)
-        var_in_output(jg)%lfd_con     = is_variable_in_output_dom(var_name="lfd_con", jg=jg)
-        var_in_output(jg)%lfd_con_max = is_variable_in_output_dom(var_name="lfd_con_max", jg=jg)
-        var_in_output(jg)%koi         = is_variable_in_output_dom(var_name="koi", jg=jg)
-        var_in_output(jg)%ceiling     = is_variable_in_output_dom(var_name="ceiling", jg=jg)
-        var_in_output(jg)%vis         = is_variable_in_output_dom(var_name="vis", jg=jg)
-        var_in_output(jg)%hbas_sc     = is_variable_in_output_dom(var_name="hbas_sc", jg=jg)
-        var_in_output(jg)%htop_sc     = is_variable_in_output_dom(var_name="htop_sc", jg=jg)
-        var_in_output(jg)%inversion_height = is_variable_in_output_dom(var_name="inversion_height", jg=jg)
-        var_in_output(jg)%twater      = is_variable_in_output_dom(var_name="twater", jg=jg)
-        var_in_output(jg)%q_sedim     = is_variable_in_output_dom(var_name="q_sedim", jg=jg)
-        var_in_output(jg)%tcond_max   = is_variable_in_output_dom(var_name="tcond_max", jg=jg)
-        var_in_output(jg)%tcond10_max = is_variable_in_output_dom(var_name="tcond10_max", jg=jg)
-        var_in_output(jg)%uh_max_low  = is_variable_in_output_dom(var_name="uh_max_low", jg=jg)
-        var_in_output(jg)%uh_max_med  = is_variable_in_output_dom(var_name="uh_max_med", jg=jg)
-        var_in_output(jg)%uh_max      = is_variable_in_output_dom(var_name="uh_max", jg=jg)
-        var_in_output(jg)%vorw_ctmax  = is_variable_in_output_dom(var_name="vorw_ctmax", jg=jg)
-        var_in_output(jg)%w_ctmax     = is_variable_in_output_dom(var_name="w_ctmax", jg=jg)
-        var_in_output(jg)%dbz         = is_variable_in_output_dom(var_name="dbz", jg=jg)
-        var_in_output(jg)%dbz850      = is_variable_in_output_dom(var_name="dbz_850", jg=jg)
-        var_in_output(jg)%dbzcmax     = is_variable_in_output_dom(var_name="dbz_cmax", jg=jg)
-        var_in_output(jg)%dbzctmax    = is_variable_in_output_dom(var_name="dbz_ctmax", jg=jg)
-        var_in_output(jg)%dbzlmx_low  = is_variable_in_output_dom(var_name="dbzlmx_low", jg=jg)
-        var_in_output(jg)%echotop     = is_variable_in_output_dom(var_name="echotop", jg=jg)
-        var_in_output(jg)%echotopinm  = is_variable_in_output_dom(var_name="echotopinm", jg=jg)
-        var_in_output(jg)%smi         = is_variable_in_output_dom(var_name="smi", jg=jg)
-        var_in_output(jg)%dursun      = is_variable_in_output_dom(var_name="dursun", jg=jg)
-        var_in_output(jg)%dursun_m    = is_variable_in_output_dom(var_name="dursun_m", jg=jg)
-        var_in_output(jg)%dursun_r    = is_variable_in_output_dom(var_name="dursun_r", jg=jg)
-        var_in_output(jg)%snow_melt   = is_variable_in_output_dom(var_name="snow_melt", jg=jg)
-        var_in_output(jg)%dhail_mx    = is_variable_in_output_dom(var_name="dhail_mx", jg=jg)
-        var_in_output(jg)%dhail_av    = is_variable_in_output_dom(var_name="dhail_av", jg=jg)
-        var_in_output(jg)%dhail_sd    = is_variable_in_output_dom(var_name="dhail_sd", jg=jg)
-        var_in_output(jg)%wshear_u    = is_variable_in_output_dom(var_name="wshear_u", jg=jg)
-        var_in_output(jg)%wshear_v    = is_variable_in_output_dom(var_name="wshear_v", jg=jg)
-        var_in_output(jg)%lapserate   = is_variable_in_output_dom(var_name="lapse_rate", jg=jg)
-        var_in_output(jg)%mconv       = is_variable_in_output_dom(var_name="mconv", jg=jg)
-        var_in_output(jg)%srh         = is_variable_in_output_dom(var_name="srh", jg=jg)
-        var_in_output(jg)%tot_pr_max  = is_variable_in_output_dom(var_name="tot_pr_max", jg=jg)
-        var_in_output(jg)%cape_mu     = is_variable_in_output_dom(var_name="cape_mu", jg=jg)
-        var_in_output(jg)%cin_mu      = is_variable_in_output_dom(var_name="cin_mu", jg=jg)
-        var_in_output(jg)%cape_3km    = is_variable_in_output_dom(var_name="cape_3km", jg=jg)
-        var_in_output(jg)%lfc_ml      = is_variable_in_output_dom(var_name="lfc_ml", jg=jg)
-        var_in_output(jg)%lcl_ml      = is_variable_in_output_dom(var_name="lcl_ml", jg=jg)
-        var_in_output(jg)%si          = is_variable_in_output_dom(var_name="si", jg=jg)
-        var_in_output(jg)%sli         = is_variable_in_output_dom(var_name="sli", jg=jg)
-        var_in_output(jg)%swiss12     = is_variable_in_output_dom(var_name="swiss12", jg=jg)
-        var_in_output(jg)%swiss00     = is_variable_in_output_dom(var_name="swiss00", jg=jg)
-        var_in_output(jg)%cloudtop    = is_variable_in_output_dom(var_name="cloudtop", jg=jg)
-        var_in_output(jg)%hpbl        = is_variable_in_output_dom(var_name="hpbl", jg=jg)
-        var_in_output(jg)%aod_550nm   = is_variable_in_output_dom(var_name="aod_550nm", jg=jg)
+        IF (force_calc_optvar(jg) == 0) THEN
+          jg_nml = jg
+        ELSE
+          jg_nml = force_calc_optvar(jg)
+        ENDIF
+        var_in_output(jg)%rh          = is_variable_in_output_dom(var_name="rh", jg=jg_nml)
+        var_in_output(jg)%pv          = is_variable_in_output_dom(var_name="pv", jg=jg_nml)
+        var_in_output(jg)%sdi2        = is_variable_in_output_dom(var_name="sdi2", jg=jg_nml)
+        var_in_output(jg)%lpi         = is_variable_in_output_dom(var_name="lpi", jg=jg_nml)
+        var_in_output(jg)%lpi_max     = is_variable_in_output_dom(var_name="lpi_max", jg=jg_nml)
+        var_in_output(jg)%lpi_con     = is_variable_in_output_dom(var_name="lpi_con", jg=jg_nml)
+        var_in_output(jg)%mlpi_con    = is_variable_in_output_dom(var_name="mlpi_con", jg=jg_nml)
+        var_in_output(jg)%lpi_con_max = is_variable_in_output_dom(var_name="lpi_con_max", jg=jg_nml)
+        var_in_output(jg)%mlpi_con_max= is_variable_in_output_dom(var_name="mlpi_con_max", jg=jg_nml)
+        var_in_output(jg)%lfd_con     = is_variable_in_output_dom(var_name="lfd_con", jg=jg_nml)
+        var_in_output(jg)%lfd_con_max = is_variable_in_output_dom(var_name="lfd_con_max", jg=jg_nml)
+        var_in_output(jg)%koi         = is_variable_in_output_dom(var_name="koi", jg=jg_nml)
+        var_in_output(jg)%ceiling     = is_variable_in_output_dom(var_name="ceiling", jg=jg_nml)
+        var_in_output(jg)%vis         = is_variable_in_output_dom(var_name="vis", jg=jg_nml)
+        var_in_output(jg)%hbas_sc     = is_variable_in_output_dom(var_name="hbas_sc", jg=jg_nml)
+        var_in_output(jg)%htop_sc     = is_variable_in_output_dom(var_name="htop_sc", jg=jg_nml)
+        var_in_output(jg)%inversion_height = is_variable_in_output_dom(var_name="inversion_height", jg=jg_nml)
+        var_in_output(jg)%twater      = is_variable_in_output_dom(var_name="twater", jg=jg_nml)
+        var_in_output(jg)%q_sedim     = is_variable_in_output_dom(var_name="q_sedim", jg=jg_nml)
+        var_in_output(jg)%tcond_max   = is_variable_in_output_dom(var_name="tcond_max", jg=jg_nml)
+        var_in_output(jg)%tcond10_max = is_variable_in_output_dom(var_name="tcond10_max", jg=jg_nml)
+        var_in_output(jg)%uh_max_low  = is_variable_in_output_dom(var_name="uh_max_low", jg=jg_nml)
+        var_in_output(jg)%uh_max_med  = is_variable_in_output_dom(var_name="uh_max_med", jg=jg_nml)
+        var_in_output(jg)%uh_max      = is_variable_in_output_dom(var_name="uh_max", jg=jg_nml)
+        var_in_output(jg)%vorw_ctmax  = is_variable_in_output_dom(var_name="vorw_ctmax", jg=jg_nml)
+        var_in_output(jg)%w_ctmax     = is_variable_in_output_dom(var_name="w_ctmax", jg=jg_nml)
+        var_in_output(jg)%dbz         = is_variable_in_output_dom(var_name="dbz", jg=jg_nml)
+        var_in_output(jg)%dbz850      = is_variable_in_output_dom(var_name="dbz_850", jg=jg_nml)
+        var_in_output(jg)%dbzcmax     = is_variable_in_output_dom(var_name="dbz_cmax", jg=jg_nml)
+        var_in_output(jg)%dbzctmax    = is_variable_in_output_dom(var_name="dbz_ctmax", jg=jg_nml)
+        var_in_output(jg)%dbzlmx_low  = is_variable_in_output_dom(var_name="dbzlmx_low", jg=jg_nml)
+        var_in_output(jg)%echotop     = is_variable_in_output_dom(var_name="echotop", jg=jg_nml)
+        var_in_output(jg)%echotopinm  = is_variable_in_output_dom(var_name="echotopinm", jg=jg_nml)
+        var_in_output(jg)%smi         = is_variable_in_output_dom(var_name="smi", jg=jg_nml)
+        var_in_output(jg)%dursun      = is_variable_in_output_dom(var_name="dursun", jg=jg_nml)
+        var_in_output(jg)%dursun_m    = is_variable_in_output_dom(var_name="dursun_m", jg=jg_nml)
+        var_in_output(jg)%dursun_r    = is_variable_in_output_dom(var_name="dursun_r", jg=jg_nml)
+        var_in_output(jg)%snow_melt   = is_variable_in_output_dom(var_name="snow_melt", jg=jg_nml)
+        var_in_output(jg)%dhail_mx    = is_variable_in_output_dom(var_name="dhail_mx", jg=jg_nml)
+        var_in_output(jg)%dhail_av    = is_variable_in_output_dom(var_name="dhail_av", jg=jg_nml)
+        var_in_output(jg)%dhail_sd    = is_variable_in_output_dom(var_name="dhail_sd", jg=jg_nml)
+        var_in_output(jg)%wshear_u    = is_variable_in_output_dom(var_name="wshear_u", jg=jg_nml)
+        var_in_output(jg)%wshear_v    = is_variable_in_output_dom(var_name="wshear_v", jg=jg_nml)
+        var_in_output(jg)%lapserate   = is_variable_in_output_dom(var_name="lapse_rate", jg=jg_nml)
+        var_in_output(jg)%mconv       = is_variable_in_output_dom(var_name="mconv", jg=jg_nml)
+        var_in_output(jg)%srh         = is_variable_in_output_dom(var_name="srh", jg=jg_nml)
+        var_in_output(jg)%tot_pr_max  = is_variable_in_output_dom(var_name="tot_pr_max", jg=jg_nml)
+        var_in_output(jg)%cape_mu     = is_variable_in_output_dom(var_name="cape_mu", jg=jg_nml)
+        var_in_output(jg)%cin_mu      = is_variable_in_output_dom(var_name="cin_mu", jg=jg_nml)
+        var_in_output(jg)%cape_3km    = is_variable_in_output_dom(var_name="cape_3km", jg=jg_nml)
+        var_in_output(jg)%lfc_ml      = is_variable_in_output_dom(var_name="lfc_ml", jg=jg_nml)
+        var_in_output(jg)%lcl_ml      = is_variable_in_output_dom(var_name="lcl_ml", jg=jg_nml)
+        var_in_output(jg)%si          = is_variable_in_output_dom(var_name="si", jg=jg_nml)
+        var_in_output(jg)%sli         = is_variable_in_output_dom(var_name="sli", jg=jg_nml)
+        var_in_output(jg)%swiss12     = is_variable_in_output_dom(var_name="swiss12", jg=jg_nml)
+        var_in_output(jg)%swiss00     = is_variable_in_output_dom(var_name="swiss00", jg=jg_nml)
+        var_in_output(jg)%cloudtop    = is_variable_in_output_dom(var_name="cloudtop", jg=jg_nml)
+        var_in_output(jg)%hpbl        = is_variable_in_output_dom(var_name="hpbl", jg=jg_nml)
+        var_in_output(jg)%aod_550nm   = is_variable_in_output_dom(var_name="aod_550nm", jg=jg_nml)
 
         ! add vars for global mean calculations
-        var_in_output(jg)%tas_gmean   = is_variable_in_output_dom(var_name="tas_gmean", jg=jg)
-        var_in_output(jg)%rsdt_gmean  = is_variable_in_output_dom(var_name="rsdt_gmean", jg=jg)
-        var_in_output(jg)%rsut_gmean  = is_variable_in_output_dom(var_name="rsut_gmean", jg=jg)
-        var_in_output(jg)%rlut_gmean  = is_variable_in_output_dom(var_name="rlut_gmean", jg=jg)
-        var_in_output(jg)%prec_gmean  = is_variable_in_output_dom(var_name="prec_gmean", jg=jg)
-        var_in_output(jg)%evap_gmean  = is_variable_in_output_dom(var_name="evap_gmean", jg=jg)
-        var_in_output(jg)%pme_gmean   = is_variable_in_output_dom(var_name="pme_gmean", jg=jg)
-        var_in_output(jg)%radtop_gmean= is_variable_in_output_dom(var_name="radtop_gmean", jg=jg)
+        var_in_output(jg)%tas_gmean   = is_variable_in_output_dom(var_name="tas_gmean", jg=jg_nml)
+        var_in_output(jg)%rsdt_gmean  = is_variable_in_output_dom(var_name="rsdt_gmean", jg=jg_nml)
+        var_in_output(jg)%rsut_gmean  = is_variable_in_output_dom(var_name="rsut_gmean", jg=jg_nml)
+        var_in_output(jg)%rlut_gmean  = is_variable_in_output_dom(var_name="rlut_gmean", jg=jg_nml)
+        var_in_output(jg)%prec_gmean  = is_variable_in_output_dom(var_name="prec_gmean", jg=jg_nml)
+        var_in_output(jg)%evap_gmean  = is_variable_in_output_dom(var_name="evap_gmean", jg=jg_nml)
+        var_in_output(jg)%pme_gmean   = is_variable_in_output_dom(var_name="pme_gmean", jg=jg_nml)
+        var_in_output(jg)%radtop_gmean= is_variable_in_output_dom(var_name="radtop_gmean", jg=jg_nml)
 
         ! Check for special case: SMI is not in one of the output lists but it is part of a output group.
         ! In this case, the group can not be checked, as the connection between SMI and the group will be
@@ -372,7 +379,7 @@ CONTAINS
           DO jgr = 1,SIZE(groups_smi)
             IF (.NOT. var_in_output(jg)%smi) THEN
               var_in_output(jg)%smi = is_variable_in_output_dom(&
-                                      var_name='group:'//TRIM(groups_smi(jgr)), jg=jg)
+                                      var_name='group:'//TRIM(groups_smi(jgr)), jg=jg_nml)
             END IF
           END DO
         END IF

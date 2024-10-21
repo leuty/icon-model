@@ -577,8 +577,6 @@ MODULE mo_nh_stepping
 #endif
       ENDDO!jg
 
-      CALL fill_nestlatbc_phys(lacc=.TRUE.)
-
       ! Compute synthetic satellite images if requested
       DO jg = 1, n_dom
 
@@ -669,6 +667,8 @@ MODULE mo_nh_stepping
         CALL nwp_diag_global(p_patch(jg), prm_diag(jg), var_in_output(jg))
       ENDIF
     ENDDO
+
+    IF (iforcing == inwp) CALL fill_nestlatbc_phys(lacc=.TRUE.)
 #endif
 
     CALL update_statistics
@@ -1376,8 +1376,6 @@ MODULE mo_nh_stepping
 
         ENDDO!jg
 
-        CALL fill_nestlatbc_phys(lacc=.TRUE.)
-
       ! Compute synthetic satellite images if requested
         DO jg = 1, n_dom
 
@@ -1518,6 +1516,8 @@ MODULE mo_nh_stepping
         CALL nwp_diag_global(p_patch(jg), prm_diag(jg), var_in_output(jg))
       ENDIF
     ENDDO
+
+    IF (iforcing == inwp) CALL fill_nestlatbc_phys(lacc=.TRUE.)
 #endif
 
 #ifdef MESSY
@@ -3423,7 +3423,7 @@ MODULE mo_nh_stepping
         IF (.NOT. p_patch(jgc)%ldom_active) CYCLE
 
         CALL interpol_scal_grf (p_pp=p_patch(jg), p_pc=p_patch(jgc), p_grf=p_grf_state(jg)%p_dom(jn), &
-          nfields=3, lacc=lacc, &
+          nfields=3, lacc=lacc, nlev_ex=1, &
           f3din1=p_nh_state(jg)%diag%u, f3dout1=p_nh_state(jgc)%diag%u, &
           f3din2=p_nh_state(jg)%diag%v, f3dout2=p_nh_state(jgc)%diag%v, &
           f3din3=p_nh_state(jg)%diag%div, f3dout3=p_nh_state(jgc)%diag%div)
@@ -3474,7 +3474,7 @@ MODULE mo_nh_stepping
         ENDIF
 
         CALL interpol_scal_grf (p_pp=p_patch(jg), p_pc=p_patch(jgc), p_grf=p_grf_state(jg)%p_dom(jn), &
-          nfields=1, lacc=lacc, &
+          nfields=1, lacc=lacc, nlev_ex=1, &
           f3din1=p_nh_state(jg)%prog(nnow_rcf(jg))%tke, f3dout1=p_nh_state(jgc)%prog(nnow_rcf(jgc))%tke)
 
       ENDDO

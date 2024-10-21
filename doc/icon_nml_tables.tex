@@ -3140,6 +3140,18 @@ iforcing=3
 \tabularnewline
 
 %\hline
+force\_calc\_optvar&
+I(n\_dom)& 0 & &
+Allows to force the computation of optional diagnostics in domains where no output is written, e.g.
+to have valid fields for nest boundary interpolation. By default, the computations are triggered by
+the output namelists of a given model domain. Setting, for instance, the second entry to 3 means that
+the output namelists of domain 3 are used to trigger the optional diagnostics in domain 2 as well. \\ 
+\textbf{Caution: If the output fields written in a nested domain are a subset of the fields written 
+in the parent domain, using this option will cause a failure!} &
+iforcing=3
+\tabularnewline
+
+%\hline
 precip\_interval&
 C(n\_dom)& "P01Y" & &
 Interval over which precipitation variables are accumulated (rain\_gsp, snow\_gsp, graupel\_gsp, ice\_gsp, hail\_gsp, prec\_gsp, rain\_con, snow\_con, prec\_con, tot\_prec, prec\_con\_rate\_avg, prec\_gsp\_rate\_avg, tot\_prec\_rate\_avg)&

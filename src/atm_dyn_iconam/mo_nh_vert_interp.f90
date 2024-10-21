@@ -216,8 +216,8 @@ CONTAINS
 
         jgc = p_patch(jg)%child_id(jn)
 
-        CALL interpol_scal_grf (p_pp=p_patch(jg), p_pc=p_patch(jgc), p_grf=p_grf(jg)%p_dom(jn), &
-                                nfields=1, lacc=.FALSE., f3din1=initicon(jg)%atm%w, f3dout1=initicon(jgc)%atm%w )
+        CALL interpol_scal_grf (p_pp=p_patch(jg), p_pc=p_patch(jgc), p_grf=p_grf(jg)%p_dom(jn), nfields=1,      &
+                                nlev_ex=1, lacc=.FALSE., f3din1=initicon(jg)%atm%w, f3dout1=initicon(jgc)%atm%w )
 
         CALL interpol2_vec_grf (p_pp=p_patch(jg), p_pc=p_patch(jgc), p_grf=p_grf(jg)%p_dom(jn), &
                                 nfields=1, lacc=.FALSE., f3din1=initicon(jg)%atm%vn, f3dout1=initicon(jgc)%atm%vn )
