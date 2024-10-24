@@ -327,7 +327,7 @@ MODULE mo_rte_rrtmgp_radiation
     & aer_ssa_2325   ,&!< out  single scattering albedo at 2325 nm
     & aer_asy_2325   ,&!< out  asymmetrie factor at 2325 nm
     & aer_aod_9731    &!< out  aerosol optical density at 9731 nm
-    &                 )
+                      )
 
     INTEGER, INTENT(in)     :: &
     jg, jb, jcs, jce, nproma, klev, ntracer
@@ -391,7 +391,6 @@ MODULE mo_rte_rrtmgp_radiation
     & aer_ssa_2325  (:,:)  , & !< single scattering albedo at 2325 nm
     & aer_asy_2325  (:,:)  , & !< asymmetrie factor at 2325 nm
     & aer_aod_9731  (:,:)      !< aerosol optical density at 9731 nm
-
 
     REAL (wp) ::      &
          !< general remark: volume mixing ratio always means
@@ -470,7 +469,7 @@ MODULE mo_rte_rrtmgp_radiation
       vis_up_sfc      ,par_up_sfc      ,nir_up_sfc                       ,&
       aer_aod_533     ,aer_ssa_533     ,aer_asy_533                      ,&
       aer_aod_2325    ,aer_ssa_2325    ,aer_asy_2325                     ,&
-      aer_aod_9731                                                       ) 
+      aer_aod_9731                                                        ) 
     !$ACC WAIT
     !$ACC END DATA
     !-------------------------------------------------------------------

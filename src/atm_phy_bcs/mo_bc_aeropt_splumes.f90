@@ -18,6 +18,7 @@
 
 MODULE mo_bc_aeropt_splumes
 
+  USE mo_fortran_tools,       ONLY: set_acc_host_or_device
   USE mo_kind,                 ONLY: wp
   USE mo_exception,            ONLY: finish
   USE mo_read_interface,       ONLY: openInputFile, read_1D, &
@@ -28,6 +29,9 @@ MODULE mo_bc_aeropt_splumes
   USE mtime,                   ONLY: datetime, getDayOfYearFromDateTime, &
        &                             getNoOfSecondsElapsedInDayDateTime, &
        &                             getNoOfDaysInYearDateTime
+  USE mo_mpi,                  ONLY: p_io, p_comm_work, p_bcast
+  USE mo_bc_aeropt_splumes_memory, ONLY: bc_spl_field, &
+       &                                 nplumes, nfeatures, ntimes, nyears
   
 !!$, on_cells, &
 !!$    &                                t_stream_id, read_0D_real, read_3D_time
@@ -37,11 +41,6 @@ MODULE mo_bc_aeropt_splumes
   PRIVATE
   PUBLIC                  :: setup_bc_aeropt_splumes, add_bc_aeropt_splumes
 
-  INTEGER, PARAMETER      ::     &
-       nplumes   = 9            ,& !< Number of plumes
-       nfeatures = 2            ,& !< Number of features per plume
-       ntimes    = 52           ,& !< Number of times resolved per year (52 => weekly resolution)
-       nyears    = 251             !< Number of years of available forcing
   REAL(wp), POINTER ::                    &
        plume_lat   (:)  ,& !< (nplumes) latitude where plume maximizes
        plume_lon   (:)  ,& !< (nplumes) longitude where plume maximizes
@@ -72,7 +71,7 @@ MODULE mo_bc_aeropt_splumes
   REAL(wp)                 :: &
        time_weight (nfeatures,nplumes), &    !< Time-weights to account for BB background
      & time_weight_bg (nfeatures,nplumes)    !< as time_wight but for natural background in Twomey effect
-
+  
   CHARACTER(LEN=256)       :: cfname
   LOGICAL                  :: sp_initialized
 
@@ -89,8 +88,9 @@ MODULE mo_bc_aeropt_splumes
     ! ---------- 
     !
     INTEGER           :: ifile_id
-
-    cfname='MACv2.0-SP_v1.nc'
+  
+      
+      cfname='MACv2.0-SP_v1.nc'
     CALL openInputFile(ifile_id, cfname)
 
     CALL read_1d_wrapper(ifile_id=ifile_id,        variable_name='plume_lat',&
@@ -98,88 +98,111 @@ MODULE mo_bc_aeropt_splumes
                        & variable_dimls=(/nplumes/),                         &
                        & module_name='mo_bc_aeropt_splumes',                 &
                        & sub_prog_name='setup_bc_aeropt_splumes'             )
+
     CALL read_1d_wrapper(ifile_id=ifile_id,        variable_name='plume_lon',&
                        & return_pointer=plume_lon, file_name=cfname,         &
                        & variable_dimls=(/nplumes/),                         &
                        & module_name='mo_bc_aeropt_splumes',                 &
                        & sub_prog_name='setup_bc_aeropt_splumes'             )
+
     CALL read_1d_wrapper(ifile_id=ifile_id,        variable_name='beta_a',   &
                        & return_pointer=beta_a, file_name=cfname,            &
                        & variable_dimls=(/nplumes/),                         &
                        & module_name='mo_bc_aeropt_splumes',                 &
                        & sub_prog_name='setup_bc_aeropt_splumes'             )
+
     CALL read_1d_wrapper(ifile_id=ifile_id,        variable_name='beta_b',   &
                        & return_pointer=beta_b, file_name=cfname,            &
                        & variable_dimls=(/nplumes/),                         &
                        & module_name='mo_bc_aeropt_splumes',                 &
                        & sub_prog_name='setup_bc_aeropt_splumes'             )
+
     CALL read_1d_wrapper(ifile_id=ifile_id,        variable_name='aod_spmx', &
                        & return_pointer=aod_spmx, file_name=cfname,          &
                        & variable_dimls=(/nplumes/),                         &
                        & module_name='mo_bc_aeropt_splumes',                 &
                        & sub_prog_name='setup_bc_aeropt_splumes'             )
+
     CALL read_1d_wrapper(ifile_id=ifile_id,        variable_name='aod_fmbg', &
                        & return_pointer=aod_fmbg, file_name=cfname,          &
                        & variable_dimls=(/nplumes/),                         &
                        & module_name='mo_bc_aeropt_splumes',                 &
                        & sub_prog_name='setup_bc_aeropt_splumes'             )
+
     CALL read_1d_wrapper(ifile_id=ifile_id,        variable_name='ssa550',   &
                        & return_pointer=ssa550, file_name=cfname,            &
                        & variable_dimls=(/nplumes/),                         &
                        & module_name='mo_bc_aeropt_splumes',                 &
                        & sub_prog_name='setup_bc_aeropt_splumes'             )
+
     CALL read_1d_wrapper(ifile_id=ifile_id,        variable_name='asy550',   &
                        & return_pointer=asy550, file_name=cfname,            &
                        & variable_dimls=(/nplumes/),                         &
                        & module_name='mo_bc_aeropt_splumes',                 &
                        & sub_prog_name='setup_bc_aeropt_splumes'             )
+
     CALL read_1d_wrapper(ifile_id=ifile_id,        variable_name='angstrom', &
                        & return_pointer=angstrom, file_name=cfname,          &
                        & variable_dimls=(/nplumes/),                         &
                        & module_name='mo_bc_aeropt_splumes',                 &
                        & sub_prog_name='setup_bc_aeropt_splumes'             )
+
     CALL read_2d_wrapper(ifile_id=ifile_id,        variable_name='sig_lat_W',&
                        & return_pointer=sig_lat_W, file_name=cfname,         &
                        & variable_dimls=(/nfeatures,nplumes/),               &
                        & module_name='mo_bc_aeropt_splumes',                 &
                        & sub_prog_name='setup_bc_aeropt_splumes'             )
+
     CALL read_2d_wrapper(ifile_id=ifile_id,        variable_name='sig_lat_E',&
                        & return_pointer=sig_lat_E, file_name=cfname,         &
                        & variable_dimls=(/nfeatures,nplumes/),               &
                        & module_name='mo_bc_aeropt_splumes',                 &
                        & sub_prog_name='setup_bc_aeropt_splumes'             )
+ 
     CALL read_2d_wrapper(ifile_id=ifile_id,        variable_name='sig_lon_W',&
                        & return_pointer=sig_lon_W, file_name=cfname,         &
                        & variable_dimls=(/nfeatures,nplumes/),               &
                        & module_name='mo_bc_aeropt_splumes',                 &
                        & sub_prog_name='setup_bc_aeropt_splumes'             )
+
     CALL read_2d_wrapper(ifile_id=ifile_id,        variable_name='sig_lon_E',&
                        & return_pointer=sig_lon_E, file_name=cfname,         &
                        & variable_dimls=(/nfeatures,nplumes/),               &
                        & module_name='mo_bc_aeropt_splumes',                 &
                        & sub_prog_name='setup_bc_aeropt_splumes'             )
+
     CALL read_2d_wrapper(ifile_id=ifile_id,        variable_name='theta',    &
                        & return_pointer=theta, file_name=cfname,             &
                        & variable_dimls=(/nfeatures,nplumes/),               &
                        & module_name='mo_bc_aeropt_splumes',                 &
                        & sub_prog_name='setup_bc_aeropt_splumes'             )
+
     CALL read_2d_wrapper(ifile_id=ifile_id,        variable_name='ftr_weight',&
                        & return_pointer=ftr_weight, file_name=cfname,         &
                        & variable_dimls=(/nfeatures,nplumes/),                &
                        & module_name='mo_bc_aeropt_splumes',                  &
-                       & sub_prog_name='setup_bc_aeropt_splumes'              )
+                       & sub_prog_name='setup_bc_aeropt_splumes'             )
+
     CALL read_2d_wrapper(ifile_id=ifile_id,        variable_name='year_weight',&
                        & return_pointer=year_weight, file_name=cfname,         &
                        & variable_dimls=(/nyears,nplumes/),                    &
                        & module_name='mo_bc_aeropt_splumes',                   &
-                       & sub_prog_name='setup_bc_aeropt_splumes'               )
+                       & sub_prog_name='setup_bc_aeropt_splumes'             )
+
     CALL read_3d_wrapper(ifile_id=ifile_id,        variable_name='ann_cycle', &
                        & return_pointer=ann_cycle, file_name=cfname,          &
                        & variable_dimls=(/nfeatures,ntimes,nplumes/),         &
                        & module_name='mo_bc_aeropt_splumes',                  &
-                       & sub_prog_name='setup_bc_aeropt_splumes'               )
+                       & sub_prog_name='setup_bc_aeropt_splumes'             )
+
     CALL closeFile(ifile_id)
     sp_initialized = .TRUE.
+
+    !$ACC ENTER DATA COPYIN(beta_a, beta_b, plume_lat, plume_lon, sig_lon_W, sig_lon_E, sig_lat_W, sig_lat_E, ftr_weight)&
+    !$ACC    COPYIN(aod_spmx, aod_fmbg, ssa550, asy550, year_weight, ann_cycle, angstrom, theta)&
+    !$ACC    CREATE(time_weight, time_weight_bg) ASYNC(1) 
+    !Host has these pointer already and since we just read them, copyin is correct.
+
     RETURN
   END SUBROUTINE SETUP_BC_AEROPT_SPLUMES
   ! ------------------------------------------------------------------------------------------------------------------------
@@ -188,7 +211,7 @@ MODULE mo_bc_aeropt_splumes
   ! for the plumes.  Each plume feature has its own temporal weights which varies yearly.  The annual cycle is indexed by
   ! week in the year and superimposed on the yearly mean value of the weight. 
   !
-  SUBROUTINE set_time_weight(year_fr)
+  SUBROUTINE set_time_weight(year_fr, opt_use_acc)
     !
     ! ---------- 
     !
@@ -199,6 +222,10 @@ MODULE mo_bc_aeropt_splumes
          iyear          ,& !< Integer year values between 1 and 156 (1850-2100) 
          iweek          ,& !< Integer index (between 1 and ntimes); for ntimes=52 this corresponds to weeks (roughly)
          iplume            ! plume number
+
+    LOGICAL, INTENT(in), OPTIONAL   :: opt_use_acc
+    LOGICAL                         :: use_acc
+    IF (PRESENT(opt_use_acc)) use_acc = opt_use_acc
     !
     ! ---------- 
     !
@@ -206,13 +233,14 @@ MODULE mo_bc_aeropt_splumes
     iweek = FLOOR((year_fr - FLOOR(year_fr)) * ntimes) + 1
 
     IF ((iweek > ntimes) .OR. (iweek < 1) .OR. (iyear > nyears) .OR. (iyear < 1)) STOP 'Time out of bounds in set_time_weight'
+    !$ACC PARALLEL LOOP GANG VECTOR DEFAULT(PRESENT) ASYNC(1) IF(use_acc)
     DO iplume=1,nplumes
       time_weight(1,iplume) = year_weight(iyear,iplume) * ann_cycle(1,iweek,iplume)
       time_weight(2,iplume) = year_weight(iyear,iplume) * ann_cycle(2,iweek,iplume)
       time_weight_bg(1,iplume) = ann_cycle(1,iweek,iplume)
       time_weight_bg(2,iplume) = ann_cycle(2,iweek,iplume)  
-      
-    END DO    
+    END DO   
+    !$ACC END PARALLEL LOOP
     RETURN
   END SUBROUTINE set_time_weight
   !
@@ -223,9 +251,10 @@ MODULE mo_bc_aeropt_splumes
   !                  optical properties on a host models vertical grid. 
   !
   SUBROUTINE sp_aop_profile(           nlevels        ,&
-     & jcs            ,ncol           ,ncol_max       ,lambda         ,oro            ,lon            , &
-     & lat            ,year_fr        ,z              ,dz             ,dNovrN         ,aod_prof       , &
-     & ssa_prof       ,asy_prof       )
+     & jcs            ,ncol           ,ncol_max       ,lambda         ,oro            , &
+     & year_fr        ,f1             ,f2             ,f3             ,f4             , &
+     & z              ,dz             ,dNovrN         ,aod_prof       ,ssa_prof       ,asy_prof       , &
+     & opt_use_acc                                                                                      )
     !
     ! ---------- 
     !
@@ -239,10 +268,12 @@ MODULE mo_bc_aeropt_splumes
        & lambda,                  & !< wavelength
        & year_fr,                 & !< Fractional Year (1903.0 is the 0Z on the first of January 1903, Gregorian)
        & oro(ncol),               & !< orographic height (m)
-       & lon(ncol),               & !< longitude in degrees E
-       & lat(ncol),               & !< latitude in degrees N
        & z (ncol_max,nlevels),    & !< height above sea-level (m)
-       & dz(ncol_max,nlevels)       !< level thickness (difference between half levels)
+       & dz(ncol_max,nlevels),    & !< level thickness (difference between half levels)
+       & f1(ncol_max,nplumes),    &
+       & f2(ncol_max,nplumes),    &
+       & f3(ncol_max,nplumes),    &
+       & f4(ncol_max,nplumes)
 
     REAL(wp), INTENT(OUT)      ::     &
        & dNovrN(ncol)               , & !< anthropogenic increment to cloud drop number concentration 
@@ -263,76 +294,206 @@ MODULE mo_bc_aeropt_splumes
        & cw_bg(ncol),              & !< column weight for fine-mode indurstrial background aod at 550 nm
        & caod_sp(ncol),            & !< column simple plume (anthropogenic) aod at 550 nm
        & caod_bg(ncol),            & !< column fine-mode natural background aod at 550 nm
-       & a_plume1,                 & !< gaussian longitude factor for feature 1
-       & a_plume2,                 & !< gaussian longitude factor for feature 2
-       & b_plume1,                 & !< gaussian latitude factor for feature 1
-       & b_plume2,                 & !< gaussian latitude factor for feature 2
-       & delta_lat,                & !< latitude offset
-       & delta_lon,                & !< longitude offset
-       & delta_lon_t,              & !< threshold for maximum longitudinal plume extent used in transition from 360 to 0 degrees
-       & lon1,                     & !< rotated longitude for feature 1
-       & lat1,                     & !< rotated latitude for feature 2
-       & lon2,                     & !< rotated longitude for feature 1
-       & lat2,                     & !< rotated latitude for feature 2
-       & f1,                       & !< contribution from feature 1
-       & f2,                       & !< contribution from feature 2
-       & f3,                       & !< contribution from feature 1 in natural background of Twomey effect
-       & f4,                       & !< contribution from feature 2 in natural background of Twomey effect
+       & f1s,                      & !< contribution from feature 1
+       & f2s,                      & !< contribution from feature 2
+       & f3s,                      & !< contribution from feature 1 in natural background of Twomey effect
+       & f4s,                      & !< contribution from feature 2 in natural background of Twomey effect
        & aod_550,                  & !< aerosol optical depth at 550nm
        & aod_lmd,                  & !< aerosol optical depth at input wavelength
        & lfactor                     !< factor to compute wavelength dependence of optical properties
+      
+    LOGICAL, INTENT(IN), OPTIONAL               :: opt_use_acc
+    LOGICAL                                     :: use_acc 
+    IF (PRESENT(opt_use_acc)) use_acc = opt_use_acc
+
+    !$ACC DATA CREATE(eta, z_beta, prof, beta_sum, ssa, asy, cw_an, cw_bg, caod_sp, caod_bg) ASYNC(1) IF(use_acc)
     !
     ! ---------- 
     !
-    ! initialize input data (by calling setup at first instance) 
-    !
-    IF (.NOT.sp_initialized) CALL setup_bc_aeropt_splumes
-    !
     ! get time weights
+    CALL set_time_weight(year_fr, opt_use_acc=use_acc)
     !
-    CALL set_time_weight(year_fr)
     !
     ! initialize variables, including output
     !
+    
+    !$ACC PARALLEL LOOP GANG VECTOR COLLAPSE(2) DEFAULT(PRESENT) ASYNC(1) IF(use_acc)
     DO k=1,nlevels
       DO icol=jcs,ncol
         aod_prof(icol,k) = 0.0_wp
         ssa_prof(icol,k) = 0.0_wp
         asy_prof(icol,k) = 0.0_wp
-        z_beta(icol,k)   = MERGE(1.0_wp, 0.0_wp, z(icol,k) >= oro(icol))
+        z_beta(icol,k)   = MERGE(1.0_wp, 0.0_wp, z(icol,k) >= oro(icol)) 
         eta(icol,k)      = MAX(0.0_wp,MIN(1.0_wp,z(icol,k)/15000._wp))
       END DO
     END DO
+    !$ACC END PARALLEL LOOP
+    !$ACC PARALLEL LOOP GANG VECTOR DEFAULT(PRESENT) ASYNC(1) IF(use_acc)
     DO icol=jcs,ncol
       dNovrN(icol)   = 1.0_wp
       caod_sp(icol)  = 0.00_wp
       caod_bg(icol)  = 0.02_wp
     END DO
+    !$ACC END PARALLEL LOOP
     !
     ! sum contribution from plumes to construct composite profiles of aerosol otpical properties
-    !
+    !  
     DO iplume=1,nplumes
       !
       ! calculate vertical distribution function from parameters of beta distribution
       !
+      !$ACC PARALLEL LOOP GANG VECTOR DEFAULT(PRESENT) ASYNC(1) IF(use_acc)
       DO icol=jcs,ncol
         beta_sum(icol) = 0._wp
       END DO
+      !$ACC END PARALLEL LOOP
+      !$ACC PARALLEL LOOP GANG VECTOR COLLAPSE(2) DEFAULT(PRESENT) REDUCTION(+:beta_sum) ASYNC(1) IF(use_acc)
       DO k=1,nlevels
         DO icol=jcs,ncol
           prof(icol,k)   = (eta(icol,k)**(beta_a(iplume)-1._wp) * (1._wp-eta(icol,k))**(beta_b(iplume)-1._wp))*dz(icol,k)
           beta_sum(icol) = beta_sum(icol) + prof(icol,k)
         END DO
       END DO
+      !$ACC END PARALLEL LOOP
+      !$ACC PARALLEL LOOP GANG VECTOR COLLAPSE(2) DEFAULT(PRESENT) ASYNC(1) IF(use_acc)
       DO k=1,nlevels
         DO icol=jcs,ncol
           prof(icol,k)   = prof(icol,k) / beta_sum(icol) * z_beta(icol,k)
         END DO
       END DO
+      !$ACC END PARALLEL LOOP
       !
       ! calculate plume weights
       !
-!PREVENT_INCONSISTENT_IFORT_FMA
+      !PREVENT_INCONSISTENT_IFORT_FMA
+      !$ACC PARALLEL LOOP GANG VECTOR DEFAULT(PRESENT) ASYNC(1) IF(use_acc)
+      DO icol=jcs,ncol
+        ! calculate contribution to plume from its different features, to get a column weight for the anthropogenic
+        ! (cw_an) and the fine-mode background aerosol (cw_bg)
+        !
+        f1s = time_weight(1,iplume) * f1(icol,iplume)
+        f2s = time_weight(2,iplume) * f2(icol,iplume)
+        f3s = time_weight_bg(1,iplume) * f3(icol,iplume)
+        f4s = time_weight_bg(2,iplume) * f4(icol,iplume)
+
+
+        cw_an(icol) = f1s * aod_spmx(iplume) + f2s * aod_spmx(iplume)  
+        cw_bg(icol) = f3s * aod_fmbg(iplume) + f4s * aod_fmbg(iplume) 
+        !
+        ! calculate wavelength-dependent scattering properties
+        !
+        lfactor   = MIN(1.0_wp,700.0_wp/lambda)
+        ssa(icol) = (ssa550(iplume) * lfactor**4) / ((ssa550(iplume) * lfactor**4) + ((1-ssa550(iplume)) * lfactor))
+        asy(icol) =  asy550(iplume) * SQRT(lfactor)
+      END DO
+      !$ACC END PARALLEL LOOP 
+      !
+      ! distribute plume optical properties across its vertical profile weighting by optical depth and scaling for
+      ! wavelength using the anstrom parameter. 
+      !      
+      lfactor = EXP(-angstrom(iplume) * LOG(lambda/550.0_wp))
+      !$ACC PARALLEL LOOP GANG VECTOR COLLAPSE(2) ASYNC(1) IF(use_acc)
+      DO k=1,nlevels
+        DO icol = jcs,ncol
+          aod_550          = prof(icol,k)     * cw_an(icol)
+          aod_lmd          = aod_550          * lfactor
+          caod_sp(icol)    = caod_sp(icol)    + aod_550
+          caod_bg(icol)    = caod_bg(icol)    + prof(icol,k) * cw_bg(icol)
+          asy_prof(icol,k) = asy_prof(icol,k) + aod_lmd * ssa(icol) * asy(icol)
+          ssa_prof(icol,k) = ssa_prof(icol,k) + aod_lmd * ssa(icol)
+          aod_prof(icol,k) = aod_prof(icol,k) + aod_lmd
+        END DO
+      END DO
+      !$ACC END PARALLEL LOOP
+    END DO
+    !
+    ! complete optical depth weighting
+    !
+    !$ACC PARALLEL LOOP GANG VECTOR COLLAPSE(2) DEFAULT(PRESENT) ASYNC(1) IF(use_acc)
+    DO k=1,nlevels
+      DO icol = jcs,ncol
+        ! VM: deleted MERGE which causes problems on cray if used in this manner
+        !asy_prof(icol,k) = MERGE(asy_prof(icol,k)/ssa_prof(icol,k), 0.0_wp, ssa_prof(icol,k) > TINY(1._wp))
+        !ssa_prof(icol,k) = MERGE(ssa_prof(icol,k)/aod_prof(icol,k), 1.0_wp, aod_prof(icol,k) > TINY(1._wp))
+        IF (ssa_prof(icol,k) > TINY(1._wp)) THEN
+          asy_prof(icol,k) = asy_prof(icol,k)/ssa_prof(icol,k)
+        ELSE
+          asy_prof(icol,k) = 0.0_wp
+        END IF
+
+        !vm test:
+        IF (aod_prof(icol,k) > TINY(1._wp)) THEN
+          ssa_prof(icol,k) = ssa_prof(icol,k)/aod_prof(icol,k)
+        ELSE
+          ssa_prof(icol,k) = 1.0_wp
+        END IF
+      END DO
+    END DO
+    !$ACC END PARALLEL LOOP
+    !
+    ! calcuate effective radius normalization (divisor) factor
+    !
+    !$ACC PARALLEL LOOP GANG VECTOR DEFAULT(PRESENT) ASYNC(1) IF(use_acc)
+    DO icol=jcs,ncol
+      dNovrN(icol) = LOG((1000.0_wp * (caod_sp(icol) + caod_bg(icol))) + 1.0_wp)/LOG((1000.0_wp * caod_bg(icol)) + 1.0_wp)
+    END DO
+    !$ACC END PARALLEL LOOP
+    !$ACC WAIT(1)
+    !$ACC END DATA 
+    RETURN
+  END SUBROUTINE sp_aop_profile
+  !
+  !PRECALC_SP_AOP_PROFILE: introfuced to avoid repetitive heavy computions in sp_aop_profile. 
+  ! 
+  SUBROUTINE precalc_sp_aop_profile(  &
+       jcs            ,ncol           ,ncol_max       ,lon            , &
+     & lat            ,f1             ,f2             ,f3             , &
+     & f4             ,opt_use_acc                                                  )
+        INTEGER, INTENT(IN)        :: &
+       & jcs,                     & !< start index in block 
+       & ncol,                    & !< number of columns (end index)
+       & ncol_max                   !< first dimension of 2d-vars as declared in calling (sub)program [nproma]
+
+    REAL(wp), INTENT(IN)       :: &
+       & lon(ncol),               & !< longitude in degrees E
+       & lat(ncol)                  !< latitude in degrees N
+
+    REAL(wp), INTENT(INOUT)    :: &
+       & f1(ncol_max, nplumes), f2(ncol_max, nplumes), f3(ncol_max, nplumes), f4(ncol_max, nplumes)
+
+    INTEGER                     :: iplume, icol
+    REAL(wp)                    :: &
+       & delta_lat,                & !< latitude offset
+       & delta_lon,                & !< longitude offset
+       & delta_lon_t,              & !< threshold for maximum longitudinal plume extent used in transition from 360 to 0 degrees
+       & a_plume1,                 & !< gaussian longitude factor for feature 1
+       & a_plume2,                 & !< gaussian longitude factor for feature 2
+       & b_plume1,                 & !< gaussian latitude factor for feature 1
+       & b_plume2,                 & !< gaussian latitude factor for feature 2
+       & lon1,                     & !< rotated longitude for feature 1
+       & lat1,                     & !< rotated latitude for feature 2
+       & lon2,                     & !< rotated longitude for feature 1
+       & lat2                        !< rotated latitude for feature 2
+
+    LOGICAL, INTENT(IN), OPTIONAL               :: opt_use_acc
+    LOGICAL                                     :: use_acc 
+    IF (PRESENT(opt_use_acc)) use_acc = opt_use_acc
+
+    
+    ! initialize input data (by calling setup at first instance) 
+    !
+    IF (.NOT. sp_initialized) THEN
+       CALL setup_bc_aeropt_splumes
+    END IF
+    !
+!!$    write(0,*) 'Before new weights'
+    IF (f1(jcs,1) < 0._wp) THEN
+       write(0,*) 'I am calculating new weights'
+    DO iplume=1,nplumes
+      !
+      ! calculate plume weights
+      !
+      !$ACC PARALLEL LOOP GANG VECTOR DEFAULT(PRESENT) ASYNC(1) IF(use_acc)
       DO icol=jcs,ncol
         !
         ! get plume-center relative spatial parameters for specifying amplitude of plume at given lat and lon
@@ -357,69 +518,17 @@ MODULE mo_bc_aeropt_splumes
         ! calculate contribution to plume from its different features, to get a column weight for the anthropogenic
         ! (cw_an) and the fine-mode background aerosol (cw_bg)
         !
-        f1 = time_weight(1,iplume) * ftr_weight(1,iplume) * EXP(-1._wp* (a_plume1 * ((lon1)**2) + (b_plume1 * ((lat1)**2)))) 
-        f2 = time_weight(2,iplume) * ftr_weight(2,iplume) * EXP(-1._wp* (a_plume2 * ((lon2)**2) + (b_plume2 * ((lat2)**2)))) 
-        f3 = time_weight_bg(1,iplume) * ftr_weight(1,iplume) * EXP(-1.* (a_plume1 * ((lon1)**2) + (b_plume1 * ((lat1)**2)))) 
-        f4 = time_weight_bg(2,iplume) * ftr_weight(2,iplume) * EXP(-1.* (a_plume2 * ((lon2)**2) + (b_plume2 * ((lat2)**2))))
-
-
-        cw_an(icol) = f1 * aod_spmx(iplume) + f2 * aod_spmx(iplume)  
-        cw_bg(icol) = f3 * aod_fmbg(iplume) + f4 * aod_fmbg(iplume) 
-        !
-        ! calculate wavelength-dependent scattering properties
-        !
-        lfactor   = MIN(1.0_wp,700.0_wp/lambda)
-        ssa(icol) = (ssa550(iplume) * lfactor**4) / ((ssa550(iplume) * lfactor**4) + ((1-ssa550(iplume)) * lfactor))
-        asy(icol) =  asy550(iplume) * SQRT(lfactor)
+        f1(icol,iplume) = ftr_weight(1,iplume) * EXP(-1._wp* (a_plume1 * ((lon1)**2) + (b_plume1 * ((lat1)**2)))) 
+        f2(icol,iplume) = ftr_weight(2,iplume) * EXP(-1._wp* (a_plume2 * ((lon2)**2) + (b_plume2 * ((lat2)**2)))) 
+        f3(icol,iplume) = ftr_weight(1,iplume) * EXP(-1.* (a_plume1 * ((lon1)**2) + (b_plume1 * ((lat1)**2)))) 
+        f4(icol,iplume) = ftr_weight(2,iplume) * EXP(-1.* (a_plume2 * ((lon2)**2) + (b_plume2 * ((lat2)**2))))
       END DO
-      !
-      ! distribute plume optical properties across its vertical profile weighting by optical depth and scaling for
-      ! wavelength using the anstrom parameter. 
-      !      
-      lfactor = EXP(-angstrom(iplume) * LOG(lambda/550.0_wp))
-      DO k=1,nlevels
-        DO icol = jcs,ncol
-          aod_550          = prof(icol,k)     * cw_an(icol)
-          aod_lmd          = aod_550          * lfactor
-          caod_sp(icol)    = caod_sp(icol)    + aod_550
-          caod_bg(icol)    = caod_bg(icol)    + prof(icol,k) * cw_bg(icol)
-          asy_prof(icol,k) = asy_prof(icol,k) + aod_lmd * ssa(icol) * asy(icol)
-          ssa_prof(icol,k) = ssa_prof(icol,k) + aod_lmd * ssa(icol)
-          aod_prof(icol,k) = aod_prof(icol,k) + aod_lmd
-        END DO
-      END DO
-    END DO
-    !
-    ! complete optical depth weighting
-    !
-    DO k=1,nlevels
-      DO icol = jcs,ncol
-        ! VM: deleted MERGE which causes problems on cray if used in this manner
-        !asy_prof(icol,k) = MERGE(asy_prof(icol,k)/ssa_prof(icol,k), 0.0_wp, ssa_prof(icol,k) > TINY(1._wp))
-        !ssa_prof(icol,k) = MERGE(ssa_prof(icol,k)/aod_prof(icol,k), 1.0_wp, aod_prof(icol,k) > TINY(1._wp))
-        IF (ssa_prof(icol,k) > TINY(1._wp)) THEN
-          asy_prof(icol,k) = asy_prof(icol,k)/ssa_prof(icol,k)
-        ELSE
-          asy_prof(icol,k) = 0.0_wp
-        END IF
+   END DO
+ELSE
+   write(0,*) 'no weight calculation necessary'
+   END IF
+  END SUBROUTINE precalc_sp_aop_profile
 
-        !vm test:
-        IF (aod_prof(icol,k) > TINY(1._wp)) THEN
-          ssa_prof(icol,k) = ssa_prof(icol,k)/aod_prof(icol,k)
-        ELSE
-          ssa_prof(icol,k) = 1.0_wp
-        END IF
-      END DO
-    END DO
-    !
-    ! calcuate effective radius normalization (divisor) factor
-    !
-    DO icol=jcs,ncol
-      dNovrN(icol) = LOG((1000.0_wp * (caod_sp(icol) + caod_bg(icol))) + 1.0_wp)/LOG((1000.0_wp * caod_bg(icol)) + 1.0_wp)
-    END DO
-
-    RETURN
-  END SUBROUTINE sp_aop_profile
   ! -----------------------------------------------------------------------------------------------
   ! ADD_BC_AEROPT_SPLUMES:  This subroutine provides the interface to simple plume (sp) fit to the
   !                         MPI Aerosol Climatology (Version 2). It does so by collecting or 
@@ -431,7 +540,7 @@ MODULE mo_bc_aeropt_splumes
      & jcs            ,jce            ,nproma         ,klev           ,jb          ,&
      & nb_sw          ,this_datetime  ,zf             ,dz             ,z_sfc       ,&
      & sw_wv1         ,sw_wv2         ,aod_sw_vr      ,ssa_sw_vr      ,asy_sw_vr   ,&
-     & x_cdnc                                                                      )                                                  
+     & x_cdnc         ,opt_use_acc                                                 )                                                  
     !
     ! --- 0.1 Variables passed through argument list
     INTEGER, INTENT(IN) ::            &
@@ -479,39 +588,73 @@ MODULE mo_bc_aeropt_splumes
          sp_ssa_vr(nproma,klev)      ,& !< simple plume single scattering albedo, vertically reversed
          sp_asy_vr(nproma,klev)      ,& !< simple plume asymmetry factor, vertically reversed indexing
          sp_xcdnc(nproma)               !< drop number scale factor
+    REAL(wp), POINTER  ::             &
+         aer_sp_f1(:,:),   &  !< geographical weighting factor
+         aer_sp_f2(:,:),   &  !< geographical weighting factor
+         aer_sp_f3(:,:),   &  !< geographical weighting factor
+         aer_sp_f4(:,:)       !< geographical weighting factor
+
+    LOGICAL, INTENT(IN), OPTIONAL           :: opt_use_acc
+    LOGICAL                                 :: use_acc
+!!$    write(0,*) 'in add_bc_splumes'
+    use_acc = .False.
+    IF (PRESENT(opt_use_acc)) use_acc = opt_use_acc
 
     year_fr = REAL(this_datetime%date%year,wp) &
          +((REAL(getDayOfYearFromDateTime(this_datetime),wp) &
          +REAL(getNoOfSecondsElapsedInDayDateTime(this_datetime),wp)/86400.0_wp) &
          /REAL(getNoOfDaysInYearDateTime(this_datetime),wp))
     IF (this_datetime%date%year > 1850) THEN
+!!$write(0,*) 'in if condition for year'   
+    !$ACC DATA CREATE(lon_sp, lat_sp, z_fl_vr, dz_vr, sp_aod_vr, sp_ssa_vr, sp_asy_vr, sp_xcdnc) ASYNC(1) IF(use_acc)
       ! 
       ! --- 1.1 geographic information
       !
+!!$write(0,*) 'before first acc loop'
+    !$ACC PARALLEL LOOP GANG VECTOR DEFAULT(PRESENT) ASYNC(1) IF(use_acc)
       DO jk=1,klev
         jki=klev-jk+1
+        !$ACC LOOP
         DO jl=jcs,jce
-          dz_vr  (jl,jk) = dz(jl,jki)
+          dz_vr(jl,jk) = dz(jl,jki)
           z_fl_vr(jl,jk) = zf(jl,jki)
         END DO
+        !$ACC END LOOP
       END DO
-
-      lon_sp(jcs:jce) = p_patch(jg)%cells%center(jcs:jce,jb)%lon*rad2deg
-      lat_sp(jcs:jce) = p_patch(jg)%cells%center(jcs:jce,jb)%lat*rad2deg
-
+      !$ACC END PARALLEL LOOP
+!!$      write(0,*) 'before setting lon_sp, lat_sp'
+      !$ACC PARALLEL LOOP GANG VECTOR DEFAULT(PRESENT) ASYNC(1) IF(use_acc)
+      DO jl= jcs, jce
+        lon_sp(jl) = p_patch(jg)%cells%center(jl, jb)%lon * rad2deg
+        lat_sp(jl) = p_patch(jg)%cells%center(jl, jb)%lat * rad2deg
+      END DO
+      !$ACC END PARALLEL LOOP
       ! 
       ! --- 1.2 Aerosol Shortwave properties
       !
       ! get aerosol optical properties in each band, and adjust effective radius
       !
+      aer_sp_f1=>bc_spl_field(jg)%aer_sp_f1(:,:,jb)
+      aer_sp_f2=>bc_spl_field(jg)%aer_sp_f2(:,:,jb)
+      aer_sp_f3=>bc_spl_field(jg)%aer_sp_f3(:,:,jb)
+      aer_sp_f4=>bc_spl_field(jg)%aer_sp_f4(:,:,jb)
+      
+      CALL precalc_sp_aop_profile(  &
+       jcs            ,jce            ,nproma         ,lon_sp         , &
+     & lat_sp         ,aer_sp_f1      ,aer_sp_f2      ,aer_sp_f3      , &
+     & aer_sp_f4      ,opt_use_acc=use_acc                              )
+
+!$ACC UPDATE HOST(bc_spl_field(jg)%aer_sp_f1(:,:,jb),bc_spl_field(jg)%aer_sp_f2(:,:,jb),bc_spl_field(jg)%aer_sp_f3(:,:,jb),bc_spl_field(jg)%aer_sp_f4(:,:,jb)) ASYNC(1)
+      
       DO jwl = 1,nb_sw
         lambda = 1.e7_wp/ (0.5_wp * (sw_wv1(jwl) + sw_wv2(jwl)))
         CALL sp_aop_profile(                                              klev                , &
            & jcs                ,jce                ,nproma              ,lambda              , &
-           & z_sfc(:)           ,lon_sp(:)          ,lat_sp(:)           ,year_fr             , &
+           & z_sfc(:)           ,year_fr            ,aer_sp_f1           ,aer_sp_f2           , &
+           & aer_sp_f3          ,aer_sp_f4                                                    , &
            & z_fl_vr(:,:)       ,dz_vr(:,:)         ,sp_xcdnc(:)         ,sp_aod_vr(:,:)      , &
-           & sp_ssa_vr(:,:)     ,sp_asy_vr(:,:)                                               )
-
+           & sp_ssa_vr(:,:)     ,sp_asy_vr(:,:)     ,opt_use_acc=use_acc             )
+        !$ACC PARALLEL LOOP GANG VECTOR COLLAPSE(2) DEFAULT(PRESENT) ASYNC(1) IF(use_acc)
         DO jk=1,klev
           DO jl=jcs,jce
             asy_sw_vr(jl,jk,jwl) = asy_sw_vr(jl,jk,jwl) * ssa_sw_vr(jl,jk,jwl) * aod_sw_vr(jl,jk,jwl)    &
@@ -530,25 +673,27 @@ MODULE mo_bc_aeropt_splumes
             ELSE
               ssa_sw_vr(jl,jk,jwl) = ssa_sw_vr(jl,jk,jwl)
             END IF
-
           END DO
-        END DO
+        END DO  
+        !$ACC END PARALLEL LOOP
       END DO
-
       IF (PRESENT (x_cdnc)) THEN
+        !$ACC PARALLEL LOOP GANG VECTOR DEFAULT(PRESENT) ASYNC(1) IF(use_acc)
         DO jl=jcs,jce
           x_cdnc(jl) = sp_xcdnc(jl)
         END DO
+        !$ACC END PARALLEL LOOP
       END IF
+      !$ACC WAIT(1)
+      !$ACC END DATA
       RETURN
     END IF
- 
   END SUBROUTINE add_bc_aeropt_splumes
 
   SUBROUTINE read_1d_wrapper(ifile_id,                 variable_name,        &
                            & return_pointer,           file_name,            &
                            & variable_dimls,           module_name,          &
-                           & sub_prog_name                                   )
+                           & sub_prog_name                              )
     INTEGER, INTENT(in)            :: ifile_id      !< file id from which 
                                                     !< variable is read
     CHARACTER(LEN=*),INTENT(in)    :: variable_name !< name of variable 

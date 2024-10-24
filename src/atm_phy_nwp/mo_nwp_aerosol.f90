@@ -629,7 +629,6 @@ CONTAINS
 
     ! Simple plumes
     IF (ANY( irad_aero == (/iRadAeroKinneVolcSP,iRadAeroKinneSP/) )) THEN
-
       IF (atm_phy_nwp_config(jg)%lscale_cdnc) THEN
         ! get x_cdnc_ref; the simple plume scheme uses 2005 as reference year
         mtime_2005 => newDatetime(mtime_datetime)
@@ -643,8 +642,7 @@ CONTAINS
 
         CALL deallocateDatetime(mtime_2005)
       END IF
-
-      CALL add_bc_aeropt_splumes(jg, i_startidx, i_endidx, nproma, nlev, jb,  &
+      CALL add_bc_aeropt_splumes(jg, 1, i_endidx, nproma, nlev, jb,  &
         &                        nbands_sw, mtime_datetime,          &
         &                        zf(:,:), dz(:,:), zh(:,nlev+1),     &
         &                        wavenum1_sw(:), wavenum2_sw(:),     &
@@ -659,7 +657,6 @@ CONTAINS
         END DO
 
       END IF
-
     END IF
 
     ! Vertically reverse the fields:

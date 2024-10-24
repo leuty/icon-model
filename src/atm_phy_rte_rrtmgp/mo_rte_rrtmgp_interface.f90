@@ -130,7 +130,7 @@ CONTAINS
       & vis_up_sfc      ,par_up_sfc      ,nir_up_sfc                       ,&
       & aer_aod_533     ,aer_ssa_533     ,aer_asy_533                      ,&
       & aer_aod_2325    ,aer_ssa_2325    ,aer_asy_2325                     ,&
-      & aer_aod_9731                                                       )
+      & aer_aod_9731                                                        )
 #ifdef __INTEL_COMPILER
 !DIR$ OPTIMIZE:1
 #endif
@@ -256,6 +256,8 @@ CONTAINS
                 aer_asy_sw(nproma,klev,nbndsw)  )
          
       !$ACC ENTER DATA CREATE(aer_tau_lw, aer_tau_sw, aer_ssa_sw, aer_asy_sw)
+      !FIXME:AliS-2024,09: The data structres for the precalculation routine in splume should be allocated 
+      !on the device here. 
 
       !$ACC KERNELS DEFAULT(PRESENT) ASYNC(1)
       aer_tau_lw(:,:,:) = 0.0_wp
@@ -263,36 +265,37 @@ CONTAINS
       aer_ssa_sw(:,:,:) = 1.0_wp
       aer_asy_sw(:,:,:) = 0.0_wp
       !$ACC END KERNELS
-      IF (irad_aero==12 .OR. irad_aero==13 .OR. irad_aero==19) THEN
-      ! irad_aero=12 Kinne aerosols (natural background, data are read
-      !      from a file without year in its name.
-      ! irad_aero=13: only Kinne aerosols are used
-      ! irad_aero=19: Kinne aerosols (background of natural origin,
-      ! read from a file without year in its name!) + simple plumes
-        CALL set_bc_aeropt_kinne(this_datetime,                        &
-              & jg,                                                    &
-              & jcs,            jce,                   nproma,         &
-              & klev,           jb,                                    &
-              & nbndsw,         nbndlw,                                &
-              & zf,             dz,                                    &
-              & aer_tau_sw,     aer_ssa_sw,            aer_asy_sw,     &
-              & aer_tau_lw,                                            &
-              & opt_from_coupler=lrad_coupled, opt_use_acc=use_acc     )
-      END IF
+!!$      IF (irad_aero==12 .OR. irad_aero==13 .OR. irad_aero==19) THEN
+!!$      ! irad_aero=12 Kinne aerosols (natural background, data are read
+!!$      !      from a file without year in its name.
+!!$      ! irad_aero=13: only Kinne aerosols are used
+!!$      ! irad_aero=19: Kinne aerosols (background of natural origin,
+!!$      ! read from a file without year in its name!) + simple plumes
+!!$        CALL set_bc_aeropt_kinne(this_datetime,                        &
+!!$              & jg,                                                    &
+!!$              & jcs,            jce,                   nproma,         &
+!!$              & klev,           jb,                                    &
+!!$              & nbndsw,         nbndlw,                                &
+!!$              & zf,             dz,                                    &
+!!$              & aer_tau_sw,     aer_ssa_sw,            aer_asy_sw,     &
+!!$              & aer_tau_lw,                                            &
+!!$              & opt_from_coupler=lrad_coupled, opt_use_acc=use_acc     )
+!!$      END IF
       IF (irad_aero==19) THEN
       ! Simple plumes are added to ...
       ! iaero=19: ... Kinne background aerosols (of natural origin, 1850)
 #ifdef _OPENACC
         CALL warning('mo_rte_rrtmgp_interface/rte_rrtmgp_interface','Plumes ACC not implemented')
 #endif
-        !$ACC UPDATE HOST(aer_tau_lw, aer_tau_sw, aer_ssa_sw, aer_asy_sw, zf, dz, zh(:,klev+1)) ASYNC(1)
-        !$ACC WAIT(1)
+!        !$ACC UPDATE HOST(aer_tau_lw, aer_tau_sw, aer_ssa_sw, aer_asy_sw, zf, dz, zh(:,klev+1)) ASYNC(1)
+!        !$ACC WAIT(1)
         CALL add_bc_aeropt_splumes(                                      &
               & jg,          jcs,         jce,           nproma,         & 
               & klev,        jb,          nbndsw,        this_datetime,  &
               & zf,          dz,          zh(:,klev+1),  wavenum1,       &
-              & wavenum2,    aer_tau_sw,  aer_ssa_sw,    aer_asy_sw      )
-        !$ACC UPDATE DEVICE(aer_tau_sw, aer_ssa_sw, aer_asy_sw) ASYNC(1)
+              & wavenum2,    aer_tau_sw,  aer_ssa_sw,    aer_asy_sw,     &
+              & opt_use_acc=use_acc)
+!        !$ACC UPDATE DEVICE(aer_tau_sw, aer_ssa_sw, aer_asy_sw) ASYNC(1)
       END IF
 
       ! this should be decativated in the concurrent version and make the aer_* global variables for output

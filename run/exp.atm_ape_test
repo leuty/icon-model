@@ -235,6 +235,9 @@ add_link_file $dataaero/bc_aeropt_kinne_sw_b14_fin_1850.nc                ./bc_a
 add_link_file $dataaero/bc_aeropt_kinne_lw_b16_coa.nc                     ./
 add_link_file $dataaero/bc_aeropt_kinne_sw_b14_coa.nc                     ./
 #
+# simple plumes
+add_link_file ${basedir}/data/MACv2.0-SP_v1.nc                          ./MACv2.0-SP_v1.nc
+#
 #--------------------------------------------------------------------------------------------------
 
 # (5) Define the output
@@ -372,7 +375,6 @@ if [[ "$output_phy_3d" == "yes" ]]; then
 /
 EOF
 fi
-
 output_aer_3d=no # "yes" needs lrad_aero_diag=.TRUE. in radiation_nml
 #
 if [[ "$output_aer_3d" == "yes" ]]; then
