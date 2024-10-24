@@ -240,14 +240,14 @@ CONTAINS
     grib2_desc = grib2_var(10, 4, 14, ibits, GRID_UNSTRUCTURED, GRID_CELL)
     CALL add_var(ext_data_wave_list, 'depth_c', ext_data_wave%depth_c,  &
          & GRID_UNSTRUCTURED_CELL, ZA_SURFACE, cf_desc, grib2_desc, &
-         & lrestart=.FALSE., loutput=.TRUE., ldims=shape2d_c)
+         & lrestart=.TRUE., loutput=.TRUE., ldims=shape2d_c)
 
     ! depth_e  ext_data_wave%depth_e(nproma,nblks_e)
     cf_desc    = t_cf_var('depth_e', 'm', 'Water depth at cell edges', datatype_flt)
     grib2_desc = grib2_var(10, 4, 14, ibits, GRID_UNSTRUCTURED, GRID_EDGE)
     CALL add_var(ext_data_wave_list, 'depth_e', ext_data_wave%depth_e,  &
          & GRID_UNSTRUCTURED_EDGE, ZA_SURFACE, cf_desc, grib2_desc, &
-         & lrestart=.FALSE., loutput=.TRUE., ldims=shape2d_e)
+         & lrestart=.TRUE., loutput=.TRUE., ldims=shape2d_e)
 
   END SUBROUTINE new_ext_data_wave_list
 

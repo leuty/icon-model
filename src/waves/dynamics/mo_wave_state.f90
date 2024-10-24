@@ -633,12 +633,28 @@ CONTAINS
          & lrestart=.FALSE., loutput=.TRUE.,                        &
          & ldims=shape3d_freq_c)
 
-    cf_desc    = t_cf_var('FLMINFR', '-', 'THE MINIMUM VALUE IN SPECTRAL', datatype_flt)
+    cf_desc    = t_cf_var('flminfr', '-', 'minimum allowed energy level', datatype_flt)
     grib2_desc = grib2_var(255, 255, 255, ibits, GRID_UNSTRUCTURED, GRID_CELL)
-    CALL add_var(p_diag_list, 'FLMINFR', p_diag%FLMINFR,            &
+    CALL add_var(p_diag_list, 'flminfr', p_diag%flminfr,            &
          & GRID_UNSTRUCTURED_CELL, ZA_SURFACE, cf_desc, grib2_desc, &
-         & lrestart=.FALSE., loutput=.TRUE.,                        &
-         & ldims=shape3d_freq_c)
+         & ldims=shape3d_freq_c,                                    &
+         & lcontainer=.TRUE., lrestart=.FALSE., loutput=.FALSE.)
+
+    ALLOCATE(p_diag%flminfr_c_ptr(nfreqs), STAT=ist)
+    IF (ist/=SUCCESS) CALL finish(routine,               &
+          'allocation of flminfr_c_ptr failed')
+
+    DO jf = 1, nfreqs
+      write(freq_ind_str,'(I0.3)') jf
+      out_name = 'flminfr_'//TRIM(freq_ind_str)
+      CALL add_ref(p_diag_list, 'flminfr',                                  &
+           & TRIM(out_name), p_diag%flminfr_c_ptr(jf)%p_2d,                 &
+           & GRID_UNSTRUCTURED_CELL, ZA_SURFACE,                            &
+           & t_cf_var(TRIM(out_name), '-','minimum allowed energy level',   &
+           & datatype_flt),                                                 &
+           & grib2_var(255, 255, 255, ibits, GRID_UNSTRUCTURED, GRID_CELL), &
+           & ref_idx=jf, ldims=shape2d_c, lrestart=.TRUE., loutput=.TRUE.)
+    END DO
 
     cf_desc    = t_cf_var('friction_velocity', 'm s-1', 'friction velocity', datatype_flt)
     grib2_desc = grib2_var(10, 0, 17, ibits, GRID_UNSTRUCTURED, GRID_CELL)

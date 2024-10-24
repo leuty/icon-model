@@ -205,9 +205,29 @@ CONTAINS
       n_new  = nnew(jg)
 
       IF (.NOT. isRestart()) THEN
+        ! Set minimum values of energy allowed in the spectrum
         CALL fetch_law(                                       &
-          &  p_patch = p_patch(jg),                           & !in
-          &  wave_config = wave_config(jg),                   & !in
+          &  p_patch     = p_patch(jg),                       & !in
+          &  fetch       = wave_config(jg)%fetch_min_energy,  & !in
+          &  fm          = wave_config(jg)%fm,                & !in
+          &  sp10m       = wave_forcing_state(jg)%sp10m(:,:), & !in
+          &  fp          = p_wave_state(jg)%diag%fp(:,:),     & !out
+          &  alphaj      = p_wave_state(jg)%diag%alphaj(:,:))   !out
+
+        CALL jonswap(p_patch(jg),                             & !in
+          &  wave_config(jg)%freqs,                           & !in
+          &  p_wave_state(jg)%diag%alphaj*0.01_wp,            & !in
+          &  wave_config(jg)%GAMMA_wave,                      & !in
+          &  wave_config(jg)%SIGMA_A,                         & !in
+          &  wave_config(jg)%SIGMA_B,                         & !in
+          &  p_wave_state(jg)%diag%fp,                        & !in
+          &  p_wave_state(jg)%diag%flminfr)                     !out
+
+        ! Initialisation of the wave spectrum
+        CALL fetch_law(                                       &
+          &  p_patch     = p_patch(jg),                       & !in
+          &  fetch       = wave_config(jg)%fetch,             & !in
+          &  fm          = wave_config(jg)%fm,                & !in
           &  sp10m       = wave_forcing_state(jg)%sp10m(:,:), & !in
           &  fp          = p_wave_state(jg)%diag%fp(:,:),     & !out
           &  alphaj      = p_wave_state(jg)%diag%alphaj(:,:))   !out
@@ -222,15 +242,6 @@ CONTAINS
           &  et          = p_wave_state(jg)%diag%et(:,:,:),               & !out  ! purely diagnostic
           &  tracer      = p_wave_state(jg)%prog(n_now)%tracer(:,:,:,:))    !out
       END IF
-
-
-      ! Set minimum values of energy allowed in the spectrum
-      CALL jonswap(p_patch(jg),                             & !in
-        &  wave_config(jg)%freqs,                           & !in
-        &  p_wave_state(jg)%diag%alphaj*0.01_wp,            & !in
-        &  wave_config(jg)%GAMMA_wave, wave_config(jg)%SIGMA_A, wave_config(jg)%SIGMA_B, & !in
-        &  p_wave_state(jg)%diag%fp,                        & !in
-        &  p_wave_state(jg)%diag%flminfr)                     !out
 
 
       ! initialisation of the nonlinear transfer computations

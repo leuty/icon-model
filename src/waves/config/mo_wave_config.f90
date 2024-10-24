@@ -54,7 +54,8 @@ MODULE mo_wave_config
     REAL(wp) :: gamma_wave ! overshoot factor
     REAL(wp) :: sigma_a    ! left peak width
     REAL(wp) :: sigma_b    ! right peak width
-    REAL(wp) :: fetch      ! fetch in metres (if zero then 0.5 of the latitude increment is used.).
+    REAL(wp) :: fetch             ! fetch in metres used for initialisation of spectrum
+    REAL(wp) :: fetch_min_energy  ! fetch in meters used for calculation of minimum allowed energy level
 
     REAL(wp) :: roair   ! air density
     REAL(wp) :: rnuair  ! kinematic air viscosity

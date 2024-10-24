@@ -45,7 +45,6 @@ MODULE mo_init_wave_physics
 
 CONTAINS
 
-
   !>
   !! Initialisation of the wave spectrum
   !!
@@ -133,7 +132,7 @@ CONTAINS
   !! Hasselmann et al. 1973. Adaptation of WAM 4.5
   !! subroutine JONSWAP.
   !!
-  SUBROUTINE JONSWAP (p_patch, freqs, ALPHAJ, GAMMA, SA, SB, FP, ET)
+  SUBROUTINE jonswap(p_patch, freqs, ALPHAJ, GAMMA, SA, SB, FP, ET)
     TYPE(t_patch), INTENT(IN)  :: p_patch
     REAL(wp),      INTENT(IN)  :: freqs(:)      !! FREQUENCiIES.
     REAL(wp),      INTENT(IN)  :: ALPHAJ(:,:)   !! OVERALL ENERGY LEVEL OF JONSWAP SPECTRA.
@@ -141,7 +140,7 @@ CONTAINS
     REAL(wp),      INTENT(IN)  :: SA            !! LEFT PEAK WIDTH.
     REAL(wp),      INTENT(IN)  :: SB            !! RIGHT PEAK WIDTH.
     REAL(wp),      INTENT(IN)  :: FP(:,:)       !! PEAK FREQUENCIES.
-    REAL(wp),      INTENT(OUT) :: ET(:,:,:)     !! JONSWAP SPECTRA.
+    REAL(wp),      INTENT(INOUT) :: ET(:,:,:)   !! JONSWAP SPECTRA. !is only OUT parameter, NAG requirement
 
     CHARACTER(len=MAX_CHAR_LENGTH), PARAMETER ::  &
          &  routine = modname//':JONSWAP'
@@ -192,7 +191,7 @@ CONTAINS
 
     CALL message(TRIM(routine),'finished')
 
-  END SUBROUTINE JONSWAP
+  END SUBROUTINE jonswap
 
   !>
   !! Calculation of JONSWAP parameters.
@@ -206,29 +205,25 @@ CONTAINS
   !!
   !! Adopted from WAM 4.5.
   !!
-  SUBROUTINE fetch_law(p_patch, wave_config, sp10m, fp, alphaj)
-
+  SUBROUTINE fetch_law(p_patch, fetch, fm, sp10m, fp, alphaj)
     CHARACTER(len=MAX_CHAR_LENGTH), PARAMETER ::  &
          &  routine = modname//':fetch_law'
     !
-    TYPE(t_patch),        INTENT(IN)    :: p_patch
-    TYPE(t_wave_config),  INTENT(IN)    :: wave_config
-    REAL(wp),             INTENT(IN)    :: sp10m(:,:)  !< wind speed at 10m ASL
-    REAL(wp),             INTENT(INOUT) :: fp(:,:)     !< jonswap peak frequency (1/s)
-    REAL(wp),             INTENT(INOUT) :: alphaj(:,:) !< jonswap alpha (-)
-
+    TYPE(t_patch), INTENT(IN)  :: p_patch
+    REAL(wp),      INTENT(IN)  :: fetch
+    REAL(wp),      INTENT(IN)  :: fm
+    REAL(wp),      INTENT(IN)  :: sp10m(:,:)  ! wind speed at 10m (m/s)
+    REAL(wp),      INTENT(INOUT) :: fp(:,:)     ! jonswap peak frequency (1/s) !is only OUT parameter, NAG requirement
+    REAL(wp),      INTENT(INOUT) :: alphaj(:,:) ! jonswap alpha (-) !is only OUT parameter, NAG requirement
 
     INTEGER :: i_rlstart, i_rlend, i_startblk, i_endblk
     INTEGER :: i_startidx, i_endidx
     INTEGER :: jc, jb
 
-    !@waves move to nml?
     REAL(wp), PARAMETER :: A = 2.84_wp,  D = -(3._wp/10._wp) !! PEAK FREQUENCY FETCH LAW CONSTANTS
     REAL(wp), PARAMETER :: B = 0.033_wp, E = 2._wp/3._wp     !! ALPHA-PEAK FREQUENCY LAW CONSTANTS
 
-    REAL(wp) :: UG
-    REAL(wp) :: fetch
-    REAL(wp) :: fm
+    REAL(wp) :: ug
 
     ! halo points must be included !
     i_rlstart  = 1
@@ -236,26 +231,23 @@ CONTAINS
     i_startblk = p_patch%cells%start_block(i_rlstart)
     i_endblk   = p_patch%cells%end_block(i_rlend)
 
-    fetch = wave_config%fetch
-    fm    = wave_config%fm
-
     ! ---------------------------------------------------------------------------- !
     !                                                                              !
     !     1. COMPUTE VALUES FROM FETCH LAWS.                                       !
     !        -------------------------------
 !$OMP PARALLEL
-!$OMP DO PRIVATE(jb,jc,i_startidx,i_endidx,UG)
+!$OMP DO PRIVATE(jb,jc,i_startidx,i_endidx,ug)
     DO jb = i_startblk, i_endblk
       CALL get_indices_c( p_patch, jb, i_startblk, i_endblk,           &
            &                 i_startidx, i_endidx, i_rlstart, i_rlend)
       DO jc = i_startidx, i_endidx
         IF (sp10m(jc,jb).GT.0.1E-08_wp) THEN
-          UG = grav / sp10m(jc,jb)
+          ug = grav / sp10m(jc,jb)
           fp(jc,jb) = MAX(0.13_wp, A*((grav*fetch)/(sp10m(jc,jb)**2))**D)
 
-          fp(jc,jb) = MIN(fp(jc,jb), fm/UG)
+          fp(jc,jb) = MIN(fp(jc,jb), fm/ug)
           alphaj(jc,jb) = MAX(0.0081_wp, B * fp(jc,jb)**E)
-          fp(jc,jb) = fp(jc,jb) * UG
+          fp(jc,jb) = fp(jc,jb) * ug
         ELSE
           alphaj(jc,jb) = 0.0081_wp
           fp(jc,jb) = fm
