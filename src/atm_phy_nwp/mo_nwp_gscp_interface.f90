@@ -501,6 +501,7 @@ CONTAINS
             & qni    = ptr_tracer (:,:,jb,iqni)        ,    & !< inout:  cloud ice number
             & ninact = ptr_tracer (:,:,jb,ininact)     ,    & !< inout:  activated ice nuclei
             & w      = p_prog%w(:,:,jb)                ,    & !< in:  vertical wind speed, half levels
+            & tropicsmask = prm_diag%tropics_mask(:,jb),    & !< in:  tropics mask as defined in mo_nwp_phy_init
             & qnc    = qnc_s                           ,    & !< in:  cloud number concentration
             & prr_gsp=prm_diag%rain_gsp_rate (:,jb)    ,    & !< out: precipitation rate of rain
             & prs_gsp=prm_diag%snow_gsp_rate (:,jb)    ,    & !< out: precipitation rate of snow

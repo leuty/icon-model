@@ -143,6 +143,9 @@ CONTAINS
     REAL(wp), DIMENSION(:, :), ALLOCATABLE :: ddt_tend_t, ddt_tend_qv, ddt_tend_qc
     REAL(wp), DIMENSION(:, :), ALLOCATABLE :: ddt_tend_qi, ddt_tend_qr, ddt_tend_qs, qni, ninact
 
+    ! tropicsmask for cloudice2mom
+    REAL(wp), DIMENSION(:), ALLOCATABLE :: tropics
+
     ! Timer variables
     INTEGER(i8) :: start_count, end_count, count_rate
 
@@ -168,10 +171,11 @@ CONTAINS
     ALLOCATE (ddt_tend_qr(ncells, nlev)); ddt_tend_qr(:, :) = 0
     ALLOCATE (ddt_tend_qs(ncells, nlev)); ddt_tend_qs(:, :) = 0
     ALLOCATE (qni(ncells, nlev)); qni(:, :) = qnc
-    ALLOCATE (ninact(ncells, nlev)); ninact(:, :) = 100.0
+    ALLOCATE (ninact(ncells, nlev)); ninact(:, :) = 0.0
     ALLOCATE (zninc(ncells, nlev)); zninc(:, :) = qnc
 
     ALLOCATE (qnc_s(ncells)); qnc_s(:) = qnc
+    ALLOCATE (tropics(ncells)); tropics(:) = 1.0
 
     !$ACC DATA &
     !$ACC   COPY(dz, t, p, rho, qv, qc, qi, qr, qs, qg, qnc_s, w, qni, ninact, zninc) &
@@ -289,6 +293,7 @@ CONTAINS
           & qnc=qnc_s, & !< cloud number concentration
           & qni=qni, &
           & ninact=ninact, &
+          & tropicsmask=tropics, &
           & prr_gsp=prr_gsp, & !< out: precipitation rate of rain
           & prs_gsp=prs_gsp, & !< out: precipitation rate of snow
           & pri_gsp=pri_gsp, & !< out: precipitation rate of cloud ice
@@ -362,6 +367,7 @@ CONTAINS
     DEALLOCATE (zninc)
 
     DEALLOCATE (qnc_s)
+    DEALLOCATE (tropics)
 
   END SUBROUTINE microphysics_1mom_driver_interface
 

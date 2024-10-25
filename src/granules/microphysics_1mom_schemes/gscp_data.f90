@@ -8,10 +8,12 @@
 ! See LICENSES/ for license information
 ! SPDX-License-Identifier: BSD-3-Clause
 ! ---------------------------------------------------------------
-
+!
 ! Description:
-!  This module contains variables that are used in the grid scale
-!  parameterizations (Microphysics).
+!  This module contains variables that are used in the grid scale 
+!  parameterizations (Microphysics). 
+!
+! ---------------------------------------------------------------
 
 MODULE gscp_data
 
@@ -27,6 +29,9 @@ USE mo_physical_constants, ONLY: r_v   => rv    , & !> gas constant for water va
                                  t0    => tmelt !! melting temperature of ice/snow
 
 USE mo_exception,          ONLY: finish, message, message_text
+
+USE mo_2mom_mcrph_types,   ONLY: particle, particle_frozen, particle_ice_coeffs
+USE mo_2mom_mcrph_setup,   ONLY: setup_ice_selfcollection
 
 !==============================================================================
 
@@ -52,7 +57,9 @@ REAL (KIND=wp), PARAMETER ::  &
   zeps  = 1.0E-15_wp    ! small number
 
      
-REAL (KIND=wp), PARAMETER :: zxiconv = 1.0E-09_wp ! mean crystal mass for convectively generated ice (gscp3 only)
+REAL (KIND=wp), PARAMETER ::  & 
+  zxiconv  = 1.0E-09_wp,      & ! mean crystal mass for convectively generated ice (gscp3 only)
+  zxidrift = 1.0E-07_wp         ! mean crystal mass for blowing snow (gscp3 only)
 
 ! Variables which are (mostly) initialized in gscp_set_coefficients
 ! -----------------------------------------------------------------
@@ -216,6 +223,41 @@ REAL    (KIND=wp   ), PARAMETER ::  &
 
 
 !=======================================================================
+! Parameters for two-moment cloud ice scheme
+! ---------------------------------------------------------------------------------------
+
+REAL    (KIND=wp   ), PARAMETER ::  &
+  bgeo_ice = x1o3,                  &
+  ageo_ice = zami**(-bgeo_ice)
+
+TYPE(particle_frozen), PARAMETER :: &
+       &        ice2mom =  particle_frozen( & 
+       &        'ice_gscp3', & !..name
+       &        2.000000, & !..nu
+       &        0.500000, & !..mu
+       &        1.00d-05, & !..x_max
+       &        1.00d-12, & !..x_min
+       &        ageo_ice, & !..a_geo
+       &        bgeo_ice, & !..b_geo
+       &        4.19d+01, & !..a_vel
+       &        0.260000, & !..b_vel
+       &        0.780000, & !..a_ven
+       &        0.308000, & !..b_ven
+       &        3.0,      & !..cap
+       &        3.0,      & !..vsedi_max
+       &        0.0,      & !..vsedi_min
+       &        null(),   & !..n pointer
+       &        null(),   & !..q pointer
+       &        null(),   & !..rho_v pointer
+       &        0.80,     & !..ecoll_c
+       &        150.0d-6, & !..D_crit_c
+       &        1.000d-5, & !..q_crit_c
+       &        0.20      & !..sigma_vel
+       &        )
+
+TYPE(particle_ice_coeffs) :: ice_coeffs
+  
+!$ACC DECLARE CREATE(zvz0i, zceff_min)
 
 CONTAINS
 
@@ -247,6 +289,7 @@ SUBROUTINE gscp_set_coefficients (igscp, idbg, tune_zceff_min, tune_v0snow, tune
 ! Local variable
   REAL(wp) :: zams  ! local value of zams
   
+
 !------------------------------------------------------------------------------
 !>  Initial setting of local and global variables
 !------------------------------------------------------------------------------
@@ -304,6 +347,7 @@ SUBROUTINE gscp_set_coefficients (igscp, idbg, tune_zceff_min, tune_v0snow, tune
     rain_n0_factor = 1.0_wp         ! COSMO-EU default
   ENDIF
 
+
   zconst = zkcau / (20.0_wp*zxstar) * (zcnue+2.0_wp)*(zcnue+4.0_wp)/(zcnue+1.0_wp)**2
   ccsrim = 0.25_wp*pi*zecs*v0snow*GAMMA(zv1s+3.0_wp)
   ccsagg = 0.25_wp*pi*v0snow*GAMMA(zv1s+3.0_wp)
@@ -353,11 +397,18 @@ SUBROUTINE gscp_set_coefficients (igscp, idbg, tune_zceff_min, tune_v0snow, tune
       WRITE (message_text,'(A,E10.3)') '      zvz0r  = ',zvz0r  ; CALL message('',message_text)
       WRITE (message_text,'(A,E10.3)') '   zceff_min = ',zceff_min ; CALL message('',message_text)
       WRITE (message_text,'(A,E10.3)') '      v0snow = ',v0snow ; CALL message('',message_text)
-      WRITE (message_text,'(A,E10.3)') '       zvz0i = ',zvz0i  ; CALL message('',message_text)
+      WRITE (message_text,'(A,E10.3)') '      zvz0i  = ',zvz0i  ; CALL message('',message_text)
+      WRITE (message_text,'(A,E10.3)') ' icesedi_exp = ',icesedi_exp ; CALL message('',message_text)
     ENDIF
   ENDIF
 
+  IF (igscp == 3) THEN
+    CALL setup_ice_selfcollection(ice2mom,ice_coeffs)
+  END IF
+
   CALL message('gscp_set_coefficients','microphysical values initialized')
+
+  !$ACC UPDATE DEVICE(zvz0i, zceff_min) ASYNC(1)
 
 END SUBROUTINE gscp_set_coefficients
 

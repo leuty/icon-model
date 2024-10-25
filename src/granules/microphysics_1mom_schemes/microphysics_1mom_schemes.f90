@@ -454,13 +454,15 @@ CONTAINS
     ivstart,ivend, kstart,             & !! optional start/end indicies
     idbg,                              & !! optional debug level
     zdt, dz,                           & !! numerics parameters
-    w,t,p,rho,qv,qc,qi,qr,qs,qnc,     & !! prognostic variables
+    w,t,p,rho,qv,qc,qi,qr,qs,          & !! prognostic variables
+    qnc,                               & !! diagnostic cloud droplet number
+    tropicsmask,                       & !! tropicsmask
     qi0,qc0,                           & !! cloud ice/water threshold for autoconversion
-    qni, ninact, &
-    prr_gsp,prs_gsp,pri_gsp,   & !! surface precipitation rates
-    qrsflux,                           & !  total precipitation flux
+    qni, ninact,                       &
+    prr_gsp,prs_gsp,pri_gsp,           & !! surface precipitation rates
+    qrsflux,                           & !! total precipitation flux
     l_cv,                              &
-    ithermo_water,                     & !  water thermodynamics
+    ithermo_water,                     & !! water thermodynamics
     ldass_lhn,                         &
     ldiag_ttend,     ldiag_qtend     , &
     ddt_tend_t     , ddt_tend_qv     , &
@@ -481,6 +483,9 @@ CONTAINS
     REAL(KIND=wp), DIMENSION(:,:), INTENT(IN) :: dz              ,    & !> layer thickness of full levels                (  m  )
       rho             ,    & !! density of moist air                          (kg/m3)
       p                      !! pressure                                      ( Pa  )
+
+    REAL(KIND=wp), DIMENSION(:), INTENT(IN) ::   &
+      tropicsmask            !! tropicsmask
 
     LOGICAL, INTENT(IN):: l_cv, &                   !! if true, cv is used instead of cp
       ldass_lhn
@@ -537,6 +542,7 @@ CONTAINS
       & qni    = qni  ,    & !< inout:  cloud ice number
       & ninact = ninact,   & !< inout:  activated ice nuclei
       & qnc    = qnc                            ,    & !< cloud number concentration
+      & tropicsmask = tropicsmask               ,    & !< latitude
       & prr_gsp=prr_gsp     ,    & !< out: precipitation rate of rain
       & prs_gsp=prs_gsp     ,    & !< out: precipitation rate of snow
       & pri_gsp=pri_gsp      ,    & !< out: precipitation rate of cloud ice

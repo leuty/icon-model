@@ -214,9 +214,7 @@ MODULE mo_2mom_mcrph_processes
   PUBLIC :: ice_typ, nuc_i_typ, nuc_c_typ, auto_typ
   PUBLIC :: isdebug, isprint
   ! Functions
-  PUBLIC :: particle_meanmass
   PUBLIC :: particle_assign, particle_frozen_assign, particle_lwf_assign
-  PUBLIC :: rain_mue_dm_relation
   ! Process Routines
   PUBLIC :: sedi_vel_rain, sedi_vel_sphere, sedi_vel_lwf, init_2mom_sedi_vel
   PUBLIC :: autoconversionSB, accretionSB, rain_selfcollectionSB
@@ -238,7 +236,6 @@ MODULE mo_2mom_mcrph_processes
   PUBLIC :: ice_riming, snow_riming
   PUBLIC :: ccn_activation_sk, ccn_activation_hdcp2, ccn_activation_sk_4d
   PUBLIC :: sedi_icon_rain, sedi_icon_sphere, sedi_icon_sphere_lwf
-  PUBLIC :: moment_gamma
   PUBLIC :: set_default_n 
 
 CONTAINS
