@@ -81,6 +81,22 @@ machine=levante
   --configureflags="--with-mpi --without-openmp"  --builderflags="Active" --list $list
 ./addbuilder levante_cpu_nvhpc              --machine $machine  --build_script="config/buildbot/levante_cpu_nvhpc" \
   --configureflags="--with-mpi --without-openmp"  --builderflags="Active" --list $list
+./addbuilder levante_gpu_nvhpc_225              --machine $machine  --build_script="config/buildbot/levante_gpu_nvhpc_225" \
+  --configureflags="--with-mpi --without-openmp"  --builderflags="Active" --list $list
+./addbuilder levante_cpu_nvhpc_225              --machine $machine  --build_script="config/buildbot/levante_cpu_nvhpc_225" \
+  --configureflags="--with-mpi --without-openmp"  --builderflags="Active" --list $list
+./addbuilder levante_gpu_nvhpc_245              --machine $machine  --build_script="config/buildbot/levante_gpu_nvhpc_245" \
+  --configureflags="--with-mpi --without-openmp"  --builderflags="Active" --list $list
+./addbuilder levante_cpu_nvhpc_245              --machine $machine  --build_script="config/buildbot/levante_cpu_nvhpc_245" \
+  --configureflags="--with-mpi --without-openmp"  --builderflags="Active" --list $list
+./addbuilder levante_gpu_nvhpc_247              --machine $machine  --build_script="config/buildbot/levante_gpu_nvhpc_247" \
+  --configureflags="--with-mpi --without-openmp"  --builderflags="Active" --list $list
+./addbuilder levante_cpu_nvhpc_247              --machine $machine  --build_script="config/buildbot/levante_cpu_nvhpc_247" \
+  --configureflags="--with-mpi --without-openmp"  --builderflags="Active" --list $list
+./addbuilder levante_gpu_nvhpc_249              --machine $machine  --build_script="config/buildbot/levante_gpu_nvhpc_249" \
+  --configureflags="--with-mpi --without-openmp"  --builderflags="Active" --list $list
+./addbuilder levante_cpu_nvhpc_249              --machine $machine  --build_script="config/buildbot/levante_cpu_nvhpc_249" \
+  --configureflags="--with-mpi --without-openmp"  --builderflags="Active" --list $list
 ./addbuilder levante_gpu_validation         --machine $machine --build_script="config/buildbot/levante_gpu_validation" \
   --configureflags="--with-mpi --without-openmp"  --builderflags="Active" --list $list
 ./addbuilder levante_aurora             --machine $machine  --build_script="config/buildbot/levante_aurora" \

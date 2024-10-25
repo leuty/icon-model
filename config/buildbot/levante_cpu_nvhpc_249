@@ -25,7 +25,7 @@ else
   set dummy; shift
 fi
 
-${ICON_DIR}/config/dkrz/levante.gpu.nvhpc-24.7 --disable-openmp "$@"
+${ICON_DIR}/config/dkrz/levante.cpu.nvhpc-24.9 --disable-openmp "$@"
 
 if [ ! -z "${BB_NAME}" ] ; then
   MAKE_PROCS=22
