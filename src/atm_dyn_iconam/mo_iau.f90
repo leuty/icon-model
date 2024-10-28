@@ -82,7 +82,7 @@ MODULE mo_iau
   USE mo_fortran_tools,           ONLY: assert_acc_device_only, assert_acc_host_only
   USE mo_hash_table,              ONLY: t_HashTable, hashTable_make
   USE mo_util_texthash,           ONLY: text_hash, text_isEqual
-  USE mo_satad,                   ONLY: qsat_rho
+  USE mo_thdyn_functions,         ONLY: qsat_rho
   USE mo_nh_diagnose_pres_temp,   ONLY: diag_pres, diag_temp
   USE mo_timer,                   ONLY: ltimer, timer_iau_save_restore, timer_start, timer_stop
 

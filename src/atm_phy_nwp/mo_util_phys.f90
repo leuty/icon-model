@@ -25,7 +25,7 @@ MODULE mo_util_phys
     &                                 vtmpc1, t3, grav,&
     &                                 alv,alvdcp, rd_o_cpd
   USE mo_exception,             ONLY: finish
-  USE mo_satad,                 ONLY: sat_pres_water, sat_pres_ice
+  USE mo_thdyn_functions,       ONLY: sat_pres_water, sat_pres_ice
   USE mo_fortran_tools,         ONLY: assign_if_present, set_acc_host_or_device, assert_acc_host_only
   USE mo_impl_constants,        ONLY: min_rlcell_int
   USE mo_model_domain,          ONLY: t_patch

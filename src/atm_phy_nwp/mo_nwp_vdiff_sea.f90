@@ -37,7 +37,7 @@ MODULE mo_nwp_vdiff_sea
       & zemiss_def
   USE mo_radiation_config, ONLY: albedo_whitecap, direct_albedo_water
   USE mo_run_config, ONLY: msg_level
-  USE mo_satad, ONLY: sat_pres_ice, sat_pres_water, spec_humi
+  USE mo_thdyn_functions, ONLY: sat_pres_ice, sat_pres_water, spec_humi
   USE mo_sync, ONLY: global_sum
   USE mo_timer, ONLY: ltimer, timer_coupling, timer_start, timer_stop
   USE mo_turb_vdiff, ONLY: vdiff_mixed_time_value, vdiff_surface_flux

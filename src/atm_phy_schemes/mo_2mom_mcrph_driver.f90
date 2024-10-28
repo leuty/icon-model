@@ -47,7 +47,7 @@ USE mo_physical_constants,   ONLY: &
     cvdr  => rcvd,    & ! (spec. heat of dry air at const vol)^-1
     rho_ice => rhoice   ! density of pure ice
 
-USE mo_satad,                ONLY: latent_heat_sublimation, latent_heat_melting
+USE mo_thdyn_functions,      ONLY: latent_heat_sublimation, latent_heat_melting
 
 USE mo_exception,            ONLY: finish, message, message_text
 USE mo_run_config,           ONLY: ldass_lhn

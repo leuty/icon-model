@@ -65,7 +65,7 @@ MODULE mo_2mom_mcrph_processes
        & N_avo => avo,    & ! Avogadro number [1/mol]
        & k_b   => ak,     & ! Boltzmann constant [J/K]
        & grav               ! acceleration due to Earth's gravity
-  USE mo_satad, ONLY:     &
+  USE mo_thdyn_functions, ONLY:     &
        & e_ws  => sat_pres_water,  & ! saturation pressure over liquid water
        & e_es  => sat_pres_ice       ! saturation pressure over ice
   USE mo_2mom_mcrph_types, ONLY: &

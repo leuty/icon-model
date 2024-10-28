@@ -52,7 +52,7 @@ MODULE mo_nwp_turbtrans_interface
   USE mo_initicon_config,      ONLY: icpl_da_sfcfric
   USE sfc_flake_data,          ONLY: h_Ice_min_flk, tpl_T_f
   USE turb_transfer,           ONLY: turbtran
-  USE mo_satad,                ONLY: sat_pres_water, spec_humi
+  USE mo_thdyn_functions,      ONLY: sat_pres_water, spec_humi
   USE mo_gme_turbdiff,         ONLY: parturs, nearsfc
   USE mo_util_phys,            ONLY: nwp_dyn_gust
   USE mo_run_config,           ONLY: ltestcase

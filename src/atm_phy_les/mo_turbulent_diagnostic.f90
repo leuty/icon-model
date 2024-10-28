@@ -36,7 +36,7 @@ MODULE mo_turbulent_diagnostic
   USE mo_impl_constants,     ONLY: min_rlcell_int
   USE mo_physical_constants, ONLY: cpd, grav, alv, vtmpc1
   USE mo_atm_phy_nwp_config, ONLY: atm_phy_nwp_config
-  USE mo_satad,              ONLY: sat_pres_water, spec_humi
+  USE mo_thdyn_functions,    ONLY: sat_pres_water, spec_humi
   USE mtime,                 ONLY: datetime
   USE mo_util_mtime,         ONLY: getElapsedSimTimeInSeconds
   USE mo_time_config,        ONLY: time_config

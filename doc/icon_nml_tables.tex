@@ -5259,6 +5259,17 @@ tuning factor for intercept parameter of raindrop size distribution &
 inwp\_gscp$>$0
 \tabularnewline
 
+lvariable\_rain\_n0&
+L&
+.FALSE.&
+ &
+variable intercept parameter of raindrop size distribution:
+the multiplicative factor rain\_n0\_factor is used
+for drizzle (small $q_r$) while the default value is approached for
+heavy rain (large $q_r$) &
+inwp\_gscp=2
+\tabularnewline
+
 mu\_snow&
 R&
 0.0&
@@ -6029,7 +6040,16 @@ tune\_box\_liq&
 R&
 0.05&
 &
-Box width for liquid cloud diagnostic in cloud cover scheme&
+Box width scale for liquid cloud diagnostic in cloud cover scheme&
+run\_nml:iforcing = inwp; inwp\_cldcover = 1
+\tabularnewline
+
+\hline
+tune\_box\_ice&
+R&
+0.05&
+&
+Box width scale for ice cloud diagnostic in cloud cover scheme&
 run\_nml:iforcing = inwp; inwp\_cldcover = 1
 \tabularnewline
 
@@ -6143,6 +6163,16 @@ R&
 m&
 Maximum inversion height below which to apply modified SGS cloud diagnostic for stratocumulus &
 run\_nml:iforcing = inwp; inwp\_clcover = 1
+\tabularnewline
+
+\hline
+tune\_supsat\_limfac&
+R&
+0.0&
+&
+Limiting factor for parameterized supersaturation in updrafts during the saturation adjustment
+(0.0 for thermodynamic equilibrium) &
+run\_nml:iforcing = inwp; inwp\_satad = 1
 \tabularnewline
 
 

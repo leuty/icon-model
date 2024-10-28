@@ -6090,15 +6090,20 @@ CONTAINS
         ! rho = V/m_tot (V is given by the grid anyway
         ! specific quantities q_k = m_k/m_tot -> C_k = q_k * rho  	
         ! maximize hydrometeors over lowest 'top_lev' levels, final unit= g/m^3
-        Ccmax = MAXVAL(qc(jc,nlev-top_lev+1:nlev,jb)*rho(jc,nlev-top_lev+1:nlev,jb))*1000.0_wp
-        Cimax = MAXVAL(qi(jc,nlev-top_lev+1:nlev,jb)*rho(jc,nlev-top_lev+1:nlev,jb))*1000.0_wp
-        Crmax = MAXVAL(qr(jc,nlev-top_lev+1:nlev,jb)*rho(jc,nlev-top_lev+1:nlev,jb))*1000.0_wp
-        Csmax = MAXVAL(qs(jc,nlev-top_lev+1:nlev,jb)*rho(jc,nlev-top_lev+1:nlev,jb))*1000.0_wp
-        IF (atm_phy_nwp_config(jg)%lhave_graupel) THEN
-          Cgmax = MAXVAL(qg(jc,nlev-top_lev+1:nlev,jb)*rho(jc,nlev-top_lev+1:nlev,jb))*1000.0_wp
-        ELSE
-          Cgmax = 0.0_wp
-        END IF
+        Ccmax = 0.0_wp
+        Cimax = 0.0_wp
+        Crmax = 0.0_wp
+        Csmax = 0.0_wp
+        Cgmax = 0.0_wp
+        DO jk = nlev-top_lev+1,nlev
+          Ccmax = MAX(Ccmax,qc(jc,jk,jb)*rho(jc,jk,jb)*1000.0_wp)
+          Cimax = MAX(Cimax,qi(jc,jk,jb)*rho(jc,jk,jb)*1000.0_wp)
+          Crmax = MAX(Crmax,qr(jc,jk,jb)*rho(jc,jk,jb)*1000.0_wp)
+          Csmax = MAX(Csmax,qs(jc,jk,jb)*rho(jc,jk,jb)*1000.0_wp)
+          IF (atm_phy_nwp_config(jg)%lhave_graupel) THEN
+            Cgmax = MAX(Cgmax,qg(jc,jk,jb)*rho(jc,jk,jb)*1000.0_wp)
+          END IF
+        ENDDO
 
         ! snow coefficient temperature dependent
         temp_fac  = MIN( 1.0_wp, MAX((p_diag%temp(jc,nlev,jb)-271.15_wp), 0.0_wp) )

@@ -772,7 +772,7 @@ CONTAINS
       WRITE (message_text,'(a)') "itune_gust_diag = 3 requires ntiles > 1"
       CALL finish(routine, message_text)
     ENDIF
-
+    
     ! check meteogram configuration
     IF (ANY(meteogram_output_config(:)%lenabled) .AND. .NOT. output_mode%l_nml) THEN
       CALL finish(routine, "Meteograms work only for run_nml::output='nml'!")

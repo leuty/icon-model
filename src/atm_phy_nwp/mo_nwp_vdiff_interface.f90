@@ -47,7 +47,7 @@ MODULE mo_nwp_vdiff_interface
   USE mo_physical_constants, ONLY: cpd, cvd, cvv, grav, rd, rdv, tf_fresh => tmelt, vtmpc1, &
       & zemiss_def, vmr_to_mmr_co2
   USE mo_run_config, ONLY: ico2, iqc, iqi, nqtendphy, iqt, iqv, ntracer
-  USE mo_satad, ONLY: latent_heat_vaporization, sat_pres_water, spec_humi
+  USE mo_thdyn_functions, ONLY: latent_heat_vaporization, sat_pres_water, spec_humi
   USE mo_turb_vdiff, ONLY: &
       & imh_vdiff => imh, imqv_vdiff => imqv, ih_vdiff => ih, iqc_vdiff => ixl, &
       & iqv_vdiff => iqv, nvar_vdiff, matrix_to_richtmyer_coeff, &

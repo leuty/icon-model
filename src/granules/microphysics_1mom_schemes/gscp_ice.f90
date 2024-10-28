@@ -62,7 +62,7 @@ USE mo_lookup_tables_constants, ONLY:  &
                                  b1    => c1es  , & !! constants for computing the sat. vapour
                                  b2w   => c3les , & !! pressure over water (l) and ice (i)
                                  b4w   => c4les     !!               -- " --
-USE mo_satad,              ONLY: sat_pres_water, &  !! saturation vapor pressure w.r.t. water
+USE mo_thdyn_functions,    ONLY: sat_pres_water, &  !! saturation vapor pressure w.r.t. water
                                  sat_pres_ice,   &  !! saturation vapor pressure w.r.t. ice
                                  latent_heat_vaporization, &
                                  latent_heat_sublimation
@@ -73,9 +73,10 @@ USE mo_exception,          ONLY: message, message_text, finish
 USE gscp_data, ONLY: &      
     ccsrim,    ccsagg,    ccsdep,    ccsvel,    ccsvxp,    ccslam,       &
     ccslxp,    ccsaxp,    ccsdxp,    ccshi1,    ccdvtp,    ccidep,       &
-    ccswxp,    zconst,    zcev,      zbev,      zcevxp,    zbevxp,       &
-    zvzxp,     zvz0r,     zxstar,    zxcmin,    zami,                    &
+    ccswxp,    zconst,    zcevxp,    zbevxp,                             &
+    zvzxp,     zxstar,    zxcmin,    zami,                               &
     v0snow,                                                              &
+    zvz0r => zvz0r0,      zbev => zbev0,        zcev => zcev0,           & 
     x13o8,     x1o2,      x27o16,    x7o4,      x7o8,      x1o3,         &
     zbvi,      zcac,      zccau,     zciau,     zcicri,                  &
     zcrcri,    zcrfrz,    zcrfrz1,   zcrfrz2,   zeps,      zkcac,        &

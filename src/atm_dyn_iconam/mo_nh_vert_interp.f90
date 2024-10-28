@@ -46,7 +46,7 @@ MODULE mo_nh_vert_interp
   USE mo_grf_intp_data_strc,  ONLY: t_gridref_state
   USE mo_grf_bdyintp,         ONLY: interpol_scal_grf, interpol2_vec_grf
   USE mo_sync,                ONLY: sync_patch_array, SYNC_C, SYNC_E
-  USE mo_satad,               ONLY: sat_pres_water
+  USE mo_thdyn_functions,     ONLY: sat_pres_water
   USE mo_nwp_sfc_interp,      ONLY: process_sfcfields
   USE mo_upatmo_config,       ONLY: upatmo_config
   USE mo_nh_vert_extrap_utils,ONLY: t_expol_state

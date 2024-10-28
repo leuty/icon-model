@@ -26,7 +26,7 @@ MODULE mo_emvorado_warmbubbles
   USE mo_math_constants,            ONLY: pi, deg2rad
   USE mo_math_utilities,            ONLY: plane_torus_distance
   USE mo_lib_grid_geometry_info,    ONLY: planar_torus_geometry, sphere_geometry
-  USE mo_satad,                     ONLY: sat_pres_water
+  USE mo_thdyn_functions,           ONLY: sat_pres_water
   USE mo_exception,                 ONLY: message, finish
 
   IMPLICIT NONE

@@ -40,7 +40,7 @@ MODULE mo_nwp_reff_interface
   USE mo_nonhydrostatic_config,ONLY: kstart_moist
   USE mo_atm_phy_nwp_config,   ONLY: atm_phy_nwp_config, iprog_aero, icpl_aero_ice
   USE mo_radiation_config,     ONLY: irad_aero, iRadAeroTegen, iRadAeroCAMSclim, iRadAeroCAMStd
-  USE mo_nwp_tuning_config,    ONLY: tune_zceff_min, tune_v0snow, tune_zvz0i, tune_icesedi_exp
+  USE mo_nwp_tuning_config,    ONLY: tune_zceff_min, tune_v0snow, tune_zvz0i, tune_icesedi_exp, tune_zcsg
 
   USE mo_reff_types,           ONLY: t_reff_calc_dom,  nreff_max_calc
   USE mo_reff_main,            ONLY: init_reff_calc, mapping_indices, calculate_ncn, calculate_reff, combine_reff, set_max_reff
@@ -88,7 +88,7 @@ MODULE mo_nwp_reff_interface
 
 ! Initialize 1 moment scheme coefficients in case, they were not inititated
     SELECT CASE (  atm_phy_nwp_config(jg)%inwp_gscp )
-    CASE (1,2)
+    CASE (1,2,3)
       IF (msg_level >= 15) THEN 
         WRITE (message_text,*) "Reff: one-moment scheme already initialized"
         CALL message('',message_text)
@@ -98,10 +98,12 @@ MODULE mo_nwp_reff_interface
       CALL microphysics_1mom_init(            igscp = 2,                             & 
            &                        tune_zceff_min = tune_zceff_min,                &
            &                        tune_v0snow    = tune_v0snow,                   &
+           &                        tune_zcsg      = tune_zcsg,                     &
            &                        tune_zvz0i     = tune_zvz0i,                    &
            &                      tune_icesedi_exp = tune_icesedi_exp,              &
            &                        tune_mu_rain   = atm_phy_nwp_config(jg)%mu_rain,&
-           &                   tune_rain_n0_factor = atm_phy_nwp_config(jg)%rain_n0_factor)
+           &                   tune_rain_n0_factor = atm_phy_nwp_config(jg)%rain_n0_factor,&
+           &                   lvariable_rain_n0   = atm_phy_nwp_config(jg)%lvariable_rain_n0)
     END SELECT
 
     IF ( ANY ( atm_phy_nwp_config(jg)%icpl_aero_gscp == (/1, 3/) ) ) THEN  ! Only defined if aerosol coupling is on

@@ -32,6 +32,7 @@ MODULE mo_nwp_tuning_config
   PUBLIC :: tune_gcstar
   PUBLIC :: tune_zceff_min
   PUBLIC :: tune_v0snow
+  PUBLIC :: tune_zcsg
   PUBLIC :: tune_zvz0i
   PUBLIC :: tune_icesedi_exp
   PUBLIC :: tune_entrorg
@@ -52,12 +53,13 @@ MODULE mo_nwp_tuning_config
   PUBLIC :: tune_qexc
   PUBLIC :: tune_rcapqadv
   PUBLIC :: tune_minsnowfrac
-  PUBLIC :: tune_box_liq
+  PUBLIC :: tune_box_liq, tune_box_ice
   PUBLIC :: tune_box_liq_asy
   PUBLIC :: tune_box_liq_sfc_fac
   PUBLIC :: allow_overcast
   PUBLIC :: tune_thicklayfac
   PUBLIC :: tune_sgsclifac
+  PUBLIC :: tune_supsat_limfac
   PUBLIC :: icpl_turb_clc
   PUBLIC :: tune_dust_abs
   PUBLIC :: tune_difrad_3dcont
@@ -119,6 +121,9 @@ MODULE mo_nwp_tuning_config
 
   REAL(wp) :: &                    !< factor in the terminal velocity for snow
     &  tune_v0snow
+  
+  REAL(wp) :: &                    !< efficiency for cloud-graupel riming
+    &  tune_zcsg
 
   REAL(wp) :: &                    !< Terminal fall velocity of ice 
     &  tune_zvz0i
@@ -186,6 +191,9 @@ MODULE mo_nwp_tuning_config
   REAL(wp) :: &                    !< Box width for liquid clouds assumed in the cloud cover scheme
     &  tune_box_liq                ! (in case of inwp_cldcover = 1)
 
+  REAL(wp) :: &                    !< Box width for ice clouds assumed in the cloud cover scheme
+    &  tune_box_ice                ! (in case of inwp_cldcover = 1)
+
   REAL(wp) :: &                    !< Factor for increasing the box width in case of thick model layers
     &  tune_thicklayfac            ! (in case of inwp_cldcover = 1)
 
@@ -200,6 +208,10 @@ MODULE mo_nwp_tuning_config
 
   REAL(wp) :: &                    !< Scaling factor for subgrid-scale contribution to diagnosed cloud ice
     &  tune_sgsclifac              ! (in case of inwp_cldcover = 1)
+
+  REAL(wp) :: &                    !< Limiting factor for allowed supersaturation in satad
+    &  tune_supsat_limfac          !
+  !$ACC DECLARE CREATE(tune_supsat_limfac)
 
   INTEGER :: &                     !< Mode of coupling between turbulence and cloud cover
     &  icpl_turb_clc               ! 1: strong dependency of box width on rcld with upper and lower limit

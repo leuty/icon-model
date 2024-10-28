@@ -38,7 +38,7 @@ MODULE mo_nwp_aerosol
 ! ICON configuration
   USE mo_atm_phy_nwp_config,      ONLY: atm_phy_nwp_config, iprog_aero, icpl_aero_conv
   USE mo_run_config,              ONLY: iqv
-  USE mo_satad,                   ONLY: sat_pres_water
+  USE mo_thdyn_functions,         ONLY: sat_pres_water
   USE mo_radiation_config,        ONLY: irad_aero, iRadAeroConstKinne, iRadAeroKinne, iRadAeroCAMSclim,     &
                                     &   iRadAeroCAMStd, iRadAeroVolc, iRadAeroKinneVolc, iRadAeroART, &
                                     &   iRadAeroKinneVolcSP, iRadAeroKinneSP, iRadAeroTegen,                &

@@ -54,14 +54,14 @@ USE mo_lookup_tables_constants, ONLY: &
                                  b1    => c1es  , & !! constants for computing the sat. vapour
                                  b2w   => c3les , & !! pressure over water (l) and ice (i)
                                  b4w   => c4les     !!               -- " --
-USE mo_satad,              ONLY: sat_pres_water     !! saturation vapor pressure w.r.t. water
+USE mo_thdyn_functions,    ONLY: sat_pres_water     !! saturation vapor pressure w.r.t. water
 USE mo_exception,          ONLY: message, message_text
 
 !------------------------------------------------------------------------------
 
 USE gscp_data, ONLY: &          ! all variables are used here
 
-    zconst,   zbev,    zvz0r,                 &
+    zconst,   zvz0r=>zvz0r0,                  & ! Alberto, I have removed zbev because it is also a PARAMETER
     x7o8,                                     &
     zkcac,   zkphi1,    zkphi2,    zkphi3,    &
     x1o8,      x3o16,   iautocon

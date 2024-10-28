@@ -35,7 +35,7 @@ INLINE_LIST_ICON=(
   src/atm_phy_schemes/mo_cpl_aerosol_microphys.f90
   src/atm_phy_schemes/mo_albedo.f90
   src/atm_phy_schemes/mo_cufunctions.f90
-  src/atm_phy_schemes/mo_satad.f90
+  src/atm_phy_schemes/mo_thdyn_functions.f90
   src/atm_phy_schemes/mo_turb_vdiff.f90
   src/atm_phy_schemes/random_rewrite.f90
   src/atm_phy_schemes/turb_utilities.f90

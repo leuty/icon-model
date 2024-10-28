@@ -43,7 +43,7 @@ MODULE mo_turb_vdiff_sma
   USE mo_intp_rbf          ,ONLY: rbf_vec_interpol_vertex, rbf_vec_interpol_edge
   USE mo_impl_constants_grf,ONLY: grf_bdywidth_c, grf_bdywidth_e
   USE mo_nh_testcases_nml  ,ONLY: is_dry_cbl
-  USE mo_satad             ,ONLY: spec_humi, sat_pres_water
+  USE mo_thdyn_functions   ,ONLY: spec_humi, sat_pres_water
   USE mo_math_constants    ,ONLY: pi_2, ln2
   USE mo_math_utilities    ,ONLY: tdma_solver_vec
   USE mo_intp_rbf          ,ONLY: rbf_vec_interpol_cell

@@ -984,6 +984,7 @@ CONTAINS
                & qve      = ptr_tracer (:,:,jb,iqv),& !> INOUT
                & qce      = ptr_tracer (:,:,jb,iqc),& !> INOUT
                & rhotot   = p_prog%rho        (:,:,jb)    ,& !> IN
+               & w        = p_prog%w           (:,:,jb)   ,& !> IN
                & idim     = nproma                        ,& !> IN
                & kdim     = nlev                          ,& !> IN
                & ilo      = i_startidx                    ,& !> IN

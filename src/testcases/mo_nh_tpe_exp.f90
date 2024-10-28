@@ -31,7 +31,7 @@ USE mo_ext_data_types,      ONLY: t_external_data
 USE mo_nonhydro_types,      ONLY: t_nh_prog, t_nh_diag, t_nh_metrics
 USE mo_parallel_config,     ONLY: nproma
 USE mo_run_config,          ONLY: iqv, ntracer
-USE mo_satad,               ONLY:  sat_pres_water, &  !! saturation vapor pressure w.r.t. water
+USE mo_thdyn_functions,     ONLY:  sat_pres_water, &  !! saturation vapor pressure w.r.t. water
       &                            sat_pres_ice
 USE mo_exception,           ONLY: message, message_text
 

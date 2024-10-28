@@ -79,12 +79,12 @@ REAL (KIND=wp), PARAMETER ::  &
     ccidep,    & !
     ccswxp,    & !
     zconst,    & !
-    zcev,      & !
-    zbev,      & !
+    zcev0,     & !
+    zbev0,     & !
     zcevxp,    & !
     zbevxp,    & !
     zvzxp,     & !
-    zvz0r,     & !
+    zvz0r0,    & !
     vtxexp,    & !
     kc_c1,     & !
     kc_c2,     & !
@@ -92,9 +92,13 @@ REAL (KIND=wp), PARAMETER ::  &
     zar,       & !
     zceff_min, & ! Minimum value for sticking efficiency
     v0snow,    & ! factor in the terminal velocity for snow
+    zcsg,      & ! efficiency for cloud-graupel riming
     zvz0i,     & ! Terminal fall velocity of ice  (original value of Heymsfield+Donner 1990: 3.29)
     icesedi_exp,&! exponent for density correction for coud ice sedimentation
     cloud_num = 200.00e+06_wp      ! cloud droplet number concentration
+
+  LOGICAL ::                        &
+    lvariable_rain_n0  ! Use qr-dependent N0 for rain
 
 ! More variables
 ! --------------
@@ -268,7 +272,8 @@ CONTAINS
 !------------------------------------------------------------------------------
 
 SUBROUTINE gscp_set_coefficients (igscp, idbg, tune_zceff_min, tune_v0snow, tune_zvz0i, &
-  &                               tune_mu_rain, tune_rain_n0_factor, tune_icesedi_exp)
+     &                             tune_mu_rain, tune_rain_n0_factor, tune_icesedi_exp, &
+     &                             tune_zcsg, lvar_rain_n0)
 
 !------------------------------------------------------------------------------
 !> Description:
@@ -285,6 +290,8 @@ SUBROUTINE gscp_set_coefficients (igscp, idbg, tune_zceff_min, tune_v0snow, tune
   REAL(wp) ,INTENT(IN) ,OPTIONAL ::  tune_icesedi_exp
   REAL(wp) ,INTENT(IN) ,OPTIONAL ::  tune_mu_rain
   REAL(wp) ,INTENT(IN) ,OPTIONAL ::  tune_rain_n0_factor
+  REAL(wp) ,INTENT(IN) ,OPTIONAL ::  tune_zcsg
+  LOGICAL  ,INTENT(IN) ,OPTIONAL ::  lvar_rain_n0
   
 ! Local variable
   REAL(wp) :: zams  ! local value of zams
@@ -306,7 +313,7 @@ SUBROUTINE gscp_set_coefficients (igscp, idbg, tune_zceff_min, tune_v0snow, tune
   IF (PRESENT(tune_zceff_min)) THEN
     zceff_min = tune_zceff_min
   ELSE
-    zceff_min = 0.075_wp     ! COSMO default
+    zceff_min = 0.075_wp     ! default
   ENDIF
 
   IF (PRESENT(tune_v0snow)) THEN
@@ -320,13 +327,13 @@ SUBROUTINE gscp_set_coefficients (igscp, idbg, tune_zceff_min, tune_v0snow, tune
       v0snow = tune_v0snow   ! use ICON namelist value
     END IF
   ELSE
-    v0snow = 20.0_wp         ! COSMO default
+    v0snow = 20.0_wp         ! default
   ENDIF
 
   IF (PRESENT(tune_zvz0i)) THEN
     zvz0i = tune_zvz0i
   ELSE
-    zvz0i = 1.25_wp          ! COSMO default
+    zvz0i = 1.25_wp          ! default
   ENDIF
 
   IF (PRESENT(tune_icesedi_exp)) THEN
@@ -338,16 +345,27 @@ SUBROUTINE gscp_set_coefficients (igscp, idbg, tune_zceff_min, tune_v0snow, tune
   IF (PRESENT(tune_mu_rain)) THEN
     mu_rain = tune_mu_rain
   ELSE
-    mu_rain = 0.0_wp         ! COSMO-EU default
+    mu_rain = 0.0_wp         ! default
   ENDIF
 
   IF (PRESENT(tune_rain_n0_factor)) THEN
     rain_n0_factor = tune_rain_n0_factor
   ELSE
-    rain_n0_factor = 1.0_wp         ! COSMO-EU default
+    rain_n0_factor = 1.0_wp         ! default
   ENDIF
 
+  IF (PRESENT(tune_zcsg)) THEN
+    zcsg = tune_zcsg
+  ELSE
+    zcsg = 0.5_wp      ! default
+  ENDIF
 
+  IF (igscp == 2 .AND. PRESENT(lvar_rain_n0)) THEN
+    lvariable_rain_n0 = lvar_rain_n0
+  ELSE
+    lvariable_rain_n0 = .FALSE.
+  ENDIF
+  
   zconst = zkcau / (20.0_wp*zxstar) * (zcnue+2.0_wp)*(zcnue+4.0_wp)/(zcnue+1.0_wp)**2
   ccsrim = 0.25_wp*pi*zecs*v0snow*GAMMA(zv1s+3.0_wp)
   ccsagg = 0.25_wp*pi*v0snow*GAMMA(zv1s+3.0_wp)
@@ -365,16 +383,18 @@ SUBROUTINE gscp_set_coefficients (igscp, idbg, tune_zceff_min, tune_v0snow, tune
   ccdvtp = 2.22E-5_wp * t0**(-1.94_wp) * 101325.0_wp
   ccidep = 4.0_wp * zami**(-x1o3)
   zn0r   = 8.0E6_wp * EXP(3.2_wp*mu_rain) * (0.01_wp)**(-mu_rain)  ! empirical relation adapted from Ulbrich (1983)
-  zn0r   = zn0r * rain_n0_factor                                   ! apply tuning factor to zn0r variable
+  IF (.NOT. lvariable_rain_n0) THEN
+    zn0r   = zn0r * rain_n0_factor                                   ! apply tuning factor to zn0r variable
+  ENDIF
   zar    = pi*zrhow/6.0_wp * zn0r * GAMMA(mu_rain+4.0_wp)      ! pre-factor in lambda of rain
   zcevxp = (mu_rain+2.0_wp)/(mu_rain+4.0_wp)
-  zcev   = 2.0_wp*pi*zdv/zhw*zn0r*zar**(-zcevxp) * GAMMA(mu_rain+2.0_wp)
+  zcev0  = 2.0_wp*pi*zdv/zhw*zn0r*zar**(-zcevxp) * GAMMA(mu_rain+2.0_wp)
   zbevxp = (2.0_wp*mu_rain+5.5_wp)/(2.0_wp*mu_rain+8.0_wp)-zcevxp
-  zbev   =  0.26_wp * SQRT(    zrho0*130.0_wp/zeta)*zar**(-zbevxp) &
+  zbev0  =  0.26_wp * SQRT(    zrho0*130.0_wp/zeta)*zar**(-zbevxp) &
            * GAMMA((2.0_wp*mu_rain+5.5_wp)/2.0_wp) / GAMMA(mu_rain+2.0_wp)
 
   zvzxp  = 0.5_wp/(mu_rain+4.0_wp)
-  zvz0r  = 130.0_wp*GAMMA(mu_rain+4.5_wp)/GAMMA(mu_rain+4.0_wp)*zar**(-zvzxp)
+  zvz0r0 = 130.0_wp*GAMMA(mu_rain+4.5_wp)/GAMMA(mu_rain+4.0_wp)*zar**(-zvzxp)
 
   IF (PRESENT(idbg)) THEN
     IF (idbg > 10) THEN
@@ -389,16 +409,21 @@ SUBROUTINE gscp_set_coefficients (igscp, idbg, tune_zceff_min, tune_v0snow, tune
       WRITE (message_text,'(A,E10.3)') '      ccidep = ',ccidep ; CALL message('',message_text)
       WRITE (message_text,'(A,E10.3)') '      mu_r   = ',mu_rain; CALL message('',message_text)
       WRITE (message_text,'(A,E10.3)') '      zn0r   = ',zn0r   ; CALL message('',message_text)
-      WRITE (message_text,'(A,E10.3)') '      zbev   = ',zbev   ; CALL message('',message_text)
       WRITE (message_text,'(A,E10.3)') '      zbevxp = ',zbevxp ; CALL message('',message_text)
-      WRITE (message_text,'(A,E10.3)') '      zcev   = ',zcev   ; CALL message('',message_text)
       WRITE (message_text,'(A,E10.3)') '      zcevxp = ',zcevxp ; CALL message('',message_text)
       WRITE (message_text,'(A,E10.3)') '      zvzxp  = ',zvzxp  ; CALL message('',message_text)
-      WRITE (message_text,'(A,E10.3)') '      zvz0r  = ',zvz0r  ; CALL message('',message_text)
       WRITE (message_text,'(A,E10.3)') '   zceff_min = ',zceff_min ; CALL message('',message_text)
       WRITE (message_text,'(A,E10.3)') '      v0snow = ',v0snow ; CALL message('',message_text)
-      WRITE (message_text,'(A,E10.3)') '      zvz0i  = ',zvz0i  ; CALL message('',message_text)
+      WRITE (message_text,'(A,E10.3)') '       zvz0i = ',zvz0i  ; CALL message('',message_text)
       WRITE (message_text,'(A,E10.3)') ' icesedi_exp = ',icesedi_exp ; CALL message('',message_text)
+      WRITE (message_text,'(A,E10.3)') '       zcsg  = ',zcsg   ; CALL message('',message_text)
+      IF (lvariable_rain_n0) THEN
+        CALL message('','Coefficients zn0r, zbev, zcev depend on qr.')
+      ELSE
+        WRITE (message_text,'(A,E10.3)') '      zvz0r  = ',zvz0r0 ; CALL message('',message_text)
+        WRITE (message_text,'(A,E10.3)') '      zbev   = ',zbev0  ; CALL message('',message_text)
+        WRITE (message_text,'(A,E10.3)') '      zcev   = ',zcev0  ; CALL message('',message_text)
+      END IF
     ENDIF
   ENDIF
 

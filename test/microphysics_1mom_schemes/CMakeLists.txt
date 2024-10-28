@@ -50,7 +50,7 @@ set(SHARED_PATH "${ICON_SOURCE_DIR}/src/shared")
 # Add the library with the specified files
 # (keep in sync with ${ICON_SOURCE_DIR}/.gitlab-ci.yml):
 add_library(microphysics_1mom_schemes
-  ${SATAD_PATH}/mo_satad.f90
+  ${SATAD_PATH}/mo_thdyn_functions.f90
   ${SATAD_PATH}/mo_2mom_mcrph_types.f90
   ${SATAD_PATH}/mo_2mom_mcrph_setup.f90
   ${SATAD_PATH}/mo_lookup_tables_constants.f90

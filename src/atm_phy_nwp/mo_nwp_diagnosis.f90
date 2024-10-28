@@ -47,7 +47,7 @@ MODULE mo_nwp_diagnosis
     &                              itype_dursun, itype_convindices, itype_hzerocl, t_var_in_output
   USE mo_sync,               ONLY: global_max, global_min
   USE mo_vertical_coord_table,  ONLY: vct_a
-  USE mo_satad,              ONLY: sat_pres_water, spec_humi
+  USE mo_thdyn_functions,    ONLY: sat_pres_water, spec_humi
   USE mo_nh_diagnose_pres_temp, ONLY: diagnose_pres_temp
   USE mo_util_phys,            ONLY: nwp_dyn_gust
   USE mo_opt_nwp_diagnostics,ONLY: calsnowlmt, cal_cape_cin, cal_cape_cin_mu, cal_cape_cin_mu_COSMO, &    

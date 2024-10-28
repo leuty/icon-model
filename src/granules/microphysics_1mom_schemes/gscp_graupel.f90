@@ -45,7 +45,7 @@ MODULE gscp_graupel
 USE, INTRINSIC :: iso_fortran_env, ONLY: wp => real64, &
                                          i4 => int32
 
-USE mo_satad,              ONLY: sat_pres_water, &  !! saturation vapor pressure w.r.t. water
+USE mo_thdyn_functions,    ONLY: sat_pres_water, &  !! saturation vapor pressure w.r.t. water
                                  sat_pres_ice,   &  !! saturation vapor pressure w.r.t. ice
                                  latent_heat_vaporization, &
                                  latent_heat_sublimation
@@ -64,9 +64,9 @@ USE mo_lookup_tables_constants, ONLY: b1    => c1es  , & !! constants for comput
 USE gscp_data,             ONLY: &
       ccsrim,    ccsagg,    ccsdep,    ccsvel,    ccsvxp,    ccslam, &
       ccslxp,    ccsaxp,    ccsdxp,    ccshi1,    ccdvtp,    ccidep, &
-      ccswxp,    zconst,    zcev,      zbev,      zcevxp,    zbevxp, &
-      zvzxp,     zvz0r,                                              &
-      v0snow,                                                        &
+      ccswxp,    zconst,    zcev0,     zbev0,     zcevxp,    zbevxp, &
+      zvzxp,     zvz0r0,                                             &
+      v0snow,    zcsg,                                               &
       x13o8,     x1o2,      x27o16,    x3o4,      x7o4,      x7o8,   &
       zbvi,      zcac,      zccau,     zciau,     zcicri,            &
       zcrcri,    zcrfrz,    zcrfrz1,   zcrfrz2,   zeps,      zkcac,  &
@@ -78,7 +78,7 @@ USE gscp_data,             ONLY: &
       tmin_iceautoconv,     zceff_fac, zceff_min,                    &
       zvz0i,     icesedi_exp,    zams => zams_gr,                    &
       mma, mmb, v_sedi_rain_min, v_sedi_snow_min, v_sedi_graupel_min, &
-      iautocon,isnow_n0temp
+      iautocon,isnow_n0temp, lvariable_rain_n0, rain_n0_factor
 
 IMPLICIT NONE
 PRIVATE
@@ -261,7 +261,6 @@ SUBROUTINE graupel     (             &
     izdebug             !! debug level
 
   REAL    (KIND=wp   ), PARAMETER ::  &
-    zcsg=0.5_wp,          & !coefficient for snow-graupel conversion by riming
     zcrim_g=4.43_wp,      & !
     zrimexp_g=0.94878_wp, &
     zcagg_g = 2.46_wp ,   & !
@@ -293,8 +292,9 @@ SUBROUTINE graupel     (             &
     zsimax , zsisum , zsvmax,& ! terms for limiting total cloud ice depletion
     zqvsw,             & ! sat. specitic humidity at ice and water saturation
     zqvsidiff,         & ! qv-zqvsi
-    ztfrzdiff,         & ! ztrfrz-t  
-    zztau, zxfac, zx1,  ztt,  &   ! some help variables
+    ztfrzdiff,         & ! ztrfrz-t
+    zcev, zbev, zvz0r, & ! variables changed by N0. They control rain evaporation and sedimentation
+    zztau, zxfac, zx1,  ztt, log_n0fac, &   ! some help variables
     ztau, zphi, zhi, zdvtp, ztc, zeff, zlog_10
 
   REAL    (KIND=wp   ) ::  &
@@ -350,13 +350,13 @@ SUBROUTINE graupel     (             &
     zqvsw_up    (nvec),     & ! sat. specitic humidity at ice and water saturation
     zcsdep            ,     & !
     zcidep            
-
-#ifdef __LOOP_EXCHANGE
-   REAL (KIND = wp )  ::  zlhv(ke), zlhs(ke)
-#else
-   REAL (KIND = wp )  ::  zlhv(nvec), zlhs(nvec)
-#endif
     
+#ifdef __LOOP_EXCHANGE
+   REAL (KIND = wp )  ::  zlhv(ke), zlhs(ke), zcev_a(ke), zbev_a(ke), zvz0r_a(ke)
+#else
+   REAL (KIND = wp )  ::  zlhv(nvec), zlhs(nvec), zcev_a(nvec), zbev_a(nvec), zvz0r_a(nvec)
+#endif
+
  REAL    (KIND=wp   ) ::  &    
     zsrmax            ,     & !
     zssmax            ,     & !
@@ -464,6 +464,7 @@ SUBROUTINE graupel     (             &
   !$ACC   CREATE(zpkr, zpks, zpkg, zpki) &
   !$ACC   CREATE(zprvr, zprvs, zprvi, zqvsw_up, zprvg) &
   !$ACC   CREATE(dist_cldtop, zlhv, zlhs, mma, mmb) &
+  !$ACC   CREATE(zcev_a, zbev_a, zvz0r_a) &
   !$ACC   NO_CREATE(pri_gsp)
 
 ! Some constant coefficients
@@ -474,7 +475,7 @@ SUBROUTINE graupel     (             &
     znimax = fxna(zthn) ! Maximum number of cloud ice crystals
     znimix = fxna(ztmix) ! number of ice crystals at temp threshold for mixed-phase clouds
   END IF
-
+  
   zpvsw0 = fpvsw(t0)  ! sat. vap. pressure for t = t0
   zlog_10 = LOG(10._wp) ! logarithm of 10
   
@@ -577,7 +578,10 @@ SUBROUTINE graupel     (             &
     IF (lpres_pri) pri_gsp (iv) = 0.0_wp
 #ifndef __LOOP_EXCHANGE
     zlhv(iv)     = lh_v
-    zlhs(iv)     = lh_s    
+    zlhs(iv)     = lh_s
+    zcev_a(iv)   = zcev0
+    zbev_a(iv)   = zbev0
+    zvz0r_a(iv)  = zvz0r0
 #endif
   END DO
   !$ACC END PARALLEL
@@ -587,6 +591,9 @@ SUBROUTINE graupel     (             &
   !$ACC KERNELS DEFAULT(PRESENT) ASYNC(1)
   zlhv(:) = lh_v
   zlhs(:) = lh_s
+  zcev_a(:)   = zcev0
+  zbev_a(:)   = zbev0
+  zvz0r_a(:)  = zvz0r0
   !$ACC END KERNELS
 #endif
 
@@ -602,11 +609,20 @@ SUBROUTINE graupel     (             &
   DO iv = iv_start, iv_end  !loop over horizontal domain
 
 ! Calculate Latent heats if necessary
-    IF ( lvariable_lh ) THEN
+     IF ( lvariable_lh ) THEN
       DO  k = k_start, ke  ! loop over levels
         tg      = make_normalized(t(iv,k))
         zlhv(k) = latent_heat_vaporization(tg)
         zlhs(k) = latent_heat_sublimation(tg)
+      END DO
+    END IF
+
+    IF ( lvariable_rain_n0 ) THEN
+      DO  k = k_start, ke  ! loop over levels      
+        log_n0fac  = LOG(MIN(1._wp,MAX(rain_n0_factor,(3.e2_wp*qr(iv,k))**2)))
+        zcev_a(k)    = zcev0  * EXP(log_n0fac*(1.0_wp-zcevxp))
+        zbev_a(k)    = zbev0  * EXP(-log_n0fac*zbevxp)
+        zvz0r_a(k)   = zvz0r0 * EXP(-log_n0fac*zvzxp)
       END DO
     END IF
 
@@ -621,6 +637,16 @@ SUBROUTINE graupel     (             &
         tg      = make_normalized(t(iv,k))
         zlhv(iv) = latent_heat_vaporization(tg)
         zlhs(iv) = latent_heat_sublimation(tg)
+      END DO
+    END IF
+    
+    IF ( lvariable_rain_n0 ) THEN
+      !$ACC LOOP GANG(STATIC: 1) VECTOR PRIVATE(log_n0fac)
+      DO  iv = iv_start, iv_end  !loop over horizontal domain
+        log_n0fac  = LOG(MIN(1._wp,MAX(rain_n0_factor,(3.e2_wp*qr(iv,k))**2)))
+        zcev_a(iv)    = zcev0  * EXP(log_n0fac*(1.0_wp-zcevxp))
+        zbev_a(iv)    = zbev0  * EXP(-log_n0fac*zbevxp)
+        zvz0r_a(iv)   = zvz0r0 * EXP(-log_n0fac*zvzxp)
       END DO
     END IF
 
@@ -638,6 +664,7 @@ SUBROUTINE graupel     (             &
     !$ACC   PRIVATE(zelnrimexp_g, zhi, zimg, zimi, zimr, zims) &
     !$ACC   PRIVATE(zlnlogmi, zlnqgk, zlnqik, zlnqrk, zlnqsk) &
     !$ACC   PRIVATE(zmi, zn0s, znid, znin, zphi, zqct, zqgk) &
+    !$ACC   PRIVATE(zcev, zbev, zvz0r, log_n0fac) &
     !$ACC   PRIVATE(zqgt, zqik, zqit, zqrk, zqrt, zqsk, zqst) &
     !$ACC   PRIVATE(zqvsi, zqvsidiff, zqvsw, zqvsw0, zqvsw0diff) &
     !$ACC   PRIVATE(zqvt, zrho1o2, zrhofac_qi, zscmax, zscsum) &
@@ -708,6 +735,20 @@ SUBROUTINE graupel     (             &
       zpkg(iv) = 0.0_wp
       zpki(iv) = 0.0_wp
 
+      !-------------------------------------------------------------------------
+      ! qr_prepare:
+      !-------------------------------------------------------------------------
+
+#ifdef __LOOP_EXCHANGE
+      zcev  = zcev_a(k)
+      zbev  = zbev_a(k)
+      zvz0r = zvz0r_a(k)
+#else
+      zcev  = zcev_a(iv)
+      zbev  = zbev_a(iv)
+      zvz0r = zvz0r_a(iv)
+#endif
+      
       !-------------------------------------------------------------------------
       ! qs_prepare:
       !-------------------------------------------------------------------------
