@@ -820,7 +820,7 @@ CONTAINS
     REAL(wp) :: gm1, const, sinplus, cosw
     REAL(wp) :: cmrhowgdfth
     REAL(wp) :: const1(nproma), const2(nproma)
-    REAL(wp) :: rhowgdfth(nproma,wave_config%nfreqs)
+    REAL(wp) :: rhowgdfth(wave_config%nfreqs,nproma)
     REAL(wp) :: cm(nproma,wave_config%nfreqs)
     REAL(wp) :: xstress(nproma), xstress_tot
     REAL(wp) :: ystress(nproma), ystress_tot
@@ -862,14 +862,14 @@ CONTAINS
 
       DO jc = i_startidx, i_endidx
 
-        rhowgdfth(jc,1:p_diag%last_prog_freq_ind(jc,jb)) = &
+        rhowgdfth(1:p_diag%last_prog_freq_ind(jc,jb),jc) = &
              wc%rhowg_dfim(1:p_diag%last_prog_freq_ind(jc,jb))
 
         IF (p_diag%last_prog_freq_ind(jc,jb).NE.wc%nfreqs)  &
-             rhowgdfth(jc,p_diag%last_prog_freq_ind(jc,jb)) = &
-             0.5_wp * rhowgdfth(jc,p_diag%last_prog_freq_ind(jc,jb))
+             rhowgdfth(p_diag%last_prog_freq_ind(jc,jb),jc) = &
+             0.5_wp * rhowgdfth(p_diag%last_prog_freq_ind(jc,jb),jc)
 
-        rhowgdfth(jc,p_diag%last_prog_freq_ind(jc,jb)+1:wc%nfreqs) = 0.0_wp
+        rhowgdfth(p_diag%last_prog_freq_ind(jc,jb)+1:wc%nfreqs,jc) = 0.0_wp
 
         !initialisation
         xstress(jc) = 0._wp
@@ -896,8 +896,8 @@ CONTAINS
         END DO
 
         DO jc = i_startidx, i_endidx
-          p_diag%phiaw(jc,jb) =  p_diag%phiaw(jc,jb) + sumt(jc)*rhowgdfth(jc,jf)
-          cmrhowgdfth = cm(jc,jf) * rhowgdfth(jc,jf)
+          p_diag%phiaw(jc,jb) =  p_diag%phiaw(jc,jb) + sumt(jc)*rhowgdfth(jf,jc)
+          cmrhowgdfth = cm(jc,jf) * rhowgdfth(jf,jc)
           xstress(jc) = xstress(jc) + sumx(jc)*cmrhowgdfth
           ystress(jc) = ystress(jc) + sumy(jc)*cmrhowgdfth
         END DO
