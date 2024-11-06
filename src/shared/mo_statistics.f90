@@ -493,7 +493,7 @@ CONTAINS
         !$ACC PARALLEL LOOP GANG VECTOR DEFAULT(PRESENT) &
         !$ACC   REDUCTION(+: sum_value, number_of_values) &
         !$ACC   REDUCTION(MAX: max_value) &
-        !$ACC   REDUCTION(MIN: min_value) ASYNC(1) IF(lzacc)
+        !$ACC   REDUCTION(MIN: min_value) IF(lzacc)
         DO idx = start_index, end_index
           IF (in_subset%vertical_levels(idx,block) > 0) THEN
             min_value    = MIN(min_value, values(idx, block))
@@ -758,12 +758,12 @@ CONTAINS
     REAL(wp), INTENT(in) :: values(:,:,:) ! in
     REAL(wp), INTENT(in) :: weights(:,:)  ! in
     TYPE(t_subset_range), INTENT(in) :: in_subset
-    REAL(wp), INTENT(inout) :: total_sum(:)   ! out: mean for each level
+    REAL(wp), INTENT(inout) :: total_sum(:)   ! out: sum for each level
     INTEGER, OPTIONAL, INTENT(in) :: start_level, end_level
     REAL(wp), INTENT(inout), OPTIONAL :: mean(:)   ! out: mean for each level
     LOGICAL, OPTIONAL, INTENT(in)   :: lopenacc  ! Flag to run on GPU
 
-    REAL(wp), ALLOCATABLE :: sum_value(:), sum_weight(:)
+    REAL(wp), ALLOCATABLE :: sum_weight(:)
     INTEGER :: block, level, start_index, end_index, idx, start_vertical, end_vertical
     INTEGER :: allocated_levels
     CHARACTER(LEN=*), PARAMETER :: method_name=module_name//':LevelHorizontalSum_3D_InRange_2Dweights'
@@ -777,12 +777,15 @@ CONTAINS
 
     IF (in_subset%no_of_holes > 0) CALL warning(method_name, "there are holes in the subset")
 
+#if defined(_CRAYFTN) 
+    ! Lumi doez not accept refduction on arrays, a special version with reduced parallelizatiobn is implemented here
+    CALL Cray_LevelHorizontalSum_3D_InRange_2Dweights(values, weights, in_subset, total_sum, start_level, end_level, mean, lzacc)
+#else
+
     allocated_levels = SIZE(total_sum)
-    ALLOCATE( sum_value(allocated_levels), &
-      & sum_weight(allocated_levels) )
+    ALLOCATE( sum_weight(allocated_levels) )
     !$ACC DATA PRESENT(values, weights, total_sum, mean) &
-    !$ACC   CREATE(sum_value, sum_weight) IF(lzacc)
-    sum_value  = 0.0_wp
+    !$ACC   CREATE(sum_weight) IF(lzacc)
     sum_weight = 0.0_wp
 
     IF (PRESENT(start_level)) THEN
@@ -800,41 +803,41 @@ CONTAINS
 
 
     IF (ASSOCIATED(in_subset%vertical_levels)) THEN
-!ICON_OMP_PARALLEL_DO PRIVATE(block, start_index, end_index, idx, level), reduction(+:sum_weight, sum_value) 
+!ICON_OMP_PARALLEL_DO PRIVATE(block, start_index, end_index, idx, level), reduction(+:sum_weight, total_sum) 
       DO block = in_subset%start_block, in_subset%end_block
         CALL get_index_range(in_subset, block, start_index, end_index)
         
         !$ACC PARALLEL LOOP GANG VECTOR DEFAULT(PRESENT) &
-        !$ACC   REDUCTION(+: sum_value, sum_weight) ASYNC(1) IF(lzacc)
+        !$ACC   REDUCTION(+: total_sum, sum_weight) IF(lzacc)
         DO idx = start_index, end_index
           !$ACC LOOP SEQ
           DO level = start_vertical, MIN(end_vertical, in_subset%vertical_levels(idx,block))
-            sum_value(level)  = sum_value(level) + &
+            total_sum(level)  = total_sum(level) + &
               & values(idx, level, block) * weights(idx, block)
             sum_weight(level)  = sum_weight(level) + weights(idx, block)
           ENDDO
         ENDDO
-        !$ACC END PARALLEL
+        !$ACC END PARALLEL LOOP
       ENDDO
 !ICON_OMP_END_PARALLEL_DO
 
     ELSE ! no in_subset%vertical_levels
 
-!ICON_OMP_PARALLEL_DO PRIVATE(block, start_index, end_index, idx, level), reduction(+:sum_weight, sum_value) 
+!ICON_OMP_PARALLEL_DO PRIVATE(block, start_index, end_index, idx, level), reduction(+:sum_weight, total_sum) 
       DO block = in_subset%start_block, in_subset%end_block
         CALL get_index_range(in_subset, block, start_index, end_index)
         
         !$ACC PARALLEL LOOP GANG VECTOR DEFAULT(PRESENT) &
-        !$ACC   REDUCTION(+: sum_value, sum_weight) ASYNC(1) IF(lzacc)
+        !$ACC   REDUCTION(+: total_sum, sum_weight) IF(lzacc)
         DO idx = start_index, end_index
           sum_weight(start_vertical)  = sum_weight(start_vertical) + weights(idx, block)
           !$ACC LOOP SEQ
           DO level = start_vertical, end_vertical
-            sum_value(level)  = sum_value(level) + &
+            total_sum(level)  = total_sum(level) + &
               & values(idx, level, block) * weights(idx, block)
           ENDDO
         ENDDO
-         !$ACC END PARALLEL
+         !$ACC END PARALLEL LOOP
       ENDDO
 !ICON_OMP_END_PARALLEL_DO
 
@@ -848,8 +851,6 @@ CONTAINS
 
     ENDIF
     !-----------------------------------------------------
-    total_sum = sum_value
-
     ! Collect the value and weight sums (at all procs)
     CALL gather_sums(total_sum, sum_weight, lopenacc=lzacc)
 
@@ -867,10 +868,128 @@ CONTAINS
     !$ACC WAIT(1)
 
     !$ACC END DATA
-    DEALLOCATE(sum_value, sum_weight)
+    DEALLOCATE(sum_weight)
+#endif
   
   END SUBROUTINE LevelHorizontalSum_3D_InRange_2Dweights
   !-----------------------------------------------------------------------
+
+#if defined(_CRAYFTN)
+  !-----------------------------------------------------------------------
+  !>
+  ! Returns the weighted Sum for each level in a 3D array in a given range subset.
+  SUBROUTINE Cray_LevelHorizontalSum_3D_InRange_2Dweights(values, weights, in_subset, total_sum, start_level, end_level, mean, lzacc)
+    REAL(wp), INTENT(in) :: values(:,:,:) ! in
+    REAL(wp), INTENT(in) :: weights(:,:)  ! in
+    TYPE(t_subset_range), INTENT(in) :: in_subset
+    REAL(wp), INTENT(inout) :: total_sum(:)   ! out: sum for each level
+    INTEGER, OPTIONAL, INTENT(in) :: start_level, end_level
+    REAL(wp), INTENT(inout), OPTIONAL :: mean(:)   ! out: mean for each level
+    LOGICAL, INTENT(in)   :: lzacc  ! Flag to run on GPU
+
+    REAL(wp), ALLOCATABLE :: sum_weight(:)
+    REAL(wp) :: level_sum_value, level_sum_weight
+    INTEGER :: block, level, start_index, end_index, idx, start_vertical, end_vertical
+    INTEGER :: allocated_levels
+    CHARACTER(LEN=*), PARAMETER :: method_name=module_name//':LevelHorizontalSum_3D_InRange_2Dweights'
+
+    allocated_levels = SIZE(total_sum)
+    ALLOCATE( sum_weight(allocated_levels) )
+    !$ACC DATA PRESENT(values, weights, total_sum, mean) &
+    !$ACC   CREATE(sum_weight) IF(lzacc)
+    sum_weight = 0.0_wp
+    total_sum = 0.0_wp
+    IF (PRESENT(start_level)) THEN
+      start_vertical = start_level
+    ELSE
+      start_vertical = 1
+    ENDIF
+    IF (PRESENT(end_level)) THEN
+      end_vertical = end_level
+    ELSE
+      end_vertical = SIZE(values, VerticalDim_Position)
+    ENDIF
+    IF (start_vertical > end_vertical) &
+      & CALL finish(method_name, "start_vertical > end_vertical")
+
+
+    IF (ASSOCIATED(in_subset%vertical_levels)) THEN
+      DO level = start_vertical, end_vertical
+        level_sum_value = 0.0_wp
+        level_sum_weight = 0.0_wp
+        !ACC DATA COPY(level_sum_value, level_sum_weight)
+!ICON_OMP_PARALLEL_DO PRIVATE(block, start_index, end_index, idx), reduction(+:level_sum_weight, level_sum_value) 
+        DO block = in_subset%start_block, in_subset%end_block
+          CALL get_index_range(in_subset, block, start_index, end_index)
+        
+          !$ACC PARALLEL LOOP GANG VECTOR DEFAULT(PRESENT) &
+          !$ACC   REDUCTION(+: level_sum_value, level_sum_weight) IF(lzacc)
+          DO idx = start_index, end_index
+            IF (level <= in_subset%vertical_levels(idx,block)) THEN
+              level_sum_value  = level_sum_value + &
+                & values(idx, level, block) * weights(idx, block)
+              level_sum_weight  = level_sum_weight + weights(idx, block)
+            ENDIF
+          ENDDO
+          !$ACC END PARALLEL LOOP
+        ENDDO
+!ICON_OMP_END_PARALLEL_DO
+        !ACC END DATA
+        total_sum(level)  = level_sum_value
+        sum_weight(level) = level_sum_weight 
+      ENDDO !levels
+
+    ELSE ! no in_subset%vertical_levels
+
+      DO level = start_vertical, end_vertical
+        level_sum_value = 0.0_wp
+        level_sum_weight = 0.0_wp
+        !ACC DATA COPY(level_sum_value, level_sum_weight)
+!ICON_OMP_PARALLEL_DO PRIVATE(block, start_index, end_index, idx), reduction(+:level_sum_weight, level_sum_value) 
+        DO block = in_subset%start_block, in_subset%end_block
+          CALL get_index_range(in_subset, block, start_index, end_index)
+        
+          !$ACC PARALLEL LOOP GANG VECTOR DEFAULT(PRESENT) &
+          !$ACC   REDUCTION(+: level_sum_value, level_sum_weight) IF(lzacc)
+          DO idx = start_index, end_index
+            level_sum_value  = level_sum_value + &
+              & values(idx, level, block) * weights(idx, block)
+            level_sum_weight  = level_sum_weight + weights(idx, block)
+          ENDDO
+          !$ACC END PARALLEL LOOP
+        ENDDO
+!ICON_OMP_END_PARALLEL_DO
+        !ACC END DATA
+        total_sum(level)  = level_sum_value
+        sum_weight(level) = level_sum_weight 
+      ENDDO !levels
+
+    ENDIF
+    !-----------------------------------------------------
+
+    ! Collect the value and weight sums (at all procs)
+    !$ACC DATA COPYIN(total_sum)
+    CALL gather_sums(total_sum, sum_weight, lopenacc=lzacc)
+    !$ACC END DATA
+    IF (PRESENT(mean)) THEN
+      mean = 0.0_wp
+      !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1) IF(lzacc)
+      !$ACC LOOP GANG(STATIC: 1) VECTOR
+       DO level = start_vertical, end_vertical
+        ! write(0,*) level, ":", total_sum(level), total_weight(level), accumulated_mean(level)
+        mean(level) = total_sum(level)/sum_weight(level)
+      ENDDO
+      !$ACC END PARALLEL
+    ENDIF
+
+    !$ACC WAIT(1)
+
+    !$ACC END DATA
+    DEALLOCATE(sum_weight)
+  
+  END SUBROUTINE Cray_LevelHorizontalSum_3D_InRange_2Dweights
+  !-----------------------------------------------------------------------
+#endif
 
   !-----------------------------------------------------------------------
   !>
@@ -973,7 +1092,7 @@ CONTAINS
     REAL(wp), OPTIONAL, INTENT(inout) :: mean(:), sumLevelWeights(:)   ! the sum of the weights in each level
     LOGICAL, OPTIONAL, INTENT(in)   :: lopenacc                 ! Flag to run on GPU
 
-    REAL(wp), ALLOCATABLE :: sum_value(:), sum_weight(:)
+    REAL(wp), ALLOCATABLE :: sum_weight(:)
     INTEGER :: block, level, start_index, end_index, idx, start_vertical, end_vertical
     INTEGER :: allocated_levels
     CHARACTER(LEN=*), PARAMETER :: method_name=module_name//':LevelHorizontalSum_3D_InRange_2Dweights'
@@ -987,9 +1106,14 @@ CONTAINS
 
     IF (in_subset%no_of_holes > 0) CALL warning(method_name, "there are holes in the subset")
 
+#if defined(_CRAYFTN) 
+    ! Lumi does not accept refduction on arrays, a special version with reduced parallelizatiobn is implemented here
+    CALL Cray_LevelHorizontalSum_3D_InRange_3Dweights(values, weights, in_subset, total_sum, start_level, end_level, mean, sumLevelWeights, lzacc)
+#else
+
     allocated_levels = SIZE(total_sum)
     ALLOCATE(sum_weight(allocated_levels) )
-    !$ACC DATA PRESENT(values, weights, total_sum, mean) &
+    !$ACC DATA PRESENT(values, weights, total_sum, mean, sumLevelWeights) &
     !$ACC   CREATE(sum_weight) IF(lzacc)
     total_sum  = 0.0_wp
     sum_weight = 0.0_wp
@@ -1014,7 +1138,7 @@ CONTAINS
         CALL get_index_range(in_subset, block, start_index, end_index)
         
         !$ACC PARALLEL LOOP GANG VECTOR DEFAULT(PRESENT) &
-        !$ACC   REDUCTION(+: total_sum, sum_weight) ASYNC(1) IF(lzacc)
+        !$ACC   REDUCTION(+: total_sum, sum_weight) IF(lzacc)
         DO idx = start_index, end_index
           !$ACC LOOP SEQ
           DO level = start_vertical, MIN(end_vertical, in_subset%vertical_levels(idx,block))
@@ -1023,7 +1147,7 @@ CONTAINS
             sum_weight(level)  = sum_weight(level) + weights(idx, level, block)
           ENDDO
         ENDDO
-        !$ACC END PARALLEL
+        !$ACC END PARALLEL LOOP
       ENDDO
 !ICON_OMP_END_PARALLEL_DO
 
@@ -1034,7 +1158,7 @@ CONTAINS
         CALL get_index_range(in_subset, block, start_index, end_index)
         
         !$ACC PARALLEL LOOP GANG VECTOR DEFAULT(PRESENT) &
-        !$ACC   REDUCTION(+: total_sum, sum_weight) ASYNC(1) IF(lzacc)
+        !$ACC   REDUCTION(+: total_sum, sum_weight) IF(lzacc)
         DO idx = start_index, end_index
           !$ACC LOOP SEQ
           DO level = start_vertical, end_vertical
@@ -1043,7 +1167,7 @@ CONTAINS
             sum_weight(level)  = sum_weight(level) + weights(idx, level, block)
           ENDDO
         ENDDO
-         !$ACC END PARALLEL
+         !$ACC END PARALLEL LOOP
       ENDDO
 !ICON_OMP_END_PARALLEL_DO
 
@@ -1071,10 +1195,133 @@ CONTAINS
 
     !$ACC END DATA
     DEALLOCATE(sum_weight)
+#endif
 
   END SUBROUTINE LevelHorizontalSum_3D_InRange_3Dweights
   !-----------------------------------------------------------------------
 
+#if defined(_CRAYFTN)
+  !-----------------------------------------------------------------------
+  !>
+  ! Returns the weighted Sum for each level in a 3D array in a given range subset.
+  SUBROUTINE Cray_LevelHorizontalSum_3D_InRange_3Dweights(values, weights, in_subset, total_sum, start_level, end_level, mean, sumLevelWeights, lzacc)
+    REAL(wp), INTENT(in) :: values(:,:,:) ! in
+    REAL(wp), INTENT(in) :: weights(:,:,:)  ! in
+    TYPE(t_subset_range), INTENT(in) :: in_subset
+    REAL(wp), INTENT(inout) :: total_sum(:)   ! out: sum for each level
+    INTEGER, OPTIONAL, INTENT(in) :: start_level, end_level
+    REAL(wp), INTENT(inout), OPTIONAL :: mean(:), sumLevelWeights(:)    ! out: mean, weigths for each level
+    LOGICAL, INTENT(in)   :: lzacc  ! Flag to run on GPU
+
+    REAL(wp), ALLOCATABLE :: sum_weight(:)
+    REAL(wp) :: level_sum_value, level_sum_weight
+    INTEGER :: block, level, start_index, end_index, idx, start_vertical, end_vertical
+    INTEGER :: allocated_levels
+    CHARACTER(LEN=*), PARAMETER :: method_name=module_name//':LevelHorizontalSum_3D_InRange_2Dweights'
+
+    allocated_levels = SIZE(total_sum)
+    ALLOCATE(sum_weight(allocated_levels) )
+    !$ACC DATA PRESENT(values, weights, total_sum, mean, sumLevelWeights) &
+    !$ACC   CREATE(sum_weight) IF(lzacc)
+    sum_weight = 0.0_wp
+
+    IF (PRESENT(start_level)) THEN
+      start_vertical = start_level
+    ELSE
+      start_vertical = 1
+    ENDIF
+    IF (PRESENT(end_level)) THEN
+      end_vertical = end_level
+    ELSE
+      end_vertical = SIZE(values, VerticalDim_Position)
+    ENDIF
+    IF (start_vertical > end_vertical) &
+      & CALL finish(method_name, "start_vertical > end_vertical")
+
+
+    IF (ASSOCIATED(in_subset%vertical_levels)) THEN
+      DO level = start_vertical, end_vertical
+        level_sum_value = 0.0_wp
+        level_sum_weight = 0.0_wp
+        !$ACC DATA COPY(level_sum_value, level_sum_weight)
+!ICON_OMP_PARALLEL_DO PRIVATE(block, start_index, end_index, idx), reduction(+:level_sum_weight, level_sum_value) 
+        !$ACC LOOP SEQ
+        DO block = in_subset%start_block, in_subset%end_block
+          CALL get_index_range(in_subset, block, start_index, end_index)
+        
+          !$ACC PARALLEL LOOP GANG VECTOR DEFAULT(PRESENT) &
+          !$ACC   REDUCTION(+: level_sum_value, level_sum_weight) IF(lzacc)
+          DO idx = start_index, end_index
+            IF (level <= in_subset%vertical_levels(idx,block)) THEN
+              level_sum_value  = level_sum_value + &
+                & values(idx, level, block) * weights(idx, level, block)
+              level_sum_weight  = level_sum_weight + weights(idx, level, block)
+            ENDIF
+          ENDDO
+          !$ACC END PARALLEL LOOP
+        ENDDO
+!ICON_OMP_END_PARALLEL_DO
+        !$ACC END DATA
+        total_sum(level)  = level_sum_value
+        sum_weight(level) = level_sum_weight 
+      ENDDO !levels
+
+    ELSE ! no in_subset%vertical_levels
+
+      DO level = start_vertical, end_vertical
+        level_sum_value = 0.0_wp
+        level_sum_weight = 0.0_wp
+        !$ACC DATA COPY(level_sum_value, level_sum_weight)
+!ICON_OMP_PARALLEL_DO PRIVATE(block, start_index, end_index, idx), reduction(+:level_sum_weight, level_sum_value) 
+        !$ACC LOOP SEQ
+        DO block = in_subset%start_block, in_subset%end_block
+          CALL get_index_range(in_subset, block, start_index, end_index)
+        
+          !$ACC PARALLEL LOOP GANG VECTOR DEFAULT(PRESENT) &
+          !$ACC   REDUCTION(+: level_sum_value, level_sum_weight) IF(lzacc)
+          DO idx = start_index, end_index
+            level_sum_value  = level_sum_value + &
+              & values(idx, level, block) * weights(idx, level, block)
+            level_sum_weight  = level_sum_weight + weights(idx, level, block)
+          ENDDO
+          !$ACC END PARALLEL LOOP
+        ENDDO
+!ICON_OMP_END_PARALLEL_DO
+        !$ACC END DATA
+        total_sum(level)  = level_sum_value
+        sum_weight(level) = level_sum_weight 
+      ENDDO !levels
+
+    ENDIF
+    !-----------------------------------------------------
+    ! Collect the value and weight sums (at all procs)
+    !$ACC DATA COPYIN(total_sum)
+    CALL gather_sums(total_sum, sum_weight, lopenacc=lzacc)
+    !$ACC END DATA
+    !-----------------------------------------------------
+ 
+    IF (PRESENT(mean)) THEN
+      mean = 0.0_wp
+      !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1) IF(lzacc)
+      !$ACC LOOP GANG(STATIC: 1) VECTOR
+       DO level = start_vertical, end_vertical
+        ! write(0,*) level, ":", total_sum(level), total_weight(level), accumulated_mean(level)
+        mean(level) = total_sum(level)/sum_weight(level)
+      ENDDO
+      !$ACC END PARALLEL
+    ENDIF
+
+    IF (PRESENT(sumLevelWeights)) THEN
+      sumLevelWeights = sum_weight
+    ENDIF
+    !$ACC WAIT(1)
+
+    !$ACC END DATA
+    DEALLOCATE(sum_weight)
+  
+  END SUBROUTINE Cray_LevelHorizontalSum_3D_InRange_3Dweights
+  !-----------------------------------------------------------------------
+#endif
 
   !-----------------------------------------------------------------------
   !>
@@ -1142,7 +1389,7 @@ CONTAINS
         CALL get_index_range(in_subset, block, start_index, end_index)
         
         !$ACC PARALLEL LOOP GANG VECTOR DEFAULT(PRESENT) &
-        !$ACC   REDUCTION(+: total_sum, no_of_additions) ASYNC(1) IF(lzacc)
+        !$ACC   REDUCTION(+: total_sum, no_of_additions) IF(lzacc)
         DO idx = start_index, end_index
           !$ACC LOOP SEQ
           DO level = 1, MIN(1, in_subset%vertical_levels(idx,block))
@@ -1150,7 +1397,7 @@ CONTAINS
             no_of_additions = no_of_additions + 1
           ENDDO
         ENDDO
-        !$ACC END PARALLEL
+        !$ACC END PARALLEL LOOP
       ENDDO
 !ICON_OMP_END_PARALLEL_DO
 
@@ -1161,12 +1408,12 @@ CONTAINS
         CALL get_index_range(in_subset, block, start_index, end_index)
         
         !$ACC PARALLEL LOOP GANG VECTOR DEFAULT(PRESENT) &
-        !$ACC   REDUCTION(+: total_sum, no_of_additions) ASYNC(1) IF(lzacc)
+        !$ACC   REDUCTION(+: total_sum, no_of_additions) IF(lzacc)
         DO idx = start_index, end_index
           total_sum  = total_sum + values(idx, block)
           no_of_additions = no_of_additions + 1
         ENDDO
-        !$ACC END PARALLEL
+        !$ACC END PARALLEL LOOP
       ENDDO
 !ICON_OMP_END_PARALLEL_DO
 
@@ -1217,29 +1464,27 @@ CONTAINS
         DO block = in_subset%start_block, in_subset%end_block
           CALL get_index_range(in_subset, block, start_index, end_index)
           !$ACC PARALLEL LOOP GANG VECTOR DEFAULT(PRESENT) &
-          !$ACC   REDUCTION(+: total_weight, total_sum) ASYNC(1)
+          !$ACC   REDUCTION(+: total_weight, total_sum)
           DO idx = start_index, end_index
             DO level = 1, MIN(1, in_subset%vertical_levels(idx,block))
               total_sum  = total_sum + values(idx, block) * weights(idx, block)
               total_weight = total_weight + weights(idx, block)
             ENDDO
           ENDDO
-          !$ACC END PARALLEL
+          !$ACC END PARALLEL LOOP
         ENDDO
-        !$ACC WAIT(1)
       ELSE ! not in_subset%vertical_levels
 
         DO block = in_subset%start_block, in_subset%end_block
         CALL get_index_range(in_subset, block, start_index, end_index)
           !$ACC PARALLEL LOOP GANG VECTOR DEFAULT(PRESENT) &
-          !$ACC   REDUCTION(+: total_weight, total_sum) ASYNC(1)
+          !$ACC   REDUCTION(+: total_weight, total_sum)
           DO idx = start_index, end_index
             total_sum  = total_sum + values(idx, block) * weights(idx, block)
             total_weight = total_weight + weights(idx, block)
           ENDDO
-          !$ACC END PARALLEL
+          !$ACC END PARALLEL LOOP
         ENDDO
-        !$ACC WAIT(1)
       ENDIF
       !$ACC END DATA
     ELSE

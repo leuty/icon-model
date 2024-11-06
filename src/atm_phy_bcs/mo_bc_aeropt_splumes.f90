@@ -198,9 +198,9 @@ MODULE mo_bc_aeropt_splumes
     CALL closeFile(ifile_id)
     sp_initialized = .TRUE.
 
-    !$ACC ENTER DATA COPYIN(beta_a, beta_b, plume_lat, plume_lon, sig_lon_W, sig_lon_E, sig_lat_W, sig_lat_E, ftr_weight)&
-    !$ACC    COPYIN(aod_spmx, aod_fmbg, ssa550, asy550, year_weight, ann_cycle, angstrom, theta)&
-    !$ACC    CREATE(time_weight, time_weight_bg) ASYNC(1) 
+    !$ACC ENTER DATA COPYIN(beta_a, beta_b, plume_lat, plume_lon, sig_lon_W, sig_lon_E, sig_lat_W, sig_lat_E, ftr_weight) &
+    !$ACC   COPYIN(aod_spmx, aod_fmbg, ssa550, asy550, year_weight, ann_cycle, angstrom, theta) &
+    !$ACC   CREATE(time_weight, time_weight_bg) ASYNC(1)
     !Host has these pointer already and since we just read them, copyin is correct.
 
     RETURN
@@ -347,13 +347,24 @@ MODULE mo_bc_aeropt_splumes
         beta_sum(icol) = 0._wp
       END DO
       !$ACC END PARALLEL LOOP
-      !$ACC PARALLEL LOOP GANG VECTOR COLLAPSE(2) DEFAULT(PRESENT) REDUCTION(+:beta_sum) ASYNC(1) IF(use_acc)
+#if defined(_CRAYFTN) && _RELEASE_MAJOR <= 17
+      !$ACC PARALLEL LOOP GANG VECTOR DEFAULT(PRESENT) ASYNC(1) IF(use_acc)
+      DO icol=jcs,ncol
+        !$ACC LOOP SEQ
+        DO k=1,nlevels
+          prof(icol,k)   = (eta(icol,k)**(beta_a(iplume)-1._wp) * (1._wp-eta(icol,k))**(beta_b(iplume)-1._wp))*dz(icol,k)
+          beta_sum(icol) = beta_sum(icol) + prof(icol,k)
+        END DO
+      END DO
+#else
+      !$ACC PARALLEL LOOP GANG VECTOR COLLAPSE(2) DEFAULT(PRESENT) REDUCTION(+: beta_sum) ASYNC(1) IF(use_acc)
       DO k=1,nlevels
         DO icol=jcs,ncol
           prof(icol,k)   = (eta(icol,k)**(beta_a(iplume)-1._wp) * (1._wp-eta(icol,k))**(beta_b(iplume)-1._wp))*dz(icol,k)
           beta_sum(icol) = beta_sum(icol) + prof(icol,k)
         END DO
       END DO
+#endif
       !$ACC END PARALLEL LOOP
       !$ACC PARALLEL LOOP GANG VECTOR COLLAPSE(2) DEFAULT(PRESENT) ASYNC(1) IF(use_acc)
       DO k=1,nlevels
@@ -386,7 +397,7 @@ MODULE mo_bc_aeropt_splumes
         ssa(icol) = (ssa550(iplume) * lfactor**4) / ((ssa550(iplume) * lfactor**4) + ((1-ssa550(iplume)) * lfactor))
         asy(icol) =  asy550(iplume) * SQRT(lfactor)
       END DO
-      !$ACC END PARALLEL LOOP 
+      !$ACC END PARALLEL LOOP
       !
       ! distribute plume optical properties across its vertical profile weighting by optical depth and scaling for
       ! wavelength using the anstrom parameter. 
@@ -439,7 +450,7 @@ MODULE mo_bc_aeropt_splumes
     END DO
     !$ACC END PARALLEL LOOP
     !$ACC WAIT(1)
-    !$ACC END DATA 
+    !$ACC END DATA
     RETURN
   END SUBROUTINE sp_aop_profile
   !
@@ -644,7 +655,7 @@ ELSE
      & lat_sp         ,aer_sp_f1      ,aer_sp_f2      ,aer_sp_f3      , &
      & aer_sp_f4      ,opt_use_acc=use_acc                              )
 
-!$ACC UPDATE HOST(bc_spl_field(jg)%aer_sp_f1(:,:,jb),bc_spl_field(jg)%aer_sp_f2(:,:,jb),bc_spl_field(jg)%aer_sp_f3(:,:,jb),bc_spl_field(jg)%aer_sp_f4(:,:,jb)) ASYNC(1)
+!$ACC UPDATE HOST(bc_spl_field(jg)%aer_sp_f1(:,:,jb), bc_spl_field(jg)%aer_sp_f2(:,:,jb), bc_spl_field(jg)%aer_sp_f3(:,:,jb), bc_spl_field(jg)%aer_sp_f4(:,:,jb)) ASYNC(1)
       
       DO jwl = 1,nb_sw
         lambda = 1.e7_wp/ (0.5_wp * (sw_wv1(jwl) + sw_wv2(jwl)))

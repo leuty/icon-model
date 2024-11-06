@@ -1,7 +1,3 @@
-!
-! Memory for splumes: Geometric factors depending on the grid
-! only can be pre-calculated.
-!
 ! ICON
 !
 ! ---------------------------------------------------------------
@@ -11,6 +7,12 @@
 ! See AUTHORS.TXT for a list of authors
 ! See LICENSES/ for license information
 ! SPDX-License-Identifier: BSD-3-Clause
+! ---------------------------------------------------------------!
+
+
+! ---------------------------------------------------------------!
+! Memory for splumes: Geometric factors depending on the grid
+! only can be pre-calculated.
 ! ---------------------------------------------------------------
 
 MODULE mo_bc_aeropt_splumes_memory
