@@ -1,5 +1,11 @@
 # Release notes for icon-YYYY.MM
 
+### ICON-Atmo
+
+AES Physics:
+
+- Optimization of computation of geometric grid information for simple plumes
+
 ### Soil and Surface
 
 Climate: ICON-Land
@@ -14,6 +20,11 @@ Climate: ICON-Land
     - Clean-up calculation of stand-replacing harvest
 - Small fix for ICON-Land standalone concerning nproma
 - New optional tag for the memory usage report
+
+### Infrastructure
+
+- Use OMP and ACC reductions in mo_statistics.f90
+
 
 # Release notes for icon-2024.10
 
