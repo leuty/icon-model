@@ -16,6 +16,7 @@
 MODULE mo_ocean_coupling_frame
 
   USE mo_exception,           ONLY: message, finish
+  USE mo_grid_config,         ONLY: n_dom
   USE mo_run_config,          ONLY: ltimer
   USE mo_timer,               ONLY: timer_start, timer_stop, &
        &                            timer_coupling_init
@@ -42,9 +43,6 @@ MODULE mo_ocean_coupling_frame
   CHARACTER(len=*), PARAMETER :: str_module = 'mo_ocean_coupling_frame' ! Output of module for debug
 
   PUBLIC :: construct_ocean_coupling, destruct_ocean_coupling
-  PUBLIC :: nbr_inner_cells
-
-  INTEGER, SAVE :: nbr_inner_cells
 
 CONTAINS
 
@@ -63,8 +61,8 @@ CONTAINS
     TYPE(t_patch), POINTER :: patch_horz
 
     INTEGER :: comp_id, output_comp_id
-    INTEGER :: grid_id
-    INTEGER :: cell_point_id, vertex_point_id
+    INTEGER :: grid_id(0:n_dom)
+    INTEGER :: cell_point_id(0:n_dom), vertex_point_id(0:n_dom)
 
     CHARACTER(LEN=MAX_TIMEDELTA_STR_LEN) :: timestepstring
 
@@ -81,23 +79,21 @@ CONTAINS
 
     ! Do basic initialisation of the component
     IF( is_coupled_to_output() ) THEN
-      CALL cpl_def_main(routine,           & !in
-                        patch_horz,        & !in
-                        "icon_ocean_grid", & !in
-                        comp_id,           & !out
-                        output_comp_id,    & !out
-                        grid_id,           & !out
-                        cell_point_id,     & !out
-                        vertex_point_id,   & !out
-                        nbr_inner_cells)     !out
+      CALL cpl_def_main(routine,                 & !in
+                        patch_3d%p_patch_2d(1:), & !in
+                        "icon_ocean_grid",       & !in
+                        comp_id,                 & !out
+                        output_comp_id,          & !out
+                        grid_id,                 & !out
+                        cell_point_id,           & !out
+                        vertex_point_id)           !out
     ELSE
-      CALL cpl_def_main(routine,           & !in
-                        patch_horz,        & !in
-                        "icon_ocean_grid", & !in
-                        comp_id,           & !out
-                        grid_id,           & !out
-                        cell_point_id,     & !out
-                        nbr_inner_cells)     !out
+      CALL cpl_def_main(routine,                 & !in
+                        patch_3d%p_patch_2d(1:), & !in
+                        "icon_ocean_grid",       & !in
+                        comp_id,                 & !out
+                        grid_id,                 & !out
+                        cell_point_id)             !out
     ENDIF
 
     ! get model timestep
@@ -108,8 +104,8 @@ CONTAINS
       CALL message(str_module, 'Constructing the coupling frame ocean-output.')
 
       CALL construct_output_coupling ( &
-        patch_3d%p_patch_2d(1:), output_comp_id, cell_point_id, &
-        vertex_point_id, timestepstring)
+        patch_3d%p_patch_2d(1:), output_comp_id, cell_point_id(1), &
+        vertex_point_id(1), timestepstring)
 
     END IF
 
@@ -119,8 +115,7 @@ CONTAINS
       CALL message(str_module, 'Constructing the coupling frame ocean-atmosphere.')
 
       CALL construct_ocean_atmo_coupling( &
-        patch_3d, comp_id, grid_id, cell_point_id, timestepstring, &
-        nbr_inner_cells)
+        patch_3d, comp_id, grid_id(1), cell_point_id(1), timestepstring)
 
     END IF
 

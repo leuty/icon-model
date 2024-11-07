@@ -19,6 +19,7 @@ MODULE mo_wave_coupling_frame
 
   USE mo_exception,       ONLY: finish, message
   USE mo_model_domain,    ONLY: t_patch
+  USE mo_grid_config,     ONLY: n_dom
   USE mo_run_config,      ONLY: ltimer
   USE mo_time_config,     ONLY: time_config
   USE mtime,              ONLY: timedeltaToString, MAX_TIMEDELTA_STR_LEN
@@ -32,12 +33,9 @@ MODULE mo_wave_coupling_frame
   PRIVATE
 
   PUBLIC :: construct_wave_coupling, destruct_wave_coupling
-  PUBLIC :: nbr_inner_cells
 
   ! Output of module for debug
   CHARACTER(len=*), PARAMETER :: str_module = 'mo_wave_coupling_frame'
-
-  INTEGER, SAVE         :: nbr_inner_cells
 
 CONTAINS
 
@@ -62,9 +60,9 @@ CONTAINS
     ! too much in future.
     !---------------------------------------------------------------------
 
-    INTEGER :: comp_id              ! component identifier
-    INTEGER :: grid_id              ! grid identifier
-    INTEGER :: cell_point_id
+    INTEGER :: comp_id          ! component identifier
+    INTEGER :: grid_id(0:n_dom) ! grid identifier
+    INTEGER :: cell_point_id(0:n_dom)
 
     INTEGER :: jg
 
@@ -83,12 +81,11 @@ CONTAINS
 
     ! do basic initialisation of the component
     CALL cpl_def_main(routine,           & !in
-                      patch_horz,        & !in
+                      p_patch,           & !in
                       "icon_waves_grid", & !in
                       comp_id,           & !out
                       grid_id,           & !out
-                      cell_point_id,     & !out
-                      nbr_inner_cells)     !out
+                      cell_point_id)       !out
 
     ! get model timestep
     CALL timedeltaToString(time_config%tc_dt_model, timestepstring)
@@ -98,7 +95,7 @@ CONTAINS
       CALL message(str_module, 'Constructing the coupling frame wave-atmosphere.')
 
       CALL construct_wave_atmo_coupling( &
-        comp_id, cell_point_id, timestepstring)
+        comp_id, cell_point_id(1), timestepstring)
 
     END IF
 

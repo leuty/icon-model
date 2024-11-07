@@ -17,7 +17,7 @@ MODULE mo_ocean_atmo_coupling
   USE mo_kind,                ONLY: wp
   USE mo_parallel_config,     ONLY: nproma
   USE mo_impl_constants,      ONLY: max_char_length
-  USE mo_mpi,                 ONLY: p_comm_work, p_sum 
+  USE mo_mpi,                 ONLY: p_comm_work, p_lor
   USE mo_physical_constants,  ONLY: tmelt, rhoh2o
   USE mo_run_config,          ONLY: ltimer, msg_level
   USE mo_dynamics_config,     ONLY: nnew
@@ -66,8 +66,6 @@ MODULE mo_ocean_atmo_coupling
   INTEGER, TARGET :: field_id_pres_msl
   INTEGER :: field_id_freshflx_runoff
 
-  INTEGER, SAVE :: nbr_inner_cells
-
 CONTAINS
 
   !--------------------------------------------------------------------------
@@ -78,22 +76,20 @@ CONTAINS
   !! This subroutine is called from construct_ocean_coupling.
   !!
   SUBROUTINE construct_ocean_atmo_coupling( &
-    patch_3d, comp_id, grid_id, cell_point_id, timestepstring, &
-    nbr_inner_cells_)
+    patch_3d, comp_id, grid_id, cell_point_id, timestepstring)
 
     TYPE(t_patch_3d ), TARGET, INTENT(in) :: patch_3d
     INTEGER, INTENT(IN) :: comp_id
     INTEGER, INTENT(IN) :: grid_id
     INTEGER, INTENT(IN) :: cell_point_id
     CHARACTER(LEN=*), INTENT(IN) :: timestepstring
-    INTEGER, INTENT(IN) :: nbr_inner_cells_
 
     INTEGER                :: patch_no
     TYPE(t_patch), POINTER :: patch_horz
 
     INTEGER :: cell_mask_id
 
-    INTEGER :: mask_checksum
+    LOGICAL :: use_mask
     INTEGER :: blockNo, cell_index, i
 
     LOGICAL, ALLOCATABLE  :: is_valid(:)
@@ -112,8 +108,6 @@ CONTAINS
 
     patch_no = 1
     patch_horz => patch_3d%p_patch_2d(patch_no)
-
-    nbr_inner_cells = nbr_inner_cells_
 
     field_name(1) = "surface_downward_eastward_stress"   ! bundled field containing two components
     collection_size(1) = 2
@@ -172,17 +166,12 @@ CONTAINS
     ! The logical mask for the coupler is set to .FALSE. for land points to exclude them from mapping by yac.
     ! These points are not touched by yac.
 
-    mask_checksum = 0
-!ICON_OMP_PARALLEL_DO PRIVATE(blockNo,cell_index) REDUCTION(+:mask_checksum) ICON_OMP_DEFAULT_SCHEDULE
-    DO blockNo = 1, patch_horz%nblks_c
-      DO cell_index = 1, nproma
-        mask_checksum = mask_checksum + ABS(patch_3d%surface_cell_sea_land_mask(cell_index, blockNo))
-      ENDDO
-    ENDDO
-!ICON_OMP_END_PARALLEL_DO
-    mask_checksum = p_sum(mask_checksum, comm=p_comm_work)
+    use_mask = &
+      p_lor( &
+        ANY(patch_3d%surface_cell_sea_land_mask( &
+              1:nproma,1:patch_horz%nblks_c) /= 0.0), p_comm_work)
 
-    IF ( mask_checksum > 0 ) THEN
+    IF ( use_mask ) THEN
 
      ALLOCATE(is_valid(nproma*patch_horz%nblks_c))
 
@@ -257,8 +246,6 @@ CONTAINS
     INTEGER :: no_arr         ! no of arrays in bundle for put/get calls
     TYPE(t_patch), POINTER:: patch_horz
 
-    REAL(wp), PARAMETER :: dummy = 0.0_wp
-
     REAL(wp), ALLOCATABLE :: put_buffer(:,:,:)
     REAL(wp), ALLOCATABLE :: get_buffer(:,:)
     REAL(wp):: diag_runoff
@@ -267,6 +254,8 @@ CONTAINS
     CHARACTER(LEN=*), PARAMETER   :: routine = str_module // ':couple_ocean_toatmo_fluxes'
 
     IF (.NOT. is_coupled_to_atmo() ) RETURN
+
+    CALL message(routine, "starts...")
 
     patch_horz   => patch_3D%p_patch_2D(1)
 
@@ -441,24 +430,6 @@ CONTAINS
       first_get=.TRUE., received_data=received_data)
     !
     IF (received_data) THEN
-      !
-!ICON_OMP_PARALLEL_DO PRIVATE(blockNo, cell_index, nn, nlen) ICON_OMP_DEFAULT_SCHEDULE
-      DO blockNo = 1, patch_horz%nblks_c
-        nn = (blockNo-1)*nproma
-        IF (blockNo /= patch_horz%nblks_c) THEN
-          nlen = nproma
-        ELSE
-          nlen = patch_horz%npromz_c
-        END IF
-        DO cell_index = 1, nlen
-          IF ( nn+cell_index > nbr_inner_cells ) THEN
-            atmos_fluxes%stress_xw(cell_index,blockNo) = dummy
-            atmos_fluxes%stress_x (cell_index,blockNo) = dummy
-          ENDIF
-        ENDDO
-      ENDDO
-!ICON_OMP_END_PARALLEL_DO
-      !
       CALL sync_patch_array(sync_c, patch_horz, atmos_fluxes%stress_xw(:,:))
       CALL sync_patch_array(sync_c, patch_horz, atmos_fluxes%stress_x (:,:))
     ENDIF
@@ -474,24 +445,6 @@ CONTAINS
       field_2=atmos_fluxes%stress_y, received_data=received_data)
     !
     IF (received_data) THEN
-      !
-!ICON_OMP_PARALLEL_DO PRIVATE(blockNo, cell_index, nn, nlen) ICON_OMP_DEFAULT_SCHEDULE
-      DO blockNo = 1, patch_horz%nblks_c
-        nn = (blockNo-1)*nproma
-        IF (blockNo /= patch_horz%nblks_c) THEN
-          nlen = nproma
-        ELSE
-          nlen = patch_horz%npromz_c
-        END IF
-        DO cell_index = 1, nlen
-          IF ( nn+cell_index > nbr_inner_cells ) THEN
-            atmos_fluxes%stress_yw(cell_index,blockNo) = dummy
-            atmos_fluxes%stress_y (cell_index,blockNo) = dummy
-          ENDIF
-        ENDDO
-      ENDDO
-!ICON_OMP_END_PARALLEL_DO
-      !
       CALL sync_patch_array(sync_c, patch_horz, atmos_fluxes%stress_yw(:,:))
       CALL sync_patch_array(sync_c, patch_horz, atmos_fluxes%stress_y (:,:))
     ENDIF
@@ -523,19 +476,13 @@ CONTAINS
           nlen = patch_horz%npromz_c
         END IF
         DO cell_index = 1, nlen
-          IF ( nn+cell_index > nbr_inner_cells ) THEN
-            atmos_fluxes%FrshFlux_SnowFall     (cell_index,blockNo) = dummy
-            atmos_fluxes%FrshFlux_Evaporation  (cell_index,blockNo) = dummy
-            atmos_fluxes%FrshFlux_Precipitation(cell_index,blockNo) = dummy
-          ELSE
-            atmos_fluxes%FrshFlux_SnowFall     (cell_index,blockNo) = &
-              atmos_fluxes%FrshFlux_SnowFall     (cell_index,blockNo) / rhoh2o
-            atmos_fluxes%FrshFlux_Evaporation  (cell_index,blockNo) = &
-              atmos_fluxes%FrshFlux_Evaporation  (cell_index,blockNo) / rhoh2o
-            atmos_fluxes%FrshFlux_Precipitation(cell_index,blockNo) = &
-              atmos_fluxes%FrshFlux_Precipitation(cell_index,blockNo) / rhoh2o + &
-              atmos_fluxes%FrshFlux_SnowFall(cell_index,blockNo)
-          ENDIF
+          atmos_fluxes%FrshFlux_SnowFall     (cell_index,blockNo) = &
+            atmos_fluxes%FrshFlux_SnowFall     (cell_index,blockNo) / rhoh2o
+          atmos_fluxes%FrshFlux_Evaporation  (cell_index,blockNo) = &
+            atmos_fluxes%FrshFlux_Evaporation  (cell_index,blockNo) / rhoh2o
+          atmos_fluxes%FrshFlux_Precipitation(cell_index,blockNo) = &
+            atmos_fluxes%FrshFlux_Precipitation(cell_index,blockNo) / rhoh2o + &
+            atmos_fluxes%FrshFlux_SnowFall(cell_index,blockNo)
         ENDDO
       ENDDO
 !ICON_OMP_END_PARALLEL_DO
@@ -567,26 +514,7 @@ CONTAINS
 
     !
     IF (received_data) THEN
-      !
-!ICON_OMP_PARALLEL_DO PRIVATE(blockNo, cell_index, nn, nlen) ICON_OMP_DEFAULT_SCHEDULE
-      DO blockNo = 1, patch_horz%nblks_c
-        nn = (blockNo-1)*nproma
-        IF (blockNo /= patch_horz%nblks_c) THEN
-          nlen = nproma
-        ELSE
-          nlen = patch_horz%npromz_c
-        END IF
-        DO cell_index = 1, nlen
-          IF ( nn+cell_index > nbr_inner_cells ) THEN
-            atmos_fluxes%HeatFlux_ShortWave(cell_index,blockNo) = dummy
-            atmos_fluxes%HeatFlux_LongWave (cell_index,blockNo) = dummy
-            atmos_fluxes%HeatFlux_Sensible (cell_index,blockNo) = dummy
-            atmos_fluxes%HeatFlux_Latent   (cell_index,blockNo) = dummy
-          ENDIF
-        ENDDO
-      ENDDO
-!ICON_OMP_END_PARALLEL_DO
-      !
+
       CALL sync_patch_array(sync_c, patch_horz, atmos_fluxes%HeatFlux_ShortWave(:,:))
       CALL sync_patch_array(sync_c, patch_horz, atmos_fluxes%HeatFlux_LongWave (:,:))
       CALL sync_patch_array(sync_c, patch_horz, atmos_fluxes%HeatFlux_Sensible (:,:))
@@ -601,10 +529,11 @@ CONTAINS
           nlen = patch_horz%npromz_c
         END IF
         DO cell_index = 1, nlen
-          atmos_fluxes%HeatFlux_Total(cell_index,blockNo) = atmos_fluxes%HeatFlux_ShortWave(cell_index,blockNo) &
-        &                                                 + atmos_fluxes%HeatFlux_LongWave (cell_index,blockNo) &
-        &                                                 + atmos_fluxes%HeatFlux_Sensible (cell_index,blockNo) &
-        &                                                 + atmos_fluxes%HeatFlux_Latent   (cell_index,blockNo)
+          atmos_fluxes%HeatFlux_Total(cell_index,blockNo) = &
+            atmos_fluxes%HeatFlux_ShortWave(cell_index,blockNo) + &
+            atmos_fluxes%HeatFlux_LongWave (cell_index,blockNo) + &
+            atmos_fluxes%HeatFlux_Sensible (cell_index,blockNo) + &
+            atmos_fluxes%HeatFlux_Latent   (cell_index,blockNo)
         ENDDO
       ENDDO
 !ICON_OMP_END_PARALLEL_DO
@@ -634,13 +563,8 @@ CONTAINS
           nlen = patch_horz%npromz_c
         END IF
         DO cell_index = 1, nlen
-          IF ( nn+cell_index > nbr_inner_cells ) THEN
-            ice%qtop(cell_index,1,blockNo) = dummy
-            ice%qbot(cell_index,1,blockNo) = dummy
-          ELSE
-            ice%qtop(cell_index,1,blockNo) = get_buffer(nn+cell_index,1)
-            ice%qbot(cell_index,1,blockNo) = get_buffer(nn+cell_index,2)
-          ENDIF
+          ice%qtop(cell_index,1,blockNo) = get_buffer(nn+cell_index,1)
+          ice%qbot(cell_index,1,blockNo) = get_buffer(nn+cell_index,2)
         ENDDO
       ENDDO
 !ICON_OMP_END_PARALLEL_DO
@@ -670,12 +594,8 @@ CONTAINS
           nlen = patch_horz%npromz_c
         END IF
         DO cell_index = 1, nlen
-          IF ( nn+cell_index > nbr_inner_cells ) THEN
-            atmos_forcing%fu10(cell_index,blockNo) = dummy
-          ELSE
-            IF ( atmos_forcing%fu10(cell_index,blockNo) < 0.0_wp ) &
-              atmos_forcing%fu10(cell_index,blockNo) = 0.0_wp
-          ENDIF
+          IF ( atmos_forcing%fu10(cell_index,blockNo) < 0.0_wp ) &
+            atmos_forcing%fu10(cell_index,blockNo) = 0.0_wp
         ENDDO
       ENDDO
 !!ICON_OMP_END_PARALLEL_DO
@@ -692,26 +612,9 @@ CONTAINS
       'sea level pressure', nbr_hor_cells, atmos_forcing%pao, &
       received_data=received_data)
     !
-    IF (received_data) THEN
-      !
-!!ICON_OMP_PARALLEL_DO PRIVATE(blockNo, cell_index, nn, nlen) ICON_OMP_DEFAULT_SCHEDULE
-      DO blockNo = 1, patch_horz%nblks_c
-        nn = (blockNo-1)*nproma
-        IF (blockNo /= patch_horz%nblks_c) THEN
-          nlen = nproma
-        ELSE
-          nlen = patch_horz%npromz_c
-        END IF
-        DO cell_index = 1, nlen
-          IF ( nn+cell_index > nbr_inner_cells ) THEN
-            atmos_forcing%pao(cell_index,blockNo) = dummy
-          ENDIF
-        ENDDO
-      ENDDO
-!!ICON_OMP_END_PARALLEL_DO
-      !
+    IF (received_data) &
       CALL sync_patch_array(sync_c, patch_horz, atmos_forcing%pao(:,:))
-    END IF
+
     !
     ! ------------------------------
     !  Receive co2 mixing ratio
@@ -735,12 +638,8 @@ CONTAINS
             nlen = patch_horz%npromz_c
           END IF
           DO cell_index = 1, nlen
-            IF ( nn+cell_index > nbr_inner_cells ) THEN
-              atmos_forcing%co2(cell_index,blockNo) = dummy
-            ELSE
-              IF ( atmos_forcing%co2(cell_index,blockNo) < 0.0_wp ) &
-                atmos_forcing%co2(cell_index,blockNo) = 0.0_wp
-            ENDIF
+            IF ( atmos_forcing%co2(cell_index,blockNo) < 0.0_wp ) &
+              atmos_forcing%co2(cell_index,blockNo) = 0.0_wp
           ENDDO
         ENDDO
 !!ICON_OMP_END_PARALLEL_DO
@@ -780,16 +679,14 @@ CONTAINS
           nlen = patch_horz%npromz_c
         END IF
         DO cell_index = 1, nlen
-          IF ( nn+cell_index <= nbr_inner_cells ) THEN
-            ! !!! Note: freshwater fluxes are received in kg/m^2/s and are
-            ! !!!       converted to m/s by division by rhoh2o below.
-            ! !!!   atmos_fluxes%FrshFlux_Runoff(cell_index,blockNo) = &
-            ! !!!     atmos_fluxes%FrshFlux_Runoff(cell_index,blockNo) / rhoh2o
-            ! discharge_ocean is in m3/s
-            atmos_fluxes%FrshFlux_Runoff(cell_index,blockNo) = &
-              atmos_fluxes%FrshFlux_Runoff(cell_index,blockNo) / &
-              patch_horz%cells%area(cell_index,blockNo)
-          ENDIF
+          ! !!! Note: freshwater fluxes are received in kg/m^2/s and are
+          ! !!!       converted to m/s by division by rhoh2o below.
+          ! !!!   atmos_fluxes%FrshFlux_Runoff(cell_index,blockNo) = &
+          ! !!!     atmos_fluxes%FrshFlux_Runoff(cell_index,blockNo) / rhoh2o
+          ! discharge_ocean is in m3/s
+          atmos_fluxes%FrshFlux_Runoff(cell_index,blockNo) = &
+            atmos_fluxes%FrshFlux_Runoff(cell_index,blockNo) / &
+            patch_horz%cells%area(cell_index,blockNo)
         ENDDO
       ENDDO
 !ICON_OMP_END_PARALLEL_DO
@@ -828,6 +725,8 @@ CONTAINS
 
     DEALLOCATE(put_buffer)
     DEALLOCATE(get_buffer)
+
+    CALL message(routine, "ends.")
 
   END SUBROUTINE couple_ocean_toatmo_fluxes
   !--------------------------------------------------------------------------

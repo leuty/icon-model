@@ -1062,8 +1062,6 @@ CONTAINS
       !$ACC WAIT
 
 #ifndef __NO_ICON_OCEAN__
-      ! LL This is a temporary solution,
-      ! we should restrcure ice thermodynamics in a more stand-alone way
 
       ! For explicit coupling to ice:
 

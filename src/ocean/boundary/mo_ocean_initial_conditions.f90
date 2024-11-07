@@ -53,7 +53,7 @@ MODULE mo_ocean_initial_conditions
   USE mo_math_utilities,     ONLY: gvec2cvec
   USE mo_exception,          ONLY: finish, message, message_text
   USE mo_util_dbg_prnt,      ONLY: dbg_print
-  USE mo_model_domain,       ONLY: t_patch, t_patch_3d
+  USE mo_model_domain,       ONLY: t_patch, t_patch_3d, t_grid_cells
   USE mo_ext_data_types,     ONLY: t_external_data
   USE mo_ocean_types,          ONLY: t_hydro_ocean_state
   USE mo_scalar_product,     ONLY: map_cell2edges_3D
@@ -703,9 +703,12 @@ CONTAINS
         & waveNumber=1.0_wp * initial_perturbation_waveNumber, &
         &  max_ratio=0.1_wp * initial_perturbation_max_ratio)
 
-    !CASE (220)
-    
-    !  CALL tracer_Redi_test(patch_3d=patch_3d, ocean_tracer=ocean_temperature,ocean_state=ocean_state)
+    !------------------------------
+    CASE (219)
+      CALL tracer_smoothAPE_WarmPool(patch_3d, ocean_temperature, &
+        & top_value=initial_temperature_top, bottom_value=initial_temperature_bottom)
+
+    !------------------------------
 
     CASE (221)
       ! Abernathey setup 01; initial SST reflects the heat fluxes
@@ -854,6 +857,7 @@ CONTAINS
   END SUBROUTINE init_ocean_temperature
   !-------------------------------------------------------------------------------
   
+ 
   !-------------------------------------------------------------------------------
   SUBROUTINE init_ocean_velocity_uv_fromFile(patch_3d, normal_velocity)
     TYPE(t_patch_3d ),TARGET, INTENT(inout) :: patch_3d
@@ -2290,6 +2294,55 @@ write(0,*)'Williamson-Test6:vn', maxval(vn),minval(vn)
   END SUBROUTINE temperature_smoothAPE_LinearLevels
   !-------------------------------------------------------------------------------
 
+  !-------------------------------------------------------------------------------
+  SUBROUTINE tracer_smoothAPE_WarmPool(patch_3d, ocean_tracer, top_value, bottom_value)
+    TYPE(t_patch_3d ),TARGET, INTENT(in) :: patch_3d
+    REAL(wp), TARGET :: ocean_tracer(:,:,:)
+    REAL(wp), INTENT(in) :: top_value, bottom_value
+
+    TYPE(t_patch),POINTER   :: patch_2d
+    TYPE(t_grid_cells), POINTER :: cells
+    TYPE(t_subset_range), POINTER :: all_cells
+
+    INTEGER :: block, idx, level
+    INTEGER :: start_cell_index, end_cell_index
+    REAL(wp) :: tracer_ratio, center_lon, center_lat, radius
+
+    CHARACTER(LEN=*), PARAMETER :: method_name = module_name//':tracer_smoothAPE_WarmPool'
+    !-------------------------------------------------------------------------
+    CALL message(method_name, ' using smoothAPE')
+    
+    CALL tracer_smoothAPE_LinearDepth(patch_3d, ocean_tracer, top_value, bottom_value)
+    
+    patch_2d => patch_3d%p_patch_2d(1)
+    cells => patch_2d%cells
+    all_cells => patch_2d%cells%ALL
+    
+    tracer_ratio = 1.2
+    center_lon = 30.0_wp * deg2rad
+    center_lat = 55.0_wp * deg2rad
+    radius = 30.0_wp * deg2rad
+    
+    DO block = all_cells%start_block, all_cells%end_block
+      CALL get_index_range(all_cells, block, start_cell_index, end_cell_index)
+      DO idx = start_cell_index, end_cell_index
+      IF   (ABS(cells%center(idx, block)%lon - center_lon) <= radius &
+      .AND. ABS(cells%center(idx, block)%lat - center_lat) <= radius) THEN
+
+!          write(0,*) "bubble temperature at :", cells%center(idx, block)%lon*rad2deg, cells%center(idx, block)%lat*rad2deg
+          DO level=1, patch_3d%p_patch_1d(1)%dolic_c(idx,block)
+            ocean_tracer(idx,level,block) = ocean_tracer(idx,level,block) * tracer_ratio
+          ENDDO
+          
+        ENDIF
+      END DO
+    END DO
+
+    
+   
+  END SUBROUTINE  tracer_smoothAPE_WarmPool
+  !-------------------------------------------------------------------------------
+    
   !-------------------------------------------------------------------------------
   SUBROUTINE tracer_smoothAPE_LinearDepth(patch_3d, ocean_tracer, top_value, bottom_value)
     TYPE(t_patch_3d ),TARGET, INTENT(in) :: patch_3d

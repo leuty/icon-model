@@ -19,9 +19,10 @@ MODULE mo_atmo_coupling_frame
 
   USE mo_kind                ,ONLY: wp
   USE mo_model_domain        ,ONLY: t_patch
-  USE mo_atm_phy_nwp_config,  ONLY: atm_phy_nwp_config
+  USE mo_grid_config         ,ONLY: n_dom
+  USE mo_atm_phy_nwp_config  ,ONLY: atm_phy_nwp_config
   USE mo_run_config          ,ONLY: iforcing, ltimer
-  USE mo_timer,               ONLY: timer_start, timer_stop, timer_coupling_init
+  USE mo_timer               ,ONLY: timer_start, timer_stop, timer_coupling_init
   USE mo_impl_constants      ,ONLY: MAX_CHAR_LENGTH, inwp, LSS_JSBACH
   USE mo_ext_data_types      ,ONLY: t_external_data
 
@@ -39,7 +40,8 @@ MODULE mo_atmo_coupling_frame
   USE mo_time_config         ,ONLY: time_config
 
   USE mo_atmo_wave_coupling  ,ONLY: construct_atmo_wave_coupling
-  USE mo_atmo_ocean_coupling ,ONLY: construct_atmo_ocean_coupling
+  USE mo_atmo_ocean_coupling ,ONLY: construct_atmo_ocean_coupling, &
+                                    destruct_atmo_ocean_coupling
   USE mo_atmo_o3_provider_coupling,ONLY: &
     construct_atmo_o3_provider_coupling_post_sync
   USE mo_atmo_aero_provider_coupling,ONLY: &
@@ -73,9 +75,6 @@ MODULE mo_atmo_coupling_frame
   CHARACTER(len=*), PARAMETER :: str_module = 'mo_atmo_coupling_frame' ! Output of module for debug
 
   PUBLIC :: construct_atmo_coupling, destruct_atmo_coupling
-  PUBLIC :: nbr_inner_cells
-
-  INTEGER, SAVE :: nbr_inner_cells
 
 CONTAINS
 
@@ -98,8 +97,15 @@ CONTAINS
     !---------------------------------------------------------------------
 
     INTEGER :: comp_id, output_comp_id
-    INTEGER :: grid_id
-    INTEGER :: cell_point_id, vertex_point_id
+
+    ! un-nested case:
+    ! *_id(0) == -1
+    ! *_id(1) == id for main patch
+    ! nested case:
+    ! *_id(0) == id for combination of all patches
+    ! *_id(1:n_dom) == id for each patch
+    INTEGER :: grid_id(0:n_dom)
+    INTEGER :: cell_point_id(0:n_dom), vertex_point_id(0:n_dom)
 
     INTEGER :: jg
 
@@ -123,22 +129,20 @@ CONTAINS
     ! Do basic initialisation of the component
     IF( is_coupled_to_output() ) THEN
       CALL cpl_def_main(routine,           & !in
-                        patch_horz,        & !in
+                        p_patch,           & !in
                         "icon_atmos_grid", & !in
                         comp_id,           & !out
                         output_comp_id,    & !out
                         grid_id,           & !out
                         cell_point_id,     & !out
-                        vertex_point_id,   & !out
-                        nbr_inner_cells)     !out
+                        vertex_point_id)     !out
     ELSE
       CALL cpl_def_main(routine,           & !in
-                        patch_horz,        & !in
+                        p_patch,           & !in
                         "icon_atmos_grid", & !in
                         comp_id,           & !out
                         grid_id,           & !out
-                        cell_point_id,     & !out
-                        nbr_inner_cells)     !out
+                        cell_point_id)       !out
     ENDIF
 
 #ifndef __NO_ICON_COMIN__
@@ -153,7 +157,8 @@ CONTAINS
       CALL message(str_module, 'Constructing the coupling frame atmosphere-output.')
 
       CALL construct_output_coupling ( &
-        p_patch, output_comp_id, cell_point_id, vertex_point_id, timestepstring)
+        p_patch, output_comp_id, cell_point_id(1), vertex_point_id(1), &
+        timestepstring)
 
     END IF
 
@@ -174,7 +179,8 @@ CONTAINS
         ! Construct coupling frame for atmosphere/JSBACH-hydrological discharge
         CALL message(str_module, 'Constructing the coupling frame atmosphere/JSBACH-hydrological discharge.')
 
-        CALL jsb_fdef_hd_fields(comp_id, (/cell_point_id/), grid_id, patch_horz%n_patch_cells)
+        CALL jsb_fdef_hd_fields( &
+          comp_id, cell_point_id(1:1), grid_id(1), patch_horz%n_patch_cells)
 
       ENDIF
 
@@ -188,7 +194,7 @@ CONTAINS
 
 
       CALL construct_nwp_hydrodisc_coupling( &
-        p_patch, ext_data, comp_id, grid_id, cell_point_id, timestepstring)
+        p_patch, ext_data, comp_id, grid_id(1), cell_point_id(1), timestepstring)
 
     ENDIF ! Construct coupling frame for atmosphere-hydrological discharge
 
@@ -197,7 +203,7 @@ CONTAINS
       CALL message(str_module, 'Constructing the coupling frame atmosphere-wave.')
 
       CALL construct_atmo_wave_coupling( &
-        comp_id, cell_point_id, timestepstring)
+        comp_id, cell_point_id(1), timestepstring)
 
     END IF
 
@@ -219,7 +225,7 @@ CONTAINS
       CALL message(str_module, 'Constructing the coupling frame atmosphere-o3 provider.')
 
       CALL construct_atmo_o3_provider_coupling_post_sync( &
-        comp_id, cell_point_id, TRIM(aes_phy_config(jg)%dt_rad))
+        comp_id, cell_point_id(1), TRIM(aes_phy_config(jg)%dt_rad))
 
     END IF
 
@@ -229,7 +235,7 @@ CONTAINS
       CALL message(str_module, 'Constructing the coupling frame atmosphere-aero provider.')
 
       CALL construct_atmo_aero_provider_coupling_post_sync( &
-        comp_id, cell_point_id, TRIM(aes_phy_config(jg)%dt_rad))
+        comp_id, cell_point_id(1), TRIM(aes_phy_config(jg)%dt_rad))
 
     END IF
 
@@ -258,6 +264,12 @@ CONTAINS
   SUBROUTINE destruct_atmo_coupling()
 
     CHARACTER(LEN=*), PARAMETER   :: routine = str_module // ':destruct_atmo_coupling'
+
+    IF ( is_coupled_to_ocean() ) THEN
+
+      CALL destruct_atmo_ocean_coupling ()
+
+    END IF
 
     IF ( is_coupled_run() ) THEN
 

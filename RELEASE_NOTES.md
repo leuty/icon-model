@@ -6,6 +6,10 @@ AES Physics:
 
 - Optimization of computation of geometric grid information for simple plumes
 
+### ICON-Ocean
+
+- First implementation of coupling the nested AES atmosphere to the ocean model
+
 ### Soil and Surface
 
 Climate: ICON-Land

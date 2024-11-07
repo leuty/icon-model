@@ -81,7 +81,8 @@ MODULE mo_nml_crosscheck
   USE mo_nudging_nml,              ONLY: check_nudging
   USE mo_upatmo_config,            ONLY: check_upatmo
   USE mo_name_list_output_config,  ONLY: is_variable_in_output_dom
-  USE mo_coupling_config,          ONLY: is_coupled_to_ocean, is_coupled_to_waves, is_coupled_to_hydrodisc
+  USE mo_coupling_config,          ONLY: is_coupled_to_ocean, is_coupled_to_waves,         &
+    &                                    is_coupled_to_hydrodisc
 
   USE mo_assimilation_config,      ONLY: assimilation_config
   USE mo_scm_nml,                  ONLY: i_scm_netcdf, scm_sfc_temp, scm_sfc_qv, scm_sfc_mom

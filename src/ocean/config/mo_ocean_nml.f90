@@ -1440,7 +1440,7 @@ MODULE mo_ocean_nml
     END IF
 
 #ifndef __NO_ICON_ATMO__
-    IF ( is_coupled_to_atmo() ) THEN
+    IF ( is_coupled_to_atmo() .AND. iforc_oce /= Coupled_FluxFromAtmo ) THEN
       iforc_oce = Coupled_FluxFromAtmo
       CALL message(method_name,'WARNING, iforc_oce set to 14 for coupled experiment')
  !!!  limiters can now be set by namelist

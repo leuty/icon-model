@@ -20,11 +20,12 @@
 MODULE mo_aes_phy_main
 
   USE mo_kind                ,ONLY: wp
-  USE mo_exception           ,ONLY: message
+  USE mo_exception           ,ONLY: message, message_text
 
   USE mtime                  ,ONLY: t_datetime => datetime, isCurrentEventActive, &
        &                            OPERATOR(<=), OPERATOR(>)
 
+  USE mo_grid_config         ,ONLY: n_dom
   USE mo_model_domain        ,ONLY: t_patch
 
   USE mo_omp_block_loop      ,ONLY: omp_block_loop_cell
@@ -95,7 +96,10 @@ CONTAINS
     INTEGER  :: jg                                         !< grid level/domain index
 
     jg = patch%id
-
+    IF (n_dom > 1) THEN
+      WRITE(message_text,'(a,i2)') 'aes_phy_main, patch number:',jg
+      CALL message('',message_text)
+    ENDIF
     ! store grid specific time parameters for physics
     !
     aes_phy_tc(jg)%dt_phy_sec =  pdtime
