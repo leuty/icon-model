@@ -191,6 +191,7 @@ forcingCO2globalFile=${ghg_dir}/bc_greenhouse_rcp45_1765-2500.nc
 
 # ic/bc files
 ic_land_soil_file=${land_datadir}/ic_land_soil_1979.nc
+bc_land_phys_file=${land_datadir}/bc_land_phys_1979.nc
 bc_land_sso_file=${land_datadir}/bc_land_sso_1979.nc
 quincy_soil_file=${land_datadir}/bc_land_soil_quincy.nc
 
@@ -328,9 +329,10 @@ cat >> $jsbach_namelist << EOF
   fract_filename  = "bc_land_frac.nc"
   output_tiles    = ${output_tiles}     ! List of tiles to output
 /
-&q_rad_nml
-  active          = .TRUE.
-  ic_filename     = 'ic_land_soil.nc'
+&jsb_rad_nml
+  use_alb_veg_simple  = .FALSE.           ! Use TRUE for jsbach_lite, FALSE for jsbach_pfts/jsbach_jedi
+  bc_filename         = 'bc_land_phys.nc'
+  ic_filename         = 'ic_land_soil.nc'
 /
 &jsb_veg_nml
   active               = .TRUE.
@@ -383,6 +385,7 @@ add_link_file ${forcingCO2globalFile}                            ./bc_greenhouse
 # - land parameters
 add_link_file ${quincy_land_cover_file}                          ./bc_land_frac.nc
 add_link_file ${bc_land_sso_file}                                ./bc_land_sso.nc
+add_link_file ${bc_land_phys_file}                               ./bc_land_phys.nc
 add_link_file ${ic_land_soil_file}                               ./ic_land_soil.nc
 add_link_file ${quincy_soil_file}                                ./bc_quincy_soil.nc
 
