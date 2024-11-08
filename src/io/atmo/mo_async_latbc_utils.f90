@@ -758,20 +758,11 @@
       ! in async mode: copy the variable values from prefetch buffer to the respective allocated variable
       ! in init mode: read the variables synchronously from input file
       ! Read parameters QV, QC and QI
-      IF (latbc_config%latbc_contains_hus) THEN
-        CALL get_data(latbc, 'hus', latbc%latbc_data(tlev)%atm_in%qv, read_params(icell))
-      ELSE
-        CALL get_data(latbc, 'qv', latbc%latbc_data(tlev)%atm_in%qv, read_params(icell))
-      ENDIF
+      CALL get_data(latbc, 'qv', latbc%latbc_data(tlev)%atm_in%qv, read_params(icell), latbc_dict)
 
       IF ( latbc_config%latbc_contains_qcqi ) THEN ! get qc, qi from latbc data
-        IF (latbc_config%latbc_contains_hus) THEN
-          CALL get_data(latbc, 'clw', latbc%latbc_data(tlev)%atm_in%qc, read_params(icell))
-          CALL get_data(latbc, 'cli', latbc%latbc_data(tlev)%atm_in%qi, read_params(icell))
-        ELSE
-          CALL get_data(latbc, 'qc', latbc%latbc_data(tlev)%atm_in%qc, read_params(icell))
-          CALL get_data(latbc, 'qi', latbc%latbc_data(tlev)%atm_in%qi, read_params(icell))
-        ENDIF
+        CALL get_data(latbc, 'qc', latbc%latbc_data(tlev)%atm_in%qc, read_params(icell), latbc_dict)
+        CALL get_data(latbc, 'qi', latbc%latbc_data(tlev)%atm_in%qi, read_params(icell), latbc_dict)
       ELSE  ! initialize qc, qi with 0
 !$OMP PARALLEL
         CALL init(latbc%latbc_data(tlev)%atm_in%qc(:,:,:), lacc=.FALSE.)
@@ -781,7 +772,7 @@
 
       ! Read parameter QR
       IF (latbc%buffer%lread_qr) THEN
-        CALL get_data(latbc, 'qr', latbc%latbc_data(tlev)%atm_in%qr, read_params(icell))
+        CALL get_data(latbc, 'qr', latbc%latbc_data(tlev)%atm_in%qr, read_params(icell), latbc_dict)
       ELSE
 !$OMP PARALLEL
         CALL init(latbc%latbc_data(tlev)%atm_in%qr(:,:,:), lacc=.FALSE.)
@@ -790,7 +781,7 @@
 
       ! Read parameter QS
       IF (latbc%buffer%lread_qs) THEN
-        CALL get_data(latbc, 'qs', latbc%latbc_data(tlev)%atm_in%qs, read_params(icell))
+        CALL get_data(latbc, 'qs', latbc%latbc_data(tlev)%atm_in%qs, read_params(icell), latbc_dict)
       ELSE
 !$OMP PARALLEL
         CALL init(latbc%latbc_data(tlev)%atm_in%qs(:,:,:), lacc=.FALSE.)
@@ -847,11 +838,11 @@
         CALL get_data(latbc, 'temp', latbc%latbc_data(tlev)%atm_in%temp, read_params(icell), latbc_dict)
       ENDIF
       IF (latbc%buffer%lread_vn) THEN
-        CALL get_data(latbc, 'vn', latbc%latbc_data(tlev)%atm_in%vn, read_params(iedge))
+        CALL get_data(latbc, 'vn', latbc%latbc_data(tlev)%atm_in%vn, read_params(iedge), latbc_dict)
       END IF
       IF (latbc%buffer%lread_u_v) THEN
-        CALL get_data(latbc, 'u', latbc%latbc_data(tlev)%atm_in%u, read_params(icell))
-        CALL get_data(latbc, 'v', latbc%latbc_data(tlev)%atm_in%v, read_params(icell))
+        CALL get_data(latbc, 'u', latbc%latbc_data(tlev)%atm_in%u, read_params(icell), latbc_dict)
+        CALL get_data(latbc, 'v', latbc%latbc_data(tlev)%atm_in%v, read_params(icell), latbc_dict)
       ENDIF
 
       IF (latbc_config%fac_latbc_presbiascor > 0._wp) THEN
@@ -887,7 +878,7 @@
          IF (ierrstat /= SUCCESS) CALL finish(routine, "ALLOCATE failed!")
 
          IF (latbc%buffer%lread_w) THEN
-           CALL get_data(latbc, 'w', omega, read_params(icell))
+           CALL get_data(latbc, 'w', omega, read_params(icell), latbc_dict)
          ELSE
 !$OMP PARALLEL
            CALL init(omega(:,:,:), lacc=.FALSE.)

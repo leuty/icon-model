@@ -341,7 +341,8 @@ CONTAINS
     !----------------------------------------------------------------------------
     ! Get virtual potential temperature
     !----------------------------------------------------------------------------
-    CALL get_virtual_potential_temperature(patch, rl_start, ins%ptvm1, ins%papm1, domain, diags%theta_v)
+    CALL get_virtual_potential_temperature(patch, ins%ptvm1, ins%papm1, diags%theta_v, &
+                                           rl_start,rl_end)
 
     !Get rho at interfaces 
     CALL vert_intp_full2half_cell_3d(patch, p_nh_metrics, ins%rho, diags%rho_ic, &
@@ -1488,36 +1489,29 @@ CONTAINS
   !
   !============================================================================
   !
-  SUBROUTINE  get_virtual_potential_temperature(patch, rl_start,            & 
-                  ptvm1, papm1, domain, theta_v)
+  SUBROUTINE  get_virtual_potential_temperature(patch, ptvm1, papm1, theta_v, &
+                                                rl_start, rl_end)
 
-    TYPE(t_patch), INTENT(in) :: patch
-    INTEGER, INTENT(in) :: rl_start
+    REAL(wp), INTENT(in), POINTER      :: ptvm1(:,:,:), papm1(:,:,:)
+    TYPE(t_patch), INTENT(in), POINTER :: patch
+    REAL(wp), INTENT(in), POINTER      :: theta_v(:,:,:)
+    INTEGER,  INTENT(in)               :: rl_start, rl_end 
 
-    REAL(wp), INTENT(in), POINTER :: ptvm1(:,:,:), papm1(:,:,:)
-    TYPE(t_domain), INTENT(in), POINTER :: domain
-    REAL(wp), INTENT(in), POINTER :: theta_v(:,:,:)
-
-
-    INTEGER :: start_block, end_block, rl_end, startidx, endidx
-    INTEGER :: jb, jk, jc, nlev
-
-   
-    rl_end = min_rlcell_int
-    start_block = patch%cells%start_block(rl_start)
-    end_block   = patch%cells%end_block(rl_end)
+    INTEGER  :: jb, jk, jc, nlev
+    INTEGER  :: i_startblk, i_endblk, i_startidx, i_endidx
 
     nlev = SIZE(theta_v,2)
+    i_startblk = patch%cells%start_block(rl_start)
+    i_endblk   = patch%cells%end_block(rl_end)
 
-!$OMP PARALLEL DO PRIVATE(jb, jk, jc, startidx, endidx) ICON_OMP_DEFAULT_SCHEDULE
-    DO jb = start_block, end_block
-      CALL get_indices_c(patch, jb, start_block, end_block, &
-                 startidx, endidx, rl_start, rl_end)
-
+!$OMP PARALLEL DO PRIVATE(jb, jk, jc, i_startidx, i_endidx) ICON_OMP_DEFAULT_SCHEDULE
+    DO jb = i_startblk, i_endblk
+      CALL get_indices_c(patch, jb, i_startblk, i_endblk,      &
+                         i_startidx, i_endidx, rl_start, rl_end)
       !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1)
       !$ACC LOOP GANG VECTOR COLLAPSE(2)
       DO jk = 1, nlev
-        DO jc = startidx, endidx
+        DO jc = i_startidx, i_endidx
           theta_v(jc,jk,jb) = ptvm1(jc,jk,jb)*(p0ref/papm1(jc,jk,jb))**rd_o_cpd
         END DO
       END DO

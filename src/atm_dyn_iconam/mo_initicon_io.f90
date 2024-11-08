@@ -1309,7 +1309,7 @@ MODULE mo_initicon_io
             ! If the TKE field is not in the input data, a cold-start initialization is executed in init_nwp_phy
             CALL fetch3d(params, 'tke', jg, tke_ifc, lread_tke)
 
-            ! Check for both DWD/Sapphire variables due to naming mismatch
+            ! Check for both DWD/AES variables due to naming mismatch
             CALL fetch3d(params, 'hus', jg, initicon(jg)%atm_in%qv, lfound_hus)
             CALL fetch3d(params, 'clw', jg, initicon(jg)%atm_in%qc, lfound_clw)
             CALL fetch3d(params, 'cli', jg, initicon(jg)%atm_in%qi, lfound_cli)
@@ -1325,9 +1325,6 @@ MODULE mo_initicon_io
             IF (.NOT. lfound_qr) CALL init(initicon(jg)%atm_in%qr(:,:,:), lacc=.FALSE.)
             IF (.NOT. lfound_qs) CALL init(initicon(jg)%atm_in%qs(:,:,:), lacc=.FALSE.)
 !$OMP END PARALLEL
-            
-            ! Set up flags for later calls
-            IF (lfound_hus) latbc_config%latbc_contains_hus = .TRUE.
             
             ! fetch additional tracers in first guess
             CALL fetch_tracer_fg('tracer_fg_in', params, jg,       &

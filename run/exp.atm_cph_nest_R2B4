@@ -34,7 +34,7 @@ author_list='Romain Fievet, MPIM'
 #                          --> nproma_sub
 #
 icon_data_poolFolder="${icon_data_rootFolder:-/pool/data/ICON}/grids/public/mpim"
-nest_data_Folder="/work/bk1415/m301067/lamnest/files4r2b4"
+nest_data_Folder="/pool/data/ICON/grids/public/mpim/0049/lamnest/r0100/"
 #--------------------------------------------------------------------------------------------------
 
 # (2) Set variables needed by the scripting mechanism
