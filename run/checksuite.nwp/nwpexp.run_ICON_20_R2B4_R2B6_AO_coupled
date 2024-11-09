@@ -1041,7 +1041,8 @@ if [[ "$output_oce_grib" == "yes" ]]; then
                                                                 ! 2: climate mode (absolute t-axis)
   include_last               = .FALSE.
   output_grid                = .TRUE.
-  ml_varlist                 = 'zos','to_k','so','u','v','hi','hs','conc','column_thick_c','rho','rhopot','delhi','ice_u','ice_v'
+  ml_varlist                 = 'zos','to_k','so','u','v','hi','hs','conc','column_thick_c','rho','rhopot','delhi','ice_u','ice_v',
+                               'normal_velocity','stretch_c','mld','mlotst'
 /
 EOF
 fi
@@ -1743,25 +1744,29 @@ fi
 #-----------------------------------------------------------------------------
 # check if grib file have been written correctly
 #-----------------------------------------------------------------------------
-diff <(grib_ls -w level=0/108,stepRange=0 -p discipline,parameterCategory,parameterNumber coupleR2B4_R2B6_020_oce_grb_19790101T000000Z.grb | sed -r 's/( +)/ /g' | sed -r 's/ $//g' ) <(echo "coupleR2B4_R2B6_020_oce_grb_19790101T000000Z.grb
-discipline parameterCategory parameterNumber
-10 3 1
-10 4 18
-10 4 21
-10 4 23
-10 4 24
-10 2 1
-10 2 192
-10 2 0
-10 4 7
-10 4 16
-10 4 19
-10 2 6
-10 2 4
-10 2 5
-14 of 789 messages in coupleR2B4_R2B6_020_oce_grb_19790101T000000Z.grb
+diff <(grib_ls -w level=0/108,stepRange=0 -p discipline,parameterCategory,parameterNumber,typeOfFirstFixedSurface,scaleFactorOfFirstFixedSurface,scaledValueOfFirstFixedSurface coupleR2B4_R2B6_020_oce_grb_19790101T000000Z.grb | sed -r 's/( +)/ /g' | sed -r 's/ $//g' ) <(echo "coupleR2B4_R2B6_020_oce_grb_19790101T000000Z.grb
+discipline parameterCategory parameterNumber typeOfFirstFixedSurface scaleFactorOfFirstFixedSurface scaledValueOfFirstFixedSurface
+10 3 1 G 0 0
+10 4 18 160 1 1075
+10 4 21 160 1 1075
+10 4 23 160 1 1075
+10 4 24 160 1 1075
+10 2 1 P 0 0
+10 2 192 P 0 0
+10 2 0 P 0 0
+10 4 7 G 0 0
+10 4 16 160 1 1075
+10 4 19 160 1 1075
+10 2 6 P 0 0
+10 2 4 G 0 0
+10 2 5 G 0 0
+10 4 53 160 1 1075
+10 192 20 G 0 0
+10 4 52 169 3 125
+10 4 52 169 2 3
+18 of 923 messages in coupleR2B4_R2B6_020_oce_grb_19790101T000000Z.grb
 
-14 of 789 total messages in 1 files")
+18 of 923 total messages in 1 files")
 diffrc=$?
 if [ $diffrc -ne 0 ] ; then
   echo "GRIB triplets not written as expected"

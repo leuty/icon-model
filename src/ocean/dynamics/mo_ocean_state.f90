@@ -63,7 +63,7 @@ MODULE mo_ocean_state
   USE mo_var_groups,          ONLY: groups, MAX_GROUPS
   USE mo_cf_convention
   USE mo_util_dbg_prnt,       ONLY: dbg_print
-  USE mo_grib2,               ONLY: grib2_var, t_grib2_var
+  USE mo_grib2,               ONLY: grib2_var, t_grib2_var, t_grib2_int_key, OPERATOR(+)
   USE mo_cdi,                 ONLY: DATATYPE_FLT32 => CDI_DATATYPE_FLT32, &
     &                               DATATYPE_FLT64 => CDI_DATATYPE_FLT64, &
     &                               DATATYPE_INT8 => CDI_DATATYPE_INT8, &
@@ -435,7 +435,7 @@ CONTAINS
           & GRID_UNSTRUCTURED_CELL, ZA_SURFACE,    &
           & t_cf_var('stretch_c'//TRIM(var_suffix), 'm', 'zstar surface stretch at cell center', &
           & DATATYPE_FLT,'stretch_c'),&
-          & grib2_var(255, 255, 1, DATATYPE_PACK16, GRID_UNSTRUCTURED, grid_cell),&
+          & grib2_var(10, 192, 20, DATATYPE_PACK16, GRID_UNSTRUCTURED, grid_cell),&
           & ldims=(/nproma,alloc_cell_blocks/), tlev_source=TLEV_NNEW, lopenacc = .TRUE., initval=0.0_wp)
         __acc_attach(ocean_state_prog%stretch_c)
       END IF
@@ -454,7 +454,7 @@ CONTAINS
           & GRID_UNSTRUCTURED_CELL, ZA_SURFACE,    &
           & t_cf_var('stretch_c'//TRIM(var_suffix), '1', 'zstar surface stretch at cell center', &
           & DATATYPE_FLT,'stretch_c'),&
-          & grib2_var(255, 255, 1, DATATYPE_PACK16, GRID_UNSTRUCTURED, grid_cell),&
+          & grib2_var(10, 192, 20, DATATYPE_PACK16, GRID_UNSTRUCTURED, grid_cell),&
           & ldims=(/nproma,alloc_cell_blocks/), tlev_source=TLEV_NNEW,&
           & in_group=groups("oce_default", "oce_essentials","oce_prog"), lrestart_cont=.TRUE.)
         
@@ -472,7 +472,7 @@ CONTAINS
       CALL add_var(ocean_restart_list,'normal_velocity'//var_suffix,ocean_state_prog%vn,grid_unstructured_edge, &
         & za_depth_below_sea, &
         & t_cf_var('vn'//var_suffix, 'm s-1', 'normal velocity on edge', DATATYPE_FLT),&
-        & grib2_var(255, 255, 255, DATATYPE_PACK16, GRID_UNSTRUCTURED, grid_edge),&
+        & grib2_var(10, 4, 53, DATATYPE_PACK16, GRID_UNSTRUCTURED, grid_edge),&
         & ldims=(/nproma,n_zlev,nblks_e/), tlev_source=TLEV_NNEW, lopenacc = .TRUE.)
       __acc_attach(ocean_state_prog%vn)
 
@@ -1480,13 +1480,19 @@ CONTAINS
     ! mixed layer depths
     CALL add_var(ocean_default_list, 'mld', ocean_state_diag%mld , grid_unstructured_cell,za_surface, &
       &          t_cf_var('ocean_mixed_layer_thickness', 'm', 'mixed layer depth', datatype_flt),&
-      &          dflt_g2_decl_cell,&
+      &          grib2_var(10, 4, 52, DATATYPE_PACK16, GRID_UNSTRUCTURED, GRID_CELL) &
+      &            + t_grib2_int_key("typeOfFirstFixedSurface",        169)  &
+      &            + t_grib2_int_key("scaleFactorOfFirstFixedSurface", 3)    &
+      &            + t_grib2_int_key("scaledValueOfFirstFixedSurface", 125), &
       &          ldims=(/nproma,alloc_cell_blocks/),in_group=groups_oce_dde)
 
     ! CMIP6
     CALL add_var(ocean_default_list, 'mlotst', ocean_state_diag%mlotst , grid_unstructured_cell,za_surface, &
       &          t_cf_var('ocean_mixed_layer_thickness_defined_by_sigma_t', 'm', 'ocean_mixed_layer_thickness_defined_by_sigma_t', datatype_flt),&
-      &          dflt_g2_decl_cell,&
+      &          grib2_var(10, 4, 52, DATATYPE_PACK16, GRID_UNSTRUCTURED, grid_cell) &
+      &            + t_grib2_int_key("typeOfFirstFixedSurface",        169)  &
+      &            + t_grib2_int_key("scaleFactorOfFirstFixedSurface", 2)    &
+      &            + t_grib2_int_key("scaledValueOfFirstFixedSurface", 3),   &
       &          ldims=(/nproma,alloc_cell_blocks/),in_group=groups_oce_dde)
     ! CMIP6
     CALL add_var(ocean_default_list, 'mlotstsq', ocean_state_diag%mlotstsq , grid_unstructured_cell,za_surface, &
