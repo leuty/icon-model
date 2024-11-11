@@ -11,19 +11,14 @@
 tests:
   - name: dwd_run_ICON_09_R2B4N5_EPS 
     machines:
-      - name: balfrin
-        include_only: ['balfrin_cpu_nvidia','balfrin_gpu_nvidia']
       - name: horeka
         include_only: ['horeka_cpu_nvhpc','horeka_gpu_nvhpc']
-    refgen: ['balfrin_cpu_nvidia','horeka_cpu_nvhpc']
+    refgen: ['horeka_cpu_nvhpc']
     tags: ['merge2rc','probtest']
     checksuite_modes:
-      - balfrin: 't'
       - horeka: 't'
     ensemble_num:
-      - balfrin_cpu_nvidia: [37,17,45,48,19,10,36,27,18,30,11,42,33,28,41]
       - horeka_cpu_nvhpc: [50,22,38,16,41,21,13,25,23,20,5,39,18,35,8]
     tolerance_factor:
-      - balfrin: 20
       - horeka: 15
   
