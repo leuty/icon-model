@@ -8,8 +8,8 @@
 ! See LICENSES/ for license information
 ! SPDX-License-Identifier: BSD-3-Clause
 ! ---------------------------------------------------------------
-
 ! RTTOV interface for the case, that RTTOV is not available
+!
 
 MODULE mo_rtifc_nort
 
