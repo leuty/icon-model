@@ -66,7 +66,7 @@ use_site='local.net'
 case "$use_host" in
   kfa-juelich.de|fz-juelich.de|*jureca*|*juwels*) use_site=juelich.de ;;
   l*.lvt.dkrz.de|aurora*) use_site=dkrz.de ;;
-  tave*|santis*|balfrin*|tasna*) use_site=cscs.ch ;;
+  tave*|santis*|balfrin*|tasna*|todi*) use_site=cscs.ch ;;
   uc2*|fh2*|hk*) use_site=kit.edu ;;
   xc*|rcnl*|oflws*|omlws*|gpnl*) use_site=dwd.de ;;
   *euler.ethz.ch) use_site=ethz.ch ;;
@@ -80,11 +80,11 @@ case "$use_host" in
   uan0?) use_site=csc.fi ;;
   nid*)
     case $(sacctmgr -nP show cluster Format=Cluster | head -1) in
-      balfrin) use_site=cscs.ch ;;
+      balfrin|todi) use_site=cscs.ch ;;
       lumi) use_site=csc.fi ;;
       *)
         case ${SLURM_CLUSTER_NAME} in
-          balfrin) use_site=cscs.ch ;;
+          balfrin|todi) use_site=cscs.ch ;;
           lumi) use_site=csc.fi ;;
         esac
         ;;
@@ -155,6 +155,24 @@ case "$use_site" in
         use_mpi_startrun='srun -n $mpi_total_procs --ntasks-per-node $mpi_procs_pernode --threads-per-core=1 --cpus-per-task $OMP_NUM_THREADS'
         use_target='tave_knl'
       ;;
+
+      *todi*)
+              if test -f "/etc/xthostname"; then
+                host_name=$(cat /etc/xthostname)
+      
+                use_load_profile='. /etc/profile.d/modules.sh'
+                use_submit='sbatch'
+                use_sync_submit='sbatch --wait'
+                if test "x${use_gpu}" = "xyes"; then
+                  use_target='todi_gpu'
+                  use_mpi_startrun='srun -n $mpi_total_procs --ntasks-per-node $mpi_procs_pernode --threads-per-core=1 --distribution=cyclic ${basedir}/run/run_wrapper/todi_gpu.sh'
+                else
+                  use_target='todi_cpu'
+                  use_mpi_startrun='srun -n $mpi_total_procs --ntasks-per-node $mpi_procs_pernode --threads-per-core=1 --distribution=block:block:block ${basedir}/run/run_wrapper/todi_cpu.sh'
+                fi
+              fi
+            ;;
+
 
     esac
   ;;
