@@ -48,6 +48,7 @@ MODULE mo_art_nml
   CHARACTER(LEN=IART_PATH_LEN)  :: cart_fplume_inp          
                                      !< path to FPlume input files (use without file extension)
   LOGICAL :: lart_diag_out           !< Enable output of diagnostic fields
+  LOGICAL :: lart_diag_xml           !< Create diagnostic fields only if they are defined in diagnostics.xml
   LOGICAL :: lart_pntSrc             !< Enables point sources
   LOGICAL :: lart_excl_end_pntSrc    !< Main switch to exclude endTime from active time interval of point sources
   LOGICAL :: lart_emiss_turbdiff     !< Switch if emissions should be included as surface flux condition
@@ -136,6 +137,9 @@ MODULE mo_art_nml
   ! Time interval over which maximum of air concentration of radionuclides is taken
   REAL(wp):: radioact_maxtint(1:max_dom)
 
+  ! Radiation multiple call
+  INTEGER  :: irad_multicall
+
 
   NAMELIST/art_nml/ cart_input_folder, lart_chem, lart_chemtracer, lart_mecca,          &
    &                cart_io_suffix, lart_pntSrc, lart_aerosol, iart_seasalt, iart_dust, &
@@ -146,14 +150,14 @@ MODULE mo_art_nml
    &                rart_dustyci_rhi, lart_excl_end_pntSrc,                             &
    &                iart_modeshift, iart_aci_warm, iart_aci_cold, iart_ari,             &
    &                iart_aero_washout, lart_conv, lart_turb, iart_init_aero,            &
-   &                iart_init_gas, lart_diag_out, cart_emiss_xml_file,                  &
+   &                iart_init_gas, lart_diag_out, lart_diag_xml, cart_emiss_xml_file,   &
    &                cart_ext_data_xml, cart_vortex_init_date , cart_cheminit_file,      &
    &                cart_cheminit_coord, cart_cheminit_type,                            &
    &                lart_emiss_turbdiff, nart_substeps_sedi,                            &
    &                cart_chemtracer_xml, cart_mecca_xml, cart_aerosol_xml,              &
    &                cart_modes_xml, cart_pntSrc_xml, cart_diagnostics_xml,              &
    &                lart_psc, cart_coag_xml, cart_aero_emiss_xml, cart_type_sedim,      &
-   &                lart_debugRestart, radioact_maxtint
+   &                lart_debugRestart, radioact_maxtint, irad_multicall
 
 CONTAINS
   !-------------------------------------------------------------------------
@@ -189,6 +193,7 @@ CONTAINS
     iart_init_aero(:)          = 0
     iart_init_gas(:)           = 0
     lart_diag_out              = .FALSE.
+    lart_diag_xml              = .FALSE.
     lart_pntSrc                = .FALSE.
     lart_excl_end_pntSrc       = .FALSE.
     lart_emiss_turbdiff        = .FALSE.
@@ -261,6 +266,9 @@ CONTAINS
 
     ! Time interval over which maximum of air concentration of radionuclides is taken
     radioact_maxtint(:) = 3600._wp
+
+    ! Radiation multiple call
+    irad_multicall = 0
 
     !------------------------------------------------------------------
     ! 2. If this is a resumed integration, overwrite the defaults above
@@ -379,6 +387,7 @@ CONTAINS
       art_config(jg)%iart_init_aero       = iart_init_aero(jg)
       art_config(jg)%iart_init_gas        = iart_init_gas(jg)
       art_config(jg)%lart_diag_out        = lart_diag_out
+      art_config(jg)%lart_diag_xml        = lart_diag_xml
       art_config(jg)%lart_pntSrc          = lart_pntSrc
       art_config(jg)%lart_excl_end_pntSrc = lart_excl_end_pntSrc
       art_config(jg)%lart_emiss_turbdiff  = lart_emiss_turbdiff
@@ -451,6 +460,9 @@ CONTAINS
 
       ! Time interval over which maximum of air concentration of radionuclides is taken
       art_config(jg)%radioact_maxtint    = radioact_maxtint(jg)
+
+      ! Radiation multiple call
+      art_config(jg)%irad_multicall      = irad_multicall
     ENDDO !jg
 
     !-----------------------------------------------------

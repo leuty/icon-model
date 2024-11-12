@@ -54,6 +54,7 @@ MODULE mo_art_config
     CHARACTER(LEN=IART_PATH_LEN)  ::   &
       &  cart_fplume_inp                 !< Path to FPlume input files (insert without extension)
     LOGICAL :: lart_diag_out             !< Enable output of diagnostic fields
+    LOGICAL :: lart_diag_xml             !< Create diagnostic fields only if they are defined in diagnostics.xml
     LOGICAL :: lart_pntSrc               !< Enables point sources
     LOGICAL :: lart_excl_end_pntSrc      !< Main switch to exclude endTime from active time interval of point sources
     LOGICAL :: lart_emiss_turbdiff       !< Switch if emission should be included as surface flux condition
@@ -144,6 +145,9 @@ MODULE mo_art_config
     
     ! Time interval over which maximum of air concentration of radionuclides is taken
     REAL(wp):: radioact_maxtint
+    
+    ! Type of radiation multiple call scheme to use
+    INTEGER :: irad_multicall
   END TYPE t_art_config
 
   TYPE(t_art_config), TARGET :: art_config(0:max_dom)

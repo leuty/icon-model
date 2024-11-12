@@ -38,8 +38,9 @@ MODULE mo_nh_interface_nwp
   USE mo_exception,               ONLY: message, message_text, finish
   USE mo_impl_constants,          ONLY: itconv, itccov, itrad, itgscp,                        &
     &                                   itsatad, itturb, itsfc, itradheat,                    &
-    &                                   itsso, itgwd, itfastphy, icosmo, igme, ivdiff,        &
-    &                                   min_rlcell_int, min_rledge_int, min_rlcell, ismag, iprog
+    &                                   itsso, itgwd, itfastphy, icosmo, igme, ivdiff,               &
+    &                                   min_rlcell_int, min_rledge_int, min_rlcell,           &
+    &                                   ismag, iprog, io3_art
   USE mo_impl_constants_grf,      ONLY: grf_bdywidth_c, grf_bdywidth_e
   USE mo_loopindices,             ONLY: get_indices_c, get_indices_e
   USE mo_intp_rbf,                ONLY: rbf_vec_interpol_cell
@@ -69,7 +70,7 @@ MODULE mo_nh_interface_nwp
   USE mo_satad,                   ONLY: satad_v_3D, satad_v_3D_gpu, latent_heat_sublimation
   USE mo_aerosol_util,            ONLY: prog_aerosol_2D
   USE mo_radiation,               ONLY: radheat, pre_radiation_nwp
-  USE mo_radiation_config,        ONLY: irad_aero, iRadAeroTegen, iRadAeroCAMSclim, iRadAeroCAMStd, iRadAeroART
+  USE mo_radiation_config,        ONLY: irad_aero, irad_o3, iRadAeroTegen, iRadAeroCAMSclim, iRadAeroCAMStd, iRadAeroART
   USE mo_nwp_gw_interface,        ONLY: nwp_gwdrag
   USE mo_nwp_gscp_interface,      ONLY: nwp_microphysics
   USE mo_nwp_turbtrans_interface, ONLY: nwp_turbtrans
@@ -99,6 +100,9 @@ MODULE mo_nh_interface_nwp
   USE mo_art_coagulation_interface, ONLY: art_coagulation_interface
   USE mo_art_reaction_interface,  ONLY: art_reaction_interface
   USE mo_art_aerodyn_interface,   ONLY: art_aerodyn_interface
+  USE mo_art_radiation_multicall, ONLY: t_dre_flx_ref, ncallsrad, nccrad, &
+                                    &   rad_multicall_alloc, rad_multicall_dealloc, &
+                                    &   rad_multicall_dre, rad_multicall_finalize
   USE mo_art_cover_koe,           ONLY: art_cover_dusty
 #endif
   USE mo_var_list,                ONLY: t_var_list_ptr
@@ -305,6 +309,9 @@ CONTAINS
     REAL(wp) :: nudgecoeff
 
 #ifdef __ICON_ART
+    ! ART Radiation multicall
+    INTEGER :: ncall !< loop index
+    TYPE(t_dre_flx_ref)         :: dre_flx_reference
     ! For ICON-ART dusty cirrus
     TYPE(t_art_atmo), POINTER    :: &
       &  art_atmo           !< Pointer to ART atmospheric fields
@@ -837,7 +844,9 @@ CONTAINS
 #ifdef __ICON_ART
     IF (lart) THEN
 
-      CALL calc_o3_gems(pt_patch,mtime_datetime,pt_diag,prm_diag,ext_data%atm%o3,use_acc=lzacc)
+      IF (irad_o3 == io3_art) THEN
+        CALL calc_o3_gems(pt_patch,mtime_datetime,pt_diag,prm_diag,ext_data%atm%o3)
+      ENDIF
 
       IF (.NOT. linit) THEN
         CALL art_reaction_interface(jg,                    & !> in
@@ -1495,30 +1504,44 @@ CONTAINS
     !> Radiation
     !-------------------------------------------------------------------------
 
-    IF ( lcall_phy_jg(itrad) ) THEN
+#ifdef __ICON_ART
+    ! If any radiation call: run the multi-call loop
+    IF ( lcall_phy_jg(itrad) .OR. lcall_phy_jg(itradheat) ) THEN
+      ! Radiation multicall: Allocate reference data array
+      IF ( lcall_phy_jg(itrad) .AND. ncallsrad > 1 ) THEN
+        CALL rad_multicall_alloc(dre_flx_reference, pt_patch%nblks_c)
+      ENDIF
 
-      IF (ltimer) CALL timer_start(timer_nwp_radiation)
-      !$ser verbatim IF (.not. linit) CALL serialize_all(nproma, jg, "radiation", .TRUE., opt_dt=mtime_datetime)
-      CALL nwp_radiation (lredgrid,              & ! in
-           &              p_sim_time,            & ! in
-           &              mtime_datetime,        & ! in
-           &              pt_patch,              & ! in
-           &              pt_par_patch,          & ! in
-           &              ext_data,              & ! in
-           &              lnd_diag,              & ! in
-           &              pt_prog,               & ! inout
-           &              pt_diag,               & ! inout
-           &              prm_diag,              & ! inout
-           &              lnd_prog_new,          & ! in
-           &              wtr_prog_new,          & ! in
-           &              p_metrics%z_mc,        & ! in
-           &              p_metrics%z_ifc,       & ! in
-           &              p_metrics%ddqz_z_full, & ! in
-           &              lacc=lzacc              ) ! in, optional
-      !$ser verbatim IF (.not. linit) CALL serialize_all(nproma, jg, "radiation", .FALSE., opt_dt=mtime_datetime)
-      IF (ltimer) CALL timer_stop(timer_nwp_radiation)
+      IF (.NOT.lart) ncallsrad = 1
+      DO ncall = 1, ncallsrad
+        ! Setting global variable for number of call to current call
+        nccrad = ncall
+#endif
 
-    ENDIF
+        IF ( lcall_phy_jg(itrad) ) THEN
+          
+          IF (ltimer) CALL timer_start(timer_nwp_radiation)
+          !$ser verbatim IF (.not. linit) CALL serialize_all(nproma, jg, "radiation", .TRUE., opt_dt=mtime_datetime)
+          CALL nwp_radiation (lredgrid,              & ! in
+               &              p_sim_time,            & ! in
+               &              mtime_datetime,        & ! in
+               &              pt_patch,              & ! in
+               &              pt_par_patch,          & ! in
+               &              ext_data,              & ! in
+               &              lnd_diag,              & ! in
+               &              pt_prog,               & ! inout
+               &              pt_diag,               & ! inout
+               &              prm_diag,              & ! inout
+               &              lnd_prog_new,          & ! in
+               &              wtr_prog_new,          & ! in
+               &              p_metrics%z_mc,        & ! in
+               &              p_metrics%z_ifc,       & ! in
+               &              p_metrics%ddqz_z_full, & ! in
+               &              lacc=lzacc              ) ! in, optional
+          !$ser verbatim IF (.not. linit) CALL serialize_all(nproma, jg, "radiation", .FALSE., opt_dt=mtime_datetime)
+          IF (ltimer) CALL timer_stop(timer_nwp_radiation)
+
+        ENDIF
 
 #ifndef __NO_ICON_COMIN__
     CALL icon_call_callback(EP_ATM_RADIATION_AFTER, jg, lacc=lzacc)
@@ -1527,246 +1550,263 @@ CONTAINS
     CALL icon_call_callback(EP_ATM_RADHEAT_BEFORE, jg, lacc=lzacc)
 #endif
 
-    IF ( lcall_phy_jg(itradheat) ) THEN
-      !$ACC DATA CREATE(cosmu0_slope, shading_mask) IF(lzacc)
-      !$ser verbatim IF (.not. linit) CALL serialize_all(nproma, jg, "radheat", .TRUE., opt_dt=mtime_datetime)
+        IF ( lcall_phy_jg(itradheat) ) THEN
+          !$ACC DATA CREATE(cosmu0_slope, shading_mask) IF(lzacc)
+          !$ser verbatim IF (.not. linit) CALL serialize_all(nproma, jg, "radheat", .TRUE., opt_dt=mtime_datetime)
 
-      IF (msg_level >= 15) &
-&           CALL message('mo_nh_interface', 'radiative heating')
+          IF (msg_level >= 15) &
+    &           CALL message('mo_nh_interface', 'radiative heating')
 
 
-      IF (timers_level > 10) CALL timer_start(timer_pre_radiation_nwp)
+          IF (timers_level > 10) CALL timer_start(timer_pre_radiation_nwp)
 
-      CALL pre_radiation_nwp (                      &
-        & kbdim      = nproma,                      &
-        & p_inc_rad  = dt_phy_jg(itfastphy),        &
-        & p_sim_time = p_sim_time,                  &
-        & pt_patch   = pt_patch,                    &
-        & zsmu0      = zcosmu0,                     &
-        & zsct       = zsct,                        &
-        & slope_ang  = p_metrics%slope_angle,       &
-        & slope_azi  = p_metrics%slope_azimuth,     &
-        & horizon    = ext_data%atm%horizon,        &
-        & cosmu0_slp = cosmu0_slope,                &
-        & shading_mask = shading_mask,              &
-        & lacc=lzacc                                 )
+          CALL pre_radiation_nwp (                      &
+            & kbdim      = nproma,                      &
+            & p_inc_rad  = dt_phy_jg(itfastphy),        &
+            & p_sim_time = p_sim_time,                  &
+            & pt_patch   = pt_patch,                    &
+            & zsmu0      = zcosmu0,                     &
+            & zsct       = zsct,                        &
+            & slope_ang  = p_metrics%slope_angle,       &
+            & slope_azi  = p_metrics%slope_azimuth,     &
+            & horizon    = ext_data%atm%horizon,        &
+            & cosmu0_slp = cosmu0_slope,                &
+            & shading_mask = shading_mask,              &
+            & lacc=lzacc                                 )
 
-      IF (timers_level > 10) CALL timer_stop(timer_pre_radiation_nwp)
+          IF (timers_level > 10) CALL timer_stop(timer_pre_radiation_nwp)
 
-      ! exclude boundary interpolation zone of nested domains
-      rl_start = grf_bdywidth_c+1
-      rl_end   = min_rlcell_int
+          ! exclude boundary interpolation zone of nested domains
+          rl_start = grf_bdywidth_c+1
+          rl_end   = min_rlcell_int
 
-      i_startblk = pt_patch%cells%start_block(rl_start)
-      i_endblk   = pt_patch%cells%end_block(rl_end)
+          i_startblk = pt_patch%cells%start_block(rl_start)
+          i_endblk   = pt_patch%cells%end_block(rl_end)
 
-      IF (timers_level > 2) CALL timer_start(timer_radheat)
+          IF (timers_level > 2) CALL timer_start(timer_radheat)
 !$OMP PARALLEL
 !$OMP DO PRIVATE(jb,jc,isubs,i_startidx,i_endidx) ICON_OMP_DEFAULT_SCHEDULE
 !
-      DO jb = i_startblk, i_endblk
-        !
-        CALL get_indices_c(pt_patch, jb, i_startblk, i_endblk, &
-&                       i_startidx, i_endidx, rl_start, rl_end)
+          DO jb = i_startblk, i_endblk
+            !
+            CALL get_indices_c(pt_patch, jb, i_startblk, i_endblk, &
+    &                       i_startidx, i_endidx, rl_start, rl_end)
 
-        !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1) IF(lzacc)
-        !$ACC LOOP GANG VECTOR
-        DO jc = i_startidx, i_endidx
-          zcosmu0 (jc,jb) &
-            = 0.5_wp * (ABS(zcosmu0(jc,jb)) + zcosmu0(jc,jb))
+            !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1) IF(lzacc)
+            !$ACC LOOP GANG VECTOR
+            DO jc = i_startidx, i_endidx
+              zcosmu0 (jc,jb) &
+                = 0.5_wp * (ABS(zcosmu0(jc,jb)) + zcosmu0(jc,jb))
 
-          !calculate solar incoming flux at TOA
-          prm_diag%flxdwswtoa(jc,jb) = zcosmu0(jc,jb) * zsct   ! zsct by pre_radiation
-        ENDDO
-        !$ACC END PARALLEL
-
-        !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1) IF(lzacc)
-        !$ACC LOOP GANG VECTOR
-        DO jc = 1, nproma
-          prm_diag%swflxsfc (jc,jb)=0._wp
-          prm_diag%lwflxsfc (jc,jb)=0._wp
-          prm_diag%swflxtoa (jc,jb)=0._wp
-          prm_diag%lwflxtoa (jc,jb)=0._wp
-        ENDDO
-        !$ACC END PARALLEL
-
-        IF (atm_phy_nwp_config(jg)%inwp_surface >= 1 .OR. is_coupled_to_ocean()) THEN
-
-#ifdef __PGI_WORKAROUND
-          !$ACC DATA CREATE(gp_count_t) IF(lzacc)
-          !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1) IF(lzacc)
-          !$ACC LOOP VECTOR
-          DO isubs = 1, ntiles_total
-            gp_count_t(isubs) = ext_data%atm%gp_count_t(jb,isubs)
-          ENDDO
-          !$ACC END PARALLEL
-#endif
-          !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1) IF(lzacc)
-          !$ACC LOOP GANG VECTOR COLLAPSE(2)
-          DO isubs = 1, ntiles_total+ntiles_water
-            DO jc = 1, nproma
-              prm_diag%swflxsfc_t (jc,jb,isubs)=0._wp
-              prm_diag%lwflxsfc_t (jc,jb,isubs)=0._wp
+              !calculate solar incoming flux at TOA
+              prm_diag%flxdwswtoa(jc,jb) = zcosmu0(jc,jb) * zsct   ! zsct by pre_radiation
             ENDDO
-          ENDDO
-          !$ACC END PARALLEL
+            !$ACC END PARALLEL
 
-          CALL radheat (                   &
-          !
-          ! input
-          ! -----
-          !
-          & jcs=i_startidx                         ,&! in     start index of inner do loop
-          & jce=i_endidx                           ,&! in     end index of inner do loop
-          & jg=pt_patch%id                         ,&! in     patch ID
-          & kbdim=nproma                           ,&! in     loop length and dimension size
-          & klev=nlev                              ,&! in     vertical dimension size
-          & klevp1=nlevp1                          ,&! in     vertical dimension size
-          & ntiles=ntiles_total                    ,&! in     number of tiles of sfc flux fields
-          & ntiles_wtr=ntiles_water                ,&! in     number of extra tiles for ocean and lakes
-          & pmair=pt_diag%airmass_new(:,:,jb)      ,&! in     layer air mass             [kg/m2]
-          & pqv=prm_diag%tot_cld(:,:,jb,iqv)       ,&! in     specific moisture           [kg/kg]
-          & pcd=cvd                                ,&! in     specific heat of dry air  [J/kg/K]
-          & pcv=cvv                                ,&! in     specific heat of vapor    [J/kg/K]
-          & pi0=prm_diag%flxdwswtoa(:,jb)          ,&! in     solar incoming flux at TOA  [W/m2]
-          & pemiss=prm_diag%lw_emiss(:,jb)         ,&! in     lw sfc emissivity
-          & pqc=prm_diag%tot_cld    (:,:,jb,iqc)   ,&! in     specific cloud water        [kg/kg]
-          & pqi=prm_diag%tot_cld    (:,:,jb,iqi)   ,&! in     specific cloud ice          [kg/kg]
-          & ppres_ifc=pt_diag%pres_ifc(:,:,jb)     ,&! in     pressure at layer boundaries [Pa]
-          & albedo=prm_diag%albdif(:,jb)           ,&! in     grid-box average shortwave albedo
-          & albedo_t=prm_diag%albdif_t(:,jb,:)     ,&! in     tile-specific shortwave albedo
-          & list_land_count  = ext_data%atm%list_land%ncount(jb),  &! in number of land points
-          & list_land_idx    = ext_data%atm%list_land%idx(:,jb),   &! in index list of land points
-          & list_seawtr_count= ext_data%atm%list_seawtr%ncount(jb),&! in number of water points
-          & list_seawtr_idx  = ext_data%atm%list_seawtr%idx(:,jb), &! in index list of water points
-          & list_seaice_count= ext_data%atm%list_seaice%ncount(jb),&! in number of seaice points
-          & list_seaice_idx  = ext_data%atm%list_seaice%idx(:,jb), &! in index list of seaice points
-          & list_lake_count  = ext_data%atm%list_lake%ncount(jb),  &! in number of (f)lake points
-          & list_lake_idx    = ext_data%atm%list_lake%idx(:,jb),   &! in index list of (f)lake points
+            !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1) IF(lzacc)
+            !$ACC LOOP GANG VECTOR
+            DO jc = 1, nproma
+              prm_diag%swflxsfc (jc,jb)=0._wp
+              prm_diag%lwflxsfc (jc,jb)=0._wp
+              prm_diag%swflxtoa (jc,jb)=0._wp
+              prm_diag%lwflxtoa (jc,jb)=0._wp
+            ENDDO
+            !$ACC END PARALLEL
+
+            IF (atm_phy_nwp_config(jg)%inwp_surface >= 1 .OR. is_coupled_to_ocean()) THEN
+
 #ifdef __PGI_WORKAROUND
-          & gp_count_t       = gp_count_t,                         &! in number of land points per tile
+              !$ACC DATA CREATE(gp_count_t) IF(lzacc)
+              !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1) IF(lzacc)
+              !$ACC LOOP VECTOR
+              DO isubs = 1, ntiles_total
+                gp_count_t(isubs) = ext_data%atm%gp_count_t(jb,isubs)
+              ENDDO
+              !$ACC END PARALLEL
+#endif
+              !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1) IF(lzacc)
+              !$ACC LOOP GANG VECTOR COLLAPSE(2)
+              DO isubs = 1, ntiles_total+ntiles_water
+                DO jc = 1, nproma
+                  prm_diag%swflxsfc_t (jc,jb,isubs)=0._wp
+                  prm_diag%lwflxsfc_t (jc,jb,isubs)=0._wp
+                ENDDO
+              ENDDO
+              !$ACC END PARALLEL
+
+              CALL radheat (                   &
+              !
+              ! input
+              ! -----
+              !
+              & jcs=i_startidx                         ,&! in     start index of inner do loop
+              & jce=i_endidx                           ,&! in     end index of inner do loop
+              & jg=pt_patch%id                         ,&! in     patch ID
+              & kbdim=nproma                           ,&! in     loop length and dimension size
+              & klev=nlev                              ,&! in     vertical dimension size
+              & klevp1=nlevp1                          ,&! in     vertical dimension size
+              & ntiles=ntiles_total                    ,&! in     number of tiles of sfc flux fields
+              & ntiles_wtr=ntiles_water                ,&! in     number of extra tiles for ocean and lakes
+              & pmair=pt_diag%airmass_new(:,:,jb)      ,&! in     layer air mass             [kg/m2]
+              & pqv=prm_diag%tot_cld(:,:,jb,iqv)       ,&! in     specific moisture           [kg/kg]
+              & pcd=cvd                                ,&! in     specific heat of dry air  [J/kg/K]
+              & pcv=cvv                                ,&! in     specific heat of vapor    [J/kg/K]
+              & pi0=prm_diag%flxdwswtoa(:,jb)          ,&! in     solar incoming flux at TOA  [W/m2]
+              & pemiss=prm_diag%lw_emiss(:,jb)         ,&! in     lw sfc emissivity
+              & pqc=prm_diag%tot_cld    (:,:,jb,iqc)   ,&! in     specific cloud water        [kg/kg]
+              & pqi=prm_diag%tot_cld    (:,:,jb,iqi)   ,&! in     specific cloud ice          [kg/kg]
+              & ppres_ifc=pt_diag%pres_ifc(:,:,jb)     ,&! in     pressure at layer boundaries [Pa]
+              & albedo=prm_diag%albdif(:,jb)           ,&! in     grid-box average shortwave albedo
+              & albedo_t=prm_diag%albdif_t(:,jb,:)     ,&! in     tile-specific shortwave albedo
+              & list_land_count  = ext_data%atm%list_land%ncount(jb),  &! in number of land points
+              & list_land_idx    = ext_data%atm%list_land%idx(:,jb),   &! in index list of land points
+              & list_seawtr_count= ext_data%atm%list_seawtr%ncount(jb),&! in number of water points
+              & list_seawtr_idx  = ext_data%atm%list_seawtr%idx(:,jb), &! in index list of water points
+              & list_seaice_count= ext_data%atm%list_seaice%ncount(jb),&! in number of seaice points
+              & list_seaice_idx  = ext_data%atm%list_seaice%idx(:,jb), &! in index list of seaice points
+              & list_lake_count  = ext_data%atm%list_lake%ncount(jb),  &! in number of (f)lake points
+              & list_lake_idx    = ext_data%atm%list_lake%idx(:,jb),   &! in index list of (f)lake points
+#ifdef __PGI_WORKAROUND
+              & gp_count_t       = gp_count_t,                         &! in number of land points per tile
 #else
-          & gp_count_t       = ext_data%atm%gp_count_t(jb,:),      &! in number of land points per tile
+              & gp_count_t       = ext_data%atm%gp_count_t(jb,:),      &! in number of land points per tile
 #endif
-          & idx_lst_t        = ext_data%atm%idx_lst_t(:,jb,:),     &! in index list of land points per tile
-          & cosmu0=zcosmu0(:,jb)                   ,&! in     cosine of solar zenith angle (w.r.t. plain surface)
-          & cosmu0_slp=cosmu0_slope(:,jb)          ,&! in     slope-dependent cosine of solar zenith angle
-          & shading_mask=shading_mask(:,jb)        ,&! in     mask field indicating orographic shading
-          & skyview=ext_data%atm%skyview(:,jb)     ,&! in     skyview factor for islope_rad=2
-          & opt_nh_corr=.TRUE.                     ,&! in     switch for NH mode
-          & ptsfc=lnd_prog_new%t_g(:,jb)           ,&! in     surface temperature         [K]
-          & ptsfc_t=lnd_prog_new%t_g_t(:,jb,:)     ,&! in     tile-specific surface temperature         [K]
-          & ptsfctrad=prm_diag%tsfctrad(:,jb)      ,&! in     sfc temp. used for pflxlw   [K]
-          & ptrmsw=prm_diag%trsolall (:,:,jb)      ,&! in     shortwave net tranmissivity []
-          & pflxlw=prm_diag%lwflxall (:,:,jb)      ,&! in     longwave net flux           [W/m2]
-          & lwflx_up_sfc_rs=prm_diag%lwflx_up_sfc_rs(:,jb), &! in longwave upward flux at surface [W/m2]
-          & trsol_up_toa=prm_diag%trsol_up_toa(:,jb),   & ! in shortwave upward transm. at the top of the atmosphere
-          & trsol_up_sfc=prm_diag%trsol_up_sfc(:,jb),   & ! in shortwave upward transm. at the surface
-          & trsol_nir_sfc=prm_diag%trsol_nir_sfc(:,jb), & ! in near-infrared downward transm. at the surface
-          & trsol_vis_sfc=prm_diag%trsol_vis_sfc(:,jb), & ! in visible downward transm. at the surface
-          & trsol_par_sfc=prm_diag%trsol_par_sfc(:,jb), & ! in photosynthetically active downward transm. at the surface
-          & trsol_dn_sfc_diff=prm_diag%trsol_dn_sfc_diff(:,jb),&! in shortwave diffuse downward transm. at the surface
-          & trsol_clr_sfc=prm_diag%trsolclr_sfc(:,jb),  & ! in clear-sky net transmissivity at surface
-          & use_trsolclr_sfc=.TRUE.                ,&     ! in use clear-sky surface transmissivity (optional)
-          !
-          ! output
-          ! ------
-          !
-          & pdtdtradsw=prm_nwp_tend%ddt_temp_radsw(:,:,jb),&! out rad. heating by SW         [K/s]
-          & pdtdtradlw=prm_nwp_tend%ddt_temp_radlw(:,:,jb),&! out rad. heating by LW         [K/s]
-          & pflxsfcsw =prm_diag%swflxsfc (:,jb)        ,&   ! out shortwave surface net flux [W/m2]
-          & pflxsfcsw_os =prm_diag%swflxsfc_os (:,jb),  &   ! out shortwave surface net flux including shading [W/m2]
-          & pflxsfcsw_tan_os=prm_diag%swflxsfc_tan_os(:,jb), &  ! out shortwave surface net flux including shading and slope correction [W/m2]
-          & pflxsfclw =prm_diag%lwflxsfc (:,jb)        ,&   ! out longwave surface net flux  [W/m2]
-          & pflxsfcsw_t=prm_diag%swflxsfc_t (:,jb,:)   ,&   ! out tile-specific shortwave surface net flux [W/m2]; includes shading and slope correction for islope_rad>0
-          & pflxsfclw_t=prm_diag%lwflxsfc_t (:,jb,:)   ,&   ! out tile-specific longwave surface net flux  [W/m2]
-          & pflxtoasw =prm_diag%swflxtoa (:,jb)        ,&   ! out shortwave toa net flux     [W/m2]
-          & pflxtoalw =prm_diag%lwflxtoa (:,jb)        ,&   ! out longwave  toa net flux     [W/m2]
-          & lwflx_up_sfc=prm_diag%lwflx_up_sfc(:,jb)   ,&   ! out longwave upward flux at surface [W/m2]
-          & swflx_up_toa=prm_diag%swflx_up_toa(:,jb)   ,&   ! out shortwave upward flux at the TOA [W/m2]
-          & swflx_up_sfc=prm_diag%swflx_up_sfc(:,jb)   ,&   ! out shortwave upward flux at the surface [W/m2]
-          & swflx_up_sfc_os=prm_diag%swflx_up_sfc_os(:,jb), &  ! out shortwave upward flux at the surface including shading [W/m2]
-          & swflx_up_sfc_tan_os=prm_diag%swflx_up_sfc_tan_os(:,jb), &  ! out shortwave upward flux at the surface including shading and slope correction [W/m2]
-          & swflx_nir_sfc=prm_diag%swflx_nir_sfc(:,jb) ,&   ! out near-infrared downward flux at the surface [W/m2]
-          & swflx_vis_sfc=prm_diag%swflx_vis_sfc(:,jb) ,&   ! out visible downward flux at the surface [W/m2]
-          & swflx_par_sfc=prm_diag%swflx_par_sfc(:,jb) ,&   ! out PAR downward flux at the surface [W/m2]
-          & swflx_par_sfc_tan_os=prm_diag%swflx_par_sfc_tan_os(:,jb) ,&   ! out PAR downward flux at the surface including shading and slope correction [W/m2]
-          & swflx_clr_sfc=prm_diag%swflxclr_sfc(:,jb)  ,&   ! out clear-sky shortwave flux at the surface [W/m2]
-          & swflx_dn_sfc_diff=prm_diag%swflx_dn_sfc_diff(:,jb), & ! out shortwave diffuse downward flux at the surface [W/m2]
-          & lacc=lzacc                                          )
+              & idx_lst_t        = ext_data%atm%idx_lst_t(:,jb,:),     &! in index list of land points per tile
+              & cosmu0=zcosmu0(:,jb)                   ,&! in     cosine of solar zenith angle (w.r.t. plain surface)
+              & cosmu0_slp=cosmu0_slope(:,jb)          ,&! in     slope-dependent cosine of solar zenith angle
+              & shading_mask=shading_mask(:,jb)        ,&! in     mask field indicating orographic shading
+              & skyview=ext_data%atm%skyview(:,jb)     ,&! in     skyview factor for islope_rad=2
+              & opt_nh_corr=.TRUE.                     ,&! in     switch for NH mode
+              & ptsfc=lnd_prog_new%t_g(:,jb)           ,&! in     surface temperature         [K]
+              & ptsfc_t=lnd_prog_new%t_g_t(:,jb,:)     ,&! in     tile-specific surface temperature         [K]
+              & ptsfctrad=prm_diag%tsfctrad(:,jb)      ,&! in     sfc temp. used for pflxlw   [K]
+              & ptrmsw=prm_diag%trsolall (:,:,jb)      ,&! in     shortwave net tranmissivity []
+              & pflxlw=prm_diag%lwflxall (:,:,jb)      ,&! in     longwave net flux           [W/m2]
+              & lwflx_up_sfc_rs=prm_diag%lwflx_up_sfc_rs(:,jb), &! in longwave upward flux at surface [W/m2]
+              & trsol_up_toa=prm_diag%trsol_up_toa(:,jb),   & ! in shortwave upward transm. at the top of the atmosphere
+              & trsol_up_sfc=prm_diag%trsol_up_sfc(:,jb),   & ! in shortwave upward transm. at the surface
+              & trsol_nir_sfc=prm_diag%trsol_nir_sfc(:,jb), & ! in near-infrared downward transm. at the surface
+              & trsol_vis_sfc=prm_diag%trsol_vis_sfc(:,jb), & ! in visible downward transm. at the surface
+              & trsol_par_sfc=prm_diag%trsol_par_sfc(:,jb), & ! in photosynthetically active downward transm. at the surface
+              & trsol_dn_sfc_diff=prm_diag%trsol_dn_sfc_diff(:,jb),&! in shortwave diffuse downward transm. at the surface
+              & trsol_clr_sfc=prm_diag%trsolclr_sfc(:,jb),  & ! in clear-sky net transmissivity at surface
+              & use_trsolclr_sfc=.TRUE.                ,&     ! in use clear-sky surface transmissivity (optional)
+              !
+              ! output
+              ! ------
+              !
+              & pdtdtradsw=prm_nwp_tend%ddt_temp_radsw(:,:,jb),&! out rad. heating by SW         [K/s]
+              & pdtdtradlw=prm_nwp_tend%ddt_temp_radlw(:,:,jb),&! out rad. heating by LW         [K/s]
+              & pflxsfcsw =prm_diag%swflxsfc (:,jb)        ,&   ! out shortwave surface net flux [W/m2]
+              & pflxsfcsw_os =prm_diag%swflxsfc_os (:,jb),  &   ! out shortwave surface net flux including shading [W/m2]
+              & pflxsfcsw_tan_os=prm_diag%swflxsfc_tan_os(:,jb), &  ! out shortwave surface net flux including shading and slope correction [W/m2]
+              & pflxsfclw =prm_diag%lwflxsfc (:,jb)        ,&   ! out longwave surface net flux  [W/m2]
+              & pflxsfcsw_t=prm_diag%swflxsfc_t (:,jb,:)   ,&   ! out tile-specific shortwave surface net flux [W/m2]; includes shading and slope correction for islope_rad>0
+              & pflxsfclw_t=prm_diag%lwflxsfc_t (:,jb,:)   ,&   ! out tile-specific longwave surface net flux  [W/m2]
+              & pflxtoasw =prm_diag%swflxtoa (:,jb)        ,&   ! out shortwave toa net flux     [W/m2]
+              & pflxtoalw =prm_diag%lwflxtoa (:,jb)        ,&   ! out longwave  toa net flux     [W/m2]
+              & lwflx_up_sfc=prm_diag%lwflx_up_sfc(:,jb)   ,&   ! out longwave upward flux at surface [W/m2]
+              & swflx_up_toa=prm_diag%swflx_up_toa(:,jb)   ,&   ! out shortwave upward flux at the TOA [W/m2]
+              & swflx_up_sfc=prm_diag%swflx_up_sfc(:,jb)   ,&   ! out shortwave upward flux at the surface [W/m2]
+              & swflx_up_sfc_os=prm_diag%swflx_up_sfc_os(:,jb), &  ! out shortwave upward flux at the surface including shading [W/m2]
+              & swflx_up_sfc_tan_os=prm_diag%swflx_up_sfc_tan_os(:,jb), &  ! out shortwave upward flux at the surface including shading and slope correction [W/m2]
+              & swflx_nir_sfc=prm_diag%swflx_nir_sfc(:,jb) ,&   ! out near-infrared downward flux at the surface [W/m2]
+              & swflx_vis_sfc=prm_diag%swflx_vis_sfc(:,jb) ,&   ! out visible downward flux at the surface [W/m2]
+              & swflx_par_sfc=prm_diag%swflx_par_sfc(:,jb) ,&   ! out PAR downward flux at the surface [W/m2]
+              & swflx_par_sfc_tan_os=prm_diag%swflx_par_sfc_tan_os(:,jb) ,&   ! out PAR downward flux at the surface including shading and slope correction [W/m2]
+              & swflx_clr_sfc=prm_diag%swflxclr_sfc(:,jb)  ,&   ! out clear-sky shortwave flux at the surface [W/m2]
+              & swflx_dn_sfc_diff=prm_diag%swflx_dn_sfc_diff(:,jb), & ! out shortwave diffuse downward flux at the surface [W/m2]
+              & lacc=lzacc                                          )
 #ifdef __PGI_WORKAROUND
-    !$ACC WAIT(1)
-    !$ACC END DATA ! CREATE(gp_count_t)
+        !$ACC WAIT(1)
+        !$ACC END DATA ! CREATE(gp_count_t)
 #endif
 
-        ELSE
-          CALL radheat (                   &
-          !
-          ! input
-          ! -----
-          !
-          & jcs=i_startidx                         ,&! in     start index of inner do loop
-          & jce=i_endidx                           ,&! in     end index of inner do loop
-          & jg=pt_patch%id                         ,&! in     patch ID
-          & kbdim=nproma                           ,&! in     loop length and dimension size
-          & klev=nlev                              ,&! in     vertical dimension size
-          & klevp1=nlevp1                          ,&! in     vertical dimension size
-          & ntiles=1                               ,&! in     number of tiles of sfc flux fields
-          & ntiles_wtr=0                           ,&! in     number of extra tiles for ocean and lakes
-          & pmair=pt_diag%airmass_new(:,:,jb)      ,&! in     layer air mass             [kg/m2]
-          & pqv=prm_diag%tot_cld(:,:,jb,iqv)       ,&! in     specific moisture           [kg/kg]
-          & pcd=cvd                                ,&! in     specific heat of dry air  [J/kg/K]
-          & pcv=cvv                                ,&! in     specific heat of vapor    [J/kg/K]
-          & pi0=prm_diag%flxdwswtoa(:,jb)          ,&! in     solar incoming flux at TOA  [W/m2]
-          & pemiss=prm_diag%lw_emiss(:,jb)         ,&! in     lw sfc emissivity
-          & pqc=prm_diag%tot_cld    (:,:,jb,iqc)   ,&! in     specific cloud water        [kg/kg]
-          & pqi=prm_diag%tot_cld    (:,:,jb,iqi)   ,&! in     specific cloud ice          [kg/kg]
-          & ppres_ifc=pt_diag%pres_ifc(:,:,jb)     ,&! in     pressure at layer boundaries [Pa]
-          & cosmu0=zcosmu0(:,jb)                   ,&! in     cosine of solar zenith angle
-          & opt_nh_corr=.TRUE.                     ,&! in     switch for NH mode
-          & ptsfc=lnd_prog_new%t_g(:,jb)           ,&! in     surface temperature         [K]
-          & ptsfctrad=prm_diag%tsfctrad(:,jb)      ,&! in     sfc temp. used for pflxlw   [K]
-          & ptrmsw=prm_diag%trsolall (:,:,jb)      ,&! in     shortwave net tranmissivity []
-          & pflxlw=prm_diag%lwflxall (:,:,jb)      ,&! in     longwave net flux           [W/m2]
-          & lwflx_up_sfc_rs=prm_diag%lwflx_up_sfc_rs(:,jb), &! in longwave upward flux at surface [W/m2]
-          & trsol_up_toa=prm_diag%trsol_up_toa(:,jb),   & ! in shortwave upward transm. at the top of the atmosphere
-          & trsol_up_sfc=prm_diag%trsol_up_sfc(:,jb),   & ! in shortwave upward transm. at the surface
-          & trsol_nir_sfc=prm_diag%trsol_nir_sfc(:,jb), & ! in near-infrared downward transm. at the surface
-          & trsol_vis_sfc=prm_diag%trsol_vis_sfc(:,jb), & ! in visible downward transm. at the surface
-          & trsol_par_sfc=prm_diag%trsol_par_sfc(:,jb), & ! in photosynthetically active downward transm. at the surface
-          & trsol_dn_sfc_diff=prm_diag%trsol_dn_sfc_diff(:,jb),&! in shortwave diffuse downward transm. at the surface
-          !
-          ! output
-          ! ------
-          !
-          & pdtdtradsw=prm_nwp_tend%ddt_temp_radsw(:,:,jb),&! out    rad. heating by SW        [K/s]
-          & pdtdtradlw=prm_nwp_tend%ddt_temp_radlw(:,:,jb),&! out    rad. heating by lw        [K/s]
-          & pflxsfcsw =prm_diag%swflxsfc (:,jb)   ,&        ! out shortwave surface net flux [W/m2]
-          & pflxsfclw =prm_diag%lwflxsfc (:,jb)   ,&        ! out longwave surface net flux  [W/m2]
-          & pflxtoasw =prm_diag%swflxtoa (:,jb)   ,&        ! out shortwave toa net flux     [W/m2]
-          & pflxtoalw =prm_diag%lwflxtoa (:,jb)   ,&        ! out longwave  toa net flux     [W/m2]
-          & lwflx_up_sfc=prm_diag%lwflx_up_sfc(:,jb)   ,&   ! out longwave upward flux at surface [W/m2]
-          & swflx_up_toa=prm_diag%swflx_up_toa(:,jb)   ,&   ! out shortwave upward flux at the TOA [W/m2]
-          & swflx_up_sfc=prm_diag%swflx_up_sfc(:,jb)   ,&   ! out shortwave upward flux at the surface [W/m2]
-          & swflx_nir_sfc=prm_diag%swflx_nir_sfc(:,jb) ,&   ! out near-infrared downward flux at the surface [W/m2]
-          & swflx_vis_sfc=prm_diag%swflx_vis_sfc(:,jb) ,&   ! out visible downward flux at the surface [W/m2]
-          & swflx_par_sfc=prm_diag%swflx_par_sfc(:,jb) ,&   ! out PAR downward flux at the surface [W/m2]
-          & swflx_dn_sfc_diff=prm_diag%swflx_dn_sfc_diff(:,jb), & ! out shortwave diffuse downward flux at the surface [W/m2]
-          & lacc=lzacc                                          )
-        ENDIF
+            ELSE
+              CALL radheat (                   &
+              !
+              ! input
+              ! -----
+              !
+              & jcs=i_startidx                         ,&! in     start index of inner do loop
+              & jce=i_endidx                           ,&! in     end index of inner do loop
+              & jg=pt_patch%id                         ,&! in     patch ID
+              & kbdim=nproma                           ,&! in     loop length and dimension size
+              & klev=nlev                              ,&! in     vertical dimension size
+              & klevp1=nlevp1                          ,&! in     vertical dimension size
+              & ntiles=1                               ,&! in     number of tiles of sfc flux fields
+              & ntiles_wtr=0                           ,&! in     number of extra tiles for ocean and lakes
+              & pmair=pt_diag%airmass_new(:,:,jb)      ,&! in     layer air mass             [kg/m2]
+              & pqv=prm_diag%tot_cld(:,:,jb,iqv)       ,&! in     specific moisture           [kg/kg]
+              & pcd=cvd                                ,&! in     specific heat of dry air  [J/kg/K]
+              & pcv=cvv                                ,&! in     specific heat of vapor    [J/kg/K]
+              & pi0=prm_diag%flxdwswtoa(:,jb)          ,&! in     solar incoming flux at TOA  [W/m2]
+              & pemiss=prm_diag%lw_emiss(:,jb)         ,&! in     lw sfc emissivity
+              & pqc=prm_diag%tot_cld    (:,:,jb,iqc)   ,&! in     specific cloud water        [kg/kg]
+              & pqi=prm_diag%tot_cld    (:,:,jb,iqi)   ,&! in     specific cloud ice          [kg/kg]
+              & ppres_ifc=pt_diag%pres_ifc(:,:,jb)     ,&! in     pressure at layer boundaries [Pa]
+              & cosmu0=zcosmu0(:,jb)                   ,&! in     cosine of solar zenith angle
+              & opt_nh_corr=.TRUE.                     ,&! in     switch for NH mode
+              & ptsfc=lnd_prog_new%t_g(:,jb)           ,&! in     surface temperature         [K]
+              & ptsfctrad=prm_diag%tsfctrad(:,jb)      ,&! in     sfc temp. used for pflxlw   [K]
+              & ptrmsw=prm_diag%trsolall (:,:,jb)      ,&! in     shortwave net tranmissivity []
+              & pflxlw=prm_diag%lwflxall (:,:,jb)      ,&! in     longwave net flux           [W/m2]
+              & lwflx_up_sfc_rs=prm_diag%lwflx_up_sfc_rs(:,jb), &! in longwave upward flux at surface [W/m2]
+              & trsol_up_toa=prm_diag%trsol_up_toa(:,jb),   & ! in shortwave upward transm. at the top of the atmosphere
+              & trsol_up_sfc=prm_diag%trsol_up_sfc(:,jb),   & ! in shortwave upward transm. at the surface
+              & trsol_nir_sfc=prm_diag%trsol_nir_sfc(:,jb), & ! in near-infrared downward transm. at the surface
+              & trsol_vis_sfc=prm_diag%trsol_vis_sfc(:,jb), & ! in visible downward transm. at the surface
+              & trsol_par_sfc=prm_diag%trsol_par_sfc(:,jb), & ! in photosynthetically active downward transm. at the surface
+              & trsol_dn_sfc_diff=prm_diag%trsol_dn_sfc_diff(:,jb),&! in shortwave diffuse downward transm. at the surface
+              !
+              ! output
+              ! ------
+              !
+              & pdtdtradsw=prm_nwp_tend%ddt_temp_radsw(:,:,jb),&! out    rad. heating by SW        [K/s]
+              & pdtdtradlw=prm_nwp_tend%ddt_temp_radlw(:,:,jb),&! out    rad. heating by lw        [K/s]
+              & pflxsfcsw =prm_diag%swflxsfc (:,jb)   ,&        ! out shortwave surface net flux [W/m2]
+              & pflxsfclw =prm_diag%lwflxsfc (:,jb)   ,&        ! out longwave surface net flux  [W/m2]
+              & pflxtoasw =prm_diag%swflxtoa (:,jb)   ,&        ! out shortwave toa net flux     [W/m2]
+              & pflxtoalw =prm_diag%lwflxtoa (:,jb)   ,&        ! out longwave  toa net flux     [W/m2]
+              & lwflx_up_sfc=prm_diag%lwflx_up_sfc(:,jb)   ,&   ! out longwave upward flux at surface [W/m2]
+              & swflx_up_toa=prm_diag%swflx_up_toa(:,jb)   ,&   ! out shortwave upward flux at the TOA [W/m2]
+              & swflx_up_sfc=prm_diag%swflx_up_sfc(:,jb)   ,&   ! out shortwave upward flux at the surface [W/m2]
+              & swflx_nir_sfc=prm_diag%swflx_nir_sfc(:,jb) ,&   ! out near-infrared downward flux at the surface [W/m2]
+              & swflx_vis_sfc=prm_diag%swflx_vis_sfc(:,jb) ,&   ! out visible downward flux at the surface [W/m2]
+              & swflx_par_sfc=prm_diag%swflx_par_sfc(:,jb) ,&   ! out PAR downward flux at the surface [W/m2]
+              & swflx_dn_sfc_diff=prm_diag%swflx_dn_sfc_diff(:,jb), & ! out shortwave diffuse downward flux at the surface [W/m2]
+              & lacc=lzacc                                          )
+            ENDIF
 
-      ENDDO ! blocks
+          ENDDO ! blocks
 !$OMP END DO NOWAIT
 !$OMP END PARALLEL
 
-      !$ser verbatim IF (.not. linit) CALL serialize_all(nproma, jg, "radheat", .FALSE., opt_dt=mtime_datetime)
+          !$ser verbatim IF (.not. linit) CALL serialize_all(nproma, jg, "radheat", .FALSE., opt_dt=mtime_datetime)
 
-    !$ACC WAIT(1)
-    !$ACC END DATA ! CREATE(cosmu0_slope, shading_mask)
+        !$ACC WAIT(1)
+        !$ACC END DATA ! CREATE(cosmu0_slope, shading_mask)
 
-      IF (timers_level > 2) CALL timer_stop(timer_radheat)
+          IF (timers_level > 2) CALL timer_stop(timer_radheat)
 
-    ENDIF
+        ENDIF
+
+#ifdef __ICON_ART
+        IF ( lcall_phy_jg(itrad) .AND. ncallsrad > 1  ) THEN
+          ! Radiation multicall: calculate direct radiative effect
+          CALL rad_multicall_dre(prm_diag, dre_flx_reference, pt_patch)
+        ENDIF ! DRE
+      ENDDO  !< radiation multicall loop
+      ! Deallocate reference data arrays
+      IF ( lcall_phy_jg(itrad) .AND. ncallsrad > 1  ) THEN
+        ! Finalize calculates (total DRE - calculated DRE) for
+        ! the call type 'irad_multicall = 3'.
+        ! Also adds instantaneous DRE to accumulated one.
+        CALL rad_multicall_finalize(pt_patch)
+        CALL rad_multicall_dealloc(dre_flx_reference)
+      ENDIF
+    ENDIF  !< Radiation or radheat
+#endif
 
 #ifndef __NO_ICON_COMIN__
     CALL icon_call_callback(EP_ATM_RADHEAT_AFTER, jg, lacc=lzacc)
