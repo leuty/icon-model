@@ -43,7 +43,8 @@ MODULE mo_nwp_reff_interface
   USE mo_nwp_tuning_config,    ONLY: tune_zceff_min, tune_v0snow, tune_zvz0i, tune_icesedi_exp, tune_zcsg
 
   USE mo_reff_types,           ONLY: t_reff_calc_dom,  nreff_max_calc
-  USE mo_reff_main,            ONLY: init_reff_calc, mapping_indices, calculate_ncn, calculate_reff, combine_reff, set_max_reff
+  USE mo_reff_main,            ONLY: init_reff_calc, mapping_indices, mapping_indices_gscp3, calculate_ncn, &
+                                     calculate_reff, combine_reff, set_max_reff
   USE mo_impl_constants,       ONLY: max_dom  
   USE microphysics_1mom_schemes, ONLY: microphysics_1mom_init
 
@@ -175,7 +176,7 @@ MODULE mo_nwp_reff_interface
                       &     ncn_param     = 101,                           & ! External acdnc field for ncn (default RRTM)
                       &     p_reff        = prm_diag%reff_qc(:,:,:) )        ! Output
       ELSE 
-        WRITE (message_text,*) 'WANING: Reff not defined for RRTM when acdnc is not available.'
+        WRITE (message_text,*) 'WARNING: Reff not defined for RRTM when acdnc is not available.'
         CALL message('',message_text)
         IF ( PRESENT (return_reff) ) return_reff = .false.  
       END IF
@@ -283,6 +284,83 @@ MODULE mo_nwp_reff_interface
                       &     p_reff        = prm_diag%reff_qg(:,:,:) )        ! Output
       END IF
 
+    CASE (3)  ! gscp3 two-moment cloud ice scheme for the global ICON and ICON-ART
+      
+      ! Cloud water from RRTM to keep a similar radiation balance
+      ! No distinction between grid and subgrid
+      nreff_calc = nreff_calc + 1
+      IF ( available_acdnc ) THEN 
+        CALL  init_reff_calc ( reff_calc_dom(jg)%reff_calc_arr(nreff_calc),&
+                      &     hydrometeor   = 0,                             & ! Cloud Water DSD and geom. properties
+                      &     grid_scope    = 0,                             & ! Grid and Subgrid
+                      &     microph_param = 101,                           & ! RRTM Param
+                      &     return_fct    = return_fct,                    & ! Return parameter
+                      &     p_q           = p_prog%tracer(:,:,:,iqc),      & ! Grid Cloud water
+                      &     p_qtot        = prm_diag%tot_cld(:,:,:,iqc),   & ! Total Cloud water
+                      &     p_ncn3D       = prm_diag%acdnc(:,:,:),         & ! Number concentration acdnc
+                      &     reff_param    = 0 ,                            & ! Spheroid
+                      &     ncn_param     = 101,                           & ! External acdnc field for ncn (default RRTM)
+                      &     p_reff        = prm_diag%reff_qc(:,:,:) )        ! Output
+      ELSE 
+        WRITE (message_text,*) 'WARNING: Reff not defined for RRTM when acdnc is not available.'
+        CALL message('',message_text)
+        IF ( PRESENT (return_reff) ) return_reff = .false.  
+      END IF
+      
+      ! Grid ice from 2 moment scheme (microph_param = 3)
+      nreff_calc = nreff_calc + 1
+      CALL  init_reff_calc ( reff_calc_dom(jg)%reff_calc_arr(nreff_calc),&
+                    &     hydrometeor   = 1,                             & ! Ice DSD and geom. properties
+                    &     grid_scope    = 1 ,                            & ! Grid clouds only
+                    &     microph_param = 3,                             & ! Chosen 2 moment scheme
+                    &     return_fct    = return_fct,                    & ! Return parameter
+                    &     p_q           = p_prog%tracer(:,:,:,iqi),      & ! Grid ice
+                    &     p_qtot        = prm_diag%tot_cld(:,:,:,iqi),   & ! Total ice
+                    &     p_ncn3D       = p_prog%tracer(:,:,:,iqni),     & ! Number concentration from 2 mom
+                    &     reff_param    = 1 ,                            & !  Fu param
+                    &     ncn_param     = 4,                             & ! 2 mom ncn
+                    &     dsd_type      = 1,                             & ! 1: monodisperse, 2: polydisperse
+                    &     p_reff = prm_diag%reff_qi(:,:,:) )               ! Output
+
+      ! Sub Grid ice with 2 moment microphysics and DSD and ncn Cooper formula from 1D scheme
+      nreff_calc = nreff_calc + 1
+      CALL  init_reff_calc ( reff_calc_dom(jg)%reff_calc_arr(nreff_calc),&
+                    &     hydrometeor   = 1,                             & ! Ice DSD and geom. properties
+                    &     grid_scope    = 2 ,                            & ! Subgrid
+                    &     microph_param = 3,                             & ! Chosen 2 moment scheme
+                    &     return_fct    = return_fct,                    & ! Return parameter
+                    &     p_q           = p_prog%tracer(:,:,:,iqi),      & ! Grid ice
+                    &     p_qtot        = prm_diag%tot_cld(:,:,:,iqi),   & ! Total ice
+                    &     reff_param    = 1 ,                            & ! Fu param
+                    &     ncn_param     = 1,                             & ! ncn from 1 moment scheme
+                    &     p_reff        = prm_diag%reff_qi(:,:,:) )        ! Output
+
+
+      ! Rain using 1 mom (gscp =1)
+      nreff_calc = nreff_calc + 1
+      CALL  init_reff_calc ( reff_calc_dom(jg)%reff_calc_arr(nreff_calc),&
+                    &     hydrometeor   = 2,                             & ! Rain DSD and geom. properties
+                    &     grid_scope    = 0 ,                            & ! Grid and Subgrid
+                    &     microph_param = 1,                             & ! Chosen 1 moment scheme
+                    &     return_fct    = return_fct,                    & ! Return parameter
+                    &     p_q           = p_prog%tracer(:,:,:,iqr),      & ! Rain mixing ratio
+                    &     reff_param    = 0 ,                            & ! Spheroid
+                    &     ncn_param     = 1,                             & ! 1 moment ncn
+                    &     p_reff        = prm_diag%reff_qr(:,:,:) )        ! Output
+
+      ! Snow using 1 mom
+      nreff_calc = nreff_calc + 1
+      CALL  init_reff_calc ( reff_calc_dom(jg)%reff_calc_arr(nreff_calc),&
+                    &     hydrometeor   = 3,                             & ! Snow DSD and geom. properties
+                    &     grid_scope    = 0 ,                            & ! Grid and Subgrid
+                    &     microph_param = 1,                             & ! Chosen 1 moment scheme
+                    &     return_fct    = return_fct,                    & ! Return parameter
+                    &     p_q           = p_prog%tracer(:,:,:,iqs),      & ! Snow mixing ratio
+                    &     reff_param    = 1 ,                            & ! Fu
+                    &     ncn_param     = 1,                             & ! 1 moment ncn
+                    &     p_reff        = prm_diag%reff_qs(:,:,:) )        ! Output
+      
+      
       ! 2 Moment Scheme
     CASE ( 4,5,6,7,8) 
 
@@ -515,11 +593,17 @@ MODULE mo_nwp_reff_interface
       DO ireff = 1, nreff_calc
 
       ! Obtain indices using qc_dia
-        CALL mapping_indices (  indices, n_ind,                                             &
-             &                  reff_calc=reff_calc_dom(jg)%reff_calc_arr(ireff),           &
-             &                  k_start=kstart_moist(jg), k_end=nlev, is=is, ie=ie, jb=jb,  &
-             &                  return_fct=return_fct(ireff) )
-
+        IF ( atm_phy_nwp_config(jg)%inwp_gscp == 3 ) THEN
+          CALL mapping_indices_gscp3 (  indices, n_ind,                                             &
+               &                  reff_calc=reff_calc_dom(jg)%reff_calc_arr(ireff),           &
+               &                  k_start=kstart_moist(jg), k_end=nlev, is=is, ie=ie, jb=jb,  &
+               &                  return_fct=return_fct(ireff) )
+        ELSE
+          CALL mapping_indices(  indices, n_ind,                                             &
+               &                  reff_calc=reff_calc_dom(jg)%reff_calc_arr(ireff),           &
+               &                  k_start=kstart_moist(jg), k_end=nlev, is=is, ie=ie, jb=jb,  &
+               &                  return_fct=return_fct(ireff) )
+        END IF
         IF ( .NOT. return_fct(ireff) ) THEN
           WRITE(*,*) "WARNING: Something went wrong with mapping_indices for calculation ", &
              & ireff," in domain ", jg
