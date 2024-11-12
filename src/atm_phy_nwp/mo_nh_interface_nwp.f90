@@ -904,6 +904,7 @@ CONTAINS
                                & p_sim_time,                       & ! in
                                & pt_patch, p_metrics,              & !>input
                                & pt_int_state,                     & !>input
+                               & pt_prog,                          & !>in
                                & pt_prog_rcf,                      & !>inout
                                & pt_diag ,                         & !>inout
                                & prm_diag,                         & !>inout
