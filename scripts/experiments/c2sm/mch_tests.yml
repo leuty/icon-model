@@ -147,7 +147,7 @@ tests:
     checksuite_modes:
       - balfrin: 'rt'
     ensemble_num:
-      - balfrin_cpu_nvidia: [25,12,13,20,19]
+      - balfrin_cpu_nvidia: [17,9,49,46,28]
       - balfrin_cpu_nvidia_mixed: [38,22,48,19,37]
     tolerance_factor:
       - balfrin: 5
@@ -166,7 +166,7 @@ tests:
     checksuite_modes:
       - balfrin: 't'
     ensemble_num:
-      - balfrin_cpu_nvidia: [18,8,49,45,27]
+      - balfrin_cpu_nvidia: [25,12,13,20,19]
       - balfrin_cpu_nvidia_mixed: [50,20,40,39,15]
   - name: mch_opr_r19b07_lpi
     tags: ['atm','merge2rc','probtest']

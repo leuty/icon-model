@@ -1257,18 +1257,13 @@ SUBROUTINE new_nwp_phy_diag_list( k_jg, klev, klevp1, kblks,    &
 
     IF ( var_in_output%hpbl ) THEN
 
-#ifdef _OPENACC
-      CALL finish ('mo_nwp_phy_state:new_nwp_phy_diag_list', &
-        'hpbl calculation not ported to GPU')
-#endif
-
       cf_desc    = t_cf_var('hpbl', 'm', 'boundary layer height above sea level', &
            &                datatype_flt)
       grib2_desc = grib2_var(0, 3, 18, ibits, GRID_UNSTRUCTURED, GRID_CELL)
       CALL add_var( diag_list, 'hpbl', diag%hpbl,                             &
         & GRID_UNSTRUCTURED_CELL, ZA_CLOUD_TOP, cf_desc, grib2_desc,            &
-        & ldims=shape2d, lrestart=.FALSE. )
-
+        & ldims=shape2d, lrestart=.FALSE.,lopenacc=.TRUE.  )
+      __acc_attach(diag%hpbl)
     ENDIF
 
 
