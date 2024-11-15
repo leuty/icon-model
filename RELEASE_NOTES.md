@@ -5,6 +5,8 @@
 AES Physics:
 
 - Optimization of computation of geometric grid information for simple plumes
+- TMX turbulence
+  - Fix OpenACC performance issue and OpenMP PRIVATE
 
 ### ICON-Ocean
 
