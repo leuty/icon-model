@@ -27,6 +27,7 @@ Climate: ICON-Land
   - Merged the radiation process of QUINCY into the radiation process of JSBACH
 - Small fix for ICON-Land standalone concerning nproma
 - New optional tag for the memory usage report
+- Fix for initializing carbon pools from file (read_cpools)
 
 ### Infrastructure
 
