@@ -28,6 +28,8 @@ Climate: ICON-Land
 - Small fix for ICON-Land standalone concerning nproma
 - New optional tag for the memory usage report
 - Fix for initializing carbon pools from file (read_cpools)
+- The script suite to generate ICON-Land input data now also includes scripts to generate
+  HD parameter files (for internal HD) and HD receive masks (for external HD)
 
 ### Infrastructure
 
