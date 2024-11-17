@@ -30,10 +30,15 @@ Climate: ICON-Land
 - Fix for initializing carbon pools from file (read_cpools)
 - The script suite to generate ICON-Land input data now also includes scripts to generate
   HD parameter files (for internal HD) and HD receive masks (for external HD)
+- Bug fix: replace dp by wp in add_var wrappers
 
 ### Infrastructure
 
 - Use OMP and ACC reductions in mo_statistics.f90
+
+#### Scripting and testing
+
+- Increase time limit for test_yaxt_xchange.config experiment
 
 
 # Release notes for icon-2024.10
