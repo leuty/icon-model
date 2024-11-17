@@ -19,7 +19,8 @@ Climate: ICON-Land
 - Add per-process namelist option lrestart_cont to allow restarting from other experiments run
   without that process
 - QUINCY development
-  - Added experiment file for ICON-Land standalone runs using QUINCY in canopy mode (no biogeochemistry)
+  - Added experiment file for ICON-Land standalone runs using QUINCY in CANOPY mode (no biogeochemistry)
+  - Initial GPU port of QUINCY - running in CANOPY mode with the ICON-Land standalone driver
   - Minor scientific updates
     - Improvement in the first soil-layer hydrology
     - Bugfix in snow melt calculation

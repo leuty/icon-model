@@ -73,10 +73,10 @@ case $builder in
     levante_intel_hybrid)
         MD='mor' # currently nproma  fails (follow up issues)
         ;;
-#    levante_gpu*)
-#        # MPI test fails. nproma test is invalid
-#        MD='r'
-#        ;;
+    levante_gpu*)
+        # MPI test fails. nproma test is invalid (comment copied from atm_nwp_jsbach_test -- not tested)
+        MD='r'
+        ;;
 esac
 
 #--------------------------------------------------------------------------------

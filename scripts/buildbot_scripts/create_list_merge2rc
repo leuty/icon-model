@@ -320,7 +320,8 @@ done
 jsbach_nwp_builders='DWD_nec DWD_nec_hybrid levante_gcc levante_intel levante_gpu_nvhpc'
 $addexp checksuite.icon-dev/check.atm_nwp_jsbach_test --builders "${jsbach_nwp_builders}" --list $listname
 
-# TODO: where should this actually be located in this list (in the near future this test should also run with levante_gpu)
+# TODO: where should this actually be located in this list
+$addexp checksuite.icon-dev/check.land_quincy_canopy_test --builders 'levante_gpu_nvhpc' --list $listname
 $addexp checksuite.icon-dev/check.land_quincy_canopy_test --builders "levante_nag levante_gcc levante_intel_hybrid" --list $listname --runflags "queue=shared,compute ntasks=8 memory=32G"
 
 # aurora node at DKRZ - not in production,yet
