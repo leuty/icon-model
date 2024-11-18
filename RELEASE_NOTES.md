@@ -32,6 +32,7 @@ Climate: ICON-Land
 - The script suite to generate ICON-Land input data now also includes scripts to generate
   HD parameter files (for internal HD) and HD receive masks (for external HD)
 - Bug fix: replace dp by wp in add_var wrappers
+- Added diagnostic variable for volumetric soil moisture content for soil layers
 
 ### Infrastructure
 
