@@ -108,7 +108,7 @@ ICON_DYCORE_FCFLAGS="${ICON_FCFLAGS} -mvector-floating-divide-instruction -mvect
 ICON_DYCORE_PATH='src/atm_dyn_iconam/mo_solve_nonhydro.f90:src/atm_dyn_iconam/mo_velocity_advection.f90'
 
 ICON_YAXT_FCFLAGS='-DXT_NEED_MPI_ABORT_WORK_AROUND=2'
-ICON_OCEAN_FCFLAGS='-O2 -D__LVECTOR__ -mvector-floating-divide-instruction -mvector-sqrt-instruction'
+ICON_OCEAN_FCFLAGS="-O3 -D__LVECTOR__ -mvector-floating-divide-instruction -mvector-sqrt-instruction -finline-functions -finline-file=$(join_arr : "${ICON_DIR}/" "${INLINE_LIST_OCEAN[@]}")"
 ICON_OCEAN_PATH='src/hamocc:src/ocean:src/sea_ice'
 ICON_ECRAD_FCFLAGS="-finline-functions -finline-file=$(join_arr : "${ICON_DIR}/" "${INLINE_LIST_ECRAD[@]}")"
 ICON_FORTRAN_SUPPORT_FCFLAGS='-fpp'

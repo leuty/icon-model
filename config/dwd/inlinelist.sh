@@ -82,3 +82,9 @@ INLINE_LIST_EMVORADO=(
   externals/emvorado/src_emvorado/radar_dmin_wetgrowth.f90
   externals/emvorado/src_iface_icon/radar_interface.f90
 )
+
+INLINE_LIST_OCEAN=(
+  externals/math-support/src/mo_math_utilities.F90
+  src/advection/mo_advection_utils.f90
+  src/ocean/physics/mo_ocean_thermodyn.f90
+)

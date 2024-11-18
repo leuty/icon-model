@@ -974,7 +974,7 @@ CONTAINS
     CASE(10)
       rho = calculate_density_EOS10_onColumn(temperature, salinity, p)
     CASE default
-
+      rho = 0._wp
     END SELECT
 
   END FUNCTION calculate_density_onColumn_elem
