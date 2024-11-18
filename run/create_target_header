@@ -1114,7 +1114,7 @@ set_run_target_alps_mch_gpu()
     use_nodes=${use_nodes}
     use_mpi_procs_pernode=${use_mpi_procs_pernode}
 
-    partition="normal"
+    set_default partition "short"
 
     cat >> "$output_script" << EOF
 #-----------------------------------------------------------------------------
@@ -1934,6 +1934,7 @@ create_target_header()
                     use_nodes=2
                     use_mpi_procs_pernode=5
                     use_nproma_sub=6054
+                    partition="normal"
                 ;;
                 alps_mch_cpu*)
                     use_nodes=4
@@ -1947,6 +1948,7 @@ create_target_header()
                     use_nodes=1
                     use_mpi_procs_pernode=6
                     use_nproma_sub=1128
+                    partition="normal"
                 ;;
             esac
             ;;
@@ -1956,6 +1958,7 @@ create_target_header()
                     use_nodes=1
                     use_mpi_procs_pernode=6
                     use_nproma_sub=17757
+                    partition="normal"
                 ;;
             esac
             ;;
