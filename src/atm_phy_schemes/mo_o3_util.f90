@@ -193,7 +193,7 @@ CONTAINS
           IF(istat /= SUCCESS) CALL finish(routine, 'Allocation of zo3_timint failed')
         !$ACC ENTER DATA CREATE(zo3_timint)
 !$OMP PARALLEL
-!$OMP DO PRIVATE(jb,i_startidx,i_endidx) ICON_OMP_DEFAULT_SCHEDULE
+!$OMP DO PRIVATE(jb,i_startidx,i_endidx,zo3_timint) ICON_OMP_DEFAULT_SCHEDULE
         DO jb = i_startblk,i_endblk
           CALL get_indices_c(pt_patch,jb,i_startblk,i_endblk,i_startidx,i_endidx,rl_start,rl_end)
           CALL o3_timeint(jcs = 1, jce = i_endidx, kbdim = nproma,       & ! IN
@@ -201,7 +201,7 @@ CONTAINS
                &          ext_o3       = ext_ozone(jg)%o3_plev(:,:,jb,:),& ! IN
                &          current_date = mtime_datetime,                 & ! IN
                &          o3_time_int  = zo3_timint,                     & ! OUT
-               &          opt_use_acc  = .TRUE.                          )
+               &          opt_use_acc  = lzacc                           )
           CALL o3_pl2ml  (jcs = 1, jce = i_endidx, kbdim = nproma,       &
                &          nlev_pres    = ext_ozone(jg)%nplev_o3,         & ! IN
                &          klev         = pt_patch%nlev,                  & ! IN
@@ -211,7 +211,7 @@ CONTAINS
                &          pph          = pt_diag%pres_ifc(:,:,jb),       & ! IN
                &          o3_time_int  = zo3_timint,                     & ! IN
                &          o3_clim      = o3(:,:,jb),                     & ! OUT ozone mass mixing ratio [kg/kg]
-               &          opt_use_acc  = .TRUE.                          )
+               &          opt_use_acc  = lzacc                           )
         ENDDO !jb
 !$OMP END DO NOWAIT
 !$OMP END PARALLEL
@@ -250,9 +250,11 @@ CONTAINS
     TYPE(datetime), POINTER, INTENT(in) :: current_date
     REAL(wp), INTENT(in) , DIMENSION(:,:,:)                :: ext_o3
     LOGICAL, INTENT(IN), OPTIONAL                          :: opt_use_acc
-    REAL(wp), INTENT(OUT), DIMENSION(kbdim,nlev_pres)      :: o3_time_int
+    REAL(wp), INTENT(OUT), DIMENSION(:,:)                  :: o3_time_int
     TYPE(t_time_interpolation_weights) :: tiw
-    LOGICAL :: use_acc   = .FALSE.  ! Default: no acceleration
+    LOGICAL :: use_acc
+
+    use_acc = .FALSE.
     IF (PRESENT(opt_use_acc)) use_acc = opt_use_acc
     
     tiw = calculate_time_interpolation_weights(current_date)
@@ -299,7 +301,7 @@ CONTAINS
     REAL(wp),INTENT(IN) ,DIMENSION(kbdim,klev)      :: ppf  ! full level pressure 
     REAL(wp),INTENT(IN) ,DIMENSION(kbdim,klev+1)    :: pph  ! half level pressure
     REAL(wp),INTENT(IN) ,DIMENSION(kbdim,nlev_pres) :: o3_time_int !zozonec_x
-    REAL(wp),INTENT(OUT),DIMENSION(kbdim,klev)      :: o3_clim ! ozone in g/g
+    REAL(wp),INTENT(OUT),DIMENSION(:,:)             :: o3_clim ! ozone in g/g
     REAL(wp),INTENT(IN) ,OPTIONAL                   :: opt_o3_initval ! initial value for o3_clim
     LOGICAL, INTENT(IN), OPTIONAL                   :: opt_use_acc
 
@@ -323,7 +325,9 @@ CONTAINS
 
     INTEGER,DIMENSION(jce)            :: kwork
     LOGICAL,DIMENSION(jce)            :: kk_flag
-    LOGICAL :: use_acc   = .FALSE.  ! Default: no acceleration                                                                                         
+    LOGICAL :: use_acc
+
+    use_acc = .FALSE.
     IF (PRESENT(opt_use_acc)) use_acc = opt_use_acc
 
     !$ACC DATA PRESENT(pfoz, phoz, ppf, pph, o3_time_int, o3_clim) &

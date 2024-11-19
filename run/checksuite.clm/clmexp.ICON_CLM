@@ -59,6 +59,12 @@ VOLC_DIR="${icon_data_rootFolder:-/pool/data/ICON}/buildbot_data/nwp/Checksuite_
 ln -sf ${VOLC_DIR}/bc_aeropt_cmip6_volc_lw_b16_sw_b14_1979.nc bc_aeropt_cmip6_volc_lw_b16_sw_b14_1978.nc
 ln -sf ${VOLC_DIR}/bc_aeropt_cmip6_volc_lw_b16_sw_b14_1979.nc bc_aeropt_cmip6_volc_lw_b16_sw_b14_1979.nc
 
+# ozone data
+# use global data for testing only (for a proper simulation, interpolate to resp. grid!)
+OZONE_DIR="${icon_data_rootFolder:-/pool/data/ICON}/buildbot_data/nwp/Checksuite_data/data_bbtest19"
+ln -sf ${OZONE_DIR}/bc_ozone_historical_1978.nc bc_ozone_1978.nc
+ln -sf ${OZONE_DIR}/bc_ozone_historical_1979.nc bc_ozone_1979.nc
+
 # ecRad specific files
 ECRAD_DIR=${ICONDIR}/externals/ecrad/data
 
@@ -459,7 +465,7 @@ cat > NAMELIST_${EXPID} << EOF
   irad_n2o    = 4           ! 4: from greenhouse gas scenario
   irad_cfc11  = 4           ! 4: from greenhouse gas scenario
   irad_cfc12  = 4           ! 4: from greenhouse gas scenario
-  irad_o3     = 79
+  irad_o3     = 5           ! 5: transient ozone climatology
   irad_aero   = 18
   albedo_type = 2          ! Modis albedo
   direct_albedo = 4
