@@ -30,7 +30,7 @@ MODULE mo_nh_jabw_exp
    USE mo_run_config,           ONLY: iqv, ntracer
    USE mo_impl_constants,       ONLY: MAX_CHAR_LENGTH
    USE mo_parallel_config,      ONLY: nproma, p_test_run
-   USE mo_satad,                ONLY: sat_pres_water, &  !! saturation vapor pressure w.r.t. water
+   USE mo_thdyn_functions,      ONLY: sat_pres_water, &  !! saturation vapor pressure w.r.t. water
      &                                sat_pres_ice       !! saturation vapor pressure w.r.t. ice
    USE mo_exception,            ONLY: finish, message_text
    USE mo_ncar_testcases,       ONLY: tracer_q1_q2, tracer_q3, &

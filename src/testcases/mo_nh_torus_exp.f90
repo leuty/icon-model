@@ -48,7 +48,7 @@ MODULE mo_nh_torus_exp
   USE mo_nh_init_utils,       ONLY: init_w
   USE mo_run_config,          ONLY: iqv, iqc
   USE mo_impl_constants_grf,  ONLY: grf_bdywidth_e
-  USE mo_satad,               ONLY: spec_humi, sat_pres_water
+  USE mo_thdyn_functions,     ONLY: spec_humi, sat_pres_water
   USE mo_les_config,          ONLY: les_config
   USE mo_grid_subset,         ONLY: t_subset_range, get_index_range
   USE mo_nh_vert_interp_les,  ONLY: vert_intp_linear_1d

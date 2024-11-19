@@ -2785,6 +2785,15 @@ CONTAINS
     IF (.NOT. is_ocean) &
       & CALL init_name_list_output(sim_step_info)
 
+    ! setup of meteogram output
+    DO jg =1,n_dom
+      IF (meteogram_output_config(jg)%lenabled) THEN
+        CALL meteogram_init(meteogram_output_config(jg), jg,    &
+          &                 grid_uuid=patch_info(jg)%grid_uuid, &
+          &                 number_of_grid_used=patch_info(jg)%number_of_grid_used)
+      END IF
+    END DO
+
     ! The initialisation of coupling needs to be called by all (!) MPI processes
     ! in MPI_COMM_WORLD.
     ! construct_dummy_coupling needs to be called after init_name_list_output
@@ -2799,15 +2808,6 @@ CONTAINS
     ! FIXME: Explain this braindead weirdnes.
     IF (is_ocean) &
       & CALL init_name_list_output(sim_step_info)
-
-    ! setup of meteogram output
-    DO jg =1,n_dom
-      IF (meteogram_output_config(jg)%lenabled) THEN
-        CALL meteogram_init(meteogram_output_config(jg), jg,    &
-          &                 grid_uuid=patch_info(jg)%grid_uuid, &
-          &                 number_of_grid_used=patch_info(jg)%number_of_grid_used)
-      END IF
-    END DO
 
 
     ! Append the chosen p-levels, z-levels, i-levels to the levels

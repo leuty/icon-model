@@ -8,8 +8,8 @@
 ! See LICENSES/ for license information
 ! SPDX-License-Identifier: BSD-3-Clause
 ! ---------------------------------------------------------------
-
-! Basis for RTTOV interface modules
+!
+!Basis for RTTOV interface modules
 
 MODULE mo_rtifc_base
 
@@ -66,7 +66,8 @@ MODULE mo_rtifc_base
   use rttov_god,          only: rttov_o2god
 #endif
 
-#if defined(_RTIFC_DISTRIBCOEF)
+#if defined(_RTIFC_DISTRIBCOEF) && defined(HAVE_MPI_MOD)
+  ! prefer MPI module over mpif.h
   use mpi
 #endif
 
@@ -80,6 +81,12 @@ MODULE mo_rtifc_base
 
   ! MPI routines
 #if defined(_RTIFC_DISTRIBCOEF)
+
+#if !defined(HAVE_MPI_MOD)
+  include "mpif.h"
+#endif
+
+
 #if (_RTTOV_VERSION >= 12) || defined(_RTIFC_USE_MPIF)
   interface p_bcast
 #if defined(_RTIFC_USE_MPIF)

@@ -47,7 +47,7 @@ MODULE mo_nwp_diagnosis
     &                              itype_dursun, itype_convindices, itype_hzerocl, t_var_in_output
   USE mo_sync,               ONLY: global_max, global_min
   USE mo_vertical_coord_table,  ONLY: vct_a
-  USE mo_satad,              ONLY: sat_pres_water, spec_humi
+  USE mo_thdyn_functions,    ONLY: sat_pres_water, spec_humi
   USE mo_nh_diagnose_pres_temp, ONLY: diagnose_pres_temp
   USE mo_util_phys,            ONLY: nwp_dyn_gust
   USE mo_opt_nwp_diagnostics,ONLY: calsnowlmt, cal_cape_cin, cal_cape_cin_mu, cal_cape_cin_mu_COSMO, &    
@@ -1430,8 +1430,8 @@ CONTAINS
 
     IF (ltimer) CALL timer_start(timer_nh_diagnostics)
 
-    !$ACC DATA CREATE(ztp, zqp, mlab) PRESENT(p_metrics, pt_prog_rcf, pt_diag) &
-    !$ACC   PRESENT(lnd_diag, p_prog_wtr_now, ext_data, prm_diag) IF(lzacc)
+    !$ACC DATA CREATE(ztp, zqp, mlab, ri_no) PRESENT(p_metrics, pt_prog_rcf, pt_diag) &
+    !$ACC   PRESENT(lnd_diag, p_prog_wtr_now, ext_data, pt_prog, prm_diag) IF(lzacc)
 
     i_nchdom  = MAX(1,pt_patch%n_childdom)
     jg        = pt_patch%id
@@ -1643,18 +1643,16 @@ CONTAINS
       !  atm_phy_les/mo_turbulent_diagnostic.f90
 
        IF (var_in_output(jg)%hpbl) THEN
-
-#ifdef _OPENACC
-         CALL finish(routine, 'PBL diagnosis not ported to GPU.')
-#endif
-
+        !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1) IF(lzacc)
+        !$ACC LOOP GANG(STATIC: 1) VECTOR
         DO jc = i_startidx, i_endidx
          ri_no(jc,nlev) = missing_value_hpbl
         ENDDO
 
-
+        !$ACC LOOP SEQ
         DO jk = nlev-1, kstart_moist, -1
-         DO jc = i_startidx, i_endidx
+          !$ACC LOOP GANG(STATIC: 1) VECTOR
+          DO jc = i_startidx, i_endidx
 
             ri_no(jc,jk) = (grav/pt_prog%theta_v(jc,nlev,jb)) * &
               &      ( pt_prog%theta_v(jc,jk,jb)-pt_prog%theta_v(jc,nlev,jb) ) *  &
@@ -1672,7 +1670,7 @@ CONTAINS
 
           END DO
         END DO
-
+        !$ACC END PARALLEL
       ENDIF
 
 

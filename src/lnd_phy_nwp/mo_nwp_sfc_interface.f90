@@ -31,7 +31,7 @@ MODULE mo_nwp_sfc_interface
   USE mo_nwp_phy_types,       ONLY: t_nwp_phy_diag
   USE mo_nwp_phy_state,       ONLY: phy_params
   USE mo_parallel_config,     ONLY: nproma
-  USE mo_run_config,          ONLY: iqv, iqc, iqs, iqi, msg_level
+  USE mo_run_config,          ONLY: iqv, iqc, iqs, iqi, iqni, msg_level
   USE mo_turbdiff_config,     ONLY: turbdiff_config
   USE mo_io_config,           ONLY: var_in_output
   USE mo_atm_phy_nwp_config,  ONLY: atm_phy_nwp_config
@@ -47,7 +47,7 @@ MODULE mo_nwp_sfc_interface
   USE mo_initicon_config,     ONLY: icpl_da_sfcevap, dt_ana, icpl_da_skinc, icpl_da_seaice, icpl_da_snowalb
   USE mo_coupling_config,     ONLY: is_coupled_to_ocean
   USE mo_ensemble_pert_config,ONLY: sst_pert_corrfac
-  USE mo_satad,               ONLY: sat_pres_water, sat_pres_ice, spec_humi, dqsatdT_ice
+  USE mo_thdyn_functions,     ONLY: sat_pres_water, sat_pres_ice, spec_humi, dqsatdT_ice
   USE sfc_terra,              ONLY: terra
   USE mo_nwp_sfc_utils,       ONLY: diag_snowfrac_tg, update_idx_lists_lnd, update_idx_lists_sea
   USE sfc_flake,              ONLY: flake_interface
@@ -58,6 +58,7 @@ MODULE mo_nwp_sfc_interface
   USE mo_physical_constants,  ONLY: tmelt, grav, salinity_fac, rhoh2o
   USE mo_index_list,          ONLY: generate_index_list
   USE mo_fortran_tools,       ONLY: init, set_acc_host_or_device, assert_acc_device_only
+  USE microphysics_1mom_schemes, ONLY: get_mean_snowdrift_mass
 
 #ifdef ICON_USE_CUDA_GRAPH
   USE mo_acc_device_management,ONLY: accGraph, accBeginCapture, accEndCapture, accGraphLaunch
@@ -254,7 +255,7 @@ CONTAINS
 
     INTEGER  :: i_count, i_count_seawtr, i_count_snow, ic, i_count_init, is1, is2
     INTEGER  :: init_list(nproma), it1(nproma), it2(nproma)
-    REAL(wp) :: tmp1, tmp2, tmp3, qsat1, dqsdt1, qsat2, dqsdt2, qi_snowdrift_flx_t
+    REAL(wp) :: tmp1, tmp2, tmp3, qsat1, dqsdt1, qsat2, dqsdt2, qi_snowdrift_flx_t, zxidrift
     REAL(wp) :: frac_sv(nproma), frac_snow_sv(nproma), fact1(nproma), fact2(nproma), tsnred(nproma), &
                 sntunefac(nproma), sntunefac2(nproma, ntiles_total), heatcond_fac(nproma), heatcap_fac(nproma), &
                 hydiffu_fac(nproma), snowfrac_fac(nproma)
@@ -332,6 +333,8 @@ CONTAINS
     IF (msg_level >= 15) THEN
       CALL message('mo_nwp_sfc_interface: ', 'call land-surface scheme')
     ENDIF
+
+    CALL get_mean_snowdrift_mass(zxidrift)
 
 !$OMP PARALLEL PRIVATE(p_graupel_gsp_rate)
 
@@ -520,7 +523,7 @@ CONTAINS
          !$ACC LOOP SEQ
          DO isubs = ntiles_lnd+1, ntiles_total
 !$NEC ivdep
-           !$ACC LOOP GANG VECTOR PRIVATE(jc, qi_snowdrift_flx_t, tmp2)
+           !$ACC LOOP GANG VECTOR PRIVATE(jc, qi_snowdrift_flx_t, tmp2, tmp3)
            DO ic = 1, ext_data%atm%gp_count_t(jb,isubs) 
              jc = ext_data%atm%idx_lst_t(ic,jb,isubs)
              ! Another tuning factor in order to treat partial snow cover different for fresh snow and 'old' snow
@@ -554,9 +557,16 @@ CONTAINS
                lnd_diag%qi_snowdrift_flx(jc,jb) = lnd_diag%qi_snowdrift_flx(jc,jb) + &
                  ext_data%atm%frac_t(jc,jb,isubs) * qi_snowdrift_flx_t
 
-               p_prog_rcf%tracer(jc,nlev,jb,iqi) = p_prog_rcf%tracer(jc,nlev,jb,iqi) + tcall_sfc_jg * &
-                 ext_data%atm%frac_t(jc,jb,isubs) * qi_snowdrift_flx_t / &
+               tmp3 = tcall_sfc_jg * ext_data%atm%frac_t(jc,jb,isubs) * qi_snowdrift_flx_t / &
                  (p_prog%rho(jc,nlev,jb) * p_metrics%ddqz_z_full(jc,nlev,jb))
+
+               ! source of cloud ice
+               p_prog_rcf%tracer(jc,nlev,jb,iqi) = p_prog_rcf%tracer(jc,nlev,jb,iqi) + tmp3 
+
+               IF (atm_phy_nwp_config(jg)%inwp_gscp == 3) THEN
+                 ! and cloud ice number
+                 p_prog_rcf%tracer(jc,nlev,jb,iqni) = p_prog_rcf%tracer(jc,nlev,jb,iqni) + tmp3/zxidrift
+               ENDIF
 
                lnd_prog_now%w_snow_t(jc,jb,isubs) = lnd_prog_now%w_snow_t(jc,jb,isubs) - &
                  tcall_sfc_jg * qi_snowdrift_flx_t/rhoh2o

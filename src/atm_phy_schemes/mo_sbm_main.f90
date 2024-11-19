@@ -99,7 +99,6 @@ USE mo_sbm_util,             ONLY:                                              
 USE mo_physical_constants,   ONLY: cpd, cvd
                                    ! [J/K/kg] specific heat at constant pressure
                                    ! [J/K/kg] specific heat at constant volume
-!USE mo_satad,                ONLY: qsat_rho
 
   PRIVATE
   PUBLIC warm_sbm

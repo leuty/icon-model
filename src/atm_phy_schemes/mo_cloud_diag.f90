@@ -35,7 +35,7 @@ USE mo_physical_constants, ONLY: &
 USE mo_math_constants, ONLY: &
     uc2 => sqrt3            !!               -- " --
 
-USE mo_satad, ONLY: zpsat_w => sat_pres_water, & !! saturation vapor pressure w.r.t. water
+USE mo_thdyn_functions, ONLY: zpsat_w => sat_pres_water, & !! saturation vapor pressure w.r.t. water
 !                   zpsat_i => sat_pres_ice  , & !! saturation vapor pressure w.r.t. ice
                     zqvap   => spec_humi     , & !! Specific humidity
                     zdqsdt  => dqsatdT           !! Derivation of qsat w.r.t. temperature

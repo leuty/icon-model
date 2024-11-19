@@ -45,7 +45,7 @@ MODULE mo_nh_wk_exp
    USE mo_run_config,           ONLY: iqv
    USE mo_impl_constants,       ONLY: min_rlcell_int
    USE mo_parallel_config,      ONLY: nproma
-   USE mo_satad,                ONLY: sat_pres_water, &  !! saturation vapor pressure w.r.t. water
+   USE mo_thdyn_functions,      ONLY: sat_pres_water, &  !! saturation vapor pressure w.r.t. water
      &                                sat_pres_ice,   &  !! saturation vapor pressure w.r.t. ice
      &                                spec_humi          !! Specific humidity
    USE mo_exception,            ONLY: message, finish, message_text

@@ -251,31 +251,31 @@ CONTAINS
     ! used in the computation of PBL height (then mixing length);
     ! Out: computed in sfc_exchange_coeff at step t-dt.
 
-    REAL(wp),INTENT(INOUT) :: pustar (:,:)         !< (kbdim)
-    REAL(wp),INTENT(OUT)   :: pwstar (:,:)         !< (kbdim)
-    REAL(wp),INTENT(INOUT) :: pwstar_tile(:,:,:)   !< (kbdim,ksfc_type)
+    REAL(wp),INTENT(INOUT) :: pustar (:,:)         !< (kbdim) INOUT
+    REAL(wp),INTENT(INOUT) :: pwstar (:,:)         !< (kbdim) OUT
+    REAL(wp),INTENT(INOUT) :: pwstar_tile(:,:,:)   !< (kbdim,ksfc_type) INOUT
     REAL(wp),INTENT(IN)    :: pwm1    (:,:,:)      !< (kbdim,klevp1) vertical wind in m/s
-    REAL(wp),INTENT(OUT)   :: ddt_u (:,:,:),      &
+    REAL(wp),INTENT(INOUT) :: ddt_u (:,:,:),      &!< OUT
                             & ddt_v (:,:,:),      &
                             & ddt_w (:,:,:)
-    REAL(wp),INTENT(OUT)   :: ta_hori_tend (:,:,:)
-    REAL(wp),INTENT(OUT)   :: qv_hori_tend (:,:,:)
-    REAL(wp),INTENT(OUT)   :: ql_hori_tend (:,:,:)
-    REAL(wp),INTENT(OUT)   :: qi_hori_tend (:,:,:)
+    REAL(wp),INTENT(INOUT) :: ta_hori_tend (:,:,:) !< OUT
+    REAL(wp),INTENT(INOUT) :: qv_hori_tend (:,:,:) !< OUT
+    REAL(wp),INTENT(INOUT) :: ql_hori_tend (:,:,:) !< OUT
+    REAL(wp),INTENT(INOUT) :: qi_hori_tend (:,:,:) !< OUT
     ! Only needed for 2 moment scheme
-    REAL(wp),INTENT(OUT),OPTIONAL :: qnc_hori_tend (:,:,:)
-    REAL(wp),INTENT(OUT),OPTIONAL :: qni_hori_tend (:,:,:)
+    REAL(wp),INTENT(INOUT),OPTIONAL :: qnc_hori_tend (:,:,:) !< OUT
+    REAL(wp),INTENT(INOUT),OPTIONAL :: qni_hori_tend (:,:,:) !< OUT
 
     ! Variables with intent(out)
 
-    REAL(wp),INTENT(OUT) :: pqsat_tile(:,:,:)   !< (kbdim,ksfc_type) saturation specific
-                                              !< humidity at sfc.
-                                              !< (step t-dt)
+    REAL(wp),INTENT(INOUT) :: pqsat_tile(:,:,:) !< (kbdim,ksfc_type) OUT saturation specific
+                                                !! humidity at sfc.
+                                                !! (step t-dt)
 
-    REAL(wp),INTENT(OUT) :: phdtcbl(:,:)    !< (kbdim) height of the top of the atmospheric dry
-                                          !< convective boundary layer
+    REAL(wp),INTENT(INOUT) :: phdtcbl(:,:) !< (kbdim) OUT height of the top of the atmospheric dry
+                                           !! convective boundary layer
 
-    REAL(wp),INTENT(OUT) ::      &   ! out
+    REAL(wp),INTENT(INOUT) ::      &   ! OUT
       & pri      (:,:,:)  ,&!< (kbdim,klev) Richardson number
       & pri_tile (:,:,:)  ,&!< (kbdim,ksfc_type) Richardson number
       & pmixlen  (:,:,:)  ,&!< (kbdim,klev) mixing length
@@ -290,7 +290,7 @@ CONTAINS
     ! Coefficient matrices and right-hand-side vectors.
     ! _btm refers to the lowest model level (i.e., full level "klev", not the surface)
 
-    REAL(wp),INTENT(OUT) ::           &  ! out
+    REAL(wp),INTENT(INOUT) ::  &  ! OUT
       & aa     (:,:,:,:,:)    ,&!< (kbdim,klev,3,nmatrix) coeff. matrices, all variables
       & aa_btm (:,:,:,imh:,:) ,&!< (kbdim,3,ksfc_type,imh:imqv) last row of coeff. matrix of heat and moisture
       & bb     (:,:,:,:)      ,&!< (kbdim,klev,nvar_vdiff) r.h.s., all variables
@@ -298,7 +298,7 @@ CONTAINS
 
     ! Other variables to be passed on to the second part of turbulence solver
 
-    REAL(wp),INTENT(OUT) ::       &  ! out
+    REAL(wp),INTENT(INOUT) :: &  ! OUT
       & pfactor_sfc(:,:)  ,&!< (kbdim) prefactor for the exchange coeff.
       & pcpt_tile (:,:,:) ,&!< (kbdim,ksfc_type) dry static energy at surface
       & pcptgz    (:,:,:) ,&!< (kbdim,klev) dry static energy
@@ -306,11 +306,11 @@ CONTAINS
       & pztottevn (:,:,:)   !< (kbdim,klev) intermediate value of TTE
     REAL(wp) :: jztottevn(kbdim,nblks_c)
 
-    REAL(wp), INTENT(OUT) :: pch_tile(:,:,:)    !< (kbdim,ksfc_type) out, for "nsurf_diag"
-    REAL(wp), INTENT(OUT) :: pbn_tile(:,:,:)    !< (kbdim,ksfc_type) out, for "nsurf_diag"
-    REAL(wp), INTENT(OUT) :: pbhn_tile(:,:,:)   !< (kbdim,ksfc_type) out, for "nsurf_diag"
-    REAL(wp), INTENT(OUT) :: pbm_tile(:,:,:)    !< (kbdim,ksfc_type) out, for "nsurf_diag"
-    REAL(wp), INTENT(OUT) :: pbh_tile(:,:,:)    !< (kbdim,ksfc_type) out, for "nsurf_diag"
+    REAL(wp), INTENT(INOUT) :: pch_tile(:,:,:)    !< (kbdim,ksfc_type) OUT, for "nsurf_diag"
+    REAL(wp), INTENT(INOUT) :: pbn_tile(:,:,:)    !< (kbdim,ksfc_type) OUT, for "nsurf_diag"
+    REAL(wp), INTENT(INOUT) :: pbhn_tile(:,:,:)   !< (kbdim,ksfc_type) OUT, for "nsurf_diag"
+    REAL(wp), INTENT(INOUT) :: pbm_tile(:,:,:)    !< (kbdim,ksfc_type) OUT, for "nsurf_diag"
+    REAL(wp), INTENT(INOUT) :: pbh_tile(:,:,:)    !< (kbdim,ksfc_type) OUT, for "nsurf_diag"
 
     REAL(wp), OPTIONAL, INTENT(IN) ::          &
       & pcsat     (:,:)          ,&!< (kbdim) area fraction with wet land surface
@@ -1119,24 +1119,24 @@ CONTAINS
 
     ! Vertically integrated dissipation of kinetic energy [W/m2]
 
-    REAL(wp),INTENT(OUT) :: pkedisp(:) !< (kbdim)
+    REAL(wp),INTENT(INOUT) :: pkedisp(:) !< (kbdim) OUT
 
     ! Tendencies
 
-    REAL(wp),INTENT(OUT) :: pute_vdf (:,:)   !< (kbdim,klev)
-    REAL(wp),INTENT(OUT) :: pvte_vdf (:,:)   !< (kbdim,klev)
-    REAL(wp),INTENT(OUT) :: pq_vdf   (:,:)   !< (kbdim,klev)
-    REAL(wp),INTENT(OUT) :: pqte_vdf (:,:)   !< (kbdim,klev)
-    REAL(wp),INTENT(OUT) :: pxlte_vdf(:,:)   !< (kbdim,klev)
-    REAL(wp),INTENT(OUT) :: pxite_vdf(:,:)   !< (kbdim,klev)
-    REAL(wp),INTENT(OUT) :: pxtte_vdf(:,:,:) !< (kbdim,klev,ktrac)
+    REAL(wp),INTENT(INOUT) :: pute_vdf (:,:)   !< (kbdim,klev) OUT
+    REAL(wp),INTENT(INOUT) :: pvte_vdf (:,:)   !< (kbdim,klev) OUT
+    REAL(wp),INTENT(INOUT) :: pq_vdf   (:,:)   !< (kbdim,klev) OUT
+    REAL(wp),INTENT(INOUT) :: pqte_vdf (:,:)   !< (kbdim,klev) OUT
+    REAL(wp),INTENT(INOUT) :: pxlte_vdf(:,:)   !< (kbdim,klev) OUT
+    REAL(wp),INTENT(INOUT) :: pxite_vdf(:,:)   !< (kbdim,klev) OUT
+    REAL(wp),INTENT(INOUT) :: pxtte_vdf(:,:,:) !< (kbdim,klev,ktrac) OUT
 
     ! Some other diagnostics
 
-    REAL(wp),INTENT(OUT) :: pz0m      (:)     !< (kbdim) grid-box mean roughness height
-    REAL(wp),INTENT(OUT) :: pthvvar   (:,:)   !< (kbdim,klev) variance of virtual potential temperature
+    REAL(wp),INTENT(INOUT) :: pz0m      (:)     !< (kbdim) OUT grid-box mean roughness height
+    REAL(wp),INTENT(INOUT) :: pthvvar   (:,:)   !< (kbdim,klev) OUT variance of virtual potential temperature
                               !< at the new time step t
-    REAL(wp),INTENT(OUT) :: ptotte    (:,:)   !< (kbdim,klev)
+    REAL(wp),INTENT(INOUT) :: ptotte    (:,:)   !< (kbdim,klev) OUT
 
     !-----------------------------------------------------------------------
     ! 6. Obtain solution of the tri-diagonal system by back-substitution.
@@ -1309,8 +1309,8 @@ CONTAINS
     REAL(wp),INTENT(IN) :: prmairm  (:,:)   !< (kbdim,klev) reciprocal of layer air mass, full levels
     REAL(wp),INTENT(IN) :: prmairh  (:,:)   !< (kbdim,klevm1) reciprocal of layer air mass, half levels
 
-    REAL(wp),INTENT(OUT) :: aa    (:,:,:,:)     !< (kbdim,klev,3,nmatrix) exchange coeff. matrices    out
-    REAL(wp),INTENT(OUT) :: aa_btm(:,:,:,imh:)  !< (kbdim,3,ksfc_type,imh:imqv) out
+    REAL(wp),INTENT(INOUT) :: aa    (:,:,:,:)   !< (kbdim,klev,3,nmatrix) exchange coeff. matrices    out
+    REAL(wp),INTENT(INOUT) :: aa_btm(:,:,:,imh:)!< (kbdim,3,ksfc_type,imh:imqv) out
                                                 !< last (the klev-th) row of the coeff. matrices
                                                 !< of dry static energy and moisture
 
@@ -1695,8 +1695,8 @@ CONTAINS
     REAL(wp),INTENT(IN) :: prmairm  (:,:)   !< (kbdim,klev)
     REAL(wp),INTENT(IN) :: aa       (:,:,:,:) !< (kbdim,klev,3,nmatrix)
 
-    REAL(wp),INTENT(OUT) :: bb    (:,:,:)   !< (kbdim,klev,nvar_vdiff) OUT
-    REAL(wp),INTENT(OUT) :: bb_btm(:,:,ih:) !< (kbdim,ksfc_type,ih:iqv) OUT
+    REAL(wp),INTENT(INOUT) :: bb    (:,:,:)   !< (kbdim,klev,nvar_vdiff) OUT
+    REAL(wp),INTENT(INOUT) :: bb_btm(:,:,ih:) !< (kbdim,ksfc_type,ih:iqv) OUT
 
     ! Local variables
 
@@ -2051,10 +2051,10 @@ CONTAINS
     REAL(wp),INTENT(INOUT) :: aa_btm(:,:,:,imh:) !< (jcs:kproma,3,ksfc_type,imh:imqv)
     REAL(wp),INTENT(INOUT) :: bb_btm(:,:,ih:)    !< (jcs:kproma,ksfc_type,ih:iqv)
 
-    REAL(wp),INTENT(OUT) :: pen_h (:,:)  !< (jcs:kproma,ksfc_type) OUT
-    REAL(wp),INTENT(OUT) :: pfn_h (:,:)  !< (jcs:kproma,ksfc_type) OUT
-    REAL(wp),INTENT(OUT) :: pen_qv(:,:)  !< (jcs:kproma,ksfc_type) OUT
-    REAL(wp),INTENT(OUT) :: pfn_qv(:,:)  !< (jcs:kproma,ksfc_type) OUT
+    REAL(wp),INTENT(INOUT) :: pen_h (:,:)  !< (jcs:kproma,ksfc_type) OUT
+    REAL(wp),INTENT(INOUT) :: pfn_h (:,:)  !< (jcs:kproma,ksfc_type) OUT
+    REAL(wp),INTENT(INOUT) :: pen_qv(:,:)  !< (jcs:kproma,ksfc_type) OUT
+    REAL(wp),INTENT(INOUT) :: pfn_qv(:,:)  !< (jcs:kproma,ksfc_type) OUT
 
     REAL(wp),OPTIONAL,INTENT(IN)    :: pcair(:) !< (jcs:kproma)
     REAL(wp),OPTIONAL,INTENT(IN)    :: pcsat(:) !< (jcs:kproma)
@@ -2276,25 +2276,25 @@ CONTAINS
 
     TYPE(t_vdiff_config), INTENT(IN) :: vdiff_config
 
-    REAL(wp),INTENT(OUT) :: pkedisp(:) !< (kbdim) vertically integrated dissipation
-                                        !  of kinetic energy [W/m2]
+    REAL(wp),INTENT(INOUT) :: pkedisp(:) !< (kbdim) OUT vertically integrated dissipation
+                                         !! of kinetic energy [W/m2]
 
-    REAL(wp),INTENT(INOUT) :: pxvar    (:,:) !< (kbdim,klev)
-    REAL(wp),INTENT(INOUT) :: pz0m_tile(:,:) !< (kbdim,ksfc_type)
+    REAL(wp),INTENT(INOUT) :: pxvar    (:,:) !< (kbdim,klev) OUT
+    REAL(wp),INTENT(INOUT) :: pz0m_tile(:,:) !< (kbdim,ksfc_type) OUT
 
-    REAL(wp),INTENT(OUT) :: pute_vdf (:,:)   !< (kbdim,klev)
-    REAL(wp),INTENT(OUT) :: pvte_vdf (:,:)   !< (kbdim,klev)
-    REAL(wp),INTENT(OUT) :: pq_vdf   (:,:)   !< (kbdim,klev)
-    REAL(wp),INTENT(OUT) :: pqte_vdf (:,:)   !< (kbdim,klev)
-    REAL(wp),INTENT(OUT) :: pxlte_vdf(:,:)   !< (kbdim,klev)
-    REAL(wp),INTENT(OUT) :: pxite_vdf(:,:)   !< (kbdim,klev)
-    REAL(wp),INTENT(OUT) :: pxtte_vdf(:,:,:) !< (kbdim,klev,ktrac)
+    REAL(wp),INTENT(INOUT) :: pute_vdf (:,:)   !< (kbdim,klev) OUT
+    REAL(wp),INTENT(INOUT) :: pvte_vdf (:,:)   !< (kbdim,klev) OUT
+    REAL(wp),INTENT(INOUT) :: pq_vdf   (:,:)   !< (kbdim,klev) OUT
+    REAL(wp),INTENT(INOUT) :: pqte_vdf (:,:)   !< (kbdim,klev) OUT
+    REAL(wp),INTENT(INOUT) :: pxlte_vdf(:,:)   !< (kbdim,klev) OUT
+    REAL(wp),INTENT(INOUT) :: pxite_vdf(:,:)   !< (kbdim,klev) OUT
+    REAL(wp),INTENT(INOUT) :: pxtte_vdf(:,:,:) !< (kbdim,klev,ktrac) OUT
 
-    REAL(wp),INTENT(OUT) :: pz0m     (:)   !< (kbdim)
-    REAL(wp),INTENT(OUT) :: ptotte   (:,:) !< (kbdim,klev)
-    REAL(wp),INTENT(OUT) :: pthvvar  (:,:) !< (kbdim,klev)
-!!$    REAL(wp),INTENT(OUT) :: psh_vdiff(:)   !< (kbdim)
-!!$    REAL(wp),INTENT(OUT) :: pqv_vdiff(:)   !< (kbdim)
+    REAL(wp),INTENT(INOUT) :: pz0m     (:)   !< (kbdim) OUT
+    REAL(wp),INTENT(INOUT) :: ptotte   (:,:) !< (kbdim,klev) OUT
+    REAL(wp),INTENT(INOUT) :: pthvvar  (:,:) !< (kbdim,klev) OUT
+!!$    REAL(wp),INTENT(INOUT) :: psh_vdiff(:)   !< (kbdim) OUT
+!!$    REAL(wp),INTENT(INOUT) :: pqv_vdiff(:)   !< (kbdim) OUT
 
     REAL(wp) :: ztest, zrdt
     REAL(wp) :: zunew, zvnew, zqnew, zsnew, zhnew

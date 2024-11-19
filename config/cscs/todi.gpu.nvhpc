@@ -27,22 +27,17 @@ if [[ $GIT_ROOT != $PWD ]]; then
     exit 1
 fi
 
-SPACK_VERSION=$(cat $SCRIPT_DIR/SPACK_TAG_C2SM)
+SPACK_VERSION=$(cat $SCRIPT_DIR/SPACK_TAG_ALPS)
 
 GIT_REMOTE='https://github.com/C2SM/spack-c2sm.git'
 
 git clone --depth 1 --recurse-submodules --shallow-submodules -b ${SPACK_VERSION} ${GIT_REMOTE}
 
-. spack-c2sm/setup-env.sh
+. spack-c2sm/setup-env.sh /user-environment
 
-# Temporary workaround until cmake becomes a build dependency of icon spackage:
-export CMAKE=$(spack find --format='{prefix}/bin/cmake' cmake@3.18: | head -1)
-
-export SPACK_USER_CONFIG_PATH=$GIT_ROOT/spack-config
 export SPACK_USER_CACHE_PATH=$GIT_ROOT/spack-cache
-echo "Setting SPACK_USER_CONFIG_PATH to $SPACK_USER_CONFIG_PATH"
 echo "Setting SPACK_USER_CACHE_PATH to $SPACK_USER_CACHE_PATH"
 
-MAKE_PROCS=12
-spack env activate config/cscs/spack/$SPACK_VERSION/daint_cpu_cce || exit 1
-spack install --reuse -v -j ${MAKE_PROCS} || exit 1
+MAKE_PROCS=22
+spack env activate config/cscs/spack/$SPACK_VERSION/todi_gpu_nvhpc || exit 1
+spack install -v -j ${MAKE_PROCS} || exit 1

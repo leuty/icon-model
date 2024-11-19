@@ -23,7 +23,7 @@ MODULE mo_nh_rce_exp
   &                                 th_perturb, relhum,               &
   &                                 rce_tprescr_noise, th_perturb
   USE mo_run_config,          ONLY: iqv
-  USE mo_satad,               ONLY: spec_humi, sat_pres_water
+  USE mo_thdyn_functions,     ONLY: spec_humi, sat_pres_water
   USE mo_hydro_adjust,        ONLY: hydro_adjust_iterative
   USE mo_random_util,         ONLY: add_random_noise_global
 

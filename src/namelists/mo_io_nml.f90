@@ -46,6 +46,7 @@ MODULE mo_io_nml
                                  & config_itype_dursun            => itype_dursun           , &
                                  & config_itype_convindices       => itype_convindices      , &
                                  & config_itype_hzerocl           => itype_hzerocl          , &
+                                 & config_force_calc_optvar       => force_calc_optvar      , &
                                  & config_sunshine_interval       => sunshine_interval      , &
                                  & config_melt_interval           => melt_interval          , &
                                  & config_maxt_interval           => maxt_interval          , &
@@ -152,6 +153,8 @@ CONTAINS
     INTEGER :: itype_rh                   ! Specifies method for computation of relative humidity
                                           ! 1: WMO: water only (e_s=e_s_water)
                                           ! 2: IFS: mixed phases (e_s=a*e_s_water + b*e_s_ice)
+    INTEGER :: force_calc_optvar(max_dom) ! Allows to force the computation of optional diagnostics in domains where no output is written,
+                                          ! e.g. to achieve proper lateral boundary filling
 
 
     CHARACTER(LEN=filename_max) :: &
@@ -205,7 +208,8 @@ CONTAINS
       &              dt_hailcast, wdur_min_hailcast,                      &
       &              dt_radar_dbz, sunshine_interval, itype_dursun,       &
       &              itype_convindices, itype_hzerocl, melt_interval,     &
-      &              wshear_uv_heights, srh_heights, ff10m_interval
+      &              wshear_uv_heights, srh_heights, ff10m_interval,      &
+      &              force_calc_optvar
 
     !-----------------------
     ! 1. default settings
@@ -240,6 +244,7 @@ CONTAINS
     wdur_min_hailcast       = 900._wp      ! 15 minutes
     inextra_2d              = 0     ! no extra output 2D fields
     inextra_3d              = 0     ! no extra output 3D fields
+    force_calc_optvar(:)    = 0
     itype_dursun            = 0
     itype_convindices       = 1
     itype_hzerocl           = 1
@@ -341,6 +346,7 @@ CONTAINS
     config_lflux_avg               = lflux_avg
     config_itype_pres_msl          = itype_pres_msl
     config_itype_rh                = itype_rh
+    config_force_calc_optvar(:)    = force_calc_optvar(:)
     config_output_nml_dict         = output_nml_dict
     config_netcdf_dict             = netcdf_dict
     config_linvert_dict            = linvert_dict

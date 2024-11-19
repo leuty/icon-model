@@ -621,8 +621,8 @@ CONTAINS
 
     ! parameters for applying correction of albedo dependending on soil moisture for soil types 3 to 6
     REAL(wp):: alb_dif_hlp
-    REAL(wp):: albuv_dif_hlp(nproma)
-    REAL(wp):: albni_dif_hlp(nproma)
+    REAL(wp):: albuv_dif_hlp(nproma,ntiles_total)
+    REAL(wp):: albni_dif_hlp(nproma,ntiles_total)
     REAL(wp):: alb_corr, w_so_l, w_so_r
 
     ! Auxiliaries for tile-specific calculation of direct beam albedo
@@ -781,8 +781,8 @@ CONTAINS
             ! for tune_albedo_wso > 0: update ext_data%atm%alb_dif, albuv_dif, albni_dif
             ! as a function of soil type and soil moisture.
             alb_dif_hlp       = ext_data%atm%alb_dif(jc,jb)
-            albuv_dif_hlp(jc) = ext_data%atm%albuv_dif(jc,jb)
-            albni_dif_hlp(jc) = ext_data%atm%albni_dif(jc,jb)
+            albuv_dif_hlp(jc,jt) = ext_data%atm%albuv_dif(jc,jb)
+            albni_dif_hlp(jc,jt) = ext_data%atm%albni_dif(jc,jb)
 
             IF ( ANY(tune_albedo_wso /= 0._wp) ) THEN
               ! sand, sand-loam, loam, clay-loam
@@ -801,20 +801,20 @@ CONTAINS
                      &           3._wp*w_so_r-4._wp*w_so_l)/(w_so_r-w_so_l))**2
                 END IF
 
-                albuv_dif_hlp(jc) = albuv_dif_hlp(jc) + alb_corr * albuv_dif_hlp(jc)/alb_dif_hlp
-                albni_dif_hlp(jc) = albni_dif_hlp(jc) + alb_corr * albni_dif_hlp(jc)/alb_dif_hlp
+                albuv_dif_hlp(jc,jt) = albuv_dif_hlp(jc,jt) * (1._wp + alb_corr / alb_dif_hlp)
+                albni_dif_hlp(jc,jt) = albni_dif_hlp(jc,jt) * (1._wp + alb_corr / alb_dif_hlp)
                 alb_dif_hlp       = alb_dif_hlp + alb_corr
               END IF
 
-              alb_dif_hlp       = MIN(0.9_wp, MAX(0.05_wp,alb_dif_hlp) )
-              albuv_dif_hlp(jc) = MIN(0.9_wp, MAX(0.02_wp,albuv_dif_hlp(jc)) )
-              albni_dif_hlp(jc) = MIN(0.9_wp, MAX(0.08_wp,albni_dif_hlp(jc)) )
+              alb_dif_hlp          = MIN(0.9_wp, MAX(0.05_wp,alb_dif_hlp) )
+              albuv_dif_hlp(jc,jt) = MIN(0.9_wp, MAX(0.02_wp,albuv_dif_hlp(jc,jt)) )
+              albni_dif_hlp(jc,jt) = MIN(0.9_wp, MAX(0.08_wp,albni_dif_hlp(jc,jt)) )
 
               ! weighting with plant cover (wso-dependent correction is only valid for bare soil)
               plcov = ext_data%atm%plcov_t(jc,jb,jt)
-              alb_dif_hlp       = plcov * ext_data%atm%alb_dif(jc,jb)   + (1 - plcov) * alb_dif_hlp
-              albuv_dif_hlp(jc) = plcov * ext_data%atm%albuv_dif(jc,jb) + (1 - plcov) * albuv_dif_hlp(jc)
-              albni_dif_hlp(jc) = plcov * ext_data%atm%albni_dif(jc,jb) + (1 - plcov) * albni_dif_hlp(jc)
+              alb_dif_hlp          = plcov * ext_data%atm%alb_dif(jc,jb)   + (1 - plcov) * alb_dif_hlp
+              albuv_dif_hlp(jc,jt) = plcov * ext_data%atm%albuv_dif(jc,jb) + (1 - plcov) * albuv_dif_hlp(jc,jt)
+              albni_dif_hlp(jc,jt) = plcov * ext_data%atm%albni_dif(jc,jb) + (1 - plcov) * albni_dif_hlp(jc,jt)
 
             END IF
             !
@@ -830,16 +830,16 @@ CONTAINS
 
               zsnowfree_albvisdif = zurb_isa * ext_data%atm%urb_alb_so_t(jc,jb,jt)      &
                                   ! * ext_data%atm%urb_alb_red_t(jc,jb,jt)  & Multiplication already made in mo_ext_data_init.f90
-                &                 + (1._wp - zurb_isa) * albuv_dif_hlp(jc)
+                &                 + (1._wp - zurb_isa) * albuv_dif_hlp(jc,jt)
 
               zsnowfree_albnirdif = zurb_isa * ext_data%atm%urb_alb_so_t(jc,jb,jt)      &
                                   ! * ext_data%atm%urb_alb_red_t(jc,jb,jt)  & Multiplication already made in mo_ext_data_init.f90
-                &                 + (1._wp - zurb_isa) * albni_dif_hlp(jc)
+                &                 + (1._wp - zurb_isa) * albni_dif_hlp(jc,jt)
 
             ELSE
               zsnowfree_albdif    = alb_dif_hlp
-              zsnowfree_albvisdif = albuv_dif_hlp(jc)
-              zsnowfree_albnirdif = albni_dif_hlp(jc)
+              zsnowfree_albvisdif = albuv_dif_hlp(jc,jt)
+              zsnowfree_albnirdif = albni_dif_hlp(jc,jt)
             END IF
 
             !
@@ -952,7 +952,7 @@ CONTAINS
                 &                                          ext_data%atm%sso_stdh_raw(jc,jb))   &
                 &                 + (1._wp-snow_frac)                                          &
                 &                 * sfc_albedo_dir_yang(prm_diag%cosmu0(jc,jb),                &
-                &                                       albuv_dif_hlp(jc))
+                &                                       albuv_dif_hlp(jc,jt))
 
               zalbnirdir_t(jc,jt) = snow_frac                                                  &
                 &                 * sfc_albedo_dir_zaengl (prm_diag%cosmu0(jc,jb),             &
@@ -961,7 +961,7 @@ CONTAINS
                 &                                          ext_data%atm%sso_stdh_raw(jc,jb))   &
                 &                 + (1._wp-snow_frac)                                          &
                 &                 * sfc_albedo_dir_yang(prm_diag%cosmu0(jc,jb),                &
-                &                                       albni_dif_hlp(jc))
+                &                                       albni_dif_hlp(jc,jt))
 
             ELSE IF ( direct_albedo == 4 ) THEN  ! Briegleb and Ramanathan (1992)
               zalbvisdir_t(jc,jt) = snow_frac                                                  &
@@ -971,7 +971,7 @@ CONTAINS
                 &                                          ext_data%atm%sso_stdh_raw(jc,jb))   &
                 &                 + (1._wp-snow_frac)                                          &
                 &                 * sfc_albedo_dir_briegleb(prm_diag%cosmu0(jc,jb),            &
-                &                                       albuv_dif_hlp(jc),                  &
+                &                                       albuv_dif_hlp(jc,jt),                  &
                 &                                       ext_data%atm%z0_lcc(ilu))
 
               zalbnirdir_t(jc,jt) = snow_frac                                                  &
@@ -981,7 +981,7 @@ CONTAINS
                 &                                          ext_data%atm%sso_stdh_raw(jc,jb))   &
                 &                 + (1._wp-snow_frac)                                          &
                 &                 * sfc_albedo_dir_briegleb(prm_diag%cosmu0(jc,jb),            &
-                &                                       albni_dif_hlp(jc),                  &
+                &                                       albni_dif_hlp(jc,jt),                  &
                 &                                       ext_data%atm%z0_lcc(ilu))
             ENDIF
 

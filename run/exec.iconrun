@@ -79,6 +79,11 @@ if [ x$namelist_list = x ]; then
     modelname_list[0]="jsbach"
     modeltype_list[0]=5
     run_jsbach_standalone="true"
+  elif [ x$wave_namelist != x ]; then
+    # this is the wave model
+    namelist_list[0]="$wave_namelist"
+    modelname_list[0]="wave"
+    modeltype_list[0]=98
   elif [ x$testbed_namelist != x ]; then
     # this is the testbed model
     namelist_list[0]="$testbed_namelist"
@@ -133,10 +138,14 @@ run_hamocc=${run_hamocc="false"}
 if [ x$hamocc_namelist != x ]; then
   run_hamocc="true"
 fi
+run_wave=${run_wave="false"}
+if [ x$wave_namelist != x ]; then
+  run_wave="true"
+fi
 
 #-----------------------------------------------------------------------------
 # add grids to required files
-all_grids="${atmo_dyn_grids} ${atmo_rad_grids} ${ocean_grids}"
+all_grids="${atmo_dyn_grids} ${atmo_rad_grids} ${ocean_grids} ${wave_grids}"
 for gridfile in ${all_grids}; do
   #
   gridfile=${gridfile//\'/} # strip all ' in case ' is used to delimit the grid names

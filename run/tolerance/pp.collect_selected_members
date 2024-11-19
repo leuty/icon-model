@@ -30,7 +30,7 @@ IFS=',' read -ra experiments <<< "${tolerance_experiments}"
 sorted_experiments=($(for exp in "${experiments[@]}"; do echo $exp; done | sort))
 
 # Please don't change these path/file names. They are used by buildbot.
-yaml_path=scripts/buildbot_scripts/experiments
+yaml_path=scripts/experiments
 
 # Update the selected members in the corresponding file 
 echo ""

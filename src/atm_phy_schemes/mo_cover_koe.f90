@@ -46,7 +46,7 @@ MODULE mo_cover_koe
   USE mo_cover_cosmo,        ONLY: cover_cosmo
 
   USE mo_nwp_tuning_config,  ONLY: tune_box_liq, tune_box_liq_asy, tune_thicklayfac, tune_sgsclifac, icpl_turb_clc, &
-                                   allow_overcast, tune_sc_eis, tune_sc_invmin, tune_sc_invmax
+                                   allow_overcast, tune_sc_eis, tune_sc_invmin, tune_sc_invmax, tune_box_ice
 
   USE mo_ensemble_pert_config, ONLY: box_liq_sv, thicklayfac_sv, box_liq_asy_sv
 
@@ -235,7 +235,6 @@ LOGICAL, DIMENSION(klon) ::  &
 REAL(KIND=wp), PARAMETER  :: &
   & zcldlim  = 1.0e-8_wp, & ! threshold of cloud water/ice for cloud cover  (kg/kg)
   & taudecay = 1500.0_wp, & ! decay time scale of convective anvils
-  & box_ice  = 0.05_wp  , & ! box width scale ice clouds
   & tm10     = tmelt - 10.0_wp, &
   & tm40     = tmelt - 40.0_wp
 
@@ -439,19 +438,19 @@ CASE( 1 )
       else
         qi_mod = MERGE( MAX(qi(jl,jk), 0.1_wp*(qi(jl,jk)+qs(jl,jk))), qi(jl,jk), l_addsnow) 
       end if
-      qi_mod = qi_mod + fac_aux*MIN(1._wp,tune_sgsclifac*zrcld/(box_ice*zqisat(jl,jk))) * &
+      qi_mod = qi_mod + fac_aux*MIN(1._wp,tune_sgsclifac*zrcld/(tune_box_ice*zqisat(jl,jk))) * &
                                 MAX(0._wp,qv(jl,jk)-rhcrit_sgsice*zqisat(jl,jk))
 
      !ice cloud: assumed box distribution, width 0.1 qisat, saturation above qv 
      !           (qv is microphysical threshold for ice as seen by grid scale microphysics)
       IF ( qi_mod > zcldlim ) THEN
-        deltaq     = box_ice * MIN(zqisat_m25, zqisat(jl,jk))  ! box width = 2*deltaq
+        deltaq     = tune_box_ice * MIN(zqisat_m25, zqisat(jl,jk))  ! box width = 2*deltaq
         qisat_grid = MAX( qv(jl,jk), zqisat(jl,jk) )           ! qsat grid-scale
         IF ( ( qv(jl,jk) + qi_mod - deltaq) > qisat_grid ) THEN
           cc_turb_ice(jl,jk) = 1.0_wp
           qi_turb    (jl,jk) = qi_mod
         ELSE
-          zaux = MIN(2._wp*(qi_mod + MAX(0._wp, qv(jl,jk) - zqisat(jl,jk))), &
+          zaux = MIN(40._wp*tune_box_ice*(qi_mod + MAX(0._wp, qv(jl,jk) - zqisat(jl,jk))), &
                  qv(jl,jk) + qi_mod + deltaq - qisat_grid )
           cc_turb_ice(jl,jk) = zaux / (2._wp*deltaq)
           IF ( cc_turb_ice(jl,jk) > 0.0_wp ) THEN
@@ -467,7 +466,7 @@ CASE( 1 )
 
       ! reduce cloud cover fraction of very thin ice clouds, defined as clouds with a mixing ratio
       ! of less than 5% of the saturation mixing ratio w.r.t. ice at -50 deg C
-      cc_turb_ice(jl,jk) = MIN(cc_turb_ice(jl,jk),qi_turb(jl,jk)/(box_ice*zqisat_m50))
+      cc_turb_ice(jl,jk) = MIN(cc_turb_ice(jl,jk),qi_turb(jl,jk)/(0.05_wp*zqisat_m50))
 
       cc_turb(jl,jk) = max( cc_turb_liq(jl,jk), cc_turb_ice(jl,jk) )          ! max overlap liq/ice
       cc_turb(jl,jk) = min(max(0.0_wp,cc_turb(jl,jk)),1.0_wp)

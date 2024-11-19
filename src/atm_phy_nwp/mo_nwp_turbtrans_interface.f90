@@ -47,11 +47,12 @@ MODULE mo_nwp_turbtrans_interface
   USE mo_nonhydrostatic_config,ONLY: kstart_moist
   USE mo_advection_config,     ONLY: advection_config
   USE turb_data,               ONLY: get_turbdiff_param, &
+                                     ltst2ml, ltst10ml, lprfcor, &
                                      rsur_sher, imode_suradap, rat_can, c_lnd, imode_snowsmot
   USE mo_initicon_config,      ONLY: icpl_da_sfcfric
   USE sfc_flake_data,          ONLY: h_Ice_min_flk, tpl_T_f
   USE turb_transfer,           ONLY: turbtran
-  USE mo_satad,                ONLY: sat_pres_water, spec_humi
+  USE mo_thdyn_functions,      ONLY: sat_pres_water, spec_humi
   USE mo_gme_turbdiff,         ONLY: parturs, nearsfc
   USE mo_util_phys,            ONLY: nwp_dyn_gust
   USE mo_run_config,           ONLY: ltestcase
@@ -133,7 +134,7 @@ SUBROUTINE nwp_turbtrans  ( tcall_turb_jg,                     & !>in
 
   ! Local Indices and switches:
 
-  INTEGER :: jc,jb,jk,jt,jg,ic,it,i_count           !< loop indices
+  INTEGER :: jc,jb,jk,jt,jg,ic,it,ik,i_count        !< loop indices
   INTEGER :: jk_gust(nproma)
 
   INTEGER  :: nlev, nlevp1, nlevcm                  !< number of full, half and canopy levels
@@ -277,7 +278,7 @@ SUBROUTINE nwp_turbtrans  ( tcall_turb_jg,                     & !>in
   ladsshr = (rsur_sher>0._wp) !treatment of additional shear by NTCs or LLDCs active
 
 !$OMP PARALLEL
-!$OMP DO PRIVATE(jb,jt,jc,jk,ic,it,ilist,i_startidx,i_endidx,i_count, &
+!$OMP DO PRIVATE(jb,jt,jc,jk,ic,it,ik,ilist,i_startidx,i_endidx,i_count, &
 !$OMP fr_land_t,urb_isa_t,l_land,l_water,l_lake,l_sice,h_ice_t, &
 !$OMP shfl_s_t,lhfl_s_t,qhfl_s_t,umfl_s_t,vmfl_s_t, &
 !$OMP nzprv,lc_class,z_tvs,tcm_t,tch_t,tfm_t,tfh_t,tfv_t,tvm_t,tvh_t,tkr_t,l_hori, &
@@ -634,18 +635,21 @@ SUBROUTINE nwp_turbtrans  ( tcall_turb_jg,                     & !>in
           &  tfh=prm_diag%tfh(:,jb),                                                   & !inout
           &  tfv=prm_diag%tfv_t(:,jb,1),                                               & !inout
           &  tkr=prm_diag%tkr_t(:,jb,1),                                               & !inout
+!
           &  tke=z_tvs(:,:),                                                           & !inout
           &  tkvm=prm_diag%tkvm(:,nlev-1:nlevp1,jb),                                   & !inout
           &  tkvh=prm_diag%tkvh(:,nlev-1:nlevp1,jb),                                   & !inout
           &  rcld=prm_diag%rcld(:,nlev-1:nlevp1,jb),                                   & !inout
-
+          ! Note: 'ddt_tke' is only employed here in order to transfer "0"-values for the surface level!
+          &  tketens=prm_nwp_tend%ddt_tke(:,nlevp1:nlevp1,jb),                         & !in
+!
           &  t_2m=prm_diag%t_2m(:,jb),                                                 & !inout
           &  qv_2m=prm_diag%qv_2m(:,jb),                                               & !out
           &  td_2m=prm_diag%td_2m(:,jb),                                               & !out
           &  rh_2m=prm_diag%rh_2m(:,jb),                                               & !out
           &  u_10m=prm_diag%u_10m_t(:,jb,1),                                           & !out
           &  v_10m=prm_diag%v_10m_t(:,jb,1),                                           & !out
-
+!
           &  shfl_s=prm_diag%shfl_s_t(:,jb,1),                                         & !out
           &  qvfl_s=prm_diag%qhfl_s_t(:,jb,1),                                         & !out
           &  umfl_s=prm_diag%umfl_s_t(:,jb,1),                                         & !out
@@ -772,19 +776,36 @@ SUBROUTINE nwp_turbtrans  ( tcall_turb_jg,                     & !>in
           ! Copy input fields to the local re-indexed variables:
           ! It remains to be determined which of the model levels are actually needed for non-init calls.
 
+          !Remapping the required non-surface levels of variables with a conditional top-level:
+
+          !$ACC PARALLEL ASYNC(acc_async_queue) DEFAULT(PRESENT) IF(lzacc)
+          DO ik = MERGE( 1, 2, ltst2ml .OR. ltst10ml .OR. lprfcor ), 2 !local level loop with conditional first index
+            jk = nlev-2+ik !associated global level index
+            !$ACC LOOP GANG VECTOR PRIVATE(jc)
+!$NEC ivdep
+            DO ic = 1, i_count
+              jc = ilist(ic)
+              temp_t(ic,ik)     = p_diag%temp       (jc,jk,jb)
+              epr_t (ic,ik)     = p_prog%exner      (jc,jk,jb)
+              qv_t  (ic,ik)     = p_prog_rcf%tracer (jc,jk,jb,iqv)
+              qc_t  (ic,ik)     = p_prog_rcf%tracer (jc,jk,jb,iqc)
+              rcld_t(ic,ik)     = prm_diag%rcld     (jc,jk,jb)
+            ENDDO
+          ENDDO
+          !$ACC END PARALLEL
+          
+          !Remapping the unconditionally required levels of all varibales with a tile-specific surface level: 
+
           !$ACC PARALLEL ASYNC(acc_async_queue) DEFAULT(PRESENT) IF(lzacc)
           !$ACC LOOP GANG VECTOR PRIVATE(jc)
 !$NEC ivdep
           DO ic = 1, i_count
             jc = ilist(ic)
 
-            z_ifc_t (ic,1:3)    = p_metrics%z_ifc   (jc,nlev-1:nlevp1,jb)
+            z_ifc_t(ic,1:3)     = p_metrics%z_ifc   (jc,nlev-1:nlevp1,jb)
+            ! Note: For wind-interpolation onto the 10m-level, level 'nlev-1' is always required.
             u_t    (ic,1:2)     = p_diag%u          (jc,nlev-1:nlev  ,jb)
             v_t    (ic,1:2)     = p_diag%v          (jc,nlev-1:nlev  ,jb)
-            temp_t (ic,1:2)     = p_diag%temp       (jc,nlev-1:nlev  ,jb)
-            epr_t  (ic,1:2)     = p_prog%exner      (jc,nlev-1:nlev  ,jb)
-            qv_t   (ic,1:2)     = p_prog_rcf%tracer (jc,nlev-1:nlev  ,jb,iqv)
-            qc_t   (ic,1:2)     = p_prog_rcf%tracer (jc,nlev-1:nlev  ,jb,iqc)
             pres_sfc_t(ic)      = p_diag%pres_sfc   (jc,jb)
             IF (jt>ntiles_total) THEN !only for non-land (sub-)tiles
               gz0_eff_t(ic,jt)  = prm_diag%gz0_t    (jc,jb,jt)     ! effective value equals previous global value
@@ -793,14 +814,13 @@ SUBROUTINE nwp_turbtrans  ( tcall_turb_jg,                     & !>in
 
             t_g_t  (ic)         = lnd_prog_new%t_g_t(jc,jb,jt)
             qv_s_t (ic)         = lnd_diag%qv_s_t   (jc,jb,jt)
-            rcld_t (ic,1:2)     = prm_diag%rcld     (jc,nlev-1:nlev,jb)
             rcld_t (ic,3)       = prm_diag%rcld_s_t (jc,jb,jt)     ! tile-specific for lowest level (to be activated)
-            tvs_t  (ic,1:2)     = z_tvs             (jc,1:2)
+            tvs_t  (ic,2)       = z_tvs             (jc,2)
             tvs_t  (ic,3)       = prm_diag%tvs_s_t  (jc,jb,jt)     ! tile-specific for lowest level
             urb_isa_t(ic)       = ext_data%atm%urb_isa_t(jc,jb,jt)
-            tkvm_t (ic,1:2)     = prm_diag%tkvm     (jc,nlev-1:nlev,jb)
+            tkvm_t (ic,2)       = prm_diag%tkvm     (jc,nlev,jb)
             tkvm_t (ic,3)       = prm_diag%tkvm_s_t (jc,jb,jt)     ! tile-specific for lowest level
-            tkvh_t (ic,1:2)     = prm_diag%tkvh     (jc,nlev-1:nlev,jb)
+            tkvh_t (ic,2)       = prm_diag%tkvh     (jc,nlev,jb)
             tkvh_t (ic,3)       = prm_diag%tkvh_s_t (jc,jb,jt)     ! tile-specific for lowest level
             tkr_t  (ic)         = prm_diag%tkr_t    (jc,jb,jt)     ! used for time-step iteration (if "imode_trancnf>=4")
             IF (imode_suradap>0) THEN !artific. amplification of 'tkvm(:,ke)' required for surface layer
@@ -924,10 +944,13 @@ SUBROUTINE nwp_turbtrans  ( tcall_turb_jg,                     & !>in
             &  tfh=tfh_t(:,jt),                                             & !inout
             &  tfv=tfv_t(:),                                                & !inout
             &  tkr=tkr_t(:),                                                & !inout
+!
             &  tke=tvs_t(:,:),                                              & !inout
             &  tkvm=tkvm_t(:,:),                                            & !inout
             &  tkvh=tkvh_t(:,:),                                            & !inout
             &  rcld=rcld_t(:,:),                                            & !inout
+            ! Note: 'ddt_tke' is only employed here in order to transfer "0"-values for the surface level!
+            &  tketens=prm_nwp_tend%ddt_tke(:,nlevp1:nlevp1,jb),            & !in
 !
             &   t_2m= t_2m_t(:,jt),                                         & !out
             &  qv_2m=qv_2m_t(:,jt),                                         & !out

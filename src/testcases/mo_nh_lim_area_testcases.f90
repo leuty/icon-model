@@ -39,7 +39,7 @@
    USE mo_run_config,          ONLY: iforcing, iqv,msg_level 
    USE mo_impl_constants,      ONLY: inwp
    USE mo_parallel_config,     ONLY: nproma
-   USE mo_satad,               ONLY:  sat_pres_water, &  !! saturation vapor pressure w.r.t. water
+   USE mo_thdyn_functions,     ONLY:  sat_pres_water, &  !! saturation vapor pressure w.r.t. water
             &                         sat_pres_ice,   &  !! saturation vapor pressure w.r.t. ice
             &                         spec_humi          !! Specific humidity
    USE mo_exception,           ONLY: message, finish, message_text

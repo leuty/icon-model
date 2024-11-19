@@ -575,9 +575,6 @@ CONTAINS
     IF ( irad_aero == iRadAeroCAMStd) THEN
         CALL finish(routine,'CAMS forecast irad_aero=8 is currently not supported on GPU.')
     END IF
-    IF ( atm_phy_nwp_config(jg)%icpl_aero_gscp == 3 ) THEN
-        CALL finish(routine,'Using cloud-droplet number climatology icpl_aero_gscp = 3 is currently not supported on GPU.')
-    END IF
 #endif
 
     END IF
@@ -775,7 +772,7 @@ CONTAINS
       WRITE (message_text,'(a)') "itune_gust_diag = 3 requires ntiles > 1"
       CALL finish(routine, message_text)
     ENDIF
-
+    
     ! check meteogram configuration
     IF (ANY(meteogram_output_config(:)%lenabled) .AND. .NOT. output_mode%l_nml) THEN
       CALL finish(routine, "Meteograms work only for run_nml::output='nml'!")

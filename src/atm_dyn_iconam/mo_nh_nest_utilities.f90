@@ -936,7 +936,7 @@ CONTAINS
 
       ! Interpolation of temporal tendencies, full w, perturbation density (stored in div)
       !  and perturbationvirtual potential temperature (stored in dpres_mc)
-      CALL interpol_scal_grf (p_pp=p_pp, p_pc=p_pc, p_grf=p_grf%p_dom(i_chidx), nfields=6, lacc=.TRUE., &
+      CALL interpol_scal_grf (p_pp=p_pp, p_pc=p_pc, p_grf=p_grf%p_dom(i_chidx), nfields=6, nlev_ex=1, lacc=.TRUE., &
         f3din1=p_diagp%grf_tend_rho, f3dout1=p_diagc%grf_tend_rho,  &
         f3din2=p_diagp%grf_tend_thv, f3dout2=p_diagc%grf_tend_thv,  &
         f3din3=p_diagp%grf_tend_w,   f3dout3=p_diagc%grf_tend_w,    &
@@ -1017,7 +1017,7 @@ CONTAINS
       l_limit(ntracer_bdyintp+1:2*ntracer_bdyintp) = .TRUE.
 
       CALL interpol_scal_grf ( p_pp=p_pp, p_pc=p_pc, p_grf=p_grf%p_dom(i_chidx),    &
-        nfields=2*ntracer_bdyintp, lacc=.TRUE.,                                     &
+        nfields=2*ntracer_bdyintp, lacc=.TRUE., nlev_ex=1,                          &
         f4din1 =  p_diagp%grf_tend_tracer(:,:,:,1:ntracer_bdyintp),                 &
         f4dout1 = p_diagc%grf_tend_tracer(:,:,:,1:ntracer_bdyintp),                 &
         f4din2  = p_nhp_tr%tracer(:,:,:,1:ntracer_bdyintp),                         &
@@ -1029,7 +1029,7 @@ CONTAINS
     IF (ltransport .AND. iprog_aero >= 1 .AND. iforcing == inwp) THEN
      CALL interpol_scal_grf (p_pp=p_pp, p_pc=p_pc, p_grf=p_grf%p_dom(i_chidx), nfields=1, lacc=.TRUE., &
       f3din1=prm_diag(jg)%aerosol, f3dout1=prm_diag(jgc)%aerosol, &
-      llimit_nneg=(/.TRUE./), lnoshift=.TRUE.)
+      llimit_nneg=(/.TRUE./), lnoshift=.TRUE., nlev_ex=SIZE(prm_diag(jgc)%aerosol,2))
     ENDIF
 
     ! Lateral boundary interpolation of edge-based variables  (velocity components)

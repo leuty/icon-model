@@ -31,6 +31,8 @@
 !   turbdiff
 !
 ! called from the turbulence interface routine of the model.
+!
+!-------------------------------------------------------------------------------
 
 MODULE turb_diffusion
 
@@ -712,7 +714,7 @@ REAL (KIND=wp), DIMENSION(:,:), TARGET, INTENT(INOUT) :: &
   tkvh             ! turb. diff. coeff. for heat and other scalars (m2/s )
                    ! (both defined at half levels)
 
-REAL (KIND=wp), DIMENSION(:,:), TARGET, OPTIONAL, INTENT(INOUT)    :: &
+REAL (KIND=wp), DIMENSION(:,:), TARGET, INTENT(INOUT)    :: &
   tprn             ! turbulent Prandtl-number (at half-levels)     ( --- )
 
 REAL (KIND=wp), DIMENSION(:,:,0:), TARGET, INTENT(OUT) :: &
@@ -754,9 +756,12 @@ REAL (KIND=wp), DIMENSION(:,:), TARGET, OPTIONAL, INTENT(INOUT) :: &
   v_tens,        & ! v-tendency                                    ( m/s2)
   t_tens           ! t-tendency                                    ( K/s )
 
+REAL (KIND=wp), DIMENSION(:,:), TARGET, INTENT(INOUT) :: &
+                   ! half-level values of:
+  tketens          ! diffusion tendency of q=SQRT(2*TKE)           ( m/s2)
+
 REAL (KIND=wp), DIMENSION(:,:), TARGET, OPTIONAL, INTENT(INOUT) :: &
                    ! half-level values of:
-  tketens,       & ! diffusion tendency of q=SQRT(2*TKE)           ( m/s2)
   tketadv          ! advection tendency of q=SQRT(2*TKE)           ( m/s2)
 
 REAL (KIND=wp), DIMENSION(:),   TARGET, INTENT(IN)    :: &
@@ -837,7 +842,7 @@ REAL (KIND=wp) ::   &
 
 ! Hilfsvariablen:
   wert, val1, val2, & ! Platzhalter fuer beliebige Zwischenergebnisse
-  fakt,fakt1,fakt2, & !  ,,         ,,     ,,     Faktoren
+  fakt, fakt1, fakt2, & !  ,,         ,,     ,,     Faktoren
 
 ! Platzh. fuer thermodynamische Hilfsgreossen
   flw_h2o_g,        & !                 rc/(1+(lh_v/cp_d)*d_qsat/d_T)
@@ -856,7 +861,7 @@ REAL (KIND=wp) ::   &
 
 ! Platzh. fuer verschiedene Laengenmasse:
   com_len, hk,hu,   & ! allgem. Laengenskala, Hoehe ueber Grund  und untere Hoehenbegrenzung
-  l_turb,  lh,lm,   & ! allgem. und stab.abh. turb. Laengenskalen fuer Skalare und Impuls
+  lh,lm,   & ! allgem. und stab.abh. turb. Laengenskalen fuer Skalare und Impuls
   edh                 ! Kehrwert von Schichtdicken
 
 REAL (KIND=wp) ::   &
@@ -872,13 +877,6 @@ REAL (KIND=wp) ::   &
 INTEGER ::          &
   ivtp(nmvar)         ! index of variable type
 
-REAL (KIND=wp), TARGET :: &
-  tinc(nmvar)         !time increment and inverse time increment of ordinary prognostic variables
-
-REAL (KIND=wp), POINTER, CONTIGUOUS :: &
-! Pointer fuer Tendenzfelder:
-  utens(:,:), vtens(:,:), ttens(:,:)
-
 ! Note:
 ! The following buffers wouldn't be necessary, if the related pointers above
 ! were allowed to be allocated at run time:
@@ -892,9 +890,6 @@ REAL (KIND=wp), DIMENSION(:,:), POINTER, CONTIGUOUS :: &
   cur_prof, upd_prof, sav_prof, &
   expl_mom, impl_mom, invs_mom, &
   eff_flux
-
-LOGICAL ::          &
-  ltend(nmvar)         !calculation of tendencies required
 
 TYPE (varprf) :: pvar(0:naux+2) !vector of vertical variable profiles at main- and boundary levels
 
@@ -1008,40 +1003,18 @@ LOGICAL :: lzacc
 !     Zum Schluss enthaelt zvari() fuer die turbulente Horizontaldiff.
 !     benoetigte Komponenten des turbulenten Spannungstensors.
 
-  ltend(u_m)=PRESENT(u_tens)
-  IF (ltend(u_m)) THEN    ! calculation of tendencies required
-    utens => u_tens       ! 'utens' points to the tendency
-  ELSE                    ! update of ordinary prognostic variables required
-    utens => u            ! 'utens' points to the prognostic variables
-  END IF
-  ltend(v_m)=PRESENT(v_tens)
-  IF (ltend(v_m)) THEN
-    vtens => v_tens
-  ELSE
-    vtens => v
-  END IF
-  ltend(tem)=PRESENT(t_tens)
-  IF (ltend(tem)) THEN
-    ttens => t_tens
-  ELSE
-    ttens => t
-  END IF
 
   !Begin of GPU data region
   !Input
   !$ACC DATA &
-  !Working arrays                                                        !
-  !$ACC   CREATE(ivtp, tinc, hig, ltend) &
-  !$ACC   CREATE(diss_tar) PRESENT(c_big, c_sml, r_air) &
+  !Working arrays
+  !$ACC   CREATE(diss_tar, ivtp, hig) &
   !$ACC   CREATE(len_scale, hor_scale, l_scal, fc_min) &
   !$ACC   CREATE(shv, frh, frm, ftm, dicke, hlp) &
   !$ACC   CREATE(zaux, can, layr, lays, grad, hig, xri, levs) &
+  !$ACC   PRESENT(c_big, c_sml, r_air) &
   !$ACC   IF(lzacc)
 
-  !Note ACC : optional hdef2,hdiv,dwdx,dwdy,tketens,tketadv,trop_mask,ut_sso,vt_sso,edr,
-  ! tket_sso,tket_hshr,tkhm,tkhh,tket_conv have separate data region
-
-  !Note ACC: pointer not assigned cur_prof, upd_prof, sav_prof have separate data region
 
   !Note:
   !If a tendency field of an ordinary prognostic variable is not present,
@@ -1051,18 +1024,13 @@ LOGICAL :: lzacc
   edgrav=z1/grav
 
   DO n=1,ndiff
-    IF (ltend(n)) THEN  ! calculation of tendencies required
-      tinc(n)=z1        ! no time increment multiplication for tendencies
-    ELSE                ! update of prognostic variables required
-      tinc(n)=dt_var    ! time increment multiplication for tendencies
-    END IF
     IF (n.LE.nvel) THEN
       ivtp(n)=mom
     ELSE
       ivtp(n)=sca
     END IF
   END DO
-  !$ACC UPDATE DEVICE(tinc, ivtp) ASYNC(1) IF(lzacc)
+  !$ACC UPDATE DEVICE(ivtp) ASYNC(1) IF(lzacc)
 
   IF (l3dturb .AND..NOT. (PRESENT(tkhm) .AND. PRESENT(tkhh))) THEN
     CALL finish("", 'ERROR *** 3D-diffusion with not present horiz. diff.coeffs. ***')
@@ -1147,8 +1115,6 @@ my_thrd_id = omp_get_thread_num()
 
            lacc=lzacc )
 
-  !$ACC WAIT
-
   ! Thermodynamische Hilfsvariablen auf Unterrand der Prandtl-Schicht:
   CALL adjust_satur_equil ( i1dim=nvec, khi=1, ktp=1,               & !in
 
@@ -1213,6 +1179,7 @@ my_thrd_id = omp_get_thread_num()
   DO k=1,ke
 !DIR$ IVDEP
     DO i=ivstart, ivend
+      dicke(i,k)=hhl(i,k)-hhl(i,k+1)  ! Berechnung der Schichtdicken und der Dichte auf Nebenflaechen
       zvari(i,k,u_m)=u(i,k)
       zvari(i,k,v_m)=v(i,k)
     END DO
@@ -1225,17 +1192,6 @@ my_thrd_id = omp_get_thread_num()
   DO i=ivstart, ivend
      zvari(i,ke1,u_m)=zvari(i,ke,u_m)*(z1-tfm(i))
      zvari(i,ke1,v_m)=zvari(i,ke,v_m)*(z1-tfm(i))
-  END DO
-  !$ACC END PARALLEL
-
-  ! Berechnung der Schichtdicken und der Dichte auf Nebenflaechen:
-  !$ACC PARALLEL ASYNC(1) DEFAULT(PRESENT) IF(lzacc)
-  !$ACC LOOP SEQ
-  DO k=1,ke
-!DIR$ IVDEP
-    DO i=ivstart, ivend
-      dicke(i,k)=hhl(i,k)-hhl(i,k+1)
-    END DO
   END DO
   !$ACC END PARALLEL
 
@@ -1280,14 +1236,12 @@ my_thrd_id = omp_get_thread_num()
     !$ACC LOOP SEQ
     DO k=ke,kcm,-1 !Innerhalb des Bestandesmodells
 !DIR$ IVDEP
-      !$ACC LOOP GANG VECTOR PRIVATE(l_turb)
+      !$ACC LOOP GANG VECTOR
       DO i=ivstart, ivend
         IF (c_big(i,k).GT.z0) THEN
           ! Die turbulente Laengenskala wird durch die Laengenskala 
           ! der lufterfuellten Zwischenraeume limitiert:
-
-          l_turb=z1/(c_big(i,k)*SQRT(z1/EXP(r_air(i,k))-z1))
-          len_scale(i,k)=MIN( dicke(i,k)+len_scale(i,k+1), l_turb )
+          len_scale(i,k)=MIN( dicke(i,k)+len_scale(i,k+1), z1/(c_big(i,k)*SQRT(z1/EXP(r_air(i,k))-z1)) )
         ELSE
           len_scale(i,k)=dicke(i,k)+len_scale(i,k+1)
         END IF
@@ -1311,10 +1265,9 @@ my_thrd_id = omp_get_thread_num()
   ! effektiven turbulenten Laengenskala:
 
   !$ACC PARALLEL ASYNC(1) DEFAULT(PRESENT) IF(lzacc)
-  !$ACC LOOP SEQ
+  !$ACC LOOP GANG VECTOR COLLAPSE(2)
   DO k=ke1,1,-1
 !DIR$ IVDEP
-    !$ACC LOOP GANG VECTOR
     DO i=ivstart, ivend
       len_scale(i,k)=akt*MAX( len_min, l_scal(i)*len_scale(i,k)/(l_scal(i)+len_scale(i,k)) )
     END DO
@@ -1377,10 +1330,8 @@ my_thrd_id = omp_get_thread_num()
         IF (ltkeadapt) THEN !adaptation of TKE and TMod. to lower limits
           tke(i,k,1)=tke(i,k,1)*MAX( z1, val2/tkvh(i,k) )  !adapted tke
 
-          IF (PRESENT(tprn)) THEN
-             tprn(i,k)=tkvm(i,k)/tkvh(i,k) !turbulent Prandtl-number as calcuated by the simplified TMod.
-                                           ! used for initialization
-          END IF
+          tprn(i,k)=tkvm(i,k)/tkvh(i,k) !turbulent Prandtl-number as calcuated by the simplified TMod.
+                                         ! used for initialization
           
           !Note: See notes related to 'ltkeadapt' further below!
         END IF
@@ -1419,7 +1370,7 @@ my_thrd_id = omp_get_thread_num()
 
   END IF ! (lini)
 
-  IF (ltkeadapt .AND. PRESENT(tprn)) THEN !adaptation of TKE and TMod. to lower limits
+   IF (ltkeadapt) THEN !adaptation of TKE and TMod. to lower limits
     !$ACC PARALLEL ASYNC(1) DEFAULT(PRESENT) IF(lzacc)
     !$ACC LOOP GANG VECTOR COLLAPSE(2)
     DO k=1,kem
@@ -1597,10 +1548,9 @@ my_thrd_id = omp_get_thread_num()
     ! Berechnung lokaler Gradienten:
 
     !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1) IF(lzacc)
-    !$ACC LOOP SEQ
+    !$ACC LOOP GANG VECTOR COLLAPSE(2) PRIVATE(com_len)
     DO k=ke,2,-1
 !DIR$ IVDEP
-      !$ACC LOOP GANG VECTOR PRIVATE(com_len)
       DO i=ivstart, ivend
         com_len=(hhl(i,k-1)-hhl(i,k+1))*z1d2
         hlp(i,k)=z1/com_len
@@ -1610,6 +1560,7 @@ my_thrd_id = omp_get_thread_num()
     !$ACC END PARALLEL
 
     !$ACC PARALLEL ASYNC(1) DEFAULT(PRESENT) IF(lzacc)
+    !$ACC LOOP SEQ
     DO n=1,nmvar
 
 #ifdef __INTEL_COMPILER
@@ -1628,8 +1579,6 @@ my_thrd_id = omp_get_thread_num()
 
     END DO
     !$ACC END PARALLEL
-
-    !$ACC WAIT
 
   END IF !lnonloc
 
@@ -1920,10 +1869,9 @@ my_thrd_id = omp_get_thread_num()
       !$ACC END PARALLEL
 
       !$ACC PARALLEL ASYNC(1) DEFAULT(PRESENT) IF(lzacc)
-      !$ACC LOOP SEQ
+      !$ACC LOOP GANG VECTOR COLLAPSE(2) PRIVATE(wert)
       DO k=2,kem
 !DIR$ IVDEP
-        !$ACC LOOP GANG VECTOR PRIVATE(wert)
         DO i=ivstart, ivend
           wert=MAX( z0, -zbnd_val(hlp(i,k), hlp(i,k-1), dp0(i,k), dp0(i,k-1)) )
 
@@ -1970,7 +1918,7 @@ my_thrd_id = omp_get_thread_num()
   END IF  ! IF (.NOT.lini)
 !------------------------------------------------------------------------------------------------
 
-  IF (PRESENT(c_big) .AND. PRESENT(c_sml) .AND. kcm.LE.kem) THEN
+  IF (PRESENT(c_big) .AND. PRESENT(c_sml) .AND. kcm.LE.kem .AND. iini.NE.1) THEN
     ! Berechnung von Korrekturtermen innerhalb der Rauhigkeitsschicht
     ! (ausser Volumenterme, die zur Diffusion gehoeren):
 
@@ -2002,8 +1950,8 @@ my_thrd_id = omp_get_thread_num()
         wert=wert*hlp(i,k)
 
         ! Aufaddieren der Windtendenzen durch Fromreibung:
-        utens(i,k)=utens(i,k)-tinc(u_m)*wert*u(i,k)/(z1+dt_var*wert)
-        vtens(i,k)=vtens(i,k)-tinc(v_m)*wert*v(i,k)/(z1+dt_var*wert)
+        u_tens(i,k)=u_tens(i,k)-wert*u(i,k)/(z1+dt_var*wert)
+        v_tens(i,k)=v_tens(i,k)-wert*v(i,k)/(z1+dt_var*wert)
 
         ! Windbetrag auf Nebenflaechen:
 !       can(i,k)=(hlp(i,k)*dp0(i,k-1)+hlp(i,k-1)*dp0(i,k))/(dp0(i,k-1)+dp0(i,k))
@@ -2054,8 +2002,6 @@ my_thrd_id = omp_get_thread_num()
      !$ACC END PARALLEL
   END IF
 
-  !$ACC WAIT
-
   ! Check if vertical smoothing of TKE forcing terms is needed:
   IF (frcsmot > z0) THEN
     luse_mask=(imode_frcsmot.EQ.2 .AND. .NOT.lini)
@@ -2081,10 +2027,9 @@ my_thrd_id = omp_get_thread_num()
   ! Belegung von tkvh und tkvm mit den stabilitaetsabhaengigen Laengenmassen:
 
   !$ACC PARALLEL ASYNC(1) DEFAULT(PRESENT) IF(lzacc)
-  !$ACC LOOP SEQ
+  !$ACC LOOP GANG VECTOR COLLAPSE(2) PRIVATE(wert)
   DO k=2,kem !stability-dependent length-scales in 'tkvh/m' only for the here included atmospheric levels
 !DIR$ IVDEP
-!$ACC LOOP GANG VECTOR PRIVATE(wert)
     DO i=ivstart, ivend
       wert=z1/tke(i,k,nvor)
       tkvh(i,k)=tkvh(i,k)*wert
@@ -2093,8 +2038,6 @@ my_thrd_id = omp_get_thread_num()
   END DO
   !$ACC END PARALLEL
   
-  !Attention(MR): Employing precalculation of "wert=z1/tke" introduces differences on 'DAINT_CPU'!
-
   IF (ltmpcor .AND. lcpfluc) THEN !consideration of temperature tendency due to phase-diffusion 
     !  Berechnung des vert. Temp.grad. fuer den Phasendiffusionsterm:
 
@@ -2138,8 +2081,6 @@ my_thrd_id = omp_get_thread_num()
     !Fuer die folgenden Aufrufe wird die Schleife nur einmal durchlaufen und liefert TKE-Werte
     !die gegenueber den Vorgaengerwerten um einen Zeitschritt weiter in der Zukunft liegen,
     !also wieder zur Zeitstufe der uebrigen prognostischen Variablen gehoeren.
-
-    !$ACC WAIT
 
     CALL solve_turb_budgets (it_s=it_durch, it_start=it_start,                        & !in
 
@@ -2205,7 +2146,7 @@ my_thrd_id = omp_get_thread_num()
   END DO 
   !$ACC END PARALLEL
 
-  IF ((ltkeadapt .OR. l3dturb) .AND. PRESENT(tprn)) THEN
+  IF (ltkeadapt .OR. l3dturb) THEN
      !$ACC PARALLEL ASYNC(1) DEFAULT(PRESENT) IF(lzacc)
      !$ACC LOOP GANG VECTOR COLLAPSE(2)
      DO k=2, kem
@@ -2305,7 +2246,7 @@ my_thrd_id = omp_get_thread_num()
   IF (rsur_sher.GT.0) THEN !shear factor by NTCs at lowest half-level required for surface layer
     !Shear factor expressed by the additional TKE-source from NTC's (so far saved in 'tfv'), as well
     ! as by the just updated 'tkvm' and the traditional turbulent shear by grid-scale motion 'ftm':
-    IF (ltkeadapt .AND. PRESENT(tprn)) THEN !adaptation of TKE and TMod. to lower limits
+    IF (ltkeadapt) THEN !adaptation of TKE and TMod. to lower limits
       !$ACC PARALLEL ASYNC(1) DEFAULT(PRESENT) IF(lzacc)
       !$ACC LOOP GANG VECTOR
       DO i=ivstart, ivend
@@ -2344,11 +2285,7 @@ my_thrd_id = omp_get_thread_num()
 !DIR$ IVDEP
         !$ACC LOOP GANG VECTOR PRIVATE(wert)
         DO i=ivstart, ivend
-           IF (PRESENT(tprn)) THEN !turb. Prandtl-number has been calculated
-              wert=tprn(i,k)*tkvh(i,k) !true turb. diff. coeff. for mom. relieved from artif. drag contrib.
-           ELSE 
-              wert=tkvm(i,k) !ordinary vertical diff. coeff. for mom. including artificial drag effects
-           END IF
+           wert=tprn(i,k)*tkvh(i,k) !true turb. diff. coeff. for mom. relieved from artif. drag contrib.
            IF (PRESENT(hdef2) .AND. PRESENT(hdiv) .AND. ltkeshshr) THEN
               !Add isotropic turbulent part to that part due to the sep. horiz. shear mode:
               tkhh(i,k)=tkhh(i,k)+tkvh(i,k)
@@ -2404,17 +2341,16 @@ my_thrd_id = omp_get_thread_num()
       !$ACC PARALLEL ASYNC(1) DEFAULT(PRESENT) IF(lzacc)
       !$ACC LOOP GANG VECTOR
       DO i=ivstart, ivend
-        ttens(i,1)=ttens(i,1)+tinc(tem)*hlp(i,2)/(len_scale(i,1)+len_scale(i,2))
+        t_tens(i,1)=t_tens(i,1)+hlp(i,2)/(len_scale(i,1)+len_scale(i,2))
       END DO
       !$ACC END PARALLEL
 
       !$ACC PARALLEL ASYNC(1) DEFAULT(PRESENT) IF(lzacc)
-      !$ACC LOOP SEQ
+      !$ACC LOOP GANG VECTOR COLLAPSE(2)
       DO k=2,ke
 !DIR$ IVDEP
-        !$ACC LOOP GANG VECTOR
         DO i=ivstart, ivend
-          ttens(i,k)=ttens(i,k)+tinc(tem)*(hlp(i,k)+hlp(i,k+1)) &
+          t_tens(i,k)=t_tens(i,k)+(hlp(i,k)+hlp(i,k+1)) &
                                          /(len_scale(i,k)+len_scale(i,k+1))
         END DO
       END DO
@@ -2455,10 +2391,9 @@ my_thrd_id = omp_get_thread_num()
 
       ! Diffusions-Koeffizienten auf NF:
       !$ACC PARALLEL ASYNC(1) DEFAULT(PRESENT) IF(lzacc)
-      !$ACC LOOP SEQ
+      !$ACC LOOP GANG VECTOR COLLAPSE(2)
       DO k=2, ke1
 !DIR$ IVDEP
-        !$ACC LOOP GANG VECTOR
         DO i=ivstart, ivend
           IF (imode_tkediff.EQ.2) THEN !Diffusion in terms of TKE
 !___________________________________________________________________________
@@ -2476,10 +2411,9 @@ my_thrd_id = omp_get_thread_num()
       !$ACC END PARALLEL
 
       !$ACC PARALLEL ASYNC(1) DEFAULT(PRESENT) IF(lzacc)
-      !$ACC LOOP SEQ
+      !$ACC LOOP GANG VECTOR COLLAPSE(2)
       DO k=3, ke1
 !DIR$ IVDEP
-        !$ACC LOOP GANG VECTOR
         DO i=ivstart, ivend
           expl_mom(i,k)=rhoh(i,k-1)*z1d2*(sav_prof(i,k-1)+sav_prof(i,k)) &
                                              /(hhl(i,k-1)-hhl(i,k))
@@ -2546,8 +2480,7 @@ my_thrd_id = omp_get_thread_num()
         DO i=ivstart, ivend
           ! Belegung von 'frh' mit der CKE-Flussdichte durch nicht-turbulente Zirkulationen, die durch thermische
           !  Inhomogenitaet an der Oberflaeche verursacht wird:
-
-          frh(i,k)=tkvh(i,k)*prss(i,k) !in [m3/s3]
+          ! frh(i,k)=tkvh(i,k)*prss(i,k) !in [m3/s3]
 
           ! Vorbereitung der Interpolation der Zirulationsflussdichte auf Hauptflaechen:
 
@@ -2556,8 +2489,8 @@ my_thrd_id = omp_get_thread_num()
           ! was zumindest in der Prandtl-Schicht prop. zu 1/len_scale ist.
           !Die Interpolation von "rhon*frh" auf Hauptflaechen erfolgt daher mit
           ! 'rhon*frh*len_scale'. Anderenfalls ist mit grossen Interpolationsfehlern zu rechnen.
-
-          frh(i,k)=rhon(i,k)*frh(i,k)*len_scale(i,k) !skalierte Flussdichte auf NF
+          ! frh(i,k)=rhon(i,k)*frh(i,k)*len_scale(i,k)
+          frh(i,k)=rhon(i,k)*tkvh(i,k)*prss(i,k)*len_scale(i,k) !skalierte Flussdichte auf NF
 
         END DO
       END DO
@@ -2566,10 +2499,9 @@ my_thrd_id = omp_get_thread_num()
       ! Interpolation der skalierten CKE-Flussdichte auf Hauptflaechen:
 
       !$ACC PARALLEL ASYNC(1) DEFAULT(PRESENT) IF(lzacc)
-      !$ACC LOOP SEQ
+      !$ACC LOOP GANG VECTOR COLLAPSE(2)
       DO k=3,ke1
 !DIR$ IVDEP
-        !$ACC LOOP GANG VECTOR
         DO i=ivstart, ivend
           frm(i,k)=(frh(i,k)+frh(i,k-1))/(len_scale(i,k)+len_scale(i,k-1)) !interpolierte Flussdichte auf HF
         END DO
@@ -2592,10 +2524,9 @@ my_thrd_id = omp_get_thread_num()
         !$ACC END PARALLEL
 
         !$ACC PARALLEL ASYNC(1) DEFAULT(PRESENT) IF(lzacc)
-        !$ACC LOOP SEQ
+        !$ACC LOOP GANG VECTOR COLLAPSE(2)
         DO k=3,ke
 !DIR$ IVDEP
-          !$ACC LOOP GANG VECTOR
           DO i=ivstart, ivend
             upd_prof(i,k)=-(frm(i,k)-frm(i,k+1))/dicke(i,k)
 
@@ -2767,8 +2698,6 @@ my_thrd_id = omp_get_thread_num()
 !----- --------------------------------------------------------------------
 ! 9)  Aufdatieren des TKE-Profils durch die (erweiterte) Diffusions-Tendenz 
 !--------------------------------------------------------------------------
-
-    !$ACC WAIT
 
     IF (ldotkedif .OR. lcircdiff) THEN
 

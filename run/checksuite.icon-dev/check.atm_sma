@@ -54,11 +54,6 @@ export MD='rnmo'
 rundir=`pwd`
 cd checksuite.icon-dev
 
-case $HOST in
-    *daint*)
-        export MD='rnmot'
-esac
-
 ./icon-dev.checksuite
 STATUS=$?
 

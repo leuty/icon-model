@@ -47,13 +47,13 @@ MODULE mo_nwp_vdiff_interface
   USE mo_physical_constants, ONLY: cpd, cvd, cvv, grav, rd, rdv, tf_fresh => tmelt, vtmpc1, &
       & zemiss_def, vmr_to_mmr_co2
   USE mo_run_config, ONLY: ico2, iqc, iqi, nqtendphy, iqt, iqv, ntracer
-  USE mo_satad, ONLY: latent_heat_vaporization, sat_pres_water, spec_humi
+  USE mo_thdyn_functions, ONLY: latent_heat_vaporization, sat_pres_water, spec_humi
   USE mo_turb_vdiff, ONLY: &
       & imh_vdiff => imh, imqv_vdiff => imqv, ih_vdiff => ih, iqc_vdiff => ixl, &
       & iqv_vdiff => iqv, nvar_vdiff, matrix_to_richtmyer_coeff, &
       & nmatrix_vdiff => nmatrix, vdiff_down, vdiff_init, &
-      & vdiff_new_time_value, vdiff_get_richtmyer_coeff_momentum, vdiff_surface_flux, vdiff_up, &
-      & vdiff_update_boundary, vdiff_get_tke
+      & vdiff_get_richtmyer_coeff_momentum, vdiff_surface_flux, vdiff_up, vdiff_update_boundary, &
+      & vdiff_get_tke
   USE mo_turb_vdiff_config, ONLY: t_vdiff_config
   USE mo_turb_vdiff_params, ONLY: vdiff_implfact => cvdifts, VDIFF_TURB_3DSMAGORINSKY
   USE mtime, ONLY: datetime, julianday, getJulianDayFromDatetime
@@ -108,7 +108,7 @@ CONTAINS
   !! provides surface temperatures and albedos, as well as latent and sensible heat fluxes.
   !!
   SUBROUTINE nwp_vdiff ( &
-        & datetime_now, delta_time, patch, ccycle_config, vdiff_config, nh_prog, nh_prog_rcf, &
+        & datetime_now, delta_time, patch, ccycle_config, vdiff_config, nh_prog, tracer, tke, &
         & nh_diag, nh_metrics, phy_diag, ext_data, diag_lnd, prog_lnd_new, prog_wtr_now, &
         & prog_wtr_new, mem, phy_tend, initialize, lacc &
       )
@@ -119,7 +119,10 @@ CONTAINS
     TYPE(t_ccycle_config), INTENT(IN) :: ccycle_config !< Carbon-cycle configuration.
     TYPE(t_vdiff_config), INTENT(IN) :: vdiff_config !< vdiff configuration.
     TYPE(t_nh_prog), INTENT(INOUT) :: nh_prog !< Prognostic variables on current patch.
-    TYPE(t_nh_prog), INTENT(INOUT) :: nh_prog_rcf !< Prognostic variables (reduced calling freq).
+    REAL(wp), CONTIGUOUS, INTENT(INOUT) :: tracer(:,:,:,:)
+    !< Tracer field array (nproma,nlev,nblks_c,ntracer) [X/kg].
+    REAL(wp), CONTIGUOUS, INTENT(INOUT) :: tke(:,:,:)
+    !< Turbulence kinetic energy on layer interfaces (nproma,nlev+1,nblks_c) [J/kg].
     TYPE(t_nh_diag), INTENT(INOUT) :: nh_diag !< Diagnostic variables on current patch.
     TYPE(t_nh_metrics), INTENT(IN) :: nh_metrics !< Geometry of the patch.
     TYPE(t_nwp_phy_diag), INTENT(INOUT) :: phy_diag !< Diagnostic physics variables on current patch.
@@ -128,8 +131,10 @@ CONTAINS
     !< NWP LSS diagnostic land variables.
     TYPE(t_lnd_prog), INTENT(INOUT) :: prog_lnd_new
     !< NWP LSS prognostic land variables (time `t+1`).
-    TYPE(t_wtr_prog), INTENT(IN) :: prog_wtr_now
+    TYPE(t_wtr_prog), VALUE, INTENT(IN) :: prog_wtr_now
     !< NWP LSS prognostic water variables (time `t`).
+    !! VALUE, because it may alias `prog_wtr_new` during initialization, causing a false positive
+    !! in NAG checks.
     TYPE(t_wtr_prog), INTENT(INOUT) :: prog_wtr_new
     !< NWP LSS prognostic water variables (time `t+1`).
     TYPE(t_nwp_vdiff_state), INTENT(INOUT) :: mem !< vdiff and jsbach state.
@@ -473,6 +478,14 @@ CONTAINS
     !$ACC   CREATE(LIST_CREATE4) &
     !$ACC   CREATE(LIST_CREATE5)
 
+    ! Since prog_wtr_now is a VALUE, we have to copy and attach all member pointers.
+    ! The VALUE and this can go away once NAG Fortran is updated to build 7150.
+
+    !$ACC ENTER DATA ASYNC(1) &
+    !$ACC   COPYIN(prog_wtr_now) &
+    !$ACC   ATTACH(prog_wtr_now%t_ice, prog_wtr_now%h_ice, prog_wtr_now%t_snow_si) &
+    !$ACC   ATTACH(prog_wtr_now%h_snow_si, prog_wtr_now%alb_si)
+
     IF (PRESENT(initialize)) THEN
       linit = initialize
     ELSE
@@ -492,6 +505,11 @@ CONTAINS
     !$OMP PARALLEL
       CALL init(zero2d(:,:), lacc=.TRUE., opt_acc_async=.TRUE.)
       CALL init(tracer_srf_emission(:,:,:), lacc=.TRUE., opt_acc_async=.TRUE.)
+      CALL init(ddt_tracer(:,:,:,:), lacc=.TRUE., opt_acc_async=.TRUE.)
+      CALL init(flx_heat_latent_sft(:,:,:), lacc=.TRUE., opt_acc_async=.TRUE.)
+      CALL init(flx_heat_sensible_sft(:,:,:), lacc=.TRUE., opt_acc_async=.TRUE.)
+      CALL init(t2m_sft(:,:,:), lacc=.TRUE., opt_acc_async=.TRUE.)
+      CALL init(td2m_sft(:,:,:), lacc=.TRUE., opt_acc_async=.TRUE.)
     !$OMP END PARALLEL
 
     CALL get_surface_type_fractions(patch, ext_data, mem, diag_lnd, fr_sfc, fr_sft)
@@ -511,7 +529,7 @@ CONTAINS
           DO kl = 1, patch%nlev
             DO ic = ics, ice
               cloud_water_total(ic,kl,i_blk) = &
-                  & nh_prog_rcf%tracer(ic,kl,i_blk,iqc) + nh_prog_rcf%tracer(ic,kl,i_blk,iqi)
+                  & tracer(ic,kl,i_blk,iqc) + tracer(ic,kl,i_blk,iqi)
             END DO
           END DO
 
@@ -574,7 +592,7 @@ CONTAINS
       CALL alb%init(nproma, patch%nblks_c)
     !$OMP END PARALLEL
 
-    CALL get_surface_co2_concentration(patch, ccycle_config, nh_prog_rcf%tracer(:,:,:,:), &
+    CALL get_surface_co2_concentration(patch, ccycle_config, tracer(:,:,:,:), &
         & co2_concentration_srf)
 
     ! Routine queues on async queue 1. No need to wait.
@@ -606,11 +624,11 @@ CONTAINS
         & pvm1=nh_diag%v(:,:,:), &
         & pwm1=nh_prog%w(:,:,:), &
         & ptm1=nh_diag%temp(:,:,:), &
-        & pqm1=nh_prog_rcf%tracer(:,:,:,iqv), &
-        & pxlm1=nh_prog_rcf%tracer(:,:,:,iqc), &
-        & pxim1=nh_prog_rcf%tracer(:,:,:,iqi), &
+        & pqm1=tracer(:,:,:,iqv), &
+        & pxlm1=tracer(:,:,:,iqc), &
+        & pxim1=tracer(:,:,:,iqi), &
         & pxm1=cloud_water_total(:,:,:), &
-        & pxtm1=nh_prog_rcf%tracer(:,:,:,iqt:), &
+        & pxtm1=tracer(:,:,:,iqt:), &
         & pmair=nh_diag%airmass_new(:,:,:), &
         & rho=nh_prog%rho(:,:,:), &
         & paphm1=nh_diag%pres_ifc(:,:,:), &
@@ -685,7 +703,7 @@ CONTAINS
     CALL update_earth_declination(datetime_now)
 
     CALL sea_model_update_sst( &
-        & patch, mem%sea_state, datetime_now, ext_data%atm_td%sst_m(:,:,:), &
+        & patch, mem%sea_state, datetime_now, ext_data%atm_td%sst_m, &
         & diag_lnd%t_seasfc(:,:) &
       )
 
@@ -758,7 +776,7 @@ CONTAINS
             & vdiff_config=vdiff_config, &
             & ptotte=mem%total_turbulence_energy(:,:,i_blk), &
             & pri=ri_number(:,:,i_blk), &
-            & tke=nh_prog_rcf%tke(:,:,i_blk) &
+            & tke=tke(:,:,i_blk) &
           )
 
         ! Replace the vapor in the lowest atmospheric layer by total water (qv+qc) so the surface
@@ -794,7 +812,7 @@ CONTAINS
             & dtime=MERGE(1._wp, delta_time, linit), &
             & steplen=delta_time, &
             & t_air=nh_diag%temp(ics:ice, patch%nlev, i_blk), &
-            & q_air=nh_prog_rcf%tracer(ics:ice, patch%nlev, i_blk, iqv), &
+            & q_air=tracer(ics:ice, patch%nlev, i_blk, iqv), &
             & rain=rain_srf(ics:ice,i_blk), &
             & snow=snow_srf(ics:ice,i_blk), &
             & wind_air=wind_lowest(ics:ice,i_blk), &
@@ -947,10 +965,10 @@ CONTAINS
           END DO
         !$ACC END PARALLEL
 
-        CALL weighted_average(fr_sft(:,i_blk,:), evapo_sft(:,i_blk,:), flx_humidity(:))
-        CALL weighted_average(fr_sft(:,i_blk,:), flx_heat_sensible_sft(:,i_blk,:), flx_sensible(:))
-        CALL weighted_average(fr_sft(:,i_blk,:), flx_mom_u_sft(:,i_blk,:), flx_mom_u(:))
-        CALL weighted_average(fr_sft(:,i_blk,:), flx_mom_v_sft(:,i_blk,:), flx_mom_v(:))
+        CALL weighted_average(fr_sft(ics:ice,i_blk,:), evapo_sft(ics:ice,i_blk,:), flx_humidity(ics:ice))
+        CALL weighted_average(fr_sft(ics:ice,i_blk,:), flx_heat_sensible_sft(ics:ice,i_blk,:), flx_sensible(ics:ice))
+        CALL weighted_average(fr_sft(ics:ice,i_blk,:), flx_mom_u_sft(ics:ice,i_blk,:), flx_mom_u(ics:ice))
+        CALL weighted_average(fr_sft(ics:ice,i_blk,:), flx_mom_v_sft(ics:ice,i_blk,:), flx_mom_v(ics:ice))
 
         CALL vdiff_update_boundary( &
             & jcs=ics, &
@@ -965,7 +983,7 @@ CONTAINS
             & aa=a_matrices(:,:,:,:,i_blk), &
             & aa_btm=a_matrices_btm(:,:,:,:,i_blk), &
             & s_btm=s_atm(:,patch%nlev,i_blk), &
-            & q_btm=nh_prog_rcf%tracer(:,patch%nlev,i_blk,iqv), &
+            & q_btm=tracer(:,patch%nlev,i_blk,iqv), &
             & bb=b_rhs(:,:,:,i_blk) &
           )
 
@@ -987,10 +1005,10 @@ CONTAINS
             & pvm1=nh_diag%v(:,:,i_blk), &
             & ptm1=nh_diag%temp(:,:,i_blk), &
             & pmair=nh_diag%airmass_new(:,:,i_blk), &
-            & pqm1=nh_prog_rcf%tracer(:,:,i_blk,iqv), &
-            & pxlm1=nh_prog_rcf%tracer(:,:,i_blk,iqc), &
-            & pxim1=nh_prog_rcf%tracer(:,:,i_blk,iqi), &
-            & pxtm1=nh_prog_rcf%tracer(:,:,i_blk,iqt:), &
+            & pqm1=tracer(:,:,i_blk,iqv), &
+            & pxlm1=tracer(:,:,i_blk,iqc), &
+            & pxim1=tracer(:,:,i_blk,iqi), &
+            & pxtm1=tracer(:,:,i_blk,iqt:), &
             & pgeom1=nh_metrics%geopot_agl(:,:,i_blk), &
             & pztottevn=total_turbulence_energy_intermediate(:,:,i_blk), &
             & vdiff_config=vdiff_config, &
@@ -1017,7 +1035,7 @@ CONTAINS
           DO ic = ics, ice
             qv_sft(ic,i_blk,SFT_LAND) = &
                 & (1._wp - mem%fact_q_air(ic,i_blk)) * ( &
-                &   nh_prog_rcf%tracer(ic,patch%nlev,i_blk,iqv) &
+                &   tracer(ic,patch%nlev,i_blk,iqv) &
                 &   + delta_time * ddt_tracer(ic,patch%nlev,i_blk,iqv)) &
                 & + mem%fact_qsat_srf(ic,i_blk) * qsat_sft(ic,i_blk,SFT_LAND)
           END DO
@@ -1072,7 +1090,7 @@ CONTAINS
                 & temp_lowest=nh_diag%temp(:,patch%nlev,i_blk), &
                 & pres_lowest=nh_diag%pres(:,patch%nlev,i_blk), &
                 & pres_srf=nh_diag%pres_sfc(:,i_blk), &
-                & q_lowest=nh_prog_rcf%tracer(:,patch%nlev,i_blk,iqv), &
+                & q_lowest=tracer(:,patch%nlev,i_blk,iqv), &
                 & x_lowest=cloud_water_total(:,patch%nlev,i_blk), &
                 & tdew_ref=td2m_sft(:,i_blk,isft), &
                 & rh_ref=rh2m_sft(:,i_blk,isft), &
@@ -1159,7 +1177,7 @@ CONTAINS
           DO kl = 1, patch%nlev
             DO ic = ics, ice
               phy_tend%ddt_temp_turb(ic,kl,i_blk) = ddt_Q(ic,kl,i_blk) &
-                  & / (cvd + (cvv - cvd) * (nh_prog_rcf%tracer(ic,kl,i_blk,iqv) &
+                  & / (cvd + (cvv - cvd) * (tracer(ic,kl,i_blk,iqv) &
                   &    + delta_time * ddt_tracer(ic,kl,i_blk,iqv))) &
                   & / nh_diag%airmass_new(ic,kl,i_blk) &
                   & + ddt_horiz_temp(ic,kl,i_blk)
@@ -1265,14 +1283,14 @@ CONTAINS
     ! Update state with tendencies.
     IF (.NOT. linit) THEN
       CALL add_tendencies_to_state ( &
-          & delta_time, patch, phy_tend, nh_prog, nh_prog_rcf, nh_diag, ddt_tracer &
+          & delta_time, patch, phy_tend, nh_prog, tracer, nh_diag, ddt_tracer &
         )
 
       CALL get_stddev_saturation_deficit ( &
           & patch=patch, &
           & z_mc=nh_metrics%z_mc(:,:,:), &
           & z_ifc=nh_metrics%z_ifc(:,:,:), &
-          & tracer=nh_prog_rcf%tracer(:,:,:,:), &
+          & tracer=tracer(:,:,:,:), &
           & mixing_length=mixing_length(:,:,:), &
           & total_turbulence_energy=mem%total_turbulence_energy(:,:,:), &
           & exchange_coeff_h=mem%exchange_coeff_h(:,:,:), &
@@ -1313,6 +1331,12 @@ CONTAINS
     END IF
 
     !$ACC WAIT(1)
+
+    !$ACC EXIT DATA &
+    !$ACC   DELETE(prog_wtr_now) &
+    !$ACC   DETACH(prog_wtr_now%t_ice, prog_wtr_now%h_ice, prog_wtr_now%t_snow_si) &
+    !$ACC   DETACH(prog_wtr_now%h_snow_si, prog_wtr_now%alb_si)
+
     !$ACC EXIT DATA &
     !$ACC   DELETE(LIST_CREATE1) &
     !$ACC   DELETE(LIST_CREATE2) &
@@ -1336,7 +1360,12 @@ CONTAINS
 
     INTEGER :: jg
 
-    CALL vdiff_init(2, ntracer)
+    ! VDIFF wants the number of additional diffused tracers beyond the usual water-related ones
+    ! (qv, qc, qi) as its second argument. Here, we assume that the two hydrometeors (qr, qs; first
+    ! argument), as well as all other water-related ones are not diffused. Tracers not related to
+    ! water (those with index >= iqt) are subject to turbulent diffusion, however. The assumptions
+    ! are invalid for two-moment microphysics.
+    CALL vdiff_init(2, ntracer + 1 - iqt)
 
 #ifndef __NO_JSBACH__
     DO jg = 1, SIZE(patch)
@@ -1371,7 +1400,7 @@ CONTAINS
 
     CALL sea_model_init( &
         & patch, ext_data, phy_diag%cosmu0(:,:), lnd_diag%t_seasfc(:,:), &
-        & ext_data%atm_td%sst_m(:,:,:), vdiff_state%sea_state)
+        & ext_data%atm_td%sst_m, vdiff_state%sea_state)
 
     vdiff_state%fact_q_air(:,:) = 0.5_wp
     vdiff_state%fact_qsat_srf(:,:) = 0.5_wp
@@ -2333,7 +2362,7 @@ CONTAINS
   !>
   !! Update the state of the model with turbulence tendencies.
   SUBROUTINE add_tendencies_to_state ( &
-        & dtime, patch, phy_tend, nh_prog, nh_prog_rcf, nh_diag, ddt_tracer &
+        & dtime, patch, phy_tend, nh_prog, tracer, nh_diag, ddt_tracer &
       )
 
     REAL(wp), INTENT(IN) :: dtime !< Time step length [s].
@@ -2341,8 +2370,8 @@ CONTAINS
     TYPE(t_nwp_phy_tend), INTENT(IN) :: phy_tend !< Physics tendencies.
     TYPE(t_nh_prog), INTENT(INOUT) :: nh_prog
     !< Prognostic variables of the current atmospheric state.
-    TYPE(t_nh_prog), INTENT(INOUT) :: nh_prog_rcf
-    !< Prognostic variables of the current atmospheric state (for tracers).
+    REAL(wp), CONTIGUOUS, INTENT(INOUT) :: tracer(:,:,:,:)
+    !< Tracer concentrations [X/kg].
     TYPE(t_nh_diag), INTENT(INOUT) :: nh_diag
     !< Diagnostic variables of the current atmospheric state.
     REAL(wp), INTENT(IN) :: ddt_tracer(:,:,:,:) !< Extra tracer tendencies.
@@ -2418,8 +2447,7 @@ CONTAINS
           !$ACC LOOP GANG(STATIC: 1) VECTOR COLLAPSE(2)
           DO kl = 1, patch%nlev
             DO ic = ics, ice
-              nh_prog_rcf%tracer(ic,kl,i_blk,it) = nh_prog_rcf%tracer(ic,kl,i_blk,it) &
-                  & + dtime * ddt_tracer(ic,kl,i_blk,it)
+              tracer(ic,kl,i_blk,it) = tracer(ic,kl,i_blk,it) + dtime * ddt_tracer(ic,kl,i_blk,it)
             END DO
           END DO
 
@@ -2427,8 +2455,7 @@ CONTAINS
             !$ACC LOOP GANG(STATIC: 1) VECTOR COLLAPSE(2)
             DO kl = 1, patch%nlev
               DO ic = ics, ice
-                nh_prog_rcf%tracer(ic,kl,i_blk,it) = &
-                  & MAX(0._wp, nh_prog_rcf%tracer(ic,kl,i_blk,it))
+                tracer(ic,kl,i_blk,it) = MAX(0._wp, tracer(ic,kl,i_blk,it))
               END DO
             END DO
           END IF

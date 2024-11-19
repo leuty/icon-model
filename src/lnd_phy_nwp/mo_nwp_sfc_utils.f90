@@ -52,7 +52,7 @@ MODULE mo_nwp_sfc_utils
   USE sfc_seaice,             ONLY: seaice_init_nwp, seaice_coldinit_albsi_nwp
   USE sfc_terra_data,         ONLY: cadp, cf_snow, crhosmin_ml, crhosmax_ml
   USE turb_data,              ONLY: c_lnd, c_sea, c_stm
-  USE mo_satad,               ONLY: sat_pres_water, sat_pres_ice, spec_humi
+  USE mo_thdyn_functions,     ONLY: sat_pres_water, sat_pres_ice, spec_humi
   USE mo_sync,                ONLY: global_max, global_min
   USE mo_nonhydro_types,      ONLY: t_nh_diag
   USE mo_dynamics_config,     ONLY: nnow_rcf, nnew_rcf

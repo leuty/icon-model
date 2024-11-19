@@ -317,9 +317,12 @@ CONTAINS
           ENDIF
 
         ELSE IF (atm_phy_nwp_config(jg)%icpl_aero_gscp == 3) THEN
+          !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1)
+          !$ACC LOOP GANG VECTOR
           DO jc=i_startidx,i_endidx
             qnc_s(jc) = prm_diag%cloud_num(jc,jb)
           END DO
+          !$ACC END PARALLEL
 
         ELSE
 
@@ -498,6 +501,7 @@ CONTAINS
             & qni    = ptr_tracer (:,:,jb,iqni)        ,    & !< inout:  cloud ice number
             & ninact = ptr_tracer (:,:,jb,ininact)     ,    & !< inout:  activated ice nuclei
             & w      = p_prog%w(:,:,jb)                ,    & !< in:  vertical wind speed, half levels
+            & tropicsmask = prm_diag%tropics_mask(:,jb),    & !< in:  tropics mask as defined in mo_nwp_phy_init
             & qnc    = qnc_s                           ,    & !< in:  cloud number concentration
             & prr_gsp=prm_diag%rain_gsp_rate (:,jb)    ,    & !< out: precipitation rate of rain
             & prs_gsp=prm_diag%snow_gsp_rate (:,jb)    ,    & !< out: precipitation rate of snow
@@ -980,6 +984,7 @@ CONTAINS
                & qve      = ptr_tracer (:,:,jb,iqv),& !> INOUT
                & qce      = ptr_tracer (:,:,jb,iqc),& !> INOUT
                & rhotot   = p_prog%rho        (:,:,jb)    ,& !> IN
+               & w        = p_prog%w           (:,:,jb)   ,& !> IN
                & idim     = nproma                        ,& !> IN
                & kdim     = nlev                          ,& !> IN
                & ilo      = i_startidx                    ,& !> IN

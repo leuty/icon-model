@@ -24,6 +24,7 @@ MODULE mo_bc_aeropt_cmip6_volc
   USE mo_bcs_time_interpolation, ONLY: t_time_interpolation_weights, &
        &                               calculate_time_interpolation_weights
   USE mo_time_config,            ONLY: time_config
+  USE mo_fortran_tools,          ONLY: assert_acc_device_only
 
   IMPLICIT NONE
 
@@ -180,10 +181,6 @@ CONTAINS
 
     DEALLOCATE(zalt, zlat)
 
-    !$ACC UPDATE DEVICE(aod_v_s, ext_v_s, ssa_v_s, asy_v_s, aod_v_t, ext_v_t, ssa_v_t) &
-    !$ACC   DEVICE(r_alt_clim, r_lat_clim) &
-    !$ACC   ASYNC(1)
-
   END SUBROUTINE su_bc_aeropt_cmip6_volc
 
 
@@ -292,11 +289,13 @@ CONTAINS
 
       pre_year = mtime_current%date%year
 
+      ! The following arrays are created in su_bc_aeropt_cmip6_volc and changed in read_months_bc_aeropt_cmip6_volc
       !$ACC UPDATE DEVICE(aod_v_s, ext_v_s, ssa_v_s, asy_v_s, aod_v_t, ext_v_t, ssa_v_t) &
       !$ACC   DEVICE(r_alt_clim, r_lat_clim) &
       !$ACC   ASYNC(1)
 
     END IF ! iyear > pre_year
+
   END SUBROUTINE read_bc_aeropt_cmip6_volc
 
 
@@ -308,7 +307,7 @@ CONTAINS
       & krow,                  nb_sw,           nb_lw,                &
       & zf,                    dz,                                    &
       & paer_tau_sw_vr,        paer_piz_sw_vr,  paer_cg_sw_vr,        &
-      & paer_tau_lw_vr                                                )
+      & paer_tau_lw_vr,        lacc                                   )
 
     ! INPUT PARAMETERS
     TYPE(datetime), POINTER, INTENT(IN) :: current_date !< Current date and time.
@@ -353,12 +352,20 @@ CONTAINS
     TYPE(t_time_interpolation_weights) :: tiw
     INTEGER :: nm1, nm2
 
+    LOGICAL, OPTIONAL, INTENT(IN) :: lacc
+
     CHARACTER(len=*), PARAMETER :: subroutine_name = &
         & 'mo_bc_aeropt_cmip6_volc:set_bc_aeropt_cmip6_volc'
+
+    CALL assert_acc_device_only(subroutine_name, lacc)
 
     tiw = calculate_time_interpolation_weights(current_date)
     nm1 = tiw%month1_index
     nm2 = tiw%month2_index
+    !$ACC DATA COPYIN(tiw) &
+    !$ACC   CREATE(kindex, l_kindex, wgt1_lat, wgt2_lat, inmw1_lat, inmw2_lat) &
+    !$ACC   CREATE(zext_s, zomg_s, zasy_s, zaod_s, zfact_s, zext_t, zomg_t, zaod_t, zfact_t) &
+    !$ACC   CREATE(zext_s_int, zext_t_int)
 
     IF (current_date%date%year /= pre_year) THEN
       WRITE (message_text,'(A,I4,A,I4)') 'Stale data: requested year is', current_date%date%year, &
@@ -376,7 +383,7 @@ CONTAINS
     dz_clim=r_alt_clim(1)-r_alt_clim(2)
     z_max_lim_clim=r_alt_clim(1)+0.5_wp*dz_clim
     CALL altitude_index( &
-        & jcs,            kproma,     zf,     dz_clim, &
+        & jcs, klev, kproma, zf, dz_clim, &
         & z_max_lim_clim, k_alt_clim, kindex, l_kindex )
 
     p_lat_shift=r_lat_shift
@@ -385,43 +392,50 @@ CONTAINS
         & jg,          jcs,            kproma,            kbdim,           &
         & krow,        wgt1_lat,       wgt2_lat,          inmw1_lat,       &
         & inmw2_lat,   p_lat_shift,    p_rdeltalat,       r_lat_clim,      &
-        & lat_clim,    norder                                              )
+        & lat_clim,    norder,         lacc                                )
 
+    !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1)
     ! 2. Solar radiation
     ! 2.1 interpolate optical properties solar radiation
+    !$ACC LOOP SEQ
     DO jwl=1,nb_sw
+      !$ACC LOOP SEQ
       DO jk=1,klev
+        !$ACC LOOP GANG(STATIC: 1) VECTOR PRIVATE(idx_lat_1, idx_lat_2, w1_lat, w2_lat, idx_lev)
         DO jl=jcs,kproma
-          idx_lat_1=inmw1_lat(jl)
-          idx_lat_2=inmw2_lat(jl)
-          w1_lat=wgt1_lat(jl)
-          w2_lat=wgt2_lat(jl)
-          idx_lev=kindex(jl,jk)
-          zext_s(jl,jk,jwl)=tiw%weight1*(w1_lat*ext_v_s(jwl,idx_lev,idx_lat_1,nm1)+ &
-                                        w2_lat*ext_v_s(jwl,idx_lev,idx_lat_2,nm1))+ &
-                            tiw%weight2*(w1_lat*ext_v_s(jwl,idx_lev,idx_lat_1,nm2)+ &
-                                        w2_lat*ext_v_s(jwl,idx_lev,idx_lat_2,nm2))
-          zomg_s(jl,jk,jwl)=tiw%weight1*(w1_lat*ssa_v_s(jwl,idx_lev,idx_lat_1,nm1)+ &
-                                        w2_lat*ssa_v_s(jwl,idx_lev,idx_lat_2,nm1))+ &
-                            tiw%weight2*(w1_lat*ssa_v_s(jwl,idx_lev,idx_lat_1,nm2)+ &
-                                        w2_lat*ssa_v_s(jwl,idx_lev,idx_lat_2,nm2))
-          zasy_s(jl,jk,jwl)=tiw%weight1*(w1_lat*asy_v_s(jwl,idx_lev,idx_lat_1,nm1)+ &
-                                        w2_lat*asy_v_s(jwl,idx_lev,idx_lat_2,nm1))+ &
-                            tiw%weight2*(w1_lat*asy_v_s(jwl,idx_lev,idx_lat_1,nm2)+ &
-                                        w2_lat*asy_v_s(jwl,idx_lev,idx_lat_2,nm2))
+          idx_lat_1 = inmw1_lat(jl)
+          idx_lat_2 = inmw2_lat(jl)
+          w1_lat = wgt1_lat(jl)
+          w2_lat = wgt2_lat(jl)
+          idx_lev = kindex(jl,jk)
+          zext_s(jl,jk,jwl) = tiw%weight1*(w1_lat*ext_v_s(jwl,idx_lev,idx_lat_1,nm1) + &
+                                           w2_lat*ext_v_s(jwl,idx_lev,idx_lat_2,nm1))+ &
+                              tiw%weight2*(w1_lat*ext_v_s(jwl,idx_lev,idx_lat_1,nm2) + &
+                                           w2_lat*ext_v_s(jwl,idx_lev,idx_lat_2,nm2))
+          zomg_s(jl,jk,jwl) = tiw%weight1*(w1_lat*ssa_v_s(jwl,idx_lev,idx_lat_1,nm1) + &
+                                           w2_lat*ssa_v_s(jwl,idx_lev,idx_lat_2,nm1))+ &
+                              tiw%weight2*(w1_lat*ssa_v_s(jwl,idx_lev,idx_lat_1,nm2) + &
+                                           w2_lat*ssa_v_s(jwl,idx_lev,idx_lat_2,nm2))
+          zasy_s(jl,jk,jwl) = tiw%weight1*(w1_lat*asy_v_s(jwl,idx_lev,idx_lat_1,nm1) + &
+                                           w2_lat*asy_v_s(jwl,idx_lev,idx_lat_2,nm1))+ &
+                              tiw%weight2*(w1_lat*asy_v_s(jwl,idx_lev,idx_lat_1,nm2) + &
+                                           w2_lat*asy_v_s(jwl,idx_lev,idx_lat_2,nm2))
         END DO
       END DO
     END DO
+
+    !$ACC LOOP SEQ
     DO jwl=1,nb_sw
+      !$ACC LOOP GANG(STATIC: 1) VECTOR PRIVATE(idx_lat_1, idx_lat_2, w1_lat, w2_lat)
       DO jl=jcs,kproma
-        idx_lat_1=inmw1_lat(jl)
-        idx_lat_2=inmw2_lat(jl)
-        w1_lat=wgt1_lat(jl)
-        w2_lat=wgt2_lat(jl)
-        zaod_s(jl,jwl)=tiw%weight1*(w1_lat*aod_v_s(jwl,idx_lat_1,nm1)+ &
-                                   w2_lat*aod_v_s(jwl,idx_lat_2,nm1))+ &
-                       tiw%weight2*(w1_lat*aod_v_s(jwl,idx_lat_1,nm2)+ &
-                                   w2_lat*aod_v_s(jwl,idx_lat_2,nm2))
+        idx_lat_1 = inmw1_lat(jl)
+        idx_lat_2 = inmw2_lat(jl)
+        w1_lat = wgt1_lat(jl)
+        w2_lat = wgt2_lat(jl)
+        zaod_s(jl,jwl) = tiw%weight1*(w1_lat*aod_v_s(jwl,idx_lat_1,nm1) + &
+                                      w2_lat*aod_v_s(jwl,idx_lat_2,nm1))+ &
+                         tiw%weight2*(w1_lat*aod_v_s(jwl,idx_lat_1,nm2) + &
+                                      w2_lat*aod_v_s(jwl,idx_lat_2,nm2))
       END DO
     END DO
 
@@ -431,78 +445,113 @@ CONTAINS
     !     independent of the height level. Generally, the aerosol composition
     !     depends on height, this leads to different ratios of the extinction
     !     between two given wavelengths at different heights.
-    zext_s_int(jcs:kproma,1:nb_sw)=0._wp
-    DO jwl=1,nb_sw
-      DO jk=1,klev
-        zext_s_int(jcs:kproma,jwl)=zext_s_int(jcs:kproma,jwl) + &
-                 zext_s(jcs:kproma,jk,jwl)*dz(jcs:kproma,jk)
+    !$ACC LOOP SEQ
+    DO jwl = 1, nb_sw
+      !$ACC LOOP GANG(STATIC: 1) VECTOR
+      DO jl = jcs, kproma
+        zext_s_int(jl,jwl) = 0._wp
       END DO
     END DO
-    WHERE (zext_s_int(jcs:kproma,1:nb_sw) > 0._wp)
-      zfact_s(jcs:kproma,1:nb_sw)=zaod_s(jcs:kproma,1:nb_sw)/ &
-                              zext_s_int(jcs:kproma,1:nb_sw)
-    ELSEWHERE
-      zfact_s(jcs:kproma,1:nb_sw)=1._wp
-    END WHERE
-    DO jwl=1,nb_sw
-      DO jk=1,klev
-        zext_s(jcs:kproma,jk,jwl)=zext_s(jcs:kproma,jk,jwl)* &
-               dz(jcs:kproma,jk)*zfact_s(jcs:kproma,jwl)
+
+    !$ACC LOOP SEQ
+    DO jwl = 1, nb_sw
+      !$ACC LOOP SEQ
+      DO jk = 1, klev
+        !$ACC LOOP GANG(STATIC: 1) VECTOR
+        DO jl = jcs, kproma
+          zext_s_int(jl, jwl) = zext_s_int(jl, jwl) + &
+              & zext_s(jl, jk, jwl) * dz(jl, jk)
+        END DO
+      END DO
+    END DO
+
+    !$ACC LOOP SEQ
+    DO jwl = 1, nb_sw
+      !$ACC LOOP GANG(STATIC: 1) VECTOR
+      DO jl = jcs, kproma
+        IF (zext_s_int(jl, jwl) > 0._wp) THEN
+          zfact_s(jl, jwl) = zaod_s(jl, jwl) / zext_s_int(jl, jwl)
+        ELSE
+          zfact_s(jl, jwl) = 1._wp
+        END IF
+      END DO
+    END DO
+
+    !$ACC LOOP SEQ
+    DO jwl = 1, nb_sw
+      !$ACC LOOP SEQ
+      DO jk = 1, klev
+        !$ACC LOOP GANG(STATIC: 1) VECTOR
+        DO jl = jcs, kproma
+          zext_s(jl, jk, jwl) = zext_s(jl, jk, jwl) * dz(jl, jk) * zfact_s(jl, jwl)
+        END DO
       END DO
     END DO
 
     ! 2.3 add optical parameters to the optical parameters of aerosols
     !     inverse height profile
-    DO jk=1,klev
-      jki=klev-jk+1
-      WHERE (zext_s(jcs:kproma,jki,1:nb_sw)>0._wp)
-        paer_cg_sw_vr(jcs:kproma,jk,1:nb_sw)=paer_tau_sw_vr(jcs:kproma,jk,1:nb_sw)*&
-          paer_piz_sw_vr(jcs:kproma,jk,1:nb_sw)*paer_cg_sw_vr(jcs:kproma,jk,1:nb_sw)+&
-          zext_s(jcs:kproma,jki,1:nb_sw)*zomg_s(jcs:kproma,jki,1:nb_sw)*&
-          zasy_s(jcs:kproma,jki,1:nb_sw)
-        paer_piz_sw_vr(jcs:kproma,jk,1:nb_sw)=paer_tau_sw_vr(jcs:kproma,jk,1:nb_sw)*&
-          paer_piz_sw_vr(jcs:kproma,jk,1:nb_sw)+&
-          zext_s(jcs:kproma,jki,1:nb_sw)*zomg_s(jcs:kproma,jki,1:nb_sw)
-        paer_tau_sw_vr(jcs:kproma,jk,1:nb_sw)=paer_tau_sw_vr(jcs:kproma,jk,1:nb_sw)+&
-          zext_s(jcs:kproma,jki,1:nb_sw)
-        paer_piz_sw_vr(jcs:kproma,jk,1:nb_sw)=paer_piz_sw_vr(jcs:kproma,jk,1:nb_sw)/&
-          paer_tau_sw_vr(jcs:kproma,jk,1:nb_sw)
-        paer_cg_sw_vr(jcs:kproma,jk,1:nb_sw)=paer_cg_sw_vr(jcs:kproma,jk,1:nb_sw)/&
-          (paer_tau_sw_vr(jcs:kproma,jk,1:nb_sw)*paer_piz_sw_vr(jcs:kproma,jk,1:nb_sw))
-      END WHERE
+    !$ACC LOOP SEQ
+    DO jwl = 1, nb_sw
+      !$ACC LOOP SEQ
+      DO jk = 1, klev
+        jki = klev - jk + 1
+        !$ACC LOOP GANG(STATIC: 1) VECTOR
+        DO jl = jcs, kproma
+          IF (zext_s(jl, jki, jwl)>0._wp) THEN
+            paer_cg_sw_vr(jl, jk, jwl) = paer_tau_sw_vr(jl, jk, jwl) * &
+                & paer_piz_sw_vr(jl, jk, jwl) * paer_cg_sw_vr(jl, jk, jwl) + &
+                & zext_s(jl, jki, jwl) * zomg_s(jl, jki, jwl) * zasy_s(jl, jki, jwl)
+            paer_piz_sw_vr(jl, jk, jwl) = &
+                & paer_tau_sw_vr(jl, jk, jwl) * paer_piz_sw_vr(jl, jk, jwl) + &
+                & zext_s(jl, jki, jwl) * zomg_s(jl, jki, jwl)
+            paer_tau_sw_vr(jl, jk, jwl) = paer_tau_sw_vr(jl, jk, jwl) + &
+                & zext_s(jl, jki, jwl)
+            paer_piz_sw_vr(jl, jk, jwl) = paer_piz_sw_vr(jl, jk, jwl) / &
+                & paer_tau_sw_vr(jl, jk, jwl)
+            paer_cg_sw_vr(jl, jk, jwl) = paer_cg_sw_vr(jl, jk, jwl) / &
+                & (paer_tau_sw_vr(jl, jk, jwl) * paer_piz_sw_vr(jl, jk, jwl))
+          END IF
+        END DO
+      END DO
     END DO
 
     ! 3. far infrared
     ! 2.1 interpolate optical properties thermal radiation
-    DO jwl=1,nb_lw
-      DO jk=1,klev
-        DO jl=jcs,kproma
-          idx_lat_1=inmw1_lat(jl)
-          idx_lat_2=inmw2_lat(jl)
-          w1_lat=wgt1_lat(jl)
-          w2_lat=wgt2_lat(jl)
-          idx_lev=kindex(jl,jk)
-          zext_t(jl,jk,jwl)=tiw%weight1*(w1_lat*ext_v_t(jwl,idx_lev,idx_lat_1,nm1)+ &
-                                        w2_lat*ext_v_t(jwl,idx_lev,idx_lat_2,nm1))+ &
-                            tiw%weight2*(w1_lat*ext_v_t(jwl,idx_lev,idx_lat_1,nm2)+ &
-                                        w2_lat*ext_v_t(jwl,idx_lev,idx_lat_2,nm2))
-          zomg_t(jl,jk,jwl)=tiw%weight1*(w1_lat*ssa_v_t(jwl,idx_lev,idx_lat_1,nm1)+ &
-                                        w2_lat*ssa_v_t(jwl,idx_lev,idx_lat_2,nm1))+ &
-                            tiw%weight2*(w1_lat*ssa_v_t(jwl,idx_lev,idx_lat_1,nm2)+ &
-                                        w2_lat*ssa_v_t(jwl,idx_lev,idx_lat_2,nm2))
+    !$ACC LOOP SEQ
+    DO jwl = 1, nb_lw
+      !$ACC LOOP SEQ
+      DO jk = 1, klev
+        !$ACC LOOP GANG(STATIC: 1) VECTOR PRIVATE(idx_lat_1, idx_lat_2, w1_lat, w2_lat, idx_lev)
+        DO jl = jcs, kproma
+          idx_lat_1 = inmw1_lat(jl)
+          idx_lat_2 = inmw2_lat(jl)
+          w1_lat = wgt1_lat(jl)
+          w2_lat = wgt2_lat(jl)
+          idx_lev = kindex(jl,jk)
+          zext_t(jl,jk,jwl) = tiw%weight1*(w1_lat*ext_v_t(jwl,idx_lev,idx_lat_1,nm1)+ &
+                                           w2_lat*ext_v_t(jwl,idx_lev,idx_lat_2,nm1))+ &
+                              tiw%weight2*(w1_lat*ext_v_t(jwl,idx_lev,idx_lat_1,nm2)+ &
+                                           w2_lat*ext_v_t(jwl,idx_lev,idx_lat_2,nm2))
+          zomg_t(jl,jk,jwl) = tiw%weight1*(w1_lat*ssa_v_t(jwl,idx_lev,idx_lat_1,nm1)+ &
+                                           w2_lat*ssa_v_t(jwl,idx_lev,idx_lat_2,nm1))+ &
+                              tiw%weight2*(w1_lat*ssa_v_t(jwl,idx_lev,idx_lat_1,nm2)+ &
+                                           w2_lat*ssa_v_t(jwl,idx_lev,idx_lat_2,nm2))
         END DO
       END DO
     END DO
-    DO jwl=1,nb_lw
-      DO jl=jcs,kproma
-        idx_lat_1=inmw1_lat(jl)
-        idx_lat_2=inmw2_lat(jl)
-        w1_lat=wgt1_lat(jl)
-        w2_lat=wgt2_lat(jl)
-        zaod_t(jl,jwl)=tiw%weight1*(w1_lat*aod_v_t(jwl,idx_lat_1,nm1)+ &
-                                   w2_lat*aod_v_t(jwl,idx_lat_2,nm1))+ &
-                       tiw%weight2*(w1_lat*aod_v_t(jwl,idx_lat_1,nm2)+ &
-                                   w2_lat*aod_v_t(jwl,idx_lat_2,nm2))
+
+    !$ACC LOOP SEQ
+    DO jwl = 1, nb_lw
+      !$ACC LOOP GANG(STATIC: 1) VECTOR PRIVATE(idx_lat_1, idx_lat_2, w1_lat, w2_lat)
+      DO jl = jcs, kproma
+        idx_lat_1 = inmw1_lat(jl)
+        idx_lat_2 = inmw2_lat(jl)
+        w1_lat = wgt1_lat(jl)
+        w2_lat = wgt2_lat(jl)
+        zaod_t(jl,jwl) = tiw%weight1*(w1_lat*aod_v_t(jwl,idx_lat_1,nm1)+ &
+                                      w2_lat*aod_v_t(jwl,idx_lat_2,nm1))+ &
+                         tiw%weight2*(w1_lat*aod_v_t(jwl,idx_lat_1,nm2)+ &
+                                      w2_lat*aod_v_t(jwl,idx_lat_2,nm2))
       END DO
     END DO
 
@@ -512,45 +561,77 @@ CONTAINS
     !     independent of the height level. Generally, the aerosol composition
     !     depends on height, this leads to different ratios of the extinction
     !     between two given wavelengths at different heights.
-    zext_t_int(jcs:kproma,1:nb_lw)=0._wp
-    DO jwl=1,nb_lw
-      DO jk=1,klev
-        zext_t_int(jcs:kproma,jwl)=zext_t_int(jcs:kproma,jwl) + &
-                zext_t(jcs:kproma,jk,jwl)*dz(jcs:kproma,jk)
+    !$ACC LOOP SEQ
+    DO jwl = 1, nb_lw
+      !$ACC LOOP GANG(STATIC: 1) VECTOR
+      DO jl = jcs, kproma
+        zext_t_int(jl, jwl) = 0._wp
       END DO
     END DO
-    WHERE (zext_t_int(jcs:kproma,1:nb_lw) > 0._wp)
-      zfact_t(jcs:kproma,1:nb_lw)=zaod_t(jcs:kproma,1:nb_lw)/ &
-                              zext_t_int(jcs:kproma,1:nb_lw)
-    ELSEWHERE
-      zfact_t(jcs:kproma,1:nb_lw)=1._wp
-    END WHERE
-    DO jwl=1,nb_lw
-      DO jk=1,klev
-        zext_t(jcs:kproma,jk,jwl)=zext_t(jcs:kproma,jk,jwl)* &
-              dz(jcs:kproma,jk)*zfact_t(jcs:kproma,jwl)
+
+    !$ACC LOOP SEQ
+    DO jwl = 1, nb_lw
+      !$ACC LOOP SEQ
+      DO jk = 1, klev
+        !$ACC LOOP GANG(STATIC: 1) VECTOR
+        DO jl = jcs, kproma
+          zext_t_int(jl,jwl) = zext_t_int(jl,jwl) + zext_t(jl,jk,jwl) * dz(jl,jk)
+        END DO
+      END DO
+    END DO
+
+    !$ACC LOOP SEQ
+    DO jwl = 1, nb_lw
+      !$ACC LOOP GANG(STATIC: 1) VECTOR
+      DO jl = jcs, kproma
+        IF (zext_t_int(jl, jwl) > 0._wp) THEN
+          zfact_t(jl, jwl) = zaod_t(jl, jwl) / zext_t_int(jl, jwl)
+        ELSE
+          zfact_t(jl, jwl) = 1._wp
+        END IF
+      END DO
+    END DO
+
+    !$ACC LOOP SEQ
+    DO jwl = 1, nb_lw
+      !$ACC LOOP SEQ
+      DO jk = 1, klev
+        !$ACC LOOP GANG(STATIC: 1) VECTOR
+        DO jl = jcs, kproma
+          zext_t(jl, jk, jwl) = zext_t(jl, jk, jwl) * dz(jl, jk) * zfact_t(jl, jwl)
+        END DO
       END DO
     END DO
 
     ! 2.3 add optical parameters to the optical parameters of aerosols
     !     inverse height profile
-    DO jk=1,klev
-      jki=klev-jk+1
-      ! use explicit DO loop to circumvent possible SXf90 compiler bug
-      DO jc = jcs,kproma
-        paer_tau_lw_vr(jc,jk,1:nb_lw)=paer_tau_lw_vr(jc,jk,1:nb_lw) + &
-              zext_t(jc,jki,1:nb_lw)*(1._wp-zomg_t(jc,jki,1:nb_lw))
-      ENDDO
+    !$ACC LOOP SEQ
+    DO jwl = 1, nb_lw
+      !$ACC LOOP SEQ
+      DO jk = 1, klev
+        jki = klev - jk + 1
+
+        !$ACC LOOP GANG(STATIC: 1) VECTOR
+        DO jl = jcs, kproma
+          paer_tau_lw_vr(jl, jk, jwl) = paer_tau_lw_vr(jl, jk, jwl) + &
+              & zext_t(jl, jki, jwl) * (1._wp - zomg_t(jl,jki,jwl))
+        END DO
+      END DO
     END DO
+    !$ACC END PARALLEL
+
+    !$ACC WAIT(1)
+    !$ACC END DATA
 
   END SUBROUTINE add_bc_aeropt_cmip6_volc
 
   !------------------------------------------------------------------------
   SUBROUTINE altitude_index ( &
-        & jcs, kproma, zf, dz_clim, z_max_lim_clim, k_lev_clim, kindex, l_kindex &
+        & jcs, klev, kproma, zf, dz_clim, z_max_lim_clim, k_lev_clim, kindex, l_kindex &
       )
 
     INTEGER, INTENT(IN) :: jcs !< Minimum block index.
+    INTEGER, INTENT(IN) :: klev !< Number of vertical levels.
     INTEGER, INTENT(IN) :: kproma !< Maximum block index.
     REAL(wp), INTENT(IN) :: zf(:,:) !< Mid-layer altitudes of ICON grid (jc,jl).
     REAL(wp), INTENT(IN) :: dz_clim !< Layer thickness of climatology.
@@ -562,16 +643,25 @@ CONTAINS
     LOGICAL, INTENT(OUT) :: l_kindex(:,:)
 
     REAL(wp) :: dz_clim_inv
+    INTEGER :: jc, jl !< loop indices
 
     dz_clim_inv = 1._wp/dz_clim
-    kindex(jcs:kproma,:) = FLOOR((z_max_lim_clim-zf(jcs:kproma,:))*dz_clim_inv)+1
 
-    WHERE (kindex(jcs:kproma,:) < 1 .OR. kindex(jcs:kproma,:) > k_alt_clim)
-      l_kindex(jcs:kproma,:) = .FALSE.
-      kindex(jcs:kproma,:) = k_lev_clim+1
-    ELSEWHERE
-      l_kindex(jcs:kproma,:) = .TRUE.
-    END WHERE
+    !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1)
+    !$ACC LOOP GANG VECTOR COLLAPSE(2)
+    DO jl = 1, klev
+      DO jc = jcs, kproma
+        kindex(jc,jl) = FLOOR((z_max_lim_clim-zf(jc,jl))*dz_clim_inv)+1
+        IF (kindex(jc,jl) < 1 .OR. kindex(jc,jl) > k_alt_clim) THEN
+          l_kindex(jc,jl) = .FALSE.
+          kindex(jc,jl) = k_lev_clim+1
+        ELSE
+          l_kindex(jc,jl) = .TRUE.
+        ENDIF
+      ENDDO
+    ENDDO
+    !$ACC END PARALLEL
+
   END SUBROUTINE altitude_index
 
   !>

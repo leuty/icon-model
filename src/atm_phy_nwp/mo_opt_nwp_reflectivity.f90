@@ -25,7 +25,7 @@ MODULE mo_opt_nwp_reflectivity
   USE mo_2mom_mcrph_main,       ONLY: init_2mom_scheme,      &
     &                                 rain_coeffs  ! contains the parameters for the mue-Dm-relation
   USE mo_2mom_mcrph_types,      ONLY: particle, particle_frozen
-  USE mo_2mom_mcrph_processes,  ONLY: moment_gamma, rain_mue_dm_relation
+  USE mo_2mom_mcrph_setup,      ONLY: moment_gamma, rain_mue_dm_relation
   USE mo_exception,             ONLY: finish, message
   USE mo_fortran_tools,         ONLY: set_acc_host_or_device
   USE microphysics_1mom_schemes,ONLY: get_params_for_dbz_calculation

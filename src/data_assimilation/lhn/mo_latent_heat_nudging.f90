@@ -103,6 +103,7 @@ USE mo_math_constants    , ONLY: pi
 USE mo_assimilation_config ,ONLY: assimilation_config
 
 USE mo_atm_phy_nwp_config,   ONLY: atm_phy_nwp_config
+USE mo_nwp_tuning_config,    ONLY: supsat_limfac => tune_supsat_limfac
 
 USE mo_loopindices,             ONLY: get_indices_c
 USE mo_nonhydro_types,          ONLY: t_nh_prog, t_nh_diag, t_nh_metrics
@@ -170,6 +171,7 @@ CONTAINS
 SUBROUTINE organize_lhn ( dt_loc, p_sim_time,             & !>in
                         & pt_patch, p_metrics,            & !>in
                         & pt_int_state,                   & !>in
+                        & pt_prog,                        & !>in
                         & pt_prog_rcf,                    & !>inout
                         & pt_diag ,                       & !>inout
                         & prm_diag,                       & !>inout
@@ -205,6 +207,7 @@ SUBROUTINE organize_lhn ( dt_loc, p_sim_time,             & !>in
   TYPE(t_patch),   TARGET, INTENT(inout) :: pt_patch     !<grid/patch info.
   TYPE(t_nh_metrics),      INTENT(in)    :: p_metrics
   TYPE(t_nh_diag), TARGET, INTENT(inout) :: pt_diag      !<the diagnostic variables
+  TYPE(t_nh_prog), TARGET, INTENT(in)    :: pt_prog      ! prognostic variables at dynamics time step
   TYPE(t_nh_prog), TARGET, INTENT(inout) :: pt_prog_rcf  !<the prognostic variables (with
                                                            !<red. calling frequency for tracers!)
   TYPE(t_nwp_phy_diag),    INTENT(inout) :: prm_diag
@@ -332,7 +335,7 @@ SUBROUTINE organize_lhn ( dt_loc, p_sim_time,             & !>in
   !$ACC   PRESENT(prm_diag%qrs_flux, prm_diag%rain_con_rate_3d, prm_diag%snow_con_rate_3d, prm_diag%tt_lheat) &
   !$ACC   PRESENT(prm_diag%ttend_lhn, prm_diag%qvtend_lhn, prm_diag%lhn_diag, prm_nwp_tend) &
   !$ACC   PRESENT(prm_nwp_tend%ddt_temp_pconv, pt_diag, pt_diag%temp, p_metrics, p_metrics%z_ifc, p_metrics%z_mc) &
-  !$ACC   PRESENT(pt_patch, pt_patch%cells%area)
+  !$ACC   PRESENT(pt_patch, pt_patch%cells%area, pt_prog%w)
 
 #ifdef _OPENACC
   CALL init(wobs_space(:,:), lacc=.TRUE., opt_acc_async=.TRUE.)
@@ -968,7 +971,7 @@ SUBROUTINE organize_lhn ( dt_loc, p_sim_time,             & !>in
 
         CALL lhn_q_inc( i_startidx, i_endidx, jg, zdt, nlev, &
                         pt_diag%temp(:,:,jb), lhn_fields%ttend_lhn(:,:,jb), &
-                        pt_diag%pres(:,:,jb), &
+                        pt_diag%pres(:,:,jb), pt_prog%w(:,:,jb),&
                         pt_prog_rcf%tracer(:,:,jb,iqv), &
                         pt_prog_rcf%tracer(:,:,jb,iqc), &
                         pt_prog_rcf%tracer(:,:,jb,iqi), &
@@ -2618,7 +2621,7 @@ END SUBROUTINE lhn_t_inc
 !+ Module procedure in "lheat_nudge" adjusting humidity to LHN T - increments
 !-------------------------------------------------------------------------------
  
-SUBROUTINE lhn_q_inc(i_startidx,i_endidx,jg,zdt,ke,t,ttend_lhn,p,qv,qc,qi, &
+SUBROUTINE lhn_q_inc(i_startidx,i_endidx,jg,zdt,ke,t,ttend_lhn,p,w,qv,qc,qi, &
                      qvtend_lhn,scale_fac_index,diag_out)
 
 !-------------------------------------------------------------------------------
@@ -2656,6 +2659,7 @@ SUBROUTINE lhn_q_inc(i_startidx,i_endidx,jg,zdt,ke,t,ttend_lhn,p,qv,qc,qi, &
      zdt,                             &
      t(:,:),                          &
      p(:,:),                          &
+     w(:,:),                          &
      qc(:,:),                         &
      qi(:,:),                         &
      qv(:,:)!,                         &
@@ -2688,6 +2692,8 @@ SUBROUTINE lhn_q_inc(i_startidx,i_endidx,jg,zdt,ke,t,ttend_lhn,p,qv,qc,qi, &
                                ! increment (increment spread over 30. min=1800 sec.)
    fac_q_max= 2._wp        ! maximal factor allowed in change of qv
 
+  REAL(wp), PARAMETER :: zqwmin = 1.0E-20_wp
+
 ! Local scalars:
   REAL    (KIND=wp   ) ::  &
    f_esat  ,& ! Name of satement function (saturation water vapour pressure)
@@ -2698,6 +2704,7 @@ SUBROUTINE lhn_q_inc(i_startidx,i_endidx,jg,zdt,ke,t,ttend_lhn,p,qv,qc,qi, &
    zqv     ,& ! ...
    zp      ,& ! ...
    esat    ,& ! saturation water vapour pressure
+   supsatfac, & ! factor for allowed supersaturation
    relhum     ! relative humidity
 
   INTEGER (KIND=i4)  ::  &
@@ -2726,7 +2733,7 @@ SUBROUTINE lhn_q_inc(i_startidx,i_endidx,jg,zdt,ke,t,ttend_lhn,p,qv,qc,qi, &
   zt = tau_nudge * zdt
 
   !$ACC DATA CREATE(qv_new) &
-  !$ACC   PRESENT(t, p, qc, qi, qv, scale_fac_index, qvtend_lhn, ttend_lhn, assimilation_config(jg:jg))
+  !$ACC   PRESENT(t, p, w, qc, qi, qv, scale_fac_index, qvtend_lhn, ttend_lhn, assimilation_config(jg:jg))
 
   ! set moisture increments to be determined to zero
   !$ACC KERNELS DEFAULT(PRESENT) ASYNC(1)
@@ -2734,7 +2741,7 @@ SUBROUTINE lhn_q_inc(i_startidx,i_endidx,jg,zdt,ke,t,ttend_lhn,p,qv,qc,qi, &
   !$ACC END KERNELS
 
   !$ACC PARALLEL LOOP GANG VECTOR COLLAPSE(2) &
-  !$ACC   DEFAULT(PRESENT) PRIVATE(zp, esat, relhum, zqv) &
+  !$ACC   DEFAULT(PRESENT) PRIVATE(zp, esat, relhum, zqv, supsatfac) &
   !$ACC   REDUCTION(+: nred, ninc, ninc2) ASYNC(1)
   DO   k=1,ke
     DO jc = i_startidx,i_endidx
@@ -2746,9 +2753,13 @@ SUBROUTINE lhn_q_inc(i_startidx,i_endidx,jg,zdt,ke,t,ttend_lhn,p,qv,qc,qi, &
 !       esat = f_esat ( t(jc,k) - ttend_lhn(jc,k) * zdt) ! for ICON temperature increment is still not applied yet
        esat = f_esat ( t(jc,k) )
 
+       ! allowed supersaturation; needs to be the same as in satad
+       supsatfac = 1._wp + MIN(0.005_wp*MAX(0._wp,0.5_wp*(w(jc,k)+w(jc,k+1))), &
+                               supsat_limfac*qc(jc,k)/MAX(zqwmin,qv(jc,k))     )
+
 !       ! relhum before temperature increment
        relhum = f_e ( qv(jc,k) , zp ) / esat
-       relhum = MIN ( f_raise,relhum)
+       relhum = MIN ( f_raise*supsatfac, relhum)
 
 !       ! specific humidity after temperature increment so that relhum is unchanged
        qv_new(jc,k) = f_qv ( relhum * f_esat(t(jc,k)+ttend_lhn(jc,k) * zdt) , zp )

@@ -37,7 +37,6 @@ export TYPES=$("${basedir}/scripts/experiments/get_checksuite_parameter_by_name"
 #
 export DATES=$("${basedir}/scripts/experiments/get_checksuite_parameter_by_name" --experiment "$EXPERIMENT" --param dates)
 
-
 # RESTART_DATE defines the date and time from which restarts should be performed.
 # 
 export RESTART_DATE=$("${basedir}/scripts/experiments/get_checksuite_parameter_by_name" --experiment "$EXPERIMENT" --param restart_date)

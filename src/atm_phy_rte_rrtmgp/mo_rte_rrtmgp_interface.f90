@@ -276,23 +276,17 @@ CONTAINS
               & nbndsw,         nbndlw,                                &
               & zf,             dz,                                    &
               & aer_tau_sw,     aer_ssa_sw,            aer_asy_sw,     &
-              & aer_tau_lw,                                            &
-              & opt_from_coupler=lrad_coupled, opt_use_acc=use_acc     )
+              & aer_tau_lw, opt_from_coupler=lrad_coupled, lacc=use_acc)
       END IF
       IF (irad_aero==19) THEN
       ! Simple plumes are added to ...
       ! iaero=19: ... Kinne background aerosols (of natural origin, 1850)
-#ifdef _OPENACC
-        CALL warning('mo_rte_rrtmgp_interface/rte_rrtmgp_interface','Plumes ACC not implemented')
-#endif
-        !$ACC UPDATE HOST(aer_tau_lw, aer_tau_sw, aer_ssa_sw, aer_asy_sw, zf, dz, zh(:,klev+1)) ASYNC(1)
-        !$ACC WAIT(1)
         CALL add_bc_aeropt_splumes(                                      &
               & jg,          jcs,         jce,           nproma,         & 
               & klev,        jb,          nbndsw,        this_datetime,  &
               & zf,          dz,          zh(:,klev+1),  wavenum1,       &
-              & wavenum2,    aer_tau_sw,  aer_ssa_sw,    aer_asy_sw      )
-        !$ACC UPDATE DEVICE(aer_tau_sw, aer_ssa_sw, aer_asy_sw) ASYNC(1)
+              & wavenum2,    aer_tau_sw,  aer_ssa_sw,    aer_asy_sw,     &
+              & lacc=use_acc                                              )
       END IF
 
       ! this should be decativated in the concurrent version and make the aer_* global variables for output

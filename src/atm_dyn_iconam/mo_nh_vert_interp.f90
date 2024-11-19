@@ -46,7 +46,7 @@ MODULE mo_nh_vert_interp
   USE mo_grf_intp_data_strc,  ONLY: t_gridref_state
   USE mo_grf_bdyintp,         ONLY: interpol_scal_grf, interpol2_vec_grf
   USE mo_sync,                ONLY: sync_patch_array, SYNC_C, SYNC_E
-  USE mo_satad,               ONLY: sat_pres_water
+  USE mo_thdyn_functions,     ONLY: sat_pres_water
   USE mo_nwp_sfc_interp,      ONLY: process_sfcfields
   USE mo_upatmo_config,       ONLY: upatmo_config
   USE mo_nh_vert_extrap_utils,ONLY: t_expol_state
@@ -216,8 +216,8 @@ CONTAINS
 
         jgc = p_patch(jg)%child_id(jn)
 
-        CALL interpol_scal_grf (p_pp=p_patch(jg), p_pc=p_patch(jgc), p_grf=p_grf(jg)%p_dom(jn), &
-                                nfields=1, lacc=.FALSE., f3din1=initicon(jg)%atm%w, f3dout1=initicon(jgc)%atm%w )
+        CALL interpol_scal_grf (p_pp=p_patch(jg), p_pc=p_patch(jgc), p_grf=p_grf(jg)%p_dom(jn), nfields=1,      &
+                                nlev_ex=1, lacc=.FALSE., f3din1=initicon(jg)%atm%w, f3dout1=initicon(jgc)%atm%w )
 
         CALL interpol2_vec_grf (p_pp=p_patch(jg), p_pc=p_patch(jgc), p_grf=p_grf(jg)%p_dom(jn), &
                                 nfields=1, lacc=.FALSE., f3din1=initicon(jg)%atm%vn, f3dout1=initicon(jgc)%atm%vn )
@@ -2967,7 +2967,7 @@ CONTAINS
                 ENDIF
               ENDIF
             ENDDO
-#ifdef _OPENACC
+#ifndef _OPENACC
             ! ACC: the following EXIT would be illegal within an OpenACC Kernel, thus we skip this CPU optimization
             IF (ALL(l_found(1:nlen))) EXIT
 #endif
@@ -3352,7 +3352,7 @@ CONTAINS
                 ENDIF
               ENDIF
             ENDDO
-#ifdef _OPENACC
+#ifndef _OPENACC
             ! ACC: the following EXIT would be illegal within an OpenACC Kernel, thus we skip this CPU optimization
             IF (ALL(l_found(1:nlen))) EXIT
 #endif

@@ -8,7 +8,7 @@
 ! See LICENSES/ for license information
 ! SPDX-License-Identifier: BSD-3-Clause
 ! ---------------------------------------------------------------
-
+!
 ! Interface for the RTTOV library (version 10 and later)
 
 MODULE mo_rtifc

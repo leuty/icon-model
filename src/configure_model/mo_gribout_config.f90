@@ -16,7 +16,7 @@
 MODULE mo_gribout_config
 
   USE mo_impl_constants,     ONLY: max_phys_dom
-  USE mo_exception,          ONLY: message
+  USE mo_exception,          ONLY: finish, message
   USE mo_grib2_tile,         ONLY: t_grib2_template_tile
   USE mo_cdi,                ONLY: gribapiLibraryVersion
 
@@ -32,6 +32,8 @@ MODULE mo_gribout_config
   PUBLIC :: GRIB_UNDEFVAL
   PUBLIC :: GRIB_NOTINUSEVAL
   PUBLIC :: GRIB_LIB_COMPAT_ECC_2_31_0
+  PUBLIC :: GRIB_MAX_NUM_MOD_COMP
+  PUBLIC :: GRIB_MAX_STR_LEN_MOD_COMP
 
   !> module name
   CHARACTER(LEN=*), PARAMETER :: modname = 'mo_gribout_config'
@@ -40,6 +42,9 @@ MODULE mo_gribout_config
   INTEGER, PARAMETER :: GRIB_NOTINUSEVAL = 0
 
   INTEGER, PARAMETER :: GRIB_LIB_COMPAT_ECC_2_31_0 = 1
+
+  INTEGER, PARAMETER :: GRIB_MAX_NUM_MOD_COMP     = 3
+  INTEGER, PARAMETER :: GRIB_MAX_STR_LEN_MOD_COMP = 9
 
   !!--------------------------------------------------------------------------
   !! Basic configuration setup for grib output
@@ -92,6 +97,7 @@ MODULE mo_gribout_config
       & localDefinitionNumber             ! 252: Ensemble system incl. postprocessing
                                           ! 253: Ensemble system
                                           ! 254: Deterministic system
+                                          ! 230: Model composition
 
     INTEGER :: &                          ! Table: local.78.254.def
       & localNumberOfExperiment           !
@@ -132,6 +138,17 @@ MODULE mo_gribout_config
     INTEGER :: grib_lib_compat            !< Type of GRIB library backward compatibility adjustment:
                                           !< 0: none
                                           !< 1: for ecCodes versions >= 2.32.0
+
+    INTEGER :: localProductionSystem      !< local production system for localDefinitionNumber = 230
+                                          !< ("Model composition"):
+                                          !< 253: "ensemble system"
+                                          !< 254: "deterministic system"
+
+    INTEGER :: model_components(GRIB_MAX_NUM_MOD_COMP) !< model components for localDefinitionNumber = 230
+                                                       !< ("Model composition"):
+                                                       !< 1000: "icon-nwp"
+                                                       !< 2000: "art-nwp"
+                                                       !< 3000: "ocean-nwp"
 
     ! derived variables
     !
@@ -203,26 +220,33 @@ CONTAINS
     ! Local variables
     INTEGER :: eccodes_version(3)
     INTEGER :: jg
-    LOGICAL :: is_ecc_vers_ge_2_32_0
+    LOGICAL :: is_ecc_vers_ge_2_31_0, is_ecc_vers_ge_2_32_0
 
     CHARACTER(LEN=*), PARAMETER :: routine = modname//'::gribout_crosscheck'
 
     !-----------------------------------------------------------------------
 
-    ! Inquire ecCodes version
+    ! Inquire ecCodes (API) version
     CALL gribapiLibraryVersion(eccodes_version(1), eccodes_version(2), eccodes_version(3))
 
-    ! For GRIB library backward compatibility: gribout_nml / grib_lib_compat:
-
-    ! The compatibility adjustment is only necessary for ecCodes versions >= 2.32.0
+    is_ecc_vers_ge_2_31_0 = ( version_compare(eccodes_version, [2, 31, 0]) >= 0 )
     is_ecc_vers_ge_2_32_0 = ( version_compare(eccodes_version, [2, 32, 0]) >= 0 )
 
-    IF (.NOT. is_ecc_vers_ge_2_32_0) THEN
-      DO jg = 1, n_dom
+    DO jg = 1, n_dom
+
+      ! For GRIB library backward compatibility: gribout_nml / grib_lib_compat:
+      ! The compatibility adjustment is only necessary for ecCodes (API) version >= 2.32.0
+      IF ((gribout_config(jg)%grib_lib_compat == GRIB_LIB_COMPAT_ECC_2_31_0) .AND. (.NOT. is_ecc_vers_ge_2_32_0)) THEN
         gribout_config(jg)%grib_lib_compat = GRIB_NOTINUSEVAL
-      END DO
-      IF (verbose) CALL message(routine, "ecCodes version < 2.32.0: Compatiblity adjustment switched off.")
-    ENDIF
+        IF (verbose) CALL message(routine, "ecCodes version < 2.32.0: Compatiblity adjustment switched off.")
+      ENDIF
+
+      ! For local GRIB section template 230 ("Model composition"): gribout_nml / model_components:
+      ! This is only available for ecCodes (definitions) version >= 2.31.0
+      IF ((gribout_config(jg)%localDefinitionNumber == 230) .AND. (.NOT. is_ecc_vers_ge_2_31_0)) &
+        & CALL finish(routine, "localDefinitionNumber = 230 is not available for ecCodes versions < 2.31.0")
+
+    END DO ! jg
 
   END SUBROUTINE gribout_crosscheck
 

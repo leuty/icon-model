@@ -14,7 +14,7 @@ MODULE mo_gme_turbdiff
   USE mo_kind,               ONLY : wp
   USE mo_physical_constants, ONLY: grav, cpd, rcpd, vtmpc1, p0ref, rd_o_cpd, &
                                    tmelt, alvdcp, alv, als, rd, rdv, O_m_rdv
-  USE mo_satad,              ONLY: sat_pres_water, sat_pres_ice, spec_humi, dqsatdT
+  USE mo_thdyn_functions,    ONLY: sat_pres_water, sat_pres_ice, spec_humi, dqsatdT
   USE data_turbulence,       ONLY: Rkarman => akt, tkhmin, tkmmin
 
   USE mo_lnd_nwp_config,     ONLY: lseaice

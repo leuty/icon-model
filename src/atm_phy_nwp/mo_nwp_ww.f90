@@ -38,7 +38,7 @@ MODULE mo_nwp_ww
   USE mo_exception,             ONLY: message, message_text
   USE mtime,                    ONLY: datetime, newDatetime, timeDelta
 
-  USE mo_satad,                 ONLY: sat_pres_water
+  USE mo_thdyn_functions,       ONLY: sat_pres_water
   USE mo_fortran_tools,         ONLY: set_acc_host_or_device
 
 #endif
