@@ -70,7 +70,7 @@ CONTAINS
   !! This subroutine is called from construct_atmo_coupling.
   !!
   SUBROUTINE construct_atmo_ocean_coupling( &
-    p_patch, ext_data, comp_id, grid_id, cell_point_id, timestepstring)
+    p_patch, ext_data, comp_id, grid_id, cell_point_id, timestepstring, use_ocean_velocity)
 
     TYPE(t_patch), TARGET, INTENT(IN) :: p_patch(:)
     TYPE(t_external_data), INTENT(IN) :: ext_data(:)
@@ -78,6 +78,7 @@ CONTAINS
     INTEGER, INTENT(IN) :: grid_id
     INTEGER, INTENT(IN) :: cell_point_id
     CHARACTER(LEN=*), INTENT(IN) :: timestepstring
+    LOGICAL, INTENT(IN) :: use_ocean_velocity
 
     TYPE(t_patch), POINTER :: patch_horz
 
@@ -231,13 +232,18 @@ CONTAINS
       comp_id, cell_point_id, cell_mask_id, timestepstring, &
       "sea_surface_temperature", 1, field_id_sst)
 
-    CALL cpl_def_field( &
-      comp_id, cell_point_id, cell_mask_id, timestepstring, &
-      "eastward_sea_water_velocity", 1, field_id_oce_u)
+    IF (use_ocean_velocity) THEN
+      CALL cpl_def_field( &
+        comp_id, cell_point_id, cell_mask_id, timestepstring, &
+        "eastward_sea_water_velocity", 1, field_id_oce_u)
 
-    CALL cpl_def_field( &
-      comp_id, cell_point_id, cell_mask_id, timestepstring, &
-      "northward_sea_water_velocity", 1, field_id_oce_v)
+      CALL cpl_def_field( &
+        comp_id, cell_point_id, cell_mask_id, timestepstring, &
+        "northward_sea_water_velocity", 1, field_id_oce_v)
+    ELSE
+      field_id_oce_u = -1
+      field_id_oce_v = -1
+    END IF
 
     CALL cpl_def_field( &
       comp_id, cell_point_id, cell_mask_id, timestepstring, &
