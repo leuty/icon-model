@@ -73,6 +73,9 @@ ICON_FCFLAGS="-D__COMM_OPT__ -D__BLOCK_GET__ -D_RTTOV_ARCH_VECTOR -finline-funct
 ICON_ECRAD_FCFLAGS="-finline-functions -finline-file=$(join_arr : "${icon_dir}/" "${INLINE_LIST_ECRAD[@]}")"
 ICON_FORTRAN_SUPPORT_FCFLAGS='-fpp'
 
+ICON_OCEAN_FCFLAGS="-D__LVECTOR__ -finline-functions -finline-file=$(join_arr : "${icon_dir}/" "${INLINE_LIST_OCEAN[@]}")"
+ICON_OCEAN_PATH='src/hamocc:src/ocean:src/sea_ice'
+
 # We have two instances of SZIP in the software tree: the original one, which is
 # used by HDF5, and a wrapper around AEC, which is not needed because ECCODES
 # links to AEC directly. Therefore, we have to make sure that the linker finds
@@ -84,7 +87,7 @@ LIBS="-Wl,--as-needed ${XML2_LIBS} ${FYAML_LIBS} ${ECCODES_LIBS} ${BLAS_LAPACK_L
 AR='nar'
 MPI_LAUNCH='mpirun'
 
-EXTRA_CONFIG_ARGS='--disable-rpaths --enable-active-target-sync --enable-mixed-precision --disable-loop-exchange --enable-grib2 --enable-mpi --disable-openmp --enable-ecrad --disable-art'
+EXTRA_CONFIG_ARGS='--disable-rpaths --enable-active-target-sync --enable-mixed-precision --disable-loop-exchange --enable-grib2 --enable-mpi --disable-openmp --enable-ecrad --disable-art --enable-fcgroup-OCEAN'
 
 ################################################################################
 
@@ -100,6 +103,8 @@ ICON_BUNDLED_CFLAGS="${ICON_BUNDLED_CFLAGS}" \
 ICON_CFLAGS="${ICON_CFLAGS}" \
 ICON_ECRAD_FCFLAGS="${ICON_ECRAD_FCFLAGS}" \
 ICON_FCFLAGS="${ICON_FCFLAGS}" \
+ICON_OCEAN_FCFLAGS="${ICON_OCEAN_FCFLAGS}" \
+ICON_OCEAN_PATH="${ICON_OCEAN_PATH}" \
 ICON_FORTRAN_SUPPORT_FCFLAGS="${ICON_FORTRAN_SUPPORT_FCFLAGS}" \
 ICON_LDFLAGS="${ICON_LDFLAGS}" \
 LDFLAGS="${LDFLAGS}" \
