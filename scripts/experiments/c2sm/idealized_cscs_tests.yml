@@ -22,17 +22,22 @@ tests:
     machines:
       - name: daint
         exclude: ['DAINT_CPU_cce']
+      - name: todi
     refgen: ['DAINT_CPU_nvidia']
     tags: ['merge2rc','probtest']
     ensemble_num:
       - DAINT_CPU_nvidia: [25,12,13,20,19]
     checksuite_modes:
       - daint: 't'
+      - todi: 'b'
 
   - name: atm_tracer_Hadley
     machines:
       - name: daint
         include_only: ['DAINT_CPU_nvidia']
+      - name: todi
+        include_only: ['todi_cpu_nvhpc']
     tags: ['merge2rc']
     checksuite_modes:
       - daint: 'b'
+      - todi: 'b'

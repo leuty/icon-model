@@ -25,7 +25,6 @@ class ExperimentTestCollection:
                                                                self._load_yaml_with_key(exp_yml,'experiments'))
         self.defaults = self._load_defaults()
 
-
     def get_items_by_tag(self,tag_name):
         items_by_tag = []
         for item in self.items['tests']:
@@ -408,7 +407,95 @@ class BuildBotInterface(ExperimentTestCollection):
         self._add_dep_to_bb_list(from_experiment=[pp_selmem], to_experiment=perturbed_experiments, builders=[builder])
         return pp_selmem
 
-# main entrypoint
+class CscsCiInterface(ExperimentTestCollection):
+    def __init__(self):
+        super().__init__()
+    
+    def get_items_for_builder(self, builder):
+        supported_builders = { 'todi': set(('todi_cpu_nvhpc', 'todi_gpu_nvhpc')),
+                               'balfrin': set(('balfrin_cpu_nvidia', 'balfrin_gpu_nvidia'))}
+        items = []
+        for exp in self.items['tests']:
+            for machine in exp['machines']:
+                name = machine['name']
+
+                # only consider the builder we are currently interested in
+                if name not in builder:
+                    continue
+                if 'include_only' in machine:
+                    if builder in machine['include_only']:
+                        items.append(exp)
+                elif 'exclude' in machine:
+                    if builder not in machine['exclude'] and builder in supported_builders[name]:
+                        items.append(exp)
+                else:
+                    if builder in supported_builders[name]:
+                        items.append(exp)
+        return {'tests': items}
+    
+    def items_to_cscs_ci(self,builder):
+        pipeline = self._gen_header()
+
+        pipeline['build_icon'] = self._gen_step_build(builder)
+
+        for test in self.items['tests']:
+            pipeline[f'{test["name"]}'] = self._gen_step_build_for_test(test,builder)
+
+        with open('pipeline.yml', 'w') as outfile:
+            yaml.dump(pipeline, outfile, default_flow_style=False,sort_keys=False,indent=2)
+
+    def _gen_step_build(self,builder):
+        images = {'todi_cpu_nvhpc': '.build_todi_cpu_nvhpc',
+                  'todi_gpu_nvhpc': '.build_todi_gpu_nvhpc',
+                  'balfrin_cpu_nvidia': '.build_alps_a100_cpu_nvhpc',
+                  'balfrin_gpu_nvidia': '.build_alps_a100_gpu_nvhpc'}
+        return {
+                'extends': images[builder],
+            }
+
+    def _gen_header(self):
+        return {
+            'include': [
+                'scripts/cscs_ci/remote.yml',
+                'scripts/cscs_ci/recipes.yml',
+            ],
+            'variables': {
+                'GIT_DEPTH': 100,
+            },
+            'stages': [
+                'build',
+                'run'
+            ]
+        }
+
+    def _gen_step_build_for_test(self,test,builder):
+            return {
+                'extends': '.run_common_todi',
+                'variables':{
+                    'EXPERIMENT': test['name'],
+                    'TYPES': self._get_checksuite_param_for_exp_as_string('types',test['name']),
+                    'DATES': self._get_checksuite_param_for_exp_as_string('dates',test['name']),
+                    'RESTART_DATE': self._get_checksuite_param_for_exp_as_string('restart_date',test['name']),
+                    'MD': self._get_param_for_exp_by_machine_as_string(test['name'],'checksuite_modes',builder),
+                    'FACTOR': self._get_param_for_exp_by_machine_as_string(test['name'],'tolerance_factor',builder),
+
+                },
+
+            }
+
+
+# main entrypoint for CSCS CI
+def register_experiments_for_cscs_ci(tag_name, builder, exp=None):
+    cci = CscsCiInterface()
+    if exp:
+        cci.items = cci.get_items_by_name(exp)
+    else:
+        cci.items = cci.get_items_by_tag(tag_name)
+
+    cci.items = cci.get_items_for_builder(builder)
+    cci.items_to_cscs_ci(builder)
+
+# main entrypoint for BuildBot
 def register_experiments_for_bb(list_name, exp=None):
 
     bbi = BuildBotInterface(list_name)
