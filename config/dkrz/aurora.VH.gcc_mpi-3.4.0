@@ -65,6 +65,9 @@ ICON_FCFLAGS='-D__COMM_OPT__ -D__BLOCK_GET__ -D__NEC_VH__ -std=f2008 -fallow-arg
 ICON_DACE_FCFLAGS='-fallow-argument-mismatch'
 ICON_DACE_PATH='externals/dace_icon'
 
+ICON_OCEAN_FCFLAGS='-D__LVECTOR__'
+ICON_OCEAN_PATH='src/hamocc:src/ocean:src/sea_ice'
+
 ICON_BUNDLED_FCFLAGS='-std=f2008'
 
 ICON_ECRAD_FCFLAGS='-finline-functions'
@@ -75,7 +78,7 @@ LIBS="-Wl,--as-needed ${XML2_LIBS} ${FYAML_LIBS} ${ECCODES_LIBS} ${BLAS_LAPACK_L
 
 MPI_LAUNCH='mpirun -vh'
 
-EXTRA_CONFIG_ARGS='--enable-fcgroup-DACE --enable-active-target-sync --enable-mixed-precision --disable-loop-exchange --enable-grib2 --enable-mpi --disable-openmp --enable-ecrad --disable-art'
+EXTRA_CONFIG_ARGS='--enable-fcgroup-DACE --enable-active-target-sync --enable-mixed-precision --disable-loop-exchange --enable-grib2 --enable-mpi --disable-openmp --enable-ecrad --disable-art --enable-fcgroup-OCEAN'
 
 ################################################################################
 
@@ -91,6 +94,8 @@ ICON_BUNDLED_FCFLAGS="${ICON_BUNDLED_FCFLAGS}" \
 ICON_CFLAGS="${ICON_CFLAGS}" \
 ICON_DACE_FCFLAGS="${ICON_DACE_FCFLAGS}" \
 ICON_DACE_PATH="${ICON_DACE_PATH}" \
+ICON_OCEAN_FCFLAGS="${ICON_OCEAN_FCFLAGS}" \
+ICON_OCEAN_PATH="${ICON_OCEAN_PATH}" \
 ICON_ECRAD_FCFLAGS="${ICON_ECRAD_FCFLAGS}" \
 ICON_FCFLAGS="${ICON_FCFLAGS}" \
 LDFLAGS="${LDFLAGS}" \

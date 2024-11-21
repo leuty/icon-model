@@ -92,9 +92,6 @@ $addexp checksuite.nwp/nwpexp.run_ICON_26_R2B4_R2B6_AO-HD_coupled              -
 #only DWD_nec_hybrid
 $addexp checksuite.nwp/nwpexp.run_ICON_19_R2B4_cmip_forcing                    --builders DWD_nec_hybrid --list $listname
 
-# wave tests
-$addexp checksuite.nwp/nwpexp.run_ICON_18_R2B4_waves                    --builders "DWD_nec_hybrid levante_intel_hybrid levante_nag" --list $listname
-$addexp checksuite.nwp/nwpexp.run_ICON_21_R2B4_waves_standalone_restart --builders "DWD_nec_hybrid levante_intel_hybrid" --list $listname
 
 #-----------------------------------------------------------
 # Ruby0 coupled tests, only with mpi

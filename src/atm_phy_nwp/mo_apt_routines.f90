@@ -37,7 +37,7 @@ MODULE mo_apt_routines
     &                               itype_canopy, itype_lndtbl, c_soil, c_soil_urb,  &
                                     lterra_urb, itype_eisa, cr_bsmin, nlev_soil, dzsoil, depth_hl, zml_soil
   USE sfc_terra_data,         ONLY: cporv, cadp, cpwp, cfcap
-  USE mo_satad,               ONLY: sat_pres_water, &  !! saturation vapor pressure w.r.t. water
+  USE mo_thdyn_functions,     ONLY: sat_pres_water, &  !! saturation vapor pressure w.r.t. water
     &                               spec_humi          !! Specific humidity
   USE mo_input_instructions,  ONLY: t_readInstructionListPtr, kInputSourceAna, kInputSourceAnaI
 

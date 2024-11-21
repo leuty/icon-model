@@ -29,7 +29,7 @@ include:
     CONDA_PKGS_DIRS: ${CI_PROJECT_DIR}/.conda/pkgs
     CONDA_ENVS_DIRS: ${CI_PROJECT_DIR}/.conda/envs
     CMAKE_EXTRA_ARGS:
-    MAKEFLAGS: --jobs=8 VERBOSE=1
+    MAKEFLAGS: --jobs=2 VERBOSE=1
     CTEST_PARALLEL_LEVEL: 8
   before_script:
     - |

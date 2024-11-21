@@ -28,7 +28,7 @@ MODULE mo_surface_les
   USE mo_sync,                ONLY: sync_c, sync_patch_array_mult, global_sum_array
   USE mo_physical_constants,  ONLY: cpd, p0ref, grav, alv, rd, rgrav, rd_o_cpd, vtmpc1
   USE mo_nwp_lnd_types,       ONLY: t_lnd_prog, t_lnd_diag 
-  USE mo_satad,               ONLY: spec_humi, sat_pres_water
+  USE mo_thdyn_functions,     ONLY: spec_humi, sat_pres_water
   USE mo_nwp_phy_types,       ONLY: t_nwp_phy_diag
   USE mo_les_config,          ONLY: les_config
   USE mo_math_constants,      ONLY: pi_2, ln2

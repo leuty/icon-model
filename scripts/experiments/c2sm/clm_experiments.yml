@@ -12,8 +12,8 @@ experiments:
   - name: c2sm_clm_r13b03_seaice
     check: checksuite.icon-dev/check.c2sm_clm_r13b03_seaice
     types: ['atm_3d_ml']
-    dates: [19790201T180000Z]
-    restart_date: [19790201T180000Z]
+    dates: ['19790201T120000Z', '19790201T121200Z', '19790201T121800Z', '19790201T122400Z', '19790201T123000Z']
+    restart_date: ['19790201T120000Z']
     tolerance:
       perturb_amplitude:
         - mixed: 1e-7

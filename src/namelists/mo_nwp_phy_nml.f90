@@ -93,15 +93,16 @@ MODULE mo_nwp_phy_nml
   LOGICAL  :: latm_above_top(max_dom) !! use extra layer above model top for radiation (reduced grid only)
   LOGICAL  :: lupatmo_phy(max_dom)    !! switch on/off upper-atmosphere physics in domains
   ! parameter for cloud microphysics
-  real(wp) :: mu_rain            !! shape parameter in gamma distribution for rain
-  real(wp) :: rain_n0_factor     !! tuning factor for intercept parameter of raindrop size distribution
-  real(wp) :: mu_snow            !! ...for snow
+  REAL(wp) :: mu_rain            !! shape parameter in gamma distribution for rain
+  REAL(wp) :: rain_n0_factor     !! tuning factor for intercept parameter of raindrop size distribution
+  LOGICAL  :: lvariable_rain_n0  !! if true: use variable rain_n0_factor approaching 1 for large QR
+  REAL(wp) :: mu_snow            !! ...for snow
   LOGICAL  :: lsbm_warm_full     !! false: Piggy Backing with 2M, true: full warm-phase SBM
 
   INTEGER  :: icalc_reff(max_dom)    !! type of effective radius calculation
   INTEGER  :: icpl_rad_reff(max_dom) !! coupling radiation and effective radius
   INTEGER  :: ithermo_water(max_dom) !! thermodynamic of water
-
+    
   LOGICAL  :: lcuda_graph_turb_tran  !! Activate CUDA GRAPH in turbulent transfer
 
   !> NetCDF file containing longwave absorption coefficients and other data
@@ -129,7 +130,7 @@ MODULE mo_nwp_phy_nml
     &                    icalc_reff, lupatmo_phy, icpl_rad_reff,     &
     &                    lgrayzone_deepconv, ithermo_water,          &
     &                    lsbm_warm_full, lcuda_graph_turb_tran,      &
-    &                    lscale_cdnc
+    &                    lscale_cdnc, lvariable_rain_n0
 
 CONTAINS
 
@@ -171,8 +172,8 @@ CONTAINS
     icalc_reff_def = 0    ! Default is no calculation of effectives radius
     icpl_rad_reff_def = 0 ! Default is no coupling of effective radius and radiation
     ithermo_water_def = 0 ! Default is latent heat as a function of temperature in saturation adjustment 
-                          ! but constant in microphysics. 
-
+                          ! but constant in microphysics.
+    
     inwp_gscp(:)       = param_def
     inwp_satad(:)      = param_def
     inwp_convection(:) = param_def
@@ -219,6 +220,7 @@ CONTAINS
     mu_rain = 0.0_wp
     mu_snow = 0.0_wp
     rain_n0_factor = 1.0_wp
+    lvariable_rain_n0 = .FALSE.
 
     lsbm_warm_full = .TRUE. ! false: Piggy Backing with 2M, true: full warm-phase SBM
 
@@ -277,7 +279,7 @@ CONTAINS
 
     ithermo_water(:)=  ithermo_water_def ! 0   = Latent heats (LH) constant in microphysics
                                          ! 1   = LH as function of temperature in microphysics
-
+    
     lcuda_graph_turb_tran = .FALSE.   ! cuda graph deactivated by default
 
     IF (my_process_is_stdio()) THEN
@@ -324,7 +326,7 @@ CONTAINS
       icalc_reff(:)      = -1
       icpl_rad_reff(:)   = -1
       ithermo_water(:)   = -1
-
+      
       READ (nnml, nwp_phy_nml)   ! overwrite default settings
 
       ! Restore default values for global domain where nothing at all has been specified
@@ -378,8 +380,7 @@ CONTAINS
         IF (icalc_reff(jg)      < 0) icalc_reff(jg)       = icalc_reff(jg-1)
         IF (icpl_rad_reff(jg)   < 0) icpl_rad_reff(jg)    = icpl_rad_reff(jg-1)
         IF (ithermo_water(jg)   < 0) ithermo_water(jg)    = ithermo_water(jg-1)
-
-
+        
         ! Upper-atmosphere physics
         IF (lupatmo_phy(jg)) lupatmo_phy(jg) = lupatmo_phy(jg-1)
 
@@ -457,6 +458,7 @@ CONTAINS
       IF (inwp_gscp(jg) == 8) THEN
         CALL finish(routine,'GPU version not available for Stochastic Bin Microphysics (inwp_gscp=8).')
       ENDIF
+
 #endif
 
       IF (inwp_surface(jg) == LSS_JSBACH .AND. inwp_turb(jg) /= ivdiff) THEN
@@ -532,6 +534,7 @@ CONTAINS
       atm_phy_nwp_config(jg)%lupatmo_phy     = lupatmo_phy(jg)
       atm_phy_nwp_config(jg)%mu_rain         = mu_rain
       atm_phy_nwp_config(jg)%rain_n0_factor  = rain_n0_factor
+      atm_phy_nwp_config(jg)%lvariable_rain_n0 = lvariable_rain_n0
       atm_phy_nwp_config(jg)%mu_snow         = mu_snow
       atm_phy_nwp_config(jg)%icpl_aero_gscp  = icpl_aero_gscp
       atm_phy_nwp_config(jg)%lscale_cdnc     = lscale_cdnc

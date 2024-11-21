@@ -34,14 +34,15 @@ MODULE mo_reff_main
   USE mo_parallel_config,      ONLY: nproma
   USE mo_radiation_config,     ONLY: irad_aero, iRadAeroTegen, iRadAeroCAMSclim, iRadAeroCAMStd
   USE mo_cpl_aerosol_microphys,ONLY: ncn_from_tau_aerosol_speccnconst_dust, ice_nucleation
-  USE microphysics_1mom_schemes, ONLY: get_params_for_ncn_calculation, get_params_for_reff_coefficients, get_cloud_number
   USE mo_index_list,           ONLY: generate_index_list_batched
+  USE microphysics_1mom_schemes, ONLY: get_params_for_ncn_calculation, get_params_for_reff_coefficients, &
+          &                            get_cloud_number, get_params_for_reff_coefficients_gscp3
 
 
   IMPLICIT NONE
   PRIVATE
   
-  PUBLIC:: init_reff_calc, mapping_indices, calculate_ncn, calculate_reff, set_max_reff, combine_reff
+  PUBLIC:: init_reff_calc, mapping_indices, mapping_indices_gscp3, calculate_ncn, calculate_reff, set_max_reff, combine_reff
 
 
   CONTAINS
@@ -439,6 +440,95 @@ MODULE mo_reff_main
   END SUBROUTINE one_mom_calculate_ncn
 
 
+  ! Subroutine that provides coefficients for the effective radius calculations
+  ! consistent with two-moment microphysics
+  SUBROUTINE two_mom_reff_coefficients_for_gscp3( reff_calc ,return_fct)
+    TYPE(t_reff_calc), INTENT(INOUT) ::  reff_calc                   ! Structure with options and coefficiencts
+    LOGICAL          , INTENT(INOUT) ::  return_fct                  ! Return code of the subroutine
+
+    ! Parameters used in the paramaterization of reff (the same for all)
+    REAL(wp)                         :: a_geo, b_geo, mu, nu
+    REAL(wp)                         :: bf, bf2 
+    LOGICAL                          :: monodisperse
+
+    REAL(wp) :: zami, zmi0, tune_reff_qi
+    
+    ! Check input return_fct
+    IF (.NOT. return_fct) THEN
+      WRITE (message_text,*) 'Reff: Function two_mom_reff_coefficients_for_gscp3 entered with previous error'
+      CALL message('',message_text)
+      RETURN
+    END IF
+
+    ! we need only zami and zmi0
+    CALL get_params_for_reff_coefficients_gscp3(zami_arg=zami, zmi0_arg=zmi0)
+    
+    ! properties of ice hydrometeor class
+    b_geo           = 1.0_wp/3.0_wp
+    a_geo           = (1.0_wp/zami)**b_geo
+    mu              = 5.0   ! arbitrary but narrow
+    nu              = 0.5   ! particle size distribution
+    reff_calc%x_min = zmi0  ! minimum size 
+    reff_calc%x_max = 1e-8  ! needs to be larger than zmimax because we have qitot instead of qi
+    monodisperse    = .false.
+    tune_reff_qi    = 1.0_wp
+
+    ! tuning factor, e.g., to compensate that cover_koe modifies ice mass but not number
+    ! here we change the local a_geo to get a consistent change in reff
+    a_geo = tune_reff_qi * a_geo
+
+    ! Overwrite monodisperse/polydisperse according to options
+    SELECT CASE (reff_calc%dsd_type)
+    CASE (1)
+      monodisperse  = .true.
+    CASE (2)
+      monodisperse  = .false.
+    END SELECT
+
+    IF ( reff_calc%dsd_type == 2) THEN       ! Overwrite mu and nu coefficients
+      mu            = reff_calc%mu
+      nu            = reff_calc%nu
+    END IF
+
+    SELECT CASE ( reff_calc%reff_param )     ! Select Parameterization
+    CASE(0)                                  ! Spheroids  Dge = c1 * x**[c2], which x = mean mass
+      ! First calculate monodisperse
+      reff_calc%reff_coeff(1)   = a_geo
+      reff_calc%reff_coeff(2)   = b_geo
+
+      ! Broadening for not monodisperse
+      IF ( .NOT. monodisperse ) THEN 
+        bf =  GAMMA( (3.0_wp * b_geo + nu + 1.0_wp)/ mu) / GAMMA( (2.0_wp * b_geo + nu + 1.0_wp)/ mu) * &
+          & ( GAMMA( (nu + 1.0_wp)/ mu) / GAMMA( (nu + 2.0_wp)/ mu) )**b_geo
+
+        reff_calc%reff_coeff(1) = reff_calc%reff_coeff(1)*bf        
+      END IF      
+
+    CASE (1)                                 ! Fu Random Hexagonal needles:  Dge = 1/(c1 * x**[c2] + c3 * x**[c4])
+                                             ! Parameterization based on Fu, 1996; Fu et al., 1998; Fu ,2007
+      ! First calculate monodisperse
+      reff_calc%reff_coeff(1)   = SQRT( 3.0_wp *SQRT(3.0_wp) * rhoi * a_geo / 8.0_wp )
+      reff_calc%reff_coeff(2)   = (b_geo - 1.0_wp)/2.0_wp 
+      reff_calc%reff_coeff(3)   = SQRT(3.0_wp)/4.0_wp/a_geo
+      reff_calc%reff_coeff(4)   = -b_geo
+
+      ! Broadening for not monodisperse. Generalized gamma distribution
+      IF ( .NOT. monodisperse ) THEN 
+        bf  =  GAMMA( ( b_geo + 2.0_wp * nu + 3.0_wp)/ mu/2.0_wp ) / GAMMA( (nu + 2.0_wp)/ mu) * &
+           & ( GAMMA( (nu + 1.0_wp)/ mu) / GAMMA( (nu + 2.0_wp)/ mu) )**( (b_geo-1.0_wp)/2.0_wp)
+
+        bf2 =  GAMMA( (-b_geo + nu + 2.0_wp)/ mu ) / GAMMA( (nu + 2.0_wp)/ mu) * &
+           & ( GAMMA( (nu + 1.0_wp)/ mu) / GAMMA( (nu + 2.0_wp)/ mu) )**( -b_geo)
+
+        reff_calc%reff_coeff(1) = reff_calc%reff_coeff(1)*bf
+        reff_calc%reff_coeff(3) = reff_calc%reff_coeff(3)*bf2
+      END IF
+
+    END SELECT
+
+  END SUBROUTINE two_mom_reff_coefficients_for_gscp3
+  
+
 ! Init parameters for one effective radius calculation
   SUBROUTINE init_reff_calc (  reff_calc, hydrometeor, grid_scope, microph_param, &
                       &        p_q,p_reff,                                        &
@@ -581,7 +671,7 @@ MODULE mo_reff_main
 
     SELECT CASE ( microph_param ) ! Choose which microphys scheme
 
-    CASE (1,2,3)        ! One-Moment schemes
+    CASE (1,2)        ! One-Moment schemes
       CALL  one_mom_reff_coefficients( reff_calc,return_fct )  
       IF (.NOT. return_fct) THEN
           WRITE (message_text,*) 'Error in init reff: the 1 mom scheme could not initiate coefficients. Check options'
@@ -590,7 +680,18 @@ MODULE mo_reff_main
           RETURN
       END IF
 
-    CASE (4,5,6,7,9)      ! Two-Moment schemes
+    CASE (3)      ! gscp3 two-moment cloud ice scheme for global ICON
+      CALL  two_mom_reff_coefficients_for_gscp3( reff_calc,return_fct )  
+      WRITE (message_text,*) 'using two_mom_reff_coefficients_for_gscp3'
+      CALL message('mo_reff_main',message_text)
+      IF (.NOT. return_fct) THEN
+        WRITE (message_text,*) 'Error in init reff: the gscp3 3mom scheme could not initiate coefficients. Check options'
+        CALL message('',message_text)
+        return_fct = .false.
+        RETURN
+      END IF
+
+    CASE (4,5,6,7,9)      ! SB two-Moment schemes
       CALL  two_mom_reff_coefficients( reff_calc,return_fct )  
       IF (.NOT. return_fct) THEN
         WRITE (message_text,*) 'Error in init reff: the 2 mom scheme could not initiate coefficients. Check options'
@@ -699,7 +800,7 @@ MODULE mo_reff_main
 
 
 
-!! Calculte running indices for reff and n of a parameterization differentiating between grid and subgrid
+!! Calculate running indices for reff and n of a parameterization differentiating between grid and subgrid
     SUBROUTINE mapping_indices ( indices, n_ind, reff_calc, k_start, k_end, is, ie, jb, return_fct )
 
 
@@ -716,8 +817,8 @@ MODULE mo_reff_main
       REAL(wp) ,POINTER, DIMENSION(:,:)  ::     q            ! Mixing ratio of hydrometeor
       REAL(wp) ,POINTER, DIMENSION(:,:)  ::     q_tot        ! Mixing ratio of hydrometeor
                                                              ! From ICON Scientific Documentaion (Cloud scheme)
-      REAL(wp), PARAMETER                ::     qmin = 1E-6  ! Difference between cloud/nocloud in kg/kg
-      REAL(wp), PARAMETER                ::     qsub = 1E-6  ! Difference between grid/subgrid in kg/kg
+      REAL(wp), PARAMETER                ::     qmin = 1E-6_wp ! Difference between cloud/nocloud in kg/kg
+      REAL(wp), PARAMETER                ::     qsub = 1E-6_wp ! Difference between grid/subgrid in kg/kg
 
       INTEGER                            ::     k, jc        ! Counters
       INTEGER, DIMENSION(ie,k_end)       ::     llq          ! logical conditions for cloud/no cloud and grid/subgrid
@@ -825,6 +926,116 @@ MODULE mo_reff_main
     !$ACC EXIT DATA DELETE(llq)
 
   END SUBROUTINE mapping_indices
+
+
+!! Calculate running indices for reff and n of a parameterization differentiating between grid and subgrid
+    SUBROUTINE mapping_indices_gscp3 ( indices, n_ind, reff_calc, k_start, k_end, is, ie, jb, return_fct )
+
+
+      INTEGER (KIND=i4), INTENT(INOUT)   ::     indices(:,:) ! Mapping for going through array
+      INTEGER (KIND=i4), INTENT(INOUT)   ::     n_ind(:)     ! Number of indices for each k level
+      TYPE(t_reff_calc), INTENT(IN)      ::     reff_calc    ! Reff calculation parameters and pointers
+
+      INTEGER, INTENT(IN)                ::     k_start, k_end, is, ie    ! Start, end total indices
+      INTEGER, INTENT(IN)                ::     jb            ! Domain index
+      LOGICAL, INTENT(INOUT)             ::     return_fct    ! Function return. .true. for right
+
+      ! End of subroutine variable declaration
+
+      REAL(wp) ,POINTER, DIMENSION(:,:)  ::     q            ! Mixing ratio of hydrometeor
+      REAL(wp) ,POINTER, DIMENSION(:,:)  ::     q_tot        ! Mixing ratio of hydrometeor
+                                                             ! From ICON Scientific Documentaion (Cloud scheme)
+      REAL(wp), PARAMETER                ::     qmin = 1E-8_wp ! Difference between cloud/nocloud in kg/kg
+                                                             ! consistent with zcldlim in cover_koe
+      INTEGER                            ::     k, jc        ! Counters
+      INTEGER, DIMENSION(ie,k_end)       ::     llq          ! logical conditions for cloud/no cloud and grid/subgrid
+
+
+    ! Check input return_fct
+      IF (.NOT. return_fct) THEN
+        WRITE (message_text,*) 'Reff: Function init_reff_calc entered with previous error'
+        CALL message('',message_text)
+        RETURN
+      END IF
+
+      ! Initialize inidices
+      DO k = 1,k_end
+        DO jc = 1,ie
+          indices(jc,k) = 0
+          llq(jc,k) = 0
+        END DO
+      END DO
+
+      SELECT CASE ( reff_calc%grid_scope )
+
+      CASE (0) ! Total parameterization ( no differentation grid/subgrid)
+
+        ! Use total if available
+        IF ( ASSOCIATED(reff_calc%p_qtot)) THEN 
+          q=>reff_calc%p_qtot(:,:,jb)
+        ELSE  ! In case grid scale only or no total available
+          q=>reff_calc%p_q(:,:,jb)
+        END IF
+
+        DO k = k_start,k_end
+          DO jc = is, ie
+            IF (q(jc,k) > qmin) THEN
+              llq(jc,k) = 1
+            ENDIF
+          END DO
+        END DO
+
+        CALL generate_index_list_batched(llq, indices, 1, ie, n_ind, 1)
+
+      CASE (1) ! Only grid scale (with same subgrid/grid criteria as subgrid)
+        
+        IF ( ASSOCIATED(reff_calc%p_qtot ) ) THEN
+          q_tot=>reff_calc%p_qtot(:,:,jb)
+          q=>reff_calc%p_q(:,:,jb)
+
+          DO k = k_start,k_end
+            DO jc = is, ie
+              IF ( (q(jc,k) > 0.5_wp*q_tot(jc,k)) .AND. (q_tot(jc,k) > qmin)) THEN
+                llq(jc,k) = 1
+              ENDIF
+            END DO
+          END DO
+
+          CALL generate_index_list_batched(llq, indices, 1, ie, n_ind, 1)
+
+        ELSE
+          WRITE (message_text,*) 'Warning: Reff does not have information for generate inidices for subgrid ncn'
+          CALL message('',message_text)
+          return_fct = .false.              
+          RETURN
+        END IF
+
+      CASE (2) ! Only subgrid scale
+        
+        IF ( ASSOCIATED(reff_calc%p_qtot ) ) THEN
+          q_tot=>reff_calc%p_qtot(:,:,jb)
+          q=>reff_calc%p_q(:,:,jb)
+
+          DO k = k_start,k_end
+            DO jc = is, ie
+              IF ( (q(jc,k) < 0.5_wp*q_tot(jc,k)) .AND. (q_tot(jc,k) > qmin)) THEN
+                llq(jc,k) = 1
+              ENDIF
+            END DO
+          END DO
+
+          CALL generate_index_list_batched(llq, indices, 1, ie, n_ind, 1)
+
+        ELSE
+          WRITE (message_text,*) 'Warning: Reff does not have information for generate inidices for subgrid ncn'
+          CALL message('',message_text)
+          return_fct = .false.              
+          RETURN
+        END IF
+
+    END SELECT
+
+  END SUBROUTINE mapping_indices_gscp3
 
 
 ! -----------------------------------------------------------------------------------------------------------

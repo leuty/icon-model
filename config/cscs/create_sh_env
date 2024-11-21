@@ -21,10 +21,10 @@ set --
 set +x
 
 spack env deactivate
-spack env activate --sh $ICON_DIR/config/cscs/spack/$SPACK_VERSION/$VARIANT >> $ICON_DIR/setting
 
 spack env activate -p $ICON_DIR/config/cscs/spack/$SPACK_VERSION/$VARIANT
 
+echo "export ECCODES_DEFINITION_PATH=${ECCODES_DEFINITION_PATH}" >> setting
 
 if [[ "$(hostname)" == *"balfrin"* || "$(hostname)" == *"tasna"* ]]; then
 

@@ -118,6 +118,7 @@ MODULE mo_atm_phy_nwp_config
     REAL(wp) :: mu_rain          !! parameter in gamma distribution for rain
     REAL(wp) :: mu_snow          !! ...for snow
     REAL(wp) :: rain_n0_factor   !! tuning factor for intercept parameter of raindrop size distribution
+    LOGICAL  :: lvariable_rain_n0 !! if true: use variable rain_n0_factor approaching 1 for large QR
     LOGICAL ::  lsbm_warm_full    !! false: Piggy Backing with 2M, true: full warm-phase SBM
     REAL(wp) :: qi0, qc0
 

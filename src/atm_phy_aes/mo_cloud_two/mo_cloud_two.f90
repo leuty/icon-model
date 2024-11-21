@@ -183,6 +183,7 @@ CONTAINS
             &           te       = zta       (:,:) ,& !> inout
             &           qve      = zqv       (:,:) ,& !> inout
             &           qce      = zqc       (:,:) ,& !> inout
+            &           w        = wa        (:,:) ,& !> in
             &           rhotot   = rho       (:,:) )
           !
     ! Single moment cloud microphyiscs for water vapor,
@@ -242,6 +243,7 @@ CONTAINS
             &           te       = zta       (:,:) ,& !> inout
             &           qve      = zqv       (:,:) ,& !> inout
             &           qce      = zqc       (:,:) ,& !> inout
+            &           w        = wa        (:,:) ,& !> in
             &           rhotot   = rho       (:,:) )
     !
     ! Calculate tendencies and convert temperature tendency, as computed

@@ -29,7 +29,7 @@ MODULE mo_hydro_adjust
   USE mo_run_config,            ONLY: msg_level
   USE mo_nonhydro_types,        ONLY: t_nh_metrics
   USE mo_loopindices,           ONLY: get_indices_c
-  USE mo_satad,                 ONLY: sat_pres_water
+  USE mo_thdyn_functions,       ONLY: sat_pres_water
   USE mo_util_string,           ONLY: int2string, real2string
   USE mo_util_table,            ONLY: t_table, initialize_table, add_table_column, &
     &                                 set_table_entry, print_table, finalize_table

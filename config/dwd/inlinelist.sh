@@ -29,12 +29,13 @@ INLINE_LIST_ICON=(
   src/atm_phy_schemes/cloud_random_numbers.f90
   src/atm_phy_schemes/mo_2mom_mcrph_driver.f90
   src/atm_phy_schemes/mo_2mom_mcrph_processes.f90
+  src/atm_phy_schemes/mo_2mom_mcrph_setup.f90
   src/atm_phy_schemes/mo_2mom_mcrph_util.f90
   src/atm_phy_schemes/mo_aerosol_sources.f90
   src/atm_phy_schemes/mo_cpl_aerosol_microphys.f90
   src/atm_phy_schemes/mo_albedo.f90
   src/atm_phy_schemes/mo_cufunctions.f90
-  src/atm_phy_schemes/mo_satad.f90
+  src/atm_phy_schemes/mo_thdyn_functions.f90
   src/atm_phy_schemes/mo_turb_vdiff.f90
   src/atm_phy_schemes/random_rewrite.f90
   src/atm_phy_schemes/turb_utilities.f90
@@ -42,10 +43,12 @@ INLINE_LIST_ICON=(
   src/lnd_phy_nwp/mo_nwp_sfc_interp.f90
   src/parallel_infrastructure/mo_extents.f90
   src/shared/mo_statistics.f90
+  src/shared/mo_loopindices.f90
 )
 
 INLINE_LIST_ICON+=(
   externals/math-support/src/mo_math_utilities.F90
+  externals/math-support/src/mo_lib_loopindices.f90
 )
 
 
@@ -78,4 +81,10 @@ INLINE_LIST_EMVORADO=(
   externals/emvorado/src_emvorado/radar_utilities.f90
   externals/emvorado/src_emvorado/radar_dmin_wetgrowth.f90
   externals/emvorado/src_iface_icon/radar_interface.f90
+)
+
+INLINE_LIST_OCEAN=(
+  externals/math-support/src/mo_math_utilities.F90
+  src/advection/mo_advection_utils.f90
+  src/ocean/physics/mo_ocean_thermodyn.f90
 )

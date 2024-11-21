@@ -35,6 +35,8 @@ USE mo_parallel_config,     ONLY: nproma, p_test_run
 USE mo_dynamics_config,     ONLY: nnow_rcf
 USE mo_run_config,          ONLY: msg_level, iqv, iqc, iqi
 USE mo_grid_config,         ONLY: l_limited_area, nexlevs_rrg_vnest
+USE mo_nwp_tuning_config,   ONLY: itune_gust_diag
+USE mo_radiation_config,    ONLY: islope_rad
 USE mo_nonhydro_state,      ONLY: p_nh_state
 USE mo_impl_constants,      ONLY: min_rlcell, min_rlcell_int
 USE mo_physical_constants,  ONLY: rd, grav, stbo, tmelt
@@ -42,7 +44,7 @@ USE mo_loopindices,         ONLY: get_indices_c
 USE mo_impl_constants_grf,  ONLY: grf_bdywidth_c, grf_ovlparea_start_c, grf_fbk_start_c
 USE mo_vertical_coord_table,ONLY: vct_a
 USE mo_communication,       ONLY: exchange_data, exchange_data_mult
-USE mo_sync,                ONLY: SYNC_C, sync_patch_array_mult
+USE mo_sync,                ONLY: SYNC_C, sync_patch_array, sync_patch_array_mult
 USE mo_lnd_nwp_config,      ONLY: nlev_soil, nlev_snow, lmulti_snow, lseaice, llake,    &
                                   frlake_thrhld, frsea_thrhld, isub_lake, ntiles_total, &
                                   dzsoil, frsi_min
@@ -52,7 +54,7 @@ USE mo_mpi,                 ONLY: my_process_is_mpi_seq
 USE sfc_flake,              ONLY: flake_coldinit
 USE sfc_flake_data,         ONLY: tpl_T_r, C_T_min, rflk_depth_bs_ref
 USE mo_fortran_tools,       ONLY: init, copy, set_acc_host_or_device, assert_acc_host_only
-USE mo_io_config,           ONLY: var_in_output
+USE mo_io_config,           ONLY: var_in_output, n_wshear, n_srh, uh_max_nlayer, echotop_meta, luh_max_out
 USE turb_data,              ONLY: imode_tkemini, rsur_sher
 
 ! ACC LOOP Comment "comment_collapse"
@@ -693,11 +695,14 @@ SUBROUTINE upscale_rad_input(jg, jgp, nlev_rg, emis_rad,                   &
           clc(iidx(jc,jb,3),jk,iblk(jc,jb,3))*p_fbkwgt(jc,jb,3) + &
           clc(iidx(jc,jb,4),jk,iblk(jc,jb,4))*p_fbkwgt(jc,jb,4)
 
-        p_tot_cld(jc,jk1,jb,1:3) =                                        &
-          tot_cld(iidx(jc,jb,1),jk,iblk(jc,jb,1),1:3)*p_fbkwgt(jc,jb,1) + &
-          tot_cld(iidx(jc,jb,2),jk,iblk(jc,jb,2),1:3)*p_fbkwgt(jc,jb,2) + &
-          tot_cld(iidx(jc,jb,3),jk,iblk(jc,jb,3),1:3)*p_fbkwgt(jc,jb,3) + &
-          tot_cld(iidx(jc,jb,4),jk,iblk(jc,jb,4),1:3)*p_fbkwgt(jc,jb,4)
+        !$ACC LOOP SEQ
+        DO jf = 1, 3
+          p_tot_cld(jc,jk1,jb,jf) =                                        &
+            tot_cld(iidx(jc,jb,1),jk,iblk(jc,jb,1),jf)*p_fbkwgt(jc,jb,1) + &
+            tot_cld(iidx(jc,jb,2),jk,iblk(jc,jb,2),jf)*p_fbkwgt(jc,jb,2) + &
+            tot_cld(iidx(jc,jb,3),jk,iblk(jc,jb,3),jf)*p_fbkwgt(jc,jb,3) + &
+            tot_cld(iidx(jc,jb,4),jk,iblk(jc,jb,4),jf)*p_fbkwgt(jc,jb,4)
+        END DO
 
       END DO
     END DO
@@ -2069,14 +2074,17 @@ SUBROUTINE interpol_phys_grf (ext_data, prm_diag, p_lnd_state, jg, jgc, jn, lacc
   TYPE(t_wtr_prog),             POINTER :: ptr_wprogc ! child level water prog state
 
   ! Local fields
-  INTEGER, PARAMETER  :: nfields_p1=78   ! Number of positive-definite 2D physics fields for which boundary interpolation is needed
-  INTEGER, PARAMETER  :: nfields_p2=19   ! Number of remaining 2D physics fields for which boundary interpolation is needed
+  INTEGER, PARAMETER  :: nfields_p1=106  ! Number of positive-definite 2D physics fields for which boundary interpolation is needed
+  INTEGER, PARAMETER  :: nfields_p2=31   ! Number of remaining 2D physics fields for which boundary interpolation is needed
   INTEGER, PARAMETER  :: nfields_l2=19   ! Number of 2D land state fields
 
-  INTEGER :: i_startblk, i_endblk, i_startidx, i_endidx, jb, jc, jk, jt, nlev_c, ic, i_count, indlist(nproma)
+  ! Additional 3D diagnostic physics fields for operational convection-permitting output
+  INTEGER :: nfields_p3
+
+  INTEGER :: i_startblk, i_endblk, i_startidx, i_endidx, jb, jc, jk, jt, nlev_c, ic, i_count, indlist(nproma), maxdim2
   INTEGER :: styp                        ! soiltype at child level
 
-  LOGICAL :: lsfc_interp
+  LOGICAL :: lsfc_interp, lextra_diag
   LOGICAL :: lzacc ! non-optional version of lacc
 
   ! Temporary storage to do boundary interpolation for all 2D fields in one step
@@ -2084,6 +2092,10 @@ SUBROUTINE interpol_phys_grf (ext_data, prm_diag, p_lnd_state, jg, jgc, jn, lacc
     &         z_aux3dp1_c(nproma,nfields_p1,p_patch(jgc)%nblks_c),      &
     &         z_aux3dp2_p(nproma,nfields_p2,p_patch(jg)%nblks_c),       &  ! 2D physics diag fields
     &         z_aux3dp2_c(nproma,nfields_p2,p_patch(jgc)%nblks_c),      &
+    &         z_aux3dp3_p(nproma,n_wshear+n_srh+uh_max_nlayer+MAX(echotop_meta(jg)%nechotop,echotop_meta(jgc)%nechotop), &
+                          p_patch(jg)%nblks_c),                         &  ! 3D physics diag fields
+    &         z_aux3dp3_c(nproma,n_wshear+n_srh+uh_max_nlayer+MAX(echotop_meta(jg)%nechotop,echotop_meta(jgc)%nechotop), &
+                          p_patch(jgc)%nblks_c),                        &
     &         z_aux3dl2_p(nproma,nfields_l2,p_patch(jg)%nblks_c),       &  ! 2D land state fields
     &         z_aux3dl2_c(nproma,nfields_l2,p_patch(jgc)%nblks_c),      &
     &         z_aux3dso_p(nproma,3*nlev_soil,p_patch(jg)%nblks_c),      &  ! 3D land state fields for soil
@@ -2100,6 +2112,15 @@ SUBROUTINE interpol_phys_grf (ext_data, prm_diag, p_lnd_state, jg, jgc, jn, lacc
 
   nlev_c = ptr_pc%nlev
 
+  ! Additional 3D diagnostics for ICON-D2 or similar configurations
+  lextra_diag = ANY((/var_in_output(jg)%srh,  var_in_output(jgc)%srh,        &
+                var_in_output(jg)%echotop,    var_in_output(jgc)%echotop,    &
+                var_in_output(jg)%echotopinm, var_in_output(jgc)%echotopinm, &
+                var_in_output(jg)%wshear_u,   var_in_output(jgc)%wshear_u,   &
+                var_in_output(jg)%wshear_v,   var_in_output(jgc)%wshear_v/)) &
+                .OR. ANY(luh_max_out(jg, :))  .OR.  ANY(luh_max_out(jgc, :)) 
+  nfields_p3=n_wshear+n_srh+uh_max_nlayer+MAX(echotop_meta(jg)%nechotop,echotop_meta(jgc)%nechotop)
+
   IF (atm_phy_nwp_config(jg)%inwp_surface == 1) THEN
     lsfc_interp = .TRUE.
   ELSE
@@ -2115,15 +2136,13 @@ SUBROUTINE interpol_phys_grf (ext_data, prm_diag, p_lnd_state, jg, jgc, jn, lacc
     ptr_wprogc => p_lnd_state(jgc)%prog_wtr(nnow_rcf(jgc))
   ENDIF
 
-  !$ACC DATA CREATE(z_aux3dp1_p, z_aux3dp1_c, z_aux3dp2_p, z_aux3dp2_c) &
+  !$ACC DATA CREATE(z_aux3dp1_p, z_aux3dp1_c, z_aux3dp2_p, z_aux3dp2_c, z_aux3dp3_p, z_aux3dp3_c) &
   !$ACC   CREATE(z_aux3dl2_p, z_aux3dl2_c, z_aux3dso_p, z_aux3dso_c, z_aux3dsn_p) &
   !$ACC   CREATE(z_aux3dsn_c, indlist) PRESENT(ext_data, prm_diag, p_nh_state) &
   !$ACC   PRESENT(atm_phy_nwp_config, ptr_ldiagp, ptr_ldiagc, ptr_lprogc, ptr_lprogp) &
   !$ACC   PRESENT(ptr_wprogc, var_in_output) IF(lzacc)
 
   IF (p_test_run) THEN
-    CALL init(z_aux3dp1_p(:,:,:), lacc=lzacc)
-    CALL init(z_aux3dp2_p(:,:,:), lacc=lzacc)
     CALL init(z_aux3dl2_p(:,:,:), lacc=lzacc)
     CALL init(z_aux3dso_p(:,:,:), lacc=lzacc)
     CALL init(z_aux3dsn_p(:,:,:), lacc=lzacc)
@@ -2132,9 +2151,16 @@ SUBROUTINE interpol_phys_grf (ext_data, prm_diag, p_lnd_state, jg, jgc, jn, lacc
   i_startblk = ptr_pp%cells%start_block(grf_bdywidth_c+1)
   i_endblk   = ptr_pp%cells%end_block(min_rlcell_int)
 
-
 !$OMP PARALLEL
-!$OMP DO PRIVATE(jb,i_startidx,i_endidx,jc,jk,ic,i_count) ICON_OMP_DEFAULT_SCHEDULE
+
+  ! To avoid manual initialization in case of optional variables 
+  CALL init(z_aux3dp1_p(:,:,:), lacc=lzacc)
+  CALL init(z_aux3dp2_p(:,:,:), lacc=lzacc)
+  CALL init(z_aux3dp3_p(:,:,:), lacc=lzacc)
+
+!$OMP BARRIER
+
+!$OMP DO PRIVATE(jb,i_startidx,i_endidx,jc,jk,jt,ic,i_count) ICON_OMP_DEFAULT_SCHEDULE
   DO jb = i_startblk, i_endblk
 
     CALL get_indices_c(ptr_pp, jb, i_startblk, i_endblk, i_startidx, i_endidx, grf_bdywidth_c+1, min_rlcell_int)
@@ -2142,6 +2168,7 @@ SUBROUTINE interpol_phys_grf (ext_data, prm_diag, p_lnd_state, jg, jgc, jn, lacc
     !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1) IF(lzacc)
     !$ACC LOOP GANG VECTOR
     DO jc = i_startidx, i_endidx
+      ! positive definite fields; will be explicitly limited to stay >= 0
       z_aux3dp1_p(jc,1,jb) = prm_diag(jg)%tot_prec(jc,jb)
       z_aux3dp1_p(jc,2,jb) = prm_diag(jg)%prec_gsp(jc,jb)
       z_aux3dp1_p(jc,3,jb) = prm_diag(jg)%prec_con(jc,jb)
@@ -2181,7 +2208,7 @@ SUBROUTINE interpol_phys_grf (ext_data, prm_diag, p_lnd_state, jg, jgc, jn, lacc
       z_aux3dp1_p(jc,37,jb) = prm_diag(jg)%asodird_s(jc,jb)
       z_aux3dp1_p(jc,38,jb) = prm_diag(jg)%htop_con(jc,jb) - prm_diag(jg)%hbas_con(jc,jb)
       z_aux3dp1_p(jc,39,jb) = prm_diag(jg)%htop_dc(jc,jb)
-      z_aux3dp1_p(jc,40,jb) = prm_diag(jg)%snowlmt(jc,jb) + 999._wp
+      z_aux3dp1_p(jc,40,jb) = prm_diag(jg)%snowlmt(jc,jb) + 999._wp ! -999 is used as missing value
       z_aux3dp1_p(jc,41,jb) = prm_diag(jg)%hzerocl(jc,jb) + 999._wp
       z_aux3dp1_p(jc,42,jb) = prm_diag(jg)%clcl(jc,jb)
       z_aux3dp1_p(jc,43,jb) = prm_diag(jg)%clcm(jc,jb)
@@ -2199,9 +2226,6 @@ SUBROUTINE interpol_phys_grf (ext_data, prm_diag, p_lnd_state, jg, jgc, jn, lacc
       IF (atm_phy_nwp_config(jg)%lhave_graupel) THEN
         z_aux3dp1_p(jc,60,jb) = prm_diag(jg)%graupel_gsp(jc,jb)
         z_aux3dp1_p(jc,61,jb) = prm_diag(jg)%graupel_gsp_rate(jc,jb)
-      ELSE
-        z_aux3dp1_p(jc,60,jb) = 0._wp
-        z_aux3dp1_p(jc,61,jb) = 0._wp
       ENDIF
 
       z_aux3dp1_p(jc,62,jb) = prm_diag(jg)%tvm(jc,jb)
@@ -2214,17 +2238,11 @@ SUBROUTINE interpol_phys_grf (ext_data, prm_diag, p_lnd_state, jg, jgc, jn, lacc
       IF (ANY((/1,2,4,5,6,7,8/) == atm_phy_nwp_config(jg)%inwp_gscp)) THEN
         z_aux3dp1_p(jc,68,jb) = prm_diag(jg)%ice_gsp(jc,jb)
         z_aux3dp1_p(jc,69,jb) = prm_diag(jg)%ice_gsp_rate(jc,jb)
-      ELSE
-        z_aux3dp1_p(jc,68,jb) = 0._wp
-        z_aux3dp1_p(jc,69,jb) = 0._wp
       ENDIF
       
       IF (atm_phy_nwp_config(jg)%l2moment) THEN
         z_aux3dp1_p(jc,70,jb) = prm_diag(jg)%hail_gsp(jc,jb)
         z_aux3dp1_p(jc,71,jb) = prm_diag(jg)%hail_gsp_rate(jc,jb)
-      ELSE
-        z_aux3dp1_p(jc,70,jb) = 0._wp
-        z_aux3dp1_p(jc,71,jb) = 0._wp
       ENDIF
       
       z_aux3dp1_p(jc,72,jb)  = prm_diag(jg)%tot_prec_d(jc,jb)
@@ -2237,6 +2255,79 @@ SUBROUTINE interpol_phys_grf (ext_data, prm_diag, p_lnd_state, jg, jgc, jn, lacc
       z_aux3dp1_p(jc,77,jb)  = prm_diag(jg)%rain_con_rate_corr(jc,jb)
       z_aux3dp1_p(jc,78,jb)  = prm_diag(jg)%snow_con_rate_corr(jc,jb)
 
+      ! Fields for slope-dependent radiation; these need to be filled with the uncorrected
+      ! fields when the slope-dependent radiation is not active in the parent domain
+      IF (islope_rad(jgc) > 0 .AND. islope_rad(jg) > 0) THEN
+        z_aux3dp1_p(jc,79,jb) = prm_diag(jg)%swflxsfc_os(jc,jb)
+        z_aux3dp1_p(jc,80,jb) = prm_diag(jg)%swflxsfc_tan_os(jc,jb)
+        z_aux3dp1_p(jc,81,jb) = prm_diag(jg)%swflx_up_sfc_os(jc,jb)
+        z_aux3dp1_p(jc,82,jb) = prm_diag(jg)%swflx_up_sfc_tan_os(jc,jb)
+        z_aux3dp1_p(jc,83,jb) = prm_diag(jg)%swflx_par_sfc_tan_os(jc,jb)
+        z_aux3dp1_p(jc,84,jb) = prm_diag(jg)%swflxsfc_a_os(jc,jb)
+        z_aux3dp1_p(jc,85,jb) = prm_diag(jg)%swflxsfc_a_tan_os(jc,jb)
+        z_aux3dp1_p(jc,86,jb) = prm_diag(jg)%asodird_s_os(jc,jb)
+        z_aux3dp1_p(jc,87,jb) = prm_diag(jg)%asodird_s_tan_os(jc,jb)
+        z_aux3dp1_p(jc,88,jb) = prm_diag(jg)%asod_s_os(jc,jb)
+        z_aux3dp1_p(jc,89,jb) = prm_diag(jg)%asod_s_tan_os(jc,jb)
+        z_aux3dp1_p(jc,90,jb) = prm_diag(jg)%asodifu_s_os(jc,jb)
+        z_aux3dp1_p(jc,91,jb) = prm_diag(jg)%asodifu_s_tan_os(jc,jb)
+        z_aux3dp1_p(jc,92,jb) = prm_diag(jg)%aswflx_par_sfc_tan_os(jc,jb)
+      ELSE IF (islope_rad(jgc) > 0) THEN
+        z_aux3dp1_p(jc,79,jb) = prm_diag(jg)%swflxsfc(jc,jb)
+        z_aux3dp1_p(jc,80,jb) = prm_diag(jg)%swflxsfc(jc,jb)
+        z_aux3dp1_p(jc,81,jb) = prm_diag(jg)%swflx_up_sfc(jc,jb)
+        z_aux3dp1_p(jc,82,jb) = prm_diag(jg)%swflx_up_sfc(jc,jb)
+        z_aux3dp1_p(jc,83,jb) = prm_diag(jg)%swflx_par_sfc(jc,jb)
+        z_aux3dp1_p(jc,84,jb) = prm_diag(jg)%swflxsfc_a(jc,jb)
+        z_aux3dp1_p(jc,85,jb) = prm_diag(jg)%swflxsfc_a(jc,jb)
+        z_aux3dp1_p(jc,86,jb) = prm_diag(jg)%asodird_s(jc,jb)
+        z_aux3dp1_p(jc,87,jb) = prm_diag(jg)%asodird_s(jc,jb)
+        z_aux3dp1_p(jc,88,jb) = prm_diag(jg)%asod_s(jc,jb)
+        z_aux3dp1_p(jc,89,jb) = prm_diag(jg)%asod_s(jc,jb)
+        z_aux3dp1_p(jc,90,jb) = prm_diag(jg)%asodifu_s(jc,jb)
+        z_aux3dp1_p(jc,91,jb) = prm_diag(jg)%asodifu_s(jc,jb)
+        z_aux3dp1_p(jc,92,jb) = prm_diag(jg)%aswflx_par_sfc(jc,jb)
+      ENDIF
+
+      z_aux3dp1_p(jc,93,jb) = prm_diag(jg)%prec_gsp_rate(jc,jb)
+      z_aux3dp1_p(jc,94,jb) = prm_diag(jg)%tot_prec_rate(jc,jb)
+      z_aux3dp1_p(jc,95,jb) = prm_diag(jg)%cape_ml(jc,jb)
+
+      IF (var_in_output(jg)%cape_mu) THEN
+        z_aux3dp1_p(jc,96,jb) = prm_diag(jg)%cape_mu(jc,jb)
+      ENDIF
+      IF (var_in_output(jg)%twater) THEN
+        z_aux3dp1_p(jc,97,jb) = prm_diag(jg)%twater(jc,jb)
+      ENDIF
+      IF (var_in_output(jg)%tot_pr_max) THEN
+        z_aux3dp1_p(jc,98,jb) = prm_diag(jg)%tot_pr_max(jc,jb)
+      ENDIF
+      IF (var_in_output(jg)%hpbl) THEN
+        z_aux3dp1_p(jc,99,jb) = prm_diag(jg)%hpbl(jc,jb)
+      ENDIF
+      IF (var_in_output(jg)%w_ctmax) THEN
+        z_aux3dp1_p(jc,100,jb) = prm_diag(jg)%w_ctmax(jc,jb)
+      ENDIF
+      IF (var_in_output(jg)%tcond_max) THEN
+        z_aux3dp1_p(jc,101,jb) = prm_diag(jg)%tcond_max(jc,jb)
+      ENDIF
+      IF (var_in_output(jg)%tcond10_max) THEN
+        z_aux3dp1_p(jc,102,jb) = prm_diag(jg)%tcond10_max(jc,jb)
+      ENDIF
+      IF (var_in_output(jg)%vis) THEN
+        z_aux3dp1_p(jc,103,jb) = prm_diag(jg)%vis(jc,jb)
+      ENDIF
+      IF (var_in_output(jg)%ceiling) THEN
+        z_aux3dp1_p(jc,104,jb) = prm_diag(jg)%ceiling_height(jc,jb)
+      ENDIF
+      IF (var_in_output(jg)%lpi) THEN
+        z_aux3dp1_p(jc,105,jb) = prm_diag(jg)%lpi(jc,jb)
+      ENDIF
+      IF (var_in_output(jg)%lpi_max) THEN
+        z_aux3dp1_p(jc,106,jb) = prm_diag(jg)%lpi_max(jc,jb)
+      ENDIF
+
+      ! fields that may attain both signs; no limitation is applied
       z_aux3dp2_p(jc,1,jb) = prm_diag(jg)%u_10m(jc,jb)
       z_aux3dp2_p(jc,2,jb) = prm_diag(jg)%v_10m(jc,jb)
       z_aux3dp2_p(jc,3,jb) = prm_diag(jg)%lhfl_s(jc,jb)
@@ -2256,8 +2347,110 @@ SUBROUTINE interpol_phys_grf (ext_data, prm_diag, p_lnd_state, jg, jgc, jn, lacc
       z_aux3dp2_p(jc,17,jb) = prm_diag(jg)%lwflxsfc_a(jc,jb)
       z_aux3dp2_p(jc,18,jb) = prm_diag(jg)%lwflxtoa_a(jc,jb)
       z_aux3dp2_p(jc,19,jb) = prm_diag(jg)%hbas_con(jc,jb)
+      z_aux3dp2_p(jc,20,jb) = prm_diag(jg)%cin_ml(jc,jb)
+
+      IF (itune_gust_diag == 4) THEN
+        z_aux3dp2_p(jc,21,jb) = prm_diag(jg)%u_10m_a(jc,jb)
+        z_aux3dp2_p(jc,22,jb) = prm_diag(jg)%v_10m_a(jc,jb)
+      ENDIF
+
+      IF (var_in_output(jg)%vorw_ctmax) THEN
+        z_aux3dp2_p(jc,23,jb) = prm_diag(jg)%vorw_ctmax(jc,jb)
+      ENDIF
+      IF (var_in_output(jg)%cin_mu) THEN
+        z_aux3dp2_p(jc,24,jb) = prm_diag(jg)%cin_mu(jc,jb)
+      ENDIF
+      IF (var_in_output(jg)%lapserate) THEN
+        z_aux3dp2_p(jc,25,jb) = prm_diag(jg)%lapse_rate(jc,jb)
+      ENDIF
+      IF (var_in_output(jg)%dbz850) THEN
+        z_aux3dp2_p(jc,26,jb) = prm_diag(jg)%dbz_850(jc,jb)
+      ENDIF
+      IF (var_in_output(jg)%dbzcmax) THEN
+        z_aux3dp2_p(jc,27,jb) = prm_diag(jg)%dbz_cmax(jc,jb)
+      ENDIF
+      IF (var_in_output(jg)%dbzctmax) THEN
+        z_aux3dp2_p(jc,28,jb) = prm_diag(jg)%dbz_ctmax(jc,jb)
+      ENDIF
+      IF (var_in_output(jg)%dbzlmx_low) THEN
+        z_aux3dp2_p(jc,29,jb) = prm_diag(jg)%dbzlmx_low(jc,jb)
+      ENDIF
+      IF (var_in_output(jg)%mconv) THEN
+        z_aux3dp2_p(jc,30,jb) = prm_diag(jg)%mconv(jc,jb)
+      ENDIF
+      IF (var_in_output(jg)%sdi2) THEN
+        z_aux3dp2_p(jc,31,jb) = prm_diag(jg)%sdi2(jc,jb)
+      ENDIF
+
     ENDDO
     !$ACC END PARALLEL
+
+    IF (lextra_diag) THEN
+      jt = 0
+      DO jk = 1, uh_max_nlayer
+        jt = jt+1
+        IF (ANY(luh_max_out(jg, :))) THEN
+          !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1) IF(lzacc)
+          !$ACC LOOP GANG VECTOR
+          DO jc = i_startidx, i_endidx
+            z_aux3dp3_p(jc,jt,jb) = prm_diag(jg)%uh_max_3d(jc,jb,jk)
+          ENDDO
+          !$ACC END PARALLEL
+        ENDIF
+      ENDDO
+      DO jk = 1, n_srh
+        jt = jt+1
+        IF (var_in_output(jg)%srh) THEN
+          !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1) IF(lzacc)
+          !$ACC LOOP GANG VECTOR
+          DO jc = i_startidx, i_endidx
+            z_aux3dp3_p(jc,jt,jb) = prm_diag(jg)%srh(jc,jb,jk)
+          ENDDO
+          !$ACC END PARALLEL
+        ENDIF
+      ENDDO
+      ! Remark: the boundary filling will not work correctly if nechotop differs between parent and child grid
+      DO jk = 1, echotop_meta(jg)%nechotop
+        jt = jt+1
+        IF (var_in_output(jg)%echotop) THEN
+          !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1) IF(lzacc)
+          !$ACC LOOP GANG VECTOR
+          DO jc = i_startidx, i_endidx
+            z_aux3dp3_p(jc,jt,jb) = prm_diag(jg)%echotop(jc,jb,jk)
+          ENDDO
+          !$ACC END PARALLEL
+        ENDIF
+        jt = jt+1
+        IF (var_in_output(jg)%echotopinm) THEN
+          !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1) IF(lzacc)
+          !$ACC LOOP GANG VECTOR
+          DO jc = i_startidx, i_endidx
+            z_aux3dp3_p(jc,jt,jb) = prm_diag(jg)%echotopinm(jc,jb,jk)
+          ENDDO
+          !$ACC END PARALLEL
+        ENDIF
+      ENDDO
+      DO jk = 1, n_wshear
+        jt = jt+1
+        IF (var_in_output(jg)%wshear_u) THEN
+          !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1) IF(lzacc)
+          !$ACC LOOP GANG VECTOR
+          DO jc = i_startidx, i_endidx
+            z_aux3dp3_p(jc,jt,jb) = prm_diag(jg)%wshear_u(jc,jb,jk)
+          ENDDO
+          !$ACC END PARALLEL
+        ENDIF
+        jt = jt+1
+        IF (var_in_output(jg)%wshear_v) THEN
+          !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1) IF(lzacc)
+          !$ACC LOOP GANG VECTOR
+          DO jc = i_startidx, i_endidx
+            z_aux3dp3_p(jc,jt,jb) = prm_diag(jg)%wshear_v(jc,jb,jk)
+          ENDDO
+          !$ACC END PARALLEL
+        ENDIF
+      ENDDO
+    ENDIF ! extra diagnostics
 
     IF (lsfc_interp) THEN
       !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1) IF(lzacc)
@@ -2377,8 +2570,9 @@ SUBROUTINE interpol_phys_grf (ext_data, prm_diag, p_lnd_state, jg, jgc, jn, lacc
     ! Halo update is needed before interpolation
     IF (lsfc_interp .AND. lmulti_snow) THEN
 
+      maxdim2 = MAX(nfields_p1,nfields_p2,nfields_l2,3*nlev_soil,5*nlev_snow)
       CALL sync_patch_array_mult(SYNC_C,ptr_pp,5,z_aux3dp1_p,z_aux3dp2_p,z_aux3dl2_p,z_aux3dso_p,z_aux3dsn_p)
-      CALL interpol_scal_grf (p_pp=ptr_pp, p_pc=ptr_pc, p_grf=ptr_grf, nfields=5, lacc=lzacc, &
+      CALL interpol_scal_grf (p_pp=ptr_pp, p_pc=ptr_pc, p_grf=ptr_grf, nfields=5, nlev_ex=maxdim2, lacc=lzacc, &
         f3din1=z_aux3dp1_p, f3dout1=z_aux3dp1_c, f3din2=z_aux3dp2_p, f3dout2=z_aux3dp2_c, &
         f3din3=z_aux3dl2_p, f3dout3=z_aux3dl2_c, f3din4=z_aux3dso_p, f3dout4=z_aux3dso_c, &
         f3din5=z_aux3dsn_p, f3dout5=z_aux3dsn_c, &
@@ -2386,22 +2580,31 @@ SUBROUTINE interpol_phys_grf (ext_data, prm_diag, p_lnd_state, jg, jgc, jn, lacc
 
     ELSE IF (lsfc_interp) THEN
 
+      maxdim2 = MAX(nfields_p1,nfields_p2,nfields_l2,3*nlev_soil)
       CALL sync_patch_array_mult(SYNC_C,ptr_pp,4,z_aux3dp1_p,z_aux3dp2_p,z_aux3dl2_p,z_aux3dso_p)
-      CALL interpol_scal_grf (p_pp=ptr_pp, p_pc=ptr_pc, p_grf=ptr_grf, nfields=4, lacc=lzacc, &
-        f3din1=z_aux3dp1_p, f3dout1=z_aux3dp1_c, f3din2=z_aux3dp2_p, f3dout2=z_aux3dp2_c,&
-        f3din3=z_aux3dl2_p, f3dout3=z_aux3dl2_c, f3din4=z_aux3dso_p, f3dout4=z_aux3dso_c,                       &
+      CALL interpol_scal_grf (p_pp=ptr_pp, p_pc=ptr_pc, p_grf=ptr_grf, nfields=4, nlev_ex=maxdim2, lacc=lzacc, &
+        f3din1=z_aux3dp1_p, f3dout1=z_aux3dp1_c, f3din2=z_aux3dp2_p, f3dout2=z_aux3dp2_c,                      &
+        f3din3=z_aux3dl2_p, f3dout3=z_aux3dl2_c, f3din4=z_aux3dso_p, f3dout4=z_aux3dso_c,                      &
         llimit_nneg=(/.TRUE.,.FALSE.,.TRUE.,.TRUE./), lnoshift=.TRUE.)
 
     ELSE
+
+      maxdim2 = MAX(nfields_p1,nfields_p2)
       CALL sync_patch_array_mult(SYNC_C,ptr_pp,2,z_aux3dp1_p,z_aux3dp2_p)
-      CALL interpol_scal_grf (p_pp=ptr_pp, p_pc=ptr_pc, p_grf=ptr_grf, nfields=2, lacc=lzacc, &
+      CALL interpol_scal_grf (p_pp=ptr_pp, p_pc=ptr_pc, p_grf=ptr_grf, nfields=2, nlev_ex=maxdim2, lacc=lzacc, &
         f3din1=z_aux3dp1_p, f3dout1=z_aux3dp1_c, f3din2=z_aux3dp2_p, f3dout2=z_aux3dp2_c, &
         llimit_nneg=(/.TRUE.,.FALSE./), lnoshift=.TRUE.)
 
     ENDIF
 
+    IF (lextra_diag) THEN
+      CALL sync_patch_array(SYNC_C,ptr_pp,z_aux3dp3_p)
+      CALL interpol_scal_grf (p_pp=ptr_pp, p_pc=ptr_pc, p_grf=ptr_grf, nfields=1, nlev_ex=nfields_p3, lacc=lzacc, &
+        f3din1=z_aux3dp3_p, f3dout1=z_aux3dp3_c, llimit_nneg=(/.FALSE./), lnoshift=.TRUE.)
+    ENDIF
+
     CALL sync_patch_array_mult(SYNC_C,ptr_pp,3,prm_diag(jg)%tkvm,prm_diag(jg)%tkvh,prm_diag(jg)%rcld)
-    CALL interpol_scal_grf (p_pp=ptr_pp, p_pc=ptr_pc, p_grf=ptr_grf, nfields=3, lacc=lzacc, &
+    CALL interpol_scal_grf (p_pp=ptr_pp, p_pc=ptr_pc, p_grf=ptr_grf, nfields=3, nlev_ex=1, lacc=lzacc, &
       f3din1=prm_diag(jg)%tkvm, f3dout1=prm_diag(jgc)%tkvm, &
       f3din2=prm_diag(jg)%tkvh, f3dout2=prm_diag(jgc)%tkvh, &
       f3din3=prm_diag(jg)%rcld, f3dout3=prm_diag(jgc)%rcld, &
@@ -2459,7 +2662,7 @@ SUBROUTINE interpol_phys_grf (ext_data, prm_diag, p_lnd_state, jg, jgc, jn, lacc
       prm_diag(jgc)%asou_t(jc,jb)         = z_aux3dp1_c(jc,36,jb)
       prm_diag(jgc)%asodird_s(jc,jb)      = z_aux3dp1_c(jc,37,jb)
       prm_diag(jgc)%htop_dc(jc,jb)        = z_aux3dp1_c(jc,39,jb)
-      prm_diag(jgc)%snowlmt(jc,jb)        = z_aux3dp1_c(jc,40,jb) - 999._wp
+      prm_diag(jgc)%snowlmt(jc,jb)        = z_aux3dp1_c(jc,40,jb) - 999._wp ! 999 was added before to be positive definite
       IF (prm_diag(jgc)%snowlmt(jc,jb) < p_nh_state(jgc)%metrics%z_ifc(jc,nlev_c+1,jb)) &
         prm_diag(jgc)%snowlmt(jc,jb) = -999._wp
       prm_diag(jgc)%hzerocl(jc,jb)        = z_aux3dp1_c(jc,41,jb) - 999._wp
@@ -2510,6 +2713,61 @@ SUBROUTINE interpol_phys_grf (ext_data, prm_diag, p_lnd_state, jg, jgc, jn, lacc
       prm_diag(jgc)%rain_con_rate_corr(jc,jb) = z_aux3dp1_c(jc,77,jb)
       prm_diag(jgc)%snow_con_rate_corr(jc,jb) = z_aux3dp1_c(jc,78,jb)
 
+      IF (islope_rad(jgc) > 0) THEN
+        prm_diag(jgc)%swflxsfc_os(jc,jb)           = z_aux3dp1_c(jc,79,jb)
+        prm_diag(jgc)%swflxsfc_tan_os(jc,jb)       = z_aux3dp1_c(jc,80,jb)
+        prm_diag(jgc)%swflx_up_sfc_os(jc,jb)       = z_aux3dp1_c(jc,81,jb)
+        prm_diag(jgc)%swflx_up_sfc_tan_os(jc,jb)   = z_aux3dp1_c(jc,82,jb)
+        prm_diag(jgc)%swflx_par_sfc_tan_os(jc,jb)  = z_aux3dp1_c(jc,83,jb)
+        prm_diag(jgc)%swflxsfc_a_os(jc,jb)         = z_aux3dp1_c(jc,84,jb)
+        prm_diag(jgc)%swflxsfc_a_tan_os(jc,jb)     = z_aux3dp1_c(jc,85,jb)
+        prm_diag(jgc)%asodird_s_os(jc,jb)          = z_aux3dp1_c(jc,86,jb)
+        prm_diag(jgc)%asodird_s_tan_os(jc,jb)      = z_aux3dp1_c(jc,87,jb)
+        prm_diag(jgc)%asod_s_os(jc,jb)             = z_aux3dp1_c(jc,88,jb)
+        prm_diag(jgc)%asod_s_tan_os(jc,jb)         = z_aux3dp1_c(jc,89,jb)
+        prm_diag(jgc)%asodifu_s_os(jc,jb)          = z_aux3dp1_c(jc,90,jb)
+        prm_diag(jgc)%asodifu_s_tan_os(jc,jb)      = z_aux3dp1_c(jc,91,jb)
+        prm_diag(jgc)%aswflx_par_sfc_tan_os(jc,jb) = z_aux3dp1_c(jc,92,jb)
+      ENDIF
+
+      prm_diag(jgc)%prec_gsp_rate(jc,jb) = z_aux3dp1_c(jc,93,jb)
+      prm_diag(jgc)%tot_prec_rate(jc,jb) = z_aux3dp1_c(jc,94,jb)
+      prm_diag(jgc)%cape_ml(jc,jb)       = z_aux3dp1_c(jc,95,jb)
+
+      IF (var_in_output(jgc)%cape_mu) THEN
+        prm_diag(jgc)%cape_mu(jc,jb) = z_aux3dp1_c(jc,96,jb)
+      ENDIF
+      IF (var_in_output(jgc)%twater) THEN
+        prm_diag(jgc)%twater(jc,jb) = z_aux3dp1_c(jc,97,jb)
+      ENDIF
+      IF (var_in_output(jgc)%tot_pr_max) THEN
+        prm_diag(jgc)%tot_pr_max(jc,jb) = z_aux3dp1_c(jc,98,jb)
+      ENDIF
+      IF (var_in_output(jgc)%hpbl) THEN
+        prm_diag(jgc)%hpbl(jc,jb) = z_aux3dp1_c(jc,99,jb)
+      ENDIF
+      IF (var_in_output(jgc)%w_ctmax) THEN
+        prm_diag(jgc)%w_ctmax(jc,jb) = z_aux3dp1_c(jc,100,jb)
+      ENDIF
+      IF (var_in_output(jgc)%tcond_max) THEN
+        prm_diag(jgc)%tcond_max(jc,jb) = z_aux3dp1_c(jc,101,jb)
+      ENDIF
+      IF (var_in_output(jgc)%tcond10_max) THEN
+        prm_diag(jgc)%tcond10_max(jc,jb) = z_aux3dp1_c(jc,102,jb)
+      ENDIF
+      IF (var_in_output(jgc)%vis) THEN
+        prm_diag(jgc)%vis(jc,jb) = z_aux3dp1_c(jc,103,jb)
+      ENDIF
+      IF (var_in_output(jgc)%ceiling) THEN
+        prm_diag(jgc)%ceiling_height(jc,jb) = z_aux3dp1_c(jc,104,jb)
+      ENDIF
+      IF (var_in_output(jgc)%lpi) THEN
+        prm_diag(jgc)%lpi(jc,jb) = z_aux3dp1_c(jc,105,jb)
+      ENDIF
+      IF (var_in_output(jgc)%lpi_max) THEN
+        prm_diag(jgc)%lpi_max(jc,jb) = z_aux3dp1_c(jc,106,jb)
+      ENDIF
+
       prm_diag(jgc)%u_10m(jc,jb)          = z_aux3dp2_c(jc,1,jb)
       prm_diag(jgc)%v_10m(jc,jb)          = z_aux3dp2_c(jc,2,jb)
       prm_diag(jgc)%lhfl_s(jc,jb)         = z_aux3dp2_c(jc,3,jb)
@@ -2538,8 +2796,113 @@ SUBROUTINE interpol_phys_grf (ext_data, prm_diag, p_lnd_state, jg, jgc, jn, lacc
         prm_diag(jgc)%htop_con(jc,jb) = z_aux3dp1_c(jc,38,jb) + prm_diag(jgc)%hbas_con(jc,jb)
       ENDIF
 
+      prm_diag(jgc)%cin_ml(jc,jb) = z_aux3dp2_c(jc,20,jb)
+      IF (prm_diag(jgc)%cin_ml(jc,jb) < 0._wp) prm_diag(jgc)%cin_ml(jc,jb) = -999._wp
+
+      IF (itune_gust_diag == 4) THEN
+        prm_diag(jgc)%u_10m_a(jc,jb) = z_aux3dp2_c(jc,21,jb)
+        prm_diag(jgc)%v_10m_a(jc,jb) = z_aux3dp2_c(jc,22,jb)
+      ENDIF
+
+      IF (var_in_output(jgc)%vorw_ctmax) THEN
+        prm_diag(jgc)%vorw_ctmax(jc,jb) = z_aux3dp2_c(jc,23,jb)
+      ENDIF
+      IF (var_in_output(jgc)%cin_mu) THEN
+        prm_diag(jgc)%cin_mu(jc,jb) = z_aux3dp2_c(jc,24,jb)
+      ENDIF
+      IF (var_in_output(jgc)%lapserate) THEN
+        prm_diag(jgc)%lapse_rate(jc,jb) = z_aux3dp2_c(jc,25,jb)
+      ENDIF
+      IF (var_in_output(jgc)%dbz850) THEN
+        prm_diag(jgc)%dbz_850(jc,jb) = MAX(z_aux3dp2_c(jc,26,jb), -150._wp)
+      ENDIF
+      IF (var_in_output(jgc)%dbzcmax) THEN
+        prm_diag(jgc)%dbz_cmax(jc,jb) = MAX(z_aux3dp2_c(jc,27,jb), -150._wp)
+      ENDIF
+      IF (var_in_output(jgc)%dbzctmax) THEN
+        prm_diag(jgc)%dbz_ctmax(jc,jb) = MAX(z_aux3dp2_c(jc,28,jb), -150._wp)
+      ENDIF
+      IF (var_in_output(jgc)%dbzlmx_low) THEN
+        prm_diag(jgc)%dbzlmx_low(jc,jb) = MAX(z_aux3dp2_c(jc,29,jb), -150._wp)
+      ENDIF
+      IF (var_in_output(jgc)%mconv) THEN
+        prm_diag(jgc)%mconv(jc,jb) = z_aux3dp2_c(jc,30,jb)
+      ENDIF
+      IF (var_in_output(jgc)%sdi2) THEN
+        prm_diag(jgc)%sdi2(jc,jb) = z_aux3dp2_c(jc,31,jb)
+      ENDIF
+
     ENDDO
     !$ACC END PARALLEL
+
+    IF (lextra_diag) THEN
+      jt = 0
+      DO jk = 1, uh_max_nlayer
+        jt = jt+1
+        IF (ANY(luh_max_out(jgc, :))) THEN
+          !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1) IF(lzacc)
+          !$ACC LOOP GANG VECTOR
+          DO jc = i_startidx, i_endidx
+            prm_diag(jgc)%uh_max_3d(jc,jb,jk) = z_aux3dp3_c(jc,jt,jb)
+          ENDDO
+          !$ACC END PARALLEL
+        ENDIF
+      ENDDO
+      DO jk = 1, n_srh
+        jt = jt+1
+        IF (var_in_output(jgc)%srh) THEN
+          !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1) IF(lzacc)
+          !$ACC LOOP GANG VECTOR
+          DO jc = i_startidx, i_endidx
+            prm_diag(jgc)%srh(jc,jb,jk) = z_aux3dp3_c(jc,jt,jb)
+          ENDDO
+          !$ACC END PARALLEL
+        ENDIF
+      ENDDO
+      ! Remark: the boundary filling will not work correctly if nechotop differs between parent and child grid
+      DO jk = 1, echotop_meta(jgc)%nechotop
+        jt = jt+1
+        IF (var_in_output(jgc)%echotop) THEN
+          !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1) IF(lzacc)
+          !$ACC LOOP GANG VECTOR
+          DO jc = i_startidx, i_endidx
+            prm_diag(jgc)%echotop(jc,jb,jk) = z_aux3dp3_c(jc,jt,jb)
+            IF (prm_diag(jgc)%echotop(jc,jb,jk) < 0._wp) prm_diag(jgc)%echotop(jc,jb,jk) = -999._wp
+          ENDDO
+          !$ACC END PARALLEL
+        ENDIF
+        jt = jt+1
+        IF (var_in_output(jgc)%echotopinm) THEN
+          !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1) IF(lzacc)
+          !$ACC LOOP GANG VECTOR
+          DO jc = i_startidx, i_endidx
+            prm_diag(jgc)%echotopinm(jc,jb,jk) = z_aux3dp3_c(jc,jt,jb)
+            IF (prm_diag(jgc)%echotopinm(jc,jb,jk) < 0._wp) prm_diag(jgc)%echotopinm(jc,jb,jk) = -999._wp
+          ENDDO
+          !$ACC END PARALLEL
+        ENDIF
+      ENDDO
+      DO jk = 1, n_wshear
+        jt = jt+1
+        IF (var_in_output(jgc)%wshear_u) THEN
+          !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1) IF(lzacc)
+          !$ACC LOOP GANG VECTOR
+          DO jc = i_startidx, i_endidx
+            prm_diag(jgc)%wshear_u(jc,jb,jk) = z_aux3dp3_c(jc,jt,jb)
+          ENDDO
+          !$ACC END PARALLEL
+        ENDIF
+        jt = jt+1
+        IF (var_in_output(jgc)%wshear_v) THEN
+          !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1) IF(lzacc)
+          !$ACC LOOP GANG VECTOR
+          DO jc = i_startidx, i_endidx
+            prm_diag(jgc)%wshear_v(jc,jb,jk) = z_aux3dp3_c(jc,jt,jb)
+          ENDDO
+          !$ACC END PARALLEL
+        ENDIF
+      ENDDO
+    ENDIF ! extra diagnostics
 
     IF (lsfc_interp) THEN
       !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1) IF(lzacc)
@@ -2796,12 +3159,12 @@ SUBROUTINE interpol_rrg_grf (jg, jgc, jn, ntl_rcf, prm_diag, p_lnd_state, lacc)
     ! Halo update is needed before interpolation
     CALL sync_patch_array_mult(SYNC_C,ptr_pp,2,z_aux3d_p,prm_diagp%rcld)
 
-    CALL interpol_scal_grf (p_pp=ptr_pp, p_pc=ptr_pc, p_grf=ptr_grf, nfields=1, lacc=lzacc, &
+    CALL interpol_scal_grf (p_pp=ptr_pp, p_pc=ptr_pc, p_grf=ptr_grf, nfields=1, nlev_ex=nfields, lacc=lzacc, &
       &                     f3din1=z_aux3d_p, f3dout1=z_aux3d_c, llimit_nneg=(/.TRUE./),&
       &                     lnoshift=.TRUE.)
 
     ! needed for cloud-cover scheme
-    CALL interpol_scal_grf (p_pp=ptr_pp, p_pc=ptr_pc, p_grf=ptr_grf, nfields=1, lacc=lzacc, &
+    CALL interpol_scal_grf (p_pp=ptr_pp, p_pc=ptr_pc, p_grf=ptr_grf, nfields=1, nlev_ex=1, lacc=lzacc, &
       f3din1=prm_diagp%rcld, f3dout1=prm_diagc%rcld, llimit_nneg=(/.TRUE./))
 
 

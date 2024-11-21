@@ -10,4 +10,16 @@
 # SPDX-License-Identifier: BSD-3-Clause
 # ------------------------------------------
 
-./config/cscs/daint.cpu.cce || exit 1
+# set experiment specific variables
+update_file_ids="wave_phy_ml wave_short_ml"
+#
+base_exp=waves_R2B4_global_no_forcing_base
+
+. ./add_refgen_routines
+
+# move data for update test
+store_model_output
+
+status=$?
+echo $status > pp.${EXPNAME}.run.final_status
+exit $status

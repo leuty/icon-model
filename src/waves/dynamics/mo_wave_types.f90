@@ -136,16 +136,17 @@ MODULE mo_wave_types
       &  ikp(:), ikp1(:),         & ! for discrete approximation of nonlinear transfer (nfreqs+4) (-)
       &  ikm(:), ikm1(:),         & ! --//-- (nfreqs+4) (-)
       &  k1w(:,:), k2w(:,:),      & ! --//-- (ndirs, 2) (-)
-      &  k11w(:,:), k21w(:,:),    & ! --//-- (ndirs, 2) (-) 
+      &  k11w(:,:), k21w(:,:),    & ! --//-- (ndirs, 2) (-)
       &  ja1(:,:), ja2(:,:),      & ! --//-- (ndirs, 2) (-)
       &  non_lin_tr_ind(:,:,:,:)  & ! tracer index for nonlinear interaction (nfreqs+4,2,ndirs,8) (-)
       &  => NULL()
 
-    TYPE(t_ptr_2d3d),   ALLOCATABLE :: gv_e_freq_ptr(:)  !< pointer array: one pointer for each frequence
-    TYPE(t_ptr_2d3d),   ALLOCATABLE :: gv_c_freq_ptr(:)  !< pointer array: one pointer for each frequence
-    TYPE(t_ptr_2d3d),   ALLOCATABLE :: wave_num_c_ptr(:) !< pointer array: one pointer for each frequence
-    TYPE(t_ptr_2d3d),   ALLOCATABLE :: wave_num_e_ptr(:) !< pointer array: one pointer for each frequence
+    TYPE(t_ptr_2d3d),   ALLOCATABLE :: gv_e_freq_ptr(:)  !< pointer array: one pointer for each frequency
+    TYPE(t_ptr_2d3d),   ALLOCATABLE :: gv_c_freq_ptr(:)  !< pointer array: one pointer for each frequency
+    TYPE(t_ptr_2d3d),   ALLOCATABLE :: wave_num_c_ptr(:) !< pointer array: one pointer for each frequency
+    TYPE(t_ptr_2d3d),   ALLOCATABLE :: wave_num_e_ptr(:) !< pointer array: one pointer for each frequency
     TYPE(t_ptr_2d_int), ALLOCATABLE :: swmask_ptr(:)     !< pointer array: one pointer for each tracer
+    TYPE(t_ptr_2d3d),   ALLOCATABLE :: flminfr_c_ptr(:)  !< pointer array: one pointer for each frequency
   END type t_wave_diag
 
   TYPE t_wave_state

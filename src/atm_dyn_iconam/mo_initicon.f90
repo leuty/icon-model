@@ -53,7 +53,7 @@ MODULE mo_initicon
   USE mo_nh_init_nest_utils,  ONLY: interpolate_vn_increments
   USE mo_util_phys,           ONLY: virtual_temp
   USE mo_util_string,         ONLY: int2string
-  USE mo_satad,               ONLY: sat_pres_ice, spec_humi
+  USE mo_thdyn_functions,     ONLY: sat_pres_ice, spec_humi
   USE mo_lnd_nwp_config,      ONLY: nlev_soil, ntiles_total, ntiles_lnd, llake, &
     &                               isub_lake, isub_water, lsnowtile, frlnd_thrhld, &
     &                               frlake_thrhld, lprog_albsi, dzsoil_icon => dzsoil, &

@@ -449,7 +449,7 @@ END SUBROUTINE interpol2_vec_grf
 !! Performs interpolation of scalar fields from parent cells to child
 !! cells using the 2D gradient at the cell center.
 !!
-SUBROUTINE interpol_scal_grf (p_pp, p_pc, p_grf, nfields, lacc,&
+SUBROUTINE interpol_scal_grf (p_pp, p_pc, p_grf, nfields, nlev_ex, lacc,         &
                               f3din1, f3dout1, f3din2, f3dout2, f3din3, f3dout3, &
                               f3din4, f3dout4, f3din5, f3dout5, f3din6, f3dout6, &
                               f4din1, f4dout1, f4din2, f4dout2,                  &
@@ -464,6 +464,10 @@ SUBROUTINE interpol_scal_grf (p_pp, p_pc, p_grf, nfields, lacc,&
 
   ! number of fields provided on input (needed for aux fields and pointer allocation)
   INTEGER, INTENT(IN) :: nfields
+
+  ! maximum value of 2nd dimension (usually levels): relevant only if buffer fields are passed
+  ! whose dimension is not nlev or nlevp1; otherwise, nlev_ex can be set to 1 in the calling routine
+  INTEGER, INTENT(IN) :: nlev_ex
 
   LOGICAL, INTENT(IN) :: lacc
 
@@ -497,9 +501,9 @@ SUBROUTINE interpol_scal_grf (p_pp, p_pc, p_grf, nfields, lacc,&
   LOGICAL :: l4d                       ! 4D field is provided as input
 
   ! Auxiliary fields
-  REAL(wp), DIMENSION(MAX(90,p_pc%nlevp1),p_grf%npoints_bdyintp_c) :: &
+  REAL(wp), DIMENSION(MAX(nlev_ex,p_pc%nlevp1),p_grf%npoints_bdyintp_c) :: &
     grad_x, grad_y, maxval_neighb, minval_neighb, val_ctr
-  REAL(wp) :: h_aux(MAX(90,p_pc%nlevp1),p_grf%npoints_bdyintp_c,4,nfields)
+  REAL(wp) :: h_aux(MAX(nlev_ex,p_pc%nlevp1),p_grf%npoints_bdyintp_c,4,nfields)
   REAL(wp) :: limfac1, limfac2, limfac, min_expval, max_expval, epsi, ovsht_fac, r_ovsht_fac, &
               relaxed_minval, relaxed_maxval
 

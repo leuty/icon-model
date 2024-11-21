@@ -363,6 +363,12 @@ CONTAINS
           &field size has to be at least nproma*nblocks_c')
     END IF
 
+    IF ((ASSOCIATED(rx%ocean_u) .AND. field_id_oce_u < 0) .OR. &
+        (ASSOCIATED(rx%ocean_v) .AND. field_id_oce_v < 0)) THEN
+      CALL finish('couple_ocean', 'ocean velocities are expected but fields &
+          &have not been registered with YAC')
+    END IF
+
 
     !  *****  *****  *****  *****  *****  *****  *****  *****  *****  *****  *****  *****
     !  Send fields from atmosphere to ocean

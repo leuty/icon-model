@@ -39,6 +39,7 @@ MODULE mo_nwp_tuning_nml
     &                               config_tune_gcstar           => tune_gcstar,           &
     &                               config_tune_zceff_min        => tune_zceff_min,        &
     &                               config_tune_v0snow           => tune_v0snow,           &
+    &                               config_tune_zcsg             => tune_zcsg,             &
     &                               config_tune_zvz0i            => tune_zvz0i,            &
     &                               config_tune_icesedi_exp      => tune_icesedi_exp,      &
     &                               config_tune_entrorg          => tune_entrorg,          &
@@ -58,11 +59,13 @@ MODULE mo_nwp_tuning_nml
     &                               config_tune_rcapqadv         => tune_rcapqadv,         &
     &                               config_tune_minsnowfrac      => tune_minsnowfrac,      &
     &                               config_tune_box_liq          => tune_box_liq,          &
+    &                               config_tune_box_ice          => tune_box_ice,          &
     &                               config_tune_box_liq_asy      => tune_box_liq_asy,      &
     &                               config_tune_box_liq_sfc_fac  => tune_box_liq_sfc_fac,  &
     &                               config_allow_overcast        => allow_overcast,        &
     &                               config_tune_thicklayfac      => tune_thicklayfac,      &
     &                               config_tune_sgsclifac        => tune_sgsclifac,        &
+    &                               config_tune_supsat_limfac    => tune_supsat_limfac,    &
     &                               config_icpl_turb_clc         => icpl_turb_clc,         &
     &                               config_tune_dust_abs         => tune_dust_abs,         &
     &                               config_tune_difrad_3dcont    => tune_difrad_3dcont,    &
@@ -130,6 +133,9 @@ MODULE mo_nwp_tuning_nml
   REAL(wp) :: &                    !< factor in the terminal velocity for snow
     &  tune_v0snow
 
+  REAL(wp) :: &                    !< efficiency for cloud-graupel riming
+    &  tune_zcsg
+  
   REAL(wp) :: &                    !< Terminal fall velocity of ice 
     &  tune_zvz0i
 
@@ -190,6 +196,9 @@ MODULE mo_nwp_tuning_nml
   REAL(wp) :: &                    !< Box width for liquid clouds assumed in the cloud cover scheme
     &  tune_box_liq                ! (in case of inwp_cldcover = 1)
 
+  REAL(wp) :: &                    !< Box width for ice clouds assumed in the cloud cover scheme
+    &  tune_box_ice                ! (in case of inwp_cldcover = 1)
+
   REAL(wp) :: &                    !< Factor for increasing the box width in case of thick model layers
     &  tune_thicklayfac            ! (in case of inwp_cldcover = 1)
 
@@ -205,6 +214,9 @@ MODULE mo_nwp_tuning_nml
 
   REAL(wp) :: &                    !< Scaling factor for subgrid-scale contribution to diagnosed cloud ice
     &  tune_sgsclifac              ! (in case of inwp_cldcover = 1)
+
+  REAL(wp) :: &                    !< Limiting factor for allowed supersaturation in satad
+    &  tune_supsat_limfac          !
 
   INTEGER :: &                     !< Mode of coupling between turbulence and cloud cover
     &  icpl_turb_clc               ! 1: strong dependency of box width on rcld with upper and lower limit
@@ -283,7 +295,7 @@ MODULE mo_nwp_tuning_nml
   
   
   NAMELIST/nwp_tuning_nml/ tune_gkwake, tune_gkdrag, tune_gfluxlaun, tune_gcstar, &
-    &                      tune_zceff_min, tune_v0snow, tune_zvz0i,               &
+    &                      tune_zceff_min, tune_v0snow, tune_zvz0i, tune_zcsg,    &
     &                      tune_entrorg, itune_albedo, tune_albedo_wso,           &
     &                      max_freshsnow_inc,                                     &
     &                      tune_capdcfac_et, tune_box_liq, tune_rhebc_land,       &
@@ -302,7 +314,7 @@ MODULE mo_nwp_tuning_nml
     &                      tune_capethresh, tune_gkdrag_enh, tune_grcrit_enh,     &
     &                      tune_minsso_gwd, tune_dursun_scaling, tune_sbmccn,     &
     &                      itune_slopecorr, tune_gustlim_agl, tune_gustlim_fac,   &
-    &                      tune_urbahf, tune_urbisa
+    &                      tune_urbahf, tune_urbisa, tune_box_ice, tune_supsat_limfac
 
 CONTAINS
 
@@ -366,6 +378,7 @@ CONTAINS
     ! grid scale microphysics
     tune_zceff_min   = 0.01_wp
     tune_v0snow      = -1.0_wp      ! defaults are set in data_gscp depending on igscp
+    tune_zcsg        = 0.5_wp       ! original value from COSMO
     tune_zvz0i       = 1.25_wp      ! original value of Heymsfield+Donner 1990: 3.29
     tune_icesedi_exp = 0.30_wp      ! exponent for density correction of cloud ice sedimentation
     tune_sbmccn      = 1.0_wp       ! [0-1] scaling factor to reduce the ccn concentration initial profile with respect to the polluted case
@@ -424,11 +437,13 @@ CONTAINS
     !
     ! cloud cover
     tune_box_liq     = 0.05_wp     ! box width scale of liquid clouds
+    tune_box_ice     = 0.05_wp     ! box width scale of ice clouds
     tune_thicklayfac = 0.005_wp    ! factor [1/m] for increasing the box with for layer thicknesses exceeding 150 m
     tune_box_liq_asy = 3._wp       ! asymmetry factor for liquid cloud parameterization
     tune_box_liq_sfc_fac(:) = 1._wp   ! Tuning factor for box_liq reduction near the surface
     allow_overcast   = 1._wp       ! Tuning factor for steeper dependence CLC(RH)
     tune_sgsclifac   = 0._wp       ! Scaling factor for subgrid-scale contribution to diagnosed cloud ice
+    tune_supsat_limfac = 0._wp     ! Limiting factor for allowed supersaturation in satad
     lcalib_clcov     = .TRUE.      ! use calibration of layer-wise cloud cover diagnostics over land
     max_calibfac_clcl = 4._wp      ! maximum calibration factor for low cloud cover (CLCL); affects diagnostics only
     icpl_turb_clc    = 1           ! use strong dependency of box with on rcld (with factor 4) and upper and lower limit
@@ -571,6 +586,7 @@ CONTAINS
     config_tune_gcstar           = tune_gcstar
     config_tune_zceff_min        = tune_zceff_min
     config_tune_v0snow           = tune_v0snow
+    config_tune_zcsg             = tune_zcsg
     config_tune_zvz0i            = tune_zvz0i
     config_tune_icesedi_exp      = tune_icesedi_exp
     config_tune_entrorg          = tune_entrorg
@@ -590,11 +606,13 @@ CONTAINS
     config_tune_rcapqadv         = tune_rcapqadv
     config_tune_minsnowfrac      = tune_minsnowfrac
     config_tune_box_liq          = tune_box_liq
+    config_tune_box_ice          = tune_box_ice
     config_tune_box_liq_asy      = tune_box_liq_asy
     config_tune_box_liq_sfc_fac  = tune_box_liq_sfc_fac
     config_allow_overcast        = allow_overcast
     config_tune_thicklayfac      = tune_thicklayfac
     config_tune_sgsclifac        = tune_sgsclifac
+    config_tune_supsat_limfac    = tune_supsat_limfac
     config_icpl_turb_clc         = icpl_turb_clc
     config_tune_dust_abs         = tune_dust_abs
     config_tune_difrad_3dcont    = tune_difrad_3dcont
@@ -620,7 +638,7 @@ CONTAINS
     config_tune_urbahf           = tune_urbahf
 
     !$ACC UPDATE DEVICE(config_tune_gust_factor, config_itune_gust_diag, config_tune_gustsso_lim) ASYNC(1)
-    !$ACC UPDATE DEVICE(config_tune_gustlim_agl, config_tune_gustlim_fac, config_tune_albedo_wso) ASYNC(1)
+    !$ACC UPDATE DEVICE(config_tune_gustlim_agl, config_tune_gustlim_fac, config_tune_albedo_wso, config_tune_supsat_limfac) ASYNC(1)
 
     !-----------------------------------------------------
     ! 6. Store the namelist for restart

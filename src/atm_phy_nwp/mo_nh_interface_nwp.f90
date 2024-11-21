@@ -67,7 +67,8 @@ MODULE mo_nh_interface_nwp
   USE mo_util_phys,               ONLY: tracer_add_phytend, inversion_height_index
   USE mo_lnd_nwp_config,          ONLY: ntiles_total, ntiles_water
   USE mo_cover_koe,               ONLY: cover_koe, cover_koe_config
-  USE mo_satad,                   ONLY: satad_v_3D, satad_v_3D_gpu, latent_heat_sublimation
+  USE mo_satad,                   ONLY: satad_v_3D, satad_v_3D_gpu 
+  USE mo_thdyn_functions,         ONLY: latent_heat_sublimation
   USE mo_aerosol_util,            ONLY: prog_aerosol_2D
   USE mo_radiation,               ONLY: radheat, pre_radiation_nwp
   USE mo_radiation_config,        ONLY: irad_aero, irad_o3, iRadAeroTegen, iRadAeroCAMSclim, iRadAeroCAMStd, iRadAeroART
@@ -487,9 +488,16 @@ CONTAINS
 
       CALL get_indices_c(pt_patch, jb, i_startblk, i_endblk,  &
                          i_startidx, i_endidx, rl_start, rl_end)
-      !$ACC KERNELS ASYNC(1) IF(lzacc)
-      z_exner_sv(i_startidx:i_endidx,:,jb) = pt_prog%exner(i_startidx:i_endidx,:,jb)
-      !$ACC END KERNELS
+
+      !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1) IF(lzacc)
+      !$ACC LOOP GANG VECTOR COLLAPSE(2)
+      DO jk = 1, pt_patch%nlev
+        DO jc = i_startidx, i_endidx
+          z_exner_sv(jc, jk, jb) = pt_prog%exner(jc, jk, jb)
+        ENDDO
+      ENDDO
+      !$ACC END PARALLEL
+
     ENDDO
 !$OMP END DO NOWAIT
 
@@ -566,9 +574,14 @@ CONTAINS
 
 
       ! Save Exner pressure field (this is needed for a correction to reduce sound-wave generation by latent heating)
-      !$ACC KERNELS ASYNC(1) IF(lzacc)
-      z_exner_sv(i_startidx:i_endidx,:,jb) = pt_prog%exner(i_startidx:i_endidx,:,jb)
-      !$ACC END KERNELS
+      !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1) IF(lzacc)
+      !$ACC LOOP GANG VECTOR COLLAPSE(2)
+      DO jk = 1, pt_patch%nlev
+        DO jc = i_startidx, i_endidx
+          z_exner_sv(jc, jk, jb) = pt_prog%exner(jc, jk, jb)
+        ENDDO
+      ENDDO
+      !$ACC END PARALLEL
 
       !!-------------------------------------------------------------------------
       !> Initial saturation adjustment (a second one follows at the end of the microphysics)
@@ -605,6 +618,7 @@ CONTAINS
            & qve      = pt_prog_rcf%tracer (:,:,jb,iqv),& !> INOUT
            & qce      = pt_prog_rcf%tracer (:,:,jb,iqc),& !> INOUT
            & rhotot   = pt_prog%rho        (:,:,jb)    ,& !> IN
+           & w        = pt_prog%w          (:,:,jb)    ,& !> IN
            & idim     = nproma                         ,& !> IN
            & kdim     = nlev                           ,& !> IN
            & ilo      = i_startidx                     ,& !> IN
@@ -737,9 +751,9 @@ CONTAINS
         !  The vdiff interface calls the land-surface scheme itself.
         CALL nwp_vdiff( &
             & mtime_datetime, dt_phy_jg(itfastphy), pt_patch, ccycle_config(jg), &
-            & vdiff_config(jg), pt_prog, pt_prog_rcf, pt_diag, p_metrics, prm_diag, ext_data, &
-            & lnd_diag, lnd_prog_new, wtr_prog_now, wtr_prog_new, prm_diag%nwp_vdiff_state, &
-            & prm_nwp_tend, initialize=linit, lacc=lzacc &
+            & vdiff_config(jg), pt_prog, pt_prog_rcf%tracer, pt_prog_rcf%tke, pt_diag, p_metrics, &
+            & prm_diag, ext_data, lnd_diag, lnd_prog_new, wtr_prog_now, wtr_prog_new, &
+            & prm_diag%nwp_vdiff_state, prm_nwp_tend, initialize=linit, lacc=lzacc &
           )
 
         IF (is_coupled_to_ocean()) THEN
@@ -899,6 +913,7 @@ CONTAINS
                                & p_sim_time,                       & ! in
                                & pt_patch, p_metrics,              & !>input
                                & pt_int_state,                     & !>input
+                               & pt_prog,                          & !>in
                                & pt_prog_rcf,                      & !>inout
                                & pt_diag ,                         & !>inout
                                & prm_diag,                         & !>inout
@@ -992,12 +1007,14 @@ CONTAINS
                & qve      = pt_prog_rcf%tracer (:,:,jb,iqv),& !> INOUT
                & qce      = pt_prog_rcf%tracer (:,:,jb,iqc),& !> INOUT
                & rhotot   = pt_prog%rho        (:,:,jb)    ,& !> IN
+               & w        = pt_prog%w          (:,:,jb)    ,& !> IN
                & idim     = nproma                         ,& !> IN
                & kdim     = nlev                           ,& !> IN
                & ilo      = i_startidx                     ,& !> IN
                & iup      = i_endidx                       ,& !> IN
                & klo      = kstart_moist(jg)               ,& !> IN
-               & kup      = nlev                            ) !> IN
+               & kup      = nlev                            &
+               ) !> IN
 
         ENDDO ! nblks
 

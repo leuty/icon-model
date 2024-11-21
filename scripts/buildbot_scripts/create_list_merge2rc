@@ -63,13 +63,15 @@ $addexp "checksuite.icon-dev/check.atm_qubicc_nc_update"  --machines "levante" -
 $addexp "checksuite.les/exp.ac3_les_20210211.run" --builders "levante_intel_hybrid" --list $listname
 
 
-# DWD wave model test on levante
-$addexp "checksuite.nwp/nwpexp.run_ICON_18_R2B4_waves"                    --builders "levante_intel_hybrid levante_nag"  --list $listname
-$addexp "checksuite.nwp/nwpexp.run_ICON_18_R2B4_waves_adv_nophys"         --builders "levante_intel_hybrid levante_nag"  --list $listname
-$addexp "checksuite.nwp/nwpexp.run_ICON_21_R2B4_waves_standalone_restart" --builders "levante_intel_hybrid"  --list $listname
-# DWD coupled tests on levante
-$addexp "checksuite.infrastructure/coupling/exp.run_ICON_17_R2B4_AO_coupled_LEVANTE.run" --builders "levante_gcc levante_intel_hybrid" --list $listname
-$addexp "checksuite.nwp/nwpexp.run_ICON_23_R2B4_atmo_waves_coupled" --builders "levante_gcc levante_intel" --list $listname --runflags "queue=compute"
+# wave model tests, including coupled atmo-wave tests
+#
+$addexp "checksuite.nwp/nwpexp.run_ICON_18_R2B4_waves_adv_nophys"         --builders "levante_intel_hybrid levante_nag DWD_nec_hybrid"  --list $listname
+$addexp "checksuite.nwp/nwpexp.run_ICON_21_R2B4_waves_standalone_restart" --builders "levante_intel_hybrid DWD_nec_hybrid"  --list $listname
+$addexp "checksuite.icon-dev/check.waves_R2B4_global_no_forcing"          --builders "DWD_nec_hybrid levante_intel_hybrid levante_nag" --list $listname
+# coupled tests
+$addexp "checksuite.nwp/nwpexp.run_ICON_23_R2B4_atmo_waves_coupled"       --builders "levante_gcc levante_intel" --list $listname --runflags "queue=compute"
+
+
 
 # add bubble test
 #off#$addexp "checksuite.icon-dev/check.atm_2mom_bubble_rceTorus"               --list $listname
@@ -98,20 +100,6 @@ $addexp "checksuite.ocean_internal/hamocc/exp.test_concurrent_hamocc_omip_10days
 $addexp "checksuite.ocean_internal/technical/exp.test_multioutput_model_40km" \
 	--machines levante --without-configureflags "--without-mpi --with-openmp --enable-mixed" --runflags "cpu_time=00:30:00 no_of_nodes=2 queue=compute" --list $listname
 
-#-----------------------------------------------------------
-# communication + seamless + oce lrestart cont
-# These mistral tests need to be re-added
-
-#-----------------------------------------------------------
-# CSCS
-# Additional tests for GPU
-
-# NVIDIA for GPU: failing currently because:
-#              mo_ice_interface:ice_fast_interface: This part has not been ported to GPU.
-./rmexp checksuite.ocean_internal/technical/exp.ocean_omip_ptest          --builders "DAINT_GPU_nvidia" --list $listname
-./rmexp checksuite.ocean_internal/technical/exp.test_ocean_omip_technical --builders "DAINT_GPU_nvidia" --list $listname
-
-
 # add experiments relevant for C2SM from yml-config
 ./../experiments/addexp_from_yml --list $listname
 
@@ -129,8 +117,9 @@ $addexp "exp.test_nwp_R02B04_R02B05_nest_comin_python" --without-configureflags 
 $addexp "checksuite.nwp/nwpexp.run_ICON_19_R2B4_cmip_forcing"  --without-configureflags "--without-mpi" --runflags "cpu_time=00:30:00 no_of_nodes=1"  --machines levante --builders "levante_intel_hybrid levante_gcc_hybrid" --list $listname
 
 $addexp "checksuite.infrastructure/comin/nwpexp.build_comin_plugins_DWD_nec" --builders "DWD_nec_yac2" --list $listname
-$addexp "exp.test_nwp_R02B04_R02B05_nest_comin"                                  --builders "DWD_nec_yac2" --list $listname
-./adddep --from-experiment "exp.test_nwp_R02B04_R02B05_nest_comin" --to-experiment "checksuite.infrastructure/comin/nwpexp.build_comin_plugins_DWD_nec" --builders "DWD_nec_yac2" --list $listname
+# deactivate COMIN expermiment for builder DWD_nec_yac2 until a fix is available.
+#$addexp "exp.test_nwp_R02B04_R02B05_nest_comin"                                  --builders "DWD_nec_yac2" --list $listname
+#./adddep --from-experiment "exp.test_nwp_R02B04_R02B05_nest_comin" --to-experiment "checksuite.infrastructure/comin/nwpexp.build_comin_plugins_DWD_nec" --builders "DWD_nec_yac2" --list $listname
 
 # this experiment runs only with-mpi and without openmp
 #
@@ -182,9 +171,6 @@ $addexp checksuite.nwp/nwpexp.run_ICON_23_R2B4_atmo_waves_coupled              -
 $addexp checksuite.nwp/nwpexp.run_ICON_11_R3B08_lam_initmode7_restarttest      --builders DWD_nec_hybrid --list $listname
 $addexp checksuite.nwp/nwpexp.run_ICON_14_R2B6N7_oper_IAU_and_restarttest      --builders DWD_nec_hybrid --list $listname
 $addexp checksuite.nwp/nwpexp.run_ICON_19_R2B4_cmip_forcing                    --builders DWD_nec_hybrid --list $listname
-# wave tests
-$addexp checksuite.nwp/nwpexp.run_ICON_18_R2B4_waves_adv_nophys                --builders DWD_nec_hybrid --list $listname
-$addexp checksuite.nwp/nwpexp.run_ICON_21_R2B4_waves_standalone_restart        --builders DWD_nec_hybrid --list $listname
 
 
 # pure atmospheric transport tests
@@ -196,6 +182,7 @@ $addexp "checksuite.icon-dev/check.atm_tracer_df4" --builders "DWD_nec levante_i
 $addexp exp.esm_bb_ruby0 --without-configureflags "--without-mpi" --machines levante --runflags "cpu_time=00:10:00 no_of_nodes=4" --list $listname
 $addexp "checksuite.infrastructure/output/exp.esm_bb_ruby0_check_output_LEVANTE.run" --builders "levante_gcc" --list $listname
 ./adddep --from-experiment "checksuite.infrastructure/output/exp.esm_bb_ruby0_check_output_LEVANTE.run" --to-experiment "exp.esm_bb_ruby0" --builders "levante_gcc" --list $listname
+$addexp "checksuite.infrastructure/coupling/exp.run_ICON_17_R2B4_AO_coupled_LEVANTE.run" --builders "levante_gcc levante_intel_hybrid" --list $listname
 
 ## new seamless entries for levante - hybrid with 4 openmp-threads with gcc (1 thread with intel_hybrid due to ecrad radiation)
 #-----------------------------------------------------------
@@ -264,6 +251,7 @@ $addexp checksuite.art/exp.art_levante_test_short.run --builders "levante_gcc" -
 $addexp checksuite.art/exp.art_levante_test.run --builders "levante_gcc" --list $listname
 
 # add tests for checking yaxt and yac stand-alone; this needs yaxt/yac to be enabled
+#FIXME: exp.check_externals_DWD.run has been deactivated, since the MPI test fails for YAC
 $addexp  checksuite.infrastructure/checkExternals/exp.check_externals_DWD.run --builders DWD_nec_yac2 --list ${listname}
 $addexp  checksuite.infrastructure/checkExternals/exp.check_externals_LEVANTE.run --machines levante --list ${listname}
 ./adddep --from-experiment "checksuite.infrastructure/comin/exp.build_comin_plugins_LEVANTE.run" --to-experiment "checksuite.infrastructure/checkExternals/exp.check_externals_LEVANTE.run" --builders "levante_gcc" --list $listname
@@ -295,7 +283,8 @@ $addexp  checksuite.infrastructure/checkExternals/exp.check_externals_LEVANTE.ru
 $addexp  checksuite.infrastructure/checkExternals/exp.check_externals_LEVANTE_gpu.run --builders "${NVHPC_GPU_BUILDERS}" --list ${listname}
 
 # icon-clm tests
-$addexp "checksuite.clm/check.ICON_CLM" --builders "levante_intel levante_gcc_hybrid" --list ${listname} --runflags="ntasks=32 queue=shared"
+$addexp "checksuite.clm/check.ICON_CLM" --builders "levante_intel levante_gcc_hybrid levante_cpu_nvhpc" --list ${listname} --runflags="ntasks=32 queue=shared"
+$addexp "checksuite.clm/check.ICON_CLM" --builders "levante_gpu_nvhpc" --list ${listname}
 $addexp "checksuite.clm/check.ICON_CLM" --builders "DWD_nec_hybrid" --list ${listname}
 $addexp "checksuite.clm/clmexp.ICON_CLM_global_mean_no_boundary" --builders "levante_intel_hybrid levante_gcc_hybrid" --list $listname
 $addexp "checksuite.clm/clmexp.ICON_CLM_output_coupling" --builders "levante_intel levante_gcc_hybrid" --list ${listname} --runflags="ntasks=32 queue=shared"
@@ -321,7 +310,7 @@ done
 
 # JSBACH-NWP test, has to be down here because the GPU builders get deactivated at the top and activated later.
 # TODO: drop levante_gpu_nvhpc
-jsbach_nwp_builders="DWD_nec DWD_nec_hybrid levante_gcc levante_intel ${NVHPC_GPU_BUILDERS}"
+jsbach_nwp_builders="DWD_nec DWD_nec_hybrid levante_gcc levante_intel levante_nag ${NVHPC_GPU_BUILDERS}"
 $addexp checksuite.icon-dev/check.atm_nwp_jsbach_test --builders "${jsbach_nwp_builders}" --list $listname
 
 # aurora node at DKRZ - not in production,yet

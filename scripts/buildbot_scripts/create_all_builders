@@ -34,14 +34,6 @@ machine=breeze
 ./addbuilder breeze_intel_openmp  --machine $machine --build_script="./config/buildbot/breeze_intel_openmp" --configureflags="--with-openmp"  --builderflags="Active"  --list $list
 ./addbuilder breeze_nag           --machine $machine --build_script="./config/buildbot/breeze_nag"                                               --builderflags="Active"  --list $list
 
-#CSCS builders
-machine=daint
-./addmachine $machine --list $list
-./addbuilder DAINT_CPU_cce          --machine $machine --build_script="./config/buildbot/daint_cpu_cce" --builderflags="Active"  --list $list
-./addbuilder DAINT_CPU_nvidia       --machine $machine --build_script="./config/buildbot/daint_cpu_nvidia"  --builderflags="Active"  --list $list
-./addbuilder DAINT_GPU_nvidia       --machine $machine --build_script="./config/buildbot/daint_gpu_nvidia"  --builderflags="Active"  --list $list
-./addbuilder DAINT_CPU_nvidia_mixed --machine $machine --build_script="./config/buildbot/daint_cpu_nvidia_mixed" --configureflags="--enable-mixed" --builderflags="Active"  --list $list
-./addbuilder DAINT_GPU_nvidia_mixed --machine $machine --build_script="./config/buildbot/daint_gpu_nvidia_mixed" --configureflags="--enable-mixed" --builderflags="Active"  --list $list
 machine=balfrin
 ./addmachine $machine --list $list
 ./addbuilder balfrin_cpu_nvidia       --machine $machine --build_script="./config/buildbot/balfrin_cpu_nvidia"  --builderflags="Active"  --list $list

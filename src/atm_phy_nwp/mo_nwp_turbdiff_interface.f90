@@ -126,8 +126,6 @@ CONTAINS
 
   INTEGER  :: nlev, nlevp1, nlevcm                  !< number of full, half and canopy levels
 
-  REAL(wp) :: tke_inc_ic(nproma)                    !< TKE increment at half levels
-
   REAL(wp) :: l_hori(nproma)                        !< horizontal length scale
 
 !                3-rd dimension of 'zvari' starting with "0":
@@ -160,22 +158,6 @@ CONTAINS
 
   INTEGER  :: jt
   INTEGER, PARAMETER :: itrac_vdf = 0
-  INTEGER  :: khpbln(nproma)      , kvartop(nproma)     , kpbltype(nproma)
-  REAL(wp) :: pdifts(nproma,p_patch%nlev+1) , pdiftq(nproma,p_patch%nlev+1)   , &
-    &         pdiftl(nproma,p_patch%nlev+1) , pdifti(nproma,p_patch%nlev+1)   , &
-    &         pstrtu(nproma,p_patch%nlev+1) , pstrtv(nproma,p_patch%nlev+1)   , &
-    &         pkh   (nproma,p_patch%nlev)   , pkm   (nproma,p_patch%nlev)
-  REAL(wp) :: z_omega_p(nproma,p_patch%nlev), zchar(nproma)                   , &
-    &         zucurr(nproma)                , zvcurr(nproma)                  , &
-    &         zsoteu(nproma,p_patch%nlev)   , zsotev(nproma,p_patch%nlev)     , &
-    &         zsobeta(nproma,p_patch%nlev)  , zz0m(nproma),  zz0h(nproma)     , &
-    &         zae(nproma,p_patch%nlev)      , ztskrad(nproma)                 , &
-    &         zsigflt(nproma)               ,                                   &
-    &         shfl_s_t(nproma,ntiles_total+ntiles_water)                      , &
-    &         evap_s_t(nproma,ntiles_total+ntiles_water)                      , &
-    &         tskin_t (nproma,ntiles_total+ntiles_water)                      , &
-    &         ustr_s_t(nproma,ntiles_total+ntiles_water)                      , &
-    &         vstr_s_t(nproma,ntiles_total+ntiles_water)
 
   REAL(wp) :: ut_sso(nproma, p_patch%nlev), vt_sso(nproma, p_patch%nlev)
  
@@ -220,20 +202,12 @@ CONTAINS
   ldiff_qi = turbdiff_config(jg)%ldiff_qi
   ldiff_qs = turbdiff_config(jg)%ldiff_qs
 
-  !$ACC DATA CREATE(khpbln, kvartop, kpbltype, pdifts, pdiftq, pdiftl, pdifti, pstrtu, pstrtv, pkh, pkm, z_omega_p) &
-  !$ACC   CREATE(zchar, zucurr, zvcurr, zsoteu, zsotev, zsobeta, zz0m, zz0h, zae, ztskrad, zsigflt, shfl_s_t) &
-  !$ACC   CREATE(evap_s_t, tskin_t, ustr_s_t, vstr_s_t, ddt_turb_qnc, ddt_turb_qni, ddt_turb_qs, ddt_turb_qns) &
-  !$ACC   CREATE(tke_inc_ic, l_hori, zvari, zrhon, z_tvs, ztmassfl_s, ut_sso, vt_sso)
+  !$ACC DATA CREATE(ddt_turb_qnc, ddt_turb_qni, ddt_turb_qs, ddt_turb_qns) &
+  !$ACC   CREATE(l_hori, zvari, zrhon, z_tvs, ztmassfl_s, ut_sso, vt_sso)
 
 !$OMP PARALLEL
-!$OMP DO PRIVATE(jb,jc,jk,i_startidx,i_endidx,tke_inc_ic, z_tvs, &
-!$OMP            ncloud_offset,ptr,nzprv,l_hori,zvari,zrhon,ztmassfl_s,                    &
-!$OMP            jt       , khpbln  , kvartop , kpbltype,                                  &
-!$OMP            pdifts   , pdiftq  , pdiftl  , pdifti  , pstrtu  , pstrtv , pkh , pkm ,   &
-!$OMP            z_omega_p, zchar   , zucurr  , zvcurr  , zsoteu  , zsotev , zsobeta   ,   &
-!$OMP            zz0m     , zz0h    , zae     , ztskrad , zsigflt ,                        &
-!$OMP            shfl_s_t , evap_s_t, tskin_t , ustr_s_t, vstr_s_t, &
-!$OMP            ddt_turb_qnc, ddt_turb_qni, ddt_turb_qs, ddt_turb_qns, ut_sso, vt_sso)  ICON_OMP_GUIDED_SCHEDULE
+!$OMP DO PRIVATE(jb,jc,jk,i_startidx,i_endidx,z_tvs,ncloud_offset,ptr,nzprv,l_hori,zvari,zrhon,ztmassfl_s,         &
+!$OMP            jt,ddt_turb_qnc, ddt_turb_qni, ddt_turb_qs, ddt_turb_qns, ut_sso, vt_sso)  ICON_OMP_GUIDED_SCHEDULE
 
   DO jb = i_startblk, i_endblk
 
@@ -279,22 +253,20 @@ CONTAINS
         ! of tvs; attempts to horizontally advect TKE failed because of numerical instability
         !
         !$ACC PARALLEL ASYNC(1) DEFAULT(PRESENT)
-        !$ACC LOOP GANG
+        !$ACC LOOP GANG VECTOR COLLAPSE(2)
         DO jk=2, nlev
-          !$ACC LOOP VECTOR
           DO jc=i_startidx, i_endidx
 
-            tke_inc_ic(jc) = p_metrics%wgtfac_c(jc,jk,jb) * p_diag%ddt_tracer_adv(jc,jk,jb,iqtke) &
-              &             + (1._wp - p_metrics%wgtfac_c(jc,jk,jb)) &
-              &             * p_diag%ddt_tracer_adv(jc,jk-1,jb,iqtke)
-
             ! add advective TKE (actually tvs) tendency to ddt_tke, which is provided to turbdiff as input
-            prm_nwp_tend%ddt_tke(jc,jk,jb) = prm_nwp_tend%ddt_tke(jc,jk,jb) + tke_inc_ic(jc)
+            prm_nwp_tend%ddt_tke(jc,jk,jb) = prm_nwp_tend%ddt_tke(jc,jk,jb)                                       &
+                                           + p_metrics%wgtfac_c(jc,jk,jb) * p_diag%ddt_tracer_adv(jc,jk,jb,iqtke) &
+                                           + (1._wp - p_metrics%wgtfac_c(jc,jk,jb))                               &
+                                           * p_diag%ddt_tracer_adv(jc,jk-1,jb,iqtke)
 
           ENDDO  ! jc
         ENDDO  ! jk
         !$ACC END PARALLEL
-        !
+
         !$ACC PARALLEL ASYNC(1) DEFAULT(PRESENT)
         !$ACC LOOP GANG VECTOR
         DO jc=i_startidx, i_endidx
@@ -304,19 +276,28 @@ CONTAINS
 
         ENDDO  ! jc
         !$ACC END PARALLEL
+
+        !Attention(MR):
+        !Advection tendencies for TVS should be provided to 'turbdiff' via 'tketadv'!
+        !At the zero-level (nlevp1), there should be no transport of TVS at all!
       ENDIF
 
 
 
       !KF tendencies  have to be set to zero
       !GZ: this should be replaced by an appropriate switch in turbdiff
-      !$ACC KERNELS ASYNC(1) DEFAULT(PRESENT)
-      prm_nwp_tend%ddt_u_turb(:,:,jb) = 0._wp
-      prm_nwp_tend%ddt_v_turb(:,:,jb) = 0._wp
-      prm_nwp_tend%ddt_temp_turb(:,:,jb) = 0._wp
-      prm_nwp_tend%ddt_tracer_turb(:,:,jb,iqv) = 0._wp
-      prm_nwp_tend%ddt_tracer_turb(:,:,jb,iqc) = 0._wp
-      !$ACC END KERNELS
+      !$ACC PARALLEL ASYNC(1) DEFAULT(PRESENT)
+      !$ACC LOOP GANG VECTOR COLLAPSE(2)
+      DO jk=1, nlev
+        DO jc=1, nproma
+          prm_nwp_tend%ddt_u_turb(jc,jk,jb) = 0._wp
+          prm_nwp_tend%ddt_v_turb(jc,jk,jb) = 0._wp
+          prm_nwp_tend%ddt_temp_turb(jc,jk,jb) = 0._wp
+          prm_nwp_tend%ddt_tracer_turb(jc,jk,jb,iqv) = 0._wp
+          prm_nwp_tend%ddt_tracer_turb(jc,jk,jb,iqc) = 0._wp
+        END DO
+      END DO
+      !$ACC END PARALLEL
 
       ! offset for ptr-indexing in ART-Interface
       ncloud_offset = 0
@@ -324,9 +305,14 @@ CONTAINS
       IF (ltwomoment) THEN
         ! register cloud droplet number for turbulent diffusion
         ncloud_offset = ncloud_offset+1
-        !$ACC KERNELS ASYNC(1) DEFAULT(PRESENT)
-        ddt_turb_qnc(:,:) = 0.0_wp
-        !$ACC END KERNELS
+        !$ACC PARALLEL ASYNC(1) DEFAULT(PRESENT)
+        !$ACC LOOP GANG VECTOR COLLAPSE(2)
+        DO jk=1, nlev
+          DO jc=1, nproma
+            ddt_turb_qnc(jc,jk) = 0.0_wp
+          END DO
+        END DO
+        !$ACC END PARALLEL
         ptr(ncloud_offset)%av     => p_prog_rcf%tracer(:,:,jb,iqnc)
         ptr(ncloud_offset)%at     => ddt_turb_qnc(:,:)
         ptr(ncloud_offset)%sv     => NULL()
@@ -336,9 +322,14 @@ CONTAINS
       IF (ldiff_qi) THEN
         ! register cloud ice for turbulent diffusion
         ncloud_offset = ncloud_offset + 1
-        !$ACC KERNELS ASYNC(1) DEFAULT(PRESENT)
-        prm_nwp_tend%ddt_tracer_turb(:,:,jb,iqi) = 0.0_wp
-        !$ACC END KERNELS
+        !$ACC PARALLEL ASYNC(1) DEFAULT(PRESENT)
+        !$ACC LOOP GANG VECTOR COLLAPSE(2)
+        DO jk=1, nlev
+          DO jc=1, nproma
+            prm_nwp_tend%ddt_tracer_turb(jc,jk,jb,iqi) = 0.0_wp
+          END DO
+        END DO
+        !$ACC END PARALLEL
         ptr(ncloud_offset)%av     => p_prog_rcf%tracer(:,:,jb,iqi)
         ptr(ncloud_offset)%at     => prm_nwp_tend%ddt_tracer_turb(:,:,jb,iqi)
         ptr(ncloud_offset)%sv     => NULL()
@@ -346,9 +337,14 @@ CONTAINS
         IF (ltwomoment) THEN
           ! register cloud ice number for turbulent diffusion
           ncloud_offset = ncloud_offset + 1
-          !$ACC KERNELS ASYNC(1) DEFAULT(PRESENT)
-          ddt_turb_qni(:,:) = 0.0_wp
-          !$ACC END KERNELS
+          !$ACC PARALLEL ASYNC(1) DEFAULT(PRESENT)
+          !$ACC LOOP GANG VECTOR COLLAPSE(2)
+          DO jk=1, nlev
+            DO jc=1, nproma
+              ddt_turb_qni(jc,jk) = 0.0_wp
+            END DO
+          END DO
+          !$ACC END PARALLEL
           ptr(ncloud_offset)%av     => p_prog_rcf%tracer(:,:,jb,iqni)
           ptr(ncloud_offset)%at     => ddt_turb_qni(:,:)
           ptr(ncloud_offset)%sv     => NULL()
@@ -359,9 +355,14 @@ CONTAINS
       IF (ldiff_qs) THEN
         ! register snow mass for turbulent diffusion
         ncloud_offset = ncloud_offset + 1
-        !$ACC KERNELS ASYNC(1) DEFAULT(PRESENT)
-        ddt_turb_qs (:,:) = 0.0_wp
-        !$ACC END KERNELS
+        !$ACC PARALLEL ASYNC(1) DEFAULT(PRESENT)
+        !$ACC LOOP GANG VECTOR COLLAPSE(2)
+        DO jk=1, nlev
+          DO jc=1, nproma
+            ddt_turb_qs(jc,jk) = 0.0_wp
+          END DO
+        END DO
+        !$ACC END PARALLEL
         ptr(ncloud_offset)%av     => p_prog_rcf%tracer(:,:,jb,iqs )
         ptr(ncloud_offset)%at     => ddt_turb_qs (:,:)
         ptr(ncloud_offset)%sv     => NULL()
@@ -369,9 +370,14 @@ CONTAINS
         IF (ltwomoment) THEN
           ! register snow number for turbulent diffusion
           ncloud_offset = ncloud_offset + 1
-          !$ACC KERNELS ASYNC(1) DEFAULT(PRESENT)
-          ddt_turb_qns(:,:) = 0.0_wp
-          !$ACC END KERNELS
+          !$ACC PARALLEL ASYNC(1) DEFAULT(PRESENT)
+          !$ACC LOOP GANG VECTOR COLLAPSE(2)
+          DO jk=1, nlev
+            DO jc=1, nproma
+              ddt_turb_qns(jc,jk) = 0.0_wp
+            END DO
+          END DO
+          !$ACC END PARALLEL
           ptr(ncloud_offset)%av     => p_prog_rcf%tracer(:,:,jb,iqns)
           ptr(ncloud_offset)%at     => ddt_turb_qns(:,:)
           ptr(ncloud_offset)%sv     => NULL()
@@ -445,24 +451,32 @@ CONTAINS
       ENDIF
 
       !should be dependent on location in future!
-      !$ACC KERNELS ASYNC(1) DEFAULT(PRESENT)
-      l_hori(i_startidx:i_endidx)=phy_params(jg)%mean_charlen
-      !$ACC END KERNELS
+      !$ACC PARALLEL ASYNC(1) DEFAULT(PRESENT)
+      !$ACC LOOP GANG VECTOR
+      DO jc=i_startidx, i_endidx
+        l_hori(jc)=phy_params(jg)%mean_charlen
+      END DO
+      !$ACC END PARALLEL
 
       nzprv = 1
 
-      !$ACC KERNELS ASYNC(1) DEFAULT(PRESENT)
+      !$ACC PARALLEL ASYNC(1) DEFAULT(PRESENT)
+      !$ACC LOOP GANG VECTOR COLLAPSE(2)
+      DO jk=1, nlev
+        DO jc=1, nproma
 #if defined(_CRAYFTN) && _RELEASE_MAJOR <= 16
       ! ACCWA (Cray Fortran <= 16.0.1.1) : explicit type conversion fails with HSA memory error CAST-32450
       ! In principle, implicit conversion works correctly, however, for code readability 
       ! this should be removed when compiler is fixed 
-      ut_sso(:,:)=prm_nwp_tend%ddt_u_sso(:,:,jb)
-      vt_sso(:,:)=prm_nwp_tend%ddt_v_sso(:,:,jb)
+          ut_sso(jc,jk)=prm_nwp_tend%ddt_u_sso(jc,jk,jb)
+          vt_sso(jc,jk)=prm_nwp_tend%ddt_v_sso(jc,jk,jb)
 #else
-      ut_sso(:,:)=REAL(prm_nwp_tend%ddt_u_sso(:,:,jb), wp)
-      vt_sso(:,:)=REAL(prm_nwp_tend%ddt_v_sso(:,:,jb), wp)
+          ut_sso(jc,jk)=REAL(prm_nwp_tend%ddt_u_sso(jc,jk,jb), wp)
+          vt_sso(jc,jk)=REAL(prm_nwp_tend%ddt_v_sso(jc,jk,jb), wp)
 #endif
-      !$ACC END KERNELS
+        END DO
+      END DO
+      !$ACC END PARALLEL
 
       IF (timers_level > 9) CALL timer_start(timer_nwp_turbdiff)
 
@@ -666,10 +680,12 @@ CONTAINS
 
       ! preparation for concentration boundary condition. Usually inactive for standard ICON runs.
       IF ( .NOT. lsflcnd ) THEN
-        !$ACC KERNELS ASYNC(1) DEFAULT(PRESENT)
-        prm_diag%lhfl_s(i_startidx:i_endidx,jb) = &
-          &  prm_diag%qhfl_s(i_startidx:i_endidx,jb) * alv
-        !$ACC END KERNELS
+        !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1)
+        !$ACC LOOP GANG VECTOR
+        DO jc = i_startidx, i_endidx 
+          prm_diag%lhfl_s(jc,jb) = prm_diag%qhfl_s(jc,jb) * alv
+        END DO
+        !$ACC END PARALLEL
       END IF
 
 #ifdef __ICON_ART
@@ -685,9 +701,8 @@ CONTAINS
       ! Interpolate updated TVS (still contained in 'tke' back to main levels:
       IF (advection_config(jg)%iadv_tke > 0) THEN
         !$ACC PARALLEL ASYNC(1) DEFAULT(PRESENT)
-        !$ACC LOOP GANG
+        !$ACC LOOP GANG VECTOR COLLAPSE(2)
         DO jk=1, nlev
-          !$ACC LOOP VECTOR
           DO jc=i_startidx, i_endidx
             p_prog_rcf%tracer(jc,jk,jb,iqtke) = 0.5_wp* ( z_tvs(jc,jk) + z_tvs(jc,jk+1) )
           ENDDO
@@ -699,9 +714,8 @@ CONTAINS
       !'ddt_tke' is purely diagnostic and has already been added to the turbulent velocity scale (TVS).
       ! transform updated TVS back to TKE:
       !$ACC PARALLEL ASYNC(1) DEFAULT(PRESENT)
-      !$ACC LOOP GANG
+      !$ACC LOOP GANG VECTOR COLLAPSE(2)
       DO jk=1, nlevp1
-        !$ACC LOOP VECTOR
         DO jc=i_startidx, i_endidx
           p_prog_rcf%tke(jc,jk,jb) = 0.5_wp*(z_tvs(jc,jk))**2
         ENDDO
@@ -778,11 +792,18 @@ CONTAINS
     DO jk = 1, nlev
 !DIR$ IVDEP
       DO jc = i_startidx, i_endidx
-      
-        prm_nwp_tend%ddt_u_turb(jc,jk,jb) = &
-          SIGN(MIN(0.1_wp,ABS(prm_nwp_tend%ddt_u_turb(jc,jk,jb))),prm_nwp_tend%ddt_u_turb(jc,jk,jb))
-        prm_nwp_tend%ddt_v_turb(jc,jk,jb) = &
-          SIGN(MIN(0.1_wp,ABS(prm_nwp_tend%ddt_v_turb(jc,jk,jb))),prm_nwp_tend%ddt_v_turb(jc,jk,jb))
+
+        IF (prm_nwp_tend%ddt_u_turb(jc,jk,jb) > 0.1_wp) THEN
+          prm_nwp_tend%ddt_u_turb(jc,jk,jb) = 0.1_wp
+        ELSE IF (prm_nwp_tend%ddt_u_turb(jc,jk,jb) < -0.1_wp) THEN
+          prm_nwp_tend%ddt_u_turb(jc,jk,jb) = -0.1_wp
+        END IF
+
+        IF (prm_nwp_tend%ddt_v_turb(jc,jk,jb) > 0.1_wp) THEN
+          prm_nwp_tend%ddt_v_turb(jc,jk,jb) = 0.1_wp
+        ELSE IF (prm_nwp_tend%ddt_v_turb(jc,jk,jb) < -0.1_wp) THEN
+          prm_nwp_tend%ddt_v_turb(jc,jk,jb) = -0.1_wp
+        END IF
 
         p_prog_rcf%tracer(jc,jk,jb,iqv) =MAX(0._wp, p_prog_rcf%tracer(jc,jk,jb,iqv) &
              &           + tcall_turb_jg*prm_nwp_tend%ddt_tracer_turb(jc,jk,jb,iqv))

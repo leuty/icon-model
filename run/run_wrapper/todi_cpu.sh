@@ -13,6 +13,9 @@
 
 export LOCAL_RANK=$SLURM_LOCALID
 export GLOBAL_RANK=$SLURM_PROCID
-export NUMA_NODE=$(($LOCAL_RANK/16))
+export NUMA=(0 1 2 3)
+export SOCKET_ID=$(($LOCAL_RANK / 72))
+export NUMA_NODE=${NUMA[$SOCKET_ID]}
 
-numactl --physcpubind=$LOCAL_RANK --membind=$NUMA_NODE bash -c "$@"
+ulimit -s unlimited
+numactl --cpunodebind=$NUMA_NODE --membind=$NUMA_NODE bash -c "$@"

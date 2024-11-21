@@ -104,27 +104,27 @@ CONTAINS
     REAL(wp),INTENT(IN) :: ptottem1 (:,:) ! (kbdim,klev)
     TYPE(t_vdiff_config), INTENT(IN) :: vdiff_config ! tuning parameters for current domain.
 
-    REAL(wp),INTENT(OUT) :: phdtcbl (:)   !< (kbdim) top height of dry convective boundary layer
-    REAL(wp),INTENT(OUT) :: ptottevn(:,:) !< (kbdim,klevm1) TTE at intermediate time step
-    REAL(wp),INTENT(OUT) :: pcftotte(:,:) !< (kbdim,klevm1) exchange coeff. for TTE
-    REAL(wp),INTENT(OUT) :: pcfthv  (:,:) !< (kbdim,klevm1) exchange coeff. for var. of theta_v
-    REAL(wp),INTENT(OUT) :: pcfm    (:,:) !< (kbdim,klevm1) exchange coeff. for u, v
-    REAL(wp),INTENT(OUT) :: pcfh    (:,:) !< (kbdim,klevm1) exchange coeff. for cptgz and tracers
-    REAL(wp),INTENT(OUT) :: pcfv    (:,:) !< (kbdim,klevm1) exchange coeff. for variance of qx
-    REAL(wp),INTENT(OUT) :: pzthvvar(:,:) !< (kbdim,klevm1) variance of theta_v at interm. step
-    REAL(wp),INTENT(OUT) :: pcptgz  (:,:) !< (kbdim,klev) dry static energy
-    REAL(wp),INTENT(OUT) :: pprfac  (:,:) !< (kbdim,klevm1) prefactor for the exchange coeff.
+    REAL(wp),INTENT(INOUT) :: phdtcbl (:)   !< (kbdim) top height of dry convective boundary layer
+    REAL(wp),INTENT(INOUT) :: ptottevn(:,:) !< (kbdim,klevm1) TTE at intermediate time step
+    REAL(wp),INTENT(INOUT) :: pcftotte(:,:) !< (kbdim,klevm1) exchange coeff. for TTE
+    REAL(wp),INTENT(INOUT) :: pcfthv  (:,:) !< (kbdim,klevm1) exchange coeff. for var. of theta_v
+    REAL(wp),INTENT(INOUT) :: pcfm    (:,:) !< (kbdim,klevm1) exchange coeff. for u, v
+    REAL(wp),INTENT(INOUT) :: pcfh    (:,:) !< (kbdim,klevm1) exchange coeff. for cptgz and tracers
+    REAL(wp),INTENT(INOUT) :: pcfv    (:,:) !< (kbdim,klevm1) exchange coeff. for variance of qx
+    REAL(wp),INTENT(INOUT) :: pzthvvar(:,:) !< (kbdim,klevm1) variance of theta_v at interm. step
+    REAL(wp),INTENT(INOUT) :: pcptgz  (:,:) !< (kbdim,klev) dry static energy
+    REAL(wp),INTENT(INOUT) :: pprfac  (:,:) !< (kbdim,klevm1) prefactor for the exchange coeff.
 
     ! _b denotes the values at the bottom level (the klev-th full level)
-    REAL(wp),INTENT(OUT) :: ptheta_b (:)  !< (kbdim) potential temperature
-    REAL(wp),INTENT(OUT) :: pthetav_b(:)  !< (kbdim) virtual potential temperature
-    REAL(wp),INTENT(OUT) :: pthetal_b(:)  !< (kbdim) liquid (and ice?) potential temperature
-    REAL(wp),INTENT(OUT) :: pqsat_b  (:)  !< (kbdim) specific humidity at saturation
-    REAL(wp),INTENT(OUT) :: plh_b    (:)  !< (kbdim) latent heat
+    REAL(wp),INTENT(INOUT) :: ptheta_b (:)  !< (kbdim) potential temperature
+    REAL(wp),INTENT(INOUT) :: pthetav_b(:)  !< (kbdim) virtual potential temperature
+    REAL(wp),INTENT(INOUT) :: pthetal_b(:)  !< (kbdim) liquid (and ice?) potential temperature
+    REAL(wp),INTENT(INOUT) :: pqsat_b  (:)  !< (kbdim) specific humidity at saturation
+    REAL(wp),INTENT(INOUT) :: plh_b    (:)  !< (kbdim) latent heat
 
     ! Just for output
-    REAL(wp),INTENT(OUT) :: pri     (:,:) !< (kbdim,klevm1) moist Richardson number at mid-levels
-    REAL(wp),INTENT(OUT) :: pmixlen (:,:) !< (kbdim,klevm1) mixing length
+    REAL(wp),INTENT(INOUT) :: pri     (:,:) !< (kbdim,klevm1) moist Richardson number at mid-levels
+    REAL(wp),INTENT(INOUT) :: pmixlen (:,:) !< (kbdim,klevm1) mixing length
 
     ! Local variables
     ! - Variables defined at full levels
@@ -626,38 +626,38 @@ CONTAINS
 
     ! "_tile" denotes value at surface
 
-    REAL(wp),INTENT(OUT) :: pqsat_tile (:,:) !< (kbdim,ksfc_type) saturation specific humidity
+    REAL(wp),INTENT(INOUT) :: pqsat_tile (:,:) !< (kbdim,ksfc_type) OUT saturation specific humidity
                                                          !<  at surface
-    REAL(wp),INTENT(OUT) :: pcpt_tile  (:,:) !< (kbdim,ksfc_type) dry static energy
-    REAL(wp),INTENT(OUT) :: pri_gbm    (:)   !< (kbdim) moist Richardson number
-    REAL(wp),INTENT(OUT) :: pri_tile   (:,:) !< (kbdim,ksfc_type) moist Richardson number
+    REAL(wp),INTENT(INOUT) :: pcpt_tile  (:,:) !< (kbdim,ksfc_type) OUT dry static energy
+    REAL(wp),INTENT(INOUT) :: pri_gbm    (:)   !< (kbdim) OUT moist Richardson number
+    REAL(wp),INTENT(INOUT) :: pri_tile   (:,:) !< (kbdim,ksfc_type) OUT moist Richardson number
 
-    REAL(wp),INTENT(OUT) :: pcfm_gbm   (:)   !< (kbdim) exchange coeff. of momentum
-    REAL(wp),INTENT(OUT) :: pcfm_tile  (:,:) !< (kbdim,ksfc_type) exchange coeff. of momentum,
+    REAL(wp),INTENT(INOUT) :: pcfm_gbm   (:)   !< (kbdim) OUT exchange coeff. of momentum
+    REAL(wp),INTENT(INOUT) :: pcfm_tile  (:,:) !< (kbdim,ksfc_type) OUT exchange coeff. of momentum,
                                              !< for each type of surface
-    REAL(wp),INTENT(OUT) :: pcfh_gbm   (:)   !< (kbdim) exchange coeff. of heat and
+    REAL(wp),INTENT(INOUT) :: pcfh_gbm   (:)   !< (kbdim) OUT exchange coeff. of heat and
                                              !<  vapor
-    REAL(wp),INTENT(OUT) :: pcfh_tile  (:,:) !< (kbdim,ksfc_type) exchange coeff. of heat and
+    REAL(wp),INTENT(INOUT) :: pcfh_tile  (:,:) !< (kbdim,ksfc_type) OUT exchange coeff. of heat and
                                              !<  vapor for each surface type
-    REAL(wp),INTENT(OUT) :: pcfv_sfc    (:)  !< (kbdim) exchange coeff. of total water variance
-    REAL(wp),INTENT(OUT) :: pcftotte_sfc(:)  !< (kbdim) exchange coeff. of TTE
-    REAL(wp),INTENT(OUT) :: pcfthv_sfc  (:)  !< (kbdim) exchange coeff. of the variance of
+    REAL(wp),INTENT(INOUT) :: pcfv_sfc    (:)  !< (kbdim) OUT exchange coeff. of total water variance
+    REAL(wp),INTENT(INOUT) :: pcftotte_sfc(:)  !< (kbdim) OUT exchange coeff. of TTE
+    REAL(wp),INTENT(INOUT) :: pcfthv_sfc  (:)  !< (kbdim) OUT exchange coeff. of the variance of
                                              !<  theta_v
-    REAL(wp),INTENT(OUT) :: pprfac_sfc (:)   !< (kbdim) prefactor for exchange coefficients
-    REAL(wp),INTENT(OUT) :: jtottevn_sfc(:)  !< (kbdim) boundary condition (sfc value) of TTE
-    REAL(wp),INTENT(OUT) :: ptottevn_sfc(:)  !< (kbdim) boundary condition (sfc value) of TTE
-    REAL(wp),INTENT(OUT) :: pthvvar_sfc(:)   !< (kbdim) boundary condition (sfc value)
+    REAL(wp),INTENT(INOUT) :: pprfac_sfc (:)   !< (kbdim) OUT prefactor for exchange coefficients
+    REAL(wp),INTENT(INOUT) :: jtottevn_sfc(:)  !< (kbdim) OUT boundary condition (sfc value) of TTE
+    REAL(wp),INTENT(INOUT) :: ptottevn_sfc(:)  !< (kbdim) OUT boundary condition (sfc value) of TTE
+    REAL(wp),INTENT(INOUT) :: pthvvar_sfc(:)   !< (kbdim) OUT boundary condition (sfc value)
                                                  !< of the variance of theta_v
-    REAL(wp),INTENT(OUT) :: pustarm    (:)   !< (kbdim) friction velocity, grid-box mean
-    REAL(wp),INTENT(OUT) :: pwstar     (:)   !< (kbdim) convective velocity scale, grid-box mean
-    REAL(wp),INTENT(INOUT),DIMENSION(:,:) :: & ! DIMENSION(kbdim,ksfc_type)
-                            pwstar_tile  !< convective velocity scale,
-                                         !<  each sfc type
-    REAL(wp),INTENT(OUT) :: pbn_tile  (:,:)  !< (kbdim,ksfc_type) for diagnostics
-    REAL(wp),INTENT(OUT) :: pbhn_tile (:,:)  !< (kbdim,ksfc_type) for diagnostics
-    REAL(wp),INTENT(OUT) :: pbm_tile  (:,:)  !< (kbdim,ksfc_type) for diagnostics
-    REAL(wp),INTENT(OUT) :: pbh_tile  (:,:)  !< (kbdim,ksfc_type) for diagnostics
-    REAL(wp),INTENT(OUT) :: pch_tile  (:,:)  !< (kbdim,ksfc_type) for TTE boundary condition
+    REAL(wp),INTENT(INOUT) :: pustarm    (:)   !< (kbdim) OUT friction velocity, grid-box mean
+    REAL(wp),INTENT(INOUT) :: pwstar     (:)   !< (kbdim) OUT convective velocity scale, grid-box mean
+    REAL(wp),INTENT(INOUT) :: pwstar_tile(:,:) !< (kbdim,ksfc_type) INOUT
+                                               !! convective velocity scale,
+                                               !!  each sfc type
+    REAL(wp),INTENT(INOUT) :: pbn_tile  (:,:)  !< (kbdim,ksfc_type) OUT for diagnostics
+    REAL(wp),INTENT(INOUT) :: pbhn_tile (:,:)  !< (kbdim,ksfc_type) OUT for diagnostics
+    REAL(wp),INTENT(INOUT) :: pbm_tile  (:,:)  !< (kbdim,ksfc_type) OUT for diagnostics
+    REAL(wp),INTENT(INOUT) :: pbh_tile  (:,:)  !< (kbdim,ksfc_type) OUT for diagnostics
+    REAL(wp),INTENT(INOUT) :: pch_tile  (:,:)  !< (kbdim,ksfc_type) OUT for TTE boundary condition
     !
     ! optional arguments for use with jsbach
     REAL(wp),OPTIONAL,INTENT(IN) :: paz0lh (:)  !< (kbdim) roughness length for heat over land

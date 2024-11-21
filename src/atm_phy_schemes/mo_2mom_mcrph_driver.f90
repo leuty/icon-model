@@ -47,7 +47,7 @@ USE mo_physical_constants,   ONLY: &
     cvdr  => rcvd,    & ! (spec. heat of dry air at const vol)^-1
     rho_ice => rhoice   ! density of pure ice
 
-USE mo_satad,                ONLY: latent_heat_sublimation, latent_heat_melting
+USE mo_thdyn_functions,      ONLY: latent_heat_sublimation, latent_heat_melting
 
 USE mo_exception,            ONLY: finish, message, message_text
 USE mo_run_config,           ONLY: ldass_lhn
@@ -69,10 +69,12 @@ USE mo_2mom_mcrph_main,      ONLY:                                &
      &                        init_2mom_scheme, init_2mom_scheme_once,   &
      &                        qnc_const
 
-USE mo_2mom_mcrph_processes,  ONLY:                                &
-     &                         sedi_vel_rain, sedi_vel_sphere,     &
+USE mo_2mom_mcrph_setup,      ONLY:                                &
+     &                         particle_meanmass
+
+USE mo_2mom_mcrph_processes,  ONLY:                                                    &
+     &                         sedi_vel_rain, sedi_vel_sphere, sedi_vel_lwf,           &
      &                         sedi_icon_rain, sedi_icon_sphere, sedi_icon_sphere_lwf, &
-     &                         particle_meanmass, sedi_vel_lwf,&
      &                         q_crit, cfg_params
 
 USE mo_2mom_mcrph_config_default, ONLY: cfg_2mom_default

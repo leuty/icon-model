@@ -73,7 +73,7 @@ USE mo_exception,           ONLY: message, finish !,message_text
 USE mo_model_domain,        ONLY: t_patch, p_patch, p_patch_local_parent
 USE mo_grid_config,         ONLY: n_dom, n_dom_start, nexlevs_rrg_vnest
 USE mo_atm_phy_nwp_config,  ONLY: atm_phy_nwp_config, icpl_aero_conv, iprog_aero
-USE turb_data,              ONLY: ltkecon, imode_tkemini, imode_trancnf, rsur_sher   
+USE turb_data,              ONLY: ltkecon, imode_tkemini, imode_trancnf, rsur_sher
 USE mo_initicon_config,     ONLY: icpl_da_sfcevap, icpl_da_snowalb, icpl_da_landalb, icpl_da_skinc, icpl_da_seaice
 USE mo_radiation_config,    ONLY: irad_aero, iRadAeroTegen, iRadAeroART, iRadAeroNone, &
                                   iRadAeroConst, iRadAeroCAMSclim, iRadAeroCAMStd, islope_rad, &
@@ -1257,18 +1257,13 @@ SUBROUTINE new_nwp_phy_diag_list( k_jg, klev, klevp1, kblks,    &
 
     IF ( var_in_output%hpbl ) THEN
 
-#ifdef _OPENACC
-      CALL finish ('mo_nwp_phy_state:new_nwp_phy_diag_list', &
-        'hpbl calculation not ported to GPU')
-#endif
-
       cf_desc    = t_cf_var('hpbl', 'm', 'boundary layer height above sea level', &
            &                datatype_flt)
       grib2_desc = grib2_var(0, 3, 18, ibits, GRID_UNSTRUCTURED, GRID_CELL)
       CALL add_var( diag_list, 'hpbl', diag%hpbl,                             &
         & GRID_UNSTRUCTURED_CELL, ZA_CLOUD_TOP, cf_desc, grib2_desc,            &
-        & ldims=shape2d, lrestart=.FALSE. )
-
+        & ldims=shape2d, lrestart=.FALSE.,lopenacc=.TRUE.  )
+      __acc_attach(diag%hpbl)
     ENDIF
 
 
@@ -1306,11 +1301,10 @@ SUBROUTINE new_nwp_phy_diag_list( k_jg, klev, klevp1, kblks,    &
       ! like ceiling, clct, clch, clcm, clcl. For example,
       ! if it rains, the ceiling should be where the cloud base (qc) is and not
       ! at the ground, where only raindrops are present.
-      ! Currently saved with shortname DUMMY_1 in Grib Files.
            
       cf_desc      = t_cf_var('clc_rad', '',  'cloud cover for radiation scheme', datatype_flt)
       new_cf_desc  = t_cf_var('clc_rad', '%', 'cloud cover for radiation scheme', datatype_flt)
-      grib2_desc   = grib2_var(0, 254, 1, ibits, GRID_UNSTRUCTURED, GRID_CELL)
+      grib2_desc   = grib2_var(0, 6, 215, ibits, GRID_UNSTRUCTURED, GRID_CELL)
       CALL add_var( diag_list, 'clc_rad', diag%clc_rad,                            &
            & GRID_UNSTRUCTURED_CELL, ZA_REFERENCE, cf_desc, grib2_desc,            &
            & ldims=shape3d, lrestart=.FALSE.,                                      &
@@ -2907,7 +2901,8 @@ SUBROUTINE new_nwp_phy_diag_list( k_jg, klev, klevp1, kblks,    &
         grib2_desc = grib2_var(255, 255, 255, ibits, GRID_UNSTRUCTURED, GRID_CELL)
         CALL add_var( diag_list, 'aod_550nm', diag%aod_550nm,           &
           & GRID_UNSTRUCTURED_CELL, ZA_SURFACE, cf_desc, grib2_desc, ldims=shape2d, lrestart=.FALSE., &
-          & lopenacc=.FALSE.)
+          & lopenacc=.TRUE.)
+        __acc_attach(diag%aod_550nm)
       ENDIF
     ENDIF  ! var_in_output
 

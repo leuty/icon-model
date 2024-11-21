@@ -56,7 +56,8 @@ CONTAINS
     REAL(wp) :: GAMMA_wave ! OVERSHOOT FACTOR
     REAL(wp) :: SIGMA_A    ! LEFT PEAK WIDTH
     REAL(wp) :: SIGMA_B    ! RIGHT PEAK WIDTH
-    REAL(wp) :: FETCH      ! FETCH IN METRES (IF ZERO THEN 0.5 OF THE LATITUDE INCREMENT IS USED.).
+    REAL(wp) :: fetch             ! fetch in metres used for initialisation of spectrum
+    REAL(wp) :: fetch_min_energy  ! fetch in meters used for calculation of minimum allowed energy level
 
     REAL(wp) :: roair   ! AIR DENSITY
     REAL(wp) :: RNUAIR  ! KINEMATIC AIR VISCOSITY
@@ -114,7 +115,7 @@ CONTAINS
     NAMELIST /wave_nml/ &
          forc_file_prefix,          &
          ndirs, nfreqs, fr1, CO, IREF,                      &
-         ALPHA, FM, GAMMA_wave, SIGMA_A, SIGMA_B, FETCH,    &
+         ALPHA, FM, GAMMA_wave, SIGMA_A, SIGMA_B, fetch, fetch_min_energy, &
          roair, RNUAIR, RNUAIRM, ROWATER, XEPS, XINVEPS, &
          XKAPPA, XNLEV, BETAMAX, ZALP, jtot_tauhf, ALPHA_CH, &
          depth, depth_min, depth_max, niter_smooth, &
@@ -137,7 +138,8 @@ CONTAINS
     SIGMA_A    = 0.07_wp        !! LEFT PEAK WIDTH.
     SIGMA_B    = 0.09_wp        !! RIGHT PEAK WIDTH.
 
-    FETCH      = 300000._wp     !! FETCH IN METRES.
+    fetch            = 300000._wp ! fetch in metres used for initialisation of spectrum
+    fetch_min_energy = 25000._wp  ! fetch in meters used for calculation of minimum allowed energy level
 
     roair      = 1.225_wp       !! AIR DENSITY
     RNUAIR     = 1.5E-5_wp      !! KINEMATIC AIR VISCOSITY
@@ -172,13 +174,13 @@ CONTAINS
     lwave_stress1  =   .TRUE. !< if .TRUE., calculate wave stress, first call
     lwave_stress2  =   .TRUE. !< if .TRUE., calculate wave stress, second call
 
-    peak_u10 = 9.0_wp         !! peak value (m/s) of 10 m U wind component for test case
-    peak_v10 = 9.0_wp         !! peak value (m/s) of 10 m V wind component for test case
-    peak_lat = -60.0_wp       !! latitude (deg) of wind peak value
-    peak_lon = -140.0_wp      !! longitude (deg) of wind peak value
+    peak_u10 = 17.68_wp   !! peak value (m/s) of 10 m U wind component for test case
+    peak_v10 = 17.68_wp   !! peak value (m/s) of 10 m V wind component for test case
+    peak_lat = -60.0_wp   !! latitude (deg) of wind peak value
+    peak_lon = -140.0_wp  !! longitude (deg) of wind peak value
 
-    impl_fac = 1.0_wp         !! first order Euler backward time integration scheme
-                              !! for total source function
+    impl_fac = 1.0_wp     !! first order Euler backward time integration scheme
+                          !! for total source function
 
     !------------------------------------------------------------------
     ! 2. If this is a resumed integration, overwrite the defaults above
@@ -241,7 +243,8 @@ CONTAINS
       wave_config(jg)%GAMMA_wave        = GAMMA_wave
       wave_config(jg)%SIGMA_A           = SIGMA_A
       wave_config(jg)%SIGMA_B           = SIGMA_B
-      wave_config(jg)%FETCH             = FETCH
+      wave_config(jg)%fetch             = fetch
+      wave_config(jg)%fetch_min_energy  = fetch_min_energy
       wave_config(jg)%roair             = roair
       wave_config(jg)%RNUAIR            = RNUAIR
       wave_config(jg)%RNUAIRM           = RNUAIRM

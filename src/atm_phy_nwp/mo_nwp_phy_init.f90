@@ -100,7 +100,7 @@ MODULE mo_nwp_phy_init
     &                               lseaice, zml_soil, nlev_soil, dzsoil_icon => dzsoil
   USE sfc_flake_data,         ONLY: h_Ice_min_flk, tpl_T_f
   USE sfc_terra_data,         ONLY: csalbw, cpwp, cfcap
-  USE mo_satad,               ONLY: sat_pres_water, &  !! saturation vapor pressure w.r.t. water
+  USE mo_thdyn_functions,     ONLY: sat_pres_water, &  !! saturation vapor pressure w.r.t. water
     &                               sat_pres_ice, &    !! saturation vapor pressure w.r.t. ice
     &                               spec_humi          !! Specific humidity
 
@@ -111,7 +111,8 @@ MODULE mo_nwp_phy_init
 
   USE mo_initicon_config,     ONLY: init_mode, lread_tke, itype_sma
   USE mo_apt_routines,        ONLY: init_apt_fields, apply_landalb_tuning, apply_sma
-  USE mo_nwp_tuning_config,   ONLY: tune_zceff_min, tune_v0snow, tune_zvz0i, tune_icesedi_exp, tune_box_liq_sfc_fac
+  USE mo_nwp_tuning_config,   ONLY: tune_zceff_min, tune_v0snow, tune_zvz0i, tune_icesedi_exp, &
+    &                               tune_box_liq_sfc_fac, tune_zcsg
   USE mo_cuparameters,        ONLY: sugwd
   USE mtime,                  ONLY: datetime, MAX_DATETIME_STR_LEN, &
     &                               datetimeToString, newDatetime, deallocateDatetime
@@ -801,11 +802,12 @@ SUBROUTINE init_nwp_phy ( p_patch, p_metrics,             &
         igscp    = atm_phy_nwp_config(jg)%inwp_gscp, &
         tune_zceff_min   = tune_zceff_min,               &
         tune_v0snow      = tune_v0snow,                  &
+        tune_zcsg        = tune_zcsg,                    &
         tune_zvz0i       = tune_zvz0i,                   &
         tune_icesedi_exp = tune_icesedi_exp,             &
         tune_mu_rain        = atm_phy_nwp_config(1)%mu_rain,&
-        tune_rain_n0_factor = atm_phy_nwp_config(1)%rain_n0_factor)
-  
+        tune_rain_n0_factor = atm_phy_nwp_config(1)%rain_n0_factor, &
+        lvariable_rain_n0 = atm_phy_nwp_config(1)%lvariable_rain_n0 )
 
   CASE (4,7) !two moment microphysics
     IF (msg_level >= 12)  CALL message(modname, 'init microphysics: two-moment')
@@ -1651,10 +1653,13 @@ SUBROUTINE init_nwp_phy ( p_patch, p_metrics,             &
         &  tfh=prm_diag%tfh(:,jb),                                             &
         &  tfv=prm_diag%tfv(:,jb),                                             &
         &  tkr=prm_diag%tkr_t(:,jb,1),                                         &
+!
         &  tke=p_prog_now%tke(:,nlev-1:nlevp1,jb),                             &
         &  tkvm=prm_diag%tkvm(:,nlev-1:nlevp1,jb),                             &
         &  tkvh=prm_diag%tkvh(:,nlev-1:nlevp1,jb),                             &
         &  rcld=prm_diag%rcld(:,nlev-1:nlevp1,jb),                             &
+        ! Note: 'ddt_tke' is only employed here in order to transfer "0"-values for the surface level!
+        &  tketens=prm_nwp_tend%ddt_tke(:,nlevp1:nlevp1,jb),                   &
 !
         &  t_2m=prm_diag%t_2m(:,jb),                                           &
         &  qv_2m=prm_diag%qv_2m(:,jb),                                         &
@@ -1724,10 +1729,6 @@ SUBROUTINE init_nwp_phy ( p_patch, p_metrics,             &
         &  innertrop_mask=prm_diag%innertropics_mask(:,jb),         & !in
 !
         &  tketens=prm_nwp_tend%ddt_tke(:,:,jb),                    &
-        &  ut_sso=REAL(prm_nwp_tend%ddt_u_sso(:,:,jb),wp),          &
-        &  vt_sso=REAL(prm_nwp_tend%ddt_v_sso(:,:,jb),wp),          &
-        &  u_tens=prm_nwp_tend%ddt_u_turb(:,:,jb),                  &
-        &  v_tens=prm_nwp_tend%ddt_v_turb(:,:,jb),                  &
 !
         &  zvari=zvari                                              & !out
         &                                                           ) !end of 'turbdiff' call

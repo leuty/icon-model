@@ -484,7 +484,7 @@ CONTAINS
     CHARACTER(len=128)            :: var_name_mtgrm
     INTEGER                       :: nindex
     INTEGER                       :: var_ref_pos
-    REAL(wp), POINTER             :: r_ptr(:,:,:)
+    REAL(wp), POINTER             :: r_ptr_3d(:,:,:), r_ptr_2d(:,:)
 
     var_list%no_atmo_vars = 0
     var_list%no_sfc_vars = 0
@@ -645,31 +645,46 @@ CONTAINS
                 ! for nuclear variables (parameterCategory = 18) do not change case
                 var_name_mtgrm = info%cf%standard_name
               END IF
-              nindex      = MERGE(info%ncontained,  1, info%lcontained)
-              var_ref_pos = MERGE(info%var_ref_pos, 4, info%lcontained)
-              SELECT CASE(var_ref_pos)
-              CASE (1)
-                r_ptr => elem%p%r_ptr(nindex,:,:,:,1)
+              ! set index and reference position of container variables
+              nindex = MERGE(info%ncontained, 1, info%lcontained)
+              SELECT CASE (info%ndims)
               CASE (2)
-                r_ptr => elem%p%r_ptr(:,nindex,:,:,1)
+                var_ref_pos = MERGE(info%var_ref_pos, 3, info%lcontained)
+                SELECT CASE(var_ref_pos)
+                CASE (1)
+                  r_ptr_2d => elem%p%r_ptr(nindex,:,:,1,1)
+                CASE (2)
+                  r_ptr_2d => elem%p%r_ptr(:,nindex,:,1,1)
+                CASE (3)
+                  r_ptr_2d => elem%p%r_ptr(:,:,nindex,1,1)
+                END SELECT
+                IF ( ANY((/ZA_SURFACE, ZA_ATMOSPHERE/) == info%vgrid) ) THEN
+                  CALL add_sfc_var(meteogram_config, var_list, VAR_GROUP_SURFACE, &
+                    &              var_name_mtgrm, info%cf%units, &
+                    &              info%cf%long_name, sfc_var_info, r_ptr_2d)
+                END IF
               CASE (3)
-                r_ptr => elem%p%r_ptr(:,:,nindex,:,1)
-              CASE (4)
-                r_ptr => elem%p%r_ptr(:,:,:,nindex,1)
+                var_ref_pos = MERGE(info%var_ref_pos, 4, info%lcontained)
+                SELECT CASE(var_ref_pos)
+                CASE (1)
+                  r_ptr_3d => elem%p%r_ptr(nindex,:,:,:,1)
+                CASE (2)
+                  r_ptr_3d => elem%p%r_ptr(:,nindex,:,:,1)
+                CASE (3)
+                  r_ptr_3d => elem%p%r_ptr(:,:,nindex,:,1)
+                CASE (4)
+                  r_ptr_3d => elem%p%r_ptr(:,:,:,nindex,1)
+                END SELECT
+                IF ( info%vgrid == ZA_REFERENCE ) THEN
+                  CALL add_atmo_var(meteogram_config, var_list, VAR_GROUP_ATMO_ML, &
+                    &               var_name_mtgrm, info%cf%units, &
+                    &               info%cf%long_name, var_info, r_ptr_3d)
+                ELSE IF ( info%vgrid == ZA_REFERENCE_HALF ) THEN
+                  CALL add_atmo_var(meteogram_config, var_list, VAR_GROUP_ATMO_HL, &
+                    &               var_name_mtgrm, info%cf%units, &
+                    &               info%cf%long_name, var_info, r_ptr_3d)
+                END IF
               END SELECT
-              IF ( info%vgrid == ZA_REFERENCE .AND. info%ndims == 3 ) THEN
-                CALL add_atmo_var(meteogram_config, var_list, VAR_GROUP_ATMO_ML, &
-                  &               var_name_mtgrm, info%cf%units, &
-                  &               info%cf%long_name, var_info, r_ptr)
-              ELSE IF ( info%vgrid == ZA_REFERENCE_HALF .AND. info%ndims == 3 ) THEN
-                CALL add_atmo_var(meteogram_config, var_list, VAR_GROUP_ATMO_HL, &
-                  &               var_name_mtgrm, info%cf%units, &
-                  &               info%cf%long_name, var_info, r_ptr)
-              ELSE IF ( ANY((/ZA_SURFACE, ZA_ATMOSPHERE/) == info%vgrid) .AND. info%ndims == 2 ) THEN
-                CALL add_sfc_var(meteogram_config, var_list, VAR_GROUP_SURFACE, &
-                  &              var_name_mtgrm, info%cf%units, &
-                  &              info%cf%long_name, sfc_var_info, elem%p%r_ptr(:,:,1,1,1))
-              END IF
             END SELECT
           END IF
         END IF
@@ -2004,18 +2019,6 @@ CONTAINS
             = sfc_var_info(ivar)%p_source(iidx, iblk)
         END DO
         ! convert some units of variables to the desired output units:
-!!! THE FOLLOWING WOULD BE THE CONVENIENT FORTRAN SOLUTION,
-!!! BUT TRIM() IN THIS CONTEXT SEEMS NOT TO BE SUPPORTED ON DAINT_GPU
-!        SELECT CASE (TRIM(sfc_var_info(ivar)%cf%standard_name))
-!        CASE ('DBZLMX_LOW','DBZ_850','DBZ_CMAX','DBZ_CTMAX')
-!          !$ACC LOOP VECTOR PRIVATE(istation_buf)
-!          DO istation = 1, ithis_nlocal_pts
-!            istation_buf = buf_idx(istation)
-!            out_buf%sfc_vars(ivar)%a(istation_buf, i_tstep) &
-!              =  z10olog10 * LOG( MAX(out_buf%sfc_vars(ivar)%a(istation_buf, i_tstep), eps_dbz) )
-!          END DO
-!        END SELECT
-!!! SO WE TRY THIS HACK INSTEAD:
         IF (sfc_var_info(ivar)%cf%standard_name(1:3) == 'DBZ') THEN
           !$ACC LOOP VECTOR PRIVATE(istation_buf)
           DO istation = 1, ithis_nlocal_pts
