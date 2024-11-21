@@ -117,7 +117,9 @@ CONTAINS
         DO je = i_startidx, i_endidx
 
           ! trajectory-velocity
-          p_vn_traj(je,jk,jb) = 0.5_wp * ( p_now%vn(je,jk,jb) + p_new%vn(je,jk,jb) )
+          ! It is assumed that p_new%vn contains the velocity field
+          ! centered in time at n+1/2
+          p_vn_traj(je,jk,jb) = p_new%vn(je,jk,jb)
 
           ! mass flux
           p_mass_flx_me(je,jk,jb) = p_nh_diag%mass_fl_e(je,jk,jb)

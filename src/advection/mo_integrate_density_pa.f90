@@ -61,7 +61,7 @@ CONTAINS
     &                             p_metrics, p_diag, p_dtime, k_step,      &
     &                             lcoupled_rho )
 
-    TYPE(t_patch),      INTENT(INOUT):: p_patch
+    TYPE(t_patch),      INTENT(IN)   :: p_patch
     TYPE(t_int_state),  INTENT(IN)   :: p_int
     TYPE(t_nh_prog),    INTENT(IN)   :: p_prog_now
     TYPE(t_nh_prog),    INTENT(INOUT):: p_prog_new
@@ -525,9 +525,10 @@ CONTAINS
         DO jk = 1,nlev
           DO je = i_startidx, i_endidx
 
+            ! It is assumed that p_prog_new%vn contains the velocity field
+            ! centered in time at n+1/2
             p_diag%mass_fl_e(je,jk,jb) = z_rho_e(je,jk,jb)                 &
-                                       * 0.5_wp * (p_prog_now%vn(je,jk,jb) &
-              &                        + p_prog_new%vn(je,jk,jb))          &
+              &                        * p_prog_new%vn(je,jk,jb)           &
               &                        * p_metrics%ddqz_z_full_e(je,jk,jb)
 
           ENDDO  ! je
