@@ -695,11 +695,14 @@ SUBROUTINE upscale_rad_input(jg, jgp, nlev_rg, emis_rad,                   &
           clc(iidx(jc,jb,3),jk,iblk(jc,jb,3))*p_fbkwgt(jc,jb,3) + &
           clc(iidx(jc,jb,4),jk,iblk(jc,jb,4))*p_fbkwgt(jc,jb,4)
 
-        p_tot_cld(jc,jk1,jb,1:3) =                                        &
-          tot_cld(iidx(jc,jb,1),jk,iblk(jc,jb,1),1:3)*p_fbkwgt(jc,jb,1) + &
-          tot_cld(iidx(jc,jb,2),jk,iblk(jc,jb,2),1:3)*p_fbkwgt(jc,jb,2) + &
-          tot_cld(iidx(jc,jb,3),jk,iblk(jc,jb,3),1:3)*p_fbkwgt(jc,jb,3) + &
-          tot_cld(iidx(jc,jb,4),jk,iblk(jc,jb,4),1:3)*p_fbkwgt(jc,jb,4)
+        !$ACC LOOP SEQ
+        DO jf = 1, 3
+          p_tot_cld(jc,jk1,jb,jf) =                                        &
+            tot_cld(iidx(jc,jb,1),jk,iblk(jc,jb,1),jf)*p_fbkwgt(jc,jb,1) + &
+            tot_cld(iidx(jc,jb,2),jk,iblk(jc,jb,2),jf)*p_fbkwgt(jc,jb,2) + &
+            tot_cld(iidx(jc,jb,3),jk,iblk(jc,jb,3),jf)*p_fbkwgt(jc,jb,3) + &
+            tot_cld(iidx(jc,jb,4),jk,iblk(jc,jb,4),jf)*p_fbkwgt(jc,jb,4)
+        END DO
 
       END DO
     END DO
