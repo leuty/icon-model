@@ -32,6 +32,11 @@ if [[ "$(hostname)" == *"balfrin"* || "$(hostname)" == *"tasna"* ]]; then
   echo "export FI_CXI_SAFE_DEVMEM_COPY_THRESHOLD=0" >> $ICON_DIR/setting
 
   if [[ "$VARIANT" == *"gpu"* ]]; then
+
+    # add additonal debug exports
+    if [[ "$VARIANT" == *"double"* ]]; then
+      echo "export NV_TERM=trace" >> $ICON_DIR/setting
+    fi
  
     # add additonal exports
     echo "export CRAY_CUDA_MPS=1" >> $ICON_DIR/setting
