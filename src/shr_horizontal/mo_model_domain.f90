@@ -31,7 +31,8 @@ MODULE mo_model_domain
   !
   !
   USE mo_kind
-  USE mo_math_types,              ONLY: t_geographical_coordinates, t_cartesian_coordinates
+  USE mo_math_types,              ONLY: t_geographical_coordinates, t_cartesian_coordinates, &
+    &                                   t_tangent_vectors
   USE mo_impl_constants,          ONLY: max_dom, max_phys_dom
   USE mo_communication,           ONLY: t_comm_pattern, t_comm_gather_pattern, &
     &                                   t_scatterPattern, &
@@ -61,8 +62,6 @@ MODULE mo_model_domain
   !PUBLIC :: t_patch_ocean
   PUBLIC :: t_patch_3D
   PUBLIC :: t_patch_vert
-
-  PUBLIC :: t_tangent_vectors
 
   PUBLIC :: get_startrow_c
 
@@ -132,12 +131,6 @@ MODULE mo_model_domain
 
   END TYPE t_subset_range_index
   !----------------------------------------------------
-
-  ! tangent vector class
-  TYPE t_tangent_vectors
-    REAL(wp) :: v1
-    REAL(wp) :: v2
-  END TYPE t_tangent_vectors
 
   ! -----------------------------------------------------------------------------
   ! grid_cell class - corresponds to triangles
