@@ -1027,6 +1027,7 @@ MODULE mo_ocean_nml
   
   ! run eddy diagnostics
   LOGICAL  :: eddydiag             = .FALSE.
+  LOGICAL  :: do_ts_budget         = .FALSE. ! by_nils
   LOGICAL  :: diagnose_for_tendencies = .false.
   LOGICAL  :: diagnose_for_heat_content = .false.
 
@@ -1046,6 +1047,7 @@ MODULE mo_ocean_nml
     & agulhas_longer, &
     & diagnose_for_horizontalVelocity, &
     & eddydiag, &
+    & do_ts_budget, & ! by_nils
     & diagnose_for_tendencies, &
     & diagnose_for_heat_content, &
     & diagnose_age, &

@@ -456,7 +456,7 @@
           ELSE
             tracer%is_advected = .false.
           ENDIF
-            
+          tracer%diagnostics%is_activated = .false. ! by_nils ts_bal
      ENDDO
 
     !$ACC ENTER DATA &

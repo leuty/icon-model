@@ -210,6 +210,22 @@ MODULE mo_ocean_types
       & osalttend,                    &
       & delta_thetao, &
       & delta_so, &
+      & Tt_had,   & ! by_nils ts_budget
+      & Tt_vad,   & ! by_nils ts_budget
+      & Tt_hdf,   & ! by_nils ts_budget
+      & Tt_vdf,   & ! by_nils ts_budget
+      & Tt_idf,   & ! by_nils ts_budget
+      & Tt_sur,   & ! by_nils ts_budget
+      & Tt_srf,   & ! by_nils ts_budget
+      & Tt_tot,   & ! by_nils ts_budget
+      & Ts_had,   & ! by_nils ts_budget
+      & Ts_vad,   & ! by_nils ts_budget
+      & Ts_hdf,   & ! by_nils ts_budget
+      & Ts_vdf,   & ! by_nils ts_budget
+      & Ts_idf,   & ! by_nils ts_budget
+      & Ts_sur,   & ! by_nils ts_budget
+      & Ts_srf,   & ! by_nils ts_budget
+      & Ts_tot,   & ! by_nils ts_budget
       & uT, &  !< product of temperature and u-velocity
       & uS, &  !< product of salinity and u-velocity
       & uR, &  !< product of density and u-velocity
