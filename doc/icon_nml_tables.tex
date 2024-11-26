@@ -5583,6 +5583,14 @@ inwp\_turb $>$ 0
 \tabularnewline
 
 %\hline
+itype\_satpres\_coeffs&
+I & 1 &  & Set of coefficients used for computing the saturation vapor pressure: \\
+1 = Coefficients inherited from the COSMO model (inaccurate at temperatures below $-50^\circ$C)\\
+2 = Coefficients used in the IFS (and the parameterizations taken over from the IFS) \\
+inwp\_satad $>$ 0
+\tabularnewline
+
+%\hline
 \textbf{dt\_conv} &
 R (max\_ dom)&
 600.&

@@ -81,6 +81,7 @@ MODULE mo_nwp_phy_nml
   INTEGER  :: inwp_surface(max_dom)       !! surface including soil, ocean, ice,lake
 
   INTEGER  :: itype_z0           !! type of roughness length data
+  INTEGER  :: itype_satpres_coeffs  !! set of coefficients for saturation pressure
   INTEGER  :: icpl_aero_gscp     !! type of aerosol-microphysics coupling
   LOGICAL  :: lscale_cdnc        !! switch to activate the scaling of external CDNCs
   INTEGER  :: icpl_aero_ice      !! type of aerosol-ice nucleation coupling
@@ -114,7 +115,7 @@ MODULE mo_nwp_phy_nml
 
   NAMELIST /nwp_phy_nml/ inwp_convection, inwp_cldcover, lsgs_cond,  &
     &                    inwp_radiation, inwp_sso, inwp_gwd,         &
-    &                    inwp_gscp, inwp_satad,                      &
+    &                    inwp_gscp, inwp_satad, itype_satpres_coeffs,&
     &                    inwp_turb, inwp_surface,                    &
     &                    dt_conv, dt_rad, dt_sso, dt_gwd, dt_ccov,   &
     &                    qi0, qc0, icpl_aero_gscp, icpl_aero_ice,    &
@@ -213,6 +214,7 @@ CONTAINS
     cldopt_filename = 'ECHAM6_CldOptProps.nc'
 
     itype_z0 = 2  !  2 = land-cover related roughness lenght only (i.e. no orographic contrib)
+    itype_satpres_coeffs = 1 ! 1 = old coefficients inherited from the COSMO model, 2 = more accurate coefficients used in IFS
     qi0      = 0.0_wp 
     qc0      = 0.0_wp 
 
@@ -485,6 +487,10 @@ CONTAINS
 
     ENDDO
 
+    IF ( ALL((/1,2/) /= itype_satpres_coeffs) ) THEN
+      CALL finish( TRIM(routine), 'Incorrect setting for itype_satpres_coeffs. Must be 1 or 2.')
+    END IF
+
     ! deactivate cuda graph if no cpp key => make sure ACC WAIT is activated where needed
 #ifndef ICON_USE_CUDA_GRAPH
     lcuda_graph_turb_tran = .FALSE.
@@ -506,7 +512,7 @@ CONTAINS
       atm_phy_nwp_config(jg)%inwp_turb       = inwp_turb(jg)
       atm_phy_nwp_config(jg)%inwp_surface    = inwp_surface(jg)
       atm_phy_nwp_config(jg)%itype_z0        = itype_z0
-
+      atm_phy_nwp_config(jg)%itype_satpres_coeffs = itype_satpres_coeffs
       atm_phy_nwp_config(jg)%nclds              = nclds(jg)
       atm_phy_nwp_config(jg)%lshallowconv_only  = lshallowconv_only(jg)
       atm_phy_nwp_config(jg)%lstoch_expl        = lstoch_expl(jg)

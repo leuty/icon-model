@@ -106,6 +106,7 @@ MODULE mo_atm_phy_nwp_config
     INTEGER ::  inwp_turb        !! turbulence
     INTEGER ::  inwp_surface     !! surface including soil, ocean, ice,lake
     INTEGER  :: itype_z0         !! type of roughness length data
+    INTEGER  :: itype_satpres_coeffs  !! set of coefficients for saturation pressure
     REAL(wp) :: dt_conv          !> time step for convection
     REAL(wp) :: dt_ccov          !! time step for subscale cloud cover
     REAL(wp) :: dt_rad           !! "-"                     radiation
@@ -273,7 +274,6 @@ CONTAINS
     TYPE(timedelta), POINTER :: td_start, td_end, td_dt   => NULL()
 
   !-------------------------------------------------------------------------
-
 
     !$ACC ENTER DATA CREATE(atm_phy_nwp_config)
 
