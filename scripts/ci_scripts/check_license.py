@@ -171,7 +171,7 @@ def list_files(dirs_or_files, ignored_patterns):
         elif os.path.isdir(dir_or_file):
             for subdir, _, filenames in os.walk(dir_or_file):
                 for filename in filenames:
-                    filepath = os.path.join(dir_or_file, subdir, filename)
+                    filepath = os.path.join(subdir, filename)
                     if get_file_type(filepath) and (
                         ignored_patterns is None
                         or not any(
