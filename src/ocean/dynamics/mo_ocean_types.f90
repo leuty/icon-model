@@ -286,6 +286,8 @@ MODULE mo_ocean_types
       & delta_ice, & 
       & delta_snow, &
       & heat_content_total ,&
+      & heat_content_300m ,&
+      & heat_content_700m ,&
       & zos_square     ,&
       & ssh     ,&   ! diagnostic including sea ice
       & Rossby_Radius    ,&

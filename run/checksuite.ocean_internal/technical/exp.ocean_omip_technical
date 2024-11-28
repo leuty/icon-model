@@ -342,6 +342,7 @@ cat > ${ocean_namelist} << EOF
    agulhas(1:10)                = 8024,8022
    agulhas_long(1:10)           = 8024,8022,6036
    agulhas_longer(1:10)         = 8024,8022,6036,6025
+   diagnose_for_heat_content       = .TRUE.
    diagnose_age = .true.
    diagnose_green = .true.
    greenStartDate = '2001-01-01'

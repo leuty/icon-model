@@ -1760,8 +1760,27 @@ CONTAINS
       &         t_cf_var('heat_content_total', 'J m-2', 'heat_content_total', datatype_flt),&
       &         dflt_g2_decl_cell,&
       &         ldims=(/nproma,alloc_cell_blocks/),in_group=groups_oce_default)
-    ENDIF ! diagnose_for_heat_content
 
+   ! total heat content upper 300m
+    CALL add_var(ocean_default_list, 'heat_content_300m', ocean_state_diag%heat_content_300m , &
+      &         grid_unstructured_cell, za_surface,&
+      &         t_cf_var('heat_content_300m', 'J m-2', 'heat_content_300m', datatype_flt),&
+      &         dflt_g2_decl_cell,&
+      &         ldims=(/nproma,alloc_cell_blocks/),in_group=groups_oce_default)
+
+   ! total heat content upper 700m
+    CALL add_var(ocean_default_list, 'heat_content_700m', ocean_state_diag%heat_content_700m , &
+      &         grid_unstructured_cell, za_surface,&
+      &         t_cf_var('heat_content_700m', 'J m-2', 'heat_content_700m', datatype_flt),&
+      &         dflt_g2_decl_cell,&
+      &         ldims=(/nproma,alloc_cell_blocks/),in_group=groups_oce_default)
+
+  ENDIF ! diagnose_for_heat_content
+
+
+
+
+    
    ! swr fraction absorbed in the surface layer
     CALL add_var(ocean_default_list, 'swsum', ocean_state_diag%swsum , &
       &         grid_unstructured_cell, za_surface,&
