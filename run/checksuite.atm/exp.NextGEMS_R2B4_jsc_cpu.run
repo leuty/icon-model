@@ -47,7 +47,7 @@ export OMP_STACKSIZE=200M
 # -------------
 no_of_nodes=${SLURM_JOB_NUM_NODES:=1}
 num_io_procs=4           # Note that it should match the number of atm output files
-mpi_procs_pernode=${SLURM_TASKS_PER_NODE:=4}
+mpi_procs_pernode=${SLURM_NTASKS_PER_NODE:=4}
 ((mpi_total_procs=no_of_nodes * mpi_procs_pernode))
 #
 # blocking length
