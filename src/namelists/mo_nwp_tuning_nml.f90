@@ -48,6 +48,7 @@ MODULE mo_nwp_tuning_nml
     &                               config_tune_capdcfac_et      => tune_capdcfac_et,      &
     &                               config_tune_capdcfac_tr      => tune_capdcfac_tr,      &
     &                               config_tune_capethresh       => tune_capethresh,       &
+    &                               config_tune_grzdc_offset     => tune_grzdc_offset,     &
     &                               config_tune_rhebc_land       => tune_rhebc_land,       &
     &                               config_tune_rhebc_ocean      => tune_rhebc_ocean,      &
     &                               config_tune_rcucov           => tune_rcucov,           &
@@ -162,6 +163,9 @@ MODULE mo_nwp_tuning_nml
 
   REAL(wp) :: &                    !< CAPE threshold above which the convective adjustment time scale and entrainment
     &  tune_capethresh             !< are reduced for numerical stability [J/kg]
+
+  REAL(wp) :: &                    !< Tuning factor for offset in CAPE closure for grayzone deep convection
+    &  tune_grzdc_offset           !
 
   REAL(wp) :: &                    !< RH threshold for onset of evaporation below cloud base over land
     &  tune_rhebc_land
@@ -314,7 +318,8 @@ MODULE mo_nwp_tuning_nml
     &                      tune_capethresh, tune_gkdrag_enh, tune_grcrit_enh,     &
     &                      tune_minsso_gwd, tune_dursun_scaling, tune_sbmccn,     &
     &                      itune_slopecorr, tune_gustlim_agl, tune_gustlim_fac,   &
-    &                      tune_urbahf, tune_urbisa, tune_box_ice, tune_supsat_limfac
+    &                      tune_urbahf, tune_urbisa, tune_box_ice, tune_supsat_limfac, &
+    &                      tune_grzdc_offset
 
 CONTAINS
 
@@ -405,6 +410,9 @@ CONTAINS
     !> CAPE threshold above which the convective adjustment time scale and entrainment
     !  are reduced for numerical stability [J/kg]
     tune_capethresh  = 7000._wp
+
+    !< Tuning factor for offset in CAPE closure for grayzone deep convection
+    tune_grzdc_offset = 0._wp
 
     !> RH threshold for onset of evaporation below cloud base over land (original IFS value 0.7)
     tune_rhebc_land  = 0.75_wp
@@ -595,6 +603,7 @@ CONTAINS
     config_tune_capdcfac_et      = tune_capdcfac_et
     config_tune_capdcfac_tr      = tune_capdcfac_tr
     config_tune_capethresh       = tune_capethresh
+    config_tune_grzdc_offset     = tune_grzdc_offset
     config_tune_rhebc_land       = tune_rhebc_land
     config_tune_rhebc_ocean      = tune_rhebc_ocean
     config_tune_rcucov           = tune_rcucov

@@ -56,6 +56,8 @@ MODULE mo_nwp_parameters
     LOGICAL :: lmfdsnow
     ! switch for grayzone tuning for deep convection
     LOGICAL :: lgrayzone_deepconv
+    ! Tuning factor for offset in CAPE closure for grayzone deep convection
+    REAL(wp) :: tune_grzdc_offset
     ! switches on explicit stochastic shallow convection
     LOGICAL :: lstoch_expl
     ! switches on SDE stochastic shallow convection    

@@ -6053,6 +6053,16 @@ run\_nml:iforcing = inwp
 \tabularnewline
 
 \hline
+tune\_grzdc\_offset
+R&
+0.0&
+&
+Scaling factor for offset in CAPE closure for grayzone deep convection. Positive values reduce the
+activity of the convection scheme and suppress convective drizzle (recommendation: 0.1--0.2) &
+run\_nml:iforcing = inwp; lgrayzone\_deepconv = .TRUE.
+\tabularnewline
+
+\hline
 tune\_box\_liq&
 R&
 0.05&
