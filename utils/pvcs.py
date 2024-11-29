@@ -361,82 +361,6 @@ DEFINE_STRING_GETTER(GLUE(LANG_PREFIX, compiler_secondary_version))
 #endif
 """
 
-EXTRA_FOOTERS = {
-    "art": """\
-#if !defined(COMPILER_VERSION_ONLY)
-#  define ART_WORKAROUND
-#  if defined(ART_WORKAROUND)
-#    define ART_DEFAULT_VALUE "unknown"
-void
-art_repository_url(char *name, int *actual_len)
-{
-  char const *val;
-  size_t len;
-  pvcs_get_remote_url("art", 3, &val, &len);
-  if (val == NULL)
-    {
-      val = ART_DEFAULT_VALUE;
-      len = strlen(ART_DEFAULT_VALUE);
-    }
-  if (len > *actual_len)
-    {
-      *actual_len = 0;
-    }
-  else
-    {
-      strcpy(name, val);
-      *actual_len = len;
-    }
-}
-
-void
-art_branch_name(char *name, int *actual_len)
-{
-  char const *val;
-  size_t len;
-  pvcs_get_local_branch("art", 3, &val, &len);
-  if (val == NULL)
-    {
-      val = ART_DEFAULT_VALUE;
-      len = strlen(ART_DEFAULT_VALUE);
-    }
-  if (len > *actual_len)
-    {
-      *actual_len = 0;
-    }
-  else
-    {
-      strcpy(name, val);
-      *actual_len = len;
-    }
-}
-
-void
-art_revision_key(char *name, int *actual_len)
-{
-  char const *val;
-  size_t len;
-  pvcs_get_revision("art", 3, &val, &len);
-  if (val == NULL)
-    {
-      val = ART_DEFAULT_VALUE;
-      len = strlen(val);
-    }
-  if (len > *actual_len)
-    {
-      *actual_len = 0;
-    }
-  else
-    {
-      strcpy(name, val);
-      *actual_len = len;
-    }
-}
-#  endif
-#endif
-"""
-}
-
 
 def run_cmd(*args, **kwargs):
     input_string = kwargs.get("input_string", None)
@@ -446,20 +370,23 @@ def run_cmd(*args, **kwargs):
     else:
         devnull = subprocess.DEVNULL
 
-    proc = subprocess.Popen(
-        args,
-        stdout=subprocess.PIPE,
-        stderr=devnull,
-        stdin=(subprocess.PIPE if input_string else devnull),
-    )
-    out, _ = proc.communicate(
-        input=input_string.encode("utf-8") if input_string else None
-    )
+    try:
+        proc = subprocess.Popen(
+            args,
+            stdout=subprocess.PIPE,
+            stderr=devnull,
+            stdin=(subprocess.PIPE if input_string else devnull),
+        )
+        out, _ = proc.communicate(
+            input=input_string.encode("utf-8") if input_string else None
+        )
 
-    if sys.version_info < (3, 3, 0):
-        devnull.close()
-
-    return str(out.decode("utf-8")), proc.returncode == 0
+        return str(out.decode("utf-8")), proc.returncode == 0
+    except Exception:
+        return None, False
+    finally:
+        if sys.version_info < (3, 3, 0):
+            devnull.close()
 
 
 def run_git_cmd(repo_root, *args, **kwargs):
@@ -664,10 +591,6 @@ def generate_version_c(srcdir=None, subdirs=None, stream=None):
         version_c_lines.append(apply_element_template(name, path, version_summary))
 
     version_c_lines.append(FOOTER)
-
-    for name, _ in subdir_repos:
-        if name in EXTRA_FOOTERS:
-            version_c_lines.append(EXTRA_FOOTERS[name])
 
     if stream:
         stream.write("\n".join(version_c_lines))
