@@ -22,7 +22,8 @@ MODULE mo_build_decomposition
   USE mo_mpi,                  ONLY: my_process_is_mpi_parallel, p_pe_work,   &
     &                                p_comm_work, p_comm_work_test
   USE mo_loopindices,          ONLY: get_indices_e
-  USE mo_model_domain,         ONLY: p_patch, t_pre_patch, t_patch_3d,        &
+  USE mo_pre_model_domain,     ONLY: t_pre_patch
+  USE mo_model_domain,         ONLY: p_patch, t_patch_3d,                     &
     &                                t_patch, p_patch_local_parent
   USE mo_reshuffle,            ONLY: reshuffle
   USE mo_run_config,           ONLY: msg_level

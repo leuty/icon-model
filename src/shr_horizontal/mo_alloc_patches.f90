@@ -24,12 +24,13 @@ MODULE mo_alloc_patches
     &                                   min_rledge, max_rledge,                      &
     &                                   min_rlvert, max_rlvert
   USE mo_exception,               ONLY: message, finish
-  USE mo_model_domain,            ONLY: t_patch, t_pre_patch, c_num_edges,           &
+  USE mo_pre_model_domain,        ONLY: t_pre_patch, c_num_edges,                    &
     &                                   c_parent, c_child, c_phys_id, c_neighbor,    &
     &                                   c_edge, c_vertex, c_center,                  &
     &                                   c_refin_ctrl, e_parent, e_child, e_cell,     &
     &                                   e_refin_ctrl, v_cell, v_num_edges, v_vertex, &
     &                                   v_refin_ctrl
+  USE mo_model_domain,            ONLY: t_patch
   USE mo_decomposition_tools,     ONLY: t_grid_domain_decomp_info,                   &
     &                                   init_glb2loc_index_lookup,                   &
     &                                   deallocate_glb2loc_index_lookup,             &

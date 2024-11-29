@@ -33,10 +33,11 @@ MODULE mo_model_domimp_patches
     &                              min_rlvert_int
   USE mo_exception,          ONLY: message_text, message, warning, finish
   USE mo_util_string,        ONLY: int2string
-  USE mo_model_domain,       ONLY: t_patch, t_pre_patch, p_patch_local_parent, &
+  USE mo_pre_model_domain,   ONLY: t_pre_patch, &
        c_num_edges, c_parent, c_phys_id, c_neighbor, c_edge, &
        c_vertex, c_center, c_refin_ctrl, e_parent, e_cell, &
        e_refin_ctrl, v_cell, v_num_edges, v_vertex, v_refin_ctrl
+  USE mo_model_domain,       ONLY: t_patch, p_patch_local_parent
   USE mo_decomposition_tools,ONLY: t_glb2loc_index_lookup, &
     &                              get_valid_local_index, &
     &                              t_grid_domain_decomp_info, get_local_index
