@@ -966,11 +966,11 @@ cat "${use_builddir}/run/add_START_MODEL_function" >> "$output_script"
 #-----------------------------------------------------------------------------
 set_run_target_gpnl()
 {
-  # gpnl*.dwd.de GPU Node with Linux (login node)
+  # gpnl*.dwd.de GPU Node with Linux (NQSV)
     icon_data_rootFolder=${icon_data_rootFolder:="/hpc/rwork0/routfor/test/icon"}
 
     # Use same nproma for GPU and CPU for development purposes
-    set_default use_nproma 4000
+    set_default use_nproma 8000
     set_default use_nproma_sub 800
     set_default use_nblocks_c 0
     set_default use_ecrad_isolver 2 # McICA for OpenACC
@@ -985,14 +985,29 @@ set_run_target_gpnl()
     # no OpenMP Threads
     set_default use_openmp_threads 1
 
+    cat >> "$output_script" <<EOF
+#PBS -q ${use_queue:-gp_norm_all}
+#PBS -l elapstim_req=00:20:00
+#PBS -l memsz_job=${use_memory:-1920Gb}
+#PBS -l vmemsz_job=1920Gb
+#PBS -l vmemsz_prc=1920Gb
+#PBS -j o
+#PBS -o LOG.${job_name}.o
+#-----------------------------------------------------------------------------
+EOF
 
     start_header
+
     cat >> "$output_script" <<EOF
-#-----------------------------------------------------------------------------
 set +x
 ulimit -Sv unlimited
 
-export ECCODES_DEFINITION_PATH="/hpc/sw/eccodes/definitions/release/2.28.0-2/definitions.edzw:/hpc/sw/eccodes/definitions/release/2.28.0-2/definitions"
+# OpenMPI get confused by this environment variable.
+unset PMIX_INSTALL_PREFIX
+
+if [[ -n "\${PBS_O_WORKDIR}" ]] ; then
+  cd "\${PBS_O_WORKDIR}"
+fi
 EOF
     if [[ "$use_gpu" == "yes" ]]
     then
