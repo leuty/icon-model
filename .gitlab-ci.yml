@@ -90,7 +90,7 @@ General Style:
   stage: basic
   variables:
     GIT_SUBMODULE_STRATEGY: normal
-
+    GIT_SUBMODULE_PATHS: externals/art externals/emvorado externals/jsbach
   before_script:
     - pip install pyyaml click pandas
   script:
@@ -102,9 +102,9 @@ General Style:
     #   - externals/jsbach
     # However, we cannot currently do that because they will fail the tests.
     # Therefore, we check as many of them as possible:
-    - ./scripts/ci_scripts/check_encoding.sh 'src' 'support'
-    - ./scripts/ci_scripts/check_src_noexec.sh 'src' 'support'
-    - ./scripts/ci_scripts/check_omp_sentinels.sh 'src' 'support' 'externals/jsbach' 'externals/emvorado' 'externals/art'
+    - ./scripts/ci_scripts/check_encoding.sh 'src' 'support' 'externals/art' 'externals/jsbach'
+    - ./scripts/ci_scripts/check_src_noexec.sh 'src' 'support' 'externals/jsbach'
+    - ./scripts/ci_scripts/check_fortran.py 'src' 'support' ${GIT_SUBMODULE_PATHS}
     - ./scripts/ci_scripts/check_granule_encapsulation.sh
     - python scripts/experiments/yaml_experiment_test_processor.py
 
