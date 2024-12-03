@@ -68,6 +68,7 @@ MODULE mo_nwp_tuning_config
   PUBLIC :: tune_gustsso_lim
   PUBLIC :: tune_gustlim_agl, tune_gustlim_fac
   PUBLIC :: itune_gust_diag
+  PUBLIC :: itune_vis_diag
   PUBLIC :: itune_albedo
   PUBLIC :: tune_albedo_wso
   PUBLIC :: itune_slopecorr
@@ -235,6 +236,11 @@ MODULE mo_nwp_tuning_config
     &  itune_gust_diag             ! 1: use level above top of SSO envelope layer
                                    ! 2: use envelope top level, combined with adjusted tuning
   !$ACC DECLARE CREATE(itune_gust_diag)
+
+  INTEGER :: &                     !< Type of visbility tuning
+    &  itune_vis_diag              ! 1: first operational implementation
+                                   ! 2: optimized day-night factor
+  !$ACC DECLARE CREATE(itune_vis_diag)
 
   REAL(wp) :: &                    !< Basic gust speed (m/s) at which the SSO correction starts to be reduced
     &  tune_gustsso_lim            !
