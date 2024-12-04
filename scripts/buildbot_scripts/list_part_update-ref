@@ -39,14 +39,6 @@ test_handler = {
             "levante": "ntasks=16 queue=shared,compute memory=32G",
         },
         "extra_builders": {
-            "levante_cpu_nvhpc_225": "ntasks=16 queue=shared memory=32G",
-            "levante_gpu_nvhpc_225": "mpi_procs_pernode=3",
-            "levante_cpu_nvhpc_245": "ntasks=16 queue=shared memory=32G",
-            "levante_gpu_nvhpc_245": "mpi_procs_pernode=3",
-            "levante_cpu_nvhpc_247": "ntasks=16 queue=shared memory=32G",
-            "levante_gpu_nvhpc_247": "mpi_procs_pernode=3",
-            "levante_cpu_nvhpc_249": "ntasks=16 queue=shared memory=32G",
-            "levante_gpu_nvhpc_249": "mpi_procs_pernode=3",
             "levante_cpu_nvhpc": "ntasks=16 queue=shared memory=32G",
             "levante_gpu_nvhpc": "mpi_procs_pernode=3",
         },
@@ -57,14 +49,6 @@ test_handler = {
             "levante": "ntasks=16 queue=shared",
         },
         "extra_builders": {
-            "levante_cpu_nvhpc_225": "ntasks=16 queue=shared memory=32G",
-            "levante_gpu_nvhpc_225": "mpi_procs_pernode=3",
-            "levante_cpu_nvhpc_245": "ntasks=16 queue=shared memory=32G",
-            "levante_gpu_nvhpc_245": "mpi_procs_pernode=3",
-            "levante_cpu_nvhpc_247": "ntasks=16 queue=shared memory=32G",
-            "levante_gpu_nvhpc_247": "mpi_procs_pernode=3",
-            "levante_cpu_nvhpc_249": "ntasks=16 queue=shared memory=32G",
-            "levante_gpu_nvhpc_249": "mpi_procs_pernode=3",
             "levante_cpu_nvhpc": "ntasks=16 queue=shared memory=32G",
             "levante_gpu_nvhpc": "mpi_procs_pernode=3",
         },
@@ -97,6 +81,11 @@ commands = [
     f"./set_builder_flags Inactive --builders '{' '.join(inactive_builders | extra_builders)}' --list '{list_name}'"
 ]
 
+# Activate extra builders so that any usage of 'machine' will work properly
+commands.append(
+    f"./set_builder_flags Active --builders '{' '.join(extra_builders)}' --list '{list_name}'"
+)
+
 # Add experiments for the machines:
 for test, data in test_handler.items():
     refgen = data["refgen"]
@@ -108,11 +97,6 @@ for test, data in test_handler.items():
                 f"./addexp '{refgen}' --machines '{machine}' --list '{list_name}'",
                 f"./adddep --from-experiment '{refgen}' --to-experiment '{test}' --machines '{machine}' --list '{list_name}'",
             ])
-
-# Activate extra builders:
-commands.append(
-    f"./set_builder_flags Active --builders '{' '.join(extra_builders)}' --list '{list_name}'"
-)
 
 # Add experiments for the extra builders:
 for test, data in test_handler.items():

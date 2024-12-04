@@ -80,17 +80,7 @@ export MD='u'
 #--------------------------------------------------------------------------------
 # 
 # 3. Launch the checksuite from run/
-case ${BB_NAME} in
-  levante_gpu_nvhpc|levante_cpu_nvhpc)
-    reference_dir=2024-10-25.icon-dkrz.da63e60adc62
-    ;;
-  levante_gpu_nvhpc_*|levante_cpu_nvhpc_*)
-    reference_dir=2024-10-24.icon-dkrz.90f30cf986d2
-    ;;
-  *)
-    reference_dir=2024-08-23.icon-mpim.eb753cf8a838
-    ;;
-esac
+reference_dir=2024-11-28.icon-dkrz.b2c905d02350
 
 builder="${BB_SYSTEM}_${BB_SLAVE}" # old buildbot
 [[ ! -z $BB_NAME ]] && builder=$(echo ${BB_NAME} | tr '[:upper:]' '[:lower:]') # new buildbot
