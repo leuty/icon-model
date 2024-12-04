@@ -53,14 +53,14 @@ MODULE mo_complete_subdivision
   USE mo_grid_config,         ONLY: n_dom, n_dom_start, n_phys_dom
   USE mo_dist_dir,            ONLY: dist_dir_get_owners
   USE ppm_distributed_array, ONLY: global_array_desc, dist_mult_array, &
-#ifdef HAVE_SLOW_PASSIVE_TARGET_ONESIDED
-       sync_mode_active_target, &
-#else
-       sync_mode_passive_target, &
-#endif
        dist_mult_array_new, dist_mult_array_delete, &
        dist_mult_array_get, dist_mult_array_local_ptr, &
        dist_mult_array_expose
+#ifdef HAVE_SLOW_PASSIVE_TARGET_ONESIDED
+  USE ppm_distributed_array, ONLY: sync_mode_active_target
+#else
+  USE ppm_distributed_array, ONLY: sync_mode_passive_target
+#endif
   USE mo_kind, ONLY: wp
   USE mo_sync, ONLY: sync_c, sync_patch_array
   IMPLICIT NONE

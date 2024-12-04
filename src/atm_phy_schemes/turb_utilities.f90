@@ -124,16 +124,17 @@ MODULE  turb_utilities
 
 USE mo_kind,                ONLY: wp           ! KIND-type parameter for real variables
 
-USE turb_data , ONLY :   &
 #ifdef SCLM
+USE turb_data , ONLY :   &
     nmvar,        & ! number of dynamically active model variables 
 
     ! Indices associated to paricular model variables:
 
     u_m     ,     & ! zonal velocity-component at the mass center
     v_m     ,     & ! meridional ,,      ,,    ,, ,,   ,,    ,,
-    w_m     ,     & ! vertical   ,,      ,,    ,, ,,   ,,    ,, (only used for optional single-column diagnostics)
+    w_m             ! vertical   ,,      ,,    ,, ,,   ,,    ,, (only used for optional single-column diagnostics)
 #endif
+USE turb_data , ONLY :   &
     ntyp    ,     & ! number of variable-types ('mom' and 'sca')
     mom     ,     & ! index for a momentum variable
     sca     ,     & ! index for a scalar   variable

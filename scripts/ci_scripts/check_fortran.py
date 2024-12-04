@@ -52,7 +52,17 @@ def check_file(filepath):
         # OpenMP sentinels (!$) are not allowed:
         omp_sentinel_match = re.search(r"(?m)^\s*!\$\s.*$", txt)
 
-        return filepath, omp_sentinel_match.group() if omp_sentinel_match else None
+        # Fortran USE statements must not be interlined with the preprocessor
+        # directives:
+        interlined_use_match = re.search(
+            r"(?im)^\n*(\s*use(?:\s*&\n|\s)(?:.*&\n)+\s*#.*)$", txt
+        )
+
+        return (
+            filepath,
+            omp_sentinel_match.group() if omp_sentinel_match else None,
+            interlined_use_match.group(1) if interlined_use_match else None,
+        )
 
 
 def parse_args():
@@ -76,13 +86,17 @@ def main():
     args = parse_args()
 
     files_with_omp_sentinels = []
+    files_with_interlined_uses = []
     with multiprocessing.Pool() as pool:
         for (
             filepath,
             omp_sentinel_string,
+            interlined_use_string,
         ) in pool.imap_unordered(check_file, list_files(args.files_or_dirs)):
             if omp_sentinel_string:
                 files_with_omp_sentinels.append((filepath, omp_sentinel_string))
+            if interlined_use_string:
+                files_with_interlined_uses.append((filepath, interlined_use_string))
 
     exit_code = 0
 
@@ -97,6 +111,22 @@ def main():
                 "\n\t".join(
                     "{0}:\n{1}".format(n, s)
                     for n, s in sorted(files_with_omp_sentinels)
+                )
+            ),
+            file=sys.stderr,
+        )
+
+    if files_with_interlined_uses:
+        exit_code = 1
+        print(
+            "ERROR: the following files contain multi-line Fortran USE statements "
+            "interlined with the preprocessor directives:\n"
+            "\t{0}\n"
+            "Avoid the interlining as described in "
+            "https://gitlab.dkrz.de/icon/icon/-/merge_requests/471\n".format(
+                "\n\t\n".join(
+                    "{0}:\n{1}".format(n, s)
+                    for n, s in sorted(files_with_interlined_uses)
                 )
             ),
             file=sys.stderr,

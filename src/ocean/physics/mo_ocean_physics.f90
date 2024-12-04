@@ -21,10 +21,10 @@
 MODULE mo_ocean_physics
   !-------------------------------------------------------------------------
   USE mo_kind,                ONLY: wp
-  USE mo_ocean_nml,           ONLY: &
 #ifdef __LVECTOR__
-    & eos_type,                                               &
+  USE mo_ocean_nml,           ONLY: eos_type
 #endif
+  USE mo_ocean_nml,           ONLY: &
     & n_zlev, bottom_drag_coeff,                              &
     & HarmonicViscosity_reference, velocity_VerticalDiffusion_background,                 &
     & Temperature_VerticalDiffusion_background, Salinity_VerticalDiffusion_background, no_tracer,                       &
