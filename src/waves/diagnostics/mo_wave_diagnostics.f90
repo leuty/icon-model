@@ -844,7 +844,7 @@ CONTAINS
     REAL(wp),          INTENT(IN)    :: z0(:,:)
     REAL(wp),          INTENT(INOUT) :: drag(:,:)  ! drag coefficient
     REAL(wp),          INTENT(INOUT) :: tauwn(:,:) ! normalised wave stress
-    REAL(wp),          INTENT(INOUT) :: beta(:,:)  ! Chernock parameter
+    REAL(wp),          INTENT(INOUT) :: beta(:,:)  ! Charnock parameter
 
     CHARACTER(len=*), PARAMETER ::  &
       &  routine = modname//':wave_drag_stress_ch_par'
