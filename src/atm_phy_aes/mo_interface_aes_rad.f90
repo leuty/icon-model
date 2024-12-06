@@ -194,7 +194,7 @@ CONTAINS
               & aer_aod_2325   = field%aer_aod_2325(:,:,jb),&!< out  aerosol optical density at 2325 nm
               & aer_ssa_2325   = field%aer_ssa_2325(:,:,jb),&!< out  single scattering albedo at 2325 nm
               & aer_asy_2325   = field%aer_asy_2325(:,:,jb),&!< out  asymmetrie factor at 2325 nm
-              & aer_aod_9731   = field%aer_aod_9731(:,:,jb) &!< out  aerosol optical density at 9731
+              & aer_aod_9731   = field%aer_aod_9731(:,:,jb)&!< out  aerosol optical density at 9731
               & )
               !
           !$ACC WAIT(1)

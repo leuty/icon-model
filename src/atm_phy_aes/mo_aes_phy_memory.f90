@@ -727,8 +727,6 @@ CONTAINS
     INTEGER :: datatype_flt
     INTEGER :: jsfc, jtrc
 
-    REAL(wp) :: initial_value
-
     use_tmx = aes_vdf_config(jg)%use_tmx
 
     ibits = DATATYPE_PACK16

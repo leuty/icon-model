@@ -100,7 +100,6 @@ USE mo_nwp_phy_state,        ONLY: prm_diag, prm_nwp_tend, prm_nwp_stochconv,  &
   &                                construct_nwp_phy_state
 USE mo_nwp_lnd_state,        ONLY: p_lnd_state, construct_nwp_lnd_state
 USE mo_atm_phy_nwp_config,   ONLY: configure_atm_phy_nwp, atm_phy_nwp_config
-USE mo_radiation_config,     ONLY: irad_aero, iRadAeroKinneVolcSP, iRadAeroKinneSP
 USE mo_synsat_config,        ONLY: configure_synsat
 USE mo_iau,                  ONLY: save_initial_state, reset_to_initial_state
 #ifndef __NO_NWP__
@@ -117,12 +116,10 @@ USE mo_nwp_vdiff_interface,  ONLY: nwp_vdiff_setup
 USE mo_art_init_interface,   ONLY: art_init_atmo_tracers_nwp
 #endif
 
-USE mo_bc_aeropt_splumes_memory, ONLY: construct_bc_aeropt_splumes_memory
 ! AES physics
 USE mo_aes_phy_config,      ONLY: aes_phy_tc, dt_zero, aes_phy_config
 USE mo_aes_rad_config,      ONLY: aes_rad_config
 USE mo_aes_vdf_config,      ONLY: aes_vdf_config
-USE mo_bc_aeropt_splumes_memory, ONLY: construct_bc_aeropt_splumes_memory
 #ifndef __NO_AES__
 USE mo_aes_phy_memory,      ONLY: construct_aes_phy_memory
 USE mo_cloud_mig_memory,    ONLY: construct_cloud_mig_memory
@@ -472,11 +469,6 @@ CONTAINS
 #endif
     END IF
 
-    IF ( (ANY(aes_rad_config(:)%irad_aero == 19) .AND. &
-          ANY(aes_phy_config(:)%dt_rad /= '')) .OR. &
-       & ANY(irad_aero==(/iRadAeroKinneVolcSP,iRadAeroKinneSP/)) ) THEN
-      CALL construct_bc_aeropt_splumes_memory ( p_patch(1:) )
-    END IF
 ! Upper atmosphere
 
     model_base_dir = getModelBaseDir()
