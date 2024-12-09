@@ -1841,10 +1841,10 @@ CONTAINS
           D_23       = vel_grad_e(2,3)%ptr(je,jk,jb) + vel_grad_e(3,2)%ptr(je,jk,jb)
 
           ! Mechanical prod is half of this value divided by km
-           shear(je,jk,jb) = 4._wp * (  vel_grad_e(1,1)%ptr(je,jk,jb)**2  &
-                                      + vel_grad_e(2,2)%ptr(je,jk,jb)**2  &
-                                      + vel_grad_e(3,3)%ptr(je,jk,jb)**2) &
-                            + 2._wp * ( D_12**2 + D_13**2 + D_23**2 )
+           shear(je,jk,jb) = 4._wp * (  vel_grad_e(1,1)%ptr(je,jk,jb)**2._wp  &
+                                      + vel_grad_e(2,2)%ptr(je,jk,jb)**2._wp  &
+                                      + vel_grad_e(3,3)%ptr(je,jk,jb)**2._wp) &
+                            + 2._wp * ( D_12**2._wp + D_13**2._wp + D_23**2._wp)
 
           ! Trace of strain-rate tensor S_ij: 
           !   trace(S_ij) = S_jj = 0.5 * D_jj = du_j/dx_j

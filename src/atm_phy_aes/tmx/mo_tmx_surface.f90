@@ -328,7 +328,7 @@ CONTAINS
       DO jc = jcs, jce
         Tfw(jc) = Tf
         nonsolar_flux(jc) = lwflx_net(jc,jb) + lhflx(jc,jb) + shflx(jc,jb)
-        dnonsolar_flux_dt(jc) = -4._wp * emissivity(jc,jb) * stbo * old_tsfc(jc,jb)**3
+        dnonsolar_flux_dt(jc) = -4._wp * emissivity(jc,jb) * stbo * old_tsfc(jc,jb)**3._wp
 
         new_tsfc(jc,jb) = old_tsfc(jc,jb) - tmelt
       END DO
@@ -434,7 +434,7 @@ CONTAINS
       !$ACC PARALLEL LOOP DEFAULT(PRESENT) GANG(STATIC: 1) VECTOR ASYNC(1) PRIVATE(js)
       DO jls = 1, nvalid(jb)
         js = indices(jls,jb)
-        lwfl_net(js,jb) = emissivity(js,jb) * (rlds(js,jb) - stbo * tsfc(js,jb)**4)
+        lwfl_net(js,jb) = emissivity(js,jb) * (rlds(js,jb) - stbo * tsfc(js,jb)**4._wp)
       END DO !jls
       !$ACC END PARALLEL LOOP
     END DO !jb
@@ -1003,9 +1003,9 @@ CONTAINS
         u10m(js,jb) = zred * ua(js,jb)
         v10m(js,jb) = zred * va(js,jb)
         IF (isfc == isfc_oce) THEN
-          wind10m(js,jb) = zred * SQRT((ua(js,jb) - u_oce(js,jb))**2 + (va(js,jb) - v_oce(js,jb))**2)
+          wind10m(js,jb) = zred * SQRT((ua(js,jb) - u_oce(js,jb))**2._wp + (va(js,jb) - v_oce(js,jb))**2._wp)
         ELSE
-          wind10m(js,jb) = SQRT(u10m(js,jb)**2 + (v10m(js,jb)**2))
+          wind10m(js,jb) = SQRT(u10m(js,jb)**2._wp + (v10m(js,jb)**2._wp))
         END IF
       END DO
     !$ACC END PARALLEL LOOP
@@ -1059,7 +1059,7 @@ CONTAINS
         js = indices(jls,jb)
         zrat = 2._wp / (zf(js,jb) - zh(js,jb))
         zbm  = 1._wp / MAX(zepsec, SQRT(km(js,jb)) / ckap)
-        zbh  = 1._wp / MAX(zepsec, kh(js,jb) * zbm / ckap**2)
+        zbh  = 1._wp / MAX(zepsec, kh(js,jb) * zbm / ckap**2._wp)
         IF (isfc == isfc_lnd) THEN
           zcbn   = LOG(1._wp + (EXP (kh_neutral(js,jb)) - 1._wp) * zrat )
           zcbs   = -(kh_neutral(js,jb) - zbh) * zrat

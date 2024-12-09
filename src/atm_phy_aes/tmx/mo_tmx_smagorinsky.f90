@@ -147,8 +147,8 @@ MODULE mo_tmx_smagorinsky
                                 (dzh(jc,jk,jb) * domain%area(jc,jb))**0.33333_wp &
                                )
             ! 
-            mixing_length_sq(jc,jk,jb) = (les_filter*z_mc)**2    &
-                                         / ((les_filter/kappa)**2+z_mc**2)
+            mixing_length_sq(jc,jk,jb) = (les_filter*z_mc)**2._wp    &
+                                         / ((les_filter/kappa)**2._wp+z_mc**2._wp)
 
           END DO
         END DO
@@ -401,7 +401,7 @@ MODULE mo_tmx_smagorinsky
                                                       1._wp / (1._wp + louis_constant_b              &
                                                                        * scaling_factor_louis(jc,jb) &
                                                                        * ABS(Ri)                     &
-                                                              )**4                                   &
+                                                              )**4._wp                               &
                                                      ))
       
             stability_term = SQRT( 0.5_wp * mech_prod(jc,jk,jb) * stability_function(jc,jk,jb) )
@@ -495,7 +495,7 @@ MODULE mo_tmx_smagorinsky
     !   !                             MIN(1._wp,                                       & 
     !   !                                 1._wp/(1._wp+louis_constant_b                &
     !   !                                        *scaling_factor_louis(jc,jb)          &
-    !   !                                        *ABS(Ri))**4))
+    !   !                                        *ABS(Ri))**4._wp))
       
     !   ! stability_term = SQRT( 0.5_wp * mech_prod(jc,jk,jb) * stability_factor_louis )
 
@@ -506,7 +506,7 @@ MODULE mo_tmx_smagorinsky
     !                                         MIN(1._wp,                                & 
     !                                             1._wp/(1._wp+louis_constant_b         &
     !                                                   *scaling_factor_louis(jc,jb)    &
-    !                                                   *ABS(Ri))**4                    &
+    !                                                   *ABS(Ri))**4._wp                &
     !                                            ))
       
     !   stability_term = SQRT( 0.5_wp * mech_prod(jc,jk,jb) * stability_function(jc,jk,jb) )

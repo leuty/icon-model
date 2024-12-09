@@ -7,6 +7,7 @@ AES Physics:
 - Some re-work for LAM and Global+Nest in AES physics (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/561)
 - TMX turbulence
   - Fix OpenACC performance issue and OpenMP PRIVATE
+  - Fix inconsistency in floating point operations by adding missing _wp to some constants
 
 ### ICON-Ocean
 
