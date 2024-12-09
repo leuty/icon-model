@@ -38,8 +38,8 @@ MODULE mo_intp_rbf_coeffs
 USE mo_kind,                ONLY: wp
 USE mo_exception,           ONLY: message, message_text, finish
 USE mo_impl_constants,      ONLY: SUCCESS, min_rlcell_int
-USE mo_model_domain,        ONLY: t_patch, t_tangent_vectors
-USE mo_math_types,          ONLY: t_cartesian_coordinates
+USE mo_model_domain,        ONLY: t_patch
+USE mo_math_types,          ONLY: t_cartesian_coordinates, t_tangent_vectors
 USE mo_math_utilities,      ONLY: gvec2cvec, arc_length_v
 USE mo_math_utility_solvers, ONLY: solve_chol_v, choldec_v
 USE mo_parallel_config,     ONLY: nproma

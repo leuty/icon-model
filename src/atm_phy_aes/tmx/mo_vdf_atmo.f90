@@ -299,6 +299,7 @@ CONTAINS
     TYPE(t_patch),                POINTER :: patch
 
     INTEGER :: jg
+    INTEGER :: rl_start, rl_end
 
     CHARACTER(len=*), PARAMETER :: routine = modname//':Compute_diagnostics'
 
@@ -323,6 +324,8 @@ CONTAINS
     patch  => domain%patch
 
     jg = patch%id
+    rl_start = 3
+    rl_end = min_rlcell_int
 
     p_int         => p_int_state(jg)
     p_nh_metrics  => p_nh_state(jg)%metrics
@@ -338,7 +341,8 @@ CONTAINS
     !----------------------------------------------------------------------------
     ! Get virtual potential temperature
     !----------------------------------------------------------------------------
-    CALL get_virtual_potential_temperature(ins%ptvm1, ins%papm1, domain, diags%theta_v)
+    CALL get_virtual_potential_temperature(patch, ins%ptvm1, ins%papm1, diags%theta_v, &
+                                           rl_start,rl_end)
 
     !Get rho at interfaces 
     CALL vert_intp_full2half_cell_3d(patch, p_nh_metrics, ins%rho, diags%rho_ic, &
@@ -456,7 +460,6 @@ CONTAINS
     ! Now calculate visc at half levels at edge
     CALL interpolate_eddy_viscosity2half_edge(diags%km_ic, conf%km_min, patch, p_int, &
                                               diags%km_ie)
-
 
   END SUBROUTINE Compute_diagnostics
   !
@@ -1485,23 +1488,29 @@ CONTAINS
   !
   !============================================================================
   !
-  SUBROUTINE  get_virtual_potential_temperature(            & 
-    ptvm1, papm1, domain, theta_v )
+  SUBROUTINE  get_virtual_potential_temperature(patch, ptvm1, papm1, theta_v, &
+                                                rl_start, rl_end)
 
-    REAL(wp), INTENT(in), POINTER :: ptvm1(:,:,:), papm1(:,:,:)
-    TYPE(t_domain), INTENT(in), POINTER :: domain
-    REAL(wp), INTENT(in), POINTER :: theta_v(:,:,:)
+    REAL(wp), INTENT(in), POINTER      :: ptvm1(:,:,:), papm1(:,:,:)
+    TYPE(t_patch), INTENT(in), POINTER :: patch
+    REAL(wp), INTENT(in), POINTER      :: theta_v(:,:,:)
+    INTEGER,  INTENT(in)               :: rl_start, rl_end 
 
     INTEGER  :: jb, jk, jc, nlev
+    INTEGER  :: i_startblk, i_endblk, i_startidx, i_endidx
 
     nlev = SIZE(theta_v,2)
+    i_startblk = patch%cells%start_block(rl_start)
+    i_endblk   = patch%cells%end_block(rl_end)
 
-!$OMP PARALLEL DO PRIVATE(jb, jk, jc) ICON_OMP_DEFAULT_SCHEDULE
-    DO jb = domain%i_startblk_c, domain%i_endblk_c
+!$OMP PARALLEL DO PRIVATE(jb, jk, jc, i_startidx, i_endidx) ICON_OMP_DEFAULT_SCHEDULE
+    DO jb = i_startblk, i_endblk
+      CALL get_indices_c(patch, jb, i_startblk, i_endblk,      &
+                         i_startidx, i_endidx, rl_start, rl_end)
       !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1)
       !$ACC LOOP GANG VECTOR COLLAPSE(2)
       DO jk = 1, nlev
-        DO jc = domain%i_startidx_c(jb), domain%i_endidx_c(jb)
+        DO jc = i_startidx, i_endidx
           theta_v(jc,jk,jb) = ptvm1(jc,jk,jb)*(p0ref/papm1(jc,jk,jb))**rd_o_cpd
         END DO
       END DO
@@ -1628,8 +1637,8 @@ CONTAINS
     patch, p_nh_metrics, rl_start, rl_end, vel_grad_e          &
     )                        
 
-    REAL(wp), INTENT(in), POINTER :: u_vert(:,:,:), v_vert(:,:,:), w_vert(:,:,:), pwp1(:,:,:)
-    REAL(wp), INTENT(in), POINTER :: vn_ie(:,:,:), vt_ie(:,:,:), w_ie(:,:,:)
+    REAL(wp), INTENT(in) :: u_vert(:,:,:), v_vert(:,:,:), w_vert(:,:,:), pwp1(:,:,:)
+    REAL(wp), INTENT(in) :: vn_ie(:,:,:), vt_ie(:,:,:), w_ie(:,:,:)
 
     TYPE(t_patch), INTENT(in), POINTER :: patch
     TYPE(t_nh_metrics),INTENT(in) :: p_nh_metrics
@@ -1656,8 +1665,8 @@ CONTAINS
 
       CALL get_indices_e(patch, jb, i_startblk, i_endblk,       &
                          i_startidx, i_endidx, rl_start, rl_end)
-      !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1) PRESENT(u_vert, v_vert)
-      !$ACC LOOP GANG(STATIC: 1) VECTOR TILE(32, 4) &
+      !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1)
+      !$ACC LOOP GANG VECTOR TILE(32, 4) &
       !$ACC   PRIVATE(vn_vert1, vn_vert2, vn_vert3, vn_vert4, vt_vert1, vt_vert2, vt_vert3, vt_vert4) &
       !$ACC   PRIVATE(w_full_c1, w_full_c2, w_full_v1, w_full_v2)
 #ifdef __LOOP_EXCHANGE
@@ -1795,14 +1804,11 @@ CONTAINS
     TYPE(t_patch), INTENT(in), POINTER :: patch
     INTEGER, INTENT(in) :: rl_start,rl_end
 
-    REAL(wp), INTENT(in), POINTER :: shear(:,:,:), div_of_stress(:,:,:)
+    REAL(wp), INTENT(inout) :: shear(:,:,:), div_of_stress(:,:,:)
 
     INTEGER :: i_startblk, i_endblk, i_startidx, i_endidx
     INTEGER :: jb, jk, je, nlev
 
-    REAL(wp) :: vn_vert1, vn_vert2, vn_vert3, vn_vert4
-    REAL(wp) :: vt_vert1, vt_vert2, vt_vert3, vt_vert4
-    REAL(wp) :: w_full_c1, w_full_c2, w_full_v1, w_full_v2
     REAL(wp) :: D_12,D_13,D_23
 
     nlev = SIZE(div_of_stress,2)
@@ -1810,13 +1816,14 @@ CONTAINS
     i_startblk = patch%edges%start_block(rl_start)
     i_endblk   = patch%edges%end_block(rl_end)
 
-!$OMP PARALLEL DO PRIVATE(jb, jk, je, i_startidx, i_endidx) ICON_OMP_DEFAULT_SCHEDULE
+!$OMP PARALLEL DO PRIVATE(jb, jk, je, i_startidx, i_endidx, D_12, D_13, D_23) ICON_OMP_DEFAULT_SCHEDULE
     DO jb = i_startblk,i_endblk
 
       CALL get_indices_e(patch, jb, i_startblk, i_endblk,       &
                          i_startidx, i_endidx, rl_start, rl_end)
       !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1)
-      !$ACC LOOP GANG(STATIC: 1) VECTOR TILE(32, 4)
+      !$ACC LOOP GANG VECTOR TILE(32, 4) &
+      !$ACC   PRIVATE(D_12, D_13, D_23)
 #ifdef __LOOP_EXCHANGE
       DO je = i_startidx, i_endidx
         DO jk = 1, nlev
@@ -1993,8 +2000,7 @@ CONTAINS
     DO jb = i_startblk,i_endblk
       CALL get_indices_c(patch, jb, i_startblk, i_endblk,      &
                          i_startidx, i_endidx, rl_start, rl_end)
-      !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1)
-      !$ACC LOOP GANG(STATIC: 1) VECTOR COLLAPSE(2)
+      !$ACC PARALLEL LOOP DEFAULT(PRESENT) GANG VECTOR COLLAPSE(2) ASYNC(1)
       DO jk = 2, nlev
         DO jc = i_startidx, i_endidx
           shear_ic(jc,jk,jb) =                                                                  &
@@ -2016,7 +2022,7 @@ CONTAINS
                     )
         END DO
       END DO
-      !$ACC END PARALLEL
+      !$ACC END PARALLEL LOOP
     END DO
 !$OMP END PARALLEL DO
   END SUBROUTINE interpolate_rate_of_strain_full2half_edge2cell
@@ -2051,8 +2057,7 @@ CONTAINS
     DO jb = i_startblk,i_endblk
       CALL get_indices_c(patch, jb, i_startblk, i_endblk, &
                           i_startidx, i_endidx, rl_start, rl_end)
-      !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1)
-      !$ACC LOOP GANG VECTOR COLLAPSE(2)
+      !$ACC PARALLEL LOOP DEFAULT(PRESENT) GANG VECTOR COLLAPSE(2) ASYNC(1)
       DO jk = 1, nlev
         DO jc = i_startidx, i_endidx
           km_c(jc,jk,jb) = MAX( km_min,                                   &
@@ -2060,7 +2065,7 @@ CONTAINS
                                 0.5_wp )
         END DO
       END DO
-      !$ACC END PARALLEL
+      !$ACC END PARALLEL LOOP
     END DO
 !$OMP END PARALLEL DO
 
@@ -2078,30 +2083,32 @@ CONTAINS
     ptr_int,                                                                &
     km_iv)                        
 
-    REAL(wp), INTENT(in), POINTER :: km_ic(:,:,:)
+    REAL(wp), INTENT(in) :: km_ic(:,:,:)
     REAL(wp), INTENT(in) :: km_min
     TYPE(t_patch), INTENT(in), POINTER :: patch
     TYPE(t_int_state), TARGET, INTENT(IN)  ::  ptr_int
 
-    REAL(wp), INTENT(in), POINTER :: km_iv(:,:,:)
+    REAL(wp), INTENT(inout) :: km_iv(:,:,:)
 
-    INTEGER :: jb, jk, jc
+    INTEGER :: jb, jk, jc, nblks, nlev, nproma
 
+    nblks = SIZE(km_iv,3)
+    nproma = SIZE(km_iv, 1)
+    nlev = SIZE(km_iv, 2)
 
     CALL cells2verts_scalar(km_ic, patch, ptr_int%cells_aw_verts, km_iv, &
                             opt_rlstart=5, opt_rlend=min_rlvert_int-1,   &
                             opt_acc_async=.TRUE.)
 
-    !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1)
-    !$ACC LOOP GANG VECTOR COLLAPSE(3)
-    DO jb = 1, SIZE(km_iv, 3)
-      DO jk = 1, SIZE(km_iv, 2)
-        DO jc = 1, SIZE(km_iv, 1)
+    !$ACC PARALLEL LOOP DEFAULT(PRESENT) GANG VECTOR COLLAPSE(3) ASYNC(1)
+    DO jb = 1, nblks
+      DO jk = 1, nlev
+        DO jc = 1, nproma
           km_iv(jc,jk,jb) = MAX( km_min,  km_iv(jc,jk,jb) )
         END DO
       END DO
     END DO
-    !$ACC END PARALLEL
+    !$ACC END PARALLEL LOOP
 
   END SUBROUTINE interpolate_eddy_viscosity2half_vertex
   !============================================================================
@@ -2117,29 +2124,32 @@ CONTAINS
     ptr_int,                                                              &
     km_ie)                        
 
-    REAL(wp), INTENT(in), POINTER :: km_ic(:,:,:)
+    REAL(wp), INTENT(in) :: km_ic(:,:,:)
     REAL(wp), INTENT(in) :: km_min
     TYPE(t_patch), INTENT(in), POINTER :: patch
     TYPE(t_int_state), TARGET, INTENT(IN)  ::  ptr_int
 
-    REAL(wp), INTENT(in), POINTER :: km_ie(:,:,:)
+    REAL(wp), INTENT(inout) :: km_ie(:,:,:)
 
-    INTEGER :: jb, jk, jc
+    INTEGER :: jb, jk, jc, nblks, nlev, nproma
+
+    nblks = SIZE(km_ie,3)
+    nproma = SIZE(km_ie, 1)
+    nlev = SIZE(km_ie, 2)
 
     CALL cells2edges_scalar(km_ic, patch, ptr_int%c_lin_e, km_ie,                   &
                             opt_rlstart=grf_bdywidth_e, opt_rlend=min_rledge_int-1, &
                             lacc=.TRUE.)
 
-    !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1)
-    !$ACC LOOP GANG VECTOR COLLAPSE(3)
-    DO jb = 1, SIZE(km_ie, 3)
-      DO jk = 1, SIZE(km_ie, 2)
-        DO jc = 1, SIZE(km_ie, 1)
+    !$ACC PARALLEL LOOP DEFAULT(PRESENT) GANG VECTOR COLLAPSE(3) ASYNC(1)
+    DO jb = 1, nblks
+      DO jk = 1, nlev
+        DO jc = 1, nproma
           km_ie(jc,jk,jb) = MAX( km_min,  km_ie(jc,jk,jb) )
         END DO
       END DO
     END DO
-    !$ACC END PARALLEL
+    !$ACC END PARALLEL LOOP
 
   END SUBROUTINE interpolate_eddy_viscosity2half_edge
   !============================================================================

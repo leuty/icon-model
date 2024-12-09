@@ -1306,7 +1306,7 @@ MODULE mo_nh_stepping
       IF ( iforcing==iaes ) THEN
         IF (ltimer) CALL timer_start(timer_coupling)
         ! CALL message("nh_stepping","CALL interface_aes_ocean...")
-        CALL interface_aes_ocean(p_patch(1) , p_nh_state(1)%diag)
+        CALL interface_aes_ocean(p_patch(1:n_dom))
         IF (ltimer) CALL timer_stop(timer_coupling)
       END IF
     END IF

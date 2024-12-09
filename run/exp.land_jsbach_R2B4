@@ -91,6 +91,9 @@ jsbach_usecase=jsbach_pfts    # jsbach_lite, jsbach_pfts, jsbach_forest_age_clas
 jsbach_with_lakes=yes
 jsbach_with_hd=yes
 jsbach_with_carbon=yes        # Set 'no' with jsbach_lite usecase; needs to be 'yes' with jsbach_forest_age_classes
+read_cpools=false             # Initialize carbon pools from "cpools_file" (see below). ATTENTION: needs to be set
+                              # to false manually for the next restart.
+cpools_file=""                # with read_cpools=true: file containig the carbon pools to be read
 jsbach_with_disturbance=yes   # Set 'no' with uscase jsbach_lite and jsbach_forest_age_classes
 jsbach_with_alcc=no           # ALCC needs annual land uses maps, not available for most input data revisions!
                               #      set 'no' with jsbach_lite usecase
@@ -208,6 +211,8 @@ fi
 cat > $jsbach_namelist << EOF
 &parallel_nml
  nproma           = ${nproma}
+ nproma_sub       = ${nproma_sub}
+ nblocks_c        = ${nblocks_c}
  num_io_procs     = 0     ! Number of procs for output (not more than number of output files!)
 ! pio_type         = 1          ! 1 is default and means pio_type_async
 ! num_restart_procs = 2         ! 0 for sync restart_write_mode
@@ -350,7 +355,7 @@ cat >> $jsbach_namelist << EOF
   active                 = ${lcarbon}
   bc_filename            = 'bc_land_carbon.nc'
   ic_filename            = 'ic_land_carbon.nc'
-  read_cpools            = .FALSE.
+  read_cpools            = ${read_cpools}
   !fire_frac_wood_2_atmos = 0.2
 /
 &jsb_fuel_nml
@@ -440,8 +445,13 @@ add_required_file ${basedir}/run/$jsbach_namelist            ./
 # - land: source?, date+time?
 datadir=${lnd_data_InputFolder}
 add_link_file ${datadir}/ic_land_soil_${refyear}.nc                     ./ic_land_soil.nc
-# added in namelist, but not active and not yet available (2017-Dec-07)
-#add_link_file ${datadir}/ic_land_carbon_1976.nc                         ./ic_land_carbon.nc
+if [[ ${read_cpools} == true ]]; then
+  if [[ ! -f ${cpools_file} ]]; then
+    echo "ERROR: cpools_file ${cpools_file} does not exist!"
+    exit 1
+  fi
+  add_link_file ${cpools_file}                                          ./ic_land_carbon.nc
+fi
 
 # boundary conditions
 #

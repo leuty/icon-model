@@ -72,28 +72,29 @@ CONTAINS
     CHARACTER(len=max_char_length), PARAMETER :: &
          &   routine = 'mo_coupling_nml:read_coupling_namelist'
 
-    NAMELIST /coupling_mode_nml/ coupled_to_ocean, coupled_to_waves, coupled_to_atmo, &
-         coupled_to_hydrodisc, coupled_to_output, coupled_to_aero, coupled_to_o3
+    NAMELIST /coupling_mode_nml/ coupled_to_ocean, coupled_to_waves, &
+         coupled_to_atmo, coupled_to_hydrodisc, coupled_to_output, &
+         coupled_to_aero, coupled_to_o3
 
     !--------------------------------------------------------------------
     ! 1. Set default values
     !--------------------------------------------------------------------
 
-    coupled_to_ocean     = .FALSE.
-    coupled_to_waves     = .FALSE.
-    coupled_to_atmo      = .FALSE.
-    coupled_to_hydrodisc = .FALSE.
-    coupled_to_output    = .FALSE.
-    coupled_to_aero      = .FALSE.
-    coupled_to_o3        = .FALSE.
+    coupled_to_ocean        = .FALSE.
+    coupled_to_waves        = .FALSE.
+    coupled_to_atmo         = .FALSE.
+    coupled_to_hydrodisc    = .FALSE.
+    coupled_to_output       = .FALSE.
+    coupled_to_aero         = .FALSE.
+    coupled_to_o3           = .FALSE.
 
-    can_couple_to_ocean     = .FALSE.
-    can_couple_to_waves     = .FALSE.
-    can_couple_to_atmo      = .FALSE.
-    can_couple_to_hydrodisc = .FALSE.
-    can_couple_to_output    = .FALSE.
-    can_couple_to_aero      = .FALSE.
-    can_couple_to_o3        = .FALSE.
+    can_couple_to_ocean        = .FALSE.
+    can_couple_to_waves        = .FALSE.
+    can_couple_to_atmo         = .FALSE.
+    can_couple_to_hydrodisc    = .FALSE.
+    can_couple_to_output       = .FALSE.
+    can_couple_to_aero         = .FALSE.
+    can_couple_to_o3           = .FALSE.
 
     !--------------------------------------------------------------------
     ! 2. Read user's (new) specifications (done so far by all MPI processes)
@@ -112,13 +113,13 @@ CONTAINS
 
 #endif
 
-    config_coupled_to_ocean     = coupled_to_ocean
-    config_coupled_to_waves     = coupled_to_waves
-    config_coupled_to_atmo      = coupled_to_atmo
-    config_coupled_to_hydrodisc = coupled_to_hydrodisc
-    config_coupled_to_output    = coupled_to_output
-    config_coupled_to_aero      = coupled_to_aero
-    config_coupled_to_o3        = coupled_to_o3
+    config_coupled_to_ocean        = coupled_to_ocean
+    config_coupled_to_waves        = coupled_to_waves
+    config_coupled_to_atmo         = coupled_to_atmo
+    config_coupled_to_hydrodisc    = coupled_to_hydrodisc
+    config_coupled_to_output       = coupled_to_output
+    config_coupled_to_aero         = coupled_to_aero
+    config_coupled_to_o3           = coupled_to_o3
 
     coupled_mode = ANY((/coupled_to_ocean,     &
                          coupled_to_waves,     &

@@ -848,6 +848,7 @@ CONTAINS
 
       IF ( isRegistered('heat_content_liquid_water') .OR. isRegistered('heat_content_seaice') &
            .OR. isRegistered('heat_content_snow')   .OR. isRegistered('heat_content_total') &
+           .OR. isRegistered('heat_content_300m')   .OR. isRegistered('heat_content_700m') &
            .OR. isRegistered('global_heat_content') .OR. isRegistered('global_heat_content_solid') ) THEN
 
       	IF (vert_cor_type .EQ. 0) THEN
@@ -856,7 +857,8 @@ CONTAINS
              p_diag%heat_content_liquid_water, &
              p_diag%heat_content_seaice, &
              p_diag%heat_content_snow,&
-             p_diag%heat_content_total, lacc=lzacc )
+             p_diag%heat_content_total, &
+             p_diag%heat_content_300m, p_diag%heat_content_700m , lacc=lzacc )
 
         ELSEIF (vert_cor_type .EQ. 1) THEN
 
@@ -865,6 +867,7 @@ CONTAINS
              p_diag%heat_content_seaice, &
              p_diag%heat_content_snow,&
              p_diag%heat_content_total, &
+             p_diag%heat_content_300m, p_diag%heat_content_700m, &
              ocean_state%p_prog(nnew(1))%stretch_c(:, :), lacc=lzacc )
 
         ENDIF
@@ -2646,7 +2649,8 @@ CONTAINS
 
   SUBROUTINE calc_heat_content(patch_3d, thickness, ice, tracers, &
        heat_content_liquid_water, heat_content_seaice,            &
-       heat_content_snow, heat_content_total, stretch_c, lacc)
+       heat_content_snow, heat_content_total, &
+       heat_content_300m, heat_content_700m, stretch_c, lacc)
 
     TYPE(t_patch_3d), TARGET, INTENT(in)  :: patch_3d
 
@@ -2656,6 +2660,8 @@ CONTAINS
     REAL(wp), INTENT(INOUT)  :: heat_content_seaice(:,:)
     REAL(wp), INTENT(INOUT)  :: heat_content_snow(:,:)
     REAL(wp), INTENT(INOUT)  :: heat_content_total(:,:)
+    REAL(wp), INTENT(INOUT)  :: heat_content_300m(:,:)
+    REAL(wp), INTENT(INOUT)  :: heat_content_700m(:,:)
     REAL(wp), INTENT(IN), OPTIONAL  :: stretch_c(:,:)
 
     TYPE(t_sea_ice), INTENT(IN)              :: ice
@@ -2730,6 +2736,16 @@ CONTAINS
         heat_content_total(cell,blk) = heat_content_snow(cell,blk) &
              + heat_content_seaice(cell, blk)                      &
              + SUM(heat_content_liquid_water(cell,1:subset%vertical_levels(cell,blk),blk))
+        ! total heat upper 300m
+        heat_content_300m(cell,blk) = heat_content_snow(cell,blk) &
+             + heat_content_seaice(cell, blk)&
+             + SUM(heat_content_liquid_water(cell,1:MIN(get_level_index_by_depth(patch_3d, 300.0_wp) &
+             ,subset%vertical_levels(cell,blk)),blk))
+        ! total heat upper 700m
+        heat_content_700m(cell,blk) = heat_content_snow(cell,blk) &
+             + heat_content_seaice(cell, blk)                      &
+             + SUM(heat_content_liquid_water(cell,1:MIN(get_level_index_by_depth(patch_3d, 700.0_wp) &
+             ,subset%vertical_levels(cell,blk)),blk))
 
         ! rest of the underwater world
       END DO ! cell
@@ -2739,6 +2755,7 @@ CONTAINS
     ! 2023-07 psam-DKRZ: The following UPDATE SELF directive is necessary as the updated arrays are required elsewhere
     ! for CPU-operations. This should not be necessary, I guess, when all subroutines are ported to GPU
     !$ACC UPDATE SELF(heat_content_liquid_water, heat_content_seaice, heat_content_snow, heat_content_total) &
+    !$ACC   SELF(heat_content_300m, heat_content_700m) &
     !$ACC   ASYNC(1) IF(lzacc)
     !$ACC WAIT(1) IF(lzacc)
 

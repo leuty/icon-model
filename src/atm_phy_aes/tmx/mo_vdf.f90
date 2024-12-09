@@ -920,8 +920,7 @@ CONTAINS
                         i_startidx, i_endidx, rl_start, rl_end)
 
       ! compute kh_ie * grad_horiz(energy)
-      !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1)
-      !$ACC LOOP GANG(STATIC: 1) VECTOR COLLAPSE(2)
+      !$ACC PARALLEL LOOP DEFAULT(PRESENT) GANG VECTOR COLLAPSE(2) ASYNC(1)
       DO jk = 1, nlev
         DO je = i_startidx, i_endidx
           nabla2_e(je,jk,jb) = 0.5_wp * rturb_prandtl * ( km_ie(je,jk,jb) + km_ie(je,jk+1,jb) ) &
@@ -931,15 +930,14 @@ CONTAINS
                                 )
         ENDDO
       ENDDO
-      !$ACC END PARALLEL
+      !$ACC END PARALLEL LOOP
     ENDDO
 !$OMP END DO
 
     ! now compute the divergence of the quantity above
 !$OMP DO PRIVATE(jb,jc,jk) ICON_OMP_DEFAULT_SCHEDULE
     DO jb = i_startblk_c, i_endblk_c
-      !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1)
-      !$ACC LOOP GANG(STATIC: 1) VECTOR COLLAPSE(2)
+      !$ACC PARALLEL LOOP DEFAULT(PRESENT) GANG VECTOR COLLAPSE(2) ASYNC(1)
       DO jk = 1, nlev
         DO jc = i_startidx_c(jb), i_endidx_c(jb)
           ! horizontal tendency
@@ -950,7 +948,7 @@ CONTAINS
           tend_energy(jc,jk,jb) = tend_energy(jc,jk,jb) + hori_tend_c(jc,jk,jb)
         END DO
       END DO
-      !$ACC END PARALLEL
+      !$ACC END PARALLEL LOOP
     END DO
 !$OMP END DO
 
@@ -958,15 +956,13 @@ CONTAINS
 
 !$OMP PARALLEL DO PRIVATE(jb,jc,jk) ICON_OMP_DEFAULT_SCHEDULE
     DO jb = i_startblk_c,i_endblk_c
-      !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1)
-      !$ACC LOOP SEQ
+      !$ACC PARALLEL LOOP DEFAULT(PRESENT) GANG VECTOR COLLAPSE(2) ASYNC(1)
       DO jk = 1, nlev
-        !$ACC LOOP GANG(STATIC: 1) VECTOR
         DO jc = i_startidx_c(jb), i_endidx_c(jb)
           new_energy(jc,jk,jb) = energy(jc,jk,jb) + tend_energy(jc,jk,jb) * dtime
         END DO
       END DO
-      !$ACC END PARALLEL
+      !$ACC END PARALLEL LOOP
     END DO
 !$OMP END PARALLEL DO
 
@@ -975,15 +971,13 @@ CONTAINS
 !$OMP PARALLEL
 !$OMP DO PRIVATE(jb,jc,jk) ICON_OMP_DEFAULT_SCHEDULE
     DO jb = i_startblk_c,i_endblk_c
-      !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1)
-      !$ACC LOOP SEQ
+      !$ACC PARALLEL LOOP DEFAULT(PRESENT) GANG VECTOR COLLAPSE(2) ASYNC(1)
       DO jk = 1, nlev
-        !$ACC LOOP GANG(STATIC: 1) VECTOR
         DO jc = i_startidx_c(jb), i_endidx_c(jb)
           tend_ta(jc,jk,jb) = (new_state_ta(jc,jk,jb) - state_ta(jc,jk,jb)) * rdtime
         END DO
       END DO
-      !$ACC END PARALLEL
+      !$ACC END PARALLEL LOOP
     END DO
 !$OMP END DO
 !$OMP END PARALLEL
@@ -1744,29 +1738,24 @@ CONTAINS
     rdtime = 1._wp / dtime
 
 !$OMP PARALLEL
+    CALL init(heating, lacc=.TRUE.)
+!$OMP END PARALLEL
+
+!$OMP PARALLEL
 !$OMP DO PRIVATE(jb,jc,jk) ICON_OMP_DEFAULT_SCHEDULE
     DO jb = i_startblk_c,i_endblk_c
-      !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1)
-      !$ACC LOOP SEQ
-      DO jk=1,nlev
-        !$ACC LOOP GANG(STATIC: 1) VECTOR
-        DO jc = i_startidx_c(jb), i_endidx_c(jb)
-          heating(jc,jk,jb) = 0._wp
-        END DO
-      END DO
-      !$ACC LOOP GANG(STATIC: 1) VECTOR
+      !$ACC PARALLEL LOOP DEFAULT(PRESENT) GANG VECTOR ASYNC(1)
       DO jc = i_startidx_c(jb), i_endidx_c(jb)
         heating(jc,nlev,jb) = - q_snocpymlt(jc,jb) ! non-zero only for land
       END DO
-      !$ACC END PARALLEL
+      !$ACC END PARALLEL LOOP
     END DO
 !$OMP END DO
 !$OMP END PARALLEL
 
 !$OMP PARALLEL DO PRIVATE(jb,jc,jk) ICON_OMP_DEFAULT_SCHEDULE
     DO jb = i_startblk_c,i_endblk_c
-      !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1)
-      !$ACC LOOP GANG VECTOR COLLAPSE(2)
+      !$ACC PARALLEL LOOP DEFAULT(PRESENT) GANG VECTOR COLLAPSE(2) ASYNC(1)
       DO jk = 1, nlev
         DO jc = i_startidx_c(jb), i_endidx_c(jb)
           dissip_kin_energy(jc,jk,jb) = 0.5_wp * mair(jc,jk,jb) * dissipation_factor * rdtime  &
@@ -1778,7 +1767,7 @@ CONTAINS
           new_state_ta(jc,jk,jb) = state_ta(jc,jk,jb) + tend_ta(jc,jk,jb) * dtime
         END DO
       END DO
-      !$ACC END PARALLEL
+      !$ACC END PARALLEL LOOP
     END DO
 !$OMP END PARALLEL DO
 

@@ -2638,19 +2638,19 @@ dnl Set non-existing build type to avoid extra compiler flags:
    BUNDLED_LIBFILES=dnl
 "externals/fortran-support/build/src/libfortran-support.a $BUNDLED_LIBFILES"])
 
-icon_subdir_srcdir="$srcdir/externals/math-support"
-icon_subdir_unique_file="src/mo_math_constants.f90"
+icon_subdir_srcdir="$srcdir/externals/iconmath"
+icon_subdir_unique_file="src/support/mo_math_constants.f90"
 AS_IF([test ! -r "$icon_subdir_srcdir/$icon_subdir_unique_file"],
   [AC_MSG_ERROR([unable to find sources of the bundled version of dnl
-MATH-SUPPORT library ($icon_subdir_unique_file) in '$icon_subdir_srcdir'])])
-AC_ARG_VAR([ICON_MATH_SUPPORT_FCFLAGS],
+ICONMATH library ($icon_subdir_unique_file) in '$icon_subdir_srcdir'])])
+AC_ARG_VAR([ICON_ICONMATH_FCFLAGS],
   [Fortran compiler flags to be appended to FCFLAGS when configuring the
-bundled version of MATH-SUPPORT library
+bundled version of ICONMATH library
 @<:@default=$ICON_BUNDLED_FCFLAGS@:>@])dnl
-ICON_MATH_SUPPORT_FCFLAGS=${ICON_MATH_SUPPORT_FCFLAGS-$ICON_BUNDLED_FCFLAGS}
-ACX_SUBDIR_INIT_CMAKE([externals/math-support], [no-run], [],
+ICON_ICONMATH_FCFLAGS=${ICON_ICONMATH_FCFLAGS-$ICON_BUNDLED_FCFLAGS}
+ACX_SUBDIR_INIT_CMAKE([externals/iconmath], [no-run], [],
   [AS_ESCAPE(["${CMAKE}"])])
-ACX_SUBDIR_REMOVE_ARGS([externals/math-support],
+ACX_SUBDIR_REMOVE_ARGS([externals/iconmath],
 dnl Fortran compiler flags are replaced below:
   [-DCMAKE_Fortran_FLAGS=*],
 dnl C and C++ compilers are not used:
@@ -2660,19 +2660,21 @@ dnl We build static libraries only:
 dnl The interprocedural optimization is not enabled in the project:
   [-DCMAKE_*_COMPILER_AR=*|-DCMAKE_*_COMPILER_RANLIB=*])
 AS_VAR_IF([icon_gpu_primary], [openacc],
-  [icon_ms_openacc=ON],
-  [icon_ms_openacc=OFF])
-ACX_SUBDIR_APPEND_ARGS([externals/math-support],
+  [icon_im_openacc=ON],
+  [icon_im_openacc=OFF])
+ACX_SUBDIR_APPEND_ARGS([externals/iconmath],
 dnl Extend Fortran compiler flags:
-  [-DCMAKE_Fortran_FLAGS="$subdir_FCFLAGS $ICON_MATH_SUPPORT_FCFLAGS"],
-dnl Set up library-specific compiler flags:
-  [-DMS_ENABLE_LOOP_EXCHANGE="$enable_loop_exchange"],
-  [-DMS_ENABLE_MIXED_PRECISION="$enable_mixed_precision"],
-  [-DMS_ENABLE_DIM_SWAP="$enable_dim_swap"],
-  [-DMS_ENABLE_OPENACC="$icon_ms_openacc"],
+  [-DCMAKE_Fortran_FLAGS="$subdir_FCFLAGS $ICON_ICONMATH_FCFLAGS"],
+dnl Set library-specific options:
+  [-DIM_ENABLE_LOOP_EXCHANGE="$enable_loop_exchange"],
+  [-DIM_ENABLE_MIXED_PRECISION="$enable_mixed_precision"],
+  [-DIM_ENABLE_DIM_SWAP="$enable_dim_swap"],
+  [-DIM_ENABLE_OPENACC="$icon_im_openacc"],
 dnl Set the prefix path to find fortran-support
   [-DCMAKE_PREFIX_PATH:PATH=dnl
 "${icon_abs_top_builddir}/externals/fortran-support/build"],
+dnl Temporarily disable the horizontal library:
+  [-DBUILD_ICONMATH_HORIZONTAL:BOOL=OFF],
 dnl Build the static version of the library and disable the tests:
   [-DBUILD_SHARED_LIBS:BOOL=OFF], [-DBUILD_TESTING:BOOL=OFF],
 dnl Building a standalone version of the library is not required:
@@ -2680,59 +2682,11 @@ dnl Building a standalone version of the library is not required:
 dnl Set non-existing build type to avoid extra compiler flags:
   [-DCMAKE_BUILD_TYPE:STRING=NOEXTRAFLAGS])
 AS_VAR_APPEND([bundled_includes],
-  ["${FC_MOD_IN}externals/math-support/build/src/mod "])
-BUNDLED_LIBFILES="externals/math-support/build/src/libmath-support.a dnl
-$BUNDLED_LIBFILES"
-
-icon_subdir_srcdir="$srcdir/externals/math-interpolation"
-icon_subdir_unique_file="src/mo_lib_interpolation_vector.F90"
-AS_IF([test ! -r "$icon_subdir_srcdir/$icon_subdir_unique_file"],
-  [AC_MSG_ERROR([unable to find sources of the bundled version of dnl
-MATH-INTERPOLATION library ($icon_subdir_unique_file) in dnl
-'$icon_subdir_srcdir'])])
-AC_ARG_VAR([ICON_MATH_INTERPOLATION_FCFLAGS],
-  [Fortran compiler flags to be appended to FCFLAGS when configuring the
-bundled version of MATH-INTERPOLATION library
-@<:@default=$ICON_BUNDLED_FCFLAGS@:>@])dnl
-ICON_MATH_INTERPOLATION_FCFLAGS=dnl
-${ICON_MATH_INTERPOLATION_FCFLAGS-$ICON_BUNDLED_FCFLAGS}
-ACX_SUBDIR_INIT_CMAKE([externals/math-interpolation], [no-run], [],
-  [AS_ESCAPE(["${CMAKE}"])])
-ACX_SUBDIR_REMOVE_ARGS([externals/math-interpolation],
-dnl Fortran compiler flags are replaced below:
-  [-DCMAKE_Fortran_FLAGS=*],
-dnl C and C++ compilers are not used:
-  [-DCMAKE_C_*=*|-DCMAKE_CXX_*=*],
-dnl We build static libraries only:
-  [-DCMAKE_SHARED_LINKER_FLAGS=*|-DCMAKE_MODULE_LINKER_FLAGS=*],
-dnl The interprocedural optimization is not enabled in the project:
-  [-DCMAKE_*_COMPILER_AR=*|-DCMAKE_*_COMPILER_RANLIB=*])
-AS_VAR_IF([icon_gpu_primary], [openacc],
-  [icon_mi_openacc=ON],
-  [icon_mi_openacc=OFF])
-ACX_SUBDIR_APPEND_ARGS([externals/math-interpolation],
-dnl Extend Fortran compiler flags:
-  [-DCMAKE_Fortran_FLAGS="$subdir_FCFLAGS $ICON_MATH_INTERPOLATION_FCFLAGS"],
-dnl Set up library-specific compiler flags:
-  [-DMI_ENABLE_LOOP_EXCHANGE="$enable_loop_exchange"],
-  [-DMI_ENABLE_MIXED_PRECISION="$enable_mixed_precision"],
-  [-DMI_ENABLE_DIM_SWAP="$enable_dim_swap"],
-  [-DMI_ENABLE_OPENACC="$icon_mi_openacc"],
-dnl Set the prefix path to find fortran-support and math-support
-  [-DCMAKE_PREFIX_PATH:PATH=dnl
-"${icon_abs_top_builddir}/externals/fortran-support/build;dnl
-${icon_abs_top_builddir}/externals/math-support/build"],
-dnl Build the static version of the library and disable the tests:
-  [-DBUILD_SHARED_LIBS:BOOL=OFF], [-DBUILD_TESTING:BOOL=OFF],
-dnl Building a standalone version of the library is not required:
-  [-DBUILD_STANDALONE:BOOL=OFF],
-dnl Set non-existing build type to avoid extra compiler flags:
-  [-DCMAKE_BUILD_TYPE:STRING=NOEXTRAFLAGS])
-AS_VAR_APPEND([bundled_includes],
-  ["${FC_MOD_IN}externals/math-interpolation/build/src/mod "])
+  ["${FC_MOD_IN}externals/iconmath/build/src/interpolation/mod dnl
+${FC_MOD_IN}externals/iconmath/build/src/support/mod "])
 BUNDLED_LIBFILES=dnl
-"externals/math-interpolation/build/src/libmath-interpolation.a dnl
-$BUNDLED_LIBFILES"
+"externals/iconmath/build/src/interpolation/libiconmath-interpolation.a dnl
+externals/iconmath/build/src/support/libiconmath-support.a $BUNDLED_LIBFILES"
 
 dnl Prepend the include search flags to FCFLAGS:
 FCFLAGS="${bundled_includes}${FCFLAGS}"

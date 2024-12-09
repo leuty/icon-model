@@ -1140,6 +1140,7 @@ CONTAINS
     REAL(wp) :: z_adv_low (nproma, n_zlev, patch_3d%p_patch_2d(1)%nblks_e)
     REAL(wp) :: z_adv_high(nproma, n_zlev, patch_3d%p_patch_2d(1)%nblks_e)
     REAL(wp) :: temp(nproma, patch_3d%p_patch_2d(1)%alloc_cell_blocks)
+    REAL(wp) :: dz_new(nproma, n_zlev, patch_3d%p_patch_2d(1)%alloc_cell_blocks) ! by_nils ts_budget
     LOGICAL :: lzacc
 
     TYPE(t_subset_range), POINTER :: cells_in_domain, edges_in_domain
@@ -1295,6 +1296,15 @@ CONTAINS
           new_tracer_concentration(jc,level,jb) =         &
             & ( new_tracer_concentration(jc,level,jb) +   &
             & (delta_t  / delta_z_new) * top_bc(jc))
+
+          ! start by_nils ts_budget
+          IF (new_tracer%diagnostics%is_activated) THEN
+            new_tracer%diagnostics%had(jc,level,jb) = -div_adv_flux_horz(jc,level,jb)
+            new_tracer%diagnostics%vad(jc,level,jb) = -div_adv_flux_vert(jc,level,jb)
+            new_tracer%diagnostics%hdf(jc,level,jb) = div_diff_flux_horz(jc,level,jb)
+            new_tracer%diagnostics%sur(jc,level,jb) = top_bc(jc)
+          ENDIF
+          ! end by_nils ts_budget
         END DO
 
         DO level = 2, patch_3d%p_patch_1d(1)%dolic_c(jc,jb)
@@ -1304,6 +1314,14 @@ CONTAINS
             &  (delta_t /  ( stretch_c_new(jc, jb)*patch_3d%p_patch_1D(1)%prism_thick_c(jc,level,jb) ) ) &
             & * (div_adv_flux_horz(jc,level,jb)  + div_adv_flux_vert(jc,level,jb)                        &
             & - div_diff_flux_horz(jc,level,jb) )
+
+            ! start by_nils ts_budget
+            IF (new_tracer%diagnostics%is_activated) THEN
+              new_tracer%diagnostics%had(jc,level,jb) = -div_adv_flux_horz(jc,level,jb)
+              new_tracer%diagnostics%vad(jc,level,jb) = -div_adv_flux_vert(jc,level,jb)
+              new_tracer%diagnostics%hdf(jc,level,jb) = div_diff_flux_horz(jc,level,jb)
+            ENDIF
+            ! end by_nils ts_budget
 
         ENDDO
 
@@ -1328,6 +1346,13 @@ CONTAINS
     ! no sync because of columnwise computation
     IF ( l_with_vert_tracer_diffusion ) THEN
 
+      ! start by_nils ts_budget
+      ! save tracer values temporarily
+      IF (new_tracer%diagnostics%is_activated) THEN
+        new_tracer%diagnostics%idf(:,:,:) = new_tracer%concentration(:,:,:)
+      ENDIF
+      ! end by_nils ts_budget
+
       !Vertical mixing: implicit and with coefficient a_v
       CALL tracer_diffusion_vertical_implicit_zstar( &
            & patch_3d,                  &
@@ -1335,6 +1360,25 @@ CONTAINS
            & old_tracer%ver_diffusion_coeff, &
            & stretch_c, &
            & lacc=lzacc)
+
+      ! start by_nils ts_budget
+      ! tendency from impl. diffusion and impl. Redi part
+      IF (new_tracer%diagnostics%is_activated) THEN
+        DO jb = cells_in_domain%start_block, cells_in_domain%end_block
+          CALL get_index_range(cells_in_domain, jb, start_cell_index, end_cell_index)
+          DO jc = start_cell_index, end_cell_index
+            DO level = 1, patch_3d%p_patch_1d(1)%dolic_c(jc,jb)
+              dz_new(jc,level,jb) = &
+                & patch_3d%p_patch_1D(1)%prism_thick_flat_sfc_c(jc,level,jb) &
+                & * stretch_c_new(jc,jb)
+            ENDDO
+          ENDDO
+        ENDDO
+        new_tracer%diagnostics%idf(:,:,:) = &
+          & (new_tracer%concentration(:,:,:) - new_tracer%diagnostics%idf(:,:,:)) &
+          & / dtime * dz_new(:,:,:)
+      ENDIF
+      ! end by_nils ts_budget
 
     ENDIF!IF ( l_with_vert_tracer_diffusion )
 

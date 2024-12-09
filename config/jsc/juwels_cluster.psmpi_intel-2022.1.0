@@ -17,14 +17,14 @@
 set -eu
 
 # clear all modules and load Stage and modules for all dependencies
-MODULES='Stages/2023 imkl/2022.1.0 GCCcore/.11.3.0 CMake/3.26.3 Intel/2022.1.0  ParaStationMPI/5.8.0-1 netCDF-Fortran ecCodes libfyaml'
+MODULES='Stages/2023 imkl/2022.1.0 GCCcore/.11.3.0 CMake/3.26.3 Intel/2022.1.0  ParaStationMPI/5.8.0-1 netCDF-Fortran ecCodes libfyaml git'
 BUILD_ENV="module --force purge; export USERINSTALLATIONS=/p/usersoftware/slmet/easybuild/stages/2023/; module load ${MODULES}; module list;"
 
 # set directory name for out of source builds
 SCRIPT_DIR=$(cd "$(dirname "$0")"; pwd)
 ICON_DIR=$(cd "${SCRIPT_DIR}/../.."; pwd)
 
-SOFWAREROOT='/p/software/juwels'
+SOFTWAREROOT='/p/software/juwels'
 
 ### Libraries
 ROOT_ECCODES=${SOFTWAREROOT}/stages/2023/software/ecCodes/2.27.0-ipsmpi-2022a

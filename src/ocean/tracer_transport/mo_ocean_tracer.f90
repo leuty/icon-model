@@ -417,6 +417,7 @@ CONTAINS
     TYPE(t_subset_range), POINTER :: cells_in_domain, edges_in_domain
     TYPE(t_patch), POINTER :: patch_2D
     REAL(wp) :: top_bc(nproma)
+    REAL(wp) :: dz_new(nproma, n_zlev,patch_3d%p_patch_2d(1)%alloc_cell_blocks) ! by_nils ts_budget
     LOGICAL :: lzacc
 
     INTEGER, DIMENSION(:,:), POINTER :: dolic_c
@@ -562,6 +563,15 @@ CONTAINS
             & - delta_t * (&
             &  div_adv_flux_horz(jc,level,jb) +div_adv_flux_vert(jc,level,jb)&
             & -div_diff_flux_horz(jc,level,jb) - top_bc(jc))) / delta_z_new
+          
+          ! start by_nils ts_budget          
+          IF (new_tracer%diagnostics%is_activated) THEN
+            new_tracer%diagnostics%had(jc,level,jb) = -div_adv_flux_horz(jc,level,jb)
+            new_tracer%diagnostics%vad(jc,level,jb) = -div_adv_flux_vert(jc,level,jb)
+            new_tracer%diagnostics%hdf(jc,level,jb) = div_diff_flux_horz(jc,level,jb)
+            new_tracer%diagnostics%sur(jc,level,jb) = top_bc(jc)
+          ENDIF
+          ! end by_nils ts_budget
 
         ENDDO
 #ifndef __LVECTOR__
@@ -588,6 +598,15 @@ CONTAINS
               &  * (  div_adv_flux_horz(jc,level,jb)  &
               &     + div_adv_flux_vert(jc,level,jb)  &
               &     - div_diff_flux_horz(jc,level,jb) )
+
+            ! start by_nils ts_budget
+            ! FIXME: Is this code ever called? by_nils ts_budget
+            IF (new_tracer%diagnostics%is_activated) THEN
+              new_tracer%diagnostics%had(jc,level,jb) = -div_adv_flux_horz(jc,level,jb)
+              new_tracer%diagnostics%vad(jc,level,jb) = -div_adv_flux_vert(jc,level,jb)
+              new_tracer%diagnostics%hdf(jc,level,jb) = div_diff_flux_horz(jc,level,jb)
+            ENDIF
+            ! end by_nils ts_budget
           END DO
         END DO
         !$ACC END PARALLEL
@@ -606,6 +625,13 @@ CONTAINS
     !calculate vert diffusion impicit: result is stored in trac_out
     ! no sync because of columnwise computation
     IF ( l_with_vert_tracer_diffusion ) THEN
+
+      ! start by_nils ts_budget
+      ! save tracer values temporarily
+      IF (new_tracer%diagnostics%is_activated) THEN
+        new_tracer%diagnostics%idf(:,:,:) = new_tracer%concentration(:,:,:)
+      ENDIF
+      ! end by_nils ts_budget
           
       !Vertical mixing: implicit and with coefficient a_v
       !that is the sum of PP-coeff and implicit part of Redi-scheme      
@@ -615,6 +641,17 @@ CONTAINS
           & a_v,                        &
           & transport_state_h_new,      &
           & lacc=lzacc)
+
+      ! start by_nils ts_budget
+      ! tendency from impl. diffusion and impl. Redi part
+      IF (new_tracer%diagnostics%is_activated) THEN
+        dz_new(:,:,:) = patch_3d%p_patch_1D(1)%prism_thick_flat_sfc_c(:,:,:)
+        dz_new(:,1,:) = dz_new(:,1,:) + transport_state_h_new
+        new_tracer%diagnostics%idf(:,:,:) = &
+          & (new_tracer%concentration(:,:,:) - new_tracer%diagnostics%idf(:,:,:)) &
+          & / dtime * dz_new(:,:,:)
+      ENDIF
+      ! end by_nils ts_budget
           
     ENDIF!IF ( l_with_vert_tracer_diffusion )
 

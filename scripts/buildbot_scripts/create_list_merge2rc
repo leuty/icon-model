@@ -54,6 +54,7 @@ $addexp "checksuite.icon-dev/check.atm_bubble_test"       --machines "levante" -
 $addexp "checksuite.icon-dev/check.atm_bubble_test_update" --machines "levante" --list $listname --runflags "ntasks=16 queue=shared"
 ./rmexp "checksuite.icon-dev/check.atm_bubble_test_update" --builders "levante_nag_serial" --list $listname
 $addexp "checksuite.icon-dev/check.atm_bubble_land_test"  --machines "levante" --list $listname --runflags "ntasks=16 queue=shared"
+$addexp "checksuite.atm/exp.test_coupled_160kmNestedAtm_40kmOce" --builders "levante_gcc_hybrid levante_nag" --list $listname  --runflags "cpu_time=00:10:00 no_of_nodes=2"   
 # add qubicc update test on Levante (netcdf) only
 $addexp "checksuite.icon-dev/check.atm_qubicc_nc_update"  --machines "levante" --list $listname --runflags "ntasks=16 queue=compute memory=32G"
 ./rmexp "checksuite.icon-dev/check.atm_qubicc_nc_update"  --builders "levante_nag_serial" --list $listname
@@ -314,6 +315,10 @@ done
 # TODO: drop levante_gpu_nvhpc
 jsbach_nwp_builders="DWD_nec DWD_nec_hybrid levante_gcc levante_intel levante_nag ${NVHPC_GPU_BUILDERS}"
 $addexp checksuite.icon-dev/check.atm_nwp_jsbach_test --builders "${jsbach_nwp_builders}" --list $listname
+
+# TODO: where should this actually be located in this list
+$addexp checksuite.icon-dev/check.land_quincy_canopy_test --builders 'levante_gpu_nvhpc' --list $listname
+$addexp checksuite.icon-dev/check.land_quincy_canopy_test --builders "levante_nag levante_gcc levante_intel_hybrid" --list $listname --runflags "queue=shared,compute ntasks=8 memory=32G"
 
 # aurora node at DKRZ - not in production,yet
 ./set_builder_flags Active --builders 'levante_aurora' --list $listname

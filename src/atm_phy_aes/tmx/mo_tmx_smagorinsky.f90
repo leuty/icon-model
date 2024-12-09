@@ -287,7 +287,8 @@ MODULE mo_tmx_smagorinsky
         CALL get_indices_c(patch, jb, i_startblk, i_endblk, &
                               i_startidx, i_endidx, rl_start, rl_end)
 
-      !$ACC PARALLEL LOOP DEFAULT(PRESENT) GANG VECTOR COLLAPSE(2) ASYNC(1)
+      !$ACC PARALLEL LOOP DEFAULT(PRESENT) GANG VECTOR COLLAPSE(2) ASYNC(1) &
+      !$ACC   PRIVATE(stability_term)
 #ifdef __LOOP_EXCHANGE
         DO jc = i_startidx, i_endidx
           DO jk = 2 , nlev
@@ -368,7 +369,8 @@ MODULE mo_tmx_smagorinsky
       INTEGER :: i_startblk, i_endblk, i_startidx, i_endidx
       INTEGER :: rl_start, rl_end
 
-      REAL(wp) :: Ri, stability_term     
+      REAL(wp) :: Ri, stability_term    
+      REAL(wp) :: eps = 1.0e-28_wp 
 
       nlev   = domain%nlev
       nlevp1 = domain%nlev + 1
@@ -383,7 +385,8 @@ MODULE mo_tmx_smagorinsky
         CALL get_indices_c(patch, jb, i_startblk, i_endblk, &
                               i_startidx, i_endidx, rl_start, rl_end)
 
-      !$ACC PARALLEL LOOP DEFAULT(PRESENT) GANG VECTOR COLLAPSE(2) ASYNC(1)
+      !$ACC PARALLEL LOOP DEFAULT(PRESENT) GANG VECTOR COLLAPSE(2) ASYNC(1) &
+      !$ACC   PRIVATE(Ri, stability_term)
 #ifdef __LOOP_EXCHANGE
         DO jc = i_startidx, i_endidx
           DO jk = 2 , nlev
@@ -391,13 +394,14 @@ MODULE mo_tmx_smagorinsky
         DO jk = 2 , nlev
           DO jc = i_startidx, i_endidx
 #endif
-            Ri  = 2._wp * bruvais(jc,jk,jb) / mech_prod(jc,jk,jb) 
+            Ri  = 2._wp * bruvais(jc,jk,jb) / MAX(eps, mech_prod(jc,jk,jb)) 
 
-            stability_function(jc,jk,jb) =  MAX(  1.0_wp - Ri*rturb_prandtl,                &
-                                                  MIN(1._wp,                                & 
-                                                      1._wp/(1._wp+louis_constant_b         &
-                                                            *scaling_factor_louis(jc,jb)    &
-                                                            *ABS(Ri))**4                    &
+            stability_function(jc,jk,jb) =  MAX(  1.0_wp - Ri * rturb_prandtl,                       &
+                                                  MIN(1._wp,                                         &
+                                                      1._wp / (1._wp + louis_constant_b              &
+                                                                       * scaling_factor_louis(jc,jb) &
+                                                                       * ABS(Ri)                     &
+                                                              )**4                                   &
                                                      ))
       
             stability_term = SQRT( 0.5_wp * mech_prod(jc,jk,jb) * stability_function(jc,jk,jb) )

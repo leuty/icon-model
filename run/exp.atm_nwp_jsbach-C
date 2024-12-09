@@ -129,6 +129,9 @@ ldynamics=.TRUE.    # .TRUE.: on       , .FALSE.: off
 ltransport=.TRUE.   # .TRUE.: on       , .FALSE.: off
 iforcing=3          #     3 : NWP      ,  0     : off
 run_jsbach=yes      # yes,true: on, else: off
+read_cpools=false   # read initial carbon pools from file (ATTENTION: needs to be set to false
+                    #   manually for the next restart!)
+cpools_file=""      # with read_cpools=true: file containig the carbon pools to be read
 ccycle_mode=constant  # constant:    prescribed constant atm. CO2 concentration
                       # from_file:   CO2 concentration from greenhouse gases file
                       # interactive: prognostic atm. CO2 concentration
@@ -358,8 +361,8 @@ cat > ${basedir}/run/${jsbach_namelist} << EOF
 &jsb_sse_nml
   l_heat_cap_map          = .FALSE.
   l_heat_cond_map         = .FALSE.
-  l_heat_cap_dyn          = .FALSE.
-  l_heat_cond_dyn         = .FALSE.
+  l_heat_cap_dyn          = .TRUE.
+  l_heat_cond_dyn         = .TRUE.
   l_snow                  = .TRUE.
   l_dynsnow               = .TRUE.
   l_freeze                = .TRUE.
@@ -383,6 +386,7 @@ cat > ${basedir}/run/${jsbach_namelist} << EOF
 /
 &jsb_carbon_nml
   active                  = .TRUE.
+  read_cpools             = .${read_cpools}.
 /
 &jsb_fuel_nml
   active                  = .TRUE.
@@ -440,6 +444,13 @@ rc[nb]l*|vh1l*)
   add_link_file $jsb_dir/bc_land_frac_11pfts_1976.nc  bc_land_frac.nc
   add_link_file $jsb_dir/bc_land_phys_1976.nc         bc_land_phys.nc
   add_link_file $jsb_dir/bc_land_soil_1976.nc         bc_land_soil.nc
+  if [[ ${read_cpools} = true ]]; then
+    if [[ ! -f ${cpools_file} ]]; then
+      echo "ERROR: cpools_file ${cpools_file} does not exist!"
+      exit 1
+    fi
+    add_link_file ${cpools_file}                      ic_land_carbon.nc
+  fi
   ;;
 esac
 

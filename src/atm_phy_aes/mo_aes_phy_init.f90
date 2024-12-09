@@ -772,7 +772,7 @@ CONTAINS
 
       ! Inquire current grid level and the total number of grid cells
       ncd = MAX(1,p_patch%n_childdom)
-      rls = grf_bdywidth_c+1
+      rls = 1 ! we need to intiialize also the boundary in the lam case
       rle = min_rlcell_int
       
       jbs     = p_patch%cells%start_blk(rls,  1)

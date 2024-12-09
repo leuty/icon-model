@@ -127,6 +127,7 @@ EXTRA_CONFIG_ARGS="\
 --enable-vectorized-lrtm \
 --enable-waves \
 --enable-yaxt \
+--enable-quincy \
 "
 
 ICON_BUNDLED_CFLAGS='-g -O2 -ftz -fPIC'

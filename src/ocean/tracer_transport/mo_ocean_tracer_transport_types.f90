@@ -21,7 +21,22 @@ MODULE mo_ocean_tracer_transport_types
   USE mo_impl_constants,      ONLY: max_char_length
 
   PUBLIC :: t_ocean_tracer, t_tracer_collection, t_ocean_transport_state
+  PUBLIC :: t_tracer_diagnostics ! by_nils ts_budget
   
+ !----------------------------------------------
+  ! start by_nils ts_budget
+  TYPE t_tracer_diagnostics
+    TYPE(t_patch_3d), POINTER :: patch_3d
+
+    
+    LOGICAL    :: is_activated   
+    onCells_3D :: tot, had, vad, hdf, vdf, idf, sur, srf
+    
+    
+  END TYPE t_tracer_diagnostics
+  ! end by_nils ts_budget
+  !----------------------------------------------
+
   !----------------------------------------------
   TYPE t_ocean_tracer
     onCells :: concentration
@@ -36,6 +51,7 @@ MODULE mo_ocean_tracer_transport_types
     LOGICAL :: is_advected
 
     TYPE(t_tracer_metadata), POINTER :: metadata
+    TYPE(t_tracer_diagnostics) :: diagnostics ! by_nils ts_budget
 
   END TYPE t_ocean_tracer
   !----------------------------------------------
@@ -72,7 +88,7 @@ MODULE mo_ocean_tracer_transport_types
 
   END TYPE t_ocean_transport_state
   !----------------------------------------------
-    
-    
+
+
 END MODULE mo_ocean_tracer_transport_types
 

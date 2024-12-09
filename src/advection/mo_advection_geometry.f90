@@ -1026,7 +1026,7 @@ CONTAINS
 
   !-------------------------------------------------------------------------
 
-#if defined(_CRAYFTN) && _RELEASE_MAJOR <= 16
+#if defined(_CRAYFTN) && _RELEASE_MAJOR <= 17
 !ACCWA (Cray Fortran <= 16.0.1.1) zero sized arrays are not properly supported CAST-33010
     IF ( falist%npoints == 0 ) RETURN
 #endif

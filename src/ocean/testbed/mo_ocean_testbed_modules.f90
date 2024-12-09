@@ -539,7 +539,7 @@ CONTAINS
   
            IF (GMRedi_configuration==Cartesian_Mixing) THEN
              CALL advect_ocean_tracers_zstar(old_tracer_collection, new_tracer_collection, &
-               & transport_state, operators_coefficients, stretch_e, &
+                & transport_state, operators_coefficients, stretch_e, &
                & ocean_state(jg)%p_prog(nold(1))%stretch_c, ocean_state(jg)%p_prog(nnew(1))%stretch_c)
            ELSE
              CALL  advect_ocean_tracers_GMRedi_zstar(old_tracer_collection, new_tracer_collection, &
@@ -685,7 +685,8 @@ CONTAINS
         ENDIF
         !------------------------------------------------------------------------
 
-        CALL advect_ocean_tracers(old_tracer_collection, new_tracer_collection, transport_state, operators_coefficients)
+        CALL advect_ocean_tracers(old_tracer_collection, new_tracer_collection, &
+          & transport_state, operators_coefficients)
 
         ! One integration cycle finished on the lowest grid level (coarsest
         ! resolution). Set model time.

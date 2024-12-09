@@ -1,3 +1,66 @@
+# Release notes for icon-YYYY.MM
+
+### ICON-Atmo
+
+AES Physics:
+
+- Some re-work for LAM and Global+Nest in AES physics (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/561)
+- TMX turbulence
+  - Fix OpenACC performance issue and OpenMP PRIVATE
+
+### ICON-Ocean
+
+- Add GRIB codes for mld, mlotst, normal_velocity, stretch_c (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/555)
+- Diagnose temperature and salinity budgets (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/530)
+- Add diagnostics for upper ocean heat content (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/577)
+
+### Soil and Surface
+
+Climate: ICON-Land
+
+- Add per-process namelist option lrestart_cont to allow restarting from other experiments run
+  without that process
+- QUINCY development
+  - Added experiment file for ICON-Land standalone runs using QUINCY in CANOPY mode (no biogeochemistry)
+  - Initial GPU port of QUINCY - running in CANOPY mode with the ICON-Land standalone driver
+  - Minor scientific updates
+    - Improvement in the first soil-layer hydrology
+    - Bugfix in snow melt calculation
+    - Clean-up calculation of stand-replacing harvest
+  - Merged the radiation process of QUINCY into the radiation process of JSBACH
+- Small fix for ICON-Land standalone concerning nproma
+- New optional tag for the memory usage report
+- Fix for initializing carbon pools from file (read_cpools)
+- The script suite to generate ICON-Land input data now also includes scripts to generate
+  HD parameter files (for internal HD) and HD receive masks (for external HD)
+- Bug fix: replace dp by wp in add_var wrappers
+- Added diagnostic variable for volumetric soil moisture content for soil layers
+- Changes and fixes for inline documentation
+- Clean-up of ICON-Land code
+
+### Externals
+
+- Replace math-support and math-interpolation with iconmath
+
+### Infrastructure
+
+- Use OMP and ACC reductions in mo_statistics.f90
+- Use t_tangent_vectors from mo_math_types (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/556)
+- Separate pre_patch related content from mo_model_domain (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/579)
+
+#### Coupling
+
+- First implementation of coupling the nested AES atmosphere to the ocean model
+
+#### Scripting and testing
+
+- Increase time limit for test_yaxt_xchange.config experiment
+
+#### Building
+
+- Fix 'make srclist' on macOS (BSD sed)
+
+
 # Release notes for icon-2024.10
 
 The following lists give an overview on the main changes since the last release icon-2024.07.

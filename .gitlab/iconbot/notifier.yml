@@ -67,7 +67,7 @@
   - file_names:
       - .gitlab/ci/granules.yml
       - externals/fortran-support
-      - externals/math-support
+      - externals/iconmath
       - externals/probtest
       - src/atm_phy_schemes/mo_lookup_tables_constants.f90
       - src/atm_phy_schemes/mo_satad.f90

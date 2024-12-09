@@ -36,6 +36,7 @@ MODULE mo_hydro_ocean_run
     &  vert_mix_type, vmix_pp, lcheck_salt_content, &
     &  use_age_tracer, & ! by_nils
     &  use_layers, & ! by_nils
+    &  do_ts_budget, & ! by_nils ts_budget
     &  use_draftave_for_transport_h, &
     & vert_cor_type, use_tides, check_total_volume
   USE mo_ocean_nml,              ONLY: iforc_oce, Coupled_FluxFromAtmo
@@ -58,6 +59,7 @@ MODULE mo_hydro_ocean_run
   USE mo_ocean_types,              ONLY: t_hydro_ocean_state, &
     & t_operator_coeff, t_solvercoeff_singleprecision
   USE mo_ocean_tracer_transport_types, ONLY: t_tracer_collection, t_ocean_transport_state
+  USE mo_ocean_tracer_transport_types, ONLY: t_ocean_tracer ! by_nils ts_budget
   USE mo_ocean_math_operators,   ONLY: update_height_depdendent_variables, check_cfl_horizontal, check_cfl_vertical
   USE mo_scalar_product,         ONLY: calc_scalar_product_veloc_3d, map_edges2edges_viacell_3d_const_z
   USE mo_ocean_tracer,           ONLY: advect_ocean_tracers
@@ -262,6 +264,8 @@ CONTAINS
     TYPE(t_key_value_store), POINTER :: restartAttributes
     CLASS(t_RestartDescriptor), POINTER :: restartDescriptor
     CHARACTER(LEN = *), PARAMETER :: routine = 'mo_hydro_ocean_run:perform_ho_stepping'
+    REAL(wp) :: dz_new(nproma, n_zlev,patch_3d%p_patch_2d(1)%alloc_cell_blocks) ! by_nils ts_budget
+    REAL(wp) :: dz_old(nproma, n_zlev,patch_3d%p_patch_2d(1)%alloc_cell_blocks) ! by_nils ts_budget
 
     TYPE(datetime), POINTER             :: current_time     => NULL()
     LOGICAL :: lzacc
@@ -371,6 +375,10 @@ CONTAINS
         INTEGER  :: blockNo, i
         LOGICAL  :: lzacc
         CHARACTER(LEN = *), PARAMETER :: routine = 'mo_hydro_ocean_run:ocean_time_step'
+        TYPE(t_ocean_tracer), POINTER :: new_tracer ! by_nils ts_budget
+        TYPE(t_ocean_tracer), POINTER :: old_tracer ! by_nils ts_budget
+        INTEGER jb, level, jc ! by_nils ts_budget
+        INTEGER jtr ! by_nils ts_budget
 
         lzacc = .FALSE.
 
@@ -418,12 +426,44 @@ CONTAINS
          ocean_state(jg)%p_prog(nold(1))%h(:,:), patch_3D%p_patch_1d(1)%prism_thick_flat_sfc_c(:,:,:),&
          sea_ice, 0)
 
+        ! start by_nils ts_budget
+        ! zlev coordinate
+        IF (do_ts_budget) THEN
+          dz_old(:,:,:) = patch_3d%p_patch_1D(1)%prism_thick_flat_sfc_c(:,:,:)
+          dz_old(:,1,:) = dz_old(:,1,:) + ocean_state(jg)%p_prog(nold(1))%h(:,:)
+          DO jtr = 1,no_tracer
+            old_tracer => ocean_state(jg)%p_prog(nold(1))%tracer_collection%tracer(jtr)
+            new_tracer => ocean_state(jg)%p_prog(nnew(1))%tracer_collection%tracer(jtr)
+            IF (new_tracer%diagnostics%is_activated) THEN
+              ! tracer before update is temporarily stored under tracer%diagnostics%tot
+              new_tracer%diagnostics%tot(:,:,:) = old_tracer%concentration(:,:,:)*dz_old(:,:,:)
+            ENDIF
+          ENDDO
+        ENDIF
+        ! end by_nils ts_budget
+
         CALL update_ocean_surface_refactor( patch_3d, ocean_state(jg), p_as, sea_ice, p_atm_f, p_oce_sfc, &
              & current_time, operators_coefficients, lacc = lzacc )
 
         IF (lcheck_salt_content) CALL check_total_salt_content(110,ocean_state(jg)%p_prog(nold(1))%tracer(:,:,:,2), patch_2d, &
          ocean_state(jg)%p_prog(nold(1))%h(:,:), patch_3D%p_patch_1d(1)%prism_thick_flat_sfc_c(:,:,:),&
          sea_ice, 0)
+
+        ! start by_nils ts_budget
+        ! zlev coordinate
+        IF (do_ts_budget) THEN
+          dz_old(:,:,:) = patch_3d%p_patch_1D(1)%prism_thick_flat_sfc_c(:,:,:)
+          dz_old(:,1,:) = dz_old(:,1,:) + ocean_state(jg)%p_prog(nold(1))%h(:,:)
+          DO jtr = 1,no_tracer
+            old_tracer => ocean_state(jg)%p_prog(nold(1))%tracer_collection%tracer(jtr)
+            new_tracer => ocean_state(jg)%p_prog(nnew(1))%tracer_collection%tracer(jtr)
+            IF (new_tracer%diagnostics%is_activated) THEN
+              ! new_tracer%diagnostics%tot contains old tracer values (see above)
+              new_tracer%diagnostics%srf(:,:,:) = (old_tracer%concentration(:,:,:)*dz_old(:,:,:) - new_tracer%diagnostics%tot(:,:,:)) / dtime
+            ENDIF
+          ENDDO
+        ENDIF
+        ! end by_nils ts_budget
 
         stop_timer(timer_upd_flx,3)
 
@@ -479,6 +519,8 @@ CONTAINS
          ocean_state(jg)%p_prog(nold(1))%h(:,:), patch_3D%p_patch_1d(1)%prism_thick_flat_sfc_c(:,:,:),&
          sea_ice,0)
         ! solve for new free surface
+        ! from here on one should only use ocean_state(jg)%p_prog(nnew(1))%h
+        ! before here one should have only used ocean_state(jg)%p_prog(nold(1))%h
         start_timer(timer_solve_ab,1)
         CALL solve_free_surface_eq_ab (patch_3d, ocean_state(jg), p_ext_data(jg), &
           & p_as, p_oce_sfc, p_phys_param, jstep, operators_coefficients, solvercoeff_sp, return_status, lacc = lzacc)!, p_int(jg))
@@ -678,6 +720,22 @@ CONTAINS
             & p_oce_sfc, &
             & sea_ice)
 
+        ! by_nils ts_budget
+        ! zlev coordiante
+        IF (do_ts_budget) THEN
+          dz_new(:,:,:) = patch_3d%p_patch_1D(1)%prism_thick_flat_sfc_c(:,:,:)
+          dz_new(:,1,:) = dz_new(:,1,:) + ocean_state(jg)%p_prog(nnew(1))%h(:,:)
+          DO jtr = 1,no_tracer
+            old_tracer => ocean_state(jg)%p_prog(nold(1))%tracer_collection%tracer(jtr)
+            new_tracer => ocean_state(jg)%p_prog(nnew(1))%tracer_collection%tracer(jtr)
+            IF (new_tracer%diagnostics%is_activated) THEN
+              ! tracer%diagnostics%tot contain old tracer values (see above)
+              new_tracer%diagnostics%tot(:,:,:) = (new_tracer%concentration(:,:,:)*dz_new(:,:,:) - new_tracer%diagnostics%tot(:,:,:)) / dtime
+            ENDIF
+          ENDDO
+        ENDIF
+        ! by_nils ts_budget
+
         stop_detail_timer(timer_extra20,5)
 
 #ifdef _OPENACC
@@ -827,9 +885,14 @@ CONTAINS
 
     !-------------------------------------------------------------------------
     SUBROUTINE ocean_time_step_zstar()
-        INTEGER  :: blockNo, i
+        INTEGER  :: blockNo, i, jc, level
+        INTEGER  :: start_cell_index, end_cell_index
         LOGICAL  :: lzacc
         CHARACTER(LEN = *), PARAMETER :: routine = 'mo_hydro_ocean_run:ocean_time_step_zstar'
+        TYPE(t_ocean_tracer), POINTER :: new_tracer
+        TYPE(t_ocean_tracer), POINTER :: old_tracer
+        INTEGER jb ! by_nils ts_budget
+        INTEGER jtr ! by_nils ts_budget
 
         lzacc = .FALSE.
 
@@ -905,6 +968,32 @@ CONTAINS
         ! update_surface_flux or update_ocean_surface has changed p_prog(nold(1))%h, SST and SSS
         start_timer(timer_upd_flx,3)
 
+        ! start by_nils ts_budget
+        ! zstar coordinate
+        dz_old(:,:,:) = 0.0_wp
+        dz_new(:,:,:) = 0.0_wp
+        IF (do_ts_budget) THEN
+          DO blockNo = patch_2D%cells%in_domain%start_block, patch_2D%cells%in_domain%end_block
+            CALL get_index_range(patch_2D%cells%in_domain, blockNo, start_cell_index, end_cell_index)
+            DO jc = start_cell_index, end_cell_index
+              DO level = 1, patch_3d%p_patch_1d(1)%dolic_c(jc,blockNo)
+                dz_old(jc,level,blockNo) = &
+                  &  patch_3d%p_patch_1D(1)%prism_thick_flat_sfc_c(jc,level,blockNo) &
+                  &  * ocean_state(jg)%p_prog(nold(1))%stretch_c(jc,blockNo)
+              ENDDO
+            ENDDO
+          ENDDO
+          DO jtr = 1,no_tracer
+            old_tracer => ocean_state(jg)%p_prog(nold(1))%tracer_collection%tracer(jtr)
+            new_tracer => ocean_state(jg)%p_prog(nnew(1))%tracer_collection%tracer(jtr)
+            IF (new_tracer%diagnostics%is_activated) THEN
+              ! tracer before update is temporarily stored under tracer%diagnostics%tot
+              new_tracer%diagnostics%tot(:,:,:) = old_tracer%concentration(:,:,:)*dz_old(:,:,:)
+            ENDIF
+          ENDDO
+        ENDIF
+        ! end by_nils ts_budget
+
         !! Updates velocity, tracer boundary condition
         !! Changes height based on ice etc
         !! Ice eqn sends back heat fluxes and volume fluxes
@@ -920,6 +1009,31 @@ CONTAINS
         CALL update_zstar_variables( patch_3d, ocean_state(jg), operators_coefficients, &
           & ocean_state(jg)%p_prog(nold(1))%eta_c, &
           & ocean_state(jg)%p_prog(nold(1))%stretch_c, stretch_e, lacc=lzacc)
+
+        ! start by_nils ts_budget
+        ! zstar coordinate
+        IF (do_ts_budget) THEN
+          DO blockNo = patch_2D%cells%in_domain%start_block, patch_2D%cells%in_domain%end_block
+            CALL get_index_range(patch_2D%cells%in_domain, blockNo, start_cell_index, end_cell_index)
+            DO jc = start_cell_index, end_cell_index
+              DO level = 1, patch_3d%p_patch_1d(1)%dolic_c(jc,blockNo)
+                dz_old(jc,level,blockNo) = &
+                  & patch_3d%p_patch_1D(1)%prism_thick_flat_sfc_c(jc,level,blockNo) & 
+                  & * ocean_state(jg)%p_prog(nold(1))%stretch_c(jc,blockNo)
+              ENDDO
+            ENDDO
+          ENDDO
+          DO jtr = 1,no_tracer
+            old_tracer => ocean_state(jg)%p_prog(nold(1))%tracer_collection%tracer(jtr)
+            new_tracer => ocean_state(jg)%p_prog(nnew(1))%tracer_collection%tracer(jtr)
+            IF (new_tracer%diagnostics%is_activated) THEN
+              new_tracer%diagnostics%srf(:,:,:) = & 
+                & (   old_tracer%concentration(:,:,:)*dz_old(:,:,:) &
+                &   - new_tracer%diagnostics%tot(:,:,:)) / dtime
+            ENDIF
+          ENDDO
+        ENDIF
+        ! end by_nils ts_budget
 
         !------------------------------------------------------------------------
         ! calculate in situ density here, as it may be used fotr the tides load
@@ -1177,6 +1291,31 @@ CONTAINS
             & p_oce_sfc, &
             & sea_ice, &
             & lacc=lzacc)
+
+        ! by_nils ts_budget
+        ! zstar coordiante
+        IF (do_ts_budget) THEN
+          DO blockNo = patch_2D%cells%in_domain%start_block, patch_2D%cells%in_domain%end_block
+            CALL get_index_range(patch_2D%cells%in_domain, blockNo, start_cell_index, end_cell_index)
+            DO jc = start_cell_index, end_cell_index
+              DO level = 1, patch_3d%p_patch_1d(1)%dolic_c(jc,blockNo)
+                dz_new(jc,level,blockNo) = &
+                  & patch_3d%p_patch_1D(1)%prism_thick_flat_sfc_c(jc,level,blockNo) &
+                  & * ocean_state(jg)%p_prog(nnew(1))%stretch_c(jc,blockNo)
+              ENDDO
+            ENDDO
+          ENDDO
+          DO jtr = 1,no_tracer
+            old_tracer => ocean_state(jg)%p_prog(nold(1))%tracer_collection%tracer(jtr)
+            new_tracer => ocean_state(jg)%p_prog(nnew(1))%tracer_collection%tracer(jtr)
+            IF (new_tracer%diagnostics%is_activated) THEN
+              new_tracer%diagnostics%tot(:,:,:) = & 
+                & (   new_tracer%concentration(:,:,:)*dz_new(:,:,:) &
+                &   - new_tracer%diagnostics%tot(:,:,:)) / dtime
+            ENDIF
+          ENDDO
+        ENDIF
+        ! by_nils ts_budget
 
         stop_detail_timer(timer_extra20,5)
 
@@ -1500,10 +1639,10 @@ CONTAINS
       old_tracer_collection%tracer(1)%top_bc => p_oce_sfc%TopBC_Temp_vdiff
       IF (no_tracer > 1) &
         old_tracer_collection%tracer(2)%top_bc => p_oce_sfc%TopBC_Salt_vdiff
-    !------------------------------------------------------------------------
+      !------------------------------------------------------------------------
 
-    !------------------------------------------------------------------------
-    ! transport tracers and diffuse them
+      !------------------------------------------------------------------------
+      ! transport tracers and diffuse them
       start_timer(timer_tracer_ab,1)
 
       IF (GMRedi_configuration == Cartesian_Mixing ) THEN

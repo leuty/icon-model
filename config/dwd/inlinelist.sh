@@ -47,8 +47,8 @@ INLINE_LIST_ICON=(
 )
 
 INLINE_LIST_ICON+=(
-  externals/math-support/src/mo_math_utilities.F90
-  externals/math-support/src/mo_lib_loopindices.f90
+  externals/iconmath/src/support/mo_math_utilities.F90
+  externals/iconmath/src/support/mo_lib_loopindices.f90
 )
 
 
@@ -84,7 +84,7 @@ INLINE_LIST_EMVORADO=(
 )
 
 INLINE_LIST_OCEAN=(
-  externals/math-support/src/mo_math_utilities.F90
+  externals/iconmath/src/support/mo_math_utilities.F90
   src/advection/mo_advection_utils.f90
   src/ocean/physics/mo_ocean_thermodyn.f90
 )

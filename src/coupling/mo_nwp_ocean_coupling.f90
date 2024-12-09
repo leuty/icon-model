@@ -52,11 +52,7 @@ MODULE mo_nwp_ocean_coupling
   USE mo_physical_constants  ,ONLY: vmr_to_mmr_co2, tmelt
   USE mo_util_dbg_prnt       ,ONLY: dbg_print
 
-  USE mo_atmo_ocean_coupling ,ONLY: &
-    & field_id_co2_flx, field_id_co2_vmr, field_id_freshflx, &
-    & field_id_heatflx, field_id_oce_u, field_id_oce_v, field_id_pres_msl, &
-    & field_id_seaice_atm, field_id_seaice_oce, field_id_sp10m, field_id_sst, &
-    & field_id_umfl, field_id_vmfl
+  USE mo_atmo_ocean_coupling_common ,ONLY: out_field_ids, in_field_ids
   USE mo_coupling_utils      ,ONLY: cpl_put_field, cpl_get_field
 
   IMPLICIT NONE
@@ -359,16 +355,15 @@ CONTAINS
 
     IF (.NOT. (SIZE(tx%umfl_s_w, 1) == nproma .AND. &
                SIZE(tx%umfl_s_w, 2) >= p_patch%nblks_c)) THEN
-      CALL finish ('couple_ocean', 'first field extent must be nproma and &
+      CALL finish (routine, 'first field extent must be nproma and &
           &field size has to be at least nproma*nblocks_c')
     END IF
 
-    IF ((ASSOCIATED(rx%ocean_u) .AND. field_id_oce_u < 0) .OR. &
-        (ASSOCIATED(rx%ocean_v) .AND. field_id_oce_v < 0)) THEN
-      CALL finish('couple_ocean', 'ocean velocities are expected but fields &
+    IF ((ASSOCIATED(rx%ocean_u) .AND. in_field_ids(jg)%oce_u < 0) .OR. &
+        (ASSOCIATED(rx%ocean_v) .AND. in_field_ids(jg)%oce_v < 0)) THEN
+      CALL finish(routine, 'ocean velocities are expected but fields &
           &have not been registered with YAC')
     END IF
-
 
     !  *****  *****  *****  *****  *****  *****  *****  *****  *****  *****  *****  *****
     !  Send fields from atmosphere to ocean
@@ -381,7 +376,7 @@ CONTAINS
     !------------------------------------------------
 
     CALL cpl_put_field( &
-      routine, field_id_umfl, 'u-stress', p_patch%n_patch_cells, &
+      routine, out_field_ids%umfl, 'u-stress', p_patch%n_patch_cells, &
       field_1=tx%umfl_s_w, field_2=tx%umfl_s_i)
 
     !------------------------------------------------
@@ -391,7 +386,7 @@ CONTAINS
     !------------------------------------------------
 
     CALL cpl_put_field( &
-      routine, field_id_vmfl, 'v-stress', p_patch%n_patch_cells, &
+      routine, out_field_ids%vmfl, 'v-stress', p_patch%n_patch_cells, &
       field_1=tx%vmfl_s_w, field_2=tx%vmfl_s_i)
 
     !------------------------------------------------
@@ -429,7 +424,7 @@ CONTAINS
     END IF
 
     CALL cpl_put_field( &
-      routine, field_id_freshflx, 'fresh water flux', p_patch%n_patch_cells, &
+      routine, out_field_ids%freshflx, 'fresh water flux', p_patch%n_patch_cells, &
       field_1=tx%rain_rate, field_2=tx%snow_rate, field_3=buf)
 
     !------------------------------------------------
@@ -439,7 +434,7 @@ CONTAINS
     !------------------------------------------------
 
     CALL cpl_put_field( &
-      routine, field_id_heatflx, 'heat flux', p_patch%n_patch_cells, &
+      routine, out_field_ids%heatflx, 'heat flux', p_patch%n_patch_cells, &
       field_1=tx%swflxsfc_w, field_2=tx%lwflxsfc_w, &
       field_3=tx%shfl_s_w, field_4=tx%lhfl_s_w)
 
@@ -450,7 +445,7 @@ CONTAINS
     !------------------------------------------------
 
     CALL cpl_put_field( &
-      routine, field_id_seaice_atm, 'atmos sea ice', p_patch%n_patch_cells, &
+      routine, out_field_ids%seaice_atm, 'atmos sea ice', p_patch%n_patch_cells, &
       field_1=tx%meltpot_i, field_2=tx%chfl_i)
 
     !------------------------------------------------
@@ -460,7 +455,7 @@ CONTAINS
     !------------------------------------------------
 
     CALL cpl_put_field( &
-      routine, field_id_sp10m, 'wind speed', p_patch%n_patch_cells, &
+      routine, out_field_ids%sp10m, 'wind speed', p_patch%n_patch_cells, &
       tx%sp_10m)
 
     !------------------------------------------------
@@ -473,7 +468,7 @@ CONTAINS
     !------------------------------------------------
 
     CALL cpl_put_field( &
-      routine, field_id_pres_msl, 'sea level pressure', p_patch%n_patch_cells, &
+      routine, out_field_ids%pres_msl, 'sea level pressure', p_patch%n_patch_cells, &
       tx%pres_sfc)
 
     !------------------------------------------------
@@ -526,7 +521,7 @@ CONTAINS
       END SELECT
 
       CALL cpl_put_field( &
-        routine, field_id_co2_vmr, 'co2 vmr', p_patch%n_patch_cells, buf)
+        routine, out_field_ids%co2_vmr, 'co2 vmr', p_patch%n_patch_cells, buf)
 
     ENDIF
 #endif /* ifndef __NO_ICON_OCEAN__ */
@@ -551,7 +546,7 @@ CONTAINS
     !------------------------------------------------
 
     CALL cpl_get_field( &
-      routine, field_id_sst, 'sst', p_patch%n_patch_cells, &
+      routine, in_field_ids(jg)%sst, 'sst', p_patch%n_patch_cells, &
       rx%t_seasfc, first_get=.TRUE.)
 
     !------------------------------------------------
@@ -563,7 +558,7 @@ CONTAINS
 
     IF (ASSOCIATED(rx%ocean_u)) &
       CALL cpl_get_field( &
-        routine, field_id_oce_u, 'u velocity', p_patch%n_patch_cells, &
+        routine, in_field_ids(jg)%oce_u, 'u velocity', p_patch%n_patch_cells, &
         rx%ocean_u)
 
     !------------------------------------------------
@@ -576,7 +571,7 @@ CONTAINS
 
     IF (ASSOCIATED(rx%ocean_v)) &
       CALL cpl_get_field( &
-        routine, field_id_oce_v, 'v velocity', p_patch%n_patch_cells, &
+        routine, in_field_ids(jg)%oce_v, 'v velocity', p_patch%n_patch_cells, &
         rx%ocean_v)
 
     !------------------------------------------------
@@ -586,7 +581,7 @@ CONTAINS
     !------------------------------------------------
 
     CALL cpl_get_field( &
-      routine, field_id_seaice_oce, 'sea ice', p_patch%n_patch_cells, &
+      routine, in_field_ids(jg)%seaice_oce, 'sea ice', p_patch%n_patch_cells, &
       field_1=rx%h_ice, field_2=buf, field_3=rx%fr_seaice, &
       received_data=received_data)
 
@@ -618,7 +613,7 @@ CONTAINS
     IF (ccycle_config(jg)%iccycle /= CCYCLE_MODE_NONE .AND. &
         ASSOCIATED(rx%flx_co2)) &
       CALL cpl_get_field( &
-        routine, field_id_co2_flx, 'CO2 flux', p_patch%n_patch_cells, &
+        routine, in_field_ids(jg)%co2_flx, 'CO2 flux', p_patch%n_patch_cells, &
         rx%flx_co2)
 
     !------------------------------------------------

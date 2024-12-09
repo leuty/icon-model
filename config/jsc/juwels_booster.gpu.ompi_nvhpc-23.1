@@ -21,7 +21,7 @@ SCRIPT_DIR=$(cd "$(dirname "$0")"; pwd)
 ICON_DIR=$(cd "${SCRIPT_DIR}/../.."; pwd)
 
 # clear all modules and load Stage and modules for all dependencies
-MODULES='Stages/2023 NVHPC/23.1 CMake OpenMPI netCDF-Fortran ecCodes libfyaml' 
+MODULES='Stages/2023 NVHPC/23.1 CMake OpenMPI netCDF-Fortran ecCodes libfyaml git'
 BUILD_ENV="module --force purge; export USERINSTALLATIONS=/p/usersoftware/slmet/easybuild/stages/2023/; module load ${MODULES}; module list;"
 
 SOFTWAREROOT="/p/software/juwelsbooster"

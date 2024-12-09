@@ -1437,10 +1437,19 @@ CONTAINS
  
       !$ACC UPDATE SELF(eta_c_new) IF(lzacc)
       minmaxmean(:) = global_minmaxmean(values=eta_c_new, in_subset=owned_cells)
-      IF ( abs(minmaxmean(1)) >  300 ) CALL finish("Surface height too large!!")
+
+      IF ( abs(minmaxmean(1)) >  300 ) THEN
+        CALL print_value_location(eta_c_new, minmaxmean(1), owned_cells)
+        CALL work_mpi_barrier()
+        CALL finish("Surface height too large!!")
+      ENDIF
 
 #ifndef NAGFOR
-      IF ( ieee_is_nan(minmaxmean(1)) ) CALL finish("Surface height too large!!")
+      IF ( ieee_is_nan(minmaxmean(1)) ) THEN
+        CALL print_value_location(eta_c_new, minmaxmean(1), owned_cells)
+        CALL work_mpi_barrier()
+        CALL finish("Surface height too large!!")
+      ENDIF
 #endif
 
       IF (createSolverMatrix) &

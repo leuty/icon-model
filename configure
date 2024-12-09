@@ -623,8 +623,7 @@ icon_bundled_cmake_builddirs
 icon_bundled_builddirs
 icon_bundled_srcdirs
 ICON_HD_FCFLAGS
-ICON_MATH_INTERPOLATION_FCFLAGS
-ICON_MATH_SUPPORT_FCFLAGS
+ICON_ICONMATH_FCFLAGS
 ICON_FORTRAN_SUPPORT_CFLAGS
 ICON_FORTRAN_SUPPORT_FCFLAGS
 ICON_COMIN_CXXFLAGS
@@ -850,8 +849,7 @@ ICON_COMIN_CFLAGS
 ICON_COMIN_CXXFLAGS
 ICON_FORTRAN_SUPPORT_FCFLAGS
 ICON_FORTRAN_SUPPORT_CFLAGS
-ICON_MATH_SUPPORT_FCFLAGS
-ICON_MATH_INTERPOLATION_FCFLAGS
+ICON_ICONMATH_FCFLAGS
 ICON_HD_FCFLAGS
 AR
 ARFLAGS
@@ -1795,13 +1793,9 @@ Some influential environment variables:
               Fortran compiler flags to be appended to CFLAGS when configuring
               the bundled version of FORTRAN-SUPPORT library
               [default=$ICON_BUNDLED_CFLAGS]
-  ICON_MATH_SUPPORT_FCFLAGS
+  ICON_ICONMATH_FCFLAGS
               Fortran compiler flags to be appended to FCFLAGS when
-              configuring the bundled version of MATH-SUPPORT library
-              [default=$ICON_BUNDLED_FCFLAGS]
-  ICON_MATH_INTERPOLATION_FCFLAGS
-              Fortran compiler flags to be appended to FCFLAGS when
-              configuring the bundled version of MATH-INTERPOLATION library
+              configuring the bundled version of ICONMATH library
               [default=$ICON_BUNDLED_FCFLAGS]
   ICON_HD_FCFLAGS
               Fortran compiler flags to be appended to FCFLAGS when
@@ -10693,23 +10687,23 @@ esac
    BUNDLED_LIBFILES="externals/fortran-support/build/src/libfortran-support.a $BUNDLED_LIBFILES"
 fi
 
-icon_subdir_srcdir="$srcdir/externals/math-support"
-icon_subdir_unique_file="src/mo_math_constants.f90"
+icon_subdir_srcdir="$srcdir/externals/iconmath"
+icon_subdir_unique_file="src/support/mo_math_constants.f90"
 if test ! -r "$icon_subdir_srcdir/$icon_subdir_unique_file"; then :
-  as_fn_error $? "unable to find sources of the bundled version of MATH-SUPPORT library ($icon_subdir_unique_file) in '$icon_subdir_srcdir'" "$LINENO" 5
+  as_fn_error $? "unable to find sources of the bundled version of ICONMATH library ($icon_subdir_unique_file) in '$icon_subdir_srcdir'" "$LINENO" 5
 fi
-ICON_MATH_SUPPORT_FCFLAGS=${ICON_MATH_SUPPORT_FCFLAGS-$ICON_BUNDLED_FCFLAGS}
-               acx_subdir_run_cmd_externals_math_support="\"\${CMAKE}\""
-   acx_subdir_run_dir_externals_math_support="externals/math-support/build"
-   acx_subdir_build_type_externals_math_support='cmake'
+ICON_ICONMATH_FCFLAGS=${ICON_ICONMATH_FCFLAGS-$ICON_BUNDLED_FCFLAGS}
+               acx_subdir_run_cmd_externals_iconmath="\"\${CMAKE}\""
+   acx_subdir_run_dir_externals_iconmath="externals/iconmath/build"
+   acx_subdir_build_type_externals_iconmath='cmake'
          acx_subdir_pre_adjust_cmake_args
-      acx_subdir_run_args_externals_math_support=$acx_subdir_pre_adjusted_cmake_args
-         acx_subdir_srcdirs_fn "externals/math-support/build"
+      acx_subdir_run_args_externals_iconmath=$acx_subdir_pre_adjusted_cmake_args
+         acx_subdir_srcdirs_fn "externals/iconmath/build"
          case $ac_srcdir in #(
   .) :
     acx_tmp='..' ;; #(
   *) :
-    acx_tmp="$ac_top_srcdir/externals/math-support" ;;
+    acx_tmp="$ac_top_srcdir/externals/iconmath" ;;
 esac
       case $acx_tmp in #(
   *\'*) :
@@ -10717,11 +10711,11 @@ esac
   *) :
      ;;
 esac
-      as_fn_append acx_subdir_run_args_externals_math_support " '$acx_tmp'"
-      as_fn_append extra_src_subdirs " externals/math-support"
-   acx_subdir_run_condition_externals_math_support=no
-eval "set dummy $acx_subdir_run_args_externals_math_support"; shift
-   acx_subdir_run_args_externals_math_support=
+      as_fn_append acx_subdir_run_args_externals_iconmath " '$acx_tmp'"
+      as_fn_append extra_src_subdirs " externals/iconmath"
+   acx_subdir_run_condition_externals_iconmath=no
+eval "set dummy $acx_subdir_run_args_externals_iconmath"; shift
+   acx_subdir_run_args_externals_iconmath=
    while test $# != 0; do
      acx_tmp=$1
      case $acx_tmp in #(
@@ -10740,16 +10734,16 @@ eval "set dummy $acx_subdir_run_args_externals_math_support"; shift
   *) :
      ;;
 esac
-        as_fn_append acx_subdir_run_args_externals_math_support " '$acx_tmp'" ;;
+        as_fn_append acx_subdir_run_args_externals_iconmath " '$acx_tmp'" ;;
 esac
      shift
    done
 if test "x$icon_gpu_primary" = xopenacc; then :
-  icon_ms_openacc=ON
+  icon_im_openacc=ON
 else
-  icon_ms_openacc=OFF
+  icon_im_openacc=OFF
 fi
-set dummy   -DCMAKE_Fortran_FLAGS="$subdir_FCFLAGS $ICON_MATH_SUPPORT_FCFLAGS"   -DMS_ENABLE_LOOP_EXCHANGE="$enable_loop_exchange" -DMS_ENABLE_MIXED_PRECISION="$enable_mixed_precision" -DMS_ENABLE_DIM_SWAP="$enable_dim_swap" -DMS_ENABLE_OPENACC="$icon_ms_openacc"   -DCMAKE_PREFIX_PATH:PATH="${icon_abs_top_builddir}/externals/fortran-support/build"   -DBUILD_SHARED_LIBS:BOOL=OFF -DBUILD_TESTING:BOOL=OFF   -DBUILD_STANDALONE:BOOL=OFF   -DCMAKE_BUILD_TYPE:STRING=NOEXTRAFLAGS; shift
+set dummy   -DCMAKE_Fortran_FLAGS="$subdir_FCFLAGS $ICON_ICONMATH_FCFLAGS"   -DIM_ENABLE_LOOP_EXCHANGE="$enable_loop_exchange" -DIM_ENABLE_MIXED_PRECISION="$enable_mixed_precision" -DIM_ENABLE_DIM_SWAP="$enable_dim_swap" -DIM_ENABLE_OPENACC="$icon_im_openacc"   -DCMAKE_PREFIX_PATH:PATH="${icon_abs_top_builddir}/externals/fortran-support/build"   -DBUILD_ICONMATH_HORIZONTAL:BOOL=OFF   -DBUILD_SHARED_LIBS:BOOL=OFF -DBUILD_TESTING:BOOL=OFF   -DBUILD_STANDALONE:BOOL=OFF   -DCMAKE_BUILD_TYPE:STRING=NOEXTRAFLAGS; shift
    for acx_tmp; do
      case $acx_tmp in #(
   *\'*) :
@@ -10757,79 +10751,10 @@ set dummy   -DCMAKE_Fortran_FLAGS="$subdir_FCFLAGS $ICON_MATH_SUPPORT_FCFLAGS"  
   *) :
      ;;
 esac
-     as_fn_append acx_subdir_run_args_externals_math_support " '$acx_tmp'"
+     as_fn_append acx_subdir_run_args_externals_iconmath " '$acx_tmp'"
    done
-as_fn_append bundled_includes "${FC_MOD_IN}externals/math-support/build/src/mod "
-BUNDLED_LIBFILES="externals/math-support/build/src/libmath-support.a $BUNDLED_LIBFILES"
-
-icon_subdir_srcdir="$srcdir/externals/math-interpolation"
-icon_subdir_unique_file="src/mo_lib_interpolation_vector.F90"
-if test ! -r "$icon_subdir_srcdir/$icon_subdir_unique_file"; then :
-  as_fn_error $? "unable to find sources of the bundled version of MATH-INTERPOLATION library ($icon_subdir_unique_file) in '$icon_subdir_srcdir'" "$LINENO" 5
-fi
-ICON_MATH_INTERPOLATION_FCFLAGS=${ICON_MATH_INTERPOLATION_FCFLAGS-$ICON_BUNDLED_FCFLAGS}
-               acx_subdir_run_cmd_externals_math_interpolation="\"\${CMAKE}\""
-   acx_subdir_run_dir_externals_math_interpolation="externals/math-interpolation/build"
-   acx_subdir_build_type_externals_math_interpolation='cmake'
-         acx_subdir_pre_adjust_cmake_args
-      acx_subdir_run_args_externals_math_interpolation=$acx_subdir_pre_adjusted_cmake_args
-         acx_subdir_srcdirs_fn "externals/math-interpolation/build"
-         case $ac_srcdir in #(
-  .) :
-    acx_tmp='..' ;; #(
-  *) :
-    acx_tmp="$ac_top_srcdir/externals/math-interpolation" ;;
-esac
-      case $acx_tmp in #(
-  *\'*) :
-    acx_tmp=`$as_echo "$acx_tmp" | sed "s/'/'\\\\\\\\''/g"` ;; #(
-  *) :
-     ;;
-esac
-      as_fn_append acx_subdir_run_args_externals_math_interpolation " '$acx_tmp'"
-      as_fn_append extra_src_subdirs " externals/math-interpolation"
-   acx_subdir_run_condition_externals_math_interpolation=no
-eval "set dummy $acx_subdir_run_args_externals_math_interpolation"; shift
-   acx_subdir_run_args_externals_math_interpolation=
-   while test $# != 0; do
-     acx_tmp=$1
-     case $acx_tmp in #(
-    -DCMAKE_Fortran_FLAGS=*) :
-     ;; #(
-    -DCMAKE_C_*=*|-DCMAKE_CXX_*=*) :
-     ;; #(
-    -DCMAKE_SHARED_LINKER_FLAGS=*|-DCMAKE_MODULE_LINKER_FLAGS=*) :
-     ;; #(
-    -DCMAKE_*_COMPILER_AR=*|-DCMAKE_*_COMPILER_RANLIB=*) :
-     ;; #(
-  *) :
-           case $acx_tmp in #(
-  *\'*) :
-    acx_tmp=`$as_echo "$acx_tmp" | sed "s/'/'\\\\\\\\''/g"` ;; #(
-  *) :
-     ;;
-esac
-        as_fn_append acx_subdir_run_args_externals_math_interpolation " '$acx_tmp'" ;;
-esac
-     shift
-   done
-if test "x$icon_gpu_primary" = xopenacc; then :
-  icon_mi_openacc=ON
-else
-  icon_mi_openacc=OFF
-fi
-set dummy   -DCMAKE_Fortran_FLAGS="$subdir_FCFLAGS $ICON_MATH_INTERPOLATION_FCFLAGS"   -DMI_ENABLE_LOOP_EXCHANGE="$enable_loop_exchange" -DMI_ENABLE_MIXED_PRECISION="$enable_mixed_precision" -DMI_ENABLE_DIM_SWAP="$enable_dim_swap" -DMI_ENABLE_OPENACC="$icon_mi_openacc"   -DCMAKE_PREFIX_PATH:PATH="${icon_abs_top_builddir}/externals/fortran-support/build;${icon_abs_top_builddir}/externals/math-support/build"   -DBUILD_SHARED_LIBS:BOOL=OFF -DBUILD_TESTING:BOOL=OFF   -DBUILD_STANDALONE:BOOL=OFF   -DCMAKE_BUILD_TYPE:STRING=NOEXTRAFLAGS; shift
-   for acx_tmp; do
-     case $acx_tmp in #(
-  *\'*) :
-    acx_tmp=`$as_echo "$acx_tmp" | sed "s/'/'\\\\\\\\''/g"` ;; #(
-  *) :
-     ;;
-esac
-     as_fn_append acx_subdir_run_args_externals_math_interpolation " '$acx_tmp'"
-   done
-as_fn_append bundled_includes "${FC_MOD_IN}externals/math-interpolation/build/src/mod "
-BUNDLED_LIBFILES="externals/math-interpolation/build/src/libmath-interpolation.a $BUNDLED_LIBFILES"
+as_fn_append bundled_includes "${FC_MOD_IN}externals/iconmath/build/src/interpolation/mod ${FC_MOD_IN}externals/iconmath/build/src/support/mod "
+BUNDLED_LIBFILES="externals/iconmath/build/src/interpolation/libiconmath-interpolation.a externals/iconmath/build/src/support/libiconmath-support.a $BUNDLED_LIBFILES"
 
 FCFLAGS="${bundled_includes}${FCFLAGS}"
 

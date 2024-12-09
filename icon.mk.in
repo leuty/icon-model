@@ -17,7 +17,7 @@ subdirs:= src support
 
 # Relative (to $(srcdir)) paths to the root source directories of all bundled
 # packages:
-bundled_srcdirs = @icon_bundled_srcdirs@
+bundled_srcdirs= @icon_bundled_srcdirs@
 
 # Relative paths to the root build directories of all bundled packages:
 bundled_builddirs= @icon_bundled_builddirs@
@@ -101,17 +101,22 @@ LIBS= @LIBS@
 pp_infix:= .pp-
 
 # Auxiliary function. Receives a space-separated list of subdirectories inside
-# $(srcdir) and a space-separated list of shell-like wildcards. Returns a
+# $(srcdir), a space-separated list of shell-like wildcards and a
+# space-separated ignore list of subdirectories inside $(srcdir). Returns a
 # space-separated list of relative (with respect to $(srcdir)) paths to files
 # residing in the given subdirectories and matching at least one of the given
-# patterns. Files, as well as the second and higher order subdirectories, with
-# names starting with a dot are ignored. Files containing the preprocessor
-# infix '*$(pp_infix)*' are ignored. Duplicates are eliminated.
+# patterns. Files residing in subdirectories from the ignore list (i.e. the
+# third argument) are ignored. Files, as well as the second and higher order
+# subdirectories, with names starting with a dot are ignored. Files containing
+# the preprocessor infix '*$(pp_infix)*' are ignored. Duplicates are eliminated.
 find_files= $(sort $(patsubst $(srcdir)/%,%, \
                 $(shell find $(addprefix $(srcdir)/,$(1)) \
-                    -name '.' -o -name '..' -o -name '.*' -prune \
-                    -o \! \( -type d -o -name '*$(pp_infix)*' \) \
-                    -a \( $(foreach p,$(2),-name $(p) -o) -false \) -print)))
+                    \( $(foreach p,$(3),-path '$(srcdir)/$(p)' -o) \
+                        -name '.' -o -name '..' -o -name '.*' \) \
+                    -prune -o \
+                    \( \! \( -type d -o -name '*$(pp_infix)*' \) -a \
+                        \( $(foreach p,$(2),-name $(p) -o) -false \) \) \
+                    -print )))
 
 # All source files:
 all_files:= $(call find_files,$(subdirs),'*.f90' '*.inc' '*.incf' '*.c' '*.cu' '*.hip.cc')
@@ -409,7 +414,7 @@ depend: $(dep_files)
 # Generate a list of files that are going to be compiled in the current
 # configuration:
 srclist: $(dep_files)
-	$(silent_GEN)$(DEPLIST) -t $(ICON_prog_obj_files) -f $^ 2>/dev/null | sed '/\(\.@OBJEXT@\|\.@FC_MOD_FILE_EXT@\.proxy\|.@FC_SMOD_FILE_EXT@\.sproxy\)$$/d' | sort > $@
+	$(silent_GEN)$(DEPLIST) -t $(ICON_prog_obj_files) -f $^ 2>/dev/null | sed '/\.@OBJEXT@$$/d;/\.@FC_MOD_FILE_EXT@\.proxy$$/d;/\.@FC_SMOD_FILE_EXT@\.sproxy$$/d' | sort > $@
 
 # Check rule:
 check: all check-bundled
@@ -641,19 +646,11 @@ externals/cdi: $(filter externals/yaxt externals/ppm,$(bundled_builddirs))
 externals/hd: $(filter externals/yac,$(bundled_builddirs))
 
 # Configure the bundled fortran-support before configuring the bundled
-# math-support:
-externals/math-support/build/Makefile: $(filter externals/fortran-support/build/Makefile,$(bundled_makefiles))
+# iconmath:
+externals/iconmath/build/Makefile: $(filter externals/fortran-support/build/Makefile,$(bundled_makefiles))
 
-# Build the bundled fortran-support before building the bundled-math support:
-externals/math-support/build: $(filter externals/fortran-support/build,$(bundled_builddirs))
-
-# Configure the bundled fortran-support and math-support before configuring the
-# bundled math-interpolation:
-externals/math-interpolation/build/Makefile: $(filter externals/fortran-support/build/Makefile externals/math-support/build/Makefile,$(bundled_makefiles))
-
-# Build the bundled fortran-support and math-support before building the bundled
-# math-interpolation:
-externals/math-interpolation/build: $(filter externals/fortran-support/build externals/math-support/build,$(bundled_builddirs))
+# Build the bundled fortran-support before building the bundled iconmath:
+externals/iconmath/build: $(filter externals/fortran-support/build,$(bundled_builddirs))
 
 # Configure delayed bundled packages:
 @ICON_DELAYED_CONFIG_RULES@

@@ -49,10 +49,11 @@ MODULE mo_setup_subdivision
 
   USE mo_run_config,         ONLY: msg_level
   USE mo_io_units,           ONLY: filename_max
-  USE mo_model_domain,       ONLY: t_patch, p_patch_local_parent, t_pre_patch, &
+  USE mo_pre_model_domain,   ONLY: t_pre_patch, &
        c_num_edges, c_parent, c_phys_id, c_neighbor, c_edge, &
        c_vertex, c_center, c_refin_ctrl, e_parent, e_cell, &
        e_refin_ctrl, v_cell, v_num_edges, v_vertex, v_refin_ctrl
+  USE mo_model_domain,       ONLY: t_patch, p_patch_local_parent
   USE mo_decomposition_tools,ONLY: t_grid_domain_decomp_info, &
     &                              get_local_index, get_valid_local_index, &
     &                              set_inner_glb_index, set_outer_glb_index, &
