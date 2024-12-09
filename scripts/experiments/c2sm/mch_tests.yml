@@ -203,7 +203,7 @@ tests:
     tags: ['atm','merge2rc','probtest']
     machines:
       - name: balfrin
-        include_only: ['balfrin_cpu_nvidia', 'balfrin_gpu', 'alps_mch_test_cpu', 'alps_mch_test_gpu']
+        include_only: ['balfrin_cpu_nvidia', 'balfrin_gpu_nvidia', 'alps_mch_test_cpu', 'alps_mch_test_gpu']
     refgen: ['balfrin_cpu_nvidia', 'alps_mch_test_cpu']
     checksuite_modes:
       - balfrin: 'tc'
@@ -213,7 +213,7 @@ tests:
     tags: ['atm','merge2rc','probtest']
     machines:
       - name: balfrin
-        include_only: ['balfrin_cpu_nvidia', 'balfrin_gpu', 'alps_mch_test_cpu', 'alps_mch_test_gpu']
+        include_only: ['balfrin_cpu_nvidia', 'balfrin_gpu_nvidia', 'alps_mch_test_cpu', 'alps_mch_test_gpu']
     refgen: ['balfrin_cpu_nvidia', 'alps_mch_test_cpu']
     checksuite_modes:
       - balfrin: 'tc'
