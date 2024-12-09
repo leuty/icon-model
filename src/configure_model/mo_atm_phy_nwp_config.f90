@@ -47,7 +47,7 @@ MODULE mo_atm_phy_nwp_config
   USE mo_nudging_config,      ONLY: configure_nudging, nudging_config
   USE mo_name_list_output_config, ONLY: is_variable_in_output
   USE mo_io_config,           ONLY: dt_lpi, dt_celltracks, dt_radar_dbz, dt_hailcast
-  USE mo_2mom_mcrph_config,   ONLY: t_cfg_2mom
+  USE mo_2mom_mcrph_config,   ONLY: t_cfg_2mom, t_cfg_2mom_pert
 
   IMPLICIT NONE
 
@@ -82,6 +82,7 @@ MODULE mo_atm_phy_nwp_config
 
     INTEGER ::  inwp_gscp        !> microphysics
     TYPE(t_cfg_2mom) :: cfg_2mom !> config parameters of 2-mom cloud microphysics (inwp_gscp = 4...7)
+    TYPE(t_cfg_2mom_pert) :: cfg_2mom_pert !> subset of config parameters of 2-mom cloud microphysics for perturbations
     INTEGER ::  inwp_satad       !! saturation adjustment
     INTEGER ::  inwp_convection  !! convection
     LOGICAL ::  lshallowconv_only !! use shallow convection only
@@ -333,7 +334,6 @@ CONTAINS
 
       IF ( atm_phy_nwp_config(jg)%inwp_gwd > 0 )                 &
         &  atm_phy_nwp_config(jg)%lenabled(itgwd)     = .TRUE.
-
 
       ! Set flags for the microphysics schemes:
       atm_phy_nwp_config(jg)%lsbm = .FALSE.
