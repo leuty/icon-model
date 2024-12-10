@@ -146,6 +146,7 @@ MODULE mo_aes_phy_memory
       & qtrc_dyn  (:,:,:,:)=>NULL(),&!< [kg/kg] mass fraction of tracer in air
       & qtrc_phy  (:,:,:,:)=>NULL(),&!< [kg/kg] mass fraction of tracer in air
       & mtrcvi    (:,:,:)=>NULL(),  &!< [kg/m2] atmosphere mass content of tracer
+      & tcw       (:,:)=>NULL(),    &!< [kg/m2] vertically integrated total column water
       & cptgzvi   (:,:)=>NULL(),    &!< [kg/m2] dry static energy  , vertically integrated through the atmospheric column
       & udynvi    (:,:)=>NULL(),    &!< [kg/m2] vertically integrated moist internal energy -- after dynamics
       & duphyvi   (:,:)=>NULL(),    &!< [kg/m2] change of vertically integrated moist internal energy by physics
@@ -1244,6 +1245,21 @@ CONTAINS
       END DO
       !
     END IF ! (ktracer > 0)
+
+    ! special output for DestinE: sum of all hydrometeors vertically integrated:
+    ! &       field% tcw     (nproma,nblks),          &
+    cf_desc    = t_cf_var('vertically integrated total column water', 'kg m-2', 'vert_int_total_column_water', &
+         &                datatype_flt)
+    grib2_desc = grib2_var(0,1,51, ibits, GRID_UNSTRUCTURED, GRID_CELL)
+    CALL add_var( field_list, prefix//'tcw', field%tcw,              &
+         &        GRID_UNSTRUCTURED_CELL, ZA_ATMOSPHERE,                       &
+         &        cf_desc, grib2_desc,                                         &
+         &        ldims=shape2d,                                               &
+         &        lrestart = .FALSE.,                                          &
+         &        isteptype=TSTEP_INSTANT,                                     &
+         &        lopenacc=.TRUE.)
+    __acc_attach(field%tcw)
+
  
     ! &       field% rho        (nproma,nlev  ,nblks),          &
     cf_desc    = t_cf_var('air_density', 'kg m-3', 'density of air',           &
