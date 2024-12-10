@@ -148,6 +148,8 @@ CONTAINS
                & rsutcs     = field%rsutcs             (:,jb),&! clear-sky shortwave upward   flux at current   time [W/m2]
                & rsdscs     = field%rsdscs             (:,jb),&! clear-sky shortwave downward flux at current   time [W/m2]
                & rsuscs     = field%rsuscs             (:,jb),&! clear-sky shortwave upward   flux at current   time [W/m2]
+               & rsntcs     = field%rsntcs             (:,jb)  ,&!< clear-sky shortwave net      [W/m2]
+               & rsnscs     = field%rsnscs             (:,jb)  ,&!< clear-sky shortwave net      [W/m2]
                !
                & rvds_dir   = field%rvds_dir           (:,jb),&!< out  all-sky downward direct visible radiation at surface
                & rpds_dir   = field%rpds_dir           (:,jb),&!< out  all-sky downward direct PAR     radiation at surface
@@ -165,6 +167,8 @@ CONTAINS
                !
                & rlutcs     = field%rlutcs             (:,jb),&! clear-sky longwave  upward   flux at current   time [W/m2]
                & rldscs     = field%rldscs             (:,jb),&! clear-sky longwave  downward flux at current   time [W/m2]
+               & rlntcs     = field%rlntcs             (:,jb)  ,&!< clear-sky longwave  net      [W/m2]
+               & rlnscs     = field%rlnscs             (:,jb)  ,&!< clear-sky longwave  net      [W/m2]
                !
                & q_rsw      = q_rsw                    (:,:) ,&! rad. heating by SW           [W/m2]
                & q_rlw      = q_rlw                    (:,:)  )! rad. heating by LW           [W/m2]

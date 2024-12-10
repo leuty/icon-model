@@ -186,12 +186,14 @@ MODULE mo_aes_phy_memory
       & rsut        (:,  :)=>NULL(),  &!< [W/m2] toa outgoing shortwave radiation
       & rsutcs      (:,  :)=>NULL(),  &!< [W/m2] toa outgoing clear-sky shortwave radiation
       & rsnt        (:,  :)=>NULL(),  &!< [W/m2] toa net shortwave radiation
+      & rsntcs      (:,  :)=>NULL(),  &!< [W/m2] toa net(=dn-up) clear-sky shortwave radiation
       ! - at the surface at all times
       & rsds        (:,  :)=>NULL(),  &!< [W/m2] surface downwelling shortwave radiation
       & rsus        (:,  :)=>NULL(),  &!< [W/m2] surface upwelling   shortwave radiation
       & rsdscs      (:,  :)=>NULL(),  &!< [W/m2] surface downwelling clear-sky shortwave radiation
       & rsuscs      (:,  :)=>NULL(),  &!< [W/m2] surface upwelling   clear-sky shortwave radiation
       & rsns        (:,  :)=>NULL(),  &!< [W/m2] surface net shortwave radiation
+      & rsnscs      (:,  :)=>NULL(),  &!< [W/m2] surface net(=dn-up) clear sky shortwave radiation
       !
       ! shortwave flux components at the surface
       ! - at radiation times
@@ -225,11 +227,13 @@ MODULE mo_aes_phy_memory
       & rlut        (:,  :)=>NULL(),  &!< [W/m2] toa outgoing longwave radiation
       & rlutcs      (:,  :)=>NULL(),  &!< [W/m2] toa outgoing clear-sky longwave radiation
       & rlnt        (:,  :)=>NULL(),  &!< [W/m2] TOA net longwave radiation
+      & rlntcs      (:,  :)=>NULL(),  &!< [W/m2] toa net(=dn-up) clear-sky longwave radiation
       ! - at the surface at all times
       & rlds        (:,  :)=>NULL(),  &!< [W/m2] surface downwelling longwave radiation
       & rlus        (:,  :)=>NULL(),  &!< [W/m2] surface upwelling   longwave radiation
       & rldscs      (:,  :)=>NULL(),  &!< [W/m2] surface downwelling clear-sky longwave radiation
       & rlns        (:,  :)=>NULL(),  &!< [W/m2] surface net longwave radiation
+      & rlnscs      (:,  :)=>NULL(),  &!< [W/m2] surface net(=dn-up) longwave radiation
       & o3          (:,:,:)=>NULL()    !< [mol/mol] ozone volume mixing ratio
     ! effective radius of ice
     REAL(wp), POINTER ::      &
@@ -1452,8 +1456,10 @@ CONTAINS
        lclrsky_sw = is_variable_in_output(var_name=prefix//'rsdcs')  .OR. &
             &       is_variable_in_output(var_name=prefix//'rsucs')  .OR. &
             &       is_variable_in_output(var_name=prefix//'rsutcs') .OR. &
+            &       is_variable_in_output(var_name=prefix//'rsntcs') .OR. &
             &       is_variable_in_output(var_name=prefix//'rsdscs') .OR. &
-            &       is_variable_in_output(var_name=prefix//'rsuscs')
+            &       is_variable_in_output(var_name=prefix//'rsuscs') .OR. &
+            &       is_variable_in_output(var_name=prefix//'rsnscs')
        aes_rad_config(jg)%lclrsky_sw = lclrsky_sw
        !
        ! - allocate clear sky 3d radiation fields with a single level only if
@@ -1571,6 +1577,19 @@ CONTAINS
             &       lopenacc=.TRUE.                           )
        __acc_attach(field%rsutcs)
 
+       cf_desc    = t_cf_var('toa_net_shortwave_flux_assuming_clear_sky'     , &
+            &                'W m-2'                                         , &
+            &                'toa net clear-sky shortwave radiation'         , &
+            &                datatype_flt                                    )
+       grib2_desc = grib2_var(0,4,11, ibits, GRID_UNSTRUCTURED, GRID_CELL)
+       CALL add_var(field_list, prefix//'rsntcs', field%rsntcs, &
+            &       GRID_UNSTRUCTURED_CELL      , ZA_TOA      , &
+            &       cf_desc, grib2_desc                       , &
+            &       lrestart = .FALSE.                        , &
+            &       ldims=shape2d                             , &
+            &       lopenacc=.TRUE.                           )
+       __acc_attach(field%rsntcs)
+
     END IF
 
     ! - at the surface (also used in update surface)
@@ -1629,6 +1648,19 @@ CONTAINS
             &       ldims=shape2d                             , &
             &       lopenacc=.TRUE.                           )
        __acc_attach(field%rsuscs)
+
+       cf_desc    = t_cf_var('surface_net_shortwave_flux_in_air_assuming_clear_sky', &
+            &                'W m-2'                                               , &
+            &                'surface net clear-sky shortwave radiation'           , &
+            &                datatype_flt                                          )
+       grib2_desc = grib2_var(0,4,11, ibits, GRID_UNSTRUCTURED, GRID_CELL)
+       CALL add_var(field_list, prefix//'rsnscs', field%rsnscs, &
+            &       GRID_UNSTRUCTURED_CELL      , ZA_SURFACE  , &
+            &       cf_desc, grib2_desc                       , &
+            &       lrestart = .FALSE.                        , &
+            &       ldims=shape2d                             , &
+            &       lopenacc=.TRUE.                           )
+       __acc_attach(field%rsnscs)
 
        !-----------------------------------------------------------------------------------
        ! shortwave flux components at the surface
@@ -1920,7 +1952,9 @@ CONTAINS
     lclrsky_lw = is_variable_in_output(var_name=prefix//'rldcs')  .OR. &
          &       is_variable_in_output(var_name=prefix//'rlucs')  .OR. &
          &       is_variable_in_output(var_name=prefix//'rlutcs') .OR. &
-         &       is_variable_in_output(var_name=prefix//'rldscs')
+         &       is_variable_in_output(var_name=prefix//'rlntcs') .OR. &
+         &       is_variable_in_output(var_name=prefix//'rldscs') .OR. &
+         &       is_variable_in_output(var_name=prefix//'rlnscs')
     aes_rad_config(jg)%lclrsky_lw = lclrsky_lw
     !
     ! - allocate clear sky 3d radiation fields with a single level only if
@@ -2029,6 +2063,19 @@ CONTAINS
             &       lopenacc=.TRUE.                           )
        __acc_attach(field%rlutcs)
 
+       cf_desc    = t_cf_var('toa_net_longwave_flux_assuming_clear_sky'  , &
+            &                'W m-2'                                     , &
+            &                'toa net clear-sky longwave radiation'      , &
+            &                datatype_flt                                )
+       grib2_desc = grib2_var(0,5,6, ibits, GRID_UNSTRUCTURED, GRID_CELL)
+       CALL add_var(field_list, prefix//'rlntcs', field%rlntcs, &
+            &       GRID_UNSTRUCTURED_CELL      , ZA_TOA      , &
+            &       cf_desc, grib2_desc                       , &
+            &       lrestart = .FALSE.                        , &
+            &       ldims=shape2d                             , &
+            &       lopenacc=.TRUE.                           )
+       __acc_attach(field%rlntcs)
+
     END IF
 
     ! - at the surface (also used in update_surface)
@@ -2073,6 +2120,19 @@ CONTAINS
             &       ldims=shape2d                             , &
             &       lopenacc=.TRUE.                           )
        __acc_attach(field%rldscs)
+
+       cf_desc    = t_cf_var('surface_net_longwave_flux_in_air_assuming_clear_sky', &
+            &                'W m-2'                                              , &
+            &                'surface net clear-sky longwave radiation'           , &
+            &                datatype_flt                                         )
+       grib2_desc = grib2_var(0,5,6, ibits, GRID_UNSTRUCTURED, GRID_CELL)
+       CALL add_var(field_list, prefix//'rlnscs', field%rlnscs, &
+            &       GRID_UNSTRUCTURED_CELL      , ZA_SURFACE  , &
+            &       cf_desc, grib2_desc                       , &
+            &       lrestart = .FALSE.                        , &
+            &       ldims=shape2d                             , &
+            &       lopenacc=.TRUE.                           )
+       __acc_attach(field%rlnscs)
        !
     END IF
 
