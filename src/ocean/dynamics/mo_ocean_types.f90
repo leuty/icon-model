@@ -264,6 +264,8 @@ MODULE mo_ocean_types
       & thick_c          ,& ! individual fluid column thickness at cells. Unit [m].
       & u_vint           ,& ! barotropic zonal velocity. Unit [m*m/s]
       & v_vint           ,& ! barotropic meridional velocity. Unit [m*m/s]
+      & tos              ,& ! sea_surface_temperature [K].
+      & sos              ,& ! sea_surface_salinity [1e-3].
       & mld              ,& ! mixed layer depth [m].
       & mlotst           ,& ! mixed layer depth [m]. (CMIP6)
       & mlotstsq        ,& ! squared mixed layer depth [m]. (CMIP6)

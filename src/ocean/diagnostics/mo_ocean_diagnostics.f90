@@ -923,6 +923,13 @@ CONTAINS
 
       ENDIF
 
+      IF (isRegistered('tos') .OR. isRegistered('sos') ) THEN
+        CALL calc_tos_sos(patch_3d, tracers, p_diag%tos, p_diag%sos, lacc)
+      ENDIF
+
+      IF (isRegistered('sivol') .OR. isRegistered('snvol') ) THEN
+        CALL calc_sivol_snvol(patch_3d, ice, lacc)
+      ENDIF
       IF (isRegistered('mld')) THEN
 
         CALL calc_mld(patch_3d, ocean_state%p_diag%mld, &
@@ -3151,12 +3158,85 @@ CONTAINS
 #endif
   END SUBROUTINE calc_mld
 
+  SUBROUTINE calc_tos_sos(patch_3d, tracers, tos, sos, lacc)
+
+    TYPE(t_patch_3d), TARGET, INTENT(in)     :: patch_3d
+    REAL(wp), POINTER                        :: tracers(:,:,:,:)
+    REAL(wp), INTENT(out)                    :: tos(:,:)
+    REAL(wp), INTENT(out)                    :: sos(:,:)
+    LOGICAL, INTENT(IN), OPTIONAL :: lacc
+
+
+    TYPE(t_patch), POINTER                   :: patch_2d
+    TYPE(t_subset_range), POINTER            :: owned_cells
+
+    INTEGER  :: blockNo, jc, start_index, end_index
+    LOGICAL  :: lzacc
+
+    CALL set_acc_host_or_device(lzacc, lacc)
+
+    patch_2d => patch_3D%p_patch_2d(1)
+    owned_cells => patch_2d%cells%owned
+
+
+    !ICON_OMP_PARALLEL_DO PRIVATE(start_index, end_index) SCHEDULE(dynamic)
+    DO blockNo = owned_cells%start_block, owned_cells%end_block
+      CALL get_index_range(owned_cells, blockNo, start_index, end_index)
+      !$ACC PARALLEL LOOP VECTOR DEFAULT(PRESENT) ASYNC(1) IF(lzacc)
+      DO jc =  start_index, end_index
+
+        tos(jc,blockNo) = tracers(jc,1,blockNo,1) + 271.15_wp
+        sos(jc,blockNo) = tracers(jc,1,blockNo,2)
+
+      ENDDO
+      !$ACC END PARALLEL LOOP
+    ENDDO
+    !$ACC WAIT(1)
+    !ICON_OMP_END_PARALLEL_DO
+
+  END SUBROUTINE calc_tos_sos
+
+  SUBROUTINE calc_sivol_snvol(patch_3d, ice, lacc)
+
+    TYPE(t_patch_3d), TARGET, INTENT(in)     :: patch_3d
+    TYPE(t_sea_ice),          INTENT(inout)  :: ice
+    LOGICAL, INTENT(IN), OPTIONAL :: lacc
+
+    TYPE(t_patch), POINTER                   :: patch_2d
+    TYPE(t_subset_range), POINTER            :: owned_cells
+
+    INTEGER  :: blockNo, jc, start_index, end_index
+    LOGICAL  :: lzacc
+
+    CALL set_acc_host_or_device(lzacc, lacc)
+
+    patch_2d => patch_3D%p_patch_2d(1)
+    owned_cells => patch_2d%cells%owned
+
+
+    !ICON_OMP_PARALLEL_DO PRIVATE(start_index, end_index) SCHEDULE(dynamic)
+    DO blockNo = owned_cells%start_block, owned_cells%end_block
+      CALL get_index_range(owned_cells, blockNo, start_index, end_index)
+      !$ACC PARALLEL LOOP VECTOR DEFAULT(PRESENT) ASYNC(1) IF(lzacc)
+      DO jc =  start_index, end_index
+
+        ice%sivol(jc,:,blockNo) = ice%hi(jc,:,blockNo)*ice%conc(jc,:,blockNo)
+        ice%snvol(jc,:,blockNo) = ice%hs(jc,:,blockNo)*ice%conc(jc,:,blockNo)
+
+      ENDDO
+      !$ACC END PARALLEL LOOP
+    ENDDO
+    !$ACC WAIT(1)
+    !ICON_OMP_END_PARALLEL_DO
+
+  END SUBROUTINE calc_sivol_snvol
   !>
   !! Find level index of layer containing given depth.
   !!
   !! If depth is exactly at layer boundary, take layer above given depth.
   !! Return top layer for zero depth. Use bottom layer for too large depths.
   !!
+
   FUNCTION get_level_index_by_depth(patch_3d, depth) RESULT(level_index)
 
 
