@@ -31,6 +31,7 @@ Climate: ICON-Land
     - Bugfix in snow melt calculation
     - Clean-up calculation of stand-replacing harvest
   - Merged the radiation process of QUINCY into the radiation process of JSBACH
+  - Consolidate and clean up namelist handling and physical parameters between QUINCY and JSBACH
 - Small fix for ICON-Land standalone concerning nproma
 - New optional tag for the memory usage report
 - Fix for initializing carbon pools from file (read_cpools)

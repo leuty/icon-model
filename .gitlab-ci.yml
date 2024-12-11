@@ -104,7 +104,7 @@ General Style:
     # Therefore, we check as many of them as possible:
     - ./scripts/ci_scripts/check_encoding.sh 'src' 'support' ${GIT_SUBMODULE_PATHS}
     - ./scripts/ci_scripts/check_src_noexec.sh 'src' 'support' 'externals/jsbach'
-    - ./scripts/ci_scripts/check_fortran.py 'src' 'support' 'externals/art'
+    - ./scripts/ci_scripts/check_fortran.py 'src' 'support' ${GIT_SUBMODULE_PATHS}
     - ./scripts/ci_scripts/check_granule_encapsulation.sh
     - python scripts/experiments/yaml_experiment_test_processor.py
 
