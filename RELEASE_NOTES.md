@@ -6,6 +6,7 @@ AES Physics:
 
 - Some re-work for LAM and Global+Nest in AES physics (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/561)
 - DestinE Phase 2: Add new variables (tcw, rsntcs, rsnscs, rlntcs, rlnscs)
+- Fix bug in microphysics: the value for total_ice was not updated before the second call to saturation_adjustment
 - TMX turbulence
   - Fix OpenACC performance issue and OpenMP PRIVATE
   - Fix inconsistency in floating point operations by adding missing _wp to some constants
