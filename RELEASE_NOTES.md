@@ -37,6 +37,7 @@ Climate: ICON-Land
   HD parameter files (for internal HD) and HD receive masks (for external HD)
 - Bug fix: replace dp by wp in add_var wrappers
 - Added diagnostic variable for volumetric soil moisture content for soil layers
+- Fix for computation of fast drainage within the ARNO scheme of JSBACH hydrology
 - Changes and fixes for inline documentation
 - Clean-up of ICON-Land code
 
