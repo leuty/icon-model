@@ -61,18 +61,17 @@ MODULE mo_lookup_tables_constants
     ! needed to be moved in order to switch between the old COSMO model coefficients and the more accurate IFS coefficients)
 
     IF (itype == 1) THEN ! DWD coefficients (namelist default)
-      c1es  = 610.78_wp
       c3les = 17.269_wp
       c3ies = 21.875_wp
       c4les = 35.86_wp
       c4ies = 7.66_wp
     ELSE IF (itype == 2) THEN ! IFS coefficients
-      c1es  = 611.21_wp
       c3les = 17.502_wp
       c3ies = 22.587_wp
       c4les = 32.19_wp
       c4ies = -0.7_wp
     ENDIF
+    c1es  = 610.78_wp
     c2es  = c1es*rd/rv
     c5les = c3les*(tmelt-c4les)
     c5ies = c3ies*(tmelt-c4ies)
