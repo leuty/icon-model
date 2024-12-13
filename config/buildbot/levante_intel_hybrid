@@ -32,7 +32,7 @@ else
   set dummy; shift
 fi
 
-${ICON_DIR}/config/dkrz/levante.intel --enable-openmp --enable-separate-mods --enable-bundled-python=yac,comin,mtime "${PYTHON}" "$@"
+${ICON_DIR}/config/dkrz/levante.intel --enable-openmp --enable-separate-mods --enable-bundled-python=yac,comin,mtime "${PYTHON}" --enable-testbed "$@"
 
 if [ ! -z "${BB_NAME-}" ] ; then
   MAKE_PROCS=22

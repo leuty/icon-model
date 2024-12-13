@@ -335,6 +335,12 @@ $addexp "exp.dwd_run_ICON_09_R2B4N5_EPS" --builders "horeka_gcc" --list $listnam
 $addexp exp.atm_tracer_Hadley_R2B4 --builders 'lumi_cpu' --list ${listname} --runflags="queue=debug"
 $addexp exp.atm_tracer_Hadley_R2B4 --builders 'lumi_gpu' --list ${listname} --runflags="queue=dev-g"
 
+# Communication tests
+$addexp checksuite.infrastructure/testbed/exp.icon-testbed_communication_yaxt --builders 'levante_gpu_nvhpc' --list $listname 
+$addexp checksuite.infrastructure/testbed/exp.icon-testbed_communication_orig --builders 'levante_gpu_nvhpc' --list $listname
+$addexp checksuite.infrastructure/testbed/exp.icon-testbed_communication_yaxt --builders 'levante_intel_hybrid' --list $listname --runflags "queue=shared,compute ntasks=8 memory=32G"
+$addexp checksuite.infrastructure/testbed/exp.icon-testbed_communication_orig --builders 'levante_intel_hybrid' --list $listname --runflags "queue=shared,compute ntasks=16 memory=32G"
+
 #lets see the list
 ./lslist $listname
 #-----------------------------------------------------------

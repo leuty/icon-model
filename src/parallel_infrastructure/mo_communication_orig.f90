@@ -1781,7 +1781,7 @@ CONTAINS
         pid    = p_pat%pelist_send(np) ! ID of sender PE
         iss    = p_pat%send_startidx(np)
         icount = p_pat%send_count(np)*ndim2
-        CALL p_send(send_buf(1,iss), pid, 1, p_count=icount, comm=p_pat%comm)
+        CALL p_send(send_buf(1,iss), pid, 1, p_count=icount, comm=p_pat%comm, use_g2g=use_g2g)
 
       ENDDO
     ELSE IF (iorder_sendrecv == 2) THEN ! use isend/recv
