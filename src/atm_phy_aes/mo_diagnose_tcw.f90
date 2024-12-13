@@ -41,27 +41,26 @@ CONTAINS
 
     jtl_trc = nnew_rcf(jg)
 
-    ! 
-    !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1)
-    !$ACC LOOP GANG VECTOR
-    DO jc = jcs, jce
-      prm_field(jg)%tcw(jc,jb) = 0.0_wp
-    END DO ! jc
-    !
-    !$ACC LOOP SEQ
-    DO jc = jcs, jce
+    IF (ASSOCIATED(prm_field(jg)%tcw)) THEN
+      ! 
+      !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1)
+      !$ACC LOOP GANG VECTOR
+      DO jc = jcs, jce
+        prm_field(jg)%tcw(jc,jb) = 0.0_wp
+      END DO ! jc
       !
-      ! simply sum up
-      prm_field(jg)%tcw(jc,jb) =   prm_field(jg)%mtrcvi(jc,jb,iqv) &
-                               & + prm_field(jg)%mtrcvi(jc,jb,iqc) &
-                               & + prm_field(jg)%mtrcvi(jc,jb,iqi) &
-                               & + prm_field(jg)%mtrcvi(jc,jb,iqr) &
-                               & + prm_field(jg)%mtrcvi(jc,jb,iqs) &
-                               & + prm_field(jg)%mtrcvi(jc,jb,iqg)
+      !$ACC LOOP SEQ
+      DO jc = jcs, jce
+        prm_field(jg)%tcw(jc,jb) =   prm_field(jg)%mtrcvi(jc,jb,iqv) &
+                                 & + prm_field(jg)%mtrcvi(jc,jb,iqc) &
+                                 & + prm_field(jg)%mtrcvi(jc,jb,iqi) &
+                                 & + prm_field(jg)%mtrcvi(jc,jb,iqr) &
+                                 & + prm_field(jg)%mtrcvi(jc,jb,iqs) &
+                                 & + prm_field(jg)%mtrcvi(jc,jb,iqg)
+      END DO ! jc
+      !$ACC END PARALLEL
       !
-    END DO ! jc
-    !$ACC END PARALLEL
-    !
+    END IF
 
     IF (ltimer) CALL timer_stop(timer_tcw)
 

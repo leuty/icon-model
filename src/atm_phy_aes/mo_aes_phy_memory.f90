@@ -1250,19 +1250,22 @@ CONTAINS
       !
     END IF ! (ktracer > 0)
 
-    ! special output for DestinE: sum of all hydrometeors vertically integrated:
-    ! &       field% tcw     (nproma,nblks),          &
-    cf_desc    = t_cf_var('vertically integrated total column water', 'kg m-2', 'vert_int_total_column_water', &
-         &                datatype_flt)
-    grib2_desc = grib2_var(0,1,51, ibits, GRID_UNSTRUCTURED, GRID_CELL)
-    CALL add_var( field_list, prefix//'tcw', field%tcw,              &
-         &        GRID_UNSTRUCTURED_CELL, ZA_ATMOSPHERE,                       &
-         &        cf_desc, grib2_desc,                                         &
-         &        ldims=shape2d,                                               &
-         &        lrestart = .FALSE.,                                          &
-         &        isteptype=TSTEP_INSTANT,                                     &
-         &        lopenacc=.TRUE.)
-    __acc_attach(field%tcw)
+    IF (is_variable_in_output(var_name=prefix//'tcw')) THEN
+      ! special output for DestinE: sum of all hydrometeors vertically integrated:
+      ! &       field% tcw     (nproma,nblks),          &
+      cf_desc    = t_cf_var('vertically integrated total column water', 'kg m-2', 'vert_int_total_column_water', &
+           &                datatype_flt)
+      grib2_desc = grib2_var(0,1,51, ibits, GRID_UNSTRUCTURED, GRID_CELL)
+      CALL add_var( field_list, prefix//'tcw', field%tcw,              &
+           &        GRID_UNSTRUCTURED_CELL, ZA_ATMOSPHERE,                       &
+           &        cf_desc, grib2_desc,                                         &
+           &        ldims=shape2d,                                               &
+           &        lrestart = .FALSE.,                                          &
+           &        isteptype=TSTEP_INSTANT,                                     &
+           &        lopenacc=.TRUE.)
+      __acc_attach(field%tcw)
+      !
+    END IF
 
  
     ! &       field% rho        (nproma,nlev  ,nblks),          &
