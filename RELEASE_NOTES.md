@@ -34,6 +34,8 @@ Climate: ICON-Land
   - Consolidate and clean up namelist handling and physical parameters between QUINCY and JSBACH
 - Small fix for ICON-Land standalone concerning nproma
 - New optional tag for the memory usage report
+- New functions for time control: get_previous_month_length and get_previous_year_length
+- Memory reduction: array allocation only if needed with the specific setup
 - Fix for initializing carbon pools from file (read_cpools)
 - The script suite to generate ICON-Land input data now also includes scripts to generate
   HD parameter files (for internal HD) and HD receive masks (for external HD)
