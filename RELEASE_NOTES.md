@@ -62,6 +62,7 @@ Climate: ICON-Land
 #### Scripting and testing
 
 - Increase time limit for test_yaxt_xchange.config experiment
+- Fix atm_memLog experiment scripts and enable tests in buildbot again 
 
 #### Building
 
