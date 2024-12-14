@@ -385,7 +385,12 @@ atm_max_rank=`expr ${oce_min_rank} - 1`
 atm_group_size=1
 atm_inc_rank=1
 #%  endif
-
+#%  if WITH_LAND is set and WITH_ATMO is not set:
+lnd_min_rank=0
+lnd_max_rank=`expr ${oce_min_rank} - 1`
+lnd_inc_rank=1
+#%  endif
+#%#
 #
 # create ICON master, coupling and model namelists
 # ------------------------------------------------
@@ -780,6 +785,9 @@ fi
 
 #% set atmo_restart = namelists.NAMELIST_atm.run_nml.restart_filename
 #% set ocean_restart = namelists.NAMELIST_oce.run_nml.restart_filename
+#% if WITH_LAND is set and WITH_ATMO is not set:
+#%   set land_restart = namelists.NAMELIST_lnd.run_nml.restart_filename
+#% endif
 
 #%  if JOB.subdir|d(''):
 # Handle restart hand-over
@@ -789,6 +797,9 @@ cp -lrfv %{atmo_restart|replace('<rsttime>', '${next_stamp}Z')} %{WORK_DIR}
 #%    endif
 #%    if WITH_OCEAN is set:
 cp -lrfv %{ocean_restart|replace('<rsttime>', '${next_stamp}Z')} %{WORK_DIR}
+#%    endif
+#%    if WITH_LAND is set and WITH_ATMO is not set:
+cp -lrfv %{land_restart|replace('<rsttime>', '${next_stamp}Z')} %{WORK_DIR}
 #%    endif
 
 #%  endif
@@ -805,6 +816,9 @@ rm -rfv %{atmo_restart|replace('<rsttime>', '${start_stamp}Z')}
 #%    endif
 #%    if WITH_OCEAN is set:
 rm -rfv %{ocean_restart|replace('<rsttime>', '${start_stamp}Z')}
+#%    endif
+#%    if WITH_LAND is set and WITH_ATMO is not set:
+rm -rfv %{land_restart|replace('<rsttime>', '${start_stamp}Z')}
 #%    endif
 
 #%  endif

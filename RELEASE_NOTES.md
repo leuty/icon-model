@@ -63,6 +63,7 @@ Climate: ICON-Land
 
 - Increase time limit for test_yaxt_xchange.config experiment
 - Fix atm_memLog experiment scripts and enable tests in buildbot again 
+- Provide configs to setup ICON-Land standalone (jsbalone.config) and AMIP-style (NWP ATM) experiments
 
 #### Building
 
