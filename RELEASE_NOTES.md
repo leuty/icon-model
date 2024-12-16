@@ -43,6 +43,7 @@ Climate: ICON-Land
 - Added diagnostic variable for volumetric soil moisture content for soil layers
 - Fix for computation of fast drainage within the ARNO scheme of JSBACH hydrology
 - Changes and fixes for inline documentation
+- Improved vectorization on NEC machines
 - Clean-up of ICON-Land code
 
 ### Externals

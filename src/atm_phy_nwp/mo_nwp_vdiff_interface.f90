@@ -1068,6 +1068,9 @@ CONTAINS
           END SELECT
 
           !$ACC DATA ATTACH(b_neutral)
+#           ifdef NFORT_BROKEN_INLINES
+            !NEC$ noinline
+#           endif
             CALL get_near_surface_temperature ( &
                 & ics=ics, &
                 & ice=ice, &
@@ -1082,6 +1085,9 @@ CONTAINS
                 & temp_ref=t2m_sft(:,i_blk,isft) &
               )
 
+#           ifdef NFORT_BROKEN_INLINES
+            !NEC$ noinline
+#           endif
             CALL get_near_surface_dew_point ( &
                 & ics=ics, &
                 & ice=ice, &
@@ -1097,6 +1103,9 @@ CONTAINS
                 & q_ref=qv2m_sft(:,i_blk,isft) &
               )
 
+#           ifdef NFORT_BROKEN_INLINES
+            !NEC$ noinline
+#           endif
             CALL get_near_surface_wind ( &
                 & ics=ics, &
                 & ice=ice, &

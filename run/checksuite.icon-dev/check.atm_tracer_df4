@@ -85,7 +85,7 @@ esac
 # 3. Launch the checksuite from run/
 #
 
-reference_dir=2024-12-11.icon-mpim.82edb7d7ecf3
+reference_dir=2024-12-16.icon-mpim.08f15ddbb4ed
 
 export REFERENCE=$icon_data_rootFolder/buildbot_data/ref/${reference_dir}/${builder}
 
