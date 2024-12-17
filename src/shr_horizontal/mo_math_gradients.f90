@@ -40,7 +40,6 @@ USE mo_exception,          ONLY: finish
 USE mo_timer,              ONLY: timer_start, timer_stop, timer_grad
 USE mo_loopindices,        ONLY: get_indices_c, get_indices_e
 USE mo_fortran_tools,      ONLY: init
-USE mo_mpi,                ONLY: i_am_accel_node
 
 IMPLICIT NONE
 
@@ -74,7 +73,7 @@ CONTAINS
 !! input: lives on centres of triangles
 !! output:  lives on edges (velocity points)
 !!
-SUBROUTINE grad_fd_norm( psi_c, ptr_patch, grad_norm_psi_e, &
+SUBROUTINE grad_fd_norm( psi_c, ptr_patch, grad_norm_psi_e, lacc,   &
   &                      opt_slev, opt_elev, opt_rlstart, opt_rlend )
 
 !
@@ -88,6 +87,9 @@ TYPE(t_patch), TARGET, INTENT(in) :: ptr_patch
 !
 REAL(wp), INTENT(in) ::  &
   &  psi_c(:,:,:)       ! dim: (nproma,nlev,nblks_c)
+
+LOGICAL, INTENT(in) ::  &
+  &  lacc    ! if TRUE, use OpenACC
 
 INTEGER, INTENT(in), OPTIONAL ::  &
   &  opt_slev    ! optional vertical start level
@@ -157,7 +159,7 @@ i_endblk   = ptr_patch%edges%end_blk(rl_end,i_nchdom)
 
   IF (timers_level > 10) CALL timer_start(timer_grad)
 
-  !$ACC DATA PRESENT(psi_c, grad_norm_psi_e, ptr_patch%edges%inv_dual_edge_length, iidx, iblk) IF(i_am_accel_node)
+  !$ACC DATA PRESENT(psi_c, grad_norm_psi_e, ptr_patch%edges%inv_dual_edge_length, iidx, iblk) IF(lacc)
 
 !$OMP PARALLEL
 
@@ -167,7 +169,7 @@ i_endblk   = ptr_patch%edges%end_blk(rl_end,i_nchdom)
     CALL get_indices_e(ptr_patch, jb, i_startblk, i_endblk, &
                      i_startidx, i_endidx, rl_start, rl_end)
 
-    !$ACC PARALLEL ASYNC(1) IF(i_am_accel_node)
+    !$ACC PARALLEL ASYNC(1) IF(lacc)
 #ifdef __LOOP_EXCHANGE
     !$ACC LOOP GANG
     DO je = i_startidx, i_endidx
@@ -218,7 +220,7 @@ END SUBROUTINE grad_fd_norm
 !! input: lives on vertices of triangles
 !! output: lives on edges (velocity points)
 !!
-SUBROUTINE grad_fd_tang( psi_v, ptr_patch, grad_tang_psi_e,  &
+SUBROUTINE grad_fd_tang( psi_v, ptr_patch, grad_tang_psi_e, lacc,   &
   &                      opt_slev, opt_elev, opt_rlstart, opt_rlend )
 !
 
@@ -231,6 +233,9 @@ TYPE(t_patch), TARGET, INTENT(in) :: ptr_patch
 !
 REAL(wp), INTENT(in) ::  &
   &  psi_v(:,:,:)
+
+LOGICAL, INTENT(in) ::  &
+  &  lacc    ! if TRUE, use OpenACC
 
 INTEGER, INTENT(in), OPTIONAL ::  &
   &  opt_slev    ! optional vertical start level
@@ -295,7 +300,7 @@ i_nchdom   = MAX(1,ptr_patch%n_childdom)
 i_startblk = ptr_patch%edges%start_blk(rl_start,1)
 i_endblk   = ptr_patch%edges%end_blk(rl_end,i_nchdom)
 
-!$ACC DATA PRESENT(psi_v, grad_tang_psi_e, ptr_patch) CREATE(ilv1, ibv1, ilv2, ibv2) IF(i_am_accel_node)
+!$ACC DATA PRESENT(psi_v, grad_tang_psi_e, ptr_patch) CREATE(ilv1, ibv1, ilv2, ibv2) IF(lacc)
 
 !
 ! TODO: OpenMP
@@ -309,7 +314,7 @@ DO jb = i_startblk, i_endblk
   CALL get_indices_e(ptr_patch, jb, i_startblk, i_endblk, &
                      i_startidx, i_endidx, rl_start, rl_end)
 
-  !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1) IF(i_am_accel_node)
+  !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1) IF(lacc)
   !$ACC LOOP GANG(STATIC: 1) VECTOR
   DO je = i_startidx, i_endidx
     !
@@ -363,8 +368,8 @@ END SUBROUTINE grad_fd_tang
 !!
 !!
 SUBROUTINE grad_fe_cell_3d( p_cc, ptr_patch, ptr_int, p_grad, &
-  &                      opt_slev, opt_elev, opt_rlstart,  &
-  &                      opt_rlend                         )
+  &                         lacc, opt_slev, opt_elev,         &
+  &                         opt_rlstart, opt_rlend            )
 !
 !
 !  patch on which computation is performed
@@ -380,6 +385,9 @@ TYPE(t_int_state), INTENT(in) :: ptr_int
 !
 REAL(wp), INTENT(in) ::  &
   &  p_cc(:,:,:)
+
+LOGICAL, INTENT(in) ::  &
+  &  lacc    ! if TRUE, use OpenACC
 
 INTEGER, INTENT(in), OPTIONAL ::  &
   &  opt_slev    ! optional vertical start level
@@ -434,7 +442,7 @@ iblk => ptr_patch%cells%neighbor_blk
 ! 2. reconstruction of cell based geographical gradient
 !
 
-  !$ACC DATA PRESENT(p_cc, p_grad, ptr_int%gradc_bmat, iidx, iblk) IF(i_am_accel_node)
+  !$ACC DATA PRESENT(p_cc, p_grad, ptr_int%gradc_bmat, iidx, iblk) IF(lacc)
 
 !$OMP PARALLEL PRIVATE(i_startblk,i_endblk)
 
@@ -445,11 +453,11 @@ iblk => ptr_patch%cells%neighbor_blk
   ! Fill nest boundaries with zero to avoid trouble with MPI synchronization
 
 #ifdef _OPENACC
-    !$ACC KERNELS PRESENT(p_grad) ASYNC(1) IF(i_am_accel_node)
+    !$ACC KERNELS PRESENT(p_grad) ASYNC(1) IF(lacc)
     p_grad(:,:,:,1:i_startblk) = 0._wp
     !$ACC END KERNELS
 #else
-    CALL init(p_grad(:,:,:,1:i_startblk), lacc=i_am_accel_node)
+    CALL init(p_grad(:,:,:,1:i_startblk), lacc=lacc)
 !$OMP BARRIER
 #endif
   ENDIF
@@ -460,7 +468,7 @@ iblk => ptr_patch%cells%neighbor_blk
     CALL get_indices_c(ptr_patch, jb, i_startblk, i_endblk, &
                        i_startidx, i_endidx, rl_start, rl_end)
 
-    !$ACC PARALLEL ASYNC(1) IF(i_am_accel_node)
+    !$ACC PARALLEL ASYNC(1) IF(lacc)
 #ifdef __LOOP_EXCHANGE
     !$ACC LOOP GANG
     DO jc = i_startidx, i_endidx
@@ -526,7 +534,7 @@ END SUBROUTINE grad_fe_cell_3d
 !!
 !!
 SUBROUTINE grad_fe_cell_2d( p_cc, ptr_patch, ptr_int, p_grad, &
-  &                         opt_rlstart, opt_rlend            )
+  &                         lacc, opt_rlstart, opt_rlend      )
 !
 !
 !  patch on which computation is performed
@@ -542,6 +550,9 @@ TYPE(t_int_state), INTENT(in) :: ptr_int
 !
 REAL(wp), INTENT(in) ::  &
   &  p_cc(:,:)
+
+LOGICAL, INTENT(in) ::  &
+  &  lacc    ! if TRUE, use OpenACC
 
 INTEGER, INTENT(in), OPTIONAL ::  &
   &  opt_rlstart, opt_rlend   ! start and end values of refin_ctrl flag
@@ -585,7 +596,7 @@ iblk => ptr_patch%cells%neighbor_blk
 
   IF (ptr_patch%id > 1) THEN
   ! Fill nest boundaries with zero to avoid trouble with MPI synchronization
-    CALL init(p_grad(:,:,1:i_startblk), lacc=i_am_accel_node)
+    CALL init(p_grad(:,:,1:i_startblk), lacc=lacc)
 !$OMP BARRIER
   ENDIF
 
@@ -633,7 +644,7 @@ END SUBROUTINE grad_fe_cell_2d
 !! The Green-Gauss approach is used. See for example:
 !! http://www.cfd-online.com/Wiki/Gradient_computation
 !!
-SUBROUTINE grad_green_gauss_cell_adv( p_cc, ptr_patch, ptr_int, p_grad, &
+SUBROUTINE grad_green_gauss_cell_adv( p_cc, ptr_patch, ptr_int, p_grad, lacc, &
   &                                   opt_slev, opt_elev, opt_p_face,   &
   &                                   opt_rlstart, opt_rlend            )
 !
@@ -651,6 +662,9 @@ TYPE(t_int_state), TARGET, INTENT(in) :: ptr_int
 !
 REAL(wp), INTENT(in) ::  &
   &  p_cc(:,:,:)
+
+LOGICAL, INTENT(in) ::  &
+  &  lacc    ! if TRUE, use OpenACC
 
 INTEGER, INTENT(in), OPTIONAL ::  &
   &  opt_slev    ! optional vertical start level
@@ -713,14 +727,14 @@ i_nchdom = MAX(1,ptr_patch%n_childdom)
 !  of using precomputed geometrical factors)
 IF ( PRESENT(opt_p_face) ) THEN
   CALL cells2edges_scalar( p_cc, ptr_patch, ptr_int%c_lin_e, opt_p_face,  &
-    &                      slev, elev, lacc=i_am_accel_node)
+    &                      lacc=lacc, opt_slev=slev, opt_elev=elev )
 ENDIF
 
 
 !
 ! 2. reconstruction of cell based geographical gradient
 !
-  !$ACC DATA PRESENT(p_cc, p_grad, ptr_int%geofac_grg, iidx, iblk) IF(i_am_accel_node)
+  !$ACC DATA PRESENT(p_cc, p_grad, ptr_int%geofac_grg, iidx, iblk) IF(lacc)
 
 !$OMP PARALLEL PRIVATE(i_startblk,i_endblk)
 
@@ -730,11 +744,11 @@ ENDIF
   IF (ptr_patch%id > 1) THEN
   ! Fill nest boundaries with zero to avoid trouble with MPI synchronization
 #ifdef _OPENACC
-    !$ACC KERNELS ASYNC(1) IF(i_am_accel_node)
+    !$ACC KERNELS ASYNC(1) IF(lacc)
     p_grad(:,:,:,1:i_startblk) = 0._wp
     !$ACC END KERNELS
 #else
-    CALL init(p_grad(:,:,:,1:i_startblk), lacc=i_am_accel_node)
+    CALL init(p_grad(:,:,:,1:i_startblk), lacc=lacc)
 !$OMP BARRIER
 #endif
   ENDIF
@@ -745,7 +759,7 @@ ENDIF
     CALL get_indices_c(ptr_patch, jb, i_startblk, i_endblk, &
                        i_startidx, i_endidx, rl_start, rl_end)
 
-    !$ACC PARALLEL ASYNC(1) IF(i_am_accel_node)
+    !$ACC PARALLEL ASYNC(1) IF(lacc)
 #ifdef __LOOP_EXCHANGE
     !$ACC LOOP GANG
     DO jc = i_startidx, i_endidx
@@ -785,7 +799,7 @@ ENDIF
 
 END SUBROUTINE grad_green_gauss_cell_adv
 
-SUBROUTINE grad_green_gauss_cell_dycore(p_ccpr, ptr_patch, ptr_int, p_grad,         &
+SUBROUTINE grad_green_gauss_cell_dycore(p_ccpr, ptr_patch, ptr_int, p_grad, lacc,   &
     &                                   opt_slev, opt_elev, opt_rlstart, opt_rlend, &
     &                                   opt_acc_async)
   !
@@ -800,6 +814,9 @@ SUBROUTINE grad_green_gauss_cell_dycore(p_ccpr, ptr_patch, ptr_int, p_grad,     
   !  cell centered I/O variables
   !
   REAL(vp), INTENT(in) :: p_ccpr(:,:,:,:) ! perturbation fields passed from dycore (2,nproma,nlev,nblks_c)
+
+  LOGICAL, INTENT(in) ::  &
+    &  lacc    ! if TRUE, use OpenACC
 
   INTEGER, INTENT(in), OPTIONAL :: opt_slev    ! optional vertical start level
 
@@ -857,7 +874,7 @@ SUBROUTINE grad_green_gauss_cell_dycore(p_ccpr, ptr_patch, ptr_int, p_grad,     
   ! 2. reconstruction of cell based geographical gradient
   !
 
-  !$ACC DATA PRESENT(p_ccpr, p_grad, ptr_int, iidx, iblk) IF(i_am_accel_node)
+  !$ACC DATA PRESENT(p_ccpr, p_grad, ptr_int, iidx, iblk) IF(lacc)
 
 !$OMP PARALLEL PRIVATE(i_startblk,i_endblk)
 
@@ -870,7 +887,7 @@ SUBROUTINE grad_green_gauss_cell_dycore(p_ccpr, ptr_patch, ptr_int, p_grad,     
       CALL get_indices_c(ptr_patch, jb, i_startblk, i_endblk, &
                          i_startidx, i_endidx, rl_start, rl_end)
 
-      !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1) IF(i_am_accel_node)
+      !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1) IF(lacc)
 #ifdef __LOOP_EXCHANGE
       !$ACC LOOP GANG
       DO jc = i_startidx, i_endidx

@@ -227,8 +227,8 @@ MODULE mo_tmx_smagorinsky
 
       !$ACC WAIT
 
-      CALL sync_patch_array(SYNC_C, patch, kh_ic)
-      CALL sync_patch_array(SYNC_C, patch, km_ic)
+      CALL sync_patch_array(SYNC_C, patch, kh_ic, lacc=.TRUE.)
+      CALL sync_patch_array(SYNC_C, patch, km_ic, lacc=.TRUE.)
 
     END SUBROUTINE Smagorinsky_model
     !============================================================================
@@ -597,8 +597,8 @@ MODULE mo_tmx_smagorinsky
 
 !       !$ACC WAIT
 
-!       CALL sync_patch_array(SYNC_C, patch, kh_ic)
-!       CALL sync_patch_array(SYNC_C, patch, km_ic)
+!       CALL sync_patch_array(SYNC_C, patch, kh_ic, lacc=.TRUE.)
+!       CALL sync_patch_array(SYNC_C, patch, km_ic, lacc=.TRUE.)
 
 !     END SUBROUTINE Smagorinsky_model_not_working
 !     !============================================================================

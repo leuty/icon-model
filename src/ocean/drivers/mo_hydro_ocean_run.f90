@@ -19,7 +19,6 @@ MODULE mo_hydro_ocean_run
   USE mo_kind,                   ONLY: wp
   USE mo_parallel_config,        ONLY: nproma
 #ifdef _OPENACC
-  USE mo_mpi,                      ONLY: i_am_accel_node, my_process_is_work
   USE openacc,                   ONLY : acc_is_present
 #endif
   USE mo_impl_constants,         ONLY: max_char_length, success
@@ -319,7 +318,6 @@ CONTAINS
     !! Update stretch variable for zstar
     IF ( ( vert_cor_type == 1 ) ) THEN
 #ifdef _OPENACC
-        i_am_accel_node = my_process_is_work()    ! Activate GPUs
         lzacc = .TRUE.
 
         !$ACC DATA COPYIN(operators_coefficients%edge2cell_coeff_cc) &
@@ -333,7 +331,6 @@ CONTAINS
         !$ACC END DATA
 
         lzacc = .FALSE.
-        i_am_accel_node = .FALSE.                 ! Deactivate GPUs
 #endif
     ENDIF
     !------------------------------------------------------------------
@@ -402,7 +399,6 @@ CONTAINS
 !         sea_ice, 0)
 
 #ifdef _OPENACC
-        i_am_accel_node = my_process_is_work()    ! Activate GPUs
         lzacc = .TRUE.
 #endif
 
@@ -701,7 +697,6 @@ CONTAINS
         !$ACC   SELF(p_oce_sfc%FrshFlux_TotalOcean, p_oce_sfc%FrshFlux_TotalIce) IF(lzacc)
 
         lzacc = .FALSE.
-        i_am_accel_node = .FALSE.                 ! Deactivate GPUs
 #endif
 
         CALL fill_auxiliary_diagnostics(patch_3d, ocean_state(1))
@@ -739,12 +734,11 @@ CONTAINS
         stop_detail_timer(timer_extra20,5)
 
 #ifdef _OPENACC
-        i_am_accel_node = my_process_is_work()    ! Activate GPUs
         lzacc = .TRUE.
 
         !$ACC UPDATE SELF(p_as%fu10, p_as%pao) IF(lzacc)
 #endif
-        CALL update_statistics
+        CALL update_statistics(lacc=lzacc)
 
         CALL output_ocean( patch_3d, ocean_state, &
           &                current_time,              &
@@ -754,13 +748,12 @@ CONTAINS
 
         IF ( is_coupled_to_output() ) THEN
           IF (ltimer) CALL timer_start(timer_coupling)
-          CALL output_coupling(patch_3d%wet_c)
+          CALL output_coupling(lacc=lzacc, valid_mask=patch_3d%wet_c)
           IF (ltimer) CALL timer_stop(timer_coupling)
         END IF
 
 #ifdef _OPENACC
         lzacc = .FALSE.
-        i_am_accel_node = .FALSE.                 ! Deactivate GPUs
 #endif
 
         ! send and receive coupling fluxes for ocean at the end of time stepping loop
@@ -798,13 +791,11 @@ CONTAINS
 !         sea_ice,0)
 
 #ifdef _OPENACC
-        i_am_accel_node = my_process_is_work()    ! Activate GPUs
         lzacc = .TRUE.
 
         !$ACC UPDATE DEVICE(p_oce_sfc%Wind_Speed_10m, p_oce_sfc%sea_level_pressure) IF(lzacc)
 
         lzacc = .FALSE.
-        i_am_accel_node = .FALSE.                 ! Deactivate GPUs
 #endif
 
         start_detail_timer(timer_extra21,5)
@@ -836,7 +827,6 @@ CONTAINS
             !
             patch_2d%ldom_active = .TRUE.
 #ifdef _OPENACC
-            i_am_accel_node = my_process_is_work()    ! Activate GPUs
             lzacc = .TRUE.
 #endif
             !
@@ -849,7 +839,6 @@ CONTAINS
             CALL restartDescriptor%writeRestart(current_time, jstep)
 #ifdef _OPENACC
             lzacc = .FALSE.
-            i_am_accel_node = .FALSE.                 ! Deactivate GPUs
 #endif
           END IF
         END IF
@@ -920,7 +909,6 @@ CONTAINS
 !          & patch_3D%p_patch_1d(1)%prism_thick_flat_sfc_c(:,:,:), sea_ice, p_oce_sfc)
 
 #ifdef _OPENACC
-        i_am_accel_node = my_process_is_work()    ! Activate GPUs
         lzacc = .TRUE.
 
         !$ACC DATA COPYIN(ocean_state(jg)%p_aux%bc_tides_potential, ocean_state(jg)%p_aux%bc_SAL_potential) &
@@ -1126,7 +1114,6 @@ CONTAINS
         !$ACC END DATA
 
         lzacc = .FALSE.
-        i_am_accel_node = .FALSE.                 ! Deactivate GPUs
 #endif
 
         !------------------------------------------------------------------------
@@ -1141,7 +1128,6 @@ CONTAINS
         stop_timer(timer_solve_ab,1)
 
 #ifdef _OPENACC
-        i_am_accel_node = my_process_is_work()    ! Activate GPUs
         lzacc = .TRUE.
 
         !$ACC DATA COPYIN(ocean_state(jg)%p_prog(nnew(1))%eta_c, stretch_e) &
@@ -1274,7 +1260,6 @@ CONTAINS
         !$ACC END DATA
 
         lzacc = .FALSE.
-        i_am_accel_node = .FALSE.                 ! Deactivate GPUs
 #endif
 
         CALL calc_fast_oce_diagnostics( patch_2d, &
@@ -1320,7 +1305,6 @@ CONTAINS
         stop_detail_timer(timer_extra20,5)
 
 #ifdef _OPENACC
-        i_am_accel_node = my_process_is_work()    ! Activate GPUs
         lzacc = .TRUE.
 
         !$ACC UPDATE SELF(ocean_state(jg)%p_diag%delta_ice, ocean_state(jg)%p_diag%delta_snow) &
@@ -1370,7 +1354,7 @@ CONTAINS
         !$ACC   DEVICE(p_phys_param%vmix_params%vmix_dummy_3) IF(lzacc)
 #endif
 
-        CALL update_statistics
+        CALL update_statistics(lacc=lzacc)
 
         CALL output_ocean( patch_3d, ocean_state, &
           &                current_time,              &
@@ -1380,13 +1364,12 @@ CONTAINS
 
         IF ( is_coupled_to_output() ) THEN
           IF (ltimer) CALL timer_start(timer_coupling)
-          CALL output_coupling(patch_3d%wet_c)
+          CALL output_coupling(lacc=lzacc, valid_mask=patch_3d%wet_c)
           IF (ltimer) CALL timer_stop(timer_coupling)
         END IF
 
 #ifdef _OPENACC
         lzacc = .FALSE.
-        i_am_accel_node = .FALSE.                 ! Deactivate GPUs
 #endif
 
         ! send and receive coupling fluxes for ocean at the end of time stepping loop
@@ -1419,13 +1402,11 @@ CONTAINS
 
 
 #ifdef _OPENACC
-        i_am_accel_node = my_process_is_work()    ! Activate GPUs
         lzacc = .TRUE.
 
         !$ACC UPDATE DEVICE(p_oce_sfc%Wind_Speed_10m, p_oce_sfc%sea_level_pressure) IF(lzacc)
 
         lzacc = .FALSE.
-        i_am_accel_node = .FALSE.                 ! Deactivate GPUs
 #endif
 
         start_detail_timer(timer_extra21,5)
@@ -1456,7 +1437,6 @@ CONTAINS
             !
 
 #ifdef _OPENACC
-            i_am_accel_node = my_process_is_work()    ! Activate GPUs
             lzacc = .TRUE.
 
             !$ACC UPDATE DEVICE(ocean_state(jg)%p_prog(nnew(1))%vn, ocean_state(jg)%p_prog(nnew(1))%tracer) IF(lzacc)
@@ -1471,7 +1451,6 @@ CONTAINS
             CALL restartDescriptor%writeRestart(current_time, jstep)
 #ifdef _OPENACC
             lzacc = .FALSE.
-            i_am_accel_node = .FALSE.                 ! Deactivate GPUs
 #endif
           END IF
         END IF
@@ -1532,13 +1511,13 @@ CONTAINS
         CALL ocean_to_hamocc_interface(ocean_state(jg), ocean_state(jg)%transport_state, &
           & p_oce_sfc, p_as, sea_ice, p_phys_param, operators_coefficients, current_time)
 
-        CALL update_statistics
+        CALL update_statistics(lacc=lzacc)
 
         CALL output_ocean( patch_3d, ocean_state, &
           &                current_time,              &
           &                p_oce_sfc,             &
           &                sea_ice,                 &
-          &                jstep, jstep0, lacc=lzacc)
+          &                jstep, jstep0, lacc=.FALSE.)
 
         ! check whether time has come for writing restart file
         IF (isCheckpoint()) THEN
@@ -1764,6 +1743,9 @@ CONTAINS
     TYPE(t_ho_params), INTENT(IN), OPTIONAL     :: p_phys_param
 
     TYPE(t_patch), POINTER :: patch_2d
+    LOGICAL :: lzacc
+
+    lzacc = .FALSE.
 
     patch_2d => patch_3d%p_patch_2d(1)
 
@@ -1778,17 +1760,14 @@ CONTAINS
       & ocean_state%p_diag, operators_coefficients)
     ! CALL update_height_depdendent_variables( patch_3d, ocean_state, p_ext_data, operators_coefficients, solvercoeff_sp)
 #ifdef _OPENACC
-        i_am_accel_node = my_process_is_work()    ! Activate GPUs
+    lzacc = .TRUE.
 #endif
-    CALL update_statistics
+    CALL update_statistics(lacc=lzacc)
+
+    CALL write_name_list_output(jstep=0, lacc=lzacc)
 
 #ifdef _OPENACC
-    CALL write_name_list_output(jstep=0, lacc=i_am_accel_node)
-#else
-    CALL write_name_list_output(jstep=0)
-#endif
-#ifdef _OPENACC
-        i_am_accel_node = .FALSE.                 ! Deactivate GPUs
+    lzacc = .FALSE.
 #endif
 
   END SUBROUTINE write_initial_ocean_timestep

@@ -50,9 +50,6 @@ MODULE mo_aes_phy_bcs
   USE mo_bc_solar_irradiance        ,ONLY: read_bc_solar_irradiance, ssi_time_interpolation
   USE mo_bc_ozone                   ,ONLY: read_bc_ozone
   USE mo_bc_aeropt_kinne            ,ONLY: read_bc_aeropt_kinne
-#if defined( _OPENACC )
-  USE mo_mpi                   ,ONLY: i_am_accel_node, my_process_is_work
-#endif
 
   ! for 6hourly sst and ice data
   USE mo_time_config,          ONLY: time_config
@@ -144,10 +141,6 @@ CONTAINS
     LOGICAL, ALLOCATABLE                     :: mask_sftof(:,:)
 
 !!$    CHARACTER(*), PARAMETER :: method_name = "aes_phy_bcs"
-
-#ifdef _OPENACC
-    LOGICAL                                  :: save_i_am_accel_node
-#endif
     !
     INTEGER          :: jc, jb, jg,  jcs, jce, jbs, jbe
     TYPE(t_aes_phy_field) , POINTER    :: field
@@ -203,7 +196,7 @@ CONTAINS
         ELSE
           !
           ! Interpolate 6-hourly sst values
-          CALL sst_intp%intp(time_config%tc_current_date, sst_dat)
+          CALL sst_intp%intp(time_config%tc_current_date, sst_dat, lacc=.TRUE.)
           jbs = LBOUND(field%ts_tile, 2); jbe = UBOUND(field%ts_tile, 2)
           jcs = LBOUND(field%ts_tile, 1); jce = UBOUND(field%ts_tile, 1)
 
@@ -219,7 +212,7 @@ CONTAINS
           !$ACC END PARALLEL
           !
           ! Interpolate 6-hourly sic values
-          CALL sic_intp%intp(time_config%tc_current_date, sic_dat)
+          CALL sic_intp%intp(time_config%tc_current_date, sic_dat, lacc=.TRUE.)
 
           jbs = LBOUND(field%seaice, 2); jbe = UBOUND(field%seaice, 2)
           jcs = LBOUND(field%seaice, 1); jce = UBOUND(field%seaice, 1)
@@ -296,10 +289,6 @@ CONTAINS
         CALL ssi_time_interpolation(current_time_interpolation_weights, .FALSE., tsi)
       END IF
 
-#ifdef _OPENACC
-      save_i_am_accel_node = i_am_accel_node
-      i_am_accel_node = .FALSE. ! Deactivate GPUs; 2021.03.02 needed in read_bc_* if it is called, but why?
-#endif
       !
       ! quantities needed for the radiative transfer only
       !
@@ -378,9 +367,6 @@ CONTAINS
       END IF
 
 #ifndef __NO_RTE_RRTMGP__
-#ifdef _OPENACC
-      i_am_accel_node = save_i_am_accel_node    ! Reactivate GPUs if appropriate
-#endif
       IF ( luse_rad ) THEN
         CALL pre_rte_rrtmgp_radiation( &
              & patch,                     radtime_domains(jg)%radiation_time, &

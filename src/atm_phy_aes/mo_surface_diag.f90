@@ -483,7 +483,8 @@ CONTAINS
     ENDDO
     !$ACC END PARALLEL LOOP
 
-    CALL generate_index_list_batched(icond(:,:), loidx(jcs:,:), jcs, jce, is, 1)
+    CALL generate_index_list_batched(icond(:,:), loidx(jcs:,:), jcs, jce, is, &
+      &                              lacc=.TRUE., opt_acc_async_queue=1)
 
     !$ACC UPDATE HOST(is) ASYNC(1)
     !$ACC WAIT(1)

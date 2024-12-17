@@ -201,7 +201,7 @@ CONTAINS
       ENDDO
     ENDDO
     
-    CALL sync_patch_array(sync_c, patch_2D, variable)
+    CALL sync_patch_array(sync_c, patch_2D, variable, lacc=.FALSE.)
 
     WRITE(message_text,*) "miss value=", missValue, has_missValue
     CALL message(method_name, message_text)
@@ -249,7 +249,7 @@ CONTAINS
       ENDDO
     ENDDO
 
-    CALL sync_patch_array(sync_c, patch_2D, variable)
+    CALL sync_patch_array(sync_c, patch_2D, variable, lacc=.FALSE.)
     
     WRITE(message_text,*) "miss value=", missValue, has_missValue
     CALL message(method_name, message_text)
@@ -298,7 +298,7 @@ CONTAINS
       ENDDO
     ENDDO
     
-    CALL sync_patch_array(sync_e, patch_2D, variable)
+    CALL sync_patch_array(sync_e, patch_2D, variable, lacc=.FALSE.)
   
   END SUBROUTINE init_edge_3D_variable_fromFile
   !-------------------------------------------------------------------------
@@ -948,7 +948,7 @@ CONTAINS
         
     CALL message(method_name, "map_cell2edges_3D ...")
     CALL map_cell2edges_3D( patch_3D, cellVelocity_cc, normal_velocity, this_operators_coeff)
-    CALL sync_patch_array(sync_e, patch_2D, normal_velocity)
+    CALL sync_patch_array(sync_e, patch_2D, normal_velocity, lacc=.FALSE.)
 
     CALL message(method_name, "DEALLOCATE ...")
     DEALLOCATE(cellVelocity_cc)
@@ -975,7 +975,7 @@ CONTAINS
     CALL init_edge_3D_variable_fromFile(patch_3d, variable=normal_velocity, name="vn", &
       & has_missValue=has_missValue, missValue=missValue)
     
-!     CALL sync_patch_array(sync_e, patch_2D, normal_velocity) done in the file read
+!     CALL sync_patch_array(sync_e, patch_2D, normal_velocity, lacc=.FALSE.) done in the file read
 
   END SUBROUTINE init_ocean_velocity_vn_fromFile
   !-------------------------------------------------------------------------------
@@ -1543,7 +1543,7 @@ write(0,*)'Galewsky-Test:h', maxval(ocean_height),minval(ocean_height)
 
     ! map velocity to edge centers
     CALL map_cell2edges_3D( patch_3D, cellVelocity_cc, vn, this_operators_coeff)
-    CALL sync_patch_array(sync_e, patch_2D, vn)
+    CALL sync_patch_array(sync_e, patch_2D, vn, lacc=.FALSE.)
     
     DEALLOCATE(cellVelocity_cc)
 

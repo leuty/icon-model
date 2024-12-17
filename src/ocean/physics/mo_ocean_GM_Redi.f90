@@ -359,8 +359,8 @@ CONTAINS
     !Map the explicit horizontal tracer flux from cell centers to edges (where the horizontal divergence is calculated)
     !
     ! use a vector communicator
-    CALL sync_patch_array_mult(sync_c, patch_2D, 3, &
-        & flux_vec_horz_center(:,:,:)%x(1), flux_vec_horz_center(:,:,:)%x(2), flux_vec_horz_center(:,:,:)%x(3))
+    CALL sync_patch_array_mult(sync_c, patch_2D, 3, lacc=.FALSE., &
+        & f3din1=flux_vec_horz_center(:,:,:)%x(1), f3din2=flux_vec_horz_center(:,:,:)%x(2), f3din3=flux_vec_horz_center(:,:,:)%x(3))
     !
     CALL map_cell2edges_3D( patch_3D,flux_vec_horz_center, GMRedi_flux_horz, op_coeff)
 
@@ -436,7 +436,7 @@ CONTAINS
 	END DO
 !ICON_OMP_END_DO_PARALLEL
 
-	CALL sync_patch_array(sync_c, patch_2D, param%a_tracer_v(:,:,:,tracer_index))
+	CALL sync_patch_array(sync_c, patch_2D, param%a_tracer_v(:,:,:,tracer_index), lacc=.FALSE.)
 
         IF(tracer_index==1)THEN
           CALL dbg_print('New vert coeff: A_v', param%a_tracer_v(:,:,:, tracer_index),&
@@ -570,7 +570,7 @@ CONTAINS
 
     ENDIF
 
-!     CALL sync_patch_array(sync_c, patch_2D, rho_GM)
+!     CALL sync_patch_array(sync_c, patch_2D, rho_GM, lacc=.FALSE.)
 
     !grad_T_vec(:,:,:)%x(1)=0.0_wp
     !grad_T_vec(:,:,:)%x(2)=0.0_wp
@@ -663,7 +663,7 @@ CONTAINS
 !ICON_OMP_END_DO_NOWAIT
 !ICON_OMP_END_PARALLEL
 
-!     CALL sync_patch_array(sync_e, patch_2D, grad_rho_GM_horz)
+!     CALL sync_patch_array(sync_e, patch_2D, grad_rho_GM_horz, lacc=.FALSE.)
 
     !---------DEBUG DIAGNOSTICS-------------------------------------------
     idt_src=3  ! output print level (1-5, fix)
@@ -682,8 +682,8 @@ CONTAINS
 
 
     ENDIF
-!    CALL sync_patch_array(sync_c, patch_2D, grad_T_vert)
-!    IF(no_tracer>=2)   CALL sync_patch_array(sync_c, patch_2D, grad_S_vert)
+!    CALL sync_patch_array(sync_c, patch_2D, grad_T_vert, lacc=.FALSE.)
+!    IF(no_tracer>=2)   CALL sync_patch_array(sync_c, patch_2D, grad_S_vert, lacc=.FALSE.)
 
    !---------DEBUG DIAGNOSTICS-------------------------------------------
     idt_src=4  ! output print level (1-5, fix)
@@ -708,7 +708,7 @@ CONTAINS
         & grad_T_vec,                 &
         & subset_range=cells_in_domain)
 
-!     CALL sync_patch_array(sync_c, patch_2D, grad_T_vert)
+!     CALL sync_patch_array(sync_c, patch_2D, grad_T_vert, lacc=.FALSE.)
     IF(.NOT.REVERT_VERTICAL_RECON_AND_TRANSPOSED)THEN
       CALL map_scalar_prismtop2center(patch_3d,&
         & grad_T_vert,                &
@@ -1267,7 +1267,7 @@ CONTAINS
         END DO
       END DO
 !ICON_OMP_END_DO
-!       CALL sync_patch_array(sync_c, patch_2D,ocean_state%p_aux%taper_function_2)
+!       CALL sync_patch_array(sync_c, patch_2D,ocean_state%p_aux%taper_function_2, lacc=.FALSE.)
     ENDIF
 !ICON_OMP_END_PARALLEL
 
@@ -1470,7 +1470,7 @@ CONTAINS
       END DO
 !ICON_OMP_END_DO
 !ICON_OMP_END_PARALLEL
-!       CALL sync_patch_array(sync_c, patch_2D, taper_diagonal_vert_impl)
+!       CALL sync_patch_array(sync_c, patch_2D, taper_diagonal_vert_impl, lacc=.FALSE.)
       ENDIF
       IF(switch_off_diagonal_vert_expl)THEN
 !ICON_OMP_PARALLEL
@@ -1855,8 +1855,8 @@ ocean_state%p_prog(nold(1))%tracer_collection%tracer(tracer_index)%concentration
 !ICON_OMP_END_DO_PARALLEL
 
     ! use a vector communicator
-    CALL sync_patch_array_mult(sync_c, patch_2D, 3, &
-        & flux_vec_horz_center(:,:,:)%x(1), flux_vec_horz_center(:,:,:)%x(2), flux_vec_horz_center(:,:,:)%x(3))
+    CALL sync_patch_array_mult(sync_c, patch_2D, 3, lacc=.FALSE., &
+        & f3din1=flux_vec_horz_center(:,:,:)%x(1), f3din2=flux_vec_horz_center(:,:,:)%x(2), f3din3=flux_vec_horz_center(:,:,:)%x(3))
 
 
     IF(INCLUDE_SLOPE_SQUARED_IMPLICIT)THEN
@@ -2064,8 +2064,8 @@ ocean_state%p_prog(nold(1))%tracer_collection%tracer(tracer_index)%concentration
    !Map the explicit horizontal tracer flux from cell centers to edges (where the horizontal divergence is calculated)
     !
     ! use a vector communicator
-    CALL sync_patch_array_mult(sync_c, patch_2D, 3, &
-        & flux_sum_horz(:,:,:)%x(1), flux_sum_horz(:,:,:)%x(2), flux_sum_horz(:,:,:)%x(3))
+    CALL sync_patch_array_mult(sync_c, patch_2D, 3, lacc=.FALSE., &
+        & f3din1=flux_sum_horz(:,:,:)%x(1), f3din2=flux_sum_horz(:,:,:)%x(2), f3din3=flux_sum_horz(:,:,:)%x(3))
     !
 
 
@@ -2127,8 +2127,8 @@ ocean_state%p_prog(nold(1))%tracer_collection%tracer(tracer_index)%concentration
     ENDIF
     !---------------------------------------------------------------------
 
-!      CALL sync_patch_array(sync_e, patch_2D, GMRedi_flux_horz(:,:,:))
-!      CALL sync_patch_array(sync_c, patch_2D, GMRedi_flux_vert(:,:,:))
+!      CALL sync_patch_array(sync_e, patch_2D, GMRedi_flux_horz(:,:,:), lacc=.FALSE.)
+!      CALL sync_patch_array(sync_c, patch_2D, GMRedi_flux_vert(:,:,:), lacc=.FALSE.)
 
   ELSEIF( no_tracer>2)THEN
     CALL finish(TRIM('calc_GMRediflux'),&
@@ -2836,8 +2836,8 @@ END SUBROUTINE vertical_GM
     !Map the explicit horizontal tracer flux from cell centers to edges (where the horizontal divergence is calculated)
     !
     ! use a vector communicator
-    CALL sync_patch_array_mult(sync_c, patch_2D, 3, &
-        & flux_vec_horz_center(:,:,:)%x(1), flux_vec_horz_center(:,:,:)%x(2), flux_vec_horz_center(:,:,:)%x(3))
+    CALL sync_patch_array_mult(sync_c, patch_2D, 3, lacc=.FALSE., &
+        & f3din1=flux_vec_horz_center(:,:,:)%x(1), f3din2=flux_vec_horz_center(:,:,:)%x(2), f3din3=flux_vec_horz_center(:,:,:)%x(3))
     !
     CALL map_cell2edges_3D( patch_3D,flux_vec_horz_center, GMredi_flux_horz, op_coeff)
 
@@ -2909,7 +2909,7 @@ END SUBROUTINE vertical_GM
         END DO
 !ICON_OMP_END_DO_PARALLEL
 
-    CALL sync_patch_array(sync_c, patch_2D, param%a_tracer_v(:,:,:,tracer_index))
+    CALL sync_patch_array(sync_c, patch_2D, param%a_tracer_v(:,:,:,tracer_index), lacc=.FALSE.)
 
 
         IF(tracer_index==1)THEN

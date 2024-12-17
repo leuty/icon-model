@@ -865,14 +865,14 @@ MODULE mo_solve_nonhydro
           !$ACC WAIT
           ! Compute density and potential temperature at vertices
           CALL cells2verts_scalar(p_nh%prog(nnow)%rho,p_patch, p_int%cells_aw_verts, &
-            z_rho_v, opt_rlend=min_rlvert_int-1)
+            z_rho_v, lacc=.TRUE., opt_rlend=min_rlvert_int-1)
           CALL cells2verts_scalar(p_nh%prog(nnow)%theta_v,p_patch, p_int%cells_aw_verts, &
-            z_theta_v_v, opt_rlend=min_rlvert_int-1)
+            z_theta_v_v, lacc=.TRUE., opt_rlend=min_rlvert_int-1)
 
         ELSE IF (iadv_rhotheta == 2) THEN ! Miura second-order upwind scheme
 
           ! Compute Green-Gauss gradients for rho and theta
-          CALL grad_green_gauss_cell(z_rth_pr, p_patch, p_int, z_grad_rth,    &
+          CALL grad_green_gauss_cell(z_rth_pr, p_patch, p_int, z_grad_rth, lacc=.TRUE., &
             opt_rlstart=3, opt_rlend=min_rlcell_int-1, opt_acc_async=.TRUE.)
         ENDIF
       ENDIF ! istep = 1
@@ -1652,9 +1652,9 @@ MODULE mo_solve_nonhydro
       ENDIF
 
       IF (istep == 1) THEN
-        CALL sync_patch_array_mult(SYNC_E,p_patch,2,p_nh%prog(nnew)%vn,z_rho_e,opt_varname="vn_nnew and z_rho_e")
+        CALL sync_patch_array_mult(SYNC_E, p_patch, 2, lacc=.TRUE., f3din1=p_nh%prog(nnew)%vn, f3din2=z_rho_e, opt_varname="vn_nnew and z_rho_e")
       ELSE
-        CALL sync_patch_array(SYNC_E,p_patch,p_nh%prog(nnew)%vn,opt_varname="vn_nnew")
+        CALL sync_patch_array(SYNC_E,p_patch,p_nh%prog(nnew)%vn,lacc=.TRUE.,opt_varname="vn_nnew")
       ENDIF
 
 
@@ -2750,19 +2750,21 @@ MODULE mo_solve_nonhydro
         IF (divdamp_type >= 3) THEN
           ! Synchronize w and vertical contribution to divergence damping
 #ifdef __MIXED_PRECISION
-          CALL sync_patch_array_mult_mp(SYNC_C,p_patch,1,1,p_nh%prog(nnew)%w,f3din1_sp=z_dwdz_dd, &
+          CALL sync_patch_array_mult_mp(SYNC_C, p_patch, 1, 1, lacc=.TRUE., &
+               &                        f3din1=p_nh%prog(nnew)%w, f3din1_sp=z_dwdz_dd, &
                &                        opt_varname="w_nnew and z_dwdz_dd")
 #else
-          CALL sync_patch_array_mult(SYNC_C,p_patch,2,p_nh%prog(nnew)%w,z_dwdz_dd, &
+          CALL sync_patch_array_mult(SYNC_C, p_patch, 2, lacc=.TRUE., &
+               &                     f3din1=p_nh%prog(nnew)%w, f3din2=z_dwdz_dd, &
                &                     opt_varname="w_nnew and z_dwdz_dd")
 #endif
         ELSE
           ! Only w needs to be synchronized
-          CALL sync_patch_array(SYNC_C,p_patch,p_nh%prog(nnew)%w,opt_varname="w_nnew")
+          CALL sync_patch_array(SYNC_C,p_patch,p_nh%prog(nnew)%w,lacc=.TRUE.,opt_varname="w_nnew")
         ENDIF
       ELSE ! istep = 2: synchronize all prognostic variables
-        CALL sync_patch_array_mult(SYNC_C,p_patch,3,p_nh%prog(nnew)%rho, &
-          p_nh%prog(nnew)%exner,p_nh%prog(nnew)%w,opt_varname="rho, exner, w_nnew")
+        CALL sync_patch_array_mult(SYNC_C, p_patch, 3, lacc=.TRUE., f3din1=p_nh%prog(nnew)%rho, &
+          & f3din2=p_nh%prog(nnew)%exner, f3din3=p_nh%prog(nnew)%w,opt_varname="rho, exner, w_nnew")
       ENDIF
 
       IF (timers_level > 5) CALL timer_stop(timer_solve_nh_exch)

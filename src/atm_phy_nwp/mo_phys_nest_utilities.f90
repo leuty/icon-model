@@ -1604,6 +1604,7 @@ SUBROUTINE downscale_rad_output(jg, jgp, nlev_rg, rg_aclcov, rg_lwflxall,   &
 
   !$ACC WAIT
   CALL interpol_scal_nudging (p_pp, p_int, p_grf%p_dom(i_chidx), nshift, 3, 1,          &
+    &                         lacc=lzacc,                                               &
     &                         f3din1=zrg_trdiffsolall, f3dout1=z_trdiffsolall,          &
     &                         f3din2=p_lwflxall,       f3dout2=lwflxall,                &
     &                         f3din3=zrg_aux3d,        f3dout3=z_aux3d,                 &
@@ -1611,6 +1612,7 @@ SUBROUTINE downscale_rad_output(jg, jgp, nlev_rg, rg_aclcov, rg_lwflxall,   &
 
   IF (atm_phy_nwp_config(jg)%l_3d_rad_fluxes) THEN
     CALL interpol_scal_nudging (p_pp, p_int, p_grf%p_dom(i_chidx), nshift, 4, 1,          &
+      &                         lacc=lzacc,                                               &
       &                         f3din1=p_lwflx_up,       f3dout1=lwflx_up,                &
       &                         f3din2=p_lwflx_dn,       f3dout2=lwflx_dn,                &
       &                         f3din3=p_swflx_up,       f3dout3=swflx_up,                &
@@ -1618,6 +1620,7 @@ SUBROUTINE downscale_rad_output(jg, jgp, nlev_rg, rg_aclcov, rg_lwflxall,   &
       &                         overshoot_fac=1.0_wp)
   
     CALL interpol_scal_nudging (p_pp, p_int, p_grf%p_dom(i_chidx), nshift, 4, 1,          &
+      &                         lacc=lzacc,                                               &
       &                         f3din1=p_lwflx_up_clr,       f3dout1=lwflx_up_clr,        &
       &                         f3din2=p_lwflx_dn_clr,       f3dout2=lwflx_dn_clr,        &
       &                         f3din3=p_swflx_up_clr,       f3dout3=swflx_up_clr,        &
@@ -2571,7 +2574,8 @@ SUBROUTINE interpol_phys_grf (ext_data, prm_diag, p_lnd_state, jg, jgc, jn, lacc
     IF (lsfc_interp .AND. lmulti_snow) THEN
 
       maxdim2 = MAX(nfields_p1,nfields_p2,nfields_l2,3*nlev_soil,5*nlev_snow)
-      CALL sync_patch_array_mult(SYNC_C,ptr_pp,5,z_aux3dp1_p,z_aux3dp2_p,z_aux3dl2_p,z_aux3dso_p,z_aux3dsn_p)
+      CALL sync_patch_array_mult(SYNC_C, ptr_pp, 5, lacc=lzacc, f3din1=z_aux3dp1_p, f3din2=z_aux3dp2_p, &
+        f3din3=z_aux3dl2_p, f3din4=z_aux3dso_p, f3din5=z_aux3dsn_p)
       CALL interpol_scal_grf (p_pp=ptr_pp, p_pc=ptr_pc, p_grf=ptr_grf, nfields=5, nlev_ex=maxdim2, lacc=lzacc, &
         f3din1=z_aux3dp1_p, f3dout1=z_aux3dp1_c, f3din2=z_aux3dp2_p, f3dout2=z_aux3dp2_c, &
         f3din3=z_aux3dl2_p, f3dout3=z_aux3dl2_c, f3din4=z_aux3dso_p, f3dout4=z_aux3dso_c, &
@@ -2581,7 +2585,8 @@ SUBROUTINE interpol_phys_grf (ext_data, prm_diag, p_lnd_state, jg, jgc, jn, lacc
     ELSE IF (lsfc_interp) THEN
 
       maxdim2 = MAX(nfields_p1,nfields_p2,nfields_l2,3*nlev_soil)
-      CALL sync_patch_array_mult(SYNC_C,ptr_pp,4,z_aux3dp1_p,z_aux3dp2_p,z_aux3dl2_p,z_aux3dso_p)
+      CALL sync_patch_array_mult(SYNC_C, ptr_pp, 4, lacc=lzacc, f3din1=z_aux3dp1_p, f3din2=z_aux3dp2_p, &
+        f3din3=z_aux3dl2_p, f3din4=z_aux3dso_p)
       CALL interpol_scal_grf (p_pp=ptr_pp, p_pc=ptr_pc, p_grf=ptr_grf, nfields=4, nlev_ex=maxdim2, lacc=lzacc, &
         f3din1=z_aux3dp1_p, f3dout1=z_aux3dp1_c, f3din2=z_aux3dp2_p, f3dout2=z_aux3dp2_c,                      &
         f3din3=z_aux3dl2_p, f3dout3=z_aux3dl2_c, f3din4=z_aux3dso_p, f3dout4=z_aux3dso_c,                      &
@@ -2590,7 +2595,7 @@ SUBROUTINE interpol_phys_grf (ext_data, prm_diag, p_lnd_state, jg, jgc, jn, lacc
     ELSE
 
       maxdim2 = MAX(nfields_p1,nfields_p2)
-      CALL sync_patch_array_mult(SYNC_C,ptr_pp,2,z_aux3dp1_p,z_aux3dp2_p)
+      CALL sync_patch_array_mult(SYNC_C, ptr_pp, 2, lacc=lzacc, f3din1=z_aux3dp1_p, f3din2=z_aux3dp2_p)
       CALL interpol_scal_grf (p_pp=ptr_pp, p_pc=ptr_pc, p_grf=ptr_grf, nfields=2, nlev_ex=maxdim2, lacc=lzacc, &
         f3din1=z_aux3dp1_p, f3dout1=z_aux3dp1_c, f3din2=z_aux3dp2_p, f3dout2=z_aux3dp2_c, &
         llimit_nneg=(/.TRUE.,.FALSE./), lnoshift=.TRUE.)
@@ -2598,12 +2603,12 @@ SUBROUTINE interpol_phys_grf (ext_data, prm_diag, p_lnd_state, jg, jgc, jn, lacc
     ENDIF
 
     IF (lextra_diag) THEN
-      CALL sync_patch_array(SYNC_C,ptr_pp,z_aux3dp3_p)
+      CALL sync_patch_array(SYNC_C,ptr_pp,z_aux3dp3_p,lacc=lzacc)
       CALL interpol_scal_grf (p_pp=ptr_pp, p_pc=ptr_pc, p_grf=ptr_grf, nfields=1, nlev_ex=nfields_p3, lacc=lzacc, &
         f3din1=z_aux3dp3_p, f3dout1=z_aux3dp3_c, llimit_nneg=(/.FALSE./), lnoshift=.TRUE.)
     ENDIF
 
-    CALL sync_patch_array_mult(SYNC_C,ptr_pp,3,prm_diag(jg)%tkvm,prm_diag(jg)%tkvh,prm_diag(jg)%rcld)
+    CALL sync_patch_array_mult(SYNC_C, ptr_pp, 3, lacc=lzacc, f3din1=prm_diag(jg)%tkvm, f3din2=prm_diag(jg)%tkvh, f3din3=prm_diag(jg)%rcld)
     CALL interpol_scal_grf (p_pp=ptr_pp, p_pc=ptr_pc, p_grf=ptr_grf, nfields=3, nlev_ex=1, lacc=lzacc, &
       f3din1=prm_diag(jg)%tkvm, f3dout1=prm_diag(jgc)%tkvm, &
       f3din2=prm_diag(jg)%tkvh, f3dout2=prm_diag(jgc)%tkvh, &
@@ -3157,7 +3162,7 @@ SUBROUTINE interpol_rrg_grf (jg, jgc, jn, ntl_rcf, prm_diag, p_lnd_state, lacc)
 !$OMP END PARALLEL
 
     ! Halo update is needed before interpolation
-    CALL sync_patch_array_mult(SYNC_C,ptr_pp,2,z_aux3d_p,prm_diagp%rcld)
+    CALL sync_patch_array_mult(SYNC_C, ptr_pp, 2, lacc=lzacc, f3din1=z_aux3d_p, f3din2=prm_diagp%rcld)
 
     CALL interpol_scal_grf (p_pp=ptr_pp, p_pc=ptr_pc, p_grf=ptr_grf, nfields=1, nlev_ex=nfields, lacc=lzacc, &
       &                     f3din1=z_aux3d_p, f3dout1=z_aux3d_c, llimit_nneg=(/.TRUE./),&

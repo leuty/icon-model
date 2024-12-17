@@ -31,9 +31,6 @@ MODULE mo_intp_lonlat_types
   USE mo_interpol_config,     ONLY: rbf_vec_dim_c, rbf_dim_c2l, l_mono_c2l
   USE mo_model_domain,        ONLY: t_patch
   USE mo_communication,       ONLY: idx_1d
-#ifdef _OPENACC
-  USE mo_mpi,                     ONLY: i_am_accel_node
-#endif
 
   IMPLICIT NONE
 
@@ -601,7 +598,7 @@ CONTAINS
   !> Performs nearest neighbor interpolation, INTEGER implementation
   !
   SUBROUTINE t_intp_scalar_interpolate_i( this, p_cell_in, nproma, nblks_lonlat, npromz_lonlat, &
-    &                                     p_out, opt_slev, opt_elev)
+    &                                     p_out, lacc, opt_slev, opt_elev)
 
     ! Indices of source points and interpolation coefficients
     CLASS(t_intp_scalar_coeff), TARGET, INTENT(IN)           :: this
@@ -610,6 +607,7 @@ CONTAINS
     INTEGER,                            INTENT(IN)           :: nproma, nblks_lonlat, npromz_lonlat
     ! reconstructed scalar value at lon-lat point, dim: (nproma,nlev,nblks_lonlat)
     INTEGER,                            INTENT(INOUT)        :: p_out(:,:,:)
+    LOGICAL,                            INTENT(IN)           :: lacc  ! if true, use openACC
     ! optional vertical start/end level
     INTEGER,                            INTENT(IN), OPTIONAL :: opt_slev, opt_elev
 
@@ -645,7 +643,7 @@ CONTAINS
       CALL finish(routine, "Not implemented!")
     END IF
 
-    !$ACC DATA PRESENT(p_cell_in, ptr_coeff, p_out, iidx, iblk) IF(i_am_accel_node)
+    !$ACC DATA PRESENT(p_cell_in, ptr_coeff, p_out, iidx, iblk) IF(lacc)
 
 !$OMP PARALLEL
 !$OMP DO PRIVATE(jb,i_startidx,i_endidx,jk,jc), SCHEDULE(runtime)
@@ -653,7 +651,7 @@ CONTAINS
       i_startidx = 1
       i_endidx   = nproma
       IF (jb == nblks_lonlat) i_endidx = npromz_lonlat
-      !$ACC PARALLEL LOOP GANG VECTOR DEFAULT(PRESENT) COLLAPSE(2) ASYNC(1) IF(i_am_accel_node)
+      !$ACC PARALLEL LOOP GANG VECTOR DEFAULT(PRESENT) COLLAPSE(2) ASYNC(1) IF(lacc)
 #ifdef __LOOP_EXCHANGE
       DO jc = i_startidx, i_endidx
         DO jk = slev, elev
@@ -690,7 +688,7 @@ CONTAINS
   !    &                           nblks_lonlat, npromz_lonlat )
   !
   SUBROUTINE t_intp_scalar_interpolate_r( this, p_cell_in, nproma, nblks_lonlat, npromz_lonlat, &
-    &                                     p_out, opt_slev, opt_elev)
+    &                                     p_out, lacc, opt_slev, opt_elev)
 
     ! Indices of source points and interpolation coefficients
     CLASS(t_intp_scalar_coeff), TARGET, INTENT(IN)           :: this
@@ -699,6 +697,7 @@ CONTAINS
     INTEGER,                            INTENT(IN)           :: nproma, nblks_lonlat, npromz_lonlat
     ! reconstructed scalar value at lon-lat point, dim: (nproma,nlev,nblks_lonlat)
     REAL(wp),                           INTENT(INOUT)        :: p_out(:,:,:)     
+    LOGICAL,                            INTENT(in)           :: lacc  ! if true, use openACC
     ! optional vertical start/end level
     INTEGER,                            INTENT(IN), OPTIONAL :: opt_slev, opt_elev
 
@@ -732,7 +731,7 @@ CONTAINS
       CALL finish(routine, "Not implemented!")
     END IF
 
-    !$ACC DATA PRESENT(p_cell_in, ptr_coeff, p_out, iidx, iblk) IF(i_am_accel_node)
+    !$ACC DATA PRESENT(p_cell_in, ptr_coeff, p_out, iidx, iblk) IF(lacc)
 
 !$OMP PARALLEL
 !$OMP DO PRIVATE(jb,i_startidx,i_endidx,jk,jc,vmin,vmax), SCHEDULE(runtime)
@@ -749,7 +748,7 @@ CONTAINS
 
       CASE(1)
 
-        !$ACC PARALLEL LOOP GANG VECTOR DEFAULT(PRESENT) COLLAPSE(2) ASYNC(1) IF(i_am_accel_node)
+        !$ACC PARALLEL LOOP GANG VECTOR DEFAULT(PRESENT) COLLAPSE(2) ASYNC(1) IF(lacc)
 #ifdef __LOOP_EXCHANGE
         DO jc = i_startidx, i_endidx
           DO jk = slev, elev
@@ -766,7 +765,7 @@ CONTAINS
 
       CASE(3)
 
-        !$ACC PARALLEL LOOP GANG VECTOR DEFAULT(PRESENT) COLLAPSE(2) ASYNC(1) IF(i_am_accel_node)
+        !$ACC PARALLEL LOOP GANG VECTOR DEFAULT(PRESENT) COLLAPSE(2) ASYNC(1) IF(lacc)
 #ifdef __LOOP_EXCHANGE
         DO jc = i_startidx, i_endidx
           DO jk = slev, elev
@@ -788,7 +787,7 @@ CONTAINS
 
       CASE(4)
 
-        !$ACC PARALLEL LOOP GANG VECTOR DEFAULT(PRESENT) COLLAPSE(2) ASYNC(1) IF(i_am_accel_node)
+        !$ACC PARALLEL LOOP GANG VECTOR DEFAULT(PRESENT) COLLAPSE(2) ASYNC(1) IF(lacc)
 #ifdef __LOOP_EXCHANGE
         DO jc = i_startidx, i_endidx
           DO jk = slev, elev
@@ -827,7 +826,7 @@ CONTAINS
 
       CASE(10)
 
-        !$ACC PARALLEL LOOP GANG VECTOR DEFAULT(PRESENT) COLLAPSE(2) ASYNC(1) IF(i_am_accel_node)
+        !$ACC PARALLEL LOOP GANG VECTOR DEFAULT(PRESENT) COLLAPSE(2) ASYNC(1) IF(lacc)
 #ifdef __LOOP_EXCHANGE
         DO jc = i_startidx, i_endidx
           DO jk = slev, elev
@@ -872,7 +871,7 @@ CONTAINS
 
       CASE(13)
 
-        !$ACC PARALLEL LOOP GANG VECTOR DEFAULT(PRESENT) COLLAPSE(2) ASYNC(1) IF(i_am_accel_node)
+        !$ACC PARALLEL LOOP GANG VECTOR DEFAULT(PRESENT) COLLAPSE(2) ASYNC(1) IF(lacc)
 #ifdef __LOOP_EXCHANGE
         DO jc = i_startidx, i_endidx
           DO jk = slev, elev
@@ -1068,7 +1067,7 @@ CONTAINS
   ! This routine is based on mo_intp_rbf::rbf_vec_interpol_cell()
   !
   SUBROUTINE t_intp_vec_interpolate_r( this, p_vn_in, nproma, nblks_lonlat, npromz_lonlat, &
-    &                                  grad_x, grad_y, opt_slev, opt_elev)
+    &                                  grad_x, grad_y, lacc, opt_slev, opt_elev)
 
     ! Indices of source points and interpolation coefficients
     CLASS(t_intp_vec_coeff), TARGET, INTENT(IN)           :: this
@@ -1077,6 +1076,7 @@ CONTAINS
     INTEGER,                         INTENT(IN)           :: nproma, nblks_lonlat, npromz_lonlat
     ! reconstructed x/y-components of velocity vector, dim: (nproma,nlev,nblks_lonlat)
     REAL(wp),                        INTENT(INOUT)        :: grad_x(:,:,:), grad_y(:,:,:)
+    LOGICAL,                         INTENT(IN)           :: lacc  ! if true, use openACC
     ! optional vertical start/end level:
     INTEGER,                         INTENT(in), OPTIONAL :: opt_slev, opt_elev
 
@@ -1098,7 +1098,7 @@ CONTAINS
     iblk      => this%blk
     ptr_coeff => this%coeff
 
-    !$ACC DATA PRESENT(p_vn_in, ptr_coeff, grad_x, grad_y, iidx, iblk) IF(i_am_accel_node)
+    !$ACC DATA PRESENT(p_vn_in, ptr_coeff, grad_x, grad_y, iidx, iblk) IF(lacc)
 
 !$OMP PARALLEL
 !$OMP DO PRIVATE(jb,i_startidx,i_endidx,jk,jc), SCHEDULE(runtime)
@@ -1108,7 +1108,7 @@ CONTAINS
       i_endidx   = nproma
       IF (jb == nblks_lonlat) i_endidx = npromz_lonlat
 
-      !$ACC PARALLEL LOOP GANG VECTOR DEFAULT(PRESENT) COLLAPSE(2) ASYNC(1) IF(i_am_accel_node)
+      !$ACC PARALLEL LOOP GANG VECTOR DEFAULT(PRESENT) COLLAPSE(2) ASYNC(1) IF(lacc)
 #ifdef __LOOP_EXCHANGE
       DO jc = i_startidx, i_endidx
         DO jk = slev, elev
@@ -1155,7 +1155,7 @@ CONTAINS
   !> REAL fields: Driver routine for the interpolation of
   !  cell-based variables at lon-lat grid points.
   !
-  SUBROUTINE t_lon_lat_intp_interpolate_r( this, name, p_cell_in, nproma, p_lonlat_out, hintp_type)
+  SUBROUTINE t_lon_lat_intp_interpolate_r( this, name, p_cell_in, nproma, p_lonlat_out, hintp_type, lacc)
 
     ! Indices of source points and interpolation coefficients
     CLASS(t_lon_lat_intp), INTENT(IN)           :: this
@@ -1167,6 +1167,7 @@ CONTAINS
     REAL(wp),              INTENT(INOUT)        :: p_lonlat_out(:,:,:) !< dim: (nproma,nlev,nblks_lonlat)
     ! horizontal interpolation type
     INTEGER,               INTENT(IN)           :: hintp_type
+    LOGICAL,               INTENT(IN)           :: lacc  ! if true, use openACC
     
     ! Local Parameters:
     CHARACTER(*), PARAMETER :: routine = modname//"::t_lon_lat_intp_interpolate_r"
@@ -1180,17 +1181,17 @@ CONTAINS
     CASE (HINTP_TYPE_LONLAT_RBF)
       ! RBF interpolation
       CALL this%rbf_c2l%interpolate( p_cell_in(:,:,:), nproma, nblks_lonlat, npromz_lonlat, &
-        &                            p_lonlat_out(:,:,:))
+        &                            p_lonlat_out(:,:,:), lacc)
       
     CASE (HINTP_TYPE_LONLAT_NNB)
       ! Nearest-neighbor interpolation
       CALL this%nnb%interpolate( p_cell_in(:,:,:), nproma, nblks_lonlat, npromz_lonlat, &
-        &                        p_lonlat_out(:,:,:))
+        &                        p_lonlat_out(:,:,:), lacc)
       
     CASE (HINTP_TYPE_LONLAT_BCTR)
       ! Barycentric interpolation
       CALL this%baryctr%interpolate( p_cell_in(:,:,:), nproma, nblks_lonlat, npromz_lonlat, &
-        &                            p_lonlat_out(:,:,:))
+        &                            p_lonlat_out(:,:,:), lacc)
       
     CASE DEFAULT
       CALL finish(routine, "Internal error with variable "//TRIM(name))
@@ -1204,7 +1205,7 @@ CONTAINS
   !> INTEGER fields: Driver routine for the interpolation of
   !  cell-based variables at lon-lat grid points.
   !
-  SUBROUTINE t_lon_lat_intp_interpolate_i( this, name, p_cell_in, nproma, p_lonlat_out, hintp_type)
+  SUBROUTINE t_lon_lat_intp_interpolate_i( this, name, p_cell_in, nproma, p_lonlat_out, hintp_type, lacc)
 
     ! Indices of source points and interpolation coefficients
     CLASS(t_lon_lat_intp), TARGET, INTENT(IN)           :: this
@@ -1216,6 +1217,7 @@ CONTAINS
     INTEGER,                       INTENT(INOUT)        :: p_lonlat_out(:,:,:) ! dim: (nproma,nlev,nblks_lonlat)
     ! horizontal interpolation type
     INTEGER,                       INTENT(IN)           :: hintp_type
+    LOGICAL,                       INTENT(IN)           :: lacc  ! if true, use openACC
     
     ! Local Parameters:
     CHARACTER(*), PARAMETER :: routine = modname//"::interpol_lonlat_int"
@@ -1229,7 +1231,7 @@ CONTAINS
     CASE (HINTP_TYPE_LONLAT_NNB)
       ! Nearest-neighbor interpolation:
       CALL this%nnb%interpolate( p_cell_in(:,:,:), nproma, nblks_lonlat, npromz_lonlat, &
-        &                        p_lonlat_out(:,:,:))
+        &                        p_lonlat_out(:,:,:), lacc)
       
     CASE DEFAULT
       CALL finish(routine, "Internal error with variable "//TRIM(name))
@@ -1245,7 +1247,7 @@ CONTAINS
   ! This routine is based on mo_intp_rbf::rbf_vec_interpol_cell()
   !
   SUBROUTINE t_lon_lat_intp_interpolate_rvec( this, p_vn_in, nproma, &
-    &                                         grad_x, grad_y, hintp_type, opt_slev, opt_elev)
+    &                                         grad_x, grad_y, hintp_type, lacc, opt_slev, opt_elev)
 
     ! Indices of source points and interpolation coefficients
     CLASS(t_lon_lat_intp), TARGET,   INTENT(IN)           :: this
@@ -1256,6 +1258,7 @@ CONTAINS
     REAL(wp),                        INTENT(INOUT)        :: grad_x(:,:,:), grad_y(:,:,:)
     ! horizontal interpolation type
     INTEGER,                         INTENT(IN)           :: hintp_type
+    LOGICAL,                         INTENT(IN)           :: lacc  ! if true, use openACC
     ! optional vertical start/end level:
     INTEGER,                         INTENT(in), OPTIONAL :: opt_slev, opt_elev
     ! Local Parameters:
@@ -1270,7 +1273,7 @@ CONTAINS
     CASE (HINTP_TYPE_LONLAT_RBF)
       ! Nearest-neighbor interpolation:
       CALL this%rbf_vec%interpolate(p_vn_in, nproma, nblks_lonlat, npromz_lonlat, &
-        &                           grad_x, grad_y, opt_slev, opt_elev)
+        &                           grad_x, grad_y, lacc, opt_slev, opt_elev)
      
     CASE DEFAULT
       CALL finish(routine, "Internal error.")

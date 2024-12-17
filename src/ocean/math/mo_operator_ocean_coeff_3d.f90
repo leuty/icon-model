@@ -36,7 +36,7 @@ MODULE mo_operator_ocean_coeff_3d
   USE mo_exception,           ONLY: message, finish
   USE mo_model_domain,        ONLY: t_patch, t_patch_3D
   USE mo_parallel_config,     ONLY: nproma
-  USE mo_sync,                ONLY: sync_c, sync_e, sync_v, sync_patch_array!, sync_idx, global_max
+  USE mo_sync,                ONLY: sync_c, sync_e, sync_v, sync_patch_array
   USE mo_ocean_types,         ONLY: t_hydro_ocean_state, t_operator_coeff, &
     & t_solverCoeff_singlePrecision, t_verticalAdvection_ppm_coefficients
   USE mo_grid_subset,         ONLY: t_subset_range, get_index_range
@@ -205,10 +205,10 @@ CONTAINS
       ENDDO ! edge_block = owned_edges%start_block, owned_edges%end_block
 
       ! synchronize the edge distances
-      CALL sync_patch_array(SYNC_E, patch_2D, dist_cell2edge(:,:,1))
-      CALL sync_patch_array(SYNC_E, patch_2D, dist_cell2edge(:,:,2))
-      CALL sync_patch_array(SYNC_E, patch_2D, prime_edge_length(:,:))
-      CALL sync_patch_array(SYNC_E, patch_2D, dual_edge_length(:,:))
+      CALL sync_patch_array(SYNC_E, patch_2D, dist_cell2edge(:,:,1), lacc=.FALSE.)
+      CALL sync_patch_array(SYNC_E, patch_2D, dist_cell2edge(:,:,2), lacc=.FALSE.)
+      CALL sync_patch_array(SYNC_E, patch_2D, prime_edge_length(:,:), lacc=.FALSE.)
+      CALL sync_patch_array(SYNC_E, patch_2D, dual_edge_length(:,:), lacc=.FALSE.)
     ENDIF
     ! primal end dual edge lenght have been computed
     !-------------------------------------------
@@ -1209,14 +1209,14 @@ CONTAINS
     END DO
     !-------------------
     ! sync the results
-    CALL sync_patch_array(SYNC_E, patch_2D, operators_coefficients%grad_coeff(:,:,:))
-    CALL sync_patch_array(SYNC_E, patch_2D, operators_coefficients%averageCellsToEdges(:,:,1))
-    CALL sync_patch_array(SYNC_E, patch_2D, operators_coefficients%averageCellsToEdges(:,:,2))
+    CALL sync_patch_array(SYNC_E, patch_2D, operators_coefficients%grad_coeff(:,:,:), lacc=.FALSE.)
+    CALL sync_patch_array(SYNC_E, patch_2D, operators_coefficients%averageCellsToEdges(:,:,1), lacc=.FALSE.)
+    CALL sync_patch_array(SYNC_E, patch_2D, operators_coefficients%averageCellsToEdges(:,:,2), lacc=.FALSE.)
     DO neigbor=1,no_primal_edges
-      CALL sync_patch_array(SYNC_C, patch_2D, operators_coefficients%div_coeff(:,:,:,neigbor))
+      CALL sync_patch_array(SYNC_C, patch_2D, operators_coefficients%div_coeff(:,:,:,neigbor), lacc=.FALSE.)
     END DO
     DO neigbor=1,no_dual_edges
-      CALL sync_patch_array(SYNC_V, patch_2D, operators_coefficients%rot_coeff(:,:,:,neigbor))
+      CALL sync_patch_array(SYNC_V, patch_2D, operators_coefficients%rot_coeff(:,:,:,neigbor), lacc=.FALSE.)
     END DO
 
     !----------------------------------------------------
@@ -1270,7 +1270,7 @@ CONTAINS
 !     ENDIF ! (MID_POINT_DUAL_EDGE)
 !     !-------------------
 !     ! sync patch_2D%edges%f_e
-!     CALL sync_patch_array(SYNC_E, patch_2D, patch_2D%edges%f_e)
+!     CALL sync_patch_array(SYNC_E, patch_2D, patch_2D%edges%f_e, lacc=.FALSE.)
 !     !---------------------------------------------------------
 
   END SUBROUTINE init_operator_coeffs
@@ -1389,12 +1389,12 @@ CONTAINS
 
     !-------------------
     ! sync the results
-    CALL sync_patch_array(SYNC_C, patch_2D, fixed_vol_norm(:,:))
+    CALL sync_patch_array(SYNC_C, patch_2D, fixed_vol_norm(:,:), lacc=.FALSE.)
     DO neigbor=1,patch_2D%cells%max_connectivity
-      CALL sync_patch_array(SYNC_C, patch_2D, edge2cell_coeff_cc(:,:,neigbor)%x(1))
-      CALL sync_patch_array(SYNC_C, patch_2D, edge2cell_coeff_cc(:,:,neigbor)%x(2))
-      CALL sync_patch_array(SYNC_C, patch_2D, edge2cell_coeff_cc(:,:,neigbor)%x(3))
-!       CALL sync_patch_array(SYNC_C, patch_2D, variable_vol_norm(:,:,neigbor))
+      CALL sync_patch_array(SYNC_C, patch_2D, edge2cell_coeff_cc(:,:,neigbor)%x(1), lacc=.FALSE.)
+      CALL sync_patch_array(SYNC_C, patch_2D, edge2cell_coeff_cc(:,:,neigbor)%x(2), lacc=.FALSE.)
+      CALL sync_patch_array(SYNC_C, patch_2D, edge2cell_coeff_cc(:,:,neigbor)%x(3), lacc=.FALSE.)
+!       CALL sync_patch_array(SYNC_C, patch_2D, variable_vol_norm(:,:,neigbor), lacc=.FALSE.)
     ENDDO
     !-------------------
 
@@ -1422,12 +1422,12 @@ CONTAINS
       ENDDO  !  level = 1, n_zlev
     ENDDO ! cell_block
 ! no need for sync
-!     CALL sync_patch_array(SYNC_C, patch_2D, operators_coefficients%fixed_vol_norm(:,:,:))
+!     CALL sync_patch_array(SYNC_C, patch_2D, operators_coefficients%fixed_vol_norm(:,:,:), lacc=.FALSE.)
 !     DO neigbor=1,no_primal_edges
-!       CALL sync_patch_array(SYNC_C, patch_2D, operators_coefficients%edge2cell_coeff_cc(:,:,:,neigbor)%x(1))
-!       CALL sync_patch_array(SYNC_C, patch_2D, operators_coefficients%edge2cell_coeff_cc(:,:,:,neigbor)%x(2))
-!       CALL sync_patch_array(SYNC_C, patch_2D, operators_coefficients%edge2cell_coeff_cc(:,:,:,neigbor)%x(3))
-!       CALL sync_patch_array(SYNC_C, patch_2D, operators_coefficients%variable_vol_norm(:,:,:,neigbor))
+!       CALL sync_patch_array(SYNC_C, patch_2D, operators_coefficients%edge2cell_coeff_cc(:,:,:,neigbor)%x(1), lacc=.FALSE.)
+!       CALL sync_patch_array(SYNC_C, patch_2D, operators_coefficients%edge2cell_coeff_cc(:,:,:,neigbor)%x(2), lacc=.FALSE.)
+!       CALL sync_patch_array(SYNC_C, patch_2D, operators_coefficients%edge2cell_coeff_cc(:,:,:,neigbor)%x(3), lacc=.FALSE.)
+!       CALL sync_patch_array(SYNC_C, patch_2D, operators_coefficients%variable_vol_norm(:,:,:,neigbor), lacc=.FALSE.)
 !     ENDDO
    ! output print level (1-5, fix)
    idt_src=5  
@@ -1475,9 +1475,9 @@ CONTAINS
     !-------------------
     ! sync the results
     DO neigbor=1,2
-      CALL sync_patch_array(SYNC_E, patch_2D, edge2cell_coeff_cc_t(:,:,neigbor)%x(1))
-      CALL sync_patch_array(SYNC_E, patch_2D, edge2cell_coeff_cc_t(:,:,neigbor)%x(2))
-      CALL sync_patch_array(SYNC_E, patch_2D, edge2cell_coeff_cc_t(:,:,neigbor)%x(3))
+      CALL sync_patch_array(SYNC_E, patch_2D, edge2cell_coeff_cc_t(:,:,neigbor)%x(1), lacc=.FALSE.)
+      CALL sync_patch_array(SYNC_E, patch_2D, edge2cell_coeff_cc_t(:,:,neigbor)%x(2), lacc=.FALSE.)
+      CALL sync_patch_array(SYNC_E, patch_2D, edge2cell_coeff_cc_t(:,:,neigbor)%x(3), lacc=.FALSE.)
     ENDDO ! neigbor=1,2
     !   edge2cell_coeff_cc_t is computed
 
@@ -1498,9 +1498,9 @@ CONTAINS
     ENDDO
     ! sync the results
     DO neigbor=1,2
-      CALL sync_patch_array(SYNC_E, patch_2D, operators_coefficients%edge2cell_coeff_cc_t(:,:,:,neigbor)%x(1))
-      CALL sync_patch_array(SYNC_E, patch_2D, operators_coefficients%edge2cell_coeff_cc_t(:,:,:,neigbor)%x(2))
-      CALL sync_patch_array(SYNC_E, patch_2D, operators_coefficients%edge2cell_coeff_cc_t(:,:,:,neigbor)%x(3))
+      CALL sync_patch_array(SYNC_E, patch_2D, operators_coefficients%edge2cell_coeff_cc_t(:,:,:,neigbor)%x(1), lacc=.FALSE.)
+      CALL sync_patch_array(SYNC_E, patch_2D, operators_coefficients%edge2cell_coeff_cc_t(:,:,:,neigbor)%x(2), lacc=.FALSE.)
+      CALL sync_patch_array(SYNC_E, patch_2D, operators_coefficients%edge2cell_coeff_cc_t(:,:,:,neigbor)%x(3), lacc=.FALSE.)
     ENDDO ! neigbor=1,2
     !-------------------------------------------
 
@@ -1591,7 +1591,7 @@ CONTAINS
     ! these coeffecients will not be used for-non owened edges,
     ! sync only for safety
     DO ictr=1, 2*no_primal_edges
-      CALL sync_patch_array(SYNC_E, patch_2D, edge2edge_viacell_coeff_2D(:,:,ictr))
+      CALL sync_patch_array(SYNC_E, patch_2D, edge2edge_viacell_coeff_2D(:,:,ictr), lacc=.FALSE.)
     ENDDO
 
     !copy 2D to 3D structure
@@ -1725,9 +1725,9 @@ CONTAINS
     !-------------------
     ! sync the results
     DO neigbor=1,no_dual_edges
-      CALL sync_patch_array(SYNC_V, patch_2D, edge2vert_coeff_cc(:,:,neigbor)%x(1))
-      CALL sync_patch_array(SYNC_V, patch_2D, edge2vert_coeff_cc(:,:,neigbor)%x(2))
-      CALL sync_patch_array(SYNC_V, patch_2D, edge2vert_coeff_cc(:,:,neigbor)%x(3))
+      CALL sync_patch_array(SYNC_V, patch_2D, edge2vert_coeff_cc(:,:,neigbor)%x(1), lacc=.FALSE.)
+      CALL sync_patch_array(SYNC_V, patch_2D, edge2vert_coeff_cc(:,:,neigbor)%x(2), lacc=.FALSE.)
+      CALL sync_patch_array(SYNC_V, patch_2D, edge2vert_coeff_cc(:,:,neigbor)%x(3), lacc=.FALSE.)
     ENDDO ! neigbor=1,6
     ! edge2vert_coeff_cc is computed
 
@@ -1751,9 +1751,9 @@ CONTAINS
       ENDDO  !  level = 1, n_zlev
     ENDDO ! vertex_block
     DO neigbor=1,no_dual_edges
-      CALL sync_patch_array(SYNC_V, patch_2D, operators_coefficients%edge2vert_coeff_cc(:,:,:,neigbor)%x(1))
-      CALL sync_patch_array(SYNC_V, patch_2D, operators_coefficients%edge2vert_coeff_cc(:,:,:,neigbor)%x(2))
-      CALL sync_patch_array(SYNC_V, patch_2D, operators_coefficients%edge2vert_coeff_cc(:,:,:,neigbor)%x(3))
+      CALL sync_patch_array(SYNC_V, patch_2D, operators_coefficients%edge2vert_coeff_cc(:,:,:,neigbor)%x(1), lacc=.FALSE.)
+      CALL sync_patch_array(SYNC_V, patch_2D, operators_coefficients%edge2vert_coeff_cc(:,:,:,neigbor)%x(2), lacc=.FALSE.)
+      CALL sync_patch_array(SYNC_V, patch_2D, operators_coefficients%edge2vert_coeff_cc(:,:,:,neigbor)%x(3), lacc=.FALSE.)
     ENDDO ! neigbor=1,6
     !----------------------------------------------------
 
@@ -1789,9 +1789,9 @@ CONTAINS
     !-------------------
     ! sync the results
     DO neigbor=1,2
-      CALL sync_patch_array(SYNC_E, patch_2D, edge2vert_coeff_cc_t(:,:,neigbor)%x(1))
-      CALL sync_patch_array(SYNC_E, patch_2D, edge2vert_coeff_cc_t(:,:,neigbor)%x(2))
-      CALL sync_patch_array(SYNC_E, patch_2D, edge2vert_coeff_cc_t(:,:,neigbor)%x(3))
+      CALL sync_patch_array(SYNC_E, patch_2D, edge2vert_coeff_cc_t(:,:,neigbor)%x(1), lacc=.FALSE.)
+      CALL sync_patch_array(SYNC_E, patch_2D, edge2vert_coeff_cc_t(:,:,neigbor)%x(2), lacc=.FALSE.)
+      CALL sync_patch_array(SYNC_E, patch_2D, edge2vert_coeff_cc_t(:,:,neigbor)%x(3), lacc=.FALSE.)
     ENDDO ! neigbor=1,2
     ! edge2vert_coeff_cc_t is computed
 
@@ -1810,9 +1810,9 @@ CONTAINS
       ENDDO
     ENDDO
     DO neigbor=1,2
-      CALL sync_patch_array(SYNC_E, patch_2D, edge2vert_coeff_cc_t(:,:,neigbor)%x(1))
-      CALL sync_patch_array(SYNC_E, patch_2D, edge2vert_coeff_cc_t(:,:,neigbor)%x(2))
-      CALL sync_patch_array(SYNC_E, patch_2D, edge2vert_coeff_cc_t(:,:,neigbor)%x(3))
+      CALL sync_patch_array(SYNC_E, patch_2D, edge2vert_coeff_cc_t(:,:,neigbor)%x(1), lacc=.FALSE.)
+      CALL sync_patch_array(SYNC_E, patch_2D, edge2vert_coeff_cc_t(:,:,neigbor)%x(2), lacc=.FALSE.)
+      CALL sync_patch_array(SYNC_E, patch_2D, edge2vert_coeff_cc_t(:,:,neigbor)%x(3), lacc=.FALSE.)
     ENDDO ! neigbor=1,2
 
     !----------------------------------------------------
@@ -1938,7 +1938,7 @@ CONTAINS
     !-------------------
     DO ictr=1, 2*no_dual_edges
 !      write(0,*)'ictr:',ictr
-      CALL sync_patch_array(SYNC_E, patch_2D, edge2edge_viavert_coeff(:,:,ictr))
+      CALL sync_patch_array(SYNC_E, patch_2D, edge2edge_viavert_coeff(:,:,ictr), lacc=.FALSE.)
     ENDDO
 
     DO edge_block = all_edges%start_block, all_edges%end_block
@@ -1953,7 +1953,7 @@ CONTAINS
       ENDDO
     ENDDO
 !    DO neigbor=1,2*no_dual_edges
-!      CALL sync_patch_array(SYNC_E, patch_2D, operators_coefficients%edge2edge_viavert_coeff(:,:,:,neigbor))
+!      CALL sync_patch_array(SYNC_E, patch_2D, operators_coefficients%edge2edge_viavert_coeff(:,:,:,neigbor), lacc=.FALSE.)
 !    END DO
    !-------------------------------------------
   END SUBROUTINE init_operator_coeffs_vertex
@@ -2057,7 +2057,7 @@ CONTAINS
         END DO
       END DO
 
-      CALL sync_patch_array(SYNC_C, patch_2D, operators_coefficients%cells_SeaBoundaryLevel)
+      CALL sync_patch_array(SYNC_C, patch_2D, operators_coefficients%cells_SeaBoundaryLevel, lacc=.FALSE.)
 
     ENDDO
 
@@ -2086,7 +2086,7 @@ CONTAINS
         ENDDO
       END DO
     END DO
-    CALL sync_patch_array(SYNC_E, patch_2D, operators_coefficients%edges_SeaBoundaryLevel)
+    CALL sync_patch_array(SYNC_E, patch_2D, operators_coefficients%edges_SeaBoundaryLevel, lacc=.FALSE.)
 
     !-------------------------------------------------------------
     !0. check the coefficients for edges, these are:
@@ -2433,7 +2433,7 @@ CONTAINS
     END DO ! block = owned_verts%start_block, owned_verts%end_block
     ! sync the result
 !     DO je=1,no_dual_edges
-!       CALL sync_patch_array(SYNC_V, patch_2D, operators_coefficients%variable_dual_vol_norm(:,:,:, je))
+!       CALL sync_patch_array(SYNC_V, patch_2D, operators_coefficients%variable_dual_vol_norm(:,:,:, je), lacc=.FALSE.)
 !     ENDDO
     !-------------------------------------------------------------
 
@@ -2549,13 +2549,13 @@ CONTAINS
     ! sync the result
     DO jev=1,no_dual_edges
       DO jk = 1, n_zlev
-        CALL sync_patch_array(SYNC_V, patch_2D, operators_coefficients%edge2vert_coeff_cc(:,jk,:, jev)%x(1))
-        CALL sync_patch_array(SYNC_V, patch_2D, operators_coefficients%edge2vert_coeff_cc(:,jk,:, jev)%x(2))
-        CALL sync_patch_array(SYNC_V, patch_2D, operators_coefficients%edge2vert_coeff_cc(:,jk,:, jev)%x(3))
+        CALL sync_patch_array(SYNC_V, patch_2D, operators_coefficients%edge2vert_coeff_cc(:,jk,:, jev)%x(1), lacc=.FALSE.)
+        CALL sync_patch_array(SYNC_V, patch_2D, operators_coefficients%edge2vert_coeff_cc(:,jk,:, jev)%x(2), lacc=.FALSE.)
+        CALL sync_patch_array(SYNC_V, patch_2D, operators_coefficients%edge2vert_coeff_cc(:,jk,:, jev)%x(3), lacc=.FALSE.)
       ENDDO
     ENDDO
     DO je=1,no_dual_edges
-      CALL sync_patch_array(SYNC_V, patch_2D, operators_coefficients%rot_coeff(:,:,:, je))
+      CALL sync_patch_array(SYNC_V, patch_2D, operators_coefficients%rot_coeff(:,:,:, je), lacc=.FALSE.)
     ENDDO
 !     DO je=1,no_dual_edges
 !       CALL dbg_print('rot_coeff'    ,operators_coefficients%rot_coeff(:,:,:, je), this_mod_name,1, &
@@ -2564,10 +2564,10 @@ CONTAINS
 
 !     DO jev=1,2*no_dual_edges
 !       DO jk = 1, n_zlev
-!         CALL sync_patch_array(SYNC_E, patch_2D, operators_coefficients%edge2edge_viavert_coeff(:,jk,:, jev))
+!         CALL sync_patch_array(SYNC_E, patch_2D, operators_coefficients%edge2edge_viavert_coeff(:,jk,:, jev), lacc=.FALSE.)
 !       ENDDO
 !     ENDDO
-    CALL sync_patch_array(SYNC_V, patch_2D, zarea_fraction(:,:,:))
+    CALL sync_patch_array(SYNC_V, patch_2D, zarea_fraction(:,:,:), lacc=.FALSE.)
     
     DO block = owned_edges%start_block, owned_edges%end_block
       CALL get_index_range(owned_edges, block, edges_startidx, edges_endidx)
@@ -2601,7 +2601,7 @@ CONTAINS
 
     DO jev=1,2*no_dual_edges
       DO jk = 1, n_zlev
-        CALL sync_patch_array(SYNC_E, patch_2D, operators_coefficients%edge2edge_viavert_coeff(:,jk,:, jev))
+        CALL sync_patch_array(SYNC_E, patch_2D, operators_coefficients%edge2edge_viavert_coeff(:,jk,:, jev), lacc=.FALSE.)
       ENDDO
     ENDDO
 
@@ -2712,14 +2712,14 @@ CONTAINS
 !!$OMP END PARALLEL
 
     ! no need to synchronize all elements of operators_coefficients%grad_coeff
-!     CALL sync_patch_array(sync_e, patch_2D, operators_coefficients%grad_coeff)
+!     CALL sync_patch_array(sync_e, patch_2D, operators_coefficients%grad_coeff, lacc=.FALSE.)
 
     DO ie = 1, no_primal_edges
-      CALL sync_patch_array(sync_c, patch_2D, operators_coefficients%div_coeff(:,:,:,ie))
+      CALL sync_patch_array(sync_c, patch_2D, operators_coefficients%div_coeff(:,:,:,ie), lacc=.FALSE.)
     END DO
 
     DO ie = 1, no_dual_edges
-      CALL sync_patch_array(sync_v, patch_2D, operators_coefficients%rot_coeff(:,:,:,ie))
+      CALL sync_patch_array(sync_v, patch_2D, operators_coefficients%rot_coeff(:,:,:,ie), lacc=.FALSE.)
     END DO
 
   END SUBROUTINE init_diff_operator_coeff_3D

@@ -374,7 +374,7 @@ CONTAINS
     END DO
     !$ACC WAIT(1)
 
-    CALL sync_patch_array(sync_c, patch_2D, new_tracer_concentration)
+    CALL sync_patch_array(sync_c, patch_2D, new_tracer_concentration, lacc=lzacc)
     !$ACC END DATA
 
     !$ACC END DATA
@@ -655,7 +655,7 @@ CONTAINS
           
     ENDIF!IF ( l_with_vert_tracer_diffusion )
 
-    CALL sync_patch_array(sync_c, patch_2D, new_tracer_concentration)
+    CALL sync_patch_array(sync_c, patch_2D, new_tracer_concentration, lacc=lzacc)
 
     !$ACC END DATA
 

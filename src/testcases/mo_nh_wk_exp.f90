@@ -353,12 +353,12 @@ MODULE mo_nh_wk_exp
 !$OMP END DO
 !$OMP END PARALLEL
 
-    CALL diagnose_pres_temp (p_metrics, ptr_nh_prog,ptr_nh_prog, ptr_nh_diag,     &
-                             ptr_patch, opt_calc_pres=.TRUE., opt_calc_temp=.TRUE.)
+    CALL diagnose_pres_temp (p_metrics, ptr_nh_prog,ptr_nh_prog, ptr_nh_diag, ptr_patch, &
+      &                     lacc=.FALSE., opt_calc_pres=.TRUE., opt_calc_temp=.TRUE.)
 
 ! initialize vertical velocity
    CALL init_w(ptr_patch, p_int, ptr_nh_prog%vn, p_metrics%z_ifc, ptr_nh_prog%w)
-   CALL sync_patch_array(SYNC_C, ptr_patch, ptr_nh_prog%w)
+   CALL sync_patch_array(SYNC_C, ptr_patch, ptr_nh_prog%w,lacc=.FALSE.)
 
 
   IF (l_hydro_adjust) THEN
@@ -492,11 +492,12 @@ MODULE mo_nh_wk_exp
     END SELECT
       
     CALL diagnose_pres_temp ( p_metrics, ptr_nh_prog,     &
-                              ptr_nh_prog, ptr_nh_diag,   &
-                              ptr_patch,                  &
-                              opt_calc_temp=.TRUE.,       &
-                              opt_calc_pres=.FALSE.,       &
-                              opt_rlend=min_rlcell_int )
+      &                       ptr_nh_prog, ptr_nh_diag,   &
+      &                       ptr_patch,                  &
+      &                       lacc=.FALSE.,               &
+      &                       opt_calc_temp=.TRUE.,       &
+      &                       opt_calc_pres=.FALSE.,      &
+      &                       opt_rlend=min_rlcell_int )
      
   END SUBROUTINE init_nh_buble_wk
 !--------------------------------------------------------------------

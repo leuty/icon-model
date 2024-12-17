@@ -30,7 +30,7 @@ MODULE mo_turb_vdiff_sma
   USE mo_intp_data_strc    ,ONLY: t_int_state
   USE mo_nonhydro_state    ,ONLY: p_nh_state
   USE mo_intp_data_strc    ,ONLY: p_int_state
-  USE mo_fortran_tools     ,ONLY: init
+  USE mo_fortran_tools     ,ONLY: assert_acc_device_only, init
   USE mo_impl_constants    ,ONLY: min_rlcell, min_rledge_int, min_rlcell_int, &
     &                             min_rlvert_int
   USE mo_parallel_config   ,ONLY: p_test_run
@@ -113,6 +113,7 @@ CONTAINS
                                & vn,                                      &! out
                                & pch_tile,                                &! out
                                & pbn_tile, pbhn_tile, pbm_tile, pbh_tile, &! out
+                               & lacc,                                    &! in
                                & pcsat, pcair                             &! in, optional
                                & )
 
@@ -196,6 +197,8 @@ CONTAINS
     REAL(wp),INTENT(IN) :: pfrc  (:,:,:) !< fraction of the grid box occupied
     REAL(wp),INTENT(IN) :: ppsfc (:,:)  !< surface pressure
 
+    LOGICAL,INTENT(IN) :: lacc
+
     ! optional arguments for use with jsbach
     REAL(wp),OPTIONAL,INTENT(IN) :: pcsat  (:,:)  !< area fraction with wet land surface
     REAL(wp),OPTIONAL,INTENT(IN) :: pcair  (:,:)  !< area fraction with wet land surface (air)
@@ -249,6 +252,8 @@ CONTAINS
     REAL(wp) :: fsl, min_sfc_wind, km_min, turb_prandtl, rturb_prandtl
     !
 
+    CALL assert_acc_device_only ('atm_exchange_coeff3d', lacc)
+
     jg = p_patch%id
     p_nh_metrics => p_nh_state(jg)%metrics
     p_int        => p_int_state(jg)
@@ -291,17 +296,17 @@ CONTAINS
 !#########################################################################
 
 !$OMP PARALLEL
-    CALL init(km_iv)
-    CALL init(km_c)
-    CALL init(km_ie)
-    CALL init(kh_ic)
-    CALL init(km_ic)
-    CALL init(vn)
+    CALL init(km_iv, lacc=.TRUE.)
+    CALL init(km_c, lacc=.TRUE.)
+    CALL init(km_ie, lacc=.TRUE.)
+    CALL init(kh_ic, lacc=.TRUE.)
+    CALL init(km_ic, lacc=.TRUE.)
+    CALL init(vn, lacc=.TRUE.)
 
     IF(p_test_run)THEN
-      CALL init(u_vert(:,:,:))
-      CALL init(v_vert(:,:,:))
-      CALL init(w_vert(:,:,:))
+      CALL init(u_vert(:,:,:), lacc=.TRUE.)
+      CALL init(v_vert(:,:,:), lacc=.TRUE.)
+      CALL init(w_vert(:,:,:), lacc=.TRUE.)
     END IF
 !$OMP END PARALLEL
 
@@ -373,7 +378,7 @@ CONTAINS
 !$OMP END PARALLEL
 
    !$ACC WAIT
-   CALL sync_patch_array(SYNC_E, p_patch, vn)
+   CALL sync_patch_array(SYNC_E, p_patch, vn, lacc=.TRUE.)
 
 !#########################################################################
 !## variables for TTE scheme and JSBACH LSM
@@ -454,12 +459,13 @@ CONTAINS
     END DO
     !$ACC END PARALLEL LOOP
 
-    CALL generate_index_list_batched(pfrc_test, loidx, i_startidx, i_endidx, is, 1)
+    CALL generate_index_list_batched(pfrc_test, loidx, i_startidx, i_endidx, is, &
+      &   lacc=.TRUE., opt_acc_async_queue=1)
     !$ACC UPDATE HOST(is) ASYNC(1)
     !$ACC WAIT(1)
 
     DO jsfc = 1, ksfc_type
-      CALL compute_qsat( kbdim, is(jsfc), loidx(:,jsfc), ppsfc(:,jb), ptsfc(:,jb,jsfc), pqsat_tile(:,jb,jsfc) )
+      CALL compute_qsat( kbdim, is(jsfc), loidx(:,jsfc), ppsfc(:,jb), ptsfc(:,jb,jsfc), pqsat_tile(:,jb,jsfc), lacc=.TRUE. )
 
      ! loop over mask only
      !
@@ -631,18 +637,18 @@ CONTAINS
     ! Here pwm1 is assumed to be synchronized already, see interface_iconam_aes.
 
     CALL cells2verts_scalar(pwm1, p_patch, p_int%cells_aw_verts, w_vert,                   &
-                            opt_rlend=min_rlvert_int, opt_acc_async=.TRUE.)
-    CALL cells2edges_scalar(pwm1, p_patch, p_int%c_lin_e, w_ie, opt_rlend=min_rledge_int-2,&
-                            lacc=.TRUE.)
+                            lacc=.TRUE., opt_rlend=min_rlvert_int, opt_acc_async=.TRUE.)
+    CALL cells2edges_scalar(pwm1, p_patch, p_int%c_lin_e, w_ie, lacc=.TRUE., &
+                            opt_rlend=min_rledge_int-2)
 
     ! RBF reconstruction of velocity at vertices: include halos
-    CALL rbf_vec_interpol_vertex(vn, p_patch, p_int, u_vert, v_vert, &
+    CALL rbf_vec_interpol_vertex(vn, p_patch, p_int, u_vert, v_vert, lacc=.TRUE., &
                                  opt_rlend=min_rlvert_int, opt_acc_async=.TRUE. )
 
     !$ACC WAIT
 
     !sync them
-    CALL sync_patch_array_mult(SYNC_V, p_patch, 3, w_vert, u_vert, v_vert)
+    CALL sync_patch_array_mult(SYNC_V, p_patch, 3, lacc=.TRUE., f3din1=w_vert, f3din2=u_vert, f3din3=v_vert)
 
     !Get vn at interfaces and then get vt at interfaces
     !Boundary values are extrapolated like dynamics although
@@ -689,8 +695,8 @@ CONTAINS
 !$OMP END DO
 !$OMP END PARALLEL
 
-    CALL rbf_vec_interpol_edge(vn_ie, p_patch, p_int, vt_ie, opt_rlstart=3, &
-                               opt_rlend=min_rledge_int-2, opt_acc_async=.TRUE.)
+    CALL rbf_vec_interpol_edge(vn_ie, p_patch, p_int, vt_ie, lacc=.TRUE., &
+                               opt_rlstart=3, opt_rlend=min_rledge_int-2, opt_acc_async=.TRUE.)
 
     !--------------------------------------------------------------------------
     !2) Compute horizontal strain rate tensor at full levels
@@ -951,8 +957,8 @@ CONTAINS
 
     !$ACC WAIT
 
-    CALL sync_patch_array(SYNC_C, p_patch, kh_ic)
-    CALL sync_patch_array(SYNC_C, p_patch, km_ic)
+    CALL sync_patch_array(SYNC_C, p_patch, kh_ic, lacc=.TRUE.)
+    CALL sync_patch_array(SYNC_C, p_patch, km_ic, lacc=.TRUE.)
 
     !--------------------------------------------------------------------------
     !4) Interpolate difusivity (viscosity) to different locations: calculate them for
@@ -991,7 +997,7 @@ CONTAINS
 
     !4b) visc at vertices
     CALL cells2verts_scalar(kh_ic, p_patch, p_int%cells_aw_verts, km_iv, &
-                            opt_rlstart=5, opt_rlend=min_rlvert_int-1,   &
+                            lacc=.TRUE., opt_rlstart=5, opt_rlend=min_rlvert_int-1,   &
                             opt_acc_async=.TRUE.)
 
     !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1)
@@ -1006,9 +1012,8 @@ CONTAINS
     !$ACC END PARALLEL
 
     !4c) Now calculate visc at half levels at edge
-    CALL cells2edges_scalar(kh_ic, p_patch, p_int%c_lin_e, km_ie,                   &
-                            opt_rlstart=grf_bdywidth_e, opt_rlend=min_rledge_int-1, &
-                            lacc=.TRUE.)
+    CALL cells2edges_scalar(kh_ic, p_patch, p_int%c_lin_e, km_ie, lacc=.TRUE.,      &
+                            opt_rlstart=grf_bdywidth_e, opt_rlend=min_rledge_int-1  )
 
     !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1)
     !$ACC LOOP GANG VECTOR COLLAPSE(3)
@@ -1138,9 +1143,8 @@ CONTAINS
     ! Here rho is assumed to be synchronized already, see interface_iconam_aes.
 
     !density at edge
-    CALL cells2edges_scalar(rho, p_patch, p_int%c_lin_e, inv_rhoe,                  &
-                            opt_rlstart=grf_bdywidth_e+1, opt_rlend=min_rledge_int, &
-                            lacc=.TRUE.)
+    CALL cells2edges_scalar(rho, p_patch, p_int%c_lin_e, inv_rhoe, lacc=.TRUE.,     &
+                            opt_rlstart=grf_bdywidth_e+1, opt_rlend=min_rledge_int  )
 
     rl_start   = grf_bdywidth_e+1
     rl_end     = min_rledge_int
@@ -1271,8 +1275,9 @@ CONTAINS
 !$OMP END PARALLEL
     !$ACC WAIT
 
-    CALL sync_patch_array(SYNC_E, p_patch, tot_tend)
-    CALL rbf_vec_interpol_cell(tot_tend, p_patch, p_int, ddt_u, ddt_v, opt_rlend=min_rlcell_int)
+    CALL sync_patch_array(SYNC_E, p_patch, tot_tend, lacc=.TRUE.)
+    CALL rbf_vec_interpol_cell(tot_tend, p_patch, p_int, ddt_u, ddt_v, &
+                               lacc=.TRUE., opt_rlend=min_rlcell_int)
 
   NULLIFY(p_int)
 
@@ -1372,8 +1377,8 @@ CONTAINS
     END IF
     !$ACC END KERNELS
 
-    CALL rbf_vec_interpol_edge( vn, p_patch, p_int, vt_e, opt_rlend=min_rledge_int-1, &
-                                opt_acc_async=.TRUE.)
+    CALL rbf_vec_interpol_edge( vn, p_patch, p_int, vt_e, lacc=.TRUE., &
+                                opt_rlend=min_rledge_int-1, opt_acc_async=.TRUE.)
 
     ! 1) Get horizontal tendencies at half level edges
     rl_start   = grf_bdywidth_e
@@ -1689,7 +1694,7 @@ CONTAINS
     !$ACC END PARALLEL LOOP
 
     !$ACC WAIT
-    CALL sync_patch_array(SYNC_C, p_patch, var)
+    CALL sync_patch_array(SYNC_C, p_patch, var, lacc=.TRUE.)
 
     !1) First set local vars to 1 for other scalars
     !   Soon get different routines for different scalars

@@ -46,7 +46,7 @@ MODULE mo_sgs_turbmetric
   USE mo_statistics,          ONLY: levels_horizontal_mean
   USE mo_nh_vert_interp_les,  ONLY: brunt_vaisala_freq, vert_intp_full2half_cell_3d
   USE mo_fortran_tools,       ONLY: copy, init, assert_acc_device_only
-  USE mo_atm_phy_nwp_config,  ONLY: atm_phy_nwp_config 
+  USE mo_atm_phy_nwp_config,  ONLY: atm_phy_nwp_config
 
 
   IMPLICIT NONE
@@ -331,17 +331,17 @@ MODULE mo_sgs_turbmetric
     !--------------------------------------------------------------------------
 
     CALL cells2verts_scalar(p_nh_prog%w, p_patch, p_int%cells_aw_verts, w_vert,   &
-                            opt_rlend=min_rlvert_int, opt_acc_async=.TRUE.)
+                            lacc=.TRUE., opt_rlend=min_rlvert_int, opt_acc_async=.TRUE.)
     CALL cells2edges_scalar(p_nh_prog%w, p_patch, p_int%c_lin_e, w_ie,            &
-                            opt_rlend=min_rledge_int-2, lacc=.TRUE.)
+                            lacc=.TRUE., opt_rlend=min_rledge_int-2)
 
     ! RBF reconstruction of velocity at vertices: include halos
     CALL rbf_vec_interpol_vertex(p_nh_prog%vn, p_patch, p_int, u_vert, v_vert,    &
-                            opt_rlend=min_rlvert_int, opt_acc_async=.TRUE.)
+                                 lacc=.TRUE., opt_rlend=min_rlvert_int, opt_acc_async=.TRUE.)
 
-    !$ACC WAIT
+    !$ACC WAIT !TODO: to be gone?
     !sync them
-    CALL sync_patch_array_mult(SYNC_V, p_patch, 3, u_vert, v_vert, w_vert)
+    CALL sync_patch_array_mult(SYNC_V, p_patch, 3, lacc=.TRUE., f3din1=u_vert, f3din2=v_vert, f3din3=w_vert)
 
     !Get vn at interfaces and then get vt at interfaces
     !Boundary values are extrapolated like dynamics although
@@ -388,15 +388,15 @@ MODULE mo_sgs_turbmetric
 !$OMP END DO
 !$OMP END PARALLEL
 
-    CALL rbf_vec_interpol_edge(vn_ie, p_patch, p_int, vt_ie, opt_rlstart=3, &
+    CALL rbf_vec_interpol_edge(vn_ie, p_patch, p_int, vt_ie, lacc=.TRUE., opt_rlstart=3, &
                                opt_rlend=min_rledge_int-2, opt_acc_async=.TRUE.)
 
     ! RBF reconstruction of velocity on half levels at vertices: include halos
-    CALL rbf_vec_interpol_vertex( vn_ie, p_patch, p_int, &
-                                  u_iv, v_iv, opt_rlend=min_rlvert_int, opt_acc_async=.TRUE.)
+    CALL rbf_vec_interpol_vertex( vn_ie, p_patch, p_int, u_iv, v_iv, &
+                                  lacc=.TRUE., opt_rlend=min_rlvert_int, opt_acc_async=.TRUE.)
 
-    !$ACC WAIT
-    CALL sync_patch_array_mult(SYNC_V, p_patch, 2, u_iv, v_iv)
+    !$ACC WAIT !TODO to be gone?
+    CALL sync_patch_array_mult(SYNC_V, p_patch, 2, lacc=.TRUE., f3din1=u_iv, f3din2=v_iv)
 
     !--------------------------------------------------------------------------
     !2) Compute horizontal strain rate tensor at full levels
@@ -643,7 +643,7 @@ MODULE mo_sgs_turbmetric
 !$OMP END PARALLEL
 
     !$ACC WAIT
-    CALL sync_patch_array(SYNC_C, p_patch, kh_ic)
+    CALL sync_patch_array(SYNC_C, p_patch, kh_ic, lacc=.TRUE.)
 
 !$OMP PARALLEL PRIVATE (rl_start,rl_end,i_startblk,i_endblk)
     !--------------------------------------------------------------------------
@@ -682,7 +682,7 @@ MODULE mo_sgs_turbmetric
 
     ! 4b) visc at vertices
     CALL cells2verts_scalar(kh_ic, p_patch, p_int%cells_aw_verts, km_iv, &
-                            opt_rlstart=5, opt_rlend=min_rlvert_int-1, opt_acc_async=.TRUE.)
+                            lacc=.TRUE., opt_rlstart=5, opt_rlend=min_rlvert_int-1, opt_acc_async=.TRUE.)
 
     DO jb = 1, p_patch%nblks_v
       !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1)
@@ -696,8 +696,8 @@ MODULE mo_sgs_turbmetric
     END DO
 
     ! 4c) Now calculate km at half levels at edge
-    CALL cells2edges_scalar(kh_ic, p_patch, p_int%c_lin_e, km_ie, &
-                            opt_rlstart=grf_bdywidth_e, opt_rlend=min_rledge_int-1, lacc=.TRUE.)
+    CALL cells2edges_scalar(kh_ic, p_patch, p_int%c_lin_e, km_ie, lacc=.TRUE., &
+                            opt_rlstart=grf_bdywidth_e, opt_rlend=min_rledge_int-1)
 !$OMP PARALLEL
 !$OMP DO PRIVATE(jb,jk,jc,i_startidx,i_endidx)
     DO jb = 1, p_patch%nblks_e
@@ -836,12 +836,12 @@ MODULE mo_sgs_turbmetric
     !  For triangles: 1=normal, 2=tangential, and 3 = z directions 
     !--------------------------------------------------------------------------
     CALL cells2verts_scalar(p_nh_prog%w, p_patch, p_int%cells_aw_verts, w_vert,                   &
-                            opt_rlend=min_rlvert_int)
+                            lacc=.FALSE., opt_rlend=min_rlvert_int)
     CALL cells2edges_scalar(p_nh_prog%w, p_patch, p_int%c_lin_e, w_ie,                            &
-                            opt_rlend=min_rledge_int-2)
+                            lacc=.FALSE., opt_rlend=min_rledge_int-2)
     CALL rbf_vec_interpol_vertex(p_nh_prog%vn, p_patch, p_int, u_vert, v_vert,                    &
-                                  opt_rlend=min_rlvert_int)
-    CALL sync_patch_array_mult(SYNC_V, p_patch, 3, w_vert, u_vert, v_vert)
+                                 lacc=.FALSE., opt_rlend=min_rlvert_int)
+    CALL sync_patch_array_mult(SYNC_V, p_patch, 3, lacc=.FALSE., f3din1=w_vert, f3din2=u_vert, f3din3=v_vert)
  
     rl_start   = grf_bdywidth_e+1
     rl_end     = min_rledge_int
@@ -882,16 +882,16 @@ MODULE mo_sgs_turbmetric
 !$OMP END DO
 !$OMP END PARALLEL
 
-    CALL sync_patch_array(SYNC_E, p_patch, vn_ie)
+    CALL sync_patch_array(SYNC_E, p_patch, vn_ie, lacc=.FALSE.)
 
-    CALL rbf_vec_interpol_edge(vn_ie, p_patch, p_int, vt_ie, opt_rlstart=3, &
-                               opt_rlend=min_rledge_int-2)
+    CALL rbf_vec_interpol_edge(vn_ie, p_patch, p_int, vt_ie, lacc=.FALSE., &
+                               opt_rlstart=3, opt_rlend=min_rledge_int-2)
 
     ! RBF reconstruction of velocity on half levels at vertices: include halos
     CALL rbf_vec_interpol_vertex( vn_ie, p_patch, p_int, &
-                                  u_iv, v_iv, opt_rlend=min_rlvert_int )
+                                  u_iv, v_iv, lacc=.FALSE., opt_rlend=min_rlvert_int )
 
-    CALL sync_patch_array_mult(SYNC_V, p_patch, 2, u_iv, v_iv)
+    CALL sync_patch_array_mult(SYNC_V, p_patch, 2, lacc=.FALSE., f3din1=u_iv, f3din2=v_iv)
 
     !--------------------------------------------------------------------------
     !2) Compute horizontal strain rate tensor at full levels
@@ -1130,16 +1130,16 @@ MODULE mo_sgs_turbmetric
 !$OMP END DO
 !$OMP END PARALLEL
 
-    CALL sync_patch_array_mult(SYNC_C, p_patch, 3, km_ic, kh_ic, p_prog_rcf%tke)
+    CALL sync_patch_array_mult(SYNC_C, p_patch, 3, lacc=.FALSE., f3din1=km_ic, f3din2=kh_ic, f3din3=p_prog_rcf%tke)
 
     ! Interpolate diffusivity (viscosity) to different locations: calculate  
     ! them for halos also because they will be used in diffusion
-    CALL cells2verts_scalar(km_ic, p_patch, p_int%cells_aw_verts, km_iv, opt_rlstart=5,           &
-                            opt_rlend=min_rlvert_int-1)
+    CALL cells2verts_scalar(km_ic, p_patch, p_int%cells_aw_verts, km_iv, lacc=.FALSE.,             &
+                            opt_rlstart=5, opt_rlend=min_rlvert_int-1)
     CALL cells2edges_scalar(km_ic, p_patch, p_int%c_lin_e, km_ie, opt_rlstart=grf_bdywidth_e,     &
-                            opt_rlend=min_rledge_int-1)
+                            lacc=.FALSE., opt_rlend=min_rledge_int-1)
     CALL cells2edges_scalar(kh_ic, p_patch, p_int%c_lin_e, kh_ie, opt_rlstart=grf_bdywidth_e,     &
-                            opt_rlend=min_rledge_int-1)
+                            lacc=.FALSE., opt_rlend=min_rledge_int-1)
 
     ! Assure that diffusivity and viscosity have minimum values
     ! May be obsolete if km_ic & kh_ic are initialized with les_config(jg)%km_min
@@ -1240,7 +1240,7 @@ MODULE mo_sgs_turbmetric
 
     !density at edge
     CALL cells2edges_scalar(p_nh_prog%rho, p_patch, p_int%c_lin_e, inv_rhoe, &
-                            opt_rlstart=rl_start, opt_rlend=rl_end, lacc=.TRUE.)
+                            lacc=.TRUE., opt_rlstart=rl_start, opt_rlend=rl_end)
 
     ! compute inv_rho
     ! compute D_11, D_12 on interface edges
@@ -1835,8 +1835,9 @@ MODULE mo_sgs_turbmetric
 
     !5) Get turbulent tendency at cell center
     !$ACC WAIT
-    CALL sync_patch_array(SYNC_E, p_patch, vn_new)
-    CALL rbf_vec_interpol_cell(vn_new, p_patch, p_int, unew, vnew, opt_rlend=min_rlcell_int, opt_acc_async=.TRUE.)
+    CALL sync_patch_array(SYNC_E, p_patch, vn_new, lacc=.TRUE.)
+    CALL rbf_vec_interpol_cell(vn_new, p_patch, p_int, unew, vnew, &
+                               lacc=.TRUE., opt_rlend=min_rlcell_int, opt_acc_async=.TRUE.)
 
     rl_start   = grf_bdywidth_c+1
     rl_end     = min_rlcell_int
@@ -1875,9 +1876,9 @@ MODULE mo_sgs_turbmetric
 #endif
 
 !$OMP PARALLEL PRIVATE(rl_start, rl_end, i_startblk, i_endblk)
-      CALL init(unew(:,:,:), lacc=.TRUE.)
-      CALL init(vnew(:,:,:), lacc=.TRUE.)
-      CALL init(vn_new(:,:,:), lacc=.TRUE.)
+      CALL init(unew(:,:,:), lacc=.FALSE.)
+      CALL init(vnew(:,:,:), lacc=.FALSE.)
+      CALL init(vn_new(:,:,:), lacc=.FALSE.)
 !$OMP BARRIER
 
       rl_start   = grf_bdywidth_e+1
@@ -1933,9 +1934,9 @@ MODULE mo_sgs_turbmetric
 !$OMP END PARALLEL
 
       !Get sgs flux at cell center
-      CALL sync_patch_array(SYNC_E, p_patch, vn_new)
+      CALL sync_patch_array(SYNC_E, p_patch, vn_new, lacc=.FALSE.)
       CALL rbf_vec_interpol_cell(vn_new, p_patch, p_int, unew, vnew, &
-                                 opt_rlend=min_rlcell_int)
+                                 lacc=.TRUE., opt_rlend=min_rlcell_int)
 
       !u sgs flux
       CALL levels_horizontal_mean(unew, p_patch%cells%area, p_patch%cells%owned, outvar)
@@ -2035,8 +2036,8 @@ MODULE mo_sgs_turbmetric
 !$OMP END PARALLEL
 
 
-    CALL rbf_vec_interpol_edge(p_nh_prog%vn, p_patch, p_int, vt_e, opt_rlend=min_rledge_int-1, &
-                               opt_acc_async=.TRUE.)
+    CALL rbf_vec_interpol_edge(p_nh_prog%vn, p_patch, p_int, vt_e, lacc=.TRUE., &
+                               opt_rlend=min_rledge_int-1, opt_acc_async=.TRUE. )
 
     !Calculate rho at interface for vertical diffusion
     rl_start   = grf_bdywidth_c+1
@@ -2230,7 +2231,7 @@ MODULE mo_sgs_turbmetric
 !$OMP END PARALLEL
 
     !$ACC WAIT
-    CALL sync_patch_array(SYNC_E, p_patch, hor_tend)
+    CALL sync_patch_array(SYNC_E, p_patch, hor_tend, lacc=.TRUE.)
 
     !Interpolate horizontal tendencies to w point: except top and bottom boundaries
     !w==0 at these boundaries
@@ -2445,7 +2446,7 @@ MODULE mo_sgs_turbmetric
 !$OMP END PARALLEL
 
     !$ACC WAIT
-    CALL sync_patch_array(SYNC_C, p_patch, p_nh_prog%w)
+    CALL sync_patch_array(SYNC_C, p_patch, p_nh_prog%w, lacc=.TRUE.)
 
     !$ACC WAIT
     !$ACC END DATA ! local CREATE
@@ -2545,7 +2546,7 @@ MODULE mo_sgs_turbmetric
     !2) Calculate exner at edge for horizontal diffusion
 
     IF (scalar_name == tracer_theta) &
-      CALL cells2edges_scalar(exner, p_patch, p_int%c_lin_e, exner_me, opt_rlend=min_rledge_int-2, lacc=.TRUE.)
+      CALL cells2edges_scalar(exner, p_patch, p_int%c_lin_e, exner_me, lacc=.TRUE., opt_rlend=min_rledge_int-2)
 
     !3) Calculate exner at interface for vertical diffusion
 
@@ -2672,10 +2673,11 @@ MODULE mo_sgs_turbmetric
 !$OMP END PARALLEL
 
     !$ACC WAIT
-    CALL sync_patch_array(SYNC_C, p_patch, var_ic)
+    CALL sync_patch_array(SYNC_C, p_patch, var_ic, lacc=.TRUE.)
 
     CALL cells2edges_scalar(var_ic, p_patch, p_int%c_lin_e, var_ie, lacc=.TRUE.)
-    CALL cells2verts_scalar(var_ic, p_patch, p_int%cells_aw_verts, var_iv, opt_acc_async=.TRUE.)
+    CALL cells2verts_scalar(var_ic, p_patch, p_int%cells_aw_verts, var_iv,   &
+                            lacc=.TRUE., opt_acc_async=.TRUE.)
 
 
 !$OMP PARALLEL PRIVATE(rl_start, rl_end, i_startblk, i_endblk)
@@ -3270,12 +3272,12 @@ MODULE mo_sgs_turbmetric
 !$OMP END DO
 !$OMP END PARALLEL
 
-    CALL cells2edges_scalar(rho_ic, p_patch, p_int%c_lin_e, rho_ie, opt_rlstart=grf_bdywidth_e,   &
-                            opt_rlend=min_rledge_int-1)
-    CALL cells2edges_scalar(km_c, p_patch, p_int%c_lin_e, km_e, opt_rlstart=grf_bdywidth_e,       &
-                            opt_rlend=min_rledge_int-1)
-    CALL cells2edges_scalar(var, p_patch, p_int%c_lin_e, var_e)
-    CALL cells2verts_scalar(var, p_patch, p_int%cells_aw_verts, var_v)
+    CALL cells2edges_scalar(rho_ic, p_patch, p_int%c_lin_e, rho_ie, lacc=.FALSE.,  &
+                            opt_rlstart=grf_bdywidth_e, opt_rlend=min_rledge_int-1)
+    CALL cells2edges_scalar(km_c, p_patch, p_int%c_lin_e, km_e, lacc=.FALSE.,  &
+                            opt_rlstart=grf_bdywidth_e, opt_rlend=min_rledge_int-1)
+    CALL cells2edges_scalar(var, p_patch, p_int%c_lin_e, var_e, lacc=.FALSE.)
+    CALL cells2verts_scalar(var, p_patch, p_int%cells_aw_verts, var_v, lacc=.FALSE.)
 
     var_e(:,nlev+1,:) = var_e(:,nlev,:)
     var_v(:,nlev+1,:) = var_v(:,nlev,:)

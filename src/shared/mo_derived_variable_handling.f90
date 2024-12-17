@@ -34,6 +34,7 @@ MODULE mo_derived_variable_handling
   USE mo_cdi,                 ONLY: DATATYPE_FLT32, DATATYPE_FLT64, GRID_LONLAT, TSTEP_CONSTANT
   USE mo_util_texthash,       ONLY: text_hash_c
   USE mo_mpi,                 ONLY: p_bcast, i_am_accel_node
+  USE mo_fortran_tools,       ONLY: set_acc_host_or_device
   USE ISO_C_BINDING,          ONLY: C_INT
 
 #include <add_var_acc_macro.inc>
@@ -282,17 +283,18 @@ CONTAINS
 
   END SUBROUTINE init_op
 
-  SUBROUTINE perform_op(src, dest, funccode, weight, miss, miss_s)
+  SUBROUTINE perform_op(src, dest, funccode, lacc, weight, miss, miss_s)
     TYPE(t_var), POINTER, INTENT(IN) :: src
     TYPE(t_var), POINTER, INTENT(INOUT) :: dest
     INTEGER(C_INT), INTENT(IN) :: funccode
+    LOGICAL, INTENT(IN), OPTIONAL :: lacc ! DyKi: Remove optional when jsbach updated
     REAL(wp), INTENT(IN), OPTIONAL :: weight, miss
     REAL(sp), INTENT(IN), OPTIONAL :: miss_s
     REAL(wp) :: miss_src, miss_dst, weight_dst
     INTEGER :: ic,si,sj,sk,sl,sm,ei,ej,ek,el,em,sbi,ebi,bk,sbk,ebk
     REAL(wp), POINTER :: sd5d(:,:,:,:,:)
     REAL(sp), POINTER :: ss5d(:,:,:,:,:)
-    LOGICAL :: lacc
+    LOGICAL :: lzacc
 
     IF (PRESENT(weight)) weight_dst = weight
     IF (PRESENT(miss)) miss_dst = miss
@@ -334,13 +336,23 @@ CONTAINS
       sbi = dest%info%subset%start_index
       ebi = dest%info%subset%end_index
     END IF
-    lacc = dest%info%lopenacc .AND. i_am_accel_node
-    CALL perform_op_5d()
+
+    ! DyKi: Update jsbach for mandatory lacc, then remove i_am_accel_node
+    IF (PRESENT(lacc)) THEN
+      lzacc = dest%info%lopenacc .AND. lacc
+    ELSE 
+      lzacc = dest%info%lopenacc .AND. i_am_accel_node
+    END IF
+    CALL perform_op_5d(lacc=lzacc)
   CONTAINS
 
-  SUBROUTINE perform_op_5d()
+  SUBROUTINE perform_op_5d(lacc)
+    LOGICAL, INTENT(IN) :: lacc
     INTEGER :: i,j,k,l,m,lblk
     REAL(wp), POINTER :: tmp1(:,:,:,:,:), tmp2(:,:,:,:,:)
+    LOGICAL :: lzacc
+
+    CALL set_acc_host_or_device(lzacc,lacc)
 
 #define _begin_loop_construct_ \
 DO m = sm, em;\
@@ -359,7 +371,7 @@ DO m = sm, em;\
   END DO;\
 END DO
 #define _idx_ i,j,k,l,m
-#define __myACC_directive !$ACC PARALLEL LOOP PRESENT(tmp1, tmp2) COLLAPSE(5) GANG VECTOR ASYNC(1) IF(lacc)
+#define __myACC_directive !$ACC PARALLEL LOOP PRESENT(tmp1, tmp2) COLLAPSE(5) GANG VECTOR ASYNC(1) IF(lzacc)
 #define __myOMP_directive !ICON_OMP PARALLEL DO PRIVATE(lblk) COLLAPSE(4)
     IF (ASSOCIATED(sd5d)) THEN
       tmp1 => sd5d
@@ -435,16 +447,18 @@ __myACC_directive
 
   !! Execute the accumulation forall internal variables and compute mean values
   !! if the corresponding event is active
-  SUBROUTINE update_statistics()
+  SUBROUTINE update_statistics(lacc)
+    LOGICAL, INTENT(IN), OPTIONAL :: lacc ! DyKi: Remove optional when jsbach updated
     INTEGER :: iop
 
     DO iop = 1, nops
       IF (ALLOCATED(ops(iop)%events)) &
-        CALL update_op()
+        CALL update_op(lacc=lacc)
     END DO
   CONTAINS
 
-  SUBROUTINE update_op()
+  SUBROUTINE update_op(lacc)
+    LOGICAL, INTENT(IN), OPTIONAL :: lacc ! DyKi: Remove optional when jsbach updated
     INTEGER :: tl, iv, ie, it, ne, nv
     INTEGER, POINTER :: ct
     TYPE(t_var), POINTER :: src, dst
@@ -469,16 +483,16 @@ __myACC_directive
           src => ederiv%vars(iv)%a%src(it)%p
         END IF
         IF (ct .EQ. 0) THEN ! initial assignment
-          CALL perform_op(src, dst, MERGE(F_ASS_SQ, F_ASS, opcodes(iop) .EQ. O_MEAN_SQ))
+          CALL perform_op(src, dst, MERGE(F_ASS_SQ, F_ASS, opcodes(iop) .EQ. O_MEAN_SQ), lacc=lacc)
         ELSE ! actual update
-          CALL perform_op(src, dst, opfuncs(iop))
+          CALL perform_op(src, dst, opfuncs(iop), lacc=lacc)
         END IF
         ct = ct + 1
         IF (isactive) THEN ! output step, so weighting is applied this time for time mean operators
           IF ((O_MEAN .EQ. opcodes(iop) .OR. O_MEAN_SQ .EQ. opcodes(iop)) .AND. ct .GT. 1) &
-            & CALL perform_op(src, dst, F_WGT, weight=(1._wp / REAL(ct, wp)))
+            & CALL perform_op(src, dst, F_WGT, lacc=lacc, weight=(1._wp / REAL(ct, wp)))
           IF (dst%info%lmiss) & ! (re)set missval where applicable
-            & CALL perform_op(src, dst, F_MISS, miss=dst%info%missval%rval, &
+            & CALL perform_op(src, dst, F_MISS, lacc=lacc, miss=dst%info%missval%rval, &
                 &             miss_s=src%info%missval%sval)
           ct = 0
         END IF

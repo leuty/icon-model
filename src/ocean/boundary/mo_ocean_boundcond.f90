@@ -174,7 +174,7 @@ CONTAINS
     END SELECT
 !ICON_OMP_END_PARALLEL
 !     CALL map_cell2edges_3D( patch_3D, ocean_state%p_aux%bc_top_veloc_cc,ocean_state%p_aux%bc_top_vn,p_op_coeff,level=1)
-    ! CALL sync_patch_array(SYNC_E, patch_3D%p_patch_2D(1), ocean_state%p_aux%bc_top_vn)
+    ! CALL sync_patch_array(SYNC_E, patch_3D%p_patch_2D(1), ocean_state%p_aux%bc_top_vn, lacc=.FALSE.)
 
     !---------Debug Diagnostics-------------------------------------------
 !     idt_src=2  ! output print level (1-5, fix)
@@ -385,7 +385,7 @@ CONTAINS
 
     CALL map_cell2edges_3D( patch_3D, ocean_state%p_aux%bc_top_veloc_cc,ocean_state%p_aux%bc_top_vn, &
       p_op_coeff,level=1,lacc=lzacc)
-    ! CALL sync_patch_array(SYNC_E, patch_3D%p_patch_2D(1), ocean_state%p_aux%bc_top_vn)
+    ! CALL sync_patch_array(SYNC_E, patch_3D%p_patch_2D(1), ocean_state%p_aux%bc_top_vn, lacc=lzacc)
 
     !---------Debug Diagnostics-------------------------------------------
     idt_src=2  ! output print level (1-5, fix)
@@ -625,7 +625,7 @@ CONTAINS
 ! !       END DO
 ! !       
 ! !       CALL map_cell2edges_2d(patch_3D, ocean_state%p_aux%bc_bot_veloc_cc, ocean_state%p_aux%bc_bot_vn,p_op_coeff)
-! !       CALL sync_patch_array(SYNC_E, patch_2D, ocean_state%p_aux%bc_bot_v)
+! !       CALL sync_patch_array(SYNC_E, patch_2D, ocean_state%p_aux%bc_bot_v, lacc=.FALSE.)
 ! !       
 ! !       !ocean_state%p_aux%bc_bot_vn(:,:) = ocean_state%p_aux%bc_bot_vn(:,:) - z_e(:,1,:)
 ! !       
@@ -709,7 +709,7 @@ CONTAINS
 ! !         
 ! !       ENDDO
 ! !     END DO
-! !     CALL sync_patch_array(SYNC_E, patch_2D, z_grad_h(:,:,:))
+! !     CALL sync_patch_array(SYNC_E, patch_2D, z_grad_h(:,:,:), lacc=.FALSE.)
 ! !     !----------------------------------------
 ! !     
 ! !     !----------------------------------------
@@ -792,7 +792,7 @@ CONTAINS
 ! ! !          &                  p_patch_horz,                  &
 ! ! !          &                  p_op_coeff%grad_coeff(:,1,:),  &
 ! ! !          &                  z_gradh_e(:,1,:))
-! !     CALL sync_patch_array(SYNC_E, patch_2D, z_grad_h(:,1,:))
+! !     CALL sync_patch_array(SYNC_E, patch_2D, z_grad_h(:,1,:), lacc=.FALSE.)
 ! !     
 ! !     IF(discretization_scheme==1)THEN
 ! ! !       CALL map_edges2cell( patch_2D,        &

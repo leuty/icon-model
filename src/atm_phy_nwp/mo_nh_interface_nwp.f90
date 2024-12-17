@@ -229,7 +229,7 @@ CONTAINS
 
     TYPE(t_var_list_ptr), INTENT(inout) :: p_prog_list !current prognostic state list
 
-    LOGICAL, INTENT(in), OPTIONAL :: lacc !flag to run on GPU
+    LOGICAL, INTENT(in) :: lacc !flag to run on GPU
 
     ! !OUTPUT PARAMETERS:            !<variables induced by the whole physics
     ! Local array bounds:
@@ -288,7 +288,6 @@ CONTAINS
       & tracers_comm, tempv_comm, exner_pr_comm, w_comm
 
     INTEGER :: ntracer_sync
-    LOGICAL :: lzacc ! non-optional version of lacc
 
 #ifdef __PGI_WORKAROUND
     INTEGER :: gp_count_t(ntiles_total)
@@ -317,8 +316,6 @@ CONTAINS
     TYPE(t_art_atmo), POINTER    :: &
       &  art_atmo           !< Pointer to ART atmospheric fields
 #endif
-
-    CALL set_acc_host_or_device(lzacc, lacc)
 
     IF (ltimer) CALL timer_start(timer_physics)
 
@@ -394,11 +391,11 @@ CONTAINS
     IF(sppt_config(jg)%lsppt .AND. .NOT. linit) THEN
       ! Construct field of random numbers for SPPT
       CALL construct_rn (pt_patch, mtime_datetime, sppt_config(jg), sppt(jg)%rn_3d, &
-        &                sppt(jg)%rn_2d_now, sppt(jg)%rn_2d_new, lacc=lzacc)
+        &                sppt(jg)%rn_2d_now, sppt(jg)%rn_2d_new, lacc=lacc)
     ENDIF ! end of lsppt
 
     !$ACC DATA CREATE(zddt_v_raylfric, zddt_u_raylfric, sqrt_ri, z_ddt_temp, z_ddt_temp_drag, z_ddt_alpha, z_ddt_v_tot) &
-    !$ACC   CREATE(zcosmu0, z_ddt_u_tot, z_exner_sv, z_qsum, kc_inversion, kc_entr_zone, lfound_inversion) IF(lzacc)
+    !$ACC   CREATE(zcosmu0, z_ddt_u_tot, z_exner_sv, z_qsum, kc_inversion, kc_entr_zone, lfound_inversion) IF(lacc)
     !$ACC DATA COPYIN(dt_phy_jg)
 
     IF ( lcall_phy_jg(itturb) .OR. lcall_phy_jg(itconv) .OR.           &
@@ -420,6 +417,7 @@ CONTAINS
         &                        pt_patch,              & !< patch
         &                        pt_int_state,          & !< interpolation state
         &                        pt_diag%u, pt_diag%v,  & !<  reconstr. u,v wind
+        &                        lacc=lacc,             & !< run on GPU
         &                        opt_rlend=min_rlcell_int )
 
       IF (timers_level > 3) CALL timer_stop(timer_phys_u_v)
@@ -431,6 +429,7 @@ CONTAINS
       ! Diagnose temperature needed for debugging output
       CALL diagnose_pres_temp (p_metrics, pt_prog, pt_prog_rcf,    &
            &                              pt_diag, pt_patch,       &
+           &                              lacc=lacc,               &
            &                              opt_calc_temp=.TRUE.,    &
            &                              opt_calc_pres=.FALSE.,   &
            &                              opt_rlend=min_rlcell_int)
@@ -467,10 +466,12 @@ CONTAINS
         CALL get_indices_c(pt_patch, jb, i_startblk, i_endblk,  &
                              i_startidx, i_endidx, rl_start, rl_end)
 
-        CALL diag_temp (pt_prog, pt_prog_rcf, condensate_list, pt_diag,    &
-                        jb, i_startidx, i_endidx, 1, kstart_moist(jg), nlev)
+        CALL diag_temp (pt_prog, pt_prog_rcf, condensate_list, pt_diag,      &
+          &             jb, i_startidx, i_endidx, 1, kstart_moist(jg), nlev, &
+          &             lacc=lacc)
         
-        CALL diag_pres (pt_prog, pt_diag, p_metrics, jb, i_startidx, i_endidx, 1, nlev)
+        CALL diag_pres (pt_prog, pt_diag, p_metrics, jb, i_startidx, i_endidx, 1, nlev, &
+          &             lacc=lacc)
 
       ENDDO
 !$OMP END DO NOWAIT
@@ -489,7 +490,7 @@ CONTAINS
       CALL get_indices_c(pt_patch, jb, i_startblk, i_endblk,  &
                          i_startidx, i_endidx, rl_start, rl_end)
 
-      !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1) IF(lzacc)
+      !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1) IF(lacc)
       !$ACC LOOP GANG VECTOR COLLAPSE(2)
       DO jk = 1, pt_patch%nlev
         DO jc = i_startidx, i_endidx
@@ -531,7 +532,7 @@ CONTAINS
            &                      i_startidx  = i_startidx,  & !in
            &                      i_endidx    = i_endidx,    & !in
            &                      kend        = nlev,        & !in
-           &                      lacc        = lzacc        ) !in
+           &                      lacc        = lacc         ) !in
         ENDIF
 
 
@@ -553,15 +554,16 @@ CONTAINS
           &                      i_startidx   = i_startidx,           & !in
           &                      i_endidx     = i_endidx,             & !in
           &                      kend         = nlev,                 & !in
-          &                      lacc         = lzacc                 ) !in
+          &                      lacc         = lacc                  ) !in
 
 
       ENDIF  ! linit
 
 
       IF (l_any_fastphys .OR. linit) THEN  ! diagnose temperature
-        CALL diag_temp (pt_prog, pt_prog_rcf, condensate_list, pt_diag,    &
-                        jb, i_startidx, i_endidx, 1, kstart_moist(jg), nlev)
+        CALL diag_temp (pt_prog, pt_prog_rcf, condensate_list, pt_diag,      &
+                        jb, i_startidx, i_endidx, 1, kstart_moist(jg), nlev, &
+                        lacc=lacc)
       ENDIF
 
 
@@ -569,12 +571,12 @@ CONTAINS
         ! Save prognostic/diagnostic variables for SPPT - Temperature and Tracer
         CALL save_state(jb, i_startidx, i_endidx, nlev,    &
           &             pt_diag%temp, pt_prog_rcf%tracer,  &
-          &             sppt(jg), lacc=lzacc)
+          &             sppt(jg), lacc=lacc)
       ENDIF ! end of lsppt
 
 
       ! Save Exner pressure field (this is needed for a correction to reduce sound-wave generation by latent heating)
-      !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1) IF(lzacc)
+      !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1) IF(lacc)
       !$ACC LOOP GANG VECTOR COLLAPSE(2)
       DO jk = 1, pt_patch%nlev
         DO jc = i_startidx, i_endidx
@@ -592,8 +594,8 @@ CONTAINS
       IF (atm_phy_nwp_config(jg)%inwp_gscp == 8) THEN
         ptr_sbm_storage => get_sbm_storage(patch_id = jg)
 !$OMP PARALLEL
-        CALL copy(pt_prog_rcf%tracer(:,:,:,iqv), ptr_sbm_storage%qv_before_satad, lacc=lzacc)
-        CALL copy(pt_diag%temp(:,:,:),           ptr_sbm_storage%temp_before_satad, lacc=lzacc)
+        CALL copy(pt_prog_rcf%tracer(:,:,:,iqv), ptr_sbm_storage%qv_before_satad, lacc=lacc)
+        CALL copy(pt_diag%temp(:,:,:),           ptr_sbm_storage%temp_before_satad, lacc=lacc)
 !$OMP END PARALLEL
       ENDIF
 
@@ -602,7 +604,7 @@ CONTAINS
 
         ! initialize tt_lheat to be in used LHN
         IF (lcompute_tt_lheat) THEN
-          !$ACC KERNELS DEFAULT(PRESENT) ASYNC(1) IF(lzacc)
+          !$ACC KERNELS DEFAULT(PRESENT) ASYNC(1) IF(lacc)
           prm_diag%tt_lheat (:,:,jb) = - pt_diag%temp   (:,:,jb)
           !$ACC END KERNELS
         ENDIF
@@ -627,9 +629,10 @@ CONTAINS
            & kup      = nlev                            & !> IN
            )
  
-        CALL calc_qsum (pt_prog_rcf%tracer, z_qsum, condensate_list, jb, i_startidx, i_endidx, 1, kstart_moist(jg), nlev)
+        CALL calc_qsum (pt_prog_rcf%tracer, z_qsum, condensate_list, jb, i_startidx, i_endidx, 1, kstart_moist(jg), nlev, &
+           &            lacc=lacc)
 
-        !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1) IF(lzacc)
+        !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1) IF(lacc)
         !$ACC LOOP GANG VECTOR PRIVATE(z_tempv) COLLAPSE(2)
         DO jk = kstart_moist(jg), nlev
 !DIR$ IVDEP
@@ -650,7 +653,7 @@ CONTAINS
 
         ! initialize tt_lheat to be in used LHN
         IF (lcompute_tt_lheat) THEN
-          !$ACC KERNELS DEFAULT(PRESENT) ASYNC(1) IF(lzacc)
+          !$ACC KERNELS DEFAULT(PRESENT) ASYNC(1) IF(lacc)
           prm_diag%tt_lheat (:,:,jb) = prm_diag%tt_lheat (:,:,jb) + pt_diag%temp   (:,:,jb)
           !$ACC END KERNELS
         ENDIF
@@ -658,7 +661,8 @@ CONTAINS
 
       IF (lcall_phy_jg(itgscp) .OR. lcall_phy_jg(itturb) .OR. lcall_phy_jg(itsfc)) THEN
         ! diagnose pressure for subsequent fast-physics parameterizations
-        CALL diag_pres (pt_prog, pt_diag, p_metrics, jb, i_startidx, i_endidx, 1, nlev)
+        CALL diag_pres (pt_prog, pt_diag, p_metrics, jb, i_startidx, i_endidx, 1, nlev, &
+          &             lacc=lacc)
       ENDIF
 
 
@@ -681,7 +685,7 @@ CONTAINS
     !!-------------------------------------------------------------------------
 
 #ifndef __NO_ICON_COMIN__
-    CALL icon_call_callback(EP_ATM_SURFACE_BEFORE, jg, lacc=lzacc)
+    CALL icon_call_callback(EP_ATM_SURFACE_BEFORE, jg, lacc=lacc)
 #endif
 
     !For turbulence schemes NOT including the call to the surface scheme.
@@ -708,16 +712,16 @@ CONTAINS
                              & lnd_prog_now, lnd_prog_new,       & !>inout
                              & wtr_prog_now, wtr_prog_new,       & !>inout
                              & lnd_diag,                         & !>input
-                             & lacc=lzacc                         ) !>in
+                             & lacc=lacc                         ) !>in
 
        !$ser verbatim IF (.not. linit) CALL serialize_all(nproma, jg, "surface", .FALSE., opt_dt=mtime_datetime)
       IF (timers_level > 2) CALL timer_stop(timer_nwp_surface)
     END IF
 #ifndef __NO_ICON_COMIN__
-    CALL icon_call_callback(EP_ATM_SURFACE_AFTER, jg, lacc=lzacc)
+    CALL icon_call_callback(EP_ATM_SURFACE_AFTER, jg, lacc=lacc)
 #endif
 #ifndef __NO_ICON_COMIN__
-    CALL icon_call_callback(EP_ATM_TURBULENCE_BEFORE, jg, lacc=lzacc)
+    CALL icon_call_callback(EP_ATM_TURBULENCE_BEFORE, jg, lacc=lacc)
 #endif
 
     !Call to turbulent parameterization schemes
@@ -742,7 +746,7 @@ CONTAINS
                             & wtr_prog_now,                     & !>in
                             & lnd_prog_now,                     & !>in
                             & lnd_diag,                         & !>in
-                            & lacc=lzacc                        ) !>in
+                            & lacc=lacc                         ) !>in
 
       !$ser verbatim IF (.not. linit) CALL serialize_all(nproma, jg, "turbdiff", .FALSE., opt_dt=mtime_datetime)
 
@@ -753,7 +757,7 @@ CONTAINS
             & mtime_datetime, dt_phy_jg(itfastphy), pt_patch, ccycle_config(jg), &
             & vdiff_config(jg), pt_prog, pt_prog_rcf%tracer, pt_prog_rcf%tke, pt_diag, p_metrics, &
             & prm_diag, ext_data, lnd_diag, lnd_prog_new, wtr_prog_now, wtr_prog_new, &
-            & prm_diag%nwp_vdiff_state, prm_nwp_tend, initialize=linit, lacc=lzacc &
+            & prm_diag%nwp_vdiff_state, prm_nwp_tend, initialize=linit, lacc=lacc &
           )
 
         IF (is_coupled_to_ocean()) THEN
@@ -761,13 +765,13 @@ CONTAINS
 
           CALL nwp_vdiff_update_seaice ( &
               & pt_patch, .FALSE., lnd_diag%fr_seaice(:,:), ext_data%atm%list_sea, &
-              & ext_data%atm%list_seaice, wtr_prog_new, lacc=lzacc &
+              & ext_data%atm%list_seaice, wtr_prog_new, lacc=lacc &
             )
 
         ELSE
           CALL nwp_vdiff_update_seaice_list ( &
               & pt_patch, lnd_diag%fr_seaice(:,:), ext_data%atm%list_sea, &
-              & ext_data%atm%list_seaice, lacc=lzacc &
+              & ext_data%atm%list_seaice, lacc=lacc &
             )
         END IF
 
@@ -778,12 +782,12 @@ CONTAINS
         !>  Additional syncs required for 3D turbulence.
         !----------------------------------------------------------------------------------
         IF(diffusion_config(jg)%lhdiff_w) THEN
-          CALL sync_patch_array(SYNC_C, pt_patch, pt_prog%w)
+          CALL sync_patch_array(SYNC_C, pt_patch, pt_prog%w, lacc=lacc)
         ENDIF
 
         ntracer_sync = iqc
-        CALL sync_patch_array_mult(SYNC_C, pt_patch, ntracer_sync+5, pt_diag%temp, pt_diag%tempv, &
-                                   pt_prog%exner, pt_diag%u, pt_diag%v, f4din=pt_prog_rcf%tracer(:,:,:,1:ntracer_sync))
+        CALL sync_patch_array_mult(SYNC_C, pt_patch, ntracer_sync+5, lacc=lacc, f3din1=pt_diag%temp, f3din2=pt_diag%tempv, &
+                                   f3din3=pt_prog%exner, f3din4=pt_diag%u, f3din5=pt_diag%v, f4din=pt_prog_rcf%tracer(:,:,:,1:ntracer_sync))
 
         CALL les_turbulence (  dt_phy_jg(itfastphy),             & !>in
                              & p_sim_time,                       & !>in
@@ -797,7 +801,7 @@ CONTAINS
                              & lnd_prog_now,                     & !>in
                              & lnd_prog_new,                     & !>inout ONLY for idealized LES
                              & lnd_diag,                         & !>in
-                             & lacc=lzacc                        ) !>in
+                             & lacc=lacc                         ) !>in
 
 #endif
       CASE DEFAULT
@@ -811,10 +815,10 @@ CONTAINS
     END IF
 
 #ifndef __NO_ICON_COMIN__
-    CALL icon_call_callback(EP_ATM_TURBULENCE_AFTER, jg, lacc=lzacc)
+    CALL icon_call_callback(EP_ATM_TURBULENCE_AFTER, jg, lacc=lacc)
 #endif
 #ifndef __NO_ICON_COMIN__
-    CALL icon_call_callback(EP_ATM_MICROPHYSICS_BEFORE, jg, lacc=lzacc)
+    CALL icon_call_callback(EP_ATM_MICROPHYSICS_BEFORE, jg, lacc=lacc)
 #endif
     !-------------------------------------------------------------------------
     !  prognostic microphysic and precipitation scheme
@@ -842,8 +846,8 @@ CONTAINS
                             & pt_diag ,                         & !>inout
                             & prm_diag, prm_nwp_tend,           & !>inout
                             & ext_data,                         & !>in
-                            & lcompute_tt_lheat,                &
-                            & lacc=lzacc ) !>in
+                            & lcompute_tt_lheat,                & !>in
+                            & lacc=lacc )                         !>in
 
       !$ser verbatim IF (.not. linit) CALL serialize_all(nproma, jg, "microphysics", .FALSE., opt_dt=mtime_datetime)
 
@@ -852,7 +856,7 @@ CONTAINS
     ENDIF
 
 #ifndef __NO_ICON_COMIN__
-    CALL icon_call_callback(EP_ATM_MICROPHYSICS_AFTER, jg, lacc=lzacc)
+    CALL icon_call_callback(EP_ATM_MICROPHYSICS_AFTER, jg, lacc=lacc)
 #endif
 
 #ifdef __ICON_ART
@@ -885,7 +889,7 @@ CONTAINS
                 &                   pt_diag,               & !> inout
                 &                   pt_prog_rcf%tracer,    & !>
                 &                   prm_diag = prm_diag,   & !> optional
-                &                   lacc=lzacc)
+                &                   lacc=lacc)
 
         CALL art_washout_interface(pt_prog,pt_diag,        & !>in
                 &            dt_phy_jg(itfastphy),         & !>in
@@ -893,7 +897,7 @@ CONTAINS
                 &            prm_diag,                     & !>in
                 &            p_metrics,                    & !>in
                 &            pt_prog_rcf%tracer,           & !>inout
-                &            lacc=lzacc)
+                &            lacc=lacc)
       END IF
     ENDIF !lart
 #endif
@@ -982,7 +986,7 @@ CONTAINS
 
           ELSE ! Standard Update one-moment
             ! update prognostic variables
-            !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1) IF(lzacc)
+            !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1) IF(lacc)
             !$ACC LOOP GANG VECTOR COLLAPSE(2)
             DO jk = 1, nlev
               DO jc = i_startidx, i_endidx
@@ -1098,9 +1102,10 @@ CONTAINS
         !!
         !-------------------------------------------------------------------------
 
-        CALL calc_qsum (pt_prog_rcf%tracer, z_qsum, condensate_list, jb, i_startidx, i_endidx, 1, kstart_moist(jg), nlev)
+        CALL calc_qsum (pt_prog_rcf%tracer, z_qsum, condensate_list, jb, i_startidx, i_endidx, 1, kstart_moist(jg), nlev, &
+         &              lacc=lacc)
 
-        !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1) IF(lzacc)
+        !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1) IF(lacc)
         !$ACC LOOP GANG VECTOR COLLAPSE(2)
         DO jk = 1, nlev
 !DIR$ IVDEP
@@ -1128,7 +1133,7 @@ CONTAINS
         ! the virtual increment is neglected here because this tendency is used only as
         ! input for the convection scheme, which is rather insensitive against this quantity
         IF ( lcall_phy_jg(itconv) ) THEN
-          !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1) IF(lzacc)
+          !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1) IF(lacc)
           !$ACC LOOP GANG VECTOR COLLAPSE(2)
           DO jk = kstart_moist(jg), nlev
 !DIR$ IVDEP
@@ -1148,7 +1153,8 @@ CONTAINS
 
       IF (lcall_phy_jg(itturb) .OR. linit .OR. l_any_slowphys) THEN
         ! rediagnose pressure
-        CALL diag_pres (pt_prog, pt_diag, p_metrics, jb, i_startidx, i_endidx, 1, nlev)
+        CALL diag_pres (pt_prog, pt_diag, p_metrics, jb, i_startidx, i_endidx, 1, nlev, &
+          &             lacc=lacc)
       ENDIF
 
       IF (iprog_aero >= 1 .AND. .NOT. linit) THEN
@@ -1205,7 +1211,7 @@ CONTAINS
                           & wtr_prog_new,                     & !>in
                           & lnd_prog_new,                     & !>inout
                           & lnd_diag,                         & !>inout
-                          & lacc=lzacc                         ) !>in
+                          & lacc=lacc                         ) !>in
       !$ser verbatim IF (.not. linit) CALL serialize_all(nproma, jg, "turbtrans", .FALSE., opt_dt=mtime_datetime)
 
       IF (timers_level > 1) CALL timer_stop(timer_nwp_turbulence)
@@ -1229,10 +1235,10 @@ CONTAINS
                            i_startidx, i_endidx, rl_start, rl_end)
 
         ! Temperature
-        CALL calc_tend(i_startidx, i_endidx, nlev, sppt(jg)%ddt_temp_fast(:,:,jb), pt_diag%temp(:,:,jb), sppt(jg)%temp_now(:,:,jb), dt_loc, lacc=lzacc)
+        CALL calc_tend(i_startidx, i_endidx, nlev, sppt(jg)%ddt_temp_fast(:,:,jb), pt_diag%temp(:,:,jb), sppt(jg)%temp_now(:,:,jb), dt_loc, lacc=lacc)
 
         ! Wind components - use existing tendencies from turbulence
-        !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1) IF(lzacc)
+        !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1) IF(lacc)
         !$ACC LOOP GANG VECTOR COLLAPSE(2)
         DO jk = 1, nlev
           DO jc = i_startidx, i_endidx
@@ -1243,14 +1249,14 @@ CONTAINS
         !$ACC END PARALLEL
 
         ! Tracer
-        CALL calc_tend(i_startidx, i_endidx, nlev, sppt(jg)%ddt_qv_fast(:,:,jb), pt_prog_rcf%tracer(:,:,jb,iqv), sppt(jg)%qv_now(:,:,jb), dt_loc, lacc=lzacc)
-        CALL calc_tend(i_startidx, i_endidx, nlev, sppt(jg)%ddt_qi_fast(:,:,jb), pt_prog_rcf%tracer(:,:,jb,iqi), sppt(jg)%qi_now(:,:,jb), dt_loc, lacc=lzacc)
-        CALL calc_tend(i_startidx, i_endidx, nlev, sppt(jg)%ddt_qr_fast(:,:,jb), pt_prog_rcf%tracer(:,:,jb,iqr), sppt(jg)%qr_now(:,:,jb), dt_loc, lacc=lzacc)
-        CALL calc_tend(i_startidx, i_endidx, nlev, sppt(jg)%ddt_qs_fast(:,:,jb), pt_prog_rcf%tracer(:,:,jb,iqs), sppt(jg)%qs_now(:,:,jb), dt_loc, lacc=lzacc)
-        CALL calc_tend(i_startidx, i_endidx, nlev, sppt(jg)%ddt_qc_fast(:,:,jb), pt_prog_rcf%tracer(:,:,jb,iqc), sppt(jg)%qc_now(:,:,jb), dt_loc, lacc=lzacc)
+        CALL calc_tend(i_startidx, i_endidx, nlev, sppt(jg)%ddt_qv_fast(:,:,jb), pt_prog_rcf%tracer(:,:,jb,iqv), sppt(jg)%qv_now(:,:,jb), dt_loc, lacc=lacc)
+        CALL calc_tend(i_startidx, i_endidx, nlev, sppt(jg)%ddt_qi_fast(:,:,jb), pt_prog_rcf%tracer(:,:,jb,iqi), sppt(jg)%qi_now(:,:,jb), dt_loc, lacc=lacc)
+        CALL calc_tend(i_startidx, i_endidx, nlev, sppt(jg)%ddt_qr_fast(:,:,jb), pt_prog_rcf%tracer(:,:,jb,iqr), sppt(jg)%qr_now(:,:,jb), dt_loc, lacc=lacc)
+        CALL calc_tend(i_startidx, i_endidx, nlev, sppt(jg)%ddt_qs_fast(:,:,jb), pt_prog_rcf%tracer(:,:,jb,iqs), sppt(jg)%qs_now(:,:,jb), dt_loc, lacc=lacc)
+        CALL calc_tend(i_startidx, i_endidx, nlev, sppt(jg)%ddt_qc_fast(:,:,jb), pt_prog_rcf%tracer(:,:,jb,iqc), sppt(jg)%qc_now(:,:,jb), dt_loc, lacc=lacc)
 
         IF ( iqg /= 0 ) THEN
-          CALL calc_tend(i_startidx, i_endidx, nlev, sppt(jg)%ddt_qg_fast(:,:,jb), pt_prog_rcf%tracer(:,:,jb,iqg), sppt(jg)%qg_now(:,:,jb), dt_loc, lacc=lzacc)
+          CALL calc_tend(i_startidx, i_endidx, nlev, sppt(jg)%ddt_qg_fast(:,:,jb), pt_prog_rcf%tracer(:,:,jb,iqg), sppt(jg)%qg_now(:,:,jb), dt_loc, lacc=lacc)
         ENDIF
 
       ENDDO
@@ -1292,6 +1298,7 @@ CONTAINS
 
       CALL diagnose_pres_temp (p_metrics, pt_prog, pt_prog_rcf,   &
         &                      pt_diag, pt_patch,                 &
+        &                      lacc              = lacc,          &
         &                      opt_calc_temp     = ltemp,         &
         &                      opt_calc_pres     = lpres,         &
         &                      lnd_prog          = lnd_prog_new,  &
@@ -1301,7 +1308,7 @@ CONTAINS
     ENDIF
 
 #ifndef __NO_ICON_COMIN__
-    CALL icon_call_callback(EP_ATM_CONVECTION_BEFORE, jg, lacc=lzacc)
+    CALL icon_call_callback(EP_ATM_CONVECTION_BEFORE, jg, lacc=lacc)
 #endif
 
     !-------------------------------------------------------------------------
@@ -1326,7 +1333,7 @@ CONTAINS
                             & prm_nwp_tend,                     & !>inout
                             & prm_nwp_stochconv,                & !>inout
                             & pt_int_state,                     & !>in
-                            & lacc=lzacc                         ) !>in
+                            & lacc=lacc                         ) !>in
 
       IF (timers_level > 2) CALL timer_stop(timer_nwp_convection)
       !$ser verbatim IF (.not. linit) CALL serialize_all(nproma, jg, "convection", .FALSE., opt_dt=mtime_datetime)
@@ -1334,7 +1341,7 @@ CONTAINS
     ENDIF! convection
 
 #ifndef __NO_ICON_COMIN__
-    CALL icon_call_callback(EP_ATM_CONVECTION_AFTER, jg, lacc=lzacc)
+    CALL icon_call_callback(EP_ATM_CONVECTION_AFTER, jg, lacc=lacc)
 #endif
 
     !-------------------------------------------------------------------------
@@ -1394,9 +1401,9 @@ CONTAINS
              &  kc_inversion(:),                                 &
              &  kc_entr_zone(:),                                 &
              &  lfound_inversion(:),                             &
-             &  lacc=lzacc)
+             &  lacc=lacc)
         ELSE
-          !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1) IF(lzacc)
+          !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1) IF(lacc)
           !$ACC LOOP GANG VECTOR
           DO jc = i_startidx, i_endidx
             kc_inversion(jc)=0._wp
@@ -1438,7 +1445,7 @@ CONTAINS
 &              qc     = pt_prog_rcf%tracer   (:,:,jb,iqc) ,       & !! in:  cloud water
 &              qi     = pt_prog_rcf%tracer   (:,:,jb,iqi) ,       & !! in:  cloud ice
 &              qs     = pt_prog_rcf%tracer   (:,:,jb,iqs) ,       & !! in:  snow
-&              lacc=lzacc                                  ,       & !! in
+&              lacc=lacc                                  ,       & !! in
 &              ttend_clcov = prm_nwp_tend%ddt_temp_clcov(:,:,jb) ,& !! out: temp tendency from sgs condensation
 &              cc_tot = prm_diag%clc         (:,:,jb)     ,       & !! out: cloud cover
 &              qv_tot = prm_diag%tot_cld     (:,:,jb,iqv) ,       & !! out: qv       -"-
@@ -1463,7 +1470,7 @@ CONTAINS
 &                dustc  = pt_prog_rcf%tracer   (:,:,jb,art_atmo%idust_giant) ,      & !! in:  dust_giant     (resp. dustc)
 &                dustyci_crit = art_config(jg)%rart_dustyci_crit ,  & !! in:  dust threshold for dusty cirrus
 &                dustyci_rhi  = art_config(jg)%rart_dustyci_rhi  ,  & !! in:  rhi  threshold for dusty cirrus
-&                lacc   = lzacc                             ,       & !! in
+&                lacc   = lacc                              ,       & !! in
 &                cc_tot = prm_diag%clc         (:,:,jb)     ,       & !! out: cloud fraction
 &                qi_tot = prm_diag%tot_cld     (:,:,jb,iqi)         ) !! out: qi
           NULLIFY(art_atmo)
@@ -1514,7 +1521,7 @@ CONTAINS
 
 
 #ifndef __NO_ICON_COMIN__
-    CALL icon_call_callback(EP_ATM_RADIATION_BEFORE, jg, lacc=lzacc)
+    CALL icon_call_callback(EP_ATM_RADIATION_BEFORE, jg, lacc=lacc)
 #endif
 
     !-------------------------------------------------------------------------
@@ -1554,21 +1561,21 @@ CONTAINS
                &              p_metrics%z_mc,        & ! in
                &              p_metrics%z_ifc,       & ! in
                &              p_metrics%ddqz_z_full, & ! in
-               &              lacc=lzacc              ) ! in, optional
+               &              lacc=lacc              ) ! in, optional
           !$ser verbatim IF (.not. linit) CALL serialize_all(nproma, jg, "radiation", .FALSE., opt_dt=mtime_datetime)
           IF (ltimer) CALL timer_stop(timer_nwp_radiation)
 
         ENDIF
 
 #ifndef __NO_ICON_COMIN__
-    CALL icon_call_callback(EP_ATM_RADIATION_AFTER, jg, lacc=lzacc)
+    CALL icon_call_callback(EP_ATM_RADIATION_AFTER, jg, lacc=lacc)
 #endif
 #ifndef __NO_ICON_COMIN__
-    CALL icon_call_callback(EP_ATM_RADHEAT_BEFORE, jg, lacc=lzacc)
+    CALL icon_call_callback(EP_ATM_RADHEAT_BEFORE, jg, lacc=lacc)
 #endif
 
         IF ( lcall_phy_jg(itradheat) ) THEN
-          !$ACC DATA CREATE(cosmu0_slope, shading_mask) IF(lzacc)
+          !$ACC DATA CREATE(cosmu0_slope, shading_mask) IF(lacc)
           !$ser verbatim IF (.not. linit) CALL serialize_all(nproma, jg, "radheat", .TRUE., opt_dt=mtime_datetime)
 
           IF (msg_level >= 15) &
@@ -1589,7 +1596,7 @@ CONTAINS
             & horizon    = ext_data%atm%horizon,        &
             & cosmu0_slp = cosmu0_slope,                &
             & shading_mask = shading_mask,              &
-            & lacc=lzacc                                 )
+            & lacc=lacc                                 )
 
           IF (timers_level > 10) CALL timer_stop(timer_pre_radiation_nwp)
 
@@ -1609,7 +1616,7 @@ CONTAINS
             CALL get_indices_c(pt_patch, jb, i_startblk, i_endblk, &
     &                       i_startidx, i_endidx, rl_start, rl_end)
 
-            !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1) IF(lzacc)
+            !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1) IF(lacc)
             !$ACC LOOP GANG VECTOR
             DO jc = i_startidx, i_endidx
               zcosmu0 (jc,jb) &
@@ -1620,7 +1627,7 @@ CONTAINS
             ENDDO
             !$ACC END PARALLEL
 
-            !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1) IF(lzacc)
+            !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1) IF(lacc)
             !$ACC LOOP GANG VECTOR
             DO jc = 1, nproma
               prm_diag%swflxsfc (jc,jb)=0._wp
@@ -1633,15 +1640,15 @@ CONTAINS
             IF (atm_phy_nwp_config(jg)%inwp_surface >= 1 .OR. is_coupled_to_ocean()) THEN
 
 #ifdef __PGI_WORKAROUND
-              !$ACC DATA CREATE(gp_count_t) IF(lzacc)
-              !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1) IF(lzacc)
+              !$ACC DATA CREATE(gp_count_t) IF(lacc)
+              !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1) IF(lacc)
               !$ACC LOOP VECTOR
               DO isubs = 1, ntiles_total
                 gp_count_t(isubs) = ext_data%atm%gp_count_t(jb,isubs)
               ENDDO
               !$ACC END PARALLEL
 #endif
-              !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1) IF(lzacc)
+              !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1) IF(lacc)
               !$ACC LOOP GANG VECTOR COLLAPSE(2)
               DO isubs = 1, ntiles_total+ntiles_water
                 DO jc = 1, nproma
@@ -1733,7 +1740,7 @@ CONTAINS
               & swflx_par_sfc_tan_os=prm_diag%swflx_par_sfc_tan_os(:,jb) ,&   ! out PAR downward flux at the surface including shading and slope correction [W/m2]
               & swflx_clr_sfc=prm_diag%swflxclr_sfc(:,jb)  ,&   ! out clear-sky shortwave flux at the surface [W/m2]
               & swflx_dn_sfc_diff=prm_diag%swflx_dn_sfc_diff(:,jb), & ! out shortwave diffuse downward flux at the surface [W/m2]
-              & lacc=lzacc                                          )
+              & lacc=lacc                                          )
 #ifdef __PGI_WORKAROUND
         !$ACC WAIT(1)
         !$ACC END DATA ! CREATE(gp_count_t)
@@ -1792,7 +1799,7 @@ CONTAINS
               & swflx_vis_sfc=prm_diag%swflx_vis_sfc(:,jb) ,&   ! out visible downward flux at the surface [W/m2]
               & swflx_par_sfc=prm_diag%swflx_par_sfc(:,jb) ,&   ! out PAR downward flux at the surface [W/m2]
               & swflx_dn_sfc_diff=prm_diag%swflx_dn_sfc_diff(:,jb), & ! out shortwave diffuse downward flux at the surface [W/m2]
-              & lacc=lzacc                                          )
+              & lacc=lacc                                          )
             ENDIF
 
           ENDDO ! blocks
@@ -1826,10 +1833,10 @@ CONTAINS
 #endif
 
 #ifndef __NO_ICON_COMIN__
-    CALL icon_call_callback(EP_ATM_RADHEAT_AFTER, jg, lacc=lzacc)
+    CALL icon_call_callback(EP_ATM_RADHEAT_AFTER, jg, lacc=lacc)
 #endif
 #ifndef __NO_ICON_COMIN__
-    CALL icon_call_callback(EP_ATM_GWDRAG_BEFORE, jg, lacc=lzacc)
+    CALL icon_call_callback(EP_ATM_GWDRAG_BEFORE, jg, lacc=lacc)
 #endif
 
     !-------------------------------------------------------------------------
@@ -1853,14 +1860,14 @@ CONTAINS
         &               ext_data,                  & !>input
         &               pt_diag,                   & !>inout
         &               prm_diag, prm_nwp_tend,    & !>inout
-        &               lacc=lzacc                  ) !>in
+        &               lacc=lacc                  ) !>in
       !$ser verbatim IF (.not. linit) CALL serialize_all(nproma, jg, "gwdrag", .FALSE.)
 
       IF (timers_level > 3) CALL timer_stop(timer_sso)
     ENDIF ! inwp_sso
 
 #ifndef __NO_ICON_COMIN__
-    CALL icon_call_callback(EP_ATM_GWDRAG_AFTER, jg, lacc=lzacc)
+    CALL icon_call_callback(EP_ATM_GWDRAG_AFTER, jg, lacc=lacc)
 #endif
 
 
@@ -1884,7 +1891,7 @@ CONTAINS
         &                      z0_waves     = prm_diag%z0_waves,     & !inout
         &                      gz0_t        = prm_diag%gz0_t,        & !inout
         &                      gz0          = prm_diag%gz0,          & !inout
-        &                      lacc         = lzacc                  ) !in
+        &                      lacc         = lacc                   ) !in
 
       IF (ltimer) CALL timer_stop(timer_coupling)
 
@@ -1900,7 +1907,7 @@ CONTAINS
 #ifdef YAC_coupling
       IF (ltimer) CALL timer_start(timer_coupling)
 
-      CALL nwp_couple_hydrodisc( pt_patch, lnd_diag, prm_diag, ext_data, lacc=lzacc )
+      CALL nwp_couple_hydrodisc( pt_patch, lnd_diag, prm_diag, ext_data, lacc=lacc )
 
       IF (ltimer) CALL timer_stop(timer_coupling)
 #endif
@@ -2057,9 +2064,9 @@ CONTAINS
     IF( l_any_slowphys .OR. lcall_phy_jg(itradheat) ) THEN
 #endif
       ! needs to be always initialized with OpenACC
-      IF (p_test_run .OR. lzacc) THEN
-        CALL init(z_ddt_u_tot, lacc=lzacc, opt_acc_async=.TRUE.)
-        CALL init(z_ddt_v_tot, lacc=lzacc, opt_acc_async=.TRUE.)
+      IF (p_test_run .OR. lacc) THEN
+        CALL init(z_ddt_u_tot, lacc=lacc, opt_acc_async=.TRUE.)
+        CALL init(z_ddt_v_tot, lacc=lacc, opt_acc_async=.TRUE.)
       ENDIF
 
       IF (timers_level > 10) CALL timer_start(timer_phys_acc_1)
@@ -2093,7 +2100,7 @@ CONTAINS
 
         ! artificial Rayleigh friction: active if GWD or SSO scheme is active
         IF (atm_phy_nwp_config(jg)%inwp_sso > 0 .OR. atm_phy_nwp_config(jg)%inwp_gwd > 0) THEN
-          !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1) IF(lzacc)
+          !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1) IF(lacc)
           !$ACC LOOP GANG VECTOR PRIVATE(vabs, rfric_fac) COLLAPSE(2)
           DO jk = 1, nlev
 !DIR$ IVDEP
@@ -2109,7 +2116,7 @@ CONTAINS
           ENDDO
           !$ACC END PARALLEL
         ELSE
-          !$ACC KERNELS ASYNC(1) IF(lzacc)
+          !$ACC KERNELS ASYNC(1) IF(lacc)
           zddt_u_raylfric(:,:) = 0._wp
           zddt_v_raylfric(:,:) = 0._wp
           !$ACC END KERNELS
@@ -2121,7 +2128,7 @@ CONTAINS
         ! in the current time step, but the radiation time step should be a multiple
         ! of the convection time step anyway in order to obtain up-to-date cloud cover fields
         IF (l_any_slowphys) THEN
-          !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1) IF(lzacc)
+          !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1) IF(lacc)
           !$ACC LOOP GANG VECTOR COLLAPSE(2)
           DO jk = 1, nlev
 !DIR$ IVDEP
@@ -2143,7 +2150,7 @@ CONTAINS
 
         ! SQRT of Richardson number between the two lowest model levels
         ! This is used below to reduce frictional heating near the surface under very stable conditions
-        !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1) IF(lzacc)
+        !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1) IF(lacc)
         !$ACC LOOP GANG VECTOR PRIVATE(n2, dvdz2)
         DO jc = i_startidx, i_endidx
           n2 = 2._wp*grav/(pt_prog%theta_v(jc,nlev,jb)+pt_prog%theta_v(jc,nlev-1,jb)) * MAX(1.e-4_wp,        &
@@ -2155,7 +2162,7 @@ CONTAINS
         !$ACC END PARALLEL
 
 
-        !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1) IF(lzacc)
+        !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1) IF(lacc)
         !$ACC LOOP GANG VECTOR PRIVATE(wfac) COLLAPSE(2)
         DO jk = 1, nlev
 !DIR$ IVDEP
@@ -2184,7 +2191,7 @@ CONTAINS
         !$ACC END PARALLEL
 
         IF (l_out_ddt_temp_drag) THEN
-          !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1) IF(lzacc)
+          !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1) IF(lacc)
           !$ACC LOOP GANG VECTOR COLLAPSE(2)
           DO jk = 1, nlev
 !DIR$ IVDEP
@@ -2202,20 +2209,21 @@ CONTAINS
 
           CALL pert_tend(jb, jg, i_startidx, i_endidx, pt_patch%nlev, sppt(jg),           &
                          prm_nwp_tend, pt_prog%rho(:,:,jb),                               &
-                         z_ddt_temp(:,:), z_ddt_u_tot(:,:,jb), z_ddt_v_tot(:,:,jb), lacc=lzacc)
+                         z_ddt_temp(:,:), z_ddt_u_tot(:,:,jb), z_ddt_v_tot(:,:,jb), lacc=lacc)
         ENDIF ! end of lsppt
 
 
-        CALL calc_qsum (pt_prog_rcf%tracer, z_qsum, condensate_list, jb, i_startidx, i_endidx, 1, kstart_moist(jg), nlev)
+        CALL calc_qsum (pt_prog_rcf%tracer, z_qsum, condensate_list, jb, i_startidx, i_endidx, 1, kstart_moist(jg), nlev, &
+         &              lacc=lacc)
 
 
         IF (kstart_moist(jg) > 1) THEN
-          !$ACC KERNELS ASYNC(1) IF(lzacc)
+          !$ACC KERNELS ASYNC(1) IF(lacc)
           z_ddt_alpha(:,1:kstart_moist(jg)-1) = 0._wp
           !$ACC END KERNELS
         ENDIF
 
-        !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1) IF(lzacc)
+        !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1) IF(lacc)
         !$ACC LOOP GANG VECTOR COLLAPSE(2)
         DO jk = kstart_moist(jg), nlev
           DO jc = i_startidx, i_endidx
@@ -2231,7 +2239,7 @@ CONTAINS
         !$ACC END PARALLEL
 
         ! Convert temperature tendency into Exner function tendency
-        !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1) IF(lzacc)
+        !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1) IF(lacc)
         !$ACC LOOP GANG VECTOR COLLAPSE(2)
         DO jk = 1, nlev
 !DIR$ IVDEP
@@ -2342,7 +2350,7 @@ CONTAINS
     ! Add only perturbed tendencies of tracers to the corresponding variable.
     ! Adding tendencies was taking care of during fast physics already.
     IF (sppt_config(jg)%lsppt .AND. .NOT. linit) THEN
-      CALL apply_tend(pt_patch,sppt(jg), pt_prog_rcf, dt_loc, lacc=lzacc)
+      CALL apply_tend(pt_patch,sppt(jg), pt_prog_rcf, dt_loc, lacc=lacc)
     ENDIF ! end of lsppt
 
     !--------------------------------------------------------
@@ -2365,22 +2373,22 @@ CONTAINS
       IF (timers_level > 10) CALL timer_start(timer_phys_sync_tracers)
 
       IF (diffusion_config(jg)%lhdiff_w .AND. iprog_aero >= 1) THEN
-        CALL sync_patch_array_mult(SYNC_C, pt_patch, ntracer_sync+4, pt_diag%tempv, pt_prog%w, &
-                                   pt_diag%exner_pr, prm_diag%aerosol,                         &
+        CALL sync_patch_array_mult(SYNC_C, pt_patch, ntracer_sync+4, lacc=lacc, f3din1=pt_diag%tempv, f3din2=pt_prog%w, &
+                                   f3din3=pt_diag%exner_pr, f3din4=prm_diag%aerosol,                         &
                                    f4din=pt_prog_rcf%tracer(:,:,:,1:ntracer_sync))
       ELSE IF (diffusion_config(jg)%lhdiff_w) THEN
-        CALL sync_patch_array_mult(SYNC_C, pt_patch, ntracer_sync+3, pt_diag%tempv, pt_prog%w, &
-                                   pt_diag%exner_pr, f4din=pt_prog_rcf%tracer(:,:,:,1:ntracer_sync))
+        CALL sync_patch_array_mult(SYNC_C, pt_patch, ntracer_sync+3, lacc=lacc, f3din1=pt_diag%tempv, f3din2=pt_prog%w, &
+                                   f3din3=pt_diag%exner_pr, f4din=pt_prog_rcf%tracer(:,:,:,1:ntracer_sync))
       ELSE
-        CALL sync_patch_array_mult(SYNC_C, pt_patch, ntracer_sync+2, pt_diag%tempv, &
-                                   pt_diag%exner_pr, f4din=pt_prog_rcf%tracer(:,:,:,1:ntracer_sync))
+        CALL sync_patch_array_mult(SYNC_C, pt_patch, ntracer_sync+2, lacc=lacc, f3din1=pt_diag%tempv, &
+                                   f3din2=pt_diag%exner_pr, f4din=pt_prog_rcf%tracer(:,:,:,1:ntracer_sync))
       ENDIF
 
       IF (timers_level > 10) THEN
         CALL timer_stop(timer_phys_sync_tracers)
       ENDIF
     ELSE IF (linit .AND. advection_config(jg)%iadv_tke == 2) THEN
-      CALL sync_patch_array(SYNC_C, pt_patch, pt_prog_rcf%tracer(:,:,:,iqtke))
+      CALL sync_patch_array(SYNC_C, pt_patch, pt_prog_rcf%tracer(:,:,:,iqtke), lacc=lacc)
     ENDIF
 
 
@@ -2403,13 +2411,13 @@ CONTAINS
 #else
     IF ( l_any_slowphys .AND. lcall_phy_jg(itturb) ) THEN
 #endif
-      CALL sync_patch_array_mult(SYNC_C1, pt_patch, 4, z_ddt_u_tot, z_ddt_v_tot, &
-                                 prm_nwp_tend%ddt_u_turb, prm_nwp_tend%ddt_v_turb)
+      CALL sync_patch_array_mult(SYNC_C1, pt_patch, 4, lacc=lacc, f3din1=z_ddt_u_tot, f3din2=z_ddt_v_tot, &
+                                 f3din3=prm_nwp_tend%ddt_u_turb, f3din4=prm_nwp_tend%ddt_v_turb)
 
     ELSE IF (lcall_phy_jg(itturb) ) THEN
 
-      CALL sync_patch_array_mult(SYNC_C1, pt_patch, 2, prm_nwp_tend%ddt_u_turb, &
-                                 prm_nwp_tend%ddt_v_turb)
+      CALL sync_patch_array_mult(SYNC_C1, pt_patch, 2, lacc=lacc, f3din1=prm_nwp_tend%ddt_u_turb, &
+                                 f3din2=prm_nwp_tend%ddt_v_turb)
     ENDIF
 
     ! DA: TODO: make kernels async in the interface and remove the wait
@@ -2438,7 +2446,7 @@ CONTAINS
           CALL get_indices_c(pt_patch, jb, i_startblk, i_endblk, &
             & i_startidx, i_endidx, rl_start, rl_end )
 
-          !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1) IF(lzacc)
+          !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1) IF(lacc)
           !$ACC LOOP GANG VECTOR COLLAPSE(2)
           DO jk = 1, nlev
 !DIR$ IVDEP
@@ -2495,7 +2503,7 @@ CONTAINS
       IF ( l_any_slowphys .AND. lcall_phy_jg(itturb) ) THEN
 #endif
 
-        !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1) IF(lzacc)
+        !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1) IF(lacc)
         !$ACC LOOP GANG VECTOR COLLAPSE(2)
 #ifdef __LOOP_EXCHANGE
         DO jce = i_startidx, i_endidx
@@ -2535,7 +2543,7 @@ CONTAINS
         !$ACC END PARALLEL
 
       ELSE IF (lcall_phy_jg(itturb) ) THEN
-        !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1) IF(lzacc)
+        !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1) IF(lacc)
         !$ACC LOOP GANG VECTOR COLLAPSE(2)
 #ifdef __LOOP_EXCHANGE
         DO jce = i_startidx, i_endidx
@@ -2600,14 +2608,14 @@ CONTAINS
       CALL compute_dpsdt (pt_patch      = pt_patch,  &
         &                 dt            = dt_loc,    &
         &                 pt_diag       = pt_diag,   &
-        &                 lacc          = lzacc      )
+        &                 lacc          = lacc       )
     ENDIF
     IF (timers_level > 10) CALL timer_stop(timer_phys_dpsdt)
 
 
     IF (timers_level > 10) CALL timer_start(timer_phys_sync_vn)
     IF (lcall_phy_jg(itturb)) THEN
-      CALL sync_patch_array(SYNC_E, pt_patch, pt_prog%vn)
+      CALL sync_patch_array(SYNC_E, pt_patch, pt_prog%vn, lacc=lacc)
     ENDIF
     IF (timers_level > 10) CALL timer_stop(timer_phys_sync_vn)
     IF (timers_level > 2) CALL timer_stop(timer_phys_acc)
@@ -2630,7 +2638,7 @@ CONTAINS
       &                        zsct,                 & !in
       &                        p_sim_time,           & !in
       &                        dt_phy_jg(itfastphy), & !in
-      &                        lacc=lzacc             )
+      &                        lacc=lacc             )
 
     ! time averages, accumulations and vertical integrals
     CALL nwp_statistics(lcall_phy_jg,                    & !in
@@ -2641,7 +2649,7 @@ CONTAINS
                         & pt_prog, pt_prog_rcf,          & !in
                         & pt_diag,                       & !inout
                         & prm_diag, lnd_diag,            & !inout
-                        & lacc=lzacc                      ) !in
+                        & lacc=lacc                      ) !in
 
 #ifdef __ICON_ART
     IF (lart) THEN
@@ -2653,7 +2661,7 @@ CONTAINS
         &                            p_metrics%ddqz_z_full,  &
         &                            p_metrics%z_mc, jg,     &
         &                            dt_phy_jg, p_sim_time,  &
-        &                            lacc=lzacc              )
+        &                            lacc=lacc               )
 
     ENDIF !lart
 #endif
@@ -2663,8 +2671,8 @@ CONTAINS
     IF (atm_phy_nwp_config(jg)%inwp_gscp == 8) THEN
       ptr_sbm_storage => get_sbm_storage(patch_id = jg)
 !$OMP PARALLEL
-      CALL copy(pt_prog_rcf%tracer(:,:,:,iqv), ptr_sbm_storage%qv_old, lacc=lzacc)
-      CALL copy(pt_diag%temp(:,:,:), ptr_sbm_storage%temp_old, lacc=lzacc)
+      CALL copy(pt_prog_rcf%tracer(:,:,:,iqv), ptr_sbm_storage%qv_old, lacc=lacc)
+      CALL copy(pt_diag%temp(:,:,:), ptr_sbm_storage%temp_old, lacc=lacc)
 !$OMP END PARALLEL
     ENDIF
 

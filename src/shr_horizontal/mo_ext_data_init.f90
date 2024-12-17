@@ -336,7 +336,8 @@ CONTAINS
          call grad_fe_cell  ( ext_data(jg)%atm%topography_c, &
            &                  p_patch(jg),                   &
            &                  p_int_state(jg),               &
-           &                  ext_data(jg)%atm%grad_topo )
+           &                  ext_data(jg)%atm%grad_topo,    &
+           &                  lacc=.FALSE. )
       END DO
 
 

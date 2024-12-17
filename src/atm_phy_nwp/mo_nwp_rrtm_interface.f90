@@ -663,7 +663,7 @@ CONTAINS
         & atm_phy_nwp_config(jg)%icpl_rad_reff,                         &
         & prm_diag%reff_qc, prm_diag%reff_qi,                           &
         & zrg_reff_liq, zrg_reff_frz,input_extra_flds, zrg_extra_flds,  &
-        & input_extra_2D, zrg_extra_2D)
+        & input_extra_2D, zrg_extra_2D, lacc=.FALSE.)
     
       IF (jg == 1 .AND. l_limited_area) THEN
         rl_start = grf_fbk_start_c
@@ -1040,7 +1040,8 @@ CONTAINS
         &  zrg_lwflx_up         , zrg_lwflx_dn         , zrg_swflx_up         , zrg_swflx_dn,          &
         &  zrg_lwflx_up_clr     , zrg_lwflx_dn_clr     , zrg_swflx_up_clr     , zrg_swflx_dn_clr,      &
         &  prm_diag%lwflx_up    , prm_diag%lwflx_dn    , prm_diag%swflx_up    , prm_diag%swflx_dn,     &
-        &  prm_diag%lwflx_up_clr, prm_diag%lwflx_dn_clr, prm_diag%swflx_up_clr, prm_diag%swflx_dn_clr  )
+        &  prm_diag%lwflx_up_clr, prm_diag%lwflx_dn_clr, prm_diag%swflx_up_clr, prm_diag%swflx_dn_clr, &
+        &  lacc=.FALSE.                                                                                )
 
       ! Debug output of radiation output fields
       IF (msg_level >= 16) THEN

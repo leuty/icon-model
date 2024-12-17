@@ -36,7 +36,7 @@ MODULE mo_scalar_product
     & Get3DVectorTo2DLocal_array3D
   USE mo_ocean_math_operators,ONLY: rot_vertex_ocean_3d, map_edges2vert_3d
   USE mo_grid_subset,         ONLY: t_subset_range, get_index_range
-  USE mo_sync,                ONLY: sync_e, sync_v,sync_patch_array,sync_c, sync_patch_array_mult!,  & sync_idx, global_max
+  USE mo_sync,                ONLY: sync_e, sync_v,sync_patch_array,sync_c!,  & sync_idx, global_max
   USE mo_util_dbg_prnt,       ONLY: dbg_print
   USE mo_timer,               ONLY: timers_level, timer_start, timer_stop, timer_extra25, timer_extra26, timer_extra27, &
     & timer_extra28, timer_extra29
@@ -163,7 +163,7 @@ CONTAINS
                                     & lacc = lzacc )
     stop_detail_timer(timer_extra27,5)
 
-    CALL sync_patch_array(sync_e, patch_2d, p_diag%ptp_vn)
+    CALL sync_patch_array(sync_e, patch_2d, p_diag%ptp_vn, lacc=lzacc)
 
     start_detail_timer(timer_extra28,5)
     !--------------------------------------------------------------
@@ -298,7 +298,7 @@ CONTAINS
     END SELECT
 
     stop_detail_timer(timer_extra28,5)
-!       CALL sync_patch_array(sync_c, patch_2d,p_diag%kin)
+!       CALL sync_patch_array(sync_c, patch_2d,p_diag%kin, lacc=lzacc)
 
       !convert cartesian velocity vector p_diag%p_vn(cell_index,level,blockNo)%x to geographical coordinate system
       !for output, sea-ice and coupling
@@ -385,7 +385,7 @@ CONTAINS
 
     CALL rot_vertex_ocean_3d( patch_3d, vn, p_vn_dual, operators_coefficients, vort_v, lacc=lzacc)
     ! sync not needed here, but used for example for the Leith
-    CALL sync_patch_array(SYNC_V, patch_2D, vort_v)
+    CALL sync_patch_array(SYNC_V, patch_2D, vort_v, lacc=lzacc)
 
     IF(.NOT.l_ANTICIPATED_VORTICITY)THEN
 !ICON_OMP_PARALLEL_DO PRIVATE(blockNo,level,je,start_edge_index,end_edge_index, this_vort_flux, &
@@ -680,7 +680,7 @@ CONTAINS
 
     CALL rot_vertex_ocean_3d(patch_3d, vn, p_vn_dual, operators_coefficients, vort_v, lacc=lzacc)
     ! sync not needed here, but used for example for the Leith
-    CALL sync_patch_array(SYNC_V, patch_2D, vort_v)
+    CALL sync_patch_array(SYNC_V, patch_2D, vort_v, lacc=lzacc)
 
     IF (.NOT. l_ANTICIPATED_VORTICITY) THEN
       DO level = startLevel, n_zlev
@@ -803,7 +803,7 @@ CONTAINS
 
     CALL rot_vertex_ocean_3d( patch_3d, vn, p_vn_dual, operators_coefficients, vort_v)
     ! sync not needed here, but used for example for the Leith
-    CALL sync_patch_array(SYNC_V, patch_2D, vort_v)
+    CALL sync_patch_array(SYNC_V, patch_2D, vort_v, lacc=lzacc)
 
 
     ! !$OMP PARALLEL
@@ -2929,7 +2929,7 @@ CONTAINS
     ! sync the result if necessary
     IF (PRESENT(subset_range)) THEN
       IF (.NOT. subset_range%is_in_domain) &
-        & CALL sync_patch_array(sync_e, patch_2d, ptp_vn)
+        & CALL sync_patch_array(sync_e, patch_2d, ptp_vn, lacc=lzacc)
     ENDIF
 
   END SUBROUTINE map_cell2edges_3d_mlevels
@@ -2999,7 +2999,7 @@ CONTAINS
     ! sync the result if necessary
     IF (PRESENT(subset_range)) THEN
       IF (.NOT. subset_range%is_in_domain) &
-        & CALL sync_patch_array(sync_e, patch_2d, ptp_vn)
+        & CALL sync_patch_array(sync_e, patch_2d, ptp_vn, lacc=lzacc)
     ENDIF
 
   END SUBROUTINE map_cell2edges_3d_1level
@@ -3053,9 +3053,9 @@ CONTAINS
     END DO
     !$ACC END PARALLEL LOOP
     !$ACC WAIT(1)
-!     CALL sync_patch_array(sync_c, patch_3D%p_patch_2D(1), vec_center(:,:,:)%x(1))
-!     CALL sync_patch_array(sync_c, patch_3D%p_patch_2D(1), vec_center(:,:,:)%x(2))
-!     CALL sync_patch_array(sync_c, patch_3D%p_patch_2D(1), vec_center(:,:,:)%x(3))
+!     CALL sync_patch_array(sync_c, patch_3D%p_patch_2D(1), vec_center(:,:,:)%x(1), lacc=lzacc)
+!     CALL sync_patch_array(sync_c, patch_3D%p_patch_2D(1), vec_center(:,:,:)%x(2), lacc=lzacc)
+!     CALL sync_patch_array(sync_c, patch_3D%p_patch_2D(1), vec_center(:,:,:)%x(3), lacc=lzacc)
   END SUBROUTINE map_vec_prismtop2center_on_block
   !-------------------------------------------------------------------------
 
@@ -3112,7 +3112,7 @@ CONTAINS
     END DO
 
 !ICON_OMP_END_PARALLEL_DO
-   !CALL sync_patch_array(sync_c, patch_2D, scalar_center)
+   !CALL sync_patch_array(sync_c, patch_2D, scalar_center, lacc=.FALSE.)
   END SUBROUTINE map_scalar_prismtop2center
   !-------------------------------------------------------------------------
 
@@ -3235,9 +3235,9 @@ CONTAINS
         END DO
 
     END DO
-!     CALL sync_patch_array(sync_c, patch_3D%p_patch_2D(1), vec_center(:,:,:)%x(1))
-!     CALL sync_patch_array(sync_c, patch_3D%p_patch_2D(1), vec_center(:,:,:)%x(2))
-!     CALL sync_patch_array(sync_c, patch_3D%p_patch_2D(1), vec_center(:,:,:)%x(3))
+!     CALL sync_patch_array(sync_c, patch_3D%p_patch_2D(1), vec_center(:,:,:)%x(1), lacc=.FALSE.)
+!     CALL sync_patch_array(sync_c, patch_3D%p_patch_2D(1), vec_center(:,:,:)%x(2), lacc=.FALSE.)
+!     CALL sync_patch_array(sync_c, patch_3D%p_patch_2D(1), vec_center(:,:,:)%x(3), lacc=.FALSE.)
   END SUBROUTINE map_vec_prismtop2center_on_block_GM
   !-------------------------------------------------------------------------
 
@@ -3290,7 +3290,7 @@ CONTAINS
     END DO
 
 !ICON_OMP_END_PARALLEL_DO
-   !CALL sync_patch_array(sync_c, patch_2D, scalar_center)
+   !CALL sync_patch_array(sync_c, patch_2D, scalar_center, lacc=.FALSE.)
   END SUBROUTINE map_scalar_prismtop2center_GM
   !------------------------------------------------------------------------
 
@@ -3847,7 +3847,7 @@ CONTAINS
   ! !       END DO edge_idx_loop
   ! !     END DO ! blockNo = edges_in_domain%start_block, edges_in_domain%end_block
   ! !
-  ! ! !     CALL sync_patch_array(SYNC_E, patch_2D, ptp_vn)
+  ! ! !     CALL sync_patch_array(SYNC_E, patch_2D, ptp_vn, lacc=.FALSE.)
   ! !
   ! !   END SUBROUTINE map_cell2edges_2d
   !-----------------------------------------------------------------------------

@@ -101,10 +101,10 @@ CONTAINS
 
     CALL set_acc_host_or_device(lzacc, lacc)
 
-    ! CALL sync_patch_array(sync_c, patch_2D, trac_old)
+    ! CALL sync_patch_array(sync_c, patch_2D, trac_old, lacc=lzacc)
     
     ! This is already synced in  edges_in_domain !
-    ! CALL sync_patch_array(SYNC_C, patch_2D, transport_state%w)
+    ! CALL sync_patch_array(SYNC_C, patch_2D, transport_state%w, lacc=lzacc)
     
 
     IF (flux_calculation_vert == fct_vert_ppm) THEN

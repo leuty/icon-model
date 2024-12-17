@@ -177,6 +177,7 @@ CONTAINS !..................................................................
           &                      pt_prog_rcf       = p_nh_state%prog( nnew_rcf ),  & !in
           &                      pt_diag           = p_nh_state%diag,              & !out
           &                      pt_patch          = p_patch,                      & !in
+          &                      lacc              = .FALSE.,                      & !in
           &                      opt_calc_temp     = .TRUE.,                       & !optin
           &                      opt_calc_pres     = .TRUE.,                       & !optin 
           &                      opt_calc_temp_ifc = .FALSE.,                      & !optin

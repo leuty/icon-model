@@ -2085,8 +2085,9 @@ CONTAINS
                    var_in_output(jg)%dhail_sd)
 
       IF (l_need_temp .OR. l_need_pres) THEN
-        CALL diagnose_pres_temp(p_nh(jg)%metrics, p_nh(jg)%prog(nnow(jg)), p_nh(jg)%prog(nnow_rcf(jg)),         &
-                                p_nh(jg)%diag, p_patch(jg), opt_calc_temp=l_need_temp, opt_calc_pres=l_need_pres)
+        CALL diagnose_pres_temp(p_nh(jg)%metrics, p_nh(jg)%prog(nnow(jg)), p_nh(jg)%prog(nnow_rcf(jg)), &
+          &                     p_nh(jg)%diag, p_patch(jg), lacc=.TRUE., &
+          &                     opt_calc_temp=l_need_temp, opt_calc_pres=l_need_pres)
       ENDIF
 
       IF (l_need_wup) THEN
@@ -2122,10 +2123,11 @@ CONTAINS
 #ifdef _OPENACC
         CALL warning('mo_nwp_diagnosis', 'Untested output on GPU: update vorticity for uh_max or vorw_ctmax ')
 #endif
-        CALL rot_vertex (p_nh(jg)%prog(nnow(jg))%vn, p_patch(jg), p_int(jg), p_nh(jg)%diag%omega_z)
+        CALL rot_vertex (p_nh(jg)%prog(nnow(jg))%vn, p_patch(jg), p_int(jg), &
+                        p_nh(jg)%diag%omega_z, lacc=.TRUE.)
         ! Diagnose relative vorticity on cells
         CALL verts2cells_scalar(p_nh(jg)%diag%omega_z, p_patch(jg), &
-           p_int(jg)%verts_aw_cells, p_nh(jg)%diag%vor)
+           p_int(jg)%verts_aw_cells, p_nh(jg)%diag%vor, lacc=.TRUE.)
       END IF
 
       DO k = 1,uh_max_nlayer

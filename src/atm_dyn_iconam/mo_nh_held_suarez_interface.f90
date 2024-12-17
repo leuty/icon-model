@@ -103,10 +103,12 @@ CONTAINS
     CALL diagnose_pres_temp ( p_metrics, p_nh_prog,               &
       &                       p_nh_prog, p_nh_diag,               &
       &                       p_patch,                            &
+      &                       lacc=.TRUE.,                        &
       &                       opt_calc_temp=.TRUE.,               &
       &                       opt_calc_pres=.TRUE. )
 
-    IF (lhs_fric_heat) CALL rbf_vec_interpol_cell(p_nh_prog%vn,p_patch,p_int_state,p_nh_diag%u,p_nh_diag%v)
+    IF (lhs_fric_heat) CALL rbf_vec_interpol_cell(p_nh_prog%vn,p_patch,p_int_state, &
+                                                  p_nh_diag%u,p_nh_diag%v, lacc=.TRUE.)
 
     !-------------------------------------------------------------------------
 

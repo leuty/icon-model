@@ -438,7 +438,7 @@ CONTAINS
       en_bloc = load_var_at_once .AND. lCnt .GT. 1
       SELECT CASE(vDat(iV)%p%info%data_type)
       CASE(REAL_T)
-        CALL get_var_3d_ptr(vDat(iV)%p, ptr_3d_d)
+        CALL get_var_3d_ptr(vDat(iV)%p, ptr_3d_d, lacc=.TRUE.)
         CALL C_F_POINTER(cptr_r, buf_d, [MERGE(MAXVAL(pCt,1)*lCnt, nblk*nproma, en_bloc)])
         IF (en_bloc) CALL C_F_POINTER(cptr_e, buf_3d_d, [nproma,lcnt,nblk])
         DO llId = 1, MERGE(1, lCnt, en_bloc)
@@ -468,7 +468,7 @@ CONTAINS
           IF (timers_level >= 7) CALL timer_stop(timer_load_restart_communication)
         END DO
       CASE(SINGLE_T)
-        CALL get_var_3d_ptr(vDat(iV)%p, ptr_3d_s)
+        CALL get_var_3d_ptr(vDat(iV)%p, ptr_3d_s, lacc=.TRUE.)
         CALL C_F_POINTER(cptr_r, buf_s, [MERGE(MAXVAL(pCt,1)*lCnt, nblk*nproma, en_bloc)])
         IF (en_bloc) CALL C_F_POINTER(cptr_e, buf_3d_s, [nproma,lcnt,nblk])
         DO llId = 1, MERGE(1, lCnt, en_bloc)
@@ -498,7 +498,7 @@ CONTAINS
           IF (timers_level >= 7) CALL timer_stop(timer_load_restart_communication)
         END DO
       CASE(INT_T)
-        CALL get_var_3d_ptr(vDat(iV)%p, ptr_3d_i)
+        CALL get_var_3d_ptr(vDat(iV)%p, ptr_3d_i, lacc=.TRUE.)
         IF (int_is_int) THEN
           CALL C_F_POINTER(cptr_r, buf_i, [MERGE(MAXVAL(pCt,1)*lCnt, nblk*nproma, en_bloc)])
           IF (en_bloc) CALL C_F_POINTER(cptr_e, buf_3d_i, [nproma,MERGE(lcnt,1,en_bloc),nblk])

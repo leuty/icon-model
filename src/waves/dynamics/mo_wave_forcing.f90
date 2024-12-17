@@ -192,26 +192,26 @@ CONTAINS
 
     IF (self%l_wind_exist) THEN
       ! get new u10m
-      CALL self%u10_intp%intp(destination_time, self%u10m_raw)
+      CALL self%u10_intp%intp(destination_time, self%u10m_raw, lacc=.FALSE.)
       ! get new v10m
-      CALL self%v10_intp%intp(destination_time, self%v10m_raw)
+      CALL self%v10_intp%intp(destination_time, self%v10m_raw, lacc=.FALSE.)
     END IF
 
     ! get new sic
     IF (self%l_ice_exist) THEN
-      CALL self%sic_intp%intp(destination_time, self%sic_raw)
+      CALL self%sic_intp%intp(destination_time, self%sic_raw, lacc=.FALSE.)
     ENDIF
 
     ! get new slh
     IF (self%l_slh_exist) THEN
-      CALL self%slh_intp%intp(destination_time, self%slh_raw)
+      CALL self%slh_intp%intp(destination_time, self%slh_raw, lacc=.FALSE.)
     ENDIF
 
     IF (self%l_osc_exist) THEN
       ! get new uosc
-      CALL self%uosc_intp%intp(destination_time, self%uosc_raw)
+      CALL self%uosc_intp%intp(destination_time, self%uosc_raw, lacc=.FALSE.)
       ! get new vosc
-      CALL self%vosc_intp%intp(destination_time, self%vosc_raw)
+      CALL self%vosc_intp%intp(destination_time, self%vosc_raw, lacc=.FALSE.)
     END IF
 
   END SUBROUTINE read_wave_forcing__get_new_rawdata

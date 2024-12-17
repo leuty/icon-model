@@ -34,8 +34,7 @@ MODULE mo_vdf_diag_smag
   USE mo_impl_constants,    ONLY: min_rlcell, min_rledge_int, min_rlcell_int, min_rlvert_int
   USE mo_nh_vert_interp_les,ONLY: brunt_vaisala_freq, vert_intp_full2half_cell_3d
   USE mo_intp,              ONLY: cells2verts_scalar, cells2edges_scalar
-  USE mo_sync,              ONLY: SYNC_E, SYNC_C, SYNC_V, sync_patch_array,     &
-    &                             sync_patch_array_mult
+  USE mo_sync,              ONLY: SYNC_E, SYNC_C, SYNC_V, sync_patch_array
   USE mo_loopindices,       ONLY: get_indices_e, get_indices_c
   USE mo_impl_constants_grf,ONLY: grf_bdywidth_c, grf_bdywidth_e
   USE mo_intp_rbf,          ONLY: rbf_vec_interpol_edge

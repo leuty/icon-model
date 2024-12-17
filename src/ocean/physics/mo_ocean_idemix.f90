@@ -369,8 +369,8 @@ CONTAINS
     ! add contribution from horizontal wave propagation
     if (n_hor_iwe_prop_iter>0) then
 
-      CALL sync_patch_array(sync_c, patch_2D, iwe)
-      CALL sync_patch_array(sync_c, patch_2D, params_oce%vmix_params%iwe_v0)
+      CALL sync_patch_array(sync_c, patch_2D, iwe, lacc=.FALSE.)
+      CALL sync_patch_array(sync_c, patch_2D, params_oce%vmix_params%iwe_v0, lacc=.FALSE.)
 
       ! temporarily store old iwe values for diag
       params_oce%vmix_params%iwe_Thdi(:,:,:) = iwe(:,:,:) 
@@ -447,7 +447,7 @@ CONTAINS
         ENDDO
 
         ! sync (better save than sorry)
-        CALL sync_patch_array(sync_e, patch_2D, flx_e)
+        CALL sync_patch_array(sync_e, patch_2D, flx_e, lacc=.FALSE.)
 
         !! derive flux
         !flx_e(:,:,:) = 0.0_wp
@@ -485,7 +485,7 @@ CONTAINS
         ! apply tendency
         ! FIXME: Do we need to divide by cell volume?
         iwe(:,:,:) = iwe(:,:,:) + dtime/n_hor_iwe_prop_iter * div_flx_c(:,:,:)
-        CALL sync_patch_array(sync_c, patch_2D, iwe)
+        CALL sync_patch_array(sync_c, patch_2D, iwe, lacc=.FALSE.)
 
       ENDDO ! n=1,n_hor_iwe_prop_iter
 

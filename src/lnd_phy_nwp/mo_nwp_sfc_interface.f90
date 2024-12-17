@@ -1350,7 +1350,7 @@ CONTAINS
            !$ACC END PARALLEL
 
            CALL generate_index_list(cond, init_list, 1, nproma, i_count_init, &
-              acc_async_queue, opt_acc_copy_to_host=.FALSE., opt_use_acc=lzacc)
+              lacc=lzacc, opt_acc_async_queue=acc_async_queue, opt_acc_copy_to_host=.FALSE.)
 
            !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(acc_async_queue) IF(lzacc)
            !$ACC LOOP GANG VECTOR
@@ -1376,7 +1376,7 @@ CONTAINS
            !$ACC END PARALLEL
 
            CALL generate_index_list(cond, init_list_tmp, 1, nproma, i_count_init_tmp, &
-              acc_async_queue, opt_acc_copy_to_host=.FALSE., opt_use_acc=lzacc)
+              lacc=lzacc, opt_acc_async_queue=acc_async_queue, opt_acc_copy_to_host=.FALSE.)
 
            !$ACC PARALLEL DEFAULT(PRESENT) PRESENT(i_count_init) ASYNC(acc_async_queue) IF(lzacc)
            !$ACC LOOP GANG VECTOR

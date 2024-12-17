@@ -1754,7 +1754,7 @@ MODULE mo_nh_testcases
 
       CALL diagnose_pres_temp ( p_nh_state(jg)%metrics,  p_nh_state(jg)%prog(nnow(jg)),  &
         p_nh_state(jg)%prog(nnow(jg)), p_nh_state(jg)%diag,      &
-        p_patch(jg), opt_calc_pres=.TRUE., opt_calc_temp=.TRUE.)
+        p_patch(jg), lacc=.FALSE., opt_calc_pres=.TRUE., opt_calc_temp=.TRUE.)
 
       IF ( get_my_mpi_work_id() == get_glob_proc0() ) THEN
         WRITE(*,*) "control output 3: jg=", jg
@@ -1768,7 +1768,7 @@ MODULE mo_nh_testcases
         END DO
       END IF
 
-      ! CALL sync_patch_array(SYNC_C, ptr_patch, ptr_nh_prog%w)    ! ????
+      ! CALL sync_patch_array(SYNC_C, ptr_patch, ptr_nh_prog%w, lacc=.FALSE.)    ! ????
 
     ENDDO  ! do jg=...
 

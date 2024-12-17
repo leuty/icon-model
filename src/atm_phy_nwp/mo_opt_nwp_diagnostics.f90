@@ -525,31 +525,31 @@ CONTAINS
 !$OMP END PARALLEL
 
     ! synchronize theta
-    CALL sync_patch_array(SYNC_C, p_patch, theta_cf)
+    CALL sync_patch_array(SYNC_C, p_patch, theta_cf, lacc=lzacc)
 
     !Get vt at edges (p_diag%vt is not up to date)
-    CALL rbf_vec_interpol_edge( p_prog%vn, p_patch, p_int_state, vt)
+    CALL rbf_vec_interpol_edge( p_prog%vn, p_patch, p_int_state, vt, lacc=lzacc )
     
     !Interpolate theta to vertices
-    CALL cells2verts_scalar( theta_cf, p_patch, p_int_state%cells_aw_verts, theta_vf )
+    CALL cells2verts_scalar( theta_cf, p_patch, p_int_state%cells_aw_verts, theta_vf, lacc=lzacc )
     
     !Interpolate theta to edges
     CALL cells2edges_scalar( theta_cf, p_patch, p_int_state%c_lin_e, theta_ef, lacc=lzacc )
     
     !Interpolate w to vertices
-    CALL cells2verts_scalar( p_prog%w, p_patch, p_int_state%cells_aw_verts, w_vh )
+    CALL cells2verts_scalar( p_prog%w, p_patch, p_int_state%cells_aw_verts, w_vh, lacc=lzacc )
     
     !Interpolate w to edges
     CALL cells2edges_scalar( p_prog%w, p_patch, p_int_state%c_lin_e, w_eh, lacc=lzacc )
     
     !Interpolate vorticity to edges
-    CALL verts2edges_scalar( p_diag%omega_z, p_patch, p_int_state%v_1o2_e, vor_ef )
+    CALL verts2edges_scalar( p_diag%omega_z, p_patch, p_int_state%v_1o2_e, vor_ef, lacc=lzacc )
     
     !Calculate horizontal derivatives of w and theta
-    CALL grad_fd_norm ( p_prog%w, p_patch, ddnw_eh  )
-    CALL grad_fd_tang ( w_vh,     p_patch, ddtw_eh  )
-    CALL grad_fd_norm ( theta_cf, p_patch, ddnth_ef )
-    CALL grad_fd_tang ( theta_vf, p_patch, ddtth_ef )
+    CALL grad_fd_norm ( p_prog%w, p_patch, ddnw_eh, lacc=lzacc )
+    CALL grad_fd_tang ( w_vh,     p_patch, ddtw_eh, lacc=lzacc  )
+    CALL grad_fd_norm ( theta_cf, p_patch, ddnth_ef, lacc=lzacc )
+    CALL grad_fd_tang ( theta_vf, p_patch, ddtth_ef, lacc=lzacc )
     
     !Recompute loop indices for edges
     rl_start   = 3
@@ -619,7 +619,7 @@ CONTAINS
 !$OMP END PARALLEL
     
     !Interpolate to cells
-    CALL edges2cells_scalar( pv_ef, p_patch, p_int_state%e_bln_c_s, out_var, opt_rlstart=2 )
+    CALL edges2cells_scalar( pv_ef, p_patch, p_int_state%e_bln_c_s, out_var, lacc=lzacc, opt_rlstart=2 )
     
 
     rl_start = 2
@@ -1851,7 +1851,7 @@ CONTAINS
       ! calc_sum ensures that q_water is initialized with zero for slev<=jk<=slev_moist
       !
       CALL calc_qsum (tracer(:,:,:,:), q_water(:,:), idx_list_condensate, &
-        &             jb, i_startidx, i_endidx, slev, slev_moist, p_patch%nlev)
+        &             jb, i_startidx, i_endidx, slev, slev_moist, p_patch%nlev, lacc=lzacc)
 
       ! add contribution by qv
       !
@@ -2102,7 +2102,7 @@ CONTAINS
     iterloop: DO iter=1, niter_smooth
       
       ! --- Exchange of mconv for reproducible results:
-      CALL sync_patch_array(SYNC_C, ptr_patch, mconv)
+      CALL sync_patch_array(SYNC_C, ptr_patch, mconv, lacc=.FALSE.)
 
       ! --- Weighted average over the neighbouring grid cells:
 !$OMP PARALLEL
@@ -5313,8 +5313,8 @@ CONTAINS
       !$ACC END PARALLEL
     END DO
 
-    CALL sync_patch_array(SYNC_C,ptr_patch, wdur_prev)
-    CALL sync_patch_array(SYNC_C,ptr_patch, wup_mask_prev)
+    CALL sync_patch_array(SYNC_C,ptr_patch, wdur_prev,lacc=.TRUE.)
+    CALL sync_patch_array(SYNC_C,ptr_patch, wup_mask_prev,lacc=.TRUE.)
 
     DO jb = i_startblk, i_endblk
 

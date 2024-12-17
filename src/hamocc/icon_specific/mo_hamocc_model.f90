@@ -296,7 +296,7 @@ MODULE mo_hamocc_model
    !  &                             this_datetime) ! , &
           ! &                             oce_ts)
      !------------------------------------------------------------------
-    CALL update_statistics
+    CALL update_statistics(lacc=.FALSE.)
     !------------------------------------------------------------------
     IF (istime4name_list_output(jstep) ) THEN
       fmtstr = '%Y-%m-%d %H:%M:%S'

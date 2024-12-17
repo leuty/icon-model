@@ -31,10 +31,6 @@ MODULE mo_nh_diagnose_pres_temp
   USE mo_advection_config,    ONLY: advection_config
   USE mo_dynamics_config,     ONLY: ldeepatmo
   USE mo_grid_config,         ONLY: grid_sphere_radius
-  USE mo_fortran_tools,       ONLY: set_acc_host_or_device
-#ifdef _OPENACC
-  USE mo_mpi,                 ONLY: i_am_accel_node
-#endif
 
   IMPLICIT NONE
 
@@ -57,8 +53,8 @@ MODULE mo_nh_diagnose_pres_temp
   !!
   !! Diagnoses pressure and temperature from NH prognostic fields
   !!
-  SUBROUTINE diagnose_pres_temp (p_metrics, pt_prog, pt_prog_rcf, pt_diag, pt_patch, &
-    &                            opt_calc_temp, opt_calc_pres, opt_calc_temp_ifc,    &
+  SUBROUTINE diagnose_pres_temp (p_metrics, pt_prog, pt_prog_rcf, pt_diag, pt_patch,    &
+    &                            lacc, opt_calc_temp, opt_calc_pres, opt_calc_temp_ifc, &
     &                            lnd_prog, opt_slev, opt_rlend                       )
 
 
@@ -74,11 +70,13 @@ MODULE mo_nh_diagnose_pres_temp
     TYPE(t_nh_diag),    INTENT(INOUT) :: pt_diag      !!the diagnostic variables
 
 
-    TYPE(t_patch),      INTENT(IN)    :: pt_patch    ! Patch
+    TYPE(t_patch),      INTENT(IN)    :: pt_patch     ! Patch
 
-    LOGICAL, INTENT(IN), OPTIONAL   :: opt_calc_temp, opt_calc_pres, opt_calc_temp_ifc
+    LOGICAL, INTENT(IN) :: lacc         ! ACC active?
 
-    INTEGER, INTENT(IN), OPTIONAL :: opt_slev, opt_rlend 
+    LOGICAL, INTENT(IN), OPTIONAL     :: opt_calc_temp, opt_calc_pres, opt_calc_temp_ifc
+
+    INTEGER, INTENT(IN), OPTIONAL     :: opt_slev, opt_rlend 
 
     INTEGER  :: jb,jk,jc,jg
     INTEGER  :: nlev, nlevp1              !< number of full levels
@@ -88,11 +86,7 @@ MODULE mo_nh_diagnose_pres_temp
 
     LOGICAL  :: l_opt_calc_temp, l_opt_calc_pres, l_opt_calc_temp_ifc
 
-
     IF (timers_level > 8) CALL timer_start(timer_diagnose_pres_temp)
-
-    
-    ! Check for optional arguments
 
     IF ( PRESENT(opt_calc_temp_ifc ) ) THEN
       l_opt_calc_temp_ifc = opt_calc_temp_ifc
@@ -139,7 +133,7 @@ MODULE mo_nh_diagnose_pres_temp
     i_endblk   = pt_patch%cells%end_block(i_rlend)
 
 
-    !$ACC DATA PRESENT(advection_config(jg)%trHydroMass%list) IF(i_am_accel_node)
+    !$ACC DATA PRESENT(advection_config(jg)%trHydroMass%list) IF(lacc)
 !$OMP PARALLEL
 !$OMP DO PRIVATE(jb, i_startidx, i_endidx, jk, jc) ICON_OMP_DEFAULT_SCHEDULE
     DO jb = i_startblk, i_endblk
@@ -151,12 +145,13 @@ MODULE mo_nh_diagnose_pres_temp
         IF ( lforcing .AND. iforcing /= iheldsuarez  ) THEN
 
           CALL diag_temp (pt_prog, pt_prog_rcf, advection_config(jg)%trHydroMass%list, &
-            &            pt_diag, jb, i_startidx, i_endidx, slev, slev_moist, nlev)
+            &            pt_diag, jb, i_startidx, i_endidx, slev, slev_moist, nlev,    &
+            &            lacc=lacc)
 
 
         ELSE ! .NOT. lforcing or Held-Suarez test forcing
 
-          !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1) IF(i_am_accel_node)
+          !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1) IF(lacc)
           !$ACC LOOP GANG VECTOR COLLAPSE(2)
           DO jk = slev, nlev
 !DIR$ IVDEP
@@ -176,7 +171,7 @@ MODULE mo_nh_diagnose_pres_temp
       
       IF ( l_opt_calc_temp_ifc ) THEN
         
-        !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1) IF(i_am_accel_node)
+        !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1) IF(lacc)
         !$ACC LOOP GANG VECTOR COLLAPSE(2)
         DO jk = MAX(slev+1,2), nlev
 !DIR$ IVDEP
@@ -189,7 +184,7 @@ MODULE mo_nh_diagnose_pres_temp
         !$ACC END PARALLEL
 
         IF ( PRESENT(lnd_prog) ) THEN
-          !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1) IF(i_am_accel_node)
+          !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1) IF(lacc)
           !$ACC LOOP GANG VECTOR
           DO jc =  i_startidx, i_endidx
             pt_diag%temp_ifc(jc,     1,jb) = pt_diag%temp (jc,1,jb)
@@ -197,7 +192,7 @@ MODULE mo_nh_diagnose_pres_temp
           ENDDO
           !$ACC END PARALLEL
         ELSE
-          !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1) IF(i_am_accel_node)
+          !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1) IF(lacc)
           !$ACC LOOP GANG VECTOR
           DO jc =  i_startidx, i_endidx
             pt_diag%temp_ifc(jc,     1,jb) = pt_diag%temp (jc,1,jb)
@@ -214,7 +209,7 @@ MODULE mo_nh_diagnose_pres_temp
       !!
       !-------------------------------------------------------------------------
 
-      IF ( l_opt_calc_pres ) CALL diag_pres (pt_prog, pt_diag, p_metrics, jb, i_startidx, i_endidx, slev, nlev)
+      IF ( l_opt_calc_pres ) CALL diag_pres (pt_prog, pt_diag, p_metrics, jb, i_startidx, i_endidx, slev, nlev, lacc=lacc)
 
     ENDDO !jb
 !$OMP END DO NOWAIT
@@ -237,7 +232,7 @@ MODULE mo_nh_diagnose_pres_temp
   !! Note that the pressure is diagnosed by vertical integration of the 
   !! hydrostatic equation!
   !!
-  SUBROUTINE diag_pres (pt_prog, pt_diag, p_metrics, jb, i_startidx, i_endidx, slev, nlev)
+  SUBROUTINE diag_pres (pt_prog, pt_diag, p_metrics, jb, i_startidx, i_endidx, slev, nlev, lacc)
 
 
     TYPE(t_nh_metrics), INTENT(IN)    :: p_metrics
@@ -247,6 +242,7 @@ MODULE mo_nh_diagnose_pres_temp
 
 
     INTEGER, INTENT(IN) :: jb, i_startidx, i_endidx, slev, nlev
+    LOGICAL, INTENT(IN) :: lacc
 
     INTEGER  :: jk,jc
 
@@ -254,7 +250,7 @@ MODULE mo_nh_diagnose_pres_temp
 
     IF (.NOT. ldeepatmo) THEN
 
-      !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1) IF(i_am_accel_node)
+      !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1) IF(lacc)
 !DIR$ IVDEP
       !$ACC LOOP GANG(STATIC: 1) VECTOR PRIVATE(dz1, dz2, dz3)
       DO jc = i_startidx, i_endidx
@@ -307,12 +303,7 @@ MODULE mo_nh_diagnose_pres_temp
       CALL diag_pres_deepatmo(z_mc=p_metrics%z_mc(:,:,jb), z_ifc=p_metrics%z_ifc(:,:,jb),                  &
         & exner=pt_prog%exner(:,:,jb), tempv=pt_diag%tempv(:,:,jb), pres_sfc=pt_diag%pres_sfc(:,jb),       & 
         & pres_ifc=pt_diag%pres_ifc(:,:,jb), pres=pt_diag%pres(:,:,jb), dpres_mc=pt_diag%dpres_mc(:,:,jb), &
-        & start_indices=[i_startidx,slev], end_indices=[i_endidx,nlev],                                    &
-#ifdef _OPENACC
-        & lacc=i_am_accel_node)
-#else
-        & lacc=.FALSE.)
-#endif
+        & start_indices=[i_startidx,slev], end_indices=[i_endidx,nlev], lacc=lacc)
 
     ENDIF ! IF (.NOT. ldeepatmo)
 
@@ -328,7 +319,7 @@ MODULE mo_nh_diagnose_pres_temp
   !!
   !!
   SUBROUTINE diag_temp (pt_prog, pt_prog_rcf, condensate_list, pt_diag, &
-    &                   jb, i_startidx, i_endidx, slev, slev_moist, nlev)
+    &                   jb, i_startidx, i_endidx, slev, slev_moist, nlev, lacc)
 
 
     TYPE(t_nh_prog),    INTENT(IN)    :: pt_prog       !!the prognostic variables
@@ -338,7 +329,7 @@ MODULE mo_nh_diagnose_pres_temp
       &  condensate_list(:)                            !! prognostic condensate. Required for
                                                        !! computing the water loading term.  
     TYPE(t_nh_diag),    INTENT(INOUT) :: pt_diag       !!the diagnostic variables
-
+    LOGICAL,            INTENT(IN)    :: lacc          !!ACC active?
 
     INTEGER, INTENT(IN) :: jb, i_startidx, i_endidx, slev, slev_moist, nlev 
 
@@ -347,11 +338,12 @@ MODULE mo_nh_diagnose_pres_temp
 
     !$ACC DATA PRESENT(pt_prog_rcf, pt_diag, pt_prog) &
     !$ACC   CREATE(z_qsum) &
-    !$ACC   IF(i_am_accel_node)
+    !$ACC   IF(lacc)
 
-    CALL calc_qsum (pt_prog_rcf%tracer, z_qsum, condensate_list, jb, i_startidx, i_endidx, slev, slev_moist, nlev)
+    CALL calc_qsum (pt_prog_rcf%tracer, z_qsum, condensate_list, jb, i_startidx, i_endidx, slev, slev_moist, nlev, &
+     &              lacc=lacc)
 
-    !$ACC PARALLEL DEFAULT(PRESENT) ATTACH(pt_prog_rcf%tracer) ASYNC(1) IF(i_am_accel_node)
+    !$ACC PARALLEL DEFAULT(PRESENT) ATTACH(pt_prog_rcf%tracer) ASYNC(1) IF(lacc)
     !$ACC LOOP GANG VECTOR COLLAPSE(2)
     DO jk = slev, nlev
 !DIR$ IVDEP
@@ -373,12 +365,13 @@ MODULE mo_nh_diagnose_pres_temp
   !! Calculates the sum of selected tracer mass fractions
   !! Extracted from diag_temp (see above) in order to encapsulate the code duplication needed for vectorization
   !!
-  SUBROUTINE calc_qsum (tracer, qsum, tracer_list, jb, i_startidx, i_endidx, slev, slev_moist, nlev)
+  SUBROUTINE calc_qsum (tracer, qsum, tracer_list, jb, i_startidx, i_endidx, slev, slev_moist, nlev, lacc)
 
     REAL(wp), INTENT(IN)    :: tracer(:,:,:,:)       !! tracer array
     REAL(wp), INTENT(INOUT) :: qsum(:,:)             !! output: sum of condensates [kg kg-1]
     INTEGER,  INTENT(IN)    :: tracer_list(:)        !! IDs of tracers for which the sum is taken
     INTEGER,  INTENT(IN)    :: jb, i_startidx, i_endidx, slev, slev_moist, nlev
+    LOGICAL,  INTENT(IN)    :: lacc
 
     INTEGER  :: jk,jc
 #ifdef __SX__
@@ -400,7 +393,7 @@ MODULE mo_nh_diagnose_pres_temp
     !$ACC DATA NO_CREATE(qsum, tracer, tracer_list)
 
     IF (slev < slev_moist) THEN
-      !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1) IF(i_am_accel_node)
+      !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1) IF(lacc)
       !$ACC LOOP GANG VECTOR COLLAPSE(2)
       DO jk = slev, slev_moist-1
         DO jc = i_startidx, i_endidx
@@ -410,7 +403,7 @@ MODULE mo_nh_diagnose_pres_temp
       !$ACC END PARALLEL
     ENDIF
 
-    !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1) IF(i_am_accel_node)
+    !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1) IF(lacc)
     !$ACC LOOP GANG VECTOR COLLAPSE(2)
     DO jk = slev_moist, nlev
       DO jc = i_startidx, i_endidx
@@ -435,12 +428,13 @@ MODULE mo_nh_diagnose_pres_temp
   !! as \rho*\Delta z [kg m-2]. Computing the true grid cell air mass 
   !! requires an additional multiplication with the grid cell area.
   !!
-  SUBROUTINE compute_airmass (p_patch, p_metrics, rho, airmass)
+  SUBROUTINE compute_airmass (p_patch, p_metrics, rho, airmass, lacc)
 
     TYPE(t_patch),      INTENT(IN   ) :: p_patch
     TYPE(t_nh_metrics), INTENT(IN   ) :: p_metrics
     REAL(wp),           INTENT(IN   ) :: rho(:,:,:)      ! air density [kg m-3]
     REAL(wp),           INTENT(INOUT) :: airmass(:,:,:)  ! air mass    [kg m-2]
+    LOGICAL,            INTENT(IN   ) :: lacc            ! acc active?
 
     INTEGER :: nlev                  ! number of vertical levels
     INTEGER :: i_rlstart, i_rlend, i_startblk, i_endblk
@@ -458,7 +452,7 @@ MODULE mo_nh_diagnose_pres_temp
     i_endblk   = p_patch%cells%end_block(i_rlend)
 
 
-    !$ACC DATA PRESENT(rho, airmass, p_metrics%ddqz_z_full, p_metrics%deepatmo_vol_mc) IF(i_am_accel_node)
+    !$ACC DATA PRESENT(rho, airmass, p_metrics%ddqz_z_full, p_metrics%deepatmo_vol_mc) IF(lacc)
 
 !$OMP PARALLEL
 !$OMP DO PRIVATE(jc,jk,jb,i_startidx,i_endidx) ICON_OMP_DEFAULT_SCHEDULE
@@ -467,7 +461,7 @@ MODULE mo_nh_diagnose_pres_temp
       CALL get_indices_c( p_patch, jb, i_startblk, i_endblk,           &
         &                 i_startidx, i_endidx, i_rlstart, i_rlend)
 
-      !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1) IF(i_am_accel_node)
+      !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1) IF(lacc)
       !$ACC LOOP GANG VECTOR COLLAPSE(2)
       DO jk = 1, nlev
         DO jc = i_startidx, i_endidx
@@ -511,7 +505,7 @@ MODULE mo_nh_diagnose_pres_temp
     REAL(wp), INTENT(INOUT)           :: dpres_mc(:,:)    ! Pressure difference between lower and upper cell interfaces
     INTEGER,  INTENT(IN)              :: start_indices(2) ! Start indices: [i_startidx,slev]
     INTEGER,  INTENT(IN)              :: end_indices(2)   ! End indices:   [i_endidx,  nlev]
-    LOGICAL,  INTENT(IN),    OPTIONAL :: lacc             ! Optional flag for use of OpenACC
+    LOGICAL,  INTENT(IN)              :: lacc             ! use of OpenACC?
 
     ! Local variables
     REAL(wp) :: inv_grid_sphere_radius
@@ -520,11 +514,8 @@ MODULE mo_nh_diagnose_pres_temp
     REAL(wp) :: zgpot_mc, dzgpot_mc, zgpot_lifc, zgpot_uifc
     INTEGER  :: jk, jc
     INTEGER  :: nlev
-    LOGICAL  :: lzacc
 
     !-----------------------------------------------------------------------
-
-    CALL set_acc_host_or_device(lzacc, lacc)
 
     ! Rudimentary consistency checks
     IF (ANY(start_indices(:) < 1) .OR. ANY(end_indices(:) < 1)) THEN
@@ -540,7 +531,7 @@ MODULE mo_nh_diagnose_pres_temp
     ! Inverse Earth radius
     inv_grid_sphere_radius = 1._wp / grid_sphere_radius
 
-    !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1) IF(lzacc)
+    !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1) IF(lacc)
     !$ACC LOOP GANG VECTOR &
     !$ACC   PRIVATE(zgpot_ifc_nlevp1, zgpot_ifc_nlev, zgpot_ifc_nlevm1, zgpot_ifc_nlevm2) &
     !$ACC   PRIVATE(dzgpot_mc_nlev, dzgpot_mc_nlevm1, dzgpot_mc_nlevm2_halved)
@@ -567,7 +558,7 @@ MODULE mo_nh_diagnose_pres_temp
     ENDDO  !jc
     !$ACC END PARALLEL
 
-    !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1) IF(lzacc)
+    !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1) IF(lacc)
     !$ACC LOOP SEQ
     DO jk = end_indices(2), start_indices(2), -1 
 !DIR$ IVDEP

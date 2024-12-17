@@ -380,7 +380,7 @@ CONTAINS
       END DO ! jc = start_index, end_index
     END DO ! jb = cells_in_domain%start_block, cells_in_domain%end_block
 
-    ! CALL sync_patch_array(SYNC_C, patch_2D, diff_column)
+    ! CALL sync_patch_array(SYNC_C, patch_2D, diff_column, lacc=.FALSE.)
 
   END SUBROUTINE tracer_diffusion_vertical_implicit_r1
   !------------------------------------------------------------------------

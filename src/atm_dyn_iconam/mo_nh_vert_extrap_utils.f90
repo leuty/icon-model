@@ -1020,7 +1020,7 @@ CONTAINS  !.....................................................................
 !$OMP END PARALLEL
     
     ! Interpolate virtual potential temperature deviations from cell centers to edge centers  
-    CALL cells2edges_scalar( z_dtheta_c, p_patch, p_int%c_lin_e, z_dtheta_e,       &
+    CALL cells2edges_scalar( z_dtheta_c, p_patch, p_int%c_lin_e, z_dtheta_e, lacc=.FALSE., &
       &                      opt_slev=1, opt_elev=nexpollev, opt_fill_latbc=.TRUE. )
 
 !$OMP PARALLEL PRIVATE (rl_start,rl_end,i_startblk,i_endblk)
@@ -1065,12 +1065,12 @@ CONTAINS  !.....................................................................
 
     ! Interpolate deviation Exner pressure from cell centers to vertices 
     CALL cells2verts_scalar( z_dexner_c, p_patch, p_int%cells_aw_verts, z_dexner_v, &
-      &                      opt_slev=1, opt_elev=nexpollev                         )
+      &                      lacc=.FALSE., opt_slev=1, opt_elev=nexpollev           )
 
     ! Compute pressure gradient along edge        
     ! (Note: 'grad_fd_tang' is not corrected for spherical geometry, 
     ! but rather the output field is multiplied by a modification factor later on)
-    CALL grad_fd_tang(z_dexner_v, p_patch, z_dexnerdt_e, opt_slev=1, opt_elev=nexpollev) 
+    CALL grad_fd_tang(z_dexner_v, p_patch, z_dexnerdt_e, lacc=.FALSE., opt_slev=1, opt_elev=nexpollev) 
 
     ! 3rd Compute geostrophic wind
     !-----------------------------

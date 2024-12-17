@@ -308,9 +308,9 @@ CONTAINS
 !$OMP END DO NOWAIT
 !$OMP END PARALLEL
 
-    CALL sync_patch_array(sync_c,ptr_patch,ptr_int%c_bln_avg)
-    CALL sync_patch_array(sync_c,ptr_patch,ptr_int%gradc_bmat(:,1,:,:))
-    CALL sync_patch_array(sync_c,ptr_patch,ptr_int%gradc_bmat(:,2,:,:))
+    CALL sync_patch_array(sync_c,ptr_patch,ptr_int%c_bln_avg, lacc=.FALSE.)
+    CALL sync_patch_array(sync_c,ptr_patch,ptr_int%gradc_bmat(:,1,:,:), lacc=.FALSE.)
+    CALL sync_patch_array(sync_c,ptr_patch,ptr_int%gradc_bmat(:,2,:,:), lacc=.FALSE.)
 
   END SUBROUTINE calculate_bilinear_cellavg_wgt
   !-----------------------------------------------------------------------
@@ -462,9 +462,9 @@ CONTAINS
 !$OMP END DO NOWAIT
 !$OMP END PARALLEL
     z_inv_neighbor_id = REAL(inv_neighbor_id,wp)
-    CALL sync_patch_array(sync_c,ptr_patch,z_inv_neighbor_id(:,:,1))
-    CALL sync_patch_array(sync_c,ptr_patch,z_inv_neighbor_id(:,:,2))
-    CALL sync_patch_array(sync_c,ptr_patch,z_inv_neighbor_id(:,:,3))
+    CALL sync_patch_array(sync_c,ptr_patch,z_inv_neighbor_id(:,:,1), lacc=.FALSE.)
+    CALL sync_patch_array(sync_c,ptr_patch,z_inv_neighbor_id(:,:,2), lacc=.FALSE.)
+    CALL sync_patch_array(sync_c,ptr_patch,z_inv_neighbor_id(:,:,3), lacc=.FALSE.)
     inv_neighbor_id = NINT(z_inv_neighbor_id)
 
     DO iter = 1, niter
@@ -540,7 +540,7 @@ CONTAINS
 !$OMP END DO NOWAIT
 !$OMP END PARALLEL
 
-      CALL sync_patch_array(sync_c,ptr_patch,resid)
+      CALL sync_patch_array(sync_c,ptr_patch,resid, lacc=.FALSE.)
 
       IF (iter < niter) THEN ! Apply iterative correction to weighting coefficients
 !$OMP PARALLEL
@@ -588,7 +588,7 @@ CONTAINS
 !$OMP END DO NOWAIT
 !$OMP END PARALLEL
 
-        CALL sync_patch_array(sync_c,ptr_patch,ptr_int%c_bln_avg)
+        CALL sync_patch_array(sync_c,ptr_patch,ptr_int%c_bln_avg, lacc=.FALSE.)
 
       ELSE ! In the last iteration, enforce the mass conservation condition
 !$OMP PARALLEL
@@ -612,7 +612,7 @@ CONTAINS
 !$OMP END DO NOWAIT
 !$OMP END PARALLEL
 
-        CALL sync_patch_array(sync_c,ptr_patch,ptr_int%c_bln_avg)
+        CALL sync_patch_array(sync_c,ptr_patch,ptr_int%c_bln_avg, lacc=.FALSE.)
 
         ! Compute coefficients needed to reconstruct averaged mass fluxes
         ! for approximately mass-consistent transport with divergence-averaging
@@ -709,7 +709,7 @@ CONTAINS
 !$OMP END DO NOWAIT
 !$OMP END PARALLEL
 
-        CALL sync_patch_array(sync_e,ptr_patch,ptr_int%e_flx_avg)
+        CALL sync_patch_array(sync_e,ptr_patch,ptr_int%e_flx_avg, lacc=.FALSE.)
 
         rl_start = 5
         i_startblk = ptr_patch%edges%start_blk(rl_start,1)
@@ -885,8 +885,8 @@ CONTAINS
 !$OMP END DO NOWAIT
 !$OMP END PARALLEL
 
-        CALL sync_patch_array(sync_c,ptr_patch,ptr_int%c_bln_avg)
-        CALL sync_patch_array(sync_e,ptr_patch,ptr_int%e_flx_avg)
+        CALL sync_patch_array(sync_c,ptr_patch,ptr_int%c_bln_avg, lacc=.FALSE.)
+        CALL sync_patch_array(sync_e,ptr_patch,ptr_int%e_flx_avg, lacc=.FALSE.)
 
       ENDIF ! end of last iteration
     ENDDO ! iteration loop
@@ -1063,8 +1063,8 @@ CONTAINS
     ENDIF
 !$OMP END PARALLEL
 
-    CALL sync_patch_array(sync_c,ptr_patch,ptr_int%nudgecoeff_c)
-    CALL sync_patch_array(sync_e,ptr_patch,ptr_int%nudgecoeff_e)
+    CALL sync_patch_array(sync_c,ptr_patch,ptr_int%nudgecoeff_c, lacc=.FALSE.)
+    CALL sync_patch_array(sync_e,ptr_patch,ptr_int%nudgecoeff_e, lacc=.FALSE.)
 
   END SUBROUTINE init_nudgecoeffs
   !-------------------------------------------------------------------------
@@ -1469,16 +1469,16 @@ CONTAINS
 
 !$OMP END PARALLEL
 
-    CALL sync_patch_array(sync_c,ptr_patch,ptr_int%geofac_div)
-    CALL sync_patch_array(sync_v,ptr_patch,ptr_int%geofac_rot)
-    CALL sync_patch_array(sync_c,ptr_patch,ptr_int%geofac_n2s)
+    CALL sync_patch_array(sync_c,ptr_patch,ptr_int%geofac_div, lacc=.FALSE.)
+    CALL sync_patch_array(sync_v,ptr_patch,ptr_int%geofac_rot, lacc=.FALSE.)
+    CALL sync_patch_array(sync_c,ptr_patch,ptr_int%geofac_n2s, lacc=.FALSE.)
 
     IF (ptr_patch%geometry_info%cell_type == 3) THEN
-      IF (ptr_patch%id >= 1) CALL sync_patch_array(sync_e,ptr_patch,ptr_int%geofac_grdiv)
+      IF (ptr_patch%id >= 1) CALL sync_patch_array(sync_e,ptr_patch,ptr_int%geofac_grdiv, lacc=.FALSE.)
     ENDIF
 
-    CALL sync_patch_array(sync_c,ptr_patch,ptr_int%geofac_grg(:,:,:,1))
-    CALL sync_patch_array(sync_c,ptr_patch,ptr_int%geofac_grg(:,:,:,2))
+    CALL sync_patch_array(sync_c,ptr_patch,ptr_int%geofac_grg(:,:,:,1), lacc=.FALSE.)
+    CALL sync_patch_array(sync_c,ptr_patch,ptr_int%geofac_grg(:,:,:,2), lacc=.FALSE.)
 
   END SUBROUTINE init_geo_factors
   !-------------------------------------------------------------------------
@@ -1862,48 +1862,48 @@ CONTAINS
 !$OMP END PARALLEL
 
 
-    CALL sync_patch_array(SYNC_E,ptr_patch,ptr_patch%edges%area_edge)
+    CALL sync_patch_array(SYNC_E,ptr_patch,ptr_patch%edges%area_edge, lacc=.FALSE.)
 
     ! primal_normal_cell must be sync'd before next loop,
     ! so do a sync for all above calculated quantities
 
-    CALL sync_patch_array(sync_e,ptr_patch,ptr_patch%edges%inv_primal_edge_length)
+    CALL sync_patch_array(sync_e,ptr_patch,ptr_patch%edges%inv_primal_edge_length, lacc=.FALSE.)
 
     CALL sync_idx(sync_e,sync_v,ptr_patch,ptr_patch%edges%vertex_idx(:,:,3), &
-      & ptr_patch%edges%vertex_blk(:,:,3))
+      & ptr_patch%edges%vertex_blk(:,:,3), lacc=.FALSE.)
     CALL sync_idx(sync_e,sync_v,ptr_patch,ptr_patch%edges%vertex_idx(:,:,4), &
-      & ptr_patch%edges%vertex_blk(:,:,4))
+      & ptr_patch%edges%vertex_blk(:,:,4), lacc=.FALSE.)
 
-    CALL sync_patch_array(sync_e,ptr_patch,ptr_patch%edges%inv_dual_edge_length)
-    CALL sync_patch_array(sync_e,ptr_patch,ptr_patch%edges%inv_vert_vert_length)
+    CALL sync_patch_array(sync_e,ptr_patch,ptr_patch%edges%inv_dual_edge_length, lacc=.FALSE.)
+    CALL sync_patch_array(sync_e,ptr_patch,ptr_patch%edges%inv_vert_vert_length, lacc=.FALSE.)
 
-    CALL sync_patch_array(sync_e,ptr_patch,ptr_patch%edges%primal_normal_cell(:,:,1)%v1)
-    CALL sync_patch_array(sync_e,ptr_patch,ptr_patch%edges%primal_normal_cell(:,:,2)%v1)
-    CALL sync_patch_array(sync_e,ptr_patch,ptr_patch%edges%primal_normal_vert(:,:,1)%v1)
-    CALL sync_patch_array(sync_e,ptr_patch,ptr_patch%edges%primal_normal_vert(:,:,2)%v1)
-    CALL sync_patch_array(sync_e,ptr_patch,ptr_patch%edges%primal_normal_vert(:,:,3)%v1)
-    CALL sync_patch_array(sync_e,ptr_patch,ptr_patch%edges%primal_normal_vert(:,:,4)%v1)
+    CALL sync_patch_array(sync_e,ptr_patch,ptr_patch%edges%primal_normal_cell(:,:,1)%v1, lacc=.FALSE.)
+    CALL sync_patch_array(sync_e,ptr_patch,ptr_patch%edges%primal_normal_cell(:,:,2)%v1, lacc=.FALSE.)
+    CALL sync_patch_array(sync_e,ptr_patch,ptr_patch%edges%primal_normal_vert(:,:,1)%v1, lacc=.FALSE.)
+    CALL sync_patch_array(sync_e,ptr_patch,ptr_patch%edges%primal_normal_vert(:,:,2)%v1, lacc=.FALSE.)
+    CALL sync_patch_array(sync_e,ptr_patch,ptr_patch%edges%primal_normal_vert(:,:,3)%v1, lacc=.FALSE.)
+    CALL sync_patch_array(sync_e,ptr_patch,ptr_patch%edges%primal_normal_vert(:,:,4)%v1, lacc=.FALSE.)
 
-    CALL sync_patch_array(sync_e,ptr_patch,ptr_patch%edges%dual_normal_cell(:,:,1)%v1)
-    CALL sync_patch_array(sync_e,ptr_patch,ptr_patch%edges%dual_normal_cell(:,:,2)%v1)
-    CALL sync_patch_array(sync_e,ptr_patch,ptr_patch%edges%dual_normal_vert(:,:,1)%v1)
-    CALL sync_patch_array(sync_e,ptr_patch,ptr_patch%edges%dual_normal_vert(:,:,2)%v1)
-    CALL sync_patch_array(sync_e,ptr_patch,ptr_patch%edges%dual_normal_vert(:,:,3)%v1)
-    CALL sync_patch_array(sync_e,ptr_patch,ptr_patch%edges%dual_normal_vert(:,:,4)%v1)
+    CALL sync_patch_array(sync_e,ptr_patch,ptr_patch%edges%dual_normal_cell(:,:,1)%v1, lacc=.FALSE.)
+    CALL sync_patch_array(sync_e,ptr_patch,ptr_patch%edges%dual_normal_cell(:,:,2)%v1, lacc=.FALSE.)
+    CALL sync_patch_array(sync_e,ptr_patch,ptr_patch%edges%dual_normal_vert(:,:,1)%v1, lacc=.FALSE.)
+    CALL sync_patch_array(sync_e,ptr_patch,ptr_patch%edges%dual_normal_vert(:,:,2)%v1, lacc=.FALSE.)
+    CALL sync_patch_array(sync_e,ptr_patch,ptr_patch%edges%dual_normal_vert(:,:,3)%v1, lacc=.FALSE.)
+    CALL sync_patch_array(sync_e,ptr_patch,ptr_patch%edges%dual_normal_vert(:,:,4)%v1, lacc=.FALSE.)
 
-    CALL sync_patch_array(sync_e,ptr_patch,ptr_patch%edges%primal_normal_cell(:,:,1)%v2)
-    CALL sync_patch_array(sync_e,ptr_patch,ptr_patch%edges%primal_normal_cell(:,:,2)%v2)
-    CALL sync_patch_array(sync_e,ptr_patch,ptr_patch%edges%primal_normal_vert(:,:,1)%v2)
-    CALL sync_patch_array(sync_e,ptr_patch,ptr_patch%edges%primal_normal_vert(:,:,2)%v2)
-    CALL sync_patch_array(sync_e,ptr_patch,ptr_patch%edges%primal_normal_vert(:,:,3)%v2)
-    CALL sync_patch_array(sync_e,ptr_patch,ptr_patch%edges%primal_normal_vert(:,:,4)%v2)
+    CALL sync_patch_array(sync_e,ptr_patch,ptr_patch%edges%primal_normal_cell(:,:,1)%v2, lacc=.FALSE.)
+    CALL sync_patch_array(sync_e,ptr_patch,ptr_patch%edges%primal_normal_cell(:,:,2)%v2, lacc=.FALSE.)
+    CALL sync_patch_array(sync_e,ptr_patch,ptr_patch%edges%primal_normal_vert(:,:,1)%v2, lacc=.FALSE.)
+    CALL sync_patch_array(sync_e,ptr_patch,ptr_patch%edges%primal_normal_vert(:,:,2)%v2, lacc=.FALSE.)
+    CALL sync_patch_array(sync_e,ptr_patch,ptr_patch%edges%primal_normal_vert(:,:,3)%v2, lacc=.FALSE.)
+    CALL sync_patch_array(sync_e,ptr_patch,ptr_patch%edges%primal_normal_vert(:,:,4)%v2, lacc=.FALSE.)
 
-    CALL sync_patch_array(sync_e,ptr_patch,ptr_patch%edges%dual_normal_cell(:,:,1)%v2)
-    CALL sync_patch_array(sync_e,ptr_patch,ptr_patch%edges%dual_normal_cell(:,:,2)%v2)
-    CALL sync_patch_array(sync_e,ptr_patch,ptr_patch%edges%dual_normal_vert(:,:,1)%v2)
-    CALL sync_patch_array(sync_e,ptr_patch,ptr_patch%edges%dual_normal_vert(:,:,2)%v2)
-    CALL sync_patch_array(sync_e,ptr_patch,ptr_patch%edges%dual_normal_vert(:,:,3)%v2)
-    CALL sync_patch_array(sync_e,ptr_patch,ptr_patch%edges%dual_normal_vert(:,:,4)%v2)
+    CALL sync_patch_array(sync_e,ptr_patch,ptr_patch%edges%dual_normal_cell(:,:,1)%v2, lacc=.FALSE.)
+    CALL sync_patch_array(sync_e,ptr_patch,ptr_patch%edges%dual_normal_cell(:,:,2)%v2, lacc=.FALSE.)
+    CALL sync_patch_array(sync_e,ptr_patch,ptr_patch%edges%dual_normal_vert(:,:,1)%v2, lacc=.FALSE.)
+    CALL sync_patch_array(sync_e,ptr_patch,ptr_patch%edges%dual_normal_vert(:,:,2)%v2, lacc=.FALSE.)
+    CALL sync_patch_array(sync_e,ptr_patch,ptr_patch%edges%dual_normal_vert(:,:,3)%v2, lacc=.FALSE.)
+    CALL sync_patch_array(sync_e,ptr_patch,ptr_patch%edges%dual_normal_vert(:,:,4)%v2, lacc=.FALSE.)
 
 
 !$OMP PARALLEL  PRIVATE(rl_start,rl_end,i_startblk,i_endblk)
@@ -2044,9 +2044,9 @@ CONTAINS
 !$OMP END PARALLEL
 
     DO je = 1, ptr_patch%geometry_info%cell_type
-      CALL sync_patch_array(sync_c,ptr_patch,ptr_int%primal_normal_ec(:,:,je,1))
-      CALL sync_patch_array(sync_c,ptr_patch,ptr_int%primal_normal_ec(:,:,je,2))
-      CALL sync_patch_array(sync_c,ptr_patch,ptr_int%edge_cell_length(:,:,je))
+      CALL sync_patch_array(sync_c,ptr_patch,ptr_int%primal_normal_ec(:,:,je,1), lacc=.FALSE.)
+      CALL sync_patch_array(sync_c,ptr_patch,ptr_int%primal_normal_ec(:,:,je,2), lacc=.FALSE.)
+      CALL sync_patch_array(sync_c,ptr_patch,ptr_int%edge_cell_length(:,:,je), lacc=.FALSE.)
     ENDDO
 
   END SUBROUTINE complete_patchinfo
@@ -2230,7 +2230,7 @@ CONTAINS
 !$OMP END PARALLEL
 
     DO ne=1,SIZE(p_int%pos_on_tplane_e,2)
-      CALL sync_patch_array(SYNC_E, p_patch, p_int%pos_on_tplane_e(:,ne,:,:))
+      CALL sync_patch_array(SYNC_E, p_patch, p_int%pos_on_tplane_e(:,ne,:,:), lacc=.FALSE.)
     ENDDO
 
   END SUBROUTINE calculate_tangent_plane_at_edge
@@ -2354,7 +2354,7 @@ CONTAINS
 !$OMP END PARALLEL
 
     DO ne=1,SIZE(p_int%pos_on_tplane_e,2)
-      CALL sync_patch_array(SYNC_E, p_patch, p_int%pos_on_tplane_e(:,ne,:,:))
+      CALL sync_patch_array(SYNC_E, p_patch, p_int%pos_on_tplane_e(:,ne,:,:), lacc=.FALSE.)
     ENDDO
 
 
@@ -2728,8 +2728,8 @@ CONTAINS
 
     DO nv=1,5
       DO nc=1,2
-        CALL sync_patch_array(sync_e, ptr_patch, pos_on_tplane_c_edge(:,:,nc,nv)%lon)
-        CALL sync_patch_array(sync_e, ptr_patch, pos_on_tplane_c_edge(:,:,nc,nv)%lat)
+        CALL sync_patch_array(sync_e, ptr_patch, pos_on_tplane_c_edge(:,:,nc,nv)%lon, lacc=.FALSE.)
+        CALL sync_patch_array(sync_e, ptr_patch, pos_on_tplane_c_edge(:,:,nc,nv)%lat, lacc=.FALSE.)
       ENDDO
     ENDDO
 
@@ -3048,8 +3048,8 @@ CONTAINS
 
     DO nv=1,5
       DO nc=1,2
-        CALL sync_patch_array(sync_e, ptr_patch, pos_on_tplane_c_edge(:,:,nc,nv)%lon)
-        CALL sync_patch_array(sync_e, ptr_patch, pos_on_tplane_c_edge(:,:,nc,nv)%lat)
+        CALL sync_patch_array(sync_e, ptr_patch, pos_on_tplane_c_edge(:,:,nc,nv)%lon, lacc=.FALSE.)
+        CALL sync_patch_array(sync_e, ptr_patch, pos_on_tplane_c_edge(:,:,nc,nv)%lat, lacc=.FALSE.)
       ENDDO
     ENDDO
 
@@ -3262,15 +3262,15 @@ CONTAINS
 !$OMP END DO NOWAIT
 !$OMP END PARALLEL
 
-    CALL sync_patch_array(sync_c,ptr_patch,ptr_int%gquad%qpts_tri_l(:,:)%lat)
-    CALL sync_patch_array(sync_c,ptr_patch,ptr_int%gquad%qpts_tri_l(:,:)%lon)
+    CALL sync_patch_array(sync_c,ptr_patch,ptr_int%gquad%qpts_tri_l(:,:)%lat, lacc=.FALSE.)
+    CALL sync_patch_array(sync_c,ptr_patch,ptr_int%gquad%qpts_tri_l(:,:)%lon, lacc=.FALSE.)
     DO nq=1,3
-      CALL sync_patch_array(sync_c,ptr_patch,ptr_int%gquad%qpts_tri_q(:,:,nq)%lat)
-      CALL sync_patch_array(sync_c,ptr_patch,ptr_int%gquad%qpts_tri_q(:,:,nq)%lon)
+      CALL sync_patch_array(sync_c,ptr_patch,ptr_int%gquad%qpts_tri_q(:,:,nq)%lat, lacc=.FALSE.)
+      CALL sync_patch_array(sync_c,ptr_patch,ptr_int%gquad%qpts_tri_q(:,:,nq)%lon, lacc=.FALSE.)
     ENDDO
     DO nq=1,4
-      CALL sync_patch_array(sync_c,ptr_patch,ptr_int%gquad%qpts_tri_c(:,:,nq)%lat)
-      CALL sync_patch_array(sync_c,ptr_patch,ptr_int%gquad%qpts_tri_c(:,:,nq)%lon)
+      CALL sync_patch_array(sync_c,ptr_patch,ptr_int%gquad%qpts_tri_c(:,:,nq)%lat, lacc=.FALSE.)
+      CALL sync_patch_array(sync_c,ptr_patch,ptr_int%gquad%qpts_tri_c(:,:,nq)%lon, lacc=.FALSE.)
     ENDDO
 
   END SUBROUTINE tri_quadrature_pts

@@ -249,7 +249,7 @@ CONTAINS
 !       END DO
 !     END DO
 !     DO idx_cartesian = 1,3
-!       CALL sync_patch_array(sync_e, patch_2D,z_grad_u(:,:,:)%x(idx_cartesian) )
+!       CALL sync_patch_array(sync_e, patch_2D,z_grad_u(:,:,:)%x(idx_cartesian), lacc=.FALSE.)
 !     END DO
 !     
 !     !Step 2: Apply divergence to each component of mixing times gradient vector
@@ -281,10 +281,10 @@ CONTAINS
 !       END DO
 !     END DO
 !     DO idx_cartesian = 1,3
-!       CALL sync_patch_array(sync_c, patch_2D,z_div_grad_u(:,:,:)%x(idx_cartesian) )
+!       CALL sync_patch_array(sync_c, patch_2D,z_div_grad_u(:,:,:)%x(idx_cartesian), lacc=.FALSE.)
 !     END DO
-    CALL sync_patch_array_mult(sync_c, patch_2D, 3, &
-      z_div_grad_u(:,:,:)%x(1), z_div_grad_u(:,:,:)%x(2),z_div_grad_u(:,:,:)%x(3))
+    CALL sync_patch_array_mult(sync_c, patch_2D, 3, lacc=.FALSE., &
+      f3din1=z_div_grad_u(:,:,:)%x(1), f3din2=z_div_grad_u(:,:,:)%x(2), f3din3=z_div_grad_u(:,:,:)%x(3))
     
     !Step 3: Map divergence back to edges
     CALL map_cell2edges_3d( patch_3D, z_div_grad_u, laplacian_vn_out, operators_coeff)
@@ -386,7 +386,7 @@ CONTAINS
 !ICON_OMP_END_DO
     
 !     DO idx_cartesian = 1,3
-!       CALL sync_patch_array(sync_e, patch_2D,z_grad_u(:,:,:)%x(idx_cartesian) )
+!       CALL sync_patch_array(sync_e, patch_2D,z_grad_u(:,:,:)%x(idx_cartesian), lacc=.FALSE.)
 !     END DO
     
     !Step 2: Apply divergence to each component of gradient vector
@@ -420,7 +420,7 @@ CONTAINS
 !ICON_OMP_END_DO
     
 !     DO idx_cartesian = 1,3
-!       CALL sync_patch_array(sync_c, patch_2D,z_div_grad_u(:,:,:)%x(idx_cartesian) )
+!       CALL sync_patch_array(sync_c, patch_2D,z_div_grad_u(:,:,:)%x(idx_cartesian), lacc=.FALSE.)
 !     END DO
     
     !Step 4: Repeat the application of div and grad and take the mixing coefficients into account
@@ -449,7 +449,7 @@ CONTAINS
     END DO
 !ICON_OMP_END_DO
 !     DO idx_cartesian = 1,3
-!       CALL sync_patch_array(sync_e, patch_2D,z_grad_u(:,:,:)%x(idx_cartesian) )
+!       CALL sync_patch_array(sync_e, patch_2D,z_grad_u(:,:,:)%x(idx_cartesian), lacc=.FALSE.)
 !     END DO
     
     !Step 5: Apply divergence to each component of gradient vector
@@ -478,10 +478,10 @@ CONTAINS
 !ICON_OMP_END_PARALLEL
 
 
-    CALL sync_patch_array_mult(sync_c, patch_2D, 3,  &
-     & z_div_grad_u(:,:,:)%x(1),  &
-     & z_div_grad_u(:,:,:)%x(2),  &
-     & z_div_grad_u(:,:,:)%x(3)   )
+    CALL sync_patch_array_mult(sync_c, patch_2D, 3, lacc=.FALSE.,  &
+     & f3din1=z_div_grad_u(:,:,:)%x(1),  &
+     & f3din2=z_div_grad_u(:,:,:)%x(2),  &
+     & f3din3=z_div_grad_u(:,:,:)%x(3)   )
     
     
     !Step 6: Map divergence back to edges
@@ -505,7 +505,7 @@ CONTAINS
 !         write(*,*)'Biharmonic divgrad',level,maxval(laplacian_vn_out(:,level,:)),&
 !         &minval(laplacian_vn_out(:,level,:))
 !        END DO
-     CALL sync_patch_array(SYNC_E, patch_2D, laplacian_vn_out)
+     CALL sync_patch_array(SYNC_E, patch_2D, laplacian_vn_out, lacc=.FALSE.)
   END SUBROUTINE veloc_diff_biharmonic_div_grad0
   !-------------------------------------------------------------------------
 
@@ -604,7 +604,7 @@ CONTAINS
       END DO
     END DO
 !ICON_OMP_END_DO
-    CALL sync_patch_array(SYNC_E, patch_2D, z_grad_u_normal)
+    CALL sync_patch_array(SYNC_E, patch_2D, z_grad_u_normal, lacc=.FALSE.)
     
     !CALL map_edges2edges_viacell_3d_const_z( patch_3d, z_grad_u_normal, operators_coeff, &
     !    & z_grad_u_normal_ptp)   
@@ -630,7 +630,7 @@ CONTAINS
 ! !       END DO
 ! !     END DO
 ! ! !ICON_OMP_END_DO
-   CALL sync_patch_array(SYNC_E, patch_2D, grad_div_e)
+   CALL sync_patch_array(SYNC_E, patch_2D, grad_div_e, lacc=.FALSE.)
 
     CALL div_oce_3D( grad_div_e, patch_3D, operators_coeff%div_coeff, div_c)
 
@@ -660,7 +660,7 @@ CONTAINS
          write(*,*)'Biharmonic divgrad',level,maxval(laplacian_vn_out(:,level,:)),&
          &minval(laplacian_vn_out(:,level,:))
         END DO
-     CALL sync_patch_array(SYNC_E, patch_2D, laplacian_vn_out)
+     CALL sync_patch_array(SYNC_E, patch_2D, laplacian_vn_out, lacc=.FALSE.)
   END SUBROUTINE veloc_diff_biharmonic_div_grad
   !-------------------------------------------------------------------------
    
@@ -734,11 +734,11 @@ CONTAINS
 
     ! vn is synced on all edges
     CALL div_oce_3d( u_vec_e, patch_3D, div_coeff, z_div_c, subset_range=patch_2D%cells%all, lacc=lzacc)
-!     CALL sync_patch_array(sync_c,patch_2D,z_div_c)
+!     CALL sync_patch_array(sync_c,patch_2D,z_div_c, lacc=lzacc)
     
     ! compute rotation of vector field for the ocean
     !CALL rot_vertex_ocean_3D( patch_2D, u_vec_e, p_vn_dual, operators_coeff, z_rot_v)!
-    !CALL sync_patch_array(SYNC_V,patch_2D,z_rot_v)
+    !CALL sync_patch_array(SYNC_V,patch_2D,z_rot_v, lacc=lzacc)
     !z_rot_v=vort
     
 !ICON_OMP_PARALLEL_DO PRIVATE(start_index,end_index, edge_index, level, nabla2) ICON_OMP_DEFAULT_SCHEDULE
@@ -897,7 +897,7 @@ CONTAINS
         & lacc=lzacc)
 !     ENDIF
   
-    CALL sync_patch_array(sync_e,patch_2D,z_nabla2_e)
+    CALL sync_patch_array(sync_e,patch_2D,z_nabla2_e, lacc=lzacc)
       
     ! compute divergence of vector field
     !     CALL div_oce_3d( u_vec_e, patch_2D, operators_coeff%div_coeff, z_div_c)
@@ -933,7 +933,7 @@ CONTAINS
     ! compute divergence of vector field
     CALL div_oce_3d( z_nabla2_e, patch_3D, operators_coeff%div_coeff, z_div_c, &
       & subset_range=patch_2D%cells%all, lacc=lzacc)
-!     CALL sync_patch_array(sync_c,patch_2D,z_div_c)
+!     CALL sync_patch_array(sync_c,patch_2D,z_div_c, lacc=lzacc)
     
     ! compute rotation of vector field for the ocean
     CALL map_edges2vert_3d( patch_2D, &
@@ -951,8 +951,8 @@ CONTAINS
     !$ACC END KERNELS
     !$ACC WAIT(1)
 
-    CALL sync_patch_array_mult(sync_v, patch_2D, 3, &
-      & p_nabla2_dual_x, p_nabla2_dual_y, p_nabla2_dual_z)
+    CALL sync_patch_array_mult(sync_v, patch_2D, 3, lacc=lzacc, &
+      & f3din1=p_nabla2_dual_x, f3din2=p_nabla2_dual_y, f3din3=p_nabla2_dual_z)
 
     !$ACC KERNELS DEFAULT(PRESENT) ASYNC(1) IF(lzacc)
     p_nabla2_dual(:,:,:)%x(1) = p_nabla2_dual_x
@@ -961,8 +961,8 @@ CONTAINS
     !$ACC END KERNELS
     !$ACC WAIT(1)
 #else
-    CALL sync_patch_array_mult(sync_v, patch_2D, 3, &
-      & p_nabla2_dual(:,:,:)%x(1), p_nabla2_dual(:,:,:)%x(2), p_nabla2_dual(:,:,:)%x(3))
+    CALL sync_patch_array_mult(sync_v, patch_2D, 3, lacc=.FALSE., &
+      & f3din1=p_nabla2_dual(:,:,:)%x(1), f3din2=p_nabla2_dual(:,:,:)%x(2), f3din3=p_nabla2_dual(:,:,:)%x(3))
 #endif
 
     CALL rot_vertex_ocean_3d( patch_3D, z_nabla2_e, p_nabla2_dual, operators_coeff, z_rot_v, lacc=lzacc)

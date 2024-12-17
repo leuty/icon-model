@@ -652,7 +652,7 @@ CONTAINS
 
       !include halo points and boundary points because these values will be
       !used in next loop
-      CALL sync_patch_array(SYNC_C, patch, state)
+      CALL sync_patch_array(SYNC_C, patch, state, lacc=.TRUE.)
 
 !$OMP PARALLEL PRIVATE(rl_start, rl_end, i_startblk, i_endblk)
 
@@ -905,7 +905,7 @@ CONTAINS
 
     !include halo points and boundary points because these values will be
     !used in next loop
-    CALL sync_patch_array(SYNC_C, patch, energy)
+    CALL sync_patch_array(SYNC_C, patch, energy, lacc=.TRUE.)
 
     rl_start   = grf_bdywidth_e
     rl_end     = min_rledge_int-1
@@ -1093,12 +1093,11 @@ CONTAINS
     CALL init(tot_tend, lacc=.TRUE.)
 !$OMP END PARALLEL
 
-    CALL sync_patch_array(SYNC_C, patch, rho)
+    CALL sync_patch_array(SYNC_C, patch, rho, lacc=.TRUE.)
 
     !density at edge
-    CALL cells2edges_scalar(rho, patch, p_int%c_lin_e, inv_rhoe,                  &
-                            opt_rlstart=grf_bdywidth_e+1, opt_rlend=min_rledge_int, &
-                            lacc=.TRUE.)
+    CALL cells2edges_scalar(rho, patch, p_int%c_lin_e, inv_rhoe, lacc=.TRUE.,       &
+                            opt_rlstart=grf_bdywidth_e+1, opt_rlend=min_rledge_int  )
 
     rl_start   = grf_bdywidth_e+1
     rl_end     = min_rledge_int
@@ -1213,7 +1212,7 @@ CONTAINS
 
     ! Sync momentum fluxes (otherwise, MPI test fails)
     ! TODO: Can't we just use sync_patch_array directly?
-    CALL sync_uvml_s(mflux_u, mflux_v, patch)
+    CALL sync_uvml_s(mflux_u, mflux_v, patch) ! internal subroutine, has lacc=.TRUE.
 
 !$OMP PARALLEL DO PRIVATE(jb,jk,je,i_startidx,i_endidx, stress_c1n, stress_c2n, flux_dn_e) ICON_OMP_DEFAULT_SCHEDULE
     DO jb = i_startblk,i_endblk
@@ -1339,8 +1338,9 @@ CONTAINS
 
     END IF
 
-    CALL sync_patch_array(SYNC_E, patch, tot_tend)
-    CALL rbf_vec_interpol_cell(tot_tend, patch, p_int, tend_u, tend_v, opt_rlend=min_rlcell_int)
+    CALL sync_patch_array(SYNC_E, patch, tot_tend, lacc=.TRUE.)
+    CALL rbf_vec_interpol_cell(tot_tend, patch, p_int, tend_u, tend_v, &
+                               lacc=.TRUE., opt_rlend=min_rlcell_int)
 
 !$OMP PARALLEL DO PRIVATE(jb,jk,jc,i_startidx,i_endidx) ICON_OMP_DEFAULT_SCHEDULE
     DO jb = i_startblk_c,i_endblk_c
@@ -1356,8 +1356,8 @@ CONTAINS
 !$OMP END PARALLEL DO
 
     ! TODO: Are these necessary?
-    CALL sync_patch_array_mult(SYNC_C, patch, 2, tend_u, tend_v)
-    CALL sync_patch_array_mult(SYNC_C, patch, 2, new_state_u, new_state_v)
+    CALL sync_patch_array_mult(SYNC_C, patch, 2, lacc=.TRUE., f3din1=tend_u, f3din2=tend_v)
+    CALL sync_patch_array_mult(SYNC_C, patch, 2, lacc=.TRUE., f3din1=new_state_u, f3din2=new_state_v)
 
     END ASSOCIATE
 
@@ -1460,7 +1460,8 @@ CONTAINS
     !---------------------------------------------------------------
     ! Vertical diffusion for w-wind
     !---------------------------------------------------------------
-    CALL rbf_vec_interpol_edge( vn, patch, p_int, vt_e, opt_rlend=min_rledge_int-1)
+    CALL rbf_vec_interpol_edge( vn, patch, p_int, vt_e, &
+                                lacc=.TRUE., opt_rlend=min_rledge_int-1)
 
 !$OMP PARALLEL DO PRIVATE(jb,jk,jc) ICON_OMP_DEFAULT_SCHEDULE
     DO jb = i_startblk_c,i_endblk_c
@@ -1666,7 +1667,7 @@ CONTAINS
 !$OMP END DO
 !$OMP END PARALLEL
 
-    CALL sync_patch_array(SYNC_C, patch, new_state)
+    CALL sync_patch_array(SYNC_C, patch, new_state, lacc=.TRUE.)
 
     END ASSOCIATE
 
@@ -1684,7 +1685,7 @@ CONTAINS
  
     CALL insert_dimension(pu, u, 2)
     CALL insert_dimension(pv, v, 2)
-    CALL sync_patch_array_mult(SYNC_C, patch, 2, pu, pv)
+    CALL sync_patch_array_mult(SYNC_C, patch, 2, lacc=.TRUE., f3din1=pu, f3din2=pv)
   END SUBROUTINE sync_uvml_s
   !
   !============================================================================
@@ -1772,7 +1773,7 @@ CONTAINS
 !$OMP END PARALLEL DO
 
     ! TODO: Are these necessary?
-    CALL sync_patch_array_mult(SYNC_C, patch, 2, new_state_ta, tend_ta)
+    CALL sync_patch_array_mult(SYNC_C, patch, 2, lacc=.TRUE., f3din1=new_state_ta, f3din2=tend_ta)
 
     END ASSOCIATE
 

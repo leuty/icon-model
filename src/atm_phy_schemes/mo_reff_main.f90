@@ -866,7 +866,8 @@ MODULE mo_reff_main
         END DO
         !$ACC END PARALLEL
 
-        CALL generate_index_list_batched(llq, indices, 1, ie, n_ind, 1)
+        CALL generate_index_list_batched(llq, indices, 1, ie, n_ind, &
+          &   lacc=.TRUE., opt_acc_async_queue=1)
 
       CASE (1) ! Only grid scale (with same subgrid/grid criteria as subgrid)
         
@@ -885,7 +886,8 @@ MODULE mo_reff_main
           END DO
           !$ACC END PARALLEL
 
-          CALL generate_index_list_batched(llq, indices, 1, ie, n_ind, 1)
+          CALL generate_index_list_batched(llq, indices, 1, ie, n_ind, &
+            &   lacc=.TRUE., opt_acc_async_queue=1)
 
         ELSE
           WRITE (message_text,*) 'Warning: Reff does not have information for generate inidices for subgrid ncn'
@@ -911,7 +913,8 @@ MODULE mo_reff_main
           END DO
           !$ACC END PARALLEL
 
-          CALL generate_index_list_batched(llq, indices, 1, ie, n_ind, 1)
+          CALL generate_index_list_batched(llq, indices, 1, ie, n_ind, &
+            &   lacc=.TRUE., opt_acc_async_queue=1)
 
         ELSE
           WRITE (message_text,*) 'Warning: Reff does not have information for generate inidices for subgrid ncn'
@@ -985,7 +988,8 @@ MODULE mo_reff_main
           END DO
         END DO
 
-        CALL generate_index_list_batched(llq, indices, 1, ie, n_ind, 1)
+        CALL generate_index_list_batched(llq, indices, 1, ie, n_ind, &
+          &   lacc=.FALSE., opt_acc_async_queue=1)
 
       CASE (1) ! Only grid scale (with same subgrid/grid criteria as subgrid)
         
@@ -1001,7 +1005,8 @@ MODULE mo_reff_main
             END DO
           END DO
 
-          CALL generate_index_list_batched(llq, indices, 1, ie, n_ind, 1)
+          CALL generate_index_list_batched(llq, indices, 1, ie, n_ind, &
+            &   lacc=.FALSE., opt_acc_async_queue=1)
 
         ELSE
           WRITE (message_text,*) 'Warning: Reff does not have information for generate inidices for subgrid ncn'
@@ -1024,7 +1029,8 @@ MODULE mo_reff_main
             END DO
           END DO
 
-          CALL generate_index_list_batched(llq, indices, 1, ie, n_ind, 1)
+          CALL generate_index_list_batched(llq, indices, 1, ie, n_ind, &
+            &   lacc=.FALSE., opt_acc_async_queue=1)
 
         ELSE
           WRITE (message_text,*) 'Warning: Reff does not have information for generate inidices for subgrid ncn'

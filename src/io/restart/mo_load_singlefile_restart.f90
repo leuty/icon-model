@@ -134,17 +134,17 @@ CONTAINS
       IF (timers_level >= 7) CALL timer_start(timer_load_restart_io)
       SELECT CASE(dt)
       CASE(REAL_T)
-        CALL get_var_3d_ptr(vDat(iV)%p, r(1)%p)
+        CALL get_var_3d_ptr(vDat(iV)%p, r(1)%p, lacc=.TRUE.)
         IF (SIZE(r(1)%p, 3) .GT. 0) r(1)%p(:,:,SIZE(r(1)%p, 3)) = 0._dp
         CALL distrib_read(fID, vDat(iV)%p%info%name, r, (/dio/), &
           & edim=(/SIZE(r(1)%p, 2)/), dimo=idx_lvl_blk)
       CASE(SINGLE_T)
-        CALL get_var_3d_ptr(vDat(iV)%p, s(1)%p)
+        CALL get_var_3d_ptr(vDat(iV)%p, s(1)%p, lacc=.TRUE.)
         IF (SIZE(s(1)%p, 3) .GT. 0) s(1)%p(:,:,SIZE(s(1)%p, 3)) = 0._sp
         CALL distrib_read(fID, vDat(iV)%p%info%name, s, (/dio/), &
           & edim=(/SIZE(s(1)%p, 2)/), dimo=idx_lvl_blk)
       CASE(INT_T)
-        CALL get_var_3d_ptr(vDat(iV)%p, i(1)%p)
+        CALL get_var_3d_ptr(vDat(iV)%p, i(1)%p, lacc=.TRUE.)
         IF (int_is_int) THEN
           IF (SIZE(i(1)%p, 3) .GT. 0) i(1)%p(:,:,SIZE(i(1)%p, 3)) = 0
           CALL distrib_read(fID, vDat(iV)%p%info%name, i, (/dio/), &

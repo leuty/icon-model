@@ -264,7 +264,7 @@ CONTAINS
 !$OMP END PARALLEL
 
     ! Compute tangential component of vertically averaged back-trajectory winds
-    CALL rbf_vec_interpol_edge(vn_traj_avg, p_patch, p_int, vt_traj_avg,               &
+    CALL rbf_vec_interpol_edge(vn_traj_avg, p_patch, p_int, vt_traj_avg, lacc=.FALSE.,  &
                                opt_rlstart=grf_bdywidth_e-2, opt_rlend=min_rledge_int-1)
 
     ! Compute back trajectories
@@ -282,12 +282,12 @@ CONTAINS
     ! Reconstruct 2D gradient fields of aerosol
     IF (advection_config(jg)%igrad_c_miura == 1 .AND. advection_config(jg)%llsq_svd) THEN
       use_zlsq = .TRUE.
-      CALL recon_lsq_cell_l_svd(aerosol, p_patch, p_int%lsq_lin, lsq_aero, opt_rlend=min_rlcell_int-1, &
-                                opt_slev = jtstart, opt_elev = jtend)
+      CALL recon_lsq_cell_l_svd(aerosol, p_patch, p_int%lsq_lin, lsq_aero, lacc=.FALSE., &
+                                opt_rlend=min_rlcell_int-1, opt_slev = jtstart, opt_elev = jtend)
     ELSE
       use_zlsq = .FALSE.
-      CALL grad_green_gauss_cell(aerosol, p_patch, p_int, grad_aero, opt_rlend=min_rlcell_int-1, &
-                                opt_slev = jtstart, opt_elev = jtend)
+      CALL grad_green_gauss_cell(aerosol, p_patch, p_int, grad_aero, lacc=.FALSE., &
+                                 opt_rlend=min_rlcell_int-1, opt_slev = jtstart, opt_elev = jtend)
     ENDIF
 
 

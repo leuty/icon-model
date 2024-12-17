@@ -319,7 +319,8 @@ CONTAINS
     END DO
     !$ACC END PARALLEL LOOP
 
-    CALL generate_index_list_batched(pfrc_test(:,:), loidx, jcs, jce, is, 1)
+    CALL generate_index_list_batched(pfrc_test(:,:), loidx, jcs, jce, is, &
+      &   lacc=.TRUE., opt_acc_async_queue=1)
     !$ACC UPDATE HOST(is) ASYNC(1)
 
     ! Compute factor for conversion temperature to dry static energy
@@ -353,6 +354,7 @@ CONTAINS
         & pdtime, delz,                            &! in
         & aa_btm, bb_btm,                          &! inout
         & zen_h, zfn_h, zen_qv, zfn_qv,            &! out
+        & lacc=.TRUE.,                             &! in
         & pcair = pcair(:),                        &! in
         & pcsat = pcsat(:))                         ! in
     ELSE
@@ -360,7 +362,8 @@ CONTAINS
         & aa(:,:,:,imh:imqv), bb(:,:,ih:iqv),      &! in
         & pdtime, delz,                            &! in
         & aa_btm, bb_btm,                          &! inout
-        & zen_h, zfn_h, zen_qv, zfn_qv             )! out
+        & zen_h, zfn_h, zen_qv, zfn_qv,            &! out
+        & lacc=.TRUE.                              )! in
     END IF
 
     ! Set defaults

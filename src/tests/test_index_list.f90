@@ -59,7 +59,8 @@ program test_index_list
     end do
   end do
 
-  call generate_index_list_batched(conditions, dev_indices, 1, n, dev_nvalid, 1)
+  call generate_index_list_batched(conditions, dev_indices, 1, n, dev_nvalid, &
+    &   lacc=.TRUE., opt_acc_async_queue=1)
   !$ACC UPDATE HOST(dev_indices, dev_nvalid) ASYNC(1)
   !$ACC WAIT(1)
 

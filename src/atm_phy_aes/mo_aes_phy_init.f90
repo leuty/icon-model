@@ -715,13 +715,13 @@ CONTAINS
           ! READ 6-hourly sst values (dyamond+- setup, preliminary)
           CALL sst_sic_reader%init(p_patch(1), 'sst-sic-runmean_G.nc')
           CALL sst_intp%init(sst_sic_reader, mtime_current, "SST")
-          CALL sst_intp%intp(mtime_current, sst_dat)
+          CALL sst_intp%intp(mtime_current, sst_dat, lacc=.FALSE.)
           WHERE (sst_dat(:,1,:,1) > 0.0_wp)
             prm_field(1)%ts_tile(:,:,iwtr) = sst_dat(:,1,:,1)
           END WHERE
           !
           CALL sic_intp%init(sst_sic_reader, mtime_current, "SIC")
-          CALL sic_intp%intp(mtime_current, sic_dat)
+          CALL sic_intp%intp(mtime_current, sic_dat, lacc=.FALSE.)
           prm_field(1)%seaice(:,:) = sic_dat(:,1,:,1)
           prm_field(1)%seaice(:,:) = MERGE(0.99_wp, prm_field(1)%seaice(:,:), prm_field(1)%seaice(:,:) > 0.99_wp)
           prm_field(1)%seaice(:,:) = MERGE(0.0_wp, prm_field(1)%seaice(:,:), prm_field(1)%seaice(:,:) <= 0.01_wp)

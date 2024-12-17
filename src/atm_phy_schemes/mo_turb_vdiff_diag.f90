@@ -39,6 +39,8 @@ MODULE mo_turb_vdiff_diag
 
   USE mo_model_domain      ,ONLY: t_patch
   USE mo_math_constants    ,ONLY: rad2deg
+  USE mo_fortran_tools     ,ONLY: assert_acc_device_only
+
 
   IMPLICIT NONE
   PRIVATE
@@ -80,7 +82,8 @@ CONTAINS
                                & pcfm, pcfh, pcfv, pcftotte, pcfthv,      &! out
                                & pprfac, ptheta_b, pthetav_b, pthetal_b,  &! out
                                & pqsat_b, plh_b,                          &! out
-                               & pri, pmixlen                             )! out
+                               & pri, pmixlen,                            &! out
+                               & lacc)                                     ! in
     ! Arguments
 
     INTEGER, INTENT(IN) :: jb
@@ -125,6 +128,8 @@ CONTAINS
     ! Just for output
     REAL(wp),INTENT(INOUT) :: pri     (:,:) !< (kbdim,klevm1) moist Richardson number at mid-levels
     REAL(wp),INTENT(INOUT) :: pmixlen (:,:) !< (kbdim,klevm1) mixing length
+
+    LOGICAL, INTENT(IN) :: lacc
 
     ! Local variables
     ! - Variables defined at full levels
@@ -180,6 +185,9 @@ CONTAINS
     REAL(wp) :: f_tau_limit_fraction, f_tau_decay
     REAL(wp) :: f_theta_limit_fraction, f_theta_decay
     REAL(wp) :: ek_ep_ratio_stable, ek_ep_ratio_unstable
+
+    CALL assert_acc_device_only ('atm_exchange_coeff', lacc)
+
     !
     !$ACC DATA &
     !$ACC   CREATE(zlh, ztheta, zthetav, zthetal, zqsat, km, kh, zlhmid, zdgmid) &
@@ -257,12 +265,15 @@ CONTAINS
 
 #else
     ! DA: warning: those are from AES convect tables!!
-    CALL prepare_ua_index_spline_batch('vdiff (1)', jcs, kproma, klev, &
-      &                                ptm1, idx_batch, za_batch,          &
+    CALL prepare_ua_index_spline_batch(name='vdiff (1)', jcs=jcs, jce=kproma, &
+      &                                batch_size=klev, temp=ptm1, idx=idx_batch, &
+      &                                zalpha=za_batch, lacc=.TRUE., &
       &                                kblock=jb,kblock_size=kbdim, &
-                                       csecfrl=csecfrl, cthomi=cthomi, &
-                                       extend_upper_limit=top_height >= THERMOSPHERE_HEIGHT)
-    CALL lookup_ua_spline_batch(jcs, kproma, klev, idx_batch, za_batch, zua_batch)
+      &                                csecfrl=csecfrl, cthomi=cthomi, &
+      &                                extend_upper_limit=top_height >= THERMOSPHERE_HEIGHT)
+    CALL lookup_ua_spline_batch(jcs=jcs, jce=kproma, batch_size=klev, &
+      &                         idx=idx_batch, zalpha=za_batch, lacc=.TRUE., &
+      &                         ua=zua_batch)
 
     !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1)
     !$ACC LOOP GANG VECTOR COLLAPSE(2) PRIVATE(zpapm1i_s, zusus1, zes)
@@ -582,6 +593,7 @@ CONTAINS
                                & pustarm,                                &! out
                                & pch_tile,                               &! out
                                & pbn_tile, pbhn_tile, pbm_tile, pbh_tile,&! out
+                               & lacc,                                   &! in
                                & paz0lh,                                 &! in, optional
                                & pcsat, pcair                            &! in, optional
                                & )
@@ -658,6 +670,8 @@ CONTAINS
     REAL(wp),INTENT(INOUT) :: pbm_tile  (:,:)  !< (kbdim,ksfc_type) OUT for diagnostics
     REAL(wp),INTENT(INOUT) :: pbh_tile  (:,:)  !< (kbdim,ksfc_type) OUT for diagnostics
     REAL(wp),INTENT(INOUT) :: pch_tile  (:,:)  !< (kbdim,ksfc_type) OUT for TTE boundary condition
+
+    LOGICAL,INTENT(IN) :: lacc
     !
     ! optional arguments for use with jsbach
     REAL(wp),OPTIONAL,INTENT(IN) :: paz0lh (:)  !< (kbdim) roughness length for heat over land
@@ -706,6 +720,8 @@ CONTAINS
     REAL(wp) :: f_tau_limit_fraction, f_tau_decay
     REAL(wp) :: f_theta_limit_fraction, f_theta_decay
     REAL(wp) :: ek_ep_ratio_stable, ek_ep_ratio_unstable
+    !
+    CALL assert_acc_device_only ('sfc_exchange_coeff', lacc)
     !
     lsfc_mom_flux  = vdiff_config%lsfc_mom_flux
     lsfc_heat_flux = vdiff_config%lsfc_heat_flux
@@ -795,13 +811,14 @@ CONTAINS
     END DO
     !$ACC END PARALLEL LOOP
 
-    CALL generate_index_list_batched(pfrc_test(:,:), loidx, jcs, kproma, is, 1)
+    CALL generate_index_list_batched(pfrc_test(:,:), loidx, jcs, kproma, is, &
+      &   lacc=.TRUE., opt_acc_async_queue=1)
     !$ACC UPDATE HOST(is) ASYNC(1)
     !$ACC WAIT(1)
 
     DO jsfc = 1,ksfc_type
 
-      CALL compute_qsat( kproma, is(jsfc), loidx(:,jsfc), ppsfc, ptsfc(:,jsfc), pqsat_tile(:,jsfc), error_reporter=lookup_error_)
+      CALL compute_qsat( kproma, is(jsfc), loidx(:,jsfc), ppsfc, ptsfc(:,jsfc), pqsat_tile(:,jsfc), lacc=.TRUE., error_reporter=lookup_error_)
      ! loop over mask only
      !
       !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1)

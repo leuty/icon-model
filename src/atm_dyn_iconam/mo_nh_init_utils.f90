@@ -447,7 +447,7 @@ CONTAINS
     ENDIF
 
     ! Compute slope at edges
-    CALL grad_fd_norm (z_ifc, p_patch, z_slope_e, 1, nlevp1)
+    CALL grad_fd_norm (z_ifc, p_patch, z_slope_e, lacc=.FALSE., opt_slev=1, opt_elev=nlevp1)
 
     ! slope cannot be computed at outer boundary edges
     i_startblk = p_patch%edges%start_blk(2,1)
@@ -463,8 +463,8 @@ CONTAINS
       ENDDO
     ENDDO
 
-    CALL edges2cells_scalar(z_wsfc_e,p_patch,p_int%e_inn_c,z_wsfc_c,&
-                            1,1,opt_rlstart=2)
+    CALL edges2cells_scalar(z_wsfc_e, p_patch, p_int%e_inn_c, z_wsfc_c, lacc=.FALSE., &
+                            opt_slev=1, opt_elev=1, opt_rlstart=2)
 
     i_startblk = p_patch%cells%start_blk(2,1)
 
@@ -541,7 +541,7 @@ CONTAINS
     ENDIF
 
     ! Compute slope at edges
-    CALL grad_fd_norm (z_ifc, p_patch, z_slope_e, 1, nlevp1)
+    CALL grad_fd_norm (z_ifc, p_patch, z_slope_e, lacc=.FALSE., opt_slev=1, opt_elev=nlevp1)
 
     ! slope cannot be computed at outer boundary edges
     i_startblk = p_patch%edges%start_blk(2,1)
@@ -557,8 +557,8 @@ CONTAINS
       ENDDO
     ENDDO
 
-    CALL edges2cells_scalar(z_wsfc_e,p_patch,p_int%e_inn_c,z_wsfc_c,&
-                            1,1,opt_rlstart=2)
+    CALL edges2cells_scalar(z_wsfc_e, p_patch, p_int%e_inn_c, z_wsfc_c, lacc=.FALSE., &
+                            opt_slev=1, opt_elev=1, opt_rlstart=2)
 
     i_startblk = p_patch%cells%start_blk(2,1)
 

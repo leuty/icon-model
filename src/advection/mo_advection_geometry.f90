@@ -1198,7 +1198,8 @@ CONTAINS
       ENDDO ! loop over index list
       !$ACC END PARALLEL
 
-      CALL generate_index_list_batched(conditions, indices, 1, falist%len(jb), nvalid, 1, opt_use_acc=.TRUE.)
+      CALL generate_index_list_batched(conditions, indices, 1, falist%len(jb), &
+        &   nvalid, lacc=.TRUE., opt_acc_async_queue=1)
 
       !$ACC UPDATE HOST(nvalid) ASYNC(1)
       !$ACC WAIT(1)
@@ -1297,7 +1298,8 @@ CONTAINS
       ENDDO  !jl
       !$ACC END PARALLEL
 
-      CALL generate_index_list_batched(conditions, indices, 1, icnt_rem, nvalid, 1, opt_use_acc=.TRUE.)
+      CALL generate_index_list_batched(conditions, indices, 1, icnt_rem, nvalid, &
+        &   lacc=.TRUE., opt_acc_async_queue=1)
 
       !$ACC UPDATE HOST(nvalid) ASYNC(1)
       !$ACC WAIT(1)

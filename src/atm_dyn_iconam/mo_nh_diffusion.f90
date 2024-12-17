@@ -331,7 +331,7 @@ MODULE mo_nh_diffusion
     IF (diffu_type == 4) THEN
 
       CALL nabla4_vec( p_nh_prog%vn, p_patch, p_int, z_nabla4_e,  &
-                       opt_rlstart=7,opt_nabla2=z_nabla2_e )
+                       lacc=.TRUE., opt_rlstart=7, opt_nabla2=z_nabla2_e )
 
     ELSE IF ( diffu_type == 5 .AND. discr_vn == 1 .AND. .NOT. diffusion_config(jg)%lsmag_3d) THEN
 
@@ -346,18 +346,18 @@ MODULE mo_nh_diffusion
       ENDIF
 #endif
       !  RBF reconstruction of velocity at vertices
-      CALL rbf_vec_interpol_vertex( p_nh_prog%vn, p_patch, p_int,             &
-                                    u_vert, v_vert, opt_rlend=min_rlvert_int, &
-                                    opt_acc_async=.TRUE. )
+      CALL rbf_vec_interpol_vertex( p_nh_prog%vn, p_patch, p_int,                  &
+                                    u_vert, v_vert, lacc=.TRUE.,                   &
+                                    opt_rlend=min_rlvert_int, opt_acc_async=.TRUE. )
 
       rl_start = start_bdydiff_e
       rl_end   = min_rledge_int - 2
 
 #ifdef __MIXED_PRECISION
-      CALL sync_patch_array_mult_mp(SYNC_V,p_patch,0,2,f3din1_sp=u_vert,f3din2_sp=v_vert, &
+      CALL sync_patch_array_mult_mp(SYNC_V,p_patch,0,2,lacc=.TRUE., f3din1_sp=u_vert,f3din2_sp=v_vert, &
                                     opt_varname="diffusion: u_vert and v_vert")
 #else
-      CALL sync_patch_array_mult(SYNC_V,p_patch,2,u_vert,v_vert,                          &
+      CALL sync_patch_array_mult(SYNC_V,p_patch,2,lacc=.TRUE., f3din1=u_vert,f3din2=v_vert,                          &
                                  opt_varname="diffusion: u_vert and v_vert")
 #endif
 
@@ -471,24 +471,25 @@ MODULE mo_nh_diffusion
       ENDIF
 
       !  RBF reconstruction of velocity at vertices
-      CALL rbf_vec_interpol_vertex( p_nh_prog%vn, p_patch, p_int,                 &
-                                    u_vert, v_vert, opt_rlend=min_rlvert_int ,    &
-                                    opt_acc_async=.TRUE. )
+      CALL rbf_vec_interpol_vertex( p_nh_prog%vn, p_patch, p_int,                  &
+                                    u_vert, v_vert, lacc=.TRUE.,                   &
+                                    opt_rlend=min_rlvert_int, opt_acc_async=.TRUE. )
 
       rl_start = start_bdydiff_e
       rl_end   = min_rledge_int - 2
 
 #ifdef __MIXED_PRECISION
-      CALL sync_patch_array_mult_mp(SYNC_V,p_patch,0,2,f3din1_sp=u_vert,f3din2_sp=v_vert, &
+      CALL sync_patch_array_mult_mp(SYNC_V, p_patch, 0, 2, lacc=.TRUE., f3din1_sp=u_vert,f3din2_sp=v_vert, &
                                     opt_varname="diffusion: u_vert and v_vert 2")
 #else
-      CALL sync_patch_array_mult(SYNC_V,p_patch,2,u_vert,v_vert,                          &
+      CALL sync_patch_array_mult(SYNC_V, p_patch, 2, lacc=.TRUE., f3din1=u_vert, f3din2=v_vert, &
                                  opt_varname="diffusion: u_vert and v_vert 2")
 #endif
 
-      CALL cells2verts_scalar(p_nh_prog%w, p_patch, p_int%cells_aw_verts, z_w_v, opt_rlend=min_rlvert_int)
-      CALL sync_patch_array(SYNC_V,p_patch,z_w_v,opt_varname="diffusion: z_w_v")
-      CALL sync_patch_array(SYNC_C,p_patch,p_nh_diag%theta_v_ic,opt_varname="diffusion: theta_v_ic")
+      CALL cells2verts_scalar(p_nh_prog%w, p_patch, p_int%cells_aw_verts, z_w_v, &
+                              lacc=.TRUE., opt_rlend=min_rlvert_int)
+      CALL sync_patch_array(SYNC_V,p_patch,z_w_v,lacc=.TRUE.,opt_varname="diffusion: z_w_v")
+      CALL sync_patch_array(SYNC_C,p_patch,p_nh_diag%theta_v_ic,lacc=.TRUE.,opt_varname="diffusion: theta_v_ic")
 
       fac2d = 0.0625_wp ! Factor of the 2D deformation field which is used as minimum of the 3D def field
 
@@ -659,16 +660,16 @@ MODULE mo_nh_diffusion
     ELSE IF ( diffu_type == 5 .AND. discr_vn >= 2) THEN
 
       !  RBF reconstruction of velocity at vertices and cells
-      CALL rbf_vec_interpol_vertex( p_nh_prog%vn, p_patch, p_int,                  &
-                                    u_vert, v_vert, opt_rlend=min_rlvert_int-1,    &
-                                    opt_acc_async=.TRUE. )
+      CALL rbf_vec_interpol_vertex( p_nh_prog%vn, p_patch, p_int,                    &
+                                    u_vert, v_vert, lacc=.TRUE.,                     &
+                                    opt_rlend=min_rlvert_int-1, opt_acc_async=.TRUE. )
 
       ! DA: This wait ideally should be removed
       !$ACC WAIT
 
       IF (discr_vn == 2) THEN
         CALL rbf_vec_interpol_cell( p_nh_prog%vn, p_patch, p_int, &
-                                    u_cell, v_cell, opt_rlend=min_rlcell_int-1 )
+                                    u_cell, v_cell, lacc=.TRUE., opt_rlend=min_rlcell_int-1 )
       ELSE
         CALL edges2cells_vector( p_nh_prog%vn, p_nh_diag%vt, p_patch, p_int, &
                                  u_cell, v_cell, opt_rlend=min_rlcell_int-1 )
@@ -848,7 +849,7 @@ MODULE mo_nh_diffusion
     IF (diffu_type == 5 .AND. diffusion_config(jg)%hdiff_efdt_ratio >0._wp) THEN
 
       IF (discr_vn > 1) THEN
-        CALL sync_patch_array(SYNC_E,p_patch,z_nabla2_e,      &
+        CALL sync_patch_array(SYNC_E,p_patch,z_nabla2_e,lacc=.TRUE.,      &
                               opt_varname="diffusion: nabla2_e")
       END IF
 
@@ -862,6 +863,7 @@ MODULE mo_nh_diffusion
       ENDIF
 
       CALL rbf_vec_interpol_vertex( z_nabla2_e, p_patch, p_int, u_vert, v_vert, &
+                                    lacc=.TRUE.,                                &
                                     opt_rlstart=4, opt_rlend=min_rlvert_int,    &
                                     opt_acc_async=.TRUE. )
 
@@ -869,10 +871,10 @@ MODULE mo_nh_diffusion
       rl_end   = min_rledge_int
 
 #ifdef __MIXED_PRECISION
-      CALL sync_patch_array_mult_mp(SYNC_V,p_patch,0,2,f3din1_sp=u_vert,f3din2_sp=v_vert, &
+      CALL sync_patch_array_mult_mp(SYNC_V, p_patch, 0, 2, lacc=.TRUE., f3din1_sp=u_vert,f3din2_sp=v_vert, &
                                     opt_varname="diffusion: u_vert and v_vert 3")
 #else
-      CALL sync_patch_array_mult(SYNC_V,p_patch,2,u_vert,v_vert,                          &
+      CALL sync_patch_array_mult(SYNC_V, p_patch, 2, lacc=.TRUE., f3din1=u_vert, f3din2=v_vert, &
                                  opt_varname="diffusion: u_vert and v_vert 3")
 #endif
 
@@ -1250,7 +1252,7 @@ MODULE mo_nh_diffusion
 
 !$OMP END PARALLEL
 
-    CALL sync_patch_array(SYNC_E, p_patch, p_nh_prog%vn,opt_varname="diffusion: vn sync")
+    CALL sync_patch_array(SYNC_E, p_patch, p_nh_prog%vn, lacc=.TRUE., opt_varname="diffusion: vn sync")
 
     IF (ltemp_diffu) THEN ! Smagorinsky temperature diffusion
 
@@ -1562,7 +1564,7 @@ MODULE mo_nh_diffusion
 
       ! This could be further optimized, but applications without physics are quite rare;
       IF ( linit .OR. (iforcing /= inwp .AND. iforcing /= iaes) ) THEN
-        CALL sync_patch_array_mult(SYNC_C,p_patch,2,p_nh_prog%theta_v,p_nh_prog%exner,  &
+        CALL sync_patch_array_mult(SYNC_C, p_patch, 2, lacc=.TRUE., f3din1=p_nh_prog%theta_v, f3din2=p_nh_prog%exner, &
                                    opt_varname="diffusion: theta and exner")
       ENDIF
 
@@ -1571,7 +1573,7 @@ MODULE mo_nh_diffusion
 
     IF ( linit .OR. (iforcing /= inwp .AND. iforcing /= iaes) ) THEN
       IF (diffusion_config(jg)%lhdiff_w) THEN
-        CALL sync_patch_array(SYNC_C,p_patch,p_nh_prog%w,"diffusion: w")
+        CALL sync_patch_array(SYNC_C,p_patch,p_nh_prog%w,lacc=.TRUE.,opt_varname="diffusion: w")
       END IF
     ENDIF
 
@@ -1627,7 +1629,7 @@ MODULE mo_nh_diffusion
     ieidx => p_patch%cells%edge_idx
     ieblk => p_patch%cells%edge_blk
 
-    CALL sync_patch_array_mult(SYNC_C1, p_patch, 2, p_nh_prog%tracer(:,:,:,iqv), p_nh_prog%tracer(:,:,:,iqc))
+    CALL sync_patch_array_mult(SYNC_C1, p_patch, 2, lacc=.TRUE., f3din1=p_nh_prog%tracer(:,:,:,iqv), f3din2=p_nh_prog%tracer(:,:,:,iqc))
 
     !$ACC DATA CREATE(z_nabla2_qv, z_nabla2_qc) &
     !$ACC   PRESENT(p_patch, p_int, p_nh_prog, p_nh_diag) &

@@ -24,18 +24,16 @@ MODULE mo_ocean_layers
     & n_zlev, bottom_drag_coeff,                              &
     & n_dlev, rho_lev_in, mode_layers,                        & ! parameter from namelist
     & OceanReferenceDensity,                                  &
-    & ReferencePressureIndbars,                               &
     & EOS_TYPE, &
     & LinearThermoExpansionCoefficient, &
-    & LinearHalineContractionCoefficient, &
-    & use_lbound_dirichlet!,        &
+    & LinearHalineContractionCoefficient 
 
-  USE mo_ocean_physics_types, ONLY: t_ho_params, v_params
+  USE mo_ocean_physics_types, ONLY: t_ho_params
   USE mo_parallel_config,     ONLY: nproma
   USE mo_run_config,          ONLY: dtime
   USE mo_model_domain,        ONLY: t_patch, t_patch_3d
   USE mo_dynamics_config,     ONLY: nold, nnew
-  USE mo_impl_constants,      ONLY: success, max_char_length, min_dolic, sea
+  USE mo_impl_constants,      ONLY: sea
   USE mo_var_list,            ONLY: add_var
   USE mo_grib2,               ONLY: grib2_var, t_grib2_var
   USE mo_cdi,                 ONLY: DATATYPE_FLT32 => CDI_DATATYPE_FLT32, &
@@ -43,31 +41,25 @@ MODULE mo_ocean_layers
     &                               DATATYPE_INT8 => CDI_DATATYPE_INT8, &
     &                               DATATYPE_PACK16 => CDI_DATATYPE_PACK16, &
     &                               tstep_constant, GRID_LONLAT, GRID_UNSTRUCTURED
-  USE mo_cdi_constants,       ONLY: grid_cell, grid_edge, grid_unstructured_cell, grid_unstructured_edge, &
-    &                               grid_unstructured_vert, grid_vertex, GRID_ZONAL
+  USE mo_cdi_constants,       ONLY: grid_cell, grid_edge, grid_unstructured_cell, grid_unstructured_edge
   USE mo_io_config,           ONLY: lnetcdf_flt64_output
   USE mo_var_groups,          ONLY: groups, max_groups
   USE mo_exception,           ONLY: message, message_text, finish
   USE mo_util_dbg_prnt,       ONLY: dbg_print, debug_print_MaxMinMean
-  USE mo_ocean_types,         ONLY: t_hydro_ocean_state, t_onEdges_Pointer_3d_wp, t_onCells_HalfLevels_Pointer_wp, t_operator_coeff, t_hydro_ocean_diag
-  USE mo_ocean_state,         ONLY: oce_config, ocean_default_list
-  USE mo_physical_constants,  ONLY: grav
+  USE mo_ocean_types,         ONLY: t_hydro_ocean_state, t_operator_coeff, t_hydro_ocean_diag
+  USE mo_ocean_state,         ONLY: ocean_default_list
   USE mo_cf_convention
   USE mo_zaxis_type,          ONLY: &
     & za_depth_below_sea, za_depth_below_sea_half, za_surface, &
     & za_oce_layer_interface, za_oce_layer_centre
   USE mo_grid_subset,         ONLY: t_subset_range, get_index_range
-  USE mo_sync,                ONLY: sync_c, sync_e, sync_v, sync_patch_array, global_max, sync_patch_array_mult
   USE mo_ocean_thermodyn,     ONLY: calculate_density_onColumn
   !USE mo_ocean_math_operators,ONLY: div_oce_3d
-  USE mo_math_types,          ONLY: t_cartesian_coordinates
-  USE mo_timer,               ONLY: ltimer, timer_start, timer_stop, &
-    & timer_extra10, timer_extra11
-  USE mo_io_units,            ONLY: nnml, nnml_output
-  USE mo_namelist,            ONLY: position_nml, positioned, open_nml, close_nml
+  USE mo_io_units,            ONLY: nnml
+  USE mo_namelist,            ONLY: position_nml, positioned
   USE mo_mpi,                 ONLY: my_process_is_stdio
   USE mo_nml_annotate,        ONLY: temp_defaults, temp_settings
-  USE mo_physical_constants,  ONLY: grav, clw
+  USE mo_physical_constants,  ONLY: clw
   USE mo_ocean_surface_types, ONLY: t_ocean_surface
   USE mo_ocean_thermodyn,     ONLY: calc_neutralslope_coeff_func_onColumn
 

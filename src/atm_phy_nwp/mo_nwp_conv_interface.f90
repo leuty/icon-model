@@ -234,9 +234,11 @@ CONTAINS
     ENDIF
 
     IF (lstoch_expl .or. lstoch_sde) THEN
-      CALL sync_patch_array_mult(SYNC_C,p_patch,5,p_diag%temp,p_prog_rcf%tracer(:,:,:,iqv),p_diag%pres,p_diag%u,p_diag%v)
-      CALL sync_patch_array(SYNC_C,p_patch,prm_diag%shfl_s)
-      CALL sync_patch_array(SYNC_C,p_patch,prm_diag%qhfl_s)
+      CALL sync_patch_array_mult(SYNC_C, p_patch, 5, lacc=lzacc, &
+        f3din1=p_diag%temp, f3din2=p_prog_rcf%tracer(:,:,:,iqv), &
+        f3din3=p_diag%pres, f3din4=p_diag%u, f3din5=p_diag%v)
+      CALL sync_patch_array(SYNC_C, p_patch, prm_diag%shfl_s, lacc=lzacc)
+      CALL sync_patch_array(SYNC_C, p_patch, prm_diag%qhfl_s, lacc=lzacc)
     ENDIF
 
     ! compute lpi_con(_max) only if all relevant fields are allocated (non-dummy).

@@ -142,7 +142,7 @@ CONTAINS
 
     IF (PRESENT(subset_range)) THEN
       IF (.NOT. is_in_domain) &
-        & CALL sync_patch_array(sync_e, patch_2D, diff_flx)
+        & CALL sync_patch_array(sync_e, patch_2D, diff_flx, lacc=lzacc)
     ENDIF
   ELSEIF(.NOT.PRESENT(k_t))THEN  
 !ICON_OMP_PARALLEL_DO PRIVATE(start_edge_index,end_edge_index, edge_index, level, &
@@ -179,7 +179,7 @@ CONTAINS
 
     IF (PRESENT(subset_range)) THEN
       IF (.NOT. is_in_domain) &
-        & CALL sync_patch_array(sync_e, patch_2D, diff_flx)
+        & CALL sync_patch_array(sync_e, patch_2D, diff_flx, lacc=lzacc)
     ENDIF
 
   ENDIF  
@@ -257,7 +257,7 @@ CONTAINS
 ! 
 ! !     IF (PRESENT(subset_range)) THEN
 ! !       IF (.NOT. subset_range%is_in_domain) &
-! !         & CALL sync_patch_array(sync_e, patch_2D, diff_flx)
+! !         & CALL sync_patch_array(sync_e, patch_2D, diff_flx, lacc=.FALSE.)
 ! !     ENDIF    
 !     
 !   ELSEIF(.NOT.PRESENT(k_t))THEN  
@@ -299,7 +299,7 @@ CONTAINS
 ! 
 ! !     IF (PRESENT(subset_range)) THEN
 ! !       IF (.NOT. subset_range%is_in_domain) &
-! !         & CALL sync_patch_array(sync_e, patch_2D, diff_flx)
+! !         & CALL sync_patch_array(sync_e, patch_2D, diff_flx, lacc=.FALSE.)
 ! !     ENDIF 
 ! 
 !   ENDIF  

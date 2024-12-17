@@ -39,7 +39,6 @@ USE mo_parallel_config,     ONLY: nproma
 USE mo_exception,           ONLY: finish
 USE mo_loopindices,         ONLY: get_indices_c, get_indices_e, get_indices_v
 USE mo_fortran_tools,       ONLY: init
-USE mo_mpi,                 ONLY: i_am_accel_node
 
 ! USE mo_timer,              ONLY: timer_start, timer_stop, timer_div
 
@@ -94,7 +93,7 @@ CONTAINS
 !! x: solution vector (2 x 1)
 !! works only on triangular grid yet
 !!
-SUBROUTINE recon_lsq_cell_l( p_cc, ptr_patch, ptr_int_lsq, p_coeff, &
+SUBROUTINE recon_lsq_cell_l( p_cc, ptr_patch, ptr_int_lsq, p_coeff, lacc, &
   &                          opt_slev, opt_elev, opt_rlstart,       &
   &                          opt_rlend, opt_lconsv, opt_acc_async )
 
@@ -106,6 +105,9 @@ SUBROUTINE recon_lsq_cell_l( p_cc, ptr_patch, ptr_int_lsq, p_coeff, &
 
   REAL(wp), INTENT(IN)          ::  &   !<  cell centered variable
     &  p_cc(:,:,:)
+
+  LOGICAL, INTENT(IN)           ::  &   !< if true, use OpenACC
+    &  lacc
 
   INTEGER, INTENT(IN), OPTIONAL ::  &   !< optional vertical start level
     &  opt_slev
@@ -194,7 +196,7 @@ SUBROUTINE recon_lsq_cell_l( p_cc, ptr_patch, ptr_int_lsq, p_coeff, &
 
 #ifdef __LOOP_EXCHANGE
     !$ACC DATA CREATE(z_d)
-    !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1) IF(i_am_accel_node)
+    !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1) IF(lacc)
     !$ACC LOOP GANG VECTOR COLLAPSE(2)
     DO jc = i_startidx, i_endidx
       DO jk = slev, elev
@@ -211,7 +213,7 @@ SUBROUTINE recon_lsq_cell_l( p_cc, ptr_patch, ptr_int_lsq, p_coeff, &
     END DO ! end loop over vertical levels
     !$ACC END PARALLEL
 
-    !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1) IF(i_am_accel_node)
+    !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1) IF(lacc)
     !$ACC LOOP GANG VECTOR COLLAPSE(2) PRIVATE(z_qt_times_d)
     DO jk = slev, elev
       DO jc = i_startidx, i_endidx
@@ -246,7 +248,7 @@ SUBROUTINE recon_lsq_cell_l( p_cc, ptr_patch, ptr_int_lsq, p_coeff, &
     !$ACC END DATA
 
 #else
-    !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1) IF(i_am_accel_node)
+    !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1) IF(lacc)
     !$ACC LOOP GANG VECTOR COLLAPSE(2) PRIVATE(z_d, z_qt_times_d)
 !$NEC outerloop_unroll(4)
     DO jk = slev, elev
@@ -290,7 +292,7 @@ SUBROUTINE recon_lsq_cell_l( p_cc, ptr_patch, ptr_int_lsq, p_coeff, &
 
 
     IF (l_consv) THEN
-      !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1) IF(i_am_accel_node)
+      !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1) IF(lacc)
       !$ACC LOOP GANG VECTOR COLLAPSE(2)
       DO jk = slev, elev
         DO jc = i_startidx, i_endidx
@@ -347,8 +349,8 @@ END SUBROUTINE recon_lsq_cell_l
 !! x: solution vector (2 x 1)
 !! only works on triangular grid yet
 !!
-SUBROUTINE recon_lsq_cell_l_svd( p_cc, ptr_patch, ptr_int_lsq, p_coeff,      &
-  &                              opt_slev, opt_elev, opt_rlstart, opt_rlend, &
+SUBROUTINE recon_lsq_cell_l_svd( p_cc, ptr_patch, ptr_int_lsq, p_coeff, lacc, &
+  &                              opt_slev, opt_elev, opt_rlstart, opt_rlend,  &
   &                              opt_lconsv, opt_acc_async )
 
   TYPE(t_patch), INTENT(IN)     :: &    !< patch on which computation
@@ -359,6 +361,9 @@ SUBROUTINE recon_lsq_cell_l_svd( p_cc, ptr_patch, ptr_int_lsq, p_coeff,      &
 
   REAL(wp), INTENT(IN)          ::  &   !<  cell centered variable
     &  p_cc(:,:,:)
+
+  LOGICAL, INTENT(IN)           ::  &   !< if true, use OpenACC
+    &  lacc
 
   INTEGER, INTENT(IN), OPTIONAL ::  &   !< optional vertical start level
     &  opt_slev
@@ -440,7 +445,7 @@ SUBROUTINE recon_lsq_cell_l_svd( p_cc, ptr_patch, ptr_int_lsq, p_coeff,      &
 
 #ifdef __LOOP_EXCHANGE
     !$ACC DATA CREATE(z_b)
-    !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1) IF(i_am_accel_node)
+    !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1) IF(lacc)
     !$ACC LOOP GANG VECTOR COLLAPSE(2)
     DO jc = i_startidx, i_endidx
       DO jk = slev, elev
@@ -461,7 +466,7 @@ SUBROUTINE recon_lsq_cell_l_svd( p_cc, ptr_patch, ptr_int_lsq, p_coeff,      &
     ! 2. compute cell based coefficients for linear reconstruction
     !    calculate matrix vector product PINV(A) * b
     !
-    !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1) IF(i_am_accel_node)
+    !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1) IF(lacc)
     !$ACC LOOP GANG VECTOR COLLAPSE(2)
     DO jk = slev, elev
       DO jc = i_startidx, i_endidx
@@ -486,7 +491,7 @@ SUBROUTINE recon_lsq_cell_l_svd( p_cc, ptr_patch, ptr_int_lsq, p_coeff,      &
     !$ACC END DATA
 
 #else
-    !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1) IF(i_am_accel_node)
+    !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1) IF(lacc)
     !$ACC LOOP GANG VECTOR COLLAPSE(2) PRIVATE(z_b)
 !$NEC outerloop_unroll(2)
     DO jk = slev, elev
@@ -520,7 +525,7 @@ SUBROUTINE recon_lsq_cell_l_svd( p_cc, ptr_patch, ptr_int_lsq, p_coeff,      &
 
     IF (l_consv) THEN
 
-      !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1) IF(i_am_accel_node)
+      !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1) IF(lacc)
       !$ACC LOOP GANG VECTOR COLLAPSE(2)
       DO jk = slev, elev
         DO jc = i_startidx, i_endidx
@@ -593,8 +598,8 @@ END SUBROUTINE recon_lsq_cell_l_svd
 !! 181, 729-752
 !!
 SUBROUTINE recon_lsq_cell_q( p_cc, ptr_patch, ptr_int_lsq, p_coeff, &
-  &                               opt_slev, opt_elev, opt_rlstart,  &
-  &                               opt_rlend )
+  &                          lacc, opt_slev, opt_elev, opt_rlstart, &
+  &                          opt_rlend )
 
   TYPE(t_patch), INTENT(IN) ::   & !< patch on which computation
     &  ptr_patch                   !< is performed
@@ -604,6 +609,9 @@ SUBROUTINE recon_lsq_cell_q( p_cc, ptr_patch, ptr_int_lsq, p_coeff, &
 
   REAL(wp), INTENT(IN) ::           & !< cell centered variable
     &  p_cc(:,:,:)
+
+  LOGICAL, INTENT(IN)           ::  &   !< if true, use OpenACC
+    &  lacc
 
   INTEGER, INTENT(IN), OPTIONAL ::  & !< optional vertical start level
     &  opt_slev
@@ -677,11 +685,11 @@ SUBROUTINE recon_lsq_cell_q( p_cc, ptr_patch, ptr_int_lsq, p_coeff, &
 
 
   !$ACC DATA PRESENT(p_cc, p_coeff, ptr_int_lsq%lsq_moments, ptr_int_lsq%lsq_qtmat_c, iidx, iblk) &
-  !$ACC   CREATE(z_d) IF(i_am_accel_node)
+  !$ACC   CREATE(z_d) IF(lacc)
 !$OMP PARALLEL
 
   IF (ptr_patch%id > 1 .OR. l_limited_area) THEN
-    CALL init(p_coeff(:,:,1:6,1:i_startblk), lacc=i_am_accel_node)
+    CALL init(p_coeff(:,:,1:6,1:i_startblk), lacc=lacc)
 !$OMP BARRIER
   ENDIF
 
@@ -694,7 +702,7 @@ SUBROUTINE recon_lsq_cell_q( p_cc, ptr_patch, ptr_int_lsq, p_coeff, &
     !
     ! 1. compute right hand side of linear system
     !
-    !$ACC PARALLEL ASYNC(1) IF(i_am_accel_node)
+    !$ACC PARALLEL ASYNC(1) IF(lacc)
 #ifdef __LOOP_EXCHANGE
     !$ACC LOOP GANG
     DO jc = i_startidx, i_endidx
@@ -726,7 +734,7 @@ SUBROUTINE recon_lsq_cell_q( p_cc, ptr_patch, ptr_int_lsq, p_coeff, &
     ! 2. compute cell based coefficients for quadratic reconstruction
     !
 
-    !$ACC PARALLEL ASYNC(1) IF(i_am_accel_node)
+    !$ACC PARALLEL ASYNC(1) IF(lacc)
     !$ACC LOOP GANG
     DO jk = slev, elev
 
@@ -826,8 +834,8 @@ END SUBROUTINE recon_lsq_cell_q
 !! 181, 729-752
 !!
 SUBROUTINE recon_lsq_cell_q_svd( p_cc, ptr_patch, ptr_int_lsq, p_coeff, &
-  &                               opt_slev, opt_elev, opt_rlstart,      &
-  &                               opt_rlend )
+  &                              lacc, opt_slev, opt_elev, opt_rlstart, &
+  &                              opt_rlend )
 
   TYPE(t_patch), INTENT(IN) ::   & !< patch on which computation
     &  ptr_patch                   !< is performed
@@ -837,6 +845,9 @@ SUBROUTINE recon_lsq_cell_q_svd( p_cc, ptr_patch, ptr_int_lsq, p_coeff, &
 
   REAL(wp), INTENT(IN) ::           & !< cell centered variable
     &  p_cc(:,:,:)
+ 
+  LOGICAL, INTENT(IN)           ::  &   !< if true, use OpenACC
+    &  lacc
 
   INTEGER, INTENT(IN), OPTIONAL ::  & !< optional vertical start level
     &  opt_slev
@@ -898,11 +909,11 @@ SUBROUTINE recon_lsq_cell_q_svd( p_cc, ptr_patch, ptr_int_lsq, p_coeff, &
 
 
   !$ACC DATA PRESENT(p_cc, p_coeff, ptr_int_lsq%lsq_moments, ptr_int_lsq%lsq_pseudoinv, iidx, iblk) &
-  !$ACC   CREATE(z_b) IF(i_am_accel_node)
+  !$ACC   CREATE(z_b) IF(lacc)
 !$OMP PARALLEL
 
   IF (ptr_patch%id > 1 .OR. l_limited_area) THEN
-    CALL init(p_coeff(:,:,1:6,1:i_startblk), lacc=i_am_accel_node)
+    CALL init(p_coeff(:,:,1:6,1:i_startblk), lacc=lacc)
 !$OMP BARRIER
   ENDIF
 
@@ -916,7 +927,7 @@ SUBROUTINE recon_lsq_cell_q_svd( p_cc, ptr_patch, ptr_int_lsq, p_coeff, &
     ! 1. compute right hand side of linear system
     !
 
-    !$ACC PARALLEL ASYNC(1) IF(i_am_accel_node)
+    !$ACC PARALLEL ASYNC(1) IF(lacc)
 #ifdef __LOOP_EXCHANGE
     !$ACC LOOP GANG
     DO jc = i_startidx, i_endidx
@@ -948,7 +959,7 @@ SUBROUTINE recon_lsq_cell_q_svd( p_cc, ptr_patch, ptr_int_lsq, p_coeff, &
     ! 2. compute cell based coefficients for quadratic reconstruction
     !    calculate matrix vector product PINV(A) * b
     !
-    !$ACC PARALLEL ASYNC(1) IF(i_am_accel_node)
+    !$ACC PARALLEL ASYNC(1) IF(lacc)
     !$ACC LOOP GANG
     DO jk = slev, elev
 
@@ -1034,9 +1045,9 @@ END SUBROUTINE recon_lsq_cell_q_svd
 !! Finite-Volume Scheme for the Advection-Diffusion Equation, J. Comput. Phys.,
 !! 181, 729-752
 !!
-SUBROUTINE recon_lsq_cell_c( p_cc, ptr_patch, ptr_int_lsq, p_coeff, &
-  &                               opt_slev, opt_elev, opt_rlstart,  &
-  &                               opt_rlend )
+SUBROUTINE recon_lsq_cell_c( p_cc, ptr_patch, ptr_int_lsq, p_coeff,  &
+  &                          lacc, opt_slev, opt_elev, opt_rlstart,  &
+  &                          opt_rlend )
 
   TYPE(t_patch), INTENT(IN) :: & !< patch on which computation
     &  ptr_patch                 !< is performed
@@ -1046,6 +1057,9 @@ SUBROUTINE recon_lsq_cell_c( p_cc, ptr_patch, ptr_int_lsq, p_coeff, &
 
   REAL(wp), INTENT(IN) ::           & !< cell centered variable
     &  p_cc(:,:,:)
+
+  LOGICAL, INTENT(IN)           ::  &   !< if true, use OpenACC
+    &  lacc
 
   INTEGER, INTENT(IN), OPTIONAL ::  & !< optional vertical start level
     &  opt_slev
@@ -1120,11 +1134,11 @@ SUBROUTINE recon_lsq_cell_c( p_cc, ptr_patch, ptr_int_lsq, p_coeff, &
 
 
   !$ACC DATA PRESENT(p_cc, p_coeff, ptr_int_lsq%lsq_moments, ptr_int_lsq%lsq_qtmat_c, iidx, iblk) &
-  !$ACC   CREATE(z_d) IF(i_am_accel_node)
+  !$ACC   CREATE(z_d) IF(lacc)
 !$OMP PARALLEL
 
   IF (ptr_patch%id > 1 .OR. l_limited_area) THEN
-    CALL init(p_coeff(:,:,1:10,1:i_startblk), lacc=i_am_accel_node)
+    CALL init(p_coeff(:,:,1:10,1:i_startblk), lacc=lacc)
 !$OMP BARRIER
   ENDIF
 
@@ -1134,7 +1148,7 @@ SUBROUTINE recon_lsq_cell_c( p_cc, ptr_patch, ptr_int_lsq, p_coeff, &
     CALL get_indices_c(ptr_patch, jb, i_startblk, i_endblk, &
                        i_startidx, i_endidx, rl_start, rl_end)
 
-    !$ACC PARALLEL ASYNC(1) IF(i_am_accel_node)
+    !$ACC PARALLEL ASYNC(1) IF(lacc)
     !
     ! 1. compute right hand side of linear system
     !
@@ -1169,7 +1183,7 @@ SUBROUTINE recon_lsq_cell_c( p_cc, ptr_patch, ptr_int_lsq, p_coeff, &
     !
     ! 2. compute cell based coefficients for quadratic reconstruction
     !
-    !$ACC PARALLEL ASYNC(1) IF(i_am_accel_node)
+    !$ACC PARALLEL ASYNC(1) IF(lacc)
     !$ACC LOOP GANG
     DO jk = slev, elev
 
@@ -1316,8 +1330,8 @@ END SUBROUTINE recon_lsq_cell_c
 !! 181, 729-752
 !!
 SUBROUTINE recon_lsq_cell_c_svd( p_cc, ptr_patch, ptr_int_lsq, p_coeff, &
-  &                               opt_slev, opt_elev, opt_rlstart,      &
-  &                               opt_rlend )
+  &                              lacc, opt_slev, opt_elev, opt_rlstart, &
+  &                              opt_rlend )
 
   TYPE(t_patch), INTENT(IN) :: & !< patch on which computation
     &  ptr_patch                 !< is performed
@@ -1327,6 +1341,9 @@ SUBROUTINE recon_lsq_cell_c_svd( p_cc, ptr_patch, ptr_int_lsq, p_coeff, &
 
   REAL(wp), INTENT(IN) ::           & !< cell centered variable
     &  p_cc(:,:,:)
+
+  LOGICAL, INTENT(IN)           ::  &   !< if true, use OpenACC
+    &  lacc
 
   INTEGER, INTENT(IN), OPTIONAL ::  & !< optional vertical start level
     &  opt_slev
@@ -1394,7 +1411,7 @@ SUBROUTINE recon_lsq_cell_c_svd( p_cc, ptr_patch, ptr_int_lsq, p_coeff, &
   iblk => ptr_int_lsq%lsq_blk_c
 
   !$ACC DATA PRESENT(p_cc, p_coeff, ptr_int_lsq%lsq_moments, ptr_int_lsq%lsq_pseudoinv, iidx, iblk) &
-  !$ACC   IF(i_am_accel_node)
+  !$ACC   IF(lacc)
 !$OMP PARALLEL
 
   IF (ptr_patch%id > 1 .OR. l_limited_area) THEN
@@ -1411,7 +1428,7 @@ SUBROUTINE recon_lsq_cell_c_svd( p_cc, ptr_patch, ptr_int_lsq, p_coeff, &
 
       CALL get_indices_c(ptr_patch, jb, i_startblk_init, i_endblk_init, &
                          i_startidx, i_endidx, rl_start_init, rl_end_init)
-      !$ACC PARALLEL LOOP DEFAULT(PRESENT) GANG VECTOR COLLAPSE(2) ASYNC(1) IF(i_am_accel_node)
+      !$ACC PARALLEL LOOP DEFAULT(PRESENT) GANG VECTOR COLLAPSE(2) ASYNC(1) IF(lacc)
 !NEC$ forced_collapse
       DO jk = slev, elev
         DO jc = i_startidx, i_endidx
@@ -1436,7 +1453,7 @@ SUBROUTINE recon_lsq_cell_c_svd( p_cc, ptr_patch, ptr_int_lsq, p_coeff, &
 
 #ifdef __LOOP_EXCHANGE
     !$ACC DATA CREATE(z_b)
-    !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1) IF(i_am_accel_node)
+    !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1) IF(lacc)
     !$ACC LOOP GANG VECTOR COLLAPSE(2)
     DO jc = i_startidx, i_endidx
       DO jk = slev, elev
@@ -1459,7 +1476,7 @@ SUBROUTINE recon_lsq_cell_c_svd( p_cc, ptr_patch, ptr_int_lsq, p_coeff, &
     ! 2. compute cell based coefficients for cubic reconstruction
     !    calculate matrix vector product PINV(A) * b
     !
-    !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1) IF(i_am_accel_node)
+    !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1) IF(lacc)
     !$ACC LOOP GANG VECTOR COLLAPSE(2)
     DO jk = slev, elev
       DO jc = i_startidx, i_endidx
@@ -1499,7 +1516,7 @@ SUBROUTINE recon_lsq_cell_c_svd( p_cc, ptr_patch, ptr_int_lsq, p_coeff, &
     !$ACC END DATA
 
 #else
-    !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1) IF(i_am_accel_node)
+    !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1) IF(lacc)
     !$ACC LOOP GANG VECTOR TILE(32, 4) PRIVATE(z_b)
     DO jk = slev, elev
 !$NEC ivdep
@@ -1578,8 +1595,8 @@ END SUBROUTINE recon_lsq_cell_c_svd
 !! input:  lives on edges (velocity points)
 !! output: lives on centers of triangles
 !!
-SUBROUTINE div3d( vec_e, ptr_patch, ptr_int, div_vec_c, &
-  &               opt_slev, opt_elev, opt_rlstart, opt_rlend )
+SUBROUTINE div3d( vec_e, ptr_patch, ptr_int, div_vec_c, lacc, &
+  &               opt_slev, opt_elev, opt_rlstart, opt_rlend  )
 !
 
 !
@@ -1595,6 +1612,9 @@ TYPE(t_int_state), INTENT(in)     :: ptr_int
 !
 REAL(wp), INTENT(in) ::  &
   &  vec_e(:,:,:) ! dim: (nproma,nlev,nblks_e)
+
+LOGICAL, INTENT(in)           ::  &   !< if true, use OpenACC
+  &  lacc
 
 INTEGER, INTENT(in), OPTIONAL ::  &
   &  opt_slev    ! optional vertical start level
@@ -1660,7 +1680,7 @@ i_endblk   = ptr_patch%cells%end_blk(rl_end,i_nchdom)
 
 
   !$ACC DATA PRESENT(vec_e, div_vec_c, ptr_int%geofac_div, iidx, iblk) &
-  !$ACC   IF(i_am_accel_node)
+  !$ACC   IF(lacc)
 !$OMP PARALLEL
 !$OMP DO PRIVATE(jb,i_startidx,i_endidx,jc,jk) ICON_OMP_DEFAULT_SCHEDULE
   DO jb = i_startblk, i_endblk
@@ -1683,7 +1703,7 @@ i_endblk   = ptr_patch%cells%end_blk(rl_end,i_nchdom)
     ! coefficient (equal to +-1) is necessary, given by
     ! ptr_patch%grid%cells%edge_orientation)
 
-      !$ACC PARALLEL ASYNC(1) IF(i_am_accel_node)
+      !$ACC PARALLEL ASYNC(1) IF(lacc)
 #ifdef __LOOP_EXCHANGE
       !$ACC LOOP GANG
       DO jc = i_startidx, i_endidx
@@ -1714,7 +1734,7 @@ i_endblk   = ptr_patch%cells%end_blk(rl_end,i_nchdom)
 
 END SUBROUTINE div3d
 
-SUBROUTINE div3d_2field( vec_e, ptr_patch, ptr_int, div_vec_c, &
+SUBROUTINE div3d_2field( vec_e, ptr_patch, ptr_int, div_vec_c, lacc,           &
   &                      opt_slev, opt_elev, in2, out2, opt_rlstart, opt_rlend )
 !
 
@@ -1735,6 +1755,9 @@ REAL(wp), INTENT(in) ::  &
 ! second input field for more efficient processing in NH core
 REAL(wp), INTENT(in) ::  &
   &  in2(:,:,:) ! dim: (nproma,nlev,nblks_e)
+
+LOGICAL, INTENT(in)           ::  &   !< if true, use OpenACC
+  &  lacc
 
 INTEGER, INTENT(in), OPTIONAL ::  &
   &  opt_slev    ! optional vertical start level
@@ -1803,7 +1826,7 @@ i_endblk   = ptr_patch%cells%end_blk(rl_end,i_nchdom)
 
 
   !$ACC DATA PRESENT(vec_e, in2, div_vec_c, out2, ptr_int%geofac_div, iidx, iblk) &
-  !$ACC   IF(i_am_accel_node)
+  !$ACC   IF(lacc)
 
 !$OMP PARALLEL
 !$OMP DO PRIVATE(jb,i_startidx,i_endidx,jc,jk) ICON_OMP_DEFAULT_SCHEDULE
@@ -1827,7 +1850,7 @@ i_endblk   = ptr_patch%cells%end_blk(rl_end,i_nchdom)
     ! coefficient (equal to +-1) is necessary, given by
     ! ptr_patch%grid%cells%edge_orientation)
 
-      !$ACC PARALLEL ASYNC(1) IF(i_am_accel_node)
+      !$ACC PARALLEL ASYNC(1) IF(lacc)
 #ifdef __LOOP_EXCHANGE
       !$ACC LOOP GANG
       DO jc = i_startidx, i_endidx
@@ -1871,8 +1894,8 @@ END SUBROUTINE div3d_2field
 !!
 !! See standard routine (div3d) for further description
 !!
-SUBROUTINE div4d( ptr_patch, ptr_int, f4din, f4dout, dim4d, &
-  &              opt_slev, opt_elev, opt_rlstart, opt_rlend )
+SUBROUTINE div4d( ptr_patch, ptr_int, f4din, f4dout, dim4d, lacc, &
+  &               opt_slev, opt_elev, opt_rlstart, opt_rlend      )
 !
 
 !
@@ -1889,6 +1912,9 @@ REAL(wp), INTENT(in) ::  &
   &  f4din(:,:,:,:) ! dim: (nproma,nlev,nblks_e,dim4d)
 
 INTEGER, INTENT(in) :: dim4d ! Last dimension of the input/output fields
+
+LOGICAL, INTENT(in)           ::  &   !< if true, use OpenACC
+  &  lacc
 
 INTEGER, INTENT(in), OPTIONAL ::  &
   &  opt_slev(dim4d)    ! optional vertical start level
@@ -1952,7 +1978,7 @@ i_endblk   = ptr_patch%cells%end_blk(rl_end,i_nchdom)
 
 
   !$ACC DATA PRESENT(f4din, f4dout, ptr_int%geofac_div, iidx, iblk) &
-  !$ACC   IF(i_am_accel_node)
+  !$ACC   IF(lacc)
 !$OMP PARALLEL
 !$OMP DO PRIVATE(jb,i_startidx,i_endidx,jc,jk,ji) ICON_OMP_DEFAULT_SCHEDULE
   DO jb = i_startblk, i_endblk
@@ -1960,7 +1986,7 @@ i_endblk   = ptr_patch%cells%end_blk(rl_end,i_nchdom)
     CALL get_indices_c(ptr_patch, jb, i_startblk, i_endblk, &
                        i_startidx, i_endidx, rl_start, rl_end)
 
-    !$ACC PARALLEL ASYNC(1) IF(i_am_accel_node)
+    !$ACC PARALLEL ASYNC(1) IF(lacc)
 #ifdef __LOOP_EXCHANGE
     !$ACC LOOP GANG
     DO jc = i_startidx, i_endidx
@@ -2005,8 +2031,8 @@ END SUBROUTINE div4d
 !! followed by bilinear averaging to remove checkerboard noise
 !! (Combines div_midpoint and cell_avg_varwgt to increase computing efficiency)
 !!
-SUBROUTINE div_avg( vec_e, ptr_patch, ptr_int, avg_coeff, div_vec_c,    &
-  &                 opt_in2, opt_out2, opt_slev, opt_elev, opt_rlstart, &
+SUBROUTINE div_avg( vec_e, ptr_patch, ptr_int, avg_coeff, div_vec_c, lacc,   &
+  &                 opt_in2, opt_out2, opt_slev, opt_elev, opt_rlstart,      &
   &                 opt_rlend )
 !
 !
@@ -2025,6 +2051,9 @@ REAL(wp), INTENT(in) :: avg_coeff(:,:,:) ! dim: (nproma,nlev,nblks_c)
 !
 REAL(wp), INTENT(in) ::  &
   &  vec_e(:,:,:) ! dim: (nproma,nlev,nblks_e)
+
+LOGICAL, INTENT(in)           ::  &   !< if true, use OpenACC
+  &  lacc
 
 ! optional second input field for more efficient processing in NH core
 REAL(wp), OPTIONAL, INTENT(in) ::  &
@@ -2109,8 +2138,8 @@ i_nchdom   = MAX(1,ptr_patch%n_childdom)
 ! First compute divergence
 !
 !$ACC DATA PRESENT(vec_e, avg_coeff, div_vec_c) CREATE(aux_c) &
-!$ACC   PRESENT(ptr_int, ieidx, ieblk, inidx, inblk) IF(i_am_accel_node)
-!$ACC DATA PRESENT(opt_in2, opt_out2) CREATE(aux_c2) IF(i_am_accel_node .AND. l2fields)
+!$ACC   PRESENT(ptr_int, ieidx, ieblk, inidx, inblk) IF(lacc)
+!$ACC DATA PRESENT(opt_in2, opt_out2) CREATE(aux_c2) IF(lacc .AND. l2fields)
 !$OMP PARALLEL PRIVATE(i_startblk,i_endblk)
 
 i_startblk = ptr_patch%cells%start_blk(rl_start,1)
@@ -2124,7 +2153,7 @@ IF (l2fields) THEN
     CALL get_indices_c(ptr_patch, jb, i_startblk, i_endblk, &
                      i_startidx, i_endidx, rl_start, rl_end_l1)
 
-    !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1) IF(i_am_accel_node)
+    !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1) IF(lacc)
 
 #ifdef __LOOP_EXCHANGE
     !$ACC LOOP GANG VECTOR COLLAPSE(2)
@@ -2161,7 +2190,7 @@ ELSE
     CALL get_indices_c(ptr_patch, jb, i_startblk, i_endblk, &
                      i_startidx, i_endidx, rl_start, rl_end_l1)
 
-    !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1) IF(i_am_accel_node)
+    !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1) IF(lacc)
 #ifdef __LOOP_EXCHANGE
     !$ACC LOOP GANG VECTOR COLLAPSE(2)
     DO jc = i_startidx, i_endidx
@@ -2197,7 +2226,7 @@ IF (l_limited_area .OR. ptr_patch%id > 1) THEN
     CALL get_indices_c(ptr_patch, jb, i_startblk, i_endblk, &
                      i_startidx, i_endidx, rl_start, rl_start_l2)
 
-    !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1) IF(i_am_accel_node)
+    !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1) IF(lacc)
     !$ACC LOOP GANG VECTOR COLLAPSE(2)
     DO jk = slev, elev
       DO jc = i_startidx, i_endidx
@@ -2215,7 +2244,7 @@ IF (l_limited_area .OR. ptr_patch%id > 1) THEN
       CALL get_indices_c(ptr_patch, jb, i_startblk, i_endblk, &
                        i_startidx, i_endidx, rl_start, rl_start_l2)
 
-      !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1) IF(i_am_accel_node)
+      !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1) IF(lacc)
       !$ACC LOOP GANG VECTOR COLLAPSE(2)
       DO jk = slev, elev
         DO jc = i_startidx, i_endidx
@@ -2246,7 +2275,7 @@ IF (l2fields) THEN
     CALL get_indices_c(ptr_patch, jb, i_startblk, i_endblk, &
                      i_startidx, i_endidx, rl_start_l2, rl_end)
 
-    !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1) IF(i_am_accel_node)
+    !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1) IF(lacc)
 #ifdef __LOOP_EXCHANGE
     !$ACC LOOP GANG VECTOR COLLAPSE(2)
     DO jc = i_startidx, i_endidx
@@ -2286,7 +2315,7 @@ ELSE
     CALL get_indices_c(ptr_patch, jb, i_startblk, i_endblk, &
                      i_startidx, i_endidx, rl_start_l2, rl_end)
 
-    !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1) IF(i_am_accel_node)
+    !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1) IF(lacc)
 #ifdef __LOOP_EXCHANGE
     !$ACC LOOP GANG VECTOR COLLAPSE(2)
     DO jc = i_startidx, i_endidx
@@ -2334,7 +2363,7 @@ END SUBROUTINE div_avg
 !! input:  lives on edges (velocity points)
 !! output: lives on dual of cells (vertices for triangular grid)
 !!
-SUBROUTINE rot_vertex_atmos( vec_e, ptr_patch, ptr_int, rot_vec, &
+SUBROUTINE rot_vertex_atmos( vec_e, ptr_patch, ptr_int, rot_vec, lacc,  &
   &                          opt_slev, opt_elev, opt_rlstart, opt_rlend )
 !
 !  patch on which computation is performed
@@ -2348,6 +2377,9 @@ TYPE(t_int_state), INTENT(in)     :: ptr_int
 !
 REAL(wp), INTENT(in) ::  &
   &  vec_e(:,:,:) ! dim: (nproma,nlev,nblks_e)
+
+LOGICAL, INTENT(in)           ::  &   !< if true, use OpenACC
+  &  lacc
 
 INTEGER, INTENT(in), OPTIONAL ::  &
   &  opt_slev    ! optional vertical start level
@@ -2415,7 +2447,7 @@ END IF
   i_endblk   = ptr_patch%verts%end_blk(rl_end,i_nchdom)
 
   !$ACC DATA PRESENT(vec_e, rot_vec, ptr_int%geofac_rot, iidx, iblk) &
-  !$ACC   IF(i_am_accel_node)
+  !$ACC   IF(lacc)
 !$OMP PARALLEL
 !$OMP DO PRIVATE(jb,i_startidx,i_endidx,jv,jk), ICON_OMP_RUNTIME_SCHEDULE
   DO jb = i_startblk, i_endblk
@@ -2439,7 +2471,7 @@ END IF
     ! is necessary, given by g%verts%edge_orientation
     !
 
-    !$ACC PARALLEL ASYNC(1) IF(i_am_accel_node)
+    !$ACC PARALLEL ASYNC(1) IF(lacc)
 #ifdef __LOOP_EXCHANGE
     !$ACC LOOP GANG VECTOR COLLAPSE(2)
     DO jv = i_startidx, i_endidx
@@ -2481,7 +2513,7 @@ END SUBROUTINE rot_vertex_atmos
 !! output field (vorticity) has single precision if __MIXED_PRECISION is specified
 !!
 !!
-SUBROUTINE rot_vertex_ri( vec_e, ptr_patch, ptr_int, rot_vec, &
+SUBROUTINE rot_vertex_ri( vec_e, ptr_patch, ptr_int, rot_vec, lacc,    &
   &                       opt_slev, opt_elev, opt_rlend, opt_acc_async )
 !
 !  patch on which computation is performed
@@ -2495,6 +2527,9 @@ TYPE(t_int_state), INTENT(in)     :: ptr_int
 !
 REAL(wp), INTENT(in) ::  &
   &  vec_e(:,:,:) ! dim: (nproma,nlev,nblks_e)
+
+LOGICAL, INTENT(in)           ::  &   !< if true, use OpenACC
+  &  lacc
 
 INTEGER, INTENT(in), OPTIONAL ::  &
   &  opt_slev    ! optional vertical start level
@@ -2563,7 +2598,7 @@ END IF
     CALL get_indices_v(ptr_patch, jb, i_startblk, i_endblk, &
                        i_startidx, i_endidx, rl_start, rl_end)
 
-    !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1) IF(i_am_accel_node)
+    !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1) IF(lacc)
 
     ! calculate rotation, i.e.
     ! add individual edge contributions to rotation

@@ -176,10 +176,11 @@ MODULE mo_nh_bb13_exp
     ptr_nh_prog%w(:,:,:) = 0.0_wp
 
     CALL diagnose_pres_temp (p_metrics, ptr_nh_prog,ptr_nh_prog, ptr_nh_diag,     &
-                             ptr_patch, opt_calc_pres=.TRUE., opt_calc_temp=.TRUE.)
+      &                      ptr_patch, lacc=.FALSE.,                             &
+      &                      opt_calc_pres=.TRUE., opt_calc_temp=.TRUE.)
 
 
-    CALL sync_patch_array(SYNC_C, ptr_patch, ptr_nh_prog%w)
+    CALL sync_patch_array(SYNC_C, ptr_patch, ptr_nh_prog%w, lacc=.FALSE.)
 
   END SUBROUTINE init_nh_env_bb13
 
@@ -258,6 +259,7 @@ MODULE mo_nh_bb13_exp
     CALL diagnose_pres_temp ( p_metrics, ptr_nh_prog,         &
             &                     ptr_nh_prog, ptr_nh_diag,   &
             &                     ptr_patch,                  &
+            &                     lacc=.FALSE.,               &
             &                     opt_calc_temp=.TRUE.,       &
             &                     opt_calc_pres=.FALSE.,      &
             &                     opt_rlend=min_rlcell_int )

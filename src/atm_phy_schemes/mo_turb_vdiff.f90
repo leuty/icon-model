@@ -31,6 +31,7 @@ MODULE mo_turb_vdiff
   USE mo_turb_vdiff_params,  ONLY: VDIFF_TURB_3DSMAGORINSKY, VDIFF_TURB_TTE, cchar, totte_min, &
                                  & tpfac1, tpfac2, tpfac3
   USE mo_turb_vdiff_diag,    ONLY: atm_exchange_coeff, sfc_exchange_coeff
+  USE mo_fortran_tools,      ONLY: assert_acc_device_only
 
   IMPLICIT NONE
   PRIVATE
@@ -195,7 +196,8 @@ CONTAINS
                        & pbm_tile,   pbh_tile,                          &! out, for "nsurf_diag"
                        & pcsat,                                         &! in
                        & pcair,                                         &! in
-                       & paz0lh)                                         ! in
+                       & paz0lh,                                        &! in
+                       & lacc)                                           ! in
 
     INTEGER, INTENT(IN) :: kbdim, klev, klevm1, klevp1, ktrac, nblks_c, nblks_v, nblks_e
     INTEGER, INTENT(IN) :: ksfc_type, idx_wtr, idx_ice, idx_lnd
@@ -317,6 +319,8 @@ CONTAINS
       & pcair     (:,:)          ,&!< (kbdim) area fraction with wet land surface
       & paz0lh    (:,:)            !< (kbdim) surface roughness length over land for heat
 
+    LOGICAL, INTENT(IN) :: lacc
+
     ! Local variables
 
     REAL(wp) :: zghf   (kbdim,klev,nblks_c)   !< geopotential height above ground, full level
@@ -354,6 +358,8 @@ CONTAINS
 
     ! OMP variables
     INTEGER                             :: jb,jbs,jbe,jcs,jce,ncd,rls,rle
+
+    CALL assert_acc_device_only ('vdiff_down', lacc)
 
     !---- Local variables
     !$ACC DATA &
@@ -478,7 +484,8 @@ CONTAINS
                               & pcfthv  (:,1:klevm1,jb),zfactor(:,1:klevm1,jb),             &! out
                               & ztheta_b(:,jb), zthetav_b(:,jb), zthetal_b(:,jb),           &! out, for "sfc_exchange_coeff"
                               & zqsat_b(:,jb),  zlh_b(:,jb),                                &! out, for "sfc_exchange_coeff"
-                              & pri(:,1:klevm1,jb), pmixlen(:,1:klevm1,jb)                  )! out, for output
+                              & pri(:,1:klevm1,jb), pmixlen(:,1:klevm1,jb),                 &! out, for output
+                              & lacc=.TRUE.                                                 )! in
 
         !$ACC PARALLEL LOOP DEFAULT(PRESENT) GANG VECTOR ASYNC(1)
         DO jl = jcs,jce
@@ -521,9 +528,10 @@ CONTAINS
                               & pch_tile(:,jb,:),                              &! out, for "nsurf_diag"
                               & pbn_tile(:,jb,:),   pbhn_tile(:,jb,:),         &! out, for "nsurf_diag"
                               & pbm_tile(:,jb,:),   pbh_tile(:,jb,:),          &! out, for "nsurf_diag"
-                              & paz0lh(:,jb),                                  &! in, optional
-                              & pcsat(:,jb),                                   &! in, optional
-                              & pcair(:,jb))                                    ! in, optional
+                              & lacc=.TRUE.,                                   &! in
+                              & paz0lh=paz0lh(:,jb),                           &! in, optional
+                              & pcsat=pcsat(:,jb),                             &! in, optional
+                              & pcair=pcair(:,jb))                              ! in, optional
 
         IF ( isrfc_type == 1 ) THEN
           !$ACC PARALLEL LOOP DEFAULT(PRESENT) GANG VECTOR ASYNC(1)
@@ -576,6 +584,7 @@ CONTAINS
                             & pch_tile(:,:,:),                                        &! out, for "nsurf_diag"
                             & pbn_tile(:,:,:), pbhn_tile(:,:,:),                      &! out
                             & pbm_tile(:,:,:), pbh_tile(:,:,:),                       &! out
+                            & lacc=.TRUE.,                                            &! in
                             & pcsat=pcsat(:,:), pcair=pcair(:,:)                      )! in, optional
 
 
@@ -828,7 +837,7 @@ CONTAINS
   !!
   SUBROUTINE vdiff_get_richtmyer_coeff_momentum( &
         & jcs, kproma, klev, ksfc_type, aa, bb, pfactor_sfc, pcfm_tile, pmair, pen_uv, pfn_u, &
-        & pfn_v &
+        & pfn_v, lacc &
       )
 
     INTEGER, INTENT(IN) :: jcs !< Start cell index.
@@ -855,8 +864,12 @@ CONTAINS
     !> Richtmyer F for v [m/s] (jcs:kproma,ksfc_type).
     REAL(wp), INTENT(INOUT) :: pfn_v(:,:)
 
+    LOGICAL,INTENT(IN) :: lacc
+
     INTEGER :: jc, jsfc
     REAL(wp) :: a2, a3, a2sub, bu, bv
+
+    CALL assert_acc_device_only ('vdiff_get_richtmyer_coeff_momentum', lacc)
 
     !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1)
     !$ACC LOOP GANG VECTOR PRIVATE(a2, a3, a2sub, bu, bv) COLLAPSE(2)
@@ -899,7 +912,7 @@ CONTAINS
   !!
   SUBROUTINE vdiff_update_boundary( &
         & jcs, kproma, klev, dtime, pmair, shflx, qflx, aa, aa_btm, s_btm, q_btm, bb, &
-        & uflx, vflx &
+        & lacc, uflx, vflx &
       )
 
     INTEGER, INTENT(IN) :: jcs !< Start cell index.
@@ -927,6 +940,8 @@ CONTAINS
     !> Right-hand sides (jcs:kproma, klev, nvar_vdiff).
     REAL(wp), INTENT(INOUT) :: bb(:,:,:)
 
+    LOGICAL, INTENT(IN) :: lacc
+
     !> Zonal momentum flux into surface [kg*m/s/m**2/s] (jcs:kproma).
     REAL(wp), INTENT(IN), OPTIONAL :: uflx(:)
     !> Meridional momentum flux into surface [kg*m/s/m**2/s] (jcs:kproma).
@@ -934,6 +949,8 @@ CONTAINS
 
     INTEGER :: jc
     REAL(wp) :: bs, bqv, bu, bv
+
+    CALL assert_acc_device_only ('vdiff_update_boundary', lacc)
 
     ! The way things are currently set up, the bottom layer of `aa` and `bb` for heat and humidity
     ! is unset. We have to construct the bottom row of the matrix and perform Gaussian elimination
@@ -1006,7 +1023,7 @@ CONTAINS
   END SUBROUTINE vdiff_update_boundary
 
 
-  SUBROUTINE vdiff_get_tke (jcs, kproma, klev, vdiff_config, ptotte, pri, tke)
+  SUBROUTINE vdiff_get_tke (jcs, kproma, klev, vdiff_config, ptotte, pri, tke, lacc)
 
     INTEGER, INTENT(IN) :: jcs !< Start cell index.
     INTEGER, INTENT(IN) :: kproma !< End cell index.
@@ -1023,9 +1040,13 @@ CONTAINS
     !> Turbulence kinetic energy as diagnosed by the TTE scheme (jcs:kproma,nlev+1) [m**2/s**2].
     REAL(wp), INTENT(INOUT) :: tke(:,:)
 
+    LOGICAL,INTENT(IN) :: lacc
+
     INTEGER :: jc, jl
     REAL(wp) :: tte, ri
     REAL(wp) :: pr0, ek_ep_ratio_stable, ek_ep_ratio_unstable
+
+    CALL assert_acc_device_only ('vdiff_get_tke', lacc)
 
     pr0 = vdiff_config%pr0
     ek_ep_ratio_stable = vdiff_config%ek_ep_ratio_stable
@@ -1072,7 +1093,8 @@ CONTAINS
     pqte_vdf,   pxlte_vdf,   pxite_vdf,   pxtte_vdf,     &! out
     pz0m,                                                &! out
     pthvvar,                                             &! out
-    ptotte                                               )! out
+    ptotte,                                              &! out
+    lacc                                                 )! in
 
     INTEGER, INTENT(IN) :: jcs, kproma, kbdim, klev, klevm1, ktrac
     INTEGER, INTENT(IN) :: ksfc_type, idx_wtr
@@ -1138,10 +1160,14 @@ CONTAINS
                               !< at the new time step t
     REAL(wp),INTENT(INOUT) :: ptotte    (:,:)   !< (kbdim,klev) OUT
 
+    LOGICAL,INTENT(IN) :: lacc
+
     !-----------------------------------------------------------------------
     ! 6. Obtain solution of the tri-diagonal system by back-substitution.
     !    Then compute tendencies and diagnose moisture flux etc.
     !-----------------------------------------------------------------------
+    CALL assert_acc_device_only ('vdiff_up', lacc)
+
     CALL rhs_bksub( jcs, kproma, klev, aa, bb ) ! in,...,in, inout
 
     CALL vdiff_tendencies( jcs, kproma, kbdim, klev, klevm1, &! in
@@ -2040,6 +2066,7 @@ CONTAINS
                                       & pdtime, delz,                                &! in
                                       & aa_btm, bb_btm,                              &! inout
                                       & pen_h, pfn_h, pen_qv, pfn_qv,                &! out
+                                      & lacc,                                        &! in
                                       & pcair,                                       &! in
                                       & pcsat)                                        ! in
 
@@ -2056,10 +2083,14 @@ CONTAINS
     REAL(wp),INTENT(INOUT) :: pen_qv(:,:)  !< (jcs:kproma,ksfc_type) OUT
     REAL(wp),INTENT(INOUT) :: pfn_qv(:,:)  !< (jcs:kproma,ksfc_type) OUT
 
+    LOGICAL,INTENT(IN) :: lacc
+
     REAL(wp),OPTIONAL,INTENT(IN)    :: pcair(:) !< (jcs:kproma)
     REAL(wp),OPTIONAL,INTENT(IN)    :: pcsat(:) !< (jcs:kproma)
 
     INTEGER  :: jk, jsfc
+
+    CALL assert_acc_device_only ('matrix_to_richtmyer_coeff', lacc)
 
     !---------------------------------------------------------
     ! Matrix setup and bottom level elimination for moisture

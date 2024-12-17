@@ -453,8 +453,8 @@
   CALL convert_thdvars(ptr_patch, ptr_nh_diag%pres, ptr_nh_diag%tempv, &
                & ptr_nh_prog%rho, ptr_nh_prog%exner, ptr_nh_prog%theta_v  )
 
-  CALL diagnose_pres_temp (p_metrics, ptr_nh_prog,ptr_nh_prog, ptr_nh_diag,     &
-                             ptr_patch, opt_calc_pres=.TRUE., opt_calc_temp=.TRUE.)
+  CALL diagnose_pres_temp (p_metrics, ptr_nh_prog,ptr_nh_prog, ptr_nh_diag, ptr_patch, &
+    &                      lacc=.FALSE., opt_calc_pres=.TRUE., opt_calc_temp=.TRUE.)
 
 
   IF (l_hydro_adjust) THEN
@@ -464,11 +464,11 @@
 
   END IF   
 
-    !CALL sync_patch_array(SYNC_C, ptr_patch,temp)
-    !CALL sync_patch_array(SYNC_C, ptr_patch,tempv)
-    !CALL sync_patch_array(SYNC_C, ptr_patch,relhum)
-    !CALL sync_patch_array(SYNC_C, ptr_patch,pres)
-    !CALL sync_patch_array(SYNC_C, ptr_patch,z_qv)
+    !CALL sync_patch_array(SYNC_C, ptr_patch,temp, lacc=.FALSE.)
+    !CALL sync_patch_array(SYNC_C, ptr_patch,tempv, lacc=.FALSE.)
+    !CALL sync_patch_array(SYNC_C, ptr_patch,relhum, lacc=.FALSE.)
+    !CALL sync_patch_array(SYNC_C, ptr_patch,pres, lacc=.FALSE.)
+    !CALL sync_patch_array(SYNC_C, ptr_patch,z_qv, lacc=.FALSE.)
 
     DEALLOCATE(temp, tempv, relhum)
     DEALLOCATE(pres, z_qv)
@@ -851,8 +851,8 @@ jnlayer(:,:,:)=0
 !$OMP END DO
 !$OMP END PARALLEL
 
-    CALL diagnose_pres_temp (p_metrics, ptr_nh_prog,ptr_nh_prog, ptr_nh_diag,     &
-                               ptr_patch, opt_calc_pres=.TRUE., opt_calc_temp=.TRUE.)
+    CALL diagnose_pres_temp (p_metrics, ptr_nh_prog,ptr_nh_prog, ptr_nh_diag, ptr_patch, &
+      &                      lacc=.FALSE., opt_calc_pres=.TRUE., opt_calc_temp=.TRUE.)
 
 
     IF (l_hydro_adjust) THEN
@@ -923,9 +923,9 @@ jnlayer(:,:,:)=0
 
        ! Compute geometric height at edge points
        CALL cells2edges_scalar(p_metrics%z_mc, ptr_patch, &
-               p_int%c_lin_e, z_me)
+               p_int%c_lin_e, z_me, lacc=.FALSE.)
 
-       CALL sync_patch_array(SYNC_E,ptr_patch,z_me)
+       CALL sync_patch_array(SYNC_E,ptr_patch,z_me, lacc=.FALSE.)
        i_startblk = ptr_patch%edges%start_blk(2,1)
 
        ! horizontal normal components of the velocity
@@ -1019,8 +1019,8 @@ jnlayer(:,:,:)=0
 
  ! initialize vertical velocity
    CALL init_w(ptr_patch, p_int, vn, p_metrics%z_ifc, w)
-   CALL sync_patch_array(SYNC_C, ptr_patch, w)
-   !CALL sync_patch_array(SYNC_E, ptr_patch, vn)
+   CALL sync_patch_array(SYNC_C, ptr_patch, w, lacc=.FALSE.)
+   !CALL sync_patch_array(SYNC_E, ptr_patch, vn, lacc=.FALSE.)
 
   END SUBROUTINE init_nh_anaprof_uv
 !-------------------------------------------------------------------------

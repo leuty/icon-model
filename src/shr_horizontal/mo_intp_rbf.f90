@@ -36,7 +36,6 @@ USE mo_fortran_tools,       ONLY: init
 USE mo_parallel_config,     ONLY: nproma
 use mo_lib_intp_rbf,        ONLY: rbf_vec_interpol_cell_lib, rbf_interpol_c2grad_lib, &
                                   rbf_vec_interpol_vertex_lib, rbf_vec_interpol_edge_lib
-USE mo_mpi,                 ONLY: i_am_accel_node
 
 IMPLICIT NONE
 
@@ -66,7 +65,7 @@ CONTAINS
 !! into three dimensional cartesian vectors at each cell center.
 !!
 SUBROUTINE rbf_vec_interpol_cell( p_vn_in, ptr_patch, ptr_int, p_u_out,  &
-  &                               p_v_out, opt_slev, opt_elev, opt_rlstart, &
+  &                               p_v_out, lacc, opt_slev, opt_elev, opt_rlstart, &
   &                               opt_rlend, opt_acc_async )
 
 ! !INPUT PARAMETERS
@@ -99,6 +98,8 @@ REAL(wp),INTENT(INOUT) ::  &
 ! reconstructed y-component (v) of velocity vector
 REAL(wp),INTENT(INOUT) ::  &
   &  p_v_out(:,:,:) ! dim: (nproma,nlev,nblks_c)
+
+LOGICAL, INTENT(IN) :: lacc  ! if true, use OpenACC
 
 ! if set, run in an asynchrounous device stream
 LOGICAL, INTENT(IN), OPTIONAL :: opt_acc_async
@@ -147,7 +148,7 @@ i_endidx_in   = ptr_patch%cells%end_index(rl_end)
 CALL rbf_vec_interpol_cell_lib( p_vn_in, ptr_int%rbf_vec_idx_c, ptr_int%rbf_vec_blk_c, &
   &                             ptr_int%rbf_vec_coeff_c, p_u_out, p_v_out, &
   &                             i_startblk, i_endblk, i_startidx_in, i_endidx_in, & 
-  &                             slev, elev, nproma, lacc=i_am_accel_node, acc_async=opt_acc_async )
+  &                             slev, elev, nproma, lacc=lacc, acc_async=opt_acc_async )
 
 END SUBROUTINE rbf_vec_interpol_cell
 !====================================================================================
@@ -155,7 +156,7 @@ END SUBROUTINE rbf_vec_interpol_cell
 
 !====================================================================================
 SUBROUTINE rbf_interpol_c2grad( p_cell_in, ptr_patch, ptr_int, grad_x,  &
-  &                             grad_y, opt_slev, opt_elev, opt_rlstart, opt_rlend )
+  &                             grad_y, lacc, opt_slev, opt_elev, opt_rlstart, opt_rlend )
 
 ! !INPUT PARAMETERS
 !
@@ -187,6 +188,8 @@ REAL(wp),INTENT(INOUT) ::  &
 ! reconstructed zonal (x) component of gradient vector
 REAL(wp),INTENT(INOUT) ::  &
   &  grad_y(:,:,:) ! dim: (nproma,nlev,nblks_c)
+
+LOGICAL, INTENT(IN) :: lacc  ! if true, use OpenACC
 
 ! !LOCAL VARIABLES
 INTEGER :: slev, elev                ! vertical start and end level
@@ -233,13 +236,13 @@ i_endidx_in   = ptr_patch%cells%end_index(rl_end)
 
 IF (ptr_patch%id > 1) THEN
 #ifdef _OPENACC
-  !$ACC KERNELS ASYNC(1) IF(i_am_accel_node)
+  !$ACC KERNELS ASYNC(1) IF(lacc)
   grad_x(:,:,1:i_startblk) = 0._wp
   grad_y(:,:,1:i_startblk) = 0._wp
   !$ACC END KERNELS
 #else
-  CALL init(grad_x(:,:,1:i_startblk), lacc=i_am_accel_node)
-  CALL init(grad_y(:,:,1:i_startblk), lacc=i_am_accel_node)
+  CALL init(grad_x(:,:,1:i_startblk), lacc=lacc)
+  CALL init(grad_y(:,:,1:i_startblk), lacc=lacc)
 !$OMP BARRIER
 #endif
 ENDIF
@@ -249,7 +252,7 @@ ENDIF
 CALL rbf_interpol_c2grad_lib( p_cell_in, ptr_int%rbf_c2grad_idx, ptr_int%rbf_c2grad_blk, &
   &                           ptr_int%rbf_c2grad_coeff, grad_x, grad_y, & 
   &                           i_startblk, i_endblk, i_startidx_in, i_endidx_in, & 
-  &                           slev, elev, nproma, lacc=i_am_accel_node )
+  &                           slev, elev, nproma, lacc=lacc )
 
 END SUBROUTINE rbf_interpol_c2grad
 
@@ -264,6 +267,7 @@ END SUBROUTINE rbf_interpol_c2grad
 !!
 SUBROUTINE rbf_vec_interpol_vertex_wp( p_e_in, ptr_patch, ptr_int,                 &
                                        p_u_out, p_v_out,                           &
+                                       lacc,                                       &
                                        opt_slev, opt_elev, opt_rlstart, opt_rlend, &
                                        opt_acc_async )
 !
@@ -294,6 +298,8 @@ REAL(wp),INTENT(INOUT) ::  &
 REAL(wp),INTENT(INOUT) ::  &
   &  p_v_out(:,:,:) ! dim: (nproma,nlev,nblks_v)
 
+LOGICAL, INTENT(IN) :: lacc  ! if true, use OpenACC
+
 LOGICAL, INTENT(IN), OPTIONAL :: opt_acc_async
 
 ! !LOCAL VARIABLES
@@ -341,13 +347,14 @@ i_endidx_in   = ptr_patch%verts%end_index(rl_end)
 CALL rbf_vec_interpol_vertex_lib( p_e_in, ptr_int%rbf_vec_idx_v, ptr_int%rbf_vec_blk_v, &
   &                               ptr_int%rbf_vec_coeff_v, p_u_out, p_v_out, &
   &                               i_startblk, i_endblk, i_startidx_in, i_endidx_in, & 
-  &                               slev, elev, nproma, lacc=i_am_accel_node, acc_async=opt_acc_async )
+  &                               slev, elev, nproma, lacc=lacc, acc_async=opt_acc_async )
 
 END SUBROUTINE rbf_vec_interpol_vertex_wp
 
 ! Variant for mixed precision mode (output fields in single precision)
 SUBROUTINE rbf_vec_interpol_vertex_vp( p_e_in, ptr_patch, ptr_int, &
                                        p_u_out, p_v_out,           &
+                                       lacc,                       &
                                        opt_slev, opt_elev, opt_rlstart, opt_rlend,  &
                                        opt_acc_async )
 !
@@ -378,6 +385,8 @@ REAL(sp),INTENT(INOUT) ::  &
 REAL(sp),INTENT(INOUT) ::  &
   &  p_v_out(:,:,:) ! dim: (nproma,nlev,nblks_v)
 
+LOGICAL, INTENT(IN) :: lacc  ! if true, use OpenACC
+
 LOGICAL, INTENT(IN), OPTIONAL :: opt_acc_async
 
 ! !LOCAL VARIABLES
@@ -425,7 +434,7 @@ i_endidx_in   = ptr_patch%verts%end_index(rl_end)
 CALL rbf_vec_interpol_vertex_lib( p_e_in, ptr_int%rbf_vec_idx_v, ptr_int%rbf_vec_blk_v, &
   &                               ptr_int%rbf_vec_coeff_v, p_u_out, p_v_out, &
   &                               i_startblk, i_endblk, i_startidx_in, i_endidx_in, & 
-  &                               slev, elev, nproma, lacc=i_am_accel_node, acc_async=opt_acc_async )
+  &                               slev, elev, nproma, lacc=lacc, acc_async=opt_acc_async )
 
 END SUBROUTINE rbf_vec_interpol_vertex_vp
 
@@ -438,8 +447,8 @@ END SUBROUTINE rbf_vec_interpol_vertex_vp
 !! It takes edge based variables as input and combines them
 !! into three dimensional cartesian vectors at each edge.
 !!
-SUBROUTINE rbf_vec_interpol_edge( p_vn_in, ptr_patch, ptr_int, p_vt_out,      &
-  &                               opt_slev, opt_elev, opt_rlstart, opt_rlend, &
+SUBROUTINE rbf_vec_interpol_edge( p_vn_in, ptr_patch, ptr_int, p_vt_out, lacc, &
+  &                               opt_slev, opt_elev, opt_rlstart, opt_rlend,  &
   &                               opt_acc_async )
 !
 TYPE(t_patch), TARGET, INTENT(in) ::  &
@@ -464,6 +473,8 @@ INTEGER, INTENT(in), OPTIONAL :: opt_rlstart, opt_rlend
 ! reconstructed tangential velocity component
 REAL(wp),INTENT(INOUT) ::  &
   &  p_vt_out(:,:,:) ! dim: (nproma,nlev,nblks_e)
+
+LOGICAL, INTENT(IN) :: lacc  ! if true, use OpenACC
 
 ! if set, run in an asynchrounous device stream
 LOGICAL, INTENT(IN), OPTIONAL :: opt_acc_async
@@ -511,7 +522,7 @@ i_endidx_in   = ptr_patch%edges%end_index(rl_end)
 CALL rbf_vec_interpol_edge_lib( p_vn_in, ptr_int%rbf_vec_idx_e, ptr_int%rbf_vec_blk_e, & 
   &                             ptr_int%rbf_vec_coeff_e, p_vt_out, &
   &                             i_startblk, i_endblk, i_startidx_in, i_endidx_in, & 
-  &                             slev, elev, nproma, lacc=i_am_accel_node, acc_async=opt_acc_async )
+  &                             slev, elev, nproma, lacc=lacc, acc_async=opt_acc_async )
   
 END SUBROUTINE rbf_vec_interpol_edge
 

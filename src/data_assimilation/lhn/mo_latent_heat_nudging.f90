@@ -771,7 +771,7 @@ SUBROUTINE organize_lhn ( dt_loc, p_sim_time,             & !>in
 !$OMP END DO
 !$OMP END PARALLEL
 
-      CALL sync_patch_array_mult(SYNC_C, pt_patch, 3, z_pr_mod, z_pr_obs, tt_lheat)
+      CALL sync_patch_array_mult(SYNC_C, pt_patch, 3, lacc=.TRUE., f3din1=z_pr_mod, f3din2=z_pr_obs, f3din3=tt_lheat)
 
       zdcoeff = 0.05_wp   ! diffusion coefficient for nabla2 diffusion
   
@@ -779,10 +779,13 @@ SUBROUTINE organize_lhn ( dt_loc, p_sim_time,             & !>in
                                                         ! note: a variable number of iterations (with an exit condition) 
                                                         !       potentially causes trouble with MPI reproducibility
   
-        CALL nabla2_scalar(z_pr_mod, pt_patch, pt_int_state, z_nabla2_prmod, 1, 1, grf_bdywidth_c+1, min_rlcell_int)
-        CALL nabla2_scalar(z_pr_obs, pt_patch, pt_int_state, z_nabla2_probs, 1, 1, grf_bdywidth_c+1, min_rlcell_int)
-        CALL nabla2_scalar( tt_lheat, pt_patch, pt_int_state, z_nabla2_ttlh, &
-                            kstart_moist(jg), nlev, grf_bdywidth_c+1, min_rlcell_int )
+        CALL nabla2_scalar(z_pr_mod, pt_patch, pt_int_state, z_nabla2_prmod, lacc=.TRUE.,  &
+                           slev=1, elev=1, rl_start=grf_bdywidth_c+1, rl_end=min_rlcell_int)
+        CALL nabla2_scalar(z_pr_obs, pt_patch, pt_int_state, z_nabla2_probs, lacc=.TRUE.,  &
+                           slev=1, elev=1, rl_start=grf_bdywidth_c+1, rl_end=min_rlcell_int)
+        CALL nabla2_scalar( tt_lheat, pt_patch, pt_int_state, z_nabla2_ttlh, lacc=.TRUE., &
+                            slev=kstart_moist(jg), elev=nlev, rl_start=grf_bdywidth_c+1,  &
+                            rl_end=min_rlcell_int )
 
 !$OMP PARALLEL
 !$OMP DO PRIVATE(jb,jc,jk,i_startidx,i_endidx) ICON_OMP_DEFAULT_SCHEDULE
@@ -817,7 +820,9 @@ SUBROUTINE organize_lhn ( dt_loc, p_sim_time,             & !>in
 !$OMP END DO
 !$OMP END PARALLEL
 
-        IF ( iter < assimilation_config(jg)%nlhn_relax ) CALL sync_patch_array_mult(SYNC_C, pt_patch, 3, z_pr_mod, z_pr_obs, tt_lheat)
+        IF ( iter < assimilation_config(jg)%nlhn_relax ) THEN
+          CALL sync_patch_array_mult(SYNC_C, pt_patch, 3, lacc=.TRUE., f3din1=z_pr_mod, f3din2=z_pr_obs, f3din3=tt_lheat)
+        END IF
 
       END DO
 

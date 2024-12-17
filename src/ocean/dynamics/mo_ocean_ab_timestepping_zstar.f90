@@ -106,7 +106,6 @@ MODULE mo_ocean_ab_timestepping_zstar
   USE mo_ocean_bulk_forcing,  ONLY: apply_surface_relaxation, update_ocean_surface_stress
   USE mo_swr_absorption,     ONLY: dynamic_swr_absorption
   USE mo_ocean_diagnostics,      ONLY: calc_fast_oce_diagnostics, calc_psi
-  USE mo_derived_variable_handling, ONLY: update_statistics
   USE mo_master_config,          ONLY: isRestart
   USE mo_sea_ice_nml,            ONLY: i_ice_dyn
   USE mo_restart,                ONLY: t_RestartDescriptor, createRestartDescriptor, deleteRestartDescriptor
@@ -206,7 +205,7 @@ CONTAINS
     !$ACC DATA CREATE(H_c, z_depth, w_temp, w_edg, w_deriv) IF(lzacc)
 
 !ICON_OMP_MASTER
-      CALL sync_patch_array(sync_c, patch_2D, eta_c    )
+      CALL sync_patch_array(sync_c, patch_2D, eta_c, lacc=lzacc)
 !ICON_OMP_END_MASTER
 !ICON_OMP_BARRIER
 
@@ -244,7 +243,7 @@ CONTAINS
 !ICON_OMP_END_PARALLEL_DO
 
 !ICON_OMP_MASTER
-      CALL sync_patch_array(sync_c, patch_2D, stretch_c)
+      CALL sync_patch_array(sync_c, patch_2D, stretch_c, lacc=lzacc)
 !ICON_OMP_END_MASTER
 !ICON_OMP_BARRIER
 
@@ -284,7 +283,7 @@ CONTAINS
 
 
 !ICON_OMP_MASTER
-      CALL sync_patch_array(sync_e, patch_2D, stretch_e)
+      CALL sync_patch_array(sync_e, patch_2D, stretch_e, lacc=lzacc)
 !ICON_OMP_END_MASTER
 !ICON_OMP_BARRIER
 
@@ -591,7 +590,7 @@ CONTAINS
     END DO ! blockNo
 !ICON_OMP_END_PARALLEL_DO
 
-    CALL sync_patch_array_mult(sync_e, patch, 2, vn_new, vn_time_weighted)
+    CALL sync_patch_array_mult(sync_e, patch, 2, lacc=lzacc, f3din1=vn_new, f3din2=vn_time_weighted)
 
     !$ACC END DATA
   END SUBROUTINE calc_normal_velocity_ab_zstar
@@ -680,7 +679,7 @@ CONTAINS
     END DO ! blockNo
 !ICON_OMP_END_PARALLEL_DO
     
-    CALL sync_patch_array(sync_c,patch_2D,vertical_velocity)
+    CALL sync_patch_array(sync_c,patch_2D,vertical_velocity, lacc=lzacc)
 
     !$ACC END DATA
   END SUBROUTINE calc_vert_velocity_bottomup_zstar
@@ -1269,7 +1268,7 @@ CONTAINS
     !  - 3d and 2d (surface)
     !-------------------------------------------------------------------------------
 
-    CALL sync_patch_array(sync_e, patch_2D, z_vn_ab)
+    CALL sync_patch_array(sync_e, patch_2D, z_vn_ab, lacc=lzacc)
     CALL map_edges2edges_3d_zstar( patch_3d, z_vn_ab, op_coeffs, stretch_e, z_e, lacc=lzacc)
 
 !ICON_OMP_PARALLEL_DO PRIVATE(start_cell_index,end_cell_index, jc, jk, div_z_depth_int_c, div_z_c) ICON_OMP_DEFAULT_SCHEDULE

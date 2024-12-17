@@ -144,14 +144,9 @@ CONTAINS
 !--------------------------------------------------------------------------------------------------
 ! Sync results
 !--------------------------------------------------------------------------------------------------
-    CALL sync_patch_array_mult(sync_c, patch_2D, 5, &
-      & p_ice%vol(:,:,:), p_ice%vols(:,:,:), p_ice%conc(:,:,:), p_ice%hs(:,:,:), p_ice%hi(:,:,:))
-
-!     CALL sync_patch_array(SYNC_C, patch_2D, p_ice%vol (:,:,:))
-!     CALL sync_patch_array(SYNC_C, patch_2D, p_ice%vols(:,:,:))
-!     CALL sync_patch_array(SYNC_C, patch_2D, p_ice%conc(:,:,:))
-!     CALL sync_patch_array(SYNC_C, patch_2D, p_ice%hs  (:,:,:))
-!     CALL sync_patch_array(SYNC_C, patch_2D, p_ice%hi  (:,:,:))
+    CALL sync_patch_array_mult(sync_c, patch_2D, 5, lacc=lzacc,&
+      & f3din1=p_ice%vol(:,:,:), f3din2=p_ice%vols(:,:,:), f3din3=p_ice%conc(:,:,:), &
+      & f3din4=p_ice%hs(:,:,:), f3din5=p_ice%hi(:,:,:))
 
 !     CALL finish('sea_ice:upwind advect','Test sync ok')
    
@@ -242,11 +237,11 @@ CONTAINS
 ! Sync results
 !--------------------------------------------------------------------------------------------------
 
-    CALL sync_patch_array(SYNC_C, patch_2D, p_ice%vol (:,:,:))
-    CALL sync_patch_array(SYNC_C, patch_2D, p_ice%vols(:,:,:))
-    CALL sync_patch_array(SYNC_C, patch_2D, p_ice%conc(:,:,:))
-    CALL sync_patch_array(SYNC_C, patch_2D, p_ice%hs  (:,:,:))
-    CALL sync_patch_array(SYNC_C, patch_2D, p_ice%hi  (:,:,:))
+    CALL sync_patch_array(SYNC_C, patch_2D, p_ice%vol (:,:,:), lacc=.FALSE.)
+    CALL sync_patch_array(SYNC_C, patch_2D, p_ice%vols(:,:,:), lacc=.FALSE.)
+    CALL sync_patch_array(SYNC_C, patch_2D, p_ice%conc(:,:,:), lacc=.FALSE.)
+    CALL sync_patch_array(SYNC_C, patch_2D, p_ice%hs  (:,:,:), lacc=.FALSE.)
+    CALL sync_patch_array(SYNC_C, patch_2D, p_ice%hi  (:,:,:), lacc=.FALSE.)
 
     !---------DEBUG DIAGNOSTICS-------------------------------------------
     CALL dbg_print('ice_adv: vol ice'  , p_ice%vol , str_module, 4, in_subset=patch_2D%cells%owned)

@@ -25,6 +25,7 @@ MODULE mo_nwp_vdiff_types
   USE mo_var_groups, ONLY: groups
   USE mo_var_list, ONLY: t_var_list_ptr, add_var, add_ref
   USE mo_zaxis_type, ONLY: ZA_REFERENCE, ZA_SURFACE
+  USE mo_fortran_tools,      ONLY: assert_acc_device_only
 
   USE mtime, ONLY: datetime
 
@@ -634,11 +635,14 @@ CONTAINS
 
 
   !> Initialize a `t_nwp_vdiff_albedos` structure. This routine is OpenMP orphaned.
-  SUBROUTINE nwp_vdiff_albedos_init (self, kproma, nblks_c)
+  SUBROUTINE nwp_vdiff_albedos_init (self, kproma, nblks_c, lacc)
 
     CLASS(t_nwp_vdiff_albedos), INTENT(OUT) :: self !< Object to initialize.
     INTEGER, INTENT(IN) :: kproma !< Block size.
     INTEGER, INTENT(IN) :: nblks_c !< Number of cell blocks.
+    LOGICAL, INTENT(IN) :: lacc
+
+    CALL assert_acc_device_only ('nwp_vdiff_albedos_init', lacc)
 
     !$OMP SINGLE
       ALLOCATE( &

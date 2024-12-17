@@ -112,7 +112,7 @@ CONTAINS
       first_get=.TRUE., received_data=received_data)
     IF (received_data) &
       CALL sync_patch_array( &
-        SYNC_C, p_patch, u10m, opt_varname='u10m')
+        SYNC_C, p_patch, u10m, opt_varname='u10m', lacc=.FALSE.)
 
     ! ----------------------------------------------
     !  Receive 10m meridional wind v10m
@@ -124,7 +124,7 @@ CONTAINS
       received_data=received_data)
     IF (received_data) &
       CALL sync_patch_array( &
-        SYNC_C, p_patch, v10m, opt_varname='v10m')
+        SYNC_C, p_patch, v10m, opt_varname='v10m', lacc=.FALSE.)
 
     ! ------------------------------------------------------------------
     !  Receive fraction of sea ice
@@ -136,7 +136,7 @@ CONTAINS
       sea_ice_c, received_data=received_data)
     IF (received_data) &
       CALL sync_patch_array( &
-        SYNC_C, p_patch, sea_ice_c, opt_varname='sea_ice_c')
+        SYNC_C, p_patch, sea_ice_c, opt_varname='sea_ice_c', lacc=.FALSE.)
 
   END SUBROUTINE couple_wave_to_atmo
 

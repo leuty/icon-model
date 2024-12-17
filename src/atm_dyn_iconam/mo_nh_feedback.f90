@@ -48,8 +48,7 @@ MODULE mo_nh_feedback
   USE mo_lnd_nwp_config,      ONLY: ntiles_total, ntiles_water, lseaice
   USE mo_atm_phy_nwp_config,  ONLY: atm_phy_nwp_config, iprog_aero
   USE mo_radar_data_types,    ONLY: t_lhn_diag
-  USE mo_fortran_tools,       ONLY: t_ptr_3d
-  USE mo_mpi,                 ONLY: i_am_accel_node
+  USE mo_fortran_tools,       ONLY: t_ptr_3d, assert_acc_device_only, assert_acc_host_only
 
   IMPLICIT NONE
 
@@ -66,7 +65,7 @@ CONTAINS
   !! jg in this case denotes the fine mesh level; output goes to parent_id(jg)
   !!
   SUBROUTINE incr_feedback(p_patch, p_nh_state, p_int_state, p_grf_state, p_lnd_state, &
-    jg, jgp)
+    jg, jgp, lacc)
 
     CHARACTER(len=*), PARAMETER ::  &
       &  routine = 'mo_nh_feedback:incr_feedback'
@@ -79,6 +78,8 @@ CONTAINS
 
     INTEGER, INTENT(IN) :: jg   ! child grid level
     INTEGER, INTENT(IN) :: jgp  ! parent grid level
+
+    LOGICAL,INTENT(IN) :: lacc
 
     ! local variables
 
@@ -136,9 +137,7 @@ CONTAINS
       CALL message(routine,message_text)
     ENDIF
 
-#ifdef _OPENACC
-    IF (i_am_accel_node) CALL finish(routine, 'is not ported to openACC')
-#endif
+    CALL assert_acc_host_only ('nwp_vdiffsfc_exchange_coeff', lacc)
 
     p_parent_prog    => p_nh_state(jgp)%prog(nnew(jgp))
     p_parent_prog_rcf=> p_nh_state(jgp)%prog(nnew_rcf(jgp))
@@ -379,7 +378,7 @@ CONTAINS
 
 
     IF (grf_velfbk == 2) THEN ! Interpolate velocity tendencies in child domain to vertices
-      CALL rbf_vec_interpol_vertex( p_child_prog%vn, p_pc, p_intc, z_u, z_v)
+      CALL rbf_vec_interpol_vertex( p_child_prog%vn, p_pc, p_intc, z_u, z_v, lacc=.FALSE.)
     ENDIF
 
     ! Set pointers to index and coefficient fields
@@ -706,7 +705,7 @@ CONTAINS
   !! to the corresponding grid point on the coarse mesh
   !! jg in this case denotes the fine mesh level; output goes to parent_id(jg)
   !!
-  SUBROUTINE relax_feedback(p_patch, p_nh_state, p_int_state, p_grf_state, jg, jgp, dt_fbk, prm_diag)
+  SUBROUTINE relax_feedback(p_patch, p_nh_state, p_int_state, p_grf_state, jg, jgp, dt_fbk, lacc, prm_diag)
 
     CHARACTER(len=*), PARAMETER ::  &
       &  routine = 'mo_nh_feedback:relax_feedback'
@@ -715,6 +714,7 @@ CONTAINS
     TYPE(t_nh_state), TARGET, INTENT(INOUT)    ::  p_nh_state(n_dom)
     TYPE(t_int_state),   TARGET, INTENT(IN)    ::  p_int_state(n_dom_start:n_dom)
     TYPE(t_gridref_state), TARGET, INTENT(IN)  ::  p_grf_state(n_dom_start:n_dom)
+    LOGICAL,INTENT(IN)                         :: lacc
     TYPE(t_nwp_phy_diag), TARGET, INTENT(INOUT), OPTIONAL ::  prm_diag(n_dom)
 
     INTEGER, INTENT(IN) :: jg   ! child grid level
@@ -801,6 +801,8 @@ CONTAINS
 
     LOGICAL :: lprog_aero        !< prognostic aerosol scheme 
     !-----------------------------------------------------------------------
+
+    CALL assert_acc_device_only (routine, lacc)
 
     ! write(0,*) "n_dom_start,n_dom, jg, jgp=", n_dom_start, n_dom, jg, jgp
     IF (msg_level >= 10) THEN
@@ -909,13 +911,12 @@ CONTAINS
     !$ACC DATA CREATE(feedback_rho, feedback_thv, feedback_vn, feedback_w) &
     !$ACC   CREATE(parent_rho, parent_thv, parent_w, diff_rho, diff_thv, diff_w, parent_rhoqx) &
     !$ACC   CREATE(parent_vn, diff_vn, rho_parent_sv, rot_diff_vn, div_diff_vn, theta_v_pr, z_fbk_rho) &
-    !$ACC   PRESENT(p_nh_state(jg), p_nh_state(jgp), p_int, p_grf, p_grfp, p_patch(jgp), p_child_prog) &
-    !$ACC   IF(i_am_accel_node)
+    !$ACC   PRESENT(p_nh_state(jg), p_nh_state(jgp), p_int, p_grf, p_grfp, p_patch(jgp), p_child_prog)
 
-    !$ACC DATA CREATE(feedback_rhoqx) IF(i_am_accel_node .AND. ltransport)
+    !$ACC DATA CREATE(feedback_rhoqx) IF(ltransport)
 
     !$ACC DATA CREATE(feedback_aero, parent_aero) PRESENT(prm_diagc%aerosol, prm_diagp%aerosol) &
-    !$ACC   IF(i_am_accel_node .AND. ltransport .AND. lprog_aero)
+    !$ACC   IF(ltransport .AND. lprog_aero)
 
     ! 1. Feedback of child-domain variables to the parent grid
 #ifndef __PGI
@@ -934,7 +935,7 @@ CONTAINS
       CALL get_indices_c(p_pc, jb, i_startblk, i_endblk, &
         i_startidx, i_endidx, grf_bdywidth_c+1, min_rlcell)
 
-      !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1) IF(i_am_accel_node)
+      !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1)
       !$ACC LOOP GANG VECTOR COLLAPSE(2)
       DO jk = 1, nlev_c
         DO jc = i_startidx, i_endidx
@@ -960,7 +961,7 @@ CONTAINS
       CALL get_indices_c(p_pp, jb, i_startblk, i_endblk, &
         i_startidx, i_endidx, grf_fbk_start_c, min_rlcell_int)
 
-      !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1) IF(i_am_accel_node)
+      !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1)
       !$ACC LOOP GANG VECTOR COLLAPSE(2) PRIVATE(z_rho_corr)
 #ifdef __LOOP_EXCHANGE
       DO jc = i_startidx, i_endidx
@@ -1018,7 +1019,7 @@ CONTAINS
         DO nt = 1, trFeedback%len
           jt = trFeedback%list(nt)
 
-          !$ACC PARALLEL LOOP GANG VECTOR COLLAPSE(2) DEFAULT(PRESENT) ASYNC(1) IF(i_am_accel_node)
+          !$ACC PARALLEL LOOP GANG VECTOR COLLAPSE(2) DEFAULT(PRESENT) ASYNC(1)
           DO jk = 1, nlev_c
             DO jc = i_startidx, i_endidx
 #endif
@@ -1040,7 +1041,7 @@ CONTAINS
 
       IF ( ltransport .AND. lprog_aero ) THEN
 
-        !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1) IF(i_am_accel_node)
+        !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1)
         !$ACC LOOP GANG VECTOR COLLAPSE(2)
 #ifdef __LOOP_EXCHANGE
         DO jc = i_startidx, i_endidx
@@ -1077,7 +1078,7 @@ CONTAINS
       CALL get_indices_e(p_pp, jb, i_startblk, i_endblk, &
         i_startidx, i_endidx, grf_fbk_start_e, min_rledge_int)
 
-      !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1) IF(i_am_accel_node)
+      !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1)
       !$ACC LOOP GANG VECTOR COLLAPSE(2)
 #ifdef __LOOP_EXCHANGE
       DO je = i_startidx, i_endidx
@@ -1103,41 +1104,81 @@ CONTAINS
 !$OMP END PARALLEL
 #endif
 #ifdef __MIXED_PRECISION
-    CALL exchange_data_mult_mixprec(p_pp%comm_pat_loc_to_glb_c_fbk, i_am_accel_node, 0, 0, 3, 3*nlev_c, &
+    CALL exchange_data_mult_mixprec(                       &
+      p_pat=p_pp%comm_pat_loc_to_glb_c_fbk,                &
+      lacc=.TRUE.,                                         &
+      nfields_dp=0,                                        &
+      ndim2tot_dp=0,                                       &
+      nfields_sp=3,                                        &
+      ndim2tot_sp=3*nlev_c,                                &
       RECV1_SP=parent_rho,     SEND1_SP=feedback_rho,      &
       RECV2_SP=parent_thv,     SEND2_SP=feedback_thv,      &
       RECV3_SP=parent_w,       SEND3_SP=feedback_w         )
 
 
-    CALL exchange_data_mult_mixprec(p_pp%comm_pat_loc_to_glb_e_fbk, i_am_accel_node, 0, 0, 1, nlev_c, &
+    CALL exchange_data_mult_mixprec(           &
+      p_pat=p_pp%comm_pat_loc_to_glb_e_fbk,    &
+      lacc=.TRUE.,                             &
+      nfields_dp=0,                            &
+      ndim2tot_dp=0,                           &
+      nfields_sp=1,                            &
+      ndim2tot_sp=nlev_c,                      &
       RECV1_SP=parent_vn, SEND1_SP=feedback_vn )
 
     IF (ltransport .AND. lprog_aero) THEN
 
-      CALL exchange_data_mult_mixprec(p_pp%comm_pat_loc_to_glb_c_fbk, i_am_accel_node, 0, 0, trFeedback%len+1, trFeedback%len*nlev_c+nclass_aero, &
-        RECV1_SP=parent_aero,     SEND1_SP=feedback_aero,                    &
+      CALL exchange_data_mult_mixprec(                                          &
+        p_pat=p_pp%comm_pat_loc_to_glb_c_fbk,                                   &
+        lacc=.TRUE.,                                                            &
+        nfields_dp=0,                                                           &
+        ndim2tot_dp=0,                                                          &
+        nfields_sp=trFeedback%len+1,                                            &
+        ndim2tot_sp=trFeedback%len*nlev_c+nclass_aero,                          &
+        RECV1_SP=parent_aero,     SEND1_SP=feedback_aero,                       &
         RECV4D_SP=parent_rhoqx(:,:,:,1:trFeedback%len), SEND4D_SP=feedback_rhoqx)
     ELSE IF (ltransport) THEN
-      CALL exchange_data_mult_mixprec(p_pp%comm_pat_loc_to_glb_c_fbk, i_am_accel_node, 0, 0, trFeedback%len, trFeedback%len*nlev_c, &
+      CALL exchange_data_mult_mixprec(                                          &
+        p_pat=p_pp%comm_pat_loc_to_glb_c_fbk,                                   &
+        lacc=.TRUE.,                                                            &
+        nfields_dp=0,                                                           &
+        ndim2tot_dp=0,                                                          &
+        nfields_sp=trFeedback%len,                                              &
+        ndim2tot_sp=trFeedback%len*nlev_c,                                      &
         RECV4D_SP=parent_rhoqx(:,:,:,1:trFeedback%len), SEND4D_SP=feedback_rhoqx)
     ENDIF
 #else
-    CALL exchange_data_mult(p_pp%comm_pat_loc_to_glb_c_fbk, i_am_accel_node, 3, 3*nlev_c, &
+    CALL exchange_data_mult(                         &
+      p_pat=p_pp%comm_pat_loc_to_glb_c_fbk,          &
+      lacc=.TRUE.,                                   &
+      nfields=3,                                     &
+      ndim2tot=3*nlev_c,                             &
       RECV1=parent_rho,     SEND1=feedback_rho,      &
       RECV2=parent_thv,     SEND2=feedback_thv,      &
       RECV3=parent_w,       SEND3=feedback_w         )
 
 
-    CALL exchange_data_mult(p_pp%comm_pat_loc_to_glb_e_fbk, i_am_accel_node, 1, nlev_c, &
-      RECV1=parent_vn, SEND1=feedback_vn )
+    CALL exchange_data_mult(                         &
+      p_pat=p_pp%comm_pat_loc_to_glb_e_fbk,          &
+      lacc=.TRUE.,                                   &
+      nfields=1,                                     &
+      ndim2tot=nlev_c,                               &
+      RECV1=parent_vn, SEND1=feedback_vn             )
 
     IF (ltransport .AND. lprog_aero) THEN
 
-      CALL exchange_data_mult(p_pp%comm_pat_loc_to_glb_c_fbk, i_am_accel_node, trFeedback%len+1, trFeedback%len*nlev_c+nclass_aero, &
-        RECV1=parent_aero,     SEND1=feedback_aero,                    &
+      CALL exchange_data_mult(                                            &
+        p_pat=p_pp%comm_pat_loc_to_glb_c_fbk,                             &
+        lacc=.TRUE.,                                                      &
+        nfields=trFeedback%len+1,                                         &
+        ndim2tot=trFeedback%len*nlev_c+nclass_aero,                       &
+        RECV1=parent_aero,     SEND1=feedback_aero,                       &
         RECV4D=parent_rhoqx(:,:,:,1:trFeedback%len), SEND4D=feedback_rhoqx)
     ELSE IF (ltransport) THEN
-      CALL exchange_data_mult(p_pp%comm_pat_loc_to_glb_c_fbk, i_am_accel_node, trFeedback%len, trFeedback%len*nlev_c, &
+      CALL exchange_data_mult(                                            &
+        p_pat=p_pp%comm_pat_loc_to_glb_c_fbk,                             &
+        lacc=.TRUE.,                                                      &
+        nfields=trFeedback%len,                                           &
+        ndim2tot=trFeedback%len*nlev_c,                                   &
         RECV4D=parent_rhoqx(:,:,:,1:trFeedback%len), SEND4D=feedback_rhoqx)
     ENDIF
 #endif
@@ -1164,11 +1205,11 @@ CONTAINS
 
       CALL get_indices_e(p_patch(jgp), jb, i_startblk, i_endblk, i_startidx, i_endidx, 1, i_rlend_e)
 
-      !$ACC KERNELS ASYNC(1) IF(i_am_accel_node)
+      !$ACC KERNELS ASYNC(1)
       diff_vn(:,:,jb) = 0._wp
       !$ACC END KERNELS
 
-      !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1) IF(i_am_accel_node)
+      !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1)
 #ifdef __LOOP_EXCHANGE
       DO je = i_startidx,i_endidx
         IF (p_grfp%mask_ovlp_e(je,jb,i_chidx)) THEN
@@ -1197,7 +1238,7 @@ CONTAINS
 !$OMP END DO NOWAIT
 !$OMP END PARALLEL
 #endif
-    CALL sync_patch_array(SYNC_E,p_patch(jgp),diff_vn)
+    CALL sync_patch_array(SYNC_E,p_patch(jgp),diff_vn,lacc=.TRUE.)
 
     ! 2a. Smoothing of velocity feedback-parent differences 
 
@@ -1225,7 +1266,7 @@ CONTAINS
 
       CALL get_indices_v(p_patch(jgp), jb, i_startblk, i_endblk, i_startidx, i_endidx, 1, min_rlvert_int-1)
 
-      !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1) IF(i_am_accel_node)
+      !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1)
 #ifdef __LOOP_EXCHANGE
       DO jv = i_startidx, i_endidx
         IF (p_grfp%mask_ovlp_v(jv,jb,i_chidx)) THEN
@@ -1268,7 +1309,7 @@ CONTAINS
 
       CALL get_indices_c(p_patch(jgp), jb, i_startblk, i_endblk, i_startidx, i_endidx, 1, min_rlcell_int-1)
 
-      !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1) IF(i_am_accel_node)
+      !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1)
 #ifdef __LOOP_EXCHANGE
       DO jc = i_startidx, i_endidx
         IF (p_grfp%mask_ovlp_ch(jc,jb,i_chidx)) THEN
@@ -1308,7 +1349,7 @@ CONTAINS
 
       CALL get_indices_e(p_patch(jgp), jb, i_startblk, i_endblk, i_startidx, i_endidx, 1, i_rlend_e)
 
-      !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1) IF(i_am_accel_node)
+      !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1)
 #ifdef __LOOP_EXCHANGE
       DO je = i_startidx, i_endidx
         IF (p_grfp%mask_ovlp_e(je,jb,i_chidx)) THEN
@@ -1345,7 +1386,7 @@ CONTAINS
       !$ACC END PARALLEL
 
       ! 2b. Execute relaxation
-      !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1) IF(i_am_accel_node)
+      !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1)
 #ifdef __LOOP_EXCHANGE
       DO je = i_startidx,i_endidx
         IF (p_grfp%mask_ovlp_e(je,jb,i_chidx)) THEN
@@ -1388,7 +1429,7 @@ CONTAINS
       CALL get_indices_c(p_patch(jgp), jb, i_startblk, i_endblk, i_startidx, i_endidx, 1, i_rlend_c)
 
       ! Compute differences between feedback fields and corresponding parent fields
-      !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1) IF(i_am_accel_node)
+      !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1)
 #ifdef __LOOP_EXCHANGE
       DO jc = i_startidx,i_endidx
         IF (p_grfp%mask_ovlp_c(jc,jb,i_chidx)) THEN
@@ -1423,7 +1464,7 @@ CONTAINS
 
 
       ! Relaxation of dynamical variables
-      !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1) IF(i_am_accel_node)
+      !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1)
 #ifdef __LOOP_EXCHANGE
       DO jc = i_startidx,i_endidx
         IF (p_grfp%mask_ovlp_c(jc,jb,i_chidx)) THEN
@@ -1488,7 +1529,7 @@ CONTAINS
 #else
         DO nt = 1, trFeedback%len
           jt = trFeedback%list(nt)
-          !$ACC PARALLEL LOOP GANG VECTOR COLLAPSE(2) DEFAULT(PRESENT) ASYNC(1) IF(i_am_accel_node)
+          !$ACC PARALLEL LOOP GANG VECTOR COLLAPSE(2) DEFAULT(PRESENT) ASYNC(1)
           DO jk = nshift+nst_fbk, nlev_p
             DO jc = i_startidx,i_endidx
               IF (p_grfp%mask_ovlp_c(jc,jb,i_chidx)) THEN
@@ -1512,7 +1553,7 @@ CONTAINS
 
         IF ( lprog_aero ) THEN
 
-          !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1) IF(i_am_accel_node)
+          !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1)
           !$ACC LOOP GANG VECTOR COLLAPSE(2)
           DO jt = 1, nclass_aero
             DO jc = i_startidx,i_endidx
@@ -1532,7 +1573,7 @@ CONTAINS
 !$OMP END DO
 !$OMP END PARALLEL
 #endif
-    CALL sync_patch_array(SYNC_E,p_patch(jgp),p_parent_prog%vn)
+    CALL sync_patch_array(SYNC_E,p_patch(jgp),p_parent_prog%vn,lacc=.TRUE.)
 
 
     IF (ltransport) THEN
@@ -1548,6 +1589,7 @@ CONTAINS
       ENDIF
       !
       CALL sync_patch_array_mult(SYNC_C, p_patch(jgp), 4+SIZE(tracer_ptr), &
+        &                        lacc=.TRUE.,                              &
         &                        f3din1=p_parent_prog%rho,                 &
         &                        f3din2=p_parent_prog%theta_v,             &
         &                        f3din3=p_parent_prog%exner,               &
@@ -1556,6 +1598,7 @@ CONTAINS
 
     ELSE  ! no transport
       CALL sync_patch_array_mult(SYNC_C,p_patch(jgp), 4,       &
+        &                        lacc=.TRUE.,                  &
         &                        f3din1=p_parent_prog%rho,     &
         &                        f3din2=p_parent_prog%theta_v, &
         &                        f3din3=p_parent_prog%exner,   &
@@ -1741,7 +1784,7 @@ CONTAINS
 !$OMP END DO
 !$OMP END PARALLEL
 
-    CALL sync_patch_array_mult(SYNC_C,p_patch(jgp),2,lh_parent%ttend_lhn,lh_parent%qvtend_lhn)
+    CALL sync_patch_array_mult(SYNC_C, p_patch(jgp), 2, lacc=.FALSE., f3din1=lh_parent%ttend_lhn, f3din2=lh_parent%qvtend_lhn)
 
     DEALLOCATE(feedback_temp,feedback_qv)
 

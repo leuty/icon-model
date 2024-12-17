@@ -22,9 +22,7 @@ MODULE mo_nwp_vdiff_interface
   USE mo_aes_convect_tables, ONLY: init_aes_convect_tables => init_convect_tables
   USE mo_exception, ONLY: finish, message
   USE mo_ext_data_types, ONLY: t_external_data
-  USE mo_fortran_tools, ONLY: assert_lacc_equals_i_am_accel_node, &
-      & assert_acc_device_only, copy, init, if_associated
-  USE mo_mpi, ONLY: i_am_accel_node
+  USE mo_fortran_tools, ONLY: assert_acc_device_only, copy, init, if_associated
   USE mo_impl_constants, ONLY: end_prog_cells, start_prog_cells
   USE mo_kind, ONLY: wp
   USE mo_lnd_nwp_config, ONLY: frsea_thrhld
@@ -143,7 +141,8 @@ CONTAINS
     LOGICAL, OPTIONAL, INTENT(IN) :: initialize
     !< Propagate land for 1s to get initial fluxes and temperatures. No update of atmospheric
     !! prognostic variables.
-    LOGICAL, OPTIONAL, INTENT(IN) :: lacc
+
+    LOGICAL, INTENT(IN) :: lacc
 
     !
     ! Local constants
@@ -377,7 +376,6 @@ CONTAINS
     !
 
     CALL assert_acc_device_only ('nwp_vdiff', lacc)
-    CALL assert_lacc_equals_i_am_accel_node ('nwp_vdiff', lacc, i_am_accel_node)
 
     ! Asynchronous data regions are a too recent feature. We have to resort to unstructured ones.
     ! This crutch ensures that we don't forget to delete any variable. The compiler complains when
@@ -512,18 +510,18 @@ CONTAINS
       CALL init(td2m_sft(:,:,:), lacc=.TRUE., opt_acc_async=.TRUE.)
     !$OMP END PARALLEL
 
-    CALL get_surface_type_fractions(patch, ext_data, mem, diag_lnd, fr_sfc, fr_sft)
-    CALL get_surface_class_temperature(patch, fr_sft, mem%temp_sft, fr_sfc, temp_sfc)
+    CALL get_surface_type_fractions(patch, ext_data, mem, diag_lnd, fr_sfc, fr_sft, lacc=.TRUE.)
+    CALL get_surface_class_temperature(patch, fr_sft, mem%temp_sft, fr_sfc, temp_sfc, lacc=.TRUE.)
 
     !$OMP PARALLEL
-      CALL weighted_average(patch, fr_sfc(:,:,:), temp_sfc(:,:,:), temp_srf_old(:,:))
+      CALL weighted_average(patch, fr_sfc(:,:,:), temp_sfc(:,:,:), temp_srf_old(:,:), lacc=.TRUE.)
 
       !$OMP DO PRIVATE(i_blk, ics, ice, ic, kl)
       DO i_blk = i_startblk, i_endblk
         CALL get_indices_c(patch, i_blk, i_startblk, i_endblk, ics, ice, start_prog_cells, &
             & end_prog_cells)
 
-        !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1)
+          !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1)
           ! Total cloud water: ice and liquid water.
           !$ACC LOOP GANG VECTOR COLLAPSE(2)
           DO kl = 1, patch%nlev
@@ -543,7 +541,7 @@ CONTAINS
                   &   * (fr_sft(ic,i_blk,SFT_SWTR) + fr_sft(ic,i_blk,SFT_SICE))
             END DO
           END IF
-        !$ACC END PARALLEL
+          !$ACC END PARALLEL
       END DO
     !$OMP END PARALLEL
 
@@ -563,7 +561,7 @@ CONTAINS
         CALL get_indices_c(patch, i_blk, i_startblk, i_endblk, ics, ice, start_prog_cells, &
             & end_prog_cells)
 
-        !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1)
+          !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1)
           !$ACC LOOP GANG VECTOR
           DO ic = ics, ice
             rho_ratio_delta_z(ic,i_blk) = &
@@ -585,15 +583,15 @@ CONTAINS
                 & + phy_diag%snow_con_rate(ic,i_blk) + p_hail_gsp_rate(ic,i_blk) &
                 & + p_ice_gsp_rate(ic,i_blk) + p_graupel_gsp_rate(ic,i_blk)
           END DO
-        !$ACC END PARALLEL
+          !$ACC END PARALLEL
       END DO
 
-      CALL flx_rad%init(patch, phy_diag)
-      CALL alb%init(nproma, patch%nblks_c)
+      CALL flx_rad%init(patch, phy_diag, lacc=.TRUE.)
+      CALL alb%init(nproma, patch%nblks_c, lacc=.TRUE.)
     !$OMP END PARALLEL
 
     CALL get_surface_co2_concentration(patch, ccycle_config, tracer(:,:,:,:), &
-        & co2_concentration_srf)
+        & co2_concentration_srf, lacc=.TRUE.)
 
     ! Routine queues on async queue 1. No need to wait.
     CALL vdiff_down( &
@@ -683,7 +681,8 @@ CONTAINS
         & pbn_tile=bn_sfc(:,:,:), &
         & pbhn_tile=bhn_sfc(:,:,:), &
         & pbm_tile=bm_sfc(:,:,:), &
-        & pbh_tile=bh_sfc(:,:,:) &
+        & pbh_tile=bh_sfc(:,:,:), &
+        & lacc=.TRUE. &
       )
 
     ! vdiff_down does not initialize the INTENT(OUT) tendencies from the Smagorinsky if TTE is chosen :(
@@ -704,7 +703,7 @@ CONTAINS
 
     CALL sea_model_update_sst( &
         & patch, mem%sea_state, datetime_now, ext_data%atm_td%sst_m, &
-        & diag_lnd%t_seasfc(:,:) &
+        & diag_lnd%t_seasfc(:,:), lacc=.TRUE. &
       )
 
 #ifndef __NO_JSBACH__
@@ -720,7 +719,7 @@ CONTAINS
         CALL get_indices_c(patch, i_blk, i_startblk, i_endblk, ics, ice, start_prog_cells, &
             & end_prog_cells)
 
-        !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1)
+          !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1)
           !$ACC LOOP GANG VECTOR
           DO ic = ics, ice
             drag_coef(ic,SFC_LAND) = grav * prefactor_exchange(ic,i_blk) &
@@ -732,7 +731,7 @@ CONTAINS
             ch_sfc(ic,i_blk,SFC_LAND) = &
                 & MERGE(ch_sfc(ic,i_blk,SFC_LAND), 1._wp, ext_data%atm%fr_land(ic,i_blk) > 0._wp)
           END DO
-        !$ACC END PARALLEL
+          !$ACC END PARALLEL
 
         CALL matrix_to_richtmyer_coeff( &
             & jcs=ics, &
@@ -750,6 +749,7 @@ CONTAINS
             & pfn_h=t_bcoef(:,:), &
             & pen_qv=q_acoef(:,:), &
             & pfn_qv=q_bcoef(:,:), &
+            & lacc=.TRUE., &
             & pcair=mem%fact_q_air(:,i_blk), &
             & pcsat=mem%fact_qsat_srf(:,i_blk) &
           )
@@ -766,7 +766,8 @@ CONTAINS
             & pmair=nh_diag%airmass_new(:,:,i_blk), &
             & pen_uv=uv_acoef(:,:), &
             & pfn_u=u_bcoef(:,:), &
-            & pfn_v=v_bcoef(:,:) &
+            & pfn_v=v_bcoef(:,:), &
+            & lacc=.TRUE. &
           )
 
         CALL vdiff_get_tke ( &
@@ -776,7 +777,8 @@ CONTAINS
             & vdiff_config=vdiff_config, &
             & ptotte=mem%total_turbulence_energy(:,:,i_blk), &
             & pri=ri_number(:,:,i_blk), &
-            & tke=tke(:,:,i_blk) &
+            & tke=tke(:,:,i_blk), &
+            & lacc=.TRUE. &
           )
 
         ! Replace the vapor in the lowest atmospheric layer by total water (qv+qc) so the surface
@@ -934,7 +936,8 @@ CONTAINS
             & conductive_hflx_ice=p_condhf_ice_blk, &
             & melt_potential_ice=p_meltpot_ice_blk, &
             & alb=alb, &
-            & prog_wtr_new=prog_wtr_new &
+            & prog_wtr_new=prog_wtr_new, &
+            & lacc=.TRUE. &
           )
 
         ! Diagnose surface stress (in N/m**2). This is a mixed-time flux.
@@ -965,10 +968,10 @@ CONTAINS
           END DO
         !$ACC END PARALLEL
 
-        CALL weighted_average(fr_sft(ics:ice,i_blk,:), evapo_sft(ics:ice,i_blk,:), flx_humidity(ics:ice))
-        CALL weighted_average(fr_sft(ics:ice,i_blk,:), flx_heat_sensible_sft(ics:ice,i_blk,:), flx_sensible(ics:ice))
-        CALL weighted_average(fr_sft(ics:ice,i_blk,:), flx_mom_u_sft(ics:ice,i_blk,:), flx_mom_u(ics:ice))
-        CALL weighted_average(fr_sft(ics:ice,i_blk,:), flx_mom_v_sft(ics:ice,i_blk,:), flx_mom_v(ics:ice))
+        CALL weighted_average(fr_sft(ics:ice,i_blk,:), evapo_sft(ics:ice,i_blk,:), flx_humidity(ics:ice), lacc=.TRUE.)
+        CALL weighted_average(fr_sft(ics:ice,i_blk,:), flx_heat_sensible_sft(ics:ice,i_blk,:), flx_sensible(ics:ice), lacc=.TRUE.)
+        CALL weighted_average(fr_sft(ics:ice,i_blk,:), flx_mom_u_sft(ics:ice,i_blk,:), flx_mom_u(ics:ice), lacc=.TRUE.)
+        CALL weighted_average(fr_sft(ics:ice,i_blk,:), flx_mom_v_sft(ics:ice,i_blk,:), flx_mom_v(ics:ice), lacc=.TRUE.)
 
         CALL vdiff_update_boundary( &
             & jcs=ics, &
@@ -984,7 +987,8 @@ CONTAINS
             & aa_btm=a_matrices_btm(:,:,:,:,i_blk), &
             & s_btm=s_atm(:,patch%nlev,i_blk), &
             & q_btm=tracer(:,patch%nlev,i_blk,iqv), &
-            & bb=b_rhs(:,:,:,i_blk) &
+            & bb=b_rhs(:,:,:,i_blk), &
+            & lacc=.TRUE. &
           )
 
         CALL vdiff_up( &
@@ -1027,7 +1031,8 @@ CONTAINS
             & pxtte_vdf=ddt_tracer(:,:,i_blk,iqt:), &
             & pz0m=z0m_gbm(:,i_blk), &
             & pthvvar=mem%theta_v_var(:,:,i_blk), &
-            & ptotte=mem%total_turbulence_energy(:,:,i_blk) &
+            & ptotte=mem%total_turbulence_energy(:,:,i_blk), &
+            & lacc=.TRUE. &
           )
 
         !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1)
@@ -1149,18 +1154,19 @@ CONTAINS
 
       ! Update grid-box temperature.
       CALL weighted_average ( &
-          & patch, fr_sft(:,:,:), t_eff_sft(:,:,:), prog_lnd_new%t_g(:,:), pow=4._wp &
+          & patch, fr_sft(:,:,:), t_eff_sft(:,:,:), prog_lnd_new%t_g(:,:), pow=4._wp, &
+          & lacc=.TRUE. &
         )
-      CALL weighted_average(patch, fr_sft(:,:,:), mem%temp_sft(:,:,:), diag_lnd%t_s(:,:))
+      CALL weighted_average(patch, fr_sft(:,:,:), mem%temp_sft(:,:,:), diag_lnd%t_s(:,:), lacc=.TRUE.)
 
       ! Update surface humidity.
-      CALL weighted_average(patch, fr_sft(:,:,:), qv_sft(:,:,:), diag_lnd%qv_s(:,:))
+      CALL weighted_average(patch, fr_sft(:,:,:), qv_sft(:,:,:), diag_lnd%qv_s(:,:), lacc=.TRUE.)
 
-      CALL weighted_average(patch, fr_sft(:,:,:), alb%alb_nir_dif(:,:,:), phy_diag%albnirdif(:,:))
-      CALL weighted_average(patch, fr_sft(:,:,:), alb%alb_nir_dir(:,:,:), phy_diag%albnirdir(:,:))
-      CALL weighted_average(patch, fr_sft(:,:,:), alb%alb_vis_dif(:,:,:), phy_diag%albvisdif(:,:))
-      CALL weighted_average(patch, fr_sft(:,:,:), alb%alb_vis_dir(:,:,:), phy_diag%albvisdir(:,:))
-      CALL weighted_average(patch, fr_sft(:,:,:), alb%lw_emissivity(:,:,:), phy_diag%lw_emiss(:,:))
+      CALL weighted_average(patch, fr_sft(:,:,:), alb%alb_nir_dif(:,:,:), phy_diag%albnirdif(:,:), lacc=.TRUE.)
+      CALL weighted_average(patch, fr_sft(:,:,:), alb%alb_nir_dir(:,:,:), phy_diag%albnirdir(:,:), lacc=.TRUE.)
+      CALL weighted_average(patch, fr_sft(:,:,:), alb%alb_vis_dif(:,:,:), phy_diag%albvisdif(:,:), lacc=.TRUE.)
+      CALL weighted_average(patch, fr_sft(:,:,:), alb%alb_vis_dir(:,:,:), phy_diag%albvisdir(:,:), lacc=.TRUE.)
+      CALL weighted_average(patch, fr_sft(:,:,:), alb%lw_emissivity(:,:,:), phy_diag%lw_emiss(:,:), lacc=.TRUE.)
 
       CALL flx_rad%get_albdif ( &
           & patch, phy_diag%albnirdif(:,:), phy_diag%albvisdif(:,:), phy_diag%albdif(:,:) &
@@ -1228,24 +1234,24 @@ CONTAINS
       )
 
       CALL weighted_average ( &
-          & patch, fr_sft(:,:,:), mem%flx_heat_latent_sft(:,:,:), phy_diag%lhfl_s(:,:) &
+          & patch, fr_sft(:,:,:), mem%flx_heat_latent_sft(:,:,:), phy_diag%lhfl_s(:,:), lacc=.TRUE. &
         )
       CALL weighted_average ( &
-          & patch, fr_sft(:,:,:), mem%flx_heat_sensible_sft(:,:,:), phy_diag%shfl_s(:,:) &
+          & patch, fr_sft(:,:,:), mem%flx_heat_sensible_sft(:,:,:), phy_diag%shfl_s(:,:), lacc=.TRUE. &
         )
       CALL weighted_average ( &
-          & patch, fr_sft(:,:,:), mem%flx_water_vapor_sft(:,:,:), phy_diag%qhfl_s(:,:) &
+          & patch, fr_sft(:,:,:), mem%flx_water_vapor_sft(:,:,:), phy_diag%qhfl_s(:,:), lacc=.TRUE. &
         )
-      CALL weighted_average(patch, fr_sft(:,:,:), flx_mom_u_sft(:,:,:), phy_diag%umfl_s(:,:))
-      CALL weighted_average(patch, fr_sft(:,:,:), flx_mom_v_sft(:,:,:), phy_diag%vmfl_s(:,:))
+      CALL weighted_average(patch, fr_sft(:,:,:), flx_mom_u_sft(:,:,:), phy_diag%umfl_s(:,:), lacc=.TRUE.)
+      CALL weighted_average(patch, fr_sft(:,:,:), flx_mom_v_sft(:,:,:), phy_diag%vmfl_s(:,:), lacc=.TRUE.)
 
-      CALL weighted_average(patch, fr_sft(:,:,:), t2m_sft(:,:,:), phy_diag%t_2m(:,:))
-      CALL weighted_average(patch, fr_sft(:,:,:), td2m_sft(:,:,:), phy_diag%td_2m(:,:))
-      CALL weighted_average(patch, fr_sft(:,:,:), rh2m_sft(:,:,:), phy_diag%rh_2m(:,:))
-      CALL weighted_average(patch, fr_sft(:,:,:), qv2m_sft(:,:,:), phy_diag%qv_2m(:,:))
-      CALL weighted_average(patch, fr_sft(:,:,:), u10m_sft(:,:,:), phy_diag%u_10m(:,:))
-      CALL weighted_average(patch, fr_sft(:,:,:), v10m_sft(:,:,:), phy_diag%v_10m(:,:))
-      CALL weighted_average(patch, fr_sft(:,:,:), wind_10m_sft(:,:,:), phy_diag%sp_10m(:,:))
+      CALL weighted_average(patch, fr_sft(:,:,:), t2m_sft(:,:,:), phy_diag%t_2m(:,:), lacc=.TRUE.)
+      CALL weighted_average(patch, fr_sft(:,:,:), td2m_sft(:,:,:), phy_diag%td_2m(:,:), lacc=.TRUE.)
+      CALL weighted_average(patch, fr_sft(:,:,:), rh2m_sft(:,:,:), phy_diag%rh_2m(:,:), lacc=.TRUE.)
+      CALL weighted_average(patch, fr_sft(:,:,:), qv2m_sft(:,:,:), phy_diag%qv_2m(:,:), lacc=.TRUE.)
+      CALL weighted_average(patch, fr_sft(:,:,:), u10m_sft(:,:,:), phy_diag%u_10m(:,:), lacc=.TRUE.)
+      CALL weighted_average(patch, fr_sft(:,:,:), v10m_sft(:,:,:), phy_diag%v_10m(:,:), lacc=.TRUE.)
+      CALL weighted_average(patch, fr_sft(:,:,:), wind_10m_sft(:,:,:), phy_diag%sp_10m(:,:), lacc=.TRUE.)
 
       CALL get_gust_speed ( &
           & patch, phy_diag, nh_diag, nh_metrics, phy_diag%sp_10m, mem%ustar, phy_diag%dyn_gust &
@@ -1431,12 +1437,13 @@ CONTAINS
   !! well as the fraction of sea and lake area covered by ice. Land and lake area fractions are
   !! obtained from external data in `ext_data`. The lake ice fraction is computed by JSBACH. Sea
   !! ice has to be provided by a sea ice scheme. Both are stored in `mem`.
-  SUBROUTINE get_surface_type_fractions (patch, ext_data, mem, lnd_diag, fr_sfc, fr_sft)
+  SUBROUTINE get_surface_type_fractions (patch, ext_data, mem, lnd_diag, fr_sfc, fr_sft, lacc)
 
     TYPE(t_patch), INTENT(IN) :: patch !< Current patch.
     TYPE(t_external_data), INTENT(IN) :: ext_data !< External data for the patch.
     TYPE(t_nwp_vdiff_state), INTENT(IN) :: mem !< vdiff and jsbach state.
     TYPE(t_lnd_diag), INTENT(IN) :: lnd_diag
+    LOGICAL, INTENT(IN) :: lacc
     !> Fraction of each surface class (nproma,nblks_c,SFC_NUM).
     REAL(wp), INTENT(OUT) :: fr_sfc(:,:,:)
     !> Fraction of each surface type (nproma,nblks_c,SFT_NUM).
@@ -1448,6 +1455,8 @@ CONTAINS
     INTEGER :: i_startblk, i_endblk
     INTEGER :: ics, ice
     INTEGER :: ic, i_blk
+
+    CALL assert_acc_device_only ('get_surface_type_fractions', lacc)
 
     i_startblk = patch%cells%start_block(start_prog_cells)
     i_endblk = patch%cells%end_block(end_prog_cells)
@@ -1496,7 +1505,7 @@ CONTAINS
   !! \note The function takes water and ice temperatures as area-weighted averages of sea and lake
   !! values. Some kind of flux averaging would probably be more appropriate.
   !!
-  SUBROUTINE get_surface_class_temperature (patch, fr_sft, temp_sft, fr_sfc, temp_sfc)
+  SUBROUTINE get_surface_class_temperature (patch, fr_sft, temp_sft, fr_sfc, temp_sfc, lacc)
 
     TYPE(t_patch), INTENT(IN) :: patch !< Current patch.
     !> Fraction of each surface type [1] (nproma,nblks_c,SFT_NUM).
@@ -1505,12 +1514,15 @@ CONTAINS
     REAL(wp), INTENT(IN) :: temp_sft(:,:,:)
     !> Fraction of each surface class [1] (nproma,nblks_c,SFC_NUM).
     REAL(wp), INTENT(IN) :: fr_sfc(:,:,:)
+    LOGICAL, INTENT(IN) :: lacc
     !> Temperature of each surface class [K] (nproma,nblks_c,SFC_NUM).
     REAL(wp), INTENT(OUT) :: temp_sfc(:,:,:)
 
     INTEGER :: i_startblk, i_endblk
     INTEGER :: ics, ice
     INTEGER :: ic, i_blk
+
+    CALL assert_acc_device_only ('get_surface_class_temperature', lacc)
 
     i_startblk = patch%cells%start_block(start_prog_cells)
     i_endblk = patch%cells%end_block(end_prog_cells)
@@ -1556,13 +1568,14 @@ CONTAINS
   !>
   !! Collect the surface CO2 concentration according to the carbon-cycle configuration.
   !! Time-dependent values are retrieved from `mo_bc_greenhouse_gases::ghg_co2mmr`.
-  SUBROUTINE get_surface_co2_concentration (patch, ccycle_config, tracer, co2_concentration_srf)
+  SUBROUTINE get_surface_co2_concentration (patch, ccycle_config, tracer, co2_concentration_srf, lacc)
 
     TYPE(t_patch), INTENT(IN) :: patch !< Current patch.
     !> Carbon-cycle configuration.
     TYPE(t_ccycle_config), INTENT(IN) :: ccycle_config
     !> Tracer concentrations at current time step [kg/kg].
     REAL(wp), INTENT(IN) :: tracer(:,:,:,:)
+    LOGICAL, INTENT(IN) :: lacc
     !> CO2 concentration at surface [kg/kg] (nproma, nblks_c).
     REAL(wp), INTENT(OUT) :: co2_concentration_srf(:,:)
 
@@ -1577,6 +1590,8 @@ CONTAINS
     INTEGER :: ics, ice
     INTEGER :: ic, i_blk
 
+    CALL assert_acc_device_only ('get_surface_co2_concentration', lacc)
+
     i_startblk = patch%cells%start_block(start_prog_cells)
     i_endblk = patch%cells%end_block(end_prog_cells)
 
@@ -1590,12 +1605,12 @@ CONTAINS
         CALL get_indices_c(patch, i_blk, i_startblk, i_endblk, ics, ice, start_prog_cells, &
             & end_prog_cells)
 
-        !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1)
+          !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1)
           !$ACC LOOP GANG VECTOR
           DO ic = ics, ice
             co2_concentration_srf(ic,i_blk) = CO2VMR_1990 * vmr_to_mmr_co2
           END DO
-        !$ACC END PARALLEL
+          !$ACC END PARALLEL
       END DO
       !$OMP END PARALLEL
 
@@ -1610,12 +1625,12 @@ CONTAINS
         CALL get_indices_c(patch, i_blk, i_startblk, i_endblk, ics, ice, start_prog_cells, &
             & end_prog_cells)
 
-        !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1)
+          !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1)
           !$ACC LOOP GANG VECTOR
           DO ic = ics, ice
             co2_concentration_srf(ic,i_blk) = tracer(ic,patch%nlev,i_blk,ico2)
           END DO
-        !$ACC END PARALLEL
+          !$ACC END PARALLEL
       END DO
       !$OMP END PARALLEL
 
@@ -1630,12 +1645,12 @@ CONTAINS
           CALL get_indices_c(patch, i_blk, i_startblk, i_endblk, ics, ice, start_prog_cells, &
               & end_prog_cells)
 
-          !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1)
+            !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1)
             !$ACC LOOP GANG VECTOR
             DO ic = ics, ice
               co2_concentration_srf(ic,i_blk) = ccycle_config%vmr_co2 * vmr_to_mmr_co2
             END DO
-          !$ACC END PARALLEL
+            !$ACC END PARALLEL
         END DO
         !$OMP END PARALLEL
 
@@ -1648,12 +1663,12 @@ CONTAINS
           CALL get_indices_c(patch, i_blk, i_startblk, i_endblk, ics, ice, start_prog_cells, &
               & end_prog_cells)
 
-          !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1)
+            !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1)
             !$ACC LOOP GANG VECTOR
             DO ic = ics, ice
               co2_concentration_srf(ic,i_blk) = ghg_co2mmr
             END DO
-          !$ACC END PARALLEL
+            !$ACC END PARALLEL
         END DO
         !$OMP END PARALLEL
 
@@ -2232,16 +2247,19 @@ CONTAINS
   END SUBROUTINE update_nwp_tile_state
 
 
-  SUBROUTINE weighted_average_2d (w, x, xavg, pow)
+  SUBROUTINE weighted_average_2d (w, x, xavg, pow, lacc)
 
     REAL(wp), INTENT(IN) :: w(:,:) !< Weights.
     REAL(wp), INTENT(IN) :: x(:,:) !< Values.
+    LOGICAL, INTENT(IN) :: lacc
     REAL(wp), INTENT(OUT) :: xavg(:) !< Averaged value.
     REAL(wp), OPTIONAL, INTENT(IN) :: pow !< Power of the average (default: 1).
 
     INTEGER :: ic
     INTEGER :: k
     REAL(wp) :: ppow
+
+    CALL assert_acc_device_only ('weighted_average_2d', lacc)
 
     IF (PRESENT(pow)) THEN
       ! NVidia compiler doesn't like optionals.
@@ -2286,11 +2304,12 @@ CONTAINS
 
   END SUBROUTINE weighted_average_2d
 
-  SUBROUTINE weighted_average_3d (patch, w, x, xavg, pow)
+  SUBROUTINE weighted_average_3d (patch, w, x, xavg, pow, lacc)
 
     TYPE(t_patch), INTENT(IN) :: patch !< Current patch.
     REAL(wp), INTENT(IN) :: w(:,:,:) !< Weights.
     REAL(wp), INTENT(IN) :: x(:,:,:) !< Values.
+    LOGICAL, INTENT(IN) :: lacc
     REAL(wp), INTENT(OUT) :: xavg(:,:) !< Averaged value.
     REAL(wp), OPTIONAL, INTENT(IN) :: pow !< Power of the average (default: 1).
 
@@ -2298,6 +2317,8 @@ CONTAINS
     INTEGER :: ics, ice, ic
     INTEGER :: k
     REAL(wp) :: ppow
+
+    CALL assert_acc_device_only ('weighted_average_3d', lacc)
 
     i_startblk = patch%cells%start_block(start_prog_cells)
     i_endblk = patch%cells%end_block(end_prog_cells)

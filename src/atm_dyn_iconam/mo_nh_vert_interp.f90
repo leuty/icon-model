@@ -499,11 +499,11 @@ CONTAINS
       !
 
       ! full level heights at edges for initicon input
-      CALL cells2edges_scalar(z_mc_in, p_patch, p_int%c_lin_e, atm_in_z_me, opt_fill_latbc=.TRUE., lacc=.FALSE.)
+      CALL cells2edges_scalar(z_mc_in, p_patch, p_int%c_lin_e, atm_in_z_me, lacc=.FALSE., opt_fill_latbc=.TRUE.)
 
 
       ! full level heights at edges for ICON vertical grid
-      CALL cells2edges_scalar(p_metrics%z_mc, p_patch, p_int%c_lin_e, z_me, opt_fill_latbc=.TRUE., lacc=.FALSE.)
+      CALL cells2edges_scalar(p_metrics%z_mc, p_patch, p_int%c_lin_e, z_me, lacc=.FALSE., opt_fill_latbc=.TRUE.)
 
 
       ! compute extrapolation coefficients for edges
@@ -553,7 +553,7 @@ CONTAINS
     ! This synchronization is executed in the calling routine in latbc mode
     ! (Postpone 'sync' to after extrapolation below in case 
     ! upper-atmosphere extrapolation has been switched on)
-    IF (.NOT. latbcmode .AND. (.NOT. lexpol)) CALL sync_patch_array(SYNC_E,p_patch,initicon%atm%vn)
+    IF (.NOT. latbcmode .AND. (.NOT. lexpol)) CALL sync_patch_array(SYNC_E,p_patch,initicon%atm%vn,lacc=.FALSE.)
 
 
     ! Preliminary interpolation of QV: this is needed to compute virtual temperature
@@ -673,7 +673,7 @@ CONTAINS
     ! so it should be computed after the thermodynamic state has been settled.)
     IF (lexpol) THEN
       CALL expol%vn(p_patch, initicon%atm%vn, initicon%atm%theta_v, initicon%atm%exner, p_metrics, p_int)
-      IF (.NOT. latbcmode) CALL sync_patch_array(SYNC_E,p_patch,initicon%atm%vn)
+      IF (.NOT. latbcmode) CALL sync_patch_array(SYNC_E,p_patch,initicon%atm%vn,lacc=.FALSE.)
     ENDIF    
 
 
@@ -700,7 +700,7 @@ CONTAINS
       ! Impose appropriate lower boundary condition on vertical wind field
       CALL adjust_w(p_patch, p_int, initicon%atm%vn, initicon%const%z_ifc, initicon%atm%w)
 
-      CALL sync_patch_array(SYNC_C,p_patch,initicon%atm%w)
+      CALL sync_patch_array(SYNC_C,p_patch,initicon%atm%w,lacc=.FALSE.)
     ENDIF
 
     IF ((init_mode == MODE_ICONVREMAP .OR. lvert_remap_fg) .AND. ASSOCIATED(initicon%atm_in%tke)) THEN
@@ -2076,11 +2076,12 @@ CONTAINS
     z_topo_c(:,1,:) = topo_c(:,:)
 
     ! Compute auxiliary topography at verices
-    CALL cells2verts_scalar(z_topo_c, p_patch, p_int%cells_aw_verts, z_topo_v, 1, 1)
+    CALL cells2verts_scalar(z_topo_c, p_patch, p_int%cells_aw_verts, z_topo_v, &
+                            lacc=.FALSE., opt_slev=1, opt_elev=1               )
 
     ! Compute slopes
-    CALL grad_fd_norm ( z_topo_c, p_patch, slope_norm, 1, 1)
-    CALL grad_fd_tang ( z_topo_v, p_patch, slope_tang, 1, 1)
+    CALL grad_fd_norm ( z_topo_c, p_patch, slope_norm, lacc=.FALSE., opt_slev=1, opt_elev=1)
+    CALL grad_fd_tang ( z_topo_v, p_patch, slope_tang, lacc=.FALSE., opt_slev=1, opt_elev=1)
 
     i_startblk = p_patch%edges%start_blk(2,1)
 
@@ -2094,7 +2095,8 @@ CONTAINS
     ENDDO
 
     ! Interpolate absolute slope to mass points
-    CALL edges2cells_scalar(slope_abs_e, p_patch, p_int%e_bln_c_s, slope_abs_c, 1, 1)
+    CALL edges2cells_scalar(slope_abs_e, p_patch, p_int%e_bln_c_s, slope_abs_c, &
+                            lacc=.FALSE., opt_slev=1, opt_elev=1                )
 
     i_startblk = p_patch%cells%start_blk(2,1)
 
@@ -2107,7 +2109,7 @@ CONTAINS
       ENDDO
     ENDDO
 
-    CALL sync_patch_array(SYNC_C,p_patch,slope_c)
+    CALL sync_patch_array(SYNC_C,p_patch,slope_c,lacc=.FALSE.)
 
   END SUBROUTINE compute_slope
 

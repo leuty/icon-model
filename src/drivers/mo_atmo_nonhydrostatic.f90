@@ -762,7 +762,7 @@ CONTAINS
                 &                     p_nh_state(jg)%diag% pres               (:,:,:)      ,&
                 &                     p_nh_state(jg)%prog(nnow_rcf(jg))%tracer(:,:,:,io3)  )
               CALL sync_patch_array ( sync_c,p_patch(jg)                                   ,&
-                &                     p_nh_state(jg)%prog(nnow_rcf(jg))%tracer(:,:,:,io3)  )
+                &                     p_nh_state(jg)%prog(nnow_rcf(jg))%tracer(:,:,:,io3), lacc=.FALSE.)
               CALL message(routine,'o3 tracer is initialized by the Cariolle lin. o3 scheme')
             ELSE
 !$OMP PARALLEL

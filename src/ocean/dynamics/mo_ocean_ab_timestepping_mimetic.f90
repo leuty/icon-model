@@ -364,7 +364,7 @@ CONTAINS
     !        CALL createSolverMatrix_onTheFly(solve%lhs, ocean_state%p_aux%p_rhs_sfc_eq, timestep)
 
           !-------- end of solver ---------------
-          CALL sync_patch_array(sync_c, patch_2D, ocean_state%p_prog(nnew(1))%h)
+          CALL sync_patch_array(sync_c, patch_2D, ocean_state%p_prog(nnew(1))%h, lacc=lzacc)
           !---------DEBUG DIAGNOSTICS-------------------------------------------
           ! idt_src=2  ! output print level (1-5, fix)
           !     z_h_c = lhs_surface_height( ocean_state%p_prog(nnew(1))%h, &
@@ -627,7 +627,7 @@ CONTAINS
 !ICON_OMP END PARALLEL WORKSHARE
        WRITE(0,*)'ADV before:', maxval(z_e(:,1,:)),minval(z_e(:,1,:))
       ocean_state%p_diag%veloc_adv_horz = invert_mass_matrix(patch_3d, ocean_state, op_coeffs, z_e)
-      CALL sync_patch_array(sync_e, patch_2D, z_e)
+      CALL sync_patch_array(sync_e, patch_2D, z_e, lacc=.FALSE.)
        WRITE(0,*)'ADV after:', maxval(ocean_state%p_diag%veloc_adv_horz(:,1,:)), &
          & minval(ocean_state%p_diag%veloc_adv_horz(:,1,:))
     END IF
@@ -1002,7 +1002,7 @@ CONTAINS
       ! !-------------------------------------------------------------------------------
     ELSE ! IF(.NOT. l_edge_based)THEN!NOT EDGE-BASED
       ! !-------------------------------------------------------------------------------
-      CALL sync_patch_array(sync_e, patch_2D, z_vn_ab)
+      CALL sync_patch_array(sync_e, patch_2D, z_vn_ab, lacc=lzacc)
       IF( iswm_oce /= 1 ) THEN !the 3D case
         CALL map_edges2edges_viacell_3d_const_z( patch_3d, z_vn_ab, op_coeffs, z_e, lacc=lzacc )
       ELSE ! IF( iswm_oce == 1 ) THEN
@@ -1211,7 +1211,8 @@ CONTAINS
       END DO ! blockNo
 !ICON_OMP_END_PARALLEL_DO
     ENDIF
-    CALL sync_patch_array_mult(sync_e, patch, 2, ocean_state%p_prog(nnew(1))%vn, ocean_state%p_diag%vn_time_weighted)
+    CALL sync_patch_array_mult(sync_e, patch, 2, lacc=lzacc, &
+      &  f3din1=ocean_state%p_prog(nnew(1))%vn, f3din2=ocean_state%p_diag%vn_time_weighted)
 
     !$ACC END DATA
 
@@ -1390,7 +1391,7 @@ CONTAINS
       vertical_velocity(:,1,:) = 0.0_wp
     ENDIF
 
-    CALL sync_patch_array(sync_c,patch_2D,vertical_velocity)
+    CALL sync_patch_array(sync_c,patch_2D,vertical_velocity, lacc=lzacc)
 
     !-----------------------------------------------------
     IF (use_continuity_correction) THEN

@@ -111,9 +111,9 @@ MODULE mo_apt_routines
 
       ! interpolate wind and its increments to mass points
       IF (icpl_da_sfcfric >= 1) THEN
-        CALL rbf_vec_interpol_cell(p_prog_now%vn, p_patch(jg), p_int_state(jg), p_diag%u, p_diag%v)
+        CALL rbf_vec_interpol_cell(p_prog_now%vn, p_patch(jg), p_int_state(jg), p_diag%u, p_diag%v, lacc=.FALSE.)
         CALL rbf_vec_interpol_cell(initicon(jg)%atm_inc%vn, p_patch(jg), p_int_state(jg), &
-          initicon(jg)%atm_inc%u, initicon(jg)%atm_inc%v)
+          initicon(jg)%atm_inc%u, initicon(jg)%atm_inc%v, lacc=.FALSE.)
       ENDIF
 
 

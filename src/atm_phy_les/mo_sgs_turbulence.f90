@@ -341,15 +341,16 @@ MODULE mo_sgs_turbulence
     !--------------------------------------------------------------------------
 
     CALL cells2verts_scalar(p_nh_prog%w, p_patch, p_int%cells_aw_verts, w_vert,                   &
-                            opt_rlend=min_rlvert_int)
-    CALL cells2edges_scalar(p_nh_prog%w, p_patch, p_int%c_lin_e, w_ie, opt_rlend=min_rledge_int-2)
+                            lacc=.FALSE., opt_rlend=min_rlvert_int)
+    CALL cells2edges_scalar(p_nh_prog%w, p_patch, p_int%c_lin_e, w_ie, lacc=.FALSE., &
+                            opt_rlend=min_rledge_int-2)
 
     ! RBF reconstruction of velocity at vertices: include halos
-    CALL rbf_vec_interpol_vertex( p_nh_prog%vn, p_patch, p_int, &
-                                  u_vert, v_vert, opt_rlend=min_rlvert_int )
+    CALL rbf_vec_interpol_vertex( p_nh_prog%vn, p_patch, p_int, u_vert, v_vert, &
+                                  lacc=.FALSE., opt_rlend=min_rlvert_int )
 
     !sync them
-    CALL sync_patch_array_mult(SYNC_V, p_patch, 3, w_vert, u_vert, v_vert)
+    CALL sync_patch_array_mult(SYNC_V, p_patch, 3, lacc=.FALSE., f3din1=w_vert, f3din2=u_vert, f3din3=v_vert)
 
     !Get vn at interfaces and then get vt at interfaces
     !Boundary values are extrapolated like dynamics although
@@ -390,9 +391,9 @@ MODULE mo_sgs_turbulence
 !$OMP END DO
 !$OMP END PARALLEL
 
-    !CALL sync_patch_array(SYNC_E, p_patch, vn_ie)
-    CALL rbf_vec_interpol_edge(vn_ie, p_patch, p_int, vt_ie, opt_rlstart=3, &
-                               opt_rlend=min_rledge_int-2)
+    !CALL sync_patch_array(SYNC_E, p_patch, vn_ie, lacc=.FALSE.)
+    CALL rbf_vec_interpol_edge(vn_ie, p_patch, p_int, vt_ie, lacc=.FALSE.,  &
+                               opt_rlstart=3, opt_rlend=min_rledge_int-2)
 
     !--------------------------------------------------------------------------
     !2) Compute horizontal strain rate tensor at full levels
@@ -626,7 +627,7 @@ MODULE mo_sgs_turbulence
 !$OMP END DO
 !$OMP END PARALLEL
 
-    CALL sync_patch_array(SYNC_C, p_patch, kh_ic)
+    CALL sync_patch_array(SYNC_C, p_patch, kh_ic, lacc=.FALSE.)
 
     !--------------------------------------------------------------------------
     !4) Interpolate difusivity (viscosity) to different locations: calculate them for
@@ -662,11 +663,11 @@ MODULE mo_sgs_turbulence
 
     !4b) visc at vertices
     CALL cells2verts_scalar(kh_ic, p_patch, p_int%cells_aw_verts, km_iv, &
-                            opt_rlstart=5, opt_rlend=min_rlvert_int-1)
+                            lacc=.FALSE., opt_rlstart=5, opt_rlend=min_rlvert_int-1)
     km_iv = MAX( les_config(jg)%km_min, km_iv * les_config(jg)%turb_prandtl )
 
     !4c) Now calculate visc at half levels at edge
-    CALL cells2edges_scalar(kh_ic, p_patch, p_int%c_lin_e, km_ie, &
+    CALL cells2edges_scalar(kh_ic, p_patch, p_int%c_lin_e, km_ie, lacc=.FALSE., &
                             opt_rlstart=grf_bdywidth_e, opt_rlend=min_rledge_int-1)
     km_ie = MAX( les_config(jg)%km_min, km_ie * les_config(jg)%turb_prandtl )
 
@@ -784,12 +785,12 @@ MODULE mo_sgs_turbulence
     !  For triangles: 1=normal, 2=tangential, and 3 = z directions 
     !--------------------------------------------------------------------------
     CALL cells2verts_scalar(p_nh_prog%w, p_patch, p_int%cells_aw_verts, w_vert,                   &
-                            opt_rlend=min_rlvert_int)
-    CALL cells2edges_scalar(p_nh_prog%w, p_patch, p_int%c_lin_e, w_ie,                            &
+                            lacc=.FALSE., opt_rlend=min_rlvert_int)
+    CALL cells2edges_scalar(p_nh_prog%w, p_patch, p_int%c_lin_e, w_ie, lacc=.FALSE.,              &
                             opt_rlend=min_rledge_int-2)
     CALL rbf_vec_interpol_vertex(p_nh_prog%vn, p_patch, p_int, u_vert, v_vert,                    &
-                                  opt_rlend=min_rlvert_int)
-    CALL sync_patch_array_mult(SYNC_V, p_patch, 3, w_vert, u_vert, v_vert)
+                                 lacc=.FALSE., opt_rlend=min_rlvert_int)
+    CALL sync_patch_array_mult(SYNC_V, p_patch, 3, lacc=.FALSE., f3din1=w_vert, f3din2=u_vert, f3din3=v_vert)
  
     rl_start   = grf_bdywidth_e+1
     rl_end     = min_rledge_int
@@ -828,9 +829,9 @@ MODULE mo_sgs_turbulence
 !$OMP END DO
 !$OMP END PARALLEL
 
-    CALL sync_patch_array(SYNC_E, p_patch, vn_ie)
-    CALL rbf_vec_interpol_edge(vn_ie, p_patch, p_int, vt_ie, opt_rlstart=3,                       &
-                               opt_rlend=min_rledge_int-2)
+    CALL sync_patch_array(SYNC_E, p_patch, vn_ie, lacc=.FALSE.)
+    CALL rbf_vec_interpol_edge(vn_ie, p_patch, p_int, vt_ie, lacc=.FALSE.,                        &
+                               opt_rlstart=3, opt_rlend=min_rledge_int-2)
 
     ! Compute horizontal strain rate tensor at full levels
     ividx  => p_patch%edges%vertex_idx
@@ -1086,16 +1087,16 @@ MODULE mo_sgs_turbulence
 !$OMP END DO
 !$OMP END PARALLEL
 
-    CALL sync_patch_array_mult(SYNC_C, p_patch, 3, km_ic, kh_ic, p_prog_rcf%tke)
+    CALL sync_patch_array_mult(SYNC_C, p_patch, 3, lacc=.FALSE., f3din1=km_ic, f3din2=kh_ic, f3din3=p_prog_rcf%tke)
 
     ! Interpolate diffusivity (viscosity) to different locations: calculate  
     ! them for halos also because they will be used in diffusion
-    CALL cells2verts_scalar(km_ic, p_patch, p_int%cells_aw_verts, km_iv, opt_rlstart=5,           &
-                            opt_rlend=min_rlvert_int-1)
-    CALL cells2edges_scalar(km_ic, p_patch, p_int%c_lin_e, km_ie, opt_rlstart=grf_bdywidth_e,     &
-                            opt_rlend=min_rledge_int-1)
-    CALL cells2edges_scalar(kh_ic, p_patch, p_int%c_lin_e, kh_ie, opt_rlstart=grf_bdywidth_e,     &
-                            opt_rlend=min_rledge_int-1)
+    CALL cells2verts_scalar(km_ic, p_patch, p_int%cells_aw_verts, km_iv, lacc=.FALSE.,            &
+                            opt_rlstart=5, opt_rlend=min_rlvert_int-1)
+    CALL cells2edges_scalar(km_ic, p_patch, p_int%c_lin_e, km_ie, lacc=.FALSE.,                   &
+                            opt_rlstart=grf_bdywidth_e, opt_rlend=min_rledge_int-1)
+    CALL cells2edges_scalar(kh_ic, p_patch, p_int%c_lin_e, kh_ie, lacc=.FALSE.,                   &
+                            opt_rlstart=grf_bdywidth_e, opt_rlend=min_rledge_int-1)
 
     ! Assure that diffusivity and viscosity have minimum values
     ! May be obsolete if km_ic & kh_ic are initialized with les_config(jg)%km_min
@@ -1176,7 +1177,7 @@ MODULE mo_sgs_turbulence
     vn_new(:,:,:) = p_nh_prog%vn(:,:,:)
 
     !density at edge
-    CALL cells2edges_scalar(p_nh_prog%rho, p_patch, p_int%c_lin_e, inv_rhoe, &
+    CALL cells2edges_scalar(p_nh_prog%rho, p_patch, p_int%c_lin_e, inv_rhoe, lacc=.FALSE., &
                             opt_rlstart=grf_bdywidth_e+1, opt_rlend=min_rledge_int)
 
     rl_start   = grf_bdywidth_e+1
@@ -1523,8 +1524,9 @@ MODULE mo_sgs_turbulence
 !$OMP END PARALLEL
 
     ! 5) Get turbulent tendency at cell center
-    CALL sync_patch_array(SYNC_E, p_patch, vn_new)
-    CALL rbf_vec_interpol_cell(vn_new, p_patch, p_int, unew, vnew, opt_rlend=min_rlcell_int)
+    CALL sync_patch_array(SYNC_E, p_patch, vn_new, lacc=.FALSE.)
+    CALL rbf_vec_interpol_cell(vn_new, p_patch, p_int, unew, vnew, &
+                               lacc=.FALSE., opt_rlend=min_rlcell_int)
 
     rl_start   = grf_bdywidth_c+1
     rl_end     = min_rlcell_int
@@ -1551,7 +1553,7 @@ MODULE mo_sgs_turbulence
 !$OMP END DO
 !$OMP END PARALLEL
 
-!    CALL sync_patch_array(SYNC_E, p_patch, tot_tend)
+!    CALL sync_patch_array(SYNC_E, p_patch, tot_tend, lacc=.FALSE.)
 !    CALL rbf_vec_interpol_cell(tot_tend, p_patch, p_int, ddt_u, ddt_v, opt_rlend=min_rlcell_int-1)
 
     ! subgrid fluxes: using vn_new, unew, vnew to store sgs_fluxes
@@ -1614,8 +1616,9 @@ MODULE mo_sgs_turbulence
 !$OMP END PARALLEL
 
       ! Get sgs flux at cell center
-      CALL sync_patch_array(SYNC_E, p_patch, vn_new)
-      CALL rbf_vec_interpol_cell(vn_new, p_patch, p_int, unew, vnew, opt_rlend=min_rlcell_int)                
+      CALL sync_patch_array(SYNC_E, p_patch, vn_new, lacc=.FALSE.)
+      CALL rbf_vec_interpol_cell(vn_new, p_patch, p_int, unew, vnew, &
+                                 lacc=.FALSE., opt_rlend=min_rlcell_int)
 
       ! u sgs flux
       CALL levels_horizontal_mean(unew, p_patch%cells%area, p_patch%cells%owned, outvar)
@@ -1706,7 +1709,8 @@ MODULE mo_sgs_turbulence
       hor_tend(:,:,:) = 0._wp
     END IF
 
-    CALL rbf_vec_interpol_edge(p_nh_prog%vn, p_patch, p_int, vt_e, opt_rlend=min_rledge_int-1)
+    CALL rbf_vec_interpol_edge(p_nh_prog%vn, p_patch, p_int, vt_e, &
+                              lacc=.FALSE., opt_rlend=min_rledge_int-1)
 
     ! Calculate rho at interface for vertical diffusion
     rl_start   = grf_bdywidth_c+1
@@ -1999,7 +2003,7 @@ MODULE mo_sgs_turbulence
 !$OMP END PARALLEL
 
 
-   CALL sync_patch_array(SYNC_C, p_patch, p_nh_prog%w)
+   CALL sync_patch_array(SYNC_C, p_patch, p_nh_prog%w, lacc=.FALSE.)
 
   END SUBROUTINE diffuse_vert_velocity
   !-------------------------------------------------------------------------------------
@@ -2083,7 +2087,8 @@ MODULE mo_sgs_turbulence
 
     !2) Calculate exner at edge for horizontal diffusion
      IF(scalar_name == tracer_theta) &
-        CALL cells2edges_scalar(exner, p_patch, p_int%c_lin_e, exner_me, opt_rlend=min_rledge_int-2)
+        CALL cells2edges_scalar(exner, p_patch, p_int%c_lin_e, exner_me, & 
+                                lacc=.FALSE., opt_rlend=min_rledge_int-2)
 
     !3) Calculate exner at interface for vertical diffusion
 
@@ -2549,10 +2554,10 @@ MODULE mo_sgs_turbulence
 !$OMP END DO
 !$OMP END PARALLEL
 
-    CALL cells2edges_scalar(rho_ic, p_patch, p_int%c_lin_e, rho_ie, opt_rlstart=grf_bdywidth_e,     &
-                            opt_rlend=min_rledge_int-1)
-    CALL cells2edges_scalar(km_ic, p_patch, p_int%c_lin_e, km_ie, opt_rlstart=grf_bdywidth_e,     &
-                            opt_rlend=min_rledge_int-1)
+    CALL cells2edges_scalar(rho_ic, p_patch, p_int%c_lin_e, rho_ie, lacc=.FALSE.,    &
+                            opt_rlstart=grf_bdywidth_e, opt_rlend=min_rledge_int-1)
+    CALL cells2edges_scalar(km_ic, p_patch, p_int%c_lin_e, km_ie, lacc=.FALSE.,      &
+                            opt_rlstart=grf_bdywidth_e, opt_rlend=min_rledge_int-1)
     km_ie  = MAX( les_config(jg)%km_min, km_ie )
     !---------------------------------------------------------------
     ! Horizontal diffusion (conservative; following mo_nh_diffusion)

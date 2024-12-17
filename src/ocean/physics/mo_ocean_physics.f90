@@ -662,7 +662,7 @@ CONTAINS
     END DO
 
     ! we do need to sync here
-    CALL sync_patch_array(sync_v, patch_2D, z_k_ave_v)
+    CALL sync_patch_array(sync_v, patch_2D, z_k_ave_v, lacc=.FALSE.)
 
     DO blockNo = all_edges%start_block, all_edges%end_block
       CALL get_index_range(all_edges, blockNo, start_index, end_index)
@@ -679,7 +679,7 @@ CONTAINS
     END DO
 
     ! we do not need to sync edge coefficients
-    ! CALL sync_patch_array(sync_e, patch_2D, k_h)
+    ! CALL sync_patch_array(sync_e, patch_2D, k_h, lacc=.FALSE.)
 
     !---------Debug Diagnostics-------------------------------------------
     idt_src=1  ! output print levels - 0: print in any case
@@ -738,7 +738,7 @@ CONTAINS
 !ICON_OMP_END_PARALLEL_DO
 
     ! we do need to sync here
-    CALL sync_patch_array(sync_c, patch_2D, z_k_ave_c)
+    CALL sync_patch_array(sync_c, patch_2D, z_k_ave_c, lacc=.FALSE.)
 
 !ICON_OMP_PARALLEL_DO PRIVATE(blockNo, start_index, end_index, je, il_c1, ib_c1, il_c2, ib_c2, level)
     DO blockNo = all_edges%start_block, all_edges%end_block
@@ -759,7 +759,7 @@ CONTAINS
 !ICON_OMP_END_PARALLEL_DO
 
     ! we do not need to sync edge coefficients
-    ! CALL sync_patch_array(sync_e, patch_2D, k_h)
+    ! CALL sync_patch_array(sync_e, patch_2D, k_h, lacc=.FALSE.)
 
     !---------Debug Diagnostics-------------------------------------------
     idt_src=1  ! output print levels - 0: print in any case
@@ -817,7 +817,7 @@ CONTAINS
 !ICON_OMP_END_PARALLEL_DO
 
     ! we do need to sync here
-    CALL sync_patch_array(sync_v, patch_2D, z_k_ave_v)
+    CALL sync_patch_array(sync_v, patch_2D, z_k_ave_v, lacc=.FALSE.)
 
 !ICON_OMP_PARALLEL_DO PRIVATE(blockNo, start_index, end_index, je, il_v1, ib_v1, il_v2, ib_v2, level)
     DO blockNo = all_edges%start_block, all_edges%end_block
@@ -838,7 +838,7 @@ CONTAINS
 !ICON_OMP_END_PARALLEL_DO
 
     ! we do not need to sync edge coefficients
-    ! CALL sync_patch_array(sync_e, patch_2D, k_h)
+    ! CALL sync_patch_array(sync_e, patch_2D, k_h, lacc=.FALSE.)
 
     !---------Debug Diagnostics-------------------------------------------
     idt_src=1  ! output print levels - 0: print in any case
@@ -1095,7 +1095,7 @@ CONTAINS
     END DO ! blocks
 !ICON_OMP_END_PARALLEL_DO
    ! this sync most probably is not needed
-!    CALL sync_patch_array(sync_e, patch_2D, param%HarmonicViscosity_coeff)
+!    CALL sync_patch_array(sync_e, patch_2D, param%HarmonicViscosity_coeff, lacc=.FALSE.)
 
 !    !---------DEBUG DIAGNOSTICS-------------------------------------------
     idt_src=1  ! output print level (1-5, fix)
@@ -1213,7 +1213,7 @@ CONTAINS
     END DO ! blocks
 !ICON_OMP_END_PARALLEL_DO
    ! this sync most probably is not needed
-!    CALL sync_patch_array(sync_e, patch_2D, param%HarmonicViscosity_coeff)
+!    CALL sync_patch_array(sync_e, patch_2D, param%HarmonicViscosity_coeff, lacc=.FALSE.)
 
 !    !---------DEBUG DIAGNOSTICS-------------------------------------------
     idt_src=1  ! output print level (1-5, fix)
@@ -1319,7 +1319,7 @@ CONTAINS
     END DO ! blocks
 !ICON_OMP_END_PARALLEL_DO
    ! this sync most probably is not needed
-!    CALL sync_patch_array(sync_e, patch_2D, param%HarmonicViscosity_coeff)
+!    CALL sync_patch_array(sync_e, patch_2D, param%HarmonicViscosity_coeff, lacc=.FALSE.)
 
 !    !---------DEBUG DIAGNOSTICS-------------------------------------------
     idt_src=1  ! output print level (1-5, fix)
@@ -1433,7 +1433,7 @@ CONTAINS
     END DO ! blocks
 !ICON_OMP_END_PARALLEL_DO
    ! this sync most probably is not needed
-!    CALL sync_patch_array(sync_e, patch_2D, param%HarmonicViscosity_coeff)
+!    CALL sync_patch_array(sync_e, patch_2D, param%HarmonicViscosity_coeff, lacc=.FALSE.)
 
 !    !---------DEBUG DIAGNOSTICS-------------------------------------------
     idt_src=1  ! output print level (1-5, fix)
@@ -1573,7 +1573,7 @@ CONTAINS
     END DO ! blocks
 !ICON_OMP_END_PARALLEL_DO
    ! this sync most probably is not needed
-!    CALL sync_patch_array(sync_e, patch_2D, param%HarmonicViscosity_coeff)
+!    CALL sync_patch_array(sync_e, patch_2D, param%HarmonicViscosity_coeff, lacc=.FALSE.)
 
 !    !---------DEBUG DIAGNOSTICS-------------------------------------------
     idt_src=1  ! output print level (1-5, fix)
@@ -1687,7 +1687,7 @@ CONTAINS
     END DO ! blocks
 !ICON_OMP_END_PARALLEL_DO
    ! this sync most probably is not needed
-!    CALL sync_patch_array(sync_e, patch_2D, param%HarmonicViscosity_coeff)
+!    CALL sync_patch_array(sync_e, patch_2D, param%HarmonicViscosity_coeff, lacc=.FALSE.)
 
 !    !---------DEBUG DIAGNOSTICS-------------------------------------------
     idt_src=1  ! output print level (1-5, fix)
@@ -1795,19 +1795,19 @@ CONTAINS
     END DO ! blocks
 !ICON_OMP_END_PARALLEL_DO
 
-!     CALL sync_patch_array(sync_c, patch_2D, vort_c)
+!     CALL sync_patch_array(sync_c, patch_2D, vort_c, lacc=.FALSE.)
 !     CALL dbg_print('LeithBiharm:vort_c',vort_c,&
 !       & str_module,idt_src, in_subset=cells_in_domain)
 
     !2) calculate laplacian of vertical velocity
     CALL tracer_diffusion_horz_local(patch_3D, vort_c, ocean_state, vort_e)!,subset_range = edges_in_domain)
-    CALL sync_patch_array(sync_e, patch_2D, vort_e)
+    CALL sync_patch_array(sync_e, patch_2D, vort_e, lacc=.FALSE.)
 
 !     CALL dbg_print('LeithBiharm:vort_e', vort_e,&
 !       & str_module,idt_src, in_subset=edges_in_domain)
 
     CALL div_oce_3d( vort_e, patch_3D, operators_coeff%div_coeff, laplacian_vort)
-    CALL sync_patch_array(sync_c, patch_2D, laplacian_vort)
+    CALL sync_patch_array(sync_c, patch_2D, laplacian_vort, lacc=.FALSE.)
 !     CALL dbg_print('LeithBiharm:laplacian_vort',laplacian_vort,&
 !       & str_module,idt_src, in_subset=cells_in_domain)
 
@@ -1852,17 +1852,17 @@ CONTAINS
     ELSEIF(LeithClosure_form==2)THEN
 
       CALL div_oce_3d(ocean_state%p_diag%vn_time_weighted, patch_3D, operators_coeff%div_coeff, div_c)
-      CALL sync_patch_array(sync_c, patch_2D, div_c)
+      CALL sync_patch_array(sync_c, patch_2D, div_c, lacc=.FALSE.)
 !       CALL dbg_print('LeithBiharm:div_c',div_c,&
 !         & str_module,idt_src, in_subset=cells_in_domain)
       !CALL div_oce_3d( ocean_state%p_diag%ptp_vn, patch_3D, operators_coeff%div_coeff, div_c)
       !  The next two calls calculate the laplacian of the divergence without any diffusion parameter
       CALL tracer_diffusion_horz_local(patch_3D, div_c, ocean_state, div_e)!,subset_range = edges_in_domain)
-      CALL sync_patch_array(sync_e, patch_2D, div_e)
+      CALL sync_patch_array(sync_e, patch_2D, div_e, lacc=.FALSE.)
 !       CALL dbg_print('LeithBiharm:div_e',div_e,&
 !         & str_module,idt_src, in_subset=edges_in_domain)
       CALL div_oce_3d( div_e, patch_3D, operators_coeff%div_coeff, laplacian_div)
-      CALL sync_patch_array(sync_c, patch_2D, laplacian_div)
+      CALL sync_patch_array(sync_c, patch_2D, laplacian_div, lacc=.FALSE.)
 !       CALL dbg_print('LeithBiharm:laplacian_div',laplacian_div,&
 !         & str_module,idt_src, in_subset=cells_in_domain)
 
@@ -1910,7 +1910,7 @@ CONTAINS
 
    ENDIF
 
-   !CALL sync_patch_array(sync_e, patch_2D, grad_vort_abs)
+   !CALL sync_patch_array(sync_e, patch_2D, grad_vort_abs, lacc=.FALSE.)
    !Note: this sync most probably is nor needed
 
 !idt_src=1  ! output print level (1-5, fix)
@@ -2586,7 +2586,7 @@ CONTAINS
 
     IF (PRESENT(subset_range)) THEN
       IF (.NOT. subset_range%is_in_domain) &
-        & CALL sync_patch_array(sync_e, patch_2D, diff_flx)
+        & CALL sync_patch_array(sync_e, patch_2D, diff_flx, lacc=.FALSE.)
     ENDIF
 
     ELSEIF(.NOT.PRESENT(k_t))THEN
@@ -2617,7 +2617,7 @@ CONTAINS
 
       IF (PRESENT(subset_range)) THEN
         IF (.NOT. subset_range%is_in_domain) &
-          & CALL sync_patch_array(sync_e, patch_2D, diff_flx)
+          & CALL sync_patch_array(sync_e, patch_2D, diff_flx, lacc=.FALSE.)
       ENDIF
 
     ENDIF

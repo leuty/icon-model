@@ -28,13 +28,7 @@ MODULE mo_interpolate_time
        &                          no_of_ms_in_a_day
 
   USE mo_time_config,    ONLY: time_config
-  USE mo_mpi,            ONLY: my_process_is_mpi_workroot, &
-       &                       process_mpi_root_id,        &
-       &                       p_comm_work, p_bcast, p_pe_work
   USE mo_reader_abstract,   ONLY: t_abstract_reader
-#ifdef _OPENACC
-  USE mo_mpi,            ONLY: i_am_accel_node
-#endif
 
   IMPLICIT NONE
 
@@ -182,10 +176,11 @@ CONTAINS
 
   END SUBROUTINE time_intp_init
 
-  SUBROUTINE time_intp_intp(this, local_time, interpolated)
+  SUBROUTINE time_intp_intp(this, local_time, interpolated, lacc)
     CLASS(t_time_intp), TARGET, INTENT(inout) :: this
     TYPE(datetime),    POINTER, INTENT(in   ) :: local_time
     REAL(wp),      ALLOCATABLE, INTENT(inout) :: interpolated(:,:,:,:)
+    LOGICAL,                    INTENT(in)    :: lacc
 
     TYPE(julianday)                     :: current_jd
     TYPE(juliandelta)                   :: delta_1, delta_2
@@ -290,9 +285,9 @@ CONTAINS
 
     ! DA: Need to list this%dataxxx in the PRESENT section for attach
     ! ACCWA (NVHPC 22.7): The original copying at allocation time in time_intp_init lead to a crash because of the way that the fields in this were accessed
-    !$ACC DATA COPYIN(interpolated, this)
+    !$ACC DATA COPYOUT(interpolated) COPYIN(this)
     !$ACC DATA COPYIN(this%dataold, this%datanew)
-    !$ACC KERNELS DEFAULT(NONE) ASYNC(1) IF(i_am_accel_node)
+    !$ACC KERNELS DEFAULT(NONE) ASYNC(1) IF(lacc)
     interpolated(:,:,:,:) = 0.0_wp
     !$ACC END KERNELS
 
@@ -307,7 +302,7 @@ CONTAINS
       DO jb = 1,nblks
         nlen = MERGE(nproma, npromz, jb /= nblks)
         ! DA: Need to list this%dataxxx in the PRESENT section for attach
-        !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1) IF(i_am_accel_node)
+        !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1) IF(lacc)
         !$ACC LOOP GANG VECTOR COLLAPSE(2)
         DO jk = 1,nlev
           DO jc = 1,nlen
@@ -325,11 +320,6 @@ CONTAINS
     !$ACC END DATA
     !$ACC END DATA
 
-!    if (my_process_is_mpi_workroot()) THEN
-!      print *, "blubba weight", weight, interpolated(1,1,1,1), &
-!      this%datanew(1,1,1,1), this%dataold(1,1,1,1)
-!      print *, (1-weight) * this%dataold(1,1,1,1) + weight*this%datanew(1,1,1,1)
-!    ENDIF
   END SUBROUTINE time_intp_intp
 
 END MODULE mo_interpolate_time

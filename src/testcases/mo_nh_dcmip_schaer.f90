@@ -195,9 +195,9 @@ MODULE mo_nh_dcmip_schaer
 
     ! Compute geometric height at edge points
     CALL cells2edges_scalar(p_metrics%z_mc, p_patch, &
-             p_int%c_lin_e, z_me)
+             p_int%c_lin_e, z_me, lacc=.FALSE.)
 
-    CALL sync_patch_array(SYNC_E,p_patch,z_me)
+    CALL sync_patch_array(SYNC_E,p_patch,z_me,lacc=.FALSE.)
 
 
     ! Mountain waves with or without vertical shear
@@ -257,7 +257,7 @@ MODULE mo_nh_dcmip_schaer
 ! initialized vertical velocity
 
   ! CALL init_w(p_patch, p_int, p_nh_prog%vn, p_metrics%z_ifc, p_nh_prog%w)
-  ! CALL sync_patch_array(SYNC_C, p_patch, p_nh_prog%w)
+  ! CALL sync_patch_array(SYNC_C, p_patch, p_nh_prog%w, lacc=.FALSE.)
 
    i_rlstart = 1
    i_rlend   = min_rlcell
@@ -318,9 +318,10 @@ MODULE mo_nh_dcmip_schaer
                       & p_nh_prog%rho, p_nh_prog%exner, p_nh_prog%theta_v  )
 
 
-   CALL sync_patch_array_mult(SYNC_C, p_patch, 2, p_nh_prog%w, p_nh_ref%w_ref)
-   CALL sync_patch_array_mult(SYNC_C, p_patch, 3,                               &
-     &                        p_nh_prog%rho, p_nh_prog%exner, p_nh_prog%theta_v )
+   CALL sync_patch_array_mult(SYNC_C, p_patch, 2, lacc=.FALSE., &
+                            & f3din1=p_nh_prog%w, f3din2=p_nh_ref%w_ref)
+   CALL sync_patch_array_mult(SYNC_C, p_patch, 3, lacc=.FALSE., &
+                            & f3din1=p_nh_prog%rho, f3din2=p_nh_prog%exner, f3din3=p_nh_prog%theta_v )
 
 
    IF (l_hydro_adjust) THEN
@@ -328,7 +329,8 @@ MODULE mo_nh_dcmip_schaer
      CALL hydro_adjust ( p_patch, p_metrics, p_nh_prog%rho, &
                        & p_nh_prog%exner, p_nh_prog%theta_v )
 
-     CALL sync_patch_array_mult(SYNC_C, p_patch, 3, p_nh_prog%rho, p_nh_prog%exner, p_nh_prog%theta_v)
+     CALL sync_patch_array_mult(SYNC_C, p_patch, 3, lacc=.FALSE., &
+                              & f3din1=p_nh_prog%rho, f3din2=p_nh_prog%exner, f3din3=p_nh_prog%theta_v)
    END IF
 
 

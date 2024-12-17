@@ -41,7 +41,6 @@ USE mo_mpi,                ONLY: p_pe, p_bcast, p_sum, p_max, p_min, p_send, p_r
   &                              my_process_is_mpi_parallel, p_work_pe0,p_pe_work,                 &
   &                              comm_lev, glob_comm, comm_proc0,   &
   &                              p_gather, p_gatherv, num_test_procs
-USE mo_mpi,                ONLY: i_am_accel_node
 USE mo_parallel_config, ONLY:p_test_run,   &
   & n_ghost_rows, l_log_checks, l_fast_sum
 USE mo_communication,      ONLY: exchange_data, exchange_data_4de1,            &
@@ -91,6 +90,13 @@ INTERFACE sync_patch_array
   MODULE PROCEDURE sync_patch_array_i3
   MODULE PROCEDURE sync_patch_array_l2
   MODULE PROCEDURE sync_patch_array_l3
+  MODULE PROCEDURE sync_patch_array_r2_nolacc ! Please remove
+  MODULE PROCEDURE sync_patch_array_r3_nolacc ! these subroutines
+  MODULE PROCEDURE sync_patch_array_s3_nolacc ! once this
+  MODULE PROCEDURE sync_patch_array_i2_nolacc ! interface is
+  MODULE PROCEDURE sync_patch_array_i3_nolacc ! called with
+  MODULE PROCEDURE sync_patch_array_l2_nolacc ! the lacc
+  MODULE PROCEDURE sync_patch_array_l3_nolacc ! argument everywhere.
 END INTERFACE
 
 INTERFACE check_patch_array
@@ -204,21 +210,33 @@ END SUBROUTINE disable_sync_checks
 !-------------------------------------------------------------------------
 !> Does boundary exchange for a 3-D REAL array.
 !
-SUBROUTINE sync_patch_array_r3(typ, p_patch, arr, opt_varname)
+SUBROUTINE sync_patch_array_r3_nolacc(typ, p_patch, arr, opt_varname)
    INTEGER,       INTENT(IN)    :: typ
    TYPE(t_patch), TARGET, INTENT(IN) :: p_patch
    REAL(wp),      INTENT(INOUT) :: arr(:,:,:)
+   CHARACTER(len=*), TARGET, INTENT(IN), OPTIONAL :: opt_varname
+#ifdef _OPENACC
+   CALL finish("lacc argument of mo_sync:sync_patch_array_r3 has to be provided when compiling the code with OpenACC offloading.")
+#endif
+   CALL sync_patch_array_r3(typ, p_patch, arr, lacc=.FALSE., opt_varname=opt_varname)
+END SUBROUTINE sync_patch_array_r3_nolacc
+
+SUBROUTINE sync_patch_array_r3(typ, p_patch, arr, lacc, opt_varname)
+   INTEGER,       INTENT(IN)    :: typ
+   TYPE(t_patch), TARGET, INTENT(IN) :: p_patch
+   REAL(wp),      INTENT(INOUT) :: arr(:,:,:)
+   LOGICAL, INTENT(IN) :: lacc
    CHARACTER(len=*), TARGET, INTENT(IN), OPTIONAL :: opt_varname
    CLASS(t_comm_pattern), POINTER :: p_pat
 
    ! If this is a verification run, check consistency before doing boundary exchange
    IF (p_test_run .AND. do_sync_checks) &
-     CALL check_patch_array_3(typ, p_patch, arr, opt_varname)
+     CALL check_patch_array_3(typ, p_patch, arr, lacc=lacc, opt_varname=opt_varname)
 
    ! Boundary exchange for work PEs
     IF(my_process_is_mpi_parallel()) THEN
       p_pat => comm_pat_of_type(p_patch, typ)
-      CALL exchange_data(p_pat=p_pat, lacc=i_am_accel_node, recv=arr)
+      CALL exchange_data(p_pat=p_pat, lacc=lacc, recv=arr)
     ENDIF
 END SUBROUTINE sync_patch_array_r3
 
@@ -226,10 +244,22 @@ END SUBROUTINE sync_patch_array_r3
 !-------------------------------------------------------------------------
 !> Does boundary exchange for a 3-D single precision array.
 !
-SUBROUTINE sync_patch_array_s3(typ, p_patch, arr, opt_varname)
+SUBROUTINE sync_patch_array_s3_nolacc(typ, p_patch, arr, opt_varname)
    INTEGER,       INTENT(IN)    :: typ
    TYPE(t_patch), TARGET, INTENT(IN)    :: p_patch
    REAL(sp),      INTENT(INOUT) :: arr(:,:,:)
+   CHARACTER(len=*), TARGET, INTENT(IN), OPTIONAL :: opt_varname
+#ifdef _OPENACC
+   CALL finish("lacc argument of mo_sync:sync_patch_array_s3 has to be provided when compiling the code with OpenACC offloading.")
+#endif
+   CALL sync_patch_array_s3(typ, p_patch, arr, lacc=.FALSE., opt_varname=opt_varname)
+END SUBROUTINE sync_patch_array_s3_nolacc
+
+SUBROUTINE sync_patch_array_s3(typ, p_patch, arr, lacc, opt_varname)
+   INTEGER,       INTENT(IN)    :: typ
+   TYPE(t_patch), TARGET, INTENT(IN)    :: p_patch
+   REAL(sp),      INTENT(INOUT) :: arr(:,:,:)
+   LOGICAL, INTENT(IN) :: lacc
    CHARACTER(len=*), TARGET, INTENT(IN), OPTIONAL :: opt_varname
    CLASS(t_comm_pattern), POINTER :: p_pat
    CHARACTER(len=4), SAVE, TARGET :: default_varname = 'sync'
@@ -242,13 +272,13 @@ SUBROUTINE sync_patch_array_s3(typ, p_patch, arr, opt_varname)
      ELSE
        varname => default_varname
      ENDIF
-     CALL check_patch_array_sp(typ, p_patch, arr, varname)
+     CALL check_patch_array_sp(typ, p_patch, arr, lacc=lacc, opt_varname=varname)
    ENDIF
 
    ! Boundary exchange for work PEs
    IF(my_process_is_mpi_parallel()) THEN
       p_pat => comm_pat_of_type(p_patch, typ)
-      CALL exchange_data(p_pat=p_pat, lacc=i_am_accel_node, recv=arr)
+      CALL exchange_data(p_pat=p_pat, lacc=lacc, recv=arr)
    ENDIF
 END SUBROUTINE sync_patch_array_s3
 
@@ -259,29 +289,51 @@ END SUBROUTINE sync_patch_array_s3
 !  @note This implementation does not perform a consistency check
 !        (p_test_run)!
 !
-SUBROUTINE sync_patch_array_i3(typ, p_patch, arr)
+SUBROUTINE sync_patch_array_i3_nolacc(typ, p_patch, arr)
    INTEGER,       INTENT(IN)    :: typ
    TYPE(t_patch), TARGET, INTENT(IN) :: p_patch
    INTEGER,       INTENT(INOUT) :: arr(:,:,:)
+#ifdef _OPENACC
+   CALL finish("lacc argument of mo_sync:sync_patch_array_i3 has to be provided when compiling the code with OpenACC offloading.")
+#endif
+   CALL sync_patch_array_i3(typ, p_patch, arr, lacc=.FALSE.)
+END SUBROUTINE sync_patch_array_i3_nolacc
+
+SUBROUTINE sync_patch_array_i3(typ, p_patch, arr, lacc)
+   INTEGER,       INTENT(IN)    :: typ
+   TYPE(t_patch), TARGET, INTENT(IN) :: p_patch
+   INTEGER,       INTENT(INOUT) :: arr(:,:,:)
+   LOGICAL, INTENT(IN) :: lacc
    CLASS(t_comm_pattern), POINTER :: p_pat
 
    ! Boundary exchange for work PEs
    IF(my_process_is_mpi_parallel()) THEN
       p_pat => comm_pat_of_type(p_patch, typ)
-      CALL exchange_data(p_pat=p_pat, lacc=i_am_accel_node, recv=arr)
+      CALL exchange_data(p_pat=p_pat, lacc=lacc, recv=arr)
    ENDIF
 END SUBROUTINE sync_patch_array_i3
 
-  SUBROUTINE sync_patch_array_l3(typ, p_patch, arr)
+SUBROUTINE sync_patch_array_l3_nolacc(typ, p_patch, arr)
     INTEGER,       INTENT(IN)    :: typ
     TYPE(t_patch), TARGET, INTENT(IN) :: p_patch
     LOGICAL,       INTENT(INOUT) :: arr(:,:,:)
+#ifdef _OPENACC
+   CALL finish("lacc argument of mo_sync:sync_patch_array_l3 has to be provided when compiling the code with OpenACC offloading.")
+#endif
+    CALL sync_patch_array_l3(typ, p_patch, arr, lacc=.FALSE.)
+END SUBROUTINE sync_patch_array_l3_nolacc
+
+  SUBROUTINE sync_patch_array_l3(typ, p_patch, arr, lacc)
+    INTEGER,       INTENT(IN)    :: typ
+    TYPE(t_patch), TARGET, INTENT(IN) :: p_patch
+    LOGICAL,       INTENT(INOUT) :: arr(:,:,:)
+    LOGICAL, INTENT(IN) :: lacc
     CLASS(t_comm_pattern), POINTER :: p_pat
 
     ! Boundary exchange for work PEs
     IF(my_process_is_mpi_parallel()) THEN
       p_pat => comm_pat_of_type(p_patch, typ)
-      CALL exchange_data(p_pat=p_pat, lacc=i_am_accel_node, recv=arr)
+      CALL exchange_data(p_pat=p_pat, lacc=lacc, recv=arr)
     ENDIF
   END SUBROUTINE sync_patch_array_l3
 
@@ -289,16 +341,28 @@ END SUBROUTINE sync_patch_array_i3
 !-------------------------------------------------------------------------
 !> Does boundary exchange for a 2-D REAL array.
 !
-SUBROUTINE sync_patch_array_r2(typ, p_patch, arr, opt_varname)
+SUBROUTINE sync_patch_array_r2_nolacc(typ, p_patch, arr, opt_varname)
    INTEGER,       INTENT(IN)    :: typ
    TYPE(t_patch), INTENT(IN) :: p_patch
    REAL(wp), TARGET, INTENT(INOUT) :: arr(:,:)
+   CHARACTER*(*), INTENT(IN), OPTIONAL :: opt_varname
+#ifdef _OPENACC
+   CALL finish("lacc argument of mo_sync:sync_patch_array_r2 has to be provided when compiling the code with OpenACC offloading.")
+#endif
+   CALL sync_patch_array_r2(typ, p_patch, arr, lacc=.FALSE., opt_varname=opt_varname)
+END SUBROUTINE sync_patch_array_r2_nolacc
+
+SUBROUTINE sync_patch_array_r2(typ, p_patch, arr, lacc, opt_varname)
+   INTEGER,       INTENT(IN)    :: typ
+   TYPE(t_patch), INTENT(IN) :: p_patch
+   REAL(wp), TARGET, INTENT(INOUT) :: arr(:,:)
+   LOGICAL, INTENT(IN) :: lacc
    CHARACTER*(*), INTENT(IN), OPTIONAL :: opt_varname
    ! local variable
    REAL(wp), POINTER :: arr3(:,:,:)
 
    CALL insert_dimension(arr3, arr, 2)
-   CALL sync_patch_array_r3(typ, p_patch, arr3, opt_varname)
+   CALL sync_patch_array_r3(typ, p_patch, arr3, lacc=lacc, opt_varname=opt_varname)
 END SUBROUTINE sync_patch_array_r2
 
 
@@ -308,26 +372,48 @@ END SUBROUTINE sync_patch_array_r2
 !  @note This implementation does not perform a consistency check
 !        (p_test_run)!
 !
-SUBROUTINE sync_patch_array_i2(typ, p_patch, arr)
+SUBROUTINE sync_patch_array_i2_nolacc(typ, p_patch, arr)
    INTEGER,       INTENT(IN)    :: typ
    TYPE(t_patch), INTENT(IN)    :: p_patch
    INTEGER, TARGET, INTENT(INOUT) :: arr(:,:)
+#ifdef _OPENACC
+   CALL finish("lacc argument of mo_sync:sync_patch_array_i2 has to be provided when compiling the code with OpenACC offloading.")
+#endif
+   CALL sync_patch_array_i2(typ, p_patch, arr, lacc=.FALSE.)
+END SUBROUTINE sync_patch_array_i2_nolacc
+
+SUBROUTINE sync_patch_array_i2(typ, p_patch, arr, lacc)
+   INTEGER,       INTENT(IN)    :: typ
+   TYPE(t_patch), INTENT(IN)    :: p_patch
+   INTEGER, TARGET, INTENT(INOUT) :: arr(:,:)
+   LOGICAL, INTENT(IN) :: lacc
    ! local variable
    INTEGER, POINTER :: arr3(:,:,:)
 
    CALL insert_dimension(arr3, arr, 2)
-   CALL sync_patch_array_i3(typ, p_patch, arr3)
+   CALL sync_patch_array_i3(typ, p_patch, arr3, lacc=lacc)
 END SUBROUTINE sync_patch_array_i2
 
-  SUBROUTINE sync_patch_array_l2(typ, p_patch, arr)
+SUBROUTINE sync_patch_array_l2_nolacc(typ, p_patch, arr)
     INTEGER,       INTENT(IN)    :: typ
     TYPE(t_patch), INTENT(IN)    :: p_patch
     LOGICAL, TARGET, INTENT(INOUT) :: arr(:,:)
+#ifdef _OPENACC
+   CALL finish("lacc argument of mo_sync:sync_patch_array_l2 has to be provided when compiling the code with OpenACC offloading.")
+#endif
+    CALL sync_patch_array_l2(typ, p_patch, arr, lacc=.FALSE.)
+END SUBROUTINE sync_patch_array_l2_nolacc
+
+  SUBROUTINE sync_patch_array_l2(typ, p_patch, arr, lacc)
+    INTEGER,       INTENT(IN)    :: typ
+    TYPE(t_patch), INTENT(IN)    :: p_patch
+    LOGICAL, TARGET, INTENT(INOUT) :: arr(:,:)
+   LOGICAL, INTENT(IN) :: lacc
     ! local variable
     LOGICAL, POINTER :: arr3(:,:,:)
 
     CALL insert_dimension(arr3, arr, 2)
-    CALL sync_patch_array_l3(typ, p_patch, arr3)
+    CALL sync_patch_array_l3(typ, p_patch, arr3, lacc=lacc)
   END SUBROUTINE sync_patch_array_l2
 
 
@@ -335,12 +421,13 @@ END SUBROUTINE sync_patch_array_i2
 !! Does boundary exchange for up to 5 3D cell-based fields and/or a 4D field.
 !! The 4D field can alternatively be passed as an array of 3D fields.
 !!
-SUBROUTINE sync_patch_array_mult_dp(typ, p_patch, nfields, f3din1, f3din2, f3din3, &
+SUBROUTINE sync_patch_array_mult_dp(typ, p_patch, nfields, lacc, f3din1, f3din2, f3din3, &
                                  f3din4, f3din5, f4din, f3din_arr, opt_varname)
 
    INTEGER, INTENT(IN)             :: typ
    TYPE(t_patch), INTENT(IN), TARGET :: p_patch
    INTEGER,     INTENT(IN)         :: nfields
+   LOGICAL, INTENT(IN) :: lacc ! If compiled with OpenACC: IF lacc is True, use GPU memory
 
    REAL(dp), OPTIONAL, INTENT(INOUT) ::  f3din1(:,:,:), f3din2(:,:,:), f3din3(:,:,:), &
       &                                  f3din4(:,:,:), f3din5(:,:,:), f4din(:,:,:,:)
@@ -359,21 +446,21 @@ SUBROUTINE sync_patch_array_mult_dp(typ, p_patch, nfields, f3din1, f3din2, f3din
    IF (p_test_run .AND. do_sync_checks) THEN
      IF (PRESENT(f4din)) THEN
        DO i = 1, SIZE(f4din,4)
-         CALL check_patch_array_3(typ, p_patch, f4din(:,:,:,i), opt_varname)
+         CALL check_patch_array_3(typ, p_patch, f4din(:,:,:,i), lacc=lacc, opt_varname=opt_varname)
        ENDDO
      ENDIF
 
      IF (PRESENT(f3din_arr)) THEN
        DO i = 1, SIZE(f3din_arr)
-         CALL check_patch_array_3(typ, p_patch, f3din_arr(i)%p, opt_varname)
+         CALL check_patch_array_3(typ, p_patch, f3din_arr(i)%p, lacc=lacc, opt_varname=opt_varname)
        ENDDO
      ENDIF
 
-     IF (PRESENT(f3din1)) CALL check_patch_array_3(typ, p_patch, f3din1, opt_varname)
-     IF (PRESENT(f3din2)) CALL check_patch_array_3(typ, p_patch, f3din2, opt_varname)
-     IF (PRESENT(f3din3)) CALL check_patch_array_3(typ, p_patch, f3din3, opt_varname)
-     IF (PRESENT(f3din4)) CALL check_patch_array_3(typ, p_patch, f3din4, opt_varname)
-     IF (PRESENT(f3din5)) CALL check_patch_array_3(typ, p_patch, f3din5, opt_varname)
+     IF (PRESENT(f3din1)) CALL check_patch_array_3(typ, p_patch, f3din1, lacc=lacc, opt_varname=opt_varname)
+     IF (PRESENT(f3din2)) CALL check_patch_array_3(typ, p_patch, f3din2, lacc=lacc, opt_varname=opt_varname)
+     IF (PRESENT(f3din3)) CALL check_patch_array_3(typ, p_patch, f3din3, lacc=lacc, opt_varname=opt_varname)
+     IF (PRESENT(f3din4)) CALL check_patch_array_3(typ, p_patch, f3din4, lacc=lacc, opt_varname=opt_varname)
+     IF (PRESENT(f3din5)) CALL check_patch_array_3(typ, p_patch, f3din5, lacc=lacc, opt_varname=opt_varname)
    ENDIF
 
    ! Boundary exchange for work PEs
@@ -394,7 +481,7 @@ SUBROUTINE sync_patch_array_mult_dp(typ, p_patch, nfields, f3din1, f3din2, f3din
      IF (PRESENT(f3din4)) ndim2tot = ndim2tot+SIZE(f3din4,2)
      IF (PRESENT(f3din5)) ndim2tot = ndim2tot+SIZE(f3din5,2)
 
-     CALL exchange_data_mult(p_pat=p_pat, lacc=i_am_accel_node, &
+     CALL exchange_data_mult(p_pat=p_pat, lacc=lacc, &
        &                     nfields=nfields, ndim2tot=ndim2tot, recv1=f3din1, recv2=f3din2, &
        &                     recv3=f3din3, recv4=f3din4, recv5=f3din5, recv4d=f4din , &
        &                     recv3d_arr=f3din_arr)
@@ -406,12 +493,13 @@ END SUBROUTINE sync_patch_array_mult_dp
 !! Does boundary exchange for up to 5 3D cell-based fields and/or a 4D field.
 !! The 4D field can alternatively be passed as an array of 3D fields.
 !!
-SUBROUTINE sync_patch_array_mult_sp(typ, p_patch, nfields, f3din1, f3din2, f3din3, &
+SUBROUTINE sync_patch_array_mult_sp(typ, p_patch, nfields, lacc, f3din1, f3din2, f3din3, &
                                  f3din4, f3din5, f4din, f3din_arr, opt_varname)
 
    INTEGER, INTENT(IN)             :: typ
    TYPE(t_patch), INTENT(IN), TARGET :: p_patch
    INTEGER,     INTENT(IN)         :: nfields
+   LOGICAL, INTENT(IN) :: lacc ! If compiled with OpenACC: IF lacc is True, use GPU memory
 
    REAL(sp), TARGET, INTENT(INOUT) :: f3din1(:,:,:)
    REAL(sp), TARGET, OPTIONAL, INTENT(INOUT) :: f3din2(:,:,:), f3din3(:,:,:), &
@@ -471,13 +559,13 @@ SUBROUTINE sync_patch_array_mult_sp(typ, p_patch, nfields, f3din1, f3din2, f3din
    ! If this is a verification run, check consistency before doing boundary exchange
    IF (p_test_run .AND. do_sync_checks) THEN
      DO i = 1, nfields
-       CALL check_patch_array_sp(typ, p_patch, fld(i)%p, opt_varname)
+       CALL check_patch_array_sp(typ, p_patch, fld(i)%p, lacc=lacc, opt_varname=opt_varname)
      ENDDO
    ENDIF
 
    ! Boundary exchange for work PEs
    IF(my_process_is_mpi_parallel()) THEN
-     CALL p_pat%exchange_data_mult_mixprec(lacc=i_am_accel_node, nfields_dp=0, ndim2tot_dp=0, nfields_sp=nfields, ndim2tot_sp=ndim2tot, &
+     CALL p_pat%exchange_data_mult_mixprec(lacc=lacc, nfields_dp=0, ndim2tot_dp=0, nfields_sp=nfields, ndim2tot_sp=ndim2tot, &
           recv_sp=fld)
    ENDIF
 
@@ -488,12 +576,13 @@ SUBROUTINE sync_patch_array_mult_sp(typ, p_patch, nfields, f3din1, f3din2, f3din
 !! Does boundary exchange for up to 5 3D cell-based fields and/or a 4D field,
 !! which can either be single precision or double precision
 !!
-SUBROUTINE sync_patch_array_mult_mp(typ, p_patch, nfields, nfields_sp, f3din1, f3din2, f3din3, &
+SUBROUTINE sync_patch_array_mult_mp(typ, p_patch, nfields, nfields_sp, lacc, f3din1, f3din2, f3din3, &
   f3din4, f3din5, f3din1_sp, f3din2_sp, f3din3_sp, f3din4_sp, f3din5_sp, f4din, f4din_sp, opt_varname)
 
    INTEGER, INTENT(IN)               :: typ
    TYPE(t_patch), INTENT(IN), TARGET :: p_patch
    INTEGER,     INTENT(IN)           :: nfields, nfields_sp
+   LOGICAL, INTENT(IN) :: lacc ! If compiled with OpenACC: IF lacc is True, use GPU memory
 
    REAL(dp), OPTIONAL, INTENT(INOUT) ::  f3din1(:,:,:), f3din2(:,:,:), f3din3(:,:,:), &
       &                                  f3din4(:,:,:), f3din5(:,:,:), f4din(:,:,:,:)
@@ -524,24 +613,24 @@ SUBROUTINE sync_patch_array_mult_mp(typ, p_patch, nfields, nfields_sp, f3din1, f
    IF (p_test_run .AND. do_sync_checks) THEN
      IF (PRESENT(f4din)) THEN
        DO i = 1, SIZE(f4din,4)
-         CALL check_patch_array_3(typ, p_patch, f4din(:,:,:,i), opt_varname)
+         CALL check_patch_array_3(typ, p_patch, f4din(:,:,:,i), lacc=lacc, opt_varname=opt_varname)
        ENDDO
      ENDIF
      IF (PRESENT(f4din_sp)) THEN
        DO i = 1, SIZE(f4din_sp,4)
-         CALL check_patch_array_sp(typ, p_patch, f4din_sp(:,:,:,i), opt_varname)
+         CALL check_patch_array_sp(typ, p_patch, f4din_sp(:,:,:,i), lacc=lacc, opt_varname=opt_varname)
        ENDDO
      ENDIF
-     IF (PRESENT(f3din1)) CALL check_patch_array_3(typ, p_patch, f3din1, opt_varname)
-     IF (PRESENT(f3din2)) CALL check_patch_array_3(typ, p_patch, f3din2, opt_varname)
-     IF (PRESENT(f3din3)) CALL check_patch_array_3(typ, p_patch, f3din3, opt_varname)
-     IF (PRESENT(f3din4)) CALL check_patch_array_3(typ, p_patch, f3din4, opt_varname)
-     IF (PRESENT(f3din5)) CALL check_patch_array_3(typ, p_patch, f3din5, opt_varname)
-     IF (PRESENT(f3din1_sp)) CALL check_patch_array_sp(typ, p_patch, f3din1_sp, opt_varname)
-     IF (PRESENT(f3din2_sp)) CALL check_patch_array_sp(typ, p_patch, f3din2_sp, opt_varname)
-     IF (PRESENT(f3din3_sp)) CALL check_patch_array_sp(typ, p_patch, f3din3_sp, opt_varname)
-     IF (PRESENT(f3din4_sp)) CALL check_patch_array_sp(typ, p_patch, f3din4_sp, opt_varname)
-     IF (PRESENT(f3din5_sp)) CALL check_patch_array_sp(typ, p_patch, f3din5_sp, opt_varname)
+     IF (PRESENT(f3din1)) CALL check_patch_array_3(typ, p_patch, f3din1, lacc=lacc, opt_varname=opt_varname)
+     IF (PRESENT(f3din2)) CALL check_patch_array_3(typ, p_patch, f3din2, lacc=lacc, opt_varname=opt_varname)
+     IF (PRESENT(f3din3)) CALL check_patch_array_3(typ, p_patch, f3din3, lacc=lacc, opt_varname=opt_varname)
+     IF (PRESENT(f3din4)) CALL check_patch_array_3(typ, p_patch, f3din4, lacc=lacc, opt_varname=opt_varname)
+     IF (PRESENT(f3din5)) CALL check_patch_array_3(typ, p_patch, f3din5, lacc=lacc, opt_varname=opt_varname)
+     IF (PRESENT(f3din1_sp)) CALL check_patch_array_sp(typ, p_patch, f3din1_sp, lacc=lacc, opt_varname=opt_varname)
+     IF (PRESENT(f3din2_sp)) CALL check_patch_array_sp(typ, p_patch, f3din2_sp, lacc=lacc, opt_varname=opt_varname)
+     IF (PRESENT(f3din3_sp)) CALL check_patch_array_sp(typ, p_patch, f3din3_sp, lacc=lacc, opt_varname=opt_varname)
+     IF (PRESENT(f3din4_sp)) CALL check_patch_array_sp(typ, p_patch, f3din4_sp, lacc=lacc, opt_varname=opt_varname)
+     IF (PRESENT(f3din5_sp)) CALL check_patch_array_sp(typ, p_patch, f3din5_sp, lacc=lacc, opt_varname=opt_varname)
    ENDIF
 
    ! Boundary exchange for work PEs
@@ -568,7 +657,7 @@ SUBROUTINE sync_patch_array_mult_mp(typ, p_patch, nfields, nfields_sp, f3din1, f
      IF (PRESENT(f3din4_sp)) ndim2tot_sp = ndim2tot_sp+SIZE(f3din4_sp,2)
      IF (PRESENT(f3din5_sp)) ndim2tot_sp = ndim2tot_sp+SIZE(f3din5_sp,2)
 
-     CALL exchange_data_mult_mixprec(p_pat=p_pat, lacc=i_am_accel_node,                                    &
+     CALL exchange_data_mult_mixprec(p_pat=p_pat, lacc=lacc,                                    &
        nfields_dp=nfields, ndim2tot_dp=ndim2tot, nfields_sp=nfields_sp, ndim2tot_sp=ndim2tot_sp,           &
        recv1_dp=f3din1,    recv2_dp=f3din2,    recv3_dp=f3din3,    recv4_dp=f3din4,    recv5_dp=f3din5,    &
        recv1_sp=f3din1_sp, recv2_sp=f3din2_sp, recv3_sp=f3din3_sp, recv4_sp=f3din4_sp, recv5_sp=f3din5_sp, &
@@ -581,13 +670,14 @@ END SUBROUTINE sync_patch_array_mult_mp
 !! Does boundary exchange for a 4D field for which the extra dimension
 !! is on the third index.
 !!
-SUBROUTINE sync_patch_array_4de1(typ, p_patch, nfields, f4din, opt_varname)
+SUBROUTINE sync_patch_array_4de1(typ, p_patch, nfields, f4din, lacc, opt_varname)
 
    INTEGER, INTENT(IN)             :: typ
    TYPE(t_patch), INTENT(IN), TARGET :: p_patch
    INTEGER,     INTENT(IN)         :: nfields
 
    REAL(wp), INTENT(INOUT) :: f4din(:,:,:,:)
+   LOGICAL, INTENT(IN) :: lacc ! If compiled with OpenACC: IF lacc is True, use GPU memory
 
    CLASS(t_comm_pattern), POINTER :: p_pat
    CHARACTER(len=*), TARGET, INTENT(IN), OPTIONAL :: opt_varname
@@ -602,7 +692,7 @@ SUBROUTINE sync_patch_array_4de1(typ, p_patch, nfields, f4din, opt_varname)
 #if !defined( __PGI ) || !defined( _OPENACC )
 ! The silly PGI OpenACC compiler does not know f4din(i,:,:,:) is present on the device
      DO i = 1, nfields
-       CALL check_patch_array_3(typ, p_patch, f4din(i,:,:,:), opt_varname)
+       CALL check_patch_array_3(typ, p_patch, f4din(i,:,:,:), lacc=lacc, opt_varname=opt_varname)
      ENDDO
 #endif
    ENDIF
@@ -612,7 +702,7 @@ SUBROUTINE sync_patch_array_4de1(typ, p_patch, nfields, f4din, opt_varname)
      IF (nfields/=UBOUND(f4din,1)) &
        CALL finish('sync_patch_array_4de1','inconsistent arguments')
      ndim2tot = nfields*SIZE(f4din,3)
-     CALL exchange_data_4de1(p_pat, i_am_accel_node, nfields, ndim2tot, recv=f4din)
+     CALL exchange_data_4de1(p_pat, lacc, nfields, ndim2tot, recv=f4din)
    ENDIF
 
 END SUBROUTINE sync_patch_array_4de1
@@ -624,20 +714,21 @@ END SUBROUTINE sync_patch_array_4de1
 !
 
 !! Wrapper routine for checking single precision arrays
-SUBROUTINE check_patch_array_sp(typ, p_patch, arr, opt_varname)
+SUBROUTINE check_patch_array_sp(typ, p_patch, arr, lacc, opt_varname)
 
    INTEGER, INTENT(IN)     :: typ
    TYPE(t_patch), INTENT(IN), TARGET :: p_patch
+   LOGICAL, INTENT(IN) :: lacc ! If compiled with OpenACC: IF lacc is True, use GPU memory
    CHARACTER(*), INTENT(IN), OPTIONAL :: opt_varname
 
    REAL(sp), INTENT(IN) :: arr(:,:,:)
    REAL(wp) :: arr_wp(SIZE(arr,1),SIZE(arr,2),SIZE(arr,3))
 
-   !$ACC DATA CREATE(arr_wp) IF(i_am_accel_node)
-   !$ACC KERNELS ASYNC(1) IF(i_am_accel_node)
+   !$ACC DATA CREATE(arr_wp) IF(lacc)
+   !$ACC KERNELS ASYNC(1) IF(lacc)
    arr_wp(:,:,:) = REAL(arr(:,:,:),wp)
    !$ACC END KERNELS
-   CALL check_patch_array_3(typ, p_patch, arr_wp, opt_varname)
+   CALL check_patch_array_3(typ, p_patch, arr_wp, lacc=lacc, opt_varname=opt_varname)
    !$ACC WAIT(1)
    !$ACC END DATA
 
@@ -649,15 +740,15 @@ END SUBROUTINE check_patch_array_sp
 !! the verification PE.
 !! For a non-verification run it just does nothing.
 !!
-SUBROUTINE check_patch_array_3(typ, p_patch, arr, opt_varname)
+SUBROUTINE check_patch_array_3(typ, p_patch, arr, lacc, opt_varname)
 
 !
 
    INTEGER, INTENT(IN)     :: typ
    TYPE(t_patch), INTENT(IN), TARGET :: p_patch
-   CHARACTER(*), INTENT(IN), OPTIONAL :: opt_varname
-
    REAL(wp), INTENT(IN) :: arr(:,:,:)
+   LOGICAL, INTENT(IN) :: lacc ! If compiled with OpenACC: IF lacc is True, use GPU memory
+   CHARACTER(*), INTENT(IN), OPTIONAL :: opt_varname
 
    REAL(wp), ALLOCATABLE:: arr_g(:,:,:)
    INTEGER :: j, jb, jl, jb_g, jl_g, n, ndim2, ndim3, nblks_g, flag, jk
@@ -701,8 +792,8 @@ SUBROUTINE check_patch_array_3(typ, p_patch, arr, opt_varname)
    ndim2 = UBOUND(arr,2)
    ndim3 = UBOUND(arr,3)
 
-   !$ACC DATA PRESENT(arr) IF(i_am_accel_node)
-   !$ACC UPDATE HOST(arr) ASYNC(1) IF(i_am_accel_node)
+   !$ACC DATA PRESENT(arr) IF(lacc)
+   !$ACC UPDATE HOST(arr) ASYNC(1) IF(lacc)
 
    IF(typ == SYNC_C .OR. typ == SYNC_C1) THEN
       ndim   = p_patch%n_patch_cells
@@ -927,13 +1018,14 @@ END SUBROUTINE check_patch_array_3
 
 !! 2-D Interface to check_patch_array.
 !!
-SUBROUTINE check_patch_array_2(typ, p_patch, arr, opt_varname)
+SUBROUTINE check_patch_array_2(typ, p_patch, arr, lacc, opt_varname)
 
 !
 
    INTEGER, INTENT(IN)     :: typ
    TYPE(t_patch), INTENT(IN) :: p_patch
    REAL(wp), TARGET, INTENT(IN)    :: arr(:,:)
+   LOGICAL, INTENT(IN) :: lacc ! If compiled with OpenACC: IF lacc is True, use GPU memory
    CHARACTER(*), INTENT(IN), OPTIONAL :: opt_varname
 
    REAL(wp), POINTER :: arr3(:,:,:)
@@ -942,7 +1034,7 @@ SUBROUTINE check_patch_array_2(typ, p_patch, arr, opt_varname)
    IF(.NOT. p_test_run) RETURN ! This routine is only effective in a verification run
    CALL insert_dimension(arr3, arr, 2)
 
-   CALL check_patch_array_3(typ, p_patch, arr3, opt_varname)
+   CALL check_patch_array_3(typ, p_patch, arr3, lacc=lacc, opt_varname=opt_varname)
 
 END SUBROUTINE check_patch_array_2
 !-------------------------------------------------------------------------
@@ -951,13 +1043,14 @@ END SUBROUTINE check_patch_array_2
 
 !! 4-D Interface to check_patch_array.
 !!
-SUBROUTINE check_patch_array_4(typ, p_patch, arr, opt_varname)
+SUBROUTINE check_patch_array_4(typ, p_patch, arr, lacc, opt_varname)
 
 !
 
    INTEGER, INTENT(IN)     :: typ
    TYPE(t_patch), INTENT(IN), TARGET :: p_patch
    REAL(wp), INTENT(INOUT) :: arr(:,:,:,:)
+   LOGICAL, INTENT(IN) :: lacc ! If compiled with OpenACC: IF lacc is True, use GPU memory
    CHARACTER(len=*), INTENT(IN), OPTIONAL :: opt_varname
 
    CHARACTER(len=256) :: new_var
@@ -969,9 +1062,9 @@ SUBROUTINE check_patch_array_4(typ, p_patch, arr, opt_varname)
    DO jt=1,UBOUND(arr,4)
       IF(PRESENT(opt_varname)) THEN
          WRITE(new_var,'(a,''['',i2,'']'')') opt_varname, jt
-         CALL check_patch_array_3(typ, p_patch, arr(:,:,:,jt),TRIM(new_var))
+         CALL check_patch_array_3(typ, p_patch, arr(:,:,:,jt), lacc=lacc, opt_varname=TRIM(new_var))
       ELSE
-         CALL check_patch_array_3(typ, p_patch, arr(:,:,:,jt))
+         CALL check_patch_array_3(typ, p_patch, arr(:,:,:,jt), lacc=lacc)
       ENDIF
    ENDDO
 
@@ -980,11 +1073,12 @@ END SUBROUTINE check_patch_array_4
 !-------------------------------------------------------------------------
 !! Syncs an idx/blk pair of arrays
 
-SUBROUTINE sync_idx(type_arr, type_idx, p_patch, idx, blk, opt_remap, opt_varname )
+SUBROUTINE sync_idx(type_arr, type_idx, p_patch, idx, blk, lacc, opt_remap, opt_varname )
 
   INTEGER, INTENT(IN) :: type_arr, type_idx
   TYPE(t_patch), TARGET, INTENT(IN) :: p_patch
   INTEGER, INTENT(INOUT) :: idx(:,:), blk(:,:)
+  LOGICAL, INTENT(IN) :: lacc ! If compiled with OpenACC: IF lacc is True, use GPU memory
   LOGICAL, INTENT(IN), OPTIONAL :: opt_remap
   CHARACTER(len=*), TARGET, INTENT(IN), OPTIONAL :: opt_varname
 
@@ -1041,9 +1135,9 @@ SUBROUTINE sync_idx(type_arr, type_idx, p_patch, idx, blk, opt_remap, opt_varnam
 
   ! Set z_idx with the global 1D-index of all points
 
-  !$ACC DATA COPYIN(z_idx) IF(i_am_accel_node)
+  !$ACC DATA COPYIN(z_idx) IF(lacc)
 
-  !$ACC PARALLEL ASYNC(1) IF(i_am_accel_node)
+  !$ACC PARALLEL ASYNC(1) IF(lacc)
   !$ACC LOOP GANG VECTOR COLLAPSE(2)
   DO jb = 1, nblks
     DO jl = 1, nproma
@@ -1062,10 +1156,10 @@ SUBROUTINE sync_idx(type_arr, type_idx, p_patch, idx, blk, opt_remap, opt_varnam
   !$ACC WAIT(1)
 
   ! Sync z_idx
-  CALL sync_patch_array(type_arr, p_patch, z_idx, opt_varname)
+  CALL sync_patch_array(type_arr, p_patch, z_idx, lacc=lacc, opt_varname=opt_varname)
 
   ! Set all points with local index corresponding to z_idx
-  !$ACC PARALLEL ASYNC(1) IF(i_am_accel_node)
+  !$ACC PARALLEL ASYNC(1) IF(lacc)
   !$ACC LOOP GANG VECTOR COLLAPSE(2)
   DO jb = 1, nblks
     DO jl = 1, nproma
@@ -2669,10 +2763,11 @@ END SUBROUTINE decomposition_statistics
 !> Does boundary exchange for 3D cell-based fields, collecting as many
 !  fields as possible before actually performing the sync.
 !
-SUBROUTINE cumulative_sync_patch_array(typ, p_patch, f3d)
+SUBROUTINE cumulative_sync_patch_array(typ, p_patch, f3d, lacc)
   INTEGER,       INTENT(IN)            :: typ
   TYPE(t_patch), INTENT(IN),    TARGET :: p_patch
   REAL(wp),      INTENT(INOUT), TARGET :: f3d(:,:,:)
+  LOGICAL, INTENT(IN) :: lacc ! If compiled with OpenACC: IF lacc is True, use GPU memory
   ! local variables
   CHARACTER(*), PARAMETER :: routine = modname//"::cumulative_sync_patch_array"
   INTEGER :: idx
@@ -2685,7 +2780,7 @@ SUBROUTINE cumulative_sync_patch_array(typ, p_patch, f3d)
   cumul_sync(typ, p_patch%id,idx)%p_patch => p_patch
   IF (idx == MAX_CUMULATIVE_SYNC) THEN
 !CDIR NOIEXPAND
-    CALL complete_cumulative_sync(typ, p_patch%id)
+    CALL complete_cumulative_sync(lacc, typ, p_patch%id)
   END IF
 END SUBROUTINE cumulative_sync_patch_array
 
@@ -2693,7 +2788,8 @@ END SUBROUTINE cumulative_sync_patch_array
 !-------------------------------------------------------------------------
 !> If there are any pending "cumulative sync" operations: Complete them!
 !
-RECURSIVE SUBROUTINE complete_cumulative_sync(opt_typ, opt_patch_id)
+RECURSIVE SUBROUTINE complete_cumulative_sync(lacc, opt_typ, opt_patch_id)
+  LOGICAL, INTENT(IN) :: lacc ! If compiled with OpenACC: IF lacc is True, use GPU memory
   INTEGER, OPTIONAL, INTENT(IN) :: opt_typ
   INTEGER, OPTIONAL, INTENT(IN) :: opt_patch_id
   ! local variables
@@ -2706,14 +2802,14 @@ RECURSIVE SUBROUTINE complete_cumulative_sync(opt_typ, opt_patch_id)
   IF (.NOT. PRESENT(opt_typ)) THEN
     DO i=1,4
 !CDIR NOIEXPAND
-      CALL complete_cumulative_sync(i, opt_patch_id)
+      CALL complete_cumulative_sync(lacc, i, opt_patch_id)
     END DO
     RETURN
   END IF
   IF (.NOT. PRESENT(opt_patch_id)) THEN
     DO i=1,max_dom
 !CDIR NOIEXPAND
-      CALL complete_cumulative_sync(opt_typ,i)
+      CALL complete_cumulative_sync(lacc, opt_typ,i)
     END DO
     RETURN
   END IF
@@ -2724,21 +2820,21 @@ RECURSIVE SUBROUTINE complete_cumulative_sync(opt_typ, opt_patch_id)
     CASE (0)
       RETURN
     CASE (1)
-      CALL sync_patch_array_mult(opt_typ, p_patch, 1, cumul_sync(opt_typ,opt_patch_id,1)%f3d)
+      CALL sync_patch_array_mult(opt_typ, p_patch, 1, lacc=lacc, f3din1=cumul_sync(opt_typ,opt_patch_id,1)%f3d)
     CASE (2)
-      CALL sync_patch_array_mult(opt_typ, p_patch, 2, cumul_sync(opt_typ,opt_patch_id, 1)%f3d, &
-        &                        cumul_sync(opt_typ,opt_patch_id,2)%f3d)
+      CALL sync_patch_array_mult(opt_typ, p_patch, 2, lacc=lacc, f3din1=cumul_sync(opt_typ,opt_patch_id, 1)%f3d, &
+        &                        f3din2=cumul_sync(opt_typ,opt_patch_id,2)%f3d)
     CASE (3)
-      CALL sync_patch_array_mult(opt_typ, p_patch, 3, cumul_sync(opt_typ,opt_patch_id,1)%f3d,  &
-        &                        cumul_sync(opt_typ,opt_patch_id,2)%f3d, cumul_sync(opt_typ,opt_patch_id,3)%f3d)
+      CALL sync_patch_array_mult(opt_typ, p_patch, 3, lacc=lacc, f3din1=cumul_sync(opt_typ,opt_patch_id,1)%f3d,  &
+        &                        f3din2=cumul_sync(opt_typ,opt_patch_id,2)%f3d, f3din3=cumul_sync(opt_typ,opt_patch_id,3)%f3d)
     CASE (4)
-      CALL sync_patch_array_mult(opt_typ, p_patch, 4, cumul_sync(opt_typ,opt_patch_id,1)%f3d,  &
-        &                        cumul_sync(opt_typ,opt_patch_id,2)%f3d, cumul_sync(opt_typ,opt_patch_id,3)%f3d, &
-        &                        cumul_sync(opt_typ,opt_patch_id,4)%f3d)
+      CALL sync_patch_array_mult(opt_typ, p_patch, 4, lacc=lacc, f3din1=cumul_sync(opt_typ,opt_patch_id,1)%f3d,  &
+        &                        f3din2=cumul_sync(opt_typ,opt_patch_id,2)%f3d, f3din3=cumul_sync(opt_typ,opt_patch_id,3)%f3d, &
+        &                        f3din4=cumul_sync(opt_typ,opt_patch_id,4)%f3d)
     CASE (5)
-      CALL sync_patch_array_mult(opt_typ, p_patch, 5, cumul_sync(opt_typ,opt_patch_id,1)%f3d,  &
-        &                        cumul_sync(opt_typ,opt_patch_id,2)%f3d, cumul_sync(opt_typ,opt_patch_id,3)%f3d, &
-        &                        cumul_sync(opt_typ,opt_patch_id,4)%f3d, cumul_sync(opt_typ,opt_patch_id,5)%f3d)
+      CALL sync_patch_array_mult(opt_typ, p_patch, 5, lacc=lacc, f3din1=cumul_sync(opt_typ,opt_patch_id,1)%f3d,  &
+        &                        f3din2=cumul_sync(opt_typ,opt_patch_id,2)%f3d, f3din3=cumul_sync(opt_typ,opt_patch_id,3)%f3d, &
+        &                        f3din4=cumul_sync(opt_typ,opt_patch_id,4)%f3d, f3din5=cumul_sync(opt_typ,opt_patch_id,5)%f3d)
     CASE DEFAULT
       CALL finish(routine, "Internal error!")
     END SELECT

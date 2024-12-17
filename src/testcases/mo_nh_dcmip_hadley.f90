@@ -289,9 +289,9 @@ CONTAINS
     !$ACC WAIT
 
     ! syncs
-    CALL sync_patch_array(SYNC_E, p_patch, z_me)
-    CALL sync_patch_array(SYNC_E, p_patch, z_ife)
-    CALL sync_patch_array(SYNC_E, p_patch, z_rho_e)
+    CALL sync_patch_array(SYNC_E, p_patch, z_me, lacc=lzacc)
+    CALL sync_patch_array(SYNC_E, p_patch, z_ife, lacc=lzacc)
+    CALL sync_patch_array(SYNC_E, p_patch, z_rho_e, lacc=lzacc)
 
 
     ! density at surface

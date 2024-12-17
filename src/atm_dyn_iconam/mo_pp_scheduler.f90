@@ -1396,7 +1396,7 @@ CONTAINS
 
         ! perform horizontal interpolation:
       CASE ( TASK_INTP_HOR_LONLAT )
-        CALL pp_task_lonlat(ptr_task)
+        CALL pp_task_lonlat(ptr_task, lacc=.TRUE.)
 
         ! perform vertical interpolation:
       CASE ( TASK_INTP_VER_PLEV, TASK_INTP_VER_ZLEV, TASK_INTP_VER_ILEV )
@@ -1404,7 +1404,7 @@ CONTAINS
 
         ! synchronize halo regions:
       CASE ( TASK_INTP_SYNC )
-        CALL pp_task_sync(simulation_status)
+        CALL pp_task_sync(simulation_status,lacc=.TRUE.)
 
         ! compute mean sea level pressure:
       CASE ( TASK_INTP_MSL )
@@ -1418,12 +1418,12 @@ CONTAINS
         &    TASK_COMPUTE_WSHEAR_V, TASK_COMPUTE_SRH, TASK_COMPUTE_LAPSERATE, TASK_COMPUTE_VIS,    &
         &    TASK_COMPUTE_INVERSION, TASK_COMPUTE_MCONV)
         IF (timers_level >= 5) CALL timer_start(timer_opt_diag_atmo)
-        CALL pp_task_compute_field(ptr_task)
+        CALL pp_task_compute_field(ptr_task, lacc=.TRUE.)
         IF (timers_level >= 5) CALL timer_stop(timer_opt_diag_atmo)
 
         ! vector reconstruction on cell centers:
       CASE ( TASK_INTP_EDGE2CELL )
-        CALL pp_task_edge2cell(ptr_task)
+        CALL pp_task_edge2cell(ptr_task, lacc=.TRUE.)
 
       CASE DEFAULT
         CALL finish(routine, "Unknown post-processing job.")

@@ -29,8 +29,6 @@ MODULE mo_icon_interpolation_scalar
   USE mo_run_config,          ONLY: timers_level
   USE mo_loopindices,         ONLY: get_indices_c, get_indices_e, get_indices_v
   USE mo_timer,               ONLY: timer_start, timer_stop, timer_intp
-  USE mo_fortran_tools,       ONLY: set_acc_host_or_device, assert_lacc_equals_i_am_accel_node
-  USE mo_mpi,                 ONLY: i_am_accel_node
   USE mo_lib_interpolation_scalar, ONLY: verts2edges_scalar_lib, cells2edges_scalar_lib, &
                                          edges2verts_scalar_lib, edges2cells_scalar_lib, &
                                          cells2verts_scalar_lib, cells2verts_scalar_ri_lib, &
@@ -72,8 +70,8 @@ CONTAINS
 !!
 !! The coefficients are given by c_int.
 !!
-SUBROUTINE verts2edges_scalar( p_vertex_in, ptr_patch, c_int, p_edge_out, &
-  &                            opt_slev, opt_elev, opt_rlstart, opt_rlend )
+SUBROUTINE verts2edges_scalar( p_vertex_in, ptr_patch, c_int, p_edge_out, lacc, &
+  &                            opt_slev, opt_elev, opt_rlstart, opt_rlend       )
 !
 
 TYPE(t_patch), TARGET, INTENT(in) :: ptr_patch
@@ -82,6 +80,8 @@ TYPE(t_patch), TARGET, INTENT(in) :: ptr_patch
 REAL(wp), INTENT(in) ::  p_vertex_in(:,:,:)  ! dim: (nproma,nlev,nblks_v)
 ! interpolation field
 REAL(wp), INTENT(in) ::  c_int(:,:,:)        ! dim: (nproma,2,nblks_e)
+
+LOGICAL, INTENT(in)  ::  lacc  ! if true, use openACC
 
 INTEGER, INTENT(in), OPTIONAL ::  opt_slev   ! optional vertical start level
 
@@ -133,7 +133,7 @@ IF (timers_level > 10) CALL timer_start(timer_intp)
 
 CALL verts2edges_scalar_lib( p_vertex_in, ptr_patch%edges%vertex_idx,  ptr_patch%edges%vertex_blk, &
   &                      c_int, p_edge_out, i_startblk, i_endblk, i_startidx_in, i_endidx_in, &
-  &                      slev, elev, nproma, lacc=i_am_accel_node )
+  &                      slev, elev, nproma, lacc=lacc )
 
 IF (timers_level > 10) CALL timer_stop(timer_intp)
 
@@ -146,9 +146,8 @@ END SUBROUTINE verts2edges_scalar
 !!  Computes  average of scalar fields from centers of triangular faces to
 !!  velocity points.
 !!
-SUBROUTINE cells2edges_scalar( p_cell_in, ptr_patch, c_int, p_edge_out,                    &
-  &                            opt_slev, opt_elev, opt_rlstart, opt_rlend, opt_fill_latbc, &
-  &                            lacc)
+SUBROUTINE cells2edges_scalar( p_cell_in, ptr_patch, c_int, p_edge_out, lacc,             &
+  &                            opt_slev, opt_elev, opt_rlstart, opt_rlend, opt_fill_latbc )
 !
 
 TYPE(t_patch), TARGET, INTENT(in) :: ptr_patch
@@ -159,6 +158,8 @@ REAL(wp), INTENT(in) :: p_cell_in(:,:,:)   ! dim: (nproma,nlev,nblks_c)
 ! coefficients for linear interpolation
 REAL(wp), INTENT(in) :: c_int(:,:,:)       ! dim: (nproma,2,nblks_e)
 
+LOGICAL, INTENT(in) :: lacc  ! if true, use openACC
+
 INTEGER, INTENT(in), OPTIONAL :: opt_slev  ! optional vertical start level
 
 INTEGER, INTENT(in), OPTIONAL :: opt_elev  ! optional vertical end level
@@ -167,7 +168,6 @@ INTEGER, INTENT(in), OPTIONAL :: opt_elev  ! optional vertical end level
 INTEGER, INTENT(in), OPTIONAL :: opt_rlstart, opt_rlend
 
 LOGICAL, INTENT(in), OPTIONAL :: opt_fill_latbc  ! if true, fill lateral nest boundaries
-LOGICAL, INTENT(in), OPTIONAL :: lacc  ! if true, use openACC
 
 ! edge based scalar output field
 REAL(wp), INTENT(inout) :: p_edge_out(:,:,:) ! dim: (nproma,nlev,nblks_e)
@@ -180,7 +180,7 @@ INTEGER, DIMENSION(2) :: i_startidx_in                ! start index
 INTEGER, DIMENSION(2) :: i_endidx_in                  ! end index
 
 INTEGER :: rl_start, rl_end
-LOGICAL :: lfill_latbc, lzacc
+LOGICAL :: lfill_latbc
 
 !-----------------------------------------------------------------------
 
@@ -217,9 +217,6 @@ ELSE
   lfill_latbc = .FALSE.
 END IF
 
-CALL set_acc_host_or_device(lzacc, lacc)
-CALL assert_lacc_equals_i_am_accel_node('mo_interpolation:cells2edges_scalar', lzacc, i_am_accel_node)
-
 i_startblk_in(1) = ptr_patch%edges%start_block(1)
 i_endblk_in(1)   = ptr_patch%edges%end_block(1)
 
@@ -236,7 +233,7 @@ IF (timers_level > 10) CALL timer_start(timer_intp)
 
 CALL cells2edges_scalar_lib( p_cell_in, ptr_patch%edges%cell_idx, ptr_patch%edges%cell_blk, c_int, p_edge_out, & 
   &                          i_startblk_in, i_endblk_in, i_startidx_in, i_endidx_in, & 
-  &                          slev, elev, nproma, ptr_patch%id, l_limited_area, lfill_latbc, lzacc)
+  &                          slev, elev, nproma, ptr_patch%id, l_limited_area, lfill_latbc, lacc)
 
 IF (timers_level > 10) CALL timer_stop(timer_intp)
 
@@ -248,7 +245,7 @@ END SUBROUTINE cells2edges_scalar
 !!  Computes average of scalar fields from velocity points to
 !!  centers of dual faces.
 !!
-SUBROUTINE edges2verts_scalar( p_edge_in, ptr_patch, v_int, p_vert_out,  &
+SUBROUTINE edges2verts_scalar( p_edge_in, ptr_patch, v_int, p_vert_out, lacc, &
   &                            opt_slev, opt_elev, opt_rlstart, opt_rlend )
 !
 
@@ -259,6 +256,8 @@ REAL(wp), INTENT(in) ::  p_edge_in(:,:,:)  ! dim: (nproma,nlev,nblks_e)
 
 ! coefficients for (area weighted) interpolation
 REAL(wp), INTENT(in) ::  v_int(:,:,:)      ! dim: (nproma,cell_type,nblks_v)
+
+LOGICAL, INTENT(in)  ::  lacc  ! if true, use openACC
 
 INTEGER, INTENT(in), OPTIONAL ::  opt_slev ! optional vertical start level
 
@@ -311,7 +310,7 @@ IF (timers_level > 10) CALL timer_start(timer_intp)
 
 CALL edges2verts_scalar_lib( p_edge_in, ptr_patch%verts%edge_idx, ptr_patch%verts%edge_blk, v_int, p_vert_out, & 
    &                         i_startblk, i_endblk, i_startidx_in, i_endidx_in, &
-   &                         slev, elev, nproma, lacc=i_am_accel_node )
+   &                         slev, elev, nproma, lacc=lacc )
 
 IF (timers_level > 10) CALL timer_stop(timer_intp)
 
@@ -323,7 +322,7 @@ END SUBROUTINE edges2verts_scalar
 !!  Computes interpolation of scalar fields from velocity points to
 !!  cell centers via given interpolation weights
 !!
-SUBROUTINE edges2cells_scalar_dp(p_edge_in, ptr_patch, c_int, p_cell_out,  &
+SUBROUTINE edges2cells_scalar_dp(p_edge_in, ptr_patch, c_int, p_cell_out, lacc,  &
   &                              opt_slev, opt_elev, opt_rlstart, opt_rlend)
 !
 
@@ -334,6 +333,8 @@ REAL(dp), INTENT(in) ::  p_edge_in(:,:,:)  ! dim: (nproma,nlev,nblks_e)
 
 ! coefficients for (area weighted) interpolation
 REAL(wp), INTENT(in) ::  c_int(:,:,:)      ! dim: (nproma,cell_type,nblks_c)
+
+LOGICAL, INTENT(in)  ::  lacc  ! if true, use openACC
 
 INTEGER, INTENT(in), OPTIONAL ::  opt_slev ! optional vertical start level
 
@@ -386,7 +387,7 @@ IF (timers_level > 10) CALL timer_start(timer_intp)
 
 CALL edges2cells_scalar_lib(p_edge_in, ptr_patch%cells%edge_idx, ptr_patch%cells%edge_blk, c_int, p_cell_out, &
   &                         i_startblk, i_endblk, i_startidx_in, i_endidx_in, &
-  &                         slev, elev, nproma, lacc=i_am_accel_node )
+  &                         slev, elev, nproma, lacc=lacc )
 
 IF (timers_level > 10) CALL timer_stop(timer_intp)
 
@@ -399,7 +400,7 @@ END SUBROUTINE edges2cells_scalar_dp
 !!  Computes interpolation of scalar fields from velocity points to
 !!  cell centers via given interpolation weights
 !!
-SUBROUTINE edges2cells_scalar_sp( p_edge_in, ptr_patch, c_int, p_cell_out,  &
+SUBROUTINE edges2cells_scalar_sp( p_edge_in, ptr_patch, c_int, p_cell_out, lacc, &
   &                            opt_slev, opt_elev, opt_rlstart, opt_rlend )
 !
 
@@ -410,6 +411,8 @@ REAL(sp), INTENT(in) ::  p_edge_in(:,:,:)  ! dim: (nproma,nlev,nblks_e)
 
 ! coefficients for (area weighted) interpolation
 REAL(wp), INTENT(in) ::  c_int(:,:,:)      ! dim: (nproma,cell_type,nblks_c)
+
+LOGICAL, INTENT(in)  ::  lacc  ! if true, use openACC
 
 INTEGER, INTENT(in), OPTIONAL ::  opt_slev ! optional vertical start level
 
@@ -462,7 +465,7 @@ IF (timers_level > 10) CALL timer_start(timer_intp)
 
 CALL edges2cells_scalar_lib(p_edge_in, ptr_patch%cells%edge_idx, ptr_patch%cells%edge_blk, c_int, p_cell_out, &
   &                         i_startblk, i_endblk, i_startidx_in, i_endidx_in,  &
-  &                         slev, elev, nproma, lacc=i_am_accel_node )
+  &                         slev, elev, nproma, lacc=lacc )
 
 IF (timers_level > 10) CALL timer_stop(timer_intp)
 
@@ -472,7 +475,7 @@ END SUBROUTINE edges2cells_scalar_sp
 !------------------------------------------------------------------------
 !!  Computes  average of scalar fields from centers of cells to vertices.
 !!
-SUBROUTINE cells2verts_scalar_dp( p_cell_in, ptr_patch, c_int, p_vert_out,    &
+SUBROUTINE cells2verts_scalar_dp( p_cell_in, ptr_patch, c_int, p_vert_out, lacc,   &
   &                               opt_slev, opt_elev, opt_rlstart, opt_rlend, &
   &                               opt_acc_async )
 !
@@ -484,6 +487,8 @@ REAL(dp), INTENT(in) :: p_cell_in(:,:,:)   ! dim: (nproma,nlev,nblks_c)
 
 ! coefficients for interpolation
 REAL(wp), INTENT(in) :: c_int(:,:,:)       ! dim: (nproma,9-cell_type,nblks_v)
+
+LOGICAL, INTENT(in)  ::  lacc  ! if true, use openACC
 
 INTEGER, INTENT(in), OPTIONAL :: opt_slev  ! optional vertical start level
 
@@ -537,7 +542,7 @@ IF (timers_level > 10) CALL timer_start(timer_intp)
 
 CALL cells2verts_scalar_lib( p_cell_in, ptr_patch%verts%cell_idx, ptr_patch%verts%cell_blk, c_int, p_vert_out,&
   &                          i_startblk, i_endblk, i_startidx_in, i_endidx_in, &
-  &                          slev, elev, nproma, lacc=i_am_accel_node, acc_async=opt_acc_async )
+  &                          slev, elev, nproma, lacc=lacc, acc_async=opt_acc_async )
 
 IF (timers_level > 10) CALL timer_stop(timer_intp)
 
@@ -548,7 +553,7 @@ END SUBROUTINE cells2verts_scalar_dp
 !------------------------------------------------------------------------
 !! Computes  average of scalar fields from centers of cells to vertices.
 !!
-SUBROUTINE cells2verts_scalar_sp( p_cell_in, ptr_patch, c_int, p_vert_out,    &
+SUBROUTINE cells2verts_scalar_sp( p_cell_in, ptr_patch, c_int, p_vert_out, lacc,   &
   &                               opt_slev, opt_elev, opt_rlstart, opt_rlend, &
   &                               opt_acc_async )
 !
@@ -560,6 +565,8 @@ REAL(sp), INTENT(in) :: p_cell_in(:,:,:)   ! dim: (nproma,nlev,nblks_c)
 
 ! coefficients for interpolation
 REAL(wp), INTENT(in) :: c_int(:,:,:)       ! dim: (nproma,9-cell_type,nblks_v)
+
+LOGICAL, INTENT(in)  ::  lacc  ! if true, use openACC
 
 INTEGER, INTENT(in), OPTIONAL :: opt_slev  ! optional vertical start level
 
@@ -613,7 +620,7 @@ IF (timers_level > 10) CALL timer_start(timer_intp)
 
 CALL cells2verts_scalar_lib( p_cell_in, ptr_patch%verts%cell_idx, ptr_patch%verts%cell_blk, c_int, p_vert_out, &
   &                          i_startblk, i_endblk, i_startidx_in, i_endidx_in, &
-  &                          slev, elev, nproma, lacc=i_am_accel_node, acc_async=opt_acc_async )
+  &                          slev, elev, nproma, lacc=lacc, acc_async=opt_acc_async )
 
 IF (timers_level > 10) CALL timer_stop(timer_intp)
 
@@ -623,7 +630,7 @@ END SUBROUTINE cells2verts_scalar_sp
 !------------------------------------------------------------------------
 !! Computes  average of scalar fields from centers of cells to vertices.
 !!
-  SUBROUTINE cells2verts_scalar_sp2dp(p_cell_in, ptr_patch, c_int, p_vert_out, &
+  SUBROUTINE cells2verts_scalar_sp2dp(p_cell_in, ptr_patch, c_int, p_vert_out, lacc, &
     &                                 opt_slev, opt_elev, opt_rlstart, &
     &                                 opt_rlend, opt_acc_async)
     !
@@ -634,6 +641,8 @@ END SUBROUTINE cells2verts_scalar_sp
 
     ! coefficients for interpolation
     REAL(wp), INTENT(in) :: c_int(:,:,:)       ! dim: (nproma,9-cell_type,nblks_v)
+
+    LOGICAL, INTENT(in)  ::  lacc  ! if true, use openACC
 
     INTEGER, INTENT(in), OPTIONAL :: opt_slev  ! optional vertical start level
 
@@ -688,7 +697,7 @@ END SUBROUTINE cells2verts_scalar_sp
     CALL cells2verts_scalar_lib( p_cell_in, ptr_patch%verts%cell_idx, ptr_patch%verts%cell_blk, &
       &                          c_int, p_vert_out, &
       &                          i_startblk, i_endblk, i_startidx_in, i_endidx_in, &
-      &                          slev, elev, nproma, lacc=i_am_accel_node, acc_async=opt_acc_async )
+      &                          slev, elev, nproma, lacc=lacc, acc_async=opt_acc_async )
 
     IF (timers_level > 10) CALL timer_stop(timer_intp)
 
@@ -700,7 +709,7 @@ END SUBROUTINE cells2verts_scalar_sp
 !!  assumes reversed index order of the output field in loop exchange mode
 !!
 !!
-SUBROUTINE cells2verts_scalar_ri( p_cell_in, ptr_patch, c_int, p_vert_out,    &
+SUBROUTINE cells2verts_scalar_ri( p_cell_in, ptr_patch, c_int, p_vert_out, lacc,   &
   &                               opt_slev, opt_elev, opt_rlstart, opt_rlend, &
   &                               opt_acc_async )
 !
@@ -712,6 +721,8 @@ REAL(wp), INTENT(in) :: p_cell_in(:,:,:)   ! dim: (nproma,nlev,nblks_c)
 
 ! coefficients for interpolation
 REAL(wp), INTENT(in) :: c_int(:,:,:)       ! dim: (nproma,9-cell_type,nblks_v)
+
+LOGICAL, INTENT(in)  ::  lacc  ! if true, use openACC
 
 INTEGER, INTENT(in), OPTIONAL :: opt_slev  ! optional vertical start level
 
@@ -766,7 +777,7 @@ IF (timers_level > 10) CALL timer_start(timer_intp)
 CALL cells2verts_scalar_ri_lib( p_cell_in, ptr_patch%verts%cell_idx, ptr_patch%verts%cell_blk, &
   &                               c_int, p_vert_out, &
   &                               i_startblk, i_endblk, i_startidx_in, i_endidx_in, &
-  &                               slev, elev, nproma, lacc=i_am_accel_node, acc_async=opt_acc_async )
+  &                               slev, elev, nproma, lacc=lacc, acc_async=opt_acc_async )
 
 IF (timers_level > 10) CALL timer_stop(timer_intp)
 
@@ -777,7 +788,7 @@ END SUBROUTINE cells2verts_scalar_ri
 !! Computes  average of scalar fields from vertices to centers of cells.
 !!
 SUBROUTINE verts2cells_scalar( p_vert_in, ptr_patch, c_int, p_cell_out,  &
-  &                            opt_slev, opt_elev )
+  &                            lacc, opt_slev, opt_elev )
 !
 
 TYPE(t_patch), TARGET, INTENT(in) :: ptr_patch
@@ -787,6 +798,8 @@ REAL(wp), INTENT(in) :: p_vert_in(:,:,:)   ! dim: (nproma,nlev,nblks_v)
 
 ! coefficients for interpolation
 REAL(wp), INTENT(in) :: c_int(:,:,:)       ! dim: (nproma,cell_type,nblks_c)
+
+LOGICAL, INTENT(in)  ::  lacc  ! if true, use openACC
 
 INTEGER, INTENT(in), OPTIONAL :: opt_slev  ! optional vertical start level
 
@@ -820,7 +833,7 @@ IF (timers_level > 10) CALL timer_start(timer_intp)
 
 CALL verts2cells_scalar_lib( p_vert_in, ptr_patch%cells%vertex_idx, ptr_patch%cells%vertex_blk, &
   &                          c_int, p_cell_out, nblks_c, npromz_c, &
-  &                          slev, elev, nproma, lacc=i_am_accel_node )
+  &                          slev, elev, nproma, lacc=lacc )
 
 IF (timers_level > 10) CALL timer_stop(timer_intp)
 
@@ -836,9 +849,8 @@ END SUBROUTINE verts2cells_scalar
 !! input:  lives on centers of triangles
 !! output: lives on centers of triangles
 !!
-SUBROUTINE cell_avg( psi_c, ptr_patch, avg_coeff, avg_psi_c,     &
-  &                  opt_slev, opt_elev, opt_rlstart, opt_rlend, &
-  &                  lacc )
+SUBROUTINE cell_avg( psi_c, ptr_patch, avg_coeff, avg_psi_c, lacc, &
+  &                  opt_slev, opt_elev, opt_rlstart, opt_rlend    )
 !
 !
 !  patch on which computation is performed
@@ -855,6 +867,9 @@ REAL(wp), INTENT(in) :: avg_coeff(:,:,:) ! dim: (nproma,nlev,nblks_c)
 REAL(wp), INTENT(in) ::  &
   &  psi_c(:,:,:) ! dim: (nproma,nlev,nblks_c)
 
+LOGICAL, INTENT(IN) :: & 
+  &  lacc    ! if true, use OpenACC
+
 INTEGER, INTENT(in), OPTIONAL ::  &
   &  opt_slev    ! optional vertical start level
 
@@ -863,9 +878,6 @@ INTEGER, INTENT(in), OPTIONAL ::  &
 
 INTEGER, INTENT(in), OPTIONAL ::  &
   &  opt_rlstart, opt_rlend   ! start and end values of refin_ctrl flag
-
-LOGICAL, INTENT(IN), OPTIONAL :: & 
-  &  lacc    ! if true, use OpenACC
 
 !
 !   cell based variable after averaging
@@ -878,7 +890,6 @@ REAL(wp), INTENT(inout) ::  &
 INTEGER :: slev, elev     ! vertical start and end level
 INTEGER :: rl_start, rl_end
 INTEGER :: i_startblk, i_endblk, i_startidx_in, i_endidx_in
-LOGICAL :: lzacc ! non-optional version of lacc
 
 !-----------------------------------------------------------------------
 
@@ -909,8 +920,6 @@ ELSE
   rl_end = min_rlcell
 END IF
 
-CALL set_acc_host_or_device(lzacc, lacc)
-
 ! values for the blocking
 i_startblk = ptr_patch%cells%start_block(rl_start)
 i_endblk   = ptr_patch%cells%end_block(rl_end)
@@ -925,7 +934,7 @@ IF (timers_level > 10) CALL timer_start(timer_intp)
 
 CALL cell_avg_lib( psi_c, ptr_patch%cells%neighbor_idx, ptr_patch%cells%neighbor_blk, avg_coeff, avg_psi_c, &
   &                i_startblk, i_endblk, i_startidx_in, i_endidx_in, &
-  &                slev, elev, nproma, lacc=lzacc )
+  &                slev, elev, nproma, lacc=lacc )
 
   IF (timers_level > 10) CALL timer_stop(timer_intp)
 

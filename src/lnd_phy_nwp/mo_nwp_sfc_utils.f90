@@ -1981,9 +1981,9 @@ CONTAINS
         !$ACC END PARALLEL
 
         CALL generate_index_list(cond_ice, idx_ice, 1, i_count_sea, ext_data%atm%list_seaice%ncount(jb), &
-          1, opt_acc_copy_to_host=.FALSE., opt_use_acc=lzacc)
+          lacc=lzacc, opt_acc_async_queue=1, opt_acc_copy_to_host=.FALSE.)
         CALL generate_index_list(cond_water, idx_water, 1, i_count_sea, ext_data%atm%list_seawtr%ncount(jb), &
-          1, opt_acc_copy_to_host=.FALSE., opt_use_acc=lzacc)
+          lacc=lzacc, opt_acc_async_queue=1, opt_acc_copy_to_host=.FALSE.)
         !$ACC WAIT
         !$ACC UPDATE HOST(ext_data%atm%list_seaice%ncount(jb:jb), ext_data%atm%list_seawtr%ncount(jb:jb)) IF(lzacc)
         ncount_ice = ext_data%atm%list_seaice%ncount(jb)
@@ -2306,11 +2306,11 @@ CONTAINS
     ENDDO
     !$ACC END PARALLEL
 
-    CALL generate_index_list(cond1, idx_lst_snow, 1, lp_count, gp_count_snow, &
-      opt_acc_async_queue=acc_async_queue, opt_acc_copy_to_host=.FALSE., opt_use_acc=lzacc)
+    CALL generate_index_list(cond1, idx_lst_snow, 1, lp_count, gp_count_snow, lacc=lzacc, &
+      opt_acc_async_queue=acc_async_queue, opt_acc_copy_to_host=.FALSE.)
 
-    CALL generate_index_list(cond2, idx_lst,      1, lp_count, gp_count, &
-      opt_acc_async_queue=acc_async_queue, opt_acc_copy_to_host=.FALSE., opt_use_acc=lzacc)
+    CALL generate_index_list(cond2, idx_lst,      1, lp_count, gp_count, lacc=lzacc, &
+      opt_acc_async_queue=acc_async_queue, opt_acc_copy_to_host=.FALSE.)
 
     !$ACC PARALLEL LOOP GANG VECTOR ASYNC(acc_async_queue) IF(lzacc)
     DO ic = 1,gp_count_snow

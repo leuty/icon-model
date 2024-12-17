@@ -265,7 +265,7 @@ CONTAINS
 !ICON_OMP_END_DO
 
 !ICON_OMP_MASTER
-    CALL sync_patch_array_mult(sync_c1, patch_2d, 2, z_tracer_max, z_tracer_min)
+    CALL sync_patch_array_mult(sync_c1, patch_2d, 2, lacc=lzacc, f3din1=z_tracer_max, f3din2=z_tracer_min)
 !ICON_OMP_END_MASTER
 !ICON_OMP_BARRIER
     ! 4. Limit the antidiffusive fluxes z_mflx_anti, such that the updated tracer
@@ -358,7 +358,7 @@ CONTAINS
 
 !ICON_OMP_MASTER
     ! Synchronize r_m and r_p
-    CALL sync_patch_array_mult(sync_c1, patch_2d, 2, r_m, r_p)
+    CALL sync_patch_array_mult(sync_c1, patch_2d, 2, lacc=lzacc, f3din1=r_m, f3din2=r_p)
 !ICON_OMP_END_MASTER
 !ICON_OMP_BARRIER
 
@@ -594,7 +594,7 @@ CONTAINS
 !ICON_OMP_END_DO
 
 !ICON_OMP_MASTER
-    CALL sync_patch_array_mult(sync_c1, patch_2d, 2, z_tracer_max, z_tracer_min)
+    CALL sync_patch_array_mult(sync_c1, patch_2d, 2, lacc=lzacc, f3din1=z_tracer_max, f3din2=z_tracer_min)
 !ICON_OMP_END_MASTER
 !ICON_OMP_BARRIER
     ! 4. Limit the antidiffusive fluxes z_mflx_anti, such that the updated tracer
@@ -672,7 +672,7 @@ CONTAINS
 
 !ICON_OMP_MASTER
     ! Synchronize r_m and r_p
-    CALL sync_patch_array_mult(sync_c1, patch_2d, 2, r_m, r_p)
+    CALL sync_patch_array_mult(sync_c1, patch_2d, 2, lacc=lzacc, f3din1=r_m, f3din2=r_p)
 !ICON_OMP_END_MASTER
 !ICON_OMP_BARRIER
 
@@ -1382,7 +1382,7 @@ CONTAINS
 
     ENDIF!IF ( l_with_vert_tracer_diffusion )
 
-    CALL sync_patch_array(sync_c, patch_2D, new_tracer_concentration)
+    CALL sync_patch_array(sync_c, patch_2D, new_tracer_concentration, lacc=lzacc)
     !$ACC END DATA
   END SUBROUTINE advect_individual_tracers_zstar
 

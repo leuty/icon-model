@@ -24,9 +24,9 @@ MODULE mo_output_coupling
   USE mo_exception           ,ONLY: message, finish
   USE mo_parallel_config     ,ONLY: nproma
   USE mo_zaxis_type          ,ONLY: zaxisTypeList
+  USE mo_fortran_tools       ,ONLY: set_acc_host_or_device
 
 #ifdef _OPENACC
-  USE mo_mpi                 ,ONLY: i_am_accel_node
   USE openacc
 #endif
 
@@ -304,7 +304,7 @@ CONTAINS
   !>
   !! SUBROUTINE output_coupling -- Exchange fields between
   !! atmosphere and output components.
-  SUBROUTINE output_coupling (valid_mask)
+  SUBROUTINE output_coupling (lacc, valid_mask)
 
     USE, INTRINSIC :: ieee_arithmetic
     USE mo_impl_constants      ,ONLY: TLEV_NNOW, TLEV_NNEW, TLEV_NNOW_RCF, TLEV_NNEW_RCF
@@ -314,6 +314,7 @@ CONTAINS
       &                               yac_fupdate, YAC_ACTION_NONE, yac_dble_ptr
 #endif
 
+    LOGICAL, INTENT(IN) :: lacc
     REAL(wp), OPTIONAL :: valid_mask(:,:,:)
 
 #ifndef YAC_coupling
@@ -327,6 +328,9 @@ CONTAINS
    TYPE(t_exposed_var), POINTER        :: cur_field
    TYPE(t_var_ptr)                     :: var_now
    TYPE(yac_dble_ptr), ALLOCATABLE     :: buffer_ptr(:, :)
+   LOGICAL :: lzacc
+
+   CALL set_acc_host_or_device(lzacc, lacc)
 
     IF (ltimer) CALL timer_start(timer_coupling_output)
     timer_put = timer_coupling_output_1stput
@@ -365,7 +369,7 @@ CONTAINS
        IF (msg_level >= 15) &
           CALL message(str_module, " sending field " // TRIM(var_now%p%info%name))
 
-!$ACC UPDATE HOST(var_now%p%r_ptr) IF(i_am_accel_node .AND. acc_is_present(var_now%p%r_ptr))
+!$ACC UPDATE HOST(var_now%p%r_ptr) IF(lzacc .AND. acc_is_present(var_now%p%r_ptr))
        var_ref_pos = MERGE(var_now%p%info%var_ref_pos, 4, var_now%p%info%lcontained)
        ncontained = MERGE(var_now%p%info%ncontained, 1, var_now%p%info%lcontained)
        var_size = cur_field%var_size

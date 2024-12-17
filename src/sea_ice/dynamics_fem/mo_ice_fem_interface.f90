@@ -386,7 +386,7 @@ CONTAINS
 #endif
     CALL map_cell2edges_3D(p_patch_3D, p_tau_n_c, tau_n ,p_op_coeff, 1, lacc=lzacc)
 
-    CALL sync_patch_array(SYNC_E, p_patch, tau_n)
+    CALL sync_patch_array(SYNC_E, p_patch, tau_n, lacc=lzacc)
 
     !**************************************************************
     ! (3) Interpolate 3D wind stress from edges to vertices
@@ -398,9 +398,9 @@ CONTAINS
 #endif
     CALL map_edges2verts(p_patch, tau_n, p_op_coeff%edge2vert_coeff_cc, p_tau_n_dual, lacc=lzacc)
 
-    CALL sync_patch_array(SYNC_V, p_patch, p_tau_n_dual%x(1))
-    CALL sync_patch_array(SYNC_V, p_patch, p_tau_n_dual%x(2))
-    CALL sync_patch_array(SYNC_V, p_patch, p_tau_n_dual%x(3))
+    CALL sync_patch_array(SYNC_V, p_patch, p_tau_n_dual%x(1), lacc=lzacc)
+    CALL sync_patch_array(SYNC_V, p_patch, p_tau_n_dual%x(2), lacc=lzacc)
+    CALL sync_patch_array(SYNC_V, p_patch, p_tau_n_dual%x(3), lacc=lzacc)
 
     !**************************************************************
     ! (4) Rotate the vectors onto the rotated grid
@@ -486,7 +486,7 @@ CONTAINS
     !**************************************************************
     CALL map_verts2edges(p_patch, p_vn_dual, p_op_coeff%edge2vert_coeff_cc_t, p_ice%vn_e, lacc=lzacc)
 
-    CALL sync_patch_array(SYNC_E, p_patch, p_ice%vn_e)
+    CALL sync_patch_array(SYNC_E, p_patch, p_ice%vn_e, lacc=lzacc)
 
     !**************************************************************
     ! (3) ... and cells for drag calculation and output
@@ -514,8 +514,8 @@ CONTAINS
     END DO
     CALL cvec2gvec_c_2d(p_patch_3D, p_vn_c_2D, p_ice%u, p_ice%v, lacc=lzacc)
 
-    CALL sync_patch_array(SYNC_C, p_patch, p_ice%u)
-    CALL sync_patch_array(SYNC_C, p_patch, p_ice%v)
+    CALL sync_patch_array(SYNC_C, p_patch, p_ice%u, lacc=lzacc)
+    CALL sync_patch_array(SYNC_C, p_patch, p_ice%v, lacc=lzacc)
 
     !$ACC END DATA
 
@@ -561,7 +561,7 @@ CONTAINS
 
     CALL cells2verts_scalar_seaice( tmp, p_patch, c2v_wgt, buffy_array, lacc=lzacc )
 
-    CALL sync_patch_array(SYNC_V, p_patch, buffy_array )
+    CALL sync_patch_array(SYNC_V, p_patch, buffy_array, lacc=lzacc)
 
     !$ACC PARALLEL LOOP GANG VECTOR COLLAPSE(3) DEFAULT(PRESENT) IF(lzacc)
     DO k=1,p_patch%nblks_v
@@ -576,7 +576,7 @@ CONTAINS
 
     CALL cells2verts_scalar_seaice( p_ice%conc, p_patch, c2v_wgt, buffy_array, lacc=lzacc )
 
-    CALL sync_patch_array(SYNC_V, p_patch, buffy_array )
+    CALL sync_patch_array(SYNC_V, p_patch, buffy_array, lacc=lzacc)
 
     !$ACC PARALLEL LOOP GANG VECTOR COLLAPSE(3) DEFAULT(PRESENT) IF(lzacc)
     DO k=1,p_patch%nblks_v
@@ -595,7 +595,7 @@ CONTAINS
 
     CALL cells2verts_scalar_seaice( tmp, p_patch, c2v_wgt, buffy_array, lacc=lzacc )
 
-    CALL sync_patch_array(SYNC_V, p_patch, buffy_array )
+    CALL sync_patch_array(SYNC_V, p_patch, buffy_array, lacc=lzacc)
 
     !$ACC PARALLEL LOOP GANG VECTOR COLLAPSE(3) DEFAULT(PRESENT) IF(lzacc)
     DO k=1,p_patch%nblks_v
@@ -618,7 +618,7 @@ CONTAINS
     !$ACC END PARALLEL LOOP
 
     CALL cells2verts_scalar_seaice( tmp, p_patch, c2v_wgt, buffy_array, lacc=lzacc )
-    CALL sync_patch_array(SYNC_V, p_patch, buffy_array )
+    CALL sync_patch_array(SYNC_V, p_patch, buffy_array, lacc=lzacc)
 
     !$ACC PARALLEL LOOP GANG VECTOR COLLAPSE(3) DEFAULT(PRESENT) IF(lzacc)
     DO k=1,p_patch%nblks_v
@@ -685,13 +685,13 @@ CONTAINS
     !**************************************************************
     ! (2) Interpolate FEM ice variables to cells
     !**************************************************************
-    CALL verts2cells_scalar ( m_ice_buff, p_patch, v2c_wgt, p_ice%vol ) ! multiplied by cell-area below
-    CALL verts2cells_scalar ( m_snow_buff, p_patch, v2c_wgt,p_ice%vols) ! multiplied by cell-area below
-    CALL verts2cells_scalar ( a_ice_buff, p_patch, v2c_wgt, p_ice%conc )
+    CALL verts2cells_scalar ( m_ice_buff, p_patch, v2c_wgt, p_ice%vol, lacc=.FALSE.) ! multiplied by cell-area below
+    CALL verts2cells_scalar ( m_snow_buff, p_patch, v2c_wgt,p_ice%vols, lacc=.FALSE.) ! multiplied by cell-area below
+    CALL verts2cells_scalar ( a_ice_buff, p_patch, v2c_wgt, p_ice%conc, lacc=.FALSE. )
 
-    CALL sync_patch_array   ( SYNC_C, p_patch, p_ice%vol )
-    CALL sync_patch_array   ( SYNC_C, p_patch, p_ice%vols )
-    CALL sync_patch_array   ( SYNC_C, p_patch, p_ice%conc )
+    CALL sync_patch_array   ( SYNC_C, p_patch, p_ice%vol, lacc=.FALSE. )
+    CALL sync_patch_array   ( SYNC_C, p_patch, p_ice%vols, lacc=.FALSE. )
+    CALL sync_patch_array   ( SYNC_C, p_patch, p_ice%conc, lacc=.FALSE. )
 
     !**************************************************************
     ! (3) Calculate ICON ice-variables

@@ -320,20 +320,20 @@ CONTAINS
     pnt_3D_cells_4(:,:,:) = 0.0_wp
 
     timer_3D_cells_1  = new_timer  (timer_descr//"_3dcells_1")
-    CALL test_oldsync_3D(SYNC_C, var1=pnt_3D_cells_1, &
+    CALL test_oldsync_3D(SYNC_C, var1=pnt_3D_cells_1, & ! internal subroutine, uses lacc=.FALSE.
       & timer_id=timer_3D_cells_1)
 
     timer_3D_cells_2  = new_timer  (timer_descr//"_3dcells_2")
-    CALL test_oldsync_3D(SYNC_C, var1=pnt_3D_cells_1,var2=pnt_3D_cells_2, &
+    CALL test_oldsync_3D(SYNC_C, var1=pnt_3D_cells_1,var2=pnt_3D_cells_2, & ! internal subroutine, uses lacc=.FALSE.
       & timer_id=timer_3D_cells_2)
 
     timer_3D_cells_3  = new_timer  (timer_descr//"_3dcells_3")
-    CALL test_oldsync_3D(SYNC_C, var1=pnt_3D_cells_1,var2=pnt_3D_cells_2, &
+    CALL test_oldsync_3D(SYNC_C, var1=pnt_3D_cells_1,var2=pnt_3D_cells_2, & ! internal subroutine, uses lacc=.FALSE.
       & var3=pnt_3D_cells_3, &
       & timer_id=timer_3D_cells_3)
 
     timer_3D_cells_4  = new_timer  (timer_descr//"_3dcells_4")
-    CALL test_oldsync_3D(SYNC_C, var1=pnt_3D_cells_1,var2=pnt_3D_cells_2, &
+    CALL test_oldsync_3D(SYNC_C, var1=pnt_3D_cells_1,var2=pnt_3D_cells_2, & ! internal subroutine, uses lacc=.FALSE.
       & var3=pnt_3D_cells_3,var4=pnt_3D_cells_4, &
       & timer_id=timer_3D_cells_4)
 
@@ -355,7 +355,7 @@ CONTAINS
       END DO
       write (str_i, '(I4)') i
       timer_4DE1_cells = new_timer(timer_descr//"_4de1cells_"//ADJUSTL(TRIM(str_i)))
-      CALL test_oldsync_4DE1(SYNC_C, var=pnt_4D_cells, nfields=i, &
+      CALL test_oldsync_4DE1(SYNC_C, var=pnt_4D_cells, nfields=i, & ! has lacc=.FALSE.
         &                    timer_id=timer_4DE1_cells)
       DEALLOCATE(pnt_4D_cells)
     END DO
@@ -385,24 +385,24 @@ CONTAINS
 !     pnt_3D_edges_4(:,:,:) = 0.0_wp
 
     timer_3D_edges_1  = new_timer  (timer_descr//"_3dedges_1")
-    CALL test_oldsync_3D(SYNC_E, var1=pnt_3D_edges_2, &
+    CALL test_oldsync_3D(SYNC_E, var1=pnt_3D_edges_2, & ! internal subroutine uses lacc=.FALSE.
       & timer_id=timer_3D_edges_1)
 
 !    timer_3D_edges_1  = new_timer  (timer_descr//"_3dedges_1")
-!    CALL test_oldsync_3D(SYNC_E, var1=pnt_3D_edges_1, &
+!    CALL test_oldsync_3D(SYNC_E, var1=pnt_3D_edges_1, & ! internal subroutine uses lacc=.FALSE.
 !      & timer_id=timer_3D_edges_1)
 
 !    timer_3D_edges_2  = new_timer  (timer_descr//"_3dedges_2")
-!    CALL test_oldsync_3D(SYNC_E, var1=pnt_3D_edges_1,var2=pnt_3D_edges_2, &
+!    CALL test_oldsync_3D(SYNC_E, var1=pnt_3D_edges_1,var2=pnt_3D_edges_2, & ! internal subroutine uses lacc=.FALSE.
 !      & timer_id=timer_3D_edges_2)
 
 !    timer_3D_edges_3  = new_timer  (timer_descr//"_3dedges_3")
-!    CALL test_oldsync_3D(SYNC_E, var1=pnt_3D_edges_1,var2=pnt_3D_edges_2, &
+!    CALL test_oldsync_3D(SYNC_E, var1=pnt_3D_edges_1,var2=pnt_3D_edges_2, & ! internal subroutine uses lacc=.FALSE.
 !      & var3=pnt_3D_edges_3, &
 !      & timer_id=timer_3D_edges_3)
 
 !     timer_3D_edges_4  = new_timer  (timer_descr//"_3dedges_4")
-!     CALL test_oldsync_3D(SYNC_E, var1=pnt_3D_edges_1,var2=pnt_3D_edges_2, &
+!     CALL test_oldsync_3D(SYNC_E, var1=pnt_3D_edges_1,var2=pnt_3D_edges_2, & ! internal subroutine uses lacc=.FALSE.
 !       & var3=pnt_3D_edges_3,var4=pnt_3D_edges_4, &
 !       & timer_id=timer_3D_edges_4)
 
@@ -683,7 +683,7 @@ CONTAINS
     IF (.NOT. PRESENT(var2)) THEN
       DO i=1,testbed_iterations
         CALL timer_start(timer_id)
-        CALL sync_patch_array( comm_pattern, p_patch(n_dom_start), var1 )
+        CALL sync_patch_array( comm_pattern, p_patch(n_dom_start), var1, lacc=.FALSE. )
         CALL timer_stop(timer_id)
       ENDDO
       RETURN
@@ -692,20 +692,20 @@ CONTAINS
     IF (PRESENT(var4)) THEN
       DO i=1,testbed_iterations
         CALL timer_start(timer_id)
-        CALL sync_patch_array_mult(comm_pattern, p_patch(n_dom_start), 4, var1, var2, var3, var4)
+        CALL sync_patch_array_mult(comm_pattern, p_patch(n_dom_start), 4, lacc=.FALSE., f3din1=var1, f3din2=var2, f3din3=var3, f3din4=var4)
         CALL timer_stop(timer_id)
       ENDDO
 
    ELSEIF (PRESENT(var3)) THEN
       DO i=1,testbed_iterations
         CALL timer_start(timer_id)
-        CALL sync_patch_array_mult(comm_pattern, p_patch(n_dom_start), 3, var1, var2, var3)
+        CALL sync_patch_array_mult(comm_pattern, p_patch(n_dom_start), 3, lacc=.FALSE., f3din1=var1, f3din2=var2, f3din3=var3)
         CALL timer_stop(timer_id)
       ENDDO
    ELSE
       DO i=1,testbed_iterations
         CALL timer_start(timer_id)
-        CALL sync_patch_array_mult(comm_pattern, p_patch(n_dom_start), 2, var1, var2)
+        CALL sync_patch_array_mult(comm_pattern, p_patch(n_dom_start), 2, lacc=.FALSE., f3din1=var1, f3din2=var2)
         CALL timer_stop(timer_id)
       ENDDO
    ENDIF
@@ -726,7 +726,7 @@ CONTAINS
     CALL work_mpi_barrier()
     DO i=1,testbed_iterations
       CALL timer_start(timer_id)
-      CALL sync_patch_array_4de1(comm_pattern, p_patch(n_dom_start), nfields, var)
+      CALL sync_patch_array_4de1(comm_pattern, p_patch(n_dom_start), nfields, var, lacc=.FALSE.)
       CALL timer_stop(timer_id)
     ENDDO
 
@@ -744,8 +744,8 @@ CONTAINS
 
     CALL timer_start(timer)
     DO i=1,testbed_iterations
-      CALL sync_patch_array( comm_pattern, p_patch(n_dom_start), var )
-      CALL do_calculations()
+      CALL sync_patch_array( comm_pattern, p_patch(n_dom_start), var, lacc=.FALSE. )
+      CALL do_calculations(lacc=.FALSE.)
     ENDDO
     CALL timer_stop(timer)
   END SUBROUTINE test_sync_2D
@@ -760,9 +760,9 @@ CONTAINS
 
     CALL timer_start(timer)
     DO i=1,testbed_iterations
-      CALL sync_patch_array(SYNC_C , p_patch(n_dom_start), cell_var )
-      CALL sync_patch_array(SYNC_E , p_patch(n_dom_start), edge_var )
-      CALL sync_patch_array(SYNC_V , p_patch(n_dom_start), vert_var )
+      CALL sync_patch_array(SYNC_C , p_patch(n_dom_start), cell_var, lacc=.FALSE. )
+      CALL sync_patch_array(SYNC_E , p_patch(n_dom_start), edge_var, lacc=.FALSE. )
+      CALL sync_patch_array(SYNC_V , p_patch(n_dom_start), vert_var, lacc=.FALSE. )
     ENDDO
     CALL timer_stop(timer)
   END SUBROUTINE test_sync_2D_all
@@ -777,8 +777,8 @@ CONTAINS
 
     CALL timer_start(timer)
     DO i=1,testbed_iterations
-      CALL sync_patch_array( comm_pattern, p_patch(n_dom_start), var )
-      CALL do_calculations()
+      CALL sync_patch_array( comm_pattern, p_patch(n_dom_start), var, lacc=.FALSE. )
+      CALL do_calculations(lacc=.FALSE.)
     ENDDO
     CALL timer_stop(timer)
   END SUBROUTINE test_sync_3D
@@ -793,25 +793,27 @@ CONTAINS
 
     CALL timer_start(timer)
     DO i=1,testbed_iterations
-      CALL sync_patch_array(SYNC_C , p_patch(n_dom_start), cell_var )
-      CALL do_calculations()
-      CALL sync_patch_array(SYNC_E , p_patch(n_dom_start), edge_var )
-      CALL do_calculations()
-      CALL sync_patch_array(SYNC_V , p_patch(n_dom_start), vert_var )
-      CALL do_calculations()
+      CALL sync_patch_array(SYNC_C , p_patch(n_dom_start), cell_var, lacc=.FALSE. )
+      CALL do_calculations(lacc=.FALSE.)
+      CALL sync_patch_array(SYNC_E , p_patch(n_dom_start), edge_var, lacc=.FALSE. )
+      CALL do_calculations(lacc=.FALSE.)
+      CALL sync_patch_array(SYNC_V , p_patch(n_dom_start), vert_var, lacc=.FALSE. )
+      CALL do_calculations(lacc=.FALSE.)
     ENDDO
     CALL timer_stop(timer)
   END SUBROUTINE test_sync_3D_all
   !-------------------------------------------------------------------------
 
   !-------------------------------------------------------------------------
-  SUBROUTINE do_calculations()
+  SUBROUTINE do_calculations(lacc)
 
+    LOGICAL, INTENT(IN) :: lacc ! if TRUE, use OpenACC
     INTEGER :: i
 
     DO i=1,calculate_iterations
       CALL grad_fd_norm (p_nh_state(n_dom_start)%prog(1)%theta_v(:,:,:), &
-        & p_patch(n_dom_start), p_nh_state(n_dom_start)%prog(1)%vn(:,:,:))
+        & p_patch(n_dom_start), p_nh_state(n_dom_start)%prog(1)%vn(:,:,:), &
+        lacc=lacc)
     ENDDO
 
   END SUBROUTINE do_calculations

@@ -38,9 +38,6 @@ USE mo_parallel_config,     ONLY: nproma
 USE mo_loopindices,         ONLY: get_indices_c, get_indices_e, get_indices_v
 
 USE mo_grf_intp_data_strc,  ONLY: t_gridref_single_state
-#ifdef _OPENACC
-  USE mo_mpi,               ONLY: i_am_accel_node
-#endif
 
 IMPLICIT NONE
 
@@ -313,15 +310,13 @@ ENDDO
 
 END SUBROUTINE interpol_vec_nudging
 
-
-
 ! Factored out to avoid some OpenMP bug in Intel16, might still improve
 ! performance due to better locality and less pointers.
 ! The problem is that loop boundaries (i_startidx,i_endidx) are not private
 ! despite their declaration.
-SUBROUTINE interpol_scal_nudging_core(ptr_pp, jb, i_startblk, i_endblk, all_enabled, elev, &
-  ptr_coeff, ptr_dist, p_in_fld, h_aux, iidx, iblk, l_enabled, js, &
-  r_ovsht_fac, ovsht_fac)
+SUBROUTINE interpol_scal_nudging_core(ptr_pp, jb, i_startblk, i_endblk, all_enabled, elev,             &
+                                      ptr_coeff, ptr_dist, p_in_fld, h_aux, iidx, iblk, l_enabled, js, &
+                                      r_ovsht_fac, ovsht_fac, lacc)
 
   TYPE(t_patch), INTENT(in   ) :: ptr_pp
   INTEGER,       INTENT(in   ) :: jb,js,i_startblk, i_endblk, elev
@@ -330,6 +325,7 @@ SUBROUTINE interpol_scal_nudging_core(ptr_pp, jb, i_startblk, i_endblk, all_enab
   LOGICAL,       INTENT(in   ) :: all_enabled, l_enabled(:)
   REAL(wp),      INTENT(in   ) :: ptr_coeff(:,:,:,:), ptr_dist(:,:,:,:)
   REAL(wp),      INTENT(in   ) :: p_in_fld(:,:,:), r_ovsht_fac, ovsht_fac
+  LOGICAL,       INTENT(in   ) :: lacc ! if true, use OpenACC
 
   INTEGER :: i_startidx
   INTEGER :: i_endidx
@@ -348,7 +344,7 @@ SUBROUTINE interpol_scal_nudging_core(ptr_pp, jb, i_startblk, i_endblk, all_enab
        i_startidx, i_endidx, grf_nudgintp_start_c, min_rlcell_int)
   !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1) CREATE(grad_x, grad_y, maxval_neighb) &
   !$ACC   CREATE(minval_neighb) PRESENT(h_aux, ptr_dist, l_enabled, ptr_coeff) &
-  !$ACC   PRESENT(p_in_fld, iblk, iidx) IF(i_am_accel_node)
+  !$ACC   PRESENT(p_in_fld, iblk, iidx) IF(lacc)
   IF (all_enabled) THEN ! Use vectorizable form with loop reordering
 #ifdef __LOOP_EXCHANGE
     DO jc = i_startidx, i_endidx
@@ -535,7 +531,7 @@ END SUBROUTINE interpol_scal_nudging_core
 !! Parent-to-child interpolation of scalar fields needed for boundary nudging
 !! Interpolation methods are as in interpol_scal_grf
 SUBROUTINE interpol_scal_nudging (ptr_pp, ptr_int, ptr_grf, nshift,              &
-                                  nfields, istart_blk, f3din1, f3dout1, f3din2,  &
+                                  nfields, istart_blk, lacc, f3din1, f3dout1, f3din2,  &
                                   f3dout2, f3din3, f3dout3, f3din4, f3dout4,     &
                                   f3din5, f3dout5, f4din, f4dout,                &
                                   llimit_nneg, rlimval, overshoot_fac,           &
@@ -556,6 +552,8 @@ INTEGER, INTENT(IN) :: nshift
 ! number of fields provided on input (needed for aux fields and pointer allocation)
 ! nfields is a typically small number (1, 3, 4, or ntracer)
 INTEGER, INTENT(IN) :: nfields
+
+LOGICAL, INTENT(IN) :: lacc ! if .TRUE. use OpenACC
 
 ! input scalar fields at cell points (up to five 3D fields or one 4D field)
 REAL(wp), INTENT(IN), OPTIONAL, TARGET ::  & ! dim: (nproma,nlev,nblks_c)
@@ -698,7 +696,7 @@ ichcidx => ptr_pp%cells%child_idx
 ichcblk => ptr_pp%cells%child_blk
 
 !$ACC DATA CREATE(h_aux) COPYIN(r_limval, l_enabled) PRESENT(ichcidx, ichcblk) &
-!$ACC   IF(i_am_accel_node)
+!$ACC   IF(lacc)
 
 ! Shift parameter
 js = nshift
@@ -717,7 +715,7 @@ DO jn = 1, nfields
     CALL interpol_scal_nudging_core(ptr_pp, jb, i_startblk, i_endblk, &
       all_enabled, elev, ptr_coeff, ptr_dist, p_in(jn)%fld, &
       h_aux(:,:,:,jb,jn), iidx, iblk, l_enabled, js, &
-      r_ovsht_fac, ovsht_fac)
+      r_ovsht_fac, ovsht_fac, lacc)
 !DIR$ RESETINLINE
   ENDDO ! blocks
 !$OMP END DO
@@ -731,7 +729,7 @@ ENDDO ! fields
 DO jn = 1, nfields
 
   p_out_fld => p_out(jn)%fld ! pointer without derived type needed for ACC
-  !$ACC DATA PRESENT(p_out_fld) IF(i_am_accel_node)
+  !$ACC DATA PRESENT(p_out_fld) IF(lacc)
 
   elev = UBOUND(p_out_fld,2)
 
@@ -743,7 +741,7 @@ DO jn = 1, nfields
 
     IF (l_limit_nneg(jn)) THEN
 
-      !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1) IF(i_am_accel_node)
+      !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1) IF(lacc)
 #ifdef __LOOP_EXCHANGE
       DO jc = i_startidx, i_endidx
         DO jk = 1, elev
@@ -771,7 +769,7 @@ DO jn = 1, nfields
 
     ELSE
 
-      !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1) IF(i_am_accel_node)
+      !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1) IF(lacc)
 #ifdef __LOOP_EXCHANGE
       DO jc = i_startidx, i_endidx
         DO jk = 1, elev

@@ -159,6 +159,7 @@ CONTAINS
     CALL sync_patch_array_mult(typ        = SYNC_C,               &
       &                        p_patch    = p_patch,              &
       &                        nfields    = SIZE(p_tracer_now,4), &
+      &                        lacc       = .FALSE.,              &
       &                        f4din      = p_tracer_now,         &
       &                        opt_varname='p_tracer_now')
 

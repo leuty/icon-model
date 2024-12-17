@@ -719,14 +719,15 @@ MODULE mo_surface_les
 
   
   !Sync is required for mom fluxes
-  CALL sync_uvml_s(prm_diag%umfl_s, prm_diag%vmfl_s)
+  CALL sync_uvml_s(prm_diag%umfl_s, prm_diag%vmfl_s, lacc=lzacc)
   CONTAINS
-    SUBROUTINE sync_uvml_s(u, v)
+    SUBROUTINE sync_uvml_s(u, v, lacc)
       REAL(wp), TARGET, INTENT(inout) :: u(:,:), v(:,:)
+      LOGICAL, INTENT(IN) :: lacc ! If compiled with OpenACC: IF lacc is True, use GPU memory
       REAL(wp), POINTER :: pu(:,:,:), pv(:,:,:)
       CALL insert_dimension(pu, u, 2)
       CALL insert_dimension(pv, v, 2)
-      CALL sync_patch_array_mult(sync_c, p_patch, 2, pu, pv)
+      CALL sync_patch_array_mult(sync_c, p_patch, 2, lacc=lacc, f3din1=pu, f3din2=pv)
     END SUBROUTINE sync_uvml_s
   END SUBROUTINE surface_conditions
 

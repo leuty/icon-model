@@ -369,7 +369,8 @@ MODULE mo_nh_stepping
     CALL compute_airmass(p_patch   = p_patch(jg),                       & !in
       &                  p_metrics = p_nh_state(jg)%metrics,            & !in
       &                  rho       = p_nh_state(jg)%prog(nnow(jg))%rho, & !in
-      &                  airmass   = p_nh_state(jg)%diag%airmass_new    ) !inout
+      &                  airmass   = p_nh_state(jg)%diag%airmass_new,   & !inout
+      &                  lacc      = .FALSE.)                             !in
 
     ! initialize exner_pr if the model domain is active
     IF (p_patch(jg)%ldom_active .AND. .NOT. isRestart()) THEN
@@ -433,7 +434,7 @@ MODULE mo_nh_stepping
 
         CALL sst_reader(jg)%init(p_patch(jg), sst_td_file)
         CALL sst_intp(jg)%init(sst_reader(jg), mtime_current, "SST")
-        CALL sst_intp(jg)%intp(mtime_current, sst_dat)
+        CALL sst_intp(jg)%intp(mtime_current, sst_dat, lacc=.FALSE.)
 
         WHERE (sst_dat(:,1,:,1) > 0.0_wp)
           p_lnd_state(jg)%diag_lnd%t_seasfc(:,:) = sst_dat(:,1,:,1)
@@ -441,7 +442,7 @@ MODULE mo_nh_stepping
 
         CALL sic_reader(jg)%init(p_patch(jg), ci_td_file)
         CALL sic_intp(jg)%init(sic_reader(jg), mtime_current, "SIC")
-        CALL sic_intp(jg)%intp(mtime_current, sic_dat)
+        CALL sic_intp(jg)%intp(mtime_current, sic_dat, lacc=.FALSE.)
 
         WHERE (sic_dat(:,1,:,1) < frsi_min)
           p_lnd_state(jg)%diag_lnd%fr_seaice(:,:) = 0.0_wp
@@ -671,7 +672,7 @@ MODULE mo_nh_stepping
     IF (iforcing == inwp) CALL fill_nestlatbc_phys(lacc=.TRUE.)
 #endif
 
-    CALL update_statistics
+    CALL update_statistics(lacc=.TRUE.)
     IF (p_nh_opt_diag(1)%acc%l_any_m) THEN
 #ifdef _OPENACC
       CALL finish (routine, 'update_opt_acc: OpenACC version currently not tested')
@@ -1175,8 +1176,8 @@ MODULE mo_nh_stepping
 
         DO jg=1, n_dom
           
-          CALL sst_intp(jg)%intp(mtime_current, sst_dat)
-          CALL sic_intp(jg)%intp(mtime_current, sic_dat)
+          CALL sst_intp(jg)%intp(mtime_current, sst_dat, lacc=.TRUE.)
+          CALL sic_intp(jg)%intp(mtime_current, sic_dat, lacc=.TRUE.)
 
           !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1)
           !$ACC LOOP GANG VECTOR COLLAPSE(2)
@@ -1527,7 +1528,7 @@ MODULE mo_nh_stepping
 #endif
 
     ! update accumlated values
-    CALL update_statistics
+    CALL update_statistics(lacc=.TRUE.)
     IF (p_nh_opt_diag(1)%acc%l_any_m) THEN
 #ifdef _OPENACC
       CALL finish (routine, 'update_opt_acc: OpenACC version currently not implemented')
@@ -1552,7 +1553,7 @@ MODULE mo_nh_stepping
     ! output of results
     ! note: nnew has been replaced by nnow here because the update
     IF (l_nml_output) THEN
-      CALL write_name_list_output(jstep, lacc=i_am_accel_node)
+      CALL write_name_list_output(jstep, lacc=.TRUE.)
     ENDIF
 
 #ifndef __NO_ICON_COMIN__
@@ -1564,13 +1565,13 @@ MODULE mo_nh_stepping
       IF (output_mode%l_nml        .AND. &    ! meteogram output is only initialized for nml output
         & p_patch(jg)%ldom_active  .AND. .NOT. (jstep == 0 .AND. iau_iter == 2) .AND. &
         & meteogram_is_sample_step(meteogram_output_config(jg), jstep)) THEN
-        CALL meteogram_sample_vars(jg, jstep, mtime_current, lacc=i_am_accel_node)
+        CALL meteogram_sample_vars(jg, jstep, mtime_current, lacc=.TRUE.)
       END IF
    END DO
 
    IF( is_coupled_to_output() ) THEN
       IF (ltimer) CALL timer_start(timer_coupling)
-      CALL output_coupling()
+      CALL output_coupling(lacc=.TRUE.)
       IF (ltimer) CALL timer_stop(timer_coupling)
    END IF
 
@@ -2039,16 +2040,18 @@ MODULE mo_nh_stepping
 
 
         ! airmass_now
-        CALL compute_airmass(p_patch   = p_patch(jg),                       & !in
-          &                  p_metrics = p_nh_state(jg)%metrics,            & !in
-          &                  rho       = p_nh_state(jg)%prog(nnow(jg))%rho, & !in
-          &                  airmass   = p_nh_state(jg)%diag%airmass_now    ) !inout
+        CALL compute_airmass(p_patch   = p_patch(jg),                        & !in
+          &                  p_metrics = p_nh_state(jg)%metrics,             & !in
+          &                  rho       = p_nh_state(jg)%prog(nnow(jg))%rho,  & !in
+          &                  airmass   = p_nh_state(jg)%diag%airmass_now,    & !inout
+          &                  lacc      = .TRUE.)                               !in
 
         ! airmass_new
-        CALL compute_airmass(p_patch   = p_patch(jg),                       & !in
-          &                  p_metrics = p_nh_state(jg)%metrics,            & !in
-          &                  rho       = p_nh_state(jg)%prog(nnew(jg))%rho, & !in
-          &                  airmass   = p_nh_state(jg)%diag%airmass_new    ) !inout
+        CALL compute_airmass(p_patch   = p_patch(jg),                        & !in
+          &                  p_metrics = p_nh_state(jg)%metrics,             & !in
+          &                  rho       = p_nh_state(jg)%prog(nnew(jg))%rho,  & !in
+          &                  airmass   = p_nh_state(jg)%diag%airmass_new,    & !inout
+          &                  lacc      = .TRUE.)                               !in 
 
         CALL step_advection(                                                 &
           &       p_patch           = p_patch(jg),                           & !in
@@ -2124,15 +2127,18 @@ MODULE mo_nh_stepping
                 &                     p_nh_state(jg)%prog(nnow_rcf(jg)),          &
                 &                     p_nh_state(jg)%diag,                        &
                 &                     p_patch(jg),                                &
+                &                     lacc=.TRUE.,                                &
                 &                     opt_calc_temp=.TRUE.,                       &
                 &                     opt_calc_pres=.TRUE.                        )
            !
            ! wind (u,v)
            CALL sync_patch_array     (SYNC_E, p_patch(jg),                        &!in
-                &                     p_nh_state(jg)%prog(nnow(jg))%vn            )!inout
+                &                     p_nh_state(jg)%prog(nnow(jg))%vn,           &!inout
+                &                     lacc=.TRUE.                                 )!in
            CALL rbf_vec_interpol_cell(p_nh_state(jg)%prog(nnow(jg))%vn,           &!in
                 &                     p_patch(jg), p_int_state(jg),               &!in
-                &                     p_nh_state(jg)%diag%u, p_nh_state(jg)%diag%v)!out
+                &                     p_nh_state(jg)%diag%u, p_nh_state(jg)%diag%v, &!out
+                &                     lacc=.TRUE.)
            !
            ! energy
            IF (atm_energy_config(jg)%l_atm_energy) THEN
@@ -2168,7 +2174,7 @@ MODULE mo_nh_stepping
         ELSE IF (iforcing == inwp) THEN
           ! dynamics for ldynamics off, option of coriolis force, typically used for SCM and similar test cases
           CALL add_slowphys_scm(p_nh_state(jg), p_patch(jg), p_int_state(jg), &
-            &                   nnow(jg), nnew(jg), dt_loc)
+            &                   nnow(jg), nnew(jg), dt_loc, lacc=.TRUE.)
         ENDIF
 
 
@@ -2261,7 +2267,7 @@ MODULE mo_nh_stepping
               &          p_nh_state(jg)%metrics%ddqz_z_full_e,                     & !in
               &          p_nh_state(jg)%diag%airmass_now,                          & !in
               &          p_nh_state(jg)%diag%airmass_new                           ) !in
-            CALL sync_patch_array(SYNC_C, p_patch(jg), prm_diag(jg)%aerosol)
+            CALL sync_patch_array(SYNC_C, p_patch(jg), prm_diag(jg)%aerosol, lacc=.TRUE.)
             CALL aerosol_2D_diffusion( p_patch(jg), p_int_state(jg), nproma, prm_diag(jg)%aerosol)
           ENDIF
 #endif
@@ -2333,15 +2339,18 @@ MODULE mo_nh_stepping
               &                      p_nh_state(jg)%prog(nnew_rcf(jg)),          &
               &                      p_nh_state(jg)%diag,                        &
               &                      p_patch(jg),                                &
+              &                      lacc=.TRUE.,                                &
               &                      opt_calc_temp=.TRUE.,                       &
               &                      opt_calc_pres=.TRUE.                        )
           !
           ! wind (u,v)
           CALL sync_patch_array     (SYNC_E, p_patch(jg),                        & !in
-               &                     p_nh_state(jg)%prog(nnew(jg))%vn            ) !inout
+               &                     p_nh_state(jg)%prog(nnew(jg))%vn,           & !inout
+               &                     lacc=.TRUE.                                 ) !in
           CALL rbf_vec_interpol_cell(p_nh_state(jg)%prog(nnew(jg))%vn,           & !in
                &                     p_patch(jg), p_int_state(jg),               & !in
-               &                     p_nh_state(jg)%diag%u, p_nh_state(jg)%diag%v) !out
+               &                     p_nh_state(jg)%diag%u, p_nh_state(jg)%diag%v, & !out
+               &                     lacc=.TRUE.)
           !
           ! energy
           IF (atm_energy_config(jg)%l_atm_energy) THEN
@@ -2439,15 +2448,18 @@ MODULE mo_nh_stepping
                 &                      p_nh_state(jg)%prog(nnew_rcf(jg)),          &
                 &                      p_nh_state(jg)%diag,                        &
                 &                      p_patch(jg),                                &
+                &                      lacc=.TRUE.,                                &
                 &                      opt_calc_temp=.TRUE.,                       &
                 &                      opt_calc_pres=.TRUE.                        )
             !
             ! wind (u,v)
             CALL sync_patch_array     (SYNC_E, p_patch(jg),                        &!in
-                 &                     p_nh_state(jg)%prog(nnew(jg))%vn            )!inout
+                 &                     p_nh_state(jg)%prog(nnew(jg))%vn,           &!inout
+                 &                     lacc=.TRUE.                                 )!in
             CALL rbf_vec_interpol_cell(p_nh_state(jg)%prog(nnew(jg))%vn,           &!in
                  &                     p_patch(jg), p_int_state(jg),               &!in
-                 &                     p_nh_state(jg)%diag%u, p_nh_state(jg)%diag%v)!out
+                 &                     p_nh_state(jg)%diag%u, p_nh_state(jg)%diag%v, &!out
+                 &                     lacc=.TRUE.)
             !
             ! energy
             IF (atm_energy_config(jg)%l_atm_energy) THEN
@@ -2565,8 +2577,8 @@ MODULE mo_nh_stepping
             CALL finish(routine,message_text)
           END IF
 
-          IF (latbc_config%nudge_hydro_pres) CALL sync_patch_array_mult(SYNC_C, p_patch(jg), 2, &
-            p_nh_state(jg)%diag%pres, p_nh_state(jg)%diag%temp, opt_varname="diag%pres and diag%temp")
+          IF (latbc_config%nudge_hydro_pres) CALL sync_patch_array_mult(SYNC_C, p_patch(jg), 2, lacc=.TRUE., &
+            f3din1=p_nh_state(jg)%diag%pres, f3din2=p_nh_state(jg)%diag%temp, opt_varname="diag%pres and diag%temp")
 
 
           ! update the linear time interpolation weights
@@ -2747,18 +2759,19 @@ MODULE mo_nh_stepping
             IF (timers_level >= 2) CALL timer_start(timer_feedback)
             IF (ifeedback_type == 1) THEN
               CALL incr_feedback(p_patch, p_nh_state, p_int_state, p_grf_state, p_lnd_state, &
-                &           jgc, jg)
+                &           jgc, jg, lacc=.FALSE.)
             ELSE
               !$ser verbatim CALL serialize_all(nproma, jg, "nesting_relax_feedback", .TRUE., opt_id=jstep)
               !$ser verbatim CALL serialize_all(nproma, jgc, "nesting_relax_feedback", .TRUE., opt_id=jstep + num_steps)
               IF (iforcing==inwp) THEN
                 CALL relax_feedback(  p_patch(n_dom_start:n_dom),            &
                   & p_nh_state(1:n_dom), p_int_state(n_dom_start:n_dom),     &
-                  & p_grf_state(n_dom_start:n_dom), jgc, jg, dt_loc, prm_diag)
+                  & p_grf_state(n_dom_start:n_dom), jgc, jg, dt_loc,         &
+                  & lacc=.TRUE., prm_diag=prm_diag)
               ELSE
                 CALL relax_feedback(  p_patch(n_dom_start:n_dom),            &
                   & p_nh_state(1:n_dom), p_int_state(n_dom_start:n_dom),     &
-                  & p_grf_state(n_dom_start:n_dom), jgc, jg, dt_loc)
+                  & p_grf_state(n_dom_start:n_dom), jgc, jg, dt_loc, lacc=.TRUE.)
               END IF
               !$ser verbatim CALL serialize_all(nproma, jg, "nesting_relax_feedback", .FALSE., opt_id=jstep)
               !$ser verbatim CALL serialize_all(nproma, jgc, "nesting_relax_feedback", .FALSE., opt_id=jstep + num_steps)
@@ -2884,7 +2897,8 @@ MODULE mo_nh_stepping
             CALL compute_airmass(p_patch   = p_patch(jgc),                        & !in
               &                  p_metrics = p_nh_state(jgc)%metrics,             & !in
               &                  rho       = p_nh_state(jgc)%prog(nnow(jgc))%rho, & !in
-              &                  airmass   = p_nh_state(jgc)%diag%airmass_new     ) !inout
+              &                  airmass   = p_nh_state(jgc)%diag%airmass_new,    & !inout
+              &                  lacc      = .FALSE.)                               !in
 
             IF ( lredgrid_phys(jgc) ) THEN
               CALL interpol_rrg_grf(jg, jgc, jn, nnow_rcf(jg), prm_diag(:), p_lnd_state(:), lacc=.FALSE.)
@@ -2992,7 +3006,8 @@ MODULE mo_nh_stepping
     CALL compute_airmass(p_patch   = p_patch,                       & !in
       &                  p_metrics = p_nh_state%metrics,            & !in
       &                  rho       = p_nh_state%prog(nnow(jg))%rho, & !in
-      &                  airmass   = p_nh_state%diag%airmass_now    ) !inout
+      &                  airmass   = p_nh_state%diag%airmass_now,   & !inout
+      &                  lacc      = .TRUE.)                          !in
 
     ! perform dynamics substepping
     !
@@ -3009,7 +3024,7 @@ MODULE mo_nh_stepping
         & .OR. msg_level >= 8 .AND. jg == 1 &
         & .OR. msg_level >= 5 .AND. jg == 1 .AND. nstep == 1) THEN
         CALL print_maxwinds(p_patch, p_nh_state%prog(nnow(jg))%vn,   &
-          p_nh_state%prog(nnow(jg))%w, lacc=i_am_accel_node)
+          p_nh_state%prog(nnow(jg))%w, lacc=.TRUE.)
       ENDIF
 
       ! total number of dynamics substeps since last boundary update
@@ -3068,7 +3083,8 @@ MODULE mo_nh_stepping
     CALL compute_airmass(p_patch   = p_patch,                       & !in
       &                  p_metrics = p_nh_state%metrics,            & !in
       &                  rho       = p_nh_state%prog(nnew(jg))%rho, & !in
-      &                  airmass   = p_nh_state%diag%airmass_new    ) !inout
+      &                  airmass   = p_nh_state%diag%airmass_new,   & !inout
+      &                  lacc      = .TRUE.)                          !in
 
     IF (nlev_hcfl(jg) > 0) THEN
       CALL compute_hcfl(p_patch, p_nh_state%prog(nnew(jg))%vn, dt_dyn, nlev_hcfl(jg), p_nh_state%diag%max_hcfl_dyn)
@@ -3246,96 +3262,108 @@ MODULE mo_nh_stepping
       !
       ! - wind
       CALL rbf_vec_interpol_cell(p_vn,p_patch(jg),p_int_state(jg),&
-                                 p_nh_state(jg)%diag%u,p_nh_state(jg)%diag%v)
+                                 p_nh_state(jg)%diag%u,p_nh_state(jg)%diag%v, &
+                                 lacc=lacc)
       !
       ! - wind tendencies, if fields exist, testing for the ua component is sufficient
       !
       IF (p_nh_state(jg)%diag%ddt_ua_dyn_is_associated) THEN
-         CALL sync_patch_array(SYNC_E, p_patch(jg), p_nh_state(jg)%diag%ddt_vn_dyn)
+         CALL sync_patch_array(SYNC_E, p_patch(jg), p_nh_state(jg)%diag%ddt_vn_dyn, lacc=lacc)
          CALL rbf_vec_interpol_cell(p_nh_state(jg)%diag%ddt_vn_dyn, &
               &                     p_patch(jg), p_int_state(jg),   &
               &                     p_nh_state(jg)%diag%ddt_ua_dyn, &
-              &                     p_nh_state(jg)%diag%ddt_va_dyn)
+              &                     p_nh_state(jg)%diag%ddt_va_dyn, &
+              &                     lacc=lacc)
       END IF
       !
       IF (p_nh_state(jg)%diag%ddt_ua_dmp_is_associated) THEN
-         CALL sync_patch_array(SYNC_E, p_patch(jg), p_nh_state(jg)%diag%ddt_vn_dmp)
+         CALL sync_patch_array(SYNC_E, p_patch(jg), p_nh_state(jg)%diag%ddt_vn_dmp, lacc=lacc)
          CALL rbf_vec_interpol_cell(p_nh_state(jg)%diag%ddt_vn_dmp, &
               &                     p_patch(jg), p_int_state(jg),   &
               &                     p_nh_state(jg)%diag%ddt_ua_dmp, &
-              &                     p_nh_state(jg)%diag%ddt_va_dmp)
+              &                     p_nh_state(jg)%diag%ddt_va_dmp, &
+              &                     lacc=lacc)
       END IF
       !
       IF (p_nh_state(jg)%diag%ddt_ua_hdf_is_associated) THEN
-         CALL sync_patch_array(SYNC_E, p_patch(jg), p_nh_state(jg)%diag%ddt_vn_hdf)
+         CALL sync_patch_array(SYNC_E, p_patch(jg), p_nh_state(jg)%diag%ddt_vn_hdf, lacc=lacc)
          CALL rbf_vec_interpol_cell(p_nh_state(jg)%diag%ddt_vn_hdf, &
               &                     p_patch(jg), p_int_state(jg),   &
               &                     p_nh_state(jg)%diag%ddt_ua_hdf, &
-              &                     p_nh_state(jg)%diag%ddt_va_hdf)
+              &                     p_nh_state(jg)%diag%ddt_va_hdf, &
+              &                     lacc=lacc)
       END IF
       !
       IF (p_nh_state(jg)%diag%ddt_ua_adv_is_associated) THEN
-         CALL sync_patch_array(SYNC_E, p_patch(jg), p_nh_state(jg)%diag%ddt_vn_adv)
+         CALL sync_patch_array(SYNC_E,p_patch(jg), p_nh_state(jg)%diag%ddt_vn_adv, lacc=lacc)
          CALL rbf_vec_interpol_cell(p_nh_state(jg)%diag%ddt_vn_adv, &
               &                     p_patch(jg), p_int_state(jg),   &
               &                     p_nh_state(jg)%diag%ddt_ua_adv, &
-              &                     p_nh_state(jg)%diag%ddt_va_adv)
+              &                     p_nh_state(jg)%diag%ddt_va_adv, &
+              &                     lacc=lacc)
       END IF
       !
       IF (p_nh_state(jg)%diag%ddt_ua_cor_is_associated) THEN
-         CALL sync_patch_array(SYNC_E, p_patch(jg), p_nh_state(jg)%diag%ddt_vn_cor)
+         CALL sync_patch_array(SYNC_E,p_patch(jg), p_nh_state(jg)%diag%ddt_vn_cor, lacc=lacc)
          CALL rbf_vec_interpol_cell(p_nh_state(jg)%diag%ddt_vn_cor, &
               &                     p_patch(jg), p_int_state(jg),   &
               &                     p_nh_state(jg)%diag%ddt_ua_cor, &
-              &                     p_nh_state(jg)%diag%ddt_va_cor)
+              &                     p_nh_state(jg)%diag%ddt_va_cor, &
+              &                     lacc=lacc)
       END IF
       !
       IF (p_nh_state(jg)%diag%ddt_ua_pgr_is_associated) THEN
-         CALL sync_patch_array(SYNC_E, p_patch(jg), p_nh_state(jg)%diag%ddt_vn_pgr)
+         CALL sync_patch_array(SYNC_E,p_patch(jg), p_nh_state(jg)%diag%ddt_vn_pgr, lacc=lacc)
          CALL rbf_vec_interpol_cell(p_nh_state(jg)%diag%ddt_vn_pgr, &
               &                     p_patch(jg), p_int_state(jg),   &
               &                     p_nh_state(jg)%diag%ddt_ua_pgr, &
-              &                     p_nh_state(jg)%diag%ddt_va_pgr)
+              &                     p_nh_state(jg)%diag%ddt_va_pgr, &
+              &                     lacc=lacc)
       END IF
       !
       IF (p_nh_state(jg)%diag%ddt_ua_phd_is_associated) THEN
-         CALL sync_patch_array(SYNC_E, p_patch(jg), p_nh_state(jg)%diag%ddt_vn_phd)
+         CALL sync_patch_array(SYNC_E,p_patch(jg), p_nh_state(jg)%diag%ddt_vn_phd, lacc=lacc)
          CALL rbf_vec_interpol_cell(p_nh_state(jg)%diag%ddt_vn_phd, &
               &                     p_patch(jg), p_int_state(jg),   &
               &                     p_nh_state(jg)%diag%ddt_ua_phd, &
-              &                     p_nh_state(jg)%diag%ddt_va_phd)
+              &                     p_nh_state(jg)%diag%ddt_va_phd, &
+              &                     lacc=lacc)
       END IF
       !
       IF (p_nh_state(jg)%diag%ddt_ua_iau_is_associated) THEN
-         CALL sync_patch_array(SYNC_E, p_patch(jg), p_nh_state(jg)%diag%ddt_vn_iau)
+         CALL sync_patch_array(SYNC_E, p_patch(jg), p_nh_state(jg)%diag%ddt_vn_iau, lacc=lacc)
          CALL rbf_vec_interpol_cell(p_nh_state(jg)%diag%ddt_vn_iau, &
               &                     p_patch(jg), p_int_state(jg),   &
               &                     p_nh_state(jg)%diag%ddt_ua_iau, &
-              &                     p_nh_state(jg)%diag%ddt_va_iau)
+              &                     p_nh_state(jg)%diag%ddt_va_iau, &
+              &                     lacc=lacc)
       END IF
       !
       IF (p_nh_state(jg)%diag%ddt_ua_ray_is_associated) THEN
-         CALL sync_patch_array(SYNC_E, p_patch(jg), p_nh_state(jg)%diag%ddt_vn_ray)
+         CALL sync_patch_array(SYNC_E, p_patch(jg), p_nh_state(jg)%diag%ddt_vn_ray, lacc=lacc)
          CALL rbf_vec_interpol_cell(p_nh_state(jg)%diag%ddt_vn_ray, &
               &                     p_patch(jg), p_int_state(jg),   &
               &                     p_nh_state(jg)%diag%ddt_ua_ray, &
-              &                     p_nh_state(jg)%diag%ddt_va_ray)
+              &                     p_nh_state(jg)%diag%ddt_va_ray, &
+              &                     lacc=lacc)
       END IF
       !
       IF (p_nh_state(jg)%diag%ddt_ua_grf_is_associated) THEN
-         CALL sync_patch_array(SYNC_E, p_patch(jg), p_nh_state(jg)%diag%ddt_vn_grf)
+         CALL sync_patch_array(SYNC_E, p_patch(jg), p_nh_state(jg)%diag%ddt_vn_grf, lacc=lacc)
          CALL rbf_vec_interpol_cell(p_nh_state(jg)%diag%ddt_vn_grf, &
               &                     p_patch(jg), p_int_state(jg),   &
               &                     p_nh_state(jg)%diag%ddt_ua_grf, &
-              &                     p_nh_state(jg)%diag%ddt_va_grf)
+              &                     p_nh_state(jg)%diag%ddt_va_grf, &
+              &                     lacc=lacc)
       END IF
 
 
-      !CALL div(p_vn, p_patch(jg), p_int_state(jg), p_nh_state(jg)%diag%div)
-      CALL div_avg(p_vn, p_patch(jg), p_int_state(jg),p_int_state(jg)%c_bln_avg,&
-                                                          p_nh_state(jg)%diag%div)
+      !CALL div(p_vn, p_patch(jg), p_int_state(jg), p_nh_state(jg)%diag%div, lacc=lacc )
+      CALL div_avg(p_vn, p_patch(jg), p_int_state(jg),p_int_state(jg)%c_bln_avg, &
+                                              p_nh_state(jg)%diag%div, lacc=lacc )
 
-      CALL rot_vertex (p_vn, p_patch(jg), p_int_state(jg), p_nh_state(jg)%diag%omega_z)
+      CALL rot_vertex (p_vn, p_patch(jg), p_int_state(jg), p_nh_state(jg)%diag%omega_z, &
+                       lacc=lacc )
 
 
       IF (ldeepatmo) THEN
@@ -3396,11 +3424,12 @@ MODULE mo_nh_stepping
 
       ! Diagnose relative vorticity on cells
       CALL verts2cells_scalar(p_nh_state(jg)%diag%omega_z, p_patch(jg), &
-        p_int_state(jg)%verts_aw_cells, p_nh_state(jg)%diag%vor)
+        p_int_state(jg)%verts_aw_cells, p_nh_state(jg)%diag%vor, lacc=lacc)
 
       CALL diagnose_pres_temp (p_nh_state(jg)%metrics, p_nh_state(jg)%prog(nnow(jg)), &
         &                      p_nh_state(jg)%prog(nnow_rcf(jg)),                     &
         &                      p_nh_state(jg)%diag,p_patch(jg),                       &
+        &                      lacc=lacc,                                             &
         &                      opt_calc_temp=.TRUE.,                                  &
         &                      opt_calc_pres=(p_patch(jg)%nlev>=3)                    )
                                              ! avoid out-of-bounds memory access during
@@ -3415,8 +3444,8 @@ MODULE mo_nh_stepping
       IF (.NOT. p_patch(jg)%domain_is_owned .OR. p_patch(jg)%n_childdom == 0) CYCLE
       IF (.NOT. p_patch(jg)%ldom_active) CYCLE
 
-      CALL sync_patch_array_mult(SYNC_C, p_patch(jg), 3, p_nh_state(jg)%diag%u,      &
-        p_nh_state(jg)%diag%v, p_nh_state(jg)%diag%div, opt_varname="u, v and div")
+      CALL sync_patch_array_mult(SYNC_C, p_patch(jg), 3, lacc=lacc, f3din1=p_nh_state(jg)%diag%u, &
+        f3din2=p_nh_state(jg)%diag%v, f3din3=p_nh_state(jg)%diag%div, opt_varname="u, v and div")
 
       DO jn = 1, p_patch(jg)%n_childdom
         jgc = p_patch(jg)%child_id(jn)
@@ -3460,7 +3489,7 @@ MODULE mo_nh_stepping
       IF (.NOT. p_patch(jg)%domain_is_owned .OR. p_patch(jg)%n_childdom == 0) CYCLE
       IF (.NOT. p_patch(jg)%ldom_active) CYCLE
 
-      CALL sync_patch_array(SYNC_C, p_patch(jg), p_nh_state(jg)%prog(nnow_rcf(jg))%tke)
+      CALL sync_patch_array(SYNC_C, p_patch(jg), p_nh_state(jg)%prog(nnow_rcf(jg))%tke, lacc=lacc)
 
       DO jn = 1, p_patch(jg)%n_childdom
         jgc = p_patch(jg)%child_id(jn)

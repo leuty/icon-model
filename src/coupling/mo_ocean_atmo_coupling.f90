@@ -430,8 +430,8 @@ CONTAINS
       first_get=.TRUE., received_data=received_data)
     !
     IF (received_data) THEN
-      CALL sync_patch_array(sync_c, patch_horz, atmos_fluxes%stress_xw(:,:))
-      CALL sync_patch_array(sync_c, patch_horz, atmos_fluxes%stress_x (:,:))
+      CALL sync_patch_array(sync_c, patch_horz, atmos_fluxes%stress_xw(:,:), lacc=.FALSE.)
+      CALL sync_patch_array(sync_c, patch_horz, atmos_fluxes%stress_x (:,:), lacc=.FALSE.)
     ENDIF
 
     !
@@ -445,8 +445,8 @@ CONTAINS
       field_2=atmos_fluxes%stress_y, received_data=received_data)
     !
     IF (received_data) THEN
-      CALL sync_patch_array(sync_c, patch_horz, atmos_fluxes%stress_yw(:,:))
-      CALL sync_patch_array(sync_c, patch_horz, atmos_fluxes%stress_y (:,:))
+      CALL sync_patch_array(sync_c, patch_horz, atmos_fluxes%stress_yw(:,:), lacc=.FALSE.)
+      CALL sync_patch_array(sync_c, patch_horz, atmos_fluxes%stress_y (:,:), lacc=.FALSE.)
     ENDIF
 
     !
@@ -487,9 +487,9 @@ CONTAINS
       ENDDO
 !ICON_OMP_END_PARALLEL_DO
       !
-      CALL sync_patch_array(sync_c, patch_horz, atmos_fluxes%FrshFlux_Precipitation(:,:))
-      CALL sync_patch_array(sync_c, patch_horz, atmos_fluxes%FrshFlux_SnowFall     (:,:))
-      CALL sync_patch_array(sync_c, patch_horz, atmos_fluxes%FrshFlux_Evaporation  (:,:))
+      CALL sync_patch_array(sync_c, patch_horz, atmos_fluxes%FrshFlux_Precipitation(:,:), lacc=.FALSE.)
+      CALL sync_patch_array(sync_c, patch_horz, atmos_fluxes%FrshFlux_SnowFall     (:,:), lacc=.FALSE.)
+      CALL sync_patch_array(sync_c, patch_horz, atmos_fluxes%FrshFlux_Evaporation  (:,:), lacc=.FALSE.)
     END IF
 
     !
@@ -515,10 +515,10 @@ CONTAINS
     !
     IF (received_data) THEN
 
-      CALL sync_patch_array(sync_c, patch_horz, atmos_fluxes%HeatFlux_ShortWave(:,:))
-      CALL sync_patch_array(sync_c, patch_horz, atmos_fluxes%HeatFlux_LongWave (:,:))
-      CALL sync_patch_array(sync_c, patch_horz, atmos_fluxes%HeatFlux_Sensible (:,:))
-      CALL sync_patch_array(sync_c, patch_horz, atmos_fluxes%HeatFlux_Latent   (:,:))
+      CALL sync_patch_array(sync_c, patch_horz, atmos_fluxes%HeatFlux_ShortWave(:,:), lacc=.FALSE.)
+      CALL sync_patch_array(sync_c, patch_horz, atmos_fluxes%HeatFlux_LongWave (:,:), lacc=.FALSE.)
+      CALL sync_patch_array(sync_c, patch_horz, atmos_fluxes%HeatFlux_Sensible (:,:), lacc=.FALSE.)
+      CALL sync_patch_array(sync_c, patch_horz, atmos_fluxes%HeatFlux_Latent   (:,:), lacc=.FALSE.)
 
       ! sum of fluxes for ocean boundary condition
 !ICON_OMP_PARALLEL_DO PRIVATE(blockNo, cell_index, nlen) ICON_OMP_DEFAULT_SCHEDULE
@@ -569,8 +569,8 @@ CONTAINS
       ENDDO
 !ICON_OMP_END_PARALLEL_DO
       !
-      CALL sync_patch_array(sync_c, patch_horz, ice%qtop(:,1,:))
-      CALL sync_patch_array(sync_c, patch_horz, ice%qbot(:,1,:))
+      CALL sync_patch_array(sync_c, patch_horz, ice%qtop(:,1,:), lacc=.FALSE.)
+      CALL sync_patch_array(sync_c, patch_horz, ice%qbot(:,1,:), lacc=.FALSE.)
     END IF
 
     !
@@ -600,7 +600,7 @@ CONTAINS
       ENDDO
 !!ICON_OMP_END_PARALLEL_DO
       !
-      CALL sync_patch_array(sync_c, patch_horz, atmos_forcing%fu10(:,:))
+      CALL sync_patch_array(sync_c, patch_horz, atmos_forcing%fu10(:,:), lacc=.FALSE.)
     END IF
 
     ! ------------------------------
@@ -613,7 +613,7 @@ CONTAINS
       received_data=received_data)
     !
     IF (received_data) &
-      CALL sync_patch_array(sync_c, patch_horz, atmos_forcing%pao(:,:))
+      CALL sync_patch_array(sync_c, patch_horz, atmos_forcing%pao(:,:), lacc=.FALSE.)
 
     !
     ! ------------------------------
@@ -644,7 +644,7 @@ CONTAINS
         ENDDO
 !!ICON_OMP_END_PARALLEL_DO
         !
-        CALL sync_patch_array(sync_c, patch_horz, atmos_forcing%co2(:,:))
+        CALL sync_patch_array(sync_c, patch_horz, atmos_forcing%co2(:,:), lacc=.FALSE.)
       END IF
     END IF !l_cpl_co2
 
@@ -691,7 +691,7 @@ CONTAINS
       ENDDO
 !ICON_OMP_END_PARALLEL_DO
       !
-      CALL sync_patch_array(sync_c, patch_horz, atmos_fluxes%FrshFlux_Runoff(:,:))
+      CALL sync_patch_array(sync_c, patch_horz, atmos_fluxes%FrshFlux_Runoff(:,:), lacc=.FALSE.)
     END IF
 
     !---------DEBUG DIAGNOSTICS-------------------------------------------

@@ -466,7 +466,7 @@ CONTAINS
 
     ! Synchronize r_m and r_p and determine i_rlstart/i_rlend
     !
-    CALL sync_patch_array_mult(SYNC_C1, ptr_patch, 2, r_m, r_p, opt_varname='r_m and r_p')
+    CALL sync_patch_array_mult(SYNC_C1, ptr_patch, 2, lacc=.TRUE., f3din1=r_m, f3din2=r_p, opt_varname='r_m and r_p')
 
     !
     ! 5. Now loop over all edges and determine the minimum fraction which must
@@ -733,7 +733,7 @@ CONTAINS
 
     ! synchronize r_m
     !
-    IF(SIZE(r_m)/=0) CALL sync_patch_array(SYNC_C1,ptr_patch,r_m,opt_varname='r_m')
+    IF(SIZE(r_m)/=0) CALL sync_patch_array(SYNC_C1,ptr_patch,r_m,lacc=.TRUE.,opt_varname='r_m')
 
     !
     ! 3. Limit outward fluxes

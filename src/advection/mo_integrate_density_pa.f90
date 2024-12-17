@@ -294,7 +294,7 @@ CONTAINS
 
       ! reconstruct tangential velocity component at edge midpoints
       CALL rbf_vec_interpol_edge( z_vn_traj, p_patch, p_int,    &! in
-        &                         z_vt_traj, opt_rlend=i_rlend  )! inout
+        &                         z_vt_traj, lacc=.TRUE., opt_rlend=i_rlend  )! inout
       !
       ! get new Density 'edge-value'
       !
@@ -369,8 +369,8 @@ CONTAINS
       !
       ! Compute updated density field
       !
-      CALL div( p_diag%mass_fl_e(:,:,:), p_patch, &! in
-        &       p_int, z_fluxdiv_rho(:,:,:)       )! in,inout
+      CALL div( p_diag%mass_fl_e(:,:,:), p_patch,         &! in
+        &       p_int, z_fluxdiv_rho(:,:,:), lacc=.FALSE. )! in,inout
 
 
       i_rlstart = grf_bdywidth_c+1
@@ -507,7 +507,7 @@ CONTAINS
 
       !$ACC WAIT
 
-      CALL sync_patch_array(SYNC_E, p_patch, z_rho_e)
+      CALL sync_patch_array(SYNC_E, p_patch, z_rho_e, lacc=.TRUE.)
 
 
       !
@@ -541,8 +541,8 @@ CONTAINS
     ENDIF  ! lcoupled_rho
 
 
-    CALL sync_patch_array(SYNC_E, p_patch, p_diag%mass_fl_e)
-    CALL sync_patch_array(SYNC_C, p_patch, p_diag%rho_ic )
+    CALL sync_patch_array(SYNC_E, p_patch, p_diag%mass_fl_e, lacc=.TRUE.)
+    CALL sync_patch_array(SYNC_C, p_patch, p_diag%rho_ic, lacc=.TRUE.)
 !$ACC WAIT(1)
   !$ACC END DATA
 

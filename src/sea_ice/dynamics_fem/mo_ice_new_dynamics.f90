@@ -276,11 +276,7 @@ CONTAINS
           ENDDO
        ENDDO
        
-      CALL sync_patch_array_mult(sync_c, patch_2D, 3, x1_c, x2_c,x3_c) 
-       
-!        CALL sync_patch_array(SYNC_C, patch_2D, x1_c)
-!        CALL sync_patch_array(SYNC_C, patch_2D, x2_c)
-!        CALL sync_patch_array(SYNC_C, patch_2D, x3_c)
+      CALL sync_patch_array_mult(sync_c, patch_2D, 3, lacc=.FALSE., f3din1=x1_c, f3din2=x2_c, f3din3=x3_c)
 
     !**************************************************************
     ! (1) Convert lat-lon wind ocean  stress to cartesian coordinates
@@ -288,17 +284,17 @@ CONTAINS
        CALL  gvec2cvec_c_2d(p_patch_3D, atmos_fluxes%stress_x, atmos_fluxes%stress_y, p_tau_n_c)
 !       CALL dbg_print('start 0.2 vn', p_ice%vn_e ,str_module, 2, in_subset=patch_2D%edges%owned)
                       
-!        CALL sync_patch_array(SYNC_C, patch_2D, p_tau_n_c(:,:)%x(1))
-!        CALL sync_patch_array(SYNC_C, patch_2D, p_tau_n_c(:,:)%x(2))
-!        CALL sync_patch_array(SYNC_C, patch_2D, p_tau_n_c(:,:)%x(3))
+!        CALL sync_patch_array(SYNC_C, patch_2D, p_tau_n_c(:,:)%x(1), lacc=.FALSE.)
+!        CALL sync_patch_array(SYNC_C, patch_2D, p_tau_n_c(:,:)%x(2), lacc=.FALSE.)
+!        CALL sync_patch_array(SYNC_C, patch_2D, p_tau_n_c(:,:)%x(3), lacc=.FALSE.)
 
        CALL gvec2cvec_c_2d(p_patch_3D, p_os%p_diag%u(:,1,:), p_os%p_diag%v(:,1,:), ocean_c)
  
 !        CALL dbg_print('start 0.21 vn', p_ice%vn_e ,str_module, 2, in_subset=patch_2D%edges%owned)
  
-!       CALL sync_patch_array(SYNC_C, patch_2D, ocean_c(:,:)%x(1))
-!       CALL sync_patch_array(SYNC_C, patch_2D, ocean_c(:,:)%x(2))
-!       CALL sync_patch_array(SYNC_C, patch_2D, ocean_c(:,:)%x(3))
+!       CALL sync_patch_array(SYNC_C, patch_2D, ocean_c(:,:)%x(1), lacc=.FALSE.)
+!       CALL sync_patch_array(SYNC_C, patch_2D, ocean_c(:,:)%x(2), lacc=.FALSE.)
+!       CALL sync_patch_array(SYNC_C, patch_2D, ocean_c(:,:)%x(3), lacc=.FALSE.)
        
 !      CALL dbg_print('start 0.3 vn', p_ice%vn_e ,str_module, 2, in_subset=patch_2D%edges%owned)
        
@@ -312,7 +308,7 @@ CONTAINS
        ocean_n=0.0_wp
 #endif
         CALL map_cell2edges_3D(p_patch_3D, p_tau_n_c, tau_n ,p_op_coeff, 1)
-        CALL sync_patch_array(SYNC_E, patch_2D, tau_n)
+        CALL sync_patch_array(SYNC_E, patch_2D, tau_n, lacc=.FALSE.)
   
         !**************************************************************                                                                                                               
         ! (3) Interpolate 3D wind stress from normal value to vertices 3D                                                                                                                       
@@ -335,15 +331,15 @@ CONTAINS
        ENDDO
     ENDDO
        
-!     CALL sync_patch_array(SYNC_E, patch_2D, ocean_n)
+!     CALL sync_patch_array(SYNC_E, patch_2D, ocean_n, lacc=.FALSE.)
 !     CALL dbg_print('start 1 vn', p_ice%vn_e ,str_module, 2, in_subset=patch_2D%edges%owned)
            
     CALL map_edges2verts(patch_2D, tau_n, p_op_coeff%edge2vert_coeff_cc, p_tau_n_dual)
     CALL map_edges2verts(patch_2D, ocean_n, p_op_coeff%edge2vert_coeff_cc, p_ocean_n_dual)
 
-!     CALL sync_patch_array(SYNC_V, patch_2D, p_tau_n_dual(:,:)%x(1))
-!     CALL sync_patch_array(SYNC_V, patch_2D, p_tau_n_dual(:,:)%x(2))
-!     CALL sync_patch_array(SYNC_V, patch_2D, p_tau_n_dual(:,:)%x(3))
+!     CALL sync_patch_array(SYNC_V, patch_2D, p_tau_n_dual(:,:)%x(1), lacc=.FALSE.)
+!     CALL sync_patch_array(SYNC_V, patch_2D, p_tau_n_dual(:,:)%x(2), lacc=.FALSE.)
+!     CALL sync_patch_array(SYNC_V, patch_2D, p_tau_n_dual(:,:)%x(3), lacc=.FALSE.)
          
     !**************************************************************
     ! (4.1) Interpolate 3D wind stress from vertices to 3D vector on edges to calculate normal and tangential componantes.
@@ -412,12 +408,12 @@ CONTAINS
       ENDDO
     ENDDO
        
-!     CALL sync_patch_array_mult(sync_e, patch_2D, 4, atm_n, atm_t, u_ocean_n,  u_ocean_t)
+!     CALL sync_patch_array_mult(sync_e, patch_2D, 4, atm_n, atm_t, u_ocean_n,  u_ocean_t) ! caution: dead code. lacc=.FALSE. would have to be added
           
-    CALL sync_patch_array(SYNC_E, patch_2D, atm_n)
-    CALL sync_patch_array(SYNC_E, patch_2D, atm_t)
-    CALL sync_patch_array(SYNC_E, patch_2D, u_ocean_n)
-    CALL sync_patch_array(SYNC_E, patch_2D, u_ocean_t)
+    CALL sync_patch_array(SYNC_E, patch_2D, atm_n, lacc=.FALSE.)
+    CALL sync_patch_array(SYNC_E, patch_2D, atm_t, lacc=.FALSE.)
+    CALL sync_patch_array(SYNC_E, patch_2D, u_ocean_n, lacc=.FALSE.)
+    CALL sync_patch_array(SYNC_E, patch_2D, u_ocean_t, lacc=.FALSE.)
  
 !        CALL dbg_print('start 2 vn', p_ice%vn_e ,str_module, 2, in_subset=patch_2D%edges%owned)
    
@@ -460,15 +456,15 @@ CONTAINS
 
        ENDDO !cell_block = owned_cells%start_block, owned_cells%end_block
        
-!         CALL sync_patch_array(SYNC_C, patch_2D, s11(:,:,:))
-!         CALL sync_patch_array(SYNC_C, patch_2D, s12(:,:,:))
-!         CALL sync_patch_array(SYNC_C, patch_2D, s21(:,:,:))
-!         CALL sync_patch_array(SYNC_C, patch_2D, s22(:,:,:))
-!         CALL sync_patch_array(SYNC_C, patch_2D, sigma_I(:,:,:))
-!         CALL sync_patch_array(SYNC_C, patch_2D, sigma_II(:,:,:))
-!         CALL sync_patch_array(SYNC_C, patch_2D, zeta_c(:,:,:))
-!         CALL sync_patch_array(SYNC_C, patch_2D, zeta_stabi(:,:,:))
-!         CALL sync_patch_array(SYNC_C, patch_2D, p_ice%Delta)
+!         CALL sync_patch_array(SYNC_C, patch_2D, s11(:,:,:), lacc=.FALSE.)
+!         CALL sync_patch_array(SYNC_C, patch_2D, s12(:,:,:), lacc=.FALSE.)
+!         CALL sync_patch_array(SYNC_C, patch_2D, s21(:,:,:), lacc=.FALSE.)
+!         CALL sync_patch_array(SYNC_C, patch_2D, s22(:,:,:), lacc=.FALSE.)
+!         CALL sync_patch_array(SYNC_C, patch_2D, sigma_I(:,:,:), lacc=.FALSE.)
+!         CALL sync_patch_array(SYNC_C, patch_2D, sigma_II(:,:,:), lacc=.FALSE.)
+!         CALL sync_patch_array(SYNC_C, patch_2D, zeta_c(:,:,:), lacc=.FALSE.)
+!         CALL sync_patch_array(SYNC_C, patch_2D, zeta_stabi(:,:,:), lacc=.FALSE.)
+!         CALL sync_patch_array(SYNC_C, patch_2D, p_ice%Delta, lacc=.FALSE.)
         
        !This loop averages the cell values to the edges.This is needed for the momentum equation
        DO edge_block_i = edges_in_domain%start_block, edges_in_domain%end_block
@@ -521,10 +517,10 @@ CONTAINS
         S_n=0.0_wp
         S_t=0.0_wp
       ELSE
-      CALL sync_patch_array(SYNC_E, patch_2D, zeta_e)
-      CALL sync_patch_array(SYNC_E, patch_2D, h_e)
-      CALL sync_patch_array(SYNC_E, patch_2D, A_e)
-      CALL sync_patch_array(SYNC_E, patch_2D, s_e)
+      CALL sync_patch_array(SYNC_E, patch_2D, zeta_e, lacc=.FALSE.)
+      CALL sync_patch_array(SYNC_E, patch_2D, h_e, lacc=.FALSE.)
+      CALL sync_patch_array(SYNC_E, patch_2D, A_e, lacc=.FALSE.)
+      CALL sync_patch_array(SYNC_E, patch_2D, s_e, lacc=.FALSE.)
 !       IF ( outer_iter==2) &
 !        CALL finish('sea-ice dynamics','Test sync ok')
        
@@ -534,8 +530,8 @@ CONTAINS
        !This function computes div(sigma) 
          CALL compute_sigma(Au_n,Au_t,boundary_cell_marker,h_e,A_e,s_e,s11,s12,s21,s22,cell_area_c,x1_c,x2_c,x3_c,p_patch_3D,p_ice,p_os)
   
-       CALL sync_patch_array(SYNC_E, patch_2D, Au_n)
-       CALL sync_patch_array(SYNC_E, patch_2D, Au_t)
+       CALL sync_patch_array(SYNC_E, patch_2D, Au_n, lacc=.FALSE.)
+       CALL sync_patch_array(SYNC_E, patch_2D, Au_t, lacc=.FALSE.)
 !        CALL dbg_print(' Au_n '  , Au_n , str_module, 2, in_subset=patch_2D%cells%owned)
 !        CALL dbg_print(' Au_t '  , Au_t , str_module, 2, in_subset=patch_2D%cells%owned)
        
@@ -547,20 +543,20 @@ CONTAINS
          S_n=0.0_wp
          S_t=0.0_wp
          IF ( ice_stabilization ) THEN
-!        CALL sync_patch_array(SYNC_E, patch_2D, p_ice%vn_e)
-!        CALL sync_patch_array(SYNC_E, patch_2D, p_ice%vt_e)
-!        CALL sync_patch_array(SYNC_C, patch_2D,x1_c)
-!        CALL sync_patch_array(SYNC_C, patch_2D,x2_c)
-!        CALL sync_patch_array(SYNC_C, patch_2D,x3_c)
-!        CALL sync_patch_array(SYNC_C, patch_2D,boundary_cell_marker)
+!        CALL sync_patch_array(SYNC_E, patch_2D, p_ice%vn_e, lacc=.FALSE.)
+!        CALL sync_patch_array(SYNC_E, patch_2D, p_ice%vt_e, lacc=.FALSE.)
+!        CALL sync_patch_array(SYNC_C, patch_2D,x1_c, lacc=.FALSE.)
+!        CALL sync_patch_array(SYNC_C, patch_2D,x2_c, lacc=.FALSE.)
+!        CALL sync_patch_array(SYNC_C, patch_2D,x3_c, lacc=.FALSE.)
+!        CALL sync_patch_array(SYNC_C, patch_2D,boundary_cell_marker, lacc=.FALSE.)
        
 !        IF ( outer_iter==2) &
 !          CALL finish('sea-ice dynamics','Test sync ok')
         
        Call  Stabilization_sum(S_x,S_y,boundary_cell_marker,x1_c,x2_c,x3_c,p_ice,p_patch_3D)
       
-       CALL sync_patch_array(SYNC_E, patch_2D, S_x)
-       CALL sync_patch_array(SYNC_E, patch_2D, S_y)
+       CALL sync_patch_array(SYNC_E, patch_2D, S_x, lacc=.FALSE.)
+       CALL sync_patch_array(SYNC_E, patch_2D, S_y, lacc=.FALSE.)
 !        IF ( outer_iter==2) &
 !          CALL finish('sea-ice dynamics','Test sync ok')
 
@@ -577,8 +573,8 @@ CONTAINS
        S_t=0.0_wp
        CALL  Stabilization(S_x,S_y,S_n,S_t,boundary_cell_marker,x1_c,x2_c,x3_c,zeta_e,p_patch_3D)
        
-       CALL sync_patch_array(SYNC_E, patch_2D, S_n)
-       CALL sync_patch_array(SYNC_E, patch_2D, S_t)
+       CALL sync_patch_array(SYNC_E, patch_2D, S_n, lacc=.FALSE.)
+       CALL sync_patch_array(SYNC_E, patch_2D, S_t, lacc=.FALSE.)
 !        IF ( outer_iter==2) &
 !          CALL finish('sea-ice dynamics','Test sync ok')
          ENDIF ! ice_stabilization
@@ -658,8 +654,8 @@ CONTAINS
           ENDDO
        ENDDO
 
-       CALL sync_patch_array(SYNC_E, patch_2D, p_ice%vn_e)
-       CALL sync_patch_array(SYNC_E, patch_2D, p_ice%vt_e)
+       CALL sync_patch_array(SYNC_E, patch_2D, p_ice%vn_e, lacc=.FALSE.)
+       CALL sync_patch_array(SYNC_E, patch_2D, p_ice%vt_e, lacc=.FALSE.)
 
 !        IF ( outer_iter==2) &
 !          CALL finish('sea-ice dynamics','Test sync ok')
@@ -669,8 +665,8 @@ CONTAINS
 !     CALL dbg_print('end outloop vn', p_ice%vn_e ,str_module, 2, in_subset=patch_2D%edges%owned)
   
 !     CALL finish('sea-ice dynamics','Test sync ok')
-!     CALL sync_patch_array(SYNC_E, patch_2D, p_ice%vn_e)
-!     CALL sync_patch_array(SYNC_E, patch_2D, p_ice%vt_e)
+!     CALL sync_patch_array(SYNC_E, patch_2D, p_ice%vn_e, lacc=.FALSE.)
+!     CALL sync_patch_array(SYNC_E, patch_2D, p_ice%vt_e, lacc=.FALSE.)
 !     CALL finish('sea-ice dynamics','Test sync ok')
    
   ! write(0,*) "ice_old/ice_up:",  maxval(ice_x), maxval( p_ice%vn_e)
@@ -771,7 +767,7 @@ CONTAINS
     patch_2D         => p_patch_3D%p_patch_2D(1)
     all_cells        =>patch_2D%cells%all
 
-!    CALL sync_patch_array(SYNC_C, patch_2D, p_ice%conc )
+!    CALL sync_patch_array(SYNC_C, patch_2D, p_ice%conc, lacc=.FALSE.)
 
     DO cell_block = all_cells%start_block, all_cells%end_block
        CALL get_index_range(all_cells, cell_block, start_index, end_index)
@@ -786,7 +782,7 @@ CONTAINS
        END DO
     END DO
 
-    CALL sync_patch_array(SYNC_C, patch_2D, boundary_cell_marker(:,1,:))
+    CALL sync_patch_array(SYNC_C, patch_2D, boundary_cell_marker(:,1,:), lacc=.FALSE.)
 
 
   END SUBROUTINE interface_boundary_cell_marker
@@ -833,7 +829,7 @@ CONTAINS
       ENDDO
     ENDDO
 
-    CALL sync_patch_array(SYNC_E, patch_2D, boundary_edge_marker)
+    CALL sync_patch_array(SYNC_E, patch_2D, boundary_edge_marker, lacc=.FALSE.)
 
 
   END SUBROUTINE interface_boundary_edge_marker
@@ -881,7 +877,7 @@ CONTAINS
       ENDDO ! cell_index = start_index, end_index
     ENDDO !cell_block = owned_cells%start_block, owned_cells%end_block
 
-    CALL sync_patch_array(SYNC_C, patch_2D, cell_area_c)
+    CALL sync_patch_array(SYNC_C, patch_2D, cell_area_c, lacc=.FALSE.)
 
   END SUBROUTINE cell_area
 
@@ -901,7 +897,7 @@ CONTAINS
      all_cells => patch_2D%cells%all
      owned_cells => patch_2D%cells%owned
 
-     CALL sync_patch_array(SYNC_E, patch_2D, mass)
+     CALL sync_patch_array(SYNC_E, patch_2D, mass, lacc=.FALSE.)
 
      DO cell_block = all_cells%start_block, all_cells%end_block
        CALL get_index_range(all_cells, cell_block, start_index, end_index)
@@ -920,7 +916,7 @@ CONTAINS
        ENDDO ! cell_index = start_index, end_index
      ENDDO !cell_block = owned_cells%start_block, owned_cells%end_block
 
-     CALL sync_patch_array(SYNC_E, patch_2D, mass)
+     CALL sync_patch_array(SYNC_E, patch_2D, mass, lacc=.FALSE.)
 
   END SUBROUTINE init_mass_matrix
 

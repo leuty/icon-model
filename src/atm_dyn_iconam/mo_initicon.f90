@@ -717,7 +717,8 @@ MODULE mo_initicon
 
       ! Recompute u and v from the first guess in order to compute the wind increment
       ! coming from the data assimilation
-      CALL rbf_vec_interpol_cell(p_prog_now%vn, p_patch(jg), p_int_state(jg), p_diag%u, p_diag%v)
+      CALL rbf_vec_interpol_cell(p_prog_now%vn, p_patch(jg), p_int_state(jg), p_diag%u, p_diag%v, &
+                                 lacc=.FALSE.)
 
       ! 1) first guess in terms of rho, theta_v, qx is converted to
       ! T, p, qx. Note, that zpres_nh is the full (nonhydrostatic) pressure field, whereas
@@ -792,7 +793,8 @@ MODULE mo_initicon
 
       ! Recompute the hydrostatically integrated pressure from the first guess
       CALL diagnose_pres_temp (p_nh_state(jg)%metrics, p_prog_now, p_prog_now_rcf, p_diag, &
-        &                      p_patch(jg), opt_calc_temp=.FALSE., opt_calc_pres=.TRUE.    )
+        &                      p_patch(jg), lacc=.FALSE.,                                  &
+        &                      opt_calc_temp=.FALSE., opt_calc_pres=.TRUE.    )
 
 
       IF (lread_ana) THEN
@@ -880,10 +882,11 @@ MODULE mo_initicon
 !$OMP END PARALLEL
 
         ! required to avoid crash in nabla4_vec
-        CALL sync_patch_array(SYNC_E,p_patch(jg),vn_incr)
+        CALL sync_patch_array(SYNC_E,p_patch(jg),vn_incr,lacc=.FALSE.)
 
         ! Compute diffusion term
-        CALL nabla4_vec(vn_incr, p_patch(jg), p_int_state(jg), nabla4_vn_incr, opt_rlstart=5)
+        CALL nabla4_vec(vn_incr, p_patch(jg), p_int_state(jg), nabla4_vn_incr, &
+                        lacc=.FALSE., opt_rlstart=5)
 
         ! Compute vertical wind increment consistent with the vn increment
         ! (strictly spoken, this should be done after the filtering step,
@@ -947,8 +950,8 @@ MODULE mo_initicon
 !$OMP ENDDO
 !$OMP END PARALLEL
 
-        CALL sync_patch_array(SYNC_E,p_patch(jg),p_prog_now%vn)
-        CALL sync_patch_array(SYNC_C,p_patch(jg),p_prog_now%w)
+        CALL sync_patch_array(SYNC_E,p_patch(jg),p_prog_now%vn,lacc=.FALSE.)
+        CALL sync_patch_array(SYNC_C,p_patch(jg),p_prog_now%w,lacc=.FALSE.)
 
 
         ! TO DO: remove qc, where rh<90%
@@ -1153,7 +1156,7 @@ MODULE mo_initicon
           & i_startidx, i_endidx, rl_start, rl_end)
 
         ! Sum up the hydrometeor species for the water loading term
-        CALL calc_qsum (p_prog_now_rcf%tracer, z_qsum, condensate_list, jb, i_startidx, i_endidx, 1, 1, nlev)
+        CALL calc_qsum (p_prog_now_rcf%tracer, z_qsum, condensate_list, jb, i_startidx, i_endidx, 1, 1, nlev, lacc=.FALSE.)
 
         DO jk = 1, nlev
           DO jc = i_startidx, i_endidx
@@ -1320,14 +1323,15 @@ MODULE mo_initicon
 !$OMP END PARALLEL
 
       IF (.NOT. lp2cintp_incr(jg)) THEN ! apply synchronization
-        CALL sync_patch_array(SYNC_E,p_patch(jg),initicon(jg)%atm_inc%vn)
+        CALL sync_patch_array(SYNC_E,p_patch(jg),initicon(jg)%atm_inc%vn,lacc=.FALSE.)
       END IF
 
       p_diag%vn_incr(:,:,:) = initicon(jg)%atm_inc%vn(:,:,:)
 
       ! Apply diffusion on wind increment
       DO iter = 1, niter_diffu
-        CALL nabla2_vec(REAL(p_diag%vn_incr,wp), p_patch(jg), p_int_state(jg), nabla2_vn_incr, opt_rlstart=3)
+        CALL nabla2_vec(REAL(p_diag%vn_incr,wp), p_patch(jg), p_int_state(jg), nabla2_vn_incr, &
+                             lacc=.FALSE., opt_rlstart=3)
 
 !$OMP PARALLEL PRIVATE(rl_start,rl_end,i_startblk,i_endblk)
 
@@ -1356,7 +1360,7 @@ MODULE mo_initicon
         ENDDO  ! jb
 !$OMP ENDDO
 !$OMP END PARALLEL
-        CALL sync_patch_array(SYNC_E,p_patch(jg),p_diag%vn_incr)
+        CALL sync_patch_array(SYNC_E,p_patch(jg),p_diag%vn_incr,lacc=.FALSE.)
       ENDDO
 
       ! Apply divergence damping on wind increment
@@ -1426,7 +1430,7 @@ MODULE mo_initicon
 !$OMP ENDDO
 !$OMP END PARALLEL
 
-          CALL sync_patch_array(SYNC_E,p_patch(jg),p_diag%vn_incr)
+          CALL sync_patch_array(SYNC_E,p_patch(jg),p_diag%vn_incr,lacc=.FALSE.)
 
         ENDDO
       ENDIF
@@ -1624,8 +1628,8 @@ MODULE mo_initicon
 !$OMP ENDDO
 !$OMP END PARALLEL
 
-        CALL sync_patch_array(SYNC_C,p_patch(jg),p_prog_now%w)
-        CALL sync_patch_array(SYNC_E,p_patch(jg),p_prog_now%vn)
+        CALL sync_patch_array(SYNC_C,p_patch(jg),p_prog_now%w,lacc=.FALSE.)
+        CALL sync_patch_array(SYNC_E,p_patch(jg),p_prog_now%vn,lacc=.FALSE.)
 
         ! deallocate temporary arrays
         DEALLOCATE( w_incr, STAT=ist )
@@ -1637,7 +1641,8 @@ MODULE mo_initicon
 
       ! Recompute the hydrostatically integrated pressure from the first guess
       CALL diagnose_pres_temp (p_nh_state(jg)%metrics, p_prog_now, p_prog_now_rcf, p_diag, &
-        &                      p_patch(jg), opt_calc_temp=.FALSE., opt_calc_pres=.TRUE.    )
+        &                      p_patch(jg), lacc=.FALSE.,                                  &
+        &                      opt_calc_temp=.FALSE., opt_calc_pres=.TRUE.    )
 
     ENDDO  ! jg domain loop
 
@@ -2392,7 +2397,7 @@ MODULE mo_initicon
       ENDIF
 
       ! This sync is needed because of the subsequent neighbor point filling
-      CALL sync_patch_array(SYNC_C,p_patch(jg),p_lnd_state(jg)%diag_lnd%t_seasfc)
+      CALL sync_patch_array(SYNC_C,p_patch(jg),p_lnd_state(jg)%diag_lnd%t_seasfc,lacc=.FALSE.)
 
       ! Initialization of t_g_t(:,:,isub_water) and t_s_t(:,:,isub_water)
       ! with t_seasfc is performed in mo_nwp_sfc_utils:nwp_surface_init (nnow and nnew)

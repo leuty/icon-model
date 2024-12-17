@@ -206,7 +206,7 @@ MODULE mo_nh_dcmip_rest_atm
 
 ! initialized vertical velocity
 
-  ! CALL sync_patch_array(SYNC_C, p_patch, p_nh_prog%w)
+  ! CALL sync_patch_array(SYNC_C, p_patch, p_nh_prog%w, lacc=.FALSE.)
 
    i_rlstart = 1
    i_rlend   = min_rlcell
@@ -262,8 +262,8 @@ MODULE mo_nh_dcmip_rest_atm
 !$OMP END DO
 !$OMP END PARALLEL
 
-  CALL sync_patch_array_mult(SYNC_C, p_patch, 2,                                &
-                           & p_nh_diag%temp, p_nh_diag%pres)
+  CALL sync_patch_array_mult(SYNC_C, p_patch, 2, lacc=.FALSE., &
+                           & f3din1=p_nh_diag%temp, f3din2=p_nh_diag%pres)
 
 
 
@@ -273,9 +273,9 @@ MODULE mo_nh_dcmip_rest_atm
    CALL convert_thdvars(p_patch, p_nh_diag%pres, p_nh_diag%temp, &
                       & p_nh_prog%rho, p_nh_prog%exner, p_nh_prog%theta_v  )
 
-   CALL sync_patch_array(SYNC_C, p_patch, p_nh_prog%w)
-   CALL sync_patch_array_mult(SYNC_C, p_patch, 3,                               &
-     &                        p_nh_prog%rho, p_nh_prog%exner, p_nh_prog%theta_v )
+   CALL sync_patch_array(SYNC_C, p_patch, p_nh_prog%w, lacc=.FALSE.)
+   CALL sync_patch_array_mult(SYNC_C, p_patch, 3, lacc=.FALSE., &
+                            & f3din1=p_nh_prog%rho, f3din2=p_nh_prog%exner, f3din3=p_nh_prog%theta_v )
 
 
    IF (l_hydro_adjust) THEN
@@ -283,7 +283,8 @@ MODULE mo_nh_dcmip_rest_atm
      CALL hydro_adjust ( p_patch, p_metrics, p_nh_prog%rho, &
                      & p_nh_prog%exner, p_nh_prog%theta_v   )
 
-     CALL sync_patch_array_mult(SYNC_C, p_patch, 3, p_nh_prog%rho, p_nh_prog%exner, p_nh_prog%theta_v )
+     CALL sync_patch_array_mult(SYNC_C, p_patch, 3, lacc=.FALSE., &
+                              & f3din1=p_nh_prog%rho, f3din2=p_nh_prog%exner, f3din3=p_nh_prog%theta_v )
    END IF
 
 

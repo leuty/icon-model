@@ -268,7 +268,8 @@ MODULE mo_vertical_grid
       ALLOCATE(z_aux_e(nproma,nlev,nblks_e))
 
       z_ifv = 0._wp
-      CALL cells2verts_scalar(p_nh(jg)%metrics%z_ifc, p_patch(jg), p_int(jg)%cells_aw_verts, z_ifv)
+      CALL cells2verts_scalar(p_nh(jg)%metrics%z_ifc, p_patch(jg), p_int(jg)%cells_aw_verts, &
+                              z_ifv, lacc=.FALSE.)
 
       ! Start index for slope computations
       i_startblk = p_patch(jg)%edges%start_block(2)
@@ -282,17 +283,19 @@ MODULE mo_vertical_grid
       CALL grad_fd_tang ( z_ifv,                  &
            &              p_patch(jg),            &
            &              z_ddxt_z_half_e, &
-           &              1, nlevp1 )
+           &              lacc=.FALSE., &
+           &              opt_slev=1, opt_elev=nlevp1 )
       DEALLOCATE(z_ifv)
 
       ! slope of the terrain (normal direction)
       CALL grad_fd_norm ( p_nh(jg)%metrics%z_ifc, &
            &              p_patch(jg), &
            &              z_ddxn_z_half_e, &
-           &              1, nlevp1 )
+           &              lacc=.FALSE., &
+           &              opt_slev=1, opt_elev=nlevp1 )
 
-      CALL sync_patch_array_mult(SYNC_E,p_patch(jg),2,z_ddxt_z_half_e, &
-        z_ddxn_z_half_e)
+      CALL sync_patch_array_mult(SYNC_E, p_patch(jg), 2, lacc=.FALSE., f3din1=z_ddxt_z_half_e, &
+        & f3din2=z_ddxn_z_half_e)
 #ifndef __NO_ICON_LES__
       IF (atm_phy_nwp_config(jg)%is_les_phy) THEN
         ! remark: ddxt_z_half_e, ddxn_z_half_e in p_nh(jg)%metrics are optionally single precision
@@ -342,11 +345,11 @@ MODULE mo_vertical_grid
       ! functional determinant at full level edges
       CALL cells2edges_scalar(p_nh(jg)%metrics%ddqz_z_full, &
            &                  p_patch(jg), p_int(jg)%c_lin_e, &
-           &                  z_aux_e )
+           &                  z_aux_e, lacc=.FALSE.)
 
       ! remark: ddqz_z_full_e is optionally single precision
       p_nh(jg)%metrics%ddqz_z_full_e(:,:,:) = z_aux_e(:,:,:)
-      CALL sync_patch_array(SYNC_E,p_patch(jg),p_nh(jg)%metrics%ddqz_z_full_e)
+      CALL sync_patch_array(SYNC_E,p_patch(jg),p_nh(jg)%metrics%ddqz_z_full_e,lacc=.FALSE.)
 
       DEALLOCATE(z_aux_e)
 
@@ -354,7 +357,8 @@ MODULE mo_vertical_grid
       ALLOCATE (z_aux_c(nproma,1,nblks_c), z_aux_c2(nproma,1,nblks_c))
       z_aux_c(:,:,:) = 0._wp ; z_aux_c2(:,:,:) = 0._wp
       
-      CALL rbf_vec_interpol_cell(z_ddxn_z_half_e(:,nlevp1:nlevp1,:), p_patch(jg), p_int(jg), z_aux_c, z_aux_c2)
+      CALL rbf_vec_interpol_cell(z_ddxn_z_half_e(:,nlevp1:nlevp1,:), p_patch(jg), p_int(jg), &
+                                 z_aux_c, z_aux_c2, lacc=.FALSE.)
 
       i_startblk = p_patch(jg)%cells%start_block(2)
 
@@ -637,13 +641,13 @@ MODULE mo_vertical_grid
       ALLOCATE(z_aux_e(nproma,1,nblks_c))
       z_aux_e(:,1,:) = 0._wp
 
-      CALL sync_patch_array(SYNC_C, p_patch(jg), z_aux_c)
-      CALL cell_avg(z_aux_c, p_patch(jg), p_int(jg)%c_bln_avg, z_aux_e)
+      CALL sync_patch_array(SYNC_C, p_patch(jg), z_aux_c, lacc=.FALSE.)
+      CALL cell_avg(z_aux_c, p_patch(jg), p_int(jg)%c_bln_avg, z_aux_e, lacc=.FALSE.)
       p_nh(jg)%metrics%mask_mtnpoints_g(:,:) = MIN(1._wp,z_aux_e(:,1,:))
 
-      CALL sync_patch_array(SYNC_C, p_patch(jg), p_nh(jg)%metrics%mask_mtnpoints)
+      CALL sync_patch_array(SYNC_C, p_patch(jg), p_nh(jg)%metrics%mask_mtnpoints, lacc=.FALSE.)
       z_aux_c(:,1,:) = p_nh(jg)%metrics%mask_mtnpoints(:,:)
-      CALL cell_avg(z_aux_c, p_patch(jg), p_int(jg)%c_bln_avg, z_aux_e)
+      CALL cell_avg(z_aux_c, p_patch(jg), p_int(jg)%c_bln_avg, z_aux_e, lacc=.FALSE.)
       p_nh(jg)%metrics%mask_mtnpoints(:,:) = z_aux_e(:,1,:)
 
       DEALLOCATE(z_aux_c,z_aux_c2,z_aux_e)
@@ -996,8 +1000,9 @@ MODULE mo_vertical_grid
       ! Interpolate weighting coefficients to edges
       z_aux_c(:,:,:) = p_nh(jg)%metrics%wgtfac_c(:,:,:) ! necessary because wgtfac* may be single precision
 
-      CALL cells2edges_scalar(z_aux_c, p_patch(jg), p_int(jg)%c_lin_e, z_aux_e, 1, nlevp1)
-      CALL sync_patch_array(SYNC_E,p_patch(jg),z_aux_e)
+      CALL cells2edges_scalar(z_aux_c, p_patch(jg), p_int(jg)%c_lin_e, z_aux_e, &
+                              lacc=.FALSE., opt_slev=1, opt_elev=nlevp1)
+      CALL sync_patch_array(SYNC_E,p_patch(jg),z_aux_e,lacc=.FALSE.)
 
       p_nh(jg)%metrics%wgtfac_e(:,:,:) = z_aux_e(:,:,:)
       DEALLOCATE(z_aux_c,z_aux_e)
@@ -1008,8 +1013,9 @@ MODULE mo_vertical_grid
       z_aux_c(:,1:3,:) = p_nh(jg)%metrics%wgtfacq_c(:,1:3,:)
       z_aux_c(:,4:6,:) = p_nh(jg)%metrics%wgtfacq1_c(:,1:3,:)
 
-      CALL cells2edges_scalar(z_aux_c, p_patch(jg), p_int(jg)%c_lin_e, z_aux_e, 1, 6)
-      CALL sync_patch_array(SYNC_E,p_patch(jg),z_aux_e)
+      CALL cells2edges_scalar(z_aux_c, p_patch(jg), p_int(jg)%c_lin_e, z_aux_e, &
+                              lacc=.FALSE., opt_slev=1, opt_elev=6)
+      CALL sync_patch_array(SYNC_E,p_patch(jg),z_aux_e,lacc=.FALSE.)
 
       p_nh(jg)%metrics%wgtfacq_e (:,1:3,:) = z_aux_e(:,1:3,:)
       p_nh(jg)%metrics%wgtfacq1_e(:,1:3,:) = z_aux_e(:,4:6,:)
@@ -1105,9 +1111,9 @@ MODULE mo_vertical_grid
 
       ! Compute geometric height at edge points
       CALL cells2edges_scalar(p_nh(jg)%metrics%z_mc, p_patch(jg), &
-             p_int(jg)%c_lin_e, z_me)
+                              p_int(jg)%c_lin_e, z_me, lacc=.FALSE.)
 
-      CALL sync_patch_array(SYNC_E,p_patch(jg),z_me)
+      CALL sync_patch_array(SYNC_E,p_patch(jg),z_me,lacc=.FALSE.)
 
       i_startblk = p_patch(jg)%edges%start_block(2)
 
@@ -1687,11 +1693,11 @@ MODULE mo_vertical_grid
       ENDIF
 
       IF (igradp_method <= 3) THEN
-        CALL sync_patch_array(SYNC_E,p_patch(jg),p_nh(jg)%metrics%zdiff_gradp(1,:,:,:))
-        CALL sync_patch_array(SYNC_E,p_patch(jg),p_nh(jg)%metrics%zdiff_gradp(2,:,:,:))
+        CALL sync_patch_array(SYNC_E,p_patch(jg),p_nh(jg)%metrics%zdiff_gradp(1,:,:,:),lacc=.FALSE.)
+        CALL sync_patch_array(SYNC_E,p_patch(jg),p_nh(jg)%metrics%zdiff_gradp(2,:,:,:),lacc=.FALSE.)
       ELSE
         DO ic = 1, 8
-          CALL sync_patch_array(SYNC_E,p_patch(jg),p_nh(jg)%metrics%coeff_gradp(ic,:,:,:))
+          CALL sync_patch_array(SYNC_E,p_patch(jg),p_nh(jg)%metrics%coeff_gradp(ic,:,:,:),lacc=.FALSE.)
         ENDDO
       ENDIF
       DEALLOCATE(z_me,flat_idx)
@@ -1711,8 +1717,9 @@ MODULE mo_vertical_grid
           ALLOCATE(z_me(nproma,nlev,nblks_e), STAT=error_status)
           IF (error_status /= SUCCESS) CALL finish(routine, 'Allocation of z_me failed')
         ENDIF
-        CALL cells2edges_scalar(p_nh(jg)%metrics%z_mc, p_patch(jg), p_int(jg)%c_lin_e, z_me)
-        CALL sync_patch_array(SYNC_E, p_patch(jg), z_me)
+        CALL cells2edges_scalar(p_nh(jg)%metrics%z_mc, p_patch(jg), p_int(jg)%c_lin_e, z_me, &
+                                lacc=.FALSE.)
+        CALL sync_patch_array(SYNC_E, p_patch(jg), z_me, lacc=.FALSE.)
         CALL prepare_deepatmo_metrics(nblks_c      = nblks_c,                  &
           &                           nblks_e      = nblks_e,                  &
           &                           npromz_c     = npromz_c,                 &
@@ -2163,17 +2170,17 @@ MODULE mo_vertical_grid
     END IF
 
    CALL cells2verts_scalar(p_nh%metrics%inv_ddqz_z_half, p_patch, p_int%cells_aw_verts, &
-                           p_nh%metrics%inv_ddqz_z_half_v, opt_rlend=min_rlvert_int)
+                           p_nh%metrics%inv_ddqz_z_half_v, lacc=.FALSE., opt_rlend=min_rlvert_int)
 
    z_aux(:,:,:) = p_nh%metrics%wgtfac_c(:,:,:) ! needed because wgtfac_c may be single precision
    CALL cells2verts_scalar(z_aux, p_patch, p_int%cells_aw_verts,          &
-                           p_nh%metrics%wgtfac_v, opt_rlend=min_rlvert_int)
+                           p_nh%metrics%wgtfac_v, lacc=.FALSE., opt_rlend=min_rlvert_int)
 
-   CALL sync_patch_array_mult(SYNC_V,p_patch,2,p_nh%metrics%wgtfac_v,       &
-                                 p_nh%metrics%inv_ddqz_z_half_v)
+   CALL sync_patch_array_mult(SYNC_V, p_patch, 2, lacc=.FALSE., f3din1=p_nh%metrics%wgtfac_v, &
+                              f3din2=p_nh%metrics%inv_ddqz_z_half_v)
 
    CALL cells2edges_scalar(p_nh%metrics%inv_ddqz_z_half, p_patch, p_int%c_lin_e, &
-                           p_nh%metrics%inv_ddqz_z_half_e, opt_rlend=min_rledge_int)
+                           p_nh%metrics%inv_ddqz_z_half_e, lacc=.FALSE., opt_rlend=min_rledge_int)
 
 
   END SUBROUTINE prepare_les_model

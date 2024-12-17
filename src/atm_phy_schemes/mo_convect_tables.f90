@@ -23,6 +23,7 @@ MODULE mo_convect_tables
   USE mo_model_domain,            ONLY: p_patch  ! for debugging only
   USE mo_math_constants,          ONLY: rad2deg  ! for debugging only
   USE mo_lookup_tables_constants, ONLY: c3les, c3ies, c4les, c4ies, c5les, c5ies
+  USE mo_fortran_tools,           ONLY: assert_acc_device_only
 
   IMPLICIT NONE
 
@@ -1041,11 +1042,12 @@ CONTAINS
 
   END SUBROUTINE lookup_ua_list_spline
 
-  SUBROUTINE lookup_ua_list_spline_2(name, size, kidx, list, temp, ua, dua, error_reporter)
+  SUBROUTINE lookup_ua_list_spline_2(name, size, kidx, list, temp, lacc, ua, dua, error_reporter)
     CHARACTER(len=*),   INTENT(in)  :: name
     INTEGER,            INTENT(in)  :: size, kidx
     INTEGER,            INTENT(in)  :: list(kidx)
     REAL(wp),           INTENT(in)  :: temp(size)
+    LOGICAL,            INTENT(in)  :: lacc
     REAL(wp), OPTIONAL, INTENT(out) :: ua(size), dua(size)
     PROCEDURE(i_error_reporter), OPTIONAL :: error_reporter
 
@@ -1055,6 +1057,8 @@ CONTAINS
 
     REAL(wp) :: ztt, ztshft, zinbounds, ztmax, ztmin
     INTEGER :: nl, jl
+
+    CALL assert_acc_device_only ('lookup_ua_list_spline_2', lacc)
 
     !$ACC DATA PRESENT(list, temp) &
     !$ACC   CREATE(idx, zalpha)
@@ -1257,13 +1261,15 @@ CONTAINS
   !! Compute saturation specific humidity
   !! from the given temperature and pressure.
   !!
-  SUBROUTINE compute_qsat( kbdim, is, loidx, ppsfc, ptsfc, pqs, error_reporter )
+  SUBROUTINE compute_qsat( kbdim, is, loidx, ppsfc, ptsfc, pqs, lacc, error_reporter )
 
     INTEGER, INTENT(IN)  :: kbdim, is
     INTEGER ,INTENT(IN)  :: loidx(:)!<
     REAL(wp),INTENT(IN)  :: ppsfc (:)   !< surface pressure
     REAL(wp),INTENT(IN)  :: ptsfc (:)   !< SST
     REAL(wp),INTENT(INOUT) :: pqs   (:)   !< saturation specific humidity
+
+    LOGICAL,INTENT(IN) :: lacc
 
     PROCEDURE(i_error_reporter), OPTIONAL :: error_reporter
 
@@ -1273,12 +1279,14 @@ CONTAINS
     REAL(wp) :: ua(kbdim)
 
     !-----
+    CALL assert_acc_device_only ('compute_qsat', lacc)
+
     lookupoverflow = .FALSE.
 
     !$ACC DATA PRESENT(loidx, ppsfc, ptsfc, pqs) &
     !$ACC   CREATE(ua)
 
-    CALL lookup_ua_list_spline_2('compute_qsat',kbdim,is,loidx(:), ptsfc(:), ua(:), error_reporter=error_reporter)
+    CALL lookup_ua_list_spline_2('compute_qsat',kbdim,is,loidx(:), ptsfc(:), lacc=.TRUE., ua=ua(:), error_reporter=error_reporter)
 !
     !$ACC PARALLEL ASYNC(1)
     !$ACC LOOP GANG VECTOR PRIVATE(jl, zpap, zes, zcor)

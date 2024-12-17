@@ -136,7 +136,6 @@ MODULE mo_name_list_output
                                           num_test_procs
 #endif
 #ifdef _OPENACC
-  USE mo_mpi,                       ONLY: i_am_accel_node
   USE openacc
 #endif
   ! calendar operations
@@ -1054,7 +1053,7 @@ CONTAINS
       END IF
 
       CALL get_ptr_to_var_data(i_ptr, r_ptr, s_ptr, &
-        &                      tl, of%var_desc(iv), info)
+        &                      tl, of%var_desc(iv), info, lacc=lzacc)
 
       ! --------------------------------------------------------
       ! Perform post-ops (small arithmetic operations on fields)
@@ -1238,13 +1237,14 @@ CONTAINS
     last_bdry_index = p_max(max_glb_idx, p_comm_work)
   END FUNCTION get_last_bdry_index
 
-  SUBROUTINE get_ptr_to_var_data(i_ptr, r_ptr, s_ptr, tl, var_desc, info)
+  SUBROUTINE get_ptr_to_var_data(i_ptr, r_ptr, s_ptr, tl, var_desc, info, lacc)
     TYPE (t_var_metadata), INTENT(in) :: info
     REAL(wp), POINTER, INTENT(out) :: r_ptr(:,:,:)
     REAL(sp), POINTER, INTENT(out) :: s_ptr(:,:,:)
     INTEGER, POINTER, INTENT(out) :: i_ptr(:,:,:)
     INTEGER, INTENT(in) :: tl
     TYPE(t_var_desc), TARGET, INTENT(in) :: var_desc
+    LOGICAL, INTENT(in) :: lacc
 
     REAL(wp), SAVE, TARGET :: r_dummy(1,1,1)
     REAL(wp), POINTER :: r_ptr_t(:,:,:,:,:,:), r_ptr_5d(:,:,:,:,:)
@@ -1254,6 +1254,9 @@ CONTAINS
     INTEGER, POINTER :: i_ptr_t(:,:,:,:,:,:), i_ptr_5d(:,:,:,:,:)
     CHARACTER(LEN=*), PARAMETER :: routine = modname//"::get_ptr_to_var_data"
     INTEGER :: var_ref_pos, nindex
+    LOGICAL :: lzacc
+
+    CALL set_acc_host_or_device(lzacc, lacc)
 
     r_ptr => r_dummy
     s_ptr => s_dummy
@@ -1312,7 +1315,7 @@ CONTAINS
       IF (var_ref_pos < 1 .OR. var_ref_pos > 3) THEN
         WRITE (message_text, '(2a,i0)') TRIM(info%name), &
              ": internal error! var_ref_pos=", var_ref_pos
-        GO TO 999
+        CALL finish(routine,message_text)
       END IF
       IF      (ASSOCIATED(r_ptr_5d)) THEN
         SELECT CASE(var_ref_pos)
@@ -1367,7 +1370,7 @@ CONTAINS
       IF (var_ref_pos < 1 .OR. var_ref_pos > 4) THEN
         WRITE (message_text, '(2a,i0)') TRIM(info%name), &
              ": internal error! var_ref_pos=", var_ref_pos
-        GO TO 999
+        CALL finish(routine,message_text)
       END IF
 
       ! 3D fields: Here we could just set a pointer to the
@@ -1410,22 +1413,19 @@ CONTAINS
     CASE DEFAULT
       WRITE (message_text, '(2a,i0)') TRIM(info%name), &
            ": internal error! unhandled info%ndims=", info%ndims
-      GO TO 999
+      CALL finish(routine,message_text)
     END SELECT
 
     
 
     IF      (ASSOCIATED(r_ptr_5d)) THEN
-      !$ACC UPDATE HOST(r_ptr) ASYNC(1) IF(i_am_accel_node .AND. acc_is_present(r_ptr))
+      !$ACC UPDATE HOST(r_ptr) ASYNC(1) IF(lacc .AND. acc_is_present(r_ptr))
     ELSE IF (ASSOCIATED(s_ptr_5d)) THEN
-      !$ACC UPDATE HOST(s_ptr) ASYNC(1) IF(i_am_accel_node .AND. acc_is_present(s_ptr))
+      !$ACC UPDATE HOST(s_ptr) ASYNC(1) IF(lacc .AND. acc_is_present(s_ptr))
     ELSE IF (ASSOCIATED(i_ptr_5d)) THEN
-      !$ACC UPDATE HOST(i_ptr) ASYNC(1) IF(i_am_accel_node .AND. acc_is_present(i_ptr))
+      !$ACC UPDATE HOST(i_ptr) ASYNC(1) IF(lacc .AND. acc_is_present(i_ptr))
     ENDIF
-    !$ACC WAIT(1) IF(i_am_accel_node)
-
-    RETURN
-999 CALL finish(routine,message_text)
+    !$ACC WAIT(1) IF(lacc)
 
   END SUBROUTINE get_ptr_to_var_data
 

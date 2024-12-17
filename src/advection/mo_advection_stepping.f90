@@ -221,14 +221,14 @@ CONTAINS
     ! includes all halo points (see below)
     IF (lvert_nest .AND. p_patch%nshift > 0) THEN ! vertical nesting
 
-      CALL sync_patch_array_mult(SYNC_C, p_patch, 2, p_mflx_contra_v, q_ubc, &
+      CALL sync_patch_array_mult(SYNC_C, p_patch, 2, lacc=.TRUE., f3din1=p_mflx_contra_v, f3din2=q_ubc, &
                                  opt_varname = 'step_advecvtion: p_mflx_contra_v,q_ubc')
     ELSE
       ! note that in cases without vertical nesting q_ubc=0._wp is ensured, as 
       ! * q_int = 0._wp
       ! * parent to child interpolation of q_int is constancy preserving
       !
-      CALL sync_patch_array(SYNC_C, p_patch, p_mflx_contra_v, opt_varname='step_advection: p_mflx_contra_v')
+      CALL sync_patch_array(SYNC_C, p_patch, p_mflx_contra_v, lacc=.TRUE., opt_varname='step_advection: p_mflx_contra_v')
     ENDIF
 
 
@@ -526,7 +526,7 @@ CONTAINS
     ! For efficiency, the synchronization is applied for all tracers at once.
 
     IF (iforcing /= inwp) THEN
-      CALL sync_patch_array_mult(SYNC_C, p_patch, ntracer, f4din=p_tracer_new, opt_varname='ntracer and p_tracer_new')
+      CALL sync_patch_array_mult(SYNC_C, p_patch, ntracer, lacc=.TRUE., f4din=p_tracer_new, opt_varname='ntracer and p_tracer_new')
     ENDIF
 
 
@@ -604,7 +604,7 @@ CONTAINS
 !$OMP END PARALLEL
 
       IF (iforcing /= inwp) THEN 
-        CALL sync_patch_array_mult(SYNC_C, p_patch, ntracer,  f4din=opt_ddt_tracer_adv, &
+        CALL sync_patch_array_mult(SYNC_C, p_patch, ntracer, lacc=.TRUE., f4din=opt_ddt_tracer_adv, &
                &                   opt_varname='ntracer and opt_ddt_tracer_adv' )
       ENDIF
 

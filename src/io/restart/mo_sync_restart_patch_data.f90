@@ -135,7 +135,7 @@ CONTAINS
       CASE(REAL_T)
         ALLOCATE(gatherBuffer_dp(MERGE(gridSize, 0, is_mpi_workroot)), STAT = error)
         IF(error /= SUCCESS) CALL finish(routine, "memory allocation failed")
-        CALL get_var_3d_ptr(me%varData(i)%p, r_ptr_3d)
+        CALL get_var_3d_ptr(me%varData(i)%p, r_ptr_3d, lacc=.TRUE.)
         ! gather the data in the master process and write it to disk
         DO level = 1, SIZE(r_ptr_3d, 2)
           IF(timers_level >= 7) CALL timer_start(timer_write_restart_communication)
@@ -154,7 +154,7 @@ CONTAINS
       CASE(SINGLE_T)
         ALLOCATE(gatherBuffer_sp(MERGE(gridSize, 0, is_mpi_workroot)), STAT = error)
         IF(error /= SUCCESS) CALL finish(routine, "memory allocation failed")
-        CALL get_var_3d_ptr(me%varData(i)%p, s_ptr_3d)
+        CALL get_var_3d_ptr(me%varData(i)%p, s_ptr_3d, lacc=.TRUE.)
         ! gather the data in the master process and write it to disk
         DO level = 1, SIZE(s_ptr_3d, 2)
           IF(timers_level >= 7) CALL timer_start(timer_write_restart_communication)
@@ -173,7 +173,7 @@ CONTAINS
       CASE(INT_T)
         ALLOCATE(gatherBuffer_int(MERGE(gridSize, 0, is_mpi_workroot)), STAT = error)
         IF(error /= SUCCESS) CALL finish(routine, "memory allocation failed")
-        CALL get_var_3d_ptr(me%varData(i)%p, i_ptr_3d)
+        CALL get_var_3d_ptr(me%varData(i)%p, i_ptr_3d, lacc=.TRUE.)
         ! gather the data in the master process and write it to disk
         DO level = 1, SIZE(i_ptr_3d, 2)
           IF(timers_level >= 7) CALL timer_start(timer_write_restart_communication)

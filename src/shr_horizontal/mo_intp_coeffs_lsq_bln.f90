@@ -140,9 +140,9 @@ CONTAINS
 
     DO cnt = 1, lsq_dim_c
       CALL sync_idx(SYNC_C, SYNC_C, ptr_patch, ptr_int_lsq%lsq_idx_c(:,:,cnt), &
-        &                                      ptr_int_lsq%lsq_blk_c(:,:,cnt))
+        &                                      ptr_int_lsq%lsq_blk_c(:,:,cnt), lacc=.FALSE.)
     ENDDO
-    CALL sync_patch_array(SYNC_C, ptr_patch, ptr_int_lsq%lsq_dim_stencil)
+    CALL sync_patch_array(SYNC_C, ptr_patch, ptr_int_lsq%lsq_dim_stencil, lacc=.FALSE.)
 
   END SUBROUTINE lsq_stencil_create
 
@@ -1028,10 +1028,10 @@ CHARACTER(len=*), PARAMETER :: routine = modname//':lsq_compute_coeff_cell_spher
 !!$OMP END PARALLEL
 
   DO jb = 1, lsq_dim_c
-    CALL sync_patch_array(SYNC_C,ptr_patch,ptr_int_lsq%lsq_weights_c(:,jb,:))
+    CALL sync_patch_array(SYNC_C,ptr_patch,ptr_int_lsq%lsq_weights_c(:,jb,:), lacc=.FALSE.)
   ENDDO
   DO jb = 1, lsq_dim_unk
-    CALL sync_patch_array(SYNC_C,ptr_patch,ptr_int_lsq%lsq_moments(:,:,jb))
+    CALL sync_patch_array(SYNC_C,ptr_patch,ptr_int_lsq%lsq_moments(:,:,jb), lacc=.FALSE.)
   ENDDO
 
 
@@ -1308,17 +1308,17 @@ CHARACTER(len=*), PARAMETER :: routine = modname//':lsq_compute_coeff_cell_spher
 
   DO ju = 1, lsq_dim_unk
     DO jc = 1, lsq_dim_c
-      CALL sync_patch_array(SYNC_C,ptr_patch,ptr_int_lsq%lsq_moments_hat(:,:,jc,ju))
-      CALL sync_patch_array(SYNC_C,ptr_patch,ptr_int_lsq%lsq_pseudoinv(:,ju,jc,:))
-      CALL sync_patch_array(SYNC_C,ptr_patch,ptr_int_lsq%lsq_qtmat_c(:,ju,jc,:))
+      CALL sync_patch_array(SYNC_C,ptr_patch,ptr_int_lsq%lsq_moments_hat(:,:,jc,ju), lacc=.FALSE.)
+      CALL sync_patch_array(SYNC_C,ptr_patch,ptr_int_lsq%lsq_pseudoinv(:,ju,jc,:), lacc=.FALSE.)
+      CALL sync_patch_array(SYNC_C,ptr_patch,ptr_int_lsq%lsq_qtmat_c(:,ju,jc,:), lacc=.FALSE.)
     ENDDO
   ENDDO
 
   DO jc = 1, UBOUND(ptr_int_lsq%lsq_rmat_utri_c, 2)
-    CALL sync_patch_array(SYNC_C,ptr_patch,ptr_int_lsq%lsq_rmat_utri_c(:,jc,:))
+    CALL sync_patch_array(SYNC_C,ptr_patch,ptr_int_lsq%lsq_rmat_utri_c(:,jc,:), lacc=.FALSE.)
   ENDDO
   DO ju = 1,lsq_dim_unk
-    CALL sync_patch_array(SYNC_C,ptr_patch,ptr_int_lsq%lsq_rmat_rdiag_c(:,ju,:))
+    CALL sync_patch_array(SYNC_C,ptr_patch,ptr_int_lsq%lsq_rmat_rdiag_c(:,ju,:), lacc=.FALSE.)
   ENDDO
 
 END SUBROUTINE lsq_compute_coeff_cell_sphere
@@ -1756,10 +1756,10 @@ REAL(wp) :: za_debug(nproma,lsq_dim_c,lsq_dim_unk)
 !!$OMP END PARALLEL
 
   DO jb = 1, lsq_dim_c
-    CALL sync_patch_array(SYNC_C,ptr_patch,ptr_int_lsq%lsq_weights_c(:,jb,:))
+    CALL sync_patch_array(SYNC_C,ptr_patch,ptr_int_lsq%lsq_weights_c(:,jb,:), lacc=.FALSE.)
   ENDDO
   DO jb = 1, lsq_dim_unk
-    CALL sync_patch_array(SYNC_C,ptr_patch,ptr_int_lsq%lsq_moments(:,:,jb))
+    CALL sync_patch_array(SYNC_C,ptr_patch,ptr_int_lsq%lsq_moments(:,:,jb), lacc=.FALSE.)
   ENDDO
 
 
@@ -2033,17 +2033,17 @@ REAL(wp) :: za_debug(nproma,lsq_dim_c,lsq_dim_unk)
 
   DO ju = 1, lsq_dim_unk
     DO jc = 1, lsq_dim_c
-      CALL sync_patch_array(SYNC_C,ptr_patch,ptr_int_lsq%lsq_moments_hat(:,:,jc,ju))
-      CALL sync_patch_array(SYNC_C,ptr_patch,ptr_int_lsq%lsq_pseudoinv(:,ju,jc,:))
-      CALL sync_patch_array(SYNC_C,ptr_patch,ptr_int_lsq%lsq_qtmat_c(:,ju,jc,:))
+      CALL sync_patch_array(SYNC_C,ptr_patch,ptr_int_lsq%lsq_moments_hat(:,:,jc,ju), lacc=.FALSE.)
+      CALL sync_patch_array(SYNC_C,ptr_patch,ptr_int_lsq%lsq_pseudoinv(:,ju,jc,:), lacc=.FALSE.)
+      CALL sync_patch_array(SYNC_C,ptr_patch,ptr_int_lsq%lsq_qtmat_c(:,ju,jc,:), lacc=.FALSE.)
     ENDDO
   ENDDO
 
   DO jc = 1, UBOUND(ptr_int_lsq%lsq_rmat_utri_c, 2)
-    CALL sync_patch_array(SYNC_C,ptr_patch,ptr_int_lsq%lsq_rmat_utri_c(:,jc,:))
+    CALL sync_patch_array(SYNC_C,ptr_patch,ptr_int_lsq%lsq_rmat_utri_c(:,jc,:), lacc=.FALSE.)
   ENDDO
   DO ju = 1,lsq_dim_unk
-    CALL sync_patch_array(SYNC_C,ptr_patch,ptr_int_lsq%lsq_rmat_rdiag_c(:,ju,:))
+    CALL sync_patch_array(SYNC_C,ptr_patch,ptr_int_lsq%lsq_rmat_rdiag_c(:,ju,:), lacc=.FALSE.)
   ENDDO
 
 END SUBROUTINE lsq_compute_coeff_cell_torus
@@ -2251,10 +2251,10 @@ INTEGER :: i_endidx                  ! end index
 !$OMP END DO NOWAIT
 !$OMP END PARALLEL
 
-  CALL sync_patch_array(SYNC_E,ptr_patch,ptr_int_state%c_lin_e)
-  CALL sync_patch_array(SYNC_C,ptr_patch,ptr_int_state%verts_aw_cells)
-  CALL sync_patch_array(SYNC_C,ptr_patch,ptr_int_state%e_inn_c)
-  CALL sync_patch_array(SYNC_V,ptr_patch,ptr_int_state%cells_aw_verts)
+  CALL sync_patch_array(SYNC_E,ptr_patch,ptr_int_state%c_lin_e, lacc=.FALSE.)
+  CALL sync_patch_array(SYNC_C,ptr_patch,ptr_int_state%verts_aw_cells, lacc=.FALSE.)
+  CALL sync_patch_array(SYNC_C,ptr_patch,ptr_int_state%e_inn_c, lacc=.FALSE.)
+  CALL sync_patch_array(SYNC_V,ptr_patch,ptr_int_state%cells_aw_verts, lacc=.FALSE.)
 
 END SUBROUTINE scalar_int_coeff
 !-------------------------------------------------------------------------
@@ -2422,7 +2422,7 @@ END DO !block loop
 !$OMP END DO NOWAIT
 !$OMP END PARALLEL
 
-CALL sync_patch_array(SYNC_C,ptr_patch,ptr_int_state%e_bln_c_s)
+CALL sync_patch_array(SYNC_C,ptr_patch,ptr_int_state%e_bln_c_s, lacc=.FALSE.)
 
 
 END SUBROUTINE spherical_scalar_coeffs
@@ -2571,8 +2571,8 @@ END DO !block loop
 !$OMP END DO NOWAIT
 !$OMP END PARALLEL
 
-CALL sync_patch_array(SYNC_C,ptr_patch,ptr_int_state%e_bln_c_u)
-CALL sync_patch_array(SYNC_C,ptr_patch,ptr_int_state%e_bln_c_v)
+CALL sync_patch_array(SYNC_C,ptr_patch,ptr_int_state%e_bln_c_u, lacc=.FALSE.)
+CALL sync_patch_array(SYNC_C,ptr_patch,ptr_int_state%e_bln_c_v, lacc=.FALSE.)
 
 END SUBROUTINE vector_coeffs
 !-------------------------------------------------------------------------
@@ -2628,7 +2628,7 @@ wgt = 1._wp/3._wp
 !$OMP END DO NOWAIT
 !$OMP END PARALLEL
 
-CALL sync_patch_array(SYNC_C,ptr_patch,ptr_int_state%e_bln_c_s)
+CALL sync_patch_array(SYNC_C,ptr_patch,ptr_int_state%e_bln_c_s, lacc=.FALSE.)
 
 
 END SUBROUTINE flat_scalar_coeffs

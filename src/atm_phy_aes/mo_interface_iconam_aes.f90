@@ -360,12 +360,13 @@ CONTAINS
     IF (aes_phy_tc(jg)%dt_vdf > dt_zero) THEN
       !
       IF (ltimer) CALL timer_start(timer_d2p_sync)
-      CALL sync_patch_array_mult(SYNC_E, patch, 1, dyn_new%vn)
+      CALL sync_patch_array_mult(SYNC_E, patch, 1, lacc=.TRUE., f3din1=dyn_new%vn)
       IF (ltimer) CALL timer_stop(timer_d2p_sync)
       !
       ! interpolate vn -> (u,v)
       CALL rbf_vec_interpol_cell(dyn_new%vn, patch, int_state,       &! in
         &                        f%ua, f%va,                         &! out
+        &                        lacc=.TRUE.,                        &! in
         &                        opt_rlstart=rls_c, opt_rlend=rle_c, &! in
         &                        opt_acc_async=.TRUE.)                ! in
       !
@@ -374,7 +375,7 @@ CONTAINS
         !
         ! synchronize input fields to allow horizontal operations
         IF (ltimer) CALL timer_start(timer_d2p_sync)
-        CALL sync_patch_array_mult(SYNC_C, patch, 4, f%rho, f%ua, f%va, f%wa)
+        CALL sync_patch_array_mult(SYNC_C, patch, 4, lacc=.TRUE., f3din1=f%rho, f3din2=f%ua, f3din3=f%va, f3din4=f%wa)
         IF (ltimer) CALL timer_stop(timer_d2p_sync)
         !
       END IF
@@ -424,7 +425,7 @@ CONTAINS
     IF (aes_phy_tc(jg)%dt_vdf > dt_zero) THEN
       !
       IF (ltimer) CALL timer_start(timer_p2d_sync)
-      CALL sync_patch_array_mult(SYNC_C, patch, 2, t%ua_phy, t%va_phy)
+      CALL sync_patch_array_mult(SYNC_C, patch, 2, lacc=.TRUE., f3din1=t%ua_phy, f3din2=t%va_phy)
       IF (ltimer) CALL timer_stop(timer_p2d_sync)
 
 !$OMP PARALLEL
@@ -583,14 +584,14 @@ CONTAINS
     ! Synchronize the prognostic state
     !
     IF (ltimer) CALL timer_start(timer_p2d_sync)
-    CALL sync_patch_array_mult(SYNC_E, patch, 1,         &
-      &                        dyn_new%vn)
-    CALL sync_patch_array_mult(SYNC_C, patch, 5+ntracer, &
-      &                        dyn_new%w,                &
-      &                        dyn_new%rho,              &
-      &                        dyn_new%exner,            &
-      &                        dyn_new%theta_v,          &
-      &                        diag%exner_pr,            &
+    CALL sync_patch_array_mult(SYNC_E, patch, 1,  lacc=.TRUE., &
+      &                        f3din1=dyn_new%vn)
+    CALL sync_patch_array_mult(SYNC_C, patch, 5+ntracer, lacc=.TRUE., &
+      &                        f3din1=dyn_new%w,                &
+      &                        f3din2=dyn_new%rho,              &
+      &                        f3din3=dyn_new%exner,            &
+      &                        f3din4=dyn_new%theta_v,          &
+      &                        f3din5=diag%exner_pr,            &
       &                        f4din=adv_new%tracer)
     IF (ltimer) CALL timer_stop(timer_p2d_sync)
     !

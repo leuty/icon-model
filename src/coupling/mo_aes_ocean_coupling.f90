@@ -1235,7 +1235,7 @@ CONTAINS
       IF ( idbg_mxmn >= 1 .OR. idbg_val >=1 )  &
         &  CALL dbg_print('AESOce: SSToce-cpl',scr,str_module,4,in_subset=p_patch%cells%owned)
 
-      CALL sync_patch_array(sync_c, p_patch, prm_field(jg)%ts_tile(:,:,iwtr))
+      CALL sync_patch_array(sync_c, p_patch, prm_field(jg)%ts_tile(:,:,iwtr), lacc=.TRUE.)
     END IF
     !
     ! ------------------------------
@@ -1269,7 +1269,7 @@ CONTAINS
       !$ACC WAIT(1)
 !ICON_OMP_END_PARALLEL_DO
 
-      CALL sync_patch_array(sync_c, p_patch, prm_field(jg)%ocu(:,:))
+      CALL sync_patch_array(sync_c, p_patch, prm_field(jg)%ocu(:,:), lacc=.TRUE.)
     END IF
 
     ! ------------------------------
@@ -1303,7 +1303,7 @@ CONTAINS
       !$ACC WAIT(1)
 !ICON_OMP_END_PARALLEL_DO
 
-      CALL sync_patch_array(sync_c, p_patch, prm_field(jg)%ocv(:,:))
+      CALL sync_patch_array(sync_c, p_patch, prm_field(jg)%ocv(:,:), lacc=.TRUE.)
     END IF
 
     ! ------------------------------
@@ -1339,9 +1339,9 @@ CONTAINS
       !$ACC WAIT(1)
 !ICON_OMP_END_PARALLEL_DO
 
-      CALL sync_patch_array(sync_c, p_patch, prm_field(jg)%hi  (:,1,:))
-      CALL sync_patch_array(sync_c, p_patch, prm_field(jg)%hs  (:,1,:))
-      CALL sync_patch_array(sync_c, p_patch, prm_field(jg)%conc(:,1,:))
+      CALL sync_patch_array(sync_c, p_patch, prm_field(jg)%hi  (:,1,:), lacc=.TRUE.)
+      CALL sync_patch_array(sync_c, p_patch, prm_field(jg)%hs  (:,1,:), lacc=.TRUE.)
+      CALL sync_patch_array(sync_c, p_patch, prm_field(jg)%conc(:,1,:), lacc=.TRUE.)
 
 !ICON_OMP_PARALLEL_DO PRIVATE(i_blk, n, nlen) ICON_OMP_RUNTIME_SCHEDULE
       DO i_blk = 1, p_patch%nblks_c
@@ -1395,7 +1395,7 @@ CONTAINS
           !$ACC WAIT(1)
 !ICON_OMP_END_PARALLEL_DO
           !
-          CALL sync_patch_array(sync_c, p_patch, prm_field(jg)%co2_flux_tile(:,:,iwtr))
+          CALL sync_patch_array(sync_c, p_patch, prm_field(jg)%co2_flux_tile(:,:,iwtr), lacc=.TRUE.)
         ENDIF
 
     END IF

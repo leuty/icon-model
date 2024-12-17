@@ -846,7 +846,7 @@ contains
           owner_c(jc,3,jb) = jb
        end do
     end do
-    call sync_patch_array (SYNC_C, patch, owner_c)
+    call sync_patch_array (SYNC_C, patch, owner_c, lacc=.FALSE.)
     ! Kontrolle
     do jb = i_startblk, i_endblk
        call get_indices_c (patch, jb, i_startblk, i_endblk,   &
@@ -874,7 +874,7 @@ contains
           owner_v(jc,3,jb) = jb
        end do
     end do
-    call sync_patch_array (SYNC_V, patch, owner_v)
+    call sync_patch_array (SYNC_V, patch, owner_v, lacc=.FALSE.)
     ! Kontrolle
     do jb = i_startblk, i_endblk
        call get_indices_v (patch, jb, i_startblk, i_endblk,   &
@@ -1653,9 +1653,10 @@ contains
     call allocate (state, fields)
     
     ! Ensure that diagnostic fields are up-to-date (HR, CW)
-    call rbf_vec_interpol_cell (atm_p%vn, p_patch(1), p_int_state(1), atm_d%u, atm_d%v)
+    call rbf_vec_interpol_cell (atm_p%vn, p_patch(1), p_int_state(1), atm_d%u, atm_d%v, lacc=.FALSE.)
 
     call diagnose_pres_temp ( p_nh_state(1)%metrics, atm_p, atm_r, atm_d, p_patch(1), &
+         &                    lacc=.FALSE.,                                           &
          &                    opt_calc_temp=.TRUE.,                                   &
          &                    opt_calc_pres=.TRUE. )
 

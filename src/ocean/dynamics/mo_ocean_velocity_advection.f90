@@ -425,7 +425,7 @@ CONTAINS
     !-----------------------------------------------------------------------
     CALL rot_vertex_ocean_3d( patch_3d, vn, p_diag%p_vn_dual, ocean_coefficients, p_diag%vort)
     ! sync not needed here, but used for example for the Leith
-    CALL sync_patch_array(SYNC_V, patch_2D, p_diag%vort)
+    CALL sync_patch_array(SYNC_V, patch_2D, p_diag%vort, lacc=.FALSE.)
     !--------------------------------------------------------------
     !calculate nonlinear coriolis term by
     !1) projection cell reconstructed velocity vector in tangential direction
@@ -498,7 +498,7 @@ CONTAINS
  !       END DO
  !     END DO
  !   END DO
- !  CALL sync_patch_array(SYNC_C, patch_2D, p_diag%kin)
+ !  CALL sync_patch_array(SYNC_C, patch_2D, p_diag%kin, lacc=.FALSE.)
 
 
 
@@ -706,7 +706,7 @@ ENDDO
                               & p_diag%p_vn_dual,    &
                               & ocean_coefficients,          &
                               & p_diag%vort)
-    CALL sync_patch_array(SYNC_V, patch_2D, p_diag%vort)
+    CALL sync_patch_array(SYNC_V, patch_2D, p_diag%vort, lacc=.FALSE.)
 
     !---------Debug Diagnostics-------------------------------------------
     idt_src=2  ! output print level (1-5, fix)
@@ -819,7 +819,7 @@ ENDDO
     ! Step 3: Map result of previous calculations from cell centers to edges (for all vertical layers)
     CALL map_cell2edges_3D( patch_3D, z_adv_u_m, veloc_adv_vert_e,ocean_coefficients)
 
-!     CALL sync_patch_array(SYNC_E, patch_2D, veloc_adv_vert_e)
+!     CALL sync_patch_array(SYNC_E, patch_2D, veloc_adv_vert_e, lacc=.FALSE.)
     !---------Debug Diagnostics-------------------------------------------
     idt_src=3  ! output print level (1-5, fix)
     CALL dbg_print('VertMimRot: V.Adv. Final'    ,veloc_adv_vert_e         ,str_module,idt_src, &
@@ -1205,7 +1205,7 @@ ENDDO
     CALL map_cell2edges_3D( patch_3D, z_adv_u_m, veloc_adv_vert_e,ocean_coefficients)
 
 
-    CALL sync_patch_array(SYNC_E, patch_2D, veloc_adv_vert_e)
+    CALL sync_patch_array(SYNC_E, patch_2D, veloc_adv_vert_e, lacc=.FALSE.)
 
     !---------Debug Diagnostics-------------------------------------------
     idt_src=3  ! output print level (1-5, fix)
@@ -1302,7 +1302,7 @@ ENDDO
     ! ! Step 3: Map result of previous calculations from cell centers to edges (for all vertical layers)
     CALL map_cell2edges_3D( patch_3D, z_adv_u_i, veloc_adv_vert_e, ocean_coefficients)
 
-    CALL sync_patch_array(SYNC_E, patch_2D, veloc_adv_vert_e)
+    CALL sync_patch_array(SYNC_E, patch_2D, veloc_adv_vert_e, lacc=.FALSE.)
 
     !---------Debug Diagnostics-------------------------------------------
     idt_src=1  ! output print level (1-5, fix)
@@ -1396,7 +1396,7 @@ ENDDO
     ! ! Step 3: Map result of previous calculations from cell centers to edges (for all vertical layers)
     CALL map_cell2edges_3D( patch_3D, z_adv_u_i, veloc_adv_vert_e, ocean_coefficients)
 
-    CALL sync_patch_array(SYNC_E, patch_2D, veloc_adv_vert_e)
+    CALL sync_patch_array(SYNC_E, patch_2D, veloc_adv_vert_e, lacc=.FALSE.)
 
     !---------Debug Diagnostics-------------------------------------------
     idt_src=3  ! output print level (1-5, fix)
@@ -1492,7 +1492,7 @@ ENDDO
 !     ! ! Step 3: Map result of previous calculations from cell centers to edges (for all vertical layers)
 !     CALL map_cell2edges_3D( patch_2D, z_adv_u_m, veloc_adv_vert_e,ocean_coefficients)
 !
-!     CALL sync_patch_array(SYNC_E, patch_2D, veloc_adv_vert_e)
+!     CALL sync_patch_array(SYNC_E, patch_2D, veloc_adv_vert_e, lacc=.FALSE.)
 !
 !     !---------Debug Diagnostics-------------------------------------------
 !     idt_src=3  ! output print level (1-5, fix)
@@ -1586,7 +1586,7 @@ ENDDO
 !       & p_diag%vt,&
 !       & opt_start_level=start_level,opt_elev=elev)
 !
-!     CALL sync_patch_array(SYNC_E, patch_2D, p_diag%v)
+!     CALL sync_patch_array(SYNC_E, patch_2D, p_diag%v, lacc=.FALSE.)
 !
 !
 !     DO blockNo = all_edges%start_block, all_edges%end_block
@@ -1604,7 +1604,7 @@ ENDDO
 !     CALL rot_vertex_ocean_rbf(patch_2D,vn, p_diag%vt, p_diag%vort)
 !     ! CALL verts2edges_scalar( p_diag%vort, patch_2D, p_int%v_1o2_e, &
 !     !                          z_vort_e, opt_start_level=start_level,opt_elev=elev, opt_rlstart=3)
-!     CALL sync_patch_array(SYNC_V, patch_2D, p_diag%vort)
+!     CALL sync_patch_array(SYNC_V, patch_2D, p_diag%vort, lacc=.FALSE.)
 !
 !
 !     DO blockNo = owned_edges%start_block, owned_edges%end_block
@@ -1673,7 +1673,7 @@ ENDDO
 !         END DO
 !       END DO
 !     ENDDO
-!     CALL sync_patch_array(SYNC_E, patch_2D, z_vort_e)
+!     CALL sync_patch_array(SYNC_E, patch_2D, z_vort_e, lacc=.FALSE.)
 !
 !
 !     DO blockNo = all_edges%start_block, all_edges%end_block
@@ -1693,7 +1693,7 @@ ENDDO
 !
 !     CALL rbf_vec_interpol_cell( vn, patch_2D, p_int, p_diag%u,  &
 !       & p_diag%v, opt_start_level=start_level, opt_elev=elev)
-!     CALL sync_patch_array(SYNC_C, patch_2D, p_diag%v)
+!     CALL sync_patch_array(SYNC_C, patch_2D, p_diag%v, lacc=.FALSE.)
 !
 !     !write(*,*)'max/min vort flux:', MAXVAL(z_vort_flx_RBF(:,1,:)),MINVAL(z_vort_flx_RBF(:,1,:))
 !     DO blockNo = all_edges%start_block, all_edges%end_block
@@ -1762,7 +1762,7 @@ ENDDO
 ! !     CALL grad_fd_norm_oce( p_diag%kin, &
 ! !       & patch_2D,    &
 ! !       & z_grad_ekin_rbf, opt_start_level=start_level,opt_elev=elev)
-! !     CALL sync_patch_array(SYNC_C, patch_2D, z_grad_ekin_rbf)
+! !     CALL sync_patch_array(SYNC_C, patch_2D, z_grad_ekin_rbf, lacc=.FALSE.)
 !
 !
 !     !Add relative vorticity and gradient of kinetic energy to obtain complete horizontal advection

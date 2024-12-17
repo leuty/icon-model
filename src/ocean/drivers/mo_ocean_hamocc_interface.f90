@@ -205,7 +205,7 @@ CONTAINS
       & sea_ice, p_phys_param)
 
 !     CALL sync_patch_array(sync_e,  transport_state%patch_3d%p_patch_2d(1),  &
-!       & transport_state%mass_flux_e)
+!       & transport_state%mass_flux_e, lacc=.FALSE.)
  
 !     CALL dbg_print('mass_flux_e All'       , transport_state%mass_flux_e, "from ocean", 1,  &
 !       & transport_state%patch_3d%p_patch_2d(1)%edges%all)
@@ -430,7 +430,7 @@ CONTAINS
      
     patch_2d => hamocc_ocean_state%patch_3D%p_patch_2d(1)
 
-    CALL sync_patch_array(sync_c, patch_2d,  hamocc_ocean_state%hamocc_to_ocean_state%swr_fraction)
+    CALL sync_patch_array(sync_c, patch_2d,  hamocc_ocean_state%hamocc_to_ocean_state%swr_fraction, lacc=.FALSE.)
     
   END SUBROUTINE sync_ocean_input
   !-------------------------------------------------------------------------
@@ -464,7 +464,7 @@ CONTAINS
     gather_cells_2d(:,10,:) = hamocc_ocean_state%ocean_to_hamocc_state%stretch_c_new(:,:)
     gather_cells_2d(:,11,:) = hamocc_ocean_state%ocean_to_hamocc_state%draftave (:,:)    
         
-    CALL sync_patch_array(sync_c, patch_2d, gather_cells_2d)
+    CALL sync_patch_array(sync_c, patch_2d, gather_cells_2d, lacc=.FALSE.)
 
     hamocc_ocean_state%ocean_to_hamocc_state%top_dilution_coeff(:,:)    = gather_cells_2d(:,1,:)
     hamocc_ocean_state%ocean_to_hamocc_state%h_old(:,:)                 = gather_cells_2d(:,2,:)
@@ -481,14 +481,14 @@ CONTAINS
     DEALLOCATE(gather_cells_2d)
     
     ! sync the 3D fields
-    CALL sync_patch_array_mult(sync_c, patch_2d, 3,  &
-      & hamocc_ocean_state%ocean_to_hamocc_state%temperature,           &
-      & hamocc_ocean_state%ocean_to_hamocc_state%salinity,              &
-      & hamocc_ocean_state%ocean_to_hamocc_state%press_hyd)
+    CALL sync_patch_array_mult(sync_c, patch_2d, 3, lacc=.FALSE.,  &
+      & f3din1=hamocc_ocean_state%ocean_to_hamocc_state%temperature,           &
+      & f3din2=hamocc_ocean_state%ocean_to_hamocc_state%salinity,              &
+      & f3din3=hamocc_ocean_state%ocean_to_hamocc_state%press_hyd)
       
-    CALL sync_patch_array_mult(sync_c, patch_2d, 2,  &
-      & hamocc_ocean_state%ocean_to_hamocc_state%ver_diffusion_coeff,   &
-      & hamocc_ocean_state%ocean_transport_state%w)
+    CALL sync_patch_array_mult(sync_c, patch_2d, 2, lacc=.FALSE.,  &
+      & f3din1=hamocc_ocean_state%ocean_to_hamocc_state%ver_diffusion_coeff,   &
+      & f3din2=hamocc_ocean_state%ocean_transport_state%w)
 
 !     CALL dbg_print('mass_flux_e All'       , transport_state%mass_flux_e, "before sync", 1,  &
 !       & transport_state%patch_3d%p_patch_2d(1)%edges%all)
@@ -497,9 +497,9 @@ CONTAINS
 !     CALL dbg_print('mass_flux_e dom'       , transport_state%mass_flux_e, "before sync", 1,  &
 !       & transport_state%patch_3d%p_patch_2d(1)%edges%in_domain)
 
-    CALL sync_patch_array_mult(sync_e, patch_2d, 2,  &
-      & hamocc_ocean_state%ocean_transport_state%vn,                    &
-      & hamocc_ocean_state%ocean_transport_state%mass_flux_e)
+    CALL sync_patch_array_mult(sync_e, patch_2d, 2, lacc=.FALSE.,  &
+      & f3din1=hamocc_ocean_state%ocean_transport_state%vn,                    &
+      & f3din2=hamocc_ocean_state%ocean_transport_state%mass_flux_e)
   
 !     CALL dbg_print('mass_flux_e All'       , transport_state%mass_flux_e, "after sync", 1,  &
 !       & transport_state%patch_3d%p_patch_2d(1)%edges%all)

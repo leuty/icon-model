@@ -217,10 +217,10 @@ CONTAINS
 
     ! Interpolate virtual temperature and geometric height to edge midpoints 
     ! (required for velocity initialization) 
-    CALL cells2edges_scalar(p_nh_diag%tempv, p_patch, p_int%c_lin_e, ztempv_e)
-    CALL cells2edges_scalar(p_metrics%z_mc, p_patch, p_int%c_lin_e, z_me)
-    CALL sync_patch_array(SYNC_E,p_patch,ztempv_e)
-    CALL sync_patch_array(SYNC_E,p_patch,z_me)
+    CALL cells2edges_scalar(p_nh_diag%tempv, p_patch, p_int%c_lin_e, ztempv_e, lacc=.FALSE.)
+    CALL cells2edges_scalar(p_metrics%z_mc, p_patch, p_int%c_lin_e, z_me, lacc=.FALSE.)
+    CALL sync_patch_array(SYNC_E,p_patch,ztempv_e, lacc=.FALSE.)
+    CALL sync_patch_array(SYNC_E,p_patch,z_me, lacc=.FALSE.)
 
 
     !

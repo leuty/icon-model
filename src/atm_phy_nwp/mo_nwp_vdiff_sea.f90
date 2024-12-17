@@ -20,7 +20,7 @@ MODULE mo_nwp_vdiff_sea
   USE mo_exception, ONLY: message, message_text
   USE mo_ext_data_init, ONLY: interpol_monthly_mean
   USE mo_ext_data_types, ONLY: t_external_data
-  USE mo_fortran_tools, ONLY: copy, init, set_acc_host_or_device
+  USE mo_fortran_tools, ONLY: assert_acc_device_only, copy, init, set_acc_host_or_device
   USE mo_idx_list, ONLY: t_idx_list_blocked
   USE mo_impl_constants, ONLY: SSTICE_ANA_CLINC, end_prog_cells, start_prog_cells
   USE mo_kind, ONLY: wp
@@ -86,7 +86,7 @@ CONTAINS
         & t_bcoef_wtr, q_acoef_wtr, q_bcoef_wtr, t_acoef_ice, t_bcoef_ice, q_acoef_ice, &
         & q_bcoef_ice, prog_wtr_now, diag_lnd, t_wtr, t_ice, s_wtr, s_ice, qsat_wtr, qsat_ice, &
         & evapo_wtr, evapo_ice, latent_hflx_wtr, latent_hflx_ice, sensible_hflx_wtr, &
-        & sensible_hflx_ice, conductive_hflx_ice, melt_potential_ice, alb, prog_wtr_new &
+        & sensible_hflx_ice, conductive_hflx_ice, melt_potential_ice, alb, prog_wtr_new, lacc &
       )
 
     !> Current block index.
@@ -197,6 +197,7 @@ CONTAINS
     !> Prognostic water variables at time `t+1`.
     TYPE(t_wtr_prog), INTENT(INOUT) :: prog_wtr_new
 
+    LOGICAL,INTENT(IN) :: lacc
     !
     ! Local variables
     !
@@ -245,6 +246,8 @@ CONTAINS
 
     LOGICAL :: have_conductive_hflx_ice
     LOGICAL :: have_melt_potential_ice
+
+    CALL assert_acc_device_only ('sea_model', lacc)
 
     ! Asynchronous data regions are a too recent feature. We have to resort to unstructured ones.
     ! This crutch ensures that we don't forget to delete any variable.
@@ -666,7 +669,7 @@ CONTAINS
 
   !> Update sea-surface temperature for the analysis + cimatological increments mode. For the
   !! other modes t_seasfc is kept current in mo_nwp_sfc_utils:update_sst_and_seaice.
-  SUBROUTINE sea_model_update_sst (patch, sea_state, current_datetime, sst_m, t_seasfc)
+  SUBROUTINE sea_model_update_sst (patch, sea_state, current_datetime, sst_m, t_seasfc, lacc)
 
     !> Current patch.
     TYPE(t_patch), INTENT(IN) :: patch
@@ -679,8 +682,12 @@ CONTAINS
     !> Sea-surface temperature [K].
     REAL(wp), INTENT(INOUT) :: t_seasfc(:,:)
 
+    LOGICAL,INTENT(IN) :: lacc
+
     INTEGER :: i_startblk, i_endblk, i_blk
     INTEGER :: ics, ice, ic
+
+    CALL assert_acc_device_only ('sea_model_update_sst', lacc)
 
     IF (sstice_mode /= SSTICE_ANA_CLINC) RETURN
     IF (current_datetime%date%day == sea_state%time_last_update_t_seasfc%date%day) RETURN

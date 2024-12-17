@@ -923,7 +923,7 @@ CONTAINS
 
 
     ! diag for Output
-    CALL div(p_nh_prog%vn, p_patch, p_int, p_nh_diag%div)
+    CALL div(p_nh_prog%vn, p_patch, p_int, p_nh_diag%div, lacc=.FALSE.)
 
 
   END SUBROUTINE init_nh_gw_analyt

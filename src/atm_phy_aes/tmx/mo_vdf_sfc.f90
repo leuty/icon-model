@@ -812,8 +812,8 @@ CONTAINS
       ics = domain%i_startidx_c(ib)
       ice = domain%i_endidx_c  (ib)
 
-      CALL generate_index_list_batched( &
-        & pfrc_test(:,ib,:), loidx(:,:), ics, ice, is(:), 1, opt_use_acc=.TRUE.)
+      CALL generate_index_list_batched(pfrc_test(:,ib,:), loidx(:,:), ics, ice, &
+        &   is(:), lacc=.TRUE., opt_acc_async_queue=1)
         ! Using indices(:,ib,:) and nvalid(ib,:) directly as in the next line does not work,
         ! probably because they need to be contiguous to have proper addresses for CUDA
         ! & pfrc_test(:,ib,:), indices(:,ib,:), ics, ice, nvalid(ib,:), 1, opt_use_acc=.TRUE.)

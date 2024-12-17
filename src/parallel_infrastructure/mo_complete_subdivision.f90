@@ -748,7 +748,7 @@ CONTAINS
          patch%comm_pat_work2test(grid_cell)%p)
     ALLOCATE(test_data(nproma, 1, patch%nblks_c))
     test_data = 1.0_wp
-    CALL sync_patch_array(sync_c, patch, test_data)
+    CALL sync_patch_array(sync_c, patch, test_data, lacc=.FALSE.)
     CALL create_work2test_pattern(patch%n_patch_verts_g, &
          patch%verts%decomp_info, is_mpi_test, p_comm_work_2_test, &
          patch%comm_pat_work2test(grid_vertex)%p)

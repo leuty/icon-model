@@ -373,7 +373,7 @@ CONTAINS
 
     CALL diagnose_pres_temp ( p_metrics, p_nh_prog,   &
       &                       p_nh_prog, p_nh_diag,   &
-      &                       p_patch               )
+      &                       p_patch, lacc=.FALSE.   )
 
 
     DEALLOCATE(gr)
@@ -387,9 +387,9 @@ CONTAINS
 
     CALL cells2edges_scalar(vtc_c,                 &
       &                     p_patch,p_int%c_lin_e, &
-      &                     vtc_e                  )
+      &                     vtc_e, lacc=.FALSE.    )
 
-    CALL sync_patch_array(SYNC_E,p_patch,vtc_e)
+    CALL sync_patch_array(SYNC_E,p_patch,vtc_e, lacc=.FALSE.)
 
     DEALLOCATE(vtc_c)
 

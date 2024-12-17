@@ -723,7 +723,9 @@ CONTAINS
     CALL nabla2_scalar(aerosol(:,:,:),          &
       &                p_patch, p_int_state,    &
       &                nabla2_aero(:,:,:),      &
-      &                iss, idu, grf_bdywidth_c+1, min_rlcell_int)
+      &                lacc=.FALSE.,            &
+      &                slev=iss, elev=idu,      &
+      &                rl_start=grf_bdywidth_c+1, rl_end=min_rlcell_int)
 
     i_rlstart  = grf_bdywidth_c+1
     i_rlend    = min_rlcell_int

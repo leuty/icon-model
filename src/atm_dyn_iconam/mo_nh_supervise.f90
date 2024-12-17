@@ -217,7 +217,8 @@ CONTAINS
     nlev = patch%nlev
 
     IF (iforcing <= 1) THEN ! u and v are not diagnosed regularly if physics is turned off
-      CALL rbf_vec_interpol_cell(prog%vn,patch,int_state,diag%u,diag%v, opt_acc_async=.TRUE.)
+      CALL rbf_vec_interpol_cell(prog%vn, patch, int_state, diag%u, diag%v, &
+                                 lacc=.TRUE., opt_acc_async=.TRUE.)
     ENDIF
 
 
@@ -253,7 +254,8 @@ CONTAINS
           &             i_endidx    = nlen,                     & !in
           &             slev        = 1,                        & !in
           &             slev_moist  = 1,                        & !in
-          &             nlev        = nlev)                       !in
+          &             nlev        = nlev,                     & !in
+          &             lacc        = .TRUE.)                     !in
       ENDIF
 
     ENDDO

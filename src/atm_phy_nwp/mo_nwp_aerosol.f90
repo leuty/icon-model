@@ -759,7 +759,7 @@ CONTAINS
     ALLOCATE(cams( nproma, cams_reader(jg)%nlev_cams, cams_reader(jg)%p_patch%nblks_c, n_camsaermr+1 ))
     cams(:,:,:,:) = 0.0_wp
 
-    CALL cams_intp(jg)%intp(mtime_datetime, cams_dat)
+    CALL cams_intp(jg)%intp(mtime_datetime, cams_dat, lacc=.FALSE.)
 
     cams(:,:,:,:) = cams_dat(:,:,:,:)
 

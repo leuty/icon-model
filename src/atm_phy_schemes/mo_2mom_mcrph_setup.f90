@@ -50,7 +50,7 @@ MODULE mo_2mom_mcrph_setup
        & particle_coeffs, collection_coeffs, rain_riming_coeffs, dep_imm_coeffs, &
        & coll_coeffs_ir_pm ! , lookupt_1D, lookupt_4D
 
-  USE mo_fortran_tools, ONLY: set_acc_host_or_device, assert_acc_device_only, init
+  USE mo_fortran_tools, ONLY: init
 
   IMPLICIT NONE
 

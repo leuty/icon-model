@@ -786,7 +786,7 @@ CONTAINS
         !$ACC END KERNELS
       ENDIF
 
-      CALL sync_patch_array(SYNC_E,p_pp,p_diagp%vn_ie_int)
+      CALL sync_patch_array(SYNC_E,p_pp,p_diagp%vn_ie_int,lacc=.TRUE.)
 
       CALL interpol_vec_ubc (p_pp, p_pc, p_grf%p_dom(i_chidx), &
         p_diagp%vn_ie_int, p_diagc%vn_ie_ubc, lacc=.TRUE.)
@@ -828,7 +828,7 @@ CONTAINS
         ENDDO
 !$OMP END PARALLEL DO
 
-        CALL sync_patch_array(SYNC_C,p_pp,aux3dp)
+        CALL sync_patch_array(SYNC_C,p_pp,aux3dp,lacc=.TRUE.)
 
         CALL interpol_scal_ubc (p_pc, p_grf%p_dom(i_chidx),  &
           ntracer+8, aux3dp, aux3dc, lacc=.TRUE.)
@@ -882,7 +882,7 @@ CONTAINS
         ENDDO
 !$OMP END PARALLEL DO
 
-        CALL sync_patch_array(SYNC_C,p_pp,aux3dp)
+        CALL sync_patch_array(SYNC_C,p_pp,aux3dp,lacc=.TRUE.)
 
         CALL interpol_scal_ubc(p_pc, p_grf%p_dom(i_chidx), 8, aux3dp, aux3dc, lacc=.TRUE.)
 
@@ -1356,18 +1356,20 @@ CONTAINS
     IF(l_parallel) CALL exchange_data(p_pat=p_pp%comm_pat_e, lacc=.TRUE., recv=diff_vn)
     CALL interpol_vec_nudging (p_pp, p_pc, p_int, p_grf%p_dom(i_chidx),   &
       &                        0, istartblk_e, diff_vn,p_diag%grf_tend_vn, lacc=.TRUE.)
-    CALL sync_patch_array(SYNC_E,p_pc,p_diag%grf_tend_vn)
+    CALL sync_patch_array(SYNC_E,p_pc,p_diag%grf_tend_vn,lacc=.TRUE.)
 
     IF(l_parallel) CALL exchange_data_mult(p_pat=p_pp%comm_pat_c, &
       lacc=.TRUE., &
       nfields=3, ndim2tot=3*nlev_c+1, &
       recv1=diff_thv, recv2=diff_rho, recv3=diff_w)
     CALL interpol_scal_nudging (p_pp, p_int, p_grf%p_dom(i_chidx), 0, 3, istartblk_c,          &
+      &                         lacc=.TRUE.,                                                   &
       &                         f3din1=diff_thv, f3dout1=p_diag%grf_tend_thv,                  &
       &                         f3din2=diff_rho, f3dout2=p_diag%grf_tend_rho,                  &
       &                         f3din3=diff_w,   f3dout3=p_diag%grf_tend_w                     )
-    CALL sync_patch_array_mult(SYNC_C,p_pc,3,p_diag%grf_tend_thv,p_diag%grf_tend_rho,  &
-      p_diag%grf_tend_w)
+    CALL sync_patch_array_mult(SYNC_C, p_pc, 3, lacc=.TRUE., &
+                               f3din1=p_diag%grf_tend_thv, f3din2=p_diag%grf_tend_rho, &
+                               f3din3 = p_diag%grf_tend_w)
 
     IF (ltransport) THEN
       IF(l_parallel) CALL exchange_data_mult(p_pat=p_pp%comm_pat_c, &
@@ -1375,9 +1377,11 @@ CONTAINS
         nfields=ntracer_nudge, ndim2tot=ntracer_nudge*nlev_c, recv4d=diff_tr)
 
       CALL interpol_scal_nudging (p_pp, p_int, p_grf%p_dom(i_chidx),                   &
-        &                         0, ntracer_nudge, istartblk_c, f4din=diff_tr,        &
+        &                         0, ntracer_nudge, istartblk_c, lacc=.TRUE.,          &
+        &                         f4din=diff_tr,                                       &
         &                         f4dout=p_diag%grf_tend_tracer(:,:,:,1:ntracer_nudge) )
-      CALL sync_patch_array_mult(SYNC_C,p_pc,ntracer_nudge,f4din=p_diag%grf_tend_tracer(:,:,:,1:ntracer_nudge))
+      CALL sync_patch_array_mult(SYNC_C, p_pc, ntracer_nudge, lacc=.TRUE., &
+                                 f4din=p_diag%grf_tend_tracer(:,:,:,1:ntracer_nudge))
     ENDIF
 
     !$ACC WAIT
@@ -1546,8 +1550,9 @@ CONTAINS
 
     IF(l_parallel) CALL exchange_data(p_pat=p_pp%comm_pat_c, lacc=.TRUE., recv=diff_rho)
     CALL interpol_scal_nudging (p_pp, p_int, p_grf%p_dom(i_chidx), 0, 1, istartblk_c, &
-      &                         f3din1=diff_rho, f3dout1=p_diag%grf_tend_rho                   )
-    CALL sync_patch_array(SYNC_C,p_pc,p_diag%grf_tend_rho)
+      &                         lacc=.TRUE.,                                          &
+      &                         f3din1=diff_rho, f3dout1=p_diag%grf_tend_rho          )
+    CALL sync_patch_array(SYNC_C,p_pc,p_diag%grf_tend_rho,lacc=.TRUE.)
 
     !$ACC WAIT(1)
     !$ACC END DATA
@@ -2173,14 +2178,15 @@ CONTAINS
         &                     recv1=pres_lp, recv2=temp_lp, recv3=qv_lp)
       !
       CALL interpol_scal_nudging (p_plp, p_int, p_grf%p_dom(i_chidx), 0, 3, 1,           &
+        &                         lacc=lacc, &
         &                         f3din1=pres_lp, f3dout1=latbc_data%atm_child(jg)%pres, &
         &                         f3din2=temp_lp, f3dout2=latbc_data%atm_child(jg)%temp, &
         &                         f3din3=qv_lp,   f3dout3=latbc_data%atm_child(jg)%qv    )
       !
-      CALL sync_patch_array_mult(SYNC_C, p_patch(jg), 3,        &
-        &                        latbc_data%atm_child(jg)%pres, &
-        &                        latbc_data%atm_child(jg)%temp, &
-        &                        latbc_data%atm_child(jg)%qv)
+      CALL sync_patch_array_mult(SYNC_C, p_patch(jg), 3, lacc=lacc, &
+        &                        f3din1=latbc_data%atm_child(jg)%pres, &
+        &                        f3din2=latbc_data%atm_child(jg)%temp, &
+        &                        f3din3=latbc_data%atm_child(jg)%qv)
 
       ! vn
       !
@@ -2189,7 +2195,7 @@ CONTAINS
       CALL interpol_vec_nudging (p_plp, p_patch(jg), p_int, p_grf%p_dom(i_chidx), &
         &                        0, 1, vn_lp, latbc_data%atm_child(jg)%vn, lacc=lacc)
       !
-      CALL sync_patch_array(SYNC_E, p_patch(jg), latbc_data%atm_child(jg)%vn)
+      CALL sync_patch_array(SYNC_E, p_patch(jg), latbc_data%atm_child(jg)%vn, lacc=lacc)
 
       DEALLOCATE(pres_lp, temp_lp, qv_lp, vn_lp)
 

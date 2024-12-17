@@ -43,7 +43,6 @@ USE mo_sync,                ONLY: SYNC_C, SYNC_E, sync_patch_array
 USE mo_math_gradients,      ONLY: grad_fd_norm
 USE mo_math_divrot,         ONLY: div, rot_vertex
 USE mo_fortran_tools,       ONLY: copy
-USE mo_mpi,                 ONLY: i_am_accel_node
 
 
 IMPLICIT NONE
@@ -74,7 +73,7 @@ CONTAINS
 !! input:  lives on edges (velocity points)
 !! output: lives on edges
 !!
-SUBROUTINE nabla2_vec_atmos( vec_e, ptr_patch, ptr_int, nabla2_vec_e, &
+SUBROUTINE nabla2_vec_atmos( vec_e, ptr_patch, ptr_int, nabla2_vec_e, lacc, &
   &                          opt_slev, opt_elev, opt_rlstart, opt_rlend )
 
 !
@@ -89,6 +88,9 @@ TYPE(t_int_state), INTENT(in)     :: ptr_int
 !
 REAL(wp), INTENT(in) ::  &
   &  vec_e(:,:,:) ! dim: (nproma,nlev,nblks_e)
+
+LOGICAL, INTENT(in) ::  &
+&  lacc    ! if TRUE, use OpenACC
 
 INTEGER, INTENT(in), OPTIONAL ::  &
   &  opt_slev    ! optional vertical start level
@@ -180,7 +182,7 @@ i_startblk = ptr_patch%edges%start_blk(rl_start,1)
 i_endblk   = ptr_patch%edges%end_blk(rl_end,i_nchdom)
 
 !$ACC DATA CREATE(z_div_c, z_rot_v) PRESENT(vec_e) PRESENT(nabla2_vec_e) &
-!$ACC   PRESENT(ptr_patch, ptr_int) IF(i_am_accel_node)
+!$ACC   PRESENT(ptr_patch, ptr_int) IF(lacc)
 
 ! Initialization of unused elements of nabla2_vec_e
 ! DO jb = 1, i_startblk
@@ -191,8 +193,9 @@ i_endblk   = ptr_patch%edges%end_blk(rl_end,i_nchdom)
 ! ENDDO
 
 ! compute divergence of vector field
-CALL div( vec_e, ptr_patch, ptr_int, z_div_c, slev, elev, &
-          opt_rlstart=rl_start_c, opt_rlend=rl_end_c )
+CALL div( vec_e, ptr_patch, ptr_int, z_div_c, lacc=lacc, &
+          opt_slev=slev, opt_elev=elev, opt_rlstart=rl_start_c, &
+          opt_rlend=rl_end_c )
 
 !
 !  loop through over all patch edges (and blocks)
@@ -205,8 +208,9 @@ SELECT CASE (ptr_patch%geometry_info%cell_type)
 CASE (3) ! (cell_type == 3)
 
   ! compute rotation of vector field
-  CALL rot_vertex( vec_e, ptr_patch, ptr_int, z_rot_v, slev, elev, &
-                   opt_rlstart=rl_start_v, opt_rlend=rl_end_v)
+  CALL rot_vertex( vec_e, ptr_patch, ptr_int, z_rot_v, lacc=lacc, &
+                   opt_slev=slev, opt_elev=elev, opt_rlstart=rl_start_v,     &
+                   opt_rlend=rl_end_v )
 
 !$OMP PARALLEL
 !$OMP DO PRIVATE(jb,i_startidx,i_endidx,je,jk) ICON_OMP_DEFAULT_SCHEDULE
@@ -215,7 +219,7 @@ CASE (3) ! (cell_type == 3)
     CALL get_indices_e(ptr_patch, jb, i_startblk, i_endblk, &
                      i_startidx, i_endidx, rl_start, rl_end)
 
-    !$ACC PARALLEL ASYNC(1) IF(i_am_accel_node)
+    !$ACC PARALLEL ASYNC(1) IF(lacc)
 #ifdef __LOOP_EXCHANGE
     !$ACC LOOP GANG
     DO je = i_startidx, i_endidx
@@ -265,7 +269,7 @@ END SUBROUTINE nabla2_vec_atmos
 !! input:  lives on edges (velocity points)
 !! output: lives on edges
 !!
-SUBROUTINE nabla4_vec( vec_e, ptr_patch, ptr_int, nabla4_vec_e, &
+SUBROUTINE nabla4_vec( vec_e, ptr_patch, ptr_int, nabla4_vec_e, lacc, &
   &                    opt_nabla2, opt_slev, opt_elev, opt_rlstart, opt_rlend )
 
 !
@@ -280,6 +284,9 @@ TYPE(t_int_state), INTENT(in)     :: ptr_int
 !
 REAL(wp), INTENT(in) ::  &
   &  vec_e(:,:,:) ! dim: (nproma,nlev,nblks_e)
+
+LOGICAL, INTENT(in) ::  &
+  &  lacc    ! if TRUE, use OpenACC
 
 INTEGER, INTENT(in), OPTIONAL ::  &
   &  opt_slev    ! optional vertical start level
@@ -361,7 +368,7 @@ ELSE
 ENDIF
 
 !$ACC DATA CREATE(z_nabla2_vec_e) PRESENT(vec_e) PRESENT(nabla4_vec_e) &
-!$ACC   PRESENT(ptr_patch, ptr_int) IF(i_am_accel_node)
+!$ACC   PRESENT(ptr_patch, ptr_int) IF(lacc)
 
 !
 ! apply second order Laplacian twice
@@ -372,13 +379,15 @@ IF (p_test_run) THEN
 !   rl_end_s1 = min_rledge
 ENDIF
 
-CALL nabla2_vec( vec_e, ptr_patch, ptr_int, p_nabla2,  &
-  &              slev, elev, opt_rlstart=rl_start_s1, opt_rlend=rl_end_s1 )
+CALL nabla2_vec( vec_e, ptr_patch, ptr_int, p_nabla2, lacc=lacc, &
+  &              opt_slev=slev, opt_elev=elev, opt_rlstart=rl_start_s1, &
+  &              opt_rlend=rl_end_s1 )
 
-CALL sync_patch_array(SYNC_E, ptr_patch, p_nabla2)
+CALL sync_patch_array(SYNC_E, ptr_patch, p_nabla2, lacc=lacc)
 
-CALL nabla2_vec( p_nabla2, ptr_patch, ptr_int, nabla4_vec_e,  &
-  &              slev, elev, opt_rlstart=rl_start, opt_rlend=rl_end )
+CALL nabla2_vec( p_nabla2, ptr_patch, ptr_int, nabla4_vec_e, lacc=lacc, &
+  &              opt_slev=slev, opt_elev=elev, opt_rlstart=rl_start, &
+  &              opt_rlend=rl_end )
 
 IF (.NOT. PRESENT(opt_nabla2) ) THEN
   DEALLOCATE (z_nabla2_vec_e)
@@ -396,7 +405,7 @@ END SUBROUTINE nabla4_vec
 !! output: lives on cells
 !!
 SUBROUTINE nabla2_scalar( psi_c, ptr_patch, ptr_int, nabla2_psi_c, &
-  &                       slev, elev, rl_start, rl_end )
+  &                       lacc, slev, elev, rl_start, rl_end )
 
 TYPE(t_patch), TARGET, INTENT(in) :: ptr_patch         !< patch on which computation is performed
 TYPE(t_int_state),     INTENT(in) :: ptr_int           !< interpolation state
@@ -404,6 +413,7 @@ TYPE(t_int_state),     INTENT(in) :: ptr_int           !< interpolation state
 REAL(wp), INTENT(in) ::  &
   &  psi_c(:,:,:) !< cells based variable of which biharmonic laplacian is computed, dim: (nproma,nlev,nblks_c)
 
+LOGICAL,               INTENT(in) :: lacc              !< if TRUE, use OpenACC
 INTEGER,               INTENT(in) :: slev              !< vertical start level
 INTEGER,               INTENT(in) :: elev              !< vertical end level
 INTEGER,               INTENT(in) :: rl_start,rl_end   !< start and end values of refin_ctrl flag
@@ -426,7 +436,7 @@ i_startblk = ptr_patch%cells%start_block(rl_start)
 i_endblk   = ptr_patch%cells%end_block(rl_end)
 
 !$ACC DATA CREATE(z_grad_fd_norm_e) PRESENT(psi_c) PRESENT(nabla2_psi_c) &
-!$ACC   PRESENT(ptr_patch, ptr_int) IF(i_am_accel_node)
+!$ACC   PRESENT(ptr_patch, ptr_int) IF(lacc)
 
 SELECT CASE (ptr_patch%geometry_info%cell_type)
 
@@ -439,7 +449,7 @@ CASE (3) ! (cell_type == 3)
     CALL get_indices_c(ptr_patch, jb, i_startblk, i_endblk, &
                        i_startidx, i_endidx, rl_start, rl_end)
 
-    !$ACC PARALLEL ASYNC(1) IF(i_am_accel_node)
+    !$ACC PARALLEL ASYNC(1) IF(lacc)
     !$ACC LOOP GANG VECTOR COLLAPSE(2)
 #ifdef __LOOP_EXCHANGE
     DO jc = i_startidx, i_endidx
@@ -471,10 +481,12 @@ CASE (3) ! (cell_type == 3)
 CASE (6) ! (cell_type == 6) THEN ! Use unoptimized version for the time being
 
   ! compute finite difference gradient in normal direction
-  CALL grad_fd_norm( psi_c, ptr_patch, z_grad_fd_norm_e, slev, elev)
+  CALL grad_fd_norm( psi_c, ptr_patch, z_grad_fd_norm_e, lacc=lacc, &
+                     opt_slev=slev, opt_elev=elev)
 
   ! compute divergence of resulting vector field
-  CALL div( z_grad_fd_norm_e, ptr_patch, ptr_int, nabla2_psi_c, slev, elev)
+  CALL div( z_grad_fd_norm_e, ptr_patch, ptr_int, nabla2_psi_c, lacc=lacc, &
+            opt_slev=slev, opt_elev=elev)
 
 END SELECT
 !$ACC WAIT(1)
@@ -496,7 +508,7 @@ END SUBROUTINE nabla2_scalar
 !! output: lives on cells
 !!
 SUBROUTINE nabla2_scalar_avg( psi_c, ptr_patch, ptr_int, avg_coeff, nabla2_psi_c, &
-  &                           opt_slev, opt_elev )
+  &                           lacc, opt_slev, opt_elev )
 !
 !  patch on which computation is performed
 !
@@ -513,6 +525,9 @@ REAL(wp), INTENT(in) :: avg_coeff(:,:,:) ! dim: (nproma,nlev,nblks_c)
 !
 REAL(wp), INTENT(in) ::  &
   &  psi_c(:,:,:) ! dim: (nproma,nlev,nblks_c)
+
+LOGICAL, INTENT(in) ::  &
+  &  lacc    ! if TRUE, use OpenACC
 
 INTEGER, INTENT(in), OPTIONAL ::  &
   &  opt_slev    ! optional vertical start level
@@ -561,7 +576,7 @@ i_nchdom   = MAX(1,ptr_patch%n_childdom)
 ! The special treatment of 2D fields is essential for efficiency on the NEC
 
 !$ACC DATA CREATE(aux_c) PRESENT(avg_coeff, psi_c) PRESENT(nabla2_psi_c) &
-!$ACC   PRESENT(ptr_patch, ptr_int) IF(i_am_accel_node)
+!$ACC   PRESENT(ptr_patch, ptr_int) IF(lacc)
 
 SELECT CASE (ptr_patch%geometry_info%cell_type)
 
@@ -591,7 +606,7 @@ i_endblk   = ptr_patch%cells%end_blk(rl_end,i_nchdom)
       i_endidx   = nproma
     ENDIF
 
-    !$ACC PARALLEL ASYNC(1) IF(i_am_accel_node)
+    !$ACC PARALLEL ASYNC(1) IF(lacc)
     !$ACC LOOP GANG VECTOR
     DO jc = i_startidx, i_endidx
 
@@ -617,7 +632,7 @@ i_endblk   = ptr_patch%cells%end_blk(rl_end,i_nchdom)
     i_endblk   = ptr_patch%cells%end_blk(rl_start_l2,1)
 
     CALL copy(aux_c(:,jk,i_startblk:i_endblk), &
-         nabla2_psi_c(:,jk,i_startblk:i_endblk), lacc=i_am_accel_node)
+         nabla2_psi_c(:,jk,i_startblk:i_endblk), lacc=lacc)
 !$OMP BARRIER
   ENDIF
 
@@ -643,7 +658,7 @@ i_endblk   = ptr_patch%cells%end_blk(rl_end,i_nchdom)
       i_endidx   = nproma
     ENDIF
 
-    !$ACC PARALLEL ASYNC(1) IF(i_am_accel_node)
+    !$ACC PARALLEL ASYNC(1) IF(lacc)
     !$ACC LOOP VECTOR
     DO jc = i_startidx, i_endidx
       !
@@ -676,7 +691,7 @@ i_endblk   = ptr_patch%cells%end_blk(rl_end,i_nchdom)
     CALL get_indices_c(ptr_patch, jb, i_startblk, i_endblk, &
                        i_startidx, i_endidx, rl_start, rl_end)
 
-    !$ACC PARALLEL ASYNC(1) IF(i_am_accel_node)
+    !$ACC PARALLEL ASYNC(1) IF(lacc)
     !$ACC LOOP GANG
 #ifdef __LOOP_EXCHANGE
     DO jc = i_startidx, i_endidx
@@ -712,7 +727,7 @@ i_endblk   = ptr_patch%cells%end_blk(rl_end,i_nchdom)
     i_endblk   = ptr_patch%cells%end_blk(rl_start_l2,1)
 
     CALL copy(aux_c(:,:,i_startblk:i_endblk), &
-         nabla2_psi_c(:,:,i_startblk:i_endblk), lacc=i_am_accel_node)
+         nabla2_psi_c(:,:,i_startblk:i_endblk), lacc=lacc)
 !$OMP BARRIER
   ENDIF
 
@@ -729,7 +744,7 @@ i_endblk   = ptr_patch%cells%end_blk(rl_end,i_nchdom)
     CALL get_indices_c(ptr_patch, jb, i_startblk, i_endblk, &
                        i_startidx, i_endidx, rl_start_l2, rl_end)
 
-    !$ACC PARALLEL ASYNC(1) IF(i_am_accel_node)
+    !$ACC PARALLEL ASYNC(1) IF(lacc)
     !$ACC LOOP GANG
 #ifdef __LOOP_EXCHANGE
     DO jc = i_startidx, i_endidx
@@ -779,7 +794,7 @@ END SUBROUTINE nabla2_scalar_avg
 !! output: lives on edges
 !!
 SUBROUTINE nabla4_scalar( psi_c, ptr_patch, ptr_int, nabla4_psi_c, &
-  &                       slev, elev, rl_start, rl_end, p_nabla2  )
+  &                       lacc, slev, elev, rl_start, rl_end, p_nabla2  )
 
 TYPE(t_patch), TARGET, INTENT(in)    :: ptr_patch           !< patch on which computation is performed
 TYPE(t_int_state),     INTENT(in)    :: ptr_int             !< interpolation state
@@ -787,6 +802,7 @@ TYPE(t_int_state),     INTENT(in)    :: ptr_int             !< interpolation sta
 REAL(wp),              INTENT(in)    ::  &
   &  psi_c(:,:,:) !< cells based variable of which biharmonic laplacian is computed, dim: (nproma,nlev,nblks_c)
 
+LOGICAL,               INTENT(in)    ::  lacc               !< if TRUE, use OpenACC
 INTEGER,               INTENT(in)    ::  slev               !< vertical start level
 INTEGER,               INTENT(in)    ::  elev               !< vertical end level
 INTEGER,               INTENT(in)    ::  rl_start, rl_end   !< start and end values of refin_ctrl flag
@@ -815,17 +831,17 @@ ENDIF
 rl_end_s1 = MAX(min_rlcell,rl_end_s1)
 
 !$ACC DATA PRESENT(psi_c) PRESENT(nabla4_psi_c) &
-!$ACC   PRESENT(ptr_patch, ptr_int) IF(i_am_accel_node)
+!$ACC   PRESENT(ptr_patch, ptr_int) IF(lacc)
 
 ! apply second order Laplacian twice
 IF (p_test_run) p_nabla2(:,:,:) = 0.0_wp
 
-CALL nabla2_scalar( psi_c, ptr_patch, ptr_int, p_nabla2, &
+CALL nabla2_scalar( psi_c, ptr_patch, ptr_int, p_nabla2, lacc, &
                     slev, elev, rl_start=rl_start_s1, rl_end=rl_end_s1 )
 
-CALL sync_patch_array(SYNC_C, ptr_patch, p_nabla2)
+CALL sync_patch_array(SYNC_C, ptr_patch, p_nabla2, lacc=lacc)
 
-CALL nabla2_scalar( p_nabla2, ptr_patch, ptr_int, nabla4_psi_c, &
+CALL nabla2_scalar( p_nabla2, ptr_patch, ptr_int, nabla4_psi_c, lacc, &
                     slev, elev, rl_start=rl_start, rl_end=rl_end )
 
 !$ACC END DATA

@@ -872,7 +872,7 @@ CONTAINS
           ! into the corresponding NWP tendencies in 'nwp_upatmo_update' below, 
           ! the edge-normal component has to be interpolated from du/dt and dv/dt. 
           ! In preparation for this interpolation, we update some halo cells here.
-          CALL sync_patch_array_mult(SYNC_C1, p_patch, 2, ddt_u_tot, ddt_v_tot)
+          CALL sync_patch_array_mult(SYNC_C1, p_patch, 2, lacc=.FALSE., f3din1=ddt_u_tot, f3din2=ddt_v_tot)
           
           ! Swap new and old states and get index of new state
           CALL prm_upatmo%tend%ddt%state( itendWind )%swap()
@@ -1886,7 +1886,7 @@ CONTAINS
       ! Update halo cells.
       ! (This call is the reason why 'p_patch' got the attribute 'INTENT(INOUT)' 
       ! instead of 'INTENT(IN)', which would otherwise have been sufficient.)
-      CALL sync_patch_array(SYNC_C, p_patch, p_prog_rcf%tracer(:,:,:,iqv))
+      CALL sync_patch_array(SYNC_C, p_patch, p_prog_rcf%tracer(:,:,:,iqv), lacc=.FALSE.)
 
     ENDIF  !Process water vapor tendencies?
 

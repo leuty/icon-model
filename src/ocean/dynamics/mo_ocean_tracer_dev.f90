@@ -580,7 +580,7 @@ CONTAINS
     ENDIF!IF ( l_with_vert_tracer_diffusion )
 
 
-    CALL sync_patch_array(sync_c, patch_2D, new_tracer%concentration)
+    CALL sync_patch_array(sync_c, patch_2D, new_tracer%concentration, lacc=.FALSE.)
 
     !---------DEBUG DIAGNOSTICS-------------------------------------------
     idt_src=3  ! output print level (1-5, fix)
@@ -662,10 +662,10 @@ CONTAINS
 !     ENDIF    
  
     ! p_diag%w is compouted in_domain cells
-    ! CALL sync_patch_array(SYNC_C, patch_2d,p_os%p_diag%w_time_weighted )
+    ! CALL sync_patch_array(SYNC_C, patch_2d,p_os%p_diag%w_time_weighted, lacc=.FALSE.)
 
     ! This is already synced on edges_in_domain !
-    ! CALL sync_patch_array(SYNC_E, patch_2d,p_os%p_diag%vn_time_weighted )
+    ! CALL sync_patch_array(SYNC_E, patch_2d,p_os%p_diag%vn_time_weighted, lacc=.FALSE.)
 
     !IF( .NOT.l_edge_based .OR. flux_calculation_horz==MIMETIC_MIURA) THEN
     ! default is flux_calculation_horz = fct_horz
@@ -1208,7 +1208,7 @@ CONTAINS
     ENDIF!IF ( l_with_vert_tracer_diffusion )
 
 
-    CALL sync_patch_array(sync_c, patch_2D, new_tracer%concentration)
+    CALL sync_patch_array(sync_c, patch_2D, new_tracer%concentration, lacc=.FALSE.)
 
     stop_timer(timer_dif_vert,4)
 

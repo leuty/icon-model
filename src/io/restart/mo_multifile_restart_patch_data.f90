@@ -330,13 +330,13 @@ CONTAINS
         END IF
         SELECT CASE (ci%data_type)
         CASE(REAL_T)
-          CALL get_var_3d_ptr(me%varData(cv)%p, r_ptr_3d)
+          CALL get_var_3d_ptr(me%varData(cv)%p, r_ptr_3d, lacc=.TRUE.)
           CALL me%coll%sendField(cv, r_ptr_3d, offset(1))
         CASE(SINGLE_T)
-          CALL get_var_3d_ptr(me%varData(cv)%p, s_ptr_3d)
+          CALL get_var_3d_ptr(me%varData(cv)%p, s_ptr_3d, lacc=.TRUE.)
           CALL me%coll%sendField(cv, s_ptr_3d, offset(2))
         CASE(INT_T)
-          CALL get_var_3d_ptr(me%varData(cv)%p, i_ptr_3d)
+          CALL get_var_3d_ptr(me%varData(cv)%p, i_ptr_3d, lacc=.TRUE.)
           CALL me%coll%sendField(cv, i_ptr_3d, offset(3))
         END SELECT
       END DO

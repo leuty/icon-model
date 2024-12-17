@@ -491,8 +491,8 @@ CONTAINS
     !
     ! Diagnose pressure and temperature for subsequent calculations
     CALL diag_temp (pt_prog, pt_prog_rcf, advection_config(jg)%trHydroMass%list, pt_diag, &
-                    jb, i_startidx, i_endidx, 1, kstart_moist(jg), kend)
-    CALL diag_pres (pt_prog, pt_diag, p_metrics, jb, i_startidx, i_endidx, 1, kend)
+                    jb, i_startidx, i_endidx, 1, kstart_moist(jg), kend, lacc=lacc)
+    CALL diag_pres (pt_prog, pt_diag, p_metrics, jb, i_startidx, i_endidx, 1, kend, lacc=lacc)
 
     ! Compute relative humidity w.r.t. water
     !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1) CREATE(zrhw)

@@ -379,7 +379,7 @@ CONTAINS
       !    w(pad_nproma+1:nproma, no_of_blocks)
       !    CALL p_barrier
       !    w(pad_nproma:nproma, no_of_blocks) = 0.0_wp
-      !    CALL sync_patch_array(SYNC_C, patch_2D, w(:,:) )
+      !    CALL sync_patch_array(SYNC_C, patch_2D, w(:,:), lacc=.FALSE.)
 
 ! !ICON_OMP_PARALLEL PRIVATE(rh, myThreadNo)
 ! !$   myThreadNo = OMP_GET_THREAD_NUM()

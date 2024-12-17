@@ -250,7 +250,7 @@ MODULE mo_surface_height_lhs_zstar
     !ICON_OMP_END_PARALLEL_DO
 
     !! FIXME: Does this update ghost values?
-    CALL sync_patch_array(sync_e, this%patch_2D, this%stretch_e)
+    CALL sync_patch_array(sync_e, this%patch_2D, this%stretch_e, lacc=lzacc)
 
         !$ACC END DATA
       END SUBROUTINE update 

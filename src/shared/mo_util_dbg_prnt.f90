@@ -285,7 +285,7 @@ CONTAINS
       END DO
     END DO
     
-    CALL sync_patch_array(sync_c, ppatch, zdst_c(:,:))
+    CALL sync_patch_array(sync_c, ppatch, zdst_c(:,:), lacc=.FALSE.)
     
     ! find PE with minimum distance
     ! disable p_test_run since global_max will be different

@@ -271,8 +271,8 @@ MODULE mo_nh_jabw_exp
 !$OMP END PARALLEL
 
     IF (p_test_run) zeta_v_e = 0._wp
-    CALL cells2edges_scalar(zeta_v,ptr_patch,p_int%c_lin_e,zeta_v_e)
-    CALL sync_patch_array(SYNC_E,ptr_patch,zeta_v_e)
+    CALL cells2edges_scalar(zeta_v, ptr_patch, p_int%c_lin_e, zeta_v_e, lacc=.FALSE.)
+    CALL sync_patch_array(SYNC_E,ptr_patch,zeta_v_e, lacc=.FALSE.)
 
     i_startblk = ptr_patch%edges%start_blk(2,1)
 !$OMP PARALLEL
@@ -304,7 +304,7 @@ MODULE mo_nh_jabw_exp
 
   ! initialize vertical velocity
    CALL init_w(ptr_patch, p_int, ptr_nh_prog%vn, p_metrics%z_ifc, ptr_nh_prog%w)
-   CALL sync_patch_array(SYNC_C, ptr_patch, ptr_nh_prog%w)
+   CALL sync_patch_array(SYNC_C, ptr_patch, ptr_nh_prog%w, lacc=.FALSE.)
 
    CALL hydro_adjust ( ptr_patch, p_metrics, ptr_nh_prog%rho,  &
                      & ptr_nh_prog%exner, ptr_nh_prog%theta_v  )
@@ -531,6 +531,7 @@ MODULE mo_nh_jabw_exp
         CALL diagnose_pres_temp ( p_metrics, ptr_nh_prog,     &
           &                       ptr_nh_prog, ptr_nh_diag,   &
           &                       ptr_patch,                  &
+          &                       lacc=.FALSE.,               &
           &                       opt_calc_temp=.TRUE.,       &
           &                       opt_calc_pres=.TRUE.        )
       ENDIF
@@ -575,6 +576,7 @@ MODULE mo_nh_jabw_exp
         CALL diagnose_pres_temp ( p_metrics, ptr_nh_prog,     &
             &                     ptr_nh_prog, ptr_nh_diag,   &
             &                     ptr_patch,                  &
+            &                     lacc=.FALSE.,               &
             &                     opt_calc_temp=.TRUE.,       &
             &                     opt_calc_pres=.TRUE.        )
       ENDIF

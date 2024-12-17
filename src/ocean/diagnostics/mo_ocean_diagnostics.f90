@@ -2411,13 +2411,13 @@ CONTAINS
 !ICON_OMP_END_PARALLEL_DO
 
     ! (2) remapping normal velocity to zonal and meridional velocity at cell centers
-    CALL sync_patch_array(sync_e, patch_2d, vn_vint)
+    CALL sync_patch_array(sync_e, patch_2d, vn_vint, lacc=.FALSE.)
 
     CALL map_edges2cell_3d(patch_3D, vn_vint, op_coeff, vint_cc)
 
-    CALL sync_patch_array(sync_c, patch_2d, vint_cc(:,:,:)%x(1))
-    CALL sync_patch_array(sync_c, patch_2d, vint_cc(:,:,:)%x(2))
-    CALL sync_patch_array(sync_c, patch_2d, vint_cc(:,:,:)%x(3))
+    CALL sync_patch_array(sync_c, patch_2d, vint_cc(:,:,:)%x(1), lacc=.FALSE.)
+    CALL sync_patch_array(sync_c, patch_2d, vint_cc(:,:,:)%x(2), lacc=.FALSE.)
+    CALL sync_patch_array(sync_c, patch_2d, vint_cc(:,:,:)%x(3), lacc=.FALSE.)
 
     ! calculate zonal and meridional velocity:
     DO blockNo = all_cells%start_block, all_cells%end_block
@@ -2429,10 +2429,10 @@ CONTAINS
 !         &            u_vint(jc,blockNo), v_vint(jc,blockNo))
       END DO
     END DO
-    !CALL sync_patch_array(sync_c, patch_2d, u_vint)
-    !CALL sync_patch_array(sync_c, patch_2d, v_vint)
-    CALL sync_patch_array(sync_c, patch_2d, u_2d)
-    CALL sync_patch_array(sync_c, patch_2d, v_2d)
+    !CALL sync_patch_array(sync_c, patch_2d, u_vint, lacc=.FALSE.)
+    !CALL sync_patch_array(sync_c, patch_2d, v_vint, lacc=.FALSE.)
+    CALL sync_patch_array(sync_c, patch_2d, u_2d, lacc=.FALSE.)
+    CALL sync_patch_array(sync_c, patch_2d, v_2d, lacc=.FALSE.)
 
     ! hack for test: calc_psy for u_vint, calc_psi_vn for v_vint - accumulated and written out
     v_vint(:,:) = u_2d(:,:)

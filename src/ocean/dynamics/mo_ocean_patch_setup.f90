@@ -26,10 +26,8 @@ MODULE mo_ocean_patch_setup
   USE mo_parallel_config,    ONLY: nproma
   USE mo_grid_config,        ONLY: corio_lat, grid_angular_velocity, use_dummy_cell_closure, &
     & grid_sphere_radius, lplane
-  USE mo_sync,               ONLY: sync_c, sync_e, sync_v, sync_patch_array, sync_idx
+  USE mo_sync,               ONLY: sync_c, sync_e, sync_v, sync_idx
   USE mo_grid_subset,        ONLY: t_subset_range, get_index_range, read_subset, write_subset
-  USE mo_mpi,                ONLY: work_mpi_barrier, get_my_mpi_work_id, my_process_is_mpi_seq, global_mpi_barrier, &
-    & get_my_global_mpi_id
 
   USE mo_loopindices
   USE mo_impl_constants
@@ -250,9 +248,9 @@ CONTAINS
 
     CALL disable_sync_checks
     CALL sync_idx(sync_e,sync_v,patch_2D,patch_2D%edges%vertex_idx(:,:,3), &
-      & patch_2D%edges%vertex_blk(:,:,3))
+      & patch_2D%edges%vertex_blk(:,:,3), lacc=.FALSE.)
     CALL sync_idx(sync_e,sync_v,patch_2D,patch_2D%edges%vertex_idx(:,:,4), &
-      & patch_2D%edges%vertex_blk(:,:,4))
+      & patch_2D%edges%vertex_blk(:,:,4), lacc=.FALSE.)
 
     CALL enable_sync_checks
 

@@ -283,7 +283,7 @@ CONTAINS
 !         END DO
 !       END DO
 ! !ICON_OMP_END_DO      
-! !       CALL sync_patch_array(sync_c, patch_2D, flux_div_vert)
+! !       CALL sync_patch_array(sync_c, patch_2D, flux_div_vert, lacc=lzacc)
 
 
 !ICON_OMP_DO PRIVATE(start_index, end_index, edge_index, level) ICON_OMP_DEFAULT_SCHEDULE
@@ -426,7 +426,7 @@ CONTAINS
 ! END DO
 
 !ICON_OMP_MASTER
-    CALL sync_patch_array_mult(sync_c1, patch_2d, 2, z_tracer_max, z_tracer_min)
+    CALL sync_patch_array_mult(sync_c1, patch_2d, 2, lacc=lzacc, f3din1=z_tracer_max, f3din2=z_tracer_min)
 !ICON_OMP_END_MASTER
 !ICON_OMP_BARRIER
     ! 4. Limit the antidiffusive fluxes z_mflx_anti, such that the updated tracer
@@ -522,7 +522,7 @@ CONTAINS
     
 !ICON_OMP_MASTER
     ! Synchronize r_m and r_p
-    CALL sync_patch_array_mult(sync_c1, patch_2d, 2, r_m, r_p)
+    CALL sync_patch_array_mult(sync_c1, patch_2d, 2, lacc=lzacc, f3din1=r_m, f3din2=r_p)
 !ICON_OMP_END_MASTER
 !ICON_OMP_BARRIER
 
@@ -866,7 +866,7 @@ CONTAINS
 ! END DO
 
 ! ! !ICON_OMP_MASTER
-    CALL sync_patch_array_mult(sync_c1, patch_2d, 2, z_tracer_max, z_tracer_min)
+    CALL sync_patch_array_mult(sync_c1, patch_2d, 2, lacc=lzacc, f3din1=z_tracer_max, f3din2=z_tracer_min)
 ! ! !ICON_OMP_END_MASTER
 ! ! !ICON_OMP_BARRIER
 
@@ -1004,7 +1004,7 @@ CONTAINS
     
 ! ! !ICON_OMP_MASTER
     ! Synchronize r_m and r_p
-    CALL sync_patch_array_mult(sync_c1, patch_2d, 2, r_m, r_p)
+    CALL sync_patch_array_mult(sync_c1, patch_2d, 2, lacc=lzacc, f3din1=r_m, f3din2=r_p)
 ! ! !ICON_OMP_END_MASTER
 ! ! !ICON_OMP_BARRIER
 
@@ -1304,7 +1304,7 @@ CONTAINS
 !ICON_OMP_END_DO
 !ICON_OMP_END_PARALLEL
 
-    CALL sync_patch_array_mult(sync_c1, patch_2d, 2, z_tracer_max, z_tracer_min)
+    CALL sync_patch_array_mult(sync_c1, patch_2d, 2, lacc=lzacc, f3din1=z_tracer_max, f3din2=z_tracer_min)
 
     ! 4. Limit the antidiffusive fluxes z_mflx_anti, such that the updated tracer
     !    field is free of any new extrema.
@@ -1434,7 +1434,7 @@ CONTAINS
 !ICON_OMP_END_PARALLEL
     
     ! Synchronize r_m and r_p
-    CALL sync_patch_array_mult(sync_c1, patch_2d, 2, r_m, r_p)
+    CALL sync_patch_array_mult(sync_c1, patch_2d, 2, lacc=lzacc, f3din1=r_m, f3din2=r_p)
 
     ! 5. Now loop over all edges and determine the minimum fraction which must
     !    multiply the antidiffusive flux at the edge.

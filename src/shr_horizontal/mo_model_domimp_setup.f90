@@ -263,12 +263,12 @@ CONTAINS
 !$OMP END DO NOWAIT
 !$OMP END PARALLEL
 
-    CALL sync_patch_array(sync_e,patch,patch%edges%quad_area)
+    CALL sync_patch_array(sync_e,patch,patch%edges%quad_area, lacc=.FALSE.)
     DO iie = 1, 4
-      CALL sync_patch_array(sync_e,patch,patch%edges%quad_orientation(:,:,iie))
+      CALL sync_patch_array(sync_e,patch,patch%edges%quad_orientation(:,:,iie), lacc=.FALSE.)
 
       CALL sync_idx(sync_e,sync_e,patch,patch%edges%quad_idx(:,:,iie), &
-        & patch%edges%quad_blk(:,:,iie), &
+        & patch%edges%quad_blk(:,:,iie), lacc=.FALSE., &
         & opt_remap=.FALSE.)
     ENDDO
 
@@ -451,7 +451,7 @@ CONTAINS
         CALL sync_idx(sync_e,sync_c,patch,            &
           &  patch%edges%butterfly_idx(:,:,iie,ije),  &
           &  patch%edges%butterfly_blk(:,:,iie,ije),  &
-          &  opt_remap=.FALSE.)
+          &  lacc=.FALSE., opt_remap=.FALSE.)
       ENDDO
     ENDDO
 

@@ -697,7 +697,7 @@ CONTAINS
     ! allocate input data for lateral boundary nudging
     IF (is_work) THEN
       CALL read_init_latbc_data(latbc, p_patch(1:), p_int_state(1), p_nh_state(1), &
-        &                       latbc%new_latbc_tlev, latbc_varnames_dict)
+        &                       latbc%new_latbc_tlev, latbc_varnames_dict, lacc=.TRUE.)
     ELSE IF (is_pref) THEN
       CALL async_init_latbc_data(latbc)
     ENDIF

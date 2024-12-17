@@ -227,9 +227,9 @@ CONTAINS
     !--- Compute data for interpolation of edge-based fields
 
     ! Compute geometric height at edge points
-    CALL cells2edges_scalar(p_metrics%z_mc, p_patch, intp_hrz%c_lin_e, z_me, opt_fill_latbc=.TRUE., lacc=.TRUE.)
-    CALL cells2edges_scalar(p_z3d_out, p_patch, intp_hrz%c_lin_e, p_z3d_edge, opt_fill_latbc=.TRUE., lacc=.TRUE.)
-    CALL sync_patch_array_mult(SYNC_E,p_patch,2,z_me,p_z3d_edge)
+    CALL cells2edges_scalar(p_metrics%z_mc, p_patch, intp_hrz%c_lin_e, z_me, lacc=.TRUE., opt_fill_latbc=.TRUE.)
+    CALL cells2edges_scalar(p_z3d_out, p_patch, intp_hrz%c_lin_e, p_z3d_edge, lacc=.TRUE., opt_fill_latbc=.TRUE.)
+    CALL sync_patch_array_mult(SYNC_E, p_patch, 2, lacc=.TRUE., f3din1=z_me, f3din2=p_z3d_edge)
 
     CALL prepare_lin_intp(z_me, p_z3d_edge, nblks_e, npromz_e, nlev, nzlev,                 & !in
       &                   vcoeff_z%lin_edge%wfac_lin, vcoeff_z%lin_edge%idx0_lin,           & !out
@@ -396,9 +396,9 @@ CONTAINS
 
     !--- Compute data for interpolation of edge-based fields
 
-    CALL cells2edges_scalar(p_metrics%z_mc, p_patch, intp_hrz%c_lin_e, z_me, opt_fill_latbc=.TRUE., lacc=.TRUE.)
-    CALL cells2edges_scalar(gh_p_out, p_patch, intp_hrz%c_lin_e, gh_p_edge, opt_fill_latbc=.TRUE., lacc=.TRUE.)
-    CALL sync_patch_array_mult(SYNC_E,p_patch,2,z_me,gh_p_edge)
+    CALL cells2edges_scalar(p_metrics%z_mc, p_patch, intp_hrz%c_lin_e, z_me, lacc=.TRUE., opt_fill_latbc=.TRUE.)
+    CALL cells2edges_scalar(gh_p_out, p_patch, intp_hrz%c_lin_e, gh_p_edge, lacc=.TRUE., opt_fill_latbc=.TRUE.)
+    CALL sync_patch_array_mult(SYNC_E, p_patch, 2, lacc=.TRUE., f3din1=z_me, f3din2=gh_p_edge)
 
     CALL prepare_lin_intp(z_me, gh_p_edge, nblks_e, npromz_e, nlev, nplev,                   & !in
       &                   vcoeff_p%lin_edge%wfac_lin, vcoeff_p%lin_edge%idx0_lin,            & !out
@@ -521,9 +521,9 @@ CONTAINS
 
     !--- Compute data for interpolation of edge-based fields
 
-    CALL cells2edges_scalar(p_metrics%z_mc, p_patch, intp_hrz%c_lin_e, z_me, opt_fill_latbc=.TRUE., lacc=.TRUE.)
-    CALL cells2edges_scalar(gh_i_out, p_patch, intp_hrz%c_lin_e, gh_i_edge, opt_fill_latbc=.TRUE., lacc=.TRUE.)
-    CALL sync_patch_array_mult(SYNC_E,p_patch,2,z_me,gh_i_edge)
+    CALL cells2edges_scalar(p_metrics%z_mc, p_patch, intp_hrz%c_lin_e, z_me, lacc=.TRUE., opt_fill_latbc=.TRUE.)
+    CALL cells2edges_scalar(gh_i_out, p_patch, intp_hrz%c_lin_e, gh_i_edge, lacc=.TRUE., opt_fill_latbc=.TRUE.)
+    CALL sync_patch_array_mult(SYNC_E, p_patch, 2, lacc=.TRUE., f3din1=z_me, f3din2=gh_i_edge)
 
     CALL prepare_lin_intp(z_me, gh_i_edge, nblks_e, npromz_e, nlev, nilev,                   & !in
       &                   vcoeff_i%lin_edge%wfac_lin, vcoeff_i%lin_edge%idx0_lin,            & !out

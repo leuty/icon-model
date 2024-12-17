@@ -24,7 +24,8 @@ MODULE mo_bc_ozone
   USE mo_read_interface,           ONLY: openInputFile, closeFile,        &
   &                                      read_3D_time, t_stream_id, on_cells
   USE mo_mpi,                      ONLY: my_process_is_stdio, p_bcast,        &
-  &                                      p_comm_work_test, p_comm_work, p_io
+  &                                      p_comm_work_test, p_comm_work, p_io, &
+  &                                      i_am_accel_node
   USE mo_impl_constants,           ONLY: max_dom
   USE mo_grid_config,              ONLY: n_dom
   USE mo_aes_rad_config,           ONLY: aes_rad_config
@@ -130,7 +131,7 @@ CONTAINS
 
        IF (ltimer) CALL timer_start(timer_coupling)
        CALL couple_atmo_to_o3_provider( &
-         p_patch, vmr2mmr_o3, ext_ozone(jg)% o3_plev)
+         p_patch, vmr2mmr_o3, ext_ozone(jg)% o3_plev, lacc=i_am_accel_node)
        IF (ltimer) CALL timer_stop(timer_coupling)
 
        fname = 'bc_ozone.nc'

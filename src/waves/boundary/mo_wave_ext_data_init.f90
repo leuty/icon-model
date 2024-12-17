@@ -162,7 +162,7 @@ CONTAINS
     CALL init(bath_e_3d(:,:,:), lacc=.FALSE.)
 !$OMP END PARALLEL
 
-    CALL cells2edges_scalar(bath_c_3d, p_patch, p_int_state%c_lin_e, bath_e_3d)
+    CALL cells2edges_scalar(bath_c_3d, p_patch, p_int_state%c_lin_e, bath_e_3d, lacc=.FALSE.)
 
 !$OMP PARALLEL
     CALL copy(src=bath_e_3d(:,1,:), dest=bathymetry_e, lacc=.FALSE.)
@@ -207,7 +207,7 @@ CONTAINS
 !$OMP END PARALLEL
 
     CALL grad_green_gauss_cell(depth_c_3d, p_patch, p_int_state, depth_grad_c_4d, &
-         &                     opt_slev=1, opt_elev=1, &
+         &                     lacc=.FALSE., opt_slev=1, opt_elev=1, &
          &                     opt_rlstart=2, opt_rlend=min_rlcell)
 
 !$OMP PARALLEL

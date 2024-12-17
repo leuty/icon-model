@@ -78,11 +78,12 @@ CONTAINS
   !>
   !! Receives fields from the o3 provider in the atmosphere model
   !!
-  SUBROUTINE couple_atmo_to_o3_provider(p_patch, vmr2mmr_o3, o3_plev)
+  SUBROUTINE couple_atmo_to_o3_provider(p_patch, vmr2mmr_o3, o3_plev, lacc)
 
     TYPE(t_patch), INTENT(in) :: p_patch
     REAL(wp), INTENT(in) :: vmr2mmr_o3
     REAL(wp), TARGET, INTENT(inout) :: o3_plev(:,:,:,:)
+    LOGICAL, INTENT(IN) :: lacc ! If compiled with OpenACC: IF lacc is True, use GPU memory
 
     CHARACTER(LEN=*), PARAMETER   :: &
       routine = str_module // ':couple_atmo_to_o3_provider'
@@ -99,7 +100,7 @@ CONTAINS
       scale_factor=vmr2mmr_o3, first_get=.TRUE., received_data=received_data)
     IF (received_data) &
       CALL sync_patch_array( &
-        SYNC_C, p_patch, o3_plev(:,:,:,1), opt_varname='o3')
+        SYNC_C, p_patch, o3_plev(:,:,:,1), lacc=lacc, opt_varname='o3')
 
   END SUBROUTINE couple_atmo_to_o3_provider
 

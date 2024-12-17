@@ -77,46 +77,48 @@ MODULE mo_nh_vert_interp_les
 
     ! half_c sync
     CALL edges2cells_scalar(p_metrics%ddxn_z_half_e, p_patch, p_int%e_bln_c_s, &
-      &                     p_metrics%ddxn_z_half_c)
+      &                     p_metrics%ddxn_z_half_c, lacc=.FALSE.)
 
     CALL edges2cells_scalar(p_metrics%ddxt_z_half_e, p_patch, p_int%e_bln_c_s, &
-      &                     p_metrics%ddxt_z_half_c)
+      &                     p_metrics%ddxt_z_half_c, lacc=.FALSE.)
 
     ! full_c sync
     CALL edges2cells_scalar(p_metrics%ddxn_z_full, p_patch, p_int%e_bln_c_s, &
-      &                     p_metrics%ddxn_z_full_c)
+      &                     p_metrics%ddxn_z_full_c, lacc=.FALSE.)
 
     CALL edges2cells_scalar(p_metrics%ddxt_z_full, p_patch, p_int%e_bln_c_s, &
-      &                     p_metrics%ddxt_z_full_c)
-    CALL sync_patch_array_mult(SYNC_C, p_patch, 4, p_metrics%ddxn_z_half_c, &
-      &                        p_metrics%ddxt_z_half_c, &
-      &                        p_metrics%ddxn_z_full_c, &
-      &                        p_metrics%ddxt_z_full_c)
+      &                     p_metrics%ddxt_z_full_c, lacc=.FALSE.)
+    CALL sync_patch_array_mult(SYNC_C, p_patch, 4, lacc=.FALSE., &
+      &                        f3din1=p_metrics%ddxn_z_half_c, &
+      &                        f3din2=p_metrics%ddxt_z_half_c, &
+      &                        f3din3=p_metrics%ddxn_z_full_c, &
+      &                        f3din4=p_metrics%ddxt_z_full_c)
 
     ! full_v sync
     CALL cells2verts_scalar(p_metrics%ddxn_z_full_c, p_patch, &
-      &                     p_int%cells_aw_verts, p_metrics%ddxn_z_full_v)
+      &                     p_int%cells_aw_verts, p_metrics%ddxn_z_full_v, lacc=.FALSE.)
 
     CALL cells2verts_scalar(p_metrics%ddxt_z_full_c, p_patch, &
-      &                     p_int%cells_aw_verts, p_metrics%ddxt_z_full_v)
+      &                     p_int%cells_aw_verts, p_metrics%ddxt_z_full_v, lacc=.FALSE.)
 
     CALL cells2verts_scalar(p_metrics%inv_ddqz_z_full, p_patch, &
-      &                     p_int%cells_aw_verts, p_metrics%inv_ddqz_z_full_v)
+      &                     p_int%cells_aw_verts, p_metrics%inv_ddqz_z_full_v, lacc=.FALSE.)
 
     ! half_v sync
     CALL cells2verts_scalar(p_metrics%ddxt_z_half_c, p_patch, &
-         p_int%cells_aw_verts, p_metrics%ddxt_z_half_v)
+         p_int%cells_aw_verts, p_metrics%ddxt_z_half_v, lacc=.FALSE.)
 #ifdef __MIXED_PRECISION
-    CALL sync_patch_array_mult_mp(SYNC_V, p_patch, 1, 3, &
+    CALL sync_patch_array_mult_mp(SYNC_V, p_patch, 1, 3, lacc=.FALSE., &
       &                 f3din1_sp=p_metrics%ddxn_z_full_v, &
       &                 f3din2_sp=p_metrics%ddxt_z_full_v, &
       &                    f3din1=p_metrics%inv_ddqz_z_full_v, &
       &                 f3din3_sp=p_metrics%ddxt_z_half_v)
 #else
-    CALL sync_patch_array_mult(SYNC_V, p_patch, 4, p_metrics%ddxn_z_full_v, &
-      &                        p_metrics%ddxt_z_full_v, &
-      &                        p_metrics%inv_ddqz_z_full_v, &
-      &                        p_metrics%ddxt_z_half_v)
+    CALL sync_patch_array_mult(SYNC_V, p_patch, 4, lacc=.FALSE., &
+      &                        f3din1=p_metrics%ddxn_z_full_v, &
+      &                        f3din2=p_metrics%ddxt_z_full_v, &
+      &                        f3din3=p_metrics%inv_ddqz_z_full_v, &
+      &                        f3din4=p_metrics%ddxt_z_half_v)
 #endif
 
   END SUBROUTINE init_vertical_grid_for_les

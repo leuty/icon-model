@@ -116,7 +116,7 @@ MODULE mo_ocean_testbed_zstar
   USE mo_ocean_bulk_forcing,  ONLY: apply_surface_relaxation, update_ocean_surface_stress
   USE mo_swr_absorption,     ONLY: dynamic_swr_absorption
   USE mo_ocean_diagnostics,      ONLY: calc_fast_oce_diagnostics, calc_psi
-  USE mo_derived_variable_handling, ONLY: update_statistics
+  !USE mo_derived_variable_handling, ONLY: update_statistics ! DyKi: In commented block below
   USE mo_master_config,          ONLY: isRestart
   USE mo_sea_ice_nml,            ONLY: i_ice_dyn
   USE mo_restart,                ONLY: t_RestartDescriptor, createRestartDescriptor, deleteRestartDescriptor
@@ -287,8 +287,8 @@ CONTAINS
 !ICON_OMP_END_PARALLEL_DO
 
 !ICON_OMP_MASTER
-    CALL sync_patch_array(sync_c, patch_2D, stretch_c)
-    CALL sync_patch_array(sync_c, patch_2D, stretch_c_new)
+    CALL sync_patch_array(sync_c, patch_2D, stretch_c, lacc=.FALSE.)
+    CALL sync_patch_array(sync_c, patch_2D, stretch_c_new, lacc=.FALSE.)
 !ICON_OMP_END_MASTER
 !ICON_OMP_BARRIER
 
@@ -318,7 +318,7 @@ CONTAINS
 !ICON_OMP_END_PARALLEL_DO
 
 !ICON_OMP_MASTER
-    CALL sync_patch_array(sync_e, patch_2D, stretch_e)
+    CALL sync_patch_array(sync_e, patch_2D, stretch_e, lacc=.FALSE.)
 !ICON_OMP_END_MASTER
 !ICON_OMP_BARRIER
 

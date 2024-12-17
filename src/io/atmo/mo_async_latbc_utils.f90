@@ -370,13 +370,14 @@
     !! Replaces the former routine compute_init_latbc_data, which did the same job
     !! in a computationally less efficient way on the prefetch PE
     !!
-    SUBROUTINE read_init_latbc_data(latbc, p_patch, p_int_state, p_nh_state, timelev, latbc_dict)
+    SUBROUTINE read_init_latbc_data(latbc, p_patch, p_int_state, p_nh_state, timelev, latbc_dict, lacc)
       TYPE(t_latbc_data), TARGET, INTENT(INOUT) :: latbc
       TYPE(t_patch),          INTENT(INOUT) :: p_patch(:)
       TYPE(t_int_state),      INTENT(IN)    :: p_int_state
       TYPE(t_nh_state),       INTENT(INOUT) :: p_nh_state  !< nonhydrostatic state on the global domain
       INTEGER,                INTENT(OUT)   :: timelev
-      TYPE(t_dictionary), INTENT(IN) :: latbc_dict
+      TYPE(t_dictionary),     INTENT(IN)    :: latbc_dict
+      LOGICAL,                INTENT(IN)    :: lacc
       TYPE(datetime) :: nextActive          ! next trigger date for prefetch event
       TYPE(datetime) :: latbc_read_datetime ! next input date to be read
       INTEGER :: ierr, nblks_c, nlev_in, jk, jb, jc
@@ -509,7 +510,7 @@
           CALL check_validity_date_and_print_filename(latbc, latbc_read_datetime)
         ENDIF
 
-        CALL read_latbc_data(latbc, p_patch(1), p_nh_state, p_int_state, timelev, read_params, latbc_dict)
+        CALL read_latbc_data(latbc, p_patch(1), p_nh_state, p_int_state, timelev, read_params, lacc=.FALSE., latbc_dict=latbc_dict)
       ENDIF
 
       !$ACC UPDATE DEVICE(latbc%latbc_data(timelev)%atm%pres, latbc%latbc_data(timelev)%atm%temp) &
@@ -561,7 +562,7 @@
         !
         prev_latbc_tlev = 3 - timelev
         !
-        CALL assert_acc_device_only("read_init_latbc_data", i_am_accel_node)
+        CALL assert_acc_device_only("read_init_latbc_data", lacc)
         DO jn = 1, p_patch(1)%n_childdom
           CALL intp_nestubc_nudging (p_patch     = p_patch(1:),               &
             &                        latbc_data  = latbc%latbc_data(timelev), &
@@ -598,7 +599,7 @@
         = makeInputParameters(latbc%open_cdi_stream_handle, &
         &                      p_patch(1)%n_patch_edges_g, p_patch(1)%comm_pat_scatter_e)
 
-      CALL read_latbc_data(latbc, p_patch(1), p_nh_state, p_int_state, timelev, read_params, latbc_dict)
+      CALL read_latbc_data(latbc, p_patch(1), p_nh_state, p_int_state, timelev, read_params, lacc=.FALSE., latbc_dict=latbc_dict)
 
       !$ACC UPDATE DEVICE(latbc%latbc_data(timelev)%atm%pres, latbc%latbc_data(timelev)%atm%temp) &
       !$ACC   DEVICE(latbc%latbc_data(timelev)%atm%vn) &
@@ -700,13 +701,14 @@
     !!       available on the remaining PE. For this situation we need
     !!       the optional "opt_lmask" parameter.
     !!
-    SUBROUTINE read_latbc_data(latbc, p_patch, p_nh_state, p_int, tlev, read_params, latbc_dict)
+    SUBROUTINE read_latbc_data(latbc, p_patch, p_nh_state, p_int, tlev, read_params, lacc, latbc_dict)
       TYPE(t_latbc_data),     INTENT(INOUT), TARGET :: latbc  !< variable buffer for latbc data
       TYPE(t_patch),          INTENT(INOUT)         :: p_patch
       TYPE(t_nh_state),       INTENT(IN)            :: p_nh_state  !< nonhydrostatic state on the global domain
       TYPE(t_int_state),      INTENT(IN)            :: p_int
       INTEGER,                INTENT(IN)            :: tlev
       TYPE(t_read_params),    INTENT(INOUT)         :: read_params(:)
+      LOGICAL,                INTENT(IN)            :: lacc
       TYPE (t_dictionary),    INTENT(IN), OPTIONAL  :: latbc_dict
 
 #ifndef NOMPI
@@ -765,8 +767,8 @@
         CALL get_data(latbc, 'qi', latbc%latbc_data(tlev)%atm_in%qi, read_params(icell), latbc_dict)
       ELSE  ! initialize qc, qi with 0
 !$OMP PARALLEL
-        CALL init(latbc%latbc_data(tlev)%atm_in%qc(:,:,:), lacc=.FALSE.)
-        CALL init(latbc%latbc_data(tlev)%atm_in%qi(:,:,:), lacc=.FALSE.)
+        CALL init(latbc%latbc_data(tlev)%atm_in%qc(:,:,:), lacc=lacc)
+        CALL init(latbc%latbc_data(tlev)%atm_in%qi(:,:,:), lacc=lacc)
 !$OMP END PARALLEL
       ENDIF
 
@@ -775,7 +777,7 @@
         CALL get_data(latbc, 'qr', latbc%latbc_data(tlev)%atm_in%qr, read_params(icell), latbc_dict)
       ELSE
 !$OMP PARALLEL
-        CALL init(latbc%latbc_data(tlev)%atm_in%qr(:,:,:), lacc=.FALSE.)
+        CALL init(latbc%latbc_data(tlev)%atm_in%qr(:,:,:), lacc=lacc)
 !$OMP END PARALLEL
       ENDIF
 
@@ -784,7 +786,7 @@
         CALL get_data(latbc, 'qs', latbc%latbc_data(tlev)%atm_in%qs, read_params(icell), latbc_dict)
       ELSE
 !$OMP PARALLEL
-        CALL init(latbc%latbc_data(tlev)%atm_in%qs(:,:,:), lacc=.FALSE.)
+        CALL init(latbc%latbc_data(tlev)%atm_in%qs(:,:,:), lacc=lacc)
 !$OMP END PARALLEL
       ENDIF
 
@@ -881,7 +883,7 @@
            CALL get_data(latbc, 'w', omega, read_params(icell), latbc_dict)
          ELSE
 !$OMP PARALLEL
-           CALL init(omega(:,:,:), lacc=.FALSE.)
+           CALL init(omega(:,:,:), lacc=lacc)
 !$OMP END PARALLEL
          ENDIF
 
@@ -917,7 +919,7 @@
 !$OMP END PARALLEL DO
          ELSE
 !$OMP PARALLEL
-           CALL init(latbc%latbc_data(tlev)%atm_in%w(:,:,:), lacc=.FALSE.)
+           CALL init(latbc%latbc_data(tlev)%atm_in%w(:,:,:), lacc=lacc)
 !$OMP END PARALLEL
          ENDIF
       ENDIF
@@ -985,7 +987,7 @@
           &    opt_inputonzgpot=latbc%buffer%lcompute_hhl_pres)
       ENDIF
 
-      CALL sync_patch_array(SYNC_E,p_patch,latbc%latbc_data(tlev)%atm%vn)
+      CALL sync_patch_array(SYNC_E,p_patch,latbc%latbc_data(tlev)%atm%vn, lacc=.FALSE.)
 
 #endif
     END SUBROUTINE read_latbc_data
@@ -1316,7 +1318,7 @@
       read_params(icell)%imode_asy = icell
       read_params(iedge)%imode_asy = iedge
       !$ACC WAIT(1) !GV: UPDATE HOST(p_nh_state) finished
-      CALL read_latbc_data(latbc, p_patch(1), p_nh_state, p_int, tlev, read_params)
+      CALL read_latbc_data(latbc, p_patch(1), p_nh_state, p_int, tlev, read_params, lacc=.FALSE.)
 
       !$ACC UPDATE DEVICE(latbc%latbc_data(tlev)%atm%pres, latbc%latbc_data(tlev)%atm%temp) &
       !$ACC   DEVICE(latbc%latbc_data(tlev)%atm%vn) &

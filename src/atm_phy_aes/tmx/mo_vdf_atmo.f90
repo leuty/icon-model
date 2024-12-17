@@ -357,13 +357,13 @@ CONTAINS
     !----------------------------------------------------------------------------
     ! Compute velocities normal to edges
     !----------------------------------------------------------------------------
-    CALL sync_patch_array(SYNC_C, patch, ins%pum1)
-    CALL sync_patch_array(SYNC_C, patch, ins%pvm1)
+    CALL sync_patch_array(SYNC_C, patch, ins%pum1, lacc=.TRUE.)
+    CALL sync_patch_array(SYNC_C, patch, ins%pvm1, lacc=.TRUE.)
     
     CALL compute_normal_velocity_edge(ins%pum1, ins%pvm1, patch, p_int,                 &
                                       grf_bdywidth_e+1, min_rledge_int, diags%vn)
 
-    CALL sync_patch_array(SYNC_E, patch, diags%vn)
+    CALL sync_patch_array(SYNC_E, patch, diags%vn, lacc=.TRUE.)
 
     !----------------------------------------------------------------------------
     ! Interpolate velocities at required locations to compute velocity 
@@ -378,17 +378,17 @@ CONTAINS
 !$OMP END PARALLEL
 
     CALL cells2verts_scalar(ins%pwp1, patch, p_int%cells_aw_verts, diags%w_vert,                   &
-                            opt_rlend=min_rlvert_int, opt_acc_async=.TRUE.)
+                            lacc=.TRUE., opt_rlend=min_rlvert_int, opt_acc_async=.TRUE.)
 
-    CALL cells2edges_scalar(ins%pwp1, patch, p_int%c_lin_e, diags%w_ie, opt_rlend=min_rledge_int-2,&
-                            lacc=.TRUE.)
+    CALL cells2edges_scalar(ins%pwp1, patch, p_int%c_lin_e, diags%w_ie, lacc=.TRUE., &
+                            opt_rlend=min_rledge_int-2)
 
     ! RBF reconstruction of velocity at vertices: include halos
-    CALL rbf_vec_interpol_vertex(diags%vn, patch, p_int, diags%u_vert, diags%v_vert,                       &
-                                 opt_rlend=min_rlvert_int)
+    CALL rbf_vec_interpol_vertex(diags%vn, patch, p_int, diags%u_vert, diags%v_vert,                &
+                                 lacc=.TRUE., opt_rlend=min_rlvert_int)
 
     !sync them
-    CALL sync_patch_array_mult(SYNC_V, patch, 3, diags%w_vert, diags%u_vert, diags%v_vert)
+    CALL sync_patch_array_mult(SYNC_V, patch, 3, lacc=.TRUE., f3din1=diags%w_vert, f3din2=diags%u_vert, f3din3=diags%v_vert)
 
     !Get vn at interfaces and then get vt at interfaces
     !Boundary values are extrapolated like dynamics although
@@ -396,8 +396,8 @@ CONTAINS
     CALL interpolate_normal_velocity_edge_interface(diags%vn, patch, p_nh_metrics, 2,         &
                                                     min_rledge_int-3, diags%vn_ie)
 
-    CALL rbf_vec_interpol_edge(diags%vn_ie, patch, p_int, diags%vt_ie, opt_rlstart=3, &
-                               opt_rlend=min_rledge_int-2)
+    CALL rbf_vec_interpol_edge(diags%vn_ie, patch, p_int, diags%vt_ie, lacc=.TRUE., &
+                               opt_rlstart=3, opt_rlend=min_rledge_int-2)
 
 
     !----------------------------------------------------------------------------
@@ -2097,7 +2097,7 @@ CONTAINS
     nlev = SIZE(km_iv, 2)
 
     CALL cells2verts_scalar(km_ic, patch, ptr_int%cells_aw_verts, km_iv, &
-                            opt_rlstart=5, opt_rlend=min_rlvert_int-1,   &
+                            lacc=.TRUE., opt_rlstart=5, opt_rlend=min_rlvert_int-1,   &
                             opt_acc_async=.TRUE.)
 
     !$ACC PARALLEL LOOP DEFAULT(PRESENT) GANG VECTOR COLLAPSE(3) ASYNC(1)
@@ -2137,9 +2137,8 @@ CONTAINS
     nproma = SIZE(km_ie, 1)
     nlev = SIZE(km_ie, 2)
 
-    CALL cells2edges_scalar(km_ic, patch, ptr_int%c_lin_e, km_ie,                   &
-                            opt_rlstart=grf_bdywidth_e, opt_rlend=min_rledge_int-1, &
-                            lacc=.TRUE.)
+    CALL cells2edges_scalar(km_ic, patch, ptr_int%c_lin_e, km_ie, lacc=.TRUE.,      &
+                            opt_rlstart=grf_bdywidth_e, opt_rlend=min_rledge_int-1  )
 
     !$ACC PARALLEL LOOP DEFAULT(PRESENT) GANG VECTOR COLLAPSE(3) ASYNC(1)
     DO jb = 1, nblks

@@ -31,6 +31,7 @@ MODULE mo_aes_convect_tables
   USE mo_exception, ONLY: message_text, message, finish
   USE mo_physical_constants, ONLY: alv, als, rd, rv, tmelt, cpd
   USE mo_aes_cop_config,     ONLY: aes_cop_config
+  USE mo_fortran_tools,      ONLY: assert_acc_device_only
 
   USE mo_model_domain,       ONLY: p_patch  ! for debugging only
   USE mo_math_constants,     ONLY: rad2deg  ! for debugging only
@@ -587,16 +588,19 @@ CONTAINS
     dua = rsdeltat*(c + x*(3.0_wp*bxa - b))
   END SUBROUTINE ua_spline
 
-  SUBROUTINE fetch_ua_spline_batch(jcs,jce,batch_size,idx,zalpha,table,ua,dua)
+  SUBROUTINE fetch_ua_spline_batch(jcs,jce,batch_size,idx,zalpha,table,lacc,ua,dua)
     INTEGER,            INTENT(in)  :: jcs, jce, batch_size
     INTEGER,            INTENT(in)  :: idx(:, :)
     REAL(wp),           INTENT(in)  :: zalpha(:, :)
     REAL(wp),           INTENT(in)  :: table(1:2,lucupmin-2:lucupmax+1)
+    LOGICAL,            INTENT(in)  :: lacc
     REAL(wp), OPTIONAL, INTENT(out) :: ua(:, :), dua(:, :)
 
     REAL(wp) :: mydua
     INTEGER :: jl, batch
     LOGICAL :: need_dua
+
+    CALL assert_acc_device_only ('fetch_ua_spline_batch', lacc)
 
     need_dua = PRESENT(dua)
 
@@ -780,13 +784,14 @@ CONTAINS
 
   END SUBROUTINE lookup_ua_spline
   !----------------------------------------------------------------------------
-  SUBROUTINE lookup_ua_spline_batch(jcs, jce, batch_size, idx, zalpha, ua, dua)
+  SUBROUTINE lookup_ua_spline_batch(jcs, jce, batch_size, idx, zalpha, lacc, ua, dua)
     INTEGER,            INTENT(in)  :: jcs, jce, batch_size
     INTEGER,            INTENT(in)  :: idx(:,:)
     REAL(wp),           INTENT(in)  :: zalpha(:,:)
+    LOGICAL,            INTENT(IN)  :: lacc
     REAL(wp), OPTIONAL, INTENT(out) :: ua(:,:), dua(:,:)
 
-    CALL fetch_ua_spline_batch(jcs, jce, batch_size, idx, zalpha, tlucu, ua, dua)
+    CALL fetch_ua_spline_batch(jcs, jce, batch_size, idx, zalpha, tlucu, lacc=lacc, ua=ua, dua=dua)
 
   END SUBROUTINE lookup_ua_spline_batch
   !----------------------------------------------------------------------------
@@ -924,7 +929,7 @@ SUBROUTINE prepare_ua_index_spline(jg, name, jcs, size, temp, idx, zalpha, &
   END SUBROUTINE prepare_ua_index_spline
   !----------------------------------------------------------------------------
   SUBROUTINE prepare_ua_index_spline_batch(name, jcs, jce, batch_size,                &
-    &                                      temp, idx, zalpha,                         &
+    &                                      temp, idx, zalpha, lacc,                   &
     &                                      xi, nphase, zphase, iphase,                &
     &                                      kblock, kblock_size, opt_need_host_nphase, &
     &                                      opt_sanitize_index, csecfrl, cthomi,       &
@@ -934,6 +939,7 @@ SUBROUTINE prepare_ua_index_spline(jg, name, jcs, size, temp, idx, zalpha, &
     REAL(wp),           INTENT(in)    :: temp(:,:)
     INTEGER,            INTENT(inout) :: idx(:,:)
     REAL(wp),           INTENT(inout) :: zalpha(:,:)
+    LOGICAL,            INTENT(IN) :: lacc
 
     INTEGER,  OPTIONAL, INTENT(in)    :: kblock
     INTEGER,  OPTIONAL, INTENT(in)    :: kblock_size
@@ -958,6 +964,7 @@ SUBROUTINE prepare_ua_index_spline(jg, name, jcs, size, temp, idx, zalpha, &
     INTEGER :: zoutofbounds_vec(batch_size)
     INTEGER, PARAMETER :: tile_size = 1024
 
+    CALL assert_acc_device_only ('prepare_ua_index_spline_batch', lacc)
     !
     !$ACC DATA PRESENT(temp, idx, zalpha)
     !

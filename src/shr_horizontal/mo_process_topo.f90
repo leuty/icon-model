@@ -73,12 +73,12 @@ CONTAINS
     i_startblk = p_patch%cells%start_blk(2,1)
     nblks_c    = p_patch%nblks_c
 
-    CALL sync_patch_array(SYNC_C,p_patch,z_topo)
+    CALL sync_patch_array(SYNC_C,p_patch,z_topo, lacc=.FALSE.)
 
     ! Apply nabla2-diffusion niter times to create smooth topography
     DO iter = 1, niter
 
-      CALL nabla2_scalar(z_topo, p_patch, p_int, nabla2_topo, &
+      CALL nabla2_scalar(z_topo, p_patch, p_int, nabla2_topo, lacc=.FALSE., &
         &                 slev=1, elev=1, rl_start=2, rl_end=min_rlcell )
 
       DO jb = i_startblk,nblks_c
@@ -92,7 +92,7 @@ CONTAINS
         ENDDO
       ENDDO
 
-      CALL sync_patch_array(SYNC_C,p_patch,z_topo)
+      CALL sync_patch_array(SYNC_C,p_patch,z_topo, lacc=.FALSE.)
 
     ENDDO
 
@@ -160,7 +160,7 @@ CONTAINS
         z_hdiffmax(:,:)   = 0._wp
         lnabla2_mask(:,:) = .FALSE.
 
-        CALL nabla2_scalar( z_topo, p_patch, p_int, z_nabla2_topo, &
+        CALL nabla2_scalar( z_topo, p_patch, p_int, z_nabla2_topo, lacc=.FALSE., &
           &                 slev=1, elev=1, rl_start=2, rl_end=min_rlcell )
 
         npts = 0
@@ -214,7 +214,7 @@ CONTAINS
         ENDDO
 
         z_topo(:,1,:) = topography_c(:,:)
-        CALL sync_patch_array(SYNC_C, p_patch, z_topo)
+        CALL sync_patch_array(SYNC_C, p_patch, z_topo, lacc=.FALSE.)
         topography_c(:,:) = z_topo(:,1,:)
 
       ENDDO ! iteration of local nabla2 smoothing
@@ -225,7 +225,7 @@ CONTAINS
       z_topo(:,1,:)   = topography_c(:,:)
       z_topo_old(:,1,:) = z_topo(:,1,:)
 
-      CALL nabla4_scalar(z_topo, p_patch, p_int, z_nabla4_topo, &
+      CALL nabla4_scalar(z_topo, p_patch, p_int, z_nabla4_topo, lacc=.FALSE., &
         & slev=1, elev=UBOUND(z_topo,2), rl_start=3, rl_end=min_rlcell, &
         & p_nabla2=z_nabla2_topo )
 
@@ -304,7 +304,7 @@ CONTAINS
       ENDDO
 
       z_topo(:,1,:)   = topography_c(:,:)
-      CALL sync_patch_array(SYNC_C, p_patch, z_topo)
+      CALL sync_patch_array(SYNC_C, p_patch, z_topo, lacc=.FALSE.)
       topography_c(:,:)=z_topo(:,1,:)
 
       DO jb = i_startblk,nblks_c
@@ -347,7 +347,7 @@ CONTAINS
       ENDDO
 
       z_topo(:,1,:)   = topography_c(:,:)
-      CALL sync_patch_array(SYNC_C, p_patch, z_topo)
+      CALL sync_patch_array(SYNC_C, p_patch, z_topo, lacc=.FALSE.)
       topography_c(:,:)=z_topo(:,1,:)
 
     ENDDO !iter
@@ -483,7 +483,7 @@ CONTAINS
 
       ENDDO  !jb
 
-      CALL sync_patch_array(SYNC_C, p_patch, zaux)
+      CALL sync_patch_array(SYNC_C, p_patch, zaux, lacc=.FALSE.)
       fr_land_smt(:,:) = zaux(:,:)
 
     ENDDO
@@ -528,7 +528,7 @@ CONTAINS
 
     ENDDO  !jb
 
-    CALL sync_patch_array(SYNC_C, p_patch, fr_urb_smt)
+    CALL sync_patch_array(SYNC_C, p_patch, fr_urb_smt, lacc=.FALSE.)
 
 
   END SUBROUTINE smooth_urbfrac
@@ -566,7 +566,7 @@ CONTAINS
 
     ! compute grid-scale slope
     !
-    CALL rbf_interpol_c2grad(z_topo_c, p_patch, p_int, slope_x, slope_y)
+    CALL rbf_interpol_c2grad(z_topo_c, p_patch, p_int, slope_x, slope_y, lacc=.FALSE.)
 
     DO jb = i_startblk,i_endblk
 
@@ -578,7 +578,7 @@ CONTAINS
 
     ENDDO
 
-    CALL sync_patch_array(SYNC_C, p_patch, slope)
+    CALL sync_patch_array(SYNC_C, p_patch, slope, lacc=.FALSE.)
 
     ! Reduce SSO stdh and slope depending on the glacier fration and the ratio between SSO slope and grid-scale slope
     ! With Merit/Rema raw data, it turned out to be beneficial to extend the slope correction the whole Arctic region

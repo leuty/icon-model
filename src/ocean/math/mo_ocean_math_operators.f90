@@ -1545,7 +1545,7 @@ CONTAINS
     END DO
     !$ACC END PARALLEL LOOP
     !$ACC WAIT(1)
-   !CALL sync_patch_array(sync_c, patch_3D%p_patch_2D(1), vertDeriv_scalar(:,:))
+   !CALL sync_patch_array(sync_c, patch_3D%p_patch_2D(1), vertDeriv_scalar(:,:), lacc=lzacc)
   END SUBROUTINE verticalDeriv_scalar_onHalfLevels_on_block
   !-------------------------------------------------------------------------
 
@@ -1581,7 +1581,7 @@ CONTAINS
     END DO
 !ICON_OMP_END_PARALLEL_DO
 
-  !CALL sync_patch_array(sync_c, patch_3D%p_patch_2D(1), vertDiv_scalar)
+  !CALL sync_patch_array(sync_c, patch_3D%p_patch_2D(1), vertDiv_scalar, lacc=.FALSE.)
   END SUBROUTINE verticalDiv_scalar_onFullLevels
   !-------------------------------------------------------------------------
 
@@ -1620,7 +1620,7 @@ CONTAINS
         ! vertDeriv_vec(jc,end_level)%x = 0.0_wp ! this is not needed
 !      ENDIF
     END DO
-     !CALL sync_patch_array(sync_c, patch_3D%p_patch_2D(1), vertDiv_scalar)
+     !CALL sync_patch_array(sync_c, patch_3D%p_patch_2D(1), vertDiv_scalar, lacc=.FALSE.)
   END SUBROUTINE verticalDiv_scalar_onFullLevels_on_block
   !-------------------------------------------------------------------------
 
@@ -1768,7 +1768,7 @@ CONTAINS
 
     ENDIF
 
-    CALL sync_patch_array(sync_c, patch_3d%p_patch_2d(1), out_value)
+    CALL sync_patch_array(sync_c, patch_3d%p_patch_2d(1), out_value, lacc=.FALSE.)
 
   END SUBROUTINE smooth_onCells_3D
   !-------------------------------------------------------------------------
@@ -1919,7 +1919,7 @@ CONTAINS
 
     ENDIF
 
-    CALL sync_patch_array(sync_c, patch_3d%p_patch_2d(1), out_value)
+    CALL sync_patch_array(sync_c, patch_3d%p_patch_2d(1), out_value, lacc=lzacc)
 
     !$ACC END DATA
 
@@ -2071,7 +2071,7 @@ CONTAINS
       END DO
 !ICON_OMP_END_DO
 !ICON_OMP_MASTER
-      CALL sync_patch_array(sync_e, patch_2D, edge_thickness)
+      CALL sync_patch_array(sync_e, patch_2D, edge_thickness, lacc=.FALSE.)
 !ICON_OMP_END_MASTER
 !ICON_OMP_BARRIER
 
@@ -2399,8 +2399,8 @@ CONTAINS
       !&maxval(ocean_state%p_diag%h_e),minval(ocean_state%p_diag%h_e)
 
 !ICON_OMP_MASTER
-      CALL sync_patch_array(sync_e, patch_2D, ocean_state%p_diag%thick_e)
-      CALL sync_patch_array(sync_e, patch_2D, ocean_state%p_diag%h_e)
+      CALL sync_patch_array(sync_e, patch_2D, ocean_state%p_diag%thick_e, lacc=lzacc)
+      CALL sync_patch_array(sync_e, patch_2D, ocean_state%p_diag%h_e, lacc=lzacc)
 !ICON_OMP_END_MASTER
 !ICON_OMP_BARRIER
 
@@ -2466,7 +2466,7 @@ CONTAINS
 !ICON_OMP_END_DO
 
 !ICON_OMP_MASTER
-      CALL sync_patch_array(sync_e, patch_2D, ocean_state%p_diag%h_e)
+      CALL sync_patch_array(sync_e, patch_2D, ocean_state%p_diag%h_e, lacc=lzacc)
 !ICON_OMP_END_MASTER
 !ICON_OMP_BARRIER
 

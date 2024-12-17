@@ -551,7 +551,7 @@ CONTAINS
 
     CALL copy_fem2icon(u_ice, u_, 1, 1)
 
-    CALL sync_patch_array(SYNC_V, fem_patch, u_(:,:))
+    CALL sync_patch_array(SYNC_V, fem_patch, u_(:,:), lacc=.FALSE.)
 
     CALL copy_icon2fem(u_, u_ice, 1, 1)
   END SUBROUTINE exchange_nod2D
@@ -638,7 +638,7 @@ CONTAINS
     CALL copy_fem2icon(u1_ice, u_, 2, 1, lacc=lzacc)
     CALL copy_fem2icon(u2_ice, u_, 2, 2, lacc=lzacc)
 
-    CALL sync_patch_array(SYNC_V, fem_patch, u_)
+    CALL sync_patch_array(SYNC_V, fem_patch, u_, lacc=lzacc)
 
     CALL copy_icon2fem(u_, u1_ice, 2, 1, lacc=lzacc)
     CALL copy_icon2fem(u_, u2_ice, 2, 2, lacc=lzacc)
@@ -658,7 +658,7 @@ CONTAINS
     CALL copy_fem2icon(u2_ice, u_, 3, 2)
     CALL copy_fem2icon(u3_ice, u_, 3, 3)
 
-    CALL sync_patch_array(SYNC_V, fem_patch, u_)
+    CALL sync_patch_array(SYNC_V, fem_patch, u_, lacc=.FALSE.)
 
     CALL copy_icon2fem(u_, u1_ice, 3, 1)
     CALL copy_icon2fem(u_, u2_ice, 3, 2)

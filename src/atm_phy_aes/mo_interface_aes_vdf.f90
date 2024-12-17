@@ -503,7 +503,8 @@ CONTAINS
               &          zbh_tile(:,:,:),                   &! out, for "nsurf_diag"
               &          pcsat = csat(:,:),                 &! in, optional, area fraction with wet land surface
               &          pcair = cair(:,:),                 &! in, optional, area fraction with wet land surface (air)
-              &          paz0lh = z0h_lnd(:,:)          )    ! in, optional, roughness length for heat over land
+              &          paz0lh = z0h_lnd(:,:),             &! in, optional, roughness length for heat over land
+              &          lacc=.TRUE.                        )! in
         !
         !
         ! DA: vdiff_down has its own ACC WAIT due to automatic arrays in ACC data sections
@@ -820,7 +821,8 @@ CONTAINS
                &        tend_qtrc_vdf_iqt(:,:,jb,:),     & ! out
                &        field%   z0m   (:,  jb),         &! out, for the next step
                &        dummy(:,:,jb),                   &!
-               &        field%      totte(:,:,jb)        )! out
+               &        field%      totte(:,:,jb),       &! out
+               &        lacc=.TRUE.                      )! in
 !!$               &        field%      totte(:,:,jb),       &! out
 !!$               &        field%   sh_vdiff(:,  jb),       &! out, for energy diagnostic
 !!$               &        field%   qv_vdiff(:,  jb)        )! out, for energy diagnostic
