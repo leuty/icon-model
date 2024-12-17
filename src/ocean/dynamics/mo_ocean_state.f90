@@ -1675,7 +1675,22 @@ CONTAINS
       tracer%diagnostics%srf =>  ocean_state_diag%Ts_srf
       
     ENDIF
-    ! by_nils: end   
+    ! by_nils: end
+
+    ! CMIP6
+    CALL add_var(ocean_default_list, 'tos', ocean_state_diag%tos , grid_unstructured_cell,za_surface, &
+      &          t_cf_var('sea_surface_temperature', 'K', 'sea_surface_temperature', datatype_flt),&
+      &          grib2_var(10, 3, 0, DATATYPE_PACK16, GRID_UNSTRUCTURED, grid_cell) &
+      &            + t_grib2_int_key("typeOfFirstFixedSurface",        1),  &
+      &          ldims=(/nproma,alloc_cell_blocks/),in_group=groups_oce_default, lopenacc=.TRUE.)
+    __acc_attach(ocean_state_diag%tos)
+
+    CALL add_var(ocean_default_list, 'sos', ocean_state_diag%sos , grid_unstructured_cell,za_surface, &
+      &          t_cf_var('sea_surface_salinity', 'psu', 'sea_surface_salinity', datatype_flt),&
+      &          grib2_var(10, 3, 3, DATATYPE_PACK16, GRID_UNSTRUCTURED, grid_cell) &
+      &            + t_grib2_int_key("typeOfFirstFixedSurface",        1),  &
+      &          ldims=(/nproma,alloc_cell_blocks/),in_group=groups_oce_default, lopenacc=.TRUE.)
+    __acc_attach(ocean_state_diag%sos)
 
     ! mixed layer depths
     CALL add_var(ocean_default_list, 'mld', ocean_state_diag%mld , grid_unstructured_cell,za_surface, &
@@ -1743,36 +1758,56 @@ CONTAINS
     ! heat content of snow
     CALL add_var(ocean_default_list, 'heat_content_snow', ocean_state_diag%heat_content_snow , &
       &         grid_unstructured_cell, za_surface,&
-      &         t_cf_var('heat_content_snow', 'J m-2', 'heat_conten_snow', datatype_flt),&
-      &         dflt_g2_decl_cell,&
+      &         t_cf_var('snhc', 'J m-2', 'Snow heat content over sea ice', datatype_flt),&
+      &          grib2_var(10, 2, 18, DATATYPE_PACK16, GRID_UNSTRUCTURED, grid_cell) &
+      &            + t_grib2_int_key("typeOfFirstFixedSurface",         173)  &
+      &            + t_grib2_int_key("typeOfSecondFixedSurface",        175),  &
       &         ldims=(/nproma,alloc_cell_blocks/),in_group=groups_oce_default)
 
    ! heat content of seaice
     CALL add_var(ocean_default_list, 'heat_content_seaice', ocean_state_diag%heat_content_seaice , &
       &         grid_unstructured_cell, za_surface,&
-      &         t_cf_var('heat_content_seaice', 'J m-2', 'heat_content_seaice', datatype_flt),&
-      &         dflt_g2_decl_cell,&
+      &         t_cf_var('sihc', 'J m-2', 'Sea ice heat content', datatype_flt),&
+      &          grib2_var(10, 2, 17, DATATYPE_PACK16, GRID_UNSTRUCTURED, grid_cell) &
+      &            + t_grib2_int_key("typeOfFirstFixedSurface",         174)  &
+      &            + t_grib2_int_key("typeOfSecondFixedSurface",        176),  &
       &         ldims=(/nproma,alloc_cell_blocks/),in_group=groups_oce_default)
 
    ! total heat content per column
     CALL add_var(ocean_default_list, 'heat_content_total', ocean_state_diag%heat_content_total , &
       &         grid_unstructured_cell, za_surface,&
-      &         t_cf_var('heat_content_total', 'J m-2', 'heat_content_total', datatype_flt),&
-      &         dflt_g2_decl_cell,&
+      &         t_cf_var('hcbtm', 'J m-2', 'Total column of heat content', datatype_flt),&
+      &          grib2_var(10, 4, 22, DATATYPE_PACK16, GRID_UNSTRUCTURED, grid_cell) &
+      &            + t_grib2_int_key("typeOfFirstFixedSurface",         160)  &
+      &            + t_grib2_int_key("scaleFactorOfFirstFixedSurface", 0)     &
+      &            + t_grib2_int_key("scaledValueOfFirstFixedSurface", 0)     &
+      &            + t_grib2_int_key("typeOfSecondFixedSurface",        9),   &
       &         ldims=(/nproma,alloc_cell_blocks/),in_group=groups_oce_default)
 
    ! total heat content upper 300m
     CALL add_var(ocean_default_list, 'heat_content_300m', ocean_state_diag%heat_content_300m , &
       &         grid_unstructured_cell, za_surface,&
-      &         t_cf_var('heat_content_300m', 'J m-2', 'heat_content_300m', datatype_flt),&
-      &         dflt_g2_decl_cell,&
+      &         t_cf_var('hc300m', 'J m-2', 'Vertically-integrated heat content in the upper 300 m', datatype_flt),&
+      &          grib2_var(10, 4, 22, DATATYPE_PACK16, GRID_UNSTRUCTURED, grid_cell) &
+      &            + t_grib2_int_key("typeOfFirstFixedSurface",        160)     &
+      &            + t_grib2_int_key("scaleFactorOfFirstFixedSurface", 0)       &
+      &            + t_grib2_int_key("scaledValueOfFirstFixedSurface", 0)       &
+      &            + t_grib2_int_key("typeOfSecondFixedSurface",        160)    &
+      &            + t_grib2_int_key("scaleFactorOfSecondFixedSurface", 0)      &
+      &            + t_grib2_int_key("scaledValueOfSecondFixedSurface", 300),   &
       &         ldims=(/nproma,alloc_cell_blocks/),in_group=groups_oce_default)
 
    ! total heat content upper 700m
     CALL add_var(ocean_default_list, 'heat_content_700m', ocean_state_diag%heat_content_700m , &
       &         grid_unstructured_cell, za_surface,&
-      &         t_cf_var('heat_content_700m', 'J m-2', 'heat_content_700m', datatype_flt),&
-      &         dflt_g2_decl_cell,&
+      &         t_cf_var('hc700m', 'J m-2', 'Vertically-integrated heat content in the upper 700 m', datatype_flt),&
+      &          grib2_var(10, 4, 22, DATATYPE_PACK16, GRID_UNSTRUCTURED, grid_cell) &
+      &            + t_grib2_int_key("typeOfFirstFixedSurface",        160)   &
+      &            + t_grib2_int_key("scaleFactorOfFirstFixedSurface", 0)     &
+      &            + t_grib2_int_key("scaledValueOfFirstFixedSurface", 0)     &
+      &            + t_grib2_int_key("typeOfSecondFixedSurface",        160)  &
+      &            + t_grib2_int_key("scaleFactorOfSecondFixedSurface", 0)    &
+      &            + t_grib2_int_key("scaledValueOfSecondFixedSurface", 700), &
       &         ldims=(/nproma,alloc_cell_blocks/),in_group=groups_oce_default)
 
   ENDIF ! diagnose_for_heat_content

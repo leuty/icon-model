@@ -107,8 +107,10 @@ CONTAINS
        & rsus       ,&
        !
        & rsutcs     ,&
+       & rsntcs     ,&
        & rsdscs     ,&
        & rsuscs     ,&
+       & rsnscs     ,&
        !
        & rvds_dir   ,&
        & rpds_dir   ,&
@@ -125,7 +127,9 @@ CONTAINS
        & rlus       ,&
        !
        & rlutcs     ,&
+       & rlntcs     ,&
        & rldscs     ,&
+       & rlnscs     ,&
        !
        & q_rsw      ,&
        & q_rlw      )
@@ -178,6 +182,8 @@ CONTAINS
          &  rsutcs(:)              ,&! clear-sky shortwave upward   flux at current   time [W/m2]
          &  rsdscs(:)              ,&! clear-sky shortwave downward flux at current   time [W/m2]
          &  rsuscs(:)              ,&! clear-sky shortwave upward   flux at current   time [W/m2]
+         &  rsntcs(:)              ,&! clear-sky shortwave net      [W/m2]
+         &  rsnscs(:)              ,&! clear-sky shortwave net      [W/m2]
          !
          &  rvds_dir(:)            ,&! all-sky   vis. dir. downward flux at current   time [W/m2]
          &  rpds_dir(:)            ,&! all-sky   par  dir. downward flux at current   time [W/m2]
@@ -195,6 +201,8 @@ CONTAINS
          !
          &  rlutcs(:)              ,&! clear-sky longwave  upward   flux at current   time [W/m2]
          &  rldscs(:)              ,&! clear-sky longwave  downward flux at current   time [W/m2]
+         &  rlntcs(:)              ,&! clear-sky longwave  net      [W/m2]
+         &  rlnscs(:)              ,&! clear-sky longwave  net      [W/m2]
          !
          &  q_rsw (:,:)            ,&! radiative shortwave heating  [W/m2]
          &  q_rlw (:,:)              ! radiative longwave  heating  [W/m2]
@@ -212,6 +220,7 @@ CONTAINS
     !$ACC   PRESENT(rld_rt, rlu_rt, rldcs_rt, rlucs_rt, rvds_dir_rt, rpds_dir_rt, rnds_dir_rt) &
     !$ACC   PRESENT(rvds_dif_rt, rpds_dif_rt, rnds_dif_rt, rvus_rt, rpus_rt, rnus_rt, rsdt, rsut) &
     !$ACC   PRESENT(rsds, rsus, rsutcs, rsdscs, rsuscs, rvds_dir, rpds_dir, rnds_dir, rvds_dif) &
+    !$ACC   PRESENT(rsntcs, rsnscs, rlntcs, rlnscs) &
     !$ACC   PRESENT(rpds_dif, rnds_dif, rvus, rpus, rnus, rlut, rlds, rlus, rlutcs, rldscs) &
     !$ACC   PRESENT(q_rsw, q_rlw) &
     !$ACC   CREATE(xsdt, rsn, rln)
@@ -243,6 +252,7 @@ CONTAINS
       ! clear sky
       IF (lclrsky_sw) THEN
          rsutcs(jc)   = rsucs_rt(jc,1) * xsdt(jc)
+         rsntcs(jc)   = rsdt(jc) - rsutcs(jc)
       END IF
       !
     END DO
@@ -269,6 +279,7 @@ CONTAINS
       IF (lclrsky_sw) THEN
          rsdscs(jc)   = rsdcs_rt(jc,klevp1) * xsdt(jc)
          rsuscs(jc)   = rsucs_rt(jc,klevp1) * xsdt(jc)
+         rsnscs(jc)   = rsdscs(jc) - rsuscs(jc)
       END IF
       !
       ! components
@@ -300,6 +311,7 @@ CONTAINS
       ! clear sky
       IF (lclrsky_lw) THEN
          rlutcs(jc)   = rlucs_rt(jc,1)
+         rlntcs(jc)   = -rlucs_rt(jc,1)
       END IF
       !
     END DO
@@ -332,6 +344,10 @@ CONTAINS
            &          +drlus_dtsr * dtsr           !       + correction
       !
       rln(jc,klevp1) = rlds(jc) - rlus(jc)
+      ! clear sky
+      IF (lclrsky_lw) THEN
+         rlnscs(jc)  = rldscs(jc) - rlus(jc)
+      END IF
     END DO
     !$ACC END PARALLEL
 

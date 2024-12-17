@@ -194,6 +194,15 @@ CONTAINS
 
     ! Final saturation adjustment
     !
+    !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1)
+    !$ACC LOOP GANG VECTOR COLLAPSE(2)
+    DO jk = jks,jke
+       DO jc = jcs,jce
+          total_ice(jc,jk) = zqg(jc,jk)+zqs(jc,jk)+zqi(jc,jk)
+       END DO
+    END DO
+    !$ACC END PARALLEL
+
     IF (ltimer) call timer_start(timer_sat)
     !
     CALL saturation_adjustment(                  &

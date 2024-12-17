@@ -104,10 +104,11 @@ export OMP_STACKSIZE=${use_omp_stacksize:-200M}
 #
 # MPI variables
 # -------------
+num_gpus_pernode=${use_num_gpus_pernode:-0}
+num_io_procs=${use_num_io_procs:-0}
 : \${no_of_nodes:=${use_nodes}} \${mpi_procs_pernode:=${use_mpi_procs_pernode}}
 export no_of_nodes
 export mpi_procs_pernode
-num_io_procs=${use_num_io_procs}
 ((mpi_total_procs=no_of_nodes * mpi_procs_pernode))
 #
 # blocking length
@@ -296,6 +297,7 @@ set_run_target_bull_milan()
     set_default use_nblocks_c 0
     set_default use_nproma_sub 32
     set_default use_nodes ${SLURM_NNODES:-1}
+    set_default use_num_io_procs 1
     set_default use_account_no "$(id -gn)"
 
     # set to 1 to use smt feature
@@ -462,12 +464,13 @@ set_run_target_bullx_gpu()
     is_serial_run="no"
     if [[ $use_mpi == "yes" ]]
     then
-	set_default use_mpi_procs_pernode 3
-	set_default use_num_io_procs 1
-        srun_cmd="srun -l --kill-on-bad-exit=1 --nodes=\${SLURM_JOB_NUM_NODES:-1} --gpus-per-node=4"
-        srun_cmd="${srun_cmd} --ntasks=\$((no_of_nodes * mpi_procs_pernode))"
-        srun_cmd="${srun_cmd} \${basedir}/run/run_wrapper_levante.sh -n \${mpi_total_procs} -o \${num_io_procs} -e"
-        use_mpi_startrun="${srun_cmd}"
+	num_gpus_pernode=4
+	set_default use_num_gpus_pernode ${num_gpus_pernode}
+	set_default use_mpi_procs_pernode '"\$(( \$num_gpus_pernode + 1 ))"'
+	srun_cmd="srun -l --kill-on-bad-exit=1 --nodes=\${SLURM_JOB_NUM_NODES:-1} --gpus-per-node=\${num_gpus_pernode}"
+    srun_cmd="${srun_cmd} --ntasks=\$((no_of_nodes * mpi_procs_pernode))"
+    srun_cmd="${srun_cmd} \${basedir}/run/run_wrapper_levante.sh -n \${mpi_total_procs} -o \${num_io_procs} -e"
+    use_mpi_startrun="${srun_cmd}"
     else
 	start="srun --cpu-freq=HighM1 -n 1"
 	is_serial_run="yes"

@@ -25,7 +25,10 @@ else
   set dummy; shift
 fi
 
-${ICON_DIR}/config/dkrz/levante.gpu.nvhpc-24.7 --disable-openmp --enable-ecrad "$@"
+# TODO: remove the acx_cv_fc_have_c_loc_of_slice argument below once we either
+# switch to NVHPC 24.11 or to a version of YAXT with the extended NVHPC
+# workaround: https://gitlab.dkrz.de/dkrz-sw/yaxt/-/commit/ac760200edc8c6168f8db1562b4774e9d1788a55
+${ICON_DIR}/config/dkrz/levante.gpu.nvhpc-24.7 --disable-openmp --enable-ecrad --enable-testbed --enable-yaxt acx_cv_fc_have_c_loc_of_slice=no "$@"
 
 if [ ! -z "${BB_NAME}" ] ; then
   MAKE_PROCS=22

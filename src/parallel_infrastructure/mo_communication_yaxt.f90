@@ -1102,6 +1102,8 @@ SUBROUTINE exchange_data_r3d(p_pat, lacc, recv, send, add)
 
    stop_sync_timer(timer_exch_data)
 
+   !$ACC WAIT(1)
+
 CONTAINS
 
   ! this wrapper is needed because we have to ensure that the input array are in
@@ -1153,6 +1155,7 @@ CONTAINS
     !$ACC END KERNELS
 #ifdef _OPENACC
     IF (lzacc) THEN
+      !$ACC WAIT(1)
       CALL xt_redist_s_exchange1( &
         redist, acc_deviceptr(send), acc_deviceptr(recv))
     ELSE
@@ -1271,6 +1274,8 @@ SUBROUTINE exchange_data_s3d(p_pat, lacc, recv, send, add)
 
    stop_sync_timer(timer_exch_data)
 
+   !$ACC WAIT(1)
+
 CONTAINS
 
   ! this wrapper is needed because we have to ensure that the input array are in
@@ -1322,6 +1327,7 @@ CONTAINS
     !$ACC END KERNELS
 #ifdef _OPENACC
     IF (lzacc) THEN
+      !$ACC WAIT(1)
       CALL xt_redist_s_exchange1( &
         redist, acc_deviceptr(send), acc_deviceptr(recv))
     ELSE
@@ -1442,6 +1448,8 @@ SUBROUTINE exchange_data_i3d(p_pat, lacc, recv, send, add)
 
    stop_sync_timer(timer_exch_data)
 
+   !$ACC WAIT(1)
+
 CONTAINS
 
   ! this wrapper is needed because we have to ensure that the input array are in
@@ -1493,6 +1501,7 @@ CONTAINS
     !$ACC END KERNELS
 #ifdef _OPENACC
     IF (lzacc) THEN
+      !$ACC WAIT(1)
       CALL xt_redist_s_exchange1( &
         redist, acc_deviceptr(send), acc_deviceptr(recv))
     ELSE
@@ -1574,6 +1583,7 @@ SUBROUTINE exchange_data_l3d(p_pat, lacc, recv, send)
 
 #if defined(_OPENACC) && ! defined(__USE_G2G)
    !$ACC UPDATE DEVICE(recv) ASYNC(1) IF(lacc)
+   !$ACC WAIT(1)
 #endif
 
    stop_sync_timer(timer_exch_data)
@@ -1640,6 +1650,7 @@ CONTAINS
     !$ACC END KERNELS
 #ifdef _OPENACC
     IF (lzacc) THEN
+      !$ACC WAIT(1)
       CALL xt_redist_s_exchange1( &
         redist, acc_deviceptr(send_ptr), acc_deviceptr(recv_ptr))
     ELSE
@@ -1902,6 +1913,7 @@ END SUBROUTINE exchange_data_mult_dp_top
     redist_coll = comm_pattern_get_redist(p_pat, nfields, &
          nlev, p_real_dp, kshift)
 
+    !$ACC WAIT(1)
     CALL xt_redist_s_exchange(redist_coll, src_data_cptr, dst_data_cptr)
 
     cpy_psum = 0
@@ -1931,6 +1943,7 @@ END SUBROUTINE exchange_data_mult_dp_top
         p_recv => recv(i)%p
         !$ACC UPDATE DEVICE(p_recv) ASYNC(1) IF(lzacc)
       END DO
+      !$ACC WAIT(1)
     END IF
 #endif
 #endif
@@ -2166,6 +2179,7 @@ END SUBROUTINE exchange_data_mult_sp
     redist_coll = comm_pattern_get_redist(p_pat, nfields, &
          nlev, p_real_sp, kshift)
 
+    !$ACC WAIT(1)
     CALL xt_redist_s_exchange(redist_coll, src_data_cptr, dst_data_cptr)
 
     cpy_psum = 0
@@ -2195,6 +2209,7 @@ END SUBROUTINE exchange_data_mult_sp
         p_recv => recv(i)%p
         !$ACC UPDATE DEVICE(p_recv) ASYNC(1) IF(lzacc)
       END DO
+      !$ACC WAIT(1)
     END IF
 #endif
 #endif
@@ -2354,6 +2369,7 @@ SUBROUTINE exchange_data_4de1(p_pat, lacc, nfields, ndim2tot, recv, send)
 #if defined(_OPENACC) && ! defined(__USE_G2G)
      IF (lacc) THEN
       !$ACC UPDATE DEVICE(recv) ASYNC(1) IF(lacc)
+      !$ACC WAIT(1)
      END IF
 #endif
      RETURN
@@ -2392,6 +2408,7 @@ SUBROUTINE exchange_data_4de1(p_pat, lacc, nfields, ndim2tot, recv, send)
 #if defined(_OPENACC) && ! defined(__USE_G2G)
    IF (lacc) THEN
     !$ACC UPDATE DEVICE(recv) ASYNC(1) IF(lacc)
+    !$ACC WAIT(1)
    END IF
 #endif
 
@@ -2447,6 +2464,7 @@ CONTAINS
     !$ACC END KERNELS
 #ifdef _OPENACC
     IF (lzacc) THEN
+      !$ACC WAIT(1)
       CALL xt_redist_s_exchange1( &
         redist, acc_deviceptr(send), acc_deviceptr(recv))
     ELSE
@@ -2539,7 +2557,7 @@ SUBROUTINE exchange_data_grf(p_pat_coll, lacc, nfields, ndim2tot, recv, send)
    CALL exchange_data_grf_bottom(redist_coll, cpy_size, nfields, ndim2tot,&
      &                           npats, src_fsize4d, dst_fsize4d, needs_cpy, &
      &                           recv, send, lacc)
-
+     
 #if defined(_OPENACC) && ! defined(__USE_G2G)
     IF (lacc) THEN
       DO i = 1, nfields

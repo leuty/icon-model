@@ -153,7 +153,7 @@ CONTAINS
     DO jb = domain%i_startblk_c, domain%i_endblk_c
       !$ACC PARALLEL LOOP DEFAULT(PRESENT) GANG(STATIC: 1) VECTOR ASYNC(1)
       DO jc = domain%i_startidx_c(jb), domain%i_endidx_c(jb)
-        mwind(jc,jb) = MAX( min_sfc_wind, SQRT(pum1(jc,jb)**2 + pvm1(jc,jb)**2) )
+        mwind(jc,jb) = MAX( min_sfc_wind, SQRT(pum1(jc,jb)**2._wp + pvm1(jc,jb)**2._wp) )
       END DO !jc
       !$ACC END PARALLEL LOOP
     END DO !jb
@@ -343,15 +343,15 @@ CONTAINS
     ! the interpolation to u 10m and 2m T/T_d: has been 0.01 before
     ! (Cray FP instead of IEEE 754 FP format)
     REAL(wp),parameter :: zepsec = 0.028_wp
-    REAL(wp),parameter :: zcons17 = 1._wp / ckap**2
+    REAL(wp),parameter :: zcons17 = 1._wp / ckap**2._wp
 
     z_mc = dz
     !First guess for tch and tcm using bulk approach
-    RIB = grav * (thetam1-theta_sfc) * (z_mc-rough_m) / (theta_sfc * mwind**2)
-    tcn_mom = (ckap/LOG(z_mc/rough_m))**2
+    RIB = grav * (thetam1-theta_sfc) * (z_mc-rough_m) / (theta_sfc * mwind**2._wp)
+    tcn_mom = (ckap/LOG(z_mc/rough_m))**2._wp
     tcm     = tcn_mom * stability_function_mom(RIB,z_mc/rough_m,tcn_mom)
 
-    tcn_heat        = ckap**2/(LOG(z_mc/rough_m)*LOG(z_mc/rough_m))
+    tcn_heat        = ckap**2._wp/(LOG(z_mc/rough_m)*LOG(z_mc/rough_m))
     tch             = tcn_heat * stability_function_heat(RIB,z_mc/rough_m,tcn_heat)
 
     !now iterate
@@ -361,7 +361,7 @@ CONTAINS
       bflx1= shfl_local + vtmpc1 * theta_sfc * lhfl_local
       ustar= SQRT(tcm)*mwind
 
-      obukhov_length = -ustar**3 * theta_sfc * rgrav / (ckap * bflx1)
+      obukhov_length = -ustar**3._wp * theta_sfc * rgrav / (ckap * bflx1)
 
       inv_bus_mom = 1._wp / businger_mom(rough_m,z_mc,obukhov_length)
       tch         = inv_bus_mom / businger_heat(rough_m,z_mc,obukhov_length)
@@ -517,7 +517,7 @@ CONTAINS
 
      IF(RIB.GE.0._wp)THEN
        !Cosmo
-       !stab_fun = 1._wp / ( 1._wp + 15._wp*RIB*SQRT(1._wp+5*RIB) )
+       !stab_fun = 1._wp / ( 1._wp + 15._wp*RIB*SQRT(1._wp+5._wp*RIB) )
 
        !H&B
        stab_fun = 1._wp / ( 1._wp + 10._wp*RIB*(1._wp+8._wp*RIB) )
@@ -552,8 +552,8 @@ CONTAINS
       zeta  = z1/L
       zeta0 = z0/L
       IF(zeta > 1._wp)THEN !Zeng etal 1997 J. Clim
-        psi    = -bsm*LOG(zeta) - zeta + 1
-        psi0   = -bsm*LOG(zeta0) - zeta0 + 1
+        psi    = -bsm*LOG(zeta) - zeta + 1._wp
+        psi0   = -bsm*LOG(zeta0) - zeta0 + 1._wp
         factor = (LOG(L/z0) + bsh - psi + psi0  ) / ckap
       ELSE
         psi  = -bsm*zeta
@@ -600,8 +600,8 @@ CONTAINS
       zeta   = z1/L
       zeta0  = z0/L
       IF(zeta > 1._wp)THEN !Zeng etal 1997 J. Clim
-        psi    = -bsh*LOG(zeta) - zeta + 1
-        psi0   = -bsh*LOG(zeta0) - zeta0 + 1
+        psi    = -bsh*LOG(zeta) - zeta + 1._wp
+        psi0   = -bsh*LOG(zeta0) - zeta0 + 1._wp
         factor = (LOG(L/z0) + bsh - psi + psi0  ) / ckap
       ELSE
         psi    = -bsh*zeta

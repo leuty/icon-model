@@ -25,6 +25,7 @@ function join_arr {
 
 INLINE_LIST_ICON=(
   src/advection/mo_advection_utils.f90
+  src/atm_phy_aes/mo_aes_thermo.f90
   src/atm_phy_nwp/mo_util_phys.f90
   src/atm_phy_schemes/cloud_random_numbers.f90
   src/atm_phy_schemes/mo_2mom_mcrph_driver.f90

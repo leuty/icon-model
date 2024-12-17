@@ -1760,8 +1760,8 @@ CONTAINS
       DO jk = 1, nlev
         DO jc = i_startidx_c(jb), i_endidx_c(jb)
           dissip_kin_energy(jc,jk,jb) = 0.5_wp * mair(jc,jk,jb) * dissipation_factor * rdtime  &
-                                        * (   state_u(jc,jk,jb)**2 - new_state_u(jc,jk,jb)**2  &
-                                            + state_v(jc,jk,jb)**2 - new_state_v(jc,jk,jb)**2  &
+                                        * (   state_u(jc,jk,jb)**2._wp - new_state_u(jc,jk,jb)**2._wp  &
+                                            + state_v(jc,jk,jb)**2._wp - new_state_v(jc,jk,jb)**2._wp  &
                                           ) 
           heating(jc,jk,jb)      = heating(jc,jk,jb) + dissip_kin_energy(jc,jk,jb)
           tend_ta(jc,jk,jb)      = tend_ta(jc,jk,jb) + heating(jc,jk,jb) / cvair(jc,jk,jb)

@@ -129,6 +129,7 @@ MODULE mo_nh_stepping
   USE mo_iau,                      ONLY: compute_iau_wgt
 #ifndef __NO_AES__
   USE mo_omp_block_loop,           ONLY: omp_block_loop_cell
+  USE mo_diagnose_tcw,             ONLY: diagnose_tcw
   USE mo_diagnose_qvi,             ONLY: diagnose_qvi
   USE mo_diagnose_uvi,             ONLY: diagnose_uvd, diagnose_uvp
   USE mo_aes_diagnostics,          ONLY: aes_global_diagnostics
@@ -2428,6 +2429,7 @@ MODULE mo_nh_stepping
             !
             CALL omp_block_loop_cell ( p_patch(jg), diagnose_qvi ) ! tracer mass and tracer mass tendency vertical integral
             CALL omp_block_loop_cell ( p_patch(jg), diagnose_uvp ) ! internal energy vertical integral after physics
+            CALL omp_block_loop_cell ( p_patch(jg), diagnose_tcw ) ! total cloud water integral after physics
             CALL aes_global_diagnostics ( p_patch(jg), dt_loc, p_nh_state(jg)%prog(nnew(jg)), p_nh_state(jg)%diag )  ! global mean diagnostics
             !
             IF (ltimer) CALL timer_stop(timer_iconam_aes)
