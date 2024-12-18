@@ -121,13 +121,8 @@ MODULE mo_meteogram_output
     &                                 p_send, p_isend, p_irecv, p_pe_work,&
     &                                 p_send_packed, p_irecv_packed,      &
     &                                 p_int_byte, mpi_any_source,         &
-    &                                 p_pack_int,    p_pack_real,         &
-    &                                 p_pack_int_1d, p_pack_real_1d,      &
-    &                                 p_pack_string, p_pack_real_2d,      &
     &                                 p_pack_size_int, p_pack_size_real_dp,&
-    &                                 p_unpack_int,    p_unpack_real,     &
-    &                                 p_unpack_int_1d, p_unpack_real_1d,  &
-    &                                 p_unpack_string, p_unpack_real_2d,  &
+    &                                 p_pack, p_unpack,                   &
     &                                 my_process_is_mpi_workroot,         &
     &                                 my_process_is_io,                   &
     &                                 my_process_is_work,                 &
@@ -1172,25 +1167,25 @@ CONTAINS
     INTEGER :: var_counts(2), ivar
     var_counts(1) = var_list%no_atmo_vars
     var_counts(2) = var_list%no_sfc_vars
-    CALL p_pack_int_1d(var_counts, 2, pack_buf%msg_varlist, pack_buf%pos)
+    CALL p_pack(var_counts, 2, pack_buf%msg_varlist, pack_buf%pos)
 
     IF (dbg_level > 0) &
       CALL message(routine, "collect variable info for pure I/O PEs")
     DO ivar = 1, var_list%no_atmo_vars
 
-      CALL p_pack_string(var_info(ivar)%cf%standard_name, pack_buf%msg_varlist, pack_buf%pos)
-      CALL p_pack_string(var_info(ivar)%cf%long_name,     pack_buf%msg_varlist, pack_buf%pos)
-      CALL p_pack_string(var_info(ivar)%cf%units,         pack_buf%msg_varlist, pack_buf%pos)
-      CALL p_pack_int   (var_info(ivar)%igroup_id,        pack_buf%msg_varlist, pack_buf%pos)
-      CALL p_pack_int   (var_info(ivar)%nlevs,            pack_buf%msg_varlist, pack_buf%pos)
+      CALL p_pack(var_info(ivar)%cf%standard_name, pack_buf%msg_varlist, pack_buf%pos)
+      CALL p_pack(var_info(ivar)%cf%long_name,     pack_buf%msg_varlist, pack_buf%pos)
+      CALL p_pack(var_info(ivar)%cf%units,         pack_buf%msg_varlist, pack_buf%pos)
+      CALL p_pack(var_info(ivar)%igroup_id,        pack_buf%msg_varlist, pack_buf%pos)
+      CALL p_pack(var_info(ivar)%nlevs,            pack_buf%msg_varlist, pack_buf%pos)
     END DO
     IF (dbg_level > 0) &
       CALL message(routine, "collect surface variable info for pure I/O PEs")
     DO ivar = 1, var_list%no_sfc_vars
-      CALL p_pack_string(sfc_var_info(ivar)%cf%standard_name, pack_buf%msg_varlist, pack_buf%pos)
-      CALL p_pack_string(sfc_var_info(ivar)%cf%long_name,     pack_buf%msg_varlist, pack_buf%pos)
-      CALL p_pack_string(sfc_var_info(ivar)%cf%units,         pack_buf%msg_varlist, pack_buf%pos)
-      CALL p_pack_int   (sfc_var_info(ivar)%igroup_id,        pack_buf%msg_varlist, pack_buf%pos)
+      CALL p_pack(sfc_var_info(ivar)%cf%standard_name, pack_buf%msg_varlist, pack_buf%pos)
+      CALL p_pack(sfc_var_info(ivar)%cf%long_name,     pack_buf%msg_varlist, pack_buf%pos)
+      CALL p_pack(sfc_var_info(ivar)%cf%units,         pack_buf%msg_varlist, pack_buf%pos)
+      CALL p_pack(sfc_var_info(ivar)%igroup_id,        pack_buf%msg_varlist, pack_buf%pos)
     END DO
   END SUBROUTINE pack_varlists
 #endif
@@ -2240,13 +2235,13 @@ CONTAINS
     position = 0
 
     !-- unpack global time stamp index
-    CALL p_unpack_int(sttn_buffer, position, icurrent)
+    CALL p_unpack(sttn_buffer, position, icurrent)
     IF (dbg_level > 0) &
       WRITE (*,'(3(a,i0))') "Receiving ", icurrent, &
       & " time slices from station ", istation, "/", nstations
 
     !-- unpack station header information
-    CALL p_unpack_int(sttn_buffer, position, station_idx)
+    CALL p_unpack(sttn_buffer, position, station_idx)
     IF (out_buf%station_idx(istation) /= station_idx) &
       CALL finish(routine, "non-matching global indices")
 
@@ -2254,13 +2249,13 @@ CONTAINS
     nvars = SIZE(var_info)
     DO ivar = 1, nvars
       nvals = var_info(ivar)%nlevs * icurrent
-      CALL p_unpack_real_2d(sttn_buffer, position, &
+      CALL p_unpack(sttn_buffer, position, &
         &   out_buf%atmo_vars(ivar)%a(istation, :, :), nvals)
     END DO
     nvars = SIZE(sfc_var_info)
     nvals = icurrent
     DO ivar = 1, nvars
-      CALL p_unpack_real_1d(sttn_buffer, position, &
+      CALL p_unpack(sttn_buffer, position, &
         &  out_buf%sfc_vars(ivar)%a(istation, :), icurrent)
     END DO
   END SUBROUTINE unpack_station_sample
@@ -2279,21 +2274,21 @@ CONTAINS
     pos = 0
 
     !-- pack global time stamp index
-    CALL p_pack_int(icurrent, sttn_buffer, pos, io_collect_comm)
+    CALL p_pack(icurrent, sttn_buffer, pos, io_collect_comm)
 
     !-- pack meteogram header (information on location, ...)
-    CALL p_pack_int(global_idx, sttn_buffer, pos, io_collect_comm)
+    CALL p_pack(global_idx, sttn_buffer, pos, io_collect_comm)
 
     !-- pack meteogram data:
     nvars = SIZE(out_buf%atmo_vars)
     DO ivar = 1, nvars
       nlevs = var_info(ivar)%nlevs
-      CALL p_pack_real_2d(out_buf%atmo_vars(ivar)%a(istation,:,1:icurrent), &
+      CALL p_pack(out_buf%atmo_vars(ivar)%a(istation,:,1:icurrent), &
         &                 nlevs*icurrent, sttn_buffer, pos, io_collect_comm)
     END DO
     nvars = SIZE(out_buf%sfc_vars)
     DO ivar = 1, nvars
-      CALL p_pack_real_1d(out_buf%sfc_vars(ivar)%a(istation,1:icurrent), &
+      CALL p_pack(out_buf%sfc_vars(ivar)%a(istation,1:icurrent), &
         &                 icurrent, sttn_buffer, pos, io_collect_comm)
     END DO
 
@@ -3300,7 +3295,7 @@ CONTAINS
     ! wait for messages to arrive:
     CALL p_wait()
 
-    CALL p_unpack_int_1d(pack_buf%msg_varlist, pack_buf%pos, var_counts, 2)
+    CALL p_unpack(pack_buf%msg_varlist, pack_buf%pos, var_counts, 2)
     ALLOCATE(var_info(var_counts(1)), &
       &      sfc_var_info(var_counts(2)), stat=ierror)
     IF (ierror /= SUCCESS) &
@@ -3311,9 +3306,9 @@ CONTAINS
     ! variables one by one:
     DO ivar = 1, var_counts(1)
       CALL unpack_cf(var_info(ivar)%cf, pack_buf)
-      CALL p_unpack_int(pack_buf%msg_varlist, pack_buf%pos, &
+      CALL p_unpack(pack_buf%msg_varlist, pack_buf%pos, &
         &               var_info(ivar)%igroup_id)
-      CALL p_unpack_int(pack_buf%msg_varlist, pack_buf%pos, &
+      CALL p_unpack(pack_buf%msg_varlist, pack_buf%pos, &
         &               var_info(ivar)%nlevs)
       NULLIFY(var_info(ivar)%p_source)
       IF (dbg_level > 0) &
@@ -3321,7 +3316,7 @@ CONTAINS
     END DO
     DO ivar = 1, var_counts(2)
       CALL unpack_cf(sfc_var_info(ivar)%cf, pack_buf)
-      CALL p_unpack_int(pack_buf%msg_varlist, pack_buf%pos, &
+      CALL p_unpack(pack_buf%msg_varlist, pack_buf%pos, &
         &               sfc_var_info(ivar)%igroup_id)
       NULLIFY(sfc_var_info(ivar)%p_source)
       IF (dbg_level > 0) &
@@ -3336,9 +3331,9 @@ CONTAINS
   SUBROUTINE unpack_cf(cf, pack_buf)
     TYPE(t_cf_var), INTENT(out) :: cf
     TYPE(mtgrm_pack_buf), INTENT(inout) :: pack_buf
-    CALL p_unpack_string(pack_buf%msg_varlist, pack_buf%pos, cf%standard_name)
-    CALL p_unpack_string(pack_buf%msg_varlist, pack_buf%pos, cf%long_name)
-    CALL p_unpack_string(pack_buf%msg_varlist, pack_buf%pos, cf%units)
+    CALL p_unpack(pack_buf%msg_varlist, pack_buf%pos, cf%standard_name)
+    CALL p_unpack(pack_buf%msg_varlist, pack_buf%pos, cf%long_name)
+    CALL p_unpack(pack_buf%msg_varlist, pack_buf%pos, cf%units)
   END SUBROUTINE unpack_cf
 
   !> send time invariants in case output happens through a rank dedicated to asynchronous I/O
