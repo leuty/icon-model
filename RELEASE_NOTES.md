@@ -30,6 +30,7 @@ Climate: ICON-Land
     - Improvement in the first soil-layer hydrology
     - Bugfix in snow melt calculation
     - Clean-up calculation of stand-replacing harvest
+    - Include forcing and output of carbon isotopes
   - Merged the radiation process of QUINCY into the radiation process of JSBACH
   - Consolidate and clean up namelist handling and physical parameters between QUINCY and JSBACH
 - Small fix for ICON-Land standalone concerning nproma
