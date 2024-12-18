@@ -72,6 +72,10 @@ Climate: ICON-Land
 
 - Fix 'make srclist' on macOS (BSD sed)
 
+#### Miscellaneous
+
+- Improve support for Cray compiler 17+ for AMD GPUs
+
 
 # Release notes for icon-2024.10
 

@@ -2517,7 +2517,7 @@ CONTAINS
     REAL(dp), POINTER :: send_buf_dp(:,:), recv_buf_dp(:,:)
     REAL(sp), POINTER :: send_buf_sp(:,:), recv_buf_sp(:,:)
 #else
-#if defined(_CRAYFTN) && _RELEASE_MAJOR <= 16
+#if defined(_CRAYFTN) && _RELEASE_MAJOR <= 19
     ! ACCWA (Cray Fortran <= 16.0.1.1) due to bug related to zero sized arrays
     ! automatic arrays cannot be used here CAST-33010
     REAL(dp), ALLOCATABLE :: send_buf_dp(:,:), recv_buf_dp(:,:)
@@ -2611,7 +2611,7 @@ CONTAINS
     !$ACC   PRESENT(recv_src, recv_dst_blk, recv_dst_idx, send_src_blk, send_src_idx) &
     !$ACC   ASYNC(get_comm_acc_queue()) IF(lzacc)
 #else
-#if defined(_CRAYFTN) && _RELEASE_MAJOR <= 16
+#if defined(_CRAYFTN) && _RELEASE_MAJOR <= 19
     ! ACCWA (Cray Fortran <= 16.0.1.1) due to bug related to zero sized arrays
     ! automatic arrays cannot be used here CAST-33010
     ALLOCATE(send_buf_dp(ndim2tot_dp,p_pat%n_send), recv_buf_dp(ndim2tot_dp,p_pat%n_recv))
@@ -2906,7 +2906,7 @@ CONTAINS
     CALL acc_wait_comms(get_comm_acc_queue())
     !$ACC END DATA
 
-#if defined(_CRAYFTN) && _RELEASE_MAJOR <= 16
+#if defined(_CRAYFTN) && _RELEASE_MAJOR <= 19
     ! ACCWA (Cray Fortran <= 16.0.1.1) due to bug related to zero sized arrays
     ! automatic arrays cannot be used here CAST-33010
     DEALLOCATE(send_buf_dp, recv_buf_dp)

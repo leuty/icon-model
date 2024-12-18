@@ -917,7 +917,7 @@ CONTAINS
       call vcoeff_cub_deallocate(vcoeff%cub_edge)
 
       vcoeff%l_allocated = .FALSE.
-#if defined(_CRAYFTN) && _RELEASE_MAJOR <= 16
+#if defined(_CRAYFTN) && _RELEASE_MAJOR <= 19
       !ACCWA: Cray compiler (16.0.1) is too eager on the optimization
       !$ACC WAIT
 #endif

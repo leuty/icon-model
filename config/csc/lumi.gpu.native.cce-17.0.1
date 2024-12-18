@@ -27,7 +27,7 @@ _EOF
 sw_root=${ICON_SW_PREFIX-'/appl/local/climatedt/sw'}
 echo "Using software stack from ${sw_root}"
 
-modules='PrgEnv-cray CrayEnv cce/16.0.1 craype-x86-milan craype-accel-amd-gfx90a rocm/5.3.3 cray-mpich/8.1.27 cray-hdf5 cray-netcdf cray-libsci'
+modules='PrgEnv-cray cce/17.0.1 craype-x86-trento craype-accel-amd-gfx90a rocm/6.0.3 cray-mpich/8.1.29 cray-hdf5 cray-netcdf cray-libsci'
 
 ZLIB_LIBS='-lz'
 
@@ -53,7 +53,7 @@ ICON_CFLAGS='-O3'
 ICON_BUNDLED_CFLAGS='-O2'
 
 FC='ftn'
-FCFLAGS="-hadd_paren -Ktrap=divz,ovf,inv -hflex_mp=intolerant -hfp1 -g"
+FCFLAGS="-hadd_paren -Ktrap=divz,ovf,inv -hflex_mp=intolerant -hfp1 -g -hipa0"
 
 HIPFLAGS='--offload-arch=gfx90a -g -O3'
 

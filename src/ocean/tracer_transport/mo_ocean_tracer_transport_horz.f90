@@ -548,7 +548,7 @@ CONTAINS
 
 #ifdef __LVECTOR__
       max_dolic_e = -1
-      !$ACC PARALLEL LOOP GANG VECTOR DEFAULT(PRESENT) ASYNC(1) REDUCTION(MAX: max_dolic_e) IF(lzacc)
+      !$ACC PARALLEL LOOP GANG VECTOR DEFAULT(PRESENT) ASYNC(1) REDUCTION(MAX: max_dolic_e) COPY(max_dolic_e) IF(lzacc)
       DO edge_index = start_index, end_index
         max_dolic_e = MAX(max_dolic_e, dolic_e(edge_index,blockNo))
       END DO

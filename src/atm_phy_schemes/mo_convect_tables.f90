@@ -833,7 +833,7 @@ CONTAINS
       znphase = 0.0_wp
 
       !$ACC PARALLEL LOOP GANG VECTOR DEFAULT(PRESENT) PRIVATE(ztshft, ztt, ztest) &
-      !$ACC   REDUCTION(+: znphase) REDUCTION(*: zinbounds) ASYNC(1)
+      !$ACC   REDUCTION(+: znphase) REDUCTION(*: zinbounds) COPY(znphase, zinbounds) ASYNC(1)
       DO jl = jcs,size
 
         ztshft = FSEL(temp(jl)-tmelt,0._wp,1._wp)
@@ -866,7 +866,7 @@ CONTAINS
 
     ELSE
       !$ACC PARALLEL LOOP GANG VECTOR DEFAULT(PRESENT) PRIVATE(ztshft, ztt) &
-      !$ACC   REDUCTION(*: zinbounds) ASYNC(1)
+      !$ACC   REDUCTION(*: zinbounds) ASYNC(1) COPY(zinbounds)
       DO jl = jcs,size
 
         ztshft = FSEL(temp(jl)-tmelt,0._wp,1._wp)
@@ -1073,7 +1073,7 @@ CONTAINS
 
 !IBM* ASSERT(NODEPS)
     !$ACC PARALLEL LOOP GANG VECTOR DEFAULT(PRESENT) PRIVATE(jl, ztshft, ztt) &
-    !$ACC   REDUCTION(*: zinbounds) ASYNC(1)
+    !$ACC   REDUCTION(*: zinbounds) ASYNC(1) COPY(zinbounds)
     DO nl = 1, kidx
       jl = list(nl)
       ztshft = FSEL(tmelt-temp(jl),1.0_wp,0.0_wp)

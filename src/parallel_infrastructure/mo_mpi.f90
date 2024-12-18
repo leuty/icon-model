@@ -3087,7 +3087,7 @@ CONTAINS
     END IF
 
 ! ACCWA (Cray Fortran <= 16.0.1.1) : ACC IF generate wrong assembly which segfaults CAST-32453
-#if defined(_CRAYFTN) && _RELEASE_MAJOR <= 16
+#if defined(_CRAYFTN) && _RELEASE_MAJOR <= 19
     IF (loc_use_g2g) THEN
       !$ACC HOST_DATA USE_DEVICE(t_buffer)
       CALL mpi_send(t_buffer, icount, p_real_dp, p_destination, p_tag, &
@@ -3146,7 +3146,7 @@ CONTAINS
     END IF
 
 ! ACCWA (Cray Fortran <= 16.0.1.1) : ACC IF generate wrong assembly which segfaults CAST-32453
-#if defined(_CRAYFTN) && _RELEASE_MAJOR <= 16
+#if defined(_CRAYFTN) && _RELEASE_MAJOR <= 19
     IF (loc_use_g2g) THEN
       !$ACC HOST_DATA USE_DEVICE(t_buffer)
       CALL mpi_send(t_buffer, icount, p_real_sp, p_destination, p_tag, &
@@ -3420,7 +3420,7 @@ CONTAINS
     END IF
 
 ! ACCWA (Cray Fortran <= 16.0.1.1) : ACC IF generate wrong assembly which segfaults CAST-32453
-#if defined(_CRAYFTN) && _RELEASE_MAJOR <= 16
+#if defined(_CRAYFTN) && _RELEASE_MAJOR <= 19
     IF (loc_use_g2g) THEN
       !$ACC HOST_DATA USE_DEVICE(t_buffer)
       CALL mpi_send(t_buffer, icount, p_int, p_destination, p_tag, &
@@ -3622,7 +3622,7 @@ CONTAINS
     END IF
 
 ! ACCWA (Cray Fortran <= 16.0.1.1) : ACC IF generate wrong assembly which segfaults CAST-32453
-#if defined(_CRAYFTN) && _RELEASE_MAJOR <= 16
+#if defined(_CRAYFTN) && _RELEASE_MAJOR <= 19
     IF (loc_use_g2g) THEN
       !$ACC HOST_DATA USE_DEVICE(t_buffer)
       CALL mpi_send(t_buffer, icount, p_bool, p_destination, p_tag, &
@@ -3938,7 +3938,7 @@ CONTAINS
 #endif
     ELSE
 ! ACCWA (Cray Fortran <= 16.0.1.1) : ACC IF generate wrong assembly which segfaults CAST-32453
-#if defined(_CRAYFTN) && _RELEASE_MAJOR <= 16
+#if defined(_CRAYFTN) && _RELEASE_MAJOR <= 19
       IF (loc_use_g2g) THEN
         !$ACC HOST_DATA USE_DEVICE(t_buffer)
         CALL mpi_isend(t_buffer, icount, p_real_dp, p_destination, p_tag, &
@@ -4004,7 +4004,7 @@ CONTAINS
     END IF
 
 ! ACCWA (Cray Fortran <= 16.0.1.1) : ACC IF generate wrong assembly which segfaults CAST-32453
-#if defined(_CRAYFTN) && _RELEASE_MAJOR <= 16
+#if defined(_CRAYFTN) && _RELEASE_MAJOR <= 19
     IF (loc_use_g2g) THEN
       !$ACC HOST_DATA USE_DEVICE(t_buffer)
       CALL mpi_isend(t_buffer, icount, p_real_sp, p_destination, p_tag, &
@@ -4352,7 +4352,7 @@ CONTAINS
     END IF
 
 ! ACCWA (Cray Fortran <= 16.0.1.1) : ACC IF generate wrong assembly which segfaults CAST-32453
-#if defined(_CRAYFTN) && _RELEASE_MAJOR <= 16
+#if defined(_CRAYFTN) && _RELEASE_MAJOR <= 19
     IF (loc_use_g2g) THEN
       !$ACC HOST_DATA USE_DEVICE(t_buffer)
       CALL mpi_isend(t_buffer, icount, p_int, p_destination, p_tag, &
@@ -4575,7 +4575,7 @@ CONTAINS
     END IF
 
 ! ACCWA (Cray Fortran <= 16.0.1.1) : ACC IF generate wrong assembly which segfaults CAST-32453
-#if defined(_CRAYFTN) && _RELEASE_MAJOR <= 16
+#if defined(_CRAYFTN) && _RELEASE_MAJOR <= 19
     IF (loc_use_g2g) THEN
       !$ACC HOST_DATA USE_DEVICE(t_buffer)
       CALL mpi_isend(t_buffer, icount, p_bool, p_destination, p_tag, &
@@ -4824,7 +4824,7 @@ CONTAINS
     END IF
 
 ! ACCWA (Cray Fortran <= 16.0.1.1) : ACC IF generate wrong assembly which segfaults CAST-32453
-#if defined(_CRAYFTN) && _RELEASE_MAJOR <= 16
+#if defined(_CRAYFTN) && _RELEASE_MAJOR <= 19
     IF (loc_use_g2g) THEN
       !$ACC HOST_DATA USE_DEVICE(t_buffer)
       CALL mpi_recv(t_buffer, icount, p_real_dp, p_source, p_tag, &
@@ -4882,7 +4882,7 @@ CONTAINS
     END IF
 
 ! ACCWA (Cray Fortran <= 16.0.1.1) : ACC IF generate wrong assembly which segfaults CAST-32453
-#if defined(_CRAYFTN) && _RELEASE_MAJOR <= 16
+#if defined(_CRAYFTN) && _RELEASE_MAJOR <= 19
     IF (loc_use_g2g) THEN
       !$ACC HOST_DATA USE_DEVICE(t_buffer)
       CALL mpi_recv(t_buffer, icount, p_real_sp, p_source, p_tag, &
@@ -5195,7 +5195,7 @@ CONTAINS
     END IF
 
 ! ACCWA (Cray Fortran <= 16.0.1.1) : ACC IF generate wrong assembly which segfaults CAST-32453
-#if defined(_CRAYFTN) && _RELEASE_MAJOR <= 16
+#if defined(_CRAYFTN) && _RELEASE_MAJOR <= 19
     IF (loc_use_g2g) THEN
       !$ACC HOST_DATA USE_DEVICE(t_buffer)
       CALL mpi_recv(t_buffer, icount, p_int, p_source, p_tag, &
@@ -5396,7 +5396,7 @@ CONTAINS
     END IF
 
 ! ACCWA (Cray Fortran <= 16.0.1.1) : ACC IF generate wrong assembly which segfaults CAST-32453
-#if defined(_CRAYFTN) && _RELEASE_MAJOR <= 16
+#if defined(_CRAYFTN) && _RELEASE_MAJOR <= 19
     IF (loc_use_g2g) THEN
       !$ACC HOST_DATA USE_DEVICE(t_buffer)
       CALL mpi_recv(t_buffer, icount, p_bool, p_source, p_tag, &
@@ -5777,7 +5777,7 @@ CONTAINS
     ELSE
       CALL p_inc_request
 ! ACCWA (Cray Fortran <= 16.0.1.1) : ACC IF generate wrong assembly which segfaults CAST-32453
-#if defined(_CRAYFTN) && _RELEASE_MAJOR <= 16
+#if defined(_CRAYFTN) && _RELEASE_MAJOR <= 19
       IF (loc_use_g2g) THEN
         !$ACC HOST_DATA USE_DEVICE(t_buffer)
         CALL mpi_irecv(t_buffer, icount, p_real_dp, p_source, p_tag, &
@@ -5836,7 +5836,7 @@ CONTAINS
 
     CALL p_inc_request
 ! ACCWA (Cray Fortran <= 16.0.1.1) : ACC IF generate wrong assembly which segfaults CAST-32453
-#if defined(_CRAYFTN) && _RELEASE_MAJOR <= 16
+#if defined(_CRAYFTN) && _RELEASE_MAJOR <= 19
     IF (loc_use_g2g) THEN
       !$ACC HOST_DATA USE_DEVICE(t_buffer)
       CALL mpi_irecv(t_buffer, icount, p_real_sp, p_source, p_tag, &
@@ -6125,7 +6125,7 @@ CONTAINS
     END IF
 
 ! ACCWA (Cray Fortran <= 16.0.1.1) : ACC IF generate wrong assembly which segfaults CAST-32453
-#if defined(_CRAYFTN) && _RELEASE_MAJOR <= 16
+#if defined(_CRAYFTN) && _RELEASE_MAJOR <= 19
     IF (loc_use_g2g) THEN
       !$ACC HOST_DATA USE_DEVICE(t_buffer)
       CALL mpi_irecv(t_buffer, icount, p_int, p_source, p_tag, &
@@ -6350,7 +6350,7 @@ CONTAINS
 
     CALL p_inc_request
 ! ACCWA (Cray Fortran <= 16.0.1.1) : ACC IF generate wrong assembly which segfaults CAST-32453
-#if defined(_CRAYFTN) && _RELEASE_MAJOR <= 16
+#if defined(_CRAYFTN) && _RELEASE_MAJOR <= 19
     IF (loc_use_g2g) THEN
       !$ACC HOST_DATA USE_DEVICE(t_buffer)
       CALL mpi_irecv(t_buffer, icount, p_bool, p_source, p_tag, &
@@ -8900,7 +8900,7 @@ CONTAINS
       ELSE
 
 ! ACCWA (Cray Fortran <= 16.0.1.1) : ACC IF generate wrong assembly which segfaults CAST-32453
-#if defined(_CRAYFTN) && _RELEASE_MAJOR <= 16
+#if defined(_CRAYFTN) && _RELEASE_MAJOR <= 19
         IF (loc_use_g2g) THEN
           !$ACC HOST_DATA USE_DEVICE(zfield)
           CALL mpi_allreduce (zfield, p_sum, SIZE(zfield), p_real_dp, &

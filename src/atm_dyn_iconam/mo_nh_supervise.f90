@@ -686,8 +686,14 @@ CONTAINS
     LOGICAL, INTENT(IN), OPTIONAL :: lacc ! If true, use openacc
 
     ! local variables
+#if defined(_CRAYFTN) && _RELEASE_MAJOR <= 19
+    ! ACCWA (Cray Fortran <= 17.0.1) using automatic arrays causes a segmentation fault
+    REAL(wp), ALLOCATABLE :: vn_aux(:,:), w_aux(:,:)
+#else
     REAL(wp) :: vn_aux(patch%edges%end_blk(min_rledge_int,MAX(1,patch%n_childdom)),patch%nlev)
     REAL(wp) :: w_aux (patch%cells%end_blk(min_rlcell_int,MAX(1,patch%n_childdom)),patch%nlevp1)
+#endif
+
     REAL(wp) :: vn_aux_lev(patch%nlev), w_aux_lev(patch%nlevp1), vmax(2), vn_aux_tmp, w_aux_tmp
 
     INTEGER  :: istartblk_c, istartblk_e, iendblk_c, iendblk_e, i_startidx, i_endidx
@@ -700,6 +706,12 @@ CONTAINS
 
     !-----------------------------------------------------------------------
     CALL set_acc_host_or_device(lzacc, lacc)
+
+#if defined(_CRAYFTN) && _RELEASE_MAJOR <= 19
+    ! ACCWA (Cray Fortran <= 17.0.1) using automatic arrays causes a segmentation fault
+    ALLOCATE(vn_aux(patch%edges%end_blk(min_rledge_int,MAX(1,patch%n_childdom)),patch%nlev))
+    ALLOCATE(w_aux (patch%cells%end_blk(min_rlcell_int,MAX(1,patch%n_childdom)),patch%nlevp1))
+#endif
 
     istartblk_c = patch%cells%start_block(grf_bdywidth_c+1)
     istartblk_e = patch%edges%start_block(grf_bdywidth_e+1)
@@ -832,6 +844,10 @@ CONTAINS
     max_w_level    = keyval(2)
     max_w_process  = proc_id(2)
 
+#if defined(_CRAYFTN) && _RELEASE_MAJOR <= 19
+    DEALLOCATE(vn_aux, w_aux)
+#endif
+
   END SUBROUTINE calculate_maxwinds
 
 
@@ -949,7 +965,8 @@ CONTAINS
 
         dps_blk_scal = 0._wp
         npoints_blk_scal = 0
-        !$ACC PARALLEL LOOP GANG VECTOR DEFAULT(PRESENT) ASYNC(1) REDUCTION(+: dps_blk_scal, npoints_blk_scal) IF(lzacc)
+        !$ACC PARALLEL LOOP GANG VECTOR DEFAULT(PRESENT) ASYNC(1) REDUCTION(+: dps_blk_scal, npoints_blk_scal) &
+        !$ACC   COPY(dps_blk_scal, npoints_blk_scal) IF(lzacc)
         DO jc = i_startidx, i_endidx
           dps_blk_scal = dps_blk_scal + ABS(pt_diag%ddt_pres_sfc(jc,jb))
           npoints_blk_scal = npoints_blk_scal + 1
