@@ -840,7 +840,7 @@ CONTAINS
         ztt = 20._wp*temp(jl)
         IF (lextend_upper_limit .AND. ztt >= ztmax .AND. ztt < 20._wp * tmax_extended) &
             & ztt = ztmax - 1e-6_wp
-        zalpha(jl) = ztt - DINT(ztt)
+        zalpha(jl) = ztt - AINT(ztt)
         idx(jl) = INT(ztt-ztshft)
 
         zinbounds = FSEL(ztmin-ztt,0._wp,zinbounds)
@@ -873,7 +873,7 @@ CONTAINS
         ztt = 20._wp*temp(jl)
         IF (lextend_upper_limit .AND. ztt >= ztmax .AND. ztt < 20._wp * tmax_extended) &
             & ztt = ztmax - 1e-6_wp
-        zalpha(jl) = ztt - DINT(ztt)
+        zalpha(jl) = ztt - AINT(ztt)
         idx(jl) = INT(ztt-ztshft)
 
         zinbounds = FSEL(ztmin-ztt,0._wp,zinbounds)
@@ -953,7 +953,7 @@ CONTAINS
 
       DO jl = 1,size
 
-        ztt = DNINT(1000._wp*temp(jl))
+        ztt = ANINT(1000._wp*temp(jl))
         idx(jl) = INT(ztt)
 
         zinbounds(jl) = FSEL(ztmin-ztt,0._wp,zinbounds(jl))
@@ -981,7 +981,7 @@ CONTAINS
 
       DO jl = 1,size
 
-        ztt = DNINT(1000.0_wp*temp(jl))
+        ztt = ANINT(1000.0_wp*temp(jl))
         idx(jl) = INT(ztt)
 
         zinbounds(jl) = FSEL(ztmin-ztt,0._wp,zinbounds(jl))
@@ -1027,7 +1027,7 @@ CONTAINS
 
       ztshft = FSEL(temp(jl)-tmelt,0._wp,1._wp)
       ztt = 20._wp*temp(jl)
-      zalpha(nl) = ztt - DINT(ztt)
+      zalpha(nl) = ztt - AINT(ztt)
       idx(nl) = INT(ztt-ztshft)
 
       zinbounds = FSEL(ztmin-ztt,0._wp,zinbounds)
@@ -1139,7 +1139,7 @@ CONTAINS
     DO nl = 1,kidx
       jl = list(nl)
 
-      ztt = DNINT(1000._wp*temp(jl))
+      ztt = ANINT(1000._wp*temp(jl))
       idx(nl) = INT(ztt)
 
       zinbounds(jl) = FSEL(ztmin-ztt,0._wp,zinbounds(jl))
@@ -1186,7 +1186,7 @@ CONTAINS
 
       ztshft = FSEL(temp(jl)-tmelt,0._wp,1._wp)
       ztt = 20._wp*temp(jl)
-      zalpha(nl) = ztt - DINT(ztt)
+      zalpha(nl) = ztt - AINT(ztt)
       idx(nl) = INT(ztt-ztshft)
 
       zinbounds = FSEL(ztmin-ztt,0._wp,zinbounds)
@@ -1229,7 +1229,7 @@ CONTAINS
 
       jl = list(nl)
 
-      ztt = DNINT(1000._wp*temp(jl))
+      ztt = ANINT(1000._wp*temp(jl))
       idx(nl) = INT(ztt)
 
       zinbounds = FSEL(ztmin-ztt,0._wp,zinbounds)
