@@ -16,6 +16,7 @@
 #
 # 01/2017 : D. Reinert/F. Prill, DWD
 # 11/2018 : H. Frank; be less strict on arguments 
+# 11/2024 : H. Frank; change categories icogl130l90_* to icogl_*
 
 import argparse, datetime, os, subprocess, traceback, sys, re
 
@@ -88,11 +89,11 @@ def main():
             # special settings
             if (not args.ensemble):
                 # non-ensemble mode
-                cat        = "icogl130l90_main_an_rout"
+                cat        = "icogl_main_an_rout"
                 cat_eu     = "icoeu_main_an_rout" 
-                cat_vv0    = "icogl130l90_main_fc_rout" # category for VV=0
+                cat_vv0    = "icogl_main_fc_rout" # category for VV=0
                 cat_vv0_eu = "icoeu_main_fc_rout" 
-                cat_fg     = "icogl130l90_pre_fc_rout"
+                cat_fg     = "icogl_pre_fc_rout"
                 cat_fg_eu  = "icoeu_pre_fc_rout" 
                 # lin=20 (localInformationNumber) is related to the
                 # W_SO analysis including SMA.

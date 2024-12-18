@@ -12,6 +12,7 @@ PROGRAM microphysics_1mom_driver
   USE netcdf
   USE ISO_FORTRAN_ENV, ONLY: error_unit, wp => real64, i8 => int64
   USE microphysics_1mom_schemes, ONLY: microphysics_1mom_init, graupel_run, cloudice_run, kessler_run, cloudice2mom_run
+  USE mo_lookup_tables_constants, ONLY: init_satpres_coeffs
   USE mo_exception, ONLY: init_logger, message_text, finish, message
 
   IMPLICIT NONE
@@ -181,6 +182,8 @@ CONTAINS
     !$ACC   COPY(dz, t, p, rho, qv, qc, qi, qr, qs, qg, qnc_s, w, qni, ninact, zninc) &
     !$ACC   COPY(prr_gsp, prs_gsp, pri_gsp, prg_gsp, pflx) &
     !$ACC   COPY(ddt_tend_t, ddt_tend_qv, ddt_tend_qc, ddt_tend_qi, ddt_tend_qr, ddt_tend_qs)
+
+    CALL init_satpres_coeffs()
 
     CALL microphysics_1mom_init( &
       igscp=igscp, &

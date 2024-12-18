@@ -21,7 +21,7 @@ MODULE mo_cuparameters
   USE mo_nwp_tuning_config, ONLY: tune_entrorg, tune_rhebc_land, tune_rhebc_ocean, tune_rcucov, &
     tune_texc, tune_qexc, tune_rhebc_land_trop, tune_rhebc_ocean_trop, tune_rcucov_trop, tune_gkdrag, &
     tune_gkwake, tune_gfrcrit, tune_grcrit, tune_rprcon, tune_rdepths, tune_minsso, tune_blockred, &
-    tune_eiscrit, tune_gkdrag_enh, tune_grcrit_enh, tune_minsso_gwd
+    tune_eiscrit, tune_gkdrag_enh, tune_grcrit_enh, tune_minsso_gwd, tune_grzdc_offset
 
   IMPLICIT NONE
 
@@ -1335,8 +1335,10 @@ ENDIF
 
 IF (lgrayzone_deepconv) THEN
   phy_params%lgrayzone_deepconv = .TRUE.
+  phy_params%tune_grzdc_offset = tune_grzdc_offset
 ELSE
   phy_params%lgrayzone_deepconv = .FALSE.
+  phy_params%tune_grzdc_offset = 0._jprb
 ENDIF
 
 IF (ldetrain_conv_prec) THEN

@@ -212,6 +212,8 @@ case "$use_site" in
       ;;
       gpnl*)
         use_target='gpnl'
+        use_purge_modules="module purge"
+        use_load_modules="$load_runtime_modules"
         use_mpi_startrun='@MPI_LAUNCH@ -np $mpi_total_procs --oversubscribe -mca orte_base_help_aggregate 0 -mca btl_base_warn_component_unused 0 ${basedir}/run/run_wrapper/gpnl.sh '
       ;;
       *) #hpc

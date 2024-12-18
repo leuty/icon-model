@@ -112,7 +112,7 @@ mpi_total_procs=${PPN}
 # default: half of requested nodes for ocean
 
 #((mpi_oce_procs=mpi_total_procs/2))
-mpi_oce_procs=24    # optimal: 8/16 for NE=4/8 dt=600/dt_rad=3600, 12 dt=450/dt_rad=3600, 8 dt=360/dt_rad=1800
+mpi_oce_procs=15    # optimum for this setup and non-multiple of 8 to test START_MODEL_function.
 ((mpi_atm_procs=PPN-mpi_oce_procs))
 
 echo $mpi_total_procs ${mpi_atm_procs} ${mpi_oce_procs}
