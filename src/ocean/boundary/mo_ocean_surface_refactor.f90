@@ -992,7 +992,7 @@ CONTAINS
       ELSE   !  no sea ice
 
 #ifdef _OPENACC
-        IF (lzacc) CALL finish(routine, 'OpenACC version currently not tested/validated')
+        IF (lzacc) CALL finish(routine, 'OpenACC version for i_sea_ice < 1 currently not tested/validated')
 #endif
 
         ! apply net surface heat flux in W/m2 for OMIP case, since these fluxes are calculated in calc_omip_budgets_oce
@@ -1061,7 +1061,7 @@ CONTAINS
     CASE (Coupled_FluxFromAtmo)
 
 #ifdef _OPENACC
-      IF (lzacc) CALL finish(routine, 'OpenACC version currently not tested/validated')
+      IF (lzacc) CALL finish(routine, 'OpenACC version for Coupled_FluxFromAtmo currently not tested/validated')
 #endif
 
       !  Driving the ocean in a coupled mode:
@@ -1122,7 +1122,7 @@ CONTAINS
 
     IF (zero_freshwater_flux) THEN
 #ifdef _OPENACC
-      IF (lzacc) CALL finish(routine, 'OpenACC version currently not tested/validated')
+      IF (lzacc) CALL finish(routine, 'OpenACC version for zero_freshwater_flux currently not tested/validated')
 #endif
 
       DO jb = all_cells%start_block, all_cells%end_block

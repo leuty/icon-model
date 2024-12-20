@@ -151,8 +151,8 @@ CONTAINS
 ! internal backend routine to compute surface height lhs -- "matrix" implementation
   SUBROUTINE lhs_surface_height_ab_mim_matrix_wp(this, x, lhs, lacc)
     CLASS(t_surface_height_lhs), INTENT(INOUT) :: this
-    REAL(wp), INTENT(IN), CONTIGUOUS :: x(:,:)
-    REAL(wp), INTENT(INOUT), CONTIGUOUS :: lhs(:,:)
+    REAL(wp), INTENT(IN) :: x(:,:)
+    REAL(wp), INTENT(INOUT) :: lhs(:,:)
     LOGICAL, INTENT(IN), OPTIONAL :: lacc
 
     INTEGER :: start_index, end_index, jc, blkNo, ico

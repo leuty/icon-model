@@ -107,7 +107,7 @@ CONTAINS
 #ifdef _OPENACC
     IF (lzacc) THEN
       IF ((st /= solve_cg) .OR. (par%pt == solve_precon_jac)) THEN
-        CALL finish(routine, "OpenACC version only implemented fot CG solver without preconditioning")
+        CALL finish(routine, "OpenACC version only implemented for CG solver without preconditioning")
       END IF
     END IF
 #endif

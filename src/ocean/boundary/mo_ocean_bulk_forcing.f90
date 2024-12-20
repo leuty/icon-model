@@ -36,7 +36,7 @@ MODULE mo_ocean_bulk_forcing
   USE mo_dynamics_config,     ONLY: nold
   USE mo_model_domain,        ONLY: t_patch, t_patch_3D
   USE mo_util_dbg_prnt,       ONLY: dbg_print
-  USE mo_dbg_nml,             ONLY: idbg_mxmn
+  USE mo_dbg_nml,             ONLY: idbg_mxmn, idbg_val
 
   USE mo_ocean_nml,           ONLY: vert_cor_type, iforc_oce, forcing_timescale,  forcing_frequency, &
     &  no_tracer, para_surfRelax_Temp, type_surfRelax_Temp,             &
@@ -625,42 +625,50 @@ CONTAINS
       CALL message (' ', message_text)
     END IF
 
-    !$ACC KERNELS DEFAULT(PRESENT) ASYNC(1) IF(lzacc)
-    z_c2(:,:)=ext_data(1)%oce%flux_forc_mon_c(:,jmon1,:,1)
-    !$ACC END KERNELS
-    !$ACC WAIT(1)
-    CALL dbg_print('FlxFil: Ext data1-u/mon1'  ,z_c2 ,str_module,idt_src, in_subset=patch_2D%cells%owned)
+    IF ((idbg_val >= idt_src) .OR. (idbg_mxmn >= idt_src)) THEN
+      !$ACC KERNELS DEFAULT(PRESENT) ASYNC(1) IF(lzacc)
+      z_c2(:,:)=ext_data(1)%oce%flux_forc_mon_c(:,jmon1,:,1)
+      !$ACC END KERNELS
+      !$ACC WAIT(1)
+      !$ACC UPDATE SELF(z_c2) IF(lzacc)
+      CALL dbg_print('FlxFil: Ext data1-u/mon1'  ,z_c2 ,str_module,idt_src, in_subset=patch_2D%cells%owned)
 
-    !$ACC KERNELS DEFAULT(PRESENT) ASYNC(1) IF(lzacc)
-    z_c2(:,:)=ext_data(1)%oce%flux_forc_mon_c(:,jmon2,:,1)
-    !$ACC END KERNELS
-    !$ACC WAIT(1)
-    CALL dbg_print('FlxFil: Ext data1-u/mon2'  ,z_c2 ,str_module,idt_src, in_subset=patch_2D%cells%owned)
+      !$ACC KERNELS DEFAULT(PRESENT) ASYNC(1) IF(lzacc)
+      z_c2(:,:)=ext_data(1)%oce%flux_forc_mon_c(:,jmon2,:,1)
+      !$ACC END KERNELS
+      !$ACC WAIT(1)
+      !$ACC UPDATE SELF(z_c2) IF(lzacc)
+      CALL dbg_print('FlxFil: Ext data1-u/mon2'  ,z_c2 ,str_module,idt_src, in_subset=patch_2D%cells%owned)
 
-    !$ACC KERNELS DEFAULT(PRESENT) ASYNC(1) IF(lzacc)
-    z_c2(:,:)=ext_data(1)%oce%flux_forc_mon_c(:,jmon1,:,2)
-    !$ACC END KERNELS
-    !$ACC WAIT(1)
-    CALL dbg_print('FlxFil: Ext data2-v/mon1'  ,z_c2 ,str_module,idt_src, in_subset=patch_2D%cells%owned)
+      !$ACC KERNELS DEFAULT(PRESENT) ASYNC(1) IF(lzacc)
+      z_c2(:,:)=ext_data(1)%oce%flux_forc_mon_c(:,jmon1,:,2)
+      !$ACC END KERNELS
+      !$ACC WAIT(1)
+      !$ACC UPDATE SELF(z_c2) IF(lzacc)
+      CALL dbg_print('FlxFil: Ext data2-v/mon1'  ,z_c2 ,str_module,idt_src, in_subset=patch_2D%cells%owned)
 
-    !$ACC KERNELS DEFAULT(PRESENT) ASYNC(1) IF(lzacc)
-    z_c2(:,:)=ext_data(1)%oce%flux_forc_mon_c(:,jmon2,:,2)
-    !$ACC END KERNELS
-    !$ACC WAIT(1)
-    CALL dbg_print('FlxFil: Ext data2-v/mon2'  ,z_c2 ,str_module,idt_src, in_subset=patch_2D%cells%owned)
+      !$ACC KERNELS DEFAULT(PRESENT) ASYNC(1) IF(lzacc)
+      z_c2(:,:)=ext_data(1)%oce%flux_forc_mon_c(:,jmon2,:,2)
+      !$ACC END KERNELS
+      !$ACC WAIT(1)
+      !$ACC UPDATE SELF(z_c2) IF(lzacc)
+      CALL dbg_print('FlxFil: Ext data2-v/mon2'  ,z_c2 ,str_module,idt_src, in_subset=patch_2D%cells%owned)
 
-    !$ACC KERNELS DEFAULT(PRESENT) ASYNC(1) IF(lzacc)
-    z_c2(:,:)=ext_data(1)%oce%flux_forc_mon_c(:,jmon1,:,3)
-    !$ACC END KERNELS
-    !$ACC WAIT(1)
-    CALL dbg_print('FlxFil: Ext data3-t/mon1'  ,z_c2 ,str_module,idt_src, in_subset=patch_2D%cells%owned)
+      !$ACC KERNELS DEFAULT(PRESENT) ASYNC(1) IF(lzacc)
+      z_c2(:,:)=ext_data(1)%oce%flux_forc_mon_c(:,jmon1,:,3)
+      !$ACC END KERNELS
+      !$ACC WAIT(1)
+      !$ACC UPDATE SELF(z_c2) IF(lzacc)
+      CALL dbg_print('FlxFil: Ext data3-t/mon1'  ,z_c2 ,str_module,idt_src, in_subset=patch_2D%cells%owned)
 
-    !$ACC KERNELS DEFAULT(PRESENT) ASYNC(1) IF(lzacc)
-    z_c2(:,:)=ext_data(1)%oce%flux_forc_mon_c(:,jmon2,:,3)
-    !$ACC END KERNELS
-    !$ACC WAIT(1)
-    CALL dbg_print('FlxFil: Ext data3-t/mon2'  ,z_c2 ,str_module,idt_src, in_subset=patch_2D%cells%owned)
-    !---------------------------------------------------------------------
+      !$ACC KERNELS DEFAULT(PRESENT) ASYNC(1) IF(lzacc)
+      z_c2(:,:)=ext_data(1)%oce%flux_forc_mon_c(:,jmon2,:,3)
+      !$ACC END KERNELS
+      !$ACC WAIT(1)
+      !$ACC UPDATE SELF(z_c2) IF(lzacc)
+      CALL dbg_print('FlxFil: Ext data3-t/mon2'  ,z_c2 ,str_module,idt_src, in_subset=patch_2D%cells%owned)
+      !---------------------------------------------------------------------
+    END IF
 
     !$ACC END DATA
   END SUBROUTINE update_flux_fromFile
@@ -1481,6 +1489,9 @@ CONTAINS
     REAL(wp) :: ocean_are, glob_slev, corr_slev , hold_b,hnew_a
     REAL(wp) :: h_mean, h_total
     LOGICAL  :: lzacc
+#ifdef _OPENACC
+    REAL(wp), DIMENSION(nproma,p_patch_3D%p_patch_2D(1)%alloc_cell_blocks) :: temp_values
+#endif
 
     CALL set_acc_host_or_device(lzacc, lacc)
 
@@ -1491,11 +1502,22 @@ CONTAINS
     ! parallelize correctly
     ocean_are = p_patch_3D%p_patch_1D(1)%ocean_area(1)
     ! global_sum_array function does not currently works for G2G communication
-    !$ACC UPDATE SELF(patch_2D%cells%area) ASYNC(1) IF(lzacc .and. acc_is_present(patch_2D%cells%area))
-    !$ACC UPDATE SELF(h_old) ASYNC(1) IF(lzacc .and. acc_is_present(h_old))
-    !$ACC UPDATE SELF(p_patch_3D%wet_halo_zero_c) ASYNC(1) IF(lzacc .and. acc_is_present(p_patch_3D%wet_halo_zero_c))
-    !$ACC WAIT(1) IF(lzacc)
+#ifdef _OPENACC
+    !$ACC WAIT(1)
+    !$ACC DATA COPY(temp_values) IF(lzacc)
+    !$ACC PARALLEL LOOP GANG VECTOR DEFAULT(PRESENT) COLLAPSE(2) ASYNC(1) IF(lzacc)
+    DO jb = 1, p_patch_3D%p_patch_2D(1)%alloc_cell_blocks
+      DO jc = 1, nproma
+        temp_values(jc,jb) = patch_2D%cells%area(jc,jb)*h_old(jc,jb)*p_patch_3D%wet_halo_zero_c(jc,1,jb)
+      END DO
+    END DO
+    !$ACC END PARALLEL LOOP
+    !$ACC WAIT(1)
+    !$ACC END DATA
+    glob_slev = global_sum_array(temp_values, lacc=.FALSE.)
+#else
     glob_slev = global_sum_array(patch_2D%cells%area(:,:)*h_old(:,:)*p_patch_3D%wet_halo_zero_c(:,1,:))
+#endif
     corr_slev = glob_slev/ocean_are
 
     idt_src=4
@@ -1557,6 +1579,9 @@ CONTAINS
     INTEGER  :: idt_src
     LOGICAL  :: lzacc
     CHARACTER(len=*), PARAMETER :: routine = 'balance_elevation_zstar'
+#ifdef _OPENACC
+    REAL(wp), DIMENSION(nproma,p_patch_3d%p_patch_2d(1)%alloc_cell_blocks) :: temp_values
+#endif
 
     CALL set_acc_host_or_device(lzacc, lacc)
 
@@ -1566,11 +1591,22 @@ CONTAINS
     ! parallelize correctly
     ocean_are = p_patch_3D%p_patch_1D(1)%ocean_area(1)
     ! global_sum_array function does not currently works for G2G communication
-    !$ACC UPDATE SELF(p_patch%cells%area) ASYNC(1) IF(lzacc .and. acc_is_present(p_patch%cells%area))
-    !$ACC UPDATE SELF(eta_c) ASYNC(1) IF(lzacc .and. acc_is_present(eta_c))
-    !$ACC UPDATE SELF(p_patch_3D%wet_halo_zero_c) ASYNC(1) IF(lzacc .and. acc_is_present(p_patch_3D%wet_halo_zero_c))
-    !$ACC WAIT(1) IF(lzacc)
+#ifdef _OPENACC
+    !$ACC WAIT(1)
+    !$ACC DATA COPY(temp_values) IF(lzacc)
+    !$ACC PARALLEL LOOP GANG VECTOR DEFAULT(PRESENT) COLLAPSE(2) ASYNC(1) IF(lzacc)
+    DO jb = 1, p_patch_3d%p_patch_2d(1)%alloc_cell_blocks
+      DO jc = 1, nproma
+        temp_values(jc,jb) = p_patch%cells%area(jc,jb)*eta_c(jc,jb)*p_patch_3D%wet_halo_zero_c(jc,1,jb)
+      END DO
+    END DO
+    !$ACC END PARALLEL LOOP
+    !$ACC WAIT(1)
+    !$ACC END DATA
+    glob_slev = global_sum_array(temp_values, lacc=.FALSE.)
+#else
     glob_slev = global_sum_array(p_patch%cells%area(:,:)*eta_c(:,:)*p_patch_3D%wet_halo_zero_c(:,1,:))
+#endif
     corr_slev = glob_slev/ocean_are
 
     idt_src=2

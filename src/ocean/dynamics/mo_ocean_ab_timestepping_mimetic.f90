@@ -19,12 +19,11 @@
 #include "crayftn_ptr_fail.inc"
 !----------------------------
 MODULE mo_ocean_ab_timestepping_mimetic
-
   USE mo_kind,                      ONLY: wp
   USE mo_parallel_config,           ONLY: nproma
   USE mo_sync,                      ONLY: sync_e, sync_c, sync_patch_array, sync_patch_array_mult
   USE mo_impl_constants,            ONLY: sea_boundary, max_char_length, min_dolic
-  USE mo_dbg_nml,                   ONLY: idbg_mxmn
+  USE mo_dbg_nml,                   ONLY: idbg_mxmn, idbg_val
   USE mo_ocean_nml, ONLY: n_zlev, solver_tolerance,&
     & ab_const, ab_beta, ab_gam, iswm_oce, iforc_oce, &
     & no_tracer, l_rigid_lid, l_edge_based,               &
@@ -1221,8 +1220,8 @@ CONTAINS
     CALL dbg_print('NormVel: vn_old'            ,ocean_state%p_prog(nold(1))%vn     ,str_module,idt_src, in_subset=owned_edges )
     CALL dbg_print('NormVel: vn_pred'           ,ocean_state%p_diag%vn_pred         ,str_module,idt_src, in_subset=owned_edges)
     CALL dbg_print('NormVel: vn_time_weighted'  ,ocean_state%p_diag%vn_time_weighted,str_module,idt_src, in_subset=owned_edges)
-    CALL dbg_print('NormVel: vn_change'         ,ocean_state%p_prog(nnew(1))%vn - &
-      & ocean_state%p_prog(nold(1))%vn     ,str_module,idt_src, in_subset=owned_edges)
+    IF ((idbg_val >= idt_src) .OR. (idbg_mxmn >= idt_src)) &
+      CALL dbg_print('NormVel: vn_change'         ,ocean_state%p_prog(nnew(1))%vn - ocean_state%p_prog(nold(1))%vn     ,str_module,idt_src, in_subset=owned_edges)
     idt_src=2  ! outputm print level (1-5, fix)
     CALL dbg_print('NormVel: vn_new'            ,ocean_state%p_prog(nnew(1))%vn     ,str_module,idt_src, in_subset=owned_edges)
   END SUBROUTINE calc_normal_velocity_ab_mimetic

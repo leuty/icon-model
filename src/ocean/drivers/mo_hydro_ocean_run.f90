@@ -400,6 +400,7 @@ CONTAINS
 
 #ifdef _OPENACC
         lzacc = .TRUE.
+        IF (do_ts_budget) CALL finish(routine, 'OpenACC version for do_ts_budget not implemented')
 #endif
 
         start_detail_timer(timer_extra22,6)
@@ -910,6 +911,7 @@ CONTAINS
 
 #ifdef _OPENACC
         lzacc = .TRUE.
+        IF (do_ts_budget) CALL finish(routine, 'OpenACC version for do_ts_budget not implemented')
 
         !$ACC DATA COPYIN(ocean_state(jg)%p_aux%bc_tides_potential, ocean_state(jg)%p_aux%bc_SAL_potential) &
         !$ACC   COPY(ocean_state(jg)%p_prog(nold(1))%eta_c, ocean_state(jg)%p_prog(nnew(1))%eta_c) &
@@ -1511,7 +1513,7 @@ CONTAINS
         CALL ocean_to_hamocc_interface(ocean_state(jg), ocean_state(jg)%transport_state, &
           & p_oce_sfc, p_as, sea_ice, p_phys_param, operators_coefficients, current_time)
 
-        CALL update_statistics(lacc=lzacc)
+        CALL update_statistics(lacc=.FALSE.)
 
         CALL output_ocean( patch_3d, ocean_state, &
           &                current_time,              &

@@ -558,7 +558,8 @@ CONTAINS
         & t_cf_var('TracerDiffusion_coeff', '', '1:temperature 2:salinity', datatype_flt),&
         & grib2_var(255, 255, 255, datatype_pack16, GRID_UNSTRUCTURED, grid_edge),&
         & ldims=(/nproma,n_zlev,nblks_e,no_tracer/), &
-        & lcontainer=.TRUE., loutput=.FALSE., lrestart=.FALSE.)
+        & lcontainer=.TRUE., loutput=.FALSE., lrestart=.FALSE., lopenacc=.TRUE.)
+      __acc_attach(params_oce%TracerDiffusion_coeff)
       CALL add_var(ocean_params_list, 'TracerDiffusion_BasisCoeff', params_oce%TracerDiffusion_BasisCoeff , &
         & grid_unstructured_edge, za_depth_below_sea, &
         & t_cf_var('TracerDiffusion_BasisCoeff', '', '1:temperature 2:salinity', datatype_flt),&

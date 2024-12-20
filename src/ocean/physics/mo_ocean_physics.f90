@@ -899,6 +899,9 @@ CONTAINS
       IF (vert_mix_type /= vmix_tke) THEN
         CALL finish('update_ho_params', 'OpenACC version for vert_mix_type /= vmix_tke currently not implemented')
       END IF
+      IF (LeithClosure_form /= 0) THEN
+        CALL finish('update_ho_params', 'OpenACC version for LeithClosure_form /= 0 currently not implemented')
+      END IF
     END IF
 #endif
     
