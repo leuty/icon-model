@@ -28,9 +28,12 @@ Climate: ICON-Land
   - Initial GPU port of QUINCY - running in CANOPY mode with the ICON-Land standalone driver
   - Minor scientific updates
     - Improvement in the first soil-layer hydrology
-    - Bugfix in snow melt calculation
+    - Bugfixes in snow melt calculations
+    - Improvements in the computation of several rate modifiers used in soil biogeochemistry calculations
     - Clean-up calculation of stand-replacing harvest
+    - Runtime optimisation: reduce number of aggregated variables
     - Include forcing and output of carbon isotopes
+    - Read elevation for QUINCY from file
   - Merged the radiation process of QUINCY into the radiation process of JSBACH
   - Consolidate and clean up namelist handling and physical parameters between QUINCY and JSBACH
 - Small fix for ICON-Land standalone concerning nproma
