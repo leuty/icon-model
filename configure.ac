@@ -2673,8 +2673,6 @@ dnl Set library-specific options:
 dnl Set the prefix path to find fortran-support
   [-DCMAKE_PREFIX_PATH:PATH=dnl
 "${icon_abs_top_builddir}/externals/fortran-support/build"],
-dnl Temporarily disable the horizontal library:
-  [-DBUILD_ICONMATH_HORIZONTAL:BOOL=OFF],
 dnl Build the static version of the library and disable the tests:
   [-DBUILD_SHARED_LIBS:BOOL=OFF], [-DBUILD_TESTING:BOOL=OFF],
 dnl Building a standalone version of the library is not required:
@@ -2682,10 +2680,12 @@ dnl Building a standalone version of the library is not required:
 dnl Set non-existing build type to avoid extra compiler flags:
   [-DCMAKE_BUILD_TYPE:STRING=NOEXTRAFLAGS])
 AS_VAR_APPEND([bundled_includes],
-  ["${FC_MOD_IN}externals/iconmath/build/src/interpolation/mod dnl
+  ["${FC_MOD_IN}externals/iconmath/build/src/horizontal/mod dnl
+${FC_MOD_IN}externals/iconmath/build/src/interpolation/mod dnl
 ${FC_MOD_IN}externals/iconmath/build/src/support/mod "])
 BUNDLED_LIBFILES=dnl
-"externals/iconmath/build/src/interpolation/libiconmath-interpolation.a dnl
+"externals/iconmath/build/src/horizontal/libiconmath-horizontal.a dnl
+externals/iconmath/build/src/interpolation/libiconmath-interpolation.a dnl
 externals/iconmath/build/src/support/libiconmath-support.a $BUNDLED_LIBFILES"
 
 dnl Prepend the include search flags to FCFLAGS:

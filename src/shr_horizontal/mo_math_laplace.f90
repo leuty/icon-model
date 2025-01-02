@@ -31,24 +31,23 @@ MODULE mo_math_laplace
 !
 !
 !
-USE mo_kind,                ONLY: wp
-USE mo_impl_constants,      ONLY: min_rlcell, min_rledge, min_rlvert
-USE mo_intp_data_strc,      ONLY: t_int_state
-USE mo_model_domain,        ONLY: t_patch
-USE mo_grid_config,         ONLY: l_limited_area
-USE mo_parallel_config,     ONLY: nproma, p_test_run
-USE mo_exception,           ONLY: finish
-USE mo_loopindices,         ONLY: get_indices_c, get_indices_e
-USE mo_sync,                ONLY: SYNC_C, SYNC_E, sync_patch_array
-USE mo_math_gradients,      ONLY: grad_fd_norm
-USE mo_math_divrot,         ONLY: div, rot_vertex
-USE mo_fortran_tools,       ONLY: copy
-
+USE mo_kind,                     ONLY: wp
+USE mo_impl_constants,           ONLY: min_rlcell, min_rledge, min_rlvert
+USE mo_intp_data_strc,           ONLY: t_int_state
+USE mo_model_domain,             ONLY: t_patch
+USE mo_grid_config,              ONLY: l_limited_area
+USE mo_parallel_config,          ONLY: nproma, p_test_run
+USE mo_exception,                ONLY: finish
+USE mo_sync,                     ONLY: SYNC_C, SYNC_E, sync_patch_array
+USE mo_math_gradients,           ONLY: grad_fd_norm
+USE mo_fortran_tools,            ONLY: copy
+USE mo_lib_divrot,               ONLY: div_lib, rot_vertex_atmos_lib
+use mo_lib_laplace,              ONLY: nabla2_vec_atmos_lib, nabla2_scalar_lib, nabla2_scalar_avg_lib
+USE mo_lib_interpolation_scalar, ONLY: edges2verts_scalar_lib, verts2edges_scalar_lib
 
 IMPLICIT NONE
 
 PRIVATE
-
 
 PUBLIC :: nabla2_vec
 PUBLIC :: nabla2_scalar, nabla2_scalar_avg
@@ -112,7 +111,9 @@ INTEGER :: slev, elev     ! vertical start and end level
 INTEGER :: je, jk, jb
 INTEGER :: rl_start, rl_end
 INTEGER :: rl_start_c, rl_end_c, rl_start_v, rl_end_v
-INTEGER :: i_startblk, i_endblk, i_startidx, i_endidx, i_nchdom
+INTEGER :: i_startblk, i_endblk, i_startidx_in, i_endidx_in
+INTEGER :: i_startblk_c, i_endblk_c, i_startidx_c, i_endidx_c
+INTEGER :: i_startblk_v, i_endblk_v, i_startidx_v, i_endidx_v
 
 REAL(wp) ::  &
   &  z_div_c(nproma,ptr_patch%nlev,ptr_patch%nblks_c),  &
@@ -177,84 +178,45 @@ icblk => ptr_patch%edges%cell_blk
 ividx => ptr_patch%edges%vertex_idx
 ivblk => ptr_patch%edges%vertex_blk
 
-i_nchdom   = MAX(1,ptr_patch%n_childdom)
-i_startblk = ptr_patch%edges%start_blk(rl_start,1)
-i_endblk   = ptr_patch%edges%end_blk(rl_end,i_nchdom)
+i_startblk = ptr_patch%edges%start_block(rl_start)
+i_endblk   = ptr_patch%edges%end_block(rl_end)
 
-!$ACC DATA CREATE(z_div_c, z_rot_v) PRESENT(vec_e) PRESENT(nabla2_vec_e) &
-!$ACC   PRESENT(ptr_patch, ptr_int) IF(lacc)
+i_startidx_in = ptr_patch%edges%start_index(rl_start)
+i_endidx_in   = ptr_patch%edges%end_index(rl_end)
 
-! Initialization of unused elements of nabla2_vec_e
-! DO jb = 1, i_startblk
-!   nabla2_vec_e(:,:,jb) = 0._wp
-! ENDDO
-! DO jb = i_endblk, ptr_patch%nblks_e
-!   nabla2_vec_e(:,:,jb) = 0._wp
-! ENDDO
+! This values will be needed to call div_lib
+i_startblk_c = ptr_patch%cells%start_block(rl_start_c)
+i_endblk_c   = ptr_patch%cells%end_block(rl_end_c)
+  
+i_startidx_c = ptr_patch%cells%start_index(rl_start_c)
+i_endidx_c   = ptr_patch%cells%end_index(rl_end_c)
 
-! compute divergence of vector field
-CALL div( vec_e, ptr_patch, ptr_int, z_div_c, lacc=lacc, &
-          opt_slev=slev, opt_elev=elev, opt_rlstart=rl_start_c, &
-          opt_rlend=rl_end_c )
+! This values will be needed to call rot_vertex_lib
+i_startblk_v = ptr_patch%verts%start_block(rl_start_v)
+i_endblk_v   = ptr_patch%verts%end_block(rl_end_v)
 
-!
-!  loop through over all patch edges (and blocks)
-!
-
-! The special treatment of 2D fields is essential for efficiency on the NEC
+i_startidx_v = ptr_patch%verts%start_index(rl_start_v) 
+i_endidx_v   = ptr_patch%verts%end_index(rl_end_v)
 
 SELECT CASE (ptr_patch%geometry_info%cell_type)
 
 CASE (3) ! (cell_type == 3)
 
-  ! compute rotation of vector field
-  CALL rot_vertex( vec_e, ptr_patch, ptr_int, z_rot_v, lacc=lacc, &
-                   opt_slev=slev, opt_elev=elev, opt_rlstart=rl_start_v,     &
-                   opt_rlend=rl_end_v )
-
-!$OMP PARALLEL
-!$OMP DO PRIVATE(jb,i_startidx,i_endidx,je,jk) ICON_OMP_DEFAULT_SCHEDULE
-  DO jb = i_startblk, i_endblk
-
-    CALL get_indices_e(ptr_patch, jb, i_startblk, i_endblk, &
-                     i_startidx, i_endidx, rl_start, rl_end)
-
-    !$ACC PARALLEL ASYNC(1) IF(lacc)
-#ifdef __LOOP_EXCHANGE
-    !$ACC LOOP GANG
-    DO je = i_startidx, i_endidx
-     !$ACC LOOP VECTOR
-      DO jk = slev, elev
-#else
-!CDIR UNROLL=3
-   !$ACC LOOP GANG
-    DO jk = slev, elev
-      !$ACC LOOP VECTOR
-      DO je = i_startidx, i_endidx
-#endif
-
-        nabla2_vec_e(je,jk,jb) =  &
-          &   ptr_patch%edges%tangent_orientation(je,jb) *  &
-          &   ( z_rot_v(ividx(je,jb,2),jk,ivblk(je,jb,2))  &
-          &   - z_rot_v(ividx(je,jb,1),jk,ivblk(je,jb,1)) )  &
-          &   * ptr_patch%edges%inv_primal_edge_length(je,jb)  &
-          & + ( z_div_c(icidx(je,jb,2),jk,icblk(je,jb,2))    &
-          &   - z_div_c(icidx(je,jb,1),jk,icblk(je,jb,1)) )  &
-          &   * ptr_patch%edges%inv_dual_edge_length(je,jb)
-
-      END DO
-    END DO
-    !$ACC END PARALLEL
-
-  END DO
-
-!$OMP END DO NOWAIT
-!$OMP END PARALLEL
+CALL nabla2_vec_atmos_lib( vec_e, &
+  &                        ptr_patch%edges%cell_idx, ptr_patch%edges%cell_blk, & ! require to calculate nabla2
+  &                        ptr_patch%edges%vertex_idx, ptr_patch%edges%vertex_blk, & ! required to calculate nabla2
+  &                        ptr_patch%cells%edge_idx, ptr_patch%cells%edge_blk, & ! required for div_lib  
+  &                        ptr_patch%verts%edge_idx, ptr_patch%verts%edge_blk, & ! required for rot_vertex_lib
+  &                        ptr_patch%edges%tangent_orientation, ptr_patch%edges%inv_primal_edge_length, &
+  &                        ptr_patch%edges%inv_dual_edge_length, ptr_int%geofac_div, ptr_int%geofac_rot, &
+  &                        nabla2_vec_e, & ! main output vector
+  &                        i_startblk_c, i_endblk_c, i_startidx_c, i_endidx_c, & ! required for div_lib
+  &                        i_startblk_v, i_endblk_v, i_startidx_v, i_endidx_v, & ! required for rot_vertex_lib
+  &                        i_startblk, i_endblk, i_startidx_in, i_endidx_in, & ! this four are needed to call get_indices_e_lib
+  &                        ptr_patch%nlev, ptr_patch%nblks_c, ptr_patch%nblks_v, slev, elev, nproma, lacc=lacc )
 
 END SELECT
-!$ACC WAIT(1)
 
-!$ACC END DATA
 
 END SUBROUTINE nabla2_vec_atmos
 
@@ -421,77 +383,31 @@ INTEGER,               INTENT(in) :: rl_start,rl_end   !< start and end values o
 ! cell based variable in which biharmonic laplacian is stored
 REAL(wp), INTENT(inout) ::  &
   &  nabla2_psi_c(:,:,:) ! dim: (nproma,nlev,nblks_c)
-INTEGER :: jb, jc, jk, i_startblk, i_endblk, i_startidx, i_endidx
-REAL(wp) ::  &
-  &  z_grad_fd_norm_e(nproma,ptr_patch%nlev,ptr_patch%nblks_e)
-INTEGER,  DIMENSION(:,:,:),   POINTER :: iidx, iblk
+INTEGER :: i_startblk, i_endblk, i_startidx_in, i_endidx_in
+INTEGER :: i_startblk_e, i_endblk_e, i_startidx_e, i_endidx_e
 
 !-----------------------------------------------------------------------
-
-iidx => ptr_patch%cells%neighbor_idx
-iblk => ptr_patch%cells%neighbor_blk
 
 ! values for the blocking
 i_startblk = ptr_patch%cells%start_block(rl_start)
 i_endblk   = ptr_patch%cells%end_block(rl_end)
 
-!$ACC DATA CREATE(z_grad_fd_norm_e) PRESENT(psi_c) PRESENT(nabla2_psi_c) &
-!$ACC   PRESENT(ptr_patch, ptr_int) IF(lacc)
+i_startidx_in = ptr_patch%cells%start_index(rl_start)
+i_endidx_in   = ptr_patch%cells%end_index(rl_end)
 
-SELECT CASE (ptr_patch%geometry_info%cell_type)
+i_startblk_e = ptr_patch%edges%start_block(rl_start)
+i_endblk_e   = ptr_patch%edges%end_block(rl_end)
 
-CASE (3) ! (cell_type == 3)
+i_startidx_e = ptr_patch%edges%start_index(rl_start)
+i_endidx_e   = ptr_patch%edges%end_index(rl_end)
 
-!$OMP PARALLEL
-!$OMP DO PRIVATE(jb,i_startidx,i_endidx,jc,jk) ICON_OMP_DEFAULT_SCHEDULE
-  DO jb = i_startblk, i_endblk
-
-    CALL get_indices_c(ptr_patch, jb, i_startblk, i_endblk, &
-                       i_startidx, i_endidx, rl_start, rl_end)
-
-    !$ACC PARALLEL ASYNC(1) IF(lacc)
-    !$ACC LOOP GANG VECTOR COLLAPSE(2)
-#ifdef __LOOP_EXCHANGE
-    DO jc = i_startidx, i_endidx
-      DO jk = slev, elev
-#else
-#ifdef _URD
-!CDIR UNROLL=_URD
-#endif
-    DO jk = slev, elev
-      DO jc = i_startidx, i_endidx
-#endif
-        !
-        !  calculate div(grad) in one step
-        !
-        nabla2_psi_c(jc,jk,jb) =  &
-          &    psi_c(jc,jk,jb)                       * ptr_int%geofac_n2s(jc,1,jb) &
-          &  + psi_c(iidx(jc,jb,1),jk,iblk(jc,jb,1)) * ptr_int%geofac_n2s(jc,2,jb) &
-          &  + psi_c(iidx(jc,jb,2),jk,iblk(jc,jb,2)) * ptr_int%geofac_n2s(jc,3,jb) &
-          &  + psi_c(iidx(jc,jb,3),jk,iblk(jc,jb,3)) * ptr_int%geofac_n2s(jc,4,jb)
-      END DO !cell loop
-    END DO !vertical levels loop
-    !$ACC END PARALLEL
-
-  END DO
-
-!$OMP END DO NOWAIT
-!$OMP END PARALLEL
-
-CASE (6) ! (cell_type == 6) THEN ! Use unoptimized version for the time being
-
-  ! compute finite difference gradient in normal direction
-  CALL grad_fd_norm( psi_c, ptr_patch, z_grad_fd_norm_e, lacc=lacc, &
-                     opt_slev=slev, opt_elev=elev)
-
-  ! compute divergence of resulting vector field
-  CALL div( z_grad_fd_norm_e, ptr_patch, ptr_int, nabla2_psi_c, lacc=lacc, &
-            opt_slev=slev, opt_elev=elev)
-
-END SELECT
-!$ACC WAIT(1)
-
-!$ACC END DATA
+CALL nabla2_scalar_lib( psi_c, ptr_patch%cells%neighbor_idx, ptr_patch%cells%neighbor_blk, &
+  &                     ptr_patch%edges%cell_idx, ptr_patch%edges%cell_blk, ptr_patch%edges%inv_dual_edge_length, & ! required for grad_fd_norm_lib
+  &                     ptr_patch%cells%edge_idx, ptr_patch%cells%edge_blk, & ! required for div_lib  
+  &                     ptr_int%geofac_n2s, ptr_int%geofac_div, nabla2_psi_c, &
+  &                     i_startblk, i_endblk, i_startidx_in, i_endidx_in, &
+  &                     i_startblk_e, i_endblk_e, i_startidx_e, i_endidx_e, &
+  &                     ptr_patch%nlev, slev, elev, nproma, ptr_patch%nblks_e, ptr_patch%geometry_info%cell_type, lacc=lacc )
 
 END SUBROUTINE nabla2_scalar
 
@@ -545,11 +461,7 @@ REAL(wp), INTENT(inout) ::  &
 
 INTEGER :: slev, elev     ! vertical start and end level
 INTEGER :: rl_start, rl_end, rl_start_l2
-INTEGER :: jb, jc, jk, i_startblk, i_endblk, i_startidx, i_endidx, i_nchdom
-
-REAL(wp), DIMENSION (nproma,ptr_patch%nlev,ptr_patch%nblks_c) :: aux_c
-
-INTEGER,  DIMENSION(:,:,:),   POINTER :: iidx, iblk
+INTEGER :: i_startblk_in(3), i_endblk_in(3), i_startidx_in(3), i_endidx_in(3)
 
 !-----------------------------------------------------------------------
 
@@ -565,221 +477,33 @@ ELSE
   elev = UBOUND(psi_c,2)
 END IF
 
-iidx => ptr_patch%cells%neighbor_idx
-iblk => ptr_patch%cells%neighbor_blk
-
 rl_start = 2
 rl_start_l2 = rl_start + 1
 rl_end = min_rlcell
-i_nchdom   = MAX(1,ptr_patch%n_childdom)
 
-! The special treatment of 2D fields is essential for efficiency on the NEC
+i_startblk_in(1) = ptr_patch%cells%start_block(rl_start)
+i_endblk_in(1)   = ptr_patch%cells%end_block(rl_end)
 
-!$ACC DATA CREATE(aux_c) PRESENT(avg_coeff, psi_c) PRESENT(nabla2_psi_c) &
-!$ACC   PRESENT(ptr_patch, ptr_int) IF(lacc)
+i_startidx_in(1) = ptr_patch%cells%start_index(rl_start)
+i_endidx_in(1)   = ptr_patch%cells%end_index(rl_end)
 
-SELECT CASE (ptr_patch%geometry_info%cell_type)
+i_startblk_in(2) = ptr_patch%cells%start_block(rl_start)
+i_endblk_in(2)   = ptr_patch%cells%end_block(rl_start_l2)
 
-CASE (3) ! (cell_type == 3)
+i_startidx_in(2) = ptr_patch%cells%start_index(rl_start)
+i_endidx_in(2)   = ptr_patch%cells%end_index(rl_start_l2)
 
-IF (slev == elev) THEN
-  jk = slev
+i_startblk_in(3) = ptr_patch%cells%start_block(rl_start_l2)
+i_endblk_in(3)   = ptr_patch%cells%end_block(rl_end)
 
-!$OMP PARALLEL PRIVATE(i_startblk,i_endblk)
+i_startidx_in(3) = ptr_patch%cells%start_index(rl_start_l2)
+i_endidx_in(3)   = ptr_patch%cells%end_index(rl_end)
 
-! values for the blocking
-i_startblk = ptr_patch%cells%start_blk(rl_start,1)
-i_endblk   = ptr_patch%cells%end_blk(rl_end,i_nchdom)
-
-!$OMP DO PRIVATE(jb,i_startidx,i_endidx,jc) ICON_OMP_DEFAULT_SCHEDULE
-  DO jb = i_startblk, i_endblk
-
-    IF (jb == i_startblk) THEN
-      i_startidx = ptr_patch%cells%start_idx(rl_start,1)
-      i_endidx   = nproma
-      IF (jb == i_endblk) i_endidx = ptr_patch%cells%end_idx(rl_end,i_nchdom)
-    ELSE IF (jb == i_endblk) THEN
-      i_startidx = 1
-      i_endidx   = ptr_patch%cells%end_idx(rl_end,i_nchdom)
-    ELSE
-      i_startidx = 1
-      i_endidx   = nproma
-    ENDIF
-
-    !$ACC PARALLEL ASYNC(1) IF(lacc)
-    !$ACC LOOP GANG VECTOR
-    DO jc = i_startidx, i_endidx
-
-      !
-      !  calculate div(grad) in one step
-      !
-      aux_c(jc,jk,jb) =  &
-        &    psi_c(jc,jk,jb)                       * ptr_int%geofac_n2s(jc,1,jb) &
-        &  + psi_c(iidx(jc,jb,1),jk,iblk(jc,jb,1)) * ptr_int%geofac_n2s(jc,2,jb) &
-        &  + psi_c(iidx(jc,jb,2),jk,iblk(jc,jb,2)) * ptr_int%geofac_n2s(jc,3,jb) &
-        &  + psi_c(iidx(jc,jb,3),jk,iblk(jc,jb,3)) * ptr_int%geofac_n2s(jc,4,jb)
-
-    END DO
-    !$ACC END PARALLEL
-
-  END DO
-!$OMP END DO
-
-  IF (l_limited_area .OR. ptr_patch%id > 1) THEN
-    ! Fill nabla2_psi_c along the lateral boundaries of nests
-
-    i_startblk = ptr_patch%cells%start_blk(rl_start,1)
-    i_endblk   = ptr_patch%cells%end_blk(rl_start_l2,1)
-
-    CALL copy(aux_c(:,jk,i_startblk:i_endblk), &
-         nabla2_psi_c(:,jk,i_startblk:i_endblk), lacc=lacc)
-!$OMP BARRIER
-  ENDIF
-
-!
-! Now do averaging with weights given by avg_coeff
-
-  ! values for the blocking
-  i_startblk = ptr_patch%cells%start_blk(rl_start_l2,1)
-  i_endblk   = ptr_patch%cells%end_blk(rl_end,i_nchdom)
-
-!$OMP DO PRIVATE(jb,i_startidx,i_endidx,jc) ICON_OMP_DEFAULT_SCHEDULE
-  DO jb = i_startblk, i_endblk
-
-    IF (jb == i_startblk) THEN
-      i_startidx = ptr_patch%cells%start_idx(rl_start_l2,1)
-      i_endidx   = nproma
-      IF (jb == i_endblk) i_endidx = ptr_patch%cells%end_idx(rl_end,i_nchdom)
-    ELSE IF (jb == i_endblk) THEN
-      i_startidx = 1
-      i_endidx   = ptr_patch%cells%end_idx(rl_end,i_nchdom)
-    ELSE
-      i_startidx = 1
-      i_endidx   = nproma
-    ENDIF
-
-    !$ACC PARALLEL ASYNC(1) IF(lacc)
-    !$ACC LOOP VECTOR
-    DO jc = i_startidx, i_endidx
-      !
-      !  calculate the weighted average
-      !
-      nabla2_psi_c(jc,jk,jb) =  &
-        &    aux_c(jc,jk,jb)                       * avg_coeff(jc,1,jb) &
-        &  + aux_c(iidx(jc,jb,1),jk,iblk(jc,jb,1)) * avg_coeff(jc,2,jb) &
-        &  + aux_c(iidx(jc,jb,2),jk,iblk(jc,jb,2)) * avg_coeff(jc,3,jb) &
-        &  + aux_c(iidx(jc,jb,3),jk,iblk(jc,jb,3)) * avg_coeff(jc,4,jb)
-
-    END DO !cell loop
-    !$ACC END PARALLEL
-
-  END DO !block loop
-!$OMP END DO NOWAIT
-!$OMP END PARALLEL
-
-ELSE
-
-!$OMP PARALLEL PRIVATE(i_startblk,i_endblk)
-
-! values for the blocking
-i_startblk = ptr_patch%cells%start_blk(rl_start,1)
-i_endblk   = ptr_patch%cells%end_blk(rl_end,i_nchdom)
-
-!$OMP DO PRIVATE(jb,i_startidx,i_endidx,jc,jk) ICON_OMP_DEFAULT_SCHEDULE
-  DO jb = i_startblk, i_endblk
-
-    CALL get_indices_c(ptr_patch, jb, i_startblk, i_endblk, &
-                       i_startidx, i_endidx, rl_start, rl_end)
-
-    !$ACC PARALLEL ASYNC(1) IF(lacc)
-    !$ACC LOOP GANG
-#ifdef __LOOP_EXCHANGE
-    DO jc = i_startidx, i_endidx
-      !$ACC LOOP VECTOR
-      DO jk = slev, elev
-#else
-#ifdef _URD
-!CDIR UNROLL=_URD
-#endif
-    DO jk = slev, elev
-      !$ACC LOOP VECTOR
-      DO jc = i_startidx, i_endidx
-#endif
-        !
-        !  calculate div(grad) in one step
-        !
-        aux_c(jc,jk,jb) =  &
-          &    psi_c(jc,jk,jb)                       * ptr_int%geofac_n2s(jc,1,jb) &
-          &  + psi_c(iidx(jc,jb,1),jk,iblk(jc,jb,1)) * ptr_int%geofac_n2s(jc,2,jb) &
-          &  + psi_c(iidx(jc,jb,2),jk,iblk(jc,jb,2)) * ptr_int%geofac_n2s(jc,3,jb) &
-          &  + psi_c(iidx(jc,jb,3),jk,iblk(jc,jb,3)) * ptr_int%geofac_n2s(jc,4,jb)
-      END DO !cell loop
-    END DO !vertical levels loop
-    !$ACC END PARALLEL
-
-  END DO
-!$OMP END DO
-
-  IF (l_limited_area .OR. ptr_patch%id > 1) THEN
-    ! Fill nabla2_psi_c along the lateral boundaries of nests
-
-    i_startblk = ptr_patch%cells%start_blk(rl_start,1)
-    i_endblk   = ptr_patch%cells%end_blk(rl_start_l2,1)
-
-    CALL copy(aux_c(:,:,i_startblk:i_endblk), &
-         nabla2_psi_c(:,:,i_startblk:i_endblk), lacc=lacc)
-!$OMP BARRIER
-  ENDIF
-
-!
-! Now do averaging with weights given by avg_coeff
-
-  ! values for the blocking
-  i_startblk = ptr_patch%cells%start_blk(rl_start_l2,1)
-  i_endblk   = ptr_patch%cells%end_blk(rl_end,i_nchdom)
-
-!$OMP DO PRIVATE(jb,i_startidx,i_endidx,jc,jk) ICON_OMP_DEFAULT_SCHEDULE
-  DO jb = i_startblk, i_endblk
-
-    CALL get_indices_c(ptr_patch, jb, i_startblk, i_endblk, &
-                       i_startidx, i_endidx, rl_start_l2, rl_end)
-
-    !$ACC PARALLEL ASYNC(1) IF(lacc)
-    !$ACC LOOP GANG
-#ifdef __LOOP_EXCHANGE
-    DO jc = i_startidx, i_endidx
-      !$ACC LOOP VECTOR
-      DO jk = slev, elev
-#else
-#ifdef _URD
-!CDIR UNROLL=_URD
-#endif
-    DO jk = slev, elev
-      !$ACC LOOP VECTOR
-      DO jc = i_startidx, i_endidx
-#endif
-        !
-        !  calculate the weighted average
-        !
-        nabla2_psi_c(jc,jk,jb) =  &
-          &    aux_c(jc,jk,jb)                       * avg_coeff(jc,1,jb) &
-          &  + aux_c(iidx(jc,jb,1),jk,iblk(jc,jb,1)) * avg_coeff(jc,2,jb) &
-          &  + aux_c(iidx(jc,jb,2),jk,iblk(jc,jb,2)) * avg_coeff(jc,3,jb) &
-          &  + aux_c(iidx(jc,jb,3),jk,iblk(jc,jb,3)) * avg_coeff(jc,4,jb)
-
-      END DO !cell loop
-    END DO !vertical levels loop
-    !$ACC END PARALLEL
-
-  END DO !block loop
-!$OMP END DO NOWAIT
-!$OMP END PARALLEL
-ENDIF
-
-END SELECT
-!$ACC WAIT(1)
-
-!$ACC END DATA
+CALL nabla2_scalar_avg_lib( psi_c, ptr_patch%cells%neighbor_idx, ptr_patch%cells%neighbor_blk, &
+  &                         ptr_int%geofac_n2s, avg_coeff, nabla2_psi_c, &
+  &                         i_startblk_in, i_endblk_in, i_startidx_in, i_endidx_in, &
+  &                         ptr_patch%nblks_c, ptr_patch%geometry_info%cell_type, ptr_patch%id, &
+  &                         ptr_patch%nlev, slev, elev, nproma, l_limited_area, lacc=lacc)
 
 END SUBROUTINE nabla2_scalar_avg
 

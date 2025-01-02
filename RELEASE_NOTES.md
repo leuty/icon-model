@@ -41,6 +41,7 @@ Climate: ICON-Land
 ### Externals
 
 - Replace math-support and math-interpolation with iconmath
+- Make use of the math-horizontal component of iconmath
 
 ### Infrastructure
 

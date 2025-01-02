@@ -10743,7 +10743,7 @@ if test "x$icon_gpu_primary" = xopenacc; then :
 else
   icon_im_openacc=OFF
 fi
-set dummy   -DCMAKE_Fortran_FLAGS="$subdir_FCFLAGS $ICON_ICONMATH_FCFLAGS"   -DIM_ENABLE_LOOP_EXCHANGE="$enable_loop_exchange" -DIM_ENABLE_MIXED_PRECISION="$enable_mixed_precision" -DIM_ENABLE_DIM_SWAP="$enable_dim_swap" -DIM_ENABLE_OPENACC="$icon_im_openacc"   -DCMAKE_PREFIX_PATH:PATH="${icon_abs_top_builddir}/externals/fortran-support/build"   -DBUILD_ICONMATH_HORIZONTAL:BOOL=OFF   -DBUILD_SHARED_LIBS:BOOL=OFF -DBUILD_TESTING:BOOL=OFF   -DBUILD_STANDALONE:BOOL=OFF   -DCMAKE_BUILD_TYPE:STRING=NOEXTRAFLAGS; shift
+set dummy   -DCMAKE_Fortran_FLAGS="$subdir_FCFLAGS $ICON_ICONMATH_FCFLAGS"   -DIM_ENABLE_LOOP_EXCHANGE="$enable_loop_exchange" -DIM_ENABLE_MIXED_PRECISION="$enable_mixed_precision" -DIM_ENABLE_DIM_SWAP="$enable_dim_swap" -DIM_ENABLE_OPENACC="$icon_im_openacc"   -DCMAKE_PREFIX_PATH:PATH="${icon_abs_top_builddir}/externals/fortran-support/build"   -DBUILD_SHARED_LIBS:BOOL=OFF -DBUILD_TESTING:BOOL=OFF   -DBUILD_STANDALONE:BOOL=OFF   -DCMAKE_BUILD_TYPE:STRING=NOEXTRAFLAGS; shift
    for acx_tmp; do
      case $acx_tmp in #(
   *\'*) :
@@ -10753,8 +10753,8 @@ set dummy   -DCMAKE_Fortran_FLAGS="$subdir_FCFLAGS $ICON_ICONMATH_FCFLAGS"   -DI
 esac
      as_fn_append acx_subdir_run_args_externals_iconmath " '$acx_tmp'"
    done
-as_fn_append bundled_includes "${FC_MOD_IN}externals/iconmath/build/src/interpolation/mod ${FC_MOD_IN}externals/iconmath/build/src/support/mod "
-BUNDLED_LIBFILES="externals/iconmath/build/src/interpolation/libiconmath-interpolation.a externals/iconmath/build/src/support/libiconmath-support.a $BUNDLED_LIBFILES"
+as_fn_append bundled_includes "${FC_MOD_IN}externals/iconmath/build/src/horizontal/mod ${FC_MOD_IN}externals/iconmath/build/src/interpolation/mod ${FC_MOD_IN}externals/iconmath/build/src/support/mod "
+BUNDLED_LIBFILES="externals/iconmath/build/src/horizontal/libiconmath-horizontal.a externals/iconmath/build/src/interpolation/libiconmath-interpolation.a externals/iconmath/build/src/support/libiconmath-support.a $BUNDLED_LIBFILES"
 
 FCFLAGS="${bundled_includes}${FCFLAGS}"
 
