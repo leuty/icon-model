@@ -121,7 +121,7 @@ MODULE mo_nh_stepping
   USE mo_td_ext_data,              ONLY: update_nwp_phy_bcs, set_sst_and_seaice
   USE mo_advection_aerosols,       ONLY: aerosol_2D_advection, setup_aerosol_advection
   USE mo_aerosol_util,             ONLY: aerosol_2D_diffusion
-  USE mo_ensemble_pert_config,     ONLY: compute_ensemble_pert, use_ensemble_pert
+  USE mo_ensemble_pert_config,     ONLY: use_ensemble_pert, compute_ensemble_pert
   USE mo_aerosol_sources_types,    ONLY: p_fire_source_info
   USE mo_aerosol_sources,          ONLY: inquire_fire2d_data
   USE mo_nwp_aerosol,              ONLY: cams_reader, cams_intp

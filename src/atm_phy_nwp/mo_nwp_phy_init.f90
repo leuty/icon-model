@@ -1249,6 +1249,7 @@ SUBROUTINE init_nwp_phy ( p_patch, p_metrics,             &
     phy_params%rhebc_ocean      = 0._wp
     phy_params%rhebc_land_trop  = 0._wp
     phy_params%rhebc_ocean_trop = 0._wp
+    phy_params%tune_grzdc_offset= 0._wp
     phy_params%entrorg          = 0._wp
     phy_params%texc             = 0._wp
     phy_params%qexc             = 0._wp

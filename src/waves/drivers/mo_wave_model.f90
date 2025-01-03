@@ -18,6 +18,7 @@ MODULE mo_wave_model
        &                                my_process_is_io, my_process_is_pref, my_process_is_mpi_test, &
        &                                stop_mpi, my_process_is_work, process_mpi_io_size, &
        &                                my_process_is_stdio
+  USE mo_sync,                    ONLY: global_max
   USE mo_timer,                   ONLY: init_timer, timer_start, timer_stop, &
        &                                timers_level,timer_model_init, &
        &                                timer_domain_decomp, print_timer, &
@@ -131,8 +132,10 @@ CONTAINS
     CHARACTER(LEN=*), INTENT(in) :: shr_namelist_filename
 
     CHARACTER(*), PARAMETER :: routine = "mo_wave_model:construct_wave_model"
-    INTEGER                 :: dedicatedRestartProcs
+    INTEGER :: dedicatedRestartProcs
     INTEGER :: error_status
+    INTEGER :: nproma_max
+
     ! initialize global registry of lon-lat grids
     CALL lonlat_grids%init()
 
@@ -211,6 +214,12 @@ CONTAINS
     IF (my_process_is_work() .OR. my_process_is_mpi_test()) THEN
       CALL build_decomposition(num_lev, nshift, is_ocean_decomposition = .FALSE.)
     ENDIF
+
+    IF (ignore_nproma_use_nblocks_c .OR. ignore_nproma_use_nblocks_e) THEN
+      nproma_max = global_max(nproma)
+      CALL update_nproma_for_io_procs(nproma_max)
+    ENDIF
+
     IF (timers_level > 4) CALL timer_stop(timer_domain_decomp)
 
     !-------------------------------------------------------------------

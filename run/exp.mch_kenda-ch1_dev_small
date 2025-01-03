@@ -319,6 +319,7 @@ cat > ${basedir}/run/${atmo_namelist} << EOF
  dt_conv                     =                10., 10., 10.       ! time step for convection in s (domain specific)
  dt_sso                      =                10., 10., 10.       ! time step for SSO parameterization
  dt_gwd                      =                10., 10., 10.       ! gdm : 360 in guenther
+ lvariable_rain_n0           =                       .TRUE.       ! variable intercept parameter of raindrop size distribution
 /
 
 ! twomom_mcrph_nml: switches for two moment mcrph scheme ------------------------------
@@ -329,7 +330,7 @@ cat > ${basedir}/run/${atmo_namelist} << EOF
 ! nwp_tuning_nml: additional tuning parameters ----------------------------------
 &nwp_tuning_nml
  tune_dursun_scaling         =                        0.6
- tune_v0snow                 =                        25
+ tune_v0snow                 =                        20
  tune_rcucov                 =                        0.075
  tune_rhebc_land             =                        0.825
  itune_albedo                =                          1         ! reduced albedo (w.r.t. MODIS data) over Sahara
@@ -347,6 +348,8 @@ cat > ${basedir}/run/${atmo_namelist} << EOF
  tune_gustsso_lim            =                       20
  tune_eiscrit                =                        7
  itune_gust_diag             =                        3
+ tune_supsat_limfac          =                        2.0         ! Limiting factor for parameterized supersaturation in updrafts during the saturation adjustment
+ tune_zcsg                   =                        0.25        ! Efficiency for snow-to-graupel conversion by riming
 /
 
 !gribout_nml: defined and used in: src/namelists/mo_initicon_nml.f90 ------------

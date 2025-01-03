@@ -106,7 +106,7 @@ nproma_wave=$nproma
 
 # Note that "mpi_atm_io_procs" must match the number of output files
 mpi_atm_io_procs=1      # >0 for atmosphere plus land (not working for monitoring)
-mpi_waves_io_procs=0      # ? >0 for waves is not working yet
+mpi_waves_io_procs=1
 ICON_COMPONENT2_proc0_shift=0 # proc0_shift does not work yet with WAVES
 
 #=============================================================================
@@ -1022,7 +1022,7 @@ done
 #
 ICON_COMPONENT2_VE_procs=$mpi_waves_procs    # START_MODEL_function expects ICON_COMPONENT2_VE_procs
 ICON_COMPONENT1_VH_procs=$mpi_atm_io_procs
-ICON_COMPONENT2_VH_procs=$mpi_waves_io_procs
+ICON_COMPONENT2_VH_procs=0
 echo "mpi procs: total=$mpi_total_procs waves=${ICON_COMPONENT2_VE_procs} atmo=total-waves (will be computed implicitly)"
 
 # ----------------------------------------------------------------------

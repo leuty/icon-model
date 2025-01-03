@@ -53,7 +53,7 @@ PUBLIC :: ocean_postprocess
 
 
 CONTAINS
-  
+
   !-------------------------------------------------------------------------
   !>
   !-------------------------------------------------------------------------
@@ -106,7 +106,7 @@ CONTAINS
     CHARACTER(LEN=*), INTENT(in)         :: fileName
     INTEGER, INTENT(in)                  :: timeIndex
 
-    REAL(wp), POINTER :: T(:,:,:,:), S(:,:,:,:), h(:,:,:)
+    REAL(wp), ALLOCATABLE :: T(:,:,:,:), S(:,:,:,:), h(:,:,:)
     REAL(wp), POINTER :: tracers(:,:,:,:)
     REAL(wp) :: meanRho, meanH
 
@@ -135,7 +135,7 @@ CONTAINS
       & variable_name="t_acc",                &
       & start_timestep=timeIndex,             &
       & end_timestep=timeIndex,               &
-      & return_pointer=T )
+      & alloc_array=T )
 
     tracers(:,:,:,1) = T(:,:,:,1)
 
@@ -145,7 +145,7 @@ CONTAINS
       & variable_name="s_acc",                &
       & start_timestep=timeIndex,             &
       & end_timestep=timeIndex,               &
-      & return_pointer=S )
+      & alloc_array=S )
 
     tracers(:,:,:,2) = S(:,:,:,1)
 
@@ -155,7 +155,7 @@ CONTAINS
       & variable_name="h_acc",                &
       & start_timestep=timeIndex,             &
       & end_timestep=timeIndex,               &
-      & return_pointer=h )
+      & alloc_array=h )
 
     CALL closeFile(stream_id)
 

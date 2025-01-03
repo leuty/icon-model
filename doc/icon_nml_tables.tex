@@ -1511,6 +1511,61 @@ Multiplicative change of intercept parameter of raindrop size distribution&
 inwp\_gscp = 1 or 2
 \tabularnewline
 
+
+\hline
+range\_ccn\_Ncn0&
+R&
+1.&
+&
+For 2-moment mircophysics: multiplicative change of CCN concentration for Segal \& Khain cloud activation parameterization. The base value \texttt{ccn\_Ncn0} may be explicitly specified in namelist \texttt{/twomom\_mcrph\_nml/}, otherwise the respective base value from the aerosol scenario \texttt{ccn\_type} is automatically taken. Not time dependent, regardless of \texttt{timedep\_pert}.&
+inwp\_gscp = 4,5,7
+\tabularnewline
+
+\hline
+range\_in\_fact&
+R&
+1.&
+&
+For 2-moment mircophysics: multiplicative change of IN concentration for ice nucleation parameterization. Not time dependent, regardless of \texttt{timedep\_pert}.&
+inwp\_gscp = 4,5,7
+\tabularnewline
+
+\hline
+range\_avel\_i&
+R&
+1.&
+&
+For 2-moment mircophysics: multiplicative change of cloud ice fall speed. The base value \texttt{avel\_i} may be explicitly specified in namelist \texttt{/twomom\_mcrph\_nml/}, otherwise the default \texttt{avel\_i} is taken. Not time dependent, regardless of \texttt{timedep\_pert}.&
+inwp\_gscp = 4,5,7
+\tabularnewline
+
+range\_avel\_g&
+R&
+1.&
+&
+For 2-moment mircophysics: multiplicative change of graupel fall speed. The base value \texttt{avel\_g} may be explicitly specified in namelist \texttt{/twomom\_mcrph\_nml/}, otherwise the default \texttt{avel\_g} is taken. Not time dependent, regardless of \texttt{timedep\_pert}.&
+inwp\_gscp = 4,5,7
+\tabularnewline
+
+\hline
+range\_cap\_ice&
+R&
+1.&
+&
+For 2-moment mircophysics: multiplicative change of capacitance of cloud ice for depositional growth. The base value \texttt{cap\_ice} may be explicitly specified in namelist \texttt{/twomom\_mcrph\_nml/}, otherwise the default \texttt{cap\_ice} is taken.&
+inwp\_gscp = 4,5,7
+\tabularnewline
+
+\hline
+range\_cap\_snow&
+R&
+1.&
+&
+For 2-moment mircophysics: multiplicative change of capacitance of snow for depositional growth. The base value \texttt{cap\_snow} may be explicitly specified in namelist \texttt{/twomom\_mcrph\_nml/}, otherwise the default \texttt{cap\_snow} is taken.&
+inwp\_gscp = 4,5,7
+\tabularnewline
+
+
 \hline
 range\_entrorg&
 R&
@@ -5583,6 +5638,14 @@ inwp\_turb $>$ 0
 \tabularnewline
 
 %\hline
+itype\_satpres\_coeffs&
+I & 1 &  & Set of coefficients used for computing the saturation vapor pressure: \\
+1 = Coefficients inherited from the COSMO model (inaccurate at temperatures below $-50^\circ$C)\\
+2 = Coefficients used in the IFS (and the parameterizations taken over from the IFS) \\
+inwp\_satad $>$ 0
+\tabularnewline
+
+%\hline
 \textbf{dt\_conv} &
 R (max\_ dom)&
 600.&
@@ -6045,6 +6108,16 @@ run\_nml:iforcing = inwp
 \tabularnewline
 
 \hline
+tune\_grzdc\_offset
+R&
+0.0&
+&
+Scaling factor for offset in CAPE closure for grayzone deep convection. Positive values reduce the
+activity of the convection scheme and suppress convective drizzle (recommendation: 0.1--0.2) &
+run\_nml:iforcing = inwp; lgrayzone\_deepconv = .TRUE.
+\tabularnewline
+
+\hline
 tune\_box\_liq&
 R&
 0.05&
@@ -6243,6 +6316,16 @@ the excess gust speed &
 itune\_gust\_diag = 4
 \tabularnewline
 
+\hline
+itune\_vis\_diag&
+I&
+1&
+&
+Tuning variant of visibility diagnostics\\
+1: First operational implementation \\
+2: Optimized day-night conversion factor &
+run\_nml:iforcing = inwp
+\tabularnewline
 
 \hline
 itune\_albedo&
