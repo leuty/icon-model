@@ -17,6 +17,8 @@ MODULE mo_wave_atmo_coupling
   USE mo_model_domain,   ONLY: t_patch
   USE mo_coupling_utils, ONLY: cpl_def_field, cpl_put_field, cpl_get_field
   USE mo_sync,           ONLY: SYNC_C, sync_patch_array
+  USE mo_exception,      ONLY: message, message_text
+  USE mo_run_config,     ONLY: msg_level
 
   IMPLICIT NONE
 
@@ -114,6 +116,11 @@ CONTAINS
       CALL sync_patch_array( &
         SYNC_C, p_patch, u10m, opt_varname='u10m', lacc=.FALSE.)
 
+    IF (msg_level >= 10) THEN
+      WRITE (message_text,'(a,l7)') 'received data u10m: ', received_data
+      CALL message(routine, message_text)
+    ENDIF
+
     ! ----------------------------------------------
     !  Receive 10m meridional wind v10m
     !  'meridional_wind_in_10m'
@@ -126,6 +133,11 @@ CONTAINS
       CALL sync_patch_array( &
         SYNC_C, p_patch, v10m, opt_varname='v10m', lacc=.FALSE.)
 
+    IF (msg_level >= 10) THEN
+      WRITE (message_text,'(a,l7)') 'received data v10m: ', received_data
+      CALL message(routine, message_text)
+    ENDIF
+
     ! ------------------------------------------------------------------
     !  Receive fraction of sea ice
     !  'fraction_of_ocean_covered_by_sea_ice'
@@ -137,6 +149,11 @@ CONTAINS
     IF (received_data) &
       CALL sync_patch_array( &
         SYNC_C, p_patch, sea_ice_c, opt_varname='sea_ice_c', lacc=.FALSE.)
+
+    IF (msg_level >= 10) THEN
+      WRITE (message_text,'(a,l7)') 'received data sea_ice_c: ', received_data
+      CALL message(routine, message_text)
+    ENDIF
 
   END SUBROUTINE couple_wave_to_atmo
 

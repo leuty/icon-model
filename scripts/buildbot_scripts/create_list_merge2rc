@@ -73,8 +73,7 @@ $addexp "checksuite.nwp/nwpexp.run_ICON_21_R2B4_waves_standalone_restart" --buil
 $addexp "checksuite.icon-dev/check.waves_R2B4_global_no_forcing"          --builders "DWD_nec_hybrid levante_intel_hybrid levante_nag" --list $listname
 # coupled tests
 $addexp "checksuite.nwp/nwpexp.run_ICON_23_R2B4_atmo_waves_coupled"       --builders "levante_gcc levante_intel" --list $listname --runflags "queue=compute"
-
-
+$addexp "checksuite.nwp/nwpexp.run_ICON_28_R2B6_IAU_atmo_waves_coupled"   --builders "DWD_nec_yac2" --list $listname
 
 # add bubble test
 #off#$addexp "checksuite.icon-dev/check.atm_2mom_bubble_rceTorus"               --list $listname
