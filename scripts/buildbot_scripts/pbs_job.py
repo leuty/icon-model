@@ -91,14 +91,18 @@ class PBSJob(BatchJob):
 
     def cancel(self):
         if None is not self.jobid:
-            subprocess.Popen(["qdel",self.jobid])
             qdel = subprocess.Popen(["qdel",self.jobid],
                                     shell=False,
                                     stdout=subprocess.PIPE,
                                     stderr=subprocess.PIPE,
                                     cwd=self.cwd,
                                     encoding="UTF-8")
-            print(qdel.stdout.realines())
-            print(qdel.stderr.realines())
+            print(qdel.stdout.readlines())
+            print(qdel.stderr.readlines())
         else:
             print('Cannot find jobid to cancel job!')
+
+    def wasCanceled(self):
+        # job cancelling with PBS results in non-zero exit code. That's why
+        # this can always return false
+        return False

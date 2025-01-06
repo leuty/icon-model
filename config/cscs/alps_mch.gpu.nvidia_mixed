@@ -9,6 +9,7 @@
 # See LICENSES/ for license information
 # SPDX-License-Identifier: BSD-3-Clause
 # ------------------------------------------
+set -eu
 
 SCRIPT_DIR=$(cd "$(dirname "$0")"; pwd)
 SPACK_VERSION=$(cat $SCRIPT_DIR/SPACK_TAG_MCH)

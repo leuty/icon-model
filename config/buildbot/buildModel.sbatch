@@ -25,6 +25,13 @@ if test "${SLURM_SUBMIT_DIR:-0}" != '0'; then
 else
   ICON_DIR=$(cd "${SCRIPT_DIR}/../.."; pwd)
 fi
+
+#unusable builder information: those have to be set properly by the buildbot server
+BB_NAME=${BB_NAME-unknown}
+BB_SYSTEM=${BB_SYSTEM-unknown}
+BB_EXPERIMENT=${BB_EXPERIMENT-unknown}
+BB_EXPERIMENTLIST=${BB_EXPERIMENTLIST-unknown}
+
 echo "SCRIPT_DIR:        |${SCRIPT_DIR}|"
 echo "ICON_DIR:          |${ICON_DIR}|"
 echo "BB_NAME:           |${BB_NAME}|"

@@ -10,7 +10,7 @@
 # SPDX-License-Identifier: BSD-3-Clause
 # ------------------------------------------
 
-set -e
+set -eu
 
 MY_DIR=$(cd "$(dirname "$0")"; pwd)
 ICON_DIR=$(cd "${MY_DIR}/../.."; pwd)

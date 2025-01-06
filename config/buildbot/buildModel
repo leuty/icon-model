@@ -10,6 +10,7 @@
 # SPDX-License-Identifier: BSD-3-Clause
 # ------------------------------------------
 
+set -euo pipefail
 set -x
 
 SCRIPT_DIR=$(cd "$(dirname "$0")"; pwd)
@@ -31,6 +32,9 @@ DEADLINE="--deadline=now+90minutes"
 RUNTIME_LIMIT="--time=01:00:00"
 MINIMAL_TIME="--time-min=00:30:00"
 TIME_LIMITS="${RUNTIME_LIMIT} ${MINIMAL_TIME} ${DEADLINE}"
+
+#unusable buildername: it has to be set properly by the buildbot server
+BB_NAME=${BB_NAME-unknown}
 
 case $(echo ${BB_NAME} | tr '[:upper:]' '[:lower:]') in
   levante_aurora)

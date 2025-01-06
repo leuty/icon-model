@@ -20,10 +20,6 @@ class CmdLineJob(BatchJob):
         super().__init__(cmd, cwd)
         self.system = "Commandline"
 
-    # Command line jobs cannot be submitted in parallel - wait at submission
-    def wait(self):
-        print("Command line jobs run sequentially. Continue.")
-
     def poll(self, timeout):
         print("Command line jobs run sequentially. Nothing to poll.")
         return True
@@ -41,3 +37,12 @@ class CmdLineJob(BatchJob):
             self.returncode = self.job.wait()
         # Add a symlink following the same naming conventions, but for non-generated runscrits
         pathlib.Path("{}/LOG.{}.run.o".format(self.cwd, script)).symlink_to(pathlib.Path("{}/LOG.{}.o".format(self.cwd, script)))
+
+    def wasCanceled(self):
+        # job cancelling leads to non-zero exit codes on the command line
+        # hence this can always return false
+        return False
+
+    def cancel(self):
+        # no implementation needed for command line execution
+        pass

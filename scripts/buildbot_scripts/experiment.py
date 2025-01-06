@@ -38,6 +38,7 @@ class Experiment:
         self.parents = []
         self.children = []
 
+        # this will be set when the corresponding jobs is created
         self.batch_job = None
 
         return
@@ -174,3 +175,6 @@ class Experiment:
             status = cmd_process.returncode
 
         return status
+
+    def failed(self):
+        return self.batch_job.failed()

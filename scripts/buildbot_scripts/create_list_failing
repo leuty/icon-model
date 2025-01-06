@@ -12,7 +12,7 @@
 
 addexp="./addexp"
 #############################################################################
-listname=debug1
+listname=failing
 ./rmlist $listname
 
 ./create_all_builders $listname

@@ -8,10 +8,6 @@
 # SPDX-License-Identifier: BSD-3-Clause
 # ------------------------------------------
 
-include:
-  - c2sm/mch_experiments.yml
-  - c2sm/clm_experiments.yml
-  - c2sm/idealized_cscs_experiments.yml
-  - mpim/qubicc_experiments.yml
-  - dwd/dwd_experiments.yml
-  - dkrz/dkrz_experiments.yml
+experiments:
+  - name: cancel_jobs
+    check: checksuite.infrastructure/buildbot/exp.cancel_all

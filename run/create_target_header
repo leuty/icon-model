@@ -79,7 +79,14 @@ start_header()
 set +x
 $(test x"${use_ulimit:-yes}" != xyes || printf 'ulimit -s unlimited')
 #-----------------------------------------------------------------------------
-#
+# handle job cancellation. Usually slurm return exit code 0 in that case
+catchCancel() {
+    echo "Job was canceled, setting non-zero exit code."
+    exit 1
+}
+
+trap catchCancel SIGTERM SIGINT SIGKILL
+#-----------------------------------------------------------------------------
 # ICON run script:
 # !ATTENTION! Do not change the format of the following lines.
 #             They are evaluated by checksuite scripts.

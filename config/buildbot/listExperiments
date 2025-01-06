@@ -10,6 +10,7 @@
 # SPDX-License-Identifier: BSD-3-Clause
 # ------------------------------------------
 
+set -eu
 #
 # stdout is crucial for that script - it lists the indivitual
 # templates/runscripts for buildbot ON A SINGLE LINE

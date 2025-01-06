@@ -9,5 +9,6 @@
 # See LICENSES/ for license information
 # SPDX-License-Identifier: BSD-3-Clause
 # ------------------------------------------
+set -eu
 
 ./config/cscs/alps_mch.gpu.nvidia_mixed
