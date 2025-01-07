@@ -614,8 +614,8 @@ CONTAINS
   SUBROUTINE mean_wave_period(p_patch, femean, mp)
 
     TYPE(t_patch),     INTENT(IN)    :: p_patch
-    REAL(wp),          INTENT(IN)    :: femean(:,:) !< total energy [m^2]
-    REAL(wp),          INTENT(INOUT) :: mp(:,:)     !< significant wave height [m]
+    REAL(wp),          INTENT(IN)    :: femean(:,:) !< mean frequency energy [m^2]
+    REAL(wp),          INTENT(INOUT) :: mp(:,:)     !< mean wave period [s]
 
     CHARACTER(len=*), PARAMETER ::  &
       &  routine = modname//':mean_wave_period'

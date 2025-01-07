@@ -15,15 +15,16 @@ MODULE mo_wave_stepping
   USE mo_kind,                     ONLY: wp
   USE mo_exception,                ONLY: message, message_text, finish
   USE mo_impl_constants,           ONLY: SUCCESS
-  USE mo_run_config,               ONLY: output_mode, ltestcase, ltransport
+  USE mo_run_config,               ONLY: output_mode, ltestcase, ltransport, msg_level
   USE mo_name_list_output,         ONLY: write_name_list_output, istime4name_list_output, istime4name_list_output_dom
   USE mo_name_list_output_init,    ONLY: output_file
   USE mo_output_event_handler,     ONLY: get_current_jfile
   USE mo_parallel_config,          ONLY: proc0_offloading
   USE mo_time_config,              ONLY: t_time_config
+  USE mo_runtime_diag,             ONLY: print_timestep_info, print_wave_stats
   USE mtime,                       ONLY: datetime, timedelta, &
        &                                 OPERATOR(+), OPERATOR(>=), OPERATOR(==)
-  USE mo_util_mtime,               ONLY: mtime_utils, FMT_DDHHMMSS_DAYSEP, is_event_active
+  USE mo_util_mtime,               ONLY: is_event_active
   USE mo_model_domain,             ONLY: p_patch
   USE mo_grid_config,              ONLY: n_dom, nroot
   USE mo_io_units,                 ONLY: filename_max
@@ -43,14 +44,14 @@ MODULE mo_wave_stepping
     &                                    src_nonlinear_transfer, integrate_in_time_src, &
     &                                    src_wave_breaking
   USE mo_wave_physics,             ONLY: total_energy, wm1_wm2_wavenumber, set_energy2emin, &
-       &                                 mean_frequency_energy, air_sea,  last_prog_freq_ind, &
+       &                                 mean_frequency_energy, air_sea, last_prog_freq_ind, &
        &                                 impose_high_freq_tail, tm1_tm2_periods, wave_stress, &
        &                                 mask_energy, compute_wave_number, compute_group_velocity
   USE mo_wave_config,              ONLY: wave_config, generate_filename
   USE mo_energy_propagation_config,ONLY: energy_propagation_config
   USE mo_wave_forcing_state,       ONLY: wave_forcing_state
   USE mo_wave_forcing,             ONLY: t_read_wave_forcing
-  USE mo_wave_events,              ONLY: waveDummyEvent, waveCheckpointEvent, waveRestartEvent
+  USE mo_wave_events,              ONLY: waveCheckpointEvent, waveRestartEvent
   USE mo_wave_td_update,           ONLY: update_speed_and_direction, update_ice_free_mask, &
     &                                    update_water_depth
   USE mo_wave_advection_stepping,  ONLY: wave_step_advection
@@ -95,6 +96,7 @@ CONTAINS
     TYPE(t_read_wave_forcing), ALLOCATABLE, TARGET :: reader_wave_forcing(:)
     INTEGER                  :: jstep                       !< time step number
     LOGICAL                  :: lprint_timestep             !< print current datetime information
+    LOGICAL                  :: lprint_wave_stats           !< print wave height information
     INTEGER                  :: jg, jlev
     INTEGER                  :: ierrstat
     REAL(wp)                 :: dtime                       !< model time step in seconds
@@ -116,6 +118,8 @@ CONTAINS
     INTEGER :: i
 
     IF (ltimer) CALL timer_start(timer_total)
+
+    lprint_wave_stats = msg_level > 9
 
     ! convenience pointer
     mtime_current   => time_config%tc_current_date  ! current datetime
@@ -363,32 +367,17 @@ CONTAINS
         END DO
       ENDIF
 
-      ! TODO: write logical function such that the timestep information is
-      !       prnted only under certain conditions (see atmospheric code)
-      lprint_timestep = .TRUE.
 
+      lprint_timestep   = msg_level > 2 .OR. MOD(jstep,25) == 0
+      !
       IF (lprint_timestep) THEN
-        CALL message('','')
-
-        WRITE(message_text,'(a,i8,a,i0,a,5(i2.2,a),i3.3,a,a)') &
-          &             'Time step waves: ', jstep, ', model time: ',                              &
-          &             mtime_current%date%year,   '-', mtime_current%date%month,    '-',    &
-          &             mtime_current%date%day,    ' ', mtime_current%time%hour,     ':',    &
-          &             mtime_current%time%minute, ':', mtime_current%time%second,   '.',    &
-          &             mtime_current%time%ms, ' forecast time ',                            &
-          &             TRIM(mtime_utils%ddhhmmss(time_config%tc_exp_startdate, &
-          &                                       mtime_current, FMT_DDHHMMSS_DAYSEP))
-
-        CALL message('',message_text)
+        CALL print_timestep_info(time_config, jstep)
       ENDIF
 
-      IF (is_event_active(waveDummyEvent, mtime_current, proc0_offloading)) THEN
-        WRITE(message_text,'(a)') "waveDummyEvent is active"
-        CALL message('',message_text)
-
-      ENDIF
 
       DO jg = 1, n_dom
+
+        IF (.NOT. p_patch(jg)%ldom_active) CYCLE
 
         n_now  = nnow(jg)
         n_new  = nnew(jg)
@@ -703,11 +692,10 @@ CONTAINS
         ! switch between time levels now and new for next time step
         CALL swap(nnow(jg), nnew(jg))
 
-      END DO
 
-
-      DO jg = 1,n_dom
-        IF (.NOT. p_patch(jg)%ldom_active) CYCLE
+        !--------------------------------------------------------------------------
+        ! Output section
+        !--------------------------------------------------------------------------
 
         IF (istime4name_list_output_dom(jg=jg, jstep=jstep)) THEN
           ! Calculation of diagnostic output parameters
@@ -720,7 +708,14 @@ CONTAINS
             &                           tracer = p_wave_state(jg)%prog(nnow(jg))%tracer, & ! IN
             &                           p_diag = p_wave_state(jg)%diag)                    ! INOUT
         ENDIF
-      ENDDO
+
+        IF (lprint_wave_stats) THEN
+          ! Print information on global maxima and minima to stdout
+          CALL print_wave_stats(p_patch = p_patch(jg),                      & !IN
+            &                   emean   = p_wave_state(jg)%diag%emean(:,:), & !IN
+            &                   femean  = p_wave_state(jg)%diag%femean(:,:) ) !IN
+        ENDIF
+      ENDDO ! jg
 
       l_nml_output = output_mode%l_nml .AND. jstep >= 0 .AND. istime4name_list_output(jstep)
       simulation_status = new_simulation_status(l_output_step  = l_nml_output,             &
