@@ -33,7 +33,7 @@ set -x
 # icon_data_poolFolder          = base directory, where grids/, input/ and setup/ exist
 # nproma                        = blocking length for array dimensioning and inner loop lengths
 
-icon_data_poolFolder="${icon_data_rootFolder:-/pool/data/ICON}/mch"
+input_folder="${testingFolder_prefix}/testing-input-data/c2sm/opr_r19b07_turb"
 
 # =======================================================================
 # Setup - experiment
@@ -51,10 +51,7 @@ icon_data_poolFolder="${icon_data_rootFolder:-/pool/data/ICON}/mch"
 # =======================
 
 # Folder containing required grid information
-grids_folder=${icon_data_poolFolder}/grids/opr_r19b07
-
-# Folder containing lateral boundary conditions
-latbc_path=${icon_data_poolFolder}/input/opr_r19b07_lpi
+grids_folder=${input_folder}
 
 dynamics_grid_filename=domain1_DOM01.nc
 atmo_dyn_grids="'${dynamics_grid_filename}',"
@@ -89,18 +86,18 @@ add_required_file ${basedir}/data/rrtmg_lw.nc .
 add_required_file ${basedir}/run/ana_varnames_map_file.txt map_file.ana
 
 # Dictionary for the mapping: GRIB2/Netcdf input names <-> ICON internal names
-add_required_file ${latbc_path}/map_file.latbc map_file.latbc
+add_required_file ${input_folder}/map_file.latbc map_file.latbc
 
 # initial data
-initial_condition=${latbc_path}/laf2021062015.nc
+initial_condition=${input_folder}/laf2021062015.nc
 add_link_file ${initial_condition} .
 
 # lateral boundary grid
-add_required_file ${latbc_path}/lateral_boundary.grid.nc lateral_boundary.grid.nc
+add_required_file ${input_folder}/lateral_boundary.grid.nc lateral_boundary.grid.nc
 
 # lateral boundary data
-add_required_file ${latbc_path}/efsf00000000_lbc.nc .
-add_required_file ${latbc_path}/efsf00010000_lbc.nc .
+add_required_file ${input_folder}/efsf00000000_lbc.nc .
+add_required_file ${input_folder}/efsf00010000_lbc.nc .
 
 # dictionary file for output variable names
 dict_file="dict.${EXPNAME}"
@@ -238,7 +235,7 @@ cat > ${basedir}/run/${atmo_namelist} << EOF
  itype_latbc                 =                          1         ! 1: time-dependent lateral boundary conditions
  dtime_latbc                 =                       3600.        ! time difference between 2 consecutive boundary data
  latbc_boundary_grid         =   "lateral_boundary.grid.nc"       ! Grid file defining the lateral boundary
- latbc_path                  =              "${latbc_path}"       ! Absolute path to boundary data
+ latbc_path                  =              "${input_folder}"     ! Absolute path to boundary data
  latbc_varnames_map_file     =            'map_file.latbc'
  latbc_filename              =     'efsf<ddhhmmss>_lbc.nc'        ! boundary data input filename
  init_latbc_from_fg          =                     .FALSE.        ! .TRUE.: take lbc for initial time from first guess

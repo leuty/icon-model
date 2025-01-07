@@ -189,6 +189,7 @@ export basedir="${use_builddir}"
 # experiments_dir can be predefined in a machine specific run_target_* header
 experiments_dir="\${experiments_dir:=\${basedir}/experiments}"
 export icon_data_rootFolder="${icon_data_rootFolder}"
+export testingFolder_prefix="${testingFolder_prefix:=~/testingFolder}"
 
 # how to start the icon model
 # ---------------------------
@@ -1083,6 +1084,8 @@ set_run_target_alps_mch_gpu()
     rootFolder_prefix=/scratch/mch/jenkins/icon
     icon_data_rootFolder=${icon_data_rootFolder:=${rootFolder_prefix}/pool/data/ICON}
 
+    testingFolder_prefix=/scratch/mch/icontest
+
     set_default use_nodes 1
     set_default use_nproma 0
     set_default use_nblocks_c 1
@@ -1161,6 +1164,8 @@ set_run_target_alps_mch_cpu()
 {
     rootFolder_prefix=/scratch/mch/jenkins/icon
     icon_data_rootFolder=${icon_data_rootFolder:=${rootFolder_prefix}/pool/data/ICON}
+
+    testingFolder_prefix=/scratch/mch/icontest
 
     set_default use_nproma 8
     set default use_nproma_sub 8
