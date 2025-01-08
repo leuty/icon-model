@@ -78,6 +78,7 @@ digraph ICON {
 		"ICON-TIXI" -> {"XML2"};
 
 		"COMIN" [shape=box];
+		"COMIN" -> {"STDC++"};
 
 		"FORTRAN-SUPPORT" [shape=box; fillcolor="#47A1F1"];
 
