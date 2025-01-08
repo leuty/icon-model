@@ -133,7 +133,7 @@ EXP2="iterative_IAU"
 EXP3="restart"
 EXP4="nproma"
 # Perform additional iteration with different number of threads
-if [[ ${BB_NAME} == 'DWD_nec_hybrid' ]]; then
+if [[ ${BB_NAME} == 'dwd_nec_hybrid' ]]; then
   tot_iter=5
   EXP5="omp"
 else
@@ -718,7 +718,7 @@ else
   echo "DOM01 or DOM02: EXP1 $EXP1 and EXP4 $EXP4 differ"
 fi
 
-if [[ ${BB_NAME} == 'DWD_nec_hybrid' ]]; then
+if [[ ${BB_NAME} == 'dwd_nec_hybrid' ]]; then
   echo "=================================================================="
   echo "Check OMP"
   echo "=> Compare experiments:" $EXP1 $EXP5
@@ -766,7 +766,7 @@ else
   echo "nproma test FAILED"
   echo " "
 fi
-if [[ ${BB_NAME} == 'DWD_nec_hybrid' ]]; then
+if [[ ${BB_NAME} == 'dwd_nec_hybrid' ]]; then
   if [ $DIFF_STATUS_OMP == 0 ]; then
     echo " "
     echo "OMP test SUCESSFUL"

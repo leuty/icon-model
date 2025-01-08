@@ -36,7 +36,7 @@ TIME_LIMITS="${RUNTIME_LIMIT} ${MINIMAL_TIME} ${DEADLINE}"
 #unusable buildername: it has to be set properly by the buildbot server
 BB_NAME=${BB_NAME-unknown}
 
-case $(echo ${BB_NAME} | tr '[:upper:]' '[:lower:]') in
+case ${BB_NAME} in
   levante_aurora)
     cd ${ICON_DIR} && ${ICON_DIR}/config/buildbot/buildModel.sbatch > ${LOGFILE} 2>&1
     if test 0 -ne "$?" ; then

@@ -90,13 +90,13 @@ scripts/buildbot_scripts/create_list_dwd
 as follows.
 For template job scripts:
 <pre>
-$addexp checksuite.nwp/<template name> --builders DWD_nec --list $listname
+$addexp checksuite.nwp/<template name> --builders dwd_nec_oper --list $listname
 </pre>
 Note that <template name> is the file name, including the prefix "nwpexp." but without the suffix ".run".
 
 For plain job scripts:
 <pre>
-$addexp checksuite.rcnl.dwd.de/<test name> --builders DWD_nec --list $listname
+$addexp checksuite.rcnl.dwd.de/<test name> --builders dwd_nec_oper --list $listname
 </pre>
 Note that <test name> is the full name, including the prefix "exp." and the suffix ".run".
 

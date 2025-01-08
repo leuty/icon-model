@@ -15,4 +15,4 @@ MY_DIR=$(cd "$(dirname "$0")"; pwd)
 
 source "${MY_DIR}/dwd_fcns.sh"
 
-build_dwd dwd_nec
+build_dwd "$(basename ${BASH_SOURCE[0]})"

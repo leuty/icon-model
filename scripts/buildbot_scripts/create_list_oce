@@ -63,7 +63,7 @@ $addexp "checksuite.ocean_internal/technical/exp.test_multioutput_model_40km" \
 	--machines levante --without-configureflags "--without-mpi --with-openmp --enable-mixed" --runflags "cpu_time=00:30:00 no_of_nodes=2 queue=compute" --list $listname
 
 
-for builder in DWD_nec DWD_nec_yac2 DWD_nec_hybrid; do
+for builder in dwd_nec_oper dwd_nec_coupling dwd_nec_hybrid; do
   # remove non-dwd tests
   ./rmexp checksuite.ocean_internal/technical/exp.ocean_omip_ptest                   --builders ${builder} --list $listname
   ./rmexp checksuite.ocean_internal/technical/exp.test_ocean_omip_technical          --builders ${builder} --list $listname
@@ -84,8 +84,8 @@ for builder in levante_intel_pio; do
 done
 
 # activate experiments for the Mac builder and breeze
-for builder in MPIMAC_gcc breeze_gcc breeze_nag breeze_intel; do
-  [[ 'MPIMAC_gcc' = "${builder}" ]] && ./set_builder_flags Active --builders ${builder}  --list $listname
+for builder in mpimac_gcc breeze_gcc breeze_nag breeze_intel; do
+  [[ 'mpimac_gcc' = "${builder}" ]] && ./set_builder_flags Active --builders ${builder}  --list $listname
   $addexp checksuite.ocean_internal/omip/exp.ocean_omip_short_r2b4 --builders ${builder} --list $listname --runflags "mpi_procs_pernode=4"
 done
 
