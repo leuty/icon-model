@@ -24,6 +24,7 @@
 #SBATCH --reservation=phase2-gpu
 #SBATCH --constraint=a100_80
 #SBATCH --time=00:30:00
+#SBATCH --qos=buildbot
 #=============================================================================
 set +x
 

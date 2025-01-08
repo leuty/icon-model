@@ -23,6 +23,7 @@
 #SBATCH  --error=LOG.exp.ocean_omip_R2B4_V1_GM0_gpurun.run.run.o
 #SBATCH --exclusive
 #SBATCH --time=00:10:00
+#SBATCH --qos=buildbot
 
 #=============================================================================
 set +x

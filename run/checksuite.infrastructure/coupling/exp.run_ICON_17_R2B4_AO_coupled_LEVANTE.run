@@ -17,6 +17,7 @@
 #SBATCH --nodes=1
 #SBATCH --output=LOG.exp.run_ICON_17_R2B4_AO_coupled_LEVANTE.run.run.o
 #SBATCH --time=00:20:00
+#SBATCH --qos=buildbot
 #=============================================================================
 set +x
 

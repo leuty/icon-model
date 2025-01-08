@@ -16,6 +16,7 @@
 #SBATCH --nodes=1
 #SBATCH --output=LOG.exp.ac3_les_20210211.run.run.o
 #SBATCH --time=00:15:00
+#SBATCH --qos=buildbot
 #================================================================================
 set -e
 

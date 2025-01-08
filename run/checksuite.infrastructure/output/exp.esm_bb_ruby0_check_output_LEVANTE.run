@@ -25,6 +25,7 @@
 #SBATCH  --error=LOG.exp.esm_bb_ruby0_check_output_LEVANTE.run.run.o
 #SBATCH --exclusive
 #SBATCH --time=00:20:00
+#SBATCH --qos=buildbot
 
 #=============================================================================
 set -x
