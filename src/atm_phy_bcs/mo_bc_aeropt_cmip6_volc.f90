@@ -99,7 +99,7 @@ CONTAINS
 
     INTEGER :: file_id
 
-    REAL(wp), POINTER :: zlat(:), zalt(:)
+    REAL(wp), ALLOCATABLE :: zlat(:), zalt(:)
 
     CHARACTER(len=*), PARAMETER :: subroutine_name = &
         & 'mo_bc_aeropt_cmip6_volc:su_bc_aeropt_cmip6_volc'
@@ -142,8 +142,8 @@ CONTAINS
     WRITE (filename,'(a,i0,a)') filename_base, time_config%tc_startdate%date%year, '.nc'
 
     CALL openInputFile(file_id, filename)
-    CALL read_1D(file_id=file_id, variable_name=dim_name_alt, return_pointer=zalt)
-    CALL read_1D(file_id=file_id, variable_name=dim_name_lat, return_pointer=zlat)
+    CALL read_1D(file_id=file_id, variable_name=dim_name_alt, alloc_array=zalt)
+    CALL read_1D(file_id=file_id, variable_name=dim_name_lat, alloc_array=zlat)
     CALL closeFile(file_id)
 
     k_alt_clim = SIZE(zalt)
@@ -768,7 +768,7 @@ CONTAINS
     INTEGER, INTENT(IN) :: start_timestep, end_timestep
 
     INTEGER :: file_id
-    REAL(wp), POINTER :: var(:,:,:,:)
+    REAL(wp), ALLOCATABLE :: var(:,:,:,:)
     REAL(wp) :: delta_alt
 
 
@@ -780,7 +780,7 @@ CONTAINS
     CALL read_extdim_slice_extdim_extdim_extdim ( &
         & file_id=file_id, &
         & variable_name='ext_sun', &
-        & return_pointer=var, &
+        & alloc_array=var, &
         & dim_names=dim_names_sol, &
         & start_extdim1=start_timestep, &
         & end_extdim1=end_timestep &
@@ -793,7 +793,7 @@ CONTAINS
     CALL read_extdim_slice_extdim_extdim_extdim ( &
         & file_id=file_id, &
         & variable_name='omega_sun', &
-        & return_pointer=var, &
+        & alloc_array=var, &
         & dim_names=dim_names_sol, &
         & start_extdim1=start_timestep, &
         & end_extdim1=end_timestep &
@@ -804,7 +804,7 @@ CONTAINS
     CALL read_extdim_slice_extdim_extdim_extdim ( &
         & file_id=file_id, &
         & variable_name='g_sun', &
-        & return_pointer=var, &
+        & alloc_array=var, &
         & dim_names=dim_names_sol, &
         & start_extdim1=start_timestep, &
         & end_extdim1=end_timestep &
@@ -815,7 +815,7 @@ CONTAINS
     CALL read_extdim_slice_extdim_extdim_extdim ( &
         & file_id=file_id, &
         & variable_name='ext_earth', &
-        & return_pointer=var, &
+        & alloc_array=var, &
         & dim_names=dim_names_terr, &
         & start_extdim1=start_timestep, &
         & end_extdim1=end_timestep &
@@ -828,7 +828,7 @@ CONTAINS
     CALL read_extdim_slice_extdim_extdim_extdim ( &
         & file_id=file_id, &
         & variable_name='omega_earth', &
-        & return_pointer=var, &
+        & alloc_array=var, &
         & dim_names=dim_names_terr, &
         & start_extdim1=start_timestep, &
         & end_extdim1=end_timestep &

@@ -49,8 +49,10 @@ MODULE mo_2mom_mcrph_setup
        & particle_ice_coeffs, particle_snow_coeffs, particle_graupel_coeffs, &
        & particle_coeffs, collection_coeffs, rain_riming_coeffs, dep_imm_coeffs, &
        & coll_coeffs_ir_pm ! , lookupt_1D, lookupt_4D
+  USE mo_fortran_tools,      ONLY: init
+  USE mo_2mom_mcrph_config,  ONLY: t_cfg_2mom
+  USE mo_nwp_tuning_config,  ONLY: tune_sbmccn
 
-  USE mo_fortran_tools, ONLY: init
 
   IMPLICIT NONE
 
@@ -58,9 +60,20 @@ MODULE mo_2mom_mcrph_setup
 
   CHARACTER(len=*), PARAMETER :: routine = 'mo_2mom_mcrph_setup'
 
+  TYPE(t_cfg_2mom) :: cfg_params !.. Container to hold some config params for the actual 2-mom call
+  
   ! .. some cloud physics parameters
   REAL(wp), PARAMETER :: N_sc = 0.710_wp        !..Schmidt-Zahl (PK, S.541)
   REAL(wp), PARAMETER :: n_f  = 0.333_wp        !..Exponent von N_sc im Vent-koeff. (PK, S.541)
+  
+  INTEGER, PARAMETER :: cloud_type_default_gscp4 = 2603, ccn_type_gscp4 = 7
+  INTEGER, PARAMETER :: cloud_type_default_gscp5 = 2603, ccn_type_gscp5 = 8
+
+  ! AS: For gscp=4 use 2103 with ccn_type = 1 (HDCP2 IN and CCN schemes)
+  !     For gscp=5 use 2603 with ccn_type = 8 (PDA ice nucleation and Segal&Khain CCN activation)
+
+  ! AS: Runs without hail, e.g, 1503 are buggy and give a segmentation fault.
+  !     So far I was not able to identify the problem, needs more detailed debugging.
   
   ! debug switches
   LOGICAL, PARAMETER     :: isdebug = .false.   ! use only when really desperate
@@ -81,8 +94,12 @@ MODULE mo_2mom_mcrph_setup
   PUBLIC :: setup_ice_selfcollection, setup_snow_selfcollection, setup_graupel_selfcollection
   PUBLIC :: setup_particle_collection_type1, setup_particle_collection_type2
   PUBLIC :: setup_particle_coll_pm_type1, setup_particle_coll_pm_type1_bfull
+  PUBLIC :: set_ccn_cloud_type
   ! Constants
   PUBLIC :: n_f, N_sc
+  PUBLIC :: cloud_type_default_gscp4, ccn_type_gscp4, cloud_type_default_gscp5, ccn_type_gscp5
+  ! Types
+  PUBLIC :: cfg_params
 
 CONTAINS
   
@@ -968,4 +985,101 @@ CONTAINS
     
   END SUBROUTINE setup_particle_coll_pm_type1_bfull
 
+  SUBROUTINE set_ccn_cloud_type (zccn_type, zcloud_type, zccn_coeffs, zN_cn0, zcfg_2mom)
+    
+    INTEGER, INTENT(out)                   :: zccn_type, zcloud_type
+    TYPE(aerosol_ccn), INTENT(out)         :: zccn_coeffs
+    REAL(wp), OPTIONAL, INTENT(in)         :: zN_cn0
+    TYPE(t_cfg_2mom), OPTIONAL, INTENT(in) :: zcfg_2mom
+
+    CHARACTER(len=*), PARAMETER :: routine = 'set_ccn_cloud_type'
+    
+    IF (PRESENT(zN_cn0)) THEN
+      IF (PRESENT(zcfg_2mom)) THEN
+        IF (zcfg_2mom%ccn_type > 0) THEN
+          zccn_type   = zcfg_2mom%ccn_type
+        ELSE 
+          zccn_type   = ccn_type_gscp5
+        END IF
+      ELSE
+        zccn_type   = ccn_type_gscp5
+      END IF
+      zcloud_type = cloud_type_default_gscp5 + 10 * zccn_type
+    ELSE
+      IF (PRESENT(zcfg_2mom)) THEN
+        IF (zcfg_2mom%ccn_type > 0) THEN
+          zccn_type   = zcfg_2mom%ccn_type
+        ELSE 
+          zccn_type   = ccn_type_gscp4
+        END IF
+      ELSE
+        zccn_type   = ccn_type_gscp4
+      END IF
+      zcloud_type = cloud_type_default_gscp4 + 10 * zccn_type
+    END IF
+
+    !..parameters for exponential decrease of N_ccn with height
+    !  z0:  up to this height (m) constant unchanged value
+    !  z1e: height interval at which N_ccn decreases by factor 1/e above z0_nccn
+    
+    zccn_coeffs%z0  = 4000.0_wp
+    zccn_coeffs%z1e = 2000.0_wp
+
+    ! min updraft speed for Segal&Khain activation
+    zccn_coeffs%wcb_min = cfg_params%ccn_wcb_min
+
+    ! characteristics of different kinds of CN
+    ! (copied from COSMO 5.0 Segal & Khain nucleation subroutine)
+    
+    SELECT CASE(zccn_type)
+    CASE(6)
+      !... maritime case
+      zccn_coeffs%Ncn0 = 100.0e6_wp   ! CN concentration at ground
+      zccn_coeffs%Nmin =  35.0e6_wp   ! NOT relevant at the moment
+      zccn_coeffs%lsigs = 0.4_wp      ! log(sigma_s)
+      zccn_coeffs%R2    = 0.03_wp     ! in mum
+      zccn_coeffs%etas  = 0.9_wp      ! soluble fraction
+    CASE(7)
+      !... intermediate case
+      zccn_coeffs%Ncn0 = 250.0e6_wp
+      zccn_coeffs%Nmin =  35.0e6_wp
+      zccn_coeffs%lsigs = 0.4_wp
+      zccn_coeffs%R2    = 0.03_wp       ! in mum
+      zccn_coeffs%etas  = 0.8_wp        ! soluble fraction
+    CASE(8)
+      IF (tune_sbmccn < 1.0_wp) THEN
+        !... maritime case
+        zccn_coeffs%Ncn0 = 100.0e6_wp   ! CN concentration at ground
+        zccn_coeffs%Nmin =  35.0e6_wp   ! NOT relevant at the moment
+        zccn_coeffs%lsigs = 0.4_wp      ! log(sigma_s)
+        zccn_coeffs%R2    = 0.03_wp     ! in mum
+        zccn_coeffs%etas  = 0.9_wp      ! soluble fraction
+      ELSE
+        !... continental case
+        zccn_coeffs%Ncn0 = 1700.0e6_wp
+        zccn_coeffs%Nmin =   35.0e6_wp  ! NOT relevant at the moment
+        zccn_coeffs%lsigs = 0.2_wp
+        zccn_coeffs%R2    = 0.03_wp     ! in mum
+        zccn_coeffs%etas  = 0.7_wp      ! soluble fraction
+      END IF
+    CASE(9)
+      !... "polluted" continental
+      zccn_coeffs%Ncn0 = 3200.0e6_wp
+      zccn_coeffs%Nmin =   35.0e6_wp    ! NOT relevant at the moment
+      zccn_coeffs%lsigs = 0.2_wp
+      zccn_coeffs%R2    = 0.03_wp       ! in mum
+      zccn_coeffs%etas  = 0.7_wp        ! soluble fraction
+    CASE(1)
+       !... dummy values
+       zccn_coeffs%Ncn0  =  200.0e6_wp
+       zccn_coeffs%Nmin  =   10.0e6_wp  ! NOT relevant at the moment
+       zccn_coeffs%lsigs = 0.0_wp
+       zccn_coeffs%R2    = 0.0_wp
+       zccn_coeffs%etas  = 0.0_wp
+    CASE DEFAULT
+       CALL finish(TRIM(routine),'Error: Invalid value for ccn_type')
+    END SELECT
+
+  END SUBROUTINE set_ccn_cloud_type
+  
 END MODULE mo_2mom_mcrph_setup

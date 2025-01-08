@@ -95,7 +95,7 @@ MODULE mo_name_list_output
   USE mo_name_list_output_gridinfo, ONLY: write_grid_info_grb2, GRID_INFO_NONE
   USE mo_util_file,                 ONLY: util_rename, get_filename, get_path
   ! config
-  USE mo_master_control,            ONLY: my_process_is_ocean
+  USE mo_master_control,            ONLY: my_process_is_ocean, my_process_is_waves
   USE mo_master_config,             ONLY: getModelBaseDir, isRestart
   USE mo_grid_config,               ONLY: n_dom, l_limited_area
   USE mo_run_config,                ONLY: msg_level
@@ -2772,17 +2772,18 @@ CONTAINS
       &                    lset_timers_for_idle_pe, is_io_root
     INTEGER             :: jg, jstep, action
     TYPE(t_par_output_event), POINTER :: ev
-    LOGICAL             :: is_ocean
+    LOGICAL             :: is_ocean, is_wave
 
     is_io_root = my_process_is_mpi_ioroot()
     is_ocean   = my_process_is_ocean() ! FIXME: is that really sensible?
+    is_wave    = my_process_is_waves()
 
     ! define initial time stamp used as reference for output statistics
     CALL set_reference_time()
 
-    ! FIXME? ocean the other way round?
+    ! FIXME? ocean and waves the other way round?
     ! Initialize name list output, this is a collective call for all PEs
-    IF (.NOT. is_ocean) &
+    IF ( (.NOT. is_ocean)  .AND. (.NOT. is_wave) ) &
       & CALL init_name_list_output(sim_step_info)
 
     ! setup of meteogram output
@@ -2796,9 +2797,10 @@ CONTAINS
 
     ! The initialisation of coupling needs to be called by all (!) MPI processes
     ! in MPI_COMM_WORLD.
-    ! construct_dummy_coupling needs to be called after init_name_list_output
-    ! due to calling sequence in subroutine atmo_model for other atmosphere
-    ! processes
+    ! For the atmo model construct_dummy_coupling needs to be called after
+    ! init_name_list_output due to calling sequence in subroutine atmo_model
+    ! for other atmosphere processes.
+    ! For ocean and wave it is the other way around!
     IF ( is_coupled_run() ) THEN
       CALL timer_start(timer_coupling)
       CALL construct_dummy_coupling("name_list_output")
@@ -2806,7 +2808,7 @@ CONTAINS
     END IF
 
     ! FIXME: Explain this braindead weirdnes.
-    IF (is_ocean) &
+    IF (is_ocean .OR. is_wave) &
       & CALL init_name_list_output(sim_step_info)
 
 

@@ -614,8 +614,8 @@ CONTAINS
   SUBROUTINE mean_wave_period(p_patch, femean, mp)
 
     TYPE(t_patch),     INTENT(IN)    :: p_patch
-    REAL(wp),          INTENT(IN)    :: femean(:,:) !< total energy [m^2]
-    REAL(wp),          INTENT(INOUT) :: mp(:,:)     !< significant wave height [m]
+    REAL(wp),          INTENT(IN)    :: femean(:,:) !< mean frequency energy [m^2]
+    REAL(wp),          INTENT(INOUT) :: mp(:,:)     !< mean wave period [s]
 
     CHARACTER(len=*), PARAMETER ::  &
       &  routine = modname//':mean_wave_period'
@@ -844,7 +844,7 @@ CONTAINS
     REAL(wp),          INTENT(IN)    :: z0(:,:)
     REAL(wp),          INTENT(INOUT) :: drag(:,:)  ! drag coefficient
     REAL(wp),          INTENT(INOUT) :: tauwn(:,:) ! normalised wave stress
-    REAL(wp),          INTENT(INOUT) :: beta(:,:)  ! Chernock parameter
+    REAL(wp),          INTENT(INOUT) :: beta(:,:)  ! Charnock parameter
 
     CHARACTER(len=*), PARAMETER ::  &
       &  routine = modname//':wave_drag_stress_ch_par'

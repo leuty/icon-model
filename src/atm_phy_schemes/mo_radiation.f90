@@ -1928,8 +1928,8 @@ CONTAINS
 
     REAL(wp), INTENT(inout), OPTIONAL :: &
       &     pflxsfcsw (kbdim),       & ! shortwave surface net flux [W/m2]
-      &     pflxsfcsw_os (kbdim),     & ! shortwave surface net flux uncorr. [W/m2]
-      &     pflxsfcsw_tan_os (kbdim),     & ! shortwave surface net flux uncorr. [W/m2]
+      &     pflxsfcsw_os (:),        & ! shortwave surface net flux uncorr. [W/m2]
+      &     pflxsfcsw_tan_os (:),    & ! shortwave surface net flux uncorr. [W/m2]
       &     pflxsfclw (kbdim),       & ! longwave  surface net flux [W/m2]
       &     pflxsfcsw_t(:,:),        & ! tile-specific shortwave surface net flux [W/m2]
                                        ! dim: (kbdim,ntiles+ntiles_wtr)
@@ -1940,12 +1940,12 @@ CONTAINS
       &     lwflx_up_sfc(kbdim), &     ! longwave upward flux at surface [W/m2]
       &     swflx_up_toa(kbdim), &     ! shortwave upward flux at the top of the atmosphere [W/m2]
       &     swflx_up_sfc(kbdim), &     ! shortwave upward flux at the surface [W/m2]
-      &     swflx_up_sfc_os(kbdim), &  ! shortwave upward flux at the surface [W/m2] incl. orographic shading
-      &     swflx_up_sfc_tan_os(kbdim), & ! shortwave upward flux at the surface [W/m2] incl. slope-dependent and orographic shading
+      &     swflx_up_sfc_os(:), &      ! shortwave upward flux at the surface [W/m2] incl. orographic shading
+      &     swflx_up_sfc_tan_os(:), &  ! shortwave upward flux at the surface [W/m2] incl. slope-dependent and orographic shading
       &     swflx_nir_sfc(kbdim), &    ! near-infrared downward flux at the surface [W/m2]
       &     swflx_vis_sfc(kbdim), &    ! visible downward flux at the surface [W/m2]
       &     swflx_par_sfc(kbdim), &    ! photosynthetically active downward flux at the surface [W/m2]
-      &     swflx_par_sfc_tan_os(kbdim), &    ! photosynthetically active downward flux at the surface [W/m2]
+      &     swflx_par_sfc_tan_os(:), & ! photosynthetically active downward flux at the surface [W/m2]
       &     swflx_clr_sfc(kbdim), &    ! clear-sky net shortwave flux at the surface [W/m2]
       &     swflx_dn_sfc_diff(kbdim)   ! shortwave diffuse downward radiative flux at the surface [W/m2]
 

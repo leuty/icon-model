@@ -1406,7 +1406,7 @@ CONTAINS
           &   out_var%r_ptr(:,:,out_var_idx,1,1), lacc=lacc)   ! unused dimensions are filled up with 1
 
     CASE (TASK_COMPUTE_VIS)
-      CALL compute_field_visibility( p_patch, p_prog, p_diag, prm_diag, jg,          &
+      CALL compute_field_visibility( p_patch, p_prog, p_prog_rcf, p_diag, prm_diag, jg,          &
           &   out_var%r_ptr(:,:,out_var_idx,1,1), lacc=lacc)   ! unused dimensions are filled up with 1
 
     CASE (TASK_COMPUTE_INVERSION)

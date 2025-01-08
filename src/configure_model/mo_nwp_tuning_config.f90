@@ -42,6 +42,7 @@ MODULE mo_nwp_tuning_config
   PUBLIC :: tune_capdcfac_tr
   PUBLIC :: tune_capethresh
   PUBLIC :: tune_lowcapefac
+  PUBLIC :: tune_grzdc_offset
   PUBLIC :: limit_negpblcape
   PUBLIC :: tune_rhebc_land
   PUBLIC :: tune_rhebc_ocean
@@ -67,6 +68,7 @@ MODULE mo_nwp_tuning_config
   PUBLIC :: tune_gustsso_lim
   PUBLIC :: tune_gustlim_agl, tune_gustlim_fac
   PUBLIC :: itune_gust_diag
+  PUBLIC :: itune_vis_diag
   PUBLIC :: itune_albedo
   PUBLIC :: tune_albedo_wso
   PUBLIC :: itune_slopecorr
@@ -155,6 +157,9 @@ MODULE mo_nwp_tuning_config
   REAL(wp) :: &                    !< Tuning factor for reducing the diurnal cycle correction in low-cape situations
     &  tune_lowcapefac = 1._wp     ! (relevant only if icapdcycl = 3; not a namelist variable)
 
+  REAL(wp) :: &                    !< Tuning factor for offset in CAPE closure for grayzone deep convection
+    &  tune_grzdc_offset           !
+
   REAL(wp) :: &                    !< Minimum allowed negative PBL cape in diurnal cycle correction
     &  limit_negpblcape = 0._wp    ! (relevant only if icapdcycl = 3; not a namelist variable)
 
@@ -231,6 +236,11 @@ MODULE mo_nwp_tuning_config
     &  itune_gust_diag             ! 1: use level above top of SSO envelope layer
                                    ! 2: use envelope top level, combined with adjusted tuning
   !$ACC DECLARE CREATE(itune_gust_diag)
+
+  INTEGER :: &                     !< Type of visbility tuning
+    &  itune_vis_diag              ! 1: first operational implementation
+                                   ! 2: optimized day-night factor
+  !$ACC DECLARE CREATE(itune_vis_diag)
 
   REAL(wp) :: &                    !< Basic gust speed (m/s) at which the SSO correction starts to be reduced
     &  tune_gustsso_lim            !

@@ -349,28 +349,58 @@ CONTAINS
         END IF
 
         IF (lcall_phy_jg(itsfc)) THEN
+          ! aggregation + accumulation for runoff. Note that these fields are not initialized with zero
+          ! each time step.
+          !
+          ! In order to get the correct results, we accumulate the aggregated instantaneous values.
+          ! Aggregation of the accumulated tile-specific values (i.e. the other way around) does not work
+          ! due to the time dependency of the snowtile fractions.
+
           !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1) IF(lzacc)
-          !$ACC LOOP GANG VECTOR COLLAPSE(2)
+          !$ACC LOOP SEQ
           DO jt=1,ntiles_total + ntiles_water
 !DIR$ IVDEP
+            !$ACC LOOP GANG(STATIC: 1) VECTOR
             DO jc = i_startidx, i_endidx
               lnd_diag%runoff_s_t(jc,jb,jt) = lnd_diag%runoff_s_t(jc,jb,jt) + lnd_diag%runoff_s_inst_t(jc,jb,jt)
               lnd_diag%runoff_g_t(jc,jb,jt) = lnd_diag%runoff_g_t(jc,jb,jt) + lnd_diag%runoff_g_inst_t(jc,jb,jt)
+
+              lnd_diag%runoff_s(jc,jb) = lnd_diag%runoff_s(jc,jb) &
+                &                      + lnd_diag%runoff_s_inst_t(jc,jb,jt) * ext_data%atm%frac_t(jc,jb,jt)
+              lnd_diag%runoff_g(jc,jb) = lnd_diag%runoff_g(jc,jb) &
+                &                      + lnd_diag%runoff_g_inst_t(jc,jb,jt) * ext_data%atm%frac_t(jc,jb,jt)
             END DO
           END DO
-          !$ACC END PARALLEL
+
           ! special treatment for variable resid_wso
           IF (var_in_output(jg)%res_soilwatb) THEN
-            !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1) IF(lzacc)
-            !$ACC LOOP GANG VECTOR COLLAPSE(2)
+            !$ACC LOOP SEQ
             DO jt=1,ntiles_total
 !DIR$ IVDEP
+              !$ACC LOOP GANG(STATIC: 1) VECTOR
               DO jc = i_startidx, i_endidx
-                lnd_diag%resid_wso_t(jc,jb,jt) = lnd_diag%resid_wso_t(jc,jb,jt) + lnd_diag%resid_wso_inst_t(jc,jb,jt)  
+                lnd_diag%resid_wso_t(jc,jb,jt) = lnd_diag%resid_wso_t(jc,jb,jt) + lnd_diag%resid_wso_inst_t(jc,jb,jt)
+                lnd_diag%resid_wso(jc,jb) = lnd_diag%resid_wso(jc,jb) &
+                    & + lnd_diag%resid_wso_inst_t(jc,jb,jt) &
+                    &   * ext_data%atm%frac_t(jc,jb,jt) * ext_data%atm%inv_frland_from_tiles(jc,jb)
               ENDDO
             ENDDO
-            !$ACC END PARALLEL
           ENDIF
+
+          IF (var_in_output(jg)%snow_melt) THEN
+            !$ACC LOOP SEQ
+            DO jt=1,ntiles_total
+!DIR$ IVDEP
+              !$ACC LOOP GANG(STATIC: 1) VECTOR
+              DO jc = i_startidx, i_endidx
+                lnd_diag%snow_melt(jc,jb) = lnd_diag%snow_melt(jc,jb) &
+                    & + lnd_diag%snow_melt_flux_t(jc,jb,jt) &
+                    &   * dt_phy_jg(itfastphy) &
+                    &   * ext_data%atm%frac_t(jc,jb,jt) * ext_data%atm%inv_frland_from_tiles(jc,jb)
+              ENDDO
+            ENDDO
+          ENDIF
+          !$ACC END PARALLEL
         END IF
 
 

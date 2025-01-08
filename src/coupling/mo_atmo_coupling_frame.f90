@@ -39,7 +39,8 @@ MODULE mo_atmo_coupling_frame
   USE mo_aes_phy_config      ,ONLY: aes_phy_config
   USE mo_time_config         ,ONLY: time_config
 
-  USE mo_atmo_wave_coupling  ,ONLY: construct_atmo_wave_coupling
+  USE mo_atmo_wave_coupling  ,ONLY: construct_atmo_wave_coupling, &
+                                    construct_atmo_wave_coupling_finalize
   USE mo_atmo_ocean_coupling ,ONLY: construct_atmo_ocean_coupling, &
                                     destruct_atmo_ocean_coupling
   USE mo_atmo_o3_provider_coupling,ONLY: &
@@ -254,8 +255,11 @@ CONTAINS
     CALL icon_call_callback(EP_ATM_YAC_ENDDEF_AFTER, COMIN_DOMAIN_OUTSIDE_LOOP, lacc=.FALSE.)
 #endif
 
-    ! finalizes the output coupling
+    ! finalizes construction of output coupling
     IF( is_coupled_to_output() ) CALL construct_output_coupling_finalize()
+
+    ! finalizes construction of atmo-wave coupling
+    IF ( is_coupled_to_waves() ) CALL construct_atmo_wave_coupling_finalize()
 
     IF (ltimer) CALL timer_stop(timer_coupling_init)
 

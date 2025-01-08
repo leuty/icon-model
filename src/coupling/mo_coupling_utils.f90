@@ -29,7 +29,8 @@ MODULE mo_coupling_utils
   USE mo_mpi,             ONLY: p_pe_work
   USE mo_loopindices,     ONLY: get_indices_c
   USE mo_fortran_tools,   ONLY: swap
-  USE mtime,              ONLY: datetimeToString, MAX_DATETIME_STR_LEN
+  USE mtime,              ONLY: datetime, newdatetime, deallocateDatetime, &
+    &                           datetimeToString, MAX_DATETIME_STR_LEN
   USE mo_timer,           ONLY: timer_start, timer_stop, timer_coupling_put, &
     &                           timer_coupling_get, timer_coupling_very_1stget, &
     &                           timer_coupling_1stget, timer_coupling_init, &
@@ -49,6 +50,7 @@ MODULE mo_coupling_utils
     &                           yac_dble_ptr, yac_fput, yac_fget, &
     &                           yac_fget_field_collection_size, &
     &                           yac_fget_collection_size_from_field_id, &
+    &                           yac_fget_field_datetime, &
     &                           yac_fsync_def, yac_fenddef, &
     &                           yac_fget_grid_size, &
     &                           YAC_LOCATION_CELL, &
@@ -78,6 +80,7 @@ MODULE mo_coupling_utils
   PUBLIC :: cpl_def_field
   PUBLIC :: cpl_get_field
   PUBLIC :: cpl_get_field_collection_size
+  PUBLIC :: cpl_get_field_datetime
   PUBLIC :: cpl_put_field
   PUBLIC :: cpl_sync_def
   PUBLIC :: cpl_enddef
@@ -1732,7 +1735,7 @@ CONTAINS
   END SUBROUTINE cpl_def_field_mask
 
   ! gets the collection size of a field
-  ! (only works after the respective field has been definied and
+  ! (only works after the respective field has been defined and
   !  its information has been distributed among all processes either
   !  by a call to yac_fsync_def or yac_fenddef)
   FUNCTION get_field_collection_size_from_name( &
@@ -1781,6 +1784,43 @@ CONTAINS
 #endif
 
   END FUNCTION get_field_collection_size_from_id
+
+
+  ! gets the current time of a coupled field
+  ! (only works after the respective field and the associated couplings have
+  !  been definied and its information has been distributed among all processes
+  !  either by a call to yac_fsync_def or yac_fenddef)
+  !
+  ! it is initialised with:
+  !   field_datetime = start_datetime + lag * field_timestep
+  ! and incremented with every put/get/exchange/update call by:
+  !   field_datetime = field_datetime + field_timestep
+  FUNCTION cpl_get_field_datetime(caller, field_id)
+
+    INTEGER, INTENT(IN) :: field_id
+    CHARACTER(LEN=*), INTENT(IN) :: caller     ! name of the calling routine (for debugging)
+
+    TYPE(datetime), POINTER :: field_datetime_ptr
+
+    TYPE(datetime) :: cpl_get_field_datetime
+
+#ifndef YAC_coupling
+    CALL finish( &
+      TRIM(caller) // ':cpl_get_field_datetime', &
+      'built without coupling support.')
+#else
+
+    field_datetime_ptr => &
+      newdatetime(TRIM(yac_fget_field_datetime(field_id)))
+
+    cpl_get_field_datetime = field_datetime_ptr
+
+    CALL deallocateDatetime(field_datetime_ptr)
+
+! YAC_coupling
+#endif
+
+  END FUNCTION cpl_get_field_datetime
 
 #ifdef YAC_coupling
 
