@@ -20,9 +20,10 @@ MODULE mo_wave_model
        &                                my_process_is_stdio
   USE mo_sync,                    ONLY: global_max
   USE mo_timer,                   ONLY: init_timer, timer_start, timer_stop, &
-       &                                timers_level,timer_model_init, &
+       &                                timers_level, timer_model_init, &
        &                                timer_domain_decomp, print_timer, &
        &                                timer_coupling
+  USE mo_wave_timer,              ONLY: init_wave_timer
   USE mo_master_config,           ONLY: isRestart
   USE mo_master_control,          ONLY: wave_process, get_my_process_name
   USE mo_impl_constants,          ONLY: success, pio_type_async, pio_type_cdipio
@@ -190,7 +191,9 @@ CONTAINS
     !-------------------------------------------------------------------
     ! 3.2 Initialize various timers
     !-------------------------------------------------------------------
-    IF (ltimer) CALL init_timer
+    CALL init_timer              ! init generic timers
+    CALL init_wave_timer(ltimer) ! init wave-specific timers
+
     IF (timers_level > 1) CALL timer_start(timer_model_init)
 
     !-------------------------------------------------------------------

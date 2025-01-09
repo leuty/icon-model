@@ -31,7 +31,7 @@ MODULE mo_wave_advection_stepping
   USE mo_model_domain,              ONLY: t_patch
   USE mo_parallel_config,           ONLY: nproma
   USE mo_grid_config,               ONLY: l_limited_area
-  USE mo_run_config,                ONLY: ntracer, ltimer
+  USE mo_run_config,                ONLY: ntracer
   USE mo_interpol_config,           ONLY: llsq_lin_consv
   USE mo_intp_data_strc,            ONLY: t_int_state
   USE mo_wave_config,               ONLY: t_wave_config
@@ -42,7 +42,9 @@ MODULE mo_wave_advection_stepping
   USE mo_advection_hflux,           ONLY: upwind_hflux_miura
   USE mo_fortran_tools,             ONLY: init
   USE mo_sync,                      ONLY: SYNC_C, sync_patch_array_mult
-  USE mo_timer,                     ONLY: timer_start, timer_stop, timer_transport
+  USE mo_timer,                     ONLY: timer_start, timer_stop, timers_level
+  USE mo_wave_timer,                ONLY: timer_wave_propagation, timer_wave_energy_propagation, &
+    &                                     timer_wave_grid_refraction
 
   IMPLICIT NONE
 
@@ -153,7 +155,9 @@ CONTAINS
 
     !-----------------------------------------------------------------------
 
-    IF(ltimer) CALL timer_start(timer_transport)
+    IF (timers_level >= 5) CALL timer_start(timer_wave_propagation)
+
+    IF (timers_level >= 8) CALL timer_start(timer_wave_energy_propagation)
 
     ! halo synchronization for spectral energy, before transport
     CALL sync_patch_array_mult(typ        = SYNC_C,               &
@@ -302,8 +306,10 @@ CONTAINS
 
 
     CALL btraj%destruct()
+    !
+    IF (timers_level >= 8) CALL timer_stop(timer_wave_energy_propagation)
 
-
+    IF (timers_level >= 8) CALL timer_start(timer_wave_grid_refraction)
     ! Calculate wave refraction
     IF (enprop_conf%lgrid_refr) THEN
       CALL wave_refraction(p_patch     = p_patch,                  & !in
@@ -321,9 +327,9 @@ CONTAINS
         &                  wave_config = wave_config,          & !in
         &                  tracer      = p_tracer_new(:,:,:,:))  !inout
     END IF
+    IF (timers_level >= 8) CALL timer_stop(timer_wave_grid_refraction)
 
-
-    IF (ltimer) CALL timer_stop(timer_transport)
+    IF (timers_level >= 5) CALL timer_stop(timer_wave_propagation)
 
   END SUBROUTINE wave_step_advection
 

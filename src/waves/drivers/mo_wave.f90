@@ -36,7 +36,8 @@ MODULE mo_wave
   USE mo_load_restart,          ONLY: read_restart_files
   USE mo_restart_nml_and_att,   ONLY: getAttributesForRestarting
   USE mo_key_value_store,       ONLY: t_key_value_store
-  USE mo_timer,                 ONLY: timers_level, timer_start, timer_stop, timer_read_restart
+  USE mo_timer,                 ONLY: timers_level, timer_start, timer_stop, timer_model_init, &
+    &                                 timer_read_restart
 
   IMPLICIT NONE
 
@@ -66,7 +67,7 @@ CONTAINS
 
     CALL destruct_wave()
 
-    CALL message(TRIM(routine),'finished')
+    CALL message(routine,'finished')
 
   END SUBROUTINE wave
 
@@ -80,6 +81,8 @@ CONTAINS
     INTEGER :: jg
     REAL(wp):: sim_time
 
+
+    IF (timers_level > 1) CALL timer_start(timer_model_init)
 
     ! calculate elapsed simulation time in seconds
     sim_time = getElapsedSimTimeInSeconds(time_config%tc_current_date)
@@ -176,8 +179,9 @@ CONTAINS
             &                opt_skip_trivial        = .TRUE.)
     END IF
 
+    CALL message(routine,'finished')
 
-    CALL message(TRIM(routine),'finished')
+    IF (timers_level > 1) CALL timer_stop(timer_model_init)
 
   END SUBROUTINE construct_wave
 
@@ -196,7 +200,7 @@ CONTAINS
 
     CALL destruct_wave_forcing_state()
 
-    CALL message(TRIM(routine),'finished')
+    CALL message(routine,'finished')
 
   END SUBROUTINE destruct_wave
 

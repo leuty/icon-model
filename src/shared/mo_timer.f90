@@ -465,6 +465,7 @@ MODULE mo_timer
 
   ! ocean
   INTEGER :: timer_scalar_prod_veloc
+
   ! Timer IDs for sea ice
   INTEGER :: timer_ice_fast, timer_ice_slow, timer_ice_slow2, timer_ice_momentum,       &
        &     timer_ice_interp, timer_ice_advection

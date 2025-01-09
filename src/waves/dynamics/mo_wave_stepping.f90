@@ -56,8 +56,11 @@ MODULE mo_wave_stepping
     &                                    update_water_depth
   USE mo_wave_advection_stepping,  ONLY: wave_step_advection
   USE mo_coupling_config,          ONLY: is_coupled_to_atmo
-  USE mo_timer,                    ONLY: ltimer, timer_start, timer_stop, &
-    &                                    timer_coupling, timer_total
+  USE mo_timer,                    ONLY: ltimer, timer_start, timer_stop, timer_coupling, timers_level
+  USE mo_wave_timer,               ONLY: timer_wave_total, timer_wave_reader, timer_wave_time_integration, &
+    &                                    timer_wave_src, timer_wave_src_wind_input, &
+    &                                    timer_wave_src_dissipation, timer_wave_src_nonlinear, &
+    &                                    timer_wave_diagnostics
   USE mo_wave_atmo_coupling,       ONLY: couple_wave_to_atmo
   ! restart
   USE mo_restart,                  ONLY: t_RestartDescriptor
@@ -117,7 +120,7 @@ CONTAINS
     LOGICAL :: l_isStartdate, l_isExpStopdate, l_isRestart, l_isCheckpoint, l_doWriteRestart
     INTEGER :: i
 
-    IF (ltimer) CALL timer_start(timer_total)
+    IF (timers_level >= 1) CALL timer_start(timer_wave_total)
 
     lprint_wave_stats = msg_level > 9
 
@@ -146,6 +149,9 @@ CONTAINS
     ENDIF
 
     IF (.NOT. is_coupled_to_atmo()) THEN
+      
+      IF (timers_level >= 5) CALL timer_start(timer_wave_reader)
+
       CALL message(routine,'standalone run: forcing data are read from file...')
 
       ALLOCATE(reader_wave_forcing(n_dom), STAT=ierrstat)
@@ -201,6 +207,9 @@ CONTAINS
 
         END IF
       END DO
+
+      IF (timers_level >= 5) CALL timer_stop(timer_wave_reader)
+
     END IF
 
 
@@ -464,6 +473,9 @@ CONTAINS
 !$OMP END PARALLEL
         ENDIF
 
+        IF (timers_level >= 5) CALL timer_start(timer_wave_src)
+        !
+        IF (timers_level >= 8) CALL timer_start(timer_wave_src_wind_input)
         ! Calculate total and mean frequency energy
         CALL total_energy(p_patch(jg), wave_config(jg), &
              p_wave_state(jg)%prog(n_new)%tracer, &
@@ -573,7 +585,7 @@ CONTAINS
         END IF
 
         ! Update wave stress
-       IF (wave_config(jg)%lwave_stress2) THEN
+        IF (wave_config(jg)%lwave_stress2) THEN
           CALL wave_stress(                                       &
             &  p_patch     = p_patch(jg),                         & !in
             &  wave_config = wave_config(jg),                     & !in
@@ -583,9 +595,12 @@ CONTAINS
             &  p_diag      = p_wave_state(jg)%diag                ) !IN : last_prog_freq_ind,ustar,z0
                                                                     !OUT: phiaw,tauw,tauhf,phihf
         END IF
+        IF (timers_level >= 8) CALL timer_stop(timer_wave_src_wind_input)
 
         ! Calculate dissipation source function
         IF (wave_config(jg)%ldissip_sf) THEN
+          IF (timers_level >= 8) CALL timer_start(timer_wave_src_dissipation)
+     
           CALL src_dissipation(                                   &
             &  p_patch     = p_patch(jg),                         & !in
             &  wave_config = wave_config(jg),                     & !in
@@ -593,10 +608,14 @@ CONTAINS
             &  tracer      = p_wave_state(jg)%prog(n_new)%tracer, & !in
             &  p_diag      = p_wave_state(jg)%diag,               & !in: f1mean,emean,xkmean
             &  p_source    = p_wave_state(jg)%source)               !inout: fl,sl
+
+          IF (timers_level >= 8) CALL timer_stop(timer_wave_src_dissipation)
         END IF
 
         ! Calculate source function due to nonlinear transfer
         IF (wave_config(jg)%lnon_linear_sf) THEN
+          IF (timers_level >= 8) CALL timer_start(timer_wave_src_nonlinear)
+          
           CALL src_nonlinear_transfer(                            &
             &  p_patch     = p_patch(jg),                         & !in
             &  wave_config = wave_config(jg),                     & !in
@@ -604,8 +623,11 @@ CONTAINS
             &  tracer      = p_wave_state(jg)%prog(n_new)%tracer, & !in
             &  p_diag      = p_wave_state(jg)%diag,               & !in
             &  p_source    = p_wave_state(jg)%source)               !inout: fl,sl
+
+          IF (timers_level >= 8) CALL timer_stop(timer_wave_src_nonlinear)
         END IF
 
+        IF (timers_level >= 8) CALL timer_start(timer_wave_src_dissipation)
         ! Calculate dissipation due to bottom friction
         IF (wave_config(jg)%lbottom_fric_sf) THEN
           CALL src_bottom_friction(                               &
@@ -627,7 +649,11 @@ CONTAINS
             &  p_diag      = p_wave_state(jg)%diag,               & !inout, in: emean, f1mean out: hrms_frac, wbr_frac
             &  p_source    = p_wave_state(jg)%source)               !inout: fl, sl
         END IF
+        IF (timers_level >= 8) CALL timer_stop(timer_wave_src_dissipation)
+        !
+        IF (timers_level >= 5) CALL timer_stop(timer_wave_src)
 
+        IF (timers_level >= 5) CALL timer_start(timer_wave_time_integration)
         ! Calculate new spectrum
         CALL integrate_in_time_src(                           &
           &  p_patch     = p_patch(jg),                       & !in
@@ -691,11 +717,15 @@ CONTAINS
 
         ! switch between time levels now and new for next time step
         CALL swap(nnow(jg), nnew(jg))
+        !
+        IF (timers_level >= 5) CALL timer_stop(timer_wave_time_integration)
 
 
         !--------------------------------------------------------------------------
         ! Output section
         !--------------------------------------------------------------------------
+
+        IF (timers_level >= 5) CALL timer_start(timer_wave_diagnostics)
 
         IF (istime4name_list_output_dom(jg=jg, jstep=jstep)) THEN
           ! Calculation of diagnostic output parameters
@@ -715,6 +745,8 @@ CONTAINS
             &                   emean   = p_wave_state(jg)%diag%emean(:,:), & !IN
             &                   femean  = p_wave_state(jg)%diag%femean(:,:) ) !IN
         ENDIF
+
+        IF (timers_level >= 5) CALL timer_stop(timer_wave_diagnostics)
       ENDDO ! jg
 
       l_nml_output = output_mode%l_nml .AND. jstep >= 0 .AND. istime4name_list_output(jstep)
@@ -799,9 +831,10 @@ CONTAINS
       IF (ierrstat /= SUCCESS) CALL finish(routine, 'Deallocation failed for reader_wave_forcing')
     ENDIF
 
-    IF (ltimer) CALL timer_stop(timer_total)
-
     CALL message(routine,'finished')
+
+    IF (timers_level >= 1) CALL timer_stop(timer_wave_total)
+
   END SUBROUTINE perform_wave_stepping
 
 END MODULE mo_wave_stepping
