@@ -50,12 +50,12 @@ host:
 	@mkdir -p ${BUILD_DIR_VH}
 	# configuring host
 	cd ${BUILD_DIR_VH} && ${ICON_DIR}/config/dwd/rcl.VH.bb-${DWD_BUILDER}
-	\$(MAKE) -C ${BUILD_DIR_VH}
+	\$(MAKE) -C ${BUILD_DIR_VH}  V=1 2>&1 | tee ${BUILD_DIR_VH}/make.log
 vector:
 	@mkdir -p ${BUILD_DIR_VE}
 	# configuring vector
 	cd ${BUILD_DIR_VE} && ${ICON_DIR}/config/dwd/rcl.VE.bb-${DWD_BUILDER}
-	\$(MAKE) -C ${BUILD_DIR_VE}
+	\$(MAKE) -C ${BUILD_DIR_VE}  V=1 2>&1 | tee ${BUILD_DIR_VE}/make.log
 _EOF
 
   # Post-processing

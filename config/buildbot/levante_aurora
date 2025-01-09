@@ -34,12 +34,12 @@ host:
 	@mkdir -p ${VH_DIR}
 	# configuring host
 	cd ${VH_DIR} && ${ICON_DIR}/config/dkrz/aurora.VH.gcc_mpi-3.4.0 --disable-openmp
-	\$(MAKE) -C ${VH_DIR} |& tee make.log
+	\$(MAKE) -C ${VH_DIR} |& tee ${VH_DIR}/make.log
 vector:
 	@mkdir -p ${VE_DIR}
 	# configuring vector
 	cd ${VE_DIR} && ${ICON_DIR}/config/dkrz/aurora.VE.nfort-5.0.1_mpi-3.4.0 --disable-openmp
-	\$(MAKE) -C ${VE_DIR} |& tee make.log
+	\$(MAKE) -C ${VE_DIR} |& tee ${VE_DIR}/make.log
 _EOF
 
 # copy around the generated system description because the buildbot-scripting

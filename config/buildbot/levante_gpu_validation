@@ -30,7 +30,7 @@ cd build/cpurun
 ${ICON_DIR}/config/dkrz/levante.cpu.nvhpc-22.5 --prefix=${ICON_DIR}/cpurun \
 'FCFLAGS=-I/sw/spack-levante/netcdf-fortran-4.5.4-syv4qr/include -g -O2 -Mrecursive -Mallocatable=03 -Mstack_arrays -Minfo=inline -Mnofma'
 
-make -j ${MAKE_PROCS}
+make -j ${MAKE_PROCS} |& tee make.log
 cd ../../
 
 
@@ -42,7 +42,7 @@ cd build/gpurun
 ${ICON_DIR}/config/dkrz/levante.gpu.nvhpc-22.5 --prefix=${ICON_DIR}/gpurun \
 'FCFLAGS=-I/sw/spack-levante/netcdf-fortran-4.5.4-syv4qr/include -g -O2 -Mrecursive -Mallocatable=03 -Mstack_arrays -Minfo=accel,inline -acc=gpu,verystrict -gpu=cc80,math_uniform -Mnofma'
 
-make -j ${MAKE_PROCS}
+make -j ${MAKE_PROCS} |& tee make.log
 cd ../../
 
 
@@ -54,7 +54,7 @@ cd build/cpurun_lvec
 ${ICON_DIR}/config/dkrz/levante.cpu.nvhpc-22.5 --prefix=${ICON_DIR}/cpurun_lvec \
 'FCFLAGS=-I/sw/spack-levante/netcdf-fortran-4.5.4-syv4qr/include -g -O2 -Mrecursive -Mallocatable=03 -Mstack_arrays -Minfo=inline -Mnofma -D__LVECTOR__ -D__LVEC_BITID__'
 
-make -j ${MAKE_PROCS}
+make -j ${MAKE_PROCS} |& tee make.log
 cd ../../
 
 
@@ -66,7 +66,7 @@ cd build/gpurun_lvec
 ${ICON_DIR}/config/dkrz/levante.gpu.nvhpc-22.5 --prefix=${ICON_DIR}/gpurun_lvec \
 'FCFLAGS=-I/sw/spack-levante/netcdf-fortran-4.5.4-syv4qr/include -g -O2 -Mrecursive -Mallocatable=03 -Mstack_arrays -Minfo=accel,inline -acc=gpu,verystrict -gpu=cc80,math_uniform -Mnofma -D__LVECTOR__ -D__LVEC_BITID__'
 
-make -j ${MAKE_PROCS}
+make -j ${MAKE_PROCS} |& tee make.log
 cd ../../
 
 
