@@ -448,7 +448,7 @@ datadir=${icon_data_rootFolder}/experiments/data.${EXPNAME}.r1
 if [ ! -d ${datadir} ]
 then
     echo "ERROR: input data directory ${datadir} not found"
-    exit
+    exit 1
 fi
 
 # data directory for the output of this experiment
