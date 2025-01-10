@@ -53,6 +53,8 @@ Climate: ICON-Land
 - Changes and fixes for inline documentation
 - Improved vectorization on NEC machines
 - Clean-up of ICON-Land code
+- Some minor updates to adapt to removal of `i_am_accel_node` in ICON
+- Bug fix: enable simulations with JSBACH assimilation and LAI prescribed from climatology
 
 ### Externals
 
