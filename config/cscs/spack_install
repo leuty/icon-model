@@ -9,6 +9,8 @@
 # See LICENSES/ for license information
 # SPDX-License-Identifier: BSD-3-Clause
 # ------------------------------------------
+set -eu
+set -o pipefail
 
 SCRIPT_DIR=$(cd "$(dirname "$0")"; pwd)
 ICON_DIR=$(cd "${SCRIPT_DIR}/../.."; pwd)

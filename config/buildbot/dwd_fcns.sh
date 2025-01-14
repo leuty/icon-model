@@ -43,19 +43,21 @@ build_dwd() {
   fi
 
   # create vector and host binaries in parallel using make
-  make --no-print-directory --output-sync=line --jobs="${MAKE_PROCS}" -f - <<_EOF
+  make --jobs="${MAKE_PROCS}" V=1 -f - <<_EOF
+GNUMAKEFLAGS= --no-print-directory --output-sync=line
+SHELL= /bin/bash
 .PHONY: all host vector
 all: host vector
 host:
 	@mkdir -p ${BUILD_DIR_VH}
 	# configuring host
 	cd ${BUILD_DIR_VH} && ${ICON_DIR}/config/dwd/rcl.VH.bb-${DWD_BUILDER}
-	\$(MAKE) -C ${BUILD_DIR_VH}  V=1 2>&1 | tee ${BUILD_DIR_VH}/make.log
+	set -o pipefail; cd ${BUILD_DIR_VH} && \$(MAKE) |& tee make.log
 vector:
 	@mkdir -p ${BUILD_DIR_VE}
 	# configuring vector
 	cd ${BUILD_DIR_VE} && ${ICON_DIR}/config/dwd/rcl.VE.bb-${DWD_BUILDER}
-	\$(MAKE) -C ${BUILD_DIR_VE}  V=1 2>&1 | tee ${BUILD_DIR_VE}/make.log
+	set -o pipefail; cd ${BUILD_DIR_VE} && \$(MAKE) |& tee make.log
 _EOF
 
   # Post-processing
