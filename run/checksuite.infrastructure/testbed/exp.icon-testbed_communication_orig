@@ -40,6 +40,9 @@ cat > $namelist_filename << EOF
 &parallel_nml
  iorder_sendrecv = 1
  nproma          = 16
+ num_io_procs    = ${num_io_procs}
+ io_proc_chunk_size   = 46 
+ io_process_stride    = 8
  use_icon_comm   = .true.
  default_comm_pattern_type = 1
  ! icon_comm_method = ${icon_comm_method} 
@@ -74,6 +77,7 @@ cat > $namelist_filename << EOF
  timers_level = 100
  activate_sync_timers = .true.
  profiling_output = 2
+ output      = 'none'
 /
 &testcase_nml
  ctest_name  = 'JWw'        ! test case identifier

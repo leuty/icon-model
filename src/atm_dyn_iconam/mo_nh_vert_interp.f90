@@ -115,7 +115,7 @@ CONTAINS
       ENDIF
     ENDDO
 #else
-    !$ACC PARALLEL LOOP GANG VECTOR COLLAPSE(2) ASYNC(1) DEFAULT(PRESENT) REDUCTION(MIN: start_idx_diff_threshold) IF(lacc)
+    !$ACC PARALLEL LOOP GANG VECTOR COLLAPSE(2) ASYNC(1) DEFAULT(PRESENT) REDUCTION(MIN: start_idx_diff_threshold) COPY(start_idx_diff_threshold) IF(lacc)
     DO jk = 1, nlevs
       DO jc = 1, nlen
         IF ( z2d_in(jc,jk)-z_reference(jc) <= threshold ) THEN
@@ -162,7 +162,7 @@ CONTAINS
       ENDIF
     ENDDO
 #else
-    !$ACC PARALLEL LOOP GANG VECTOR COLLAPSE(2) DEFAULT(PRESENT) REDUCTION(MIN: start_idx_threshold) ASYNC(1) IF(lacc)
+    !$ACC PARALLEL LOOP GANG VECTOR COLLAPSE(2) DEFAULT(PRESENT) REDUCTION(MIN: start_idx_threshold) ASYNC(1) COPY(start_idx_threshold) IF(lacc)
     DO jk = 1, nlevs
       DO jc = 1, nlen
         IF ( zalml(jc,jk) < threshold ) THEN
@@ -913,7 +913,7 @@ CONTAINS
 #ifdef _OPENACC
         lfound_all = .TRUE.
         ! The following reduction must appear in its own small kernel as it did not work otherwise with Nvidia 21.2
-        !$ACC PARALLEL LOOP VECTOR DEFAULT(PRESENT) ASYNC(1) IF(lzacc) REDUCTION(.AND.: lfound_all)
+        !$ACC PARALLEL LOOP VECTOR DEFAULT(PRESENT) ASYNC(1) REDUCTION(.AND.: lfound_all) COPY(lfound_all) IF(lzacc)
         DO jc = 1, nlen
           lfound_all = lfound_all .AND. l_found(jc)
         ENDDO
@@ -1321,7 +1321,7 @@ CONTAINS
 #ifdef _OPENACC
         lfound_all = .TRUE.
         ! The following reduction must appear in its own small kernel as it did not work otherwise with Nvidia 21.2
-        !$ACC PARALLEL LOOP GANG VECTOR DEFAULT(PRESENT) ASYNC(1) IF(lzacc) REDUCTION(.AND.: lfound_all)
+        !$ACC PARALLEL LOOP GANG VECTOR DEFAULT(PRESENT) ASYNC(1) REDUCTION(.AND.: lfound_all) COPY(lfound_all) IF(lzacc)
         DO jc = 1, nlen
           lfound_all = lfound_all .AND. l_found(jc)
         ENDDO

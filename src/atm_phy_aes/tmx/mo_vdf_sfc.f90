@@ -415,7 +415,7 @@ CONTAINS
       !$ACC PARALLEL LOOP DEFAULT(PRESENT) GANG VECTOR COLLAPSE(2) ASYNC(1)
       DO jb = 1, this%domain%nblks_c
         DO jc = 1, this%domain%nproma  
-          new_tsfc_rad(jc,jb,jtile) = new_tsfc_rad(jc,jb,jtile)**4
+          new_tsfc_rad(jc,jb,jtile) = new_tsfc_rad(jc,jb,jtile)**4._wp
         END DO
       END DO
       !$ACC END PARALLEL LOOP

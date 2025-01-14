@@ -119,7 +119,7 @@ CONTAINS
     END IF
 
     !$ACC WAIT(1)
-#if defined(_CRAYFTN) && _RELEASE_MAJOR <= 16
+#if defined(_CRAYFTN) && _RELEASE_MAJOR <= 19
     ! ACCWA (Cray Fortran 16.0.1) : p_int_state and p_int_state_local_parent are interpreted
     !  as already deleted; I think this is bug so treat as a workaround for time being
     !$ACC EXIT DATA DELETE(p_patch, p_patch_local_parent) &

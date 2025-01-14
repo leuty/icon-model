@@ -982,7 +982,7 @@ CONTAINS
       ALLOCATE(this%x_t(this%nidx_loc, this%nblk_a_loc), &
         & this%ax_t(this%nidx_loc, this%nblk_a_loc), &
         & this%inz_t(this%nidx_loc, this%nblk_loc))
-      !$ACC ENTER DATA COPYIN(this%x_t, this%ax_t, this%inz_t)
+      !$ACC ENTER DATA COPYIN(this%x_t, this%ax_t, this%inz_t) IF(lzacc)
     END IF
 ! init temporary arrays
 !ICON_OMP PARALLEL WORKSHARE

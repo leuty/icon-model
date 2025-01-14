@@ -1107,6 +1107,10 @@ MODULE mo_ocean_nml
 
   INTEGER :: i_status, istat
   INTEGER :: iunit
+#if defined(_CRAYFTN) && _RELEASE_MAJOR <= 19
+  !Dummy variable needed for a workaround for namelist reading issue on LUMI
+  LOGICAL :: l_dummy
+#endif
 
   CHARACTER(*), PARAMETER :: &
           method_name = 'mo_ocean_nml/read_ocean_namelist:'
@@ -1147,6 +1151,22 @@ MODULE mo_ocean_nml
       iunit = temp_defaults()
       WRITE(iunit, ocean_dynamics_nml) ! write defaults to temporary text file
     END IF
+
+#if defined(_CRAYFTN) && _RELEASE_MAJOR <= 19
+    ! The WRITE below is never supposed to happen, it's there just to keep the
+    ! compiler from optimizing the INQUIRE call out. The problem we are trying
+    ! to solve here is at least partly site-specific; it manifests itself on
+    ! LUMI when a large number of ranks try to read the same namelist file
+    ! simultaneously. Adding the INQUIRE seems to help. It possibly serializes
+    ! accesses so that some race condition is avoided. This is a temporary
+    ! workaround until we make only one rank read and then broadcast the values
+    ! to others.
+    INQUIRE(nnml, opened=l_dummy)
+    IF (.NOT. l_dummy) THEN
+      WRITE(0,*) "FATAL: This message is not supposed to be ever emitted!"
+    ENDIF
+#endif
+
     SELECT CASE (i_status)
     CASE (positioned)
       READ (nnml, ocean_dynamics_nml)                         ! overwrite default settings

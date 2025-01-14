@@ -11,7 +11,7 @@
 # -------------------------------------------------------------
 # Atmosphere standalone script template
 #   NextGEMS namelist, R02B08, R02B09, R02B10 for production,
-#   R02B04 for testing purposes only
+#   R02B04, R02B06  for testing purposes only
 # -------------------------------------------------------------
 #
 author_list='Monika Esch, MPIM'
@@ -125,6 +125,27 @@ elif [ ${grid_refinement} == R02B04 ] ; then
    # restart intervals
    checkpoint_interval="P3D"
    restart_interval="P3D"
+
+   # namelist variables
+   #
+   num_restart_procs=1
+   cinhoml=0.4
+   l_soil_texture=.TRUE.
+
+elif [ ${grid_refinement} == R02B06 ] ; then
+
+   grid_id=0052
+   # start and end date+time
+   start_date=${start_date:="1979-01-01T00:00:00Z"}
+       end_date=${end_date:="1979-01-24T00:00:00Z"}
+
+   # time steps
+   radTimeStep="PT30M"
+   atmTimeStep="PT2M"
+
+   # restart intervals
+   checkpoint_interval="P1M"
+   restart_interval="P1M"
 
    # namelist variables
    #
@@ -476,6 +497,8 @@ elif [ ${grid_refinement} == R02B10 ] ; then
    add_link_file $datadir/ifs2icon_1979010100_0056_R02B10_G.nc               ./ifs2icon.nc
 elif [ ${grid_refinement} == R02B04 ] ; then
    add_link_file $datadir/ifs2icon_1979010100_0049_R02B04_G.nc               ./ifs2icon.nc
+elif [ ${grid_refinement} == R02B06 ] ; then
+   add_link_file $datadir/ifs2icon_1979010100_0052_R02B06_G.nc               ./ifs2icon.nc
 fi
 
 datadir=${icon_data_poolFolder}/${grid_id}/sst_and_seaice/r0100
@@ -489,6 +512,9 @@ elif [ ${grid_refinement} == R02B10 ] ; then
    add_link_file $datadir/bc_sst_1978-1980.nc                                ./bc_sst.nc
    add_link_file $datadir/bc_sic_1978-1980.nc                                ./bc_sic.nc
 elif [ ${grid_refinement} == R02B04 ] ; then
+   add_link_file $datadir/bc_sst_1978-2021.nc                                ./bc_sst.nc
+   add_link_file $datadir/bc_sic_1978-2021.nc                                ./bc_sic.nc
+elif [ ${grid_refinement} == R02B06 ] ; then
    add_link_file $datadir/bc_sst_1978-2021.nc                                ./bc_sst.nc
    add_link_file $datadir/bc_sic_1978-2021.nc                                ./bc_sic.nc
 fi

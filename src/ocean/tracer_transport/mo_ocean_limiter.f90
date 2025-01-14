@@ -1184,7 +1184,7 @@ CONTAINS
       !$ACC WAIT(1)
 
       max_dolic_e = -1
-      !$ACC PARALLEL LOOP GANG VECTOR DEFAULT(PRESENT) ASYNC(1) REDUCTION(MAX: max_dolic_e) IF(lzacc)
+      !$ACC PARALLEL LOOP GANG VECTOR DEFAULT(PRESENT) ASYNC(1) REDUCTION(MAX: max_dolic_e) COPY(max_dolic_e) IF(lzacc)
       DO edge_index = start_index, end_index
         max_dolic_e = MAX(max_dolic_e, patch_3d%p_patch_1d(1)%dolic_e(edge_index,blockNo))
       END DO
@@ -1262,7 +1262,7 @@ CONTAINS
       CALL get_index_range(cells_in_domain, blockNo, start_index, end_index)
 
       max_dolic_c = -1
-      !$ACC PARALLEL LOOP GANG VECTOR DEFAULT(PRESENT) ASYNC(1) REDUCTION(MAX: max_dolic_c) IF(lzacc)
+      !$ACC PARALLEL LOOP GANG VECTOR DEFAULT(PRESENT) ASYNC(1) REDUCTION(MAX: max_dolic_c) COPY(max_dolic_c) IF(lzacc)
       DO jc = start_index, end_index
         max_dolic_c = MAX(max_dolic_c, patch_3d%p_patch_1d(1)%dolic_c(jc,blockNo))
       END DO
@@ -1333,7 +1333,7 @@ CONTAINS
       !$ACC WAIT(1)
 
       max_dolic_c = -1
-      !$ACC PARALLEL LOOP GANG VECTOR DEFAULT(PRESENT) ASYNC(1) REDUCTION(MAX: max_dolic_c) IF(lzacc)
+      !$ACC PARALLEL LOOP GANG VECTOR DEFAULT(PRESENT) ASYNC(1) REDUCTION(MAX: max_dolic_c) COPY(max_dolic_c) IF(lzacc)
       DO jc = start_index, end_index
         max_dolic_c = MAX(max_dolic_c, patch_3d%p_patch_1d(1)%dolic_c(jc,blockNo))
       END DO
@@ -1449,7 +1449,7 @@ CONTAINS
       !$ACC WAIT(1)
 
       max_dolic_e = -1
-      !$ACC PARALLEL LOOP GANG VECTOR DEFAULT(PRESENT) ASYNC(1) REDUCTION(MAX: max_dolic_e) IF(lzacc)
+      !$ACC PARALLEL LOOP GANG VECTOR DEFAULT(PRESENT) ASYNC(1) REDUCTION(MAX: max_dolic_e) COPY(max_dolic_e) IF(lzacc)
       DO edge_index = start_index, end_index
         max_dolic_e = MAX(max_dolic_e, patch_3d%p_patch_1d(1)%dolic_e(edge_index,blockNo))
       END DO

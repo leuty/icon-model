@@ -138,6 +138,9 @@ CONTAINS
       ENDIF
 
       IF ( i_ice_dyn == 2 ) THEN
+#ifdef _OPENACC
+        IF (lzacc) CALL finish('ice_dynamics', 'OpenACC version for i_ice_dyn == 2 currently not implemented')
+#endif
         CALL ice_new_dynamics( p_patch_3D, p_ice, p_os, p_as, atmos_fluxes, p_op_coeff, p_oce_sfc)
       ENDIF
 

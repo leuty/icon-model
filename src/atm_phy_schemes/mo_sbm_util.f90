@@ -924,8 +924,8 @@ MODULE mo_sbm_util
       e = ecoalochs(dgr,dkl,dropradii, vr1_breakup, nkr)
     ELSE IF(q>=qmin.and.q<qmax) THEN
       x=(q-qmin)/(qmax-qmin)
-      sin1=dsin(pi/2.0d0*x)
-      cos1=dcos(pi/2.0d0*x)
+      sin1=sin(pi/2.0d0*x)
+      cos1=cos(pi/2.0d0*x)
       e1=ecoalochs(dgr, dkl, dropradii, vr1_breakup, nkr)
       e2=ecoallowlist(dgr, dkl, dropradii, vr1_breakup, nkr)
       e=cos1**2*e1+sin1**2*e2

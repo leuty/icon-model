@@ -63,6 +63,8 @@ MODULE mo_sea_ice_types
       & concSum    (:,:)         ,   & ! Total ice concentration within a grid cell
       & vol        (:,:,:)       ,   & ! Ice volume                                             [m^3]
       & vols       (:,:,:)       ,   & ! Snow volume                                            [m^3]
+      & sivol      (:,:,:)       ,   & ! equivalence ice thickness                               [m]
+      & snvol      (:,:,:)       ,   & ! equivalence snow thickness                              [m]
       & delhi      (:,:,:)       ,   & ! Change in mean ice thickness due to growth/melt        [m]
       & delhs      (:,:,:)       ,   & ! Change in mean snow thickness due to growth/melt       [m]
       ! functionality of hiold and hsold was replaced by delhi and delhs

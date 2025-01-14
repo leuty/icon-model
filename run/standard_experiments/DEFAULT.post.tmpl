@@ -19,7 +19,7 @@
 # #SBATCH --ntasks-per-core=1
 #SBATCH --exclusive
 #%  endif
-#SBATCH --output=%{SCRIPT_DIR}/%x.%8j.log
+#SBATCH --output=%{LOG_DIR}/%{EXP_ID}.post.%8j.log
 #SBATCH --time=%{JOB.time_limit}
 #%include 'standard_environments/'+ENVIRONMENT+'.tmpl' ignore missing
 
@@ -186,12 +186,18 @@ os.chdir(post_dir)
 
 #%  set atmo_restart = namelists.NAMELIST_atm.run_nml.restart_filename
 #%  set ocean_restart = namelists.NAMELIST_oce.run_nml.restart_filename
+#%  if WITH_LAND is set and WITH_ATMO is not set:
+#%    set land_restart = namelists.NAMELIST_lnd.run_nml.restart_filename
+#%  endif
 #%  set restart_filenames = []
 #%  if WITH_ATMO is set:
 #%      do restart_filenames.append(atmo_restart)
 #%  endif
 #%  if WITH_OCEAN is set:
 #%      do restart_filenames.append(ocean_restart)
+#%  endif
+#%  if WITH_LAND is set and WITH_ATMO is not set:
+#%      do restart_filenames.append(land_restart)
 #%  endif
 
 restart_filenames = %{restart_filenames}
@@ -270,6 +276,47 @@ $(DATA_DIR)/$(EXP_ID)_%{target}_{start_date}.nc: $(DATA_DIR)/$(EXP_ID)_%{info.in
 	$(CDO) $(CDOFLAGS) -ap2pl,%{info.pressure_levels|join(',')} -selvar,pfull,ps,%{info.variable_names|join(',')}  $< $@~
 	mv $@~ $@
 #%    endfor
+#%  endif
+
+#%  if LAND_FORCING_GENERATION is set:
+# Post-process jsbach offline forcing
+#%      if land_forcing_generation_frequency_is_not_daily is set:
+$(DATA_DIR)/$(EXP_ID)_jsbalone_ml_{start_date}.nc: $(RUN_DIR)/$(EXP_ID)_jsbalone_avg_ml_{start_stamp}Z.nc
+	$(CDO) $(CDOFLAGS) --reduce_dim merge \
+      -setattribute,air_temp@long_name="lowest model level temperature" -setunit,"degC" -expr,"air_temp = ta - 273.15;" $< \
+      -setattribute,precip@long_name="total precipitation rate" -setunit,"kg m-2 s-1" -expr,"precip = tot_prec_rate;" $< \
+      -setattribute,qair@long_name="lowest model level specific air humidity" -setunit,"kg kg-1" -expr,"qair = qv;" $< \
+      -setattribute,longwave@long_name="downwards longwave radiation" -setunit,"W m-2" -expr,"longwave = thb_s + thu_s;" $< \
+      -setattribute,shortwave@long_name="downwards shortwave radiation" -setunit,"W m-2" -expr,"shortwave = sob_s + sou_s;" $< \
+      -setattribute,wspeed@long_name="lowest model level wind speed" -setunit,"m s-1" -expr,"wspeed = sqrt(sqr(ua) + sqr(va));" $< jsbalone_merged.nc
+	$(CDO) -a -O -z zip {atmo_shift_spec} jsbalone_merged.nc $@~
+	mv $@~ $@
+	rm jsbalone_merged.nc
+
+#%      else:
+jsbalone_avg.nc: $(RUN_DIR)/$(EXP_ID)_jsbalone_avg_ml_{start_stamp}Z.nc
+	$(CDO) $(CDOFLAGS) --reduce_dim merge \
+      -setattribute,precip@long_name="total precipitation rate" -setunit,"kg m-2 s-1" -expr,"precip = tot_prec_rate;" $< \
+      -setattribute,qair@long_name="lowest model level specific air humidity" -setunit,"kg kg-1" -expr,"qair = qv;" $< \
+      -setattribute,longwave@long_name="downwards longwave radiation" -setunit,"W m-2" -expr,"longwave = thb_s + thu_s;" $< \
+      -setattribute,shortwave@long_name="downwards shortwave radiation" -setunit,"W m-2" -expr,"shortwave = sob_s + sou_s;" $< \
+      -setattribute,wspeed@long_name="lowest model level wind speed" -setunit,"m s-1" -expr,"wspeed = sqrt(sqr(ua) + sqr(va));" $< $@
+
+jsbalone_min.nc: $(RUN_DIR)/$(EXP_ID)_jsbalone_min_ml_{start_stamp}Z.nc
+	$(CDO) $(CDOFLAGS) --reduce_dim merge \
+      -setattribute,tmin@long_name="lowest model level daily minimum temperature" -setunit,"degC" -daymin -expr,"tmin = ta - 273.15;" $< $@
+
+jsbalone_max.nc: $(RUN_DIR)/$(EXP_ID)_jsbalone_max_ml_{start_stamp}Z.nc
+	$(CDO) $(CDOFLAGS) --reduce_dim merge \
+      -setattribute,tmax@long_name="lowest model level daily maximum temperature" -setunit,"degC" -daymax -expr,"tmax = ta - 273.15;" $< $@
+
+$(DATA_DIR)/$(EXP_ID)_jsbalone_ml_{start_date}.nc: jsbalone_avg.nc jsbalone_min.nc jsbalone_max.nc
+	$(CDO) $(CDOFLAGS) --reduce_dim merge $^ jsbalone_merged.nc
+	$(CDO) -a -O -z zip {atmo_shift_spec} jsbalone_merged.nc $@~
+	mv $@~ $@
+	rm $^ jsbalone_merged.nc
+
+#%      endif
 #%  endif
 '''
 

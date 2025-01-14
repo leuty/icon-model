@@ -35,6 +35,7 @@ MODULE mo_coupling_utils
     &                           timer_coupling_1stget, timer_coupling_init, &
     &                           timer_coupling_init_def_comp, &
     &                           timer_coupling_init_enddef
+  USE mo_impl_constants,  ONLY: MAX_CHAR_LENGTH
 #ifdef YAC_coupling
   USE mo_mpi,             ONLY: p_comm_yac, p_comm_work
   USE yac,                ONLY: yac_finit, yac_finit_comm, &
@@ -1498,6 +1499,7 @@ CONTAINS
 
     CHARACTER(LEN=MAX_DATETIME_STR_LEN) :: startdatestring
     CHARACTER(LEN=MAX_DATETIME_STR_LEN) :: stopdatestring
+    CHARACTER(LEN=MAX_CHAR_LENGTH)      :: comp_names(2)
 
     INTEGER :: comp_ids(2), jg
     INTEGER :: comp_comm, comp_rank, ierror
@@ -1524,11 +1526,11 @@ CONTAINS
     ! Inform the coupler about what we are
     IF (ltimer) CALL timer_start(timer_coupling_init_def_comp)
     IF (with_output) THEN
-
+      comp_names(1)=TRIM(get_my_process_name())
+      comp_names(2)=TRIM(get_my_process_name())//"_output"
       CALL yac_fdef_comps (                       &
         yac_instance_id,                          &
-        [TRIM(get_my_process_name())//"       ",  &
-         TRIM(get_my_process_name())//"_output"], & !in
+         comp_names,                              & !in
          2,                                       & !in
          comp_ids )                                 !out
       comp_id = comp_ids(1)

@@ -1035,7 +1035,7 @@ SUBROUTINE prepare_ua_index_spline(jg, name, jcs, size, temp, idx, zalpha, &
       !$ACC END PARALLEL
 
       IF (sanitize_index) THEN
-        !$ACC PARALLEL LOOP GANG VECTOR DEFAULT(PRESENT) REDUCTION(+: zoutofbounds) ASYNC(1)
+        !$ACC PARALLEL LOOP GANG VECTOR DEFAULT(PRESENT) REDUCTION(+: zoutofbounds) ASYNC(1) COPY(zoutofbounds)
         DO batch = 1,batch_size
           nphase = INT(znphase)
           zoutofbounds = zoutofbounds + zoutofbounds_vec(batch)
@@ -1054,7 +1054,7 @@ SUBROUTINE prepare_ua_index_spline(jg, name, jcs, size, temp, idx, zalpha, &
     ELSE
 
       IF (sanitize_index) THEN
-        !$ACC PARALLEL LOOP DEFAULT(PRESENT) REDUCTION(+: zoutofbounds) GANG VECTOR COLLAPSE(2) ASYNC(1)
+        !$ACC PARALLEL LOOP DEFAULT(PRESENT) REDUCTION(+: zoutofbounds) GANG VECTOR COLLAPSE(2) ASYNC(1) COPY(zoutofbounds)
         DO batch = 1,batch_size
           DO jl = jcs, jce
             ztshft = FSEL(tmelt-temp(jl,batch),1.0_wp,0.0_wp)

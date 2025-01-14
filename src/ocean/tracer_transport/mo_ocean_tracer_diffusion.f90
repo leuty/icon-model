@@ -567,7 +567,7 @@ CONTAINS
     !$ACC WAIT(1)
 
     max_bottom_level = -1
-    !$ACC PARALLEL LOOP GANG VECTOR DEFAULT(PRESENT) ASYNC(1) REDUCTION(MAX: max_bottom_level) IF(lzacc)
+    !$ACC PARALLEL LOOP GANG VECTOR DEFAULT(PRESENT) ASYNC(1) REDUCTION(MAX: max_bottom_level) COPY(max_bottom_level) IF(lzacc)
     DO level = start_index, end_index
       max_bottom_level = MAX(max_bottom_level, bottom_level(level))
     END DO
@@ -760,8 +760,7 @@ CONTAINS
     !$ACC   CREATE(inv_prisms_center_distance, top_cell_thickness) IF(lzacc)
 
     max_bottom_level = -1
-    !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1) REDUCTION(MAX: max_bottom_level) IF(lzacc)
-    !$ACC LOOP GANG VECTOR
+    !$ACC PARALLEL LOOP GANG VECTOR DEFAULT(PRESENT) ASYNC(1) REDUCTION(MAX: max_bottom_level) COPY(max_bottom_level) IF(lzacc)
     DO cell_index = start_index, end_index
       bottom_level(cell_index) = dolic_c(cell_index,blockNo)
       max_bottom_level = MAX(max_bottom_level, bottom_level(cell_index))
@@ -787,7 +786,7 @@ CONTAINS
       ENDDO
           
     ENDDO
-    !$ACC END PARALLEL
+    !$ACC END PARALLEL LOOP
     !$ACC WAIT(1)
 
     !------------------------------------

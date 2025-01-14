@@ -536,7 +536,7 @@ CONTAINS
 #ifdef __LVECTOR__
       level = 1
       max_dolic_c = -1
-      !$ACC PARALLEL LOOP GANG VECTOR DEFAULT(PRESENT) ASYNC(1) REDUCTION(MAX: max_dolic_c) IF(lzacc)
+      !$ACC PARALLEL LOOP GANG VECTOR DEFAULT(PRESENT) ASYNC(1) REDUCTION(MAX: max_dolic_c) COPY(max_dolic_c) IF(lzacc)
       DO jc = start_cell_index, end_cell_index
         max_dolic_c = MAX(max_dolic_c, dolic_c(jc,jb))
       END DO

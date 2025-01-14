@@ -5,14 +5,19 @@
 AES Physics:
 
 - Some re-work for LAM and Global+Nest in AES physics (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/561)
+- DestinE Phase 2: Add new variables (tcw, rsntcs, rsnscs, rlntcs, rlnscs)
+- Fix bug in microphysics: the value for total_ice was not updated before the second call to saturation_adjustment
 - TMX turbulence
   - Fix OpenACC performance issue and OpenMP PRIVATE
+  - Fix inconsistency in floating point operations by adding missing \_wp to some constants
 
 ### ICON-Ocean
 
 - Add GRIB codes for mld, mlotst, normal_velocity, stretch_c (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/555)
 - Diagnose temperature and salinity budgets (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/530)
 - Add diagnostics for upper ocean heat content (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/577)
+- Add new output variables (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/581)
+- Improve GPU performance (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/553)
 
 ### Soil and Surface
 
@@ -25,18 +30,32 @@ Climate: ICON-Land
   - Initial GPU port of QUINCY - running in CANOPY mode with the ICON-Land standalone driver
   - Minor scientific updates
     - Improvement in the first soil-layer hydrology
-    - Bugfix in snow melt calculation
+    - Bugfixes in snow melt calculations
+    - Improvements in the computation of several rate modifiers used in soil biogeochemistry calculations
     - Clean-up calculation of stand-replacing harvest
+    - Runtime optimisation: reduce number of aggregated variables
+    - Include forcing and output of carbon isotopes
+    - Read elevation for QUINCY from file
   - Merged the radiation process of QUINCY into the radiation process of JSBACH
+  - Consolidate and clean up namelist handling and physical parameters between QUINCY and JSBACH
 - Small fix for ICON-Land standalone concerning nproma
 - New optional tag for the memory usage report
+- New functions for time control: get_previous_month_length and get_previous_year_length
+- Memory reduction: array allocation only if needed with the specific setup
 - Fix for initializing carbon pools from file (read_cpools)
 - The script suite to generate ICON-Land input data now also includes scripts to generate
   HD parameter files (for internal HD) and HD receive masks (for external HD)
 - Bug fix: replace dp by wp in add_var wrappers
 - Added diagnostic variable for volumetric soil moisture content for soil layers
+- Fix for the calculation of snow aging
+- Fix for computation of fast drainage within the ARNO scheme of JSBACH hydrology
+- Represent soil ice as ice volume, not as water equivalent anymore, thereby fixing
+  an energy balance inconsistency during soil ice melt
+- Changed handling of excess soil moisture
 - Changes and fixes for inline documentation
+- Improved vectorization on NEC machines
 - Clean-up of ICON-Land code
+- Bug fix: enable simulations with JSBACH assimilation and LAI prescribed from climatology
 
 ### Externals
 
@@ -48,6 +67,8 @@ Climate: ICON-Land
 - Use OMP and ACC reductions in mo_statistics.f90
 - Use t_tangent_vectors from mo_math_types (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/556)
 - Separate pre_patch related content from mo_model_domain (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/579)
+- Fix GPU-to-GPU communication issues (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/580)
+- Single precision extensions to mo_mpi (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/570)
 
 #### Coupling
 
@@ -56,10 +77,17 @@ Climate: ICON-Land
 #### Scripting and testing
 
 - Increase time limit for test_yaxt_xchange.config experiment
+- Fix atm_memLog experiment scripts and enable tests in buildbot again 
+- Provide configs to setup ICON-Land standalone (jsbalone.config) and AMIP-style (NWP ATM) experiments
+- Add resolution R02B06 to amip script for testing purposes only (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/613)
 
 #### Building
 
 - Fix 'make srclist' on macOS (BSD sed)
+
+#### Miscellaneous
+
+- Improve support for Cray compiler 17+ for AMD GPUs
 
 
 # Release notes for icon-2024.10

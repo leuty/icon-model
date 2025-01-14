@@ -27,7 +27,7 @@ _EOF
 sw_root=${ICON_SW_PREFIX-'/appl/local/climatedt/sw'}
 echo "Using software stack from ${sw_root}"
 
-modules='PrgEnv-cray cce/16.0.1 craype-x86-milan craype-accel-amd-gfx90a rocm cray-mpich libfabric cray-hdf5 cray-netcdf cray-libsci'
+modules='PrgEnv-cray CrayEnv cce/16.0.1 craype-x86-milan craype-accel-amd-gfx90a rocm/5.3.3 cray-mpich/8.1.27 cray-hdf5 cray-netcdf cray-libsci'
 
 ZLIB_LIBS='-lz'
 
@@ -42,7 +42,9 @@ XML2_LIBS='-lxml2'
 
 ################################################################################
 
-BUILD_ENV="module load ${modules}; export LD_LIBRARY_PATH=\"${ECCODES_ROOT}/lib64:${FYAML_ROOT}/lib:${XML2_ROOT}/lib:\${LD_LIBRARY_PATH-}\";"
+# Note: by default system default MPI version is used, independent of the loaded module version. In order to use MPI
+# version specified by module, LD_LIBRARY_PATH needs to be prepended by CRAY_LD_LIBRARY_PATH
+BUILD_ENV="module load ${modules}; export LD_LIBRARY_PATH=\"${ECCODES_ROOT}/lib64:${FYAML_ROOT}/lib:${XML2_ROOT}/lib:\$CRAY_LD_LIBRARY_PATH:\${LD_LIBRARY_PATH-}\";"
 
 CC='cc'
 CPPFLAGS="-I${ECCODES_ROOT}/include -I${FYAML_ROOT}/include -I${XML2_ROOT}/include/libxml2"

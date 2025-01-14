@@ -115,9 +115,11 @@ CONTAINS
       CALL gather_communication_testbed()
 
     CASE(test_exchange_communication)
+      CALL message("", "test_exchange_communication, test_gpu=.FALSE.")
       CALL exchange_communication_testbed()
       CALL exchange_communication_grf_testbed()
 #ifdef _OPENACC
+      CALL message("", "test_exchange_communication, test_gpu=.TRUE.")
       CALL exchange_communication_testbed(test_gpu=.TRUE.)
       CALL exchange_communication_grf_testbed(test_gpu=.TRUE.)
 #endif
@@ -148,8 +150,6 @@ CONTAINS
     CALL destruct_atmo_model()
 !     CALL destruct_icon_communication()
     CALL message(TRIM(method_name),'clean-up finished')
-
-
 
   END SUBROUTINE test_communication
   !-------------------------------------------------------------------------
@@ -1158,7 +1158,8 @@ CONTAINS
       &                 ref_out_array_i_3d = ref_out_array_i_3d, &
       &                 ref_out_array_l_2d = ref_out_array_l_2d, &
       &                 ref_out_array_l_3d = ref_out_array_l_3d, &
-      &                 comm_pattern = comm_pattern)
+      &                 comm_pattern = comm_pattern, &
+      &                 call_id = 1)
 
     add_array_r_2d = MERGE(-1._wp, ref_out_array_r_2d, &
       &                    -1 == RESHAPE(owner_local_dst, (/nproma, 16/)))
@@ -1206,7 +1207,8 @@ CONTAINS
       &                 ref_out_array_i_3d = ref_out_array_i_3d, &
       &                 ref_out_array_l_2d = ref_out_array_l_2d, &
       &                 ref_out_array_l_3d = ref_out_array_l_3d, &
-      &                 comm_pattern = comm_pattern)
+      &                 comm_pattern = comm_pattern, &
+      &                 call_id = 2)
 
     CALL delete_comm_pattern(comm_pattern)
 
@@ -1288,7 +1290,8 @@ CONTAINS
       &                 ref_out_array_i_3d = ref_out_array_i_3d, &
       &                 ref_out_array_l_2d = ref_out_array_l_2d, &
       &                 ref_out_array_l_3d = ref_out_array_l_3d, &
-      &                 comm_pattern = comm_pattern)
+      &                 comm_pattern = comm_pattern, &
+      &                 call_id = 3)
 
     add_array_r_2d = MERGE(-1._wp, ref_out_array_r_2d, &
       &                    -1 == RESHAPE(owner_local_dst, (/nproma, 10/)))
@@ -1336,12 +1339,14 @@ CONTAINS
       &                 ref_out_array_i_3d = ref_out_array_i_3d, &
       &                 ref_out_array_l_2d = ref_out_array_l_2d, &
       &                 ref_out_array_l_3d = ref_out_array_l_3d, &
-      &                 comm_pattern = comm_pattern)
+      &                 comm_pattern = comm_pattern, &
+      &                 call_id = 4)
 
-    out_array_r_2d = in_array_r_2d
+    out_array_r_2d = in_array_r_2d ! (nproma,16), (nproma,10) - 
+                                   ! out_array_r_2d now points to memory of in_array_r_2d, do not deallocate both
     out_array_i_2d = in_array_i_2d
     out_array_l_2d = in_array_l_2d
-    out_array_r_3d = in_array_r_3d
+    out_array_r_3d = in_array_r_3d ! (nproma,nlev,16), (nproma,nlev,10)
     out_array_i_3d = in_array_i_3d
     out_array_l_3d = in_array_l_3d
 
@@ -1368,7 +1373,8 @@ CONTAINS
       &                 ref_out_array_i_3d = ref_out_array_i_3d, &
       &                 ref_out_array_l_2d = ref_out_array_l_2d, &
       &                 ref_out_array_l_3d = ref_out_array_l_3d, &
-      &                 comm_pattern = comm_pattern)
+      &                 comm_pattern = comm_pattern, &
+      &                 call_id = 5)
 
     out_array_r_2d = in_array_r_2d
     out_array_i_2d = in_array_i_2d
@@ -1419,7 +1425,8 @@ CONTAINS
       &                 ref_out_array_i_3d = ref_out_array_i_3d, &
       &                 ref_out_array_l_2d = ref_out_array_l_2d, &
       &                 ref_out_array_l_3d = ref_out_array_l_3d, &
-      &                 comm_pattern = comm_pattern)
+      &                 comm_pattern = comm_pattern, &
+      &                 call_id = 6)
 
     DO n = 1, 16
 
@@ -1427,15 +1434,13 @@ CONTAINS
         &      out_array_dp_4d(n, nproma, nlev, 10), &
         &      ref_out_array_dp_4d(n, nproma, nlev, 10))
 
+      out_array_dp_4d = -1
+
       DO i = 1, nlev
         DO j = 1, n
           in_array_dp_4d(j,:,i,:) = RESHAPE(glb_index_src, (/nproma, 10/)) + &
             &                               (i - 1) * global_size + 0.1_wp * j
-        END DO
-      END DO
-      out_array_dp_4d = -1
-      DO i = 1, nlev
-        DO j = 1, n
+
           ref_out_array_dp_4d(j,:,i,:) = &
             RESHAPE(MERGE(-1._wp, glb_index_dst + (i - 1) * global_size + &
             &             0.1_wp * j, owner_local_dst == -1), (/nproma, 10/))
@@ -1445,7 +1450,7 @@ CONTAINS
       CALL check_exchange_4de1(in_array=in_array_dp_4d, &
         &                      out_array=out_array_dp_4d, &
         &                      ref_out_array=ref_out_array_dp_4d, &
-        &                      comm_pattern=comm_pattern)
+        &                      comm_pattern=comm_pattern, call_id=2*n)
 
       out_array_dp_4d = in_array_dp_4d
       DO i = 1, nlev
@@ -1459,7 +1464,7 @@ CONTAINS
 
       CALL check_exchange_4de1(out_array=out_array_dp_4d, &
         &                      ref_out_array=ref_out_array_dp_4d, &
-        &                      comm_pattern=comm_pattern)
+        &                      comm_pattern=comm_pattern, call_id=1+2*n)
 
       DEALLOCATE(in_array_dp_4d, out_array_dp_4d, ref_out_array_dp_4d)
     END DO
@@ -1857,7 +1862,7 @@ CONTAINS
       &                       ref_out_array_r_2d, ref_out_array_r_3d, &
       &                       ref_out_array_i_2d, ref_out_array_i_3d, &
       &                       ref_out_array_l_2d, ref_out_array_l_3d, &
-      &                       comm_pattern)
+      &                       comm_pattern, call_id)
 
       REAL(wp), OPTIONAL, INTENT(IN) :: in_array_r_2d(:,:), in_array_r_3d(:,:,:)
       INTEGER, OPTIONAL, INTENT(IN) ::  in_array_i_2d(:,:), in_array_i_3d(:,:,:)
@@ -1871,6 +1876,7 @@ CONTAINS
       INTEGER, INTENT(IN) ::  ref_out_array_i_2d(:,:), ref_out_array_i_3d(:,:,:)
       LOGICAL, INTENT(IN) ::  ref_out_array_l_2d(:,:), ref_out_array_l_3d(:,:,:)
       CLASS(t_comm_pattern), POINTER, INTENT(INOUT) :: comm_pattern
+      INTEGER, INTENT(IN) ::  call_id
 
       !$ACC DATA COPYIN(add_array_r_2d, in_array_r_2d) COPY(out_array_r_2d) IF(lzacc)
       CALL exchange_data(p_pat=comm_pattern, lacc=lzacc, recv=out_array_r_2d, &
@@ -1878,7 +1884,7 @@ CONTAINS
         &                l_recv_exists=.TRUE.)
       !$ACC END DATA
       IF (ANY(out_array_r_2d /= ref_out_array_r_2d)) THEN
-        WRITE(message_text,'(a,i0)') "Wrong exchange result r_2d"
+        WRITE(message_text,'(a,i0)') "Wrong exchange result r_2d call_id=", call_id
         CALL finish(method_name, message_text)
       END IF
 
@@ -1887,7 +1893,7 @@ CONTAINS
         &                send=in_array_r_3d, add=add_array_r_3d)
       !$ACC END DATA
       IF (ANY(out_array_r_3d /= ref_out_array_r_3d)) THEN
-        WRITE(message_text,'(a,i0)') "Wrong exchange result r_3d"
+        WRITE(message_text,'(a,i0)') "Wrong exchange result r_3d call_id=", call_id
         CALL finish(method_name, message_text)
       END IF
 
@@ -1897,7 +1903,7 @@ CONTAINS
         &                l_recv_exists=.TRUE.)
       !$ACC END DATA
       IF (ANY(out_array_i_2d /= ref_out_array_i_2d)) THEN
-        WRITE(message_text,'(a,i0)') "Wrong exchange result i_2d"
+        WRITE(message_text,'(a,i0)') "Wrong exchange result i_2d call_id=", call_id
         CALL finish(method_name, message_text)
       END IF
 
@@ -1906,7 +1912,7 @@ CONTAINS
         &                send=in_array_i_3d, add=add_array_i_3d)
       !$ACC END DATA
       IF (ANY(out_array_i_3d /= ref_out_array_i_3d)) THEN
-        WRITE(message_text,'(a,i0)') "Wrong exchange result i_3d"
+        WRITE(message_text,'(a,i0)') "Wrong exchange result i_3d call_id=", call_id
         CALL finish(method_name, message_text)
       END IF
 
@@ -1915,7 +1921,7 @@ CONTAINS
         &                send=in_array_l_2d, l_recv_exists=.TRUE.)
       !$ACC END DATA
       IF (ANY(out_array_l_2d .NEQV. ref_out_array_l_2d)) THEN
-        WRITE(message_text,'(a,i0)') "Wrong exchange result l_2d"
+        WRITE(message_text,'(a,i0)') "Wrong exchange result l_2d call_id=", call_id
         CALL finish(method_name, message_text)
       END IF
 
@@ -1924,19 +1930,20 @@ CONTAINS
         &                send=in_array_l_3d)
       !$ACC END DATA
       IF (ANY(out_array_l_3d .NEQV. ref_out_array_l_3d)) THEN
-        WRITE(message_text,'(a,i0)') "Wrong exchange result l_3d"
+        WRITE(message_text,'(a,i0)') "Wrong exchange result l_3d call_id=", call_id
         CALL finish(method_name, message_text)
       END IF
 
     END SUBROUTINE check_exchange
 
     SUBROUTINE check_exchange_4de1(in_array, out_array, ref_out_array, &
-      &                            comm_pattern)
+      &                            comm_pattern, call_id)
 
       REAL(wp), OPTIONAL, INTENT(IN) :: in_array(:,:,:,:)
       REAL(wp), INTENT(INOUT) :: out_array(:,:,:,:)
       REAL(wp), INTENT(IN) :: ref_out_array(:,:,:,:)
       CLASS(t_comm_pattern), POINTER, INTENT(INOUT) :: comm_pattern
+      INTEGER, INTENT(IN) :: call_id
 
       INTEGER :: nfields, ndim2tot
 
@@ -1949,7 +1956,7 @@ CONTAINS
       !$ACC END DATA
 
       IF (ANY(out_array /= ref_out_array)) THEN
-        WRITE(message_text,'(a,i0)') "Wrong exchange result 4de1"
+        WRITE(message_text,'(a,i0)') "Wrong exchange result 4de1 call_id: ", call_id
         CALL finish(method_name, message_text)
       END IF
 
@@ -3019,12 +3026,6 @@ CONTAINS
     CLASS(t_comm_pattern_collection), POINTER :: comm_pattern_collection
     LOGICAL :: lzacc
 
-    IF (PRESENT(test_gpu)) THEN  ! enable test on GPU if requested, and compiled with openACC
-      lzacc = test_gpu
-    ELSE
-      lzacc = .FALSE.
-    END IF
-
     REAL(wp) :: recv1(nproma,2,18), recv2(nproma,4,18), &
       &         recv3(nproma,6,18), recv4(nproma,8,18), &
       &         recv5(nproma,10,18), recv6(nproma,12,18), &
@@ -3037,6 +3038,12 @@ CONTAINS
       &         ref_recv3(nproma,6,18), ref_recv4(nproma,8,18), &
       &         ref_recv5(nproma,10,18), ref_recv6(nproma,12,18), &
       &         ref_recv4d1(nproma,4,18,6), ref_recv4d2(nproma,8,18,6)
+
+    IF (PRESENT(test_gpu)) THEN  ! enable test on GPU if requested, and compiled with openACC
+      lzacc = test_gpu
+    ELSE
+      lzacc = .FALSE.
+    END IF
 
     !generate communication patterns
     local_size_src = 12 * nproma
@@ -4239,13 +4246,13 @@ CONTAINS
     ! warm-up
     nfields = 1
     DO i = 1, 16
-      CALL exchange_data(comm_pattern, var1)
+      CALL exchange_data(comm_pattern, lacc=.FALSE., recv=var1)
     END DO
     CALL work_mpi_barrier()
     CALL timer_start(timer_1var)
     ! benchmarking
     DO i = 1, testbed_iterations
-      CALL exchange_data(comm_pattern, var1)
+      CALL exchange_data(comm_pattern, lacc=.FALSE., recv=var1)
     END DO
     CALL work_mpi_barrier()
     CALL timer_stop(timer_1var)

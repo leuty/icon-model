@@ -44,7 +44,7 @@ MODULE mo_ice_init_thermo
   USE mo_var_list,            ONLY: add_var, t_var_list_ptr
   USE mo_var_groups,          ONLY: groups
   USE mo_cf_convention,       ONLY: t_cf_var
-  USE mo_grib2,               ONLY: grib2_var
+  USE mo_grib2,               ONLY: grib2_var, t_grib2_var, t_grib2_int_key, OPERATOR(+)
   USE mo_cdi,                 ONLY: DATATYPE_FLT32, DATATYPE_FLT64, DATATYPE_PACK16, GRID_UNSTRUCTURED
   USE mo_cdi_constants,       ONLY: GRID_UNSTRUCTURED_CELL, GRID_CELL,      &
     &                               GRID_UNSTRUCTURED_VERT, GRID_VERTEX,    &
@@ -252,6 +252,23 @@ CONTAINS
       &          grib2_var(255, 255, 255, DATATYPE_PACK16, GRID_UNSTRUCTURED, GRID_CELL),&
       &          ldims=(/nproma,alloc_cell_blocks/), lopenacc=.TRUE.)
     __acc_attach(p_ice%concSum)
+    CALL add_var(ocean_default_list, 'sivol', p_ice%sivol ,&
+      &          GRID_UNSTRUCTURED_CELL, ZA_GENERIC_ICE, &
+      &          t_cf_var('sivol', 'm', 'sea ice volume per unit area', datatype_flt),&
+      &          grib2_var(10, 2, 15, DATATYPE_PACK16, GRID_UNSTRUCTURED, GRID_CELL) &
+      &            + t_grib2_int_key("typeOfFirstFixedSurface",         174)  &
+      &            + t_grib2_int_key("typeOfSecondFixedSurface",        176),  &
+      &          ldims=(/nproma,i_no_ice_thick_class,alloc_cell_blocks/),in_group=groups("ice_default"), lopenacc=.TRUE.)
+    __acc_attach(p_ice%sivol)
+
+    CALL add_var(ocean_default_list, 'snvol', p_ice%snvol ,&
+      &          GRID_UNSTRUCTURED_CELL, ZA_GENERIC_ICE, &
+      &          t_cf_var('snvol', 'm', 'snow volume over sea ice per unit area', datatype_flt),&
+      &          grib2_var(10, 2, 16, DATATYPE_PACK16, GRID_UNSTRUCTURED, GRID_CELL) &
+      &            + t_grib2_int_key("typeOfFirstFixedSurface",         173)  &
+      &            + t_grib2_int_key("typeOfSecondFixedSurface",        175),  &
+      &          ldims=(/nproma,i_no_ice_thick_class,alloc_cell_blocks/),in_group=groups("ice_default"), lopenacc=.TRUE.)
+    __acc_attach(p_ice%snvol)
 
     CALL add_var(ocean_default_list, 'vol', p_ice%vol ,&
       &          GRID_UNSTRUCTURED_CELL, ZA_GENERIC_ICE, &

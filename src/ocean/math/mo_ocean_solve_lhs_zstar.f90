@@ -163,7 +163,7 @@ MODULE mo_surface_height_lhs_zstar
         !$ACC   PRESENT(this%patch_3d%p_patch_2d(1)%cells%edge_idx, this%patch_3d%p_patch_2d(1)%cells%edge_blk) &
         !$ACC   PRESENT(this%patch_3d%p_patch_1d(1)%dolic_e, this%patch_2d%cells%in_domain) &
         !$ACC   PRESENT(this%op_coeffs_wp%grad_coeff, this%op_coeffs_wp%div_coeff, x) &
-        !$ACC   PRESENT(ax) IF(lacc)
+        !$ACC   PRESENT(ax) IF(lzacc)
 
         IF (this%use_shortcut) &
           & CALL finish("t_surface_height_lhs::lhs_surface_height_wp", &

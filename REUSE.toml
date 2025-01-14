@@ -14,6 +14,7 @@ version = 1
 # Documentation and its source files:
 path = [
   "AUTHORS.TXT",
+  "CONTRIBUTING.md",
   "README.md",
   "RELEASE_NOTES.md",
   "config/**/*.readme",
@@ -53,6 +54,8 @@ SPDX-License-Identifier = "CC-BY-4.0"
 [[annotations]]
 # "Unimportant" technical files:
 path = [
+  ".gitlab/issue_templates/bug-report.md",
+  ".gitlab/issue_templates/feature-request.md",
   "config.h.in",
   "config/**/SPACK_TAG_*",
   "run/tolerance/hashes/*",
