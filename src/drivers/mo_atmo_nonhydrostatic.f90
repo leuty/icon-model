@@ -533,7 +533,7 @@ CONTAINS
     IF (ldass_lhn) THEN
       CALL message(routine,'configure_lhn')
       DO jg =1,n_dom
-        CALL configure_lhn(jg)
+        CALL configure_lhn(p_patch(jg))
       ENDDO
       !$ACC ENTER DATA COPYIN(assimilation_config)
 

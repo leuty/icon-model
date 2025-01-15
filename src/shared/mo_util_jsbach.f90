@@ -608,14 +608,13 @@ CONTAINS
 
   LOGICAL FUNCTION is_time_experiment_start(current)
 
-    USE mo_initicon_config, ONLY: timeshift
     USE mo_master_control,  ONLY: get_my_process_name
 
     TYPE(t_datetime), POINTER, INTENT(in) :: current
 
     ! take care of possibe IAU-Timeshift
-    IF (TRIM(get_my_process_name()) == 'atm' .AND. timeshift%dt_shift < 0._wp) THEN
-      is_time_experiment_start = current == time_config%tc_exp_startdate + timeshift%mtime_shift
+    IF (TRIM(get_my_process_name()) == 'atm' .AND. time_config%timeshift%dt_shift < 0._wp) THEN
+      is_time_experiment_start = current == time_config%tc_exp_startdate + time_config%timeshift%mtime_shift
     ELSE
       is_time_experiment_start = current == time_config%tc_exp_startdate
     ENDIF

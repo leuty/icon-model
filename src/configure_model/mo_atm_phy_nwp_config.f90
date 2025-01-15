@@ -34,7 +34,6 @@ MODULE mo_atm_phy_nwp_config
   USE mo_les_config,          ONLY: configure_les, les_config
 #endif
   USE mo_limarea_config,      ONLY: configure_latbc
-  USE mo_initicon_config,     ONLY: timeshift
   USE mo_nwp_tuning_config,   ONLY: itune_o3
   USE mtime,                  ONLY: datetime, timedelta, newTimedelta, event, newEvent, no_Error,     &
     &                               getPTStringFromMS, MAX_TIMEDELTA_STR_LEN, datetimeToString,       &
@@ -691,12 +690,12 @@ CONTAINS
     ! initialize event-management for parameterized physical processes
     !
     ! - Event start/end dates are set equal to the domain start/end dates
-    ! - For the computation of domain start/end dates we have to distinguish 
+    ! - For the computation of domain start/end dates we have to distinguish
     !   between global/master domains (i.e. DOM(1)) and the nests.
     !   Start dates:
-    !   * DOM(1): dom_start_date = tc_exp_startdate + timeshift%dt_shift 
+    !   * DOM(1): dom_start_date = tc_exp_startdate + time_config%timeshift%dt_shift
     !             where dt_shift is a possible timeshift due to IAU.
-    !   * DOM(i>1): dom_start_date = tc_exp_startdate + start_time(i) 
+    !   * DOM(i>1): dom_start_date = tc_exp_startdate + start_time(i)
     !   End dates:
     !   * DOM(1)  : dom_end_date = tc_exp_stopdate
     !   * DOM(i>1): dom_end_date = tc_exp_startdate +  end_time(i)
@@ -704,15 +703,15 @@ CONTAINS
     !
     ! - for each domain, the event start dates are set to
     !   event_start_date(i) =  dom_start_date(i) +  dt_fastphy(i)
-    !   * adding dt_fastphy is necessitated by the fact, that the model time 
+    !   * adding dt_fastphy is necessitated by the fact, that the model time
     !     is updated at the beginning of a timestep.
-    !   * by doing so, care is taken that all physics processes are called during the 
+    !   * by doing so, care is taken that all physics processes are called during the
     !   first integration step of the given patch.
     !
-    ! - initialization calls are not controlled by mtime events. 
-    !   It is decided upon the physical process TYPE metainformation, 
+    ! - initialization calls are not controlled by mtime events.
+    !   It is decided upon the physical process TYPE metainformation,
     !   whether an intialization call should be issued or not.
-    ! 
+    !
     DO jg = 1,n_dom
 
 
@@ -725,8 +724,8 @@ CONTAINS
       ELSE
         domStartDate = time_config%tc_exp_startdate
         ! take care of possibe IAU-Timeshift
-        IF (timeshift%dt_shift < 0._wp) THEN
-          domStartDate = domStartDate + timeshift%mtime_shift
+        IF (time_config%timeshift%dt_shift < 0._wp) THEN
+          domStartDate = domStartDate + time_config%timeshift%mtime_shift
         ENDIF
       ENDIF
       ! Note that the model time is updated at the beginning of a timestep.
