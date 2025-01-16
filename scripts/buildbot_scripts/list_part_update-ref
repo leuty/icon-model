@@ -43,6 +43,22 @@ test_handler = {
             "levante_gpu_nvhpc": "mpi_procs_pernode=3",
         },
     },
+    "exp.aes_amip_test_update_base": {
+        "refgen": "checksuite.icon-dev/pp.refgen_aes_amip_test_update-ref",
+        "machines": {
+            "levante": "ntasks=16 queue=shared,compute memory=32G",
+        },
+        "extra_builders": {
+            "levante_cpu_nvhpc": "ntasks=16 queue=shared memory=32G",
+            "levante_gpu_nvhpc": "mpi_procs_pernode=3",
+        },
+    },
+    "exp.atm_cph_nest_R2B4_test_update_base": {
+        "refgen": "checksuite.icon-dev/pp.refgen_atm_cph_nest_R2B4_test_update-ref",
+        "machines": {
+            "levante": "ntasks=16 queue=shared,compute memory=32G",
+        },
+    },
     "exp.aes_bubble_test_update_base": {
         "refgen": "checksuite.icon-dev/pp.refgen_aes_bubble_test_update-ref",
         "machines": {

@@ -55,6 +55,16 @@ $addexp "checksuite.icon-dev/check.atm_bubble_test_update" --machines "levante" 
 ./rmexp "checksuite.icon-dev/check.atm_bubble_test_update" --builders "levante_nag_serial" --list $listname
 $addexp "checksuite.icon-dev/check.atm_bubble_land_test"  --machines "levante" --list $listname --runflags "ntasks=16 queue=shared"
 $addexp "checksuite.atm/exp.test_coupled_160kmNestedAtm_40kmOce" --builders "levante_gcc_hybrid levante_nag" --list $listname  --runflags "cpu_time=00:10:00 no_of_nodes=2"   
+$addexp "checksuite.icon-dev/check.aes_amip_test"         --machines "levante" --list $listname --runflags "ntasks=16 queue=compute memory=32G"
+./rmexp "checksuite.icon-dev/check.aes_amip_test"         --builders "levante_nag_serial" --list $listname
+$addexp "checksuite.icon-dev/check.aes_amip_test_update"  --machines "levante" --list $listname --runflags "ntasks=16 queue=compute memory=32G"
+./rmexp "checksuite.icon-dev/check.aes_amip_test_update"  --builders "levante_nag_serial" --list $listname
+#
+$addexp "checksuite.icon-dev/check.atm_cph_nest_R2B4_test"         --machines "levante" --list $listname --runflags "ntasks=16 queue=compute memory=32G"
+./rmexp "checksuite.icon-dev/check.atm_cph_nest_R2B4_test"         --builders "levante_cpu_nvhpc levante_gpu_nvhpc levante_nag_serial" --list $listname
+$addexp "checksuite.icon-dev/check.atm_cph_nest_R2B4_test_update"  --machines "levante" --list $listname --runflags "ntasks=16 queue=compute memory=32G"
+./rmexp "checksuite.icon-dev/check.atm_cph_nest_R2B4_test_update"  --builders "levante_cpu_nvhpc levante_gpu_nvhpc levante_nag_serial" --list $listname
+#
 # add qubicc update test on Levante (netcdf) only
 $addexp "checksuite.icon-dev/check.atm_qubicc_nc_update"  --machines "levante" --list $listname --runflags "ntasks=16 queue=compute memory=32G"
 ./rmexp "checksuite.icon-dev/check.atm_qubicc_nc_update"  --builders "levante_nag_serial" --list $listname
