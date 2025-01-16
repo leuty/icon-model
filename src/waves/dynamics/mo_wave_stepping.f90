@@ -67,6 +67,7 @@ MODULE mo_wave_stepping
   USE mo_restart_nml_and_att,      ONLY: getAttributesForRestarting
   USE mo_key_value_store,          ONLY: t_key_value_store
 
+
   IMPLICIT NONE
 
   PRIVATE
@@ -253,7 +254,7 @@ CONTAINS
           &  fp          = p_wave_state(jg)%diag%fp(:,:),                 & !in
           &  alphaj      = p_wave_state(jg)%diag%alphaj(:,:),             & !in
           &  et          = p_wave_state(jg)%diag%et(:,:,:),               & !out  ! purely diagnostic
-          &  tracer      = p_wave_state(jg)%prog(n_now)%tracer(:,:,:,:))    !out
+          &  tracer      = p_wave_state(jg)%prog(n_now)%tracer(:,:,:))      !out
       END IF
 
 
@@ -443,7 +444,7 @@ CONTAINS
 
 
         ! horizontal propagation of binned wave energy
-        ! Here, we integrate the spectral energy equation without sources and sinks,
+        ! Here, we integrate the spectral energy equation in time without sources and sinks,
         ! only taking into account advection and refraction.
         ! If the horizontal propagation is deactivated, a simple copy is performed from
         ! prog(n_now)%tracer to prog(n_new)%tracer

@@ -29,9 +29,7 @@ MODULE mo_wave_advection_stepping
   USE mo_impl_constants_grf,        ONLY: grf_bdywidth_c
   USE mo_loopindices,               ONLY: get_indices_c
   USE mo_model_domain,              ONLY: t_patch
-  USE mo_parallel_config,           ONLY: nproma
   USE mo_grid_config,               ONLY: l_limited_area
-  USE mo_run_config,                ONLY: ntracer
   USE mo_interpol_config,           ONLY: llsq_lin_consv
   USE mo_intp_data_strc,            ONLY: t_int_state
   USE mo_wave_config,               ONLY: t_wave_config
@@ -41,7 +39,7 @@ MODULE mo_wave_advection_stepping
   USE mo_advection_traj,            ONLY: btraj_compute_o1, t_back_traj
   USE mo_advection_hflux,           ONLY: upwind_hflux_miura
   USE mo_fortran_tools,             ONLY: init
-  USE mo_sync,                      ONLY: SYNC_C, sync_patch_array_mult
+  USE mo_sync,                      ONLY: SYNC_C, sync_patch_array
   USE mo_timer,                     ONLY: timer_start, timer_stop, timers_level
   USE mo_wave_timer,                ONLY: timer_wave_propagation, timer_wave_energy_propagation, &
     &                                     timer_wave_grid_refraction
@@ -75,10 +73,10 @@ CONTAINS
       &  p_dtime
 
     REAL(wp),                         INTENT(IN):: & !< wave number at cell center [1/m]
-      &  wave_num_c(:,:,:)                           !< dim: (nproma,nblks_c,nfreqs)
+      &  wave_num_c(:,:,:)                           !< dim: (nproma,nfreqs,nblks_c)
 
     REAL(wp),                         INTENT(IN):: & !< group velocity at cell center [m/s]
-      &  gv_c(:,:,:)                                 !< dim: (nproma,nblks_c,nfreqs)
+      &  gv_c(:,:,:)                                 !< dim: (nproma,nfreqs,nblks_c)
 
     REAL(wp),                         INTENT(IN):: & !< bathymetry at cell center [m]
       &  bathymetry_c(:,:)                           !< dim: (nproma,nblks_c)
@@ -87,31 +85,31 @@ CONTAINS
       &  geo_depth_grad_c(:,:,:)                      !< dim: (2,nproma,nblks_c)
 
     REAL(wp),                         INTENT(IN):: & !< horizontal mass flux at edge midpoints
-      &  p_mflx_h(:,:,:,:)                           !< WAVE: gv_n  [m/s]
-                                                     !< dim: (nproma,nlev,nblks_e,ntracer)
+      &  p_mflx_h(:,:,:)                             !< WAVE: gv_n  [m/s]
+                                                     !< dim: (nproma,ntracer,nblks_e)
 
     REAL(wp),                         INTENT(IN):: & !< edge-normal horizontal group velocity component at n+1/2
-      &  p_vn_traj(:,:,:,:)                          !< for the calculation of backward trajectories
+      &  p_vn_traj(:,:,:)                            !< for the calculation of backward trajectories
                                                      !< [m/s]
-                                                     !< dim: (nproma,nlev,nblks_e,ntracer)
+                                                     !< dim: (nproma,ntracer,nblks_e)
 
    REAL(wp),                          INTENT(IN):: & !< edge-tangential horizontal group velocity component at n+1/2
-      &  p_vt_traj(:,:,:,:)                          !< for the calculation of backward trajectories
+      &  p_vt_traj(:,:,:)                            !< for the calculation of backward trajectories
                                                      !< [m/s]
-                                                     !< dim: (nproma,nlev,nblks_e,ntracer)
+                                                     !< dim: (nproma,ntracer,nblks_e)
 
     REAL(wp), CONTIGUOUS,            INTENT(INOUT):: & !< spectral wave energy
-      &  p_tracer_now(:,:,:,:)                       !< at current time level n (before transport)
+      &  p_tracer_now(:,:,:)                         !< at current time level n (before transport)
                                                      !< [kg/kg]
-                                                     !< dim: (nproma,nlev,nblks_c,ntracer)
+                                                     !< dim: (nproma,ntracer,nblks_c)
 
     REAL(wp), CONTIGUOUS,            INTENT(INOUT) :: & !< spectral wave energy
-      &  p_tracer_new(:,:,:,:)                          !< at time level n+1 (after transport)
-                                                        !< [kg/kg]
-                                                        !< dim: (nproma,nlev,nblks_c,ntracer)
+      &  p_tracer_new(:,:,:)                         !< at time level n+1 (after transport)
+                                                     !< [kg/kg]
+                                                     !< dim: (nproma,ntracer,nblks_c)
 
     ! local
-    INTEGER :: jb, jk, jc, jt
+    INTEGER :: jb, jc, jt
     INTEGER :: i_startidx, i_endidx
     INTEGER :: i_rlstart_c, i_rlend_c
     INTEGER :: i_rlstart_e, i_rlend_e
@@ -144,13 +142,13 @@ CONTAINS
     REAL(wp)::  &
       &  z_rhodz(SIZE(p_tracer_now,1),SIZE(p_tracer_now,2),SIZE(p_tracer_now,3))
     !
-    ! dummy lateral boundary tendencies of transported tracer quantity
+    ! dummy lateral boundary tendencies of transported wave energy
     ! in preparation for WAVE-LAM
     ! set to 0 below
     REAL(wp), TARGET:: &
-      &  z_grf_tend_tracer(SIZE(p_tracer_now,1),SIZE(p_tracer_now,2),SIZE(p_tracer_now,3),SIZE(p_tracer_now,4))
+      &  z_grf_tend_tracer(SIZE(p_tracer_now,1),SIZE(p_tracer_now,2),SIZE(p_tracer_now,3))
     !
-    REAL(wp), POINTER, CONTIGUOUS:: p_grf_tend_tracer(:,:,:,:)
+    REAL(wp), POINTER, CONTIGUOUS:: p_grf_tend_tracer(:,:,:)
     !
 
     !-----------------------------------------------------------------------
@@ -160,13 +158,11 @@ CONTAINS
     IF (timers_level >= 8) CALL timer_start(timer_wave_energy_propagation)
 
     ! halo synchronization for spectral energy, before transport
-    CALL sync_patch_array_mult(typ        = SYNC_C,               &
-      &                        p_patch    = p_patch,              &
-      &                        nfields    = SIZE(p_tracer_now,4), &
-      &                        lacc       = .FALSE.,              &
-      &                        f4din      = p_tracer_now,         &
-      &                        opt_varname='p_tracer_now')
-
+    CALL sync_patch_array(typ        = SYNC_C,         &
+      &                   p_patch    = p_patch,        &
+      &                   arr        = p_tracer_now,   &
+      &                   opt_varname='p_tracer_now',  &
+      &                   lacc       = .FALSE.)
 
     ! pointer to energy_propagation_config to save some paperwork
     enprop_conf => energy_propagation_config
@@ -175,7 +171,7 @@ CONTAINS
     iidx => p_patch%cells%edge_idx
     iblk => p_patch%cells%edge_blk
 
-    p_grf_tend_tracer => z_grf_tend_tracer(:,:,:,:)
+    p_grf_tend_tracer => z_grf_tend_tracer(:,:,:)
 
 
     !$OMP PARALLEL
@@ -203,106 +199,107 @@ CONTAINS
 
 
     ! initialize backward trajectory calculation
-    CALL btraj%construct(nproma,p_patch%nlev,p_patch%nblks_e,2)
+    CALL btraj%construct( nproma = SIZE(p_vn_traj,1), &
+      &                   nlev   = SIZE(p_vn_traj,2), &
+      &                   nblks  = SIZE(p_vn_traj,3), &
+      &                   ncoord = 2 )
 
     z_dthalf = 0.5_wp * p_dtime
 
-    ! there is only one dummy vertical level
-    jk = 1
 
-    TRACER_ADV: DO jt = 1, ntracer ! Tracer loop
-
-      ! 1st order backward trajectory
-      ! note, that the group velocity may depend on the frequency
-      ! Hence, the computation of backward trajectories is required
-      ! for every energy bin.
-      !
-      CALL btraj_compute_o1( btraj       = btraj,              & !inout
-        &                  ptr_p         = p_patch,            & !in
-        &                  ptr_int       = p_int_state,        & !in
-        &                  p_vn          = p_vn_traj(:,:,:,jt),& !in
-        &                  p_vt          = p_vt_traj(:,:,:,jt),& !in
-        &                  p_dthalf      = z_dthalf,           & !in
-        &                  opt_rlstart   = i_rlstart_e,        & !in
-        &                  opt_rlend     = i_rlend_e,          & !in
-        &                  opt_slev      = 1,                  & !in
-        &                  opt_elev      = 1,                  & !in
-        &                  opt_acc_async = .TRUE.              ) !in
+    ! 1st order backward trajectory
+    ! note, that the group velocity depends on wave frequency.
+    ! Hence, the computation of backward trajectories is required
+    ! for each energy bin.
+    !
+    CALL btraj_compute_o1( btraj       = btraj,              & !inout
+      &                  ptr_p         = p_patch,            & !in
+      &                  ptr_int       = p_int_state,        & !in
+      &                  p_vn          = p_vn_traj(:,:,:),   & !in
+      &                  p_vt          = p_vt_traj(:,:,:),   & !in
+      &                  p_dthalf      = z_dthalf,           & !in
+      &                  opt_rlstart   = i_rlstart_e,        & !in
+      &                  opt_rlend     = i_rlend_e,          & !in
+      &                  opt_slev      = 1,                  & !in
+      &                  opt_elev      = SIZE(p_vn_traj,2),  & !in
+      &                  opt_acc_async = .TRUE.              ) !in
 
 
-      ! compute horizontal fluxes of wave energy
-      !
-      ! CALL MIURA with second order accurate reconstruction
-      CALL upwind_hflux_miura(                                &
-        &         p_patch         = p_patch,                  & !in
-        &         p_cc            = p_tracer_now(:,:,:,jt),   & !in
-        &         p_mass_flx_e    = p_mflx_h(:,:,:,jt),       & !in
-        &         p_dtime         = p_dtime,                  & !in
-        &         p_int           = p_int_state,              & !in
-        &         btraj           = btraj,                    & !in
-        &         p_igrad_c_miura = enprop_conf%igrad_c_miura,& !in
-        &         p_itype_hlimit  = enprop_conf%itype_limit,  & !in
-        &         p_out_e         = z_mflx_tracer_h(:,:,:),   & !inout
-        &         opt_rhodz_now   = z_rhodz(:,:,:),           & !in
-        &         opt_rhodz_new   = z_rhodz(:,:,:),           & !in
-        &         opt_lconsv      = llsq_lin_consv,           & !in
-        &         opt_rlstart_e   = i_rlstart_e,              & !in
-        &         opt_rlend_e     = i_rlend_e,                & !in
-        &         opt_slev        = 1,                        & !in
-        &         opt_elev        = 1                         ) !in
+    ! compute horizontal fluxes of wave energy for each energy bin
+    !
+    ! CALL MIURA with second order accurate reconstruction
+    CALL upwind_hflux_miura(                                &
+      &         p_patch         = p_patch,                  & !in
+      &         p_cc            = p_tracer_now(:,:,:),      & !in
+      &         p_mass_flx_e    = p_mflx_h(:,:,:),          & !in
+      &         p_dtime         = p_dtime,                  & !in
+      &         p_int           = p_int_state,              & !in
+      &         btraj           = btraj,                    & !in
+      &         p_igrad_c_miura = enprop_conf%igrad_c_miura,& !in
+      &         p_itype_hlimit  = enprop_conf%itype_limit,  & !in
+      &         p_out_e         = z_mflx_tracer_h(:,:,:),   & !inout
+      &         opt_rhodz_now   = z_rhodz(:,:,:),           & !in
+      &         opt_rhodz_new   = z_rhodz(:,:,:),           & !in
+      &         opt_lconsv      = llsq_lin_consv,           & !in
+      &         opt_rlstart_e   = i_rlstart_e,              & !in
+      &         opt_rlend_e     = i_rlend_e,                & !in
+      &         opt_slev        = 1,                        & !in
+      &         opt_elev        = SIZE(p_tracer_now,2)      ) !in
 
 
 
       ! update wave energy, by computing the horizontal flux divergence
       !
 !$OMP PARALLEL
-!$OMP DO PRIVATE(jb,jc,i_startidx,i_endidx,z_fluxdiv_c)
-      DO jb = i_startblk_c, i_endblk_c
+!$OMP DO PRIVATE(jb,jc,jt,i_startidx,i_endidx,z_fluxdiv_c)
+    DO jb = i_startblk_c, i_endblk_c
 
-        CALL get_indices_c(p_patch, jb, i_startblk_c, i_endblk_c, &
-                     i_startidx, i_endidx, i_rlstart_c, i_rlend_c)
+      CALL get_indices_c(p_patch, jb, i_startblk_c, i_endblk_c, &
+                   i_startidx, i_endidx, i_rlstart_c, i_rlend_c)
 
+      DO jt = 1, SIZE(p_tracer_new,2) ! Tracer loop
         ! compute horizontal flux divergences and update wave energy
         !
         DO jc = i_startidx, i_endidx
           z_fluxdiv_c =                                                                         &
-            & z_mflx_tracer_h(iidx(jc,jb,1),jk,iblk(jc,jb,1))*p_int_state%geofac_div(jc,1,jb) + &
-            & z_mflx_tracer_h(iidx(jc,jb,2),jk,iblk(jc,jb,2))*p_int_state%geofac_div(jc,2,jb) + &
-            & z_mflx_tracer_h(iidx(jc,jb,3),jk,iblk(jc,jb,3))*p_int_state%geofac_div(jc,3,jb)
+            & z_mflx_tracer_h(iidx(jc,jb,1),jt,iblk(jc,jb,1))*p_int_state%geofac_div(jc,1,jb) + &
+            & z_mflx_tracer_h(iidx(jc,jb,2),jt,iblk(jc,jb,2))*p_int_state%geofac_div(jc,2,jb) + &
+            & z_mflx_tracer_h(iidx(jc,jb,3),jt,iblk(jc,jb,3))*p_int_state%geofac_div(jc,3,jb)
 
-           ! update the wave energy, by applying the flux divergence
+           ! update wave energy field, by applying the flux divergence
            !
-           p_tracer_new(jc,jk,jb,jt) = p_tracer_now(jc,jk,jb,jt) - p_dtime * z_fluxdiv_c
+           p_tracer_new(jc,jt,jb) = p_tracer_now(jc,jt,jb) - p_dtime * z_fluxdiv_c
         ENDDO  !jc
-      ENDDO  !jb
+      ENDDO !jt
+    ENDDO  !jb
 !$OMP END DO
 
-      ! update lateral boundary values of wave energy with interpolated time tendencies
-      ! (limited area mode only)
-      !
-      IF (l_limited_area .OR. p_patch%id > 1) THEN
+    ! update lateral boundary values of wave energy with interpolated time tendencies
+    ! (limited area mode only)
+    !
+    IF (l_limited_area .OR. p_patch%id > 1) THEN
 
-!$OMP DO PRIVATE(jb,jc,i_startidx,i_endidx)
-        DO jb = i_startblk_bdy, i_endblk_bdy
+!$OMP DO PRIVATE(jb,jc,jt,i_startidx,i_endidx)
+      DO jb = i_startblk_bdy, i_endblk_bdy
 
-          CALL get_indices_c(p_patch, jb, i_startblk_bdy, i_endblk_bdy, &
-                             i_startidx, i_endidx, i_rlstart_bdy, i_rlend_bdy)
+        CALL get_indices_c(p_patch, jb, i_startblk_bdy, i_endblk_bdy, &
+                           i_startidx, i_endidx, i_rlstart_bdy, i_rlend_bdy)
 
+        DO jt = 1, SIZE(p_tracer_new,2) ! Tracer loop
           ! Tracer values are clipped here to avoid generation of negative values
           ! For mass conservation, a correction has to be applied in the
           ! feedback routine anyway
           DO jc = i_startidx, i_endidx
-            p_tracer_new(jc,jk,jb,jt) =                            &
-              &     MAX(0._wp, p_tracer_now(jc,jk,jb,jt)           &
-              &   + p_dtime * p_grf_tend_tracer(jc,jk,jb,jt) )
+            p_tracer_new(jc,jt,jb) =                            &
+              &     MAX(0._wp, p_tracer_now(jc,jt,jb)           &
+              &   + p_dtime * p_grf_tend_tracer(jc,jt,jb) )
           ENDDO
-        ENDDO  !jb
+        ENDDO !jt
+      ENDDO  !jb
 !$OMP END DO NOWAIT
 
-      ENDIF ! l_limited_area
+    ENDIF ! l_limited_area
 !$OMP END PARALLEL
-
-    END DO TRACER_ADV
 
 
     CALL btraj%destruct()
@@ -319,13 +316,13 @@ CONTAINS
         &                  gv_c        = gv_c(:,:,:),              & !in
         &                  depth       = bathymetry_c(:,:),        & !in
         &                  depth_grad  = geo_depth_grad_c(:,:,:),  & !in
-        &                  tracer_now  = p_tracer_now(:,:,:,:),    & !in
-        &                  tracer_new  = p_tracer_new(:,:,:,:))      !inout
+        &                  tracer_now  = p_tracer_now(:,:,:),      & !in
+        &                  tracer_new  = p_tracer_new(:,:,:))        !inout
 
       ! Set energy to absolute allowed minimum
       CALL set_energy2emin(p_patch     = p_patch,              & !in
         &                  wave_config = wave_config,          & !in
-        &                  tracer      = p_tracer_new(:,:,:,:))  !inout
+        &                  tracer      = p_tracer_new(:,:,:))    !inout
     END IF
     IF (timers_level >= 8) CALL timer_stop(timer_wave_grid_refraction)
 

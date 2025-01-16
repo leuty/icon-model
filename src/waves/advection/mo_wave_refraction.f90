@@ -57,15 +57,15 @@ CONTAINS
     REAL(wp),                    INTENT(IN)   :: gv_c(:,:,:)         ! group velocity at cell centers
     REAL(wp),                    INTENT(IN)   :: depth(:,:)
     REAL(wp),                    INTENT(IN)   :: depth_grad(:,:,:)   ! bathymetry gradient (2,jc,jb)
-    REAL(wp),                    INTENT(IN)   :: tracer_now(:,:,:,:) ! energy before transport
-    REAL(wp),                    INTENT(INOUT):: tracer_new(:,:,:,:)
+    REAL(wp),                    INTENT(IN)   :: tracer_now(:,:,:)   ! energy before transport
+    REAL(wp),                    INTENT(INOUT):: tracer_new(:,:,:)
 
 
     TYPE(t_wave_config), POINTER :: wc => NULL()
 
     INTEGER :: i_rlstart, i_rlend, i_startblk, i_endblk
     INTEGER :: i_startidx, i_endidx
-    INTEGER :: jc,jb,jf,jd,jk
+    INTEGER :: jc,jb,jf,jd
     INTEGER :: jt,jtm1,jtp1                       !< tracer index
 
     REAL(wp) :: DELTHR, DELTH, DELTR, DELTH0, sm, sp, ak, akd, DTP, DTM, dDTC, temp, tsihkd
@@ -83,7 +83,6 @@ CONTAINS
     i_rlend    = min_rlcell
     i_startblk = p_patch%cells%start_block(i_rlstart)
     i_endblk   = p_patch%cells%end_block(i_rlend)
-    jk         = p_patch%nlev
 
 
 !$OMP PARALLEL
@@ -99,7 +98,7 @@ CONTAINS
             temp = (SIN(wc%dirs(jd)) + SIN(wc%dirs(wc%dir_neig_ind(2,jd)))) * depth_grad(2,jc,jb) &
                  - (COS(wc%dirs(jd)) + COS(wc%dirs(wc%dir_neig_ind(2,jd)))) * depth_grad(1,jc,jb)
 
-            ak = wave_num_c(jc,jb,jf)
+            ak = wave_num_c(jc,jf,jb)
             akd = ak * depth(jc,jb)
 
             IF (akd <= 10.0_wp) THEN
@@ -125,7 +124,7 @@ CONTAINS
 
           DO jc = i_startidx, i_endidx
 
-            DTP = SIN(p_patch%cells%center(jc,jb)%lat) / COS(p_patch%cells%center(jc,jb)%lat) * gv_c(jc,jb,jf)
+            DTP = SIN(p_patch%cells%center(jc,jb)%lat) / COS(p_patch%cells%center(jc,jb)%lat) * gv_c(jc,jf,jb)
 
             DTM = DTP * SM + thdd(jc,wc%dir_neig_ind(1,jd)) * DELTHR
             DTP = DTP * SP + thdd(jc,jd) * DELTHR
@@ -134,9 +133,9 @@ CONTAINS
             DTP  = -MIN(0._wp , DTP)
             DTM  =  MAX(0._wp , DTM)
 
-            delta_ref(jc,jt) = dDTC * tracer_now(jc,jk,jb,jt) &
-                 + DTM * tracer_now(jc,jk,jb,jtm1)  &
-                 + DTP * tracer_now(jc,jk,jb,jtp1)
+            delta_ref(jc,jt) = dDTC * tracer_now(jc,jt,jb)    &
+              &              +  DTM * tracer_now(jc,jtm1,jb)  &
+              &              +  DTP * tracer_now(jc,jtp1,jb)
           END DO !jc
         END DO !jd
       END DO !jf
@@ -145,7 +144,7 @@ CONTAINS
         DO jd = 1,wc%ndirs
           jt = wc%tracer_ind(jd,jf)
           DO jc = i_startidx, i_endidx
-            tracer_new(jc,jk,jb,jt) = tracer_new(jc,jk,jb,jt) + delta_ref(jc,jt)
+            tracer_new(jc,jt,jb) = tracer_new(jc,jt,jb) + delta_ref(jc,jt)
           END DO !jc
         END DO !jd
       END DO !jf

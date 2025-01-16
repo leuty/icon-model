@@ -532,7 +532,7 @@ CONTAINS
   !
   FUNCTION vertical_axis(za_type, in_nlevs, levels, level_selection,  &
     &                    opt_set_bounds, opt_set_ubounds_value,       &
-    &                    opt_name, opt_number, opt_nlevref,           &
+    &                    opt_name, opt_unit, opt_number, opt_nlevref, &
     &                    opt_uuid, opt_set_vct_as_levels,             &
     &                    opt_vct)  RESULT(axis)
 
@@ -545,6 +545,7 @@ CONTAINS
     LOGICAL,      INTENT(IN), OPTIONAL :: opt_set_bounds                !< Flag. Set lower/upper bounds if .TRUE.
     REAL(dp),     INTENT(IN), OPTIONAL :: opt_set_ubounds_value         !< Explicit value for ubounds
     CHARACTER(*), INTENT(IN), OPTIONAL :: opt_name                      !< Name of the zaxis
+    CHARACTER(*), INTENT(IN), OPTIONAL :: opt_unit                      !< Unit of the zaxis
     INTEGER,      INTENT(IN), OPTIONAL :: opt_number                    !< numberOfVGridUsed
     LOGICAL,      INTENT(IN), OPTIONAL :: opt_set_vct_as_levels         !< set VCT to level values
     INTEGER,      INTENT(IN), OPTIONAL :: opt_nlevref                   !< no. of half levels
@@ -589,6 +590,7 @@ CONTAINS
     CALL axis%set(zaxisLevels=axis_levels) !necessary for GRIB2
 
     IF (PRESENT(opt_name)) CALL axis%set(zaxisName=TRIM(opt_name))
+    IF (PRESENT(opt_unit)) CALL axis%set(zaxisUnits=TRIM(opt_unit))
 
     set_bounds = .FALSE.
     IF (PRESENT(opt_set_bounds)) set_bounds = opt_set_bounds

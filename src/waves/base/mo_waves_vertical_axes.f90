@@ -14,11 +14,13 @@
 MODULE mo_waves_vertical_axes
 
   USE mo_kind,                              ONLY: dp
-  USE mo_zaxis_type,                        ONLY: ZA_SURFACE, ZA_HEIGHT_10M, ZA_reference
+  USE mo_zaxis_type,                        ONLY: ZA_SURFACE, ZA_HEIGHT_10M,  &
+    &                                             ZA_FREQ_GENERIC, ZA_TR_GENERIC
   USE mo_name_list_output_zaxes_types,      ONLY: t_verticalAxisList
   USE mo_name_list_output_zaxes,            ONLY: single_level_axis, vertical_axis
   USE mo_level_selection_types,             ONLY: t_level_selection
   USE mo_run_config,                        ONLY: num_lev
+  USE mo_wave_config,                       ONLY: t_wave_config, wave_config
 
   IMPLICIT NONE
 
@@ -36,6 +38,11 @@ CONTAINS
 
     ! local
     INTEGER :: k
+    INTEGER :: ntr    ! nfreqs*ndirs
+    TYPE(t_wave_config), POINTER :: wc
+
+    ! convenience pointer
+    wc => wave_config(log_patch_id)
 
     ! --------------------------------------------------------------------------------------
     ! Definitions for single levels --------------------------------------------------------
@@ -47,14 +54,25 @@ CONTAINS
     ! Specified height level above ground: 10m
     CALL verticalAxisList%append(single_level_axis(ZA_height_10m, opt_level_value=10._dp))
 
-    ! --------------------------------------------------------------------------------------
-    ! Dummy vertical axis with a single full level -----------------------------------------
-    ! --------------------------------------------------------------------------------------
-    ! REFERENCE
-    CALL verticalAxisList%append(vertical_axis(ZA_reference, num_lev(log_patch_id),                       &
-      &                           levels           = (/ ( REAL(k,dp),   k=1,num_lev(log_patch_id)+1 ) /), &
-      &                           level_selection  = level_selection,                                     &
-      &                           opt_set_bounds   = .TRUE. )                                             )
+    ! ZA_FREQ_GENERIC
+    ! vertical axis for 3D fields which are a function of frequency
+    CALL verticalAxisList%append(vertical_axis(                             &
+      &                           za_type          = ZA_FREQ_GENERIC,       &
+      &                           in_nlevs         = wc%nfreqs,             &
+      &                           levels           = REAL(wc%freqs(:),dp),  &
+      &                           level_selection  = level_selection,       &
+      &                           opt_name         = "freq",                &
+      &                           opt_unit         = "s-1"))
+
+    ! ZA_TR_GENERIC
+    ! vertical axis for 3D fields which are a function of tracer index
+    ntr = wc%nfreqs * wc%ndirs
+    CALL verticalAxisList%append(vertical_axis(                                       &
+      &                           za_type          = ZA_TR_GENERIC,                   &
+      &                           in_nlevs         = ntr,                             &
+      &                           levels           = (/ ( REAL(k,dp),   k=1,ntr ) /), &
+      &                           level_selection  = level_selection,                 &
+      &                           opt_name         = "tr_ind"))
 
   END SUBROUTINE setup_zaxes_waves
 

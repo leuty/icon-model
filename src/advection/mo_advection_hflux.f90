@@ -674,15 +674,16 @@ CONTAINS
                                        !< i.e. output flux across the edge
 
     REAL(vp), TARGET ::    &                   !< reconstructed gradient vector at
-      &  z_grad(2,nproma,p_patch%nlev,p_patch%nblks_c)
+      &  z_grad(2,SIZE(p_cc,1),SIZE(p_cc,2),SIZE(p_cc,3))
                                                !< cell center (geographical coordinates)
+                                               !< dim: (2,nproma,p_patch%nlev,p_patch%nblks_c)
 
     REAL(wp), TARGET ::    &                        !< coefficient of the lsq reconstruction
-      &  z_lsq_coeff(3,nproma,p_patch%nlev,p_patch%nblks_c)
+      &  z_lsq_coeff(3,SIZE(p_cc,1),SIZE(p_cc,2),SIZE(p_cc,3))
                                                     !< at cell center (geogr. coordinates)
                                                     !< includes coeff0 and gradients in
                                                     !< zonal and meridional direction
-
+                                                    !< dim: (3,nproma,p_patch%nlev,p_patch%nblks_c)
     INTEGER  :: pid
     INTEGER  :: slev, elev         !< vertical start and end level
     INTEGER  :: je, jk, jb         !< index of edge, vert level, block

@@ -70,8 +70,8 @@ CONTAINS
     REAL(wp),            INTENT(IN)   :: wave_num_e(:,:,:) !< wave number at edge midpoints (1/m)
     REAL(wp),            INTENT(INOUT):: gv_c(:,:,:)       !< group velocity at cell center (absolute value)  ( m/s )
     REAL(wp),            INTENT(INOUT):: gv_e(:,:,:)       !< group velocity edge midpoint (absolute value)  ( m/s )
-    REAL(wp),            INTENT(INOUT):: gvn_e(:,:,:,:)    !< edge-normal group velocity ( m/s )
-    REAL(wp),            INTENT(INOUT):: gvt_e(:,:,:,:)    !< edge-tangential group velocity  ( m/s )
+    REAL(wp),            INTENT(INOUT):: gvn_e(:,:,:)      !< edge-normal group velocity ( m/s )
+    REAL(wp),            INTENT(INOUT):: gvt_e(:,:,:)      !< edge-tangential group velocity  ( m/s )
 
     ! compute absolute value of group velocity at cell centers
     !
@@ -88,7 +88,7 @@ CONTAINS
       &  p_patch      = p_patch,           & !in
       &  p_config     = wave_config,       & !in
       &  wave_num_e   = wave_num_e(:,:,:), & !in
-      &  depth_e      = depth_e(:,:), & !in
+      &  depth_e      = depth_e(:,:),      & !in
       &  gv_e         = gv_e(:,:,:))         !out
 
 
@@ -98,8 +98,8 @@ CONTAINS
       &  p_patch      = p_patch,           & !in
       &  p_config     = wave_config,       & !in
       &  gv_e         = gv_e(:,:,:),       & !in
-      &  gvn_e        = gvn_e(:,:,:,:),    & !out
-      &  gvt_e        = gvt_e(:,:,:,:))      !out
+      &  gvn_e        = gvn_e(:,:,:),      & !out
+      &  gvt_e        = gvt_e(:,:,:))        !out
 
     ! Set the wave group velocity to zero at the boundary edge
     ! in case of wave energy propagation towards the ocean,
@@ -107,7 +107,7 @@ CONTAINS
     CALL wave_group_velocity_bnd(          &
       &  p_patch      = p_patch,           & !in
       &  p_config     = wave_config,       & !in
-      &  gvn_e        = gvn_e(:,:,:,:))      !inout
+      &  gvn_e        = gvn_e(:,:,:))        !inout
 
   END SUBROUTINE compute_group_velocity
 
@@ -127,7 +127,7 @@ CONTAINS
     TYPE(t_wave_config), INTENT(IN)   :: p_config
     REAL(wp),            INTENT(IN)   :: wave_num_c(:,:,:) !< wave number (1/m)
     REAL(wp),            INTENT(IN)   :: bathymetry_c(:,:) !< bathymetric height at cell centers (nproma,nblks_c) ( m )
-    REAL(wp),            INTENT(INOUT):: gv_c(:,:,:)       !< group velocity (nproma,nlev,nblks_c,ndirs*nfreqs)  ( m/s )
+    REAL(wp),            INTENT(INOUT):: gv_c(:,:,:)       !< group velocity (nproma,nfreqs,nblks_c)  ( m/s )
 
     INTEGER :: i_rlstart, i_rlend, i_startblk, i_endblk
     INTEGER :: i_startidx, i_endidx
@@ -155,7 +155,7 @@ CONTAINS
 
         DO jc = i_startidx, i_endidx
           ! shallow water group velocity
-          ak = wave_num_c(jc,jb,jf)
+          ak = wave_num_c(jc,jf,jb)
           akd = ak * bathymetry_c(jc,jb)
 
           IF (akd <= 10.0_wp) THEN
@@ -163,7 +163,7 @@ CONTAINS
           ELSE
             gv = gh / p_config%freqs(jf)
           END IF
-          gv_c(jc,jb,jf) = gv
+          gv_c(jc,jf,jb) = gv
         END DO
       END DO
     END DO
@@ -187,7 +187,7 @@ CONTAINS
     TYPE(t_wave_config), INTENT(IN)   :: p_config
     REAL(wp),            INTENT(IN)   :: wave_num_e(:,:,:) !< wave number (1/m)
     REAL(wp),            INTENT(IN)   :: depth_e(:,:)      !< water depth at cell edges (nproma,nblks_e) ( m )
-    REAL(wp),            INTENT(INOUT):: gv_e(:,:,:)     !< group velocity (nproma,nlev,nblks_c,ndirs*nfreqs)  ( m/s )
+    REAL(wp),            INTENT(INOUT):: gv_e(:,:,:)       !< group velocity (nproma,nfreqs,nblks_c)  ( m/s )
 
     INTEGER :: i_rlstart, i_rlend, i_startblk, i_endblk
     INTEGER :: i_startidx, i_endidx
@@ -215,7 +215,7 @@ CONTAINS
 
         DO je = i_startidx, i_endidx
           ! shallow water group velocity
-          ak = wave_num_e(je,jb,jf)
+          ak = wave_num_e(je,jf,jb)
           akd = ak * depth_e(je,jb)
 
           IF (akd <= 10.0_wp) THEN
@@ -223,7 +223,7 @@ CONTAINS
           ELSE
             gv = gh / p_config%freqs(jf)
           END IF
-          gv_e(je,jb,jf) = gv
+          gv_e(je,jf,jb) = gv
         END DO
       END DO
     END DO
@@ -247,9 +247,9 @@ CONTAINS
 
     TYPE(t_patch),       INTENT(IN)   :: p_patch
     TYPE(t_wave_config), INTENT(IN)   :: p_config
-    REAL(wp),            INTENT(IN)   :: gv_e(:,:,:)   !< group velocity (nproma,nblks_e,nfreqs)  ( m/s )
-    REAL(wp),            INTENT(INOUT):: gvn_e(:,:,:,:)!< normal group velocity (nproma,1,nblks_e,dirs*nfreqs)  ( m/s )
-    REAL(wp),            INTENT(INOUT):: gvt_e(:,:,:,:)!< tangential group velocity (nproma,1,nblks_e,ndirs*nfreqs)  ( m/s )
+    REAL(wp),            INTENT(IN)   :: gv_e(:,:,:)  !< group velocity (nproma,nfreqs,nblks_e)  ( m/s )
+    REAL(wp),            INTENT(INOUT):: gvn_e(:,:,:) !< normal group velocity (nproma,dirs*nfreqs,nblks_e)  ( m/s )
+    REAL(wp),            INTENT(INOUT):: gvt_e(:,:,:) !< tangential group velocity (nproma,ndirs*nfreqs,nblks_e)  ( m/s )
 
     INTEGER :: i_rlstart, i_rlend, i_startblk, i_endblk
     INTEGER :: i_startidx, i_endidx
@@ -275,14 +275,14 @@ CONTAINS
         DO jd = 1, ndirs
           jt = p_config%tracer_ind(jd,jf)
           DO je = i_startidx, i_endidx
-            gvu = gv_e(je,jb,jf) * SIN(p_config%dirs(jd))
-            gvv = gv_e(je,jb,jf) * COS(p_config%dirs(jd))
+            gvu = gv_e(je,jf,jb) * SIN(p_config%dirs(jd))
+            gvv = gv_e(je,jf,jb) * COS(p_config%dirs(jd))
 
-            gvn_e(je,1,jb,jt) = &
+            gvn_e(je,jt,jb) = &
                  gvu * p_patch%edges%primal_normal(je,jb)%v1 + &
                  gvv * p_patch%edges%primal_normal(je,jb)%v2
 
-            gvt_e(je,1,jb,jt) = &
+            gvt_e(je,jt,jb) = &
                  gvu * p_patch%edges%dual_normal(je,jb)%v1 + &
                  gvv * p_patch%edges%dual_normal(je,jb)%v2
           END DO
@@ -324,7 +324,7 @@ CONTAINS
 
     TYPE(t_patch),       INTENT(IN)   :: p_patch
     TYPE(t_wave_config), INTENT(IN)   :: p_config
-    REAL(wp),            INTENT(INOUT):: gvn_e(:,:,:,:)!< normal group velocity (nproma,nlev,nblks_e,dirs*nfreqs)  ( m/s )
+    REAL(wp),            INTENT(INOUT):: gvn_e(:,:,:)!< normal group velocity (nproma,dirs*nfreqs,nblks_e)  ( m/s )
 
     ! local variables
     REAL(wp):: gv
@@ -389,8 +389,8 @@ CONTAINS
           DO ic = 1, cnt
             jje = ile(ic)
             jjb = ibe(ic)
-            is_towards_coastline = (e_orient(ic) * gvn_e(jje,1,jjb,jt)) > 0._wp
-            gvn_e(jje,1,jjb,jt) = MERGE(gv, 0.0_wp, is_towards_coastline)
+            is_towards_coastline = (e_orient(ic) * gvn_e(jje,jt,jjb)) > 0._wp
+            gvn_e(jje,jt,jjb) = MERGE(gv, 0.0_wp, is_towards_coastline)
           ENDDO  !jc
         ENDDO  !jd
       ENDDO  !jf
@@ -398,100 +398,6 @@ CONTAINS
     ENDDO  !jb
 
   END SUBROUTINE wave_group_velocity_bnd
-
-
-!!$  !>
-!!$  !! Correction of normal to edge group velocity,
-!!$  !! avoiding of wave energy propagation from land
-!!$  !! and insuring full "outflow" of wave energy towards land.
-!!$  !!
-!!$  !! Set the wave group velocity to zero at the boundary edge
-!!$  !! in case of wave energy propagation towards the ocean,
-!!$  !! and set gn = deep water group velocity otherwise
-!!$  !!
-!!$  SUBROUTINE wave_group_velocity_bnd(p_patch, p_config, gvn_e)
-!!$
-!!$    CHARACTER(len=MAX_CHAR_LENGTH), PARAMETER ::  &
-!!$         &  routine = modname//':wave_group_velocity_bnd'
-!!$
-!!$    TYPE(t_patch),       INTENT(IN)   :: p_patch
-!!$    TYPE(t_wave_config), INTENT(IN)   :: p_config
-!!$    REAL(wp),            INTENT(INOUT):: gvn_e(:,:,:)!< normal group velocity (nproma,nblks_e,dirs*nfreqs)  ( m/s )
-!!$
-!!$    INTEGER :: i_rlstart_c, i_rlend_c
-!!$    INTEGER :: i_rlstart_e, i_rlend_e
-!!$    INTEGER :: i_startblk_c, i_endblk_c
-!!$    INTEGER :: i_startblk_e, i_endblk_e
-!!$    INTEGER :: i_startidx_c, i_endidx_c
-!!$    INTEGER :: i_startidx_e, i_endidx_e
-!!$    INTEGER :: jb,jf,jd,jt,je,jc,ie_local,iel
-!!$    INTEGER :: nfreqs, ndirs
-!!$
-!!$    REAL(wp) :: gv
-!!$
-!!$    nfreqs = p_config%nfreqs
-!!$    ndirs  = p_config%ndirs
-!!$
-!!$    !TO DO: make index for edges with corrected gn in base/mo_wave_toolbox.f90
-!!$    !TO DO: make function for deep_water_gv(freq) (gv = group velocity)
-!!$    !                gv = grav / (2.0_wp * pi2 * freqs))
-!!$
-!!$    i_rlstart_e  = 1
-!!$    i_rlend_e    = min_rledge
-!!$    i_startblk_e   = p_patch%edges%start_block(i_rlstart_e)
-!!$    i_endblk_e     = p_patch%edges%end_block(i_rlend_e)
-!!$
-!!$    i_rlstart_c = 1
-!!$    i_rlend_c   = min_rlcell
-!!$    i_startblk_c = p_patch%cells%start_block(i_rlstart_c)
-!!$    i_endblk_c   = p_patch%cells%end_block(i_rlend_c)
-!!$
-!!$    ie_local = 1
-!!$    DO jb = i_startblk_e, i_endblk_e
-!!$      CALL get_indices_e(p_patch, jb, i_startblk_e, i_endblk_e, &
-!!$           &                i_startidx_e, i_endidx_e, i_rlstart_e, i_rlend_e)
-!!$      CALL get_indices_c(p_patch, jb, i_startblk_c, i_endblk_c, &
-!!$           &                i_startidx_c, i_endidx_c, i_rlstart_c, i_rlend_c)
-!!$
-!!$      DO je = i_startidx_e, i_endidx_e
-!!$        IF (p_patch%edges%refin_ctrl(je,jb).eq.1) THEN !or .le. 3
-!!$          !IF (ANY(p_patch%edges%cell_idx(je,jb,1:2) .le. 0)) THEN
-!!$          DO jc = i_startidx_c, i_endidx_c
-!!$            DO iel = 1, 3
-!!$              IF ((p_patch%cells%edge_idx(jc,jb,iel) == je) &
-!!$                   .AND. (p_patch%cells%edge_blk(jc,jb,iel) == jb)) THEN
-!!$                ie_local = iel
-!!$                DO jf = 1, nfreqs
-!!$                  !deep water group velocity
-!!$                  gv = grav / (2.0_wp * pi2 * p_config%freqs(jf))
-!!$                  DO jd = 1, ndirs
-!!$                    jt = p_config%get_tracer_id(jd,jf)
-!!$                    If (p_patch%cells%edge_orientation(jc,jb,ie_local).gt.0) THEN ! > 0 - outwards
-!!$                      IF (gvn_e(je,jb,jt).ge.0.0_wp) THEN ! > 0 - outwards
-!!$                        ! towards coastline
-!!$                        gvn_e(je,jb,jt) = gv
-!!$                      ELSE
-!!$                        ! towards ocean
-!!$                        gvn_e(je,jb,jt) = 0.0_wp
-!!$                      END IF
-!!$                    ELSE IF (p_patch%cells%edge_orientation(jc,jb,ie_local).lt.0) THEN ! < 0 - inwards
-!!$                      IF (gvn_e(je,jb,jt).ge.0.0_wp) THEN !  0 - inwards
-!!$                        ! towards ocean
-!!$                        gvn_e(je,jb,jt) = 0.0_wp
-!!$                      ELSE
-!!$                        ! towards coastline
-!!$                        gvn_e(je,jb,jt) = gv
-!!$                      END IF
-!!$                    END IF
-!!$                  END DO
-!!$                END DO
-!!$              END IF
-!!$            END DO
-!!$          END DO
-!!$        END IF
-!!$      END DO
-!!$    END DO
-!!$  END SUBROUTINE wave_group_velocity_bnd
 
 
   !>
@@ -612,8 +518,8 @@ CONTAINS
 
     TYPE(t_patch),               INTENT(IN)    :: p_patch
     TYPE(t_wave_config), TARGET, INTENT(IN)    :: wave_config
-    REAL(wp), INTENT(IN)  :: tracer(:,:,:,:) !energy spectral bins (nproma,nlev,nblks_c,ntracer)
-    INTEGER,  INTENT(IN)  :: llws(:,:,:)   !=1 where wind_input is positive (nproma,nblks_c,ntracer)
+    REAL(wp), INTENT(IN)  :: tracer(:,:,:) !energy spectral bins (nproma,ntracer,nblks_c)
+    INTEGER,  INTENT(IN)  :: llws(:,:,:)   !=1 where wind_input is positive (nproma,ntracer,nblks_c)
     REAL(wp), INTENT(IN)  :: emean(:,:)    !total energy (nproma,nblks_c)
     REAL(wp), INTENT(IN)  :: emeanws(:,:)  !total windsea energy (nproma,nblks_c)
     REAL(wp), INTENT(INOUT) :: femean(:,:)   !mean frequency energy (nproma,nblks_c)
@@ -621,7 +527,7 @@ CONTAINS
 
     INTEGER :: i_rlstart, i_rlend, i_startblk, i_endblk
     INTEGER :: i_startidx, i_endidx
-    INTEGER :: jc,jb,jf,jk
+    INTEGER :: jc,jb,jf
     INTEGER :: jt                       !< tracer index
     INTEGER :: n                        !< loop index
 
@@ -632,7 +538,6 @@ CONTAINS
     i_rlend    = min_rlcell
     i_startblk = p_patch%cells%start_block(i_rlstart)
     i_endblk   = p_patch%cells%end_block(i_rlend)
-    jk         = p_patch%nlev
 
     ! save some paperwork
     wc => wave_config
@@ -654,9 +559,9 @@ CONTAINS
         DO n=1,SIZE(wc%list_tr(jf)%p)
           jt = wc%list_tr(jf)%p(n)
           DO jc = i_startidx, i_endidx
-            temp(jc,jf) = temp(jc,jf) + tracer(jc,jk,jb,jt)
-            IF (llws(jc,jb,jt)==1) THEN
-              temp_1(jc,jf) = temp_1(jc,jf) + tracer(jc,jk,jb,jt)
+            temp(jc,jf) = temp(jc,jf) + tracer(jc,jt,jb)
+            IF (llws(jc,jt,jb)==1) THEN
+              temp_1(jc,jf) = temp_1(jc,jf) + tracer(jc,jt,jb)
             ENDIF
           ENDDO
         ENDDO  ! n
@@ -704,15 +609,15 @@ CONTAINS
 
     TYPE(t_patch),               INTENT(IN)    :: p_patch
     TYPE(t_wave_config), TARGET, INTENT(IN)    :: wave_config
-    REAL(wp), INTENT(IN)    :: tracer(:,:,:,:) !energy spectral bins (nproma,nlev,nblks_c,ntracer)
-    INTEGER,  INTENT(IN)    :: llws(:,:,:)   !=1 where wind_input is positive (nproma,nblks_c,ntracer)
+    REAL(wp), INTENT(IN)    :: tracer(:,:,:) !energy spectral bins (nproma,ntracer,nblks_c)
+    INTEGER,  INTENT(IN)    :: llws(:,:,:)   !=1 where wind_input is positive (nproma,ntracer,nblks_c)
     REAL(wp), INTENT(INOUT) :: emean(:,:)    !total energy (nproma,nblks_c)
     REAL(wp), INTENT(INOUT) :: emeanws(:,:)  !total windsea energy (nproma,nblks_c)
 
 
     INTEGER :: i_rlstart, i_rlend, i_startblk, i_endblk
     INTEGER :: i_startidx, i_endidx
-    INTEGER :: jc,jb,jf,jk
+    INTEGER :: jc,jb,jf
     INTEGER :: jt                       !< tracer index
     INTEGER :: n                        !< loop index
 
@@ -723,7 +628,6 @@ CONTAINS
     i_rlend    = min_rlcell
     i_startblk = p_patch%cells%start_block(i_rlstart)
     i_endblk   = p_patch%cells%end_block(i_rlend)
-    jk         = p_patch%nlev
 
     ! save some paperwork
     wc => wave_config
@@ -748,9 +652,9 @@ CONTAINS
         DO n=1,SIZE(wc%list_tr(jf)%p)
           jt = wc%list_tr(jf)%p(n)
           DO jc = i_startidx, i_endidx
-            sum1(jc,jf) = sum1(jc,jf) + tracer(jc,jk,jb,jt)
-            IF (llws(jc,jb,jt) == 1) THEN
-              sum2(jc,jf) = sum2(jc,jf) + tracer(jc,jk,jb,jt)
+            sum1(jc,jf) = sum1(jc,jf) + tracer(jc,jt,jb)
+            IF (llws(jc,jt,jb) == 1) THEN
+              sum2(jc,jf) = sum2(jc,jf) + tracer(jc,jt,jb)
             ENDIF
           ENDDO
         ENDDO  ! n
@@ -810,12 +714,12 @@ CONTAINS
     TYPE(t_wave_config), TARGET, INTENT(IN)    :: wave_config
     REAL(wp),                    INTENT(IN)    :: dir10m(:,:)
     REAL(wp),                    INTENT(IN)    :: sl(:,:,:)
-    REAL(wp),                    INTENT(IN)    :: tracer(:,:,:,:)
+    REAL(wp),                    INTENT(IN)    :: tracer(:,:,:)
     TYPE(t_wave_diag),           INTENT(INOUT) :: p_diag
 
     INTEGER :: i_rlstart, i_rlend, i_startblk, i_endblk
     INTEGER :: i_startidx, i_endidx
-    INTEGER :: jc,jb,jf,jd,jtd,jk
+    INTEGER :: jc,jb,jf,jd,jtd
 
     REAL(wp) :: gm1, const, sinplus, cosw
     REAL(wp) :: cmrhowgdfth
@@ -834,7 +738,6 @@ CONTAINS
     i_rlend    = min_rlcell
     i_startblk = p_patch%cells%start_block(i_rlstart)
     i_endblk   = p_patch%cells%end_block(i_rlend)
-    jk         = p_patch%nlev
 
     ! save some paperwork
     wc => wave_config
@@ -855,7 +758,7 @@ CONTAINS
         &                 i_startidx, i_endidx, i_rlstart, i_rlend)
       DO jf = 1,wc%nfreqs
         DO jc = i_startidx, i_endidx
-          cm(jc,jf) = p_diag%wave_num_c(jc,jb,jf) * 1.0_wp/(pi2*wc%freqs(jf))
+          cm(jc,jf) = p_diag%wave_num_c(jc,jf,jb) * 1.0_wp/(pi2*wc%freqs(jf))
         ENDDO
       END DO
 
@@ -888,7 +791,7 @@ CONTAINS
         DO jd = 1, wc%ndirs
           jtd = wc%tracer_ind(jd,jf)
           DO jc = i_startidx, i_endidx
-            sinplus = MAX(sl(jc,jb,jtd),0._wp)
+            sinplus = MAX(sl(jc,jtd,jb),0._wp)
             sumt(jc) = sumt(jc) + sinplus
             sumx(jc) = sumx(jc) + sinplus * SIN(wc%dirs(jd))
             sumy(jc) = sumy(jc) + sinplus * COS(wc%dirs(jd))
@@ -920,8 +823,8 @@ CONTAINS
           jtd = wc%tracer_ind(jd,p_diag%last_prog_freq_ind(jc,jb))
 
           cosw = MAX(COS(wc%dirs(jd)-dir10m(jc,jb)*deg2rad),0.0_wp)
-          temp1(jc) = temp1(jc) + tracer(jc,jk,jb,jtd) * cosw**3
-          temp2(jc) = temp2(jc) + tracer(jc,jk,jb,jtd) * cosw**2
+          temp1(jc) = temp1(jc) + tracer(jc,jtd,jb) * cosw**3
+          temp2(jc) = temp2(jc) + tracer(jc,jtd,jb) * cosw**2
         END DO
 
       END DO
@@ -1055,7 +958,7 @@ CONTAINS
 
     TYPE(t_patch),               INTENT(IN)    :: p_patch
     TYPE(t_wave_config), TARGET, INTENT(IN)    :: wave_config
-    REAL(wp),                    INTENT(IN)    :: tracer(:,:,:,:) !< energy spectral bins (nproma,nlev,nblks_c,ntracer)
+    REAL(wp),                    INTENT(IN)    :: tracer(:,:,:)   !< energy spectral bins (nproma,ntracer,nblks_c)
     REAL(wp),                    INTENT(IN)    :: emean(:,:)      !< total energy (nproma,nblks_c)
     REAL(wp),                    INTENT(INOUT) :: tm1(:,:)        !< tm1 period (nproma,nblks_c)
     REAL(wp),                    INTENT(INOUT) :: tm2(:,:)        !< tm2 period (nproma,nblks_c)
@@ -1064,7 +967,7 @@ CONTAINS
     ! local
     INTEGER :: i_rlstart, i_rlend, i_startblk, i_endblk
     INTEGER :: i_startidx, i_endidx
-    INTEGER :: jc,jb,jf,jk
+    INTEGER :: jc,jb,jf
     INTEGER :: jt                       !< tracer index
     INTEGER :: n                        !< loop index
     REAL(wp):: temp(nproma,wave_config%nfreqs)
@@ -1075,7 +978,6 @@ CONTAINS
     i_rlend    = min_rlcell
     i_startblk = p_patch%cells%start_block(i_rlstart)
     i_endblk   = p_patch%cells%end_block(i_rlend)
-    jk         = p_patch%nlev
 
     ! save some paperwork
     wc => wave_config
@@ -1096,7 +998,7 @@ CONTAINS
         DO n=1,SIZE(wc%list_tr(jf)%p)
           jt = wc%list_tr(jf)%p(n)
           DO jc = i_startidx, i_endidx
-            temp(jc,jf) = temp(jc,jf) + tracer(jc,jk,jb,jt)
+            temp(jc,jf) = temp(jc,jf) + tracer(jc,jt,jb)
           END DO
         END DO  ! n
 
@@ -1219,14 +1121,14 @@ CONTAINS
     REAL(wp),                    INTENT(IN)    :: wave_num_c(:,:,:)  !< wave number (1/m)
     REAL(wp),                    INTENT(IN)    :: depth(:,:)
     INTEGER,                     INTENT(IN)    :: last_prog_freq_ind(:,:)
-    REAL(wp),                    INTENT(INOUT) :: tracer(:,:,:,:)
+    REAL(wp),                    INTENT(INOUT) :: tracer(:,:,:)
 
 
     TYPE(t_wave_config), POINTER :: wc => NULL()
 
     INTEGER :: i_rlstart, i_rlend, i_startblk, i_endblk
     INTEGER :: i_startidx, i_endidx
-    INTEGER :: jb,jf,jc,jd,jt,jtl,jk
+    INTEGER :: jb,jf,jc,jd,jt,jtl
 
     REAL(wp) :: gh, ak, akd, tcgond, akm1
     REAL(wp) :: temp(nproma, wave_config%nfreqs)
@@ -1239,7 +1141,6 @@ CONTAINS
     i_rlend    = min_rlcell
     i_startblk = p_patch%cells%start_block(i_rlstart)
     i_endblk   = p_patch%cells%end_block(i_rlend)
-    jk         = p_patch%nlev
 
 !$OMP PARALLEL
 !$OMP DO PRIVATE(jb,jf,jc,jd,jt,jtl,i_startidx,i_endidx,ak,akd,tcgond,akm1,temp,tfac) ICON_OMP_DEFAULT_SCHEDULE
@@ -1248,7 +1149,7 @@ CONTAINS
            &                 i_startidx, i_endidx, i_rlstart, i_rlend)
       DO jf = 1, wc%nfreqs
         DO jc = i_startidx, i_endidx
-          ak = wave_num_c(jc,jb,jf)
+          ak = wave_num_c(jc,jf,jb)
           IF (jf >=last_prog_freq_ind(jc,jb)) THEN
             akd = ak * depth(jc,jb)
             IF (akd.le.10.0_wp) THEN
@@ -1271,14 +1172,14 @@ CONTAINS
       DO jd = 1, wc%ndirs
         DO jc = i_startidx, i_endidx
           jtl = wc%tracer_ind(jd,last_prog_freq_ind(jc,jb))
-          tfac(jc) = tracer(jc,jk,jb,jtl)
+          tfac(jc) = tracer(jc,jtl,jb)
         ENDDO
         !
         DO jf = 1, wc%nfreqs
           jt = wc%tracer_ind(jd,jf)
           DO jc = i_startidx, i_endidx
             IF (jf >=last_prog_freq_ind(jc,jb)+1) THEN
-              tracer(jc,jk,jb,jt) = temp(jc,jf) * tfac(jc)
+              tracer(jc,jt,jb) = temp(jc,jf) * tfac(jc)
             END IF
           END DO  !jc
         END DO  !jf
@@ -1310,7 +1211,7 @@ CONTAINS
     TYPE(t_patch),               INTENT(IN)    :: p_patch
     TYPE(t_wave_config), TARGET, INTENT(IN)    :: wave_config
     REAL(wp),                    INTENT(IN)    :: wave_num_c(:,:,:) !< wave number (1/m)
-    REAL(wp),                    INTENT(IN)    :: tracer(:,:,:,:)
+    REAL(wp),                    INTENT(IN)    :: tracer(:,:,:)
     REAL(wp),                    INTENT(IN)    :: emean(:,:)    !< total wave energy
     REAL(wp),                    INTENT(INOUT) :: akmean(:,:)   !< mean wavenumber based on SQRT(1/K)-moment, wm1
     REAL(wp),                    INTENT(INOUT) :: xkmean(:,:)   !< mean wavenumber based on SQRT(K)-moment, wm2
@@ -1319,7 +1220,7 @@ CONTAINS
 
     INTEGER :: i_rlstart, i_rlend, i_startblk, i_endblk
     INTEGER :: i_startidx, i_endidx
-    INTEGER :: jb,jc,jf,jt,jk
+    INTEGER :: jb,jc,jf,jt
     INTEGER :: n
 
     REAL(wp) :: temp(nproma, wave_config%nfreqs)
@@ -1331,7 +1232,6 @@ CONTAINS
     i_rlend    = min_rlcell
     i_startblk = p_patch%cells%start_block(i_rlstart)
     i_endblk   = p_patch%cells%end_block(i_rlend)
-    jk         = p_patch%nlev
 
 !$OMP PARALLEL
 !$OMP DO PRIVATE(jc,jb,jf,jt,i_startidx,i_endidx,temp,temp2) ICON_OMP_DEFAULT_SCHEDULE
@@ -1343,14 +1243,14 @@ CONTAINS
 
         DO jc = i_startidx, i_endidx
           temp(jc,jf) = 0._wp
-          temp2(jc,jf)= SQRT(wave_num_c(jc,jb,jf))
+          temp2(jc,jf)= SQRT(wave_num_c(jc,jf,jb))
         ENDDO
         !
         ! sum
         DO n=1,SIZE(wc%list_tr(jf)%p)
           jt = wc%list_tr(jf)%p(n)
           DO jc = i_startidx, i_endidx
-            temp(jc,jf) = temp(jc,jf) + tracer(jc,jk,jb,jt)
+            temp(jc,jf) = temp(jc,jf) + tracer(jc,jt,jb)
           END DO
         ENDDO
       END DO  !jf
@@ -1496,7 +1396,7 @@ CONTAINS
         ENDDO !while
         !
         DO jc = i_startidx, i_endidx
-          wave_num_c(jc,jb,jf) = wave_num(jc)
+          wave_num_c(jc,jf,jb) = wave_num(jc)
         ENDDO
         !
       ENDDO ! jf
@@ -1585,7 +1485,7 @@ CONTAINS
         ENDDO !while
         !
         DO je = i_startidx, i_endidx
-          wave_num_e(je,jb,jf) = wave_num(je)
+          wave_num_e(je,jf,jb) = wave_num(je)
         ENDDO
         !
       ENDDO ! jf
@@ -1606,18 +1506,17 @@ CONTAINS
 
     TYPE(t_patch),               INTENT(IN)    :: p_patch
     TYPE(t_wave_config), TARGET, INTENT(IN)    :: wave_config
-    REAL(wp),                    INTENT(INOUT) :: tracer(:,:,:,:)
+    REAL(wp),                    INTENT(INOUT) :: tracer(:,:,:)
 
     TYPE(t_wave_config), POINTER :: wc => NULL()
 
     INTEGER :: i_rlstart, i_rlend, i_startblk, i_endblk
     INTEGER :: i_startidx, i_endidx
-    INTEGER :: jb,jc,jf,jd,jt,jk
+    INTEGER :: jb,jc,jf,jd,jt
     i_rlstart  = 1
     i_rlend    = min_rlcell
     i_startblk = p_patch%cells%start_block(i_rlstart)
     i_endblk   = p_patch%cells%end_block(i_rlend)
-    jk         = p_patch%nlev
 
     ! save some paperwork
     wc => wave_config
@@ -1633,7 +1532,7 @@ CONTAINS
           jt = wc%tracer_ind(jd,jf)
           !
           DO jc = i_startidx, i_endidx
-            tracer(jc,jk,jb,jt) = MAX(tracer(jc,jk,jb,jt),EMIN)
+            tracer(jc,jt,jb) = MAX(tracer(jc,jt,jb),EMIN)
           END DO
         END DO
       END DO
@@ -1641,6 +1540,7 @@ CONTAINS
 !$OMP ENDDO NOWAIT
 !$OMP END PARALLEL
   END SUBROUTINE set_energy2emin
+
 
   !>
   !! Set wave spectrum to zero according to 0,1 mask by
@@ -1653,19 +1553,18 @@ CONTAINS
     TYPE(t_patch),               INTENT(IN)    :: p_patch
     TYPE(t_wave_config), TARGET, INTENT(IN)    :: wave_config
     INTEGER,                     INTENT(IN)    :: mask(:,:)
-    REAL(wp),                    INTENT(INOUT) :: tracer(:,:,:,:)
+    REAL(wp),                    INTENT(INOUT) :: tracer(:,:,:)
 
     TYPE(t_wave_config), POINTER :: wc => NULL()
 
     INTEGER :: i_rlstart, i_rlend, i_startblk, i_endblk
     INTEGER :: i_startidx, i_endidx
-    INTEGER :: jb,jc,jf,jd,jt,jk
+    INTEGER :: jb,jc,jf,jd,jt
 
     i_rlstart  = 1
     i_rlend    = min_rlcell
     i_startblk = p_patch%cells%start_block(i_rlstart)
     i_endblk   = p_patch%cells%end_block(i_rlend)
-    jk         = p_patch%nlev
 
     ! save some paperwork
     wc => wave_config
@@ -1681,7 +1580,7 @@ CONTAINS
           jt = wc%tracer_ind(jd,jf)
 
           DO jc = i_startidx, i_endidx
-            tracer(jc,jk,jb,jt) = tracer(jc,jk,jb,jt) * REAL(mask(jc,jb),wp)
+            tracer(jc,jt,jb) = tracer(jc,jt,jb) * REAL(mask(jc,jb),wp)
           END DO
         END DO
       END DO

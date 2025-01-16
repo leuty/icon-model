@@ -845,7 +845,7 @@ set_run_target_rcl()
     set_default use_nproma_sub $use_nproma
     set_default use_nblocks_c 0
     set_default use_nodes 1
-    set_default use_venum_lhost 2
+    set_default use_venum_lhost 1
     set_default use_cpunum_job 6
     set_default use_proc0_shift 1 # VH offloading mode: on with 1 proc
     set_default use_num_io_procs 1
