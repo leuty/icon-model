@@ -14,6 +14,7 @@
 MODULE mo_master_init
 
   USE mo_exception,     ONLY: message, finish
+  USE mo_impl_constants,ONLY: NO_RESTART
   USE mo_mpi,           ONLY: set_process_mpi_name, get_my_global_mpi_id, split_global_mpi_communicator
   USE mo_io_units,      ONLY: filename_max
   USE mo_master_config
@@ -86,9 +87,10 @@ CONTAINS
             
             IF ( get_my_global_mpi_id() == current_rank ) THEN
               
-              CALL set_my_component(model_no,                                      &
-                  &                master_component_models(model_no)%model_name,  &
-                  &                master_component_models(model_no)%model_type,  &
+              CALL set_my_component(model_no,                                            &
+                  &                master_component_models(model_no)%model_name,         &
+                  &                master_component_models(model_no)%model_type,         &
+                  &                master_component_models(model_no)%model_do_restart,   &
                   &                master_component_models(model_no)%model_namelist_filename)
               
             ENDIF
@@ -106,9 +108,10 @@ CONTAINS
     ELSE ! only one component    
 
       model_no = 1
-      CALL set_my_component(model_no,                                      &
-           &                master_component_models(model_no)%model_name,  &
-           &                master_component_models(model_no)%model_type,  &
+      CALL set_my_component(model_no,                                             &
+           &                master_component_models(model_no)%model_name,         &
+           &                master_component_models(model_no)%model_type,         &
+           &                master_component_models(model_no)%model_do_restart,   &
            &                master_component_models(model_no)%model_namelist_filename)
 
       CALL split_global_mpi_communicator ( model_no, 1 )
@@ -127,15 +130,17 @@ CONTAINS
   !------------------------------------------------------------------------
 
   !------------------------------------------------------------------------
-  SUBROUTINE set_my_component(comp_no, comp_name, comp_id, comp_namelist)
+  SUBROUTINE set_my_component(comp_no, comp_name, comp_id, comp_do_restart, comp_namelist)
 
     INTEGER, INTENT(in)          :: comp_no
     CHARACTER(len=*), INTENT(in) :: comp_name
     INTEGER, INTENT(in)          :: comp_id
+    INTEGER, INTENT(in)          :: comp_do_restart
     CHARACTER(len=*), INTENT(in) :: comp_namelist
 
     my_model_no          = comp_no
     my_process_model     = comp_id
+    my_model_do_restart  = comp_do_restart
     my_namelist_filename = TRIM(comp_namelist)
     my_model_name        = TRIM(comp_name)
 
@@ -180,6 +185,7 @@ CONTAINS
 
     my_model_no          = 0
     my_process_model     = -1
+    my_model_do_restart  = NO_RESTART
     my_namelist_filename = ''
     my_model_name        = ''
     my_model_min_rank    = -1

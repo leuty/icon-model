@@ -31,6 +31,7 @@ MODULE mo_load_multifile_restart
   USE mo_communication_factory,  ONLY: setup_comm_pattern
   USE mo_decomposition_tools,    ONLY: t_glb2loc_index_lookup, init_glb2loc_index_lookup, set_inner_glb_index, &
     &                                  deallocate_glb2loc_index_lookup
+  USE mo_master_config,          ONLY: isInitFromRestart
   USE mo_dynamics_config,        ONLY: nnow, nnow_rcf
   USE mo_exception,              ONLY: finish, warning
   USE mo_kind,                   ONLY: sp, dp
@@ -39,7 +40,7 @@ MODULE mo_load_multifile_restart
     &                                  p_sum, p_alltoall, p_alltoallv
   USE mo_multifile_restart_util, ONLY: multifilePayloadPath, rBuddy, rGroup, vNames_glbIdx
   USE mo_parallel_config,        ONLY: nproma, idx_no, blk_no, restart_load_scale_max
-  USE mo_restart_nml_and_att,    ONLY: getAttributesForRestarting, ocean_initFromRestart_OVERRIDE
+  USE mo_restart_nml_and_att,    ONLY: getAttributesForRestarting
   USE mo_key_value_store,        ONLY: t_key_value_store
   USE mo_restart_var_data,       ONLY: get_var_3d_ptr, has_valid_time_level
   USE mo_var,                    ONLY: t_var_ptr
@@ -415,7 +416,7 @@ CONTAINS
             max_r = MAX(max_r, MERGE(MAXVAL(files(:)%iCnts(hgrid),1)*lCnt, nblk, en_bloc))
             max_e = MAX(max_e, MERGE(nblk*lCnt, 1, en_bloc))
           ELSE
-            IF (ocean_initFromRestart_OVERRIDE .OR. vDat(iV)%p%info%lrestart_cont) THEN
+            IF (isInitFromRestart() .OR. vDat(iV)%p%info%lrestart_cont) THEN
               CALL warning(routine, "variable not found: "//TRIM(vDat(iV)%p%info%NAME))
             ELSE
               CALL finish(routine, "variable not found: "//TRIM(vDat(iV)%p%info%NAME))

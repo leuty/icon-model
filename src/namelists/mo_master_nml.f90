@@ -14,6 +14,7 @@
 MODULE mo_master_nml
 
   USE mo_exception,      ONLY: finish, message, warning
+  USE mo_impl_constants, ONLY: NO_RESTART, NORMAL_RESTART, INIT_FROM_RESTART
   USE mo_io_units,       ONLY: filename_max, nnml
   USE mo_namelist,       ONLY: open_nml, position_nml, POSITIONED
   USE mo_util_string,    ONLY: t_keyword_list, associate_keyword, with_keywords, tolower
@@ -26,7 +27,7 @@ MODULE mo_master_nml
        &                       timedelta, newTimedelta, deallocateTimedelta,                 &
        &                       datetimeToString, OPERATOR(+)
   USE mo_master_config,  ONLY: master_component_models, addModel, noOfModels, maxNoOfModels, &
-       &                       setInstitution, setRestart, setReadRestartNamelists,          &
+       &                       setInstitution, setReadRestartNamelists,                      &
        &                       setRestartWriteLast, setModelBaseDir,                         &
        &                       cfg_experimentReferenceDate => experimentReferenceDate,       &
        &                       cfg_experimentStartDate     => experimentStartDate,           &
@@ -71,11 +72,12 @@ CONTAINS
     CHARACTER(len=132)          :: model_name              = ''
     CHARACTER(len=filename_max) :: model_namelist_filename = ''
     
-    INTEGER :: model_type 
+    INTEGER :: model_type
     INTEGER :: model_min_rank
     INTEGER :: model_max_rank
     INTEGER :: model_inc_rank
     INTEGER :: model_rank_group_size
+    CHARACTER(len=32) :: model_do_restart
     
     CHARACTER(len=max_calendar_str_len) :: calendar                 = ''
     CHARACTER(len=max_datetime_str_len) :: experimentReferenceDate  = ''   
@@ -110,6 +112,7 @@ CONTAINS
          &    model_name,              &
          &    model_namelist_filename, &
          &    model_type,              &
+         &    model_do_restart,        &
          &    model_min_rank,          &
          &    model_max_rank,          &
          &    model_inc_rank,          &
@@ -168,7 +171,6 @@ CONTAINS
     
     ! save namelist variables in configuration
 
-    CALL setRestart(lRestart)
     CALL setRestartWriteLast(lrestart_write_last)
     CALL setModelBaseDir(model_base_dir)
     CALL setReadRestartNamelists(read_restart_namelists)
@@ -268,6 +270,7 @@ CONTAINS
       model_name              = ''
       model_namelist_filename = ''
       model_type              = -1
+      model_do_restart        = MERGE('yes','no ',lRestart)  ! default set by master_nml:lRestart
       model_min_rank          =  0
       model_max_rank          = -1 
       model_inc_rank          = 1
@@ -294,6 +297,16 @@ CONTAINS
         &  TRIM(with_keywords(keywords, model_namelist_filename))
 
       master_component_models(noOfModels())%model_type = model_type
+
+      IF (TRIM(model_do_restart)=="no") THEN
+        master_component_models(noOfModels())%model_do_restart = NO_RESTART
+      ELSE IF (TRIM(model_do_restart)=="yes") THEN
+        master_component_models(noOfModels())%model_do_restart = NORMAL_RESTART
+      ELSE IF (TRIM(model_do_restart)=="for_init") THEN
+        master_component_models(noOfModels())%model_do_restart = INIT_FROM_RESTART
+      ELSE
+        CALL finish(routine, 'invalid setting for model_do_restart')
+      ENDIF
 
       master_component_models(noOfModels())%model_min_rank = model_min_rank
       master_component_models(noOfModels())%model_max_rank = model_max_rank

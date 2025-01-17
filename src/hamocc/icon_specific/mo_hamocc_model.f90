@@ -14,13 +14,14 @@
 MODULE mo_hamocc_model
 
   USE mo_exception,           ONLY: message, message_text, finish
-  USE mo_master_config,       ONLY: isRestart
+  USE mo_master_config,       ONLY: isRestart, my_model_do_restart
   USE mo_master_control,      ONLY: hamocc_process, get_my_process_name
   USE mo_parallel_config,     ONLY: p_test_run, l_test_openmp, num_io_procs, &
        &                            pio_type, num_test_pe
   USE mo_mpi,                 ONLY: set_mpi_work_communicators, process_mpi_io_size, &
        &                            stop_mpi, my_process_is_io, my_process_is_mpi_test,   &
        &                            process_mpi_io_size
+  USE mo_impl_constants,      ONLY: INIT_FROM_RESTART, NO_RESTART
   USE mo_timer,               ONLY: init_timer, timer_start, timer_stop, print_timer, &
        &                            timer_model_init, timer_total, timer_coupling
   USE mo_memory_log,              ONLY: memory_log_terminate
@@ -91,7 +92,7 @@ MODULE mo_hamocc_model
   USE mo_ocean_read_namelists, ONLY: read_ocean_namelists
   USE mo_load_restart,         ONLY: read_restart_header, read_restart_files
   USE mo_key_value_store,      ONLY: t_key_value_store
-  USE mo_restart_nml_and_att,  ONLY: getAttributesForRestarting, ocean_initFromRestart_OVERRIDE
+  USE mo_restart_nml_and_att,  ONLY: getAttributesForRestarting
   USE mo_ocean_patch_setup,    ONLY: complete_ocean_patch
   USE mo_icon_comm_interface,  ONLY: construct_icon_communication, destruct_icon_communication
   USE mo_output_event_types,   ONLY: t_sim_step_info
@@ -167,7 +168,6 @@ MODULE mo_hamocc_model
     CALL hamocc_to_ocean_init()
     !-------------------------------------------------------------------
     IF (isRestart()) THEN ! .OR. initialize_fromRestart) THEN
-      ocean_initFromRestart_OVERRIDE = initialize_fromRestart
       ! This is an resumed integration. Read model state from restart file(s).
       CALL read_restart_files( patch_3d%p_patch_2d(1) )
       CALL message(method_name,'normal exit from read_restart_files')
@@ -394,6 +394,14 @@ MODULE mo_hamocc_model
     !---------------------------------------------------------------------
     ! for the moment we just read the hamocc nemalis
     CALL read_ocean_namelists(hamocc_namelist_filename,shr_namelist_filename)
+
+    ! HACK for backward compatibility: PLEASE REMOVE SOON !!!
+    ! Overwrite my_model_do_restart by initialize_fromRestart
+    ! In case of a normal restart (my_model_do_restart==NORMAL_RESTART)
+    ! initialize_fromRestart will have no effect and is ignored.
+    IF (ANY((/INIT_FROM_RESTART,NO_RESTART/) == my_model_do_restart)) THEN
+      my_model_do_restart = MERGE(INIT_FROM_RESTART, NO_RESTART, initialize_fromRestart)
+    ENDIF
 
     !---------------------------------------------------------------------
     ! 1.2 Cross-check namelist setups

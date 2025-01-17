@@ -28,7 +28,7 @@ MODULE mo_wave_stepping
   USE mo_model_domain,             ONLY: p_patch
   USE mo_grid_config,              ONLY: n_dom, nroot
   USE mo_io_units,                 ONLY: filename_max
-  USE mo_master_config,            ONLY: isRestart, getModelBaseDir
+  USE mo_master_config,            ONLY: isRestart, isInitFromRestart, getModelBaseDir
   USE mo_dynamics_config,          ONLY: nnow, nnew
   USE mo_fortran_tools,            ONLY: swap, copy
   USE mo_intp_data_strc,           ONLY: p_int_state
@@ -149,8 +149,11 @@ CONTAINS
       END DO
     ENDIF
 
-    IF (.NOT. is_coupled_to_atmo()) THEN
-      
+
+    IF (is_coupled_to_atmo()) THEN
+      CALL message(routine,'coupled run: forcing data are received from the atmo model...')
+    ELSE
+
       IF (timers_level >= 5) CALL timer_start(timer_wave_reader)
 
       CALL message(routine,'standalone run: forcing data are read from file...')
@@ -211,14 +214,16 @@ CONTAINS
 
       IF (timers_level >= 5) CALL timer_stop(timer_wave_reader)
 
-    END IF
+    END IF  ! is_coupled_to_atmo
 
 
     DO jg = 1, n_dom
       n_now  = nnow(jg)
       n_new  = nnew(jg)
 
-      IF (.NOT. isRestart()) THEN
+      IF (isRestart() .OR. isInitFromRestart()) THEN
+        ! do nothing
+      ELSE  ! coldstart
         ! Set minimum values of energy allowed in the spectrum
         CALL fetch_law(                                       &
           &  p_patch     = p_patch(jg),                       & !in
@@ -290,8 +295,12 @@ CONTAINS
     END DO
 
 
+    IF (isRestart()) THEN
+      CALL getAttributesForRestarting(restartAttributes)
+      ! get start counter for time loop from restart file:
+      CALL restartAttributes%get("jstep", jstep)
 
-    IF (.NOT. isRestart()) THEN
+    ELSE  ! no restart, or isInitFromRestart
       ! initialize time step counter
       !
       jstep = 0
@@ -354,11 +363,6 @@ CONTAINS
         CALL write_name_list_output(jstep=jstep)
       END IF
 
-    ELSE ! in case of restart
-
-      CALL getAttributesForRestarting(restartAttributes)
-      ! get start counter for time loop from restart file:
-      CALL restartAttributes%get("jstep", jstep)
     ENDIF  ! isRestart
 
 

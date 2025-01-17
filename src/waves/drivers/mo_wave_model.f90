@@ -23,8 +23,8 @@ MODULE mo_wave_model
        &                                timers_level, timer_model_init, &
        &                                timer_domain_decomp, print_timer, &
        &                                timer_coupling
+  USE mo_master_config,           ONLY: isRestart, isInitFromRestart
   USE mo_wave_timer,              ONLY: init_wave_timer
-  USE mo_master_config,           ONLY: isRestart
   USE mo_master_control,          ONLY: wave_process, get_my_process_name
   USE mo_impl_constants,          ONLY: success, pio_type_async, pio_type_cdipio
   USE mo_dynamics_config,         ONLY: configure_dynamics
@@ -142,7 +142,7 @@ CONTAINS
     !---------------------------------------------------------------------
     ! 0. If this is a resumed or warm-start run...
     !---------------------------------------------------------------------
-    IF (isRestart()) THEN
+    IF (isRestart() .OR. isInitFromRestart()) THEN
       CALL message('','Read restart file meta data ...')
       CALL read_restart_header(get_my_process_name())
     ENDIF

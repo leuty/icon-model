@@ -58,7 +58,7 @@ MODULE mo_time_management
   USE mo_master_config,            ONLY: experimentReferenceDate,                          &
     &                                    experimentStartDate,                              &
     &                                    checkpointTimeIntval, restartTimeIntval,          &
-    &                                    experimentStopDate, isRestart,                    &
+    &                                    experimentStopDate, isRestart, isInitFromRestart, &
     &                                    master_nml_calendar => calendar_str
   USE mo_time_config,              ONLY: set_tc_exp_refdate, set_tc_exp_startdate,         &
     &                                    set_tc_exp_stopdate, set_tc_startdate,            &
@@ -645,6 +645,10 @@ CONTAINS
           CALL finish(routine, "Could not retrieve tc_startdate from restart file!")
         ENDIF
       END IF
+
+    ELSE IF (isInitFromRestart()) THEN
+      CALL message('','Not a RESTART run but model is initialized from RESTART file ...')
+      start_datetime_string = exp_start_datetime_string
 
     ELSE
       CALL message('','This is not a RESTART run ...')

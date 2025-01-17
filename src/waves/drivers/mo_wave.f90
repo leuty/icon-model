@@ -13,7 +13,7 @@ MODULE mo_wave
   USE mo_kind,                  ONLY: wp
   USE mo_exception,             ONLY: message, finish
   USE mo_model_domain,          ONLY: p_patch
-  USE mo_master_config,         ONLY: isRestart
+  USE mo_master_config,         ONLY: isRestart, isInitFromRestart
   USE mo_master_control,        ONLY: get_my_process_name
   USE mo_grid_config,           ONLY: n_dom, start_time, end_time
   USE mo_wave_state,            ONLY: construct_wave_state, destruct_wave_state
@@ -109,7 +109,7 @@ CONTAINS
     ! Prepare initial conditions for time integration.
     !------------------------------------------------------------------
     !
-    IF (isRestart()) THEN
+    IF (isRestart() .OR. isInitFromRestart()) THEN
       !
       ! This is a resumed integration. Read model state from restart file(s).
       !
@@ -157,9 +157,9 @@ CONTAINS
        sim_step_info%dtime  = time_config%get_model_timestep_sec(p_patch(1)%nest_level)
        sim_step_info%jstep0 = 0
 
-       CALL getAttributesForRestarting(restartAttributes)
        ! get start counter for time loop from restart file:
-       IF (restartAttributes%is_init) THEN
+       IF (isRestart()) THEN
+         CALL getAttributesForRestarting(restartAttributes)
          CALL restartAttributes%get("jstep", sim_step_info%jstep0)
        ENDIF
 

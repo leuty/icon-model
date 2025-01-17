@@ -4592,7 +4592,21 @@ Identifies which component to run.\\
 1=atmosphere\\
 2=ocean\\
 3=radiation\\
+4=hamocc\\
+5=jsbach\\
+98=wave\\
 99=dummy\_model &
+\tabularnewline
+
+%\hline
+\textbf{model\_do\_restart} &
+C & 'yes'/'no' based on lrestart \\
+    (master\_nml) & &
+Allows to overwrite the main restart switch \texttt{lrestart (master\_nml)} for a single model component.\\
+Available options:\\
+`no` : no restart \\
+`yes`: classic restart \\
+`for\_init`: initialize model from restart file (skips reading of restart attributes and ignores missing variables in restart file) &
 \tabularnewline
 
 %\hline
@@ -4611,6 +4625,12 @@ End MPI rank for this model.&
 model\_inc\_rank &
 I & 1 & &
 Stride of MPI ranks.&
+\tabularnewline
+
+%\hline
+model\_rank\_group\_size &
+I & 1 & &
+??? &
 \tabularnewline
 
 \end{longtab}

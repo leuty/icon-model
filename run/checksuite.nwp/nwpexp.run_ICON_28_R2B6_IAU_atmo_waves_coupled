@@ -14,13 +14,15 @@
 #
 # nwpexp.run_ICON_28_R2B6_IAU_atmo_waves_coupled
 #
-# Basic test case for the ICON-NWP coupled to ICON-WAVE.
+# Basic test case for ICON-NWP coupled to ICON-WAVE.
 # ICON-NWP starts from ununitialized analysis with IAU, while ICON-WAVE starts
-# from an idealized analytic state.
+# from a restart file.
 #
-# The purpose is the technical testing of the coupling with different
-# model start times. Due to IAU, the atmosphere component starts prior
-# to the wave component.
+# The purpose is the technical testing of
+# - the coupling of components with distinct start times
+#     (due to IAU, the atm component starts prior to the wave component)
+# - the component-wise initialization from restart
+#     (only one component starts from restart file while the other used IAU)
 #
 author_list="Daniel Reinert and Mikhail Dobrynin"
 #
@@ -191,8 +193,11 @@ ln -sf $EXTPDIR_waves/extpar_ocean_icon_waves_grid_0024_R02B06_G_DOM01.nc extpar
 ln -sf ${ICONDIR}/externals/ecrad/data ecrad_data
 
 # atm analysis (IAU)
-ln -sf $INDIR/atm/2022110100/igfff00013000.m013.R2B06.grb .
-ln -sf $INDIR/atm/2022110100/igaf2022110100.m013.R2B06.grb .
+ln -sf $INDIR/atm/2022110300/igfff00013000.m013.R2B06.grb .
+ln -sf $INDIR/atm/2022110300/igaf2022110300.m013.R2B06.grb .
+
+# wave restart file
+ln -sf $INDIR/wave/2022110300/icon_waves_grid_0024_R02B06_G_DOM01_restart_wave_20221103T000000Z.nc restart_wave_DOM01.nc
 
 # ----------------------------------------------------------------------
 # global namelist settings
@@ -203,8 +208,8 @@ atmo_namelist=NAMELIST_${EXP}_atm
 wave_namelist=NAMELIST_${EXP}_wave
 
 # global timing
-start_date="2022-11-01T00:00:00Z"
-stop_date="2022-11-01T10:00:00Z"
+start_date="2022-11-03T00:00:00Z"
+stop_date="2022-11-03T10:00:00Z"
 
 dtime=360
 
@@ -239,6 +244,7 @@ modeltype_list[1]=98
 minrank_list[1]=$wave_min_rank
 maxrank_list[1]=$wave_max_rank
 incrank_list[1]=$wave_inc_rank
+model_do_restart_list[1]="for_init"   # initialize model from restart file
 
 # YAC coupling library configuration
 #-----------------------------------------------------------------------------
@@ -366,7 +372,7 @@ cat > ${atmo_namelist} << EOF
  zpbl1                 = 500.
  zpbl2                 = 1000.
  dwdfg_filename        = 'igfff00013000.m013.R2B06.grb'
- dwdana_filename       = 'igaf2022110100.m013.R2B06.grb'
+ dwdana_filename       = 'igaf2022110300.m013.R2B06.grb'
  ana_varnames_map_file = 'map_file.ana'
  !check_ana(1)%list     = 'T_SO','FR_ICE','T_2M','P','QV','T','U','V','FRESHSNW','H_SNOW'
  !check_ana(2)%list     = ''
@@ -870,13 +876,14 @@ EOF
 # add model component to master_namelist
 add_component_to_master_namelist()
 {
-
   model_namelist_filename="$1"
   model_name=$2
   model_type=$3
   model_min_rank=$4
   model_max_rank=$5
   model_inc_rank=$6
+  model_rank_group_size=$7
+  model_do_restart=$8
 
 cat >> $master_namelist << EOF
 &master_model_nml
@@ -886,6 +893,7 @@ cat >> $master_namelist << EOF
   model_min_rank=$model_min_rank
   model_max_rank=$model_max_rank
   model_inc_rank=$model_inc_rank
+  ${model_do_restart:+model_do_restart='$model_do_restart'}
 /
 EOF
 
@@ -916,10 +924,11 @@ echo "mpi procs: total=$mpi_total_procs atmo=${ICON_COMPONENT1_VE_procs} waves=$
 no_of_models=${#namelist_list[*]}
 echo "no_of_models=$no_of_models"
 
+rank_group_size=1
 j=0
 while [ $j -lt ${no_of_models} ]
 do
-  add_component_to_master_namelist "${namelist_list[$j]}" "${modelname_list[$j]}" ${modeltype_list[$j]} ${minrank_list[$j]} ${maxrank_list[$j]} ${incrank_list[$j]}
+  add_component_to_master_namelist "${namelist_list[$j]}" "${modelname_list[$j]}" ${modeltype_list[$j]} ${minrank_list[$j]} ${maxrank_list[$j]} ${incrank_list[$j]} ${rank_group_size} "${model_do_restart_list[$j]}"
   j=`expr ${j} + 1`
 done
 
