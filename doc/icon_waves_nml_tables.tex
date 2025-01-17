@@ -64,7 +64,7 @@ Defined and used in: \verb+src/waves/config/mo_energy_propagation_nml.f90+
 
 
 
-\subsection{waves\_nml (used if configurated with --enable-waves and model\_type=98 in master\_model\_nml)}
+\subsection{wave\_nml (used if configurated with --enable-waves and model\_type=98 in master\_model\_nml)}
 
 \begin{longtab}
 %Parameter &Type& Default   & Unit& Description&                                                      Scope
@@ -85,7 +85,7 @@ Defined and used in: \verb+src/waves/config/mo_energy_propagation_nml.f90+
  rnuairm    & R  & 0.11*rnuair&m2/s& kinematic air viscosity for momentum transfer & \tabularnewline
  rowater   & R  & 1000.     &kg/m3& water density & \tabularnewline
  xeps      & R  & roair/rowater&  & air water density ratio & \tabularnewline
- xinveps   & R  & 1./xeps   &     & insersed air water density ratio & \tabularnewline
+ xinveps   & R  & 1./xeps   &     & inverse air water density ratio & \tabularnewline
  betamax   & R  & 1.20      &     & parameter for wind input (ECMWF cy45r1) & \tabularnewline
  zalp      & R  & 0.0080    &     & shifts growth curve (ECMWF cy45r1) & \tabularnewline
  jtot\_tauhf& I  & 19       &     & dimension of high freuency wave stress (wtauhf) & must be odd \tabularnewline 
@@ -94,6 +94,7 @@ Defined and used in: \verb+src/waves/config/mo_energy_propagation_nml.f90+
  depth\_min &  R & 0.2      & m   & allowed minimum of model depth & \tabularnewline
  depth\_max &  R & 999.0    & m   & allowed maximum of model depth & \tabularnewline
  niter\_smooth  &  I & 1    &     & number of smoothing iterations for wave bathymetry & \tabularnewline
+ nsubs\_refrac  &  I & 1    &     & number of substeps in wave refraction calculation (recommendation: use the same ratio as between atmosphere and wave model) & \tabularnewline
  xkappa    &  R & 0.40      &     & von Karman constant & \tabularnewline
  xnlev     &  R & 10.0      & m   & windspeed reference level & \tabularnewline
  linput\_sf1& L  & .TRUE.   &     & .TRUE.: calculate wind input source function term & \tabularnewline

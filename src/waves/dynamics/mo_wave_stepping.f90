@@ -43,9 +43,9 @@ MODULE mo_wave_stepping
   USE mo_wave_source,              ONLY: src_wind_input, src_dissipation, src_bottom_friction, &
     &                                    src_nonlinear_transfer, integrate_in_time_src, &
     &                                    src_wave_breaking
-  USE mo_wave_physics,             ONLY: total_energy, wm1_wm2_wavenumber, set_energy2emin, &
-       &                                 mean_frequency_energy, air_sea, last_prog_freq_ind, &
-       &                                 impose_high_freq_tail, tm1_tm2_periods, wave_stress, &
+  USE mo_wave_physics,             ONLY: tm1_tm2_periods_and_wm1_wm2_wavenumber, set_energy2emin, &
+       &                                 mean_frequency_and_total_energy, air_sea, last_prog_freq_ind, &
+       &                                 impose_high_freq_tail, wave_stress, &
        &                                 mask_energy, compute_wave_number, compute_group_velocity
   USE mo_wave_config,              ONLY: wave_config, generate_filename
   USE mo_energy_propagation_config,ONLY: energy_propagation_config
@@ -96,7 +96,7 @@ CONTAINS
     !
     ! note that the following TARGET attribute is essential! Otherwise the pointer to the
     ! specific reader inside the time interpolator object (this%reader in time_intp_intp)
-    ! will loose its association status.
+    ! will lose its association status.
     TYPE(t_read_wave_forcing), ALLOCATABLE, TARGET :: reader_wave_forcing(:)
     INTEGER                  :: jstep                       !< time step number
     LOGICAL                  :: lprint_timestep             !< print current datetime information
@@ -254,7 +254,7 @@ CONTAINS
           &  fp          = p_wave_state(jg)%diag%fp(:,:),                 & !in
           &  alphaj      = p_wave_state(jg)%diag%alphaj(:,:),             & !in
           &  et          = p_wave_state(jg)%diag%et(:,:,:),               & !out  ! purely diagnostic
-          &  tracer      = p_wave_state(jg)%prog(n_now)%tracer(:,:,:))      !out
+          &  tracer      = p_wave_state(jg)%prog(n_now)%tracer(:,:,:))    !out
       END IF
 
 
@@ -300,16 +300,11 @@ CONTAINS
         IF (.NOT. p_patch(jg)%ldom_active) CYCLE
 
         ! Calculate total and mean frequency energy
-        CALL total_energy(p_patch(jg), wave_config(jg), &
+        CALL mean_frequency_and_total_energy(p_patch(jg), wave_config(jg), &
              p_wave_state(jg)%prog(n_now)%tracer, &
              p_wave_state(jg)%source%llws, &
              p_wave_state(jg)%diag%emean, & ! OUT
-             p_wave_state(jg)%diag%emeanws) ! OUT
-        CALL mean_frequency_energy(p_patch(jg), wave_config(jg), &
-             p_wave_state(jg)%prog(n_now)%tracer, &
-             p_wave_state(jg)%source%llws, &
-             p_wave_state(jg)%diag%emean, &
-             p_wave_state(jg)%diag%emeanws, &
+             p_wave_state(jg)%diag%emeanws, & ! OUT
              p_wave_state(jg)%diag%femean, & ! OUT
              p_wave_state(jg)%diag%femeanws) ! OUT
 
@@ -321,12 +316,15 @@ CONTAINS
              p_wave_state(jg)%diag%z0)      ! OUT
 
         ! Calculate tm1 period and f1 frequency and wavenumbers
-        CALL tm1_tm2_periods(p_patch(jg), wave_config(jg), &
+        CALL tm1_tm2_periods_and_wm1_wm2_wavenumber(p_patch(jg), wave_config(jg), &
+             p_wave_state(jg)%diag%wave_num_c, &
              p_wave_state(jg)%prog(n_now)%tracer, &
              p_wave_state(jg)%diag%emean, &
              p_wave_state(jg)%diag%tm1, &  ! OUT
              p_wave_state(jg)%diag%tm2, &  ! OUT
-             p_wave_state(jg)%diag%f1mean) ! OUT
+             p_wave_state(jg)%diag%f1mean, & !OUT
+             p_wave_state(jg)%diag%akmean, & !OUT
+             p_wave_state(jg)%diag%xkmean) !OUT
 
 
         IF (istime4name_list_output_dom(jg=jg, jstep=jstep)) THEN
@@ -478,34 +476,24 @@ CONTAINS
         !
         IF (timers_level >= 8) CALL timer_start(timer_wave_src_wind_input)
         ! Calculate total and mean frequency energy
-        CALL total_energy(p_patch(jg), wave_config(jg), &
+        CALL mean_frequency_and_total_energy(p_patch(jg), wave_config(jg), &
              p_wave_state(jg)%prog(n_new)%tracer, &
              p_wave_state(jg)%source%llws,&
              p_wave_state(jg)%diag%emean, & ! OUT
-             p_wave_state(jg)%diag%emeanws) ! OUT
-        CALL mean_frequency_energy(p_patch(jg), wave_config(jg), &
-             p_wave_state(jg)%prog(n_new)%tracer, &
-             p_wave_state(jg)%source%llws,&
-             p_wave_state(jg)%diag%emean, &
-             p_wave_state(jg)%diag%emeanws, &
+             p_wave_state(jg)%diag%emeanws, & ! OUT
              p_wave_state(jg)%diag%femean, & ! OUT
              p_wave_state(jg)%diag%femeanws) ! OUT
 
         ! Calculate tm1 period and f1 frequency and wavenumbers
-        CALL tm1_tm2_periods(p_patch(jg), wave_config(jg), &
+        CALL tm1_tm2_periods_and_wm1_wm2_wavenumber(p_patch(jg), wave_config(jg), &
+             p_wave_state(jg)%diag%wave_num_c, &
              p_wave_state(jg)%prog(n_new)%tracer, &
              p_wave_state(jg)%diag%emean, &
              p_wave_state(jg)%diag%tm1, &  ! OUT
              p_wave_state(jg)%diag%tm2, &  ! OUT
-             p_wave_state(jg)%diag%f1mean) ! OUT
-        CALL wm1_wm2_wavenumber(p_patch     = p_patch(jg),                         & !IN
-          &                     wave_config = wave_config(jg),                     & !IN
-          &                     wave_num_c  = p_wave_state(jg)%diag%wave_num_c,    & !IN
-          &                     tracer      = p_wave_state(jg)%prog(n_new)%tracer, & !IN
-          &                     emean       = p_wave_state(jg)%diag%emean,         & !IN
-          &                     akmean      = p_wave_state(jg)%diag%akmean,        & !OUT
-          &                     xkmean      = p_wave_state(jg)%diag%xkmean)          !OUT
-
+             p_wave_state(jg)%diag%f1mean, & !OUT
+             p_wave_state(jg)%diag%akmean, & !OUT
+             p_wave_state(jg)%diag%xkmean) !OUT
 
         ! Calculate roughness length and friction velocities
         CALL air_sea(p_patch(jg), wave_config(jg), &
@@ -526,16 +514,11 @@ CONTAINS
         END IF
 
         ! Update total and mean frequency energy
-        CALL total_energy(p_patch(jg), wave_config(jg), &
+        CALL mean_frequency_and_total_energy(p_patch(jg), wave_config(jg), &
              p_wave_state(jg)%prog(n_new)%tracer, &
              p_wave_state(jg)%source%llws,&
              p_wave_state(jg)%diag%emean, & ! OUT
-             p_wave_state(jg)%diag%emeanws) ! OUT
-        CALL mean_frequency_energy(p_patch(jg), wave_config(jg), &
-             p_wave_state(jg)%prog(n_new)%tracer, &
-             p_wave_state(jg)%source%llws,&
-             p_wave_state(jg)%diag%emean, &
-             p_wave_state(jg)%diag%emeanws, &
+             p_wave_state(jg)%diag%emeanws, & ! OUT
              p_wave_state(jg)%diag%femean, & ! OUT
              p_wave_state(jg)%diag%femeanws) ! OUT
 
@@ -670,16 +653,11 @@ CONTAINS
              p_wave_state(jg)%prog(n_new)%tracer) ! INOUT
 
         ! Update total and mean frequency energy
-        CALL total_energy(p_patch(jg), wave_config(jg), &
+        CALL mean_frequency_and_total_energy(p_patch(jg), wave_config(jg), &
              p_wave_state(jg)%prog(n_new)%tracer, &
              p_wave_state(jg)%source%llws,&
              p_wave_state(jg)%diag%emean, & ! OUT
-             p_wave_state(jg)%diag%emeanws) ! OUT
-        CALL mean_frequency_energy(p_patch(jg), wave_config(jg), &
-             p_wave_state(jg)%prog(n_new)%tracer, &
-             p_wave_state(jg)%source%llws,&
-             p_wave_state(jg)%diag%emean, &
-             p_wave_state(jg)%diag%emeanws, &
+             p_wave_state(jg)%diag%emeanws, & ! OUT
              p_wave_state(jg)%diag%femean, & ! OUT
              p_wave_state(jg)%diag%femeanws) ! OUT
 
@@ -703,16 +681,11 @@ CONTAINS
              p_wave_state(jg)%prog(n_new)%tracer) ! INOUT
 
         ! Update total and mean frequency energy
-        CALL total_energy(p_patch(jg), wave_config(jg), &
+        CALL mean_frequency_and_total_energy(p_patch(jg), wave_config(jg), &
              p_wave_state(jg)%prog(n_new)%tracer, &
              p_wave_state(jg)%source%llws,&
              p_wave_state(jg)%diag%emean, & ! OUT
-             p_wave_state(jg)%diag%emeanws) ! OUT
-        CALL mean_frequency_energy(p_patch(jg), wave_config(jg), &
-             p_wave_state(jg)%prog(n_new)%tracer, &
-             p_wave_state(jg)%source%llws,&
-             p_wave_state(jg)%diag%emean, &
-             p_wave_state(jg)%diag%emeanws, &
+             p_wave_state(jg)%diag%emeanws, & ! OUT
              p_wave_state(jg)%diag%femean, & ! OUT
              p_wave_state(jg)%diag%femeanws) ! OUT
 

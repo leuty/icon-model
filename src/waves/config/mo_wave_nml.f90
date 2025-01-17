@@ -75,6 +75,7 @@ CONTAINS
     REAL(wp) :: depth_max ! allowed maximum of model depth (m)
 
     INTEGER  :: niter_smooth ! number of smoothing iterations for wave bathymetry
+    INTEGER  :: nsubs_refrac ! number of susteps in wave refraction
 
     REAL(wp) :: XKAPPA  ! VON KARMAN CONSTANT.
     REAL(wp) :: XNLEV   ! WINDSPEED REF. LEVEL.
@@ -121,7 +122,7 @@ CONTAINS
          depth, depth_min, depth_max, niter_smooth, &
          linput_sf1, linput_sf2, ldissip_sf, lwave_brk_sf, lnon_linear_sf, lbottom_fric_sf, &
          lwave_stress1, lwave_stress2, peak_u10, peak_v10, peak_lat, peak_lon, &
-         impl_fac
+         impl_fac, nsubs_refrac
 
     !-----------------------------------------------------------
     ! 1. default settings
@@ -159,6 +160,7 @@ CONTAINS
     depth_max    = 999.0_wp     !! allowed maximum of model depth (m)
     niter_smooth = 1            !! number of smoothing iterations for wave bathymetry
                                 !! if 0 then no smoothing
+    nsubs_refrac = 1            !! default: no substepping in wave refraction
 
     XKAPPA     = 0.40_wp        !! VON KARMAN CONSTANT.
     XNLEV      = 10.0_wp        !! WINDSPEED REF. LEVEL.
@@ -261,6 +263,7 @@ CONTAINS
       wave_config(jg)%depth_min         = depth_min
       wave_config(jg)%depth_max         = depth_max
       wave_config(jg)%niter_smooth      = niter_smooth
+      wave_config(jg)%nsubs_refrac      = nsubs_refrac
       wave_config(jg)%forc_file_prefix  = forc_file_prefix
       wave_config(jg)%linput_sf1        = linput_sf1
       wave_config(jg)%linput_sf2        = linput_sf2

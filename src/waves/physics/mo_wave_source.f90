@@ -115,7 +115,7 @@ CONTAINS
     INTEGER :: jb,jc,jf,jd,jt
 
     REAL(wp) :: temp_1, temp_2, temp_3
-    REAL(wp) :: sprd
+    REAL(wp) :: sprd(nproma,wave_config%ndirs)
     REAL(wp) :: delfl
 
     i_rlstart  = 1
@@ -132,16 +132,21 @@ CONTAINS
       CALL get_indices_c( p_patch, jb, i_startblk, i_endblk,           &
         &                 i_startidx, i_endidx, i_rlstart, i_rlend)
 
+      DO jd = 1,wc%ndirs
+        DO jc = i_startidx, i_endidx
+          sprd(jc,jd) = MAX(0._wp, COS(wc%dirs(jd)-dir10m(jc,jb)*deg2rad) )**2
+        END DO
+      END DO
+
       DO jf = 1,wc%nfreqs
+        delfl = 5.0E-07_wp * grav / wc%freqs(jf)**4 * dtime
         DO jd = 1,wc%ndirs
           !
           jt = wc%tracer_ind(jd,jf)
           !
           DO jc = i_startidx, i_endidx
-            delfl = 5.0E-07_wp * grav / wc%freqs(jf)**4 * dtime
             temp_2 = p_diag%ustar(jc,jb) * delfl &
                  &  * MAX(p_diag%femeanws(jc,jb),p_diag%femean(jc,jb))
-            sprd = MAX(0._wp, COS(wc%dirs(jd)-dir10m(jc,jb)*deg2rad) )**2
 
             temp_1 = dtime * p_source%sl(jc,jt,jb) &
                  / MAX(1._wp, 1._wp -  dtime * wc%impl_fac * p_source%fl(jc,jt,jb))
@@ -149,7 +154,7 @@ CONTAINS
             temp_3 = MIN(ABS(temp_1),temp_2)
 
             tracer(jc,jt,jb) = tracer(jc,jt,jb)  + SIGN(temp_3,temp_1)
-            tracer(jc,jt,jb) = MAX(tracer(jc,jt,jb), p_diag%FLMINFR(jc,jf,jb)*sprd)
+            tracer(jc,jt,jb) = MAX(tracer(jc,jt,jb), p_diag%FLMINFR(jc,jf,jb)*sprd(jc,jd))
           END DO
         END DO
       END DO
@@ -190,8 +195,8 @@ CONTAINS
     INTEGER :: i_startidx, i_endidx
     INTEGER :: jb,jc,jf,jd,jt
 
-    REAL(wp) :: fac, const, const3, xk, cm, ucn, zcn, sh, cnsn
-    REAL(wp) :: xv1d, temp, zbeta1, x, zlog, zlog2x, ufac
+    REAL(wp) :: fac, const, const3, xk, cm, ucn, zcn(nproma), sh, cnsn
+    REAL(wp) :: xv1d, temp(nproma,wave_config%ndirs), zbeta1, x, zlog, zlog2x, ufac
 
     wc => wave_config
 
@@ -209,9 +214,19 @@ CONTAINS
       CALL get_indices_c( p_patch, jb, i_startblk, i_endblk,           &
            &                 i_startidx, i_endidx, i_rlstart, i_rlend)
 
+      DO jd = 1,wc%ndirs
+        DO jc = i_startidx, i_endidx
+          temp(jc,jd) = COS(wc%dirs(jd) - dir10m(jc,jb)*deg2rad)
+        ENDDO
+      ENDDO
+
       FRE:DO jf = 1,wc%nfreqs
         fac = pi2 * wc%freqs(jf)
         const = fac * wc%xeps * wc%betamax / (wc%xkappa*wc%xkappa)
+
+        DO jc = i_startidx, i_endidx
+          zcn(jc) = LOG(p_diag%wave_num_c(jc,jf,jb)*p_diag%z0(jc,jb))
+        ENDDO
 
         DIR:DO jd = 1,wc%ndirs
           jt = wc%tracer_ind(jd,jf)
@@ -220,16 +235,14 @@ CONTAINS
             xk = p_diag%wave_num_c(jc,jf,jb)
             cm = xk / fac
             ucn = p_diag%ustar(jc,jb) * cm + wc%zalp
-            zcn = LOG(xk * p_diag%z0(jc,jb))
             sh = fac*fac / (grav * xk)
             cnsn = const * sh
-            xv1d = -1.0_wp / (p_diag%ustar(jc,jb) / wc%xkappa * zcn * cm)
-            temp = COS(wc%dirs(jd) - dir10m(jc,jb)*deg2rad)
-            zbeta1 = const3 * (temp - xv1d) * ucn*ucn
+            xv1d = -1.0_wp / (p_diag%ustar(jc,jb) / wc%xkappa * zcn(jc) * cm)
+            zbeta1 = const3 * (temp(jc,jd) - xv1d) * ucn*ucn
 
-            IF (temp > 0.01_wp) THEN
-              x = temp * ucn
-              zlog = zcn + wc%xkappa / x
+            IF (temp(jc,jd) > 0.01_wp) THEN
+              x = temp(jc,jd) * ucn
+              zlog = zcn(jc) + wc%xkappa / x
               IF (zlog < 0._wp) THEN
                 zlog2x = zlog*zlog * x
                 ufac = EXP(zlog) * zlog2x*zlog2x + zbeta1
@@ -290,7 +303,7 @@ CONTAINS
     INTEGER :: i_startidx, i_endidx
     INTEGER :: jb,jc,jf,jd,jt
 
-    REAL(wp) :: sds, temp, sdiss
+    REAL(wp) :: sds(nproma), temp, sdiss
 
     i_rlstart  = 1
     i_rlend    = min_rlcell
@@ -305,14 +318,17 @@ CONTAINS
     DO jb = i_startblk, i_endblk
       CALL get_indices_c( p_patch, jb, i_startblk, i_endblk,           &
            &                 i_startidx, i_endidx, i_rlstart, i_rlend)
+
+      DO jc = i_startidx, i_endidx
+        sds(jc) = CONSS * p_diag%f1mean(jc,jb) * p_diag%emean(jc,jb)**2 * p_diag%xkmean(jc,jb)**4
+      ENDDO
+
       DO jf = 1,wc%nfreqs
         DO jd = 1, wc%ndirs
           jt = wc%tracer_ind(jd,jf)
           DO jc = i_startidx, i_endidx
-
-            sds = CONSS * p_diag%f1mean(jc,jb) * p_diag%emean(jc,jb)**2 * p_diag%xkmean(jc,jb)**4
             temp = wave_num_c(jc,jf,jb) / p_diag%xkmean(jc,jb)
-            temp = sds * ((1.0_wp - DELTA) * temp +  DELTA * temp**2)
+            temp = sds(jc) * ((1.0_wp - DELTA) * temp +  DELTA * temp**2)
             sdiss = temp * tracer(jc,jt,jb)
 
             p_source%sl(jc,jt,jb) = p_source%sl(jc,jt,jb) + sdiss
@@ -521,7 +537,7 @@ CONTAINS
     INTEGER :: i_startidx, i_endidx
     INTEGER :: jb,jc,jf,jd,jt
 
-    REAL(wp) :: const, sbo
+    REAL(wp) :: const, tmp, sbo(nproma)
 
     i_rlstart  = 1
     i_rlend    = min_rlcell
@@ -534,18 +550,21 @@ CONTAINS
     const = -2.0_wp*0.038_wp/grav
 
 !$OMP PARALLEL
-!$OMP DO PRIVATE(jb,jf,jd,jt,jc,sbo,i_startidx,i_endidx) ICON_OMP_DEFAULT_SCHEDULE
+!$OMP DO PRIVATE(jb,jf,jd,jt,jc,tmp,sbo,i_startidx,i_endidx) ICON_OMP_DEFAULT_SCHEDULE
     DO jb = i_startblk, i_endblk
       CALL get_indices_c( p_patch, jb, i_startblk, i_endblk,           &
            &                 i_startidx, i_endidx, i_rlstart, i_rlend)
       DO jf = 1,wc%nfreqs
+        DO jc = i_startidx, i_endidx
+          tmp = MIN(2.0_wp * depth(jc,jb) * wave_num_c(jc,jf,jb),50.0_wp)
+          sbo(jc) = const * wave_num_c(jc,jf,jb) / SINH(tmp)
+        ENDDO
+
         DO jd = 1, wc%ndirs
           jt = wc%tracer_ind(jd,jf)
           DO jc = i_startidx, i_endidx
-            sbo = MIN(2.0_wp * depth(jc,jb) * wave_num_c(jc,jf,jb),50.0_wp)
-            sbo = const * wave_num_c(jc,jf,jb) / SINH(sbo)
-            p_source%sl(jc,jt,jb) = p_source%sl(jc,jt,jb) + sbo*tracer(jc,jt,jb)
-            p_source%fl(jc,jt,jb) = p_source%fl(jc,jt,jb) + sbo
+            p_source%sl(jc,jt,jb) = p_source%sl(jc,jt,jb) + sbo(jc)*tracer(jc,jt,jb)
+            p_source%fl(jc,jt,jb) = p_source%fl(jc,jt,jb) + sbo(jc)
           END DO
         END DO
       END DO

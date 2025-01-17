@@ -936,8 +936,8 @@ CONTAINS
 
       DO jd = 1, wc%ndirs
         DO jc = i_startidx, i_endidx
-          si(jc) = si(jc) + temp(jc,jd) * SIN(wc%dirs(jd))
-          ci(jc) = ci(jc) + temp(jc,jd) * COS(wc%dirs(jd))
+          si(jc) = si(jc) + temp(jc,jd) * wc%sin_dir(jd)
+          ci(jc) = ci(jc) + temp(jc,jd) * wc%cos_dir(jd)
           temp_dsum(jc) = temp_dsum(jc) + temp(jc,jd)
         END DO
       END DO
@@ -1052,10 +1052,10 @@ CONTAINS
 
       DO jd = 1, wc%ndirs
         DO jc = i_startidx, i_endidx
-          si1(jc) = si1(jc) + temp1(jc,jd) * SIN(wc%dirs(jd))
-          ci1(jc) = ci1(jc) + temp1(jc,jd) * COS(wc%dirs(jd))
-          si2(jc) = si2(jc) + temp2(jc,jd) * SIN(wc%dirs(jd))
-          ci2(jc) = ci2(jc) + temp2(jc,jd) * COS(wc%dirs(jd))
+          si1(jc) = si1(jc) + temp1(jc,jd) * wc%sin_dir(jd)
+          ci1(jc) = ci1(jc) + temp1(jc,jd) * wc%cos_dir(jd)
+          si2(jc) = si2(jc) + temp2(jc,jd) * wc%sin_dir(jd)
+          ci2(jc) = ci2(jc) + temp2(jc,jd) * wc%cos_dir(jd)
           temp1_dsum(jc) = temp1_dsum(jc) + temp1(jc,jd)
           temp2_dsum(jc) = temp2_dsum(jc) + temp2(jc,jd)
         END DO
@@ -1182,8 +1182,8 @@ CONTAINS
         DO jd = 1, wc%ndirs
           jt =  wc%tracer_ind(jd,jf)
           DO jc = i_startidx, i_endidx
-            si(jc) = si(jc) + tracer(jc,jt,jb) * SIN(wc%dirs(jd))
-            ci(jc) = ci(jc) + tracer(jc,jt,jb) * COS(wc%dirs(jd))
+            si(jc) = si(jc) + tracer(jc,jt,jb) * wc%sin_dir(jd)
+            ci(jc) = ci(jc) + tracer(jc,jt,jb) * wc%cos_dir(jd)
           END DO
         END DO
 

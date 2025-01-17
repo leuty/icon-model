@@ -37,11 +37,9 @@ MODULE mo_wave_physics
   PUBLIC :: air_sea
   PUBLIC :: last_prog_freq_ind
   PUBLIC :: impose_high_freq_tail
-  PUBLIC :: tm1_tm2_periods
-  PUBLIC :: wm1_wm2_wavenumber
-  PUBLIC :: total_energy
+  PUBLIC :: tm1_tm2_periods_and_wm1_wm2_wavenumber
   PUBLIC :: wave_stress
-  PUBLIC :: mean_frequency_energy
+  PUBLIC :: mean_frequency_and_total_energy
   PUBLIC :: compute_wave_number
   PUBLIC :: compute_group_velocity
   PUBLIC :: set_energy2emin
@@ -275,8 +273,8 @@ CONTAINS
         DO jd = 1, ndirs
           jt = p_config%tracer_ind(jd,jf)
           DO je = i_startidx, i_endidx
-            gvu = gv_e(je,jf,jb) * SIN(p_config%dirs(jd))
-            gvv = gv_e(je,jf,jb) * COS(p_config%dirs(jd))
+            gvu = gv_e(je,jf,jb) * p_config%sin_dir(jd)
+            gvv = gv_e(je,jf,jb) * p_config%cos_dir(jd)
 
             gvn_e(je,jt,jb) = &
                  gvu * p_patch%edges%primal_normal(je,jb)%v1 + &
@@ -466,6 +464,7 @@ CONTAINS
 
       DO iter = 1,NITER
         DO jc = i_startidx, i_endidx
+          IF (l_converged(jc)) CYCLE
           x        = tauw(jc,jb) / tauold(jc)
           z0ch(jc) = alphaog * tauold(jc) / SQRT(MAX(1.0_wp-x,EPS1))
           z0vis    = wave_config%RNUAIRM * ustm1(jc)
@@ -485,7 +484,7 @@ CONTAINS
           ustar(jc,jb) = SQRT(taunew)
 
           IF (ABS(taunew-tauold(jc))<= dbl_eps) l_converged(jc) = .TRUE.
-
+          
           ustm1(jc)  = 1.0_wp/MAX(ustar(jc,jb),EPSUS)
           tauold(jc) = taunew
         END DO  !jc
@@ -505,23 +504,23 @@ CONTAINS
 
 
   !>
-  !! Calculation of mean frequency energy
+  !! Calculation of mean frequency and total energy
   !!
-  !! Integration over frequencies for calculation of
-  !! of mean frequency energy. Adaptation of WAM 4.5 code
-  !! of the subroutine FEMEAN developed by S.D. HASSELMANN,
+  !! Integration over frequencies for calculation of mean frequency
+  !! energy and total energy (combined for efficiency). Adaptation of WAM 4.5 code
+  !! of the subroutines FEMEAN and TOTAL_ENERGY developed by S.D. HASSELMANN,
   !! optimized by L. Zambresky and H. Guenther, GKSS, 2001                              !
   !!
-  SUBROUTINE mean_frequency_energy(p_patch, wave_config, tracer, llws, emean, emeanws, femean, femeanws)
+  SUBROUTINE mean_frequency_and_total_energy(p_patch, wave_config, tracer, llws, emean, emeanws, femean, femeanws)
     CHARACTER(len=MAX_CHAR_LENGTH), PARAMETER :: &
-         & routine =  modname//'mean_frequency_energy'
+         & routine =  modname//'mean_frequency_and_total_energy'
 
     TYPE(t_patch),               INTENT(IN)    :: p_patch
     TYPE(t_wave_config), TARGET, INTENT(IN)    :: wave_config
     REAL(wp), INTENT(IN)  :: tracer(:,:,:) !energy spectral bins (nproma,ntracer,nblks_c)
     INTEGER,  INTENT(IN)  :: llws(:,:,:)   !=1 where wind_input is positive (nproma,ntracer,nblks_c)
-    REAL(wp), INTENT(IN)  :: emean(:,:)    !total energy (nproma,nblks_c)
-    REAL(wp), INTENT(IN)  :: emeanws(:,:)  !total windsea energy (nproma,nblks_c)
+    REAL(wp), INTENT(INOUT) :: emean(:,:)    !total energy (nproma,nblks_c)
+    REAL(wp), INTENT(INOUT) :: emeanws(:,:)  !total windsea energy (nproma,nblks_c)
     REAL(wp), INTENT(INOUT) :: femean(:,:)   !mean frequency energy (nproma,nblks_c)
     REAL(wp), INTENT(INOUT) :: femeanws(:,:) !mean windsea frequency energy (nproma,nblks_c)
 
@@ -569,18 +568,24 @@ CONTAINS
       END DO  ! jf
 
       DO jc = i_startidx, i_endidx
+        emean(jc,jb)    = wc%MO_TAIL  * temp(jc,wc%nfreqs)
+        emeanws(jc,jb)  = wc%MO_TAIL  * temp_1(jc,wc%nfreqs)
         femean(jc,jb)   = wc%MM1_TAIL * temp(jc,wc%nfreqs)
         femeanws(jc,jb) = wc%MM1_TAIL * temp_1(jc,wc%nfreqs)
       END DO
 
       DO jf = 1,wc%nfreqs
         DO jc = i_startidx, i_endidx
-          femean(jc,jb)   = femean(jc,jb) + temp(jc,jf) * wc%DFIMOFR(jf)
+          emean(jc,jb)    = emean(jc,jb)    + temp(jc,jf)   * wc%DFIM(jf)
+          emeanws(jc,jb)  = emeanws(jc,jb)  + temp_1(jc,jf) * wc%DFIM(jf)
+          femean(jc,jb)   = femean(jc,jb)   + temp(jc,jf)   * wc%DFIMOFR(jf)
           femeanws(jc,jb) = femeanws(jc,jb) + temp_1(jc,jf) * wc%DFIMOFR(jf)
         END DO
       END DO
 
       DO jc = i_startidx, i_endidx
+        emean(jc,jb)    = MAX(emean(jc,jb),EMIN)
+        emeanws(jc,jb)  = MAX(emeanws(jc,jb),EMIN)
         femean(jc,jb)   = emean(jc,jb) / MAX(femean(jc,jb),EMIN)
         femeanws(jc,jb) = emeanws(jc,jb) / MAX(femeanws(jc,jb),EMIN)
       END DO
@@ -588,103 +593,7 @@ CONTAINS
 !$OMP ENDDO NOWAIT
 !$OMP END PARALLEL
 
-  END SUBROUTINE mean_frequency_energy
-
-
-  !>
-  !! Calculation of total energy
-  !!
-  !! Calculation of total energy by integtation over directions and frequencies.
-  !! A tail correction is added.
-  !! Adaptation of WAM 4.5 code of the subroutine TOTAL_ENERGY
-  !! developed by S.D. HASSELMANN, optimized by L. Zambresky
-  !! and H. Guenther, GKSS, 2001
-  !!
-  SUBROUTINE total_energy(p_patch, wave_config, tracer, llws, emean, emeanws)
-    ! in  p_patch, p_prog%tracer, wave_config%freq_ind, wave_config%MO_TAIL
-    !out  p_diag%emean(jc,jb), p_diag%emeanws(jc,jb)
-
-    CHARACTER(len=MAX_CHAR_LENGTH), PARAMETER ::  &
-         &  routine = modname//'total_energy'
-
-    TYPE(t_patch),               INTENT(IN)    :: p_patch
-    TYPE(t_wave_config), TARGET, INTENT(IN)    :: wave_config
-    REAL(wp), INTENT(IN)    :: tracer(:,:,:) !energy spectral bins (nproma,ntracer,nblks_c)
-    INTEGER,  INTENT(IN)    :: llws(:,:,:)   !=1 where wind_input is positive (nproma,ntracer,nblks_c)
-    REAL(wp), INTENT(INOUT) :: emean(:,:)    !total energy (nproma,nblks_c)
-    REAL(wp), INTENT(INOUT) :: emeanws(:,:)  !total windsea energy (nproma,nblks_c)
-
-
-    INTEGER :: i_rlstart, i_rlend, i_startblk, i_endblk
-    INTEGER :: i_startidx, i_endidx
-    INTEGER :: jc,jb,jf
-    INTEGER :: jt                       !< tracer index
-    INTEGER :: n                        !< loop index
-
-    REAL(wp):: sum1(nproma,wave_config%nfreqs), sum2(nproma,wave_config%nfreqs)
-    TYPE(t_wave_config), POINTER :: wc => NULL()
-
-    i_rlstart  = 1
-    i_rlend    = min_rlcell
-    i_startblk = p_patch%cells%start_block(i_rlstart)
-    i_endblk   = p_patch%cells%end_block(i_rlend)
-
-    ! save some paperwork
-    wc => wave_config
-
-
-!$OMP PARALLEL
-!$OMP DO PRIVATE(jb,jc,jf,jt,n,i_startidx,i_endidx,sum1,sum2) ICON_OMP_DEFAULT_SCHEDULE
-    DO jb = i_startblk, i_endblk
-      CALL get_indices_c( p_patch, jb, i_startblk, i_endblk,           &
-        &                 i_startidx, i_endidx, i_rlstart, i_rlend)
-
-
-      ! compute sum of all tracers that match a specific frequency
-      DO jf = 1,wc%nfreqs
-
-        ! initialization
-        DO jc = i_startidx, i_endidx
-          sum1(jc,jf) = 0._wp
-          sum2(jc,jf) = 0._wp
-        ENDDO
-
-        DO n=1,SIZE(wc%list_tr(jf)%p)
-          jt = wc%list_tr(jf)%p(n)
-          DO jc = i_startidx, i_endidx
-            sum1(jc,jf) = sum1(jc,jf) + tracer(jc,jt,jb)
-            IF (llws(jc,jt,jb) == 1) THEN
-              sum2(jc,jf) = sum2(jc,jf) + tracer(jc,jt,jb)
-            ENDIF
-          ENDDO
-        ENDDO  ! n
-
-      ENDDO  ! jf
-
-      ! initialization
-      DO jc = i_startidx, i_endidx
-        emean(jc,jb)   = wc%MO_TAIL * sum1(jc,wc%nfreqs)
-        emeanws(jc,jb) = wc%MO_TAIL * sum2(jc,wc%nfreqs)
-      ENDDO
-
-      ! sum over all frequencies
-      DO jf = 1,wc%nfreqs
-        DO jc = i_startidx, i_endidx
-          emean(jc,jb)   = emean(jc,jb)   + sum1(jc,jf) * wc%DFIM(jf)
-          emeanws(jc,jb) = emeanws(jc,jb) + sum2(jc,jf) * wc%DFIM(jf)
-        END DO
-      ENDDO  ! jf
-
-      ! clipping
-      DO jc = i_startidx, i_endidx
-        emean(jc,jb)   = MAX(emean(jc,jb),EMIN)
-        emeanws(jc,jb) = MAX(emeanws(jc,jb),EMIN)
-      END DO
-    END DO
-!$OMP ENDDO NOWAIT
-!$OMP END PARALLEL
-
-  END SUBROUTINE total_energy
+  END SUBROUTINE mean_frequency_and_total_energy
 
 
   !>
@@ -724,7 +633,7 @@ CONTAINS
     REAL(wp) :: gm1, const, sinplus, cosw
     REAL(wp) :: cmrhowgdfth
     REAL(wp) :: const1(nproma), const2(nproma)
-    REAL(wp) :: rhowgdfth(wave_config%nfreqs,nproma)
+    REAL(wp) :: rhowgdfth(nproma,wave_config%nfreqs)
     REAL(wp) :: cm(nproma,wave_config%nfreqs)
     REAL(wp) :: xstress(nproma), xstress_tot
     REAL(wp) :: ystress(nproma), ystress_tot
@@ -756,23 +665,18 @@ CONTAINS
     DO jb = i_startblk, i_endblk
       CALL get_indices_c( p_patch, jb, i_startblk, i_endblk,           &
         &                 i_startidx, i_endidx, i_rlstart, i_rlend)
+
       DO jf = 1,wc%nfreqs
         DO jc = i_startidx, i_endidx
           cm(jc,jf) = p_diag%wave_num_c(jc,jf,jb) * 1.0_wp/(pi2*wc%freqs(jf))
+          rhowgdfth(jc,jf) = MERGE(wc%rhowg_dfim(jf), 0.0_wp, jf <= p_diag%last_prog_freq_ind(jc,jb))
         ENDDO
-      END DO
-
+      ENDDO
 
       DO jc = i_startidx, i_endidx
 
-        rhowgdfth(1:p_diag%last_prog_freq_ind(jc,jb),jc) = &
-             wc%rhowg_dfim(1:p_diag%last_prog_freq_ind(jc,jb))
-
-        IF (p_diag%last_prog_freq_ind(jc,jb).NE.wc%nfreqs)  &
-             rhowgdfth(p_diag%last_prog_freq_ind(jc,jb),jc) = &
-             0.5_wp * rhowgdfth(p_diag%last_prog_freq_ind(jc,jb),jc)
-
-        rhowgdfth(p_diag%last_prog_freq_ind(jc,jb)+1:wc%nfreqs,jc) = 0.0_wp
+        jf = p_diag%last_prog_freq_ind(jc,jb)
+        IF (jf /= wc%nfreqs) rhowgdfth(jc,jf) = 0.5_wp * rhowgdfth(jc,jf)
 
         !initialisation
         xstress(jc) = 0._wp
@@ -793,14 +697,14 @@ CONTAINS
           DO jc = i_startidx, i_endidx
             sinplus = MAX(sl(jc,jtd,jb),0._wp)
             sumt(jc) = sumt(jc) + sinplus
-            sumx(jc) = sumx(jc) + sinplus * SIN(wc%dirs(jd))
-            sumy(jc) = sumy(jc) + sinplus * COS(wc%dirs(jd))
+            sumx(jc) = sumx(jc) + sinplus * wc%sin_dir(jd)
+            sumy(jc) = sumy(jc) + sinplus * wc%cos_dir(jd)
           END DO
         END DO
 
         DO jc = i_startidx, i_endidx
-          p_diag%phiaw(jc,jb) =  p_diag%phiaw(jc,jb) + sumt(jc)*rhowgdfth(jf,jc)
-          cmrhowgdfth = cm(jc,jf) * rhowgdfth(jf,jc)
+          p_diag%phiaw(jc,jb) =  p_diag%phiaw(jc,jb) + sumt(jc)*rhowgdfth(jc,jf)
+          cmrhowgdfth = cm(jc,jf) * rhowgdfth(jc,jf)
           xstress(jc) = xstress(jc) + sumx(jc)*cmrhowgdfth
           ystress(jc) = ystress(jc) + sumy(jc)*cmrhowgdfth
         END DO
@@ -943,97 +847,6 @@ CONTAINS
     END DO
 
   END SUBROUTINE high_frequency_stress
-
-
-  !>
-  !! Calculation of TM1 and TM2 periods.
-  !!
-  !! Adaptation of WAM 4.5 code.
-  !! TM1_TM2_PERIODS_B
-  !! Integration of spectra and adding of tail factors.
-  !!
-  SUBROUTINE tm1_tm2_periods(p_patch, wave_config, tracer, emean, tm1, tm2, f1mean)
-    CHARACTER(len=MAX_CHAR_LENGTH), PARAMETER ::  &
-         &  routine = modname//'tm1_tm2_period'
-
-    TYPE(t_patch),               INTENT(IN)    :: p_patch
-    TYPE(t_wave_config), TARGET, INTENT(IN)    :: wave_config
-    REAL(wp),                    INTENT(IN)    :: tracer(:,:,:)   !< energy spectral bins (nproma,ntracer,nblks_c)
-    REAL(wp),                    INTENT(IN)    :: emean(:,:)      !< total energy (nproma,nblks_c)
-    REAL(wp),                    INTENT(INOUT) :: tm1(:,:)        !< tm1 period (nproma,nblks_c)
-    REAL(wp),                    INTENT(INOUT) :: tm2(:,:)        !< tm2 period (nproma,nblks_c)
-    REAL(wp),                    INTENT(INOUT) :: f1mean(:,:)     !< tm1 frequency (nproma,nblks_c)
-
-    ! local
-    INTEGER :: i_rlstart, i_rlend, i_startblk, i_endblk
-    INTEGER :: i_startidx, i_endidx
-    INTEGER :: jc,jb,jf
-    INTEGER :: jt                       !< tracer index
-    INTEGER :: n                        !< loop index
-    REAL(wp):: temp(nproma,wave_config%nfreqs)
-
-    TYPE(t_wave_config), POINTER :: wc => NULL()
-
-    i_rlstart  = 1
-    i_rlend    = min_rlcell
-    i_startblk = p_patch%cells%start_block(i_rlstart)
-    i_endblk   = p_patch%cells%end_block(i_rlend)
-
-    ! save some paperwork
-    wc => wave_config
-
-!$OMP PARALLEL
-!$OMP DO PRIVATE(jb,jc,jf,jt,n,i_startidx,i_endidx,temp) ICON_OMP_DEFAULT_SCHEDULE
-    DO jb = i_startblk, i_endblk
-      CALL get_indices_c( p_patch, jb, i_startblk, i_endblk,           &
-           &                 i_startidx, i_endidx, i_rlstart, i_rlend)
-      ! compute sum of all tracers that match a specific frequency
-      DO jf = 1,wc%nfreqs
-
-        ! initialization
-        DO jc = i_startidx, i_endidx
-          temp(jc,jf) = 0._wp
-        END DO
-
-        DO n=1,SIZE(wc%list_tr(jf)%p)
-          jt = wc%list_tr(jf)%p(n)
-          DO jc = i_startidx, i_endidx
-            temp(jc,jf) = temp(jc,jf) + tracer(jc,jt,jb)
-          END DO
-        END DO  ! n
-
-      END DO  ! jf
-
-      ! tail part
-      DO jc = i_startidx, i_endidx
-        tm1(jc,jb) = wc%MP1_TAIL * temp(jc,wc%nfreqs)
-        tm2(jc,jb) = wc%MP2_TAIL * temp(jc,wc%nfreqs)
-      END DO
-
-      ! add all other frequencies
-      DO jf = 1,wc%nfreqs
-        DO jc = i_startidx, i_endidx
-          tm1(jc,jb) = tm1(jc,jb) + temp(jc,jf) * wc%dfim_fr(jf)
-          tm2(jc,jb) = tm2(jc,jb) + temp(jc,jf) * wc%dfim_fr2(jf)
-        END DO
-      END DO
-
-      ! clipping
-      DO jc = i_startidx, i_endidx
-        IF (emean(jc,jb).gt.EMIN) THEN
-          tm1(jc,jb) = emean(jc,jb) / tm1(jc,jb)
-          tm2(jc,jb) = SQRT(emean(jc,jb) / tm2(jc,jb))
-        ELSE
-          tm1(jc,jb) =  1.0_wp
-          tm2(jc,jb) =  1.0_wp
-        END IF
-        f1mean(jc,jb) = 1.0_wp / tm1(jc,jb)
-      END DO
-    END DO
-!$OMP ENDDO NOWAIT
-!$OMP END PARALLEL
-
-  END SUBROUTINE tm1_tm2_periods
 
 
   !>
@@ -1193,10 +1006,10 @@ CONTAINS
 
 
   !>
-  !! Calculation of WM1 and WM2 wavenumbers
+  !! Calculation of TM1 and TM2 periods and WM1 and WM2 wavenumbers
   !!
   !! Adaptation of WAM 4.5 code.
-  !! WM1_WM2_WAVENUMBER_B
+  !! TM1_TM2_PERIODS_B and WM1_WM2_WAVENUMBER_B (combined for efficiency)
   !!
   !! C.Schneggenburger 08/97.
   !!
@@ -1204,15 +1017,19 @@ CONTAINS
   !!   WM1 IS SQRT(1/K)*F
   !!   WM2 IS SQRT(K)*F
   !!
-  SUBROUTINE wm1_wm2_wavenumber(p_patch, wave_config, wave_num_c, tracer, emean, akmean, xkmean)
+  SUBROUTINE tm1_tm2_periods_and_wm1_wm2_wavenumber(p_patch, wave_config, wave_num_c, tracer, emean, &
+    &                                               tm1, tm2, f1mean, akmean, xkmean)
     CHARACTER(len=MAX_CHAR_LENGTH), PARAMETER :: &
-         & routine =  modname//'wm1_wm2_wavenumber'
+         & routine =  modname//'tm1_tm2_periods_and_wm1_wm2_wavenumber'
 
     TYPE(t_patch),               INTENT(IN)    :: p_patch
     TYPE(t_wave_config), TARGET, INTENT(IN)    :: wave_config
     REAL(wp),                    INTENT(IN)    :: wave_num_c(:,:,:) !< wave number (1/m)
     REAL(wp),                    INTENT(IN)    :: tracer(:,:,:)
     REAL(wp),                    INTENT(IN)    :: emean(:,:)    !< total wave energy
+    REAL(wp),                    INTENT(INOUT) :: tm1(:,:)        !< tm1 period (nproma,nblks_c)
+    REAL(wp),                    INTENT(INOUT) :: tm2(:,:)        !< tm2 period (nproma,nblks_c)
+    REAL(wp),                    INTENT(INOUT) :: f1mean(:,:)     !< tm1 frequency (nproma,nblks_c)
     REAL(wp),                    INTENT(INOUT) :: akmean(:,:)   !< mean wavenumber based on SQRT(1/K)-moment, wm1
     REAL(wp),                    INTENT(INOUT) :: xkmean(:,:)   !< mean wavenumber based on SQRT(K)-moment, wm2
 
@@ -1255,14 +1072,19 @@ CONTAINS
         ENDDO
       END DO  !jf
 
-      !initialisation
+      !initialisation / tail part
       DO jc = i_startidx, i_endidx
+        tm1(jc,jb)    = wc%MP1_TAIL * temp(jc,wc%nfreqs)
+        tm2(jc,jb)    = wc%MP2_TAIL * temp(jc,wc%nfreqs)
         akmean(jc,jb) = wc%MM1_TAIL * SQRT(grav)/pi2 * temp(jc,wc%nfreqs)
         xkmean(jc,jb) = wc%MM1_TAIL * SQRT(grav)/pi2 * temp(jc,wc%nfreqs)
       END DO
 
+      ! add all other frequencies
       DO jf = 1,wc%nfreqs
         DO jc = i_startidx, i_endidx
+          tm1(jc,jb)    = tm1(jc,jb) + temp(jc,jf) * wc%dfim_fr(jf)
+          tm2(jc,jb)    = tm2(jc,jb) + temp(jc,jf) * wc%dfim_fr2(jf)
           akmean(jc,jb) = akmean(jc,jb) + temp(jc,jf) / temp2(jc,jf) * wc%DFIM(jf)
           xkmean(jc,jb) = xkmean(jc,jb) + temp(jc,jf) * temp2(jc,jf) * wc%DFIM(jf)
         END DO
@@ -1270,19 +1092,24 @@ CONTAINS
 
       DO jc = i_startidx, i_endidx
         IF (emean(jc,jb) > EMIN) THEN
+          tm1(jc,jb)    = emean(jc,jb) / tm1(jc,jb)
+          tm2(jc,jb)    = SQRT(emean(jc,jb) / tm2(jc,jb))
           akmean(jc,jb) = ( emean(jc,jb) / akmean(jc,jb))**2
           xkmean(jc,jb) = ( xkmean(jc,jb) / emean(jc,jb))**2
         ELSE
+          tm1(jc,jb)    = 1._wp
+          tm2(jc,jb)    = 1._wp
           akmean(jc,jb) = 1._wp
           xkmean(jc,jb) = 1._wp
         END IF
+        f1mean(jc,jb) = 1.0_wp / tm1(jc,jb)
       END DO
 
     END DO
 !$OMP ENDDO NOWAIT
 !$OMP END PARALLEL
 
-  END SUBROUTINE wm1_wm2_wavenumber
+  END SUBROUTINE tm1_tm2_periods_and_wm1_wm2_wavenumber
 
 
   !>
@@ -1344,7 +1171,7 @@ CONTAINS
     INTEGER              :: i_startidx, i_endidx
     TYPE(t_wave_config), POINTER :: wc => NULL()
     !  ---------------------------------------------------------------------------- !
-    !     1. START WITH MAXIMUM FROM DEEP AND EXTREM SHALLOW WATER WAVE NUMBER.    !
+    !     1. START WITH MAXIMUM FROM DEEP AND EXTREME SHALLOW WATER WAVE NUMBER.    !
 
     i_rlstart  = 1
     i_rlend    = min_rlcell
@@ -1352,7 +1179,6 @@ CONTAINS
     i_endblk   = p_patch%cells%end_block(i_rlend)
 
     wc  => wave_config
-    AKP = 10000.0_wp
 
 !$OMP PARALLEL
 !$OMP DO PRIVATE(jc,jb,jf,i_startidx,i_endidx,OM,wave_num,l_converged,all_converged,BO,AKP,TH,STH) ICON_OMP_DEFAULT_SCHEDULE
@@ -1362,19 +1188,20 @@ CONTAINS
 
       DO jf = 1,wc%nfreqs
         OM = pi2 * wc%freqs(jf)
+        AKP = 10000.0_wp
         DO jc=i_startidx, i_endidx
           !
           ! initialization
           wave_num(jc) = MAX( OM**2/(4.0_wp* grav), OM/(2.0_wp*SQRT(grav*depth(jc,jb))) )
 
-          l_converged(jc) = (ABS(AKP-wave_num(jc)) .le. EBS*wave_num(jc))
+          l_converged(jc) = (ABS(AKP-wave_num(jc)) <= EBS*wave_num(jc))
         ENDDO  ! jc
-        all_converged = ALL(l_converged(i_startidx:i_endidx).EQV..TRUE.)
+        all_converged =  ALL(l_converged(i_startidx:i_endidx))
 
         ! ---------------------------------------------------------------------------- !
         !     2. ITERATION LOOP.                                                       !
 
-        DO WHILE (all_converged.EQV..FALSE.)
+        DO WHILE (.NOT. all_converged)
           DO jc = i_startidx, i_endidx
             IF (.NOT.l_converged(jc)) THEN
               BO = depth(jc,jb)*wave_num(jc)
@@ -1388,11 +1215,11 @@ CONTAINS
                 wave_num(jc) = wave_num(jc) &
                   &                + (OM-STH)*STH*2.0_wp / (TH/wave_num(jc) + grav*BO/COSH(BO)**2)
                 ! check for converged solution
-                l_converged(jc) = (ABS(AKP-wave_num(jc)) .le. EBS*wave_num(jc))
+                l_converged(jc) = (ABS(AKP-wave_num(jc)) <= EBS*wave_num(jc))
               END IF
             END IF  ! l_converged
           ENDDO  !jc
-          all_converged = ALL(l_converged(i_startidx:i_endidx).EQV..TRUE.)
+          all_converged = ALL(l_converged(i_startidx:i_endidx))
         ENDDO !while
         !
         DO jc = i_startidx, i_endidx
@@ -1433,7 +1260,7 @@ CONTAINS
     INTEGER              :: i_startidx, i_endidx
     TYPE(t_wave_config), POINTER :: wc => NULL()
     !  ---------------------------------------------------------------------------- !
-    !     1. START WITH MAXIMUM FROM DEEP AND EXTREM SHALLOW WATER WAVE NUMBER.    !
+    !     1. START WITH MAXIMUM FROM DEEP AND EXTREME SHALLOW WATER WAVE NUMBER.    !
 
     i_rlstart  = 1
     i_rlend    = min_rledge
@@ -1441,7 +1268,6 @@ CONTAINS
     i_endblk   = p_patch%edges%end_block(i_rlend)
 
     wc  => wave_config
-    AKP = 10000.0_wp
 
 !$OMP PARALLEL
 !$OMP DO PRIVATE(je,jb,jf,i_startidx,i_endidx,OM,wave_num,l_converged,all_converged,BO,AKP,TH,STH) ICON_OMP_DEFAULT_SCHEDULE
@@ -1451,19 +1277,20 @@ CONTAINS
 
       DO jf = 1,wc%nfreqs
         OM = pi2 * wc%freqs(jf)
+        AKP = 10000.0_wp
         DO je = i_startidx, i_endidx
           !
           ! initialization
           wave_num(je) = MAX( OM**2/(4.0_wp* grav), OM/(2.0_wp*SQRT(grav*depth(je,jb))) )
 
-          l_converged(je) = (ABS(AKP-wave_num(je)) .le. EBS*wave_num(je))
+          l_converged(je) = (ABS(AKP-wave_num(je)) <= EBS*wave_num(je))
         ENDDO  ! je
-        all_converged = ALL(l_converged(i_startidx:i_endidx).EQV..TRUE.)
+        all_converged =  ALL(l_converged(i_startidx:i_endidx))
 
         ! ---------------------------------------------------------------------------- !
         !     2. ITERATION LOOP.                                                       !
 
-        DO WHILE (all_converged.EQV..FALSE.)
+        DO WHILE (.NOT. all_converged)
           DO je = i_startidx, i_endidx
             IF (.NOT.l_converged(je)) THEN
               BO = depth(je,jb)*wave_num(je)
@@ -1477,11 +1304,11 @@ CONTAINS
                 wave_num(je) = wave_num(je) &
                   &                + (OM-STH)*STH*2.0_wp / (TH/wave_num(je) + grav*BO/COSH(BO)**2)
                 ! check for converged solution
-                l_converged(je) = (ABS(AKP-wave_num(je)) .le. EBS*wave_num(je))
+                l_converged(je) = (ABS(AKP-wave_num(je)) <= EBS*wave_num(je))
               END IF
             END IF  ! l_converged
           ENDDO  !je
-          all_converged = ALL(l_converged(i_startidx:i_endidx).EQV..TRUE.)
+          all_converged = ALL(l_converged(i_startidx:i_endidx))
         ENDDO !while
         !
         DO je = i_startidx, i_endidx
