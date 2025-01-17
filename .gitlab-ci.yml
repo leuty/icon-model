@@ -225,6 +225,29 @@ Iconbot:
     - when: always
   interruptible: true
 
+Namelist Overview:
+  stage: basic
+  variables:
+    GIT_SUBMODULE_STRATEGY: none
+  tags:
+    - latex, dkrz
+  artifacts:
+    paths:
+      - doc/Namelist_overview/Namelist_overview.pdf
+    expire_in: 1 day
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+      changes:
+        - doc/Namelist_overview/*.tex
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+      when: never
+    - if: $CI_PIPELINE_SOURCE == "web"
+      when: manual
+    - when: always
+  script:
+    - cd doc/Namelist_overview
+    - pdflatex Namelist_overview.tex
+
 Granules:
   stage: test
   needs: []
