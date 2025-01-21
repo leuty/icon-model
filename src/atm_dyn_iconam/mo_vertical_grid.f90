@@ -1717,8 +1717,10 @@ MODULE mo_vertical_grid
           ALLOCATE(z_me(nproma,nlev,nblks_e), STAT=error_status)
           IF (error_status /= SUCCESS) CALL finish(routine, 'Allocation of z_me failed')
         ENDIF
-        CALL cells2edges_scalar(p_nh(jg)%metrics%z_mc, p_patch(jg), p_int(jg)%c_lin_e, z_me, &
-                                lacc=.FALSE.)
+!$OMP PARALLEL
+        CALL init(z_me(:,:,:), lacc=.FALSE.)
+!$OMP END PARALLEL
+        CALL cells2edges_scalar(p_nh(jg)%metrics%z_mc, p_patch(jg), p_int(jg)%c_lin_e, z_me, lacc=.FALSE.)
         CALL sync_patch_array(SYNC_E, p_patch(jg), z_me, lacc=.FALSE.)
         CALL prepare_deepatmo_metrics(nblks_c      = nblks_c,                  &
           &                           nblks_e      = nblks_e,                  &

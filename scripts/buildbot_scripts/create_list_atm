@@ -80,8 +80,7 @@ for builder in dwd_nec_oper dwd_nec_hybrid; do
 done
 # only DWD_nec
 $addexp checksuite.nwp/nwpexp.run_ICON_02_R2B13_lam                            --builders dwd_nec_oper --list $listname
-# deactivate test, until a bugfix is available
-# $addexp checksuite.nwp/nwpexp.run_ICON_06_R02B06N07_UPATMO_ifsinit_restarttest --builders dwd_nec_oper --list $listname
+$addexp checksuite.nwp/nwpexp.run_ICON_06_R02B06N07_UPATMO_ifsinit_restarttest --builders dwd_nec_oper --list $listname
 $addexp checksuite.nwp/nwpexp.run_ICON_07_R02B04N06M_restarttest               --builders dwd_nec_oper --list $listname
 $addexp checksuite.nwp/nwpexp.run_ICON_08_R19B7-ID2_oper                       --builders dwd_nec_oper --list $listname
 $addexp checksuite.nwp/nwpexp.run_ICON_09_R2B6N7_oper_EPS                      --builders dwd_nec_oper --list $listname
