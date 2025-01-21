@@ -200,7 +200,7 @@ cat > ${basedir}/run/${atmo_namelist} << EOF
  radiation_grid_filename     =           ${atmo_rad_grids}        ! array of the grid filenames for the radiation model
  dynamics_parent_grid_id     =                           0        ! array of the indexes of the parent grid filenames
  lredgrid_phys               =                      .TRUE.        ! .true.=radiation is calculated on a reduced grid
- lfeedback                   =                      .TRUE.        ! specifies if feedback to parent grid is performed
+ lfeedback                   =                     .FALSE.        ! specifies if feedback to parent grid is performed
  l_limited_area              =                      .TRUE.        ! .TRUE. performs limited area run
  ifeedback_type              =                          2         ! feedback type (incremental/relaxation-based)
  start_time                  =                          0.        ! Time when a nested domain starts to be active [s]
@@ -317,6 +317,8 @@ cat > ${basedir}/run/${atmo_namelist} << EOF
  dt_sso                      =                10., 10., 10.       ! time step for SSO parameterization
  dt_gwd                      =                10., 10., 10.       ! gdm : 360 in guenther
  lvariable_rain_n0           =                       .TRUE.       ! variable intercept parameter of raindrop size distribution
+ ithermo_water               =                           1        ! 1: use temperature-dependent formulation of latent heat in microphysics
+ itype_satpres_coeffs        =                           2        ! Use IFS coefficients to compute saturation vapour pressure (more accurate at low temperatures)
 /
 
 ! twomom_mcrph_nml: switches for two moment mcrph scheme ------------------------------
