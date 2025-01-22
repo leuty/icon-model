@@ -51,6 +51,7 @@ MODULE mo_radiation_nml
                                  & config_mmr_cfc11  => mmr_cfc11,                      &
                                  & config_mmr_cfc12  => mmr_cfc12,                      &
                                  & config_ecrad_llw_cloud_scat => ecrad_llw_cloud_scat, &
+                                 & config_ecrad_check_input => ecrad_check_input,       &
                                  & config_ecrad_iliquid_scat => ecrad_iliquid_scat,     &
                                  & config_ecrad_iice_scat => ecrad_iice_scat,           &
                                  & config_ecrad_isnow_scat => ecrad_isnow_scat,         &
@@ -177,6 +178,7 @@ MODULE mo_radiation_nml
   !
   ! ecRad specific configuration
   LOGICAL  :: ecrad_llw_cloud_scat
+  LOGICAL  :: ecrad_check_input
   INTEGER  :: ecrad_iliquid_scat
   INTEGER  :: ecrad_iice_scat
   INTEGER  :: ecrad_isnow_scat
@@ -213,6 +215,7 @@ MODULE mo_radiation_nml
     &                      decorr_equator,        &
     &                      islope_rad,            &
     &                      ecrad_llw_cloud_scat,  &
+    &                      ecrad_check_input,     &
     &                      ecrad_iliquid_scat,    &
     &                      ecrad_iice_scat,       &
     &                      ecrad_isnow_scat,      &
@@ -287,6 +290,7 @@ CONTAINS
     decorr_equator = 2000._wp  ! of 2km. 
 
     ecrad_llw_cloud_scat = .FALSE.
+    ecrad_check_input    = .FALSE.
     ecrad_iliquid_scat   = 0
     ecrad_iice_scat      = 0
     ecrad_isnow_scat     = -1        ! No snow in radiation calculation
@@ -372,6 +376,7 @@ CONTAINS
     config_decorr_equator = decorr_equator
 
     config_ecrad_llw_cloud_scat = ecrad_llw_cloud_scat
+    config_ecrad_check_input    = ecrad_check_input
     config_ecrad_iliquid_scat   = ecrad_iliquid_scat
     config_ecrad_iice_scat      = ecrad_iice_scat
     config_ecrad_isnow_scat     = ecrad_isnow_scat

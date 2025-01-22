@@ -17,7 +17,6 @@ MODULE mo_radiation_config
 
   IMPLICIT NONE
   PUBLIC
-  PUBLIC :: cams_aero_filename
 
   !--------------------------------------------------------------------------
   ! Basic configuration setup for radiation
@@ -121,6 +120,7 @@ MODULE mo_radiation_config
     !
     ! ecRad specific configuration
     LOGICAL  :: ecrad_llw_cloud_scat    !< Do long wave cloud scattering?
+    LOGICAL  :: ecrad_check_input       !< Debug option: Check input of ecRad for unphysical values
 
     LOGICAL  :: ecrad_use_general_cloud_optics            ! Use generalized hydrometeors with different optical tables
     ! The next parameters can take different values depending on ecrad_use_general_cloud_optics (e_gen_cop)

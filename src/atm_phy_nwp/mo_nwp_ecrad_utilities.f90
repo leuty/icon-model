@@ -32,7 +32,8 @@ MODULE mo_nwp_ecrad_utilities
                                    &   irad_h2o, irad_o3, irad_co2,              &
                                    &   irad_n2o, irad_ch4,                       &
                                    &   irad_o2, irad_cfc11, irad_cfc12,          &
-                                   &   vpp_ch4, vpp_n2o, decorr_pole, decorr_equator
+                                   &   vpp_ch4, vpp_n2o, decorr_pole, decorr_equator, &
+                                   &   ecrad_check_input
   USE mo_nwp_tuning_config,      ONLY: tune_difrad_3dcont
   USE mtime,                     ONLY: datetime
   USE mo_bc_greenhouse_gases,    ONLY: ghg_co2mmr, ghg_ch4mmr, ghg_n2ommr, ghg_cfcmmr
@@ -70,7 +71,7 @@ MODULE mo_nwp_ecrad_utilities
   !> module name string
   CHARACTER(LEN=*), PARAMETER :: modname = 'mo_nwp_ecrad_utilities'
 
-
+  PUBLIC :: ecrad_check_input_fields
   PUBLIC :: ecrad_set_single_level
   PUBLIC :: ecrad_set_thermodynamics
   PUBLIC :: ecrad_set_clouds
@@ -83,6 +84,52 @@ MODULE mo_nwp_ecrad_utilities
 
 CONTAINS
 
+
+  !---------------------------------------------------------------------------------------
+  !>
+  !! SUBROUTINE ecrad_check_input_fields:
+  !! Check input fields of ecRad for physical consistency
+  !!
+  SUBROUTINE ecrad_check_input_fields(check_entry_point, jcs, jce, nlev, &
+    &                                 pres, pres_ifc)
+    CHARACTER(LEN=*), INTENT(in) :: &
+      &  check_entry_point            !< Poor-man's traceback in case not provided by the compiler settings
+    INTEGER, INTENT(in)  :: &
+      &  jcs, jce, nlev               !< Loop bounds
+    REAL(wp), INTENT(in) :: &
+      &  pres(:,:),         &         !< Full level pressure
+      &  pres_ifc(:,:)                !< Half level pressure
+    ! Local variables
+    INTEGER              :: &
+      &  jc, jk                       !< Loop indices
+
+    DO jk = 1, nlev-1
+      DO jc = jcs, jce
+        IF ( pres(jc,jk) >= pres(jc,jk+1) ) THEN
+          CALL finish(check_entry_point,'Check failed: pres not decreasing with height')
+        ENDIF
+      ENDDO !jc
+    ENDDO !jk
+
+    DO jk = 1, nlev
+      DO jc = jcs, jce
+        IF ( pres_ifc(jc,jk) >= pres_ifc(jc,jk+1) ) THEN
+          CALL finish(check_entry_point,'Check failed: pres_ifc not decreasing with height')
+        ENDIF
+      ENDDO !jc
+    ENDDO !jk
+
+    DO jc = jcs, jce
+      IF ( pres_ifc(jc,1)  > 1.e4_wp ) THEN
+        CALL finish(check_entry_point,'Check failed: Model top should not be below 100 hPa')
+      ENDIF
+    ENDDO !jc
+
+#if ( defined (__INTEL_COMPILER) || defined (__INTEL_LLVM_COMPILER) ) && defined (_OPENMP)
+    CALL finish(check_entry_point,'Using Intel compiler with OpenMP for ecRad in ICON has known issues')
+#endif
+
+  END SUBROUTINE ecrad_check_input_fields
 
   !---------------------------------------------------------------------------------------
   !>
@@ -170,6 +217,8 @@ CONTAINS
   SUBROUTINE ecrad_set_thermodynamics(ecrad_thermodynamics, temp, pres, pres_ifc, &
     &                                 nlev, nlevp1, i_startidx, i_endidx, lacc)
 
+    CHARACTER(len=*), PARAMETER:: routine = modname//'::ecrad_set_thermodynamics'
+
     TYPE(t_ecrad_thermodynamics_type), INTENT(inout) :: &
       &  ecrad_thermodynamics     !< ecRad thermodynamics information
     REAL(wp), INTENT(in)     :: &
@@ -184,60 +233,67 @@ CONTAINS
 ! Local variables
     INTEGER                  :: &
       &  jc, jk                   !< loop indices
+    LOGICAL                  :: &
+      & is_bad = .FALSE.          !< Return value of ecRad-internal physical consistency checks
 
-      CALL assert_acc_device_only('ecrad_set_thermodynamics', lacc)
+    CALL assert_acc_device_only('ecrad_set_thermodynamics', lacc)
 
-      !$ACC DATA PRESENT(ecrad_thermodynamics, temp, pres, pres_ifc)
+    !$ACC DATA PRESENT(ecrad_thermodynamics, temp, pres, pres_ifc)
 
-      !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1)
-      !$ACC LOOP GANG VECTOR COLLAPSE(2)
-      DO jk=1,nlevp1
-        DO jc = i_startidx, i_endidx
-          ecrad_thermodynamics%pressure_hl(jc,jk)    = pres_ifc(jc,jk)
-        ENDDO !jc
-      ENDDO !jk
-      !$ACC END PARALLEL
+    !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1)
+    !$ACC LOOP GANG VECTOR COLLAPSE(2)
+    DO jk=1,nlevp1
+      DO jc = i_startidx, i_endidx
+        ecrad_thermodynamics%pressure_hl(jc,jk)    = pres_ifc(jc,jk)
+      ENDDO !jc
+    ENDDO !jk
+    !$ACC END PARALLEL
 
-      ! Temperature at half levels is interpolated in the same way as in rrtm so far.
-      !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1)
-      !$ACC LOOP SEQ
-      DO jk=2,nlev
-        !$ACC LOOP GANG VECTOR
-        DO jc = i_startidx, i_endidx
-          ecrad_thermodynamics%temperature_hl(jc,jk) =                                             &
-            &                  (temp(jc,jk-1) * pres(jc,jk-1)  * ( pres(jc,jk) - pres_ifc(jc,jk) ) &
-            &                + temp(jc,jk) * pres(jc,jk) * ( pres_ifc(jc,jk) - pres(jc,jk-1)))     &
-            &                / ( pres_ifc(jc,jk) * (pres(jc,jk) - pres(jc,jk-1) ) )
-        ENDDO !jc
-      ENDDO !jk
-      !$ACC END PARALLEL
-
-      !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1)
+    ! Temperature at half levels is interpolated in the same way as in rrtm so far.
+    !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1)
+    !$ACC LOOP SEQ
+    DO jk=2,nlev
       !$ACC LOOP GANG VECTOR
       DO jc = i_startidx, i_endidx
-        ecrad_thermodynamics%temperature_hl(jc,nlevp1) = temp(jc,nlev) + (pres_ifc(jc,nlevp1) - pres(jc,nlev)) * &
-                               (temp(jc,nlev-1) - temp(jc,nlev))/(pres(jc,nlev-1) - pres(jc,nlev))
-        ecrad_thermodynamics%temperature_hl(jc,1)         = temp(jc,1)                        &
-          &                   + ( pres_ifc(jc,1) - pres(jc,1) )                               &
-          &                   * (temp(jc,1)      - ecrad_thermodynamics%temperature_hl(jc,2)) &
-          &                   / (pres(jc,1)      - pres_ifc(jc,2) )
+        ecrad_thermodynamics%temperature_hl(jc,jk) =                                             &
+          &                  (temp(jc,jk-1) * pres(jc,jk-1)  * ( pres(jc,jk) - pres_ifc(jc,jk) ) &
+          &                + temp(jc,jk) * pres(jc,jk) * ( pres_ifc(jc,jk) - pres(jc,jk-1)))     &
+          &                / ( pres_ifc(jc,jk) * (pres(jc,jk) - pres(jc,jk-1) ) )
       ENDDO !jc
-      !$ACC END PARALLEL
+    ENDDO !jk
+    !$ACC END PARALLEL
 
-      ! Directly provide full level temperature and pressure to rrtm gas_optics in ecrad (see rrtm_pass_temppres_fl).
-      !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1)
-      !$ACC LOOP GANG VECTOR COLLAPSE(2)
-      DO jk = 1, nlev
-        DO jc = i_startidx, i_endidx
-          ecrad_thermodynamics%pressure_fl(jc,jk)    = pres(jc,jk)
-          ecrad_thermodynamics%temperature_fl(jc,jk) = temp(jc,jk)
-        ENDDO !jc
-      ENDDO !jk
-      !$ACC END PARALLEL
+    !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1)
+    !$ACC LOOP GANG VECTOR
+    DO jc = i_startidx, i_endidx
+      ecrad_thermodynamics%temperature_hl(jc,nlevp1) = temp(jc,nlev) + (pres_ifc(jc,nlevp1) - pres(jc,nlev)) * &
+                             (temp(jc,nlev-1) - temp(jc,nlev))/(pres(jc,nlev-1) - pres(jc,nlev))
+      ecrad_thermodynamics%temperature_hl(jc,1)         = temp(jc,1)                        &
+        &                   + ( pres_ifc(jc,1) - pres(jc,1) )                               &
+        &                   * (temp(jc,1)      - ecrad_thermodynamics%temperature_hl(jc,2)) &
+        &                   / (pres(jc,1)      - pres_ifc(jc,2) )
+    ENDDO !jc
+    !$ACC END PARALLEL
 
-      CALL ecrad_thermodynamics%calc_saturation_wrt_liquid(istartcol=i_startidx, iendcol=i_endidx)
+    ! Directly provide full level temperature and pressure to rrtm gas_optics in ecrad (see rrtm_pass_temppres_fl).
+    !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1)
+    !$ACC LOOP GANG VECTOR COLLAPSE(2)
+    DO jk = 1, nlev
+      DO jc = i_startidx, i_endidx
+        ecrad_thermodynamics%pressure_fl(jc,jk)    = pres(jc,jk)
+        ecrad_thermodynamics%temperature_fl(jc,jk) = temp(jc,jk)
+      ENDDO !jc
+    ENDDO !jk
+    !$ACC END PARALLEL
 
-      !$ACC END DATA
+    CALL ecrad_thermodynamics%calc_saturation_wrt_liquid(istartcol=i_startidx, iendcol=i_endidx)
+
+    !$ACC END DATA
+
+    IF  (ecrad_check_input) THEN
+      is_bad = ecrad_thermodynamics%out_of_physical_bounds(istartcol=i_startidx, iendcol=i_endidx, do_fix=.FALSE.)
+      IF (is_bad) CALL finish(routine,'ecrad_thermodynamics out_of_physical_bounds check triggered')
+    ENDIF
 
   END SUBROUTINE ecrad_set_thermodynamics
   !---------------------------------------------------------------------------------------
@@ -252,6 +308,8 @@ CONTAINS
     &                         fr_glac, fr_land, qr,qs,qg,reff_liq, reff_frz, reff_rain, reff_snow, reff_graupel,  &
     &                         icpl_reff, fact_reffc, clc_min, use_general_cloud_optics, cell_center,              &
     &                         nlev, i_startidx, i_endidx, lacc)
+
+    CHARACTER(len=*), PARAMETER:: routine = modname//'::ecrad_set_clouds'
 
     TYPE(t_ecrad_cloud_type), INTENT(inout) :: &
       &  ecrad_cloud              !< ecRad cloud information
@@ -306,6 +364,8 @@ CONTAINS
       &  iqc_loc, iqi_loc         !< indices for water and ice in ecrad_hyd_list
     LOGICAL                  :: &
       &  l_large_hyd              !< large hydrometeors change cloud fraction / small have max/min limits 
+    LOGICAL                  :: &
+      &  is_bad = .FALSE.         !< Return value of ecRad-internal physical consistency checks
 
     TYPE(t_geographical_coordinates), TARGET, ALLOCATABLE :: scm_center(:)
     TYPE(t_geographical_coordinates), POINTER             :: ptr_center(:)
@@ -402,7 +462,7 @@ CONTAINS
               DO jc = i_startidx, i_endidx
                 IF ( ptr_qx(jc,jk) > qcrit_rad ) THEN
                   ecrad_cloud%mixing_ratio(jc,jk,iqx) = ptr_qx(jc,jk)
-                  ecrad_cloud%fraction(jc,jk) = 1.0    ! Set cloud cover to one if large hydrometors are present
+                  ecrad_cloud%fraction(jc,jk) = 1._wp    ! Set cloud cover to one if large hydrometors are present
                 ELSE
                   ecrad_cloud%mixing_ratio(jc,jk,iqx) = 0.0_wp
                 ENDIF
@@ -497,11 +557,23 @@ CONTAINS
         ENDDO
         !$ACC END PARALLEL
       ENDIF
-    END IF
+    ENDIF
     !$ACC WAIT
     !$ACC END DATA
     !$ACC END DATA
     !$ACC END DATA
+
+    IF  (ecrad_check_input) THEN
+      DO jk = 1, nlev
+        DO jc = i_startidx, i_endidx
+          ! Upscaling leads to truncation errors which can violate ecRad's physical consistency check
+          ecrad_cloud%fraction(jc,jk) = MIN(ecrad_cloud%fraction(jc,jk),1._wp)
+        ENDDO
+      ENDDO
+      is_bad = ecrad_cloud%out_of_physical_bounds(istartcol=i_startidx, iendcol=i_endidx, do_fix=.FALSE.)
+      IF (is_bad) CALL finish(routine,'ecrad_cloud out_of_physical_bounds check triggered')
+    ENDIF
+
   END SUBROUTINE ecrad_set_clouds
   !---------------------------------------------------------------------------------------
 
@@ -692,6 +764,8 @@ CONTAINS
     &                           lwflx_up_clr, lwflx_dn_clr, swflx_up_clr, swflx_dn_clr,                        &
     &                           cosmu0mask, zsct, i_startidx, i_endidx, nlevp1, lacc)
 
+    CHARACTER(len=*), PARAMETER:: routine = modname//'::ecrad_store_fluxes'
+
     INTEGER, INTENT(in)   :: &
       &  jg                       !< domain index
     TYPE(t_ecrad_flux_type), INTENT(inout) :: &
@@ -735,8 +809,15 @@ CONTAINS
     ! Local Variables
     INTEGER                  :: &
       &  jband, jc, jk            !< Loop indices
+    LOGICAL                  :: &
+      &  is_bad = .FALSE.         !< Return value of ecRad-internal physical consistency checks
 
       CALL assert_acc_device_only("ecrad_store_fluxes", lacc)
+
+      IF (ecrad_check_input) THEN ! this is ecrad output being checked...
+        is_bad = ecrad_flux%out_of_physical_bounds(istartcol=i_startidx,iendcol=i_endidx)
+        IF (is_bad) CALL finish(routine,'ecrad_flux out_of_physical_bounds check triggered')
+      ENDIF
 
       !$ACC DATA PRESENT(ecrad_flux, cosmu0, trsolall, trsol_up_toa, trsol_up_sfc, trsol_nir_sfc) &
       !$ACC   PRESENT(trsol_vis_sfc, trsol_par_sfc, fr_nir_sfc_diff, fr_vis_sfc_diff) &

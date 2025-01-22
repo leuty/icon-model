@@ -24,6 +24,7 @@ MODULE mo_nwp_ecrad_prep_aerosol
   USE mo_exception,              ONLY: finish
   USE mo_fortran_tools,          ONLY: assert_acc_host_only, assert_acc_device_only,t_ptr_2d
   USE mo_impl_constants,         ONLY: n_camsaermr
+  USE mo_radiation_config,       ONLY: ecrad_check_input
 #ifdef __ECRAD
   USE mo_ecrad,                  ONLY: t_ecrad_aerosol_type, t_ecrad_conf, t_opt_ptrs
   USE mo_aerosol_util,           ONLY: get_nbands_lw_aerosol, get_nbands_sw_aerosol,   &
@@ -318,6 +319,17 @@ CONTAINS
       ENDDO     ! jband
     ENDIF
     !$ACC END PARALLEL
+
+    IF (ecrad_check_input) THEN
+      DO jband = 1, ecrad_conf%n_bands_sw
+        DO jk = slev, nlev
+          DO jc = i_startidx, i_endidx
+            ! Upscaling leads to truncation errors which can violate ecRad's physical consistency check
+            ecrad_aerosol%ssa_sw(jband,jk,jc) = MIN(ecrad_aerosol%ssa_sw(jband,jk,jc),1._wp)
+          ENDDO
+        ENDDO
+      ENDDO
+    ENDIF
 
   END SUBROUTINE nwp_ecrad_prep_aerosol_td
   !---------------------------------------------------------------------------------------
