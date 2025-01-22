@@ -53,7 +53,7 @@ $addexp exp.seamless_bb-ecradmin --builders "levante_intel_hybrid levante_gcc_hy
 #-----------------------------------------------------------
 
 
-## new seamless entries for DWD-NEC - needs compilation with yac2: dwd_nec_coupling
+## new seamless entries for DWD-NEC - needs compilation with yac: dwd_nec_coupling
 #-----------------------------------------------------------
 ## Prototype-1 (identical grid):
 $addexp checksuite.nwp/nwpexp.run_ICON_17_R2B4_AO_coupled         --builders dwd_nec_coupling --list $listname

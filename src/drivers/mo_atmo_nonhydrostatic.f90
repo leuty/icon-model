@@ -99,6 +99,7 @@ USE mo_pp_scheduler,        ONLY: pp_scheduler_init, pp_scheduler_finalize
 USE mo_nwp_phy_state,        ONLY: prm_diag, prm_nwp_tend, prm_nwp_stochconv,  &
   &                                construct_nwp_phy_state
 USE mo_nwp_lnd_state,        ONLY: p_lnd_state, construct_nwp_lnd_state
+USE mo_lookup_tables_constants, ONLY: init_satpres_coeffs
 USE mo_atm_phy_nwp_config,   ONLY: configure_atm_phy_nwp, atm_phy_nwp_config
 USE mo_synsat_config,        ONLY: configure_synsat
 USE mo_iau,                  ONLY: save_initial_state, reset_to_initial_state
@@ -331,6 +332,12 @@ CONTAINS
 
     IF (timers_level > 1) CALL timer_start(timer_model_init)
 
+    ! Initialize coefficients for saturation pressure - this is even needed without physics forcing
+    IF(iforcing == inwp) THEN
+      CALL init_satpres_coeffs(atm_phy_nwp_config(1)%itype_satpres_coeffs)
+    ELSE
+      CALL init_satpres_coeffs()
+    END IF
 
     DO jg =1,n_dom
       CALL configure_nonhydrostatic( jg, p_patch(jg)%nlev,     &
@@ -526,7 +533,7 @@ CONTAINS
     IF (ldass_lhn) THEN
       CALL message(routine,'configure_lhn')
       DO jg =1,n_dom
-        CALL configure_lhn(jg)
+        CALL configure_lhn(p_patch(jg))
       ENDDO
       !$ACC ENTER DATA COPYIN(assimilation_config)
 

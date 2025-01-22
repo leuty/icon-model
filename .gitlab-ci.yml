@@ -257,16 +257,21 @@ Granules:
   rules:
     - if: $CI_PIPELINE_SOURCE == "merge_request_event"
       changes:
-        - ${CI_CONFIG_PATH}
         - .gitlab/ci/granules.yml
         - externals/fortran-support
         - externals/iconmath
         - externals/probtest
         - src/atm_phy_schemes/mo_lookup_tables_constants.f90
-        - src/atm_phy_schemes/mo_satad.f90
+        - src/atm_phy_schemes/mo_thdyn_functions.f90
+        - src/atm_phy_schemes/mo_2mom_mcrph_types.f90
+        - src/atm_phy_schemes/mo_2mom_mcrph_setup.f90
+        - src/configure_model/mo_2mom_mcrph_config.f90
+        - configure_model/mo_nwp_tuning_config.f90
         - src/granules/microphysics_1mom_schemes/**/*
         - src/shared/mo_kind.f90
         - src/shared/mo_physical_constants.f90
+        - src/shared/mo_impl_constants.f90
+        - src/shared/mo_impl_constants_grf.f90
         - test/microphysics_1mom_schemes/**/*
     - if: $CI_PIPELINE_SOURCE == "merge_request_event"
       when: never

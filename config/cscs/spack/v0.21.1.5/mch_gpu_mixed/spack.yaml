@@ -13,7 +13,7 @@ spack:
   - cosmo-eccodes-definitions@2.25.0.2
   - icon @develop %nvhpc +grib2 +eccodes-definitions +ecrad +emvorado +art +dace gpu=openacc+cuda
     +mpi-gpu +realloc-buf +pgi-inlib ~aes ~jsbach ~ocean ~coupling ~rte-rrtmgp ~loop-exchange
-    ~async-io-rma +mixed-precision cuda_arch=80
+    ~async-io-rma +mixed-precision +cuda-graphs cuda_arch=80
   view: true
   concretizer:
     unify: true
@@ -22,4 +22,18 @@ spack:
       path: ../../../../..
       spec: icon @develop %nvhpc +grib2 +eccodes-definitions +ecrad +art +dace gpu=openacc+cuda
         +mpi-gpu +realloc-buf +pgi-inlib ~aes ~jsbach ~ocean ~coupling ~rte-rrtmgp
-        ~loop-exchange ~async-io-rma +mixed-precision cuda_arch=80
+        ~loop-exchange ~async-io-rma +mixed-precision +cuda-graphs cuda_arch=80
+  compilers:
+  - compiler:
+      spec: gcc@=13.3.0
+      paths:
+        cc: /usr/bin/gcc
+        cxx: /usr/bin/g++
+        f77: null
+        fc: null
+      flags: {}
+      operating_system: ubuntu24.04
+      target: x86_64
+      modules: []
+      environment: {}
+      extra_rpaths: []

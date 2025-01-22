@@ -19,7 +19,7 @@ MODULE mo_wave_crosscheck
   USE mo_coupling_config,   ONLY: is_coupled_to_atmo
   USE mo_run_config,        ONLY: nsteps, ldynamics, ntracer, num_lev, ltestcase
   USE mo_grid_config,       ONLY: n_dom
-  USE mo_time_config,       ONLY: time_config, dt_restart
+  USE mo_time_config,       ONLY: dt_restart
   USE mo_time_management,   ONLY: compute_timestep_settings,                        &
        &                          compute_restart_settings,                         &
        &                          compute_date_settings

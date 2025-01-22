@@ -34,7 +34,7 @@ set -x
 # icon_data_poolFolder          = base directory, where grids/, input/ and setup/ exist
 # nproma                        = blocking length for array dimensioning and inner loop lengths
 
-icon_data_poolFolder="${icon_data_rootFolder:-/pool/data/ICON}/mch"
+input_folder="${testingFolder_prefix}/testing-input-data/c2sm/pollen_test"
 
 # =======================================================================
 # Setup - experiment
@@ -53,10 +53,7 @@ icon_data_poolFolder="${icon_data_rootFolder:-/pool/data/ICON}/mch"
 # =======================
 
 # Folder containing required grid information
-grids_folder=${icon_data_poolFolder}/grids/pollen_test
-
-# Folder containing lateral boundary conditions
-latbc_path=${icon_data_poolFolder}/input/pollen_test
+grids_folder=${input_folder}
 
 dynamics_grid_filename=ICON-1E_cropped_DOM01.nc
 atmo_dyn_grids="'${dynamics_grid_filename}',"
@@ -89,37 +86,37 @@ add_link_file ${basedir}/externals/ecrad/data ecrad_data
 add_required_file ${basedir}/run/ana_varnames_map_file.txt map_file.ana
 
 # Dictionary for the mapping: GRIB2/Netcdf input names <-> ICON internal names
-add_required_file ${latbc_path}/map_file.latbc map_file.latbc
+add_required_file ${input_folder}/map_file.latbc map_file.latbc
 
 # initial data
-initial_condition=${latbc_path}/laf2022041206
+initial_condition=${input_folder}/laf2022041206.grb
 add_link_file ${initial_condition} .
 
 # lateral boundary grid
-add_required_file ${latbc_path}/lateral_boundary.grid.nc lateral_boundary.grid.nc
+add_required_file ${input_folder}/lateral_boundary.grid.nc lateral_boundary.grid.nc
 
 # lateral boundary data
-add_link_file ${latbc_path}/lbff00000000.nc .
-add_link_file ${latbc_path}/lbff00010000.nc .
-add_link_file ${latbc_path}/lbff00020000.nc .
-add_link_file ${latbc_path}/lbff00030000.nc .
-add_link_file ${latbc_path}/lbff00040000.nc .
-add_link_file ${latbc_path}/lbff00050000.nc .
-add_link_file ${latbc_path}/lbff00060000.nc .
-add_link_file ${latbc_path}/lbff00070000.nc .
-add_link_file ${latbc_path}/lbff00080000.nc .
-add_link_file ${latbc_path}/lbff00090000.nc .
-add_link_file ${latbc_path}/lbff00100000.nc .
+add_link_file ${input_folder}/lbff00000000.nc .
+add_link_file ${input_folder}/lbff00010000.nc .
+add_link_file ${input_folder}/lbff00020000.nc .
+add_link_file ${input_folder}/lbff00030000.nc .
+add_link_file ${input_folder}/lbff00040000.nc .
+add_link_file ${input_folder}/lbff00050000.nc .
+add_link_file ${input_folder}/lbff00060000.nc .
+add_link_file ${input_folder}/lbff00070000.nc .
+add_link_file ${input_folder}/lbff00080000.nc .
+add_link_file ${input_folder}/lbff00090000.nc .
+add_link_file ${input_folder}/lbff00100000.nc .
 
 # pollen specific input files
-add_required_file ${latbc_path}/xml_nl/diagnostics-CORY_BETU.xml .
-add_required_file ${latbc_path}/xml_nl/modes-CORY_BETU.xml .
-add_required_file ${latbc_path}/xml_nl/tracers-CORY_BETU.xml .
+add_required_file ${input_folder}/xml_nl/diagnostics-CORY_BETU.xml .
+add_required_file ${input_folder}/xml_nl/modes-CORY_BETU.xml .
+add_required_file ${input_folder}/xml_nl/tracers-CORY_BETU.xml .
 
-add_required_file ${latbc_path}/norm.T.stns.betu.atab .
-add_required_file ${latbc_path}/norm.T.stns.cory.atab .
-add_required_file ${latbc_path}/grid_cory_betu/ART_POC_iconR19B08-grid_0001 .
-add_required_file ${latbc_path}/grid_cory_betu/ART_POV_iconR19B08-grid_0001 .
+add_required_file ${input_folder}/norm.T.stns.betu.atab .
+add_required_file ${input_folder}/norm.T.stns.cory.atab .
+add_required_file ${input_folder}/grid_cory_betu/ART_POC_iconR19B08-grid_0001.grb ART_POC_iconR19B08-grid_0001
+add_required_file ${input_folder}/grid_cory_betu/ART_POV_iconR19B08-grid_0001.grb ART_POV_iconR19B08-grid_0001
 
 
 # dictionary file for output variable names
@@ -207,7 +204,7 @@ cat > ${basedir}/run/${atmo_namelist} << EOF
                                             !     and added to QV if not
  qiana_mode                   = 0           ! 0/1: ignore/use QI increments 
  qrsgana_mode                 = 0           ! 0/1: ignore/use QR,QS,QG 
- dwdfg_filename               = "laf2022041206"    ! initial data filename init_mode 7
+ dwdfg_filename               = "laf2022041206.grb"    ! initial data filename init_mode 7
  filetype                     = -1        
  ana_varnames_map_file        = "map_file.ana"        ! Dictionary for initial data file
  ltile_coldstart              = .TRUE.  ! coldstart for surface tiles
@@ -258,7 +255,7 @@ cat > ${basedir}/run/${atmo_namelist} << EOF
  itype_latbc                 =                          1         ! 1: time-dependent lateral boundary conditions
  dtime_latbc                 =          3600.        ! time difference between 2 consecutive boundary data
  latbc_boundary_grid         = "lateral_boundary.grid.nc"      ! Grid file defining the lateral boundary
- latbc_path                  =              "${latbc_path}"       ! Absolute path to boundary data
+ latbc_path                  =              "${input_folder}"  ! Absolute path to boundary data
  latbc_varnames_map_file     =            'map_file.latbc'
  latbc_filename              =         'lbff<ddhhmmss>.nc'        ! boundary data input filename
  init_latbc_from_fg          =                     .FALSE.        ! .TRUE.: take lbc for initial time from first guess

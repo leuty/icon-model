@@ -2885,7 +2885,7 @@ SUBROUTINE new_nwp_phy_diag_list( k_jg, klev, klevp1, kblks,    &
 
     ! estimated inversion strength
     ! &      diag%conv_eis(nproma,nblks_c)
-    cf_desc    = t_cf_var('conv_eis', 'm-3', 'estimated inversion strength', datatype_flt)
+    cf_desc    = t_cf_var('conv_eis', 'K', 'estimated inversion strength', datatype_flt)
     grib2_desc = grib2_var(255, 255, 255, ibits, GRID_UNSTRUCTURED, GRID_CELL)
     CALL add_var( diag_list, 'conv_eis', diag%conv_eis,                 &
       & GRID_UNSTRUCTURED_CELL, ZA_SURFACE, cf_desc, grib2_desc,          &

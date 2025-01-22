@@ -42,13 +42,15 @@ MODULE mo_time_management
     &                                    time_nml_icalendar => icalendar,                  &
     &                                    restart_calendar, restart_ini_datetime_string,    &
     &                                    set_calendar, set_is_relative_time,               &
-    &                                    set_tc_dt_model, calendar_index2string
+    &                                    set_tc_dt_model, set_tc_timeshift,                &
+    &                                    calendar_index2string
   USE mo_run_config,               ONLY: dtime, mtime_modelTimeStep => modelTimeStep
-  USE mo_master_control,           ONLY: atmo_process, get_my_process_type
+  USE mo_master_control,           ONLY: my_process_is_atmo
   USE mo_impl_constants,           ONLY: max_dom,                                          &
     &                                    dtime_proleptic_gregorian => proleptic_gregorian, &
     &                                    dtime_cly360              => cly360,              &
     &                                    dtime_julian_gregorian    => julian_gregorian
+  USE mo_math_constants,           ONLY: dbl_eps
   USE mo_exception,                ONLY: message, message_text, finish
   USE mo_grid_config,              ONLY: patch_weight, grid_rescale_factor, n_dom,         &
     &                                    start_time, lrescale_timestep
@@ -56,7 +58,7 @@ MODULE mo_time_management
   USE mo_master_config,            ONLY: experimentReferenceDate,                          &
     &                                    experimentStartDate,                              &
     &                                    checkpointTimeIntval, restartTimeIntval,          &
-    &                                    experimentStopDate, isRestart,                    &
+    &                                    experimentStopDate, isRestart, isInitFromRestart, &
     &                                    master_nml_calendar => calendar_str
   USE mo_time_config,              ONLY: set_tc_exp_refdate, set_tc_exp_startdate,         &
     &                                    set_tc_exp_stopdate, set_tc_startdate,            &
@@ -70,7 +72,6 @@ MODULE mo_time_management
 #ifndef __NO_ICON_ATMO__
   USE mo_nonhydrostatic_config,    ONLY: divdamp_order
   USE mo_atm_phy_nwp_config,       ONLY: atm_phy_nwp_config
-  USE mo_initicon_config,          ONLY: timeshift 
 #endif
 
 
@@ -148,7 +149,7 @@ CONTAINS
       IF (dtime_real > 0._wp)  dtime_real = dtime_real * grid_rescale_factor
 
 #ifndef __NO_ICON_ATMO__
-      IF (get_my_process_type() == atmo_process) THEN
+      IF (my_process_is_atmo()) THEN
         DO jg=1,max_dom
           atm_phy_nwp_config(jg)%dt_conv = &
             atm_phy_nwp_config(jg)%dt_conv * grid_rescale_factor
@@ -431,19 +432,19 @@ CONTAINS
       &                                       mtime_exp_stop,                &
       &                                       mtime_restart_stop,            &
       &                                       mtime_nsteps_stop,             &
-      &                                       tmp_dt1, tmp_dt2 
+      &                                       tmp_dt1, tmp_dt2,              &
+      &                                       mtime_cur_datetime
     TYPE(timedelta), POINTER              ::  mtime_dt_restart, mtime_dtime, &
       &                                       mtime_td
     TYPE(divisionquotienttimespan)        ::  mtime_quotient
     INTEGER                               ::  mtime_calendar, dtime_calendar,&
       &                                       errno, tlen1, tlen2
     CHARACTER(len=MAX_CALENDAR_STR_LEN)   ::  calendar1, calendar2, calendar
-    TYPE(t_key_value_store), POINTER ::  restartAttributes
-    CHARACTER(LEN=:), ALLOCATABLE :: start_datetime_string !< run start date
-#ifndef __NO_ICON_ATMO__
-    REAL(wp)                              :: zdt_shift            ! rounded dt_shift
-    CHARACTER(LEN=MAX_TIMEDELTA_STR_LEN)  :: dt_shift_string
-#endif
+    TYPE(t_key_value_store), POINTER      ::  restartAttributes
+    CHARACTER(LEN=:), ALLOCATABLE         ::  start_datetime_string !< run start date
+    TYPE(datetime), POINTER               ::  reference_dt
+    REAL(wp)                              ::  mtime_shift_in_sec    !< mtime_shift converted to seconds
+    REAL(wp)                              ::  zdt_shift             !< rounded dt_shift
 
     ! --------------------------------------------------------------
     ! PART I: Collect all the dates as ISO8601 strings
@@ -645,6 +646,10 @@ CONTAINS
         ENDIF
       END IF
 
+    ELSE IF (isInitFromRestart()) THEN
+      CALL message('','Not a RESTART run but model is initialized from RESTART file ...')
+      start_datetime_string = exp_start_datetime_string
+
     ELSE
       CALL message('','This is not a RESTART run ...')
       start_datetime_string = exp_start_datetime_string
@@ -658,45 +663,62 @@ CONTAINS
     !
     cur_datetime_string = start_datetime_string
 
+    !
+    ! timeshift-operations for CURRENT DATE
+    !
+    IF (my_process_is_atmo()) THEN
 
-    IF (model_string == 'atm') THEN
-#ifndef __NO_ICON_ATMO__
+      ! A timeshift can be used to shift the current model date, and thus
+      ! the actual start date by time_config%timeshift%dt_shift backwards in time.
+      ! This is required for the Incremental Analysis Update (IAU) procedure
+      ! which is used during the initialization phase of some component models,
+      ! in order to filter spurious noise.
       !
-      ! timeshift-operations for CURRENT DATE
+      ! check if timeshift%mtime_shift is set
       !
-      ! A timeshift will be used to shift the current model date, and thus 
-      ! the actual start date by timeshift%dt_shift backwards in time. 
-      ! This is required for the Incremental Analysis Update (IAU) procedure 
-      ! which is used during the initialization phase of the atmospheric 
-      ! model component, in order to filter spurious noise.
+      IF (.NOT.ASSOCIATED(time_config%timeshift%mtime_shift)) THEN
+        CALL finish(routine, "time_config%timeshift%mtime_shift is undefined")
+      ENDIF
+
+      ! If needed, round dt_shift to the nearest integer multiple of the
+      ! advection time step.
       !
-      !
-      ! Round dt_shift to the nearest integer multiple of the advection time step
-      !
-      IF (timeshift%dt_shift < 0._wp) THEN
-        zdt_shift = REAL(NINT(timeshift%dt_shift/dtime),wp)*dtime
-        IF (ABS((timeshift%dt_shift-zdt_shift)/zdt_shift) > 1.e-10_wp) THEN
+      IF (time_config%timeshift%dt_shift < 0._wp) THEN
+        zdt_shift = REAL(NINT(time_config%timeshift%dt_shift/dtime),wp)*dtime
+        IF (ABS((time_config%timeshift%dt_shift-zdt_shift)/zdt_shift) > 1.e-10_wp) THEN
+          CALL set_tc_timeshift(zdt_shift)
           WRITE(message_text,'(a,f10.3,a)') '*** WARNING: dt_shift adjusted to ', zdt_shift, &
             &                               ' s in order to be an integer multiple of dtime ***'
           CALL message('',message_text)
         ENDIF
-        timeshift%dt_shift = zdt_shift
       END IF
+
+      ! Check consistency of mtime_shift and dt_shift
       !
-      ! transform timeshift to mtime-format
-      !
-      CALL getPTStringFromSeconds(timeshift%dt_shift, dt_shift_string)
-      timeshift%mtime_shift => newTimedelta(dt_shift_string)
-      WRITE(message_text,'(a,a)') 'IAU time shift: ', TRIM(dt_shift_string)
-      !
-      CALL getPTStringFromSeconds(ABS(timeshift%dt_shift), dt_shift_string)
-      timeshift%mtime_absshift => newTimedelta(dt_shift_string)
-      CALL message('',message_text)
-#endif
-    ENDIF
+      reference_dt => newDatetime(TRIM(exp_start_datetime_string))
+      mtime_shift_in_sec = REAL(getTotalMilliSecondsTimeDelta(time_config%timeshift%mtime_shift, &
+        &                                                     reference_dt),wp)/1000._wp
+      CALL deallocateDatetime(reference_dt)
+      IF (ABS(mtime_shift_in_sec - time_config%timeshift%dt_shift) > dbl_eps) THEN
+        WRITE(message_text,'(a,2f10.3,a)') 'time_config%timeshift: mtime_shift and dt_shift differ:', &
+          &                               mtime_shift_in_sec, time_config%timeshift%dt_shift
+        CALL finish(routine, message_text)
+      ENDIF
 
 
-
+      IF (.NOT. isRestart()) THEN
+        IF (time_config%timeshift%dt_shift < 0._wp) THEN
+          mtime_cur_datetime => newDatetime(cur_datetime_string, errno)
+          IF (errno /= 0) THEN
+            CALL finish(routine, "Error in conversion of current datetime: "//cur_datetime_string)
+          ENDIF
+          ! apply timeshift to current date
+          mtime_cur_datetime = mtime_cur_datetime + time_config%timeshift%mtime_shift
+          CALL datetimeToString(mtime_cur_datetime, cur_datetime_string)
+          CALL deallocateDatetime(mtime_cur_datetime)
+        ENDIF
+      ENDIF
+    ENDIF  !my_process_is_atmo
 
 
     ! --- --- STOP DATE:
@@ -877,16 +899,6 @@ CONTAINS
     CALL set_tc_exp_refdate  ( exp_ref_datetime_string   )
     CALL set_tc_current_date ( cur_datetime_string       )
 
-    IF (model_string == 'atm') THEN
-#ifndef __NO_ICON_ATMO__
-      ! add IAU time shift to current date
-      IF (.NOT. isRestart()) THEN
-        IF (timeshift%dt_shift < 0._wp) THEN
-          time_config%tc_current_date = time_config%tc_current_date + timeshift%mtime_shift
-        ENDIF
-      ENDIF
-#endif
-    ENDIF
 
 
     ! --- Finally, store the same information in a "t_datetime" data
@@ -953,7 +965,6 @@ CONTAINS
     CALL message('',message_text)
     CALL message('','')
 
-    CALL message('',message_text)
     IF (isRestart()) THEN
       WRITE(message_text,'(a,a,a)') 'Start date    : ', TRIM(start_datetime_string), ' (restart run)'
     ELSE
@@ -961,6 +972,12 @@ CONTAINS
     END IF
     CALL message('',message_text)
     WRITE(message_text,'(a,a)')     'Stop date     : ', TRIM(stop_datetime_string)
+    CALL message('',message_text)
+    IF (time_config%timeshift%dt_shift < 0._wp .AND. .NOT. isRestart()) THEN
+      WRITE(message_text,'(a,a,a)')   'Current date  : ', TRIM(cur_datetime_string), ' (IAU run) '
+    ELSE
+      WRITE(message_text,'(a,a)')     'Current date  : ', TRIM(cur_datetime_string)
+    ENDIF
     CALL message('',message_text)
     CALL message('','')
     

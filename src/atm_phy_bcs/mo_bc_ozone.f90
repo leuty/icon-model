@@ -81,7 +81,7 @@ CONTAINS
     INTEGER                           :: imonth_beg, imonth_end      ! months with range 0-13
     INTEGER                           :: kmonth_beg, kmonth_end      ! months with range 1-12
     INTEGER                           :: nmonths
-    REAL(wp), POINTER                 :: zo3_plev(:,:,:,:)           ! (nproma, levels, blocks, time)
+    REAL(wp), ALLOCATABLE             :: zo3_plev(:,:,:,:)           ! (nproma, levels, blocks, time)
     REAL(wp)                          :: vmr2mmr_o3
     LOGICAL                           :: l_first
     LOGICAL                           :: from_coupler = .FALSE.
@@ -105,7 +105,7 @@ CONTAINS
       &              time_config%tc_stopdate%date%day    == 1  .AND. &
       &              time_config%tc_stopdate%time%hour   == 0  .AND. &
       &              time_config%tc_stopdate%time%minute == 0  .AND. &
-      &              time_config%tc_stopdate%time%second == 0 ) 
+      &              time_config%tc_stopdate%time%second == 0 )
 
     nyears = time_config%tc_stopdate%date%year - time_config%tc_startdate%date%year + 1
     IF ( lend_of_year ) nyears = nyears - 1
@@ -182,7 +182,7 @@ CONTAINS
             CALL message('read_bc_ozone', message_text)
             CALL openInputFile(stream_id, fname, p_patch, default_read_method)
             CALL read_3D_time(stream_id=stream_id, location=on_cells,      &
-              &               variable_name='O3', return_pointer=zo3_plev, &
+              &               variable_name='O3', alloc_array=zo3_plev, &
               &               start_timestep=2,end_timestep=kmonth_end)
             CALL closeFile(stream_id)
             ext_ozone(jg)% o3_plev(:,:,:,2:kmonth_end) = vmr2mmr_o3*zo3_plev(:,:,:,1:kmonth_end-1)
@@ -199,8 +199,8 @@ CONTAINS
             WRITE(message_text,'(2a)') 'Read ozone for month     13 from file: ',TRIM(fname)
             CALL message('read_bc_ozone', message_text)
             CALL openInputFile(stream_id, fname, p_patch, default_read_method)
-            CALL read_3D_time(stream_id=stream_id, location=on_cells,      &
-              &               variable_name='O3', return_pointer=zo3_plev, &
+            CALL read_3D_time(stream_id=stream_id, location=on_cells,   &
+              &               variable_name='O3', alloc_array=zo3_plev, &
               &               start_timestep=1,end_timestep=1)
             CALL closeFile(stream_id)
             ext_ozone(jg)% o3_plev(:,:,:,imonth_end) = vmr2mmr_o3*zo3_plev(:,:,:,1)
@@ -246,8 +246,8 @@ CONTAINS
             &                                        kmonth_beg, ':', kmonth_end, ' from file: ', fname
           CALL message('read_bc_ozone', message_text)
           !
-          CALL read_3D_time(stream_id=stream_id, location=on_cells,      &
-            &               variable_name='O3', return_pointer=zo3_plev, &
+          CALL read_3D_time(stream_id=stream_id, location=on_cells,   &
+            &               variable_name='O3', alloc_array=zo3_plev, &
             &               start_timestep=kmonth_beg,end_timestep=kmonth_end)
           !
           ! Now the spatial dimensions are known --> allocate memory for months 0:13
@@ -268,8 +268,8 @@ CONTAINS
               WRITE(message_text,'(2a)') 'Read clim. annual cycle of ozone for month 12 ( -> 0) from file: ', TRIM(fname)
               CALL message('read_bc_ozone', message_text)
               !
-              CALL read_3D_time(stream_id=stream_id, location=on_cells,      &
-                &               variable_name='O3', return_pointer=zo3_plev, &
+              CALL read_3D_time(stream_id=stream_id, location=on_cells,   &
+                &               variable_name='O3', alloc_array=zo3_plev, &
                 &               start_timestep=12,end_timestep=12)
               ext_ozone(jg)% o3_plev(:,:,:,0) = vmr2mmr_o3*zo3_plev(:,:,:,1)
             ELSE
@@ -283,8 +283,8 @@ CONTAINS
               WRITE(message_text,'(2a)') 'Read clim. annual cycle of ozone for month 1 ( -> 13) from file: ', TRIM(fname)
               CALL message('read_bc_ozone', message_text)
               !
-              CALL read_3D_time(stream_id=stream_id, location=on_cells,      &
-                &               variable_name='O3', return_pointer=zo3_plev, &
+              CALL read_3D_time(stream_id=stream_id, location=on_cells,   &
+                &               variable_name='O3', alloc_array=zo3_plev, &
                 &               start_timestep=1,end_timestep=1)
             ENDIF
             ext_ozone(jg)% o3_plev(:,:,:,13) = vmr2mmr_o3*zo3_plev(:,:,:,1)
@@ -304,8 +304,8 @@ CONTAINS
           CALL message('read_bc_ozone', message_text)
           !
           CALL openInputFile(stream_id, fname, p_patch, default_read_method)
-          CALL read_3D_time(stream_id=stream_id, location=on_cells,      &
-            &               variable_name='O3', return_pointer=zo3_plev, &
+          CALL read_3D_time(stream_id=stream_id, location=on_cells,   &
+            &               variable_name='O3', alloc_array=zo3_plev, &
             &               start_timestep=1,end_timestep=1)
           CALL closeFile(stream_id)
           !
@@ -349,8 +349,8 @@ CONTAINS
             WRITE(message_text,'(2a)') 'Read ozone for month      0 from file: ',TRIM(fname)
             CALL message('read_bc_ozone', message_text)
             CALL openInputFile(stream_id, fname, p_patch, default_read_method)
-            CALL read_3D_time(stream_id=stream_id, location=on_cells,         &
-              &               variable_name='O3', return_pointer=zo3_plev, &
+            CALL read_3D_time(stream_id=stream_id, location=on_cells,   &
+              &               variable_name='O3', alloc_array=zo3_plev, &
               &               start_timestep=12,end_timestep=12)
             CALL closeFile(stream_id)
             !
@@ -380,8 +380,8 @@ CONTAINS
           &                            kmonth_end, ' from file: ',TRIM(fname)
           CALL message('read_bc_ozone', message_text)
           CALL openInputFile(stream_id, fname, p_patch, default_read_method)
-          CALL read_3D_time(stream_id=stream_id, location=on_cells,         &
-            &               variable_name='O3', return_pointer=zo3_plev, &
+          CALL read_3D_time(stream_id=stream_id, location=on_cells,   &
+            &               variable_name='O3', alloc_array=zo3_plev, &
             &               start_timestep=kmonth_beg,end_timestep=kmonth_end)
           CALL closeFile(stream_id)
           !
@@ -413,7 +413,7 @@ CONTAINS
             CALL message('read_bc_ozone', message_text)
             CALL openInputFile(stream_id, fname, p_patch, default_read_method)
             CALL read_3D_time(stream_id=stream_id, location=on_cells,         &
-               &              variable_name='O3', return_pointer=zo3_plev, &
+               &              variable_name='O3', alloc_array=zo3_plev, &
                &              start_timestep=1,end_timestep=1)
             CALL closeFile(stream_id)
             !

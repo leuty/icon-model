@@ -12,10 +12,12 @@
 MODULE mo_time_config
 
   USE mo_kind,                  ONLY: wp
-  USE mo_exception,             ONLY: finish
+  USE mo_exception,             ONLY: message, message_text, finish
   USE mtime,                    ONLY: datetime, timedelta, newDatetime, newTimedelta, &
-    &                                 deallocateDatetime, MAX_CALENDAR_STR_LEN,       &
-    &                                 OPERATOR(*), getTotalMilliSecondsTimedelta
+    &                                 deallocateDatetime, deallocateTimedelta,        &
+    &                                 MAX_CALENDAR_STR_LEN, MAX_TIMEDELTA_STR_LEN,    &
+    &                                 OPERATOR(*), getTotalMilliSecondsTimedelta,     &
+    &                                 getPTStringFromSeconds
   USE mo_impl_constants,        ONLY: proleptic_gregorian, julian_gregorian, cly360,  &
     &                                 SUCCESS
   USE mo_util_string,           ONLY: tolower
@@ -37,6 +39,7 @@ MODULE mo_time_config
   PUBLIC :: set_calendar
   PUBLIC :: set_tc_dt_model
   PUBLIC :: set_tc_write_restart
+  PUBLIC :: set_tc_timeshift
 
   !> namelist parameters (as raw character strings):
   !
@@ -52,6 +55,11 @@ MODULE mo_time_config
   CHARACTER(len=32)                   :: end_datetime_string
   REAL(wp)                            :: dt_restart          !< Length of restart cycle in seconds
   LOGICAL                             :: is_relative_time
+
+  TYPE t_timeshift
+    REAL(wp)                 :: dt_shift    = 0._wp   ! in s
+    TYPE(timedelta), POINTER :: mtime_shift => NULL()
+  END TYPE t_timeshift
 
   !>
   !! Derived type containing information for time control. 
@@ -104,6 +112,14 @@ MODULE mo_time_config
 
     TYPE(timedelta), POINTER     :: tc_dt_model => NULL() ! dynamics time step  on the global grid in mtime format
 
+    ! time increment, by which tc_current_date is time-shifted.
+    ! Since 'timeshift' must be negative (or zero), tc_current_date will be
+    ! shifted backwards in time. This is required for the Incremental Analysis
+    ! Update (IAU) procedure.
+    ! Please note that, in contrast to most other elements of t_time_config,
+    ! this is a component-specific information.
+
+    TYPE(t_timeshift) :: timeshift
   CONTAINS
     !
     ! create a copy of t_time_config object
@@ -131,31 +147,35 @@ CONTAINS
   !> Create manual deep copy of a t_time_config object
   !
   SUBROUTINE time_config__copy(me, tc_new)
-    CLASS(t_time_config)               :: me
-    TYPE(t_time_config), INTENT(INOUT) :: tc_new
+    CLASS(t_time_config)             :: me
+    TYPE(t_time_config), INTENT(OUT) :: tc_new
 
-    INTEGER :: ist
-    CHARACTER(len=*), PARAMETER ::  routine = modname//'::time_config_copy'
+    tc_new%tc_exp_refdate        => newDatetime('0001-01-01T00:00:00')
+    tc_new%tc_exp_startdate      => newDatetime('0001-01-01T00:00:00')
+    tc_new%tc_exp_stopdate       => newDatetime('0001-01-01T00:00:00')
+    tc_new%tc_startdate          => newDatetime('0001-01-01T00:00:00')
+    tc_new%tc_stopdate           => newDatetime('0001-01-01T00:00:00')
+    tc_new%tc_current_date       => newDatetime('0001-01-01T00:00:00')
+    tc_new%tc_dt_checkpoint      => newTimedelta("PT0S")
+    tc_new%tc_dt_restart         => newTimedelta("PT0S")
+    tc_new%tc_dt_model           => newTimedelta("PT0S")
+    tc_new%timeshift%mtime_shift => newTimedelta("PT0S")
 
-    ALLOCATE(tc_new%tc_exp_refdate, tc_new%tc_exp_startdate, tc_new%tc_exp_stopdate, &
-      &      tc_new%tc_startdate, tc_new%tc_stopdate, tc_new%tc_current_date,        &
-      &      tc_new%tc_dt_checkpoint, tc_new%tc_dt_restart, tc_new%tc_dt_model,      &
-      &      stat=ist)
-    IF(ist /= SUCCESS) CALL finish(routine, "memory allocation failure")
-
-    tc_new%dt_restart       = me%dt_restart
-    tc_new%calendar         = me%calendar
-    tc_new%is_relative_time = me%is_relative_time
-    tc_new%tc_exp_refdate   = me%tc_exp_refdate
-    tc_new%tc_exp_startdate = me%tc_exp_startdate
-    tc_new%tc_exp_stopdate  = me%tc_exp_stopdate
-    tc_new%tc_startdate     = me%tc_startdate
-    tc_new%tc_stopdate      = me%tc_stopdate
-    tc_new%tc_current_date  = me%tc_current_date
-    tc_new%tc_dt_checkpoint = me%tc_dt_checkpoint
-    tc_new%tc_dt_restart    = me%tc_dt_restart
-    tc_new%tc_write_restart = me%tc_write_restart
-    tc_new%tc_dt_model      = me%tc_dt_model
+    tc_new%dt_restart            = me%dt_restart
+    tc_new%calendar              = me%calendar
+    tc_new%is_relative_time      = me%is_relative_time
+    tc_new%tc_exp_refdate        = me%tc_exp_refdate
+    tc_new%tc_exp_startdate      = me%tc_exp_startdate
+    tc_new%tc_exp_stopdate       = me%tc_exp_stopdate
+    tc_new%tc_startdate          = me%tc_startdate
+    tc_new%tc_stopdate           = me%tc_stopdate
+    tc_new%tc_current_date       = me%tc_current_date
+    tc_new%tc_dt_checkpoint      = me%tc_dt_checkpoint
+    tc_new%tc_dt_restart         = me%tc_dt_restart
+    tc_new%tc_write_restart      = me%tc_write_restart
+    tc_new%tc_dt_model           = me%tc_dt_model
+    tc_new%timeshift%dt_shift    = me%timeshift%dt_shift
+    tc_new%timeshift%mtime_shift = me%timeshift%mtime_shift
 
   END SUBROUTINE time_config__copy
 
@@ -165,44 +185,35 @@ CONTAINS
   SUBROUTINE time_config__destruct(me)
     CLASS(t_time_config) :: me
 
-    INTEGER :: ist
-    CHARACTER(len=*), PARAMETER ::  routine = modname//'::time_config_copy'
-
-    IF (ASSOCIATED(me%tc_exp_refdate)) DEALLOCATE(me%tc_exp_refdate, stat=ist)
-    IF(ist /= SUCCESS) CALL finish(routine, "memory deallocation failure")
+    IF (ASSOCIATED(me%tc_exp_refdate))  CALL deallocateDatetime(me%tc_exp_refdate)
     NULLIFY(me%tc_exp_refdate)
     !
-    IF (ASSOCIATED(me%tc_exp_startdate)) DEALLOCATE(me%tc_exp_startdate, stat=ist)
-    IF(ist /= SUCCESS) CALL finish(routine, "memory deallocation failure")
+    IF (ASSOCIATED(me%tc_exp_startdate)) CALL deallocateDatetime(me%tc_exp_startdate)
     NULLIFY(me%tc_exp_startdate)
     !
-    IF (ASSOCIATED(me%tc_exp_stopdate)) DEALLOCATE(me%tc_exp_stopdate, stat=ist)
-    IF(ist /= SUCCESS) CALL finish(routine, "memory deallocation failure")
+    IF (ASSOCIATED(me%tc_exp_stopdate))  CALL deallocateDatetime(me%tc_exp_stopdate)
     NULLIFY(me%tc_exp_stopdate)
     !
-    IF (ASSOCIATED(me%tc_startdate)) DEALLOCATE(me%tc_startdate, stat=ist)
-    IF(ist /= SUCCESS) CALL finish(routine, "memory deallocation failure")
+    IF (ASSOCIATED(me%tc_startdate))  CALL deallocateDatetime(me%tc_startdate)
     NULLIFY(me%tc_startdate)
     !
-    IF (ASSOCIATED(me%tc_stopdate)) DEALLOCATE(me%tc_stopdate, stat=ist)
-    IF(ist /= SUCCESS) CALL finish(routine, "memory deallocation failure")
+    IF (ASSOCIATED(me%tc_stopdate))  CALL deallocateDatetime(me%tc_stopdate)
     NULLIFY(me%tc_stopdate)
     !
-    IF (ASSOCIATED(me%tc_current_date)) DEALLOCATE(me%tc_current_date, stat=ist)
-    IF(ist /= SUCCESS) CALL finish(routine, "memory deallocation failure")
+    IF (ASSOCIATED(me%tc_current_date))  CALL deallocateDatetime(me%tc_current_date)
     NULLIFY(me%tc_current_date)
     !
-    IF (ASSOCIATED(me%tc_dt_checkpoint)) DEALLOCATE(me%tc_dt_checkpoint, stat=ist)
-    IF(ist /= SUCCESS) CALL finish(routine, "memory deallocation failure")
+    IF (ASSOCIATED(me%tc_dt_checkpoint))  CALL deallocateTimedelta(me%tc_dt_checkpoint)
     NULLIFY(me%tc_dt_checkpoint)
     !
-    IF (ASSOCIATED(me%tc_dt_restart)) DEALLOCATE(me%tc_dt_restart, stat=ist)
-    IF(ist /= SUCCESS) CALL finish(routine, "memory deallocation failure")
+    IF (ASSOCIATED(me%tc_dt_restart))  CALL deallocateTimedelta(me%tc_dt_restart)
     NULLIFY(me%tc_dt_restart)
     !
-    IF (ASSOCIATED(me%tc_dt_model)) DEALLOCATE(me%tc_dt_model, stat=ist)
-    IF(ist /= SUCCESS) CALL finish(routine, "memory deallocation failure")
+    IF (ASSOCIATED(me%tc_dt_model))  CALL deallocateTimedelta(me%tc_dt_model)
     NULLIFY(me%tc_dt_model)
+    !
+    IF (ASSOCIATED(me%timeshift%mtime_shift))  CALL deallocateTimedelta(me%timeshift%mtime_shift)
+    NULLIFY(me%timeshift%mtime_shift)
 
   END SUBROUTINE time_config__destruct
 
@@ -341,6 +352,32 @@ CONTAINS
     LOGICAL, INTENT(in) :: writeRestart
     time_config%tc_write_restart = writeRestart
   END SUBROUTINE set_tc_write_restart
+
+  ! set time increment, by which tc_current_date is shifted
+  ! backwards in time at model start.
+  SUBROUTINE set_tc_timeshift(dt_shift)
+    REAL(wp), INTENT(in) :: dt_shift   ! in s
+    ! local
+    CHARACTER(LEN=MAX_TIMEDELTA_STR_LEN) :: dt_shift_string
+
+    ! make sure that dt_shift is negative or 0.
+    IF ( dt_shift > 0._wp ) THEN
+      WRITE(message_text,'(a,f8.2,a)') 'dt_shift=', dt_shift, &
+        ' not allowed. Must be NEGATIVE or 0.'
+      CALL finish('', message_text)
+    ENDIF
+    !
+    IF (ASSOCIATED(time_config%timeshift%mtime_shift)) THEN
+      CALL deallocateTimedelta(time_config%timeshift%mtime_shift)
+    END IF
+    !
+    time_config%timeshift%dt_shift = dt_shift
+    CALL getPTStringFromSeconds(dt_shift, dt_shift_string)
+    time_config%timeshift%mtime_shift => newTimedelta(dt_shift_string)
+    !
+    WRITE(message_text,'(a,a)') 'Set model timeshift: ', TRIM(dt_shift_string)
+    CALL message('',message_text)
+  END SUBROUTINE set_tc_timeshift
 
 END MODULE mo_time_config
 

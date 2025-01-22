@@ -21,6 +21,7 @@ VARIANT=$2
 # so they are not forwarded to spack-c2sm/setup-env.sh
 set -- 
 set +x
+set -e
 
 git clone --depth 1 --recurse-submodules --shallow-submodules -b $SPACK_VERSION https://github.com/C2SM/spack-c2sm.git
 

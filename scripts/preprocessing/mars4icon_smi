@@ -139,7 +139,7 @@ do
                                  Use dlon/dlat (e.g. 0.25/0.25) for regular longitude-latitude grids.
 		  -h             This help
 		  -l levelist    Number of levels. A single number N will be used as levelist='1/to/N'.
-		                 A negative -N number retrieves levels (nlev-N)/to/nlev
+		                 A negative number retrieves levels (nlev-N)/to/nlev
 		                    Default: 1/to/137 since 2013062512,
 		                             1/to/91  after 2006020112,
 		                             1/to/60  before 2006020112
@@ -230,7 +230,7 @@ function f_date_time {
                 integer l
                 date0=${date_in%[+-]*}
                 dt=${date_in#*[+-]}
-                cymdg0=$(datConv ${date0})
+                cymdg0=$(f_date_time ${date0})
                 l=${#cymdg0}
                 fmt='+%Y%m%d%H'
                 year=${cymdg0:0:4}

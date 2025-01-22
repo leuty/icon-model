@@ -30,6 +30,12 @@ MODULE mo_ensemble_pert_nml
     &                               config_range_gfluxlaun => range_gfluxlaun, &
     &                               config_range_zvz0i     => range_zvz0i,     &
     &                               config_range_rain_n0fac => range_rain_n0fac, &
+    &                               config_range_ccn_Ncn0  => range_ccn_Ncn0,  &
+    &                               config_range_in_fact   => range_in_fact,   &
+    &                               config_range_avel_i    => range_avel_i,    &
+    &                               config_range_avel_g    => range_avel_g,    &
+    &                               config_range_cap_snow  => range_cap_snow,  &
+    &                               config_range_cap_ice   => range_cap_ice,   &
     &                               config_range_entrorg   => range_entrorg,   &  
     &                               config_range_entrorg_mult  => range_entrorg_mult,  &
     &                               config_range_rmfdeps   => range_rmfdeps,   &
@@ -104,6 +110,24 @@ MODULE mo_ensemble_pert_nml
   REAL(wp) :: &                    !< Tuning factor for intercept parameter of raindrop size distribution 
     &  range_rain_n0fac
 
+  REAL(wp) :: &                    !< Tuning factor for CN concentration near ground for Segal&Khain cloud nucleation (inwp_gscp=4,5,7)
+    &  range_ccn_Ncn0
+  
+  REAL(wp) :: &                    !< Additional tuning factor for the tuning factor of parameterized ice nuclei concentration (inwp_gscp=4,5,7)
+    &  range_in_fact
+  
+  REAL(wp) :: &                    !< Tuning factor for cloud ice fall speed (inwp_gscp=4,5,7)
+    &  range_avel_i
+  
+  REAL(wp) :: &                    !< Tuning factor for graupel fall speed (inwp_gscp=4,5,7)
+    &  range_avel_g
+  
+  REAL(wp) :: &                    !< Tuning factor for snow capacitance for depositional growth (inwp_gscp=4,5,7)
+    &  range_cap_snow
+  
+  REAL(wp) :: &                    !< Tuning factor for cloud ice capacitance for depositional growth (inwp_gscp=4,5,7)
+    &  range_cap_ice
+  
   REAL(wp) :: &                    !< Entrainment parameter for deep convection valid at dx=20 km 
     &  range_entrorg
 
@@ -240,6 +264,8 @@ MODULE mo_ensemble_pert_nml
     &                         range_rdepths, range_turlen, range_rain_n0fac, range_a_hshr, range_qexc,     &
     &                         range_rprcon, range_thicklayfac, range_lhn_coef, range_lhn_artif_fac,        &
     &                         range_fac_lhn_down, range_fac_lhn_up, range_fac_ccqc, range_rmfdeps,         &
+    &                         range_ccn_Ncn0, range_in_fact, range_avel_i, range_avel_g,                   &
+    &                         range_cap_snow, range_cap_ice,                                               &
     &                         range_entrorg_mult, range_dustyci_crit, range_dustyci_rhi, fac_rng_spinup
 
 
@@ -283,8 +309,16 @@ CONTAINS
     range_gfluxlaun  = 0.75e-3_wp   ! scaling parameter for GWD flux production
     !
     ! grid scale microphysics
+    ! a) 1-moment schemes
     range_zvz0i      = 0.25_wp      ! scaling for cloud ice sedimentation speed
     range_rain_n0fac = 4._wp        ! multiplicative change of intercept parameter of raindrop size distribution
+    ! b) 2-moment scheme (FOR NOW DURING TESTING: neutral values)
+    range_ccn_Ncn0 = 1.0_wp         ! multiplicative change of CN concentration (up to now not tested!)
+    range_in_fact  = 1.0_wp         ! multiplicative change of IN concentration (up to now not tested!)
+    range_avel_i   = 1.0_wp         ! multiplicative change of cloud ice fall speed (up to now not tested!)
+    range_avel_g   = 1.0_wp         ! multiplicative change of graupel fall speed (up to now not tested!)
+    range_cap_snow = 1.0_wp         ! multiplicative change of capacitance of snowflakes for depositional growth (up to now not tested!)
+    range_cap_ice  = 1.0_wp         ! multiplicative change of capacitance of cloud ice for depositional growth (up to now not tested!)
     !
     ! convection
     range_entrorg    = 0.2e-3_wp    ! entrainment parameter for deep convection
@@ -405,6 +439,12 @@ CONTAINS
     config_range_gfluxlaun    = range_gfluxlaun
     config_range_zvz0i        = range_zvz0i
     config_range_rain_n0fac   = range_rain_n0fac
+    config_range_ccn_Ncn0     = range_ccn_Ncn0
+    config_range_in_fact      = range_in_fact
+    config_range_avel_i       = range_avel_i
+    config_range_avel_g       = range_avel_g
+    config_range_cap_snow     = range_cap_snow
+    config_range_cap_ice      = range_cap_ice
     config_range_entrorg      = range_entrorg
     config_range_entrorg_mult = range_entrorg_mult
     config_range_rdepths      = range_rdepths

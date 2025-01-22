@@ -15,7 +15,7 @@ MODULE mo_ocean_nml
 !-------------------------------------------------------------------------
   USE mo_kind,               ONLY: wp, sp
   USE mo_exception,          ONLY: message, warning, message_text, finish
-  USE mo_impl_constants,     ONLY: max_char_length
+  USE mo_impl_constants,     ONLY: max_char_length, INIT_FROM_RESTART
   USE mo_io_units,           ONLY: nnml, nnml_output
   USE mo_namelist,           ONLY: position_nml, positioned, open_nml, close_nml
   USE mo_mpi,                ONLY: my_process_is_stdio
@@ -30,6 +30,7 @@ MODULE mo_ocean_nml
        &                       timedelta, newTimedelta, deallocateTimedelta,                 &
        &                       datetimeToString, OPERATOR(+),&
        &                       getTimeDeltaFromDateTime, getTotalSecondsTimeDelta
+  USE mo_master_config,      ONLY: my_model_do_restart
 
 #ifndef __NO_ICON_ATMO__
   USE mo_coupling_config,    ONLY: is_coupled_to_atmo
@@ -1134,6 +1135,14 @@ MODULE mo_ocean_nml
     ! maximal diffusion coefficient for tracer used in implicit vertical tracer diffusion,
     !   if stability criterion is met
     tracer_convection_MixingCoefficient  = 100.0_wp * Temperature_VerticalDiffusion_background
+
+    ! HACK for backward compatibility: PLEASE REMOVE SOON !!!
+    ! The deprecated Namelist switch initialize_fromRestart is initialized with my_model_do_restart.
+    ! my_model_do_restart will be overwritten again in mo_ocean_model:ocean_model
+    ! by initialize_fromRestart. In doing so, initialize_fromRestart can still be used
+    ! to control the initialization behavior of the ocean model, which ensures
+    ! viability of existing runscripts.
+    initialize_fromRestart = (my_model_do_restart == INIT_FROM_RESTART)
 
     !------------------------------------------------------------
     ! 5.0 Read ocean_nml namelist

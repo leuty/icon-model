@@ -74,7 +74,7 @@ MODULE mo_2mom_mcrph_processes
        & particle_ice_coeffs, particle_snow_coeffs, particle_graupel_coeffs, &
        & particle_coeffs, collection_coeffs, rain_riming_coeffs, dep_imm_coeffs, &
        & coll_coeffs_ir_pm, lookupt_1D, lookupt_4D
-  USE mo_2mom_mcrph_setup, ONLY: &
+  USE mo_2mom_mcrph_setup, ONLY: cfg_params, &
        & particle_mass, particle_meanmass,  particle_diameter, particle_normdiameter, &
        & particle_velocity, particle_lwf_idx, &
        & particle_assign, particle_frozen_assign, particle_lwf_assign, &
@@ -205,8 +205,6 @@ MODULE mo_2mom_mcrph_processes
 
   REAL(wp), PARAMETER    :: pi6 = pi/6.0_wp, pi8 = pi/8.0_wp ! more pieces of pi
 
-  TYPE(t_cfg_2mom) :: cfg_params !.. Container to hold some config params for the actual 2-mom call
-  
   ! Parameters
   PUBLIC :: q_crit
   PUBLIC :: cfg_2mom_default, cfg_params

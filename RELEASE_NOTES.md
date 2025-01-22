@@ -11,6 +11,13 @@ AES Physics:
   - Fix OpenACC performance issue and OpenMP PRIVATE
   - Fix inconsistency in floating point operations by adding missing \_wp to some constants
 
+NWP Physics:
+
+- Option for more accurate coefficients for saturation pressure (https://gitlab.dkrz.de/icon/icon-nwp/-/merge_requests/1609,
+                                                                 https://gitlab.dkrz.de/icon/icon-nwp/-/merge_requests/1627)
+- Tuning option to reduce activity of grayzone deep convection, to be used in ICON-D2 (https://gitlab.dkrz.de/icon/icon-nwp/-/merge_requests/1614)
+- Update visibility diagnostic to be consistent with icpl_rad_reff=1 (typical RUC settings) (https://gitlab.dkrz.de/icon/icon-nwp/-/merge_requests/1604)
+
 ### ICON-Ocean
 
 - Add GRIB codes for mld, mlotst, normal_velocity, stretch_c (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/555)
@@ -18,6 +25,12 @@ AES Physics:
 - Add diagnostics for upper ocean heat content (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/577)
 - Add new output variables (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/581)
 - Improve GPU performance (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/553)
+
+### ICON-Wave
+
+- Memory layout and runtime improvements (https://gitlab.dkrz.de/icon/icon-nwp/-/merge_requests/1657,
+                                          https://gitlab.dkrz.de/icon/icon-nwp/-/merge_requests/1661)
+- Bug fix: asynchronous output writing in in coupled mode (https://gitlab.dkrz.de/icon/icon-nwp/-/merge_requests/1623)
 
 ### Soil and Surface
 
@@ -69,17 +82,23 @@ Climate: ICON-Land
 - Separate pre_patch related content from mo_model_domain (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/579)
 - Fix GPU-to-GPU communication issues (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/580)
 - Single precision extensions to mo_mpi (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/570)
+- NetCDF read_interface: use allocatable arrays instead of returning pointers (https://gitlab.dkrz.de/icon/icon-nwp/-/merge_requests/1620)
+- Bug fix: Fix NetCDF time axis date for synchronous and asynchronous restart files (https://gitlab.dkrz.de/icon/icon-nwp/-/merge_requests/1607)
 
 #### Coupling
 
 - First implementation of coupling the nested AES atmosphere to the ocean model
+- Support for coupled setups where one component starts from IAU (https://gitlab.dkrz.de/icon/icon-nwp/-/merge_requests/1629)
+- Allow for component wise model initialization from restart file (https://gitlab.dkrz.de/icon/icon-nwp/-/merge_requests/1611)
 
 #### Scripting and testing
 
 - Increase time limit for test_yaxt_xchange.config experiment
-- Fix atm_memLog experiment scripts and enable tests in buildbot again 
+- Fix atm_memLog experiment scripts and enable tests in buildbot again
 - Provide configs to setup ICON-Land standalone (jsbalone.config) and AMIP-style (NWP ATM) experiments
 - Add resolution R02B06 to amip script for testing purposes only (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/613)
+- Introduce Git-LFS repository for test input data at CSCS (https://gitlab.dkrz.de/icon/icon-nwp/-/merge_requests/1558,
+                                                            https://gitlab.dkrz.de/icon/icon-nwp/-/merge_requests/1652)
 
 #### Building
 

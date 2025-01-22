@@ -76,6 +76,7 @@ MODULE mo_wave_config
 
     INTEGER  :: niter_smooth ! number of smoothing iterations for wave bathymetry
                              ! if 0 then no smoothing
+    INTEGER  :: nsubs_refrac ! number of susteps in wave refraction
 
     INTEGER  :: jtot_tauhf ! dimension of wtauhf, must be odd
     REAL(wp) :: x0tauhf    ! lowest limit for integration in tau_phi_hf: x0 *(g/ustar)
@@ -132,6 +133,8 @@ MODULE mo_wave_config
       &  dfimofr(:),       & ! m-1 integration weights.
       &  dfim_fr(:),       & ! m+1 integration weights.
       &  dfim_fr2(:),      & ! m+2 integration weights.
+      &  sin_dir(:),       & ! sine of direction
+      &  cos_dir(:),       & ! cosine of direction
       &  rhowg_dfim(:),    & ! momentum and energy flux weights.
       &  wtauhf(:)           ! integration weight for tau_phi_hf
 
@@ -170,6 +173,8 @@ CONTAINS
     CALL DO_DEALLOCATE(me%dfreqs_freqs)
     CALL DO_DEALLOCATE(me%dfreqs_freqs2)
     CALL DO_DEALLOCATE(me%dirs)
+    CALL DO_DEALLOCATE(me%sin_dir)
+    CALL DO_DEALLOCATE(me%cos_dir)
     CALL DO_DEALLOCATE(me%DFIM)
     CALL DO_DEALLOCATE(me%DFIMOFR)
     CALL DO_DEALLOCATE(me%DFIM_FR)
@@ -246,6 +251,8 @@ CONTAINS
       ENDIF
 
       ALLOCATE(wc%dirs         (wc%ndirs),  &
+        &      wc%sin_dir      (wc%ndirs),  &
+        &      wc%cos_dir      (wc%ndirs),  &
         &      wc%freqs        (wc%nfreqs), &
         &      wc%dfreqs       (wc%nfreqs), &
         &      wc%dfreqs_freqs (wc%nfreqs), &
@@ -288,6 +295,8 @@ CONTAINS
       CALL message ('  ','Directions [Degree]: ')
       DO jd = 1,wc%ndirs
         wc%dirs(jd) = REAL(jd-1,wp) *  wc%DELTH + 0.5_wp * wc%DELTH !RAD
+        wc%sin_dir(jd) = SIN(wc%dirs(jd))
+        wc%cos_dir(jd) = COS(wc%dirs(jd))
         WRITE(message_text,'(i3,f10.5)') jd, wc%dirs(jd)*rad2deg
         CALL message ('  ',message_text)
       END DO

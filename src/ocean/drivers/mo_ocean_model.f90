@@ -15,7 +15,7 @@ MODULE mo_ocean_model
 
   USE mo_exception,           ONLY: message, finish
   USE mo_master_control,      ONLY: get_my_process_name, get_my_process_type
-  USE mo_master_config,       ONLY: isRestart
+  USE mo_master_config,       ONLY: isRestart, isInitFromRestart, my_model_do_restart
   USE mo_parallel_config,     ONLY: p_test_run, l_test_openmp, num_io_procs, &
        &                            pio_type, num_test_pe, num_prefetch_proc, proc0_shift
   USE mo_mpi,                 ONLY: set_mpi_work_communicators
@@ -94,13 +94,12 @@ MODULE mo_ocean_model
   USE mo_ocean_forcing,       ONLY: construct_ocean_surface, destruct_ocean_forcing, &
                                     & construct_atmos_for_ocean, destruct_atmos_for_ocean
   USE mo_ocean_forcing,       ONLY: init_ocean_forcing
-  USE mo_impl_constants,      ONLY: success
+  USE mo_impl_constants,      ONLY: success, INIT_FROM_RESTART, NO_RESTART
 
-  USE mo_ocean_nudging,       ONLY: ocean_nudge
+  USE mo_ocean_nudging,        ONLY: ocean_nudge
   USE mo_alloc_patches,        ONLY: destruct_patches, destruct_comm_patterns
   USE mo_ocean_read_namelists, ONLY: read_ocean_namelists
   USE mo_load_restart,         ONLY: read_restart_header, read_restart_files
-  USE mo_restart_nml_and_att,  ONLY: ocean_initFromRestart_OVERRIDE
   USE mo_ocean_patch_setup,    ONLY: complete_ocean_patch
   USE mo_icon_comm_interface,  ONLY: construct_icon_communication, destruct_icon_communication
   USE mo_grid_tools,           ONLY: create_dummy_cell_closure
@@ -173,9 +172,9 @@ MODULE mo_ocean_model
     CALL ocean_to_hamocc_init(ocean_patch_3d, ocean_state(1), &
       & p_as, v_sea_ice, v_oce_sfc, v_params)
 
+
     !-------------------------------------------------------------------
-    IF (isRestart() .OR. initialize_fromRestart) THEN
-      ocean_initFromRestart_OVERRIDE = initialize_fromRestart
+    IF (isRestart() .OR. isInitFromRestart()) THEN
       ! This is an resumed integration. Read model state from restart file(s).
       CALL read_restart_files( ocean_patch_3d%p_patch_2d(1) )
       CALL message(TRIM(method_name),'normal exit from read_restart_files')
@@ -360,8 +359,16 @@ MODULE mo_ocean_model
     !---------------------------------------------------------------------
 
     CALL read_ocean_namelists(oce_namelist_filename,shr_namelist_filename)
-    IF (initialize_fromRestart .AND. .NOT. isRestart()) THEN
-      ocean_initFromRestart_OVERRIDE = initialize_fromRestart
+
+    ! HACK for backward compatibility: PLEASE REMOVE SOON !!!
+    ! Overwrite my_model_do_restart by initialize_fromRestart
+    ! In case of a normal restart (my_model_do_restart==NORMAL_RESTART)
+    ! initialize_fromRestart will have no effect and is ignored.
+    IF (ANY((/INIT_FROM_RESTART,NO_RESTART/) == my_model_do_restart)) THEN
+      my_model_do_restart = MERGE(INIT_FROM_RESTART, NO_RESTART, initialize_fromRestart)
+    ENDIF
+
+    IF (isInitFromRestart() .AND. .NOT. isRestart()) THEN
       CALL read_restart_header(TRIM(get_my_process_name()) )
     END IF
 

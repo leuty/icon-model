@@ -1698,26 +1698,9 @@ CONTAINS
                prm_diag%lhfl_pl(jc,jk,jb)= prm_diag%lhfl_pl_t(jc,jk,jb,1)
              ENDDO  ! jc
            ENDDO  ! jk
-
-           ! accumulated quantities: runoff, resid_wso, snow_melt
-           !
-           !$ACC LOOP GANG VECTOR
-           DO jc = i_startidx, i_endidx
-             lnd_diag%runoff_s(jc,jb) = lnd_diag%runoff_s(jc,jb) + lnd_diag%runoff_s_inst_t(jc,jb,1)
-             lnd_diag%runoff_g(jc,jb) = lnd_diag%runoff_g(jc,jb) + lnd_diag%runoff_g_inst_t(jc,jb,1)
-             !
-             IF (var_in_output(jg)%res_soilwatb) THEN
-               lnd_diag%resid_wso(jc,jb) = lnd_diag%resid_wso(jc,jb) + lnd_diag%resid_wso_inst_t(jc,jb,1)
-             ENDIF
-             !
-             IF (var_in_output(jg)%snow_melt) THEN
-               lnd_diag%snow_melt(jc,jb) = lnd_diag%snow_melt(jc,jb) &
-                 &                       + tcall_sfc_jg * lnd_diag%snow_melt_flux_t(jc,jb,1)
-             ENDIF
-           ENDDO
          ENDIF
          !$ACC END PARALLEL
-  
+
        ELSE ! aggregate fields over tiles
 
          !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1) CREATE(t_g_s) IF(lzacc)
@@ -1771,18 +1754,6 @@ CONTAINS
              area_frac = ext_data%atm%frac_t(jc,jb,isubs)*ext_data%atm%inv_frland_from_tiles(jc,jb)
              prm_diag%lhfl_bs(jc,jb) = prm_diag%lhfl_bs(jc,jb) + prm_diag%lhfl_bs_t(jc,jb,isubs) * area_frac
              lnd_diag%h_snow(jc,jb)  = lnd_diag%h_snow(jc,jb) + lnd_diag%h_snow_t(jc,jb,isubs) * area_frac
-
-             ! Accumulation of resid_wso, and snow_melt.
-             ! Note that these fields are not initialized with zero each time step (see above).
-             IF (var_in_output(jg)%res_soilwatb) THEN
-               lnd_diag%resid_wso(jc,jb) = lnd_diag%resid_wso(jc,jb) &
-                 &                       + lnd_diag%resid_wso_inst_t(jc,jb,isubs) * area_frac
-             ENDIF
-
-             IF (var_in_output(jg)%snow_melt) THEN
-               lnd_diag%snow_melt(jc,jb) = lnd_diag%snow_melt(jc,jb) &
-                 &                       + tcall_sfc_jg * lnd_diag%snow_melt_flux_t(jc,jb,isubs) * area_frac
-             ENDIF
            ENDDO  ! jc
            !$ACC LOOP SEQ
            DO jk=1,nlev_soil
@@ -1792,26 +1763,6 @@ CONTAINS
                  &      * ext_data%atm%inv_frland_from_tiles(jc,jb) * prm_diag%lhfl_pl_t(jc,jk,jb,isubs)
              ENDDO  ! jc
            ENDDO  ! jk
-         ENDDO  ! isubs
-
-         ! aggregation + accumulation for runoff. Note that these fields are not initialized with zero
-         ! each time step (see above).
-         !
-         ! In order to get the correct results, we accumulate the aggregated instantaneous values.
-         ! Aggregation of the accumulated tile-specific values (i.e. the other way around) does not work
-         ! due to the time dependency of the snowtile fractions.
-         !
-         !$ACC LOOP SEQ
-         DO isubs = 1, ntiles_total + ntiles_water
-           !$ACC LOOP GANG(STATIC: 1) VECTOR PRIVATE(area_frac)
-           DO jc = i_startidx, i_endidx
-             area_frac = ext_data%atm%frac_t(jc,jb,isubs)
-
-             lnd_diag%runoff_s(jc,jb) = lnd_diag%runoff_s(jc,jb) &
-               &                      + lnd_diag%runoff_s_inst_t(jc,jb,isubs) * area_frac
-             lnd_diag%runoff_g(jc,jb) = lnd_diag%runoff_g(jc,jb) &
-               &                      + lnd_diag%runoff_g_inst_t(jc,jb,isubs) * area_frac
-           ENDDO
          ENDDO  ! isubs
 
          !$ACC LOOP GANG(STATIC: 1) VECTOR

@@ -362,6 +362,7 @@ cat > NAMELIST_NWP << EOF
  isolrad                     =                          1         ! Coddington et al. (2016) scaling
  ecrad_isolver               = ${radiation_ecrad_isolver}
       ! Solver version. 2: McICA with OpenACC, 0: McICA
+ ecrad_check_input           =                     .TRUE.         ! Check of ecRad input and increased verbosity
 /
 
 ! sleve_nml: vertical level specification -------------------------------------

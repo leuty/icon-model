@@ -161,6 +161,7 @@ MODULE mo_name_list_output_init
     &                                             setup_zaxes_oce
 #ifndef __NO_ICON_WAVES__
   USE mo_waves_vertical_axes,               ONLY: setup_zaxes_waves
+  USE mo_wave_name_list_output,             ONLY: replicate_wave_data_on_io_procs
 #endif
   USE mo_level_selection_types,             ONLY: t_level_selection
 #ifndef __NO_JSBACH__
@@ -2995,6 +2996,13 @@ CONTAINS
                                                                isub_water, isub_lake, isub_seaice)
     ENDIF
 #endif
+
+#ifndef __NO_ICON_WAVES__
+    IF (my_process_is_waves()) THEN
+      CALL replicate_wave_data_on_io_procs (n_dom_out, bcast_root)
+    ENDIF
+#endif
+
     ! allocate vgrid_buffer on asynchronous output PEs, for storing
     ! the vertical grid UUID
     !

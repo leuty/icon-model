@@ -46,6 +46,10 @@ MODULE mo_ensemble_pert_config
   USE microphysics_1mom_schemes, ONLY:  &
                                   get_terminal_fall_velocity_ice, &
                                   set_terminal_fall_velocity_ice
+  USE mo_2mom_mcrph_config,  ONLY: copy_cfg_2mom_all2pert, copy_cfg_2mom_pert2all
+  USE mo_2mom_mcrph_types,   ONLY: aerosol_ccn, particle, particle_frozen, particle_lwf
+  USE mo_2mom_mcrph_main,    ONLY: init_2mom_types_base
+  USE mo_2mom_mcrph_setup,   ONLY: set_ccn_cloud_type
   USE mo_ext_data_types,     ONLY: t_external_data
   USE mo_extpar_config,      ONLY: ext_atm_attr
   USE mo_exception,          ONLY: message_text, message, finish
@@ -70,6 +74,7 @@ MODULE mo_ensemble_pert_config
             itype_pert_gen, timedep_pert, range_a_stab, range_c_diff, range_q_crit, range_thicklayfac,  &
             box_liq_sv, thicklayfac_sv, box_liq_asy_sv, range_lhn_coef, range_lhn_artif_fac,            &
             range_fac_lhn_down, range_fac_lhn_up, range_fac_ccqc, range_rmfdeps, range_entrorg_mult,    &
+            range_ccn_Ncn0, range_in_fact, range_avel_g, range_avel_i, range_cap_snow, range_cap_ice,   &
             range_dustyci_crit, range_dustyci_rhi, fac_rng_spinup
 
   !!--------------------------------------------------------------------------
@@ -96,6 +101,24 @@ MODULE mo_ensemble_pert_config
   REAL(wp) :: &                    !< Tuning factor for intercept parameter of raindrop size distribution 
     &  range_rain_n0fac, rnd_rain_n0fac
 
+  REAL(wp) :: &                    !< Tuning factor for CN concentration near ground for Segal&Khain cloud nucleation (inwp_gscp=4,5,7)
+    &  range_ccn_Ncn0, rnd_ccn_Ncn0
+  
+  REAL(wp) :: &                    !< Additional tuning factor for the tuning factor of parameterized ice nuclei concentration (inwp_gscp=4,5,7)
+    &  range_in_fact, rnd_in_fact
+  
+  REAL(wp) :: &                    !< Tuning factor for graupel fall speed (inwp_gscp=4,5,7)
+    &  range_avel_g, rnd_avel_g
+  
+  REAL(wp) :: &                    !< Tuning factor for cloud ice fall speed (inwp_gscp=4,5,7)
+    &  range_avel_i, rnd_avel_i
+  
+  REAL(wp) :: &                    !< Range for snow capacitance for depositional growth (inwp_gscp=4,5,7)
+    &  range_cap_snow, rnd_cap_snow
+  
+  REAL(wp) :: &                    !< Range for cloud ice capacitance for depositional growth (inwp_gscp=4,5,7)
+    &  range_cap_ice, rnd_cap_ice
+  
   REAL(wp) :: &                    !< Entrainment parameter for deep convection valid at dx=20 km 
     &  range_entrorg, rnd_entrorg
 
@@ -243,7 +266,8 @@ MODULE mo_ensemble_pert_config
   REAL(wp), DIMENSION(1:max_dom) :: gkwake_sv, gfrcrit_sv, gkdrag_sv, rain_n0_sv, tkhmin_sv, tkhmin_strat_sv, tkmmin_sv,    &
                                     tkmmin_strat_sv, rlam_heat_sv, rat_sea_sv, tur_len_sv, a_hshr_sv, a_stab_sv, c_diff_sv, &
                                     q_crit_sv, alpha0_sv, alpha0_max_sv, lhn_coef_sv, lhn_artif_fac_sv, fac_lhn_down_sv,    &
-                                    fac_lhn_up_sv, gkdrag_enh_sv
+                                    fac_lhn_up_sv, gkdrag_enh_sv, ccn_Ncn0_sv, in_fact_sv, avel_i_sv, avel_g_sv,            &
+                                    cap_snow_sv, cap_ice_sv
 
 #ifdef __ICON_ART
   ! Dusty Cirrus
@@ -324,7 +348,7 @@ MODULE mo_ensemble_pert_config
         CALL RANDOM_NUMBER(rnd_num)
       ENDDO
 
-      ALLOCATE(rnd_tkred_sfc(ext_atm_attr(1)%nclass_lu), rnd_fac_ccqc(ext_atm_attr(1)%nclass_lu))
+      ALLOCATE(rnd_tkred_sfc(MAX(1,ext_atm_attr(1)%nclass_lu)), rnd_fac_ccqc(MAX(1,ext_atm_attr(1)%nclass_lu)))
 
       CALL message('','')
       CALL message('','Perturbed external parameters: roughness length, root depth, min. stomata resistance,&
@@ -414,6 +438,18 @@ MODULE mo_ensemble_pert_config
   !!
   SUBROUTINE save_unperturbed_params
 
+    ! These are the fundamental hydrometeor particle variables for the two-moment scheme,
+    ! needed to get the actual hydrometeor config parameters:
+    TYPE(particle)                :: cloud, rain
+    TYPE(particle_frozen)         :: ice, snow
+    TYPE(particle_frozen), TARGET :: graupel_frz, hail_frz
+    TYPE(particle_lwf), TARGET    :: graupel_lwf, hail_lwf
+
+    ! Pointers to these derived types that are actually needed in calling init_2mom_types_base():
+    CLASS(particle_frozen), POINTER  :: graupel, hail
+
+    INTEGER               :: zccn_type, zcloud_type ! dummies
+    TYPE(aerosol_ccn)     :: zccn_coeffs
 
     ! SSO tuning
     gkwake_sv (1:max_dom) = tune_gkwake(1:max_dom)
@@ -424,10 +460,83 @@ MODULE mo_ensemble_pert_config
     ! GWD tuning
     gfluxlaun_sv = tune_gfluxlaun
 
-    ! grid-scale microphysics
+    ! grid-scale 1-moment microphysics (inwp_gscp=1,2,3)
     zvz0i_sv   = tune_zvz0i
     rain_n0_sv(1:max_dom) = atm_phy_nwp_config(1:max_dom)%rain_n0_factor
 
+    ! grid-scale 2-moment microphysics (inwp_gscp=4,5,7) - Note: atm_phy_nwp_config(1)%l2moment flag has not yet been set
+    IF ( ANY(atm_phy_nwp_config(1)%inwp_gscp == [4,5,7]) ) THEN
+
+      ! First, determine the hardcoded background values from the particle types. These
+      ! are needed in case the respective namelist values are set to -999.99,
+      ! which means that these background values are actually applied later in the 2-mom scheme:
+      IF ( atm_phy_nwp_config(1)%inwp_gscp == 7 ) THEN
+        graupel => graupel_lwf
+        hail    => hail_lwf
+      ELSE
+        graupel => graupel_frz
+        hail    => hail_frz
+      END IF
+      ! .. set the particle types, but no calculations
+      CALL init_2mom_types_base(cloud,rain,ice,snow,graupel,hail)
+
+      SELECT CASE (atm_phy_nwp_config(1)%inwp_gscp)
+      CASE (4,7)
+        CALL set_ccn_cloud_type(zccn_type, zcloud_type, zccn_coeffs, zcfg_2mom=atm_phy_nwp_config(1)%cfg_2mom)
+      CASE (5)
+        ! zN_cn0=0.0 is only a dummy here, needed for correct logic in set_ccn_cloud_type()
+        CALL set_ccn_cloud_type(zccn_type, zcloud_type, zccn_coeffs, zN_cn0=0.0_wp, zcfg_2mom=atm_phy_nwp_config(1)%cfg_2mom)
+      CASE default
+        CALL message ('Warning mo_ensemble_pert_config','this 2-moment microphysics flavor cannot be perturbed')
+      END SELECT
+      
+      ! a) perturbation(s) which are only effective in the init phase:
+      IF (atm_phy_nwp_config(1)%cfg_2mom%avel_i < -900.0_wp) THEN
+        avel_i_sv  (1:max_dom) = ice%a_vel ! hardcoded value from mo_2mom_mcrph_main.f90
+      ELSE
+        avel_i_sv  (1:max_dom) = atm_phy_nwp_config(1:max_dom)%cfg_2mom%avel_i
+      END IF
+      IF (atm_phy_nwp_config(1)%cfg_2mom%avel_g < -900.0_wp) THEN
+        avel_g_sv  (1:max_dom) = graupel%a_vel ! hardcoded value from mo_2mom_mcrph_main.f90
+      ELSE
+        avel_g_sv  (1:max_dom) = atm_phy_nwp_config(1:max_dom)%cfg_2mom%avel_g
+      END IF
+      IF (atm_phy_nwp_config(1)%cfg_2mom%ccn_Ncn0 < -900.0_wp) THEN
+        ccn_Ncn0_sv(1:max_dom) = zccn_coeffs%Ncn0
+      ELSE
+        ccn_Ncn0_sv(1:max_dom) = atm_phy_nwp_config(1:max_dom)%cfg_2mom%ccn_Ncn0
+      END IF
+      in_fact_sv (1:max_dom) = atm_phy_nwp_config(1:max_dom)%cfg_2mom%in_fact
+      
+      ! b) perturbation(s) which are effective during time stepping:
+      IF (atm_phy_nwp_config(1)%cfg_2mom%cap_snow < -900.0_wp) THEN
+        cap_snow_sv(1:max_dom) = snow%cap ! hardcoded value from mo_2mom_mcrph_main.f90
+      ELSE
+        cap_snow_sv(1:max_dom) = atm_phy_nwp_config(1:max_dom)%cfg_2mom%cap_snow
+      END IF
+      IF (atm_phy_nwp_config(1)%cfg_2mom%cap_ice < -900.0_wp) THEN
+        cap_ice_sv (1:max_dom) = ice%cap ! hardcoded value from mo_2mom_mcrph_main.f90
+      ELSE
+        cap_ice_sv (1:max_dom) = atm_phy_nwp_config(1:max_dom)%cfg_2mom%cap_ice
+      END IF
+
+    ELSE
+      
+      ! In this case, the above 2-moment scheme perturbations to not have any effect, because
+      ! the 2-moment scheme is not used or the ART version of the 2-moment scheme with
+      ! fully coupled prognostic CN and IN and without any coupling to namelist parameters
+      ! in atm_phy_nwp_config(1:max_dom)%cfg_2mom is used.
+
+      ! So just set dummy values from the namelist defaults:
+      avel_i_sv  (1:max_dom) = atm_phy_nwp_config(1:max_dom)%cfg_2mom%avel_i
+      avel_g_sv  (1:max_dom) = atm_phy_nwp_config(1:max_dom)%cfg_2mom%avel_g
+      ccn_Ncn0_sv(1:max_dom) = atm_phy_nwp_config(1:max_dom)%cfg_2mom%ccn_Ncn0
+      in_fact_sv (1:max_dom) = atm_phy_nwp_config(1:max_dom)%cfg_2mom%in_fact
+      cap_snow_sv(1:max_dom) = atm_phy_nwp_config(1:max_dom)%cfg_2mom%cap_snow
+      cap_ice_sv (1:max_dom) = atm_phy_nwp_config(1:max_dom)%cfg_2mom%cap_ice
+      
+    END IF
+    
     ! convection
     rprcon_sv  = tune_rprcon
     entrorg_sv = tune_entrorg
@@ -523,7 +632,7 @@ MODULE mo_ensemble_pert_config
     CALL random_gen(rnd_gfluxlaun, rnd_num)
     tune_gfluxlaun = gfluxlaun_sv + 2._wp*(rnd_num-0.5_wp)*range_gfluxlaun
 
-    ! grid-scale microphysics
+    ! grid-scale 1-moment microphysics (inwp_gscp=1,2,3)
     CALL random_gen(rnd_zvz0i, rnd_num)
     ! perturbations for cloud ice sedimentation and convective precip conversion rate must be anticorrelated if constant
     ! in time because they systematically alter the temperature bias in the middle/upper troposphere
@@ -537,6 +646,69 @@ MODULE mo_ensemble_pert_config
       atm_phy_nwp_config(1:max_dom)%rain_n0_factor = rain_n0_sv(1:max_dom)*rnd_fac
     ENDIF
 
+    ! grid-scale 2-moment microphysics (inwp_gscp=4,5,6,7)
+    ! - at the moment ccn_Ncn0, in_fact, avel_g and avel_i are only perturbed with a time-independent value
+    !   because they are transferred to the 2-moment scheme only once during the init phase of the model in two_moment_mcrph_init().
+    !   For avel_g and avel_i this is the only way. If we would like to have time-dependent parameters
+    !   for ccn_Ncn0 and in_fact, we would have to update the type ccn_coeffs in each call to two_moment_mcrph() in mo_2mom_mcrph_driver.f90.
+    IF ( ANY(atm_phy_nwp_config(1)%inwp_gscp == [4,5,7]) ) THEN
+      IF (linit) THEN
+        ! perturbations for CN, at the moment assumed to be factors which are uncorrellated and discrete random numbers.
+        ! Here we have to put the perturbations into the container cfg_2mom, because it is used in the init
+        ! phase of the 2-moment scheme:
+        IF (ccn_Ncn0_sv(1) > -900.0_wp) THEN
+          CALL random_gen(rnd_ccn_Ncn0, rnd_num)
+          rnd_fac = range_ccn_Ncn0**(2._wp*(rnd_num-0.5_wp))
+          atm_phy_nwp_config(1:max_dom)%cfg_2mom_pert%ccn_Ncn0 = ccn_Ncn0_sv(1:max_dom)*rnd_fac
+        END IF
+
+        CALL random_gen(rnd_in_fact, rnd_num)
+        rnd_fac = range_in_fact**(2._wp*(rnd_num-0.5_wp))
+        atm_phy_nwp_config(1:max_dom)%cfg_2mom_pert%in_fact = in_fact_sv(1:max_dom)*rnd_fac
+        
+        IF (avel_g_sv(1) > -900.0_wp) THEN
+          ! avel_g is not time-dependent in case of timedep_pert=2 because this would entail several recomputations,
+          ! and it is a factor based on continuous random numbers, not discrete ones (".TRUE."):
+          CALL random_gen(rnd_avel_g, rnd_num, .TRUE.)
+          rnd_fac = range_avel_g**(2._wp*(rnd_num-0.5_wp))
+          atm_phy_nwp_config(1:max_dom)%cfg_2mom_pert%avel_g = avel_g_sv(1:max_dom)*rnd_fac
+        ENDIF
+        
+        IF (avel_i_sv(1) > -900.0_wp) THEN
+          ! avel_i is not time-dependent in case of timedep_pert=2 because this would entail several recomputations,
+          ! and it is a factor based on continuous random numbers, not discrete ones (".TRUE."):
+          CALL random_gen(rnd_avel_i, rnd_num, .TRUE.)
+          rnd_fac = range_avel_i**(2._wp*(rnd_num-0.5_wp))
+          atm_phy_nwp_config(1:max_dom)%cfg_2mom_pert%avel_i = avel_i_sv(1:max_dom)*rnd_fac
+        ENDIF
+        
+      END IF
+      
+      ! perturbations for capacitances of snow and cloud ice, at the moment assumed to be uncorrelated
+      ! and discrete random numbers. These are time-dependent.
+      ! For these time-step dependent perturbations, we have to use the container cfg_2mom_pert:
+      IF (cap_snow_sv(1) > -900.0_wp) THEN
+        CALL random_gen(rnd_cap_snow, rnd_num)
+        rnd_fac = range_cap_snow**(2._wp*(rnd_num-0.5_wp))
+        atm_phy_nwp_config(1:max_dom)%cfg_2mom_pert%cap_snow = cap_snow_sv(1:max_dom)*rnd_fac
+      END IF
+
+      IF (cap_ice_sv(1) > -900.0_wp) THEN
+        CALL random_gen(rnd_cap_ice, rnd_num)
+        rnd_fac = range_cap_ice**(2._wp*(rnd_num-0.5_wp))
+        atm_phy_nwp_config(1:max_dom)%cfg_2mom_pert%cap_ice = cap_ice_sv(1:max_dom)*rnd_fac
+      END IF
+
+      IF (linit) THEN
+        ! Synchronize cfg_2mom and cfg_2mom_pert in the first timestep, because
+        ! some parameters like avel_g and ccn_Ncn0 take only effect in the initialization, for
+        ! which they need to be in the container cfg_2mom:
+        DO jg = 1, n_dom
+          CALL copy_cfg_2mom_pert2all (atm_phy_nwp_config(jg)%cfg_2mom_pert, atm_phy_nwp_config(jg)%cfg_2mom)
+        END DO        
+      END IF
+    END IF
+    
     ! convection
     CALL random_gen(rnd_entrorg, rnd_num)
     tune_entrorg = entrorg_sv + 2._wp*(rnd_num-0.5_wp)*range_entrorg
@@ -762,6 +934,16 @@ MODULE mo_ensemble_pert_config
         tune_gfluxlaun, tune_zvz0i, atm_phy_nwp_config(1)%rain_n0_factor
       CALL message('Perturbed values, gkwake, gkdrag, gkdrag_enh, gfrcrit, gfluxlaun, zvz0i, rain_n0fac', TRIM(message_text))
 
+      IF ( ANY(atm_phy_nwp_config(1)%inwp_gscp == [4,5,7]) ) THEN
+        WRITE(message_text,'(es11.4,f8.1,2es11.4,2f8.3)') atm_phy_nwp_config(1)%cfg_2mom_pert%ccn_Ncn0, &
+             atm_phy_nwp_config(1)%cfg_2mom_pert%in_fact, &
+             atm_phy_nwp_config(1)%cfg_2mom_pert%avel_i,  &
+             atm_phy_nwp_config(1)%cfg_2mom_pert%avel_g,  &
+             atm_phy_nwp_config(1)%cfg_2mom_pert%cap_snow, &
+             atm_phy_nwp_config(1)%cfg_2mom_pert%cap_ice
+        CALL message('Perturbed values, ccn_Ncn0, in_fact, avel_i, avel_g, cap_snow, cap_ice', TRIM(message_text))
+      END IF
+      
       WRITE(message_text,'(2e11.4,f8.1)') tune_entrorg, tune_rprcon, tune_rdepths
       CALL message('Perturbed values, entrorg, rprcon, rdepths', TRIM(message_text))
 
@@ -921,7 +1103,7 @@ MODULE mo_ensemble_pert_config
           IF (jt <= ntiles_lnd .OR. jt >= ntiles_total+1) THEN
             !$ACC LOOP GANG(STATIC: 1) VECTOR PRIVATE(ilu)
             DO jc = i_startidx, i_endidx
-              ilu = MAX(1,ext_data(jg)%atm%lc_class_t(jc,jb,jt))
+              ilu = MIN(MAX(1, ext_data(jg)%atm%lc_class_t(jc,jb,jt)), UBOUND(rnd_tkred_sfc,dim=1))
               wrnd_num(jc) = wrnd_num(jc) + rnd_tkred_sfc(ilu)*ext_data(jg)%atm%lc_frac_t(jc,jb,jt)
               wrnd_num2(jc) = wrnd_num2(jc) + rnd_fac_ccqc(ilu)*ext_data(jg)%atm%lc_frac_t(jc,jb,jt)
             ENDDO

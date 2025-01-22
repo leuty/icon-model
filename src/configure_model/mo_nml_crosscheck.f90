@@ -57,12 +57,12 @@ MODULE mo_nml_crosscheck
     &                                    icld_overlap, ecrad_llw_cloud_scat, isolrad,      &
     &                                    ecrad_iliquid_scat, ecrad_iice_scat,              &
     &                                    ecrad_isnow_scat, ecrad_irain_scat,               &
-    &                                    ecrad_igraupel_scat,                              & 
+    &                                    ecrad_igraupel_scat,                              &
     &                                    ecrad_isolver, ecrad_igas_model,                  &
     &                                    ecrad_use_general_cloud_optics
   USE mo_turbdiff_config,          ONLY: turbdiff_config
-  USE mo_initicon_config,          ONLY: init_mode, dt_iau, ltile_coldstart, timeshift,    &
-    &                                    itype_vert_expol, iterate_iau
+  USE mo_initicon_config,          ONLY: init_mode, dt_iau, ltile_coldstart, iterate_iau,  &
+    &                                    itype_vert_expol
   USE mo_nh_testcases_nml,         ONLY: nh_test_name, layer_thickness
   USE mo_meteogram_config,         ONLY: meteogram_output_config, check_meteogram_configuration
   USE mo_grid_config,              ONLY: lplane, n_dom, l_limited_area, start_time,        &
@@ -732,12 +732,12 @@ CONTAINS
         msecs_restart   = getTotalMilliSecondsTimeDelta(time_config%tc_dt_restart, reference_dt)
         secs_restart    = 0.001_wp * REAL(msecs_restart,wp)
         secs_checkpoint = dt_checkpoint
-        secs_iau_end    = dt_iau+timeshift%dt_shift
+        secs_iau_end    = dt_iau+time_config%timeshift%dt_shift
         ! ignore restart and/or checkpoint intervals if zero:
         IF (secs_restart    <= 0._wp)  secs_restart    = secs_iau_end
         IF (secs_checkpoint <= 0._wp)  secs_checkpoint = secs_restart
         IF (MIN(secs_checkpoint, secs_restart) < secs_iau_end) THEN
-          CALL finish('atm_crosscheck:', "Restarting is not allowed within the IAU phase")
+          CALL finish(routine, "Restarting is not allowed within the IAU phase")
         ENDIF
 
         CALL deallocateDatetime(reference_dt)
@@ -745,16 +745,17 @@ CONTAINS
         IF (l_limited_area) THEN
           ! For a negative IAU shift, no extra boundary file can be read. So it has to be taken
           ! from the first guess file.
-          IF (timeshift%dt_shift < 0._wp .AND. .NOT. latbc_config%init_latbc_from_fg) THEN
-            CALL finish('atm_crosscheck:', "For dt_shift<0, latbc has &
+          IF (time_config%timeshift%dt_shift < 0._wp .AND. .NOT. latbc_config%init_latbc_from_fg) THEN
+            CALL finish(routine, "For dt_shift<0, latbc has &
               &to be taken from first guess (init_latbc_from_fg)")
           ENDIF
         ENDIF
       ENDIF
 
       DO jg = 2, n_dom
-        IF (start_time(jg) > timeshift%dt_shift .AND. start_time(jg) < dt_iau+timeshift%dt_shift) THEN
-          CALL finish('atm_crosscheck:', "Starting a nest is not allowed within the IAU phase")
+        IF (start_time(jg) > time_config%timeshift%dt_shift .AND. &
+          & start_time(jg) < dt_iau+time_config%timeshift%dt_shift) THEN
+          CALL finish(routine, "Starting a nest is not allowed within the IAU phase")
         ENDIF
       ENDDO
 

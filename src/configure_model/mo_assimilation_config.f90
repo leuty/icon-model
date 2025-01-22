@@ -13,18 +13,17 @@
 
 MODULE mo_assimilation_config
   USE mo_kind,                 ONLY: wp, i8
-  USE mo_impl_constants,       ONLY: max_dom, MODE_IAU, MODE_IAU_OLD
+  USE mo_impl_constants,       ONLY: max_dom
   USE mo_exception,            ONLY: message, message_text
-  USE mo_run_config,           ONLY: dtime,nsteps
+  USE mo_run_config,           ONLY: dtime, nsteps
   USE mo_mpi,                  ONLY: my_process_is_stdio
-  USE mo_initicon_config,      ONLY: timeshift, init_mode
   USE mo_phy_events,           ONLY: t_phyProcFast, t_phyProcGroup
   USE mo_grid_config,          ONLY: start_time, end_time, DEFAULT_ENDTIME
   USE mo_time_config,          ONLY: time_config
   USE mtime,                   ONLY: datetime, timedelta, newTimedelta, &
     &                                getPTStringFromMS, MAX_TIMEDELTA_STR_LEN, &
     &                                deallocateTimedelta, OPERATOR(+), OPERATOR(>)
-  USE mo_model_domain,         ONLY: p_patch 
+  USE mo_model_domain,         ONLY: t_patch
 
   IMPLICIT NONE
 
@@ -122,15 +121,16 @@ MODULE mo_assimilation_config
 
   CONTAINS
 
-  SUBROUTINE configure_lhn(jg)
-   INTEGER, INTENT(IN) :: jg          !< patch
-   CHARACTER (LEN=255)              ::           &
-     filepath
+  SUBROUTINE configure_lhn(p_patch)
+   TYPE(t_patch),       INTENT(IN) :: p_patch
+   CHARACTER (LEN=255)  :: filepath
    LOGICAL  :: lf_exist,lb_exist,lh_exist
-   INTEGER  :: nobs,nt_end,nt_start, idt_shift
+   INTEGER  :: nobs,nt_end,nt_start
+   REAL(wp) :: dt_shift
 
 
     ! local
+    INTEGER                         :: jg
     TYPE(timedelta), POINTER        :: eventInterval    => NULL()
     TYPE(timedelta), POINTER        :: eventInterval_bb    => NULL()
     TYPE(datetime)                  :: eventEndDate_proc     ! process-specific end date
@@ -146,21 +146,13 @@ MODULE mo_assimilation_config
     TYPE(datetime)           :: eventStartDate, eventEndDate
     TYPE(timedelta), POINTER :: td_start, td_end, td_dt   => NULL()
 
-    REAL(wp)            :: dt_ass            !< assimilation time intervals
+    REAL(wp)            :: dt_ass            !< assimilation time intervals in seconds
 
+    jg = p_patch%id
 
+    dt_shift = MIN(0._wp,time_config%timeshift%dt_shift)
 
-    IF (ANY((/MODE_IAU,MODE_IAU_OLD/)==init_mode)) THEN
-       idt_shift=timeshift%dt_shift
-    ELSE
-       idt_shift=0
-    ENDIF
-
-    IF (jg > 1) THEN
-       dt_ass = (dtime/2._wp**(p_patch(jg)%level -  p_patch(1)%level))            !seconds
-    ELSE
-       dt_ass = dtime
-    ENDIF
+    dt_ass = time_config%get_model_timestep_sec(p_patch%nest_level)
 
     IF (assimilation_config(jg)%llhn .OR. assimilation_config(jg)%llhnverif) THEN
        filepath=TRIM(assimilation_config(jg)%radar_in)//TRIM(assimilation_config(jg)%radardata_file)
@@ -205,7 +197,7 @@ MODULE mo_assimilation_config
 
 
     nt_end = MAX(assimilation_config(jg)%nlhn_end,assimilation_config(jg)%nlhnverif_end)
-    nt_end = MIN(nt_end,INT(REAL(nsteps,wp)*dtime-idt_shift))
+    nt_end = MIN(nt_end,INT(REAL(nsteps,wp)*dtime-dt_shift))
     nt_start = MIN(assimilation_config(jg)%nlhn_start,assimilation_config(jg)%nlhnverif_start)
     nt_start = MIN(nt_end - 1,nt_start)
     nobs = NINT((REAL(nt_end-nt_start,wp)+3600._wp)/(assimilation_config(jg)%lhn_dt_obs*60._wp)) ! consider one hour more to be safe
@@ -241,8 +233,8 @@ MODULE mo_assimilation_config
       CALL deallocateTimedelta(td_start)
 !      domStartDate = time_config%tc_exp_startdate
       ! take care of possibe IAU-Timeshift
-      IF (timeshift%dt_shift < 0._wp) THEN
-        domStartDate = domStartDate + timeshift%mtime_shift
+      IF (time_config%timeshift%dt_shift < 0._wp) THEN
+        domStartDate = domStartDate + time_config%timeshift%mtime_shift
       ENDIF
     ENDIF
     ! Note that the model time is updated at the beginning of a timestep.
@@ -327,8 +319,8 @@ MODULE mo_assimilation_config
       CALL deallocateTimedelta(td_start)
 !      domStartDate = time_config%tc_exp_startdate
       ! take care of possibe IAU-Timeshift
-      IF (timeshift%dt_shift < 0._wp) THEN
-        domStartDate = domStartDate + timeshift%mtime_shift
+      IF (time_config%timeshift%dt_shift < 0._wp) THEN
+        domStartDate = domStartDate + time_config%timeshift%mtime_shift
       ENDIF
     ENDIF
     ! Note that the model time is updated at the beginning of a timestep.

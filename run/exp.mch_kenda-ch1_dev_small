@@ -35,7 +35,7 @@ set -x
 # icon_data_poolFolder          = base directory, where grids/, input/ and setup/ exist
 # nproma                        = blocking length for array dimensioning and inner loop lengths
 
-icon_data_poolFolder="${icon_data_rootFolder:-/pool/data/ICON}/mch"
+input_folder="${testingFolder_prefix}/testing-input-data/c2sm/kenda-ch1_small_dev"
 
 # =======================================================================
 # Setup - experiment
@@ -55,10 +55,7 @@ icon_data_poolFolder="${icon_data_rootFolder:-/pool/data/ICON}/mch"
 
 # Folder containing required grid information
 # 2km provides a bigger surface, thus more observations.
-grids_folder=${icon_data_poolFolder}/grids/icon-ch2_dace
-
-# Folder containing input files
-input_path=${icon_data_poolFolder}/input/kenda-i1_small
+grids_folder=${input_folder}
 
 dynamics_grid_filename=icon-ch2_DOM01.nc
 atmo_dyn_grids="'${dynamics_grid_filename}'"
@@ -90,13 +87,13 @@ add_required_file ${basedir}/data/ECHAM6_CldOptProps.nc rrtm_cldopt.nc
 add_required_file ${basedir}/data/rrtmg_lw.nc .
 
 # Dictionary for the mapping: DWD GRIB2 names <-> ICON internal names
-add_required_file ${input_path}/map_file.ana map_file.ana
+add_required_file ${input_folder}/map_file.ana map_file.ana
 
 # Dictionary for the mapping: GRIB2/Netcdf input names <-> ICON internal names
-add_required_file ${input_path}/map_file.latbc map_file.latbc
+add_required_file ${input_folder}/map_file.latbc map_file.latbc
 
 # dictionary file for radar
-add_required_file ${input_path}/radar_dict_file.dat radar_dict_file.dat
+add_required_file ${input_folder}/radar_dict_file.dat radar_dict_file.dat
 
 # dictionary file for output variable names
 dict_file="dict.output.mch"
@@ -180,8 +177,8 @@ cat > ${basedir}/run/${atmo_namelist} << EOF
  lread_ana                    = .true.      ! read analysis file(s)
  lp2cintp_incr                = .false.     ! parent-to-child-interpolation
  lp2cintp_sfcana              = .false.     ! of analyses (DET:.false.;EPS:.true.)
- dwdfg_filename               = "${input_path}/first_guess_iau"
- dwdana_filename              = "${input_path}/laf2023011511_inc"
+ dwdfg_filename               = "${input_folder}/first_guess_iau.grb"
+ dwdana_filename              = "${input_folder}/laf2023011511_inc.grb"
  ana_varnames_map_file        = "map_file.ana"
  check_ana(1)%list            = 'P','QV','T','U','V'
  ltile_coldstart              = .false.     ! intermediate mode until tile-based I/O is available
@@ -203,7 +200,7 @@ cat > ${basedir}/run/${atmo_namelist} << EOF
  radiation_grid_filename     =           ${atmo_rad_grids}        ! array of the grid filenames for the radiation model
  dynamics_parent_grid_id     =                           0        ! array of the indexes of the parent grid filenames
  lredgrid_phys               =                      .TRUE.        ! .true.=radiation is calculated on a reduced grid
- lfeedback                   =                      .TRUE.        ! specifies if feedback to parent grid is performed
+ lfeedback                   =                     .FALSE.        ! specifies if feedback to parent grid is performed
  l_limited_area              =                      .TRUE.        ! .TRUE. performs limited area run
  ifeedback_type              =                          2         ! feedback type (incremental/relaxation-based)
  start_time                  =                          0.        ! Time when a nested domain starts to be active [s]
@@ -238,7 +235,7 @@ cat > ${basedir}/run/${atmo_namelist} << EOF
 &limarea_nml
  itype_latbc                 =                          1         ! 1: time-dependent lateral boundary conditions
  dtime_latbc                 =                       3600.        ! time difference between 2 consecutive boundary data
- latbc_path                  =             "${input_path}"        ! Absolute path to boundary data
+ latbc_path                  =             "${input_folder}"      ! Absolute path to boundary data
  latbc_varnames_map_file     =            'map_file.latbc'
  latbc_filename              =         'lbff<ddhhmmss>.nc'        ! boundary data input filename
  init_latbc_from_fg          =                     .TRUE.         ! .TRUE.: take lbc for initial time from first guess
@@ -319,6 +316,9 @@ cat > ${basedir}/run/${atmo_namelist} << EOF
  dt_conv                     =                10., 10., 10.       ! time step for convection in s (domain specific)
  dt_sso                      =                10., 10., 10.       ! time step for SSO parameterization
  dt_gwd                      =                10., 10., 10.       ! gdm : 360 in guenther
+ lvariable_rain_n0           =                       .TRUE.       ! variable intercept parameter of raindrop size distribution
+ ithermo_water               =                           1        ! 1: use temperature-dependent formulation of latent heat in microphysics
+ itype_satpres_coeffs        =                           2        ! Use IFS coefficients to compute saturation vapour pressure (more accurate at low temperatures)
 /
 
 ! twomom_mcrph_nml: switches for two moment mcrph scheme ------------------------------
@@ -329,7 +329,7 @@ cat > ${basedir}/run/${atmo_namelist} << EOF
 ! nwp_tuning_nml: additional tuning parameters ----------------------------------
 &nwp_tuning_nml
  tune_dursun_scaling         =                        0.6
- tune_v0snow                 =                        25
+ tune_v0snow                 =                        20
  tune_rcucov                 =                        0.075
  tune_rhebc_land             =                        0.825
  itune_albedo                =                          1         ! reduced albedo (w.r.t. MODIS data) over Sahara
@@ -347,6 +347,8 @@ cat > ${basedir}/run/${atmo_namelist} << EOF
  tune_gustsso_lim            =                       20
  tune_eiscrit                =                        7
  itune_gust_diag             =                        3
+ tune_supsat_limfac          =                        2.0         ! Limiting factor for parameterized supersaturation in updrafts during the saturation adjustment
+ tune_zcsg                   =                        0.25        ! Efficiency for snow-to-graupel conversion by riming
 /
 
 !gribout_nml: defined and used in: src/namelists/mo_initicon_nml.f90 ------------
@@ -543,7 +545,7 @@ cat > ${basedir}/run/${atmo_namelist} << EOF
  nlhnverif_start   = 0
  nlhn_end          = 3600
  nlhnverif_end     = 3600
- radar_in          = '${input_path}/obs/'
+ radar_in          = '${input_folder}/obs/'
  radardata_file    = '23011511.grib'
  lhn_diag          = .true.
  lhn_hum_adj       = .true.
@@ -603,9 +605,9 @@ cat > ${basedir}/run/${atmo_namelist} << EOF
 &run
  method         = 'MEC'                             ! Model Equivalent Calculator
  model          = 'ICON'                            ! forecast model
- data           = "${input_path}"                     ! path to auxiliary data
- input          = "${input_path}"               ! input data path (lff files)
- obsinput       = "${input_path}/obs" ! observation input data (CDFIN-files, blacklist)
+ data           = "${input_folder}"                 ! path to auxiliary data
+ input          = "${input_folder}"                 ! input data path (lff files)
+ obsinput       = "${input_folder}/obs" ! observation input data (CDFIN-files, blacklist)
  output         =  "${basedir}/experiments/${EXPNAME}"              ! output directory (ver,mof-files)
  yyyymmddhh_ana = 2023011512  ! analysis/reference date
  yyyymmddhh_ref = 2023011511           ! analysis/reference date

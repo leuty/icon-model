@@ -121,7 +121,7 @@ MODULE mo_nh_stepping
   USE mo_td_ext_data,              ONLY: update_nwp_phy_bcs, set_sst_and_seaice
   USE mo_advection_aerosols,       ONLY: aerosol_2D_advection, setup_aerosol_advection
   USE mo_aerosol_util,             ONLY: aerosol_2D_diffusion
-  USE mo_ensemble_pert_config,     ONLY: compute_ensemble_pert, use_ensemble_pert
+  USE mo_ensemble_pert_config,     ONLY: use_ensemble_pert, compute_ensemble_pert
   USE mo_aerosol_sources_types,    ONLY: p_fire_source_info
   USE mo_aerosol_sources,          ONLY: inquire_fire2d_data
   USE mo_nwp_aerosol,              ONLY: cams_reader, cams_intp
@@ -171,7 +171,7 @@ MODULE mo_nh_stepping
   USE mo_nh_init_nest_utils,       ONLY: initialize_nest
   USE mo_hydro_adjust,             ONLY: hydro_adjust_const_thetav
   USE mo_initicon_types,           ONLY: t_pi_atm
-  USE mo_initicon_config,          ONLY: init_mode, timeshift, init_mode_soil, dt_iau, fire2d_filename
+  USE mo_initicon_config,          ONLY: init_mode, init_mode_soil, dt_iau, fire2d_filename
   USE mo_synsat_config,            ONLY: lsynsat
   USE mo_rttov_interface,          ONLY: rttov_driver, copy_rttov_ubc
 #ifndef __NO_ICON_LES__
@@ -705,7 +705,7 @@ MODULE mo_nh_stepping
     IF (assimilation_config(1)% dace_coupling) THEN
        IF (.NOT. ASSOCIATED (mec_Event)) &
             CALL finish ("perform_nh_stepping","MEC not configured")
-       IF (timeshift%dt_shift == 0._wp .AND. &
+       IF (time_config%timeshift%dt_shift == 0._wp .AND. &
             is_event_active(mec_Event, mtime_current, proc0_offloading)) THEN
 #ifndef __NO_NWP__
           IF (iforcing == inwp) &
@@ -889,13 +889,13 @@ MODULE mo_nh_stepping
     IF (ierr /= SUCCESS)  CALL finish (routine, 'ALLOCATE failed!')
   ENDIF
 
-  IF (timeshift%dt_shift < 0._wp  .AND. .NOT. isRestart()) THEN
-    jstep_shift = NINT(timeshift%dt_shift/dtime)
+  IF (time_config%timeshift%dt_shift < 0._wp  .AND. .NOT. isRestart()) THEN
+    jstep_shift = NINT(time_config%timeshift%dt_shift/dtime)
     WRITE(message_text,'(a,i6,a)') 'Model start shifted backwards by ', ABS(jstep_shift),' time steps'
     CALL message(routine, message_text)
-    atm_phy_nwp_config(:)%lcalc_acc_avg = .FALSE.
     IF (iforcing == inwp) THEN
       DO jg=1, n_dom
+        atm_phy_nwp_config(jg)%lcalc_acc_avg = .FALSE.
         !$ACC UPDATE DEVICE(atm_phy_nwp_config(jg)%lcalc_acc_avg) ASYNC(1)
       END DO
     END IF
@@ -1071,14 +1071,14 @@ MODULE mo_nh_stepping
 
     ! turn on calculation of averaged and accumulated quantities at the first regular time step
     IF (jstep-jstep0 == 1) THEN
-      atm_phy_nwp_config(:)%lcalc_acc_avg = .TRUE.
       IF (iforcing == inwp) THEN
         DO jg=1, n_dom
+          atm_phy_nwp_config(jg)%lcalc_acc_avg = .TRUE.
           !$ACC UPDATE DEVICE(atm_phy_nwp_config(jg)%lcalc_acc_avg) ASYNC(1)
         END DO
       END IF
     END IF
-    
+
     lprint_timestep = msg_level > 2 .OR. MOD(jstep,25) == 0
 
     ! always print the first and the last time step
@@ -3046,7 +3046,7 @@ MODULE mo_nh_stepping
       IF ( ANY((/MODE_IAU,MODE_IAU_OLD/)==init_mode) ) THEN ! incremental analysis mode
         time_diff  =  getTimeDeltaFromDateTime(mtime_current, time_config%tc_exp_startdate)
         cur_time = REAL(getTotalSecondsTimedelta(time_diff, mtime_current)                  &
-             &         -getTotalSecondsTimedelta(timeshift%mtime_shift, mtime_current),wp)  &
+             &         -getTotalSecondsTimedelta(time_config%timeshift%mtime_shift, mtime_current),wp)  &
              &    +(REAL(nstep-ndyn_substeps_var(jg),wp)-0.5_wp)*dt_dyn
         IF (iau_iter == 1) THEN
           CALL compute_iau_wgt(cur_time, dt_dyn, 0.5_wp*dt_iau, lclean_mflx)

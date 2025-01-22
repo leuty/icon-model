@@ -33,7 +33,7 @@ set -x
 # icon_data_poolFolder          = base directory, where grids/, input/ and setup/ exist
 # nproma                        = blocking length for array dimensioning and inner loop lengths
 
-icon_data_poolFolder="${icon_data_rootFolder:-/pool/data/ICON}/c2sm"
+input_folder="${testingFolder_prefix}/testing-input-data/c2sm/clm_r13b03_seaice"
 
 # =======================================================================
 # Setup - experiment
@@ -50,10 +50,7 @@ icon_data_poolFolder="${icon_data_rootFolder:-/pool/data/ICON}/c2sm"
 # =======================
 
 # Folder containing required grid information
-grids_folder=${icon_data_poolFolder}/grids/clm_r13b03_seaice
-
-# Folder containing lateral boundary conditions
-latbc_path=${icon_data_poolFolder}/input/clm_r13b03_seaice
+grids_folder=${input_folder}
 
 dynamics_grid_filename=baltic_sea_DOM01.nc
 atmo_dyn_grids="'${dynamics_grid_filename}',"
@@ -89,11 +86,12 @@ add_required_file ${basedir}/run/ana_varnames_map_file.txt map_file.ana
 
 
 # initial data
-add_link_file ${latbc_path}/caf1979020100_ini.nc .
+add_link_file ${input_folder}/caf1979020100_ini.nc .
 
 # lateral boundary data
-add_link_file ${latbc_path}/caf1979020100_lbc.nc .
-add_link_file ${latbc_path}/caf1979020106_lbc.nc .
+add_link_file ${input_folder}/caf1979020100_lbc.nc .
+add_link_file ${input_folder}/caf1979020106_lbc.nc .
+add_link_file ${input_folder}/caf1979020112_lbc.nc .
 
 # dictionary file for output variable names
 dict_file="dict.output.mch"
@@ -101,40 +99,31 @@ add_required_file ${basedir}/run/${dict_file} .
 
 # dictionary file for LBC
 dict_latbc_file="dict.latbc"
-add_required_file ${latbc_path}/${dict_latbc_file} .
+add_required_file ${input_folder}/${dict_latbc_file} .
 
 # greenhouse gases file
-add_required_file ${latbc_path}/bc_greenhouse_rcp45_1765-2500.nc .
+add_required_file ${input_folder}/bc_greenhouse_rcp45_1765-2500.nc .
 
 # input files for SST-ICE mode 6
-add_required_file ${latbc_path}/LOWBC_1979_02.nc .
-add_required_file ${latbc_path}/LOWBC_1979_02.nc .
-
-icon_preprocessing_source=${icon_data_rootFolder}/grids/private/mpim/icon_preprocessing/source
+add_required_file ${input_folder}/LOWBC_1979_02.nc .
+add_required_file ${input_folder}/LOWBC_1979_02.nc .
 
 # - ssi and tsi
-add_link_file ${icon_preprocessing_source}/solar_radiation/3.2/swflux_14band_cmip6_1850-2299-v3.2.nc            ./bc_solar_irradiance_sw_b14.nc
+add_link_file ${input_folder}/swflux_14band_cmip6_1850-2299-v3.2.nc  ./bc_solar_irradiance_sw_b14.nc
 # Add required files for iRadAeroKinnVolcSP (irad_aero=18)
-add_required_file ${icon_data_poolFolder}/input/clm_r13b03_seaice/CMIP6Forcing/bc_aeropt_cmip6_volc_lw_b16_sw_b14_1979.nc .
+add_required_file ${input_folder}/bc_aeropt_cmip6_volc_lw_b16_sw_b14_1979.nc .
 
 # - tropospheric anthropogenic aerosols, simple plumes
-add_link_file ${icon_data_poolFolder}/input/clm_r13b03_seaice/MACv2.0-SP_v1.nc                          ./MACv2.0-SP_v1.nc
+add_link_file ${input_folder}/MACv2.0-SP_v1.nc                          ./MACv2.0-SP_v1.nc
 #
 # - Kinne background aerosols are needed for the year 1850 (irad_aero=18,19)
 #
-datadir=${icon_data_poolFolder}/input/clm_r13b03_seaice
+datadir=${input_folder}
 #
-add_link_file $datadir/bc_aeropt_kinne_lw_b16_coa.nc                    ./
-add_link_file $datadir/bc_aeropt_kinne_sw_b14_coa.nc                    ./
-add_link_file $datadir/bc_aeropt_kinne_sw_b14_fin_1850.nc               ./bc_aeropt_kinne_sw_b14_fin.nc
+add_link_file $input_folder/bc_aeropt_kinne_lw_b16_coa.nc                    ./
+add_link_file $input_folder/bc_aeropt_kinne_sw_b14_coa.nc                    ./
+add_link_file $input_folder/bc_aeropt_kinne_sw_b14_fin_1850.nc               ./bc_aeropt_kinne_sw_b14_fin.nc
 
-icon_preprocessing_source=${icon_data_rootFolder}/grids/private/mpim/icon_preprocessing/source
-# boundary conditions
-# horizontal grid(s)
-#
-# domain globe
-grids_folder_ozone=${icon_preprocessing_source}/ozone/cmip6/R02B04/
-#
 # range of years for yearly files
 # assume start_date and end_date have the format yyyy-...
 start_year=$(( ${start_date%%-*} - 1 ))
@@ -148,9 +137,9 @@ while [[ $year -le $end_year ]]
 do
   if [[ $year -le 2014 ]]
   then
-    add_link_file $datadir/bc_ozone_historical_${year}.nc               ./bc_ozone_${year}.nc
+    add_link_file $input_folder/bc_ozone_historical_${year}.nc               ./bc_ozone_${year}.nc
   else
-    add_link_file $datadir/bc_ozone_historical_2014.nc                  ./bc_ozone_${year}.nc
+    add_link_file $input_folder/bc_ozone_historical_2014.nc                  ./bc_ozone_${year}.nc
   fi
   (( year = year+1 ))
 done
@@ -306,7 +295,7 @@ cat > ${basedir}/run/${atmo_namelist} << EOF
 
 ! limarea_nml: settings for limited area mode ---------------------------------
 &limarea_nml
- latbc_path                  = "${latbc_path}"       ! Absolute path to boundary data
+ latbc_path                  = "${input_folder}"       ! Absolute path to boundary data
  itype_latbc                 = 1
  dtime_latbc                 = 21600.0 
  latbc_varnames_map_file     = '${dict_latbc_file}' 

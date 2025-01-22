@@ -55,7 +55,8 @@ MODULE mo_nwp_ecrad_interface
                                    &   iRadAeroNone, iRadAeroConst, iRadAeroTegen,            &
                                    &   iRadAeroART, iRadAeroConstKinne, iRadAeroKinne,        &
                                    &   iRadAeroVolc, iRadAeroKinneVolc,  iRadAeroKinneVolcSP, &
-                                   &   iRadAeroKinneSP, iRadAeroCAMSclim, iRadAeroCAMStd
+                                   &   iRadAeroKinneSP, iRadAeroCAMSclim, iRadAeroCAMStd,     &
+                                   &   ecrad_check_input
   USE mo_phys_nest_utilities,    ONLY: t_upscale_fields, upscale_rad_input, downscale_rad_output
   USE mtime,                     ONLY: datetime
 #ifdef __ECRAD
@@ -69,7 +70,8 @@ MODULE mo_nwp_ecrad_interface
                                    &   ecrad_iqr, ecrad_iqs, ecrad_iqg          
 
   USE mo_nwp_ecrad_prep_aerosol, ONLY: nwp_ecrad_prep_aerosol
-  USE mo_nwp_ecrad_utilities,    ONLY: ecrad_set_single_level,                   &
+  USE mo_nwp_ecrad_utilities,    ONLY: ecrad_check_input_fields,                 &
+                                   &   ecrad_set_single_level,                   &
                                    &   ecrad_set_thermodynamics,                 &
                                    &   ecrad_set_clouds,                         &
                                    &   ecrad_set_gas,                            &
@@ -147,6 +149,8 @@ CONTAINS
       &  ecrad_flux                        !< ecRad flux information (output)
     TYPE(t_opt_ptrs),ALLOCATABLE      :: &
       &  opt_ptrs_lw(:), opt_ptrs_sw(:)    !< Contains pointers to aerosol optical properties
+    TYPE(t_ptr_2d), ALLOCATABLE       :: &
+      &  ptr_camsaermr(:)                  !< Pointer to CAMS aerosol mass mixing ratios
     REAL(wp)                 :: &
       &  fact_reffc               !< Factor in the calculation of cloud droplet effective radius
     INTEGER                  :: &
@@ -164,6 +168,8 @@ CONTAINS
       &  jcs, jce                 !< raw start and end index of subblock in nproma with boundaries
     LOGICAL, ALLOCATABLE     :: &
       &  cosmu0mask(:)            !< Mask if cosmu0 > 0
+    LOGICAL                  :: &
+      &  is_bad                   !< Return value of ecRad-internal physical consistency checks
     REAL(wp), ALLOCATABLE    :: &
       &  zlwflx_up(:,:),        & !< longwave upward flux
       &  zlwflx_dn(:,:),        & !< longwave downward flux
@@ -182,7 +188,6 @@ CONTAINS
     REAL(wp), DIMENSION(:),    POINTER :: &
       &  ptr_fr_glac => NULL(), ptr_fr_land => NULL()
 
-    TYPE(t_ptr_2d), ALLOCATABLE :: ptr_camsaermr(:)
 
     CALL assert_acc_device_only(routine, lacc)
 
@@ -198,9 +203,8 @@ CONTAINS
     IF (msg_level >= 7) &
       &       CALL message(routine, 'ecrad radiation on full grid')
 
-    rl_start = grf_bdywidth_c+1
-    rl_end   = min_rlcell_int
-
+    rl_start   = grf_bdywidth_c+1
+    rl_end     = min_rlcell_int
     i_startblk = pt_patch%cells%start_block(rl_start)
     i_endblk   = pt_patch%cells%end_block(rl_end)
 
@@ -209,6 +213,19 @@ CONTAINS
 !$OMP                  zlwflx_up_clr, zlwflx_dn_clr, zswflx_up_clr, zswflx_dn_clr,   &
 !$OMP                  ecrad_aerosol,ecrad_single_level, ecrad_thermodynamics,       &
 !$OMP                  ecrad_gas, ecrad_cloud, ecrad_flux)
+
+    IF (ecrad_check_input) THEN ! Check input fields for physical consistency
+!$OMP DO PRIVATE(jb, i_startidx, i_endidx), &
+!$OMP ICON_OMP_GUIDED_SCHEDULE
+      DO jb = i_startblk, i_endblk
+        CALL get_indices_c(pt_patch, jb, i_startblk, i_endblk, &
+          &                i_startidx, i_endidx, rl_start, rl_end)
+        CALL ecrad_check_input_fields('ecRadInputCheck::fullgrid::start',             &
+          &                           i_startidx, i_endidx, nlev,                     &
+          &                           pt_diag%pres(:,:,jb), pt_diag%pres_ifc(:,:,jb))
+      ENDDO
+!$OMP END DO
+    ENDIF
 
     ALLOCATE( cosmu0mask   (nproma_sub)     )
     ALLOCATE( zlwflx_up    (nproma_sub,nlevp1), zlwflx_dn    (nproma_sub,nlevp1) )
@@ -418,6 +435,10 @@ CONTAINS
           CASE DEFAULT
             CALL finish(routine, 'irad_aero not valid for ecRad')
         END SELECT
+        IF (ecrad_check_input) THEN
+          is_bad = ecrad_aerosol%out_of_physical_bounds(istartcol=i_startidx_rad, iendcol=i_endidx_rad, do_fix=.FALSE.)
+          IF (is_bad) CALL finish(routine,'ecrad_aerosol out_of_physical_bounds check triggered')
+        ENDIF
 
         !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1)
         !$ACC LOOP GANG VECTOR
@@ -439,7 +460,7 @@ CONTAINS
           &        ecrad_gas,                               & !< ecRad gas configuration object (input)
           &        ecrad_cloud,                             & !< ecRad cloud configuration object (input)
           &        ecrad_aerosol,                           & !< ecRad aerosol configuration object (input)
-          &        ecrad_flux                               ) !< ecRad fluxes in the longwave BUT flux/solar constant in the shortwave (output)
+          &        ecrad_flux                               ) !< ecRad fluxes in the LW BUT flux/solar constant in the SW (output)
 
 !---------------------------------------------------------------------------------------
 
@@ -669,7 +690,7 @@ CONTAINS
     TYPE(t_ptr_2d), ALLOCATABLE :: &
       &  ptr_camsaermr(:)                  !< Contains pointers to cams mass mixing ratios
 
-    REAL(wp), DIMENSION(:),    POINTER :: &
+    REAL(wp), DIMENSION(:), POINTER :: &
       &  ptr_fr_glac => NULL(), ptr_fr_land => NULL()
 
     ! Some unused variables to be up- and downscaled (to not change the interface to up- and downscale)
@@ -681,11 +702,33 @@ CONTAINS
       &  zlp_tot_cld(:,:,:,:)
     LOGICAL, ALLOCATABLE          :: &
       &  cosmu0mask(:)                 !< Mask if cosmu0 > 0
+    LOGICAL                       :: &
+      &  is_bad                        !< Return value of ecRad-internal physical consistency checks
 
     jg         = pt_patch%id
     nlev       = pt_patch%nlev
 
     CALL assert_acc_device_only(routine, lacc)
+
+    rl_start   = 1 ! SR radiation is not set up to handle boundaries of nested domains
+    rl_end     = min_rlcell_int
+    i_startblk = pt_patch%cells%start_block(rl_start)
+    i_endblk   = pt_patch%cells%end_block(rl_end)
+
+    IF (ecrad_check_input) THEN
+!$OMP PARALLEL
+!$OMP DO PRIVATE(jb, i_startidx, i_endidx), &
+!$OMP ICON_OMP_GUIDED_SCHEDULE
+      DO jb = i_startblk, i_endblk
+        CALL get_indices_c(pt_patch, jb, i_startblk, i_endblk, &
+          &                i_startidx, i_endidx, rl_start, rl_end)
+        CALL ecrad_check_input_fields('ecRadInputCheck::redgrid::start',              &
+          &                           i_startidx, i_endidx, nlev,                     &
+          &                           pt_diag%pres(:,:,jb), pt_diag%pres_ifc(:,:,jb))
+      ENDDO
+!$OMP END DO
+!$OMP END PARALLEL
+    ENDIF
 
     fact_reffc = (3.0e-9_wp/(4.0_wp*pi*rhoh2o))**(1.0_wp/3.0_wp)
 
@@ -895,12 +938,6 @@ CONTAINS
       !$ACC ENTER DATA CREATE(zrg_extra_reff) ASYNC(1)
     ENDIF
 
-
-    rl_start = 1 ! SR radiation is not set up to handle boundaries of nested domains
-    rl_end   = min_rlcell_int
-    i_startblk = pt_patch%cells%start_block(rl_start)
-    i_endblk   = pt_patch%cells%end_block(rl_end)
-
 !$OMP PARALLEL
 
     ! Initialize output fields
@@ -952,7 +989,7 @@ CONTAINS
 
 !$OMP END PARALLEL
 
-! Upscale ICON input fields from full grid to reduced radiation grid
+    ! Upscale ICON input fields from full grid to reduced radiation grid
     CALL upscale_rad_input(pt_patch%id, pt_par_patch%id,                                 & ! in
       &                    nlev_rg,                                                      & ! in
       &                    prm_diag%lw_emiss, prm_diag%cosmu0,                           & ! in
@@ -973,7 +1010,7 @@ CONTAINS
       &                    input_extra_2D, zrg_extra_2D,                                 & ! opt in, opt out
       &                    input_extra_reff, zrg_extra_reff, lacc=.TRUE.)                  ! opt in, opt out
 
-! Set indices for reduced grid loop
+    ! Set indices for reduced grid loop
     IF (jg == 1 .AND. l_limited_area) THEN
       rl_start = grf_fbk_start_c
     ELSE
@@ -1200,6 +1237,10 @@ CONTAINS
           CASE DEFAULT
             CALL finish(routine, 'irad_aero not valid for ecRad')
         END SELECT
+        IF (ecrad_check_input) THEN
+          is_bad = ecrad_aerosol%out_of_physical_bounds(istartcol=i_startidx_rad, iendcol=i_endidx_rad, do_fix=.FALSE.)
+          IF (is_bad) CALL finish(routine,'ecrad_aerosol out_of_physical_bounds check triggered')
+        ENDIF
 
         ! Reset output values
         !$ACC PARALLEL LOOP GANG VECTOR DEFAULT(PRESENT) ASYNC(1)
@@ -1208,6 +1249,12 @@ CONTAINS
           ecrad_flux%cloud_cover_lw(jc) = 0._wp
         END DO
         !$ACC END PARALLEL LOOP
+
+        IF (ecrad_check_input) THEN
+          CALL ecrad_check_input_fields('ecRadInputCheck::redgrid::upscaled',  &
+            &                           i_startidx_rad, i_endidx_rad, nlev_rg, &
+            &                           zrg_pres(jcs:jce,:,jb), zrg_pres_ifc(:,:,jb))
+        ENDIF
 
 !---------------------------------------------------------------------------------------
 ! Call the radiation scheme ecRad
