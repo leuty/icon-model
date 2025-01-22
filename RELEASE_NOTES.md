@@ -56,6 +56,7 @@ Climate: ICON-Land
 - Improved vectorization on NEC machines
 - Clean-up of ICON-Land code
 - Bug fix: enable simulations with JSBACH assimilation and LAI prescribed from climatology
+- Fix: The HD global water conservation test was too strict.
 
 ### Externals
 
