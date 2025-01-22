@@ -13,11 +13,11 @@ AES Physics:
 
 ### ICON-Ocean
 
-- Add GRIB codes for mld, mlotst, normal_velocity, stretch_c (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/555)
-- Diagnose temperature and salinity budgets (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/530)
-- Add diagnostics for upper ocean heat content (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/577)
-- Add new output variables (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/581)
-- Improve GPU performance (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/553)
+- Add diagnostics for all terms of the temperature and salinity budget
+- Add diagnostics for upper ocean heat content (hc300m and hc700m)
+- Add new output variables (tos, sos, sivol, snvol)
+- Add GRIB codes for ocean variables (mld, mlotst, normal_velocity, stretch_c, hctm, hc300m, hc700m, snhc, sihc)
+- Improved GPU code and performance optimizations
 
 ### Soil and Surface
 
