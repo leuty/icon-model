@@ -752,12 +752,7 @@ if [[ "$output_atm_gmean" == "yes" ]]; then
  file_interval    = "${atm_file_interval}"    !     the file interval
  include_last     = .FALSE.
  operation        = 'mean' ! mean over output interval
- ml_varlist       = 'hydro_trans_gmean_box', 'hydro_evapotrans_gmean_box',
-                    'hydro_weq_land_gsum_box', 'hydro_discharge_ocean_gsum_box',
-                    'hydro_wtr_rootzone_rel_gmean_box',
-                    'hydro_fract_snow_gsum_box', 'hydro_weq_snow_gsum_box',
-                    'pheno_lai_ta_gmean_box', 'pheno_fract_fpc_gmean_box',
-                    'seb_t_gmean_box'
+ ml_varlist       = 'group:jsb_mon'
 /
 EOF
 fi
