@@ -15,7 +15,7 @@ MODULE mo_wave_types
 
   USE mo_kind,                ONLY: wp
   USE mo_var_list,            ONLY: t_var_list_ptr
-  USE mo_fortran_tools,       ONLY: t_ptr_2d3d, t_ptr_2d_int
+  USE mo_fortran_tools,       ONLY: t_ptr_2d3d, t_ptr_3d_int
 
   IMPLICIT NONE
 
@@ -29,8 +29,8 @@ MODULE mo_wave_types
 
   TYPE t_wave_prog
     REAL(wp), POINTER, CONTIGUOUS :: &
-    tracer(:,:,:) => NULL()
-    !! wave energy (spectral bins) over frequencies and directions (nproma, ntracer, nblks_c) [m^2 ?]
+    tracer(:,:,:,:) => NULL()
+    !! wave energy (spectral bins) over frequencies and directions (nproma,ndirs,nblks_c,nfreqs) [m^2 ?]
     TYPE(t_ptr_2d3d), ALLOCATABLE :: tracer_ptr(:) !< pointer array: one pointer for each tracer
   END TYPE t_wave_prog
 
@@ -39,15 +39,15 @@ MODULE mo_wave_types
   !
   TYPE t_wave_source
     REAL(wp), POINTER, CONTIGUOUS :: &
-      &  sl(:,:,:),           & ! total source function                    (nproma,ntracer,nblks_c) (-)
-      &  fl(:,:,:)              ! diagonal matrix of functional derivative (nproma,ntracer,nblks_c) (-)
+      &  sl(:,:,:,:),         & ! total source function                    (nproma,ndirs,nblks_c,nfreqs) (-)
+      &  fl(:,:,:,:)            ! diagonal matrix of functional derivative (nproma,ndirs,nblks_c,nfreqs) (-)
 
     INTEGER, POINTER, CONTIGUOUS ::  &
-      &  llws(:,:,:)            ! 1 - where sinput is positive (nproma,ntracer,nblks_c) (-)
+      &  llws(:,:,:,:)          ! 1 - where sinput is positive (nproma,ndirs,nblks_c,nfreqs) (-)
 
-    TYPE(t_ptr_2d3d),   ALLOCATABLE :: sl_ptr(:)   !< pointer array: one pointer for each tracer
-    TYPE(t_ptr_2d3d),   ALLOCATABLE :: fl_ptr(:)   !< pointer array: one pointer for each tracer
-    TYPE(t_ptr_2d_int), ALLOCATABLE :: llws_ptr(:) !< pointer array: one pointer for each tracer
+    TYPE(t_ptr_2d3d),   ALLOCATABLE :: sl_ptr(:)   !< pointer array: one pointer for each frequency
+    TYPE(t_ptr_2d3d),   ALLOCATABLE :: fl_ptr(:)   !< pointer array: one pointer for each frequency
+    TYPE(t_ptr_3d_int), ALLOCATABLE :: llws_ptr(:) !< pointer array: one pointer for each frequency
   END TYPE t_wave_source
 
 
@@ -57,8 +57,8 @@ MODULE mo_wave_types
     REAL(wp), POINTER, CONTIGUOUS :: &
       &  gv_c(:,:,:),         & ! group velocity                    (nproma,nfreqs,nblks_c)  (m/s)
       &  gv_e(:,:,:),         & ! group velocity                    (nproma,nfreqs,nblks_e)  (m/s)
-      &  gvn_e(:,:,:),        & ! orthogonal normal group velocity  (nproma,ndirs*nfreqs,nblks_e)  (m/s)
-      &  gvt_e(:,:,:),        & ! tangential group velocity         (nproma,ndirs*nfreqs,nblks_e)  (m/s)
+      &  gvn_e(:,:,:,:),      & ! orthogonal normal group velocity  (nproma,ndirs,nblks_e,nfreqs)  (m/s)
+      &  gvt_e(:,:,:,:),      & ! tangential group velocity         (nproma,ndirs,nblks_e,nfreqs)  (m/s)
       &  alphaj(:,:),         & ! jonswap alpha                     (nproma,nblks_c)         (-)
       &  fp(:,:),             & ! jonswap peak frequency            (nproma,nblks_c)         (hz)
       &  et(:,:,:),           & ! jonswap spectra                   (nproma,nfreqs,nblks_c)  (-)
@@ -131,17 +131,15 @@ MODULE mo_wave_types
 
     INTEGER, POINTER, CONTIGUOUS ::  &
       &  last_prog_freq_ind(:,:), & ! last frequency index of the prognostic range (nproma,nblks_c) (-)
-      &  swell_mask(:,:),         & ! swell separation mask (nproma,nblks_c) (-)
-      &  swell_mask_tr(:,:,:),    & ! swell separation mask (nproma,ntracer,nblks_c) (-)
+      &  swell_mask(:,:,:,:),     & ! swell separation mask (nproma,ndirs,nblks_c,nfreqs) (-)
       &  ikp(:), ikp1(:),         & ! for discrete approximation of nonlinear transfer (nfreqs+4) (-)
       &  ikm(:), ikm1(:),         & ! --//-- (nfreqs+4) (-)
       &  k1w(:,:), k2w(:,:),      & ! --//-- (ndirs, 2) (-)
       &  k11w(:,:), k21w(:,:),    & ! --//-- (ndirs, 2) (-)
-      &  ja1(:,:), ja2(:,:),      & ! --//-- (ndirs, 2) (-)
-      &  non_lin_tr_ind(:,:,:,:)  & ! tracer index for nonlinear interaction (18,nfreqs+4,2,ndirs) (-)
+      &  ja1(:,:), ja2(:,:)       & ! --//-- (ndirs, 2) (-)
       &  => NULL()
 
-    TYPE(t_ptr_2d_int), ALLOCATABLE :: swmask_ptr(:)     !< pointer array: one pointer for each tracer
+    TYPE(t_ptr_3d_int), ALLOCATABLE :: swmask_ptr(:)     !< pointer array: one pointer for each tracer
   END type t_wave_diag
 
   TYPE t_wave_state

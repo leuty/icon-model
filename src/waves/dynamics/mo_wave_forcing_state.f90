@@ -131,7 +131,7 @@ CONTAINS
          &        lrestart=.FALSE., loutput=.TRUE.,                               &
          &        ldims=shape2d_c, in_group=groups("wave_forcing") )
 
-    cf_desc    = t_cf_var('dir10m', 'deg ','Wind direction (DD_10M)', datatype_flt)
+    cf_desc    = t_cf_var('dir10m', 'rad ','Wind direction (DD_10M)', datatype_flt)
     grib2_desc = grib2_var(0, 2, 0, ibits, GRID_UNSTRUCTURED, GRID_CELL)
     CALL add_var( p_forcing_list, 'dir10m', p_forcing%dir10m,                     &
          &        GRID_UNSTRUCTURED_CELL, ZA_HEIGHT_10M, cf_desc, grib2_desc,     &
@@ -211,7 +211,7 @@ CONTAINS
          &        lrestart=.FALSE., loutput=.TRUE.,                              &
          &        ldims=shape2d_c, in_group=groups("wave_forcing") )
 
-    cf_desc    = t_cf_var('dir_soce_c', 'deg','ocean surface current direction at cells', datatype_flt)
+    cf_desc    = t_cf_var('dir_soce_c', 'rad','ocean surface current direction at cells', datatype_flt)
     grib2_desc = grib2_var(10, 1, 0, ibits, GRID_UNSTRUCTURED, GRID_CELL)
     CALL add_var( p_forcing_list, 'dir_soce_c', p_forcing%dir_soce_c,            &
          &        GRID_UNSTRUCTURED_CELL, ZA_SURFACE, cf_desc, grib2_desc,       &

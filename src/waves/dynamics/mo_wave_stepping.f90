@@ -259,7 +259,7 @@ CONTAINS
           &  fp          = p_wave_state(jg)%diag%fp(:,:),                 & !in
           &  alphaj      = p_wave_state(jg)%diag%alphaj(:,:),             & !in
           &  et          = p_wave_state(jg)%diag%et(:,:,:),               & !out  ! purely diagnostic
-          &  tracer      = p_wave_state(jg)%prog(n_now)%tracer(:,:,:))    !out
+          &  tracer      = p_wave_state(jg)%prog(n_now)%tracer(:,:,:,:))    !out
       END IF
 
 
@@ -464,9 +464,8 @@ CONTAINS
             &                      gv_c                      = p_wave_state(jg)%diag%gv_c,            & !in
             &                      bathymetry_c              = wave_ext_data(jg)%bathymetry_c,        & !in
             &                      geo_depth_grad_c          = wave_ext_data(jg)%geo_depth_grad_c,    & !in
-            &                      p_mflx_h                  = p_wave_state(jg)%diag%gvn_e,           & !in
-            &                      p_vn_traj                 = p_wave_state(jg)%diag%gvn_e,           & !in
-            &                      p_vt_traj                 = p_wave_state(jg)%diag%gvt_e,           & !in
+            &                      p_vn_e                    = p_wave_state(jg)%diag%gvn_e,           & !in
+            &                      p_vt_e                    = p_wave_state(jg)%diag%gvt_e,           & !in
             &                      p_tracer_now              = p_wave_state(jg)%prog(n_now)%tracer,   & !in
             &                      p_tracer_new              = p_wave_state(jg)%prog(n_new)%tracer    ) !out
         ELSE

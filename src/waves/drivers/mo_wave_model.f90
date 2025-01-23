@@ -29,7 +29,7 @@ MODULE mo_wave_model
   USE mo_impl_constants,          ONLY: success, pio_type_async, pio_type_cdipio
   USE mo_dynamics_config,         ONLY: configure_dynamics
   USE mo_run_config,              ONLY: configure_run, ldynamics, ltransport,    &
-       &                                ntracer, ltimer, dtime,                  &
+       &                                ltimer, dtime,                           &
        &                                nshift, num_lev, output_mode, msg_level, &
        &                                grid_generatingcenter, grid_generatingsubcenter
   USE mo_gribout_config,          ONLY: configure_gribout
@@ -270,7 +270,7 @@ CONTAINS
     ! setup wave model
     ! - configuration of the wave spectrum
     !
-    CALL configure_wave(n_dom, ntracer)
+    CALL configure_wave(n_dom)
 
     !------------------------------------------------------------------
     ! Create and optionally read external data fields

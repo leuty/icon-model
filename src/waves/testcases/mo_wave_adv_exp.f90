@@ -85,7 +85,7 @@ CONTAINS
         p_forcing%v10m(jc,jb) = MAX(1._wp + COS(pi*d1) * wc%peak_v10, dbl_eps)
         p_forcing%sp10m(jc,jb) = SQRT(p_forcing%u10m(jc,jb)**2 + p_forcing%v10m(jc,jb)**2)
         ! 45 degree towards NE
-        p_forcing%dir10m(jc,jb) = ATAN2(p_forcing%v10m(jc,jb),p_forcing%u10m(jc,jb))*rad2deg
+        p_forcing%dir10m(jc,jb) = ATAN2(p_forcing%v10m(jc,jb),p_forcing%u10m(jc,jb))
       END DO ! cell loop
     END DO
 !$OMP END DO NOWAIT

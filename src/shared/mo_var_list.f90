@@ -98,6 +98,7 @@ MODULE mo_var_list
     MODULE PROCEDURE add_var_list_reference_s3d
     MODULE PROCEDURE add_var_list_reference_s2d
     MODULE PROCEDURE add_var_list_reference_i2d
+    MODULE PROCEDURE add_var_list_reference_i3d
   END INTERFACE add_ref
 
   CHARACTER(*), PARAMETER :: modname = "mo_var_list"
@@ -1509,6 +1510,63 @@ CONTAINS
       & WRITE (0,*) 'problem with association of ptr for '//TRIM(refname)
     IF (PRESENT(lmiss)) ptr = new_list_element%info%missval%ival
   END SUBROUTINE add_var_list_reference_i2d
+
+
+  SUBROUTINE add_var_list_reference_i3d(this_list, target_name, refname, ptr,    &
+    & hgrid, vgrid, cf, grib2, ref_idx, ldims, loutput, lrestart, lrestart_cont, &
+    & initval, isteptype, resetval, lmiss, missval, tlev_source, tracer_info,    &
+    & info, vert_interp, hor_interp, in_group, new_element,             &
+    & l_pp_scheduler_task, post_op, action_list, opt_var_ref_pos, var_class)
+    TYPE(t_var_list_ptr), INTENT(INOUT) :: this_list
+    CHARACTER(*), INTENT(IN) :: target_name, refname
+    INTEGER, POINTER :: ptr(:,:,:)
+    INTEGER, INTENT(IN) :: hgrid, vgrid, ref_idx, ldims(3)
+    TYPE(t_cf_var), INTENT(IN) :: cf
+    TYPE(t_grib2_var), INTENT(IN) :: grib2
+    LOGICAL, INTENT(IN), OPTIONAL :: loutput, lrestart, lrestart_cont, &
+      & lmiss, in_group(:)
+    INTEGER, INTENT(IN), OPTIONAL :: isteptype, tlev_source, var_class, &
+      & l_pp_scheduler_task, opt_var_ref_pos, initval, resetval, missval
+    CLASS(t_tracer_meta), INTENT(IN), OPTIONAL :: tracer_info
+    TYPE(t_var_metadata), POINTER, OPTIONAL :: info
+    TYPE(t_vert_interp_meta),INTENT(IN), OPTIONAL :: vert_interp
+    TYPE(t_hor_interp_meta), INTENT(IN), OPTIONAL :: hor_interp
+    TYPE(t_var), POINTER, OPTIONAL :: new_element
+    TYPE(t_post_op_meta), INTENT(IN), OPTIONAL :: post_op
+    TYPE(t_var_action), INTENT(IN), OPTIONAL :: action_list
+    CHARACTER(*), PARAMETER :: routine = modname//"::add_var_list_reference_i3d"
+    TYPE(t_var), POINTER :: target_element, new_list_element
+    INTEGER :: icontainer, vrp
+
+    CALL add_var_list_reference_util(target_element, new_list_element,     &
+      & this_list, target_name, refname, hgrid, vgrid, cf, grib2, ref_idx, &
+      & ldims, INT_T, icontainer, vrp, loutput=loutput, lrestart=lrestart, &
+      & lrestart_cont=lrestart_cont, isteptype=isteptype, lmiss=lmiss,     &
+      & tlev_source=tlev_source, tracer_info=tracer_info, info=info,       &
+      & vert_interp=vert_interp, hor_interp=hor_interp, in_group=in_group, &
+      & new_element=new_element, l_pp_scheduler_task=l_pp_scheduler_task,  &
+      & post_op=post_op, action_list=action_list, var_class=var_class,     &
+      & opt_var_ref_pos=opt_var_ref_pos, initval_i=initval,                &
+      & missval_i=missval, resetval_i=resetval)
+    IF (.NOT. ASSOCIATED(target_element%i_ptr)) &
+      & CALL finish(routine, TRIM(refname)//' not created.')
+    SELECT CASE(vrp)
+    CASE(1)
+      ptr => target_element%i_ptr(icontainer,:,:,:,1)
+    CASE(2)
+      ptr => target_element%i_ptr(:,icontainer,:,:,1)
+    CASE(3)
+      ptr => target_element%i_ptr(:,:,icontainer,:,1)
+    CASE(4)
+      ptr => target_element%i_ptr(:,:,:,icontainer,1)
+    CASE default
+      CALL finish(routine, "internal error!")
+    END SELECT
+    new_list_element%i_ptr => target_element%i_ptr
+    IF (.NOT. ASSOCIATED(new_list_element%i_ptr)) &
+      & WRITE (0,*) 'problem with association of ptr for '//TRIM(refname)
+    IF (PRESENT(lmiss)) ptr = new_list_element%info%missval%ival
+  END SUBROUTINE add_var_list_reference_i3d
 
   SUBROUTINE print_var_list(this, lshort)
     CLASS(t_var_list_ptr), INTENT(IN) :: this

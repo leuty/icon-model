@@ -22,7 +22,7 @@ MODULE mo_wave_td_update
   USE mo_model_domain,        ONLY: t_patch
   USE mo_impl_constants,      ONLY: MAX_CHAR_LENGTH, min_rlcell
   USE mo_loopindices,         ONLY: get_indices_c
-  USE mo_math_constants,      ONLY: rad2deg, dbl_eps
+  USE mo_math_constants,      ONLY: dbl_eps
 
   IMPLICIT NONE
 
@@ -74,7 +74,7 @@ CONTAINS
 
 
   !>
-  !! calculate speed and direction (deg) from U and V
+  !! calculate speed and direction (rad) from U and V
   !!
   !!
   SUBROUTINE update_speed_and_direction(p_patch, u, v, sp, dir)
@@ -82,7 +82,7 @@ CONTAINS
     TYPE(t_patch),     INTENT(IN)    :: p_patch
     REAL(wp),          INTENT(IN)    :: u(:,:), v(:,:) ! U and V components
     REAL(wp),          INTENT(INOUT) :: sp(:,:)        ! speed
-    REAL(wp),          INTENT(INOUT) :: dir(:,:)       ! direction
+    REAL(wp),          INTENT(INOUT) :: dir(:,:)       ! direction [rad]
 
     CHARACTER(len=MAX_CHAR_LENGTH), PARAMETER :: routine = modname//':update_speed_and_direction'
 
@@ -107,7 +107,7 @@ CONTAINS
         vc = SIGN(MAX(ABS(v(jc,jb)),dbl_eps),v(jc,jb))
 
         sp(jc,jb) = SQRT( uc**2 + vc**2 )
-        dir(jc,jb) = ATAN2(vc,uc)*rad2deg
+        dir(jc,jb) = ATAN2(vc,uc)
 
       END DO
     END DO

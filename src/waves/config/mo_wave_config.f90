@@ -20,7 +20,7 @@ MODULE mo_wave_config
   USE mo_math_constants,       ONLY: pi2, rad2deg, dbl_eps
   USE mo_physical_constants,   ONLY: grav, rhoh2o
   USE mo_wave_constants,       ONLY: EX_TAIL
-  USE mo_fortran_tools,        ONLY: DO_DEALLOCATE, t_ptr_1d_int
+  USE mo_fortran_tools,        ONLY: DO_DEALLOCATE
   USE mo_io_units,             ONLY: filename_max
   USE mo_util_string,          ONLY: t_keyword_list, associate_keyword, with_keywords, &
     &                                int2string
@@ -139,13 +139,7 @@ MODULE mo_wave_config
       &  wtauhf(:)           ! integration weight for tau_phi_hf
 
     INTEGER, ALLOCATABLE :: &
-      &  freq_ind(:),      & ! index of frequency as a function of tracer index (1:ntracer=ndirs*nfreq)
-      &  dir_ind(:),       & ! index of direction as a function of tracer index (1:ntracer=ndirs*nfreq)
-      &  tracer_ind(:,:),  & ! tracer index as a function of direction and frequency index
       &  dir_neig_ind(:,:)   ! index of direction neighbor (2,1:ndirs)
-
-    TYPE(t_ptr_1d_int), ALLOCATABLE :: & ! list of tracer IDs as a function of the frequency index
-      &  list_tr(:)
 
     LOGICAL :: lread_forcing ! set to .TRUE. if a forcing file prefix has been specified (forc_file_prefix)
 
@@ -164,8 +158,6 @@ CONTAINS
   !!
   SUBROUTINE wave_config_destruct(me)
     CLASS(t_wave_config) :: me
-    INTEGER :: jf
-    INTEGER :: ist
     CHARACTER(*), PARAMETER :: routine = modname//'::wave_config_destruct'
 
     CALL DO_DEALLOCATE(me%freqs)
@@ -180,17 +172,8 @@ CONTAINS
     CALL DO_DEALLOCATE(me%DFIM_FR)
     CALL DO_DEALLOCATE(me%DFIM_FR2)
     CALL DO_DEALLOCATE(me%RHOWG_DFIM)
-    CALL DO_DEALLOCATE(me%freq_ind)
-    CALL DO_DEALLOCATE(me%dir_ind)
-    CALL DO_DEALLOCATE(me%tracer_ind)
     CALL DO_DEALLOCATE(me%dir_neig_ind)
     CALL DO_DEALLOCATE(me%wtauhf)
-
-    DO jf=1,SIZE(me%list_tr)
-      me%list_tr(jf)%p => NULL()
-    ENDDO
-    DEALLOCATE(me%list_tr, stat=ist)
-    IF (ist/=SUCCESS) CALL finish(routine, "deallocation failed for list_tr")
 
   END SUBROUTINE wave_config_destruct
 
@@ -203,14 +186,13 @@ CONTAINS
   !! This routine is called, after all namelists have been read and a
   !! synoptic consistency check has been done.
   !!
-  SUBROUTINE configure_wave(n_dom, ntracer)
+  SUBROUTINE configure_wave(n_dom)
 
     INTEGER, INTENT(IN) :: n_dom    !< number of domains
-    INTEGER, INTENT(IN) :: ntracer  !< number of tracers
 
-    INTEGER :: jd, jf, jfjd   ! loop index
-    INTEGER :: jg             ! patch ID
-    INTEGER :: ist            ! error status
+    INTEGER :: jd, jf   ! loop index
+    INTEGER :: jg       ! patch ID
+    INTEGER :: ist      ! error status
     INTEGER :: j
     TYPE(t_wave_config), POINTER :: wc =>NULL()     ! convenience pointer
 
@@ -266,12 +248,7 @@ CONTAINS
         &      stat=ist)
       IF (ist/=SUCCESS) CALL finish(routine, "allocation for fields of type REAL failed")
 
-      ALLOCATE(wc%freq_ind     (ntracer),            &
-        &      wc%dir_ind      (ntracer),            &
-        &      wc%tracer_ind   (wc%ndirs,wc%nfreqs), &
-        &      wc%dir_neig_ind (2,wc%ndirs),         &
-        &      wc%list_tr      (wc%nfreqs),          &
-        &      stat=ist)
+      ALLOCATE(wc%dir_neig_ind (2,wc%ndirs), stat=ist)
       IF (ist/=SUCCESS) CALL finish(routine, "allocation for fields of type INTEGER failed")
 
 
@@ -327,24 +304,6 @@ CONTAINS
       !
       wc%dfreqs_freqs  = wc%dfreqs * wc%freqs
       wc%dfreqs_freqs2 = wc%dfreqs_freqs * wc%freqs
-
-      ! compute mappings between direction IDs, frequency IDs and tracer IDs
-      !
-      DO jf = 1,wc%nfreqs
-        DO jd = 1,wc%ndirs
-
-          ! tracer ID as a function of frequency ID and direction ID
-          jfjd = jd + (jf-1) * wc%ndirs
-          wc%tracer_ind(jd,jf) = jfjd
-
-          ! frequency and direction IDs as a function of tracer ID
-          wc%freq_ind(jfjd) = jf
-          wc%dir_ind(jfjd)  = jd
-
-        END DO
-        ! list of tracer IDs as a function of frequency ID
-        wc%list_tr(jf)%p => wc%tracer_ind(:,jf)
-      END DO
 
       ! calculate direction neighbor index
       DO jd = 1,wc%ndirs

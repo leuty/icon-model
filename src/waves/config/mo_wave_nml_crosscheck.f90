@@ -58,12 +58,12 @@ CONTAINS
     CALL check_parallel_configuration()
 
     IF (.not.ldynamics) THEN
-      CALL finish(TRIM(routine),'Error: ldynamics must be TRUE')
+      CALL finish(routine,'Error: ldynamics must be TRUE')
     END IF
 
     DO jg=1,n_dom
       IF (ntracer /= wave_config(jg)%nfreqs*wave_config(jg)%ndirs) THEN
-        CALL finish(TRIM(routine),'Error: ntracer must be equal to nfreqs*ndirs')
+        CALL finish(routine,'Error: ntracer must be equal to nfreqs*ndirs')
       END IF
     ENDDO
 
@@ -72,13 +72,13 @@ CONTAINS
     IF (.NOT. is_coupled_to_atmo()) THEN
       DO jg=1,n_dom
         IF (TRIM(wave_config(jg)%forc_file_prefix) == '' .AND. .NOT.ltestcase) THEN
-          CALL finish(TRIM(routine),'Error: For standalone runs reading of forcing data from file is mandatory')
+          CALL finish(routine,'Error: For standalone runs reading of forcing data from file is mandatory')
         ENDIF
       ENDDO
     ENDIF
 
     IF (ANY(num_lev(1:n_dom).ne.1)) THEN
-      CALL finish(TRIM(routine),'Error: num_lev must be 1')
+      CALL finish(routine,'Error: num_lev must be 1')
     END IF
 
     CALL message(routine,'finished.')
