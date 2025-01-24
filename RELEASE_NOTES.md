@@ -31,11 +31,14 @@ Climate: ICON-Land
   - Minor scientific updates
     - Improvement in the first soil-layer hydrology
     - Bugfixes in snow melt calculations
+    - Bugfix in calculation of grassland phenology
+    - Bugfix: add minimum level of C limitation on nitrification and denitrification
     - Improvements in the computation of several rate modifiers used in soil biogeochemistry calculations
     - Clean-up calculation of stand-replacing harvest
     - Runtime optimisation: reduce number of aggregated variables
     - Include forcing and output of carbon isotopes
     - Read elevation for QUINCY from file
+    - Inclusion of self-thinning and herbivory in grassland PFTs
   - Merged the radiation process of QUINCY into the radiation process of JSBACH
   - Consolidate and clean up namelist handling and physical parameters between QUINCY and JSBACH
 - Small fix for ICON-Land standalone concerning nproma
