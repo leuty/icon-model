@@ -42,4 +42,6 @@ if test -n "${BB_NAME-}"; then
   # Run the tests serially:
   make check
   "${icon_dir}/scripts/buildbot_scripts/build_checks/check_git_untracked.sh"
+  # Check that the script generator works as expected:
+  ./make_runscripts --all
 fi
