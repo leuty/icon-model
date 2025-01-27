@@ -14,7 +14,7 @@
 
 MODULE mo_wave_config
 
-  USE mo_kind,                 ONLY: wp
+  USE mo_kind,                 ONLY: wp, vp
   USE mo_exception,            ONLY: finish, message, message_text
   USE mo_impl_constants,       ONLY: max_dom, SUCCESS, MAX_CHAR_LENGTH
   USE mo_math_constants,       ONLY: pi2, rad2deg, dbl_eps
@@ -112,7 +112,9 @@ MODULE mo_wave_config
       &  mo_tail,          & ! mo  tail factor.
       &  mm1_tail,         & ! m-1 tail factor.
       &  mp1_tail,         & ! m+1 tail factor.
-      &  mp2_tail,         & ! m+2 tail factor.
+      &  mp2_tail            ! m+2 tail factor.
+
+    REAL(vp) ::            &
       &  acl1,             & ! weight in angular grid for interpolation,
                              ! wave no. 3 ("1+lambda" term).
       &  acl2,             & ! weight in angular grid for interpolation,
@@ -142,6 +144,12 @@ MODULE mo_wave_config
       &  dir_neig_ind(:,:)   ! index of direction neighbor (2,1:ndirs)
 
     LOGICAL :: lread_forcing ! set to .TRUE. if a forcing file prefix has been specified (forc_file_prefix)
+
+    ! For precomputed index list of coastal edges (see mo_wave_ext_data_init:init_coastedge_list, including allocation)
+    INTEGER :: n_coastedges
+    INTEGER, ALLOCATABLE :: idx_coastedges(:), blk_coastedges(:)
+
+    REAL(wp), ALLOCATABLE :: orient_coastedges(:) ! corresponding edge orientation
 
   CONTAINS
     !
@@ -174,6 +182,9 @@ CONTAINS
     CALL DO_DEALLOCATE(me%RHOWG_DFIM)
     CALL DO_DEALLOCATE(me%dir_neig_ind)
     CALL DO_DEALLOCATE(me%wtauhf)
+    CALL DO_DEALLOCATE(me%idx_coastedges)
+    CALL DO_DEALLOCATE(me%blk_coastedges)
+    CALL DO_DEALLOCATE(me%orient_coastedges)
 
   END SUBROUTINE wave_config_destruct
 

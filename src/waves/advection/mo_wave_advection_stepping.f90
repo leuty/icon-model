@@ -34,7 +34,7 @@ MODULE mo_wave_advection_stepping
   USE mo_intp_data_strc,            ONLY: t_int_state
   USE mo_wave_config,               ONLY: t_wave_config
   USE mo_wave_refraction,           ONLY: wave_refraction
-  USE mo_wave_physics,              ONLY: set_energy2emin
+  USE mo_wave_physics,              ONLY: set_energy2emin, wave_group_velocity_nt
   USE mo_energy_propagation_config, ONLY: t_energy_propagation_config
   USE mo_advection_traj,            ONLY: btraj_compute_o1, t_back_traj
   USE mo_advection_hflux,           ONLY: upwind_hflux_miura
@@ -54,8 +54,8 @@ CONTAINS
 
 
   SUBROUTINE wave_step_advection( p_patch, p_int_state, wave_config, energy_propagation_config, &
-    &                             p_dtime, wave_num_c, gv_c, bathymetry_c, geo_depth_grad_c, &
-    &                             p_vn_e, p_vt_e, p_tracer_now, p_tracer_new )
+    &                             p_dtime, wave_num_c, gv_c, gv_e, bathymetry_c, geo_depth_grad_c, &
+    &                             p_tracer_now, p_tracer_new )
 
     TYPE(t_patch), TARGET,            INTENT(IN):: &  !< patch on which computation is performed
       &  p_patch
@@ -78,21 +78,14 @@ CONTAINS
     REAL(wp),                         INTENT(IN):: & !< group velocity at cell center [m/s]
       &  gv_c(:,:,:)                                 !< dim: (nproma,nfreqs,nblks_c)
 
+    REAL(wp),                         INTENT(IN):: & !< group velocity at edge center [m/s]
+      &  gv_e(:,:,:)                                 !< dim: (nproma,nfreqs,nblks_e)
+
     REAL(wp),                         INTENT(IN):: & !< bathymetry at cell center [m]
       &  bathymetry_c(:,:)                           !< dim: (nproma,nblks_c)
 
     REAL(wp),                         INTENT(IN):: & !< gradient of bathymetry [m/m]
       &  geo_depth_grad_c(:,:,:)                      !< dim: (2,nproma,nblks_c)
-
-    REAL(wp),                         INTENT(IN):: & !< edge-normal horizontal group velocity component at n+1/2
-      &  p_vn_e(:,:,:,:)                            !< for the calculation of backward trajectories
-                                                     !< [m/s]
-                                                     !< dim: (nproma,ndirs,nblks_e,nfreqs)
-
-   REAL(wp),                          INTENT(IN):: & !< edge-tangential horizontal group velocity component at n+1/2
-      &  p_vt_e(:,:,:,:)                             !< for the calculation of backward trajectories
-                                                     !< [m/s]
-                                                     !< dim: (nproma,ndirs,nblks_e,nfreqs)
 
     REAL(wp), CONTIGUOUS,            INTENT(INOUT):: & !< spectral wave energy
       &  p_tracer_now(:,:,:,:)                       !< at current time level n (before transport)
@@ -124,6 +117,9 @@ CONTAINS
 
     REAL(wp)::  &                         !< horizontal fluxes of wave energy
       &  z_mflx_tracer_h(SIZE(p_tracer_now,1),SIZE(p_tracer_now,2),p_patch%nblks_e)
+
+    ! direction-specific group velocities (nproma,ndirs,nblks_e)
+    REAL(wp), DIMENSION(SIZE(p_tracer_now,1),SIZE(p_tracer_now,2),p_patch%nblks_e) :: gvn_e, gvt_e
 
     REAL(wp):: z_fluxdiv_c                !< flux divergence at cell center
 
@@ -197,15 +193,21 @@ CONTAINS
 
 
     ! initialize backward trajectory calculation
-    CALL btraj%construct( nproma = SIZE(p_vn_e,1), &
-      &                   nlev   = SIZE(p_vn_e,2), &
-      &                   nblks  = SIZE(p_vn_e,3), &
+    CALL btraj%construct( nproma = SIZE(gvn_e,1), &
+      &                   nlev   = SIZE(gvn_e,2), &
+      &                   nblks  = SIZE(gvn_e,3), &
       &                   ncoord = 2 )
 
     z_dthalf = 0.5_wp * p_dtime
 
     ! frequency loop
     FREQS: DO jf = 1,UBOUND(p_tracer_now,4)
+
+      ! Compute wave group velocities
+      ! This could be done once at the beginning because the group velocities are not time-dependent
+      ! in most practical applications, but saving the memory is more important for the wave model
+      !
+      CALL wave_group_velocity_nt(p_patch, wave_config, jf, gv_e, gvn_e, gvt_e)
 
       ! 1st order backward trajectory
       ! note, that the group velocity depends on wave frequency.
@@ -215,13 +217,13 @@ CONTAINS
       CALL btraj_compute_o1( btraj       = btraj,               & !inout
         &                  ptr_p         = p_patch,             & !in
         &                  ptr_int       = p_int_state,         & !in
-        &                  p_vn          = p_vn_e(:,:,:,jf),    & !in
-        &                  p_vt          = p_vt_e(:,:,:,jf),    & !in
+        &                  p_vn          = gvn_e(:,:,:),        & !in
+        &                  p_vt          = gvt_e(:,:,:),        & !in
         &                  p_dthalf      = z_dthalf,            & !in
         &                  opt_rlstart   = i_rlstart_e,         & !in
         &                  opt_rlend     = i_rlend_e,           & !in
         &                  opt_slev      = 1,                   & !in
-        &                  opt_elev      = UBOUND(p_vn_e,2),    & !in
+        &                  opt_elev      = UBOUND(gvn_e,2),     & !in
         &                  opt_acc_async = .TRUE.               ) !in
 
 
@@ -231,7 +233,7 @@ CONTAINS
       CALL upwind_hflux_miura(                                &
         &         p_patch         = p_patch,                  & !in
         &         p_cc            = p_tracer_now(:,:,:,jf),   & !in
-        &         p_mass_flx_e    = p_vn_e(:,:,:,jf),         & !in
+        &         p_mass_flx_e    = gvn_e(:,:,:),             & !in
         &         p_dtime         = p_dtime,                  & !in
         &         p_int           = p_int_state,              & !in
         &         btraj           = btraj,                    & !in

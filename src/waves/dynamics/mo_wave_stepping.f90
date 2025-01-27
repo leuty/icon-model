@@ -288,9 +288,7 @@ CONTAINS
         &  bathymetry_c = wave_ext_data(jg)%bathymetry_c,   & !in
         &  depth_e      = wave_ext_data(jg)%depth_e,        & !in
         &  gv_c         = p_wave_state(jg)%diag%gv_c,       & !out
-        &  gv_e         = p_wave_state(jg)%diag%gv_e,       & !out
-        &  gvn_e        = p_wave_state(jg)%diag%gvn_e,      & !out
-        &  gvt_e        = p_wave_state(jg)%diag%gvt_e       ) !out
+        &  gv_e         = p_wave_state(jg)%diag%gv_e)         !out
 
     END DO
 
@@ -462,10 +460,9 @@ CONTAINS
             &                      p_dtime                   = dtime,                                 & !in
             &                      wave_num_c                = p_wave_state(jg)%diag%wave_num_c,      & !in
             &                      gv_c                      = p_wave_state(jg)%diag%gv_c,            & !in
+            &                      gv_e                      = p_wave_state(jg)%diag%gv_e,            & !in
             &                      bathymetry_c              = wave_ext_data(jg)%bathymetry_c,        & !in
             &                      geo_depth_grad_c          = wave_ext_data(jg)%geo_depth_grad_c,    & !in
-            &                      p_vn_e                    = p_wave_state(jg)%diag%gvn_e,           & !in
-            &                      p_vt_e                    = p_wave_state(jg)%diag%gvt_e,           & !in
             &                      p_tracer_now              = p_wave_state(jg)%prog(n_now)%tracer,   & !in
             &                      p_tracer_new              = p_wave_state(jg)%prog(n_new)%tracer    ) !out
         ELSE

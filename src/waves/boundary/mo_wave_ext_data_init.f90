@@ -46,6 +46,7 @@ MODULE mo_wave_ext_data_init
   CHARACTER(LEN=*), PARAMETER :: modname = 'mo_wave_data_init'
 
   PUBLIC :: init_wave_ext_data
+  PUBLIC :: init_coastedge_list
 
 CONTAINS
 
@@ -266,5 +267,76 @@ CONTAINS
 !$OMP END PARALLEL
 
   END SUBROUTINE read_ext_data_wave
+
+  !>
+  !! computes index list for coastal edge points (edges%refin_ctrl = 1) and stores
+  !! corresponding edge orientations
+  !!
+  SUBROUTINE init_coastedge_list (p_patch)
+
+    TYPE(t_patch),         INTENT(IN)    :: p_patch(:)
+
+    ! local variables
+    INTEGER :: jg, jb, jc, jce
+    INTEGER :: eidx, eblk            !< edge index and block
+    INTEGER :: i_rlstart_c, i_rlend_c
+    INTEGER :: i_startblk_c, i_endblk_c
+    INTEGER :: i_startidx_c, i_endidx_c
+    INTEGER :: cnt, npts
+
+    CHARACTER(len=*), PARAMETER :: routine = modname//':init_coastedge_list'
+
+    DO jg = 1, n_dom
+
+      ! Allocation
+      npts = COUNT(p_patch(jg)%edges%refin_ctrl(:,:) == 1)
+
+      ALLOCATE(wave_config(jg)%idx_coastedges(npts),  &
+               wave_config(jg)%blk_coastedges(npts),  &
+               wave_config(jg)%orient_coastedges(npts))
+
+      ! set up loop over boundary cells (refine_c_ctrl==1)
+      i_rlstart_c  = 1
+      i_rlend_c    = 1
+      i_startblk_c = p_patch(jg)%cells%start_block(i_rlstart_c)
+      i_endblk_c   = p_patch(jg)%cells%end_block(i_rlend_c)
+
+      cnt = 0
+
+      DO jb = i_startblk_c, i_endblk_c
+
+        CALL get_indices_c(p_patch(jg), jb, i_startblk_c, i_endblk_c, &
+        &                  i_startidx_c, i_endidx_c, i_rlstart_c, i_rlend_c)
+
+        !
+        DO jc = i_startidx_c, i_endidx_c
+
+          ! build list of coastline edges (refin_e_ctrl==1)
+          ! and store edge orientation.
+          !
+          DO jce =1,3
+            eidx = p_patch(jg)%cells%edge_idx(jc,jb,jce)
+            eblk = p_patch(jg)%cells%edge_blk(jc,jb,jce)
+
+            IF (p_patch(jg)%edges%refin_ctrl(eidx,eblk) == 1) THEN
+              ! coastline edge found
+              cnt = cnt + 1
+              wave_config(jg)%idx_coastedges(cnt) = eidx
+              wave_config(jg)%blk_coastedges(cnt) = eblk
+              wave_config(jg)%orient_coastedges(cnt) = p_patch(jg)%cells%edge_orientation(jc,jb,jce)
+            ENDIF
+          ENDDO
+
+        ENDDO  !jc
+
+      ENDDO  !jb
+
+      ! Store size of index list
+      wave_config(jg)%n_coastedges = cnt
+      IF (cnt /= npts) CALL finish(routine, 'mismatch in number of coastal edge points')
+
+    ENDDO ! jg
+
+  END SUBROUTINE init_coastedge_list
 
 END MODULE mo_wave_ext_data_init

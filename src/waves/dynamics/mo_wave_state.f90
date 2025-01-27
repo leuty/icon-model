@@ -362,7 +362,7 @@ CONTAINS
     INTEGER :: shape2d_c(2)
     INTEGER :: shape3d_freq_c(3), shape3d_freq_e(3)
     INTEGER :: shape1d_freq_p4(1), shape1d_dir_2(2)
-    INTEGER :: shape4d_c(4), shape4d_e(4),shape3d_dir_c(3)
+    INTEGER :: shape4d_c(4), shape3d_dir_c(3)
 
     CHARACTER(len=3) :: freq_ind_str
     CHARACTER(len=VNAME_LEN) :: out_name
@@ -386,7 +386,7 @@ CONTAINS
     shape3d_freq_e    = (/nproma, nfreqs, nblks_e/)
     shape3d_dir_c     = (/nproma, ndirs, nblks_c/)
     shape4d_c         = (/nproma, ndirs, nblks_c, nfreqs/)
-    shape4d_e         = (/nproma, ndirs, nblks_e, nfreqs/)
+
 
     ibits = DATATYPE_PACK16   ! "entropy" of horizontal slice
 
@@ -414,20 +414,6 @@ CONTAINS
          & GRID_UNSTRUCTURED_EDGE, ZA_FREQ_GENERIC, cf_desc, grib2_desc, &
          & ldims=shape3d_freq_e, in_group=groups("wave_phy_ext"),        &
          & lrestart=.FALSE., loutput=.TRUE.)
-
-    ! gvn_e        p_diag%gvn_e(nproma,ndirs,nblks_e,nfreqs)
-    cf_desc    = t_cf_var('gvn_e', 'm s-1', 'group velocity normal to edge', datatype_flt)
-    grib2_desc = grib2_var(255, 255, 255, ibits, GRID_UNSTRUCTURED, GRID_EDGE)
-    CALL add_var(p_diag_list, 'gvn_e', p_diag%gvn_e,                    &
-         & GRID_UNSTRUCTURED_EDGE, ZA_DIR_GENERIC, cf_desc, grib2_desc, &
-         & ldims=shape4d_e, lrestart=.FALSE., loutput=.FALSE.)
-
-    ! gvt_e        p_diag%gvt_e(nproma,ndirs,nblks_e,nfreqs)
-    cf_desc    = t_cf_var('gvt_e', 'm s-1', 'group velocity tangential to edge', datatype_flt)
-    grib2_desc = grib2_var(255, 255, 255, ibits, GRID_UNSTRUCTURED, GRID_EDGE)
-    CALL add_var(p_diag_list, 'gvt_e', p_diag%gvt_e,                    &
-         & GRID_UNSTRUCTURED_EDGE, ZA_DIR_GENERIC, cf_desc, grib2_desc, &
-         & ldims=shape4d_e, lrestart=.FALSE., loutput=.FALSE.)
 
     !Wave physics group
     cf_desc    = t_cf_var('emean', 'm^2', 'total wave energy', datatype_flt)
@@ -629,14 +615,6 @@ CONTAINS
          & GRID_UNSTRUCTURED_CELL, ZA_SURFACE, cf_desc, grib2_desc, &
          & lrestart=.FALSE., loutput=.TRUE.,                        &
          & ldims=shape2d_c, in_group=groups("wave_phy"))
-
-    ! nonlinear transfer function coefficients for shallow water
-    cf_desc    = t_cf_var('enh', '-', 'nonlinear transfer function coefficients', datatype_flt)
-    grib2_desc = grib2_var(255, 255, 255, ibits, GRID_UNSTRUCTURED, GRID_CELL)
-    CALL add_var(p_diag_list, 'enh', p_diag%enh,                    &
-         & GRID_UNSTRUCTURED_CELL, ZA_SURFACE, cf_desc, grib2_desc, &
-         & lrestart=.FALSE., loutput=.TRUE.,                        &
-         & ldims=shape2d_c, in_group=groups("wave_debug"))
 
     ! for discrete approximation of nonlinear transfer
     cf_desc    = t_cf_var('IKP', '-', 'IKP', datatype_int)

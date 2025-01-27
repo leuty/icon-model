@@ -58,7 +58,7 @@ MODULE mo_wave_model
 
   USE mo_wave_ext_data_state,     ONLY: wave_ext_data, wave_ext_data_list, construct_wave_ext_data_state, &
     &                                   destruct_wave_ext_data_state
-  USE mo_wave_ext_data_init,      ONLY: init_wave_ext_data
+  USE mo_wave_ext_data_init,      ONLY: init_wave_ext_data, init_coastedge_list
 
   USE mo_alloc_patches,           ONLY: destruct_patches
   USE mo_icon_comm_interface,     ONLY: construct_icon_communication, destruct_icon_communication
@@ -278,6 +278,8 @@ CONTAINS
     CALL construct_wave_ext_data_state(p_patch(1:))
     !
     CALL init_wave_ext_data (p_patch(1:), p_int_state, wave_ext_data)
+
+    CALL init_coastedge_list (p_patch(1:))
 
     CALL message(routine, 'finished.')
 

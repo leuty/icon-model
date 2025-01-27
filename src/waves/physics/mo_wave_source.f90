@@ -23,7 +23,7 @@
 
 MODULE mo_wave_source
 
-  USE mo_kind,                ONLY: wp
+  USE mo_kind,                ONLY: wp, vp
   USE mo_model_domain,        ONLY: t_patch
   USE mo_parallel_config,     ONLY: nproma
   USE mo_impl_constants,      ONLY: MAX_CHAR_LENGTH, min_rlcell
@@ -601,15 +601,15 @@ CONTAINS
     INTEGER :: MP, MP1, MM, MM1, IC, IP, IP1, IM, IM1, KH, K
     INTEGER :: K1, K2, K11, K21
 
-    REAL(wp) :: FFACP, FFACP1, FFACM1, FTAIL, FKLAMP, FKLAMP1, GW1, GW2, GW3, GW4
-    REAL(wp) :: FKLAMPA, FKLAMPB, FKLAMP2, FKLAPA2, FKLAPB2, FKLAP12, FKLAP22
-    REAL(wp) :: FKLAMM, FKLAMM1, GW5, GW6, GW7, GW8, FKLAMMA, FKLAMMB, FKLAMM2
-    REAL(wp) :: FKLAMA2, FKLAMB2, FKLAM12, FKLAM22
-    REAL(wp) :: SAP, SAM, FIJ, FAD1, FAD2, FCEN
+    REAL(vp) :: FFACP, FFACP1, FFACM1, FTAIL, FKLAMP, FKLAMP1, GW1, GW2, GW3, GW4
+    REAL(vp) :: FKLAMPA, FKLAMPB, FKLAMP2, FKLAPA2, FKLAPB2, FKLAP12, FKLAP22
+    REAL(vp) :: FKLAMM, FKLAMM1, GW5, GW6, GW7, GW8, FKLAMMA, FKLAMMB, FKLAMM2
+    REAL(vp) :: FKLAMA2, FKLAMB2, FKLAM12, FKLAM22
+    REAL(vp) :: SAP, SAM, FIJ, FAD1, FAD2, FCEN
 
-    REAL(wp) :: AD
-    REAL(wp) :: DELAD, DELAP, DELAM
-    REAL(wp) :: FTEMP, ENHFR
+    REAL(vp) :: AD, FTEMP
+    REAL(vp) :: DELAD, DELAP, DELAM
+    REAL(vp) :: ENHFR, enh(nproma)
 
 
     ! convenience pointers
@@ -629,15 +629,15 @@ CONTAINS
 !$OMP           FKLAMP2, FKLAPA2, FKLAPB2, FKLAP12, FKLAP22, FKLAMM, FKLAMM1, GW5, GW6, &
 !$OMP           GW7, GW8, FKLAMMA, FKLAMMB, FKLAMM2,FKLAMA2, FKLAMB2, FKLAM12, FKLAM22, &
 !$OMP           SAP, SAM, FIJ, FAD1, FAD2, FCEN, AD, DELAD, DELAP, DELAM,               &
-!$OMP           K1,K2,K11,K21 ) ICON_OMP_DEFAULT_SCHEDULE
+!$OMP           K1,K2,K11,K21, enh) ICON_OMP_DEFAULT_SCHEDULE
     ljb: DO jb = i_startblk, i_endblk
        CALL get_indices_c( p_patch, jb, i_startblk, i_endblk,           &
             &                 i_startidx, i_endidx, i_rlstart, i_rlend)
        DO jc = i_startidx, i_endidx
           ENHFR = MAX(0.75_wp*depth(jc,jb)*p_diag%AKMEAN(jc,jb), 0.5_wp)
-          ENHFR = 1.0_wp + (5.5_wp/ENHFR) * (1.0_wp-0.833_wp*ENHFR) &
-               &                * EXP(-1.25_wp*ENHFR)
-          p_diag%ENH(jc,jb) = ENHFR
+          ENHFR = 1.0_vp + (5.5_vp/ENHFR) * (1.0_wp-0.833_vp*ENHFR) &
+               &                * EXP(-1.25_vp*ENHFR)
+          enh(jc) = ENHFR
        END DO
 
       FRE4: DO jf = 1,nfreqs+4
@@ -645,10 +645,10 @@ CONTAINS
         MP1 = p_diag%IKP1(jf)
         MM  = p_diag%IKM (jf)
         MM1 = p_diag%IKM1(jf)
-        FFACP  = 1._wp
-        FFACP1 = 1._wp
-        FFACM1 = 1._wp
-        FTAIL  = 1._wp
+        FFACP  = 1._vp
+        FFACP1 = 1._vp
+        FFACM1 = 1._vp
+        FTAIL  = 1._vp
         IC  = jf
         IP  = MP
         IP1 = MP1
@@ -737,7 +737,7 @@ CONTAINS
                               GW7*tracer(jc,K2 ,jb,IM1) + &
                               GW8*tracer(jc,K21,jb,IM1)
 
-                         FTEMP = p_diag%AF11(jf) * p_diag%ENH(jc,jb)
+                         FTEMP = p_diag%AF11(jf) * enh(jc)
                          FIJ = tracer(jc,K,jb,IC)*FTAIL
                          FAD1 = FIJ*(SAP+SAM)
                          FAD2 = FAD1-2._wp*SAP*SAM
@@ -802,7 +802,7 @@ CONTAINS
                              GW7*tracer(jc,K2 ,jb,IM1) + &
                              GW8*tracer(jc,K21,jb,IM1)
 
-                        FTEMP = p_diag%AF11(jf) * p_diag%ENH(jc,jb)
+                        FTEMP = p_diag%AF11(jf) * enh(jc)
                         FIJ = tracer(jc,K,jb,IC)*FTAIL
                         FAD1 = FIJ*(SAP+SAM)
                         FAD2 = FAD1-2._wp*SAP*SAM
@@ -863,7 +863,7 @@ CONTAINS
                            GW7*tracer(jc,K2 ,jb,IM1) + &
                            GW8*tracer(jc,K21,jb,IM1)
 
-                      FTEMP = p_diag%AF11(jf) * p_diag%ENH(jc,jb)
+                      FTEMP = p_diag%AF11(jf) * enh(jc)
                       FIJ = tracer(jc,K,jb,IC)*FTAIL
                       FAD1 = FIJ*(SAP+SAM)
                       FAD2 = FAD1-2._wp*SAP*SAM
@@ -919,7 +919,7 @@ CONTAINS
                          GW7*tracer(jc,K2 ,jb,IM1) + &
                          GW8*tracer(jc,K21,jb,IM1)
 
-                    FTEMP = p_diag%AF11(jf) * p_diag%ENH(jc,jb)
+                    FTEMP = p_diag%AF11(jf) * enh(jc)
                     FIJ = tracer(jc,K,jb,IC)*FTAIL
                     FAD1 = FIJ*(SAP+SAM)
                     FAD2 = FAD1-2._wp*SAP*SAM
@@ -972,7 +972,7 @@ CONTAINS
                        GW7*tracer(jc,K2 ,jb,IM1) + &
                        GW8*tracer(jc,K21,jb,IM1)
 
-                  FTEMP = p_diag%AF11(jf) * p_diag%ENH(jc,jb)
+                  FTEMP = p_diag%AF11(jf) * enh(jc)
                   FIJ = tracer(jc,K,jb,IC)*FTAIL
                   FAD1 = FIJ*(SAP+SAM)
                   FAD2 = FAD1-2._wp*SAP*SAM
@@ -1015,7 +1015,7 @@ CONTAINS
                      GW3*tracer(jc,K1 ,jb,IP1) + &
                      GW4*tracer(jc,K11,jb,IP1)
 
-                FTEMP = p_diag%AF11(jf) * p_diag%ENH(jc,jb)
+                FTEMP = p_diag%AF11(jf) * enh(jc)
                 FIJ = tracer(jc,K,jb,IC)
                 FAD2 = FIJ*SAP
                 FAD1 = 2._wp*FAD2
