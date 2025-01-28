@@ -7,6 +7,7 @@
 # See LICENSES/ for license information
 # SPDX-License-Identifier: BSD-3-Clause
 # ------------------------------------------
+
 ################################# DIRECTORIES ##################################
 
 # Path to the root source directory:
@@ -63,7 +64,6 @@ CXX= @CXX@
 CUDACXX= @CUDACXX@
 HIPCXX= @HIPCXX@
 PYTHON= @PYTHON@
-CMAKE= @CMAKE@
 PVCS= ${PYTHON} $(srcdir)/utils/pvcs.py
 DEPLIST= ${PYTHON} $(srcdir)/utils/mkhelper/deplist.py
 DEPGEN= ${PYTHON} $(srcdir)/utils/mkhelper/depgen.py
