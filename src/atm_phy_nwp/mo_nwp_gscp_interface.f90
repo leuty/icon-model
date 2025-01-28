@@ -43,7 +43,7 @@
 MODULE mo_nwp_gscp_interface
 
   USE mo_kind,                 ONLY: wp
-  USE mo_exception,            ONLY: message, finish
+  USE mo_exception,            ONLY: message, finish, message_text
   USE mo_parallel_config,      ONLY: nproma
 
   USE mo_model_domain,         ONLY: t_patch
@@ -69,12 +69,16 @@ MODULE mo_nwp_gscp_interface
   USE mo_sbm_driver,           ONLY: sbm
   USE mo_sbm_storage,          ONLY: t_sbm_storage, get_sbm_storage
 #ifdef __ICON_ART
-  USE mo_art_clouds_interface, ONLY: art_clouds_interface_2mom
+  USE mo_art_clouds_interface, ONLY: art_clouds_interface_2mom, art_clouds_interface_dust
+  USE mo_impl_constants,       ONLY: SUCCESS
+  USE mo_art_config,           ONLY: art_config
+  USE mo_art_data,             ONLY: p_art_data
 #endif
   USE mo_nwp_diagnosis,        ONLY: nwp_diag_output_minmax_micro
   USE mo_cpl_aerosol_microphys,ONLY: specccn_segalkhain, specccn_segalkhain_simple, &
                                      ncn_from_tau_aerosol_speccnconst,         &
                                      ncn_from_tau_aerosol_speccnconst_dust,    &
+                                     aerosol_prepare_inas_dust,                &
                                      ice_nucleation
   USE mo_grid_config,          ONLY: l_limited_area
   USE mo_satad,                ONLY: satad_v_3D, satad_v_3D_gpu
@@ -144,7 +148,7 @@ CONTAINS
     INTEGER :: jc,jb,jg,jk               !<block indices
 
     REAL(wp) :: zncn(nproma,p_patch%nlev),qnc(nproma,p_patch%nlev),qnc_s(nproma),rholoc,rhoinv, cloud_num
-    REAL(wp) :: zninc(nproma,p_patch%nlev), aerncn
+    REAL(wp) :: zninc(nproma,p_patch%nlev), aerncn, ndust(nproma,p_patch%nlev), sdust(nproma,p_patch%nlev)
 
     LOGICAL  :: l_nest_other_micro
     LOGICAL  :: ldiag_ttend, ldiag_qtend
@@ -154,6 +158,20 @@ CONTAINS
 
     TYPE(t_sbm_storage), POINTER :: ptr_sbm_storage => NULL()
 
+    CHARACTER(LEN=*), PARAMETER :: routine = 'nwp_nh_interface'
+
+    INTEGER :: icenuc
+
+    REAL(wp), PARAMETER :: aod_crit_for_coupled_inas = 0.2_wp
+
+#ifdef __ICON_ART
+    ! For ICON-ART aerosol-cloud-interaction
+    INTEGER :: idusta0 = 0
+    INTEGER :: idustb0 = 0
+    INTEGER :: idustc0 = 0
+    INTEGER :: ierror  !< Error return value
+#endif
+    
     CALL assert_acc_device_only("nwp_microphysics", lacc)
 
     ! number of vertical levels
@@ -185,6 +203,14 @@ CONTAINS
     IF ( atm_phy_nwp_config(jg)%inwp_gscp == 8 ) THEN
       ptr_sbm_storage => get_sbm_storage( patch_id=jg )
     ENDIF
+
+#ifdef __ICON_ART
+    IF ( icpl_aero_ice == 3 .OR. icpl_aero_ice == 4 ) THEN
+      CALL p_art_data(jg)%dict_tracer%get('dusta0',idusta0,ierror)
+      CALL p_art_data(jg)%dict_tracer%get('dustb0',idustb0,ierror)
+      CALL p_art_data(jg)%dict_tracer%get('dustc0',idustc0,ierror)
+    END IF    
+#endif
 
     ! boundary conditions for number densities
     IF (jg > 1) THEN
@@ -261,7 +287,7 @@ CONTAINS
     
 !$OMP PARALLEL
 !$OMP DO PRIVATE(jb,jc,jk,i_startidx,i_endidx,zncn,qnc,qnc_s,ddt_tend_t,ddt_tend_qv,aerncn,zninc,   &
-!$OMP            ddt_tend_qc,ddt_tend_qi,ddt_tend_qr,ddt_tend_qs) ICON_OMP_GUIDED_SCHEDULE
+!$OMP            icenuc,ddt_tend_qc,ddt_tend_qi,ddt_tend_qr,ddt_tend_qs) ICON_OMP_GUIDED_SCHEDULE
 
       DO jb = i_startblk, i_endblk
 
@@ -274,7 +300,6 @@ CONTAINS
         ELSE
           ptr_tke_loc => NULL()
         ENDIF
-
 
         IF (atm_phy_nwp_config(jg)%icpl_aero_gscp == 2) THEN
 
@@ -377,7 +402,45 @@ CONTAINS
             CASE DEFAULT
               CALL finish('mo_nwp_gscp_interface', 'icpl_aero_ice = 1 only available for irad_aero = 6,7,8.')
           END SELECT
-        ELSE ! use Cooper (1987) formula
+#ifndef _OPENACC
+#ifdef __ICON_ART
+        ELSE IF (icpl_aero_ice == 3) THEN 
+          ! prepare dust concentration in troposphere for cloudice2mom scheme (number only)
+          CALL aerosol_prepare_inas_dust(                 &
+               istart   = i_startidx,                      & !in: start index
+               iend     = i_endidx,                        & !in: end index
+               kstart   = kstart_moist(jg),                & !in: start level
+               kend     = nlev,                            & !in: end level
+               rho      = p_prog%rho(:,:,jb),              & !in: air density
+               ndusta   = ptr_tracer(:,:,jb,idusta0),      & !in: dusta concentration
+               ndustb   = ptr_tracer(:,:,jb,idustb0),      & !in: dustb concentration
+               ndustc   = ptr_tracer(:,:,jb,idustc0),      & !in: dustc concentration       
+               ndust    = ndust(:,:),                      & !out: total number density of dust
+               sdust    = sdust(:,:),                      & !out: total surface area of dust
+               aod      = p_art_data(jg)%diag%dust_aeronet(5)%tau_vi(:,jb), & ! in: dust AOD
+               aod_crit = aod_crit_for_coupled_inas        ) !in: threshold for ACI of dust
+        ELSE IF (icpl_aero_ice == 4) THEN ! use ICON-ART dust
+          ! prepare dust concentration and surface area for cloudice2mom scheme
+          CALL art_clouds_interface_dust(                &
+               isize  = nproma,                          & !in: array size
+               ke     = nlev,                            & !in: end level/array size
+               jg     = jg,                              & !in: domain index
+               jb     = jb,                              & !in: block index
+               is     = i_startidx,                      & !in: start index
+               ie     = i_endidx,                        & !in: end index
+               ks     = kstart_moist(jg),                & !in: start level
+               rho    = p_prog%rho(:,:,jb),              & !in: air density
+               p_trac = ptr_tracer (:,:,jb,:),           & !in: all tracers
+               ndust    = ndust(:,:),                    & !out: total number density of dust
+               sdust    = sdust(:,:),                    & !out: total surface area of dust
+               aod_crit = aod_crit_for_coupled_inas      ) !in: threshold for ACI of dust 
+#endif
+#else
+        ELSE IF (icpl_aero_ice == 3 .or. icpl_aero_ice == 4) THEN ! use ICON-ART dust
+          CALL finish(routine, 'ART coupling for cloudice2mom is not yet available on GPU')
+#endif
+        ELSE
+          ! default ice nucleation: Cooper (1987) formula
           !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1)
           !$ACC LOOP GANG VECTOR COLLAPSE(2)
           DO jk=1,nlev
@@ -480,44 +543,56 @@ CONTAINS
 
         CASE(3)  ! extended version of cloudice scheme with progn. cloud ice number
 
-          CALL cloudice2mom_run (                           &
-            & nvec   =nproma                           ,    & !> in:  actual array size
-            & ke     =nlev                             ,    & !< in:  actual array size
-            & ivstart=i_startidx                       ,    & !< in:  start index of calculation
-            & ivend  =i_endidx                         ,    & !< in:  end index of calculation
-            & kstart =kstart_moist(jg)                 ,    & !< in:  vertical start index
-            & zdt    =tcall_gscp_jg                    ,    & !< in:  timestep
-            & qi0    =atm_phy_nwp_config(jg)%qi0       ,    & 
-            & qc0    =atm_phy_nwp_config(jg)%qc0       ,    & 
-            & dz     =p_metrics%ddqz_z_full(:,:,jb)    ,    & !< in:  vertical layer thickness
-            & t      =p_diag%temp   (:,:,jb)           ,    & !< inout:  temp,tracer,...
-            & p      =p_diag%pres   (:,:,jb)           ,    & !< in:  full level pres
-            & rho    =p_prog%rho    (:,:,jb  )         ,    & !< in:  density
-            & qv     =ptr_tracer (:,:,jb,iqv)          ,    & !< inout:  spec. humidity
-            & qc     =ptr_tracer (:,:,jb,iqc)          ,    & !< inout:  cloud water
-            & qi     =ptr_tracer (:,:,jb,iqi)          ,    & !< inout:  cloud ice
-            & qr     =ptr_tracer (:,:,jb,iqr)          ,    & !< inout:  rain water
-            & qs     =ptr_tracer (:,:,jb,iqs)          ,    & !< inout:  snow
-            & qni    = ptr_tracer (:,:,jb,iqni)        ,    & !< inout:  cloud ice number
-            & ninact = ptr_tracer (:,:,jb,ininact)     ,    & !< inout:  activated ice nuclei
-            & w      = p_prog%w(:,:,jb)                ,    & !< in:  vertical wind speed, half levels
-            & tropicsmask = prm_diag%tropics_mask(:,jb),    & !< in:  tropics mask as defined in mo_nwp_phy_init
-            & qnc    = qnc_s                           ,    & !< in:  cloud number concentration
-            & prr_gsp=prm_diag%rain_gsp_rate (:,jb)    ,    & !< out: precipitation rate of rain
-            & prs_gsp=prm_diag%snow_gsp_rate (:,jb)    ,    & !< out: precipitation rate of snow
-            & pri_gsp=prm_diag%ice_gsp_rate (:,jb)     ,    & !< out: precipitation rate of cloud ice
-            & qrsflux= prm_diag%qrs_flux (:,:,jb)      ,    & !< out: precipitation flux
-            & ldiag_ttend = ldiag_ttend                ,    & !< in:  if temp. tendency shall be diagnosed
-            & ldiag_qtend = ldiag_qtend                ,    & !< in:  if moisture tendencies shall be diagnosed
-            & ddt_tend_t  = ddt_tend_t                 ,    & !< out: tendency temperature
-            & ddt_tend_qv = ddt_tend_qv                ,    & !< out: tendency QV
-            & ddt_tend_qc = ddt_tend_qc                ,    & !< out: tendency QC
-            & ddt_tend_qi = ddt_tend_qi                ,    & !< out: tendency QI
-            & ddt_tend_qr = ddt_tend_qr                ,    & !< out: tendency QR
-            & ddt_tend_qs = ddt_tend_qs                ,    & !< out: tendency QS
-            & idbg=msg_level/2                         ,    &
-            & l_cv=.TRUE.                              ,    &
-            & ldass_lhn = ldass_lhn                    ,    &
+          SELECT CASE(icpl_aero_ice)
+          CASE(0)
+            icenuc = 0 ! Cooper formula as legacy option as in single-moment cloudice scheme (gscp=1)
+          CASE(2)
+            icenuc = 1 ! Uses vertical profile of dust as function of pressure within cloudice2mom
+          CASE(3,4)
+            icenuc = 2 ! Uses prognostic dust number and surface area
+          END SELECT   ! (icpl_aero_ice=3 dust surface area assumes constant mean size of dust)
+          
+          CALL cloudice2mom_run (                             &
+            & nvec    = nproma                           ,    & !> in:  actual array size
+            & ke      = nlev                             ,    & !< in:  actual array size
+            & ivstart = i_startidx                       ,    & !< in:  start index of calculation
+            & ivend   = i_endidx                         ,    & !< in:  end index of calculation
+            & kstart  = kstart_moist(jg)                 ,    & !< in:  vertical start index
+            & zdt     = tcall_gscp_jg                    ,    & !< in:  timestep
+            & qi0     = atm_phy_nwp_config(jg)%qi0       ,    & !< in:  autoconversion threshold ice (legacy)
+            & qc0     = atm_phy_nwp_config(jg)%qc0       ,    & !< in:  autoconversion threshold cloud (legacy)
+            & dz      = p_metrics%ddqz_z_full(:,:,jb)    ,    & !< in:  vertical layer thickness
+            & p       = p_diag%pres(:,:,jb)              ,    & !< in:  full level pres
+            & rho     = p_prog%rho (:,:,jb)              ,    & !< in:  density
+            & t       = p_diag%temp(:,:,jb)              ,    & !< inout:  temperature
+            & qv      = ptr_tracer (:,:,jb,iqv)          ,    & !< inout:  spec. humidity
+            & qc      = ptr_tracer (:,:,jb,iqc)          ,    & !< inout:  cloud water
+            & qi      = ptr_tracer (:,:,jb,iqi)          ,    & !< inout:  cloud ice
+            & qr      = ptr_tracer (:,:,jb,iqr)          ,    & !< inout:  rain water
+            & qs      = ptr_tracer (:,:,jb,iqs)          ,    & !< inout:  snow
+            & qni     = ptr_tracer (:,:,jb,iqni)         ,    & !< inout:  cloud ice number
+            & ninact  = ptr_tracer (:,:,jb,ininact)      ,    & !< inout:  activated ice nuclei
+            & w       = p_prog%w(:,:,jb)                 ,    & !< in:  vertical wind speed, half levels
+            & tropicsmask = prm_diag%tropics_mask(:,jb)  ,    & !< in:  tropics mask as defined in mo_nwp_phy_init
+            & qnc     = qnc_s                            ,    & !< in:  cloud number concentration
+            & dustnum = ndust                            ,    & !< in:  mineral dust concentration
+            & dustsfc = sdust                            ,    & !< in:  mineral dust total surface area
+            & ice_nucleation = icenuc                    ,    & !< in:  choice of ice nucleation
+            & prr_gsp = prm_diag%rain_gsp_rate(:,jb)     ,    & !< out: precipitation rate of rain
+            & prs_gsp = prm_diag%snow_gsp_rate(:,jb)     ,    & !< out: precipitation rate of snow
+            & pri_gsp = prm_diag%ice_gsp_rate (:,jb)     ,    & !< out: precipitation rate of cloud ice
+            & qrsflux = prm_diag%qrs_flux   (:,:,jb)     ,    & !< out: precipitation flux
+            & ldiag_ttend = ldiag_ttend                  ,    & !< in:  if temp. tendency shall be diagnosed
+            & ldiag_qtend = ldiag_qtend                  ,    & !< in:  if moisture tendencies shall be diagnosed
+            & ddt_tend_t  = ddt_tend_t                   ,    & !< out: tendency temperature
+            & ddt_tend_qv = ddt_tend_qv                  ,    & !< out: tendency QV
+            & ddt_tend_qc = ddt_tend_qc                  ,    & !< out: tendency QC
+            & ddt_tend_qi = ddt_tend_qi                  ,    & !< out: tendency QI
+            & ddt_tend_qr = ddt_tend_qr                  ,    & !< out: tendency QR
+            & ddt_tend_qs = ddt_tend_qs                  ,    & !< out: tendency QS
+            & idbg = msg_level/2                         ,    &
+            & l_cv = .TRUE.                              ,    &
+            & ldass_lhn = ldass_lhn                      ,    &
             & ithermo_water=atm_phy_nwp_config(jg)%ithermo_water) !< in: latent heat choice
 
         CASE(4)  ! two-moment scheme 

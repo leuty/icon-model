@@ -40,7 +40,7 @@ MODULE mo_nwp_phy_init
   USE mo_fortran_tools,       ONLY: copy
   USE mo_run_config,          ONLY: ltestcase, iqv, iqc, inccn, ininpot, msg_level 
   USE mo_atm_phy_nwp_config,  ONLY: atm_phy_nwp_config, lrtm_filename,               &
-    &                               cldopt_filename, icpl_aero_conv, iprog_aero
+    &                               cldopt_filename, icpl_aero_conv, icpl_aero_ice, iprog_aero
   USE mo_extpar_config,       ONLY: ext_o3_attr, itype_vegetation_cycle
 
   !radiation
@@ -71,6 +71,7 @@ MODULE mo_nwp_phy_init
   USE mo_sbm_util,            ONLY: sbm_init 
 
 #ifdef __ICON_ART
+  USE mo_art_data,            ONLY: p_art_data
   USE mo_art_clouds_interface,ONLY: art_clouds_interface_2mom_init
 #endif
   USE mo_cpl_aerosol_microphys, ONLY: lookupcreate_segalkhain, specccn_segalkhain_simple, &
@@ -231,6 +232,7 @@ SUBROUTINE init_nwp_phy ( p_patch, p_metrics,             &
   INTEGER :: i_startidx, i_endidx    !! slices
   INTEGER :: i_nchdom                !! domain index
   INTEGER :: lc_class,i_lc_si
+  INTEGER :: idusta0, idustb0, idustc0
 
   INTEGER :: ierrstat=0
   CHARACTER (LEN=25) :: eroutine
@@ -874,6 +876,27 @@ SUBROUTINE init_nwp_phy ( p_patch, p_metrics,             &
     ! Init of number concentrations moved to mo_initicon_io.f90 !!!
 #endif
   END SELECT
+
+#ifdef __ICON_ART
+  ! Indices of dust tracers for coupled ice nucleation with ART. The indices are not needed here, we are
+  ! just checking that they exist and write them to standard out, if the msg_level is high enough.
+  IF ( icpl_aero_ice == 3 .OR. icpl_aero_ice == 4 ) THEN
+    CALL p_art_data(jg)%dict_tracer%get('dusta0',idusta0,ierrstat)
+    IF(ierrstat /= SUCCESS) CALL finish (modname, 'dusta0 not found in dictionary.')
+    CALL p_art_data(jg)%dict_tracer%get('dustb0',idustb0,ierrstat)
+    IF(ierrstat /= SUCCESS) CALL finish (modname, 'dustb0 not found in dictionary.')
+    CALL p_art_data(jg)%dict_tracer%get('dustc0',idustc0,ierrstat)
+    IF(ierrstat /= SUCCESS) CALL finish (modname, 'dustc0 not found in dictionary.')
+    IF (msg_level > 15) THEN
+      WRITE(message_text,'(A,I5)') "icpl_aero_ice = ",icpl_aero_ice; CALL message(TRIM(routine),TRIM(message_text))
+      CALL message (TRIM(routine), "Found the three dust modes")
+      WRITE(message_text,'(A,I5)') "   idusta0 = ", idusta0; CALL message(TRIM(routine),TRIM(message_text))
+      WRITE(message_text,'(A,I5)') "   idustb0 = ", idustb0; CALL message(TRIM(routine),TRIM(message_text))
+      WRITE(message_text,'(A,I5)') "   idustc0 = ", idustc0; CALL message(TRIM(routine),TRIM(message_text))
+    END IF
+  END IF
+#endif
+  
 
   ! Fill parameters for cover_koe
   ! Set physics options in cloud cover derived type

@@ -266,7 +266,6 @@ Granules:
         - src/atm_phy_schemes/mo_2mom_mcrph_types.f90
         - src/atm_phy_schemes/mo_2mom_mcrph_setup.f90
         - src/configure_model/mo_2mom_mcrph_config.f90
-        - configure_model/mo_nwp_tuning_config.f90
         - src/granules/microphysics_1mom_schemes/**/*
         - src/shared/mo_kind.f90
         - src/shared/mo_physical_constants.f90

@@ -5291,10 +5291,10 @@ I (max\_ dom)&
 &
 cloud microphysics and precipitation\\
 0: none\\
-1: hydci (COSMO-EU microphysics, 2-cat ice: cloud ice, snow)\\
-2: hydci\_gr (COSMO-DE microphysics, 3-cat ice: cloud ice, snow, graupel)\\
-3: as 1, but with improved ice nucleation scheme by C. Koehler\\
-4,5,6,7: Two-moment microphysics by A. Seifert, further configuration possible in namelist \texttt{/twomom\_mcrph\_nml/}\\
+1: cloud ice scheme (based on COSMO-EU microphysics, 2-cat ice: cloud ice, snow)\\
+2: graupel scheme (based on COSMO-DE microphysics, 3-cat ice: cloud ice, snow, graupel)\\
+3: Two-moment cloud ice scheme  \\
+4,5,6,7: Two-moment microphysics of ICON-RUC, further configuration possible in namelist \texttt{/twomom\_mcrph\_nml/}\\
 8: Spectral Bin Microphysics (SBM) by A. Khain\\
 9: Kessler scheme &
 run\_nml:iforcing = inwp
@@ -5378,8 +5378,22 @@ icpl\_aero\_ice&
 I&
 0&
  &
-0: ice nucleating particles concentration defined by temperature using Cooper (1987) formula \\
-1: ice nucleating particles concentration defined by temperature and dust concentration using DeMott (2015) formula; requires irad\_aero=6, 7 or 8 \\
+0: ice crystal concentration defined by temperature using Cooper (1987) formula \\
+1: ice nucleating particles concentration defined by temperature and dust concentration using DeMott (2015) formula \\
+2: ice nucleating particles parameterization of Ullrich et al. (2017)               \\
+3: prognostic mineral dust used as ice nucleating particles (dust number only)      \\
+4: prognostic mineral dust used as ice nucleating particles (dust number and size)  \\
+&
+inwp\_gscp= 1, 2 \\
+~\\ ~\\
+inwp\_gscp=1, 2 and \\
+irad\_aero=6, 7 or 8 \\
+~\\ 
+inwp\_gscp=3 \\
+~\\
+inwp\_gscp=3 and ART \\
+~\\
+inwp\_gscp=3 and ART \\
 \tabularnewline
 
 %\hline

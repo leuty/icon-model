@@ -54,6 +54,7 @@ add_library(microphysics_1mom_schemes
   ${SATAD_PATH}/mo_thdyn_functions.f90
   ${SATAD_PATH}/mo_2mom_mcrph_types.f90
   ${SATAD_PATH}/mo_2mom_mcrph_setup.f90
+  ${CONFIG_PATH}/mo_2mom_mcrph_config.f90
   ${SATAD_PATH}/mo_lookup_tables_constants.f90
   ${SHARED_PATH}/mo_kind.f90
   ${MICROPHYSICS_PATH}/gscp_graupel.f90
@@ -67,8 +68,6 @@ add_library(microphysics_1mom_schemes
   ${ICON_SOURCE_DIR}/src/shared/mo_physical_constants.f90
   ${ICON_SOURCE_DIR}/src/shared/mo_impl_constants.f90
   ${CONFIG_PATH}/mo_2mom_mcrph_config.f90
-  ${CONFIG_PATH}/mo_nwp_tuning_config.f90
-
 )
 
 target_link_libraries(microphysics_1mom_schemes

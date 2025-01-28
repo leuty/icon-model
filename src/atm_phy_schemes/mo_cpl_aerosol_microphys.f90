@@ -14,7 +14,7 @@
 MODULE mo_cpl_aerosol_microphys
 
 
-  USE mo_kind,               ONLY: ireals=>wp, iintegers=>i4
+  USE mo_kind,               ONLY: ireals=>wp, iintegers=>i4, wp
   USE mo_exception,          ONLY: finish
 
   IMPLICIT NONE
@@ -23,7 +23,7 @@ MODULE mo_cpl_aerosol_microphys
 
   PUBLIC  :: lookupcreate_segalkhain, specccn_segalkhain, specccn_segalkhain_simple, &
              ncn_from_tau_aerosol_speccnconst, ncn_from_tau_aerosol_speccnconst_dust, &
-             ice_nucleation
+             ice_nucleation, aerosol_prepare_inas_dust
 
   INTERFACE ice_nucleation
     MODULE PROCEDURE ice_nucleation_demott
@@ -1348,6 +1348,74 @@ SUBROUTINE ice_nucleation_demott ( t, aerncn , znin )
   znin = MAX(MIN(znin,1.0E7_ireals),1.0E-7_ireals)
 
 END SUBROUTINE ice_nucleation_demott
+
+!===========================================================================================
+!
+! Calculate mineral dust input for INAS ice nucleation for cloudice2mom:
+! Currently this implements a simplified coupling for ICON-ART assuming three dust modes.
+! This subroutine can easily be generalized to other prognostic dust models.
+!
+SUBROUTINE aerosol_prepare_inas_dust(istart, iend, kstart, kend, rho, ndusta, ndustb, ndustc, aod, &
+                                     ndust, sdust, aod_crit)
+  IMPLICIT NONE
+  
+  INTEGER,  INTENT(IN)            :: &
+    &  istart, iend,                 & !< start/end index jc loop
+    &  kstart, kend                    !< start/end index jk loop
+  REAL(wp), INTENT(in), TARGET :: &
+    &  rho(:,:),                     & !< air density
+    &  aod(:),                       & !< dust AOD
+    &  ndusta(:,:),                  & !< dust concentration, mode A
+    &  ndustb(:,:),                  & !< dust concentration, mode B
+    &  ndustc(:,:)                     !< dust concentration, mode C 
+  REAL(wp), INTENT(inout), TARGET :: &
+    &  ndust(:,:),                   & !< total number density of dust 
+    &  sdust(:,:)                      !< corresponding mean surface area of dust
+  REAL(wp), INTENT(in)            :: &
+    &  aod_crit                         !< dust AOD threshold for ACI of dust
+
+  ! Fixed coefficients for ART dust modes. Note that assuming constant diameters is somewhat
+  ! inconsistent with ART, but this simplification can be justified because the variability is
+  ! dominated by the number of dust particles. A consistent coupling for ART is available with
+  ! the subroutine art_prepare_dust_inas in mo_art_prepare_aerosol.
+  REAL(wp), DIMENSION(3), PARAMETER ::       &   
+    &  fract_art = (/ 0.02_wp, 1.00_wp, 1.00_wp /),                &   ! fraction of INPs in dust modes
+    &  sdust_art  = (/ 0.4e-6_wp**2 * EXP(2.0_wp*LOG(1.7_wp)**2 ), &   ! coefficients for surface area of dust modes
+    &                  5.0e-6_wp**2 * EXP(2.0_wp*LOG(1.6_wp)**2 ), &   ! dust diameters based on Table 2 
+    &                  1.0e-5_wp**2 * EXP(2.0_wp*LOG(1.5_wp)**2 )  /)  ! of Rieger et al. (2017)
+
+  REAL(wp) :: fract(3), sfcdust(3)
+  
+  INTEGER :: jk, jc, nmodes
+
+  ! ICON-ART with three modes of mineral dust
+  ! (can be generalized to other aerosol models and an arbitrary number of modes but for now we have only ART)
+  fract = fract_art
+  sfcdust = sdust_art
+  nmodes = 3
+  
+  ! sum up the available dust modes where dust AOD is larger than aod_crit
+  DO jk = kstart,kend
+    DO jc = istart, iend
+      IF ( aod(jc) > aod_crit ) THEN
+        ! sum up the three dust modes
+        ndust(jc,jk) = ( ndusta(jc,jk) * fract(1) &
+             &         + ndustb(jc,jk) * fract(2) &
+             &         + ndustc(jc,jk) * fract(3) )
+        ! mean surface area using constant modal diameters
+        sdust(jc,jk) = ( ndusta(jc,jk) * sfcdust(1) * fract(1)  &
+             &         + ndustb(jc,jk) * sfcdust(2) * fract(2)          &
+             &         + ndustc(jc,jk) * sfcdust(3) * fract(3) ) / ndust(jc,jk)
+        ! dust per unit volume 
+        ndust(jc,jk) = rho(jc,jk) * ndust(jc,jk)
+      ELSE
+        ndust(jc,jk) = 1.0_wp
+        sdust(jc,jk) = 1.0_wp
+      END IF
+    END DO
+  END DO
+  
+END SUBROUTINE aerosol_prepare_inas_dust
 
 END MODULE mo_cpl_aerosol_microphys
 
