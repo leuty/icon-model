@@ -364,7 +364,7 @@ CONTAINS
         !$ACC ENTER DATA CREATE(new_elem%r_ptr) IF(new_elem%info%lopenacc)
       END IF
       !ICON_OMP PARALLEL
-      CALL init_contiguous_dp(new_elem%r_ptr, PRODUCT(d(1:5)), ivals%rval)
+      CALL init_contiguous_dp(new_elem%r_ptr, PRODUCT(d(1:5)), ivals%rval, lacc=.FALSE.)
       !ICON_OMP END PARALLEL
       !$ACC UPDATE DEVICE(new_elem%r_ptr) ASYNC(1) IF(new_elem%info%lopenacc)
     CASE(SINGLE_T)
@@ -377,7 +377,7 @@ CONTAINS
         !$ACC ENTER DATA CREATE(new_elem%s_ptr) IF(new_elem%info%lopenacc)
       END IF
       !ICON_OMP PARALLEL
-      CALL init_contiguous_sp(new_elem%s_ptr, PRODUCT(d(1:5)), ivals%sval)
+      CALL init_contiguous_sp(new_elem%s_ptr, PRODUCT(d(1:5)), ivals%sval, lacc=.FALSE.)
       !ICON_OMP END PARALLEL
       !$ACC UPDATE DEVICE(new_elem%s_ptr) ASYNC(1) IF(new_elem%info%lopenacc)
     CASE(INT_T)
@@ -390,7 +390,7 @@ CONTAINS
         !$ACC ENTER DATA CREATE(new_elem%i_ptr) IF(new_elem%info%lopenacc)
       END IF
       !ICON_OMP PARALLEL
-      CALL init_contiguous_i4(new_elem%i_ptr, PRODUCT(d(1:5)), ivals%ival)
+      CALL init_contiguous_i4(new_elem%i_ptr, PRODUCT(d(1:5)), ivals%ival, lacc=.FALSE.)
       !ICON_OMP END PARALLEL
       !$ACC UPDATE DEVICE(new_elem%i_ptr) ASYNC(1) IF(new_elem%info%lopenacc)
     CASE(BOOL_T)
@@ -403,7 +403,7 @@ CONTAINS
         !$ACC ENTER DATA CREATE(new_elem%l_ptr) IF(new_elem%info%lopenacc)
       END IF
       !ICON_OMP PARALLEL
-      CALL init_contiguous_l(new_elem%l_ptr, PRODUCT(d(1:5)), ivals%lval)
+      CALL init_contiguous_l(new_elem%l_ptr, PRODUCT(d(1:5)), ivals%lval, lacc=.FALSE.)
       !ICON_OMP END PARALLEL
       !$ACC UPDATE DEVICE(new_elem%l_ptr) ASYNC(1) IF(new_elem%info%lopenacc)
     END SELECT

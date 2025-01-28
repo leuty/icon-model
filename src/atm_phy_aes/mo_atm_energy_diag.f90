@@ -1363,7 +1363,7 @@ CONTAINS
     REAL(wp), INTENT(out)    :: xgi(:)                                  !< globally integrated field
 
 !$OMP PARALLEL
-    CALL init(xgi)
+    CALL init(xgi, lacc=.TRUE.)
 !$OMP END PARALLEL
 
     CALL horizontal_sum(x, p(jg)%cells%area, p(jg)%cells%owned, xgi, lopenacc=.TRUE.)

@@ -235,7 +235,7 @@ CONTAINS
     ! and as we loop over the full array.
 
 !ICON_OMP_PARALLEL
-    CALL init(frac_oce(:,:))
+    CALL init(frac_oce(:,:), lacc=.TRUE.)
 !ICON_OMP_END_PARALLEL
 
     jg = p_patch%id
@@ -350,7 +350,7 @@ CONTAINS
     ! and as we loop over the full array.
 
 !ICON_OMP_PARALLEL
-    CALL init(put_buffer(:,:))
+    CALL init(put_buffer(:,:), lacc=.TRUE.)
 !ICON_OMP_END_PARALLEL
 
     ! ------------------------------
@@ -620,7 +620,7 @@ CONTAINS
       nbr_hor_cells = p_patch(jg)%n_patch_cells
 
 !ICON_OMP_PARALLEL
-      CALL init(get_buffer(:,:))
+      CALL init(get_buffer(:,:), lacc=.TRUE.)
 !ICON_OMP_END_PARALLEL
 
       ! ------------------------------
@@ -628,7 +628,7 @@ CONTAINS
       !   "sea_surface_temperature" - SST
       no_arr = cpl_get_field_collection_size(routine, in_field_ids(jg)%sst)
 !ICON_OMP_PARALLEL
-      CALL init(get_buffer(:,1:no_arr))
+      CALL init(get_buffer(:,1:no_arr), lacc=.TRUE.)
 !ICON_OMP_END_PARALLEL
       CALL cpl_get_field( &
         routine, in_field_ids(jg)%sst, 'SST', &
@@ -662,7 +662,7 @@ CONTAINS
       !
       no_arr = cpl_get_field_collection_size(routine, in_field_ids(jg)%oce_u)
 !ICON_OMP_PARALLEL
-      CALL init(get_buffer(:,1:no_arr))
+      CALL init(get_buffer(:,1:no_arr), lacc=.TRUE.)
 !ICON_OMP_END_PARALLEL
       CALL cpl_get_field( &
         routine, in_field_ids(jg)%oce_u, 'u velocity', &
@@ -692,7 +692,7 @@ CONTAINS
       !
       no_arr = cpl_get_field_collection_size(routine, in_field_ids(jg)%oce_v)
 !ICON_OMP_PARALLEL
-      CALL init(get_buffer(:,1:no_arr))
+      CALL init(get_buffer(:,1:no_arr), lacc=.TRUE.)
 !ICON_OMP_END_PARALLEL
       CALL cpl_get_field( &
         routine, in_field_ids(jg)%oce_v, 'v velocity', &
@@ -722,7 +722,7 @@ CONTAINS
       !
       no_arr = cpl_get_field_collection_size(routine, in_field_ids(jg)%seaice_oce)
 !ICON_OMP_PARALLEL
-      CALL init(get_buffer(:,1:no_arr))
+      CALL init(get_buffer(:,1:no_arr), lacc=.TRUE.)
 !ICON_OMP_END_PARALLEL
       CALL cpl_get_field( &
         routine, in_field_ids(jg)%seaice_oce, 'sea ice', &
@@ -773,7 +773,7 @@ CONTAINS
         !
         no_arr = cpl_get_field_collection_size(routine, in_field_ids(jg)%co2_flx)
 !ICON_OMP_PARALLEL
-        CALL init(get_buffer(:,1:no_arr))
+        CALL init(get_buffer(:,1:no_arr), lacc=.TRUE.)
 !ICON_OMP_END_PARALLEL
         CALL cpl_get_field( &
           routine, in_field_ids(jg)%co2_flx, 'CO2 flux', &
@@ -1195,7 +1195,7 @@ CONTAINS
     !   "sea_surface_temperature" - SST
     no_arr = cpl_get_field_collection_size(routine, in_field_ids(jg)%sst)
 !ICON_OMP_PARALLEL
-    CALL init(get_buffer(:,1:no_arr))
+    CALL init(get_buffer(:,1:no_arr), lacc=.TRUE.)
 !ICON_OMP_END_PARALLEL
     CALL cpl_get_field( &
       routine, in_field_ids(jg)%sst, 'SST', &
@@ -1244,7 +1244,7 @@ CONTAINS
     !
     no_arr = cpl_get_field_collection_size(routine, in_field_ids(jg)%oce_u)
 !ICON_OMP_PARALLEL
-    CALL init(get_buffer(:,1:no_arr))
+    CALL init(get_buffer(:,1:no_arr), lacc=.TRUE.)
 !ICON_OMP_END_PARALLEL
     CALL cpl_get_field( &
       routine, in_field_ids(jg)%oce_u, 'u velocity', &
@@ -1278,7 +1278,7 @@ CONTAINS
     !
     no_arr = cpl_get_field_collection_size(routine, in_field_ids(jg)%oce_v)
 !ICON_OMP_PARALLEL
-    CALL init(get_buffer(:,1:no_arr))
+    CALL init(get_buffer(:,1:no_arr), lacc=.TRUE.)
 !ICON_OMP_END_PARALLEL
     CALL cpl_get_field( &
       routine, in_field_ids(jg)%oce_v, 'v velocity', &
@@ -1312,7 +1312,7 @@ CONTAINS
     !
     no_arr = cpl_get_field_collection_size(routine, in_field_ids(jg)%seaice_oce)
 !ICON_OMP_PARALLEL
-    CALL init(get_buffer(:,1:no_arr))
+    CALL init(get_buffer(:,1:no_arr), lacc=.TRUE.)
 !ICON_OMP_END_PARALLEL
     CALL cpl_get_field( &
       routine, in_field_ids(jg)%seaice_oce, 'sea ice', &
@@ -1370,7 +1370,7 @@ CONTAINS
 
       no_arr = cpl_get_field_collection_size(routine, in_field_ids(jg)%co2_flx)
 !ICON_OMP_PARALLEL
-        CALL init(get_buffer(:,1:no_arr))
+        CALL init(get_buffer(:,1:no_arr), lacc=.TRUE.)
 !ICON_OMP_END_PARALLEL
       CALL cpl_get_field( &
         routine, in_field_ids(jg)%co2_flx, 'CO2 flux', &

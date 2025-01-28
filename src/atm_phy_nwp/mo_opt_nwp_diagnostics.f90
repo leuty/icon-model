@@ -2025,7 +2025,7 @@ CONTAINS
     i_endblk   = ptr_patch%cells%end_block  ( i_rlend   )
 
 !$OMP PARALLEL
-    CALL init(mconv, 0.0_wp)
+    CALL init(mconv, 0.0_wp, lacc=.FALSE.)
 !$OMP DO PRIVATE(jb,jk,jc,i_startidx,i_endidx,k_start,k_start_vec, &
 !$OMP            div_qvv_layer, &
 !$OMP            div_qvv_mean,iex,ieb), ICON_OMP_RUNTIME_SCHEDULE
@@ -2106,7 +2106,7 @@ CONTAINS
 
       ! --- Weighted average over the neighbouring grid cells:
 !$OMP PARALLEL
-      CALL init(mconv_smth, 0.0_wp)    
+      CALL init(mconv_smth, 0.0_wp, lacc=.FALSE.)
 !$OMP DO PRIVATE(jb,i_startidx,i_endidx,jc,  &
 !$OMP            p_conv_sum,p_conv_wgt,wgt_loc,area_norm, &
 !$OMP            l,jc2,jb2), ICON_OMP_DEFAULT_SCHEDULE
@@ -2151,7 +2151,7 @@ CONTAINS
       END DO
 !$OMP END DO
       ! Copy back the smoothed field to the output variable:
-      CALL copy(mconv_smth, mconv)
+      CALL copy(mconv_smth, mconv, lacc=.FALSE.)
 !$OMP END PARALLEL
 
 
@@ -5656,7 +5656,7 @@ CONTAINS
     max_height = MAXVAL([MAXVAL(z_up_srh(:)), z_up_meanwind, z_up_shear+dz_shear*0.5_wp, z_low_shear+dz_shear*0.5_wp]) ! m AGL
 
 !$OMP PARALLEL
-    CALL init(srh(:,:,:), 0.0_wp)
+    CALL init(srh(:,:,:), 0.0_wp, lacc=.FALSE.)
 !$OMP DO PRIVATE(jb,jc,lev_srh,i_startidx,i_endidx,k_start,k_start_vec, &
 !$OMP            speed_shear,u_mean,v_mean,u_shear,v_shear,u_storm,v_storm, &
 !$OMP            u_shear_up,u_shear_low,v_shear_up,v_shear_low,r_or_left_fac, &

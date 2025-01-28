@@ -2670,6 +2670,7 @@ dnl Set library-specific options:
   [-DIM_ENABLE_MIXED_PRECISION="$enable_mixed_precision"],
   [-DIM_ENABLE_DIM_SWAP="$enable_dim_swap"],
   [-DIM_ENABLE_OPENACC="$icon_im_openacc"],
+  [-DIM_ENABLE_OPENMP="$enable_openmp"],
 dnl Set the prefix path to find fortran-support
   [-DCMAKE_PREFIX_PATH:PATH=dnl
 "${icon_abs_top_builddir}/externals/fortran-support/build"],
