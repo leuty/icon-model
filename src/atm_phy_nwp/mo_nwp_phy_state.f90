@@ -3408,7 +3408,7 @@ SUBROUTINE new_nwp_phy_diag_list( k_jg, klev, klevp1, kblks,    &
       grib2_desc = grib2_var(10, 0, 0, ibits, GRID_UNSTRUCTURED, GRID_CELL)
       CALL add_var( diag_list, 'z0_waves', diag%z0_waves,                   &
         & GRID_UNSTRUCTURED_CELL, ZA_SURFACE, cf_desc, grib2_desc,          &
-        & ldims=shape2d, loutput=.TRUE.,                                    &
+        & ldims=shape2d, loutput=.TRUE., initval=-999._wp,                  &
         & lopenacc=.FALSE. )
     END IF
 

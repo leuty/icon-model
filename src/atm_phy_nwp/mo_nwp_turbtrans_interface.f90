@@ -142,8 +142,9 @@ SUBROUTINE nwp_turbtrans  ( tcall_turb_jg,                     & !>in
 
   LOGICAL  :: l_lake(nproma), l_sice(nproma), &     !< lake-, ice-surface points
    l_land, l_water
-  LOGICAL  :: lgz0inp_loc !< FALSE: turbtran updates gz0 at water points
-                          !< TRUE : gz0 is provided externally (e.g. by the wave model) and is not updated by turbtran
+  INTEGER  :: igz0inp_loc !< 0: turbtran updates gz0 at water points
+                          !< 1 : gz0 is provided externally and is not updated by turbtran
+                          !< 2 : z0_waves is provided from wave model and used to updated gz0 by turbtran
   LOGICAL  :: ladsshr     !<treatment of additional shear by NTCs or LLDCs activ
 
   ! Local variables related to surface roughness:
@@ -158,7 +159,7 @@ SUBROUTINE nwp_turbtrans  ( tcall_turb_jg,                     & !>in
 
   ! 1D fields
   REAL(wp), DIMENSION(nproma)   :: pres_sfc_t, l_hori, rlamh_fac,   &
-   urb_isa_t, t_g_t, qv_s_t   
+   urb_isa_t, t_g_t, qv_s_t, z0_waves_t
 
   ! 2D half-level fields
   REAL(wp), DIMENSION(nproma,3) :: z_ifc_t
@@ -282,12 +283,12 @@ SUBROUTINE nwp_turbtrans  ( tcall_turb_jg,                     & !>in
 !$OMP fr_land_t,urb_isa_t,l_land,l_water,l_lake,l_sice,h_ice_t, &
 !$OMP shfl_s_t,lhfl_s_t,qhfl_s_t,umfl_s_t,vmfl_s_t, &
 !$OMP nzprv,lc_class,z_tvs,tcm_t,tch_t,tfm_t,tfh_t,tfv_t,tvm_t,tvh_t,tkr_t,l_hori, &
-!$OMP z0_mod,z0_min,gz0_eff_t,sai_min,sai_eff_t,fsn_flt, &
+!$OMP z0_mod,z0_min,gz0_eff_t,z0_waves_t,sai_min,sai_eff_t,fsn_flt, &
 !$OMP t_g_t,qv_s_t,t_2m_t,qv_2m_t,td_2m_t,rh_2m_t,u_10m_t,v_10m_t,pres_sfc_t, &
 !$OMP u_t,v_t,temp_t,qv_t,qc_t,epr_t,tkvm_t,tkvh_t,rcld_t,tvs_t,z_ifc_t, &
 !$OMP area_frac,nlevcm,jk_gust, &
 !$OMP gp_num_t,list_t, &
-!$OMP rho_s,rlamh_fac,lgz0inp_loc) ICON_OMP_GUIDED_SCHEDULE
+!$OMP rho_s,rlamh_fac,igz0inp_loc) ICON_OMP_GUIDED_SCHEDULE
 
   DO jb = i_startblk, i_endblk
 
@@ -549,7 +550,7 @@ SUBROUTINE nwp_turbtrans  ( tcall_turb_jg,                     & !>in
       IF (ntiles_total == 1) THEN ! tile approach not used; use tile-averaged fields from extpar
       !----------------------------
 
-        !$ACC DATA CREATE(l_hori, l_lake, l_sice) ASYNC(1) IF(lzacc)
+        !$ACC DATA CREATE(l_hori, l_lake, l_sice, z0_waves_t) ASYNC(1) IF(lzacc)
 
         !$ACC KERNELS ASYNC(1) DEFAULT(PRESENT) IF(lzacc)
         l_hori(i_startidx:i_endidx)=phy_params(jg)%mean_charlen !horizontal grid-scale (should be dependent on location in future!)
@@ -567,6 +568,7 @@ SUBROUTINE nwp_turbtrans  ( tcall_turb_jg,                     & !>in
                                      (lnd_prog_new%t_g  (jc,jb)<tf_salt), & !or frozen salty sea due to surface temperature
                                      lseaice ), & !dependent on whether sea-ice scheme is active or not
                               l_lake(jc) ) !seperate treatment of lake points and non-lake points
+          z0_waves_t(jc) = 0._wp ! dummy value; wave coupling requires tiles
         END DO
         !$ACC END PARALLEL
 
@@ -592,7 +594,7 @@ SUBROUTINE nwp_turbtrans  ( tcall_turb_jg,                     & !>in
 !
           &  iini=0,                  & !
           &  ltkeinp=.FALSE.,         & !
-          &  lgz0inp=.FALSE.,         &
+          &  igz0inp= 0     ,         &
           &  lstfnct=.TRUE. ,         & ! with stability function
           &  lsrflux=.TRUE. ,         & !
           &  lnsfdia=.TRUE. ,         & ! including near-surface diagnostics
@@ -613,6 +615,7 @@ SUBROUTINE nwp_turbtrans  ( tcall_turb_jg,                     & !>in
 !
           &  rlamh_fac=prm_diag%rlamh_fac_t(:,jb,1),                                   & !in
           &  gz0=gz0_eff_t(:,1),                                                       & !inout (incl. all above modificat.)
+          &  z0_waves=z0_waves_t(:),                                                   & !in
           &  sai=sai_eff_t(:,1),                                                       & !in    (incl. all above modificat.)
           &  urb_isa=ext_data%atm%urb_isa_t(:,jb,1),                                   & !in
 !
@@ -748,15 +751,17 @@ SUBROUTINE nwp_turbtrans  ( tcall_turb_jg,                     & !>in
         !-----------------------------
 
           IF (is_coupled_to_waves().AND.(jt==isub_water)) THEN
-            lgz0inp_loc = .TRUE.  ! gz0 at non ice-covered sea water points is provided
-                                  ! from external sources (e.g. ICON-waves). No update by turbtran.
-          ELSE
-            lgz0inp_loc = .FALSE. ! gz0 at water points is updated by turbtran
+            igz0inp_loc = 2  ! z0_waves at non ice-covered sea water points is provided from external sources
+                             ! (e.g. ICON-waves). Combined with capillary roughness length in turbtran
+          ELSE IF (jt==isub_water .OR. jt==isub_lake) THEN
+            igz0inp_loc = 0 ! gz0 at water points is updated by turbtran
+          ELSE              ! for clarity only; redundant with the turbtran-internal check for water points:
+            igz0inp_loc = 1 ! gz0 is provided externally; no update by turbtran
           END IF
 
           IF (multi_queue_processing) acc_async_queue = jt
           !$ACC DATA CREATE(u_t, v_t, temp_t, qv_t, qc_t, epr_t, z_ifc_t, pres_sfc_t) &
-          !$ACC   CREATE(l_hori, fr_land_t, l_lake, l_sice, h_ice_t, rlamh_fac) &
+          !$ACC   CREATE(l_hori, fr_land_t, l_lake, l_sice, h_ice_t, rlamh_fac, z0_waves_t) &
           !$ACC   CREATE(urb_isa_t, t_g_t, qv_s_t, i_count) &
           !$ACC   CREATE(tcm_t, tch_t, tfv_t, tvm_t, tvh_t, tkr_t, tkvm_t, tkvh_t, rcld_t, tvs_t) &
           !$ACC   CREATE(u_10m_t, v_10m_t, shfl_s_t, lhfl_s_t, qhfl_s_t, umfl_s_t, vmfl_s_t) &
@@ -807,10 +812,16 @@ SUBROUTINE nwp_turbtrans  ( tcall_turb_jg,                     & !>in
             u_t    (ic,1:2)     = p_diag%u          (jc,nlev-1:nlev  ,jb)
             v_t    (ic,1:2)     = p_diag%v          (jc,nlev-1:nlev  ,jb)
             pres_sfc_t(ic)      = p_diag%pres_sfc   (jc,jb)
+
             IF (jt>ntiles_total) THEN !only for non-land (sub-)tiles
               gz0_eff_t(ic,jt)  = prm_diag%gz0_t    (jc,jb,jt)     ! effective value equals previous global value
               sai_eff_t(ic,jt)  = ext_data%atm%sai_t(jc,jb,jt)     ! effective value equals previous global value
             END IF
+            IF (igz0inp_loc == 2) THEN ! sea-water tile and wave coupling
+              z0_waves_t(ic)    = prm_diag%z0_waves(jc,jb)
+            ELSE
+              z0_waves_t(ic)    = 0._wp
+            ENDIF
 
             t_g_t  (ic)         = lnd_prog_new%t_g_t(jc,jb,jt)
             qv_s_t (ic)         = lnd_diag%qv_s_t   (jc,jb,jt)
@@ -902,7 +913,7 @@ SUBROUTINE nwp_turbtrans  ( tcall_turb_jg,                     & !>in
 !
             &  iini=0,                  & !
             &  ltkeinp=.FALSE.,         & !
-            &  lgz0inp=lgz0inp_loc,     & !
+            &  igz0inp=igz0inp_loc,     & !
             &  lstfnct=.TRUE. ,         & ! with stability function
             &  lsrflux=.TRUE. ,         & !
             &  lnsfdia=.TRUE. ,         & ! including near-surface diagnostics
@@ -922,6 +933,7 @@ SUBROUTINE nwp_turbtrans  ( tcall_turb_jg,                     & !>in
             &  l_sice=l_sice(:),                                            & !in (ice  surfaces)
             &  rlamh_fac=rlamh_fac(:),                                      & !in
             &  gz0=gz0_eff_t(:,jt),                                         & !inout effective value including all modifictions
+            &  z0_waves=z0_waves_t(:),                                      & !in
             &  sai=sai_eff_t(:,jt),                                         & !in    effective value including all modifictions
             &  urb_isa=urb_isa_t(:),                                        & !in
 !

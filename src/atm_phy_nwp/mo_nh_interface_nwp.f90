@@ -1889,8 +1889,6 @@ CONTAINS
         &                      fr_seaice    = lnd_diag%fr_seaice,    & !in
         &                      frac_t       = ext_data%atm%frac_t,   & !in
         &                      z0_waves     = prm_diag%z0_waves,     & !inout
-        &                      gz0_t        = prm_diag%gz0_t,        & !inout
-        &                      gz0          = prm_diag%gz0,          & !inout
         &                      lacc         = lacc                   ) !in
 
       IF (ltimer) CALL timer_stop(timer_coupling)

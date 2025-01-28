@@ -216,7 +216,8 @@ SUBROUTINE init_nwp_phy ( p_patch, p_metrics,             &
 
   LOGICAL :: lland, lglac, lshallow, ldetrain_prec, lgrayzone_dc, lrestune_off, lmflimiter_off
   LOGICAL :: lstoch_expl, lstoch_sde,lstoch_deep,lvvcouple,lvv_shallow_deep
-  LOGICAL :: ltkeinp_loc, lgz0inp_loc  !< turbtran switches
+  LOGICAL :: ltkeinp_loc  !< turbtran switch
+  INTEGER :: igz0inp_loc  !< turbtran switch
   LOGICAL :: linit_mode, lturb_init, lreset_mode
   LOGICAL :: lupatmo_phy
   LOGICAL :: l_filename_year
@@ -1528,7 +1529,7 @@ SUBROUTINE init_nwp_phy ( p_patch, p_metrics,             &
 #ifndef __PGI
 !FIXME: PGI + OpenMP produce deadlock in this loop. Compiler bug suspected
 !$OMP PARALLEL DO PRIVATE(jb,jk,i_startidx,i_endidx,ic,jc,jt, &
-!$OMP            ltkeinp_loc,lgz0inp_loc,nlevcm,l_hori,nzprv,zvari,zrhon, &
+!$OMP            ltkeinp_loc,igz0inp_loc,nlevcm,l_hori,nzprv,zvari,zrhon, &
 !$OMP            l_lake,l_sice, &
 !$OMP            ierrstat, errormsg, eroutine) ICON_OMP_DEFAULT_SCHEDULE
 #endif
@@ -1542,14 +1543,14 @@ SUBROUTINE init_nwp_phy ( p_patch, p_metrics,             &
        IF (lturb_init) THEN
 
         ltkeinp_loc = .FALSE.  ! initialize TKE field
-        lgz0inp_loc = .FALSE.  ! initialize gz0 field (water points only)
+        igz0inp_loc =  0       ! initialize gz0 field (water points only)
 
        ELSE
         !
         ! TKE and gz0 are not re-initialized, but re-used from the first guess
         !
         ltkeinp_loc = .TRUE.   ! do NOT re-initialize TKE field (read from FG)
-        lgz0inp_loc = .TRUE.   ! do NOT re-initialize gz0 field (read from FG)
+        igz0inp_loc =  1       ! do NOT re-initialize gz0 field (read from FG)
 
         ! Note that TKE in turbtran/turbdiff is defined as the turbulence velocity scale
         ! TVS=SQRT(2*TKE). The TKE is limited to 5.e-5 here because it may be zero on lateral
@@ -1580,9 +1581,9 @@ SUBROUTINE init_nwp_phy ( p_patch, p_metrics,             &
         ltkeinp_loc = .FALSE.  ! initialize TKE field
        ENDIF
        IF (lscm_read_z0) THEN
-        lgz0inp_loc = .TRUE.   ! do NOT re-initialize gz0 field (read from FG)
+        igz0inp_loc = 1   ! do NOT re-initialize gz0 field (read from FG)
        ELSE
-        lgz0inp_loc = .FALSE.  ! initialize gz0 field (water points only)
+        igz0inp_loc = 0  ! initialize gz0 field (water points only)
        ENDIF
 
       ENDIF
@@ -1615,7 +1616,7 @@ SUBROUTINE init_nwp_phy ( p_patch, p_metrics,             &
       ! turbtran: only surface-layer turbulence
       CALL turbtran (                                                          & !only surface-layer turbulence
 !
-        &  iini=1, ltkeinp=ltkeinp_loc, lgz0inp=lgz0inp_loc, lstfnct=.TRUE. ,  &
+        &  iini=1, ltkeinp=ltkeinp_loc, igz0inp=igz0inp_loc, lstfnct=.TRUE. ,  &
         &          lsrflux=.TRUE., lnsfdia=.TRUE., lrunscm=.FALSE.,            & !incl. near-surf. diagn. and surf.-flux calcul.
         &          ladsshr=.FALSE.,                                            & !no additional NTC-shear
 !
@@ -1634,6 +1635,7 @@ SUBROUTINE init_nwp_phy ( p_patch, p_metrics,             &
         &  sai=ext_data%atm%sai(:,jb),                                         &
         &  urb_isa=ext_data%atm%urb_isa_t(:,jb,1),                             &
         &  gz0=prm_diag%gz0(:,jb),                                             &
+        &  z0_waves=prm_diag%gz0(:,jb),                                        & ! dummy input; wave coupling is never active here
 !
         &  t_g=p_prog_lnd_now%t_g(:,jb),                                       &
         &  qv_s=p_diag_lnd%qv_s(:,jb),                                         &

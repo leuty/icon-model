@@ -118,7 +118,7 @@ CONTAINS
   !! This subroutine is called from nwp_nh_interface.
   !!
   SUBROUTINE couple_atmo_to_wave(p_patch, list_sea, u10m, v10m, fr_seaice, frac_t, &
-    &                            z0_waves, gz0_t, gz0, lacc)
+    &                            z0_waves, lacc)
 
     CHARACTER(len=*), PARAMETER ::  &
       &  routine = modname//':couple_atmo_to_wave'
@@ -130,8 +130,6 @@ CONTAINS
     REAL(wp), CONTIGUOUS, TARGET, INTENT(IN)    :: fr_seaice(:,:) !< fraction_of_ocean_covered_by_sea_ice [1]
     REAL(wp), CONTIGUOUS,         INTENT(IN)    :: frac_t(:,:,:)  !< tile-specific area fraction [1]
     REAL(wp), CONTIGUOUS, TARGET, INTENT(INOUT) :: z0_waves(:,:)  !< surface roughness length [m]
-    REAL(wp), CONTIGUOUS,         INTENT(INOUT) :: gz0_t(:,:,:)   !< tile-based roughness length times gravity [m2 s-2]
-    REAL(wp), CONTIGUOUS,         INTENT(INOUT) :: gz0(:,:)       !< aggregated roughness length times gravity [m2 s-2]
     LOGICAL,  OPTIONAL,           INTENT(IN)    :: lacc           ! If true, use openacc
 
     LOGICAL :: write_coupler_restart, received_data
@@ -139,7 +137,6 @@ CONTAINS
     INTEGER :: i_rlstart, i_rlend, i_startblk, i_endblk
     INTEGER :: i_startidx, i_endidx
     INTEGER :: jb,ic,jc
-    INTEGER :: isubs
     LOGICAL, SAVE :: lcheck_for_timelag = .TRUE.
     TYPE(datetime) :: curr_datetime_u10m
 
@@ -219,26 +216,14 @@ CONTAINS
       i_endblk   = p_patch%cells%end_block(i_rlend)
 
 !$OMP PARALLEL
-!$OMP DO PRIVATE(jb,ic,jc,i_startidx,i_endidx,isubs) ICON_OMP_DEFAULT_SCHEDULE
+!$OMP DO PRIVATE(jb,ic,jc,i_startidx,i_endidx) ICON_OMP_DEFAULT_SCHEDULE
       DO jb = i_startblk, i_endblk
         CALL get_indices_c( p_patch, jb, i_startblk, i_endblk,           &
           &                 i_startidx, i_endidx, i_rlstart, i_rlend)
         DO ic = 1, list_sea%ncount(jb)
           jc = list_sea%idx(ic,jb)
           z0_waves(jc,jb) = MAX(z0_waves(jc,jb),1.e-6_wp)
-          gz0_t(jc,jb,isub_water) = grav * z0_waves(jc,jb)
         END DO
-
-        ! aggregate gz0_t
-        DO jc = i_startidx, i_endidx
-          gz0(jc,jb) = 0._wp
-        ENDDO
-        !
-        DO isubs = 1, SIZE(frac_t,3)
-          DO jc = i_startidx, i_endidx
-            gz0(jc,jb)= gz0(jc,jb) + gz0_t(jc,jb,isubs) * frac_t(jc,jb,isubs)
-          ENDDO
-        ENDDO  !isubs
       ENDDO  !jb
 !$OMP ENDDO NOWAIT
 !$OMP END PARALLEL

@@ -340,14 +340,14 @@ CONTAINS
 
 SUBROUTINE turbtran (                                                         &
 !
-          iini, ltkeinp, lgz0inp, lstfnct, lsrflux, lnsfdia, lrunscm,         &
+          iini, ltkeinp, igz0inp, lstfnct, lsrflux, lnsfdia, lrunscm,         &
           ladsshr,                                                            &
 !
           dt_tke, nprv, ntur, ntim,                                           &
 ! 
           nvec, ke, ke1, kcm, iblock, ivstart, ivend,                         &
 !
-          l_pat, l_hori, hhl, fr_land, l_lake, l_sice, gz0,                   &
+          l_pat, l_hori, hhl, fr_land, l_lake, l_sice, gz0, z0_waves,         &
           rlamh_fac, sai, urb_isa,                                            &  
           t_g, qv_s, ps, u, v, t, qv, qc, epr,                                &
 !
@@ -508,7 +508,6 @@ LOGICAL, INTENT(IN) :: &
    lstfnct,      & !calculation of stability function required
 
    ltkeinp,      & !TKE present as input (at level k=ke1 for current time level 'ntur')
-   lgz0inp,      & !gz0 present as input
 
    lrunscm,      & !a Single Column run (default: FALSE)
    ladsshr         !treatment of additional shear by NTCs or LLDCs active
@@ -519,6 +518,7 @@ REAL (KIND=wp), INTENT(IN) :: &
 
 INTEGER,        INTENT(IN) :: &
 
+   igz0inp,      & !1: gz0 is present as input, 2: z0_waves is provided as input
    iini,         & !type of initialization (0: no, 1: separate before the time loop
                    !                             , 2: within the first time step)
    ntur,         & !current  time level of 'tke' valid after  prognostic incrementation
@@ -602,6 +602,9 @@ REAL (KIND=wp), DIMENSION(:), TARGET, INTENT(INOUT) :: &
      gz0             ! roughness length * g of the vertically not
                      ! resolved canopy                               (m2/s2)
 !Achtung: Der g-Faktor ist ueberfluessig!
+
+REAL (KIND=wp), DIMENSION(:), TARGET, INTENT(IN) :: &
+     z0_waves        ! roughness length from wave model  (m)
 
 REAL (KIND=wp), DIMENSION(:), TARGET, INTENT(OUT) :: &
      !Notice that 'tcm' and 'tch' are dispensable. The common use of the related
@@ -743,6 +746,7 @@ REAL (KIND=wp) :: &
     ren_m,ren_h, & !specific Re-numbers at top of land-use roughness
     g_z0_ice, g_len_min, g_alpha1_con_m, & !used for calculating sea-surface roughness
     edprfsecu  , & !"1/prfsecu" (out of ]0; 1[)
+    z0wave_threshold, & ! threshold for using z0 provided by wave model
     xf             !scaling factor representing the volume-height ratio of the lowest atmospheric 
                    ! full and half level
 
@@ -938,7 +942,7 @@ LOGICAL        ::   ldebug = .FALSE.
   !$ACC   PRESENT(z_mom_tot, a_atm_tot, a_atm_mod, h_atm_mod, prf_ren_m, prf_ren_h) &
   !$ACC   PRESENT(hhl, epr_2d, u, v, t) &
   !$ACC   PRESENT(ediss, l_pat) &
-  !$ACC   PRESENT(epr, tke, tkvm, tkvh, gz0, tkr) &
+  !$ACC   PRESENT(epr, tke, tkvm, tkvh, gz0, z0_waves, tkr) &
   !$ACC   PRESENT(l_tur_z0, ps, sai, urb_isa, rlamh_fac) &
   !$ACC   PRESENT(tfm, tfh, tfv, qv_s, qv, qc) &
   !$ACC   PRESENT(dwdx, dwdy, hdef2, g_tet) &
@@ -988,6 +992,9 @@ LOGICAL        ::   ldebug = .FALSE.
 
       ! Fixed parameter used for calculating sea-surface roughness:
       g_z0_ice=grav*z0_ice; g_len_min=grav*len_min; g_alpha1_con_m=grav*alpha1*con_m
+
+      ! Provisional tuning for minimum roughness length used from wave model
+      z0wave_threshold = 1.e-4_wp
 
       ks=ke
 
@@ -1043,7 +1050,7 @@ LOGICAL        ::   ldebug = .FALSE.
          !$ACC LOOP GANG(STATIC: 1) VECTOR PRIVATE(lgz0ini, l_turb, dh, vel1, vel2, fm2, fh2, fakt, lm, lh, wert, val1, val2)
          DO i=ivstart, ivend
 
-            lgz0ini=(.NOT.lgz0inp .AND. fr_land(i) <= z1d2)
+            lgz0ini=(igz0inp == 0 .AND. fr_land(i) <= z1d2)
             !Note: This definition of a non-land surface is now in line with the ICON-definition 
             !       using "frlnd_thrhld=z1d2"
 
@@ -2338,7 +2345,7 @@ LOGICAL        ::   ldebug = .FALSE.
          END DO
       END IF
 
-      IF (.NOT.lgz0inp .OR. lini) THEN
+      IF (igz0inp /= 1 .OR. lini) THEN
 !DIR$ IVDEP
       !$ACC LOOP GANG(STATIC: 1) VECTOR PRIVATE(velo, wert, fakt)
       DO i=ivstart, ivend
@@ -2374,12 +2381,21 @@ LOGICAL        ::   ldebug = .FALSE.
                                   imode_charpar.EQ.1 ),                                                      &
                            imode_charpar.GT.1 .AND. .NOT.l_lake(i) )
 
-               wert=MAX( g_len_min, fakt*wert+g_alpha1_con_m/SQRT(wert) )
+               IF (igz0inp == 2) THEN
+                 IF (z0_waves(i) > 0._wp) THEN ! z0_waves has already been provided by coupling
+                   val1 = MERGE(fakt*wert, grav*z0_waves(i), z0_waves(i) < z0wave_threshold)
+                   wert=MAX( g_len_min, val1+g_alpha1_con_m/SQRT(wert) )
+                 ELSE ! use built-in diagnostic before coupling starts
+                   wert=MAX( g_len_min, fakt*wert+g_alpha1_con_m/SQRT(wert) )
+                 ENDIF
+               ELSE
+                 wert=MAX( g_len_min, fakt*wert+g_alpha1_con_m/SQRT(wert) )
+               ENDIF
                gz0(i)=MERGE( ditsmot*gz0(i)+(z1-ditsmot)*wert, wert, ditsmot.GT.z0 )
             END IF
          END IF
       END DO
-      ENDIF  !lgz0inp
+      ENDIF  !igz0inp
 
       !$ACC END PARALLEL
 
