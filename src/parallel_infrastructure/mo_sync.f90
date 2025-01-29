@@ -113,6 +113,7 @@ TYPE(t_cumulative_sync) :: cumul_sync(4,max_dom,MAX_CUMULATIVE_SYNC)
 INTERFACE sync_patch_array
   MODULE PROCEDURE sync_patch_array_r2
   MODULE PROCEDURE sync_patch_array_r3
+  MODULE PROCEDURE sync_patch_array_s2
   MODULE PROCEDURE sync_patch_array_s3
   MODULE PROCEDURE sync_patch_array_i2
   MODULE PROCEDURE sync_patch_array_i3
@@ -344,7 +345,7 @@ END SUBROUTINE sync_patch_array_l3_nolacc
 SUBROUTINE sync_patch_array_r2_nolacc(typ, p_patch, arr, opt_varname)
    INTEGER,       INTENT(IN)    :: typ
    TYPE(t_patch), INTENT(IN) :: p_patch
-   REAL(wp), TARGET, INTENT(INOUT) :: arr(:,:)
+   REAL(dp), TARGET, INTENT(INOUT) :: arr(:,:)
    CHARACTER*(*), INTENT(IN), OPTIONAL :: opt_varname
 #ifdef _OPENACC
    CALL finish("lacc argument of mo_sync:sync_patch_array_r2 has to be provided when compiling the code with OpenACC offloading.")
@@ -359,11 +360,24 @@ SUBROUTINE sync_patch_array_r2(typ, p_patch, arr, lacc, opt_varname)
    LOGICAL, INTENT(IN) :: lacc
    CHARACTER*(*), INTENT(IN), OPTIONAL :: opt_varname
    ! local variable
-   REAL(wp), POINTER :: arr3(:,:,:)
+   REAL(dp), POINTER :: arr3(:,:,:)
 
    CALL insert_dimension(arr3, arr, 2)
    CALL sync_patch_array_r3(typ, p_patch, arr3, lacc=lacc, opt_varname=opt_varname)
 END SUBROUTINE sync_patch_array_r2
+
+SUBROUTINE sync_patch_array_s2(typ, p_patch, arr, lacc, opt_varname)
+   INTEGER,       INTENT(IN)    :: typ
+   TYPE(t_patch), INTENT(IN) :: p_patch
+   REAL(sp), TARGET, INTENT(INOUT) :: arr(:,:)
+   LOGICAL, INTENT(IN) :: lacc
+   CHARACTER*(*), INTENT(IN), OPTIONAL :: opt_varname
+   ! local variable
+   REAL(sp), POINTER :: arr3(:,:,:)
+
+   CALL insert_dimension(arr3, arr, 2)
+   CALL sync_patch_array_s3(typ, p_patch, arr3, lacc=lacc, opt_varname=opt_varname)
+END SUBROUTINE sync_patch_array_s2
 
 
 !-------------------------------------------------------------------------

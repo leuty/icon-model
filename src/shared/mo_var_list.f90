@@ -407,6 +407,9 @@ CONTAINS
       !ICON_OMP END PARALLEL
       !$ACC UPDATE DEVICE(new_elem%l_ptr) ASYNC(1) IF(new_elem%info%lopenacc)
     END SELECT
+
+    CALL new_elem%set_auxiliary_pointers()
+
     CALL register_list_element(list, new_elem)
     IF (.NOT.referenced) list%p%memory_used = list%p%memory_used + &
       & INT(new_elem%var_base_size, i8) * INT(PRODUCT(d(1:5)),i8)
@@ -1166,6 +1169,7 @@ CONTAINS
       CALL finish(routine, "internal error!")
     END SELECT
     new_list_element%r_ptr => target_element%r_ptr
+    CALL new_list_element%set_auxiliary_pointers()
     IF (.NOT. ASSOCIATED(new_list_element%r_ptr)) &
       & WRITE (0,*) 'problem with association of ptr for '//TRIM(refname)
     IF (PRESENT(lmiss)) ptr = new_list_element%info%missval%rval
@@ -1223,6 +1227,7 @@ CONTAINS
       CALL finish(routine, "internal error!")
     END SELECT
     new_list_element%r_ptr => target_element%r_ptr
+    CALL new_list_element%set_auxiliary_pointers()
     IF (.NOT. ASSOCIATED(new_list_element%r_ptr)) &
       & WRITE (0,*) 'problem with association of ptr for '//TRIM(refname)
     IF (PRESENT(lmiss)) ptr = new_list_element%info%missval%rval
@@ -1280,6 +1285,7 @@ CONTAINS
       CALL finish(routine, "internal error!")
     END SELECT
     new_list_element%r_ptr => target_element%r_ptr
+    CALL new_list_element%set_auxiliary_pointers()
     IF (.NOT. ASSOCIATED(new_list_element%r_ptr)) &
       & WRITE (0,*) 'problem with association of ptr for '//TRIM(refname)
     IF (PRESENT(lmiss)) ptr = new_list_element%info%missval%rval
@@ -1339,6 +1345,7 @@ CONTAINS
       CALL finish(routine, "internal error!")
     END SELECT
     new_list_element%s_ptr => target_element%s_ptr
+    CALL new_list_element%set_auxiliary_pointers()
     IF (.NOT. ASSOCIATED(new_list_element%s_ptr)) &
       & WRITE (0,*) 'problem with association of ptr for '//TRIM(refname)
     IF (PRESENT(lmiss)) ptr = new_list_element%info%missval%sval
@@ -1396,6 +1403,7 @@ CONTAINS
       CALL finish(routine, "internal error!")
     END SELECT
     new_list_element%s_ptr => target_element%s_ptr
+    CALL new_list_element%set_auxiliary_pointers()
     IF (.NOT. ASSOCIATED(new_list_element%s_ptr)) &
       & WRITE (0,*) 'problem with association of ptr for '//TRIM(refname)
     IF (PRESENT(lmiss)) ptr = new_list_element%info%missval%sval
@@ -1451,6 +1459,7 @@ CONTAINS
       CALL finish(routine, "internal error!")
     END SELECT
     new_list_element%s_ptr => target_element%s_ptr
+    CALL new_list_element%set_auxiliary_pointers()
     IF (.NOT. ASSOCIATED(new_list_element%s_ptr)) &
       & WRITE (0,*) 'problem with association of ptr for '//TRIM(refname)
     IF (PRESENT(lmiss)) ptr = new_list_element%info%missval%sval

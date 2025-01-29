@@ -11,7 +11,7 @@
 
 MODULE mo_var
 
-  USE mo_kind,               ONLY: dp, sp
+  USE mo_kind,               ONLY: wp, xwp, vp, dp, sp
   USE mo_var_metadata_types, ONLY: t_var_metadata, t_var_metadata_dynamic, &
                                    VINTP_TYPE_LIST
   USE mo_exception,          ONLY: message, finish, message_text
@@ -35,17 +35,27 @@ MODULE mo_var
   CHARACTER(LEN=2), PARAMETER    :: lev_type_str(4) = (/ 'ML', 'PL', 'HL', 'IL' /)
 
   TYPE t_var
-    REAL(dp), CONTIGUOUS, POINTER :: r_ptr(:,:,:,:,:) => NULL()
-    REAL(sp), CONTIGUOUS, POINTER :: s_ptr(:,:,:,:,:) => NULL()
-    INTEGER,  CONTIGUOUS, POINTER :: i_ptr(:,:,:,:,:) => NULL()
-    LOGICAL,  CONTIGUOUS, POINTER :: l_ptr(:,:,:,:,:) => NULL()
+    ! Base pointers
+    REAL(dp),     CONTIGUOUS, POINTER :: r_ptr(:,:,:,:,:) => NULL()
+    REAL(sp),     CONTIGUOUS, POINTER :: s_ptr(:,:,:,:,:) => NULL()
+    INTEGER,      CONTIGUOUS, POINTER :: i_ptr(:,:,:,:,:) => NULL()
+    LOGICAL,      CONTIGUOUS, POINTER :: l_ptr(:,:,:,:,:) => NULL()
+
+    ! Auxiliary pointers
+    !   Additional pointers which are equivalent to r_ptr or s_ptr based on working and variable precisions
+    REAL(wp),     CONTIGUOUS, POINTER :: wp_ptr(:,:,:,:,:) => NULL()
+    REAL(xwp),    CONTIGUOUS, POINTER :: xwp_ptr(:,:,:,:,:) => NULL()
+    REAL(vp),     CONTIGUOUS, POINTER :: vp_ptr(:,:,:,:,:) => NULL()
+
     INTEGER                      :: var_base_size      ! generic size in bytes of variable used
     TYPE(t_var_metadata)         :: info               ! meta data for this entry
     TYPE(t_var_metadata_dynamic) :: info_dyn           ! dynamic meta data for this entry (see type description)
     TYPE(t_var), POINTER :: ref_to => NULL()
   CONTAINS
-    PROCEDURE :: print_short => print_var_short
-    PROCEDURE :: print_rigorous => print_var_rigorous
+    PROCEDURE :: print_short => var__print_short
+    PROCEDURE :: print_rigorous => var__print_rigorous
+    PROCEDURE :: set_auxiliary_pointers => var__set_auxiliary_pointers
+
   END TYPE t_var
 
   TYPE t_var_ptr
@@ -56,7 +66,7 @@ MODULE mo_var
 
 CONTAINS
 
-  SUBROUTINE print_var_short(var)
+  SUBROUTINE var__print_short(var)
     CLASS(t_var), INTENT(IN), TARGET :: var
     CHARACTER(LEN=1), PARAMETER :: lm3(3) = ['i', 'm', 'a'], &
                                    lm4(3) = ['c', 'v', 'e']
@@ -81,9 +91,9 @@ CONTAINS
       & info%grib2%discipline, info%grib2%category,   &
       & info%grib2%number, TRIM(info%name), TRIM(info%cf%standard_name)
     CALL message('', message_text)
-  END SUBROUTINE print_var_short
+  END SUBROUTINE var__print_short
 
-  SUBROUTINE print_var_rigorous(var)
+  SUBROUTINE var__print_rigorous(var)
     CLASS(t_var), INTENT(IN), TARGET :: var
     TYPE(t_var_metadata), POINTER :: info
     TYPE(t_var_metadata_dynamic), POINTER :: info_dyn
@@ -195,6 +205,25 @@ CONTAINS
         CALL message('', category(22)//VINTP_TYPE_LIST(i))
     END DO
     CALL message('', '')
-  END SUBROUTINE print_var_rigorous
+  END SUBROUTINE var__print_rigorous
+
+  SUBROUTINE var__set_auxiliary_pointers(var)
+    CLASS(t_var), INTENT(INOUT) :: var
+    
+#ifdef __SINGLE_PRECISION
+    var%wp_ptr => var%s_ptr
+    var%xwp_ptr => var%r_ptr
+#else
+    var%wp_ptr => var%r_ptr
+    var%xwp_ptr => var%s_ptr
+#endif
+
+#ifdef __MIXED_PRECISION
+    var%vp_ptr => var%s_ptr
+#else
+    var%vp_ptr => var%wp_ptr
+#endif
+
+  END SUBROUTINE var__set_auxiliary_pointers
 
 END MODULE mo_var

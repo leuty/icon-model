@@ -27,7 +27,7 @@
 ! created in the other parts of the model: In general, variable
 ! fields are introduced in ICON through the "add_var" mechanism in
 ! the module "shared/mo_var_list". This mechanism allocates "r_ptr"
-! POINTERs for REAL(wp) variable fields, see the data structure in
+! POINTERs for REAL(dp) variable fields, see the data structure in
 ! "t_var_list_element" (mo_var_list_element.f90). The "p_nh_state"
 ! variables, for example, then point to the same location. In the
 ! output, however, there exists a data structure "t_var_desc"
@@ -68,7 +68,7 @@
 MODULE mo_name_list_output
 
   ! constants
-  USE mo_kind,                      ONLY: wp, i4, i8, dp, sp
+  USE mo_kind,                      ONLY: i4, i8, dp, sp
   USE mo_impl_constants,            ONLY: max_dom, SUCCESS, MAX_TIME_LEVELS,       &
     &                                     BOUNDARY_MISSVAL, nlat_moc
   USE mo_cdi_constants,             ONLY: GRID_REGULAR_LONLAT, GRID_UNSTRUCTURED_VERT,              &
@@ -888,11 +888,11 @@ CONTAINS
     TYPE (t_var_metadata), POINTER              :: info
     TYPE (t_reorder_info), POINTER              :: p_ri
 
-    REAL(wp), ALLOCATABLE, TARGET :: r_ptr_m(:,:,:)
+    REAL(dp), ALLOCATABLE, TARGET :: r_ptr_m(:,:,:)
     REAL(sp), ALLOCATABLE, TARGET :: s_ptr_m(:,:,:)
     INTEGER, ALLOCATABLE, TARGET :: i_ptr_m(:,:,:)
 
-    REAL(wp), POINTER :: r_ptr(:,:,:)
+    REAL(dp), POINTER :: r_ptr(:,:,:)
     REAL(sp), POINTER :: s_ptr(:,:,:)
     INTEGER, POINTER :: i_ptr(:,:,:)
     TYPE(t_comm_gather_pattern), POINTER        :: p_pat
@@ -1239,15 +1239,15 @@ CONTAINS
 
   SUBROUTINE get_ptr_to_var_data(i_ptr, r_ptr, s_ptr, tl, var_desc, info, lacc)
     TYPE (t_var_metadata), INTENT(in) :: info
-    REAL(wp), POINTER, INTENT(out) :: r_ptr(:,:,:)
+    REAL(dp), POINTER, INTENT(out) :: r_ptr(:,:,:)
     REAL(sp), POINTER, INTENT(out) :: s_ptr(:,:,:)
     INTEGER, POINTER, INTENT(out) :: i_ptr(:,:,:)
     INTEGER, INTENT(in) :: tl
     TYPE(t_var_desc), TARGET, INTENT(in) :: var_desc
     LOGICAL, INTENT(in) :: lacc
 
-    REAL(wp), SAVE, TARGET :: r_dummy(1,1,1)
-    REAL(wp), POINTER :: r_ptr_t(:,:,:,:,:,:), r_ptr_5d(:,:,:,:,:)
+    REAL(dp), SAVE, TARGET :: r_dummy(1,1,1)
+    REAL(dp), POINTER :: r_ptr_t(:,:,:,:,:,:), r_ptr_5d(:,:,:,:,:)
     REAL(sp), SAVE, TARGET :: s_dummy(1,1,1)
     REAL(sp), POINTER :: s_ptr_t(:,:,:,:,:,:), s_ptr_5d(:,:,:,:,:)
     INTEGER, SAVE, TARGET :: i_dummy(1,1,1)
@@ -1442,9 +1442,9 @@ CONTAINS
     REAL(dp), ALLOCATABLE :: r_out_dp(:)
     INTEGER, ALLOCATABLE :: r_out_int(:)
     REAL(sp), ALLOCATABLE :: r_out_sp(:)
-    REAL(wp), ALLOCATABLE :: r_out_recv(:)
-    REAL(wp), PARAMETER :: SYNC_ERROR_PRINT_TOL = 1e-13_wp
-    REAL(wp) :: missval
+    REAL(dp), ALLOCATABLE :: r_out_recv(:)
+    REAL(dp), PARAMETER :: SYNC_ERROR_PRINT_TOL = 1e-13_dp
+    REAL(dp) :: missval
     CHARACTER(LEN=*), PARAMETER :: routine = modname//"::gather_on_workroot_and_write"
 
     TYPE(t_comm_gather_pattern), INTENT(in), POINTER :: pat
@@ -1538,7 +1538,7 @@ CONTAINS
         END IF
       ELSE
         IF (idata_type == iREAL) THEN
-          r_out_dp(:)  = 0._wp
+          r_out_dp(:)  = 0._dp
 
           lev_idx = lev
           ! handle the case that a few levels have been selected out of
@@ -1551,7 +1551,7 @@ CONTAINS
             &                fill_value = BOUNDARY_MISSVAL)
 
         ELSE IF (idata_type == iREAL_sp) THEN
-          r_out_sp(:)  = 0._wp
+          r_out_sp(:)  = 0._sp
 
           lev_idx = lev
           ! handle the case that a few levels have been selected out of

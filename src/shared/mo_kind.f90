@@ -45,6 +45,7 @@ MODULE mo_kind
   !
   INTEGER, PARAMETER :: qp = SELECTED_REAL_KIND(32)
   INTEGER, PARAMETER :: wp = dp                        !< selected working precision
+  INTEGER, PARAMETER :: xwp = sp                       !< not working precision - {sp,dp} not wp
   !
 #ifdef __MIXED_PRECISION
   INTEGER, PARAMETER :: vp = sp
@@ -74,7 +75,7 @@ MODULE mo_kind
   !
   INTEGER, PARAMETER :: wi = i4                       !< selected working precission
   !
-  PUBLIC :: sp, dp, wp, vp, i1, i2, i4, i8
+  PUBLIC :: sp, dp, wp, xwp, vp, i1, i2, i4, i8
   !
   !--------------------------------------------------------------------
 
