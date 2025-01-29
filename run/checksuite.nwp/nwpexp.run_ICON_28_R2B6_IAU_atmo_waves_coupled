@@ -197,7 +197,7 @@ ln -sf $INDIR/atm/2022110300/igfff00013000.m013.R2B06.grb .
 ln -sf $INDIR/atm/2022110300/igaf2022110300.m013.R2B06.grb .
 
 # wave restart file
-ln -sf $INDIR/wave/2022110300/icon_waves_grid_0024_R02B06_G_DOM01_restart_wave_20221103T000000Z.nc restart_wave_DOM01.nc
+ln -sf $INDIR/wave/2022110300/icon_waves_grid_0024_R02B06_G_DOM01_restart_wave_20221103T000000Z_v2.nc restart_wave_DOM01.nc
 
 # ----------------------------------------------------------------------
 # global namelist settings

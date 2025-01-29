@@ -32,7 +32,7 @@ MODULE mo_wave_ext_data_init
   USE mo_intp,                ONLY: cells2edges_scalar
   USE mo_intp_data_strc,      ONLY: t_int_state
   USE mo_fortran_tools,       ONLY: copy, init
-  USE mo_loopindices,         ONLY: get_indices_c, get_indices_e
+  USE mo_loopindices,         ONLY: get_indices_c
   USE mo_process_topo,        ONLY: compute_smooth_topo
 
   USE mo_wave_ext_data_types, ONLY: t_external_wave
@@ -46,6 +46,8 @@ MODULE mo_wave_ext_data_init
   CHARACTER(LEN=*), PARAMETER :: modname = 'mo_wave_data_init'
 
   PUBLIC :: init_wave_ext_data
+  PUBLIC :: cells2edges_bathymetry
+  PUBLIC :: compute_depth_gradient
   PUBLIC :: init_coastedge_list
 
 CONTAINS
@@ -80,11 +82,21 @@ CONTAINS
         wave_ext_data(jg)%bathymetry_c(:,:) = wave_config(jg)%depth
       ELSE
 
-        ! read depth from file
-        CALL read_ext_data_wave(p_patch(jg), wave_ext_data(jg))
+        ! read bathymetry on cells from file.
+        ! Includes limiting to the range [depth_min,depth_max].
+        !
+        CALL read_ext_data_wave(p_patch(jg), wave_ext_data(jg)%bathymetry_c(:,:))
 
+
+        ! ensure that the bathymetric height stays in the range [depth_min,depth_max]
+        !
+        CALL set_bathymetry_limits(p_patch      = p_patch(jg),                       & !in
+          &                        depth_min    = wave_config(jg)%depth_min,         & !in
+          &                        depth_max    = wave_config(jg)%depth_max,         & !in
+          &                        bathymetry_c = wave_ext_data(jg)%bathymetry_c(:,:)) !inout
+
+        ! smooth bathymetry
         IF (wave_config(jg)%niter_smooth > 0) THEN
-          ! smooth bathymetry
           ALLOCATE(topo_smt_c(&
                SIZE(wave_ext_data(jg)%bathymetry_c,1), &
                SIZE(wave_ext_data(jg)%bathymetry_c,2)),&
@@ -107,11 +119,13 @@ CONTAINS
         END IF
       END IF
 
+
       ! cell2edge interpolation of bathymetry
       CALL cells2edges_bathymetry(p_patch      = p_patch(jg),                    &
         &                         p_int_state  = p_int_state(jg),                &
         &                         bathymetry_c = wave_ext_data(jg)%bathymetry_c, &
         &                         bathymetry_e = wave_ext_data(jg)%bathymetry_e)
+
 
       ! init water depth
 !$OMP PARALLEL
@@ -128,9 +142,49 @@ CONTAINS
     END DO  !jg
 
 
-    CALL message(TRIM(routine),'finished.')
+    CALL message(routine,'finished.')
 
   END SUBROUTINE init_wave_ext_data
+
+
+  !>
+  !! Ensure that the bathymetric height stays in the user-defined range [depth_min,depth_max]
+  !!
+  SUBROUTINE set_bathymetry_limits(p_patch, depth_min, depth_max, bathymetry_c)
+    TYPE(t_patch),      INTENT(IN)    :: p_patch
+    REAL(wp),           INTENT(IN)    :: depth_min       ! lower limit for bathymetry [m]
+    REAL(wp),           INTENT(IN)    :: depth_max       ! upper limit for bathymetry [m]
+    REAL(wp),           INTENT(INOUT) :: bathymetry_c(:,:)
+
+    INTEGER :: jb, jc
+    INTEGER :: rl_start, rl_end
+    INTEGER :: i_startblk, i_endblk
+    INTEGER :: i_startidx,i_endidx
+
+    rl_start   = 1
+    rl_end     = min_rlcell
+    i_startblk = p_patch%cells%start_block(rl_start)
+    i_endblk   = p_patch%cells%end_block(rl_end)
+
+    ! set depth limits depth_min and depth_max
+    !
+!$OMP PARALLEL
+!$OMP DO PRIVATE(jb,jc,i_startidx,i_endidx) ICON_OMP_DEFAULT_SCHEDULE
+    DO jb=i_startblk, i_endblk
+
+      CALL get_indices_c(p_patch, jb, i_startblk, i_endblk, &
+           i_startidx, i_endidx, rl_start, rl_end)
+
+      DO jc = i_startidx, i_endidx
+        bathymetry_c(jc,jb) = MAX(bathymetry_c(jc,jb),depth_min)
+        bathymetry_c(jc,jb) = MIN(bathymetry_c(jc,jb),depth_max)
+      END DO
+
+    END DO
+!$OMP END DO NOWAIT
+!$OMP END PARALLEL
+
+  END SUBROUTINE set_bathymetry_limits
 
 
   !>
@@ -147,40 +201,22 @@ CONTAINS
     REAL(wp):: bath_c_3d(SIZE(bathymetry_c,1),1,SIZE(bathymetry_c,2))
     REAL(wp):: bath_e_3d(SIZE(bathymetry_e,1),1,SIZE(bathymetry_e,2))
 
-    INTEGER :: jb, je
-    INTEGER :: rl_start, rl_end
-    INTEGER :: i_startblk, i_endblk
-    INTEGER :: i_startidx,i_endidx
-
-    rl_start   = 1
-    rl_end     = min_rledge
-    i_startblk = p_patch%edges%start_block(rl_start)
-    i_endblk   = p_patch%edges%end_block(rl_end)
-
 
 !$OMP PARALLEL
     CALL copy(src=bathymetry_c, dest=bath_c_3d(:,1,:), lacc=.FALSE.)
     CALL init(bath_e_3d(:,:,:), lacc=.FALSE.)
 !$OMP END PARALLEL
 
-    CALL cells2edges_scalar(bath_c_3d, p_patch, p_int_state%c_lin_e, bath_e_3d, lacc=.FALSE.)
+    CALL cells2edges_scalar(p_cell_in      = bath_c_3d(:,:,:),    &
+      &                     ptr_patch      = p_patch,             &
+      &                     c_int          = p_int_state%c_lin_e, &
+      &                     p_edge_out     = bath_e_3d(:,:,:),    &
+      &                     lacc           = .FALSE.,             &
+      &                     opt_has_latbcs = .TRUE.,              & ! set values at boundary edges
+      &                     opt_fill_latbc = .TRUE.               )
 
 !$OMP PARALLEL
     CALL copy(src=bath_e_3d(:,1,:), dest=bathymetry_e, lacc=.FALSE.)
-!$OMP BARRIER
-
-!$OMP DO PRIVATE(jb,je,i_startidx,i_endidx) ICON_OMP_DEFAULT_SCHEDULE
-    DO jb=i_startblk, i_endblk
-
-      CALL get_indices_e(p_patch, jb, i_startblk, i_endblk, &
-                         i_startidx, i_endidx, rl_start, rl_end)
-
-      DO je = i_startidx, i_endidx
-        bathymetry_e(je,jb) = MAX(bathymetry_e(je,jb),wave_config(p_patch%id)%depth_min)
-        bathymetry_e(je,jb) = MIN(bathymetry_e(je,jb),wave_config(p_patch%id)%depth_max)
-      ENDDO
-    ENDDO
-!$OMP END DO NOWAIT
 !$OMP END PARALLEL
 
   END SUBROUTINE cells2edges_bathymetry
@@ -218,15 +254,14 @@ CONTAINS
   END SUBROUTINE compute_depth_gradient
 
 
-  SUBROUTINE read_ext_data_wave(p_patch, wave_ext_data)
+  !>
+  !! read bathymetric height on cell centers from external parameter file
+  !! and ensure that the field falls within the range [depth_min,depth_max]
+  !!
+  SUBROUTINE read_ext_data_wave(p_patch, bathymetry_c)
 
-    TYPE(t_patch),         INTENT(IN)    :: p_patch
-    TYPE(t_external_wave), INTENT(INOUT) :: wave_ext_data
-
-    INTEGER :: jb, jc
-    INTEGER :: rl_start, rl_end
-    INTEGER :: i_startblk, i_endblk
-    INTEGER :: i_startidx,i_endidx
+    TYPE(t_patch),  INTENT(IN)    :: p_patch
+    REAL(wp),       INTENT(INOUT) :: bathymetry_c(:,:)  ! bathymetric height on cells
 
     TYPE(t_stream_id) :: stream_id
 
@@ -239,34 +274,12 @@ CONTAINS
 
     CALL openInputFile(stream_id, extpar_file, p_patch, default_read_method)
 
-    CALL read_2D(stream_id, on_cells, 'z', wave_ext_data%bathymetry_c)
+    CALL read_2D(stream_id, on_cells, 'z', bathymetry_c)
 
     CALL closeFile(stream_id)
 
-    rl_start   = 1
-    rl_end     = min_rlcell
-    i_startblk = p_patch%cells%start_block(rl_start)
-    i_endblk   = p_patch%cells%end_block(rl_end)
-
-    ! set depth limits depth_min and depth_max
-    !
-!$OMP PARALLEL
-!$OMP DO PRIVATE(jb,jc,i_startidx,i_endidx) ICON_OMP_DEFAULT_SCHEDULE
-    DO jb=i_startblk, i_endblk
-
-      CALL get_indices_c(p_patch, jb, i_startblk, i_endblk, &
-           i_startidx, i_endidx, rl_start, rl_end)
-
-      DO jc = i_startidx, i_endidx
-        wave_ext_data%bathymetry_c(jc,jb) = MAX(wave_ext_data%bathymetry_c(jc,jb),wave_config(p_patch%id)%depth_min)
-        wave_ext_data%bathymetry_c(jc,jb) = MIN(wave_ext_data%bathymetry_c(jc,jb),wave_config(p_patch%id)%depth_max)
-      END DO
-
-    END DO
-!$OMP END DO NOWAIT
-!$OMP END PARALLEL
-
   END SUBROUTINE read_ext_data_wave
+
 
   !>
   !! computes index list for coastal edge points (edges%refin_ctrl = 1) and stores

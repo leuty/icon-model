@@ -17,7 +17,7 @@ MODULE mo_wave_adv_exp
   USE mo_model_domain,         ONLY: t_patch
   USE mo_wave_forcing_types,   ONLY: t_wave_forcing
   USE mo_wave_config,          ONLY: t_wave_config
-  USE mo_math_constants,       ONLY: pi, rad2deg, deg2rad, dbl_eps
+  USE mo_math_constants,       ONLY: pi, deg2rad, dbl_eps
   USE mo_impl_constants,       ONLY: MAX_CHAR_LENGTH, min_rlcell
   USE mo_loopindices,          ONLY: get_indices_c
 

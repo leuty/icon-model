@@ -54,7 +54,7 @@ CONTAINS
 
 
   SUBROUTINE wave_step_advection( p_patch, p_int_state, wave_config, energy_propagation_config, &
-    &                             p_dtime, wave_num_c, gv_c, gv_e, bathymetry_c, geo_depth_grad_c, &
+    &                             p_dtime, wave_num_c, gv_c, gv_e, depth_c, geo_depth_grad_c, &
     &                             p_tracer_now, p_tracer_new )
 
     TYPE(t_patch), TARGET,            INTENT(IN):: &  !< patch on which computation is performed
@@ -81,10 +81,10 @@ CONTAINS
     REAL(wp),                         INTENT(IN):: & !< group velocity at edge center [m/s]
       &  gv_e(:,:,:)                                 !< dim: (nproma,nfreqs,nblks_e)
 
-    REAL(wp),                         INTENT(IN):: & !< bathymetry at cell center [m]
-      &  bathymetry_c(:,:)                           !< dim: (nproma,nblks_c)
+    REAL(wp),                         INTENT(IN):: & !< water depth at cell center [m]
+      &  depth_c(:,:)                                !< dim: (nproma,nblks_c)
 
-    REAL(wp),                         INTENT(IN):: & !< gradient of bathymetry [m/m]
+    REAL(wp),                         INTENT(IN):: & !< gradient of water depth [m/m]
       &  geo_depth_grad_c(:,:,:)                      !< dim: (2,nproma,nblks_c)
 
     REAL(wp), CONTIGUOUS,            INTENT(INOUT):: & !< spectral wave energy
@@ -320,7 +320,7 @@ CONTAINS
         &                  dtime       = p_dtime,                  & !in
         &                  wave_num_c  = wave_num_c(:,:,:),        & !in
         &                  gv_c        = gv_c(:,:,:),              & !in
-        &                  depth       = bathymetry_c(:,:),        & !in
+        &                  depth       = depth_c(:,:),             & !in
         &                  depth_grad  = geo_depth_grad_c(:,:,:),  & !in
         &                  tracer_now  = p_tracer_now(:,:,:,:),    & !in
         &                  tracer_new  = p_tracer_new(:,:,:,:))      !inout

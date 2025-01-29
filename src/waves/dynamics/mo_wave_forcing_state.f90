@@ -146,13 +146,6 @@ CONTAINS
          &        lrestart=.FALSE., loutput=.TRUE.,                               &
          &        ldims=shape2d_c, in_group=groups("wave_forcing") )
 
-    cf_desc    = t_cf_var('sea_ice_e', 'frac','sea ice fraction at edges', datatype_flt)
-    grib2_desc = grib2_var(255, 255, 255, ibits, GRID_UNSTRUCTURED, GRID_EDGE)
-    CALL add_var( p_forcing_list, 'sea_ice_e', p_forcing%sea_ice_e,               &
-         &        GRID_UNSTRUCTURED_EDGE, ZA_SURFACE, cf_desc, grib2_desc,        &
-         &        lrestart=.FALSE., loutput=.TRUE.,                               &
-         &        ldims=shape2d_e, in_group=groups("wave_forcing") )
-
     cf_desc    = t_cf_var('ice_free_mask_c', '-', 'ice-free mask at cells', datatype_flt)
     grib2_desc = grib2_var(255, 255, 255, ibits, GRID_UNSTRUCTURED, GRID_CELL)
     CALL add_var( p_forcing_list, 'ice_free_mask_c', p_forcing%ice_free_mask_c,  &
@@ -167,13 +160,6 @@ CONTAINS
          &        GRID_UNSTRUCTURED_CELL, ZA_SURFACE, cf_desc, grib2_desc,       &
          &        lrestart=.FALSE., loutput=.TRUE.,                              &
          &        ldims=shape2d_c, in_group=groups("wave_forcing") )
-
-    cf_desc    = t_cf_var('sea_level_e', 'm','sea level height at edges', datatype_flt)
-    grib2_desc = grib2_var(255, 255, 255, ibits, GRID_UNSTRUCTURED, GRID_EDGE)
-    CALL add_var( p_forcing_list, 'sea_level_e', p_forcing%sea_level_e,          &
-         &        GRID_UNSTRUCTURED_EDGE, ZA_SURFACE, cf_desc, grib2_desc,       &
-         &        lrestart=.FALSE., loutput=.TRUE.,                              &
-         &        ldims=shape2d_e, in_group=groups("wave_forcing") )
 
     !ocean surface currents
     cf_desc    = t_cf_var('usoce_c', 'm s-1 ','zonal ocean surface current at cells', datatype_flt)
