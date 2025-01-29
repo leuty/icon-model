@@ -20,11 +20,11 @@ NWP Physics:
 
 ### ICON-Ocean
 
-- Add GRIB codes for mld, mlotst, normal_velocity, stretch_c (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/555)
-- Diagnose temperature and salinity budgets (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/530)
-- Add diagnostics for upper ocean heat content (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/577)
-- Add new output variables (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/581)
-- Improve GPU performance (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/553)
+- Add diagnostics for all terms of the temperature and salinity budget
+- Add diagnostics for upper ocean heat content (hc300m and hc700m)
+- Add new output variables (tos, sos, sivol, snvol)
+- Add GRIB codes for ocean variables (mld, mlotst, normal_velocity, stretch_c, hctm, hc300m, hc700m, snhc, sihc)
+- Improved GPU code and performance optimizations
 
 ### ICON-Wave
 
@@ -44,11 +44,14 @@ Climate: ICON-Land
   - Minor scientific updates
     - Improvement in the first soil-layer hydrology
     - Bugfixes in snow melt calculations
+    - Bugfix in calculation of grassland phenology
+    - Bugfix: add minimum level of C limitation on nitrification and denitrification
     - Improvements in the computation of several rate modifiers used in soil biogeochemistry calculations
     - Clean-up calculation of stand-replacing harvest
     - Runtime optimisation: reduce number of aggregated variables
     - Include forcing and output of carbon isotopes
     - Read elevation for QUINCY from file
+    - Inclusion of self-thinning and herbivory in grassland PFTs
   - Merged the radiation process of QUINCY into the radiation process of JSBACH
   - Consolidate and clean up namelist handling and physical parameters between QUINCY and JSBACH
 - Small fix for ICON-Land standalone concerning nproma
@@ -69,6 +72,8 @@ Climate: ICON-Land
 - Improved vectorization on NEC machines
 - Clean-up of ICON-Land code
 - Bug fix: enable simulations with JSBACH assimilation and LAI prescribed from climatology
+- Fix: The HD global water conservation test was too strict.
+- Introduction of an output group for jsbach monitoring variables.
 
 ### Externals
 

@@ -8,11 +8,13 @@
 # SPDX-License-Identifier: BSD-3-Clause
 # ------------------------------------------
 
-# -------------------------------------------------------------
+# -------------------------------------------------------------------------------------------------
 # Atmosphere standalone script template
-#   NextGEMS namelist, R02B08, R02B09, R02B10 for production,
-#   R02B04, R02B06  for testing purposes only
-# -------------------------------------------------------------
+#   R02B04 for Buildbot testing only: 
+#   To ease maintenance only default grid_refinement, end_date, radTimeStep, restart and output 
+#   intervals are changed compared to the original exp.aes_amip script.
+#   divdamp_order = 24 is commented as it does not work with dt_checkpoint < 2.5 hours
+# -------------------------------------------------------------------------------------------------
 #
 author_list='Monika Esch, MPIM'
 #--------------------------------------------------------------------------------------------------
@@ -42,7 +44,7 @@ icon_data_poolFolder="${icon_data_rootFolder:-/pool/data/ICON}/grids/public/mpim
 #
 # Define resolution:
 #
-grid_refinement=R02B08
+grid_refinement=R02B04
 #
 # Set various parameters, time steps, start and end date etc for
 #  the different resolutions first
@@ -116,15 +118,15 @@ elif [ ${grid_refinement} == R02B04 ] ; then
    grid_id=0049
    # start and end date+time
    start_date=${start_date:="1979-01-01T00:00:00Z"}
-       end_date=${end_date:="1979-01-04T00:00:00Z"}
+       end_date=${end_date:="1979-01-01T00:04:00Z"}
 
    # time steps
-   radTimeStep="PT12M"
+   radTimeStep="PT2M"
    atmTimeStep="PT40S"
 
    # restart intervals
-   checkpoint_interval="P3D"
-   restart_interval="P3D"
+   checkpoint_interval="PT2M"
+   restart_interval="PT4M"
 
    # namelist variables
    #
@@ -194,9 +196,9 @@ fi
 # output intervals
 # ---------------------
 
-atm_output_interval_2d="PT6H"
-atm_output_interval_3d="P1D"
-atm_file_interval="P1M"
+atm_output_interval_2d="PT40S"
+atm_output_interval_3d="PT40S"
+atm_file_interval="PT40S"
 
 # output file selection
 # ---------------------
@@ -256,7 +258,7 @@ cat > ${atmo_namelist} << EOF
  iforcing             = 2           ! 0: none, 1: HS, 2: ECHAM, 3: NWP
  output               = 'nml'
  msg_level            = 10          ! level of details report during integration
- restart_filename     = "${EXPNAME}_restart_atm_<rsttime>.mfr"
+ restart_filename     = "${EXPNAME}_restart_atm_<rsttime>.nc"
  activate_sync_timers = .TRUE.
  profiling_output     = 1
  timers_level         = 10
@@ -274,7 +276,7 @@ cat > ${atmo_namelist} << EOF
  rayleigh_coeff       = 1      ! set to 0.1001 for rerun with little change
  vwind_offctr         = 0.2
  divdamp_fac          = 0.004
- divdamp_order        = 24
+ !divdamp_order        = 24    ! does not work with dt_checkpoint < 2.5 hours
  divdamp_trans_end    = 17500
  divdamp_trans_start  = 12500
  divdamp_type         = 32
@@ -568,7 +570,7 @@ cat >> ${atmo_namelist} << EOF
  netcdf_dict          = "${dict_file}"
  itype_pres_msl       = 4
  restart_file_type    = 5
- restart_write_mode   = 'joint procs multifile'
+! restart_write_mode   = 'joint procs multifile'  !prelim
  lnetcdf_flt64_output = .FALSE.
 /
 EOF
@@ -642,7 +644,7 @@ if [[ $output_atm_2d_P1D ]]; then
  mode             = 1
  output_start     = "${start_date}"
  output_end       = "${end_date}"
- output_interval  = "P1D" !
+ output_interval  = "${atm_output_interval_2d}" !
  file_interval    = "${atm_file_interval}"    !     the file interval
  operation        = 'mean'
  ml_varlist       = 'tas'     ,

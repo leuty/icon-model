@@ -91,6 +91,7 @@ case "$use_host" in
     esac
     ;;
   *.leonardo.local) use_site=cineca.it ;;
+  glogin*|alogin*) use_site=bsc.es ;;
 esac
 test x"$ICON_DOCKER" = x1 && use_site=docker
 
@@ -315,6 +316,19 @@ case "$use_site" in
     use_target='leo'; 
     if test xyes = x"${use_gpu}"; then 
         use_mpi_startrun='@MPI_LAUNCH@ -n ${SLURM_NPROCS} ${basedir}/run/run_wrapper/leo.sh'
+    fi
+  ;;
+
+  bsc.es)
+    use_submit='sbatch'
+    use_sync_submit='sbatch --wait'
+    use_mpi_startrun='srun'
+    if test xyes = x"${use_gpu}"; then
+      use_target='mn5_gpu'
+      use_mpi_startrun='@MPI_LAUNCH@ ${basedir}/run/run_wrapper/mn5_gpu.sh'
+    else
+      use_target='mn5_cpu'
+      use_mpi_startrun='@MPI_LAUNCH@'
     fi
   ;;
 
