@@ -93,7 +93,7 @@ LIBS+=' -lcraymp'
 # LD_LIBRARY_PATH variable for the configure scripts and test suites of the
 # bundled libraries to work. Therefore, we configure ICON with --disable-rpaths
 # to avoid duplicate RPATH entries in the ICON executable:
-EXTRA_CONFIG_ARGS='--disable-rpaths --disable-mpi-checks --enable-mpi-gpu --enable-gpu=openacc+hip --enable-grib2 --enable-dim-swap --enable-fcgroup-O0 --enable-fcgroup-O1 --enable-fcgroup-DIAG'
+EXTRA_CONFIG_ARGS='--disable-rpaths --disable-mpi-checks --disable-mpi-gpu --enable-gpu=openacc+hip --enable-grib2 --enable-dim-swap --enable-fcgroup-O0 --enable-fcgroup-O1 --enable-fcgroup-DIAG'
 
 ################################################################################
 

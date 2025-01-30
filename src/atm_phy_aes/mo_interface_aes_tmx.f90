@@ -556,7 +556,7 @@ CONTAINS
 
       CALL get_indices_c(patch, jb, jbs, jbe, jcs, jce, rls, rle)
 
-      !$ACC PARALLEL LOOP DEFAULT(PRESENT) GANG(STATIC: 1) VECTOR
+      !$ACC PARALLEL LOOP DEFAULT(PRESENT) GANG(STATIC: 1) VECTOR ASYNC(1)
       DO jc = jcs, jce
         zco2(jc,jb) = 348.0e-06_wp * vmr_to_mmr_co2
       END DO
