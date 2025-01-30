@@ -74,6 +74,7 @@ Climate: ICON-Land
 - Bug fix: enable simulations with JSBACH assimilation and LAI prescribed from climatology
 - Fix: The HD global water conservation test was too strict.
 - Introduction of an output group for jsbach monitoring variables.
+- Fix for bare soil evaporation and modification of roughness (heat) and photosynthetic efficiency parameters
 
 ### Externals
 
