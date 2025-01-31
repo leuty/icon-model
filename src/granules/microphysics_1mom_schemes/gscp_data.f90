@@ -19,8 +19,7 @@ MODULE gscp_data
 
 !==============================================================================
 
-USE, INTRINSIC :: iso_fortran_env, ONLY: wp => real64, i4 => int32
-
+USE mo_kind, ONLY: wp
 USE mo_math_constants    , ONLY: pi
 
 USE mo_physical_constants, ONLY: r_v   => rv    , & !> gas constant for water vapour

@@ -14,7 +14,7 @@
 
 MODULE mo_lookup_tables_constants
 
-  USE, INTRINSIC :: iso_fortran_env, ONLY: wp => real64
+  USE mo_kind, ONLY: wp
   USE mo_physical_constants, ONLY: alv, als, cpd, rd, rv, tmelt
 
 

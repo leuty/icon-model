@@ -2019,7 +2019,7 @@ FUNCTION global_min_0di(zfield) RESULT(global_min)
   ENDIF
 
   IF(p_test_run .AND. do_sync_checks) THEN
-    global_min_check = REAL(global_min)
+    global_min_check = REAL(global_min, KIND=wp)
     CALL check_result( (/ global_min_check /), 'global_min' )
   ENDIF
 
@@ -2104,7 +2104,7 @@ FUNCTION global_max_0di(zfield) RESULT(global_max)
   ENDIF
 
   IF(p_test_run .AND. do_sync_checks) THEN
-    global_max_check = REAL(global_max)
+    global_max_check = REAL(global_max, KIND=wp)
     CALL check_result( (/ global_max_check /), 'global_max' )
   ENDIF
 

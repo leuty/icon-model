@@ -78,7 +78,7 @@
 
 MODULE mo_sbm_main
 
-USE mo_kind,                 ONLY: wp, dp
+USE mo_kind,                 ONLY: wp
 USE mo_exception,            ONLY: finish, message, txt => message_text
 !USE mo_output_event_types,   ONLY: t_event_step
 !USE mo_run_config,           ONLY: iqbin, iqb_i, iqb_e, iqb_s
@@ -198,10 +198,10 @@ USE mo_physical_constants,   ONLY: cpd, cvd
   sat_method=3
  !n_chem=iqb_e
 
-  ncond = 3
-  ncoll = 1
-  dtcond = dt/REAL(ncond) ! option for long relaxation: dtcond = 200.0*dt/real(ncond)
-  dtcoll = dt/REAL(ncoll)
+  ncond = 3._wp
+  ncoll = 1._wp
+  dtcond = dt/ncond ! option for long relaxation: dtcond = 200.0*dt/ncond
+  dtcoll = dt/ncoll
   dt_coll = dtcoll
 
   del_bb=bb2_my-bb1_my
@@ -764,8 +764,8 @@ USE mo_physical_constants,   ONLY: cpd, cvd
      REAL(KIND=wp) :: dt_water_cond,dt_water_evap
      INTEGER k
      REAL(KIND=wp) :: ff1_old(nkr),supintw(nkr)
-     DOUBLE PRECISION dsupintw(nkr),dd1n,db11_my,dal1
-     DOUBLE PRECISION col3,rori,tpn,tps,qpn,qps,told,qold &
+     REAL(KIND=wp) dsupintw(nkr),dd1n,db11_my,dal1
+     REAL(KIND=wp) col3,rori,tpn,tps,qpn,qps,told,qold &
       &                  ,fi1_k &
       &                  ,r1_k  &
       &                  ,fi1r1 &
@@ -774,7 +774,7 @@ USE mo_physical_constants,   ONLY: cpd, cvd
       &                  ,tt,qq,pp &
       &                  ,del1n,del2n,div1,div2 &
       &                  ,oper2,oper3,ar1,ar2
-     DOUBLE PRECISION delmassl1
+      REAL(KIND=wp) delmassl1
 
      ! droplets
      REAL(KIND=wp) :: r1(nkr) &
@@ -787,7 +787,7 @@ USE mo_physical_constants,   ONLY: cpd, cvd
      ! new algorithm (no type of ice)
      REAL(KIND=wp) :: fl1(nkr),sfndummy(3),totccn_before, totccn_after
      INTEGER :: idrop
-     DOUBLE PRECISION :: r1d(nkr),r1nd(nkr)
+     REAL(KIND=wp) :: r1d(nkr),r1nd(nkr)
      oper2(ar1)=0.622/(0.622+0.378*ar1)/ar1
      oper3(ar1,ar2)=ar1*ar2/(0.622+0.378*ar1)
      DATA al1 /2500./, al2 /2834./, d /0.211/ &
@@ -797,7 +797,7 @@ USE mo_physical_constants,   ONLY: cpd, cvd
 !     DATA a1_myn, bb1_myn, a2_myn, bb2_myn &
 !      &      /2.53,5.42,3.41e1,6.13/
      DATA epsdel, epsdel2 /0.1e-03,0.1e-03/
-     DOUBLE PRECISION :: del1_d , del2_d, rw_d , pw_d, ri_d, pi_d, d1n_d, d2n_d, &
+     REAL(KIND=wp) :: del1_d , del2_d, rw_d , pw_d, ri_d, pi_d, d1n_d, d2n_d, &
                             vr1_d(nkr)
      sfndummy = 0.0
 !    b12_my = 0.0
@@ -1635,7 +1635,7 @@ USE mo_physical_constants,   ONLY: cpd, cvd
      RETURN
    END SUBROUTINE coll_breakup_ks
   
-   DOUBLE PRECISION FUNCTION polysvp (tt,itype,sat_method)
+   REAL(KIND=wp) FUNCTION polysvp (tt,itype,sat_method)
 
      IMPLICIT NONE
      REAL(KIND=wp), INTENT(IN) :: tt
@@ -1664,7 +1664,7 @@ USE mo_physical_constants,   ONLY: cpd, cvd
         polysvp = es2n ! [dyn/cm2] to [mb]
 
       case default
-        polysvp = HUGE(1.0_dp)
+        polysvp = HUGE(1.0_wp)
     
       end select method_select
 
