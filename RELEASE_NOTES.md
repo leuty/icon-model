@@ -54,6 +54,7 @@ Climate: ICON-Land
     - Inclusion of self-thinning and herbivory in grassland PFTs
   - Merged the radiation process of QUINCY into the radiation process of JSBACH
   - Consolidate and clean up namelist handling and physical parameters between QUINCY and JSBACH
+  - Implementation of a harvest process for QUINCY (for now using a global constant)
 - Small fix for ICON-Land standalone concerning nproma
 - New optional tag for the memory usage report
 - New functions for time control: get_previous_month_length and get_previous_year_length
