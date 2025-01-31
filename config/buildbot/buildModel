@@ -78,7 +78,7 @@ case ${BB_NAME} in
     ;;
   horeka_*)
     # KIT horeka: use quarter of a shared node
-    sbatch ${TIME_LIMITS} --wait -A hk-project-glori-init -p cpuonly -t 60 -N 1 -n 19 -o ${LOGFILE} -D ${PWD} ${ICON_DIR}/config/buildbot/buildModel.sbatch
+    sbatch ${TIME_LIMITS} --wait -A hk-project-glori-init -p dev_cpuonly -t 60 -N 1 -n 19 -o ${LOGFILE} -D ${PWD} ${ICON_DIR}/config/buildbot/buildModel.sbatch
     #cd ${ICON_DIR} && ${ICON_DIR}/config/buildbot/buildModel.sbatch > ${LOGFILE} 2>&1
     if test 0 -ne "$?" ; then
       exit 1
