@@ -10,6 +10,7 @@ AES Physics:
 - TMX turbulence
   - Fix OpenACC performance issue and OpenMP PRIVATE
   - Fix inconsistency in floating point operations by adding missing \_wp to some constants
+  - Fix for gcc14 in TMX (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/667)
 
 NWP Physics:
 

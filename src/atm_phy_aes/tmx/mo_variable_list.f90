@@ -123,8 +123,11 @@ CONTAINS
 
     item => this%getFirstVariable()
     DO WHILE ( (.NOT. item%is_item_equal_to_key(name)) .AND. ASSOCIATED(item) )
-      item => this%getNextVariable(item) 
+      item => this%getNextVariable(item)
+      IF (.NOT. ASSOCIATED(item)) EXIT
     ENDDO
+
+    IF (.NOT. ASSOCIATED(item)) RETURN
 
     p => item%item_value
 
@@ -159,14 +162,17 @@ CONTAINS
     CHARACTER(len=*), INTENT(IN) :: name
     LOGICAL, POINTER :: ptr
     
-    ASSOCIATE (tv => this%search(name))
-      SELECT TYPE (tv)
-      TYPE IS (t_variable)
+    TYPE(t_variable), POINTER :: tv
+    
+    ptr => NULL()
+
+    tv => this%search(name)
+    IF (ASSOCIATED(tv)) THEN
+      IF (ASSOCIATED(tv%l0d)) THEN
         ptr => tv%l0d
-      CLASS DEFAULT
-        ptr => NULL()
-      END SELECT
-    END ASSOCIATE
+        __acc_attach(ptr)
+      END IF
+    END IF
 
   END FUNCTION t_variable_list_get_ptr_l0d
 
@@ -175,14 +181,17 @@ CONTAINS
     CHARACTER(len=*), INTENT(IN) :: name
     LOGICAL, POINTER :: ptr(:)
     
-    ASSOCIATE (tv => this%search(name))
-      SELECT TYPE (tv)
-      CLASS IS (t_variable)
+    TYPE(t_variable), POINTER :: tv
+    
+    ptr => NULL()
+
+    tv => this%search(name)
+    IF (ASSOCIATED(tv)) THEN
+      IF (ASSOCIATED(tv%l1d)) THEN
         ptr => tv%l1d
-      CLASS DEFAULT
-        ptr => NULL()
-      END SELECT
-    END ASSOCIATE
+        __acc_attach(ptr)
+      END IF
+    END IF
 
   END FUNCTION t_variable_list_get_ptr_l1d
 
@@ -191,14 +200,17 @@ CONTAINS
     CHARACTER(len=*), INTENT(IN) :: name
     INTEGER, POINTER :: ptr
     
-    ASSOCIATE (tv => this%search(name))
-      SELECT TYPE (tv)
-      CLASS IS (t_variable)
+    TYPE(t_variable), POINTER :: tv
+    
+    ptr => NULL()
+
+    tv => this%search(name)
+    IF (ASSOCIATED(tv)) THEN
+      IF (ASSOCIATED(tv%i0d)) THEN
         ptr => tv%i0d
-      CLASS DEFAULT
-        ptr => NULL()
-      END SELECT
-    END ASSOCIATE
+        __acc_attach(ptr)
+      END IF
+    END IF
 
   END FUNCTION t_variable_list_get_ptr_i0d
 
@@ -207,14 +219,17 @@ CONTAINS
     CHARACTER(len=*), INTENT(IN) :: name
     INTEGER, POINTER :: ptr(:)
     
-    ASSOCIATE (tv => this%search(name))
-      SELECT TYPE (tv)
-      CLASS IS (t_variable)
+    TYPE(t_variable), POINTER :: tv
+    
+    ptr => NULL()
+
+    tv => this%search(name)
+    IF (ASSOCIATED(tv)) THEN
+      IF (ASSOCIATED(tv%i1d)) THEN
         ptr => tv%i1d
-      CLASS DEFAULT
-        ptr => NULL()
-      END SELECT
-    END ASSOCIATE
+        __acc_attach(ptr)
+      END IF
+    END IF
 
   END FUNCTION t_variable_list_get_ptr_i1d
 
@@ -223,15 +238,17 @@ CONTAINS
     CHARACTER(len=*), INTENT(IN) :: name
     INTEGER, POINTER :: ptr(:,:)
     
-    ASSOCIATE (tv => this%search(name))
-      SELECT TYPE (tv)
-      CLASS IS (t_variable)
+    TYPE(t_variable), POINTER :: tv
+    
+    ptr => NULL()
+
+    tv => this%search(name)
+    IF (ASSOCIATED(tv)) THEN
+      IF (ASSOCIATED(tv%i2d)) THEN
         ptr => tv%i2d
         __acc_attach(ptr)
-      CLASS DEFAULT
-        ptr => NULL()
-      END SELECT
-    END ASSOCIATE
+      END IF
+    END IF
 
   END FUNCTION t_variable_list_get_ptr_i2d
 
@@ -240,15 +257,17 @@ CONTAINS
     CHARACTER(len=*), INTENT(IN) :: name
     INTEGER, POINTER :: ptr(:,:,:)
     
-    ASSOCIATE (tv => this%search(name))
-      SELECT TYPE (tv)
-      CLASS IS (t_variable)
+    TYPE(t_variable), POINTER :: tv
+    
+    ptr => NULL()
+
+    tv => this%search(name)
+    IF (ASSOCIATED(tv)) THEN
+      IF (ASSOCIATED(tv%i3d)) THEN
         ptr => tv%i3d
         __acc_attach(ptr)
-      CLASS DEFAULT
-        ptr => NULL()
-      END SELECT
-    END ASSOCIATE
+      END IF
+    END IF
 
   END FUNCTION t_variable_list_get_ptr_i3d
 
@@ -257,14 +276,17 @@ CONTAINS
     CHARACTER(len=*), INTENT(IN) :: name
     REAL(wp), POINTER :: ptr
     
-    ASSOCIATE (tv => this%search(name))
-      SELECT TYPE (tv)
-      CLASS IS (t_variable)
+    TYPE(t_variable), POINTER :: tv
+    
+    ptr => NULL()
+
+    tv => this%search(name)
+    IF (ASSOCIATED(tv)) THEN
+      IF (ASSOCIATED(tv%r0d)) THEN
         ptr => tv%r0d
-      CLASS DEFAULT
-        ptr => NULL()
-      END SELECT
-    END ASSOCIATE
+        __acc_attach(ptr)
+      END IF
+    END IF
 
   END FUNCTION t_variable_list_get_ptr_r0d
 
@@ -273,14 +295,17 @@ CONTAINS
     CHARACTER(len=*), INTENT(IN) :: name
     REAL(wp), POINTER :: ptr(:)
     
-    ASSOCIATE (tv => this%search(name))
-      SELECT TYPE (tv)
-      CLASS IS (t_variable)
+    TYPE(t_variable), POINTER :: tv
+    
+    ptr => NULL()
+
+    tv => this%search(name)
+    IF (ASSOCIATED(tv)) THEN
+      IF (ASSOCIATED(tv%r1d)) THEN
         ptr => tv%r1d
-      CLASS DEFAULT
-        ptr => NULL()
-      END SELECT
-    END ASSOCIATE
+        __acc_attach(ptr)
+      END IF
+    END IF
 
   END FUNCTION t_variable_list_get_ptr_r1d
 
@@ -289,15 +314,17 @@ CONTAINS
     CHARACTER(len=*), INTENT(IN) :: name
     REAL(wp), POINTER :: ptr(:,:)
     
-    ASSOCIATE (tv => this%search(name))
-      SELECT TYPE (tv)
-      CLASS IS (t_variable)
+    TYPE(t_variable), POINTER :: tv
+    
+    ptr => NULL()
+
+    tv => this%search(name)
+    IF (ASSOCIATED(tv)) THEN
+      IF (ASSOCIATED(tv%r2d)) THEN
         ptr => tv%r2d
         __acc_attach(ptr)
-      CLASS DEFAULT
-        ptr => NULL()
-      END SELECT
-    END ASSOCIATE
+      END IF
+    END IF
 
   END FUNCTION t_variable_list_get_ptr_r2d
 
@@ -305,16 +332,18 @@ CONTAINS
     CLASS (t_variable_list) :: this
     CHARACTER(len=*), INTENT(IN) :: name
     REAL(wp), POINTER :: ptr(:,:,:)
+
+    TYPE(t_variable), POINTER :: tv
     
-    ASSOCIATE (tv => this%search(name))
-      SELECT TYPE (tv)
-      CLASS IS (t_variable)
+    ptr => NULL()
+
+    tv => this%search(name)
+    IF (ASSOCIATED(tv)) THEN
+      IF (ASSOCIATED(tv%r3d)) THEN
         ptr => tv%r3d
         __acc_attach(ptr)
-      CLASS DEFAULT
-        ptr => NULL()
-      END SELECT
-    END ASSOCIATE
+      END IF
+    END IF
 
   END FUNCTION t_variable_list_get_ptr_r3d
 
@@ -322,16 +351,18 @@ CONTAINS
     CLASS (t_variable_list) :: this
     CHARACTER(len=*), INTENT(IN) :: name
     REAL(vp), POINTER :: ptr(:,:)
+
+    TYPE(t_variable), POINTER :: tv
     
-    ASSOCIATE (tv => this%search(name))
-      SELECT TYPE (tv)
-      CLASS IS (t_variable)
+    ptr => NULL()
+
+    tv => this%search(name)
+    IF (ASSOCIATED(tv)) THEN
+      IF (ASSOCIATED(tv%s2d)) THEN
         ptr => tv%s2d
         __acc_attach(ptr)
-      CLASS DEFAULT
-        ptr => NULL()
-      END SELECT
-    END ASSOCIATE
+      END IF
+    END IF
 
   END FUNCTION t_variable_list_get_ptr_s2d
 
@@ -339,16 +370,18 @@ CONTAINS
     CLASS (t_variable_list) :: this
     CHARACTER(len=*), INTENT(IN) :: name
     REAL(vp), POINTER :: ptr(:,:,:)
+
+    TYPE(t_variable), POINTER :: tv
     
-    ASSOCIATE (tv => this%search(name))
-      SELECT TYPE (tv)
-      CLASS IS (t_variable)
+    ptr => NULL()
+
+    tv => this%search(name)
+    IF (ASSOCIATED(tv)) THEN
+      IF (ASSOCIATED(tv%s3d)) THEN
         ptr => tv%s3d
         __acc_attach(ptr)
-      CLASS DEFAULT
-        ptr => NULL()
-      END SELECT
-    END ASSOCIATE
+      END IF
+    END IF
 
   END FUNCTION t_variable_list_get_ptr_s3d
 
