@@ -2371,6 +2371,15 @@ create_target_header()
         *atm_nwp_jsbach_test*)
             use_memory="18gb"
             ;;
+        *aes_bubble*)
+            case $use_target in
+            bull_milan*)
+                use_queue=shared
+                use_tasks=16
+                use_mpi_procs_pernode=16
+                ;;
+            esac
+            ;; 
         *art_oem*.run)
             use_nodes=4
             case $use_target in
