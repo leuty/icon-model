@@ -18,7 +18,7 @@
 
 MODULE mo_interface_aes_tmx
 
-  USE mo_kind                ,ONLY: wp, sp
+  USE mo_kind                ,ONLY: wp, vp
   USE mtime                  ,ONLY: datetime, OPERATOR(>)
 
   USE mo_exception           ,ONLY: finish, warning
@@ -496,7 +496,7 @@ CONTAINS
   !New vdf
   SUBROUTINE init_tmx(p_patch, dtime)
 
-    USE mo_variable, ONLY: bind_variable, t_variable
+    USE mo_variable, ONLY: bind_variable, bind_variable_vp, t_variable
     USE mo_vdf,      ONLY: heat_type, momentum_type
     USE mo_vdf_atmo, ONLY: t_vdf_atmo_inputs
     ! USE mo_vdf_sfc,  ONLY: t_vdf_sfc_diagnostics
@@ -525,7 +525,7 @@ CONTAINS
     INTEGER :: nlev, nlevp1, jg
     INTEGER :: rls, rle, jbs, jbe, jcs, jce, jb, jc
     REAL(wp), POINTER :: ptr_r2d(:,:), ptr_r3d(:,:,:)
-    REAL(sp), POINTER :: ptr_s2d(:,:), ptr_s3d(:,:,:)
+    REAL(vp), POINTER :: ptr_s2d(:,:)
     INTEGER, ALLOCATABLE :: sfc_types(:)
 
     REAL(wp), POINTER :: dz_srf(:,:)
@@ -640,15 +640,9 @@ CONTAINS
     CALL bind_variable(vdf%atmo%inputs%list%Search('half level pressure'), field%phalf)
     CALL bind_variable(vdf%atmo%inputs%list%Search('layer thickness'), field%dz)
     CALL bind_variable(vdf%atmo%inputs%list%Search('layer thickness full'), p_nh_metrics%ddqz_z_full)
-    CALL bind_variable(vdf%atmo%inputs%list%Search('inverse layer thickness full'), p_nh_metrics%inv_ddqz_z_full)
+    CALL bind_variable_vp(vdf%atmo%inputs%list%Search('inverse layer thickness full'), p_nh_metrics%inv_ddqz_z_full)
     CALL bind_variable(vdf%atmo%inputs%list%Search('inverse layer thickness half'), p_nh_metrics%inv_ddqz_z_half)
-#ifdef __MIXED_PRECISION
-    ptr_s3d => p_nh_metrics%ddqz_z_half(:,:,:)
-    CALL bind_variable(vdf%atmo%inputs%list%Search('layer thickness half'), ptr_s3d)
-#else
-    ptr_r3d => p_nh_metrics%ddqz_z_half(:,:,:)
-    CALL bind_variable(vdf%atmo%inputs%list%Search('layer thickness half'), ptr_r3d)
-#endif
+    CALL bind_variable_vp(vdf%atmo%inputs%list%Search('layer thickness half'), p_nh_metrics%ddqz_z_half)
     CALL bind_variable(vdf%atmo%inputs%list%Search('geopotential above groundlevel at interface and cell center'), p_nh_metrics%geopot_agl_ifc)
     ! 2d
     ! CALL bind_variable(vdf%atmo%inputs%list%Search('area fraction with wet land surface'), field%csat)
@@ -721,13 +715,8 @@ CONTAINS
     CALL bind_variable(vdf%sfc%inputs%list%Search('cosine of zenith angle'), field%cosmu0)
     CALL bind_variable(vdf%sfc%inputs%list%Search('atm CO2 concentration'), zco2) ! TODO carbon cycle
     !
-#ifdef __MIXED_PRECISION
     ptr_s2d => p_nh_metrics%ddqz_z_half(:,nlevp1,:)
-    CALL bind_variable(vdf%sfc%inputs%list%Search('reference height in surface layer times 2'), ptr_s2d)
-#else
-    ptr_r2d => p_nh_metrics%ddqz_z_half(:,nlevp1,:)
-    CALL bind_variable(vdf%sfc%inputs%list%Search('reference height in surface layer times 2'), ptr_r2d)
-#endif
+    CALL bind_variable_vp(vdf%sfc%inputs%list%Search('reference height in surface layer times 2'), ptr_s2d)
     ! dz_srf(:,:) = 2._wp * (field%zh(:,nlev,:) - field%zh(:,nlevp1,:))
     ! dz_srf(:,:) = 2._wp * (p_nh_metrics%z_mc(:,nlev,:) - p_nh_metrics%z_ifc(:,nlevp1,:))
     ! CALL bind_variable(vdf%sfc%inputs%list%Search('reference height in surface layer times 2'), dz_srf)

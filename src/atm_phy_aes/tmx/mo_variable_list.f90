@@ -11,7 +11,7 @@
 
 MODULE mo_variable_list
 
-  USE mo_kind,                ONLY: wp, sp
+  USE mo_kind,                ONLY: wp, vp
   USE mo_generic_linked_list, ONLY: t_generic_linked_list, t_generic_linked_list_item
   USE mo_variable,            ONLY: t_variable, &
        &                            allocate_variable, &
@@ -321,7 +321,7 @@ CONTAINS
   FUNCTION t_variable_list_get_ptr_s2d(this, name) result(ptr)
     CLASS (t_variable_list) :: this
     CHARACTER(len=*), INTENT(IN) :: name
-    REAL(sp), POINTER :: ptr(:,:)
+    REAL(vp), POINTER :: ptr(:,:)
     
     ASSOCIATE (tv => this%search(name))
       SELECT TYPE (tv)
@@ -338,7 +338,7 @@ CONTAINS
   FUNCTION t_variable_list_get_ptr_s3d(this, name) result(ptr)
     CLASS (t_variable_list) :: this
     CHARACTER(len=*), INTENT(IN) :: name
-    REAL(sp), POINTER :: ptr(:,:,:)
+    REAL(vp), POINTER :: ptr(:,:,:)
     
     ASSOCIATE (tv => this%search(name))
       SELECT TYPE (tv)
@@ -544,6 +544,10 @@ CONTAINS
                 CALL fs_read_field(serializer_ref, savepoint, variable%name, variable%r2d )
                 !$ACC ENTER DATA COPYIN(variable%r2d)
               ENDIF
+              IF (variable%type_id == "real_vp") THEN
+                CALL fs_read_field(serializer_ref, savepoint, variable%name, variable%s2d )
+                !$ACC ENTER DATA COPYIN(variable%s2d)
+              ENDIF
               IF (variable%type_id == "geocoord") THEN
                 ALLOCATE( lon( variable%dims(1), variable%dims(2) ), lat( variable%dims(1), variable%dims(2) ) )
                 ! For geographical coordinates two fields are read and then copied to the target type instance
@@ -566,6 +570,10 @@ CONTAINS
               IF (variable%type_id == "real") THEN
                 CALL fs_read_field(serializer_ref, savepoint, variable%name, variable%r3d )
                 !$ACC ENTER DATA COPYIN(variable%r3d)
+              ENDIF
+              IF (variable%type_id == "real_vp") THEN
+                CALL fs_read_field(serializer_ref, savepoint, variable%name, variable%s3d )
+                !$ACC ENTER DATA COPYIN(variable%s3d)
               ENDIF
             CASE (4)
               IF (variable%type_id == "int") THEN
@@ -652,6 +660,7 @@ CONTAINS
             CASE (2)
               IF (variable%type_id == "int") CALL fs_write_field(serializer_ref, savepoint, variable%name, variable%i2d )
               IF (variable%type_id == "real") CALL fs_write_field(serializer_ref, savepoint, variable%name, variable%r2d )
+              IF (variable%type_id == "real_vp") CALL fs_write_field(serializer_ref, savepoint, variable%name, variable%s2d )
               IF (variable%type_id == "geocoord") THEN
                ALLOCATE( lon( variable%dims(1), variable%dims(2) ), lat( variable%dims(1), variable%dims(2) ) )
                DO j=1,variable%dims(2)
@@ -667,6 +676,7 @@ CONTAINS
             CASE (3)
               IF (variable%type_id == "int") CALL fs_write_field(serializer_ref, savepoint, variable%name, variable%i3d )
               IF (variable%type_id == "real") CALL fs_write_field(serializer_ref, savepoint, variable%name, variable%r3d )
+              IF (variable%type_id == "real_vp") CALL fs_write_field(serializer_ref, savepoint, variable%name, variable%s3d )
             CASE (4)
               IF (variable%type_id == "int") CALL fs_write_field(serializer_ref, savepoint, variable%name, variable%i4d )
               IF (variable%type_id == "real") CALL fs_write_field(serializer_ref, savepoint, variable%name, variable%r4d )
@@ -807,6 +817,9 @@ CONTAINS
               IF (variable%type_id == "real") THEN
                 !$ACC UPDATE HOST(variable%r2d)
               ENDIF
+              IF (variable%type_id == "real_vp") THEN
+                !$ACC UPDATE HOST(variable%s2d)
+              ENDIF
               IF (variable%type_id == "geocoord") THEN
                 !$ACC UPDATE HOST(variable%gc2d)
               ENDIF
@@ -816,6 +829,9 @@ CONTAINS
               ENDIF
               IF (variable%type_id == "real") THEN
                 !$ACC UPDATE HOST(variable%r3d)
+              ENDIF
+              IF (variable%type_id == "real_vp") THEN
+                !$ACC UPDATE HOST(variable%s3d)
               ENDIF
             CASE (4)
               IF (variable%type_id == "int") THEN

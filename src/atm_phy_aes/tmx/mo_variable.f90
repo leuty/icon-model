@@ -13,9 +13,9 @@
 
 MODULE mo_variable
 
-  USE mo_kind, ONLY : wp, sp
+  USE mo_kind, ONLY : wp, vp
   USE mo_exception, ONLY: finish
-  USE mo_fortran_tools, ONLY: init
+  USE mo_fortran_tools, ONLY: init, set_acc_host_or_device
   USE mo_math_types, ONLY : t_geographical_coordinates
 
 #ifdef _OPENACC
@@ -32,7 +32,7 @@ MODULE mo_variable
     ! Meta-data
     CHARACTER(LEN=:), ALLOCATABLE :: name
     CHARACTER(LEN=:), ALLOCATABLE :: units
-    CHARACTER(LEN=:), ALLOCATABLE :: type_id   ! "bool", "int", "real", "single", "geocoord"
+    CHARACTER(LEN=:), ALLOCATABLE :: type_id   ! "bool", "int", "real", "real_vp", "geocoord"
     INTEGER :: dim = 0
     INTEGER :: dims(5) = [ 1, 1, 1, 1, 1 ]
     INTEGER :: starts(5) = [ 1, 1, 1, 1, 1 ]
@@ -59,8 +59,8 @@ MODULE mo_variable
     REAL(wp), POINTER            :: r4d(:,:,:,:)   => NULL()
     REAL(wp), POINTER            :: r5d(:,:,:,:,:) => NULL()
 
-    REAL(sp), POINTER            :: s2d(:,:)       => NULL()
-    REAL(sp), POINTER            :: s3d(:,:,:)     => NULL()
+    REAL(vp), POINTER            :: s2d(:,:)       => NULL()
+    REAL(vp), POINTER            :: s3d(:,:,:)     => NULL()
 
     TYPE(t_geographical_coordinates ), POINTER :: gc2d(:,:) => NULL()
     TYPE(t_geographical_coordinates ), POINTER :: gc4d(:,:,:,:) => NULL()
@@ -86,13 +86,16 @@ MODULE mo_variable
     MODULE PROCEDURE bind_variable_r3d
     MODULE PROCEDURE bind_variable_r4d
     MODULE PROCEDURE bind_variable_r5d
-    MODULE PROCEDURE bind_variable_s2d
-    MODULE PROCEDURE bind_variable_s3d
     MODULE PROCEDURE bind_variable_gc2d
     MODULE PROCEDURE bind_variable_gc4d
   END INTERFACE bind_variable
 
-  PUBLIC t_variable, bind_variable, allocate_variable, deallocate_variable, unbind_variable
+  INTERFACE bind_variable_vp
+    MODULE PROCEDURE bind_variable_s2d
+    MODULE PROCEDURE bind_variable_s3d
+  END INTERFACE bind_variable_vp
+
+  PUBLIC t_variable, bind_variable, bind_variable_vp, allocate_variable, deallocate_variable, unbind_variable
 
   CHARACTER(len=*), PARAMETER :: modname = 'mo_variable'
 
@@ -461,7 +464,7 @@ CONTAINS
 
   SUBROUTINE bind_variable_s2d( tv, v )
     CLASS(t_variable), POINTER :: tv
-    REAL(sp), POINTER :: v(:,:)
+    REAL(vp), POINTER :: v(:,:)
     IF ( ASSOCIATED( tv%r2d ) ) THEN
       PRINT *, "ERROR: ", TRIM(tv%name), " is already associated"
     ELSE
@@ -483,7 +486,7 @@ CONTAINS
 
   SUBROUTINE bind_variable_s3d( tv, v )
     CLASS(t_variable), POINTER :: tv
-    REAL(sp), POINTER :: v(:,:,:)
+    REAL(vp), POINTER :: v(:,:,:)
     IF ( ASSOCIATED( tv%s3d ) ) THEN
       PRINT *, "ERROR: ", TRIM(tv%name), " is already associated"
     ELSE
@@ -597,6 +600,13 @@ CONTAINS
         CALL init(tv%r2d, lacc=.TRUE.)
         !ICON_OMP END PARALLEL
       END IF
+      IF (tv%type_id == "real_vp") THEN
+        ALLOCATE(tv%s2d(tv%starts(1):tv%starts(1)-1+tv%dims(1),tv%starts(2):tv%starts(2)-1+tv%dims(2)))
+        !$ACC ENTER DATA CREATE(tv%s2d)
+        !ICON_OMP PARALLEL
+        CALL init_vp_2d_tmp(tv%s2d, lacc=.TRUE.)
+        !ICON_OMP END PARALLEL
+      END IF
       IF (tv%type_id == "geocoord") THEN
         ALLOCATE(tv%gc2d(tv%starts(1):tv%starts(1)-1+tv%dims(1),tv%starts(2):tv%starts(2)-1+tv%dims(2)))
       END IF
@@ -614,6 +624,13 @@ CONTAINS
         !$ACC ENTER DATA CREATE(tv%r3d)
         !ICON_OMP PARALLEL
         CALL init(tv%r3d, lacc=.TRUE.)
+        !ICON_OMP END PARALLEL
+      END IF
+      IF (tv%type_id == "real_vp") THEN
+        ALLOCATE(tv%s3d(tv%starts(1):tv%starts(1)-1+tv%dims(1),tv%starts(2):tv%starts(2)-1+tv%dims(2),tv%starts(3):tv%starts(3)-1+tv%dims(3)))
+        !$ACC ENTER DATA CREATE(tv%s3d)
+        !ICON_OMP PARALLEL
+        CALL init(tv%s3d, lacc=.TRUE.)
         !ICON_OMP END PARALLEL
       END IF
 
@@ -688,11 +705,13 @@ CONTAINS
     CASE (2)
       IF (tv%type_id == "int") DEALLOCATE(tv%i2d)
       IF (tv%type_id == "real") DEALLOCATE(tv%r2d)
+      IF (tv%type_id == "real_vp") DEALLOCATE(tv%s2d)
       IF (tv%type_id == "geocoord") DEALLOCATE(tv%gc2d)
 
     CASE (3)
       IF (tv%type_id == "int") DEALLOCATE(tv%i3d)
       IF (tv%type_id == "real") DEALLOCATE(tv%r3d)
+      IF (tv%type_id == "real_vp") DEALLOCATE(tv%s3d)
 
     CASE (4)
       IF (tv%type_id == "int") DEALLOCATE(tv%i4d)
@@ -728,11 +747,13 @@ CONTAINS
     CASE (2)
       IF (tv%type_id == "int") NULLIFY(tv%i2d)
       IF (tv%type_id == "real") NULLIFY(tv%r2d)
+      IF (tv%type_id == "real_vp") NULLIFY(tv%s2d)
       IF (tv%type_id == "geocoord") NULLIFY(tv%gc2d)
 
     CASE (3)
       IF (tv%type_id == "int") NULLIFY(tv%i3d)
       IF (tv%type_id == "real") NULLIFY(tv%r3d)
+      IF (tv%type_id == "real_vp") NULLIFY(tv%s3d)
 
     CASE (4)
       IF (tv%type_id == "int") NULLIFY(tv%i4d)
@@ -746,5 +767,48 @@ CONTAINS
     END SELECT
     tv%bound = .false.
   END SUBROUTINE unbind_variable
+
+  SUBROUTINE init_vp_2d_tmp(init_var, lacc, opt_acc_async)
+    REAL(vp), INTENT(OUT) :: init_var(:, :)
+    LOGICAL, INTENT(IN), OPTIONAL :: lacc
+    LOGICAL, INTENT(IN), OPTIONAL :: opt_acc_async
+    INTEGER :: i1, i2, m1, m2
+    LOGICAL :: lzacc
+
+    CALL set_acc_host_or_device(lzacc, lacc)
+
+    m1 = SIZE(init_var, 1)
+    m2 = SIZE(init_var, 2)
+
+    !$ACC PARALLEL LOOP DEFAULT(PRESENT) ASYNC(1) COLLAPSE(2) IF(lzacc)
+#if (defined(__INTEL_COMPILER))
+    !$omp do private(i1,i2)
+#else
+    !$omp do collapse(2)
+#endif
+    DO i2 = 1, m2
+      DO i1 = 1, m1
+        init_var(i1, i2) = 0.0_vp
+      END DO
+    END DO
+!$omp end do nowait
+
+    CALL acc_wait_if_requested(1, opt_acc_async)
+  END SUBROUTINE init_vp_2d_tmp
+
+  SUBROUTINE acc_wait_if_requested(acc_async_queue, opt_acc_async)
+    INTEGER, INTENT(IN) :: acc_async_queue
+    LOGICAL, INTENT(IN), OPTIONAL :: opt_acc_async
+
+#ifdef _OPENACC
+    IF (PRESENT(opt_acc_async)) THEN
+      IF (.NOT. opt_acc_async) THEN
+          !$ACC WAIT(acc_async_queue)
+      END IF
+    ELSE
+      !$ACC WAIT(acc_async_queue)
+    END IF
+#endif
+  END SUBROUTINE acc_wait_if_requested
 
 END MODULE mo_variable

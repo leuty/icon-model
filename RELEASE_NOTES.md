@@ -116,6 +116,7 @@ Climate: ICON-Land
 #### Miscellaneous
 
 - Improve support for Cray compiler 17+ for AMD GPUs
+- Replaced `sp` with `vp` in TMX for single-precision support (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/652)
 
 
 # Release notes for icon-2024.10
