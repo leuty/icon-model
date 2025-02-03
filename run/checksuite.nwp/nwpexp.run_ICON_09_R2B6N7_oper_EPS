@@ -865,8 +865,28 @@ ICON_COMPONENT1_VH_procs=$((num_restart_procs + num_io_procs + num_prefetch_proc
 # run the model!
 # ----------------------------------------------------------------------
 
-$START_MODEL
-EXIT_STATUS=$?
+if [[ "$builder" = "rcl_nec" ]] && [[ "$with_openmp" = "no" ]]; then
+  LOWER_MEM_LIMIT=36636
+  UPPER_MEM_LIMIT=36807
+  set -o pipefail
+  # Check the memory consumption on NEC
+  $START_MODEL 3>&1 1>&2 2>&3 | $ICONDIR/run/checksuite.nwp/NEC.mem_check.py --lower_mem_limit "$LOWER_MEM_LIMIT" --upper_mem_limit "$UPPER_MEM_LIMIT" 3>&1 1>&2 2>&3
+  # `3>&1 1>&2 2>&3` swaps stderr and stdin so that python processes the original stderr.
+  EXIT_STATUS=$?
+
+  if [[ "$EXIT_STATUS" = "21" ]]; then
+    # Return code 21 is returned by mem_check.py if a threshold is exceeded
+    echo "---------------------------------------------------"
+    echo "                   try again                       "
+    echo "---------------------------------------------------"
+    $START_MODEL 3>&1 1>&2 2>&3 | $ICONDIR/run/checksuite.nwp/NEC.mem_check.py --lower_mem_limit "$LOWER_MEM_LIMIT" --upper_mem_limit "$UPPER_MEM_LIMIT" 3>&1 1>&2 2>&3
+    EXIT_STATUS=$?
+  fi
+
+else
+  $START_MODEL
+  EXIT_STATUS=$?
+fi
 
 if [ "$EXIT_STATUS" -ne "0" ]; then
   echo "ICON EXIT_STATUS: $EXIT_STATUS"
