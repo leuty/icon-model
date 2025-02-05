@@ -193,6 +193,7 @@ Climate: ICON-Land
   - Bug fixes for JSBACH pond scheme
 - Update of the scripts to generate ICON-Land initial (ic) and boundary condition (bc) files
 - Implement daily execution of anthropogenic land cover change by interpolation of annual maps
+- Allow running both: anthropogenic and natural land cover change
 - QUINCY development
   - Refactoring of the quincy soil physics process
   - Updates incl. first implementation of coupling with ICON-Atmo
