@@ -157,7 +157,7 @@ USE turb_data , ONLY :   &
     stbsmot,      & ! time smoothing factor for stability function
     frcsecu,      & ! security factor for TKE-forcing       (<=1)
     tkesecu,      & ! security factor in  TKE equation      (out of [0; 1])
-    stbsecu,      & ! security factor in stability function (out of [0; 1])
+    stbsecu,      & ! security factor in stability function (out of ]0; 1])
     epsi,         & ! relative limit of accuracy for comparison of numbers
 !
     it_end,       & ! number of iteration steps for initialization (>=0)
@@ -197,9 +197,10 @@ USE turb_data , ONLY :   &
     itype_wcld,   & ! type of water cloud diagnosis within the turbulence scheme:
                     ! 1: employing a scheme based on relative humitidy
                     ! 2: employing a statistical saturation adjustment
-    imode_stbcorr,& ! mode of correcting the stability function (related to 'stbsecu')
-                    ! 1: always for strict.-non-stb. strat. using a restr. gama in terms of prev. forc.
-                    ! 2: only to avoid non-physic. solution or if current gama is too large
+    imode_stbcalc,& ! mode of calculating the stability function (related to 'stbsecu')
+                    ! (-)1: always for unstable strat. using a restr. gama in terms of prev. forc.
+                    ! (-)2: only to avoid non-physic. solution or if current gama is too large
+                    ! negative values for additional preconditioning
     imode_pat_len,& ! mode of determining the length scale of surface patterns (related to 'pat_len')
                     ! 1: by the constant value 'pat_len' only
                     ! 2: and the std. deviat. of SGS orography as a lower limit (for old "circulation-term")
@@ -752,7 +753,7 @@ INTEGER :: i,k
 
      tet_g=grav/cp_d !adiabatic T-gradient
 
-     c_tke=d_m**z1d3    ! = exp (log(d_m) / 3.0_wp)
+     c_tke=d_m**z1d3 !=exp( log(d_m)/3.0_wp )
 
      c_m=1.0_wp-1.0_wp/(a_m*c_tke)-6.0_wp*a_m/d_m !=3*0.08
      c_h=0.0_wp !kann auch als unabhaengiger Parameter aufgefasst werden
@@ -1310,7 +1311,7 @@ LOGICAL, INTENT(IN)  :: &
   lupfrclim, & !enabling an upper limit for TKE-forcing
   lpres_edr, & !if edr is present in calling routine
   lstfnct,   & !calculation of stability function required
-  ltkeinp      !TKE present as input (at level k=ke1 for current time level 'ntur')
+  ltkeinp      !TKE present as input for current time level 'ntur'
 
 REAL (KIND=wp), INTENT(IN) :: &
 !
@@ -1468,11 +1469,14 @@ REAL (KIND=wp), POINTER, CONTIGUOUS :: &
   fm2_e(:,:)      ! pointer for the effective mechanical forcing [1/s2]
 
 LOGICAL :: lpres_avt, lpres_fcd, lrogh_lay, alt_gama, lcorr, lstbsecu
+
+INTEGER :: imode_stbcorr !mode of correcting the stability function (=ABS(imode_stbcalc)
 !-------------------------------------------------------------------------------
 
   lpres_avt=PRESENT(avt) !array for advection-tendency of TKE is present
   lpres_fcd=PRESENT(fcd) !array for small-scale canpy drag is present
-
+  
+  imode_stbcorr=ABS(imode_stbcalc) !mode of correcting the stability function
   alt_gama=(imode_stbcorr.EQ.1 .AND. .NOT.ltkeinp) !alternative gama-Berechnung
 
   IF (lssintact) THEN !seperate treatment of shear by scale interaction
@@ -1748,7 +1752,7 @@ LOGICAL :: lpres_avt, lpres_fcd, lrogh_lay, alt_gama, lcorr, lstbsecu
 
      IF (lstfnct) THEN !calculation of stability function required
 
-        lstbsecu=(stbsecu.EQ.0.0_wp)
+        lstbsecu=(imode_stbcalc.LT.0) !apply preconditioning
 
         IF (stbsmot.GT.0.0_wp) THEN !smoothing of stability function required
 !DIR$ IVDEP
@@ -1793,7 +1797,7 @@ LOGICAL :: lpres_avt, lpres_fcd, lrogh_lay, alt_gama, lcorr, lstbsecu
               gh=fh2  (i,k)*tim2 !durch thermischen Auftrieb
               gm=fm2_e(i,k)*tim2 !durch mechanische Scherung
 
-              IF (lstbsecu) THEN !Koeffizientenbelegung ohne Praeconditionierung
+              IF (.NOT.lstbsecu) THEN !Koeffizientenbelegung ohne Praeconditionierung
 
                  be1=b_h
                  be2=b_m
@@ -1827,15 +1831,27 @@ LOGICAL :: lpres_avt, lpres_fcd, lrogh_lay, alt_gama, lcorr, lstbsecu
               sm=be2*a11-be1*a21
 
               IF (det.GT.0.0_wp .AND. sh.GT.0.0_wp .AND. sm.GT.0.0_wp) THEN !Loesung moeglich
+                 !solution possible, which always holds at "fh2>=0":
                  det=1.0_wp/det
                  sh=sh*det
                  sm=sm*det
 
                  lcorr=MERGE( (sm*gm-sh*gh.GT.gam0), .FALSE., imode_stbcorr.EQ.2 )
-                 !Note (MR): This MERGE-construction fastens NEC-calculations, but causes problems on 'balfrin_gpu_nvidia_mixed'.
               END IF
 
            END IF !standard solution at given 'tke'
+
+           !Note:
+           !The pure solution for the stability functions 'sh' and 'sm' through the above linear system, inserting
+           ! given 'tke'-values from the just before solved TKE-equation, may become non-realizable at strongly 
+           ! unstable stratification, where this situation is connected with an infinite positive deviation 
+           ! 'gama:=sm*gm-sh*gh' from TKE-equilibrium "gama=dd(i,0)=:d_m".
+           !This problem is circumvented by employing a modified solution based on a predescribed deviation 'gama',
+           ! which is expressed by 'frc*tim2/tls' and an upper limit 'gam0'.
+           !This modified solution is being executed at "lcorr=T" dependent on 'imode_stbcorr':
+           ! "imode_stbcorr=1": Just for strictly non-stable stratification, that means at "fh2<0".
+           ! "imode_stbcorr=2": Only, if 'gama' exceeds the threshold 'gam0' or if the standard solution is not possible. 
+           !  At "stbsecu=0", this can only happen for "fh2<0", while it may happen also for "fh2>=0" at "stbsecu>0".
 
            ! Correction with restricted 'gama':
 
@@ -1850,7 +1866,13 @@ LOGICAL :: lpres_avt, lpres_fcd, lrogh_lay, alt_gama, lcorr, lstbsecu
               IF (alt_gama .OR. lrogh_lay) THEN !below parameters are not constant
 #endif
                  gama=MERGE( MIN( gam0, frc(i)*tim2/tls(i,k) ), gam0, alt_gama )
-                 !Note (MR): This MERGE-construction fastens NEC-calculations, but causes problems on 'balfrin_gpu_nvidia_mixed'.
+                 !Note: 
+                 !At "fh2<0", "gama<=gama0" always secures a realizable solution for any "0<stbsecu<=1".
+                 !At "fh2>=0" (which implies "imode_stbcorr=2" and thus "alt_gama=F"), it is "0<gama=gam0<sm*gm-sh*gh", 
+                 ! which always secures a realizable solution due to the properties of governing relations.
+                 !For "0<fh2->0" and "frcsecu=0", 'gam0' can get arbitrarily close to the critical value,
+                 ! which may even be hit or exceeded due to rounding errors!
+                 !Hence, in order to surely avoid non-positive 'sm'- or 'sh-values, "stbsecu>0" should always be applied.
                  wert=d_4*gama
 
                  bb1=(b_h-wert)*a_1
@@ -3463,6 +3485,8 @@ INTEGER :: i,k,n
 
 LOGICAL :: ldepth, lauxil
 
+REAL (KIND=wp), POINTER, CONTIGUOUS :: blvar(:,:), mlvar(:,:) !facilitates loop unrolling
+
    ldepth=PRESENT(depth) !'depth' has to be used
    lauxil=PRESENT(auxil) !'depth' contains boundary level height
 
@@ -3475,6 +3499,8 @@ LOGICAL :: ldepth, lauxil
 
    ! OpenACC attachment
    !$ACC DATA CREATE(pvar) ASYNC(1) IF(lzacc)
+   !$ACC DATA PRESENT(blvar, mlvar) IF(lzacc)
+
    DO n=1,nvars
 #ifdef _PGI_LEGACY_WAR
       IF(lzacc) THEN
@@ -3498,50 +3524,55 @@ LOGICAL :: ldepth, lauxil
             DO i=i_st, i_en
                auxil(i,k)=depth(i,k-1)/(depth(i,k-1)+depth(i,k))
             END DO
+         END DO  
+         !$ACC END PARALLEL
 
+         DO n=1, nvars
+            blvar => pvar(n)%bl; mlvar => pvar(n)%ml !facilitates loop-unrolling
+            !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1) IF(lzacc)
             !$ACC LOOP SEQ
-            DO n=1, nvars
+            DO k=k_en, k_st, -1
 !DIR$ IVDEP
                !$ACC LOOP GANG(STATIC: 1) VECTOR
                DO i=i_st, i_en
-                  pvar(n)%bl(i,k)=pvar(n)%ml(i,k)*auxil(i,k)+pvar(n)%ml(i,k-1)*(1._wp-auxil(i,k))
+                  blvar(i,k)=mlvar(i,k)*auxil(i,k)+mlvar(i,k-1)*(1._wp-auxil(i,k))
                END DO
             END DO
+            !$ACC END PARALLEL
          END DO
-         !$ACC END PARALLEL
 
       ELSE !no precalculation
 
-         !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1) IF(lzacc)
-         !$ACC LOOP SEQ
          DO n=1, nvars
+            blvar => pvar(n)%bl; mlvar => pvar(n)%ml !facilitates loop-unrolling
+            !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1) IF(lzacc)
             !$ACC LOOP SEQ
             DO k=k_en, k_st, -1
 !DIR$ IVDEP
                !$ACC LOOP GANG VECTOR
                DO i=i_st, i_en
-                  pvar(n)%bl(i,k)=zbnd_val(pvar(n)%ml(i,k), pvar(n)%ml(i,k-1), depth(i,k), depth(i,k-1))
+                  blvar(i,k)=zbnd_val(mlvar(i,k), mlvar(i,k-1), depth(i,k), depth(i,k-1))
                END DO
             END DO
+            !$ACC END PARALLEL
          END DO
-         !$ACC END PARALLEL
       END IF
 
    ELSE !inverse of main level interpolation
 
-      !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1) IF(lzacc)
-      !$ACC LOOP SEQ
       DO n=1, nvars
+         blvar => pvar(n)%bl; mlvar => pvar(n)%ml !facilitates loop-unrolling
+         !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1) IF(lzacc)
          !$ACC LOOP SEQ
          DO k=k_st, k_en
 !DIR$ IVDEP
             !$ACC LOOP GANG VECTOR
             DO i=i_st, i_en
-              pvar(n)%bl(i,k)=2.0_wp*pvar(n)%ml(i,k)-pvar(n)%ml(i,k+1)
+               blvar(i,k)=2.0_wp*mlvar(i,k)-mlvar(i,k+1)
             END DO
          END DO
+         !$ACC END PARALLEL
       END DO
-      !$ACC END PARALLEL
 
    END IF
 
@@ -3558,6 +3589,7 @@ LOGICAL :: ldepth, lauxil
 #endif
    END DO
    !$ACC WAIT(1)
+   !$ACC END DATA
    !$ACC END DATA
 
 END SUBROUTINE bound_level_interp

@@ -1556,7 +1556,6 @@ SUBROUTINE init_nwp_phy ( p_patch, p_metrics,             &
 !$OMP            l_lake,l_sice, &
 !$OMP            ierrstat, errormsg, eroutine) ICON_OMP_DEFAULT_SCHEDULE
 #endif
-
     DO jb = i_startblk, i_endblk
 
       CALL get_indices_c(p_patch, jb, i_startblk, i_endblk, &
@@ -1684,8 +1683,8 @@ SUBROUTINE init_nwp_phy ( p_patch, p_metrics,             &
         &  tkvm=prm_diag%tkvm(:,nlev-1:nlevp1,jb),                             &
         &  tkvh=prm_diag%tkvh(:,nlev-1:nlevp1,jb),                             &
         &  rcld=prm_diag%rcld(:,nlev-1:nlevp1,jb),                             &
-        ! Note: 'ddt_tke' is only employed here in order to transfer "0"-values for the surface level!
         &  tketens=prm_nwp_tend%ddt_tke(:,nlevp1:nlevp1,jb),                   &
+        ! Note: 'ddt_tke' is only employed here in order to transfer "0"-values for the surface level!
 !
         &  t_2m=prm_diag%t_2m(:,jb),                                           &
         &  qv_2m=prm_diag%qv_2m(:,jb),                                         &
@@ -1802,6 +1801,11 @@ SUBROUTINE init_nwp_phy ( p_patch, p_metrics,             &
       ENDDO
 
     ENDDO  ! jb
+#ifndef __PGI
+!$OMP END PARALLEL DO
+#endif
+
+    turbdiff_config(jg)%iinit=-1 !initialization has passed
 
     IF (msg_level >= 12)  CALL message(modname, 'Cosmo turbulence initialized')
 

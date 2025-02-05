@@ -96,7 +96,7 @@ MODULE mo_turbdiff_config
     REAL(wp):: &   ! enhanced minimal diffusion coefficient for momentum in the stratosphere
       &  tkmmin_strat    !
 
-    INTEGER:: &    ! mode to treating the aerodynamic surface-smoothing by snow 
+    INTEGER:: &    ! mode of estimating the Charnock-Parameter
       & imode_charpar
     INTEGER:: &    ! mode to treating the aerodynamic surface-smoothing by snow
       & imode_snowsmot
@@ -140,6 +140,8 @@ MODULE mo_turbdiff_config
     LOGICAL :: &   ! turbulent diffusion of snow QS
       &  ldiff_qs  ! .FALSE.: OFF
 
+    INTEGER :: &   ! indicator for initialization level
+      &  iinit     !
                    
   END TYPE t_turbdiff_config
 

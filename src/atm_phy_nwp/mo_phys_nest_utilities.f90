@@ -2384,7 +2384,6 @@ SUBROUTINE interpol_phys_grf (ext_data, prm_diag, p_lnd_state, jg, jgc, jn, lacc
       IF (var_in_output(jg)%sdi2) THEN
         z_aux3dp2_p(jc,31,jb) = prm_diag(jg)%sdi2(jc,jb)
       ENDIF
-
     ENDDO
     !$ACC END PARALLEL
 
@@ -2836,7 +2835,6 @@ SUBROUTINE interpol_phys_grf (ext_data, prm_diag, p_lnd_state, jg, jgc, jn, lacc
       IF (var_in_output(jgc)%sdi2) THEN
         prm_diag(jgc)%sdi2(jc,jb) = z_aux3dp2_c(jc,31,jb)
       ENDIF
-
     ENDDO
     !$ACC END PARALLEL
 

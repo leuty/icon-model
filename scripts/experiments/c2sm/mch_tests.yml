@@ -48,7 +48,7 @@ tests:
       - balfrin: 'tc'
     ensemble_num:
       - balfrin_cpu_nvidia: [11,9,44,46,13]
-      - balfrin_cpu_nvidia_mixed: [26,4,15,50,47,46]
+      - balfrin_cpu_nvidia_mixed: [15,36,28,50,41,4,2,38]
     tolerance_factor:
       - balfrin: 5
   - name: mch_pollen_test

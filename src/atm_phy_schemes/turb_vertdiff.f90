@@ -668,35 +668,26 @@ my_thrd_id = omp_get_thread_num()
             cur_prof => hlp
             dvar_av  => dvar(n)%av    ! OpenACC issue with derived type
 
-            IF (n.EQ.tem) THEN !temperature needs to be transformed
-              !$ACC PARALLEL ASYNC(1) DEFAULT(PRESENT)
-              !$ACC LOOP GANG VECTOR COLLAPSE(2)
-              DO k=k_st_up,ke !necessary profile-levels (for bottom-up integration at "igrdcon.EQ.2")
+            !$ACC PARALLEL ASYNC(1) DEFAULT(PRESENT)
+            !$ACC LOOP GANG VECTOR COLLAPSE(2)
+            DO k=k_st_up,ke !necessary profile-levels (for bottom-up integration at "igrdcon.EQ.2")
 !DIR$ IVDEP
 !$NEC ivdep
-                 DO i=ivstart, ivend
-                   cur_prof(i,k)=dvar_av(i,k)/epr(i,k) !potential temperature
-                   !Note: Here, '=dvar_av' points to ordinary temperature 't'.
-                 END DO
-              END DO
-              !$ACC END PARALLEL
-            ELSE
-              !$ACC PARALLEL ASYNC(1) DEFAULT(PRESENT)
-              !$ACC LOOP GANG VECTOR COLLAPSE(2)
-              DO k=k_st_up,ke !necessary profile-levels (for bottom-up integration at "igrdcon.EQ.2")
-!DIR$ IVDEP
-!$NEC ivdep
-                 DO i=ivstart, ivend
-                   cur_prof(i,k)=dvar_av(i,k)
-                 END DO
-              END DO
-              !$ACC END PARALLEL
-            END IF
+               DO i=ivstart, ivend
+                  IF (n.EQ.tem) THEN !temperature (needs to be transformed)
+                     cur_prof(i,k)=dvar_av(i,k)/epr(i,k) !potential temperature
+                     !Note: Here, 'dvar_av' points to ordinary temperature 't'.
+                  ELSE
+                     cur_prof(i,k)=dvar_av(i,k)
+                  END IF
+               END DO
+            END DO
+            !$ACC END PARALLEL
 
             !Surface concentrations:
 
             IF (ASSOCIATED(dvar(n)%sv)) THEN !surface variable is present
-                 dvar_sv=>dvar(n)%sv !XL_CHANGE: OpenACC issue with derived type
+               dvar_sv=>dvar(n)%sv !XL_CHANGE: OpenACC issue with derived type
 !DIR$ IVDEP
 !$NEC ivdep
                !$ACC PARALLEL ASYNC(1) DEFAULT(PRESENT)
@@ -726,12 +717,11 @@ my_thrd_id = omp_get_thread_num()
                END DO
                !$ACC END PARALLEL
             END IF
-            IF (n.EQ.tem) THEN !temperature needs to be transformed
+            IF (n.EQ.tem) THEN !temperature (needs to be transformed)
                !$ACC PARALLEL ASYNC(1) DEFAULT(PRESENT)
                !$ACC LOOP GANG VECTOR
                DO i=ivstart, ivend
                   cur_prof(i,ke1)=cur_prof(i,ke1)/eprs(i,ke1) !potential surface temperature
-                  !Note: Here, '=dvar_av' points to ordinary temperature 't'.
                END DO
                !$ACC END PARALLEL
             END IF
@@ -745,8 +735,10 @@ my_thrd_id = omp_get_thread_num()
 !DIR$ IVDEP
 !$NEC ivdep
                   DO i=ivstart, ivend
-                     IF (n.EQ.tem) THEN !temperature needs to be transformed
-                        dicke(i,k)=dvar_at(i,k)/eprs(i,ke1) !related to potential surface temperature
+                     IF (n.EQ.tem) THEN !temperature (needs to be transformed)
+                        dicke(i,k)=dvar_av(i,k)/epr(i,k) !potential temperature
+  !
+                        !Note: Here, 'dvar_av' points to ordinary temperature 't'.
                      ELSE
                         dicke(i,k)=dvar_at(i,k)
                      END IF
