@@ -425,8 +425,6 @@ cat > ${atmo_namelist} << EOF
  delta_min    = 2.0e-09
  cd_io        = 5.5e-3
  luse_replacement_pressure = .TRUE.
- l_read_initial_moist = .TRUE.
- snow_depth_max       = 10.0
 /
 EOF
 
@@ -475,6 +473,8 @@ cat > ${jsbach_namelist} << EOF
  ic_filename         = 'ic_land_soil.nc'
  bc_sso_filename     = 'bc_land_sso.nc'
  l_soil_texture      = ${l_soil_texture}
+ l_read_initial_moist = .TRUE.
+ snow_depth_max       = 10.0
 /
 &jsb_assimi_nml
  active              = .FALSE.              ! Use FALSE for jsbach_lite, TRUE for jsbach_pfts
@@ -548,14 +548,14 @@ fi
 
 datadir=${icon_data_poolFolder}/${grid_id}/sst_and_seaice/r0100
 if [ ${grid_refinement} == R02B08 ] ; then
-   add_link_file $datadir/bc_sst_1978-2016.nc                                ./bc_sst.nc
-   add_link_file $datadir/bc_sic_1978-2016.nc                                ./bc_sic.nc
+   add_link_file $datadir/bc_sst_2019-2021.nc                                ./bc_sst.nc
+   add_link_file $datadir/bc_sic_2019-2021.nc                                ./bc_sic.nc
 elif [ ${grid_refinement} == R02B09 ] ; then
-   add_link_file $datadir/bc_sst_1978-1980.nc                                ./bc_sst.nc
-   add_link_file $datadir/bc_sic_1978-1980.nc                                ./bc_sic.nc
+   add_link_file $datadir/bc_sst_1989-1990.nc                                ./bc_sst.nc
+   add_link_file $datadir/bc_sic_1989-1990.nc                                ./bc_sic.nc
 elif [ ${grid_refinement} == R02B10 ] ; then
-   add_link_file $datadir/bc_sst_1978-1980.nc                                ./bc_sst.nc
-   add_link_file $datadir/bc_sic_1978-1980.nc                                ./bc_sic.nc
+   add_link_file $datadir/bc_sst_2019-2021.nc                                ./bc_sst.nc
+   add_link_file $datadir/bc_sic_2019-2021.nc                                ./bc_sic.nc
 elif [ ${grid_refinement} == R02B11 ] ; then
    add_link_file ${icon_data_poolFolder}/${grid_id}/sst_and_seaice/sst_0037_R02B11_2019-2021.nc     ./bc_sst.nc
    add_link_file ${icon_data_poolFolder}/${grid_id}/sst_and_seaice/sic_0037_R02B11_2019-2021.nc     ./bc_sic.nc
@@ -609,7 +609,7 @@ datadir=${icon_data_poolFolder}/${grid_id}/land
   add_link_file $datadir/bc_land_soil_1992.nc                                    ./bc_land_soil.nc
   add_link_file $datadir/bc_land_sso_1992.nc                                     ./bc_land_sso.nc
 
-elif
+else
 
 datadir=${icon_data_poolFolder}/${grid_id}/land/r0100
 #
