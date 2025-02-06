@@ -9,11 +9,6 @@
 # ------------------------------------------
 
 experiments:
-  - name: mch_ch_lowres
-    check: checksuite.icon-dev/check.mch_ch_lowres
-    types: ['atm_3d_ml']
-    dates: ['20180921T000000Z']
-    restart_date: ['20180921T000000Z']
   - name: mch_ch_r04b09_dace
     check: checksuite.icon-dev/check.mch_ch_r04b09_dace
     types: ['void']

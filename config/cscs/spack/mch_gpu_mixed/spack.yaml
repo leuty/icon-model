@@ -10,16 +10,10 @@
 
 spack:
   specs:
-  - cosmo-eccodes-definitions@2.25.0.2
-  - icon @develop %nvhpc +grib2 +eccodes-definitions +ecrad +emvorado +art +dace gpu=openacc+cuda
+  - cosmo-eccodes-definitions@2.36.0.3
+  - icon @develop %nvhpc +grib2 +eccodes-definitions +ecrad +emvorado +art +dace gpu=nvidia-80
     +mpi-gpu +realloc-buf +pgi-inlib ~aes ~jsbach ~ocean ~coupling ~rte-rrtmgp ~loop-exchange
-    ~async-io-rma +mixed-precision
+    ~async-io-rma +mixed-precision +cuda-graphs
   view: true
   concretizer:
     unify: true
-  develop:
-    icon:
-      path: ../../../../..
-      spec: icon @develop %nvhpc +grib2 +eccodes-definitions +ecrad +art +dace gpu=openacc+cuda
-        +mpi-gpu +realloc-buf +pgi-inlib ~aes ~jsbach ~ocean ~coupling ~rte-rrtmgp
-        ~loop-exchange ~async-io-rma +mixed-precision

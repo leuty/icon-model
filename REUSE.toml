@@ -54,7 +54,7 @@ path = [
   ".gitlab/issue_templates/bug-report.md",
   ".gitlab/issue_templates/feature-request.md",
   "config.h.in",
-  "config/**/SPACK_TAG_*",
+  "config/**/*_TAG*",
   "run/tolerance/hashes/*",
   "schedulers/ecmwf/gen/mapfile_vlist.txt",
   "scripts/**/TAG",

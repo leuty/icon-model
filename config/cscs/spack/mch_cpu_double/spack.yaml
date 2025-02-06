@@ -1,5 +1,3 @@
-#!/bin/bash
-
 # ICON
 #
 # ------------------------------------------
@@ -9,10 +7,12 @@
 # See LICENSES/ for license information
 # SPDX-License-Identifier: BSD-3-Clause
 # ------------------------------------------
-set -eu
 
-SCRIPT_DIR=$(cd "$(dirname "$0")"; pwd)
-SPACK_VERSION=$(cat $SCRIPT_DIR/SPACK_TAG_MCH)
-BUILD_DIR=$(pwd)
-
-$SCRIPT_DIR/spack_install $SPACK_VERSION mch_gpu_mixed $BUILD_DIR
+spack:
+  specs:
+  - cosmo-eccodes-definitions@2.36.0.3
+  - icon @develop %nvhpc +grib2 +eccodes-definitions +ecrad +emvorado +art +dace ~aes
+    ~jsbach ~ocean ~coupling ~rte-rrtmgp ~loop-exchange ~async-io-rma
+  view: true
+  concretizer:
+    unify: true
