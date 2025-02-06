@@ -911,7 +911,6 @@ SUBROUTINE new_nwp_phy_diag_list( k_jg, klev, klevp1, kblks,    &
     CALL add_var( diag_list, 'prec_gsp_d', diag%prec_gsp_d,                   &
                 & GRID_UNSTRUCTURED_CELL, ZA_SURFACE, cf_desc, grib2_desc,    &
                 & ldims=shape2d,                                              &
-!                & in_group=groups("precip_vars"),                             &  ! is an optional diagnostic
                 & isteptype=TSTEP_ACCUM ,                                     &
                 & hor_interp=create_hor_interp_metadata(                      &
                 &    hor_intp_type=HINTP_TYPE_LONLAT_BCTR,                    &
@@ -929,7 +928,6 @@ SUBROUTINE new_nwp_phy_diag_list( k_jg, klev, klevp1, kblks,    &
     CALL add_var( diag_list, 'prec_con_d', diag%prec_con_d,                   &
                 & GRID_UNSTRUCTURED_CELL, ZA_SURFACE, cf_desc, grib2_desc,    &
                 & ldims=shape2d,                                              &
-!                & in_group=groups("precip_vars"),                             &  ! is an optional diagnostic
                 & isteptype=TSTEP_ACCUM ,                                     &
                 & hor_interp=create_hor_interp_metadata(                      &
                 &    hor_intp_type=HINTP_TYPE_LONLAT_BCTR,                    &
@@ -3318,8 +3316,7 @@ SUBROUTINE new_nwp_phy_diag_list( k_jg, klev, klevp1, kblks,    &
     grib2_desc = grib2_var(255, 255, 255, ibits, GRID_UNSTRUCTURED, GRID_CELL)
     CALL add_var( diag_list, 'tvm', diag%tvm,                             &
       & GRID_UNSTRUCTURED_CELL, ZA_SURFACE, cf_desc, grib2_desc,          &
-      & ldims=shape2d,                                                    &
-      & in_group=groups("pbl_vars"), lopenacc=.TRUE. )
+      & ldims=shape2d, lopenacc=.TRUE. )
     __acc_attach(diag%tvm)
 
     ! &      diag%tvh(nproma,nblks_c)
@@ -3328,8 +3325,7 @@ SUBROUTINE new_nwp_phy_diag_list( k_jg, klev, klevp1, kblks,    &
     grib2_desc = grib2_var(255, 255, 255, ibits, GRID_UNSTRUCTURED, GRID_CELL)
     CALL add_var( diag_list, 'tvh', diag%tvh,                             &
       & GRID_UNSTRUCTURED_CELL, ZA_SURFACE, cf_desc, grib2_desc,          &
-      & ldims=shape2d,                                                    &
-      & in_group=groups("pbl_vars"), lopenacc=.TRUE. )
+      & ldims=shape2d, lopenacc=.TRUE. )
     __acc_attach(diag%tvh)
 
     ! &      diag%tkred_sfc(nproma,nblks_c)
@@ -4412,7 +4408,7 @@ SUBROUTINE new_nwp_phy_diag_list( k_jg, klev, klevp1, kblks,    &
      grib2_desc = grib2_var(255, 255, 255, ibits, GRID_UNSTRUCTURED, GRID_CELL)
      CALL add_var( diag_list, 'tprn', diag%tprn,                             &
        & GRID_UNSTRUCTURED_CELL, ZA_REFERENCE_HALF, cf_desc, grib2_desc,        &
-       & ldims=shape3duse, lrestart=lrestart, loutput=.FALSE., in_group=groups("pbl_vars"),    &
+       & ldims=shape3duse, lrestart=lrestart, loutput=.FALSE.,               &
        & lopenacc=.TRUE. ) 
      __acc_attach(diag%tprn)
 

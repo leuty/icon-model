@@ -1482,7 +1482,6 @@ MODULE mo_nwp_lnd_state
       CALL add_var( diag_list, vname_prefix//'w_p', p_diag_lnd%w_p,                &
            & GRID_UNSTRUCTURED_CELL, ZA_SURFACE, cf_desc,  grib2_desc,             &
            & ldims=shape2d, lrestart=.FALSE., loutput=.TRUE.,                      &
-           & in_group=groups("land_vars"),                                         &
            & post_op=post_op(POST_OP_SCALE, arg1=1000._wp, new_cf=new_cf_desc),    &
            & lopenacc=.TRUE. )
       __acc_attach(p_diag_lnd%w_p)
@@ -1496,7 +1495,6 @@ MODULE mo_nwp_lnd_state
       CALL add_var( diag_list, vname_prefix//'w_s', p_diag_lnd%w_s,                &
            & GRID_UNSTRUCTURED_CELL, ZA_SURFACE, cf_desc, grib2_desc,              &
            & ldims=shape2d, lrestart=.FALSE., loutput=.TRUE.,                      &
-           & in_group=groups("land_vars"),                                         &
            & post_op=post_op(POST_OP_SCALE, arg1=1000._wp, new_cf=new_cf_desc),    &
            & lopenacc=.TRUE. )
       __acc_attach(p_diag_lnd%w_s)
@@ -1535,7 +1533,6 @@ MODULE mo_nwp_lnd_state
       CALL add_var( diag_list, 'qi_snowdrift_flx', p_diag_lnd%qi_snowdrift_flx,              &
              & GRID_UNSTRUCTURED_CELL, ZA_SURFACE, cf_desc, grib2_desc,          &
              & ldims=shape2d, lrestart=.FALSE.,                                  &
-             & in_group=groups('land_vars'),                                     &
              & lopenacc=.TRUE.)
       __acc_attach(p_diag_lnd%qi_snowdrift_flx)
     ENDIF
@@ -2027,7 +2024,6 @@ MODULE mo_nwp_lnd_state
     CALL add_var( diag_list, vname_prefix//'snowfrac', p_diag_lnd%snowfrac,       &
            & GRID_UNSTRUCTURED_CELL, ZA_SURFACE, cf_desc, grib2_desc,             &
            & ldims=shape2d, lrestart=.FALSE., loutput=.TRUE.,                     &
-           & in_group=groups("land_vars"),                                        &
            & post_op=post_op(POST_OP_SCALE, arg1=100._wp, new_cf=new_cf_desc),    &
            & lopenacc=.TRUE. )
     __acc_attach(p_diag_lnd%snowfrac)
