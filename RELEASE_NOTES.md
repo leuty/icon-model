@@ -10,6 +10,8 @@ AES Physics:
 - TMX turbulence
   - Fix OpenACC performance issue and OpenMP PRIVATE
   - Fix inconsistency in floating point operations by adding missing \_wp to some constants
+  - Fix for gcc14 in TMX (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/667)
+- Added support for time steps with fractional seconds in AES/ICON-Land (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/606)
 
 NWP Physics:
 
@@ -20,11 +22,11 @@ NWP Physics:
 
 ### ICON-Ocean
 
-- Add GRIB codes for mld, mlotst, normal_velocity, stretch_c (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/555)
-- Diagnose temperature and salinity budgets (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/530)
-- Add diagnostics for upper ocean heat content (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/577)
-- Add new output variables (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/581)
-- Improve GPU performance (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/553)
+- Add diagnostics for all terms of the temperature and salinity budget
+- Add diagnostics for upper ocean heat content (hc300m and hc700m)
+- Add new output variables (tos, sos, sivol, snvol)
+- Add GRIB codes for ocean variables (mld, mlotst, normal_velocity, stretch_c, hctm, hc300m, hc700m, snhc, sihc)
+- Improved GPU code and performance optimizations
 
 ### ICON-Wave
 
@@ -44,13 +46,18 @@ Climate: ICON-Land
   - Minor scientific updates
     - Improvement in the first soil-layer hydrology
     - Bugfixes in snow melt calculations
+    - Bugfix in calculation of grassland phenology
+    - Bugfix: add minimum level of C limitation on nitrification and denitrification
     - Improvements in the computation of several rate modifiers used in soil biogeochemistry calculations
     - Clean-up calculation of stand-replacing harvest
     - Runtime optimisation: reduce number of aggregated variables
     - Include forcing and output of carbon isotopes
     - Read elevation for QUINCY from file
+    - Inclusion of self-thinning and herbivory in grassland PFTs
   - Merged the radiation process of QUINCY into the radiation process of JSBACH
+  - Use JSBACH4 canopy, soil and snow albedos with QUINCY albedo calculations
   - Consolidate and clean up namelist handling and physical parameters between QUINCY and JSBACH
+  - Implementation of a harvest process for QUINCY (for now using a global constant)
 - Small fix for ICON-Land standalone concerning nproma
 - New optional tag for the memory usage report
 - New functions for time control: get_previous_month_length and get_previous_year_length
@@ -69,6 +76,9 @@ Climate: ICON-Land
 - Improved vectorization on NEC machines
 - Clean-up of ICON-Land code
 - Bug fix: enable simulations with JSBACH assimilation and LAI prescribed from climatology
+- Fix: The HD global water conservation test was too strict.
+- Introduction of an output group for jsbach monitoring variables.
+- Fix for bare soil evaporation and modification of roughness (heat) and photosynthetic efficiency parameters
 
 ### Externals
 
@@ -100,6 +110,7 @@ Climate: ICON-Land
 - Add resolution R02B06 to amip script for testing purposes only (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/613)
 - Introduce Git-LFS repository for test input data at CSCS (https://gitlab.dkrz.de/icon/icon-nwp/-/merge_requests/1558,
                                                             https://gitlab.dkrz.de/icon/icon-nwp/-/merge_requests/1652)
+- Fix for runscript generation of bubble test cases with NAG on levante (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/658)
 
 #### Building
 
@@ -108,6 +119,7 @@ Climate: ICON-Land
 #### Miscellaneous
 
 - Improve support for Cray compiler 17+ for AMD GPUs
+- Replaced `sp` with `vp` in TMX for single-precision support (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/652)
 
 
 # Release notes for icon-2024.10
@@ -181,6 +193,7 @@ Climate: ICON-Land
   - Bug fixes for JSBACH pond scheme
 - Update of the scripts to generate ICON-Land initial (ic) and boundary condition (bc) files
 - Implement daily execution of anthropogenic land cover change by interpolation of annual maps
+- Allow running both: anthropogenic and natural land cover change
 - QUINCY development
   - Refactoring of the quincy soil physics process
   - Updates incl. first implementation of coupling with ICON-Atmo

@@ -276,7 +276,7 @@ MODULE mo_name_list_output_types
   ! Unfortunately, Fortran does not allow arrays of pointers, so we
   ! have to define extra types
   TYPE t_rptr_5d
-    REAL(wp), POINTER :: p(:,:,:,:,:) => NULL()
+    REAL(dp), POINTER :: p(:,:,:,:,:) => NULL()
   END TYPE t_rptr_5d
 
   TYPE t_sptr_5d
@@ -289,8 +289,8 @@ MODULE mo_name_list_output_types
 
 
   TYPE t_var_desc
-    !> Pointer to time level independent REAL data (or NULL)
-    REAL(wp), POINTER                     :: r_ptr(:,:,:,:,:) => NULL()
+    !> Pointer to time level independent REAL(dp) data (or NULL)
+    REAL(dp), POINTER                     :: r_ptr(:,:,:,:,:) => NULL()
     !> Pointer to time level independent REAL(sp) data (or NULL)
     REAL(sp), POINTER                     :: s_ptr(:,:,:,:,:) => NULL()
     !> Pointer to time level independent INTEGER data (or NULL)

@@ -40,11 +40,27 @@ MODULE mo_kind
   INTEGER, PARAMETER :: pd =  12
   INTEGER, PARAMETER :: rd = 307
   !
+  INTEGER, PARAMETER :: pq = 30
+  !
   INTEGER, PARAMETER :: sp = SELECTED_REAL_KIND(ps,rs) !< single precision
   INTEGER, PARAMETER :: dp = SELECTED_REAL_KIND(pd,rd) !< double precision
+
+#ifndef __HAVE_QUAD_PRECISION
+#  if defined(__PGI)
+#     define __HAVE_QUAD_PRECISION 0
+#  else
+#    define __HAVE_QUAD_PRECISION 1
+#  endif
+#endif
+
+#if __HAVE_QUAD_PRECISION
+  INTEGER, PARAMETER :: qp = SELECTED_REAL_KIND(pq) !< quad precision
+#else
+  INTEGER, PARAMETER :: qp = -1 !< quad precision
+#endif
   !
-  INTEGER, PARAMETER :: qp = SELECTED_REAL_KIND(32)
   INTEGER, PARAMETER :: wp = dp                        !< selected working precision
+  INTEGER, PARAMETER :: xwp = sp                       !< not working precision - {sp,dp} not wp
   !
 #ifdef __MIXED_PRECISION
   INTEGER, PARAMETER :: vp = sp
@@ -74,7 +90,7 @@ MODULE mo_kind
   !
   INTEGER, PARAMETER :: wi = i4                       !< selected working precission
   !
-  PUBLIC :: sp, dp, wp, vp, i1, i2, i4, i8
+  PUBLIC :: sp, dp, qp, wp, xwp, vp, i1, i2, i4, i8
   !
   !--------------------------------------------------------------------
 

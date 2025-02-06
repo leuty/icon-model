@@ -2234,7 +2234,7 @@ MODULE mo_initicon_io
 
   SUBROUTINE fetch_dwdfg_jsb(requestList, inputInstructions)
 
-    USE mo_impl_constants, ONLY: REAL_T, LSS_JSBACH
+    USE mo_impl_constants, ONLY: REAL_WP_T, LSS_JSBACH
     USE mo_var_groups, ONLY: var_groups_dyn
     USE mo_var_list_register, ONLY: t_vl_register_iter
     USE mo_atm_phy_nwp_config, ONLY: atm_phy_nwp_config
@@ -2279,7 +2279,7 @@ MODULE mo_initicon_io
           found = .FALSE.
           nvars = nvars + 1
 
-          IF (vl(i)%p%info%data_type /= REAL_T) THEN
+          IF (vl(i)%p%info%data_type /= REAL_WP_T) THEN
             WRITE(message_text,'(a,a,a,i2)') 'Variable "', TRIM(vl(i)%p%info%name), '" has unhandled type: ', vl(i)%p%info%data_type
             CALL warning(routine, message_text)
             CYCLE
@@ -2287,9 +2287,9 @@ MODULE mo_initicon_io
 
           SELECT CASE (vl(i)%p%info%ndims)
           CASE (2)
-            CALL fetchSurface(params, TRIM(vl(i)%p%info%name), jg, vl(i)%p%r_ptr(:,:,1,1,1), found=found)
+            CALL fetchSurface(params, TRIM(vl(i)%p%info%name), jg, vl(i)%p%wp_ptr(:,:,1,1,1), found=found)
           CASE (3)
-            CALL fetch3d(params, TRIM(vl(i)%p%info%name), jg, vl(i)%p%r_ptr(:,:,:,1,1), found=found)
+            CALL fetch3d(params, TRIM(vl(i)%p%info%name), jg, vl(i)%p%wp_ptr(:,:,:,1,1), found=found)
           CASE DEFAULT
             WRITE(message_text,'(a,a,a,i2)') 'Variable "', TRIM(vl(i)%p%info%name), '" has unhandled number of dimensions: ', vl(i)%p%info%ndims
             CALL warning(routine, message_text)

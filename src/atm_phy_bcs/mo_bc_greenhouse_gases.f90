@@ -27,10 +27,10 @@ MODULE mo_bc_greenhouse_gases
   USE mo_netcdf_parallel,    ONLY: p_nf90_open, p_nf90_inq_dimid, p_nf90_inquire_dimension, &
        &                           p_nf90_inq_varid, p_nf90_get_var, p_nf90_close, &
        &                           p_nf90_inquire_variable
-  USE mtime,                 ONLY: datetime, no_of_sec_in_a_day, &
+  USE mtime,                 ONLY: datetime, NO_OF_SEC_IN_A_DAY, NO_OF_MS_IN_A_SECOND, &
        &                           getNoOfDaysInYearDateTime, &
-       &                           getdayofyearfromdatetime,  &
-       &                           getnoofsecondselapsedindaydatetime
+       &                           getDayOfYearFromDateTime,  &
+       &                           getNoOfSecondsElapsedInDayDateTime
 
   IMPLICIT NONE
   PRIVATE
@@ -141,16 +141,14 @@ CONTAINS
     REAL(dp) :: zw1, zw2
     REAL(wp) :: zco2int, zch4int, zn2oint
     REAL(wp) :: zcfc(ghg_no_cfc)
-    INTEGER(i8) :: yearlen, yearday
     INTEGER :: iyear, iyearm, iyearp
 
     ! interpolation in time
 
-    yearlen = getNoOfDaysInYearDateTime(radiation_date)*no_of_sec_in_a_day
-    yearday = (getdayofyearfromdatetime(radiation_date)-1)*no_of_sec_in_a_day &
-         &   +getnoofsecondselapsedindaydatetime(radiation_date)    
-    zsecref = REAL(yearlen, dp)
-    zsecnow = REAL(yearday, dp)
+    zsecref =   REAL(getNoOfDaysInYearDateTime(radiation_date)*NO_OF_SEC_IN_A_DAY, dp)
+    zsecnow =   REAL(getDayOfYearFromDateTime(radiation_date)-1, dp) * REAL(NO_OF_SEC_IN_A_DAY, dp) &
+      &       + REAL(getNoOfSecondsElapsedInDayDateTime(radiation_date), dp)                        &
+      &       + REAL(radiation_date%time%ms, dp) / REAL(NO_OF_MS_IN_A_SECOND, dp)
 
     iyear  = radiation_date%date%year - INT(ghg_base_year) + 1   ! set right index to access in ghg fields
     iyearm = iyear - 1

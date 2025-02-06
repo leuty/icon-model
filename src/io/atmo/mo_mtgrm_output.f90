@@ -136,7 +136,7 @@ MODULE mo_meteogram_output
 #endif
   USE mo_model_domain,          ONLY: t_patch, t_grid_cells
   USE mo_parallel_config,       ONLY: nproma, p_test_run
-  USE mo_impl_constants,        ONLY: inwp, max_dom, SUCCESS, REAL_T
+  USE mo_impl_constants,        ONLY: inwp, max_dom, SUCCESS, REAL_WP_T
   USE mo_math_constants,        ONLY: pi, pi_180
   USE mo_communication,         ONLY: idx_1d, blk_no, idx_no
   USE mo_ext_data_types,        ONLY: t_external_data, t_external_atmos
@@ -176,6 +176,7 @@ MODULE mo_meteogram_output
   ! generalized meteogram output
   USE mo_var_list_register,     ONLY: t_vl_register_iter
   USE mo_var,                   ONLY: t_var_ptr, level_type_ml
+  USE mo_slice_array,           ONLY: get_3d_general
   USE mo_var_metadata,          ONLY: get_var_timelevel
   USE mo_var_metadata_types,    ONLY: t_var_metadata
   USE mo_var_groups,            ONLY: var_groups_dyn
@@ -466,6 +467,7 @@ CONTAINS
     !> indices at which to find variables for compute_diagnostics
     TYPE(meteogram_diag_var_indices), INTENT(out) :: diag_var_indices
 
+    CHARACTER(len=*), PARAMETER :: routine = modname//":meteogram_setup_variables"
     CHARACTER(len=max_timedelta_str_len) :: c_time_int
     CHARACTER(len=14) :: c_thresh_int
     INTEGER           :: i
@@ -479,7 +481,8 @@ CONTAINS
     CHARACTER(len=128)            :: var_name_mtgrm
     INTEGER                       :: nindex
     INTEGER                       :: var_ref_pos
-    REAL(wp), POINTER             :: r_ptr_3d(:,:,:), r_ptr_2d(:,:)
+    REAL(wp), POINTER             :: ptr(:,:,:)
+    LOGICAL                       :: squash_dims(5)
 
     var_list%no_atmo_vars = 0
     var_list%no_sfc_vars = 0
@@ -630,57 +633,38 @@ CONTAINS
         ! for time-level dependent variables: output only once
         IF (get_var_timelevel(info%name) > 1)  CYCLE
         IF ( info%in_group(idx_group_mtgrm) ) THEN
-          IF (ASSOCIATED(elem%p%r_ptr))  THEN
-            SELECT CASE(info%data_type)
-            CASE(REAL_T)
-              IF (info%grib2%category /= 18) THEN
-                ! change case of variable name to upper
-                var_name_mtgrm = toupper(info%cf%standard_name)
-              ELSE
-                ! for nuclear variables (parameterCategory = 18) do not change case
-                var_name_mtgrm = info%cf%standard_name
-              END IF
-              ! set index and reference position of container variables
-              nindex = MERGE(info%ncontained, 1, info%lcontained)
-              SELECT CASE (info%ndims)
-              CASE (2)
-                var_ref_pos = MERGE(info%var_ref_pos, 3, info%lcontained)
-                SELECT CASE(var_ref_pos)
-                CASE (1)
-                  r_ptr_2d => elem%p%r_ptr(nindex,:,:,1,1)
-                CASE (2)
-                  r_ptr_2d => elem%p%r_ptr(:,nindex,:,1,1)
-                CASE (3)
-                  r_ptr_2d => elem%p%r_ptr(:,:,nindex,1,1)
-                END SELECT
-                IF ( ANY((/ZA_SURFACE, ZA_ATMOSPHERE/) == info%vgrid) ) THEN
-                  CALL add_sfc_var(meteogram_config, var_list, VAR_GROUP_SURFACE, &
-                    &              var_name_mtgrm, info%cf%units, &
-                    &              info%cf%long_name, sfc_var_info, r_ptr_2d)
-                END IF
-              CASE (3)
-                var_ref_pos = MERGE(info%var_ref_pos, 4, info%lcontained)
-                SELECT CASE(var_ref_pos)
-                CASE (1)
-                  r_ptr_3d => elem%p%r_ptr(nindex,:,:,:,1)
-                CASE (2)
-                  r_ptr_3d => elem%p%r_ptr(:,nindex,:,:,1)
-                CASE (3)
-                  r_ptr_3d => elem%p%r_ptr(:,:,nindex,:,1)
-                CASE (4)
-                  r_ptr_3d => elem%p%r_ptr(:,:,:,nindex,1)
-                END SELECT
-                IF ( info%vgrid == ZA_REFERENCE ) THEN
-                  CALL add_atmo_var(meteogram_config, var_list, VAR_GROUP_ATMO_ML, &
-                    &               var_name_mtgrm, info%cf%units, &
-                    &               info%cf%long_name, var_info, r_ptr_3d)
-                ELSE IF ( info%vgrid == ZA_REFERENCE_HALF ) THEN
-                  CALL add_atmo_var(meteogram_config, var_list, VAR_GROUP_ATMO_HL, &
-                    &               var_name_mtgrm, info%cf%units, &
-                    &               info%cf%long_name, var_info, r_ptr_3d)
-                END IF
-              END SELECT
-            END SELECT
+          IF (ASSOCIATED(elem%p%wp_ptr))  THEN
+            IF (info%data_type /= REAL_WP_T ) &
+              CALL finish(routine, "Unexpected datatype")
+
+            IF (info%grib2%category /= 18) THEN
+              ! change case of variable name to upper
+              var_name_mtgrm = toupper(info%cf%standard_name)
+            ELSE
+              ! for nuclear variables (parameterCategory = 18) do not change case
+              var_name_mtgrm = info%cf%standard_name
+            END IF
+            nindex      = MERGE(info%ncontained,  1, info%lcontained)
+            var_ref_pos = MERGE(info%var_ref_pos, 4, info%lcontained)
+
+            squash_dims(:) = (/.FALSE.,.FALSE.,.FALSE.,.FALSE.,.TRUE./)
+            squash_dims(var_ref_pos) = .TRUE.
+            ptr => get_3d_general(elem%p%wp_ptr, (/nindex,1/), squash_dims)
+
+            IF ( info%vgrid == ZA_REFERENCE .AND. info%ndims == 3 ) THEN
+              CALL add_atmo_var(meteogram_config, var_list, VAR_GROUP_ATMO_ML, &
+                &               var_name_mtgrm, info%cf%units, &
+                &               info%cf%long_name, var_info, ptr)
+            ELSE IF ( info%vgrid == ZA_REFERENCE_HALF .AND. info%ndims == 3 ) THEN
+              CALL add_atmo_var(meteogram_config, var_list, VAR_GROUP_ATMO_HL, &
+                &               var_name_mtgrm, info%cf%units, &
+                &               info%cf%long_name, var_info, ptr)
+            ELSE IF ( ANY((/ZA_SURFACE, ZA_ATMOSPHERE/) == info%vgrid) .AND. info%ndims == 2 ) THEN
+              CALL add_sfc_var(meteogram_config, var_list, VAR_GROUP_SURFACE, &
+                &              var_name_mtgrm, info%cf%units, &
+                &              info%cf%long_name, sfc_var_info, &
+                &              elem%p%wp_ptr(:,:,1,1,1))
+            END IF
           END IF
         END IF
       ENDDO LOOPVAR

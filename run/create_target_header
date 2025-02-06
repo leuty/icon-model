@@ -785,6 +785,155 @@ export FI_MR_CACHE_MONITOR=memhooks
 EOF
 }
 
+#=============================================================================
+set_run_target_mn5_cpu()
+{
+    # Mare Nostrum 5 at BSC
+    icon_data_rootFolder=${icon_data_rootFolder:=/gpfs/projects/ehpc01/models/icon/inidata}
+
+    set_default use_nproma 32
+    set_default use_nblocks_c 0
+    set_default use_nproma_sub 32
+    set_default use_account_no "ehpc01"
+    set_default use_nodes 1
+    set_default use_queue "gpp"
+    set_default use_qos "gp_ehpc"
+
+    use_OMP_SCHEDULE="static"
+
+    is_serial_run="no"
+
+    set_default use_mpi_procs_pernode 28
+    set_default use_openmp_threads 4
+
+    job_type=parallel
+    tasks_per_node=$use_mpi_procs_pernode
+    SBATCH_nodes="SBATCH --nodes=$use_nodes"
+    SBATCH_ntasks_per_node="SBATCH --ntasks-per-node=${tasks_per_node}"
+    SBATCH_cpus_per_task="SBATCH --cpus-per-task=${use_openmp_threads}"
+
+    use_openmp_threads=\$SLURM_CPUS_PER_TASK
+    use_mpi_startrun="srun --cpus-per-task=\${SLURM_CPUS_PER_TASK}"
+
+    # ------------------------------------
+    job_log_name=""
+    if [[ "x$BB_SYSTEM" != "x" ]]
+    then
+	# this buildbot, do not use job id
+	job_log_name="LOG.%x"
+    else
+	job_log_name="LOG.%x.%j"
+    fi
+    # ------------------------------------
+    s_cpu_time="00:30:00"
+    if [[ "x$use_cpu_time" != "x" ]]
+    then
+      s_cpu_time="$use_cpu_time"
+    fi
+    # ------------------------------------
+
+    cat >> $output_script << EOF
+#-----------------------------------------------------------------------------
+
+# MN5 cpu batch job parameters
+# ------------------------------
+#SBATCH --job-name=$job_name
+#SBATCH --account=$use_account_no
+#SBATCH --output=$output_folder/$job_log_name.o
+#SBATCH --error=$output_folder/$job_log_name.o
+#$SBATCH_nodes
+#$SBATCH_ntasks_per_node
+#$SBATCH_cpus_per_task
+#SBATCH --time=${s_cpu_time}
+#SBATCH --partition=${use_queue}
+#SBATCH --qos=${use_qos}
+$(if [[ "x$BB_SYSTEM" != 'x' ]]
+ then
+  printf "#SBATCH ${TIME_LIMITS}
+";fi)
+EOF
+
+    start_header
+    cat >>$output_script <<EOF
+
+export OMP_PLACES=cores
+EOF
+}
+
+#-----------------------------------------------------------------------------
+set_run_target_mn5_gpu()
+{
+    # Mare Nostrum 5 at BSC
+    icon_data_rootFolder=${icon_data_rootFolder:=/gpfs/projects/ehpc01/models/icon/inidata}
+
+    set_default use_nproma 0
+    set_default use_nblocks_c 1
+    set_default use_nproma_sub 0
+    set_default use_account_no "ehpc01"
+    set_default use_nodes 1
+    set_default use_queue "acc"
+    set_default use_qos "acc_ehpc"
+
+    use_OMP_SCHEDULE="static"
+
+    is_serial_run="no"
+
+    set_default use_mpi_procs_pernode 4
+    set_default use_cpus_per_task 20
+    set_default use_openmp_threads 1
+
+    job_type=parallel
+    tasks_per_node=$use_mpi_procs_pernode
+    SBATCH_nodes="SBATCH --nodes=$use_nodes"
+    SBATCH_ntasks_per_node="SBATCH --ntasks-per-node=${tasks_per_node}"
+    SBATCH_cpus_per_task="SBATCH --cpus-per-task=${use_cpus_per_task}"
+
+    # ------------------------------------
+    job_log_name=""
+    if [[ "x$BB_SYSTEM" != "x" ]]
+    then
+	# this buildbot, do not use job id
+	job_log_name="LOG.%x"
+    else
+	job_log_name="LOG.%x.%j"
+    fi
+    # ------------------------------------
+    s_cpu_time="00:30:00"
+    if [[ "x$use_cpu_time" != "x" ]]
+    then
+      s_cpu_time="$use_cpu_time"
+    fi
+    # ------------------------------------
+
+    cat >> $output_script << EOF
+#-----------------------------------------------------------------------------
+
+# MN5 gpu batch job parameters
+# ------------------------------
+#SBATCH --job-name=$job_name
+#SBATCH --account=$use_account_no
+#SBATCH --output=$output_folder/$job_log_name.o
+#SBATCH --error=$output_folder/$job_log_name.o
+#$SBATCH_nodes
+#$SBATCH_ntasks_per_node
+#$SBATCH_cpus_per_task
+#SBATCH --gpus-per-node=${tasks_per_node}
+#SBATCH --time=${s_cpu_time}
+#SBATCH --partition=${use_queue}
+#SBATCH --qos=${use_qos}
+$(if [[ "x$BB_SYSTEM" != 'x' ]]
+ then
+  printf "#SBATCH ${TIME_LIMITS}
+";fi)
+EOF
+
+    start_header
+    cat >>$output_script <<EOF
+
+export SLURM_CPU_BIND=none
+EOF
+}
+
 #-----------------------------------------------------------------------------
 set_run_target_docker_cpu()
 {
@@ -2222,6 +2371,15 @@ create_target_header()
         *atm_nwp_jsbach_test*)
             use_memory="18gb"
             ;;
+        *aes_bubble*)
+            case $use_target in
+            bull_milan*)
+                use_queue=shared
+                use_tasks=16
+                use_mpi_procs_pernode=16
+                ;;
+            esac
+            ;; 
         *art_oem*.run)
             use_nodes=4
             case $use_target in

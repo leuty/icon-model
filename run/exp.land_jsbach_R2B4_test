@@ -92,6 +92,7 @@ jsbach_with_lakes=yes
 jsbach_with_hd=yes
 jsbach_with_carbon=yes        # yes needs jsbach_pfts usecase
 jsbach_check_wbal=yes         # check water balance
+output_lnd_mon=yes            # Generate monitoring output
 output_lnd=medium             # amount of output: none/basic/medium/full
                               #  -> Note: full output does not work with all processes switched on
                               #     (too many variables)
@@ -554,6 +555,26 @@ EOF
   fi
   cat >> $jsbach_namelist << EOF
 /
+EOF
+fi
+
+if [[ ${output_lnd_mon} == yes ]]; then
+  cat >> ${jsbach_namelist} << EOF
+&output_nml
+ output_filename  = "${EXPNAME}_lnd_mon"
+ filename_format  = "<output_filename>_<levtype_l>_<datetime2>"
+ filetype         = 5
+ remap            = 0
+ operation        = 'mean'
+ output_grid      = .FALSE.
+ output_start     = "${start_date}"
+ output_end       = "${end_date}"
+ output_interval  = "${output_interval}"
+ file_interval    = "${file_interval}" ! R: PT1H nur zum debuggen
+ include_last     = .FALSE.
+ ml_varlist       = 'group:jsb_mon'
+/
+
 EOF
 fi
 

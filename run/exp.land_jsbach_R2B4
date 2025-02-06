@@ -97,8 +97,9 @@ cpools_file=""                # with read_cpools=true: file containig the carbon
 jsbach_with_disturbance=yes   # Set 'no' with uscase jsbach_lite and jsbach_forest_age_classes
 jsbach_with_alcc=no           # ALCC needs annual land uses maps, not available for most input data revisions!
                               #      set 'no' with jsbach_lite usecase
-jsbach_with_nlcc=no           # NLCC needs manual namelist adaptations within the first simulation years!!
-                              #      not available with jsbach_lite usecase
+jsbach_with_nlcc=no           # NLCC needs manual namelist adaptations within the first simulation years:
+                              #      uncomment lines marked with "nlcc run 1", "nlcc run 2" or "nlcc run 3".
+                              #      Not available with jsbach_lite usecase
 jsbach_check_wbal=no          # Additional output to check water balance
 output_lnd_mon=yes            # Generate monitoring output
 output_lnd=basic              # Amount of output: none/basic/medium/full
@@ -344,6 +345,12 @@ cat >> $jsbach_namelist << EOF
 /
 &jsb_assimi_nml
   active          = ${calc_assimi}
+  !nlcc run 2>>
+  ! init_running_means = .TRUE.
+  !nlcc run 2<<
+  !nlcc run 3>>
+  ! init_running_means = .TRUE.
+  !nlcc run 3<<
 /
 &jsb_pheno_nml
   scheme          = "${pheno_scheme}"
@@ -425,6 +432,17 @@ if [[ ${jsbach_with_nlcc} = yes ]]; then
   cat >> $jsbach_namelist << EOF
 &jsb_nlcc_nml
   active               = .TRUE.
+  !nlcc run 1>>
+  ! init_nlcc = .TRUE.
+  ! accelerate_nlcc = 0.1
+  !nlcc run 1<<
+  !nlcc run 2>>
+  ! init_running_means = .TRUE.
+  ! accelerate_nlcc = 0.1
+  !nlcc run 2<<
+  !nlcc run 3>>
+  ! init_running_means = .TRUE.
+  !nlcc run 3<<
 /
 EOF
 fi
@@ -660,44 +678,10 @@ if [[ ${output_lnd_mon} == yes ]]; then
  filename_format         = "<output_filename>_<datetime2>"
  remap                   = 0                         ! 1: latlon,  0: native grid
  operation               = "mean"                    ! works on icon grid only (remap=0)
-    ml_varlist = 'hydro_trans_gmean_box', 'hydro_evapotrans_gmean_box',
-                 'hydro_weq_land_gsum_box', 'hydro_discharge_ocean_gsum_box',
-                 'hydro_wtr_rootzone_rel_gmean_box',
-                 'hydro_fract_snow_gsum_box', 'hydro_weq_snow_gsum_box',
-                 'hydro_weq_balance_err_gsum_box',
-                 'seb_t_gmean_box',
-EOF
-  if [[ ${jsbach_usecase} != "jsbach_lite" ]]; then
-    cat >> ${jsbach_namelist} << EOF
-                 'pheno_lai_ta_gmean_box', 'pheno_fract_fpc_gmean_box',
-EOF
-  fi
-  if [[ ${jsbach_with_hd} == yes ]]; then
-    cat >> ${jsbach_namelist} << EOF
-                 'hd_water_error_gsum_box',
-EOF
-  fi
-  if [[ ${jsbach_with_carbon} == yes ]]; then
-    cat >> ${jsbach_namelist} << EOF
-                 'carbon_c_sum_veg_gsum_box', 'carbon_c_sum_litter_ag_gsum_box',
-                 'carbon_c_sum_litter_bg_gsum_box', 'carbon_c_sum_humus_gsum_box',
-                 'carbon_c_sum_natural_gsum_box', 'carbon_NPP_act_yDayMean_gsum_box',
-                 'carbon_GPP_yDayMean_gsum_box', 'carbon_soil_respiration_gsum_box'
-EOF
-  fi
-  if [[ ${jsbach_with_lcc} == yes ]]; then
-    cat >> ${jsbach_namelist} << EOF
-                 'pplcc_tree_area_gsum_box', 'pplcc_shrub_area_gsum_box',
-                 'pplcc_grass_area_gsum_box', 'pplcc_crop_area_gsum_box',
-                 'pplcc_pasture_area_gsum_box', 'pplcc_baresoil_area_gsum_box',
-                 'pplcc_C3pft_area_gsum_box', 'pplcc_C4pft_area_gsum_box',
-EOF
-  fi
-
-  cat >> ${jsbach_namelist} << EOF
+ ml_varlist              = 'group:jsb_mon'
 /
-
 EOF
+
 fi
 
 #-----------------------------------------------------------------------------

@@ -730,7 +730,6 @@ CONTAINS
 
     INTEGER  :: jb, jl, jls, js
 
-    ! REAL ::
     REAL(wp), POINTER, DIMENSION(:,:) :: &
       &jsb_evapotrans_ptr => NULL(), jsb_latent_hflx_ptr => NULL(), jsb_sensible_hflx_ptr => NULL()
 

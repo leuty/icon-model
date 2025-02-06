@@ -146,7 +146,7 @@
 
 MODULE mo_pp_scheduler
 
-  USE mo_kind,                    ONLY: wp
+  USE mo_kind,                    ONLY: wp, dp, sp
   USE mo_exception,               ONLY: message, message_text, finish
   USE mo_impl_constants,          ONLY: SUCCESS, HINTP_TYPE_NONE, max_var_ml,               &
     &                                   max_var_pl, max_var_hl, max_var_il, TASK_NONE,      &
@@ -435,7 +435,8 @@ CONTAINS
     TYPE (t_output_name_list), POINTER    :: p_onl
     TYPE(t_job_queue),         POINTER    :: task
     TYPE(t_var_list_ptr),      POINTER    :: p_opt_diag_list
-    REAL(wp), POINTER                     :: p_opt_field_r3d(:,:,:)
+    REAL(dp), POINTER                     :: p_opt_field_r3d(:,:,:)
+    REAL(sp), POINTER                     :: p_opt_field_s3d(:,:,:)
     INTEGER,  POINTER                     :: p_opt_field_i3d(:,:,:)
     TYPE(t_var), POINTER :: elem, new_elem
     CHARACTER(LEN=vname_len),  POINTER    :: varlist(:)
@@ -668,7 +669,7 @@ CONTAINS
             END IF
             ! SINGLE PRECISION FLOAT fields
             IF (ASSOCIATED(elem%s_ptr)) THEN
-              CALL add_var( p_opt_diag_list, LONLAT_PREFIX//info%name, p_opt_field_r3d,          &
+              CALL add_var( p_opt_diag_list, LONLAT_PREFIX//info%name, p_opt_field_s3d,          &
                 &           GRID_REGULAR_LONLAT, info%vgrid, info%cf, info%grib2, &
                 &           ldims=var_shape, lrestart=.FALSE.,                    &
                 &           tracer_info=info_dyn%tracer,                          &
@@ -678,7 +679,7 @@ CONTAINS
                 &           vert_interp=info%vert_interp,                         &
                 &           post_op=info%post_op,                                 &
                 &           lmiss=info%lmiss,                                     &
-                &           missval=REAL(info%missval%sval,wp),                   &
+                &           missval=info%missval%sval,                            &
                 &           var_class=info%var_class,                             &
                 &           tlev_source=info%tlev_source, lopenacc=.TRUE.)
             END IF

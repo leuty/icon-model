@@ -9,7 +9,7 @@
 ! SPDX-License-Identifier: BSD-3-Clause
 ! ---------------------------------------------------------------
 
-! Module containing subroutine summing up the vertical integrals of water vapour, liquid water, 
+! Module containing subroutine summing up the vertical integrals of water vapour, liquid water,
 ! cloud ice, rain, snow, and graupel to the total cloud water
 
 MODULE mo_diagnose_tcw
@@ -42,14 +42,9 @@ CONTAINS
     jtl_trc = nnew_rcf(jg)
 
     IF (ASSOCIATED(prm_field(jg)%tcw)) THEN
-      ! 
+      !
       !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1)
       !$ACC LOOP GANG VECTOR
-      DO jc = jcs, jce
-        prm_field(jg)%tcw(jc,jb) = 0.0_wp
-      END DO ! jc
-      !
-      !$ACC LOOP SEQ
       DO jc = jcs, jce
         prm_field(jg)%tcw(jc,jb) =   prm_field(jg)%mtrcvi(jc,jb,iqv) &
                                  & + prm_field(jg)%mtrcvi(jc,jb,iqc) &

@@ -42,8 +42,7 @@ MODULE gscp_graupel
 !------------------------------------------------------------------------------
 
 
-USE, INTRINSIC :: iso_fortran_env, ONLY: wp => real64, &
-                                         i4 => int32
+USE mo_kind, ONLY: wp, i4
 
 USE mo_thdyn_functions,    ONLY: sat_pres_water, &  !! saturation vapor pressure w.r.t. water
                                  sat_pres_ice,   &  !! saturation vapor pressure w.r.t. ice

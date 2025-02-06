@@ -158,15 +158,15 @@ CONTAINS
     !c_k        = 0.1_wp
     !c_eps      = 0.7_wp
     !alpha_tke  = 30.0_wp
-    !mxl_min    = 1.d-8_wp
+    !mxl_min    = 1.e-8_wp
     !use_Kappa_min = .false.
-    !KappaM_min = 1.d-4_wp
-    !KappaH_min = 1.d-5_wp
+    !KappaM_min = 1.e-4_wp
+    !KappaH_min = 1.e-5_wp
     !KappaM_max = 100.0_wp
     !cd         = 3.75_wp
-    !tke_min    = 1.d-6_wp
+    !tke_min    = 1.e-6_wp
     !tke_mxl_choice = 2
-    !tke_surf_min = 1.d-4_wp
+    !tke_surf_min = 1.e-4_wp
     !only_tke = .true.
     !use_ubound_dirichlet = .false.
     !use_lbound_dirichlet = .false.
@@ -285,16 +285,16 @@ CONTAINS
     !$ACC   IF(lzacc)
 
     !$ACC KERNELS DEFAULT(PRESENT) ASYNC(1) IF(lzacc)
-    tke_kv(:,:,:) = 0.0
-    tke_Av(:,:,:) = 0.0
-    tke_iw_alpha_c(:,:,:) = 0.0
-    tke_iwe(:,:,:) = 0.0
-    tke_iwe_forcing(:,:,:) = 0.0
+    tke_kv(:,:,:) = 0.0_wp
+    tke_Av(:,:,:) = 0.0_wp
+    tke_iw_alpha_c(:,:,:) = 0.0_wp
+    tke_iwe(:,:,:) = 0.0_wp
+    tke_iwe_forcing(:,:,:) = 0.0_wp
     !$ACC END KERNELS
 
     !$ACC KERNELS DEFAULT(PRESENT) ASYNC(1) IF(lzacc)
-    forc_rho_surf_2D(:,:) = 0.0
-    bottom_fric_2D(:,:) = 0.0
+    forc_rho_surf_2D(:,:) = 0.0_wp
+    bottom_fric_2D(:,:) = 0.0_wp
     !$ACC END KERNELS
     !$ACC WAIT(1)
 
@@ -530,7 +530,7 @@ CONTAINS
     ! interpolate vert. visosity from cell center to edges
     DO blockNo = edges_in_domain%start_block, edges_in_domain%end_block
       !$ACC KERNELS DEFAULT(PRESENT) ASYNC(1) IF(lzacc)
-      params_oce%a_veloc_v(:,:,blockNo) = 0.0
+      params_oce%a_veloc_v(:,:,blockNo) = 0.0_wp
       !$ACC END KERNELS
 
       CALL get_index_range(edges_in_domain, blockNo, start_index, end_index)
@@ -653,30 +653,30 @@ CONTAINS
 !    REAL(wp) :: minmaxmean(3)
 
     REAL(wp) :: dummy_zeros(n_zlev+1)
-    dummy_zeros = 0.0
+    dummy_zeros = 0.0_wp
 
-    !tke = 0.0
+    !tke = 0.0_wp
     tke => params_oce%vmix_params%tke(:,:,:)
-    !tke_Tbpr = 0.0
-    !tke_Tspr = 0.0
-    !tke_Tdif = 0.0
-    !tke_Tdis = 0.0
-    !tke_Twin = 0.0
-    !tke_Tiwf = 0.0
-    !tke_Tbck = 0.0
-    !tke_Ttot = 0.0
-    !tke_Lmix = 0.0
-    !tke_Pr = 0.0
-    !dummy_1 = 0.0
-    !dummy_2 = 0.0
-    !dummy_3 = 0.0
-    tke_kv = 0.0
-    tke_Av = 0.0
-    tke_iw_alpha_c = 0.0
-    tke_iwe = 0.0
-    tke_iwe_forcing = 0.0
-    forc_rho_surf_2D = 0.0
-    bottom_fric_2D = 0.0
+    !tke_Tbpr = 0.0_wp
+    !tke_Tspr = 0.0_wp
+    !tke_Tdif = 0.0_wp
+    !tke_Tdis = 0.0_wp
+    !tke_Twin = 0.0_wp
+    !tke_Tiwf = 0.0_wp
+    !tke_Tbck = 0.0_wp
+    !tke_Ttot = 0.0_wp
+    !tke_Lmix = 0.0_wp
+    !tke_Pr = 0.0_wp
+    !dummy_1 = 0.0_wp
+    !dummy_2 = 0.0_wp
+    !dummy_3 = 0.0_wp
+    tke_kv = 0.0_wp
+    tke_Av = 0.0_wp
+    tke_iw_alpha_c = 0.0_wp
+    tke_iwe = 0.0_wp
+    tke_iwe_forcing = 0.0_wp
+    forc_rho_surf_2D = 0.0_wp
+    bottom_fric_2D = 0.0_wp
 
     IF(l_lc) THEN
       ! Langmuir turbulence variables
@@ -924,7 +924,7 @@ CONTAINS
 !ICON_OMP_DO PRIVATE(start_index, end_index, je, levels, cell_1_idx, cell_1_block, cell_2_idx, cell_2_block, &
 !ICON_OMP jk)
       DO blockNo = edges_in_domain%start_block, edges_in_domain%end_block
-        params_oce%a_veloc_v(:,:,blockNo) = 0.0
+        params_oce%a_veloc_v(:,:,blockNo) = 0.0_wp
 
         CALL get_index_range(edges_in_domain, blockNo, start_index, end_index)
         DO je = start_index, end_index
@@ -1066,32 +1066,32 @@ CONTAINS
     ! Suppress Unused-argument warning
     IF (SIZE(fu10) < 0) THEN; END IF
 
-    !tke = 0.0
+    !tke = 0.0_wp
     tke => params_oce%vmix_params%tke(:,:,:)
     tke_old = tke
-    !tke_Tbpr = 0.0
-    !tke_Tspr = 0.0
-    !tke_Tdif = 0.0
-    !tke_Tdis = 0.0
-    !tke_Twin = 0.0
-    !tke_Tiwf = 0.0
-    !tke_Tbck = 0.0
-    !tke_Ttot = 0.0
-    !tke_Lmix = 0.0
-    !tke_Pr = 0.0
-    !dummy_1 = 0.0
-    !dummy_2 = 0.0
-    !dummy_3 = 0.0
-    tke_kv = 0.0
-    tke_Av = 0.0
-    tke_iw_alpha_c = 0.0
-    tke_iwe = 0.0
-    tke_iwe_forcing = 0.0
-    forc_rho_surf_2D = 0.0
-    bottom_fric_2D = 0.0
+    !tke_Tbpr = 0.0_wp
+    !tke_Tspr = 0.0_wp
+    !tke_Tdif = 0.0_wp
+    !tke_Tdis = 0.0_wp
+    !tke_Twin = 0.0_wp
+    !tke_Tiwf = 0.0_wp
+    !tke_Tbck = 0.0_wp
+    !tke_Ttot = 0.0_wp
+    !tke_Lmix = 0.0_wp
+    !tke_Pr = 0.0_wp
+    !dummy_1 = 0.0_wp
+    !dummy_2 = 0.0_wp
+    !dummy_3 = 0.0_wp
+    tke_kv = 0.0_wp
+    tke_Av = 0.0_wp
+    tke_iw_alpha_c = 0.0_wp
+    tke_iwe = 0.0_wp
+    tke_iwe_forcing = 0.0_wp
+    forc_rho_surf_2D = 0.0_wp
+    bottom_fric_2D = 0.0_wp
 
-    dzw_stretched = 0.0
-    dzt_stretched = 0.0
+    dzw_stretched = 0.0_wp
+    dzt_stretched = 0.0_wp
 
     IF(l_lc) THEN
       ! Langmuir turbulence variables
@@ -1159,8 +1159,8 @@ CONTAINS
 
       max_levels = MAXVAL(dolic_c(start_index:end_index, blockNo))
 
-      Nsqr = 0.
-      Ssqr = 0.
+      Nsqr = 0.0_wp
+      Ssqr = 0.0_wp
 
       DO jc = start_index, end_index
         ! wind stress for tke surface forcing
@@ -1362,7 +1362,7 @@ CONTAINS
 !ICON_OMP_DO PRIVATE(start_index, end_index, je, max_levels, cell_1_idx, cell_1_block, cell_2_idx, cell_2_block, &
 !ICON_OMP jk)
     DO blockNo = edges_in_domain%start_block, edges_in_domain%end_block
-      params_oce%a_veloc_v(:,:,blockNo) = 0.0
+      params_oce%a_veloc_v(:,:,blockNo) = 0.0_wp
 
       CALL get_index_range(edges_in_domain, blockNo, start_index, end_index)
       max_levels = MAXVAL(patch_3d%p_patch_1d(1)%dolic_e(start_index:end_index, blockNo))
