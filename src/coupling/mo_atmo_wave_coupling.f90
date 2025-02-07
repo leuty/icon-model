@@ -18,7 +18,7 @@
 MODULE mo_atmo_wave_coupling
 
   USE mo_kind,               ONLY: wp
-  USE mo_exception,          ONLY: message, message_text
+  USE mo_exception,          ONLY: message, message_text, finish
   USE mo_model_domain,       ONLY: t_patch
   USE mo_fortran_tools,      ONLY: assert_acc_host_only
   USE mo_coupling_utils,     ONLY: cpl_def_field, cpl_get_field_datetime, &
@@ -31,7 +31,6 @@ MODULE mo_atmo_wave_coupling
   USE mo_loopindices,        ONLY: get_indices_c
   USE mtime,                 ONLY: datetime, OPERATOR(<), OPERATOR(==)
   USE mo_time_config,        ONLY: time_config
-  USE mo_exception,          ONLY: finish
 
 
   IMPLICIT NONE
@@ -146,7 +145,7 @@ CONTAINS
     ! A component may execute timesteps for dates before the actual
     ! start of this simulation (e.g. due to IAU). These timesteps are currently
     ! not considered for coupling, which is why they are skipped here.
-    ! The first actual coupling timestep usually is a start_date + lag * field_timestep.
+    ! The first actual coupling timestep usually is at start_date + lag * field_timestep.
     IF (lcheck_for_timelag) THEN
 
       ! query current timestamps of source/target fields

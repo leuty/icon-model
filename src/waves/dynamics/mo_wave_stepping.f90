@@ -99,6 +99,7 @@ CONTAINS
     ! will lose its association status.
     TYPE(t_read_wave_forcing), ALLOCATABLE, TARGET :: reader_wave_forcing(:)
     INTEGER                  :: jstep                       !< time step number
+    INTEGER                  :: jstep_shift                 !< number of time steps for backward shifting
     LOGICAL                  :: lprint_timestep             !< print current datetime information
     LOGICAL                  :: lprint_wave_stats           !< print wave height information
     INTEGER                  :: jg, jlev
@@ -301,9 +302,20 @@ CONTAINS
       CALL restartAttributes%get("jstep", jstep)
 
     ELSE  ! no restart, or isInitFromRestart
+
       ! initialize time step counter
       !
-      jstep = 0
+      IF (time_config%timeshift%dt_shift < 0._wp) THEN
+        ! get model time step in seconds for base domain
+        dtime = time_config%get_model_timestep_sec(p_patch(1)%nest_level)
+        jstep_shift = NINT(time_config%timeshift%dt_shift/dtime)
+        jstep = jstep_shift
+        !
+        WRITE(message_text,'(a,i6,a)') 'Model start shifted backwards by ', ABS(jstep_shift),' time steps'
+        CALL message(routine, message_text)
+      ELSE
+        jstep = 0
+      ENDIF
 
       DO jg = 1,n_dom
         IF (.NOT. p_patch(jg)%ldom_active) CYCLE
@@ -359,8 +371,10 @@ CONTAINS
       CALL pp_scheduler_process(simulation_status, lacc=.TRUE.)
 
       ! output at initial time
-      IF (output_mode%l_nml) THEN
-        CALL write_name_list_output(jstep=jstep)
+      !
+      ! Ensure that the initial output is skipped for model runs with shifted start date
+      IF (output_mode%l_nml .AND. (mtime_current >= time_config%tc_exp_startdate) ) THEN
+        CALL write_name_list_output(jstep=0)
       END IF
 
     ENDIF  ! isRestart
@@ -738,7 +752,7 @@ CONTAINS
       CALL pp_scheduler_process(simulation_status, lacc=.TRUE.)
 
 
-      IF (output_mode%l_nml) THEN
+      IF (l_nml_output) THEN
         CALL write_name_list_output(jstep=jstep)
       END IF
 

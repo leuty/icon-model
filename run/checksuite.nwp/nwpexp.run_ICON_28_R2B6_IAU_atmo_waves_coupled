@@ -197,7 +197,7 @@ ln -sf $INDIR/atm/2022110300/igfff00013000.m013.R2B06.grb .
 ln -sf $INDIR/atm/2022110300/igaf2022110300.m013.R2B06.grb .
 
 # wave restart file
-ln -sf $INDIR/wave/2022110300/icon_waves_grid_0024_R02B06_G_DOM01_restart_wave_20221103T000000Z_v2.nc restart_wave_DOM01.nc
+ln -sf $INDIR/wave/2022110300/icon_waves_grid_0024_R02B06_G_DOM01_restart_wave_20221102T223000Z.nc restart_wave_DOM01.nc
 
 # ----------------------------------------------------------------------
 # global namelist settings
@@ -248,8 +248,8 @@ model_do_restart_list[1]="for_init"   # initialize model from restart file
 
 # YAC coupling library configuration
 #-----------------------------------------------------------------------------
-atm_lag=1
-wave_lag=1
+atm_lag=-14   # time lags in unit of time steps 
+wave_lag=-14  # in order to start coupling at the shifted start date
 
 cat > coupling_${EXP}.yaml << EOF
 definitions:
@@ -790,6 +790,9 @@ cat > ${wave_namelist} <<EOF
  depth_max            = 999.
  niter_smooth         = 3
  ALPHA_CH             = 0.00375 !0.0075
+/
+&initwave_nml
+ dt_shift             = -5400.      ! timedelta for backwards time shift of model start date
 /
 &output_nml
  filetype             =                          4       ! output format: 2=GRIB2, 4=NETCDFv2
