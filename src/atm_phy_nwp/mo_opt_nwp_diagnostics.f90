@@ -4522,7 +4522,7 @@ CONTAINS
                pMPi              = synradar_meta%polMP_i, &
                pMPs              = synradar_meta%polMP_s, &
                pMPg              = synradar_meta%polMP_g, &
-               pMPh              = synradar_meta%polMP_g, &
+               pMPh              = synradar_meta%polMP_h, &
                rho               = rho_tot(:,:,:), &
                t                 = t(:,:,:), &
                qc                = qc(:,:,:), &
