@@ -669,11 +669,11 @@ echo " "
 echo "=================================================================="
 echo " "
 echo "Run the checksuite for:"
-echo "- EXPERIMENT   = ${EXPERIMENT:?   is not defined --> ERROR}"
-echo "- TYPES        = ${TYPES:?        is not defined --> ERROR}"
-echo "- DATES        = ${DATES:?        is not defined --> ERROR}"
-echo "- RESTART_DATE = ${RESTART_DATE:? is not defined --> ERROR}"
-echo "- CHECK MODE   = ${MD:?           is not defined --> ERROR}"
+echo "- EXPERIMENT   = ${EXPERIMENT:?   is not defined --> ERROR}" # compulsory
+echo "- TYPES        = ${TYPES}"
+echo "- DATES        = ${DATES}"
+echo "- RESTART_DATE = ${RESTART_DATE}"
+echo "- CHECK MODE   = ${MD:?           is not defined --> ERROR}" # compulsory
 echo "------------------------------------------------------------------"
 echo " "
 

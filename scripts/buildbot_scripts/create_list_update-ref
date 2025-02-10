@@ -91,8 +91,8 @@ builders='levante_cpu_nvhpc'
 runflags='queue=shared ntasks=16 memory=32G'
 add_experiments
 
-exp_base='exp.atm_qubicc_nc_test_update_base'
-exp_refgen='checksuite.icon-dev/pp.refgen_atm_qubicc_nc_test_update-ref'
+exp_base='checksuite.icon-dev/check.atm_qubicc_update-ref'
+exp_refgen='checksuite.icon-dev/pp.refgen_atm_qubicc_test_update-ref'
 builders='levante_gcc levante_gcc_hybrid levante_intel levante_intel_hybrid levante_intel_hybrid_mixed levante_nag'
 runflags='ntasks=16 queue=compute memory=32G'
 add_experiments

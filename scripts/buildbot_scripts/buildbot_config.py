@@ -85,7 +85,7 @@ class BuildbotConfig(object):
 
             print("added experiment {} to {} configuration".format(exp, ", ".join(bidx)))
         except:
-            print("Could not find machine or builder - skipping experiments")
+            raise RuntimeError("Could not find machine or builder - skipping experiments")
 
 
     def remove_experiments(self, exps, builders=None, machines=None, with_config=None, without_config=None):

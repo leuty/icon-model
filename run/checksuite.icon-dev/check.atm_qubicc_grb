@@ -14,11 +14,10 @@
 #
 # Marco Giorgetta, MPI-M
 # Check if the original qubicc experiment still works after modifications.
-# Here the dynamics+transport are switched off entirely, only the forcing
-# is used.
+# Here the output format is switched from Netcdf (nc) to GRIB (grb).
 #
 exp_original=atm_qubicc_test
-modification=onlyfor
+modification=grb
 #
 #--------------------------------------------------------------------------------
 #
@@ -32,8 +31,7 @@ export EXPERIMENT=${exp_original}_${modification}
 #
 rm -f exp.$EXPERIMENT
 cp exp.$exp_original exp.$EXPERIMENT
-sed -i s/'ldynamics=.TRUE.'/'ldynamics=.FALSE.'/   exp.$EXPERIMENT # switch off dynamics
-sed -i s/'ltransport=.TRUE.'/'ltransport=.FALSE.'/ exp.$EXPERIMENT # switch off transport
+sed -i s/'output_format=${netcdf_format}'/'output_format=${grib_format}'/ exp.$EXPERIMENT # switch from NetCDF to GRIB output
 
 #--------------------------------------------------------------------------------
 # 
