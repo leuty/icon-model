@@ -38,9 +38,9 @@ MODULE mo_nwp_sfc_interface
   USE mo_lnd_nwp_config,      ONLY: nlev_soil, nlev_snow, ibot_w_so, ntiles_total,    &
     &                               ntiles_water, lseaice, llake, lmulti_snow,        &
     &                               ntiles_lnd, lsnowtile, isub_water, isub_seaice,   &
-    &                               isub_lake, itype_interception, l2lay_rho_snow,    &
-    &                               lprog_albsi, itype_trvg, lterra_urb,              &
-    &                               itype_snowevap, zml_soil, lcuda_graph_lnd
+    &                               isub_lake, l2lay_rho_snow, lprog_albsi,           &
+    &                               itype_trvg, lterra_urb, itype_snowevap, zml_soil, &
+    &                               lcuda_graph_lnd
   USE mo_nwp_tuning_config,   ONLY: itune_gust_diag
   USE mo_radiation_config,    ONLY: islope_rad
   USE mo_extpar_config,       ONLY: itype_vegetation_cycle
@@ -48,7 +48,7 @@ MODULE mo_nwp_sfc_interface
   USE mo_coupling_config,     ONLY: is_coupled_to_ocean
   USE mo_ensemble_pert_config,ONLY: sst_pert_corrfac
   USE mo_thdyn_functions,     ONLY: sat_pres_water, sat_pres_ice, spec_humi, dqsatdT_ice
-  USE sfc_terra,              ONLY: terra
+  USE sfc_terra_main,         ONLY: terra
   USE mo_nwp_sfc_utils,       ONLY: diag_snowfrac_tg, update_idx_lists_lnd, update_idx_lists_sea
   USE sfc_flake,              ONLY: flake_interface
   USE sfc_flake_data,         ONLY: h_Ice_min_flk
@@ -742,14 +742,6 @@ CONTAINS
             h_snow_gp_t(ic)         =  h_snow_t(ic)
           ENDIF
 
-          IF (itype_interception == 2) THEN
-            w_p_now_t(ic)             =  lnd_prog_now%w_p_t(jc,jb,isubs)
-            w_s_now_t(ic)             =  lnd_prog_now%w_s_t(jc,jb,isubs)
-          ELSE
-            w_p_now_t(ic)             =  0._wp
-            w_s_now_t(ic)             =  0._wp
-          END IF
-
           IF (itype_trvg == 3) THEN
             plevap_t(ic)            =  lnd_diag%plantevap_t(jc,jb,isubs)
           ELSE
@@ -943,6 +935,7 @@ CONTAINS
 
 
 !---------- END Copy index list fields
+
         CALL terra (                                           &
         &  nvec         = nproma                             , & !IN array dimensions
         &  ivstart      = 1                                  , & !IN optional start/end indicies
@@ -1022,12 +1015,6 @@ CONTAINS
 !
         &  w_i_now       = w_i_now_t                         , & !INOUT water content of interception water(m H2O)
         &  w_i_new       = w_i_new_t                         , & !OUT water content of interception water(m H2O)
-!
-        &  w_p_now       = w_p_now_t                         , & !INOUT water content of interception water(m H2O)
-        &  w_p_new       = w_p_new_t                         , & !OUT water content of interception water(m H2O)
-!
-        &  w_s_now       = w_s_now_t                         , & !INOUT water content of interception water(m H2O)
-        &  w_s_new       = w_s_new_t                         , & !OUT water content of interception water(m H2O)
 !
         &  t_so_now      = t_so_now_t                        , & !INOUT soil temperature (main level)    (  K  )
         &  t_so_new      = t_so_new_t                        , & !OUT soil temperature (main level)      (  K  )
@@ -1180,10 +1167,6 @@ CONTAINS
           lnd_prog_new%rho_snow_t(jc,jb,isubs) = rho_snow_new_t(ic)        
           lnd_diag%h_snow_t      (jc,jb,isubs) = h_snow_t      (ic)
           lnd_prog_new%w_i_t     (jc,jb,isubs) = w_i_new_t     (ic)
-          IF (itype_interception == 2) THEN
-            lnd_prog_new%w_p_t     (jc,jb,isubs) = w_p_new_t     (ic)             
-            lnd_prog_new%w_s_t     (jc,jb,isubs) = w_s_new_t     (ic)     
-          END IF
           lnd_diag%freshsnow_t   (jc,jb,isubs) = freshsnow_t   (ic) 
           lnd_diag%runoff_s_inst_t    (jc,jb,isubs) = runoff_s_inst_t    (ic)  
           lnd_diag%runoff_g_inst_t    (jc,jb,isubs) = runoff_g_inst_t    (ic)
@@ -1457,11 +1440,6 @@ CONTAINS
                  lnd_prog_new%dzh_snow_t   (jc,jk,jb,is1) = lnd_prog_new%dzh_snow_t     (jc,jk,jb,is2)
                ENDDO
              ENDIF
-
-             IF (itype_interception == 2) THEN
-               lnd_prog_new%w_p_t(jc,jb,is1) = lnd_prog_new%w_p_t(jc,jb,is2)        
-               lnd_prog_new%w_s_t(jc,jb,is1) = lnd_prog_new%w_s_t(jc,jb,is2)        
-             END IF
 
            ENDDO
            !$ACC END PARALLEL

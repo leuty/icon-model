@@ -37,7 +37,7 @@ MODULE mo_lnd_nwp_config
   PUBLIC :: frlnd_thrhld, frlndtile_thrhld, frlake_thrhld, frsea_thrhld, frsi_min, hice_min, hice_max
   PUBLIC :: lseaice, lprog_albsi, lbottom_hflux, llake, lmelt, lmelt_var, lmulti_snow, lsnowtile, max_toplaydepth
   PUBLIC :: itype_trvg, itype_evsl, itype_lndtbl, l2lay_rho_snow
-  PUBLIC :: itype_root, itype_heatcond, itype_interception, &
+  PUBLIC :: itype_root, itype_heatcond, &
             itype_hydbound, idiag_snowfrac, itype_snowevap, cwimax_ml, c_soil, c_soil_urb, cr_bsmin
   PUBLIC :: rsmin_fac
   PUBLIC :: itype_canopy, cskinc, tau_skin
@@ -61,7 +61,7 @@ MODULE mo_lnd_nwp_config
   INTEGER ::  nlev_snow          !< number of snow layers
   INTEGER ::  ntiles_lnd         !< number of static land surface types
   REAL(wp)::  frlnd_thrhld       !< fraction threshold for creating a land grid point
-  REAL(wp)::  frlndtile_thrhld   !< fraction threshold for retaining the respective 
+  REAL(wp)::  frlndtile_thrhld   !< fraction threshold for retaining the respective
                                  !< tile for a grid point
   REAL(wp)::  frlake_thrhld      !< fraction threshold for creating a lake grid point
   REAL(wp)::  frsea_thrhld       !< fraction threshold for creating a sea grid point
@@ -74,8 +74,6 @@ MODULE mo_lnd_nwp_config
   INTEGER ::  itype_lndtbl       !< choice of table for associating surface parameters to land-cover classes
   INTEGER ::  itype_root         !< type of root density distribution
   INTEGER ::  itype_heatcond     !< type of soil heat conductivity (see Schulz et al. 2016)
-  INTEGER ::  itype_interception !< type of plant interception
-  !$ACC DECLARE CREATE(itype_interception)
   REAL(wp)::  cwimax_ml          !< scaling parameter for maximum interception storage
   REAL(wp)::  c_soil             !< surface area density of the (evaporative) soil surface
   REAL(wp)::  c_soil_urb         !< surface area density of the (evaporative) soil surface, urban areas
@@ -92,7 +90,7 @@ MODULE mo_lnd_nwp_config
   INTEGER ::  itype_eisa         !< type of evaporation from impervious surface area
   INTEGER ::  itype_hydbound     !< type of hydraulic lower boundary condition
   INTEGER ::  idiag_snowfrac     !< method for diagnosis of snow-cover fraction
-  INTEGER ::  itype_snowevap     !< treatment of snow evaporation in the presence of vegetation      
+  INTEGER ::  itype_snowevap     !< treatment of snow evaporation in the presence of vegetation
 
   LOGICAL ::  lseaice     !> forecast with sea-ice model
   LOGICAL ::  lprog_albsi !> sea-ice albedo is computed prognostically from a rate equation
@@ -104,20 +102,20 @@ MODULE mo_lnd_nwp_config
   REAL(wp)::  max_toplaydepth !< maximum depth of uppermost snow layer for multi-layer snow scheme
   LOGICAL ::  lstomata    !! map of minimum stomata resistance
   LOGICAL ::  l2tls       !! forecast with 2-TL integration scheme
-  LOGICAL ::  lana_rho_snow !! if .TRUE., take rho_snow-values from analysis file 
+  LOGICAL ::  lana_rho_snow !! if .TRUE., take rho_snow-values from analysis file
   LOGICAL ::  lsnowtile   !! if .TRUE., snow is considered as a separate tile
- 
+
   INTEGER ::  sstice_mode      !< set if SST and sea ice cover are read from the analysis
-                               !< and kept constant or read from external data files 
+                               !< and kept constant or read from external data files
                                !< and updated regularly in run time
   REAL(wp)::  czbot_w_so       !< thickness of the hydraulical active soil layer [m]
 
   CHARACTER(LEN=filename_max) :: sst_td_filename, ci_td_filename
-  
+
   LOGICAL :: lcuda_graph_lnd  !< activate cuda graph
 
   ! derived variables
-  INTEGER ::  ibot_w_so    !< number of hydrological active soil layers 
+  INTEGER ::  ibot_w_so    !< number of hydrological active soil layers
   INTEGER ::  isub_water   !< (open) water points tile number
   INTEGER ::  isub_lake    !< lake points tile number
   INTEGER ::  isub_seaice  !< seaice tile number
@@ -147,9 +145,9 @@ CONTAINS
 
   !! setup components of the NWP land scheme
   !!
-  !! Setup of additional nwp-land control variables depending on the 
-  !! land-NAMELIST and potentially other namelists. This routine is 
-  !! called, after all namelists have been read and a synoptic consistency 
+  !! Setup of additional nwp-land control variables depending on the
+  !! land-NAMELIST and potentially other namelists. This routine is
+  !! called, after all namelists have been read and a synoptic consistency
   !! check has been done.
   !!
   SUBROUTINE configure_lnd_nwp(ljsbach)
@@ -194,7 +192,7 @@ CONTAINS
     ELSE
        frsi_min = 0.015_wp    ! ICON uncoupled, limit at 1.5% seaice fraction (Dmitrii Mironov)
     END IF
- 
+
     !
     ! settings dealing with surface tiles
     !
@@ -220,7 +218,7 @@ CONTAINS
       ntiles_total = ntiles_lnd
     END IF
 
-    IF (ntiles_total == 1) THEN 
+    IF (ntiles_total == 1) THEN
       ! no tile approach, thus no extra tile index for water points
       ntiles_water = 0
     ELSE
@@ -261,9 +259,9 @@ CONTAINS
 
     ! Setup tile meta-information required for tile I/O.
     !
-    ! I.e. the mapping between the internal tile structure and the output 
-    ! structure (according to GRIB2 Product Definition Template (PDT) 4.55) 
-    ! is set up 
+    ! I.e. the mapping between the internal tile structure and the output
+    ! structure (according to GRIB2 Product Definition Template (PDT) 4.55)
+    ! is set up
     CALL setup_tile_list (tile_list, ntiles_lnd, lsnowtile, isub_water, isub_lake, isub_seaice)
 
 
@@ -272,14 +270,14 @@ CONTAINS
 
   !! Given the internal land use class index, provide the official GRIB2 index.
   !!
-  !! Given the ICON-internal land use class index, provide the official GRIB2 
+  !! Given the ICON-internal land use class index, provide the official GRIB2
   !! index according to GRIB2 table 4.2.43 (or vice versa).
   !!
   FUNCTION convert_luc_ICON2GRIB(lc_datbase,iluc_in,opt_linverse)  RESULT (iluc_out)
 
     INTEGER          , INTENT(IN) :: lc_datbase       !< landuse class database
     INTEGER          , INTENT(IN) :: iluc_in          !< landuse class for grid point i
-    LOGICAL, OPTIONAL, INTENT(IN) :: opt_linverse     !< given the GRIB2 landsuse class, 
+    LOGICAL, OPTIONAL, INTENT(IN) :: opt_linverse     !< given the GRIB2 landsuse class,
                                                       !< provide the internal one
 
     ! Local
@@ -292,52 +290,52 @@ CONTAINS
     !
     ! maps GLOBCOVER2009 landuse classes onto tile class table 4.243
     DATA iluc_GLOBCOVER2009 / 24, &  ! 1 :irrigated croplands
-                            & 25, &  ! 2 :rainfed croplands 
+                            & 25, &  ! 2 :rainfed croplands
                             & 26, &  ! 3 :mosaic cropland (50-70%) - vegetation (20-50%)
                             & 27, &  ! 4 :mosaic vegetation (50-70%) - cropland (20-50%)
-                            & 28, &  ! 5 :closed broadleaved evergreen forest           
-                            & 2 , &  ! 6 :closed broadleaved deciduous forest           
-                            & 3 , &  ! 7 :open broadleaved deciduous forest             
-                            & 29, &  ! 8 :closed needleleaved evergreen forest          
-                            & 30, &  ! 9 :open needleleaved deciduous forest            
-                            & 31, &  ! 10:mixed broadleaved and needleleaved forest     
+                            & 28, &  ! 5 :closed broadleaved evergreen forest
+                            & 2 , &  ! 6 :closed broadleaved deciduous forest
+                            & 3 , &  ! 7 :open broadleaved deciduous forest
+                            & 29, &  ! 8 :closed needleleaved evergreen forest
+                            & 30, &  ! 9 :open needleleaved deciduous forest
+                            & 31, &  ! 10:mixed broadleaved and needleleaved forest
                             & 32, &  ! 11:mosaic shrubland (50-70%) - grassland (20-50%)
                             & 33, &  ! 12:mosaic grassland (50-70%) - shrubland (20-50%)
-                            & 34, &  ! 13:closed to open shrubland                      
-                            & 25, &  ! 14:closed to open herbaceous vegetation          
-                            & 35, &  ! 15:sparse vegetation                             
-                            & 36, &  ! 16:closed to open forest regularly flooded        
+                            & 34, &  ! 13:closed to open shrubland
+                            & 25, &  ! 14:closed to open herbaceous vegetation
+                            & 35, &  ! 15:sparse vegetation
+                            & 36, &  ! 16:closed to open forest regularly flooded
                             & 37, &  ! 17:closed forest or shrubland permanently flooded
-                            & 38, &  ! 18:closed to open grassland regularly flooded    
-                            & 22, &  ! 19:artificial surfaces                           
-                            & 19, &  ! 20:bare areas                                     
-                            & 20, &  ! 21:water bodies                                   
-                            & 21, &  ! 22:permanent snow and ice                         
+                            & 38, &  ! 18:closed to open grassland regularly flooded
+                            & 22, &  ! 19:artificial surfaces
+                            & 19, &  ! 20:bare areas
+                            & 20, &  ! 21:water bodies
+                            & 21, &  ! 22:permanent snow and ice
                             & 39  /  ! 23:undefined
     !
     ! maps GLC2000 landuse classes onto tile class table 4.243
     DATA iluc_GLC2000       / 1 , &  ! 1 :evergreen broadleaf forest
-                            & 2 , &  ! 2 :deciduous broadleaf closed forest 
+                            & 2 , &  ! 2 :deciduous broadleaf closed forest
                             & 3 , &  ! 3 :deciduous broadleaf open forest
                             & 4 , &  ! 4 :evergreen needleleaf forest
-                            & 5 , &  ! 5 :deciduous needleleaf forest           
-                            & 6 , &  ! 6 :mixed leaf trees           
-                            & 7 , &  ! 7 :fresh water flooded trees             
-                            & 8 , &  ! 8 :saline water flooded trees          
-                            & 9 , &  ! 9 :mosaic tree / natural vegetation            
-                            & 10, &  ! 10:burnt tree cover     
+                            & 5 , &  ! 5 :deciduous needleleaf forest
+                            & 6 , &  ! 6 :mixed leaf trees
+                            & 7 , &  ! 7 :fresh water flooded trees
+                            & 8 , &  ! 8 :saline water flooded trees
+                            & 9 , &  ! 9 :mosaic tree / natural vegetation
+                            & 10, &  ! 10:burnt tree cover
                             & 11, &  ! 11:evergreen shrubs closed-open
                             & 12, &  ! 12:decidous shrubs closed-open
-                            & 13, &  ! 13:herbaceous vegetation closed-open                      
-                            & 14, &  ! 14:sparse herbaceous or grass          
-                            & 15, &  ! 15:flooded shrubs or herbaceous                             
-                            & 16, &  ! 16:cultivated & managed areas        
+                            & 13, &  ! 13:herbaceous vegetation closed-open
+                            & 14, &  ! 14:sparse herbaceous or grass
+                            & 15, &  ! 15:flooded shrubs or herbaceous
+                            & 16, &  ! 16:cultivated & managed areas
                             & 17, &  ! 17:mosaic crop / tree / natural vegetation
-                            & 18, &  ! 18:mosaic crop / shrub / grass    
-                            & 19, &  ! 19:bare areas                    
-                            & 20, &  ! 20:water                                     
-                            & 21, &  ! 21:snow & ice                                   
-                            & 22, &  ! 22:artificial surface                         
+                            & 18, &  ! 18:mosaic crop / shrub / grass
+                            & 19, &  ! 19:bare areas
+                            & 20, &  ! 20:water
+                            & 21, &  ! 21:snow & ice
+                            & 22, &  ! 22:artificial surface
                             & 39  /  ! 23:undefined
     !-----------------------------------------------------------------------
 
@@ -379,7 +377,7 @@ CONTAINS
 !!$        iluc_out = find_loc(iluc_in,iluc_GLC2000)
       ENDIF
 
-    END SELECT 
+    END SELECT
 
 
   END FUNCTION convert_luc_ICON2GRIB

@@ -40,7 +40,7 @@ MODULE mo_nwp_sfc_utils
   USE mo_lnd_nwp_config,      ONLY: nlev_soil, nlev_snow, ntiles_total, ntiles_water, &
     &                               lseaice, llake, lmulti_snow, idiag_snowfrac, ntiles_lnd, &
     &                               lsnowtile, isub_water, isub_seaice, isub_lake,    &
-    &                               itype_interception, lterra_urb, l2lay_rho_snow, lprog_albsi, itype_trvg, &
+    &                               lterra_urb, l2lay_rho_snow, lprog_albsi, itype_trvg, &
                                     itype_snowevap, zml_soil, dzsoil, frsi_min, hice_min
   USE mo_atm_phy_nwp_config,  ONLY: atm_phy_nwp_config
   USE mo_nwp_tuning_config,   ONLY: tune_minsnowfrac
@@ -1347,14 +1347,6 @@ CONTAINS
           lnd_diag%rstom    (jc,jb) = lnd_diag%rstom_t    (jc,jb,1)
         ENDDO
 
-        IF (itype_interception == 2) THEN
-          !$ACC LOOP GANG VECTOR
-          DO jc = i_startidx, i_endidx
-            lnd_diag%w_p    (jc,jb) = lnd_prog%w_p_t      (jc,jb,1)
-            lnd_diag%w_s    (jc,jb) = lnd_prog%w_s_t      (jc,jb,1)
-          ENDDO
-        ENDIF
-
         IF (itype_trvg == 3) THEN
           !$ACC LOOP GANG VECTOR
           DO jc = i_startidx, i_endidx
@@ -1435,14 +1427,6 @@ CONTAINS
           ENDDO
         ENDDO
 
-        IF (itype_interception == 2) THEN
-          !$ACC LOOP GANG VECTOR
-          DO jc = i_startidx, i_endidx
-            lnd_diag%w_p    (jc,jb)  = 0._wp
-            lnd_diag%w_s    (jc,jb)  = 0._wp
-          ENDDO
-        ENDIF
-
         IF (itype_trvg == 3) THEN
           !$ACC LOOP GANG VECTOR
           DO jc = i_startidx, i_endidx
@@ -1508,22 +1492,6 @@ CONTAINS
             lnd_diag%rstom(jc,jb)     = lnd_diag%rstom(jc,jb) + tilefrac     &
               &                         * lnd_diag%rstom_t(jc,jb,isubs)
           ENDDO
-
-          IF (itype_interception == 2) THEN
-            !$ACC LOOP GANG(STATIC: 1) VECTOR PRIVATE(tilefrac)
-            DO jc = i_startidx, i_endidx
-              !
-              ! note that frac_t must be re-scaled such that SUM(frac_t(1:ntiles_lnd)) = 1
-              ! therefore we multiply by inv_frland_from_tiles
-              tilefrac = ext_data%atm%frac_t(jc,jb,isubs)        &
-                &      * ext_data%atm%inv_frland_from_tiles(jc,jb)
-
-              lnd_diag%w_p    (jc,jb) = lnd_diag%w_p(jc,jb) + tilefrac       &
-                &                       * lnd_prog%w_p_t(jc,jb,isubs)
-              lnd_diag%w_s    (jc,jb) = lnd_diag%w_s(jc,jb) + tilefrac       &
-                &                       * lnd_prog%w_s_t(jc,jb,isubs)
-            ENDDO
-          ENDIF
 
           IF (itype_trvg == 3) THEN
             !$ACC LOOP GANG(STATIC: 1) VECTOR PRIVATE(tilefrac)

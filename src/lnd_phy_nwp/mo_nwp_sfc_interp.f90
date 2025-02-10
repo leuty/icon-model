@@ -26,7 +26,8 @@ MODULE mo_nwp_sfc_interp
   USE mo_lnd_nwp_config,      ONLY: nlev_soil, ibot_w_so, zml_soil, dzsoil_icon => dzsoil
   USE mo_run_config,          ONLY: msg_level
   USE mo_physical_constants,  ONLY: grav, dtdz_standardatm
-  USE sfc_terra_data,         ONLY: cporv, cadp, cfcap, cpwp
+  USE sfc_terra_data,         ONLY: cporv, cadp, cfcap, cpwp, IST_CLAY, IST_CLOAM, IST_ICE, &
+    & IST_LOAM, IST_NUM, IST_PEAT, IST_ROCK, IST_SAND, IST_SLOAM
   USE mo_exception,           ONLY: finish, message_text, message
   USE mo_idx_list,            ONLY: t_idx_list_blocked
 
@@ -416,26 +417,29 @@ CONTAINS
   END SUBROUTINE wsoil_to_smi
 
 
-  SUBROUTINE wsoil2smi(wsoil, dzsoil, soiltyp, smi, ierr)
+  SUBROUTINE wsoil2smi(wsoil, dzsoil, cpwp, cfcap, soiltyp, smi, ierr)
     !$ACC ROUTINE SEQ
     !
     REAL(wp), INTENT(IN) :: wsoil    !< soil moisture mass [m H2O]
     REAL(wp), INTENT(IN) :: dzsoil   !< soil layer thickness [m]
     INTEGER , INTENT(IN) :: soiltyp  !< soiltype
+    REAL(wp), INTENT(IN) :: cpwp(IST_NUM) !< Plant wilting point
+    REAL(wp), INTENT(IN) :: cfcap(IST_NUM) !< Field capacity
     REAL(wp), INTENT(OUT):: smi      !< soil moisture index
     INTEGER , INTENT(OUT):: ierr     !< error code
 
     ierr = 0
+    smi = 0._wp
 
     SELECT CASE(soiltyp)
-      CASE (1,2)  !ice,rock
+      CASE (IST_ICE,IST_ROCK)
       ! set wsoil to 0 for ice and rock
       smi = 0._wp
 
-      CASE(3,4,5,6,7,8)  !sand,sandyloam,loam,clayloam,clay,peat
+      CASE(IST_SAND,IST_SLOAM,IST_LOAM,IST_CLOAM,IST_CLAY,IST_PEAT)
       smi = (wsoil/dzsoil - cpwp(soiltyp))/(cfcap(soiltyp) - cpwp(soiltyp))
 
-      CASE(9,10)!sea water, sea ice
+      CASE DEFAULT
       ! ERROR landpoint has soiltype sea water or sea ice
       ierr = -1
 

@@ -66,7 +66,6 @@ MODULE mo_lnd_nwp_nml
     &                               config_lstomata           => lstomata          , &
     &                               config_l2tls              => l2tls             , &
     &                               config_itype_heatcond     => itype_heatcond    , &
-    &                               config_itype_interception => itype_interception, &
     &                               config_itype_hydbound     => itype_hydbound    , &
     &                               config_lana_rho_snow      => lana_rho_snow     , &
     &                               config_lsnowtile          => lsnowtile         , &
@@ -88,16 +87,16 @@ CONTAINS
 
   !-------------------------------------------------------------------------
   !
-  !! Read Namelist for NWP land physics. 
+  !! Read Namelist for NWP land physics.
   !!
-  !! This subroutine 
+  !! This subroutine
   !! - reads the Namelist for NWP land physics
   !! - sets default values
-  !! - potentially overwrites the defaults by values used in a 
+  !! - potentially overwrites the defaults by values used in a
   !!   previous integration (if this is a resumed run)
   !! - reads the user's (new) specifications
   !! - stores the Namelist for restart
-  !! - fills the configuration state (partly)    
+  !! - fills the configuration state (partly)
   !!
   SUBROUTINE read_nwp_lnd_namelist( filename )
 
@@ -153,7 +152,7 @@ CONTAINS
 
     LOGICAL ::           &
          lseaice,        & !> forecast with sea ice model
-         lprog_albsi,    & !> sea-ice albedo is computed prognostically 
+         lprog_albsi,    & !> sea-ice albedo is computed prognostically
          llake,          & !> forecast with lake model FLake
          lmelt     ,     & !> soil model with melting process
          lmelt_var ,     & !> freezing temperature dependent on water content
@@ -210,14 +209,14 @@ CONTAINS
 
     nlev_snow      = 2       ! 2 = default value for number of snow layers
     zml_soil(:)    = -1._wp
-    czbot_w_so     = 2.5_wp  ! default thickness of 2.5m for hydraulical active soil layer 
+    czbot_w_so     = 2.5_wp  ! default thickness of 2.5m for hydraulical active soil layer
     ntiles         = 1       ! 1 = default value for number of static surface types
     frlnd_thrhld   = 0.05_wp ! fraction threshold for creating a land grid point
 
     frlake_thrhld  = 0.05_wp ! fraction threshold for creating a lake grid point
 
     frsea_thrhld   = 0.05_wp ! fraction threshold for creating a sea grid point
-    frlndtile_thrhld = 0.05_wp ! fraction threshold for retaining the respective 
+    frlndtile_thrhld = 0.05_wp ! fraction threshold for retaining the respective
                              ! tile for a grid point
     hice_min       = 0.05_wp ! minimum sea-ice thickness [m]
     hice_max       = 3.0_wp  ! maximum sea-ice thickness [m]
@@ -232,12 +231,12 @@ CONTAINS
     idiag_snowfrac = 1       ! 1: old method based on SWE, 2: more advanced method used in operational system
                              !20: same as, but with artificial reduction of snow-cover representing the effect
                              !     of snow-free roughness elements
-    itype_snowevap = 2       ! 1: old method, 2: empirical correction, 3: more advanced empirical correction 
+    itype_snowevap = 2       ! 1: old method, 2: empirical correction, 3: more advanced empirical correction
                              !Notes:
                              !The empirical correction particularly aims on compensating an overestimation of mean
                              ! snow-temperature, which is forced by the reduction of snow-albedo at the presence
-                             ! of snow-free rourghness elements. 
-  
+                             ! of snow-free rourghness elements.
+
     itype_trvg     = 2       ! type of vegetation transpiration parameterization
                              ! Note that this is currently the only available option!
     itype_evsl     = 2       ! type of bare soil evaporation parameterization
@@ -272,7 +271,7 @@ CONTAINS
                              ! (see Schulz et al. 2023)
     lurbalb        = .TRUE.  ! if .TRUE., use urban albedo and emissivity (Wouters et al. 2016)
     itype_ahf      = 2       ! if >0, use urban anthropogenic heat flux (Wouters et al. 2016)
-                             !  1: constant AHF, 2: AHF based on climatological T2M, 
+                             !  1: constant AHF, 2: AHF based on climatological T2M,
                              !  3: to be implemented (AHF based on time-filtered predicted T2M)
     itype_kbmo     = 2       ! type of bluff-body thermal roughness length parameterisation
                              !  1: standard SAI-based turbtran (Raschendorfer 2001)
@@ -286,17 +285,17 @@ CONTAINS
     !
     lstomata       = .TRUE.  ! map of minimum stomata resistance
     l2tls          = .TRUE.  ! forecast with 2-TL integration scheme
-    lana_rho_snow  = .TRUE.  ! if .TRUE., take rho_snow-values from analysis file 
+    lana_rho_snow  = .TRUE.  ! if .TRUE., take rho_snow-values from analysis file
 
     lseaice        = .TRUE.  ! .TRUE.: sea-ice model is used
-    lprog_albsi    = .FALSE. ! .TRUE.: sea-ice albedo is computed prognostically 
+    lprog_albsi    = .FALSE. ! .TRUE.: sea-ice albedo is computed prognostically
                              ! (only takes effect if "lseaice=.TRUE.")
     llake          = .TRUE.  ! .TRUE.: lake model is used
     !
     lcuda_graph_lnd = .FALSE. ! cuda graph deactivated by default
 
     !------------------------------------------------------------------
-    ! 2. If this is a resumed integration, overwrite the defaults above 
+    ! 2. If this is a resumed integration, overwrite the defaults above
     !    by values used in the previous integration.
     !------------------------------------------------------------------
     IF (use_restart_namelists()) THEN
@@ -358,7 +357,7 @@ CONTAINS
 
     ! Reset prognostic sea-ice albedo switch if the sea-ice scheme is not used
     IF ( .NOT.lseaice ) THEN
-      lprog_albsi = .FALSE.  
+      lprog_albsi = .FALSE.
     ENDIF
 
 
@@ -395,6 +394,8 @@ CONTAINS
     IF(lmulti_snow) CALL finish(routine, "GPU version not available for lmulti_snow == .TRUE.")
 #endif
 
+    IF (itype_interception /= 1) CALL finish(routine, "itype_interception = 2 has been removed.")
+
     ! deactivate cuda graph if no cpp key => make sure ACC WAIT is activated where needed
 #ifndef ICON_USE_CUDA_GRAPH
     lcuda_graph_lnd = .FALSE.
@@ -414,7 +415,7 @@ CONTAINS
     config_hice_max           = hice_max
     config_lbottom_hflux      = lbottom_hflux
     config_lseaice            = lseaice
-    config_lprog_albsi        = lprog_albsi 
+    config_lprog_albsi        = lprog_albsi
     config_llake              = llake
     config_lmelt              = lmelt
     config_lmelt_var          = lmelt_var
@@ -437,7 +438,6 @@ CONTAINS
     config_lstomata           = lstomata
     config_l2tls              = l2tls
     config_itype_heatcond     = itype_heatcond
-    config_itype_interception = itype_interception
     config_cwimax_ml          = cwimax_ml
     config_c_soil             = c_soil
     config_c_soil_urb         = c_soil_urb
@@ -453,15 +453,14 @@ CONTAINS
     config_nlev_soil          = nlev_soil
     config_czbot_w_so         = czbot_w_so
     config_lcuda_graph_lnd    = lcuda_graph_lnd
-    !$ACC UPDATE DEVICE(config_itype_interception) ASYNC(1)
 
     !-----------------------------------------------------
     ! 6. Store the namelist for restart
     !-----------------------------------------------------
     IF(my_process_is_stdio())  THEN
       funit = open_tmpfile()
-      WRITE(funit,NML=lnd_nml)                    
-      CALL store_and_close_namelist(funit, 'lnd_nml') 
+      WRITE(funit,NML=lnd_nml)
+      CALL store_and_close_namelist(funit, 'lnd_nml')
     ENDIF
 
 
@@ -472,4 +471,3 @@ CONTAINS
 
 
 END MODULE mo_lnd_nwp_nml
-

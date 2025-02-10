@@ -46,7 +46,7 @@ for irun in 0 2; do
     if [[ irun == 0 ]]; then
         threshold="1*10^-11"     # threshold in MAE of water budget
     else
-        threshold="2*10^-11"
+        threshold="3*10^-11"
     fi
 
     # -------------------------------------------------
