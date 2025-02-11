@@ -36,6 +36,7 @@
       - dep*.config.in
       - m4/*
       - src/shared/mo_util_vcs.f90
+      - utils/cmake-wrapper/*
       - utils/mkhelper/*
       - utils/pvcs.py
     labels: [Build system]
