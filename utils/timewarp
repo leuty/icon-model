@@ -13,6 +13,7 @@
 from fileinput import input
 from datetime import datetime
 
-for line in input():
-    print(datetime.now().strftime("%FT%T.%f")[:-3], line,
+for line in input(mode='rb'):
+    print(datetime.now().strftime('%FT%T.%f')[:-3],
+          line.decode(errors='replace'),
           sep=': ', end='', flush=True)
