@@ -219,6 +219,10 @@ job_name="$job_name"
 cdo="${cdo}"
 cdo_diff="${cdo} ${cdo_diff}"
 
+# export the python interpreter
+export PYTHON="${PYTHON}"
+export PYTHONPATH="${BUNDLED_PYTHONPATH}${PYTHONPATH:+:$PYTHONPATH}"
+
 # define script functions used in the experiment run script
 # ---------------------------------------------------------
 . \${basedir}/run/add_run_routines

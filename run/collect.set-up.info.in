@@ -47,6 +47,7 @@ use_sync_submit
 use_target
 use_flags_group
 VERSION_
+PYTHON
 BUNDLED_PYTHONPATH
 '
 
@@ -56,6 +57,9 @@ use_builddir='@abs_top_builddir@'
 
 # Version info required by mkexp:
 VERSION_='@PACKAGE_VERSION@'
+
+# PYTHON interpreter
+PYTHON='@PYTHON@'
 
 # PYTHONPATH to the bundled Python interfaces:
 BUNDLED_PYTHONPATH='@BUNDLED_PYTHONPATH@'
