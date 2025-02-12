@@ -47,7 +47,7 @@ MODULE mo_nwp_turbtrans_interface
   USE mo_nonhydrostatic_config,ONLY: kstart_moist
   USE mo_advection_config,     ONLY: advection_config
   USE turb_data,               ONLY: get_turbdiff_param, &
-                                     ltst2ml, ltst10ml, lprfcor, &
+                                     ltst2ml, ltst10ml, &
                                      rsur_sher, imode_suradap, imode_trancnf, rat_can, c_lnd, imode_snowsmot
   USE mo_initicon_config,      ONLY: icpl_da_sfcfric
   USE sfc_flake_data,          ONLY: h_Ice_min_flk, tpl_T_f
@@ -786,7 +786,7 @@ SUBROUTINE nwp_turbtrans  ( tcall_turb_jg,                     & !>in
           !Remapping the required non-surface levels of variables with a conditional top-level:
 
           !$ACC PARALLEL ASYNC(acc_async_queue) DEFAULT(PRESENT) IF(lzacc)
-          DO ik = MERGE( 1, 2, ltst2ml .OR. ltst10ml .OR. lprfcor ), 2 !local level loop with conditional first index
+          DO ik = MERGE( 1, 2, ltst2ml .OR. ltst10ml ), 2 !local level loop with conditional first index
             jk = nlev-2+ik !associated global level index
             !$ACC LOOP GANG VECTOR PRIVATE(jc)
 !$NEC ivdep

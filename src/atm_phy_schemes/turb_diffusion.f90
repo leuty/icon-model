@@ -189,7 +189,6 @@ USE turb_data, ONLY : &
     tkmmin,       & ! minimal diffusion coefficients for momentum
     tkhmin_strat, & ! additional minimal diffusion coefficients for heat for stratosphere
     tkmmin_strat, & ! additional minimal diffusion coefficients for momentum for stratosphere
-    tndsmot,      & ! vertical smoothing factor for diffusion tendencies
     frcsmot,      & ! vertical smoothing factor for TKE forcing
     imode_frcsmot,& ! mode for TKE forcing
     epsi,         & ! relative limit of accuracy for comparison of numbers
@@ -211,7 +210,7 @@ USE turb_data, ONLY : &
     a_hshr,       & ! length-scale factor of separated horizontal shear circulations
     rsur_sher,    & ! scaling factor (out of [0, 1]) representing the considered fraction of additional shear-forcing by 
                     !  Non-Turbulent subgrid Circulations (NTCs) or via Lower Limits of Diffusion-Coefficients (LLDCs)
-                    !   being transmitted from level "P" (k=ke) to level "0" (k=ke1): top of R-layer by Land-Use (LU)
+                    !  being transmitted from level "P" (k=ke) to level "0" (k=ke1): top of R-layer by Land-Use (LU)
                     ! Notice:
                     ! Through "rsur_sher>0", a related amplification of shear-forcing at the surface is active.
                     ! The LLDC-part is only included, if it is considered to substitue missing shear-forcing,
@@ -237,7 +236,6 @@ USE turb_data, ONLY : &
     loutnst,      & ! consider produc. by near-surf. thermals of TKE for output
     loutbms,      & ! onsider TKE-production by turbulent buoyancy, total mechanical shear
                     !  or grid-scale mechanical shear for additional output
-    lnonloc,      & ! nonlocal calculation of vertical gradients used for turb. diff.
     ltmpcor,      & ! consideration minor turbulent sources in the enthalpy budget
     lcirflx,      & ! consideration of non-turbulent fluxes related to near-surface circulations
     lcpfluc,      & ! consideration of fluctuations of the heat capacity of air
@@ -293,9 +291,6 @@ USE turb_data, ONLY : &
                     ! 1: with a constant value
                     ! 2: with a stability dependent correction
     imode_trancnf,& ! mode of configuring the transfer-scheme 
-                    ! 1: old version: start. with lamin. diffus.; with a lamin. correct. for profile-funct.;
-                    !    interpol. T_s rather then Tet_l onto zero-level; calcul. only approx. Tet_l-grads.;
-                    !    using an upper bound for TKE-forcing; without transmit. skin-layer depth to turbul.
                     ! 2: 1-st ConSAT: start. with estim. Ustar, without a laminar correct. for prof.-funct.;
                     !    interpol. Tet_l onto zero-level; calcul. Tet_l-gradients directly; 
                     !    without an upper bound for TKE-forcing; with transmit. skin-layer depth to turbul.
@@ -694,7 +689,6 @@ REAL (KIND=wp), DIMENSION(:), TARGET, INTENT(INOUT) :: &
   tfv              ! additional shear-forcing by NTCs              ( 1/s2) at "P"-level as OUT
 
   !Attention: "INTENT(OUT)" might cause not-intended default-settings for 'tfv' in case of "rsur_sher > 0"!
-!MR>
 
 REAL (KIND=wp), DIMENSION(:), TARGET, OPTIONAL, INTENT(IN) :: &
   tkred_sfc, tkred_sfc_h   ! reduction factors for minimum diffusion coefficients near the surface
@@ -1068,7 +1062,7 @@ my_thrd_id = omp_get_thread_num()
 
   ltkeshshr=(a_hshr > z0)  !separ. horiz. shear-circ.
 
-                            !ordinary mech. SSO-circ.:
+                           !ordinary mech. SSO-circ.:
   ltkemcsso=(lrunsso .AND. PRESENT(ut_sso) .AND. PRESENT(vt_sso))
             !SSO-scheme is running and related tendencies are present
 
@@ -1162,20 +1156,6 @@ my_thrd_id = omp_get_thread_num()
   !      zur Verfuegung. Dies koennte in den 1-ten Aufruf integriert werden, wenn alle thermodyn.
   !      Modell-Variablen bis "k=ke1" allociert waeren. Dies wuerde Vieles vereinfachen!
 
-  IF (imode_trancnf == 1) THEN !old version of zero-level-values requested
-    !Transformation of Tet_l at zero-level into the value following from the old
-    !treatment of interpolation in terms of T_l (rather than Tet_l):
-
-    !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1) IF(lzacc)
-    !$ACC LOOP GANG VECTOR
-    DO i=ivstart, ivend
-       zvari(i,ke1,tet_l) = zvari(i,ke1,tet_l)  &
-                          + ( (epr(i,ke)-zaux(i,ke1,1))*zvari(i,ke,tet_l)*(z1-tfh(i)) ) &
-                            / zaux(i,ke1,1)
-    END DO
-    !$ACC END PARALLEL
-  END IF
-
   ! Berechnung der horizontalen Windgeschwindigkeiten und Schichtdicken:
 
   !$ACC PARALLEL ASYNC(1) DEFAULT(PRESENT) IF(lzacc)
@@ -1204,7 +1184,7 @@ my_thrd_id = omp_get_thread_num()
   n=0; pvar(n)%bl => rcld       ; pvar(n)%ml => rcld        !cl_covr
   n=1; pvar(n)%bl => zaux(:,:,n); pvar(n)%ml => epr         !ex_fakt
   m=MERGE( n, n+1, lcpfluc ) !interpolation of "r_cpd=zaux(:,:,2)" only at "lcpfluc=T"
-  DO WHILE (m < naux)                                      !2:cp_fakt, 3:dQs/dT, 4:g_tet l, 5:g_vap
+  DO WHILE (m < naux)                                       !2:cp_fakt, 3:dQs/dT, 4:g_tet l, 5:g_vap
     n=n+1; m=m+1; pvar(n)%bl => zaux(:,:,m) ; pvar(n)%ml => zaux(:,:,m)
   END DO
   IF (lcircterm .OR. loutthcrc) THEN !Der bisherige "Zirkulationsterm" muss berechnet werden
@@ -1326,8 +1306,8 @@ my_thrd_id = omp_get_thread_num()
           tke(i,k,1)=MAX( vel_min, SQRT(d_m*com_len*wert) ) !Initialwert fuer SQRT(2TKE)
         END IF
 
-       val1=con_m; tkvm(i,k)=lm*tke(i,k,1)
-       val2=con_h; tkvh(i,k)=lh*tke(i,k,1)
+        val1=con_m; tkvm(i,k)=lm*tke(i,k,1)
+        val2=con_h; tkvh(i,k)=lh*tke(i,k,1)
 
         !Note: 
         !'tk[h|m]min' are, fist of all, foreseen as lower limits for 'vertdiff'-calculations; hence, 
@@ -1335,6 +1315,7 @@ my_thrd_id = omp_get_thread_num()
         !Nevertheless, since the 'tkv[m|h]' from the previous time-step are required as input of the 
         ! Turbulence Model (TMod) in SUB 'solve_turb_budgets' (dependent on 'imode_stbcalc'), at least 
         ! the laminar limit is used for securing a reasonable start of this kind of time-step iteration.
+
         IF (imode_tkemini >= 2) THEN !any adaptation of TKE and the TMod. to lower limits
           tke(i,k,1)=tke(i,k,1)*MAX( z1, val2/tkvh(i,k) ) !adapted 'tke'
         ENDIF
@@ -1351,9 +1332,9 @@ my_thrd_id = omp_get_thread_num()
           ! of 'tke' from the quilibrium-solution of the TMod, might have a quite long-standing detrimental impact.
           !Thus, for initialization, only the laminar limit (including the related TKE-adaptation) is applied,
           ! which secures a reasonable start of time-step interation.
-          
-          !Note: See notes related to 'ltkeadapt' further below!
+          !See also notes related to 'ltkeadapt' further below!
         END IF
+
         tkvm(i,k)=MAX( val1, tkvm(i,k) ) !'tkvm' with lower limit
         tkvh(i,k)=MAX( val2, tkvh(i,k) ) !'tkvh' with lower limit
 
@@ -1444,178 +1425,38 @@ my_thrd_id = omp_get_thread_num()
 
   ! An den darueberliegenden Nebenflaechen:
 
-  IF (lnonloc) THEN   ! nonlocal calculation of vertical gradients used for turb. diff.
+  ! Berechnung lokaler Gradienten:
 
-    !$ACC PARALLEL ASYNC(1) DEFAULT(PRESENT) IF(lzacc)
-    !$ACC LOOP GANG VECTOR
+  !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1) IF(lzacc)
+  !$ACC LOOP GANG VECTOR COLLAPSE(2) PRIVATE(com_len)
+  DO k=ke,2,-1
+!DIR$ IVDEP
     DO i=ivstart, ivend
-      hlp(i,ke1)=z0
+      com_len=(hhl(i,k-1)-hhl(i,k+1))*z1d2
+      hlp(i,k)=z1/com_len
+      dicke(i,k)=rhon(i,k)*com_len*fr_tke
     END DO
-    !$ACC END PARALLEL
+  END DO
+  !$ACC END PARALLEL
 
-    ! Berechnung nicht-lokaler Gradienten:
-    DO n=1,nmvar  ! nmvar = 5
-
-      ! Berechnung der vertikalen Integralfunktionen in hlp():
-
-      !$ACC PARALLEL ASYNC(1) DEFAULT(PRESENT) IF(lzacc)
-      !$ACC LOOP SEQ
-      DO k=ke,2,-1
-!DIR$ IVDEP
-        !$ACC LOOP GANG VECTOR
-        DO i=ivstart, ivend
-          hlp(i,k)=hlp(i,k+1)+zvari(i,k,n)*(hhl(i,k)-hhl(i,k+1))
-        END DO
-      END DO
-      !$ACC END PARALLEL
- 
-!DIR$ IVDEP
-      !$ACC PARALLEL ASYNC(1) DEFAULT(PRESENT) IF(lzacc)
-      !$ACC LOOP GANG VECTOR PRIVATE(hk, hu, kk, k1, k2, ku, wert)
-      DO i=ivstart, ivend
-        k1=1
-        k2=2
-        lays(i,k1)=hhl(i,1)-hhl(i,2)
-
-        !$ACC LOOP SEQ
-        DO k=2,ke
-          ! Berechnung der nicht-lokalen Gradienten als mittlere
-          ! Differenzenquotienten ueber die stabilitaetsabhaengige
-          ! Laengenskala in tkvh() bzw tkvm():
-
-          ! Speichern der stab.abh. Laengenskala unter layr():
-
-          IF (n <= nvel) THEN
-            layr(i)=tkvm(i,k)/tke(i,k,nvor)
-          ELSE
-            layr(i)=tkvh(i,k)/tke(i,k,nvor)
-          END IF
-
-          ! Bestimmung der nicht-lokalen Gradienten und
-          ! Zwischenspeichern derselben auf dem Feld dicke():
-          lays(i,k2)=hhl(i,k)-hhl(i,k+1)
-
-          IF ( layr(i) <= z1d2 * MIN( lays(i,k1), lays(i,k2) ) ) THEN
-
-            ! Die vertikalen Diffusionswege schneiden weder
-            ! eine untere noch eine obere Hauptflaeche. Es
-            ! koennen somit die lokalen Gradienten genommen
-            ! werden. Bei sehr kleinen Diffusionslaengen, muss
-            ! aus num. Gruenden sogar die lokale Berechnung
-            ! gewaehlt werden:
-
-            dicke(i,k)=z2*(zvari(i,k-1,n)-zvari(i,k,n)) / (hhl(i,k-1)-hhl(i,k+1))
-
-          ELSE
-
-            ! Berechn. der benoetigten Referenzhoehen und -level:
-            hk=hhl(i,k)
-            hu=MAX( hk-layr(i), hhl(i,ke1) )
-            hig(i,1)=hu+layr(i)
-            hig(i,2)=hk+layr(i)
-
-            kk=k
-            DO WHILE (hhl(i,kk) > hu)
-              kk=kk+1
-            END DO
-            ku=kk
-            DO ii=1,2
-              IF (kk > 1) THEN
-                DO WHILE (hhl(i,kk) <= hig(i,ii))
-                  kk=kk-1
-                END DO
-              END IF
-              levs(i,ii)=kk+1
-            END DO
-
-            ! Berechnung der gemittelten Differenzenquotienten
-            ! als Ausdruck fuer die nicht-lokalen Gradienten:
-            wert=hlp(i,ku)-hlp(i,k) &
-                +hlp(i,levs(i,2))-hlp(i,levs(i,1)) &
-                +zvari(i,ku-1,n)*(hu-hhl(i,ku)) &
-                -zvari(i,levs(i,1)-1,n)*(hig(i,1)-hhl(i,levs(i,1)))&
-                +zvari(i,levs(i,2)-1,n)*(hig(i,2)-hhl(i,levs(i,2)))
-
-            ! Beachte, dass Oberflaechenkonzentrationen 'zvari(:,ke1,:)' 
-            !  nicht benutzt werden.
-
-            dicke(i,k)=wert/(layr(i)*(hk-hu))
-          END IF
-
-        END DO   ! vertical loop
-
-        kk=k1
-        k1=k2
-        k2=kk
-
-      END DO     ! horizontal loop
-      !$ACC END PARALLEL
-
-      ! Sichern der nicht-lokalen Gradienten im Feld zvari():
-      !$ACC PARALLEL ASYNC(1) DEFAULT(PRESENT) IF(lzacc)
-      !$ACC LOOP SEQ
-      DO k=2,ke
-!DIR$ IVDEP
-        !$ACC LOOP GANG VECTOR
-        DO i=ivstart, ivend
-          zvari(i,k,n)=dicke(i,k)
-        END DO
-      END DO
-      !$ACC END PARALLEL
-
-    END DO   ! loop over n=1,nmvar
-
-    ! Belegung von dicke() mit den Schichtdicken*rhon/dt_tke
-    ! bzgl. Nebenflaechen:
-
-    !$ACC PARALLEL ASYNC(1) DEFAULT(PRESENT) IF(lzacc)
+  !$ACC PARALLEL ASYNC(1) DEFAULT(PRESENT) IF(lzacc)
+  !$ACC LOOP SEQ
+  DO n=1,nmvar
+#ifdef __INTEL_COMPILER
+    FORALL(k=2:ke,i=ivstart:ivend)                        &
+             zvari(i,k,n)=(zvari(i,k-1,n)-zvari(i,k,n))*hlp(i,k)
+#else
     !$ACC LOOP SEQ
-    DO k=2,ke
+    DO k=ke,2,-1
 !DIR$ IVDEP
       !$ACC LOOP GANG VECTOR
       DO i=ivstart, ivend
-        dicke(i,k)=rhon(i,k)*z1d2*(hhl(i,k-1)-hhl(i,k+1))*fr_tke
+        zvari(i,k,n)=(zvari(i,k-1,n)-zvari(i,k,n))*hlp(i,k)
       END DO
     END DO
-    !$ACC END PARALLEL
-
-  ELSE !.NOT.lnonloc
-    ! Berechnung lokaler Gradienten:
-
-    !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1) IF(lzacc)
-    !$ACC LOOP GANG VECTOR COLLAPSE(2) PRIVATE(com_len)
-    DO k=ke,2,-1
-!DIR$ IVDEP
-      DO i=ivstart, ivend
-        com_len=(hhl(i,k-1)-hhl(i,k+1))*z1d2
-        hlp(i,k)=z1/com_len
-        dicke(i,k)=rhon(i,k)*com_len*fr_tke
-      END DO
-    END DO
-    !$ACC END PARALLEL
-
-    !$ACC PARALLEL ASYNC(1) DEFAULT(PRESENT) IF(lzacc)
-    !$ACC LOOP SEQ
-    DO n=1,nmvar
-
-#ifdef __INTEL_COMPILER
-      FORALL(k=2:ke,i=ivstart:ivend)                        &
-               zvari(i,k,n)=(zvari(i,k-1,n)-zvari(i,k,n))*hlp(i,k)
-#else
-      !$ACC LOOP SEQ
-      DO k=ke,2,-1
-!DIR$ IVDEP
-        !$ACC LOOP GANG VECTOR
-        DO i=ivstart, ivend
-          zvari(i,k,n)=(zvari(i,k-1,n)-zvari(i,k,n))*hlp(i,k)
-        END DO
-      END DO
 #endif
-
-    END DO
-    !$ACC END PARALLEL
-
-  END IF !lnonloc
+  END DO
+  !$ACC END PARALLEL
 
 !------------------------------------------------------------------------------------
 ! 2)  Berechnung der verallgemeinerten Antriebsfunktionen einschliesslich der
@@ -2148,7 +1989,7 @@ my_thrd_id = omp_get_thread_num()
                              tke=tke, ediss=ediss,                                    & !inout, out
 
                              lactcnv=(icldm_turb.NE.-1),                              & !in (activ. flux-conversion)
-                             laddcnv=(lnonloc .OR. (ltmpcor .AND. lcpfluc)),          & !in (addit. flux-conversion)
+                             laddcnv=(ltmpcor .AND. lcpfluc),                         & !in (addit. flux-conversion)
 
                              exner=zaux(:,:,1), r_cpd=zaux(:,:,2), qst_t=zaux(:,:,3), & !in
 
@@ -2286,7 +2127,7 @@ my_thrd_id = omp_get_thread_num()
       ! and should be substituted by a less ad-hoc approach by means of respective process descriptions!
       !So far, this treatment degenerates the turbulence model in its principal conception according to STIC!
       !The now implemented "adapted treatment of lower limits" by means of the turb. Prandtl.-number 'tprn'
-      ! (activated at "imode_ntended tkemini=2") may circumvent this problem, so as to avoid an unintended feed-back 
+      ! (activated at "imode_tkemini=2") may circumvent this problem, so as to avoid an unintended feed-back 
       ! of an artificial 'tkvm'-contribution onto the turbulence scheme.
       !IF the overall effect of LLDCs appears too large now, the LLDC for scalars should be reduced accordingly!
     END IF !using addit. empirical modificat. by means of 'xri'
@@ -2631,7 +2472,7 @@ my_thrd_id = omp_get_thread_num()
                                                       ! the magnitude of buoyant heat-flux by turbulence
            wert=-wert/(zaux(i,k,4)*tkvh(i,k)) !virtual gradient of the related circul. Theta-flux
 
-           If (ldoexpcor .OR. lnonloc) THEN !converted explicit turbulent fluxes required for vert. diff.
+           If (ldoexpcor) THEN !converted explicit turbulent fluxes required for vert. diff.
               zvari(i,k,tet) = zvari(i,k,tet) + wert !store increased effective Theta-gradient
            ELSE !converted explicit turbulent fluxes are not being used for vertical diffusion
               zvari(i,k,tet) = wert !store only the circulation-contribution as Theta-gradient!!
@@ -2874,13 +2715,6 @@ my_thrd_id = omp_get_thread_num()
         tketens(i,ke1)=z0
       END DO
       !$ACC END PARALLEL
-
-      ! Optionale vertikale Glaettung der erweiterten Diffusionstendenz von q=SQRT(2*TKE):
-      IF (tndsmot > z0) THEN
-        !$ACC WAIT
-        CALL vert_smooth ( i_st=ivstart, i_en=ivend, k_tp=1, k_sf=ke1, &
-                           disc_mom=dicke, cur_tend=tketens, vertsmot=tndsmot, lacc=lzacc )
-      END IF
 
     ELSE !keine q-Tendenzen, weder durch TKE-Diffusion noch durch den Zirkulationsterm
 

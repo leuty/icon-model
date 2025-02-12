@@ -180,7 +180,6 @@ USE turb_data, ONLY : &
 ! Switches controlling the turbulence model, turbulent transfer and diffusion:
 ! ----------------------------------------------------------------------------
 
-    lprfcor,      & ! using the profile values of the lowest main level instead of
     ltst2ml, &      ! test required, whether  2m-level is  above the lowest main-level
                     ! F:  2m-level is assumed to be always below the lowest main-level
     ltst10ml, &     ! test required, whether 10m-level is  above the lowest half-level   
@@ -226,9 +225,6 @@ USE turb_data, ONLY : &
                     ! 1: ordinary wind speed (magnitude of grid-scale averaged wind-vector)
                     ! 2: local wind speed related to additional surface-shear by NTCs|LLDCs (at "rsur_sher>0")
     imode_trancnf,& ! mode of configuring the transfer-scheme 
-                    ! 1: old version: start. with lamin. diffus.; with a lamin. correct. for profile-funct.;
-                    !    interpol. T_s rather then Tet_l onto "0"-level; calcul. only approx. Tet_l-grads.;
-                    !    using an upper bound for TKE-forcing; without transmit. skin-layer depth to turbul.
                     ! 2: 1-st ConSAT: start. with estim. Ustar, without a laminar correct. for prof.-funct.;
                     !    interpol. Tet_l onto "0"-level; calcul. Tet_l-gradients directly; 
                     !    without an upper bound for TKE-forcing; with transmit. skin-layer depth to turbul.
@@ -246,7 +242,7 @@ USE turb_data, ONLY : &
                     ! 1: removing the artific. drag  contribut. by Lower Limits of DCs (LLDCs) for momentum at "P"-level
                     ! 2: "1" and including not transmitted shear contributions by LLDCs and NTCs to DCs at level "0"
     imode_lamdiff   ! mode of considering the laminar limit of diffusion within the surface layer
-                    ! 1: only a limitation of "0"-level DCs at calculating resistnance-length values for the R-layer
+                    ! 1: only a limitation of "0"-level DCs at calculating resistance-length values for the R-layer
                     ! 2: laminar limit of full transfer-resistance values
 
 USE turb_data, ONLY : &
@@ -745,7 +741,7 @@ REAL (KIND=wp) :: &
 !   Sonstiges:
     ren_m,ren_h, & !specific Re-numbers at top of land-use roughness
     g_z0_ice, g_len_min, g_alpha1_con_m, & !used for calculating sea-surface roughness
-    edprfsecu  , & !"1/prfsecu" (out of ]0; 1[)
+    edprfsecu,   & !"1/prfsecu" (out of ]0; 1[)
     z0wave_threshold, & ! threshold for using z0 provided by wave model
     xf             !scaling factor representing the volume-height ratio of the lowest atmospheric 
                    ! full and half level
@@ -1052,96 +1048,89 @@ LOGICAL        ::   ldebug = .FALSE.
             !Note: This definition of a non-land surface is now in line with the ICON-definition 
             !       using "frlnd_thrhld=z1d2"
 
-            IF (imode_trancnf >= 2 .OR. (lgz0ini .AND. .NOT.l_sice(i))) THEN !initial 'tkv[m|h](:ke)' required
-               !Einfachste Schaetzung der Schubspannung als Impusls-Flussdichte durch die Nebenflaeche "P" (k=ke)
-               ! mit Hilfe einer diagnostischen TKE ohne Beruecksichtigung von Feuchte-Effekten und unter Anwendung
-               ! von "Rf=Ri" bei der Berechnung der Stabilitaetsfunktionen:
+            !Einfachste Schaetzung der Schubspannung als Impusls-Flussdichte durch die Nebenflaeche "P" (k=ke)
+            ! mit Hilfe einer diagnostischen TKE ohne Beruecksichtigung von Feuchte-Effekten und unter Anwendung
+            ! von "Rf=Ri" bei der Berechnung der Stabilitaetsfunktionen:
 
-               l_turb=h_top_2d(i) !approx. turb. length scale at "P"-level (k=ke)
+            l_turb=h_top_2d(i) !approx. turb. length scale at "P"-level (k=ke)
 
-               l_turb=akt*MAX( len_min, l_turb/( z1+l_turb/l_scal(i) ) )
+            l_turb=akt*MAX( len_min, l_turb/( z1+l_turb/l_scal(i) ) )
 
-               dh=z1d2*(hhl(i,ke-1)-hhl(i,ke1))
+            dh=z1d2*(hhl(i,ke-1)-hhl(i,ke1))
 
-               vel1=u(i,ke-1)
-               vel2=u(i,ke  )
-               grad(i,u_m)=(vel1-vel2)/dh
+            vel1=u(i,ke-1)
+            vel2=u(i,ke  )
+            grad(i,u_m)=(vel1-vel2)/dh
    
-               vel1=v(i,ke-1)
-               vel2=v(i,ke  )
-               grad(i,v_m)=(vel1-vel2)/dh
+            vel1=v(i,ke-1)
+            vel2=v(i,ke  )
+            grad(i,v_m)=(vel1-vel2)/dh
 
-               grad(i,tet_l)=(t(i,ke-1)-t(i,ke))/dh + tet_g
+            grad(i,tet_l)=(t(i,ke-1)-t(i,ke))/dh + tet_g
 
-               fm2=MAX( grad(i,u_m)**2+grad(i,v_m)**2, fc_min(i) )
-               fh2=grav*grad(i,tet_l)/t(i,ke)
+            fm2=MAX( grad(i,u_m)**2+grad(i,v_m)**2, fc_min(i) )
+            fh2=grav*grad(i,tet_l)/t(i,ke)
 
-               ! Vereinfachte Loesung mit Rf=Ri:
-               IF (fh2 >= (z1-rim)*fm2) THEN !die krit. Ri-Zahl wird ueberschritten
-                  !'lm' sowie 'lh' werden durch 'lm' bei der krit. Ri-Zahl angenaehert:
-                  fakt=z1/rim-z1
-                  lm=l_turb*(sm_0-(a_6+a_3)*fakt)
-                  lh=lm
-               ELSE
-                  fakt=fh2/(fm2-fh2)
-                  lm=l_turb*(sm_0-(a_6+a_3)*fakt)
-                  lh=l_turb*(sh_0-a_5*fakt)
-               END IF
+            ! Vereinfachte Loesung mit Rf=Ri:
+            IF (fh2 >= (z1-rim)*fm2) THEN !die krit. Ri-Zahl wird ueberschritten
+               !'lm' sowie 'lh' werden durch 'lm' bei der krit. Ri-Zahl angenaehert:
+               fakt=z1/rim-z1
+               lm=l_turb*(sm_0-(a_6+a_3)*fakt)
+               lh=lm
+            ELSE
+               fakt=fh2/(fm2-fh2)
+               lm=l_turb*(sm_0-(a_6+a_3)*fakt)
+               lh=l_turb*(sh_0-a_5*fakt)
+            END IF
 
-               val1=lm*fm2; val2=lh*fh2
-               wert=MAX( val1-val2, rim*val1 )
+            val1=lm*fm2; val2=lh*fh2
+            wert=MAX( val1-val2, rim*val1 )
 
-               IF (ltkeinp) THEN
-                  tke(i,ke,nvor)=tke(i,ke,ntur)
-               ELSE
-                  tke(i,ke,nvor)=SQRT(d_m*l_turb*wert)
-               END IF
+            IF (ltkeinp) THEN
+               tke(i,ke,nvor)=tke(i,ke,ntur)
+            ELSE
+               tke(i,ke,nvor)=SQRT(d_m*l_turb*wert)
+            END IF
 
-               val1=con_m; tkvm(i,ke)=lm*tke(i,ke,nvor)
-               val2=con_h; tkvh(i,ke)=lh*tke(i,ke,nvor)
+            val1=con_m; tkvm(i,ke)=lm*tke(i,ke,nvor)
+            val2=con_h; tkvh(i,ke)=lh*tke(i,ke,nvor)
 
-               !Note: 
-               !'tk[h|m]min' are, first of all, foreseen as lower limits for 'vertdiff'-calculations;
-               ! hence, they are not required for this particular initialization of "P"-level DCs.
-               !Nevertheless, positive-definite initial 'tkv[m|h](:,ke)' are required for initialization
-               ! of both, friction-velocity (and with it 'gz0') at sea-surfaces, and 'tkv[m|h](:,ke1)'.
-               !While, at "imode_trancnf<4", these initial DC-values at "P"-and "0"-level determine the 
-               ! surface-layer profile-functions, the one at "0"-level needs also to be present as input
-               ! of the Turbulence Model (TMod) in SUB 'solve_turb_budgets'.
-               !For that purposes, at least the laminar limit appears to by reasonable at "P"-level.
-               !'tke(:,ke,nvor)' is only required for the final 'gz0'-calculation for sea-surfaces
-               ! (at the end of SUB 'turbtran').
+            !Note: 
+            !'tk[h|m]min' are, first of all, foreseen as lower limits for 'vertdiff'-calculations;
+            ! hence, they are not required for this particular initialization of "P"-level DCs.
+            !Nevertheless, positive-definite initial 'tkv[m|h](:,ke)' are required for initialization
+            ! of both, friction-velocity (and with it 'gz0') at sea-surfaces, and 'tkv[m|h](:,ke1)'.
+            !While, at "imode_trancnf<4", these initial DC-values at "P"-and "0"-level determine the 
+            ! surface-layer profile-functions, the one at "0"-level needs also to be present as input
+            ! of the Turbulence Model (TMod) in SUB 'solve_turb_budgets'.
+            !For that purposes, at least the laminar limit appears to by reasonable at "P"-level.
+            !'tke(:,ke,nvor)' is only required for the final 'gz0'-calculation for sea-surfaces
+            ! (at the end of SUB 'turbtran').
 
-               IF (imode_tkemini >= 2) THEN !adaptation of TKE and TMod. to lower limits
-                  tke(i,ke,nvor)=tke(i,ke,nvor)*MAX( z1, val2/tkvh(i,ke) ) !adapted 'tke'
-                  !Note:
-                  !Compare the respective 'tke'-adaptation in SUB 'turbdiff'.
-               END IF
-
-               tkvh(i,ke)=MAX(val2, tkvh(i,ke)) !'tkvh(:,ke)' with lower limit
-               tkvm(i,ke)=MAX(val1, tkvm(i,ke)) !'tkvm(:,ke)' with full lower limit 
-
+            IF (imode_tkemini >= 2) THEN !adaptation of TKE and TMod. to lower limits
+               tke(i,ke,nvor)=tke(i,ke,nvor)*MAX( z1, val2/tkvh(i,ke) ) !adapted 'tke'
                !Note:
-               !Laminar LLDCs do not contain any artificial drag contribution. As, moreover, 'tkv[m|h](:,ke1)'
-               ! are being estimated by means of 'tkv[m|h](:,ke)', 'imode_suradap' needs not to be considered
-               ! within this initialization at all.
-                     
-               vel2=MAX( epsi, tkvm(i,ke)*SQRT(fm2) ) !estimated Ustar**2
-               vel1=SQRT(vel2) !Ustar
+               !Compare the respective 'tke'-adaptation in SUB 'turbdiff'.
+            END IF
 
-            ELSE !needed for vectorization
-               l_turb = z0
-               vel1   = z0
-               vel2   = z0
-            END IF !initial 'tkv[m|h](:ke)' required
+            tkvh(i,ke)=MAX(val2, tkvh(i,ke)) !'tkvh(:,ke)' with lower limit
+            tkvm(i,ke)=MAX(val1, tkvm(i,ke)) !'tkvm(:,ke)' with full lower limit 
+
+            !Note:
+            !Laminar LLDCs do not contain any artificial drag contribution. As, moreover, 'tkv[m|h](:,ke1)'
+            ! are being estimated by means of 'tkv[m|h](:,ke)', 'imode_suradap' needs not to be considered
+            ! within this initialization at all.
+                     
+            vel2=MAX( epsi, tkvm(i,ke)*SQRT(fm2) ) !estimated Ustar**2
+            vel1=SQRT(vel2) !Ustar
 
             IF (lgz0ini) THEN !initialization of roughness length for water- or ice-covered surface:
                IF ( l_sice(i) ) THEN !ice-covered surface
                   gz0(i)=g_z0_ice
                ELSE !water-covered surface
-                  ! Basic Charnock-parameter; use enhanced value of 0.1 over lakes if imode_charpar>1
+                  ! Basic Charnock-parameter; use enhanced value of "0.1" over lakes if "imode_charpar>1":
                   fakt=MERGE( alpha0, 0.1_wp, imode_charpar == 1 )
-                  ! use velocity-dependent Charnock paramter over sea if imode_charpar>1
+                  ! use velocity-dependent Charnock paramter over sea if "imode_charpar>1":
                   fakt=MERGE( alpha0_char(vel_2d(i,ke)), fakt, imode_charpar > 1 .AND. .NOT.l_lake(i) )
 
                   !Final diagnosed 'gz0' (shear-related dynamic contribution and laminar correction):
@@ -1149,12 +1138,10 @@ LOGICAL        ::   ldebug = .FALSE.
                END IF
             END IF
 
-            IF (imode_trancnf >= 2) THEN !new version of init. using estimated Ustar
-               tkr(i)=l_turb*vel1                          !l_0*Ustar
+            tkr(i)=l_turb*vel1                          !l_0*Ustar
 
-               rat_m_2d(i)= tkr(i)/tkvm(i,ke)              !Ustar/(q*Sm)_P
-               rat_h_2d(i)=(tkr(i)*sh_0)/(tkvh(i,ke)*sm_0) !Ustar/(q*Sh)_P*Sh(0)/Sm(0)
-            END IF
+            rat_m_2d(i)= tkr(i)/tkvm(i,ke)              !Ustar/(q*Sm)_P
+            rat_h_2d(i)=(tkr(i)*sh_0)/(tkvh(i,ke)*sm_0) !Ustar/(q*Sh)_P*Sh(0)/Sm(0)
 
          END DO
 
@@ -1175,24 +1162,16 @@ LOGICAL        ::   ldebug = .FALSE.
 
       IF (lini) THEN !only for initialization
 
-         IF (imode_trancnf >= 2) THEN !new version of init. using estimated Ustar
-            !$ACC LOOP GANG(STATIC: 1) VECTOR
-            DO i=ivstart, ivend
-               tkvm(i,ke1)=tkvm(i,ke)*tcm(i)*(tcm(i)+(z1-tcm(i))*rat_m_2d(i))
-               tkvh(i,ke1)=tkvh(i,ke)*tch(i)*(tch(i)+(z1-tch(i))*rat_h_2d(i))
+         !$ACC LOOP GANG(STATIC: 1) VECTOR
+         DO i=ivstart, ivend
+            tkvm(i,ke1)=tkvm(i,ke)*tcm(i)*(tcm(i)+(z1-tcm(i))*rat_m_2d(i))
+            tkvh(i,ke1)=tkvh(i,ke)*tch(i)*(tch(i)+(z1-tch(i))*rat_h_2d(i))
 
-               tkr(i)=tkr(i)/tkvm(i,ke1) !Ustar/(q*Sm)_0
-            END DO
-         ELSE !old version of init. using laminar diff. coeffs. 
-            !$ACC LOOP GANG(STATIC: 1) VECTOR
-            DO i=ivstart, ivend
-               tkvm(i,ke) =con_m; tkvh(i,ke) =con_h
-               tkvm(i,ke1)=con_m; tkvh(i,ke1)=con_h
-            END DO
-         END IF    
+            tkr(i)=tkr(i)/tkvm(i,ke1) !Ustar/(q*Sm)_0
+         END DO
 
       ELSEIF (ladsshr .OR. (imode_trancnf < 4 .AND. imode_suradap >= 1)) THEN
-             !for surface-layer adaptations to additional "P"-level (Prandtl) shear (only apart from initialization)
+             !for surface-layer adaptations to additional "P"-level shear (only apart from initialization)
 
 !DIR$ IVDEP
          !$ACC LOOP GANG(STATIC: 1) VECTOR PRIVATE(fakt, wert, val1, val2)
@@ -1226,7 +1205,7 @@ LOGICAL        ::   ldebug = .FALSE.
             !$ACC LOOP GANG(STATIC: 1) VECTOR PRIVATE(fakt)
             DO i=ivstart, ivend
                fakt=MERGE( SQRT( tfv(i) ), z1, (imode_suradap > 1) ) !reduction-factor due to not-transmitted
-                                                                      ! additonal shear from level "P"
+                                                                     ! additonal shear from level "P"
 
                !length-scale fractions including required reduction factors:
                tcm(i)=tcm(i)*fakt*tfm(i)
@@ -1247,7 +1226,7 @@ LOGICAL        ::   ldebug = .FALSE.
             rat_m_2d(i)=tkr(i)                                       !Ustar/(q*Sm)_0
             rat_h_2d(i)=tkr(i)*(tkvm(i,ke1)*sh_0)/(tkvh(i,ke1)*sm_0) !Ustar/(q*Sh)_0*(Sh(0)/Sm(0))
          END DO
-      ELSEIF (imode_trancnf >= 2) THEN
+      ELSE
          !Profile-factors by using the previous diffusion coefficients
          !without a laminar correction, but still based on the upper node:
 !DIR$ IVDEP
@@ -1261,12 +1240,6 @@ LOGICAL        ::   ldebug = .FALSE.
       !$ACC END PARALLEL
 
 ! 4)  Berechnung der Transfer-Geschwindigkeiten:
-
-      IF (lprfcor) THEN   
-         ks=ke-1
-      ELSE
-         ks=ke
-      END IF
 
 !----------------------------------------------
       DO it_durch=it_start, it_end !Iterationen
@@ -1374,15 +1347,7 @@ LOGICAL        ::   ldebug = .FALSE.
             IF (imode_trancnf < 4) THEN
                !Profile-factors by employing previous values of the diffusion-coefficients
                !at the top fo the roughness-layer (0) and also at the upper bound of the
-               !lowest atm. model layer (p) as an upper node:
-
-
-               IF (imode_trancnf == 1) THEN !first version
-                  !Profile factors by using the previous diffusion coefficients
-                  !including a possible laminar correction:
-                  rat_m_2d(i)=tcm(i)*tkvm(i,ke)/tkvm(i,ke1)
-                  rat_h_2d(i)=tch(i)*tkvh(i,ke)/tkvh(i,ke1)
-               END IF
+               !lowest atm. model layer (P) as an upper node:
 
                rat_m_2d(i)=MIN( edprfsecu, MAX( prfsecu, rat_m_2d(i) ) ) !limited (q*Sm)_P/(q*Sm)_0
                rat_h_2d(i)=MIN( edprfsecu, MAX( prfsecu, rat_h_2d(i) ) ) !limited (q*Sh)_P/(q*Sh)_0
@@ -1464,13 +1429,17 @@ LOGICAL        ::   ldebug = .FALSE.
             !This solution corresponds to a quite general solution of the resistance integral for pure
             ! turbulent transport throughout an arbitrarily stratified internal BL above the R-layer
             ! at high Re-numbers (that means at negligible laminar effects).
+         END DO
 
-            IF (imode_lamdiff == 2) THEN !permanent inclusion of laminar transport
+         IF (imode_lamdiff == 2) THEN !permanent inclusion of laminar transport
+!DIR$ IVDEP
+            !$ACC LOOP GANG(STATIC: 1) VECTOR
+            DO i=ivstart, ivend
                !Securing at least laminar transport based on current DCs:
                dz_0a_m(i) = MIN( h_atm_2d(i)*tkvm(i,ke1)/con_m, dz_0a_m(i) )
                dz_0a_h(i) = MIN( h_atm_2d(i)*tkvh(i,ke1)/con_h, dz_0a_h(i) )
-            END IF
-         END DO
+            END DO
+         END IF
 
          ! Combination of resistance-length values for momentum and scalars:
 
@@ -1548,27 +1517,6 @@ LOGICAL        ::   ldebug = .FALSE.
                   zvari(i,k,tet_l)=(t(i,k) - lhocp*qc(i,k))/epr(i,k)
                   zvari(i,k,h2o_g)=qv(i,k) +       qc(i,k)
                END DO
-            END DO
-         END IF
-
-         IF (lprfcor) THEN
-!DIR$ IVDEP
-            !$ACC LOOP GANG(STATIC: 1) VECTOR PRIVATE(len1, len2, lm, lh)
-            DO i=ivstart, ivend
-               len1=z2*h_top_2d(i)
-               len2=(h_top_2d(i)-h_atm_2d(i))**2 &
-                   /((hhl(i,ke-1)+hhl(i,ke))*z1d2-hhl(i,ke1)-h_atm_2d(i))
-               lm=len1-tfm(i)*h_atm_2d(i)-len2
-               lh=len1-tfh(i)*h_atm_2d(i)-len2
-
-               zvari(i,ke,u_m  )=(len1*zvari(i,ke  ,u_m  ) &
-                                 -len2*zvari(i,ke-1,u_m  ))/lm
-               zvari(i,ke,v_m  )=(len1*zvari(i,ke  ,v_m  ) &
-                                 -len2*zvari(i,ke-1,v_m  ))/lm
-               zvari(i,ke,tet_l)=(len1*zvari(i,ke  ,tet_l)-h_atm_2d(i)*tfh(i)* t_g(i)/epr_2d(i) &
-                                 -len2*zvari(i,ke-1,tet_l))/lh
-               zvari(i,ke,h2o_g)=(len1*zvari(i,ke  ,h2o_g)-h_atm_2d(i)*tfh(i)*qv_s(i) &
-                                 -len2*zvari(i,ke-1,h2o_g))/lh
             END DO
          END IF
 
@@ -1665,37 +1613,13 @@ LOGICAL        ::   ldebug = .FALSE.
             val_h(i)=tfh(i)*edh(i) !reciprocal resistance length of roughness- and laminar-layer
          END DO
 
-         IF (imode_trancnf == 1) THEN !old version of "0"-level-gradients requested
-            !Transformation of Tet_l-gradient into the old form following from interpolation
-            !onto the "0"-level in terms of T_l (rather than Tet_l) and correcting the
-            !calculated T_l-Gradient by the adiabatic laps rate:
-
-!DIR$ IVDEP
-            !$ACC LOOP GANG(STATIC: 1) VECTOR PRIVATE(wert, val1, val2)
+        !$ACC LOOP SEQ
+         DO n=tet_l, h2o_g
+            !$ACC LOOP GANG(STATIC: 1) VECTOR
             DO i=ivstart, ivend
-
-               !Estimated "0"-level values according to the old definition:
-               wert=(epr(i,ke)-epr_2d(i))*zvari(i,ke,tet_l)                          !temp.-deviation due to interpol.
-               val1=epr_2d(i)*zvari(i,ke1,tet_l)+wert*(z1-tfh(i))                    !liqu. water temp. 
-               val2=zvari(i,ke1,h2o_g)-zvari(i,ke1,liq)                              !specfic humidity 
-               val2=(val1+lhocp*zvari(i,ke1,liq))*(z1+rvd_m_o*val2-zvari(i,ke1,liq)) !virt. temperature
-
-               !Tet_l-gradient according to the old definition:
-               wert=(wert*val_h(i)+tet_g*val1/val2)/epr_2d(i)                        !deviation of Tet_l-grad.
-               zvari(i,ke1,tet_l)=(zvari(i,ke,tet_l)-zvari(i,ke1,tet_l))*edh(i)+wert !old repr. of Tet_l-grad.
-
-               !H2O_g-gradient:
-               zvari(i,ke1,h2o_g)=(zvari(i,ke,h2o_g)-zvari(i,ke1,h2o_g))*edh(i)
+               zvari(i,ke1,n)=(zvari(i,ke,n)-zvari(i,ke1,n))*edh(i)
             END DO
-         ELSE
-           !$ACC LOOP SEQ
-           DO n=tet_l, h2o_g
-              !$ACC LOOP GANG(STATIC: 1) VECTOR
-              DO i=ivstart, ivend
-                 zvari(i,ke1,n)=(zvari(i,ke,n)-zvari(i,ke1,n))*edh(i)
-              END DO
-           END DO
-         END IF
+         END DO
          !'zvari(:,ke1,n)' enthaelt jetzt die Vertikalgradienten der Erhaltungsvariablen
 
          !Auftriebs-Antrieb der TKE:
@@ -1760,7 +1684,7 @@ LOGICAL        ::   ldebug = .FALSE.
 
                                   ntur=ntur, nvor=nvor,                                         & !in
 
-                                  lssintact=.FALSE.,      lupfrclim=(imode_trancnf == 1),       & !in
+                                  lssintact=.FALSE.,      lupfrclim=.FALSE.,                    & !in
                                   lpres_edr=PRESENT(edr),                                       & !in
                                   ltkeinp=ltkeinp,        lstfnct=lstfnct,                      & !in
 
@@ -1801,11 +1725,11 @@ LOGICAL        ::   ldebug = .FALSE.
 !DIR$ IVDEP
          !$ACC LOOP GANG(STATIC: 1) VECTOR
          DO i=ivstart, ivend
+
             tkvm(i,ke1)=tke(i,ke1,ntur)*tkvm(i,ke1)
             tkvh(i,ke1)=tke(i,ke1,ntur)*tkvh(i,ke1)
          END DO
-
-         IF (imode_trancnf >= 4 .OR. (imode_trancnf >= 2 .AND. it_durch < it_end)) THEN
+         IF (imode_trancnf >= 4 .OR. it_durch < it_end) THEN
             !$ACC LOOP GANG(STATIC: 1) VECTOR PRIVATE(wert)
             DO i=ivstart, ivend
                wert=l_tur_z0(i)*SQRT(SQRT(frm(i,ke1))/tkvm(i,ke1)) !updated tkr=Ustar/(q*Sm)_0
@@ -2448,18 +2372,18 @@ LOGICAL        ::   ldebug = .FALSE.
                vel2=tvm(i)*MAX( vel_min, SQRT( vel_2d(i,ke)**2 + (z1-rsur_sher)*vel2 ) )
 
                ! Charnock-parameter:
-               ! Basic Charnock-parameter; use enhanced value of 0.1 over lakes if imode_charpar>1
+  
+               ! Basic Charnock-parameter; use enhanced value of "0.1" over lakes if "imode_charpar>1":
                fakt=MERGE( alpha0, 0.1_wp, imode_charpar == 1 )
 
-               ! use velocity-dependent Charnock paramter over sea if imode_charpar>1
-               fakt=MERGE( alpha0_char(SQRT( u_10m(i)**2+v_10m(i)**2)), fakt, imode_charpar > 1 .AND. .NOT.l_lake(i) )
+               ! use velocity-dependent Charnock paramter over sea if "imode_charpar>1":
+               fakt=MERGE( alpha0_char(SQRT( u_10m(i)**2+v_10m(i)**2 ) ), fakt, imode_charpar > 1 .AND. .NOT.l_lake(i) )
 
                !Substituting dynamic (shear-related) part of diagnosed R-length by 'z0_waves', if present and singnificant:
                wert=MERGE( grav*z0_waves(i), fakt*vel2, (igz0inp == 2 .AND. z0_waves(i) >= z0wave_threshold) )
               
                !Diagnosed sea-surface R-length including a laminar correction:
                wert=MAX( g_len_min, wert + g_alpha1_con_m/SQRT(vel2) )
-
                !Final 'gz0' with optional time-step smoothing:
                gz0(i)=MERGE( ditsmot*gz0(i)+(z1-ditsmot)*wert, wert, ditsmot > z0 )
             END IF

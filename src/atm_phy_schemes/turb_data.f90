@@ -127,10 +127,8 @@ REAL (KIND=wp)     ::        &
 
   ditsmot      =  0.00_wp,   & ! smoothing factor for direct time-step iteration
 
-  tndsmot      =  0.00_wp,   & ! vertical smoothing factor for diffusion tendencies
   frcsmot      =  0.00_wp,   & ! vertical smoothing factor for TKE forcing (in ICON only in the tropics)
   tkesmot      =  0.15_wp,   & ! time smoothing factor for TKE and diffusion coefficients
-  stbsmot      =  0.00_wp,   & ! time smoothing factor for stability function
   frcsecu      =  1.00_wp,   & ! security factor for TKE-forcing       (<=1)
   tkesecu      =  1.00_wp,   & ! security factor in  TKE equation      (out of [0; 1])
   stbsecu      =  0.01_wp,   & ! security factor in stability function (out of ]0; 1])
@@ -245,8 +243,6 @@ REAL (KIND=wp)     ::        &
 ! ----------------------------------------------------------------------------
 
 LOGICAL :: &
-  loldtur       =.FALSE., & ! use settings to simulate old ijk turbulence version
-                            ! if .TRUE.: new ICON-like settings are used
   ltkecon       =.FALSE., & ! consider convective buoyancy production in TKE-equation
   ltkeshs       =.TRUE. , & ! consider separ. horiz. shear production in TKE-equation
   loutshs       =.TRUE. , & ! consider separ. horiz. shear production of TKE for output
@@ -257,10 +253,6 @@ LOGICAL :: &
 !    Output of additional TKE production terms:
   loutbms       =.FALSE., & ! consider TKE-production by turbulent buoyancy, total mechanical shear
                             !  or grid-scale mechanical shear for additional output
-
-  lnonloc       =.FALSE., & ! nonlocal calculation of vertical gradients used for turbul. diff.
-  lprfcor       =.FALSE., & ! using the profile values of the lowest main level instead of
-                            ! the mean value of the lowest layer for surface flux calulations
 
   ltmpcor       =.FALSE., & ! consideration minor turbulent sources in the enthalpy budget 
   lcpfluc       =.FALSE.    ! consideration of fluctuations of the heat capacity of air
@@ -309,9 +301,6 @@ INTEGER :: &
                       ! 0: only vertical shear of horizontal wind
                       ! 1: previous plus horizontal shear correction
                       ! 2: previous plus shear from vertical velocity
-
-! To reproduce the old ijk turbulence settings as good as possible, all these switches 
-! have to be set to 1. If loldtur=.TRUE., the re-setting is done in organize_physics.
 
 ! These are the settings for the ICON-like setup of the physics
 INTEGER :: &
@@ -390,9 +379,6 @@ INTEGER :: &
                       ! 1: only absolut upper limit of stand. dev. of local super-satur. (sdsd)
                       ! 2: relative limit of sdsd and upper limit of cloud-water
   imode_trancnf =2, & ! mode of configuring the transfer-scheme (SUB 'turbtran')
-                      ! 1: old version: start. with lamin. diffus.; with a lamin. correct. for profile-funct.;
-                      !    interpol. T_s rather then Tet_l onto "0"-level; calcul. only approx. Tet_l-grads.;
-                      !    using an upper bound for TKE-forcing; without transmit. skin-layer depth to turbul.
                       ! 2: 1-st ConSAT: start. with estim. Ustar, without a laminar correct. for prof.-funct.;
                       !    interpol. Tet_l onto "0"-level; calcul. Tet_l-gradients directly; 
                       !    without an upper bound for TKE-forcing; with transmit. skin-layer depth to turbul.
@@ -521,8 +507,6 @@ SUBROUTINE get_turbdiff_param (jg)
    ltkeshs      = turbdiff_config(jg)%ltkeshs
    lexpcor      = turbdiff_config(jg)%lexpcor
    ltmpcor      = turbdiff_config(jg)%ltmpcor
-   lprfcor      = turbdiff_config(jg)%lprfcor
-   lnonloc      = turbdiff_config(jg)%lnonloc
    lfreeslip    = turbdiff_config(jg)%lfreeslip
    lcpfluc      = turbdiff_config(jg)%lcpfluc
    lsflcnd      = turbdiff_config(jg)%lsflcnd

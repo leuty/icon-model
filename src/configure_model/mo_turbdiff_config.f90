@@ -61,10 +61,6 @@ MODULE mo_turbdiff_config
       &  lexpcor
     LOGICAL :: &   ! consideration of minor turbulent sources in the enthalpy budget
       &  ltmpcor
-    LOGICAL :: &   ! using the profile values of the lowest main level instead of
-      &  lprfcor   ! the mean value of the lowest layer for surface flux calulations
-    LOGICAL :: &   ! nonlocal calculation of vertical gradients used for turbul. diff.
-      &  lnonloc 
     LOGICAL :: &   ! free-slip lower boundary condition (use for idealized runs only!)
       &  lfreeslip 
     LOGICAL :: &   ! consideration of fluctuations of the heat capacity of air

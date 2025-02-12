@@ -152,9 +152,7 @@ USE turb_data , ONLY :   &
 
     impl_s,       & ! implicit weight near the surface (maximal value)
     impl_t,       & ! implicit weight near top of the atmosphere (minimal value)
-    tndsmot,      & ! vertical smoothing factor for diffusion tendencies
     tkesmot,      & ! time smoothing factor for TKE
-    stbsmot,      & ! time smoothing factor for stability function
     frcsecu,      & ! security factor for TKE-forcing       (<=1)
     tkesecu,      & ! security factor in  TKE equation      (out of [0; 1])
     stbsecu,      & ! security factor in stability function (out of ]0; 1])
@@ -1754,14 +1752,6 @@ INTEGER :: imode_stbcorr !mode of correcting the stability function (=ABS(imode_
 
         lstbsecu=(imode_stbcalc.LT.0) !apply preconditioning
 
-        IF (stbsmot.GT.0.0_wp) THEN !smoothing of stability function required
-!DIR$ IVDEP
-           !$ACC LOOP GANG(STATIC: 1) VECTOR
-           DO i=i_st, i_en
-              dd(i,-mom)=lsm(i,k); dd(i,-sca)=lsh(i,k) !saving current values
-           END DO
-        END IF   
-
 !DIR$ IVDEP
         !$ACC LOOP GANG(STATIC: 1) VECTOR &
         !$ACC   PRIVATE(d_1, d_2, d_3, d_4, d_5, d_6, a_1, a_2) &
@@ -1897,18 +1887,6 @@ INTEGER :: imode_stbcorr !mode of correcting the stability function (=ABS(imode_
            lsm(i,k)=tls(i,k)*sm
 
         END DO !i=i_st, i_en
-
-        ! Time-step smoothing of stability length:
-
-        IF (stbsmot.GT.0.0_wp) THEN !smoothing of stability function required
-           w1=stbsmot; w2=1.0_wp-stbsmot
-!DIR$ IVDEP
-           !$ACC LOOP GANG(STATIC: 1) VECTOR
-           DO i=i_st, i_en
-              lsm(i,k)=lsm(i,k)*w2+dd(i,-mom)*w1
-              lsh(i,k)=lsh(i,k)*w2+dd(i,-sca)*w1
-           END DO  
-        END IF   
 
      END IF !(lstfnct)
 
@@ -2901,14 +2879,6 @@ REAL (KIND=wp), DIMENSION(:,:), POINTER, CONTIGUOUS :: &
         END DO
      END DO
      !$ACC END PARALLEL
-  END IF
-
-! Optional conservative vertical smoothing of tendencies:
-
-  IF (tndsmot.GT.0.0_wp) THEN
-     CALL vert_smooth ( &
-          i_st, i_en, k_tp=k_tp, k_sf=k_sf, &
-          disc_mom=disc_mom, cur_tend=dif_tend, vertsmot=tndsmot, lacc=lzacc )
   END IF
 
 END SUBROUTINE vert_grad_diff

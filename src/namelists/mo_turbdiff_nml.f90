@@ -30,7 +30,7 @@ MODULE mo_turbdiff_nml
   USE turb_data,              ONLY: &
     & imode_tran, icldm_tran, imode_turb, icldm_turb, itype_wcld, itype_sher, &
     & imode_shshear, imode_frcsmot, imode_tkesso, &
-    & ltkesso, ltkecon, ltkeshs, lexpcor, ltmpcor, lprfcor, lnonloc, lfreeslip, lcpfluc, lsflcnd, &
+    & ltkesso, ltkecon, ltkeshs, lexpcor, ltmpcor, lfreeslip, lcpfluc, lsflcnd, &
     & tur_len, pat_len, a_stab, a_hshr, &
     & impl_s, impl_t, c_diff, tkhmin, tkmmin, tkhmin_strat, tkmmin_strat, tkesmot, frcsmot, &
     & imode_snowsmot, imode_charpar, alpha0, alpha0_max, alpha0_pert, alpha1, &
@@ -63,7 +63,7 @@ MODULE mo_turbdiff_nml
   NAMELIST/turbdiff_nml/ &
     & imode_tran, icldm_tran, imode_turb, icldm_turb, itype_wcld, itype_sher, &
     & imode_shshear, imode_frcsmot, imode_tkesso, &
-    & ltkesso, ltkecon, ltkeshs, lexpcor, ltmpcor, lprfcor, lnonloc, lfreeslip, lcpfluc, lsflcnd, &
+    & ltkesso, ltkecon, ltkeshs, lexpcor, ltmpcor, lfreeslip, lcpfluc, lsflcnd, &
     & tur_len, pat_len, a_stab, a_hshr, &
     & impl_s, impl_t, c_diff, tkhmin, tkmmin, tkhmin_strat, tkmmin_strat, tkesmot, frcsmot, &
     & imode_snowsmot, imode_charpar, alpha0, alpha0_max,              alpha1, &
@@ -182,8 +182,6 @@ CONTAINS
       turbdiff_config(jg)%ltkecon        = ltkecon
       turbdiff_config(jg)%lexpcor        = lexpcor
       turbdiff_config(jg)%ltmpcor        = ltmpcor
-      turbdiff_config(jg)%lprfcor        = lprfcor
-      turbdiff_config(jg)%lnonloc        = lnonloc
       turbdiff_config(jg)%lfreeslip      = lfreeslip
       turbdiff_config(jg)%lcpfluc        = lcpfluc
       turbdiff_config(jg)%lsflcnd        = lsflcnd

@@ -56,7 +56,6 @@ USE turb_data, ONLY : &
 ! Switches controlling the turbulence model, turbulent transfer and diffusion:
 ! ----------------------------------------------------------------------------
 
-    lnonloc,      & ! nonlocal calculation of vertical gradients used for turb. diff.
 
 !   for semi-implicit vertical diffusion:
     lsflcnd,      & ! lower flux condition
@@ -239,7 +238,7 @@ REAL (KIND=wp), DIMENSION(:,:), OPTIONAL, INTENT(IN) :: &
   zvari           ! input: effective (possibly non-local) vertical gradients of regular model variables
                   !        (including the effect of turbulent saturation adjustment);
                   !        used to calculate the vertical divergence of non-gradient vertical fluxes, 
-                  !        if "ldoexpcor=T" or "lnonloc" or "ldocirflx=T" is valid!
+                  !        if "ldoexpcor.OR.ldocirflx" is valid
                   ! outpt: effective vertical gradients as resulting from the applied semi-implicit procedure
                   !        for vertical diffusion.
 
@@ -422,7 +421,7 @@ REAL (KIND=wp), DIMENSION(:), OPTIONAL, TARGET, INTENT(INOUT) :: &
 
 !All variables and their tendencies are defined at horizontal mass positions.
 
-  ldogrdcor=(ldoexpcor.OR.lnonloc.OR.ldocirflx)  !gradient correction has to be done
+  ldogrdcor=(ldoexpcor.OR.ldocirflx)  !gradient correction has to be done
   ldovardif=(lum_dif .OR. lvm_dif .OR. lscadif)  !some variable has to be diffused
 
   IF (PRESENT(ptr)) THEN !passive tracers are present
@@ -559,13 +558,9 @@ my_thrd_id = omp_get_thread_num()
 
          mcorr=nmvar !end index for gradient correction belongs to the last dynamically active scalar by default
          IF (ldogrdcor) THEN !gradient correction for dynamically active prognostic variables:
-            IF (lnonloc) THEN !in case of non-local gradient calculations:
-               ncorr=1 !starting with the first variable in the list
-            ELSE ! in case of local gradient calculations:
-               ncorr=nvel+1 !only for scalar variables
-               IF (.NOT.ldoexpcor) THEN !if just and only 'ldocirflx' is true:
-                  mcorr=ncorr !only for the first scalar, which is (potential) temperature
-               END IF
+            ncorr=nvel+1 !only for scalar variables
+            IF (.NOT.ldoexpcor) THEN !if just and only 'ldocirflx' is true:
+               mcorr=ncorr !only for the first scalar, which is (potential) temperature
             END IF
          ELSE !no gradient correction at all
             ncorr=ndiff+1 !gradient correction must not start at any variable in the list
@@ -618,7 +613,7 @@ my_thrd_id = omp_get_thread_num()
                      (.NOT.lum_dif .AND.      n.EQ.u_m) .OR. &
                      (.NOT.lvm_dif .AND.      n.EQ.v_m) ) THEN !only a diffusion correction required
                igrdcon=1 !verwende nur Profil aus Gradientkorrektur
-            ELSEIF (ldoexpcor .OR. lnonloc) THEN !full vertical diffusion of given non-gradient fluxes
+            ELSEIF (ldoexpcor) THEN !full vertical diffusion of given non-gradient fluxes
                igrdcon=2 !verwende korrigiertes Profil aus effektiven Gradienten
             ELSE !full vertical diffusion including effective gradients of an extra non-local flux-contribution
                igrdcon=3 !addiere Gradientkorrektur zum vorhandenen Profil
