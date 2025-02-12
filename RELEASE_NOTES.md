@@ -79,6 +79,8 @@ Climate: ICON-Land
 - Fix: The HD global water conservation test was too strict.
 - Introduction of an output group for jsbach monitoring variables.
 - Fix for bare soil evaporation and modification of roughness (heat) and photosynthetic efficiency parameters
+- Implement soil hydrology parametrization for uniform scale
+- Update thaw depth diagnostics
 
 ### Externals
 
