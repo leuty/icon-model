@@ -58,6 +58,7 @@ Climate: ICON-Land
   - Use JSBACH4 canopy, soil and snow albedos with QUINCY albedo calculations
   - Consolidate and clean up namelist handling and physical parameters between QUINCY and JSBACH
   - Implementation of a harvest process for QUINCY (for now using a global constant)
+  - Bugfix: static reals were missing decimal
 - Small fix for ICON-Land standalone concerning nproma
 - New optional tag for the memory usage report
 - New functions for time control: get_previous_month_length and get_previous_year_length
