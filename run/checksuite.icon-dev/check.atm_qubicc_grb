@@ -29,9 +29,8 @@ export EXPERIMENT=${exp_original}_${modification}
 
 # construct the experiment
 #
-rm -f exp.$EXPERIMENT
-cp exp.$exp_original exp.$EXPERIMENT
-sed -i s/'output_format=${netcdf_format}'/'output_format=${grib_format}'/ exp.$EXPERIMENT # switch from NetCDF to GRIB output
+# switch from NetCDF to GRIB output
+sed s/'output_format=${netcdf_format}'/'output_format=${grib_format}'/ exp.$exp_original > exp.$EXPERIMENT
 
 #--------------------------------------------------------------------------------
 # 

@@ -29,9 +29,8 @@ export EXPERIMENT=${exp_original}_${modification}
 
 # construct the experiment
 #
-rm -f exp.$EXPERIMENT
-cp exp.$exp_original exp.$EXPERIMENT
-sed -i s/'end_date=1979-01-01T00:04:00Z'/'end_date=1979-01-01T00:02:00Z'/ exp.$EXPERIMENT # shorten from 4 to 2 minutes
+# shorten from 4 to 2 minutes
+sed s/'end_date=1979-01-01T00:04:00Z'/'end_date=1979-01-01T00:02:00Z'/ exp.$exp_original > exp.$EXPERIMENT
 
 #--------------------------------------------------------------------------------
 # 
