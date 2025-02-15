@@ -2600,7 +2600,8 @@ ${icon_abs_top_builddir}/externals/yaxt/src/.libs/libyaxt_c.a"])],
         [MTIME_CFLAGS="-I${icon_abs_top_srcdir}/externals/mtime/include"],
         [acx_cv_c_lib_func_datetimeToString=dnl
 "${icon_abs_top_builddir}/externals/mtime/src/.libs/libmtime.a"])
-      icon_bundled_build_after_build([externals/yac], [externals/mtime])])
+      AS_VAR_IF([icon_yac_python], [yes],
+        [icon_bundled_build_after_build([externals/yac], [externals/mtime])])])
    AS_VAR_IF([icon_yac_python], [yes],
      [AS_VAR_APPEND([BUNDLED_PYTHONPATH],
         ["${BUNDLED_PYTHONPATH:+"${PATH_SEPARATOR}"}dnl
@@ -2672,9 +2673,10 @@ bundled version of COMIN library @<:@default=$ICON_BUNDLED_CXXFLAGS@:>@])dnl
      [-DCMAKE_Fortran_FLAGS="$subdir_FCFLAGS $ICON_COMIN_FCFLAGS"],
      [-DCMAKE_CXX_FLAGS=dnl
 "$subdir_CXXFLAGS $ICON_COMIN_CXXFLAGS $subdir_CPPFLAGS"],
-     [-DCMAKE_BUILD_TYPE=None], [-DBUILD_SHARED_LIBS=OFF],
-     [-DBUILD_TESTING=OFF], [-DCOMIN_ENABLE_EXAMPLES=OFF],
+     [-DCMAKE_BUILD_TYPE=None],
      [-DCMAKE_PREFIX_PATH="$bundled_CMAKE_PREFIX_PATH"],
+     [-DBUILD_SHARED_LIBS=OFF], [-DBUILD_TESTING=OFF],
+     [-DCOMIN_ENABLE_EXAMPLES=OFF],
      [-DCOMIN_ENABLE_PYTHON_ADAPTER="$icon_comin_python"],
      [-DPython3_EXECUTABLE="$PYTHON"])
    AS_VAR_APPEND([bundled_CMAKE_PREFIX_PATH],
@@ -2717,8 +2719,9 @@ ${ICON_FORTRAN_SUPPORT_CFLAGS-$ICON_BUNDLED_CFLAGS}
      [-DCMAKE_C_FLAGS=dnl
 "$subdir_CFLAGS $ICON_FORTRAN_SUPPORT_CFLAGS $subdir_CPPFLAGS"],
      [-DCMAKE_Fortran_FLAGS="$subdir_FCFLAGS $ICON_FORTRAN_SUPPORT_FCFLAGS"],
-     [-DCMAKE_BUILD_TYPE=None], [-DBUILD_SHARED_LIBS=OFF],
-     [-DBUILD_TESTING=OFF], [-DCMAKE_PREFIX_PATH="$bundled_CMAKE_PREFIX_PATH"],
+     [-DCMAKE_BUILD_TYPE=None],
+     [-DCMAKE_PREFIX_PATH="$bundled_CMAKE_PREFIX_PATH"],
+     [-DBUILD_SHARED_LIBS=OFF], [-DBUILD_TESTING=OFF],
      [-DFS_ENABLE_OMP="$enable_openmp"],
      [-DFS_ENABLE_MIXED_PRECISION="$enable_mixed_precision"],
      [-DFS_ENABLE_OPENACC="$icon_fs_openacc"])
@@ -2751,8 +2754,8 @@ AS_VAR_IF([icon_gpu_primary], [openacc],
 ACX_SUBDIR_APPEND_ARGS([externals/iconmath/build],
   [-DCMAKE_AR="$AR"], [-DCMAKE_RANLIB="$RANLIB"],
   [-DCMAKE_Fortran_FLAGS="$subdir_FCFLAGS $ICON_ICONMATH_FCFLAGS"],
-  [-DCMAKE_BUILD_TYPE=None], [-DBUILD_SHARED_LIBS=OFF], [-DBUILD_TESTING=OFF],
-  [-DCMAKE_PREFIX_PATH="$bundled_CMAKE_PREFIX_PATH"],
+  [-DCMAKE_BUILD_TYPE=None], [-DCMAKE_PREFIX_PATH="$bundled_CMAKE_PREFIX_PATH"],
+  [-DBUILD_SHARED_LIBS=OFF], [-DBUILD_TESTING=OFF],
   [-DIM_ENABLE_LOOP_EXCHANGE="$enable_loop_exchange"],
   [-DIM_ENABLE_MIXED_PRECISION="$enable_mixed_precision"],
   [-DIM_ENABLE_DIM_SWAP="$enable_dim_swap"],
@@ -2823,7 +2826,9 @@ ${icon_abs_top_builddir}/externals/yac/src/core/libyac_core.a"
             AS_VAR_IF([with_external_mtime], [no],
               [AS_VAR_APPEND([icon_hd_yac_lib],
                  [dnl
-" ${icon_abs_top_builddir}/externals/mtime/src/.libs/libmtime.a"])])
+" ${icon_abs_top_builddir}/externals/mtime/src/.libs/libmtime.a"])
+               icon_bundled_build_after_build(
+                 [externals/hd], [externals/mtime])])
             AS_VAR_IF([with_external_yaxt], [no],
               [AS_VAR_APPEND([icon_hd_yac_lib],
                  [dnl

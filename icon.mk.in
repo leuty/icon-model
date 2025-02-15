@@ -505,13 +505,11 @@ bundled: $(bundled_builddirs)
 check-bundled: $(bundled_makefiles) $(bundled_cmake_builddirs) $(if $(filter check,$(MAKECMDGOALS)),all) # run the tests after 'all' when 'make check'
 	@test -z '$(bundled_builddirs)' && echo "The list of bundled packages is empty: nothing to check." && exit 0; \
 	fail=; pass=; \
-	for d in $(bundled_config_builddirs); do \
-	  if $(MAKE) -C "$$d" check V=$(V); then pass="$$pass$$d "; \
-	  else fail="$$fail$$d "; fi; \
-	done; \
-	for d in $(bundled_cmake_builddirs); do \
-	  if $(MAKE) -C "$$d" test VERBOSE=$(filter-out 0,$(V)); then pass="$$pass$$d "; \
-	  else fail="$$fail$$d "; fi; \
+	for d in $(bundled_builddirs); do \
+	  case ' $(bundled_cmake_builddirs) ' in \
+	    *" $$d "*) $(MAKE) -C "$$d" test VERBOSE=$(filter-out 0,$(V)) && pass="$$pass$$d " || fail="$$fail$$d " ;; \
+	    *) $(MAKE) -C "$$d" check V=$(V) && pass="$$pass$$d " || fail="$$fail$$d " ;; \
+	  esac \
 	done; \
 	test -n "$$pass" && echo "PASS: $$pass"; \
 	if test -n "$$fail"; then echo "FAIL: $$fail" && false; fi # exit code of the last command must be zero if $fail is empty
