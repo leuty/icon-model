@@ -113,7 +113,8 @@ Climate: ICON-Land
 - Add resolution R02B06 to amip script for testing purposes only (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/613)
 - Introduce Git-LFS repository for test input data at CSCS (https://gitlab.dkrz.de/icon/icon-nwp/-/merge_requests/1558,
                                                             https://gitlab.dkrz.de/icon/icon-nwp/-/merge_requests/1652)
-- Fix for runscript generation of bubble test cases with NAG on levante (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/658)
+- Fixed runscript generation of bubble test cases on levante (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/658,
+                                                              https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/699)
 
 #### Building
 

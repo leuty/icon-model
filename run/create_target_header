@@ -2376,7 +2376,6 @@ create_target_header()
             bull_milan*)
                 use_queue=shared
                 use_tasks=16
-                use_mpi_procs_pernode=16
                 ;;
             esac
             ;; 
