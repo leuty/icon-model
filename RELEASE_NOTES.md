@@ -82,6 +82,7 @@ Climate: ICON-Land
 - Fix for bare soil evaporation and modification of roughness (heat) and photosynthetic efficiency parameters
 - Implement soil hydrology parametrization for uniform scale
 - Update thaw depth diagnostics
+- Enabled JSBACH usecase with PFTs when using TMX
 
 ### Externals
 
