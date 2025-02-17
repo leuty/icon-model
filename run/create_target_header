@@ -647,7 +647,7 @@ set_run_target_lumi_gpu()
     set_default use_nproma_sub 0
     set_default use_nblocks_c 1
     set_default use_prefetch_procs 0
-    set_default use_account_no "project_465000454"
+    set_default use_account_no ${SBATCH_ACCOUNT:-project_465000454}
     set_default use_nodes 1
     set_default use_queue "standard-g"
 
@@ -692,9 +692,11 @@ set_run_target_lumi_gpu()
 #SBATCH --account=$use_account_no
 #SBATCH --output=$output_folder/$job_log_name.o
 #SBATCH --error=$output_folder/$job_log_name.o
+#SBATCH --chdir=$output_folder/
 #$SBATCH_nodes
 #$SBATCH_ntasks_per_node
 #SBATCH --gpus-per-node=${tasks_per_node}
+#SBATCH --mem=0
 #SBATCH --time=${s_cpu_time}
 #SBATCH --partition=${use_queue}
 $(if [[ "x$BB_SYSTEM" != 'x' ]]
@@ -721,7 +723,7 @@ set_run_target_lumi_cpu()
 
     set_default use_nproma 32
     set_default use_nblocks_c 0
-    set_default use_account_no "project_465000454"
+    set_default use_account_no ${SBATCH_ACCOUNT:-project_465000454}
     set_default use_nodes 1
     set_default use_queue "standard"
 
@@ -766,6 +768,7 @@ set_run_target_lumi_cpu()
 #SBATCH --account=$use_account_no
 #SBATCH --output=$output_folder/$job_log_name.o
 #SBATCH --error=$output_folder/$job_log_name.o
+#SBATCH --chdir=$output_folder/
 #$SBATCH_nodes
 #$SBATCH_ntasks_per_node
 #$SBATCH_cpus_per_task
@@ -841,6 +844,7 @@ set_run_target_mn5_cpu()
 #SBATCH --account=$use_account_no
 #SBATCH --output=$output_folder/$job_log_name.o
 #SBATCH --error=$output_folder/$job_log_name.o
+#SBATCH --chdir=$output_folder
 #$SBATCH_nodes
 #$SBATCH_ntasks_per_node
 #$SBATCH_cpus_per_task
@@ -914,6 +918,7 @@ set_run_target_mn5_gpu()
 #SBATCH --account=$use_account_no
 #SBATCH --output=$output_folder/$job_log_name.o
 #SBATCH --error=$output_folder/$job_log_name.o
+#SBATCH --chdir=$output_folder
 #$SBATCH_nodes
 #$SBATCH_ntasks_per_node
 #$SBATCH_cpus_per_task
@@ -1305,6 +1310,7 @@ set_run_target_alps_mch_gpu()
 #SBATCH --job-name=$job_name
 #SBATCH --output=$output_folder/$job_log_name.o
 #SBATCH --error=$output_folder/$job_log_name.o
+#SBATCH --chdir=$output_folder
 #SBATCH --gpus-per-node=4
 #SBATCH --partition=$partition
 $(if [[ "x$BB_SYSTEM" != 'x' ]]
@@ -1405,6 +1411,7 @@ set_run_target_alps_mch_cpu()
 #SBATCH --job-name=$job_name
 #SBATCH --output=$output_folder/$job_log_name.o
 #SBATCH --error=$output_folder/$job_log_name.o
+#SBATCH --chdir=$output_folder
 #SBATCH --partition=$partition
 #SBATCH --exclusive
 #SBATCH --hint=nomultithread
@@ -1510,6 +1517,7 @@ $(if [[ "x$BB_SYSTEM" != 'x' ]]
 #SBATCH --job-name=$job_name
 #SBATCH --output=$output_folder/$job_log_name.o
 #SBATCH --error=$output_folder/$job_log_name.o
+#SBATCH --chdir=$output_folder
 #SBATCH --nodes=$use_nodes
 #$SBATCH_ntasks_per_node
 #$s_cpu_time
@@ -1552,6 +1560,7 @@ set_run_target_euler()
 #SBATCH --job-name=$job_name
 #SBATCH --output=$output_folder/$job_log_name.o
 #SBATCH --error=$output_folder/$job_log_name.o
+#SBATCH --chdir=$output_folder
 #SBATCH --constraint=EPYC_7H12
 $(if [[ "x$BB_SYSTEM" != 'x' ]]
  then
@@ -1672,6 +1681,7 @@ set_run_target_hk()
     cat >> "$output_script" << EOF
 #SBATCH --output=$output_folder/$job_log_name.o
 #SBATCH --error=$output_folder/$job_log_name.o
+#SBATCH --chdir=$output_folder
 #SBATCH --job-name=$job_name
 #SBATCH --nodes=${use_nodes}
 #SBATCH --partition=cpuonly
@@ -1732,6 +1742,7 @@ set_run_target_hk_gpu()
 #SBATCH --nodes=${use_nodes}
 #SBATCH --output=$output_folder/$job_log_name.o
 #SBATCH --error=$output_folder/$job_log_name.o
+#SBATCH --chdir=$output_folder
 #SBATCH --job-name=$job_name
 #SBATCH --partition=accelerated
 $(if [[ "x$BB_SYSTEM" != 'x' ]]
@@ -1800,6 +1811,7 @@ set_run_target_juwels()
     cat >> "$output_script" << EOF
 #SBATCH --output=$output_folder/$job_log_name.o
 #SBATCH --error=$output_folder/$job_log_name.o
+#SBATCH --chdir=$output_folder
 #SBATCH --job-name=$job_name
 #SBATCH --nodes=${use_nodes}
 #SBATCH --partition=${use_queue}
@@ -1861,6 +1873,7 @@ set_run_target_leo()
     cat >> "$output_script" << EOF
 #SBATCH --output=$output_folder/$job_log_name.o
 #SBATCH --error=$output_folder/$job_log_name.o
+#SBATCH --chdir=$output_folder/
 #SBATCH --job-name=$job_name
 #SBATCH --nodes=${use_nodes}
 #SBATCH --partition=boost_usr_prod
@@ -1930,6 +1943,7 @@ set_run_target_todi_cpu()
 #SBATCH --job-name=$job_name
 #SBATCH --output=$output_folder/$job_log_name.o
 #SBATCH --error=$output_folder/$job_log_name.o
+#SBATCH --chdir=$output_folder
 #$SBATCH_nodes
 #$SBATCH_ntasks_per_node
 #$s_cpu_time
@@ -1990,6 +2004,7 @@ set_run_target_todi_gpu()
 #SBATCH --job-name=$job_name
 #SBATCH --output=$output_folder/$job_log_name.o
 #SBATCH --error=$output_folder/$job_log_name.o
+#SBATCH --chdir=$output_folder
 #$SBATCH_nodes
 #$SBATCH_ntasks_per_node
 #$s_cpu_time
