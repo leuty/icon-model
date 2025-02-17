@@ -71,22 +71,22 @@ CONTAINS
 
     IF (irad_aero == iRadAeroCAMSclim) THEN
 
-     this%varnames(1)  = "Sea_Salt_bin1"              ! layer-integrated mass (kg/m2)
-     this%varnames(2)  = "Sea_Salt_bin2"              ! layer-integrated mass (kg/m2)
-     this%varnames(3)  = "Sea_Salt_bin3"              ! layer-integrated mass (kg/m2)
-     this%varnames(4)  = "Mineral_Dust_bin1"          ! layer-integrated mass (kg/m2)
-     this%varnames(5)  = "Mineral_Dust_bin2"          ! layer-integrated mass (kg/m2)
-     this%varnames(6)  = "Mineral_Dust_bin3"          ! layer-integrated mass (kg/m2)
-     this%varnames(7)  = "Organic_Matter_hydrophilic" ! layer-integrated mass (kg/m2)
-     this%varnames(8)  = "Organic_Matter_hydrophobic" ! layer-integrated mass (kg/m2)
-     this%varnames(9)  = "Black_Carbon_hydrophilic"   ! layer-integrated mass (kg/m2)
-     this%varnames(10) = "Black_Carbon_hydrophobic"   ! layer-integrated mass (kg/m2)
-     this%varnames(11) = "Sulfates"                   ! layer-integrated mass (kg/m2)
-     this%varnames(12) = "half_level_pressure"        ! Pressure at base of layer (Pa)
+     this%varnames(1)  = "Sea_Salt_bin1"              ! Sea salt bin1 aerosol mass mixing ratio kg kg-1
+     this%varnames(2)  = "Sea_Salt_bin2"              ! Sea salt bin2 aerosol mass mixing ratio kg kg-1
+     this%varnames(3)  = "Sea_Salt_bin3"              ! Sea salt bin3 aerosol mass mixing ratio kg kg-1
+     this%varnames(4)  = "Mineral_Dust_bin1"          ! Mineral dust bin1 aerosol mass mixing ratio kg kg-1
+     this%varnames(5)  = "Mineral_Dust_bin2"          ! Mineral dust bin2 aerosol mass mixing ratio kg kg-1
+     this%varnames(6)  = "Mineral_Dust_bin3"          ! Mineral dust bin3 aerosol mass mixing ratio kg kg-1
+     this%varnames(7)  = "Organic_Matter_hydrophilic" ! Hydrophilic organic matter aerosol mass mixing ratio  kg kg-1
+     this%varnames(8)  = "Organic_Matter_hydrophobic" ! Hydrophobic organic matter aerosol mass mixing ratio kg kg-1
+     this%varnames(9)  = "Black_Carbon_hydrophilic"   ! Hydrophilic black carbon aerosol mass mixing ratio kg kg-1
+     this%varnames(10) = "Black_Carbon_hydrophobic"   ! Hydrophobic black carbon aerosol mass mixing ratio kg kg-1
+     this%varnames(11) = "Sulfates"                   ! Sulfates aerosol mass mixing ratio kg kg-1
+     this%varnames(12) = "pressure"                   ! air_pressure Pressure at layer centres (Pa)
 
-     this%nlev_cams = 60
+     this%nlev_cams = 21
 
-    ELSEIF (irad_aero == iRadAeroCAMStd) THEN
+  ELSEIF (irad_aero == iRadAeroCAMStd) THEN
 
      this%varnames(1)  = "aermr01" ! Sea_Salt_bin1 mixing ratio (kg/kg)
      this%varnames(2)  = "aermr02" ! Sea_Salt_bin2 mixing ratio (kg/kg)

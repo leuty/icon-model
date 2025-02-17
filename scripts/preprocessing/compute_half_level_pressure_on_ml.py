@@ -12,7 +12,7 @@ nor does it submit to any jurisdiction.
 SPDX-License-Identifier: Apache-2.0
  
 **************************************************************************
-Function      : compute_geopotential_on_ml
+Function      : compute_half_level_pressure_on_ml
  
 Author (date) : Cristian Simarro (09/10/2015)
 modified:       Cristian Simarro (20/03/2017) - migrated to eccodes
@@ -23,9 +23,9 @@ modified:       Cristian Simarro (20/03/2017) - migrated to eccodes
  
 Category      : COMPUTATION
  
-OneLineDesc   : Computes geopotential on model levels
+OneLineDesc   : Computes half level pressure on model levels
  
-Description   : Computes geopotential on model levels.
+Description   : Computes half level pressure on model levels.
                 Based on code from Nils Wedi, the IFS documentation:
                 https://software.ecmwf.int/wiki/display/IFS/CY41R1+Official+IFS+Documentation
                 part III. Dynamics and numerical procedures
@@ -42,12 +42,12 @@ Parameters    : tq.grib                - grib file with all the levelist
                                          (default='z_out.grib')
  
 Return Value  : output (default='z_out.grib')
-                A fieldset of geopotential on model levels
+                A fieldset of half level pressure on model levels
  
 Dependencies  : None
  
 Example Usage :
-                compute_pressure_on_ml.py lnsp.grb
+                compute_half_level_pressure_on_ml.py lnsp.grb
 '''
 from __future__ import print_function
 import sys
