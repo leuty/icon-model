@@ -1,0 +1,15 @@
+# ICON
+#
+# ---------------------------------------------------------------
+# Copyright (C) 2004-2024, DWD, MPI-M, DKRZ, KIT, ETH, MeteoSwiss
+# Contact information: icon-model.org
+# See AUTHORS.TXT for a list of authors
+# See LICENSES/ for license information
+# SPDX-License-Identifier: CC0-1.0
+# ---------------------------------------------------------------
+
+repos:
+  - repo: https://gitlab.dkrz.de/icon-libraries/icon-openacc-beautifier.git
+    rev: v1.1.0
+    hooks:
+      - id: icon-openacc-beautifier

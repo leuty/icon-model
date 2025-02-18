@@ -138,3 +138,6 @@ __pychache__
 /run/exp.*member_id*[0-9][0-9]
 scripts/buildbot_scripts/probtest.json
 scripts/buildbot_scripts/probtest.log
+
+# CI/CD artifacts and caches (see .gitlab-ci.yml):
+/.ci_dir/
