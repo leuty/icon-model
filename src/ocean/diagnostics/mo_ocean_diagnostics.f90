@@ -3185,7 +3185,7 @@ CONTAINS
       !$ACC PARALLEL LOOP VECTOR DEFAULT(PRESENT) ASYNC(1) IF(lzacc)
       DO jc =  start_index, end_index
 
-        tos(jc,blockNo) = tracers(jc,1,blockNo,1) + 271.15_wp
+        tos(jc,blockNo) = tracers(jc,1,blockNo,1) + 273.15_wp
         sos(jc,blockNo) = tracers(jc,1,blockNo,2)
 
       ENDDO
