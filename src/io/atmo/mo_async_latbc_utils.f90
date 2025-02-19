@@ -875,14 +875,13 @@
 
          ! allocate temporary array:
          ALLOCATE(omega(nproma, (nlev_in), nblks_c), STAT=ierrstat)
+!$OMP PARALLEL
+         CALL init(omega(:,:,:), lacc=lacc)
+!$OMP END PARALLEL
          IF (ierrstat /= SUCCESS) CALL finish(routine, "ALLOCATE failed!")
 
          IF (latbc%buffer%lread_w) THEN
            CALL get_data(latbc, 'w', omega, read_params(icell), latbc_dict)
-         ELSE
-!$OMP PARALLEL
-           CALL init(omega(:,:,:), lacc=lacc)
-!$OMP END PARALLEL
          ENDIF
 
       ELSE
