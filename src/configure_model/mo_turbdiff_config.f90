@@ -50,6 +50,8 @@ MODULE mo_turbdiff_config
       &  imode_frcsmot
     INTEGER :: &   ! mode of the SSO-turbulence coupling
       &  imode_tkesso
+    INTEGER :: &   ! mode of adapting q=SQRT(2*TKE) and the TMod. to Lower Limits for Diff. Coeffs. (LLDCs)
+      &  imode_tkemini
 
     LOGICAL :: &   ! calculation SSO-wake turbulence production for TKE
       &  ltkesso
@@ -57,8 +59,6 @@ MODULE mo_turbdiff_config
       &  ltkecon
     LOGICAL :: &   ! calculation separ. horiz. shear production for TKE
       &  ltkeshs
-    LOGICAL :: &   ! explicit corrections of the implicit calculated turbul. diff.
-      &  lexpcor
     LOGICAL :: &   ! consideration of minor turbulent sources in the enthalpy budget
       &  ltmpcor
     LOGICAL :: &   ! free-slip lower boundary condition (use for idealized runs only!)

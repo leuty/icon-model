@@ -264,9 +264,12 @@ USE turb_data, ONLY : &
     ilow_def_cond,& !type of the default condition at the lower boundary
                     ! 1: zero surface gradient 
                     ! 2: zero surface value
-    imode_calcirc,& ! mode of treating the raw "circulation term" (related to 'pat_len', imode_pat_len')
-                    ! 1: explicit calculation of the flux convergence
-                    ! 2: quasi implicit treatment by calculation of effective TKE-gradients
+
+    imode_pat_len,& ! mode of determining a length scale of surface patterns used for the "circulation-term" 
+                    ! 1: employing the constant value 'pat_len' only
+                    !    - raw "circulation term" considered as to be due to thermal surface-patterns.
+                    ! 2: using the standard deviat. of SGS orography as a lower limit 
+                    !    - raw "circulation term" considered as to be due to thermal SSO effect,
 
     !Note:
     !The theoretical background of the "circulation term" has meanwhile been fundamentally revised.
@@ -274,11 +277,6 @@ USE turb_data, ONLY : &
     !i) a thermal SSO parameterization and ii) a new "circulation term" due to thermal surface patterns.
     !Hence in the following, the still active raw parameterization is referred to as raw "circulation term".
 
-    imode_pat_len,& ! mode of determining a length scale of surface patterns used for the "circulation-term" 
-                    ! 1: employing the constant value 'pat_len' only
-                    !    - raw "circulation term" considered as to be due to thermal surface-patterns.
-                    ! 2: using the standard deviat. of SGS orography as a lower limit 
-                    !    - raw "circulation term" considered as to be due to thermal SSO effect,
     imode_shshear,& ! mode of calculat. the separated horizontal shear mode related to 'ltkeshs', 'a_hshr')
                     ! 0: with a constant length scale and based on 3D-shear and incompressibility
                     ! 1: with a constant length scale 
@@ -401,7 +399,7 @@ CONTAINS
 
 SUBROUTINE turbdiff ( &
 !
-          iini, ltkeinp, lstfnct, l3dturb,                           &
+          iini, ltkeinp, l3dturb,                                    &
                 lrunsso, lruncnv, lrunscm,                           &
                 ldoexpcor, ldocirflx,                                &
 !
@@ -556,8 +554,6 @@ SUBROUTINE turbdiff ( &
 ! ----------------------------------------------
 
 LOGICAL, INTENT(IN) :: &
-  lstfnct,      & !calculation of stability function required
-
   l3dturb,      & !a model run with 3D-(turbulent)-diffusion
 
   ltkeinp,      & !TKE present as input for current time level 'ntur'
@@ -813,7 +809,6 @@ REAL (KIND=wp), POINTER, CONTIGUOUS :: &
 
 LOGICAL ::          &
   ldotkedif,        & !berechne (teil-)implizite Vert.diff von TKE
-  lcircdiff,        & !Zirkulationsterm fuer TKE-Gleichung wird zusammen mit TKE-Diffusion bestimmt
   lcircterm,        & !TKE-source according to raw "circul.-term"  to be considered
   loutthcrc,        & !                                            to be calc. as output
   ltkemcsso,        & !TKE-source due to ordinary mech. SSO circ.  to be considered
@@ -1076,8 +1071,7 @@ my_thrd_id = omp_get_thread_num()
   ltkeshshr=(ltkeshshr .AND. ltkeshs)            !separ. horiz. shear-circ.
   ltkemcsso=(ltkemcsso .AND. ltkesso)            !ordinary mech. SSO-circ.
 
-  ldotkedif=(c_diff  > z0)
-  lcircdiff=(lcircterm .AND. imode_calcirc == 2)
+  ldotkedif=(c_diff > z0)
 
   lssintact=((ltkemcsso.OR.ltkeshshr.OR.ltkecon) .AND. imode_adshear == 1)
 
@@ -1977,7 +1971,7 @@ my_thrd_id = omp_get_thread_num()
 
                              lssintact=lssintact,    lupfrclim=.FALSE.,               & !in
                              lpres_edr=(lsrfshear .OR. PRESENT(edr)),                 & !in
-                             lstfnct=lstfnct,        ltkeinp=ltkeinp,                 & !in
+                             ltkeinp=ltkeinp,                                         & !in
                              imode_stke=imode_turb,  imode_vel_min=1,                 & !in
 
                              dt_tke=dt_tke, fr_tke=fr_tke,                            & !in
@@ -2275,10 +2269,9 @@ my_thrd_id = omp_get_thread_num()
     upd_prof => zaux(:,:,1)
     sav_prof => zaux(:,:,2)
 
-    IF (ldotkedif .OR. lcircdiff) THEN
-              ! ldotkedif: partly implicit vertical diffusion for TKE:  c_diff > 0.0
-              ! lcircdiff: raw "circulation term", computed together with TKE diffusion: 
-              !            = lcircterm .and. imode_calcirc==2
+    IF (ldotkedif .OR. lcircterm) THEN
+       !ldotkedif=(c_diff > 0.0): partly implicit vertical diffusion for TKE
+       !lcircterm: raw "circulation term" computed together with TKE diffusion
 
       expl_mom => zaux(:,:,3)
 
@@ -2317,10 +2310,6 @@ my_thrd_id = omp_get_thread_num()
         ! muss ein Fluss-Niveau (hier HF) ueber dem Variabl.-Niveau (hier NF) mit gleichem Index liegen.
       END DO
       !$ACC END PARALLEL
-
-    END IF  !(ldotkedif .OR. lcircdiff)
-
-    IF (ldotkedif .OR. lcircterm) THEN !TKE-diffusion required or raw "circ.-term" to be consid. in TKE-equat.
 
       IF (imode_tkediff == 2) THEN !Diffusion in terms of TKE
         !$ACC PARALLEL ASYNC(1) DEFAULT(PRESENT) IF(lzacc)
@@ -2400,14 +2389,13 @@ my_thrd_id = omp_get_thread_num()
       ! Explizite Berechnung des Zirkulationsterms und der Konvergenz des zugehoerigen Theta-Flusses:
       !----------------------------------------------------------------------------------------------
 
-      IF (imode_calcirc == 1 .OR. lcirflx .OR. loutthcrc) THEN !explizite Berechnung der Zirkulationstendenz
-        k=2
+      IF (lcirflx .OR. loutthcrc) THEN !explicit TKE-source of raw "circulation-term" required
+
 !DIR$ IVDEP
         !$ACC PARALLEL ASYNC(1) DEFAULT(PRESENT) IF(lzacc)
         !$ACC LOOP GANG VECTOR
         DO i=ivstart, ivend
-          upd_prof(i,k)=frm(i,k+1)/dicke(i,k)
-
+          upd_prof(i,2)=frm(i,3)/dicke(i,2)
         END DO
         !$ACC END PARALLEL
 
@@ -2417,7 +2405,6 @@ my_thrd_id = omp_get_thread_num()
 !DIR$ IVDEP
           DO i=ivstart, ivend
             upd_prof(i,k)=-(frm(i,k)-frm(i,k+1))/dicke(i,k)
-
           END DO
         END DO
         !$ACC END PARALLEL
@@ -2426,10 +2413,9 @@ my_thrd_id = omp_get_thread_num()
         !At "imode_tkediff == 2", 'upd_prof' is a profile of TKE-increments. In contrast, at
         !   "imode_tkediff == 1", 'dicke' contains the additional factor 'tke', and
         !                         'upd_prof' is a profile or q-increments.
-      END IF !explizite Berechnung der Zirkulationstendenz
 
-      IF (lcirflx .OR. loutthcrc) THEN !explicit TKE-source of raw "circulation-term" required
-        ! Explizite Berechnung der zum alten "Zirkulationsterm" gehoerigen CKE-Quelle
+        ! Explizite Berechnung der zum alten "Zirkulationsterm" gehoerigen CKE-Quelle:
+
         !$ACC PARALLEL ASYNC(1) DEFAULT(PRESENT) IF(lzacc)
         !$ACC LOOP SEQ
         DO k=2,ke !no Theta-flux due to thermal circulations at the surface
@@ -2450,6 +2436,7 @@ my_thrd_id = omp_get_thread_num()
           END DO
         END DO
         !$ACC END PARALLEL
+
       END IF !explicit TKE-source of raw "circulation-term" required
 
     END IF !Der bisherige "Zirkulationsterm" muss berechnet werden
@@ -2489,90 +2476,39 @@ my_thrd_id = omp_get_thread_num()
 
     IF (lcircterm) THEN !Der bisherige "Zirkulationsterm" geht in die TKE-Gleichung ein
 
-      ! Berechnung der TKE-Flussdichte-Konvergeenz (einchliesslich der von CKE) und anderer TKE-Quellen
+      ! Berechnung der TKE-Flussdichte-Konvergenz (einchliesslich der von CKE) und anderer TKE-Quellen
       !  fuer den naechsten Zeitschritt:
 
-      IF (imode_calcirc == 1) THEN !direct application of explicit CKE-flux convergence
+      ! Quasi-implizite Berechnung der Zirkulatinstendenz:
 
-        ! Korrektur der TKE-Profile durch die Zirkulations-Tendenz:
-
-        cur_prof => sav_prof
-
-        !$ACC PARALLEL ASYNC(1) DEFAULT(PRESENT) IF(lzacc)
-        !$ACC LOOP GANG VECTOR COLLAPSE(2)
-        DO k=2,ke
-!DIR$ IVDEP
-          DO i=ivstart, ivend
-            upd_prof(i,k)=upd_prof(i,k)+sav_prof(i,k)
-          END DO
-        END DO
-        !$ACC END PARALLEL
-
-        !Beachte:
-        !'dicke' enthaelt bereits den Faktor "1/dt_tke" (sowie den Faktor 'tke' bei "imode_tkediff=1").
-        !'upd_prof' enthaelt das um die Zirkulations-Tendenz aufdatierte TKE-Profil
-        ! (oder q-Profile bei "imode_tkediff=1")
-
-        IF (PRESENT(r_air)) THEN
-
-          !Zuschlag durch Volumenterm aus der Divergenzbildung:
-#ifdef __INTEL_COMPILER
-          FORALL(k=kcm:ke, i=ivstart:ivend) & !innerhalb der Rauhigkeitsschicht
-            upd_prof(i,k)=upd_prof(i,k)+frh(i,k)*z1d2*(r_air(i,k-1)-r_air(i,k+1)) &
-                                                        /(len_scale(i,k)*dicke(i,k))
-#else
-          !$ACC PARALLEL ASYNC(1) DEFAULT(PRESENT) IF(lzacc)
-          !$ACC LOOP SEQ
-          DO k=ke,kcm,-1 !innerhalb der Rauhigkeitsschicht
-!DIR$ IVDEP
-            !$ACC LOOP GANG VECTOR
-            DO i=ivstart, ivend
-              upd_prof(i,k)=upd_prof(i,k)+frh(i,k)*z1d2*(r_air(i,k-1)-r_air(i,k+1)) &
-                                                             /(len_scale(i,k)*dicke(i,k))
-              !'frh' enthaelt die Zirkultions-Flussdichte der TKE auf NF (skaliert mit 'len_scale').
-            END DO
-          END DO
-          !$ACC END PARALLEL
-#endif
-        ENDIF ! PRESENT(r_air)
-
-        !Bereucksichtige Zirkulations-Tendenz:
-        itndcon=1 !indem 'upd_prof' auf rechter Seite der impliz. Diff.-Gl. benutzt wird.
-
-      ELSE ! now: imode_calcirc /= 1
-           ! quasi implizite Berechnung der Zirkulatinstendenz (entspricht "lcircdiff=T")
-
-        cur_prof => hlp
+      cur_prof => hlp
 
 !DIR$ IVDEP
-        !$ACC PARALLEL ASYNC(1) DEFAULT(PRESENT) IF(lzacc)
-        !$ACC LOOP GANG VECTOR
+      !$ACC PARALLEL ASYNC(1) DEFAULT(PRESENT) IF(lzacc)
+      !$ACC LOOP GANG VECTOR
+      DO i=ivstart, ivend
+        cur_prof(i,2)=sav_prof(i,2)
+      END DO
+      !$ACC END PARALLEL
+
+      !$ACC PARALLEL ASYNC(1) DEFAULT(PRESENT) IF(lzacc)
+      !$ACC LOOP SEQ
+      DO k=3,ke1
+!DIR$ IVDEP
+        !$ACC LOOP GANG VECTOR !to be activated
         DO i=ivstart, ivend
-          cur_prof(i,2)=sav_prof(i,2)
+          cur_prof(i,k)=(cur_prof(i,k-1)-sav_prof(i,k-1)+frm(i,k)/expl_mom(i,k))+sav_prof(i,k) !to be activated
         END DO
-        !$ACC END PARALLEL
+      END DO
+      !$ACC END PARALLEL
 
-        !$ACC PARALLEL ASYNC(1) DEFAULT(PRESENT) IF(lzacc)
-        !$ACC LOOP SEQ
-        DO k=3,ke1
-!DIR$ IVDEP
-          !$ACC LOOP GANG VECTOR !to be activated
-          DO i=ivstart, ivend
-            cur_prof(i,k)=(cur_prof(i,k-1)-sav_prof(i,k-1)+frm(i,k)/expl_mom(i,k))+sav_prof(i,k) !to be activated
-          END DO
-        END DO
-        !$ACC END PARALLEL
+      !Beachte:
+      !'cur_prof' enthaelt ein virtuelles TKE-Profil (oder q-Profile bei "imode_tkediff=1"), 
+      ! dessen Diffusions-Tendenz die Zirkulations-Tendenz einschliesst.
+      !Fuer die expliziten Diff.-Anteile wird ebenfalls 'cur_prof' benutzt.
 
-        !Beachte:
-        !'cur_prof' enthaelt ein virtuelles TKE-Profil (oder q-Profile bei "imode_tkediff=1"), 
-        ! dessen Diffusions-Tendenz die Zirkulations-Tendenz einschliesst.
-
-        !Bereucksichtige Zirkulations-Tendenz:
-        itndcon=0 !indem 'cur_prof' auf rechter Seite der impliz. Diff.-Gl. benutzt wird.
-
-        !Fuer die expliziten Diff.-Anteile wird ebenfalls 'cur_prof' benutzt.
-
-      END IF ! imode_calcirc
+      !Bereucksichtige Zirkulations-Tendenz:
+      itndcon=0 !indem 'cur_prof' auf der rechten Seite der impliz. Diff.-Gl. benutzt wird.
 
     ELSEIF (ldotkedif) THEN
  
@@ -2583,11 +2519,11 @@ my_thrd_id = omp_get_thread_num()
 
     END IF !Der bisherige "Zirkulationsterm" geht in die TKE-Gleichung ein
 
+    IF (ldotkedif .OR. lcircterm) THEN
+
 !----- --------------------------------------------------------------------
 ! 9)  Aufdatieren des TKE-Profils durch die (erweiterte) Diffusions-Tendenz 
 !--------------------------------------------------------------------------
-
-    IF (ldotkedif .OR. lcircdiff) THEN
 
       impl_mom => zaux(:,:,4)
       invs_mom => zaux(:,:,5)
@@ -2629,7 +2565,7 @@ my_thrd_id = omp_get_thread_num()
       !'eff_flux' enthaelt die effektiven Flussdichten (positiv abwaerts) der (semi-)impliziten
       ! Vertikaldiffusion.
 
-      IF (lcircdiff) THEN !es wurden virtuelle Effektiv-Profile benutzt
+      IF (lcircterm) THEN !es wurden virtuelle Effektiv-Profile benutzt
         !$ACC PARALLEL ASYNC(1) DEFAULT(PRESENT) IF(lzacc)
         !$ACC LOOP GANG VECTOR COLLAPSE(2)
         DO k=2,ke
@@ -2660,13 +2596,9 @@ my_thrd_id = omp_get_thread_num()
         !'upd_prof' enthaelt das mit dem Volunmenterm beaufschlagte aufdatierte Profil.
       ENDIF
 
-    END IF   ! IF (ldotkedif .OR. lcircdiff)
-
 !------------------------------------------------------------------------------------
 !10)  Speichern der zugehoerigen q-Tendenzen:
 !------------------------------------------------------------------------------------
-
-    IF (ldotkedif .OR. lcircterm) THEN   
 
       IF (imode_tkediff == 2) THEN !Diffusion in terms of TKE
         !'upd_prof' ist ein TKE-Profil:
@@ -2732,7 +2664,7 @@ my_thrd_id = omp_get_thread_num()
     END IF   ! ldotkedif .OR. lcircterm
 
 !------------------------------------------------------------------------------------
-! 10) Interpolationen auf Hauptflaechen fuer die Standardabweichnung
+! 11) Interpolationen auf Hauptflaechen fuer die Standardabweichnung
 !     des Saettigungsdefizites:
 !------------------------------------------------------------------------------------
 

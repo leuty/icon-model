@@ -2145,50 +2145,66 @@ CONTAINS
 #endif
         ENDIF
 
+        IF (atm_phy_nwp_config(jg)%lcalc_dissip_heat) THEN ! skipped if dissipative heating is calculated in turbdiff
 
-        ! SQRT of Richardson number between the two lowest model levels
-        ! This is used below to reduce frictional heating near the surface under very stable conditions
-        !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1) IF(lacc)
-        !$ACC LOOP GANG VECTOR PRIVATE(n2, dvdz2)
-        DO jc = i_startidx, i_endidx
-          n2 = 2._wp*grav/(pt_prog%theta_v(jc,nlev,jb)+pt_prog%theta_v(jc,nlev-1,jb)) * MAX(1.e-4_wp,        &
-               (pt_prog%theta_v(jc,nlev-1,jb)-pt_prog%theta_v(jc,nlev,jb))/p_metrics%ddqz_z_half(jc,nlev,jb) )
-          dvdz2 = MAX(1.e-6_wp, ( (pt_diag%u(jc,nlev-1,jb)-pt_diag%u(jc,nlev,jb))**2 +                      &
-                  (pt_diag%v(jc,nlev-1,jb)-pt_diag%v(jc,nlev,jb))**2 )/p_metrics%ddqz_z_half(jc,nlev,jb)**2 )
-          sqrt_ri(jc) = MAX(1._wp, SQRT(n2/dvdz2))
-        ENDDO
-        !$ACC END PARALLEL
-
-
-        !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1) IF(lacc)
-        !$ACC LOOP GANG VECTOR PRIVATE(wfac) COLLAPSE(2)
-        DO jk = 1, nlev
-!DIR$ IVDEP
+          ! SQRT of Richardson number between the two lowest model levels
+          ! This is used below to reduce frictional heating near the surface under very stable conditions
+          !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1) IF(lacc)
+          !$ACC LOOP GANG VECTOR PRIVATE(n2, dvdz2)
           DO jc = i_startidx, i_endidx
-            !
-            ! heating related to momentum deposition by SSO, GWD and Rayleigh friction
-            !
-            wfac = MIN(1._wp, 0.004_wp*p_metrics%geopot_agl(jc,jk,jb)/grav)
-            z_ddt_temp_drag(jc,jk)               = -rcvd*(pt_diag%u(jc,jk,jb)*             &
-                                                   (prm_nwp_tend%ddt_u_sso(jc,jk,jb)+      &
-                                                    prm_nwp_tend%ddt_u_gwd(jc,jk,jb)+      &
-                                                    zddt_u_raylfric(jc,jk))                &
-                                                   +      pt_diag%v(jc,jk,jb)*             &
-                                                   (prm_nwp_tend%ddt_v_sso(jc,jk,jb)+      &
-                                                    prm_nwp_tend%ddt_v_gwd(jc,jk,jb)+      &
-                                                    zddt_v_raylfric(jc,jk)) ) /            &
-                                                    ((1._wp-wfac)*sqrt_ri(jc) + wfac)
-            !
-            ! total slow physics heating rate
-            !
-            z_ddt_temp(jc,jk) = prm_nwp_tend%ddt_temp_radsw(jc,jk,jb) + prm_nwp_tend%ddt_temp_radlw(jc,jk,jb) &
-              &               + z_ddt_temp_drag(jc,jk)                + prm_nwp_tend%ddt_temp_pconv(jc,jk,jb) &
-              &               + prm_nwp_tend%ddt_temp_clcov(jc,jk,jb)
+            n2 = 2._wp*grav/(pt_prog%theta_v(jc,nlev,jb)+pt_prog%theta_v(jc,nlev-1,jb)) * MAX(1.e-4_wp,        &
+                 (pt_prog%theta_v(jc,nlev-1,jb)-pt_prog%theta_v(jc,nlev,jb))/p_metrics%ddqz_z_half(jc,nlev,jb) )
+            dvdz2 = MAX(1.e-6_wp, ( (pt_diag%u(jc,nlev-1,jb)-pt_diag%u(jc,nlev,jb))**2 +                      &
+                    (pt_diag%v(jc,nlev-1,jb)-pt_diag%v(jc,nlev,jb))**2 )/p_metrics%ddqz_z_half(jc,nlev,jb)**2 )
+            sqrt_ri(jc) = MAX(1._wp, SQRT(n2/dvdz2))
           ENDDO
-        ENDDO
-        !$ACC END PARALLEL
+          !$ACC END PARALLEL
 
-        IF (l_out_ddt_temp_drag) THEN
+
+          !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1) IF(lacc)
+          !$ACC LOOP GANG VECTOR PRIVATE(wfac) COLLAPSE(2)
+          DO jk = 1, nlev
+!DIR$ IVDEP
+            DO jc = i_startidx, i_endidx
+              !
+              ! heating related to momentum deposition by SSO, GWD and Rayleigh friction
+              !
+              wfac = MIN(1._wp, 0.004_wp*p_metrics%geopot_agl(jc,jk,jb)/grav)
+              z_ddt_temp_drag(jc,jk)               = -rcvd*(pt_diag%u(jc,jk,jb)*             &
+                                                     (prm_nwp_tend%ddt_u_sso(jc,jk,jb)+      &
+                                                      prm_nwp_tend%ddt_u_gwd(jc,jk,jb)+      &
+                                                      zddt_u_raylfric(jc,jk))                &
+                                                     +      pt_diag%v(jc,jk,jb)*             &
+                                                     (prm_nwp_tend%ddt_v_sso(jc,jk,jb)+      &
+                                                      prm_nwp_tend%ddt_v_gwd(jc,jk,jb)+      &
+                                                      zddt_v_raylfric(jc,jk)) ) /            &
+                                                      ((1._wp-wfac)*sqrt_ri(jc) + wfac)
+              !
+              ! total slow physics heating rate
+              !
+              z_ddt_temp(jc,jk) = prm_nwp_tend%ddt_temp_radsw(jc,jk,jb) + prm_nwp_tend%ddt_temp_radlw(jc,jk,jb) &
+                &               + z_ddt_temp_drag(jc,jk)                + prm_nwp_tend%ddt_temp_pconv(jc,jk,jb) &
+                &               + prm_nwp_tend%ddt_temp_clcov(jc,jk,jb)
+            ENDDO
+          ENDDO
+          !$ACC END PARALLEL
+        ELSE
+          !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1) IF(lacc)
+          !$ACC LOOP GANG VECTOR PRIVATE(wfac) COLLAPSE(2)
+          DO jk = 1, nlev
+!DIR$ IVDEP
+            DO jc = i_startidx, i_endidx
+              !
+              ! total slow physics heating rate
+              !
+              z_ddt_temp(jc,jk) = prm_nwp_tend%ddt_temp_radsw(jc,jk,jb) + prm_nwp_tend%ddt_temp_radlw(jc,jk,jb) &
+                &               + prm_nwp_tend%ddt_temp_pconv(jc,jk,jb) + prm_nwp_tend%ddt_temp_clcov(jc,jk,jb)
+            ENDDO
+          ENDDO
+          !$ACC END PARALLEL
+        ENDIF
+
+        IF (atm_phy_nwp_config(jg)%lcalc_dissip_heat .AND. l_out_ddt_temp_drag) THEN
           !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1) IF(lacc)
           !$ACC LOOP GANG VECTOR COLLAPSE(2)
           DO jk = 1, nlev

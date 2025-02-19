@@ -130,10 +130,8 @@ CONTAINS
 
 SUBROUTINE vertdiff ( &
 !
-          itnd, lscadif, lum_dif, lvm_dif,   &
-                lsfluse, lqvcrst, lrunscm,   &
-          ldoexpcor, ldocirflx,              &
-          l3dflxout,                         &
+          itndcon, lentire, lsfluse, lqvcrst, lrunscm, &
+          ldoexpcor, ldocirflx, l3dflxout,   &
 !
           dt_var, nvec, ke, ke1,             &
 !
@@ -176,10 +174,8 @@ SUBROUTINE vertdiff ( &
 
 LOGICAL, INTENT(IN) :: &
 
-  lum_dif,      & !running vertical gradient diffusion of horizontal u-momenum
-  lvm_dif,      & !running vertical gradient diffusion of horizontal v-momenum
-  lscadif,      & !running vertical gradient diffusion of scalar properties
-
+  lentire,      & !"T": calculate entire vertical diffusion
+                  !"F": consider only non-gradient flux-contributions
   lsfluse,      & !use explicit heat flux densities at the surface
   lqvcrst,      & !qv-flux-divergence reset requested (only if 'qv_conv' is present)
 
@@ -194,9 +190,11 @@ REAL (KIND=wp), INTENT(IN) :: &
 
 INTEGER,        INTENT(IN) :: &
 
-  itnd            !type of tendency cons. (0: no, 1: in implicit vertical diffusion equation
-                  !                               2: by adding to current profile before vertical diffusion
-                  !                               3: by using corrected virtual vertical profiles
+  itndcon         !type of considering explicit tendencies
+                  !"0": no consideration of explicit tendencies at all
+                  !"1": apply them on r.h.s of implicit vertical diffusion equation    
+                  !"2": add them to current profile before vertical diffusion
+                  !"3": calculate corrected virtual vertical profiles from them
 
 INTEGER,        INTENT(IN) :: &
 
@@ -334,7 +332,6 @@ REAL (KIND=wp), DIMENSION(:), OPTIONAL, TARGET, INTENT(INOUT) :: &
 ! Local logicals:
 
   LOGICAL ::   &
-    ldovardif, & !berechne (teil-)implizite Vert.diff von Mod.var 1-ter Ordnung
     ldogrdcor, & !mache Gradientkorrektur bei Berechnung der vertikalen Diffusion
     linisetup, & !initiales setup bei impliziter Vertikaldiffusion
     lnewvtype, & !neuer Variablentyp muss vorbereitet werden
@@ -351,7 +348,14 @@ REAL (KIND=wp), DIMENSION(:), OPTIONAL, TARGET, INTENT(INOUT) :: &
     i,k,       & !horizontaler und vertikaler Laufindex
 
     igrdcon,   & !Index fuer Modus der Gradientberuecksichtigung
-    itndcon,   & !Index fuer Modus der  Tendenzberuecksichtigung
+                 !"0": no correction due to non-gradient flux-contributions at all
+                 !"1": only a correction for non-gradient flux-contributions is performed
+                 !"2": applies corrected variable-profile from effective gradients
+                 !"3": adds a non-gradient contribution contained in 'zvari'
+                 !Note: 
+                 !While at "1" and "2" 'zvari' contains the full effective gradients, it contains only 
+                 ! the effective gradients of a particular non-gradient flux-contribution at "3"
+
     ivtype,    & !Index fuer Variablentyp
 
     ncorr,     & !Start-Index der Variablen mit Gradientkorrektur
@@ -419,56 +423,54 @@ REAL (KIND=wp), DIMENSION(:), OPTIONAL, TARGET, INTENT(INOUT) :: &
 
 !===============================================================================
 
-!All variables and their tendencies are defined at horizontal mass positions.
+      ldogrdcor=(ldoexpcor.OR.ldocirflx)  !gradient correction has to be done
+      IF (PRESENT(ptr)) THEN !passive tracers are present
+        ntrac = UBOUND(ptr,1)
+      ELSE
+        ntrac=0
+      END IF
+      IF (ndtr.GT.ntrac) THEN
+        CALL finish('', 'ERROR *** Number of tracers larger than dimension of tracer vector ''prt'' ***')
+      END IF
 
-  ldogrdcor=(ldoexpcor.OR.ldocirflx)  !gradient correction has to be done
-  ldovardif=(lum_dif .OR. lvm_dif .OR. lscadif)  !some variable has to be diffused
+      ndiff=nmvar+ndtr !number of 1-st order variables used in the turbulence model
+                       !note that cloud ice is treated like a passive trace here
 
-  IF (PRESENT(ptr)) THEN !passive tracers are present
-    ntrac = UBOUND(ptr,1)
-  ELSE
-    ntrac=0
-  END IF
-  IF (ndtr.GT.ntrac) THEN
-    CALL finish('', 'ERROR *** Number of tracers larger than dimension of tracer vector ''prt'' ***')
-  END IF
+      !According to the setting in 'turb_data' it holds:
+      ! nmvar = nscal+nvel: number of model variables being dynamically active for turbulence
+      !         nvel  = 2    active horizontal wind components:  'u_m', 'v_m'
+      !                      u_m = 1:     zonal      wind
+      !                      v_m = 2:     meridional wind
+      !         nscal = 3    active 1-st order scalar variables: 'tem', 'vap', 'liq'
+      !                      tem   = 3:   temperature
+      !                      vap   = 4:   water vapor mixing ration
+      !                      liq   = 5:   liquid water
+      !
+      !            but also: tem_l = 3:   liquid water temperature
+      !                      tet   = 3:   potential temperature
+      !                      tet_l = 3:   moist (liquid water?) potential temperature
+      !                      h2o_g = 4:   total water content
+      !Further, according to the INPUT list, it holds:
+      ! ndtr: number of (in this sense) passive tracers to be additionally diffused
 
-  ndiff=nmvar+ndtr !number of 1-st order variables used in the turbulence model
-                   !note that cloud ice is treated like a passive trace here
-
-  !According to the setting in 'turb_data' it holds:
-  !     nmvar = nscal+nvel: number of model variables being dynamically active for turbulence
-  !             nvel  = 2    active horizontal wind components:  'u_m', 'v_m'
-  !                          u_m = 1:     zonal      wind
-  !                          v_m = 2:     meridional wind
-  !             nscal = 3    active 1-st order scalar variables: 'tem', 'vap', 'liq'
-  !                          tem   = 3:   temperature
-  !                          vap   = 4:   water vapor mixing ration
-  !                          liq   = 5:   liquid water
-  !
-  !                but also: tem_l = 3:   liquid water temperature
-  !                          tet   = 3:   potential temperature
-  !                          tet_l = 3:   moist (liquid water?) potential temperature
-  !                          h2o_g = 4:   total water content
-  !Further, according to the INPUT list, it holds:
-  !     ndtr: number of (in this sense) passive tracers to be additionally diffused
+      !All variables and their tendencies are defined at horizontal mass positions.
 
   !Begin of GPU data region
   !$ACC DATA &
-  !$ACC   CREATE(len_scale, frh, frm, eprs, dicke, hlp, zaux)
+      !$ACC   CREATE(len_scale, frh, frm, eprs, dicke, hlp, zaux)
 
-  lsfli(:)=.FALSE. !surface values are concentrations by default
+      lsfli(:)=.FALSE. !surface values are concentrations by default
 
-  dvar(u_m)%av  => u  ; dvar(u_m)%at => u_tens  ; dvar(u_m)%sv => NULL() ; dvar(u_m)%kstart = 1
-  dvar(v_m)%av  => v  ; dvar(v_m)%at => v_tens  ; dvar(v_m)%sv => NULL() ; dvar(v_m)%kstart = 1
+      dvar(u_m)%av  => u  ; dvar(u_m)%at => u_tens  ; dvar(u_m)%sv => NULL() ; dvar(u_m)%kstart = 1
+      dvar(v_m)%av  => v  ; dvar(v_m)%at => v_tens  ; dvar(v_m)%sv => NULL() ; dvar(v_m)%kstart = 1
 
-!Note: Use                                       dvar(u_m)%sv => u(:,ke)
-!      and                                       dvar(v_m)%sv => v(:,ke)
-!      in order to force a "free-slip condition"!
+      !Note: Use                                      dvar(u_m)%sv => u(:,ke)
+      !      and                                      dvar(v_m)%sv => v(:,ke)
+      !      in order to force a "free-slip condition"!
 
-  dvar(tem)%av  => t  ; dvar(tem)%at => t_tens  ; dvar(tem)%sv => t_g    ; dvar(tem)%kstart = 1
-  dvar(vap)%av  => qv ; dvar(vap)%at => qv_tens ; dvar(vap)%sv => qv_s   ; dvar(vap)%kstart = 1
-  dvar(liq)%av  => qc ; dvar(liq)%at => qc_tens ; dvar(liq)%sv => NULL() ; dvar(liq)%kstart = kstart_cloud
+      dvar(tem)%av  => t  ; dvar(tem)%at => t_tens  ; dvar(tem)%sv => t_g    ; dvar(tem)%kstart = 1
+      dvar(vap)%av  => qv ; dvar(vap)%at => qv_tens ; dvar(vap)%sv => qv_s   ; dvar(vap)%kstart = 1
+      dvar(liq)%av  => qc ; dvar(liq)%at => qc_tens ; dvar(liq)%sv => NULL() ; dvar(liq)%kstart = kstart_cloud
 
 !SCLM --------------------------------------------------------------------------------
 #ifdef SCLM
@@ -486,45 +488,43 @@ REAL (KIND=wp), DIMENSION(:), OPTIONAL, TARGET, INTENT(INOUT) :: &
 #endif
 !SCLM --------------------------------------------------------------------------------
 
-  IF (lsfluse) THEN !use explicit heat flux densities at the surface
-    lsfli(tem)=.TRUE.; lsfli(vap)=.TRUE.
-  END IF
-
-  IF ((lsfli(tem) .AND. .NOT.PRESENT(shfl_s)) .OR. &
-      (lsfli(vap) .AND. .NOT.PRESENT(qvfl_s))) THEN
-    CALL finish('', 'ERROR *** forcing with not present surface heat flux densities  ***')
-  ENDIF
-
-  IF (lsfli(tem)) dvar(tem)%sv => shfl_s
-  IF (lsfli(vap)) dvar(vap)%sv => qvfl_s
-
-  IF (PRESENT(ptr) .AND. ndtr .GE. 1) THEN !passive tracers are present
-    DO m=1, ndtr
-      n=liq+m
-      dvar(n)%av => ptr(m)%av
-      dvar(n)%at => ptr(m)%at
-      IF (ASSOCIATED(ptr(m)%sv)) THEN
-        dvar(n)%sv => ptr(m)%sv; lsfli(n)=ptr(m)%fc
-      ELSE
-        dvar(n)%sv => NULL()   ; lsfli(n)=.FALSE.
+      IF (lsfluse) THEN !use explicit heat flux densities at the surface
+        lsfli(tem)=.TRUE.; lsfli(vap)=.TRUE.
       END IF
-      dvar(n)%kstart = ptr(m)%kstart
-    END DO
-  END IF
+      IF ((lsfli(tem) .AND. .NOT.PRESENT(shfl_s)) .OR. &
+          (lsfli(vap) .AND. .NOT.PRESENT(qvfl_s))) THEN
+        CALL finish('', 'ERROR *** forcing with not present surface heat flux densities  ***')
+      ENDIF
 
-  vtyp(mom)%tkv => tkvm ; vtyp(mom)%tsv => tvm
-  vtyp(sca)%tkv => tkvh ; vtyp(sca)%tsv => tvh
+      IF (lsfli(tem)) dvar(tem)%sv => shfl_s
+      IF (lsfli(vap)) dvar(vap)%sv => qvfl_s
 
-  !Note:
-  !If a tendency field of an ordinary prognostic variable is not present,
-  ! the related time step increment due to turbulent diffusion will be
-  ! added to the prognostic variable directly.
-  !It always holds: "lsfli(liq)=F"!
+      IF (PRESENT(ptr) .AND. ndtr .GE. 1) THEN !passive tracers are present
+        DO m=1, ndtr
+          n=liq+m
+          dvar(n)%av => ptr(m)%av
+          dvar(n)%at => ptr(m)%at
+          IF (ASSOCIATED(ptr(m)%sv)) THEN
+            dvar(n)%sv => ptr(m)%sv; lsfli(n)=ptr(m)%fc
+          ELSE
+            dvar(n)%sv => NULL()   ; lsfli(n)=.FALSE.
+          END IF
+          dvar(n)%kstart = ptr(m)%kstart
+        END DO
+      END IF
 
-  fakt=z1/dt_var
+      vtyp(mom)%tkv => tkvm ; vtyp(mom)%tsv => tvm
+      vtyp(sca)%tkv => tkvh ; vtyp(sca)%tsv => tvh
+
+      !Note:
+      !If a tendency field of an ordinary prognostic variable is not present,
+      ! the related time step increment due to turbulent diffusion will be
+      ! added to the prognostic variable directly.
+      !It always holds: "lsfli(liq)=F"!
+
+      fakt=z1/dt_var
 
 !--------------------------------------------------
-  IF (ldovardif .OR. ldogrdcor) THEN !Vertikaldiffusion wird hier berechnet
 !--------------------------------------------------
 
 my_cart_id = get_my_global_mpi_id()
@@ -534,54 +534,50 @@ my_thrd_id = omp_get_thread_num()
 
 !########################################################################
 
-         !Note: 
-         !If ".NOT.ldovardif .AND. ldogrdcor", only a correction of pure vertical gradient diffusion
-         ! due to sub grid scale condensation or non-local gradients is performed.
+      !Note: 
+      !If ".NOT.lentire .AND. ldogrdcor", only a correction of pure vertical gradient diffusion
+      ! due to sub grid scale condensation (or possibly non-local gradients) is performed.
       
-!        Berechnung der Luftdichte und des Exner-Faktors am Unterrand:
+!     Berechnung der Luftdichte und des Exner-Faktors am Unterrand:
 !DIR$ IVDEP
 !$NEC ivdep
-         !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1)
-         !$ACC LOOP GANG VECTOR PRIVATE(virt)
-         DO i=ivstart, ivend
-            virt=z1+rvd_m_o*qv_s(i) !virtueller Faktor
-            rhon(i,ke1)=ps(i)/(r_d*virt*t_g(i))
-            eprs(i,ke1)=zexner(ps(i))
-         END DO
-         !$ACC END PARALLEL
-         !Note:
-         !In the turbulence model 'rhon(:,ke1)' belongs to the lower boundary of the
-         !Prandtl-layer, rather than to the surface level.
-         !However, for the calculation in 'vert_grad_diff' only real surface-level values are used!
+      !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1)
+      !$ACC LOOP GANG VECTOR PRIVATE(virt)
+      DO i=ivstart, ivend
+         virt=z1+rvd_m_o*qv_s(i) !virtueller Faktor
+         rhon(i,ke1)=ps(i)/(r_d*virt*t_g(i))
+         eprs(i,ke1)=zexner(ps(i))
+      END DO
+      !$ACC END PARALLEL
+      !Note:
+      !In the turbulence model 'rhon(:,ke1)' belongs to the lower boundary of the
+      !Prandtl-layer, rather than to the surface level.
+      !However, for the calculation in 'vert_grad_diff' only real surface-level values are used!
 
-!        Setzen von Steuerparametern:
+!     Setzen von Steuerparametern:
 
-         mcorr=nmvar !end index for gradient correction belongs to the last dynamically active scalar by default
-         IF (ldogrdcor) THEN !gradient correction for dynamically active prognostic variables:
-            ncorr=nvel+1 !only for scalar variables
-            IF (.NOT.ldoexpcor) THEN !if just and only 'ldocirflx' is true:
-               mcorr=ncorr !only for the first scalar, which is (potential) temperature
-            END IF
-         ELSE !no gradient correction at all
-            ncorr=ndiff+1 !gradient correction must not start at any variable in the list
+      mcorr=nmvar !end index for gradient correction belongs to the last dynamically active scalar by default
+      IF (ldogrdcor) THEN !gradient correction for dynamically active prognostic variables:
+         ncorr=nvel+1 !only for scalar variables
+         IF (.NOT.ldoexpcor) THEN !if just and only 'ldocirflx' is true:
+            mcorr=ncorr !only for the first scalar, which is (potential) temperature
          END IF
+      ELSE !no gradient correction at all
+         ncorr=ndiff+1 !gradient correction must not start at any variable in the list
+      END IF
 
-         ivtype=0
+      ivtype=0
 
 !-----------------------------------------------------------------
-!        Berechnung der Vertikaldiffusion von Modellvariablen auf Hauptflaechen:
+!     Berechnung der Vertikaldiffusion von Modellvariablen auf Hauptflaechen:
 !-----------------------------------------------------------------
 
-!        DO n=nprim, nlast !loop over all variables to be diffused
-         DO n=1, ndiff !loop over all variables to be diffused potentially
+      DO n=1, ndiff !loop over all variables to be diffused potentially
 
          ! define start index for vertical diffusion
          k_st_pp = dvar(n)%kstart
 
-         IF ( (lum_dif .AND. n.EQ.u_m)   .OR. &                   !u_m-diffusion or
-              (lvm_dif .AND. n.EQ.v_m)   .OR. &                   !v_m-diffusion or
-              (lscadif .AND. n.GT.nvel)  .OR. &                   !sca-diffusion or
-            (ldogrdcor .AND. n.GE.ncorr .AND. n.LE.mcorr) ) THEN  !gradient correction
+         IF (lentire .OR. (ldogrdcor .AND. n.GE.ncorr .AND. n.LE.mcorr)) THEN !any (partial) gradient diffusion
 
             m=MIN(n,nmvar)
 
@@ -609,9 +605,7 @@ my_thrd_id = omp_get_thread_num()
             IF (n.LT.ncorr .OR. n.GT.mcorr) THEN !no gradient correction for this variable
                !Notice that this is particularly the case, if "ldogrdcor=F".
                igrdcon=0 !keine Gradientkorrektur der Profile
-            ELSEIF ( (.NOT.lscadif .AND. ivtype.EQ.sca) .OR. &
-                     (.NOT.lum_dif .AND.      n.EQ.u_m) .OR. &
-                     (.NOT.lvm_dif .AND.      n.EQ.v_m) ) THEN !only a diffusion correction required
+            ELSEIF (.NOT.lentire) THEN !only an implicit diffusion correction required
                igrdcon=1 !verwende nur Profil aus Gradientkorrektur
             ELSEIF (ldoexpcor) THEN !full vertical diffusion of given non-gradient fluxes
                igrdcon=2 !verwende korrigiertes Profil aus effektiven Gradienten
@@ -619,7 +613,6 @@ my_thrd_id = omp_get_thread_num()
                igrdcon=3 !addiere Gradientkorrektur zum vorhandenen Profil
             END IF
 
-            itndcon=itnd !use chosen mode of tendency consideration
             IF (igrdcon.EQ.2) THEN !full vertical diffusion of given non-gradient fluxes
                k_st_up=ke !only level "k=ke" needs to be provided for bottom-up integration
             ELSE !vertical profiles needs to be provided 
@@ -853,7 +846,7 @@ my_thrd_id = omp_get_thread_num()
             END IF   
                     
          END IF !diffusion calculation requested
-         END DO !1, ndiff 
+      END DO !1, ndiff 
 
 !-----------------------------------------------------------------
 
@@ -861,90 +854,89 @@ my_thrd_id = omp_get_thread_num()
 !Ist cp-Fluss tatsaechlich der thermische Erdbodenantrieb?
 !Was gilt im Falle der T-Gleichung in cv-Form?
 
-!        Update of surface fluxes, if the vertical diffusion has determined them implicitly:
+!     Update of surface fluxes, if the vertical diffusion has determined them implicitly:
 
 !Achtung: "lscadif" ergaenzt
-         IF (.NOT.(lsfluse .AND. lsflcnd) .AND. lscadif) THEN 
-            !effektive Oberfl.flussdichten wurden neu bestimmt
+      IF (.NOT.(lsfluse .AND. lsflcnd)) THEN
+         !effektive Oberfl.flussdichten wurden neu bestimmt
 
-            IF (PRESENT(shfl_s) .OR. lrunscm) THEN
+         IF (PRESENT(shfl_s) .OR. lrunscm) THEN
 !DIR$ IVDEP
 !$NEC ivdep
-               !$ACC PARALLEL ASYNC(1) DEFAULT(PRESENT)
-               !$ACC LOOP GANG VECTOR
-               DO i=ivstart, ivend
-                  shfl_s(i)=eprs(i,ke1)*cp_d*zvari(i,ke1,tet)
-               END DO
-               !$ACC END PARALLEL
-            END IF
-            IF (PRESENT(qvfl_s) .OR. lrunscm) THEN
+            !$ACC PARALLEL ASYNC(1) DEFAULT(PRESENT)
+            !$ACC LOOP GANG VECTOR
+            DO i=ivstart, ivend
+               shfl_s(i)=eprs(i,ke1)*cp_d*zvari(i,ke1,tet)
+            END DO
+            !$ACC END PARALLEL
+         END IF
+         IF (PRESENT(qvfl_s) .OR. lrunscm) THEN
 !DIR$ IVDEP
 !$NEC ivdep
-               !$ACC PARALLEL ASYNC(1) DEFAULT(PRESENT)
-               !$ACC LOOP GANG VECTOR
-               DO i=ivstart, ivend
-                  qvfl_s(i)=zvari(i,ke1,vap)
-               END DO
-               !$ACC END PARALLEL
-            END IF
+            !$ACC PARALLEL ASYNC(1) DEFAULT(PRESENT)
+            !$ACC LOOP GANG VECTOR
+            DO i=ivstart, ivend
+               qvfl_s(i)=zvari(i,ke1,vap)
+            END DO
+            !$ACC END PARALLEL
+         END IF
 
 !---------------------------------------------------------------------------------------
 #ifdef SCLM
-            IF (lsclm .AND. latmflu) THEN
-               !Berechnung der Enthalpieflussdichten:
+         IF (lsclm .AND. latmflu) THEN
+            !Berechnung der Enthalpieflussdichten:
 
-               SHF%mod(0)%val=shfl_s(imb)     ; SHF%mod(0)%vst=i_cal
-               LHF%mod(0)%val=qvfl_s(imb)*lh_v; LHF%mod(0)%vst=i_cal
+            SHF%mod(0)%val=shfl_s(imb)     ; SHF%mod(0)%vst=i_cal
+            LHF%mod(0)%val=qvfl_s(imb)*lh_v; LHF%mod(0)%vst=i_cal
 
-               !Note:
-               !IF ".NOT.latmflu", SHF and LHF either are loaded by the fluxes used for
-               ! the soil budget (lertflu) or they have been loaded above by the explicit 
-               ! SHF and LHF at the surface (lsurflu).
-               !SHF and LHF are positive downward and they may have been corrected with
-               ! vertical integrated correction tendencies.
-               !Thus they always refer to the used flux densities, which are only then equal
-               ! to the explicit surface flux density, if a lower flux condition is used "lsflcnd=.TRUE.".
-            END IF
+            !Note:
+            !IF ".NOT.latmflu", SHF and LHF either are loaded by the fluxes used for
+            ! the soil budget (lertflu) or they have been loaded above by the explicit 
+            ! SHF and LHF at the surface (lsurflu).
+            !SHF and LHF are positive downward and they may have been corrected with
+            ! vertical integrated correction tendencies.
+            !Thus they always refer to the used flux densities, which are only then equal
+            ! to the explicit surface flux density, if a lower flux condition is used "lsflcnd=.TRUE.".
+         END IF
 #endif
 !SCLM-----------------------------------------------------------------------------------
 
-            !Bem: shfl_s und qvfl_s, sowie SHF und LHF sind positiv abwaerts!
+         !Bem: shfl_s und qvfl_s, sowie SHF und LHF sind positiv abwaerts!
 
-         END IF
+      END IF
 
-         IF (lum_dif .AND. PRESENT(umfl_s)) THEN
+      IF (PRESENT(umfl_s)) THEN
 !DIR$ IVDEP
 !$NEC ivdep
-            !$ACC PARALLEL ASYNC(1) DEFAULT(PRESENT)
-            !$ACC LOOP GANG VECTOR
-            DO i=ivstart, ivend
-               umfl_s(i)=zvari(i,ke1,u_m)
-            END DO
-            !$ACC END PARALLEL
-         END IF
-         IF (lvm_dif .AND. PRESENT(vmfl_s)) THEN
+         !$ACC PARALLEL ASYNC(1) DEFAULT(PRESENT)
+         !$ACC LOOP GANG VECTOR
+         DO i=ivstart, ivend
+            umfl_s(i)=zvari(i,ke1,u_m)
+         END DO
+         !$ACC END PARALLEL
+      END IF
+      IF (PRESENT(vmfl_s)) THEN
 !DIR$ IVDEP
 !$NEC ivdep
-            !$ACC PARALLEL ASYNC(1) DEFAULT(PRESENT)
-            !$ACC LOOP GANG VECTOR
-            DO i=ivstart, ivend
-               vmfl_s(i)=zvari(i,ke1,v_m)
-            END DO
-            !$ACC END PARALLEL
-         END IF
+         !$ACC PARALLEL ASYNC(1) DEFAULT(PRESENT)
+         !$ACC LOOP GANG VECTOR
+         DO i=ivstart, ivend
+            vmfl_s(i)=zvari(i,ke1,v_m)
+         END DO
+         !$ACC END PARALLEL
+      END IF
 
-         !Note:
-         !The fluxes updated here are those effectively used for the atmospheric budgets and may slightly
-         ! differ from the (aggregated) explicit surface fluxes used in the surface schemes!
-         !The latent heat flux is not included here, since the required vaporization heat depends on the
-         ! the surface state of of each tile.
+      !Note:
+      !The fluxes updated here are those effectively used for the atmospheric budgets and may slightly
+      ! differ from the (aggregated) explicit surface fluxes used in the surface schemes!
+      !The latent heat flux is not included here, since the required vaporization heat depends on the
+      ! the surface state of of each tile.
 
 !--------------------------------------------------
-  END IF !Vertikaldiffusion wird hier berechnet
 !--------------------------------------------------
 
-  !$ACC WAIT(1)
-  !$ACC END DATA
+      !$ACC WAIT(1)
+      !$ACC END DATA
 
 END SUBROUTINE vertdiff
 

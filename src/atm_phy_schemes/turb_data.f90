@@ -205,6 +205,7 @@ REAL (KIND=wp)     ::        &
   len_min      =  1.0E-6_wp, & ! minimal turbulent length scale [m]
 
   vel_min      =  0.01_wp,   & ! minimal velocity scale [m/s]
+  vel_max      =  30.0_wp,   & ! maximal velocity scale [m/s]
 
   akt          =  0.4_wp,    & ! von Karman-constant
 
@@ -266,14 +267,7 @@ LOGICAL :: &
 ! Notice that the following switches are provided by the parameter-list of 
 ! SUB 'turbdiff' or 'turbtran':
 
-! lstfnct                   :calculation of stability function required
 ! lnsfdia                   :calculation of (synoptical) near-surface variables required
-!! lmomdif (obsolete)       :calculation of complete gradient diffusion of horizontal momenum
-! lum_dif                   :calculation of vertical gradient diffusion of horizontal u-momenum
-! lum_dif                   :calculation of vertical gradient diffusion of horizontal v-momenum
-! lscadif                   :calculation of complete gradient diffusion of scalar properties
-! lturatm                   :running turbulence model between atmosph. layers (updating diffusion coefficients)
-!!ltursrf (obsolete)        :running turbulence model at the surface layer (updating transfer coefficients
 ! lsfluse                   :use explicit heat flux densities at the suface
 ! ltkeinp                   :TKE present as input (at level k=ke1 for current time level 'ntur')
 ! lgz0inp                   :gz0 present as input
@@ -311,15 +305,6 @@ INTEGER :: &
   ilow_def_cond =2, & ! type of the default condition at the lower boundary
                       ! 1: zero surface gradient 
                       ! 2: zero surface value
-  imode_calcirc =2, & ! mode of treating the raw "circulation term" (related to 'pat_len', imode_pat_len')
-                      ! 1: explicit calculation of the flux convergence
-                      ! 2: quasi implicit treatment by calculation of effective TKE-gradients
-
-  !Note: 
-  !The theoretical background of the "circulation term" has meanwhile been fundamentally revised.
-  !Accordingly, it is going to be substituted by two complementary approaches:
-  !i) a thermal SSO parameterization and ii) a new "circulation term" due to thermal surface patterns.
-  !Hence in the following, the still active raw parameterization is referred to as raw "circulation term".
 
   imode_pat_len =2, & ! mode of determining a length scale of surface patterns used for the "circulation-term" 
                       !  and additional roughness by tile-variation of land-use:
@@ -327,6 +312,13 @@ INTEGER :: &
                       !    - raw "circulation term" considered as to be due to thermal surface-patterns.
                       ! 2: using the standard deviat. of SGS orography as a lower limit 
                       !    - raw "circulation term" considered as to be due to thermal SSO effect,
+
+  !Note: 
+  !The theoretical background of the "circulation term" has meanwhile been fundamentally revised.
+  !Accordingly, it is going to be substituted by two complementary approaches:
+  !i) a thermal SSO parameterization and ii) a new "circulation term" due to thermal surface patterns.
+  !Hence in the following, the still active raw parameterization is referred to as raw "circulation term".
+
   imode_frcsmot =2, & ! if "frcsmot>0", apply smoothing of TKE source terms 
                       ! 1: globally or 
                       ! 2: in the tropics only (if 'trop_mask' is present) 
@@ -362,23 +354,15 @@ INTEGER :: &
                       ! 1: Considering a fictive surface roughness of a SYNOP lawn
                       ! 2: Considering the mean surface roughness of a grid box
                       !    and using an exponential roughness layer profile
-  imode_2m_diag =2, & ! mode of 2m-diagnostics of temperature and dew-point (related to 'itype_2m_diag')
-                      ! (-)1: direct interpolation of temperature and specific humidity
-                      ! (-)2: interpol. of conserved quantities and subsequent statistical saturation adjustm.,
-                      !       allowing particularly for the diagnostic of cloud water at the 2m-level (fog)
-                      !  > 0: extra pressure-calculat. at 2m-level
-                      !  < 0: surface pressure applied at 2m-level
   imode_nsf_wind=1, & ! mode of local wind-definition at near-surface levels
                       !  (applied for 10m wind-diagnostics as well as for calculation of sea-surface roughness)
                       ! 1: ordinary wind speed (magnitude of grid-scale averaged wind-vector)
                       ! 2: local wind speed related to additional surface-shear by NTCs|LLDCs (at "rsur_sher>0")
-  imode_qvsatur =2, & ! mode of calculating the saturat. humidity
-                      ! 1: old version using total pressure
-                      ! 2: new version using partial pressure of dry air
   imode_stadlim =2, & ! mode of limitting statist. saturation adjustment (SUB 'turb_cloud')
                       ! 1: only absolut upper limit of stand. dev. of local super-satur. (sdsd)
                       ! 2: relative limit of sdsd and upper limit of cloud-water
   imode_trancnf =2, & ! mode of configuring the transfer-scheme (SUB 'turbtran')
+                      ![1: eliminated (old version)]
                       ! 2: 1-st ConSAT: start. with estim. Ustar, without a laminar correct. for prof.-funct.;
                       !    interpol. Tet_l onto "0"-level; calcul. Tet_l-gradients directly; 
                       !    without an upper bound for TKE-forcing; with transmit. skin-layer depth to turbul.
@@ -501,11 +485,11 @@ SUBROUTINE get_turbdiff_param (jg)
    imode_shshear= turbdiff_config(jg)%imode_shshear
    imode_frcsmot= turbdiff_config(jg)%imode_frcsmot
    imode_tkesso = turbdiff_config(jg)%imode_tkesso
+   imode_tkemini= turbdiff_config(jg)%imode_tkemini
 
    ltkesso      = turbdiff_config(jg)%ltkesso
    ltkecon      = turbdiff_config(jg)%ltkecon
    ltkeshs      = turbdiff_config(jg)%ltkeshs
-   lexpcor      = turbdiff_config(jg)%lexpcor
    ltmpcor      = turbdiff_config(jg)%ltmpcor
    lfreeslip    = turbdiff_config(jg)%lfreeslip
    lcpfluc      = turbdiff_config(jg)%lcpfluc

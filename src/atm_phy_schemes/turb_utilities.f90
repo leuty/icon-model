@@ -42,8 +42,6 @@ MODULE  turb_utilities
 !     - zqvap (zpvap, zpdry) : satur. specif. humid. (new version)
 !     - zpsat_w (ztemp)      : satur. vapor pressure over water
 !     - zdqsdt (ztemp, zqsat): d_qsat/d_tem (new version)
-!     - zqvap_old (zpvap, zpres) : satur. specif. humid. (old version)
-!     - zdqsdt_old (ztemp, zqsat): d_qsat/d_temp (old version)
 !
 ! Documentation of changes to former versions of these subroutines:
 !
@@ -166,6 +164,7 @@ USE turb_data , ONLY :   &
     imode_charpar,& ! type of Charnock parameter estimation
 !
     vel_min,      & ! minimal velocity scale [m/s]
+    vel_max,      & ! maximal velocity scale [m/s]
 !
     a_h=>a_heat,  & ! factor for turbulent heat transport
     a_m=>a_mom,   & ! factor for turbulent momentum transport
@@ -202,9 +201,6 @@ USE turb_data , ONLY :   &
     imode_pat_len,& ! mode of determining the length scale of surface patterns (related to 'pat_len')
                     ! 1: by the constant value 'pat_len' only
                     ! 2: and the std. deviat. of SGS orography as a lower limit (for old "circulation-term")
-    imode_qvsatur,& ! mode of calculating the saturat. humidity
-                    ! 1: old version, using total pressure
-                    ! 2: new version, using partial pressure of dry air
     imode_stadlim,& ! mode of mode of limitting statist. saturation adjustment
                     ! 1: only absolut upper limit of stand. dev. of local super-saturation (SDSS)
                     ! 2: relative limit of SDSS and upper limit of cloud-water 
@@ -1178,29 +1174,16 @@ INTEGER :: &
    END IF
 
    IF (lcaltdv) THEN
-      IF (imode_qvsatur.EQ.1) THEN
       !$ACC LOOP SEQ
-         DO k=k_st, k_en
+      DO k=k_st, k_en
 !DIR$ IVDEP
-            !$ACC LOOP GANG(STATIC: 1) VECTOR
-            DO i=i_st,i_en
-                  qst_t(i,k)=zdqsdt_old( temp(i,k), zqvap_old( zpsat_w( temp(i,k) ), prs(i,k) ) )
-                                                                !d_qsat/d_T (old version)
-            END DO
+         !$ACC LOOP GANG(STATIC: 1) VECTOR PRIVATE(pdry)
+         DO i=i_st,i_en
+            pdry=(1.0_wp-qvap(i,k))*rprs(i,k)                !partial pressure of dry air
+            qst_t(i,k)=zdqsdt( temp(i,k), zqvap( zpsat_w( temp(i,k) ), pdry ) )
+                                                             !d_qsat/d_T (new version)
          END DO
-
-      ELSE ! imode_qvsatur .NEQ. 1
-         !$ACC LOOP SEQ
-         DO k=k_st, k_en
-!DIR$ IVDEP
-            !$ACC LOOP GANG(STATIC: 1) VECTOR PRIVATE(pdry)
-            DO i=i_st,i_en
-               pdry=(1.0_wp-qvap(i,k))*rprs(i,k)                !partial pressure of dry air
-               qst_t(i,k)=zdqsdt( temp(i,k), zqvap( zpsat_w( temp(i,k) ), pdry ) )
-                                                                !d_qsat/d_T (new version)
-            END DO
-         END DO
-      END IF
+      END DO
 
       IF (icldmod.EQ.-1) THEN !no consideration of water phase changes
          !$ACC LOOP SEQ
@@ -1256,7 +1239,7 @@ SUBROUTINE solve_turb_budgets ( it_s, it_start, &
 !
    lssintact, lupfrclim, lpres_edr,  &
 !
-   lstfnct, ltkeinp,                 &
+   ltkeinp,                          &
 !
    imode_stke, imode_vel_min,        &
 !
@@ -1308,7 +1291,6 @@ LOGICAL, INTENT(IN)  :: &
   lssintact, & !seperate treatment of non-turbulent shear (by scale interaction) requested
   lupfrclim, & !enabling an upper limit for TKE-forcing
   lpres_edr, & !if edr is present in calling routine
-  lstfnct,   & !calculation of stability function required
   ltkeinp      !TKE present as input for current time level 'ntur'
 
 REAL (KIND=wp), INTENT(IN) :: &
@@ -1471,6 +1453,8 @@ LOGICAL :: lpres_avt, lpres_fcd, lrogh_lay, alt_gama, lcorr, lstbsecu
 INTEGER :: imode_stbcorr !mode of correcting the stability function (=ABS(imode_stbcalc)
 !-------------------------------------------------------------------------------
 
+  LOGICAL, PARAMETER:: lstfnct=.TRUE. !calculate stability functions
+                                     !(otherwise the former values remain unchainged)
   lpres_avt=PRESENT(avt) !array for advection-tendency of TKE is present
   lpres_fcd=PRESENT(fcd) !array for small-scale canpy drag is present
   
@@ -2037,7 +2021,8 @@ INTEGER :: imode_stbcorr !mode of correcting the stability function (=ABS(imode_
               END IF
 !test<
 !ediss(i,k)=tke(i,k,ntur)**3/(wert*tls(i,k))
-              ediss(i,k)=MIN(tke(i,k,nvor),tke(i,k,ntur))**3/(wert*tls(i,k))
+
+              ediss(i,k)=MIN( tke(i,k,nvor), tke(i,k,ntur), vel_max )**3/(wert*tls(i,k))
 !test>
            END DO
         END DO
@@ -2342,14 +2327,9 @@ REAL (KIND=wp) :: &
     DO i = istart, iend
 
 !mod_2011/09/28: zpres=patm -> zpres=pdry {
-      IF (imode_qvsatur.EQ.1) THEN
-        qs = zqvap_old( zpsat_w( tl(i,k) ), prs(i,k) )              ! saturation mixing ratio (old version)
-        gam = 1.0_wp/( 1.0_wp + lhocp*zdqsdt_old( tl(i,k), qs ) )   ! slope factor (from old vers. of d_qsat/d_T)
-      ELSE
-        pdry=( 1.0_wp-qt(i,k) )/( 1.0_wp+rvd_m_o*qt(i,k) )*prs(i,k) ! part. pressure of dry air
-        qs = zqvap( zpsat_w( tl(i,k) ), pdry )                      ! saturation mixing ratio (new version)
-        gam = 1.0_wp/( 1.0_wp + lhocp*zdqsdt( tl(i,k), qs ) )       ! slope factor (from new vers. of d_qsat/d_T)
-      END IF
+      pdry=( 1.0_wp-qt(i,k) )/( 1.0_wp+rvd_m_o*qt(i,k) )*prs(i,k) ! part. pressure of dry air
+      qs = zqvap( zpsat_w( tl(i,k) ), pdry )                      ! saturation mixing ratio (new version)
+      gam = 1.0_wp/( 1.0_wp + lhocp*zdqsdt( tl(i,k), qs ) )       ! slope factor (from new vers. of d_qsat/d_T)
 !mod_2011/09/28: zpres=patm -> zpres=pdry }
 
       dq = qt(i,k) - qs                                             ! local super-saturation

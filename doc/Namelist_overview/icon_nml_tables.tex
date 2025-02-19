@@ -9191,13 +9191,6 @@ Consideration of fluctuations of the heat capacity of air. &
 \tabularnewline
 
 %\hline
-lexpcor &
-L                &     .FALSE.      & &
-Explicit corrections of implicitly calculated vertical diffusion of non-conservative scalars 
-that are involved in sub grid condensation processes (inactive). &
-\tabularnewline
-
-%\hline
 tur\_len &
 R                &     500.0      & m &
 Asymptotic maximal turbulent distance (where $\kappa \cdot$ \emph{tur\_len} is the integral turbulent master length-scale). &
@@ -9258,6 +9251,18 @@ Enhanced value of \emph{tkmmin} valid for the stratosphere above 17.5 km (tropic
 \tabularnewline
 
 %\hline
+imode\_tkemini &
+I                &    1      & &
+Mode of adapting q=SQRT(2*TKE) and the entire Turbulence-Model (TMod) to Lower Limits for Diff. Coeffs. (LLDCs), 
+ which are the "minimal vertical diffusion coefficients" \emph{tkhmin} or \emph{tkmmin} (or their stratopheric extensions): \\
+1: LLDCs treated as corrections of stability lengths without any further adaptation. \\ 
+2: TKE adapted to that part of LLDCs representing so far missing shear forcing,
+    while the assumed part of LLDCs, representing missing drag-forces, has no feedback to the TMod. \\
+3: Tuned variant of "2" that is suitable for operational forecasts, 
+    particularly excluding the effect of stratospheric extensions on the TKE adaptation. & any (extended) LLDC is active
+\tabularnewline
+
+%\hline
 alpha0 &
 R                &     0.0123      & 1 &
 Standard Charnock parameter. &
@@ -9278,7 +9283,7 @@ Scaling parameter for molecular roughness of ocean waves.  &
 
 %\hline
 imode\_charpar &
-I                &     2      & 1 &
+I                &     2      & &
 Options for specifying the Charnock parameter: \\
 1: constant at \emph{alpha0} \\
 2: wind-speed dependent with maximum at \emph{alpha0\_max} \\

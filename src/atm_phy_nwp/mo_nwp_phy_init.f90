@@ -1638,7 +1638,7 @@ SUBROUTINE init_nwp_phy ( p_patch, p_metrics,             &
       ! turbtran: only surface-layer turbulence
       CALL turbtran (                                                          & !only surface-layer turbulence
 !
-        &  iini=1, ltkeinp=ltkeinp_loc, igz0inp=igz0inp_loc, lstfnct=.TRUE. ,  &
+        &  iini=1, ltkeinp=ltkeinp_loc, igz0inp=igz0inp_loc,                   &
         &          lsrflux=.TRUE., lnsfdia=.TRUE., lrunscm=.FALSE.,            & !incl. near-surf. diagn. and surf.-flux calcul.
         &          ladsshr=.FALSE.,                                            & !no additional NTC-shear
 !
@@ -1705,7 +1705,6 @@ SUBROUTINE init_nwp_phy ( p_patch, p_metrics,             &
 !
         &  iini=1,                                                  & ! separate initialization before the time loop
         &  ltkeinp=ltkeinp_loc,                                     & ! 
-        &  lstfnct=.TRUE. ,                                         & !
         &  l3dturb=.FALSE.,                                         & ! not yet arranged for ICON
         &  lrunsso=(atm_phy_nwp_config(jg)%inwp_sso > 0),           & ! running COSMO SSO scheme
         &  lruncnv=(atm_phy_nwp_config(jg)%inwp_convection > 0),    & ! running convection

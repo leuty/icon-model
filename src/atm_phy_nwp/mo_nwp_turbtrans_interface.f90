@@ -597,7 +597,6 @@ SUBROUTINE nwp_turbtrans  ( tcall_turb_jg,                     & !>in
                                                !                    "iinit= 0: any later time step)
           &  ltkeinp=.FALSE.,         & !
           &  igz0inp= 0     ,         &
-          &  lstfnct=.TRUE. ,         & ! with stability function
           &  lsrflux=.TRUE. ,         & !
           &  lnsfdia=.TRUE. ,         & ! including near-surface diagnostics
           &  lrunscm=.FALSE.,         & ! no single column run
@@ -918,7 +917,6 @@ SUBROUTINE nwp_turbtrans  ( tcall_turb_jg,                     & !>in
                                                  !                    "iinit= 0: any later time step)
             &  ltkeinp=.FALSE.,         & !
             &  igz0inp=igz0inp_loc,     & !
-            &  lstfnct=.TRUE. ,         & ! with stability function
             &  lsrflux=.TRUE. ,         & !
             &  lnsfdia=.TRUE. ,         & ! including near-surface diagnostics
             &  lrunscm=.FALSE.,         & ! no single column run

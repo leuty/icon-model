@@ -214,17 +214,12 @@ USE turb_data, ONLY : &
     imode_charpar,& ! mode of estimating the Charnock-Parameter
                     ! 1: use a constant value 
                     ! 2: use a wind-dependent value with a constant upper bound
-    imode_2m_diag,& ! mode of 2m-diagnostics of temperature and dew-point (related to 'itype_2m_diag')
-                    ! (-)1: direct interpolation of temperature and specific humidity
-                    ! (-)2: interpol. of conserved quantities and subsequent statistical saturation adjustm.,
-                    !       allowing particularly for the diagnostic of cloud water at the 2m-level (fog)
-                    !  > 0: extra pressure-calculat. at 2m-level
-                    !  < 0: surface pressure applied at 2m-level
    imode_nsf_wind,& ! mode of local wind-definition at near-surface levels
                     ! (applied for 10m wind-diagnostics as well as for calculation of sea-surface roughness)
                     ! 1: ordinary wind speed (magnitude of grid-scale averaged wind-vector)
                     ! 2: local wind speed related to additional surface-shear by NTCs|LLDCs (at "rsur_sher>0")
     imode_trancnf,& ! mode of configuring the transfer-scheme 
+                    ![1: eliminated (old version)]
                     ! 2: 1-st ConSAT: start. with estim. Ustar, without a laminar correct. for prof.-funct.;
                     !    interpol. Tet_l onto "0"-level; calcul. Tet_l-gradients directly; 
                     !    without an upper bound for TKE-forcing; with transmit. skin-layer depth to turbul.
@@ -336,7 +331,7 @@ CONTAINS
 
 SUBROUTINE turbtran (                                                         &
 !
-          iini, ltkeinp, igz0inp, lstfnct, lsrflux, lnsfdia, lrunscm,         &
+          iini, ltkeinp, igz0inp, lsrflux, lnsfdia, lrunscm,                  &
           ladsshr,                                                            &
 !
           dt_tke, nprv, ntur, ntim,                                           &
@@ -500,8 +495,6 @@ LOGICAL, INTENT(IN) :: &
 
    lnsfdia,      & !calculation of (synoptical) near-surface variables required
    lsrflux,      & !calculation of surface flux densities in 'trubtran'
-
-   lstfnct,      & !calculation of stability function required
 
    ltkeinp,      & !TKE present as input for time level 'ntur' at level "0" (k=ke1)
                    ! and also at level "P" (k=ke) in case of "lini=T" 
@@ -711,9 +704,7 @@ INTEGER ::      &
 !
     nvor,       & !laufende Zeittstufe des bisherigen TKE-Feldes (wird zwischen Iterationen zu 'ntur')
     it_durch,   & !Durchgangsindex der Iterationen
-    it_start,   & !Startindex der Iterationen
-!
-    imode_syndiag != ABS(imode_2m_diag)
+    it_start      !Startindex der Iterationen
 
 REAL (KIND=wp) :: &
     fr_tke,             & ! z1/dt_tke
@@ -995,8 +986,6 @@ LOGICAL        ::   ldebug = .FALSE.
 
       ks=ke
 
-      imode_syndiag=ABS(imode_2m_diag)
- 
       !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(acc_async_queue) IF(lzacc)
 
 !DIR$ IVDEP
@@ -1686,7 +1675,7 @@ LOGICAL        ::   ldebug = .FALSE.
 
                                   lssintact=.FALSE.,      lupfrclim=.FALSE.,                    & !in
                                   lpres_edr=PRESENT(edr),                                       & !in
-                                  ltkeinp=ltkeinp,        lstfnct=lstfnct,                      & !in
+                                  ltkeinp=ltkeinp,                                              & !in
 
                                   imode_stke=imode_tran,  imode_vel_min=imode_vel_min,          & !in
 
@@ -1972,14 +1961,8 @@ LOGICAL        ::   ldebug = .FALSE.
                   fakt=(dz_s0_h(i)+wert)/dz_sa_h(i)
                END IF
 
-               IF (imode_syndiag == 1) THEN !direkte interpol. von temperatur und spezifischer Feuchte
-                  tmps(i,ke1) = t_g(i) + (t(i,ke)-t_g(i))*fakt &
-                              + tet_g*( (h_atm_2d(i)+h_can_2d(i) )*fakt-h_2m ) !Achtung: mit 'tet_g'-Korrektur
-                  vaps(i,ke1)= qv_s(i) + (qv(i,ke)-qv_s(i))*fakt
-               ELSE !interpolation von Erhaltungsvariablen
-                  tmps(i,ke1) = fakt*ta_2d(i) + (z1-fakt)*tl_s_2d(i)/epr_2d(i)
-                  vaps(i,ke1) = qt_s_2d(i) + fakt*(qda_2d(i)-qt_s_2d(i))
-               END IF 
+               tmps(i,ke1) = fakt*ta_2d(i) + (z1-fakt)*tl_s_2d(i)/epr_2d(i)
+               vaps(i,ke1) = qt_s_2d(i) + fakt*(qda_2d(i)-qt_s_2d(i))
 
             END IF
          END DO
@@ -2043,17 +2026,11 @@ LOGICAL        ::   ldebug = .FALSE.
 
                !Interpolationswerte fuer das synoptische 2m-Niveau:
 
-               IF (imode_syndiag == 1) THEN
-                  tmps(i,ke1) = t_g(i) + (t(i,ke)-t_g(i))*fakt &
-                              + tet_g*(h_atm_2d(i)*fakt-h_2m)
-                  vaps(i,ke1) = qv_s(i) + (qv(i,ke)-qv_s(i))*fakt
-               ELSE
-                  tmps(i,ke1) = fakt*ta_2d(i) + (z1-fakt)*tl_s_2d(i)/epr_2d(i)
-                  vaps(i,ke1) = qt_s_2d(i) + fakt*(qda_2d(i)-qt_s_2d(i))
-                  IF (icldm_tran > -1) THEN !water phase change is possible
-                     fakt=h_2m/h_atm_2d(i)
-                     rcls(i,ke1)=rcld(i,ke1)+fakt*(rcld(i,ke)-rcld(i,ke1))
-                  END IF
+               tmps(i,ke1) = fakt*ta_2d(i) + (z1-fakt)*tl_s_2d(i)/epr_2d(i)
+               vaps(i,ke1) = qt_s_2d(i) + fakt*(qda_2d(i)-qt_s_2d(i))
+               IF (icldm_tran > -1) THEN !water phase change is possible
+                  fakt=h_2m/h_atm_2d(i)
+                  rcls(i,ke1)=rcld(i,ke1)+fakt*(rcld(i,ke)-rcld(i,ke1))
                END IF
             END IF
          END DO
@@ -2083,10 +2060,7 @@ LOGICAL        ::   ldebug = .FALSE.
             fakt=(hk_2d(i)+z0d_2d(i))*fakt
             fakt=LOG(wert)/LOG(fakt)
 
-            IF (imode_syndiag == 1) THEN
-               tmps(i,ke1)= t(i,k1)+fakt*( t(i,k2)- t(i,k1))
-               vaps(i,ke1)=qv(i,k1)+fakt*(qv(i,k2)-qv(i,k1))
-            ELSEIF (icldm_tran == -1) THEN !no water phase change possible
+            IF (icldm_tran == -1) THEN !no water phase change possible
                val2=qv(i,k2)          ; val1= qv(i,k1)        ; vaps(i,ke1)=val1+fakt*(val2-val1)
                val2= t(i,k2)/epr(i,k2); val1=t(i,k1)/epr(i,k1); tmps(i,ke1)=val1+fakt*(val2-val1)
             ELSE !water phase changes are possible
@@ -2105,9 +2079,8 @@ LOGICAL        ::   ldebug = .FALSE.
 
       !Druck im 2m-Niveau:
       
-      IF (imode_2m_diag > 0) THEN !pressure correction of 2m-level desired
 !DIR$ IVDEP
-      !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(acc_async_queue) IF(lzacc)
+         !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(acc_async_queue) IF(lzacc)
       !$ACC LOOP GANG(STATIC: 1) VECTOR PRIVATE(wert)
       DO i=ivstart, ivend
 !test<
@@ -2118,9 +2091,8 @@ LOGICAL        ::   ldebug = .FALSE.
 !test>
       END DO
       !$ACC END PARALLEL
-      END IF
 
-      IF (imode_syndiag == 1 .OR. icldm_tran == -1) THEN
+      IF (icldm_tran == -1) THEN
 !DIR$ IVDEP
          !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(acc_async_queue) IF(lzacc)
          !$ACC LOOP GANG VECTOR
