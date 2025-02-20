@@ -56,6 +56,7 @@ Climate: ICON-Land
     - Reduce number of variables in the restart file
     - Include forcing and output of carbon isotopes
     - Read elevation for QUINCY from file
+    - Improved handling of n and p deposition reading from forcing data
     - Inclusion of self-thinning and herbivory in grasslands and pastures (but not crops)
   - Merged the radiation process of QUINCY into the radiation process of JSBACH
   - Use JSBACH4 canopy, soil and snow albedos with QUINCY albedo calculations
