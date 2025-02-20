@@ -99,6 +99,12 @@
       - src/parallel_infrastructure/mo_communication*
       - src/parallel_infrastructure/mo_mpi.f90
       - src/parallel_infrastructure/mo_sync.f90
+  - mentions: [k202123]
+    file_names:
+      - run/exp.amip*
+      - run/exp.aes*
+      - run/exp.atm*
+      - run/*.config
 
 icon/icon:
   default:
