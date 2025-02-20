@@ -801,8 +801,7 @@ SUBROUTINE calc_infiltration ( &
     ! and rime for later use
     evapotrans_snfr(i) = dt_w_i(i) + eva_bs(i) + transp_sum(i) + &
                     (1._wp-fr_snow(i))*(dew_rate(i) + rime_rate(i))
-    evapo_snow(i) = dt_w_snow(i) + rime_rate(i) &
-                           + MERGE(dew_rate(i), 0._wp, w_snow_now(i) >= eps_soil)
+    evapo_snow(i) = dt_w_snow(i) + fr_snow(i)*(dew_rate(i) + rime_rate(i))
 
     ! add grid scale and convective precipitation (and graupel, if present)
     ! to dew and rime

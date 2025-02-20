@@ -194,7 +194,7 @@ SUBROUTINE calc_evapotranspiration ( &
 
     eva_w_i(i) = MERGE(MAX( &
         & & ! Evaporate freely, ...
-        &   area_fac * fr_w_i(i) * evapot_s(i), &
+        &   area_fac * (1.0_wp - fr_snow(i)) * fr_w_i(i) * evapot_s(i), &
         & & ! ... but no more than the available water, ...
         &   -rho_w * w_i(i) / dt, &
         & & ! ... and no more than what 75% of net radiation or 300 W/m**2 can support.
@@ -493,11 +493,10 @@ SUBROUTINE calc_evsl_bats ( &
 
       ! Treatment of ice and rocks
       SELECT CASE (mstyp)
-      CASE (IST_ICE)
-        beta = 1._wp
-
-      CASE (IST_ROCK)
+      CASE (IST_ICE, IST_ROCK)
         beta = 0._wp
+        eva_bs(i) = 0._wp
+        lhfl_bs(i) = 0._wp
 
       CASE DEFAULT ! Computations not for ice and rocks
         ! auxiliary quantities
@@ -519,27 +518,20 @@ SUBROUTINE calc_evsl_bats ( &
         IF (fr_w_top_new <= cadp(mstyp)) evapor = 0._wp
 
         beta = evapor / MIN(evapot_s(i), -eps_div)
-      END SELECT
+        sfc_frac_bs = eai(i) / sai(i)
 
-      sfc_frac_bs = eai(i) / sai(i)
+        IF (mstyp == IST_PEAT .AND. itype_mire == 1) THEN ! AYu mire block
+          beta = 0.6_wp
+          sfc_frac_bs = 1.0_wp
+        ENDIF
 
-      IF (soiltyp_subs(i) == IST_PEAT .AND. itype_mire == 1) THEN ! AYu mire block
-        beta = 0.6_wp
-        sfc_frac_bs = 1.0_wp
-      ENDIF
-
-      ! consideration of plant or snow/water cover
-      IF (mstyp == IST_ROCK) THEN
-        eva_bs(i) = 0._wp
-        lhfl_bs(i) = 0._wp
-      ELSE
         eva_bs(i) = beta * evapot_s(i)         & ! evaporation
         !!!              *(1.0_wp - fr_w_i(i)) & ! not water covered
                         *(1.0_wp - fr_snow(i)) & ! not snow covered
                         * sfc_frac_bs            ! relative source surface
                                                  ! of the bare soil
         lhfl_bs(i) = lh_v * eva_bs(i)
-      END IF
+      END SELECT
     ELSE
       eva_bs(i) = 0._wp
       lhfl_bs(i) = 0._wp
@@ -617,11 +609,10 @@ SUBROUTINE calc_evsl_np89 ( &
 
       ! Treatment of ice and rocks
       SELECT CASE (mstyp)
-      CASE (IST_ICE)
-        beta = 1._wp
-
-      CASE (IST_ROCK)
+      CASE (IST_ICE, IST_ROCK)
         beta = 0._wp
+        eva_bs(i) = 0._wp
+        lhfl_bs(i) = 0._wp
 
       CASE DEFAULT ! Computations not for ice and rocks
         IF (fr_w_top(i)> cfcap(mstyp)) THEN
@@ -643,19 +634,13 @@ SUBROUTINE calc_evsl_np89 ( &
         evapor = MIN(0._wp, rho_ch(i) * (qv_atm(i) - alpha * qs))
 
         beta = evapor / MIN(evapot_s(i),-eps_div)
-      END SELECT ! Computations not for ice and rocks
-
-      IF (mstyp == IST_ROCK) THEN
-        eva_bs(i) = 0._wp
-        lhfl_bs(i) = 0._wp
-      ELSE
         eva_bs(i) = beta * evapot_s(i)         & ! evaporation
-         !!!            *(1.0_wp - fr_w_i (i)) & ! not water covered
-                        *(1.0_wp - fr_snow(i)) & ! not snow covered
-                        * eai(i)/sai(i)          ! relative source surface
-                                                 ! of the bare soil
+        !!!            *(1.0_wp - fr_w_i (i)) & ! not water covered
+                       *(1.0_wp - fr_snow(i)) & ! not snow covered
+                       * eai(i)/sai(i)          ! relative source surface
+                                                ! of the bare soil
         lhfl_bs(i) = lh_v * eva_bs(i)
-      END IF
+      END SELECT ! Computations not for ice and rocks
     ELSE
       eva_bs(i) = 0._wp
       lhfl_bs(i) = 0._wp
@@ -726,11 +711,10 @@ SUBROUTINE calc_evsl_resistance ( &
       beta = 0._wp
 
       SELECT CASE (mstyp)
-      CASE (IST_ICE)
-        beta = 1._wp
-
-      CASE (IST_ROCK)
+      CASE (IST_ICE, IST_ROCK)
         beta = 0._wp
+        eva_bs(i) = 0._wp
+        lhfl_bs(i) = 0._wp
 
       CASE DEFAULT ! Computations not for ice and rocks
         alpha = MAX( 0.0_wp, MIN( &
@@ -738,27 +722,20 @@ SUBROUTINE calc_evsl_resistance ( &
             & (fr_w_top(i) - cadp(mstyp)) / (cfcap(mstyp) - cadp(mstyp))))
         r_bs = r_bsmin(i) / (alpha + eps_soil)
         beta = 1.0_wp / (1.0_wp + rho_ch(i) * r_bs / rho_atm(i))
-      END SELECT ! Computations not for ice and rocks
+        sfc_frac_bs = eai(i) / sai(i)
 
-      sfc_frac_bs = eai(i) / sai(i)
+        IF (mstyp == IST_PEAT .AND. itype_mire == 1) THEN      ! AYu mire block
+          beta = 0.6_wp
+          sfc_frac_bs = 1.0_wp
+        ENDIF
 
-      IF (soiltyp_subs(i) == IST_PEAT .AND. itype_mire == 1) THEN      ! AYu mire block
-        beta = 0.6_wp
-        sfc_frac_bs = 1.0_wp
-      ENDIF
-
-      ! Consideration of plant or snow/water cover
-      IF (mstyp == IST_ROCK) THEN
-        eva_bs(i) = 0._wp
-        lhfl_bs(i) = 0._wp
-      ELSE
         eva_bs(i) = beta * evapot_s(i)        & ! evaporation
         !!!           * (1.0_wp - fr_w_i (i)) & ! not water covered
                       * (1.0_wp - fr_snow(i)) & ! not snow covered
                       * sfc_frac_bs             ! relative source surface
                                                 ! of the bare soil
         lhfl_bs(i) = lh_v * eva_bs(i)
-      END IF
+      END SELECT ! Computations not for ice and rocks
     ELSE
       eva_bs(i) = 0._wp
       lhfl_bs(i) = 0._wp

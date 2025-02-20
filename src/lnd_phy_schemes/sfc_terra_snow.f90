@@ -459,9 +459,9 @@ END SUBROUTINE snow_single_soil_forcing
 !!
 SUBROUTINE snow_single_calc_temperature ( &
       & ivstart, ivend, nvec, dt, t_so_new_top, t_s_now, w_snow_now, dt_w_snow, dz_snow_flx, &
-      & rho_snow, sobs, radfl_th_snow, rho_ch, hcap_snow, th_atm, evapo_snow, hfl_snow_soil, &
-      & dqvdt_snow, t_snow_top, t_snow_new, dt_t_snow, shfl_snow, lhfl_snow, qhfl_snow, lzacc, &
-      & acc_async_queue &
+      & fr_snow, rho_snow, sobs, radfl_th_snow, rho_ch, hcap_snow, th_atm, evapo_snow, &
+      & hfl_snow_soil, dqvdt_snow, t_snow_top, t_snow_new, dt_t_snow, shfl_snow, lhfl_snow, &
+      & qhfl_snow, lzacc, acc_async_queue &
     )
 
   INTEGER, INTENT(IN) :: ivstart
@@ -476,6 +476,7 @@ SUBROUTINE snow_single_calc_temperature ( &
   REAL(wp), INTENT(IN) :: w_snow_now(nvec) !< Current SWE [m(H2O)].
   REAL(wp), INTENT(IN) :: dt_w_snow(nvec) !< Snow mass tendency [kg/(m^2 s)].
   REAL(wp), INTENT(IN) :: dz_snow_flx(nvec) !< Effective snow height for flux computation [m].
+  REAL(wp), INTENT(IN) :: fr_snow(nvec) !< Snow fraction [m^2(snow)/m^2(tile)].
 
   REAL(wp), INTENT(IN) :: rho_snow(nvec) !< Effective snow density [kg/m^3].
 
@@ -527,8 +528,8 @@ SUBROUTINE snow_single_calc_temperature ( &
 
     zrnet_snow    = sobs(i) + radfl_th_snow(i)
     shfl_snow(i) = rho_ch(i)*cp_d*(th_atm(i) - t_snow_top(i))
-    lhfl_snow(i) = lh_s*evapo_snow(i)
-    qhfl_snow(i) = evapo_snow(i)
+    lhfl_snow(i) = lh_s*evapo_snow(i) / MAX(eps_div, fr_snow(i))
+    qhfl_snow(i) = evapo_snow(i) / MAX(eps_div, fr_snow(i))
     zfor_snow     = zrnet_snow + shfl_snow(i) + lhfl_snow(i)
 
     ! forecast of snow temperature Tsnow
@@ -697,6 +698,8 @@ SUBROUTINE snow_single_melt ( &
           zdelt_s      = MAX(0.0_wp,(ze_avail - ze_total)/(hcap_ml_top(i)*dz_top))
           dt_t_s(i)    = dt_t_s(i) + fr_snow_lim(i)*zdelt_s / dt
 
+          IF (zfr_melt > 0.9999_wp) zfr_melt = 1._wp
+
           ! melted snow is allowed to penetrate the soil (up to field
           ! capacity), if the soil type is neither ice nor rock;
           ! else it contributes to surface run-off;
@@ -726,8 +729,6 @@ SUBROUTINE snow_single_melt ( &
           zro = zro + zw_ovpv
           dt_w_so_top(i) = dt_w_so_top(i) - zw_ovpv
 
-
-          IF (zfr_melt > 0.9999_wp) dt_w_snow(i)= -w_snow_now(i) * rho_w / dt
           runoff_s(i) = runoff_s(i) + zro * dt
 
         END IF   ! snow melting
@@ -818,7 +819,7 @@ SUBROUTINE snow_single_update_new_state ( &
   REAL(wp) :: total_snow_rate
   REAL(wp) :: total_snow_m
   REAL(wp) :: infiltration_m
-  REAL(wp) :: runoff_m
+  REAL(wp) :: runoff_rate
   REAL(wp) :: snow_acc_m
   REAL(wp) :: zw_ovpv
 
@@ -838,7 +839,7 @@ SUBROUTINE snow_single_update_new_state ( &
   !$ACC LOOP GANG(STATIC: 1) VECTOR PRIVATE(mstyp, t_snow_rel, tau_snow_days, rho_snow_max) &
   !$ACC   PRIVATE(rho_snow_existing, th_low_rel, rho_snow_min, rho_snow_fresh, rho_graupel) &
   !$ACC   PRIVATE(total_snow_rate, graupel_frac, total_snow_m, snow_acc_m, infiltration_m) &
-  !$ACC   PRIVATE(dw_g_melt, runoff_m, runoff_frac, zw_ovpv, w_snow_gp)
+  !$ACC   PRIVATE(dw_g_melt, runoff_rate, runoff_frac, zw_ovpv, w_snow_gp)
   !$NEC sparse
   DO i = ivstart, ivend
     w_snow_new(i) = w_snow_now(i) + dt*dt_w_snow(i)/rho_w
@@ -905,6 +906,9 @@ SUBROUTINE snow_single_update_new_state ( &
     ! prevent accumulation of new snow if the air temperature is above 1 deg C with
     ! linear transition between 0.5 and 1 deg C
     IF (total_snow_m > 0.5_wp*eps_soil .AND. th_atm(i) > t0_melt + 0.5_wp) THEN
+      ! Some of the snow may have melted or sublimated already.
+      total_snow_m = MIN(w_snow_new(i), total_snow_m)
+
       ! part of the new snow that accumulates on the ground
       snow_acc_m = MAX(0._wp, total_snow_m*(t0_melt + 1._wp - th_atm(i))*2._wp)
       !
@@ -918,11 +922,11 @@ SUBROUTINE snow_single_update_new_state ( &
       ENDIF
 
       IF (soiltyp_subs(i) > IST_ROCK) THEN
-        dw_g_melt = infiltration_m
-        runoff_m = 0._wp
+        dw_g_melt = infiltration_m * (rho_w / dt)
+        runoff_rate = 0._wp
       ELSE
         dw_g_melt = 0._wp
-        runoff_m = infiltration_m
+        runoff_rate = infiltration_m * (rho_w / dt)
       END IF
 
       runoff_frac = MIN(MAX( &
@@ -931,20 +935,19 @@ SUBROUTINE snow_single_update_new_state ( &
           & 1._wp &
         )
       dt_w_so_top(i) = dt_w_so_top(i) + dw_g_melt*(1._wp - runoff_frac)
-      runoff_m = runoff_m + dw_g_melt * runoff_frac
+      runoff_rate = runoff_rate + dw_g_melt * runoff_frac
 
-      ! runoff_m-, zdw_so_dt-correction in case of pore volume overshooting
+      ! runoff_rate-, zdw_so_dt-correction in case of pore volume overshooting
       zw_ovpv = MAX(0._wp, &
           & (fr_w_top(i) - cporv(mstyp)) * dz_hl_top * (rho_w / dt) + dt_w_so_top(i) &
         )
-      runoff_m = runoff_m + zw_ovpv
+      runoff_rate = runoff_rate + zw_ovpv
       dt_w_so_top(i) = dt_w_so_top(i) - zw_ovpv
 
-      ! RW: The multiplication by dt is wrong, runoff is not a rate.
-      runoff_s(i) = runoff_s(i) + runoff_m * dt
+      runoff_s(i) = runoff_s(i) + runoff_rate * dt
 
       ! correct SWE for immediately melted new snow
-      w_snow_new(i) = MIN(w_snow_new(i), w_snow_now(i) + snow_acc_m)
+      w_snow_new(i) = w_snow_new(i) - (total_snow_m - snow_acc_m)
     ELSE
       snow_acc_m = total_snow_m
     END IF
@@ -1474,8 +1477,8 @@ SUBROUTINE snow_multi_soil_forcing ( &
       zrnet_snow = sobs(i) + radfl_th_snow(i)
     END IF
     shfl_snow(i) = rho_ch(i)*cp_d*(th_atm(i) - t_snow_mult_now(i,1))
-    lhfl_snow(i) = lh_s*evapo_snow(i)
-    qhfl_snow(i) = evapo_snow(i)
+    lhfl_snow(i) = lh_s*evapo_snow(i) / MAX(eps_div, fr_snow(i))
+    qhfl_snow(i) = evapo_snow(i) / MAX(eps_div, fr_snow(i))
     zfor_snow_mult(i)  = (zrnet_snow + shfl_snow(i) + lhfl_snow(i) + lh_f*rain_dew_rate(i))*fr_snow(i)
   END DO
 

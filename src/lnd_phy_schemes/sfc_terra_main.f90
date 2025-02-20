@@ -432,6 +432,9 @@ CONTAINS
 ! Local parameters:
 ! ----------------
 
+  REAL(wp), PARAMETER :: H_SNOW_GLAC_MIN = 1._wp !< Minimum snow height on glaciers [m].
+  REAL(wp), PARAMETER :: H_SNOW_MAX = 40._wp !< Maximum snow height [m].
+
 ! Local scalars:
 ! -------------
 
@@ -512,7 +515,7 @@ CONTAINS
   REAL    (KIND=wp) ::  &
 
     ! Soil and plant parameters
-    hcap_ml     (nvec,ke_soil+1)      , & ! heat capacity
+    hcap_ml     (nvec,ke_soil+1)   , & ! heat capacity
 
     ! Hydraulic variables
     transp_ml   (nvec,ke_soil)     , & ! transpiration contribution by the different layers
@@ -548,10 +551,12 @@ CONTAINS
 
   REAL    (KIND=wp) ::  &
     ! Auxiliary variables
-    hcond_ml    (nvec,ke_soil+1)   , & ! thermal conductivity on full levels, meaning at the centers of soil layers 1 to ke_soil+1
-    dqvdt_snow   (nvec)             , & ! first derivative of saturation specific humidity
+    hcond_ml     (nvec,ke_soil+1)  , & ! thermal conductivity on full levels, meaning at the centers of soil layers 1 to ke_soil+1
+    dqvdt_snow   (nvec)            , & ! first derivative of saturation specific humidity
                                        !    with respect to t_snow
-    rho_snow    (nvec)                 ! snow density used for computing heat capacity and conductivity
+    rho_snow    (nvec)             , & ! snow density used for computing heat capacity and conductivity
+    swe_correction                 , & ! SWE correction for ensuring height limits [m(H2O)].
+    rho_snow_top                       ! Top-layer snow density [kg/m^3].
 
   REAL    (KIND=wp) ::  &
     budget_w_so_start(nvec)      ! utility variables for soil water budget
@@ -586,6 +591,9 @@ CONTAINS
 !------------------------------------------------------------------------------
 ! Section I.1: Initializations
 !------------------------------------------------------------------------------
+
+  ! for the soil water budget
+  !$ACC DATA PRESENT(resid_wso) CREATE(budget_w_so_start) ASYNC(acc_async_queue) IF(lres_soilwatb)
 
   ! Subroutine parameters IN
   !$ACC DATA ASYNC(acc_async_queue) &
@@ -649,11 +657,10 @@ CONTAINS
   !$ACC   CREATE(snow_rate) &
   !$ACC   CREATE(graupel_rate) &
 
+  !$ACC   NO_CREATE(budget_w_so_start) &
+
   ! Terra data module fields
   !$ACC   PRESENT(zzhls, zdzhs, zdzms)
-
-  ! for the soil water budget
-  !$ACC DATA PRESENT(resid_wso) CREATE(budget_w_so_start) ASYNC(acc_async_queue) IF(lres_soilwatb)
 
   IF (lres_soilwatb) THEN
     ! Calculation of soil water budget: store recent runoff fluxes
@@ -673,12 +680,43 @@ CONTAINS
 ! Prepare basic surface properties (for land-points only)
 
   !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(acc_async_queue) IF(lzacc)
-  !$ACC LOOP GANG(STATIC: 1) VECTOR PRIVATE(mstyp, tv_s)
+  !$ACC LOOP GANG(STATIC: 1) VECTOR PRIVATE(mstyp, tv_s, swe_correction, rho_snow_top)
   DO i = ivstart, ivend
     mstyp     = soiltyp_subs(i)        ! soil type
 
-    ! ensure that glaciers are covered with at least 1 m of snow
-    IF (mstyp == IST_ICE) h_snow(i) = MAX(1._wp, h_snow(i))
+    IF (lmulti_snow) THEN
+      rho_snow_top = rho_snow_mult_now(i,1)
+    ELSE
+      rho_snow_top = rho_snow_now(i)
+    END IF
+
+    ! ensure that glacier snow height is at between H_SNOW_GLAC_MIN and H_SNOW_MAX
+    IF (mstyp == IST_ICE) THEN
+      swe_correction = &
+          ! snow water equivalent SWE (w_snow) increased to low snow height (h_snow).
+          &   MAX(0._wp, H_SNOW_GLAC_MIN / rho_w * rho_snow_top - w_snow_now(i)) & !pos
+          ! snow water equivalent SWE (w_snow) reduced   to top snow height (h_snow).
+          & + MIN(0._wp, H_SNOW_MAX / rho_w * rho_snow_top - w_snow_now(i)) !neg
+    ELSE
+      ! snow water equivalent SWE (w_snow) reduced   to top snow height (h_snow).
+      swe_correction = MIN(0._wp, H_SNOW_MAX / rho_w * rho_snow_top - w_snow_now(i)) !neg
+    END IF
+
+    ! Update SWE and height, corrected water goes to surface runoff
+    w_snow_now(i) = w_snow_now(i) + swe_correction
+    h_snow(i)     = h_snow(i)     + swe_correction * rho_w / rho_snow_top
+    runoff_s(i)   = runoff_s(i)   - swe_correction * rho_w
+
+    IF (lmulti_snow) THEN
+      wtot_snow_now(i,1) = wtot_snow_now(i,1) + swe_correction
+      dzh_snow_now(i,1)  = dzh_snow_now(i,1) + swe_correction * rho_w / rho_snow_top
+    END IF
+
+    IF (lres_soilwatb) THEN
+      ! The budget diagnostic has the modified w_snow_now as reference point. Remove
+      ! the created water from the initial sum to move that point to the actual initial value.
+      budget_w_so_start(i) = budget_w_so_start(i) - swe_correction * rho_w
+    END IF
 
 #ifndef __SX__
     hcond_ml     (i,:) = cala0 (mstyp)              ! heat conductivity parameter
@@ -1374,6 +1412,7 @@ CONTAINS
         & w_snow_now=w_snow_now(:), &
         & dt_w_snow=dt_w_snow(:), &
         & dz_snow_flx=dz_snow_flx(:), &
+        & fr_snow=zf_snow(:), &
         & rho_snow=rho_snow(:), &
         & sobs=sobs(:), &
         & radfl_th_snow=radfl_th_snow(:), &
@@ -1593,15 +1632,20 @@ CONTAINS
   !$ACC LOOP GANG(STATIC: 1) VECTOR
   DO i = ivstart, ivend
     h_snow(i) = h_snow_new(i)
-    IF (w_i_new(i) <= 1.0E-4_wp*eps_soil) w_i_new(i) = 0.0_wp
+    IF (w_i_new(i) <= 1.0E-4_wp*eps_soil) THEN
+      runoff_s(i) = runoff_s(i) + w_i_new(i) * rho_w
+      w_i_new(i) = 0.0_wp
+    END IF
   END DO
 
   ! computation of the weighted turbulent fluxes at the boundary surface-atmosphere
   !$ACC LOOP GANG(STATIC: 1) VECTOR
   DO i = ivstart, ivend
     zshfl_sfc(i) = zshfl_s(i)*(1._wp - zf_snow(i)) + zshfl_snow(i)*zf_snow(i)
-    zlhfl_sfc(i) = zlhfl_s(i)*(1._wp - zf_snow(i)) + zlhfl_snow(i)*zf_snow(i)
-    zqhfl_sfc(i) = zqhfl_s(i)*(1._wp - zf_snow(i)) + zqhfl_snow(i)*zf_snow(i)
+
+    ! Undo earlier division by MAX(eps_div, 1._wp - zf_snow(i)) or MAX(eps_div, zf_snow(i))
+    zlhfl_sfc(i) = zlhfl_s(i)*MAX(eps_div, 1._wp - zf_snow(i)) + zlhfl_snow(i)*MAX(eps_div, zf_snow(i))
+    zqhfl_sfc(i) = zqhfl_s(i)*MAX(eps_div, 1._wp - zf_snow(i)) + zqhfl_snow(i)*MAX(eps_div, zf_snow(i))
   END DO
   !$ACC END PARALLEL
 
@@ -1636,10 +1680,10 @@ CONTAINS
     !$ACC WAIT(acc_async_queue)
   END IF
 
-! for optional fields related to soil water budget
+! for general fields
 !$ACC END DATA
 
-! for general fields
+! for optional fields related to soil water budget
 !$ACC END DATA
 
   IF (msg_level >= 19) THEN
@@ -1998,7 +2042,7 @@ SUBROUTINE update_water_budget_diagnostic ( &
   !$ACC LOOP GANG(STATIC: 1) VECTOR
   DO i = ivstart, ivend
     ! the rain rates
-    budget_w_so_start(i) = budget_w_so_start(i) + (rain_rate(i) + snow_rate(i))*dt
+    budget_w_so_start(i) = budget_w_so_start(i) + (rain_rate(i) + snow_rate(i) + ice_rate(i))*dt
     ! the evapotranspiration
     budget_w_so_start(i) = budget_w_so_start(i) + qhfl_sfc(i)*dt
     ! surface + subsurface runoff (subtraction because water is lost)
