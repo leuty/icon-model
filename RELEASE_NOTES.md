@@ -48,17 +48,21 @@ Climate: ICON-Land
     - Bugfixes in snow melt calculations
     - Bugfix in calculation of grassland phenology
     - Bugfix: add minimum level of C limitation on nitrification and denitrification
+    - Bugfix: diffusion water flux limitation in QUINCY soil physics
+    - Fixed calculation of saturated water content from input data
     - Improvements in the computation of several rate modifiers used in soil biogeochemistry calculations
     - Clean-up calculation of stand-replacing harvest
     - Runtime optimisation: reduce number of aggregated variables
+    - Reduce number of variables in the restart file
     - Include forcing and output of carbon isotopes
     - Read elevation for QUINCY from file
-    - Inclusion of self-thinning and herbivory in grassland PFTs
+    - Inclusion of self-thinning and herbivory in grasslands and pastures (but not crops)
   - Merged the radiation process of QUINCY into the radiation process of JSBACH
   - Use JSBACH4 canopy, soil and snow albedos with QUINCY albedo calculations
   - Consolidate and clean up namelist handling and physical parameters between QUINCY and JSBACH
   - Implementation of a harvest process for QUINCY (for now using a global constant)
   - Bugfix: static reals were missing decimal
+  - Bugfix: some local REAL variables were missing kind statement
 - Small fix for ICON-Land standalone concerning nproma
 - New optional tag for the memory usage report
 - New functions for time control: get_previous_month_length and get_previous_year_length
