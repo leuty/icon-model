@@ -13,3 +13,10 @@ repos:
     rev: v1.1.0
     hooks:
       - id: icon-openacc-beautifier
+  - repo: https://github.com/fsfe/reuse-tool
+    rev: v5.0.2
+    hooks:
+      - id: reuse
+        stages: [manual]
+        always_run: true
+        verbose: true

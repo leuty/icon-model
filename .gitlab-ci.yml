@@ -32,28 +32,7 @@ stages:
   variables:
     CI_GITIGNORE_DIR: ${CI_PROJECT_DIR}/.ci_dir
 
-Licenses:
-  stage: basic
-  variables:
-    GIT_DEPTH: 1
-    GIT_SUBMODULE_STRATEGY: none
-  before_script:
-    - python3 -m pip install --upgrade pip
-    - python3 -m pip install reuse
-    - reuse --version
-  script:
-    - reuse lint
-    # Additional license checks:
-    - ${CI_PROJECT_DIR}/scripts/ci_scripts/check_license.py
-  tags:
-    - sphinx
-  rules:
-    - if: $CI_PIPELINE_SOURCE == "web"
-      when: manual
-    - when: always
-  interruptible: true
-
-OpenACC Style:
+.common_pre_commit:
   stage: basic
   extends:
     - .colorized
@@ -61,7 +40,6 @@ OpenACC Style:
   variables:
     APK_CACHE_DIR: ${CI_GITIGNORE_DIR}/apk-cache
     PRE_COMMIT_HOME: ${CI_GITIGNORE_DIR}/pre-commit
-    STYLE_PATCH: acc_style.patch
     GIT_SUBMODULE_STRATEGY: none
   before_script:
     - mkdir -p "${APK_CACHE_DIR}"
@@ -77,6 +55,40 @@ OpenACC Style:
           python3 --version > "${PRE_COMMIT_HOME}/python_version.txt"
         }
       )
+  tags:
+    - alpine
+  cache:
+    - key: apk-pre-commit
+      paths:
+        - ${APK_CACHE_DIR}
+    - key:
+        prefix: ${CI_JOB_NAME_SLUG}
+        files:
+          - .pre-commit-config.yaml
+      paths:
+        - ${PRE_COMMIT_HOME}
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "web"
+      when: manual
+    - when: always
+  interruptible: true
+
+Licenses:
+  extends: .common_pre_commit
+  script:
+    - |
+      # pre-commit run --hook-stage manual reuse
+      pre-commit run --color=always --hook-stage manual reuse || {
+        printf "${RED}You can reproduce this check locally with \`pre-commit run --hook-stage manual reuse\`.
+      See also ${CI_PROJECT_URL}/-/blob/${CI_DEFAULT_BRANCH}/CONTRIBUTING.md#coding-style.\n${DEFAULT}"
+        exit 1
+      }
+    - ${CI_PROJECT_DIR}/scripts/ci_scripts/check_license.py
+
+OpenACC Style:
+  extends: .common_pre_commit
+  variables:
+    STYLE_PATCH: acc_style.patch
   script:
     - |
       # pre-commit run --all-files icon-openacc-beautifier
@@ -97,28 +109,11 @@ OpenACC Style:
       See also ${CI_PROJECT_URL}/-/blob/${CI_DEFAULT_BRANCH}/CONTRIBUTING.md#coding-style.\n${DEFAULT}"
         exit 1
       }
-  tags:
-    - alpine
-  cache:
-    - key: apk-pre-commit
-      paths:
-        - ${APK_CACHE_DIR}
-    - key:
-        prefix: ${CI_JOB_NAME_SLUG}
-        files:
-          - .pre-commit-config.yaml
-      paths:
-        - ${PRE_COMMIT_HOME}
   artifacts:
     paths:
       - ${STYLE_PATCH}
     expire_in: 1 week
     when: on_failure
-  rules:
-    - if: $CI_PIPELINE_SOURCE == "web"
-      when: manual
-    - when: always
-  interruptible: true
 
 General Style:
   stage: basic
