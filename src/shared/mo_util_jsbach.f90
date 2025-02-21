@@ -1593,7 +1593,7 @@ END MODULE mo_jsb_varlist_iface
 !
 MODULE mo_jsb_vertical_axes_iface
 
-  USE mo_kind, ONLY: wp !, dp
+  USE mo_kind, ONLY: wp, dp
   USE mo_name_list_output_zaxes_types, ONLY: t_verticalAxis, t_verticalAxisList
   USE mo_zaxis_type,                   ONLY: zaxisTypeList
 
@@ -1623,9 +1623,9 @@ CONTAINS
     CALL verticalAxisList%append( &
       & t_verticalAxis(zaxisTypeList%getEntry(zaxis_id), &
       &                length,                           &
-      &                zaxisLevels   = levels,           &
-      &                zaxisLbounds  = lbounds,          &
-      &                zaxisUbounds  = ubounds,          &
+      &                zaxisLevels   = REAL(levels, dp), &
+      &                zaxisLbounds  = REAL(lbounds,dp), &
+      &                zaxisUbounds  = REAL(ubounds,dp), &
       &                zaxisUnits    = units,            &
       &                zaxisName     = name,             &
       &                zaxisLongname = longname          &

@@ -16,7 +16,7 @@
 
 MODULE mo_read_netcdf_distributed
 
-  USE mo_kind, ONLY: wp, sp
+  USE mo_kind, ONLY: dp, sp
   USE mo_exception, ONLY: finish, message
   USE mo_mpi, ONLY: p_n_work, p_pe_work, p_bcast, p_comm_work, p_max
   USE ppm_extents, ONLY: extent
@@ -305,7 +305,7 @@ CONTAINS
     TYPE(t_distrib_read_data), INTENT(IN) :: iod(:)
     INTEGER, INTENT(IN), OPTIONAL :: edim(:), dimo, start_ext_dim(:), end_ext_dim(:)
     INTEGER, ALLOCATABLE :: bufi_i(:,:,:), bufo_i(:,:,:,:)
-    REAL(wp), ALLOCATABLE :: bufi_d(:,:,:), bufo_d(:,:,:,:)
+    REAL(dp), ALLOCATABLE :: bufi_d(:,:,:), bufo_d(:,:,:,:)
     REAL(sp), ALLOCATABLE :: bufi_s(:,:,:), bufo_s(:,:,:,:)
     INTEGER :: ish(3), osh(4), vid, vtype, strt(3)
     TYPE(t_basic_distrib_read_data), POINTER :: bio
@@ -352,19 +352,19 @@ CONTAINS
     IF (ish(1) .GT. 0) CALL nf(nf90_inq_varid(ncid, vname, vid), routine)
     SELECT TYPE(vdata)
     TYPE IS(t_ptr_2d)
-      CALL read_multi_var_2dwp(vdata)
+      CALL read_multi_var_2ddp(vdata)
     TYPE IS(t_ptr_2d_sp)
       CALL read_multi_var_2dsp(vdata)
     TYPE IS(t_ptr_2d_int)
       CALL read_multi_var_2dint(vdata)
     TYPE IS(t_ptr_3d)
-      CALL read_multi_var_3dwp(vdata, dimo)
+      CALL read_multi_var_3ddp(vdata, dimo)
     TYPE IS(t_ptr_3d_sp)
       CALL read_multi_var_3dsp(vdata, dimo)
     TYPE IS(t_ptr_3d_int)
       CALL read_multi_var_3dint(vdata, dimo)
     TYPE IS(t_ptr_4d)
-      CALL read_multi_var_4dwp(vdata)
+      CALL read_multi_var_4ddp(vdata)
     TYPE IS(t_ptr_4d_sp)
       CALL read_multi_var_4dsp(vdata)
     TYPE IS(t_ptr_4d_int)
@@ -396,7 +396,7 @@ CONTAINS
       END DO
     END SUBROUTINE read_multi_var_2dint
 
-    SUBROUTINE read_multi_var_2dwp(vd)
+    SUBROUTINE read_multi_var_2ddp(vd)
       TYPE(t_ptr_2d), INTENT(INOUT) :: vd(:)
       INTEGER :: i, j, idx
 
@@ -414,7 +414,7 @@ CONTAINS
       DO i = 1, SIZE(iod)
         CALL exchange_data(p_pat=iod(i)%pat, lacc=.FALSE., recv=vd(i)%p, send=bufo_d(:,:,1,1))
       END DO
-    END SUBROUTINE read_multi_var_2dwp
+    END SUBROUTINE read_multi_var_2ddp
 
     SUBROUTINE read_multi_var_2dsp(vd)
       TYPE(t_ptr_2d_sp), INTENT(INOUT) :: vd(:)
@@ -479,7 +479,7 @@ CONTAINS
       END DO
     END SUBROUTINE read_multi_var_3dint
 
-    SUBROUTINE read_multi_var_3dwp(vd, o)
+    SUBROUTINE read_multi_var_3ddp(vd, o)
       TYPE(t_ptr_3d), INTENT(INOUT) :: vd(:)
       INTEGER, INTENT(IN) :: o
       INTEGER :: i, j, k, idx
@@ -518,7 +518,7 @@ CONTAINS
           CALL exchange_data(p_pat=iod(i)%pat, lacc=.FALSE., recv=vd(i)%p, send=bufo_d(:,:,:,1))
         END IF
       END DO
-    END SUBROUTINE read_multi_var_3dwp
+    END SUBROUTINE read_multi_var_3ddp
 
     SUBROUTINE read_multi_var_3dsp(vd, o)
       TYPE(t_ptr_3d_sp), INTENT(INOUT) :: vd(:)
@@ -589,7 +589,7 @@ CONTAINS
       END DO
     END SUBROUTINE read_multi_var_4dint
 
-    SUBROUTINE read_multi_var_4dwp(vd)
+    SUBROUTINE read_multi_var_4ddp(vd)
       TYPE(t_ptr_4d), INTENT(INOUT) :: vd(:)
       INTEGER :: i, j, k, l, idx
 
@@ -613,7 +613,7 @@ CONTAINS
           CALL exchange_data(p_pat=iod(i)%pat, lacc=.FALSE., recv=vd(i)%p(:,:,:,j), send=bufo_d(:,:,:,j))
         END DO
       END DO
-    END SUBROUTINE read_multi_var_4dwp
+    END SUBROUTINE read_multi_var_4ddp
 
     SUBROUTINE read_multi_var_4dsp(vd)
       TYPE(t_ptr_4d_sp), INTENT(INOUT) :: vd(:)

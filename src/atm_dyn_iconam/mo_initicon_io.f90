@@ -2102,12 +2102,12 @@ MODULE mo_initicon_io
 
             ! sea-surface temperature: fetch T_SEA or, alternatively, T_SO(0)
             my_ptr2d => initicon(jg)%sfc%sst(:,:)
-            CALL fetch2d(params, 't_seasfc', 0.0_wp, jg, my_ptr2d)
+            CALL fetch2d(params, 't_seasfc', 0.0_dp, jg, my_ptr2d)
             !
             IF (inputInstructions(jg)%ptr%fetchStatus('t_seasfc', lIsFg=.FALSE.) == kStateFailedFetch) THEN
               ! T_SO(0). Note that the file may contain a 3D field, of which we ONLY fetch the level at 0.0.
               lHaveFg = inputInstructions(jg)%ptr%sourceOfVar('t_so') == kInputSourceFg
-              CALL fetch2d(params, 't_so', 0.0_wp, jg, my_ptr2d)
+              CALL fetch2d(params, 't_so', 0.0_dp, jg, my_ptr2d)
               ! check whether we are using DATA from both FG AND ANA input, so that it's correctly listed IN the input source table
               IF(lHaveFg.AND.inputInstructions(jg)%ptr%sourceOfVar('t_so') == kInputSourceAna) THEN
                   CALL inputInstructions(jg)%ptr%setSource('t_so', kInputSourceBoth)

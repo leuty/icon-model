@@ -224,7 +224,7 @@ MODULE mo_name_list_output
 
   INTEGER,          PARAMETER                 :: iUNKNOWN = 0
   INTEGER,          PARAMETER                 :: iINTEGER = 1
-  INTEGER,          PARAMETER                 :: iREAL    = 2
+  INTEGER,          PARAMETER                 :: iREAL_dp = 2
   INTEGER,          PARAMETER                 :: iREAL_sp = 3
 
 #ifndef NOMPI
@@ -1043,7 +1043,7 @@ CONTAINS
       ! determine, if this is a REAL or an INTEGER variable:
       IF (ASSOCIATED(of%var_desc(iv)%r_ptr) .OR.  &
         & ASSOCIATED(of%var_desc(iv)%tlev_rptr(tl)%p)) THEN
-        idata_type = iREAL
+        idata_type = iREAL_dp
       ELSE IF (ASSOCIATED(of%var_desc(iv)%s_ptr) .OR.  &
         & ASSOCIATED(of%var_desc(iv)%tlev_sptr(tl)%p)) THEN
         idata_type = iREAL_sp
@@ -1064,7 +1064,7 @@ CONTAINS
         = ipost_op_type == post_op_scale .OR. ipost_op_type == post_op_luc .OR. ipost_op_type == post_op_lin2dbz &
                            .OR. ipost_op_type == post_op_offset
       IF ( post_op_apply ) THEN
-        IF (idata_type == iREAL) THEN
+        IF (idata_type == iREAL_dp) THEN
           alloc_shape = SHAPE(r_ptr)
           IF (ALLOCATED(r_ptr_m)) THEN
             alloc_shape_op = SHAPE(r_ptr_m)
@@ -1465,7 +1465,7 @@ CONTAINS
     lwrite_single_precision =   (.NOT. use_dp_mpi2io) .AND. (.NOT. have_GRIB) &
       &                       .OR. idata_type == iREAL_sp
 
-    IF (idata_type == iREAL) THEN
+    IF (idata_type == iREAL_dp) THEN
       ALLOCATE(r_out_dp(MERGE(n_glb, 0, is_mpi_workroot)))
     END IF
     IF ((idata_type == iREAL_sp) .OR. lwrite_single_precision) THEN
@@ -1517,7 +1517,7 @@ CONTAINS
       ! gather the array on stdio PE and write it out there
       IF ( info%hgrid == GRID_LONLAT ) THEN
         IF (is_mpi_workroot) THEN
-          IF      (idata_type == iREAL ) THEN
+          IF      (idata_type == iREAL_dp ) THEN
             r_out_dp(:)  = r_ptr(:,1,1)
           ELSE IF (idata_type == iREAL_sp ) THEN
             r_out_sp(:)  = s_ptr(:,1,1)
@@ -1528,7 +1528,7 @@ CONTAINS
       ELSE IF ( info%hgrid == GRID_ZONAL ) THEN ! 1deg zonal grid
         lev_idx = lev
         IF (is_mpi_workroot) THEN
-          IF      (idata_type == iREAL ) THEN
+          IF      (idata_type == iREAL_dp ) THEN
             r_out_dp(:)  = r_ptr(1,lev_idx,:)
           ELSE IF (idata_type == iREAL_sp ) THEN
             r_out_sp(:)  = s_ptr(1,lev_idx,:)
@@ -1537,7 +1537,7 @@ CONTAINS
           END IF
         END IF
       ELSE
-        IF (idata_type == iREAL) THEN
+        IF (idata_type == iREAL_dp ) THEN
           r_out_dp(:)  = 0._dp
 
           lev_idx = lev
@@ -1548,7 +1548,7 @@ CONTAINS
           END IF
           CALL exchange_data(in_array=r_ptr(:,lev_idx,:),                 &
             &                out_array=r_out_dp(:), gather_pattern=pat,   &
-            &                fill_value = BOUNDARY_MISSVAL)
+            &                fill_value = REAL(BOUNDARY_MISSVAL,dp))
 
         ELSE IF (idata_type == iREAL_sp) THEN
           r_out_sp(:)  = 0._sp
@@ -1560,8 +1560,8 @@ CONTAINS
             lev_idx = of%level_selection%global_idx(lev_idx)
           END IF
           CALL exchange_data(in_array=s_ptr(:,lev_idx,:),                 &
-            &                out_array=r_out_sp(:), gather_pattern=pat)
-          ! FIXME: Implement and use fill_value!
+            &                out_array=r_out_sp(:), gather_pattern=pat,   &
+            &                fill_value = REAL(BOUNDARY_MISSVAL,sp))
         ELSE IF (idata_type == iINTEGER) THEN
           r_out_int(:) = 0
 
@@ -1572,15 +1572,15 @@ CONTAINS
             lev_idx = of%level_selection%global_idx(lev_idx)
           END IF
           CALL exchange_data(in_array=i_ptr(:,lev_idx,:),                  &
-            &                out_array=r_out_int(:), gather_pattern=pat)
-          ! FIXME: Implement and use fill_value!
+            &                out_array=r_out_int(:), gather_pattern=pat,   &
+            &                fill_value = INT(BOUNDARY_MISSVAL))
         END IF
       END IF ! n_glb
 
       IF (is_mpi_workroot) THEN
 
         SELECT CASE(idata_type)
-        CASE(iREAL)
+        CASE(iREAL_dp)
           !
           ! "r_out_dp" contains double precision data. If single precision
           ! output is desired, we need to perform a type conversion:
@@ -1720,7 +1720,7 @@ CONTAINS
       &              .AND. (info%ndims > 2)
 
     SELECT CASE(idata_type)
-    CASE (iREAL)
+    CASE (iREAL_dp)
       IF (make_level_selection) THEN
         IF (apply_missval) THEN
           CALL var_copy(buf, ioff, r_ptr, ri, nlevs, &
@@ -1811,7 +1811,7 @@ CONTAINS
       &              .AND. (info%ndims > 2)
 
     SELECT CASE(idata_type)
-    CASE (iREAL)
+    CASE (iREAL_dp)
       IF (make_level_selection) THEN
         IF (apply_missval) THEN
           CALL var_copy(buf, ioff, r_ptr, ri, nlevs, &
@@ -2451,7 +2451,7 @@ CONTAINS
     REAL(dp) :: missval
     missval = BOUNDARY_MISSVAL
     IF (info%lmiss) THEN
-      IF (idata_type == iREAL) THEN
+      IF (idata_type == iREAL_dp) THEN
         missval = info%missval%rval
       ELSE IF (idata_type == iINTEGER) THEN
         missval = REAL(info%missval%ival,dp)
@@ -2528,7 +2528,7 @@ CONTAINS
        END IF
 
        SELECT CASE(idata_type)
-       CASE (iREAL)
+       CASE (iREAL_dp)
           var_shape = SHAPE(r_ptr)
           IF (var_shape(1) /= nproma .OR. var_shape(2) /= nlevs .OR. var_shape(1) * var_shape(3) < nbr_hor_points) THEN
              WRITE (message_text,'(a,3i7,a,i0,a,i0,a,i0)') 'var_shape=', var_shape, ' nproma=', nproma, ' nlevs=', nlevs, ' nbr_hor_points=', nbr_hor_points
@@ -3367,7 +3367,7 @@ CONTAINS
           IF (use_dp_mpi2io .OR. have_GRIB) THEN
             ! Note for NetCDF: We have already enabled/disabled missing values via vlistDefVarMissVal, since
             !       it is impossible to introduce a FillValue here with nmiss here.
-            CALL streamWriteVarSlice(of%cdiFileID, info%cdiVarID, ilev-1, var3_dp, nmiss)
+            CALL streamWriteVarSlice (of%cdiFileID, info%cdiVarID, ilev-1, var3_dp, nmiss)
           ELSE
             CALL streamWriteVarSliceF(of%cdiFileID, info%cdiVarID, ilev-1, var3_sp, nmiss)
           ENDIF

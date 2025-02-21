@@ -20,7 +20,6 @@
 
 MODULE mo_name_list_output_config
 
-  USE mo_kind,                  ONLY: wp
   USE mo_exception,             ONLY: finish
   USE mo_impl_constants,        ONLY: max_var_ml, max_var_pl, &
     &                                 max_var_hl, max_var_il, &

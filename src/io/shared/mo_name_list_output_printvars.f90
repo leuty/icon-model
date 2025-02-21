@@ -143,7 +143,7 @@ CONTAINS
     TYPE(t_verticalAxis), POINTER :: zaxis
     INTEGER :: tmp_vlistID, tmp_gridID, tmp_zaxisID, tmp_varID, tmp_streamID, &
       & nmiss, tmp_taxisID, tmp_cdiInstID,  ierrstat
-    REAL(wp) :: tmp_var1(1)
+    REAL(dp) :: tmp_var1(1)
     CHARACTER(LEN=LEN(tmp_filename_base)+32) :: tmp_filename
 
     ! retrieve vertical axis object
@@ -173,7 +173,7 @@ CONTAINS
     tmp_filename = tmp_filename_base//"."//int2string(get_my_global_mpi_id(),'(i0)')
     tmp_streamID = streamOpenWrite(TRIM(tmp_filename), FILETYPE_GRB2) 
     CALL streamDefVlist(tmp_streamID, tmp_vlistID) 
-    tmp_var1(:) = 0._wp
+    tmp_var1(:) = 0._dp
     nmiss       = 0
     CALL streamWriteVarSlice(tmp_streamID, tmp_varID, 0, tmp_var1, nmiss) 
     CALL streamClose(tmp_streamID) 

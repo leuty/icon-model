@@ -57,7 +57,7 @@
 
 MODULE mo_level_selection
 
-  USE mo_kind,                              ONLY: wp
+  USE mo_kind,                              ONLY: dp
   USE mo_impl_constants,                    ONLY: SUCCESS
   USE mo_var, ONLY: level_type_ml, level_type_pl, level_type_hl, level_type_il
   USE mo_exception,                         ONLY: finish
@@ -131,7 +131,7 @@ CONTAINS
 
   ! --------------------------------------------------------------------------------------
   !  > Creates a level selection data object from a selection that is
-  !    described as list of REAL(wp) that partly match the levels
+  !    described as list of REAL(dp) that partly match the levels
   !    contained in a "t_value_set" object.
   !
   !  @note A list of level values starting with a negative value means
@@ -139,17 +139,17 @@ CONTAINS
   !        default).
   !
   SUBROUTINE create_level_selection_set(selection, value_set, level_selection)
-    REAL(wp),                INTENT(IN)    :: selection(:)     !< selected levels
+    REAL(dp),                INTENT(IN)    :: selection(:)     !< selected levels
     TYPE (t_value_set),      INTENT(IN)    :: value_set        !< total set of available levels
     TYPE(t_level_selection), INTENT(INOUT), POINTER :: level_selection
     ! local variables
     CHARACTER(LEN=*), PARAMETER :: routine = modname//'::create_level_selection_set'
     INTEGER :: ierrstat, nlevs
 
-    IF (selection(1) < 0._wp)  RETURN ! do nothing
+    IF (selection(1) < 0._dp)  RETURN ! do nothing
     ! count the no. of levels
     DO nlevs=1,SIZE(selection)
-      IF (selection(nlevs) < 0._wp) EXIT
+      IF (selection(nlevs) < 0._dp) EXIT
     END DO
     nlevs = nlevs - 1
     ! allocate the level selection object

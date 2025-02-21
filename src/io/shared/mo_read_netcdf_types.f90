@@ -13,7 +13,7 @@
 
 MODULE mo_read_netcdf_types
 
-  USE mo_kind, ONLY: dp
+  USE mo_kind, ONLY: wp
   USE mo_communication_types, ONLY: t_comm_pattern
 
   IMPLICIT NONE
@@ -32,7 +32,7 @@ MODULE mo_read_netcdf_types
   END TYPE t_distrib_read_data
 
   TYPE t_alloc_2d
-    REAL(dp), ALLOCATABLE :: a(:,:)
+    REAL(wp), ALLOCATABLE :: a(:,:)
   END TYPE t_alloc_2d
 
   TYPE t_alloc_2d_int
@@ -40,7 +40,7 @@ MODULE mo_read_netcdf_types
   END TYPE t_alloc_2d_int
 
   TYPE t_alloc_3d
-    REAL(dp), ALLOCATABLE :: a(:,:,:)
+    REAL(wp), ALLOCATABLE :: a(:,:,:)
   END TYPE t_alloc_3d
 
   TYPE t_alloc_3d_int
