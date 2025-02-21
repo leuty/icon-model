@@ -541,16 +541,11 @@ EOF
 # setup output component
 # ----------------------------------------------------------------------------
 
-# use buildbot python env in case the script is handled by buildbot itself
-[ ! -z $BB_NAME ] && . /fastdata/mh0156/buildbot/venv/bin/activate
-
 # As the runscripts does not support mpmd programs we need this workaround.
 # This does only works with slurm.
 if [[ "$START" == *"srun"* ]]; then
-    export PYTHONPATH=${basedir}/externals/yac/python:${PYTHONPATH}
-    echo "PYTHONPATH=${PYTHONPATH}"
     cat > ${EXPDIR}/mpmd.conf << EOF
-0 ${basedir}/run/checksuite.clm/simple_output.py output.nc atm_output,icon_atmos_grid,temp atm_output,icon_atmos_grid,rho --bounds -58 86 15 81 --output-interval PT1H
+0 ${PYTHON} ${basedir}/run/checksuite.clm/simple_output.py output.nc atm_output,icon_atmos_grid,temp atm_output,icon_atmos_grid,rho --bounds -58 86 15 81 --output-interval PT1H
 * ${MODEL}
 EOF
 

@@ -176,7 +176,7 @@ SUBROUTINE recon_lsq_cell_l( p_cc, ptr_patch, ptr_int_lsq, p_coeff, lacc, &
     &                        ptr_int_lsq%lsq_qtmat_c, ptr_int_lsq%lsq_rmat_rdiag_c, &
     &                        ptr_int_lsq%lsq_rmat_utri_c, ptr_int_lsq%lsq_moments, p_coeff, &
     &                        i_startblk, i_endblk, i_startidx_in, i_endidx_in, &
-    &                        ptr_patch%nlev, slev, elev, nproma, l_consv, lacc=lacc, acc_async=opt_acc_async )
+    &                        slev, elev, nproma, l_consv, lacc=lacc, acc_async=opt_acc_async )
 
 END SUBROUTINE recon_lsq_cell_l
 
@@ -284,7 +284,7 @@ SUBROUTINE recon_lsq_cell_l_svd( p_cc, ptr_patch, ptr_int_lsq, p_coeff, lacc, &
   CALL recon_lsq_cell_l_svd_lib( p_cc, ptr_int_lsq%lsq_idx_c, ptr_int_lsq%lsq_blk_c, &
     &                            ptr_int_lsq%lsq_pseudoinv, ptr_int_lsq%lsq_moments, p_coeff, &
     &                            i_startblk, i_endblk, i_startidx_in, i_endidx_in, &
-    &                            ptr_patch%nlev, slev, elev, nproma, l_consv, lacc=lacc, acc_async=opt_acc_async )
+    &                            slev, elev, nproma, l_consv, lacc=lacc, acc_async=opt_acc_async )
 
 END SUBROUTINE recon_lsq_cell_l_svd
 
@@ -398,7 +398,7 @@ SUBROUTINE recon_lsq_cell_q( p_cc, ptr_patch, ptr_int_lsq, p_coeff, &
     &                        ptr_int_lsq%lsq_rmat_rdiag_c, ptr_int_lsq%lsq_rmat_utri_c, &
     &                        ptr_int_lsq%lsq_moments, ptr_int_lsq%lsq_qtmat_c, p_coeff, &
     &                        i_startblk, i_endblk, i_startidx_in, i_endidx_in, &
-    &                        ptr_patch%nlev, slev, elev, nproma, ptr_patch%id, lsq_high_set%dim_c, l_limited_area, lacc=lacc)
+    &                        slev, elev, nproma, ptr_patch%id, lsq_high_set%dim_c, l_limited_area, lacc=lacc)
 
 END SUBROUTINE recon_lsq_cell_q
 
@@ -512,7 +512,7 @@ SUBROUTINE recon_lsq_cell_q_svd( p_cc, ptr_patch, ptr_int_lsq, p_coeff, &
   CALL recon_lsq_cell_q_svd_lib( p_cc, ptr_int_lsq%lsq_idx_c, ptr_int_lsq%lsq_blk_c, &
     &                            ptr_int_lsq%lsq_moments, ptr_int_lsq%lsq_pseudoinv, p_coeff, &
     &                            i_startblk, i_endblk, i_startidx_in, i_endidx_in, &
-    &                            ptr_patch%nlev, slev, elev, nproma, ptr_patch%id, lsq_high_set%dim_c, l_limited_area, lacc=lacc)
+    &                            slev, elev, nproma, ptr_patch%id, lsq_high_set%dim_c, l_limited_area, lacc=lacc)
 
 END SUBROUTINE recon_lsq_cell_q_svd
 
@@ -632,7 +632,7 @@ SUBROUTINE recon_lsq_cell_c( p_cc, ptr_patch, ptr_int_lsq, p_coeff,  &
     &                        ptr_int_lsq%lsq_rmat_rdiag_c, ptr_int_lsq%lsq_rmat_utri_c, &
     &                        ptr_int_lsq%lsq_moments, ptr_int_lsq%lsq_qtmat_c, p_coeff, &
     &                        i_startblk, i_endblk, i_startidx_in, i_endidx_in, &
-    &                        ptr_patch%nlev, slev, elev, nproma, ptr_patch%id, lsq_high_set%dim_c, l_limited_area, lacc=lacc)
+    &                        slev, elev, nproma, ptr_patch%id, lsq_high_set%dim_c, l_limited_area, lacc=lacc)
 
 END SUBROUTINE recon_lsq_cell_c
 
@@ -766,7 +766,7 @@ SUBROUTINE recon_lsq_cell_c_svd( p_cc, ptr_patch, ptr_int_lsq, p_coeff, &
     &                            ptr_int_lsq%lsq_moments, ptr_int_lsq%lsq_pseudoinv, p_coeff, &
     &                            i_startblk, i_endblk, i_startidx_in, i_endidx_in, &
     &                            i_startblk_init, i_endblk_init, i_startidx_init, i_endidx_init, &
-    &                            ptr_patch%nlev, slev, elev, nproma, ptr_patch%id, lsq_high_set%dim_c, l_limited_area, lacc=lacc)
+    &                            slev, elev, nproma, ptr_patch%id, lsq_high_set%dim_c, l_limited_area, lacc=lacc)
 
 END SUBROUTINE recon_lsq_cell_c_svd
 

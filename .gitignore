@@ -90,11 +90,11 @@ spack-configure-args.txt
 /scripts/buildbot_scripts/probtest.*
 
 # Intermediate documentation files:
-/doc/Namelist_overview.aux
-/doc/Namelist_overview.log
-/doc/Namelist_overview.out
-/doc/Namelist_overview.synctex.gz
-/doc/Namelist_overview.toc
+/doc/Namelist_overview/Namelist_overview.aux
+/doc/Namelist_overview/Namelist_overview.log
+/doc/Namelist_overview/Namelist_overview.out
+/doc/Namelist_overview/Namelist_overview.synctex.gz
+/doc/Namelist_overview/Namelist_overview.toc
 
 # Mac OS files:
 *.dSYM
@@ -138,3 +138,6 @@ __pychache__
 /run/exp.*member_id*[0-9][0-9]
 scripts/buildbot_scripts/probtest.json
 scripts/buildbot_scripts/probtest.log
+
+# CI/CD artifacts and caches (see .gitlab-ci.yml):
+/.ci_dir/

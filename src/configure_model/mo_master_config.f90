@@ -13,10 +13,11 @@
 
 MODULE mo_master_config
 
-  USE mtime,       ONLY: MAX_CALENDAR_STR_LEN, MAX_DATETIME_STR_LEN, &
-    &                    MAX_TIMEDELTA_STR_LEN
-  USE mo_io_units, ONLY: filename_max
-  
+  USE mtime,             ONLY: MAX_CALENDAR_STR_LEN, MAX_DATETIME_STR_LEN, &
+    &                          MAX_TIMEDELTA_STR_LEN
+  USE mo_io_units,       ONLY: filename_max
+  USE mo_impl_constants, ONLY: NORMAL_RESTART, INIT_FROM_RESTART
+
   IMPLICIT NONE
   
   PUBLIC
@@ -29,8 +30,8 @@ MODULE mo_master_config
   PUBLIC :: lrestart_write_last
   PUBLIC :: experimentReferenceDate, experimentStartDate, experimentStopDate
   PUBLIC :: checkpointTimeIntval, restartTimeIntval
-  PUBLIC :: setRestart, setRestartWriteLast, setReadRestartNamelists
-  PUBLIC :: isRestart
+  PUBLIC :: setRestartWriteLast, setReadRestartNamelists
+  PUBLIC :: isRestart, isInitFromRestart
   PUBLIC :: read_restart_namelists  
   ! component model configuration
   !_______________________________________________________________________________________________
@@ -42,6 +43,7 @@ MODULE mo_master_config
     CHARACTER(len=132)          :: model_name
     CHARACTER(len=filename_max) :: model_namelist_filename
     INTEGER :: model_type
+    INTEGER :: model_do_restart
     INTEGER :: model_min_rank
     INTEGER :: model_max_rank
     INTEGER :: model_inc_rank
@@ -54,14 +56,8 @@ MODULE mo_master_config
 
   ! defaults to DWD to be on the safe side for operational needs  
   CHARACTER(len=256), PROTECTED :: institution = '' 
-  
- 
-  ! restart flag, required for consistent handling in all component models
-  
-  LOGICAL, PROTECTED :: lrestart = .false.
 
-
-   LOGICAL, PROTECTED :: read_restart_namelists = .true.
+  LOGICAL, PROTECTED :: read_restart_namelists = .true.
   !> Flag: True, if model run should create restart at experiment end.
   !  This is independent from the settings of the restart interval.
   LOGICAL, PROTECTED ::  lrestart_write_last = .TRUE.
@@ -95,6 +91,10 @@ MODULE mo_master_config
   INTEGER :: my_model_no ! 1,2,3  (id uniquely this process, even if it has the
                          ! same my_process_model with other compnents
                          ! Example: Two different components may run the dummy_process
+  INTEGER :: my_model_do_restart ! NO_RESTART       : model component does not perform restart
+                                 ! NORMAL_RESTART   : model does perform normal restart
+                                 ! INIT_FROM_RESTART: specific restart mode for model initialization
+
   CHARACTER(len=filename_max) :: my_namelist_filename
   CHARACTER(len=64) :: my_model_name = ""
 
@@ -110,11 +110,7 @@ CONTAINS
     institution = ''  ! needed?
     institution = update_institute
   END SUBROUTINE setInstitution
-  
-  SUBROUTINE setRestart(lr)
-    LOGICAL, INTENT(in) :: lr
-    lrestart = lr
-  END SUBROUTINE setRestart
+
 
   SUBROUTINE setReadRestartNamelists(lr)
     LOGICAL, INTENT(in) :: lr
@@ -128,8 +124,12 @@ CONTAINS
   END SUBROUTINE setRestartWriteLast
 
   LOGICAL FUNCTION isRestart()
-    isRestart = lrestart
+    isRestart = (my_model_do_restart == NORMAL_RESTART)
   END FUNCTION isRestart
+
+  LOGICAL FUNCTION isInitFromRestart()
+    isInitFromRestart = (my_model_do_restart == INIT_FROM_RESTART)
+  END FUNCTION isInitFromRestart
 
   SUBROUTINE setModelBaseDir(mbd)
     CHARACTER(len=*), INTENT(in) :: mbd

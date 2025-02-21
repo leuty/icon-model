@@ -18,21 +18,29 @@
 MODULE mo_atmo_wave_coupling
 
   USE mo_kind,               ONLY: wp
+  USE mo_exception,          ONLY: message, message_text
   USE mo_model_domain,       ONLY: t_patch
   USE mo_fortran_tools,      ONLY: assert_acc_host_only
-  USE mo_coupling_utils,     ONLY: cpl_def_field, cpl_put_field, cpl_get_field
+  USE mo_coupling_utils,     ONLY: cpl_def_field, cpl_get_field_datetime, &
+                                   cpl_put_field, cpl_get_field
   USE mo_idx_list,           ONLY: t_idx_list_blocked
+  USE mo_run_config,         ONLY: msg_level
   USE mo_lnd_nwp_config,     ONLY: isub_water
   USE mo_physical_constants, ONLY: grav
   USE mo_impl_constants,     ONLY: min_rlcell
   USE mo_loopindices,        ONLY: get_indices_c
+  USE mtime,                 ONLY: datetime, OPERATOR(<), OPERATOR(==)
+  USE mo_time_config,        ONLY: time_config
+  USE mo_exception,          ONLY: finish
 
 
   IMPLICIT NONE
 
   PRIVATE
 
-  PUBLIC :: construct_atmo_wave_coupling, couple_atmo_to_wave
+  PUBLIC :: construct_atmo_wave_coupling, &
+            construct_atmo_wave_coupling_finalize, &
+            couple_atmo_to_wave
 
   CHARACTER(LEN=*), PARAMETER :: modname = 'mo_atmo_wave_coupling'
 
@@ -70,6 +78,32 @@ CONTAINS
 
   END SUBROUTINE construct_atmo_wave_coupling
 
+
+  !>
+  !! This subroutine ensures consistency in the coupling definition and is
+  !! called after the end of the coupling definition phase
+  SUBROUTINE construct_atmo_wave_coupling_finalize()
+
+    CHARACTER(len=*), PARAMETER ::  &
+      &  routine = modname//':construct_atmo_wave_coupling_finalize'
+
+    TYPE(datetime) :: curr_datetime_u10m
+    TYPE(datetime) :: curr_datetime_v10m
+    TYPE(datetime) :: curr_datetime_fr_seaice
+    TYPE(datetime) :: curr_datetime_z0
+
+    curr_datetime_u10m      = cpl_get_field_datetime(routine, field_id_u10m)
+    curr_datetime_v10m      = cpl_get_field_datetime(routine, field_id_v10m)
+    curr_datetime_fr_seaice = cpl_get_field_datetime(routine, field_id_fr_seaice)
+    curr_datetime_z0        = cpl_get_field_datetime(routine, field_id_z0)
+
+    IF (.NOT. ALL((/curr_datetime_u10m == curr_datetime_v10m, &
+                    curr_datetime_u10m == curr_datetime_fr_seaice, &
+                    curr_datetime_u10m == curr_datetime_z0/))) &
+      CALL finish(routine, "inconsistent definition of field datetime")
+
+  END SUBROUTINE construct_atmo_wave_coupling_finalize
+
   !>
   !! Exchange fields between atmosphere and wave model
   !!
@@ -106,8 +140,27 @@ CONTAINS
     INTEGER :: i_startidx, i_endidx
     INTEGER :: jb,ic,jc
     INTEGER :: isubs
+    LOGICAL, SAVE :: lcheck_for_timelag = .TRUE.
+    TYPE(datetime) :: curr_datetime_u10m
+
 
     CALL assert_acc_host_only('couple_atmo_to_wave', lacc)
+
+    ! A component may execute timesteps for dates before the actual
+    ! start of this simulation (e.g. due to IAU). These timesteps are currently
+    ! not considered for coupling, which is why they are skipped here.
+    ! The first actual coupling timestep usually is a start_date + lag * field_timestep.
+    IF (lcheck_for_timelag) THEN
+
+      ! query current timestamps of source/target fields
+      curr_datetime_u10m = cpl_get_field_datetime(routine, field_id_u10m)
+
+      ! skip data exchange as long as the model timestamp lags behind the field timestamp.
+      lcheck_for_timelag = (time_config%tc_current_date < curr_datetime_u10m)
+
+      IF (lcheck_for_timelag) RETURN
+
+    ENDIF !lcheck_for_timelag
 
     !  *****  *****  *****  *****  *****  *****  *****  *****  *****  *****  *****  *****
     !  Send fields from atmosphere to wave
@@ -150,6 +203,11 @@ CONTAINS
     CALL cpl_get_field( &
       routine, field_id_z0, 'z0', p_patch%n_patch_cells, z0_waves, &
       first_get=.TRUE., received_data=received_data)
+
+    IF (msg_level >= 10) THEN
+      WRITE (message_text,'(a,l7)') 'received data z0 :', received_data
+      CALL message(routine, message_text)
+    ENDIF
 
     IF (received_data) THEN
 

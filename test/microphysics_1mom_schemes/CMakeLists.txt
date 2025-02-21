@@ -46,6 +46,7 @@ add_subdirectory("${ICON_SOURCE_DIR}/externals/iconmath" iconmath)
 set(MICROPHYSICS_PATH "${ICON_SOURCE_DIR}/src/granules/microphysics_1mom_schemes")
 set(SATAD_PATH "${ICON_SOURCE_DIR}/src/atm_phy_schemes")
 set(SHARED_PATH "${ICON_SOURCE_DIR}/src/shared")
+set(CONFIG_PATH "${ICON_SOURCE_DIR}/src/configure_model")
 
 # Add the library with the specified files
 # (keep in sync with ${ICON_SOURCE_DIR}/.gitlab-ci.yml):
@@ -62,7 +63,12 @@ add_library(microphysics_1mom_schemes
   ${MICROPHYSICS_PATH}/gscp_ice.f90
   ${MICROPHYSICS_PATH}/microphysics_1mom_schemes.f90
   ${ICON_SOURCE_DIR}/src/shared/mo_kind.f90
+  ${ICON_SOURCE_DIR}/src/shared/mo_impl_constants_grf.f90
   ${ICON_SOURCE_DIR}/src/shared/mo_physical_constants.f90
+  ${ICON_SOURCE_DIR}/src/shared/mo_impl_constants.f90
+  ${CONFIG_PATH}/mo_2mom_mcrph_config.f90
+  ${CONFIG_PATH}/mo_nwp_tuning_config.f90
+
 )
 
 target_link_libraries(microphysics_1mom_schemes

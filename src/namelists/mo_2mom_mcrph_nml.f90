@@ -358,7 +358,7 @@ CONTAINS
       atm_phy_nwp_config(jg) % cfg_2mom % llim_gr_prod_rain_riming = llim_gr_prod_rain_riming
       atm_phy_nwp_config(jg) % cfg_2mom % wgt_D_coll_limgrprod   = wgt_D_coll_limgrprod  
       atm_phy_nwp_config(jg) % cfg_2mom % wgt_rho_coll_limgrprod = wgt_rho_coll_limgrprod
-      
+
     ENDDO
 
     !-----------------------------------------------------

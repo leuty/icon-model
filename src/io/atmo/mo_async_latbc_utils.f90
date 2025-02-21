@@ -20,8 +20,7 @@
 #ifndef NOMPI
     USE mpi
     USE mo_mpi,                 ONLY: my_process_is_pref, my_process_is_work,   &
-         &                            p_comm_work, my_process_is_stdio,         &
-         &                            my_process_is_mpi_test
+         &                            p_comm_work, my_process_is_stdio
     ! Processor numbers
     USE mo_mpi,                 ONLY: p_pref_pe0, p_pe_work, p_work_pe0, num_work_procs
     ! MPI Communication routines
@@ -64,7 +63,6 @@
     USE mo_time_config,         ONLY: time_config
     USE mo_limarea_config,      ONLY: latbc_config, generate_filename
     USE mo_nudging_config,      ONLY: nudging_config, indg_type, ithermdyn_type
-    USE mo_initicon_config,     ONLY: timeshift
     USE mo_ext_data_types,      ONLY: t_external_data
     USE mo_run_config,          ONLY: iqv, iqc, iqi, iqr, iqs, ltransport, msg_level, ntracer
     USE mo_dynamics_config,     ONLY: nnow, nnow_rcf
@@ -479,7 +477,7 @@
         CALL message('', message_text)
 
         ! The input for the nominal start date (tc_exp_startdate) always goes to time level 1
-        IF (timeshift%dt_shift < 0) THEN
+        IF (time_config%timeshift%dt_shift < 0._wp) THEN
           prev_latbc_tlev = 3 - timelev
         ELSE
           prev_latbc_tlev = timelev
@@ -503,7 +501,7 @@
       ENDIF
 
       ! Read atmospheric latbc data for nominal start date if necessary
-      IF (.NOT. is_restart .AND. (.NOT. latbc_config%init_latbc_from_fg .OR. timeshift%dt_shift < 0)) THEN
+      IF (.NOT. is_restart .AND. (.NOT. latbc_config%init_latbc_from_fg .OR. time_config%timeshift%dt_shift < 0._wp)) THEN
         latbc_read_datetime = time_config%tc_exp_startdate
         IF (my_process_is_work() .AND.  p_pe_work == p_work_pe0) THEN
           ! Compare validity date of the file with the requested date
@@ -526,7 +524,7 @@
       CALL deleteInputParameters(read_params(iedge)%cdi_params)
 
       ! Compute tendencies for nest boundary update
-      IF (.NOT. is_restart .AND. timeshift%dt_shift < 0) THEN
+      IF (.NOT. is_restart .AND. time_config%timeshift%dt_shift < 0._wp) THEN
         CALL compute_boundary_tendencies(latbc%latbc_data, p_patch(1), p_nh_state,&
           &                              timelev, latbc%buffer%idx_tracer)
       ENDIF
@@ -546,7 +544,7 @@
 
       ! Read input data for second boundary time level; in case of IAU (dt_shift<0), the second time level 
       ! equals the nominal start date, which has already been read above
-      IF (timeshift%dt_shift == 0 .OR. is_restart) THEN
+      IF (time_config%timeshift%dt_shift == 0._wp .OR. is_restart) THEN
         latbc_read_datetime = latbc_read_datetime + latbc%delta_dtime
         CALL read_next_timelevel(.TRUE.)
       ENDIF
@@ -1028,9 +1026,8 @@
           latbc_read_datetime = nextActive
         ENDIF
         latbc_read_datetime = latbc_read_datetime + latbc%delta_dtime
-      ELSE IF (timeshift%dt_shift < 0 ) THEN
+      ELSE IF (time_config%timeshift%dt_shift < 0._wp ) THEN
         ! For IAU, the second frame is always taken at tc_exp_startdate
-        ! which is equivalent to latbc_read_datetime + timeshift%mtime_absshift
         latbc_read_datetime = time_config%tc_exp_startdate
       ELSE
         latbc_read_datetime = time_config%tc_current_date + latbc%delta_dtime

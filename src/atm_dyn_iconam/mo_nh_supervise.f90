@@ -223,7 +223,7 @@ CONTAINS
 
 
 !$OMP PARALLEL
-    CALL init(z_qsum, opt_acc_async=.TRUE.)
+    CALL init(z_qsum, opt_acc_async=.TRUE., lacc=.TRUE.)
 !$OMP BARRIER
 
 !$OMP DO PRIVATE(jb,jk,jc,nlen)

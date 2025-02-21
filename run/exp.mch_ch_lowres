@@ -47,7 +47,7 @@ unset OMPI_MCA_coll_fca_priority
 # icon_data_poolFolder          = base directory, where grids/, input/ and setup/ exist
 # nproma                        = blocking length for array dimensioning and inner loop lengths
 
-icon_data_poolFolder="${icon_data_rootFolder:-/pool/data/ICON}/mch"
+input_folder="${testingFolder_prefix}/testing-input-data/c2sm/ch_lowres"
 
 #--------------------------------------------------------------------------------------------------
 
@@ -55,8 +55,7 @@ icon_data_poolFolder="${icon_data_rootFolder:-/pool/data/ICON}/mch"
 
 # horizontal grid(s)
 #
-grids_folder=${icon_data_poolFolder}/grids/ch_lowres
-latbc_path=${icon_data_poolFolder}/input/ch_lowres
+grids_folder=${input_folder}
 #
 # regional domain over switzerland
 
@@ -66,7 +65,7 @@ radiation_grid_filename=grid.parent.nc
 atmo_rad_grids="'${radiation_grid_filename}',"
 
 extpar_filename="grid.extpar.sst.nc"
-add_required_file "${grids_folder}/${extpar_filename}" ./
+add_required_file "${input_folder}/${extpar_filename}" ./
 
 # files needed for radiation
 add_required_file ${basedir}/data/ECHAM6_CldOptProps.nc rrtm_cldopt.nc
@@ -76,19 +75,19 @@ add_required_file ${basedir}/data/rrtmg_lw.nc .
 add_required_file ${basedir}/run/ana_varnames_map_file.txt map_file.ana
 
 # Dictionary for the mapping: GRIB2/Netcdf input names <-> ICON internal names
-add_required_file ${latbc_path}/map_file.latbc .
+add_required_file ${input_folder}/map_file.latbc .
 
 # initial data
-initial_condition=${latbc_path}/igfff00000000.nc
+initial_condition=${input_folder}/igfff00000000.nc
 add_required_file ${initial_condition} .
 
 # lateral boundary grid
-add_required_file ${latbc_path}/lateral_boundary.grid.nc lateral_boundary.grid.nc
+add_required_file ${input_folder}/lateral_boundary.grid.nc lateral_boundary.grid.nc
 
 # lateral boundary data is not needed as constant LBCs are derived from the initial conditions
-#add_required_file ${latbc_path}/igfff00000000_lbc.nc .
-#add_required_file ${latbc_path}/igfff00000030_lbc.nc .
-#add_required_file ${latbc_path}/igfff00000100_lbc.nc .
+#add_required_file ${input_folder}/igfff00000000_lbc.nc .
+#add_required_file ${input_folder}/igfff00000030_lbc.nc .
+#add_required_file ${input_folder}/igfff00000100_lbc.nc .
 
 # start and end date+time
 start_date=${start_date:="2018-09-21T00:00:00Z"}
@@ -218,7 +217,7 @@ cat > ${basedir}/run/${atmo_namelist} << EOF
  itype_latbc                 =                          0         ! 0: constant lateral boundary conditions
  dtime_latbc                 =                         30.        ! time difference between 2 consecutive boundary data
  latbc_boundary_grid         =   "lateral_boundary.grid.nc"       ! Grid file defining the lateral boundary
- latbc_path                  =              "${latbc_path}"       ! Absolute path to boundary data
+ latbc_path                  =              "${input_folder}"       ! Absolute path to boundary data
  latbc_varnames_map_file     =            'map_file.latbc'
  !latbc_filename              =     'igfff<ddhhmmss>_lbc.nc'        ! boundary data input filename
  !init_latbc_from_fg          =                     .FALSE.        ! .TRUE.: take lbc for initial time from first guess

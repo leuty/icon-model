@@ -510,7 +510,7 @@ MODULE mo_2mom_mcrph_main
   TYPE(coll_coeffs_ir_pm), SAVE :: hshedr_coeffs ! hail shedding during rain riming
 
   PUBLIC :: atmosphere, particle, particle_lwf, particle_frozen
-  PUBLIC :: init_2mom_scheme, init_2mom_scheme_once, clouds_twomoment
+  PUBLIC :: init_2mom_types_base, init_2mom_scheme, init_2mom_scheme_once, clouds_twomoment
   PUBLIC :: rain_coeffs, ice_coeffs, snow_coeffs, graupel_coeffs, hail_coeffs, &
        &    ccn_coeffs, in_coeffs, cloud_coeffs
   PUBLIC :: qnc_const
@@ -834,14 +834,11 @@ CONTAINS
     CLASS(particle),INTENT(inout)        :: cloud, rain
     CLASS(particle_frozen),INTENT(inout) :: ice, snow, graupel, hail
 
-    CALL particle_assign(cloud,cloud_nue1mue1)
-    CALL particle_assign(rain,rainSBB)
+    ! set a base set of parameters from the fixed particle types above:
+    CALL init_2mom_types_base(cloud,rain,ice,snow,graupel,hail)
 
+    ! adjust according to namelist config /twomom_mcrph_nml/:
     IF (cfg_params % nu_r > -900.0_wp) rain%nu = cfg_params%nu_r
-
-    CALL particle_frozen_assign(ice,ice_cosmo5)
-    CALL particle_frozen_assign(snow,snowSBB)
-!!$    CALL particle_frozen_assign(snow,snowSBBcorr)
 
     IF (cfg_params % nu_i > -900.0_wp) ice%nu = cfg_params%nu_i
     IF (cfg_params % mu_i > -900.0_wp) ice%mu = cfg_params%mu_i
@@ -860,26 +857,12 @@ CONTAINS
     IF (cfg_params % cap_snow > -900.0_wp) snow%cap = cfg_params%cap_snow
     IF (cfg_params % vsedi_max_s > -900.0_wp) snow%vsedi_max = cfg_params%vsedi_max_s
 
-    SELECT TYPE (graupel)
-    TYPE IS (particle_frozen)
-      CALL particle_frozen_assign(graupel,graupelhail_cosmo5)
-    TYPE IS (particle_lwf)
-      CALL particle_lwf_assign(graupel,graupel_vivek)
-    END SELECT
-
     IF (cfg_params % nu_g > -900.0_wp) graupel%nu = cfg_params%nu_g
     IF (cfg_params % mu_g > -900.0_wp) graupel%mu = cfg_params%mu_g
     IF (cfg_params % ageo_g > -900.0_wp) graupel%a_geo = cfg_params%ageo_g
     IF (cfg_params % bgeo_g > -900.0_wp) graupel%b_geo = cfg_params%bgeo_g
     IF (cfg_params % avel_g > -900.0_wp) graupel%a_vel = cfg_params%avel_g
     IF (cfg_params % bvel_g > -900.0_wp) graupel%b_vel = cfg_params%bvel_g
-
-    SELECT TYPE (hail)
-    TYPE IS (particle_frozen)
-      CALL particle_frozen_assign(hail,hail_cosmo5)
-    TYPE IS (particle_lwf)
-      CALL particle_lwf_assign(hail,hail_vivek)
-    END SELECT
 
     IF (cfg_params % nu_h > -900.0_wp) hail%nu = cfg_params%nu_h
     IF (cfg_params % mu_h > -900.0_wp) hail%mu = cfg_params%mu_h
@@ -889,6 +872,34 @@ CONTAINS
     IF (cfg_params % bvel_h > -900.0_wp) hail%b_vel = cfg_params%bvel_h
 
   END SUBROUTINE init_2mom_scheme
+
+  ! Subroutine to set a base set of parameters from the fixed particle types above:
+  SUBROUTINE init_2mom_types_base(cloud,rain,ice,snow,graupel,hail)
+    CLASS(particle),INTENT(inout)        :: cloud, rain
+    CLASS(particle_frozen),INTENT(inout) :: ice, snow, graupel, hail
+
+    CALL particle_assign(cloud,cloud_nue1mue1)
+    CALL particle_assign(rain,rainSBB)
+
+    CALL particle_frozen_assign(ice,ice_cosmo5)
+    CALL particle_frozen_assign(snow,snowSBB)
+!!$    CALL particle_frozen_assign(snow,snowSBBcorr)
+
+    SELECT TYPE (graupel)
+    TYPE IS (particle_frozen)
+      CALL particle_frozen_assign(graupel,graupelhail_cosmo5)
+    TYPE IS (particle_lwf)
+      CALL particle_lwf_assign(graupel,graupel_vivek)
+    END SELECT
+
+    SELECT TYPE (hail)
+    TYPE IS (particle_frozen)
+      CALL particle_frozen_assign(hail,hail_cosmo5)
+    TYPE IS (particle_lwf)
+      CALL particle_lwf_assign(hail,hail_vivek)
+    END SELECT
+
+  END SUBROUTINE init_2mom_types_base
 
   !*******************************************************************************
   ! This subroutine has to be called once at the start of the model run by

@@ -39,7 +39,8 @@ MODULE mo_nwp_ecrad_init
                                  &   iRadAeroConstKinne, iRadAeroKinne, iRadAeroVolc,      &
                                  &   iRadAeroKinneVolc,  iRadAeroKinneVolcSP,              &
                                  &   iRadAeroKinneSP, iRadAeroNone,                        &
-                                 &   iRadAeroCAMSclim, iRadAeroCAMStd
+                                 &   iRadAeroCAMSclim, iRadAeroCAMStd,                     &
+                                 &   ecrad_check_input
 #ifdef __ECRAD
   USE mo_ecrad,                ONLY: t_ecrad_conf, ecrad_setup,                            &
                                  &   ISolverHomogeneous, ISolverMcICA, ISolverMcICAACC,    &
@@ -313,6 +314,10 @@ CONTAINS
     !
     ecrad_conf%iverbosesetup               = 0            !< Verbosity (0: none,     1: warning,  2: info,
     ecrad_conf%iverbose                    = 0            !<            3: progress, 4: detailed, 5: debug)
+    IF (ecrad_check_input) THEN
+      ecrad_conf%iverbosesetup             = 4
+      ecrad_conf%iverbose                  = 4
+    ENDIF
     !
     ecrad_conf%do_weighted_surface_mapping = .false.      !<Use spectral weighting method that was default before ecrad-1.5
     !
@@ -565,6 +570,10 @@ CONTAINS
 
     IF ( ecrad_conf%use_general_cloud_optics ) THEN
       CALL finish(routine,'ecrad_conf%use_general_cloud_optics not ported to GPU')
+    ENDIF
+
+    IF (ecrad_check_input) THEN
+      CALL finish(routine,'ecrad_check_input not ported to GPU')
     ENDIF
 
   END SUBROUTINE ecrad_openacc_crosscheck

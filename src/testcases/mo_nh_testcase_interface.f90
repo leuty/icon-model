@@ -109,12 +109,12 @@ CONTAINS
        CALL finish (routine, 'Tests DF1, DF2, DF3, DF4 - deformational flow: OpenACC version currently not implemented')
 #endif
 
-        ! Get velocity field
+        ! Get velocity field (centered in time)
        CALL get_nh_df_velocity( p_patch,                    &  !in
          &                      p_nh_state%prog(nnew(jg)),  &  !inout
          &                      nh_test_name,               &  !in
          &                      rotate_axis_deg,            &  !in
-         &                      sim_time-dt_loc+dt_loc      )  !in
+         &                      sim_time-0.5_wp*dt_loc      )  !in
         
         
         ! Get mass flux and new \rho. The latter one is only computed,
@@ -138,13 +138,14 @@ CONTAINS
 !#endif
               
         ! Get velocity field for the DCMIP Hadley-like meridional circulation test
+        ! (centered in time)
         !
         CALL set_nh_velocity_hadley( p_patch,                    &  !in
           &                          p_nh_state%prog(nnew(jg)),  &  !inout
           &                          p_nh_state%diag,            &  !in
           &                          p_int_state,                &  !in
-          &                          p_nh_state%metrics,         &  !in   
-          &                          sim_time-dt_loc+dt_loc,     &  !in
+          &                          p_nh_state%metrics,         &  !in
+          &                          sim_time-0.5_wp*dt_loc,     &  !in
           &                          lacc=.TRUE.                 )  !in
 
 !#ifdef _OPENACC

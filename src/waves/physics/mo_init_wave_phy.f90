@@ -62,11 +62,11 @@ CONTAINS
     REAL(wp),                    INTENT(IN)    :: fp(:,:)         !< jonswap peak frequency (1/s)
     REAL(wp),                    INTENT(IN)    :: alphaj(:,:)     !< jonswap alpha (-)
     REAL(wp),                    INTENT(INOUT) :: et(:,:,:)       !< jonswap spectra (-)
-    REAL(wp),                    INTENT(INOUT) :: tracer(:,:,:,:) !< wave energy (spectral bins) (?)
+    REAL(wp),                    INTENT(INOUT) :: tracer(:,:,:) !< wave energy (spectral bins) (?)
 
     INTEGER :: i_rlstart, i_rlend, i_startblk, i_endblk
     INTEGER :: i_startidx, i_endidx
-    INTEGER :: jc,jb,jd,jf,jk,jt
+    INTEGER :: jc,jb,jd,jf,jt
     REAL(wp):: st
 
     TYPE(t_wave_config), POINTER :: wc => NULL()
@@ -90,7 +90,6 @@ CONTAINS
     i_rlend    = min_rlcell
     i_startblk = p_patch%cells%start_block(i_rlstart)
     i_endblk   = p_patch%cells%end_block(i_rlend)
-    jk         = p_patch%nlev
 
 
 !$OMP PARALLEL
@@ -109,11 +108,11 @@ CONTAINS
             IF (st < 0.1E-08_wp) st = 0._wp
 
             ! Avoid too small numbers of et
-            et(jc,jb,jf) = MAX(et(jc,jb,jf),FLMIN)
+            et(jc,jf,jb) = MAX(et(jc,jf,jb),FLMIN)
 
             ! WAM initialisation
-            tracer(jc,jk,jb,jt) = et(jc,jb,jf) * st
-            tracer(jc,jk,jb,jt) = MAX(tracer(jc,jk,jb,jt),EMIN)
+            tracer(jc,jt,jb) = et(jc,jf,jb) * st
+            tracer(jc,jt,jb) = MAX(tracer(jc,jt,jb),EMIN)
           END DO  !jc
         END DO  !jd
       END DO  !jf
@@ -171,16 +170,16 @@ CONTAINS
         DO jc = i_startidx, i_endidx
 
           sigma = MERGE(sb,sa, freqs(jf)>fp(jc,jb))
-          ET(jc,jb,jf) = 0._wp
+          ET(jc,jf,jb) = 0._wp
 
           ARG = 1.25_wp*(FP(jc,jb)/freqs(jf))**4
           IF (ARG.LT.50.0_wp) THEN
-            ET(jc,jb,jf) = ALPHAJ(jc,jb) * G2ZPI4FRH5M * EXP(-ARG)
+            ET(jc,jf,jb) = ALPHAJ(jc,jb) * G2ZPI4FRH5M * EXP(-ARG)
           END IF
 
           ARG = 0.5_wp*((freqs(jf)-FP(jc,jb)) / (sigma*FP(jc,jb)))**2
           IF (ARG.LT.99._wp) THEN
-            ET(jc,jb,jf) = ET(jc,jb,jf)*exp(log(GAMMA)*EXP(-ARG))
+            ET(jc,jf,jb) = ET(jc,jf,jb)*exp(log(GAMMA)*EXP(-ARG))
           END IF
 
         END DO  !jc

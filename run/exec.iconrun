@@ -248,6 +248,7 @@ add_component_to_master_namelist()
     model_max_rank=$5
     model_inc_rank=$6
     model_rank_group_size=$7
+    model_do_restart=$8
     cat >> $master_namelist << EOF
 &master_model_nml
   model_name="$model_name"
@@ -257,6 +258,7 @@ add_component_to_master_namelist()
   model_max_rank=$model_max_rank
   model_inc_rank=$model_inc_rank
   model_rank_group_size=$model_rank_group_size
+  ${model_do_restart:+model_do_restart='$model_do_restart'}
 /
 EOF
   fi
@@ -280,7 +282,7 @@ rank_group_size=1
 j=0
 while [ $j -lt ${no_of_models} ]
 do
-  add_component_to_master_namelist "${namelist_list[$j]}" "${modelname_list[$j]}" ${modeltype_list[$j]} ${minrank_list[$j]} ${maxrank_list[$j]} ${incrank_list[$j]} ${rank_group_size}
+  add_component_to_master_namelist "${namelist_list[$j]}" "${modelname_list[$j]}" ${modeltype_list[$j]} ${minrank_list[$j]} ${maxrank_list[$j]} ${incrank_list[$j]} ${rank_group_size} "${model_do_restart_list[$j]}"
   j=`expr ${j} + 1`
 done
 

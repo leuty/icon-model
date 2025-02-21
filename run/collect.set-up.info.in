@@ -47,6 +47,7 @@ use_sync_submit
 use_target
 use_flags_group
 VERSION_
+PYTHON
 BUNDLED_PYTHONPATH
 '
 
@@ -56,6 +57,9 @@ use_builddir='@abs_top_builddir@'
 
 # Version info required by mkexp:
 VERSION_='@PACKAGE_VERSION@'
+
+# PYTHON interpreter
+PYTHON='@PYTHON@'
 
 # PYTHONPATH to the bundled Python interfaces:
 BUNDLED_PYTHONPATH='@BUNDLED_PYTHONPATH@'
@@ -212,6 +216,8 @@ case "$use_site" in
       ;;
       gpnl*)
         use_target='gpnl'
+        use_purge_modules="module purge"
+        use_load_modules="$load_runtime_modules"
         use_mpi_startrun='@MPI_LAUNCH@ -np $mpi_total_procs --oversubscribe -mca orte_base_help_aggregate 0 -mca btl_base_warn_component_unused 0 ${basedir}/run/run_wrapper/gpnl.sh '
       ;;
       *) #hpc

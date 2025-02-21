@@ -13,7 +13,7 @@ MODULE mo_restart_nml_and_att
 
   USE mo_exception,             ONLY: finish, message
   USE mo_impl_constants,        ONLY: SUCCESS
-  USE mo_master_config,         ONLY: isRestart
+  USE mo_master_config,         ONLY: isRestart, isInitFromRestart
   USE mo_mpi, ONLY: p_comm_rank
   USE mo_util_file, ONLY: util_tmpnam, util_filesize, util_unlink
   USE mo_util_string, ONLY: tocompact
@@ -40,7 +40,6 @@ MODULE mo_restart_nml_and_att
   TYPE(t_key_value_store) :: gNamelistStore
 
   CHARACTER(LEN = *), PARAMETER :: modname = "mo_restart_nml_and_att"
-  LOGICAL, SAVE, PUBLIC :: ocean_initFromRestart_OVERRIDE = .FALSE. 
 
 CONTAINS
 
@@ -111,7 +110,7 @@ CONTAINS
     CHARACTER(*), PARAMETER :: routine = modname//":getAttributesForRestarting"
 
     IF (.NOT. gAttributeStore%is_init .AND. &
-      & (isRestart() .OR. ocean_initFromRestart_OVERRIDE)) &
+      & (isRestart() .OR. isInitFromRestart())) &
       & CALL finish(routine, "restart attributes not yet set up")
     ptr => gAttributeStore
   END SUBROUTINE getAttributesForRestarting
@@ -124,7 +123,7 @@ CONTAINS
     REAL(wp) :: dTmp(1)
     CHARACTER(:), ALLOCATABLE :: aTxt
 
-    IF (.NOT.isRestart() .AND. .NOT.ocean_initFromRestart_OVERRIDE) &
+    IF (.NOT.isRestart() .AND. .NOT. isInitFromRestart()) &
       & CALL finish(routine, "not a restart run")
     IF (gAttributeStore%is_init) &
       & CALL finish(routine, "no second assignment of gAttributeStore allowed")
@@ -156,7 +155,7 @@ CONTAINS
       ENDDO
     END IF
     CALL gAttributeStore%bcast(root_pe, comm)
-    IF (.NOT.ocean_initFromRestart_OVERRIDE) &
+    IF (.NOT. isInitFromRestart()) &
       CALL gAttributeStore%output(archive=gNamelistStore)
   END SUBROUTINE restartAttributeList_read
 

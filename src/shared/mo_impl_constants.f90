@@ -267,6 +267,10 @@ MODULE mo_impl_constants
   INTEGER, PARAMETER :: ianalytic      =  0 ! - from analytical functions
   INTEGER, PARAMETER :: irestart       =  1 ! - from restart file
 
+  INTEGER, PARAMETER :: NO_RESTART        = 0
+  INTEGER, PARAMETER :: NORMAL_RESTART    = 1
+  INTEGER, PARAMETER :: INIT_FROM_RESTART = 2
+
   ! identifiers for atm time stepping schemes
   INTEGER,PARAMETER :: TRACER_ONLY   = 1 ! pure tracer advection
 

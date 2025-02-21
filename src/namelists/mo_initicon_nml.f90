@@ -26,7 +26,8 @@ MODULE mo_initicon_nml
     &                              MODE_COSMO, MODE_ICONVREMAP, ivexpol
   USE mo_io_units,           ONLY: nnml, nnml_output, filename_max
   USE mo_namelist,           ONLY: position_nml, positioned, open_nml, close_nml
-  USE mo_mpi,                ONLY: my_process_is_stdio 
+  USE mo_mpi,                ONLY: my_process_is_stdio
+  USE mo_time_config,        ONLY: set_tc_timeshift
   USE mo_initicon_config,    ONLY: initicon_config,      &
     & config_init_mode           => init_mode,           &
     & config_nlevsoil_in         => nlevsoil_in,         &
@@ -63,7 +64,6 @@ MODULE mo_initicon_nml
     & config_filetype            => filetype,            &
     & config_dt_iau              => dt_iau,              &
     & config_iterate_iau         => iterate_iau,         &
-    & config_timeshift           => timeshift,           &
     & config_type_iau_wgt        => type_iau_wgt,        &
     & config_niter_divdamp       => niter_divdamp,       &
     & config_niter_diffu         => niter_diffu,         &
@@ -412,12 +412,10 @@ CONTAINS
   lp2cintp_incr(1)   = .FALSE.
   lp2cintp_sfcana(1) = .FALSE.
 
-  ! make sure that dt_shift is negative or 0.
-  IF ( dt_shift > 0._wp ) THEN
-    WRITE(message_text,'(a,f8.2,a)') 'dt_shift=', dt_shift, &
-      ' not allowed. Must be NEGATIVE or 0.'
-    CALL finish(TRIM(routine),message_text)
-  ENDIF
+  ! IAU iteration is meaningless if the model starts without backward time shift
+  IF (dt_shift == 0._wp) THEN
+    iterate_iau = .FALSE.
+  END IF
 
   ! this is needed because the I/O of the filtered T increment is controlled via icpl_da_sfcevap >= 3
   IF (icpl_da_snowalb >= 1 .AND. icpl_da_sfcevap < 3) THEN
@@ -443,10 +441,6 @@ CONTAINS
     CALL finish(TRIM(routine),message_text)
   ENDIF
 
-  ! IAU iteration is meaningless if the model starts without backward time shift
-  IF (dt_shift == 0._wp) THEN
-    iterate_iau = .FALSE.
-  END IF
 
   ! Check setting for vertical extrapolation
   SELECT CASE(itype_vert_expol)
@@ -496,7 +490,6 @@ CONTAINS
   config_filetype            = filetype
   config_dt_iau              = dt_iau
   config_iterate_iau         = iterate_iau
-  config_timeshift%dt_shift  = dt_shift
   config_type_iau_wgt        = type_iau_wgt
   config_ana_varnames_map_file = ana_varnames_map_file
   config_niter_divdamp         = niter_divdamp
@@ -511,6 +504,9 @@ CONTAINS
     initicon_config(jg)%ana_checklist = check_ana(jg)%list
     initicon_config(jg)%fg_checklist  = check_fg(jg)%list
   ENDDO
+
+  ! add dt_shift to time_config state
+  CALL set_tc_timeshift(dt_shift)
 
   ! write the contents of the namelist to an ASCII file
 

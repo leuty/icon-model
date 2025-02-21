@@ -78,7 +78,7 @@ atmo_dyn_grids="${grid_name}.nc"
 #
 # ICON namelist parameters
 # ------------------------
-# for a complete list see doc/Namelist_overview.pdf
+# for a complete list see Namelist_overview.pdf
 #
 cat > ${atmo_namelist} << EOF
 !

@@ -158,13 +158,18 @@ AC_DEFUN([ACX_SUBDIR_INIT_CONFIG],
 #                              CMAKE_<LANG>_FLAGS CMake arguments. The argument
 #                              is ignored if the argument adjustment is
 #                              disabled (i.e. option no-adjust-args is set).
-#     [no-]run                  whether CMAKE-EXEC must be run for SUBDIR by
-#                               the top-level configure script.
+#     [no-]adjust-utilities    whether the utility commands (e.g. AR and
+#                              RANLIB) provided for the top-level configure
+#                              script must be translated into CMake arguments.
+#                              The argument is ignored if the argument
+#                              adjustment is disabled (i.e. option
+#                              no-adjust-args is set).
+#     [no-]run                 whether CMAKE-EXEC must be run for SUBDIR by
+#                              the top-level configure script.
 #
 # The configuration of the SUBDIR project is done by calling CMAKE-EXEC
-# (defaults to '${CMAKE-cmake}') from the BUILD-SUBDIR (path relative to the
-# top build directory of the top-level project, defaults to SUBDIR/build)
-# directory.
+# (defaults to 'cmake') from the BUILD-SUBDIR (path relative to the top build
+# directory of the top-level project, defaults to SUBDIR/build) directory.
 #
 # Sets variable extra_src_subdirs to the space-separated lists of all
 # initialized SUBDIRs and BUILD-SUBDIRs (accounting for possible shell
@@ -174,6 +179,7 @@ AC_DEFUN([ACX_SUBDIR_INIT_CMAKE],
   [m4_ifblank([$1], [m4_fatal([SUBDIR ('$1') cannot be blank])])dnl
    m4_pushdef([acx_subdir_opt_adjust_args], [adjust-args])dnl
    m4_pushdef([acx_subdir_opt_adjust_compilers], [adjust-compilers])dnl
+   m4_pushdef([acx_subdir_opt_adjust_utilities], [adjust-utilities])dnl
    m4_pushdef([acx_subdir_opt_run], [run])dnl
    m4_foreach_w([opt], [$2],
      [m4_bmatch(opt,
@@ -181,6 +187,8 @@ AC_DEFUN([ACX_SUBDIR_INIT_CMAKE],
         [m4_define([acx_subdir_opt_adjust_args], opt)],
         [^\(no-\)?adjust-compilers$],
         [m4_define([acx_subdir_opt_adjust_compilers], opt)],
+        [^\(no-\)?adjust-utilities$],
+        [m4_define([acx_subdir_opt_adjust_utilities], opt)],
         [^\(no-\)?run$],
         [m4_define([acx_subdir_opt_run], opt)],
         [m4_fatal([unknown option ']opt['])])])dnl
@@ -189,16 +197,24 @@ AC_DEFUN([ACX_SUBDIR_INIT_CMAKE],
      ["m4_default([$3], [$1/build])"])
    AS_VAR_SET([_ACX_SUBDIR_BUILD_TYPE_VAR([$1])], ['cmake'])
    m4_cond([acx_subdir_opt_adjust_args], [adjust-args],
-     [AC_REQUIRE_SHELL_FN([acx_subdir_pre_adjust_cmake_args], [],
-        [AS_VAR_SET_IF([acx_subdir_pre_adjusted_cmake_args], [],
-           [AS_VAR_SET([acx_subdir_pre_adjusted_cmake_args],
+     [m4_pushdef([acx_subdir_pre_adjust_suffix])dnl
+      m4_if(acx_subdir_opt_adjust_compilers, [no-adjust-compilers],
+        [m4_append([acx_subdir_pre_adjust_suffix], [_nocomps])])dnl
+      m4_if(acx_subdir_opt_adjust_utilities, [no-adjust-utilities],
+        [m4_append([acx_subdir_pre_adjust_suffix], [_noutils])])dnl
+      m4_pushdef([acx_subdir_pre_adjust_cmake_fn],
+        acx_subdir_pre_adjust_cmake_args[]acx_subdir_pre_adjust_suffix)dnl
+      m4_pushdef([acx_subdir_pre_adjust_cmake_cv],
+        acx_subdir_pre_adjusted_cmake_args[]acx_subdir_pre_adjust_suffix)dnl
+      m4_popdef([acx_subdir_pre_adjust_suffix])dnl
+      AC_REQUIRE_SHELL_FN(acx_subdir_pre_adjust_cmake_fn, [],
+        [AS_VAR_SET_IF([acx_subdir_pre_adjust_cmake_cv], [],
+           [AS_VAR_SET([acx_subdir_pre_adjust_cmake_cv],
               ["'-Wno-dev' '--no-warn-unused-cli' '-GUnix Makefiles'"])
             eval "set dummy $ac_configure_args"; shift
 dnl Transform standard precious (influential environment) variables:
             m4_pushdef([acx_subdir_known_args],
-              [[AR],
-               [RANLIB],
-               [CFLAGS, [CMAKE_C_FLAGS]],
+              [[CFLAGS, [CMAKE_C_FLAGS]],
                [CXXFLAGS, [CMAKE_CXX_FLAGS]],
                [CPPFLAGS],
                [FCFLAGS, [CMAKE_Fortran_FLAGS]],
@@ -211,6 +227,8 @@ dnl Transform standard precious (influential environment) variables:
             m4_if(acx_subdir_opt_adjust_compilers, [adjust-compilers],
               [m4_append([acx_subdir_known_args],
                  [[CC], [CXX], [FC]], [,])])dnl
+            m4_if(acx_subdir_opt_adjust_utilities, [adjust-utilities],
+              [m4_append([acx_subdir_known_args], [[AR], [RANLIB]], [,])])dnl
             acx_subdir_cmake_vars_to_transform=
             for acx_tmp; do
               AS_CASE([$acx_tmp],
@@ -306,41 +324,44 @@ dnl respectively).
                   [CXX_ARGS, [CMAKE_CXX_COMPILER_ARG1]],
                   [FC_EXEC, [CMAKE_Fortran_COMPILER]],
                   [FC_ARGS, [CMAKE_Fortran_COMPILER_ARG1]]], [,])])dnl
+            m4_if(acx_subdir_opt_adjust_utilities, [adjust-utilities],
+              [dnl
 dnl CMake requires the archiver and the archive indexer commands to be set as
 dnl absolute paths. Otherwise, it will try to find the executable in the build
 dnl directory. Also, AR and RANLIB are not supposed to be paths to executables
 dnl with arguments because it will cause CMake to choke:
-            for acx_arg_name in AR RANLIB; do
-              AS_CASE([" $acx_subdir_cmake_vars_to_transform "],
-                [*" $acx_arg_name "*],
-                [acx_prog_search_abspath=unknown
-                 AS_VAR_COPY([acx_prog_exec], [acx_arg_${acx_arg_name}])
-                 AS_CASE([$acx_prog_exec],
-                   [*[[\\/]]*],
-                   [AS_IF([AS_EXECUTABLE_P([$acx_prog_exec])],
-                      [acx_prog_search_abspath=$acx_prog_exec])],
-                   [_AS_PATH_WALK([],
-                      [AS_IF([AS_EXECUTABLE_P(["$as_dir/$acx_prog_exec"])],
-                         [acx_prog_search_abspath="$as_dir/$acx_prog_exec"
-                          break])])])
-                 AS_VAR_IF([acx_prog_search_abspath], [unknown],
-                   [AC_MSG_WARN([unable to convert argument $acx_arg_name dnl
-to its CMake equivalent(s): absolute path to "$acx_prog_exec" is not found])],
-                   [AS_VAR_COPY([acx_arg_${acx_arg_name}_ABSPATH],
-                      [acx_prog_search_abspath])
-                    AS_VAR_APPEND([acx_subdir_cmake_vars_to_transform],
-                      [" ${acx_arg_name}_ABSPATH"])])])
-            done
-            m4_append([acx_subdir_known_args],
-              [[AR_ABSPATH, [CMAKE_AR
-                             CMAKE_C_COMPILER_AR
-                             CMAKE_CXX_COMPILER_AR
-                             CMAKE_Fortran_COMPILER_AR]],
-               [RANLIB_ABSPATH, [CMAKE_RANLIB
-                                 CMAKE_C_COMPILER_RANLIB
-                                 CMAKE_CXX_COMPILER_RANLIB
-                                 CMAKE_Fortran_COMPILER_RANLIB]]],
-              [,])dnl
+               for acx_arg_name in AR RANLIB; do
+                 AS_CASE([" $acx_subdir_cmake_vars_to_transform "],
+                   [*" $acx_arg_name "*],
+                   [acx_prog_search_abspath=unknown
+                    AS_VAR_COPY([acx_prog_exec], [acx_arg_${acx_arg_name}])
+                    AS_CASE([$acx_prog_exec],
+                      [*[[\\/]]*],
+                      [AS_IF([AS_EXECUTABLE_P([$acx_prog_exec])],
+                         [acx_prog_search_abspath=$acx_prog_exec])],
+                      [_AS_PATH_WALK([],
+                         [AS_IF([AS_EXECUTABLE_P(["$as_dir/$acx_prog_exec"])],
+                            [acx_prog_search_abspath="$as_dir/$acx_prog_exec"
+                             break])])])
+                    AS_VAR_IF([acx_prog_search_abspath], [unknown],
+                      [AC_MSG_WARN([unable to convert argument dnl
+$acx_arg_name to its CMake equivalent(s): absolute path to "$acx_prog_exec" dnl
+is not found])],
+                      [AS_VAR_COPY([acx_arg_${acx_arg_name}_ABSPATH],
+                         [acx_prog_search_abspath])
+                       AS_VAR_APPEND([acx_subdir_cmake_vars_to_transform],
+                         [" ${acx_arg_name}_ABSPATH"])])])
+               done
+               m4_append([acx_subdir_known_args],
+                 [[AR_ABSPATH, [CMAKE_AR
+                                CMAKE_C_COMPILER_AR
+                                CMAKE_CXX_COMPILER_AR
+                                CMAKE_Fortran_COMPILER_AR]],
+                  [RANLIB_ABSPATH, [CMAKE_RANLIB
+                                    CMAKE_C_COMPILER_RANLIB
+                                    CMAKE_CXX_COMPILER_RANLIB
+                                    CMAKE_Fortran_COMPILER_RANLIB]]],
+                 [,])])dnl
 dnl CMake has no explicit support for CPPFLAGS, therefore, we append them to
 dnl CFLAGS and CXXFLAGS:
             AS_CASE([" $acx_subdir_cmake_vars_to_transform "],
@@ -374,15 +395,15 @@ dnl Append the transformed arguments:
                    [acx_arg_${acx_arg_name}])
                  ASX_ESCAPE_SINGLE_QUOTE([acx_subdir_quoted_value])
                  for acx_subdir_cmake_var in $acx_subdir_cmake_vars_to_set; do
-                   AS_VAR_APPEND([acx_subdir_pre_adjusted_cmake_args],
+                   AS_VAR_APPEND([acx_subdir_pre_adjust_cmake_cv],
                      [" '-D$acx_subdir_cmake_var=$acx_subdir_quoted_value'"])
                  done])
               AS_UNSET([acx_arg_${acx_arg_name}])
             done
             m4_popdef([acx_subdir_known_args])])])dnl
-      acx_subdir_pre_adjust_cmake_args
+      acx_subdir_pre_adjust_cmake_fn
       AS_VAR_SET([_ACX_SUBDIR_RUN_ARG_VAR([$1])],
-        [$acx_subdir_pre_adjusted_cmake_args])
+        [$acx_subdir_pre_adjust_cmake_cv])
       m4_ifval([$3],
         [ASX_SRCDIRS(["$3"])
          acx_tmp="$ac_top_srcdir/$1"],
@@ -391,7 +412,9 @@ dnl Append the transformed arguments:
            [.], [acx_tmp='..'],
            [acx_tmp="$ac_top_srcdir/$1"])])
       ASX_ESCAPE_SINGLE_QUOTE([acx_tmp])
-      AS_VAR_APPEND([_ACX_SUBDIR_RUN_ARG_VAR([$1])], [" '$acx_tmp'"])],
+      AS_VAR_APPEND([_ACX_SUBDIR_RUN_ARG_VAR([$1])], [" '$acx_tmp'"])dnl
+      m4_popdef([acx_subdir_pre_adjust_cmake_fn])dnl
+      m4_popdef([acx_subdir_pre_adjust_cmake_cv])],
      [AS_VAR_SET([_ACX_SUBDIR_RUN_ARG_VAR([$1])])])
    m4_divert_once([DEFAULTS], [extra_src_subdirs=])dnl
    AS_VAR_APPEND([extra_src_subdirs], [" $1"])

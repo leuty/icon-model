@@ -69,7 +69,7 @@ MODULE mo_opt_nwp_diagnostics
   USE mo_timer,                 ONLY: timer_start, timer_stop, timers_level
   USE mo_diag_hailcast,         ONLY: hailstone_driver
   USE mo_util_phys,             ONLY: inversion_height_index  
-  USE mo_nwp_tuning_config,     ONLY: tune_dursun_scaling
+  USE mo_nwp_tuning_config,     ONLY: tune_dursun_scaling, itune_vis_diag
   USE microphysics_1mom_schemes,ONLY: get_cloud_number, get_snow_temperature
 #ifdef HAVE_RADARFWO
   USE radar_data_mie,             ONLY: ldebug_dbz, T0C_emvorado => T0C_fwo
@@ -2025,7 +2025,7 @@ CONTAINS
     i_endblk   = ptr_patch%cells%end_block  ( i_rlend   )
 
 !$OMP PARALLEL
-    CALL init(mconv, 0.0_wp)
+    CALL init(mconv, 0.0_wp, lacc=.FALSE.)
 !$OMP DO PRIVATE(jb,jk,jc,i_startidx,i_endidx,k_start,k_start_vec, &
 !$OMP            div_qvv_layer, &
 !$OMP            div_qvv_mean,iex,ieb), ICON_OMP_RUNTIME_SCHEDULE
@@ -2106,7 +2106,7 @@ CONTAINS
 
       ! --- Weighted average over the neighbouring grid cells:
 !$OMP PARALLEL
-      CALL init(mconv_smth, 0.0_wp)    
+      CALL init(mconv_smth, 0.0_wp, lacc=.FALSE.)
 !$OMP DO PRIVATE(jb,i_startidx,i_endidx,jc,  &
 !$OMP            p_conv_sum,p_conv_wgt,wgt_loc,area_norm, &
 !$OMP            l,jc2,jb2), ICON_OMP_DEFAULT_SCHEDULE
@@ -2151,7 +2151,7 @@ CONTAINS
       END DO
 !$OMP END DO
       ! Copy back the smoothed field to the output variable:
-      CALL copy(mconv_smth, mconv)
+      CALL copy(mconv_smth, mconv, lacc=.FALSE.)
 !$OMP END PARALLEL
 
 
@@ -5656,7 +5656,7 @@ CONTAINS
     max_height = MAXVAL([MAXVAL(z_up_srh(:)), z_up_meanwind, z_up_shear+dz_shear*0.5_wp, z_low_shear+dz_shear*0.5_wp]) ! m AGL
 
 !$OMP PARALLEL
-    CALL init(srh(:,:,:), 0.0_wp)
+    CALL init(srh(:,:,:), 0.0_wp, lacc=.FALSE.)
 !$OMP DO PRIVATE(jb,jc,lev_srh,i_startidx,i_endidx,k_start,k_start_vec, &
 !$OMP            speed_shear,u_mean,v_mean,u_shear,v_shear,u_storm,v_storm, &
 !$OMP            u_shear_up,u_shear_low,v_shear_up,v_shear_low,r_or_left_fac, &
@@ -5922,13 +5922,14 @@ CONTAINS
   !!                                  - recommended by Evan Kuchera
   !!
   !!   Mar 22        T. Goecke     - RH dependence now after Gultepe etal (2009)
-  !!  !!
+  !!   Mar 23        T. Goecke     - RH dependence according to fit to SYNOP data 
+  !!                                 over Germany
   !!
 
-  SUBROUTINE compute_field_visibility(ptr_patch, p_prog, p_diag, prm_diag, jg, vis_out, lacc)
+  SUBROUTINE compute_field_visibility(ptr_patch, p_prog, p_prog_rcf, p_diag, prm_diag, jg, vis_out, lacc)
 
     TYPE(t_patch),        INTENT(IN)            :: ptr_patch
-    TYPE(t_nh_prog),      INTENT(IN)            :: p_prog       ! nonhydrostatic state
+    TYPE(t_nh_prog),      INTENT(IN)            :: p_prog, p_prog_rcf  ! nonhydrostatic state (dynamics and physics time step)
     TYPE(t_nh_diag),      INTENT(IN)            :: p_diag
     TYPE(t_nwp_phy_diag), INTENT(INOUT)         :: prm_diag     ! physics variables
     INTEGER,              INTENT(IN)            :: jg           ! domain ID of the grid
@@ -5936,13 +5937,15 @@ CONTAINS
     LOGICAL,              INTENT(IN), OPTIONAL  :: lacc         ! if true, use openacc
 
     !local variables
-    REAL(wp), POINTER ::   qv(:,:,:) ! specific humidity (subgrid)
-    REAL(wp), POINTER ::   qc(:,:,:) ! cloud water (subgrid)
-    REAL(wp), POINTER ::   qi(:,:,:) ! cloud ice (subgrid)
-    REAL(wp), POINTER ::   qr(:,:,:) ! cloud water (subgrid)
-    REAL(wp), POINTER ::   qs(:,:,:) ! cloud water (subgrid)
-    REAL(wp), POINTER ::   qg(:,:,:) ! cloud water (subgrid)
-    REAL(wp), POINTER ::  rho(:,:,:) ! total density (inkluding hydrometeors)
+    REAL(wp), POINTER ::   qv(:,:,:)    ! specific humidity (subgrid)
+    REAL(wp), POINTER ::   qc(:,:,:)    ! cloud water (grid-scale+subgrid)
+    REAL(wp), POINTER ::   qc_gs(:,:,:) ! grid-scale cloud water
+    REAL(wp), POINTER ::   qi(:,:,:)    ! cloud ice (grid-scale+subgrid)
+    REAL(wp), POINTER ::   qi_gs(:,:,:) ! grid-scale cloud ice
+    REAL(wp), POINTER ::   qr(:,:,:)    ! rain water
+    REAL(wp), POINTER ::   qs(:,:,:)    ! snow
+    REAL(wp), POINTER ::   qg(:,:,:)    ! graupel
+    REAL(wp), POINTER ::  rho(:,:,:)    ! total density (including hydrometeors)
 
     ! specific tracer concentrations
     REAL(wp) :: Ccmax, Cimax, Crmax, Csmax, Cgmax
@@ -5956,11 +5959,16 @@ CONTAINS
     REAL(wp)            :: a_s, temp_fac, beta
     
     INTEGER, PARAMETER :: top_lev = 3  ! number of levels from ground used for vis diagnostic
+    CHARACTER(len=*), PARAMETER :: routine = modname//': compute_field_visibility'
 
     REAL(wp) :: vis, vis_night, visrh, qrh
     REAL(wp) :: pvsat, pv, rhmax, visrh_clip, &
 	     &  shear, shear_fac, czen, zen_fac
-    REAL(wp), ALLOCATABLE :: rh(:,:)
+    REAL(wp) :: rh(nproma,size(p_prog%rho,2))
+    ! local variables to undo phase combined particles
+    ! This is necessary if icpl_rad_reff = 1. 
+    REAL(wp) :: qc_pure(nproma,size(p_prog%rho,2)) ! decomposed cloud water
+    REAL(wp) :: qi_pure(nproma,size(p_prog%rho,2)) ! decomposed cloud ice
 
     INTEGER :: i_rlstart,  i_rlend
     INTEGER :: i_startblk, i_endblk
@@ -5971,18 +5979,18 @@ CONTAINS
 
     CALL set_acc_host_or_device(lzacc, lacc)
 
-    ! local pointers
-    rho => p_prog%rho
-    qv  => prm_diag%tot_ptr(iqv)%p_3d
-    qc  => prm_diag%tot_ptr(iqc)%p_3d
-    qi  => prm_diag%tot_ptr(iqi)%p_3d
-    qr  => p_prog%tracer_ptr(iqr)%p_3d
-    qs  => p_prog%tracer_ptr(iqs)%p_3d
-    IF(atm_phy_nwp_config(jg)%lhave_graupel) qg => p_prog%tracer_ptr(iqg)%p_3d
 
-    ! some parameters
-    nlev = size(qv,2)
-    allocate(rh(nproma,nlev-top_lev+1:nlev))
+    ! local pointers
+    rho   => p_prog%rho
+    qv    => prm_diag%tot_ptr(iqv)%p_3d
+    qc    => prm_diag%tot_ptr(iqc)%p_3d
+    qc_gs => p_prog_rcf%tracer_ptr(iqc)%p_3d
+    qi    => prm_diag%tot_ptr(iqi)%p_3d
+    qi_gs => p_prog_rcf%tracer_ptr(iqi)%p_3d
+    qr    => p_prog_rcf%tracer_ptr(iqr)%p_3d
+    qs    => p_prog_rcf%tracer_ptr(iqs)%p_3d
+    IF(atm_phy_nwp_config(jg)%lhave_graupel) qg => p_prog_rcf%tracer_ptr(iqg)%p_3d
+
     visrh_clip = 1.0_wp ! clip RH-VIS at this km
 
     ! without halo or boundary  points:
@@ -5991,13 +5999,14 @@ CONTAINS
 
     i_startblk = ptr_patch%cells%start_block( i_rlstart )
     i_endblk   = ptr_patch%cells%end_block  ( i_rlend   )
+    nlev       = SIZE(p_prog%rho,2)
 
-    !$ACC DATA PRESENT(qc, qg, qi, qr, qs, qv, rho, vis_out) &
-    !$ACC   CREATE(rh) IF(lzacc)
+    !$ACC DATA PRESENT(qc, qc_gs, qg, qi, qi_gs, qr, qs, qv, rho, vis_out) &
+    !$ACC   CREATE(rh, qc_pure, qi_pure) IF(lzacc)
 
 !$OMP PARALLEL
 !$OMP DO PRIVATE(jb,jc,jk,pvsat,pv,rh,rhmax,visrh,qrh,vis,vis_night,shear,shear_fac,&
-!$OMP     Ccmax,Cimax,Crmax,Csmax,Cgmax,temp_fac,a_s,beta,czen,zen_fac), ICON_OMP_RUNTIME_SCHEDULE
+!$OMP     Ccmax,Cimax,Crmax,Csmax,Cgmax,temp_fac,a_s,beta,czen,zen_fac,qc_pure,qi_pure), ICON_OMP_RUNTIME_SCHEDULE
     DO jb = i_startblk, i_endblk
 
       CALL get_indices_c( ptr_patch, jb, i_startblk, i_endblk,     &
@@ -6014,10 +6023,19 @@ CONTAINS
           pvsat     = esat_water(p_diag%temp(jc,jk,jb))
           pv        = p_diag%pres(jc,jk,jb)*qv(jc,jk,jb)/(rdv + o_m_rdv * qv(jc,jk,jb))
           rh(jc,jk) = 100.0_wp * MIN(1.0_wp, pv/pvsat)
+          IF (  atm_phy_nwp_config(jg)%icpl_rad_reff == 1 .AND. atm_phy_nwp_config(jg)%icalc_reff /= 101 ) THEN
+            qc_pure(jc,jk) = MAX(qc(jc,jk,jb) - qr(jc,jk,jb), qc_gs(jc,jk,jb))
+            qi_pure(jc,jk) = MAX(qi(jc,jk,jb) - qs(jc,jk,jb), qi_gs(jc,jk,jb))
+            IF ( atm_phy_nwp_config(jg)%lhave_graupel ) THEN 
+              qi_pure(jc,jk) = MAX(qi_pure(jc,jk) - qg(jc,jk,jb), qi_gs(jc,jk,jb))
+            END IF 
+          ELSE 
+            qc_pure(jc,jk) = qc(jc,jk,jb)
+            qi_pure(jc,jk) = qi(jc,jk,jb)
+          END IF
         END DO
       END DO
       !$ACC END PARALLEL
-
       !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1) IF(lzacc)
       !$ACC LOOP GANG VECTOR PRIVATE(a_s, beta) &
       !$ACC   PRIVATE(Ccmax, Cgmax, Cimax, Crmax, Csmax) &
@@ -6090,14 +6108,17 @@ CONTAINS
         ! rho = V/m_tot (V is given by the grid anyway
         ! specific quantities q_k = m_k/m_tot -> C_k = q_k * rho  	
         ! maximize hydrometeors over lowest 'top_lev' levels, final unit= g/m^3
+        !
+        ! undo combination of tracers done for rad reff coupling
+        ! because this contradicts the idea of the VIS diagnostic
         Ccmax = 0.0_wp
         Cimax = 0.0_wp
         Crmax = 0.0_wp
         Csmax = 0.0_wp
         Cgmax = 0.0_wp
         DO jk = nlev-top_lev+1,nlev
-          Ccmax = MAX(Ccmax,qc(jc,jk,jb)*rho(jc,jk,jb)*1000.0_wp)
-          Cimax = MAX(Cimax,qi(jc,jk,jb)*rho(jc,jk,jb)*1000.0_wp)
+          Ccmax = MAX(Ccmax,qc_pure(jc,jk)*rho(jc,jk,jb)*1000.0_wp)
+          Cimax = MAX(Cimax,qi_pure(jc,jk)*rho(jc,jk,jb)*1000.0_wp)
           Crmax = MAX(Crmax,qr(jc,jk,jb)*rho(jc,jk,jb)*1000.0_wp)
           Csmax = MAX(Csmax,qs(jc,jk,jb)*rho(jc,jk,jb)*1000.0_wp)
           IF (atm_phy_nwp_config(jg)%lhave_graupel) THEN
@@ -6123,9 +6144,13 @@ CONTAINS
         ! zenith angle
         czen = prm_diag%cosmu0(jc,jb)
 
-        ! Dec 2003 - Roy Rasmussen (NCAR) expression for night vs. day vis
-        ! 1.609 factor is number of km in mile.
-        vis_night = 1.69_wp * ( (vis/1.609_wp)**0.86_wp ) * 1.609_wp
+        IF (itune_vis_diag == 1) THEN
+          ! Dec 2003 - Roy Rasmussen (NCAR) expression for night vs. day vis
+          ! 1.609 factor is number of km in mile.
+          vis_night = 1.69_wp * ( (vis/1.609_wp)**0.86_wp ) * 1.609_wp
+        ELSE
+          vis_night = vis * MIN(2.25_wp, MAX(1.25_wp, (vis/0.05_wp)**0.25_wp) )
+        ENDIF
         zen_fac   = MIN( 0.1_wp, MAX(czen, 0.0_wp) ) / 0.1_wp
         vis       = zen_fac * vis + (1.0_wp-zen_fac) * vis_night
 
@@ -6146,6 +6171,7 @@ CONTAINS
 
     !$ACC WAIT(1)
     !$ACC END DATA
+ 
 
   END SUBROUTINE compute_field_visibility
 

@@ -117,13 +117,17 @@ num_io_procs=${use_num_io_procs:-0}
 export no_of_nodes
 export mpi_procs_pernode
 ((mpi_total_procs=no_of_nodes * mpi_procs_pernode))
+export no_of_nodes mpi_procs_pernode mpi_total_procs
+
+proc0_shift=$use_proc0_shift
+num_io_procs=${use_num_io_procs}
+
 #
 # blocking length
 # ---------------
-nproma=$use_nproma
-nproma_sub=$use_nproma_sub
-nblocks_c=$use_nblocks_c
-proc0_shift=$use_proc0_shift
+: \${nproma:=${use_nproma}} \${nproma_sub:=${use_nproma_sub}} \${nblocks_c:=${use_nblocks_c}}
+export nproma nproma_sub nblocks_c
+
 #
 # Ecrad solver (0 for CPU/vector, 2 for GPU)
 # ------------------------------------------
@@ -196,6 +200,7 @@ export basedir="${use_builddir}"
 # experiments_dir can be predefined in a machine specific run_target_* header
 experiments_dir="\${experiments_dir:=\${basedir}/experiments}"
 export icon_data_rootFolder="${icon_data_rootFolder}"
+export testingFolder_prefix="${testingFolder_prefix:=~/testingFolder}"
 
 # how to start the icon model
 # ---------------------------
@@ -213,6 +218,10 @@ job_name="$job_name"
 # -----------------------
 cdo="${cdo}"
 cdo_diff="${cdo} ${cdo_diff}"
+
+# export the python interpreter
+export PYTHON="${PYTHON}"
+export PYTHONPATH="${BUNDLED_PYTHONPATH}${PYTHONPATH:+:$PYTHONPATH}"
 
 # define script functions used in the experiment run script
 # ---------------------------------------------------------
@@ -846,7 +855,7 @@ set_run_target_rcl()
     set_default use_nproma_sub $use_nproma
     set_default use_nblocks_c 0
     set_default use_nodes 1
-    set_default use_venum_lhost 2
+    set_default use_venum_lhost 1
     set_default use_cpunum_job 6
     set_default use_proc0_shift 1 # VH offloading mode: on with 1 proc
     set_default use_num_io_procs 1
@@ -976,11 +985,11 @@ cat "${use_builddir}/run/add_START_MODEL_function" >> "$output_script"
 #-----------------------------------------------------------------------------
 set_run_target_gpnl()
 {
-  # gpnl*.dwd.de GPU Node with Linux (login node)
+  # gpnl*.dwd.de GPU Node with Linux (NQSV)
     icon_data_rootFolder=${icon_data_rootFolder:="/hpc/rwork0/routfor/test/icon"}
 
     # Use same nproma for GPU and CPU for development purposes
-    set_default use_nproma 4000
+    set_default use_nproma 8000
     set_default use_nproma_sub 800
     set_default use_nblocks_c 0
     set_default use_ecrad_isolver 2 # McICA for OpenACC
@@ -995,14 +1004,29 @@ set_run_target_gpnl()
     # no OpenMP Threads
     set_default use_openmp_threads 1
 
+    cat >> "$output_script" <<EOF
+#PBS -q ${use_queue:-gp_norm_all}
+#PBS -l elapstim_req=00:20:00
+#PBS -l memsz_job=${use_memory:-1920Gb}
+#PBS -l vmemsz_job=1920Gb
+#PBS -l vmemsz_prc=1920Gb
+#PBS -j o
+#PBS -o LOG.${job_name}.o
+#-----------------------------------------------------------------------------
+EOF
 
     start_header
+
     cat >> "$output_script" <<EOF
-#-----------------------------------------------------------------------------
 set +x
 ulimit -Sv unlimited
 
-export ECCODES_DEFINITION_PATH="/hpc/sw/eccodes/definitions/release/2.28.0-2/definitions.edzw:/hpc/sw/eccodes/definitions/release/2.28.0-2/definitions"
+# OpenMPI get confused by this environment variable.
+unset PMIX_INSTALL_PREFIX
+
+if [[ -n "\${PBS_O_WORKDIR}" ]] ; then
+  cd "\${PBS_O_WORKDIR}"
+fi
 EOF
     if [[ "$use_gpu" == "yes" ]]
     then
@@ -1076,6 +1100,8 @@ set_run_target_alps_mch_gpu()
 {
     rootFolder_prefix=/scratch/mch/jenkins/icon
     icon_data_rootFolder=${icon_data_rootFolder:=${rootFolder_prefix}/pool/data/ICON}
+
+    testingFolder_prefix=/scratch/mch/icontest
 
     set_default use_nodes 1
     set_default use_nproma 0
@@ -1155,6 +1181,8 @@ set_run_target_alps_mch_cpu()
 {
     rootFolder_prefix=/scratch/mch/jenkins/icon
     icon_data_rootFolder=${icon_data_rootFolder:=${rootFolder_prefix}/pool/data/ICON}
+
+    testingFolder_prefix=/scratch/mch/icontest
 
     set_default use_nproma 8
     set default use_nproma_sub 8
@@ -1863,7 +1891,7 @@ create_target_header()
                     use_nodes=1
                     use_mpi_procs_pernode=4
                     use_nproma=8000
-		    use_nblocks_c=0
+                    use_nblocks_c=0
                 ;;
             esac
             ;;
@@ -1883,27 +1911,11 @@ create_target_header()
                 ;;
             esac
             ;;
-        *atm_ape*.run|*atm_heldsuarez*.run) # for nproma test
-            case $use_target in
-                balfrin_gpu*)
-                    use_nproma=8000
-		    use_nblocks_c=0
-                ;;
-            esac
-            ;;
-        *atm_qubicc_nc_test*.run|*atm_qubicc_nc_test_nofor*.run|*atm_qubicc_nc_test_onlyfor*.run) # for nproma test
-            case $use_target in
-                balfrin_gpu*)
-                    use_nproma=8000
-		    use_nblocks_c=0
-                ;;
-            esac
-            ;;
-	*atm_tracer_Hadley*)
+        *atm_tracer_Hadley*)
             case $use_target in
                 bullx_gpu*)
                     use_nproma=8000
-		    use_nblocks_c=0
+                    use_nblocks_c=0
                 ;;
             esac
             ;;
@@ -1980,11 +1992,11 @@ create_target_header()
                     ;;
             esac
             ;;
-	*ocean_omip_R2B4_V*)
+	    *ocean_omip_R2B4_V*)
             case $use_target in
                 bullx_gpu*)
                     use_nproma=8000
-		    use_nblocks_c=0
+                    use_nblocks_c=0
                 ;;
             esac
             ;;
@@ -2175,7 +2187,7 @@ create_target_header()
                     ;;
             esac
             ;;
-        *run_ICON_23_R2B4_atmo_waves_coupled*)
+        *run_ICON_23_R2B4_atmo_waves_coupled*|*run_ICON_28_R2B6_IAU_atmo_waves_coupled*)
             case $use_target in
                 rcl)
                     use_nodes=4
@@ -2183,8 +2195,8 @@ create_target_header()
                     use_cpunum_job=3
                     ;;
             esac
-	    ;;
-	*run_ICON_24_R19B7_RUC_ass*)
+            ;;
+        *run_ICON_24_R19B7_RUC_ass*)
             case $use_target in
                 rcl)
                     use_nodes=6
@@ -2193,8 +2205,7 @@ create_target_header()
                     ;;
             esac
             ;;
-
-	*run_ICON_25_R19B7_RUC_fc*)
+        *run_ICON_25_R19B7_RUC_fc*)
             case $use_target in
                 rcl)
                     use_nodes=6
@@ -2203,7 +2214,6 @@ create_target_header()
                     ;;
             esac
             ;;
-	
         *run_ICON_26_R2B4_R2B6_AO-HD_coupled*)
             case $use_target in
                 rcl)
@@ -2213,7 +2223,6 @@ create_target_header()
                     ;;
             esac
             ;;
-
         *atm_nwp_jsbach_test*)
             use_memory="18gb"
             ;;
@@ -2229,7 +2238,7 @@ create_target_header()
                     # no nproma needed since this uses nlbocks_c anyway
                 ;;
             esac
-            ;;    
+            ;;
         *ICON_CLM*)
             case $use_target in
             bullx_gpu*)
@@ -2248,4 +2257,3 @@ create_target_header()
 EOF
     set_run_target_${use_target}
 }
-

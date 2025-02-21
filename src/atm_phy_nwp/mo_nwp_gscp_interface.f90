@@ -557,9 +557,10 @@ CONTAINS
                        prec_h = prm_diag%hail_gsp_rate (:,jb),  &!inout precp rate hail
                        qrsflux= prm_diag%qrs_flux(:,:,jb),      & !inout: 3D precipitation flux for LHN
                        msg_level = msg_level,                   &
-                       & l_cv=.TRUE.,                           &
-                       & ithermo_water=atm_phy_nwp_config(jg)%ithermo_water ) !< in: latent heat choice
-
+                       l_cv=.TRUE.,                             &
+                       ithermo_water=atm_phy_nwp_config(jg)%ithermo_water, & !< in: latent heat choice
+                       cfg_2mom_pert=atm_phy_nwp_config(jg)%cfg_2mom_pert )  !< in: perturbed parameters
+                       
         CASE(5)  ! two-moment scheme with prognostic cloud droplet number
                  ! and budget equations for CCN and IN
 
@@ -602,9 +603,10 @@ CONTAINS
                        prec_g = prm_diag%graupel_gsp_rate (:,jb),&!inout precp rate graupel
                        prec_h = prm_diag%hail_gsp_rate (:,jb),   &!inout precp rate hail
                        qrsflux= prm_diag%qrs_flux(:,:,jb),      & !inout: 3D precipitation flux for LHN
-                       msg_level = msg_level                ,    &
-                       & l_cv=.TRUE.                        ,    &
-                       & ithermo_water=atm_phy_nwp_config(jg)%ithermo_water ) !< in: latent heat choice
+                       msg_level = msg_level                ,   &
+                       l_cv=.TRUE.                        ,     &
+                       ithermo_water=atm_phy_nwp_config(jg)%ithermo_water, & !< in: latent heat choice
+                       cfg_2mom_pert=atm_phy_nwp_config(jg)%cfg_2mom_pert )  !< in: perturbed parameters
 
 #ifdef __ICON_ART
         CASE(6)  ! two-moment scheme with prognostic cloud droplet number
@@ -672,10 +674,11 @@ CONTAINS
                        prec_s = prm_diag%snow_gsp_rate (:,jb),  &!inout precp rate snow
                        prec_g = prm_diag%graupel_gsp_rate (:,jb),&!inout precp rate graupel
                        prec_h = prm_diag%hail_gsp_rate (:,jb),   &!inout precp rate hail
-                       qrsflux= prm_diag%qrs_flux  (:,:,jb)     ,    & !inout: 3D precipitation flux for LHN
+                       qrsflux= prm_diag%qrs_flux  (:,:,jb) ,    & !inout: 3D precipitation flux for LHN
                        msg_level = msg_level                ,    &
-                       & l_cv=.TRUE.                        ,    &
-                       & ithermo_water=atm_phy_nwp_config(jg)%ithermo_water )!< in: latent heat choice
+                       l_cv=.TRUE.                          ,    &
+                       ithermo_water=atm_phy_nwp_config(jg)%ithermo_water, & !< in: latent heat choice
+                       cfg_2mom_pert=atm_phy_nwp_config(jg)%cfg_2mom_pert )  !< in: perturbed parameters
 
         CASE(8)  ! SBM scheme
 

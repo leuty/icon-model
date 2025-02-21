@@ -28,6 +28,10 @@ stages:
     DEFAULT: '\033[0m'
     RED: '\033[0;31m'
 
+.ci_dir:
+  variables:
+    CI_GITIGNORE_DIR: ${CI_PROJECT_DIR}/.ci_dir
+
 Licenses:
   stage: basic
   variables:
@@ -51,34 +55,64 @@ Licenses:
 
 OpenACC Style:
   stage: basic
-  extends: .colorized
+  extends:
+    - .colorized
+    - .ci_dir
   variables:
-    BEAUTIFIER_TAG: "v0.3.0"
-    BEAUTIFIER_REPO: "https://gitlab-ci-token:${CI_JOB_TOKEN}@gitlab.dkrz.de/dwd-sw/icon-openacc-beautifier.git"
+    APK_CACHE_DIR: ${CI_GITIGNORE_DIR}/apk-cache
+    PRE_COMMIT_HOME: ${CI_GITIGNORE_DIR}/pre-commit
+    STYLE_PATCH: acc_style.patch
     GIT_SUBMODULE_STRATEGY: none
   before_script:
-    - git clone --branch "${BEAUTIFIER_TAG}" --depth 1 "${BEAUTIFIER_REPO}"
-  script:
-    # Apply beautifier:
-    - python3 icon-openacc-beautifier/main.py src/
-    # Build git patch:
-    - git diff --ignore-submodules --patch-with-raw > acc_style.patch
+    - mkdir -p "${APK_CACHE_DIR}"
+    - apk --cache-dir "${APK_CACHE_DIR}" --update-cache add git pre-commit
+    - apk --cache-dir "${APK_CACHE_DIR}" cache clean
     - |
-      # Test if patching is necessary:
-      test ! -s acc_style.patch || {
-        printf "${RED}ERROR: There are ACC style errors. Please check your \
-      code. You might want to run the ACC beautifier or \`git apply acc_style.patch\` \
-      (see artifacts).${DEFAULT}\n" >&2
+      # Verify pre-commit cache
+      (
+        set -o pipefail
+        python3 --version | diff - "${PRE_COMMIT_HOME}/python_version.txt" 2>/dev/null || {
+          rm -rf "${PRE_COMMIT_HOME}"
+          mkdir -p "${PRE_COMMIT_HOME}"
+          python3 --version > "${PRE_COMMIT_HOME}/python_version.txt"
+        }
+      )
+  script:
+    - |
+      # pre-commit run --all-files icon-openacc-beautifier
+      pre-commit run --color=always --all-files icon-openacc-beautifier || {
+        git diff --ignore-submodules --patch-with-raw > "${STYLE_PATCH}" && {
+          test -s "${STYLE_PATCH}" && {
+            printf "${RED}The issues can be resolved with the patch (see artifacts):
+        ${CI_JOB_URL}/artifacts/raw/${STYLE_PATCH}.\n${DEFAULT}"
+          } || {
+            printf "${RED}The issues cannot be resolved with a patch.\n${DEFAULT}"
+            rm -f "${STYLE_PATCH}"
+          }
+        } || {
+          printf "${RED}Failed to generate a patch file.\n${DEFAULT}"
+          rm -f "${STYLE_PATCH}"
+        }
+        printf "${RED}You can reproduce this check locally with \`pre-commit run --all-files icon-openacc-beautifier\`.
+      See also ${CI_PROJECT_URL}/-/blob/${CI_DEFAULT_BRANCH}/CONTRIBUTING.md#coding-style.\n${DEFAULT}"
         exit 1
       }
   tags:
-    # Choose python capable runner:
-    - sphinx
+    - alpine
+  cache:
+    - key: apk-pre-commit
+      paths:
+        - ${APK_CACHE_DIR}
+    - key:
+        prefix: ${CI_JOB_NAME_SLUG}
+        files:
+          - .pre-commit-config.yaml
+      paths:
+        - ${PRE_COMMIT_HOME}
   artifacts:
     paths:
-      - acc_style.patch
+      - ${STYLE_PATCH}
     expire_in: 1 week
-    expose_as: 'OpenACC Style Git Patch'
     when: on_failure
   rules:
     - if: $CI_PIPELINE_SOURCE == "web"
@@ -178,7 +212,6 @@ Autoreconf:
     paths:
       - autoreconf.patch
     expire_in: 1 week
-    expose_as: 'Autoreconf Git Patch'
     when: on_failure
   rules:
     - if: $CI_PIPELINE_SOURCE == "merge_request_event"
@@ -225,6 +258,29 @@ Iconbot:
     - when: always
   interruptible: true
 
+Namelist Overview:
+  stage: basic
+  variables:
+    GIT_SUBMODULE_STRATEGY: none
+  tags:
+    - latex, dkrz
+  artifacts:
+    paths:
+      - doc/Namelist_overview/Namelist_overview.pdf
+    expire_in: 1 day
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+      changes:
+        - doc/Namelist_overview/*.tex
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+      when: never
+    - if: $CI_PIPELINE_SOURCE == "web"
+      when: manual
+    - when: always
+  script:
+    - cd doc/Namelist_overview
+    - pdflatex Namelist_overview.tex
+
 Granules:
   stage: test
   needs: []
@@ -234,16 +290,21 @@ Granules:
   rules:
     - if: $CI_PIPELINE_SOURCE == "merge_request_event"
       changes:
-        - ${CI_CONFIG_PATH}
         - .gitlab/ci/granules.yml
         - externals/fortran-support
         - externals/iconmath
         - externals/probtest
         - src/atm_phy_schemes/mo_lookup_tables_constants.f90
-        - src/atm_phy_schemes/mo_satad.f90
+        - src/atm_phy_schemes/mo_thdyn_functions.f90
+        - src/atm_phy_schemes/mo_2mom_mcrph_types.f90
+        - src/atm_phy_schemes/mo_2mom_mcrph_setup.f90
+        - src/configure_model/mo_2mom_mcrph_config.f90
+        - configure_model/mo_nwp_tuning_config.f90
         - src/granules/microphysics_1mom_schemes/**/*
         - src/shared/mo_kind.f90
         - src/shared/mo_physical_constants.f90
+        - src/shared/mo_impl_constants.f90
+        - src/shared/mo_impl_constants_grf.f90
         - test/microphysics_1mom_schemes/**/*
     - if: $CI_PIPELINE_SOURCE == "merge_request_event"
       when: never

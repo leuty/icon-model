@@ -602,18 +602,19 @@ CONTAINS
       END IF
     END SELECT
 
+    CALL deallocateDatetime(datetime_next)
+
   END FUNCTION is_time_ltrig_rad_m1
 
   LOGICAL FUNCTION is_time_experiment_start(current)
 
-    USE mo_initicon_config, ONLY: timeshift
     USE mo_master_control,  ONLY: get_my_process_name
 
     TYPE(t_datetime), POINTER, INTENT(in) :: current
 
     ! take care of possibe IAU-Timeshift
-    IF (TRIM(get_my_process_name()) == 'atm' .AND. timeshift%dt_shift < 0._wp) THEN
-      is_time_experiment_start = current == time_config%tc_exp_startdate + timeshift%mtime_shift
+    IF (TRIM(get_my_process_name()) == 'atm' .AND. time_config%timeshift%dt_shift < 0._wp) THEN
+      is_time_experiment_start = current == time_config%tc_exp_startdate + time_config%timeshift%mtime_shift
     ELSE
       is_time_experiment_start = current == time_config%tc_exp_startdate
     ENDIF
@@ -983,11 +984,19 @@ CONTAINS
     REAL(wp), POINTER                  :: netcdf_read_real_1d(:)
 
     CHARACTER(len=*), PARAMETER :: routine = modname//':netcdf_read_real_1d'
+    REAL(wp), ALLOCATABLE :: arr(:)
 
     NULLIFY(netcdf_read_real_1d)
 
     IF (input_file%type == 1) THEN
-      CALL read_1D(input_file%file_id, TRIM(variable_name), fill_array, netcdf_read_real_1d)
+      IF (PRESENT(fill_array)) THEN
+        CALL read_1D(input_file%file_id, TRIM(variable_name), fill_array)
+        netcdf_read_real_1d => fill_array
+      ELSE
+        CALL read_1D(input_file%file_id, TRIM(variable_name), alloc_array=arr)
+        ALLOCATE(netcdf_read_real_1d(SIZE(arr, 1)))
+        netcdf_read_real_1d(:) = arr(:)
+      END IF
     ELSE IF (input_file%type == 2) THEN
       CALL finish(TRIM(routine), 'Incompatible input file type')
     ELSE
@@ -1004,11 +1013,19 @@ CONTAINS
     REAL(wp), POINTER                 :: netcdf_read_real_2d(:,:)
 
     CHARACTER(len=*), PARAMETER :: routine = modname//':netcdf_read_real_2d'
+    REAL(wp), ALLOCATABLE :: arr(:,:)
 
     NULLIFY(netcdf_read_real_2d)
 
     IF (input_file%type == 1) THEN
-      CALL read_2D(input_file%stream_id, on_cells, TRIM(variable_name), fill_array, netcdf_read_real_2d)
+      IF (PRESENT(fill_array)) THEN
+        CALL read_2D(input_file%stream_id, on_cells, TRIM(variable_name), fill_array)
+        netcdf_read_real_2d => fill_array
+      ELSE
+        CALL read_2D(input_file%stream_id, on_cells, TRIM(variable_name), alloc_array=arr)
+        ALLOCATE(netcdf_read_real_2d(SIZE(arr, 1), SIZE(arr, 2)))
+        netcdf_read_real_2d(:,:) = arr(:,:)
+      END IF
     ELSE IF (input_file%type == 2) THEN
       CALL finish(TRIM(routine), 'Incompatible input file type')
     ELSE
@@ -1042,9 +1059,16 @@ CONTAINS
     REAL(wp), POINTER                 :: netcdf_read_real_2d_1lev_1time(:,:)
 
     CHARACTER(len=*), PARAMETER :: routine = modname//':netcdf_read_real_2d_1lev_1time'
+    REAL(wp), ALLOCATABLE :: arr(:,:)
 
-    CALL read_2D_1lev_1time( &
-      & input_file%stream_id, on_cells, TRIM(variable_name), fill_array,  netcdf_read_real_2d_1lev_1time)
+    IF (PRESENT(fill_array)) THEN
+      CALL read_2D_1lev_1time(input_file%stream_id, on_cells, TRIM(variable_name), fill_array)
+      netcdf_read_real_2d_1lev_1time => fill_array
+    ELSE
+      CALL read_2D_1lev_1time(input_file%stream_id, on_cells, TRIM(variable_name), alloc_array=arr)
+      ALLOCATE(netcdf_read_real_2d_1lev_1time(SIZE(arr, 1), SIZE(arr, 2)))
+      netcdf_read_real_2d_1lev_1time(:,:) = arr(:,:)
+    END IF
 
   END FUNCTION netcdf_read_real_2d_1lev_1time
 
@@ -1059,12 +1083,21 @@ CONTAINS
     REAL(wp), POINTER                         :: netcdf_read_real_2d_extdim(:,:,:)
 
     CHARACTER(len=*), PARAMETER :: routine = modname//':netcdf_read_real_2d_extdim'
+    REAL(wp), ALLOCATABLE :: arr(:,:,:)
 
     NULLIFY(netcdf_read_real_2d_extdim)
 
     IF (input_file%type == 1) THEN
-      CALL read_2D_extdim(input_file%stream_id, on_cells, TRIM(variable_name), fill_array, netcdf_read_real_2d_extdim, &
-                          start_extdim=start_extdim, end_extdim=end_extdim, extdim_name=extdim_name)
+      IF (PRESENT(fill_array)) THEN
+        CALL read_2D_extdim(input_file%stream_id, on_cells, TRIM(variable_name), fill_array, &
+                            start_extdim=start_extdim, end_extdim=end_extdim, extdim_name=extdim_name)
+        netcdf_read_real_2d_extdim => fill_array
+      ELSE
+        CALL read_2D_extdim(input_file%stream_id, on_cells, TRIM(variable_name), alloc_array=arr, &
+                            start_extdim=start_extdim, end_extdim=end_extdim, extdim_name=extdim_name)
+        ALLOCATE(netcdf_read_real_2d_extdim(SIZE(arr, 1), SIZE(arr, 2), SIZE(arr, 3)))
+        netcdf_read_real_2d_extdim(:,:,:) = arr(:,:,:)
+      END IF
     ELSE IF (input_file%type == 2) THEN
       CALL finish(TRIM(routine), 'Incompatible input file type')
     ELSE
@@ -1081,11 +1114,19 @@ CONTAINS
     INTEGER, POINTER                   :: netcdf_read_int_2d(:,:)
 
     CHARACTER(len=*), PARAMETER :: routine = modname//':netcdf_read_int_2d'
+    INTEGER, ALLOCATABLE :: arr(:,:)
 
     NULLIFY(netcdf_read_int_2d)
 
     IF (input_file%type == 1) THEN
-      CALL read_2D_int(input_file%stream_id, on_cells, TRIM(variable_name), fill_array, netcdf_read_int_2d)
+      IF (PRESENT(fill_array)) THEN
+        CALL read_2D_int(input_file%stream_id, on_cells, TRIM(variable_name), fill_array)
+        netcdf_read_int_2d => fill_array
+      ELSE
+        CALL read_2D_int(input_file%stream_id, on_cells, TRIM(variable_name), alloc_array=arr)
+        ALLOCATE(netcdf_read_int_2d(SIZE(arr, 1), SIZE(arr, 2)))
+        netcdf_read_int_2d(:,:) = arr(:,:)
+      END IF
     ELSE IF (input_file%type == 2) THEN
       CALL finish(TRIM(routine), 'Incompatible input file type')
     ELSE

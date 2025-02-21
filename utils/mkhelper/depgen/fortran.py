@@ -47,7 +47,7 @@ class Parser:
         r"^\s*module\s+(?!(?:procedure|subroutine|function)\s)(\w+)\s*$", re.I
     )
     _re_submodule_start = re.compile(
-        r"^\s*submodule\s+\(\s*(\w+)(?:\s*:\s*(\w+)\s*)?\s*\)\s+(\w+)\s*$", re.I
+        r"^\s*submodule\s*\(\s*(\w+)(?:\s*:\s*(\w+)\s*)?\s*\)\s*(\w+)\s*$", re.I
     )
     _re_module_use = re.compile(
         r"^\s*use(?:\s+|(?:\s*,\s*((?:non_)?intrinsic))?\s*::\s*)(\w+)", re.I
@@ -252,7 +252,7 @@ class Parser:
                     self.debug_callback(
                         line,
                         "ignored module subroutine/function "
-                        "(not in the module scope)".format(current_module),
+                        "(not in the module scope)",
                     )
                 continue
 

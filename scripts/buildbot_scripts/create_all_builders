@@ -23,7 +23,7 @@ fi
 
 machine=mpimac
 ./addmachine $machine --list $list
-./addbuilder mpimac_gcc             --machine $machine       --build_script="./config/buildbot/mpimac_gcc"                   --configureflags="--with-mpi --with-openmp"         --builderflags="build_only"  --list $list
+./addbuilder mpimac_gcc --machine $machine --build_script="./config/buildbot/mpimac_gcc" --configureflags="--with-mpi --with-openmp" --builderflags="Active" --list $list
 
 # breeze builders
 machine=breeze

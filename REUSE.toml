@@ -20,14 +20,11 @@ path = [
   "config/**/*.readme",
   "config/**/README.md",
   "data/README",
-  "doc/**/*.bib",
   "doc/**/*.eps",
-  "doc/**/*.fig",
   "doc/**/*.jpg",
   "doc/**/*.md",
   "doc/**/*.pdf",
   "doc/**/*.png",
-  "doc/**/*.ps",
   "doc/**/*.svg",
   "run/**/README*",
   "schedulers/ecmwf/doc/doc.html",
@@ -79,6 +76,7 @@ path = [
   "test/microphysics_1mom_schemes/tolerance/*",
   "utils/plotems/doc/*.pdf",
   "vertical_coord_tables/atm_hyb_sz_*",
+  ".gitlab/merge_request_templates/nwp-feature.md",
 ]
 SPDX-FileCopyrightText = "2004-2024, DWD, MPI-M, DKRZ, KIT, ETH, MeteoSwiss"
 SPDX-License-Identifier = "BSD-3-Clause"

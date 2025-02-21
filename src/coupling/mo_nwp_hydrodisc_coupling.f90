@@ -142,7 +142,7 @@ CONTAINS
     !-------------------------------------------------------------------------
 
     !$OMP PARALLEL
-    CALL init(buffer(:,:,:))
+    CALL init(buffer(:,:,:), lacc=.FALSE.)
     !$OMP END PARALLEL
 
 !ICON_OMP_PARALLEL_DO PRIVATE(jb, jc, i_startidx, i_endidx, isubs) ICON_OMP_RUNTIME_SCHEDULE

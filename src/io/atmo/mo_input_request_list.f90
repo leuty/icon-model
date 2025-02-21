@@ -35,7 +35,7 @@ MODULE mo_input_request_list
     USE mo_exception, ONLY: message, finish
     USE mo_grid_config, ONLY: n_dom
     USE mo_impl_constants, ONLY: SUCCESS
-    USE mo_initicon_config, ONLY: timeshift, lconsistency_checks
+    USE mo_initicon_config, ONLY: lconsistency_checks
     USE mo_parallel_config, ONLY: use_omp_input
     USE mo_initicon_utils, ONLY: initicon_inverse_post_op
     USE mo_input_container, ONLY: t_InputContainer, inputContainer_make
@@ -402,7 +402,7 @@ CONTAINS
                 ! add timeshift to INI-datetime to get true starting time
                 ALLOCATE(startTime, STAT = error)
                 IF(error /= SUCCESS) CALL fail("memory allocation failure", variableName, resultVar)
-                startTime = iniTime + timeshift%mtime_shift
+                startTime = iniTime + time_config%timeshift%mtime_shift
                 IF(.NOT.(tempTime == startTime)) THEN
                     CALL datetimeToString(startTime, debugDatetimeString)
                     CALL fail("vtime of first-guess field ("//vtimeString//") does not match model start time (" &

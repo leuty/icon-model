@@ -114,8 +114,8 @@ CONTAINS
 
       ! init water depth
 !$OMP PARALLEL
-      CALL copy(src=wave_ext_data(jg)%bathymetry_c, dest=wave_ext_data(jg)%depth_c)
-      CALL copy(src=wave_ext_data(jg)%bathymetry_e, dest=wave_ext_data(jg)%depth_e)
+      CALL copy(src=wave_ext_data(jg)%bathymetry_c, dest=wave_ext_data(jg)%depth_c, lacc=.FALSE.)
+      CALL copy(src=wave_ext_data(jg)%bathymetry_e, dest=wave_ext_data(jg)%depth_e, lacc=.FALSE.)
 !$OMP END PARALLEL
 
 
@@ -202,8 +202,8 @@ CONTAINS
     REAL(vp) :: depth_grad_c_4d(SIZE(geo_depth_grad_c,1),SIZE(geo_depth_grad_c,2),1,SIZE(geo_depth_grad_c,3))
 
 !$OMP PARALLEL
-    CALL copy(src=depth_c, dest=depth_c_3d(:,1,:))
-    CALL init(depth_grad_c_4d(:,:,:,:))
+    CALL copy(src=depth_c, dest=depth_c_3d(:,1,:), lacc=.FALSE.)
+    CALL init(depth_grad_c_4d(:,:,:,:), lacc=.FALSE.)
 !$OMP END PARALLEL
 
     CALL grad_green_gauss_cell(depth_c_3d, p_patch, p_int_state, depth_grad_c_4d, &
@@ -211,7 +211,7 @@ CONTAINS
          &                     opt_rlstart=2, opt_rlend=min_rlcell)
 
 !$OMP PARALLEL
-    CALL copy(src=depth_grad_c_4d(:,:,1,:), dest=geo_depth_grad_c(:,:,:))
+    CALL copy(src=depth_grad_c_4d(:,:,1,:), dest=geo_depth_grad_c(:,:,:), lacc=.FALSE.)
 !$OMP END PARALLEL
 
   END SUBROUTINE compute_depth_gradient

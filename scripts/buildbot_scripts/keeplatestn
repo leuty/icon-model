@@ -33,13 +33,27 @@ def remove(f):
         os.remove(f)
 
 
+def mtime_if_exists(file_or_directory):
+    """
+    Returns mtime if file_or_directory (still) exists.
+    Returns 0 else
+    """
+    try:
+        mtime = os.path.getmtime(file_or_directory)
+    except FileNotFoundError:
+        mtime = 0
+    return mtime
+
+
 def keeplatestn(N, files, dry_run=False, verbose=False):
     # Sort list of files based on last modification time in descending order
-    files = sorted(files, key=os.path.getmtime, reverse=True)
+    files = sorted(files, key=mtime_if_exists, reverse=True)
 
     for item in files[N:]:
         try:
-            if not dry_run:
+            if dry_run:
+                os.stat(item)
+            else:
                 remove(item)
         except FileNotFoundError:
             # file might be removed in the meantime since the list files was generated

@@ -22,7 +22,7 @@ MODULE mo_load_singlefile_restart
   USE mo_kind,               ONLY: dp, sp
   USE mo_model_domain,       ONLY: t_patch
   USE mo_mpi,                ONLY: my_process_is_mpi_workroot, p_bcast, p_comm_work
-  USE mo_restart_nml_and_att,ONLY: getAttributesForRestarting, ocean_initFromRestart_OVERRIDE
+  USE mo_restart_nml_and_att,ONLY: getAttributesForRestarting
   USE mo_key_value_store,    ONLY: t_key_value_store
   USE mo_restart_util,       ONLY: restartSymlinkName
   USE mo_restart_var_data,   ONLY: get_var_3d_ptr, has_valid_time_level
@@ -33,6 +33,7 @@ MODULE mo_load_singlefile_restart
     & distrib_read, distrib_nf_close, idx_lvl_blk
   USE mo_netcdf_errhandler,  ONLY: nf
   USE mo_netcdf
+  USE mo_master_config,      ONLY: isInitFromRestart
   USE mo_dynamics_config,    ONLY: nnow, nnow_rcf
   USE mo_fortran_tools,      ONLY: t_ptr_3d, t_ptr_3d_int, t_ptr_3d_sp
 
@@ -106,7 +107,7 @@ CONTAINS
         skip(iV) = .NOT.has_valid_time_level(vDat(iV)%p%info, ptc%id, nnow(ptc%id), nnow_rcf(ptc%id))
         IF (.NOT.skip(iV)) THEN
           skip(iV) = nf90_inq_varid(fID, TRIM(vDat(iV)%p%info%name), dummy) .NE. NF90_NOERR
-          IF ((ocean_initFromRestart_OVERRIDE .OR. vDat(iV)%p%info%lrestart_cont) .AND. skip(iV)) THEN
+          IF ((isInitFromRestart() .OR. vDat(iV)%p%info%lrestart_cont) .AND. skip(iV)) THEN
             CALL warning(routine, "variable not found: '"//TRIM(vDat(iV)%p%info%name))
           ELSE IF (skip(iV)) THEN
             CALL finish(routine, "variable not found: "//TRIM(vDat(iV)%p%info%name))

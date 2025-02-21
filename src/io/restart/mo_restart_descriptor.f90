@@ -312,7 +312,7 @@ CONTAINS
       ENDDO
       CALL nf(nf90_set_fill(ncid, NF90_NOFILL, i), routine)
       CALL nf(nf90_enddef(ncid), routine)
-      CALL nf(nf90_put_var(ncid, tvid, REAL(date_dayas), [1]), routine)
+      CALL nf(nf90_put_var(ncid, tvid, date_dayas, [1]), routine)
     END SUBROUTINE restartfile_open
   END SUBROUTINE restartDescriptor_writeFiles
 

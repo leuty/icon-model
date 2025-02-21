@@ -18,11 +18,13 @@ MODULE mo_wave_model
        &                                my_process_is_io, my_process_is_pref, my_process_is_mpi_test, &
        &                                stop_mpi, my_process_is_work, process_mpi_io_size, &
        &                                my_process_is_stdio
+  USE mo_sync,                    ONLY: global_max
   USE mo_timer,                   ONLY: init_timer, timer_start, timer_stop, &
-       &                                timers_level,timer_model_init, &
+       &                                timers_level, timer_model_init, &
        &                                timer_domain_decomp, print_timer, &
        &                                timer_coupling
-  USE mo_master_config,           ONLY: isRestart
+  USE mo_master_config,           ONLY: isRestart, isInitFromRestart
+  USE mo_wave_timer,              ONLY: init_wave_timer
   USE mo_master_control,          ONLY: wave_process, get_my_process_name
   USE mo_impl_constants,          ONLY: success, pio_type_async, pio_type_cdipio
   USE mo_dynamics_config,         ONLY: configure_dynamics
@@ -50,8 +52,7 @@ MODULE mo_wave_model
   USE mo_model_domain,            ONLY: p_patch
   USE mo_name_list_output_config, ONLY: use_async_name_list_io
 
-  USE mo_name_list_output_init,   ONLY: init_name_list_output, parse_variable_groups, &
-       &                                output_file, create_vertical_axes
+  USE mo_name_list_output_init,   ONLY: parse_variable_groups, output_file, create_vertical_axes
   USE mo_wave,                    ONLY: wave
   USE mo_wave_config,             ONLY: configure_wave, wave_config
 
@@ -131,15 +132,17 @@ CONTAINS
     CHARACTER(LEN=*), INTENT(in) :: shr_namelist_filename
 
     CHARACTER(*), PARAMETER :: routine = "mo_wave_model:construct_wave_model"
-    INTEGER                 :: dedicatedRestartProcs
+    INTEGER :: dedicatedRestartProcs
     INTEGER :: error_status
+    INTEGER :: nproma_max
+
     ! initialize global registry of lon-lat grids
     CALL lonlat_grids%init()
 
     !---------------------------------------------------------------------
     ! 0. If this is a resumed or warm-start run...
     !---------------------------------------------------------------------
-    IF (isRestart()) THEN
+    IF (isRestart() .OR. isInitFromRestart()) THEN
       CALL message('','Read restart file meta data ...')
       CALL read_restart_header(get_my_process_name())
     ENDIF
@@ -187,7 +190,9 @@ CONTAINS
     !-------------------------------------------------------------------
     ! 3.2 Initialize various timers
     !-------------------------------------------------------------------
-    IF (ltimer) CALL init_timer
+    CALL init_timer              ! init generic timers
+    CALL init_wave_timer(ltimer) ! init wave-specific timers
+
     IF (timers_level > 1) CALL timer_start(timer_model_init)
 
     !-------------------------------------------------------------------
@@ -211,6 +216,12 @@ CONTAINS
     IF (my_process_is_work() .OR. my_process_is_mpi_test()) THEN
       CALL build_decomposition(num_lev, nshift, is_ocean_decomposition = .FALSE.)
     ENDIF
+
+    IF (ignore_nproma_use_nblocks_c .OR. ignore_nproma_use_nblocks_e) THEN
+      nproma_max = global_max(nproma)
+      CALL update_nproma_for_io_procs(nproma_max)
+    ENDIF
+
     IF (timers_level > 4) CALL timer_stop(timer_domain_decomp)
 
     !-------------------------------------------------------------------

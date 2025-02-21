@@ -1239,6 +1239,7 @@ CONTAINS
       CALL copy ( &
         & evapo_sft(:,:,:), &
         & mem%flx_water_vapor_sft(:,:,:), &
+        & lacc=.TRUE., &
         & opt_acc_async=.TRUE. &
       )
 

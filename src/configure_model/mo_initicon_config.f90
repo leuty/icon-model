@@ -24,7 +24,6 @@ MODULE mo_initicon_config
   USE mo_model_domain,       ONLY: t_patch
   USE mo_grid_config,        ONLY: l_limited_area, nroot
   USE mo_master_config,      ONLY: getModelBaseDir
-  USE mtime,                 ONLY: timedelta
   USE mo_upatmo_config,      ONLY: upatmo_config
 
   IMPLICIT NONE
@@ -65,8 +64,6 @@ MODULE mo_initicon_config
   PUBLIC :: is_iau_active
   PUBLIC :: iau_wgt_dyn, iau_wgt_adv
   PUBLIC :: niter_divdamp, niter_diffu
-  PUBLIC :: t_timeshift
-  PUBLIC :: timeshift
   PUBLIC :: initicon_config
   PUBLIC :: aerosol_fg_present
   PUBLIC :: lanaread_tseasfc
@@ -85,11 +82,6 @@ MODULE mo_initicon_config
   PUBLIC :: anaFilename
   PUBLIC :: anaFiletype
 
-  TYPE t_timeshift
-    REAL(wp)                 :: dt_shift
-    TYPE(timedelta), POINTER :: mtime_shift
-    TYPE(timedelta), POINTER :: mtime_absshift   ! absolute value
-  END TYPE t_timeshift
 
   ! ----------------------------------------------------------------------------
   ! 1.0 Namelist variables for the init_icon preprocessing program
@@ -162,9 +154,6 @@ MODULE mo_initicon_config
 
   REAL(wp) :: dt_iau        ! Time interval during which incremental analysis update (IAU) is performed [s]. 
                             ! Only required for init_mode=MODE_IAU, MODE_IAU_OLD
-
-  TYPE(t_timeshift) :: &    ! Allows IAU runs to start earlier than the nominal simulation start date 
-    &  timeshift            ! without showing up in the output metadata
 
   INTEGER  :: type_iau_wgt  ! Type of weighting function for IAU.
                             ! 1: Top-hat
