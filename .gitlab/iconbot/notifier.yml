@@ -22,8 +22,10 @@
     labels: [Release notes]
   # CI:
   - file_names:
+      - .clang-format
       - .gitlab-ci.yml
       - .gitlab/ci/*
+      - .pre-commit-config.yaml
       - scripts/ci_scripts/*
       - scripts/cscs_ci/*
     labels: [CI]
