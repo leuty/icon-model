@@ -85,14 +85,14 @@ Licenses:
       }
     - ${CI_PROJECT_DIR}/scripts/ci_scripts/check_license.py
 
-OpenACC Style:
+Coding Style:
   extends: .common_pre_commit
   variables:
-    STYLE_PATCH: acc_style.patch
+    STYLE_PATCH: style.patch
   script:
     - |
-      # pre-commit run --all-files icon-openacc-beautifier
-      pre-commit run --color=always --all-files icon-openacc-beautifier || {
+      # pre-commit run --all-files
+      pre-commit run --color=always --all-files || {
         git diff --ignore-submodules --patch-with-raw > "${STYLE_PATCH}" && {
           test -s "${STYLE_PATCH}" && {
             printf "${RED}The issues can be resolved with the patch (see artifacts):
@@ -105,7 +105,7 @@ OpenACC Style:
           printf "${RED}Failed to generate a patch file.\n${DEFAULT}"
           rm -f "${STYLE_PATCH}"
         }
-        printf "${RED}You can reproduce this check locally with \`pre-commit run --all-files icon-openacc-beautifier\`.
+        printf "${RED}You can reproduce this check locally with \`pre-commit run --all-files\`.
       See also ${CI_PROJECT_URL}/-/blob/${CI_DEFAULT_BRANCH}/CONTRIBUTING.md#coding-style.\n${DEFAULT}"
         exit 1
       }
@@ -146,16 +146,22 @@ General Style:
     - when: always
   interruptible: true
 
-Autoreconf:
+Autoconf:
   stage: basic
-  extends: .colorized
+  extends:
+    - .colorized
+    - .ci_dir
   variables:
+    APK_CACHE_DIR: ${CI_GITIGNORE_DIR}/apk-cache
     AUTOCONF_VERSION: "2.69"
     AUTOCONF_SHA256: 954bd69b391edc12d6a4a51a2dd1476543da5c6bbf05a95b59dc0dd6fd4c2969
-    AUTOCONF_DIR: ${CI_PROJECT_DIR}/autoconf
+    AUTOCONF_DIR: ${CI_GITIGNORE_DIR}/autoconf
+    AUTOCONF_PATCH: autoconf.patch
     GIT_SUBMODULE_STRATEGY: none
   before_script:
-    - apk add --no-cache automake curl git m4 make perl
+    - mkdir -p "${APK_CACHE_DIR}"
+    - apk --cache-dir "${APK_CACHE_DIR}" --update-cache add automake curl git m4 make perl
+    - apk --cache-dir "${APK_CACHE_DIR}" cache clean
     - |
       # Fetching Autoconf
       test -f "${AUTOCONF_DIR}/autoconf-${AUTOCONF_VERSION}.tar.gz" && \
@@ -170,7 +176,7 @@ Autoreconf:
         } && \
         echo "${AUTOCONF_SHA256} autoconf-${AUTOCONF_VERSION}.tar.gz" | sha256sum -c
       ) || {
-        printf "${RED}ERROR: failed to fetch Autoconf ${AUTOCONF_VERSION}${DEFAULT}\n"
+        printf "${RED}Failed to fetch Autoconf ${AUTOCONF_VERSION}.\n${DEFAULT}"
         exit 1
       }
     - |
@@ -182,36 +188,42 @@ Autoreconf:
         ./configure && \
         make -j4 install
       ) || {
-        printf "${RED}ERROR: failed to install Autoconf ${AUTOCONF_VERSION}${DEFAULT}\n"
+        printf "${RED}Failed to install Autoconf ${AUTOCONF_VERSION}.\n${DEFAULT}"
         exit 1
       }
   script:
     - autoreconf -fvi
-    - git diff --ignore-submodules --patch-with-raw > autoreconf.patch
     - |
       # Checking the consistency
-      test ! -s autoreconf.patch || {
-        printf "${RED}ERROR: the automatically generated Autotools files \
-      (e.g. 'configure') are inconsistent with 'configure.ac' and/or \
-      Autoconf ${AUTOCONF_VERSION} (see artifacts)${DEFAULT}\n"
+      git diff --ignore-submodules --patch-with-raw > "${AUTOCONF_PATCH}" || {
+        printf "${RED}Failed to generate a patch file.\n${DEFAULT}"
+        rm -f "${AUTOCONF_PATCH}"
         exit 1
+      }
+      test ! -s "${AUTOCONF_PATCH}" || {
+        printf "${RED}The automatically generated Autotools files (e.g. 'configure') \
+      are inconsistent with 'configure.ac' and/or Autoconf ${AUTOCONF_VERSION}.
+      The issue can be resolved with the patch (see artifacts):
+        ${CI_JOB_URL}/artifacts/raw/${AUTOCONF_PATCH}.\n${DEFAULT}"
+          exit 1
       }
   tags:
     - alpine
   cache:
-    policy: push
-    key: ${AUTOCONF_SHA256}
-    paths:
-      - ${AUTOCONF_DIR}/autoconf-${AUTOCONF_VERSION}.tar.gz
+    - key: apk-autoconf-prereqs
+      paths:
+        - ${APK_CACHE_DIR}
+    - key: ${AUTOCONF_SHA256}
+      paths:
+        - ${AUTOCONF_DIR}/autoconf-${AUTOCONF_VERSION}.tar.gz
   artifacts:
     paths:
-      - autoreconf.patch
+      - ${AUTOCONF_PATCH}
     expire_in: 1 week
     when: on_failure
   rules:
     - if: $CI_PIPELINE_SOURCE == "merge_request_event"
       changes:
-        - ${CI_CONFIG_PATH}
         - config.h.in
         - configure
         - configure.ac
@@ -244,7 +256,6 @@ Iconbot:
   rules:
     - if: $CI_PIPELINE_SOURCE == "merge_request_event"
       changes:
-        - ${CI_CONFIG_PATH}
         - ${ICONBOT_CONFIG}
     - if: $CI_PIPELINE_SOURCE == "merge_request_event"
       when: never
