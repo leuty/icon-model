@@ -52,6 +52,7 @@ SPDX-License-Identifier = "CC-BY-4.0"
 # "Unimportant" technical files:
 path = [
   ".gitlab/issue_templates/bug-report.md",
+  ".gitlab/issue_templates/build-failure-report.md",
   ".gitlab/issue_templates/feature-request.md",
   ".gitlab/merge_request_templates/default.md",
   ".gitlab/merge_request_templates/nwp-feature.md",
