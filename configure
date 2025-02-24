@@ -10953,7 +10953,7 @@ esac
 esac
      shift
    done
-   set dummy CFLAGS="$subdir_CFLAGS $ICON_YAC_CFLAGS" FCFLAGS="$subdir_FCFLAGS $ICON_YAC_FCFLAGS" AR="$AR" RANLIB="$RANLIB" MPI_CFLAGS= MPI_CLIBS= MPI_FCFLAGS= MPI_FCLIBS= YAXT_CLIBS= YAXT_FCLIBS= NETCDF_CFLAGS= NETCDF_CLIBS= FYAML_CFLAGS= FYAML_CLIBS= MTIME_CLIBS= FORTRAN_LAPACK_CLIBS= PYTHON="$PYTHON" --enable-silent-rules="$enable_silent_rules" --disable-maintainer-mode --enable-rpaths="$enable_rpaths" --disable-openmp --enable-mci --disable-utils --disable-examples --disable-tools --enable-deprecated --enable-netcdf --enable-python-bindings="$icon_yac_python" --with-pic="$icon_yac_python" --with-external-lapack=fortran --with-external-mtime; shift
+   set dummy CFLAGS="$subdir_CFLAGS $ICON_YAC_CFLAGS" FCFLAGS="$subdir_FCFLAGS $ICON_YAC_FCFLAGS" AR="$AR" RANLIB="$RANLIB" MPI_CFLAGS= MPI_CLIBS= MPI_FCFLAGS= MPI_FCLIBS= YAXT_CLIBS= YAXT_FCLIBS= NETCDF_CFLAGS= NETCDF_CLIBS= FYAML_CFLAGS= FYAML_CLIBS= MTIME_CLIBS= FORTRAN_LAPACK_CLIBS= PYTHON="$PYTHON" --enable-silent-rules="$enable_silent_rules" --disable-maintainer-mode --enable-rpaths="$enable_rpaths" --disable-openmp --enable-mci --disable-utils --disable-examples --disable-tools --disable-deprecated --enable-netcdf --enable-python-bindings="$icon_yac_python" --with-pic="$icon_yac_python" --with-external-lapack=fortran --with-external-mtime; shift
    for acx_tmp; do
      case $acx_tmp in #(
   *\'*) :

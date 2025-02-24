@@ -2529,7 +2529,7 @@ version of YAC library @<:@default=$ICON_BUNDLED_CFLAGS@:>@])dnl
      [--enable-silent-rules="$enable_silent_rules"],
      [--disable-maintainer-mode], [--enable-rpaths="$enable_rpaths"],
      [--disable-openmp], [--enable-mci], [--disable-utils],
-     [--disable-examples], [--disable-tools], [--enable-deprecated],
+     [--disable-examples], [--disable-tools], [--disable-deprecated],
      [--enable-netcdf], [--enable-python-bindings="$icon_yac_python"],
      [--with-pic="$icon_yac_python"], [--with-external-lapack=fortran],
      [--with-external-mtime])
