@@ -85,10 +85,11 @@ if next_date > final_date:
     logging.warning('next date after final date; setting next date to final date')
     next_date = final_date
 
-end_date = next_date + mtime.TimeDelta('-%{atmo_time_step}')
+end_date = (next_date +
+    mtime.TimeDelta('-%{atmo_time_step or ocean_time_step or "PT0.001S"}'))
 
-atmo_time_step = mtime.TimeDelta('%{atmo_time_step}')
-ocean_time_step = mtime.TimeDelta('%{ocean_time_step}')
+atmo_time_step = mtime.TimeDelta('%{atmo_time_step or "PT0S"}')
+ocean_time_step = mtime.TimeDelta('%{ocean_time_step or "PT0S"}')
 
 # Format cdo shifttime commands for Makefile generation
 
