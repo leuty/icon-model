@@ -11427,7 +11427,7 @@ fi
             if test "x$with_external_yaxt" = xno; then :
   as_fn_append icon_hd_yac_lib " ${icon_abs_top_builddir}/externals/yaxt/src/.libs/libyaxt_c.a"
 fi
-            set dummy YAC_FCFLAGS="${FC_MOD_IN}${icon_abs_top_builddir}/externals/yac/src/mci" acx_cv_fc_module_MO_YAC_FINTERFACE=yes acx_cv_fc_lib_func_YAC_FGET_VERSION="${icon_hd_yac_lib}"; shift
+            set dummy YAC_FCFLAGS="${FC_MOD_IN}${icon_abs_top_builddir}/externals/yac/src/mci" acx_cv_fc_module_YAC=yes acx_cv_fc_lib_func_YAC_FGET_VERSION="${icon_hd_yac_lib}"; shift
    for acx_tmp; do
      case $acx_tmp in #(
   *\'*) :

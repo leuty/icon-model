@@ -2799,7 +2799,7 @@ ${icon_abs_top_builddir}/externals/yac/src/core/libyac_core.a"
             ACX_SUBDIR_APPEND_ARGS([externals/hd],
               [YAC_FCFLAGS=dnl
 "${FC_MOD_IN}${icon_abs_top_builddir}/externals/yac/src/mci"],
-              [acx_cv_fc_module_MO_YAC_FINTERFACE=yes],
+              [acx_cv_fc_module_YAC=yes],
               [acx_cv_fc_lib_func_YAC_FGET_VERSION="${icon_hd_yac_lib}"])])])])
 
 ######################## BUNDLED PACKAGES FINALIZATION #########################
