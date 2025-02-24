@@ -1,7 +1,7 @@
 dnl ICON
 dnl
 dnl ---------------------------------------------------------------
-dnl Copyright (C) 2004-2024, DWD, MPI-M, DKRZ, KIT, ETH, MeteoSwiss
+dnl Copyright (C) 2004-2025, DWD, MPI-M, DKRZ, KIT, ETH, MeteoSwiss
 dnl Contact information: icon-model.org
 dnl
 dnl See AUTHORS.TXT for a list of authors
