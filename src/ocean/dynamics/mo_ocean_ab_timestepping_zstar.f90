@@ -1402,10 +1402,10 @@ CONTAINS
       !!ICON_OMP END PARALLEL WORKSHARE
 
       free_sfc_solver%b_loc_wp => ocean_state(1)%p_aux%p_rhs_sfc_eq
-  
+
       ! call solver
       CALL free_sfc_solver%solve(n_it, n_it_sp, lacc=lzacc)
-      !$ACC UPDATE SELF(free_sfc_solver%res_loc_wp) IF(lzacc)
+      ! 2025-02 DKRZ-dzo: free_sfc_solver%res_loc_wp is never in GPU memory
       rn = MERGE(free_sfc_solver%res_loc_wp(1), 0._wp, n_it .NE. 0)
       
       ! output of sum of iterations every timestep

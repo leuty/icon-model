@@ -22,7 +22,6 @@
 #SBATCH --output=LOG.exp.ocean_omip_R2B4_V1_GM0_comparison.run.run.o
 #SBATCH  --error=LOG.exp.ocean_omip_R2B4_V1_GM0_comparison.run.run.o
 #SBATCH --time=00:10:00
-#SBATCH --qos=buildbot
 
 module load cdo
 

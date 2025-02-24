@@ -531,7 +531,7 @@ CONTAINS
     CASE (1) ! shallow water mode
 
     CASE default !3D model
-
+  
       ! {{{ compute global mean values of:
       ! total_salt
       total_salt = 0.0_wp
@@ -561,6 +561,9 @@ CONTAINS
 
       END IF
 
+      ! FIXME 2025-01 DKRZ-dzo: levels_horizontal_mean yields a different result for ssh_global
+      !                         at the moment, therefore the calculation is temporarily on CPU
+
       ! {{{ compute global mean values of:
       ! sea surface height
       ssh_global_mean = 0.0_wp
@@ -568,13 +571,12 @@ CONTAINS
         CALL levels_horizontal_mean( sea_surface_height, &
             & patch_2d%cells%area(:,:), &
             & owned_cells, &
-            & ssh_global_mean, lopenacc=lzacc)
+            & ssh_global_mean, lopenacc=.FALSE.)
       END IF
       monitor%ssh_global = ssh_global_mean
       IF (my_process_is_stdio() .and. check_total_volume) THEN
         WRITE(0,*) ' -- monitor%ssh_global:', monitor%ssh_global
       ENDIF
-
 
       ! sea surface temperature
       sst_global = 0.0_wp
@@ -698,43 +700,53 @@ CONTAINS
       END IF
       monitor%totalsnowfall = totalsnowfall_flux
 
+      ! FIXME 2025-01 DKRZ-dzo: subset_sum yields a different result at the moment, therefore
+      !                         the whole calculation is temporarily on CPU. Note that
+      !                         northern and southern Hemisphere are therefore not offloaded
+      !$ACC UPDATE SELF(ice%vol, ice%concsum) IF(lzacc)
+
       ! ice volume and extend
       ice_volume_nh = 0.0_wp
       IF (isRegistered('ice_volume_nh')) THEN
       ice_volume_nh = subset_sum( ice%vol(:,1,:)*p_diag%northernHemisphere(:,:), &
-          & owned_cells, lopenacc=lzacc)
+          & owned_cells, lopenacc=.FALSE.)
       END IF
       monitor%ice_volume_nh = ice_volume_nh/1.0e9_wp !scaling to km^3
 
       ice_volume_sh = 0.0_wp
       IF (isRegistered('ice_volume_sh')) THEN
       ice_volume_sh = subset_sum( ice%vol(:,1,:)*p_diag%southernHemisphere(:,:), &
-          & owned_cells, lopenacc=lzacc)
+          & owned_cells, lopenacc=.FALSE.)
       END IF
       monitor%ice_volume_sh = ice_volume_sh/1.0e9_wp !scaling to km^3
 
       ice_extent_nh = 0.0_wp
       IF (isRegistered('ice_extent_nh')) THEN
       ice_extent_nh = subset_sum( ice%concsum*p_diag%northernHemisphere*patch_2d%cells%area, &
-          & owned_cells, lopenacc=lzacc)
+          & owned_cells, lopenacc=.FALSE.)
       END IF
       monitor%ice_extent_nh = ice_extent_nh/1.0e6_wp !scaling to km^2
 
       ice_extent_sh = 0.0_wp
       IF (isRegistered('ice_extent_sh')) THEN
       ice_extent_sh = subset_sum( ice%concsum*p_diag%southernHemisphere*patch_2d%cells%area, &
-          & owned_cells, lopenacc=lzacc)
+          & owned_cells, lopenacc=.FALSE.)
       END IF
       monitor%ice_extent_sh = ice_extent_sh/1.0e6_wp !scaling to km^2
 
-      w = p_diag%w
-      IF ( ( vert_cor_type == 1 ) ) THEN
-        w = p_diag%w_deriv
+      ! Note that w is currently not used in offloaded context and therefore no ACC KERNELS are used
+      IF ( ( vert_cor_type == 0 ) ) THEN
+        w(:,:,:) = p_diag%w(:,:,:)
+      ELSE
+        w(:,:,:) = p_diag%w_deriv(:,:,:)
       ENDIF
 
       ! energy/enstrophy
       global_mean_potEnergy = 0.0_wp
       IF (isRegistered('pot_energy_global')) THEN
+        ! FIXME 2025-01 DKRZ-dzo: potential_energy and potential_energy_zstar yield a different
+        !                         result at the moment, therefore w and the whole calculation is
+        !                         temporarily on CPU
         IF (vert_cor_type .EQ. 0) THEN
           global_mean_potEnergy = potential_energy(&
               & w, &
@@ -743,7 +755,7 @@ CONTAINS
               & p_diag%rho, &
               & patch_3D%p_patch_1d(1)%del_zlev_i, &
               & patch_3D%p_patch_1d(1)%prism_volume, &
-              & owned_cells, lacc=lzacc)
+              & owned_cells, lacc=.FALSE.)
         ELSEIF (vert_cor_type .EQ. 1) THEN
           global_mean_potEnergy = potential_energy_zstar(&
               & w, &
@@ -752,17 +764,19 @@ CONTAINS
               & patch_3D%p_patch_1d(1)%del_zlev_i, &
               & ocean_state%p_prog(nnew(1))%stretch_c(:, :), &
               & patch_3D%p_patch_1d(1)%prism_volume, &
-              & owned_cells, lacc=lzacc)
+              & owned_cells, lacc=.FALSE.)
          END IF
 
       END IF
       monitor%pot_energy = global_mean_potEnergy
 
+      ! FIXME 2025-01 DKRZ-dzo: Running total_mean on device fails with NVHPC 24.7 but works for 22.5
+      !                         Temporary workoround is to do the calculation on CPU instead
       global_mean_kinEnergy = 0.0_wp
       IF (isRegistered('kin_energy_global')) THEN
          global_mean_kinEnergy = total_mean( p_diag%kin, &
           & patch_3d%p_patch_1d(1)%prism_volume, &
-          & owned_cells, lopenacc=lzacc )
+          & owned_cells, lopenacc=.FALSE. )
       END IF
       monitor%kin_energy = global_mean_kinEnergy
 
@@ -806,8 +820,10 @@ CONTAINS
              p_diag%delta_so, ocean_state%p_prog(nnew(1))%stretch_c(:, :), lacc=lzacc)
 
         ENDIF
-
       ENDIF
+
+      !$ACC UPDATE SELF(p_diag%delta_ice, p_diag%delta_snow) &
+      !$ACC   SELF(p_diag%delta_thetao, p_diag%delta_so) IF(lzacc)
 
       ! calc moc each timestep from non-accumulated vertical veloc
       IF ( isRegistered('global_moc') .OR. isRegistered('atlant_moc') .OR. isRegistered('pacind_moc') .OR. &
@@ -817,6 +833,11 @@ CONTAINS
            isRegistered('global_sltbasin') .OR. isRegistered('atlant_sltbasin') .OR. isRegistered('pacind_sltbasin') .OR. &
            isRegistered('global_hfbasin') .OR. isRegistered('atlant_hfbasin') .OR. isRegistered('pacind_hfbasin') ) THEN
         CALL timer_start(timer_calc_moc)
+
+        ! FIXME 2025-01 DKRZ-dzo: calc_moc yields a different result at the moment,
+        !                         therefore the whole calculation is temporarily on CPU.
+        !                         Note that the following _hfl, _wfl, _hfbasin and _sltbasin
+        !                         variables and both fluxes are therefore not offloaded
         CALL calc_moc(patch_2d, patch_3d, &
              & w, &
              & p_oce_sfc%heatflux_total, &
@@ -840,8 +861,7 @@ CONTAINS
              & p_diag%global_sltbasin, &
              & p_diag%atlantic_sltbasin, &
              & p_diag%pacific_sltbasin, &
-             & monitor%amoc26n, lacc=lzacc)
-
+             & monitor%amoc26n, lacc=.FALSE.)
 
         CALL timer_stop(timer_calc_moc)
       ENDIF
@@ -850,9 +870,8 @@ CONTAINS
            .OR. isRegistered('heat_content_snow')   .OR. isRegistered('heat_content_total') &
            .OR. isRegistered('heat_content_300m')   .OR. isRegistered('heat_content_700m') &
            .OR. isRegistered('global_heat_content') .OR. isRegistered('global_heat_content_solid') ) THEN
-
+        
       	IF (vert_cor_type .EQ. 0) THEN
-
           CALL calc_heat_content(patch_3d, prism_thickness, ice, tracers, &
              p_diag%heat_content_liquid_water, &
              p_diag%heat_content_seaice, &
@@ -872,6 +891,10 @@ CONTAINS
 
         ENDIF
 
+        ! The following global sums are done on CPU, so the updated values have to be synchronized
+        !$ACC UPDATE SELF(p_diag%heat_content_total, p_diag%heat_content_seaice) &
+        !$ACC   SELF(p_diag%heat_content_snow) IF(lzacc)
+
         ! global_heat_content for monitoring
         IF (isRegistered('global_heat_content')) THEN
           global_heat_content = 0.0_wp
@@ -886,7 +909,6 @@ CONTAINS
             &                      (p_diag%heat_content_seaice(:,:) + p_diag%heat_content_snow(:,:)) )
           monitor%global_heat_content_solid = global_heat_content_solid
         END IF
-
 
       ENDIF
 
@@ -924,16 +946,23 @@ CONTAINS
       ENDIF
 
       IF (isRegistered('tos') .OR. isRegistered('sos') ) THEN
-        CALL calc_tos_sos(patch_3d, tracers, p_diag%tos, p_diag%sos, lacc)
+        CALL calc_tos_sos(patch_3d, tracers, p_diag%tos, p_diag%sos, lacc=lzacc)
       ENDIF
 
       IF (isRegistered('sivol') .OR. isRegistered('snvol') ) THEN
-        CALL calc_sivol_snvol(patch_3d, ice, lacc)
+        CALL calc_sivol_snvol(patch_3d, ice, lacc=lzacc)
       ENDIF
+
+      ! FIXME 2025-01 DKRZ-dzo: calc_mld yields different results for mld, mlotst, mlotstsq,
+      !                         mlotst10 and mlotst10sq at the moment, therefore the following
+      !                         alculation are temporarily on CPU
+
+      !$ACC UPDATE SELF(ocean_state%p_diag%zgrad_rho) IF(lzacc)
+
       IF (isRegistered('mld')) THEN
 
         CALL calc_mld(patch_3d, ocean_state%p_diag%mld, &
-             ocean_state%p_diag%zgrad_rho,1,0.125_wp, lacc=lzacc)
+             ocean_state%p_diag%zgrad_rho,1,0.125_wp, lacc=.FALSE.)
 
         CALL dbg_print('Diag: mld',ocean_state%p_diag%mld, &
              str_module,4,in_subset=owned_cells)
@@ -942,7 +971,7 @@ CONTAINS
       IF (isRegistered('mlotst') .OR. isRegistered('mlotstsq') ) THEN
 
         CALL calc_mld(patch_3d, ocean_state%p_diag%mlotst, &
-             ocean_state%p_diag%zgrad_rho,1,0.03_wp, lacc=lzacc)
+             ocean_state%p_diag%zgrad_rho,1,0.03_wp, lacc=.FALSE.)
 
         CALL dbg_print('Diag: mlotst',ocean_state%p_diag%mlotst, &
              str_module,4,in_subset=owned_cells)
@@ -964,7 +993,7 @@ CONTAINS
       IF (isRegistered('mlotst10') .OR. isRegistered('mlotst10sq') ) THEN
 
         CALL calc_mld(patch_3d, ocean_state%p_diag%mlotst10, &
-             ocean_state%p_diag%zgrad_rho,get_level_index_by_depth(patch_3d, 10.0_wp),0.03_wp, lacc=lzacc)
+             ocean_state%p_diag%zgrad_rho,get_level_index_by_depth(patch_3d, 10.0_wp),0.03_wp, lacc=.FALSE.)
 
         CALL dbg_print('Diag: mlotst10',ocean_state%p_diag%mlotst10, &
              str_module,4,in_subset=owned_cells)
@@ -1038,13 +1067,13 @@ CONTAINS
       monitor%barentsOpening = merge( section_flux(oce_sections(9),normal_veloc)*OceanReferenceDensity, &
           &                      0.0_wp, &
           &                      isRegistered('barentsOpening'))
+      !$ACC UPDATE SELF(ice%hi, ice%conc, ice%vn_e) IF(lzacc)
       monitor%ice_framStrait = merge(section_ice_flux(oce_sections(7), ice%hi*ice%conc, ice%vn_e), &
           &                      0.0_wp, &
           &                      isRegistered('ice_framStrait'))
 
+
       IF (isRegistered('verticallyTotal_mass_flux_e')) THEN
-        IF(lzacc) CALL finish("calc_fast_oce_diagnostic", "verticallyIntegrated_field is ported to GPU &
-                              but not checked whether it gives correct results")
         CALL verticallyIntegrated_field(ocean_state%p_diag%verticallyTotal_mass_flux_e, &
           & ocean_state%p_diag%mass_flx_e, owned_edges, lacc=lzacc)
         CALL dbg_print('Total_mass_flux_e ', ocean_state%p_diag%verticallyTotal_mass_flux_e, &
@@ -2648,9 +2677,6 @@ CONTAINS
       !$ACC WAIT(1)
 
     ENDIF
-    !$ACC UPDATE SELF(delta_ice, delta_snow, delta_so, delta_thetao) &
-    !$ACC   ASYNC(1) IF(lzacc)
-    !$ACC WAIT(1) IF(lzacc)
 
   END SUBROUTINE diag_heat_salt_tendency
 
@@ -2759,12 +2785,6 @@ CONTAINS
         !$ACC END PARALLEL LOOP
     END DO !block
     !$ACC WAIT(1)
-    ! 2023-07 psam-DKRZ: The following UPDATE SELF directive is necessary as the updated arrays are required elsewhere
-    ! for CPU-operations. This should not be necessary, I guess, when all subroutines are ported to GPU
-    !$ACC UPDATE SELF(heat_content_liquid_water, heat_content_seaice, heat_content_snow, heat_content_total) &
-    !$ACC   SELF(heat_content_300m, heat_content_700m) &
-    !$ACC   ASYNC(1) IF(lzacc)
-    !$ACC WAIT(1) IF(lzacc)
 
   END SUBROUTINE calc_heat_content
 
@@ -3063,7 +3083,7 @@ CONTAINS
     TYPE(t_patch), POINTER                   :: patch_2d
     TYPE(t_subset_range), POINTER            :: owned_cells
 
-#ifdef __LVECTOR__
+#if defined(__LVECTOR__) || defined(_OPENACC)
     REAL(wp) :: sigh(nproma)
     REAL(wp) :: masked_vertical_density_gradient
     REAL(wp) :: delta_h
@@ -3080,7 +3100,7 @@ CONTAINS
     patch_2d => patch_3D%p_patch_2d(1)
     owned_cells => patch_2d%cells%owned
 
-#ifndef __LVECTOR__
+#if !defined(__LVECTOR__) && !defined(_OPENACC)
     ! Non-vector variant
 
     !ICON_OMP_PARALLEL_DO PRIVATE(start_index, end_index) SCHEDULE(dynamic)
@@ -3131,7 +3151,7 @@ CONTAINS
       !$ACC END KERNELS
       !$ACC WAIT(1)
 
-      !$ACC PARALLEL LOOP GANG VECTOR COLLAPSE(2) DEFAULT(PRESENT) ASYNC(1) IF(lzacc)
+      !$ACC PARALLEL LOOP GANG VECTOR COLLAPSE(2) PRIVATE(sigh) DEFAULT(PRESENT) ASYNC(1) IF(lzacc)
       DO jk = min_lev+1, max_lev
         DO jc = start_index, end_index
           IF (jk <= patch_3d%p_patch_1d(1)%dolic_c(jc,blockNo)) THEN
@@ -3150,8 +3170,8 @@ CONTAINS
         END DO
       END DO
       !$ACC END PARALLEL LOOP
+      !$ACC WAIT(1)
     END DO
-    !$ACC WAIT(1)
     !ICON_OMP_END_PARALLEL_DO
 
     !$ACC END DATA
