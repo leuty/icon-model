@@ -26,11 +26,9 @@ Use [issues](https://docs.gitlab.com/user/project/issues/) of the relevant ICON 
 
 > **Note:** Issues will be marked as `Stale` after two months of inactivity. Maintainers may close issues stalled for longer than two months. If the issue is still relevant, you're welcome to reopen it with a description following these guidelines.
 
-### Code Contributions
+## Code Contributions
 
-#### Coding Style
-
-##### General Coding Rules
+### General Coding Rules
 
 1. Avoid adding comments about future actions. For example,
     ```fortran
@@ -39,13 +37,13 @@ Use [issues](https://docs.gitlab.com/user/project/issues/) of the relevant ICON 
     If necessary, include a reference to an issue that provides the progress status (e.g., an issue on the validation of the aforementioned module).
 2. Do not add commented-out code to the codebase, as it produces maintenance and development overhead.
 
-#### Merge Requests
+### Merge Requests
 
 1. **Choose a template** (e.g. `nwp-feature`) if available before writing a merge request description.
 
 2. Make the merge request title concise (titles become the first line of the commit message when the merge requests are accepted, together with a repository-specific prefix, e.g. `[mpim] `, `[nwp] `, etc.).
 
-3. Please, adhere to the following recommendations for the merge requests *short* descriptions, which will become part of the commit message when the merge request is accepted:
+3. Please, adhere to the following recommendations for the merge requests **short** descriptions, which will become part of the commit message when the merge request is accepted:
 
     - use simple English in the active form (e.g. this implements A, updates B);
 
@@ -53,16 +51,16 @@ Use [issues](https://docs.gitlab.com/user/project/issues/) of the relevant ICON 
 
     - keep it short (excluding details, descriptions are appended to the merge request commit message);
 
-    - do not reference issues and merge requests unless necessary;
+    - do not reference issues and merge requests unless necessary (if referencing is necessary, make sure the reference contains the name and the namespace of the respective repository, e.g. `icon/icon#<issue-id>` and `icon/icon!<mr-id>`);
 
-        - if referencing is necessary, make sure the reference contains the name and the namespace of the respective repository, e.g. `icon/icon#<issue-id>` and `icon/icon!<mr-id>`;
-
-    - break the lines to make them no longer than 80 characters;
+    - break the lines to make them no longer than 80 characters.
+    
+    > **Note:** The recommendations above apply to the **short** descriptions only. There are no restrictions for the **detailed** section.
 
 4. The lists of co-authors in merge requests are generated automatically based on the authorship of the commits in the source branches. Please ensure that the commits in the source branch have the correct authorship with the correct email addresses (they can be [automatically-generated private commit emails](https://docs.gitlab.com/user/profile/#use-an-automatically-generated-private-commit-email)). If some commits have the wrong authorship, you can provide the list of co-authors using the following format:
     ```
     Co-authored-by: First-Name Second-Name <email.address@example.de>
-    Co-authored-by: Another-Name <another.email@example.de>
+    Co-authored-by: Another Name <another.address@example.com>
     ```
 
 > **Note:** Tagging issues shows activity and prevents them from becoming `Stale`. Writing `Closes #<issue-ID>` in a merge request description automatically closes the issue when the request is merged.
