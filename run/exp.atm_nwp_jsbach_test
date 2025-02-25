@@ -320,10 +320,8 @@ cat > ${basedir}/run/${jsbach_namelist} << EOF
   ic_filename             = 'ic_land_soil.nc'
 /
 &jsb_sse_nml
-  l_heat_cap_map          = .FALSE.
-  l_heat_cond_map         = .FALSE.
-  l_heat_cap_dyn          = .FALSE.
-  l_heat_cond_dyn         = .FALSE.
+  l_heat_cap_dyn          = .TRUE.
+  l_heat_cond_dyn         = .TRUE.
   l_snow                  = .TRUE.
   l_dynsnow               = .TRUE.
   l_freeze                = .TRUE.
@@ -332,7 +330,6 @@ cat > ${basedir}/run/${jsbach_namelist} << EOF
   ic_filename             = 'ic_land_soil.nc'
 /
 &jsb_hydro_nml
-  l_organic               = .FALSE.
   bc_filename             = 'bc_land_soil.nc'
   ic_filename             = 'ic_land_soil.nc'
   bc_sso_filename         = 'bc_land_sso.nc'
@@ -377,35 +374,24 @@ fi # ${run_jsbach}
 # daint and levante define HOST to some sensible value containing the machine name. RCL does not.
 case "$HOSTNAME" in
 rc[nb]l*|vh1l*)
-  # Data from ICON Seamless.
-  root_dir=~icon-sml/w/jsbach-vdiff
-  add_link_file $root_dir/extpar/mpim/icon_extpar_0013_R02B04_G_20211005_tiles.nc extpar_icon_grid.nc
-  add_link_file $root_dir/init/mpim/0013/ifs2icon_1979010100.nc ic_atmosphere.nc
-  add_link_file $root_dir/grids/mpim/icon_grid_0013_R02B04_G.nc icon_grid.nc
-
-  jsb_dir=$root_dir/jsb4_ini_files/mpim/0013/r0010
-  add_link_file $jsb_dir/ic_land_soil_1979.nc         ic_land_soil.nc
-  add_link_file $jsb_dir/bc_land_sso_1979.nc          bc_land_sso.nc
-  add_link_file $jsb_dir/bc_land_frac_11pfts_1979.nc  bc_land_frac.nc
-  add_link_file $jsb_dir/bc_land_phys_1979.nc         bc_land_phys.nc
-  add_link_file $jsb_dir/bc_land_soil_1979.nc         bc_land_soil.nc
+  grid_dir=${icon_data_rootFolder}/buildbot_data/nwp/grids/public/mpim/0049
   ;;
 *)
-  # This is the only grid with JSBACH files and an NWP extpar... They don't really fit but whatever.
-  grid_dir=${icon_data_rootFolder}/grids/public/mpim/0013
-
-  add_link_file $grid_dir/nwp/icon_extpar_0013_R02B04_G_20180820_tiles.nc extpar_icon_grid.nc
-  add_link_file $grid_dir/initial_condition/r0001/ifs2icon_1979010100_R02B04_G.nc ic_atmosphere.nc
-  add_link_file $grid_dir/icon_grid_0013_R02B04_G.nc  icon_grid.nc
-
-  jsb_dir="${grid_dir}/land/r0002/"
-  add_link_file $jsb_dir/ic_land_soil_1976.nc         ic_land_soil.nc
-  add_link_file $jsb_dir/bc_land_sso_1976.nc          bc_land_sso.nc
-  add_link_file $jsb_dir/bc_land_frac_11pfts_1976.nc  bc_land_frac.nc
-  add_link_file $jsb_dir/bc_land_phys_1976.nc         bc_land_phys.nc
-  add_link_file $jsb_dir/bc_land_soil_1976.nc         bc_land_soil.nc
+  grid_dir=${icon_data_rootFolder}/grids/public/mpim/0049
   ;;
 esac
+
+add_link_file $grid_dir/icon_grid_0049_R02B04_G.nc  icon_grid.nc
+add_link_file $grid_dir/initial_conditions/r0100/ifs2icon_1979010100_0049_R02B04_G.nc ic_atmosphere.nc
+
+jsb_dir="${grid_dir}/land/r0101/"
+add_link_file $jsb_dir/ic_land_soil.nc              ic_land_soil.nc
+add_link_file $jsb_dir/bc_land_sso.nc               bc_land_sso.nc
+add_link_file $jsb_dir/bc_land_frac_11pfts_1976.nc  bc_land_frac.nc
+add_link_file $jsb_dir/bc_land_phys.nc              bc_land_phys.nc
+add_link_file $jsb_dir/bc_land_soil.nc              bc_land_soil.nc
+
+add_link_file $jsb_dir/icon_extpar4jsbach_0049_20240827_tiles_jsb.nc  extpar_icon_grid.nc
 
 add_link_file ${basedir}/data/rrtmg_lw.nc ./
 add_link_file ${basedir}/data/ECHAM6_CldOptProps.nc ./

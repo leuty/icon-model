@@ -121,6 +121,7 @@ Climate: ICON-Land
                                                             https://gitlab.dkrz.de/icon/icon-nwp/-/merge_requests/1652)
 - Fixed runscript generation of bubble test cases on levante (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/658,
                                                               https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/699)
+- Use a more recent land data revision in run scripts for simulations with ICON-Land on R02B04 grid 0049.
 
 #### Building
 

@@ -111,7 +111,7 @@ file_interval="PT30M"
 # horizontal grid(s)
 #
 # domain globe
-grid_id=0043
+grid_id=0049
 grid_refinement=R02B04
 grid_label=G
 grid_name=icon_grid_${grid_id}_${grid_refinement}_${grid_label}
@@ -175,7 +175,7 @@ echo ""
 #
 
 # main dirs and files
-land_datadir=${grids_folder}/land/r0004
+land_datadir=${grids_folder}/land/r0101
 
 # landcover fractions
 quincy_land_cover_file=${land_datadir}/bc_land_frac_quincy_11pfts_esacci_2020.nc
@@ -184,16 +184,16 @@ quincy_land_cover_file=${land_datadir}/bc_land_frac_quincy_11pfts_esacci_2020.nc
 quincy_lctlib_file=${basedir}/externals/jsbach/data/lctlib_quincy_nlct14.def
 
 # met-forcing
-forcingMainDir="/pool/data/JSBACH/jsbalone_forcing/R02B04/0043/"
+forcingMainDir="/pool/data/JSBACH/jsbalone_forcing/R02B04/0049/"
 
 # CO2 forcing
 ghg_dir=${icon_data_rootFolder}/input/r0004/global/atm
 forcingCO2globalFile=${ghg_dir}/bc_greenhouse_rcp45_1765-2500.nc
 
 # ic/bc files
-ic_land_soil_file=${land_datadir}/ic_land_soil_1979.nc
-bc_land_phys_file=${land_datadir}/bc_land_phys_1979.nc
-bc_land_sso_file=${land_datadir}/bc_land_sso_1979.nc
+ic_land_soil_file=${land_datadir}/ic_land_soil.nc
+bc_land_phys_file=${land_datadir}/bc_land_phys.nc
+bc_land_sso_file=${land_datadir}/bc_land_sso.nc
 quincy_soil_file=${land_datadir}/bc_land_soil_quincy.nc
 
 #--------------------------------------------------------------------------------------------------
