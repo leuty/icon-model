@@ -31,9 +31,14 @@ MODULE mo_coupling_utils
   USE mo_fortran_tools,   ONLY: swap
   USE mtime,              ONLY: datetime, newdatetime, deallocateDatetime, &
     &                           datetimeToString, MAX_DATETIME_STR_LEN
-  USE mo_timer,           ONLY: timer_start, timer_stop, timer_coupling_put, &
-    &                           timer_coupling_get, timer_coupling_very_1stget, &
-    &                           timer_coupling_1stget, timer_coupling_init, &
+  USE mo_timer,           ONLY: timer_start, timer_stop, &
+    &                           timer_coupling_nop, &
+    &                           timer_coupling_put_reduce, &
+    &                           timer_coupling_put, &
+    &                           timer_coupling_get, &
+    &                           timer_coupling_very_1stget, &
+    &                           timer_coupling_1stget, &
+    &                           timer_coupling_init, &
     &                           timer_coupling_init_def_comp, &
     &                           timer_coupling_init_enddef
   USE mo_impl_constants,  ONLY: MAX_CHAR_LENGTH
@@ -59,6 +64,7 @@ MODULE mo_coupling_utils
     &                           YAC_LOCATION_EDGE, &
     &                           YAC_TIME_UNIT_ISO_FORMAT, &
     &                           YAC_ACTION_NONE, &
+    &                           YAC_ACTION_REDUCTION, &
     &                           YAC_ACTION_COUPLING, &
     &                           YAC_ACTION_PUT_FOR_RESTART, &
     &                           YAC_ACTION_GET_FOR_RESTART, &
@@ -1836,17 +1842,29 @@ CONTAINS
     TYPE(yac_dble_ptr), INTENT(IN) :: field(:, :)
     LOGICAL, OPTIONAL, INTENT(OUT) :: write_restart
 
-    INTEGER :: num_pointsets, collection_size
+    INTEGER :: num_pointsets, collection_size, put_timer
     INTEGER :: info, ierr
 
     num_pointsets = SIZE(field, 1)
     collection_size = SIZE(field, 2)
 
-    IF (ltimer) CALL timer_start(timer_coupling_put)
-
     CALL yac_fget_action(field_id, info)
 
-    IF (info == YAC_ACTION_NONE) THEN
+    IF (ltimer) THEN
+
+      SELECT CASE (info)
+        CASE (YAC_ACTION_NONE,YAC_ACTION_OUT_OF_BOUND)
+          put_timer = timer_coupling_nop
+        CASE (YAC_ACTION_REDUCTION)
+          put_timer = timer_coupling_put_reduce
+        CASE DEFAULT
+          put_timer = timer_coupling_put
+      END SELECT
+
+      CALL timer_start(put_timer)
+    END IF
+
+    IF ((info == YAC_ACTION_NONE) .OR. (info == YAC_ACTION_OUT_OF_BOUND)) THEN
 
       ! update internal clock without an actual put
       CALL yac_fupdate(field_id)
@@ -1858,7 +1876,7 @@ CONTAINS
 
     END IF
 
-    IF (ltimer) CALL timer_stop(timer_coupling_put)
+    IF (ltimer) CALL timer_stop(put_timer)
 
     IF ( info == YAC_ACTION_PUT_FOR_RESTART ) THEN
       CALL message( &
@@ -2010,20 +2028,30 @@ CONTAINS
 
     collection_size = SIZE(field, 1)
 
-    IF (ltimer) THEN
-      get_timer = &
-        MERGE( &
-          timer_coupling_very_1stget, &
-          MERGE( &
-            timer_coupling_1stget, timer_coupling_get, first_get), &
-          lyac_very_1st_get)
-      CALL timer_start(get_timer)
-      lyac_very_1st_get = .FALSE.
-    END IF
-
     CALL yac_fget_action(field_id, info)
 
-    IF (info == YAC_ACTION_NONE) THEN
+    IF (ltimer) THEN
+
+      SELECT CASE (info)
+        CASE (YAC_ACTION_NONE,YAC_ACTION_OUT_OF_BOUND)
+          get_timer = timer_coupling_nop
+        CASE DEFAULT
+          IF (first_get) THEN
+            get_timer = &
+              MERGE( &
+                timer_coupling_very_1stget, &
+                timer_coupling_1stget, &
+                lyac_very_1st_get)
+          ELSE
+            get_timer = timer_coupling_get
+          END IF
+          lyac_very_1st_get = .FALSE.
+      END SELECT
+
+      CALL timer_start(get_timer)
+    END IF
+
+    IF ((info == YAC_ACTION_NONE) .OR. (info == YAC_ACTION_OUT_OF_BOUND)) THEN
 
       ! update internal clock without an actual get
       CALL yac_fupdate(field_id)

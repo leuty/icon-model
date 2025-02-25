@@ -78,8 +78,30 @@ MODULE mo_timer
   ! general coupling
   PUBLIC :: timer_coupling, timer_coupling_init
   PUBLIC :: timer_coupling_init_def_comp, timer_coupling_init_enddef
-  PUBLIC :: timer_coupling_very_1stget, timer_coupling_1stget
-  PUBLIC :: timer_coupling_get, timer_coupling_put
+  ! put/get operation that did not involve any actual work
+  PUBLIC :: timer_coupling_nop
+  ! put operation required aggregation (min,max,average, or sum) of source data
+  ! but no data was sent to the target
+  PUBLIC :: timer_coupling_put_reduce
+  ! put operation that involved sending of data to at least one target
+  ! get operation that received data
+  ! (in case mapping_on_src was used, this involved a matrix vector product to
+  !  compute target points)
+  PUBLIC :: timer_coupling_put
+  ! get operation that received data
+  ! (in case mapping_on_tgt was used, this involved a matrix vector product to
+  !  compute the local target points)
+  PUBLIC :: timer_coupling_get
+  ! for the very first active get in a component this timer is used instead of
+  ! timer_coupling_get_coupling
+  ! (it can measure the imbalance between coupled components during the
+  !  initialisation)
+  PUBLIC :: timer_coupling_very_1stget
+  ! for the first active get in each timestep for each coupled component pair
+  ! this time is used instead of timer_coupling_get_coupling (except for the
+  ! very first active get)
+  ! (it can measure the imbalance of timesteps between component pairs)
+  PUBLIC :: timer_coupling_1stget
   PUBLIC :: timer_coupling_output, timer_coupling_output_buf_prep
   PUBLIC :: timer_coupling_output_1stput, timer_coupling_output_put
 
@@ -369,11 +391,15 @@ MODULE mo_timer
   ! Timer ID's for forcings and testcases
   INTEGER :: timer_held_suarez_intr
 
-  ! Timer ID's for ocean-atmosphere coupling
+  ! Timer ID's for coupling
   INTEGER :: timer_coupling, timer_coupling_init
   INTEGER :: timer_coupling_init_def_comp, timer_coupling_init_enddef
-  INTEGER :: timer_coupling_very_1stget, timer_coupling_1stget
-  INTEGER :: timer_coupling_get, timer_coupling_put
+  INTEGER :: timer_coupling_nop
+  INTEGER :: timer_coupling_put_reduce
+  INTEGER :: timer_coupling_put
+  INTEGER :: timer_coupling_get
+  INTEGER :: timer_coupling_very_1stget
+  INTEGER :: timer_coupling_1stget
   INTEGER :: timer_coupling_output, timer_coupling_output_buf_prep
   INTEGER :: timer_coupling_output_1stput, timer_coupling_output_put
 
@@ -700,19 +726,21 @@ CONTAINS
     timer_corio     = new_timer("corio")
     timer_intp      = new_timer("intp")
 
-    ! atmosphere-ocean coupling
-    timer_coupling                    = new_timer("coupling")
-    timer_coupling_init               = new_timer("coupling_init")
-    timer_coupling_init_def_comp      = new_timer("coupling_init_def_comp")
-    timer_coupling_init_enddef        = new_timer("coupling_init_enddef")
-    timer_coupling_very_1stget        = new_timer("coupling_very_1stget")
-    timer_coupling_1stget             = new_timer("coupling_1stget")
-    timer_coupling_get                = new_timer("coupling_get")
-    timer_coupling_put                = new_timer("coupling_put")
-    timer_coupling_output             = new_timer("coupling_output")
-    timer_coupling_output_buf_prep    = new_timer("coupling_output_buf_prep")
-    timer_coupling_output_1stput      = new_timer("coupling_output_1stput")
-    timer_coupling_output_put         = new_timer("coupling_output_put")
+    ! general coupling
+    timer_coupling                 = new_timer("coupling")
+    timer_coupling_init            = new_timer("cpl_init")
+    timer_coupling_init_def_comp   = new_timer("cpl_init_def_comp")
+    timer_coupling_init_enddef     = new_timer("cpl_init_enddef")
+    timer_coupling_nop             = new_timer("cpl_nop")
+    timer_coupling_put_reduce      = new_timer("cpl_put_reduce")
+    timer_coupling_put             = new_timer("cpl_put")
+    timer_coupling_get             = new_timer("cpl_get")
+    timer_coupling_very_1stget     = new_timer("cpl_very_1stget")
+    timer_coupling_1stget          = new_timer("cpl_1stget")
+    timer_coupling_output          = new_timer("cpl_output")
+    timer_coupling_output_buf_prep = new_timer("cpl_output_buf_prep")
+    timer_coupling_output_1stput   = new_timer("cpl_output_1stput")
+    timer_coupling_output_put      = new_timer("cpl_output_put")
 
     IF (iforcing == iaes) THEN
        !
