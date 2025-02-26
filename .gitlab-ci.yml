@@ -11,16 +11,15 @@
 workflow:
   auto_cancel:
     on_new_commit: none
-    on_job_failure: none
   rules:
     - if: $CI_PIPELINE_SOURCE == "merge_request_event"
       auto_cancel:
         on_new_commit: interruptible
-        on_job_failure: all
     - if: $CI_PIPELINE_SOURCE == "web"
 
 stages:
   - basic
+  - system
   - test
 
 .colorized:
@@ -317,3 +316,31 @@ Granules:
     - if: $CI_PIPELINE_SOURCE == "web"
       when: manual
     - when: always
+
+include: .gitlab/ci/cscs-ci.yml
+
+cscs-ci/santis_cpu:
+  stage: system
+  needs: []
+  extends: .common_cscs_ci
+  variables:
+    CSCS_CI_BUILDER: santis-cpu
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "web"
+      when: manual
+    - if: $CSCS_CI_INACTIVE_BUILDERS =~ "/(^|,)santis-cpu(,|$)/"
+      when: never
+    - when: manual
+
+cscs-ci/santis_gpu:
+  stage: system
+  needs: []
+  extends: .common_cscs_ci
+  variables:
+    CSCS_CI_BUILDER: santis-gpu
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "web"
+      when: manual
+    - if: $CSCS_CI_INACTIVE_BUILDERS =~ "/(^|,)santis-gpu(,|$)/"
+      when: never
+    - when: manual

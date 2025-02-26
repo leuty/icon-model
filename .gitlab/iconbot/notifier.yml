@@ -25,6 +25,7 @@
       - .gitlab-ci.yml
       - .gitlab/ci/*
       - scripts/ci_scripts/*
+      - scripts/cscs_ci/*
     labels: [CI]
     mentions: [m300488, k202125]
   # Build system:

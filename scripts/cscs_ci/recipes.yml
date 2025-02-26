@@ -11,6 +11,15 @@
 include:
   - scripts/cscs_ci/remote.yml
 
+.baremetal-runner-santis-gh200:
+  extends: .f7t-baremetal-runner
+  variables:
+    FIRECREST_SYSTEM: 'santis'
+    # needed for uenv to see sw-stack from todi
+    CLUSTER_NAME: 'todi'
+    ARCH: 'aarch64'
+    F7T_URL: 'https://api.cscs.ch/cw/firecrest/v1'
+
 .setup_python:
   script:
     - python3 -m venv .venv
@@ -19,7 +28,6 @@ include:
 
 .setup_uenv:
   script:
-    - uenv repo create
     - uenv image pull icon-wcp/v1:rc4
 
 .configure_with_uenv:
@@ -30,8 +38,8 @@ include:
   script:
     - uenv run icon-wcp/v1:rc4 -- ./icon-dev.checksuite
 
-.todi_create_common:
-  extends: .baremetal-runner-todi-gh200 
+.santis_create_common:
+  extends: .baremetal-runner-santis-gh200 
   stage: .pre
   timeout: 1h
   variables:
@@ -53,8 +61,8 @@ include:
     forward:
       pipeline_variables: true
 
-.build_common_todi:
-  extends: .baremetal-runner-todi-gh200
+.build_common_santis:
+  extends: .baremetal-runner-santis-gh200
   stage: build
   timeout: 2h
   artifacts:
@@ -73,32 +81,35 @@ include:
     GIT_SUBMODULE_STRATEGY: recursive
     CSCS_REWRITE_RELATIVE_SUBMODULES: 'YES'
     # needed for to pick correct header in collect.set-up.info
-    HOST: todi
+    HOST: santis
+    # ICON configure fails to detect host
+    acx_cv_host_fqdn: santis
 
-.build_todi_cpu_nvhpc:
+
+.build_santis_cpu_nvhpc:
   variables:
-    CONFIG: todi.cpu.nvhpc
-  extends: .build_common_todi
+    CONFIG: santis.cpu.nvhpc
+  extends: .build_common_santis
   before_script:
     - !reference [.setup_uenv, script]
   script:
     - !reference [.configure_with_uenv, script]
 
-.build_todi_gpu_nvhpc:
-  extends: .build_common_todi
+.build_santis_gpu_nvhpc:
+  extends: .build_common_santis
   variables:
-    CONFIG: todi.gpu.nvhpc
+    CONFIG: santis.gpu.nvhpc
   before_script:
     - !reference [.setup_uenv, script]
   script:
     - !reference [.configure_with_uenv, script]
 
-.run_common_todi:
-  extends: .baremetal-runner-todi-gh200 
+.run_common_santis:
+  extends: .baremetal-runner-santis-gh200 
   timeout: 1h
   stage: run
   dependencies:
-    - build_icon
+    - Build ICON
   before_script:
     - !reference [.setup_python, script]
   script:

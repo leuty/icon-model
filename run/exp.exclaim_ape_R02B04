@@ -26,12 +26,6 @@
 #=============================================================================
 
 
-# (0) Basic model configuration
-# -----------------------------
-
-atmos_gridID="0013"
-atmos_refinement="R02B04"
-
 #
 #--------------------------------------------------------------------------------------------------
 #
@@ -50,9 +44,8 @@ dt_gwd=`expr 4 \* $atmTimeStep`
 
 # EXPNAME                       = name of exp. in 'exp.<name>'
 # basedir                       = base directory, where src/, run/ etc exist
-# icon_data_poolFolder          = base directory, where grids/, input/ and setup/ exist
 
-icon_data_poolFolder="${icon_data_rootFolder:-/pool/data/ICON}"
+input_folder="${testingFolder_prefix}/testing-input-data/c2sm/ape_R02B04"
 
 #--------------------------------------------------------------------------------------------------
 
@@ -61,11 +54,7 @@ icon_data_poolFolder="${icon_data_rootFolder:-/pool/data/ICON}"
 
 # horizontal grid(s)
 # ------------------
-atmo_grid_folder=${icon_data_poolFolder}/buildbot_data/nwp/grids/public/edzw/
-atmo_dyn_grid=${atmo_grid_folder}/icon_grid_${atmos_gridID}_${atmos_refinement}_R.nc
-
-
-###  Inorder to avoid path issues the radiation and atmosphere grid are the same. 
+atmo_dyn_grid=${input_folder}/icon_grid_0013_R02B04_R.nc
 
 # start and end date+time
 start_date=${start_date:="2000-01-01T00:00:00Z"}
