@@ -88,6 +88,7 @@ Climate: ICON-Land
 - Implement soil hydrology parametrization for uniform scale
 - Update thaw depth diagnostics
 - Enabled JSBACH usecase with PFTs when using TMX
+- Interface: New switch to supress YAC call during initialization phase
 
 ### Externals
 
