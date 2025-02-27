@@ -17,7 +17,7 @@ author_list="Bjorn Stevens, Sebastian Rast, Monika Esch, Reiner Schnur (MPI-M)"
 #--------------------------------------------------------------------------------------------------
 #
 # This file describes a radiative convective equilibrium experiment based on the non-hydrostatic
-# atmosphere and the ECHAM physics with NWP "graupel" scheme. The experiment is intialized 
+# atmosphere and the ECHAM physics with NWP "graupel" scheme. The experiment is intialized
 # analytically in the atmosphere and uses constant-in-time boundary conditions for:
 # - spectral solar irradiation
 # - well mixed greenhouse gases CO2, CH4, N2O, CFCs

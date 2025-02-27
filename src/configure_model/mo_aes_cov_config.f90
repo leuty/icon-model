@@ -32,7 +32,7 @@ MODULE mo_aes_cov_config
   !! Name of this unit
   !!
   CHARACTER(LEN=*), PARAMETER :: name = 'aes_cov'
-  
+
   !>
   !! Configuration type containing parameters and switches for the configuration of the AES microphysics
   !!
@@ -49,7 +49,7 @@ MODULE mo_aes_cov_config
   !! Configuration state vectors, for multiple domains/grids.
   !!
   TYPE(t_aes_cov_config), TARGET :: aes_cov_config(max_dom)
-  
+
 CONTAINS
 
   !----

@@ -9,11 +9,12 @@
 # SPDX-License-Identifier: BSD-3-Clause
 # ---------------------------------------------------------------
 
-import subprocess
 import re
+import subprocess
 import sys
 
 from batch_job import BatchJob
+
 
 class SlurmJob(BatchJob):
     def __init__(self, cmd, cwd):
@@ -27,11 +28,20 @@ class SlurmJob(BatchJob):
 
         if len(self.parents) > 0:
             parent_ids = [p.jobid for p in self.parents]
-            submit_cmd.append("--dependency=afterany:{}".format(",".join(parent_ids)))
+            submit_cmd.append(
+                "--dependency=afterany:{}".format(",".join(parent_ids))
+            )
 
         submit_cmd.append(script)
         print("submitting slurm job: '{}'".format(" ".join(submit_cmd)))
-        sp = subprocess.Popen(submit_cmd, shell=False, stdout=subprocess.PIPE, stderr=subprocess.PIPE, cwd=self.cwd, encoding="UTF-8")
+        sp = subprocess.Popen(
+            submit_cmd,
+            shell=False,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            cwd=self.cwd,
+            encoding="UTF-8",
+        )
         try:
             self.jobid = re.findall(r"\d+", sp.stdout.readline())[0]
         except:
@@ -39,7 +49,9 @@ class SlurmJob(BatchJob):
                 print(line)
 
         if not self.jobid or not self.jobid.isnumeric():
-            print("Parsing jobid from slurm job failed, got {}".format(self.jobid))
+            print(
+                "Parsing jobid from slurm job failed, got {}".format(self.jobid)
+            )
             sys.exit(1)
         self.job = sp
 
@@ -59,28 +71,32 @@ class SlurmJob(BatchJob):
 
     def cancel(self):
         if None is not self.jobid:
-            qdel = subprocess.Popen(["scancel","-v",self.jobid],
-                                    shell=False,
-                                    stdout=subprocess.PIPE,
-                                    stderr=subprocess.PIPE,
-                                    cwd=self.cwd,
-                                    encoding="UTF-8")
-            print(qdel.stderr.readlines()[0].rstrip('\r\n'))
+            qdel = subprocess.Popen(
+                ["scancel", "-v", self.jobid],
+                shell=False,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+                cwd=self.cwd,
+                encoding="UTF-8",
+            )
+            print(qdel.stderr.readlines()[0].rstrip("\r\n"))
         else:
-            print('Cannot find jobid to cancel job!')
+            print("Cannot find jobid to cancel job!")
 
     # check if a job was canceled
     def wasCanceled(self):
         if None is not self.jobid:
-            checkState = subprocess.Popen(f"sacct -j{self.jobid} -Pn",
-                                    shell=True,
-                                    stdout=subprocess.PIPE,
-                                    stderr=subprocess.PIPE,
-                                    cwd=self.cwd,
-                                    encoding="UTF-8")
+            checkState = subprocess.Popen(
+                f"sacct -j{self.jobid} -Pn",
+                shell=True,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+                cwd=self.cwd,
+                encoding="UTF-8",
+            )
             out, err = checkState.communicate(timeout=2)
-            jobState = out.split('|')[-2].split(' ')[0]
-            return 'CANCELLED' == jobState
+            jobState = out.split("|")[-2].split(" ")[0]
+            return "CANCELLED" == jobState
         else:
-            print('Cannot find jobid!')
+            print("Cannot find jobid!")
             return False

@@ -290,7 +290,7 @@ CONTAINS
     ! * towards the coast, if (cells%edge_orientation * vn) > 0
     ! * towards the sea,   if (cells%edge_orientation * vn) < 0
 
-    ! For optimization, the index list of the coastal edge points is precomputed, 
+    ! For optimization, the index list of the coastal edge points is precomputed,
     ! and p_config%orient_coastedges contains the values of cells%edge_orientation
 
 !$OMP DO PRIVATE(jd,ic,jje,jjb,is_towards_coastline) ICON_OMP_DEFAULT_SCHEDULE

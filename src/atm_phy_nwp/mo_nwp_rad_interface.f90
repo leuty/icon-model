@@ -61,10 +61,10 @@ MODULE mo_nwp_rad_interface
 
 
   PUBLIC :: nwp_radiation
-  
+
 
  CONTAINS
-  
+
   !---------------------------------------------------------------------------------------
   !>
   !! This subroutine is the interface between nwp_nh_interface to the radiation schemes.
@@ -256,7 +256,7 @@ MODULE mo_nwp_rad_interface
     ENDIF
 
     IF (timers_level > 6) CALL timer_stop(timer_preradiaton)
-    
+
     !-------------------------------------------------------------------------
     !> Radiation
     !-------------------------------------------------------------------------
@@ -272,19 +272,19 @@ MODULE mo_nwp_rad_interface
       !$ACC UPDATE HOST(zaeq1, zaeq2, zaeq3, zaeq4, zaeq5) ASYNC(1) IF(lacc)
       !$ACC WAIT(1)
     ENDIF
-    
+
       IF ( .NOT. lredgrid ) THEN
-          
+
         CALL nwp_rrtm_radiation ( mtime_datetime, pt_patch, ext_data, &
           & zaeq1, zaeq2, zaeq3, zaeq4, zaeq5,        &
           & pt_diag, prm_diag, lnd_prog, lacc=.FALSE. )
-       
-      ELSE 
+
+      ELSE
 
         CALL nwp_rrtm_radiation_reduced ( mtime_datetime, pt_patch,pt_par_patch, ext_data, &
           & zaeq1, zaeq2, zaeq3, zaeq4, zaeq5,                             &
           & pt_diag, prm_diag, lnd_prog, lacc=.FALSE. )
-          
+
       ENDIF
 
       IF(lacc) THEN
@@ -324,4 +324,3 @@ MODULE mo_nwp_rad_interface
 
 
 END MODULE mo_nwp_rad_interface
-

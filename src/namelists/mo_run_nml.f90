@@ -59,7 +59,7 @@ MODULE mo_run_nml
   USE mo_restart_nml_and_att, ONLY: open_tmpfile, store_and_close_namelist,   &
        &                            open_and_restore_namelist, close_tmpfile
   USE mtime,                  ONLY: max_timedelta_str_len
-  
+
   IMPLICIT NONE
   PRIVATE
   PUBLIC :: read_run_namelist
@@ -101,7 +101,7 @@ CONTAINS
     CHARACTER(LEN=255) :: radarnmlfile !< name of the file containing the radar namelist
     LOGICAL :: lvert_nest         ! if .TRUE., switch on vertical nesting
     INTEGER :: num_lev(max_dom)   ! number of full levels for each domain
-    INTEGER :: nshift (max_dom)   ! half level of parent domain which coincides 
+    INTEGER :: nshift (max_dom)   ! half level of parent domain which coincides
     ! with the upper boundary of the current domain jg
 
     INTEGER  :: nsteps            ! number of time steps
@@ -113,7 +113,7 @@ CONTAINS
 
     LOGICAL :: logmaxrss     ! log maxrss for three mpi ranks
     LOGICAL :: logmaxrss_all ! log maxrss for all mpi ranks
-    
+
     INTEGER :: msg_level     ! how much printout is generated during runtime
     LOGICAL :: msg_timestamp ! If .TRUE.: Precede output messages by time stamp.
 
@@ -167,8 +167,8 @@ CONTAINS
     lvert_nest = .FALSE. ! no vertical nesting
     num_lev(:) = 31      ! number of full levels for each domain
     nshift(:)  = 0       ! please do not change the default.
-                         ! otherwise the initialization of 
-                         ! p_patch(jg)%nshift in "import patches" 
+                         ! otherwise the initialization of
+                         ! p_patch(jg)%nshift in "import patches"
                          ! will not work properly.
 
     nsteps = -999
@@ -177,7 +177,7 @@ CONTAINS
     ! concurrent namelist parameters to specify these values:
     modelTimeStep = ''
     dtime         = 0._wp
-    
+
     ltimer               = .TRUE.
     timers_level         = 1
     activate_sync_timers = .FALSE.
@@ -196,7 +196,7 @@ CONTAINS
     check_uuid_gracefully = .FALSE.
 
     !------------------------------------------------------------------
-    ! If this is a resumed integration, overwrite the defaults above 
+    ! If this is a resumed integration, overwrite the defaults above
     ! by values used in the previous integration.
     !------------------------------------------------------------------
     IF (use_restart_namelists()) THEN
@@ -227,7 +227,7 @@ CONTAINS
     !----------------------------------------------------
     ! Sanity check
     !----------------------------------------------------
-    SELECT CASE (iforcing)                                                     
+    SELECT CASE (iforcing)
     CASE(INOFORCING,IHELDSUAREZ,INWP,iaes,ILDF_DRY,ILDF_ECHAM,IMPIOM)
     CASE DEFAULT
       CALL finish( TRIM(routine),'wrong value for iforcing')
@@ -253,12 +253,12 @@ CONTAINS
     ! Fill part of the configuration state
     !----------------------------------------------------
 
-    config_ltestcase       = ltestcase 
-    config_ldynamics       = ldynamics 
-    config_iforcing        = iforcing 
+    config_ltestcase       = ltestcase
+    config_ldynamics       = ldynamics
+    config_iforcing        = iforcing
 
-    config_ltransport      = ltransport 
-    config_ntracer         = ntracer 
+    config_ltransport      = ltransport
+    config_ntracer         = ntracer
     config_lart            = lart
     config_ldass_lhn       = ldass_lhn
 
@@ -273,8 +273,8 @@ CONTAINS
     config_num_lev(:)      = num_lev(:)
     config_nshift(:)       = nshift(:)
 
-    config_nsteps          = nsteps  
-    config_dtime           = dtime 
+    config_nsteps          = nsteps
+    config_dtime           = dtime
 
     config_ltimer          = ltimer
     config_timers_level    = timers_level
@@ -302,7 +302,7 @@ CONTAINS
       config_output(2) = "totint"
     END IF
     CALL parse_output_mode(config_output, config_output_mode)
-    
+
     !-----------------------------------------------------
     ! Store the namelist for restart
     !-----------------------------------------------------

@@ -66,7 +66,7 @@ CONTAINS
   SUBROUTINE key_value_store_init(me, cs)
     CLASS(t_key_value_store), INTENT(INOUT) :: me
     LOGICAL, INTENT(IN) :: cs
-    
+
     IF (me%is_init) THEN
       IF (cs .NEQV. me%lcase_sensitive .OR. me%table%getEntryCount() .GT. 0) &
         & CALL key_value_store_destruct(me)
@@ -366,7 +366,7 @@ CONTAINS
 
     SUBROUTINE output_pmsg()
       INTEGER :: clen
-  
+
       clen = LEN_TRIM(ccKey)
       CALL pmsg%pack(clen)
       CALL pmsg%pack(ccKey(1:clen))

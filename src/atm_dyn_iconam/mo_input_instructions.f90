@@ -67,8 +67,8 @@ MODULE mo_input_instructions
     ! sourceOfVar will be set to kInputSourceCold, indicating that the
     ! variable should experience some sort of coldstart
     ! initialization.
-    ! If there exists a fallback variable for a particular variable, 
-    ! optionalReadResultXXX() has to be used instead of handleErrorXXX(). 
+    ! If there exists a fallback variable for a particular variable,
+    ! optionalReadResultXXX() has to be used instead of handleErrorXXX().
     ! The former won't panick if no data is available.
     TYPE :: t_readInstructionList
         TYPE(t_readInstruction), POINTER :: list(:)
@@ -105,7 +105,7 @@ MODULE mo_input_instructions
 
         ! returns the result of a read attempt for a particular field:
         PROCEDURE :: fetchStatus => readInstructionList_fetchStatus
-        
+
         ! print a table with the information obtained via
         ! `handleErrorXXX()`, and `setSource()`; THIS DEPENDS ON THE
         ! ACTUAL READ ATTEMPTS AND THEIR RESULTS, NOT ON `lReadFg` or
@@ -133,7 +133,7 @@ MODULE mo_input_instructions
         ! is not necessary to start the run. (re-set to
         ! .FALSE. according to the `fg_checklist` namelist parameter):
         LOGICAL :: lOptionalFg
-                              
+
         ! Panick if reading from analysis fails (set according to the
         ! `ana_checklist` namelist parameter):
         LOGICAL :: lRequireAna
@@ -193,12 +193,12 @@ CONTAINS
     END SUBROUTINE collectGroupFg
 
     ! Sub-list of optional first guess fields
-    ! Fields in this list are read from the first guess field if they are present, 
+    ! Fields in this list are read from the first guess field if they are present,
     ! but they are not needed to start the model.
     !
-    ! ToDo: 
-    ! So far, this list has to be created manually. In the future this 
-    ! should be done automatically via (add_var) metadata flags. 
+    ! ToDo:
+    ! So far, this list has to be created manually. In the future this
+    ! should be done automatically via (add_var) metadata flags.
     !
     ! The JSBACH fields are marked optional to allow for initialization from files
     ! without JSBACH fields. In that case JSBACH uses its own initialization files
@@ -319,7 +319,7 @@ CONTAINS
 
                 ELSE IF (lp2cintp_incr(jg) .AND. .NOT. lp2cintp_sfcana(jg)) THEN
                     ! SFC-ANA read
-                    ! atmospheric analysis fieds are interpolated from parent domain, 
+                    ! atmospheric analysis fieds are interpolated from parent domain,
                     ! however surface analysis fields are read from file
 
                     ! Remove fields atmospheric analysis fields from anaGroup
@@ -336,7 +336,7 @@ CONTAINS
                     CALL finish(routine, message_text)
                 ENDIF
 
-                ! when vertical remapping of the FG-fields is applied, z_ifc is required 
+                ! when vertical remapping of the FG-fields is applied, z_ifc is required
                 ! as FG input field
                 IF (lvert_remap_fg) THEN
                   CALL add_to_list(fgGroup, fgGroupSize, 'z_ifc')
@@ -419,7 +419,7 @@ CONTAINS
             curInstruction => resultVar%findInstruction(grp_vars_fg(ivar))
             curInstruction%lReadFg = .TRUE.
             !
-            ! mark optional first guess fields in the instruction list. 
+            ! mark optional first guess fields in the instruction list.
             IF (one_of(TRIM(grp_vars_fg(ivar)), grp_vars_optfg)/=-1) THEN
                 WRITE(message_text,'(a,a,a,i2)') 'Declare ',TRIM(grp_vars_fg(ivar)),' as OPTIONAL for DOM ', p_patch%id
                 CALL message(routine, message_text)
@@ -433,9 +433,9 @@ CONTAINS
         END DO
 
         ! Allow the user to override the DEFAULT settings for optional fields via fg_checklist
-        ! I.e. the user can change an optional field into a mandatory one and force a model abort, 
+        ! I.e. the user can change an optional field into a mandatory one and force a model abort,
         ! if the field is not available as input.
-        ! 
+        !
         ! translate GRIB2 varname to internal netcdf varname
         ! If requested GRIB2 varname is not found in the dictionary
         ! (i.e. due to typos) -> Model abort
@@ -445,9 +445,9 @@ CONTAINS
             curInstruction => resultVar%findInstruction(TRIM(ana_varnames_dict%get( &
                  &                                                  initicon_config(p_patch%id)%fg_checklist(ivar), &
                  &                                                  linverse=.TRUE.)), opt_expand=.FALSE.)
-            ! Note that depending on the Namelist settings, not every field listed in 
-            ! fg_checklist is part of the instruction list. Therefore, curInstruction 
-            ! may be non-associated. 
+            ! Note that depending on the Namelist settings, not every field listed in
+            ! fg_checklist is part of the instruction list. Therefore, curInstruction
+            ! may be non-associated.
             IF (ASSOCIATED(curInstruction) .AND. curInstruction%lOptionalFg) THEN
                 curInstruction%lOptionalFg = .FALSE.
 
@@ -489,20 +489,20 @@ CONTAINS
     FUNCTION readInstructionList_findInstruction(me, varName, opt_expand) RESULT(resultVar)
         CLASS(t_readInstructionList), INTENT(INOUT) :: me
         CHARACTER(LEN = *), INTENT(IN) :: varName
-        LOGICAL, INTENT(IN), OPTIONAL  :: opt_expand  ! TRUE: expand list, if variable is not found 
+        LOGICAL, INTENT(IN), OPTIONAL  :: opt_expand  ! TRUE: expand list, if variable is not found
         TYPE(t_readInstruction), POINTER :: resultVar
 
         INTEGER :: i
         CHARACTER(LEN = *), PARAMETER :: routine = modname//":readInstructionList_findInstruction"
-        LOGICAL :: expand   ! TRUE/FALSE: expand/do not expand list, if variable is not found  
+        LOGICAL :: expand   ! TRUE/FALSE: expand/do not expand list, if variable is not found
 
         IF (PRESENT(opt_expand)) THEN
             expand = opt_expand
         ELSE
-            expand = .TRUE. 
+            expand = .TRUE.
         ENDIF
         ! initialize
-        resultVar => NULL() 
+        resultVar => NULL()
 
         ! try to find it IN the current list
         DO i = 1, me%nInstructions
@@ -650,7 +650,7 @@ CONTAINS
         ELSE
             IF (instruction%lOptionalFg) THEN
                 ! field is not necessary for starting the model
-                ! Therefore we set the status to kStateFailedOptFetch 
+                ! Therefore we set the status to kStateFailedOptFetch
                 ! instead of kStateFailedFetch
                 instruction%statusFg = kStateFailedOptFetch
             ELSE
@@ -664,7 +664,7 @@ CONTAINS
                     CALL finish(caller, "failed to read variable '"//varName//"' from the first guess file, &
                     &and reading from analysis file is not allowed")
                 END IF
-            ENDIF 
+            ENDIF
         END IF
     END SUBROUTINE readInstructionList_handleErrorFg
 
@@ -812,9 +812,9 @@ CONTAINS
 
 
 
-    ! The table that is printed by this function deliberately depends on the actual read attempts and their results, 
-    ! not on `lReadFg` or `lReadAna`. This is due to the fact that there are existing discrepancies between the 
-    ! input groups and the actual read attempts made by the `fetch...()` routines in `mo_initicon_io`: 
+    ! The table that is printed by this function deliberately depends on the actual read attempts and their results,
+    ! not on `lReadFg` or `lReadAna`. This is due to the fact that there are existing discrepancies between the
+    ! input groups and the actual read attempts made by the `fetch...()` routines in `mo_initicon_io`:
     ! The table is supposed to show the reality of which data was read from where, and which inputs were used,
     ! not some hypothetical this-is-what-should-have-been-done info.
     SUBROUTINE readInstructionList_printSummary(me, jg)

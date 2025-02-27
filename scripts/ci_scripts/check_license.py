@@ -133,7 +133,8 @@ FILE_TYPES = [
 def get_file_type(filepath):
     for file_type in FILE_TYPES:
         if any(
-            fnmatch.fnmatch(filepath, pattern) for pattern in file_type.glob_patterns
+            fnmatch.fnmatch(filepath, pattern)
+            for pattern in file_type.glob_patterns
         ):
             return file_type
     return None
@@ -230,7 +231,8 @@ def parse_args():
             os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
         )
         args.files_or_dirs.extend(
-            os.path.join(icon_dir, icon_subdir) for icon_subdir in ICON_DIRECTORIES
+            os.path.join(icon_dir, icon_subdir)
+            for icon_subdir in ICON_DIRECTORIES
         )
         args.ignored_patterns = [
             os.path.join(icon_dir, pattern) for pattern in ICON_IGNORED_PATTERNS

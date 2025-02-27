@@ -31,12 +31,12 @@
    USE mo_kind,                ONLY: wp
    USE mo_physical_constants,  ONLY: rd_o_cpd, p0ref, grav, tmelt,  &
                                    & cvd_o_rd, cpd ,     &
-                                     vtmpc1 , rd            
-                                     
+                                     vtmpc1 , rd
+
    USE mo_math_constants,      ONLY: pi, deg2rad
    USE mo_model_domain,        ONLY: t_patch
    USE mo_nonhydro_types,      ONLY: t_nh_prog, t_nh_diag, t_nh_metrics
-   USE mo_run_config,          ONLY: iforcing, iqv,msg_level 
+   USE mo_run_config,          ONLY: iforcing, iqv,msg_level
    USE mo_impl_constants,      ONLY: inwp
    USE mo_parallel_config,     ONLY: nproma
    USE mo_thdyn_functions,     ONLY:  sat_pres_water, &  !! saturation vapor pressure w.r.t. water
@@ -68,17 +68,17 @@
   INTEGER, PUBLIC       :: itype_atmo_ana    ! kind of atmosphere profile
                                              ! 1 piecewise N const layers
                                              ! 2 piecewise polytropic layers
-! !DEFINED PARAMETERS for the piecewise const. Brunt-Vaisala-freq (N) 
+! !DEFINED PARAMETERS for the piecewise const. Brunt-Vaisala-freq (N)
 !  layers atmosphere:
    INTEGER, PARAMETER, PUBLIC  :: max_nlayers_nconst = 10
-! !DEFINED PARAMETERS for the piecewise const. vertical T-gradient 
+! !DEFINED PARAMETERS for the piecewise const. vertical T-gradient
 !  layers atmosphere:
    INTEGER, PARAMETER, PUBLIC  :: max_nlayers_poly = 10
-! !DEFINED PARAMETERS for the analytical wind profiles 
+! !DEFINED PARAMETERS for the analytical wind profiles
 !  layers atmosphere:
    INTEGER, PARAMETER, PUBLIC  :: max_nlayers_linwind = 10
 
-! !DEFINED namelist variables for the piecewise const. Brunt-Vaisala-freq (N) 
+! !DEFINED namelist variables for the piecewise const. Brunt-Vaisala-freq (N)
 !  layers atmosphere:
    INTEGER, PUBLIC      :: nlayers_nconst      ! Number of desired layers with a constant N
    REAL(wp), PUBLIC     :: p_base_nconst       ! pressure at h_nconst(1)
@@ -86,20 +86,20 @@
    REAL(wp), PUBLIC     :: h_nconst(max_nlayers_nconst) ! base height for each layer in m
    REAL(wp), PUBLIC     :: N_nconst(max_nlayers_nconst) ! N in 1/s for each layer
    REAL(wp), PUBLIC     :: rh_nconst(max_nlayers_nconst) ! base relative humidity for each layer
-   REAL(wp), PUBLIC     :: rhgr_nconst(max_nlayers_nconst) ! gradient of relative humidity for 
-                                                           ! each layer in 1/m, positive for 
+   REAL(wp), PUBLIC     :: rhgr_nconst(max_nlayers_nconst) ! gradient of relative humidity for
+                                                           ! each layer in 1/m, positive for
                                                            ! decreasing rel hum with height
-! !DEFINED namelist variables for the piecewise const. vertical T-gradient (G) 
+! !DEFINED namelist variables for the piecewise const. vertical T-gradient (G)
 !  layers atmosphere:
    INTEGER, PUBLIC      :: nlayers_poly        ! Number of desired layers with a constant G
    REAL(wp), PUBLIC     :: p_base_poly       ! pressure at h_poly(1)
    REAL(wp), PUBLIC     :: h_poly(max_nlayers_poly) ! base height for each layer in m
    REAL(wp), PUBLIC     :: t_poly(max_nlayers_poly) ! base T in K for each layer
-   REAL(wp), PUBLIC     :: tgr_poly(max_nlayers_poly) ! G in K/m for each layer, positive for 
+   REAL(wp), PUBLIC     :: tgr_poly(max_nlayers_poly) ! G in K/m for each layer, positive for
                                                       ! decreasing temperature with height
    REAL(wp), PUBLIC     :: rh_poly(max_nlayers_poly) ! base relative humidity for each layer
-   REAL(wp), PUBLIC     :: rhgr_poly(max_nlayers_poly) ! gradient of relative humidity for 
-                                                           ! each layer in 1/m, positive for 
+   REAL(wp), PUBLIC     :: rhgr_poly(max_nlayers_poly) ! gradient of relative humidity for
+                                                           ! each layer in 1/m, positive for
                                                            ! decreasing rel hum with height
 ! !DEFINED namelist variables for the analytical wind profile
   INTEGER, PUBLIC       :: itype_anaprof_uv    ! kind of wind profile
@@ -110,9 +110,9 @@
   REAL(wp), PUBLIC      :: ugr_linwind(max_nlayers_linwind) ! gradient of U for each layer,
                                                             ! positive for increasing windspeed
                                                             ! with height, in 1/s
-  ! For  itype_anaprof_uv == 2/3, constant U/V 
-  REAl(wp), PUBLIC      :: vel_const 
-                       ! 
+  ! For  itype_anaprof_uv == 2/3, constant U/V
+  REAl(wp), PUBLIC      :: vel_const
+                       !
 ! !DEFINED namelist variables for the analytical topography
   INTEGER,  PUBLIC      :: itype_topo_ana
 ! !Defined namelist parameters for the schaer mountain (itype_topo_ana=1)
@@ -120,12 +120,12 @@
   REAL(wp), PUBLIC      :: schaer_a
   REAL(wp), PUBLIC      :: schaer_lambda
 ! Defined namelist parameter for all the 2D mountains
-  REAL(wp), PUBLIC      :: halfwidth_2dm 
+  REAL(wp), PUBLIC      :: halfwidth_2dm
 ! !Defined namelist parameters for the center of the mountain
   REAL(wp), PUBLIC      :: mount_lonc_deg, mount_latc_deg
 ! !Defined namelist parameters for the height and width of the mountain
   REAL(wp), PUBLIC      :: m_height, m_width_x, m_width_y
-     
+
 
 !--------------------------------------------------------------------
 
@@ -133,11 +133,11 @@
 !--------------------------------------------------------------------
 !
   !>
-  !! Initialization of prognostic state for an 
-  !! atmosphere with arbitrary number of polytropic layers, specified 
+  !! Initialization of prognostic state for an
+  !! atmosphere with arbitrary number of polytropic layers, specified
   !! by a constant vertical T-gradient (G lapse rate)
   !!
-  !! It is assumed  a moist subsaturated atmosphere 
+  !! It is assumed  a moist subsaturated atmosphere
   !!
   SUBROUTINE init_nh_atmo_ana_poly( ptr_patch, ptr_nh_prog, ptr_nh_diag, &
     &                                p_metrics, l_hydro_adjust )
@@ -157,7 +157,7 @@
 
 
     TYPE(t_nh_metrics), INTENT(IN)      :: p_metrics !< NH metrics state
-    LOGICAL, INTENT(IN)                 :: l_hydro_adjust !if .TRUE. hydrostatically balanced 
+    LOGICAL, INTENT(IN)                 :: l_hydro_adjust !if .TRUE. hydrostatically balanced
                                                          ! initial condition
 
 
@@ -177,7 +177,7 @@
     ! sublayers within a layer to better stimate pressure at the base of the layers
     INTEGER, PARAMETER  :: nsubl = 10  !(nsubl-1 is the number of sublayers used)
     REAL(wp), DIMENSION(nsubl) :: h_subl, t_subl, pres_subl, rh_subl, qv_subl
-  
+
     REAL(wp)  :: z_h, zz_top
     REAL(wp)  :: z_h_kp1
 !--------------------------------------------------------------------
@@ -194,7 +194,7 @@
     npromz_c  = ptr_patch%npromz_c
 
 !
-! First some control of the imput namelist parameters 
+! First some control of the imput namelist parameters
 
    IF (nlayers_poly > max_nlayers_poly) THEN
         CALL finish('ERROR  ** nlayers_poly > max_nlayers_poly !!! **')
@@ -222,7 +222,7 @@
 ! condition to avoid negative pressure in a polytropic atmosphere
 
   DO jl=1, nlayers_poly-1
-   IF (tgr_poly(jl) > 0._wp ) THEN   
+   IF (tgr_poly(jl) > 0._wp ) THEN
     IF (h_poly(jl+1) > h_poly(jl)+t_poly(jl)/tgr_poly(jl) ) THEN
       WRITE(message_text,'(a,i3,a)') 'jl:',jl,' combination of h_poly(jl), t_poly(jl) &
                                & tgr_poly(jl) lead to negative pressure'
@@ -249,7 +249,7 @@
 !   !$OMP PARALLEL
 !   !$OMP DO PRIVATE(jl, jsubl,h_subl,t_subl,rh_subl,pres_subl,qv_subl )
   DO  jl = 2, nlayers_poly
-    !consider temp and rh as from the layer below 
+    !consider temp and rh as from the layer below
     ! I consider nsubl-1 sublayers in layer jl, to stimate pres_poly(jl)
     h_subl(1)=h_poly(jl-1)
     t_subl(1)=t_poly(jl-1)
@@ -264,26 +264,26 @@
      IF (rh_subl(jsubl)> 0.0_wp) THEN
        !estimale pres_poly considering constant qv in the layer below
        pres_subl(jsubl)=p_poly(pres_subl(jsubl-1), tgr_poly(jl-1), t_subl(jsubl-1), &
-                    h_subl(jsubl-1),h_subl(jsubl) , qv_subl(jsubl-1),qv_subl(jsubl-1)) 
-       
+                    h_subl(jsubl-1),h_subl(jsubl) , qv_subl(jsubl-1),qv_subl(jsubl-1))
+
        ! first stimation of qv
        qv_subl(jsubl)=qv_rhtp(rh_subl(jsubl), t_subl(jsubl), pres_subl(jsubl) )
        pres_subl(jsubl)=p_poly(pres_subl(jsubl-1), tgr_poly(jl-1), t_subl(jsubl-1), &
-                    h_subl(jsubl-1),h_subl(jsubl) , qv_subl(jsubl-1),qv_subl(jsubl)) 
-       
+                    h_subl(jsubl-1),h_subl(jsubl) , qv_subl(jsubl-1),qv_subl(jsubl))
+
        qv_subl(jsubl)=qv_rhtp(rh_subl(jsubl), t_subl(jsubl), pres_subl(jsubl) )
      ELSE
        qv_subl(jsubl)=0.0_wp
-     END IF 
+     END IF
      !last estimation of pres_subl
      pres_subl(jsubl)=p_poly(pres_subl(jsubl-1), tgr_poly(jl-1), t_subl(jsubl-1), &
-                  h_subl(jsubl-1),h_subl(jsubl) , qv_subl(jsubl-1),qv_subl(jsubl)) 
+                  h_subl(jsubl-1),h_subl(jsubl) , qv_subl(jsubl-1),qv_subl(jsubl))
 
     END DO !jsubl
     pres_poly(jl)=pres_subl(nsubl)
     ! now consider the real t_poly(jl) and rh_poly(jl) to calculate qv_poly(jl) (=! qv_aux)
     qv_poly(jl)=qv_rhtp(rh_poly(jl), t_poly(jl), pres_poly(jl))
-   
+
   END DO !jl
 !   !$OMP END DO
 !   !$OMP END PARALLEL
@@ -316,13 +316,13 @@
              !set the layer corresponding to this point
              IF (z_h <  h_poly(1) ) THEN
                jglayer(jc,jk,jb)=0
-             ELSEIF (z_h >=  h_poly(nlayers_poly) ) THEN 
+             ELSEIF (z_h >=  h_poly(nlayers_poly) ) THEN
               jglayer(jc,jk,jb)= nlayers_poly
              ELSE
               DO jl=1,nlayers_poly-1
                IF (z_h >= h_poly(jl) .AND. z_h < h_poly(jl+1)  ) THEN
-                jglayer(jc,jk,jb)=jl 
-               END IF          
+                jglayer(jc,jk,jb)=jl
+               END IF
               END DO
              END IF
 
@@ -335,15 +335,15 @@
     IF (ANY(jglayer(:,:,:) < 0) .OR. ANY(jglayer(:,:,:)>nlayers_poly )) THEN
          CALL finish ('corresponding layer has not been found for some model points')
     END IF
-  
-!$OMP PARALLEL 
+
+!$OMP PARALLEL
 !$OMP DO PRIVATE(jk,jc,nlen,z_h,z_h_kp1, jg)
     DO jb = 1, nblks_c
       nlen = MERGE(nproma, npromz_c, jb /= nblks_c)
 
       DO jk = nlev, 1, -1
          DO jc = 1, nlen
- 
+
              z_h = p_metrics%z_mc(jc,jk,jb)
              jg=jglayer(jc,jk,jb)
 
@@ -368,62 +368,62 @@
               END IF
               relhum(jc,jk,jb)=MAX(0._wp,MIN(1._wp,relhum(jc,jk,jb)))
               IF (jk < nlev .AND. jg == jglayer(jc,jk+1,jb) ) THEN
-               ! in this case we integrate starting in the level bellow, instead of 
+               ! in this case we integrate starting in the level bellow, instead of
                !  starting in the base of the layer
                z_h_kp1 = p_metrics%z_mc(jc,jk+1,jb)
                IF (relhum(jc,jk,jb) > 1.e-20_wp) THEN
                 pres(jc,jk,jb)=p_poly(pres(jc,jk+1,jb),tgr_poly(jg),temp(jc,jk+1,jb), &
                                 z_h_kp1 , z_h, z_qv(jc,jk+1,jb),z_qv(jc,jk+1,jb))
-                
-                
+
+
                 z_qv(jc,jk,jb) = qv_rhtp(relhum(jc,jk,jb), temp(jc,jk,jb),            &
-                                         pres(jc,jk,jb) ) 
+                                         pres(jc,jk,jb) )
                 pres(jc,jk,jb)=p_poly(pres(jc,jk+1,jb),tgr_poly(jg),temp(jc,jk+1,jb), &
                                 z_h_kp1 , z_h, z_qv(jc,jk+1,jb),z_qv(jc,jk,jb))
                 z_qv(jc,jk,jb) = qv_rhtp(relhum(jc,jk,jb), temp(jc,jk,jb),            &
-                                         pres(jc,jk,jb) ) 
+                                         pres(jc,jk,jb) )
                ELSE
                 z_qv(jc,jk,jb) = 0.0_wp
-               END IF 
+               END IF
                pres(jc,jk,jb)=p_poly(pres(jc,jk+1,jb),tgr_poly(jg),temp(jc,jk+1,jb), &
                                 z_h_kp1 , z_h, z_qv(jc,jk+1,jb),z_qv(jc,jk,jb))
                tempv(jc,jk,jb) =  temp(jc,jk,jb) * (1._wp+vtmpc1*z_qv(jc,jk,jb))
 
-               
+
               ELSE
                !WRITE(*,*) "from the layer base"
                ! here we integrate from the base of the layer
                !
                ! here I could earth_radious-estimate the values at the base of the layer
-               ! integrating from (jc,jk+1,jb) to the base of the layer 
+               ! integrating from (jc,jk+1,jb) to the base of the layer
                ! in the case jN>1
 !!$                IF (jg>1  .AND. pres_poly(jg) > pres(jc,jk+1,jb)) THEN
 !!$                  ! check that pres_poly(jg)<pres(jc,jk+1,jb)
 !!$                  CALL finish ('base layer has larger pressure than the level&
 !!$                              & below pres_poly(jg) was not well approximated')
-!!$                             
+!!$
 !!$                END IF
                IF (relhum(jc,jk,jb) > 1.e-20_wp) THEN
                 pres(jc,jk,jb)=p_poly(pres_poly(jg),tgr_poly(jg),t_poly(jg), &
-                             h_poly(jg), z_h ,qv_poly(jg),qv_poly(jg))              
+                             h_poly(jg), z_h ,qv_poly(jg),qv_poly(jg))
                 z_qv(jc,jk,jb) = qv_rhtp(relhum(jc,jk,jb), temp(jc,jk,jb),   &
                                          pres(jc,jk,jb) )
                 pres(jc,jk,jb)=p_poly(pres_poly(jg),tgr_poly(jg),t_poly(jg), &
-                             h_poly(jg), z_h, qv_poly(jg),z_qv(jc,jk,jb))               
+                             h_poly(jg), z_h, qv_poly(jg),z_qv(jc,jk,jb))
                 z_qv(jc,jk,jb) = qv_rhtp(relhum(jc,jk,jb), temp(jc,jk,jb),   &
                                          pres(jc,jk,jb) )
                ELSE
                 z_qv(jc,jk,jb) = 0.0_wp
-               END IF 
+               END IF
                pres(jc,jk,jb)=p_poly(pres_poly(jg),tgr_poly(jg),t_poly(jg), &
-                             h_poly(jg), z_h, qv_poly(jg),z_qv(jc,jk,jb)) 
+                             h_poly(jg), z_h, qv_poly(jg),z_qv(jc,jk,jb))
                tempv(jc,jk,jb) =  temp(jc,jk,jb) * (1._wp+vtmpc1*z_qv(jc,jk,jb))
               END IF
              END IF
 !!$             IF (pres(jc,jk,jb) < 0.0_wp) THEN
 !!$                 CALL finish ('Try with a lower top_height because &
 !!$                               & you have reached p=0')
-!!$             END IF 
+!!$             END IF
 
          END DO
       END DO
@@ -432,13 +432,13 @@
 !$OMP END PARALLEL
 
    ! Copy to prognostic model fields and diagnostic fields
-!$OMP PARALLEL 
+!$OMP PARALLEL
 !$OMP DO PRIVATE(jb,jk,jc,nlen)
     DO jb = 1, nblks_c
       nlen = MERGE(nproma, npromz_c, jb /= nblks_c)
 
       DO jk = nlev, 1, -1
-        DO jc = 1, nlen  
+        DO jc = 1, nlen
           ptr_nh_diag%tempv(jc,jk,jb)   = tempv(jc,jk,jb)
           ptr_nh_diag%pres(jc,jk,jb)    = pres(jc,jk,jb)
           IF (iforcing == inwp ) THEN
@@ -446,7 +446,7 @@
           END IF
 
         ENDDO !jc
-      ENDDO !jk     
+      ENDDO !jk
     ENDDO !jb
 !$OMP END DO
 !$OMP END PARALLEL
@@ -462,7 +462,7 @@
    CALL hydro_adjust ( ptr_patch, p_metrics, ptr_nh_prog%rho,  &
                      & ptr_nh_prog%exner, ptr_nh_prog%theta_v  )
 
-  END IF   
+  END IF
 
     !CALL sync_patch_array(SYNC_C, ptr_patch,temp, lacc=.FALSE.)
     !CALL sync_patch_array(SYNC_C, ptr_patch,tempv, lacc=.FALSE.)
@@ -479,12 +479,12 @@
 !-------------------------------------------------------------------------
 !
   !>
-  !! Initialization of prognostic state for an 
-  !! atmosphere with layers exhibiting constant 
-  !! Brunt-Vaisala-Frequency N 
+  !! Initialization of prognostic state for an
+  !! atmosphere with layers exhibiting constant
+  !! Brunt-Vaisala-Frequency N
   !! (N takes water vapor relhum into account).
   !!
-  !! It is assumed that N refers to a moist subsaturated atmosphere 
+  !! It is assumed that N refers to a moist subsaturated atmosphere
   !!
   SUBROUTINE init_nh_atmo_ana_nconstlayers( ptr_patch, ptr_nh_prog, ptr_nh_diag, &
     &                                p_metrics, l_hydro_adjust )
@@ -504,7 +504,7 @@
 
 
     TYPE(t_nh_metrics), INTENT(IN)      :: p_metrics !< NH metrics state
-    LOGICAL, INTENT(IN)                 :: l_hydro_adjust !if .TRUE. hydrostatically balanced 
+    LOGICAL, INTENT(IN)                 :: l_hydro_adjust !if .TRUE. hydrostatically balanced
                                                          ! initial condition
 
 
@@ -521,7 +521,7 @@
     REAL(wp), DIMENSION(nlayers_nconst) :: thetab, exnerb, tempb, qvb, &
                                            rhb, presb
 
-  
+
     REAL(wp)  :: z_h,  temp_aux, pres_aux,  tempv_aux, zz_top, theta_top
     REAL(wp)  :: zloghuge, bvref_tconst
 
@@ -529,7 +529,7 @@
 !--------------------------------------------------------------------
 !
 
-! First some control of the imput namelist parameters 
+! First some control of the imput namelist parameters
 
    IF (nlayers_nconst > max_nlayers_nconst) THEN
         CALL finish('ERROR  ** nlayers_nconst > max_nlayers_nconst !!! **')
@@ -558,8 +558,8 @@
    ENDIF
    IF (ANY(N_nconst(:) <= 1.e-12_wp)) THEN
     CALL finish('','ERROR  ** Brunt Vaisala Frequencies  N_nconst should be >0, &
-                   & the posibility of N_nconst = 0 is still not implemented') 
-   END IF  
+                   & the posibility of N_nconst = 0 is still not implemented')
+   END IF
 
   ! Error check for exp(-N^2/g*(z-z0)) if N^2/g*(z-z0) > log(huge(1.0_wp)-1.0)
   zloghuge = LOG(HUGE(1.0_wp)-1.0)
@@ -597,7 +597,7 @@
     rhb(1)    = rh_nconst(1)
     presb(1)  = p_base_nconst
     tempb(1)  =  thetab(1) * exnerb(1)
-    qvb(1)      = qv_rhtp(rhb(1), tempb(1), presb(1) )   
+    qvb(1)      = qv_rhtp(rhb(1), tempb(1), presb(1) )
 
 
 ! set the values at the base of each layer
@@ -606,7 +606,7 @@
     thetab(jl) = thetab(jl-1)*           &
                & EXP( N_nconst(jl-1)**2*(h_nconst(jl)-h_nconst(jl-1))/grav )
 ! check that the value of N does not lead to a negative pressure
-    IF (exnerb(jl-1) <      &    
+    IF (exnerb(jl-1) <      &
          & (1._wp/thetab(jl)-1._wp/thetab(jl-1))*(grav/N_nconst(jl-1))**2/cpd  ) THEN
      WRITE(message_text,'(a,i3,a)')'jl: ',jl-1,  &
                         & 'value of N_nconst(jl) leads to a negative pressure'
@@ -620,13 +620,13 @@
     IF (rhb(jl) > 0.0_wp) THEN
      !first consider constant qv (= qvb) in the layer jl-1
 
-     exnerb(jl) = exner_nconst(exnerb(jl-1), N_nconst(jl-1),thetab(jl-1), & 
+     exnerb(jl) = exner_nconst(exnerb(jl-1), N_nconst(jl-1),thetab(jl-1), &
                            &  thetab(jl), qvb(jl-1), qvb(jl-1))
      presb(jl)  = p0ref*(exnerb(jl)**cpd_o_rd)
      tempb(jl)  = thetab(jl)*exnerb(jl)
      qvb(jl)    = qv_rhtp(rhb(jl), tempb(jl), presb(jl) )
      ! recalculate exner with the fisrt estimation of qvb, then recalculate qvb
-     exnerb(jl) = exner_nconst(exnerb(jl-1), N_nconst(jl-1),thetab(jl-1), & 
+     exnerb(jl) = exner_nconst(exnerb(jl-1), N_nconst(jl-1),thetab(jl-1), &
                            &  thetab(jl), qvb(jl-1), qvb(jl))
      presb(jl)  = p0ref*(exnerb(jl)**cpd_o_rd)
      tempb(jl)  = thetab(jl)*exnerb(jl)
@@ -635,7 +635,7 @@
      qvb(jl)    = 0.0_wp
     END IF
 ! last estimation of exner
-    exnerb(jl) = exner_nconst(exnerb(jl-1), N_nconst(jl-1),thetab(jl-1), & 
+    exnerb(jl) = exner_nconst(exnerb(jl-1), N_nconst(jl-1),thetab(jl-1), &
                            &  thetab(jl), qvb(jl-1), qvb(jl))
     presb(jl)  = p0ref*(exnerb(jl)**cpd_o_rd)
     tempb(jl)  = thetab(jl)*exnerb(jl)
@@ -654,7 +654,7 @@
     WRITE(message_text,'(a,i3,a)') 'jl: ',nlayers_nconst,'value of N_nconst(jl) leads &
                                       &   to a negative pressure'
     CALL finish('', message_text)
-   END IF  
+   END IF
   END IF
 ! ckeck finished
 
@@ -670,8 +670,8 @@
 
 ! set the corresponding layer for all the model points
 
-jnlayer(:,:,:)=0  
-!$OMP PARALLEL 
+jnlayer(:,:,:)=0
+!$OMP PARALLEL
 !$OMP DO PRIVATE(jb,jk,jc,nlen,z_h, jl)
     DO jb = 1, nblks_c
       IF (jb /= nblks_c) THEN
@@ -687,17 +687,17 @@ jnlayer(:,:,:)=0
              !set the layer corresponding to this point
              IF (z_h <  h_nconst(1) ) THEN
                jnlayer(jc,jk,jb)=0
-             ELSEIF (z_h >=  h_nconst(nlayers_nconst) ) THEN 
+             ELSEIF (z_h >=  h_nconst(nlayers_nconst) ) THEN
               jnlayer(jc,jk,jb)= nlayers_nconst
              ELSE
               DO jl=1,nlayers_nconst-1
                IF (z_h >= h_nconst(jl) .AND. z_h < h_nconst(jl+1)  ) THEN
-                jnlayer(jc,jk,jb)=jl 
-               END IF          
+                jnlayer(jc,jk,jb)=jl
+               END IF
               END DO
              END IF
         ENDDO !jc
-      ENDDO !jk     
+      ENDDO !jk
     ENDDO !jb
 !$OMP END DO
 !$OMP END PARALLEL
@@ -705,7 +705,7 @@ jnlayer(:,:,:)=0
     IF (ANY(jnlayer(:,:,:) < 0) .OR. ANY(jnlayer(:,:,:)>nlayers_nconst) ) THEN
          CALL finish ('corresponding layer has not been found for some model points')
     END IF
-!$OMP PARALLEL 
+!$OMP PARALLEL
 !$OMP DO PRIVATE(jb,jk,jc,nlen,z_h,jn,tempv_aux, pres_aux,temp_aux)
     DO jb = 1, nblks_c
       IF (jb /= nblks_c) THEN
@@ -725,7 +725,7 @@ jnlayer(:,:,:)=0
               tempv_aux = tempb(1)*(1._wp+vtmpc1*qvb(1))
               pres_aux  = presb(1) * &
                 & EXP(-grav_o_rd*(z_h-h_nconst(1))/tempv_aux)
-              exner(jc,jk,jb)= (pres_aux/p0ref)**rd_o_cpd  
+              exner(jc,jk,jb)= (pres_aux/p0ref)**rd_o_cpd
               theta(jc,jk,jb)= tempb(1)/exner(jc,jk,jb)
               theta_v(jc,jk,jb)=theta(jc,jk,jb)*(1._wp+vtmpc1*qvb(1))
             ELSE
@@ -739,7 +739,7 @@ jnlayer(:,:,:)=0
               END IF
               relhum(jc,jk,jb)=MAX(0._wp,MIN(1._wp,relhum(jc,jk,jb)))
               IF (jk < nlev .AND. jn == jnlayer(jc,MIN(jk+1,nlev),jb) ) THEN
-               ! in this case we integrate starting in the level bellow, instead of 
+               ! in this case we integrate starting in the level bellow, instead of
                !  starting in the base of the layer
 
                IF (relhum(jc,jk,jb) > 1.e-20_wp) THEN
@@ -770,30 +770,30 @@ jnlayer(:,:,:)=0
                z_qv(jc,jk,jb)= qv_rhtp(relhum(jc,jk,jb), temp_aux, pres_aux )
                theta_v(jc,jk,jb)=theta(jc,jk,jb)*(1._wp+vtmpc1*z_qv(jc,jk,jb))
 
-               
+
               ELSE
                !WRITE(*,*) "from the layer base"
                ! here we integrate from the base of the layer
                !
                ! here I could earth_radious-estimate the values at the base of the layer
-               ! integrating from (jc,jk+1,jb) to the base of the layer 
+               ! integrating from (jc,jk+1,jb) to the base of the layer
                ! in the case jn>1
 !!$                IF (jn>1  .AND. exnerb(jn) > exner(jc,jk+1,jb)) THEN
 !!$                  ! check that exner(jn)<exner(jc,jk+1,jb)
 !!$                  CALL finish ('base layer has larger pressure than the level &
 !!$                           &below exnerb(jn) was not well approximated')
-!!$                             
+!!$
 !!$                END IF
                IF (relhum(jc,jk,jb) > 1.e-20_wp) THEN
                 !
                 ! first consider qv constant (= qvb(jn))
-                exner(jc,jk,jb)= exner_nconst(exnerb(jn), N_nconst(jn),thetab(jn), & 
+                exner(jc,jk,jb)= exner_nconst(exnerb(jn), N_nconst(jn),thetab(jn), &
                             &  theta(jc,jk,jb), qvb(jn), qvb(jn))
                 pres_aux  = p0ref*(exner(jc,jk,jb)**cpd_o_rd)
                 temp_aux  = theta(jc,jk,jb)*exner(jc,jk,jb)
                 ! 1st estimation of  qv, then earth_radious-estimate exner
                 z_qv(jc,jk,jb)= qv_rhtp(relhum(jc,jk,jb), temp_aux, pres_aux )
-                exner(jc,jk,jb)= exner_nconst(exnerb(jn), N_nconst(jn),thetab(jn), & 
+                exner(jc,jk,jb)= exner_nconst(exnerb(jn), N_nconst(jn),thetab(jn), &
                             &  theta(jc,jk,jb), qvb(jn),z_qv(jc,jk,jb) )
                 pres_aux  = p0ref*(exner(jc,jk,jb)**cpd_o_rd)
                 temp_aux  = theta(jc,jk,jb)*exner(jc,jk,jb)
@@ -802,21 +802,21 @@ jnlayer(:,:,:)=0
                ELSE
                 z_qv(jc,jk,jb)= 0.0_wp
                END IF
-               exner(jc,jk,jb)= exner_nconst(exnerb(jn), N_nconst(jn),thetab(jn), & 
+               exner(jc,jk,jb)= exner_nconst(exnerb(jn), N_nconst(jn),thetab(jn), &
                            &  theta(jc,jk,jb), qvb(jn),z_qv(jc,jk,jb) )
                pres_aux  = p0ref*(exner(jc,jk,jb)**cpd_o_rd)
                temp_aux  = theta(jc,jk,jb)*exner(jc,jk,jb)
                ! earth_radious-estimate qv
                z_qv(jc,jk,jb)= qv_rhtp(relhum(jc,jk,jb), temp_aux, pres_aux )
                theta_v(jc,jk,jb)=theta(jc,jk,jb)*(1._wp+vtmpc1*z_qv(jc,jk,jb))
-               
+
               END IF
            END IF
 !!$             IF (exner(jc,jk,jb) < 0.0_wp) THEN
 !!$                 CALL finish ('Try with a lower top_height, because &
 !!$                               &you have reached p=0')
-!!$             END IF             
-             
+!!$             END IF
+
          END DO
       END DO
     END DO
@@ -825,7 +825,7 @@ jnlayer(:,:,:)=0
 
 
    ! Copy to prognostic model fields
-!$OMP PARALLEL 
+!$OMP PARALLEL
 !$OMP DO PRIVATE(jb,jk,jc,nlen)
     DO jb = 1, nblks_c
       IF (jb /= nblks_c) THEN
@@ -835,7 +835,7 @@ jnlayer(:,:,:)=0
       ENDIF
 
       DO jk = nlev, 1, -1
-        DO jc = 1, nlen  
+        DO jc = 1, nlen
           ptr_nh_prog%theta_v(jc,jk,jb)    = theta_v(jc,jk,jb)
           ptr_nh_prog%exner(jc,jk,jb)      = exner(jc,jk,jb)
           IF ( iforcing == inwp ) THEN
@@ -846,7 +846,7 @@ jnlayer(:,:,:)=0
           ptr_nh_prog%rho(jc,jk,jb)  = ptr_nh_prog%exner(jc,jk,jb)**cvd_o_rd*p0ref &
                                        /rd/ptr_nh_prog%theta_v(jc,jk,jb)
         ENDDO !jc
-      ENDDO !jk     
+      ENDDO !jk
     ENDDO !jb
 !$OMP END DO
 !$OMP END PARALLEL
@@ -858,7 +858,7 @@ jnlayer(:,:,:)=0
     IF (l_hydro_adjust) THEN
       !
       ! remark: calling hydro_adjust would be equally fine here
-      ! 
+      !
       CALL hydro_adjust_iterative ( p_patch       = ptr_patch,                    & !in
         &                           p_nh_metrics  = p_metrics,                    & !in
         &                           temp_ini      = ptr_nh_diag%temp,             & !in
@@ -869,7 +869,7 @@ jnlayer(:,:,:)=0
         &                           qv            = ptr_nh_prog%tracer(:,:,:,iqv),& !inout
         &                           luse_exner_fg = .TRUE.,                       & !in
         &                           opt_exner_lbc = ptr_nh_prog%exner(:,nlev,:)   ) !in
-    END IF   
+    END IF
 
 
     DEALLOCATE(theta, theta_v, relhum)
@@ -880,9 +880,9 @@ jnlayer(:,:,:)=0
 !-------------------------------------------------------------------------
 !
   !>
-  !! Initialization of the wind profile for the 
-  !!  limited area testcases 
-  !! 
+  !! Initialization of the wind profile for the
+  !!  limited area testcases
+  !!
   !!
   SUBROUTINE init_nh_anaprof_uv( ptr_patch, vn, w,    &
     &                                p_metrics, p_int )
@@ -899,7 +899,7 @@ jnlayer(:,:,:)=0
 
     REAL(wp)              :: z_u, z_v
     INTEGER               :: je,jb,jk,jl,jn
-    INTEGER               :: i_startblk, i_startidx, i_endidx, nblks_e 
+    INTEGER               :: i_startblk, i_startidx, i_endidx, nblks_e
     INTEGER               :: nlev
 
 !--------------------------------------------------------------------
@@ -914,7 +914,7 @@ jnlayer(:,:,:)=0
     SELECT CASE (itype_anaprof_uv)
 
       CASE(1)
-      ! arbitrary number of constant gradient U(z) layers 
+      ! arbitrary number of constant gradient U(z) layers
       ! horizontal normal components of the velocity
       ! initialize horizontal velocities
 
@@ -942,20 +942,20 @@ jnlayer(:,:,:)=0
              !set the layer corresponding to this point
              IF (z_me(je,jk,jb) <  h_linwind(1) ) THEN
                jn=0
-             ELSEIF (z_me(je,jk,jb) >=  h_linwind(nlayers_linwind) ) THEN 
+             ELSEIF (z_me(je,jk,jb) >=  h_linwind(nlayers_linwind) ) THEN
               jn= nlayers_linwind
              ELSE
               DO jl=1,nlayers_linwind-1
                IF (z_me(je,jk,jb) >= h_linwind(jl) .AND. z_me(je,jk,jb) < h_linwind(jl+1)) THEN
-                jn=jl 
+                jn=jl
                 !EXIT
-               END IF          
+               END IF
               END DO
              END IF
              IF (jn <= 0 .OR. jn > nlayers_linwind) THEN
                 CALL finish ('corresponding layer has not been found')
              END IF
-            
+
             z_u = u_linwind(jn) +  ugr_linwind(jn)*    &
                                 &  (z_me(je,jk,jb)-h_linwind(jn))   !v component is zero
             vn(je,jk,jb) = &
@@ -1026,7 +1026,7 @@ jnlayer(:,:,:)=0
 !-------------------------------------------------------------------------
 !
   !>
-  !! Initialization of topography 
+  !! Initialization of topography
   !!
 
   SUBROUTINE init_nh_topo_ana( ptr_patch, lplane, topo_c, nblks_c, npromz_c)
@@ -1049,7 +1049,7 @@ jnlayer(:,:,:)=0
     z_latc = mount_latc_deg*deg2rad
 
 !$OMP PARALLEL
-!$OMP DO PRIVATE(jb,jc,z_lat,z_lon,z_dx,z_dy,z_deltay ) 
+!$OMP DO PRIVATE(jb,jc,z_lat,z_lon,z_dx,z_dy,z_deltay )
       DO jb = 1, nblks_c
         IF (jb /= nblks_c) THEN
           nlen = nproma
@@ -1099,14 +1099,14 @@ jnlayer(:,:,:)=0
 !-------------------------------------------------------------------------
 !
   !>
-  !! lonc, latc can be the center of a mountain, buble,... 
-  !! Calculate distances from a lon,lat point to the center point 
-  !!  lonc,latc in the direction of the main axis of the 
+  !! lonc, latc can be the center of a mountain, buble,...
+  !! Calculate distances from a lon,lat point to the center point
+  !!  lonc,latc in the direction of the main axis of the
   !!  mountain/buble
-  !! If rotangle is zero, then it calculates distances from a lon lat point 
+  !! If rotangle is zero, then it calculates distances from a lon lat point
   !!  to the center point lonc, latc in the zonal and meridional directions
   !! This is a translation from SUBROUTINE hill_rot_coords in COSMO
-  !! 
+  !!
   !! It uses the spherical law of sines and the spherical law of cosines
   !!
   SUBROUTINE xy_distances(lon, lat, lonc, latc, rotangle, height, dx, dy, &
@@ -1114,7 +1114,7 @@ jnlayer(:,:,:)=0
 
    REAL(wp), INTENT (IN) :: lon, lat   !lon and lat of the point (in radians)
    REAL(wp), INTENT (IN) :: lonc, latc !lon and lat of the center point (in radians)
-   REAL(wp), INTENT (IN) :: rotangle   !rotation angle of main hill/bubble y-axis 
+   REAL(wp), INTENT (IN) :: rotangle   !rotation angle of main hill/bubble y-axis
                                        ! clockwise relative to north in rad
    REAL(wp), INTENT (IN) :: height     !vertical height of the point (in meters)
    REAL(wp), INTENT (OUT):: dx, dy     !distances in meters from (lon,lat) to
@@ -1129,16 +1129,16 @@ jnlayer(:,:,:)=0
 
 !--------------------------------------------------------------------
 !
-   
+
   IF (lplane) THEN
     z_d_lon = sphere_radius * (lon-lonc)
     z_d_lat = sphere_radius * (lat-latc)
 
-    dx = z_d_lon * COS(rotangle) - z_d_lat * SIN(rotangle) 
+    dx = z_d_lon * COS(rotangle) - z_d_lat * SIN(rotangle)
     dy = z_d_lon * SIN(rotangle) + z_d_lat * COS(rotangle)
 
   ELSE
-    
+
     z_cosd = SIN(latc)*SIN(lat)+COS(latc)*COS(lat)*COS(lon-lonc)
     z_d    = ACOS(z_cosd)
 
@@ -1147,7 +1147,7 @@ jnlayer(:,:,:)=0
     z_cos_arg = (SIN(lat)-SIN(latc)*z_cosd) / (COS(latc)*SIN(z_cangle))
     z_cos_arg = MAX(MIN(z_cos_arg, 1.0_wp), -1.0_wp)
 
- 
+
     z_delta= ACOS(z_cos_arg)
     IF (lonc > lon) z_delta = 2.0_wp*pi - z_delta
     !.. take rotation into account:
@@ -1173,14 +1173,14 @@ jnlayer(:,:,:)=0
 
 ! Calculate the exner function integrating the hydrostatic equation.
 !  It considers we are within a layer of constant Brunt Vaisala frequency.
-!  It considers that qv is constant within the two levels of the integration, 
+!  It considers that qv is constant within the two levels of the integration,
 !  in practice it uses the mean value of qv
   REAL(wp)  FUNCTION exner_nconst(exnerb,N,thetab, theta, qvb, qv)
- 
-   REAL(wp), INTENT (IN):: exnerb, N, thetab, theta, qvb, qv !exnerb, thetab and qvb are 
+
+   REAL(wp), INTENT (IN):: exnerb, N, thetab, theta, qvb, qv !exnerb, thetab and qvb are
                                                              ! the values at one level
                                                              ! N is the Brunt-Vaisala-freq
-                                                             ! theta and qv are the values at 
+                                                             ! theta and qv are the values at
                                                              ! the level for which we want to calculate
                                                              ! the exner function
    REAL(wp)             :: qv_mean, factor1, factor2
@@ -1193,17 +1193,17 @@ jnlayer(:,:,:)=0
   END FUNCTION exner_nconst
 !--------------------------------------------------------------------
 ! Calculates the pressure integrating the hydrostatic equation.
-!  It considers we are within a polytropic atmosphere layer of lapse 
+!  It considers we are within a polytropic atmosphere layer of lapse
 !   rate G (positive G means that the temperature decreases with height).
-!  It considers that qv is constant within the two levels of the integration, 
+!  It considers that qv is constant within the two levels of the integration,
 !  in practice it uses the mean value of qv
   REAL(wp)  FUNCTION p_poly(p_base,G,temp_base, height_base, height,  qv_base, qv)
- 
-   REAL(wp), INTENT (IN):: p_base, G, temp_base             !temp_base, p_base and qv_base are 
+
+   REAL(wp), INTENT (IN):: p_base, G, temp_base             !temp_base, p_base and qv_base are
                                                              ! the values at one level
                                                              ! G is the lapse rate
-                                                             ! temp and qv are the values at 
-                                                             ! the level for which we want to 
+                                                             ! temp and qv are the values at
+                                                             ! the level for which we want to
                                                              ! calculate the pressure
    REAL(wp), INTENT (IN):: height_base, height               ! the corresponding heights
    REAL(wp), INTENT (IN):: qv_base, qv
@@ -1219,7 +1219,7 @@ jnlayer(:,:,:)=0
     p_poly = p_base * (temp/temp_base)**z_exp
    ELSE  !isothermal atmosphere
     temp = temp_base
-    p_poly = p_base * EXP( -grav_o_rd*delta_h/temp/factorqv ) 
+    p_poly = p_base * EXP( -grav_o_rd*delta_h/temp/factorqv )
    END IF
 
   END FUNCTION p_poly

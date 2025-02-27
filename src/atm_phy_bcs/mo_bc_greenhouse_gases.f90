@@ -94,7 +94,7 @@ CONTAINS
 
     CALL nf_check(p_nf90_inq_varid (ncid, 'time', nvarid))
     CALL nf_check(p_nf90_get_var (ncid, nvarid, ghg_years))
-      
+
     CALL nf_check(p_nf90_inq_varid (ncid, 'CO2', nvarid))
     ! Find the time dimension in the variable and initialize 'var_count' as the
     ! 'count' argument of the 'p_nf90_get_var' function:
@@ -109,14 +109,14 @@ CONTAINS
       ENDIF
     ENDDO
     CALL nf_check(p_nf90_get_var (ncid, nvarid, ghg_co2, count = var_count))
-      
+
     ! Assume that the rest of the variables have the same dimensions:
     CALL nf_check(p_nf90_inq_varid (ncid, 'CH4', nvarid))
     CALL nf_check(p_nf90_get_var (ncid, nvarid, ghg_ch4, count = var_count))
-      
+
     CALL nf_check(p_nf90_inq_varid (ncid, 'N2O', nvarid))
     CALL nf_check(p_nf90_get_var (ncid, nvarid, ghg_n2o, count = var_count))
-      
+
     DO i = 1, ghg_no_cfc
       CALL nf_check(p_nf90_inq_varid (ncid, TRIM(ghg_cfc_names(i)), nvarid))
       CALL nf_check(p_nf90_get_var (ncid, nvarid, ghg_cfc(:,i), count = var_count))
@@ -167,7 +167,7 @@ CONTAINS
    &                                         ' or iyearm ', iyearm, &
    &                                         ' are out of range 1 - ', ghg_no_years
         CALL finish('mo_bc_greenhouse_gases', message_text)
- 
+
       ENDIF
 
       zw1 = zsecnow/zsecref + 0.5_dp

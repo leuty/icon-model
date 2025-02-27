@@ -23,7 +23,7 @@ MODULE mo_nh_diffusion
 ! for strange reasons, this routine is faster without mixed precision on the NEC
 #undef __MIXED_PRECISION
   USE mo_kind,                ONLY: wp, vp => wp
-#else 
+#else
   USE mo_kind,                ONLY: wp, vp
 #endif
   USE mo_nonhydro_types,      ONLY: t_nh_prog, t_nh_diag, t_nh_metrics
@@ -265,7 +265,7 @@ MODULE mo_nh_diffusion
       !
       bqdr = (df42*dz32-df32*dz42)/(dz32*dz42*(dz42-dz32))
       aqdr =  df32/dz32-bqdr*dz32
-      ! 
+      !
       DO jk = 1, nlev
         jk1 = jk + nshift
         !
@@ -638,7 +638,7 @@ MODULE mo_nh_diffusion
               dvt_tang*p_patch%edges%inv_primal_edge_length(je,jb) )**2 + def_aux
 
             ! 2D Smagorinsky diffusion coefficient (needed as input for turbulence)
-            kh_smag_ec(je,jk,jb) = diff_multfac_smag(jk)*SQRT(def_2d) 
+            kh_smag_ec(je,jk,jb) = diff_multfac_smag(jk)*SQRT(def_2d)
 
             ! 3D Smagorinsky diffusion coefficient with blending to 2D coefficient near the surface
             kh_smag_e(je,jk,jb) = diff_multfac_smag(jk)*SQRT( &

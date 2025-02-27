@@ -32,7 +32,7 @@ author_list="Marco Giorgetta, MPIM"
 
 # EXPNAME                       = name of exp. in 'exp.<name>'
 # basedir                       = base directory of the ICON repository, where bin/ and run/ exist
-# icon_data_rootFolder          = root directory for ICON grids, initial and boundary conditions. 
+# icon_data_rootFolder          = root directory for ICON grids, initial and boundary conditions.
 # nproma                        = blocking length for array dimensioning and inner loop lengths
 
 #--------------------------------------------------------------------------------------------------
@@ -107,7 +107,7 @@ cat > ${atmo_namelist} << EOF
  ltransport       = .TRUE.      ! transport
  iforcing         = 2           ! 0: none, 1: HS, 2: ECHAM, 3: NWP
  output           = 'nml'
- msg_level        = 15          ! level of details report during integration 
+ msg_level        = 15          ! level of details report during integration
  restart_filename = "${EXPNAME}_restart_atm_<rsttime>.mfr"
  activate_sync_timers = .TRUE.
 /

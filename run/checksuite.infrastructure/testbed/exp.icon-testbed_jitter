@@ -37,7 +37,7 @@ no_of_layers=${no_of_layers:=80}
 # input: namelist_filename
 # ------------------------
 # For a complete list see Namelist_overview and Namelist_overview.pdf
-#  
+#
 create_namelist()
 {
 namelist_filename=$1
@@ -59,4 +59,3 @@ EOF
 #-----------------------------------------------------------------------------
 create_namelist $testbed_namelist
 #-----------------------------------------------------------------------------
-

@@ -12,12 +12,12 @@
 ! Data types and variables used by the AES physics package.
 !
 ! This module contains
-! 
+!
 !  definition of data types for organising the physical quantities in the
 !    AES physics package,
 !  the actual variables that are declared of these types, and
 !  subroutines for (de-)allocating memory for the variables.
-! 
+!
 ! This module uses derived data types in order to allow for local refinement.
 
 !NEC$ options "-O1"
@@ -135,7 +135,7 @@ MODULE mo_aes_phy_memory
       & zh        (:,:,:)=>NULL(),  &!< [m]     geometric height at half levels
       & zf        (:,:,:)=>NULL(),  &!< [m]     geometric height at full levels
       & dz        (:,:,:)=>NULL()    !< [m]     geometric height thickness of layer
-      
+
     ! Meteorology and tracers
     REAL(wp),POINTER ::     &
       & ua        (:,:,:)=>NULL(),  &!< [m/s]   zonal wind
@@ -164,9 +164,9 @@ MODULE mo_aes_phy_memory
 
     ! surface fluxes of internal energy (positive downward)
     REAL(wp),POINTER ::             &
-      & ufts      (:,  :)=>NULL(),  &!< energy flux at surface from thermal exchange [K kg/m2/s ] 
-      & ufvs      (:,  :)=>NULL(),  &!< energy flux at surface from vapor exchange   [K kg/m2/s ] 
-      & ufcs      (:,  :)=>NULL()    !< energy flux at surface from condensate       [K kg/m2/s ] 
+      & ufts      (:,  :)=>NULL(),  &!< energy flux at surface from thermal exchange [K kg/m2/s ]
+      & ufvs      (:,  :)=>NULL(),  &!< energy flux at surface from vapor exchange   [K kg/m2/s ]
+      & ufcs      (:,  :)=>NULL()    !< energy flux at surface from condensate       [K kg/m2/s ]
     TYPE(t_ptr_2d_wp),ALLOCATABLE :: mtrcvi_ptr(:)
 
     ! Radiation
@@ -244,14 +244,14 @@ MODULE mo_aes_phy_memory
       & acinc       (:,:,:)=>NULL(),  &!< cloud ice number concentration [1/m^3]
       & acsnc       (:,:,:)=>NULL(),  &!< cloud snow number concentration [1/m^3]
       & reff_ice    (:,:,:)=>NULL(),  &!< effective radius of snow in [um]
-      & tau_ice     (:,:,:)=>NULL()    !< 3d optical depth of ice in clouds   
+      & tau_ice     (:,:,:)=>NULL()    !< 3d optical depth of ice in clouds
     ! effective radius of snow
     REAL(wp), POINTER ::      &
       & reff_snow   (:,:,:)=>NULL(),  &!< effective radius of snow in [um]
       & tau_snow    (:,:,:)=>NULL()    !< 3d optical depth of snow
     ! arbitrary 2d-field in radiation for output
     REAL(wp), POINTER ::      &
-      & rad_2d      (:,:)=>NULL()      !< arbitrary 2d field in radiation for output     
+      & rad_2d      (:,:)=>NULL()      !< arbitrary 2d field in radiation for output
     ! aerosol optical properties
     REAL(wp),POINTER ::      &
       & aer_aod_533 (:,:,:)=>NULL(),  &!< aerosol optical depth at 533 nm
@@ -261,7 +261,7 @@ MODULE mo_aes_phy_memory
       & aer_ssa_2325(:,:,:)=>NULL(),  &!< aerosol single scattering albedo at 2325 nm
       & aer_asy_2325(:,:,:)=>NULL(),  &!< aerosol asymmetry factor at 2325 nm
       & aer_aod_9731(:,:,:)=>NULL()    !< effective aerosol optical depth at 9731 nm
-            !< the last quantity is in the thermal wavelength ranch, 
+            !< the last quantity is in the thermal wavelength ranch,
             !< the first lie in the solar spectrum
 
     ! Clouds
@@ -413,14 +413,14 @@ MODULE mo_aes_phy_memory
       & sftlf (:,:)=>NULL(),        &!< cell area fraction occupied by land including lakes (1. = land and/or lakes only, 0. = ocean only)
       & sftgif(:,:)=>NULL(),        &!< cell area fraction occupied by land ice             (1. = land ice only, 0. = no land ice)
       & sftof (:,:)=>NULL(),        &!< cell area fraction occupied by ocean                (1. = ocean only, 0. = land and/or lakes only)
-      & lsmask(:,:)=>NULL(),        &!< cell area fraction occupied by land excluding lakes (1. = land, 0. = ocean or lake only) 
+      & lsmask(:,:)=>NULL(),        &!< cell area fraction occupied by land excluding lakes (1. = land, 0. = ocean or lake only)
       & alake (:,:)=>NULL(),        &!< cell area fraction occupied by lakes
       & glac  (:,:)=>NULL(),        &!< land area fraction that is glaciated
       & lake_ice_frc(:,:)=>NULL(),  &!< lake area fraction that is ice covered
       & icefrc(:,:)=>NULL(),        &!< ice cover given as the fraction of grid box (friac  in memory_g3b)
       & ts_tile(:,:,:)=>NULL(),     &!< surface temperature over land/water/ice
       & ts     (:,  :)=>NULL(),     &!< surface temperature, grid box mean
-      & qs_sfc_tile(:,:,:)=>NULL()   !< saturation specific humidity at surface 
+      & qs_sfc_tile(:,:,:)=>NULL()   !< saturation specific humidity at surface
 
     TYPE(t_ptr_2d_wp),ALLOCATABLE :: ts_tile_ptr(:)
     TYPE(t_ptr_2d_wp),ALLOCATABLE :: qs_sfc_tile_ptr(:)
@@ -547,7 +547,7 @@ MODULE mo_aes_phy_memory
       ! tendency due to vertical diffusion ("vdiff") in:
       !
       &   ta_vdf (:,:,:)=>NULL()  , & !< temperature (for const. pressure)
-      &   ua_vdf (:,:,:)=>NULL()  , & !< u-wind 
+      &   ua_vdf (:,:,:)=>NULL()  , & !< u-wind
       &   va_vdf (:,:,:)=>NULL()  , & !< v-wind
       &   wa_vdf (:,:,:)=>NULL()  , & !< w-wind
       & qtrc_vdf (:,:,:,:)=>NULL(), & !< mass fraction of tracer in air
@@ -564,18 +564,18 @@ MODULE mo_aes_phy_memory
       &   ta_rlw_impl(:,:)=>NULL(), & !< temperature, due to implicit land surface temperature change (for const. pressure)
       !
       ! tendency due to Cariolle linearized ozone in:
-      ! 
+      !
       &   o3_car (:,:,:)=>NULL()      !< mass fraction of ozone in air
 
     TYPE(t_ptr_3d_wp),ALLOCATABLE :: qtrc_phy_ptr(:)
     TYPE(t_ptr_3d_wp),ALLOCATABLE :: qtrc_vdf_ptr(:)
-              
+
     TYPE(t_ptr_2d_wp),ALLOCATABLE :: mtrcvi_phy_ptr(:)
 
   END TYPE t_aes_phy_tend
 
   !!--------------------------------------------------------------------------
-  !!                          STATE VARIABLES 
+  !!                          STATE VARIABLES
   !!--------------------------------------------------------------------------
   !! The variable names have the prefix "prm_" in order to emphasize that they
   !! are defined for and used in parameterisations.
@@ -595,7 +595,7 @@ CONTAINS
 
 
   !!--------------------------------------------------------------------------
-  !!                SUBROUTINES FOR BUILDING AND DELETING VARIABLE LISTS 
+  !!                SUBROUTINES FOR BUILDING AND DELETING VARIABLE LISTS
   !!--------------------------------------------------------------------------
   !>
   !! Top-level procedure for building the physics state
@@ -615,7 +615,7 @@ CONTAINS
 
     cdimissval = REAL(cdiInqMissval(),KIND=wp)
 
-    ! Allocate pointer arrays prm_field and prm_tend, 
+    ! Allocate pointer arrays prm_field and prm_tend,
     ! as well as the corresponding list arrays.
 
     ndomain = SIZE(patch_array)
@@ -631,9 +631,9 @@ CONTAINS
       &'allocation of prm_field/tend list array failed')
 
     !$ACC ENTER DATA COPYIN(prm_field_list, prm_tend_list)
-  
+
     ! Build a field list and a tendency list for each grid level.
-    ! This includes memory allocation. 
+    ! This includes memory allocation.
 
     DO jg = 1,ndomain
 
@@ -997,7 +997,7 @@ CONTAINS
                 &   vert_intp_method=VINTP_METHOD_LIN ),                        &
                 & lopenacc=.TRUE.)
     __acc_attach(field%tau_ice)
-    
+
     ! effective radius of snow
     grib2_desc = grib2_var(0,4,2, ibits, GRID_UNSTRUCTURED, GRID_CELL)
     cf_desc    = t_cf_var('reff_snow', 'um', 'effective radius of snow', datatype_flt)
@@ -1021,8 +1021,8 @@ CONTAINS
                 &   vert_intp_method=VINTP_METHOD_LIN ),                        &
                 & lopenacc=.TRUE.)
     __acc_attach(field%tau_snow)
-    
-    ! OZONE 
+
+    ! OZONE
     ! &       field% o3        (nproma,nlev  ,nblks),          &
     grib2_desc = grib2_var(0,14,1, ibits, GRID_UNSTRUCTURED, GRID_CELL)
     cf_desc    = t_cf_var('mole_fraction_of_ozone_in_air', 'mol/mol', 'ozone volume mixing ratio', datatype_flt)
@@ -1202,7 +1202,7 @@ CONTAINS
         var_suffix = 'vi'
         grib2_desc = grib2_var(255, 255, 255, ibits, GRID_UNSTRUCTURED, GRID_CELL)
         !
-        ! adjust names and grib2_desc for specific tracers 
+        ! adjust names and grib2_desc for specific tracers
         !
         IF (jtrc == iqv) THEN
           trc_name   = 'prw'
@@ -1304,7 +1304,7 @@ CONTAINS
       !
     END IF
 
- 
+
     ! &       field% rho        (nproma,nlev  ,nblks),          &
     cf_desc    = t_cf_var('air_density', 'kg m-3', 'density of air',           &
          &                datatype_flt)
@@ -1316,7 +1316,7 @@ CONTAINS
          &        ref_idx=1, ldims=shape3d,                                    &
          &        lrestart = .FALSE.,                                          &
          &        vert_interp=create_vert_interp_metadata(                     &
-         &                    vert_intp_type=vintp_types("P","Z","I"),         & 
+         &                    vert_intp_type=vintp_types("P","Z","I"),         &
          &                    vert_intp_method=VINTP_METHOD_LIN ) )
     ! Note: __acc_attach(field%<var>) must not be used here. The reason is that
     ! the pointer field%<var> is dynamic, ie. generally changes every time step.
@@ -2179,7 +2179,7 @@ CONTAINS
     ! net longwave fluxes only needed for diagnostic output for destinE
     !177: rlns: surface net longwave radiation flux:  rlds - rlus  0-5-5-ffs1-sp1
     !179: rlnt: TOA net longwave radiation flux:           - rlut  0-5-5-ffs8-sp1
-    
+
     cf_desc    = t_cf_var('surface_net_longwave_radiation_flux_in_air', &
          &                'W m-2'                                     , &
          &                'surface net longwave radiation flux'       , &
@@ -2469,7 +2469,7 @@ CONTAINS
          &        isteptype=TSTEP_INSTANT,                       &
          &        lopenacc=.TRUE.)
     __acc_attach(field%rad_2d)
-    
+
     !-------
     ! Clouds
     !-------
@@ -2541,7 +2541,7 @@ CONTAINS
          &        isteptype=TSTEP_INSTANT,                       &
          &        lopenacc=.TRUE.)
     __acc_attach(field%ufts)
-    
+
     cf_desc    = t_cf_var('ufvs', 'W m-2',    &
                & 'energy flux at surface from vapor exchange', datatype_flt)
     grib2_desc = grib2_var(255,255,255, ibits, GRID_UNSTRUCTURED, GRID_CELL)
@@ -2553,7 +2553,7 @@ CONTAINS
          &        isteptype=TSTEP_INSTANT,                       &
          &        lopenacc=.TRUE.)
     __acc_attach(field%ufvs)
-    
+
     cf_desc    = t_cf_var('ufcs', 'W m-2',    &
                & 'energy flux at surface from condensate', datatype_flt)
     grib2_desc = grib2_var(255,255,255, ibits, GRID_UNSTRUCTURED, GRID_CELL)
@@ -2565,7 +2565,7 @@ CONTAINS
          &        isteptype=TSTEP_INSTANT,                       &
          &        lopenacc=.TRUE.)
     __acc_attach(field%ufcs)
-    
+
     !--------------
     ! Precipitation
     !--------------
@@ -2932,9 +2932,9 @@ CONTAINS
                   & GRID_UNSTRUCTURED_CELL, ZA_REFERENCE, cf_desc, grib2_desc, &
                   & lrestart = .TRUE., initval = 1.e-4_wp, ldims=shape3d,      &
                   & lopenacc=.TRUE.)
-      
+
       __acc_attach(field%tottem1)
-      
+
       ! &       field% cptgz  (nproma,nlev,nblks), &
       cf_desc    = t_cf_var('cptgz', 'm2 s-2', 'dry static energy', datatype_flt)
       grib2_desc = grib2_var(255, 255, 255, ibits, GRID_UNSTRUCTURED, GRID_CELL)
@@ -3410,7 +3410,7 @@ CONTAINS
     __acc_attach(field%alake)
 
     ! &       field% lake_ice_frc (nproma, nblks),                 &
-    cf_desc    = t_cf_var('lake_ice_frc', '', 'fraction of ice on lakes', & 
+    cf_desc    = t_cf_var('lake_ice_frc', '', 'fraction of ice on lakes', &
          &                datatype_flt)
     grib2_desc = grib2_var(1,2,7, ibits, GRID_UNSTRUCTURED, GRID_CELL)
     CALL add_var( field_list, prefix//'lake_ice_frc', field%lake_ice_frc,  &
@@ -3840,7 +3840,7 @@ CONTAINS
 
     __acc_attach(field%v_stress)
 
-    ! wind stress, instantaneous tile values 
+    ! wind stress, instantaneous tile values
 
     CALL add_var( field_list, prefix//'tauu_tile', field%u_stress_tile,         &
                 & GRID_UNSTRUCTURED_CELL, ZA_SURFACE,                           &
@@ -4625,7 +4625,7 @@ CONTAINS
              !
              grib2_desc = grib2_var(255, 255, 255, ibits, GRID_UNSTRUCTURED, GRID_CELL)
              !
-             ! adjust names and grib2_desc for specific tracers 
+             ! adjust names and grib2_desc for specific tracers
              !
              IF (jtrc == iqv) THEN
                 grib2_desc = grib2_var(0, 1, 202, ibits, GRID_UNSTRUCTURED, GRID_CELL)
@@ -4722,7 +4722,7 @@ CONTAINS
           long_name  = TRIM(advection_config(jg)%  long_names(jtrc))
           grib2_desc = grib2_var(255, 255, 255, ibits, GRID_UNSTRUCTURED, GRID_CELL)
           !
-          ! adjust names and grib2_desc for specific tracers 
+          ! adjust names and grib2_desc for specific tracers
           !
           IF (jtrc == iqv) THEN
              grib2_desc = grib2_var(0, 1, 108, ibits, GRID_UNSTRUCTURED, GRID_CELL)
@@ -4788,7 +4788,7 @@ CONTAINS
           var_suffix = 'vi'
           grib2_desc = grib2_var(255, 255, 255, ibits, GRID_UNSTRUCTURED, GRID_CELL)
           !
-          ! adjust names and grib2_desc for specific tracers 
+          ! adjust names and grib2_desc for specific tracers
           !
           IF (jtrc == iqv) THEN
              trc_name   = 'prw'

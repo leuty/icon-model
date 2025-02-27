@@ -325,7 +325,7 @@ CONTAINS
 
     INTEGER :: jg, ist, jt
 
-    TYPE(t_sim_step_info) :: sim_step_info  
+    TYPE(t_sim_step_info) :: sim_step_info
     REAL(wp) :: sim_time
     TYPE(t_key_value_store), POINTER :: restartAttributes
     CHARACTER(LEN=filename_max) :: model_base_dir
@@ -348,7 +348,7 @@ CONTAINS
     ENDDO
 
     IF (iforcing == iaes) THEN
-#ifdef __NO_AES__   
+#ifdef __NO_AES__
       CALL finish (routine, 'Error: remove --disable-aes and reconfigure')
 #else
       CALL init_aes_phy_dims
@@ -395,7 +395,7 @@ CONTAINS
     ! initialize ldom_active flag if this is not a restart run
 
     ! calculate elapsed simulation time in seconds
-    sim_time = getElapsedSimTimeInSeconds(time_config%tc_current_date) 
+    sim_time = getElapsedSimTimeInSeconds(time_config%tc_current_date)
 
     DO jg=1, n_dom
       p_patch(jg)%ldom_active &
@@ -443,7 +443,7 @@ CONTAINS
     END IF
 
     IF (iforcing == iaes) THEN
-#ifdef __NO_AES__   
+#ifdef __NO_AES__
       CALL finish (routine, 'Error: remove --disable-aes and reconfigure')
 #else
       CALL construct_aes_phy_memory    ( p_patch(1:), ntracer )
@@ -459,9 +459,9 @@ CONTAINS
     model_base_dir = getModelBaseDir()
 
     CALL configure_upatmo( n_dom_start, n_dom, p_patch(n_dom_start:), isRestart(), atm_phy_nwp_config(:)%lupatmo_phy,      &
-      &                    init_mode, iforcing, time_config%tc_exp_startdate, time_config%tc_exp_stopdate, start_time(:),  & 
+      &                    init_mode, iforcing, time_config%tc_exp_startdate, time_config%tc_exp_stopdate, start_time(:),  &
       &                    end_time(:), dtime, atm_phy_nwp_config(:)%dt_rad, ndyn_substeps, flat_height,                   &
-      &                    aes_rad_config(:)%l_orbvsop87, aes_rad_config(:)%cecc, aes_rad_config(:)%cobld,                 & 
+      &                    aes_rad_config(:)%l_orbvsop87, aes_rad_config(:)%cecc, aes_rad_config(:)%cobld,                 &
       &                    aes_rad_config(:)%clonp, aes_rad_config(:)%lyr_perp, aes_rad_config(:)%yr_perp, model_base_dir, &
       &                    msg_level, vct_a )
 
@@ -633,7 +633,7 @@ CONTAINS
             &             p_lnd_state(1:) )
           !
         ELSE ! iforcing == iaes, inoforcing, ...
-#ifdef __NO_AES__   
+#ifdef __NO_AES__
           CALL finish (routine, 'Error: remove --disable-aes and reconfigure')
 #else
           !
@@ -727,7 +727,7 @@ CONTAINS
       ! but may be used with AES physics, for real cases or test cases.
       !
       IF (iforcing == iaes ) THEN
-#ifdef __NO_AES__   
+#ifdef __NO_AES__
         CALL finish (routine, 'Error: remove --disable-aes and reconfigure')
 #else
         DO jg = 1,n_dom
@@ -772,12 +772,12 @@ CONTAINS
     ! Now set up AES physics fields
     !
     IF ( iforcing == iaes ) THEN
-#ifdef __NO_AES__   
+#ifdef __NO_AES__
         CALL finish (routine, 'Error: remove --disable-aes and reconfigure')
 #else
       !
       ! read external data for real case
-      IF (.NOT. ltestcase) THEN 
+      IF (.NOT. ltestcase) THEN
         CALL init_aes_phy_external( p_patch(1:), ext_data(1:)     ,&
            &                          time_config%tc_current_date )
       END IF
@@ -909,7 +909,7 @@ CONTAINS
     CALL messy_init_coupling
     CALL messy_init_tracer
 #endif
-    
+
 #ifndef __NO_ICON_COMIN__
     ! ----------------------------------------------------------
     ! expose ICON's variables to the ComIn infrastructure.
@@ -921,7 +921,7 @@ CONTAINS
     !   ICON ComIn about the context where these will be accessed.
     CALL icon_call_callback(EP_SECONDARY_CONSTRUCTOR, COMIN_DOMAIN_OUTSIDE_LOOP, lacc=.FALSE.)
     comin_secondary_constructor_called = .TRUE.
-    
+
     ! ----------------------------------------------------------
     CALL icon_call_callback(EP_ATM_INIT_FINALIZE, COMIN_DOMAIN_OUTSIDE_LOOP, lacc=.FALSE.)
 #endif
@@ -977,7 +977,7 @@ CONTAINS
                &  prm_diag(jg),                                 &
                &  p_nh_state(jg)%prog(nnow(jg)),                &
                &  p_nh_state(jg)%prog(nnow_rcf(jg))%tracer,     &
-               &  p_nh_state_lists(jg)%prog_list(nnow_rcf(jg)), & 
+               &  p_nh_state_lists(jg)%prog_list(nnow_rcf(jg)), &
                &  p_patch(jg)%nest_level)
         ENDDO
       END IF  ! lart
@@ -1005,7 +1005,7 @@ CONTAINS
 
 
     INTEGER :: jg
-    
+
 #ifdef HAVE_CDI_PIO
     INTEGER :: prev_cdi_namespace
 #endif
@@ -1055,7 +1055,7 @@ CONTAINS
     ENDIF
 
     IF (iforcing == iaes) THEN
-#ifdef __NO_AES__   
+#ifdef __NO_AES__
       CALL finish (routine, 'Error: remove --disable-aes and reconfigure')
 #else
       CALL cleanup_aes_phy()
@@ -1063,8 +1063,8 @@ CONTAINS
     ENDIF
 
 #ifndef __NO_ICON_UPATMO__
-    ! This is required for NWP forcing only. 
-    ! For AES forcing, the following will likely be done in 
+    ! This is required for NWP forcing only.
+    ! For AES forcing, the following will likely be done in
     ! 'src/atm_phy_aes/mo_aes_phy_cleanup: cleanup_aes_phy'
     DO jg = 1, n_dom
       IF (upatmo_config( jg )%nwp_phy%l_phy_stat( iUpatmoPrcStat%enabled )) THEN
@@ -1146,4 +1146,3 @@ CONTAINS
   !---------------------------------------------------------------------
 
 END MODULE mo_atmo_nonhydrostatic
-

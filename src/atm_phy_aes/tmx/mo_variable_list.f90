@@ -107,17 +107,17 @@ MODULE mo_variable_list
 
 
   INTEGER :: variable_list_id = 0
-  
+
   PUBLIC :: t_variable_list, variable_list_id, t_variable_item
   PUBLIC :: t_variable_set
-  
+
 CONTAINS
 
   FUNCTION t_variable_list_search(this, name) result(tv)
     CLASS (t_variable_list) :: this
     CHARACTER(len=*), INTENT(IN) :: name
     CLASS(t_variable), POINTER :: tv
-    
+
     TYPE(t_variable_item), POINTER :: item
     CLASS(*), POINTER :: p
 
@@ -161,9 +161,9 @@ CONTAINS
     CLASS (t_variable_list) :: this
     CHARACTER(len=*), INTENT(IN) :: name
     LOGICAL, POINTER :: ptr
-    
+
     TYPE(t_variable), POINTER :: tv
-    
+
     ptr => NULL()
 
     tv => this%search(name)
@@ -180,9 +180,9 @@ CONTAINS
     CLASS (t_variable_list) :: this
     CHARACTER(len=*), INTENT(IN) :: name
     LOGICAL, POINTER :: ptr(:)
-    
+
     TYPE(t_variable), POINTER :: tv
-    
+
     ptr => NULL()
 
     tv => this%search(name)
@@ -199,9 +199,9 @@ CONTAINS
     CLASS (t_variable_list) :: this
     CHARACTER(len=*), INTENT(IN) :: name
     INTEGER, POINTER :: ptr
-    
+
     TYPE(t_variable), POINTER :: tv
-    
+
     ptr => NULL()
 
     tv => this%search(name)
@@ -218,9 +218,9 @@ CONTAINS
     CLASS (t_variable_list) :: this
     CHARACTER(len=*), INTENT(IN) :: name
     INTEGER, POINTER :: ptr(:)
-    
+
     TYPE(t_variable), POINTER :: tv
-    
+
     ptr => NULL()
 
     tv => this%search(name)
@@ -237,9 +237,9 @@ CONTAINS
     CLASS (t_variable_list) :: this
     CHARACTER(len=*), INTENT(IN) :: name
     INTEGER, POINTER :: ptr(:,:)
-    
+
     TYPE(t_variable), POINTER :: tv
-    
+
     ptr => NULL()
 
     tv => this%search(name)
@@ -256,9 +256,9 @@ CONTAINS
     CLASS (t_variable_list) :: this
     CHARACTER(len=*), INTENT(IN) :: name
     INTEGER, POINTER :: ptr(:,:,:)
-    
+
     TYPE(t_variable), POINTER :: tv
-    
+
     ptr => NULL()
 
     tv => this%search(name)
@@ -275,9 +275,9 @@ CONTAINS
     CLASS (t_variable_list) :: this
     CHARACTER(len=*), INTENT(IN) :: name
     REAL(wp), POINTER :: ptr
-    
+
     TYPE(t_variable), POINTER :: tv
-    
+
     ptr => NULL()
 
     tv => this%search(name)
@@ -294,9 +294,9 @@ CONTAINS
     CLASS (t_variable_list) :: this
     CHARACTER(len=*), INTENT(IN) :: name
     REAL(wp), POINTER :: ptr(:)
-    
+
     TYPE(t_variable), POINTER :: tv
-    
+
     ptr => NULL()
 
     tv => this%search(name)
@@ -313,9 +313,9 @@ CONTAINS
     CLASS (t_variable_list) :: this
     CHARACTER(len=*), INTENT(IN) :: name
     REAL(wp), POINTER :: ptr(:,:)
-    
+
     TYPE(t_variable), POINTER :: tv
-    
+
     ptr => NULL()
 
     tv => this%search(name)
@@ -334,7 +334,7 @@ CONTAINS
     REAL(wp), POINTER :: ptr(:,:,:)
 
     TYPE(t_variable), POINTER :: tv
-    
+
     ptr => NULL()
 
     tv => this%search(name)
@@ -353,7 +353,7 @@ CONTAINS
     REAL(vp), POINTER :: ptr(:,:)
 
     TYPE(t_variable), POINTER :: tv
-    
+
     ptr => NULL()
 
     tv => this%search(name)
@@ -372,7 +372,7 @@ CONTAINS
     REAL(vp), POINTER :: ptr(:,:,:)
 
     TYPE(t_variable), POINTER :: tv
-    
+
     ptr => NULL()
 
     tv => this%search(name)
@@ -401,7 +401,7 @@ CONTAINS
     CHARACTER(len=*), INTENT(IN) :: name
     LOGICAL :: bool
     bool = .false.
-    IF ( TRIM(name) == TRIM(this%variable%name) ) bool = .true. 
+    IF ( TRIM(name) == TRIM(this%variable%name) ) bool = .true.
   END FUNCTION is_item_equal_to_key
 
   FUNCTION print_variable_item(this) result(string)
@@ -413,7 +413,7 @@ CONTAINS
       write(tmp,"(a,a,a,a,a,a,a,5i3,a)") &
            & "variable = <", trim(v%variable%name), ">, ", &
            & "units = <", trim(v%variable%units), ">, ", &
-           & "size = <", v%variable%dims, ">" 
+           & "size = <", v%variable%dims, ">"
       string = trim(tmp)
     CLASS default
       string = trim(this%t_generic_linked_list_item%print_list_item())
@@ -482,10 +482,10 @@ CONTAINS
           CALL allocate_variable(variable)
         END SELECT
       END ASSOCIATE
-      item => this%getNextVariable(item) 
+      item => this%getNextVariable(item)
     ENDDO
   END SUBROUTINE t_variable_list_allocator
-  
+
   SUBROUTINE t_variable_list_deallocator(this)
     CLASS (t_variable_list) :: this
     TYPE(t_variable_item), POINTER :: item
@@ -498,10 +498,10 @@ CONTAINS
           CALL deallocate_variable(variable)
         END SELECT
       END ASSOCIATE
-      item => this%getNextVariable(item) 
+      item => this%getNextVariable(item)
     ENDDO
   END SUBROUTINE t_variable_list_deallocator
-  
+
   SUBROUTINE t_variable_list_unbind(this)
     CLASS (t_variable_list) :: this
     TYPE(t_variable_item), POINTER :: item
@@ -514,15 +514,15 @@ CONTAINS
           CALL unbind_variable(variable)
         END SELECT
       END ASSOCIATE
-      item => this%getNextVariable(item) 
+      item => this%getNextVariable(item)
     ENDDO
   END SUBROUTINE t_variable_list_unbind
-  
+
 #ifdef SERIALIZE
 
   SUBROUTINE t_variable_list_ser_in(this, sp_name, filename, directory )
     CLASS (t_variable_list) :: this
-    CHARACTER(len=*), INTENT(IN) :: sp_name            
+    CHARACTER(len=*), INTENT(IN) :: sp_name
     CHARACTER(len=*), INTENT(IN) :: filename
     CHARACTER(len=*), INTENT(IN) :: directory
 
@@ -645,15 +645,15 @@ CONTAINS
           ENDIF
         END SELECT
       END ASSOCIATE
-      item => this%getNextVariable(item) 
+      item => this%getNextVariable(item)
     ENDDO
     CALL fs_destroy_savepoint( savepoint )
     CALL fs_destroy_serializer( serializer_ref )
   END SUBROUTINE t_variable_list_ser_in
-  
+
   SUBROUTINE t_variable_list_ser_out(this, sp_name, filename, directory )
     CLASS (t_variable_list) :: this
-    CHARACTER(len=*), INTENT(IN) :: sp_name            
+    CHARACTER(len=*), INTENT(IN) :: sp_name
     CHARACTER(len=*), INTENT(IN) :: filename
     CHARACTER(len=*), INTENT(IN) :: directory
 
@@ -739,12 +739,12 @@ CONTAINS
           ENDIF
         END SELECT
       END ASSOCIATE
-      item => this%getNextVariable(item) 
+      item => this%getNextVariable(item)
     ENDDO
     CALL fs_destroy_savepoint( savepoint )
     CALL fs_destroy_serializer( serializer_ref )
   END SUBROUTINE t_variable_list_ser_out
-  
+
 #endif
 
 !
@@ -758,7 +758,7 @@ CONTAINS
 
 !!!    item => this%getFirstVariable()
 !!!    DO WHILE ( (.NOT. item%is_item_equal_to_key(name)) .AND. ASSOCIATED(item) )
-!!!      item => this%getNextVariable(item) 
+!!!      item => this%getNextVariable(item)
 !!!    ENDDO
 !!!    IF ( ASSOCIATED(item ) ) THEN     ! item found in list, bind it
 !!!      ASSOCIATE (variable => item%item_value)
@@ -772,7 +772,7 @@ CONTAINS
 !!!    ENDIF
 !!!  END SUBROUTINE t_variable_list_bind_2d
 
-  
+
   FUNCTION t_variable_list_getListId(this) result(list_id)
     INTEGER :: list_id
     CLASS(t_variable_list) ::this

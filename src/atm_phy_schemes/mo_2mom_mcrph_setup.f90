@@ -60,11 +60,11 @@ MODULE mo_2mom_mcrph_setup
   CHARACTER(len=*), PARAMETER :: routine = 'mo_2mom_mcrph_setup'
 
   TYPE(t_cfg_2mom) :: cfg_params !.. Container to hold some config params for the actual 2-mom call
-  
+
   ! .. some cloud physics parameters
   REAL(wp), PARAMETER :: N_sc = 0.710_wp        !..Schmidt-Zahl (PK, S.541)
   REAL(wp), PARAMETER :: n_f  = 0.333_wp        !..Exponent von N_sc im Vent-koeff. (PK, S.541)
-  
+
   INTEGER, PARAMETER :: cloud_type_default_gscp4 = 2603, ccn_type_gscp4 = 7
   INTEGER, PARAMETER :: cloud_type_default_gscp5 = 2603, ccn_type_gscp5 = 8
 
@@ -73,11 +73,11 @@ MODULE mo_2mom_mcrph_setup
 
   ! AS: Runs without hail, e.g, 1503 are buggy and give a segmentation fault.
   !     So far I was not able to identify the problem, needs more detailed debugging.
-  
+
   ! debug switches
   LOGICAL, PARAMETER     :: isdebug = .false.   ! use only when really desperate
   LOGICAL, PARAMETER     :: isprint = .true.    ! print-out initialization values
-  
+
   REAL(wp), PARAMETER    :: pi6 = pi/6.0_wp, pi8 = pi/8.0_wp ! more pieces of pi
 
   ! Functions
@@ -101,7 +101,7 @@ MODULE mo_2mom_mcrph_setup
   PUBLIC :: cfg_params
 
 CONTAINS
-  
+
   !*******************************************************************************
   ! Functions and subroutines working on particle class
   !*******************************************************************************
@@ -112,7 +112,7 @@ CONTAINS
     CLASS(particle), INTENT(in)   :: this
     TYPE(particle), INTENT(inout) :: that
 
-    that%name = this%name    
+    that%name = this%name
     that%nu = this%nu
     that%mu = this%mu
     that%x_max = this%x_max
@@ -132,7 +132,7 @@ CONTAINS
     TYPE(particle_frozen), INTENT(in)    :: this
     TYPE(particle_frozen), INTENT(inout) :: that
 
-    that%name = this%name    
+    that%name = this%name
     that%nu = this%nu
     that%mu = this%mu
     that%x_max = this%x_max
@@ -155,8 +155,8 @@ CONTAINS
   subroutine particle_lwf_assign(that,this)
     TYPE(particle_lwf), INTENT(in)    :: this
     TYPE(particle_lwf), INTENT(inout) :: that
-    
-    that%name = this%name    
+
+    that%name = this%name
     that%nu = this%nu
     that%mu = this%mu
     that%x_max = this%x_max
@@ -170,16 +170,16 @@ CONTAINS
     that%cap   = this%cap
     that%vsedi_max = this%vsedi_max
     that%vsedi_min = this%vsedi_min
-    
+
     that%ecoll_c   = this%ecoll_c
     that%D_crit_c  = this%D_crit_c
     that%q_crit_c  = this%q_crit_c
     that%s_vel     = this%s_vel
 
-    that%lwf_cnorm1 = this%lwf_cnorm1 
-    that%lwf_cnorm2 = this%lwf_cnorm2 
-    that%lwf_cnorm3 = this%lwf_cnorm3 
-    that%lwf_cmelt1 = this%lwf_cmelt1 
+    that%lwf_cnorm1 = this%lwf_cnorm1
+    that%lwf_cnorm2 = this%lwf_cnorm2
+    that%lwf_cnorm3 = this%lwf_cnorm3
+    that%lwf_cmelt1 = this%lwf_cmelt1
     that%lwf_cmelt2 = this%lwf_cmelt2
   END subroutine particle_lwf_assign
 
@@ -453,11 +453,11 @@ CONTAINS
   ! T_ab^(n,m) = int_xua^xoa int_xub^xob xa^n xb^m K_ab fa fb dxa dxb
   !
   ! These are for the parameterzation of collisions between two
-  ! hydrometeor classes, where only a spectral part of the first class collides with a spectral part of the 
+  ! hydrometeor classes, where only a spectral part of the first class collides with a spectral part of the
   ! second class. The variable part of the coefficients has to be calculated
   ! for each time step in the corresponding collision subroutine (e.g., hail_rain_riming).
-  
-  ! usable for the constant (fixed) part of \delta_{aa}^{n,m} and \delta_{bb}^{m,n}, 
+
+  ! usable for the constant (fixed) part of \delta_{aa}^{n,m} and \delta_{bb}^{m,n},
   ! regardless of lower or upper truncation:
   REAL(wp) FUNCTION coll_delta_aa_pm_fix(pa,pb,n,m)
 
@@ -471,7 +471,7 @@ CONTAINS
     RETURN
   END FUNCTION coll_delta_aa_pm_fix
 
-  ! usable for the constant (fixed) part of \delta_{ab}^{n,m}, 
+  ! usable for the constant (fixed) part of \delta_{ab}^{n,m},
   ! regardless of lower or upper truncation:
   REAL(wp) FUNCTION coll_delta_ab_pm_fix(pa,pb,n,m)
 
@@ -512,7 +512,7 @@ CONTAINS
   END FUNCTION coll_theta_ab_pm_fix
 
 
-  ! usable for the constant (fixed) part of \delta_{aa}^{n,m}, 
+  ! usable for the constant (fixed) part of \delta_{aa}^{n,m},
   ! if integration over b is from 0 to infinity (full moment):
   REAL(wp) FUNCTION coll_delta_aa_pm_bfull_fix(pa,pb,n,m)
 
@@ -527,7 +527,7 @@ CONTAINS
     RETURN
   END FUNCTION coll_delta_aa_pm_bfull_fix
 
-  ! usable for the constant (fixed) part of \delta_{bb}^{n,m}, 
+  ! usable for the constant (fixed) part of \delta_{bb}^{n,m},
   ! if integration over b is from 0 to infinity (full moment):
   REAL(wp) FUNCTION coll_delta_bb_pm_bfull_fix(pa,pb,n,m)
 
@@ -543,7 +543,7 @@ CONTAINS
     RETURN
   END FUNCTION coll_delta_bb_pm_bfull_fix
 
-  ! usable for the constant (fixed) part of \delta_{ar}^{n,m}, 
+  ! usable for the constant (fixed) part of \delta_{ar}^{n,m},
   ! if integration over b is from 0 to infinity (full moment):
   REAL(wp) FUNCTION coll_delta_ab_pm_bfull_fix(pa,pb,n,m)
 
@@ -584,14 +584,14 @@ CONTAINS
          ( GAMMA((pb%nu+1.0_wp)/pb%mu) / GAMMA((pb%nu+2.0_wp)/pb%mu) )**(2.0_wp*pb%b_vel) * &
            GAMMA((pb%nu+2.0_wp*pb%b_geo+2.0_wp*pb%b_vel+m+1.0_wp)/pb%mu) / &
            GAMMA((pb%nu+2.0_wp*pb%b_geo                +m+1.0_wp)/pb%mu)
-           
+
 
     RETURN
   END FUNCTION coll_theta_bb_pm_bfull_fix
 
   ! usable for the constant (fixed) part of \theta_{ab}^{n,m}
   ! for the approximation of the charact. velocity difference,
-  ! if integration over b is from 0 to infinity (full moment): 
+  ! if integration over b is from 0 to infinity (full moment):
   REAL(wp) FUNCTION coll_theta_ab_pm_bfull_fix(pa,pb,m)
 
     CLASS(PARTICLE), INTENT(in) :: pa,pb
@@ -638,7 +638,7 @@ CONTAINS
   !
   FUNCTION momargs_coll_gam (p,n) RESULT (a)
     IMPLICIT NONE
-    
+
     CLASS(PARTICLE), INTENT(in) :: p
     INTEGER, INTENT(in)         :: n
     REAL(wp)                    :: a(5)
@@ -648,7 +648,7 @@ CONTAINS
     a(3) = momarg_coll (p,n,1.0_wp,2.0_wp,0.0_wp,1.0_wp)
     a(4) = momarg_coll (p,n,1.0_wp,2.0_wp,1.0_wp,1.0_wp)
     a(5) = momarg_coll (p,n,1.0_wp,2.0_wp,2.0_wp,1.0_wp)
-    
+
     RETURN
   END FUNCTION momargs_coll_gam
 
@@ -716,7 +716,7 @@ CONTAINS
   !********************************************************************************
   ! setup subroutines
   !********************************************************************************
-  
+
   SUBROUTINE setup_particle_coeffs(ptype,pcoeffs)
     CLASS(particle),        INTENT(in)    :: ptype
     CLASS(particle_coeffs), INTENT(inout) :: pcoeffs
@@ -733,7 +733,7 @@ CONTAINS
     TYPE(particle_cloud_coeffs), INTENT(inout) :: cloud_coeffs
     REAL(wp) :: nu, mu
     REAL(wp), PARAMETER :: kc_autocon  = 9.44e+9_wp  !..Long-Kernel
-    
+
     nu = cloud%nu
     mu = cloud%mu
     IF (mu == 1.0) THEN
@@ -877,7 +877,7 @@ CONTAINS
     CLASS(particle), INTENT(in) :: ptype, qtype
     TYPE(collection_coeffs)     :: coll_coeffs
     CHARACTER(len=*), PARAMETER :: routi = 'setup_particle_collection_type1'
-    
+
     coll_coeffs%delta_n_aa = coll_delta_11(ptype,qtype,0)
     coll_coeffs%delta_n_ab = coll_delta_12(ptype,qtype,0)
     coll_coeffs%delta_n_bb = coll_delta_22(ptype,qtype,0)
@@ -898,7 +898,7 @@ CONTAINS
     CLASS(particle), INTENT(in) :: ptype, qtype
     TYPE(rain_riming_coeffs)    :: coll_coeffs
     CHARACTER(len=*), PARAMETER :: routi = 'setup_particle_collection_type2'
-    
+
     coll_coeffs%delta_n_aa = coll_delta_11(ptype,qtype,0)
     coll_coeffs%delta_n_ab = coll_delta_12(ptype,qtype,0)
     coll_coeffs%delta_n_bb = coll_delta_22(ptype,qtype,0)
@@ -925,7 +925,7 @@ CONTAINS
     INTEGER              :: i, j
 
     ! coll a+b->a with partial integration range for both species
-    
+
     ! prepare 0 and first partial moments collision terms:
     DO i=0,1
       coeffs%moma(i,:) = momargs_coll_gam (pa,i)
@@ -939,14 +939,14 @@ CONTAINS
         coeffs%delta_ab(i,j) = coll_delta_ab_pm_fix(pa,pb,i,j)
       END DO
     END DO
-    
+
     coeffs%theta_aa(:,:) = coll_theta_aa_pm_fix(pa)
     coeffs%theta_bb(:,:) = coll_theta_aa_pm_fix(pb)
     coeffs%theta_ab(:,:) = coll_theta_ab_pm_fix(pa,pb)
 
     coeffs%lamfakt_a = ( GAMMA(coeffs%moma(1,1)) / GAMMA(coeffs%moma(0,1)) )**(pa%mu)
     coeffs%lamfakt_b = ( GAMMA(coeffs%momb(1,1)) / GAMMA(coeffs%momb(0,1)) )**(pb%mu)
-    
+
   END SUBROUTINE setup_particle_coll_pm_type1
 
   SUBROUTINE setup_particle_coll_pm_type1_bfull(pa,pb,coeffs)
@@ -958,7 +958,7 @@ CONTAINS
 
     ! coll a+b->a with partner b beeing integrated from 0 to infty (full moment)
     !             and a beeing a partial moment
-    
+
     ! prepare 0 and first partial moments collision terms:
     DO i=0,1
       coeffs%moma(i,:) = momargs_coll_gam (pa,i)
@@ -972,32 +972,32 @@ CONTAINS
         coeffs%delta_ab(n,m) = coll_delta_ab_pm_bfull_fix(pa,pb,n,m)
       END DO
     END DO
-    
+
     coeffs%theta_aa(:,:) = coll_theta_aa_pm_bfull_fix(pa)
     DO m=0,1
       coeffs%theta_bb(:,m) = coll_theta_bb_pm_bfull_fix(pb,m)
       coeffs%theta_ab(:,m) = coll_theta_ab_pm_bfull_fix(pa,pb,m)
     END DO
-    
+
     coeffs%lamfakt_a = ( GAMMA(coeffs%moma(1,1)) / GAMMA(coeffs%moma(0,1)) )**(pa%mu)
     coeffs%lamfakt_b = ( GAMMA(coeffs%momb(1,1)) / GAMMA(coeffs%momb(0,1)) )**(pb%mu)
-    
+
   END SUBROUTINE setup_particle_coll_pm_type1_bfull
 
   SUBROUTINE set_ccn_cloud_type (zccn_type, zcloud_type, zccn_coeffs, zN_cn0, zcfg_2mom)
-    
+
     INTEGER, INTENT(out)                   :: zccn_type, zcloud_type
     TYPE(aerosol_ccn), INTENT(out)         :: zccn_coeffs
     REAL(wp), OPTIONAL, INTENT(in)         :: zN_cn0
     TYPE(t_cfg_2mom), OPTIONAL, INTENT(in) :: zcfg_2mom
 
     CHARACTER(len=*), PARAMETER :: routine = 'set_ccn_cloud_type'
-    
+
     IF (PRESENT(zN_cn0)) THEN
       IF (PRESENT(zcfg_2mom)) THEN
         IF (zcfg_2mom%ccn_type > 0) THEN
           zccn_type   = zcfg_2mom%ccn_type
-        ELSE 
+        ELSE
           zccn_type   = ccn_type_gscp5
         END IF
       ELSE
@@ -1008,7 +1008,7 @@ CONTAINS
       IF (PRESENT(zcfg_2mom)) THEN
         IF (zcfg_2mom%ccn_type > 0) THEN
           zccn_type   = zcfg_2mom%ccn_type
-        ELSE 
+        ELSE
           zccn_type   = ccn_type_gscp4
         END IF
       ELSE
@@ -1020,7 +1020,7 @@ CONTAINS
     !..parameters for exponential decrease of N_ccn with height
     !  z0:  up to this height (m) constant unchanged value
     !  z1e: height interval at which N_ccn decreases by factor 1/e above z0_nccn
-    
+
     zccn_coeffs%z0  = 4000.0_wp
     zccn_coeffs%z1e = 2000.0_wp
 
@@ -1029,7 +1029,7 @@ CONTAINS
 
     ! characteristics of different kinds of CN
     ! (copied from COSMO 5.0 Segal & Khain nucleation subroutine)
-    
+
     SELECT CASE(zccn_type)
     CASE(6)
       !... maritime case
@@ -1071,5 +1071,5 @@ CONTAINS
     END SELECT
 
   END SUBROUTINE set_ccn_cloud_type
-  
+
 END MODULE mo_2mom_mcrph_setup

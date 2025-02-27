@@ -9,7 +9,7 @@
 # ------------------------------------------
 
 tests:
-  - name: dwd_run_ICON_09_R2B4N5_EPS 
+  - name: dwd_run_ICON_09_R2B4N5_EPS
     machines:
       - name: horeka
         include_only: ['horeka_cpu_nvhpc','horeka_gpu_nvhpc']

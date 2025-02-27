@@ -26,7 +26,7 @@
 %end
 
 # include the header file for remote jobs
-%include <init_ws_submit.h> 
+%include <init_ws_submit.h>
 
 
 # -------------------------------------------------
@@ -66,7 +66,7 @@ do
   fi
 
   #if [ "$timestep1" -eq "$timestep1" 2>/dev/null && "$timestep1" -ne "" ]
-  #if [[ ! -n "$timestep1" ]] 
+  #if [[ ! -n "$timestep1" ]]
   #if [[ "$timestep" = "initial" ]]
 
   # If new output available: Increment progress meter

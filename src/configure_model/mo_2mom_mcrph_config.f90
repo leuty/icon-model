@@ -14,7 +14,7 @@
 ! configuration setup for synthetic radar data on the model grid
 
 MODULE mo_2mom_mcrph_config
-  
+
   USE mo_kind, ONLY: wp
 
   IMPLICIT NONE
@@ -53,12 +53,12 @@ MODULE mo_2mom_mcrph_config
     ! .. Parameters for rain:
     !------------------------
     LOGICAL  :: luse_mu_Dm_rain ! if the mu-Dm-Relation of Seifert (2008) should be applied outside the cloud cores
-    REAL(wp) :: nu_r         ! nu for rain, N(x) = N0 * D^nu * exp(-lambda*x^mu). 
+    REAL(wp) :: nu_r         ! nu for rain, N(x) = N0 * D^nu * exp(-lambda*x^mu).
                              ! This nu is used incloud for luse_mu_Dm_rain = .true. or everywhere when .false.
     REAL(wp) :: rain_cmu0    ! asymptotic mue-value for small D_m in the mu-Dm-Relation of Seifert (2008)
     REAL(wp) :: rain_cmu1    ! asymptotic mue-value for large D_m in the mu-Dm-Relation of Seifert (2008)
     REAL(wp) :: rain_cmu3    ! D_br: equilibrium diameter for breakup and selfcollection
-    REAL(wp) :: rain_cmu4       
+    REAL(wp) :: rain_cmu4
 
     !-----------------------------
     ! .. Parameters for cloud ice:
@@ -207,7 +207,7 @@ CONTAINS
     all%cap_snow = pert%cap_snow
     all%avel_i   = pert%avel_i
     all%avel_g   = pert%avel_g
-    
+
   END SUBROUTINE copy_cfg_2mom_pert2all
 
   SUBROUTINE copy_cfg_2mom_all2pert (all, pert)
@@ -222,7 +222,7 @@ CONTAINS
     pert%cap_snow = all%cap_snow
     pert%avel_i   = all%avel_i
     pert%avel_g   = all%avel_g
-    
+
   END SUBROUTINE copy_cfg_2mom_all2pert
 
 END MODULE mo_2mom_mcrph_config

@@ -104,7 +104,7 @@ start_date = args.start_date
 if start_date < initial_date:
     logging.error("start_date is before initial_date")
     sys.exit(1)
-    
+
 interval = mtime.TimeDelta('%{JOB.interval|d(INTERVAL)}')
 final_date = mtime.DateTime('%{FINAL_DATE}')
 next_date = start_date + interval
@@ -423,7 +423,7 @@ $(TARGETS_DIR)/%.html: $(TARGETS_DIR)/%.pdf
 	    cd $(MON_DIR) ;\
 	    create_plot_browser -t $$base $$base.lst \
 	        > $$base.html"
-	touch $@ 
+	touch $@
 '''
 
 makefile_name = 'Makefile'
@@ -436,8 +436,8 @@ makefile.close()
 resfile_text = '''\
 *wkForegroundColor  : (/0.,0.,0./)
 *wkBackgroundColor  : (/1.,1.,1./)
-*Font               : helvetica 
-*TextFuncCode       : ~     
+*Font               : helvetica
+*TextFuncCode       : ~
 *wkWidth            : 800
 *wkHeight           : 800
 *wsMaximumSize      : 32556688

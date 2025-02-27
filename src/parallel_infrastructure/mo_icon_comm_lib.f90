@@ -1293,7 +1293,7 @@ CONTAINS
   !>
   !! Creates a new comm_variable and returns its id.
   INTEGER FUNCTION new_comm_var_r2d_recv_send(recv_var, send_var, comm_pattern_index, &
-    & vertical_layers, status, scope, name) 
+    & vertical_layers, status, scope, name)
 
     REAL(wp), TARGET   :: recv_var(:,:)
     REAL(wp), TARGET   :: send_var(:,:)

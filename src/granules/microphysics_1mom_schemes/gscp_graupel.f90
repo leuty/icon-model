@@ -164,8 +164,8 @@ SUBROUTINE graupel     (             &
 !
 ! Vectorization:
 !   Most computations in this routine are grouped in IF-clauses. But the IFs
-!   inside DO-loops often hinder or even disables vectorization. 
-!   For the big IF-chunks, the condition is now checked at the beginning of 
+!   inside DO-loops often hinder or even disables vectorization.
+!   For the big IF-chunks, the condition is now checked at the beginning of
 !   the subroutine and the corresponding indices are stored in extra index
 !   arrays. The following loops then are running only over these indices,
 !   avoiding at least some IF-clauses inside the loops.
@@ -242,10 +242,10 @@ SUBROUTINE graupel     (             &
 
   !! Local parameters: None, parameters are in module header, gscp_data or data_constants
   !! ----------------
-  
+
   !> Local scalars:
   !! -------------
-  
+
   INTEGER (KIND=i4)        ::  &
     iv, k             !> loop indices
 
@@ -268,23 +268,23 @@ SUBROUTINE graupel     (             &
     zvz0g = 12.24_wp  ,   & ! coefficient of sedimentation velocity for graupel
     ztcrit=3339.5_wp        ! factor in calculation of critical temperature
 
- 
+
   REAL    (KIND=wp   ) ::  &
     fpvsw,             & ! name of statement function
     fxna ,             & ! statement function for ice crystal number
-    fxna_cooper ,      & ! statement function for ice crystal number, Cooper(1986) 
+    fxna_cooper ,      & ! statement function for ice crystal number, Cooper(1986)
     ztx  ,             & ! dummy argument for statement functions
     znimax,            & ! maximum number of cloud ice crystals
-    znimix,            & ! number of ice crystals at ztmix -> threshold temp for mixed-phase clouds 
+    znimix,            & ! number of ice crystals at ztmix -> threshold temp for mixed-phase clouds
     zpvsw0,            & ! sat.vap. pressure at melting temperature
     zqvsw0,            & ! sat.specific humidity at melting temperature
-    zqvsw0diff,        & ! qv-zqvsw0  
+    zqvsw0diff,        & ! qv-zqvsw0
     zdtr ,             & ! reciprocal of timestep for integration
     zscsum, zscmax, zcorr,  & ! terms for limiting  total cloud water depletion
     zsrsum,            & ! terms for limiting  total rain water depletion
     zsssum,            & ! terms for limiting snow depletion
     znin,              & ! number of cloud ice crystals at nucleation
-    fnuc,              & !FR: coefficient needed for Forbes (2012) SLW layer parameterization 
+    fnuc,              & !FR: coefficient needed for Forbes (2012) SLW layer parameterization
     znid,              & ! number of cloud ice crystals for deposition
     zmi ,              & ! mass of a cloud ice crystal
     zsvidep, zsvisub,  & ! deposition, sublimation of cloud ice
@@ -336,11 +336,11 @@ SUBROUTINE graupel     (             &
     zqvsi             ,     & !> sat. specitic humidity at ice and water saturation
     zvzr        (nvec),     & !
     zvzs        (nvec),     & !
-    zvzg        (nvec),     & ! 
+    zvzg        (nvec),     & !
     zvzi        (nvec),     & ! terminal fall velocity of ice
     zpkr        (nvec),     & !
     zpks        (nvec),     & !
-    zpkg        (nvec),     & ! 
+    zpkg        (nvec),     & !
     zpki        (nvec),     & ! precipitation flux of ice
     zprvr       (nvec),     & !
     zprvs       (nvec),     & !
@@ -348,15 +348,15 @@ SUBROUTINE graupel     (             &
     zprvi       (nvec),     & !
     zqvsw_up    (nvec),     & ! sat. specitic humidity at ice and water saturation
     zcsdep            ,     & !
-    zcidep            
-    
+    zcidep
+
 #ifdef __LOOP_EXCHANGE
    REAL (KIND = wp )  ::  zlhv(ke), zlhs(ke), zcev_a(ke), zbev_a(ke), zvz0r_a(ke)
 #else
    REAL (KIND = wp )  ::  zlhv(nvec), zlhs(nvec), zcev_a(nvec), zbev_a(nvec), zvz0r_a(nvec)
 #endif
 
- REAL    (KIND=wp   ) ::  &    
+ REAL    (KIND=wp   ) ::  &
     zsrmax            ,     & !
     zssmax            ,     & !
     zsgmax            ,     & !
@@ -383,13 +383,13 @@ SUBROUTINE graupel     (             &
     zrho1o2           ,     & ! (rho0/rhog)**1/2
     zrhofac_qi        ,     & ! (rho0/rhog)**icesedi_exp
     zeln7o8qrk        ,     & !
-    zeln7o4qrk        ,     & ! FR new  
+    zeln7o4qrk        ,     & ! FR new
     zeln27o16qrk      ,     & !
     zeln13o8qrk       ,     & !
-    zeln3o4qsk        ,     & ! 
+    zeln3o4qsk        ,     & !
     zeln6qgk          ,     & !
     zeln8qsk          ,     & !
-    zelnrimexp_g      
+    zelnrimexp_g
 
 
   REAL    (KIND=wp   ) ::  &
@@ -404,7 +404,7 @@ SUBROUTINE graupel     (             &
     sdau   , & ! transfer rate due depositional cloud ice autoconversion
     srim   , & ! transfer rate due riming of snow
     srim2  , & ! transfer rate due riming of graupel
-    sconsg , & ! transfer rate due to conversion from snow to graupel by riming  
+    sconsg , & ! transfer rate due to conversion from snow to graupel by riming
     sshed  , & ! transfer rate due shedding
     sicri  , & ! transfer rate due cloud ice collection by rain (sink qi)
     srcri  , & ! transfer rate due cloud ice collection by rain (sink qr)
@@ -417,7 +417,7 @@ SUBROUTINE graupel     (             &
     sconr  , & ! transfer rate due to condensation on melting snow/graupel
     srfrz  , & ! transfer rate due to rainwater freezing
     reduce_dep,&!FR: coefficient: reduce deposition at cloud top (Forbes 2012)
-    dist_cldtop(nvec) !FR: distance from cloud top layer 
+    dist_cldtop(nvec) !FR: distance from cloud top layer
 
 
   LOGICAL :: lvariable_lh   ! Use constant latent heat (default .true.)
@@ -474,10 +474,10 @@ SUBROUTINE graupel     (             &
     znimax = fxna(zthn) ! Maximum number of cloud ice crystals
     znimix = fxna(ztmix) ! number of ice crystals at temp threshold for mixed-phase clouds
   END IF
-  
+
   zpvsw0 = fpvsw(t0)  ! sat. vap. pressure for t = t0
   zlog_10 = LOG(10._wp) ! logarithm of 10
-  
+
   ! Precomputations for optimization
   ccswxp_ln1o2   = EXP (ccswxp * LOG (0.5_wp))
   zvzxp_ln1o2    = EXP (zvzxp * LOG (0.5_wp))
@@ -550,7 +550,7 @@ SUBROUTINE graupel     (             &
     WRITE (message_text,'(A,2E10.3)') '      MAX/MIN qs  = ',MAXVAL(qs),MINVAL(qs)
     CALL message('',message_text)
     WRITE (message_text,'(A,2E10.3)') '      MAX/MIN qg  = ',MAXVAL(qg),MINVAL(qg)
-    CALL message('',message_text) 
+    CALL message('',message_text)
   ENDIF
 
   ! Delete precipitation fluxes from previous timestep
@@ -617,7 +617,7 @@ SUBROUTINE graupel     (             &
     END IF
 
     IF ( lvariable_rain_n0 ) THEN
-      DO  k = k_start, ke  ! loop over levels      
+      DO  k = k_start, ke  ! loop over levels
         log_n0fac  = LOG(MIN(1._wp,MAX(rain_n0_factor,(3.e2_wp*qr(iv,k))**2)))
         zcev_a(k)    = zcev0  * EXP(log_n0fac*(1.0_wp-zcevxp))
         zbev_a(k)    = zbev0  * EXP(-log_n0fac*zbevxp)
@@ -638,7 +638,7 @@ SUBROUTINE graupel     (             &
         zlhs(iv) = latent_heat_sublimation(tg)
       END DO
     END IF
-    
+
     IF ( lvariable_rain_n0 ) THEN
       !$ACC LOOP GANG(STATIC: 1) VECTOR PRIVATE(log_n0fac)
       DO  iv = iv_start, iv_end  !loop over horizontal domain
@@ -690,7 +690,7 @@ SUBROUTINE graupel     (             &
       zbsdep = 0.0_wp
       zvz0s  = 0.0_wp
       zn0s   = zn0s0
-      reduce_dep = 1.0_wp  !FR: Reduction coeff. for dep. growth of rain and ice  
+      reduce_dep = 1.0_wp  !FR: Reduction coeff. for dep. growth of rain and ice
 
       !----------------------------------------------------------------------------
       ! 2.1: Preparations for computations and to check the different conditions
@@ -747,7 +747,7 @@ SUBROUTINE graupel     (             &
       zbev  = zbev_a(iv)
       zvz0r = zvz0r_a(iv)
 #endif
-      
+
       !-------------------------------------------------------------------------
       ! qs_prepare:
       !-------------------------------------------------------------------------
@@ -801,7 +801,7 @@ SUBROUTINE graupel     (             &
           zvzs(iv) = zlnqsk * ccswxp_ln1o2
         ENDIF
       ENDIF ! qs_prepare
-    
+
       ! sedimentation fluxes
 
       !-------------------------------------------------------------------------
@@ -973,7 +973,7 @@ SUBROUTINE graupel     (             &
 
       !!----------------------------------------------------------------------------
       !! 2.7:  slope of snow PSD and coefficients for depositional growth (llqi,llqs)
-      !!----------------------------------------------------------------------------    
+      !!----------------------------------------------------------------------------
 
       IF ((qig > zqmin) .OR. (zqsk > zqmin)) THEN
         zdvtp  = ccdvtp * EXP(1.94_wp * LOG(tg)) / ppg
@@ -990,7 +990,7 @@ SUBROUTINE graupel     (             &
 
       !!----------------------------------------------------------------------------
       !! 2.8: Deposition nucleation for low temperatures below a threshold (llqv)
-      !!----------------------------------------------------------------------------    
+      !!----------------------------------------------------------------------------
 
       IF (( tg < zthet .AND. qvg >  8.E-6_wp &
                        .AND. qig <= 0.0_wp )) THEN
@@ -1080,7 +1080,7 @@ SUBROUTINE graupel     (             &
         ! cloud ice is present and the temperature is below a nucleation
         ! threshold.
 
-        IF( tg <= 267.15_wp .AND. .NOT.llqi ) THEN   
+        IF( tg <= 267.15_wp .AND. .NOT.llqi ) THEN
           IF (lsuper_coolw) THEN
             znin  = MIN( zninc(iv,k), znimax )
             snuc = zmi0 * z1orhog * znin * zdtr
@@ -1112,7 +1112,7 @@ SUBROUTINE graupel     (             &
           reduce_dep = MIN(fnuc + (1.0_wp-fnuc)*(reduce_dep_ref + &
                         dist_cldtop(iv)/dist_cldtop_ref), 1.0_wp)
 
-        END IF ! Reduction of dep. growth of snow/ice 
+        END IF ! Reduction of dep. growth of snow/ice
 
       ENDIF
 
@@ -1125,7 +1125,7 @@ SUBROUTINE graupel     (             &
         llqs =  zqsk > zqmin
         llqi =   qig > zqmin
 
-        IF (tg<=t0) THEN           ! cold case 
+        IF (tg<=t0) THEN           ! cold case
 
           zqvsidiff = qvg-zqvsi
           zsvmax    = zqvsidiff * zdtr
@@ -1140,7 +1140,7 @@ SUBROUTINE graupel     (             &
             ! (based on Guenther Zaengls work)
             IF (lstickeff) THEN
               zeff     = MIN(EXP(0.09_wp*(tg-t0)),1.0_wp)
-              zeff     = MAX(zeff, zceff_min, zceff_fac*(tg-tmin_iceautoconv)) 
+              zeff     = MAX(zeff, zceff_min, zceff_fac*(tg-tmin_iceautoconv))
             ELSE !original sticking efficiency of cloud ice
               zeff     = MIN(EXP(0.09_wp*(tg-t0)),1.0_wp)
               zeff     = MAX(zeff,0.2_wp)
@@ -1155,8 +1155,8 @@ SUBROUTINE graupel     (             &
             sidep     = zcidep * znid * EXP(0.33_wp * zlnlogmi) * zqvsidiff
             zsvidep   = 0.0_wp
             zsvisub   = 0.0_wp
-            ! for sedimenting quantities the maximum 
-            ! allowed depletion is determined by the predictor value. 
+            ! for sedimenting quantities the maximum
+            ! allowed depletion is determined by the predictor value.
             IF (lsedi_ice) THEN
               zsimax  = zzai*z1orhog*zdtr
             ELSE
@@ -1345,14 +1345,14 @@ SUBROUTINE graupel     (             &
         sconsg = zcorr * sconsg
       ENDIF
 
-      zqvt =   sev    - sidep  - ssdep  - sgdep  - snuc   - sconr 
-      zqct =   simelt - scau   - scfrz  - scac   - sshed  - srim   - srim2 
+      zqvt =   sev    - sidep  - ssdep  - sgdep  - snuc   - sconr
+      zqct =   simelt - scau   - scfrz  - scac   - sshed  - srim   - srim2
       zqit =   snuc   + scfrz  - simelt - sicri  + sidep  - sdau   - sagg   - sagg2  - siau
       zqrt =   scau   + sshed  + scac   + ssmelt + sgmelt - sev    - srcri  - srfrz  + sconr
       zqst =   siau   + sdau   - ssmelt + srim   + ssdep  + sagg   - sconsg
       zqgt =   sagg2  - sgmelt + sicri  + srcri  + sgdep  + srfrz  + srim2  + sconsg
 
-#ifdef __LOOP_EXCHANGE      
+#ifdef __LOOP_EXCHANGE
       ztt = z_heat_cap_r*( zlhv(k)*(zqct+zqrt) + zlhs(k)*(zqit+zqst+zqgt) )
 #else
       ztt = z_heat_cap_r*( zlhv(iv)*(zqct+zqrt) + zlhs(iv)*(zqit+zqst+zqgt) )
@@ -1368,13 +1368,13 @@ SUBROUTINE graupel     (             &
       qsg = MAX ( 0.0_wp, (zzas*z1orhog + zqst*zdt)*zims)
       qgg = MAX ( 0.0_wp, (zzag*z1orhog + zqgt*zdt)*zimg)
 
-      
+
       !----------------------------------------------------------------------
       ! Section 10: Complete time step
       !----------------------------------------------------------------------
 
       IF ( k /= ke) THEN
-        ! Store precipitation fluxes and sedimentation velocities 
+        ! Store precipitation fluxes and sedimentation velocities
         ! for the next level
         zprvr(iv) = qrg*rhog*zvzr(iv)
         zprvs(iv) = qsg*rhog*zvzs(iv)
@@ -1391,7 +1391,7 @@ SUBROUTINE graupel     (             &
           IF (lsedi_ice) THEN
             qrsflux(iv,k) = zprvr(iv)+zprvs(iv)+zprvg(iv)+zprvi(iv)
             qrsflux(iv,k) = 0.5_wp*(qrsflux(iv,k)+zpkr(iv)+zpks(iv)+zpkg(iv)+zpki(iv))
-          ELSE 
+          ELSE
             qrsflux(iv,k) = zprvr(iv)+zprvs(iv)+zprvg(iv)
             qrsflux(iv,k) = 0.5_wp*(qrsflux(iv,k)+zpkr(iv)+zpks(iv)+zpkg(iv))
           END IF
@@ -1417,7 +1417,7 @@ SUBROUTINE graupel     (             &
         ELSE
           zvzi(iv)= zvz0i * EXP(zbvi*LOG((qig+qi(iv,k+1))*0.5_wp*rhog)) * zrhofac_qi
         ENDIF
-          
+
       ELSE
         ! Precipitation fluxes at the ground
         prr_gsp(iv) = 0.5_wp * (qrg*rhog*zvzr(iv) + zpkr(iv))
@@ -1443,7 +1443,7 @@ SUBROUTINE graupel     (             &
       qs (iv,k) = MAX ( 0.0_wp, qsg )
       qi (iv,k) = MAX ( 0.0_wp, qig )
       qg (iv,k) = MAX ( 0.0_wp, qgg )
-      t  (iv,k) = t (iv,k) + ztt*zdt 
+      t  (iv,k) = t (iv,k) + ztt*zdt
       qv (iv,k) = MAX ( 0.0_wp, qv(iv,k) + zqvt*zdt )
       qc (iv,k) = MAX ( 0.0_wp, qc(iv,k) + zqct*zdt )
 

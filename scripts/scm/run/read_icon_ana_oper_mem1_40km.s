@@ -11,7 +11,7 @@
 # ------------------------------------------
 
 #---------------------------------------------------------------------
-# Read ICON initialized analysis data (0h forecast) for initialization of 
+# Read ICON initialized analysis data (0h forecast) for initialization of
 # ICON forecasts at ECMWF
 #
 # Info:
@@ -46,7 +46,7 @@ for inidate in ${inidates[*]} ; do
   inidate2=dm1+21                              # date - 3h
 
   cat > sky_icon_request << EOF
-    reqColl proc=parallel timeout=0 
+    reqColl proc=parallel timeout=0
     read db=roma cat=icogle_ass_fc_rout letype=101 enum=1 d=${inidate2} s[s]=10800  bin info=countPlus f=${iconfile} lvt1=!100
     read db=roma cat=icogle_ass_an_rout letype=101 enum=1 d=${inidate}  gptype=0    bin info=countPlus f=${iconfile} p=w_so lin=0
     read db=roma cat=icogle_ass_an_rout letype=101 enum=1 d=${inidate}  gptype=0    bin info=countPlus f=${iconfile} p=w_snow,t_snow,w_i,rho_snow

@@ -23,7 +23,7 @@ BUILD_TRHEADS=$5
 
 # Unset positional parameters
 # so they are not forwarded to spack-c2sm/setup-env.sh
-set -- 
+set --
 set +x
 set -e
 

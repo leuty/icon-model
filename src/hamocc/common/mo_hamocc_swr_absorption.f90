@@ -13,7 +13,7 @@ MODULE mo_hamocc_swr_absorption
 
   USE mo_param1_bgc, ONLY : iphy, icya
   USE mo_hamocc_nml, ONLY : l_cyadyn
-  USE mo_kind,    ONLY: wp                                               
+  USE mo_kind,    ONLY: wp
   USE mo_control_bgc, ONLY: bgc_zlevs, bgc_nproma
   USE mo_bgc_memory_types, ONLY  : t_bgc_memory
   USE mo_fortran_tools, ONLY     : set_acc_host_or_device
@@ -24,7 +24,7 @@ MODULE mo_hamocc_swr_absorption
   PRIVATE
 
   PUBLIC :: swr_absorption
-           
+
 
 CONTAINS
 
@@ -73,17 +73,17 @@ SUBROUTINE swr_absorption(local_bgc_mem, start_idx,end_idx, klevs, pfswr, psicom
       local_bgc_mem%strahl(j) = pfswr(j) * (1._wp - psicomo(j))
 
       local_bgc_mem%swr_frac(j,1) = 1.0_wp
-      
-      
+
+
       kpke = klevs(j)
-    
+
       IF(kpke > 0) then
 
       swr_r = redfrac
       swr_b = (1._wp-redfrac)
       !$ACC LOOP SEQ
       DO k=2,kpke
- 
+
            swr_r = swr_r * EXP(-dzw(j,k-1) *  atten_r)
            swr_b = swr_b * EXP(-dzw(j,k-1) * (atten_w +&
         &    atten_c*pho_to_chl*MAX(0.0_wp,(local_bgc_mem%bgctra(j,k-1,iphy)+rcyano*local_bgc_mem%bgctra(j,k-1,icya)))))
@@ -94,14 +94,12 @@ SUBROUTINE swr_absorption(local_bgc_mem, start_idx,end_idx, klevs, pfswr, psicom
       DO k=1,kpke-1
            local_bgc_mem%meanswr(j,k) = (local_bgc_mem%swr_frac(j,k) + local_bgc_mem%swr_frac(j,k+1))/2._wp
       END DO
-      local_bgc_mem%meanswr(j,kpke) = local_bgc_mem%swr_frac(j,k) 
+      local_bgc_mem%meanswr(j,kpke) = local_bgc_mem%swr_frac(j,k)
 
       ENDIF
     ENDDO
     !$ACC END PARALLEL
- 
+
 
 END SUBROUTINE swr_absorption
 END MODULE
-
-

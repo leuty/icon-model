@@ -57,7 +57,7 @@ PROGRAM test_slice_array
   CALL check_get_ptr(var, r_data, s_data, i_data)
   CALL check_get_3d_general(var, r_data, s_data, i_data)
   CALL check_get_2d_general(var, r_data, s_data, i_data)
-           
+
 
   CONTAINS
     SUBROUTINE check_get_ptr(var, r_data, s_data, i_data)
@@ -69,31 +69,31 @@ PROGRAM test_slice_array
       IF ( ANY(r_data /= var%get_ptr(1._dp)) ) THEN
         CALL finish(modname,"get_ptr(1._dp)")
       END IF
-              
+
       IF ( ANY(s_data /= var%get_ptr(1._sp)) ) THEN
         CALL finish(modname,"get_ptr(1._sp)")
       END IF
-    
+
     #ifdef __SINGLE_PRECISION
       IF ( .NOT. ASSOCIATED(var%get_ptr(1._wp),var%get_ptr(1._sp)) ) THEN
         CALL finish(modname,"wp=sp: get_ptr(1._wp)")
-      END IF 
+      END IF
       IF ( .NOT. ASSOCIATED(var%get_ptr(1._xwp),var%get_ptr(1._dp)) ) THEN
         CALL finish(modname,"wp=sp: get_ptr(1._xwp)")
-      END IF 
+      END IF
     #else
       IF ( .NOT. ASSOCIATED(var%get_ptr(1._wp),var%get_ptr(1._dp)) ) THEN
         CALL finish(modname,"wp=dp: get_ptr(1._wp)")
-      END IF 
+      END IF
       IF ( .NOT. ASSOCIATED(var%get_ptr(1._xwp),var%get_ptr(1._sp)) ) THEN
         CALL finish(modname,"wp=dp: get_ptr(1._xwp)")
-      END IF 
+      END IF
     #endif
 
       IF ( ANY(i_data /= var%get_ptr(1)) ) THEN
         CALL finish(modname,"get_ptr(1)")
       END IF
- 
+
     END SUBROUTINE check_get_ptr
 
     SUBROUTINE check_get_3d_general(var, r_data, s_data, i_data)
@@ -132,7 +132,7 @@ PROGRAM test_slice_array
       IF ( ANY(r_data(3,:,2,:,:) /= wp_ptr_3d) ) THEN
 #endif
         CALL finish(modname,"get_3d_general(wp_ptr)")
-      END IF 
+      END IF
 
       vp_ptr_3d => get_3d_general(var%vp_ptr, (/3,2/), (/.TRUE.,.FALSE.,.TRUE.,.FALSE.,.FALSE./))
 #if defined __SINGLE_PRECISION || defined __MIXED_PRECISION
@@ -141,7 +141,7 @@ PROGRAM test_slice_array
       IF ( ANY(r_data(3,:,2,:,:) /= vp_ptr_3d) ) THEN
 #endif
         CALL finish(modname,"get_3d_general(vp_ptr)")
-      END IF 
+      END IF
 
     END SUBROUTINE check_get_3d_general
 
@@ -167,12 +167,12 @@ PROGRAM test_slice_array
       s_ptr_2d => get_2d_general(var%s_ptr, (/3,2,2/), (/.TRUE.,.FALSE.,.TRUE.,.TRUE.,.FALSE./))
       IF ( ANY(s_data(3,:,2,2,:) /= s_ptr_2d) ) THEN
         CALL finish(modname,"get_2d_general(s_ptr)")
-      END IF 
+      END IF
 
       i_ptr_2d => get_2d_general(var%i_ptr, (/3,2,2/), (/.TRUE.,.FALSE.,.TRUE.,.TRUE.,.FALSE./))
       IF ( ANY(i_data(3,:,2,2,:) /= i_ptr_2d) ) THEN
         CALL finish(modname,"get_2d_general(i_ptr)")
-      END IF 
+      END IF
 
       wp_ptr_2d => get_2d_general(var%wp_ptr, (/3,2,2/), (/.TRUE.,.FALSE.,.TRUE.,.TRUE.,.FALSE./))
 #ifdef __SINGLE_PRECISION
@@ -181,7 +181,7 @@ PROGRAM test_slice_array
       IF ( ANY(r_data(3,:,2,2,:) /= wp_ptr_2d) ) THEN
 #endif
         CALL finish(modname,"get_2d_general(wp_ptr)")
-      END IF 
+      END IF
 
       vp_ptr_2d => get_2d_general(var%vp_ptr, (/3,2,2/), (/.TRUE.,.FALSE.,.TRUE.,.TRUE.,.FALSE./))
 #if defined __SINGLE_PRECISION || defined __MIXED_PRECISION
@@ -190,8 +190,8 @@ PROGRAM test_slice_array
       IF ( ANY(r_data(3,:,2,2,:) /= vp_ptr_2d) ) THEN
 #endif
         CALL finish(modname,"get_2d_general(vp_ptr)")
-      END IF 
-          
+      END IF
+
     END SUBROUTINE check_get_2d_general
 
 END PROGRAM test_slice_array

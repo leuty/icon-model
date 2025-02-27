@@ -122,7 +122,7 @@ CONTAINS
     & lower_limit) RESULT(vim)
     TYPE(t_vert_interp_meta) :: vim
     LOGICAL, INTENT(IN), OPTIONAL :: vert_intp_type(SIZE(VINTP_TYPE_LIST))
-    INTEGER, INTENT(IN), OPTIONAL :: vert_intp_method 
+    INTEGER, INTENT(IN), OPTIONAL :: vert_intp_method
     LOGICAL, INTENT(IN), OPTIONAL :: l_hires_intp, l_restore_fricred, &
       & l_loglin, l_extrapol, l_satlimit, l_restore_pbldev, l_pd_limit
     REAL(wp), INTENT(IN), OPTIONAL :: lower_limit

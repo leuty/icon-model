@@ -175,7 +175,7 @@ CONTAINS
     ! Online diagnose for global sum of runoff (m3/s) before sending to YAC:
     IF (msg_level >= 15) THEN
       CALL yac_fget_action(field_id_runoffs, info)
-      IF ( info /= YAC_ACTION_NONE ) THEN 
+      IF ( info /= YAC_ACTION_NONE ) THEN
         diag_runoff = global_sum_array(buffer(:,:,1) * p_patch%cells%area(:,:) / rhoh2o)
         WRITE(message_text,'(a,f15.3)') ' NWP-HD: global total surface runoff (m3/s) :' , diag_runoff
         CALL message(routine, message_text)

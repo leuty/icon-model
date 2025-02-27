@@ -20,7 +20,7 @@ for file in ../oce_*.nc; do \
  pwd
  fname=$(basename "$file"); \
  cdo -splitsel,1 $file $fname; \
- if [ ! -f tst.nc ] 
+ if [ ! -f tst.nc ]
   then
       f=$fname'000000.nc';
       cdo -f nc -sellonlatbox,-55,-20,-45,45 -remapbil,r450x225 -topo tst.nc; \

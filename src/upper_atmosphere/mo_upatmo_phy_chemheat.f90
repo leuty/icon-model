@@ -63,11 +63,11 @@ MODULE mo_upatmo_phy_chemheat
 
   REAL(wp), PARAMETER, PUBLIC :: zeroz = 70000.0_wp  ! altitude below which chemical heating is zero
   REAL(wp), PARAMETER, PUBLIC :: onez  = 80000.0_wp  ! altitude above which full chemical heating is used
-  REAL(wp), PARAMETER, PUBLIC :: effrswmin = 0.23_wp ! efficiency factor for standard shortwave radiation (>=200nm) 
+  REAL(wp), PARAMETER, PUBLIC :: effrswmin = 0.23_wp ! efficiency factor for standard shortwave radiation (>=200nm)
                                                      ! when full chemical heating is used
 
   REAL(wp) :: scl_ch                              ! scale factor to convert chemical heating data to K/s
-  REAL(wp) :: scl_lev                             ! scale factor to convert level data to Pa or m, 
+  REAL(wp) :: scl_lev                             ! scale factor to convert level data to Pa or m,
                                                   ! depending on type of vertical level
 
   REAL(wp), ALLOCATABLE :: levclim(:)             ! level    data for chemical heating climatology read from input file
@@ -135,15 +135,15 @@ CONTAINS
     INTEGER                    :: natts, iatt
 
     !---------------------------------------------------------
-    
+
     IF (.NOT. lchemheat_checked) THEN
-      
+
       IF(p_test_run) THEN
         mpi_comm = p_comm_work_test
       ELSE
         mpi_comm = p_comm_work
       ENDIF
-      
+
       IF (my_process_is_stdio()) THEN
         ! generate filename
         IF (PRESENT(opt_filename)) THEN
@@ -152,49 +152,49 @@ CONTAINS
           filename = generate_filename(TRIM(ADJUSTL(filename_template)), getModelBaseDir())
         ENDIF
         CALL message(routine, 'chemheat_filename=' // TRIM(filename))
-        
+
         ! check file existence
-        INQUIRE(FILE=TRIM(filename), EXIST=file_exists)  
+        INQUIRE(FILE=TRIM(filename), EXIST=file_exists)
         IF (.NOT. file_exists) CALL finish(routine, "input file " // TRIM(filename) // " does not exist")
-        
+
         CALL nf(nf90_open(TRIM(filename), NF90_NOWRITE, ncid), routine)
-        
+
         ! check dimensions - time
-        CALL nf(nf90_inq_dimid(ncid, 'time', dimid_time), routine) 
+        CALL nf(nf90_inq_dimid(ncid, 'time', dimid_time), routine)
         IF (dimid_time < 0) CALL finish(routine, "input file " // TRIM(filename) // " does not have a time dimension")
         CALL nf(nf90_inquire_dimension(ncid, dimid_time, len = ntimestep), routine)
         IF (ntimestep /= ntime) CALL finish(routine, "input file " // TRIM(filename) // " must have 12 timesteps")
         CALL nf(nf90_inq_varid(ncid, 'time', varid_time), routine)
-        
+
         ! check dimensions - latitude
-        CALL nf(nf90_inq_dimid(ncid, 'lat', dimid_lat), routine) 
+        CALL nf(nf90_inq_dimid(ncid, 'lat', dimid_lat), routine)
         IF (dimid_lat < 0) THEN
-          CALL nf(nf90_inq_dimid(ncid, 'latitude', dimid_lat), routine) 
+          CALL nf(nf90_inq_dimid(ncid, 'latitude', dimid_lat), routine)
           IF (dimid_lat < 0) CALL finish(routine, "input file " // TRIM(filename) // " does not have a latitude dimension")
         END IF
         CALL nf(nf90_inquire_dimension(ncid, dimid_lat, len = nlat), routine)
         WRITE(temp, *)nlat
         CALL message(routine, "input file " // TRIM(filename) // " has " // TRIM(ADJUSTL(temp)) // " latitudes")
-        
+
         ! check dimensions - level
-        CALL nf(nf90_inq_dimid(ncid, 'lev', dimid_lev), routine) 
+        CALL nf(nf90_inq_dimid(ncid, 'lev', dimid_lev), routine)
         IF (dimid_lev < 0) THEN
-          CALL nf(nf90_inq_dimid(ncid, 'level', dimid_lev), routine) 
+          CALL nf(nf90_inq_dimid(ncid, 'level', dimid_lev), routine)
           IF (dimid_lev < 0) CALL finish(routine, "input file " // TRIM(filename) // " does not have a level dimension")
         END IF
         CALL nf(nf90_inquire_dimension(ncid, dimid_lev, len = nlev), routine)
         WRITE(temp, *)nlev
         CALL message(routine, "input file " // TRIM(filename) // " has " // TRIM(ADJUSTL(temp)) // " levels")
-        
+
         ! check variables
         CALL nf(nf90_inquire(ncid, nVariables = nvars), routine)
-        
+
         varid_lev = -1
         varid_lat = -1
         varid_ch = -1
         DO id = 1, nvars
           CALL nf(nf90_inquire_variable(ncid, id, name = vn), routine)
-          
+
           IF (varid_lev == -1) THEN
             DO ian = 1, SIZE(acceptable_names_lev)
               IF ( TRIM(tolower(vn)) == TRIM(tolower(acceptable_names_lev(ian))) ) THEN
@@ -204,7 +204,7 @@ CONTAINS
               ENDIF
             END DO
           END IF
-          
+
           IF (varid_lat == -1) THEN
             DO ian = 1, SIZE(acceptable_names_lat)
               IF ( TRIM(tolower(vn)) == TRIM(tolower(acceptable_names_lat(ian))) ) THEN
@@ -213,7 +213,7 @@ CONTAINS
               ENDIF
             END DO
           END IF
-          
+
           IF (varid_ch == -1) THEN
             DO ian = 1, SIZE(acceptable_names_ch)
               IF ( TRIM(tolower(vn)) == TRIM(tolower(acceptable_names_ch(ian))) ) THEN
@@ -224,12 +224,12 @@ CONTAINS
             END DO
           END IF
         ENDDO
-        
+
         IF (varid_ch == -1) CALL finish(routine, "input file " // TRIM(filename) // &
           & " does not contain a recognizable variable " // &
           & "for chemical heating")
         CALL message(routine, "variable " // TRIM(vn) // " found in input file " // TRIM(filename))
-        
+
         ! check variable dimensionality
         CALL nf(nf90_inquire_variable(ncid, varid_ch, ndims = ndims), routine)
         IF (ndims < 3) CALL finish(routine, "variable " // TRIM(varname) // " in input file " // TRIM(filename) // &
@@ -248,7 +248,7 @@ CONTAINS
             & " has non-singleton dimensions other than time, level, and latitude")
         END DO
         DEALLOCATE(dimids)
-        
+
         ! get unit of chemical heating variable
         CALL nf(nf90_inquire_variable(ncid, varid_ch, nAtts = natts), routine)
         units = ''
@@ -259,7 +259,7 @@ CONTAINS
           END IF
         END DO
         scl_ch = heating2kps_scl(units)
-        
+
         IF (scl_ch < 0) THEN
           scl_ch = 1.0_wp
           CALL message(routine, "variable " // TRIM(varname) // " in input file " // TRIM(filename) // &
@@ -269,7 +269,7 @@ CONTAINS
           CALL message(routine, "variable " // TRIM(varname) // " in input file " // TRIM(filename) // &
             & " has unit " // TRIM(units) // "; conversion factor to K/s is " // TRIM(ADJUSTL(message_text)))
         END IF
-        
+
         ! get type and unit of level variable
         CALL nf(nf90_inquire_variable(ncid, varid_lev, nAtts = natts), routine)
         units = ''
@@ -289,10 +289,10 @@ CONTAINS
           CALL message(routine, "level variable " // TRIM(levname) // " in input file " // TRIM(filename) // &
             & " doesn't have a recognizable unit attribute: assuming m")
         END IF
-        
+
         CALL nf(nf90_close(ncid), routine)
       END IF
-      
+
       CALL p_bcast(filename, p_io, mpi_comm)
       CALL p_bcast(nlat, p_io, mpi_comm)
       CALL p_bcast(nlev, p_io, mpi_comm)
@@ -302,9 +302,9 @@ CONTAINS
       CALL p_bcast(varid_time, p_io, mpi_comm)
       CALL p_bcast(scl_ch, p_io, mpi_comm)
       CALL p_bcast(scl_lev, p_io, mpi_comm)
-      
+
     ENDIF
-    
+
     IF (PRESENT(opt_nlat))         opt_nlat         = nlat
     IF (PRESENT(opt_nlev))         opt_nlev         = nlev
     IF (PRESENT(opt_ntime))        opt_ntime        = ntime
@@ -312,7 +312,7 @@ CONTAINS
     IF (PRESENT(opt_unitlat))      opt_unitlat      = 'rad'
     IF (PRESENT(opt_unitlev))      opt_unitlev      = 'm'
     IF (PRESENT(opt_unittime))     opt_unittime     = 'month'
-    
+
     lchemheat_checked = .TRUE.
   END SUBROUTINE chem_heat_check
 
@@ -330,34 +330,34 @@ CONTAINS
 
     !---------------------------------------------------------
 
-    ! apart from the determination of the start level 
+    ! apart from the determination of the start level
     ! everything in this subroutine should be run through only once
     IF (.NOT. lchemheat_initialized) THEN
 
       IF (.NOT. lchemheat_checked) CALL chem_heat_check()
-      
+
       ALLOCATE(levclim(nlev))
       ALLOCATE(latclim(nlat))
       ALLOCATE(timeclim(ntime))
       ALLOCATE(chclim(nlat, nlev, ntime))
-      
+
       IF(p_test_run) THEN
         mpi_comm = p_comm_work_test
       ELSE
         mpi_comm = p_comm_work
       ENDIF
-      
+
       IF (my_process_is_stdio()) THEN
         ! open
         CALL nf(nf90_open(TRIM(filename), NF90_NOWRITE, ncid), routine)
-        
+
         ! get level
         CALL nf(nf90_get_var(ncid, varid_lev, levclim), routine)
         levclim = levclim * scl_lev       ! unit conversion to m
         minlev = MINVAL(levclim)
         maxlev = MAXVAL(levclim)
         levinc = levclim(1) < levclim(2)
-        
+
         ! get latitude
         CALL nf(nf90_get_var(ncid, varid_lat, latclim), routine)
         latclim = latclim * deg2rad       ! convert from degree to radian
@@ -367,15 +367,15 @@ CONTAINS
 
         ! get time
         CALL nf(nf90_get_var(ncid, varid_time, timeclim), routine)
-        
+
         ! get chemical heating
         CALL nf(nf90_get_var(ncid, varid_ch, chclim), routine)
         chclim = chclim * scl_ch          ! unit conversion to K/s
-        
+
         ! close
         CALL nf(nf90_close(ncid), routine)
       END IF
-      
+
       CALL p_bcast(minlev, p_io, mpi_comm)
       CALL p_bcast(maxlev, p_io, mpi_comm)
       CALL p_bcast(minlat, p_io, mpi_comm)
@@ -393,7 +393,7 @@ CONTAINS
     IF (PRESENT(opt_lat))      opt_lat      = latclim
     IF (PRESENT(opt_lev))      opt_lev      = levclim
     IF (PRESENT(opt_time))     opt_time     = timeclim
-    
+
     lchemheat_initialized = .TRUE.
   END SUBROUTINE chem_heat_init
 
@@ -443,9 +443,9 @@ CONTAINS
       iendlev = klev
     ENDIF
 
-    ! in off-line mode tendencies are computed, 
-    ! but there is no feedback on the dynamics; 
-    ! here, this information is required for the efficiency factor, 
+    ! in off-line mode tendencies are computed,
+    ! but there is no feedback on the dynamics;
+    ! here, this information is required for the efficiency factor,
     ! which has to be set to unity in this case
     IF (PRESENT(opt_loffline)) THEN
       loffline = opt_loffline
@@ -455,14 +455,14 @@ CONTAINS
 
     IF (.NOT. lchemheat_initialized) CALL chem_heat_init()
 
-    ! please do not limit range of assignment 
-    ! (e.g., cheat(jcs:jce,istartlev:iendlev) = 0._wp)), 
+    ! please do not limit range of assignment
+    ! (e.g., cheat(jcs:jce,istartlev:iendlev) = 0._wp)),
     ! since tendencies have attribute INTENT(OUT)
     cheat(:, :)  = 0._wp
     effrsw(:, :) = 1._wp
 
     IF (istartlev > iendlev) RETURN
- 
+
     nactivelev = iendlev - istartlev + 1
 
     ALLOCATE(lev(kbdim, nactivelev), sclfac(kbdim, nactivelev), &
@@ -531,7 +531,7 @@ CONTAINS
     curr_jd = curr_jul%day + curr_jul%ms / 86400000
 
     ! mid-month point of this month and julian day
-    
+
     !write(*,*)'intp_time_weight:',curr_datetime%date%year,',',curr_datetime%date%month
 
     this15 => newDatetime(curr_datetime%date%year, curr_datetime%date%month, 15, 12, 0, 0, 0)
@@ -641,8 +641,8 @@ CONTAINS
       difflev = ilev - olev
 
       ! position of the 1st element in ilev greater than olev
-      poslev = MINLOC(difflev, 1, difflev >= 0.0_wp)   ! poslev belongs to [2, kilev], 
-                                                       ! if incilev == .true. or [1, kilev - 1], 
+      poslev = MINLOC(difflev, 1, difflev >= 0.0_wp)   ! poslev belongs to [2, kilev],
+                                                       ! if incilev == .true. or [1, kilev - 1],
                                                        ! if incilev == .false.)
       IF (difflev(poslev) == 0.0_wp) THEN
         wi%prev = poslev
@@ -708,8 +708,8 @@ CONTAINS
         difflat = ilat - olat
 
         ! position of the 1st element in ilat greater than olat
-        poslat = MINLOC(difflat, 1, difflat >= 0.0_wp)   ! poslat belongs to [2, kilat], 
-                                                         ! if incilat == .true. or [1, kilat - 1], 
+        poslat = MINLOC(difflat, 1, difflat >= 0.0_wp)   ! poslat belongs to [2, kilat],
+                                                         ! if incilat == .true. or [1, kilat - 1],
                                                          ! if incilat == .false.)
         IF (difflat(poslat) == 0.0_wp) THEN
           wi%prev = poslat
@@ -800,7 +800,7 @@ CONTAINS
   END FUNCTION intp_lat
 
   FUNCTION heating2kps_scl(units, panic) RESULT(scl)
-    
+
     ! IN/OUT
     CHARACTER(LEN=*),  INTENT(IN) :: units
     LOGICAL, OPTIONAL, INTENT(IN) :: panic

@@ -187,7 +187,7 @@ CONTAINS
     REAL(wp),OPTIONAL,INTENT(IN) :: pssfl     (:)   ! (kbdim) snow large scale
     REAL(wp),OPTIONAL,INTENT(IN) :: rlds      (:)   ! (kbdim) downward surface  longwave flux [W/m2]
     REAL(wp),OPTIONAL,INTENT(IN) :: rsds      (:)   ! (kbdim) downward surface shortwave flux [W/m2]
-    
+
     REAL(wp),INTENT(IN) :: rvds_dir(:)        ! (kbdim) all-sky   vis. dir. downward flux at current   time [W/m2]
     REAL(wp),INTENT(IN) :: rpds_dir(:)        ! (kbdim) all-sky   par  dir. downward flux at current   time [W/m2]
     REAL(wp),INTENT(IN) :: rnds_dir(:)        ! (kbdim) all-sky   nir  dir. downward flux at current   time [W/m2]
@@ -307,7 +307,7 @@ CONTAINS
     !
     lsfc_mom_flux  = aes_vdf_config(jg)% lsfc_mom_flux
     lsfc_heat_flux = aes_vdf_config(jg)% lsfc_heat_flux
-  
+
     ! check for masks
     !
     ! DA: compute the index lists on the GPU
@@ -394,7 +394,7 @@ CONTAINS
     !===========================================================================
     ! Land surface
     !===========================================================================
-    
+
     !$ACC LOOP GANG VECTOR
     DO jk = 1, kbdim
       zlhflx_lnd(jk)    = 0._wp
@@ -640,9 +640,9 @@ CONTAINS
           & pch               = pch_tmp(jcs:jce),                                         & ! in
           & cos_zenith_angle  = pcosmu0(jcs:jce),                                         & ! in
           & CO2_air           = pco2(jcs:jce),                                            & ! in
-          & t_srf             = ztsfc_lnd(jcs:jce),                                       & ! out (T_s^(n+1)) surface temp 
+          & t_srf             = ztsfc_lnd(jcs:jce),                                       & ! out (T_s^(n+1)) surface temp
                                                                                                ! (filtered, if Asselin)
-          & t_eff_srf         = ztsfc_lnd_eff(jcs:jce),                                   & ! out (T_s^eff) surface temp 
+          & t_eff_srf         = ztsfc_lnd_eff(jcs:jce),                                   & ! out (T_s^eff) surface temp
                                                                                                ! (effective, for longwave rad)
           & qsat_srf          = qsat_lnd(jcs:jce),                                        & ! out
           & s_srf             = zcpt_lnd(jcs:jce),                                        & ! out (s_s^star, for vdiff scheme)
@@ -888,7 +888,7 @@ CONTAINS
 
     !$ACC LOOP GANG(STATIC: 1) VECTOR
     DO jl = jcs,jce
-      zfrc_oce(jl) = 0._wp 
+      zfrc_oce(jl) = 0._wp
     END DO
     IF (idx_wtr.LE.ksfc_type) THEN   ! Open water is considered
       !$ACC LOOP GANG(STATIC: 1) VECTOR
@@ -1082,7 +1082,7 @@ CONTAINS
 
       IF (aes_phy_config(jg)%use_shflx_adjustment .AND. &
           .NOT. aes_phy_config(jg)%suppress_shflx_adjustment_over_ice) THEN
-  
+
 
         !$ACC PARALLEL LOOP DEFAULT(PRESENT) GANG VECTOR COLLAPSE(2) ASYNC(1)
         DO k=1,kice
@@ -1306,7 +1306,7 @@ CONTAINS
       END DO
       !$ACC END PARALLEL LOOP
     END DO
-    
+
     !$ACC PARALLEL LOOP DEFAULT(PRESENT) GANG VECTOR ASYNC(1)
     DO jl = jcs, jce
       rlus(jl) = rlds(jl) -rlns(jl)

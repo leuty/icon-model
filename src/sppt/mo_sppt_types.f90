@@ -46,7 +46,7 @@ MODULE mo_sppt_types
     & rn_2d_now(:,:),         &        ! utility array for random numbers              [-]
     & rn_2d_new(:,:),         &        ! utility array for random numbers              [-]
 
-    ! c) fields used for calculations of tendencies 
+    ! c) fields used for calculations of tendencies
     & ddt_temp_fast(:,:,:), &          ! fast physics tendency for air temperature     [K/s]
     & ddt_u_fast(:,:,:),    &          ! fast physics tendency for wind component u    [m/s^2]
     & ddt_v_fast(:,:,:),    &          ! fast physics tendency for wind component v    [m/s^2]
@@ -70,4 +70,3 @@ MODULE mo_sppt_types
 
 
 END MODULE mo_sppt_types
-

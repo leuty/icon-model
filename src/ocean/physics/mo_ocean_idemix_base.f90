@@ -66,12 +66,12 @@ private
    mu0                 ! dissipation parameter (dimensionless)
 
 ! FIXME: nils: can handle_old_vals be deleted?
-! Flag for how to update old values 
+! Flag for how to update old values
 ! Note: We don't need max or sum option
  integer :: handle_old_vals
 end type idemix_type
 
-type(idemix_type), target :: idemix_constants_saved 
+type(idemix_type), target :: idemix_constants_saved
 
 CHARACTER(LEN=*), PARAMETER :: module_name = 'idemix'
 
@@ -85,8 +85,8 @@ subroutine init_idemix(tau_v, tau_h, gamma,jstar,mu0,handle_old_vals,idemix_user
 ! This subroutine sets user or default values for IDEMIX parameters
 
 real(wp),optional, intent(in) ::            &
-  tau_v                                    ,& ! 
-  tau_h                                    ,& ! 
+  tau_v                                    ,& !
+  tau_h                                    ,& !
   gamma                                    ,& !
   jstar                                    ,& !
   mu0
@@ -172,14 +172,14 @@ subroutine calc_idemix_v0(nlev, max_nlev, Nsqr, dzw, coriolis,    &
   integer, intent(in) ::                                          &
     nlev, max_nlev                                                !,&
 
-  real(wp), intent(in)                                         :: & 
+  real(wp), intent(in)                                         :: &
     coriolis                                                        !
 
   logical, intent(in) :: debug
 
   real(wp), dimension(max_nlev+1), intent(in) ::                  &
     dzw
-  
+
   real(wp), dimension(max_nlev+1), intent(in)                  :: &
     Nsqr                                                 !,&
 
@@ -187,16 +187,16 @@ subroutine calc_idemix_v0(nlev, max_nlev, Nsqr, dzw, coriolis,    &
     v0                                                           !,&
 
   ! IDEMIX namelist parameters
-  real(wp)                                                     :: & 
-    cstar                                                        ,& ! 
+  real(wp)                                                     :: &
+    cstar                                                        ,& !
     tau_h                                                        ,& !
     gamma                                                        ,& !
     jstar                                                        ,& !
     mu0                                                          ,& !
     bN0                                                          !,&
 
-  real(wp)                                                     :: & 
-    fxa 
+  real(wp)                                                     :: &
+    fxa
 
   integer                                                      :: &
     k
@@ -216,14 +216,14 @@ subroutine calc_idemix_v0(nlev, max_nlev, Nsqr, dzw, coriolis,    &
   gamma = idemix_constants_in%gamma
   mu0   = idemix_constants_in%mu0
   jstar = idemix_constants_in%jstar
- 
+
   ! calculate cstar from OE13 Eq. (13)
   bN0=0.0_wp
   do k=2,nlev
-    bN0 = bN0 + max(0.0_wp,Nsqr(k))**0.5_wp*dzw(k) 
+    bN0 = bN0 + max(0.0_wp,Nsqr(k))**0.5_wp*dzw(k)
   enddo
   cstar = max(1e-2_wp,bN0/(pi*jstar) )
-     
+
   ! calculate horizontal representative group velocity v0
   ! v0: OE13 Eq. (A9)
   do k=1,nlev+1
@@ -237,10 +237,10 @@ subroutine calc_idemix_v0(nlev, max_nlev, Nsqr, dzw, coriolis,    &
 
     !! for debugging:
     !if (debug .eqv. .true.) then
-    !  write(*,*) "Nsqr = ", Nsqr(k) 
+    !  write(*,*) "Nsqr = ", Nsqr(k)
     !  write(*,*) "gamma = ", gamma
     !  write(*,*) "fxa = ", fxa
-    !  write(*,*) "cstar = ", cstar 
+    !  write(*,*) "cstar = ", cstar
     !  write(*,*) "hofx2(fxa) = ", hofx2(fxa)
     !  write(*,*) 'v0 = ', v0(k)
     !end if
@@ -290,33 +290,33 @@ subroutine integrate_idemix( &
                             idemix_userdef_constants &
                             )
 
-  
+
    type(idemix_type), intent(in), optional, target :: idemix_userdef_constants
-  
+
    integer, intent(in) ::                                         &
      nlev                                                        ,&
-     max_nlev                                                         
-  
+     max_nlev
+
    real(wp), dimension(max_nlev+1), intent(inout) ::              &
       KappaM_out                                                 ,&
       KappaH_out
-  
+
    ! FIXME: nils: for debuging
    !integer, intent(in) :: i, j, tstep_count
    logical, intent(in) :: debug
-  
+
    real(wp), dimension(max_nlev), intent(in) ::                   &
      dzw
-  
+
    real(wp), dimension(max_nlev+1), intent(in)                 :: &
      Nsqr                                                        ,&
      iwe_old                                                     ,&
-     !old_iw_diss                                                 ,& 
+     !old_iw_diss                                                 ,&
      dzt                                                             !
-  
+
    ! diagnostics
    real(wp), dimension(max_nlev+1), intent(out) ::                &
-     !iw_diss_out                                                 ,& 
+     !iw_diss_out                                                 ,&
      iwe_new                                                     ,&
      int_1                                                       ,&
      int_2                                                       ,&
@@ -332,16 +332,16 @@ subroutine integrate_idemix( &
 
    real(wp), dimension(max_nlev+1), intent(in) ::                 &
      iwe_Thdi
-  
-  real(wp), intent(in)                                         :: & 
+
+  real(wp), intent(in)                                         :: &
     forc_iw_bottom                                               ,& !
     forc_iw_surface                                              ,& !
     dtime                                                        ,& !
     coriolis                                                        !
- 
+
   integer                                                      :: &
     k, ks, ke, n
- 
+
   ! coefficients for the tri-diagonal solver
   real(wp), dimension(max_nlev+1)                              :: &
     a_dif                                                        ,& !
@@ -351,25 +351,25 @@ subroutine integrate_idemix( &
     b_tri                                                        ,& !
     c_tri                                                        ,& !
     d_tri
- 
+
   real(wp), dimension(max_nlev+1)                              :: &
     delta                                                        ,& !
-    iwe_max                                                      ,& ! 
-    forc                                                            ! 
- 
+    iwe_max                                                      ,& !
+    forc                                                            !
+
   ! IDEMIX namelist parameters
-  real(wp)                                                     :: & 
-    cstar                                                        ,& ! 
+  real(wp)                                                     :: &
+    cstar                                                        ,& !
     tau_v                                                        ,& !
     tau_h                                                        ,& !
     gamma                                                        ,& !
     jstar                                                        ,& !
     mu0                                                          ,& !
     bN0                                                             !
- 
-  real(wp)                                                     :: & 
-    fxa 
- 
+
+  real(wp)                                                     :: &
+    fxa
+
   type(idemix_type), pointer ::idemix_constants_in
 
   ! initialize variables
@@ -395,29 +395,29 @@ subroutine integrate_idemix( &
   delta       = 0.0_wp
   iwe_max     = 0.0_wp
   forc        = 0.0_wp
- 
+
   ! FIXME: nils: Is this necessary?
   idemix_constants_in => idemix_constants_saved
   if (present(idemix_userdef_constants)) then
     idemix_constants_in => idemix_userdef_constants
   end if
- 
+
   ! set idemix_constants locally
   tau_v = idemix_constants_in%tau_v
   tau_h = idemix_constants_in%tau_h
   gamma = idemix_constants_in%gamma
   mu0   = idemix_constants_in%mu0
   jstar = idemix_constants_in%jstar
- 
+
   ! calculate cstar from OE13 Eq. (13)
   bN0=0.0_wp
   do k=2,nlev
-    bN0 = bN0 + max(0.0_wp,Nsqr(k))**0.5_wp*dzw(k) 
+    bN0 = bN0 + max(0.0_wp,Nsqr(k))**0.5_wp*dzw(k)
   enddo
   cstar = max(1e-2_wp,bN0/(pi*jstar) )
-     
+
   ! calculate vertical and horizontal representative group velocities c0 and v0
-  ! c0: OE13 Eq. (13) 
+  ! c0: OE13 Eq. (13)
   ! alpha_c iwe**2: dissipation of internal wave energy (OE13 Eq. (15))
   do k=1,nlev+1
     fxa = max(0.0_wp,Nsqr(k))**0.5_wp/(1e-22_wp + abs(coriolis) )
@@ -431,21 +431,21 @@ subroutine integrate_idemix( &
       v0(k) = 0.0_wp
     endif
   enddo
- 
+
   !---------------------------------------------------------------------------------
   ! initialize forcing
   forc(:)=0.0_wp
- 
+
   ! add tendency of horizontal diffusion (is calculated externally)
   !forc(:) = forc(:) + iwe_Thdi(:)
- 
+
   !---------------------------------------------------------------------------------
   ! prevent negative dissipation of IW energy
   ! FIXME: Carsten thinks we don't need this
   iwe_max = max(0.0_wp, iwe_old)
- 
- 
-  ! vertical diffusion and dissipation is solved implicitely 
+
+
+  ! vertical diffusion and dissipation is solved implicitely
   !---------------------------------------------------------------------------------
   ! assignment of tridiagonal matrix
   !---------------------------------------------------------------------------------
@@ -455,54 +455,54 @@ subroutine integrate_idemix( &
   ! |0  0  a4 b4 c4 | (E4) = (d4)
   ! |0  0  0  an bn | (En) = (dn)
   !
-  ! d1 = diss_1 + surf_forc 
-  ! dn = diss_n + bott_forc 
-  ! 
-    
+  ! d1 = diss_1 + surf_forc
+  ! dn = diss_n + bott_forc
+  !
+
   ! vertical flux
   do k=1,nlev
    delta(k) = tau_v/dzw(k) * 0.5_wp*(c0(k)+c0(k+1))
   enddo
   delta(nlev+1) = 0.0_wp          ! delta(nlev+1) is never used
- 
-  ! -- a -- 
+
+  ! -- a --
   do k=2,nlev+1
     a_dif(k) = delta(k-1)*c0(k-1)/dzt(k)
   enddo
   a_dif(1) = 0.0_wp ! not part of the diffusion matrix, thus value is arbitrary
- 
-  ! -- b -- 
+
+  ! -- b --
   do k=2,nlev
     b_dif(k) = (delta(k-1)*c0(k)+delta(k)*c0(k))/dzt(k)
   enddo
- 
+
   ! Neumann boundary conditions
   k = 1
   b_dif(k) = delta(k)*c0(k)/dzt(k)
   k = nlev+1
   b_dif(k) = delta(k-1)*c0(k)/dzt(k)
- 
-  ! -- c-- 
+
+  ! -- c--
   do k=1,nlev
     c_dif(k) = delta(k)*c0(k+1)/dzt(k)
   enddo
   c_dif(nlev+1) = 0.0_wp ! not part of the diffusion matrix, thus value is arbitrary
- 
+
   !--- construct tridiagonal matrix to solve diffusion and dissipation implicitely
   a_tri = -dtime*a_dif
   b_tri = 1.0_wp+dtime*b_dif
   ! FIXME: nils: Should dissipation also be in first and last layer?
   b_tri(2:nlev) = b_tri(2:nlev) + dtime*alpha_c(2:nlev)*iwe_max(2:nlev)
   c_tri = -dtime*c_dif
-   
-  ! -- d -- 
+
+  ! -- d --
   d_tri(1:nlev+1) = iwe_old(1:nlev+1) + dtime*forc(1:nlev+1)
-  d_tri(nlev+1)   = d_tri(nlev+1)      + dtime*forc_iw_bottom/dzt(nlev+1) 
+  d_tri(nlev+1)   = d_tri(nlev+1)      + dtime*forc_iw_bottom/dzt(nlev+1)
   d_tri(1)        = d_tri(1)           + dtime*forc_iw_surface/dzt(1)
- 
-  ! solve the tri-diag matrix 
+
+  ! solve the tri-diag matrix
   call solve_tridiag(a_tri, b_tri, c_tri, d_tri, iwe_new, nlev+1)
- 
+
   ! --- diagnose implicite tendencies (only for diagnostics)
   ! vertical diffusion of E_iw
   do k=2,nlev
@@ -512,18 +512,18 @@ subroutine integrate_idemix( &
   iwe_Tdif(k) = - b_dif(k)*iwe_new(k) + c_dif(k)*iwe_new(k+1)
   k = nlev+1
   iwe_Tdif(k) = a_dif(k)*iwe_new(k-1) - b_dif(k)*iwe_new(k)
- 
+
   ! dissipation of E_iw
   iwe_Tdis = 0.0_wp
   ! FIXME: nils: dissipation also in first or last layer?
   !iwe_Tdis(1:nlev+1) =  -alpha_c(1:nlev+1) * iwe_max(1:nlev+1) * iwe_new(1:nlev+1)
   iwe_Tdis(2:nlev) =  -alpha_c(2:nlev) * iwe_max(2:nlev) * iwe_new(2:nlev)
- 
-  iwe_Tsur(1)      = forc_iw_surface/dzt(1) 
+
+  iwe_Tsur(1)      = forc_iw_surface/dzt(1)
   iwe_Tbot(nlev+1) = forc_iw_bottom/dzt(nlev+1)
- 
+
   iwe_Ttot = (iwe_new-iwe_old)/dtime
- 
+
   ! IDEMIX only shortcut: derive diffusivity and viscosity using Osbourne relation
   KappaH_out = 0.0_wp
   KappaM_out = 0.0_wp
@@ -533,21 +533,21 @@ subroutine integrate_idemix( &
     KappaH_out(k) = min(1.0_wp, KappaH_out(k))
     KappaM_out(k) =  10.0_wp * KappaH_out(k)
   enddo
- 
+
   !---------------------------------------------------------------------------------
   ! rest is for debuggin only
   !---------------------------------------------------------------------------------
   int_1 = Nsqr
-  int_2 = alpha_c 
+  int_2 = alpha_c
   int_3 = c0
- 
-  ! debugging: 
+
+  ! debugging:
   !if (debug .eqv. debug) then
 !  if (.false.) then
   !if (i==45 .and. j==10) then
   !if (i==45 .and. j==45) then
 !     write(*,*) ' ===================== '
- 
+
 !     write(*,*) 'dtime = ', dtime
 !     write(*,*) 'delta = ', delta
 !     write(*,*) 'dzw = ', dzw
@@ -558,7 +558,7 @@ subroutine integrate_idemix( &
 !     write(*,*) 'd_tri = ', d_tri
 !     write(*,*) 'forc_iw_surface = ', forc_iw_surface
 !     write(*,*) 'iwe_new = ', iwe_new
- 
+
 !     write(*,*) 'iwe_Ttot = ', iwe_Ttot
 !     write(*,*) 'iwe_Tdif = ', iwe_Tdif
 !     write(*,*) 'iwe_Thdi = ', iwe_Thdi
@@ -566,18 +566,18 @@ subroutine integrate_idemix( &
 !     write(*,*) 'iwe_Tsur = ', iwe_Tsur
 !     write(*,*) 'iwe_Tbot = ', iwe_Tbot
 !     write(*,*) 'iwe_Tres = ', iwe_Ttot-(iwe_Tdif+iwe_Thdi+iwe_Tdis+iwe_Tsur+iwe_Tbot)
- 
+
 !    write(*,*) 'tau_v = ', tau_v
 !    write(*,*) 'tau_h = ', tau_h
 !    write(*,*) 'gamma = ', gamma
 !    write(*,*) 'jstar = ', jstar
 !    write(*,*) 'mu0 = ', mu0
- 
+
     !stop
   !endif
   !endif
 !  endif
- 
+
 end subroutine integrate_idemix
 
 !=================================================================================
@@ -585,7 +585,7 @@ end subroutine integrate_idemix
 
 function gofx2(x1)
 !=======================================================================
-! a function g(x)	! adapted from pyOM 
+! a function g(x)	! adapted from pyOM
 !=======================================================================
  implicit none
  real(wp) :: gofx2,x1,x2,c
@@ -612,7 +612,7 @@ subroutine vmix_tke_put_idemix_real(varname,val,idemix_userdef_constants)
 !IN
   character(len=*),          intent(in) :: varname
   real(wp),                  intent(in) :: val
-!OUT   
+!OUT
   type(idemix_type), intent(inout), target, optional:: idemix_userdef_constants
   type(idemix_type), pointer :: idemix_constants_out
 
@@ -622,20 +622,20 @@ subroutine vmix_tke_put_idemix_real(varname,val,idemix_userdef_constants)
   if (present(idemix_userdef_constants)) then
     idemix_constants_out=> idemix_userdef_constants
   end if
-  
+
 select case(trim(varname))
 
-    case('tau_v') 
+    case('tau_v')
       idemix_constants_out%tau_v= val
-    case('tau_h') 
+    case('tau_h')
       idemix_constants_out%tau_h= val
-    case('jstar') 
+    case('jstar')
       idemix_constants_out%jstar= val
-    case('gamma') 
+    case('gamma')
       idemix_constants_out%gamma = val
-    case('mu0') 
+    case('mu0')
       idemix_constants_out%mu0 = val
-   
+
     case DEFAULT
 !      print*, "ERROR:", trim(varname), " not a valid choice"
 !      stop 1
@@ -653,7 +653,7 @@ subroutine vmix_tke_put_idemix_int(varname,val,idemix_userdef_constants)
 !IN
   character(len=*),           intent(in) :: varname
   integer,                    intent(in) :: val
-!OUT   
+!OUT
   type(idemix_type), intent(inout), target, optional:: idemix_userdef_constants
   type(idemix_type), pointer :: idemix_constants_out
 
@@ -666,9 +666,9 @@ subroutine vmix_tke_put_idemix_int(varname,val,idemix_userdef_constants)
 
     case('handle_old_vals')
       idemix_constants_out%handle_old_vals=val
-    
+
   end select
-    
+
 end subroutine vmix_tke_put_idemix_int
 
 !=================================================================================

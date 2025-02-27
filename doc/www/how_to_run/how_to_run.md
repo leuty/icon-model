@@ -33,4 +33,3 @@ Like for the grid files, a more detailed description is given in the _Necessary 
 
 (ref_how_to_run_icbc)=
 ## Initial & Boundary Data
-

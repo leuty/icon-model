@@ -258,7 +258,7 @@ AES Physics:
 
 ### ICON-Ocean
 
-- Add ocean isopycnal transport diagnostic 
+- Add ocean isopycnal transport diagnostic
 - Bug fix: calculate sea water density always on fixed depth levels
 - Bug fix and refactoring of the ocean age tracer
 - Optimize ocean surface solver
@@ -336,14 +336,14 @@ NWP: TERRA
 
 #### Scripting and testing
 
-- Fix component names in mkexp experiment to prevent wrong coupling setups 
+- Fix component names in mkexp experiment to prevent wrong coupling setups
 - New option -P for mars4icon_smi to use surface pressure instead of lnsp
 - Activate test for lgrayzone_deepconv
 - Several improvements to the experiment setup with the `mkexp` run script generation system
 - Adjust LUMI-G defaults in create_target_header
 - Additional experiment runscript template `run/exp.atm_nwp_jsbach-C` to test carbon cycle with ICON-XPP
    (NWP atmosphere simulations with jsbach)
-- DCMIP Tropical Cyclone experiments: removed `dcmip_tc_51` test case and activated 
+- DCMIP Tropical Cyclone experiments: removed `dcmip_tc_51` test case and activated
    `dcmip_tc_52` also for AES physics
 - Clean up and consolidate several run script templates with AES physics (NextGEMS, AMIP, nested, land)
 - Update of JSC run scripts
@@ -357,7 +357,7 @@ NWP: TERRA
 - New makefile target 'env' to retrieve the build environment (`BUILD_ENV`) set in a configure wrapper
 - Expose BUILD_ENV to the runscript generators
 - Several minor fixes and improvements for the build system
-- Introduce configure option `--enable-bundled-python` to build the Python 
+- Introduce configure option `--enable-bundled-python` to build the Python
    interfaces of `MTIME`, `YAC` and `COMIN`
 
 
@@ -393,7 +393,7 @@ NWP Physics:
 - RUC (Rapid Update Cycle) diagnostics, fixes and testcases
 - DeMott ice nucleation parametrization
 - New output variables: diagnostic tot_pr_max; surface radiative fluxes without islope_rad corrections
-- changed random normal values generation in Stochastically Perturbed Physics Tendencies (SPPT) 
+- changed random normal values generation in Stochastically Perturbed Physics Tendencies (SPPT)
 - Gust diagnosis option for large-eddy permitting configurations
 - Option for moisture diffusion (water vapor and cloud water)
 - 2-moment-microphysics: new hail/graupel shedding and limitation of graupel production
@@ -478,7 +478,7 @@ New features and other modifications:
 - Adapted ICON-Land to the interface change of init and copy functions of mo_fortran_tools
 - Bugfix: Fixed restartability of offline model
 - New feature: Ported offline model to GPU
-- Bugfix: Fixed an indexing bug in phenology 
+- Bugfix: Fixed an indexing bug in phenology
 - Remove hard-coded number of soil layers in JSBACH and get it from input data instead
 - New feature: Implementation of QUINCY biogeochemistry model
 - Update of inline documentation and code cleaning
@@ -547,12 +547,12 @@ Necessary backports from the main ICON repository for buildbot testing are also 
 
 # Release notes for icon-2024.01
 
-It took a lot of work, sweat and tears: ICON's first Open Source 
+It took a lot of work, sweat and tears: ICON's first Open Source
 (BSD 3 Clause) release is out!
 
 Nevertheless, a lot of changes have been applied to icon-2024.01 since
 the last released version icon-2.6.6. The given list might not contain
-all changes (eg.bug fixes, ...), but is a good overview. 
+all changes (eg.bug fixes, ...), but is a good overview.
 
 ### Buildbot
 
@@ -742,7 +742,7 @@ Later than expected: this is another ICON release
   - two-moment cloud microphysics has been replaced by a new version
   - initial steps for wave model implementation
   - added jsbach/vdiff from former ICON echam-physics
-  - enable/fix more problems with respect to run icon-seamless 
+  - enable/fix more problems with respect to run icon-seamless
   - some code moves and consolidation
   - OpenACC beautification application running to allow passing a required CI test
   - more test cases
@@ -811,7 +811,7 @@ physics and not echam anymore.
        scheme.
 
 - MPIM OES: Added a new C-grid seaice model (C. Mehlmann) and extensive
-       improvements of OpenMP for hamocc. 
+       improvements of OpenMP for hamocc.
 
 - MPIM LES: JSBACH got more model components and has been adapted for
        to all changes above its top-level.  - KIT: The aerosoly
@@ -820,7 +820,7 @@ physics and not echam anymore.
 
 - MPIM CIMD: just a lot of things in the area of coupling, configuring
        and building and model infrastrucuture, new machine setups
-       for lumi (CSC), juwels/booster (JSC) and levante (DKRZ) 
+       for lumi (CSC), juwels/booster (JSC) and levante (DKRZ)
 
 - All developers: many of the work has been done in cross
   institutional working groups.
@@ -950,7 +950,7 @@ It consists of
 - ART has made its first step to an git submodule external (draft implementation not to be used yet- no warranty)
 - fixes and improvements in the ocean code including hamocc
 - improvements in the data assimilation NWP physics coupling
-- tuning of data assimilation 
+- tuning of data assimilation
 - added rrtm-gp as radiation scheme for the sapphire physics on GPU
 - much progress on cdi-pio use in many icon components
 - refactoring of mpi communication library (with a focus on GPU to GPU communication)
@@ -960,4 +960,3 @@ For many more details visit:
 https://gitlab.dkrz.de/icon/wiki/-/wikis/Protocol-of-Release-Commits
 
 June 7th, 2021
-

@@ -67,7 +67,7 @@ MODULE mo_nh_torus_exp
 
   PUBLIC :: init_nh_state_cbl, cbl_stevens_fluxes, init_nh_state_rico,  &
             sfcflx_uniform, init_warm_bubble,                           &
-            init_torus_ascii_sounding, init_torus_netcdf_sounding,      & 
+            init_torus_ascii_sounding, init_torus_netcdf_sounding,      &
             read_soil_profile_nc, read_ext_scm_nc, set_scm_bnd,         &
             read_soil_profile_nc_uf, read_ext_scm_nc_uf,                &
             init_torus_rcemip_analytical_sounding
@@ -79,7 +79,7 @@ MODULE mo_nh_torus_exp
 !
 !
   !>
-  !! Initialization of prognostic state vector for the nh CBL test case 
+  !! Initialization of prognostic state vector for the nh CBL test case
   !!  without moisture
   !!
   SUBROUTINE init_nh_state_cbl( ptr_patch, ptr_nh_prog,  ptr_nh_ref, ptr_nh_diag,  &
@@ -89,10 +89,10 @@ MODULE mo_nh_torus_exp
     TYPE(t_int_state),     INTENT(IN)   ::  ptr_int
     TYPE(t_nh_prog),       INTENT(INOUT)::  ptr_nh_prog
     TYPE(t_nh_diag),       INTENT(INOUT)::  ptr_nh_diag
-    TYPE(t_nh_metrics),    INTENT(IN)   ::  ptr_metrics      
+    TYPE(t_nh_metrics),    INTENT(IN)   ::  ptr_metrics
     TYPE(t_nh_ref),        INTENT(INOUT)::  ptr_nh_ref
 
-    REAL(wp) :: z_exner_h(1:nproma,ptr_patch%nlev+1), z_help(1:nproma) 
+    REAL(wp) :: z_exner_h(1:nproma,ptr_patch%nlev+1), z_help(1:nproma)
     REAL(wp) :: zvn1, zvn2, zu, zv, zt00, zh00, ex_sfc
     INTEGER  :: jc,jk,jb,i_startblk,i_startidx,i_endidx   !< loop indices
     INTEGER  :: nblks_c,npromz_c,nblks_e
@@ -162,19 +162,19 @@ MODULE mo_nh_torus_exp
 
          ! virtual potential temperature
          ptr_nh_prog%theta_v(1:nlen,jk,jb) = z_help(1:nlen) * ( 1._wp + &
-           0.61_wp*ptr_nh_prog%tracer(1:nlen,jk,jb,iqv) - ptr_nh_prog%tracer(1:nlen,jk,jb,iqc) ) 
+           0.61_wp*ptr_nh_prog%tracer(1:nlen,jk,jb,iqv) - ptr_nh_prog%tracer(1:nlen,jk,jb,iqc) )
       END DO
 
-      !Get hydrostatic exner at the surface using surface pressure 
+      !Get hydrostatic exner at the surface using surface pressure
       z_exner_h(1:nlen,nlevp1) = ex_sfc
- 
+
       !Get exner at full levels starting from exner at surface
       DO jk = nlev, 1, -1
          !exner at next half level after surface
          z_exner_h(1:nlen,jk) = z_exner_h(1:nlen,jk+1) - grav/cpd *     &
                                 ptr_metrics%ddqz_z_full(1:nlen,jk,jb)/ &
                                 ptr_nh_prog%theta_v(1:nlen,jk,jb)
-        
+
          !exner at main levels
          ptr_nh_prog%exner(1:nlen,jk,jb) = 0.5_wp * &
                                      (z_exner_h(1:nlen,jk)+z_exner_h(1:nlen,jk+1))
@@ -182,19 +182,19 @@ MODULE mo_nh_torus_exp
 
       DO jk = 1 , nlev
          ptr_nh_prog%rho(1:nlen,jk,jb) = (ptr_nh_prog%exner(1:nlen,jk,jb)**cvd_o_rd)*p0ref/rd / &
-                                         ptr_nh_prog%theta_v(1:nlen,jk,jb)     
+                                         ptr_nh_prog%theta_v(1:nlen,jk,jb)
          ptr_nh_diag%pres(1:nlen,jk,jb) = ptr_nh_prog%rho(1:nlen,jk,jb)*rd*th_cbl(1)
       END DO !jk
 
     ENDDO !jb
 
 !--------------------------------------------------------------------------------
-    !Mean wind 
+    !Mean wind
 !--------------------------------------------------------------------------------
     i_startblk = ptr_patch%edges%start_blk(2,1)
     DO jb = i_startblk , nblks_e
      CALL get_indices_e(ptr_patch, jb, i_startblk, nblks_e, i_startidx, i_endidx, 2)
-     DO jk = 1 , nlev 
+     DO jk = 1 , nlev
       DO jc = i_startidx, i_endidx
 
         !Torus geometry is flat so zu is only function of height which is same for all cells
@@ -205,15 +205,15 @@ MODULE mo_nh_torus_exp
         zv   =   v_cbl(1) + v_cbl(2) * ptr_metrics%z_mc(jcn,jk,jbn)
 
         zvn1 =  zu * ptr_patch%edges%primal_normal_cell(jc,jb,1)%v1 + &
-                zv * ptr_patch%edges%primal_normal_cell(jc,jb,1)%v2      
- 
+                zv * ptr_patch%edges%primal_normal_cell(jc,jb,1)%v2
+
         jcn  =   ptr_patch%edges%cell_idx(jc,jb,2)
         jbn  =   ptr_patch%edges%cell_blk(jc,jb,2)
         zu   =   u_cbl(1) + u_cbl(2) * ptr_metrics%z_mc(jcn,jk,jbn)
         zv   =   v_cbl(1) + v_cbl(2) * ptr_metrics%z_mc(jcn,jk,jbn)
-      
+
         zvn2 =  zu * ptr_patch%edges%primal_normal_cell(jc,jb,2)%v1 + &
-                zv * ptr_patch%edges%primal_normal_cell(jc,jb,2)%v2      
+                zv * ptr_patch%edges%primal_normal_cell(jc,jb,2)%v2
 
         ptr_nh_prog%vn(jc,jk,jb) = ptr_int%c_lin_e(jc,1,jb)*zvn1 + &
                                    ptr_int%c_lin_e(jc,2,jb)*zvn2
@@ -221,8 +221,8 @@ MODULE mo_nh_torus_exp
         ptr_nh_ref%vn_ref(jc,jk,jb) = ptr_nh_prog%vn(jc,jk,jb)
       END DO
      END DO
-    END DO     
-    
+    END DO
+
     !W wind and reference
     CALL init_w(ptr_patch, ptr_int, ptr_nh_prog%vn, ptr_metrics%z_ifc, ptr_nh_prog%w)
     CALL sync_patch_array(SYNC_C, ptr_patch, ptr_nh_prog%w, lacc=.FALSE.)
@@ -233,7 +233,7 @@ MODULE mo_nh_torus_exp
 
 
   !>
-  !! Initialization of prognostic state vector for the nh GATE test case 
+  !! Initialization of prognostic state vector for the nh GATE test case
   !! with moisture
   !!
   SUBROUTINE init_torus_ascii_sounding ( ptr_patch, ptr_nh_prog,  ptr_nh_ref,  &
@@ -243,7 +243,7 @@ MODULE mo_nh_torus_exp
     TYPE(t_int_state),     INTENT(IN)   ::  ptr_int
     TYPE(t_nh_prog),       INTENT(INOUT)::  ptr_nh_prog
     TYPE(t_nh_diag),       INTENT(INOUT)::  ptr_nh_diag
-    TYPE(t_nh_metrics),    INTENT(IN)   ::  ptr_metrics      
+    TYPE(t_nh_metrics),    INTENT(IN)   ::  ptr_metrics
     TYPE(t_nh_ref),        INTENT(INOUT)::  ptr_nh_ref
 
     INTEGER  :: je,jk,jb,i_startidx,i_endidx   !< loop indices
@@ -255,12 +255,12 @@ MODULE mo_nh_torus_exp
                                           &  qv_in, u_in, v_in
     REAL(wp), DIMENSION(ptr_patch%nlev+1) :: w_in
     REAL(wp) :: zvn1, zvn2, zu, zv, psfc_in, ex_sfc
-    REAL(wp) :: z_exner_h(1:nproma, ptr_patch%nlev+1), z_help(1:nproma) 
+    REAL(wp) :: z_exner_h(1:nproma, ptr_patch%nlev+1), z_help(1:nproma)
 
     CHARACTER(len=*), PARAMETER :: &
        &  routine = 'mo_nh_torus_exp:init_torus_ascii_sounding'
     !-------------------------------------------------------------------------
-    
+
     ! Read the sounding file
 
     CALL read_ext_profile (ptr_metrics%z_mc(2,:,2), theta_in, qv_in, u_in, v_in, psfc_in)
@@ -302,19 +302,19 @@ MODULE mo_nh_torus_exp
       DO jk = nlev, 1, -1
          z_help(1:nlen) = theta_in(jk)
          ptr_nh_prog%theta_v(1:nlen,jk,jb) = z_help(1:nlen) * ( 1._wp + &
-           0.61_wp*ptr_nh_prog%tracer(1:nlen,jk,jb,iqv) - ptr_nh_prog%tracer(1:nlen,jk,jb,iqc) ) 
+           0.61_wp*ptr_nh_prog%tracer(1:nlen,jk,jb,iqv) - ptr_nh_prog%tracer(1:nlen,jk,jb,iqc) )
       END DO
 
-      !Get hydrostatic exner at the surface using surface pressure 
+      !Get hydrostatic exner at the surface using surface pressure
       z_exner_h(1:nlen,nlevp1) = ex_sfc
- 
+
       !Get exner at full levels starting from exner at surface
       DO jk = nlev, 1, -1
          !exner at next half level after surface
          z_exner_h(1:nlen,jk) = z_exner_h(1:nlen,jk+1) - grav/cpd *     &
                                 ptr_metrics%ddqz_z_full(1:nlen,jk,jb)/ &
                                 ptr_nh_prog%theta_v(1:nlen,jk,jb)
-        
+
          !exner at main levels
          ptr_nh_prog%exner(1:nlen,jk,jb) = 0.5_wp * &
                                      (z_exner_h(1:nlen,jk)+z_exner_h(1:nlen,jk+1))
@@ -322,34 +322,34 @@ MODULE mo_nh_torus_exp
 
       DO jk = 1 , nlev
         ptr_nh_prog%rho(1:nlen,jk,jb) = (ptr_nh_prog%exner(1:nlen,jk,jb)**cvd_o_rd)*p0ref/rd / &
-                                         ptr_nh_prog%theta_v(1:nlen,jk,jb)     
+                                         ptr_nh_prog%theta_v(1:nlen,jk,jb)
       END DO
 
     ENDDO
 
-    !Mean wind 
+    !Mean wind
     DO jb = 1 , nblks_e
       CALL get_indices_e( ptr_patch, jb, 1, nblks_e, i_startidx, i_endidx, grf_bdywidth_e+1)
-      DO jk = 1 , nlev 
+      DO jk = 1 , nlev
         DO je = i_startidx, i_endidx
 
           zu   =   u_in(jk)
           zv   =   v_in(jk)
-  
+
           zvn1 =  zu * ptr_patch%edges%primal_normal_cell(je,jb,1)%v1 + &
-                  zv * ptr_patch%edges%primal_normal_cell(je,jb,1)%v2      
-   
+                  zv * ptr_patch%edges%primal_normal_cell(je,jb,1)%v2
+
           zvn2 =  zu * ptr_patch%edges%primal_normal_cell(je,jb,2)%v1 + &
-                  zv * ptr_patch%edges%primal_normal_cell(je,jb,2)%v2      
-  
+                  zv * ptr_patch%edges%primal_normal_cell(je,jb,2)%v2
+
           ptr_nh_prog%vn(je,jk,jb) = ptr_int%c_lin_e(je,1,jb)*zvn1 + &
                                      ptr_int%c_lin_e(je,2,jb)*zvn2
-  
+
           ptr_nh_ref%vn_ref(je,jk,jb) = ptr_nh_prog%vn(je,jk,jb)
         END DO
       END DO
-    END DO     
-    
+    END DO
+
     !W wind and reference
     CALL init_w(ptr_patch, ptr_int, ptr_nh_prog%vn, ptr_metrics%z_ifc, ptr_nh_prog%w)
     CALL sync_patch_array(SYNC_C, ptr_patch, ptr_nh_prog%w, lacc=.FALSE.)
@@ -368,7 +368,7 @@ MODULE mo_nh_torus_exp
     TYPE(t_int_state),     INTENT(IN)   ::  ptr_int
     TYPE(t_nh_prog),       INTENT(INOUT)::  ptr_nh_prog
     TYPE(t_nh_diag),       INTENT(INOUT)::  ptr_nh_diag
-    TYPE(t_nh_metrics),    INTENT(IN)   ::  ptr_metrics      
+    TYPE(t_nh_metrics),    INTENT(IN)   ::  ptr_metrics
     TYPE(t_nh_ref),        INTENT(INOUT)::  ptr_nh_ref
     TYPE(t_external_data), INTENT(INOUT)::  ext_data
 
@@ -381,12 +381,12 @@ MODULE mo_nh_torus_exp
                                           &  qv_in, qc_in, qi_in, u_in, v_in, o3_in
     REAL(wp), DIMENSION(ptr_patch%nlev+1) :: tke_in, w_in
     REAL(wp) :: zvn1, zvn2, zu, zv, psfc_in, ex_sfc
-    REAL(wp) :: z_exner_h(1:nproma, ptr_patch%nlev+1), z_help(1:nproma) 
+    REAL(wp) :: z_exner_h(1:nproma, ptr_patch%nlev+1), z_help(1:nproma)
 
     CHARACTER(len=*), PARAMETER :: &
        &  routine = 'mo_nh_torus_exp:init_torus_netcdf_sounding'
     !-------------------------------------------------------------------------
-    
+
     ! Read the sounding file
 
     ! SCM: always using NETCDF input (i_scm_netcdf>0)
@@ -464,59 +464,59 @@ MODULE mo_nh_torus_exp
         DO jk = nlev, 1, -1
           z_help(1:nlen) = theta_in(jk)
           ptr_nh_prog%theta_v(1:nlen,jk,jb) = z_help(1:nlen) * ( 1._wp + &
-            0.61_wp*ptr_nh_prog%tracer(1:nlen,jk,jb,iqv) - ptr_nh_prog%tracer(1:nlen,jk,jb,iqc) ) 
+            0.61_wp*ptr_nh_prog%tracer(1:nlen,jk,jb,iqv) - ptr_nh_prog%tracer(1:nlen,jk,jb,iqc) )
         END DO
-  
-        !Get hydrostatic exner at the surface using surface pressure 
+
+        !Get hydrostatic exner at the surface using surface pressure
         z_exner_h(1:nlen,nlevp1) = ex_sfc
-   
+
         !Get exner at full levels starting from exner at surface
         DO jk = nlev, 1, -1
           !exner at next half level after surface
           z_exner_h(1:nlen,jk) = z_exner_h(1:nlen,jk+1) - grav/cpd *    &
                                  ptr_metrics%ddqz_z_full(1:nlen,jk,jb)/ &
                                  ptr_nh_prog%theta_v(1:nlen,jk,jb)
-          
+
           !exner at main levels
           ptr_nh_prog%exner(1:nlen,jk,jb) = 0.5_wp * (z_exner_h(1:nlen,jk)+z_exner_h(1:nlen,jk+1))
-          IF ( ptr_nh_prog%exner(1,jk,jb)<0.0_wp ) THEN 
+          IF ( ptr_nh_prog%exner(1,jk,jb)<0.0_wp ) THEN
             CALL finish('testcases/mo_nh_torus_exp.f90', 'Exner function is negative')
           ENDIF
         END DO
-  
+
         DO jk = 1 , nlev
           ptr_nh_prog%rho(1:nlen,jk,jb) = (ptr_nh_prog%exner(1:nlen,jk,jb)**cvd_o_rd)*p0ref/rd / &
-                                           ptr_nh_prog%theta_v(1:nlen,jk,jb)     
+                                           ptr_nh_prog%theta_v(1:nlen,jk,jb)
         END DO
 
       END IF
 
     ENDDO !jb
 
-    !Mean wind 
+    !Mean wind
     DO jb = 1 , nblks_e
       CALL get_indices_e( ptr_patch, jb, 1, nblks_e, i_startidx, i_endidx, grf_bdywidth_e+1)
-      DO jk = 1 , nlev 
+      DO jk = 1 , nlev
         DO je = i_startidx, i_endidx
-  
+
           zu   =   u_in(jk)
           zv   =   v_in(jk)
-  
+
           zvn1 =  zu * ptr_patch%edges%primal_normal_cell(je,jb,1)%v1 + &
-                  zv * ptr_patch%edges%primal_normal_cell(je,jb,1)%v2      
-   
+                  zv * ptr_patch%edges%primal_normal_cell(je,jb,1)%v2
+
           zvn2 =  zu * ptr_patch%edges%primal_normal_cell(je,jb,2)%v1 + &
-                  zv * ptr_patch%edges%primal_normal_cell(je,jb,2)%v2      
-  
+                  zv * ptr_patch%edges%primal_normal_cell(je,jb,2)%v2
+
           ptr_nh_prog%vn(je,jk,jb) = ptr_int%c_lin_e(je,1,jb)*zvn1 + &
                                      ptr_int%c_lin_e(je,2,jb)*zvn2
-    
+
           ptr_nh_ref%vn_ref(je,jk,jb) = ptr_nh_prog%vn(je,jk,jb)
 
         END DO
       END DO
     END DO
-      
+
     !W wind and reference
     ! idealized initial condition (e.g. field experiment)
     IF ( l_scm_mode .AND. (.NOT. lscm_icon_ini) ) THEN
@@ -531,9 +531,9 @@ MODULE mo_nh_torus_exp
 
 
 !-------------------------------------------------------------------------
-  
+
   !>
-  !! Initialization of prognostic state vector for the nh RICO test case 
+  !! Initialization of prognostic state vector for the nh RICO test case
   !!  with moisture
   !!
   SUBROUTINE init_nh_state_rico( ptr_patch, ptr_nh_prog,  ptr_nh_ref, ptr_nh_diag,  &
@@ -581,7 +581,7 @@ MODULE mo_nh_torus_exp
     !patch id
     jg = ptr_patch%id
 
-    !Set some reference density    
+    !Set some reference density
     rho_sfc = zpsfc / (rd * les_config(jg)%sst)
 
     ! init surface pressure
@@ -604,7 +604,7 @@ MODULE mo_nh_torus_exp
                                               (0.0138_wp - 0.0114_wp * (ptr_metrics%z_mc(1:nlen,jk,jb)-zh1)/(zh2 - zh1)))
         ptr_nh_prog%tracer(1:nlen,jk,jb,iqv) = max(ptr_nh_prog%tracer(1:nlen,jk,jb,iqv),             &
                                               (0.0024_wp - 0.0006_wp * (ptr_metrics%z_mc(1:nlen,jk,jb) - zh2)/(4000._wp - zh2)))
-        ptr_nh_prog%tracer(1:nlen,jk,jb,iqv) = max(ptr_nh_prog%tracer(1:nlen,jk,jb,iqv), 3e-6_wp)                            
+        ptr_nh_prog%tracer(1:nlen,jk,jb,iqv) = max(ptr_nh_prog%tracer(1:nlen,jk,jb,iqv), 3e-6_wp)
       END DO
 
       DO jk = 1, nlev
@@ -615,33 +615,33 @@ MODULE mo_nh_torus_exp
 
        ! virtual potential temperature
        ptr_nh_prog%theta_v(1:nlen,jk,jb) = z_help(1:nlen) * ( 1._wp + &
-           0.61_wp*ptr_nh_prog%tracer(1:nlen,jk,jb,iqv) - ptr_nh_prog%tracer(1:nlen,jk,jb,iqc) ) 
+           0.61_wp*ptr_nh_prog%tracer(1:nlen,jk,jb,iqv) - ptr_nh_prog%tracer(1:nlen,jk,jb,iqc) )
       END DO
 
       !Get hydrostatic pressure and exner at lowest level
       ptr_nh_diag%pres(1:nlen,nlev,jb) = zpsfc - rho_sfc * ptr_metrics%geopot(1:nlen,nlev,jb)
-      ptr_nh_prog%exner(1:nlen,nlev,jb) = (ptr_nh_diag%pres(1:nlen,nlev,jb)/p0ref)**rd_o_cpd 
+      ptr_nh_prog%exner(1:nlen,nlev,jb) = (ptr_nh_diag%pres(1:nlen,nlev,jb)/p0ref)**rd_o_cpd
 
       !Get exner at other levels
       DO jk = nlev-1, 1, -1
          z_help(1:nlen) = 0.5_wp * ( ptr_nh_prog%theta_v(1:nlen,jk,jb) +  &
                                      ptr_nh_prog%theta_v(1:nlen,jk+1,jb) )
-   
+
          ptr_nh_prog%exner(1:nlen,jk,jb) = ptr_nh_prog%exner(1:nlen,jk+1,jb) &
             &  -grav/cpd*ptr_metrics%ddqz_z_half(1:nlen,jk+1,jb)/z_help(1:nlen)
       END DO
 
       DO jk = 1 , nlev
         ptr_nh_prog%rho(1:nlen,jk,jb) = (ptr_nh_prog%exner(1:nlen,jk,jb)**cvd_o_rd)*p0ref/rd / &
-                                         ptr_nh_prog%theta_v(1:nlen,jk,jb)     
+                                         ptr_nh_prog%theta_v(1:nlen,jk,jb)
       END DO !jk
 
     ENDDO !jb
 
-    !Mean wind 
+    !Mean wind
     DO jb = 1 , nblks_e
      CALL get_indices_e( ptr_patch, jb, 1, nblks_e, i_startidx, i_endidx, grf_bdywidth_e+1)
-     DO jk = 1 , nlev 
+     DO jk = 1 , nlev
       DO je = i_startidx, i_endidx
 
         !Torus geometry is flat so zu is only function of height which is same for all cells
@@ -653,16 +653,16 @@ MODULE mo_nh_torus_exp
         zv   =   v_cbl(1) + v_cbl(2) * ptr_metrics%z_mc(jcn,jk,jbn)
 
         zvn1 =  zu * ptr_patch%edges%primal_normal_cell(je,jb,1)%v1 + &
-                zv * ptr_patch%edges%primal_normal_cell(je,jb,1)%v2      
- 
+                zv * ptr_patch%edges%primal_normal_cell(je,jb,1)%v2
+
         jcn  =   ptr_patch%edges%cell_idx(je,jb,2)
         jbn  =   ptr_patch%edges%cell_blk(je,jb,2)
         zu   =   u_cbl(1) + u_cbl(2) * ptr_metrics%z_mc(jcn,jk,jbn)
         zu   =   min(zu, -2._wp)
         zv   =   v_cbl(1) + v_cbl(2) * ptr_metrics%z_mc(jcn,jk,jbn)
-      
+
         zvn2 =  zu * ptr_patch%edges%primal_normal_cell(je,jb,2)%v1 + &
-                zv * ptr_patch%edges%primal_normal_cell(je,jb,2)%v2      
+                zv * ptr_patch%edges%primal_normal_cell(je,jb,2)%v2
 
         ptr_nh_prog%vn(je,jk,jb) = ptr_int%c_lin_e(je,1,jb)*zvn1 + &
                                    ptr_int%c_lin_e(je,2,jb)*zvn2
@@ -670,23 +670,23 @@ MODULE mo_nh_torus_exp
         ptr_nh_ref%vn_ref(je,jk,jb) = ptr_nh_prog%vn(je,jk,jb)
       END DO
      END DO
-    END DO     
-    
+    END DO
+
     !W wind and reference
     CALL init_w(ptr_patch, ptr_int, ptr_nh_prog%vn, ptr_metrics%z_ifc, ptr_nh_prog%w)
     CALL sync_patch_array(SYNC_C, ptr_patch, ptr_nh_prog%w, lacc=.FALSE.)
     ptr_nh_ref%w_ref = ptr_nh_prog%w
-    
+
   END SUBROUTINE init_nh_state_rico
-  
+
 !-------------------------------------------------------------------------
 
 
   SUBROUTINE cbl_stevens_fluxes( t_l, qv_l, p_l, rho_l, tsk, shfx, lhfx )
 
   !-------------------------------------------------------------------------
-  ! Calculate sensible and latent heat fluxes from buoyancy flux for Stevens 
-  ! (2007) case. (code from Wayne Angevine 2013) 
+  ! Calculate sensible and latent heat fluxes from buoyancy flux for Stevens
+  ! (2007) case. (code from Wayne Angevine 2013)
   !
   ! Variable explanations
   ! tsk  = skin temperature
@@ -729,13 +729,13 @@ MODULE mo_nh_torus_exp
 
   ! Calculate saturation mixing ratio at SST (from previous timestep)
   ! The rest of the buoyancy flux goes to sensible heat
-  ! Calculate surface saturated q and q in air at surface 
-   !e1=svp1*exp(svp2*(tsk-tmelt)/(tsk-svp3))                       
+  ! Calculate surface saturated q and q in air at surface
+   !e1=svp1*exp(svp2*(tsk-tmelt)/(tsk-svp3))
    !qsfc=rd/rv*e1/((zp0/1000.)-e1)
     qsfc     = spec_humi(sat_pres_water(tsk),zp0)
     qsfc_air = qsfc * mav
 
-    th_l =  t_l * (p0ref/p_l)**rd_o_cpd 
+    th_l =  t_l * (p0ref/p_l)**rd_o_cpd
 
     ! Calculate hfx,qfx, and SST to keep buoyancy flux constant
     ! Could calculate moisture flux first, but should be OK either way
@@ -752,8 +752,8 @@ MODULE mo_nh_torus_exp
 !-------------------------------------------------------------------------
 !
 ! This subroutine creates a simple two valued field for the sensible heat flux
-! and the water vapor flux.  The domain is simply divided in two with the 
-! division determined by the longitude value given.  on each side of the 
+! and the water vapor flux.  The domain is simply divided in two with the
+! division determined by the longitude value given.  on each side of the
 ! division the sensible and latent heat fluxes have different values.
 !
   SUBROUTINE sfcflx_uniform(ptr_patch, shflux_sfc, sh_high, sh_low, qvflux_sfc,   &
@@ -801,7 +801,7 @@ MODULE mo_nh_torus_exp
   !-------------------------------------------------------------------------
   !>
   ! read sounding from external file and then interpolate
-  ! to model levels 
+  ! to model levels
   ! Sounding file is assumed to be in this format:
   ! ps,no_vert_levels
   ! z(m) theta(k) qv(kg/kg) u(m/s) v(m/s)
@@ -809,33 +809,33 @@ MODULE mo_nh_torus_exp
   ! is near the top
   !
   SUBROUTINE read_ext_profile (z_in, theta_in, qv_in, u_in, v_in, psfc_in)
-  
+
     REAL(wp),  INTENT(IN)  :: z_in(:)
     REAL(wp),  INTENT(OUT) :: theta_in(:)
     REAL(wp),  INTENT(OUT) :: qv_in(:)
     REAL(wp),  INTENT(OUT) :: u_in(:)
     REAL(wp),  INTENT(OUT) :: v_in(:)
     REAL(wp),  INTENT(OUT) :: psfc_in
-  
+
     REAL(wp), ALLOCATABLE, DIMENSION(:):: zs, ths, qvs, us, vs
     CHARACTER(len=*),PARAMETER :: routine  = &
          &   'mo_nh_torus_exp:read_ext_profile'
-  
+
     INTEGER :: ist, iunit
-    INTEGER :: jk, klev 
-    
+    INTEGER :: jk, klev
+
     !-------------------------------------------------------------------------
-  
+
     CALL message(routine, 'READING FROM SOUNDING!')
-    
+
     !open file again to read data this time
     iunit = find_next_free_unit(10,100)
     OPEN (unit=iunit,file='sound_in', access='SEQUENTIAL', &
-            form='FORMATTED',action='READ', status='OLD', IOSTAT=ist) 
+            form='FORMATTED',action='READ', status='OLD', IOSTAT=ist)
     IF(ist/=success)THEN
       CALL finish (routine, 'open verticaling sound file failed')
     ENDIF
-  
+
     !Read the header : ps,klev
     READ (iunit,*,IOSTAT=ist)psfc_in,klev
 
@@ -843,7 +843,7 @@ MODULE mo_nh_torus_exp
     ALLOCATE(zs(klev),ths(klev),us(klev),vs(klev),qvs(klev))
     zs = 0.0_wp; ths = 0._wp; us = 0._wp; vs = 0._wp; qvs = 0._wp
 
-    DO jk = klev,1,-1 
+    DO jk = klev,1,-1
       READ (iunit,*,IOSTAT=ist) zs(jk),ths(jk),qvs(jk),us(jk),vs(jk)
       IF(ist/=success)THEN
         CALL finish (routine, 'reading sounding file failed')
@@ -858,24 +858,24 @@ MODULE mo_nh_torus_exp
 
     !Now perform interpolation to grid levels assuming:
     !a) linear interpolation
-    !b) Beyond the last Z level the values are linearly extrapolated 
+    !b) Beyond the last Z level the values are linearly extrapolated
     !c) Assuming model grid is flat-NOT on sphere
-  
+
     CALL vert_intp_linear_1d(zs,ths,z_in,theta_in)
     CALL vert_intp_linear_1d(zs,qvs,z_in,qv_in)
     CALL vert_intp_linear_1d(zs,us,z_in,u_in)
     CALL vert_intp_linear_1d(zs,vs,z_in,v_in)
-  
+
     DEALLOCATE(zs, ths, qvs, us, vs)
-  
-  
+
+
   END SUBROUTINE  read_ext_profile
 
 
   !-------------------------------------------------------------------------
   !>
   ! read sounding from external file and then interpolate
-  ! to model levels 
+  ! to model levels
   ! Sounding file is assumed to be in this format:
   ! ps,no_vert_levels
   ! z(m) theta(k) qv(kg/kg) u(m/s) v(m/s)
@@ -886,7 +886,7 @@ MODULE mo_nh_torus_exp
 
   SUBROUTINE  read_ext_profile_nc(z_in, zifc_in, theta_in, thetav_in, exner_in, rho_in, &
     qv_in, qc_in, qi_in, u_in, v_in, w_in, tke_in, psfc_in, o3_in)
-  
+
     REAL(wp),  INTENT(IN)  :: z_in(:)
     REAL(wp),  INTENT(IN)  :: zifc_in(:)
     REAL(wp),  INTENT(OUT) :: theta_in(:)
@@ -902,26 +902,26 @@ MODULE mo_nh_torus_exp
     REAL(wp),  INTENT(OUT) :: tke_in(:)
     REAL(wp),  INTENT(OUT) :: psfc_in
     REAL(wp),  INTENT(OUT) :: o3_in(:)
-  
+
     REAL(wp), ALLOCATABLE, DIMENSION(:)      :: zs, zs_ifc, ths, thvs, exners, rhos, qvs, qcs, qis, &
          &    us, vs, ws, tkes, psurfs, o3s
     REAL(wp), ALLOCATABLE, DIMENSION(:,:)    :: tempf, tempf1
     CHARACTER(len=max_char_length),PARAMETER :: routine  = &
          &   'mo_nh_torus_exp:read_ext_profile_nc'
-  
+
     INTEGER :: klev,nt
     INTEGER :: varid
     INTEGER :: fileid     !< id number of netcdf file
     INTEGER :: dimid      !< id number of dimension
     INTEGER :: nf_status,nf_status2  !< return status of netcdf function
-  
+
     !-------------------------------------------------------------------------
-  
+
     CALL message(TRIM(routine), 'READING FROM SOUNDING!')
-    
-    !open netcdf 
+
+    !open netcdf
     CALL nf (nf90_open('init_SCM.nc', NF90_NOWRITE, fileid), &
-      & TRIM(routine)//'   File init_SCM.nc cannot be opened (profile)') 
+      & TRIM(routine)//'   File init_SCM.nc cannot be opened (profile)')
 
     CALL nf (nf90_inq_dimid(fileid, 'lev', dimid), routine)
     CALL nf (nf90_inquire_dimension(fileid, dimid, len = klev), routine)
@@ -936,7 +936,7 @@ MODULE mo_nh_torus_exp
     ALLOCATE(zs(klev), zs_ifc(klev+1), ths(klev), thvs(klev), exners(klev), rhos(klev), us(klev), vs(klev), &
       & ws(klev+1), qvs(klev), qcs(klev), qis(klev), tkes(klev+1), psurfs(nt), o3s(klev),                   &
       & tempf(klev,nt), tempf1(klev+1,nt) )
- 
+
     !initialize to 0
     zs     = 0._wp
     zs_ifc = 0._wp
@@ -1051,7 +1051,7 @@ MODULE mo_nh_torus_exp
 
     !Now perform interpolation to grid levels assuming:
     !a) linear interpolation
-    !b) Beyond the last Z level the values are linearly extrapolated 
+    !b) Beyond the last Z level the values are linearly extrapolated
     !c) Assuming model grid is flat-NOT on sphere
 
 
@@ -1067,14 +1067,14 @@ MODULE mo_nh_torus_exp
     CALL vert_intp_linear_1d(zs_ifc, ws,     zifc_in, w_in)
     CALL vert_intp_linear_1d(zs_ifc, tkes,   zifc_in, tke_in)
     CALL vert_intp_linear_1d(zs,     o3s,    z_in,    o3_in)
-  
+
     DEALLOCATE(zs, ths, thvs, exners, rhos, qvs, qcs, qis, us, vs, ws, tkes, &
     & psurfs, o3s, tempf, tempf1)
-  
+
     CALL nf (nf90_close(fileid), routine)
 
     CALL read_latlon_scm_nc(lat_scm,lon_scm)
-  
+
   END SUBROUTINE  read_ext_profile_nc
 
 
@@ -1086,7 +1086,7 @@ MODULE mo_nh_torus_exp
 
   SUBROUTINE  read_ext_profile_nc_uf(z_in, zifc_in, theta_in, thetav_in, exner_in, rho_in, &
     qv_in, qc_in, qi_in, u_in, v_in, w_in, tke_in, psfc_in, o3_in)
-  
+
     REAL(wp),  INTENT(IN)  :: z_in(:)
     REAL(wp),  INTENT(IN)  :: zifc_in(:)
     REAL(wp),  INTENT(OUT) :: theta_in(:)
@@ -1102,14 +1102,14 @@ MODULE mo_nh_torus_exp
     REAL(wp),  INTENT(OUT) :: tke_in(:)
     REAL(wp),  INTENT(OUT) :: psfc_in
     REAL(wp),  INTENT(OUT) :: o3_in(:)
-  
+
     REAL(wp), ALLOCATABLE, DIMENSION(:)       :: zs, zs_ifc, ths, thvs, exners, rhos, qvs, qcs, qis, &
          &    us, vs, ws, tkes, o3s
     REAL(wp), ALLOCATABLE, DIMENSION(:,:,:,:) :: tempf, tempf1
     REAL(wp), ALLOCATABLE, DIMENSION(:,:,:)   :: tempf_s
     CHARACTER(len=max_char_length),PARAMETER  :: routine  = &
          &   'mo_nh_torus_exp:read_ext_profile_nc_uf'
-  
+
     INTEGER :: klev,nt
     INTEGER :: lat,lon,t0
     INTEGER :: varid
@@ -1118,12 +1118,12 @@ MODULE mo_nh_torus_exp
     INTEGER :: nf_status,nf_status2  !< return status of netcdf function
 
     !-------------------------------------------------------------------------
-  
+
     CALL message(TRIM(routine), 'READING FROM SOUNDING!')
-    
-    !open netcdf 
+
+    !open netcdf
     CALL nf (nf90_open('init_SCM.nc', NF90_NOWRITE, fileid), &
-      & TRIM(routine)//'   File init_SCM.nc cannot be opened (profile)') 
+      & TRIM(routine)//'   File init_SCM.nc cannot be opened (profile)')
 
     CALL nf (nf90_inq_dimid(fileid, 'lev', dimid), routine)
     CALL nf (nf90_inquire_dimension(fileid, dimid, len = klev), routine)
@@ -1146,7 +1146,7 @@ MODULE mo_nh_torus_exp
     ALLOCATE(zs(klev), zs_ifc(klev), ths(klev), thvs(klev), exners(klev), rhos(klev), us(klev), vs(klev), &
       & ws(klev), qvs(klev), qcs(klev), qis(klev), tkes(klev),o3s(klev),                                &
       & tempf(lon,lat,klev,t0), tempf1(lon,lat,klev,t0), tempf_s(lon,lat,t0) )
- 
+
     !initialize to 0
     zs     = 0._wp
     zs_ifc = 0._wp
@@ -1263,9 +1263,9 @@ MODULE mo_nh_torus_exp
 
     !Now perform interpolation to grid levels assuming:
     !a) linear interpolation
-    !b) Beyond the last Z level the values are linearly extrapolated 
+    !b) Beyond the last Z level the values are linearly extrapolated
     !c) Assuming model grid is flat-NOT on sphere
-  
+
     CALL vert_intp_linear_1d(zs,     ths,    z_in,    theta_in)
     CALL vert_intp_linear_1d(zs,     thvs,   z_in,    thetav_in)
     CALL vert_intp_linear_1d(zs,     exners, z_in,    exner_in)
@@ -1278,7 +1278,7 @@ MODULE mo_nh_torus_exp
     CALL vert_intp_linear_1d(zs_ifc, ws,     zifc_in, w_in)
     CALL vert_intp_linear_1d(zs_ifc, tkes,   zifc_in, tke_in)
     CALL vert_intp_linear_1d(zs,     o3s,    z_in,    o3_in)
-  
+
 !   write(*,*) '==SCM input file data interpolated to SCM vertical levels=='
 !   write(*,*) '-- o3_in --'    , o3_in
 
@@ -1286,14 +1286,14 @@ MODULE mo_nh_torus_exp
     & o3s, tempf, tempf1, tempf_s)
 
     CALL nf (nf90_close(fileid), routine)
-  
+
     CALL read_latlon_scm_nc_uf(lat_scm,lon_scm)
 
   END SUBROUTINE  read_ext_profile_nc_uf
 
 
   !>
-  !! Initialization of prognostic state vector for the analytical RCEMIP test case. 
+  !! Initialization of prognostic state vector for the analytical RCEMIP test case.
   SUBROUTINE init_torus_rcemip_analytical_sounding ( ptr_patch, ptr_nh_prog,  ptr_nh_ref, ptr_nh_diag,  &
                                         ptr_int, ptr_metrics)
 
@@ -1410,7 +1410,7 @@ MODULE mo_nh_torus_exp
       ENDDO
     ENDIF
 
-    !Mean wind 
+    !Mean wind
     DO jb = 1 , nblks_e
      CALL get_indices_e( ptr_patch, jb, 1, nblks_e, i_startidx, i_endidx, grf_bdywidth_e+1)
      DO jk = 1 , nlev
@@ -1458,9 +1458,9 @@ MODULE mo_nh_torus_exp
     TYPE(t_patch),TARGET,  INTENT(IN)   ::  ptr_patch
     TYPE(t_nh_prog),       INTENT(INOUT)::  ptr_nh_prog
     TYPE(t_nh_diag),       INTENT(INOUT)::  ptr_nh_diag
-    TYPE(t_nh_metrics),    INTENT(IN)   ::  ptr_metrics      
+    TYPE(t_nh_metrics),    INTENT(IN)   ::  ptr_metrics
 
-    REAL(wp) :: z_exner_h(1:nproma,ptr_patch%nlev+1), z_help(1:nproma) 
+    REAL(wp) :: z_exner_h(1:nproma,ptr_patch%nlev+1), z_help(1:nproma)
     REAL(wp) :: ex_sfc, x_loc(3), x_c(3), psfc_in, dis, inv_th0, pres_new
     REAL(wp) :: th_new, qv_new, qc_new, th_ptb, temp_new
     REAL(wp), DIMENSION(ptr_patch%nlev) :: theta_in, qv_in, qc_in, tmp
@@ -1470,15 +1470,15 @@ MODULE mo_nh_torus_exp
     LOGICAL  :: qc_fail, is_2d_bubble
     INTEGER  :: nlen, jg, itr
 
-    REAL(wp), DIMENSION(3) :: x_bubble 
+    REAL(wp), DIMENSION(3) :: x_bubble
     CHARACTER(len=*),PARAMETER :: routine  = &
          &   'mo_nh_torus_exp:init_warm_bubble'
     !-------------------------------------------------------------------------
 
     !-------------------------------------------------------------------------
-    !Note that this souding is created from a matlab code that 
+    !Note that this souding is created from a matlab code that
     !iterates through the Eqs. 25,26,and 34 of Bryan and Fritsch's paper
-    !given theta_e, qt, and surface pressure. The source code is 
+    !given theta_e, qt, and surface pressure. The source code is
     !in icon-aes-and/scripts/preprocessing/ named init.f90 and findzero.m
     !which creates a sound_** file that is then used to read in below
     !
@@ -1488,7 +1488,7 @@ MODULE mo_nh_torus_exp
     !Read the sounding file
     CALL  read_ext_profile (ptr_metrics%z_mc(1,:,1), theta_in, qv_in, qc_in, tmp, &
                             psfc_in)
-  
+
     ! values for the blocking
     nblks_c  = ptr_patch%nblks_c
     npromz_c = ptr_patch%npromz_c
@@ -1517,26 +1517,26 @@ MODULE mo_nh_torus_exp
       ENDIF
 
       DO jk = 1, nlev
-        ptr_nh_prog%tracer(1:nlen,jk,jb,iqv) = qv_in(jk) 
+        ptr_nh_prog%tracer(1:nlen,jk,jb,iqv) = qv_in(jk)
         ptr_nh_prog%tracer(1:nlen,jk,jb,iqc) = qc_in(jk)
       END DO
 
       DO jk = nlev, 1, -1
          z_help(1:nlen) = theta_in(jk)
          ptr_nh_prog%theta_v(1:nlen,jk,jb) = z_help(1:nlen) * ( 1._wp + &
-           0.61_wp*ptr_nh_prog%tracer(1:nlen,jk,jb,iqv) - ptr_nh_prog%tracer(1:nlen,jk,jb,iqc) ) 
+           0.61_wp*ptr_nh_prog%tracer(1:nlen,jk,jb,iqv) - ptr_nh_prog%tracer(1:nlen,jk,jb,iqc) )
       END DO
 
-      !Get hydrostatic exner at the surface using surface pressure 
+      !Get hydrostatic exner at the surface using surface pressure
       z_exner_h(1:nlen,nlevp1) = ex_sfc
- 
+
       !Get exner at full levels starting from exner at surface
       DO jk = nlev, 1, -1
          !exner at next half level after surface
          z_exner_h(1:nlen,jk) = z_exner_h(1:nlen,jk+1) - grav/cpd *     &
                                 ptr_metrics%ddqz_z_full(1:nlen,jk,jb)/ &
                                 ptr_nh_prog%theta_v(1:nlen,jk,jb)
-        
+
          !exner at main levels
          ptr_nh_prog%exner(1:nlen,jk,jb) = 0.5_wp * &
                                      (z_exner_h(1:nlen,jk)+z_exner_h(1:nlen,jk+1))
@@ -1580,7 +1580,7 @@ MODULE mo_nh_torus_exp
           x_loc(1) = ptr_patch%cells%cartesian_center(jc,jb)%x(1)/bub_hor_width
           x_loc(2) = ptr_patch%cells%cartesian_center(jc,jb)%x(2)/bub_hor_width
           x_loc(3) = ptr_metrics%z_mc(jc,jk,jb)/bub_ver_width
-            
+
           IF (is_2d_bubble) THEN
            x_c(2)   = x_loc(2)
           END IF
@@ -1592,8 +1592,8 @@ MODULE mo_nh_torus_exp
             qv_new = qv_in(jk)
             qc_new = qc_in(jk)
             pres_new = p0ref*ptr_nh_prog%exner(jc,jk,jb)**(cpd/rd)
-  
-            DO itr = 1 , 20 
+
+            DO itr = 1 , 20
              th_new = ( th_ptb + 1._wp ) * ptr_nh_prog%theta_v(jc,jk,jb) / &
                        (1._wp + vtmpc1 * qv_new - qc_new)
              temp_new = th_new * ptr_nh_prog%exner(jc,jk,jb)
@@ -1604,15 +1604,15 @@ MODULE mo_nh_torus_exp
             END DO
 
             !assign values to proper prog vars
-            ptr_nh_prog%tracer(jc,jk,jb,iqv) = qv_new 
+            ptr_nh_prog%tracer(jc,jk,jb,iqv) = qv_new
             ptr_nh_prog%tracer(jc,jk,jb,iqc) = qc_new
-            ptr_nh_prog%theta_v(jc,jk,jb) = th_new * ( 1._wp + vtmpc1*qv_new - qc_new ) 
+            ptr_nh_prog%theta_v(jc,jk,jb) = th_new * ( 1._wp + vtmpc1*qv_new - qc_new )
 
           END IF
-            
+
         END DO
       END DO
-    END DO 
+    END DO
 
     if (qc_fail) CALL finish(routine, 'qc < 0')
 
@@ -1625,17 +1625,17 @@ MODULE mo_nh_torus_exp
       ENDIF
       DO jk = 1 , nlev
         ptr_nh_prog%rho(1:nlen,jk,jb) = (ptr_nh_prog%exner(1:nlen,jk,jb)**cvd_o_rd)*p0ref/rd / &
-                                         ptr_nh_prog%theta_v(1:nlen,jk,jb)     
+                                         ptr_nh_prog%theta_v(1:nlen,jk,jb)
       END DO !jk
     ENDDO !jb
 
 
   END SUBROUTINE init_warm_bubble
 
-  
+
   !--------------------------------------------------
   ! read initial soil profiles and T_G from SCM netCDF file
-  
+
   SUBROUTINE  read_soil_profile_nc(w_so_in, t_so_in, t_g_in)
 
     REAL(wp), INTENT(OUT), OPTIONAL :: w_so_in(nlev_soil)
@@ -1653,18 +1653,18 @@ MODULE mo_nh_torus_exp
     INTEGER :: varid
     INTEGER :: fileid     !< id number of netcdf file
     INTEGER :: dimid      !< id number of dimension
- 
+
     !--------------------------------------------------
 
     CALL message(TRIM(routine), 'READING INITIAL SOIL PROFILE!')
- 
+
     CALL nf (nf90_open('init_SCM.nc', NF90_NOWRITE, fileid), &
-      & TRIM(routine)//'   File init_SCM.nc cannot be opened (soil)') 
+      & TRIM(routine)//'   File init_SCM.nc cannot be opened (soil)')
 
     CALL nf (nf90_inq_dimid(fileid, 'nt', dimid), routine)
     CALL nf (nf90_inquire_dimension(fileid, dimid, len = nt), routine)
 
-    IF (PRESENT(w_so_in) .or. PRESENT(t_so_in)) THEN  
+    IF (PRESENT(w_so_in) .or. PRESENT(t_so_in)) THEN
       CALL nf (nf90_inq_dimid(fileid, 'levTsoil', dimid), routine)
       CALL nf (nf90_inquire_dimension(fileid, dimid, len = levTsoil), routine)
 
@@ -1741,7 +1741,7 @@ MODULE mo_nh_torus_exp
 
   END SUBROUTINE read_soil_profile_nc_uf
 
-  
+
   !--------------------------------------------------
   ! read lat lon from SCM netCDF file
 
@@ -1756,12 +1756,12 @@ MODULE mo_nh_torus_exp
     INTEGER :: varid
     INTEGER :: fileid     !< id number of netcdf file
     REAL(wp):: tmp_nf(1)
- 
+
     !--------------------------------------------------
     CALL message(TRIM(routine), 'READING lat/lon FOR SCM')
- 
+
     CALL nf (nf90_open('init_SCM.nc', NF90_NOWRITE, fileid), &
-      & TRIM(routine)//'   File init_SCM.nc cannot be opened (lat/lon)') 
+      & TRIM(routine)//'   File init_SCM.nc cannot be opened (lat/lon)')
 
     CALL nf (nf90_inq_varid(fileid, 'latitude', varid) , routine)
     CALL nf (nf90_get_var(fileid, varid, tmp_nf), routine)
@@ -1796,13 +1796,13 @@ MODULE mo_nh_torus_exp
     INTEGER :: fileid     !< id number of netcdf file
     INTEGER :: dimid      !< id number of dimension
     INTEGER :: lat,lon
- 
+
     !--------------------------------------------------
 
     CALL message(TRIM(routine), 'READING lat/lon FOR SCM')
- 
+
     CALL nf (nf90_open('init_SCM.nc', NF90_NOWRITE, fileid), &
-      & TRIM(routine)//'   File init_SCM.nc cannot be opened (lat/lon)') 
+      & TRIM(routine)//'   File init_SCM.nc cannot be opened (lat/lon)')
 
     CALL nf (nf90_inq_dimid(fileid, 'lat', dimid), routine)
     CALL nf (nf90_inquire_dimension(fileid, dimid, len = lat), routine)
@@ -1828,14 +1828,14 @@ MODULE mo_nh_torus_exp
 
   END SUBROUTINE read_latlon_scm_nc_uf
 
- 
+
   !--------------------------------------------------
   ! read external parameters from SCM netCDF file
 
-  SUBROUTINE read_ext_scm_nc (num_lcc,soiltyp_scm,fr_land_scm,plcov_mx_scm,lai_mx_scm, & 
+  SUBROUTINE read_ext_scm_nc (num_lcc,soiltyp_scm,fr_land_scm,plcov_mx_scm,lai_mx_scm, &
                               rootdp_scm,rsmin_scm,z0_scm,topo_scm,emis_rad_scm,&
                               lu_class_fr,lctype_scm)
-     
+
     INTEGER , INTENT(IN)  :: num_lcc          ! number of landcover classes
     INTEGER , INTENT(OUT) :: soiltyp_scm      ! soil type
     REAL(wp), INTENT(OUT) :: fr_land_scm      ! land fraction
@@ -1853,18 +1853,18 @@ MODULE mo_nh_torus_exp
     INTEGER :: varid
     INTEGER :: fileid     !< id number of netcdf file
     INTEGER :: dimid      !< id number of dimension
-                           
+
     ! Local variables
     CHARACTER(len=max_char_length),PARAMETER :: routine  = 'mo_nh_torus_exp:read_ext_SCM_nc'
     REAL(wp) :: tmp_nf(1)
- 
+
     !-------------------------------------------------
 
     CALL message(TRIM(routine), 'READING EXTERNAL DATA FOR SCM')
     lctype_scm=""
 
     CALL nf (nf90_open('init_SCM.nc', NF90_NOWRITE, fileid), &
-      & TRIM(routine)//'   File init_SCM.nc cannot be opened (external)') 
+      & TRIM(routine)//'   File init_SCM.nc cannot be opened (external)')
 
     CALL nf (nf90_inq_dimid(fileid, 'nclass_lu', dimid), routine)
     CALL nf (nf90_inquire_dimension(fileid, dimid, len = nCLU), routine)
@@ -1907,7 +1907,7 @@ MODULE mo_nh_torus_exp
     CALL nf (nf90_inq_varid(fileid, 'LU_CLASS_FRACTION', varid), routine)
     CALL nf (nf90_get_var(fileid, varid,lu_class_fr), routine)
     CALL nf (nf90_get_att(fileid, varid, 'lctype', lctype_scm), routine)
-  
+
     IF ( get_my_global_mpi_id() == 0 ) THEN
       print *,TRIM(routine),'  printing external surface parameters for SCM'
       print *,'  fr_land_scm =',   fr_land_scm
@@ -1922,7 +1922,7 @@ MODULE mo_nh_torus_exp
       print *,'  lu_class_fr =',   lu_class_fr
       print *,'  nCLU        =',   nCLU
     END IF
-  
+
     CALL nf (nf90_close(fileid), routine)
 
   END SUBROUTINE read_ext_scm_nc
@@ -1931,10 +1931,10 @@ MODULE mo_nh_torus_exp
   !--------------------------------------------------
   ! read external parameters from SCM netCDF file (unified format)
 
-  SUBROUTINE read_ext_scm_nc_uf (num_lcc,soiltyp_scm,fr_land_scm,plcov_mx_scm,lai_mx_scm, & 
+  SUBROUTINE read_ext_scm_nc_uf (num_lcc,soiltyp_scm,fr_land_scm,plcov_mx_scm,lai_mx_scm, &
                               rootdp_scm,rsmin_scm,z0_scm,topo_scm,emis_rad_scm,&
                               lu_class_fr,lctype_scm)
-     
+
     INTEGER , INTENT(IN)  :: num_lcc          ! number of landcover classes
     INTEGER , INTENT(OUT) :: soiltyp_scm      ! soil type
     REAL(wp), INTENT(OUT) :: fr_land_scm      ! land fraction
@@ -1953,10 +1953,10 @@ MODULE mo_nh_torus_exp
     INTEGER :: varid      ! id number of variable (or attribute variable)
     INTEGER :: attid      ! id number of attribute associated to variable (not useful)
     INTEGER :: fileid     ! id number of netcdf file
-                           
+
     ! Local variables
     CHARACTER(len=max_char_length),PARAMETER :: routine  = 'mo_nh_torus_exp:read_ext_SCM_nc_uf'
- 
+
     !------------------------------------------------
 
     CALL message(TRIM(routine), &
@@ -1968,7 +1968,7 @@ MODULE mo_nh_torus_exp
 
 
     CALL nf (nf90_open('init_SCM.nc', NF90_NOWRITE, fileid), &
-      & TRIM(routine)//'   File init_SCM.nc cannot be opened (external)') 
+      & TRIM(routine)//'   File init_SCM.nc cannot be opened (external)')
 
     CALL nf (nf90_inquire_attribute(fileid, varid, 'z0', attnum = attid), routine)
     CALL nf (nf90_get_att(fileid, varid, 'z0', z0_scm), routine)
@@ -1991,10 +1991,10 @@ MODULE mo_nh_torus_exp
       print *,'  lu_class_fr =',   lu_class_fr
       print *,'  nCLU        =',   nCLU
     END IF
-  
+
   END SUBROUTINE read_ext_scm_nc_uf
 
-  
+
   !-----------------------------------------------------
   !set boundary conditions for SCM
 
@@ -2075,9 +2075,9 @@ MODULE mo_nh_torus_exp
     !also, th_surf/[th_surf,qv_surf] must be prescribed
     IF((scm_sfc_temp.eq.5)) then
       DO i=ivstart, ivend
-        cnm(i) =(0.4_wp/log(1.0_wp+dz_bs(i)/z0m(i)))**2 
+        cnm(i) =(0.4_wp/log(1.0_wp+dz_bs(i)/z0m(i)))**2
         cnh(i) =0.4_wp**2/(log(1.0_wp+dz_bs(i)/z0m(i))*log(1.0_wp+dz_bs(i)/z0h(i)))
-        rib(i) =grav*(th_b(i)-prm_nwp_tend%fc_ts)/th_b(i)*dz_bs(i)/velo(i)**2 
+        rib(i) =grav*(th_b(i)-prm_nwp_tend%fc_ts)/th_b(i)*dz_bs(i)/velo(i)**2
         ribm(i) = rib(i)/(1.0_wp+rib(i)/ricr)
         ribh(i) = rib(i)/(1.0_wp+3.0_wp*rib(i)/ricr)**(0.333_wp)
         IF (rib(i).ge.0.0_wp) THEN
@@ -2096,7 +2096,7 @@ MODULE mo_nh_torus_exp
       ENDDO
     ENDIF
 
-! surface temperature and sensible heat flux 
+! surface temperature and sensible heat flux
 
     SELECT CASE(scm_sfc_temp)
     CASE (0) ! no prescribed t_g and shfl_s
@@ -2141,7 +2141,7 @@ MODULE mo_nh_torus_exp
       ENDDO
     CASE (3) ! qv_s based on saturation
       DO i=ivstart, ivend
-        qv_s(i)   = spec_humi( sat_pres_water(t_g(i)) , pres_sfc(i) )   
+        qv_s(i)   = spec_humi( sat_pres_water(t_g(i)) , pres_sfc(i) )
       END DO
     CASE (4) ! prescribed drag coefficient
       DO i=ivstart, ivend
@@ -2161,7 +2161,7 @@ MODULE mo_nh_torus_exp
     END SELECT
 
 ! surface momentum flux
-    
+
     SELECT CASE (scm_sfc_mom)
     CASE (0) ! no prescribe flux
     CASE (2) ! prescribed flux
@@ -2183,7 +2183,7 @@ MODULE mo_nh_torus_exp
         vmfl_s(i) = -rho_sfc(i)*tvm(i)*v_s(i)
       ENDDO
     CASE DEFAULT
-       CALL finish(routine,' Value for scm_sfc_mom not known!') 
+       CALL finish(routine,' Value for scm_sfc_mom not known!')
     END SELECT
 
 
@@ -2201,6 +2201,6 @@ MODULE mo_nh_torus_exp
    !END IF
 
   END SUBROUTINE set_scm_bnd
-  
+
 
 END MODULE mo_nh_torus_exp

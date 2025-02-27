@@ -1,4 +1,4 @@
-#!/bin/ksh 
+#!/bin/ksh
 
 # ICON
 #
@@ -17,9 +17,9 @@ function set_cluster {
  HPC=`(hostname || uname -n) 2>/dev/null | sed 1q`
  case x"$HPC" in #(
    xuc1*) :
-     echo "...UC1 at KIT"; CENTER="IMK" 
+     echo "...UC1 at KIT"; CENTER="IMK"
      input_folder="/lsdf/kit/imk/projects/icon/TESTSUITE"
-     FILETYPE="4" 
+     FILETYPE="4"
      output_folder="${WORK}/TESTSUITE_OUTPUT"
      icon_data_poolFolder=/lsdf/kit/imk/projects/icon/INPUT/AMIP/amip_input
      aer_opt="${icon_data_poolFolder}"
@@ -27,7 +27,7 @@ function set_cluster {
    xhk*) :
      echo "...HoreKa at KIT"; CENTER="IMK"
      input_folder="/lsdf/kit/imk/projects/icon/TESTSUITE"
-     FILETYPE="5" 
+     FILETYPE="5"
      ws=$(ws_list -s)
      if [[ "${ws}" == "" ]]; then
          echo "No workspaces found! Help how to create one: https://www.nhr.kit.edu/userdocs/horeka/filesystems/#create-workspace"
@@ -44,8 +44,8 @@ function set_cluster {
      echo "...XCE at DWD"; CENTER="DWD"
          . /opt/modules/3.2.10.3/init/ksh
          input_folder="${SCRATCH}/TESTSUITE_INPUT/"
-         output_folder="${WORK}/TESTSUITE_OUTPUT" 
-	 FILETYPE="4" 
+         output_folder="${WORK}/TESTSUITE_OUTPUT"
+	 FILETYPE="4"
 	 if [[ ":${PE_ENV}" != ':CRAY' ]] ; then
           module unload libdwd grib_api
           module unload cray-netcdf netcdf perftools stat
@@ -60,14 +60,14 @@ function set_cluster {
        module load libdwd
        module load grib_api
        module list
-       ##       
+       ##
        ;;
    xlce*) :
      echo "...LCE at DWD"; echo "  ERROR: Testsuite has to be run and compiled on XCE !!!", exit 201 ;; #(
    xjuwels*) :
-     echo "...juwels at FZJ"; CENTER="FZJ" 
+     echo "...juwels at FZJ"; CENTER="FZJ"
      icon_data_poolFolder=/gpfs/homea/hka21/hka211/INPUT/AMIP/atm_amip_base/
-	 FILETYPE="4" 
+	 FILETYPE="4"
      output_folder="${WORK}/TESTSUITE_OUTPUT"
 	 ;; #(
    xlevante*|xl[1-5]*)
@@ -94,7 +94,7 @@ function read_setup {
 #     { FS=" "; $0=$0; script[n]=$1; experiment[n]=$2;
 #		 print n $1 script[n];
 #
-#     }' 'setup_file.txt' 
+#     }' 'setup_file.txt'
 #awk -F '{ print $1, $2}' 'setup_file.txt' | read var1 var2
 #echo $var1 ' ' $var2
 i=0
@@ -202,13 +202,13 @@ function create_footer
 output_script=$ICON_FOLDER/run/checksuite.icon-kit/runscripts/$1.run
 
 cat >> $output_script << EOF
-	
+
 cp $ICON_FOLDER/bin/icon ./icon.exe
 EOF
  case x"$HPC" in #(
       xjuwels*)
 cat >> $output_script << EOF
-	
+
 cat > job_ICON << ENDFILE
 #!/bin/bash -x
 #SBATCH --nodes=4
@@ -236,7 +236,7 @@ EOF
 
    xhk*)
 cat >> $output_script << EOF
-	   
+
 cat > job_ICON << ENDFILE
 #!/bin/bash -x
 #SBATCH --$3
@@ -246,7 +246,7 @@ cat > job_ICON << ENDFILE
 #SBATCH -C LSDF
 
 
-$5 
+$5
 
 mpirun --bind-to core --map-by core --report-bindings ./icon.exe
 
@@ -292,7 +292,7 @@ ENDFILEDWD
       # submit the job
       qsub icon.job
 
-      ##       
+      ##
 EOF
 ;;
    xlevante*|xl[1-5]*)
@@ -334,9 +334,9 @@ srun -l --cpu_bind=cores --distribution=plane=64 \
         --propagate=STACK,CORE ./icon.exe
 
 ENDFILE
-                 
+
 chmod +x job_ICON
-sbatch job_ICON  
+sbatch job_ICON
 
 EOF
 ;;
@@ -357,7 +357,7 @@ function create_lart_loop_start
 {
 output_script=$ICON_FOLDER/run/checksuite.icon-kit/runscripts/$1.run
 cat >> $output_script << EOF
-	
+
 for iter in 1 2 ; do
 
 
@@ -399,8 +399,8 @@ EOF
 function check_action
 {
 output_script=runscripts/$2.run
-	
-	case x"$1" in 
+
+	case x"$1" in
 		xrun*)
           ./$output_script
 		  ;;
@@ -425,4 +425,3 @@ output="module load ${use_load_modules}"
 #done
 
  }
-

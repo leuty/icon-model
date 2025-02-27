@@ -57,10 +57,10 @@ CONTAINS
   !  Cloud cover and cloud water/ice calculation from COSMO model.
   !  (extracted from subroutine organize_radiation
   !   in file cosmo/src_radiation.f90, section 3.1 & 3.2)
-  !  Changes: 
+  !  Changes:
   !  * 500hPa threshold for thin upper-level ice clouds has been taken out.
   !  * fix to SGS/grid-scale cloud water/ice interaction:
-  !    if small grid-scale qc or qi then 
+  !    if small grid-scale qc or qi then
   !      qc,total=qc,sgs+qi,sgs
   !      qi,total=qc,sgs+qi,sgs
   !    This overestimates the SGS cloud water.
@@ -222,7 +222,7 @@ REAL(KIND=ireals), PARAMETER :: &
   DO k = kstart, ke
     DO  i = istartrad, iendparrad    ! istartpar, iendpar
       IF( ldcum(i) .AND. kctop(i) > 0 .AND. k <= kcbot(i) .AND. k >= kctop(i) ) THEN
- 
+
         clc_con(i,k) = 0.7_ireals/10000.0_ireals &
                      & * ( pgeo(i,kctop(i)) - pgeo(i,kcbot(i)) ) / grav
 
@@ -315,7 +315,7 @@ REAL(KIND=ireals), PARAMETER :: &
          ie, 1 , ke,                                         &
          t(:,:,nzx), qv(:,:,nzx), qc(:,:,nzx), pp(:,:,nzx),  &
          p0, rcld, ps(:,nzx),                                &
-         clc_diag, q_crit, & 
+         clc_diag, q_crit, &
          itype_wcld )
 
     DO  k = kstart, ke

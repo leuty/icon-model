@@ -1,11 +1,9 @@
 # ICON
 #
 # ---------------------------------------------------------------
-# Copyright (C) 2004-2024, DWD, MPI-M, DKRZ, KIT, ETH, MeteoSwiss
-# Contact information: icon-model.org
-# See AUTHORS.TXT for a list of authors
-# See LICENSES/ for license information
-# SPDX-License-Identifier: BSD-3-Clause
+# Copyright (C) 2004-2024, DWD, MPI-M, DKRZ, KIT, ETH, MeteoSwiss Contact
+# information: icon-model.org See AUTHORS.TXT for a list of authors See
+# LICENSES/ for license information SPDX-License-Identifier: BSD-3-Clause
 # ---------------------------------------------------------------
 
 # ~~~
@@ -39,17 +37,13 @@
 
 # Do not impose any additional version constraints:
 cmake_minimum_required(
-  VERSION ${CMAKE_MAJOR_VERSION}.${CMAKE_MINOR_VERSION}.${CMAKE_PATCH_VERSION}
-)
+  VERSION ${CMAKE_MAJOR_VERSION}.${CMAKE_MINOR_VERSION}.${CMAKE_PATCH_VERSION})
 
 # Do not impose any additional language constraints:
 project(IconWrapper LANGUAGES NONE)
 
-option(
-  ICON_GENERATE_GITIGNORE
-  "Generate .gitignore file in the root build directory to ignore it"
-  OFF
-)
+option(ICON_GENERATE_GITIGNORE
+       "Generate .gitignore file in the root build directory to ignore it" OFF)
 
 if(ICON_GENERATE_GITIGNORE)
   set(gitignore_file "${PROJECT_BINARY_DIR}/.gitignore")
@@ -64,9 +58,8 @@ set(ICON_NEC_WORKAROUND_LANGUAGES
       STRING
       "List of languages to enable and help CMake recognize NEC compilers and their implicit linker flags"
 )
-set_property(
-  CACHE ICON_NEC_WORKAROUND_LANGUAGES PROPERTY STRINGS "C;CXX;Fortran"
-)
+set_property(CACHE ICON_NEC_WORKAROUND_LANGUAGES PROPERTY STRINGS
+                                                          "C;CXX;Fortran")
 
 if(ICON_NEC_WORKAROUND_LANGUAGES)
   enable_language(${ICON_NEC_WORKAROUND_LANGUAGES})
@@ -75,9 +68,8 @@ if(ICON_NEC_WORKAROUND_LANGUAGES)
   # use NEC compilers:
   set(CMAKE_REQUIRED_QUIET 1)
   # CMake is expected to mistake the NEC compilers for the GNU ones:
-  if("C" IN_LIST ICON_NEC_WORKAROUND_LANGUAGES
-     AND CMAKE_C_COMPILER_ID STREQUAL "GNU"
-  )
+  if("C" IN_LIST ICON_NEC_WORKAROUND_LANGUAGES AND CMAKE_C_COMPILER_ID STREQUAL
+                                                   "GNU")
     include(CheckSymbolExists)
     check_symbol_exists(__NEC__ "" C_is_NEC)
     if(C_is_NEC)
@@ -85,9 +77,8 @@ if(ICON_NEC_WORKAROUND_LANGUAGES)
       list(APPEND nec_languages "C")
     endif()
   endif()
-  if("CXX" IN_LIST ICON_NEC_WORKAROUND_LANGUAGES
-     AND CMAKE_CXX_COMPILER_ID STREQUAL "GNU"
-  )
+  if("CXX" IN_LIST ICON_NEC_WORKAROUND_LANGUAGES AND CMAKE_CXX_COMPILER_ID
+                                                     STREQUAL "GNU")
     include(CheckCXXSymbolExists)
     check_cxx_symbol_exists(__NEC__ "" CXX_is_NEC)
     if(CXX_is_NEC)
@@ -96,8 +87,7 @@ if(ICON_NEC_WORKAROUND_LANGUAGES)
     endif()
   endif()
   if("Fortran" IN_LIST ICON_NEC_WORKAROUND_LANGUAGES
-     AND CMAKE_Fortran_COMPILER_ID STREQUAL "GNU"
-  )
+     AND CMAKE_Fortran_COMPILER_ID STREQUAL "GNU")
     file(
       WRITE "${PROJECT_BINARY_DIR}${CMAKE_FILES_DIRECTORY}/CMakeTmp/src.F90"
       "      program main
@@ -115,12 +105,10 @@ if(ICON_NEC_WORKAROUND_LANGUAGES)
       a = 4
       b = 2
       end
-"
-    )
+")
     try_compile(
       Fortran_is_NEC "${PROJECT_BINARY_DIR}"
-      "${PROJECT_BINARY_DIR}${CMAKE_FILES_DIRECTORY}/CMakeTmp/src.F90"
-    )
+      "${PROJECT_BINARY_DIR}${CMAKE_FILES_DIRECTORY}/CMakeTmp/src.F90")
     if(Fortran_is_NEC)
       if(NOT CMAKE_Fortran_COMPILE_OPTIONS_PREPROCESS_ON)
         set(CMAKE_Fortran_COMPILE_OPTIONS_PREPROCESS_ON -fpp)
@@ -146,8 +134,7 @@ endif()
 # Set the path to the root source directory of the bundled library:
 set(ICON_DEP_SOURCE_DIR
     ""
-    CACHE PATH "Path to the source directory of the ICON dependency"
-)
+    CACHE PATH "Path to the source directory of the ICON dependency")
 if(NOT ICON_DEP_SOURCE_DIR)
   message(
     FATAL_ERROR
@@ -163,8 +150,7 @@ add_subdirectory("${ICON_DEP_SOURCE_DIR}" "${dep_build_dir}")
 # Set the list of libraries (targets) that ICON depends on:
 set(ICON_DEP_LIBRARIES
     ""
-    CACHE STRING "List of libraries (targets) that ICON needs to be linked to"
-)
+    CACHE STRING "List of libraries (targets) that ICON needs to be linked to")
 
 if(ICON_DEP_LIBRARIES)
   # If the list of dependencies is not empty, we activate the linker flag
@@ -186,34 +172,26 @@ if(ICON_DEP_LIBRARIES)
   target_link_libraries(icon-extra-libs PRIVATE "${ICON_DEP_LIBRARIES}")
 
   # To be able to extract all linker flags, we create a custom language:
-  set_target_properties(
-    icon-extra-libs PROPERTIES LINKER_LANGUAGE IconExtraLibs
-  )
+  set_target_properties(icon-extra-libs PROPERTIES LINKER_LANGUAGE
+                                                   IconExtraLibs)
 
   # Define a list of variables that the custom language should inherit from
   # Fortran language to make the <LINK_LIBRARIES> below complete:
-  set(fortran_variables
-      CMAKE_Fortran_IMPLICIT_LINK_DIRECTORIES
-      CMAKE_Fortran_IMPLICIT_LINK_LIBRARIES
-  )
+  set(fortran_variables CMAKE_Fortran_IMPLICIT_LINK_DIRECTORIES
+                        CMAKE_Fortran_IMPLICIT_LINK_LIBRARIES)
 
   # Append the RPATH flags if requested:
   set(ICON_ENABLE_RPATHS
       ON
-      CACHE BOOL "Enable runtime library search paths"
-  )
+      CACHE BOOL "Enable runtime library search paths")
   if(ICON_ENABLE_RPATHS)
     list(APPEND fortran_variables CMAKE_EXECUTABLE_RUNTIME_Fortran_FLAG)
   endif()
 
   # Copy the variables from Fortran to the custom language:
   foreach(fortran_variable IN LISTS fortran_variables)
-    string(
-      REPLACE Fortran
-              IconExtraLibs
-              icon_flag_language_variable
-              ${fortran_variable}
-    )
+    string(REPLACE Fortran IconExtraLibs icon_flag_language_variable
+                   ${fortran_variable})
     set(${icon_flag_language_variable} ${${fortran_variable}})
   endforeach()
 

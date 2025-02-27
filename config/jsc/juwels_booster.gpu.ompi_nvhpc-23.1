@@ -48,13 +48,13 @@ BLAS_LAPACK_LIBS='-llapack -lblas'
 ################################################################################
 
 CC="${ROOT_OPENMPI}/bin/mpicc"
-CFLAGS='-g -O2' 
+CFLAGS='-g -O2'
 CPPFLAGS="-I${ROOT_HDF5}/include -I${ROOT_NETCDF}/include -I${ROOT_ECCODES}/include -I${ROOT_LIBFYAML}/include -I${ROOT_LIBXML2}/include/libxml2/libxml"
 
 FC="${ROOT_OPENMPI}/bin/mpif90"
 FCFLAGS="-I${ROOT_NETCDFMINFORTRAN}/include -g -O2 -Mrecursive -Mallocatable=03 -Mstack_arrays -Minfo=accel,inline -acc=verystrict,gpu -gpu=cc80"
 
-LDFLAGS="-c++libs -cuda -L${ROOT_HDF5}/lib -L${ROOT_NETCDF}/lib -L${ROOT_PNETCDF}/lib -L${ROOT_NETCDFMINFORTRAN}/lib -L${ROOT_ECCODES}/lib -L${ROOT_LIBXML2}/lib64"  
+LDFLAGS="-c++libs -cuda -L${ROOT_HDF5}/lib -L${ROOT_NETCDF}/lib -L${ROOT_PNETCDF}/lib -L${ROOT_NETCDFMINFORTRAN}/lib -L${ROOT_ECCODES}/lib -L${ROOT_LIBXML2}/lib64"
 
 LIBS="${XML2_LIBS} ${FYAML_LIBS} ${ECCODES_LIBS} ${BLAS_LAPACK_LIBS} ${NETCDFF_LIBS} ${NETCDF_LIBS} ${HDF5_LIBS}"
 
@@ -110,4 +110,3 @@ if test $(pwd) != $(cd "${ICON_DIR}"; pwd); then
   ln -sf ${ICON_DIR}/data
   ln -sf ${ICON_DIR}/vertical_coord_tables
 fi
-

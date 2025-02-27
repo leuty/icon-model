@@ -28,7 +28,7 @@ CATFILE=moc.nc
 
 CODE='777,778,779'
 
-for YEAR in $(seq $Y1 $CHUNK $Y2) 
+for YEAR in $(seq $Y1 $CHUNK $Y2)
 do
 
     INFILE=$(printf $DATADIR/$EXPID/MOC.%04.0f-01-01T00:00:00.000 $YEAR)

@@ -45,23 +45,23 @@ MODULE mo_ocean_tracer_transport_horz
   USE mo_ocean_limiter,             ONLY: limiter_ocean_zalesak_horizontal
   USE mo_ocean_tracer_transport_types,  ONLY: t_ocean_transport_state
   USE mo_fortran_tools,             ONLY: set_acc_host_or_device
-  
-  
+
+
   IMPLICIT NONE
-  
+
   PRIVATE
-  
+
   CHARACTER(LEN=12)           :: str_module    = 'oceTracHorz '  ! Output of module for 1 line debug
   INTEGER :: idt_src       = 1               ! Level of detail for 1 line debug
-  
+
   !
   ! PUBLIC INTERFACE
   !
   PUBLIC :: advect_horz
-  PUBLIC :: diffuse_horz  
-  
+  PUBLIC :: diffuse_horz
+
   INTEGER, PARAMETER :: top=1
-  
+
 CONTAINS
   !-----------------------------------------------------------------------
 !<Optimize:inUse>
@@ -77,7 +77,7 @@ CONTAINS
     & horizontally_diffused_tracer, &
     & lacc)
 
-    
+
     TYPE(t_patch_3d ),TARGET, INTENT(in)   :: patch_3d
     REAL(wp)                               :: trac_old(1:nproma,1:n_zlev,1:patch_3d%p_patch_2d(1)%alloc_cell_blocks)
     TYPE(t_ocean_transport_state), TARGET      :: transport_state
@@ -86,19 +86,19 @@ CONTAINS
     REAL(wp), INTENT(in)                   :: h_old(1:nproma,1:patch_3d%p_patch_2d(1)%alloc_cell_blocks)
     REAL(wp), INTENT(in)                   :: h_new(1:nproma,1:patch_3d%p_patch_2d(1)%alloc_cell_blocks)
     REAL(wp), INTENT(inout)                :: div_flux_horz(1:nproma,1:n_zlev,1:patch_3d%p_patch_2d(1)%alloc_cell_blocks)
-    REAL(wp), INTENT(inout)                :: div_flux_vert(nproma, n_zlev, patch_3d%p_patch_2d(1)%alloc_cell_blocks)       
+    REAL(wp), INTENT(inout)                :: div_flux_vert(nproma, n_zlev, patch_3d%p_patch_2d(1)%alloc_cell_blocks)
     REAL(wp), INTENT(inout), OPTIONAL      :: horizontally_diffused_tracer(:,:,:)
     LOGICAL, INTENT(in), OPTIONAL          :: lacc
 
     LOGICAL :: lzacc
     !
-    !-------------------------------------------------------------------------------    
+    !-------------------------------------------------------------------------------
     start_timer(timer_adv_horz,2)
 
     CALL set_acc_host_or_device(lzacc, lacc)
 
     SELECT CASE(tracer_HorizontalAdvection_type)
-    
+
     CASE(cell_based)
 
       CALL advect_cell_based( patch_3d, &
@@ -110,13 +110,13 @@ CONTAINS
       & h_new,                 &
       & div_flux_horz,         &
       & div_flux_vert,         &
-      & lacc=lzacc) 
+      & lacc=lzacc)
     CASE default
       CALL finish("advect_horz","uknown tracer_HorizontalAdvection_type")
     END SELECT
 
     stop_timer(timer_adv_horz,2)
-     
+
   END SUBROUTINE advect_horz
   !-------------------------------------------------------------------------------
 
@@ -131,7 +131,7 @@ CONTAINS
     & flux_horz,           &
     & horizontally_diffused_tracer, &
     & lacc)
-    
+
     TYPE(t_patch_3d ),TARGET, INTENT(in)   :: patch_3d
     REAL(wp)                               :: trac_old(1:nproma,1:n_zlev,1:patch_3d%p_patch_2d(1)%alloc_cell_blocks)
     TYPE(t_ocean_transport_state), TARGET      :: transport_state
@@ -145,7 +145,7 @@ CONTAINS
 
     LOGICAL :: lzacc
     !
-    !-------------------------------------------------------------------------------    
+    !-------------------------------------------------------------------------------
     start_timer(timer_dif_horz,3)
 
     CALL set_acc_host_or_device(lzacc, lacc)
@@ -160,9 +160,9 @@ CONTAINS
       & flux_horz,           &
       & lacc=lzacc) !,           &
       ! & horizontally_diffused_tracer)
-    
+
     stop_timer(timer_dif_horz,3)
-     
+
   END SUBROUTINE diffuse_horz
   !-------------------------------------------------------------------------------
 
@@ -179,7 +179,7 @@ CONTAINS
     & div_advflux_horz,    &
     & div_advflux_vert,    &
     & lacc)
-    
+
     TYPE(t_patch_3d ),TARGET, INTENT(in) :: patch_3d
     REAL(wp)                             :: trac_old(1:nproma,1:n_zlev,1:patch_3d%p_patch_2d(1)%alloc_cell_blocks)
     TYPE(t_ocean_transport_state), TARGET    :: transport_state
@@ -195,7 +195,7 @@ CONTAINS
     INTEGER :: start_index, end_index
     INTEGER :: jc, level, blockNo
     REAL(wp) :: z_adv_flux_h (nproma, n_zlev, patch_3d%p_patch_2d(1)%nblks_e)
-    TYPE(t_cartesian_coordinates) :: p_vn_c(nproma, n_zlev, patch_3d%p_patch_2d(1)%alloc_cell_blocks)    
+    TYPE(t_cartesian_coordinates) :: p_vn_c(nproma, n_zlev, patch_3d%p_patch_2d(1)%alloc_cell_blocks)
     TYPE(t_subset_range), POINTER :: edges_in_domain, cells_in_domain
     TYPE(t_patch), POINTER :: patch_2d
     LOGICAL :: lzacc
@@ -214,26 +214,26 @@ CONTAINS
     !$ACC DATA CREATE(z_adv_flux_h) IF(lzacc)
 
     IF ( l_with_horz_tracer_advection ) THEN
-      
+
       ! Initialize timer for horizontal advection
-      
+
       SELECT CASE(flux_calculation_horz)
-      
+
       CASE(upwind)
 
         CALL upwind_hflux_oce( patch_3d,  &
         & trac_old,                       &
-        & transport_state%mass_flux_e,         & 
+        & transport_state%mass_flux_e,         &
         & z_adv_flux_h,                   &
         & lacc=lzacc)
-         
-!       CASE(central)  
-!       
+
+!       CASE(central)
+!
 !         CALL central_hflux_oce( patch_3d, &
 !         & trac_old,                       &
 !         & transport_state%mass_flux_e,         &
-!         & z_adv_flux_h)    
-                 
+!         & z_adv_flux_h)
+
       CASE(horz_flux_twisted_vec_recon)
         ! inUse
 
@@ -247,17 +247,17 @@ CONTAINS
           & z_adv_flux_h,                         &
           & div_advflux_vert,                     &
           & lacc=lzacc)
-              
+
       CASE default
         CALL finish('TRIM(advect_diffuse_flux_horz)',"This flux option is not supported")
-        
+
       END SELECT
       !---------------------------------------------------------------------
-      
+
       !Calculate divergence of advective fluxes
       CALL div_oce_3d( z_adv_flux_h, patch_3D, operators_coefficients%div_coeff, div_advflux_horz, subset_range=cells_in_domain, lacc=lzacc)
 
-      
+
     ELSE ! no l_with_horz_tracer_advection
       !$ACC KERNELS DEFAULT(PRESENT) ASYNC(1) IF(lzacc)
       div_advflux_horz (:,:,:) = 0.0_wp
@@ -290,7 +290,7 @@ CONTAINS
     & div_diff_flux_horz,  &
     & lacc)!,           &
     ! & horizontally_diffused_tracer)
-    
+
     TYPE(t_patch_3d ),TARGET, INTENT(in) :: patch_3d
     REAL(wp)                             :: trac_old(1:nproma,1:n_zlev,1:patch_3d%p_patch_2d(1)%alloc_cell_blocks)
     TYPE(t_ocean_transport_state), TARGET    :: transport_state
@@ -307,7 +307,7 @@ CONTAINS
     INTEGER :: start_index, end_index
     INTEGER :: jc, level, blockNo
     REAL(wp) :: z_diff_flux_h(nproma, n_zlev, patch_3d%p_patch_2d(1)%nblks_e)
-    TYPE(t_cartesian_coordinates) :: p_vn_c(nproma, n_zlev, patch_3d%p_patch_2d(1)%alloc_cell_blocks)    
+    TYPE(t_cartesian_coordinates) :: p_vn_c(nproma, n_zlev, patch_3d%p_patch_2d(1)%alloc_cell_blocks)
     TYPE(t_subset_range), POINTER :: edges_in_domain, cells_in_domain
     TYPE(t_patch), POINTER :: patch_2d
     INTEGER :: diff_option=1
@@ -326,21 +326,21 @@ CONTAINS
     !$ACC DATA CREATE(z_diff_flux_h) IF(lzacc)
 
   !  IF ( l_with_horz_tracer_diffusion) THEN
-      
+
       IF(diff_option==diff_option_standard)THEN
         CALL tracer_diffusion_horz( patch_3d,     &
         & trac_old,     &
         & z_diff_flux_h,&
         & k_h,          &
-        & lacc=lzacc)                  
+        & lacc=lzacc)
 !         & subset_range = edges_in_domain)
-              
+
       ENDIF
-      
+
   !  ELSE
   !    div_diff_flux_horz(:,:,:) = 0.0_wp
   !  ENDIF
-    
+
     !Calculate divergence of diffusive fluxes
     CALL div_oce_3d( z_diff_flux_h, patch_3D, operators_coefficients%div_coeff, div_diff_flux_horz, lacc=lzacc)
 
@@ -356,7 +356,7 @@ CONTAINS
   !-------------------------------------------------------------------------------
 !<Optimize:inUse>
   SUBROUTINE flux_corr_transport_cell( patch_3d, &
-    & trac_old,                                  & 
+    & trac_old,                                  &
     & transport_state,                                      &
     & operators_coefficients,                    &
     & k_h,                                       &
@@ -365,7 +365,7 @@ CONTAINS
     & adv_flux_h,                                &
     & div_advflux_vert,                          &
     & lacc)
-    
+
     TYPE(t_patch_3d ),TARGET, INTENT(in)   :: patch_3d
     REAL(wp)                               :: trac_old(1:nproma,1:n_zlev,1:patch_3d%p_patch_2d(1)%alloc_cell_blocks)
     TYPE(t_ocean_transport_state), TARGET      :: transport_state
@@ -377,7 +377,7 @@ CONTAINS
     REAL(wp), INTENT(inout)                :: div_advflux_vert(nproma, n_zlev, patch_3d%p_patch_2d(1)%alloc_cell_blocks)
     LOGICAL, INTENT(in), OPTIONAL          :: lacc
     !Local Variables
-    INTEGER, DIMENSION(:,:,:), POINTER :: iilc,iibc  ! pointer to line and block indices    
+    INTEGER, DIMENSION(:,:,:), POINTER :: iilc,iibc  ! pointer to line and block indices
     INTEGER  :: je,blockNo,level,start_index_e, end_index_e, edge_index, jc
     INTEGER  :: start_index, end_index
     REAL(wp) :: z_adv_flux_high(nproma,n_zlev,patch_3d%p_patch_2d(1)%nblks_e)
@@ -386,12 +386,12 @@ CONTAINS
     TYPE(t_subset_range), POINTER :: edges_in_domain, cells_in_domain
     TYPE(t_patch), POINTER :: patch_2d
     LOGICAL :: lzacc
-    ! TYPE(t_cartesian_coordinates) :: p_vn_c(nproma, n_zlev, patch_3d%p_patch_2d(1)%alloc_cell_blocks)  
+    ! TYPE(t_cartesian_coordinates) :: p_vn_c(nproma, n_zlev, patch_3d%p_patch_2d(1)%alloc_cell_blocks)
     ! REAL(wp) :: grad_C_horz(nproma, n_zlev,patch_3D%p_patch_2d(1)%nblks_e)
-    
+
     CHARACTER(len=*), PARAMETER :: method_name = 'flux_corr_transport_cell'
     !-------------------------------------------------------------------------------
-    
+
     patch_2d        => patch_3d%p_patch_2d(1)
     edges_in_domain => patch_2d%edges%in_domain
     cells_in_domain => patch_2d%cells%in_domain
@@ -400,10 +400,10 @@ CONTAINS
 
 !     z_adv_flux_high(1:nproma,1:n_zlev,1:patch_3d%p_patch_2d(1)%nblks_e)=0.0_wp
 !     z_adv_flux_low(1:nproma,1:n_zlev,1:patch_3d%p_patch_2d(1)%nblks_e)=0.0_wp
-!     z_adv_flux_gradrecon(1:nproma,1:n_zlev,1:patch_3d%p_patch_2d(1)%nblks_e)=0.0_wp    
-!     p_vn_c(1:nproma, 1:n_zlev, 1:patch_3d%p_patch_2d(1)%alloc_cell_blocks)%x(1)=0.0_wp        
-!     p_vn_c(1:nproma, 1:n_zlev, 1:patch_3d%p_patch_2d(1)%alloc_cell_blocks)%x(2)=0.0_wp        
-!     p_vn_c(1:nproma, 1:n_zlev, 1:patch_3d%p_patch_2d(1)%alloc_cell_blocks)%x(3)=0.0_wp   
+!     z_adv_flux_gradrecon(1:nproma,1:n_zlev,1:patch_3d%p_patch_2d(1)%nblks_e)=0.0_wp
+!     p_vn_c(1:nproma, 1:n_zlev, 1:patch_3d%p_patch_2d(1)%alloc_cell_blocks)%x(1)=0.0_wp
+!     p_vn_c(1:nproma, 1:n_zlev, 1:patch_3d%p_patch_2d(1)%alloc_cell_blocks)%x(2)=0.0_wp
+!     p_vn_c(1:nproma, 1:n_zlev, 1:patch_3d%p_patch_2d(1)%alloc_cell_blocks)%x(3)=0.0_wp
     !-------------------------------------------------------------------------------
     !1) provide high- & low order tracer flux
 
@@ -411,7 +411,7 @@ CONTAINS
 
     !$ACC KERNELS DEFAULT(PRESENT) ASYNC(1) IF(lzacc)
     z_adv_flux_high(:,:,:) = 0.0_wp
-    z_adv_flux_low(:,:,:)  = 0.0_wp 
+    z_adv_flux_low(:,:,:)  = 0.0_wp
     !$ACC END KERNELS
     !$ACC WAIT(1)
 
@@ -428,13 +428,13 @@ CONTAINS
         & z_adv_flux_low,               &
         & lacc=lzacc)
       stop_detail_timer(timer_extra11,5)
-            
+
     CASE DEFAULT
-      CALL finish(method_name,"This low-order  option is not supported")   
-    END SELECT    
+      CALL finish(method_name,"This low-order  option is not supported")
+    END SELECT
 
 
-    SELECT CASE(fct_high_order_flux) 
+    SELECT CASE(fct_high_order_flux)
     CASE(horz_flux_twisted_vec_recon)
       !mimetic fluc calculation high order flux
       ! in_use
@@ -445,13 +445,13 @@ CONTAINS
         & z_adv_flux_high,                       &
         & trac_old,                    &
         & lacc=lzacc)
-        
+
     END SELECT
     !-----------------------------------------------------------------------
-    
+
     !2)call limiter
     SELECT CASE(fct_limiter_horz)
-      
+
     CASE(fct_limiter_horz_zalesak)
 
       ! inUse
@@ -465,13 +465,13 @@ CONTAINS
         & z_adv_flux_low,                        &
         & z_adv_flux_high,                       &
         & adv_flux_h,                            &
-        & div_advflux_vert,                      &            
+        & div_advflux_vert,                      &
         & operators_coefficients,                &
         & h_old,                                 &
         & h_new,                                 &
-        & lacc=lzacc)       
+        & lacc=lzacc)
       stop_detail_timer(timer_extra13,4)
-        
+
     CASE DEFAULT
      CALL finish('TRIM(flux_corr_transport_h)',"This limiter_type option is not supported")
     END SELECT
@@ -479,8 +479,8 @@ CONTAINS
     !$ACC END DATA
   END SUBROUTINE flux_corr_transport_cell
   !-------------------------------------------------------------------------------
-  
-  
+
+
   !-------------------------------------------------------------------------------
   !>
   !! First order upwind scheme for horizontal tracer advection
@@ -492,7 +492,7 @@ CONTAINS
   !!  mpi note: the result is not synced. Should be done in the calling method if required
 !<Optimize:inUse>
   SUBROUTINE upwind_hflux_oce( patch_3d, cell_value, edge_vn, edge_upwind_flux, opt_start_level, opt_end_level, lacc)
-    
+
     TYPE(t_patch_3d ),TARGET, INTENT(in)   :: patch_3d
     REAL(wp), INTENT(in)              :: cell_value   (nproma,n_zlev,patch_3d%p_patch_2d(1)%alloc_cell_blocks)      !< advected cell centered variable
     REAL(wp), INTENT(in)              :: edge_vn    (nproma,n_zlev,patch_3d%p_patch_2d(1)%nblks_e)       !< normal velocity on edges
@@ -563,8 +563,8 @@ CONTAINS
           idx1 = cell_idx(edge_index,blockNo,1)
           blk1 = cell_blk(edge_index,blockNo,1)
           idx2 = cell_idx(edge_index,blockNo,2)
-          blk2 = cell_blk(edge_index,blockNo,2)            
-#else    
+          blk2 = cell_blk(edge_index,blockNo,2)
+#else
       !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1) IF(lzacc)
       !$ACC LOOP GANG VECTOR
       DO edge_index = start_index, end_index
@@ -587,7 +587,7 @@ CONTAINS
                &   - ABS( edge_vn(edge_index,level,blockNo) ) *               &
                & ( cell_value(idx2,level,blk2) - &
                &   cell_value(idx1,level,blk1) ) )
-               
+
 !           IF ( edge_vn(edge_index,level,blockNo) >= 0.0_wp) THEN
 !             edge_upwind_flux(edge_index,level,blockNo) = &
 !               & edge_vn(edge_index,level,blockNo) * cell_value(idx1,level,blk1)
@@ -595,21 +595,21 @@ CONTAINS
 !             edge_upwind_flux(edge_index,level,blockNo) = &
 !               & edge_vn(edge_index,level,blockNo) * cell_value(idx2,level,blk2)
 !           ENDIF
-          
+
            ! inlined above
 !          FUNCTION laxfr_upflux( p_vn, p_psi1, p_psi2 )  result(p_upflux)
 !             & laxfr_upflux( edge_vn(edge_index,level,blockNo), cell_value(iilc(edge_index,blockNo,1),level,iibc(edge_index,blockNo,1)), &
 !             & cell_value(iilc(edge_index,blockNo,2),level,iibc(edge_index,blockNo,2)) )
-          
-        ENDDO       
+
+        ENDDO
       END DO  ! end loop over levels
       !$ACC END PARALLEL
       !$ACC WAIT(1)
     END DO  ! end loop over blocks
 !ICON_OMP_END_PARALLEL_DO
-    
+
   END SUBROUTINE upwind_hflux_oce
   !-----------------------------------------------------------------------
-    
-  
+
+
 END MODULE mo_ocean_tracer_transport_horz

@@ -48,7 +48,7 @@ MODULE mo_nh_rce_exp
 !-------------------------------------------------------------------------
   !>
   !! Initialization of prognostic state vector for the nh RCE test case with a constant T profile
-  !!  
+  !!
   !!
   SUBROUTINE init_nh_state_rce_glb( ptr_patch, ptr_nh_prog,  ptr_nh_ref, ptr_nh_diag,  &
   &                                 ptr_metrics)
@@ -75,10 +75,10 @@ MODULE mo_nh_rce_exp
 
     ! number of vertical levels
     nlev   = ptr_patch%nlev
-  
+
     ! init surface pressure
     ptr_nh_diag%pres_sfc(:,:) = tpe_psfc
-  
+
     ! Tracers: all zero by default
     ptr_nh_prog%tracer(:,:,:,:) = 0._wp
 
@@ -98,8 +98,8 @@ MODULE mo_nh_rce_exp
         ptr_nh_prog%exner(1:nlen, jk, jb)   = (ptr_nh_diag%pres(1:nlen, jk, jb)/p0ref)**rd_o_cpd
         ptr_nh_prog%theta_v(1:nlen, jk, jb) = tpe_temp/ptr_nh_prog%exner(1:nlen, jk, jb)
       END DO !jk
-        
-    END DO ! jb       
+
+    END DO ! jb
 
   !meridional and zonal wind
   ptr_nh_prog%vn = 0._wp
@@ -123,7 +123,7 @@ MODULE mo_nh_rce_exp
     TYPE(t_nh_diag),       INTENT(INOUT):: &  !< diagnostic state vector
       &  ptr_nh_diag
     TYPE(t_nh_metrics),    INTENT(IN)   :: &  !< NH metrics state
-      &  ptr_metrics                          
+      &  ptr_metrics
     TYPE(t_nh_ref),        INTENT(INOUT):: &  !< reference state vector
       &  ptr_nh_ref
 
@@ -143,10 +143,10 @@ MODULE mo_nh_rce_exp
 
     ALLOCATE(temp(nproma,nlev,nblks_c))
     ALLOCATE(rh(nproma,nlev,nblks_c))
-    
+
     ! init surface pressure
     ptr_nh_diag%pres_sfc(:,:) = tpe_psfc
-  
+
     ! Tracers: all zero by default
     ptr_nh_prog%tracer(:,:,:,:) = 0._wp
 
@@ -174,7 +174,7 @@ MODULE mo_nh_rce_exp
           ! Temperature profile from bottom to z0 with linear gradient gamma0,
           ! above z0 linear gradient gamma1
           ! Let temperature not fall under 150 K.
-          IF ( z <= z0 ) THEN 
+          IF ( z <= z0 ) THEN
             temp(jl,jk,jb) = t0 + gamma0 * z
           ELSE
             temp(jl,jk,jb) = t0 + gamma0 * z0 + gamma1 * (z-z0)
@@ -199,7 +199,7 @@ MODULE mo_nh_rce_exp
         END DO !jl
 
       END DO !jk
-        
+
     END DO ! jb
 
     ! Adjust preliminary profiles to numerics of ICON dynamical core
@@ -219,9 +219,9 @@ MODULE mo_nh_rce_exp
            & in_var=ptr_nh_prog%theta_v(:,:,:),                     &
            & start_level=nlev-3,                                    &
            & end_level=nlev,                                        &
-           & noise_scale=th_perturb )   
+           & noise_scale=th_perturb )
     END IF
-    
+
   !meridional and zonal wind
   ptr_nh_prog%vn = 0._wp
   ptr_nh_ref%vn_ref = ptr_nh_prog%vn
@@ -231,7 +231,7 @@ MODULE mo_nh_rce_exp
   ptr_nh_ref%w_ref = ptr_nh_prog%w
 
 END SUBROUTINE init_nh_state_rce_tprescr_glb
-  
+
   FUNCTION gaussian(mu, sigma, delta, x)
     !> calculate Gaussian profile
     !> param[in] mu

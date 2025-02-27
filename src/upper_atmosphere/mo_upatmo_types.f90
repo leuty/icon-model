@@ -45,7 +45,7 @@ MODULE mo_upatmo_types
 
   !------------------------------------------------------
   !                Diagnostic variables
-  !------------------------------------------------------  
+  !------------------------------------------------------
 
   TYPE t_upatmo_diag
 
@@ -54,44 +54,44 @@ MODULE mo_upatmo_types
      gas(:,:,:,:),     &  ! Gas mass mixing ratio
                           ! (nproma,nlev,nblks_c,ngas) [kg/kg]
      mdry(:,:,:),      &  ! Dry air mass
-                          ! (nproma,nlev,nblks_c) [kg/m2]  
-     amd(:,:,:),       &  ! Molar mass of dry air 
-                          ! (nproma,nlev,nblks_c) [g/mol]  
-     cpair(:,:,:),     &  ! Heat capacity of (moist) air at constant pressure 
-                          ! (nproma,nlev,nblks_c) [J/K/kg] 
-     grav(:,:,:),      &  ! Gravitational acceleration 
-                          ! (nproma,nlev,nblks_c) [m/s2] 
-     sclrlw(:,:,:),    &  ! Scaling factor for heating rate 
+                          ! (nproma,nlev,nblks_c) [kg/m2]
+     amd(:,:,:),       &  ! Molar mass of dry air
+                          ! (nproma,nlev,nblks_c) [g/mol]
+     cpair(:,:,:),     &  ! Heat capacity of (moist) air at constant pressure
+                          ! (nproma,nlev,nblks_c) [J/K/kg]
+     grav(:,:,:),      &  ! Gravitational acceleration
+                          ! (nproma,nlev,nblks_c) [m/s2]
+     sclrlw(:,:,:),    &  ! Scaling factor for heating rate
                           ! from "standard" long-wave radiation
-                          ! (nproma,nlev,nblks_c) [1] 
-     effrsw(:,:,:)     &  ! Efficiency factor for heating rate 
+                          ! (nproma,nlev,nblks_c) [1]
+     effrsw(:,:,:)     &  ! Efficiency factor for heating rate
                           ! from "standard" short-wave radiation
-                          ! (nproma,nlev,nblks_c) [1] 
+                          ! (nproma,nlev,nblks_c) [1]
      => NULL()
 
     TYPE(t_ptr_2d3d), ALLOCATABLE :: gas_ptr(:)   ! Pointer for gas container
 
     ! Status
-    LOGICAL :: linitialized = .FALSE. 
+    LOGICAL :: linitialized = .FALSE.
 
-  END TYPE t_upatmo_diag  
+  END TYPE t_upatmo_diag
 
   !------------------------------------------------------
   !      Tendencies from physics parameterizations
-  !------------------------------------------------------  
+  !------------------------------------------------------
 
-  ! The large number of fields in the following might be regarded 
-  ! as a significant waste of memory. 
-  ! However, for at least the following reasons, 
+  ! The large number of fields in the following might be regarded
+  ! as a significant waste of memory.
+  ! However, for at least the following reasons,
   ! we would prefer to leave it this way for the time being:
-  ! * The implementation of the upper-atmosphere physics into ICON 
-  !   is still in its evaluation phase, so that the possibility 
+  ! * The implementation of the upper-atmosphere physics into ICON
+  !   is still in its evaluation phase, so that the possibility
   !   to output the tendencies of each single process is probably desirable
   ! * As mentioned above, allocation happens only if upper-atmosphere physics
   !   are switched on, so it should not do much harm to standard simulations
-  ! Once the 1st reason should become less important, 
-  ! the current implementation should allow to store tendencies 
-  ! only group-wise instead of process-wise, i.e.: 
+  ! Once the 1st reason should become less important,
+  ! the current implementation should allow to store tendencies
+  ! only group-wise instead of process-wise, i.e.:
   ! * IMF
   ! * RAD
   ! instead of:
@@ -174,8 +174,8 @@ MODULE mo_upatmo_types
                                      ! (nproma,nlev,nblks_c) [m/s2]
      ddt_v_iondrag(:,:,:),        &  ! meridional wind component due to ion drag
                                      ! (nproma,nlev,nblks_c) [m/s2]
-     ddt_qx_vdfmol(:,:,:,:)       &  ! tracer due to molecular diffusion 
-                                     ! (currently, only specific humidity, [:,:,:,iqv]) 
+     ddt_qx_vdfmol(:,:,:,:)       &  ! tracer due to molecular diffusion
+                                     ! (currently, only specific humidity, [:,:,:,iqv])
                                      ! (nproma,nlev,nblks_c,1)
      => NULL()
 
@@ -190,7 +190,7 @@ MODULE mo_upatmo_types
 
   !------------------------------------------------------
   !                   External data
-  !------------------------------------------------------ 
+  !------------------------------------------------------
 
   TYPE t_extdat_intrpl_1d
     INTEGER,  ALLOCATABLE :: idx(:,:) ! Indices for interpolation (2,nlev)
@@ -259,7 +259,7 @@ MODULE mo_upatmo_types
     INTEGER,                   ALLOCATABLE :: mapgasid2indx(:) ! Map global gas id to local gas index
     INTEGER,                   ALLOCATABLE :: mapgasindx2id(:) ! Map local gas index to global gas id
 
-    TYPE(t_ptr_3d_wp),            ALLOCATABLE :: gas_interm(:)    ! Gas on horizontal grid of ICON, 
+    TYPE(t_ptr_3d_wp),            ALLOCATABLE :: gas_interm(:)    ! Gas on horizontal grid of ICON,
                                                                ! but still on pressure levels of external data (ngas)
     ! Status
     LOGICAL :: linitialized = .FALSE.
@@ -268,7 +268,7 @@ MODULE mo_upatmo_types
 
   !------------------------------------------------------
   !                  Collective type
-  !------------------------------------------------------ 
+  !------------------------------------------------------
 
   TYPE t_upatmo
 

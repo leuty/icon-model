@@ -20,8 +20,8 @@
 #-----------------------------------------------------------------------------
 #
 # NEC@DWD
- 
-# submit: 
+
+# submit:
 #   qsub run_ICONAM_R2B4_APE
 #   qstat | grep mkoehler
 #   nqstat
@@ -179,8 +179,8 @@ cat > ${atmo_namelist} << EOF_NL
 &initicon_nml
   init_mode   = 2           ! operation mode
   nlev_in     = 91          ! number of levels of input data
-  zpbl1       = 500. 
-  zpbl2       = 1000. 
+  zpbl1       = 500.
+  zpbl2       = 1000.
 /
 &nh_testcase_nml
  nh_test_name      = 'APE_nh'     ! test case identifier
@@ -277,7 +277,7 @@ nudge_zone_width  = 8
  denom_diffu_v    = 150.
 /
 &extpar_nml
- itopo              = 0  ! 0 for aqua-planet, 1 for realistic topography   
+ itopo              = 0  ! 0 for aqua-planet, 1 for realistic topography
  n_iter_smooth_topo = 2
 /
 EOF_NL
@@ -326,8 +326,8 @@ export F_PROGINF=DETAIL
 export F_NORCW=65535
 
 # determine architecture
-#arch=sx9-nec-superux-sx9ftr 
-#arch=sx9-nec-superux-sx9debug 
+#arch=sx9-nec-superux-sx9ftr
+#arch=sx9-nec-superux-sx9debug
 arch=sx9-nec-superux-sx9omp
 #arch=sx9-nec-superux-sx9mpiomp
 

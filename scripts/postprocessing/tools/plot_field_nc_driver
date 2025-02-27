@@ -12,8 +12,8 @@
 
 #
 #==========================================================================
-#      Driver script for  plot_field_nc.ncl that plots 
-#      a field from a file in (lon lat field_variable) 
+#      Driver script for  plot_field_nc.ncl that plots
+#      a field from a file in (lon lat field_variable)
 #      ascii format.
 #==========================================================================
 #
@@ -112,8 +112,8 @@ fi
 #echo $BIntV
 
 
-export FileD 
-export FileN 
+export FileD
+export FileN
 export PlotFileName
 export VarN
 export Plotvertlev

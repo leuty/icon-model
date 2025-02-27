@@ -15,13 +15,14 @@
 
 import matplotlib.pyplot as plt
 import numpy as np
-
 from BasePlotter import BasePlotter_, get_parser, parse_args
 
 
 def main():
     parser = get_parser()
-    parser.description = "Plots simulated days per day (SDPD) of one experiment."
+    parser.description = (
+        "Plots simulated days per day (SDPD) of one experiment."
+    )
 
     options = parse_args(parser)
     print("options:", options)

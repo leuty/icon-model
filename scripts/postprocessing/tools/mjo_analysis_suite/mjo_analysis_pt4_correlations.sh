@@ -17,14 +17,14 @@
 #     "mjo_analysis_clivar_correlations.ncl"
 #     and provides required information on
 #     dimensions etc.
-#   * Logical Switches allow to compute/plot 
+#   * Logical Switches allow to compute/plot
 #     just parts of the procedure
 #   * NCL Script
 #     - Computes and plots Lag-Correlation
 #     - Computes and plots Cross-Spectra
 #     - Computes and plots Multivariate EOFs
-#     - Computes and plots MJO Life Cycle 
-#  
+#     - Computes and plots MJO Life Cycle
+#
 #-------------------------------------------------------
 # DWD, FE 13, Julia Keller, 02/2016
 ########################################################
@@ -65,5 +65,3 @@ ncl 'precname="TOT_PREC"' \
     'unieofs="'${univareofplot}'"'     \
     'multieofs="'${multivareofplot}'"'     \
     mjo_analysis_clivar_correlations.ncl
-
-

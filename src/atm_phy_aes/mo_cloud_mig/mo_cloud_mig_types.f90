@@ -25,7 +25,7 @@ MODULE mo_cloud_mig_types
   PUBLIC :: t_cloud_mig_config, t_cloud_mig_input, t_cloud_mig_output
 
   !-----------------------------------------------------------------------------
-  
+
   TYPE t_cloud_mig_config
      !
      ! configuration parameters
@@ -40,7 +40,7 @@ MODULE mo_cloud_mig_types
   END TYPE t_cloud_mig_config
 
   !-----------------------------------------------------------------------------
-  
+
   TYPE t_cloud_mig_input
      !
      ! Input arguments: parameters
@@ -68,7 +68,7 @@ MODULE mo_cloud_mig_types
   END TYPE t_cloud_mig_input
 
   !-----------------------------------------------------------------------------
-  
+
   TYPE t_cloud_mig_output
      !
      ! Output arguments: fields
@@ -93,5 +93,5 @@ MODULE mo_cloud_mig_types
   END TYPE t_cloud_mig_output
 
   !-----------------------------------------------------------------------------
-  
+
 END MODULE mo_cloud_mig_types

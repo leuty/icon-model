@@ -123,8 +123,8 @@ end_date="2014-11-25T12:00:00Z"
 #-----------------------------------------------------------------------------
 DT_DATA=`expr 1 \* 3600`      # output each n hours
 DT_DATA=${dtime}              # output every time step
-#n_in_ofile=60                # number of time steps per output file 
-n_in_ofile=10000                # number of time steps per output file 
+#n_in_ofile=60                # number of time steps per output file
+n_in_ofile=10000                # number of time steps per output file
 
 # ----------------------------------------------------------------------------
 # grid namelist settings
@@ -213,7 +213,7 @@ cat > NAMELIST_${EXPNAME} << EOF
  ntracer        = 5            ! default: 0
  iforcing       = 3            ! 3: NWP forcing; 6:inhecham forcing
  ltestcase      = .TRUE.       ! run testcase
- ltimer         = .FALSE.      ! 
+ ltimer         = .FALSE.      !
  msg_level      = 12 !25           ! detailed report during integration
  output         = 'nml'
 /
@@ -223,8 +223,8 @@ cat > NAMELIST_${EXPNAME} << EOF
  lscm_read_tke=.False.     ! read initial tke from netcdf
  lscm_read_z0=.TRUE.       ! read initial z0 from netcdf
  scm_sfc_mom=0 !0             ! 0=TERRA,1=turb_trans,2=prescribed u*, 0
-                           ! 0 , combined with inwp_surface = 0 (TERRA off) 
-			   ! to let turb_trans determine u* (do not overwrite flux)  
+                           ! 0 , combined with inwp_surface = 0 (TERRA off)
+			   ! to let turb_trans determine u* (do not overwrite flux)
  scm_sfc_temp=1            ! 0=TERRA,1=turb_trans+t_g,prescribed sensible heat flux at surface
  scm_sfc_qv=3              ! 0=TERRA,1=turb_trans+q_vs,prescribed latent heat flux at surface,3=qv_s at saturation
 
@@ -239,7 +239,7 @@ cat > NAMELIST_${EXPNAME} << EOF
 
 
 &nwp_phy_nml
- inwp_gscp       = 4 ! 
+ inwp_gscp       = 4 !
  icalc_reff = 4 ! use effective radius calculation consitent between micro and cloud, use same as inwp_gscp
  inwp_convection = 0 ! 1:Tiedtke/Bechtold 0:apdf
  inwp_radiation  = 1 ! 1:RRTM radiation
@@ -267,7 +267,7 @@ cat > NAMELIST_${EXPNAME} << EOF
   irad_o3 = 11 ! 0: switch off ozone and initialize in test_case setup instead
   !irad_aero = 6 ! 6: Tegen aerosol climatology in radiation (not workin with testcase?
   !izenith = 6 ! same lat lon for all grid points in zenith angle calculation, rad_lat, rad_lon set in grid_nml
-  albedo_type = 1 ! 2: MODIS albedo, together with inwp_surface = 0 
+  albedo_type = 1 ! 2: MODIS albedo, together with inwp_surface = 0
                   ! 1: albedo based on soil type, see mo_phyparam_soil
  vmr_ch4                      = 1800.e-09
  vmr_n2o                      = 322.0e-09
@@ -318,7 +318,7 @@ cat > NAMELIST_${EXPNAME} << EOF
 
 &turbdiff_nml
  tkhmin  = 0.6 !0.75  ! new default since rev. 16527
- tkmmin  = 0.75  !           
+ tkmmin  = 0.75  !
  tkhmin_strat                 = 1.0
  tkmmin_strat                 = 4
  alpha0                       = 0.0123
@@ -331,7 +331,7 @@ cat > NAMELIST_${EXPNAME} << EOF
  frcsmot = 0.2      ! these 2 switches together apply vertical smoothing of the TKE source terms
  imode_frcsmot = 2  ! in the tropics (only), which reduces the moist bias in the tropical lower troposphere
  ! use horizontal shear production terms with 1/SQRT(Ri) scaling to prevent unwanted side effects:
- itype_sher = 3    
+ itype_sher = 3
  ltkeshs    = .true.
  a_hshr     = 2.0
  lconst_z0 = .TRUE.
@@ -343,7 +343,7 @@ cat > NAMELIST_${EXPNAME} << EOF
 &nwp_tuning_nml
  itune_albedo                 = 0       ! somewhat reduced albedo (w.r.t. MODIS data) over Sahara in order to reduce cold bias
  tune_zceff_min               = 0.01    ! ** default value to be used for R3B7; use 0.025 for R2B6 in order to get similar temperature biases in upper troposphere **
- tune_gkdrag                  = 0.075   ! R2B6: 0.075  
+ tune_gkdrag                  = 0.075   ! R2B6: 0.075
  tune_gkwake                  = 1.5     ! R2B6: 1.5
  tune_gfrcrit                 = 0.425   ! R2B6: 0.425
  tune_dust_abs                = 0.
@@ -373,7 +373,7 @@ cat > NAMELIST_${EXPNAME} << EOF
  ivctype        = 2          ! sleve vertical coordinate
  damp_height    = 44000.     ! top_height-damp_height should be about 15km
  ndyn_substeps  = ${ndyn_substeps}
- rayleigh_type   = 1 
+ rayleigh_type   = 1
  rayleigh_coeff = 0.5 !0.0
  htop_moist_proc= 22500.
  hbot_qvsubstep	= 16000.    ! Default: 22500  ! M. Koehler: 19000; at leas as large as htop_moist_proc
@@ -451,7 +451,7 @@ cat > NAMELIST_${EXPNAME} << EOF
   ml_varlist = 'z_mc','z_ifc','pres','exner','theta_v','temp','rh','qv','qc','qr','qi','qs','rho','tot_qv_dia','tot_qi_dia','tot_qc_dia',
                'clc','u','v','tkvm','tkvh','tke','ddt_qv_turb','ddt_qc_turb','ddt_tke',
 	       'ddt_temp_gscp','ddt_temp_radsw','ddt_temp_radlw','ddt_temp_turb','lwflxall','trsolall','pres_sfc','t_g',
-	       'qnc','qnr','qni','qns','qng','qnh','ninact', 
+	       'qnc','qnr','qni','qns','qng','qnh','ninact',
 	       'tetfl_turb','vapfl_turb','liqfl_turb',
 	       'lwflx_up','lwflx_dn','swflx_up','swflx_dn',
 	       'reff_qc','reff_qr'
@@ -490,14 +490,14 @@ EOF
 
 tic=$(date)
 
-/opt/nec/ve/mpi/3.5.0/bin/runtime/mpirun -v     -x      -venode        -np ${PPN} -env OMP_NUM_THREADS 1 ${MODEL} 
+/opt/nec/ve/mpi/3.5.0/bin/runtime/mpirun -v     -x      -venode        -np ${PPN} -env OMP_NUM_THREADS 1 ${MODEL}
 
 toc=$(date)
 echo 'tic: ' $tic
 echo 'toc: ' $toc
 
 
-###----- Optional block for testing... 
+###----- Optional block for testing...
 # EXIT_STATUS=0
 # module load cdo
 # CDO=$(which cdo)
@@ -505,7 +505,7 @@ echo 'toc: ' $toc
 ###-- Testing on bit equality
 # echo ${CDO} diffn ${REFDIR}/scm_out_ML_19690626T000000Z.nc ${EXPDIR}/scm_out_ML_19690626T000000Z.nc > ${DIFFILE}
 # ${CDO} diffn ${REFDIR}/scm_out_ML_19690626T000000Z.nc ${EXPDIR}/scm_out_ML_19690626T000000Z.nc > ${DIFFILE}
-# if [ -s ${DIFFILE} ]; then 
+# if [ -s ${DIFFILE} ]; then
 #     echo " Files differ "
 #     EXIT_STATUS=$(($EXIT_STATUS + 1))
 # else

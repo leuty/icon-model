@@ -19,4 +19,3 @@ create-pipeline:
 
 trigger-icon-ci:
   extends: .trigger_common
-

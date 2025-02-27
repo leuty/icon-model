@@ -77,8 +77,8 @@ MODULE mo_async_latbc_types
 
 
   !> Data structure containing the lateral boundary forcing data.
-  !> Compared to t_init_state it allows to store forcing data 
-  !< for additional child domains, if required. 
+  !> Compared to t_init_state it allows to store forcing data
+  !< for additional child domains, if required.
   !< This is required in case of upper boundary nudging.
   !
   TYPE, EXTENDS (t_init_state) :: t_latbc_state
@@ -112,7 +112,7 @@ MODULE mo_async_latbc_types
      LOGICAL                                     :: lread_hhl
 
      ! are prognostic thermodynamic variables (= rho and theta_v) present in the input file?
-     LOGICAL                                     :: lread_theta_rho      
+     LOGICAL                                     :: lread_theta_rho
 
      ! .TRUE., if pressure is read from input
      LOGICAL                                     :: lread_pres
@@ -137,7 +137,7 @@ MODULE mo_async_latbc_types
      CHARACTER(LEN=10)                           :: hhl_var
 
      ! input data validity DateTime
-     TYPE(datetime)                              :: vDateTime          
+     TYPE(datetime)                              :: vDateTime
 
    CONTAINS
      PROCEDURE :: finalize => t_buffer_finalize   !< destructor
@@ -221,7 +221,7 @@ MODULE mo_async_latbc_types
     ! for sparse latbc mode: index data for boundary rows:
     TYPE(t_glb_indices) :: global_index
 
-    ! linear interpolation weights for time interpolation between 
+    ! linear interpolation weights for time interpolation between
     ! consecutive boundary data
     REAL(wp):: lc1, lc2
   CONTAINS
@@ -299,7 +299,7 @@ CONTAINS
     IF (ALLOCATED(buffer%nlev))           DEALLOCATE(buffer%nlev)
     IF (ALLOCATED(buffer%vars)) THEN
       DO i=1,SIZE(buffer%vars)
-        IF (ASSOCIATED(buffer%vars(i)%buffer))  DEALLOCATE(buffer%vars(i)%buffer)      
+        IF (ASSOCIATED(buffer%vars(i)%buffer))  DEALLOCATE(buffer%vars(i)%buffer)
       END DO
       DEALLOCATE(buffer%vars)
     END IF
@@ -310,7 +310,7 @@ CONTAINS
 
   SUBROUTINE t_latbc_state_finalize(init_data)
     CLASS(t_latbc_state), INTENT(INOUT) :: init_data
-    INTEGER :: jg 
+    INTEGER :: jg
 
     CALL t_init_state_finalize(init_data)
     !
@@ -338,7 +338,7 @@ CONTAINS
     DO tlev = 1, 2
       CALL latbc%latbc_data(tlev)%finalize()
     END DO
-    
+
     CALL latbc%patch_data%finalize()          ! deallocate patch data
     CALL latbc%buffer%finalize()              ! deallocate intermediate storage latbc%buffer
     CALL latbc%global_index%finalize()        ! clean up global indices data structure.
@@ -371,26 +371,26 @@ CONTAINS
 
 
     !-------------------------------------------------------------------------
-    !  Update linear interpolation weights (lc1, lc2) for the time interpolation 
+    !  Update linear interpolation weights (lc1, lc2) for the time interpolation
     !  between two consecutive boundary forcing time slices.
     !
     !
     !      <------------------------------------->  dtime_latbc
     !                               <------------>  delta_tstep
-    !                          datetime_current   
+    !                          datetime_current
     !   ---*------------------------X------------*----------------> time axis
     !    vDate_prev                            vDate_cur
     !
     SUBROUTINE t_latbc_data_update_intp_wgt( latbc, datetime_current )
       CLASS(t_latbc_data), INTENT(INOUT)  :: latbc
-      TYPE(datetime),      INTENT(IN)     :: datetime_current ! datetime for which interpolation 
+      TYPE(datetime),      INTENT(IN)     :: datetime_current ! datetime for which interpolation
                                                               ! weights shall be computed
 #ifndef NOMPI
-      TYPE(timedelta)         :: delta_tstep        ! time delta between current datetime and 
+      TYPE(timedelta)         :: delta_tstep        ! time delta between current datetime and
                                                     ! validity time of current boundary forcing time slice.
       INTEGER(i8)             :: delta_tstep_in_sec ! delta_tstep converted to seconds
 
-      REAL(wp)                :: dtime_latbc        ! time delta between two consecutive 
+      REAL(wp)                :: dtime_latbc        ! time delta between two consecutive
                                                     ! boundary forcing time slices [s]
       TYPE(timedelta)         :: td                 ! same in mtime format
       LOGICAL                 :: failure

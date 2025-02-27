@@ -32,7 +32,7 @@ MODULE mo_albedo
   USE mo_radiation_config,     ONLY: rad_csalbw, direct_albedo, direct_albedo_water, albedo_whitecap
   USE mo_lnd_nwp_config,       ONLY: ntiles_total, ntiles_water, ntiles_lnd, lterra_urb, lurbalb,  &
     &                                lseaice, lprog_albsi, llake, isub_water, isub_lake,           &
-    &                                isub_seaice 
+    &                                isub_seaice
   USE mo_nwp_tuning_config,    ONLY: tune_albedo_wso
   USE mo_extpar_config,        ONLY: itype_vegetation_cycle
   USE sfc_terra_data,          ONLY: csalb, csalb_snow_fe, csalb_snow_fd,     &
@@ -68,8 +68,8 @@ CONTAINS
   !>
   !! Calculation of surface albedo
   !!
-  !! Calculation of surface albedo based on tabulated shortwave bare soil 
-  !! albedo data. In addition, soil type, vegetation and snow/ice conditions 
+  !! Calculation of surface albedo based on tabulated shortwave bare soil
+  !! albedo data. In addition, soil type, vegetation and snow/ice conditions
   !! are taken into account
   !!
   SUBROUTINE sfc_albedo(pt_patch, ext_data, lnd_prog, wtr_prog, lnd_diag, prm_diag, lacc)
@@ -147,10 +147,10 @@ CONTAINS
 
 
       !------------------------------------------------------------------------------
-      ! Calculation of surface albedo taking soil type,              
+      ! Calculation of surface albedo taking soil type,
       ! vegetation and snow/ice conditions into account
       !------------------------------------------------------------------------------
-      
+
       IF ( atm_phy_nwp_config(jg)%inwp_surface == LSS_TERRA ) THEN
 
 
@@ -158,10 +158,10 @@ CONTAINS
         ! 1. Consider land points (may have tiles)
         !
         ! - loop over surface tiles
-        ! - note that different grid points may have different numbers 
-        !   of active tiles (1<=ntiles<=ntiles_total). Therefore each tile has a 
+        ! - note that different grid points may have different numbers
+        !   of active tiles (1<=ntiles<=ntiles_total). Therefore each tile has a
         !   separate index list.
-        ! 
+        !
         DO jt = 1, ntiles_total
 
           i_count_lnd = ext_data%atm%gp_count_t(jb,jt)
@@ -212,7 +212,7 @@ CONTAINS
               ! - instead, snow albedo is limited to land-class specific value
 
               ! get land cover class
-              ilu = ext_data%atm%lc_class_t(jc,jb,jt) 
+              ilu = ext_data%atm%lc_class_t(jc,jb,jt)
               zsnow_alb = MIN(zsalb_snow, ABS(ext_data%atm%snowalb_lcc(ilu)))
 
 
@@ -289,7 +289,7 @@ CONTAINS
           !
           ! Open sea points
           !
-          ! - loop over sea points (points which are at least partly ice-free) 
+          ! - loop over sea points (points which are at least partly ice-free)
           !
           i_count_sea = ext_data%atm%list_seawtr%ncount(jb)
 
@@ -306,7 +306,7 @@ CONTAINS
               jc = ext_data%atm%list_seawtr%idx(ic,jb)
 
               CALL sfc_albedo_whitecap(prm_diag%sp_10m(jc,jb), wc_fraction, wc_albedo)
-  
+
               prm_diag%albdif_t(jc,jb,isub_water) = wc_fraction * wc_albedo + &
             & prm_diag%albdif_t(jc,jb,isub_water) * (1.0_wp - wc_fraction)
 
@@ -326,19 +326,19 @@ CONTAINS
               jc = ext_data%atm%list_seaice%idx(ic,jb)
               prm_diag%albdif_t(jc,jb,isub_seaice) = MAX(0._wp,wtr_prog%alb_si(jc,jb))
               ! Note that missing values for alb_si are chosen to be negative (usually -1)
-              ! If something goes wrong with the sea-ice index list, or if the initialization 
+              ! If something goes wrong with the sea-ice index list, or if the initialization
               ! fails, there is the danger that we make use negative albedo values. To force a
               ! model crash in this case, we set negative albedo values to 0.
-              ! 
+              !
             ENDDO
-          ELSE 
+          ELSE
             ! Use diagnostic sea-ice albedo (computed here)
             DO ic = 1, i_count_seaice
               jc = ext_data%atm%list_seaice%idx(ic,jb)
-              ! In case the sea ice model is used, compute ice albedo for seaice 
+              ! In case the sea ice model is used, compute ice albedo for seaice
               ! points with an empirical formula taken from GME.
-              ! The ice albedo is the lower the warmer, and therefore wetter 
-              ! the ice is. Use ice temperature at time level nnew 
+              ! The ice albedo is the lower the warmer, and therefore wetter
+              ! the ice is. Use ice temperature at time level nnew
               ! (2-time level scheme in sea ice model).
               prm_diag%albdif_t(jc,jb,isub_seaice) = alb_seaice_equil( wtr_prog%t_ice(jc,jb) )
               ! gives alb_max = 0.70
@@ -362,7 +362,7 @@ CONTAINS
             jc = ext_data%atm%list_seawtr%idx(ic,jb)
 
             ! special handling of sea ice points
-            IF (lnd_prog%t_g_t(jc,jb,isub_water) < tf_salt) THEN 
+            IF (lnd_prog%t_g_t(jc,jb,isub_water) < tf_salt) THEN
               ist = ist_seaice  ! sea ice
             ELSE
               ist = ist_seawtr  ! sea water
@@ -379,7 +379,7 @@ CONTAINS
               jc = ext_data%atm%list_seawtr%idx(ic,jb)
 
               CALL sfc_albedo_whitecap(prm_diag%sp_10m(jc,jb), wc_fraction, wc_albedo)
-  
+
               prm_diag%albdif_t(jc,jb,isub_water) = wc_fraction * wc_albedo + &
             & prm_diag%albdif_t(jc,jb,isub_water) * (1.0_wp - wc_fraction)
 
@@ -405,14 +405,14 @@ CONTAINS
           DO ic = 1, i_count_flk
             jc = ext_data%atm%list_lake%idx(ic,jb)
 
-            !  In case ice is present at lake points, compute ice albedo 
-            !  for lake points with an empirical formulation 
-            !  proposed by Mironov and Ritter (2004) for use in GME 
+            !  In case ice is present at lake points, compute ice albedo
+            !  for lake points with an empirical formulation
+            !  proposed by Mironov and Ritter (2004) for use in GME
             !  [ice_albedo=function(ice_surface_temperature)].
             !  Use surface temperature at time level "nnew".
 
             ! special handling for ice-covered lake points
-            IF (wtr_prog%h_ice(jc,jb) > h_Ice_min_flk) THEN 
+            IF (wtr_prog%h_ice(jc,jb) > h_Ice_min_flk) THEN
 
               prm_diag%albdif_t(jc,jb,isub_lake) = albedo_whiteice_ref                      &
                 &              - (albedo_whiteice_ref - albedo_blueice_ref)                 &
@@ -436,7 +436,7 @@ CONTAINS
             jc = ext_data%atm%list_lake%idx(ic,jb)
 
             ! special handling of sea ice points
-            IF (lnd_prog%t_g_t(jc,jb,isub_lake) < tpl_T_f) THEN 
+            IF (lnd_prog%t_g_t(jc,jb,isub_lake) < tpl_T_f) THEN
               ist = ist_seaice ! sea ice
             ELSE
               ist = ist_seawtr   ! water
@@ -464,10 +464,10 @@ CONTAINS
         ! Aggregate surface albedo on all points
         !
         IF (ntiles_total == 1) THEN
- 
+
           DO jc = i_startidx, i_endidx
             prm_diag%albdif(jc,jb) = prm_diag%albdif_t(jc,jb,1)
-            ! For RRTM copy albdif to albnirdif and albvisdif 
+            ! For RRTM copy albdif to albnirdif and albvisdif
             ! i.e. no distiction is made between shortwave, vis and nir albedo
             prm_diag%albvisdif(jc,jb) = prm_diag%albdif_t(jc,jb,1)
             prm_diag%albnirdif(jc,jb) = prm_diag%albdif_t(jc,jb,1)
@@ -486,7 +486,7 @@ CONTAINS
           ENDDO
 
           DO jc = i_startidx, i_endidx
-            ! For RRTM copy albdif to albnirdif and albvisdif 
+            ! For RRTM copy albdif to albnirdif and albvisdif
             ! i.e. no distiction is made between shortwave, vis and nir albedo
             prm_diag%albvisdif(jc,jb) = prm_diag%albdif(jc,jb)
             prm_diag%albnirdif(jc,jb) = prm_diag%albdif(jc,jb)
@@ -497,7 +497,7 @@ CONTAINS
 
 
         DO jc = i_startidx, i_endidx
-          
+
           ist = ist_seaice
 
           IF (ext_data%atm%llsm_atm_c(jc,jb) .OR. lnd_prog%t_g(jc,jb) >= tf_salt ) THEN
@@ -509,16 +509,16 @@ CONTAINS
           ! i.e. no distiction is made between shortwave, vis and nir albedo
           prm_diag%albvisdif(jc,jb) = csalb(ist)
           prm_diag%albnirdif(jc,jb) = csalb(ist)
-          
+
         ENDDO
 
       ENDIF ! inwp_surface=1
 
 
-      ! albvisdir, albnirdir only needed for RRTM 
+      ! albvisdir, albnirdir only needed for RRTM
       !
-      ! compute black sky albedo from white sky albedo and solar zenith angle formula 
-      ! as in Ritter-Geleyn's fesft. So far we do not distinguish between  
+      ! compute black sky albedo from white sky albedo and solar zenith angle formula
+      ! as in Ritter-Geleyn's fesft. So far we do not distinguish between
       ! visible and NIR spectral bands.
       DO jc = i_startidx, i_endidx
 
@@ -541,8 +541,8 @@ CONTAINS
   !>
   !! Calculation of surface albedo based on MODIS data
   !!
-  !! Calculation of surface albedo based on snow-free MODIS data. In addition, 
-  !! snow/ice conditions are taken into account. The snow-free MODIS albedo is updated 
+  !! Calculation of surface albedo based on snow-free MODIS data. In addition,
+  !! snow/ice conditions are taken into account. The snow-free MODIS albedo is updated
   !! on a daily basis.
   !! We distinguish between
   !! - shortwave broadband albedo  (diffuse, 0.3-5.0um): albdif
@@ -555,18 +555,18 @@ CONTAINS
   !!
   !! Diffuse albedo:
   !!=================
-  !! land points (snow-free): MODIS albedo is used with separate values for visible and 
+  !! land points (snow-free): MODIS albedo is used with separate values for visible and
   !!                          nera-IR spectral bands. No distinction for tiles
   !! land points (snow covered): based on land-class specific tabulated values with
-  !!                             consideration of aging snow. No distinction between 
+  !!                             consideration of aging snow. No distinction between
   !!                             visible and near-IR spectral bands, yet
-  !! sea points: tabulated value. No distinction yet between visible and near-IR spectral 
+  !! sea points: tabulated value. No distinction yet between visible and near-IR spectral
   !!             bands.
-  !! lake points: tabulated value. No distinction yet between visible and near-IR spectral 
+  !! lake points: tabulated value. No distinction yet between visible and near-IR spectral
   !!              bands.
-  !! sea-ice points: based on an empirical formula taken from GME. No distinction yet 
+  !! sea-ice points: based on an empirical formula taken from GME. No distinction yet
   !!                 between visible and near-IR spectral bands.
-  !! lake-ice points: based on an empirical formula taken from GME. No distinction yet 
+  !! lake-ice points: based on an empirical formula taken from GME. No distinction yet
   !!                 between visible and near-IR spectral bands.
   !!
   !!
@@ -581,10 +581,10 @@ CONTAINS
   !! lake-ice points: separate values for visible and near-IR spectral bands.
   !! sea/lake points: separate values for direct and diffuse radiation (see IFS)
   !!
-  !! Note that when using separate values for visible and near-IR spectral bands, the 
-  !! shortwave albedo albdif_t must be derived by spectral integration of the visible 
-  !! and near-IR albedo.                         
-  !! 
+  !! Note that when using separate values for visible and near-IR spectral bands, the
+  !! shortwave albedo albdif_t must be derived by spectral integration of the visible
+  !! and near-IR albedo.
+  !!
   SUBROUTINE sfc_albedo_modis(pt_patch, ext_data, lnd_prog, wtr_prog, lnd_diag, prm_diag, lacc)
 
     TYPE(t_patch),          INTENT(   in):: pt_patch  !< grid/patch info.
@@ -659,7 +659,7 @@ CONTAINS
 
     i_startblk = pt_patch%cells%start_blk(rl_start,1)
     i_endblk   = pt_patch%cells%end_blk(rl_end,i_nchdom)
-    
+
     w_so_l = 0.001_wp ! left boundary of w_so for tune_albedo_wso
     w_so_r = 0.002_wp ! right boundary of w_so for tune_albedo_wso
 
@@ -692,10 +692,10 @@ CONTAINS
         ! 1. Consider land points (may have tiles)
         !
         ! - loop over surface tiles
-        ! - note that different grid points may have different numbers 
-        !   of active tiles (1<=ntiles<=ntiles_total). Therefore each tile has a 
+        ! - note that different grid points may have different numbers
+        !   of active tiles (1<=ntiles<=ntiles_total). Therefore each tile has a
         !   separate index list.
-        ! 
+        !
         !$ACC DATA COPYIN(zalbvisdir_t, zalbnirdir_t) &
         !$ACC   CREATE(zsnowfrac, zsnow_alb, albuv_dif_hlp, albni_dif_hlp) IF(lacc)
 
@@ -707,7 +707,7 @@ CONTAINS
 
           IF (i_count_lnd == 0) CYCLE ! skip loop if the index list for the given tile is empty
 
-!$NEC ivdep 
+!$NEC ivdep
           !$ACC LOOP GANG VECTOR &
           !$ACC   PRIVATE(jc, snow_frac, t_fac, ilu, alb_corr, plcov) &
           !$ACC   PRIVATE(zminsnow_alb, zmaxsnow_alb, zlimsnow_alb, zsnowalb_lu, alb_dif_hlp) &
@@ -746,7 +746,7 @@ CONTAINS
               zlimsnow_alb = csalb_snow_max
             ENDIF
 
-            ! Further limitation of maximum snow albedo in case of thin snow cover depending on landuse 
+            ! Further limitation of maximum snow albedo in case of thin snow cover depending on landuse
             ! roughness length and SSO standard deviation; without tiles, it is assumed that non-forest
             ! vegetation is fully covered by snow if the snow depth exceeds three times the roughness length.
             ! The snow depth is taken to be at least 5 cm here because the effect of partial snow
@@ -931,7 +931,7 @@ CONTAINS
               zalbvisdir_t(jc,jt) = sfc_albedo_dir_rg(prm_diag%cosmu0(jc,jb), &
                 &                                        prm_diag%albvisdif_t(jc,jb,jt))
               zalbnirdir_t(jc,jt) = sfc_albedo_dir_rg(prm_diag%cosmu0(jc,jb), &
-                &                                        prm_diag%albnirdif_t(jc,jb,jt)) 
+                &                                        prm_diag%albnirdif_t(jc,jb,jt))
 
             ELSE IF ( direct_albedo == 2 ) THEN  ! Zaengl
               zalbvisdir_t(jc,jt) = sfc_albedo_dir_zaengl (prm_diag%cosmu0(jc,jb),         &
@@ -998,7 +998,7 @@ CONTAINS
           !
           ! Open sea points
           !
-          ! - loop over sea points  (points which are at least partly ice-free) 
+          ! - loop over sea points  (points which are at least partly ice-free)
           !
           i_count_sea = ext_data%atm%list_seawtr%ncount(jb)
 !$NEC ivdep
@@ -1044,7 +1044,7 @@ CONTAINS
               jc = ext_data%atm%list_seawtr%idx(ic,jb)
 
               CALL sfc_albedo_whitecap(prm_diag%sp_10m(jc,jb), wc_fraction, wc_albedo)
-  
+
               prm_diag%albdif_t   (jc,jb,isub_water) = wc_fraction * wc_albedo + &
             & prm_diag%albdif_t   (jc,jb,isub_water) * (1.0_wp - wc_fraction)
               prm_diag%albvisdif_t(jc,jb,isub_water) = wc_fraction * wc_albedo + &
@@ -1068,7 +1068,7 @@ CONTAINS
           !
           i_count_seaice = ext_data%atm%list_seaice%ncount(jb)
 
-          PrognosticSeaIceAlbedo_modis: IF ( lprog_albsi ) THEN 
+          PrognosticSeaIceAlbedo_modis: IF ( lprog_albsi ) THEN
             ! Use prognostic diffuse sea-ice albedo (computed within the routines of the sea-ice scheme)
 !$NEC ivdep
             !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1) IF(lacc)
@@ -1078,7 +1078,7 @@ CONTAINS
 
               prm_diag%albdif_t(jc,jb,isub_seaice) = MAX(0._wp,wtr_prog%alb_si(jc,jb))
               ! Note that missing values for alb_si are chosen to be negative (usually -1)
-              ! If something goes wrong with the sea-ice index list, or if the initialization 
+              ! If something goes wrong with the sea-ice index list, or if the initialization
               ! fails, there is the danger that we make use negative albedo values. To force a
               ! model crash in this case, we set negative albedo values to 0.
               !
@@ -1098,7 +1098,7 @@ CONTAINS
 
             ENDDO
             !$ACC END PARALLEL
-          ELSE 
+          ELSE
             ! Use diagnostic diffuse sea-ice albedo (computed here)
 !$NEC ivdep
             !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1) IF(lacc)
@@ -1115,7 +1115,7 @@ CONTAINS
           DO ic = 1, i_count_seaice
             jc = ext_data%atm%list_seaice%idx(ic,jb)
 
-            ! diffuse albedo             
+            ! diffuse albedo
             prm_diag%albvisdif_t(jc,jb,isub_seaice) = prm_diag%albdif_t(jc,jb,isub_seaice)
             prm_diag%albnirdif_t(jc,jb,isub_seaice) = prm_diag%albdif_t(jc,jb,isub_seaice)
 
@@ -1142,7 +1142,7 @@ CONTAINS
             jc = ext_data%atm%list_seawtr%idx(ic,jb)
 
             ! special handling of sea ice points
-            IF (lnd_prog%t_g_t(jc,jb,isub_water) < tf_salt) THEN 
+            IF (lnd_prog%t_g_t(jc,jb,isub_water) < tf_salt) THEN
               lfrozenwater = .TRUE.
               ist = ist_seaice  ! sea ice
             ELSE
@@ -1218,16 +1218,16 @@ CONTAINS
           DO ic = 1, i_count_flk
             jc = ext_data%atm%list_lake%idx(ic,jb)
 
-            !  In case ice is present at lake points, compute ice albedo 
-            !  for lake points with an empirical formulation 
-            !  proposed by Mironov and Ritter (2004) for use in GME 
+            !  In case ice is present at lake points, compute ice albedo
+            !  for lake points with an empirical formulation
+            !  proposed by Mironov and Ritter (2004) for use in GME
             !  [ice_albedo=function(ice_surface_temperature)].
             !  Use surface temperature at time level "nnew".
 
             ! special handling for ice-covered lake points
             !
-            ! diffuse albedo 
-            IF (wtr_prog%h_ice(jc,jb) > h_Ice_min_flk) THEN 
+            ! diffuse albedo
+            IF (wtr_prog%h_ice(jc,jb) > h_Ice_min_flk) THEN
               lfrozenwater = .TRUE.
               prm_diag%albdif_t(jc,jb,isub_lake) = albedo_whiteice_ref                      &
                 &              - (albedo_whiteice_ref - albedo_blueice_ref)                 &
@@ -1283,7 +1283,7 @@ CONTAINS
             jc = ext_data%atm%list_lake%idx(ic,jb)
 
             ! special handling of sea ice points
-            IF (lnd_prog%t_g_t(jc,jb,isub_lake) < tpl_T_f) THEN 
+            IF (lnd_prog%t_g_t(jc,jb,isub_lake) < tpl_T_f) THEN
               lfrozenwater = .TRUE.
               ist = ist_seaice  ! sea ice
             ELSE
@@ -1291,7 +1291,7 @@ CONTAINS
               ist = ist_seawtr  ! water
             ENDIF
 
-            ! diffuse albedo 
+            ! diffuse albedo
             prm_diag%albdif_t   (jc,jb,isub_lake) = csalb(ist)
             prm_diag%albvisdif_t(jc,jb,isub_lake) = csalb(ist)
             prm_diag%albnirdif_t(jc,jb,isub_lake) = csalb(ist)
@@ -1348,7 +1348,7 @@ CONTAINS
           !$ACC LOOP GANG VECTOR
           DO jc = i_startidx, i_endidx
             prm_diag%albdif(jc,jb) = prm_diag%albdif_t(jc,jb,1)
-            ! albvisdif, albnirdif only needed for RRTM 
+            ! albvisdif, albnirdif only needed for RRTM
             prm_diag%albvisdif(jc,jb) = prm_diag%albvisdif_t(jc,jb,1)
             prm_diag%albnirdif(jc,jb) = prm_diag%albnirdif_t(jc,jb,1)
 
@@ -1381,7 +1381,7 @@ CONTAINS
                 &                    + prm_diag%albdif_t(jc,jb,jt)    &
                 &                    * ext_data%atm%frac_t(jc,jb,jt)
 
-              ! albvisdif, albnirdif only needed for RRTM 
+              ! albvisdif, albnirdif only needed for RRTM
               prm_diag%albvisdif(jc,jb) = prm_diag%albvisdif(jc,jb)   &
                 &                    + prm_diag%albvisdif_t(jc,jb,jt) &
                 &                    * ext_data%atm%frac_t(jc,jb,jt)
@@ -1390,7 +1390,7 @@ CONTAINS
                 &                    + prm_diag%albnirdif_t(jc,jb,jt) &
                 &                    * ext_data%atm%frac_t(jc,jb,jt)
 
-              ! albvisdir, albnirdir only needed for RRTM 
+              ! albvisdir, albnirdir only needed for RRTM
               prm_diag%albvisdir(jc,jb) = prm_diag%albvisdir(jc,jb)   &
                 &                       + zalbvisdir_t(jc,jt) * ext_data%atm%frac_t(jc,jb,jt)
 
@@ -1442,7 +1442,7 @@ CONTAINS
         if (lacc) CALL finish('sfc_albedo_modis', 'Switched OFF surface model is not supported by openACC')
 #endif
         DO jc = i_startidx, i_endidx
-          
+
           ist = ist_seaice
 
           IF (ext_data%atm%llsm_atm_c(jc,jb) .OR. lnd_prog%t_g(jc,jb) >= tf_salt ) THEN
@@ -1450,11 +1450,11 @@ CONTAINS
           ENDIF
 
           prm_diag%albdif(jc,jb) = csalb(ist)
-          ! albvisdif, albnirdif only needed for RRTM 
+          ! albvisdif, albnirdif only needed for RRTM
           prm_diag%albvisdif(jc,jb) = csalb(ist)
           prm_diag%albnirdif(jc,jb) = csalb(ist)
 
-          ! albvisdir, albnirdir only needed for RRTM 
+          ! albvisdir, albnirdir only needed for RRTM
           prm_diag%albvisdir(jc,jb) = sfc_albedo_dir_rg(prm_diag%cosmu0(jc,jb),  &
               &                                         prm_diag%albvisdif(jc,jb))
           prm_diag%albnirdir(jc,jb) = sfc_albedo_dir_rg(prm_diag%cosmu0(jc,jb),  &
@@ -1482,7 +1482,7 @@ CONTAINS
   !! - near IR broadband albedo    (direct , 0.7-5.0um): albnirdir
   !!
   !! albvisdif/albvisdir and albnirdif/albnirdir are exclusively used by the RRTM scheme
-  !! 
+  !!
   SUBROUTINE sfc_albedo_scm(pt_patch, albedo_fixed, prm_diag, lacc)
 
     TYPE(t_patch),          INTENT(   in):: pt_patch     !< grid/patch info.
@@ -1539,7 +1539,7 @@ CONTAINS
   !>
   !! Surface albedo for direct beam
   !!
-  !! Surface albedo for direct beam, according to Ritter-Geleyn 
+  !! Surface albedo for direct beam, according to Ritter-Geleyn
   !! radiation scheme.
   !!
   !!
@@ -1590,11 +1590,11 @@ CONTAINS
   !! Surface albedo (SA) for direct beam over land after Zaengl
   !!
   !! Surface albedo (SA) for direct beam over land after Zaengl.
-  !! Builds upon the parameterization used in the 
-  !! Ritter-Geleyn radiation scheme. However, the direct beam albedo 
+  !! Builds upon the parameterization used in the
+  !! Ritter-Geleyn radiation scheme. However, the direct beam albedo
   !! is limited to diffuse albedo for landuse classes with "rough" vegetation
-  !! and in mountainous regions. Surfaces are regarded as 'rough', 
-  !! if z0>= 15 cm or SSO standard deviation >= 150 m. 
+  !! and in mountainous regions. Surfaces are regarded as 'rough',
+  !! if z0>= 15 cm or SSO standard deviation >= 150 m.
   !!
   !!
   FUNCTION sfc_albedo_dir_zaengl (cosmu0, alb_dif, z0, sso_stdh)  RESULT (alb_dir)
@@ -1641,7 +1641,7 @@ CONTAINS
   !!
   !! Literature
   !! - Yang, F. et al. (2008), Dependence of Land Surface Albedo on Solar Zenith Angle:
-  !!   Observations and Model Parameterization. J. App. Meteorology and Climatology, 47, 
+  !!   Observations and Model Parameterization. J. App. Meteorology and Climatology, 47,
   !!   2963-2982
   !!
   FUNCTION sfc_albedo_dir_yang (cosmu0, alb_dif)  RESULT (alb_dir)
@@ -1670,11 +1670,11 @@ CONTAINS
   !!
   !! Literature
   !! - Yang, F. et al. (2008), Dependence of Land Surface Albedo on Solar Zenith Angle:
-  !!   Observations and Model Parameterization. J. App. Meteorology and Climatology, 47, 
+  !!   Observations and Model Parameterization. J. App. Meteorology and Climatology, 47,
   !!   2963-2982
-  !! - Briegleb, B. and V. Ramanathan (1982), Spectral and Diurnal Variations in Clear Sky 
+  !! - Briegleb, B. and V. Ramanathan (1982), Spectral and Diurnal Variations in Clear Sky
   !!   Planetary Albedo, J. App. Met., 21, 1160-1171
-  !! - Briegleb, B. (1992), Delta-Eddington approximation for solar radiation 
+  !! - Briegleb, B. (1992), Delta-Eddington approximation for solar radiation
   !!   in the NCAR Community Climate Model. J. Geophys. Res., 97, 7603-7612
   !!
   FUNCTION sfc_albedo_dir_briegleb (cosmu0, alb_dif, z0)  RESULT (alb_dir)
@@ -1686,7 +1686,7 @@ CONTAINS
     REAL(wp), INTENT(IN) :: z0               !< roughness length
 
     REAL(wp) :: d                !< tuning constant
-                                 ! 0.4 (0.1) for vegetation classes where the albedo 
+                                 ! 0.4 (0.1) for vegetation classes where the albedo
                                  ! has a strong (weak) dependence on solar zenith angle.
                                  ! weak dependence is assumed for 'rough' surfaces
                                  ! Therefore we use 0.4, if z0<=0.15 and 0.1 otherwise
@@ -1729,4 +1729,3 @@ CONTAINS
   END SUBROUTINE sfc_albedo_whitecap
 
 END MODULE mo_albedo
-

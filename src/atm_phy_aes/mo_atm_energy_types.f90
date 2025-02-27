@@ -139,8 +139,8 @@ MODULE mo_atm_energy_types
           !   physics
           !
           &   einphy(:,:,:) => NULL(), einphyvi(:,:) => NULL(), einphyhi(:) => NULL(), einphyti(:) => NULL(), &
-          &   ekhphy(:,:,:) => NULL(), ekhphyvi(:,:) => NULL(), ekhphyhi(:) => NULL(), ekhphyti(:) => NULL(), & 
-          &   ekvphy(:,:,:) => NULL(), ekvphyvi(:,:) => NULL(), ekvphyhi(:) => NULL(), ekvphyti(:) => NULL(), & 
+          &   ekhphy(:,:,:) => NULL(), ekhphyvi(:,:) => NULL(), ekhphyhi(:) => NULL(), ekhphyti(:) => NULL(), &
+          &   ekvphy(:,:,:) => NULL(), ekvphyvi(:,:) => NULL(), ekvphyhi(:) => NULL(), ekvphyti(:) => NULL(), &
           &   egpphy(:,:,:) => NULL(), egpphyvi(:,:) => NULL(), egpphyhi(:) => NULL(), egpphyti(:) => NULL(), &
           &   etophy(:,:,:) => NULL(), etophyvi(:,:) => NULL(), etophyhi(:) => NULL(), etophyti(:) => NULL()
 

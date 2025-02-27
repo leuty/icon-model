@@ -11,9 +11,9 @@ just to name a few. An extensive, but still incomplete list of available
 output variables is provided in Appendix A of the {term}`ICON Tutorial 2024`.
 
 In mathematical terms, the ICON atmosphere model solves the fully compressible non-hydrostatic
-Navier-Stokes equations on the sphere. The explicitly resolved scales of 
+Navier-Stokes equations on the sphere. The explicitly resolved scales of
 motion are treated by the so called **[](ref_atmosphere_dycore)**.
-The latter is accompanyied by a set of physical parameterizations which account for the effect motions 
+The latter is accompanyied by a set of physical parameterizations which account for the effect motions
 that fall below a chosen mesh size.
 ICON offers two different physics packages which are known as the AES Physics Package and the NWP Physics Package.
 
@@ -115,8 +115,8 @@ More detailed descriptions of some of above options are available here:
 :::{grid-item-card}
 **Radiation (ecRad)**
 ^^^
-[](ref_atmosphere_ecrad)  
-[](ref_atmosphere_ecrad_redgrid)  
+[](ref_atmosphere_ecrad)
+[](ref_atmosphere_ecrad_redgrid)
 [](ref_atmosphere_ecrad_aerosol)
 :::
 ::::

@@ -18,7 +18,7 @@ MODULE mo_sedmnt
   USE mo_kind, ONLY        : wp
   USE mo_exception, ONLY      : message, finish
   USE mo_param1_bgc, ONLY  : nsedtra, npowtra, n_bgctra, nsed_diag
-  USE mo_control_bgc, ONLY: dtbgc, bgc_nproma, bgc_zlevs 
+  USE mo_control_bgc, ONLY: dtbgc, bgc_nproma, bgc_zlevs
   USE mo_hamocc_nml, ONLY : isac,ks,ksp,dzs,porwat
   USE mo_memory_bgc, ONLY :  sinkspeed_dust
   USE mo_bgc_constants, ONLY: g,rhoref_water
@@ -204,9 +204,9 @@ SUBROUTINE  ini_bottom(local_bgc_mem, start_idx, end_idx, klevs, pddpo, lacc)
    ENDIF
   END DO
   !$ACC END PARALLEL
-  
+
  END SUBROUTINE
- 
+
  SUBROUTINE ALLOC_MEM_SEDMNT
 
     ALLOCATE (seddzi(ksp))

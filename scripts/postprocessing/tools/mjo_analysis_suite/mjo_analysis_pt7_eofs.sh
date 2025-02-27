@@ -25,10 +25,10 @@
 ########################################################
 
 
-for variable in  OLR TOT_PREC U200 U850 V850 
+for variable in  OLR TOT_PREC U200 U850 V850
 do
   fileinpart=${variable}"_"${dataext}"anom"
-  echo "Process "${variable} 
+  echo "Process "${variable}
   ncl 'var="'${variable}'"' \
       'infile="'${filepath}${dataset}'_'${fileinpart}'.nc"' \
       'plotdir="'${plotpath}'"' \
@@ -44,5 +44,3 @@ do
       neof=3                \
       mjo_analysis_clivar_eofs.ncl
 done
-
-

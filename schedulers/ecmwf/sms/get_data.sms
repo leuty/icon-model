@@ -22,11 +22,11 @@
     Florian Prill, DWD, mailto:florian.prill@dwd.de
 
   Task objectives:
-  - retrieve IFS data from MARS 
+  - retrieve IFS data from MARS
 %end
 
 # include the header file for remote jobs
-%include <init_sc.h> 
+%include <init_sc.h>
 
 # -------------------------------------------------
 
@@ -93,7 +93,7 @@ if [[ ${INI_IFS_ICON} -eq 1 ]] ; then
   else
     nlev=91
   fi
-  
+
   #rm -f ${IFSDATADIR2}/${IFS_FILENAME_NC}
   if [[ -f ${IFSDATADIR2}/${IFS_FILENAME_NC} ]] ; then
     echo 'ifs2icon file can be copied - no MARS!'
@@ -108,10 +108,10 @@ if [[ ${INI_IFS_ICON} -eq 1 ]] ; then
         else
           ${SCRIPTDIR}/preprocessing/mars4icon_smi  -d %YMD%%INIHOUR% -s 0  -r 399 -l 1/to/${nlev} -S eda:%NMEM%
         fi
-      else 
+      else
         if [ %RES% = "R02B07"  -o  %RES% = "R02B08"  -o  %RES% = "R02B09"  -o  %RES% = "R03B07" ] ; then
           ${SCRIPTDIR}/preprocessing/mars4icon_smi  -d %YMD%%INIHOUR% -s 0 -r 1279 -l 1/to/${nlev}
-        else 
+        else
           ${SCRIPTDIR}/preprocessing/mars4icon_smi  -d %YMD%%INIHOUR% -s 0  -r 799 -l 1/to/${nlev}
         fi
       fi
@@ -124,7 +124,7 @@ if [[ ${INI_IFS_ICON} -eq 1 ]] ; then
 
 
 ## ------------------------------------------------
-# Retrieve data from ECFS: ICON initial conditions 
+# Retrieve data from ECFS: ICON initial conditions
 
 else
 
@@ -144,4 +144,3 @@ fi
 
 # include the "tail" file for remote jobs
 %include <end_sc.h>
-

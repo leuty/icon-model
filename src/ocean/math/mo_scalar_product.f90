@@ -1765,7 +1765,7 @@ CONTAINS
       !$ACC KERNELS DEFAULT(PRESENT) ASYNC(1) IF(lzacc)
       out_vn_e(:,:,blockNo) = 0.0_wp
       !$ACC END KERNELS
-      
+
       !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1) IF(lzacc)
       !$ACC LOOP GANG VECTOR
       level_loop_e2: DO level = startLevel, endLevel
@@ -1915,7 +1915,7 @@ CONTAINS
       DO level = startLevel, max_dolic_e
         DO je = start_edge_index, end_edge_index
           IF (dolic_e(je,blockNo) < level) CYCLE
-#else           
+#else
       !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1) IF(lzacc)
       !$ACC LOOP GANG VECTOR
       DO je =  start_edge_index, end_edge_index
@@ -2293,7 +2293,7 @@ CONTAINS
 
     DO blockNo = start_block, end_block
       CALL get_index_range(edges_indomain, blockNo, start_edge_index, end_edge_index)
-      
+
       !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1) IF(lzacc)
       !$ACC LOOP GANG VECTOR
       DO je = start_edge_index, end_edge_index
@@ -2435,7 +2435,7 @@ CONTAINS
     INTEGER :: edge_2_1_block, edge_2_2_block, edge_2_3_block
     INTEGER :: je, blockNo, start_edge_index, end_edge_index
     LOGICAL :: lzacc
-    
+
     REAL(wp), POINTER :: all_coeffs(:,:,:)
 
     TYPE(t_subset_range), POINTER :: edges_indomain

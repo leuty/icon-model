@@ -454,7 +454,7 @@ CONTAINS
     LOGICAL :: lzacc
 
     CALL set_acc_host_or_device(lzacc, lacc)
-    
+
     IF (ltimer) CALL timer_start(this%timer_sync)
     IF(my_process_is_mpi_parallel()) THEN
       CALL exchange_data(p_pat=this%comm_pat_sync, lacc=lzacc, recv=data_inout)

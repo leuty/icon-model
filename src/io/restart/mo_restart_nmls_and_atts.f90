@@ -214,7 +214,7 @@ CONTAINS
 
   SUBROUTINE bcastNamelistStore(root, comm)
     INTEGER, INTENT(IN) :: root, comm
-    
+
     CALL gNamelistStore%bcast(root, comm)
   END SUBROUTINE bcastNamelistStore
 

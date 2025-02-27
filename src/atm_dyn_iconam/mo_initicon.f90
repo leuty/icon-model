@@ -113,7 +113,7 @@ MODULE mo_initicon
     TYPE(t_gridref_state),    INTENT(IN)              :: p_grf_state(:)
     TYPE(t_nh_state),         INTENT(INOUT)           :: p_nh_state(:)
     TYPE(t_nwp_phy_diag),     INTENT(INOUT), OPTIONAL :: prm_diag(:)
-    TYPE(t_nwp_phy_stochconv),INTENT(INOUT), OPTIONAL :: prm_nwp_stochconv(:)    
+    TYPE(t_nwp_phy_stochconv),INTENT(INOUT), OPTIONAL :: prm_nwp_stochconv(:)
     TYPE(t_lnd_state),        INTENT(INOUT), OPTIONAL :: p_lnd_state(:)
     TYPE(t_external_data),    INTENT(INOUT), OPTIONAL :: ext_data(:)
 
@@ -196,16 +196,16 @@ MODULE mo_initicon
   ! Write an output line that informs the user of the init_mode we are using (failing the program if init_mode is invalid).
   SUBROUTINE print_init_mode()
     SELECT CASE(init_mode)
-        CASE(MODE_DWDANA)   
+        CASE(MODE_DWDANA)
             CALL message(modname,'MODE_DWD: perform initialization with DWD analysis')
-        CASE(MODE_ICONVREMAP)   
+        CASE(MODE_ICONVREMAP)
             CALL message(modname,'MODE_VREMAP: read ICON data and perform vertical remapping')
         CASE (MODE_IAU_OLD)
             CALL message(modname,'MODE_IAU_OLD: perform initialization with incremental analysis update &
                                  &(retained for backward compatibility)')
         CASE (MODE_IAU)
             CALL message(modname,'MODE_IAU: perform initialization with incremental analysis update, including snow increments')
-        CASE(MODE_IFSANA)   
+        CASE(MODE_IFSANA)
             CALL message(modname,'MODE_IFS: perform initialization with IFS analysis')
         CASE(MODE_COMBINED)
             CALL message(modname,'MODE_COMBINED: IFS-atm + ICON-soil')
@@ -482,7 +482,7 @@ MODULE mo_initicon
         CASE(MODE_DWDANA)
             ! process DWD atmosphere analysis data
             IF(lread_ana) CALL process_input_dwdana_atm(p_patch, initicon)
-            ! merge first guess with DA analysis and 
+            ! merge first guess with DA analysis and
             ! convert variables to the NH set of prognostic variables
             CALL create_dwdana_atm(p_patch, p_nh_state, p_int_state)
         CASE(MODE_IAU_OLD, MODE_IAU)
@@ -578,8 +578,8 @@ MODULE mo_initicon
     END SELECT
 
     !
-    ! coldstart for prognostic sea-ice albedo in case that alb_si was 
-    ! not found in the FG 
+    ! coldstart for prognostic sea-ice albedo in case that alb_si was
+    ! not found in the FG
     !
     DO jg = 1, n_dom
       IF (.NOT. p_patch(jg)%ldom_active) CYCLE
@@ -598,7 +598,7 @@ MODULE mo_initicon
       CALL new_land_from_ocean(p_patch, p_nh_state, p_lnd_state, ext_data)
 
     ENDIF
-  
+
   END SUBROUTINE process_dwdana
 
   ! Reads the data from the first-guess and analysis files, and does any required processing of that input data.
@@ -1030,12 +1030,12 @@ MODULE mo_initicon
 
 
   !>
-  !! Transform atmospheric analysis increments originating from DWD's assimilation 
+  !! Transform atmospheric analysis increments originating from DWD's assimilation
   !! system.
   !!
-  !! Transform atmospheric analysis increments originating from DWD's assimilation 
-  !! system into increments of ICON's prognostic variables. 
-  !! I.e. the increment state vector (u,v,p,T,qv) is transformed 
+  !! Transform atmospheric analysis increments originating from DWD's assimilation
+  !! system into increments of ICON's prognostic variables.
+  !! I.e. the increment state vector (u,v,p,T,qv) is transformed
   !! into the increment state vector (vn, rho, exner (or rho*theta_v), rho*qv).
   !!
   SUBROUTINE transform_dwdana_increment_atm (p_patch, p_nh_state, p_int_state)
@@ -1072,7 +1072,7 @@ MODULE mo_initicon
     REAL(wp), ALLOCATABLE, DIMENSION(:,:) :: alpha
 
     ! List of tracer IDs which contain prognostic condensate.
-    ! Required for computing the water loading term 
+    ! Required for computing the water loading term
     INTEGER, POINTER :: condensate_list(:)
 
     INTEGER :: iter, npts
@@ -1129,11 +1129,11 @@ MODULE mo_initicon
 
 
       ! 1) Compute analysis increments for rho, exner (rho*theta_v), and rho*qv
-      ! 
-      !    The prognostic state variables which enter the increment computation 
+      !
+      !    The prognostic state variables which enter the increment computation
       !    are approximated with the first guess values.
-      !    Note that this is an approximation w.r.t. time, as the state variables 
-      !    should actually be taken from the first guess whose validity date 
+      !    Note that this is an approximation w.r.t. time, as the state variables
+      !    should actually be taken from the first guess whose validity date
       !    matches that of the analysis increments.
       !
       !
@@ -1198,7 +1198,7 @@ MODULE mo_initicon
               &                        * vtmpc1* initicon(jg)%atm_inc%qv(jc,jk,jb)
 
 
-            ! APPROXIMATION: neglect density increment for the time being, in order to be consistent with 
+            ! APPROXIMATION: neglect density increment for the time being, in order to be consistent with
             ! the (currently inaccurate) IAU tracer update in iau_update_tracer
             !   p_diag%rhov_incr(jc,jk,jb) = p_prog_now%rho(jc,jk,jb) * initicon(jg)%atm_inc%qv(jc,jk,jb) &
             !     &                        + p_diag%rho_incr(jc,jk,jb) * p_prog_now_rcf%tracer(jc,jk,jb,iqv)
@@ -1495,7 +1495,7 @@ MODULE mo_initicon
               p_prog_now%exner(jc,jk,jb) = p_prog_now%exner(jc,jk,jb) + p_diag%exner_incr(jc,jk,jb)
 
 
-              ! use this version and corresponding update equation below, as soon as the approximation 
+              ! use this version and corresponding update equation below, as soon as the approximation
               ! to rhov_incr is removed (see above)
               !
               ! analysed water vapour partial density
@@ -1805,9 +1805,9 @@ MODULE mo_initicon
         ! store a copy of FG field for subsequent consistency checks
         h_snow_t_fg(:,:) = lnd_diag%h_snow_t(:,jb,:)
 
-        ! set snow increments on sub-grid land points to zero because the snow analysis artificially removes 
+        ! set snow increments on sub-grid land points to zero because the snow analysis artificially removes
         ! existing snow there (this is fixed in snowana versions higher than 2.26)
-        WHERE (ext_data(jg)%atm%fr_land(i_startidx:i_endidx,jb) < 0.5_wp) 
+        WHERE (ext_data(jg)%atm%fr_land(i_startidx:i_endidx,jb) < 0.5_wp)
           initicon(jg)%sfc_inc%h_snow(i_startidx:i_endidx,jb) = 0._wp
         END WHERE
 
@@ -2083,7 +2083,7 @@ MODULE mo_initicon
         IF (lerr) THEN
           CALL finish(routine, "Landpoint has invalid soiltype (sea water or sea ice)")
         ENDIF
- 
+
 
         ! Calculate weighted T-RH bias as a predictor for the soil-moisture adjustment
         DO jc = i_startidx, i_endidx
@@ -2155,7 +2155,7 @@ MODULE mo_initicon
     INTEGER :: rl_start, rl_end
     INTEGER :: i_startidx, i_endidx, i_endblk
     LOGICAL :: lp_mask(nproma)
-    REAL(wp):: z_t_seasfc(nproma)              ! temporary field containing both SST 
+    REAL(wp):: z_t_seasfc(nproma)              ! temporary field containing both SST
                                                ! and lake-surface temperatures
 
     INTEGER :: source_ana_tseasfc(2)           ! possible input sources for t_seasfc analysis
@@ -2211,7 +2211,7 @@ MODULE mo_initicon
             p_lnd_state(jg)%diag_lnd%t_seasfc(jc,jb) = MAX(tf_salt,initicon(jg)%sfc%sst(jc,jb))
           END DO
 
-        ELSE IF (lfgread_tseasfc) THEN 
+        ELSE IF (lfgread_tseasfc) THEN
 
           ! Reset t_seasfc to 0 over land points if they carry an explicit missing value (-9e33)
           ! This is needed to obtain correct masking when writing the field into the output
@@ -2458,4 +2458,3 @@ MODULE mo_initicon
 
 
 END MODULE mo_initicon
-

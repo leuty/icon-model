@@ -15,7 +15,7 @@
 make_and_change_to_experiment_dir # function in ../add_run_routines
 
 # Combine START and MODEL if START_MODEL is not already set.
-# START_MODEL is used to ease the execution of a machine that uses a complex 
+# START_MODEL is used to ease the execution of a machine that uses a complex
 # mpirun command with multiple binaries
 START_MODEL="${START_MODEL:=$START $MODEL}"
 
@@ -905,7 +905,7 @@ module unload eccodes sx ; module load x86 eccodes/2.28.0-x86-python
 
 EXIT_STATUS=0
 
-for this_file in igfrf02000000ML.grb 
+for this_file in igfrf02000000ML.grb
 do
 
   # run Python script for comparison of GRIB2 meta-data and values:

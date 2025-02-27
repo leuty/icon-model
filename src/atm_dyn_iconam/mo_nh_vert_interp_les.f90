@@ -145,8 +145,8 @@ MODULE mo_nh_vert_interp_les
     TYPE(t_nh_metrics),INTENT(in) :: p_metrics
     TYPE(t_patch),     INTENT(in) :: p_patch
     REAL(wp), INTENT(in)                  :: varin(:,:,:)
-    INTEGER,  INTENT(in)                  :: rl_start, rl_end 
-    REAL(wp), INTENT(out)                 :: varout(:,:,:)                     
+    INTEGER,  INTENT(in)                  :: rl_start, rl_end
+    REAL(wp), INTENT(out)                 :: varout(:,:,:)
 
     INTEGER :: i_startblk, i_endblk
     INTEGER :: i_endidx, i_startidx, nlevp1, nlev
@@ -176,9 +176,9 @@ MODULE mo_nh_vert_interp_les
         !$ACC LOOP GANG VECTOR COLLAPSE(2)
 #ifdef __LOOP_EXCHANGE
         DO jc = i_startidx , i_endidx
-         DO jk = 2 , nlev  
+         DO jk = 2 , nlev
 #else
-        DO jk = 2 , nlev  
+        DO jk = 2 , nlev
          DO jc = i_startidx , i_endidx
 #endif
           varout(jc,jk,jb) = p_metrics%wgtfac_c(jc,jk,jb)*varin(jc,jk,jb) + &
@@ -199,11 +199,11 @@ MODULE mo_nh_vert_interp_les
              p_metrics%wgtfacq_c(jc,1,jb)*varin(jc,nlev,jb)   + &
              p_metrics%wgtfacq_c(jc,2,jb)*varin(jc,nlev-1,jb) + &
              p_metrics%wgtfacq_c(jc,3,jb)*varin(jc,nlev-2,jb)
-        END DO     
+        END DO
         !$ACC END PARALLEL
-    END DO 
+    END DO
 !$OMP END DO NOWAIT
-!$OMP END PARALLEL 
+!$OMP END PARALLEL
 
   !$ACC WAIT
   !$ACC END DATA
@@ -216,10 +216,10 @@ MODULE mo_nh_vert_interp_les
   !! - It extrapolates if no data given for zb > za
   !! Taken from UCLA-LES
 
-  SUBROUTINE vert_intp_linear_1d(za, xa, zb, xb) 
+  SUBROUTINE vert_intp_linear_1d(za, xa, zb, xb)
      REAL(wp), INTENT(IN)  :: za(:), zb(:), xa(:)
      REAL(wp), INTENT(OUT) :: xb(:)
-  
+
      REAL(wp) :: wt
      INTEGER  :: l, k, na, nb
 
@@ -233,7 +233,7 @@ MODULE mo_nh_vert_interp_les
              l = l-1
           END DO
           wt=(zb(k)-za(l))/(za(l-1)-za(l))
-          xb(k)=xa(l)+(xa(l-1)-xa(l))*wt    
+          xb(k)=xa(l)+(xa(l-1)-xa(l))*wt
        ELSE
           wt=(zb(k)-za(1))/(za(2)-za(1))
           xb(k)=xa(1)+(xa(2)-xa(1))*wt
@@ -244,13 +244,13 @@ MODULE mo_nh_vert_interp_les
 
   !!------------------------------------------------------------------------
   !! global_hor_mean: only called for interior points
-  !! Calculates horizontally averaged vertically varying quantaties 
+  !! Calculates horizontally averaged vertically varying quantaties
 
   SUBROUTINE global_hor_mean(p_patch, var, varout, inv_no_cells)
 
     TYPE(t_patch),     INTENT(in) :: p_patch
     REAL(wp), INTENT(in)                  :: var(:,:,:), inv_no_cells
-    REAL(wp), INTENT(out)                 :: varout(:)                     
+    REAL(wp), INTENT(out)                 :: varout(:)
 
     REAL(wp) :: var_aux(SIZE(var,1),SIZE(var,2),SIZE(var,3))
     INTEGER  :: i_startblk, i_endblk, rl_start
@@ -296,8 +296,8 @@ MODULE mo_nh_vert_interp_les
   FUNCTION vertical_derivative (var, inv_dz) RESULT(dvardz)
 
     REAL(wp), INTENT(in) :: var(:), inv_dz(:)
-                     
-    REAL(wp) :: dvardz(SIZE(inv_dz))                     
+
+    REAL(wp) :: dvardz(SIZE(inv_dz))
     INTEGER  :: jk
 
 !$OMP PARALLEL
@@ -311,7 +311,7 @@ MODULE mo_nh_vert_interp_les
   END FUNCTION vertical_derivative
 
   !!------------------------------------------------------------------------
-  !! Brunt Vaisala Frequency: 
+  !! Brunt Vaisala Frequency:
   !! Calculates BVF for unsaturated and saturated case based on Durran & Klemp 1982
   !! Eq. 4. and using moist lapse rate expression from Marshall and Plumb
   SUBROUTINE brunt_vaisala_freq(p_patch, p_metrics, kbdim, thetav, bru_vais, opt_rlstart, lacc)
@@ -338,11 +338,11 @@ MODULE mo_nh_vert_interp_les
     !$ACC   PRESENT(thetav, bru_vais, p_metrics, p_metrics%inv_ddqz_z_half) &
     !$ACC   CREATE(thetav_ic) IF(lzacc)
 
-    ! To be calculated at all cells at interface levels, except top/bottom 
+    ! To be calculated at all cells at interface levels, except top/bottom
     ! boundaries
     nlev      = p_patch%nlev
 
-    ! Note that the range of bruvais is essentially bound to where theta_v 
+    ! Note that the range of bruvais is essentially bound to where theta_v
     ! was calculated right before the call to brunt_vaisala_freq.
     ! Check for optional arguments
     IF ( PRESENT(opt_rlstart) ) THEN
@@ -374,20 +374,17 @@ MODULE mo_nh_vert_interp_les
           bru_vais(jc,jk,jb) = grav * ( thetav(jc,jk-1,jb) - thetav(jc,jk,jb) ) * &
                                p_metrics%inv_ddqz_z_half(jc,jk,jb)/thetav_ic(jc,jk,jb)
         END DO
-      END DO     
+      END DO
       !$ACC END PARALLEL
-    END DO 
+    END DO
 !$OMP END DO NOWAIT
-!$OMP END PARALLEL     
+!$OMP END PARALLEL
 
   !$ACC WAIT
   !$ACC END DATA
-   
+
   END SUBROUTINE brunt_vaisala_freq
 
 !-------------------------------------------------------------------------------
 
 END MODULE mo_nh_vert_interp_les
-
-
-

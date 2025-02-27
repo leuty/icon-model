@@ -170,4 +170,3 @@ if test $(pwd) != $(cd "${icon_dir}"; pwd); then
     echo "WARNING: 'rsync' is not available: unable to copy runscript input files from the source directory." >&2
   fi
 fi
-

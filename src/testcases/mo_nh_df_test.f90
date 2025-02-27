@@ -169,7 +169,7 @@ CONTAINS
         ptr_nh_diag%w_concorr_c(1:nlen,jk,jb) = 0.0_wp
 
         ! init full level pressure
-        ptr_nh_diag%pres(1:nlen,jk,jb) = zp0 
+        ptr_nh_diag%pres(1:nlen,jk,jb) = zp0
 
         ! init density field rho
         ptr_nh_prog%rho(1:nlen,jk,jb) = 1._wp
@@ -241,7 +241,7 @@ CONTAINS
       &  zpsi(nproma,ptr_patch%nblks_v)
     INTEGER  :: ilv1, ilv2, ibv1, ibv2
     REAL(wp) :: iorient             !< system orientation
-    
+
     REAL(wp) ::  u0, u3, u4       !< flow field amplitude [m/s]
     !---------------------------------------------------------------------------
     ! constants
@@ -451,7 +451,7 @@ CONTAINS
         CALL get_indices_e(ptr_patch, jb, i_startblk, nblks_e, &
                            i_startidx, i_endidx, i_rcstartlev)
 
-        ! deduce normal velocity components at edge midpoints from 
+        ! deduce normal velocity components at edge midpoints from
         ! stream function at vertices
         DO je = i_startidx, i_endidx
 
@@ -462,16 +462,16 @@ CONTAINS
           ibv2 = ptr_patch%edges%vertex_blk(je,jb,2)
 
           ! compute normal wind component
-          ! this is done by computing the tangential derivative of the 
+          ! this is done by computing the tangential derivative of the
           ! streamfunction.
           ! Note that the tangential direction is defined by
           ! iorient*(vertex2 - vertex1)
           !
-          ! DR: I am not quite sure, why I have to multiply with -1 once 
-          ! again, in order to get the correct result. This may have 
-          ! something to do with the fact, that for the system orientation 
-          ! the vector product between the dual normal and the primal normal 
-          ! (dn x pn) is computed and not (pn x dn). 
+          ! DR: I am not quite sure, why I have to multiply with -1 once
+          ! again, in order to get the correct result. This may have
+          ! something to do with the fact, that for the system orientation
+          ! the vector product between the dual normal and the primal normal
+          ! (dn x pn) is computed and not (pn x dn).
           iorient = ptr_patch%edges%tangent_orientation(je,jb)
 
           ptr_prog%vn(je,1,jb) = grid_sphere_radius * iorient                             &
@@ -500,8 +500,8 @@ CONTAINS
   !!
   !! Short description:
   !! Initialization of tracer distribution for deformational flow
-  !! test. Independent of the chosen flow field, the user can choose 
-  !! between a C1 cosine bell, a slotted cylinder and a C_infty gaussian 
+  !! test. Independent of the chosen flow field, the user can choose
+  !! between a C1 cosine bell, a slotted cylinder and a C_infty gaussian
   !! hill.
   !!
   SUBROUTINE init_df_tracer( ptr_patch, ptr_int, p_ctest_name,                   &
@@ -515,15 +515,15 @@ CONTAINS
       &  ptr_int
     REAL(wp), INTENT(IN)          :: & !< Earths rotation axis pitch
       &  p_rotate_axis_deg             !< angle in deg
-                                             
+
     CHARACTER(len=MAX_CHAR_LENGTH), INTENT(IN) :: &
       &  p_ctest_name
     LOGICAL, INTENT(IN)           :: & !< fv init. for tracer fields
-      &  linit_tracer_fv    
+      &  linit_tracer_fv
     INTEGER, INTENT(IN)           :: & !< selected initial tracer distribution
-      &  tracer_inidist   
+      &  tracer_inidist
     REAL(wp), INTENT(INOUT)       :: & !< tracer array
-      &  p_cc(:,:,:)    
+      &  p_cc(:,:,:)
 
     INTEGER  :: jb,jc,jk            !> loop indices
     INTEGER  :: nblks_c
@@ -535,7 +535,7 @@ CONTAINS
     REAL(wp) :: d1,d2               !< normalized distance from ic-center
     REAL(wp) :: zcos_bell           !< cosine bell dummy field
     TYPE(t_geographical_coordinates) :: & !< gg. coords of ic-centers
-      &  ic_c1, ic_c2, gc_rot             !< rotated gg coords. of current point 
+      &  ic_c1, ic_c2, gc_rot             !< rotated gg coords. of current point
     TYPE(t_cartesian_coordinates) :: &  !< cart. coords of ic-centers
       &  ic_cc_c1, ic_cc_c2,         &
       &  cc_rot                         !< rotated point in cart. coords
@@ -664,7 +664,7 @@ CONTAINS
 
     !
     ! slotted cylinders
-    ! 
+    !
     CASE(6)
 !$OMP PARALLEL
 !$OMP DO PRIVATE(jb,jc,i_startidx,i_endidx,zlon,zlat,gc_rot, &
@@ -709,7 +709,7 @@ CONTAINS
             & .AND. ABS(gc_rot%lon - ic_c1%lon)>= bell_radius/(6._wp*grid_sphere_radius)) &
             & THEN
               p_cc(jc,1,jb) = c_slotted
-          ELSE IF (z_dist_2 <= bell_radius                           & 
+          ELSE IF (z_dist_2 <= bell_radius                           &
             & .AND. ABS(gc_rot%lon - ic_c2%lon)>= bell_radius/(6._wp*grid_sphere_radius)) &
             & THEN
               p_cc(jc,1,jb) = c_slotted
@@ -725,7 +725,7 @@ CONTAINS
               p_cc(jc,1,jb) = c_slotted
           ELSE
               p_cc(jc,1,jb) = b_slotted
-          ENDIF  
+          ENDIF
 
         ENDDO
       ENDDO
@@ -734,7 +734,7 @@ CONTAINS
 
     !
     ! C_infty gaussian hills (see Levy et. al., 2007)
-    ! 
+    !
     CASE(7)
 
     ! Transform ic_center to cartesian coordinates
@@ -912,7 +912,7 @@ CONTAINS
 !$OMP END DO
 !$OMP END PARALLEL
 
-    END SELECT 
+    END SELECT
 
     ! copy to all vertical levels
     DO jk = 2, nlev
@@ -1423,4 +1423,3 @@ CONTAINS
 
 
 END MODULE mo_nh_df_test
-

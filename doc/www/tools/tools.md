@@ -13,7 +13,7 @@ and the **[](ref_how_to_run_recommconf)**._
 
 YAC (Yet Another Coupler) is a flexibe coupling library which comes with ICON.
 Its interface is compatible to the well known OASIS coupler and it can be
-used as a full replacement of it.  
+used as a full replacement of it.
 YAC supports many different horizontal interpolations and a unique
 interpolation stack to control alternatives in case direct interpolation is not
 feasable. It is not only used for coupling atmosphere and ocean components of
@@ -45,12 +45,12 @@ You can find further information in the  [**YAC Documentation**](https://yac.git
 
 [CDO](https://code.mpimet.mpg.de/projects/cdo) is a well know data anlysis tool
 developed by [Max-Planck-Institute for Meteorology](https://mpimet.mpg.de/en). CDO supports the ICON native horizontal grid so that ICON
-model output can be easily analysed. 
+model output can be easily analysed.
 
 Examples:
 - [Horizontal interlations](https://code.mpimet.mpg.de/projects/cdo/wiki/FAQ#How-can-I-remap-ICON-data-when-the-grid-information-is-stored-in-a-separated-file) can be done with a wide range of methods
-- Vertical interpolation from ICON (atm) vertical sigma hight coordinate with the `ap2pl` operator: 
-  - (optional) add CF-conform name for pressure with 
+- Vertical interpolation from ICON (atm) vertical sigma hight coordinate with the `ap2pl` operator:
+  - (optional) add CF-conform name for pressure with
   ```shell
   ncatted -O -a standard_name,pres,o,c,"air_pressure" <input> <output>     # using NCO
   ```

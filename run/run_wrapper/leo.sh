@@ -59,4 +59,3 @@ return=$?
 
 kill_nvsmi
 exit $return
-

@@ -122,7 +122,7 @@ case $lapack_provider in
     # see it should be done:
     # BLAS_LAPACK_BUILD_ENV="export MKLROOT=\"${MKL_ROOT}\";"
     # BLAS_LAPACK_LDFLAGS="-qmkl=sequential -Wl,-rpath -Wl,${MKL_ROOT}/lib/intel64"
-    BLAS_LAPACK_LIBS='-lmkl_blas95_ilp64 -lmkl_lapack95_ilp64' 
+    BLAS_LAPACK_LIBS='-lmkl_blas95_ilp64 -lmkl_lapack95_ilp64'
     ;;
   *)
     echo "ERROR: unknown LAPACK provider '$lapack_provider'" >&2
@@ -183,9 +183,9 @@ case $flag_set in
     ICON_BUNDLED_CFLAGS='-O2 -ftz'
     ICON_YAC_CFLAGS=${ICON_BUNDLED_CFLAGS}
     ICON_CDI_CFLAGS=''
-    ICON_FCFLAGS="${ICON_FCFLAGS} -qoverride-limits -assume realloc_lhs -align array64byte -no-prec-sqrt -no-prec-div -fast-transcendentals ${ARCH} -no-fma -ftz -fpe0 -fp-model source -no-vec -qno-opt-dynamic-align -ip"  
+    ICON_FCFLAGS="${ICON_FCFLAGS} -qoverride-limits -assume realloc_lhs -align array64byte -no-prec-sqrt -no-prec-div -fast-transcendentals ${ARCH} -no-fma -ftz -fpe0 -fp-model source -no-vec -qno-opt-dynamic-align -ip"
     ICON_ECRAD_FCFLAGS=${ICON_FCFLAGS}
-    EXTRA_CONFIG_ARGS="${EXTRA_CONFIG_ARGS} --enable-art" 
+    EXTRA_CONFIG_ARGS="${EXTRA_CONFIG_ARGS} --enable-art"
     ;;
   legacy)  # from Mistral (not applicable for HLRS)
     CFLAGS="${CFLAGS} -O3 -ftz"

@@ -57,5 +57,3 @@ MODULE mo_ocean_nudging_types
   PUBLIC :: t_ocean_nudge
 
 END MODULE mo_ocean_nudging_types
-
-

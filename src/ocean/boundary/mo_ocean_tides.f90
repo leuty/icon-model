@@ -45,13 +45,13 @@ MODULE mo_ocean_tides
   PRIVATE
 
   PUBLIC  :: calculate_tides_potential
-  
+
   CHARACTER(LEN=12)  :: str_module = 'tides'  ! Output of module for 1 line debug
   INTEGER            :: idt_src    = 1               ! Level of detail for 1 line debug
   INTEGER            :: load_iteration = 0
   INTEGER            :: tide_iteration = 0
   !-------------------------------------------------------------------------
-  
+
 CONTAINS
 
   !-------------------------------------------------------------------------
@@ -65,24 +65,24 @@ CONTAINS
 
     IF (use_tides) THEN
       SELECT CASE(tides_mod)
-      CASE(1) 
+      CASE(1)
         CALL tide(patch_3d,current_time,tides_potential)
-    !  CASE(2) 
+    !  CASE(2)
     !    CALL tide_mpi(patch_3d,current_time,tides_potential)
       CASE default
         CALL finish(str_module, "Unknown tides_mod")
       END SELECT
-   
+
     ENDIF
 
     IF (use_tides_SAL) THEN
       CALL calculate_tides_SAL_simple(patch_3d,rho,h,SelfAtrractionLoad)
     ENDIF
-  
-    
+
+
 !     CALL dbg_print('tides_potential', tides_potential, str_module, 1, in_subset=patch_3d%p_patch_2d(1)%cells%owned)
 !     CALL dbg_print('SelfAtrractionLoad',      SelfAtrractionLoad,      str_module, 1, in_subset=patch_3d%p_patch_2d(1)%cells%owned)
-        
+
   END SUBROUTINE calculate_tides_potential
   !-------------------------------------------------------------------------
 
@@ -92,25 +92,25 @@ CONTAINS
     onCells                              :: rho
     onCells_2D                           :: h
     onCells_2D, INTENT(inout)            :: SelfAtrractionLoad
-    
+
     TYPE(t_patch), POINTER :: patch_2D
     TYPE(t_subset_range), POINTER :: all_cells
     INTEGER :: jb,jc,jk,start_index,end_index, levels
     REAL(wp) :: grav_eps_explicit, smooth, barotropic_part, z_grav_rho_inv_eps
     onCells :: cell_thickness
-   
+
     patch_2D        => patch_3d%p_patch_2d(1)
     all_cells       => patch_2D%cells%ALL
    cell_thickness  => patch_3D%p_patch_1d(1)%prism_thick_c
 !     cell_thickness  => patch_3D%p_patch_1d(1)%prism_thick_flat_sfc_c
-  
-    IF (load_iteration >= tides_smooth_iterations) THEN 
+
+    IF (load_iteration >= tides_smooth_iterations) THEN
       smooth = 1.0_wp
     ELSE
       smooth = REAL(load_iteration,wp) / REAL(tides_smooth_iterations,wp)
       load_iteration = load_iteration + 1
     ENDIF
- 
+
     z_grav_rho_inv_eps  = grav * tides_SAL_coeff * smooth
 !     grav_eps_explicit = grav * tides_SAL_coeff * (1.0_wp-ab_beta) * smooth
 
@@ -121,36 +121,36 @@ CONTAINS
          SelfAtrractionLoad(jc,jb) = h(jc,jb) * z_grav_rho_inv_eps
       ENDDO
     ENDDO
-!ICON_OMP_END_PARALLEL_DO     
- 
+!ICON_OMP_END_PARALLEL_DO
+
   END SUBROUTINE calculate_tides_SAL_simple
   !-------------------------------------------------------------------------
-  
+
   !-------------------------------------------------------------------------
   SUBROUTINE calculate_tides_SAL_Thomas(patch_3d,rho,h,SelfAtrractionLoad)
     TYPE(t_patch_3d ),TARGET, INTENT(in) :: patch_3d
     onCells                              :: rho
     onCells_2D                           :: h
     onCells_2D, INTENT(inout)            :: SelfAtrractionLoad
-    
+
     TYPE(t_patch), POINTER :: patch_2D
     TYPE(t_subset_range), POINTER :: all_cells
     INTEGER :: jb,jc,jk,start_index,end_index, levels
     REAL(wp) :: grav_eps_explicit, smooth, barotropic_part, z_grav_rho_inv_eps
     onCells :: cell_thickness
-   
+
     patch_2D        => patch_3d%p_patch_2d(1)
     all_cells       => patch_2D%cells%ALL
    cell_thickness  => patch_3D%p_patch_1d(1)%prism_thick_c
 !     cell_thickness  => patch_3D%p_patch_1d(1)%prism_thick_flat_sfc_c
-  
-    IF (load_iteration >= tides_smooth_iterations) THEN 
+
+    IF (load_iteration >= tides_smooth_iterations) THEN
       smooth = 1.0_wp
     ELSE
       smooth = REAL(load_iteration,wp) / REAL(tides_smooth_iterations,wp)
       load_iteration = load_iteration + 1
     ENDIF
- 
+
     z_grav_rho_inv_eps  = OceanReferenceDensity_inv * grav * tides_SAL_coeff * smooth
 !     grav_eps_explicit = grav * tides_SAL_coeff * (1.0_wp-ab_beta) * smooth
 
@@ -162,24 +162,24 @@ CONTAINS
          SelfAtrractionLoad(jc,jb) = 0.0_wp
          DO jk = 1, patch_3d%p_patch_1d(1)%dolic_c(jc,jb)
            SelfAtrractionLoad(jc,jb) = SelfAtrractionLoad(jc,jb) + cell_thickness(jc,jk,jb) * rho(jc,jk,jb)
-        ENDDO   
+        ENDDO
         SelfAtrractionLoad(jc,jb) = SelfAtrractionLoad(jc,jb) * z_grav_rho_inv_eps
       ENDDO
     ENDDO
-!ICON_OMP_END_PARALLEL_DO     
- 
+!ICON_OMP_END_PARALLEL_DO
+
   END SUBROUTINE calculate_tides_SAL_Thomas
   !-------------------------------------------------------------------------
- 
+
   !-------------------------------------------------------------------------
   SUBROUTINE tide(patch_3d,mtime_current,tides_potential)
-  
+
   IMPLICIT NONE
-  
+
   TYPE(t_patch_3d ),TARGET, INTENT(in) :: patch_3d
   TYPE(datetime), POINTER              :: mtime_current
   REAL(wp), INTENT(inout)              :: tides_potential(:,:)
-  
+
   TYPE(t_patch), POINTER :: patch_2D
   TYPE(t_subset_range), POINTER :: all_cells
   INTEGER :: jb,jc,jk,start_index,end_index
@@ -188,42 +188,42 @@ CONTAINS
   REAL(dp) :: sekunde,gezhochfahr,rs,rm
   REAL(dp) :: dtim,gst,dcl_m,alp_m,h_m,dcl_s,alp_s,h_s,mpot,spot,longitude,latitude
   REAL(wp) :: smooth
-  
-  
-  
+
+
+
   patch_2D        => patch_3d%p_patch_2d(1)
   all_cells       => patch_2D%cells%ALL
-  
-  
+
+
   CALL datetimeToString(mtime_current, datestri)
-  
+
   READ(datestri(1:4),'(i4)') jahr
   READ(datestri(6:7),'(i2.2)') monat
   READ(datestri(9:10),'(i2.2)') tag
   READ(datestri(12:13),'(i2.2)') stunde
   READ(datestri(15:16),'(i2.2)') minute
   READ(datestri(18:23),'(f6.3)') sekunde
-  
-  IF (tide_iteration >= tides_smooth_iterations) THEN 
+
+  IF (tide_iteration >= tides_smooth_iterations) THEN
     smooth = 1.0_wp
   ELSE
     smooth = REAL(tide_iteration,wp) / REAL(tides_smooth_iterations,wp)
     tide_iteration = tide_iteration + 1
   ENDIF
-   
+
   call timing(jahr,monat,tag,stunde,minute,sekunde,dtim)  ! compute the number of days since 2010 January 0.0
   call get_gst(jahr,monat,tag,stunde,minute,sekunde,gst) ! compute the Greenwich siderial time gst
   call moon_declination(dtim,gst,dcl_m,alp_m,h_m) ! declination (deg) and right ascension (hours) and Greenwich hour angle h (hours) of the Moon after Duffet and Zwart (1979)
   call sun_declination(dtim,gst,dcl_s,alp_s,h_s) ! declination (deg) dcl_s, right ascension (hours) alp_s and Greenwich hour angle h (hours) of the Sun after Duffet and Zwart (1979)
-  
+
   call dist_earth_sun_moon(jahr,monat,tag,stunde+minute*1.0_dp/60.0_dp,rs,rm)  ! distance between rs = Earth - Sun and rm = Earth - Moon  (m)
-  
-  
-   gezhochfahr = 1.0_dp  ! no spin-up 
+
+
+   gezhochfahr = 1.0_dp  ! no spin-up
 !  gezhochfahr = min(1.0_dp,(dtim-tide_start)/30.0_dp)  ! spin-up over the first 30 days, when starting at "tide_start"
 !  gezhochfahr = min(1.0_dp,(dtim+3286.0_dp)/30.0_dp)  ! spin-up over the first 30 days, when starting at 2001-01-01 00:00
 !  gezhochfahr = min(1.0_dp,(dtim+2160.0_dp)/30.0_dp)  ! spin-up over the first 30 days, when starting at 2004-02-01 00:00
-  
+
 ! Compute tidal potential ==================================================
 !ICON_OMP_PARALLEL_DO PRIVATE(jb, jc, start_index,end_index,longitude,latitude,mpot,spot) ICON_OMP_DEFAULT_SCHEDULE
   DO jb = all_cells%start_block, all_cells%end_block
@@ -232,20 +232,20 @@ CONTAINS
     DO jc = start_index, end_index
 
       longitude = patch_2d%cells%center(jc,jb)%lon
-      latitude = patch_2d%cells%center(jc,jb)%lat           
+      latitude = patch_2d%cells%center(jc,jb)%lat
       call Moon_pot(dcl_m,h_m,latitude,longitude,rm,mpot) ! computation of the Moon's tidal potential
       call Sun_pot(dcl_s,h_s,latitude,longitude,rs,spot)  ! computation of the Sun's tidal potential
 
-      tides_potential(jc,jb) = tides_esl_damping_coeff * gezhochfahr * (mpot + spot) * smooth ! combined tidal potential 
-  
+      tides_potential(jc,jb) = tides_esl_damping_coeff * gezhochfahr * (mpot + spot) * smooth ! combined tidal potential
+
     END DO
   END DO
 !ICON_OMP_END_PARALLEL_DO
-  
-  
+
+
   RETURN
 END SUBROUTINE tide
-  
+
 !-------------------------------------------------------------------------
 ! find the number of days since 2010 January 0.0
 subroutine timing(year,mon,day,hour,minute,sekunde,d)
@@ -464,7 +464,7 @@ pi = 3.141592653589793_dp
 rad = pi/180.0_dp
 
 
-n = 360.0_dp/365.242191_dp*d  
+n = 360.0_dp/365.242191_dp*d
 
 call adj(n)
 
@@ -562,13 +562,13 @@ REAL(dp) :: sekunde,gst,d,s,t0,t,ut
 
 call timing(year,mon,day,0,0,0.0_dp,d)
 
-s = d + 3651.5_dp 
+s = d + 3651.5_dp
 t = s/36525.0_dp
 t0 = 6.697374558_dp + 2400.051336_dp*t + 0.000025862_dp*t**2
 
 call adj2(t0)
 
-ut = hour*1.0_dp + minute*1.0_dp/60.0_dp + sekunde*1.0_dp/3600.0_dp 
+ut = hour*1.0_dp + minute*1.0_dp/60.0_dp + sekunde*1.0_dp/3600.0_dp
 
 ut = ut*1.002737909_dp
 
@@ -583,7 +583,7 @@ end subroutine get_gst
 
 subroutine Moon_pot(dcl,h,lat,lon,r,pot) ! computation of the Moon's tidal potential
 implicit none
-     
+
 REAL(dp) :: pot
 REAL(dp) :: dcl,h
 
@@ -603,17 +603,17 @@ pot0 = gam*m/r
 
 latd = lat/rad
 lond = lon/rad
-  
+
 tet = (90.0_dp - latd)*rad
 codec = (90.0_dp - dcl)*rad
 phi = (h*360.0_dp/24.0_dp + lond)*rad
 
-  
-cosg = COS(tet)*COS(codec) + SIN(tet)*SIN(codec)*COS(phi)  
+
+cosg = COS(tet)*COS(codec) + SIN(tet)*SIN(codec)*COS(phi)
 wrz = SQRT(1.0_dp - 2.0_dp*er/r*cosg + (er/r)**2)
-  
+
 pot = pot0*(1.0_dp + er/r*cosg - 1.0_dp/wrz)
-  
+
 
 return
 end subroutine Moon_pot
@@ -623,7 +623,7 @@ end subroutine Moon_pot
 
 subroutine Sun_pot(dcl,h,lat,lon,r,pot) ! computation of the Sun's tidal potential
 implicit none
-     
+
 REAL(dp) :: pot
 REAL(dp) :: dcl,h
 
@@ -643,17 +643,17 @@ pot0 = gam*m/r
 
 latd = lat/rad
 lond = lon/rad
-  
+
 tet = (90.0_dp - latd)*rad
 codec = (90.0_dp - dcl)*rad
 phi = (h*360.0_dp/24.0_dp + lond)*rad
 
-  
-cosg = COS(tet)*COS(codec) + SIN(tet)*SIN(codec)*COS(phi)  
+
+cosg = COS(tet)*COS(codec) + SIN(tet)*SIN(codec)*COS(phi)
 wrz = SQRT(1.0_dp - 2.0_dp*er/r*cosg + (er/r)**2)
-  
+
 pot = pot0*(1.0_dp + er/r*cosg - 1.0_dp/wrz)
-  
+
 
 return
 end subroutine Sun_pot
@@ -749,7 +749,7 @@ Ev = 1.2739_dp*SIN((2.0_dp*cc - mm)*rad) ! evection
 
 Mms = Mm + Ev - Ae - A3  ! Moon's corrected anomaly (deg)
 
-Ec = 6.2886_dp*SIN(Mms*rad) 
+Ec = 6.2886_dp*SIN(Mms*rad)
 
 rm = a*(1.0_dp - e**2)/(1.0_dp + e*COS((Mms + Ec)*rad))
 
@@ -804,18 +804,18 @@ if(it.lt.8) goto 2
 ee = 0.5_dp*(v1+v2)
 
 return
-end subroutine findee  
+end subroutine findee
 ! =============================================================================================
 ! =============================================================================================
 
   SUBROUTINE tide_mpi(patch_3d,mtime_current,tides_potential)
-  
+
   IMPLICIT NONE
-  
+
   TYPE(t_patch_3d ),TARGET, INTENT(in) :: patch_3d
   TYPE(datetime), POINTER              :: mtime_current
   REAL(wp), INTENT(inout)              :: tides_potential(:,:)
-  
+
   TYPE(t_patch), POINTER :: patch_2D
   TYPE(t_subset_range), POINTER :: all_cells
   INTEGER :: jb,jc,jk,start_index,end_index
@@ -823,62 +823,62 @@ end subroutine findee
   INTEGER  :: jahr,monat,tag,stunde,minute
   REAL(dp) :: sekunde,gezhochfahr,rs,rm
   REAL(dp) :: dtim,gst,dcl_m,alp_m,h_m,dcl_s,alp_s,h_s,mpot,spot,longitude,latitude
-  
+
   REAL(dp) :: pic,pi2,dt,T,sidt,ecl,nutob,nutl,res(3,2),res2(3,2)
   REAL(dp) :: rkomp,rkosp,erdrad,rekts,dekls,cris3,rektm,deklm,crim3,deklm2,dekls2,sidm,sidmq
   REAL(dp) :: codm,codmq,sids,sidsq,cods,codsq,sidm2,sids2,lon,lat,argp,alatr,hamp,hasp,tipoto
   REAL(dp) :: silato,colato
   INTEGER  :: mmccdt,fnut
   REAL(wp) :: smooth
-  
-  
-  
+
+
+
   patch_2D        => patch_3d%p_patch_2d(1)
   all_cells       => patch_2D%cells%ALL
 
-  IF (tide_iteration >= tides_smooth_iterations) THEN 
+  IF (tide_iteration >= tides_smooth_iterations) THEN
     smooth = 1.0_wp
   ELSE
     smooth = REAL(tide_iteration,wp) / REAL(tides_smooth_iterations,wp)
     tide_iteration = tide_iteration + 1
   ENDIF
- 
-  
+
+
   CALL datetimeToString(mtime_current, datestri)
-  
+
   READ(datestri(1:4),'(i4)') jahr
   READ(datestri(6:7),'(i2.2)') monat
   READ(datestri(9:10),'(i2.2)') tag
   READ(datestri(12:13),'(i2.2)') stunde
   READ(datestri(15:16),'(i2.2)') minute
   READ(datestri(18:23),'(f6.3)') sekunde
-  
+
   call timing(jahr,monat,tag,stunde,minute,sekunde,dtim)  ! compute the number of days since 2010 January 0.0
-  
-  gezhochfahr = 1.0_dp  ! no spin-up 
+
+  gezhochfahr = 1.0_dp  ! no spin-up
 ! gezhochfahr = min(1.0_dp,(dtim-tide_start)/30.0_dp)  ! spin-up over the first 30 days, when starting at "tide_start"
 !  gezhochfahr = min(1.0_dp,(dtim+3286.0_dp)/30.0_dp)  ! spin-up over the first 30 days, when starting at 2001-01-01 00:00
 !  gezhochfahr = min(1.0_dp,(dtim+2160.0_dp)/30.0_dp)  ! spin-up over the first 30 days, when starting at 2004-02-01 00:00
 
   t = dtim+3651.5_dp ! Julian days since 2000-01-01 12:00
   t = t/36525.0_dp  !fractional julian centuries t since 2000-01-01 12:00
-   
-   
+
+
   pi2 = ACOS(-1.0_dp) * 2.0_dp
   pic = ACOS(-1.0_dp)/180.0_dp
-   
+
   call sidt2(pic,pi2,t,sidt) ! corresponding sidereal time Greenwich sidt
-  
-  
+
+
   fnut=0  ! set fnut (perform nutation -> 1; don't -> 0)
 
   CALL obliq(fnut,pic,T,ecl,nutob,nutl)  ! obliquity of the ecliptic
-  
-  CALL sun_n(fnut,pic,pi2,T,ecl,nutl,res)!  calculation of position of the Sun according to Duffett, 1990 
-  CALL moon(fnut,pic,pi2,T,ecl,nutl,res) !  calculation of position of the Moon according to Duffett, 1990 
-  
+
+  CALL sun_n(fnut,pic,pi2,T,ecl,nutl,res)!  calculation of position of the Sun according to Duffett, 1990
+  CALL moon(fnut,pic,pi2,T,ecl,nutl,res) !  calculation of position of the Moon according to Duffett, 1990
+
   CALL aufb2(sidt,res,res2) ! modifications in preparaion of calculation of potentials
-  
+
   rkomp = -4.113e-07_dp ! factor of the tidal potential due to the moon
                      ! attention the factor is defined negative (contrary to the standard).
   rkosp = 0.46051_dp * rkomp ! FIXME: replace with radius from mo_planetary constants
@@ -905,8 +905,8 @@ end subroutine findee
   codsq  = cods*cods
   sidm2 = SIN(deklm2)
   sids2 = SIN(dekls2)
-   
-  
+
+
 ! Compute tidal potential ==================================================
 !ICON_OMP_PARALLEL_DO PRIVATE(jb, jc, start_index,end_index,longitude,latitude,argp,alatr, silato,colato, &
 !ICON_OMP hamp, hasp) ICON_OMP_DEFAULT_SCHEDULE
@@ -916,7 +916,7 @@ end subroutine findee
     DO jc = start_index, end_index
 
       longitude = patch_2d%cells%center(jc,jb)%lon
-      latitude = patch_2d%cells%center(jc,jb)%lat 
+      latitude = patch_2d%cells%center(jc,jb)%lat
 
       argp = longitude
       alatr = latitude
@@ -937,13 +937,13 @@ end subroutine findee
       &  * (3.0_dp * (silato**2 - 1.0_dp/3.0_dp) &
       &  * (sidsq - 1.0_dp/3.0_dp) &
       &  + SIN(2.0_dp * alatr) * sids2 * COS(hasp) &
-      &  + colato**2 * codsq * COS(2.0_dp * hasp)))      
+      &  + colato**2 * codsq * COS(2.0_dp * hasp)))
 
     END DO
   END DO
 !ICON_OMP_END_PARALLEL_DO
-  
-  
+
+
   RETURN
 END SUBROUTINE tide_mpi
 
@@ -975,9 +975,9 @@ END SUBROUTINE tide_mpi
   ENDIF
 !
   END SUBROUTINE sidt2
-  
+
 ! =============================================================
-  
+
   SUBROUTINE negangle2(pi2,x)
 ! transformation of negative angles
 ! to angles in interval [0 degree; 360 degree)
@@ -994,8 +994,8 @@ END SUBROUTINE tide_mpi
 !
   Return
   END  SUBROUTINE  negangle2
-      
-      
+
+
 ! ===========================================================
 
   SUBROUTINE langle2(pi2,x)
@@ -1014,7 +1014,7 @@ END SUBROUTINE tide_mpi
 !
   Return
   END SUBROUTINE    langle2
-  
+
 ! ===============================================================
 
   Subroutine obliq(fnut,pic,T,ecl,nutob,nutl)
@@ -1089,7 +1089,7 @@ END SUBROUTINE tide_mpi
     ecl = (23.43929167_dp - c/3600.0_dp) * pic + nutob
 !
   END SUBROUTINE obliq
-  
+
 ! ==================================================================
 
       SUBROUTINE Sun_n(fnut,pic,pi2,T,ecl,nutl,res)
@@ -1164,7 +1164,7 @@ END SUBROUTINE tide_mpi
       res(3,1)=S3
 !
       End Subroutine sun_n
-      
+
 ! ===============================================================
 
   SUBROUTINE anomaly(pi2,AM,EC,AT,AE)
@@ -1188,7 +1188,7 @@ END SUBROUTINE tide_mpi
       Endif
 !
       END SUBROUTINE anomaly
-      
+
 !  =============================================================
 
   SUBROUTINE eqecl(pi2,X,Y,P,Q,ecl,SW)
@@ -1207,11 +1207,11 @@ END SUBROUTINE tide_mpi
       Q=ASIN(SIN(Y)*COS(ecl)-COS(Y)*SIN(ecl)*SIN(X)*SW)
 !
       END SUBROUTINE eqecl
-      
+
 ! ================================================================
   Subroutine moon(fnut,pic,pi2,T,ecl,nutl,res)
   !  calculation of position of the Moon
-  !  according to Duffett, 1990 
+  !  according to Duffett, 1990
   !
   Integer fnut
   REAL(dp) :: pic,pi2,T,T1,T2,T3,ecl,nutl,A,B,C,SW
@@ -1403,14 +1403,14 @@ END SUBROUTINE tide_mpi
       res(3,2)=MO3
 !
       END SUBROUTINE moon
-      
+
 ! ================================================================
 
   SUBROUTINE aufb2(sidt,res,res2)
 
   !  modifications according to "ephaufb.f" by Maik Thomas
   ! (rekt(rad)->sid.time.green.-r.asc.; dekl(rad); cri3->(a/r)^3
-  ! for Sun and Moon) 
+  ! for Sun and Moon)
   !
   REAL(dp) :: sidt,h(3)
   REAL(dp) :: res(3,2),res2(3,2)
@@ -1426,7 +1426,7 @@ END SUBROUTINE tide_mpi
 !
   Return
   END SUBROUTINE aufb2
-  
+
 
 END MODULE mo_ocean_tides
 !=============================================================================

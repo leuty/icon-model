@@ -40,7 +40,7 @@ MODULE mo_advection_vflux
   USE mo_parallel_config,     ONLY: nproma
   USE mo_run_config,          ONLY: msg_level, lvert_nest, timers_level, iqtke
   USE mo_advection_config,    ONLY: t_advection_config, advection_config,     &
-    &                               lcompute, lcleanup, t_trList 
+    &                               lcompute, lcleanup, t_trList
   USE mo_advection_vlimit,    ONLY: v_limit_parabola_mo, v_limit_parabola_sm,  &
    &                                vflx_limiter_pd,                           &
    &                                v_limit_slope_mo, v_limit_slope_sm,        &
@@ -94,7 +94,7 @@ CONTAINS
 
     CHARACTER(len=*), PARAMETER :: routine = modname//':vert_upwind_flux'
 
-    TYPE(t_patch), INTENT(IN) ::  &  !< patch on which computation is 
+    TYPE(t_patch), INTENT(IN) ::  &  !< patch on which computation is
       &  p_patch                             !< performed
 
     REAL(wp), INTENT(IN) ::  &      !< advected cell centered variable
@@ -119,10 +119,10 @@ CONTAINS
     REAL(wp), INTENT(INOUT) :: &    !< variable in which the upwind flux is stored
       &  p_upflux(:,:,:,:)          !< dim: (nproma,nlevp1,nblks_c,ntracer)
 
-    REAL(wp), INTENT(IN)    :: &    !< tracer mass fraction at (nest) upper boundary 
+    REAL(wp), INTENT(IN)    :: &    !< tracer mass fraction at (nest) upper boundary
       &  q_ubc(:,:,:)               !< NH: [kg/kg]
 
-    REAL(wp), INTENT(OUT)   :: &    !< tracer mass fraction at child nest interface level 
+    REAL(wp), INTENT(OUT)   :: &    !< tracer mass fraction at child nest interface level
       &  q_int(:,:,:)               !< NH: [kg/kg]
                                         !< dim: (nproma,ntracer,nblks_c)
 
@@ -160,7 +160,7 @@ CONTAINS
     ! Note (DR): Since we define ivadv_tracer as a 1D array of dimension
     ! ntracer, we can select different flux calculation methods for
     ! different tracers. We may also decide not to advect special
-    ! tracers. Furthermore, options regarding the desired limiter can be passed 
+    ! tracers. Furthermore, options regarding the desired limiter can be passed
     ! via the argument list. The same is true for precomputed lcompute/lcleanup
     ! values.
     DO nt = 1, trAdvect%len
@@ -183,7 +183,7 @@ CONTAINS
           &         p_patch        = p_patch,                & !in
           &         p_cc           = p_cc(:,:,:,jt),         & !in
           &         p_iubc_adv     = advconf%iubc_adv,       & !in
-          &         p_mflx_contra_v= p_mflx_contra_v(:,:,:), & !in 
+          &         p_mflx_contra_v= p_mflx_contra_v(:,:,:), & !in
           &         p_upflux       = p_upflux(:,:,:,jt),     & !out
           &         opt_q_ubc      = q_ubc(:,jt,:),          & !in
           &         opt_slev       = advconf%iadv_slev(jt),  & !in
@@ -230,7 +230,7 @@ CONTAINS
     ! get face value "q_int" at vertical boundary of child nest
     !
     ! determine if upper boundary values are needed
-    IF (lvert_nest .AND. (p_patch%nshift_child > 0)) THEN 
+    IF (lvert_nest .AND. (p_patch%nshift_child > 0)) THEN
 
       ! refinement control start/end level for cells
       i_rlstart_c = 1
@@ -300,7 +300,7 @@ CONTAINS
     REAL(wp), INTENT(INOUT) ::  & !< vertical tracer flux at half levels
       &  p_upflux(:,:,:)          !< dim: (nproma,nlevp1,nblks_c)
 
-    REAL(wp), INTENT(IN), OPTIONAL :: & !< tracer mass fraction at (nest) upper boundary 
+    REAL(wp), INTENT(IN), OPTIONAL :: & !< tracer mass fraction at (nest) upper boundary
       &  opt_q_ubc(:,:)                 !< dim: (nproma,nblks_c)
 
     INTEGER, INTENT(IN), OPTIONAL ::  & !< optional vertical start level
@@ -380,7 +380,7 @@ CONTAINS
           ! calculate vertical tracer flux   -- removed flaky laxfr macro
           p_upflux(jc,jk,jb) = p_mflx_contra_v(jc,jk,jb) *                    &
                                MERGE( p_cc(jc,jk,jb),p_cc(jc,jk-1,jb),        &
-                                      p_mflx_contra_v(jc,jk,jb) .GE. 0.0_wp ) 
+                                      p_mflx_contra_v(jc,jk,jb) .GE. 0.0_wp )
         END DO ! end loop over cells
       ENDDO ! end loop over vertical levels
       !$ACC END PARALLEL
@@ -413,8 +413,8 @@ CONTAINS
   !-------------------------------------------------------------------------
   !! The third order PPM/PSM scheme for large time steps (CFL>1)
   !!
-  !! Calculation of time averaged vertical tracer fluxes or tracer edge 
-  !! values using the third order PPM/PSM scheme. This scheme can handle 
+  !! Calculation of time averaged vertical tracer fluxes or tracer edge
+  !! values using the third order PPM/PSM scheme. This scheme can handle
   !! large time steps (i.e. CFL>1)
   !!
   !
@@ -480,10 +480,10 @@ CONTAINS
                                   !< dim: (nproma,nlevp1,nblks_c)
 
     LOGICAL, INTENT(IN), OPTIONAL ::  & !< optional: output edge value (.TRUE.),
-      &  opt_lout_edge                  !< or the flux across the edge 
+      &  opt_lout_edge                  !< or the flux across the edge
                                         !< (.FALSE./not specified)
 
-    REAL(wp), INTENT(IN), OPTIONAL :: & !< tracer mass fraction at (nest) upper boundary 
+    REAL(wp), INTENT(IN), OPTIONAL :: & !< tracer mass fraction at (nest) upper boundary
       &  opt_q_ubc(:,:)                 !< dim: (nproma,nblks_c)
 
     INTEGER, INTENT(IN), OPTIONAL ::  & !< optional vertical start level
@@ -501,7 +501,7 @@ CONTAINS
     INTEGER, INTENT(IN), OPTIONAL :: & !< optional: refinement control end level
       &  opt_rlend                     !< (to avoid calculation of halo points)
 
-    LOGICAL  :: l_out_edgeval     !< corresponding local variable; default 
+    LOGICAL  :: l_out_edgeval     !< corresponding local variable; default
                                   !< .FALSE. i.e. output flux across the edge
 
     REAL(wp) :: &                 !< face values of transported field
@@ -528,7 +528,7 @@ CONTAINS
     REAL(wp) :: &                 !< z_delta_q of upwind cell
       &  dq_up
 
-    REAL(wp) :: &                 !< z_a1 of upwind cell, including sign flip  
+    REAL(wp) :: &                 !< z_a1 of upwind cell, including sign flip
       &  a_up                     !< for w < 0
 
     INTEGER  :: jc, jk, jb               !< index of cell, vertical level and block
@@ -550,18 +550,18 @@ CONTAINS
     INTEGER  :: nlist_max                !< maximum number of index lists
     INTEGER  :: nlist                    !< list loop variable
 
-    REAL(wp) :: wsign                    !< wind direction: introduced, in order to merge flux formula  
+    REAL(wp) :: wsign                    !< wind direction: introduced, in order to merge flux formula
                                          !< for w>0 and w<0.
                                          !< +1, if w >0
                                          !< -1, if w <0
 
-    REAL(wp), ALLOCATABLE, SAVE :: &     !< fractional (mass weighted) Courant number 
+    REAL(wp), ALLOCATABLE, SAVE :: &     !< fractional (mass weighted) Courant number
       &  z_cflfrac(:,:,:)                !< always positive
 
     REAL(wp), ALLOCATABLE, SAVE ::    &  !< maximum vertical Courant number
       &  max_cfl_blk(:)                  !< per block
 
-    INTEGER, ALLOCATABLE, SAVE  ::    &  !< Index lists, level lists and list dimensions 
+    INTEGER, ALLOCATABLE, SAVE  ::    &  !< Index lists, level lists and list dimensions
       &  i_indlist(:,:,:),    &          !< for points with CFL>1,2,3
       &  i_levlist(:,:,:),    &
       &  i_listdim(:,:)
@@ -572,14 +572,14 @@ CONTAINS
     INTEGER  :: jks                      !< shifted vertical index
                                          !< can vary betwen jk and jk_shifted
 
-    INTEGER  :: bot_bound                !< shifted index jk_shifted must fall within the 
-                                         !< range [top_bound, bot_bound]. Note that the 
+    INTEGER  :: bot_bound                !< shifted index jk_shifted must fall within the
+                                         !< range [top_bound, bot_bound]. Note that the
                                          !< permissible range depends on the sign of w.
-                                         !< Note that the variable top_bound is currently 
-                                         !< not needed. It can savely be replaced by 
-                                         !< slevp1_ti (see below) 
+                                         !< Note that the variable top_bound is currently
+                                         !< not needed. It can savely be replaced by
+                                         !< slevp1_ti (see below)
 
-    INTEGER  :: counter, counter_ji      !< check whether any of the points has 
+    INTEGER  :: counter, counter_ji      !< check whether any of the points has
                                          !< CFL>nlist
 
     INTEGER  :: jg                       !< patch ID
@@ -686,7 +686,7 @@ CONTAINS
     ! approx. of the subgrid distribution is used.
     !
     IF ( ld_compute ) THEN
-      ! allocate temporary arrays 
+      ! allocate temporary arrays
       ALLOCATE( i_indlist(nproma*nlevp1,nlist_max,p_patch%nblks_c),    &
         &       i_levlist(nproma*nlevp1,nlist_max,p_patch%nblks_c),    &
         &       i_listdim(nlist_max,p_patch%nblks_c),                  &
@@ -712,7 +712,7 @@ CONTAINS
       &                 i_startidx, i_endidx, i_rlstart, i_rlend )
 
     !
-    ! 1. Compute density weighted (fractional) Courant number 
+    ! 1. Compute density weighted (fractional) Courant number
     !    for w<0 and w>0 and integer shift s
     !
     IF (ld_compute) THEN
@@ -748,7 +748,7 @@ CONTAINS
         max_cfl_lay(jk,jb) = MAXVAL(z_cflfrac(i_startidx:i_endidx,jk,jb))
 
 
-        ! If CFL>1 then split the CFL number into the fractional CFL number 
+        ! If CFL>1 then split the CFL number into the fractional CFL number
         ! and the index shift s.
         IF (max_cfl_lay(jk,jb) <= 1._wp) CYCLE
 
@@ -767,17 +767,17 @@ CONTAINS
           ! re-initialize counter for CFL>nlist
           counter   = 0
 
-          ! copy value from counter in vector form to counter in scalar form, 
+          ! copy value from counter in vector form to counter in scalar form,
           ! since otherwise the following DO-Loop will not vectorize.
           counter_ji = i_listdim(nlist,jb)
 
           DO jc = i_startidx, i_endidx
 
-            ! jk_shifted must fall within the range [top_bound, bot_bound] in order 
-            ! to pass the following if condition. Unfortunately, the range depends on 
-            ! the sign of w. 
-            ! Note that for the time being we can skip the computation of top_bound, 
-            ! as the CFL computation only starts at slevp1_ti anyways.  
+            ! jk_shifted must fall within the range [top_bound, bot_bound] in order
+            ! to pass the following if condition. Unfortunately, the range depends on
+            ! the sign of w.
+            ! Note that for the time being we can skip the computation of top_bound,
+            ! as the CFL computation only starts at slevp1_ti anyways.
             bot_bound = MERGE(nlev-1 , nlev     , p_mflx_contra_v(jc,jk,jb) > 0._wp)
             !top_bound = MERGE(slev_ti, slevp1_ti, p_mflx_contra_v(jc,jk,jb) > 0._wp)
 
@@ -797,7 +797,7 @@ CONTAINS
 
               ! Fill index lists with those points that need index shifts
               ! Note that we have to use a scalar counter instead of a vector, like
-              ! i_listdim(nlist,jb). Otherwise this loop will not vectorize.  
+              ! i_listdim(nlist,jb). Otherwise this loop will not vectorize.
               counter_ji = counter_ji + 1
               i_indlist(counter_ji,nlist,jb) = jc
               i_levlist(counter_ji,nlist,jb) = jk
@@ -813,7 +813,7 @@ CONTAINS
           i_listdim(nlist,jb) = counter_ji
 
         ENDDO  ! DO WHILE loop
- 
+
       ENDDO ! end loop over vertical levels
 
       max_cfl_blk(jb) = MAXVAL(max_cfl_lay(slevp1_ti:elev,jb))
@@ -906,7 +906,7 @@ CONTAINS
       !    assuming a piecewise parabolic subgrid distribution.
       !
 
-      ! 5a. Compute coefficients of reconstructed parabola as they are used at 
+      ! 5a. Compute coefficients of reconstructed parabola as they are used at
       !     various places below.
       !     Terminology follows Colella (1984)
       !     z_delta_q = 0.5*\Delta q
@@ -922,7 +922,7 @@ CONTAINS
 
       !
       ! 5b. First compute fluxes for the CFL<1 case for all grid points
-      ! On the grid points where CFL>1, they will be overwritten afterwards 
+      ! On the grid points where CFL>1, they will be overwritten afterwards
       ! This part has been adopted from the restricted time step PPM-scheme.
       !
       DO jk = slevp1, elev
@@ -971,7 +971,7 @@ CONTAINS
 
         ! Loop over all lists (nlist will serve as index shift)
         ! i.e. List nlist=1 contains all points with an index shift of at least 1
-        !      List nlist=2 contains all points with an index shift of at least 2 
+        !      List nlist=2 contains all points with an index shift of at least 2
         !      and so on
         DO nlist = 1, nlist_max
 
@@ -992,7 +992,7 @@ CONTAINS
             ! shifted index (depends on the sign of w)
             jks = MERGE(jk+nlist-1, jk-nlist, p_mflx_contra_v(jc,jk,jb) >= 0._wp)
 
-            ! cycle if the model level is in a region where advection is 
+            ! cycle if the model level is in a region where advection is
             ! turned off for the present variable
             IF (jk < slevp1) CYCLE
 
@@ -1021,7 +1021,7 @@ CONTAINS
 
             jks = jk_shifted(jc,jk,jb)
 
-            ! cycle if the model level is in a region where advection is 
+            ! cycle if the model level is in a region where advection is
             ! turned off for the present variable
             IF (jk < slevp1) CYCLE
 
@@ -1031,7 +1031,7 @@ CONTAINS
 
             wsign = MERGE(1._wp, -1._wp, p_mflx_contra_v(jc,jk,jb) >= 0._wp)
 
-            ! fractional high order flux   
+            ! fractional high order flux
             z_flx_frac_high = p_cellmass_now(jc,jks,jb) * z_cflfrac(jc,jk,jb)       &
               &         * ( p_cc(jc,jks,jb)                                         &
               &         + wsign*(z_delta_q(jc,jks) * (1._wp - z_cflfrac(jc,jk,jb))) &
@@ -1039,7 +1039,7 @@ CONTAINS
               &         + 2._wp*z_cflfrac(jc,jk,jb)*z_cflfrac(jc,jk,jb)) )
 
             ! full flux (integer- plus high order fractional flux)
-            p_upflux(jc,jk,jb) = wsign*rdtime * (z_iflx(jc,jk) + z_flx_frac_high) 
+            p_upflux(jc,jk,jb) = wsign*rdtime * (z_iflx(jc,jk) + z_flx_frac_high)
           ENDDO
 
         ENDIF
@@ -1060,7 +1060,7 @@ CONTAINS
         &              upflx_bottom = p_upflux(:,nlevp1,jb))        !out
 
 
-      ! If desired, get edge value of advected quantity 
+      ! If desired, get edge value of advected quantity
       IF ( l_out_edgeval ) THEN
 
         DO jk = slevp1, nlev
@@ -1073,7 +1073,7 @@ CONTAINS
       ENDIF
 
       !
-      ! 6. If desired, apply positive-definite flux limiter to limit 
+      ! 6. If desired, apply positive-definite flux limiter to limit
       !    computed fluxes (based on work by Zalesak (1979)).
       !
       IF (p_itype_vlimit == IFLUXL_VPD) THEN
@@ -1153,8 +1153,8 @@ CONTAINS
   !! The third order PPM/PSM scheme for large time steps (CFL>1)
   !! GPU-enabled version without index lists.
   !!
-  !! Calculation of time averaged vertical tracer fluxes or tracer edge 
-  !! values using the third order PPM/PSM scheme. This scheme can handle 
+  !! Calculation of time averaged vertical tracer fluxes or tracer edge
+  !! values using the third order PPM/PSM scheme. This scheme can handle
   !! large time steps (CFL>1).
   !
   ! !LITERATURE
@@ -1219,10 +1219,10 @@ CONTAINS
                                   !< dim: (nproma,nlevp1,nblks_c)
 
     LOGICAL, INTENT(IN), OPTIONAL ::  & !< optional: output edge value (.TRUE.),
-      &  opt_lout_edge                  !< or the flux across the edge 
+      &  opt_lout_edge                  !< or the flux across the edge
                                         !< (.FALSE./not specified)
 
-    REAL(wp), INTENT(IN), OPTIONAL :: & !< tracer mass fraction at (nest) upper boundary 
+    REAL(wp), INTENT(IN), OPTIONAL :: & !< tracer mass fraction at (nest) upper boundary
       &  opt_q_ubc(:,:)                 !< dim: (nproma,nblks_c)
 
     INTEGER, INTENT(IN), OPTIONAL ::  & !< optional vertical start level
@@ -1244,7 +1244,7 @@ CONTAINS
 
     ! local vars
 
-    REAL(wp), ALLOCATABLE, SAVE  ::   &  !< sum of integer and fractional Courant number 
+    REAL(wp), ALLOCATABLE, SAVE  ::   &  !< sum of integer and fractional Courant number
       &  z_cfl(:,:,:)                    !< Sign equals sign of w.
 
     REAL(wp) :: &                        !< absolute value of fractional Courant number
@@ -1288,7 +1288,7 @@ CONTAINS
     INTEGER  :: elev, elev_lim           !< vertical end level
     LOGICAL  :: llbc_no_flux             !< TRUE: apply 'no flux' lower boundary condition
 
-    LOGICAL  :: l_out_edgeval            !< corresponding local variable; default 
+    LOGICAL  :: l_out_edgeval            !< corresponding local variable; default
                                          !< .FALSE. i.e. output flux across the edge
 
     INTEGER  :: ist                      !< status variable
@@ -1297,7 +1297,7 @@ CONTAINS
 
     INTEGER  :: n                        !< loop index
 
-    REAL(wp) :: wsign                    !< wind direction: introduced, in order to merge flux formula  
+    REAL(wp) :: wsign                    !< wind direction: introduced, in order to merge flux formula
                                          !< for w>0 and w<0 into one.
                                          !< +1, if w >0
                                          !< -1, if w <0
@@ -1308,7 +1308,7 @@ CONTAINS
     REAL(wp) ::   &                      !< maximum CFL for each layer (blockwise)
       &  max_cfl_lay(p_patch%nlevp1,p_patch%nblks_c)
 
-    REAL(wp) ::   &                      !< maximum CFL for each layer  
+    REAL(wp) ::   &                      !< maximum CFL for each layer
       &  max_cfl_lay_tot(p_patch%nlevp1)
 
     REAL(wp) ::    &                     !< maximum vertical Courant number per block
@@ -1387,7 +1387,7 @@ CONTAINS
 
     IF ( ld_compute ) THEN
       !
-      ! allocate field for storing the density weighted Courant number 
+      ! allocate field for storing the density weighted Courant number
       !
       ! DA: this is a performance issue
       ! TODO: figure out z_cfl lifetime
@@ -1422,7 +1422,7 @@ CONTAINS
         &                 i_startidx, i_endidx, i_rlstart, i_rlend )
 
       !
-      ! 1. Compute density weighted Courant number for w<0 and w>0. 
+      ! 1. Compute density weighted Courant number for w<0 and w>0.
       !    It is the sum of the fractional Courant number and the integer shift s.
       !    Stored at cell faces
       !
@@ -1434,7 +1434,7 @@ CONTAINS
         !$ACC END KERNELS
 
 
-        ! Split density-weighted Courant number into integer and fractional 
+        ! Split density-weighted Courant number into integer and fractional
         ! part and store the sum in z_cfl (for w>0 and w<0)
         !
         !$ACC PARALLEL DEFAULT(PRESENT) PRESENT(z_cfl) ASYNC(1)
@@ -1670,8 +1670,8 @@ CONTAINS
 
           ! compute flux
           !
-          ! flux formula differs between w>0 and w<0. 
-          ! By using the coefficient 'wsign' we are able to merge 
+          ! flux formula differs between w>0 and w<0.
+          ! By using the coefficient 'wsign' we are able to merge
           ! the two formula into one.
           z_q_int = p_cc(jc,jks,jb)                                 &
             &     + wsign*(z_delta_q(jc,jks) * (1._wp - z_cflfrac)) &
@@ -1763,7 +1763,7 @@ CONTAINS
 
 
       !
-      ! 6. If desired, apply positive-definite flux limiter to limit 
+      ! 6. If desired, apply positive-definite flux limiter to limit
       !    computed fluxes (based on work by Zalesak (1979)).
       !
       IF (p_itype_vlimit == IFLUXL_VPD) THEN
@@ -2241,7 +2241,7 @@ CONTAINS
         &                     i_endidx         = i_endidx,              & ! in
         &                     slev             = slev,                  & ! in
         &                     elev             = elev                   ) ! in
- 
+
 
       ! top and bottom face
       !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1)
@@ -2365,8 +2365,8 @@ CONTAINS
 
     !
     ! 2. Optional: monotonize slope if necessary
-    !     - only necessary, when using the monotonic or semi-monotonic 
-    !       sub-grid scale filter (i.e. if the parabola is modified). 
+    !     - only necessary, when using the monotonic or semi-monotonic
+    !       sub-grid scale filter (i.e. if the parabola is modified).
     !
     IF (p_itype_vlimit == ISLOPEL_VSM) THEN
       CALL v_limit_slope_sm(p_cc(:,:), i_startidx, i_endidx, slevp1, elev, z_slope)

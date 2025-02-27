@@ -138,7 +138,7 @@ CONTAINS
   !     WRITE (message_text,'(A,I3,3E12.5)') ' jk z_mc z_ifc(jk+1) ddqz_z_full = ', &
   !                                                       & jk, p_metrics%z_mc(1,jk,1), &
   !                                                       & p_metrics%z_ifc(1,jk+1,1),  &
-  !                                                       & p_metrics%ddqz_z_full(1,jk,1)  
+  !                                                       & p_metrics%ddqz_z_full(1,jk,1)
 
   !     CALL message('',message_text)
 
@@ -185,8 +185,8 @@ CONTAINS
                       IF (  ptr_nh_diag%pres(jc,jk,jb) <= 10000._wp) &
                          &  ptr_nh_prog%tracer(jc,jk,jb,jjt)      &
                          &  = MIN ( 5.e-6_wp, ptr_nh_prog%tracer(jc,jk,jb,jjt) )
-                    
-                      ! Limit QV in the tropics                       
+
+                      ! Limit QV in the tropics
                       ptr_nh_prog%tracer(jc,jk,jb,jjt) = &
                       &   MIN(qv_max,ptr_nh_prog%tracer(jc,jk,jb,jjt))
 
@@ -205,9 +205,9 @@ CONTAINS
 
       ENDDO !jk
     ENDDO !jb
-!!$OMP END DO 
+!!$OMP END DO
     WRITE (message_text,'(A,2E12.5)') '      MAX/MIN pres  = ',MAXVAL(ptr_nh_diag%pres) &
-                                                           &,MINVAL(ptr_nh_diag%pres)   
+                                                           &,MINVAL(ptr_nh_diag%pres)
     CALL message('',message_text)
     WRITE (message_text,'(A,2E12.5)') '      MAX/MIN tracer  = ',MAXVAL(ptr_nh_prog%tracer) &
                                                            &,MINVAL(ptr_nh_prog%tracer)
@@ -244,11 +244,11 @@ CONTAINS
            z_help = p_metrics%ddqz_z_full(jc,jk,jb) * ptr_nh_prog%rho(jc,jk,jb) &
                                                   & * ptr_patch%cells%area(jc,jb)
            tot_moist= tot_moist + ptr_nh_prog%tracer(jc,jk,jb,iqv) * z_help
-         ENDDO 
+         ENDDO
       ENDDO !jk
     ENDDO !jb
     tot_moist = tot_moist / tot_area
-    WRITE (message_text,'(A,1E12.5)') '       tot_moist  = ',tot_moist 
+    WRITE (message_text,'(A,1E12.5)') '       tot_moist  = ',tot_moist
     CALL message('',message_text)
     WRITE (message_text,'(A,2E12.5)') '       rho  = ', MAXVAL(ptr_nh_prog%rho) &
                                                            &,MINVAL(ptr_nh_prog%rho)
@@ -262,11 +262,11 @@ CONTAINS
        ptr_nh_prog%tracer(:,:,:,iqv) = ptr_nh_prog%tracer(:,:,:,iqv) * global_moist / tot_moist
      END IF
     WRITE (message_text,'(A,2E12.5)') '      MAX/MIN tracer  = ',MAXVAL(ptr_nh_prog%tracer) &
-                                                           &,MINVAL(ptr_nh_prog%tracer)    
+                                                           &,MINVAL(ptr_nh_prog%tracer)
     CALL message('',message_text)
 
-    
-! !$OMP DO PRIVATE(jb,jk,nlen) 
+
+! !$OMP DO PRIVATE(jb,jk,nlen)
     DO jb = 1, nblks_c
       IF (jb /= nblks_c) THEN
          nlen = nproma
@@ -302,7 +302,7 @@ CONTAINS
       ENDDO !jk
     ENDDO !jb
 
-!!$OMP END DO 
+!!$OMP END DO
 
  END DO
 !!$OMP END PARALLEL

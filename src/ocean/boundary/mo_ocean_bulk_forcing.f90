@@ -59,17 +59,17 @@ MODULE mo_ocean_bulk_forcing
 
   USE mo_math_utilities,      ONLY: gvec2cvec
   USE mtime,                  ONLY: datetime, getDayOfYearFromDateTime, getNoOfDaysInYearDateTime
-  USE mo_ocean_time_events,   ONLY: isEndOfThisRun 
+  USE mo_ocean_time_events,   ONLY: isEndOfThisRun
   USE mo_statistics,         ONLY: subset_sum
   USE mo_lib_grid_geometry_info,  ONLY: planar_torus_geometry
   USE mo_fortran_tools,       ONLY: set_acc_host_or_device
 
 #ifdef _OPENACC
-  USE openacc, ONLY: acc_is_present 
+  USE openacc, ONLY: acc_is_present
 #endif
-  
+
   IMPLICIT NONE
-  
+
   PRIVATE
 
   ! Public interface
@@ -112,7 +112,7 @@ CONTAINS
     TYPE (t_sea_ice),              INTENT(IN) :: p_ice
     TYPE (t_ocean_surface)                    :: p_oce_sfc
     INTEGER,                       INTENT(IN) :: tracer_no       !  no of tracer: 1=temperature, 2=salinity
-    REAL(wp), INTENT(IN), OPTIONAL :: stretch_c(nproma, p_patch_3d%p_patch_2d(1)%alloc_cell_blocks) !! sfc ht 
+    REAL(wp), INTENT(IN), OPTIONAL :: stretch_c(nproma, p_patch_3d%p_patch_2d(1)%alloc_cell_blocks) !! sfc ht
     LOGICAL,  INTENT(IN), OPTIONAL :: lacc
 
     !Local variables
@@ -266,13 +266,13 @@ CONTAINS
     LOGICAL :: lzacc
 
     CALL set_acc_host_or_device(lzacc, lacc)
-    
+
     !-----------------------------------------------------------------------
     patch_2D         => p_patch_3D%p_patch_2D(1)
     !-------------------------------------------------------------------------
-    
+
     all_cells => patch_2D%cells%all
-    
+
     ! add relaxation term to temperature tracer
     IF (tracer_no == 1) THEN
 
@@ -289,12 +289,12 @@ CONTAINS
         CALL get_index_range(all_cells, jb, i_startidx_c, i_endidx_c)
         !$ACC PARALLEL LOOP GANG VECTOR DEFAULT(PRESENT) ASYNC(1) IF(lzacc)
         DO jc = i_startidx_c, i_endidx_c
-          
+
           IF ( p_patch_3D%lsm_c(jc,1,jb) <= sea_boundary ) THEN
             t_top_old(jc,jb) = t_top(jc,jb)
             t_top(jc,jb)     = t_top_old(jc,jb) + p_oce_sfc%TempFlux_Relax(jc,jb)*dtime
           ENDIF
-          
+
         END DO
         !$ACC END PARALLEL LOOP
       END DO
@@ -372,7 +372,7 @@ CONTAINS
     REAL(wp) :: sodt
     LOGICAL  :: lzacc
 
-    TYPE(t_patch), POINTER:: patch_2D 
+    TYPE(t_patch), POINTER:: patch_2D
     !TYPE(t_subset_range), POINTER :: all_cells
 
     CALL set_acc_host_or_device(lzacc, lacc)
@@ -425,7 +425,7 @@ CONTAINS
     !
     ELSE
       ! - forcing data sets are read in mo_ext_data , forcing_timescale allocates and reads the no. of forcing steps
-      ! - forcing_frequency is a namelist variable and controls how often the same forcing step is used  
+      ! - forcing_frequency is a namelist variable and controls how often the same forcing step is used
       ! - jmon1 for controling correct forcing step
       ! - no time interpolation applied (jom2 = jmon1, rday2 = 0)
       ! - sotd = seconds of this day
@@ -532,7 +532,7 @@ CONTAINS
     p_as%v(:,:)     = rday1*ext_data(1)%oce%flux_forc_mon_c(:,jmon1,:,14) + &
       &               rday2*ext_data(1)%oce%flux_forc_mon_c(:,jmon2,:,14)
 
-        ! provide precipitation, evaporation, runoff flux data for freshwater forcing of ocean 
+        ! provide precipitation, evaporation, runoff flux data for freshwater forcing of ocean
         !  - not changed via bulk formula, stored in surface flux data
         !  - Attention: as in MPIOM evaporation is calculated from latent heat flux (which is depentent on current SST)
         !               therefore not applied here
@@ -679,7 +679,7 @@ CONTAINS
   !> Calc_omip_budgets_ice equals sbr "Budget" in MPIOM.
   !! Sets the atmospheric fluxes over *SEA ICE ONLY* for the update of the ice
   !! temperature and ice growth rates for OMIP forcing
-  
+
   SUBROUTINE calc_omip_budgets_ice(p_patch_3d, tafoC, ftdewC, fu10, fclou, pao, fswr,                &
     &                              kice, tice, hice, albvisdir, albvisdif, albnirdir, albnirdif, &
     &                              LWnetIce, SWnetIce, sensIce, latentIce,                       &
@@ -770,7 +770,7 @@ CONTAINS
         ! updated from Buck, A. L., New equations for computing vapor pressure and
         ! enhancement factor, J. Appl. Meteorol., 20, 1527-1532, 1981"
         !-----------------------------------------------------------------------
-        ! #slo# 2015-03: the comment above is now valid 
+        ! #slo# 2015-03: the comment above is now valid
         ! the values for ice are not changed in Buck (1996) in comparison to Buck (1981)
 
         ! the following commented values are from Buck (1981)
@@ -871,7 +871,7 @@ CONTAINS
         DO i = 1,kice
       !$ACC KERNELS DEFAULT(PRESENT) ASYNC(1) IF(lzacc)
       WHERE (hice(:,i,:)>0._wp)
-        
+
             !  albedo model: atmos_fluxes%albvisdir, albvisdif, albnirdir, albnirdif
             !  - all 4 albedos are the same (i_ice_albedo = 1), they are calculated in ice_fast and should be stored in p_ice
         SWnetIce(:,i,:)  = ( 1._wp-albvisdir(:,i,:) )*fvisdir*fswr(:,:) +   &
@@ -1484,7 +1484,7 @@ CONTAINS
     TYPE(t_subset_range), POINTER           :: all_cells, owned_cells
 
     INTEGER  :: i_startidx_c, i_endidx_c
-    INTEGER  :: jc, jb 
+    INTEGER  :: jc, jb
     REAL(wp) :: ocean_are, glob_slev, corr_slev , hold_b,hnew_a
     REAL(wp) :: h_mean, h_total
     LOGICAL  :: lzacc
@@ -1497,7 +1497,7 @@ CONTAINS
     patch_2D        => p_patch_3D%p_patch_2D(1)
     all_cells       => patch_2D%cells%all
     owned_cells     => patch_2D%cells%owned
- 
+
     ! parallelize correctly
     ocean_are = p_patch_3D%p_patch_1D(1)%ocean_area(1)
     ! global_sum_array function does not currently works for G2G communication
@@ -1534,7 +1534,7 @@ CONTAINS
           hnew_a = hold_b - corr_slev
 
           ! for hamocc tracers dilution dilution=hold/hnew *dilution(old from surface fluxes)
-          p_oce_sfc%top_dilution_coeff(jc,jb) =p_oce_sfc%top_dilution_coeff(jc,jb) * hold_b / hnew_a 
+          p_oce_sfc%top_dilution_coeff(jc,jb) =p_oce_sfc%top_dilution_coeff(jc,jb) * hold_b / hnew_a
           h_old(jc,jb) = h_old(jc,jb) - corr_slev
           !h_old(jc,jb) = h_old(jc,jb) * (1.0_wp - corr_slev)
           !h_old(jc,jb) = h_old(jc,jb) - h_old(jc,jb)*corr_slev
@@ -1550,11 +1550,11 @@ CONTAINS
         WRITE(0,*) ' -- balance_elevation, h_total, h_mean:',  h_total, h_mean
       ENDIF
     ENDIF
-    
-    
+
+
   END SUBROUTINE balance_elevation
 
-  
+
   !-------------------------------------------------------------------------
   !>
   !! Balance sea level to zero over global ocean
@@ -1564,9 +1564,9 @@ CONTAINS
   SUBROUTINE balance_elevation_zstar (p_patch_3D, eta_c, p_oce_sfc, stretch_c, lacc)
 
     TYPE(t_patch_3D ),TARGET, INTENT(IN)    :: p_patch_3D
-    REAL(wp), INTENT(INOUT) :: eta_c(nproma, p_patch_3d%p_patch_2d(1)%alloc_cell_blocks) !! sfc ht 
+    REAL(wp), INTENT(INOUT) :: eta_c(nproma, p_patch_3d%p_patch_2d(1)%alloc_cell_blocks) !! sfc ht
     TYPE(t_ocean_surface) , INTENT(INOUT)   :: p_oce_sfc
-    REAL(wp), INTENT(IN) :: stretch_c(nproma, p_patch_3d%p_patch_2d(1)%alloc_cell_blocks) !! sfc ht 
+    REAL(wp), INTENT(IN) :: stretch_c(nproma, p_patch_3d%p_patch_2d(1)%alloc_cell_blocks) !! sfc ht
     LOGICAL, INTENT(IN), OPTIONAL           :: lacc
 
     TYPE(t_patch), POINTER                  :: p_patch
@@ -1620,12 +1620,12 @@ CONTAINS
           ! subtract or scale?
           eta_c(jc,jb) = eta_c(jc,jb) - corr_slev
 
-          bt_lev = p_patch_3d%p_patch_1d(1)%dolic_c(jc, jb)      
+          bt_lev = p_patch_3d%p_patch_1d(1)%dolic_c(jc, jb)
           d_c    = p_patch_3d%p_patch_1d(1)%depth_CellInterface(jc, bt_lev + 1, jb)
           temp_stretch = (eta_c(jc,jb) + d_c) / d_c
 
           ! for hamocc tracers dilution dilution=stretch_old/stretch_new *dilution(old from surface fluxes)
-          p_oce_sfc%top_dilution_coeff(jc,jb) = stretch_c(jc,jb) / temp_stretch 
+          p_oce_sfc%top_dilution_coeff(jc,jb) = stretch_c(jc,jb) / temp_stretch
 
 
         END IF

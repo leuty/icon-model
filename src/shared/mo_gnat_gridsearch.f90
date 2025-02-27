@@ -1518,7 +1518,7 @@ CONTAINS
     min_dist(:,:)  = MAX_RANGE
 
     IF (p_patch%n_patch_cells == 0) THEN
-      ! ensure that processes without cells are involved in global communication 
+      ! ensure that processes without cells are involved in global communication
       radius = 0._gk
       radius = p_max(radius, comm=p_comm_work)
       RETURN

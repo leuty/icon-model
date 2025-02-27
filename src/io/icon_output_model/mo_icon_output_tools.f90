@@ -42,7 +42,7 @@ MODULE mo_icon_output_tools
   USE mo_time_config,         ONLY: time_config
 
   !-------------------------------------------------------------
- 
+
   IMPLICIT NONE
 
   PRIVATE
@@ -195,9 +195,8 @@ MODULE mo_icon_output_tools
       CALL create_mipz_level_selections(output_file)
       CALL create_vertical_axes(output_file)
     ENDIF
-  
+
   END SUBROUTINE prepare_output
   !--------------------------------------------------------------------------
 
 END MODULE mo_icon_output_tools
-

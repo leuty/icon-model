@@ -11,18 +11,18 @@
 # --------------------------------------------------------------------
 # CASE_SETUP
 # --------------------------------------------------------------------
-#                                                                    
-# Purpose of this document:                                          
-#   This file contains the experiment parameters of the             
-#   ICON test case    
-#                                                                    
-# Corresponding author:                                              
-#   Florian Prill, DWD, mailto:florian.prill@dwd.de                  
-#                                                                    
-# Document version:                                                  
+#
+# Purpose of this document:
+#   This file contains the experiment parameters of the
+#   ICON test case
+#
+# Corresponding author:
+#   Florian Prill, DWD, mailto:florian.prill@dwd.de
+#
+# Document version:
 #   $LastChangedDate: 2012-04-11 11:18:42 +0000 (Wed, 11 Apr 2012) $
 #   $Rev: 8630 $ -- $Author: florian.prill $
-#                                                                    
+#
 # --------------------------------------------------------------------
 
 
@@ -151,8 +151,8 @@ ml_varlist="'fr_seaice', 't_seasfc','t_ice','h_ice','temp','u','v','w','pres',
 'pres_sfc', 'pres_msl', 't_so','w_so','t_snow','w_snow', 'h_snow', 'rho_snow',
 't_g', 'clct','tot_prec', 'u_10m','v_10m', 't_2m',
 'accshfl_s','acclhfl_s',  'accthb_s','accthb_t','accsob_s','accsob_t'"
-pl_varlist="'u','v','temp','geopot','clc'"      
-hl_varlist="'u','v','temp','pres',  'clc'"   
+pl_varlist="'u','v','temp','geopot','clc'"
+hl_varlist="'u','v','temp','pres',  'clc'"
 
 
 
@@ -167,7 +167,7 @@ cat > ${atmo_namelist} << EOF
  num_io_procs                 = 3
  itype_comm                   = 1
  iorder_sendrecv              = 1
- use_dp_mpi2io                = .TRUE.     ! output fields gathered in DOUBLE PRECISION 
+ use_dp_mpi2io                = .TRUE.     ! output fields gathered in DOUBLE PRECISION
 /
 &grid_nml
  cell_type                    = 3
@@ -180,15 +180,15 @@ cat > ${atmo_namelist} << EOF
 /
 &initicon_nml
  init_mode                    = 2           ! initialization mode (2 for IFS ana, 1 for DWD ana)
- zpbl1                        = 500. 
- zpbl2                        = 1000. 
+ zpbl1                        = 500.
+ zpbl2                        = 1000.
  ifs2icon_filename            = '${ifs2icon_filename}'
  l_sst_in                     = .TRUE.
 /
 &io_nml
  lflux_avg                    = .FALSE.
  itype_pres_msl               = 3           ! 3: new IFS T and pressure calculation below ground
- dt_checkpoint                = ${dt_restart}   
+ dt_checkpoint                = ${dt_restart}
  lzaxis_reference=.FALSE.
 /
 &run_nml
@@ -230,7 +230,7 @@ cat > ${atmo_namelist} << EOF
  remap                        = 1
  reg_lon_def                  = 0.,2.,358.
  reg_lat_def                  = 90.,-2., -90.
-! namespace                    = "ECMWF"                 ! 
+! namespace                    = "ECMWF"                 !
 /
 &output_nml
  filetype                     =  4                        ! output format: 2=GRIB2, 4=NETCDFv2
@@ -246,7 +246,7 @@ cat > ${atmo_namelist} << EOF
  remap                        = 1
  reg_lon_def                  = 0.,2.,358.
  reg_lat_def                  = 90.,-2., -90.
-! namespace                    = "ECMWF"                 ! 
+! namespace                    = "ECMWF"                 !
 /
 &output_nml
  filetype                     =  4                        ! output format: 2=GRIB2, 4=NETCDFv2
@@ -262,8 +262,8 @@ cat > ${atmo_namelist} << EOF
  remap                        = 1
  reg_lon_def                  = 0.,2.,358.
  reg_lat_def                  = 90.,-2., -90.
-! namespace                    = "ECMWF"                 ! 
-/	
+! namespace                    = "ECMWF"                 !
+/
 &gribout_nml
  generatingCenter             = 98                       ! ECMWF
  generatingSubcenter          = 0                         ! ECMWF
@@ -415,6 +415,5 @@ cat > ${atmo_namelist} << EOF
 /
 EOF
 
- 
-#-----------------------------------------------------------------------------
 
+#-----------------------------------------------------------------------------

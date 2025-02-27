@@ -9,7 +9,7 @@
 
 # Partnership
 
-The ICON partnership coordinates research activities developing, maintaining, and supporting the ICON modeling framework. 
+The ICON partnership coordinates research activities developing, maintaining, and supporting the ICON modeling framework.
 
 ICON partner institutions are:
 - [DWD](https://www.dwd.de/EN/Home/home_node.html)

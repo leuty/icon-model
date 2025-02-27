@@ -25,18 +25,18 @@ MODULE mo_canopy
   PUBLIC :: unstressed_canopy_cond_par
 
 CONTAINS
-  
+
   SUBROUTINE unstressed_canopy_cond_par(lai, par, conductance)
 
 
-    ! Computes the canopy conductance without water stress limitation according to ECHAM formalism, Eq. 3.3.2.12 in 
+    ! Computes the canopy conductance without water stress limitation according to ECHAM formalism, Eq. 3.3.2.12 in
     ! ECHAM3 Manual
 
     REAL(dp), INTENT(in), DIMENSION(:) :: &
          lai,      &
          par
     REAL(dp), INTENT(inout) :: conductance(SIZE(lai,DIM=1)) ! out
-  
+
 
     ! Local variables
     REAL(dp) :: d(SIZE(par))    !! Variable d in Eq. 3.3.2.12 in ECHAM3 manual
@@ -51,7 +51,7 @@ CONTAINS
     ELSEWHERE
        conductance = 1.e-20_dp
     END WHERE
-    
+
   END SUBROUTINE unstressed_canopy_cond_par
 
 END MODULE mo_canopy

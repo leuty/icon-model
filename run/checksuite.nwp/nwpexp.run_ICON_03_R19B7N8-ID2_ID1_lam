@@ -15,7 +15,7 @@
 make_and_change_to_experiment_dir # function in ../add_run_routines
 
 # Combine START and MODEL if START_MODEL is not already set.
-# START_MODEL is used to ease the execution of a machine that uses a complex 
+# START_MODEL is used to ease the execution of a machine that uses a complex
 # mpirun command with multiple binaries
 START_MODEL="${START_MODEL:=$START $MODEL}"
 
@@ -172,8 +172,8 @@ cat > ${atmo_namelist} << EOF
  dt_iau                = 600
  dt_shift              = -300
  iterate_iau           = .true.
- zpbl1                 = 500. 
- zpbl2                 = 1000. 
+ zpbl1                 = 500.
+ zpbl2                 = 1000.
  dwdfg_filename        = './R<nroot0>B<jlev>_DOM<idom>_ilfff00005500.grb'
  dwdana_filename       = './R<nroot0>B<jlev>_DOM<idom>_ilaf20210601000000.grb'
  ana_varnames_map_file = 'map_file.ana'
@@ -217,7 +217,7 @@ cat > ${atmo_namelist} << EOF
  include_last                 = .FALSE.
  output_filename              = 'ICON_D2'
  filename_format              = '<output_filename>_<ddhhmmss>'                   ! file name base
- ml_varlist = 'u', 'v', 'w', 'temp', 'pres', 'pres_msl', 'qv', 'qc', 'qi', 'qr', 'qs', 'qg', 
+ ml_varlist = 'u', 'v', 'w', 'temp', 'pres', 'pres_msl', 'qv', 'qc', 'qi', 'qr', 'qs', 'qg',
 'group:precip_vars','clcl','clcm','clch', 'group:additional_precip_vars','tqv','tqc','tqi','tqr','tqs','tqg', 'group:land_vars', 'freshsnow', 'albdif',
 't_2m','td_2m','rh_2m','pres_sfc','u_10m','v_10m','gust10','ASODIFD_S','ASODIFU_S','ASODIRD_S','ALHFL_S', 'ASHFL_S', 'ASOB_S', 'ASOB_T',
  'ATHB_S', 'ATHB_T', 'TMAX_2M', 'TMIN_2M', 'sdi2', 'lpi', 'lpi_max', 'dbz_ctmax',
@@ -254,7 +254,7 @@ cat > ${atmo_namelist} << EOF
  include_last                 = .FALSE.
  output_filename              = 'ICON_D1'
  filename_format              = '<output_filename>_<ddhhmmss>'                   ! file name base
- ml_varlist = 'u', 'v', 'w', 'temp', 'pres', 'pres_msl', 'qv', 'qc', 'qi', 'qr', 'qs', 'qg', 
+ ml_varlist = 'u', 'v', 'w', 'temp', 'pres', 'pres_msl', 'qv', 'qc', 'qi', 'qr', 'qs', 'qg',
 'group:precip_vars','clcl','clcm','clch', 'group:additional_precip_vars','tqv','tqc','tqi','tqr','tqs','tqg', 'group:land_vars', 'freshsnow', 'albdif',
 't_2m','td_2m','rh_2m','pres_sfc','u_10m','v_10m','gust10','ASODIFD_S','ASODIFU_S','ASODIRD_S','ALHFL_S', 'ASHFL_S', 'ASOB_S', 'ASOB_T',
  'ATHB_S', 'ATHB_T', 'TMAX_2M', 'TMIN_2M', 'sdi2', 'lpi', 'lpi_max', 'dbz_ctmax',
@@ -417,8 +417,8 @@ max_calibfac_clcl = 2.0
   vwind_offctr    = 0.2
   damp_height     = 12250.,12250.,12250.
   rayleigh_coeff  = 5.0,8.0,12.0
-  divdamp_fac     = 0.004  
-  divdamp_order   = 24 
+  divdamp_fac     = 0.004
+  divdamp_order   = 24
   divdamp_type    = 32
   divdamp_trans_start = 12500.
   divdamp_trans_end   = 17500.

@@ -125,7 +125,7 @@ if $0 == __FILE__ then
   # = MAIN =======================================================================
   ifile = ARGV[0]
 
-  if ifile.nil? or not File.exist?(ifile) 
+  if ifile.nil? or not File.exist?(ifile)
     warn "Cound not read input file '#{ifile}'!"
     warn "Usage:\n\t./findPath.rb <icon-grid-file>"
     exit(1)

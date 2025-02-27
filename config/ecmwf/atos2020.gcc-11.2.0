@@ -63,5 +63,3 @@ LDFLAGS="$LDFLAGS" \
 LIBS="$LIBS" \
 ${EXTRA_CONFIG} \
 "$@"
-
-

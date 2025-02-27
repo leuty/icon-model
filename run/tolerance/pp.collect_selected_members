@@ -32,7 +32,7 @@ sorted_experiments=($(for exp in "${experiments[@]}"; do echo $exp; done | sort)
 # Please don't change these path/file names. They are used by buildbot.
 yaml_path=scripts/experiments
 
-# Update the selected members in the corresponding file 
+# Update the selected members in the corresponding file
 echo ""
 echo "Please update or add the following lines with the selected members and the "
 echo "tolerance factor (if not the default value of 5) to the corresponding experiment "

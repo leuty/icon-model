@@ -56,10 +56,10 @@ SUBROUTINE rad_aero_diag (                                  &
       REAL(wp), INTENT(in)   :: paer_piz_sw_vr(kbdim,klev,kpsw)   ! ssa solar wavelengths
       REAL(wp), INTENT(in)   :: paer_cg_sw_vr(kbdim,klev,kpsw)    ! asy solar wavelengths
       REAL(wp), INTENT(inout)  :: &
-           & aer_aod_533 (kbdim,klev), & ! aod at 533 nm      
+           & aer_aod_533 (kbdim,klev), & ! aod at 533 nm
            & aer_ssa_533 (kbdim,klev), & ! ssa at 533 nm
            & aer_asy_533 (kbdim,klev), & ! asy at 533 nm
-           & aer_aod_2325(kbdim,klev), & ! aod at 2325 nm      
+           & aer_aod_2325(kbdim,klev), & ! aod at 2325 nm
            & aer_ssa_2325(kbdim,klev), & ! ssa at 2325 nm
            & aer_asy_2325(kbdim,klev), & ! asy at 2325 nm
            & aer_aod_9731(kbdim,klev)    ! aod at 9731 nm

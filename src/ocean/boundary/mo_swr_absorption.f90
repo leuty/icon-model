@@ -26,7 +26,7 @@
 
 MODULE mo_swr_absorption
   USE mo_kind,                      ONLY: wp
-  USE mo_ocean_nml,                 ONLY: jerlov_atten, jerlov_bluefrac, n_zlev  
+  USE mo_ocean_nml,                 ONLY: jerlov_atten, jerlov_bluefrac, n_zlev
   USE mo_physical_constants,        ONLY: rho_ref,  clw
   USE mo_sync,                      ONLY: global_sum_array, enable_sync_checks, disable_sync_checks
   USE mo_fortran_tools,             ONLY: set_acc_host_or_device
@@ -87,18 +87,18 @@ CONTAINS
     REAL(wp), POINTER :: swrab(:,:,:)
 
     INTEGER  :: blockNo, jc, start_index, end_index, level
-  
+
     TYPE(t_patch), POINTER                   :: patch_2d
     TYPE(t_subset_range), POINTER            :: all_cells
 
 
     patch_2d => patch_3D%p_patch_2d(1)
     all_cells => patch_2d%cells%all
- 
+
     swsum => ocean_state%p_diag%swsum
     swrab => ocean_state%p_diag%swrab
 
-    
+
     !ICON_OMP_PARALLEL_DO PRIVATE(start_index, end_index) SCHEDULE(dynamic)
     DO blockNo = all_cells%start_block, all_cells%end_block
       CALL get_index_range(all_cells, blockNo, start_index, end_index)
@@ -233,7 +233,7 @@ CONTAINS
  !    !! Absorption in the surface level is done in sbr growth.
  !    !! SWR does not penetrate into Land. Heat from SWR that would penetrate theoreticly
  !    !! below the bottom is added to the bottom layer.
- !   
+ !
  !    Adopted for zstar
  !
 
@@ -248,7 +248,7 @@ CONTAINS
 
     TYPE(t_patch_3d ),TARGET, INTENT(in)              :: patch_3d
     TYPE(t_hydro_ocean_state), TARGET, INTENT(inout)  :: ocean_state
-    REAL(wp), INTENT(IN   ) :: stretch_c(nproma, patch_3d%p_patch_2d(1)%alloc_cell_blocks) 
+    REAL(wp), INTENT(IN   ) :: stretch_c(nproma, patch_3d%p_patch_2d(1)%alloc_cell_blocks)
     LOGICAL, INTENT(IN), OPTIONAL                     :: lacc
 
     REAL(wp), POINTER :: swrab(:,:,:)
@@ -358,11 +358,11 @@ CONTAINS
 
     INTEGER  :: blockNo, jc, start_index, end_index, level
     LOGICAL  :: lzacc
-  
+
     REAL(wp), PARAMETER :: fvisible=0.58_wp ! visible fraction of the spectrum
                                       ! only this part has potential to
                                       ! penetrate into deeper ocean layers
-    
+
 
     TYPE(t_patch), POINTER                   :: patch_2d
     TYPE(t_subset_range), POINTER            :: all_cells
@@ -376,12 +376,12 @@ CONTAINS
 
     patch_2d => patch_3D%p_patch_2d(1)
     all_cells => patch_2d%cells%all
- 
+
     swsum => ocean_state%p_diag%swsum
     swrab => ocean_state%p_diag%swrab
     swr_frac => ocean_state%p_diag%swr_frac
 
-    
+
 
     !ICON_OMP_PARALLEL_DO PRIVATE(start_index, end_index) SCHEDULE(dynamic)
     DO blockNo = all_cells%start_block, all_cells%end_block
@@ -391,13 +391,13 @@ CONTAINS
 
         swsum(jc,blockNo)=swr_frac(jc,2,blockNo)
 
-    
+
         ! DO level=1,n_zlev
-        DO level=1,n_zlev-1  
+        DO level=1,n_zlev-1
           swrab(jc,level,blockNo)=1.0_wp / swsum(jc,blockNo) &
           * (swr_frac(jc,level,blockNo) &
-          - swr_frac(jc,level+1,blockNo)*patch_3D%wet_c(jc,level+1,blockNo)) & 
-          * patch_3D%wet_c(jc,level,blockNo) 
+          - swr_frac(jc,level+1,blockNo)*patch_3D%wet_c(jc,level+1,blockNo)) &
+          * patch_3D%wet_c(jc,level,blockNo)
         ENDDO
 
         swsum(jc,blockNo)=swsum(jc,blockNo)*fvisible
@@ -422,14 +422,14 @@ CONTAINS
 
     TYPE(t_patch_3d ),TARGET, INTENT(in)              :: patch_3d
     TYPE(t_hydro_ocean_state), TARGET, INTENT(inout)  :: ocean_state
-    TYPE(t_ocean_surface),TARGET, INTENT(in)          :: p_oce_sfc   
-    
+    TYPE(t_ocean_surface),TARGET, INTENT(in)          :: p_oce_sfc
+
     REAL(wp) :: cc
     REAL(wp) :: hc(:,:), hcs
 
 
     INTEGER  :: blockNo, jc, start_index, end_index, level
- 
+
     TYPE(t_patch), POINTER                   :: patch_2d
     TYPE(t_subset_range), POINTER            :: owned_cells
 
@@ -465,7 +465,7 @@ CONTAINS
     END DO
 
     CALL disable_sync_checks()
- 
+
     hcs=0.0_wp
     hcs=global_sum_array(hc(:,:))
 
@@ -476,4 +476,3 @@ CONTAINS
 
 
 END MODULE mo_swr_absorption
-

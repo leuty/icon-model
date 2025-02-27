@@ -27,7 +27,7 @@ export SMSTRYNO=%SMSTRYNO%  # Current try number of the task
 # The SMS variable SMSRID will be set to parameter of smsinit
 # Here we give the current PID.
 
-smsinit $$ 
+smsinit $$
 
 # Defined a error handler
 
@@ -45,4 +45,3 @@ trap ERROR 0
 # Trap any signal that may cause the script to fail
 
 trap '{ echo "Killed by a signal"; ERROR ; }' 1 2 3 4 5 6 7 8 10 12 13 15
-

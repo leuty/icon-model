@@ -11,11 +11,12 @@
 # SPDX-License-Identifier: BSD-3-Clause
 # ---------------------------------------------------------------
 
-import pandas as pd
 import datetime
 import logging
 import re
 import sys
+
+import pandas as pd
 from BaseAnalyzer import BaseAnalyzer_
 
 
@@ -41,12 +42,16 @@ class AnalyzeWind(BaseAnalyzer_):
         return self.data, self.dates
 
     def processing(self, exp_id, job_id):
-        self.df = pd.DataFrame(self.data, columns=("vn", "level_vn", "w", "level_w"))
+        self.df = pd.DataFrame(
+            self.data, columns=("vn", "level_vn", "w", "level_w")
+        )
         self.df.insert(loc=0, column="dates", value=self.dates)
         self.df["exp_name"] = [exp_id] * len(self.df)
         self.df["job_id"] = [job_id] * len(self.df)
         if len(self.dates) == 0:
-            logging.critical(f"Could not find time steps in log for {exp_id} {job_id}")
+            logging.critical(
+                f"Could not find time steps in log for {exp_id} {job_id}"
+            )
             sys.exit(1)
         logging.info("Dates %s to %s" % (self.dates[0], self.dates[-1]))
         return self.df

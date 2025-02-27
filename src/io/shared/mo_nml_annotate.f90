@@ -46,21 +46,21 @@ MODULE mo_nml_annotate
   USE mo_exception,   ONLY: finish
   USE mo_util_file,   ONLY: util_tmpnam, util_unlink
   USE mo_util_nml,    ONLY: util_annotate_nml
-  
+
   IMPLICIT NONE
   PRIVATE
-  
+
 
   CHARACTER(LEN=*), PARAMETER :: modname = TRIM('mo_nml_annotate')
 
   INTEGER :: tmpnml = -1   !< file handle for temporary text file with defaults and settings
-  
+
   PUBLIC :: temp_defaults
   PUBLIC :: temp_settings
-  PUBLIC :: log_nml_settings 
-  
+  PUBLIC :: log_nml_settings
+
 CONTAINS
-  
+
   !> Opens a new temporary text file.
   !
   FUNCTION temp_defaults()
@@ -87,8 +87,8 @@ CONTAINS
     END IF
     temp_defaults = tmpnml
   END FUNCTION temp_defaults
-  
-  
+
+
   !> Opens a new temporary text file.
   !
   FUNCTION temp_settings()
@@ -101,8 +101,8 @@ CONTAINS
     IF (.NOT. lopen) CALL finish(routine, "Internal error!")
     temp_settings = tmpnml
   END FUNCTION temp_settings
-  
-  
+
+
   !> Read defaults and settings into string buffer, compare them and do the
   !  print-out.
   !
@@ -124,5 +124,5 @@ CONTAINS
       iret = util_unlink(TRIM(tmp_filename))
     END IF
   END SUBROUTINE log_nml_settings
-  
+
 END MODULE mo_nml_annotate

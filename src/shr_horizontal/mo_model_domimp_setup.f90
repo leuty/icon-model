@@ -521,38 +521,38 @@ CONTAINS
       END DO
 
       IF (ldeepatmo) THEN
-        ! non-traditional deep-atmosphere terms in components 
+        ! non-traditional deep-atmosphere terms in components
         ! of momentum equation (such as ft*w or vn/r) are active
 
         ! compute components of horizontal Coriolis parameter (vector) 'fn' and 'ft'
         ! NOTE: 'fn' and 'ft' are only available on edges!
-          
-        ! Given a triangular cell edge and the corresponding 
-        ! normal unit vector N, pointing from the cell center on edge side 
-        ! labeled 1 to the cell center on the other side labeled 2, 
-        ! and the tangential unit vector T, pointing from the edge end 
-        ! labeled vertex 1 to the edge end labeled vertex 2, 
-        ! according to Hui Wan's PhD-thesis, p. 14 and/or Zaengl et al. 2015, 
-        ! the following assumptions are made for the computation of 
-        ! the horizontal Coriolis parameters:  
-        ! - the horizontal wind vector u is measured with N and T in ICON: 
-        !                  u = vn*N + vt*T 
-        ! - from our attempts to track down in which model variables N and T 
+
+        ! Given a triangular cell edge and the corresponding
+        ! normal unit vector N, pointing from the cell center on edge side
+        ! labeled 1 to the cell center on the other side labeled 2,
+        ! and the tangential unit vector T, pointing from the edge end
+        ! labeled vertex 1 to the edge end labeled vertex 2,
+        ! according to Hui Wan's PhD-thesis, p. 14 and/or Zaengl et al. 2015,
+        ! the following assumptions are made for the computation of
+        ! the horizontal Coriolis parameters:
+        ! - the horizontal wind vector u is measured with N and T in ICON:
+        !                  u = vn*N + vt*T
+        ! - from our attempts to track down in which model variables N and T
         !   are actually stored, we guess the following:
         !   N -> patch%edges%primal_normal
         !   T -> patch%edges%dual_normal
         ! - the vertical unit vector Z (=e_z) points allways in the outward
         !   direction of the Earth sphere
-        ! - IMPORTANT: T, N, Z form a right-handed coordinate system 
+        ! - IMPORTANT: T, N, Z form a right-handed coordinate system
         !   in that order (not N, T, Z !)
-        ! Next, having  2*Omega = fn*N + ft*T + fz*Z 
-        ! and  v = vn*N + vt*T + w*Z, the Coriolis acceleration reads: 
-        ! 2*Omegaxv = (fz*vt - ft*w)*N 
-        !           + (fn*w  - fz*vn)*T 
+        ! Next, having  2*Omega = fn*N + ft*T + fz*Z
+        ! and  v = vn*N + vt*T + w*Z, the Coriolis acceleration reads:
+        ! 2*Omegaxv = (fz*vt - ft*w)*N
+        !           + (fn*w  - fz*vn)*T
         !           + (ft*vn - fn*vt)*Z
 
         is_traditional = .FALSE.
-          
+
         DO jb = 1, nblks_e
           IF (jb /= nblks_e) THEN
             nlen = nproma
@@ -566,7 +566,7 @@ CONTAINS
             ! v1 => zonal component, v2 => meridional component
             magnitude = SQRT(patch%edges%primal_normal(je,jb)%v1**2 + patch%edges%primal_normal(je,jb)%v2**2)
 
-            ! these 2d computations are only performed once, 
+            ! these 2d computations are only performed once,
             ! so an if-query within the innermost loop should be bearable
             IF (magnitude > 0._wp) THEN
               ! Omega has no zonal component
@@ -585,19 +585,19 @@ CONTAINS
 
             ! latitude of edge point
             zlat = patch%edges%center(je,jb)%lat
-              
+
             ! compute horizontal Coriolis parameter
-            ! ('grid_angular_velocity' is defined and assigned in 
+            ! ('grid_angular_velocity' is defined and assigned in
             ! 'src/configure_model/mo_grid_config')
             coriolis_param_hor = 2._wp * grid_angular_velocity * COS(zlat)
-              
-            ! compute normal and tangential components of horizontal 
+
+            ! compute normal and tangential components of horizontal
             ! Coriolis parameter vector
             patch%edges%fn_e(je,jb) = coriolis_param_hor * primal_mer_comp
-            patch%edges%ft_e(je,jb) = coriolis_param_hor * dual_mer_comp       
+            patch%edges%ft_e(je,jb) = coriolis_param_hor * dual_mer_comp
           END DO  !je = 1, nlen
         END DO  !jb = 1, nblks_e
-          
+
       ENDIF  !IF (ldeepatmo)
 
     ELSEIF (lcorio .AND. is_plane) THEN

@@ -469,7 +469,7 @@ EOF
 #%  endif
 #%  if WITH_OCEAN is set:
 #-----------------------------------------------------------------------------
-# III. OCEAN and SEA-ICE (and HAMOCC) 
+# III. OCEAN and SEA-ICE (and HAMOCC)
 #-----------------------------------------------------------------------------
 #
 # ocean namelist
@@ -484,7 +484,7 @@ EOF
 # ------------------------------------------------
 
 if [[ "$disturbance_command" ]]
-then   
+then
     echo "disturbing model for start date ${start_date}, using '$disturbance_command'"
     eval "$disturbance_command"
 fi
@@ -500,7 +500,7 @@ fi
 
 #=============================================================================
 #
-# This section of the run script prepares and starts the model integration. 
+# This section of the run script prepares and starts the model integration.
 #
 #-----------------------------------------------------------------------------
 
@@ -528,9 +528,9 @@ mpi_oce_io_procs=%{namelists.NAMELIST_oce.parallel_nml.num_io_procs}
 
 #%      if JOB.use_hostfile is set:
 #%         if IO_DISTRIBUTION_OVER_GPUS is set and JOB.use_gpus is set:
-#%            include "mkexp/environments/hostfiles_levante/hostfile_distrib_io_on_gpus.tmpl" 
+#%            include "mkexp/environments/hostfiles_levante/hostfile_distrib_io_on_gpus.tmpl"
 #%         else:
-#%            include "mkexp/environments/hostfiles_levante/hostfile.tmpl" 
+#%            include "mkexp/environments/hostfiles_levante/hostfile.tmpl"
 #%         endif
 #%      endif
 #%  else:
@@ -538,7 +538,7 @@ mpi_oce_io_procs=%{namelists.NAMELIST_oce.parallel_nml.num_io_procs}
 #%      include "mkexp/environments/hostfiles_levante/hostfile_openmp_hack.tmpl"
 #%  endif
 
-#% if JOB.use_gpus is set:   
+#% if JOB.use_gpus is set:
 #%     include "mkexp/environments/run_wrapper_levante_gpu.tmpl"
 #% endif
 

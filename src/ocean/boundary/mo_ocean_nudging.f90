@@ -116,7 +116,7 @@ CONTAINS
       !---------DEBUG DIAGNOSTICS-------------------------------------------
       idt_src=1  ! output print level (1-5, fix)
       CALL dbg_print('3d_relax: tracer T forc', ocean_nudge%forc_3dimRelax_Temp, str_module,idt_src, in_subset=cells_in_domain)
-      CALL dbg_print('3d_relax: tracer T data', ocean_nudge%data_3dimRelax_Temp, str_module,idt_src, in_subset=cells_in_domain)      
+      CALL dbg_print('3d_relax: tracer T data', ocean_nudge%data_3dimRelax_Temp, str_module,idt_src, in_subset=cells_in_domain)
       z_c(:,:,:) =  p_os%p_prog(nnew(1))%tracer(:,:,:,1)
       CALL dbg_print('3d_relax: tracer T trac', z_c, str_module,idt_src, in_subset=cells_in_domain)
       !---------------------------------------------------------------------
@@ -172,5 +172,3 @@ CONTAINS
 
 
 END MODULE mo_ocean_nudging
-
-

@@ -50,4 +50,3 @@ echo "minimal to is ${min_to}"
 if echo "${min_to} < -50 || ${min_to} > 50" | bc -l | grep -q 1 ; then
   exit 1
 fi
-

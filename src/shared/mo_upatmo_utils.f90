@@ -42,7 +42,7 @@ MODULE mo_upatmo_utils
   INTEGER, PARAMETER :: I4USE   = 1
   INTEGER, PARAMETER :: I4RESET = 2
 
-  ! If you would add further variables to t_varstate_set, 
+  ! If you would add further variables to t_varstate_set,
   ! please add them to src/upper_atmosphere/mo_upatmo_flowevent_utils as well. Thank you!
   TYPE t_varstate_set
     INTEGER :: i_old             = 1
@@ -95,7 +95,7 @@ CONTAINS !......................................................................
 
   !>
   !! Initialize logical 1d-array.
-  !! (Introduced, because 'externals/fortran-support/src/mo_fortran_tools: init_contiguous_l' 
+  !! (Introduced, because 'externals/fortran-support/src/mo_fortran_tools: init_contiguous_l'
   !! does not suit our purposes.)
   !!
   SUBROUTINE init_logical_1d( variable,   & !inout
@@ -104,18 +104,18 @@ CONTAINS !......................................................................
     &                         opt_mask    ) !optin
     ! In/out variables
     LOGICAL,                    INTENT(INOUT) :: variable(:)  ! Logical array to be assigned with 'value'
-    LOGICAL,                    INTENT(IN)    :: value         
-    INTEGER,          OPTIONAL, INTENT(IN)    :: opt_ilist(:) ! Optional list with indices of 'variable' 
-                                                              ! that shall or shall not be assigned with 'value'. 
-                                                              ! The indices are assumed to be 
-                                                              ! in '[1, size(variable)]', 
+    LOGICAL,                    INTENT(IN)    :: value
+    INTEGER,          OPTIONAL, INTENT(IN)    :: opt_ilist(:) ! Optional list with indices of 'variable'
+                                                              ! that shall or shall not be assigned with 'value'.
+                                                              ! The indices are assumed to be
+                                                              ! in '[1, size(variable)]',
                                                               ! if present, or in '[1, SIZE(variable)]' otherwise.
-    CHARACTER(LEN=*), OPTIONAL, INTENT(IN)    :: opt_mask     ! "list" -> those indices of 'variable' stored 
+    CHARACTER(LEN=*), OPTIONAL, INTENT(IN)    :: opt_mask     ! "list" -> those indices of 'variable' stored
                                                               ! in 'opt_ilist' are not assigned with 'value'
-                                                              ! "complement" -> those indices of 'variable' 
-                                                              ! not stored in 'opt_ilist' are not assigned with 'value'. 
-                                                              ! The case that 'opt_ilist' is present, 
-                                                              ! while 'opt_mask' is absent, is interpreted 
+                                                              ! "complement" -> those indices of 'variable'
+                                                              ! not stored in 'opt_ilist' are not assigned with 'value'.
+                                                              ! The case that 'opt_ilist' is present,
+                                                              ! while 'opt_mask' is absent, is interpreted
                                                               ! as 'opt_mask = "list"'.
 
     ! Local variables
@@ -158,7 +158,7 @@ CONTAINS !......................................................................
     ELSE
       lmask = .FALSE.
     ENDIF
-    
+
     IF (lmask) THEN
       DO jloop = 1, varsize
         IF (.NOT. mask(jloop)) variable(jloop) = value
@@ -179,7 +179,7 @@ CONTAINS !......................................................................
   !====================================================================================
 
   !>
-  !! Copy of 'src/configure_model/mo_name_list_output_config: is_variable_in_output', 
+  !! Copy of 'src/configure_model/mo_name_list_output_config: is_variable_in_output',
   !! where (optional) conditions have to be met.
   !!
   FUNCTION is_variable_in_output_cond( var_name,               &
@@ -213,7 +213,7 @@ CONTAINS !......................................................................
 
     p_onl  => first_output_name_list
 
-    ! If there is no optional condition, 
+    ! If there is no optional condition,
     ! this function becomes 'is_variable_in_output' effectively
     IF (.NOT. l_anycond) THEN
       DO WHILE (ASSOCIATED(p_onl) .AND. .NOT. retval)
@@ -230,7 +230,7 @@ CONTAINS !......................................................................
         IF(l_met) retval = is_variable_in_output_nml(p_onl, var_name=var_name)
         p_onl => p_onl%next
       END DO
-    ENDIF  !IF (.NOT. l_anycond) 
+    ENDIF  !IF (.NOT. l_anycond)
 
   END FUNCTION is_variable_in_output_cond
 
@@ -256,10 +256,10 @@ CONTAINS !......................................................................
     !---------------------------------------------------------
 
     ! Covered (mutually exclusive) cases:
-    ! (Open bounds might be regarded as questionable 
-    ! for the integer version of this function.  
-    ! However, for reasons of simplicity and coherence 
-    ! with the real-number version of this function, 
+    ! (Open bounds might be regarded as questionable
+    ! for the integer version of this function.
+    ! However, for reasons of simplicity and coherence
+    ! with the real-number version of this function,
     ! we keep it this way)
     ! * number in [opt_clbnd, opt_cubnd]
     ! * number in (opt_olbnd, opt_cubnd]
@@ -272,15 +272,15 @@ CONTAINS !......................................................................
     l_present_cubnd = PRESENT(opt_cubnd)
 
     IF (l_present_clbnd .EQV. PRESENT(opt_olbnd)) THEN
-      ! Either both a closed lower boundary and an open lower boundary 
+      ! Either both a closed lower boundary and an open lower boundary
       ! are present or none is present
       CALL finish(routine, "Invalid argument for lower bound.")
     ELSEIF (l_present_cubnd .EQV. PRESENT(opt_oubnd)) THEN
-      ! Either both a closed upper boundary and an open upper boundary 
+      ! Either both a closed upper boundary and an open upper boundary
       ! are present or none is present
       CALL finish(routine, "Invalid argument for upper bound.")
     ENDIF
-    
+
     ! Is number equal to or greater than lower bound?
     IF (l_present_clbnd) THEN
       isInInterval_integer = number >= opt_clbnd
@@ -293,7 +293,7 @@ CONTAINS !......................................................................
       isInInterval_integer = isInInterval_integer .AND. number <= opt_cubnd
     ELSE
       isInInterval_integer = isInInterval_integer .AND. number < opt_oubnd
-    ENDIF    
+    ENDIF
 
   END FUNCTION isInInterval_integer
 
@@ -330,15 +330,15 @@ CONTAINS !......................................................................
     l_present_cubnd = PRESENT(opt_cubnd)
 
     IF (l_present_clbnd .EQV. PRESENT(opt_olbnd)) THEN
-      ! Either both a closed lower boundary and an open lower boundary 
+      ! Either both a closed lower boundary and an open lower boundary
       ! are present or none is present
       CALL finish(routine, "Invalid argument for lower bound.")
     ELSEIF (l_present_cubnd .EQV. PRESENT(opt_oubnd)) THEN
-      ! Either both a closed upper boundary and an open upper boundary 
+      ! Either both a closed upper boundary and an open upper boundary
       ! are present or none is present
       CALL finish(routine, "Invalid argument for upper bound.")
     ENDIF
-    
+
     ! Is number equal to or greater than lower bound?
     IF (l_present_clbnd) THEN
       isInInterval_real = .NOT. (number < opt_clbnd)
@@ -351,7 +351,7 @@ CONTAINS !......................................................................
       isInInterval_real = isInInterval_real .AND. .NOT. (number > opt_cubnd)
     ELSE
       isInInterval_real = isInInterval_real .AND. number < opt_oubnd
-    ENDIF    
+    ENDIF
 
   END FUNCTION isInInterval_real
 
@@ -362,7 +362,7 @@ CONTAINS !......................................................................
     &                         optDefaultFinishOnError,  & !optin
     &                         optDefaultLocking,        & !optin
     &                         optError                  ) !optout
-    
+
     CLASS(t_varstate), TARGET, INTENT(INOUT) :: varstate
     INTEGER,                   INTENT(IN)    :: nstate
     LOGICAL, OPTIONAL,         INTENT(IN)    :: optDefaultFinishOnError
@@ -426,7 +426,7 @@ CONTAINS !......................................................................
     &                         optCountAsUpdate, & !optin
     &                         optFinishOnError, & !optin
     &                         optError          ) !optout
-    
+
     CLASS(t_varstate), TARGET, INTENT(INOUT) :: varstate
     LOGICAL, OPTIONAL,         INTENT(IN)    :: optFinal
     LOGICAL, OPTIONAL,         INTENT(IN)    :: optCountAsUpdate
@@ -487,7 +487,7 @@ CONTAINS !......................................................................
   SUBROUTINE t_varstate_clear( varstate,         & !class
     &                          optFinishOnError, & !optin
     &                          optError          ) !optout
-    
+
     CLASS(t_varstate), TARGET, INTENT(INOUT) :: varstate
     LOGICAL, OPTIONAL,         INTENT(IN)    :: optFinishOnError
     INTEGER, OPTIONAL,         INTENT(OUT)   :: optError
@@ -532,7 +532,7 @@ CONTAINS !......................................................................
   SUBROUTINE t_varstate_lock( varstate,         & !class
     &                         optFinishOnError, & !optin
     &                         optError          ) !optout
-    
+
     CLASS(t_varstate), TARGET, INTENT(INOUT) :: varstate
     LOGICAL, OPTIONAL,         INTENT(IN)    :: optFinishOnError
     INTEGER, OPTIONAL,         INTENT(OUT)   :: optError
@@ -569,7 +569,7 @@ CONTAINS !......................................................................
   SUBROUTINE t_varstate_unlock( varstate,         & !class
     &                           optFinishOnError, & !optin
     &                           optError          ) !optout
-    
+
     CLASS(t_varstate), TARGET, INTENT(INOUT) :: varstate
     LOGICAL, OPTIONAL,         INTENT(IN)    :: optFinishOnError
     INTEGER, OPTIONAL,         INTENT(OUT)   :: optError
@@ -611,7 +611,7 @@ CONTAINS !......................................................................
     &                          optSet4Reset,      & !optin
     &                          optFinishOnError,  & !optin
     &                          optError           ) !optout
-    
+
     CLASS(t_varstate),              TARGET, INTENT(INOUT) :: varstate
     TYPE(t_varstate_set), OPTIONAL, TARGET, INTENT(IN)    :: optSet4Reset
     LOGICAL,              OPTIONAL,         INTENT(IN)    :: optFinishOnError
@@ -656,7 +656,7 @@ CONTAINS !......................................................................
     &                       optFinishOnError,   & !optin
     &                       optError          ) & !optout
     &                       RESULT(iold)
-    
+
     CLASS(t_varstate), TARGET, INTENT(INOUT) :: varstate
     LOGICAL, OPTIONAL,         INTENT(IN)    :: optFinishOnError
     INTEGER, OPTIONAL,         INTENT(OUT)   :: optError
@@ -678,7 +678,7 @@ CONTAINS !......................................................................
     &                       optFinishOnError,   & !optin
     &                       optError          ) & !optout
     &                       RESULT(inew)
-    
+
     CLASS(t_varstate), TARGET, INTENT(INOUT) :: varstate
     LOGICAL, OPTIONAL,         INTENT(IN)    :: optFinishOnError
     INTEGER, OPTIONAL,         INTENT(OUT)   :: optError
@@ -700,7 +700,7 @@ CONTAINS !......................................................................
     &                        optFinishOnError,   & !optin
     &                        optError          ) & !optout
     &                        RESULT(nswap)
-    
+
     CLASS(t_varstate), TARGET, INTENT(INOUT) :: varstate
     LOGICAL, OPTIONAL,         INTENT(IN)    :: optFinishOnError
     INTEGER, OPTIONAL,         INTENT(OUT)   :: optError
@@ -722,7 +722,7 @@ CONTAINS !......................................................................
     &                         optFinishOnError,   & !optin
     &                         optError          ) & !optout
     &                         RESULT(nstate)
-    
+
     CLASS(t_varstate), TARGET, INTENT(INOUT) :: varstate
     LOGICAL, OPTIONAL,         INTENT(IN)    :: optFinishOnError
     INTEGER, OPTIONAL,         INTENT(OUT)   :: optError
@@ -967,7 +967,7 @@ CONTAINS !......................................................................
     &                         optFinishOnError,   & !optin
     &                         optError          ) &!optout
     &                         RESULT(set)
-    
+
     CLASS(t_varstate),  TARGET, INTENT(INOUT) :: varstate
     CHARACTER(LEN=*), OPTIONAL, INTENT(IN)    :: optWhichSet
     LOGICAL,          OPTIONAL, INTENT(IN)    :: optFinishOnError

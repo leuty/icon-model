@@ -24,14 +24,14 @@ MODULE mo_random_util
 
   IMPLICIT NONE
   PRIVATE
- 
+
   PUBLIC :: add_random_noise_global, add_random_noise_3d, add_random_noise_2d, poisson_distr
 
   INTERFACE poisson_distr
      MODULE PROCEDURE poisson_distr_array
      MODULE PROCEDURE poisson_distr_scalar
   END INTERFACE poisson_distr
-  
+
 CONTAINS
 
   !-----------------------------------------------------------------------
@@ -95,7 +95,7 @@ CONTAINS
     IF(status/=SUCCESS)THEN
       CALL finish(method_name,'allocation of seed_array failed')
     ENDIF
- 
+
     IF (PRESENT(global_vertical_seed)) THEN
       vertical_seed => global_vertical_seed
     ELSE
@@ -203,11 +203,11 @@ CONTAINS
 
 
   !-----------------------------------------------------------
-  ! Determine a vector 'random_vals( 1:nmbr )' of Poisson 
+  ! Determine a vector 'random_vals( 1:nmbr )' of Poisson
   ! distributed random numbers with mean values 'mu'.
   !-----------------------------------------------------------
 
-  
+
   SUBROUTINE poisson_distr_array( mu, random_vals, poisson_vals )
 
     IMPLICIT NONE
@@ -238,7 +238,7 @@ CONTAINS
     IF ( mu < 300.0_wp ) THEN
       ! i.e. mu is small enough, therefore, the normalization constant is large enough,
       ! and one can directly start with the probability p(k=0):
-      idx_min_all = 0 
+      idx_min_all = 0
       probs (0) = EXP( -mu )
       limits(0) = 0.0_wp
 
@@ -310,7 +310,7 @@ CONTAINS
         END IF
       END DO
 
-      poisson_vals(i) = idx_min    
+      poisson_vals(i) = idx_min
 
     END DO
 

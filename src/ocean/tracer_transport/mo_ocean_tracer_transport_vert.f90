@@ -38,21 +38,21 @@ MODULE mo_ocean_tracer_transport_vert
   USE mo_ocean_physics
   USE mo_grid_subset,               ONLY: t_subset_range, get_index_range
   USE mo_sync,                      ONLY: sync_c, sync_patch_array
-  USE mo_ocean_limiter,             ONLY: v_ppm_slimiter_mo_onblock 
+  USE mo_ocean_limiter,             ONLY: v_ppm_slimiter_mo_onblock
   USE mo_ocean_tracer_transport_types,  ONLY: t_ocean_transport_state
   USE mo_fortran_tools,             ONLY: set_acc_host_or_device
 
 IMPLICIT NONE
-  
+
   PRIVATE
-  
+
   CHARACTER(LEN=12)           :: str_module    = 'oceTracVert '  ! Output of module for 1 line debug
   INTEGER :: idt_src       = 1               ! Level of detail for 1 line debug
-  
+
   PUBLIC :: advect_flux_vertical
- 
+
 CONTAINS
-  
+
   !-------------------------------------------------------------------------
   !! SUBROUTINE advects vertically the tracers present in the ocean model.
   !!
@@ -64,14 +64,14 @@ CONTAINS
     & transport_state,          &
     & operators_coeff,      &
     & flux_div_vert, lacc)
-    
+
     TYPE(t_patch_3d ),TARGET :: patch_3d
     REAL(wp), INTENT(inout)           :: trac_old(:,:,:) ! (nproma,n_zlev,patch_3d%p_patch_2d(1)%alloc_cell_blocks)
     TYPE(t_ocean_transport_state), TARGET :: transport_state
     TYPE(t_operator_coeff), TARGET    :: operators_coeff
     REAL(wp), INTENT(inout)           :: flux_div_vert(:,:,:) ! (nproma, n_zlev, patch_3d%p_patch_2d(1)%alloc_cell_blocks) !new tracer
     LOGICAL, INTENT(in), OPTIONAL :: lacc
-    
+
     !Local variables
     REAL(wp) :: deriv_fst, deriv_sec, adpo_weight_upw_cntr, adpo_weight_cntr_upw
     REAL(wp) :: prism_volume, transport_in, transport_out, adpo_r1, adpo_r2
@@ -82,13 +82,13 @@ CONTAINS
     REAL(wp), ALLOCATABLE :: z_adv_flux_v2(:,:,:) ! resulting flux
     REAL(wp), ALLOCATABLE :: z_adv_flux_v (:,:,:)  ! resulting flux
     REAL(wp), ALLOCATABLE :: z_adv_flux_vu(:,:,:)  ! upwind flux
-    
+
     REAL(wp), ALLOCATABLE :: adpo_weight(:,:,:)
     REAL(wp) :: z_flux_div_upw, z_flux_div_cnt
     REAL(wp), ALLOCATABLE :: a_v(:,:,:)
-    
+
     TYPE(t_patch), POINTER :: patch_2D
-    
+
     CHARACTER(LEN=max_char_length), PARAMETER :: &
       & routine = ('mo_tracer_advection:advect_flux_vertical')
     !-------------------------------------------------------------------------------
@@ -102,10 +102,10 @@ CONTAINS
     CALL set_acc_host_or_device(lzacc, lacc)
 
     ! CALL sync_patch_array(sync_c, patch_2D, trac_old, lacc=lzacc)
-    
+
     ! This is already synced in  edges_in_domain !
     ! CALL sync_patch_array(SYNC_C, patch_2D, transport_state%w, lacc=lzacc)
-    
+
 
     IF (flux_calculation_vert == fct_vert_ppm) THEN
 
@@ -124,11 +124,11 @@ CONTAINS
 
     ENDIF
 
-    
+
   END SUBROUTINE advect_flux_vertical
   !-------------------------------------------------------------------------
-  
-    
+
+
   !------------------------------------------------------------------------
   !! Otpimized version of the third order PPM scheme
   !!
@@ -139,8 +139,8 @@ CONTAINS
     & cell_thickeness,  cell_invheight,   &
     & verticalAdvection_ppm_coefficients, &
     & flux_div_vert, lacc)
-    
-    TYPE(t_patch_3d ),TARGET, INTENT(in)   :: patch_3d   
+
+    TYPE(t_patch_3d ),TARGET, INTENT(in)   :: patch_3d
     REAL(wp), INTENT(inout)           :: tracer(nproma,n_zlev, patch_3d%p_patch_2d(1)%alloc_cell_blocks)  !< in: advected cell centered variable
     REAL(wp), INTENT(inout)           :: w(nproma,n_zlev+1, patch_3d%p_patch_2d(1)%alloc_cell_blocks) !<  in : vertical velocity
     REAL(wp), INTENT(in)              :: dtime  !< time step
@@ -163,7 +163,7 @@ CONTAINS
 #ifdef NAGFOR
     flux_div_vert(:,:,:) = 0.0_wp
 #endif
-   
+
 !ICON_OMP_PARALLEL_DO PRIVATE(startIndex, endIndex) ICON_OMP_DEFAULT_SCHEDULE
     DO jb = cells_in_domain%start_block, cells_in_domain%end_block
       CALL get_index_range(cells_in_domain, jb, startIndex, endIndex)
@@ -246,7 +246,7 @@ CONTAINS
     !REAL(wp) :: opt_topflx_tra(nproma,patch_3D%p_patch_2D(1)%alloc_cell_blocks)  !< vertical tracer flux at upper boundary
     INTEGER, PARAMETER :: islopel_vsm = 1
     LOGICAL :: lzacc
-    
+
     REAL(wp), POINTER ::  cellHeightRatio_This_toBelow(:,:)
     REAL(wp), POINTER ::  cellHeightRatio_This_toThisBelow(:,:)
     REAL(wp), POINTER ::  cellHeight_2xBelow_x_RatioThis_toThisBelow(:,:)
@@ -381,9 +381,9 @@ CONTAINS
 
       ! compute top 2 levels
       IF ( cells_noOfLevels(jc) >= firstLevel  ) THEN
-      
+
         z_face(jc,firstLevel) = tracer(jc,firstLevel)
-        
+
         IF ( cell_levels >= secondLevel ) THEN
 
           z_face(jc,secondLevel) = &
@@ -393,9 +393,9 @@ CONTAINS
             & + (cellHeightRatio_This_toThisBelow(jc,firstLevel))            &
             & * &
             & ( cellHeightRatio_This_toBelow(jc,firstLevel)                  &
-            & * tracer(jc,firstLevel)                                        & 
+            & * tracer(jc,firstLevel)                                        &
             & + tracer(jc,secondLevel))
-            
+
         ENDIF
       ENDIF
 
@@ -539,7 +539,6 @@ CONTAINS
     !$ACC END DATA
   END SUBROUTINE upwind_vflux_ppm_onBlock
   !-------------------------------------------------------------------------
- 
-   
-END MODULE mo_ocean_tracer_transport_vert
 
+
+END MODULE mo_ocean_tracer_transport_vert

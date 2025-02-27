@@ -40,8 +40,8 @@ MODULE mo_hamocc_nml
                                                 !< 0 standard solver
                                                 !< 1 solver from mocsy package
   !$ACC DECLARE CREATE(hion_solver)
-  INTEGER, PUBLIC :: isac 
-  REAL(wp), PUBLIC :: sinkspeed_opal 
+  INTEGER, PUBLIC :: isac
+  REAL(wp), PUBLIC :: sinkspeed_opal
   REAL(wp), PUBLIC :: sinkspeed_calc
   REAL(wp), PUBLIC :: sinkspeed_poc
   REAL(wp), PUBLIC :: sinkspeed_martin_ez
@@ -53,10 +53,10 @@ MODULE mo_hamocc_nml
   REAL(wp), PUBLIC :: deltacalc
   REAL(wp), PUBLIC :: deltaorg
   REAL(wp), PUBLIC :: deltasil
- 
+
   INTEGER, PUBLIC  :: io_stdo_bgc        !<  io unit for HAMOCC LOG file
   INTEGER, PUBLIC  :: ks,ksp
-  
+
   ! M4AGO
   LOGICAL,  PUBLIC :: l_virtual_tep
   LOGICAL,  PUBLIC :: l_re
@@ -86,7 +86,7 @@ MODULE mo_hamocc_nml
   LOGICAL, PUBLIC :: l_bgc_check      = .FALSE.   ! MASS check at every time step?
   LOGICAL, PUBLIC :: l_up_sedshi      = .FALSE.   ! Upward sediment shifting
   LOGICAL, PUBLIC :: l_implsed        = .FALSE.   ! Implicit sediment formulation
-  LOGICAL, PUBLIC :: l_dynamic_pi     = .TRUE.    ! Depth dependent pi_alpha 
+  LOGICAL, PUBLIC :: l_dynamic_pi     = .TRUE.    ! Depth dependent pi_alpha
   LOGICAL, PUBLIC :: l_PDM_settling   = .FALSE.   ! PDM scheme for particle settling
   LOGICAL, PUBLIC :: l_init_bgc       = .FALSE.   ! initialise state variables with cold start values
   LOGICAL, PUBLIC :: l_limit_sal      = .TRUE.    ! limit salinity to min. 25 psu?
@@ -103,10 +103,10 @@ MODULE mo_hamocc_nml
   ! extended N-cycle
   LOGICAL, PUBLIC :: l_N_cycle = .FALSE.
   REAL(wp), PUBLIC :: no3nh4red, no3no2red
-  
+
   REAL(wp), PUBLIC :: atm_co2, atm_o2, atm_n2
   INTEGER         :: iunit
- 
+
 
   NAMELIST /hamocc_nml/ &
     &  i_settling, &
@@ -146,7 +146,7 @@ MODULE mo_hamocc_nml
     &  l_N_cycle, &
     &  no3nh4red, &
     &  no3no2red, &
-    &  l_virtual_tep, &  
+    &  l_virtual_tep, &
     &  l_re,&
     &  l_opal_q10,&
     &  opal_remin_tref,&
@@ -177,24 +177,24 @@ CONTAINS
     !------------------------------------------------------------------
     i_settling        = 1             ! constant sinking
 
-    hion_solver       = 1             
+    hion_solver       = 1
     !$ACC UPDATE DEVICE(hion_solver) ASYNC(1)
-   
+
     isac = 1       ! no sediment acceleration
     l_cyadyn = .TRUE.
 
     sinkspeed_opal =30._wp             ! m/d
     sinkspeed_calc = 30._wp            ! m/d
     sinkspeed_poc = 5._wp            ! m/d
-    sinkspeed_martin_ez = 3.5_wp       ! m/d 
-  
+    sinkspeed_martin_ez = 3.5_wp       ! m/d
+
   ! sediment nml parameters
-    denit_sed = 0.01_wp  
+    denit_sed = 0.01_wp
     disso_po = 0.01_wp
 
 
   ! Martin curve sinking
-    mc_fac = 2.0_wp       !0.858_wp default value from Martin ea 1987 
+    mc_fac = 2.0_wp       !0.858_wp default value from Martin ea 1987
     mc_depth = 100._wp
 
   ! Weathering fluxes
@@ -236,7 +236,7 @@ CONTAINS
    inpw(11) = 0.64_wp
    inpw(12) = 0.62_wp
 
-   cycdec = 0.1_wp 
+   cycdec = 0.1_wp
    cya_growth_max= 0.2_wp      ! d-1
    grazra=1.0_wp
 
@@ -247,7 +247,7 @@ CONTAINS
 
    ! total denitrification rate is a fraction of aerob remineralisation rate drempoc
    denitrification =  1.82e-3_wp   ! 1/d
- 
+
    calmax = 0.15_wp            ! maximum fraction (of "export") for calc production
 
    bkcya_P = 5.e-8_wp
@@ -266,7 +266,7 @@ CONTAINS
    doc_remin_tref= 10._wp
    poc_remin_q10 = 2.1_wp
    poc_remin_tref= 10._wp
-   
+
 
     !------------------------------------------------------------------
     ! If this is a resumed integration, overwrite the defaults above
@@ -297,12 +297,12 @@ CONTAINS
     END SELECT
     CALL close_nml
 
-    
+
 
     !------------------------------------------------------------------
     ! Sanity Check
     !------------------------------------------------------------------
-   
+
 
     if (l_N_cycle .and. l_implsed) THEN
       CALL finish(TRIM(routine), 'Extended N-cycle only works with explicit sediment!')
@@ -349,7 +349,7 @@ CONTAINS
     IF ( my_process_is_stdio() ) WRITE(nnml_output,nml=hamocc_nml)
 
    ! OPEN bgcout
-   IF ( my_process_is_stdio() ) CALL open_bgcout 
+   IF ( my_process_is_stdio() ) CALL open_bgcout
     !------------------------------------------------------------------
     ! Fill the configuration state
     !------------------------------------------------------------------
@@ -359,7 +359,7 @@ CONTAINS
   !>
   !!  opens an ASCII file with HAMOCC debug messages
 
-  SUBROUTINE open_bgcout 
+  SUBROUTINE open_bgcout
 
 
 
@@ -375,9 +375,9 @@ CONTAINS
       CALL finish ('open_bgcout','Could not open bgcout')
     END IF
 
-  END SUBROUTINE 
+  END SUBROUTINE
 
 
 
-  
+
 END MODULE mo_hamocc_nml

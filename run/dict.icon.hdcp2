@@ -30,7 +30,7 @@
   ua                 u
   va                 v
   wa                 w
-# 
+#
 # diagnostics
 #
   prw                tqv_dia
@@ -50,4 +50,4 @@
   uas                u_10
   vas                v_10
   cct                p_ctop
-  ccb                p_cbase    
+  ccb                p_cbase

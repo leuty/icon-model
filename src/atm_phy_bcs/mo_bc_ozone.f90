@@ -39,7 +39,7 @@ MODULE mo_bc_ozone
   USE mo_atmo_o3_provider_coupling, ONLY: nplev_o3_provider, &
                                           couple_atmo_to_o3_provider
   USE mo_fortran_tools,        ONLY: set_acc_host_or_device
-  
+
   IMPLICIT NONE
   PRIVATE
   INTEGER(i8), SAVE                 :: pre_year(max_dom)=-HUGE(1) ! Variable to check if it is time to read

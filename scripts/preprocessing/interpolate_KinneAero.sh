@@ -74,4 +74,3 @@ rm $REMAP_WEIGHTS
 #     chmod -R g+rx /hpc/uwork/icon-sml/Ozone
 #  ;;
 #esac
-

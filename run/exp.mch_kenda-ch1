@@ -11,17 +11,17 @@
 # ------------------------------------------
 
 # ===========================================================================
-# 
+#
 # Name: exp.mch_kenda-ch1.run
 #
-# Purpose: Run script for ICON on the R19B08 grid (ICON-1) on 
+# Purpose: Run script for ICON on the R19B08 grid (ICON-1) on
 #          the full ICON-1 domain covering Switzerland and a large surrounding
 #          area. This setup is identical to the one used operationally.
 #          It is used for the full operational benchmark tests at MeteoSwiss.
 #
 # Created by: Daniel Hupp (MeteoSwiss), Fabian Gessler (MeteoSwiss)
 #
-# =========================================================================== 
+# ===========================================================================
 
 set -x
 
@@ -42,7 +42,7 @@ input_folder="${testingFolder_prefix}/testing-input-data/c2sm/kenda-ch1"
 
 # ===========================================================================
 # This experiment describes a ICON-LAM experiment using the physics packages that are
-# used at MeteoSwiss for production. This simulation computes a few time steps on 
+# used at MeteoSwiss for production. This simulation computes a few time steps on
 # a low-resolution grid over Switzerland. The setup is for development purposes.
 # ==========================================================================
 
@@ -179,7 +179,7 @@ cat > ${basedir}/run/${atmo_namelist} << EOF
  hdiff_order                 =                          5         ! order of nabla operator for diffusion
  itype_vn_diffu              =                          1         ! reconstruction method used for Smagorinsky diffusion
  itype_t_diffu               =                          2         ! discretization of temperature diffusion
- hdiff_efdt_ratio            =                         24.0       ! ratio of e-folding time to time step 
+ hdiff_efdt_ratio            =                         24.0       ! ratio of e-folding time to time step
  hdiff_smag_fac              =                          0.025     ! scaling factor for Smagorinsky diffusion
 /
 
@@ -288,7 +288,7 @@ cat > ${basedir}/run/${atmo_namelist} << EOF
  llake                       =                      .TRUE.        ! .TRUE. for use of lake model
  itype_canopy                =                          2         ! Jan Peter scheme gdm orig. default 1
  itype_snowevap              =                          3         ! gdm: orig.: 2 Snow evap. in vegetated areas with add. variables for snow age and max. snow height
- itype_trvg                  =                          3         ! BATS scheme with add. prog. var. for integrated plant transpiration since sunrise 
+ itype_trvg                  =                          3         ! BATS scheme with add. prog. var. for integrated plant transpiration since sunrise
   sstice_mode                = 6
   sst_td_filename            = "${input_folder}/sst.nc"
   ci_td_filename             = "${input_folder}/sic.nc"
@@ -304,7 +304,7 @@ cat > ${basedir}/run/${atmo_namelist} << EOF
  vwind_offctr                =                          0.2       ! off-centering in vertical wind solver
  damp_height                 =                      12250.0       ! height at which Rayleigh damping of vertical wind starts
  rayleigh_coeff              =                          5.0       ! Rayleigh damping coefficient
- divdamp_order               =                         24         ! order of divergence damping 
+ divdamp_order               =                         24         ! order of divergence damping
  divdamp_type                =                         32         ! gdm default: 3 type of divergence damping
  divdamp_fac                 =                          0.004     ! scaling factor for divergence damping
  igradp_method               =                          3         ! discretization of horizontal pressure gradient
@@ -378,17 +378,17 @@ cat > ${basedir}/run/${atmo_namelist} << EOF
 !gribout_nml: defined and used in: src/namelists/mo_initicon_nml.f90 ------------
 
 &gribout_nml
-    preset                      = 'ensemble' 
+    preset                      = 'ensemble'
     localdefinitionnumber       = 253
     typeofensembleforecast      = 192
     localtypeofensembleforecast = 1
-    numberofforecastsinensemble = 40 
+    numberofforecastsinensemble = 40
     perturbationnumber = 3
     generatingProcessIdentifier = 141          !bes: should be 141 for ICON-1 and 142 for ICON-2;  waa set 141 with center 215 defined by external parameter file
     lgribout_24bit = .true.
 /
 
-! output_nml: control the output ------------------------------------------------ 
+! output_nml: control the output ------------------------------------------------
 
 EOF
 
@@ -675,8 +675,8 @@ cat >> ${basedir}/run/${atmo_namelist} << EOF
  ser_output_diag             =                            0,12,12
  ser_latbc_data              =                            0,12,12
  ser_dynamics                =                            0,12,12
- ser_diffusion               =                            0,12,12 
- ser_step_advection          =                            0,12,12 
+ ser_diffusion               =                            0,12,12
+ ser_step_advection          =                            0,12,12
  ser_physics                 =                            0,12,12
  ser_surface                 =                            0,12,12
  ser_microphysics            =                            0,12,12
@@ -688,10 +688,10 @@ cat >> ${basedir}/run/${atmo_namelist} << EOF
  ser_radheat                 =                            0,12,12
  ser_gwdrag                  =                            0,12,12
  ser_convection              =                            0,12,12
- ser_nudging                 =                            0,12,12 
+ ser_nudging                 =                            0,12,12
  ser_nfail                   =                            1
  ser_nreport                 =                            10
- ser_all_debug               =                            0 
+ ser_all_debug               =                            0
  ser_debug                   =                        .FALSE.      ! serialize the debug statements from mo_ser_debug
 /
 

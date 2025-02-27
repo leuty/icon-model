@@ -18,11 +18,11 @@ MODULE mo_upatmo_phy_fric
   USE mo_physical_constants, ONLY: argas, tmelt
 
   IMPLICIT NONE
-  
+
   PUBLIC :: fric_heat
 
 CONTAINS
-  
+
   !>
   !! Compute frictional heating
   !!
@@ -61,8 +61,8 @@ CONTAINS
 
     !---------------------------------------------------------
 
-    ! please do not limit range of assignment 
-    ! (e.g., ptte_fc(jcs:jce,istartlev:iendlev) = 0._wp)), 
+    ! please do not limit range of assignment
+    ! (e.g., ptte_fc(jcs:jce,istartlev:iendlev) = 0._wp)),
     ! since tendencies have attribute INTENT(OUT)
     ptte_fc(:,:) = 0._wp
 
@@ -80,14 +80,14 @@ CONTAINS
       iendlev = klev
     ENDIF
 
-    IF (istartlev >= iendlev) RETURN 
+    IF (istartlev >= iendlev) RETURN
 
     IF (PRESENT(opt_ldiss_from_heatdiff)) THEN
       ldiss_from_heatdiff = opt_ldiss_from_heatdiff
     ELSE
       ldiss_from_heatdiff = .FALSE.
     ENDIF
-    
+
     istartlevp1 = istartlev + 1
     iendlevm1   = iendlev - 1
 
@@ -119,7 +119,7 @@ CONTAINS
 
     DO jl = jcs, jce
       zrdz  = 1._wp / ( papm1(jl,istartlev) - papm1(jl,istartlevp1) )
-      zdudz = ( pum1(jl,istartlev) - pum1(jl,istartlevp1) ) * zrdz 
+      zdudz = ( pum1(jl,istartlev) - pum1(jl,istartlevp1) ) * zrdz
       zdvdz = ( pvm1(jl,istartlev) - pvm1(jl,istartlevp1) ) * zrdz
       zcoef = zgmurhoh(jl,istartlevp1) * grav(jl,istartlev) / cp(jl,istartlev)
       ptte_fc(jl,istartlev) = zcoef * ( zdudz * zdudz + zdvdz * zdvdz )
@@ -143,13 +143,13 @@ CONTAINS
           ptte_fc(jl,jk) = ptte_fc(jl,jk) + zcoef * ztempdz**2
         ENDDO  !jl
       ENDDO  !jk
-      
+
       DO jl = jcs, jce
         ztempdz = ( ptm1(jl,istartlev) - ptm1(jl,istartlevp1) ) / &
           &       ( papm1(jl,istartlev) - papm1(jl,istartlevp1) )
         zcoef   = inv_Pr * zgmurhoh(jl,istartlevp1) * grav(jl,istartlev) / cp(jl,istartlev)
         ptte_fc(jl,istartlev) = ptte_fc(jl,istartlev) + zcoef * ztempdz**2
-        
+
         ztempdz = ( pum1(jl,iendlev) - pum1(jl,iendlevm1) ) / &
           &       ( papm1(jl,iendlev) - papm1(jl,iendlevm1) )
         zcoef   = inv_Pr * zgmurhoh(jl,iendlev) * grav(jl,iendlev) / cp(jl,iendlev)

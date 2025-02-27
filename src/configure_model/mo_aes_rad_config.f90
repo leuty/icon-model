@@ -39,7 +39,7 @@ MODULE mo_aes_rad_config
   !! Name of this unit
   !!
   CHARACTER(LEN=*), PARAMETER :: name = 'aes_rad'
-  
+
   !>
   !! Configuration type containing parameters and switches for the configuration of the MPI physics package
   !!
@@ -165,7 +165,7 @@ CONTAINS
     !
     aes_rad_config(:)% lyr_perp       = .FALSE.
     aes_rad_config(:)% yr_perp        = -99999
-    aes_rad_config(:)% nmonth         =  0   
+    aes_rad_config(:)% nmonth         =  0
     aes_rad_config(:)% ldiur          = .TRUE.
     aes_rad_config(:)% l_sph_symm_irr = .FALSE.
     !
@@ -299,13 +299,13 @@ CONTAINS
        CALL message   ('','')
        !
        SELECT CASE (isolrad)
-       CASE (0) 
+       CASE (0)
           CALL message('','SRTM default solar spectrum')
-       CASE (1) 
+       CASE (1)
           CALL message('','Time dependent solar spectrum from file')
-       CASE (2) 
+       CASE (2)
           CALL message('','Average 1844-1856 of transient CMIP5 solar')
-       CASE (3) 
+       CASE (3)
           CALL message('','Average 1979-1988 of transient CMIP5 solar spectrum')
        CASE (4)
           CALL message('','Solar flux for RCE simulations with diurnal cycle')
@@ -315,7 +315,7 @@ CONTAINS
           CALL message('','Average 1850-1873 of transient CMIP6 solar')
        CASE (7)
           CALL message('','Solar flux for RCEmip analyticalsimulations without diurnal cycle')
-       CASE default 
+       CASE default
           WRITE (message_text, '(a,i0,a)') &
                'ERROR: isolrad = ', isolrad, ' is not supported'
           CALL finish(routine,message_text)
@@ -383,7 +383,7 @@ CONTAINS
        END SELECT
        !
        ! --- Check  CO2
-       ! 
+       !
        SELECT CASE (irad_co2)
        CASE(0)
           CALL message('','No CO2 in radiation')
@@ -406,7 +406,7 @@ CONTAINS
        END SELECT
        !
        ! --- Check CH4
-       ! 
+       !
        SELECT CASE (irad_ch4)
        CASE(0)
           CALL message('','No CH4 in radiation')
@@ -428,7 +428,7 @@ CONTAINS
        END SELECT
        !
        ! --- Check N2O
-       ! 
+       !
        SELECT CASE (irad_n2o)
        CASE(0)
           CALL message('','No N2O in radiation')
@@ -450,7 +450,7 @@ CONTAINS
        END SELECT
        !
        ! --- Check CFCs
-       ! 
+       !
        SELECT CASE (irad_cfc11)
        CASE(0)
           CALL message('','No CFC11 in radiation')
@@ -480,7 +480,7 @@ CONTAINS
        END SELECT
        !
        ! --- Check O3
-       ! 
+       !
        SELECT CASE (irad_o3)
        CASE(0)
           CALL message('','No O3 in radiation')
@@ -504,7 +504,7 @@ CONTAINS
        END SELECT
        !
        ! --- Check O2
-       ! 
+       !
        SELECT CASE (irad_o2)
        CASE(0)
           CALL message('','No O2  in radiation')
@@ -519,7 +519,7 @@ CONTAINS
        END SELECT
        !
        ! --- Check aerosol
-       ! 
+       !
        SELECT CASE (irad_aero)
        CASE(0)
           CALL message('','No aerosol in radiation')

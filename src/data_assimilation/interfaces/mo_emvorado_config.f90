@@ -10,7 +10,7 @@
 ! ---------------------------------------------------------------
 
 MODULE mo_emvorado_config
-  
+
   USE mo_run_config,      ONLY: msg_level
   USE mo_exception,       ONLY: message
 
@@ -60,8 +60,8 @@ CONTAINS
 #endif
 
 !!$ timer_stop(timer_radar_ini) is done in organize_radar('init')
-    
+
   END SUBROUTINE config_emvorado
-  
+
 
 END MODULE mo_emvorado_config

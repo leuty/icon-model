@@ -56,8 +56,8 @@ set_env="Post.${EXP}.set_env"
 
 # Remove old ${set_env} file
 #
-if [ -f ${set_env} ] 
-then 
+if [ -f ${set_env} ]
+then
   rm -f ${set_env}
 fi
 

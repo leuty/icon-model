@@ -20,11 +20,11 @@ MODULE mo_ocean_solve_gmres
   USE mo_exception, ONLY: finish
   USE mo_ocean_solve_backend, ONLY: t_ocean_solve_backend
   USE mo_fortran_tools, ONLY: set_acc_host_or_device
- 
+
   IMPLICIT NONE
-  
+
   PRIVATE
- 
+
   PUBLIC :: t_ocean_solve_gmres
   CHARACTER(LEN=*), PARAMETER :: this_mod_name = 'mo_ocean_solve_gmres'
 
@@ -104,7 +104,7 @@ CONTAINS
     CALL this%trans%sync(x)
     CALL this%lhs%apply(x, w)
 ! compute initial residuum
-!ICON_OMP PARALLEL DO SCHEDULE(STATIC) 
+!ICON_OMP PARALLEL DO SCHEDULE(STATIC)
      DO jb = 1, nblk
        w(:,jb) = b(:,jb) - w(:,jb)
        z(:,jb) = w(:,jb) * w(:,jb)
@@ -187,7 +187,7 @@ CONTAINS
       done = ABS(res(i+1)) < tol
       IF (done) i_final = i + 1
     END DO
-! if solve did not converge to desired accuracy (yet) 
+! if solve did not converge to desired accuracy (yet)
     this%niter_cal(1) = MERGE(i_final, -1, done)
     IF (.NOT.done) i_final = this%par%m
 ! compute Krylov-expansion coeffs

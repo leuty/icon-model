@@ -47,7 +47,7 @@ MODULE mo_o3_util
   USE mtime,                   ONLY: datetime, newDatetime, timedelta, newTimedelta, &
        &                             getPTStringFromMS, OPERATOR(+),                 &
        &                             NO_OF_MS_IN_A_MINUTE, NO_OF_MS_IN_A_HOUR,       &
-       &                             NO_OF_MS_IN_A_SECOND,                           &       
+       &                             NO_OF_MS_IN_A_SECOND,                           &
        &                             getDayOfYearFromDatetime, MAX_TIMEDELTA_STR_LEN,&
        &                             deallocateTimedelta, deallocateDatetime
   USE mo_bcs_time_interpolation, ONLY: t_time_interpolation_weights, &
@@ -94,7 +94,7 @@ CONTAINS
       &  zo3_bot(:,:)            !< irad_o3=6
     INTEGER                 :: &
       &  jg, jc, jk, jb,       & !< domain ID and loop indices
-      &  rl_start, rl_end,     & 
+      &  rl_start, rl_end,     &
       &  i_startblk,i_endblk,  &
       &  i_startidx, i_endidx, &
       &  istat
@@ -183,7 +183,7 @@ CONTAINS
         CALL deallocateTimedelta(td_dt_rad)
         CALL deallocateDatetime(prev_radtime)
 
-      
+
         IF (mtime_datetime%date%year /= ext_ozone(jg)%year) THEN
           WRITE(message_text,'(a,i0,a,i0,a)') 'Stale data: Ozone data is valid for year ', &
             & ext_ozone(jg)%year, ' but current year is ', mtime_datetime%date%year, '.'
@@ -245,8 +245,8 @@ CONTAINS
  ! The time interpolation is done to the radiation time step, monthly ozone
  ! values provided that are given at the middle of each month (monthly averages)
 
-    INTEGER, INTENT(IN)         :: jcs, jce    ! 
-    INTEGER, INTENT(IN)         :: kbdim       ! 
+    INTEGER, INTENT(IN)         :: jcs, jce    !
+    INTEGER, INTENT(IN)         :: kbdim       !
     INTEGER, INTENT(IN)         :: nlev_pres   ! number of o3 data levels
     TYPE(datetime), POINTER, INTENT(in) :: current_date
     REAL(wp), INTENT(in) , DIMENSION(:,:,:)                :: ext_o3
@@ -257,7 +257,7 @@ CONTAINS
 
     use_acc = .FALSE.
     IF (PRESENT(opt_use_acc)) use_acc = opt_use_acc
-    
+
     tiw = calculate_time_interpolation_weights(current_date)
 
     !$ACC KERNELS DEFAULT(PRESENT) COPYIN(tiw) ASYNC(1) IF(use_acc)
@@ -299,7 +299,7 @@ CONTAINS
     INTEGER, INTENT(IN)                             :: nlev_pres   ! number of o3 data levels
     REAL(wp),INTENT(IN) ,DIMENSION(nlev_pres)       :: pfoz  ! full level pressure of o3 data
     REAL(wp),INTENT(IN) ,DIMENSION(nlev_pres+1)     :: phoz  ! half level pressure of o3 data
-    REAL(wp),INTENT(IN) ,DIMENSION(kbdim,klev)      :: ppf  ! full level pressure 
+    REAL(wp),INTENT(IN) ,DIMENSION(kbdim,klev)      :: ppf  ! full level pressure
     REAL(wp),INTENT(IN) ,DIMENSION(kbdim,klev+1)    :: pph  ! half level pressure
     REAL(wp),INTENT(IN) ,DIMENSION(kbdim,nlev_pres) :: o3_time_int !zozonec_x
     REAL(wp),INTENT(OUT),DIMENSION(:,:)             :: o3_clim ! ozone in g/g
@@ -316,7 +316,7 @@ CONTAINS
     ! time interpolated ozone at full levels of model grid,
     ! pressure integrated ozone at half levels of model,
     ! and integral at surface
-    REAL(wp), DIMENSION(jce,klev)           :: zozonem 
+    REAL(wp), DIMENSION(jce,klev)           :: zozonem
     REAL(wp), DIMENSION(jce)                :: zozintm
 
     REAL(wp) :: o3_initval
@@ -334,10 +334,10 @@ CONTAINS
     !$ACC DATA PRESENT(pfoz, phoz, ppf, pph, o3_time_int, o3_clim) &
     !$ACC   CREATE(zozonem, zozintc, zozintm, jk1, jkn, kwork, kk_flag) &
     !$ACC   IF(use_acc)
-    
+
     ! ----------
 
-    ! since o3_clim has attribute intent(out) and its assignment below 
+    ! since o3_clim has attribute intent(out) and its assignment below
     ! extends over o3_clim(jcs:jce,1:klev), not o3_clim(1:kbdim,1:klev),
     ! one might prefer to initialize the entire field with some value
     IF (PRESENT(opt_o3_initval)) THEN
@@ -350,7 +350,7 @@ CONTAINS
     ! interpolate ozone profile to model grid
     ! ---------------------------------------
     ! set ozone concentration at levels above the uppermost level of
-    ! the ozone climatology to the value in the uppermost level of 
+    ! the ozone climatology to the value in the uppermost level of
     ! the ozone climatology
 
     !$ACC KERNELS DEFAULT(PRESENT) ASYNC(1) IF(use_acc)
@@ -363,7 +363,7 @@ CONTAINS
     DO jk = 1,klev
        !$ACC LOOP GANG VECTOR
        DO jl=jcs,jce
-          IF (ppf(jl,jk)<=pfoz(1) .AND. kk_flag(jl)) THEN 
+          IF (ppf(jl,jk)<=pfoz(1) .AND. kk_flag(jl)) THEN
              zozonem(jl,jk)= o3_time_int(jl,1)
              jk1(jl)=jk+1
           ELSE
@@ -373,13 +373,13 @@ CONTAINS
     END DO
     !$ACC END PARALLEL
     ! set ozone concentration at levels below the lowermost level of
-    ! the ozone climatology to the value in the lowermost level of 
+    ! the ozone climatology to the value in the lowermost level of
     ! the ozone climatology
     !$ACC KERNELS DEFAULT(PRESENT) ASYNC(1) IF(use_acc)
     jkn(:)=klev
     kk_flag(:) = .TRUE.
     !$ACC END KERNELS
-    
+
     !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1) IF(use_acc)
     !$ACC LOOP SEQ
     DO jk = klev,1,-1
@@ -394,7 +394,7 @@ CONTAINS
        END DO
     ENDDO
     !$ACC END PARALLEL
-    
+
     !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1) VECTOR_LENGTH(64) IF(use_acc)
     !$ACC LOOP SEQ
     DO jk=1,klev
@@ -504,7 +504,7 @@ CONTAINS
     &                 zf_o3, z_mc, ape_o3,  model_o3)
 
     !< Description: convert o3 on z-level to model height levels for the
-    !! NH-model 
+    !! NH-model
     !! The verical interpolation routines from mo_nh_vert_intp are used
 
     ! Input dimension parameters
@@ -531,7 +531,7 @@ CONTAINS
     INTEGER,  DIMENSION(nproma,nlev,nblks) :: idx0    ! index of upper level
     INTEGER, DIMENSION(nproma,      nblks) :: kpbl1, kpbl2, bot_idx
 
-    aux_o3(:,:,:)= ape_o3(:,:,:) 
+    aux_o3(:,:,:)= ape_o3(:,:,:)
 
     CALL prepare_lin_intp(z3d_in=zf_o3,  z3d_out=z_mc,               &
           &                  nblks= nblks,npromz= npromz,            &
@@ -589,26 +589,26 @@ CONTAINS
     REAL(wp) :: zsin4(pt_patch%nblks_c),zcos4(pt_patch%nblks_c)   !
     REAL(wp) :: zsin5(pt_patch%nblks_c),zcos5(pt_patch%nblks_c)   !
 
-    
+
     INTEGER :: rl_start, rl_end
     INTEGER :: i_startblk, i_endblk    !> blocks
     INTEGER :: i_startidx, i_endidx    !< slices
     INTEGER :: i_nchdom                !< domain index
 !!$    INTEGER :: jk
-    
+
     INTEGER :: &
       & jj, itaja, jb
 
     INTEGER , SAVE :: itaja_o3_previous(max_dom) = 0
-    
+
     INTEGER :: jmm,mmm,mnc,mns,jnn,jc
 
     TYPE(datetime), POINTER :: current
     TYPE(timedelta), POINTER :: td
-    CHARACTER(len=MAX_TIMEDELTA_STR_LEN) :: td_string 
-    
+    CHARACTER(len=MAX_TIMEDELTA_STR_LEN) :: td_string
+
     i_nchdom  = MAX(1,pt_patch%n_childdom)
-    
+
     z_sim_time_rad = z_sim_time + 0.5_wp*p_inc_rad
 
     current => newDatetime(time_config%tc_exp_startdate)
@@ -627,7 +627,7 @@ CONTAINS
     !decide whether new ozone calculation is necessary
     IF ( itaja == itaja_o3_previous(jg) ) RETURN
     itaja_o3_previous(jg) = itaja
-    
+
     ztwo    = 0.681_wp + 0.2422_wp*REAL(jj-1949,wp)-REAL((jj-1949)/4,wp)
     ztho    = 2._wp*pi*( REAL(itaja, wp) -1.0_wp + ztwo )/365.2422_wp
 
@@ -647,7 +647,7 @@ CONTAINS
 
     i_startblk = pt_patch%cells%start_blk(rl_start,1)
     i_endblk   = pt_patch%cells%end_blk(rl_end,i_nchdom)
-      
+
 !$OMP PARALLEL
 !$OMP DO PRIVATE(jb, i_startidx, i_endidx, zalp, jmm, jc, zvio3_f ,zhmo3_f, mmm, mnc,&
 !$OMP  mns, jnn )  ICON_OMP_DEFAULT_SCHEDULE
@@ -655,53 +655,53 @@ CONTAINS
 
       CALL get_indices_c(pt_patch, jb, i_startblk, i_endblk, &
 &                         i_startidx, i_endidx, rl_start, rl_end)
-     
+
       CALL legtri_vec( kbdim,i_startidx,i_endidx,pt_patch%cells%center(1:kbdim,jb)%lat, 6, zalp )
-   
-        DO jmm=1,11    
+
+        DO jmm=1,11
          DO jc=i_startidx,i_endidx
            zvio3_f(jc,jmm)=0._wp
            zhmo3_f(jc,jmm)=0._wp
          END DO
         END DO    ! loop over first horizontal index
- 
-        mmm=0 
-        mnc=0 
-        mns=0 
-        DO jmm=1,6 
-          mmm=mmm+1 
-          DO jnn=jmm,6 
-            mnc=mnc+1   
+
+        mmm=0
+        mnc=0
+        mns=0
+        DO jmm=1,6
+          mmm=mmm+1
+          DO jnn=jmm,6
+            mnc=mnc+1
             DO jc=i_startidx,i_endidx
-              zvio3_f(jc,mmm)=zvio3_f(jc,mmm)+zalp(jc,mnc)*zvio3_c(mnc)  
-              zhmo3_f(jc,mmm)=zhmo3_f(jc,mmm)+zalp(jc,mnc)*zhmo3_c(mnc)  
+              zvio3_f(jc,mmm)=zvio3_f(jc,mmm)+zalp(jc,mnc)*zvio3_c(mnc)
+              zhmo3_f(jc,mmm)=zhmo3_f(jc,mmm)+zalp(jc,mnc)*zhmo3_c(mnc)
             END DO    ! loop over first horizontal index
-          END DO                                           
-          IF(jmm.NE.1) THEN                             
-            mmm=mmm+1                                    
-            DO jnn=jmm,6                              
-              mns=mns+1                                
+          END DO
+          IF(jmm.NE.1) THEN
+            mmm=mmm+1
+            DO jnn=jmm,6
+              mns=mns+1
               DO jc=i_startidx,i_endidx
                 zvio3_f(jc,mmm)=zvio3_f(jc,mmm)+zalp(jc,mns+6)*zvio3_s(mns)
                 zhmo3_f(jc,mmm)=zhmo3_f(jc,mmm)+zalp(jc,mns+6)*zhmo3_s(mns)
               END DO    ! loop over first horizontal index
-           END DO                                           
-          END IF                                            
+           END DO
+          END IF
         END DO
 
 !     c) inverse Fourier transform
 
         DO jc=i_startidx,i_endidx
-          zcos1(jb)=COS (pt_patch%cells%center(jc,jb)%lon)  
-          zsin1(jb)=SIN (pt_patch%cells%center(jc,jb)%lon) 
-          zcos2(jb)=zcos1(jb)*zcos1(jb)-zsin1(jb)*zsin1(jb)   
-          zsin2(jb)=zsin1(jb)*zcos1(jb)+zcos1(jb)*zsin1(jb)   
-          zcos3(jb)=zcos2(jb)*zcos1(jb)-zsin2(jb)*zsin1(jb)  
-          zsin3(jb)=zsin2(jb)*zcos1(jb)+zcos2(jb)*zsin1(jb)  
-          zcos4(jb)=zcos3(jb)*zcos1(jb)-zsin3(jb)*zsin1(jb)  
-          zsin4(jb)=zsin3(jb)*zcos1(jb)+zcos3(jb)*zsin1(jb)  
-          zcos5(jb)=zcos4(jb)*zcos1(jb)-zsin4(jb)*zsin1(jb) 
-          zsin5(jb)=zsin4(jb)*zcos1(jb)+zcos4(jb)*zsin1(jb) 
+          zcos1(jb)=COS (pt_patch%cells%center(jc,jb)%lon)
+          zsin1(jb)=SIN (pt_patch%cells%center(jc,jb)%lon)
+          zcos2(jb)=zcos1(jb)*zcos1(jb)-zsin1(jb)*zsin1(jb)
+          zsin2(jb)=zsin1(jb)*zcos1(jb)+zcos1(jb)*zsin1(jb)
+          zcos3(jb)=zcos2(jb)*zcos1(jb)-zsin2(jb)*zsin1(jb)
+          zsin3(jb)=zsin2(jb)*zcos1(jb)+zcos2(jb)*zsin1(jb)
+          zcos4(jb)=zcos3(jb)*zcos1(jb)-zsin3(jb)*zsin1(jb)
+          zsin4(jb)=zsin3(jb)*zcos1(jb)+zcos3(jb)*zsin1(jb)
+          zcos5(jb)=zcos4(jb)*zcos1(jb)-zsin4(jb)*zsin1(jb)
+          zsin5(jb)=zsin4(jb)*zcos1(jb)+zcos4(jb)*zsin1(jb)
 
 !       vertically integrated ozone amount (Pa O3)
           zvio3(jc,jb) = zvio3_f(jc, 1) + 2._wp *                       &
@@ -724,13 +724,13 @@ CONTAINS
 
     ENDDO !jb
 !$OMP END DO NOWAIT
-!$OMP END PARALLEL 
+!$OMP END PARALLEL
 
   END SUBROUTINE calc_o3_clim
-  
-  
+
+
   !! Calculates the parameters of a T5 spectral distribution of o3 depending on the time of year.
-  !! It is a copy of SUBROUTINE ozone (in ozone.f90) of DWD's GME (contentually identically, only 
+  !! It is a copy of SUBROUTINE ozone (in ozone.f90) of DWD's GME (contentually identically, only
   !! formally slightly adapted).
   !!
   SUBROUTINE o3_par_t5 (pytime,pvio3_c,pvio3_s,phmo3_c,phmo3_s)
@@ -982,7 +982,7 @@ CONTAINS
 !          SIMPLE RECURENCE FORMULA.
 !
 
-   
+
       INTEGER,  INTENT(IN)  :: kbdim, kcp, ki1sc, ki1ec
       REAL(wp), INTENT(IN)  :: plat( kbdim )
 
@@ -1122,7 +1122,7 @@ CONTAINS
     ! Taken from su_ghgclim.F90 of ECMWF's IFS (37r2).
     REAL(wp), PARAMETER     :: zytime(12) = (/ &
       &  22320._wp,  64980._wp, 107640._wp, 151560._wp, 195480._wp, 239400._wp, &
-      & 283320._wp, 327960._wp, 371880._wp, 415800._wp, 459720._wp, 503640._wp /)    
+      & 283320._wp, 327960._wp, 371880._wp, 415800._wp, 459720._wp, 503640._wp /)
 
     ! local fields
     INTEGER  :: idx0(nproma,0:pt_patch%nlev)
@@ -1195,7 +1195,7 @@ CONTAINS
     IDY = mtime_datetime%date%day - 1 !NDD(KINDAT)-1
     IMN = mtime_datetime%date%month ! NMM(KINDAT)
     IF (IMN == 1) THEN
-      ZXTIME=REAL(IDY*1440 + mtime_datetime%time%hour*60 + mtime_datetime%time%minute, wp)      
+      ZXTIME=REAL(IDY*1440 + mtime_datetime%time%hour*60 + mtime_datetime%time%minute, wp)
     ELSEIF (IMN == 2) THEN
       IF(IDY == 28) IDY=IDY-1
       ! A DAY IN FEB. IS 28.25*24*60/28=1452.8571min LONG.
@@ -1462,7 +1462,7 @@ CONTAINS
           zozn(JL,JK) = zozn(JL,JK) * (ZPRESH(JK)-ZPRESH(JK-1))
         ENDDO
       ENDDO
-    END SELECT 
+    END SELECT
 
     !$ACC PARALLEL LOOP GANG VECTOR DEFAULT(PRESENT) ASYNC(1) IF(lacc)
     DO jk=1,nlev_gems
@@ -1470,7 +1470,7 @@ CONTAINS
       zozn(ilat+1,jk) = zozn(ilat,jk)
     ENDDO
     !$ACC END PARALLEL LOOP
-    
+
     ! nest boudaries have to be included for reduced-grid option
     rl_start = 1
     rl_end   = min_rlcell_int
@@ -1489,7 +1489,7 @@ CONTAINS
         &                 i_startidx, i_endidx, rl_start, rl_end)
 
       ! Latitude interpolation
-      
+
       !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1) IF(lacc)
       !$ACC LOOP GANG VECTOR COLLAPSE(2) PRIVATE(zjl)
       DO jkk=1,nlev_gems
@@ -1557,10 +1557,10 @@ CONTAINS
           DO jc = i_startidx,i_endidx
             IF( p_diag%pres_ifc(jc,jk+1,jb) >= RCLPR(jkk)  &
               & .AND. p_diag%pres_ifc(jc,jk+1,jb) < RCLPR(jkk+1)) THEN
-              zint=(p_diag%pres_ifc(jc,jk+1,jb)-RCLPR(jkk))/(RCLPR(jkk+1)-RCLPR(jkk)) 
+              zint=(p_diag%pres_ifc(jc,jk+1,jb)-RCLPR(jkk))/(RCLPR(jkk+1)-RCLPR(jkk))
               IF (jkk >= 3 .AND. jkk <= nlev_gems-3) THEN
                 ! use spline-like interpolation in the interior part in order to avoid steps in the
-                ! interpolated ozone profile if the vertical model resolution is significantly higher than 
+                ! interpolated ozone profile if the vertical model resolution is significantly higher than
                 ! the resolution of the ozone climatology
                 z1 = 0.25_wp*zo3(jc,jkk)   + 0.75_wp*zo3(jc,jkk+1)
                 z2 = 0.25_wp*zo3(jc,jkk+2) + 0.75_wp*zo3(jc,jkk+1)
@@ -1760,12 +1760,11 @@ CONTAINS
 
     ENDDO !jb
 !$OMP END DO NOWAIT
-!$OMP END PARALLEL     
+!$OMP END PARALLEL
 
     !$ACC WAIT
     !$ACC END DATA
 
   END SUBROUTINE calc_o3_gems
-  
-END MODULE mo_o3_util
 
+END MODULE mo_o3_util

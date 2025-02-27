@@ -20,15 +20,15 @@ MODULE mo_ice_fem_types
   PUBLIC
   SAVE
 
-  REAL(wp), ALLOCATABLE, DIMENSION(:)         :: u_ice, v_ice, m_ice, a_ice  
+  REAL(wp), ALLOCATABLE, DIMENSION(:)         :: u_ice, v_ice, m_ice, a_ice
   REAL(wp), ALLOCATABLE, DIMENSION(:)         :: rhs_u, rhs_v, m_snow
   REAL(wp), ALLOCATABLE, DIMENSION(:)         :: rhs_m, rhs_a, rhs_mis
   REAL(wp), ALLOCATABLE, DIMENSION(:)         :: u_w, v_w
   REAL(wp), ALLOCATABLE, DIMENSION(:)         :: elevation
   REAL(wp), ALLOCATABLE, DIMENSION(:)         :: mass_matrix
   REAL(wp), ALLOCATABLE, DIMENSION(:)         :: lmass_matrix
-  REAL(wp), ALLOCATABLE, DIMENSION(:)         :: sigma11, sigma12, sigma22  
-  REAL(wp), ALLOCATABLE, DIMENSION(:)         :: stress_atmice_x         
+  REAL(wp), ALLOCATABLE, DIMENSION(:)         :: sigma11, sigma12, sigma22
+  REAL(wp), ALLOCATABLE, DIMENSION(:)         :: stress_atmice_x
   REAL(wp), ALLOCATABLE, DIMENSION(:)         :: stress_atmice_y
   ! auxiliary arrays required for fct
   REAL(wp), ALLOCATABLE, DIMENSION(:)         :: m_icel, a_icel, m_snowl

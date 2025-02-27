@@ -50,7 +50,7 @@ MODULE mo_save_restore
   PUBLIC :: t_saved_field
 
   ! subroutines
-  PUBLIC :: save_var_group_state 
+  PUBLIC :: save_var_group_state
   PUBLIC :: restore_var_group_state
   PUBLIC :: reinit_var_group_state
 
@@ -173,7 +173,7 @@ CONTAINS
       ! skip variables which are defined on a regular lat-lon grid
       IF (var%info%hgrid == GRID_REGULAR_LONLAT) RETURN
       !
-      ! abort if a variable is a reference to a container slice and 
+      ! abort if a variable is a reference to a container slice and
       ! if the corresponding container is in the same group.
       ! This avoids duplicate entries of the same thing.
       IF (ASSOCIATED(var%ref_to)) THEN  ! variable at hand is a reference

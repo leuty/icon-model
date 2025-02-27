@@ -180,7 +180,7 @@ MODULE mo_nh_stepping
   USE mo_les_config,               ONLY: les_config
   USE mo_turbulent_diagnostic,     ONLY: calculate_turbulent_diagnostics, &
                                          write_vertical_profiles, write_time_series, &
-                                         les_cloud_diag  
+                                         les_cloud_diag
 #endif
   USE mo_restart,                  ONLY: t_RestartDescriptor
   USE mo_restart_util,             ONLY: check_for_checkpoint
@@ -351,7 +351,7 @@ MODULE mo_nh_stepping
 
   ! convenience pointer
   mtime_current => time_config%tc_current_date
-   
+
 #ifndef __NO_ICON_COMIN__
   CALL datetimeToString(mtime_current, dstring)
   CALL icon_update_current_datetime(dstring)
@@ -385,7 +385,7 @@ MODULE mo_nh_stepping
 
   ENDDO
 
-  
+
   IF (iforcing == inwp) THEN
 #ifndef __NO_NWP__
     IF (ANY((/SSTICE_CLIM,SSTICE_AVG_MONTHLY,SSTICE_AVG_DAILY/) == sstice_mode)) THEN
@@ -644,7 +644,7 @@ MODULE mo_nh_stepping
       IF (.NOT. p_patch(jg)%ldom_active) CYCLE
 
       IF ( var_in_output(jg)%dbz .OR. var_in_output(jg)%dbz850 .OR. &
-           var_in_output(jg)%dbzlmx_low .OR. var_in_output(jg)%dbzcmax ) THEN 
+           var_in_output(jg)%dbzlmx_low .OR. var_in_output(jg)%dbzcmax ) THEN
 
         CALL compute_field_dbz3d_lin (jg, p_patch(jg),                                                  &
              &                        p_nh_state(jg)%prog(nnow(jg)), p_nh_state(jg)%prog(nnow_rcf(jg)), &
@@ -842,7 +842,7 @@ MODULE mo_nh_stepping
 
   INTEGER                              :: checkpointEvents
   LOGICAL                              :: lret
-  TYPE(t_datetime_ptr)                 :: datetime_current(max_dom) 
+  TYPE(t_datetime_ptr)                 :: datetime_current(max_dom)
   TYPE(t_key_value_store), POINTER     :: restartAttributes
 
   CHARACTER(LEN=MAX_TIMEDELTA_STR_LEN)   :: td_string
@@ -1007,7 +1007,7 @@ MODULE mo_nh_stepping
   !$ser verbatim DO jg = 1, n_dom
     !$ser verbatim   CALL serialize_all(nproma, jg, "initialization", .FALSE.)
   !$ser verbatim ENDDO
-  
+
 #ifndef __NO_ICON_COMIN__
   CALL icon_call_callback(EP_ATM_TIMELOOP_BEFORE, COMIN_DOMAIN_OUTSIDE_LOOP, lacc=.TRUE.)
 #endif
@@ -1172,7 +1172,7 @@ MODULE mo_nh_stepping
         !$ACC DATA PRESENT(p_lnd_state, p_patch, sic_dat, sst_dat)
 
         DO jg=1, n_dom
-          
+
           CALL sst_intp(jg)%intp(mtime_current, sst_dat, lacc=.TRUE.)
           CALL sic_intp(jg)%intp(mtime_current, sic_dat, lacc=.TRUE.)
 
@@ -1180,7 +1180,7 @@ MODULE mo_nh_stepping
           !$ACC LOOP GANG VECTOR COLLAPSE(2)
           DO jb=1, p_patch(jg)%nblks_c
             DO jc=1, nproma
-              
+
               IF (sst_dat(jc,1,jb,1) > 0.0_wp) THEN
                 p_lnd_state(jg)%diag_lnd%t_seasfc(jc,jb) = sst_dat(jc,1,jb,1)
               END IF
@@ -1204,7 +1204,7 @@ MODULE mo_nh_stepping
                 & p_lnd_state(jg)%prog_wtr(nnow_rcf(jg)), lacc=.TRUE. &
               )
           ELSE
-            ! rebuild index lists for water and seaice based on fr_seaice, 
+            ! rebuild index lists for water and seaice based on fr_seaice,
             ! and update tiled surface temperatures
             !
             CALL process_sst_and_seaice (p_patch      = p_patch(jg),                             & !in
@@ -1235,7 +1235,7 @@ MODULE mo_nh_stepping
             &                      mtime_current, .FALSE.)
         ENDDO
       ENDIF
-      
+
 #endif  /* __NO_NWP__ */
 
     ENDIF  ! iforcing == inwp
@@ -1466,7 +1466,7 @@ MODULE mo_nh_stepping
                                     & p_lnd_state(jg)%diag_lnd,               & !in
                                     & prm_nwp_tend(jg),                       & !in
                                     & prm_diag(jg)               )              !inout
-  
+
                  CALL write_time_series(prm_diag(jg)%turb_diag_0dvar, mtime_current)
               END IF
 
@@ -2042,7 +2042,7 @@ MODULE mo_nh_stepping
           &                  p_metrics = p_nh_state(jg)%metrics,             & !in
           &                  rho       = p_nh_state(jg)%prog(nnew(jg))%rho,  & !in
           &                  airmass   = p_nh_state(jg)%diag%airmass_new,    & !inout
-          &                  lacc      = .TRUE.)                               !in 
+          &                  lacc      = .TRUE.)                               !in
 
         CALL step_advection(                                                 &
           &       p_patch           = p_patch(jg),                           & !in
@@ -2249,7 +2249,7 @@ MODULE mo_nh_stepping
              CALL icon_update_expose_variables(TLEV_NNOW_RCF, nnew_rcf(jg))
           END IF
 #endif
-          
+
 #ifndef __NO_NWP__
           IF (iprog_aero >= 1) THEN
 
@@ -3373,8 +3373,8 @@ MODULE mo_nh_stepping
 !$OMP PARALLEL PRIVATE (rl_start,rl_end,i_startblk,i_endblk)
         rl_start   = 1
         rl_end     = min_rlcell
-        i_startblk = p_patch(jg)%cells%start_block(rl_start) 
-        i_endblk   = p_patch(jg)%cells%end_block(rl_end)  
+        i_startblk = p_patch(jg)%cells%start_block(rl_start)
+        i_endblk   = p_patch(jg)%cells%end_block(rl_end)
 !$OMP DO PRIVATE(jb, jc, jk, i_startidx, i_endidx), ICON_OMP_RUNTIME_SCHEDULE
         DO jb = i_startblk, i_endblk
 
@@ -3385,7 +3385,7 @@ MODULE mo_nh_stepping
           DO jk = 1, nlev
             DO jc = i_startidx, i_endidx
               ! Multiply metrical modification factor
-              p_nh_state(jg)%diag%div(jc,jk,jb) = p_nh_state(jg)%diag%div(jc,jk,jb) & 
+              p_nh_state(jg)%diag%div(jc,jk,jb) = p_nh_state(jg)%diag%div(jc,jk,jb) &
                 &                               * p_nh_state(jg)%metrics%deepatmo_divh_mc(jk)
             END DO
           END DO
@@ -3559,7 +3559,7 @@ MODULE mo_nh_stepping
     thresh2_vcfl = MERGE(0.85_wp*vcfl_threshold,0.9_wp*vcfl_threshold,lspinup)
     thresh1_hcfl = hcfl_threshold
     thresh2_hcfl = 0.9_wp*hcfl_threshold
-    
+
     ndyn_substeps_enh = MERGE(1,0,lspinup)
 
     mvcfl(1:n_dom) = p_nh_state(1:n_dom)%diag%max_vcfl_dyn
@@ -3579,7 +3579,7 @@ MODULE mo_nh_stepping
 
     IF (lcfl_watch_mode) THEN
       DO jg = 1, n_dom
-        ! Write monitoring output for the CFL number that is close to or above the critical value for increasing the substep ratio; 
+        ! Write monitoring output for the CFL number that is close to or above the critical value for increasing the substep ratio;
         ! to check this, we convert the CFL numbers to what they would be with the default timestep
         subsfac = REAL(ndyn_substeps_var(jg),wp)/REAL(ndyn_substeps,wp)
         IF (mvcfl(jg)*subsfac > 0.9_wp*vcfl_threshold) THEN
@@ -3757,4 +3757,3 @@ MODULE mo_nh_stepping
   !-----------------------------------------------------------------------------
 
 END MODULE mo_nh_stepping
-

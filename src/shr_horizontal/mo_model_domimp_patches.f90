@@ -226,9 +226,9 @@ CONTAINS
     DO jg = 1, n_dom
 
       parent_grid_id(jg) = -1
-      
+
       DO jgp = n_dom_start, n_dom
-        
+
         ! perform UUID crosscheck for parent-child connectivities
         IF ((TRIM(grid_metadata(jg)%uuid_par) == TRIM(grid_metadata(jgp)%uuid_grid)) .AND. &
           & (LEN_TRIM(grid_metadata(jg)%uuid_par)   > 0) .AND. &
@@ -381,7 +381,7 @@ CONTAINS
 
     DO jg = n_dom_start+1, n_dom
       jgp = patch_pre(jg)%parent_id
-      
+
       ! check matching grid root and bisection level:
       IF ((grid_metadata(jg)%grid_root  /= grid_metadata(jgp)%grid_root)  .OR.   &
         & (grid_metadata(jg)%grid_level /= (grid_metadata(jgp)%grid_level+1))) THEN
@@ -499,12 +499,12 @@ CONTAINS
 
     ! In parent grids: compute "refin_e_ctrl", "refin_v_ctrl" flags
     ! for overlap with nested domain:
-    !   
+    !
     ! Note: we need to compute these values here, since necessary
     ! indices are only read by "read_remaining_patch" above, but the
     ! resulting "refin_ctrl" flags are used by the
     ! "set_parent_child_relations" subroutine below.
-    !   
+    !
     DO jg = n_dom_start,n_dom
       jgp = patch(jg)%parent_id
       IF (jgp >= n_dom_start) THEN
@@ -515,7 +515,7 @@ CONTAINS
 
     ! set parent-child relationships
     DO jg = n_dom_start, n_dom
-      
+
       IF(jg == n_dom_start) THEN
 
         ! deallocate parent_loc/glb_idx/blk since it just doesn't exist,
@@ -535,7 +535,7 @@ CONTAINS
           DEALLOCATE(patch(jg)%cells%child_idx, patch(jg)%cells%child_blk, &
                patch(jg)%edges%child_idx, patch(jg)%edges%child_blk)
         END IF
-        
+
       ELSE
 
         CALL set_parent_child_relations(p_patch_local_parent(jg), patch(jg))
@@ -2568,7 +2568,7 @@ CONTAINS
   !  In parent grids: compute "refin_e_ctrl", "refin_v_ctrl" flags for
   !  overlap with nested domain.
   !
-  !  input: 
+  !  input:
   !   p_p% id
   !        n_patch_cells, n_patch_edges, n_patch_verts, n_patch_edges_g
   !        cells%decomp_info%decomp_domain
@@ -2596,7 +2596,7 @@ CONTAINS
     !
     ! The "refin_e_ctrl" value is the sum of the "refin_c_ctrl" values
     ! of the two adjacent cells!
-    !   
+    !
     ALLOCATE(in_data(3*p_p%n_patch_cells), dst_idx(3*p_p%n_patch_cells))
 
     ! by looping over the cells, we visit each edge twice
@@ -2613,14 +2613,14 @@ CONTAINS
 
         iidx = iidx + 1
         dst_idx(iidx) = p_p%edges%decomp_info%glb_index(idx_1d(jc_e,jb_e))
-        in_data(iidx) = p_p%cells%refin_ctrl(jc_c,jb_c) 
+        in_data(iidx) = p_p%cells%refin_ctrl(jc_c,jb_c)
       END DO
     END DO
 
     ALLOCATE(out_data(2,p_p%n_patch_edges),out_count(2,p_p%n_patch_edges))
     out_data = 0
     communicator   = p_comm_work
- 
+
     ! communicate between processors:
     CALL reshuffle("send refin_c_ctrl to edges", dst_idx(1:iidx), in_data(1:iidx),     &
       &            p_p%edges%decomp_info%glb_index, p_p%n_patch_edges_g, communicator, &
@@ -2629,23 +2629,23 @@ CONTAINS
     ! now loop over the edges and sum the two adjacent cell refin_ctrl
     ! flags:
     DO j = 1,p_p%n_patch_edges
-      jc_e = idx_no(j)  ;  jb_e = blk_no(j) 
+      jc_e = idx_no(j)  ;  jb_e = blk_no(j)
 
       ! nothing was set for this entry:
       IF (out_count(1,j) == 0)  CYCLE
-            
+
       IF (out_count(2,j) == 0) THEN
         refin_e = 2*out_data(1,j)
       ELSE IF ((out_data(1,j)-1)*(out_data(2,j)-1) < 0) THEN
         ! this is needed to get the correct value at the interface
         ! between positive and zero or negative cell refin_ctrl
         ! indices (refin_e = 0 or -1, respectively).
-        refin_e = MIN(0,out_data(1,j)) + MIN(0,out_data(2,j)) 
+        refin_e = MIN(0,out_data(1,j)) + MIN(0,out_data(2,j))
       ELSE
         refin_e = out_data(1,j) + out_data(2,j)
       END IF
 
-      IF (p_p%edges%refin_ctrl(jc_e,jb_e) /= 1)  p_p%edges%refin_ctrl(jc_e,jb_e) = refin_e 
+      IF (p_p%edges%refin_ctrl(jc_e,jb_e) /= 1)  p_p%edges%refin_ctrl(jc_e,jb_e) = refin_e
     END DO
 
     ! Reset edges%refin_ctrl at outer boundary of a limited-area grid
@@ -2693,9 +2693,9 @@ CONTAINS
       END DO
     END DO
     DO j = 1,p_p%n_patch_verts
-      jc_v = idx_no(j)  ;  jb_v = blk_no(j) 
-            
-      IF (refin_v_ctrl(jc_v,jb_v) < 0) THEN     
+      jc_v = idx_no(j)  ;  jb_v = blk_no(j)
+
+      IF (refin_v_ctrl(jc_v,jb_v) < 0) THEN
         p_p%verts%refin_ctrl(jc_v,jb_v) = refin_v_ctrl(jc_v,jb_v)
       END IF
     END DO

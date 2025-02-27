@@ -39,7 +39,7 @@ CONTAINS
 
   !--------------------------------------------------------------------------
   !>
-  !! Diagnose mass fluxes and trajectory-velocities for the 
+  !! Diagnose mass fluxes and trajectory-velocities for the
   !! standalone tracer transport scheme.
   !!
   !! Note that upper boundary fluxes (when using horizontal/vertical nesting)
@@ -189,4 +189,3 @@ CONTAINS
   END SUBROUTINE prepare_tracer
 
 END MODULE mo_prepadv_util
-

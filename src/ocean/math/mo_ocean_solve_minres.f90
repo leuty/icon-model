@@ -20,11 +20,11 @@ MODULE mo_ocean_solve_mres
   USE mo_exception, ONLY: finish
   USE mo_ocean_solve_backend, ONLY: t_ocean_solve_backend
   USE mo_fortran_tools, ONLY: set_acc_host_or_device
- 
+
   IMPLICIT NONE
-  
+
   PRIVATE
- 
+
   PUBLIC :: t_ocean_solve_mres
   CHARACTER(LEN=*), PARAMETER :: this_mod_name = 'mo_ocean_solve_mres'
 

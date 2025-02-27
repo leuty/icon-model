@@ -333,11 +333,11 @@ CONTAINS
     !
     ! rsdt - TOA incoming shortwave radiation
     ! rsut - TOA outgoing shortwave radiation
-    ! 
+    !
     ! rlut - TOA outgoing longwave radiation
     ! N/A - TOA incoming longwave radiation
     !
-    ! Output (with some encodings for eccodes handling) 
+    ! Output (with some encodings for eccodes handling)
     !
     ! 176: rsns: surface net shortwave radiation flux: rsds - rsus 0-4-9-ffs1-sp1
     ! 177: rlns: surface net longwave radiation flux:  rlds - rlus 0-5-5-ffs1-sp1
@@ -365,7 +365,7 @@ CONTAINS
 
       NULLIFY(field)
     END IF
-    
+
     IF ( isRegistered("rlns") ) THEN
 
       field => prm_field(patch%id)
@@ -434,7 +434,7 @@ CONTAINS
 
     !_____________________________________________________________________________
     !
-    
+
   END SUBROUTINE aes_global_diagnostics
 
   SUBROUTINE aes_diag_output_minmax_micro (patch,lpos)

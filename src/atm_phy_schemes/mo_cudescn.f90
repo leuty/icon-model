@@ -26,7 +26,7 @@ MODULE mo_cudescn
     &                  jpim=>i4
 
 !  USE yomhook   ,ONLY : lhook,   dr_hook
-  
+
   !KF new - use modules instead of include files
   USE mo_adjust      , ONLY: cuadjtq
   USE mo_cufunctions , ONLY: foelhmcu
@@ -511,7 +511,7 @@ CONTAINS
     REAL(KIND=jprb)   ,INTENT(inout) :: pdmfde(klon,klev)
     REAL(KIND=jprb)   ,INTENT(inout) :: pmfdde_rate(klon,klev)
     REAL(KIND=jprb)   ,INTENT(inout) :: pkined(klon,klev)
-    REAL(KIND=jprb)   ,INTENT(OUT)   :: pvbuo(klon)  ! buoyancy for convective gusts 
+    REAL(KIND=jprb)   ,INTENT(OUT)   :: pvbuo(klon)  ! buoyancy for convective gusts
     LOGICAL           ,INTENT(in)    :: lacc
 
     REAL(KIND=jprb) ::     zdmfen(klon),           zdmfde(klon),&
@@ -736,4 +736,3 @@ CONTAINS
   END SUBROUTINE cuddrafn
 
 END MODULE mo_cudescn
-

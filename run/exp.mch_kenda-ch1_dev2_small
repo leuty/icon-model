@@ -11,7 +11,7 @@
 # ------------------------------------------
 
 # ===========================================================================
-# 
+#
 # Name: exp.mch_kenda-ch1_dev2_small.run
 #
 # Purpose: Run script for ICON at on a domain similar to the current COSMO-1E domain
@@ -23,7 +23,7 @@
 # Based on: mch_kenda-ch1_small
 # Same as mch_kenda-ch1_dev_small but using the implicit instead of explicit two-moment scheme
 #
-# ========================================================================== 
+# ==========================================================================
 
 set -x
 
@@ -44,7 +44,7 @@ input_folder="${testingFolder_prefix}/testing-input-data/c2sm/kenda-ch1_small_de
 
 # ===========================================================================
 # This experiment describes a ICON-LAM experiment using the physics packages that are
-# used at MeteoSwiss for production. This simulation computes a few time steps on 
+# used at MeteoSwiss for production. This simulation computes a few time steps on
 # a low-resolution grid over Switzerland. The setup is for development purposes.
 #
 # This experiment includes output of accumulated fluxes.
@@ -143,7 +143,7 @@ cat > ${basedir}/run/${atmo_namelist} << EOF
  hdiff_order                 =                          5         ! order of nabla operator for diffusion
  itype_vn_diffu              =                          1         ! reconstruction method used for Smagorinsky diffusion
  itype_t_diffu               =                          2         ! discretization of temperature diffusion
- hdiff_efdt_ratio            =                         24.0       ! ratio of e-folding time to time step 
+ hdiff_efdt_ratio            =                         24.0       ! ratio of e-folding time to time step
  hdiff_smag_fac              =                          0.025     ! scaling factor for Smagorinsky diffusion
 /
 
@@ -173,7 +173,7 @@ cat > ${basedir}/run/${atmo_namelist} << EOF
                                             ! 7: initialized ICON analysis with vertical remapping
  dt_iau                       = 120         ! window for incr.analysis update
  dt_shift                     = -60         ! offset for incr.analysis update
- type_iau_wgt                 = 1           ! IAU weighting function (const.)                                                                          
+ type_iau_wgt                 = 1           ! IAU weighting function (const.)
  iterate_iau                  = .true.      ! iterate IAU cycle with one-sided and centered windows
  lread_ana                    = .true.      ! read analysis file(s)
  lp2cintp_incr                = .false.     ! parent-to-child-interpolation
@@ -186,7 +186,7 @@ cat > ${basedir}/run/${atmo_namelist} << EOF
  ltile_init                   = .false.
  use_lakeiceana               = .true.
  qcana_mode                   = 2           ! (0) no QC-increments,
-                                            ! (1) QC+QV-increments added to QV,                                                                                              
+                                            ! (1) QC+QV-increments added to QV,
                                             ! (2) QC-increments added to QC if already present at gridpoint
                                             !     and added to QV if not
  qiana_mode                   = 0           ! 0/1: ignore/use QI increments
@@ -276,7 +276,7 @@ cat > ${basedir}/run/${atmo_namelist} << EOF
  vwind_offctr                =                          0.2       ! off-centering in vertical wind solver
  damp_height                 =                      12250.0       ! height at which Rayleigh damping of vertical wind starts
  rayleigh_coeff              =                          5.0       ! Rayleigh damping coefficient
- divdamp_order               =                         24         ! order of divergence damping 
+ divdamp_order               =                         24         ! order of divergence damping
  divdamp_type                =                         32         ! gdm default: 3 type of divergence damping
  divdamp_fac                 =                          0.004     ! scaling factor for divergence damping
  igradp_method               =                          3         ! discretization of horizontal pressure gradient
@@ -355,11 +355,11 @@ cat > ${basedir}/run/${atmo_namelist} << EOF
  typeofensembleforecast      = 192
  localtypeofensembleforecast = 1
  numberofforecastsinensemble = 1
- perturbationnumber          =  
+ perturbationnumber          =
  generatingProcessIdentifier = 142
 /
 
-! output_nml: control the output ------------------------------------------------ 
+! output_nml: control the output ------------------------------------------------
 ! constant fields - only written once
 &output_nml
  output_filename      = "${EXPNAME}_lfff"
@@ -659,8 +659,8 @@ cat > ${basedir}/run/${atmo_namelist} << EOF
  ser_output_diag             =                            0,12,12
  ser_latbc_data              =                            0,12,12
  ser_dynamics                =                            0,12,12
- ser_diffusion               =                            0,12,12 
- ser_step_advection          =                            0,12,12 
+ ser_diffusion               =                            0,12,12
+ ser_step_advection          =                            0,12,12
  ser_physics                 =                            0,12,12
  ser_surface                 =                            0,12,12
  ser_microphysics            =                            0,12,12
@@ -672,10 +672,10 @@ cat > ${basedir}/run/${atmo_namelist} << EOF
  ser_radheat                 =                            0,12,12
  ser_gwdrag                  =                            0,12,12
  ser_convection              =                            0,12,12
- ser_nudging                 =                            0,12,12 
+ ser_nudging                 =                            0,12,12
  ser_nfail                   =                            1
  ser_nreport                 =                            10
- ser_all_debug               =                            0 
+ ser_all_debug               =                            0
  ser_debug                   =                        .FALSE.      ! serialize the debug statements from mo_ser_debug
 /
 

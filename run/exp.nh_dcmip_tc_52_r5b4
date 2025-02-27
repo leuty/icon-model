@@ -54,7 +54,7 @@ rescale_factor=$(echo "scale=9; 1 / ${X} " | bc) # the model needs 1/X
 #
 #-----------------------------------------------------------------------------
 #
-# Parameters needed by the executing section of the completed run script:  
+# Parameters needed by the executing section of the completed run script:
 #
 atmo_namelist=NAMELIST_${EXPNAME}
 #

@@ -32,7 +32,7 @@
 
 # -------------------------------------------------
 
-echo "EOM_PREPARE.SMS" 
+echo "EOM_PREPARE.SMS"
 
 module load cdo/1.7.0
 module swap grib_api grib_api/1.14.5
@@ -110,7 +110,7 @@ fi
 
 if [[ $ldeldata = 1 ]] ; then
   cd $mondir
-  \rm -rf grb_data 
+  \rm -rf grb_data
 fi
 
 
@@ -142,13 +142,13 @@ if [[ $lgetdata = 1 ]] ; then
   for EXP in %EXPNUM% %EXPNUM2% ; do
 
     mkdir -p ${datadir}/%SUITE%_${EXP}
-  
+
     ymdh=${date01}
     while (( ${ymdh} <= ${date31} )) ; do
-  
+
       ecp ec:/deia/icon/experiments/%SUITE%/${EXP}/${ymdh}/%SUITE%_${EXP}_${ymdh}_DOM01_${levtype1}_0001.grb \
          ${datadir}/dei2_${EXP}
-  
+
       ymdh=`expr ${ymdh} + 100`  # 100=+1day+00hours
     done                         # end days
 
@@ -169,31 +169,31 @@ if [[ $lsplit = 1 ]] ; then
     for var in ${varlist[*]} ; do
 
       rm -f ${mondir}/tmp_dir/${basenameMM}_DOM01_0001_${var}_*.grb
-    
+
       ymdh=${date01}
       while (( ${ymdh} <= ${date31} )) ; do
         echo "processing variable: "$var
         outdir="%SCTEMP%/%SUITE%/%EXPNUM%/output/${ymdh}/"
         cd $outdir
-      
+
         basename=%SUITE%_%EXPNUM%_${ymdh}
-      
+
        #cdo selname,${var}  ${basename}_DOM01_${levtype1}_0001.grb  \
        #           grb_data/${basename}_DOM01_0001_${var}.grb
-      
+
         grib_copy  grb_data/${basename}_DOM01_0001_${var}.grb       \
                    grb_data/${basename}_DOM01_0001_${var}_[endStep].grb
-    
+
         time=0
         while (( ${time} <= 240 )) ; do
           cat   grb_data/${basename}_DOM01_0001_${var}_${time}.grb >> grb_data/${basenameMM}_DOM01_0001_${var}_${time}.grb
           rm -f grb_data/${basename}_DOM01_0001_${var}_${time}.grb
-          time=`expr ${time} + 12`  # 100=+1day+00hours    
+          time=`expr ${time} + 12`  # 100=+1day+00hours
         done                         # end days
-  
-        ymdh=`expr ${ymdh} + 100`  # 100=+1day+00hours    
+
+        ymdh=`expr ${ymdh} + 100`  # 100=+1day+00hours
       done                         # end days
-  
+
     done
 
 fi
@@ -203,9 +203,9 @@ fi
 # calculate RMSE
 
 if [[ $lrmse = 1 ]] ; then
-  
+
   cd ${mondir}/grb_data
-  
+
   for DT in 1 2 3 4 5 6 7 8 9 10 ; do
     if [[ $DT -ge $DD ]] ; then ;  break ; fi
 
@@ -219,12 +219,12 @@ if [[ $lrmse = 1 ]] ; then
       cdo -P 2 sub ${basenameMM}_DOM01_0001_${var}_${DH}_sel-${DD}.grb   \
                    ${basenameMM}_DOM01_0001_${var}_0_sel-${DD}.grb       \
                    ${basenameMM}_DOM01_0001_${var}_0_${DH}_dif-${DD}.grb
-      
+
       cdo timstd   ${basenameMM}_DOM01_0001_${var}_0_${DH}_dif-${DD}.grb \
          ${mondir}/${basenameMM}_DOM01_0001_${var}_0_${DH}_rms-${DD}.grb
-      
-      grib_set -s stepRange=${DH} ${mondir}/${basenameMM}_DOM01_0001_${var}_0_${DH}_rms-${DD}.grb out.grb 
-      mv out.grb                  ${mondir}/${basenameMM}_DOM01_0001_${var}_0_${DH}_rms-${DD}.grb 
+
+      grib_set -s stepRange=${DH} ${mondir}/${basenameMM}_DOM01_0001_${var}_0_${DH}_rms-${DD}.grb out.grb
+      mv out.grb                  ${mondir}/${basenameMM}_DOM01_0001_${var}_0_${DH}_rms-${DD}.grb
     done
   done
 
@@ -239,7 +239,7 @@ if [[ $lrms_diff = 1 ]] ; then
   scorefile=${mondir}/scores_%SUITE%_%EXPNUM%_rms_all.txt
 # rm -rf $scorefile
   cd ${mondir}
-  
+
   for nvar in 1 2 3 4 5 6 7 8 9 10 11 12 ; do
     var=${varlist[nvar-1]}
     var2=${varlist2[nvar-1]}
@@ -259,7 +259,7 @@ if [[ $lrms_diff = 1 ]] ; then
       done
     done
   done
-  
+
   gatedir=%ECTEMP%/%SUITE%/%EXPNUM%/${YYYYMM}
   ssh ecgb mkdir -p   ${gatedir}/metplots
   scp $scorefile ecgb:${gatedir}/metplots

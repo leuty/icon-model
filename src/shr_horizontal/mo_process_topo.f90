@@ -106,7 +106,7 @@ CONTAINS
   !-----------------------------------------------------------------------
   !! Topography smoothing
   !!
-  !! Topography smoothing by selectively applying nabla2 and nabla4 
+  !! Topography smoothing by selectively applying nabla2 and nabla4
   !! operators.
   !!
   SUBROUTINE smooth_topo (p_patch, p_int, topography_c)
@@ -185,7 +185,7 @@ CONTAINS
 
         ENDDO
 
-        ! set diffusion mask also true if one of the neighboring grid points 
+        ! set diffusion mask also true if one of the neighboring grid points
         ! fulfills the height difference criterion
         i_startblk = p_patch%cells%start_blk(3,1)
 
@@ -358,11 +358,11 @@ CONTAINS
 
   !-----------------------------------------------------------------------
   !!
-  !! Topography smoothing for real-case runs. Apart from smoothing the 
-  !! topography field, 
-  !! - the height of sea-points is reset to that of the raw topography 
+  !! Topography smoothing for real-case runs. Apart from smoothing the
+  !! topography field,
+  !! - the height of sea-points is reset to that of the raw topography
   !!   data set
-  !! - the SSO standard deviation field is updated based on the smoothed 
+  !! - the SSO standard deviation field is updated based on the smoothed
   !!   topography
   !!
   SUBROUTINE smooth_topo_real_data (p_patch, p_int, fr_land, topography_c, fr_lake, sso_stdh)
@@ -536,8 +536,8 @@ CONTAINS
   !-----------------------------------------------------------------------
   !! Reduce SSO stdh and slope over glaciers depending on the ratio between SSO slope and resolved slope
   !!
-  !! This should preferably done in extpar, but the results with a globally modified calculation of 
-  !! the SSO parameters (by removing the grid-scale slope before calculating stdh and SSO-slope) 
+  !! This should preferably done in extpar, but the results with a globally modified calculation of
+  !! the SSO parameters (by removing the grid-scale slope before calculating stdh and SSO-slope)
   !! were quite ambivalent
   !!
   SUBROUTINE postproc_sso (p_patch, p_int, fr_glac, topography_c, sso_stdh, sso_sigma)
@@ -611,4 +611,3 @@ CONTAINS
 
 
 END MODULE mo_process_topo
-

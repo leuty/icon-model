@@ -34,7 +34,7 @@ MODULE mo_ocean_types
   PUBLIC :: t_onCells_Pointer_3d_wp, t_onCells_HalfLevels_Pointer_wp, t_onEdges_Pointer_3d_wp
   PUBLIC :: t_oce_config
   PUBLIC :: t_verticalAdvection_ppm_coefficients
-  
+
 
   PUBLIC :: t_operator_coeff
   PUBLIC :: t_solverCoeff_singlePrecision
@@ -51,7 +51,7 @@ MODULE mo_ocean_types
   TYPE t_onEdges_HalfLevels_Pointer_wp
     onEdges_HalfLevels :: p  ! pointer to 3D array
   END TYPE t_onEdges_HalfLevels_Pointer_wp
-  
+
   !-------------------------------------------------------------------------------
   TYPE t_verticalAdvection_ppm_coefficients
     !  coefficients for the upwind_vflux_ppm vertical advection
@@ -78,7 +78,7 @@ MODULE mo_ocean_types
   !! basis types for constructing 3-dim ocean state
   !
   TYPE t_hydro_ocean_base
-    
+
     !! The ocean uses z-coordinates in meters in the vertical.
     !! The following data are required:
     !!
@@ -86,7 +86,7 @@ MODULE mo_ocean_types
     !! n_zlvp: number of intermediate levels (+1)
     !! n_zlvm: number of z-coordinate distances (-1)
     INTEGER :: n_zlev, n_zlvp, n_zlvm
-    
+
     !! del_zlev_m: thickness (height) of elemental prism, defined as the
     !!             distance between top and bottom of elemental prism,
     !!             i.e. the distance between two intermediate z-coordinate
@@ -95,28 +95,28 @@ MODULE mo_ocean_types
     !!             thicknesses.
     !!             Dimension: n_zlev
     onGrid_1D :: del_zlev_m
-    
+
     !! zlev_m    : position of the vertical cell centers, i.e. below zero surface;
     !!             Numbering starts from surface and increases downwards to bottom.
     !!             Dimension: n_zlev
     !!             At these surfaces the horizontal velocities, vorticity, divergence
     !!             and scalar variables are evaluated.
     onGrid_1D :: zlev_m
-    
-    
+
+
     !! zlev_i    : vertical position of the UPPER BORDER of the vertical cell
     !!             i.e. the position of the top of elemental prisms.
     !!             Position of first surface is 0.
     !!             Dimension: n_zlvp = n_zlev + 1
     !!             The vertical velocities are evaluated at such surfaces.
     onGrid_HalfLevels1D :: zlev_i
-    
+
     !! del_zlev_i: distance between two z-coordinate surfaces. The first is
     !!             the distance from the ocean surface = zlev_m(1)
     !!             Dimension: n_zlev
     onGrid_1D :: del_zlev_i
-    
-    
+
+
     ! land-sea-mask for ocean has 3 dimensions (the 2nd is the number of
     ! vertical levels)
     ! sea=-2, sea_boundary=-1, boundary (edges only)=0, land_boundary=1, land=2
@@ -130,63 +130,63 @@ MODULE mo_ocean_types
     ! land-sea-mask for cell vertices
     ! index1=1,nproma, index2=1,n_zlev, index3=1,nblks_v
     ! INTEGER, ALLOCATABLE :: lsm_v(:,:,:)
-    
-    
+
+
     ! To simplify the acess to the required information within these loops
     ! we store an cell and edge based version of the deepest ocean layer
     ! in column. dolic_e(edge1) and dolic_c(cell1) are identical if 'edge1'
     ! is one of the edges of 'cell1'.
     ! If the ocean bottom is flat dolic_c and dolic_e are identical and equal
     ! to the number of z-coodinate surfaces.
-    
+
     ! index1=1,nproma, index2=1,alloc_cell_blocks
     onCells_2D_Int :: dolic_c
     ! index1=1,nproma, index2=1,nblks_e
     onEdges_2D_Int :: dolic_e
-    
+
     ! For diagnosis like stream functions and area calculations we add surface arrays
     ! index1=1,nproma, index2=1,alloc_cell_blocks
     onCells_2D_Int :: basin_c  ! basin information Atlantic/Indian/Pacific
     onCells_2D_Int :: regio_c  ! area information like tropical Atlantic etc.
-    
+
     ! To simply set land points to zero we store additional 3-dim wet points
     ! dimensions as in lsm_oce:
     onCells :: wet_c  ! cell centers
     onEdges :: wet_e  ! cell edges
-    
+
   END TYPE t_hydro_ocean_base
-  
+
   !----------------------------------------------
   ! prognostic variables
   TYPE t_hydro_ocean_prog
 
     onCells_2D :: h
-    onCells_2D :: eta_c !! For z* computations 
-    onCells_2D :: stretch_c !! For z* computations 
-    
+    onCells_2D :: eta_c !! For z* computations
+    onCells_2D :: stretch_c !! For z* computations
+
     onEdges :: vn
     onCells_tracers :: tracer
      ! Ordering of tracers:
      !   1) pot_temp:= potential temperature, Unit: [deg C]
      !   2) salinity:= salinity, Unit [psu]
-    
+
     TYPE(t_tracer_collection) :: tracer_collection
-    
+
     TYPE(t_onCells_Pointer_3d_wp),ALLOCATABLE :: tracer_ptr(:)  !< pointer array: one pointer for each tracer
   END TYPE t_hydro_ocean_prog
-  
+
 
   TYPE t_hydro_ocean_diag
 
     onCells ::          &
       & rho            ,& ! density. Unit: [kg/m^3]
       & rhopot         ,& ! potential density. Unit: [kg/m^3]
-      & rho_GM         ,& ! potential density. Unit: [kg/m^3]      
-      & grad_rho_PP_vert ,& ! vertical insitu density gradient. Unit: [kg/m^4]      
+      & rho_GM         ,& ! potential density. Unit: [kg/m^3]
+      & grad_rho_PP_vert ,& ! vertical insitu density gradient. Unit: [kg/m^4]
       & div_mass_flx_c ,& !
       & u              ,& ! reconstructed zonal velocity component. Unit [m/s]
       & v              ,& ! reconstructed meridional velocity component. Unit [m/s]
-      & w_prismcenter  ,&         
+      & w_prismcenter  ,&
 !       & potential_vort_c ,& ! potential vorticity averaged to triangle cells. Unit [1/s]
       & kin            ,& ! kinetic energy. Unit [m/s].
 !       & div            ,& ! divergence. Unit [m/s]
@@ -253,7 +253,7 @@ MODULE mo_ocean_types
       & diapycnal_velocity ,& ! diapycnal velocity [m/s] ! by_nils
       & sigma2 ,& ! potential density ref. to 2000m [kg/m^3] ! by_nils
       & layer_thickness_c ,& ! layer thickness interpolated to cell ! by_nils
-      & dhdt_tot ,& ! total layer thickness change ! by_nils 
+      & dhdt_tot ,& ! total layer thickness change ! by_nils
       & dhdt_srf ,& ! layer thickness change by surface density flux ! by_nils
       & dhdt_hfl ,& ! layer thickness change by horizontal flux ! by_nils
       & div_mass_flux_lay ,& ! divergence of mass flux within layer ! by_nils
@@ -285,7 +285,7 @@ MODULE mo_ocean_types
       & heatflux_rainevaprunoff, & !< heatflux implied by fw flux (fw enters with SST)
       & heat_content_snow ,&
       & heat_content_seaice ,&
-      & delta_ice, & 
+      & delta_ice, &
       & delta_snow, &
       & heat_content_total ,&
       & heat_content_300m ,&
@@ -294,7 +294,7 @@ MODULE mo_ocean_types
       & ssh     ,&   ! diagnostic including sea ice
       & Rossby_Radius    ,&
       & Wavespeed_baroclinic ,&
-      & N2_ref           ,& ! diag: first N2>0 below mld !by_Oliver 
+      & N2_ref           ,& ! diag: first N2>0 below mld !by_Oliver
       & global_moc       ,& ! MOC global
       & atlantic_moc     ,& ! MOC atlantic
       & pacific_moc      ,& ! MOC pacific
@@ -317,7 +317,7 @@ MODULE mo_ocean_types
    onCells_2D :: &
       & northernHemisphere ,&
       & southernHemisphere
-      
+
     onCells_2D :: &
       & u_50m,    &
       & v_50m,    &
@@ -326,10 +326,10 @@ MODULE mo_ocean_types
 
     onCells_Type(t_cartesian_coordinates) :: &
       & p_vn              ! reconstructed velocity at cell center in cartesian coordinates
-      
+
     onCells_2D_Type(t_cartesian_coordinates) :: &
       & p_mass_flux_sfc_cc  ! mass flux at surface in cartesian coordinates
-      
+
     onCells_HalfLevels_tracers ::        &
       & GMRedi_flux_vert
 
@@ -343,8 +343,8 @@ MODULE mo_ocean_types
       & w_deriv
 
     onEdges_tracers :: &
-      & GMRedi_flux_horz 
-    
+      & GMRedi_flux_horz
+
     onEdges :: &
       & mass_flx_e     ,& ! individual fluid column thickness at cells. Unit [m].
       & ptp_vn         ,& ! normal velocity after mapping P^T P, not used currently
@@ -365,35 +365,35 @@ MODULE mo_ocean_types
       & mass_flux_lay  ,& ! isopycnal mass flux [m^2/s] ! by_nils
       & layer_thickness_e  ,& ! isopycnal layer thickness [m] ! by_nils
       & weight_e_sum !,& ! by_nils
-      
+
 !     onEdges_HalfLevels :: &
 !       & w_e            ! vertical velocity at edges. Unit [m/s]
 
     onVertices :: &
       & vort            ! vorticity at triangle vertices. Unit [1/s]
-      
+
     onVertices_2D :: &
       & vort_50m,    &     ! vorticity at 20 and 70 meters
       & vort_70m
 
     onVertices_Type(t_cartesian_coordinates) :: &
       & p_vn_dual
-    
+
     onEdges_2D :: &
       & h_e              ,& ! surface height at cell edges. Unit [m].
       & thick_e          ! individual fluid column thickness at edges. Unit [m].
-    
+
     onEdges_2D :: verticallyTotal_mass_flux_e
-    
+
     TYPE(t_ocean_monitor) :: monitor
 
     ! for the testbed
     !    testbed_div (test_mode: 103-113)
     onCells :: div_model, div_diff, divPtP, divPtP_diff
-    
+
   END TYPE t_hydro_ocean_diag
   !-------------------------------------------------------------------------
-    
+
   !-------------------------------------------------------------------------
   !
   !! auxiliary data
@@ -407,14 +407,14 @@ MODULE mo_ocean_types
                                 ! at timelevel n-1
       & g_nimd        ,& ! explicit velocity term in Adams-Bashford time marching routines,
                                 ! located at intermediate timelevel
-      & tracer_grad_horz, &      !horizontal tracer gradient                          
-      & temperature_grad_horz,&  !horizontal temperature gradient                          
-      & salinity_grad_horz       !horizontal salinity gradient                                
+      & tracer_grad_horz, &      !horizontal tracer gradient
+      & temperature_grad_horz,&  !horizontal temperature gradient
+      & salinity_grad_horz       !horizontal salinity gradient
 
     onCells_HalfLevels ::   &
       & tracer_deriv_vert,&      ! vertical tracer gradient
       & temperature_deriv_vert,& ! vertical temperature gradient
-      & salinity_deriv_vert      ! vertical salinity gradient            
+      & salinity_deriv_vert      ! vertical salinity gradient
 
 
     onEdges_2D :: &
@@ -431,16 +431,16 @@ MODULE mo_ocean_types
       & bc_tides_load,   &
       & bc_total_top_potential, &
       & bc_SAL_potential
-            
+
     onCells_2D_tracers :: &
       & bc_top_tracer,    &
-      & bc_bot_tracer 
-      
+      & bc_bot_tracer
+
     onCells_2D ::       &
       & p_rhs_sfc_eq     ! right hand side of surface equation
-      
+
     onCells_2D_Type(t_cartesian_coordinates) :: bc_top_veloc_cc
-    
+
 !     TYPE(t_pointer_2d_wp), ALLOCATABLE :: bc_top_tracer(:) !< pointer array: one pointer for each tracer boundary condition
 
     onCells_Type(t_cartesian_coordinates) :: &
@@ -449,25 +449,25 @@ MODULE mo_ocean_types
     onCells :: &
       & slopes_squared,   &
       & slopes_drdz,   &
-      & slopes_drdx,   & 
+      & slopes_drdx,   &
       & taper_function_1, &
       & taper_function_2, &
       & diagnose_Redi_flux_vert
-      
+
     onCells_Type(t_cartesian_coordinates) :: &
       & PgradTemperature_horz_center,        & ! reconstructed temperature gradient at cell center in cartesian coordinates
       & PgradSalinity_horz_center,           & ! reconstructed salinity gradient at cell center in cartesian coordinates
-      & PgradDensity_horz_center,            & ! reconstructed density gradient at cell center in cartesian coordinates      
-      & diagnose_Redi_flux_temp,             & ! diagnostics used for balance of density fluxes in GM,   
+      & PgradDensity_horz_center,            & ! reconstructed density gradient at cell center in cartesian coordinates
+      & diagnose_Redi_flux_temp,             & ! diagnostics used for balance of density fluxes in GM,
       & diagnose_Redi_flux_sal,              & ! can be removed once diagnostic is no longer necessary
       & PgradTracer_horz_center                ! reconstructed tracer gradient at cell center in cartesian coordinates, for HAMMOC in GMredi
-      
+
    onCells ::         &
-      & DerivTemperature_vert_center, &  
+      & DerivTemperature_vert_center, &
       & DerivSalinity_vert_center,    &
-      & DerivDensity_vert_center,     & 
+      & DerivDensity_vert_center,     &
       & DerivTracer_vert_center
-      
+
   END TYPE t_hydro_ocean_aux
 
   !-------------------------------
@@ -479,7 +479,7 @@ MODULE mo_ocean_types
     CHARACTER(LEN=max_char_length) :: tracer_units(max_tracers)
     INTEGER                        :: tracer_codes(max_tracers)
   END TYPE t_oce_config
-  
+
 
 
   !-------------------------------------------------------------------------------
@@ -488,10 +488,10 @@ MODULE mo_ocean_types
     ! 1) precomputed 3D-factors for mathematical operators (for efficiency).
     !------------------------------------------------------------------------------
     mapEdgesToCells    :: div_coeff
-    mapEdgesToVertices :: rot_coeff  
+    mapEdgesToVertices :: rot_coeff
     onEdges            :: grad_coeff ! this should be revised
     mapCellsToEdges_2D :: averageCellsToEdges
-    
+
     !2) Required for description of boundary around a vertex
     !------------------------------------------------------------------------------
     onVertices_3D_Int :: bnd_edges_per_vertex
@@ -536,7 +536,7 @@ MODULE mo_ocean_types
     onCells_2D_Connectivity                    :: lhs_CellToCell_index   ! connectivity of the above
     onCells_2D_Connectivity                    :: lhs_CellToCell_block   ! connectivity of the above
 ! End Note
- 
+
    mapEdgesToEdges                            :: edge2edge_viavert_coeff
 
     !coefficient for surface layer, changes in time, in contrast to other coefficients
@@ -562,8 +562,8 @@ MODULE mo_ocean_types
     onCells_3D_Int :: cells_SeaBoundaryLevel ! as above
 
   END TYPE t_operator_coeff
-    
-  
+
+
   TYPE t_solverCoeff_singlePrecision
     ! the same as in t_operator_coeff in single precision for using in the solver
     onEdges_2D_RealPrecision(sp) :: grad_coeff                  ! as in t_operator_coeff for the 1st level
@@ -588,6 +588,5 @@ MODULE mo_ocean_types
     TYPE(t_ocean_transport_state)  :: transport_state
 
   END TYPE t_hydro_ocean_state
-  
-END MODULE mo_ocean_types
 
+END MODULE mo_ocean_types

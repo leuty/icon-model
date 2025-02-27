@@ -39,22 +39,22 @@ IMPLICIT NONE
   PRIVATE
 
   PUBLIC :: solar_parameters
-  
+
 CONTAINS
-  
+
 
   !---------------------------------------------------------------------------
   !>
   !! @brief Scans a block and fills with solar parameters
-  !! 
+  !!
   !! @remarks: This routine calculates the solar zenith angle for each
-  !! point in a block of data.  For simulations with no diurnal cycle 
-  !! the cosine of the zenith angle is set to its average value (assuming 
-  !! negatives to be zero and for a day divided into nds intervals).  
-  !! Additionally a field is set indicating the fraction of the day over 
-  !! which the solar zenith angle is greater than zero.  Otherwise the field 
-  !! is set to 1 or 0 depending on whether the zenith angle is greater or 
-  !! less than 1. 
+  !! point in a block of data.  For simulations with no diurnal cycle
+  !! the cosine of the zenith angle is set to its average value (assuming
+  !! negatives to be zero and for a day divided into nds intervals).
+  !! Additionally a field is set indicating the fraction of the day over
+  !! which the solar zenith angle is greater than zero.  Otherwise the field
+  !! is set to 1 or 0 depending on whether the zenith angle is greater or
+  !! less than 1.
   !
   SUBROUTINE solar_parameters(decl_sun,    time_of_day,     &
        &                      icosmu0,     dt_ext,          &
@@ -206,7 +206,7 @@ CONTAINS
           !
           IF (dt_ext/=0.0_wp) THEN
              !
-             
+
              SELECT CASE (icosmu0)
              CASE (0)
                 !

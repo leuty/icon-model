@@ -10,23 +10,23 @@
 ! ---------------------------------------------------------------
 
 MODULE mo_util_uuid_types
-  
+
   USE, INTRINSIC :: ISO_C_BINDING, ONLY: C_SIGNED_CHAR
-  
-  IMPLICIT NONE 
-  
+
+  IMPLICIT NONE
+
   PRIVATE
-  
+
   PUBLIC :: t_uuid
   PUBLIC :: UUID_STRING_LENGTH
   PUBLIC :: UUID_DATA_LENGTH
-  
+
   INTEGER, PARAMETER :: UUID_STRING_LENGTH = 36
   INTEGER, PARAMETER :: UUID_DATA_LENGTH   = 16
-  
+
   !> module name string
   CHARACTER(LEN=*), PARAMETER :: modname = 'mo_util_uuid_types'
-  
+
   TYPE, BIND(C) :: t_uuid
     INTEGER(C_SIGNED_CHAR) :: DATA(16)
   END TYPE t_uuid

@@ -11,11 +11,14 @@
 
 #================================== NEW ================================
 
+import os
+import time
+from shutil import copytree
+
+from buildbot import util
 from buildbot.status.web.base import HtmlResource
 from twisted.web.util import Redirect
-import os, time
-from shutil import copytree
-from buildbot import util
+
 
 class MainPage(HtmlResource):
     title = "Replace Reference Buildbot"
@@ -31,7 +34,7 @@ class MainPage(HtmlResource):
 #      print req
 #      print req.args
 #      print "=== body ======="
-      
+
 #=========================================================
 
 #=========================================================
@@ -64,8 +67,8 @@ class MainPage(HtmlResource):
                           d_list.append(d)
                           c_list.append(c)
                           br_list.append(br.replace('+','/'))
-                        
-        d_list = list(sorted(d_list))                
+
+        d_list = list(sorted(d_list))
         c_list = list(sorted(set(c_list)))
         br_list = list(sorted(set(br_list)))
         return (st,d_list,c_list,br_list)
@@ -80,7 +83,7 @@ class MainPage(HtmlResource):
 #	print branch
 #	print branch.replace('/','+')
 #	print comp
-	
+
         st = False
         b_list = []
         p = "public_html/archive/"
@@ -91,7 +94,7 @@ class MainPage(HtmlResource):
 #          print "p_d: " + p_d
 
 	  if os.path.isdir(p_br + branch.replace('/','+')):
-	    p_r = p_br + branch + "/"	  
+	    p_r = p_br + branch + "/"
 #            print "p_r: " + p_r
             if os.path.isdir(p_r + comp):
 	      p_c = p_r + comp + "/"
@@ -103,8 +106,8 @@ class MainPage(HtmlResource):
 	        if os.path.isdir(p_b + exp):
 	          st = True
                   b_list.append(b)
-                        
-        b_list = list(sorted(set(b_list)))                
+
+        b_list = list(sorted(set(b_list)))
 #	print "==== create_BuildList ===="
         return (st,b_list)
 
@@ -131,7 +134,7 @@ class MainPage(HtmlResource):
 	  p += exp + "/"
 	  if os.path.isdir(p):
 	    return d
-	    
+
 	return "yyyy-mm-dd"
 
 #-------------------------------------------------------------
@@ -146,7 +149,7 @@ class MainPage(HtmlResource):
       l_use_build  = False
       l_use_comp   = False
       l_use_branch = False
-      
+
       if "exp" in req.args:
         try:
           EXP = req.args["exp"][0]
@@ -181,35 +184,35 @@ class MainPage(HtmlResource):
           lb = True
         except ValueError:
           pass
-	
+
       start_rev = "0000"
       if "start" in req.args:
         try:
           start_rev = req.args["start"][0]
         except ValueError:
           pass
-      
+
       #if "button" in req.args:
         #try:
           #CONTROL = req.args["button"][0]
           #ls = True
         #except ValueError:
           #pass
-	
+
       #if ls:
         #if CONTROL == "cancel":
 	  #return Redirect("../plot")
-	
+
         #if CONTROL == "ok":
 	  #return Redirect("../plot")
-	
+
       data = "<div id=\"div_ref\"  style=\"float:left; padding:3px; margin:5px width:500px;\">"
       data += "<h1>Replace Reference Plot</h1>\n"
-      
+
       if not le:
         data += "<br><br><br><h2>Pleace use ?exp=exp_name </h2>\n"
         return data
-	
+
       data += "<h2>" + EXP + "</h2>\n"
       data += "<table border=\"0\" cellspacing=\"0\" cellpadding=\"0\" align=\"left\" width=\"300\">"
       data += "  <colgroup>"
@@ -232,19 +235,19 @@ class MainPage(HtmlResource):
 	data += "<td style=\"text-align:left;\">" + REV + "</td>"
         l_use_branch  = True
       data += "  </tr>"
-      
+
       d_list  = ["----"]
       c_list  = ["----"]
       b_list  = ["----"]
       br_list = ["----"]
-      
+
 #      if l_use_comp and not lc:
       if l_use_branch:
 	st,d_list,c_list,br_list = check_rev_exist(EXP,REV)
 	if not st:
           data = "<div id=\"div_ref\" >"
           data += "<h1>Replace Reference Plot</h1>\n"
-          data += "Revision " + REV + " contains no runs for experiment "+ EXP 
+          data += "Revision " + REV + " contains no runs for experiment "+ EXP
           data += "</div>"
           return data
 
@@ -287,7 +290,7 @@ class MainPage(HtmlResource):
           data += "&branch=" + BRANCH
           data += "\" class=\"command replace\">\n"
           data += "      <select name=\"comp\">\n"
-        for c in c_list:	
+        for c in c_list:
           data += "        <option>" + c + "</option>\n"
         data += "      </select>"
         if l_use_comp:
@@ -308,7 +311,7 @@ class MainPage(HtmlResource):
 	if not st:
           data = "<div id=\"div_ref\" >"
           data += "<h1>Replace Reference Plot</h1>\n"
-          data += "Revision " + REV + " contains no runs for experiment "+ EXP 
+          data += "Revision " + REV + " contains no runs for experiment "+ EXP
           data += "</div>"
           return data
 
@@ -318,7 +321,7 @@ class MainPage(HtmlResource):
         data += "  <td style=\"text-align:left;\">"
         data += "    <form name=\"reference_build\" method=\"POST\" action=\"reference?exp=" + EXP
         if not l_use_build:
-#          data += "&rev=" + REV 
+#          data += "&rev=" + REV
           data += "\" class=\"command replace\">\n"
           data += "      <select name=\"build\" disabled=\"disabled\">\n"
         else:
@@ -354,7 +357,7 @@ class MainPage(HtmlResource):
         data += "    <form>"
         data += "  </td></tr>"
       data += "  </table>"
-      
+
       if le and lr and lc and lb and lbr:
         data += "  <br \>\n"
         data += "  <table>\n"
@@ -365,7 +368,7 @@ class MainPage(HtmlResource):
           data += "<br>\n"
 	  data += "<img src=\"archive/"+DATE+"/buildbot/"+REV+"/"+BRANCH.replace('/','+')+"/"+COMP+"/"+BUILD+"/"+EXP+"/plots/" + f + "\"/>\n"
           data += "  </td></tr>"
-	  
+
         data += "  </table>"
       return data
 
@@ -380,47 +383,47 @@ class MainPage(HtmlResource):
           CONTROL = req.args["button"][0]
         except ValueError:
           pass
-	
+
       if "exp" in req.args:
         try:
           EXP = req.args["exp"][0]
         except ValueError:
           pass
-	
+
       if "date" in req.args:
         try:
           DATE = req.args["date"][0]
         except ValueError:
           pass
-	
+
       if "rev" in req.args:
         try:
           REV = req.args["rev"][0]
         except ValueError:
           pass
-	
+
       if "comp" in req.args:
         try:
           COMP = req.args["comp"][0]
         except ValueError:
           pass
-	
+
       if "branch" in req.args:
         try:
           BRANCH = req.args["branch"][0]
         except ValueError:
           pass
-      
+
       if "build" in req.args:
         try:
           BUILD = req.args["build"][0]
         except ValueError:
           pass
-	
+
       if CONTROL == "cancel":
-	l = "../plot?exp=" + EXP + "&modus=nightly&status=cancel" 
+	l = "../plot?exp=" + EXP + "&modus=nightly&status=cancel"
         return Redirect(l)
-	
+
       if CONTROL == "ok":
 	save_time = time.strftime("%Y-%m-%d-%H-%M", time.localtime(util.now()))
 	tmpname   = "/" + DATE + "/buildbot"
@@ -428,25 +431,25 @@ class MainPage(HtmlResource):
 	tmpname  += "/" + BRANCH.replace('/','+')
 	tmpname  += "/" + COMP
 	tmpname  += "/" + BUILD
-	
+
 	srcname   = "public_html/archive" + tmpname + "/" + EXP
-	
+
 	dstname   = "public_html/reference_plot/"
 	dstname  += EXP + "/" + save_time + tmpname
-        
+
         if not os.path.exists(dstname):
           os.makedirs(dstname)
 
 
 	copytree(srcname,dstname + "/"  + EXP)
-	l = "../plot?exp=" + EXP + "&modus=nightly&status=ok" 
+	l = "../plot?exp=" + EXP + "&modus=nightly&status=ok"
 	return Redirect(l)
-	
+
       return Redirect("../plot")
-			      
+
     def default(self, req):
         return Redirect("home")
-							
+
     def getChild(self, path, req):
         if path == "save_cancel":
 	  return self.save_cancel(req)
@@ -455,4 +458,3 @@ class MainPage(HtmlResource):
 #	  return self.default(req)
 
 # ================================== NEW ================================
- 

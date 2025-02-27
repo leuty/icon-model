@@ -451,7 +451,7 @@ CONTAINS
 #ifndef HAVE_FAST_MATH_LIB
     ys(1:vec_size) = sin(x(1:vec_size))
     yc(1:vec_size) = cos(x(1:vec_size))
-    
+
 #else
 #if (defined HAVE_ACML)
     CALL vrda_sincos(vec_size, x(1:vec_size), ys(1:vec_size), yc(1:vec_size))
@@ -462,7 +462,7 @@ CONTAINS
 #else
     ys(1:vec_size) = sin(x(1:vec_size))
     yc(1:vec_size) = cos(x(1:vec_size))
-    
+
     ! sincos - no fast math library call available, use native Fortran ...
 #endif
 #endif

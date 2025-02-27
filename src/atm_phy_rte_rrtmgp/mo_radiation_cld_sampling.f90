@@ -22,7 +22,7 @@
 !   Written by Robert Pincus; simplifed from code originally written for the
 !   GFDL atmospheric model AM2.
 
-MODULE mo_radiation_cld_sampling 
+MODULE mo_radiation_cld_sampling
 
   USE mo_kind, ONLY: wp
   USE mo_exception, ONLY: finish
@@ -31,7 +31,7 @@ MODULE mo_radiation_cld_sampling
   PRIVATE
   PUBLIC :: sample_cld_state
 
-  INTEGER, PARAMETER :: mode = 1 !< 1=max-ran, 2=maximum, 3=random 
+  INTEGER, PARAMETER :: mode = 1 !< 1=max-ran, 2=maximum, 3=random
 CONTAINS
 
 !c.f. rrtmg_lw's mcica_subcol_gen_lw.f90:generate_stochastic_clouds
@@ -57,15 +57,15 @@ CONTAINS
     one_minus(1:kproma,:) = 1.0_wp - cld_frc(1:kproma,:)
     !$ACC END KERNELS
 
-    ! Here is_cloudy(:,:,1) indicates whether any cloud is present 
+    ! Here is_cloudy(:,:,1) indicates whether any cloud is present
     !$ACC KERNELS DEFAULT(PRESENT) ASYNC(1)
     is_cloudy(1:kproma,1:klev,1) = cld_frc(1:kproma,1:klev) > 0._wp
     !$ACC END KERNELS
 
-    SELECT CASE(mode) 
+    SELECT CASE(mode)
       ! Maximum-random overlap
-      CASE(1) 
-            ! mask means we compute random numbers only when cloud is present 
+      CASE(1)
+            ! mask means we compute random numbers only when cloud is present
         CALL get_random_rank3(kproma, kbdim, klev, ksamps, rnseeds, &
           is_cloudy(:,:,1), rank)
         ! There may be a better way to structure this calculation...
@@ -77,18 +77,18 @@ CONTAINS
             DO jl = 1, kproma
               rank(jl,jk,js) = MERGE( &
                 ! Max overlap:
-                rank(jl,jk-1,js), & 
-                ! ... or random overlap in the clear sky portion:  
-                rank(jl,jk,js) * one_minus(jl,jk-1), & 
-                ! depending on whether or not you have cloud in the layer above 
+                rank(jl,jk-1,js), &
+                ! ... or random overlap in the clear sky portion:
+                rank(jl,jk,js) * one_minus(jl,jk-1), &
+                ! depending on whether or not you have cloud in the layer above
                 rank(jl,jk-1,js) > one_minus(jl,jk-1) )
             END DO
           END DO
         END DO
         !$ACC END PARALLEL
 
-      ! Max overlap means every cell in a column is identical 
-      CASE(2) 
+      ! Max overlap means every cell in a column is identical
+      CASE(2)
         DO js = 1, ksamps
           CALL get_random(kproma, kbdim, rnseeds, rank(:, 1, js))
 
@@ -101,25 +101,25 @@ CONTAINS
             END DO
           END DO
           !$ACC END PARALLEL LOOP
-        END DO 
+        END DO
 
       ! Random overlap means every cell is independent
-      CASE(3) 
+      CASE(3)
         ! DO js = 1, ksamps
         !   DO jk = klev, 1, -1
-        !     ! mask means we compute random numbers only when cloud is present 
+        !     ! mask means we compute random numbers only when cloud is present
         !     CALL get_random(kproma, kbdim, rnseeds, is_cloudy(:,jk,1), &
         !       rank(:,jk,js))
-        !   END DO 
+        !   END DO
         ! END DO
         !
         ! Seems this is essentially the same as the previous commented out part
         CALL get_random_rank3(kproma, kbdim, klev, ksamps, rnseeds, &
           is_cloudy(:,:,1), rank)
       CASE DEFAULT
-        CALL finish('In sample_cld_state: unknown overlap assumption') 
+        CALL finish('In sample_cld_state: unknown overlap assumption')
     END SELECT
-    ! Now is_cloudy indicates whether the sample (ks) is cloudy or not. 
+    ! Now is_cloudy indicates whether the sample (ks) is cloudy or not.
     !$ACC PARALLEL LOOP DEFAULT(PRESENT) FIRSTPRIVATE(ksamps, klev, kproma) GANG VECTOR COLLAPSE(3) ASYNC(1)
     DO js = 1, ksamps
       DO jk = 1, klev

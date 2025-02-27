@@ -9,22 +9,22 @@
 # ------------------------------------------
 
 # ===========================================================================
-# 
+#
 # Name: exp.mch_ch_r04b09.run
 #
-# Purpose: Run script for ICON on a low resolution grid on 
+# Purpose: Run script for ICON on a low resolution grid on
 #          switzerland
 #          It is used for a technical test at MeteoSwiss.
 #          This experiment is not tested!
 #
 # Created by: Remo Dietlicher (MeteoSwiss)
 #
-# =========================================================================== 
+# ===========================================================================
 
 #--------------------------------------------------------------------------------------------------
 #
 # This experiment describes a ICON-LAM experiment using the physics packages that are
-# used at MeteoSwiss for production. This simulation computes a few time steps on 
+# used at MeteoSwiss for production. This simulation computes a few time steps on
 # a low-resolution grid over Switzerland. The setup is for development purposes.
 #
 #--------------------------------------------------------------------------------------------------
@@ -148,7 +148,7 @@ cat > ${basedir}/run/${atmo_namelist} << EOF
  hdiff_order                 =                          5         ! order of nabla operator for diffusion
  itype_vn_diffu              =                          1         ! reconstruction method used for Smagorinsky diffusion
  itype_t_diffu               =                          2         ! discretization of temperature diffusion
- hdiff_efdt_ratio            =                         24.0       ! ratio of e-folding time to time step 
+ hdiff_efdt_ratio            =                         24.0       ! ratio of e-folding time to time step
  hdiff_smag_fac              =                          0.025     ! scaling factor for Smagorinsky diffusion
 /
 
@@ -171,7 +171,7 @@ cat > ${basedir}/run/${atmo_namelist} << EOF
 
 ! initicon_nml: specify read-in of initial state ------------------------------
 &initicon_nml
- init_mode                   =                          7         ! start from DWD fg with subsequent vertical remapping 
+ init_mode                   =                          7         ! start from DWD fg with subsequent vertical remapping
  lread_ana                   =                     .FALSE.        ! no analysis data will be read
  ana_varnames_map_file       =              "map_file.ana"        ! Dictionary for initial data file
  dwdfg_filename              =          "igfff00000000.nc"        ! initial data filename
@@ -258,7 +258,7 @@ cat > ${basedir}/run/${atmo_namelist} << EOF
  vwind_offctr                =                          0.2       ! off-centering in vertical wind solver
  damp_height                 =                      12500.0       ! height at which Rayleigh damping of vertical wind starts
  rayleigh_coeff              =                          5.0       ! Rayleigh damping coefficient
- divdamp_order               =                         24         ! order of divergence damping 
+ divdamp_order               =                         24         ! order of divergence damping
  divdamp_type                =                         3          ! type of divergence damping
  divdamp_fac                 =                          0.004     ! scaling factor for divergence damping
  igradp_method               =                          3         ! discretization of horizontal pressure gradient
@@ -380,8 +380,8 @@ cat > ${basedir}/run/${atmo_namelist} << EOF
  ser_output_diag             =                            0,12,12
  ser_latbc_data              =                            0,12,12
  ser_dynamics                =                            0,12,12
- ser_diffusion               =                            0,12,12 
- ser_step_advection          =                            0,12,12 
+ ser_diffusion               =                            0,12,12
+ ser_step_advection          =                            0,12,12
  ser_physics                 =                            0,12,12
  ser_surface                 =                            0,12,12
  ser_microphysics            =                            0,12,12
@@ -393,12 +393,11 @@ cat > ${basedir}/run/${atmo_namelist} << EOF
  ser_radheat                 =                            0,12,12
  ser_gwdrag                  =                            0,12,12
  ser_convection              =                            0,12,12
- ser_nudging                 =                            0,12,12 
+ ser_nudging                 =                            0,12,12
  ser_nfail                   =                            1
  ser_nreport                 =                            10
- ser_all_debug               =                            0 
+ ser_all_debug               =                            0
  ser_debug                   =                        .FALSE.      ! serialize the debug statements from mo_ser_debug
 /
 
 EOF
-

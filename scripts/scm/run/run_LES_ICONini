@@ -122,8 +122,8 @@ location='lat52.2_lon14.1'         # Lindenberg: lat52.2_lon14.1
 # ----------------------------------------------------------------------------
 DT_DATA=`expr 1 \* 3600`      # output each n hours
 DT_DATA=${dtime}              # output every time step
-#n_in_ofile=60                # number of time steps per output file 
-n_in_ofile=10000              # number of time steps per output file 
+#n_in_ofile=60                # number of time steps per output file
+n_in_ofile=10000              # number of time steps per output file
 
 # ----------------------------------------------------------------------------
 # grid namelist settings
@@ -232,7 +232,7 @@ cat > NAMELIST_${EXPNAME} << EOF
  ntracer        = 5            ! default: 0
  iforcing       = 3            ! 3: NWP forcing; 6:inhecham forcing
  ltestcase      = .TRUE.       ! run testcase
- ltimer         = .FALSE.      ! 
+ ltimer         = .FALSE.      !
  msg_level      = 12           ! detailed report during integration
  output         = 'nml','totint'
  check_uuid_gracefully = .TRUE.
@@ -317,7 +317,7 @@ cat > NAMELIST_${EXPNAME} << EOF
  direct_albedo_water          = 3
  albedo_whitecap              = 1
  llw_cloud_scat               = .true.
- ecRad_data_path              = '${ecRad_data_path}' 
+ ecRad_data_path              = '${ecRad_data_path}'
 /
 
 &ls_forcing_nml
@@ -424,7 +424,7 @@ cat > NAMELIST_${EXPNAME} << EOF
  include_last     = .TRUE.
  output_filename  = 'scm_out_sfc'
  filename_format  = "<output_filename>_<levtype>_<datetime2>"
- ml_varlist       = 'shfl_s', 'lhfl_s','u_10m', 'v_10m', 'qv_2m','t_2m', 'clct', 
+ ml_varlist       = 'shfl_s', 'lhfl_s','u_10m', 'v_10m', 'qv_2m','t_2m', 'clct',
                     'tqv_dia', 'tqc_dia', 'tqi_dia','tot_prec','sp_10m'
  output_grid      = .TRUE.
 /
@@ -434,7 +434,7 @@ EOF
   # 'group:all'
   # 'z_ifc','z_mc','u','v','w','temp','pres','rho','theta_v','pres_sfc','div',
   # 'qv','qc','qi','qs','qr','rh',
-  # 'ashfl_s', 'alhfl_s', 'athb_s', 'athb_t', 'asob_s', 'asob_t', 
+  # 'ashfl_s', 'alhfl_s', 'athb_s', 'athb_t', 'asob_s', 'asob_t',
   # 'ddt_temp_radsw', 'ddt_temp_radlw', 'ddt_temp_turb', 'ddt_temp_drag', 'ddt_temp_pconv',
   # 'ddt_qv_turb','ddt_qc_turb','ddt_qv_conv','ddt_qc_conv','u_10m', 'v_10m', 't_2m', 't_g',
   # 'qv_s','z_mc','lhfl_s','shfl_s','umfl_s','vmfl_s','tcm','tch','clc','tke','rcld','qhfl_s',
@@ -457,11 +457,11 @@ export NMPI_EXPORT="GFORTRAN_UNBUFFERED_PRECONNECTED"
 
 date1=`date`
 
-# NE=4, CPE=8, venum-lhost=2, cpunum_job=2, use-hca=2 
+# NE=4, CPE=8, venum-lhost=2, cpunum_job=2, use-hca=2
 
 #/opt/nec/ve/bin/mpirun -v    -vh     -node 0        -np 1      -env OMP_NUM_THREADS 1 ${MODEL_VH} : \
 #                          -x -venode -node 0-${NE1} -np ${PPN} -env OMP_NUM_THREADS 1 ${MODEL_VE} : \
-#                             -vh     -node 0        -np 4      -env OMP_NUM_THREADS 1 ${MODEL_VH} 
+#                             -vh     -node 0        -np 4      -env OMP_NUM_THREADS 1 ${MODEL_VH}
 
 # NE=8
 #mpiexec -v    -vh     -node 0        -np 1      ${MODEL_VH} : \
@@ -469,7 +469,7 @@ date1=`date`
 #              -vh     -node 0        -np 3      ${MODEL_VH} : \
 #              -vh     -node 1        -np 3      ${MODEL_VH}
 
-# NE=16, CPE=8, venum-lhost=8, cpunum_job=2, use-hca=2 
+# NE=16, CPE=8, venum-lhost=8, cpunum_job=2, use-hca=2
 
 /opt/nec/ve/bin/mpirun -v    -vh     -node 0        -np 1      -env OMP_NUM_THREADS 1  ${MODEL_VH} : \
                          -x -venode  -node 0-${NE1} -np ${PPN} -env OMP_NUM_THREADS 1  ${MODEL_VE} : \

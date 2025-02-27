@@ -25,7 +25,7 @@ addexp="./addexp"
 listname=${1:-nightly}
 ./rmlist $listname
 
-## JSC: 
+## JSC:
 #./create_all_builders $listname
 machine=jsc
 ./addmachine $machine --list $listname
@@ -44,4 +44,3 @@ machine=jsc
 #lets see the list
 ./lslist $listname
 #-----------------------------------------------------------
-

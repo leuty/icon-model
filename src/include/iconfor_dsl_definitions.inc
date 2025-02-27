@@ -9,7 +9,7 @@
 ! SPDX-License-Identifier: BSD-3-Clause
 ! ---------------------------------------------------------------
 
-! DSL definitions 
+! DSL definitions
 
 #define onCells_3D_tracers  REAL(wp), POINTER, DIMENSION(:,:,:,:)
 #define onCells_2D_tracers  REAL(wp), POINTER, DIMENSION(:,:,:)
@@ -98,7 +98,7 @@
 !---------------------
 ! shortcuts
 
-#define onCells_3D onCells_3D_Real 
+#define onCells_3D onCells_3D_Real
 #define onEdges_3D onEdges_3D_Real
 #define onVertices_3D onVertices_3D_Real
 

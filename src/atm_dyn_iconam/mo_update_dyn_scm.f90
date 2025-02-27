@@ -78,8 +78,8 @@ CONTAINS
     !$ACC DATA PRESENT(p_nh) IF(lacc)
 
 !$OMP PARALLEL PRIVATE(rl_start,rl_end,i_startblk,i_endblk)
-    rl_start = grf_bdywidth_c+1 
-    rl_end   = min_rlcell_int 
+    rl_start = grf_bdywidth_c+1
+    rl_end   = min_rlcell_int
 
     i_startblk = p_patch%cells%start_blk(rl_start,1)
     i_endblk   = p_patch%cells%end_blk(rl_end,i_nchdom)
@@ -209,6 +209,3 @@ CONTAINS
   END SUBROUTINE rbf_coeff_scm
 
 END MODULE mo_update_dyn_scm
-
-
-

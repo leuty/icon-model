@@ -62,7 +62,7 @@ secondary_build_dir=""
 #   in run/set-up.info.
 #
 # A job or run script is a script that can be submitted by the HPC scheduler.
-# An experiment script is the part of the job script that specifies the most 
+# An experiment script is the part of the job script that specifies the most
 # settings of the experiment. It should not contain host specific settings.
 #
 # The experiment script is build from multiple files specified in $input_name,

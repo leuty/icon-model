@@ -38,7 +38,7 @@ MODULE mo_nh_dcmip_rest_atm
    USE mo_sync,                 ONLY: sync_patch_array, sync_patch_array_mult, &
      &                                SYNC_C
    USE mo_nh_init_utils,        ONLY: convert_thdvars  !, init_w
-   USE mo_hydro_adjust,         ONLY: hydro_adjust 
+   USE mo_hydro_adjust,         ONLY: hydro_adjust
 
    IMPLICIT NONE
 
@@ -55,14 +55,14 @@ MODULE mo_nh_dcmip_rest_atm
 !-------------------------------------------------------------------------
 !
   !>
-  !! Initialization of topograpphy for the nh schaer-type DCMIP test cases 
+  !! Initialization of topograpphy for the nh schaer-type DCMIP test cases
   !!
   SUBROUTINE init_nh_topo_dcmip_rest_atm( p_patch, topo_c, fis)
 
     TYPE(t_patch), TARGET,INTENT(INOUT) :: &  !< patch on which computation is performed
       &  p_patch
 
-  
+
    REAL(wp), INTENT(INOUT)  :: topo_c    (:,:)
    REAL(wp), INTENT(INOUT)  :: fis       (:,:)
 
@@ -71,7 +71,7 @@ MODULE mo_nh_dcmip_rest_atm
    REAL(wp)    :: r, z_lat, z_lon
    REAL(wp)    :: sin_tmp, cos_tmp
    INTEGER     :: i_startidx, i_endidx, i_startblk, i_endblk
-   INTEGER     :: i_rlstart, i_rlend, i_nchdom 
+   INTEGER     :: i_rlstart, i_rlend, i_nchdom
 
 !  !DEFINED PARAMETERS for the 2-0 testcase (DCMIP):
    REAL(wp), PARAMETER :: h0 = 2000._wp ! maximum  mountain height(m)
@@ -119,13 +119,13 @@ MODULE mo_nh_dcmip_rest_atm
 
      ENDDO  !jc
    ENDDO  !jb
-!$OMP END DO 
+!$OMP END DO
 
 !$OMP END PARALLEL
 
 
    END SUBROUTINE init_nh_topo_dcmip_rest_atm
- 
+
 !-------------------------------------------------------------------------
 
   !>
@@ -148,19 +148,19 @@ MODULE mo_nh_dcmip_rest_atm
 
     TYPE(t_nh_metrics),   INTENT(IN)    :: &  !< NH metrics state
       &  p_metrics
-    LOGICAL,              INTENT(IN)    :: l_hydro_adjust !if .TRUE. hydrostatically balanced 
+    LOGICAL,              INTENT(IN)    :: l_hydro_adjust !if .TRUE. hydrostatically balanced
                                                           ! initial condition
 
     !local variables
     INTEGER  :: jc, je, jk, jb        !< loop indices
     INTEGER  :: i_startidx, i_endidx, i_startblk, i_endblk
-    INTEGER  :: i_rlstart, i_rlend, i_nchdom  
+    INTEGER  :: i_rlstart, i_rlend, i_nchdom
     INTEGER  :: nlev, nlevp1          !< number of full/half levels
 
 !   !DEFINED PARAMETERS for the Schaer-type testcase (DCMIP):
     REAL(wp), PARAMETER :: p0 = 100000._wp     ! Reference surface pressure (Pa)
     REAL(wp), PARAMETER :: t0 = 300._wp        ! Temperature (K)
-    REAL(wp), PARAMETER :: gamma   = 0.0065_wp ! temperature lapse rate (K/m)  
+    REAL(wp), PARAMETER :: gamma   = 0.0065_wp ! temperature lapse rate (K/m)
 
 !--------------------------------------------------------------------
 
@@ -230,7 +230,7 @@ MODULE mo_nh_dcmip_rest_atm
          p_nh_diag%pres(jc,jk,jb) = p0 *                                      &
            &      (1._wp -gamma/t0*p_metrics%z_mc(jc,jk,jb))**(grav/rd/gamma)
 
-!         ! ALTERNATIVE implementation, using the vertical-mean temperature and 
+!         ! ALTERNATIVE implementation, using the vertical-mean temperature and
 !         ! pressure between two half-levels.
 !         p_nh_diag%temp(jc,jk,jb) = t0 - 0.5_wp * gamma                           &
 !           &    * (p_metrics%z_ifc(jc,jk,jb)**2 - p_metrics%z_ifc(jc,jk+1,jb)**2) &
@@ -267,7 +267,7 @@ MODULE mo_nh_dcmip_rest_atm
 
 
 
-   ! As long as we do not have water vapour, ptr_nh_diag%temp is also the 
+   ! As long as we do not have water vapour, ptr_nh_diag%temp is also the
    ! virtual temperature
 
    CALL convert_thdvars(p_patch, p_nh_diag%pres, p_nh_diag%temp, &

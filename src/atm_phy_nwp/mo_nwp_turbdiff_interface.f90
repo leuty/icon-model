@@ -34,7 +34,7 @@ MODULE mo_nwp_turbdiff_interface
   USE mo_ext_data_types,         ONLY: t_external_data
   USE mo_nonhydro_types,         ONLY: t_nh_prog, t_nh_diag, t_nh_metrics
   USE mo_nwp_phy_types,          ONLY: t_nwp_phy_diag, t_nwp_phy_tend
-  USE mo_nwp_phy_state,          ONLY: phy_params 
+  USE mo_nwp_phy_state,          ONLY: phy_params
   USE mo_nwp_lnd_types,          ONLY: t_lnd_prog, t_wtr_prog, t_lnd_diag
   USE mo_parallel_config,        ONLY: nproma
   USE mo_run_config,             ONLY: msg_level, iqv, iqc, iqi, iqnc, iqni, iqtke, &
@@ -43,7 +43,7 @@ MODULE mo_nwp_turbdiff_interface
   USE mo_nonhydrostatic_config,  ONLY: kstart_moist, kstart_tracer
 
   USE mo_turbdiff_config,        ONLY: turbdiff_config, t_turbdiff_config, &
-                                       modvar, ndim, &   
+                                       modvar, ndim, &
                                        u_m, v_m, tet, vap, liq
   USE turb_diffusion,            ONLY: turbdiff
   USE turb_vertdiff,             ONLY: vertdiff
@@ -87,8 +87,8 @@ CONTAINS
                           & p_prog_rcf,                       & !>inout
                           & p_diag ,                          & !>inout
                           & prm_diag, prm_nwp_tend,           & !>inout
-                          & wtr_prog_now,                     & !>in 
-                          & lnd_prog_now,                     & !>in 
+                          & wtr_prog_now,                     & !>in
+                          & lnd_prog_now,                     & !>in
                           & lnd_diag,                         & !>in
                           & lacc                              ) !>in
 
@@ -152,17 +152,17 @@ CONTAINS
   LOGICAL :: ldoexpcor !consider explicit warm-cloud correct. for turb. scalar fluxes
   LOGICAL :: ldocirflx !consider circulation heat-flux
 
-  REAL(wp), TARGET      :: & 
+  REAL(wp), TARGET      :: &
     &  ddt_turb_qnc(nproma,p_patch%nlev), & !< tendency field for qnc
     &  ddt_turb_qni(nproma,p_patch%nlev), & !< tendendy field for qni
-    &  ddt_turb_qs (nproma,p_patch%nlev), & !< tendency field for qs 
+    &  ddt_turb_qs (nproma,p_patch%nlev), & !< tendency field for qs
     &  ddt_turb_qns(nproma,p_patch%nlev)    !< tendendy field for qns
 
   INTEGER  :: jt
   INTEGER, PARAMETER :: itrac_vdf = 0
 
   REAL(wp) :: ut_sso(nproma, p_patch%nlev), vt_sso(nproma, p_patch%nlev)
- 
+
   INTEGER, SAVE :: nstep_turb = 0
 
   TYPE(t_comin_tracer_info), POINTER :: this_info => NULL()
@@ -182,7 +182,7 @@ CONTAINS
   nlevp1 = p_patch%nlevp1
 
   nlevcm = nlevp1 !so far no vertically resolved roughness layer
-   
+
   ! local variables related to the blocking
   !
   ! exclude boundary interpolation zone of nested domains
@@ -192,7 +192,7 @@ CONTAINS
   i_startblk = p_patch%cells%start_block(rl_start)
   i_endblk   = p_patch%cells%end_block(rl_end)
 
- 
+
   IF ( lart .AND. art_config(jg)%nturb_tracer > 0 ) THEN
      ALLOCATE(idx_nturb_tracer(art_config(jg)%nturb_tracer))
   END IF
@@ -228,7 +228,7 @@ CONTAINS
     CASE(icosmo)
 
 !-------------------------------------------------------------------------
-!< COSMO turbulence scheme by M. Raschendorfer  
+!< COSMO turbulence scheme by M. Raschendorfer
 !-------------------------------------------------------------------------
 
 
@@ -238,7 +238,7 @@ CONTAINS
       !$ACC PARALLEL LOOP GANG VECTOR COLLAPSE(2) ASYNC(1) DEFAULT(PRESENT)
       DO jk=1, nlevp1
         DO jc=i_startidx, i_endidx
-          z_tvs(jc,jk)   = SQRT(2._wp* (p_prog_now_rcf%tke(jc,jk,jb))) 
+          z_tvs(jc,jk)   = SQRT(2._wp* (p_prog_now_rcf%tke(jc,jk,jb)))
          ENDDO
       ENDDO
       !$ACC END PARALLEL LOOP
@@ -437,7 +437,7 @@ CONTAINS
           & z0m=prm_diag%gz0(:,jb)/grav,                                   & !in
           !for noq z0m is assumed to be equal to z0h - GABLS1
           & z0h=prm_diag%gz0(:,jb)/grav,                                   & !in
-          & prm_nwp_tend = prm_nwp_tend,                                   & !in 
+          & prm_nwp_tend = prm_nwp_tend,                                   & !in
           & tvm          = prm_diag%tvm(:,jb),                             & !inout
           & tvh          = prm_diag%tvh(:,jb),                             & !inout
           & shfl_s       = prm_diag%shfl_s(:,jb),                          & !out
@@ -465,8 +465,8 @@ CONTAINS
         DO jc=1, nproma
 #if defined(_CRAYFTN) && _RELEASE_MAJOR <= 19
       ! ACCWA (Cray Fortran <= 16.0.1.1) : explicit type conversion fails with HSA memory error CAST-32450
-      ! In principle, implicit conversion works correctly, however, for code readability 
-      ! this should be removed when compiler is fixed 
+      ! In principle, implicit conversion works correctly, however, for code readability
+      ! this should be removed when compiler is fixed
           ut_sso(jc,jk)=prm_nwp_tend%ddt_u_sso(jc,jk,jb)
           vt_sso(jc,jk)=prm_nwp_tend%ddt_v_sso(jc,jk,jb)
 #else
@@ -566,14 +566,14 @@ CONTAINS
         &  t_tens=prm_nwp_tend%ddt_temp_turb(:,:,jb),                                 & !inout
 !
         &  zvari=zvari(:,:,:)                                                         & !out
-        &                                                                             ) !end of 'turbdiff' call 
+        &                                                                             ) !end of 'turbdiff' call
 
       !Notes:
       !Surface fluxes have already been precalculated in SUB 'turbtran' (possibly for individual tiles),
       ! and thy may have been further modified in TERRA; but they are not updated in SUB 'turbdiff'.
       !After passing TERRA, the possibly tile-specifec surface fluxes, have been aggregated in the
       ! TERRA-interface (SUB 'nwp_surface') towards grid-scale mean values.
-      !Except for momentum, these grid-scale surface fluxes are applied in SUB 'vertdiff' as a 
+      !Except for momentum, these grid-scale surface fluxes are applied in SUB 'vertdiff' as a
       ! lower boundary condition, provided "lsflcnd=T".
 
       !Attention:
@@ -670,16 +670,16 @@ CONTAINS
         !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1)
         !$ACC LOOP GANG VECTOR COLLAPSE(2)
         DO jk = 1, nlevp1
-          DO jc = i_startidx, i_endidx 
+          DO jc = i_startidx, i_endidx
              prm_diag%tetfl_turb(jc,jk,jb) = zvari(jc,jk,tet)
              prm_diag%vapfl_turb(jc,jk,jb) = zvari(jc,jk,vap)
              prm_diag%liqfl_turb(jc,jk,jb) = zvari(jc,jk,liq)
 
              !Notes:
-             !The resulting effective vertical flux-densities for dynamically active variables are alreay present 
+             !The resulting effective vertical flux-densities for dynamically active variables are alreay present
              ! in 'zvari', provided that "l3dflxout=T=atm_phy_nwp_config(jg)%l_3d_turb_fluxes"
              !Actually, in this case, the momentum fluxes for 'u_m' and 'v_m' are contained in 'zvari' as well.
-             !All these fluxes are the effective onces, as applied for implicit diffusion; and they also contain 
+             !All these fluxes are the effective onces, as applied for implicit diffusion; and they also contain
              ! so far considered non-gradient flux-contributions.
           END DO
         END DO
@@ -697,7 +697,7 @@ CONTAINS
       IF ( .NOT. tdc%lsflcnd ) THEN
         !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1)
         !$ACC LOOP GANG VECTOR
-        DO jc = i_startidx, i_endidx 
+        DO jc = i_startidx, i_endidx
           prm_diag%lhfl_s(jc,jb) = prm_diag%qhfl_s(jc,jb) * alv
         END DO
         !$ACC END PARALLEL
@@ -725,7 +725,7 @@ CONTAINS
         !$ACC END PARALLEL
       ENDIF
 
-      !Note: 
+      !Note:
       !'ddt_tke' is purely diagnostic and has already been added to the turbulent velocity scale (TVS).
       ! transform updated TVS back to TKE:
       !$ACC PARALLEL ASYNC(1) DEFAULT(PRESENT)
@@ -737,14 +737,14 @@ CONTAINS
       ENDDO
       !$ACC END PARALLEL
 
-      !Note: 
+      !Note:
       !TKE at the lowest main level 'nlevp1' is re-computed in nwp_turbtrans after the related TVS
       ! has been updated.
 
    CASE(igme)
 
 !-------------------------------------------------------------------------
-!> GME turbulence scheme 
+!> GME turbulence scheme
 !-------------------------------------------------------------------------
 
 #ifdef _OPENACC
@@ -785,7 +785,7 @@ CONTAINS
 !       &                qhfl_s=prm_diag%qhfl_s_t(:,jb,1),                             & !out
 !       &                umfl_s=prm_diag%umfl_s(:,jb), vmfl_s=prm_diag%vmfl_s(:,jb)    ) !out
 
-!DR NOTE: computation of sensible and latent heat fluxes (over non-land points) should be 
+!DR NOTE: computation of sensible and latent heat fluxes (over non-land points) should be
 !DR moved either to the turbtran interface, or the surface interface!!
 
 !     DO jc = i_startidx, i_endidx
@@ -800,7 +800,7 @@ CONTAINS
     ! Update wind speed, QV and temperature with turbulence tendencies
     ! Note: wind speed is updated here, in order to pass u and v at the correct time level
     ! to turbtran and the convection scheme. However, the prognostic variable vn is updated
-    ! at the end of the NWP interface by first interpolating the u/v tendencies to the 
+    ! at the end of the NWP interface by first interpolating the u/v tendencies to the
     ! velocity points (in order to minimize interpolation errors) and then adding the tendencies
     ! to vn (for efficiency reasons)
     !$ACC PARALLEL ASYNC(1) DEFAULT(PRESENT)
@@ -860,7 +860,7 @@ CONTAINS
 !DIR$ IVDEP
         DO jc = i_startidx, i_endidx
           p_prog_rcf%tracer(jc,jk,jb,iqnc) = MAX(0.0_wp, p_prog_rcf%tracer(jc,jk,jb,iqnc) &
-            &                              + tcall_turb_jg                                & 
+            &                              + tcall_turb_jg                                &
             &                              * ddt_turb_qnc(jc,jk))
         ENDDO
       ENDDO
@@ -887,7 +887,7 @@ CONTAINS
 !DIR$ IVDEP
           DO jc = i_startidx, i_endidx
             p_prog_rcf%tracer(jc,jk,jb,iqni) = MAX(0.0_wp, p_prog_rcf%tracer(jc,jk,jb,iqni) &
-              &                              + tcall_turb_jg                                & 
+              &                              + tcall_turb_jg                                &
               &                              * ddt_turb_qni(jc,jk))
           ENDDO
         ENDDO
@@ -903,7 +903,7 @@ CONTAINS
 !DIR$ IVDEP
         DO jc = i_startidx, i_endidx
           p_prog_rcf%tracer(jc,jk,jb,iqs) = MAX(0.0_wp, p_prog_rcf%tracer(jc,jk,jb,iqs) &
-            &                             + tcall_turb_jg                               & 
+            &                             + tcall_turb_jg                               &
             &                             * ddt_turb_qs(jc,jk))
         ENDDO
       ENDDO

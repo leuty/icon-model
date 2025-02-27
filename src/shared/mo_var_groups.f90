@@ -34,7 +34,7 @@ MODULE mo_var_groups
   ! ---------------------------------------------------------------
 
   ! List of *static* variable groups.
-  ! 
+  !
   ! A variable can have any combination of this which means that it is
   ! part of each of these different variable sets.
   ! A variable is added to an existing group by setting the meta-data
@@ -77,7 +77,7 @@ MODULE mo_var_groups
     &  "MULTISNOW_VARS        ",  &
     &  "ADDITIONAL_PRECIP_VARS",  &
     &  "SNOW_VARS             ",  &
-    &  "DWD_FG_ATM_VARS       ",  &  ! DWD First Guess (atmosphere) 
+    &  "DWD_FG_ATM_VARS       ",  &  ! DWD First Guess (atmosphere)
     &  "DWD_FG_SFC_VARS       ",  &  ! DWD First Guess (surface/soil)
     &  "DWD_FG_SFC_VARS_T     ",  &  ! DWD First Guess (surface/soil) tiles
     &  "MODE_DWD_FG_IN        ",  &  ! Input first guess fields for MODE_DWD
@@ -183,7 +183,7 @@ CONTAINS
     ! defined groups and the dynamically defined ones):
     CALL this%map%get(in_str, group_id, opt_err=ierr)
     ! If the group does not exist, create it.
-    IF (ierr .NE. 0) CALL append() 
+    IF (ierr .NE. 0) CALL append()
   CONTAINS
 
     SUBROUTINE init()

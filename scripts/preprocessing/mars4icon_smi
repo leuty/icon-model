@@ -24,22 +24,22 @@
 #                             soil model input - 6 soil types)
 #   mars4icon_smi_32r2-:      assuming model input from pre 32r3 cycles
 #                             (single soil type)
-#   mars4icon_smi_ERAinterim: using ERA-Interim data 
+#   mars4icon_smi_ERAinterim: using ERA-Interim data
 #                             (31r1 model with 36r4 land model data)
 #                             2 options:
 #                             exp=fiv7: ERA-Interim forced land model
 #                             exp=fiv8: ERA-Interim + GPCP corrected precip
 #   mars4icon_smi_32r3+_da    Use -S eda:N instead
 #
-# attention: 
+# attention:
 #   * at DWD requires ECMWF login by eccert
 #   * requires mars version 1.9.9
 #     (. ${GRIB_API}/bin/grib_api-setenv -r -V1.9.9)
 #   * since cy36r4 (2010/11/09) there is rain and snow, which is required by IFS2ICON
 #     (optionally turn on/off crwc/csw)
 #   * ERAinterm: only works until 2010! (fiv8 not available afterwards)
-#   * !!!!!!ATTENTION: Even though SWVL is converted to soil moisture index SMI, 
-#     this is not reflected in the corresponding metadata. Metadata still belong 
+#   * !!!!!!ATTENTION: Even though SWVL is converted to soil moisture index SMI,
+#     this is not reflected in the corresponding metadata. Metadata still belong
 #     to SWVL. !!!!!!!!!
 #
 # history:
@@ -59,7 +59,7 @@
 #   Helmut Frank    20181128  New option -a for area. swvl* is always retrieved on archived grid.
 #                             Use MARS_CALL_OPTION to call mars with an option (e.g. -m)
 #   Helmut Frank    20190129  Always set rainsnow='/crwc/cswc' for era5 data (thanks to G. Pante, IMK)
-#   Helmut Frank    20190812  param=z, lv=ml is always avaiable only for analysis data.                  
+#   Helmut Frank    20190812  param=z, lv=ml is always avaiable only for analysis data.
 # ------------------------------------------------------------------------------
 
 typeset    area
@@ -145,7 +145,7 @@ do
 		                             1/to/60  before 2006020112
 		  -L lv_split    Fetch atmospheric data in portions of lv_split levels (Default: ${lv_split})
 		                    lv_split=35 is used for 137 levels with resolution=1279 in the backup suite of DWD.
-		  -o grib_file   Name of output GRIB-file. 
+		  -o grib_file   Name of output GRIB-file.
                                  Remember to use MARS keywords in brackets if you use ranges.
                                  If grib_file=dir:DIRECTORY then the output is written do directory DIRECTORY
                                  with default name for the GRIB-file.
@@ -475,7 +475,7 @@ retrieve, param=z, type=an, step=0"
 retrieve, param=z, type=${type_mars}, step=${step}"
     fi
 fi
-# 
+#
 #  Number of levels
 #
 if [[ -z "${levs}" ]]; then
@@ -513,7 +513,7 @@ fi
 #
 # With the introduction of a cubic grid on 20160310 values F(4($res+1))/4 (~ F($res+1) ) are reasonable.
 # E.g. grd=F640 for res=1279. See
-# https://software.ecmwf.int/wiki/display/FCST/Relationship+between+spectral+truncation+and+grid+point+resolution 
+# https://software.ecmwf.int/wiki/display/FCST/Relationship+between+spectral+truncation+and+grid+point+resolution
 #
 if [[ -z "${grd}" ]]; then
     if [[ ${res} == [a-z]* ]]; then
@@ -677,8 +677,8 @@ ${sp_from_mars}
 retrieve,
         type     = ${type_mars}, step=${step},
         param    = sst/src/z,
-        repres   = gg, 
-        resol    = off, 
+        repres   = gg,
+        resol    = off,
         levtype  = surface
 MARS_IFSICON_SFC
 
@@ -692,14 +692,14 @@ MARS_IFSICON_SFC
 #        fieldset = ci0
 #compute,formula  = "nobitmap(ci0,0)",        # missing value -> 0
 #        fieldset = ci
-#write,  fieldset = ci, 
+#write,  fieldset = ci,
 #ci==================================ci
       cat >> ${mars_req[$i_rq]} << MARS_IFSICON_Eof
 retrieve,
         ${db_para_soil},
         param    = tsn/skt/stl1/stl2/stl3/stl4/sd/rsn/asn,
-        repres   = gg, 
-        resol    = off, 
+        repres   = gg,
+        resol    = off,
         levtype  = surface
 retrieve,
         ${db_para_atmo},

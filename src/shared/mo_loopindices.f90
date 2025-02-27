@@ -151,4 +151,3 @@ SUBROUTINE get_indices_v(p_patch, i_blk, i_startblk, i_endblk, i_startidx, &
 END SUBROUTINE get_indices_v
 
 END MODULE mo_loopindices
-

@@ -80,7 +80,7 @@ MODULE mo_vdf
     PROCEDURE :: Compute_diagnostics
     PROCEDURE :: Update_diagnostics
   END TYPE t_vdf
-  
+
   ! INTERFACE t_vdf
   !   MODULE PROCEDURE t_vdf_construct
   ! END INTERFACE t_vdf
@@ -254,8 +254,8 @@ CONTAINS
     ! Call diffusioin of temperature
     !
     ! Note: uses the new state of moisture variables
-    ! Note: new_state_ta and tend_ta will be updated later by 
-    !       horizontal diffusion and by additional heating 
+    ! Note: new_state_ta and tend_ta will be updated later by
+    !       horizontal diffusion and by additional heating
     !----------------------------------------------------------------------------
     CALL Compute_diffusion_temperature(patch,p_int,this%atmo%domain,      &
                                        this%atmo,conf_atmo,ins_atmo,      &
@@ -277,7 +277,7 @@ CONTAINS
     !----------------------------------------------------------------------------
     ! Update energy/temperature tendencies
     !----------------------------------------------------------------------------
-    CALL Update_energy_tendencies(patch,this%atmo%domain,this%atmo,conf_atmo,& 
+    CALL Update_energy_tendencies(patch,this%atmo%domain,this%atmo,conf_atmo,&
                                   ins_atmo,diags_atmo,diags_sfc)
 
     !----------------------------------------------------------------------------
@@ -404,7 +404,7 @@ CONTAINS
         & diags_sfc%moist_rich_tile(:,:,jtile), diags_sfc%km_tile(:,:,jtile), diags_sfc%km_neutral_tile(:,:,jtile), &
         & diags_sfc%u10m_tile(:,:,jtile), diags_sfc%v10m_tile(:,:,jtile), diags_sfc%wind10m_tile(:,:,jtile) &
         & )
-    
+
       CALL compute_2m_temperature( &
           & domain_sfc, domain_sfc%sfc_types(jtile), diags_sfc%nvalid(:,jtile), diags_sfc%indices(:,:,jtile), &
           & ins_sfc%zf(:,:), ins_sfc%zh(:,:), new_ta(:,nlev,:), new_tsfc(:,:,jtile), &
@@ -489,7 +489,7 @@ CONTAINS
 
     REAL(wp) :: inv_mair(domain%nproma,atmo%domain%nlev,domain%nblks_c)
     REAL(wp), POINTER :: state(:,:,:), tend(:,:,:), new_state(:,:,:)
-  
+
     iecidx => patch%edges%cell_idx;     iecblk => patch%edges%cell_blk
     ieidx  => patch%cells%edge_idx;     ieblk  => patch%cells%edge_blk
 
@@ -1146,9 +1146,9 @@ CONTAINS
 
           dvt      =   u_vert(ividx(je,jb,4),jk,ivblk(je,jb,4)) * patch%edges%dual_normal_vert(je,jb,4)%v1 &
                      + v_vert(ividx(je,jb,4),jk,ivblk(je,jb,4)) * patch%edges%dual_normal_vert(je,jb,4)%v2 &
-                     - u_vert(ividx(je,jb,3),jk,ivblk(je,jb,3)) * patch%edges%dual_normal_vert(je,jb,3)%v1 &   
-                     - v_vert(ividx(je,jb,3),jk,ivblk(je,jb,3)) * patch%edges%dual_normal_vert(je,jb,3)%v2 
-                      
+                     - u_vert(ividx(je,jb,3),jk,ivblk(je,jb,3)) * patch%edges%dual_normal_vert(je,jb,3)%v1 &
+                     - v_vert(ividx(je,jb,3),jk,ivblk(je,jb,3)) * patch%edges%dual_normal_vert(je,jb,3)%v2
+
 
           ! tendency in normal direction:
           ! flux = visc*(D_11-2/3DIV) = visc*(2*delta_v/(vert_vert_len/2)-2/3*div_of_stress)
@@ -1180,7 +1180,7 @@ CONTAINS
           jvn       = ividx(je,jb,2)
           jbn       = ivblk(je,jb,2)
           flux_up_v = ( km_iv(jvn,jk,jbn) + km_iv(jvn,jk+1,jbn) )                              &
-                      * ( patch%edges%tangent_orientation(je,jb) * ( vn_vert2 - vn(je,jk,jb) ) &    
+                      * ( patch%edges%tangent_orientation(je,jb) * ( vn_vert2 - vn(je,jk,jb) ) &
                           * patch%edges%inv_primal_edge_length(je,jb)                          &
                           + 0.5_wp * dvt * patch%edges%inv_vert_vert_length(je,jb)             &
                         )
@@ -1188,13 +1188,13 @@ CONTAINS
           jvn       = ividx(je,jb,1)
           jbn       = ivblk(je,jb,1)
           flux_dn_v = ( km_iv(jvn,jk,jbn) + km_iv(jvn,jk+1,jbn) )                              &
-                      * ( patch%edges%tangent_orientation(je,jb) * ( vn(je,jk,jb) - vn_vert1 ) &    
+                      * ( patch%edges%tangent_orientation(je,jb) * ( vn(je,jk,jb) - vn_vert1 ) &
                           * patch%edges%inv_primal_edge_length(je,jb)                          &
                           + 0.5_wp * dvt * patch%edges%inv_vert_vert_length(je,jb)             &
                         )
 
           tot_tend(je,jk,jb) = ( ( flux_up_c - flux_dn_c ) * patch%edges%inv_dual_edge_length(je,jb)          &
-                                 + 2._wp * patch%edges%tangent_orientation(je,jb) * ( flux_up_v - flux_dn_v ) & 
+                                 + 2._wp * patch%edges%tangent_orientation(je,jb) * ( flux_up_v - flux_dn_v ) &
                                    * patch%edges%inv_primal_edge_length(je,jb)                                &
                                ) * inv_rhoe(je,jk,jb)
 
@@ -1224,7 +1224,7 @@ CONTAINS
       DO jk = 2, nlev-1
         DO je = i_startidx, i_endidx
           inv_maire(je,jk,jb) = p_nh_metrics%inv_ddqz_z_full_e(je,jk,jb) * inv_rhoe(je,jk,jb)
-          zrhs(je,jk,jb) = (  km_ie(je,jk,jb) * patch%edges%inv_dual_edge_length(je,jb)                                    & 
+          zrhs(je,jk,jb) = (  km_ie(je,jk,jb) * patch%edges%inv_dual_edge_length(je,jb)                                    &
                               * ( pwp1(iecidx(je,jb,2),jk,iecblk(je,jb,2)) - pwp1(iecidx(je,jb,1),jk,iecblk(je,jb,1)) )    &
                             - km_ie(je,jk+1,jb) * patch%edges%inv_dual_edge_length(je,jb)                                  &
                               * ( pwp1(iecidx(je,jb,2),jk+1,iecblk(je,jb,2)) - pwp1(iecidx(je,jb,1),jk+1,iecblk(je,jb,1)) )&
@@ -1399,7 +1399,7 @@ CONTAINS
       b(domain%nproma,atmo%domain%nlev,domain%nblks_c),   &
       c(domain%nproma,atmo%domain%nlev,domain%nblks_c),   &
       rhs(domain%nproma,atmo%domain%nlev,domain%nblks_c)
-    
+
     REAL(wp) :: &
       vt_e   (domain%nproma,atmo%domain%nlev,domain%nblks_e),      &
       inv_mair_ic(domain%nproma,atmo%domain%nlev,domain%nblks_c),  &
@@ -1413,7 +1413,7 @@ CONTAINS
     ieidx  => patch%cells%edge_idx;     ieblk  => patch%cells%edge_blk
 
     nlev    = domain%nlev
-    
+
     state => atmo%states%Get_ptr_r3d('vertical velocity')
     tend  => atmo%tendencies%Get_ptr_r3d('vertical velocity')
     new_state => atmo%new_states%Get_ptr_r3d('vertical velocity')
@@ -1473,8 +1473,8 @@ CONTAINS
           inv_mair_ic(jc,jk,jb) = inv_rho_ic(jc,jk,jb) * inv_dzh(jc,jk,jb)
           rhs(jc,jk,jb) = 2._wp * inv_mair_ic(jc,jk,jb)                       &
                           * (   km_c(jc,jk,jb)   * z_1by3 * div_c(jc,jk,jb)   &
-                              - km_c(jc,jk-1,jb) * z_1by3 * div_c(jc,jk-1,jb) & 
-                            ) 
+                              - km_c(jc,jk-1,jb) * z_1by3 * div_c(jc,jk-1,jb) &
+                            )
         END DO
       END DO
       !$ACC END PARALLEL
@@ -1495,7 +1495,7 @@ CONTAINS
         & )
 
       !$ACC PARALLEL LOOP DEFAULT(PRESENT) GANG(STATIC: 1) VECTOR ASYNC(1)
-      DO jc = i_startidx_c(jb), i_endidx_c(jb)     
+      DO jc = i_startidx_c(jb), i_endidx_c(jb)
         ! This results from the condition w=0 at the top and bottom boundary.
         b(jc,2,jb)    = b(jc,2,jb)    + 2._wp * km_c(jc,1,jb)    * inv_dzf(jc,1,jb)    * inv_mair_ic(jc,2,jb)
         b(jc,nlev,jb) = b(jc,nlev,jb) + 2._wp * km_c(jc,nlev,jb) * inv_dzf(jc,nlev,jb) * inv_mair_ic(jc,nlev,jb)
@@ -1566,7 +1566,7 @@ CONTAINS
                   - pvm1(jcn,jk,jbn)   * patch%edges%primal_normal_cell(je,jb,2)%v2
 
           flux_up_c = km_ic(jcn,jk,jbn)                                                   &
-                      * ( dvn2 * inv_dzh(jcn,jk,jbn)                                      & 
+                      * ( dvn2 * inv_dzh(jcn,jk,jbn)                                      &
                           + ( w_vert(ividx(je,jb,4),jk,ivblk(je,jb,4)) - w_ie(je,jk,jb) ) &
                             * 2.0_wp * patch%edges%inv_vert_vert_length(je,jb)            &
                         )
@@ -1581,7 +1581,7 @@ CONTAINS
 
 
           flux_dn_c = km_ic(jcn,jk,jbn)                                                   &
-                      * ( dvn1 * inv_dzh(jcn,jk,jbn)                                      & 
+                      * ( dvn1 * inv_dzh(jcn,jk,jbn)                                      &
                           + ( w_ie(je,jk,jb) - w_vert(ividx(je,jb,3),jk,ivblk(je,jb,3)) ) &
                             * 2.0_wp * patch%edges%inv_vert_vert_length(je,jb)            &
                         )
@@ -1599,10 +1599,10 @@ CONTAINS
                              + vt_e(je,jk-1,jb) )                                              &
                  - 0.5_wp * (  u_vert(jvn,jk,jbn) * patch%edges%dual_normal_vert(je,jb,2)%v1   &
                              + v_vert(jvn,jk,jbn) * patch%edges%dual_normal_vert(je,jb,2)%v2   &
-                             + vt_e(je,jk,jb) ) 
+                             + vt_e(je,jk,jb) )
 
-          flux_up_v = km_iv(jvn,jk,jbn)                                       &                    
-                      * (   dvt2 * p_nh_metrics%inv_ddqz_z_half_v(jvn,jk,jbn) &                    
+          flux_up_v = km_iv(jvn,jk,jbn)                                       &
+                      * (   dvt2 * p_nh_metrics%inv_ddqz_z_half_v(jvn,jk,jbn) &
                           + patch%edges%tangent_orientation(je,jb)            &
                             * ( w_vert(jvn,jk,jbn) - w_ie(je,jk,jb) )         &
                               / patch%edges%edge_cell_length(je,jb,2)         &
@@ -1627,7 +1627,7 @@ CONTAINS
 
           hori_tend_e(je,jk,jb) =   ( flux_up_c - flux_dn_c ) * patch%edges%inv_dual_edge_length(je,jb) &
                                   + ( flux_up_v - flux_dn_v ) * patch%edges%tangent_orientation(je,jb)  &
-                                    * 2._wp * patch%edges%inv_primal_edge_length(je,jb) 
+                                    * 2._wp * patch%edges%inv_primal_edge_length(je,jb)
         END DO
       END DO
       !$ACC END PARALLEL
@@ -1643,10 +1643,10 @@ CONTAINS
       DO jk = 2, nlev
         DO jc = i_startidx_c(jb), i_endidx_c(jb)
           tend(jc,jk,jb) = tend(jc,jk,jb)                                                                  &
-                           + inv_rho_ic(jc,jk,jb)                                                          &            
-                             * (  hori_tend_e(ieidx(jc,jb,1),jk,ieblk(jc,jb,1)) * p_int%e_bln_c_s(jc,1,jb) & 
-                                + hori_tend_e(ieidx(jc,jb,2),jk,ieblk(jc,jb,2)) * p_int%e_bln_c_s(jc,2,jb) & 
-                                + hori_tend_e(ieidx(jc,jb,3),jk,ieblk(jc,jb,3)) * p_int%e_bln_c_s(jc,3,jb) & 
+                           + inv_rho_ic(jc,jk,jb)                                                          &
+                             * (  hori_tend_e(ieidx(jc,jb,1),jk,ieblk(jc,jb,1)) * p_int%e_bln_c_s(jc,1,jb) &
+                                + hori_tend_e(ieidx(jc,jb,2),jk,ieblk(jc,jb,2)) * p_int%e_bln_c_s(jc,2,jb) &
+                                + hori_tend_e(ieidx(jc,jb,3),jk,ieblk(jc,jb,3)) * p_int%e_bln_c_s(jc,3,jb) &
                                )
           ! new_state(jc,jk,jb) = state(jc,jk,jb) + tend(jc,jk,jb) * dtime
         END DO
@@ -1672,7 +1672,7 @@ CONTAINS
     END ASSOCIATE
 
     !$ACC END DATA
-    
+
   END SUBROUTINE Compute_diffusion_vert_wind
   !
   !============================================================================
@@ -1682,7 +1682,7 @@ CONTAINS
     TYPE(t_patch), INTENT(in), POINTER :: patch
 
     REAL(wp), POINTER :: pu(:,:,:), pv(:,:,:)
- 
+
     CALL insert_dimension(pu, u, 2)
     CALL insert_dimension(pv, v, 2)
     CALL sync_patch_array_mult(SYNC_C, patch, 2, lacc=.TRUE., f3din1=pu, f3din2=pv)
@@ -1734,7 +1734,7 @@ CONTAINS
       q_snocpymlt       => diags_sfc%q_snocpymlt_lnd, &
       mair              => ins_atmo%mair,           &
       cvair             => ins_atmo%cvair           &
-    ) 
+    )
 
     rdtime = 1._wp / dtime
 
@@ -1762,7 +1762,7 @@ CONTAINS
           dissip_kin_energy(jc,jk,jb) = 0.5_wp * mair(jc,jk,jb) * dissipation_factor * rdtime  &
                                         * (   state_u(jc,jk,jb)**2._wp - new_state_u(jc,jk,jb)**2._wp  &
                                             + state_v(jc,jk,jb)**2._wp - new_state_v(jc,jk,jb)**2._wp  &
-                                          ) 
+                                          )
           heating(jc,jk,jb)      = heating(jc,jk,jb) + dissip_kin_energy(jc,jk,jb)
           tend_ta(jc,jk,jb)      = tend_ta(jc,jk,jb) + heating(jc,jk,jb) / cvair(jc,jk,jb)
           new_state_ta(jc,jk,jb) = state_ta(jc,jk,jb) + tend_ta(jc,jk,jb) * dtime
@@ -1781,4 +1781,4 @@ CONTAINS
   !
   !============================================================================
   !
-END MODULE mo_vdf 
+END MODULE mo_vdf

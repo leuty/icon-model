@@ -39,7 +39,7 @@ MODULE mo_rte_rrtmgp_radiation
                                      ssi_cmip5_picontrol, ssi_cmip6_picontrol, &
                                      ssi_RCEdiurnOn, ssi_RCEdiurnOff,          &
                                      ssi_radt, tsi_radt, ssi_RCEmip_analytical,&
-                                     psctm,                                    &  
+                                     psctm,                                    &
                                      ssi_factor
   USE mo_solar_parameters,    ONLY: solar_parameters
   USE mo_cloud_gas_profiles,  ONLY: gas_profiles, cloud_profiles, snow_profiles
@@ -52,7 +52,7 @@ MODULE mo_rte_rrtmgp_radiation
   USE mo_timer,               ONLY: ltimer, timer_start, timer_stop, timer_rte_rrtmgp_rad
 
   IMPLICIT NONE
-  
+
   PRIVATE
 
   PUBLIC :: pre_rte_rrtmgp_radiation, rte_rrtmgp_radiation
@@ -124,7 +124,7 @@ MODULE mo_rte_rrtmgp_radiation
 
 
     ! Compute the orbital parameters of Earth for "orbit_date_rt".
-    IF (l_orbvsop87) THEN 
+    IF (l_orbvsop87) THEN
       CALL orbit_vsop87 (             orbit_date_rt, rasc_sun, decl_sun, dist_sun)
     ELSE
       CALL orbit_kepler (cecc, cobld, clonp, orbit_date_rt, rasc_sun, decl_sun, dist_sun)
@@ -196,7 +196,7 @@ MODULE mo_rte_rrtmgp_radiation
       ! a path at equal zenith angle through a plane parallel layer of thickness H.
       !
       !$ACC KERNELS DEFAULT(PRESENT)
-      WHERE (rdaylm_x(:,:) == 1.0_wp) 
+      WHERE (rdaylm_x(:,:) == 1.0_wp)
          amu0m_x(:,:)  = rae/(SQRT(amu0m_x(:,:)**2+rae*(rae+2.0_wp))-amu0m_x(:,:))
       END WHERE
       !$ACC END KERNELS
@@ -204,7 +204,7 @@ MODULE mo_rte_rrtmgp_radiation
       !++jsr&hs
       ! 3.0 Prepare possibly time dependent total solar and spectral irradiance
       ! --------------------------------
-      ! ATTENTION: 
+      ! ATTENTION:
       ! This part requires some further work. Currently, a solar constant of
       ! 1361.371 is used as default. This is the TSI averaged over the
       ! years 1979 to 1988, and should be used for AMIP type runs. If lcouple is
@@ -303,7 +303,7 @@ MODULE mo_rte_rrtmgp_radiation
     & reff_ice       ,&!< inout  effective radius of cloud ice (Fu needles) [m]
     & tau_ice        ,&!< inout  cloud ice optical depth, integrated over all bands
     & reff_snow      ,&!< inout  effective radius of snow (Fu needles) [m]
-    & tau_snow       ,&!< inout  snow optical depth, integrated over all bands 
+    & tau_snow       ,&!< inout  snow optical depth, integrated over all bands
     & cdnc           ,&!< in  cloud droplet number concentration
     !
     & lw_dnw_clr     ,&!< out clear-sky downward longwave  at all levels
@@ -363,9 +363,9 @@ MODULE mo_rte_rrtmgp_radiation
     REAL(wp), INTENT(INOUT) :: &
     & rad_2d(:),        & !< arbitrary 2d field in radiation for output
     & reff_ice(:,:),    & !< effective radius of cloud ice [m]
-    & tau_ice(:,:),     & !< optical depth of cloud ice, integraded over all bands     
+    & tau_ice(:,:),     & !< optical depth of cloud ice, integraded over all bands
     & reff_snow(:,:),   & !< effective radius of snow [m]
-    & tau_snow(:,:),    & !< optical depth snow, integrated over all bands     
+    & tau_snow(:,:),    & !< optical depth snow, integrated over all bands
     & xv_ozn(:,:)         !< ozone volume mixing ratio  [mol/mol]
 
     REAL(wp), TARGET, INTENT(INOUT)   :: &
@@ -379,13 +379,13 @@ MODULE mo_rte_rrtmgp_radiation
     & sw_upw(:,:)       !< All-sky   upward   shortwave at all levels
 
     REAL (wp), INTENT (INOUT) :: &
-    & vis_dn_dir_sfc(:)    , & !< Diffuse downward flux surface visible radiation 
+    & vis_dn_dir_sfc(:)    , & !< Diffuse downward flux surface visible radiation
     & par_dn_dir_sfc(:)    , & !< Diffuse downward flux surface PAR
     & nir_dn_dir_sfc(:)    , & !< Diffuse downward flux surface near-infrared radiation
-    & vis_dn_dff_sfc(:)    , & !< Direct  downward flux surface visible radiation 
+    & vis_dn_dff_sfc(:)    , & !< Direct  downward flux surface visible radiation
     & par_dn_dff_sfc(:)    , & !< Direct  downward flux surface PAR
     & nir_dn_dff_sfc(:)    , & !< Direct  downward flux surface near-infrared radiation
-    & vis_up_sfc    (:)    , & !< Upward  flux surface visible radiation 
+    & vis_up_sfc    (:)    , & !< Upward  flux surface visible radiation
     & par_up_sfc    (:)    , & !< Upward  flux surface PAR
     & nir_up_sfc    (:)    , & !< Upward  flux surface near-infrared radiation
     & aer_aod_533   (:,:)  , & !< aerosol optical density at 533 nm
@@ -474,7 +474,7 @@ MODULE mo_rte_rrtmgp_radiation
       vis_up_sfc      ,par_up_sfc      ,nir_up_sfc                       ,&
       aer_aod_533     ,aer_ssa_533     ,aer_asy_533                      ,&
       aer_aod_2325    ,aer_ssa_2325    ,aer_asy_2325                     ,&
-      aer_aod_9731                                                       ) 
+      aer_aod_9731                                                       )
     !$ACC WAIT
     !$ACC END DATA
     !-------------------------------------------------------------------
@@ -497,24 +497,24 @@ MODULE mo_rte_rrtmgp_radiation
       & pp_sfc        ,& ! out
       & tk_hl   )
 
-  
+
     INTEGER, INTENT(in) :: &
       & jcs               ,&
       & jce               ,&
       & kbdim             ,&
-      & klev              
-    ! in 
+      & klev
+    ! in
     REAL(wp), INTENT(in) :: &
       & pp_hl(kbdim,klev+1),&
       & pp_fl(kbdim,klev)  ,&
       & tk_fl(kbdim,klev)  ,&
       & tk_sfc(kbdim)
 
-    !out      
+    !out
     REAL(wp), INTENT(inout) :: &
       & pp_sfc (kbdim)        ,&
-      & tk_hl  (kbdim,klev+1)  
-    
+      & tk_hl  (kbdim,klev+1)
+
     ! local counters
     INTEGER              :: jk, jl
     !
@@ -522,7 +522,7 @@ MODULE mo_rte_rrtmgp_radiation
     !
     ! 1.0 calculate variable input parameters (location and state variables)
     ! --------------------------------
-    ! 
+    !
     ! --- Pressure (surface and distance between half levels)
     !
     !$ACC KERNELS DEFAULT(PRESENT) ASYNC(1)
@@ -553,7 +553,7 @@ MODULE mo_rte_rrtmgp_radiation
     !$ACC END PARALLEL LOOP
 
     !$ACC END DATA
-  END SUBROUTINE calculate_temperature_pressure 
+  END SUBROUTINE calculate_temperature_pressure
   !-------------------------------------------------------------------
 
   END MODULE mo_rte_rrtmgp_radiation

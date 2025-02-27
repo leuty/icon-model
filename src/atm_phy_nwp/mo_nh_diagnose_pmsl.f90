@@ -116,7 +116,7 @@ CONTAINS
     !$ACC KERNELS DEFAULT(PRESENT) ASYNC(1) IF(lzacc)
     pres_out(:,nblks) = 0._wp
     !$ACC END KERNELS
-    
+
 !$OMP PARALLEL
 !$OMP DO PRIVATE(jb,nlen,jc,geop_sfc,temp_in,pres_in,pres_sfc,ztstar,ztmsl,zalph,zprt,zprtal) ICON_OMP_DEFAULT_SCHEDULE
     DO jb = 1, nblks
@@ -125,7 +125,7 @@ CONTAINS
       ELSE
         nlen = npromz
       ENDIF
-     
+
       !$ACC PARALLEL LOOP GANG VECTOR DEFAULT(PRESENT) ASYNC(1) IF(lzacc) &
       !$ACC   PRIVATE(geop_sfc, temp_in, pres_in, pres_sfc, ztstar, ztmsl, zalph, zprt, zprtal)
       DO jc = 1, nlen
@@ -504,4 +504,3 @@ CONTAINS
 
 
 END MODULE  mo_nh_diagnose_pmsl
-

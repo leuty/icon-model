@@ -383,7 +383,7 @@ CONTAINS
       END IF
 
     ENDDO TIME_LOOP
-    
+
 #ifdef _OPENACC
     IF ( vert_cor_type == 1 ) THEN
       !$ACC EXIT DATA DELETE(stretch_e) IF(lzacc)
@@ -952,7 +952,7 @@ CONTAINS
             DO jc = start_cell_index, end_cell_index
               DO level = 1, patch_3d%p_patch_1d(1)%dolic_c(jc,blockNo)
                 dz_old(jc,level,blockNo) = &
-                  & patch_3d%p_patch_1D(1)%prism_thick_flat_sfc_c(jc,level,blockNo) & 
+                  & patch_3d%p_patch_1D(1)%prism_thick_flat_sfc_c(jc,level,blockNo) &
                   & * ocean_state(jg)%p_prog(nold(1))%stretch_c(jc,blockNo)
               ENDDO
             ENDDO
@@ -961,7 +961,7 @@ CONTAINS
             old_tracer => ocean_state(jg)%p_prog(nold(1))%tracer_collection%tracer(jtr)
             new_tracer => ocean_state(jg)%p_prog(nnew(1))%tracer_collection%tracer(jtr)
             IF (new_tracer%diagnostics%is_activated) THEN
-              new_tracer%diagnostics%srf(:,:,:) = & 
+              new_tracer%diagnostics%srf(:,:,:) = &
                 & (   old_tracer%concentration(:,:,:)*dz_old(:,:,:) &
                 &   - new_tracer%diagnostics%tot(:,:,:)) / dtime
             ENDIF
@@ -979,7 +979,7 @@ CONTAINS
 !          & lacc=lzacc )
 !--------------------------------------------------------------------------
         !! zlev density is calculated on fixed depth and ignores any surface
-        !! variation ; to simplify the implementation for zstar we do the same ; 
+        !! variation ; to simplify the implementation for zstar we do the same ;
         !! calculate in situ density on fixed levels
         CALL calculate_density( patch_3d,                         &
           & ocean_state(jg)%p_prog(nold(1))%tracer(:,:,:,:),      &
@@ -1235,7 +1235,7 @@ CONTAINS
             old_tracer => ocean_state(jg)%p_prog(nold(1))%tracer_collection%tracer(jtr)
             new_tracer => ocean_state(jg)%p_prog(nnew(1))%tracer_collection%tracer(jtr)
             IF (new_tracer%diagnostics%is_activated) THEN
-              new_tracer%diagnostics%tot(:,:,:) = & 
+              new_tracer%diagnostics%tot(:,:,:) = &
                 & (   new_tracer%concentration(:,:,:)*dz_new(:,:,:) &
                 &   - new_tracer%diagnostics%tot(:,:,:)) / dtime
             ENDIF

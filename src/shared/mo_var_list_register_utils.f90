@@ -351,8 +351,8 @@ CONTAINS
       TYPE(t_var_list_ptr) :: vlp
       TYPE(t_vl_register_iter) :: iter
       CHARACTER(*), PARAMETER :: routine = modname//':varlistPacker'
- 
-      nvl = get_nvl() 
+
+      nvl = get_nvl()
       IF (op .EQ. kUnpackOp .AND. nvl .NE. 0) &
         & CALL finish(routine, "var_list_register must be empty if receiver")
       CALL pmsg%packer(op, nvl)

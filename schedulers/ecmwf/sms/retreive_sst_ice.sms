@@ -22,11 +22,11 @@
     P Ripodas, DWD, mailto:maria-pilar.ripodas@dwd.de
 
   Task objectives:
-  - retrieve SST and CI monthly means from MARS ERA interim 
+  - retrieve SST and CI monthly means from MARS ERA interim
 %end
 
 # include the header file for remote jobs
-%include <init_sc.h> 
+%include <init_sc.h>
 
 # -------------------------------------------------
 

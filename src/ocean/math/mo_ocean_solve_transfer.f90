@@ -512,7 +512,7 @@ CONTAINS
     DO j = 1, SIZE(vals, 2)
       aux_max(j) = MAXVAL(ABS(vals(:,j)))
     END DO
-    abs_max = MAXVAL(aux_max(:))  
+    abs_max = MAXVAL(aux_max(:))
 END FUNCTION abs_max_loc_sp_2d
 
 ! first local part of order insensitive summation -- dp-variant
@@ -556,7 +556,7 @@ END FUNCTION abs_max_loc_sp_2d
     REAL(sp), INTENT(IN), CONTIGUOUS :: vals(:,:)
     REAL(sp), INTENT(IN) :: abs_max
     INTEGER(KIND=i8) :: isum(2), isum1(SIZE(vals, 2)), &
-      & isum2(SIZE(vals, 2)), ival(SIZE(vals, 1)) 
+      & isum2(SIZE(vals, 2)), ival(SIZE(vals, 1))
     INTEGER :: j, iexp
     REAL(KIND=dp) :: fact, rval(SIZE(vals, 1))
     REAL(dp), PARAMETER :: two_30 = 1073741824._dp
@@ -583,7 +583,7 @@ END FUNCTION abs_max_loc_sp_2d
     isum(2) = SUM(isum2(:))
   END FUNCTION order_insensit_ieee64_sum_frst_sp_2d
 
-! second local part of order insensitive summation - dp-variant 
+! second local part of order insensitive summation - dp-variant
 ! (sp summation uses this, too; cast is done on invocator side)
 ! convert back to float-type from scaled integers
   FUNCTION order_insensit_ieee64_sum_scnd_2d(isum, abs_max) &

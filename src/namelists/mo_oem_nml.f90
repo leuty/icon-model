@@ -19,9 +19,9 @@ MODULE mo_oem_nml
                            & config_month_of_year_nc      => month_of_year_nc,      &
                            & config_hour_of_year_nc       => hour_of_year_nc,       &
                            & config_gridded_emissions_nc  => gridded_emissions_nc,  &
-                           & config_ens_reg_nc            => ens_reg_nc,            & 
+                           & config_ens_reg_nc            => ens_reg_nc,            &
                            & config_ens_lambda_nc         => ens_lambda_nc,         &
-                           & config_vegetation_indices_nc => vegetation_indices_nc, &  
+                           & config_vegetation_indices_nc => vegetation_indices_nc, &
                            & config_vprm_par              => vprm_par,              &
                            & config_vprm_lambda           => vprm_lambda,           &
                            & config_vprm_alpha            => vprm_alpha,            &
@@ -30,7 +30,7 @@ MODULE mo_oem_nml
                            & config_vprm_tmax             => vprm_tmax,             &
                            & config_vprm_topt             => vprm_topt,             &
                            & config_vprm_tlow             => vprm_tlow,             &
-                           & config_lcut_area             => lcut_area,             &  
+                           & config_lcut_area             => lcut_area,             &
                            & config_lon_cut_start         => lon_cut_start,         &
                            & config_lon_cut_end           => lon_cut_end,           &
                            & config_lat_cut_start         => lat_cut_start,         &
@@ -61,7 +61,7 @@ MODULE mo_oem_nml
     &                            gridded_emissions_nc,  & !< name of the oae gridded emission file
     &                            ens_reg_nc,            & !< name of file with ensemble-regions
     &                            ens_lambda_nc,         & !< name of file with ensemble-lambdas
-    &                            vegetation_indices_nc    !< name of file with MODIS reflectances 
+    &                            vegetation_indices_nc    !< name of file with MODIS reflectances
   REAL(wp), DIMENSION(8) ::      vprm_par,              & !< VPRM parameter values for PAR_0
     &                            vprm_lambda,           & !< VPRM parameter values for lambda
     &                            vprm_alpha,            & !< VPRM parameter values for alpha
@@ -72,7 +72,7 @@ MODULE mo_oem_nml
     &                            vprm_tlow                !< VPRM parameter values for T_low
   LOGICAL ::                     lcut_area                !< Switch to turn on/off to select an
                                                           !< area where no fluxes are applied
-  REAL(wp) ::                    lon_cut_start,         & !< longitude start coordinate 
+  REAL(wp) ::                    lon_cut_start,         & !< longitude start coordinate
     &                            lon_cut_end,           & !< longitude end coordinate
     &                            lat_cut_start,         & !< latitude start coordinate
     &                            lat_cut_end              !< latitude end coordinate
@@ -96,12 +96,12 @@ MODULE mo_oem_nml
     &                    vprm_tmin,             &
     &                    vprm_tmax,             &
     &                    vprm_topt,             &
-    &                    vprm_tlow,             & 
+    &                    vprm_tlow,             &
     &                    lcut_area,             &
-    &                    lon_cut_start,         & 
-    &                    lon_cut_end,           & 
-    &                    lat_cut_start,         & 
-    &                    lat_cut_end              
+    &                    lon_cut_start,         &
+    &                    lon_cut_end,           &
+    &                    lat_cut_start,         &
+    &                    lat_cut_end
 
 !==============================================================================
 ! Module procedure in "mo_oem_nml"
@@ -122,7 +122,7 @@ CONTAINS
     !0!  &  routine = 'mo_oem_nml:read_oemctrl_namelist'
 
     !-----------------------
-    ! 1. default settings   
+    ! 1. default settings
     !-----------------------
 
     vertical_profile_nc   = ''
@@ -210,7 +210,7 @@ CONTAINS
     config_lon_cut_end           = lon_cut_end
     config_lat_cut_start         = lat_cut_start
     config_lat_cut_end           = lat_cut_end
-    
+
     !-----------------------------------------------------
     ! 4. write the contents of the namelist to an ASCII file
     !-----------------------------------------------------
@@ -226,5 +226,3 @@ CONTAINS
 !------------------------------------------------------------------------------
 
 END MODULE mo_oem_nml
-
-

@@ -129,7 +129,7 @@ SUBROUTINE recon_lsq_cell_l( p_cc, ptr_patch, ptr_int_lsq, p_coeff, lacc, &
                                  !< longitudinal direction)
 
   LOGICAL, INTENT(IN), OPTIONAL ::  &   !< optional async OpenACC
-    &  opt_acc_async 
+    &  opt_acc_async
 
   INTEGER :: slev, elev               !< vertical start and end level
   INTEGER :: rl_start, rl_end
@@ -195,7 +195,7 @@ END SUBROUTINE recon_lsq_cell_l
 !! cell : solution coefficients defined at cell center
 !! l    : linear reconstruction
 !!
-!! The least squares approach is used. Solves Ax = b via Singular 
+!! The least squares approach is used. Solves Ax = b via Singular
 !! Value Decomposition (SVD)
 !! x = PINV(A) * b
 !!
@@ -238,7 +238,7 @@ SUBROUTINE recon_lsq_cell_l_svd( p_cc, ptr_patch, ptr_int_lsq, p_coeff, lacc, &
                                  !< longitudinal direction)
 
   LOGICAL, INTENT(IN), OPTIONAL ::  &   !< optional async OpenACC
-    &  opt_acc_async 
+    &  opt_acc_async
 
   INTEGER :: slev, elev              !< vertical start and end level
   INTEGER :: rl_start, rl_end
@@ -334,7 +334,7 @@ SUBROUTINE recon_lsq_cell_q( p_cc, ptr_patch, ptr_int_lsq, p_coeff, &
 
   TYPE(t_patch), INTENT(IN) ::   & !< patch on which computation
     &  ptr_patch                   !< is performed
-                                        
+
   TYPE(t_lsq), TARGET, INTENT(IN) :: &  !< data structure for interpolation
     &  ptr_int_lsq
 
@@ -418,7 +418,7 @@ END SUBROUTINE recon_lsq_cell_q
 !! q    : quadratic reconstruction
 !!
 !! Computes unknown coefficients (derivatives) of a quadratic polynomial,
-!! using the least-squares method. The coefficients are provided at cell 
+!! using the least-squares method. The coefficients are provided at cell
 !! centers in a local 2D cartesian system (tangential plane).
 !!
 !! Mathematically we solve Ax = b via Singular Value Decomposition (SVD)
@@ -449,13 +449,13 @@ SUBROUTINE recon_lsq_cell_q_svd( p_cc, ptr_patch, ptr_int_lsq, p_coeff, &
 
   TYPE(t_patch), INTENT(IN) ::   & !< patch on which computation
     &  ptr_patch                   !< is performed
-                                        
+
   TYPE(t_lsq), TARGET, INTENT(IN) :: &  !< data structure for interpolation
     &  ptr_int_lsq
 
   REAL(wp), INTENT(IN) ::           & !< cell centered variable
     &  p_cc(:,:,:)
- 
+
   LOGICAL, INTENT(IN)           ::  &   !< if true, use OpenACC
     &  lacc
 
@@ -567,7 +567,7 @@ SUBROUTINE recon_lsq_cell_c( p_cc, ptr_patch, ptr_int_lsq, p_coeff,  &
 
   TYPE(t_patch), INTENT(IN) :: & !< patch on which computation
     &  ptr_patch                 !< is performed
-                                        
+
   TYPE(t_lsq), TARGET, INTENT(IN) :: &  !< data structure for interpolation
     &  ptr_int_lsq
 
@@ -653,7 +653,7 @@ END SUBROUTINE recon_lsq_cell_c
 !! c    : cubic reconstruction
 !!
 !! Computes unknown coefficients (derivatives) of a cubic polynomial,
-!! using the least-squares method. The coefficients are provided at 
+!! using the least-squares method. The coefficients are provided at
 !! cell centers in a local 2D cartesian system (tangential plane).
 !!
 !! Mathematically we solve Ax = b via Singular Value Decomposition (SVD)
@@ -689,7 +689,7 @@ SUBROUTINE recon_lsq_cell_c_svd( p_cc, ptr_patch, ptr_int_lsq, p_coeff, &
 
   TYPE(t_patch), INTENT(IN) :: & !< patch on which computation
     &  ptr_patch                 !< is performed
-                                        
+
   TYPE(t_lsq), TARGET, INTENT(IN) :: &  !< data structure for interpolation
     &  ptr_int_lsq
 
@@ -996,7 +996,7 @@ REAL(vp), INTENT(inout) ::  &
 INTEGER :: slev(dim4d), elev(dim4d)     ! vertical start and end level
 INTEGER :: rl_start, rl_end
 INTEGER :: i_startblk, i_endblk, i_startidx_in, i_endidx_in
-  
+
 !-----------------------------------------------------------------------
 
 ! check optional arguments
@@ -1100,7 +1100,7 @@ INTEGER :: rl_start, rl_end, rl_start_l2, rl_end_l1
 INTEGER :: i_startblk_in(3), i_endblk_in(3), i_startidx_in(3), i_endidx_in(3)
 
 LOGICAL :: l2fields
-  
+
 
 !-----------------------------------------------------------------------
 
@@ -1212,7 +1212,7 @@ INTEGER :: slev, elev     ! vertical start and end level
 
 INTEGER :: rl_start, rl_end
 INTEGER :: i_startblk, i_endblk, i_startidx_in, i_endidx_in
-  
+
 !-----------------------------------------------------------------------
 
 ! check optional arguments
@@ -1258,7 +1258,7 @@ END SUBROUTINE rot_vertex_atmos
 
 !>
 !! Same as above routine, but expects reversed index order (vertical first)
-!! of the output field if __LOOP_EXCHANGE is specified. In addition, the 
+!! of the output field if __LOOP_EXCHANGE is specified. In addition, the
 !! output field (vorticity) has single precision if __MIXED_PRECISION is specified
 !!
 !!
@@ -1287,7 +1287,7 @@ INTEGER, INTENT(in), OPTIONAL ::  &
 INTEGER, INTENT(in), OPTIONAL ::  &
   &  opt_rlend   ! end value of refin_ctrl flag
 
-LOGICAL, INTENT(IN), OPTIONAL ::  &   
+LOGICAL, INTENT(IN), OPTIONAL ::  &
   &  opt_acc_async ! optional async OpenACC
 
 !  vertex based variable in which rotation is stored
@@ -1324,10 +1324,10 @@ END IF
   ! values for the blocking
   i_startblk = ptr_patch%verts%start_block(rl_start)
   i_endblk   = ptr_patch%verts%end_block(rl_end)
-  
+
   i_startidx_in = ptr_patch%verts%start_index(rl_start)
   i_endidx_in   = ptr_patch%verts%end_index(rl_end)
-  
+
   CALL rot_vertex_ri_lib( vec_e, ptr_patch%verts%edge_idx, ptr_patch%verts%edge_blk, &
                           ptr_int%geofac_rot, rot_vec, &
     &                     i_startblk, i_endblk, i_startidx_in, i_endidx_in, &

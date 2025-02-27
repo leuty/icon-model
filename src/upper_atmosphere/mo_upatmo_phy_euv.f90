@@ -151,8 +151,8 @@ CONTAINS
   !! Compute solar heating in Extreme UltraViolet
   !!
   !! Literature:
-  !! - Richards, P. G., Fennelly, J. A., and Torr, D. G. (1994) 
-  !!   EUVAC: A solar EUV flux model for aeronomic calculations. 
+  !! - Richards, P. G., Fennelly, J. A., and Torr, D. G. (1994)
+  !!   EUVAC: A solar EUV flux model for aeronomic calculations.
   !!   J. Geophys. Res.-Space, 99, 8981-8992.
   !!
   SUBROUTINE euv_heating(jcs, jce, kbdim, klev, prmu0, zo2, zn2, zo, tto2, ttn2, ttox, amu, cp, ptte, &
@@ -172,9 +172,9 @@ CONTAINS
     REAL(wp), INTENT(IN)  :: cp(kbdim,klev)   ! specific heat
     REAL(wp), INTENT(OUT) :: ptte(kbdim,klev) ! tendency dT/dt (K/s)
     TYPE(datetime), POINTER, INTENT(IN) :: this_datetime
-    INTEGER,  INTENT(IN)  :: orbit_type       ! orbit model 
+    INTEGER,  INTENT(IN)  :: orbit_type       ! orbit model
     INTEGER,  INTENT(IN)  :: solvar_type      ! solar activity
-    INTEGER,  INTENT(IN)  :: solcyc_type      ! solar cycle 
+    INTEGER,  INTENT(IN)  :: solcyc_type      ! solar cycle
     REAL(wp), INTENT(IN)  :: cecc             ! eccentricity of orbit
     REAL(wp), INTENT(IN)  :: cobld            ! obliquity of Earth axis
     REAL(wp), INTENT(IN)  :: clonp            ! longitude of perihelion
@@ -204,14 +204,14 @@ CONTAINS
 
     !---------------------------------------------------------
 
-    ! please do not limit range of assignment 
-    ! (e.g., ptte(jcs:jce,istartlev:iendlev) = 0._wp)), 
+    ! please do not limit range of assignment
+    ! (e.g., ptte(jcs:jce,istartlev:iendlev) = 0._wp)),
     ! since tendencies have attribute INTENT(OUT)
     ptte(:, :) = 0._wp
 
-    ! we are within openMP-threading, 
+    ! we are within openMP-threading,
     ! so only rudimentary error handling is possible
-    IF (PRESENT(opt_error)) THEN 
+    IF (PRESENT(opt_error)) THEN
       opt_error       = IERR_NO
       l_present_error = .TRUE.
     ELSE
@@ -235,7 +235,7 @@ CONTAINS
     IF (istartlev > iendlev) RETURN
 
     IF (PRESENT(opt_nsunlit)) THEN
-      ! no further computations are necessary, 
+      ! no further computations are necessary,
       ! if all grid cell columns are dark
       IF (opt_nsunlit < 1) RETURN
       nsunlit           = opt_nsunlit
@@ -250,7 +250,7 @@ CONTAINS
     ELSE
       ! we determine the index list ourselves
       nsunlit = 0
-      ! for convenience, we allocate the index list with kbdim 
+      ! for convenience, we allocate the index list with kbdim
       ! and not with nsunlit
       ALLOCATE(sunlit_idx(kbdim))
       sunlit_idx(:) = 0
@@ -267,7 +267,7 @@ CONTAINS
     ! solar flux
     flux = euv_flux(this_datetime, solvar_type, solcyc_type, opt_error)
 
-    
+
     IF (orbit_type == iorbit%vsop87) THEN
       ! standard orbit model
       CALL get_orbit_times(.TRUE.,this_datetime, lyr_perp, yr_perp, time_of_day, orbit_date)
@@ -275,7 +275,7 @@ CONTAINS
     ELSEIF (orbit_type == iorbit%kepler) THEN
       ! idealized Kepler orbit
       CALL get_orbit_times(.FALSE.,this_datetime, lyr_perp, yr_perp, time_of_day, orbit_date)
-      CALL orbit_kepler(cecc, cobld, clonp, orbit_date, rasc_sun, decl_sun, dist_sun)      
+      CALL orbit_kepler(cecc, cobld, clonp, orbit_date, rasc_sun, decl_sun, dist_sun)
     ELSE
       ! invalid orbit type
       IF (l_present_error) opt_error = IERR_ORBIT
@@ -291,26 +291,26 @@ CONTAINS
     ENDDO  !jsunlit
 
     DO jk = istartlev, iendlev
-      
+
       DO jsunlit = 1, nsunlit
         jl = idxlist(jsunlit)
-        
+
         cumtte = 0._wp
 
         DO jb = 1, neuv  ! loop over spectral bands
-          
+
           s  = so2(jb) * tto2(jl, jk) + sn2(jb) * ttn2(jl, jk) + so(jb) * ttox(jl, jk)
           e  = -s * 35._wp / SQRT(1224.0_wp * sqrd_prmu0(jl) + 1._wp)
           s1 = flux(jb) * ( so2(jb) * zo2(jl,jk) + sn2(jb) * zn2(jl,jk) + so(jb) * zo(jl,jk) )
           cumtte = cumtte + s1 * EXP(e)
-          
+
         END DO  !jb
-        
+
         ! temperature tendency
         ptte(jl, jk) = aux * cumtte / ( amu(jl,jk) * cp(jl,jk) )
-        
+
       END DO  !jsunlit
-      
+
     END DO  !jk
 
     ! clean-up
@@ -335,7 +335,7 @@ CONTAINS
     REAL(wp) :: p
     REAL(wp) :: f107, f107a, sin_27d
     INTEGER  :: jb
- 
+
     ! The factor for the solar 27 day variability is the result of following assumption:
     ! Amplitude of the 27 day cycle is 41.8 sfu. This was evaluated by fitting a sinus
     ! for a period of 27 days to F10.7 data from the first 6 months of 1990.
@@ -352,10 +352,10 @@ CONTAINS
       f107  = 68.7_wp
       f107a = 68.7_wp
     ELSEIF (solvar_type == isolvar%high) THEN  ! solar high
-      f107  = 235.1_wp 
+      f107  = 235.1_wp
       f107a = 235.1_wp
     ELSEIF (solvar_type == isolvar%norm) THEN  ! normal conditions
-      f107  = 150._wp  ! original 
+      f107  = 150._wp  ! original
       f107a = 150._wp
     ELSE
       ! no valid solar activity type
@@ -389,7 +389,7 @@ CONTAINS
     !------------------------
 
     p = 1.98648_wp * (0.5_wp * (f107 + f107a) - 80._wp)
-    
+
     DO jb = 1, neuv
       flux(jb) = f74113(jb) * (1.98648_wp + p * ai(jb)) / al(jb)
     ENDDO

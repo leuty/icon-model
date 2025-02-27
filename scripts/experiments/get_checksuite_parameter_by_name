@@ -12,14 +12,18 @@
 import click
 from yaml_experiment_test_processor import ExperimentTestCollection
 
-ALLOWED_PARAMETERS = ['dates', 'types', 'restart_date']
+ALLOWED_PARAMETERS = ["dates", "types", "restart_date"]
+
 
 @click.command()
 @click.option("--experiment", "exp", type=str, required=True)
-@click.option("--param", "param", type=click.Choice(ALLOWED_PARAMETERS), required=True)
+@click.option(
+    "--param", "param", type=click.Choice(ALLOWED_PARAMETERS), required=True
+)
 def main(exp, param):
     tests = ExperimentTestCollection()
-    tests.print_checksuite_param_for_exp(param,exp)
+    tests.print_checksuite_param_for_exp(param, exp)
 
-if __name__ == '__main__':
+
+if __name__ == "__main__":
     main()

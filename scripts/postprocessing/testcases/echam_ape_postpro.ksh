@@ -61,13 +61,13 @@ set_env="Post.${EXP}.set_env."`date +%F-%H%M%S-%N`
 cd ./APE_postpro
 
 # Remove old ${set_env} file
- 
+
 if [ -f ${set_env} ]; then
   rm -f ${set_env}
 fi
 
 # Write new ${set_env} file
- 
+
 echo Model=$Model                                 >  ${set_env}
 echo EXP=$EXP                                     >> ${set_env}
 echo export exp_config=\"$exp_config\"            >> ${set_env}
@@ -108,28 +108,28 @@ echo mlev_evol=\"${mlev_evol}\"                   >> ${set_env}
 # Run scripts
 #
 # Make sure that
-#   1. all variable listed below exist in model output and 
+#   1. all variable listed below exist in model output and
 #      have been registered in "lookup_variable.ksh";
 #   2. PS and PHIS are processed before any other variable
-#      (because they are needed for the vertical 
+#      (because they are needed for the vertical
 #      interpolation from model levels to pressure levels).
 #
-# --- Zonal mean climate (vertical cross section)---                      
- 
+# --- Zonal mean climate (vertical cross section)---
+
 for var in PS PHIS T U V OMEGA Qv Qw Qi ACLC ; do
-  ./zonal_clim.ksh -v ${var} -e ${set_env} 
+  ./zonal_clim.ksh -v ${var} -e ${set_env}
 done
 
-# --- Evolution plots ---                            
-                                                                          
-for var in PS PHIS T ; do                                                 
-  ./lat-time.ksh -v ${var} -e ${set_env}                                  
-done                                                                      
-                                                                          
-#==========                                                               
-# Clean up                                                                
-                                                                          
-if [ -f ${set_env} ]; then                                                
-  rm -f ${set_env}                                                        
-fi                                                                        
+# --- Evolution plots ---
+
+for var in PS PHIS T ; do
+  ./lat-time.ksh -v ${var} -e ${set_env}
+done
+
+#==========
+# Clean up
+
+if [ -f ${set_env} ]; then
+  rm -f ${set_env}
+fi
 exit

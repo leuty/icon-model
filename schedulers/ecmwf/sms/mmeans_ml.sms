@@ -129,4 +129,3 @@ if [[ $lmldif != 0 || $lzonnoml = 0 || $ldcycle != 0  ]]; then
 fi
 
 %include <endt.h>
-

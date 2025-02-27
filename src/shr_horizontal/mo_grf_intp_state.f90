@@ -1105,7 +1105,7 @@ SUBROUTINE create_grf_index_lists( p_patch_all, p_grf_state, p_int_state )
             inv_ind_v(jv,jb) = icount_lbc
           ENDIF
         ENDIF
-        
+
       ENDDO
     ENDDO
 

@@ -51,7 +51,7 @@ MODULE mo_nh_mrw_exp
    PRIVATE
 
 
-   REAL(wp), PUBLIC :: u0_mrw                 ! (m/s) wind speed for mrw and mwbr_const cases 
+   REAL(wp), PUBLIC :: u0_mrw                 ! (m/s) wind speed for mrw and mwbr_const cases
    REAL(wp), PUBLIC :: mount_height_mrw       ! (m) maximum mount height in mrw and mwbr
    REAL(wp), PUBLIC :: mount_half_width       ! (m) half width of mountain in mrw, mwbr and bell
    REAL(wp), PUBLIC :: mount_lonctr_mrw_deg   ! (deg) lon of mountain center in mrw and mwbr
@@ -73,14 +73,14 @@ MODULE mo_nh_mrw_exp
 !-------------------------------------------------------------------------
 
   !>
-  !! Initialization of topography for the nh mrw test cases 
+  !! Initialization of topography for the nh mrw test cases
   !!
   SUBROUTINE init_nh_topo_mrw( ptr_patch, topo_c, nblks_c, npromz_c, l_modified )
 
     TYPE(t_patch), TARGET,INTENT(INOUT) :: &  !< patch on which computation is performed
       &  ptr_patch
 
-  
+
    INTEGER, INTENT (IN)     :: nblks_c, npromz_c
    REAL(wp), INTENT(INOUT)  :: topo_c    (nproma,nblks_c)
    LOGICAL , INTENT (IN)    :: l_modified
@@ -91,7 +91,7 @@ MODULE mo_nh_mrw_exp
    REAL(wp)       :: z_lon, z_lat
    REAL(wp)       :: z_lon_ctr, z_lat_ctr
    REAL(wp)       :: zexp, zr
- 
+
 
 !--------------------------------------------------------------------
 
@@ -111,7 +111,7 @@ MODULE mo_nh_mrw_exp
           z_lat   = ptr_patch%cells%center(jc,jb)%lat
           z_lon   = ptr_patch%cells%center(jc,jb)%lon
 
-          zr = SIN(z_lat_ctr)*SIN(z_lat)+COS(z_lat_ctr)*COS(z_lat)*COS(z_lon-z_lon_ctr) 
+          zr = SIN(z_lat_ctr)*SIN(z_lat)+COS(z_lat_ctr)*COS(z_lat)*COS(z_lon-z_lon_ctr)
           zexp = grid_sphere_radius*ACOS(zr)/mount_half_width
 
           IF ( itopo==0 ) THEN
@@ -126,20 +126,20 @@ MODULE mo_nh_mrw_exp
 
         ENDDO
       ENDDO
-!$OMP END DO 
+!$OMP END DO
 !$OMP END PARALLEL
 
   END SUBROUTINE init_nh_topo_mrw
 !-------------------------------------------------------------------------
 !
   !>
-  !! Initialization of prognostic state vector for the nh mrw test case 
+  !! Initialization of prognostic state vector for the nh mrw test case
   !! Tracers can also be initialized in case of inwp
   !!
   SUBROUTINE init_nh_state_prog_mrw( ptr_patch, ptr_nh_prog, ptr_nh_diag,      &
     &                                topo_c, p_metrics, p_int, l_hydro_adjust, &
     &                                iforcing, l_moist,  opt_rh_at_1000hpa,    &
-    &                                opt_qv_max, opt_global_moist              ) 
+    &                                opt_qv_max, opt_global_moist              )
 
    TYPE(t_patch), TARGET,INTENT(INOUT) :: &  !< patch on which computation is performed
      &  ptr_patch
@@ -153,7 +153,7 @@ MODULE mo_nh_mrw_exp
    REAL(wp),  INTENT(IN)               :: topo_c(:,:)
    TYPE(t_nh_metrics), INTENT(IN)      :: p_metrics !< NH metrics state
    TYPE(t_int_state), INTENT(IN)       :: p_int
-   LOGICAL, INTENT(IN)                 :: l_hydro_adjust !if .TRUE. hydrostatically balanced 
+   LOGICAL, INTENT(IN)                 :: l_hydro_adjust !if .TRUE. hydrostatically balanced
                                                          ! initial condition
    INTEGER, INTENT(IN)                 :: iforcing
    LOGICAL, INTENT(IN)                 :: l_moist !if .TRUE. tracers are initialized
@@ -187,7 +187,7 @@ MODULE mo_nh_mrw_exp
        qv_max  = opt_qv_max
       ELSE
         qv_max = 20.e-3_wp
-      END IF     
+      END IF
    END IF
 
 
@@ -227,10 +227,10 @@ MODULE mo_nh_mrw_exp
                        EXP(- zhelp2 * ( z_klev  - z_sfc )  )   !isothermal atm.
 
               ! initialized diagnostic fields
-              ptr_nh_diag%temp(jc,jk,jb) = temp_mrw    
+              ptr_nh_diag%temp(jc,jk,jb) = temp_mrw
               ptr_nh_diag%pres(jc,jk,jb) = z_pres
             ENDDO !jc
-      ENDDO !jk     
+      ENDDO !jk
      ENDDO !jb
 !$OMP END DO
 !$OMP END PARALLEL
@@ -277,13 +277,13 @@ MODULE mo_nh_mrw_exp
   END IF
 
 
-! IF l_moist is .TRUE. the tracers are initialized similar as in jabw test case with moisture 
-!  In this case the temp and pres fields should be kept and the virtual temperature and 
+! IF l_moist is .TRUE. the tracers are initialized similar as in jabw test case with moisture
+!  In this case the temp and pres fields should be kept and the virtual temperature and
 !  the NH prognostic variables have to be recalculated
 
   IF (l_moist) THEN
 
-   l_rediag = .FALSE. 
+   l_rediag = .FALSE.
 
    IF (PRESENT(opt_global_moist)) THEN
      CALL init_nh_inwp_tracers (ptr_patch, ptr_nh_prog, ptr_nh_diag, &
@@ -293,14 +293,14 @@ MODULE mo_nh_mrw_exp
      CALL init_nh_inwp_tracers (ptr_patch, ptr_nh_prog, ptr_nh_diag, &
                               & p_metrics, rh_at_1000hpa, qv_max,    &
                               & l_rediag                             )
- 
+
    END IF
    !Calculate virtual temperature, pres field has not changed
    z_qv(:,:,:) = ptr_nh_prog%tracer(:,:,:,iqv)
 
    CALL virtual_temp ( ptr_patch, ptr_nh_diag%temp, z_qv,             &
                      & temp_v= ptr_nh_diag%tempv)
-   
+
    !Calculate again the nh prognostic variables with the new tempv
    CALL convert_thdvars(ptr_patch, ptr_nh_diag%pres, ptr_nh_diag%tempv, &
                & ptr_nh_prog%rho, ptr_nh_prog%exner, ptr_nh_prog%theta_v  )
@@ -317,19 +317,19 @@ MODULE mo_nh_mrw_exp
 
   END IF
 
-   
+
   END SUBROUTINE init_nh_state_prog_mrw
 
 !-------------------------------------------------------------------------
 !
   !>
-  !! Initialization of prognostic state vector for the nh mrw test case 
+  !! Initialization of prognostic state vector for the nh mrw test case
   !! Tracers can also be initialized in case of inwp
   !!
   SUBROUTINE init_nh_prog_mwbr_const( ptr_patch, ptr_nh_prog, ptr_nh_diag,     &
     &                                topo_c, p_metrics, p_int, l_hydro_adjust, &
     &                                iforcing, l_moist,  opt_rh_at_1000hpa,    &
-    &                                opt_qv_max, opt_global_moist              ) 
+    &                                opt_qv_max, opt_global_moist              )
 
    TYPE(t_patch), TARGET,INTENT(INOUT) :: &  !< patch on which computation is performed
      &  ptr_patch
@@ -343,7 +343,7 @@ MODULE mo_nh_mrw_exp
    REAL(wp),  INTENT(IN)               :: topo_c(:,:)
    TYPE(t_nh_metrics), INTENT(IN)      :: p_metrics !< NH metrics state
    TYPE(t_int_state), INTENT(IN)       :: p_int
-   LOGICAL, INTENT(IN)                 :: l_hydro_adjust !if .TRUE. hydrostatically balanced 
+   LOGICAL, INTENT(IN)                 :: l_hydro_adjust !if .TRUE. hydrostatically balanced
                                                          ! initial condition
    INTEGER, INTENT(IN)                 :: iforcing
    LOGICAL, INTENT(IN)                 :: l_moist !if .TRUE. tracers are initialized
@@ -358,7 +358,7 @@ MODULE mo_nh_mrw_exp
    INTEGER                            :: nlev        !< number of full levels
    REAL(wp)                           :: bruntvaissq_i,bruntvaissq_u, kappa, &
                                        & rkappa, zhelp3, zhelp4, &
-                                       & z_sfc, z_pres, z_temp, z_klev, z_u, & 
+                                       & z_sfc, z_pres, z_temp, z_klev, z_u, &
                                        & zcoslat, zlat, zhelp1_i, zhelp2_i,  &
                                        & zhelp1_u, rh_at_1000hpa, qv_max
    REAL(wp), ALLOCATABLE              :: z_qv(:,:,:)
@@ -399,7 +399,7 @@ MODULE mo_nh_mrw_exp
        qv_max  = opt_qv_max
       ELSE
         qv_max = 20.e-3_wp
-      END IF 
+      END IF
   END IF
 
   ALLOCATE (z_int_c(nproma,ptr_patch%nblks_c))
@@ -445,7 +445,7 @@ MODULE mo_nh_mrw_exp
                 z_pres = ptr_nh_diag%pres_sfc(jc,jb) * &
                          EXP(- zhelp2_i * ( z_klev  - z_sfc )  )   !isothermal atm.
 
-                ptr_nh_diag%temp(jc,jk,jb) = temp_i_mwbr_const    
+                ptr_nh_diag%temp(jc,jk,jb) = temp_i_mwbr_const
                 ptr_nh_diag%pres(jc,jk,jb) = z_pres
                ELSEIF (z_klev >= z_int_c(jc,jb) ) THEN
                 zhelp4 = z_klev - z_int_c(jc,jb)
@@ -454,11 +454,11 @@ MODULE mo_nh_mrw_exp
                                bruntvaissq_i/bruntvaissq_u )**rkappa
                 z_temp = temp_i_mwbr_const * EXP (bruntvaissq_u*zhelp4/grav) * &
                              (z_pres/p_int_mwbr_const)**kappa
-                ptr_nh_diag%temp(jc,jk,jb) =  z_temp  
-                ptr_nh_diag%pres(jc,jk,jb) = z_pres 
+                ptr_nh_diag%temp(jc,jk,jb) =  z_temp
+                ptr_nh_diag%pres(jc,jk,jb) = z_pres
               ENDIF
             ENDDO !jc
-      ENDDO !jk     
+      ENDDO !jk
   ENDDO !jb
 !$OMP END DO
   IF (icount > 0) CALL finish(routine, &
@@ -503,13 +503,13 @@ MODULE mo_nh_mrw_exp
 
   END IF
 
-! IF l_moist is .TRUE. the tracers are initialized similar as in jabw test case with moisture 
-!  In this case the temp and pres fields should be kept and the virtual temperature and 
+! IF l_moist is .TRUE. the tracers are initialized similar as in jabw test case with moisture
+!  In this case the temp and pres fields should be kept and the virtual temperature and
 !  the NH prognostic variables have to be recalculated
 
   IF (l_moist) THEN
 
-   l_rediag = .FALSE. 
+   l_rediag = .FALSE.
 
    IF (PRESENT(opt_global_moist)) THEN
      CALL init_nh_inwp_tracers (ptr_patch, ptr_nh_prog, ptr_nh_diag, &
@@ -519,14 +519,14 @@ MODULE mo_nh_mrw_exp
      CALL init_nh_inwp_tracers (ptr_patch, ptr_nh_prog, ptr_nh_diag, &
                               & p_metrics, rh_at_1000hpa, qv_max,    &
                               & l_rediag                             )
- 
+
    END IF
    !Calculate virtual temperature, pres field has not changed
    z_qv(:,:,:) = ptr_nh_prog%tracer(:,:,:,iqv)
 
    CALL virtual_temp ( ptr_patch, ptr_nh_diag%temp, z_qv,             &
                      & temp_v= ptr_nh_diag%tempv)
-   
+
    !Calculate again the nh prognostic variables with the new tempv
    CALL convert_thdvars(ptr_patch, ptr_nh_diag%pres, ptr_nh_diag%tempv, &
                & ptr_nh_prog%rho, ptr_nh_prog%exner, ptr_nh_prog%theta_v  )

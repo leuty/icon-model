@@ -63,14 +63,14 @@ MODULE mo_cover_koe
 
 
 !  Cloud cover derived type with physics configuration options
-   
+
   TYPE t_cover_koe_config
     ! NOTE: Currently, all components of this type are statically allocated.
     !       If you want to introduce dynamically allocated components, please
     !       adjust the `$ACC UPDATE DEVICE(cover_koe_config(jg:jg))` in mo_nwp_phy_init.
     !
     INTEGER(KIND=i4)        ::     icldscheme    ! cloud cover option
-    LOGICAL                 ::     lsgs_cond     ! subgrid-scale condensation 
+    LOGICAL                 ::     lsgs_cond     ! subgrid-scale condensation
     INTEGER(KIND=i4)        ::     inwp_turb     ! turbulence scheme number
     INTEGER(KIND=i4)        ::     inwp_gscp     ! microphysics scheme number
     INTEGER(KIND=i4)        ::     inwp_cpl_re   ! coupling reff (for qs altering qi)
@@ -280,10 +280,10 @@ dq1   = 0.8_wp  + 100._wp*(tune_box_liq-box_liq_sv)*(tune_box_liq_asy-box_liq_as
 dq2   = 1._wp   + 400._wp*(tune_thicklayfac-thicklayfac_sv)*(tune_box_liq_asy-box_liq_asy_sv)
 dq3   = 0.25_wp + 2500._wp*(tune_box_liq-box_liq_sv)*(tune_thicklayfac-thicklayfac_sv)
 
-! Snow is added to qi_dia in three cases: 
+! Snow is added to qi_dia in three cases:
 ! 1) No coupling of reff with radiation
-! 2) No param for reff 
-! 3) Using the original RRTM parameterization for reff 
+! 2) No param for reff
+! 3) Using the original RRTM parameterization for reff
 l_addsnow = (cover_koe_config%inwp_cpl_re == 0) .OR. (cover_koe_config%inwp_reff == 0) .OR. &
             (cover_koe_config%inwp_reff == 101)
 
@@ -332,7 +332,7 @@ ENDDO
 !$ACC LOOP GANG(STATIC: 1) VECTOR
 DO jl = kidia,kfdia
   IF (linversion(jl)) THEN
-    zsc_top(jl) = pgeo(jl,kcinv(jl))*grav_i   
+    zsc_top(jl) = pgeo(jl,kcinv(jl))*grav_i
   ELSE
     zsc_top(jl) = 0._wp
   END IF
@@ -436,14 +436,14 @@ CASE( 1 )
       fac_aux = 1._wp - MIN(1._wp,MAX(0._wp,tt(jl,jk)-tm40)/15._wp)
 
       if ( cover_koe_config%inwp_gscp == 3 ) then
-        qi_mod = qi(jl,jk) + 0.1_wp*qs(jl,jk)  
+        qi_mod = qi(jl,jk) + 0.1_wp*qs(jl,jk)
       else
-        qi_mod = MERGE( MAX(qi(jl,jk), 0.1_wp*(qi(jl,jk)+qs(jl,jk))), qi(jl,jk), l_addsnow) 
+        qi_mod = MERGE( MAX(qi(jl,jk), 0.1_wp*(qi(jl,jk)+qs(jl,jk))), qi(jl,jk), l_addsnow)
       end if
       qi_mod = qi_mod + fac_aux*MIN(1._wp,tune_sgsclifac*zrcld/(tune_box_ice*zqisat(jl,jk))) * &
                                 MAX(0._wp,qv(jl,jk)-rhcrit_sgsice*zqisat(jl,jk))
 
-     !ice cloud: assumed box distribution, width 0.1 qisat, saturation above qv 
+     !ice cloud: assumed box distribution, width 0.1 qisat, saturation above qv
      !           (qv is microphysical threshold for ice as seen by grid scale microphysics)
       IF ( qi_mod > zcldlim ) THEN
         deltaq     = tune_box_ice * MIN(zqisat_m25, zqisat(jl,jk))  ! box width = 2*deltaq
@@ -487,11 +487,11 @@ CASE( 1 )
       IF (luse_core) THEN
         cc_conv(jl,jk) = cc_conv(jl,jk)+pcore(jl,jk)
       ENDIF
-         
+
       ! detrainment water is defined as detrainment rate * updraft liquid water in layer below
       qc_conv(jl,jk) = cc_conv(jl,jk) * plu(jl,jkp1)*       tfac ! ql up
       qi_conv(jl,jk) = cc_conv(jl,jk) * plu(jl,jkp1)*(1._wp-tfac)! qi up
-      
+
       ! alternative formulation of source term for liquid convective clouds depending on detrained cloud water and RH;
       ! as most important difference, it uses the same clcov-qc relationship as turbulent clouds but is restricted to low mixing ratios
       qcc = MAX(0._wp, MIN(0.075_wp*tune_box_liq*zqlsat(jl,jk), (rhoc_tend(jl,jk)/rho(jl,jk))*taudecay* &

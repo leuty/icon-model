@@ -16,11 +16,11 @@
 #  - find out the correct year of the available forcing data:
 #      -> For years within the range of available climate forcing data we uses
 #         the corresponding climate data year.
-#      -> For years outside the range of available forcing data we use cyclic 
+#      -> For years outside the range of available forcing data we use cyclic
 #         forcing with the first/last climate forcing years available.
 #
 # input parameters:
-#   run_year          - simulated year 
+#   run_year          - simulated year
 #   initial_climyear  - first year of available climate data
 #   final_climyear    - last year of available climate data
 #   cycle_period      - number of years used for cyclic forcing (outside tha range of availabe forcing data)

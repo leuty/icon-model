@@ -236,14 +236,14 @@ CONTAINS
     atmo%rho => NULL()
     atmo%zh  => NULL()
     atmo%tke => NULL()
-    
+
     cloud%rho_v   => NULL()
     rain%rho_v    => NULL()
     ice%rho_v     => NULL()
     graupel%rho_v => NULL()
     snow%rho_v    => NULL()
     hail%rho_v    => NULL()
-    
+
     cloud%q   => NULL()
     cloud%n   => NULL()
     rain%q    => NULL()
@@ -258,12 +258,12 @@ CONTAINS
     hail%n    => NULL()
 
     SELECT TYPE (graupel)
-    CLASS IS (particle_lwf) 
+    CLASS IS (particle_lwf)
       graupel%l => NULL()
     END SELECT
 
     SELECT TYPE (hail)
-    CLASS IS (particle_lwf) 
+    CLASS IS (particle_lwf)
       hail%l    => NULL()
     END SELECT
 

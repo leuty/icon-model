@@ -18,7 +18,7 @@
 # - changing the block and inner loop length nproma
 # - changing the number of mpi  processes (distrib. memory parallelization)
 # - changing the number of openmp threads (shared   memory parallelization)
-# 
+#
 exp_original=atm_qubicc_test
 #
 #--------------------------------------------------------------------------------
@@ -47,11 +47,11 @@ TYPES="$TYPES tend_ta_mig_ml                               tend_hus_mig_ml tend_
 export DATES="19790101T000040Z 19790101T000120Z 19790101T000200Z 19790101T000240Z 19790101T000320Z 19790101T000400Z" # dates of time steps
 
 # RESTART_DATE defines the date and time from which restarts should be performed.
-# 
+#
 export RESTART_DATE="19790101T000200Z"
 
 #--------------------------------------------------------------------------------
-# 
+#
 # 2. Define the checksuite mode
 
 builder="unknown"
@@ -63,7 +63,7 @@ case $builder in
 esac
 
 #--------------------------------------------------------------------------------
-# 
+#
 # 3. Launch the checksuite
 
 rundir=`pwd`

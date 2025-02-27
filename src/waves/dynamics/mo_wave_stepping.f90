@@ -224,7 +224,7 @@ CONTAINS
       n_now  = nnow(jg)
       n_new  = nnew(jg)
 
-      ! Calculate the minimum values of energy allowed 
+      ! Calculate the minimum values of energy allowed
       ! for each frequency for a given wind speed bin
       ! from 1 to wave_config%jmax, and up to wave_config%umax
       CALL min_energy(wave_config(jg), p_wave_state(jg)%diag%flminfr_tab)
@@ -618,7 +618,7 @@ CONTAINS
         ! Calculate source function due to nonlinear transfer
         IF (wave_config(jg)%lnon_linear_sf) THEN
           IF (timers_level >= 8) CALL timer_start(timer_wave_src_nonlinear)
-          
+
           CALL src_nonlinear_transfer(                            &
             &  p_patch     = p_patch(jg),                         & !in
             &  wave_config = wave_config(jg),                     & !in

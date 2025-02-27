@@ -82,7 +82,7 @@ MODULE mo_io_nml
   ! module name
   CHARACTER(*), PARAMETER :: modname = "mo_io_nml"
 
-  
+
 CONTAINS
   !! Read Namelist for I/O.
   !!
@@ -119,7 +119,7 @@ CONTAINS
     CHARACTER(len=max_timedelta_str_len) :: runoff_interval(max_dom)   ! time interval over which runoff variables are accumulated
     CHARACTER(len=max_timedelta_str_len) :: sunshine_interval(max_dom) ! time interval over which sunshine duration is accumulated
     CHARACTER(len=max_timedelta_str_len) :: melt_interval(max_dom)     ! time interval over which snow melt is accumulated
-    CHARACTER(len=max_timedelta_str_len) :: maxt_interval(max_dom)     ! time interval for tmax_2m and tmin_2m 
+    CHARACTER(len=max_timedelta_str_len) :: maxt_interval(max_dom)     ! time interval for tmax_2m and tmin_2m
     REAL(wp):: dt_lpi                     ! calling frequency [seconds] of lpi diagnosis for hourly maximum calculation
     REAL(wp):: dt_hailcast                ! calling frequency [seconds] of hail diagnosis for hourly maximum calculation
     REAL(wp):: wdur_min_hailcast          ! minimal updraft persistence [seconds] for hailcast to be activated
@@ -225,7 +225,7 @@ CONTAINS
     gust_interval(:)        = 3600._wp     ! 1 hour
     ff10m_interval(:)       = 600._wp      ! 10 min
     celltracks_interval(:)  = 3600._wp     ! 1 hour
-    DO jg=1, max_dom 
+    DO jg=1, max_dom
       ! echotop_meta(jg)%nechotop will be re-computed later in mo_nml_crosscheck.f90
       echotop_meta(jg)%nechotop                  = 0
       echotop_meta(jg)%time_interval             = 3600._wp     ! 1 hour
@@ -269,10 +269,10 @@ CONTAINS
 
     wshear_uv_heights(:) = -999.99_wp  ! missing value
     wshear_uv_heights(1:3) = (/ 1000.0_wp, 3000.0_wp, 6000.0_wp /)
-    
+
     srh_heights(:) = -999.99_wp  ! missing value
     srh_heights(1:2) = (/ 1000.0_wp, 3000.0_wp /)
-    
+
 
     !------------------------------------------------------------------
     ! 2. If this is a resumed integration, overwrite the defaults above
@@ -361,7 +361,7 @@ CONTAINS
     config_checkpoint_on_demand    = checkpoint_on_demand
     config_wshear_uv_heights       = wshear_uv_heights
     config_srh_heights             = srh_heights
-    
+
     ! --- consistency check:
 
     ! Each work can send its data only to one restart PE. Therefore it

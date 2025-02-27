@@ -65,7 +65,7 @@ Work directory: '/scratch/your-account-type/your-account-number/master/experimen
 Log directory: '/work/your-account-number/your-user-number/master/experiments/exp_id/log'
 ```
 
-A runscript called ```exp_id.run_start``` will also be created and placed in the "Script directory."  Review the script to make sure that the path to the grid file (```icon_grid_G.nc```) is set correctly for your environment. 
+A runscript called ```exp_id.run_start``` will also be created and placed in the "Script directory."  Review the script to make sure that the path to the grid file (```icon_grid_G.nc```) is set correctly for your environment.
 
 ## Step 3: Submit experiment (run)
 
@@ -112,7 +112,7 @@ Technical details can be found in `utils/mkexp/doc/mkexp.pdf`.
 
 ## Using macOS and homebrew
 
-### Ensure you have the correct python environment. 
+### Ensure you have the correct python environment.
 
 To execute mkexp you will need a python environment/build that includes the Jinja2 and six packages.  You will also need to make mtime when configuring and building icon, i.e.,
 
@@ -131,7 +131,7 @@ Currently the computing enviornment defaults do not support macOS.  Hence to gen
    +INPUT_ROOT = $HOME/data
 
    ...
-  
+
     OUTPUT_INTERVAL = $ATMO_TIME_STEP
 
    +# work around for set-up info
@@ -170,4 +170,3 @@ For an in-source build *mkexp* assumes that the build directory is given as *bui
 ```sh
 export ICON_BUILD_DIR=build-directory
 ```
-

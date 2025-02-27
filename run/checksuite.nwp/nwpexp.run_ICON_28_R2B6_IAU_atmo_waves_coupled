@@ -39,7 +39,7 @@ author_list="Daniel Reinert and Mikhail Dobrynin"
 make_and_change_to_experiment_dir # function in ../add_run_routines
 
 # Combine START and MODEL if START_MODEL is not already set.
-# START_MODEL is used to ease the execution of a machine that uses a complex 
+# START_MODEL is used to ease the execution of a machine that uses a complex
 # mpirun command with multiple binaries
 START_MODEL="${START_MODEL:=$START $MODEL}"
 
@@ -248,7 +248,7 @@ model_do_restart_list[1]="for_init"   # initialize model from restart file
 
 # YAC coupling library configuration
 #-----------------------------------------------------------------------------
-atm_lag=-14   # time lags in unit of time steps 
+atm_lag=-14   # time lags in unit of time steps
 wave_lag=-14  # in order to start coupling at the shifted start date
 
 cat > coupling_${EXP}.yaml << EOF

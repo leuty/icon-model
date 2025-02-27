@@ -38,13 +38,13 @@ MODULE mo_ifs_coord
     INTEGER :: nlmsgl         ! *nlev* - (number of sigma levels).
     INTEGER :: nlmslp         ! *nlmsgl+1.*
     INTEGER :: nlmsla         ! *nlmslp,* or 2 if *nlmslp=1.*
-    
+
     REAL(wp), ALLOCATABLE :: ralpha(:) ! rd*alpha at pressure and sigma levels.
     REAL(wp), ALLOCATABLE :: rlnpr(:)  ! rd*ln(p(k+.5)/p(k-.5))
     REAL(wp), ALLOCATABLE :: delpr(:)  ! p(k+.5)-p(k-.5) of
                                        ! the reference surface pressure.
     REAL(wp), ALLOCATABLE :: rdelpr(:) ! *reciprocal of *delpr.*
-    
+
     REAL(wp), ALLOCATABLE :: vct  (:) ! param. A and B of the vertical coordinate
 
   CONTAINS
@@ -56,7 +56,7 @@ MODULE mo_ifs_coord
     PROCEDURE :: half_level_pressure => t_vct_half_level_pressure
     PROCEDURE :: full_level_pressure => t_vct_full_level_pressure
     PROCEDURE :: auxhyb              => t_vct_auxhyb
-   
+
   END TYPE t_vct
 
 
@@ -172,14 +172,14 @@ CONTAINS
     nlevp1 = nlev+1
 
     ALLOCATE( vct%vct(2*(nlevp1)), STAT=ist)
-    IF (ist/=success)  CALL finish(routine, 'ALLOCATE failed!') 
+    IF (ist/=success)  CALL finish(routine, 'ALLOCATE failed!')
 
     vct%vct(1:nlevp1)        = vct_a(:)
     vct%vct(nlev+2:2*nlevp1) = vct_b(:)
 
     ALLOCATE (vct%ralpha(nlev), vct%rlnpr(nlev),  &
       &       vct%delpr(nlev),   vct%rdelpr(nlev), STAT=ist)
-    IF (ist/=success)  CALL finish(routine, 'ALLOCATE failed!') 
+    IF (ist/=success)  CALL finish(routine, 'ALLOCATE failed!')
 
 
     ! --------------------------------------------------------------------------------
@@ -457,7 +457,7 @@ CONTAINS
   !!
   SUBROUTINE t_vct_auxhyb( vct, ph,kdim,klen,nlev_in,                   &
     &                      pdelp,prdelp,plnph,plnpr,palpha )
-    
+
     CLASS(t_vct), INTENT(IN) :: vct
 
     INTEGER ,INTENT(in)  :: kdim, klen, nlev_in
@@ -610,4 +610,3 @@ CONTAINS
 
 
 END MODULE mo_ifs_coord
-

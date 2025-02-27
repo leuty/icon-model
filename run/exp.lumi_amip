@@ -528,7 +528,7 @@ cat dict.iconam.mpim  > ${dict_file}
 add_required_file ${basedir}/run/${dict_file}                             ./
 #
 # initial and boundary conditions
-# 
+#
 datadir=${icon_data_poolFolder}/${grid_id}/initial_conditions/r0100
 if [ ${grid_refinement} == R02B08 ] ; then
    add_link_file $datadir/ifs2icon_2020010100_0054_R02B08_G.nc               ./ifs2icon.nc
@@ -589,8 +589,8 @@ fi
 ###    add_link_file $dataaero/bc_aeropt_kinne_sw_b14_fin_${year}.nc         ./bc_aeropt_kinne_sw_b14_fin_${year}.nc
 ###  (( year = year+1 ))
 ###done
-#### 
-#### Kinne aerosol 
+####
+#### Kinne aerosol
 ###add_link_file $dataaero/bc_aeropt_kinne_lw_b16_coa.nc                     ./
 ###add_link_file $dataaero/bc_aeropt_kinne_sw_b14_coa.nc                     ./
 #
@@ -619,7 +619,7 @@ datadir=${icon_data_poolFolder}/${grid_id}/land/r0100
   add_link_file $datadir/bc_land_soil.nc                                    ./bc_land_soil.nc
   add_link_file $datadir/bc_land_sso.nc                                     ./bc_land_sso.nc
 
-fi 
+fi
 #
 # - lctlib file for JSBACH
 add_link_file ${basedir}/externals/jsbach/data/lctlib_nlct21.def          ./lctlib_nlct21.def

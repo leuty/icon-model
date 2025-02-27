@@ -21,8 +21,8 @@
 # GPU1	SYS	 X 	SYS	SYS	PIX	SYS	16-31,144-159	1
 # GPU2	SYS	SYS	 X 	SYS	SYS	PIX	112-127,240-255	7
 # GPU3	SYS	SYS	SYS	 X 	SYS	SYS	80-95,208-223	5
-# mlx5_0	SYS	PIX	SYS	SYS	 X 	SYS		
-# mlx5_1	SYS	SYS	PIX	SYS	SYS	 X 		
+# mlx5_0	SYS	PIX	SYS	SYS	 X 	SYS
+# mlx5_1	SYS	SYS	PIX	SYS	SYS	 X
 #
 # Legend:
 #
@@ -92,19 +92,19 @@ else
     echo IO process $SLURM_LOCALID on $(hostname)
 
     numanode=(2-3 0-1 6-7 4-5)
-    nics=(mlx5_0:1 mlx5_0:1 mlx5_1:1 mlx5_1:1)    
+    nics=(mlx5_0:1 mlx5_0:1 mlx5_1:1 mlx5_1:1)
     reorder=(0 1 2 3)
- 
+
     nic_reorder=(${nics[${reorder[0]}]}
                  ${nics[${reorder[1]}]}
                  ${nics[${reorder[2]}]}
-                 ${nics[${reorder[3]}]}) 
+                 ${nics[${reorder[3]}]})
 
     numanode_reorder=(${numanode[${reorder[0]}]}
                       ${numanode[${reorder[1]}]}
                       ${numanode[${reorder[2]}]}
-                      ${numanode[${reorder[3]}]}) 
-    
+                      ${numanode[${reorder[3]}]})
+
     export UCX_NET_DEVICES=${nic_reorder[lrank]}
 
     export UCX_RNDV_SCHEME=put_zcopy
@@ -112,10 +112,9 @@ else
 
     export UCX_IB_GPU_DIRECT_RDMA=yes
 
-    export UCX_TLS=cma,rc,mm,cuda_ipc,cuda_copy,gdr_copy    
+    export UCX_TLS=cma,rc,mm,cuda_ipc,cuda_copy,gdr_copy
     export UCX_MEMTYPE_CACHE=n
-    
+
 fi
 
 numactl --cpunodebind=${numanode_reorder[$lrank]} --membind=${numanode_reorder[$lrank]} $executable
-

@@ -83,7 +83,7 @@ MODULE mo_sppt_config
     INTEGER :: coarse_nlat
     INTEGER :: coarse_nlon
 
-    TYPE(timedelta):: mtime_hinc_rn    !  hinc_rn converted into type timedelta 
+    TYPE(timedelta):: mtime_hinc_rn    !  hinc_rn converted into type timedelta
 
     TYPE(datetime) :: validity_date_rn_2d_new ! date at which the event read_rapa_event was active the last time
 
@@ -283,7 +283,7 @@ MODULE mo_sppt_config
   !
   ! Setup mtime events for SPPT utilizing newEvent() subroutine
   !
-  !   - read_rapa (read pattern/field of random numbers) 
+  !   - read_rapa (read pattern/field of random numbers)
   !
   !------------------------------------------------------------------------------------
   !
@@ -292,7 +292,7 @@ MODULE mo_sppt_config
     ! Input arguments
     TYPE(event), POINTER, INTENT(INOUT) :: read_rapa_Event ! and all consecutive events
 
-    REAL(wp),             INTENT(IN)    :: hinc_rn         ! increment in seconds to read/create 
+    REAL(wp),             INTENT(IN)    :: hinc_rn         ! increment in seconds to read/create
                                                            ! new random numbers (namelist parameter)
 
     ! Local

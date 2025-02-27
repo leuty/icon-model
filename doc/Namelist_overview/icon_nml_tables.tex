@@ -1148,7 +1148,7 @@ L &
 coupled\_to\_waves &
 L &
 .FALSE. &  &
-.TRUE.: Required for coupled wave-atmosphere or wave-ocean similations. \newline 
+.TRUE.: Required for coupled wave-atmosphere or wave-ocean similations. \newline
         Indicates the coupling of the model component at hand (e.g. atmo, ocean) to the wave model. Yac coupling routines have to be called.&
 \tabularnewline
 
@@ -1156,7 +1156,7 @@ L &
 coupled\_to\_atmo &
 L &
 .FALSE. &  &
-.TRUE.: Required for coupled atmosphere-ocean or atmosphere-wave similations. \newline 
+.TRUE.: Required for coupled atmosphere-ocean or atmosphere-wave similations. \newline
         Indicates the coupling of the model at hand (e.g. ocean, wave) to the atmosphere model. Yac coupling routines have to be called.&
 \tabularnewline
 
@@ -1164,7 +1164,7 @@ L &
 coupled\_to\_aero &
 L &
 .FALSE. &  &
-.TRUE.: Activates the coupling of aes atmosphere to Kinne aerosole input files. \newline 
+.TRUE.: Activates the coupling of aes atmosphere to Kinne aerosole input files. \newline
         Kinne aerosol input is taken from python processes rather than direct reading from pre-processed input files. rte-rrtmgp radiation supported only. In this case yac coupling routines are called.&
 \tabularnewline
 
@@ -1172,7 +1172,7 @@ L &
 coupled\_to\_o3 &
 L &
 .FALSE. &  &
-.TRUE.: Activates the coupling of aes atmosphere to o3 input files. \newline 
+.TRUE.: Activates the coupling of aes atmosphere to o3 input files. \newline
         O3 input is taken from python processes rather than direct reading from pre-processed input files. In this case yac coupling routines are called.&
 \tabularnewline
 
@@ -1291,7 +1291,7 @@ a 3 time level time stepping scheme) (values above 30 are recommended when using
 %\hline
 \textbf{hdiff\_w\_efdt\_ratio}&
 R& 15.0  & &
-ratio of e-folding time to time step for diffusion on vertical wind speed & 
+ratio of e-folding time to time step for diffusion on vertical wind speed &
 \tabularnewline
 
 %\hline
@@ -1390,9 +1390,9 @@ Coriolis force&
 ldeepatmo &
 L & .FALSE. & &
 Switch for deep-atmosphere modification.\newline
-[Note: only the reversible part of the dynamics (largely coincident with what is 
+[Note: only the reversible part of the dynamics (largely coincident with what is
 commonly referred to as ``the dynamical core'') is modified for the deep atmosphere.\\
-Irreversible dynamics of any kind (largely coincident with what is commonly referred to as 
+Irreversible dynamics of any kind (largely coincident with what is commonly referred to as
 ``the physics'') are not explicitly modified.\\
 Neither are artificial numerical measures for stabilizing, smoothing and the like modified explicitly.] &
 iforcing = 0, 2, 3 \\
@@ -2158,7 +2158,7 @@ in more detail.
  |>{\raggedright}p{0.18\textwidth}|} % Notes
 \caption{Options for parameter: \texttt{grib\_lib\_compat}}\label{tab:griblibcompat}\\
 \hline
-\textbf{\texttt{grib\_lib\_compat}} & \textbf{Description} & \textbf{Applies to GRIB lib\\ version} & \textbf{Notes} 
+\textbf{\texttt{grib\_lib\_compat}} & \textbf{Description} & \textbf{Applies to GRIB lib\\ version} & \textbf{Notes}
 \tabularnewline
 \hline
 \endhead
@@ -2299,7 +2299,7 @@ Time when a nested domain starts to be active. Relative time w.r.t.\ experiment 
 %\hline
 end\_time &
 R(n\_dom) & 1.E30  & s &
-Time when a nested domain terminates. Relative time w.r.t.\ experiment start date (\texttt{ini\_datetime\_string} / \texttt{experimentStartDate}).\\ 
+Time when a nested domain terminates. Relative time w.r.t.\ experiment start date (\texttt{ini\_datetime\_string} / \texttt{experimentStartDate}).\\
 (namelist entry is ignored for the global domain)
 & n\_dom$>$1
 \tabularnewline
@@ -2913,7 +2913,7 @@ fire2d\_filename&
 C & 'gfas2d\_emi\_ \\ <species>\_ \\ <gridfile>\_ \\ <yyyymmdd>.nc' & &
 Wildfire emission data sets for the <species> bc, oc and so2. Possible keywords: <species>, <gridfile>, <nroot>, <nroot0>, <jlev>, <idom>, <yyyymmdd>
 &
-Requires: 
+Requires:
 iprog\_aero = 3
 \tabularnewline
 
@@ -3219,8 +3219,8 @@ I(n\_dom)& 0 & &
 Allows to force the computation of optional diagnostics in domains where no output is written, e.g.
 to have valid fields for nest boundary interpolation. By default, the computations are triggered by
 the output namelists of a given model domain. Setting, for instance, the second entry to 3 means that
-the output namelists of domain 3 are used to trigger the optional diagnostics in domain 2 as well. \\ 
-\textbf{Caution: If the output fields written in a nested domain are a subset of the fields written 
+the output namelists of domain 3 are used to trigger the optional diagnostics in domain 2 as well. \\
+\textbf{Caution: If the output fields written in a nested domain are a subset of the fields written
 in the parent domain, using this option will cause a failure!} &
 iforcing=3
 \tabularnewline
@@ -3700,7 +3700,7 @@ is found in the column ``Place of computation in source code'' of table \ref{tab
 \setlength\itemsep{-0.3em}
 \item[{[1]}] \texttt{/src/atm\_phy\_nwp/mo\_util\_phys}
 \item[{[2]}] \texttt{/src/atm\_phy\_nwp/mo\_opt\_nwp\_diagnostics}
-\item[{[3]}] \texttt{/src/atm\_phy\_nwp/mo\_nh\_diagnose\_pmsl} 
+\item[{[3]}] \texttt{/src/atm\_phy\_nwp/mo\_nh\_diagnose\_pmsl}
 \item[{[4]}] \texttt{/src/atm\_phy\_nwp/mo\_nwp\_gscp\_interface}
 \item[{[5]}] \texttt{/src/atm\_phy\_nwp/mo\_nwp\_diagnosis}
 \end{itemize}
@@ -4211,7 +4211,7 @@ I & 2 &  & type of bare soil evaporation parameterization \\
 2 = BATS scheme, Dickinson (1984) \\
 3 = ISBA scheme, Noilhan and Planton (1989) \\
 4 = Resistance-based formulation by Schulz and Vogel (2020) \\
-5 = same as 4, but uses the minimum evaporation resistance (default set by cr\_bsmin) instead of c\_soil for tuning; 
+5 = same as 4, but uses the minimum evaporation resistance (default set by cr\_bsmin) instead of c\_soil for tuning;
 the namelist parameter c\_soil is ignored in this case, and a value of 2 is used internally &
 \tabularnewline
 
@@ -4929,7 +4929,7 @@ number of dynamics substeps per fast-physics / transport step &
 %\hline
 vcfl\_threshold&
 R& 1.05& &
-Threshold for vertical advection CFL number at which the adaptive time step reduction 
+Threshold for vertical advection CFL number at which the adaptive time step reduction
 (increase of ndyn\_substeps w.r.t. the fixed fast-physics time step) is triggered.
  &
 \tabularnewline
@@ -5428,7 +5428,7 @@ inwp\_gscp= 1, 2 \\
 ~\\ ~\\
 inwp\_gscp=1, 2 and \\
 irad\_aero=6, 7 or 8 \\
-~\\ 
+~\\
 inwp\_gscp=3 \\
 ~\\
 inwp\_gscp=3 and ART \\
@@ -6489,7 +6489,7 @@ tune\_dursun\_scaling&
 R&
 1.0&
 &
-Tuning factor for direct solar irradiance in sunshine duration diagnostic to account for the 
+Tuning factor for direct solar irradiance in sunshine duration diagnostic to account for the
 delta-Eddington scaling in ecRad and other possible biases (e.g. liquid/ice water path) &
 \tabularnewline
 
@@ -6510,7 +6510,7 @@ tune\_urbisa&
 R(2)&
 0.6, 1.0&
 &
-Lower and upper bound for variable ISA parameterization (fraction of impervious surface area on urban tiles) 
+Lower and upper bound for variable ISA parameterization (fraction of impervious surface area on urban tiles)
 depending on smoothed urban fraction & lterra\_urb=.TRUE.
 \tabularnewline
 
@@ -7875,7 +7875,7 @@ I&
 Slope correction for surface radiation:\\
 0: None \\
 1: Slope correction for direct solar radiation without shading effects \\
-2: Slope and horizon / sky-view factor correction for direct solar radiation including shading 
+2: Slope and horizon / sky-view factor correction for direct solar radiation including shading
 (Remark: sky-view correction not yet activated) \\
 3: Slope correction for direct solar radiation including shading, but no further consideration
 of sky-view factor effects.
@@ -8086,7 +8086,7 @@ R<nroot0>B<jlev>\_ \\
 DOM<idom>.nc"&
 &
 Path to the file containing CAMS 3D data\\
-Climatology data can be prepared using the script scripts/preprocessing/ \\ make\_camsclim\_onICONgrid.sh 
+Climatology data can be prepared using the script scripts/preprocessing/ \\ make\_camsclim\_onICONgrid.sh
 & inwp\_radiation=4 (ecRad)\\
 irad\_aero=7 or 8 (CAMS 3D climatology or forecasted aerosols)
 \tabularnewline
@@ -8131,7 +8131,7 @@ L&
 &
 General cloud optics in ecrad. \\
 It allows for different optical properties of ice and liquid.
-& inwp\_radiation=4 (ecRad) 
+& inwp\_radiation=4 (ecRad)
 \tabularnewline
 
 
@@ -8143,7 +8143,7 @@ I&
 Optical properties for liquid cloud scattering. \\
 Different options depending on ecrad\_use\_general\_cloud\_optics (eugco) \\
 0: SOCRATES (eugco = .FALSE.) \textbackslash  Mie-droplet (eugco = .TRUE.)\\
-1: Slingo (1989) (eugco = .FALSE.) 
+1: Slingo (1989) (eugco = .FALSE.)
 & inwp\_radiation=4 (ecRad)
 \tabularnewline
 
@@ -8159,7 +8159,7 @@ Different options depending on ecrad\_use\_general\_cloud\_optics (eugco) \\
 2: Yi (2013) (eugco=.FALSE.) \\
 10: Smooth from Muskatel et al. (2021) (eugco=.TRUE.) \\
 11: Baum (eugco=.TRUE.)
-& inwp\_radiation=4 (ecRad) 
+& inwp\_radiation=4 (ecRad)
 \tabularnewline
 
 %\hline
@@ -8182,7 +8182,7 @@ I&
 &
 Optical properties for rain  scattering. \\
 -1: No explicit rain in radiation. \\
-0: Mie-rain 
+0: Mie-rain
 & inwp\_radiation=4 (ecRad) \\
 \squeezeme{ecrad\_use\_general\_cloud\_optics = .TRUE.}
 \tabularnewline
@@ -8448,7 +8448,7 @@ submodule \verb+./externals/emvorado/DOC/TEX/emvorado_userguide.pdf+.
 radarnmlfile&
 C & & &
 The name of the file containing the EMVORADO namelist. If this is empty or not set, the Default from radar\_data\_namelist.f90 is used. Only used if luse\_radarfwo is .TRUE. .
-& 
+&
 \tabularnewline
 
 \end{longtab}
@@ -8601,9 +8601,9 @@ Defined and used in: \verb+src/namelists/mo_sleve_nml.f90+
 %------------------------------------------------------------------------------
 \subsection{sppt\_nml}
 
-The Stochastic Perturbation of Physical Tendencies (SPPT) method is controlled by the following 
-set of Namelist parameters. Note that SPPT is only available for the NWP physics package (\texttt{iforcing=3)}). 
-In addition, SPPT is not supported on a global domain (hard exit) and is untested in limited area mode 
+The Stochastic Perturbation of Physical Tendencies (SPPT) method is controlled by the following
+set of Namelist parameters. Note that SPPT is only available for the NWP physics package (\texttt{iforcing=3)}).
+In addition, SPPT is not supported on a global domain (hard exit) and is untested in limited area mode
 where the domain extends across the poles. Running the latter is currently not recommended.
 
 \begin{longtab}
@@ -8952,9 +8952,9 @@ I&
 
 %\hline
 tracer\_names&
-C(:)& 'Int2Str(i)'& & Tracer-specific name suffixes. When running idealized cases or the hydrostatic ICON, 
-this variable is used to specify tracer names. If nothing is specified, the tracer name is given as 
-\texttt{PREFIX+Int2String(i)}, where \texttt{i} is the tracer index. Note that this 
+C(:)& 'Int2Str(i)'& & Tracer-specific name suffixes. When running idealized cases or the hydrostatic ICON,
+this variable is used to specify tracer names. If nothing is specified, the tracer name is given as
+\texttt{PREFIX+Int2String(i)}, where \texttt{i} is the tracer index. Note that this
 namelist variable has no effect for nonhydrostatic real-case runs, if the NWP- or AES physics
 packages are switched on. & iforcing$\ne$ inwp, iaes'
 \tabularnewline
@@ -9192,7 +9192,7 @@ I                &      0      & &
 Type of shear forcing used in turbulence:\\
 0: only vertical shear of horizontal wind\\
 1: previous plus horizontal shear correction \\
-2: previous plus shear from vertical velocity. & 
+2: previous plus shear from vertical velocity. &
 \tabularnewline
 
 %\hline
@@ -9252,7 +9252,7 @@ Asymptotic maximal turbulent distance (where $\kappa \cdot$ \emph{tur\_len} is t
 %\hline
 pat\_len &
 R                &     100.0      & m &
-Effective length scale of thermal surface patterns controlling TKE-production by sub grid kata/ana-batic circulations. 
+Effective length scale of thermal surface patterns controlling TKE-production by sub grid kata/ana-batic circulations.
 In case of \emph{pat\_len}=0, this production is switched off. &
 \tabularnewline
 
@@ -9265,7 +9265,7 @@ Length scale factor for vertical diffusion of TKE. In case of \emph{c\_diff}=0, 
 %\hline
 a\_stab &
 R                &     0.0      & 1 &
-Factor for stability correction of turbulent master length-scale. 
+Factor for stability correction of turbulent master length-scale.
 In case of \emph{a\_stab}=0, this turbulent length scale is not reduced for stable stratification. &
 \tabularnewline
 
@@ -9285,33 +9285,33 @@ Basic minimum vertical diffusion coefficient for scalar properties like heat and
 %\hline
 tkhmin\_strat &
 R                &     0.75      & $\mathrm{m^2/s}$ &
-Enhanced value of \emph{tkhmin} valid for the stratosphere above 17.5 km (tropics above 22.5 km) 
+Enhanced value of \emph{tkhmin} valid for the stratosphere above 17.5 km (tropics above 22.5 km)
 (being corrected by an empirical factor proportional to ${Ri}^{-1/3}$). &
 \tabularnewline
 
 %\hline
 tkmmin &
 R                &     0.75      & $\mathrm{m^2/s}$ &
-Basic minimum vertical diffusion coefficient for momentum 
+Basic minimum vertical diffusion coefficient for momentum
 (being corrected by an empirical factor proportional to ${Ri}^{-2/3}$). &
 \tabularnewline
 
 %\hline
 tkmmin\_strat &
 R                &    4      & $\mathrm{m^2/s}$ &
-Enhanced value of \emph{tkmmin} valid for the stratosphere above 17.5 km (tropics above 22.5 km) 
+Enhanced value of \emph{tkmmin} valid for the stratosphere above 17.5 km (tropics above 22.5 km)
 (being corrected by an empirical factor proportional to ${Ri}^{-1/3}$). &
 \tabularnewline
 
 %\hline
 imode\_tkemini &
 I                &    1      & &
-Mode of adapting q=SQRT(2*TKE) and the entire Turbulence-Model (TMod) to Lower Limits for Diff. Coeffs. (LLDCs), 
+Mode of adapting q=SQRT(2*TKE) and the entire Turbulence-Model (TMod) to Lower Limits for Diff. Coeffs. (LLDCs),
  which are the "minimal vertical diffusion coefficients" \emph{tkhmin} or \emph{tkmmin} (or their stratopheric extensions): \\
-1: LLDCs treated as corrections of stability lengths without any further adaptation. \\ 
+1: LLDCs treated as corrections of stability lengths without any further adaptation. \\
 2: TKE adapted to that part of LLDCs representing so far missing shear forcing,
     while the assumed part of LLDCs, representing missing drag-forces, has no feedback to the TMod. \\
-3: Tuned variant of "2" that is suitable for operational forecasts, 
+3: Tuned variant of "2" that is suitable for operational forecasts,
     particularly excluding the effect of stratospheric extensions on the TKE adaptation. & any (extended) LLDC is active
 \tabularnewline
 
@@ -9324,7 +9324,7 @@ Standard Charnock parameter. &
 %\hline
 alpha0\_max &
 R                &     0.0335      & 1 &
-Upper bound of velocity-dependent Charnock parameter. Setting this parameter to 0.0335 or higher values, 
+Upper bound of velocity-dependent Charnock parameter. Setting this parameter to 0.0335 or higher values,
 implies unconstrained velocity dependence. &
 \tabularnewline
 
@@ -9340,7 +9340,7 @@ I                &     2      & &
 Options for specifying the Charnock parameter: \\
 1: constant at \emph{alpha0} \\
 2: wind-speed dependent with maximum at \emph{alpha0\_max} \\
-3: as "2", but decreasing again at speeds above about 25 m/s in order to improve pressure-speed relationship in tropical cyclones. & 
+3: as "2", but decreasing again at speeds above about 25 m/s in order to improve pressure-speed relationship in tropical cyclones. &
 \tabularnewline
 
 %\hline
@@ -9372,7 +9372,7 @@ Scaling factor of the laminar boundary layer for scalars (heat and vapor). The l
 %\hline
 rat\_lam &
 R                &     1.0     & 1 &
-Vapour/Heat ratio of laminar scaling factors (over land).  
+Vapour/Heat ratio of laminar scaling factors (over land).
 The larger \emph{rat\_lam}, the larger is the laminar resistance for evaporation compared to sensible heat. &
 \tabularnewline
 
@@ -9413,7 +9413,7 @@ I                &     1     &  &
 %\hline
 imode\_snowsmot &
 I                &     1     &  &
-Mode to treating the aerodynamic surface-smoothing by snow: \\ 
+Mode to treating the aerodynamic surface-smoothing by snow: \\
 0: no smoothing active at all \\
 1: no impact on SAI, but full smoothing of land-use R-length \\
 2: "1", but with full smoothing of SAI: full smoothing of R-length and SAI \\
@@ -9538,7 +9538,7 @@ in the region above expol\_start\_height
 \hline
 \multicolumn{5}{|l|}
 {\emph{Upper-atmosphere physics}}
-& 
+&
 (iforcing = 2 (AES) \& \\
 ``coming soon'') or \\
 (iforcing = 3 (NWP) \& \\
@@ -9551,7 +9551,7 @@ lupatmo\_phy = .TRUE.)
 orbit\_type&
 I & 1 &
 &
-Orbit model for upper-atmosphere radiation 
+Orbit model for upper-atmosphere radiation
 (compare aes\_rad\_nml: l\_orbvsop87): \\
 1: vsop87 $\rightarrow$ standard and accurate model \\
 2: kepler $\rightarrow$ simple model appropriate for idealized work
@@ -9603,7 +9603,7 @@ Solar cycle: \\
 
 \hline
 \multicolumn{4}{|l|}{nwp\_grp\_<groupname>\%\ldots}
-& Configuration of the upper-atmosphere process groups 
+& Configuration of the upper-atmosphere process groups
 under NWP-forcing (compare time control of processes in aes\_phy\_nml): \\
 <groupname> = imf: ion drag, molecular diffusion and frictional heating \\
 <groupname> = rad: radiation and chemical heating
@@ -9702,7 +9702,7 @@ nwp\_grp\_rad\%imode  $>$ 0
 
 %\hline
 \ldots imode & I & 2 & &
-Gas mode (comparable, but generally not identical to the irad\_<gasname> 
+Gas mode (comparable, but generally not identical to the irad\_<gasname>
 in radiation\_nml and aes\_rad\_nml). \\
 0: zero gas concentration \\
 1: constant gas concentration (independent of space and time),
@@ -11032,7 +11032,7 @@ Several \texttt{plugin\_list(pg)} definitions can be specified, each holding the
   Name of the plugin -- currently only used for messages. &
   \texttt{configure --enable-comin}
   \tabularnewline
-  
+
   plugin\_list(pg)\%primary\_constructor &
   C & "comin\_main" & &
   Name of the symbol in the plugin library that

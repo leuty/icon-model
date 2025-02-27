@@ -484,4 +484,3 @@ CONTAINS
 
 
 END MODULE mo_test_netcdf_read
-

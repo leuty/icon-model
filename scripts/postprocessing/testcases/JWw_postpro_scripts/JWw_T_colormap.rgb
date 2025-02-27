@@ -15,7 +15,7 @@
 # for their baroclinic wave test.
 #-------------------------------------------------------------------
 
-ncolors= 9 
+ncolors= 9
 
 #  r   g   b
  160   0 255

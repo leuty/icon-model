@@ -8,7 +8,7 @@
 # SPDX-License-Identifier: BSD-3-Clause
 # ---------------------------------------------------------------
 
-# Dictionary for mapping between internal names and GRIB2/Netcdf 
+# Dictionary for mapping between internal names and GRIB2/Netcdf
 # variable names, which is needed by ICON's read procedures.
 #
 # internal name     variable name (here GRIB2)
@@ -108,4 +108,3 @@ pollbetu            BETUsnc
 pollpoac            POACsnc
 pollambr            AMBRsnc
 t_2m_filt           T_2M_FILT_DCYCLE
-

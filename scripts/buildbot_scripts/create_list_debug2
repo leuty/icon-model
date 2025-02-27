@@ -23,4 +23,3 @@ listname=debug2
 #lets see the list
 ./lslist $listname
 #-----------------------------------------------------------
-

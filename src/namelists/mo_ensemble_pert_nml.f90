@@ -36,26 +36,26 @@ MODULE mo_ensemble_pert_nml
     &                               config_range_avel_g    => range_avel_g,    &
     &                               config_range_cap_snow  => range_cap_snow,  &
     &                               config_range_cap_ice   => range_cap_ice,   &
-    &                               config_range_entrorg   => range_entrorg,   &  
+    &                               config_range_entrorg   => range_entrorg,   &
     &                               config_range_entrorg_mult  => range_entrorg_mult,  &
     &                               config_range_rmfdeps   => range_rmfdeps,   &
-    &                               config_range_rdepths   => range_rdepths,   &  
-    &                               config_range_rprcon    => range_rprcon,    &  
-    &                               config_range_capdcfac_et => range_capdcfac_et, &  
-    &                               config_range_capdcfac_tr => range_capdcfac_tr, &  
-    &                               config_range_lowcapefac  => range_lowcapefac,  &  
-    &                               config_range_negpblcape  => range_negpblcape,  &  
+    &                               config_range_rdepths   => range_rdepths,   &
+    &                               config_range_rprcon    => range_rprcon,    &
+    &                               config_range_capdcfac_et => range_capdcfac_et, &
+    &                               config_range_capdcfac_tr => range_capdcfac_tr, &
+    &                               config_range_lowcapefac  => range_lowcapefac,  &
+    &                               config_range_negpblcape  => range_negpblcape,  &
     &                               config_range_minsnowfrac => range_minsnowfrac, &
     &                               config_range_c_soil    => range_c_soil,    &
     &                               config_range_cwimax_ml => range_cwimax_ml, &
-    &                               config_range_rhebc     => range_rhebc,     &  
+    &                               config_range_rhebc     => range_rhebc,     &
     &                               config_range_texc      => range_texc,      &
     &                               config_range_qexc      => range_qexc,      &
     &                               config_range_box_liq   => range_box_liq,   &
     &                               config_range_box_liq_asy => range_box_liq_asy, &
     &                               config_range_thicklayfac => range_thicklayfac, &
     &                               config_range_fac_ccqc  => range_fac_ccqc,  &
-    &                               config_range_tkhmin    => range_tkhmin,    &  
+    &                               config_range_tkhmin    => range_tkhmin,    &
     &                               config_range_tkmmin    => range_tkmmin,    &
     &                               config_range_turlen    => range_turlen,    &
     &                               config_range_a_hshr    => range_a_hshr,    &
@@ -83,7 +83,7 @@ MODULE mo_ensemble_pert_nml
     &                               config_shift_boxliq_asy  => shift_boxliq_asy, &
     &                               config_use_ensemble_pert => use_ensemble_pert
 
-  
+
   IMPLICIT NONE
   PRIVATE
 
@@ -106,43 +106,43 @@ MODULE mo_ensemble_pert_nml
   REAL(wp) :: &                    !< gravity wave flux emission
     &  range_gfluxlaun
 
-  REAL(wp) :: &                    !< Terminal fall velocity of ice 
+  REAL(wp) :: &                    !< Terminal fall velocity of ice
     &  range_zvz0i
 
-  REAL(wp) :: &                    !< Tuning factor for intercept parameter of raindrop size distribution 
+  REAL(wp) :: &                    !< Tuning factor for intercept parameter of raindrop size distribution
     &  range_rain_n0fac
 
   REAL(wp) :: &                    !< Tuning factor for CN concentration near ground for Segal&Khain cloud nucleation (inwp_gscp=4,5,7)
     &  range_ccn_Ncn0
-  
+
   REAL(wp) :: &                    !< Additional tuning factor for the tuning factor of parameterized ice nuclei concentration (inwp_gscp=4,5,7)
     &  range_in_fact
-  
+
   REAL(wp) :: &                    !< Tuning factor for cloud ice fall speed (inwp_gscp=4,5,7)
     &  range_avel_i
-  
+
   REAL(wp) :: &                    !< Tuning factor for graupel fall speed (inwp_gscp=4,5,7)
     &  range_avel_g
-  
+
   REAL(wp) :: &                    !< Tuning factor for snow capacitance for depositional growth (inwp_gscp=4,5,7)
     &  range_cap_snow
-  
+
   REAL(wp) :: &                    !< Tuning factor for cloud ice capacitance for depositional growth (inwp_gscp=4,5,7)
     &  range_cap_ice
-  
-  REAL(wp) :: &                    !< Entrainment parameter for deep convection valid at dx=20 km 
+
+  REAL(wp) :: &                    !< Entrainment parameter for deep convection valid at dx=20 km
     &  range_entrorg
 
-  REAL(wp) :: &                    !< Entrainment parameter for deep convection valid at dx=20 km 
+  REAL(wp) :: &                    !< Entrainment parameter for deep convection valid at dx=20 km
     &  range_entrorg_mult          !  multiplicative perturbation with compensating change of adjustment time scale
 
   REAL(wp) :: &                    !< Maximum shallow convection depth
     &  range_rdepths
 
-  REAL(wp) :: &                    !< Factor for fraction of initial downdraft mass flux 
+  REAL(wp) :: &                    !< Factor for fraction of initial downdraft mass flux
     &  range_rmfdeps
 
-  REAL(wp) :: &                    !< Entrainment parameter for deep convection valid at dx=20 km 
+  REAL(wp) :: &                    !< Entrainment parameter for deep convection valid at dx=20 km
     &  range_rprcon
 
   REAL(wp) :: &                    !< Fraction of CAPE diurnal cycle correction applied in the extratropics
@@ -187,34 +187,34 @@ MODULE mo_ensemble_pert_nml
   REAL(wp) :: &                    !< Factor for CLC-QC relationship in cloud cover scheme
     &  range_fac_ccqc              ! (in case of inwp_cldcover = 1)
 
-  REAL(wp) :: &                    !< Minimum vertical diffusion for heat/moisture 
+  REAL(wp) :: &                    !< Minimum vertical diffusion for heat/moisture
     &  range_tkhmin
 
-  REAL(wp) :: &                    !< Minimum vertical diffusion for momentum 
+  REAL(wp) :: &                    !< Minimum vertical diffusion for momentum
     &  range_tkmmin
 
-  REAL(wp) :: &                    !< Perturbation of reduction of minimum diffusion coefficients near the surface 
+  REAL(wp) :: &                    !< Perturbation of reduction of minimum diffusion coefficients near the surface
     &  range_tkred_sfc
 
-  REAL(wp) :: &                    !< Laminar transport resistance parameter 
+  REAL(wp) :: &                    !< Laminar transport resistance parameter
     &  range_rlam_heat
 
-  REAL(wp) :: &                    !< Maximum turbulent mixing length scale 
+  REAL(wp) :: &                    !< Maximum turbulent mixing length scale
     &  range_turlen
 
-  REAL(wp) :: &                    !< Scaling factor for extended horizontal shear term in turbulence scheme 
+  REAL(wp) :: &                    !< Scaling factor for extended horizontal shear term in turbulence scheme
     &  range_a_hshr
 
-  REAL(wp) :: &                    !< Scaling factor for stability correction in turbulence scheme 
+  REAL(wp) :: &                    !< Scaling factor for stability correction in turbulence scheme
     &  range_a_stab
 
-  REAL(wp) :: &                    !< Length scale factor for vertical diffusion in turbulence scheme 
+  REAL(wp) :: &                    !< Length scale factor for vertical diffusion in turbulence scheme
     &  range_c_diff
 
   REAL(wp) :: &                    !< Critical value for normalized supersaturation in turbulent cloud scheme
     &  range_q_crit
 
-  REAL(wp) :: &                    !< Upper and lower bound of wind-speed dependent Charnock parameter 
+  REAL(wp) :: &                    !< Upper and lower bound of wind-speed dependent Charnock parameter
     &  range_charnock
 
   REAL(wp) :: &                    !< Scaling factor for latent heat nudging increments
@@ -229,7 +229,7 @@ MODULE mo_ensemble_pert_nml
   REAL(wp) :: &                    !< Upper limit for increase of existing latent heating in LHN
     &  range_fac_lhn_up
 
-  REAL(wp) :: &                    !< Roughness length attributed to land-cover class 
+  REAL(wp) :: &                    !< Roughness length attributed to land-cover class
     &  range_z0_lcc
 
   REAL(wp) :: &                    !< Root depth related to land-cover class
@@ -281,16 +281,16 @@ CONTAINS
 
   !-------------------------------------------------------------------------
   !
-  !! Read Namelist for NWP ensemble perturbations. 
+  !! Read Namelist for NWP ensemble perturbations.
   !!
-  !! This subroutine 
+  !! This subroutine
   !! - reads the Namelist for NWP ensemble perturbations
   !! - sets default values
-  !! - potentially overwrites the defaults by values used in a 
+  !! - potentially overwrites the defaults by values used in a
   !!   previous integration (if this is a resumed run)
   !! - reads the user's (new) specifications
   !! - stores the Namelist for restart
-  !! - fills the configuration state (partly)   
+  !! - fills the configuration state (partly)
   !!
   SUBROUTINE read_ensemble_pert_namelist( filename )
 
@@ -302,7 +302,7 @@ CONTAINS
       &  routine = 'mo_ensemble_pert_nml: read_ensemble_pert_namelist'
 
     !-----------------------
-    ! 1. default settings   
+    ! 1. default settings
     !-----------------------
 
     ! Ranges for ensemble perturbations:
@@ -396,14 +396,14 @@ CONTAINS
                                     ! 1: equal distribution within perturbation range
                                     ! 2: use either default or extrema of perturbation range
     timedep_pert      = 0           ! 0: no time-dependence of ensemble perturbations
-                                    ! 1: perturbations depend on start date, but remain fixed during forecast 
+                                    ! 1: perturbations depend on start date, but remain fixed during forecast
                                     ! 2: time-dependent perturbations varying sinusoidally within their range
     fac_rng_spinup    = 1           ! factor for RNG spinup calls
 
     stdev_sst_pert    = 0._wp       ! No compensation for SST perturbations is applied by default
 
     !------------------------------------------------------------------
-    ! 2. If this is a resumed integration, overwrite the defaults above 
+    ! 2. If this is a resumed integration, overwrite the defaults above
     !    by values used in the previous integration.
     !------------------------------------------------------------------
     IF (use_restart_namelists()) THEN
@@ -508,8 +508,8 @@ CONTAINS
     !-----------------------------------------------------
     IF(my_process_is_stdio())  THEN
       funit = open_tmpfile()
-      WRITE(funit,NML=ensemble_pert_nml)                    
-      CALL store_and_close_namelist(funit, 'ensemble_pert_nml')             
+      WRITE(funit,NML=ensemble_pert_nml)
+      CALL store_and_close_namelist(funit, 'ensemble_pert_nml')
     ENDIF
 
     !--------------------------------------------------------

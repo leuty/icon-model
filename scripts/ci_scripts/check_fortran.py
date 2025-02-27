@@ -96,7 +96,9 @@ def main():
             if omp_sentinel_string:
                 files_with_omp_sentinels.append((filepath, omp_sentinel_string))
             if interlined_use_string:
-                files_with_interlined_uses.append((filepath, interlined_use_string))
+                files_with_interlined_uses.append(
+                    (filepath, interlined_use_string)
+                )
 
     exit_code = 0
 

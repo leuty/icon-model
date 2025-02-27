@@ -67,7 +67,7 @@ MODULE mo_nh_interface_nwp
   USE mo_util_phys,               ONLY: tracer_add_phytend, inversion_height_index
   USE mo_lnd_nwp_config,          ONLY: ntiles_total, ntiles_water
   USE mo_cover_koe,               ONLY: cover_koe, cover_koe_config
-  USE mo_satad,                   ONLY: satad_v_3D, satad_v_3D_gpu 
+  USE mo_satad,                   ONLY: satad_v_3D, satad_v_3D_gpu
   USE mo_thdyn_functions,         ONLY: latent_heat_sublimation
   USE mo_aerosol_util,            ONLY: prog_aerosol_2D
   USE mo_radiation,               ONLY: radheat, pre_radiation_nwp
@@ -304,7 +304,7 @@ CONTAINS
     REAL(wp) :: p_sim_time      !< elapsed simulation time on this grid level
 
     LOGICAL :: lcalc_inv
-    
+
     ! SCM Nudging
     REAL(wp) :: nudgecoeff
 
@@ -387,7 +387,7 @@ CONTAINS
 
     ! Inversion height is calculated only if the threshold is set to a non-default value
     lcalc_inv = tune_sc_eis < 1000._wp
-    
+
     IF(sppt_config(jg)%lsppt .AND. .NOT. linit) THEN
       ! Construct field of random numbers for SPPT
       CALL construct_rn (pt_patch, mtime_datetime, sppt_config(jg), sppt(jg)%rn_3d, &
@@ -469,7 +469,7 @@ CONTAINS
         CALL diag_temp (pt_prog, pt_prog_rcf, condensate_list, pt_diag,      &
           &             jb, i_startidx, i_endidx, 1, kstart_moist(jg), nlev, &
           &             lacc=lacc)
-        
+
         CALL diag_pres (pt_prog, pt_diag, p_metrics, jb, i_startidx, i_endidx, 1, nlev, &
           &             lacc=lacc)
 
@@ -628,7 +628,7 @@ CONTAINS
            & klo      = kstart_moist(jg)               ,& !> IN
            & kup      = nlev                            & !> IN
            )
- 
+
         CALL calc_qsum (pt_prog_rcf%tracer, z_qsum, condensate_list, jb, i_startidx, i_endidx, 1, kstart_moist(jg), nlev, &
            &            lacc=lacc)
 
@@ -1216,7 +1216,7 @@ CONTAINS
       !$ser verbatim IF (.not. linit) CALL serialize_all(nproma, jg, "turbtrans", .FALSE., opt_dt=mtime_datetime)
 
       IF (timers_level > 1) CALL timer_stop(timer_nwp_turbulence)
- 
+
     ENDIF !lcall(itturb)
 
     ! Calculate tendencies - temperatures and tracers
@@ -1263,7 +1263,7 @@ CONTAINS
       ENDDO
 !$OMP END DO NOWAIT
 !$OMP END PARALLEL
-      
+
     ENDIF ! end of lsppt
 
     !!-------------------------------------------------------------------------
@@ -1437,7 +1437,7 @@ CONTAINS
 &              kcinv  = kc_inversion         (:)          ,       & !! in:  inversion height index
 &              linversion = lfound_inversion (:)          ,       & !! in:  inversion height logical
 &              peis     = prm_diag%conv_eis  (:,jb)       ,       & !! in:  estimated inversion strength
-&              fac_ccqc = prm_diag%fac_ccqc  (:,jb)       ,       & !! in:  factor for CLC-QC relationship (for EPS perturbations) 
+&              fac_ccqc = prm_diag%fac_ccqc  (:,jb)       ,       & !! in:  factor for CLC-QC relationship (for EPS perturbations)
 &              pmfude_rate = prm_diag%con_udd(:,:,jb,3)   ,       & !! in:  convective updraft detrainment rate
 &              plu         = prm_diag%con_udd(:,:,jb,7)   ,       & !! in:  updraft condensate
 &              pcore       = prm_diag%con_udd(:,:,jb,8)   ,       & !! in:  updraft core fraction
@@ -1467,7 +1467,7 @@ CONTAINS
 &                rho    = pt_prog%rho          (:,:,jb)     ,       & !! in:  density
 &                qv     = pt_prog_rcf%tracer   (:,:,jb,iqv) ,       & !! in:  water vapor
 &                dusta  = pt_prog_rcf%tracer   (:,:,jb,art_atmo%idust_insol_acc) ,  & !! in:  dust_insol_acc (resp. dusta)
-&                dustb  = pt_prog_rcf%tracer   (:,:,jb,art_atmo%idust_insol_coa) ,  & !! in:  dust_insol_coa (resp. dustb) 
+&                dustb  = pt_prog_rcf%tracer   (:,:,jb,art_atmo%idust_insol_coa) ,  & !! in:  dust_insol_coa (resp. dustb)
 &                dustc  = pt_prog_rcf%tracer   (:,:,jb,art_atmo%idust_giant) ,      & !! in:  dust_giant     (resp. dustc)
 &                dustyci_crit = art_config(jg)%rart_dustyci_crit ,  & !! in:  dust threshold for dusty cirrus
 &                dustyci_rhi  = art_config(jg)%rart_dustyci_rhi  ,  & !! in:  rhi  threshold for dusty cirrus
@@ -1494,20 +1494,20 @@ CONTAINS
 
     !! Call effective radius diagnostic calculation for every cloud cover time step to achieve consistency
     !! between qc_dia, qi_dia and reff's. This also updates clc_rad, the special clc_diagnostic
-    !! for radiation and satellite operators (MEC and synsats). 
+    !! for radiation and satellite operators (MEC and synsats).
     !! clc_rad is a copy of clc, but modified in the presence of large hydrometeors in a way
     !! that it is set to 1.0 if qr, qs or qg are present. The latter is needed by the
     !! radiation schemes and RTTOV in order to correctly take into account the radiative
     !! effects of these grid-scale hydrometeors.
 
     IF ( lcall_phy_jg(itccov) .AND. atm_phy_nwp_config(jg)%icalc_reff > 0 ) THEN
-      
+
       !$ser verbatim IF (.not. linit) CALL serialize_all(nproma, jg, "set_reff", .TRUE., opt_dt=mtime_datetime)
       IF (msg_level >= 15) CALL message('mo_nh_interface', 'effective radius')
 
       IF (timers_level > 10) CALL timer_start(timer_phys_reff)
 
-      CALL set_reff( prm_diag, pt_patch, pt_prog, pt_diag, ext_data, p_metrics=p_metrics) 
+      CALL set_reff( prm_diag, pt_patch, pt_prog, pt_diag, ext_data, p_metrics=p_metrics)
 
       IF (  atm_phy_nwp_config(jg)%icpl_rad_reff == 1 .AND. atm_phy_nwp_config(jg)%icalc_reff /= 101 ) THEN
 
@@ -1544,7 +1544,7 @@ CONTAINS
 #endif
 
         IF ( lcall_phy_jg(itrad) ) THEN
-          
+
           IF (ltimer) CALL timer_start(timer_nwp_radiation)
           !$ser verbatim IF (.not. linit) CALL serialize_all(nproma, jg, "radiation", .TRUE., opt_dt=mtime_datetime)
           CALL nwp_radiation (lredgrid,              & ! in

@@ -97,7 +97,7 @@ MODULE mo_pp_tasks
   USE mo_advection_config,        ONLY: advection_config
   USE mo_fortran_tools,           ONLY: init, copy, assert_acc_device_only, assert_acc_host_only
 
-  ! Workaround for SMI computation. Not nice, however by making 
+  ! Workaround for SMI computation. Not nice, however by making
   ! direct use of the states below, we avoid enhancing the type t_data_input.
   USE mo_nwp_lnd_state,           ONLY: p_lnd_state
   USE mo_ext_data_state,          ONLY: ext_data
@@ -114,13 +114,13 @@ MODULE mo_pp_tasks
   INTEGER, PARAMETER, PUBLIC :: MAX_NAME_LENGTH   =   256
 
   ! priority levels for tasks (smaller is earlier):
-  INTEGER, PARAMETER, PUBLIC  :: HIGH_PRIORITY     =    0  
-  INTEGER, PARAMETER, PUBLIC  :: DEFAULT_PRIORITY0 =    8  
-  INTEGER, PARAMETER, PUBLIC  :: DEFAULT_PRIORITY1 =    9   
-  INTEGER, PARAMETER, PUBLIC  :: DEFAULT_PRIORITY2 =   10  
-  INTEGER, PARAMETER, PUBLIC  :: DEFAULT_PRIORITY3 =   11  
-  INTEGER, PARAMETER, PUBLIC  :: DEFAULT_PRIORITY4 =   12  
-  INTEGER, PARAMETER, PUBLIC  :: LOW_PRIORITY      =  100  
+  INTEGER, PARAMETER, PUBLIC  :: HIGH_PRIORITY     =    0
+  INTEGER, PARAMETER, PUBLIC  :: DEFAULT_PRIORITY0 =    8
+  INTEGER, PARAMETER, PUBLIC  :: DEFAULT_PRIORITY1 =    9
+  INTEGER, PARAMETER, PUBLIC  :: DEFAULT_PRIORITY2 =   10
+  INTEGER, PARAMETER, PUBLIC  :: DEFAULT_PRIORITY3 =   11
+  INTEGER, PARAMETER, PUBLIC  :: DEFAULT_PRIORITY4 =   12
+  INTEGER, PARAMETER, PUBLIC  :: LOW_PRIORITY      =  100
 
   ! level of output verbosity
   INTEGER, PUBLIC :: dbg_level = 0
@@ -160,12 +160,12 @@ MODULE mo_pp_tasks
     ! pointer for model variable (array)
     TYPE (t_var),            POINTER :: var
     INTEGER                          :: jg ! domain ID
-    TYPE(t_patch),           POINTER :: p_patch         
-    TYPE(t_int_state),       POINTER :: p_int_state     
-    TYPE(t_nh_state),        POINTER :: p_nh_state      
-    TYPE(t_nwp_phy_diag),    POINTER :: prm_diag        
-    TYPE(t_nh_opt_diag),     POINTER :: p_nh_opt_diag   
-    TYPE(t_nh_pzlev_config), POINTER :: nh_pzlev_config 
+    TYPE(t_patch),           POINTER :: p_patch
+    TYPE(t_int_state),       POINTER :: p_int_state
+    TYPE(t_nh_state),        POINTER :: p_nh_state
+    TYPE(t_nwp_phy_diag),    POINTER :: prm_diag
+    TYPE(t_nh_opt_diag),     POINTER :: p_nh_opt_diag
+    TYPE(t_nh_pzlev_config), POINTER :: nh_pzlev_config
   END TYPE t_data_input
 
 
@@ -212,7 +212,7 @@ MODULE mo_pp_tasks
   !
   !  Jobs with smaller priority values are processed first.
   TYPE t_job_queue
-    
+
     INTEGER                         :: job_priority   !< Task priority.
     CHARACTER(len=MAX_NAME_LENGTH)  :: job_name       !< job name string (for status output)
     INTEGER                         :: job_type       !< task type (quasi function pointer)
@@ -328,7 +328,7 @@ CONTAINS
         ! --------------------------------------
 
         IF (zaxisTypeList%is_2d(p_info%vgrid)) THEN
-          ! A 2D variable (nproma, nblks) is copied a to 1-level 3D variable 
+          ! A 2D variable (nproma, nblks) is copied a to 1-level 3D variable
           ! (nproma, nlevs=1, nblks). This requires a temporary variable:
 
           var_ref_pos = 3
@@ -359,7 +359,7 @@ CONTAINS
             CALL finish(routine, "internal error!")
           ENDIF
           tmp_ptr => tmp_var(:,:,:)
-          
+
         ELSE
 
           var_ref_pos = 4
@@ -409,7 +409,7 @@ CONTAINS
         ! --------------
 
         IF (zaxisTypeList%is_2d(p_info%vgrid)) THEN
-          ! A 2D variable (nproma, nblks) is copied a to 1-level 3D variable 
+          ! A 2D variable (nproma, nblks) is copied a to 1-level 3D variable
           ! (nproma, nlevs=1, nblks). This requires a temporary variable:
           var_ref_pos = 3
           IF (in_var%info%lcontained)  var_ref_pos = in_var%info%var_ref_pos
@@ -596,7 +596,7 @@ CONTAINS
           IF (in_var%info%lcontained) in_var_idx = in_var%info%ncontained
           IF (zaxisTypeList%is_2d(p_info%vgrid) .AND. (p_info%ndims /= 2)) &
             &  CALL finish(routine, "Inconsistent dimension info!")
-          IF (dbg_level >= 10) & 
+          IF (dbg_level >= 10) &
                CALL message(routine, "synchronize variable "//TRIM(p_info%name))
           SELECT CASE (p_info%hgrid)
           CASE (GRID_UNSTRUCTURED_CELL)
@@ -713,7 +713,7 @@ CONTAINS
     CHARACTER(*), PARAMETER :: routine = modname//"::pp_task_ipzlev_setup"
     INTEGER                            :: jg, nzlev, nplev, nilev
     TYPE(t_patch),             POINTER :: p_patch
-    TYPE(t_nh_metrics),        POINTER :: p_metrics    
+    TYPE(t_nh_metrics),        POINTER :: p_metrics
 
     ! prognostic state: note that we only use p_prog(nnow(jg))
     TYPE(t_nh_prog),           POINTER :: p_prog
@@ -742,7 +742,7 @@ CONTAINS
     nplev          =  nh_pzlev_config%plevels%nvalues
     nilev          =  nh_pzlev_config%ilevels%nvalues
 
-    ! build data structure "vcoeff" containing coefficient tables                      
+    ! build data structure "vcoeff" containing coefficient tables
     SELECT CASE ( ptr_task%job_type )
     CASE ( TASK_INIT_VER_Z )
       IF (dbg_level >= 10)  CALL message(routine, "TASK_INIT_VER_Z")
@@ -793,7 +793,7 @@ CONTAINS
       &  in_var_ref_pos, out_var_ref_pos,         &
       &  dim1, dim2, dim3
     TYPE(t_patch),             POINTER :: p_patch
-    TYPE(t_nh_metrics),        POINTER :: p_metrics    
+    TYPE(t_nh_metrics),        POINTER :: p_metrics
     TYPE(t_nh_diag),           POINTER :: p_diag
     TYPE(t_nh_diag_pz),        POINTER :: p_diag_pz
     TYPE(t_nwp_phy_diag),      POINTER :: prm_diag
@@ -894,17 +894,17 @@ CONTAINS
     CASE DEFAULT
       CALL finish(routine, "Unknown post-processing job.")
     END SELECT
-                     
+
     ! interpolation flags + parameters
     pzlev_flags => in_var%info%vert_interp
-    l_hires_intp      = pzlev_flags%l_hires_intp      
-    l_restore_fricred = pzlev_flags%l_restore_fricred 
-    l_loglin          = pzlev_flags%l_loglin          
-    l_extrapol        = pzlev_flags%l_extrapol        
-    l_satlimit        = pzlev_flags%l_satlimit        
-    l_restore_pbldev  = pzlev_flags%l_restore_pbldev  
+    l_hires_intp      = pzlev_flags%l_hires_intp
+    l_restore_fricred = pzlev_flags%l_restore_fricred
+    l_loglin          = pzlev_flags%l_loglin
+    l_extrapol        = pzlev_flags%l_extrapol
+    l_satlimit        = pzlev_flags%l_satlimit
+    l_restore_pbldev  = pzlev_flags%l_restore_pbldev
     l_pd_limit        = pzlev_flags%l_pd_limit
-    lower_limit       = pzlev_flags%lower_limit       
+    lower_limit       = pzlev_flags%lower_limit
 
     !-- perform some consistency checks
     IF (p_info%ndims /= 3) &
@@ -913,17 +913,17 @@ CONTAINS
       CALL finish(routine, "Interpolation coefficients not yet initialized!")
 
     SELECT CASE ( p_info%hgrid )
-    CASE (GRID_UNSTRUCTURED_CELL) 
+    CASE (GRID_UNSTRUCTURED_CELL)
       nblks  = p_patch%nblks_c
       npromz = p_patch%npromz_c
-      ! 
+      !
       vcoeff_lin        => vcoeff%lin_cell
       vcoeff_lin_nlevp1 => vcoeff%lin_cell_nlevp1
       vcoeff_cub        => vcoeff%cub_cell
       in_z3d            => p_z3d
       in_z_mc           => p_metrics%z_mc
 
-    CASE (GRID_UNSTRUCTURED_EDGE) 
+    CASE (GRID_UNSTRUCTURED_EDGE)
       nblks  = p_patch%nblks_e
       npromz = p_patch%npromz_e
       !
@@ -964,7 +964,7 @@ CONTAINS
         &       tmp_var, lacc=lacc)
       !$OMP END PARALLEL
 
-      in_ptr => tmp_var(:,:,:) 
+      in_ptr => tmp_var(:,:,:)
     ELSE
       CALL finish (routine, 'internal error!')
     ENDIF
@@ -974,7 +974,7 @@ CONTAINS
     out_ptr => get_3d_general(out_var%wp_ptr, (/out_var_idx,1/), squash_dims)
 
     SELECT CASE ( p_info%hgrid )
-    CASE (GRID_UNSTRUCTURED_CELL, GRID_UNSTRUCTURED_EDGE) 
+    CASE (GRID_UNSTRUCTURED_CELL, GRID_UNSTRUCTURED_EDGE)
       ! consistency check:
       IF ((UBOUND(in_ptr,1) > nproma)              .OR.  &
         & (UBOUND(in_ptr,2) > UBOUND(in_ptr, 2))   .OR.  &
@@ -989,7 +989,7 @@ CONTAINS
     IF (.NOT. ((nblks == 0) .OR. ((nblks == 1) .AND. (npromz == 0)))) THEN
 
       !$ACC DATA PRESENT(in_ptr, out_ptr)
-    
+
       SELECT CASE ( vert_intp_method )
       CASE ( VINTP_METHOD_VN )
         IF (dbg_level > 15)  CALL message(routine, "VINTP_METHOD_VN")
@@ -1008,7 +1008,7 @@ CONTAINS
           &          l_hires_intp=l_hires_intp,                                     & !in
           &          l_restore_fricred=l_restore_fricred, lacc=.TRUE. )               !in
         !
-      CASE ( VINTP_METHOD_LIN )        
+      CASE ( VINTP_METHOD_LIN )
         IF (dbg_level > 15)  CALL message(routine, "VINTP_METHOD_LIN")
         IF (.NOT. ASSOCIATED(vcoeff_lin)) CALL finish(routine, "Internal error!")
         CALL lin_intp(in_ptr,                                                       & !in
@@ -1022,7 +1022,7 @@ CONTAINS
           &           l_extrapol=l_extrapol, l_pd_limit=l_pd_limit,                 & !in
           &           lower_limit=lower_limit, lacc=.TRUE. )                          !in
         !
-      CASE ( VINTP_METHOD_LIN_NLEVP1 )        
+      CASE ( VINTP_METHOD_LIN_NLEVP1 )
         IF (dbg_level > 15)  CALL message(routine, "VINTP_METHOD_LIN_NLEVP1")
         IF (.NOT. ASSOCIATED(vcoeff_lin_nlevp1)) CALL finish(routine, "Internal error!")
         CALL lin_intp(in_ptr,                                                       & !in
@@ -1087,9 +1087,9 @@ CONTAINS
   SUBROUTINE pp_task_intp_msl(ptr_task, lacc)
     TYPE(t_job_queue), POINTER, INTENT(INOUT) :: ptr_task
     LOGICAL, INTENT(IN), OPTIONAL :: lacc ! If true, use openacc
-    ! local variables    
+    ! local variables
     CHARACTER(*), PARAMETER :: routine = modname//"::pp_task_intp_msl"
-    INTEGER,  PARAMETER :: nzlev         =        1     ! just a single z-level... 
+    INTEGER,  PARAMETER :: nzlev         =        1     ! just a single z-level...
     REAL(wp), PARAMETER :: ZERO_HEIGHT   =    0._wp, &
       &                    EXTRAPOL_DIST = -500._wp
 
@@ -1098,7 +1098,7 @@ CONTAINS
     TYPE (t_var), POINTER :: in_var, out_var
     TYPE(t_var_metadata),      POINTER :: p_info
     TYPE(t_patch),             POINTER :: p_patch
-    TYPE(t_nh_metrics),        POINTER :: p_metrics    
+    TYPE(t_nh_metrics),        POINTER :: p_metrics
     TYPE(t_nh_diag),           POINTER :: p_diag
 
     REAL(wp) :: pmsl_aux(nproma,1,ptr_task%data_input%p_patch%nblks_c), &
@@ -1134,7 +1134,7 @@ CONTAINS
     !$ACC DATA CREATE(pmsl_aux, pmsl_avg)
 
     SELECT CASE (itype_pres_msl)
-    CASE (PRES_MSL_METHOD_SAI) ! stepwise analytical integration 
+    CASE (PRES_MSL_METHOD_SAI) ! stepwise analytical integration
 
       IF (dbg_level >= 10)  CALL message(routine, "PRES_MSL_METHOD_SAI: stepwise analytical integration")
 
@@ -1151,7 +1151,7 @@ CONTAINS
         &                 lacc=.TRUE.                                         & !in
         & )
 
-      ! Interpolate pressure on z-level "0": 
+      ! Interpolate pressure on z-level "0":
       CALL diagnose_pmsl(p_diag%pres, p_diag%tempv, p_metrics%z_mc,           &
         &                pmsl_aux(:,1,:),                                     &
         &                nblks_c, npromz_c, p_patch%nlev,                     &
@@ -1252,10 +1252,10 @@ CONTAINS
     TYPE(t_nwp_phy_diag),      POINTER :: prm_diag
     CHARACTER(*), PARAMETER :: routine = modname//"::pp_task_compute_field"
     LOGICAL :: lclip                   ! limit rh to MAX(rh,100._wp)
-    
+
     ! output field for this task
     out_var   => ptr_task%data_output%var
-    p_info    => out_var%info    
+    p_info    => out_var%info
     out_var_idx = 1
     IF (out_var%info%lcontained)  out_var_idx = out_var%info%ncontained
 
@@ -1300,10 +1300,10 @@ CONTAINS
     CASE (TASK_COMPUTE_OMEGA)
       CALL compute_field_omega(p_patch, p_prog, &
         &                      out_var%wp_ptr(:,:,:,out_var_idx,1), lacc=lacc)
-    
+
     CASE (TASK_COMPUTE_PV)
       CALL compute_field_pv(p_patch, p_int_state(jg),                  &
-        &   ptr_task%data_input%p_nh_state%metrics, p_prog, p_diag,    &  
+        &   ptr_task%data_input%p_nh_state%metrics, p_prog, p_diag,    &
         &   out_var%wp_ptr(:,:,:,out_var_idx,1), lacc=lacc)
 
     CASE (TASK_COMPUTE_SDI2)
@@ -1387,7 +1387,7 @@ CONTAINS
 #endif
       CALL compute_field_wshear( p_patch, ptr_task%data_input%p_nh_state%metrics, &
            &                     p_diag%u, wshear_uv_heights(1:n_wshear), out_var%wp_ptr(:,:,:,out_var_idx,1) )
-      
+
     CASE (TASK_COMPUTE_WSHEAR_V)
 #ifdef _OPENACC
       CALL finish(routine, 'not yet ported postproc TASK_COMPUTE_WSHEAR_V for variable '//TRIM(p_info%name) )
@@ -1421,7 +1421,7 @@ CONTAINS
            &                  z_up_shear    = 5750.0_wp, &
            &                  dz_shear      = 500.0_wp,  &
            &                  srh           = out_var%wp_ptr(:,:,:,out_var_idx,1) )
-     
+
     CASE DEFAULT
       CALL finish(routine, 'Internal error!')
     END SELECT

@@ -268,7 +268,7 @@ CONTAINS
   !! data (atmosphere only) interpolated horizontally by ICONREMAP to
   !! the ICON grid
   !!
-  !! SOURCE data taken from initicon%atm_in: 
+  !! SOURCE data taken from initicon%atm_in:
   !! z3d (psfc or log(psfc), phi_sfc), temp, vn (u,v), qv, qc, qi, qr, qs, pres, w (omega), tke
   !! Alternatives are given in brackets.
   !! - if z3d is not available, it is derived from (psfc or log(psfc), phi_sfc)
@@ -284,8 +284,8 @@ CONTAINS
   !!       allows skipping all computations requiring MPI synchronization
   !!
   !!
-  !! Fields are vertically interpolated onto the ICON vertical grid 
-  !! and stored in the initicon%atm state. They are finally converted into the following 
+  !! Fields are vertically interpolated onto the ICON vertical grid
+  !! and stored in the initicon%atm state. They are finally converted into the following
   !! set of prognostic variables:
   !! vn, w, qv, qc, qi, qr, qs, rho, exner, theta_v
   !!
@@ -309,7 +309,7 @@ CONTAINS
 
     INTEGER :: jg
     INTEGER :: nlev, nlevp1, idx
-    INTEGER :: nlev_in         ! number of vertical levels in source vgrid 
+    INTEGER :: nlev_in         ! number of vertical levels in source vgrid
     LOGICAL :: lc2f, l_use_vn, latbcmode, linputonzgpot
 
     ! Auxiliary fields for input data
@@ -408,9 +408,9 @@ CONTAINS
       linputonzgpot = .FALSE.
     ENDIF
 
-    ! (Deep atmosphere: 
-    ! The 'z_mc_in'-field is the geopotential height in case of IFS-date. For the shallow atmosphere geopotential 
-    ! and geometric height coincide. Unfortunately this does no longer hold for the deep atmosphere. 
+    ! (Deep atmosphere:
+    ! The 'z_mc_in'-field is the geopotential height in case of IFS-date. For the shallow atmosphere geopotential
+    ! and geometric height coincide. Unfortunately this does no longer hold for the deep atmosphere.
     ! So a further step is required in which geopotential height is transformed into geometric height.)
     IF (ldeepatmo .AND. linputonzgpot) THEN
       CALL deepatmo_htrafo(z_inout=initicon%const%z_mc_in,                                             &
@@ -445,10 +445,10 @@ CONTAINS
     IF (.NOT. ASSOCIATED(initicon%const%z_mc_in)) THEN
        CALL finish(routine, "Internal error: z_mc_in not associated!")
     END IF
-    ! (Deep atmosphere: it is assumed here and in the following 
-    ! that the weighting factors computed in 'prepare_...(_intp)' result from 
-    ! a pure distance weighting (along coordinate lines etc.), 
-    ! so no deep-atmosphere modification is applied, this would have to be reconsidered, 
+    ! (Deep atmosphere: it is assumed here and in the following
+    ! that the weighting factors computed in 'prepare_...(_intp)' result from
+    ! a pure distance weighting (along coordinate lines etc.),
+    ! so no deep-atmosphere modification is applied, this would have to be reconsidered,
     ! if the weighting would be regarded as a volume weighting)
     CALL prepare_lin_intp(z_mc_in, initicon%const%z_mc,                     &
                           p_patch%nblks_c, p_patch%npromz_c, nlev_in, nlev, &
@@ -485,9 +485,9 @@ CONTAINS
                           opt_lmask=opt_lmask_c, lacc=.FALSE. )
 
     ! (Extrapolate temperature to upper atmosphere
-    ! Note: the following subroutine is a post-processing routine, 
+    ! Note: the following subroutine is a post-processing routine,
     ! it has to be positioned after 'temperature_intp'!
-    ! This applies to the remaining extrapolations as well.)                     
+    ! This applies to the remaining extrapolations as well.)
     IF (lexpol) CALL expol%temp(p_patch, initicon%atm%temp)
 
 
@@ -551,7 +551,7 @@ CONTAINS
     ENDIF
 
     ! This synchronization is executed in the calling routine in latbc mode
-    ! (Postpone 'sync' to after extrapolation below in case 
+    ! (Postpone 'sync' to after extrapolation below in case
     ! upper-atmosphere extrapolation has been switched on)
     IF (.NOT. latbcmode .AND. (.NOT. lexpol)) CALL sync_patch_array(SYNC_E,p_patch,initicon%atm%vn,lacc=.FALSE.)
 
@@ -614,7 +614,7 @@ CONTAINS
     ENDDO
 
     ! (Extrapolate water phases, except for water vapour 'qv', to upper atmosphere.
-    ! Note: this is only done for subroutine-internal use, 
+    ! Note: this is only done for subroutine-internal use,
     ! see the final treatment of the 'qx' in 'mo_initicon_utils: copy_initicon2prog_atm')
     IF (lexpol) CALL expol%qx(p_patch, initicon%atm%qc, initicon%atm%qi, initicon%atm%qr, initicon%atm%qs)
 
@@ -628,7 +628,7 @@ CONTAINS
       &                        p_patch%nblks_c, p_patch%npromz_c, nlev, nlev_in,       &
       &                        wfac_lin, idx0_lin, bot_idx_lin, opt_lmask=opt_lmask_c)
 
-    ! (Extrapolate pressure to upper atmosphere) 
+    ! (Extrapolate pressure to upper atmosphere)
     IF (lexpol) CALL expol%pres(p_patch, initicon%atm%pres, z_tempv, p_metrics)
 
 
@@ -651,16 +651,16 @@ CONTAINS
     CALL pressure_intp_initmode(initicon%atm_in%pres, temp_v_in, z_mc_in,              &
       &                        initicon%atm%pres, z_tempv, initicon%const%z_mc,        &
       &                        p_patch%nblks_c, p_patch%npromz_c, nlev, nlev_in,       &
-      &                        wfac_lin, idx0_lin, bot_idx_lin, opt_lmask=opt_lmask_c) 
+      &                        wfac_lin, idx0_lin, bot_idx_lin, opt_lmask=opt_lmask_c)
 
-    ! (In case of an upper-atmosphere extrapolation, 'hydro_adjust' should not be called 
-    ! in 'src/atm_dyn_iconam/mo_initicon_utils: copy_initicon2prog_atm', so it has to be done here. 
-    ! In its current form, this can be covered by 'expol%pres', 
-    ! but be careful, if you change something here or there.) 
+    ! (In case of an upper-atmosphere extrapolation, 'hydro_adjust' should not be called
+    ! in 'src/atm_dyn_iconam/mo_initicon_utils: copy_initicon2prog_atm', so it has to be done here.
+    ! In its current form, this can be covered by 'expol%pres',
+    ! but be careful, if you change something here or there.)
     IF (lexpol) THEN
       CALL expol%pres(p_patch, initicon%atm%pres, z_tempv, p_metrics, opt_slev=1, opt_elev=nlev)
-      ! (Below, the extrapolation of vn requires the horizontal pressure gradient, 
-      ! but 'initicon%atm%pres' should have been processed on the entire grid, so no sync should be necessary) 
+      ! (Below, the extrapolation of vn requires the horizontal pressure gradient,
+      ! but 'initicon%atm%pres' should have been processed on the entire grid, so no sync should be necessary)
     ENDIF
 
 
@@ -669,12 +669,12 @@ CONTAINS
                          initicon%atm%rho, initicon%atm%exner,   &
                          initicon%atm%theta_v)
 
-    ! (The extrapolation of 'vn' makes use of the geostrophic balance, 
+    ! (The extrapolation of 'vn' makes use of the geostrophic balance,
     ! so it should be computed after the thermodynamic state has been settled.)
     IF (lexpol) THEN
       CALL expol%vn(p_patch, initicon%atm%vn, initicon%atm%theta_v, initicon%atm%exner, p_metrics, p_int)
       IF (.NOT. latbcmode) CALL sync_patch_array(SYNC_E,p_patch,initicon%atm%vn,lacc=.FALSE.)
-    ENDIF    
+    ENDIF
 
 
     ! Compute coefficients for w interpolation
@@ -1118,7 +1118,7 @@ CONTAINS
 
     CALL assert_acc_device_only("prepare_extrap_ifspp", lacc)
 
-    ! Use extrapolation from 150 m AGL if one of the IFS methods is selected, and 
+    ! Use extrapolation from 150 m AGL if one of the IFS methods is selected, and
     ! orography-height dependent blending between 10 m and 150 m AGL if the new DWD
     ! method is selected (which constitutes a mixture between the IFS method and the old GME method)
     SELECT CASE (itype_pres_msl)
@@ -1176,7 +1176,7 @@ CONTAINS
 
           IF (z3d_in(jc,jk,jb)  >= z3d_h_in(jc,nlevs_in+1,jb)+zextrap(jc,jb) .AND. &
               z3d_in(jc,jk+1,jb) < z3d_h_in(jc,nlevs_in+1,jb)+zextrap(jc,jb) .OR.  &
-              kextrap(jc,jb) == -1 .AND. jk == nlevs_in-1) THEN 
+              kextrap(jc,jb) == -1 .AND. jk == nlevs_in-1) THEN
             kextrap(jc,jb) = jk
             wfac_extrap(jc,jb) = (z3d_h_in(jc,nlevs_in+1,jb)+zextrap(jc,jb) - z3d_in(jc,jk+1,jb)) / &
                                  (z3d_in(jc,jk,jb)                          - z3d_in(jc,jk+1,jb))
@@ -1616,8 +1616,8 @@ CONTAINS
       IF (istat /= SUCCESS) CALL finish(routine, 'deepatmo_htrafo failed')
       z_in  => zgpot_in
       z_out => zgpot_out
-      ! Note: the heights above ground level, 'zpbl1', 'zpbl2', 'zextrap' and heights derived from them 
-      ! have relatively low values (~ 1 km), so no deep-atmosphere modification is applied to them. 
+      ! Note: the heights above ground level, 'zpbl1', 'zpbl2', 'zextrap' and heights derived from them
+      ! have relatively low values (~ 1 km), so no deep-atmosphere modification is applied to them.
       ! (Put another way: we regard 'zpbl1', 'zpbl2', and 'zextrap' to represent geopotential heights.)
     ENDIF
 
@@ -1892,7 +1892,7 @@ CONTAINS
       z_out => z3d_out
     ELSE
       ALLOCATE(zgpot_in(nproma, nlevs_in,  nblks), zgpot_out(nproma, nlevs_out, nblks), STAT=istat)
-      IF (istat /= SUCCESS) CALL finish('mo_nh_vert_interp: pressure_intp_initmode', 'Allocation of zgpot failed') 
+      IF (istat /= SUCCESS) CALL finish('mo_nh_vert_interp: pressure_intp_initmode', 'Allocation of zgpot failed')
       ! Compute geopotential heights in case of the deep atmosphere
       CALL deepatmo_htrafo(z_in=z3d_out, z_out=zgpot_out, nblks_nproma_npromz=[nblks,nproma,npromz], &
         & start_end_levels=[1,nlevs_out], radius=grid_sphere_radius, trafo_type='z2zgpot', ierror=istat, lacc=.FALSE.)
@@ -2026,7 +2026,7 @@ CONTAINS
     NULLIFY(z_in, z_out)
     IF (ldeepatmo) THEN
       DEALLOCATE(zgpot_in, zgpot_out, STAT=istat)
-      IF (istat /= SUCCESS) CALL finish('mo_nh_vert_interp: pressure_intp_initmode', 'Deallocation of zgpot failed') 
+      IF (istat /= SUCCESS) CALL finish('mo_nh_vert_interp: pressure_intp_initmode', 'Deallocation of zgpot failed')
     ENDIF
 
   END SUBROUTINE pressure_intp_initmode

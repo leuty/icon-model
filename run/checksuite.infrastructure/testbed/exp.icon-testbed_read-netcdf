@@ -40,7 +40,7 @@ nproma=32
 # input: namelist_filename
 # ------------------------
 # For a complete list see Namelist_overview and Namelist_overview.pdf
-#  
+#
 create_namelist()
 {
 namelist_filename=$1
@@ -64,7 +64,7 @@ cat > $namelist_filename << EOF
  nsteps      = 1            ! [day] length of run
  dtime       = 300          ! [s] timestep
  ldynamics   = .TRUE.       ! dynamics
- ltransport  = .FALSE.      ! transport 
+ ltransport  = .FALSE.      ! transport
  iforcing    = 0            ! no forcing
  ltestcase   = .TRUE.       ! run testcase
  output="none",

@@ -588,7 +588,9 @@ def generate_version_c(srcdir=None, subdirs=None, stream=None):
         version_summary = icon_version_summary
         if is_repo_root(path):
             version_summary = get_version_summary(path)
-        version_c_lines.append(apply_element_template(name, path, version_summary))
+        version_c_lines.append(
+            apply_element_template(name, path, version_summary)
+        )
 
     version_c_lines.append(FOOTER)
 
@@ -645,18 +647,24 @@ def _main():
     args = _parse_args()
 
     if not args.output:
-        generate_version_c(srcdir=args.srcdir, subdirs=args.subdirs, stream=sys.stdout)
+        generate_version_c(
+            srcdir=args.srcdir, subdirs=args.subdirs, stream=sys.stdout
+        )
     elif not os.path.exists(args.output):
         with open(args.output, "w") as version_c_stream:
             generate_version_c(
-                srcdir=args.srcdir, subdirs=args.subdirs, stream=version_c_stream
+                srcdir=args.srcdir,
+                subdirs=args.subdirs,
+                stream=version_c_stream,
             )
     else:
         import io
 
         version_c_string_stream = io.StringIO()
         generate_version_c(
-            srcdir=args.srcdir, subdirs=args.subdirs, stream=version_c_string_stream
+            srcdir=args.srcdir,
+            subdirs=args.subdirs,
+            stream=version_c_string_stream,
         )
         version_c_content = version_c_string_stream.getvalue()
         with open(args.output, "r+") as version_c_file_stream:

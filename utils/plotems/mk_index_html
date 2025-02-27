@@ -18,7 +18,7 @@ mk_index_html - Create a static HTML index page for directory or file list
 
 =head1 SYNOPSIS
 
-B<mk_index_html> [I<option>]... [I<file>]... 
+B<mk_index_html> [I<option>]... [I<file>]...
 
 =head1 DESCRIPTION
 

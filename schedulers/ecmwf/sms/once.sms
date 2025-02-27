@@ -26,17 +26,17 @@
 %end
 
 # include the header file for remote jobs
-%include <init_sc.h> 
+%include <init_sc.h>
 
 # -------------------------------------------------
 
 echo "ONCE.SMS"
 
 # Create setup directory on cca and copy ICON namelist there
- 
+
 if [[ %NENS% -eq 0 ]]
-then 
- 
+then
+
   SETDIRTMP=%SCTEMP%/%SUITE%/%EXPNUM%/output/setup
   mkdir -p ${SETDIRTMP}
 

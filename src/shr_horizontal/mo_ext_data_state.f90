@@ -379,7 +379,7 @@ CONTAINS
 
       IF (islope_rad(jg) >= 2) THEN
         CALL message(routine, 'adding horizon angle - topography')
-        ! horizon angle from flat topography in nhori sectors 
+        ! horizon angle from flat topography in nhori sectors
         !
         ! horizon     p_ext_atm%horizon(nproma,nblks_c,nhori)
         cf_desc    = t_cf_var('horizon angle - topography', 'deg',      &
@@ -1903,7 +1903,7 @@ CONTAINS
     !SST and sea ice fraction
     !--------------------------------
     SELECT CASE (sstice_mode)
-      CASE (SSTICE_ANA_CLINC)  ! SST is read from analysis and is updated by climatological increments 
+      CASE (SSTICE_ANA_CLINC)  ! SST is read from analysis and is updated by climatological increments
                                ! on a daily basis. Therefore, sst_m is required to store the monthly fields
         ! sst_m     p_ext_atm_td%sst_m(nproma,nblks_c,ntimes)
         cf_desc    = t_cf_var('sst_m', 'K', &

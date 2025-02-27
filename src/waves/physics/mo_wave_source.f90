@@ -478,7 +478,7 @@ CONTAINS
       CALL get_indices_c( p_patch, jb, i_startblk, i_endblk,           &
         &                 i_startidx, i_endidx, i_rlstart, i_rlend)
 
-      ! calculation of BB (Hrms / Hmax)**2 BB = 8.*EMEAN/(GAMD*DEPTH)**2 
+      ! calculation of BB (Hrms / Hmax)**2 BB = 8.*EMEAN/(GAMD*DEPTH)**2
       DO jc = i_startidx, i_endidx
         hrms_frac(jc,jb) = 8.0_wp * emean(jc,jb)/(gamd*depth_c(jc,jb))**2
       END DO

@@ -40,14 +40,14 @@ MODULE mo_nh_testcase_interface
 CONTAINS
 
   !>
-  !! Interface for non-hydrostatic testcases 
+  !! Interface for non-hydrostatic testcases
   !!
-  !! Interface for non-hydrostatic testcases, 
+  !! Interface for non-hydrostatic testcases,
   !! which require some kind of update during the time integration.
   !!
   SUBROUTINE nh_testcase_interface( dt_loc,                  &  !in
     &                               sim_time,                &  !in
-    &                               p_patch,                 &  !in 
+    &                               p_patch,                 &  !in
     &                               p_nh_state,              &  !inout
     &                               p_int_state,             &  !in
     &                               jstep_adv_marchuk_order  )  !in
@@ -65,16 +65,16 @@ CONTAINS
 
     CHARACTER(len=*), PARAMETER ::  &
       &  routine = modname//':nh_testcase_interface'
-    
+
     !--------------------------------------------------------------
 
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-    ! NOTE: a query for 'ltestcase_update' encompasses the calls of this subroutine. 
-    ! Please, update the determination of 'ltestcase_update' 
-    ! in 'src/testcases/mo_nh_testcases: init_nh_testcase', 
+    ! NOTE: a query for 'ltestcase_update' encompasses the calls of this subroutine.
+    ! Please, update the determination of 'ltestcase_update'
+    ! in 'src/testcases/mo_nh_testcases: init_nh_testcase',
     ! if you add another testcase here. Otherwise no update will take place!
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-    
+
     ! Domain index
     jg = p_patch%id
 
@@ -86,7 +86,7 @@ CONTAINS
       !----------------------------------------------------
 
       SELECT CASE ( TRIM(nh_test_name) )
-        
+
       CASE ('PA') ! Solid body rotation
 
 #ifdef _OPENACC
@@ -102,7 +102,7 @@ CONTAINS
           &                p_nh_state%prog(nnew(jg))%w,  &  !inout
           &                p_nh_state%diag%pres,         &  !inout
           &                p_nh_state%diag%rho_ic        )  !inout
-        
+
       CASE ('DF1', 'DF2', 'DF3', 'DF4') ! deformational flow
 
 #ifdef _OPENACC
@@ -115,8 +115,8 @@ CONTAINS
          &                      nh_test_name,               &  !in
          &                      rotate_axis_deg,            &  !in
          &                      sim_time-0.5_wp*dt_loc      )  !in
-        
-        
+
+
         ! Get mass flux and new \rho. The latter one is only computed,
         ! if the density equation is re-integrated.
         CALL integrate_density_pa( p_patch,                    &  !in
@@ -129,14 +129,14 @@ CONTAINS
           &                        jstep_adv_marchuk_order,    &  !in
           &                        lcoupled_rho                )  !in
 
-        
-        
+
+
       CASE ('DCMIP_PA_12', 'dcmip_pa_12')
 
 !#ifdef _OPENACC
 !        CALL finish (routine, 'Test DCMIP_PA_12 - Hadley-like meridional circulation: OpenACC version currently not implemented')
 !#endif
-              
+
         ! Get velocity field for the DCMIP Hadley-like meridional circulation test
         ! (centered in time)
         !

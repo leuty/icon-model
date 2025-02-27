@@ -55,14 +55,14 @@ MODULE mo_nwp_ecrad_utilities
                                    &   iband_vis_ecrad, weight_vis_ecrad,        &
                                    &   nweight_par_ecrad, iband_par_ecrad,       &
                                    &   weight_par_ecrad,                         &
-                                   &   ecrad_hyd_list,                           &   
+                                   &   ecrad_hyd_list,                           &
                                    &   ecrad_iqc, ecrad_iqi, ecrad_iqr,          &
                                    &   ecrad_iqs, ecrad_iqg
 #endif
 
   USE mo_exception,              ONLY: message
   USE mo_grid_config,            ONLY: l_scm_mode
-  USE mo_scm_nml,                ONLY: lon_scm, lat_scm 
+  USE mo_scm_nml,                ONLY: lon_scm, lat_scm
 
   IMPLICIT NONE
 
@@ -316,7 +316,7 @@ CONTAINS
     TYPE(t_ecrad_thermodynamics_type), INTENT(inout) :: &
       &  ecrad_thermodynamics     !< ecRad thermodynamics information
     TYPE(t_geographical_coordinates), INTENT(in), TARGET :: &
-      &  cell_center(:)           !< lon/lat information of cell centers 
+      &  cell_center(:)           !< lon/lat information of cell centers
     REAL(wp), TARGET, INTENT(in) :: &
       &  qc(:,:),               & !< Total cloud water (gridscale + subgridscale)
       &  qi(:,:)                  !< Total cloud ice   (gridscale + subgridscale)
@@ -363,7 +363,7 @@ CONTAINS
     INTEGER                  :: &
       &  iqc_loc, iqi_loc         !< indices for water and ice in ecrad_hyd_list
     LOGICAL                  :: &
-      &  l_large_hyd              !< large hydrometeors change cloud fraction / small have max/min limits 
+      &  l_large_hyd              !< large hydrometeors change cloud fraction / small have max/min limits
     LOGICAL                  :: &
       &  is_bad = .FALSE.         !< Return value of ecRad-internal physical consistency checks
 
@@ -394,7 +394,7 @@ CONTAINS
       ! Shonk et al. (2010) but smoothed over the equator
       zcos_lat     = COS(ptr_center(jc)%lat)
       zdecorr(jc)  = decorr_pole + (decorr_equator-decorr_pole) * zcos_lat*zcos_lat
-    ENDDO 
+    ENDDO
     !$ACC END PARALLEL
 
     CALL assert_acc_device_only("ecrad_set_clouds", lacc)
@@ -454,9 +454,9 @@ CONTAINS
             CASE( ecrad_iqg )
               ptr_qx => qg
               ptr_reff_x => reff_graupel
-              l_large_hyd = .true.           
+              l_large_hyd = .true.
           END SELECT
-          
+
           IF ( l_large_hyd) THEN ! Large hydrometeors update
             DO jk = 1, nlev
               DO jc = i_startidx, i_endidx
@@ -466,7 +466,7 @@ CONTAINS
                 ELSE
                   ecrad_cloud%mixing_ratio(jc,jk,iqx) = 0.0_wp
                 ENDIF
-                ecrad_cloud%effective_radius(jc,jk,iqx) = ptr_reff_x(jc,jk) 
+                ecrad_cloud%effective_radius(jc,jk,iqx) = ptr_reff_x(jc,jk)
               END DO
             END DO
           ELSE ! Small hydrometeors update
@@ -493,7 +493,7 @@ CONTAINS
           END SELECT
         END DO
 
- 
+
         DO jk = 1, nlev
           DO jc = i_startidx, i_endidx
             IF (clc(jc,jk) > clc_min ) THEN
@@ -551,8 +551,8 @@ CONTAINS
         !$ACC LOOP GANG VECTOR COLLAPSE(2)
         DO jk = 1, nlev
           DO jc = i_startidx, i_endidx
-            ecrad_cloud%re_liq(jc,jk) = MAX(MIN(reff_liq(jc,jk),32.0e-6_wp),2.0e-6_wp)  
-            ecrad_cloud%re_ice(jc,jk) = MAX(MIN(reff_frz(jc,jk),99.0e-6_wp),5.0e-6_wp) 
+            ecrad_cloud%re_liq(jc,jk) = MAX(MIN(reff_liq(jc,jk),32.0e-6_wp),2.0e-6_wp)
+            ecrad_cloud%re_ice(jc,jk) = MAX(MIN(reff_frz(jc,jk),99.0e-6_wp),5.0e-6_wp)
           ENDDO
         ENDDO
         !$ACC END PARALLEL
@@ -592,7 +592,7 @@ CONTAINS
   !!   11        : Read ozone from SCM input instead of here.
   !! The finish calls in case default should never trigger as the values for irad_xyz
   !! were already checked in mo_nml_crosscheck.
-  !! 
+  !!
   !! Care has to be taken for the indices that are passed to ecRad:
   !! - Values outside i_startidx:i_endidx are not initialized and must not be accessed
   !! - This interval might be smaller than jcs:jce
@@ -741,8 +741,8 @@ CONTAINS
         CALL finish(routine, 'Current implementation only supports irad_ch4 = 0, 2, 3, 4')
     END SELECT
 
-    ! The following gases are currently not filled from the ICON side. Although they are set to 0 inside ecrad, 
-    ! they are set to 0 here for completeness. 
+    ! The following gases are currently not filled from the ICON side. Although they are set to 0 inside ecrad,
+    ! they are set to 0 here for completeness.
     CALL ecrad_gas%put_well_mixed(ecRad_IHCFC22,IVolumeMixingRatio, 0._wp, istartcol=i_startidx, iendcol=i_endidx)
     CALL ecrad_gas%put_well_mixed(ecRad_ICCl4,  IVolumeMixingRatio, 0._wp, istartcol=i_startidx, iendcol=i_endidx)
 
@@ -854,7 +854,7 @@ CONTAINS
       !$ACC LOOP GANG VECTOR COLLAPSE(2)
       DO jk = 1, nlevp1
         DO jc = i_startidx, i_endidx
-          IF ( cosmu0mask(jc) ) THEN 
+          IF ( cosmu0mask(jc) ) THEN
             ! solar transmissivity, all sky, net down
             trsolall(jc,jk)     = (ecrad_flux%sw_dn(jc,jk)-ecrad_flux%sw_up(jc,jk))/cosmu0(jc)
           ENDIF
@@ -864,7 +864,7 @@ CONTAINS
       ENDDO
       !$ACC END PARALLEL
 
-      IF (atm_phy_nwp_config(jg)%l_3d_rad_fluxes) THEN    
+      IF (atm_phy_nwp_config(jg)%l_3d_rad_fluxes) THEN
         !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1)
         !$ACC LOOP GANG VECTOR COLLAPSE(2)
         DO jk = 1, nlevp1
@@ -872,7 +872,7 @@ CONTAINS
             ! LW/SW, up/down, all/clear 3D fluxes
             lwflx_up    (jc,jk)   = ecrad_flux%lw_up(jc,jk)
             lwflx_dn    (jc,jk)   = ecrad_flux%lw_dn(jc,jk)
-  
+
             swflx_up    (jc,jk)   = ecrad_flux%sw_up(jc,jk)       *zsct
             swflx_dn    (jc,jk)   = ecrad_flux%sw_dn(jc,jk)       *zsct
             lwflx_up_clr(jc,jk)   = ecrad_flux%lw_up_clear(jc,jk)
@@ -1110,7 +1110,7 @@ CONTAINS
   !>
   !! Function create_rdm_seed:
   !! Create a unique but reproducable random seed for the McICA solver
-  !! 
+  !!
   !! -------Algorithm taken from IFS, courtesy of R.J. Hogan-------
   !! This method gives a unique value for roughly every 1-km square
   !! on the globe and every minute.  (lat * rad2deg) gives rough
@@ -1121,7 +1121,7 @@ CONTAINS
   !! values.  The result can be contained in a 32-byte integer (but
   !! since random numbers are generated with the help of integer
   !! overflow, it should not matter if the number did overflow).
-  !! 
+  !!
   !! A more simple algorithm using the sum of int(lat), int(lon) and
   !! int(simtime) creates stripe patterns in the instantaneous fluxes.
   !! --------------------------------------------------------------
@@ -1156,7 +1156,7 @@ CONTAINS
     REAL(wp)                :: &
       &  reff_crystal_min,     & !< Minimum value ice crystal effective radius
       &  reff_crystal_max        !< Maximum value ice crystal effective radius
-    
+
     ! Minimum and maximum value (derived from file ECHAM6_CldOptProps.nc)
     reff_crystal_min = 4._wp
     reff_crystal_max = 99._wp ! 124._wp < modified as values > 100 mu m lead to crashes in ecRad
@@ -1302,7 +1302,7 @@ CONTAINS
 
     INTEGER, INTENT(IN)  :: i_startidx, i_endidx
     INTEGER, INTENT(IN)  :: jb_rad
-    
+
     INTEGER, INTENT(OUT) :: jcs, jce
     INTEGER, INTENT(OUT) :: i_startidx_rad, i_endidx_rad
 
@@ -1311,7 +1311,7 @@ CONTAINS
     INTEGER, INTENT(OUT), OPTIONAL :: jnps, jnpe
     INTEGER, INTENT(OUT), OPTIONAL :: i_startidx_sub, i_endidx_sub
 
-    jcs = nproma_sub*(jb_rad-1) + 1 
+    jcs = nproma_sub*(jb_rad-1) + 1
     jce = MIN(nproma_sub*jb_rad, nproma)
 
     i_startidx_rad = MAX(i_startidx-jcs+1, 1)

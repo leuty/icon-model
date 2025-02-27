@@ -15,7 +15,7 @@ MODULE mo_aes_cop_nml
 
   USE mo_aes_cop_config   ,ONLY: aes_cop_config, init_aes_cop_config
   USE mo_process_nml      ,ONLY: process_nml
-  
+
   IMPLICIT NONE
   PRIVATE
   PUBLIC :: process_aes_cop_nml

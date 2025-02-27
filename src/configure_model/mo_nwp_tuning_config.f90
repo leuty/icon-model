@@ -77,13 +77,13 @@ MODULE mo_nwp_tuning_config
   PUBLIC :: max_calibfac_clcl
   PUBLIC :: max_freshsnow_inc
   PUBLIC :: tune_eiscrit
-  PUBLIC :: tune_sc_eis  
+  PUBLIC :: tune_sc_eis
   PUBLIC :: tune_sc_invmin
   PUBLIC :: tune_sc_invmax
   PUBLIC :: tune_dursun_scaling
   PUBLIC :: tune_sbmccn
   PUBLIC :: tune_urbahf, tune_urbisa
-  
+
   !!--------------------------------------------------------------------------
   !! Basic configuration setup for physics tuning
   !!--------------------------------------------------------------------------
@@ -123,11 +123,11 @@ MODULE mo_nwp_tuning_config
 
   REAL(wp) :: &                    !< factor in the terminal velocity for snow
     &  tune_v0snow
-  
+
   REAL(wp) :: &                    !< efficiency for cloud-graupel riming
     &  tune_zcsg
 
-  REAL(wp) :: &                    !< Terminal fall velocity of ice 
+  REAL(wp) :: &                    !< Terminal fall velocity of ice
     &  tune_zvz0i
 
   REAL(wp) :: &                    !< Exponent for density correction of cloud ice sedimentation
@@ -136,13 +136,13 @@ MODULE mo_nwp_tuning_config
   REAL(wp) :: &                    !< [0-1] scaling factor to reduce the ccn concentration initial profile with respect to the polluted case
     &  tune_sbmccn
 
-  REAL(wp) :: &                    !< Entrainment parameter for deep convection valid at dx=20 km 
+  REAL(wp) :: &                    !< Entrainment parameter for deep convection valid at dx=20 km
     &  tune_entrorg
 
-  REAL(wp) :: &                    !< Coefficient for conversion of cloud water into precipitation in convection scheme 
+  REAL(wp) :: &                    !< Coefficient for conversion of cloud water into precipitation in convection scheme
     &  tune_rprcon
 
-  REAL(wp) :: &                    !< Maximum allowed shallow convection depth (Pa) 
+  REAL(wp) :: &                    !< Maximum allowed shallow convection depth (Pa)
     &  tune_rdepths
 
   REAL(wp) :: &                    !< Fraction of CAPE diurnal cycle correction applied in the extratropics
@@ -265,7 +265,7 @@ MODULE mo_nwp_tuning_config
   INTEGER :: &                     !< slope-dependent tuning of parameters affecting stable PBLs
     &  itune_slopecorr             ! 1: slope-dependent reduction of rlam_heat and near-surface tkhmin
 
-  INTEGER :: &                     !< type of artificial ozone tuning 
+  INTEGER :: &                     !< type of artificial ozone tuning
     &  itune_o3                    ! 0: no tuning
                                    ! 1: old tuning for RRTM radiation
                                    ! 2: (default) standard tuning for EcRad with RRTM gas optics
@@ -280,7 +280,7 @@ MODULE mo_nwp_tuning_config
 
   REAL(wp) :: &                    !< maximum allowed positive freshsnow increment
        &  max_freshsnow_inc
-  
+
   REAL(wp) :: &                    !< critical threshold for lower tropospheric stability (K)
        &  tune_eiscrit             !< to switch off conv param in stratocumulus regions
 
@@ -299,7 +299,7 @@ MODULE mo_nwp_tuning_config
   REAL(wp) :: &                    !< tuning of anthropogenic heat flux
        &  tune_urbahf(4)
 
-  REAL(wp) :: &                    !< lower and upper bound for variable ISA paraeterization 
+  REAL(wp) :: &                    !< lower and upper bound for variable ISA paraeterization
        &  tune_urbisa(2)           !< depending on smoothed urban fraction
 
 !  END TYPE t_nwp_tuning_config

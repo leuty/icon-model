@@ -125,13 +125,13 @@ MODULE ppm_distributed_array
   TYPE iptr
     INTEGER(i4), ALLOCATABLE, DIMENSION(:) :: lst
     INTEGER :: maxelem
-  END TYPE iptr 
+  END TYPE iptr
   TYPE i8ptr
     INTEGER(i8), ALLOCATABLE, DIMENSION(:) :: lst
-  END TYPE i8ptr 
+  END TYPE i8ptr
   TYPE dpptr
     REAL(dp), ALLOCATABLE, DIMENSION(:) :: lst
-  END TYPE dpptr 
+  END TYPE dpptr
   INTEGER :: comm_0_cnt, comm_0_cnt_dp
   INTEGER,ALLOCATABLE :: comm_cnt(:), comm_cnt_dp(:)
   TYPE(iptr), ALLOCATABLE :: comm_lst(:)
@@ -146,7 +146,7 @@ MODULE ppm_distributed_array
   ! variables for a more intelligent allocation process
   INTEGER :: lstblksizei4 = 100
   INTEGER :: lstblksizedp = 100
-  
+
   PUBLIC :: recv_array, proc_lst, ind_lst
   PUBLIC :: recv_array_dp, proc_lst_dp, ind_lst_dp
 #endif
@@ -783,7 +783,7 @@ CONTAINS
     INTEGER :: start_dist
 
     ! load dist that was successful in last last call
-    start_dist = old_dist 
+    start_dist = old_dist
 #endif
 
     comm_rank = dm_array%comm_rank
@@ -1277,8 +1277,8 @@ CONTAINS
     INTEGER, INTENT(in) :: sub_array
     INTEGER, INTENT(in) :: coord(:)
     INTEGER(i4), INTENT(out) :: v
-    INTEGER, INTENT(inout) :: proc 
-    INTEGER, INTENT(inout) :: ind 
+    INTEGER, INTENT(inout) :: proc
+    INTEGER, INTENT(inout) :: ind
 
     INTEGER(mpi_address_kind) :: byte_offset, ofs_factor
     INTEGER :: coord_base(7), a_rank, i
@@ -1321,7 +1321,7 @@ CONTAINS
 #endif
     ELSE
       comm_cnt(src_comm_rank) = comm_cnt(src_comm_rank) + 1
-      IF (comm_cnt(src_comm_rank) > comm_lst(src_comm_rank)%maxelem) THEN 
+      IF (comm_cnt(src_comm_rank) > comm_lst(src_comm_rank)%maxelem) THEN
         !NEC: reallocation procedure in order to save some memory; tuned, to be efficient
         IF (ALLOCATED(comm_lst(src_comm_rank)%lst)) THEN
           omaxsize = comm_lst(src_comm_rank)%maxelem
@@ -1351,7 +1351,7 @@ CONTAINS
   SUBROUTINE dist_mult_init_blk_comm(dim1, dim2, dim3, dm_array)
     TYPE(dist_mult_array), INTENT(in) :: dm_array
     INTEGER, INTENT(in) :: dim1, dim2, dim3
-    !comm_max = dim1 * dim2 * dim3 
+    !comm_max = dim1 * dim2 * dim3
     ALLOCATE(comm_cnt(0:dm_array%comm_size-1), comm_lst(0:dm_array%comm_size-1), &
              recv_array(0:dm_array%comm_size-1), index_int_array(0:dm_array%comm_size-1))
     comm_lst(:)%maxelem = 0
@@ -1383,7 +1383,7 @@ CONTAINS
         ALLOCATE(recv_array(i)%lst(comm_cnt(i)))
         call MPI_GET(recv_array(i)%lst, comm_cnt(i), MPI_INTEGER, &
                      i, 0_mpi_address_kind, 1, index_int_array(i), &
-                     dm_array%win, ierr) 
+                     dm_array%win, ierr)
       END IF
     END DO
     DEALLOCATE(ones)
@@ -3068,8 +3068,8 @@ CONTAINS
     INTEGER, INTENT(in) :: sub_array
     INTEGER, INTENT(in) :: coord(:)
     REAL(dp), INTENT(out) :: v
-    INTEGER, INTENT(inout) :: proc 
-    INTEGER, INTENT(inout) :: ind 
+    INTEGER, INTENT(inout) :: proc
+    INTEGER, INTENT(inout) :: ind
 
     INTEGER(mpi_address_kind) :: byte_offset, ofs_factor
     INTEGER :: coord_base(7), a_rank, i
@@ -3146,7 +3146,7 @@ CONTAINS
     TYPE(dist_mult_array), INTENT(in) :: dm_array
     INTEGER, INTENT(in) :: dim1, dim2, dim3
 
-    !comm_max_dp = dim1 * dim2 * dim3 
+    !comm_max_dp = dim1 * dim2 * dim3
     ALLOCATE(comm_cnt_dp(0:dm_array%comm_size-1), comm_lst_dp(0:dm_array%comm_size-1), &
              recv_array_dp(0:dm_array%comm_size-1), index_dbl_array(0:dm_array%comm_size-1))
     comm_lst_dp(:)%maxelem=0
@@ -3177,7 +3177,7 @@ CONTAINS
         ALLOCATE(recv_array_dp(i)%lst(comm_cnt_dp(i)))
         call MPI_GET(recv_array_dp(i)%lst, comm_cnt_dp(i), MPI_DOUBLE_PRECISION, &
                      i, 0_mpi_address_kind, 1, index_dbl_array(i), &
-                     dm_array%win, ierr) 
+                     dm_array%win, ierr)
       END IF
     END DO
     DEALLOCATE(ones)

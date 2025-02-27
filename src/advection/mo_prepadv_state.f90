@@ -70,7 +70,7 @@ CONTAINS
 
 
     ! Allocate pointer arrays prep_adv, as well as the corresponding list arrays.
-    !   
+    !
     ALLOCATE(prep_adv(n_dom), prep_adv_list(n_dom),STAT=ist)
     IF(ist/=SUCCESS)THEN
       CALL finish (TRIM(routine), 'allocation of prep_adv array and list failed')
@@ -163,7 +163,7 @@ CONTAINS
     nlevp1 = p_patch%nlevp1
 
     ibits        = DATATYPE_PACK16   ! "entropy" of horizontal slice
-    datatype_flt = DATATYPE_FLT32 
+    datatype_flt = DATATYPE_FLT32
 
     shape3d_e     = (/nproma, nlev          , nblks_e /)
     shape3d_chalf = (/nproma, nlevp1        , nblks_c /)
@@ -291,4 +291,3 @@ CONTAINS
 
 
 END MODULE mo_prepadv_state
-

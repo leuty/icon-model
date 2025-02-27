@@ -107,11 +107,11 @@ CONTAINS
         &  CALL finish(routine,'could not close '//maxwinds_filename)
     END IF
   END SUBROUTINE finalize_supervise_nh
-  
+
 
   !-----------------------------------------------------------------------------
   !! supervise_total_integrals_nh
-  
+
   SUBROUTINE supervise_total_integrals_nh( k_step, patch, nh_state, int_state, ntimlev, ntimlev_rcf, l_last_step, lacc)
 
     INTEGER,                  INTENT(IN) :: k_step            ! actual time step
@@ -659,7 +659,7 @@ CONTAINS
     CALL message('',message_text)
 
     ! --- Print-out of max winds to an ASCII file.
-    ! 
+    !
     !     This requires namelist setting 'run_nml::output = "maxwinds"'
 
     IF (output_mode%l_maxwinds .AND. my_process_is_stdio()) THEN
@@ -790,7 +790,7 @@ CONTAINS
     !$ACC WAIT
     !$ACC END DATA
 
-! At this point vn_aux and w_aux reside on the host.  
+! At this point vn_aux and w_aux reside on the host.
 ! Avoid doing MAXVAL with OpenACC -- this is not well supported!
 #ifndef __SX__
 !$OMP DO PRIVATE(jk) ICON_OMP_DEFAULT_SCHEDULE
@@ -903,10 +903,10 @@ CONTAINS
   !>
   !! Compute surface pressure time tendency abs(dpsdt)
   !!
-  !! Compute surface pressure time tendency. If desired, 
-  !! a spacial average is computed for the domain given 
-  !! and written to the log file. 
-  !! 
+  !! Compute surface pressure time tendency. If desired,
+  !! a spacial average is computed for the domain given
+  !! and written to the log file.
+  !!
   SUBROUTINE compute_dpsdt (pt_patch, dt, pt_diag, lacc)
 
     TYPE(t_patch),       INTENT(IN)    :: pt_patch     !< grid/patch info
@@ -999,5 +999,3 @@ CONTAINS
   END SUBROUTINE compute_dpsdt
 
 END MODULE mo_nh_supervise
-
-

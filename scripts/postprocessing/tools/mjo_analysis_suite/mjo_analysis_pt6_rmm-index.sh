@@ -21,7 +21,7 @@
 #     and provides required information on
 #     dimensions etc.
 #   * NCL Script
-#     - Reads PC1/2 as created by  
+#     - Reads PC1/2 as created by
 #       mjo_analysis_clivar_correlations.ncl
 #     - Creates RMM-Diagram for each Season
 #
@@ -29,7 +29,7 @@
 # DWD, FE 13, Julia Keller, 02/2016
 ########################################################
 
-# Extract year from Strt-/LastDate    
+# Extract year from Strt-/LastDate
 yrstrt=${StrtDate:0:4}
 yrlast=${LastDate:0:4}
 yr=$yrstrt
@@ -38,14 +38,14 @@ echo $yrlast
 
 while [ $yr -lt ${yrlast} ]
 do
-  for seas in summer winter 
+  for seas in summer winter
   do
     case ${seas} in
-      "summer") 
+      "summer")
              rmmStrt=${yr}0401
              rmmLast=${yr}0930
        ;;
-      "winter") 
+      "winter")
              rmmStrt=${yr}1001
              yr=`expr $yr + 1 `
              rmmLast=${yr}0331
@@ -61,10 +61,7 @@ do
         ymdLast=$rmmLast  \
         'datainfo="'${dataset}'"' \
         mjo_analysis_clivar_rmm-index.ncl
-        
+
   done
 
 done
-
-
-

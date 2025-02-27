@@ -21,7 +21,7 @@
 #
 #-----------------------------------------------------------------------------
 #
-# submit: 
+# submit:
 #   qsub run_ICONAM_R2B4_NWP
 #   qstat | grep mkoehler
 #   nqstat
@@ -95,8 +95,8 @@ nsteps=`expr ${ndays} \* 86400 / ${dtime}`
 
 DT_DATA=`expr 12 \* 3600  `   # output each 12 hours
 #DT_DIAG=`expr 24 \* 3600  `   # ascii diagnostic output each 24 hours
-#DT_DATA=`expr 6  \* 3600  ` 
-#DT_DATA=600           
+#DT_DATA=`expr 6  \* 3600  `
+#DT_DATA=600
 
 #-----------------------------------------------------------------------------
 # directories
@@ -121,9 +121,9 @@ atmo_namelist=NAMELIST_${EXPNAME}
 #-----------------------------------------------------------------------------
 # determine architecture
 
-#arch=sx9-nec-superux-sx9ftr 
-#arch=sx9-nec-superux-sx9debug 
-arch=sx9-nec-superux-sx9mpidebug 
+#arch=sx9-nec-superux-sx9ftr
+#arch=sx9-nec-superux-sx9debug
+arch=sx9-nec-superux-sx9mpidebug
 #arch=sx9-nec-superux-sx9omp
 #arch=sx9-nec-superux-sx9mpiomp
 
@@ -248,22 +248,22 @@ cat > ${EXPDIR}/${atmo_namelist} << EOF
  filetype           = 2                        ! output format: 2=GRIB2, 4=NETCDFv2
  dom                = -1                       ! output for all subdomains
  output_time_unit   = 1                        ! 1: seconds, 2: minute, 3: hour, 4: day, 5: month, 6: year
- output_bounds      = 0., 1000000., ${DT_DATA} ! start, end, increment 
+ output_bounds      = 0., 1000000., ${DT_DATA} ! start, end, increment
  steps_per_file     = 60
  mode               = 1                        ! 1: forecast mode (relative time axis), 2: climate mode (absolute time axis)
  include_last       = .TRUE.
  output_filename    = '${EXPNAME}_icon${res}'  ! file name base
- ml_varlist         = 
+ ml_varlist         =
     'temp','u','v','w','pres','pres_sfc',
     'qv','qc','qi','qr','qs','o3',
     'tot_cc','tot_qv','tot_qc','tot_qi'
     'TCC','TQV','TQC','TQI',
-    'tot_prec','rain_gsp','rain_con','snow_gsp','snow_con',   
+    'tot_prec','rain_gsp','rain_con','snow_gsp','snow_con',
     'U_10M','V_10M',
     'ACCSHFL_S','ACCLHFL_S',
     'ACCTHB_S','ACCTHB_T','ACCSOB_S','ACCSOB_T',
-    'ddt_temp_radsw', 'ddt_temp_radlw', 
-    'ddt_temp_turb', 'ddt_temp_drag', 'ddt_temp_pconv', 
+    'ddt_temp_radsw', 'ddt_temp_radlw',
+    'ddt_temp_turb', 'ddt_temp_drag', 'ddt_temp_pconv',
     'ddt_u_turb',    'ddt_u_sso',     'ddt_u_gwd',      'ddt_u_pconv',
     'ddt_v_turb',    'ddt_v_sso',     'ddt_v_gwd',      'ddt_v_pconv',
     'ddt_qv_turb',   'ddt_qv_conv'
@@ -301,7 +301,7 @@ cat > ${EXPDIR}/${atmo_namelist} << EOF
  output_grid        = .FALSE.
  map_file           = "/e/uhome/mkoehler/icon-dev/run/mapfile_vlist.txt"
 !namespace          = "DWD"                              ! may give problems with metview - leave default ecmwf
-/ 
+/
 &meteogram_output_nml
  lmeteogram_enabled= .TRUE.
  n0_mtgrm          = 0              ! meteogram initial time step (0 is first step!)
@@ -354,7 +354,7 @@ cat > ${EXPDIR}/${atmo_namelist} << EOF
 /
 &lnd_nml
  ntiles           = 1       ! number of tiles
- lana_rho_snow    = .TRUE.  ! true: initialization of rho_snow and depth_snow, false: set rho_snow to default value 
+ lana_rho_snow    = .TRUE.  ! true: initialization of rho_snow and depth_snow, false: set rho_snow to default value
  lmulti_snow      = .FALSE. ! true: multi-level snow, false: single-level snow
  lsnowtile        = .FALSE. ! true: allow separate snow and snow-free tiles
  nlev_snow        = 2       ! 2 for multi-level snow
@@ -419,7 +419,7 @@ l_mono_c2l        = .true.    ! monotonicity enforced during latlon interpolatio
  denom_diffu_v    = 150.
 /
 &extpar_nml
- itopo                = 1     ! 0 for aqua-planet, 1 for realistic topography   
+ itopo                = 1     ! 0 for aqua-planet, 1 for realistic topography
  n_iter_smooth_topo   = 3
  heightdiff_threshold = 1800.
 /
@@ -513,8 +513,8 @@ cp /e/uhome/treinhar/ICON/rrtmg_lw.nc                                     ${EXPD
 # start experiment
 
 cd ${EXPDIR}
-mpirun -nn \$NODES -nnp \$NMPITASKS ./icon.exe   # MPI+OpenMP: -b 1, cpunum_job=8, OMP_NUM_THREADS=1, NMPITASKS=8 
-#time ./icon.exe                                 # OpenMP:     -b 1, cpunum_job=8, OMP_NUM_THREADS=8, NMPITASKS=1 
+mpirun -nn \$NODES -nnp \$NMPITASKS ./icon.exe   # MPI+OpenMP: -b 1, cpunum_job=8, OMP_NUM_THREADS=1, NMPITASKS=8
+#time ./icon.exe                                 # OpenMP:     -b 1, cpunum_job=8, OMP_NUM_THREADS=8, NMPITASKS=1
 
 #-----------------------------------------------------------------------------
 # check return code
@@ -552,7 +552,7 @@ if [[ $ldata = 1 ]] ; then
     outfile2=${EXPNAME}_icon${res}_DOM01_${inidate}_${levtype}_0001.grb
     mv $outfile1 $outfile2
   done
-  
+
   outfile1=METEOGRAM_patch001.nc
   outfile2=${EXPNAME}_icon${res}_DOM01_${inidate}_0001_meteogram.nc
   mv $outfile1 $outfile2
@@ -615,7 +615,7 @@ if [[ $lcpdata = 1 ]] ; then
 #fixes:
   for levtype in sfc ml pl zl ; do
     for bad in unknown '~' ; do
-      if [[ -f    grb_data/${EXPNAME}_icon${res}_DOM01_${inidate}_0001_${bad}_${levtype}.grb ]] ; then     
+      if [[ -f    grb_data/${EXPNAME}_icon${res}_DOM01_${inidate}_0001_${bad}_${levtype}.grb ]] ; then
         grib_copy grb_data/${EXPNAME}_icon${res}_DOM01_${inidate}_0001_${bad}_${levtype}.grb \
                   grb_data/${EXPNAME}_icon${res}_DOM01_${inidate}_0001_[discipline].[parameterCategory].[parameterNumber]_${levtype}.grb
         \rm -rf   grb_data/${EXPNAME}_icon${res}_DOM01_${inidate}_0001_${bad}_${levtype}.grb
@@ -637,7 +637,7 @@ fi
 
 EXPNUM=`echo ${EDIR} | cut -c 4-5`
 if [[ $lmetview = 1 ]] ; then
-  case $inidate in 
+  case $inidate in
     2011010100) ssh -n -f oflws144 ". /opt/grib_api/.grib_api_environment ; /fe1-daten/mkoehler/metview/ICON/many.error.s 20110101 00 20110101 00  1 ${res} ${EXPNUM} > /uwork1/mkoehler/wq/o.icon.metview.1 2>&1 &" ;;
     2011010200) ssh -n -f oflws144 ". /opt/grib_api/.grib_api_environment ; /fe1-daten/mkoehler/metview/ICON/many.error.s 20110101 00 20110102 00  1 ${res} ${EXPNUM} > /uwork1/mkoehler/wq/o.icon.metview.2 2>&1 &" ;;
     2011010300) ssh -n -f oflws144 ". /opt/grib_api/.grib_api_environment ; /fe1-daten/mkoehler/metview/ICON/many.error.s 20110101 00 20110103 00  1 ${res} ${EXPNUM} > /uwork1/mkoehler/wq/o.icon.metview.3 2>&1 &" ;;

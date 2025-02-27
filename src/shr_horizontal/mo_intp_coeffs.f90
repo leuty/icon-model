@@ -12,7 +12,7 @@
 ! Contains the implementation of interpolation and reconstruction
 ! routines used by the shallow water model, including the RBF
 ! reconstruction routines.
-  
+
 #ifdef __xlC__
 ! @PROCESS nosmp
 ! @PROCESS NOOPTimize

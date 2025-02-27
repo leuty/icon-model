@@ -198,7 +198,7 @@ END IF
 IF ( PRESENT(opt_elev) ) THEN
   elev = opt_elev
 ELSE
-  elev = UBOUND(p_cell_in,2) 
+  elev = UBOUND(p_cell_in,2)
 END IF
 
 IF ( PRESENT(opt_rlstart) ) THEN
@@ -244,8 +244,8 @@ i_endidx_in(2)   = ptr_patch%edges%end_index(rl_end)
 
 IF (timers_level > 10) CALL timer_start(timer_intp)
 
-CALL cells2edges_scalar_lib( p_cell_in, ptr_patch%edges%cell_idx, ptr_patch%edges%cell_blk, c_int, p_edge_out, & 
-  &                          i_startblk_in, i_endblk_in, i_startidx_in, i_endidx_in, & 
+CALL cells2edges_scalar_lib( p_cell_in, ptr_patch%edges%cell_idx, ptr_patch%edges%cell_blk, c_int, p_edge_out, &
+  &                          i_startblk_in, i_endblk_in, i_startidx_in, i_endidx_in, &
   &                          slev, elev, nproma, ptr_patch%id, lhas_latbcs, lfill_latbc, lacc)
 
 IF (timers_level > 10) CALL timer_stop(timer_intp)
@@ -321,7 +321,7 @@ i_endidx_in   = ptr_patch%verts%end_index(rl_end)
 
 IF (timers_level > 10) CALL timer_start(timer_intp)
 
-CALL edges2verts_scalar_lib( p_edge_in, ptr_patch%verts%edge_idx, ptr_patch%verts%edge_blk, v_int, p_vert_out, & 
+CALL edges2verts_scalar_lib( p_edge_in, ptr_patch%verts%edge_idx, ptr_patch%verts%edge_blk, v_int, p_vert_out, &
    &                         i_startblk, i_endblk, i_startidx_in, i_endidx_in, &
    &                         slev, elev, nproma, lacc=lacc )
 
@@ -880,7 +880,7 @@ REAL(wp), INTENT(in) :: avg_coeff(:,:,:) ! dim: (nproma,nlev,nblks_c)
 REAL(wp), INTENT(in) ::  &
   &  psi_c(:,:,:) ! dim: (nproma,nlev,nblks_c)
 
-LOGICAL, INTENT(IN) :: & 
+LOGICAL, INTENT(IN) :: &
   &  lacc    ! if true, use OpenACC
 
 INTEGER, INTENT(in), OPTIONAL ::  &

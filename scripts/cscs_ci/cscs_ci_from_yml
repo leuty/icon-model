@@ -9,12 +9,14 @@
 # See LICENSES/ for license information
 # SPDX-License-Identifier: BSD-3-Clause
 # ------------------------------------------
-import click
-import sys
 import os
+import sys
 
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'experiments'))
+import click
+
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "experiments"))
 from yaml_experiment_test_processor import register_experiments_for_cscs_ci
+
 
 @click.command()
 @click.option("--tag", "tag", type=str, required=True)
@@ -23,5 +25,6 @@ from yaml_experiment_test_processor import register_experiments_for_cscs_ci
 def main(tag, builder, exp=None):
     register_experiments_for_cscs_ci(tag, builder, exp)
 
-if __name__ == '__main__':
+
+if __name__ == "__main__":
     main()

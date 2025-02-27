@@ -41,4 +41,3 @@ $addexp "checksuite.nwp/nwpexp.run_ICON_28_R2B6_IAU_atmo_waves_coupled"   --buil
 #lets see the list
 ./lslist $listname
 #-----------------------------------------------------------
-

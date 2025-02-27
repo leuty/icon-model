@@ -69,15 +69,15 @@ CONTAINS
   SUBROUTINE read_dbg_namelist( filename )
 
     CHARACTER(LEN=*), INTENT(IN) :: filename
-   
+
     INTEGER :: i_status, i
     INTEGER :: iunit
-   
+
     CHARACTER(len=max_char_length), PARAMETER :: &
            routine = 'mo_dbg_nml/read_dbg_namelist:'
 
     CALL message(TRIM(routine),'read debug namelist dbg_index_nml')
-   
+
     !------------------------------------------------------------
     ! 2.0 Read dbg_index_nml namelist
     !------------------------------------------------------------
@@ -90,7 +90,7 @@ CONTAINS
       str_mod_tst(i) = '            '
     END DO
     str_mod_tst(1) = 'all         '
-   
+
     CALL open_nml(TRIM(filename))
     CALL position_nml ('dbg_index_nml', status=i_status)
     IF (my_process_is_stdio()) THEN

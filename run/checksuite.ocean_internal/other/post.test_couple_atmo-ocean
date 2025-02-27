@@ -38,4 +38,3 @@ check_error $? "atmo restart differs"
 
 cdo diff $ocean_restart_1 $ocean_restart_2
 check_error $? "ocean restart differs"
-

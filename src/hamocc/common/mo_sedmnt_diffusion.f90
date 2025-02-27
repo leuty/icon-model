@@ -19,7 +19,7 @@ MODULE mo_sedmnt_diffusion
  USE mo_bgc_memory_types, ONLY  : t_bgc_memory, t_sediment_memory
  USE mo_sedmnt, ONLY : zcoefsu,zcoeflo
  USE mo_fortran_tools, ONLY  : set_acc_host_or_device
- 
+
  IMPLICIT NONE
 
  PRIVATE
@@ -49,10 +49,10 @@ SUBROUTINE DIPOWA (local_bgc_mem, local_sediment_mem, start_idx, end_idx, lacc)
 
   USE mo_param1_bgc, ONLY     : npowtra, ipowaox,  ioxygen,  &
   &                             ipowno3, ipowasi, iphosph, iano3, &
-  &                             isilica, ipowafe, iiron, ialkali, &  
+  &                             isilica, ipowafe, iiron, ialkali, &
   &                             isco212, igasnit, ipowaph, ipowaal, &
   &                             ipown2, ipowaic, ipowh2s, ih2s, &
-  &                             iammo, iano2, ipownh4, ipowno2 
+  &                             iammo, iano2, ipownh4, ipowno2
   USE mo_ocean_nml, ONLY      : lsediment_only
 
   IMPLICIT NONE
@@ -61,8 +61,8 @@ SUBROUTINE DIPOWA (local_bgc_mem, local_sediment_mem, start_idx, end_idx, lacc)
   TYPE(t_bgc_memory), POINTER :: local_bgc_mem
   TYPE(t_sediment_memory), POINTER :: local_sediment_mem
 
-  INTEGER, INTENT(in)  :: start_idx    !< start index for j loop (ICON cells, MPIOM lat dir)          
-  INTEGER, INTENT(in)  :: end_idx      !< end index  for j loop  (ICON cells, MPIOM lat dir) 
+  INTEGER, INTENT(in)  :: start_idx    !< start index for j loop (ICON cells, MPIOM lat dir)
+  INTEGER, INTENT(in)  :: end_idx      !< end index  for j loop  (ICON cells, MPIOM lat dir)
   LOGICAL, INTENT(IN), OPTIONAL :: lacc
 
   !! Local variables
@@ -70,7 +70,7 @@ SUBROUTINE DIPOWA (local_bgc_mem, local_sediment_mem, start_idx, end_idx, lacc)
   INTEGER :: j,k,l,iv
   INTEGER :: iv_oc                         !< index of local_bgc_mem%bgctra in local_sediment_mem%powtra loop
 
-  REAL(wp) :: sedb1(0:ks,npowtra)          !< 
+  REAL(wp) :: sedb1(0:ks,npowtra)          !<
   REAL(wp) :: tredsy(0:ks,3)               !< redsy for 'reduced system'
 
   REAL(wp) :: aprior                       !< start value of oceanic tracer in bottom layer
@@ -81,12 +81,12 @@ SUBROUTINE DIPOWA (local_bgc_mem, local_sediment_mem, start_idx, end_idx, lacc)
   !
   ! --------------------------------------------------------------------
   !
-  kbo => local_bgc_mem%kbo  
+  kbo => local_bgc_mem%kbo
 
   !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1) IF(lzacc)
   !$ACC LOOP GANG VECTOR PRIVATE(sedb1, tredsy)
   DO j = start_idx, end_idx
-        
+
     if(local_bgc_mem%bolay(j) > EPSILON(0.5_wp))then
         k = 0
 
@@ -117,9 +117,9 @@ SUBROUTINE DIPOWA (local_bgc_mem, local_sediment_mem, start_idx, end_idx, lacc)
 
           sedb1( k, iv) = 0._wp
            ! tracer_concentration(kbo) * dz(kbo)
-          sedb1(k,iv) = local_bgc_mem%bgctra(j,kbo(j),iv_oc) * local_bgc_mem%bolay(j) 
-   
-           
+          sedb1(k,iv) = local_bgc_mem%bgctra(j,kbo(j),iv_oc) * local_bgc_mem%bolay(j)
+
+
         END DO
 
         !$ACC LOOP SEQ
@@ -181,7 +181,7 @@ SUBROUTINE DIPOWA (local_bgc_mem, local_sediment_mem, start_idx, end_idx, lacc)
      ! sediment ocean interface
      !$ACC LOOP SEQ
      DO iv = 1, npowtra
-        ! 
+        !
         ! check mo_param1_bgc.f90 for consistency
         iv_oc = iv
         if(iv == ipowaox) iv_oc = ioxygen
@@ -241,7 +241,7 @@ SUBROUTINE powadi (local_bgc_mem, j,  solrat, sedb1, sediso, bolven)
 
   !! Local variables
 
-  INTEGER,  SAVE  :: k,l   
+  INTEGER,  SAVE  :: k,l
   REAL(wp) :: tredsy(0:ks,3)
   REAL(wp), SAVE :: asu,alo
   !

@@ -11,7 +11,7 @@
 # ------------------------------------------
 
 # ===========================================================================
-# 
+#
 # Name: exp.c2sm_clm_r13b03_seaice.run
 #
 # Purpose: Run script for ICON on the R13B03 grid in the Baltic Sea region.
@@ -20,7 +20,7 @@
 #
 # Authors: Annika Lauber, Michael Jaehn (C2SM)
 #
-# =========================================================================== 
+# ===========================================================================
 
 set -x
 
@@ -242,7 +242,7 @@ cat > ${basedir}/run/${atmo_namelist} << EOF
   lread_ana                   = .false. ! (T) Read dwdana
   ifs2icon_filename           = "caf1979020100_ini.nc"
   zpbl1                       = 500.
-  zpbl2                       = 1000. 
+  zpbl2                       = 1000.
   ltile_init                  = .TRUE.
   ltile_coldstart             = .true.
   pinit_seed                  = 0
@@ -274,8 +274,8 @@ cat > ${basedir}/run/${atmo_namelist} << EOF
  nudge_max_coeff             =                          0.075     ! maximum relaxation coefficient for lateral boundary nudging
  lsq_high_ord                = 3
  l_intp_c2l                  = .true.
- l_mono_c2l                  = .true. 
- rbf_scale_mode_ll           = 2 
+ l_mono_c2l                  = .true.
+ rbf_scale_mode_ll           = 2
 /
 
 ! io_nml: general switches for model I/O -------------------------------------
@@ -297,11 +297,11 @@ cat > ${basedir}/run/${atmo_namelist} << EOF
 &limarea_nml
  latbc_path                  = "${input_folder}"       ! Absolute path to boundary data
  itype_latbc                 = 1
- dtime_latbc                 = 21600.0 
- latbc_varnames_map_file     = '${dict_latbc_file}' 
- latbc_filename              = 'caf<y><m><d><h>_lbc.nc' 
+ dtime_latbc                 = 21600.0
+ latbc_varnames_map_file     = '${dict_latbc_file}'
+ latbc_filename              = 'caf<y><m><d><h>_lbc.nc'
  latbc_contains_qcqi         = .true.      ! = .true.  if  qc, qi are in latbc
-                                           ! = .false. if qc, qi are not in latbc 
+                                           ! = .false. if qc, qi are not in latbc
 /
 
 ! lnd_nml: land scheme switches -----------------------------------------------
@@ -317,9 +317,9 @@ cat > ${basedir}/run/${atmo_namelist} << EOF
  idiag_snowfrac             = 20
  itype_snowevap             = 3
  lsnowtile                  = .true.
- lseaice                    = .true. 
+ lseaice                    = .true.
  llake                      = .true.
- itype_lndtbl               = 4 
+ itype_lndtbl               = 4
  itype_evsl                 = 4
  itype_trvg                 = 3
  itype_root                 = 2
@@ -340,7 +340,7 @@ cat > ${basedir}/run/${atmo_namelist} << EOF
  vwind_offctr                =                          0.2       ! off-centering in vertical wind solver
  damp_height                 =                      12250.0       ! height at which Rayleigh damping of vertical wind starts
  rayleigh_coeff              =                          5.0       ! Rayleigh damping coefficient
- divdamp_order               =                         24         ! order of divergence damping 
+ divdamp_order               =                         24         ! order of divergence damping
  divdamp_type                =                         32         ! gdm default: 3 type of divergence damping
  divdamp_fac                 =                          0.004     ! scaling factor for divergence damping
  igradp_method               =                          3         ! discretization of horizontal pressure gradient
@@ -369,7 +369,7 @@ cat > ${basedir}/run/${atmo_namelist} << EOF
  efdt_min_raylfric  = 7200.
  itype_z0         = 2
  icapdcycl        = 3
- icpl_aero_conv   = 0 
+ icpl_aero_conv   = 0
  icpl_aero_gscp   = 3
  icpl_o3_tp       = 1
  iprog_aero       = 0
@@ -399,7 +399,7 @@ cat > ${basedir}/run/${atmo_namelist} << EOF
  tune_sc_invmax = 2500.
 /
 
-! output_nml: control the output ------------------------------------------------ 
+! output_nml: control the output ------------------------------------------------
 &output_nml
  output_filename  = "${EXPNAME}_atm_3d"
  filename_format  = "<output_filename>_<levtype_l>_<datetime2>"
@@ -494,8 +494,8 @@ cat > ${basedir}/run/${atmo_namelist} << EOF
  ser_output_diag             =                            0,12,12
  ser_latbc_data              =                            0,12,12
  ser_dynamics                =                            0,12,12
- ser_diffusion               =                            0,12,12 
- ser_step_advection          =                            0,12,12 
+ ser_diffusion               =                            0,12,12
+ ser_step_advection          =                            0,12,12
  ser_physics                 =                            0,12,12
  ser_surface                 =                            0,12,12
  ser_microphysics            =                            0,12,12
@@ -507,10 +507,10 @@ cat > ${basedir}/run/${atmo_namelist} << EOF
  ser_radheat                 =                            0,12,12
  ser_gwdrag                  =                            0,12,12
  ser_convection              =                            0,12,12
- ser_nudging                 =                            0,12,12 
+ ser_nudging                 =                            0,12,12
  ser_nfail                   =                            1
  ser_nreport                 =                            10
- ser_all_debug               =                            0 
+ ser_all_debug               =                            0
  ser_debug                   =                        .FALSE.      ! serialize the debug statements from mo_ser_debug
 /
 

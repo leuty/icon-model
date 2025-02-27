@@ -153,7 +153,7 @@ MODULE mo_parallel_nml
     ! Shift of processor 0 in domain decomposition, e.g. to use proc 0 for input only
     INTEGER :: proc0_shift
 
-    ! Use OpenMP-parallelized input for atmospheric input data (in initicon), 
+    ! Use OpenMP-parallelized input for atmospheric input data (in initicon),
     ! i.e. overlapping of reading data, communicating data and computing statistics
     LOGICAL :: use_omp_input
 
@@ -281,7 +281,7 @@ MODULE mo_parallel_nml
     ! Shift of processor 0 in domain decomposition, set to 1 in order to use proc 0 for input only
     proc0_shift = 0
 
-    ! Use OpenMP-parallelized input for atmospheric input data (in initicon), 
+    ! Use OpenMP-parallelized input for atmospheric input data (in initicon),
     ! i.e. overlapping of reading data, communicating data and computing statistics
     use_omp_input = .FALSE.
 
@@ -406,4 +406,4 @@ MODULE mo_parallel_nml
   END SUBROUTINE read_parallel_namelist
   !-------------------------------------------------------------------------
 
-END MODULE mo_parallel_nml      
+END MODULE mo_parallel_nml

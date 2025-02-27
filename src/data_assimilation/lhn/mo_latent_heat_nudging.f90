@@ -25,13 +25,13 @@ MODULE mo_latent_heat_nudging
 !   so that the total temperature increase due to latent heat release
 !   in the current timestep corresponds to the amount of analyzed
 !   (or observed) precipitation.
-!   The temperature increments added due to lhn are derived from the 
-!   model heating rate profiles (large scale condensation and convective 
+!   The temperature increments added due to lhn are derived from the
+!   model heating rate profiles (large scale condensation and convective
 !   heating) scaled by the ratio of analyzed to modelled precipitation
-!   (total precipitation: rain and snow from large scale and 
+!   (total precipitation: rain and snow from large scale and
 !   convective processes). The analyzed precipitation is based on radar
 !   data merged with the model (total) precipitation fields.
-!    
+!
 !   The module contains as an organizational unit the subroutine
 !   "organize_lhn" which is called from the module organize_assimilation_config(jg).
 !   Further module procedures (subroutines) called by organize_lhn:
@@ -44,7 +44,7 @@ MODULE mo_latent_heat_nudging
 !   -> lhn_skill_scores   : verification of precipitation model against radar
 !
 !   -> lhn_t_inc  : derivation of temperature increments by scaling of
-!      |           model latent heating profiles 
+!      |           model latent heating profiles
 !      |--> assimilation_config(jg)%lhn_artif     : apply artificial profile
 !      |--> assimilation_config(jg)%lhn_filt      : vertical filtering of local ttend_lhn profile
 !      |--> assimilation_config(jg)%lhn_limit     : limiting of the ttend_lhn
@@ -55,8 +55,8 @@ MODULE mo_latent_heat_nudging
 !                |--> exchange_boundaries
 !   -> lhn_q_inc  : adjust humidity (i.e. qv) to new temperature (t+ttend_lhn)
 !
-!   Note: The names of input/output variables/arrays defined only once 
-!         in the module declaration section but used and "filled" by the 
+!   Note: The names of input/output variables/arrays defined only once
+!         in the module declaration section but used and "filled" by the
 !         different subroutines are documented in the description parts
 !         of each procedure for clarity.
 !
@@ -126,7 +126,7 @@ USE mo_fortran_tools,           ONLY: init
 
 IMPLICIT NONE
 
-PUBLIC :: organize_lhn 
+PUBLIC :: organize_lhn
 
 !===============================================================================
 
@@ -147,7 +147,7 @@ PUBLIC :: organize_lhn
   CHARACTER (LEN=14)    ::  yulhn       ! name of lhn output file
 
 
-! Local arrays  
+! Local arrays
 !--------------
 
   INTEGER,PARAMETER :: ndiag_max=20
@@ -188,10 +188,10 @@ SUBROUTINE organize_lhn ( dt_loc, p_sim_time,             & !>in
 ! the organization of the LHN:
 !
 ! 1. Read and prepare radar precipitation data
-! 2. Get total model latent heating profiles: add convective latent heating 
-!    contributions to large scale latent heating (in terms of temperature 
+! 2. Get total model latent heating profiles: add convective latent heating
+!    contributions to large scale latent heating (in terms of temperature
 !    tendency as K/s)
-! 3. Determine total model precipitation rate, analyze precipitation, i.e. 
+! 3. Determine total model precipitation rate, analyze precipitation, i.e.
 !    combine model and observation values
 ! 4. Determine the latent heat nudging temperature increment by
 !    scaling the model profiles; apply artificial profile if requested
@@ -229,8 +229,8 @@ SUBROUTINE organize_lhn ( dt_loc, p_sim_time,             & !>in
 ! Local scalars:
 !---------------
 
-  LOGICAL :: lopen_log  
- 
+  LOGICAL :: lopen_log
+
   INTEGER :: kqrs(nproma)   ! upper layer with qrs_flux > 0.0
 
   INTEGER :: jg   ! domain ID
@@ -294,7 +294,7 @@ SUBROUTINE organize_lhn ( dt_loc, p_sim_time,             & !>in
 ! Begin of subroutine
 !-------------------------------------------------------------------------------
 !-------------------------------------------------------------------------------
-! Section 0 : Preliminaries : 
+! Section 0 : Preliminaries :
 !             Check if lhn should be executed at the current timestep
 !             Allocate space for fields; determine dt
 !-------------------------------------------------------------------------------
@@ -419,7 +419,7 @@ SUBROUTINE organize_lhn ( dt_loc, p_sim_time,             & !>in
     !$ACC LOOP SEQ
     DO jk = kstart_moist(jg)+1, nlev
       !$ACC LOOP GANG(STATIC: 1) VECTOR
-      DO jc = i_startidx, i_endidx 
+      DO jc = i_startidx, i_endidx
         IF (hzerocl(jc,jb) /= p_metrics%z_ifc(jc,nlev+1,jb)) THEN ! freezing level found
           CYCLE
         ELSE IF (pt_diag%temp(jc,jk-1,jb) < tmelt .AND. pt_diag%temp(jc,jk,jb) >= tmelt) THEN
@@ -447,7 +447,7 @@ SUBROUTINE organize_lhn ( dt_loc, p_sim_time,             & !>in
     IF (jg == 1) THEN
       yulhn = 'lhn.log'
     ELSE
-      WRITE(cjg,'(i2.2)') jg 
+      WRITE(cjg,'(i2.2)') jg
       yulhn = 'lhn_DOM'//TRIM(cjg)//'.log'
     ENDIF
     INQUIRE (file=yulhn, OPENED=lopen_log)
@@ -465,16 +465,16 @@ SUBROUTINE organize_lhn ( dt_loc, p_sim_time,             & !>in
                         assimilation_config(jg)%abs_lhn_lim, ' (K/second)'
       WRITE(nulhn(jg), *) ' Humidity enhancement :     assimilation_config(jg)%lhn_hum_adj = ', assimilation_config(jg)%lhn_hum_adj
       WRITE(nulhn(jg), *) ' Diagnostic output :        assimilation_config(jg)%lhn_diag    = ', assimilation_config(jg)%lhn_diag
-    END IF  
-  END IF  
+    END IF
+  END IF
 
 
 !-------------------------------------------------------------------------------
-! Section 1 : Read and prepare radar precipitation data 
+! Section 1 : Read and prepare radar precipitation data
 !             - Determine if new data have to be read
 !             - Read new data, project the observation data onto the model grid
 !             - Distribute gridded observations to the PE's (if parallel)
-!             - Determine spatial and temporal weights for observations 
+!             - Determine spatial and temporal weights for observations
 !               (includes interpolation in time between consecutive obs)
 !-------------------------------------------------------------------------------
 
@@ -583,7 +583,7 @@ SUBROUTINE organize_lhn ( dt_loc, p_sim_time,             & !>in
       END IF
 
     END DO
-!$OMP END DO 
+!$OMP END DO
 !$OMP END PARALLEL
 
     !$ACC UPDATE HOST(zprmod) ASYNC(1) IF(ltlhnverif)
@@ -638,7 +638,7 @@ SUBROUTINE organize_lhn ( dt_loc, p_sim_time,             & !>in
             END IF
           END DO
         END DO
-        
+
 #ifdef _OPENACC
         kqrs_min = 1
 #else
@@ -655,7 +655,7 @@ SUBROUTINE organize_lhn ( dt_loc, p_sim_time,             & !>in
             END IF
           END DO
         END DO
-        
+
         !$ACC LOOP GANG(STATIC: 1) VECTOR
         DO jc = i_startidx, i_endidx
           IF (vcoordsum(jc) /= 0.0_wp) qrsflux_int(jc) = qrsflux_int(jc) / vcoordsum(jc)
@@ -664,13 +664,13 @@ SUBROUTINE organize_lhn ( dt_loc, p_sim_time,             & !>in
         !$ACC END PARALLEL
 
       END DO
-!$OMP END DO 
+!$OMP END DO
     END IF
 
 !$OMP END PARALLEL
 
    IF (assimilation_config(jg)%lhn_refbias) THEN
-   
+
 !$OMP PARALLEL
 !$OMP DO PRIVATE(jb,jc,i_startidx,i_endidx,zprmod_scal,zprref_scal) ICON_OMP_GUIDED_SCHEDULE
      DO jb=i_startblk,i_endblk
@@ -678,7 +678,7 @@ SUBROUTINE organize_lhn ( dt_loc, p_sim_time,             & !>in
        zprref_scal       = 0.0_wp
        CALL get_indices_c(pt_patch, jb, i_startblk, i_endblk, &
             &                i_startidx, i_endidx, i_rlstart, i_rlend)
-       
+
        !$ACC PARALLEL LOOP GANG VECTOR DEFAULT(PRESENT) ASYNC(1) &
        !$ACC   REDUCTION(+: zprmod_scal, zprref_scal) COPY(zprmod_scal, zprref_scal)
        DO jc=i_startidx,i_endidx
@@ -691,7 +691,7 @@ SUBROUTINE organize_lhn ( dt_loc, p_sim_time,             & !>in
        zprref_s_blk(jb)    = zprref_scal
 
      ENDDO
-!$OMP END DO 
+!$OMP END DO
 
 !$OMP MASTER
      zprmod_s = SUM((zprmod_s_blk(i_startblk:i_endblk)))
@@ -700,11 +700,11 @@ SUBROUTINE organize_lhn ( dt_loc, p_sim_time,             & !>in
      zprref_s = global_sum_array(zprref_s, opt_iroot=p_io)
 
      IF ( zprref_s > 0.0_wp .AND. zprmod_s > 0.0_wp ) THEN
-       r_pr_ref_bias = zprmod_s / zprref_s 
+       r_pr_ref_bias = zprmod_s / zprref_s
      ELSE
        r_pr_ref_bias = 1.0_wp
      ENDIF
-!$OMP END MASTER 
+!$OMP END MASTER
 !$OMP BARRIER
 
       lhn_fields%ref_bias = lhn_fields%ref_bias + zdt/assimilation_config(jg)%dtrefbias * &
@@ -722,10 +722,10 @@ SUBROUTINE organize_lhn ( dt_loc, p_sim_time,             & !>in
          pr_ref(jc,jb) =  pr_ref(jc,jb) * lhn_fields%ref_bias
        ENDDO
        !$ACC END PARALLEL
-       
+
      ENDDO
      !$ACC WAIT(1)
-!$OMP END DO 
+!$OMP END DO
 !$OMP END PARALLEL
       IF (my_process_is_stdio() .AND. (assimilation_config(jg)%lhn_diag)) THEN
         WRITE(nulhn(jg), *)              ' bias correction of reference precipitation: ',r_pr_ref_bias, lhn_fields%ref_bias
@@ -774,11 +774,11 @@ SUBROUTINE organize_lhn ( dt_loc, p_sim_time,             & !>in
       CALL sync_patch_array_mult(SYNC_C, pt_patch, 3, lacc=.TRUE., f3din1=z_pr_mod, f3din2=z_pr_obs, f3din3=tt_lheat)
 
       zdcoeff = 0.05_wp   ! diffusion coefficient for nabla2 diffusion
-  
+
       DO iter = 1, assimilation_config(jg)%nlhn_relax   ! perform niter iterations
-                                                        ! note: a variable number of iterations (with an exit condition) 
+                                                        ! note: a variable number of iterations (with an exit condition)
                                                         !       potentially causes trouble with MPI reproducibility
-  
+
         CALL nabla2_scalar(z_pr_mod, pt_patch, pt_int_state, z_nabla2_prmod, lacc=.TRUE.,  &
                            slev=1, elev=1, rl_start=grf_bdywidth_c+1, rl_end=min_rlcell_int)
         CALL nabla2_scalar(z_pr_obs, pt_patch, pt_int_state, z_nabla2_probs, lacc=.TRUE.,  &
@@ -798,7 +798,7 @@ SUBROUTINE organize_lhn ( dt_loc, p_sim_time,             & !>in
           DO jc = i_startidx, i_endidx
             pr_ref(jc,jb) = MAX( 0.0_wp, z_pr_mod(jc,1,jb) + zdcoeff * &
                                   pt_patch%cells%area(jc,jb) * z_nabla2_prmod(jc,1,jb) )
-   
+
             pr_obs(jc,jb) = z_pr_obs(jc,1,jb) + zdcoeff * &
                                  pt_patch%cells%area(jc,jb) * z_nabla2_probs(jc,1,jb)
 
@@ -846,7 +846,7 @@ SUBROUTINE organize_lhn ( dt_loc, p_sim_time,             & !>in
 !$OMP END PARALLEL
 
     END IF
-  
+
     IF (ltlhnverif) THEN
 
 !$OMP PARALLEL
@@ -893,7 +893,7 @@ SUBROUTINE organize_lhn ( dt_loc, p_sim_time,             & !>in
 !$OMP PARALLEL
 !$OMP DO PRIVATE(jb,i_startidx, i_endidx) ICON_OMP_GUIDED_SCHEDULE
       DO jb = i_startblk, i_endblk
-        
+
         CALL get_indices_c(pt_patch, jb, i_startblk, i_endblk, i_startidx, i_endidx, i_rlstart, i_rlend)
         CALL lhn_t_inc( i_startidx, i_endidx, jg, pt_patch%nlev, p_metrics%z_ifc(:,:,jb), &
                         tt_lheat(:,:,jb), wobs_time(:,jb), wobs_space(:,jb), pr_obs(:,jb), pr_ref(:,jb), &
@@ -903,7 +903,7 @@ SUBROUTINE organize_lhn ( dt_loc, p_sim_time,             & !>in
                         pt_diag%u(:,:,jb), pt_diag%v(:,:,jb), prm_diag%k850(:,jb), prm_diag%k950(:,jb), &
                         prm_diag%k700(:,jb), diag_out(jb,:) )
       END DO
-!$OMP END DO 
+!$OMP END DO
 !$OMP END PARALLEL
     ELSE
 !$OMP PARALLEL
@@ -918,19 +918,19 @@ SUBROUTINE organize_lhn ( dt_loc, p_sim_time,             & !>in
                         pt_diag%u(:,:,jb), pt_diag%v(:,:,jb), prm_diag%k850(:,jb), prm_diag%k950(:,jb), &
                         prm_diag%k700(:,jb) )
       END DO
-!$OMP END DO 
+!$OMP END DO
 !$OMP END PARALLEL
     END IF
 
     IF (assimilation_config(jg)%lhn_diag) THEN
       diag_sum   = 0
       g_diag_sum = 0
-      
+
       DO ndiag = 1, 15
         diag_sum(ndiag) = SUM(diag_out(:,ndiag))
       END DO
 
-      g_diag_sum(1:15) = global_sum(diag_sum(1:15), opt_iroot=p_io) 
+      g_diag_sum(1:15) = global_sum(diag_sum(1:15), opt_iroot=p_io)
 
       IF (my_process_is_stdio()) THEN
         WRITE(nulhn(jg), *)
@@ -983,7 +983,7 @@ SUBROUTINE organize_lhn ( dt_loc, p_sim_time,             & !>in
                         lhn_fields%qvtend_lhn(:,:,jb), &
                         scale_fac_index(:,jb) )
       END DO
-!$OMP END DO 
+!$OMP END DO
 
     END IF
 !$OMP END PARALLEL
@@ -1077,7 +1077,7 @@ SUBROUTINE organize_lhn ( dt_loc, p_sim_time,             & !>in
       DO jc = i_startidx, i_endidx
         lhn_diag(jc,nlev-9,jb) = MERGE(0._wp, 1._wp, ttmin(jc) == 0._wp .AND. ttmax(jc) == 0._wp)
       END DO
-      
+
       !$ACC LOOP SEQ
       DO jk = nlev-16, nlev
         !$ACC LOOP GANG(STATIC: 1) VECTOR
@@ -1089,7 +1089,7 @@ SUBROUTINE organize_lhn ( dt_loc, p_sim_time,             & !>in
 
     END DO
 
-!$OMP END DO 
+!$OMP END DO
 !$OMP END PARALLEL
 
     IF (datetime_current%time%minute  == 0) THEN
@@ -1099,7 +1099,7 @@ SUBROUTINE organize_lhn ( dt_loc, p_sim_time,             & !>in
         CALL lhn_verification( 'HR', pt_patch, radar_data, lhn_fields, p_sim_time/3600._wp, wobs_space, &
                                lhn_fields%pr_mod_sum, lhn_fields%pr_ref_sum, lhn_fields%pr_obs_sum )
       END IF
-      
+
 !$OMP PARALLEL
 !$OMP DO PRIVATE(jb,jc,i_startidx,i_endidx) ICON_OMP_DEFAULT_SCHEDULE
       DO jb = i_startblk, i_endblk
@@ -1119,7 +1119,7 @@ SUBROUTINE organize_lhn ( dt_loc, p_sim_time,             & !>in
 !$OMP END DO
 !$OMP END PARALLEL
     END IF
-  
+
   END IF
 
   !$ACC WAIT(1)
@@ -1153,7 +1153,7 @@ SUBROUTINE lhn_obs_prep (pt_patch,radar_data,lhn_fields,pr_obs,hzerocl, &
 !   weighting factors are assigned to the resulting observations at each
 !   grid point.
 !
-!   Namelist parameters used: 
+!   Namelist parameters used:
 !            lhn_black, blacklist_file, radar_in
 !   Input arrays : none. (Use of general information on model grid)
 !   Output arrays: pr_obs,wobs_space,wobs_time
@@ -1204,7 +1204,7 @@ SUBROUTINE lhn_obs_prep (pt_patch,radar_data,lhn_fields,pr_obs,hzerocl, &
   INTEGER :: i_startidx, i_endidx    !< slices
 
   REAL (KIND=wp)                   ::       &
-    pr_time_limit  
+    pr_time_limit
 
   INTEGER (KIND=i4)             ::       &
     icenter         ,&
@@ -1303,16 +1303,16 @@ SUBROUTINE lhn_obs_prep (pt_patch,radar_data,lhn_fields,pr_obs,hzerocl, &
     CALL message (yroutine,'too few radar data available')
     ltoold=.true.
     ltoyoung=.true.
-    RETURN 
+    RETURN
   ENDIF
 
   ALLOCATE (td_in_min(iread))
   td_in_min = -9999.9_wp
 
   DO i=1,iread
-     time_delta = tnow - radar_data%radar_td%obs_date(i) 
+     time_delta = tnow - radar_data%radar_td%obs_date(i)
      td_in_min(i)=time_delta%second/60.+time_delta%minute+time_delta%hour*60.+time_delta%day*1440.
-     if ( radar_data%radar_td%obs_date(i) > tnow) td_in_min(i) = -1.0_wp * td_in_min(i) 
+     if ( radar_data%radar_td%obs_date(i) > tnow) td_in_min(i) = -1.0_wp * td_in_min(i)
      ! Note: tnow - obs_date gives always positive values in mtime !!!
      ! To be consistent with the linear interpolation below, younger dates are set to negative !
   ENDDO
@@ -1360,25 +1360,25 @@ SUBROUTINE lhn_obs_prep (pt_patch,radar_data,lhn_fields,pr_obs,hzerocl, &
   lm2=.FALSE.
 
   DO i=1,iread
-    IF (.NOT.lp1 .AND. radar_data%radar_td%obs_date(i) == next_time_1) THEN 
+    IF (.NOT.lp1 .AND. radar_data%radar_td%obs_date(i) == next_time_1) THEN
       weight_index_p1=i
       IF (msg_level > 12) CALL print_value ('o_p1',radar_data%radar_td%obs_date(i)%time%minute)
       IF (msg_level > 12) CALL print_value ('o_p1',weight_index_p1)
       IF (msg_level > 12) CALL print_value ('td_p1',td_in_min(weight_index_p1))
       lp1=.true.
-    ELSE IF (.NOT.lp2 .AND. radar_data%radar_td%obs_date(i) == next_time_2) THEN 
+    ELSE IF (.NOT.lp2 .AND. radar_data%radar_td%obs_date(i) == next_time_2) THEN
       weight_index_p2=i
       IF (msg_level > 12) CALL print_value ('o_p2',radar_data%radar_td%obs_date(i)%time%minute)
       IF (msg_level > 12) CALL print_value ('o_p2',weight_index_p2)
       IF (msg_level > 12) CALL print_value ('td_p2',td_in_min(weight_index_p2))
       lp2=.true.
-    ELSE IF (.NOT.lp3 .AND. radar_data%radar_td%obs_date(i) == next_time_3) THEN 
+    ELSE IF (.NOT.lp3 .AND. radar_data%radar_td%obs_date(i) == next_time_3) THEN
       weight_index_p3=i
       IF (msg_level > 12) CALL print_value ('o_p3',radar_data%radar_td%obs_date(i)%time%minute)
       IF (msg_level > 12) CALL print_value ('o_p3',weight_index_p3)
       IF (msg_level > 12) CALL print_value ('td_p3',td_in_min(weight_index_p3))
       lp3=.true.
-    ELSE IF (.NOT.lm1 .AND. radar_data%radar_td%obs_date(i) == prev_time_1) THEN 
+    ELSE IF (.NOT.lm1 .AND. radar_data%radar_td%obs_date(i) == prev_time_1) THEN
       weight_index_m1=i
       IF (msg_level > 12) CALL print_value ('o_m1',radar_data%radar_td%obs_date(i)%time%minute)
       IF (msg_level > 12) CALL print_value ('o_m1',weight_index_m1)
@@ -1463,7 +1463,7 @@ SUBROUTINE lhn_obs_prep (pt_patch,radar_data,lhn_fields,pr_obs,hzerocl, &
        !$ACC END PARALLEL
 
      ENDDO
-!$OMP END DO 
+!$OMP END DO
 !$OMP END PARALLEL
 
      DO jb = i_startblk,i_endblk
@@ -1475,7 +1475,7 @@ SUBROUTINE lhn_obs_prep (pt_patch,radar_data,lhn_fields,pr_obs,hzerocl, &
        DO jc = i_startidx,i_endidx
            IF (obs_cnt (jc,jb) <  1_i4 ) CYCLE
            obs_sum (jc,jb) = obs_sum (jc,jb) / REAL(obs_cnt (jc,jb),wp)
-           IF ( obs_sum (jc,jb) > assimilation_config(jg)%bbthres ) THEN 
+           IF ( obs_sum (jc,jb) > assimilation_config(jg)%bbthres ) THEN
               obs_sum_g = obs_sum_g + obs_sum (jc,jb)
               nsum_g    = nsum_g + 1
            ENDIF
@@ -1595,7 +1595,7 @@ SUBROUTINE lhn_obs_prep (pt_patch,radar_data,lhn_fields,pr_obs,hzerocl, &
               + (radar_data%radar_td%obs(jc,jb,weight_index_p1)-radar_data%radar_td%obs(jc,jb,weight_index_m1lim))  &
               * (abs(td_in_min(weight_index_m1lim)))/ (2.0_wp*assimilation_config(jg)%lhn_dt_obs)
             pr_obs(jc,jb) = pr_obs(jc,jb)*sec_per_hr_inv
-            wobs_time(jc,jb) = 0.75_wp   
+            wobs_time(jc,jb) = 0.75_wp
             num_t_obs (jc,jb,2) = 1
             IF (assimilation_config(jg)%lhn_spqual) THEN
               wobs_space(jc,jb) = radar_data%radar_td%spqual(jc,jb,weight_index_m1lim)                               &
@@ -1712,7 +1712,7 @@ SUBROUTINE lhn_obs_prep (pt_patch,radar_data,lhn_fields,pr_obs,hzerocl, &
        !$ACC END PARALLEL
 
      ENDDO
-!$OMP END DO 
+!$OMP END DO
 !$OMP END PARALLEL
 
    ELSE  ! td_min < 0 !!!
@@ -1767,7 +1767,7 @@ SUBROUTINE lhn_obs_prep (pt_patch,radar_data,lhn_fields,pr_obs,hzerocl, &
              + (radar_data%radar_td%obs(jc,jb,weight_index_p1)-radar_data%radar_td%obs(jc,jb,weight_index_m1lim))  &
              * (ABS(td_in_min(weight_index_m1lim)))/ (2.0_wp*assimilation_config(jg)%lhn_dt_obs)
            pr_obs(jc,jb) = pr_obs(jc,jb)*sec_per_hr_inv
-           wobs_time(jc,jb) = 0.75_wp   
+           wobs_time(jc,jb) = 0.75_wp
            num_t_obs (jc,jb,2) = 1
            IF (assimilation_config(jg)%lhn_spqual) THEN
              wobs_space(jc,jb) = radar_data%radar_td%spqual(jc,jb,weight_index_m1lim)                               &
@@ -1900,9 +1900,9 @@ SUBROUTINE lhn_obs_prep (pt_patch,radar_data,lhn_fields,pr_obs,hzerocl, &
        !$ACC END PARALLEL
 
      ENDDO
-!$OMP END DO 
+!$OMP END DO
 !$OMP END PARALLEL
-  
+
    ENDIF
 
 ! if no spatial quality function is used, set wobs_space constant to one
@@ -1936,7 +1936,7 @@ SUBROUTINE lhn_obs_prep (pt_patch,radar_data,lhn_fields,pr_obs,hzerocl, &
          ENDIF
        ENDDO
     ENDDO
-        
+
     g_diag_sum = 0
     g_diag_sum(1:ndiag) = global_sum( diag_out(1:ndiag),opt_iroot=p_io )
 
@@ -1982,7 +1982,7 @@ SUBROUTINE lhn_obs_prep (pt_patch,radar_data,lhn_fields,pr_obs,hzerocl, &
   CALL deallocateDatetime(prev_time_2)
 
 !-------------------------------------------------------------------------------
-! End of subroutine 
+! End of subroutine
 !-------------------------------------------------------------------------------
 
 END SUBROUTINE lhn_obs_prep
@@ -1993,7 +1993,7 @@ SUBROUTINE detect_bright_band(pt_patch,radar_data,lhn_fields,sumrad,bbllim,hzero
 ! Description:
 !   This procedure in the module "lheat_nudge" is called by "lhn_obs_prep" and
 !   detects all grid points which are possibly influenced by bright band effects
-!  
+!
 !-------------------------------------------------------------------------------
 
   TYPE(t_patch),   TARGET, INTENT(in)    :: pt_patch     !<grid/patch info.
@@ -2060,7 +2060,7 @@ SUBROUTINE detect_bright_band(pt_patch,radar_data,lhn_fields,sumrad,bbllim,hzero
       !$ACC END PARALLEL
 
    ENDDO
-!$OMP END DO 
+!$OMP END DO
 !$OMP END PARALLEL
 
    IF ( assimilation_config(jg)%lhn_diag ) THEN
@@ -2072,7 +2072,7 @@ SUBROUTINE detect_bright_band(pt_patch,radar_data,lhn_fields,sumrad,bbllim,hzero
       WRITE(nulhn(jg), *)' n of points which are possibly brightband    : numbright = ',nbrightg
    ENDIF
    !$ACC END DATA
-   
+
 !-------------------------------------------------------------------------------
 ! End of subroutine
 !-------------------------------------------------------------------------------
@@ -2083,7 +2083,7 @@ END SUBROUTINE detect_bright_band
 !===============================================================================
 !+ Module procedure in "lheat_nudge" determining T - increments due to LHN
 !-------------------------------------------------------------------------------
- 
+
 SUBROUTINE lhn_t_inc (i_startidx, i_endidx,jg,ke,zlev,tt_lheat,wobs_time, wobs_space, &
                       pr_obs, pr_mod,pr_ana,ttend_lhn,treat_diag,scale_diag, &
                       scale_fac_index,u,v,k850,k950,k700,diag_out)
@@ -2098,8 +2098,8 @@ SUBROUTINE lhn_t_inc (i_startidx, i_endidx,jg,ke,zlev,tt_lheat,wobs_time, wobs_s
 !                             assimilation_config(jg)%lhn_limit,assimilation_config(jg)%abs_lhn_lim
 !                             assimilation_config(jg)%lhn_filt,assimilation_config(jg)%lhn_diag
 !                             assimilation_config(jg)%lhn_incloud
-!                             
-!   Input arrays : tt_lheat, 
+!
+!   Input arrays : tt_lheat,
 !                  pr_ana,pr_mod
 !   Output arrays: ttend_lhn
 !
@@ -2152,7 +2152,7 @@ SUBROUTINE lhn_t_inc (i_startidx, i_endidx,jg,ke,zlev,tt_lheat,wobs_time, wobs_s
     n_down_lim,n_down ,& ! diagnostic : number of points with limited downscaling
     n_ex_lim_p        ,& ! diagnostic : number of pts with inc. above limit
     n_ex_lim_n           ! diagnostic : number of pts with inc. below (neg) limit
-    
+
   REAL (KIND=wp)                         ::       &
     epsilon=1.0E-35_wp ,& ! small number : add to avoid division by zero
     eps=0.2/3600.   ,& ! limit used for profile filterering (flags/
@@ -2162,7 +2162,7 @@ SUBROUTINE lhn_t_inc (i_startidx, i_endidx,jg,ke,zlev,tt_lheat,wobs_time, wobs_s
     abs_lim_neg     ,& ! negative absolut limit for increments (= -assimilation_config(jg)%abs_lhn_lim)
     abs_lim_pos     ,& ! positive absolut limit for increments (= assimilation_config(jg)%abs_lhn_lim)
     prmax           ,&
-    prmax_th        
+    prmax_th
 
 ! Local arrays:
 !--------------
@@ -2198,12 +2198,12 @@ SUBROUTINE lhn_t_inc (i_startidx, i_endidx,jg,ke,zlev,tt_lheat,wobs_time, wobs_s
   yroutine='lhn_t_inc'
 
 !-------------------------------------------------------------------------------
-! Section 0 : Preliminaries : 
+! Section 0 : Preliminaries :
 !             - determine (approx.) max number of profiles from neighbour nodes
 !             Initialize fields
 !-------------------------------------------------------------------------------
 
-! calculate the height of the levels (middle of layers), location, 
+! calculate the height of the levels (middle of layers), location,
 ! where lh-values are defined
 
 !Values of climatological profile, used originally in COSMO
@@ -2221,9 +2221,9 @@ SUBROUTINE lhn_t_inc (i_startidx, i_endidx,jg,ke,zlev,tt_lheat,wobs_time, wobs_s
 !  enddo
 !  tt_max_2_pr_artif = maxval(tt_lheat_sum(:))
 
-  tt_artif_max = assimilation_config(jg)%tt_artif_max 
+  tt_artif_max = assimilation_config(jg)%tt_artif_max
 !20190524
-  pr_artif = pr_artif * ABS(tt_artif_max)/tt_max_2_pr_artif 
+  pr_artif = pr_artif * ABS(tt_artif_max)/tt_max_2_pr_artif
 
 !  pr_artif = tt_artif_max ! ILAM scheint in etwa ein Verhaltnis von 1:1 zu erzeugen. Sieht man im Mittelwert, wie auch in Extremfallen!
 
@@ -2288,7 +2288,7 @@ SUBROUTINE lhn_t_inc (i_startidx, i_endidx,jg,ke,zlev,tt_lheat,wobs_time, wobs_s
 !-------------------------------------------------------------------------------
 
   ntreat = 0_i4
-  
+
   rfade=assimilation_config(jg)%start_fadeout
   IF ( rnlhn >= rfade .AND. rfade < 1.0_wp ) then
      ntcoeff = ( 1.0_wp + rfade/( 1.0_wp - rfade ) ) * ( 1.0_wp - rnlhn )
@@ -2308,7 +2308,7 @@ SUBROUTINE lhn_t_inc (i_startidx, i_endidx,jg,ke,zlev,tt_lheat,wobs_time, wobs_s
          ( (pr_obs(ip) < assimilation_config(jg)%thres_lhn) .AND. &
            (pr_mod(ip) < assimilation_config(jg)%thres_lhn) ) &
        ) THEN
-      
+
       pr_ana(ip) = pr_mod(ip)
       treat_diag(ip)=-1.0_wp
       CYCLE
@@ -2333,7 +2333,7 @@ SUBROUTINE lhn_t_inc (i_startidx, i_endidx,jg,ke,zlev,tt_lheat,wobs_time, wobs_s
         treat_list(ntreat_local) = ip
 
         treat_diag(ip) = 0.0_wp
-        
+
       END IF
     END IF
 
@@ -2369,7 +2369,7 @@ SUBROUTINE lhn_t_inc (i_startidx, i_endidx,jg,ke,zlev,tt_lheat,wobs_time, wobs_s
 
 ! local model precip is too large -> limited downscaling of local profile
      ELSEIF ( pr_quot < assimilation_config(jg)%fac_lhn_down ) THEN
-        scale_fac = assimilation_config(jg)%fac_lhn_down 
+        scale_fac = assimilation_config(jg)%fac_lhn_down
         n_down_lim = n_down_lim + 1
         treat_diag(ip)=2.0_wp
 
@@ -2386,19 +2386,19 @@ SUBROUTINE lhn_t_inc (i_startidx, i_endidx,jg,ke,zlev,tt_lheat,wobs_time, wobs_s
         prmax_th = MIN(prmax_th,pr_ana(ip))
         prmax    = MAX(prmax,prmax_th)
 
-        scale_fac = assimilation_config(jg)%fac_lhn_artif_tune * (pr_ana(ip))/pr_artif 
+        scale_fac = assimilation_config(jg)%fac_lhn_artif_tune * (pr_ana(ip))/pr_artif
 
         n_artif = n_artif + 1
         treat_diag(ip)=4.0_wp
 
-! local model precip is too small -> limited 
+! local model precip is too small -> limited
 ! upscaling of local profile
      ELSE
         scale_fac = assimilation_config(jg)%fac_lhn_up
         n_up_lim = n_up_lim + 1
         treat_diag(ip)=3.0_wp
      ENDIF
-    
+
      IF (pr_quot > assimilation_config(jg)%fac_lhn_up) THEN
         scale_fac_index(ip)=.TRUE.
      ELSE
@@ -2591,12 +2591,12 @@ SUBROUTINE lhn_t_inc (i_startidx, i_endidx,jg,ke,zlev,tt_lheat,wobs_time, wobs_s
   !$ACC END DATA
 
 !-------------------------------------------------------------------------------
-! Section 9 : Diagnostic output on lhn - increments 
+! Section 9 : Diagnostic output on lhn - increments
 !             Summing information at PE0 for printout
 !-------------------------------------------------------------------------------
 
    IF (PRESENT(diag_out)) THEN
-     ! get summed diagnostics at PE0 from all PE's using collect_values 
+     ! get summed diagnostics at PE0 from all PE's using collect_values
      ! (collect_values needs real vector as input)
         diag_out = 0
         diag_out( 1) = ntreat
@@ -2616,19 +2616,19 @@ SUBROUTINE lhn_t_inc (i_startidx, i_endidx,jg,ke,zlev,tt_lheat,wobs_time, wobs_s
         diag_out(15)= n_incloud
         diag_out(16)= INT(assimilation_config(jg)%lhn_coef * ntcoeff * 100.)
    ENDIF
-       
+
 !-------------------------------------------------------------------------------
-! End of subroutine 
+! End of subroutine
 !-------------------------------------------------------------------------------
 
 END SUBROUTINE lhn_t_inc
 
 !-------------------------------------------------------------------------------
- 
+
 !===============================================================================
 !+ Module procedure in "lheat_nudge" adjusting humidity to LHN T - increments
 !-------------------------------------------------------------------------------
- 
+
 SUBROUTINE lhn_q_inc(i_startidx,i_endidx,jg,zdt,ke,t,ttend_lhn,p,w,qv,qc,qi, &
                      qvtend_lhn,scale_fac_index,diag_out)
 
@@ -2656,7 +2656,7 @@ SUBROUTINE lhn_q_inc(i_startidx,i_endidx,jg,zdt,ke,t,ttend_lhn,p,w,qv,qc,qi, &
 !   Modified fields : qv(.,.,.)
 !
 !-------------------------------------------------------------------------------
- 
+
 ! Scalar arguments, intent(in) :
 !-------------------------------
   INTEGER   (KIND=i4), INTENT(IN)     ::       &
@@ -2774,7 +2774,7 @@ SUBROUTINE lhn_q_inc(i_startidx,i_endidx,jg,zdt,ke,t,ttend_lhn,p,w,qv,qc,qi, &
        qv_new(jc,k) = f_qv ( relhum * f_esat(t(jc,k)+ttend_lhn(jc,k) * zdt) , zp )
 
        IF ( ttend_lhn(jc,k) > delt_minp ) THEN
-        
+
          ninc = ninc + 1
 !ks: if criteria changed
          IF ( (scale_fac_index(jc)) .AND. (qc(jc,k)+qi(jc,k) <= epsy) ) THEN
@@ -2782,7 +2782,7 @@ SUBROUTINE lhn_q_inc(i_startidx,i_endidx,jg,zdt,ke,t,ttend_lhn,p,w,qv,qc,qi, &
 !! be increased and f has not reached 100% so far!
 !! Attention: do not add these increments at points with a positive temperature increment
 !! generally, because positive temperature increments can also occur at gridpoints where
-!! the precipitation rate should be decreased (pos. temp. inc. below clouds, higher 
+!! the precipitation rate should be decreased (pos. temp. inc. below clouds, higher
 !! evaporation)
 
           ninc2= ninc2 + 1
@@ -2832,7 +2832,7 @@ SUBROUTINE lhn_q_inc(i_startidx,i_endidx,jg,zdt,ke,t,ttend_lhn,p,w,qv,qc,qi, &
 
 
 !-------------------------------------------------------------------------------
-! End of subroutine 
+! End of subroutine
 !-------------------------------------------------------------------------------
 
 END SUBROUTINE lhn_q_inc
@@ -2853,7 +2853,7 @@ SUBROUTINE filter_prof (prof_filt,ntreat,treat_list,kup,klow,eps,lelim,lsmooth, 
 !  This subroutines filters a vertical profile (e.g. heating profile to be used
 !  in latent heat nudging to elimiate computational noise).
 !
-! Method: 
+! Method:
 !  lelim : eliminate isolated peaks of small vertical extent
 !    a) value on one level below and above is below specified eps
 !    b) value two levels above is below eps and less than one level below the
@@ -2863,7 +2863,7 @@ SUBROUTINE filter_prof (prof_filt,ntreat,treat_list,kup,klow,eps,lelim,lsmooth, 
 !            to levels where the value is above eps
 !
 !-------------------------------------------------------------------------------
- 
+
 ! Subroutine arguments, intent=in and intent=inout
   LOGICAL, INTENT(IN)       ::    &
     lelim             ,& ! flag 0/1 for elimination of isolated peaks
@@ -3250,7 +3250,7 @@ SUBROUTINE lhn_verification (ytime,pt_patch,radar_data,lhn_fields,nsteps,wobs_sp
       DO jc = i_startidx,i_endidx
        IF (wobs_space(jc,jb) > 0.75_wp .AND. &
            NINT(radar_data%radar_ct%blacklist(jc,jb)) /= 1_i4 .AND. &
-           .NOT. lhn_fields%brightband(jc,jb)) THEN 
+           .NOT. lhn_fields%brightband(jc,jb)) THEN
            i1=1
            i2=1
            IF (zprrad(jc,jb) > 0.0_wp) THEN
@@ -3424,7 +3424,7 @@ END SUBROUTINE lhn_verification
       CALL message('LHN','lhn.log already open!')
       RETURN
     ENDIF
-      
+
     nulhn = find_next_free_unit(100,1000)
     OPEN(UNIT=nulhn,FILE=TRIM(yulhn),ACTION="write", FORM='FORMATTED',IOSTAT=istatus)
     IF (istatus/=SUCCESS) THEN

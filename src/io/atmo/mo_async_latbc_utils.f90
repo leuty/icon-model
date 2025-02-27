@@ -99,13 +99,13 @@
 
     INTERFACE fetch_from_buffer
       MODULE PROCEDURE fetch_from_buffer_2D
-      MODULE PROCEDURE fetch_from_buffer_3D_cells 
+      MODULE PROCEDURE fetch_from_buffer_3D_cells
       MODULE PROCEDURE fetch_from_buffer_3D_generic
     END INTERFACE
 
     INTERFACE get_data
       MODULE PROCEDURE get_data_2D
-      MODULE PROCEDURE get_data_3D 
+      MODULE PROCEDURE get_data_3D
     END INTERFACE
 
     TYPE t_read_params
@@ -165,7 +165,7 @@
       ALLOCATE(latbc%latbc_data_const)
       ALLOCATE(latbc%latbc_data_const%z_mc_in(nproma,nlev_in,nblks_c), STAT=ierrstat)
       IF (ierrstat /= SUCCESS) CALL finish(routine, "ALLOCATE failed!")
-      
+
       ! topography and metrics are time independent
       latbc%latbc_data_const%topography_c => ext_data%atm%topography_c
       latbc%latbc_data_const%z_ifc        => p_nh_state%metrics%z_ifc
@@ -260,7 +260,7 @@
         !$ACC   CREATE(latbc%latbc_data(tlev)%atm%qc, latbc%latbc_data(tlev)%atm%qi) &
         !$ACC   CREATE(latbc%latbc_data(tlev)%atm%qr, latbc%latbc_data(tlev)%atm%qs)
 
-!$OMP PARALLEL 
+!$OMP PARALLEL
          CALL init(latbc%latbc_data(tlev)%atm%vn(:,:,:), lacc=.FALSE.)
          CALL init(latbc%latbc_data(tlev)%atm%u(:,:,:), lacc=.FALSE.)
          CALL init(latbc%latbc_data(tlev)%atm%v(:,:,:), lacc=.FALSE.)
@@ -300,8 +300,8 @@
          latbc%latbc_data(tlev)%const => latbc%latbc_data_const
 
 
-        ! In case of upper boundary nudging for child domains, 
-        ! allocate additional fields 
+        ! In case of upper boundary nudging for child domains,
+        ! allocate additional fields
         IF ( ANY(nudging_config(2:n_dom)%nudge_type==indg_type%ubn) ) THEN
 
           ALLOCATE(latbc%latbc_data(tlev)%atm_child(n_dom), STAT=ierrstat)
@@ -323,11 +323,11 @@
                          latbc%latbc_data(tlev)%atm_child(jg)%qv   (nproma,nlev,nblks_c), &
                          STAT=ierrstat)
                 IF (ierrstat /= SUCCESS) CALL finish(routine, "ALLOCATE failed!")
-!$OMP PARALLEL 
+!$OMP PARALLEL
                 CALL init(latbc%latbc_data(tlev)%atm_child(jg)%vn  (:,:,:), lacc=.FALSE.)
-                ! Initialization with non-zero values is necessary in order to 
-                ! avoid a division by zero in limarea_nudging_upbdy. 
-                ! This is becase some of the accessed halo cells that at the same time 
+                ! Initialization with non-zero values is necessary in order to
+                ! avoid a division by zero in limarea_nudging_upbdy.
+                ! This is becase some of the accessed halo cells that at the same time
                 ! belong to the lateral boundary are undefined otherwise.
                 CALL init(latbc%latbc_data(tlev)%atm_child(jg)%temp(:,:,:), 250._wp, lacc=.FALSE.)
                 CALL init(latbc%latbc_data(tlev)%atm_child(jg)%pres(:,:,:), 1.e4_wp, lacc=.FALSE.)
@@ -342,7 +342,7 @@
                          STAT=ierrstat)
                 IF (ierrstat /= SUCCESS) CALL finish(routine, "ALLOCATE failed!")
 
-!$OMP PARALLEL 
+!$OMP PARALLEL
                 CALL init(latbc%latbc_data(tlev)%atm_child(jg)%vn     (:,:,:), lacc=.FALSE.)
                 CALL init(latbc%latbc_data(tlev)%atm_child(jg)%theta_v(:,:,:), lacc=.FALSE.)
                 CALL init(latbc%latbc_data(tlev)%atm_child(jg)%rho    (:,:,:), lacc=.FALSE.)
@@ -439,7 +439,7 @@
 
       ! First read hhl, which is assumed to be in the initial latbc file, which is already opened
       IF (latbc%buffer%lread_hhl) THEN
-        
+
         ! allocate temporary array:
         ALLOCATE(z_ifc_in(nproma, (nlev_in+1), nblks_c))
 
@@ -453,7 +453,7 @@
             DO jc = 1, MERGE(nproma,p_patch(1)%npromz_c,jb/=nblks_c)
 
               IF (.NOT. latbc%patch_data%cell_mask(jc,jb)) CYCLE
-            
+
               latbc%latbc_data_const%z_mc_in(jc,jk,jb) = 0.5_wp*(z_ifc_in(jc,jk,jb)+z_ifc_in(jc,jk+1,jb))
             ENDDO
           ENDDO
@@ -541,7 +541,7 @@
         CALL read_next_timelevel(.FALSE.)
       ENDIF
 
-      ! Read input data for second boundary time level; in case of IAU (dt_shift<0), the second time level 
+      ! Read input data for second boundary time level; in case of IAU (dt_shift<0), the second time level
       ! equals the nominal start date, which has already been read above
       IF (time_config%timeshift%dt_shift == 0._wp .OR. is_restart) THEN
         latbc_read_datetime = latbc_read_datetime + latbc%delta_dtime
@@ -551,9 +551,9 @@
       latbc%mtime_last_read = latbc_read_datetime
 
 
-      ! If upper boundary nudging is activated for the base domain, scan through all 
-      ! child domains recursively. If boundary nudging is activated, interpolate recently 
-      ! read boundary data (timelev and prev_latbc_tlev) from the base domain to the 
+      ! If upper boundary nudging is activated for the base domain, scan through all
+      ! child domains recursively. If boundary nudging is activated, interpolate recently
+      ! read boundary data (timelev and prev_latbc_tlev) from the base domain to the
       ! current child domain. Do nothing, if upper boundary nudging is deactivated.
       IF (nudging_config(1)%nudge_type==indg_type%ubn .AND. p_patch(1)%n_childdom > 0) THEN
         !
@@ -1044,7 +1044,7 @@
     !! Read horizontally interpolated atmospheric boundary data.
     !!
     !! The subroutine reads atmospheric boundary data and projects on
-    !! the ICON global grid. 
+    !! the ICON global grid.
     !!
     !! The following steps are performed:
     !! - Read atmospheric input data,
@@ -1116,18 +1116,18 @@
 
             SELECT CASE (latbc%buffer%hgrid(jm))
             CASE(GRID_UNSTRUCTURED_CELL)
-           
+
               ! Read 3d variables
               CALL prefetch_cdi_3d ( latbc%open_cdi_stream_handle, latbc%buffer%mapped_name(jm), latbc, &
                 &                    nlevs_read, latbc%buffer%hgrid(jm), ioff )
-            
+
             CASE(GRID_UNSTRUCTURED_EDGE)
               CALL prefetch_cdi_3d ( latbc%open_cdi_stream_handle, latbc%buffer%mapped_name(jm), latbc, &
                 &                    nlevs_read, latbc%buffer%hgrid(jm), ioff )
             CASE default
               CALL finish(routine,'unknown grid type')
             END SELECT
-          
+
             ! consistency check
             IF (nlevs_read /= latbc%buffer%nlev(jm)) THEN
               WRITE (message_text, *) &
@@ -1135,22 +1135,22 @@
                 & "': nlev=", nlevs_read, " but expected ", latbc%buffer%nlev(jm)
               CALL finish(routine, message_text)
             END IF
-          
+
           ELSE
             SELECT CASE (latbc%buffer%hgrid(jm))
             CASE(GRID_UNSTRUCTURED_CELL)
               ! Read 2d variables
               CALL prefetch_cdi_2d ( latbc%open_cdi_stream_handle, latbc%buffer%mapped_name(jm), latbc, &
                 &                    latbc%buffer%hgrid(jm), ioff )
-            
+
             CASE(GRID_UNSTRUCTURED_EDGE)
               CALL prefetch_cdi_2d ( latbc%open_cdi_stream_handle, latbc%buffer%mapped_name(jm), latbc, &
                 &                    latbc%buffer%hgrid(jm), ioff )
-            
+
             CASE default
               CALL finish(routine,'unknown grid type')
             END SELECT
-          
+
           ENDIF
 
         ENDDO VARLOOP
@@ -1222,7 +1222,7 @@
 
     !-------------------------------------------------------------------------
     !! Receive horizontally interpolated atmospheric boundary data
-    !! from the prefetching PE. 
+    !! from the prefetching PE.
     !!
     !! ** This subroutine is only called by the worker PEs. **
     !!
@@ -1289,7 +1289,7 @@
       IF(my_process_is_work()) CALL compute_wait_for_async_pref()
 
 
-      ! receive validity dateTime of current boundary data timeslice 
+      ! receive validity dateTime of current boundary data timeslice
       ! from prefetch PE0.
       IF(p_pe_work==0) THEN
          CALL p_recv(vDateTime_str, p_pref_pe0, TAG_VDATETIME)
@@ -1332,9 +1332,9 @@
       latbc%mtime_last_read = latbc_read_datetime
 
 
-      ! If upper boundary nudging is activated for the base domain, scan through all 
-      ! child domains recursively. If boundary nudging is activated, interpolate latest 
-      ! boundary data from the base domain to the current child domain. Do nothing, if upper 
+      ! If upper boundary nudging is activated for the base domain, scan through all
+      ! child domains recursively. If boundary nudging is activated, interpolate latest
+      ! boundary data from the base domain to the current child domain. Do nothing, if upper
       ! boundary nudging is deactivated.
       IF (nudging_config(1)%nudge_type==indg_type%ubn .AND. p_patch(1)%n_childdom > 0) THEN
         DO jn = 1, p_patch(1)%n_childdom
@@ -1360,7 +1360,7 @@
     END SUBROUTINE recv_latbc_data
 
 
-    ! Wrapper routine for copying prognostic variables from initial state to the 
+    ! Wrapper routine for copying prognostic variables from initial state to the
     ! first time level of the lateral boundary data
     !
     SUBROUTINE copy_fg_to_latbc(latbc_data, p_nh, tlev, idx_tracer)
@@ -1445,7 +1445,7 @@
         CALL message("", message_text)
       ENDIF
       ! Inverse value of boundary update frequency
-      rdt = 1._wp/dt      
+      rdt = 1._wp/dt
 
 !$OMP PARALLEL PRIVATE(i_startblk,i_endblk)
 
@@ -1702,7 +1702,7 @@
         mapped_name = name
       ENDIF
       nlev = SIZE(arr3d,2)
-      
+
       IF (read_params%imode_asy == 0) THEN
         CALL read_cdi_3d(read_params%cdi_params, TRIM(mapped_name), nlev, arr3d, read_params%npoints, read_params%idx_ptr)
       ELSE IF (read_params%imode_asy == iedge) THEN
@@ -1788,7 +1788,7 @@
       INTEGER :: jm, jk, j, jb, jl
 
       jm = get_field_index(latbc%buffer, TRIM(name))
-      ! buffer%internal_name is constructed based on the inverted latbc_varnames_map_file dictionary. 
+      ! buffer%internal_name is constructed based on the inverted latbc_varnames_map_file dictionary.
       ! A wrong name in the left column of latbc_varnames_map_file (internal name) will trigger the following error.
       IF (jm <= 0)  CALL finish(routine//"_"//TRIM(name), &
         &  "Internal error, invalid field index! Is "//TRIM(name)//" listed in latbc dict?")

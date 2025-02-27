@@ -11,7 +11,7 @@
 #SBATCH --account=exaww
 
 
-module --force purge 
+module --force purge
 export USERINSTALLATIONS=/p/usersoftware/slmet/easybuild/stages/2023/
 module load Stages/2023 NVHPC/23.1 ParaStationMPI/5.8.0-1 netCDF-Fortran ecCodes libfyaml CMake
 module list
@@ -32,7 +32,7 @@ ulimit -c 0
 # with_mpi=yes
 # with_openmp=no
 # memory_model=large
-# submit with 
+# submit with
 #
 builder=default_pgi
 #=============================================================================
@@ -480,13 +480,13 @@ cat dict.iconam.mpim  > ${dict_file}
 add_required_file ${basedir}/run/${dict_file}                             ./
 
 # initial and boundary conditions
-# 
+#
 datadir=${icon_data_poolFolder}/${grid_id}/initial_condition/r0001
 add_link_file $datadir/ifs2icon_1979010100_${grid_refinement}_G.nc        ./ifs2icon.nc
 #
 datadir=${icon_data_poolFolder}/${grid_id}/ozone/r0001
 add_link_file $datadir/bc_ozone_picontrol.nc                              ./bc_ozone.nc
-# 
+#
 datadir=${icon_data_poolFolder}/${grid_id}/sst_and_seaice/r0001
 add_link_file $datadir/bc_sic_1979_2016.nc                                ./bc_sic.nc
 add_link_file $datadir/bc_sst_1979_2016.nc                                ./bc_sst.nc
@@ -652,7 +652,7 @@ ldd ${MODEL}
 
 #=============================================================================
 #
-# This section of the run script prepares and starts the model integration. 
+# This section of the run script prepares and starts the model integration.
 #
 # MODEL and START must be defined as environment variables or
 # they must be substituted with appropriate values.
@@ -730,7 +730,7 @@ if [ x$namelist_list = x ]; then
     modeltype_list[0]=99
   else
     check_error 1 "No namelist is defined"
-  fi 
+  fi
 fi
 
 #-----------------------------------------------------------------------------
@@ -792,7 +792,7 @@ for gridfile in ${all_grids}; do
   ls -l ${HGRIDDIR}/$gridfile
   check_error $? "${HGRIDDIR}/$gridfile does not exist."
   add_link_file ${HGRIDDIR}/${gridfile} ./
-  if [ -f ${HGRIDDIR}/${grfinfofile} ]; then    
+  if [ -f ${HGRIDDIR}/${grfinfofile} ]; then
     add_link_file ${HGRIDDIR}/${grfinfofile} ./
   fi
 done
@@ -1065,7 +1065,7 @@ cd $RUNSCRIPTDIR
 
 #-----------------------------------------------------------------------------
 
-	
+
 # exit 0
 #
 # vim:ft=sh

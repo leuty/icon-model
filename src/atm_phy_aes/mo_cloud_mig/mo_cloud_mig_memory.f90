@@ -62,7 +62,7 @@ MODULE mo_cloud_mig_memory
 CONTAINS
 
   !!--------------------------------------------------------------------------
-  !!                SUBROUTINES FOR BUILDING AND DELETING VARIABLE LISTS 
+  !!                SUBROUTINES FOR BUILDING AND DELETING VARIABLE LISTS
   !!--------------------------------------------------------------------------
   !>
   !! Top-level procedure for building the state
@@ -141,7 +141,7 @@ CONTAINS
           !
        END IF
     END DO
-    
+
     !$ACC WAIT(1)
     !$ACC EXIT DATA DELETE(cloud_mig_input, cloud_mig_output)
 

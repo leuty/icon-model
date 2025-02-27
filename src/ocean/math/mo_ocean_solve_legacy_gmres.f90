@@ -23,11 +23,11 @@ MODULE mo_ocean_solve_legacy_gmres
   USE mo_timer, ONLY: timer_start, timer_stop
   USE mo_run_config, ONLY: ltimer
   USE mo_fortran_tools, ONLY: set_acc_host_or_device
- 
+
   IMPLICIT NONE
-  
+
   PRIVATE
- 
+
   PUBLIC :: t_ocean_solve_legacy_gmres
   CHARACTER(LEN=*), PARAMETER :: this_mod_name = 'mo_ocean_solve_legacy_gmres'
 
@@ -65,7 +65,7 @@ CONTAINS
   SUBROUTINE ocean_solve_legacy_gmres_cal_sp(this)
     CLASS(t_ocean_solve_legacy_gmres), INTENT(INOUT) :: this
     CHARACTER(len=*), PARAMETER :: routine='ocean_solve_legacy_gmres'
- 
+
     CALL finish(routine, "not implemented!")
   END SUBROUTINE ocean_solve_legacy_gmres_cal_sp
 
@@ -481,7 +481,7 @@ CONTAINS
       ENDDO
     ENDDO
 !ICON_OMP_END_DO NOWAIT
-!ICON_OMP_END_PARALLEL 
+!ICON_OMP_END_PARALLEL
     res(1) = ABS(rn2(niter))
     CALL trans%sync(x)
 !    stop_timer(timer_gmres,2)

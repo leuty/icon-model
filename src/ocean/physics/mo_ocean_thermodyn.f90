@@ -1406,7 +1406,7 @@ CONTAINS
       DO jb = all_cells%start_block, all_cells%end_block
         CALL get_index_range(all_cells, jb, start_index, end_index)
         max_level = MAXVAL(patch_3d%p_patch_1d(1)%dolic_c(start_index:end_index,jb))
-  
+
         !$ACC PARALLEL LOOP GANG VECTOR COLLAPSE(2) DEFAULT(PRESENT) ASYNC(1) IF(lzacc)
         DO jk = 1, max_level
           DO jc = start_index, end_index

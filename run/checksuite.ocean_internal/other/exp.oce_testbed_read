@@ -39,7 +39,7 @@ ocean_vertical_levels=20
 cat > ${ocean_namelist} << EOF
 !
 &parallel_nml
- p_test_run     =  .false.     
+ p_test_run     =  .false.
  nproma         = ${nproma}
  l_fast_sum     = .true.          ! false: results are reproducable, gmres_oce_old is used; true: production run
 /

@@ -54,8 +54,8 @@ MODULE mo_nwp_lnd_types
     TYPE(t_ptr_2d3d), ALLOCATABLE :: t_snow_mult_ptr(:)
     TYPE(t_ptr_2d3d), ALLOCATABLE :: t_s_ptr(:)
     TYPE(t_ptr_2d3d), ALLOCATABLE :: t_sk_ptr(:)
-    TYPE(t_ptr_2d3d), ALLOCATABLE :: t_gt_ptr(:) 
-    TYPE(t_ptr_2d3d), ALLOCATABLE :: w_snow_ptr(:) 
+    TYPE(t_ptr_2d3d), ALLOCATABLE :: t_gt_ptr(:)
+    TYPE(t_ptr_2d3d), ALLOCATABLE :: w_snow_ptr(:)
     TYPE(t_ptr_2d3d), ALLOCATABLE :: rho_snow_ptr(:)
     TYPE(t_ptr_2d3d), ALLOCATABLE :: rho_snow_mult_ptr(:)
     TYPE(t_ptr_2d3d), ALLOCATABLE :: w_i_ptr(:)
@@ -85,11 +85,11 @@ MODULE mo_nwp_lnd_types
     &  t_mnw_lk     (:,:)   , & ! mean temperature of the water column   (  K  )
     &  t_wml_lk     (:,:)   , & ! temperature of the mixed-layer         (  K  )
     &  h_ml_lk      (:,:)   , & ! thickness of the mixed-layer           (  m  )
-    &  t_bot_lk     (:,:)   , & ! temperature at the water-bottom sediment interface  (  K  ) 
+    &  t_bot_lk     (:,:)   , & ! temperature at the water-bottom sediment interface  (  K  )
     &  c_t_lk       (:,:)   , & ! shape factor with respect to the       (  -  )
                                 ! temperature profile in lake thermocline
-    &  t_b1_lk      (:,:)   , & ! temperature at the bottom of the       (  K  ) 
-                                ! upper layer of the sediments 
+    &  t_b1_lk      (:,:)   , & ! temperature at the bottom of the       (  K  )
+                                ! upper layer of the sediments
     &  h_b1_lk      (:,:)       ! thickness of the upper layer of the    (  K  )
                                 ! sediments
   END TYPE t_wtr_prog
@@ -133,8 +133,8 @@ MODULE mo_nwp_lnd_types
     &  t_snow       (:,:)   , & ! temperature of the snow-surface               (  K  )
     &  rho_snow     (:,:)   , & ! snow density                                  (kg/m**3)
     &  w_snow       (:,:)   , & ! snow water equivalent                         (m H2O)
-    &  h_snow       (:,:)   , & ! snow height                                   (  m  ) 
-    &  h_snow_t     (:,:,:) , & ! snow height                                   (  m  ) 
+    &  h_snow       (:,:)   , & ! snow height                                   (  m  )
+    &  h_snow_t     (:,:,:) , & ! snow height                                   (  m  )
     &  freshsnow    (:,:)   , & ! indicator for age of snow in top of snow layer(  -  )
     &  freshsnow_t  (:,:,:) , & ! indicator for age of snow in top of snow layer(  -  )
     &  snow_age     (:,:)   , & ! duration of snow cover period                 (  d  )
@@ -184,6 +184,6 @@ MODULE mo_nwp_lnd_types
     TYPE(t_lnd_diag)               :: diag_lnd
     TYPE(t_var_list_ptr)               :: lnd_diag_nwp_list
   END TYPE t_lnd_state
- 
+
 
 END MODULE mo_nwp_lnd_types

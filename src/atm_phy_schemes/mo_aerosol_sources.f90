@@ -145,7 +145,7 @@ CONTAINS
     dust_flux   = calc_aerosol_dust_mflux_kok2014 (ustar, ustart, f_bare, f_clay, rho_a)
     dust_flux   = dust_flux * h_snow_fac
     aod_flux    = calc_dust_aod (dust_flux)
-    
+
     IF(PRESENT(dust_flux_out)) &
       &  dust_flux_out = dust_flux
 
@@ -242,13 +242,13 @@ CONTAINS
   !>
   !! FUNCTION calc_aerosol_dust_mflux_kok2014
   !!
-  !! Calculates the mineral dust emission flux according to Kok et al. (2014). 
+  !! Calculates the mineral dust emission flux according to Kok et al. (2014).
   !!
   ELEMENTAL FUNCTION calc_aerosol_dust_mflux_kok2014 (ustar, ustart, f_bare, f_clay, rho_a) RESULT(dust_flux)
 
     REAL(wp), INTENT(in)  :: &
       &  ustar,              & !< Input: Friction wind speed (m s-1)
-      &  ustart,             & !< Input: Threshold friction wind speed (m s-1) 
+      &  ustart,             & !< Input: Threshold friction wind speed (m s-1)
       &  f_bare,             & !< Input: Bare soil fraction (-)
       &  f_clay,             & !< Input: Clay fraction (-)
       &  rho_a                 !< Input: Air density (kg m-3)
@@ -340,7 +340,7 @@ CONTAINS
   !>
   !! FUNCTION calc_hsnow_fac
   !!
-  !! Calculate a factor to consider the impact of snow height. For a snow height 
+  !! Calculate a factor to consider the impact of snow height. For a snow height
   !! above 5 cm, the factor is 0.
   !! Use a simple linear fit in between f(h_snow=0) = 1 and f(h_snow=0.05) = 0
   !!
@@ -375,7 +375,7 @@ CONTAINS
       &  sst_degc              !< Sea surface temperature in degree celcius
 
     sst_degc   = sst - 273.15_wp
-    ! ssa_flux and ssa_flux_t calculate the sea spray aerosol mass flux. 
+    ! ssa_flux and ssa_flux_t calculate the sea spray aerosol mass flux.
     ! For the 2D-aerosol implementation, only the change in AOD (aod_flux) is needed.
     ! For future checking or debugging, we leave the calls commented here.
     ! ssa_flux   = calc_ssa_mflux_grythe2014(sp_10m)
@@ -412,7 +412,7 @@ CONTAINS
   !!
   !! Calculates the sea salt aerosol optical depth.
   !! In order to derive mass fluxes instead of aod,
-  !! the following factors can be used. 
+  !! the following factors can be used.
   !! (assuming sphericity and a density of 2200 kg m-3)
   !! fac1 = 0.00023865_wp
   !! fac2 = 3.6086e-06_wp
@@ -509,7 +509,7 @@ CONTAINS
     TYPE(t_stream_id) :: stream_id
 
     CALL openinputfile(stream_id, filename, p_patch, default_read_method)
-    
+
     IF (has_time_dim) THEN
       CALL read_2D_1time(stream_id, on_cells, varname, var)
     ELSE
@@ -517,7 +517,7 @@ CONTAINS
     ENDIF
 
     CALL closeFile    (stream_id)
-    
+
   END SUBROUTINE aerosol2d_read_data
 
   !>

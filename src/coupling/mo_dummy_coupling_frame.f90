@@ -33,7 +33,7 @@ MODULE mo_dummy_coupling_frame
 
   PUBLIC :: construct_dummy_coupling
   PUBLIC :: destruct_dummy_coupling
- 
+
 CONTAINS
 
   !>

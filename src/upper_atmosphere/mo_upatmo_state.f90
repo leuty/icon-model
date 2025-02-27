@@ -34,7 +34,7 @@ MODULE mo_upatmo_state
   USE mo_io_config,            ONLY: lnetcdf_flt64_output
   USE mo_var_list,             ONLY: add_var, add_ref, t_var_list_ptr
   USE mo_var_list_register,    ONLY: vlr_add, vlr_del
-  USE mo_cdi,                  ONLY: DATATYPE_PACK16, DATATYPE_FLT32, DATATYPE_FLT64, & 
+  USE mo_cdi,                  ONLY: DATATYPE_PACK16, DATATYPE_FLT32, DATATYPE_FLT64, &
     &                                GRID_UNSTRUCTURED
   USE mo_cdi_constants,        ONLY: GRID_CELL, GRID_UNSTRUCTURED_CELL, &
     &                                GRID_UNSTRUCTURED_EDGE, GRID_EDGE
@@ -49,7 +49,7 @@ MODULE mo_upatmo_state
 
 
   IMPLICIT NONE
-  
+
   PRIVATE
 
   PUBLIC :: prm_upatmo
@@ -62,13 +62,13 @@ MODULE mo_upatmo_state
 
   TYPE(t_var_list_ptr), ALLOCATABLE         :: prm_upatmo_tend_list(:) ! Shape: (n_dom)
 
-  ! Please note that we cannot use 'mo_impl_constants: TIMELEVEL_SUFFIX' 
-  ! for the different time levels of the total tendencies, 
+  ! Please note that we cannot use 'mo_impl_constants: TIMELEVEL_SUFFIX'
+  ! for the different time levels of the total tendencies,
   ! because of its use in 'mo_var_list'
   CHARACTER(LEN=*), PARAMETER :: STATELEVEL_SUFFIX = '.SL'
 
   CHARACTER(LEN=*), PARAMETER :: modname = 'mo_upatmo_state'
-  
+
 CONTAINS
 
   !>
@@ -89,7 +89,7 @@ CONTAINS
     TYPE(t_upatmo_phy_config),     INTENT(IN) :: upatmo_phy_config(:)
     REAL(wp),            OPTIONAL, INTENT(IN) :: vct_a(:)
 
-    ! Local variables 
+    ! Local variables
     INTEGER  :: jg, istat, nblks_c, nblks_e, nlev
     LOGICAL  :: lmessage, ltimer
     CHARACTER(LEN=80) :: listname
@@ -108,7 +108,7 @@ CONTAINS
       CALL finish (routine, 'Information required is not yet available')
     ELSEIF (ALLOCATED(prm_upatmo)) THEN
       CALL finish (routine, 'prm_upatmo is already allocated')
-    ELSEIF (.NOT. PRESENT(vct_a)) THEN 
+    ELSEIF (.NOT. PRESENT(vct_a)) THEN
       CALL finish(routine, 'vct_a has to be present')
     ENDIF
 
@@ -119,11 +119,11 @@ CONTAINS
     !     Upper-atmosphere physics
     !------------------------------------
 
-    ! Unfortunately some compilers require the domain allocation 
-    ! of 'prm_upatmo' to always take place, 
-    ! so we had to move the query for the enabling of the physics 
+    ! Unfortunately some compilers require the domain allocation
+    ! of 'prm_upatmo' to always take place,
+    ! so we had to move the query for the enabling of the physics
     ! to after their allocation
-      
+
     ! Cummulative upper-atmosphere type:
     ! * Diagnostic fields
     ! * Tendencies from upper-atmosphere physics parameterizations
@@ -137,7 +137,7 @@ CONTAINS
       ! List for diagnostic fields
       ALLOCATE(prm_upatmo_diag_list( n_dom ), STAT=istat)
       IF(istat/=SUCCESS) CALL finish (routine, 'Allocation of prm_upatmo_diag_list failed')
-      
+
       ! List for tendencies
       ALLOCATE(prm_upatmo_tend_list( n_dom ), STAT=istat)
       IF(istat/=SUCCESS) CALL finish (routine, 'Allocation of prm_upatmo_tend_list failed')
@@ -150,10 +150,10 @@ CONTAINS
           ! Determine size of arrays
           nblks_c = p_patch( jg )%nblks_c
           nblks_e = p_patch( jg )%nblks_e
-          
+
           ! Number of vertical levels
           nlev   = p_patch( jg )%nlev
-          
+
           ! Prefix for variable names
 
           WRITE(listname,'(a,i2.2)') 'prm_upatmo_diag_of_domain_', jg
@@ -163,20 +163,20 @@ CONTAINS
             &                        upatmo_config( jg )%nwp_phy%vname_prefix,          &
             &                        upatmo_config( jg )%nwp_phy,                       &
             &                        prm_upatmo_diag_list( jg ), prm_upatmo( jg )%diag  )
-          
+
           WRITE(listname,'(a,i2.2)') 'prm_upatmo_tend_of_domain_', jg
-          
+
           ! Allocate tendencies from upper-atmosphere physics parameterizations
           CALL new_upatmo_tend_list( jg, nlev, nblks_c, nblks_e, nproma, listname,      &
             &                        upatmo_config( jg )%nwp_phy%vname_prefix,          &
             &                        upatmo_config( jg )%nwp_phy,                       &
             &                        prm_upatmo_tend_list( jg ), prm_upatmo( jg )%tend, &
             &                        lmessage                                           )
-          
+
         ENDIF  !Physics switched on on domain?
 
         ! Indicate that setup of 'prm_upatmo_diag' and 'prm_upatmo_tend' took place
-        prm_upatmo( jg )%diag%linitialized = .TRUE. 
+        prm_upatmo( jg )%diag%linitialized = .TRUE.
         prm_upatmo( jg )%tend%linitialized = .TRUE.
 
         ! The external upper-atmosphere data
@@ -208,7 +208,7 @@ CONTAINS
 
   END SUBROUTINE construct_upatmo_state
 
-  !==================================================================================== 
+  !====================================================================================
 
   !>
   !! Destruct upper atmosphere physics state variables.
@@ -220,7 +220,7 @@ CONTAINS
     INTEGER,               INTENT(IN) :: n_dom
     TYPE(t_upatmo_config), INTENT(IN) :: upatmo_config(:)
 
-    ! Local variables 
+    ! Local variables
     INTEGER  :: jg, jst, istat
     INTEGER  :: nstate
     LOGICAL  :: lmessage, ltimer
@@ -252,8 +252,8 @@ CONTAINS
         IF (upatmo_config( jg )%nwp_phy%l_phy_stat( iUpatmoPrcStat%enabled )) THEN
 
           CALL vlr_del(prm_upatmo_diag_list(jg))
-          
-          CALL vlr_del(prm_upatmo_tend_list(jg))     
+
+          CALL vlr_del(prm_upatmo_tend_list(jg))
 
           ! Deallocate the fields, which have not been allocated via add_var/add_ref.
           ! Currently these are:
@@ -266,7 +266,7 @@ CONTAINS
           ! * prm_upatmo%tend%ddt%qx
           ! * prm_upatmo%tend%ddt%info
           ! * prm_upatmo%tend%ddt%state
-  
+
           ! prm_upatmo%diag%gas_ptr
           IF (ALLOCATED(prm_upatmo( jg )%diag%gas_ptr)) THEN
             DEALLOCATE(prm_upatmo( jg )%diag%gas_ptr, STAT=istat)
@@ -373,7 +373,7 @@ CONTAINS
 
       DEALLOCATE(prm_upatmo_diag_list, STAT=istat)
       IF(istat/=SUCCESS) CALL finish (routine, 'Deallocation prm_upatmo_diag_list failed')
-      
+
       DEALLOCATE(prm_upatmo_tend_list, STAT=istat)
       IF(istat/=SUCCESS) CALL finish (routine, 'Deallocation prm_upatmo_tend_list failed')
 
@@ -391,7 +391,7 @@ CONTAINS
 
   END SUBROUTINE destruct_upatmo_state
 
-  !==================================================================================== 
+  !====================================================================================
 
   !>
   !! Allocation of diagnostic upper-atmosphere physics state variables.
@@ -407,7 +407,7 @@ CONTAINS
     TYPE(t_var_list_ptr),       INTENT(INOUT) :: diag_list
     TYPE(t_upatmo_diag),    INTENT(INOUT) :: diag
 
-    ! Local variables 
+    ! Local variables
     INTEGER  :: shape3d(3), shape4d(4)
     INTEGER  :: ibits
     INTEGER  :: datatype_flt
@@ -433,12 +433,12 @@ CONTAINS
       datatype_flt = DATATYPE_FLT32
     ENDIF
 
-    ibits = DATATYPE_PACK16 
+    ibits = DATATYPE_PACK16
 
     shape3d = (/nproma, nlev, nblks_c/)
 
     ! Ensure that all pointers have a defined association status
-    ! (should be covered by the '=> NULL()'-statement at their 
+    ! (should be covered by the '=> NULL()'-statement at their
     ! declaration, but to be on the safe side ...)
     NULLIFY( diag%gas,     &
       &      diag%mdry,    &
@@ -453,12 +453,12 @@ CONTAINS
     CALL vlr_add(diag_list, listname, patch_id=jg, lrestart=.TRUE., &
       &          model_type=get_my_process_name())
 
-    ! Please note that apart from a few exceptions (e.g., ozone) 
-    ! GRIB2 triplets (discipline, category, number) do net (yet) exist 
-    ! for the fields that we allocate here. 
-    ! For that reason, we hand over a triplet with the missing valuses (255,255,255). 
-    ! In addition, 'src/upper_atmosphere/mo_upatmo_phy_config: configure_upatmo_physics' 
-    ! contains a check that should make the program stop, if the user desires 
+    ! Please note that apart from a few exceptions (e.g., ozone)
+    ! GRIB2 triplets (discipline, category, number) do net (yet) exist
+    ! for the fields that we allocate here.
+    ! For that reason, we hand over a triplet with the missing valuses (255,255,255).
+    ! In addition, 'src/upper_atmosphere/mo_upatmo_phy_config: configure_upatmo_physics'
+    ! contains a check that should make the program stop, if the user desires
     ! the output of upper-atmosphere variables in the GRIB format.
 
     !------------------------------------
@@ -470,7 +470,7 @@ CONTAINS
     !   (practically always required)
     !------------------------------------
 
-    ! &      diag%mdry(nproma,nlev,nblks_c) 
+    ! &      diag%mdry(nproma,nlev,nblks_c)
     !--------------------------------------
     ! Construct variable name
     vn_pfx_len = LEN_TRIM(vname_prefix)
@@ -483,9 +483,9 @@ CONTAINS
       &           vert_interp=create_vert_interp_metadata(                    &
       &                       vert_intp_type=vintp_types("P","Z","I"),        &
       &                       vert_intp_method=VINTP_METHOD_LIN),             &
-      &           loutput=.TRUE., lrestart=.TRUE.                             )         
-    
-    ! &      diag%amd(nproma,nlev,nblks_c) 
+      &           loutput=.TRUE., lrestart=.TRUE.                             )
+
+    ! &      diag%amd(nproma,nlev,nblks_c)
     !-------------------------------------
     var_name   = vname_prefix(1:vn_pfx_len)//'amd'
     cf_desc    = t_cf_var(var_name, 'g mol-1', 'molar mass of dry air', datatype_flt)
@@ -496,9 +496,9 @@ CONTAINS
       &           vert_interp=create_vert_interp_metadata(                    &
       &                       vert_intp_type=vintp_types("P","Z","I"),        &
       &                       vert_intp_method=VINTP_METHOD_LIN),             &
-      &           loutput=.TRUE., lrestart=.TRUE.                             )         
-    
-    ! &      diag%cpair(nproma,nlev,nblks_c) 
+      &           loutput=.TRUE., lrestart=.TRUE.                             )
+
+    ! &      diag%cpair(nproma,nlev,nblks_c)
     !---------------------------------------
     var_name   = vname_prefix(1:vn_pfx_len)//'cpair'
     cf_desc    = t_cf_var(var_name, 'J K-1 kg-1',                               &
@@ -512,8 +512,8 @@ CONTAINS
       &                       vert_intp_type=vintp_types("P","Z","I"),        &
       &                       vert_intp_method=VINTP_METHOD_LIN),             &
       &           loutput=.TRUE., lrestart=.TRUE.                             )
-    
-    ! &      diag%grav(nproma,nlev,nblks_c) 
+
+    ! &      diag%grav(nproma,nlev,nblks_c)
     !--------------------------------------
     var_name   = vname_prefix(1:vn_pfx_len)//'grav'
     cf_desc    = t_cf_var(var_name, 'm s-2',                                  &
@@ -526,7 +526,7 @@ CONTAINS
       &           vert_interp=create_vert_interp_metadata(                    &
       &                       vert_intp_type=vintp_types("P","Z","I"),        &
       &                       vert_intp_method=VINTP_METHOD_LIN),             &
-      &           loutput=.TRUE., lrestart=.TRUE.                             )     
+      &           loutput=.TRUE., lrestart=.TRUE.                             )
 
     !------------------------------------
     !  Radiation and chemical heating
@@ -534,10 +534,10 @@ CONTAINS
 
     IF (upatmo_nwp_phy_config%grp( iUpatmoGrpId%rad )%l_stat( iUpatmoPrcStat%enabled )) THEN
 
-      ! The scaling and efficiency factors are actually only required, 
-      ! if the radiation group is switched on.  
+      ! The scaling and efficiency factors are actually only required,
+      ! if the radiation group is switched on.
 
-      ! &      diag%sclrlw(nproma,nlev,nblks_c) 
+      ! &      diag%sclrlw(nproma,nlev,nblks_c)
       !----------------------------------------
       var_name   = vname_prefix(1:vn_pfx_len)//'sclrlw'
       cf_desc    = t_cf_var(var_name, '1',                                          &
@@ -550,9 +550,9 @@ CONTAINS
         &           vert_interp=create_vert_interp_metadata(                    &
         &                       vert_intp_type=vintp_types("P","Z","I"),        &
         &                       vert_intp_method=VINTP_METHOD_LIN),             &
-        &           loutput=.TRUE., lrestart=.TRUE.                             )         
+        &           loutput=.TRUE., lrestart=.TRUE.                             )
 
-      ! &      diag%effrsw(nproma,nlev,nblks_c) 
+      ! &      diag%effrsw(nproma,nlev,nblks_c)
       !----------------------------------------
       var_name   = vname_prefix(1:vn_pfx_len)//'effrsw'
       cf_desc    = t_cf_var(var_name, '1',                                              &
@@ -565,7 +565,7 @@ CONTAINS
         &           vert_interp=create_vert_interp_metadata(                    &
         &                       vert_intp_type=vintp_types("P","Z","I"),        &
         &                       vert_intp_method=VINTP_METHOD_LIN),             &
-        &           loutput=.TRUE., lrestart=.TRUE.                             )         
+        &           loutput=.TRUE., lrestart=.TRUE.                             )
 
     ENDIF !Radiation switched on?
 
@@ -594,11 +594,11 @@ CONTAINS
         &           diag%gas,                                                   &
         &           GRID_UNSTRUCTURED_CELL, ZA_REFERENCE, cf_desc, grib2_desc,  &
         &           ldims=shape4d,                                              &
-        &           lcontainer=.TRUE., loutput=.FALSE., lrestart=.FALSE.        )   
+        &           lcontainer=.TRUE., loutput=.FALSE., lrestart=.FALSE.        )
 
       var_name_ref(1:vn_pfx_len) = vname_prefix(1:vn_pfx_len)
       DO jgas = 1, ngas
-        
+
         ! &      diag%gas(nproma,nlev,nblks_c,ngas)
         !------------------------------------------
         var_name_ref(vn_pfx_len+1:) = upatmo_nwp_phy_config%gas(jgas)%name
@@ -606,7 +606,7 @@ CONTAINS
              upatmo_nwp_phy_config%gas(jgas)%unit, &
              upatmo_nwp_phy_config%gas(jgas)%longname, datatype_flt)
         grib2_desc = grib2_var(255, 255, 255, ibits, GRID_UNSTRUCTURED, GRID_CELL)
-        CALL add_ref( diag_list, var_name, var_name_ref,                          & 
+        CALL add_ref( diag_list, var_name, var_name_ref,                          &
           &           diag%gas_ptr( jgas )%p_3d,                                  &
           &           GRID_UNSTRUCTURED_CELL, ZA_REFERENCE, cf_desc, grib2_desc,  &
           &           ldims=shape3d,                                              &
@@ -615,15 +615,15 @@ CONTAINS
           &                       vert_intp_method=VINTP_METHOD_LIN),             &
           &           loutput=.TRUE., lrestart=.TRUE.,                            &
           &           in_group=groups("upatmo_rad_gases"),                        &
-          &           opt_var_ref_pos=4, ref_idx=jgas                             )   
+          &           opt_var_ref_pos=4, ref_idx=jgas                             )
 
       ENDDO  !jgas
-      
+
     ENDIF !Gases required?
 
   END SUBROUTINE new_upatmo_diag_list
 
-  !==================================================================================== 
+  !====================================================================================
 
   !>
   !! Allocation of tendencies from physics parameterizations.
@@ -641,7 +641,7 @@ CONTAINS
     LOGICAL,                INTENT(IN)    :: lmessage
     TARGET :: upatmo_nwp_phy_config
 
-    ! Local variables 
+    ! Local variables
     INTEGER :: shape3d_c(3), shape3d_e(3), shape4d_c(4)
     INTEGER :: ibits
     INTEGER :: datatype_flt
@@ -688,14 +688,14 @@ CONTAINS
       datatype_flt = DATATYPE_FLT32
     ENDIF
 
-    ibits = DATATYPE_PACK16 
+    ibits = DATATYPE_PACK16
 
     shape3d_c = (/nproma, nlev, nblks_c/)
     shape3d_e = (/nproma, nlev, nblks_e/)
     shape4d_c = (/nproma, nlev, nblks_c, ntrc/)
 
     ! Ensure that all pointers have a defined association status
-    ! (should be covered by the '=> NULL()'-statement at their 
+    ! (should be covered by the '=> NULL()'-statement at their
     ! declaration, but to be on the safe side ...)
     NULLIFY( tend%ddt_temp_srbc,     &
       &      tend%ddt_temp_nlte,     &
@@ -712,54 +712,54 @@ CONTAINS
       &      tend%ddt_qx_vdfmol      )
 
     ! Register the field list and apply default settings
-    ! The tendencies will be written in the restart file as the case may be by default, 
-    ! for the special way the total tendencies are computed in 
+    ! The tendencies will be written in the restart file as the case may be by default,
+    ! for the special way the total tendencies are computed in
     ! 'mo_nwp_upatmo_interface: nwp_upatmo_interface' alone
 
     CALL vlr_add(tend_list, listname, patch_id=jg, lrestart=.TRUE., &
       &          model_type=get_my_process_name())
 
-    ! Please note that for most of the tendencies, which we allocate here, 
-    ! either a GRIB2 triplet (discipline, category, number) does not (yet) exist 
+    ! Please note that for most of the tendencies, which we allocate here,
+    ! either a GRIB2 triplet (discipline, category, number) does not (yet) exist
     ! or is already occupied by tendencies of the "standard" configuration of ICON.
-    ! For that reason, we hand over a triplet with the missing valuses (255,255,255). 
-    ! In addition, 'src/upper_atmosphere/mo_upatmo_phy_config: configure_upatmo_physics' 
-    ! contains a check that should make the program stop, if the user desires 
+    ! For that reason, we hand over a triplet with the missing valuses (255,255,255).
+    ! In addition, 'src/upper_atmosphere/mo_upatmo_phy_config: configure_upatmo_physics'
+    ! contains a check that should make the program stop, if the user desires
     ! the output of upper-atmosphere variables in the GRIB format.
 
     !------------------------------------
     !          Allocate fields
     !------------------------------------
 
-    ! Note: we could save a significant amount of memory, 
-    ! if we would limit the allocation of the tendencies 
+    ! Note: we could save a significant amount of memory,
+    ! if we would limit the allocation of the tendencies
     ! to only those vertical grid layers,
-    ! for which the processes compute tendencies. 
-    ! However, this is not straightforward for at least 
+    ! for which the processes compute tendencies.
+    ! However, this is not straightforward for at least
     ! the following reason:
-    ! * For output purposes, the vertical grid type 
-    !   has to be specified in 'add_var'. 
-    !   The standard entry for the 'nlev' model levels is: 
+    ! * For output purposes, the vertical grid type
+    !   has to be specified in 'add_var'.
+    !   The standard entry for the 'nlev' model levels is:
     !   - CALL add_var(..., vgrid = ZA_REFERENCE, ...)
-    !   So for each process we would have to register 
-    !   a new vertical grid type 'ZA_REFERENCE_<process>', say, 
-    !   in 'src/shared/mo_zaxis_type', 
-    !   and add a definition in 
+    !   So for each process we would have to register
+    !   a new vertical grid type 'ZA_REFERENCE_<process>', say,
+    !   in 'src/shared/mo_zaxis_type',
+    !   and add a definition in
     !   'src/io/shared/mo_name_list_output_zaxes: setup_ml_axes_atmo'.
-    !   Now, 'setup_ml_axes_atmo' seems to be called in 
-    !   'src/io/shared/mo_name_list_output_init: create_vertical_axes', 
-    !   which in turn seems to be called in 
-    !   'src/io/shared/mo_name_list_output: name_list_io_main_proc', 
+    !   Now, 'setup_ml_axes_atmo' seems to be called in
+    !   'src/io/shared/mo_name_list_output_init: create_vertical_axes',
     !   which in turn seems to be called in
-    !   'src/drivers/mo_atmo_model: construct_atmo_model', 
-    !   which in turn is calle in 
-    !   'src/drivers/mo_atmo_model: atmo_model' 
+    !   'src/io/shared/mo_name_list_output: name_list_io_main_proc',
+    !   which in turn seems to be called in
+    !   'src/drivers/mo_atmo_model: construct_atmo_model',
+    !   which in turn is calle in
+    !   'src/drivers/mo_atmo_model: atmo_model'
     !   and now we finally come to the point, BEFORE the call of 'atmo_nonhydrostatic'!
-    !   That is, the information, which we would need for the definition 
-    !   of the new vertical grid types is not yet available. 
-    !   Any modification to this infrastructure is too delicate, 
-    !   so we refrain from it. 
-    !   To cut a long story short, we have no choice but to allocate the tendencies 
+    !   That is, the information, which we would need for the definition
+    !   of the new vertical grid types is not yet available.
+    !   Any modification to this infrastructure is too delicate,
+    !   so we refrain from it.
+    !   To cut a long story short, we have no choice but to allocate the tendencies
     !   for the entire range of model levels.
 
     ! The tendencies from the single processes can be selected for output
@@ -791,7 +791,7 @@ CONTAINS
       ! Prefix of variable name
       var_name_prefix = vname_prefix(1:vn_pfx_len)//'ddt_temp_'
 
-      ! &      tend%ddt_temp_srbc(nproma,nlev,nblks_c) 
+      ! &      tend%ddt_temp_srbc(nproma,nlev,nblks_c)
       !-----------------------------------------------
       ! Construc variable name
       var_name   = var_name_prefix(1:vn_pfx_len+9)//prc_name_srbc
@@ -806,9 +806,9 @@ CONTAINS
         &                       vert_intp_type=vintp_types("P","Z","I"),        &
         &                       vert_intp_method=VINTP_METHOD_LIN),             &
         &           in_group=groups("upatmo_tendencies"),                       &
-        &           loutput=loutput                                             )   
+        &           loutput=loutput                                             )
 
-      ! &      tend%ddt_temp_nlte(nproma,nlev,nblks_c) 
+      ! &      tend%ddt_temp_nlte(nproma,nlev,nblks_c)
       !--------------------------------------------------
       var_name   = var_name_prefix(1:vn_pfx_len+9)//prc_name_nlte
       cf_desc    = t_cf_var(var_name, unit_k_over_s,                                 &
@@ -822,9 +822,9 @@ CONTAINS
         &                       vert_intp_type=vintp_types("P","Z","I"),        &
         &                       vert_intp_method=VINTP_METHOD_LIN),             &
         &           in_group=groups("upatmo_tendencies"),                       &
-        &           loutput=loutput                                             )   
+        &           loutput=loutput                                             )
 
-      ! &      tend%ddt_temp_euv(nproma,nlev,nblks_c) 
+      ! &      tend%ddt_temp_euv(nproma,nlev,nblks_c)
       !----------------------------------------------
       var_name   = var_name_prefix(1:vn_pfx_len+9)//prc_name_euv
       cf_desc    = t_cf_var(var_name, unit_k_over_s,                                 &
@@ -838,9 +838,9 @@ CONTAINS
         &                       vert_intp_type=vintp_types("P","Z","I"),        &
         &                       vert_intp_method=VINTP_METHOD_LIN),             &
         &           in_group=groups("upatmo_tendencies"),                       &
-        &           loutput=loutput                                             )  
+        &           loutput=loutput                                             )
 
-      ! &      tend%ddt_temp_no(nproma,nlev,nblks_c) 
+      ! &      tend%ddt_temp_no(nproma,nlev,nblks_c)
       !---------------------------------------------
       var_name   = var_name_prefix(1:vn_pfx_len+9)//prc_name_no
       cf_desc    = t_cf_var(var_name, unit_k_over_s,                                 &
@@ -854,9 +854,9 @@ CONTAINS
         &                       vert_intp_type=vintp_types("P","Z","I"),        &
         &                       vert_intp_method=VINTP_METHOD_LIN),             &
         &           in_group=groups("upatmo_tendencies"),                       &
-        &           loutput=loutput                                             )  
+        &           loutput=loutput                                             )
 
-      ! &  tend%ddt_temp_chemheat(nproma,nlev,nblks_c) 
+      ! &  tend%ddt_temp_chemheat(nproma,nlev,nblks_c)
       !-----------------------------------------------
       var_name   = var_name_prefix(1:vn_pfx_len+9)//prc_name_chemheat
       cf_desc    = t_cf_var(var_name, unit_k_over_s,                                 &
@@ -870,13 +870,13 @@ CONTAINS
         &                       vert_intp_type=vintp_types("P","Z","I"),        &
         &                       vert_intp_method=VINTP_METHOD_LIN),             &
         &           in_group=groups("upatmo_tendencies"),                       &
-        &           loutput=loutput                                             ) 
+        &           loutput=loutput                                             )
 
     ENDIF !RAD-group switched on?
 
     !------------------------------------
-    !           Ion drag (I), 
-    !       molecular diffusion (M) 
+    !           Ion drag (I),
+    !       molecular diffusion (M)
     !     and frictional heating (F)
     !------------------------------------
 
@@ -897,7 +897,7 @@ CONTAINS
 
       var_name_prefix = vname_prefix(1:vn_pfx_len)//'ddt_temp_'
 
-      ! &      tend%ddt_temp_vdfmol(nproma,nlev,nblks_c) 
+      ! &      tend%ddt_temp_vdfmol(nproma,nlev,nblks_c)
       !-------------------------------------------------
       var_name   = var_name_prefix(1:vn_pfx_len+9)//prc_name_vdfmol
       cf_desc    = t_cf_var(var_name, unit_k_over_s,                                 &
@@ -911,9 +911,9 @@ CONTAINS
         &                       vert_intp_type=vintp_types("P","Z","I"),        &
         &                       vert_intp_method=VINTP_METHOD_LIN),             &
         &           in_group=groups("upatmo_tendencies"),                       &
-        &           loutput=loutput                                             )  
+        &           loutput=loutput                                             )
 
-      ! &      tend%ddt_temp_fric(nproma,nlev,nblks_c) 
+      ! &      tend%ddt_temp_fric(nproma,nlev,nblks_c)
       !-----------------------------------------------
       var_name   = var_name_prefix(1:vn_pfx_len+9)//prc_name_fric
       cf_desc    = t_cf_var(var_name, unit_k_over_s,                                 &
@@ -922,14 +922,14 @@ CONTAINS
       grib2_desc = grib2_var(255, 255, 255, ibits, GRID_UNSTRUCTURED, GRID_CELL)
       CALL add_var( tend_list, var_name, tend%ddt_temp_fric,                    &
         &           GRID_UNSTRUCTURED_CELL, ZA_REFERENCE, cf_desc, grib2_desc,  &
-        &           ldims=shape3d_c,                                            &  
+        &           ldims=shape3d_c,                                            &
         &           vert_interp=create_vert_interp_metadata(                    &
         &                       vert_intp_type=vintp_types("P","Z","I"),        &
         &                       vert_intp_method=VINTP_METHOD_LIN),             &
         &           in_group=groups("upatmo_tendencies"),                       &
         &           loutput=loutput                                             )
 
-      ! &      tend%ddt_temp_joule(nproma,nlev,nblks_c) 
+      ! &      tend%ddt_temp_joule(nproma,nlev,nblks_c)
       !------------------------------------------------
       var_name   = var_name_prefix(1:vn_pfx_len+9)//prc_name_joule
       cf_desc    = t_cf_var(var_name, unit_k_over_s,                                 &
@@ -943,7 +943,7 @@ CONTAINS
         &                       vert_intp_type=vintp_types("P","Z","I"),        &
         &                       vert_intp_method=VINTP_METHOD_LIN),             &
         &           in_group=groups("upatmo_tendencies"),                       &
-        &           loutput=loutput                                             )  
+        &           loutput=loutput                                             )
 
       !------------------------------------
       !         U-wind tendencies
@@ -951,7 +951,7 @@ CONTAINS
 
       var_name_prefix = vname_prefix(1:vn_pfx_len)//'ddt_u_'
 
-      ! &      tend%ddt_u_vdfmol(nproma,nlev,nblks_c) 
+      ! &      tend%ddt_u_vdfmol(nproma,nlev,nblks_c)
       !----------------------------------------------
       var_name   = var_name_prefix(1:vn_pfx_len+6)//prc_name_vdfmol
       cf_desc    = t_cf_var(var_name, unit_m_over_s2,                                 &
@@ -965,9 +965,9 @@ CONTAINS
         &                       vert_intp_type=vintp_types("P","Z","I"),        &
         &                       vert_intp_method=VINTP_METHOD_LIN),             &
         &           in_group=groups("upatmo_tendencies"),                       &
-        &           loutput=loutput                                             )   
+        &           loutput=loutput                                             )
 
-      ! &      tend%ddt_u_iondrag(nproma,nlev,nblks_c) 
+      ! &      tend%ddt_u_iondrag(nproma,nlev,nblks_c)
       !-----------------------------------------------
       var_name   = var_name_prefix(1:vn_pfx_len+6)//prc_name_iondrag
       cf_desc    = t_cf_var(var_name, unit_m_over_s2,                                 &
@@ -981,7 +981,7 @@ CONTAINS
         &                       vert_intp_type=vintp_types("P","Z","I"),        &
         &                       vert_intp_method=VINTP_METHOD_LIN),             &
         &           in_group=groups("upatmo_tendencies"),                       &
-        &           loutput=loutput                                             )  
+        &           loutput=loutput                                             )
 
       !------------------------------------
       !         V-wind tendencies
@@ -989,7 +989,7 @@ CONTAINS
 
       var_name_prefix = vname_prefix(1:vn_pfx_len)//'ddt_v_'
 
-      ! &      tend%ddt_v_vdfmol(nproma,nlev,nblks_c) 
+      ! &      tend%ddt_v_vdfmol(nproma,nlev,nblks_c)
       !----------------------------------------------
       var_name   = var_name_prefix(1:vn_pfx_len+6)//prc_name_vdfmol
       cf_desc    = t_cf_var(var_name, unit_m_over_s2,                                 &
@@ -1003,9 +1003,9 @@ CONTAINS
         &                       vert_intp_type=vintp_types("P","Z","I"),        &
         &                       vert_intp_method=VINTP_METHOD_LIN),             &
         &           in_group=groups("upatmo_tendencies"),                       &
-        &           loutput=loutput                                             )  
+        &           loutput=loutput                                             )
 
-      ! &      tend%ddt_v_iondrag(nproma,nlev,nblks_c) 
+      ! &      tend%ddt_v_iondrag(nproma,nlev,nblks_c)
       !-----------------------------------------------
       var_name   = var_name_prefix(1:vn_pfx_len+6)//prc_name_iondrag
       cf_desc    = t_cf_var(var_name, unit_m_over_s2,                                 &
@@ -1035,7 +1035,7 @@ CONTAINS
 
       var_name_prefix = vname_prefix(1:vn_pfx_len)//'ddt_q'
 
-      ! &     tend%ddt_qx_vdfmol(nproma,nlev,nblks_c,ntrc) 
+      ! &     tend%ddt_qx_vdfmol(nproma,nlev,nblks_c,ntrc)
       !---------------------------------------------------
       var_name   = var_name_prefix(1:vn_pfx_len+5)//'x_'//prc_name_vdfmol
       cf_desc    = t_cf_var(var_name, unit_kg_over_kg_s,                                 &
@@ -1046,11 +1046,11 @@ CONTAINS
       CALL add_var( tend_list, var_name, tend%ddt_qx_vdfmol,                    &
         &           GRID_UNSTRUCTURED_CELL, ZA_REFERENCE, cf_desc, grib2_desc,  &
         &           ldims=shape4d_c,                                            &
-        &           lcontainer=.TRUE., lrestart=.FALSE., loutput=.FALSE.        )  
+        &           lcontainer=.TRUE., lrestart=.FALSE., loutput=.FALSE.        )
 
       jtrc = iUpatmoTracerId%qv
 
-      ! &      tend%ddt_qv_vdfmol(nproma,nlev,nblks_c) 
+      ! &      tend%ddt_qv_vdfmol(nproma,nlev,nblks_c)
       !-----------------------------------------------
       var_name_ref = var_name_prefix(1:vn_pfx_len+5)//'v_'//prc_name_vdfmol
       cf_desc    = t_cf_var(var_name_ref, unit_kg_over_kg_s,                                   &
@@ -1058,7 +1058,7 @@ CONTAINS
         &                   'due to molecular diffusion',                             &
         &                   datatype_flt)
       grib2_desc = grib2_var(255, 255, 255, ibits, GRID_UNSTRUCTURED, GRID_CELL)
-      CALL add_ref( tend_list, var_name, var_name_ref,                                & 
+      CALL add_ref( tend_list, var_name, var_name_ref,                                &
         &           tend%ddt_qx_vdfmol_ptr( jtrc )%p_3d,                              &
         &           GRID_UNSTRUCTURED_CELL, ZA_REFERENCE, cf_desc, grib2_desc,        &
         &           ldims=shape3d_c,                                                  &
@@ -1078,8 +1078,8 @@ CONTAINS
     ! Preparation
     !-------------
 
-    ! For convenience, 'ddt%info' and 'ddt%state' are allocated, 
-    ! even if the accumulative tendencies are not required 
+    ! For convenience, 'ddt%info' and 'ddt%state' are allocated,
+    ! even if the accumulative tendencies are not required
     ! (due to an offline-mode).
 
     ALLOCATE(tend%ddt%info( ntnd_2 ), STAT=istat)
@@ -1088,7 +1088,7 @@ CONTAINS
            ')%ddt%info failed'
       CALL finish(routine, message_text)
     ENDIF
-    
+
     ALLOCATE(tend%ddt%state( ntnd_2 ), STAT=istat)
     IF (istat/=SUCCESS) THEN
       WRITE (message_text, '(a,i0,a)') 'Allocation of prm_upatmo_tend(', jg, &
@@ -1121,7 +1121,7 @@ CONTAINS
     tend%ddt%info( jtnd )%longname = 'accumulative tracer tendency'
     tend%ddt%info( jtnd )%unit     = 'kg kg-1 s-1'
     tend%ddt%info( jtnd )%nstate   = 1
-    
+
     ! Initialize state transition type
     DO jtnd = 1, ntnd_2
       CALL tend%ddt%state( jtnd )%init( nstate                  = tend%ddt%info( jtnd )%nstate, & !in
@@ -1129,13 +1129,13 @@ CONTAINS
         &                               optDefaultLocking       = .TRUE.                        ) !optin
     ENDDO  !jtnd
 
-    ! The following should only be necessary, 
+    ! The following should only be necessary,
     ! if any of the upper-atmosphere physics groups
-    ! is in interactive mode. 
+    ! is in interactive mode.
 
     IF (ANY(upatmo_nwp_phy_config%l_any_update( : ))) THEN
 
-      ! Output is disabled for the accumulative tendencies 
+      ! Output is disabled for the accumulative tendencies
       loutput = .FALSE.
 
       ltend( : ) = .FALSE.
@@ -1150,7 +1150,7 @@ CONTAINS
               tend%ddt%info( jtnd )%istartlev = istartlev
               tend%ddt%info( jtnd )%iendlev   = iendlev
             ELSE
-              IF (istartlev < tend%ddt%info( jtnd )%istartlev) THEN 
+              IF (istartlev < tend%ddt%info( jtnd )%istartlev) THEN
                 tend%ddt%info( jtnd )%istartlev = istartlev
               ENDIF
               IF (iendlev > tend%ddt%info( jtnd )%iendlev) THEN
@@ -1168,8 +1168,8 @@ CONTAINS
         &                                                   tend%ddt%info( iUpatmoTendId%qx )%istartlev    )
       tend%ddt%info( iUpatmoTendId%exner )%iendlev   = MAX( tend%ddt%info( iUpatmoTendId%temp )%iendlev, &
         &                                                   tend%ddt%info( iUpatmoTendId%qx )%iendlev    )
-      ! 'l_any_update' and 'l_update' contain only information 
-      ! on the basic tendencies: temp, u, v, qx, 
+      ! 'l_any_update' and 'l_update' contain only information
+      ! on the basic tendencies: temp, u, v, qx,
       ! but not on the derived tendency of the Exner pressure
       ltend( iUpatmoTendId%exner ) = ltend( iUpatmoTendId%temp ) .OR. ltend( iUpatmoTendId%qx )
 
@@ -1193,7 +1193,7 @@ CONTAINS
       jtnd = iUpatmoTendId%temp
 
       IF (ltend( jtnd )) THEN
-        
+
         nstate = tend%ddt%info( jtnd )%nstate
 
         ALLOCATE(tend%ddt%temp( nstate ), STAT=istat)
@@ -1202,7 +1202,7 @@ CONTAINS
                jg, ')%ddt%temp failed'
           CALL finish(routine, message_text)
         ENDIF
-        
+
         ! Loop over states
         DO jst = 1, nstate
 
@@ -1222,11 +1222,11 @@ CONTAINS
           grib2_desc = grib2_var(255, 255, 255, ibits, GRID_UNSTRUCTURED, GRID_CELL)
           CALL add_var( tend_list, var_name, tend%ddt%temp( jst )%tot,              &
             &           GRID_UNSTRUCTURED_CELL, ZA_REFERENCE, cf_desc, grib2_desc,  &
-            &           ldims=shape3d_c, loutput=loutput                            )  
-          
+            &           ldims=shape3d_c, loutput=loutput                            )
+
         ENDDO  !jst
 
-      ENDIF !Any update of temperature?        
+      ENDIF !Any update of temperature?
 
       !----------------
       ! Exner pressure
@@ -1259,11 +1259,11 @@ CONTAINS
           grib2_desc = grib2_var(255, 255, 255, ibits, GRID_UNSTRUCTURED, GRID_CELL)
           CALL add_var( tend_list, var_name, tend%ddt%exner( jst )%tot,             &
             &           GRID_UNSTRUCTURED_CELL, ZA_REFERENCE, cf_desc, grib2_desc,  &
-            &           ldims=shape3d_c, loutput=loutput                            )  
-          
+            &           ldims=shape3d_c, loutput=loutput                            )
+
         ENDDO  !jst
 
-      ENDIF !Any update of Exner pressure? 
+      ENDIF !Any update of Exner pressure?
 
       !-----------------
       ! Horizontal wind
@@ -1286,8 +1286,8 @@ CONTAINS
 
           WRITE (cjst, '(i2.2)') jst
 
-          NULLIFY(tend%ddt%vn( jst )%tot)    
-          
+          NULLIFY(tend%ddt%vn( jst )%tot)
+
           ! &      tend%ddt%vn(jst)%tot(nproma,nlev,nblks_e)
           !-------------------------------------------------
           var_name   = vname_prefix(1:vn_pfx_len)//TRIM(tend%ddt%info( jtnd )%name)//STATELEVEL_SUFFIX//cjst
@@ -1296,10 +1296,10 @@ CONTAINS
           grib2_desc = grib2_var(255, 255, 255, ibits, GRID_UNSTRUCTURED, GRID_EDGE)
           CALL add_var( tend_list, var_name, tend%ddt%vn( jst )%tot,                &
             &           GRID_UNSTRUCTURED_EDGE, ZA_REFERENCE, cf_desc, grib2_desc,  &
-            &           ldims=shape3d_e, loutput=loutput                            )  
-          
+            &           ldims=shape3d_e, loutput=loutput                            )
+
         ENDDO  !jst
-        
+
       ENDIF !Any update of horizontal wind component?
 
       !---------
@@ -1364,16 +1364,16 @@ CONTAINS
               &           tend%ddt%qx( jst )%tot_ptr( jtrc )%p_3d,                          &
               &           GRID_UNSTRUCTURED_CELL, ZA_REFERENCE, cf_desc, grib2_desc,        &
               &           ldims=shape3d_c,                                                  &
-              &           loutput=loutput, lrestart=.TRUE., opt_var_ref_pos=4, ref_idx=jtrc )   
-            
+              &           loutput=loutput, lrestart=.TRUE., opt_var_ref_pos=4, ref_idx=jtrc )
+
           ENDDO  !jtrc
-          
+
         ENDDO  !jst
-        
+
       ENDIF !Any update of tracers?
 
     ENDIF  !Accumulative tendencies required?
 
   END SUBROUTINE new_upatmo_tend_list
-    
+
 END MODULE mo_upatmo_state

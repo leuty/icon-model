@@ -11,12 +11,12 @@
 # SPDX-License-Identifier: BSD-3-Clause
 # ---------------------------------------------------------------
 
-import pandas as pd
+import glob
 import logging
 import os
-import glob
-
 from argparse import ArgumentParser
+
+import pandas as pd
 
 
 def get_parser():
@@ -41,8 +41,8 @@ def parse_args(parser):
     if op.output_dir is None:
         logging.warning(
             """
-        Output directory not given. 
-        File will be saved in the current directory. 
+        Output directory not given.
+        File will be saved in the current directory.
         Path can be supplied with -d.
         """
         )

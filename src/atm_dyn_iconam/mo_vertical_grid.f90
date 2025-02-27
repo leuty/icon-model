@@ -68,7 +68,7 @@ MODULE mo_vertical_grid
   USE mo_aes_vdf_config,        ONLY: aes_vdf_config
   USE mo_turb_vdiff_params,     ONLY: VDIFF_TURB_3DSMAGORINSKY
   USE mo_var_list,              ONLY: t_var_list_ptr
-  USE mo_nonhydro_state,        ONLY: new_zd_metrics  
+  USE mo_nonhydro_state,        ONLY: new_zd_metrics
   USE mo_deepatmo,              ONLY: deepatmo_htrafo
   IMPLICIT NONE
 
@@ -356,7 +356,7 @@ MODULE mo_vertical_grid
       ! slope angle and slope azimuth (used for slope-dependent radiation)
       ALLOCATE (z_aux_c(nproma,1,nblks_c), z_aux_c2(nproma,1,nblks_c))
       z_aux_c(:,:,:) = 0._wp ; z_aux_c2(:,:,:) = 0._wp
-      
+
       CALL rbf_vec_interpol_cell(z_ddxn_z_half_e(:,nlevp1:nlevp1,:), p_patch(jg), p_int(jg), &
                                  z_aux_c, z_aux_c2, lacc=.FALSE.)
 
@@ -483,7 +483,7 @@ MODULE mo_vertical_grid
         kstart_dd3d(jg) = kstart_dd3d(jg) + 1
       ENDIF
 
-      ! Horizontal mask field for 3D divergence damping term; 2D div damping is generally applied in the 
+      ! Horizontal mask field for 3D divergence damping term; 2D div damping is generally applied in the
       ! immediate vicinity of nest boundaries
       DO jb = i_startblk,nblks_e
 
@@ -1713,7 +1713,7 @@ MODULE mo_vertical_grid
 #ifndef __NO_ICON_LES__
         is_les_phy = atm_phy_nwp_config(jg)%is_les_phy .OR. is_les_phy
 #endif
-        IF (.NOT. ALLOCATED(z_me)) THEN 
+        IF (.NOT. ALLOCATED(z_me)) THEN
           ALLOCATE(z_me(nproma,nlev,nblks_e), STAT=error_status)
           IF (error_status /= SUCCESS) CALL finish(routine, 'Allocation of z_me failed')
         ENDIF
@@ -1762,7 +1762,7 @@ MODULE mo_vertical_grid
     !
     DO jg = 2, n_dom
       IF (nudging_config(jg)%nudge_type==indg_type%ubn) THEN
-        ! if upper boundary nudging is activated for domain jg, 
+        ! if upper boundary nudging is activated for domain jg,
         ! copy nudging coefficients from DOM 1 to child domain.
         !
         DO jk = 1, p_patch(jg)%nlev
@@ -1774,7 +1774,7 @@ MODULE mo_vertical_grid
           WRITE(message_text,'(a,i2)') 'Nudging coefficients copied to DOM: ', jg
           CALL message(routine, message_text)
         ENDIF
-      ENDIF 
+      ENDIF
     ENDDO  ! jg
 
   END SUBROUTINE set_nh_metrics
@@ -2025,7 +2025,7 @@ MODULE mo_vertical_grid
     ENDDO
 
     CALL new_zd_metrics(p_nh%metrics, p_nh_metrics_list , numpoints)
-    
+
     p_nh%metrics%zd_listdim = numpoints
     !$ACC UPDATE DEVICE(p_nh%metrics%zd_listdim) ASYNC(1)
 
@@ -2087,7 +2087,7 @@ MODULE mo_vertical_grid
   !! Computation of coefficients for LES model in mo_sgs_turbulence
   !! Computes the square of the mixing length.
   !!
-  !! lambda^2 = (Cs * Delta)^2 *(kappa*x_3)^2 / ((Cs * Delta)^2 + (kappa*x_3)^2) 
+  !! lambda^2 = (Cs * Delta)^2 *(kappa*x_3)^2 / ((Cs * Delta)^2 + (kappa*x_3)^2)
   !!          = (Cs * Delta * x_3)^2 / ( (Cs * Delta / kappa)^2 + x_3^2 )
   !!
   !! with   Cs    : Smagorinsky constant
@@ -2121,7 +2121,7 @@ MODULE mo_vertical_grid
     ELSE
       smag_constant  = les_config(jg)%smag_constant
       max_turb_scale = les_config(jg)%max_turb_scale
-    END IF 
+    END IF
 
     nlev = p_patch%nlev
     nlevp1 = nlev + 1
@@ -2152,7 +2152,7 @@ MODULE mo_vertical_grid
 
           les_filter = smag_constant * MIN( max_turb_scale, &
                       (p_nh%metrics%ddqz_z_half(jc,jk,jb)*p_patch%cells%area(jc,jb))**0.33333_wp )
-          
+
           p_nh%metrics%mixing_length_sq(jc,jk,jb) = (les_filter*z_mc)**2    &
                / ((les_filter/turbdiff_config(jg)%akt)**2+z_mc**2)
 
@@ -2215,25 +2215,25 @@ MODULE mo_vertical_grid
 
     !----------------------------------------------------
 
-    ! Note: here, we compute the dimensionless vertical nudging coefficient profile.  
+    ! Note: here, we compute the dimensionless vertical nudging coefficient profile.
     ! The actual max. nudging coefficients 'max_nudge_coeff_vn', 'max_nudge_coeff_thermdyn', ...
     ! from the nudging namelist will be multiplied with the profile during runtime.
 
     jg = p_patch%id
 
     IF (.NOT. nudging_config(jg)%lconfigured) THEN
-      ! ('lconfigured' should have been set to .true. 
+      ! ('lconfigured' should have been set to .true.
       ! in 'src/configure_model/mo_nudging_config: configure_nudging'
       ! or in 'src/namelists/mo_nudging_nml: check_nudging')
       CALL finish(routine, "Configuration of nudging_config still pending. "// &
         & "Please, check the program sequence.")
     ELSEIF ((.NOT. nudging_config(jg)%lnudging) .OR. jg /= 1) THEN
-      ! The following computations have to be done only, 
-      ! if (upper boundary) nudging is switched on, 
+      ! The following computations have to be done only,
+      ! if (upper boundary) nudging is switched on,
       ! and only for the primary domain
       RETURN
     ENDIF
-    
+
 
     ! Start and end indices for vertical loop
     istart = nudging_config(jg)%ilev_start
@@ -2242,11 +2242,11 @@ MODULE mo_vertical_grid
     ! Start and end height of vertical nudging region
     start_height = nudging_config(jg)%nudge_start_height
     end_height   = nudging_config(jg)%nudge_end_height
-    
-    ! Scale height to control, how fast the nudging strength decreases 
+
+    ! Scale height to control, how fast the nudging strength decreases
     ! with increasing vertical distance from nudging end height
     scale_height = ABS(nudging_config(jg)%nudge_scale_height)
-    
+
     ! Discriminate between the different profiles of the nudging strength/nudging coefficient
     SELECT CASE(nudging_config(jg)%nudge_profile)
     CASE(indg_profile%sqrddist)
@@ -2281,13 +2281,13 @@ MODULE mo_vertical_grid
       !       [     2 * z - (a + b)      ]2*nexp
       !       [--------------------------]       + 1
       !       [ (1 - 2 / nexp) * (b - a) ]
-      ! 
-      ! where z, a and b denote nominal height, start height and end height, respectively, 
-      ! and the larger the parameter nexp, the more the trapezoidal profile compares 
+      !
+      ! where z, a and b denote nominal height, start height and end height, respectively,
+      ! and the larger the parameter nexp, the more the trapezoidal profile compares
       ! to a rectangular profile (i.e. it is inversely proportional to the scale height).
-      ! 
-      ! A lower bound of 3 for nexp is given by the factor "1 / (1 - 2 / nexp)" in formular (I). 
-      ! An upper bound of "iend - istart + 1" (if > 3) corresponds to a scale height 
+      !
+      ! A lower bound of 3 for nexp is given by the factor "1 / (1 - 2 / nexp)" in formular (I).
+      ! An upper bound of "iend - istart + 1" (if > 3) corresponds to a scale height
       ! of the order of the grid layer thickness
       nexp = MIN( MAX(3, NINT(ABS(end_height - start_height)/scale_height)), MAX(3, iend-istart+1) )
       DO jk = istart, iend
@@ -2297,12 +2297,12 @@ MODULE mo_vertical_grid
         distance_scaled                  = distance / &
           & MAX( 1.0e-20_wp, (1._wp - 2._wp / REAL(nexp, wp)) * ABS(end_height - start_height) )
         p_nh%metrics%nudgecoeff_vert(jk) = 1._wp / ( distance_scaled**(2*nexp) + 1._wp )
-      ENDDO  !jk      
+      ENDDO  !jk
     END SELECT
 
 
     ! Print some info
-    IF (msg_level >= nudging_config(jg)%msg_thr%high .AND. my_process_is_stdio()) THEN 
+    IF (msg_level >= nudging_config(jg)%msg_thr%high .AND. my_process_is_stdio()) THEN
       ! Print the vertical profile of the nudging coefficient (nudging strength)
       WRITE(0,*) routine, ': Vertical profile of the nudging coefficient ', &
         & '(only levels, where it is non-zero):'
@@ -2326,7 +2326,7 @@ MODULE mo_vertical_grid
       ! Destruct table
       CALL finalize_table(table)
     ENDIF  !IF (msg_level >= nudging_config(jg)%msg_thr%high .AND. my_process_is_stdio())
-    
+
   END SUBROUTINE prepare_nudging
   !----------------------------------------------------------------------------
   ! Procedures related to the deep-atmosphere (deepatmo) configuration:
@@ -2371,7 +2371,7 @@ MODULE mo_vertical_grid
 
     !-------------------------------------------------------------------------------
 
-    ! Note: Quantities related to damping, diffusion and the like 
+    ! Note: Quantities related to damping, diffusion and the like
     ! are not modified for the deep atmosphere
 
     is_ierror_present = PRESENT(ierror)
@@ -2411,20 +2411,20 @@ MODULE mo_vertical_grid
     IF (istat /= SUCCESS) RETURN
 
     !-----------------------------------------------------
-    !                 Modification factors 
+    !                 Modification factors
     !       for the deep-atmosphere configuration
     !-----------------------------------------------------
 
-    ! Note: For the deep-atmosphere-specific metrical modification factors 
-    ! and other quantities to be 1d-fields (varying only in z-direction), 
-    ! the terrain-dependence of coordinate surfaces below z = 'flat_height' 
-    ! is neglected in the deep-atmosphere modifications, 
-    ! otherwise the following fields would become 3d-fields which would be 
-    ! too costly in terms of memory. 
-    ! In addition the metrical modification factors, 
-    ! e.g. for flux divergences, are relatively difficult to compute 
-    ! in sperical geometry, if coordinate surfaces deviate from spherical shells, 
-    ! and cell edges lose the center of Earth as curvature center, so that their 
+    ! Note: For the deep-atmosphere-specific metrical modification factors
+    ! and other quantities to be 1d-fields (varying only in z-direction),
+    ! the terrain-dependence of coordinate surfaces below z = 'flat_height'
+    ! is neglected in the deep-atmosphere modifications,
+    ! otherwise the following fields would become 3d-fields which would be
+    ! too costly in terms of memory.
+    ! In addition the metrical modification factors,
+    ! e.g. for flux divergences, are relatively difficult to compute
+    ! in sperical geometry, if coordinate surfaces deviate from spherical shells,
+    ! and cell edges lose the center of Earth as curvature center, so that their
     ! shape is no longer determined by being great circle sections.
 
     DO jk = 1, nlev
@@ -2446,18 +2446,18 @@ MODULE mo_vertical_grid
       ! Compute full-level metrical modification factors ...
       ! ... for horizontal gradients
       p_metrics%deepatmo_gradh_mc(jk) = grid_sphere_radius / radial_distance_mc
-      ! ... for divergence: 
-      ! Horizontal part (= surface of side wall / cell volume * flux denisty over side wall) 
+      ! ... for divergence:
+      ! Horizontal part (= surface of side wall / cell volume * flux denisty over side wall)
       !                    ----------------------------------
-      ! (-> modification is necessary for underlined factor)  
-      ! (There is almost no difference between the magnitude of 'deepatmo_divh_mc'  
+      ! (-> modification is necessary for underlined factor)
+      ! (There is almost no difference between the magnitude of 'deepatmo_divh_mc'
       ! and 'deepatmo_gradh_mc', but nevertheless they are not identical)
-      p_metrics%deepatmo_divh_mc(jk) = p_metrics%deepatmo_gradh_mc(jk) * ( 3._wp / 4._wp ) / & 
+      p_metrics%deepatmo_divh_mc(jk) = p_metrics%deepatmo_gradh_mc(jk) * ( 3._wp / 4._wp ) / &
         & ( 1._wp - radial_distance_lifc * radial_distance_uifc / ( radial_distance_lifc + radial_distance_uifc )**2 )
       ! Vertical part
       ! 1) = surface of cell bottom / cell volume * flux density over cell bottom
       !      ------------------------------------
-      p_metrics%deepatmo_divzL_mc(jk) = 3._wp / ( 1._wp + radial_distance_uifc / radial_distance_lifc & 
+      p_metrics%deepatmo_divzL_mc(jk) = 3._wp / ( 1._wp + radial_distance_uifc / radial_distance_lifc &
         &                                       + ( radial_distance_uifc / radial_distance_lifc )**2 )
       ! 2) = surface of cell lid / cell volume * flux density over cell lid
       !      ---------------------------------
@@ -2465,7 +2465,7 @@ MODULE mo_vertical_grid
         &                                       + ( radial_distance_lifc / radial_distance_uifc )**2 )
       ! Full-level metrical modification factors ...
       ! ... for the volume of a cell
-      ! (This is required e.g. for volume integrals 
+      ! (This is required e.g. for volume integrals
       ! in 'src/atm_dyn_iconam/mo_nh_supervise/subervise_total_integrals_nh')
       p_metrics%deepatmo_vol_mc(jk) = ( radial_distance_lifc**2 + radial_distance_lifc * radial_distance_uifc &
         &                             + radial_distance_uifc**2 ) / ( 3._wp * grid_sphere_radius**2 )
@@ -2485,12 +2485,12 @@ MODULE mo_vertical_grid
     p_metrics%deepatmo_invr_ifc(nlevp1)  = 1._wp / grid_sphere_radius
 
     !-----------------------------------------------------
-    !                   Recomputations 
-    !      for inclusion of deep-atmosphere effects      
+    !                   Recomputations
+    !      for inclusion of deep-atmosphere effects
     !-----------------------------------------------------
 
     ! The computations in set_nh_metrics above are so densely compressed for runtime-efficiency,
-    ! that a minimally invasive incorporation of deep-atmosphere modifications is practically impossible. 
+    ! that a minimally invasive incorporation of deep-atmosphere modifications is practically impossible.
     ! We have therefore no choice but to recompute a number of quantities here, unfortunately.
 
 !$OMP PARALLEL
@@ -2499,7 +2499,7 @@ MODULE mo_vertical_grid
 
 !$OMP DO PRIVATE(jb, jk, jc, nlen) ICON_OMP_DEFAULT_SCHEDULE
     DO jb = 1, nblks_c
-        
+
       IF (jb /= nblks_c) THEN
         nlen = nproma
       ELSE
@@ -2509,42 +2509,42 @@ MODULE mo_vertical_grid
         p_metrics%geopot_agl_ifc(nlen+1:nproma,1:nlevp1,jb) = 0.0_wp
         p_metrics%dgeopot_mc(nlen+1:nproma,1:nlev,jb)       = 0.0_wp
       ENDIF
-        
-      DO jk = 1, nlev   
-        DO jc = 1, nlen 
-          ! Geopotential on full levels: 
-          ! Phi = g * z / ( 1 + z / a ), provided that 
+
+      DO jk = 1, nlev
+        DO jc = 1, nlen
+          ! Geopotential on full levels:
+          ! Phi = g * z / ( 1 + z / a ), provided that
           ! Phi(r=a)=Phi(z=0)=0 m2/s2 (a = radius of Earth)
           p_metrics%geopot(jc,jk,jb) = grav * zgpot_mc(jc,jk,jb)
         ENDDO  !jc
       ENDDO  !jk
-        
+
       ! Geopot above ground
-      DO jc = 1, nlen 
+      DO jc = 1, nlen
         p_metrics%geopot_agl_ifc(jc,nlevp1,jb) = 0._wp
       ENDDO
 
-      DO jk = nlev, 1, -1 
-        DO jc = 1, nlen              
-          ! Geopotential difference between layer interfaces            
-          p_metrics%dgeopot_mc(jc,jk,jb) = grav * ( zgpot_ifc(jc,jk,jb) - zgpot_ifc(jc,jk+1,jb) )       
+      DO jk = nlev, 1, -1
+        DO jc = 1, nlen
+          ! Geopotential difference between layer interfaces
+          p_metrics%dgeopot_mc(jc,jk,jb) = grav * ( zgpot_ifc(jc,jk,jb) - zgpot_ifc(jc,jk+1,jb) )
           ! Geopotential (interfaces)
-          p_metrics%geopot_agl_ifc(jc,jk,jb) = p_metrics%geopot_agl_ifc(jc,jk+1,jb) + p_metrics%dgeopot_mc(jc,jk,jb)              
-          ! Unfortunately, gpot[(z1+z2)/2] /= [gpot(z1)+gpot(z2)]/2, 
+          p_metrics%geopot_agl_ifc(jc,jk,jb) = p_metrics%geopot_agl_ifc(jc,jk+1,jb) + p_metrics%dgeopot_mc(jc,jk,jb)
+          ! Unfortunately, gpot[(z1+z2)/2] /= [gpot(z1)+gpot(z2)]/2,
           ! where gpot(z)=zgpot, so we have to compute it separately for full levels
           p_metrics%geopot_agl(jc,jk,jb) = p_metrics%geopot_agl_ifc(jc,jk+1,jb) &
-            &                            + grav * ( zgpot_mc(jc,jk,jb) - zgpot_ifc(jc,jk+1,jb) )      
-        ENDDO  !jc            
-      ENDDO  !jk 
-        
+            &                            + grav * ( zgpot_mc(jc,jk,jb) - zgpot_ifc(jc,jk+1,jb) )
+        ENDDO  !jc
+      ENDDO  !jk
+
     ENDDO  !jb
 !$OMP END DO
 
     ! Metrical modification of interface slope
 
-    ! Note: numerous quantities are determined from the slope at (or close to) the ground. 
-    ! A modification of them is not necessary, since the respective modification factors 
-    ! are terrain-independent and would be equal to 1 everywhere at the ground 
+    ! Note: numerous quantities are determined from the slope at (or close to) the ground.
+    ! A modification of them is not necessary, since the respective modification factors
+    ! are terrain-independent and would be equal to 1 everywhere at the ground
     ! (or at least negligibly small)
 
 !$OMP DO PRIVATE(jb, jk, je, nlen) ICON_OMP_DEFAULT_SCHEDULE
@@ -2575,7 +2575,7 @@ MODULE mo_vertical_grid
 
       DO jk = 1, nlev
         DO je = 1, nlen
-          p_metrics%ddxn_z_full(je,jk,jb) = p_metrics%deepatmo_gradh_mc(jk) * p_metrics%ddxn_z_full(je,jk,jb)          
+          p_metrics%ddxn_z_full(je,jk,jb) = p_metrics%deepatmo_gradh_mc(jk) * p_metrics%ddxn_z_full(je,jk,jb)
           p_metrics%ddxt_z_full(je,jk,jb) = p_metrics%deepatmo_gradh_mc(jk) * p_metrics%ddxt_z_full(je,jk,jb)
         ENDDO  !je
       ENDDO  !jk
@@ -2585,19 +2585,19 @@ MODULE mo_vertical_grid
 
     ! Metrical modification of reference atmosphere
 
-    ! The deep-atmosphere case is more or less a copy of the shallow-atmosphere case 
-    ! (for computational efficiency reasons), with the geometric height z 
-    ! replaced by the geopotential height zgpot (we say that the reference temperature 
-    ! has the same functional dependency on zgpot as it has on z in case of the 
-    ! shallow atmosphere, this way the integral of -dp/dzgpot-rho*grav=0 in the 
-    ! deep-atmosphere case is formally identical to the integral of -dp/dz-rho*grav=0 
-    ! in case of the shallow atmospehre). 
-    ! Note: the vertical derivative in 'd2dexdz2_fac1_mc', 'd2dexdz2_fac2_mc', 
+    ! The deep-atmosphere case is more or less a copy of the shallow-atmosphere case
+    ! (for computational efficiency reasons), with the geometric height z
+    ! replaced by the geopotential height zgpot (we say that the reference temperature
+    ! has the same functional dependency on zgpot as it has on z in case of the
+    ! shallow atmosphere, this way the integral of -dp/dzgpot-rho*grav=0 in the
+    ! deep-atmosphere case is formally identical to the integral of -dp/dz-rho*grav=0
+    ! in case of the shallow atmospehre).
+    ! Note: the vertical derivative in 'd2dexdz2_fac1_mc', 'd2dexdz2_fac2_mc',
     ! and 'd_exner_dz_ref_ic' is still with respect to z, not zgpot.
 
 !$OMP DO PRIVATE(jb, jk, jc, nlen, help, temp, aux1, aux2) ICON_OMP_DEFAULT_SCHEDULE
     DO jb = 1, nblks_c
-        
+
       IF (jb /= nblks_c) THEN
         nlen = nproma
       ELSE
@@ -2613,28 +2613,28 @@ MODULE mo_vertical_grid
           p_metrics%d2dexdz2_fac2_mc(nlen+1:nproma,1:nlev,jb)  = 0.0_vp
         ENDIF
       ENDIF
-        
+
       ! Reference surface temperature
       DO jc = 1, nlen
         p_metrics%tsfc_ref(jc,jb) = ( t0sl_bg - del_t_bg ) + del_t_bg * EXP( -zgpot_ifc(jc,nlevp1,jb) / h_scal_bg )
       ENDDO  !jc
-        
+
       DO jk = 1, nlev
         DO jc = 1, nlen
           ! Reference pressure, full level mass points
           aux1 = p0sl_bg  * EXP( -grav / rd * h_scal_bg / ( t0sl_bg - del_t_bg ) * &
-            &    LOG( ( EXP( zgpot_mc(jc,jk,jb) / h_scal_bg ) * ( t0sl_bg - del_t_bg ) + del_t_bg ) / t0sl_bg ) )      
+            &    LOG( ( EXP( zgpot_mc(jc,jk,jb) / h_scal_bg ) * ( t0sl_bg - del_t_bg ) + del_t_bg ) / t0sl_bg ) )
           ! Reference Exner pressure, full level mass points
-          p_metrics%exner_ref_mc(jc,jk,jb) = ( aux1 / p0ref )**rd_o_cpd            
+          p_metrics%exner_ref_mc(jc,jk,jb) = ( aux1 / p0ref )**rd_o_cpd
           ! Reference temperature, full level mass points
-          temp = ( t0sl_bg - del_t_bg ) + del_t_bg * EXP( -zgpot_mc(jc,jk,jb) / h_scal_bg )            
+          temp = ( t0sl_bg - del_t_bg ) + del_t_bg * EXP( -zgpot_mc(jc,jk,jb) / h_scal_bg )
           ! Reference density, full level mass points
-          p_metrics%rho_ref_mc(jc,jk,jb) = aux1 / ( rd * temp )            
+          p_metrics%rho_ref_mc(jc,jk,jb) = aux1 / ( rd * temp )
           ! Reference potential temperature, full level mass points
           p_metrics%theta_ref_mc(jc,jk,jb) = temp / p_metrics%exner_ref_mc(jc,jk,jb)
         ENDDO  !jc
       ENDDO  !jk
-        
+
       IF (igradp_method <= 3) THEN
         DO jk = 1, nlev
           DO jc = 1, nlen
@@ -2642,44 +2642,44 @@ MODULE mo_vertical_grid
             ! divided by theta_ref
             ! Note: for computational efficiency, this field is in addition divided by
             ! the vertical layer thickness
-            ! (Deep-atmosphere modification: the vertical derivative is with respect to z, 
-            ! so we use dexner/dz=dexner/dzgpot*dzgpot/dz, with dzgpot/dz=(a/r)**2, 
-            ! where a is the radius of Earth, and r=a+z. For the actual modification, 
+            ! (Deep-atmosphere modification: the vertical derivative is with respect to z,
+            ! so we use dexner/dz=dexner/dzgpot*dzgpot/dz, with dzgpot/dz=(a/r)**2,
+            ! where a is the radius of Earth, and r=a+z. For the actual modification,
             ! we can use that (a/r)**2=deepatmo_gradh_mc**2)
             p_metrics%d2dexdz2_fac1_mc(jc,jk,jb) = -grav / ( cpd * p_metrics%theta_ref_mc(jc,jk,jb)**2 ) * &
-              &                                    p_metrics%inv_ddqz_z_full(jc,jk,jb) * p_metrics%deepatmo_gradh_mc(jk)**2              
+              &                                    p_metrics%inv_ddqz_z_full(jc,jk,jb) * p_metrics%deepatmo_gradh_mc(jk)**2
             ! Vertical derivative of d_exner_dz/theta_ref, full level mass points
-            ! (Deep-atmosphere modification: here we use that for a quantity X, 
-            ! d**2X/dz**2=d**2X/dzgpot**2*dzgpot/dz*(a/r)**2 + dX/dzgpot*d(a/r)**2/dr 
+            ! (Deep-atmosphere modification: here we use that for a quantity X,
+            ! d**2X/dz**2=d**2X/dzgpot**2*dzgpot/dz*(a/r)**2 + dX/dzgpot*d(a/r)**2/dr
             ! =d**2X/dzgpot**2*(a/r)**4 - 2*dX/dzgpot*(a/r)**2/r)
             p_metrics%d2dexdz2_fac2_mc(jc,jk,jb) = 2._wp * grav / ( cpd * p_metrics%theta_ref_mc(jc,jk,jb)**3 ) * ( grav / cpd &
               &                        - del_t_bg / h_scal_bg * EXP( -zgpot_mc(jc,jk,jb) / h_scal_bg ) )                       &
-              &                        / p_metrics%exner_ref_mc(jc,jk,jb) * p_metrics%deepatmo_gradh_mc(jk)**4                 & 
+              &                        / p_metrics%exner_ref_mc(jc,jk,jb) * p_metrics%deepatmo_gradh_mc(jk)**4                 &
               &                        - 2._wp * p_metrics%d2dexdz2_fac1_mc(jc,jk,jb) * p_metrics%ddqz_z_full(jc,jk,jb)        &
               &                        * p_metrics%deepatmo_gradh_mc(jk) / grid_sphere_radius
           ENDDO  !jc
         ENDDO  !jk
       ENDIF  !IF (igradp_method <= 3)
-        
+
       DO jk = 1, nlevp1
         DO jc = 1, nlen
           ! Reference pressure, half level mass points
           aux1 = p0sl_bg * EXP( -grav / rd * h_scal_bg / ( t0sl_bg - del_t_bg ) * &
-            &    LOG( ( EXP( zgpot_ifc(jc,jk,jb) / h_scal_bg ) * ( t0sl_bg - del_t_bg ) + del_t_bg ) / t0sl_bg ) )            
+            &    LOG( ( EXP( zgpot_ifc(jc,jk,jb) / h_scal_bg ) * ( t0sl_bg - del_t_bg ) + del_t_bg ) / t0sl_bg ) )
           ! Reference Exner pressure, half level mass points
-          help = ( aux1 / p0ref )**rd_o_cpd            
+          help = ( aux1 / p0ref )**rd_o_cpd
           ! Reference temperature, half level mass points
-          temp = ( t0sl_bg - del_t_bg ) + del_t_bg * EXP( -zgpot_ifc(jc,jk,jb) / h_scal_bg )            
+          temp = ( t0sl_bg - del_t_bg ) + del_t_bg * EXP( -zgpot_ifc(jc,jk,jb) / h_scal_bg )
           ! Reference density, half level mass points
-          aux2 = aux1 / ( rd * temp )            
+          aux2 = aux1 / ( rd * temp )
           ! Reference Potential temperature, half level mass points
-          p_metrics%theta_ref_ic(jc,jk,jb) = temp / help           
+          p_metrics%theta_ref_ic(jc,jk,jb) = temp / help
           ! First vertical derivative of reference Exner pressure, half level mass points
           p_metrics%d_exner_dz_ref_ic(jc,jk,jb) = -grav / cpd / p_metrics%theta_ref_ic(jc,jk,jb) &
             &                                   * p_metrics%deepatmo_gradh_ifc(jk)**2
         ENDDO  !jc
       ENDDO  !jk
-        
+
     ENDDO  !jb
 !$OMP END DO
 
@@ -2695,14 +2695,14 @@ MODULE mo_vertical_grid
       ENDIF
 
       DO jk = 1, nlev
-        DO je = 1, nlen            
+        DO je = 1, nlen
           ! Reference pressure, full level edge points
           aux1 = p0sl_bg * EXP( -grav / rd * h_scal_bg / ( t0sl_bg - del_t_bg ) * &
-            &    LOG( ( EXP( zgpot_me(je,jk,jb) / h_scal_bg ) * ( t0sl_bg - del_t_bg ) + del_t_bg ) / t0sl_bg ) )              
+            &    LOG( ( EXP( zgpot_me(je,jk,jb) / h_scal_bg ) * ( t0sl_bg - del_t_bg ) + del_t_bg ) / t0sl_bg ) )
           ! Reference temperature, full level edge points
           temp = ( t0sl_bg - del_t_bg ) + del_t_bg * EXP( -zgpot_me(je,jk,jb) / h_scal_bg )
           ! Reference density, full level edge points
-          p_metrics%rho_ref_me(je,jk,jb) = aux1 / ( rd * temp )            
+          p_metrics%rho_ref_me(je,jk,jb) = aux1 / ( rd * temp )
           ! Reference potential temperature, full level edge points
           p_metrics%theta_ref_me(je,jk,jb) = temp / ( ( aux1 / p0ref )**rd_o_cpd )
         ENDDO  !je
@@ -2721,4 +2721,3 @@ MODULE mo_vertical_grid
   END SUBROUTINE prepare_deepatmo_metrics
 
 END MODULE mo_vertical_grid
-

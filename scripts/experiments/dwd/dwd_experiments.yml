@@ -9,7 +9,7 @@
 # ------------------------------------------
 
 experiments:
-  - name: dwd_run_ICON_09_R2B4N5_EPS 
+  - name: dwd_run_ICON_09_R2B4N5_EPS
     check: checksuite.icon-dev/check.dwd_run_ICON_09_R2B4N5_EPS
     types: ['void']
     dates: ['void']
@@ -17,8 +17,8 @@ experiments:
     tolerance:
       file_id:
         - NetCDF: ['*atm_3d_DOM01_ml*.nc', '*atm_3d_DOM02_ml*.nc', '*atm_3d_DOM02_hl*.nc', '*atm_3d_DOM02_pl*.nc',
-                   'iga_fg_DOM01_ML_0000000.nc', 'iga_fg_DOM01_ML_tiles_0000000.nc', 'iga_fg_DOM02_ML_0000000.nc', 
+                   'iga_fg_DOM01_ML_0000000.nc', 'iga_fg_DOM01_ML_tiles_0000000.nc', 'iga_fg_DOM02_ML_0000000.nc',
                    'iga_fg_DOM02_ML_tiles_0000000.nc', 'iglo_fc_DOM01_0001.nc', 'iglo_fc_DOM02_0001.nc']
-        - latlon: ['*atm_3d_ll_DOM01_ml*.nc', '*atm_3d_ll_DOM02_ml*.nc', 'iga_fg_latlon_DOM01_ML_0000000.nc', 
+        - latlon: ['*atm_3d_ll_DOM01_ml*.nc', '*atm_3d_ll_DOM02_ml*.nc', 'iga_fg_latlon_DOM01_ML_0000000.nc',
                    'iga_fg_latlon_DOM01_PL_0000000.nc']
         - meteogram: ['*Meteogram*.nc']

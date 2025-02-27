@@ -16,10 +16,10 @@ MODULE mo_assimilation_nml
   USE mo_kind,                ONLY: wp,i4
   USE mo_io_units,            ONLY: nnml, nnml_output
   USE mo_namelist,            ONLY: position_nml, positioned, open_nml, close_nml
-  USE mo_mpi,                 ONLY: my_process_is_stdio 
+  USE mo_mpi,                 ONLY: my_process_is_stdio
 
   USE mo_impl_constants,      ONLY: max_dom
-  
+
   USE mo_master_config,       ONLY: isRestart
   USE mo_restart_nml_and_att, ONLY: open_tmpfile, store_and_close_namelist,   &
                             &       open_and_restore_namelist, close_tmpfile
@@ -32,9 +32,9 @@ MODULE mo_assimilation_nml
   PUBLIC :: read_assimilation_namelist
 
   !---------------------------------------------------------------
-  ! Namelist variables 
+  ! Namelist variables
   !---------------------------------------------------------------
-  
+
   LOGICAL                          ::           &
     llhn(max_dom)             ,& ! on/off switch for latent heat nudging (lhn)
     llhnverif(max_dom)        ,& ! on/off switch for verification against radar
@@ -196,7 +196,7 @@ CONTAINS
     hzerolim           = 2500.
 
     !------------------------------------------------------------------------
-    ! If this is a resumed integration, overwrite the defaults above by 
+    ! If this is a resumed integration, overwrite the defaults above by
     ! values in the restart file
     !------------------------------------------------------------------------
     IF (isRestart()) THEN
@@ -236,7 +236,7 @@ CONTAINS
       WRITE(funit,NML=assimilation_nml)
       CALL store_and_close_namelist(funit, 'assimilation_nml')
     ENDIF
-    
+
     ! write the contents of the namelist to an ASCII file
     IF(my_process_is_stdio()) WRITE(nnml_output,nml=assimilation_nml)
 
@@ -285,7 +285,7 @@ CONTAINS
         assimilation_config(jg)%fac_lhn_down    = fac_lhn_down
         assimilation_config(jg)%thres_lhn       = thres_lhn
         assimilation_config(jg)%rqrsgmax        = rqrsgmax
-        assimilation_config(jg)%rttend          = rttend  
+        assimilation_config(jg)%rttend          = rttend
         assimilation_config(jg)%ref_bias0       = ref_bias0
         assimilation_config(jg)%dtrefbias       = dtrefbias
         assimilation_config(jg)%tt_artif_max    = tt_artif_max
@@ -298,15 +298,15 @@ CONTAINS
         assimilation_config(jg)%radardata_file  = radardata_file(jg)
         assimilation_config(jg)%blacklist_file  = blacklist_file(jg)
         assimilation_config(jg)%height_file     = height_file(jg)
-    ENDDO 
+    ENDDO
 
     !-----------------------------------------------------
     ! 6. Store the namelist for restart
     !-----------------------------------------------------
     IF(my_process_is_stdio())  THEN
       funit = open_tmpfile()
-      WRITE(funit,NML=assimilation_nml)                    
-      CALL store_and_close_namelist(funit, 'assimilation_nml')             
+      WRITE(funit,NML=assimilation_nml)
+      CALL store_and_close_namelist(funit, 'assimilation_nml')
     ENDIF
 
     ! 7. write the contents of the namelist to an ASCII file

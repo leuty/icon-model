@@ -750,7 +750,7 @@ SUBROUTINE interpol_scal_grf (p_pp, p_pc, p_grf, nfields, nlev_ex, lacc,        
             ENDDO
           ENDDO
           !$ACC END PARALLEL
-        
+
         ELSE
 
           !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1) IF(lacc)

@@ -107,7 +107,7 @@ CONTAINS
     ! total top potential
 
     IF ( (switch_atm_pressure + switch_vert_cor_type + switch_tides) > 0.0_wp ) THEN
-    
+
       DO jb = all_cells%start_block, all_cells%end_block
         CALL get_index_range(all_cells, jb, start_index, end_index)
         !$ACC PARALLEL LOOP GANG VECTOR DEFAULT(PRESENT) ASYNC(1) IF(lzacc)

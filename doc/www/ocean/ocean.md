@@ -1,7 +1,7 @@
 (ref_ocean_overview)=
 # Ocean Modelling Overview
 
-The ocean component of ICON consists of three parts: 
+The ocean component of ICON consists of three parts:
 
 1. [The ocean model](ref_ocean_model) itself (referred to as ICON-O)
 2. [The sea-ice module](ref_ocean_seaice)
@@ -14,13 +14,13 @@ Additionally, an [ocean skin parameterisation](ref_ocean_skin) is available.
 (ref_ocean_model)=
 ### Ocean model
 The ocean model ICON-O ({term}`Korn 2018`; {term}`Korn et al. 2022`) solves the hydrostatic Boussinesq equations, the classical set of dynamical equations for global ocean dynamics.
-ICON-O uses, as the atmosphere, an icosahedral–triangular C grid. 
-The global grid of ICON-O can be locally refined to create a “computational telescope” that zooms into a region of interest. 
-The numerics of ICON-O share similarities to the atmosphere component but also have important differences. 
+ICON-O uses, as the atmosphere, an icosahedral–triangular C grid.
+The global grid of ICON-O can be locally refined to create a “computational telescope” that zooms into a region of interest.
+The numerics of ICON-O share similarities to the atmosphere component but also have important differences.
 Both components use a mimetic discretization of discrete differential operators, but ICON-O uses the novel concept of Hilbert-space compatible reconstructions to calculate volume and tracer fluxes on the staggered ICON grid (see {term}`Korn 2018`).
 The numerical scheme of ICON-O allows for generalized vertical coordinates: of particular importance here are the depth-based z-level coordinate and the so-called z-star coordinate where all water levels are stretched locally according to a factor depending on the sea-surface elevation and the water depth.
 
-Several parameterizations for sub-grid processes are available in ICON-O. 
+Several parameterizations for sub-grid processes are available in ICON-O.
 Upper-ocean vertical mixing is realized by a turbulent kinetic energy scheme following {term}`Gaspar et al. 1990`.
 Deep-ocean mixing can be either approximated by constant background values of a vertical diffusivity or a constant value for turbulent kinetic energy.
 Furthermore, ICON-O has the option of applying the novel energetically consistent parameterization IDEMIX ({term}`Olbers and Eden 2013`) for internal-wave driven mixing (see {term}`Brüggemann et al. 2024` for details).
@@ -29,16 +29,16 @@ In ICON-O simulations that are too coarse to resolve mesoscale eddies, a structu
 
 (ref_ocean_seaice)=
 ### Sea-ice model
-The sea ice model is part of ICON-O. It consists of a dynamic and a thermodynamic component. 
+The sea ice model is part of ICON-O. It consists of a dynamic and a thermodynamic component.
 Sea ice thermodynamics describe freezing and melting by a single-category, zero-layer formulation ({term}`Semtner 1976`). The current sea ice dynamics are based on the sea ice dynamics component of the Finite-Element Sea Ice Model (FESIM) ({term}`Danilov et al. 2015`). The sea ice model solves the momentum equation for sea ice with an elastic–viscous–plastic (EVP) rheology.
-Since ICON-O and FESIM use different variable staggering, a wrapper is needed to transfer variables between the ICON-O grid and the sea ice dynamics component (see {term}`Korn et al. 2022`). 
+Since ICON-O and FESIM use different variable staggering, a wrapper is needed to transfer variables between the ICON-O grid and the sea ice dynamics component (see {term}`Korn et al. 2022`).
 A new sea ice dynamics model has been developed to bypass these limitations (see {term}`Mehlmann and Korn 2021`) and will be employed in the future.
 
 (ref_ocean_biogeochem)=
 ### Ocean biogeochemistry model
-The ocean biogeochemistry component is provided by HAMOCC6 ({term}`Ilyina et al. 2013`). It simulates at least 20 biogeochemical tracers in the water column, following an ex- tended nutrient, phytoplankton, zooplankton, and detritus approach, also including dissolved organic matter, as described in {term}`Six and Maier-Reimer 1996`. 
-It also simulates the upper sediment by 12 biologically active layers and a burial layer to represent the dissolution and decomposition of inorganic and organic matter as well as the diffusion of pore water constituents. 
-The co-limiting nutrients consist of phosphate, nitrate, silicate, and iron. 
+The ocean biogeochemistry component is provided by HAMOCC6 ({term}`Ilyina et al. 2013`). It simulates at least 20 biogeochemical tracers in the water column, following an ex- tended nutrient, phytoplankton, zooplankton, and detritus approach, also including dissolved organic matter, as described in {term}`Six and Maier-Reimer 1996`.
+It also simulates the upper sediment by 12 biologically active layers and a burial layer to represent the dissolution and decomposition of inorganic and organic matter as well as the diffusion of pore water constituents.
+The co-limiting nutrients consist of phosphate, nitrate, silicate, and iron.
 A fixed stoichiometry for all organic compounds is assumed.
 
 (ref_ocean_skin)=
@@ -46,10 +46,10 @@ A fixed stoichiometry for all organic compounds is assumed.
 The ocean surface layer often features a __warm layer__ caused by solar radiation penetrating up to 3 meters, resulting in a strong diurnal cycle. Also a __cold skin__ develops due to cooling effects of surface latent and sensible heat fluxes, influencing the top millimeter of the ocean.
 
 The ICON implementation is based on the ideas of {term}`Zeng and Beljaars 2005` with modifications from {term}`Takaya, Bidlot, Beljaars and Janssen 2010`.
-The following applications are currently supported: 
+The following applications are currently supported:
 - atmospheric forecasts
 - forecasts coupled to an ocean
-- full data assimilation (DA) with cycling of the variables `sst_warm_layer` and `sst_cold_cycle` including weak coupling to ocean DA. 
+- full data assimilation (DA) with cycling of the variables `sst_warm_layer` and `sst_cold_cycle` including weak coupling to ocean DA.
 
 The ocean surface layer parameterisation components - warm layer and cold_skin - can be turned on separately with the parameters `itype_oskin_warm` and `itype_oskin_cold` (0/1 meaning off/activated respectively).
 
@@ -57,7 +57,7 @@ The ocean surface layer parameterisation components - warm layer and cold_skin -
 
 ### Configuring ICON-O on Levante (DKRZ)
 
-To set up an ICON-O model simulation, it is recommended to use the tool `make_target_runscript`. 
+To set up an ICON-O model simulation, it is recommended to use the tool `make_target_runscript`.
 Before, this script can be applied, a template for an ocean simulation needs to be copied into `./run`.
 We suggest to begin with the `exp.ocean_omip` template:
 
@@ -122,8 +122,8 @@ Here, the following definitions apply:
 
 ```
 filetype: 5 for netcdf
-output_filename: first part of the filename, e.g."${EXPNAME}_P1M_3d" 
-filename_format: structure of the filename, e.g. "<output_filename>_<datetime2>" 
+output_filename: first part of the filename, e.g."${EXPNAME}_P1M_3d"
+filename_format: structure of the filename, e.g. "<output_filename>_<datetime2>"
 output_start: ???
 output_end: ???
 output_interval: Specify how often an output should be written. "P1M" means every month an output will be written.
@@ -132,7 +132,7 @@ operation: Specify if a snapshot (delete the line) or a time average ("mean") wi
 mode: ????
 include_lat: ????
 output_grid: If .TRUE. the grid will be written to the file
-ml_varlist: a list of variable names specified by `add_var` in the model, please use single quotes (') to encapsulate each variable. 
+ml_varlist: a list of variable names specified by `add_var` in the model, please use single quotes (') to encapsulate each variable.
 ```
 
 Most output variables are structured in groups.

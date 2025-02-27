@@ -31,7 +31,7 @@ function one_or_more_are_files
     # Invocation: one_or_more_are_files foo*
 
     #        $# is the number of arguments passed to this function
-    while [ "$#" != "0" ]; do # loop as long as there is an argument left 
+    while [ "$#" != "0" ]; do # loop as long as there is an argument left
         if [ -f "$1" ]; then
             # at least one file was found
             return 0
@@ -93,7 +93,7 @@ function copy_experiment
             while [ "${DOM}" -le "${NDOM}" ]; do
                 if [ ${#DOM} -lt 2 ]; then
                     DOM=0${DOM}
-                fi 
+                fi
                 if [ ${NDOM} -eq 1 ]; then
                     ln -sf ${EXP_ORI}_restart_${COMP}_${RESTART_DATE}.nc restart_${COMP}_DOM${DOM}.nc
                 else
@@ -167,11 +167,11 @@ function print_usage
 {
     typeset COMMAND
     COMMAND=$1
-    
+
     echo "usage: ${COMMAND} [-c] [-d <dates>] [-e <experiment>] [-f yes|no] [-h] [-m <modes>] [-o yes|no] [-r <reference model path>] [-s <restart_date>] [-t <files>] [-u]"
     echo '-c : colour output'
     echo '-d : string containing the dates of the output files of the respective '
-    echo '     experiment, default depends on experiment' 
+    echo '     experiment, default depends on experiment'
     echo '-e : name of the experiment to be checked, default = atm_ape_test'
     echo '-f : '"'yes'"': force make_runscripts even if base runscript exists (default)'
     echo '     '"'no'"': perform make_runscripts only if no runscripts are available'
@@ -203,8 +203,8 @@ function diff_results
     MODEL_DIR2=$3
     DEXP2=$4
     TEST=$5
-    #TYPES: defined in main script and used from main script 
-    #DATES: defined in main script and used from main script 
+    #TYPES: defined in main script and used from main script
+    #DATES: defined in main script and used from main script
 
     # status variable that is evaluated after the function call
     DIFF_STATUS=0
@@ -270,13 +270,13 @@ function diff_results
         echo "- ${MODEL_DIR1}/experiments/${DEXP1}"
         echo "- ${MODEL_DIR2}/experiments/${DEXP2}"
         echo " "
-    
+
         for DATE in $DIFF_DATES; do
-    
+
             echo "------------------------------------------------------------------"
             echo "Compare for DATE=$DATE"
             DIFFERENT_TYPES=''
-    
+
             for TYPE in $TYPES; do
 
                 TEMP_SUFFIX=$(cat /dev/urandom | env LC_ALL=C tr -cd 'a-f0-9' | head -c 16)
@@ -354,16 +354,16 @@ function diff_results
 		fi
 
             done
-    
+
             if [ "x$DIFFERENT_TYPES" != 'x' -a $CAT_CDO_DIFFN == 'yes' ]; then
                 DIFF_STATUS=1
                 DIFF_DATE=$DATE
                 DIFF_TYPES=$DIFFERENT_TYPES
                 CAT_CDO_DIFFN='no'
             fi
-    
+
         done
-    
+
         if [ $DIFF_STATUS == 0 ]; then
             echo " "
             echo "The experiments are equal"
@@ -466,7 +466,7 @@ make_sure_cdo_exists_and_runs() {
 }
 
 #------------------------------------------------------------------------
-# Functions to set or get namelist parameters assuming one parameter per line 
+# Functions to set or get namelist parameters assuming one parameter per line
 
 nml_replace(){
     PARAM=$1
@@ -528,7 +528,7 @@ while getopts ":cd:e:f:hm:o:r:s:t:u" OPT; do
         h  ) print_usage $0
             exit 1
             ;;
-        m  ) MODE=$OPTARG 
+        m  ) MODE=$OPTARG
             case $MODE in
                 'base')              MD='b';;
                 'update')            MD='u';;
@@ -552,7 +552,7 @@ while getopts ":cd:e:f:hm:o:r:s:t:u" OPT; do
                   b|u|r|n|m|o|t|p|c|g )
                      (( i += 1 ))
                      ;;
-                  *) 
+                  *)
                      print_usage $0
                      exit 1
                      ;;
@@ -595,7 +595,7 @@ COLOUR=${COLOUR='no'}
 # Experiment
 EXPERIMENT=${EXPERIMENT='atm_ape_test'}
 # Force to run "make_runscripts" for the specified experiment even
-# if the respective runscript is present 
+# if the respective runscript is present
 FORCE_MRS=${FORCE_MRS='yes'}
 # Test mode
 #
@@ -617,7 +617,7 @@ REFERENCE=${REFERENCE=''}
 # Do not calculate differences between differing files
 SUB_FILES=${SUB_FILES='no'}
 
-# Set defaults for file types, dates, and the restart date for the 
+# Set defaults for file types, dates, and the restart date for the
 # checks depending on the experiment.
 if [ "${EXPERIMENT}" == 'atm_amip_les_test' ]; then
     TYPES=${TYPES='atm_2d_ml atm_3d_ml lnd_basic_ml'}
@@ -747,7 +747,7 @@ if [ "${OVERWRITE}" == 'yes' -o ! -d ${MODEL_DIR}/experiments/${EXP_BASE} ]; the
     echo "Perform $TEST run"
     chmod 755 ${RUN_SCRIPT}
     ${SCRIPT_DIR}/${RUN_SCRIPT}
-    
+
 
     STATUS=$?
     if [ "$STATUS" -eq 0 ]; then
@@ -775,7 +775,7 @@ if [[ ${MD} =~ .*u.* ]]; then
     TEST='update'
     cd ${REFERENCE} || exit 1
     RUN_STATUS=-1
-    if [ ! -d experiments/${EXP_BASE} ] ;then 
+    if [ ! -d experiments/${EXP_BASE} ] ;then
         if [ ! -f run/${PREFIX}.${SCRIPT}.run -o "$FORCE_MRS" == 'yes' ]; then
             ${MODEL_DIR}/make_runscripts ${SCRIPT} ${MRS_SUBDIR:+-r ${MRS_SUBDIR}}
         fi

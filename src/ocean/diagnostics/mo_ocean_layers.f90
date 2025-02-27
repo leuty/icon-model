@@ -26,7 +26,7 @@ MODULE mo_ocean_layers
     & OceanReferenceDensity,                                  &
     & EOS_TYPE, &
     & LinearThermoExpansionCoefficient, &
-    & LinearHalineContractionCoefficient 
+    & LinearHalineContractionCoefficient
 
   USE mo_ocean_physics_types, ONLY: t_ho_params
   USE mo_parallel_config,     ONLY: nproma
@@ -71,7 +71,7 @@ MODULE mo_ocean_layers
   PUBLIC :: init_layers
   PUBLIC :: calc_layers
 
-  ! --- namelist parameters 
+  ! --- namelist parameters
   !(if paras should not be read hear and not in mo_ocean_namelist; does not work)
   !INTEGER :: n_dlev = 5          ! number of density layers
   !INTEGER :: mode_layers = 1                     ! mode to derive layer transport
@@ -88,7 +88,7 @@ CONTAINS
 
 !To do (optional):
 !   * check whether namelist reading can be done here instead of in main namelist
-!   * rename rho_lev to layer_int and rho_lev_cent to layer_cent 
+!   * rename rho_lev to layer_int and rho_lev_cent to layer_cent
 !   * rename sigma_2 to layer_scalar
 !   * make switch to allow other level-types like temp, salt or sigma0
 
@@ -125,7 +125,7 @@ CONTAINS
     rho_lev(:) = -10.0_wp
     rho_lev(1:n_dlev+1) = rho_lev_in(1:n_dlev+1)
     !rho_lev(:) = rho_lev(:) !+ 1000.0_wp
-    
+
     ! --- if n_dlev was set to a too large value in namelist there will appear negative values which is bad for the algorithm
     DO jd = 1,n_dlev+1
       IF (rho_lev(jd)<0.) THEN
@@ -306,7 +306,7 @@ CONTAINS
     REAL(wp), DIMENSION(:,:,:), POINTER       :: diapycnal_velocity
     REAL(wp), DIMENSION(:,:,:), POINTER       :: weight_e_sum
     REAL(wp), DIMENSION(:,:), POINTER         :: sflx_dens
-    REAL(wp), DIMENSION(:,:), POINTER         :: alphaT 
+    REAL(wp), DIMENSION(:,:), POINTER         :: alphaT
     REAL(wp), DIMENSION(:,:), POINTER         :: betaS
     INTEGER, DIMENSION(:,:), POINTER          :: dolic_e
     INTEGER, DIMENSION(:,:), POINTER           :: dolic_c
@@ -328,7 +328,7 @@ CONTAINS
     REAL(wp) :: sflx_temp, sflx_salt
     REAL(wp) :: dmin, dmax, ddif, weight
     REAL(wp) :: mfe, div
-    
+
     LOGICAL, SAVE                             :: firstcall=.true.
 
     ! --- for debugging
@@ -435,7 +435,7 @@ CONTAINS
 
             ! main loop
             DO jk = 1, dolic_e(je,blockNo)
-            
+
               dmin = minval(rho_ei(jk:jk+1))
               dmax = maxval(rho_ei(jk:jk+1))
               ddif = abs(rho_ei(jk)-rho_ei(jk+1))
@@ -445,8 +445,8 @@ CONTAINS
                 IF (rho_lev(jd) > dmin) THEN
                   jds = jd
                   EXIT
-                ENDIF 
-              ENDDO 
+                ENDIF
+              ENDDO
 
               jde = 1 ! if all levels are below dmax, we need jds>jde
               DO jd = n_dlev-1,1,-1
@@ -454,17 +454,17 @@ CONTAINS
                   jde = jd
                   EXIT
                 ENDIF
-              ENDDO 
+              ENDDO
 
               !if (jds>jde) jds=jde    ! whole cell is within two density levels
               !if (jds==jde) jde=jds+1 ! one density level is within cell
               !if (jds<jde) do nothing -> normal case
               !!if (rho_lev(jds)>=dmax) jds=jde
               !!if (rho_lev(jde)<=dmin) jde=jds ! necessary?
-               
+
               mfe = ocean_state%p_diag%mass_flx_e(je,jk,blockNo)
               IF (jds<=jde) THEN
-                weight = abs(rho_lev(jds)-dmin)/ddif 
+                weight = abs(rho_lev(jds)-dmin)/ddif
                 mass_flux_lay(je,jds-1,blockNo) = mass_flux_lay(je,jds-1,blockNo) + mfe*weight
                 layer_thickness_e(je,jds-1,blockNo) = layer_thickness_e(je,jds-1,blockNo) + dze(jk)*weight
                 !if (blockNo==100 .and. je==2 .and. jk==24) then
@@ -480,7 +480,7 @@ CONTAINS
                 !endif
                   weight_e_sum(je,jk,blockNo) = weight_e_sum(je,jk,blockNo)+weight
                 ENDDO
-                weight = abs(dmax-rho_lev(jde))/ddif 
+                weight = abs(dmax-rho_lev(jde))/ddif
                 mass_flux_lay(je,jde,blockNo) = mass_flux_lay(je,jde,blockNo) + mfe*weight
                 layer_thickness_e(je,jde,blockNo) = layer_thickness_e(je,jde,blockNo) + dze(jk)*weight
                 !if (blockNo==100 .and. je==2 .and. jk==24) then
@@ -520,7 +520,7 @@ CONTAINS
         ENDDO ! je
       ENDDO ! blockNo
 
-      ! --- 
+      ! ---
       DO blockNo = all_cells%start_block, all_cells%end_block
         CALL get_index_range(all_cells, blockNo, start_index, end_index)
         idx => patch_2d%cells%edge_idx
@@ -546,7 +546,7 @@ CONTAINS
 
             ! main loop
             DO jk = 1, dolic_c(jc,blockNo)
-            
+
               dmin = minval(rho_ci(jk:jk+1))
               dmax = maxval(rho_ci(jk:jk+1))
               ddif = abs(rho_ci(jk)-rho_ci(jk+1))
@@ -556,8 +556,8 @@ CONTAINS
                 IF (rho_lev(jd) > dmin) THEN
                   jds = jd
                   EXIT
-                ENDIF 
-              ENDDO 
+                ENDIF
+              ENDDO
 
               jde = 1 ! if all levels are below dmax, we need jds>jde
               DO jd = n_dlev-1,1,-1
@@ -572,13 +572,13 @@ CONTAINS
               !if (jds<jde) do nothing -> normal case
               !!if (rho_lev(jds)>=dmax) jds=jde
               !!if (rho_lev(jde)<=dmin) jde=jds ! necessary?
-               
+
               div =  &
                 & ocean_state%p_diag%mass_flx_e(idx(jc,blockNo,1),jk,blk(jc,blockNo,1)) * op_coeffs%div_coeff(jc,jk,blockNo,1) + &
                 & ocean_state%p_diag%mass_flx_e(idx(jc,blockNo,2),jk,blk(jc,blockNo,2)) * op_coeffs%div_coeff(jc,jk,blockNo,2) + &
                 & ocean_state%p_diag%mass_flx_e(idx(jc,blockNo,3),jk,blk(jc,blockNo,3)) * op_coeffs%div_coeff(jc,jk,blockNo,3)
               IF (jds<=jde) THEN
-                weight = (rho_lev(jds)-dmin)/ddif 
+                weight = (rho_lev(jds)-dmin)/ddif
                 dhdt_hfl(jc,jds-1,blockNo) = dhdt_hfl(jc,jds-1,blockNo) + div*weight
                 layer_thickness_c(jc,jds-1,blockNo) = layer_thickness_c(jc,jds-1,blockNo) + dzc(jk)*weight
                 DO jd = jds,jde-1 ! more than one density level is within cell
@@ -586,7 +586,7 @@ CONTAINS
                   dhdt_hfl(jc,jd,blockNo) = dhdt_hfl(jc,jd,blockNo) + div*weight
                   layer_thickness_c(jc,jd,blockNo) = layer_thickness_c(jc,jd,blockNo) + dzc(jk)*weight
                 ENDDO
-                weight = (dmax-rho_lev(jde))/ddif 
+                weight = (dmax-rho_lev(jde))/ddif
                 dhdt_hfl(jc,jde,blockNo) = dhdt_hfl(jc,jde,blockNo) + div*weight
                 layer_thickness_c(jc,jde,blockNo) = layer_thickness_c(jc,jde,blockNo) + dzc(jk)*weight
               ELSE ! jds>jde whole cell is within two density levels
@@ -628,7 +628,7 @@ CONTAINS
       DO blockNo = all_cells%start_block, all_cells%end_block
         CALL get_index_range(all_cells, blockNo, start_index, end_index)
         DO jc = start_index, end_index
-          levels       = dolic_e(jc, blockNo)   ! 
+          levels       = dolic_e(jc, blockNo)   !
 
           ! only for ocean cells
           IF (dolic_c(jc,blockNo)>0) THEN
@@ -643,13 +643,13 @@ CONTAINS
               & ocean_state%p_prog(nold(1))%tracer(jc,1:levels,blockNo,2), &
               !& patch_3D%p_patch_1d(1)%depth_cellinterface(jc,2:levels+1,blockNo), &
               & 2000.0_wp*ones(1:levels), &
-              & levels) 
+              & levels)
           ELSEIF(EOS_TYPE==1)THEN
             !Linear EOS: slope coefficients are equal to EOS-coefficients
             neutral_coeff(:,1) = LinearThermoExpansionCoefficient
             neutral_coeff(:,2) = LinearHalineContractionCoefficient
           ENDIF
-          sflx_temp = p_oce_sfc%HeatFlux_Total(jc,blockNo) / clw 
+          sflx_temp = p_oce_sfc%HeatFlux_Total(jc,blockNo) / clw
           sflx_salt = p_oce_sfc%FrshFlux_TotalOcean(jc,blockNo) * OceanReferenceDensity
 
           sflx_dens(jc,blockNo) = ( &
@@ -661,9 +661,9 @@ CONTAINS
           jd = minloc(abs(rho_lev_cent - ocean_state%p_diag%sigma2(jc,1,blockNo)),1)
           dhdt_srf(jc,jd,blockNo) = dhdt_srf(jc,jd,blockNo) + sflx_dens(jc,blockNo)/(rho_lev(jd+1)-rho_lev(jd))
           !DO jd = 1, n_dlev
-          !  IF (ocean_state%p_diag%sigma2(jc,1,blockNo)>rho_lev(jd) & 
+          !  IF (ocean_state%p_diag%sigma2(jc,1,blockNo)>rho_lev(jd) &
           !    &  .and. ocean_state%p_diag%sigma2(jc,1,blockNo)<=rho_lev(jd+1)) then
-          !    dhdt_srf(jc,jd,blockNo) = dhdt_srf(jc,jd,blockNo) & 
+          !    dhdt_srf(jc,jd,blockNo) = dhdt_srf(jc,jd,blockNo) &
           !      & + sflx_dens(jc,blockNo) &
           !      !& * cell_area(jc,blockNo) &
           !      & / (rho_lev(jd+1)-rho_lev(jd))
@@ -704,20 +704,20 @@ CONTAINS
               DO jd = 1, n_dlev
                 IF (rho_e(jk)>rho_lev(jd) .AND. rho_e(jk)<=rho_lev(jd+1)) THEN
                   jds = jd
-                ENDIF            
+                ENDIF
               ENDDO
 !              jds = n_dlev ! if all levels are above dmin, we need jds>jde
-!              DO jd = 2, n_dlev 
+!              DO jd = 2, n_dlev
 !                IF (rho_lev(jd) > dmin) THEN
 !                  jds = jd
 !                  EXIT
-!                ENDIF 
-!              ENDDO 
+!                ENDIF
+!              ENDDO
               ! --- layer depth on edges
               layer_thickness_e(je,jds,blockNo) = layer_thickness_e(je,jds,blockNo) &
                 & + patch_3d%p_patch_1d(1)%prism_thick_e(je,jk,blockNo)
               ! --- accumulate mass flux of this layer (derive mass flux as for wvel)
-              mass_flux_lay(je,jds,blockNo) = mass_flux_lay(je,jds,blockNo) & 
+              mass_flux_lay(je,jds,blockNo) = mass_flux_lay(je,jds,blockNo) &
                 & + ocean_state%p_diag%mass_flx_e(je,jk,blockNo)
               ! debugging
               !if (blockNo==100 .and. je==2) then
@@ -755,7 +755,7 @@ CONTAINS
               DO jd = 1, n_dlev
                 IF (rho_c(jk)>rho_lev(jd) .AND. rho_c(jk)<=rho_lev(jd+1)) THEN
                   jds = jd
-                ENDIF            
+                ENDIF
               ENDDO
               ! --- layer depth on cells
               layer_thickness_c(jc,jds,blockNo) = layer_thickness_c(jc,jds,blockNo) &

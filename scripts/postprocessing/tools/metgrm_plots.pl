@@ -97,7 +97,7 @@ Title for the plot. The default title is C<ICON>.
 
 =item B<-z> zAxis
 
-Use C<zAxis> as vertical coordinate for contour plots. Default is C<ml> 
+Use C<zAxis> as vertical coordinate for contour plots. Default is C<ml>
 for model levels. Possible other values C<h> for height.
 
 =back

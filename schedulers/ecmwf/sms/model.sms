@@ -22,11 +22,11 @@
     Florian Prill, DWD, mailto:florian.prill@dwd.de
 
   Task objectives:
-  - model run 
+  - model run
 %end
 
 # include the header file for ICON jobs
-%include <init_sc_model.h> 
+%include <init_sc_model.h>
 
 # -------------------------------------------------
 
@@ -36,7 +36,7 @@ stage=run
 
 # *************************************************
 
-echo "MODEL.SMS" 
+echo "MODEL.SMS"
 set -x
 module load python
 module swap grib_api grib_api/1.15.0          # grib_api/1.12.3
@@ -70,7 +70,7 @@ done
 
 #-----------------------------------------------------------------------------
 
-# calculate and format starting date of simulation: SMSDATE-  2 days, time: UTC 00 
+# calculate and format starting date of simulation: SMSDATE-  2 days, time: UTC 00
 #REQUEST_DATE=`python %SCBASEDIR%/gen/date_calc.py -a printdate -d %SMSDATE%00 -s 2`
 INITIME=%YMD%%INIHOUR%
 INITIME_FMT=`python %SCBASEDIR%/gen/date_calc.py -a printfmt -d %YMD%%INIHOUR%`
@@ -193,7 +193,7 @@ else
   export NETCDF4_DIR
  #echo $NETCDF_LIB
   aprun -N $EC_tasks_per_node -n $EC_total_tasks -d $OMP_NUM_THREADS -j $EC_hyperthreads icon.exe
-  # fractional job: 
+  # fractional job:
   #module load cray-snplauncher
   #mpiexec -n $EC_total_tasks icon.exe
 fi
@@ -210,4 +210,3 @@ smsevent model_complete
 
 # include the "tail" file for remote jobs
 %include <end_sc.h>
-

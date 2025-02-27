@@ -139,7 +139,7 @@ CONTAINS
            nlen = nproma
         ELSE
            nlen = npromz
-        ENDIF       
+        ENDIF
       DO jk=jk_start,jk_end
          pvar(1:nlen,jk,jb) = pvar(1:nlen,jk,jb) + zrand(1:nlen,jk,jb)
       ENDDO

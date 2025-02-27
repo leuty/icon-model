@@ -34,7 +34,7 @@ MODULE mo_latitude_interpolation
 
   CONTAINS
 
-!> SUBROUTINE latitude_weights_li  -- calculate weights and indices for 
+!> SUBROUTINE latitude_weights_li  -- calculate weights and indices for
 !             linear latitude interpolation.
 
   SUBROUTINE latitude_weights_li(jg                   ,jcs                            &
@@ -44,7 +44,7 @@ MODULE mo_latitude_interpolation
                                & ,r_lat_clim          ,nlat_clim        ,n_order      &
                                & ,lacc                                                )
 
-    ! n_order=1 if latitudes of climatology are in ascending (S->N), -1 if 
+    ! n_order=1 if latitudes of climatology are in ascending (S->N), -1 if
     ! latitudes are in descending (N->S) order.
     INTEGER, INTENT(in)               :: jg,        & ! domain index
                                        & jcs,       & ! actual block length (start)
@@ -55,11 +55,11 @@ MODULE mo_latitude_interpolation
                                                       ! =-1 if latitudes in climatology are ordered N->S
     REAL(wp), INTENT(inout)           :: wgt1_lat(kbdim), wgt2_lat(kbdim) ! linear interpolation weights
     INTEGER, INTENT(inout)            :: inmw1_lat(kbdim), inmw2_lat(kbdim) ! linear interpolation indices
-    REAL(wp), INTENT(in)              :: p_lat_shift,&! shift of latitudes with respect to pole (see above) 
+    REAL(wp), INTENT(in)              :: p_lat_shift,&! shift of latitudes with respect to pole (see above)
                                        & p_rdeltalat  ! spacing of latitudes in climatology
     INTEGER, INTENT(in)               :: nlat_clim    !number of latitudes minus the values at the poles
-    REAL(wp), INTENT(in)              :: r_lat_clim(0:nlat_clim+1)! latitudes of climatology. 
-                                                      ! ATTENTION: they must contain the poles 
+    REAL(wp), INTENT(in)              :: r_lat_clim(0:nlat_clim+1)! latitudes of climatology.
+                                                      ! ATTENTION: they must contain the poles
                                                       ! r_lat_clim(0)=+-Pi/2, r_lat_clim(nlat_clim+1)=+-Pi/2
 
     REAL(wp)                          :: zlat

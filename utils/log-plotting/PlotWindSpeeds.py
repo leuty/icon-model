@@ -15,13 +15,12 @@
 
 from __future__ import print_function
 
+import logging
 import sys
 from datetime import datetime
 
 import dateutil
 import matplotlib.pyplot as plt
-
-import logging
 
 logging.basicConfig()
 # logging.getLogger().setLevel(logging.DEBUG)
@@ -54,7 +53,10 @@ def main():
     if options.get("xlim", False):
         xl = options.get("xlim", False)
         print(dir(datetime))
-        options["xlim"] = (dateutil.parser.parse(xl[0]), dateutil.parser.parse(xl[1]))
+        options["xlim"] = (
+            dateutil.parser.parse(xl[0]),
+            dateutil.parser.parse(xl[1]),
+        )
     logging.info("options:", options)
 
     pltws = PlotWindSpeeds(
@@ -86,7 +88,9 @@ class PlotWindSpeeds(BasePlotter_):
         # extract last job_id and plot only last job_id
         current_job_id = data_exp["job_id"].max()
         if current_job_id is not None:
-            data_job = data_exp.loc[data_exp["job_id"] == int(current_job_id), :]
+            data_job = data_exp.loc[
+                data_exp["job_id"] == int(current_job_id), :
+            ]
             self.plot_data(data_job, f"{exp_id}.last_job", current_job_id)
         else:
             logging.critical(f"Could not find a finished job in {self.files}.")
@@ -189,7 +193,12 @@ class PlotWindSpeeds(BasePlotter_):
 
         plt.figure()
         self.data.plot(
-            x="dates", y=y1, logy=logy, color=color1, label=label1, **self.plot_opts
+            x="dates",
+            y=y1,
+            logy=logy,
+            color=color1,
+            label=label1,
+            **self.plot_opts,
         )
         if y2 is not None and y2:
             self.data.plot(
@@ -222,7 +231,8 @@ class PlotWindSpeeds(BasePlotter_):
         """Plots wind speed distributions.
 
         variable : 'vn' or 'w'
-            Indicates to either plot distribution on vertical ('w') or horizontal ('vn') wind speed."""
+            Indicates to either plot distribution on vertical ('w') or horizontal ('vn') wind speed.
+        """
 
         plt.figure()
         scatter_opts = self.plot_opts.copy()

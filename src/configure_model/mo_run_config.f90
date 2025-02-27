@@ -22,7 +22,7 @@ MODULE mo_run_config
                                IMPIOM, INOFORCING, ILDF_DRY, MAX_CHAR_LENGTH,  &
                                TIMER_MODE_AGGREGATED, TIMER_MODE_DETAILED
   USE mtime,             ONLY: MAX_TIMEDELTA_STR_LEN
-  
+
   IMPLICIT NONE
   PRIVATE
   PUBLIC :: ltestcase, ldynamics, iforcing, lforcing, logmaxrss, logmaxrss_all
@@ -67,19 +67,19 @@ MODULE mo_run_config
 
     LOGICAL :: lvert_nest         !< switch for vertical nesting
     INTEGER :: num_lev  (MAX_DOM) !< number of full levels for each domain
-    INTEGER :: nshift   (MAX_DOM) !< half level of parent domain which coincides 
+    INTEGER :: nshift   (MAX_DOM) !< half level of parent domain which coincides
                                   !< with the upper boundary of the current domain jg
 
     INTEGER :: nsteps          !< number of time steps to integrate
     REAL(wp):: dtime           !< [s] length of a time step
-    
+
     LOGICAL :: ltimer          !< if .TRUE.,  the timer is switched on
     INTEGER :: timers_level    !< what level of timers to run
     LOGICAL :: activate_sync_timers
     INTEGER :: profiling_output = TIMER_MODE_AGGREGATED  !< switch defining the kind of timer output
 
     LOGICAL :: check_uuid_gracefully !< Flag. If .TRUE. then we give only warnings for non-matching UUIDs
-  
+
     INTEGER :: test_mode = 0   !< 0= run the model, /=0 run in test mode
     INTEGER :: debug_check_level = 10  ! Define debug checks level. This is not related to the debug output in
                                       ! mo_dbg_nml, it only controls the activation of internal checks
@@ -88,7 +88,7 @@ MODULE mo_run_config
     LOGICAL :: logmaxrss
     LOGICAL :: logmaxrss_all
 
- 
+
     !> output mode (string)
     !  one or multiple of "none", "nml", "totint", "maxwinds"
     INTEGER, PARAMETER :: max_output_modes = 5
@@ -96,12 +96,12 @@ MODULE mo_run_config
 
     ! Non-Namelist variables
     ! These are read from the grid file in mo_model_domimp_patches/read_basic_patch
-    ! 
+    !
     INTEGER :: grid_generatingCenter   (0:MAX_DOM)      !< patch generating center
     INTEGER :: grid_generatingSubcenter(0:MAX_DOM)      !< patch generating subcenter
     INTEGER :: number_of_grid_used     (0:MAX_DOM)      !< Number of grid used (GRIB2 key)
     CHARACTER(len=MAX_CHAR_LENGTH) :: ICON_grid_file_uri(0:MAX_DOM)
-    
+
 
     ! Derived variables
     !
@@ -114,7 +114,7 @@ MODULE mo_run_config
     INTEGER :: iqs       = 0  !< snow
     INTEGER :: nqtendphy = 0  !< number of water species for which physical tendencies are stored
     INTEGER :: iqm_max   = 0  !< highest tracer index carrying a mass-related moisture variable
-  
+
     !For 2 moment microphysics
     INTEGER :: iqh       = 0  !<hail
     INTEGER :: iqnh      = 0  !<hail number
@@ -173,13 +173,13 @@ CONTAINS
   !! Assign value to components of the run configuration state that have no
   !! corresponding namelist variable.
   !!
-  !! Exceptions: grid_generatingCenter, grid_generatingSubcenter, number_of_grid_used 
-  !!             and ICON_grid_file_uri are set in mo_model_domimp_patches/read_basic_patch 
+  !! Exceptions: grid_generatingCenter, grid_generatingSubcenter, number_of_grid_used
+  !!             and ICON_grid_file_uri are set in mo_model_domimp_patches/read_basic_patch
   !!
   SUBROUTINE configure_run( )
 
     CHARACTER(LEN=*),PARAMETER :: routine = 'mo_run_config:configure_run'
-    
+
 
     !----------------------------
     ! Number of vertical levels
@@ -210,45 +210,43 @@ CONTAINS
   END SUBROUTINE configure_run
   !-------------------------------------------------------------
 
- 
+
 !  !---------------------------------------
 !  !>
 !  LOGICAL FUNCTION get_ltestcase()
-!    get_ltestcase = ltestcase 
+!    get_ltestcase = ltestcase
 !  END FUNCTION get_ltestcase
 !  !---------------------------------------
 !  !>
 !  LOGICAL FUNCTION get_ldynamics()
-!    get_ldynamics = ldynamics 
+!    get_ldynamics = ldynamics
 !  END FUNCTION get_ldynamics
 !  !---------------------------------------
 !  !>
 !  LOGICAL FUNCTION get_ltransport()
-!    get_ltransport = ltransport 
+!    get_ltransport = ltransport
 !  END FUNCTION get_ltransport
 !  !---------------------------------------
 !  !>
 !  INTEGER FUNCTION get_ntracer()
-!    get_ntracer = ntracer 
+!    get_ntracer = ntracer
 !  END FUNCTION get_ntracer
 !  !---------------------------------------
 !  !>
 !  INTEGER FUNCTION get_iforcing()
-!    get_iforcing = iforcing 
+!    get_iforcing = iforcing
 !  END FUNCTION get_iforcing
 !  !---------------------------------------
 !  !>
 !  REAL(wp) FUNCTION get_dtime()
-!    get_dtime = dtime 
+!    get_dtime = dtime
 !  END FUNCTION get_dtime
 !  !---------------------------------------
 !  !>
 !  INTEGER FUNCTION get_nsteps()
-!    get_nsteps = nsteps 
+!    get_nsteps = nsteps
 !  END FUNCTION get_nsteps
 !  !---------------------------------------
 !
 
 END MODULE mo_run_config
-
-

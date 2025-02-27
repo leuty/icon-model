@@ -2812,7 +2812,7 @@ SUBROUTINE exchange_data_grf_dp(p_pat_coll, lacc, nfields, ndim2tot, recv, send)
    CALL exchange_data_grf_bottom_dp(redist_coll, cpy_size, nfields, ndim2tot,&
      &                           npats, src_fsize4d, dst_fsize4d, needs_cpy, &
      &                           recv, send, lacc)
-     
+
 #if defined(_OPENACC) && ! defined(__USE_G2G)
     IF (lacc) THEN
       DO i = 1, nfields

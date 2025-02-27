@@ -21,8 +21,8 @@
 ! - "W" is optional and read if available in the input data (note that "W" may in fact contain OMEGA).
 ! - "QV", "QC", "QI" are always read
 ! - "QR", "QS" are read if available
-! - Other tracer fields (such as ART tracers) are read, if available AND contained in the variable group 
-!   LATBC_PREFETCH_VARS. This allows to skip the read-in of individual fields, if their latbc entry in tracers.xml is 
+! - Other tracer fields (such as ART tracers) are read, if available AND contained in the variable group
+!   LATBC_PREFETCH_VARS. This allows to skip the read-in of individual fields, if their latbc entry in tracers.xml is
 !   empty.
 !
 ! The other fields for the lateral boundary conditions are read
@@ -925,8 +925,8 @@ CONTAINS
            numlbc_tracer = numlbc_tracer + 1
            ! Check if additional tracer variables are provided as input
            IF (.NOT. cur_var%info%in_group(latbc_prefetch_vars_grp_id)) THEN
-             ! Force lread_tracer to .FALSE. for additional (mainly for ART pollen) tracers that are not part of 
-             ! LATBC_PREFETCH_VARS, i.e. their latbc entry in tracers.xml is empty. Also see variable c_latbc in 
+             ! Force lread_tracer to .FALSE. for additional (mainly for ART pollen) tracers that are not part of
+             ! LATBC_PREFETCH_VARS, i.e. their latbc entry in tracers.xml is empty. Also see variable c_latbc in
              ! art_tracer_def_wrapper in mo_art_tracer_def_wrapper.f90.
              buffer%lread_tracer(numlbc_tracer) = .FALSE.
            ELSE

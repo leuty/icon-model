@@ -236,7 +236,7 @@ CONTAINS
 
     IF ( lmoist_thdyn ) THEN
       SELECT CASE (iforcing)
-      CASE(IHELDSUAREZ,INOFORCING,ILDF_DRY)     
+      CASE(IHELDSUAREZ,INOFORCING,ILDF_DRY)
         CALL message(routine, &
            'lmoist_thdyn is reset to false .FALSE. because a dry model configuration is used')
         lmoist_thdyn = .FALSE.
@@ -339,9 +339,9 @@ CONTAINS
           CALL finish( routine,'Real-data applications require using a surface scheme!')
         ENDIF
 
-        IF ( (atm_phy_nwp_config(jg)%icpl_rad_reff == 2)  .AND.  & 
+        IF ( (atm_phy_nwp_config(jg)%icpl_rad_reff == 2)  .AND.  &
               (atm_phy_nwp_config(jg)%inwp_radiation/= 4) ) THEN
-          CALL finish( routine, 'Wrong value for: icpl_rad_reff. Coupling effective radius for all '//  &  
+          CALL finish( routine, 'Wrong value for: icpl_rad_reff. Coupling effective radius for all '//  &
                                  'hydrometeors only works with ECRAD!')
         ENDIF
 
@@ -392,14 +392,14 @@ CONTAINS
           ! check ice nucleation settings for two-moment cloud ice scheme (gscp=3)
           IF ( (icpl_aero_ice == 2 .OR. icpl_aero_ice == 3 .OR. icpl_aero_ice == 4) .AND. atm_phy_nwp_config(jg)%inwp_gscp /= 3 ) &
              & CALL finish(routine,'icpl_aero_ice = 2, 3 or 4 requires inwp_gscp = 3')
-          
+
           ! check ice nucleation settings for two-moment cloud ice scheme (gscp=3)
           IF ( (icpl_aero_ice == 3 .OR. icpl_aero_ice == 4) .AND. .not.lart ) &
                & CALL finish(routine,'icpl_aero_ice = 3 or 4 requires lart=.true.')
-          
+
           IF ( icpl_aero_ice == 1 .AND. atm_phy_nwp_config(jg)%inwp_gscp == 3 ) &
                & CALL finish(routine,'icpl_aero_ice = 1 not supported for inwp_gscp = 3')
-          
+
 #ifdef _OPENACC
           IF ( icpl_aero_ice == 1 ) THEN
             CALL finish(routine,'DeMott ice nucleation icpl_aero_ice > 0 is currently not supported on GPU.')
@@ -466,7 +466,7 @@ CONTAINS
                 &  CALL finish(routine,'For inwp_radiation = 4 ecrad_use_general_cloud_optics = F, &
                                        &ecrad_iliquid_scat has to be 0 or 1')
               IF (.NOT. ANY( ecrad_iice_scat    == (/0,1,2/) ) ) &
-                &  CALL finish(routine,'For inwp_radiation = 4 ecrad_use_general_cloud_optics = F, & 
+                &  CALL finish(routine,'For inwp_radiation = 4 ecrad_use_general_cloud_optics = F, &
                                        &ecrad_iice_scat has to be 0, 1 or 2')
             ENDIF
             IF (.NOT. ANY( ecrad_isnow_scat    == (/-1,0,10/) ) ) &
@@ -490,7 +490,7 @@ CONTAINS
             IF ( .NOT. ecrad_use_general_cloud_optics .AND. &
               & (ecrad_isnow_scat > -1 .OR. ecrad_igraupel_scat > -1 .OR. ecrad_irain_scat > -1 )) &
               &  CALL finish(routine,'Ecrad with qr/qs/qg can only be used with ecrad_use_general_cloud_optics = T')
-            IF ( ecrad_use_general_cloud_optics .AND. & 
+            IF ( ecrad_use_general_cloud_optics .AND. &
               & (ecrad_isnow_scat > -1 .OR. ecrad_igraupel_scat > -1 .OR. ecrad_irain_scat > -1 ) .AND. &
               &  atm_phy_nwp_config(jg)%icpl_rad_reff /= 2 ) &
               &  CALL finish(routine,'Ecrad with qr/qs/qg can only be used with icpl_rad_reff= 2')
@@ -570,7 +570,7 @@ CONTAINS
             & calculated within the turbulence scheme'
           CALL message(routine, message_text)
         ENDIF
-     
+
         !! check land surface schemes
         SELECT CASE (atm_phy_nwp_config(jg)%inwp_surface)
         CASE (0)
@@ -797,7 +797,7 @@ CONTAINS
       WRITE (message_text,'(a)') "itune_gust_diag = 3 requires ntiles > 1"
       CALL finish(routine, message_text)
     ENDIF
-    
+
     ! check meteogram configuration
     IF (ANY(meteogram_output_config(:)%lenabled) .AND. .NOT. output_mode%l_nml) THEN
       CALL finish(routine, "Meteograms work only for run_nml::output='nml'!")
@@ -824,7 +824,7 @@ CONTAINS
     ! assimiliation
     !--------------------------------------------------------------------
     IF ( MODE_IAU == init_mode ) THEN
-      IF( ANY(assimilation_config(:)%dace_coupling) .AND. .NOT. iterate_iau ) THEN 
+      IF( ANY(assimilation_config(:)%dace_coupling) .AND. .NOT. iterate_iau ) THEN
         ! The MEC in dace_coupling needs the fully initialized state to compute the
         ! model equivalents for vv=0.
         CALL finish(routine,                                        &
@@ -975,7 +975,7 @@ CONTAINS
     DO jg = 1, n_dom
       IF (    art_config(jg)%iart_aci_cold  >  0  .OR.  &
           &   art_config(jg)%iart_aci_warm  >  0  .OR.  &
-          &   art_config(jg)%iart_ari       >  0  .OR.  &      
+          &   art_config(jg)%iart_ari       >  0  .OR.  &
           &   art_config(jg)%iart_dust      >  0  .OR.  &
           &   art_config(jg)%iart_init_aero >  0  .OR.  &
           &   art_config(jg)%iart_radioact  >  0  .OR.  &
@@ -984,8 +984,8 @@ CONTAINS
         CALL finish(routine,  &
           &  'mo_nml_crosscheck: art_crosscheck: some activated art switches are currently not supported on GPU.')
       ELSEIF (    art_config(jg)%lart_chem            .OR.  &
-              &   art_config(jg)%lart_chemtracer            ) THEN 
-        CALL message(routine, 'WARNING: The switches lartchem and lart_chemtracer are not supported on GPU. Use them at your own risk. However, using this with OEM-specific cases is safe at the moment.') 
+              &   art_config(jg)%lart_chemtracer            ) THEN
+        CALL message(routine, 'WARNING: The switches lartchem and lart_chemtracer are not supported on GPU. Use them at your own risk. However, using this with OEM-specific cases is safe at the moment.')
       END IF
     ENDDO
 #endif

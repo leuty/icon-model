@@ -33,7 +33,7 @@
 !   Major segments of this code combines and rewrites (for the ICON standard)
 !   code previously contained in the ECHAM5 routines rad_int.f90,
 !   radiation.f90 and prerad.f90.  Modifications were also made to provide
-!   a cleaner interface to the aerosol and cloud properties. 
+!   a cleaner interface to the aerosol and cloud properties.
 
 MODULE mo_radiation
 
@@ -88,9 +88,9 @@ MODULE mo_radiation
        &                             getDayOfYearFromDatetime, MAX_TIMEDELTA_STR_LEN,&
        &                             deallocateTimedelta, deallocateDatetime,        &
        &                             NO_OF_MS_IN_A_SECOND
-  
+
   USE mo_grid_config,          ONLY: l_scm_mode
-  USE mo_scm_nml,              ONLY: lon_scm, lat_scm 
+  USE mo_scm_nml,              ONLY: lon_scm, lat_scm
   USE mo_fortran_tools,        ONLY: set_acc_host_or_device
 
   IMPLICIT NONE
@@ -157,8 +157,8 @@ CONTAINS
 
     TYPE(datetime), POINTER :: current => NULL()
     TYPE(timedelta), POINTER :: td => NULL()
-    CHARACTER(len=MAX_TIMEDELTA_STR_LEN) :: td_string 
-        
+    CHARACTER(len=MAX_TIMEDELTA_STR_LEN) :: td_string
+
     TYPE(t_geographical_coordinates), TARGET, ALLOCATABLE :: scm_center(:,:)
     TYPE(t_geographical_coordinates), POINTER             :: ptr_center(:,:)
 
@@ -753,7 +753,7 @@ CONTAINS
               ENDIF
 
               ! the horizon has a spatial resolution of 360/nhori degrees.
-              ! a distance weighted linear interpolation is 
+              ! a distance weighted linear interpolation is
               ! done between the two neighboring points.
               ii = INT(rad2deg*zphi_sun(jc)/zihor)
               IF (ii >= nhori) THEN
@@ -768,7 +768,7 @@ CONTAINS
 
               ! compute shadowmask
               shading_mask(jc,jb) = MERGE(0._wp, 1._wp, zha_sun(jc) > rad2deg*ztheta_sun(jc))
- 
+
               ! compute correction factor and multiply by sin(ztheta_sun) to get cosmu0_slp
               ! slope angle and aspect switched off
               IF (.NOT. lslope_aspect) THEN
@@ -821,7 +821,7 @@ CONTAINS
         IF (PRESENT(zsct)) zsct = tsi_radt ! no rescale tsi was adjstd in atm_phy_nwp w ssi_rce
 
       ENDIF
-  
+
     ENDIF
 
     ! Avoid uninitialized output fields
@@ -977,7 +977,7 @@ CONTAINS
       &  flx_lw_net_clr(kbdim,klevp1),& !< Net dn LW flux (clear sky) [Wm2]
       &  flx_sw_net_clr(kbdim,klevp1)   !< Net dn SW flux (clear sky) [Wm2]
     !optional output: 3D flux output
-    REAL(wp),  INTENT(inout), OPTIONAL :: &    
+    REAL(wp),  INTENT(inout), OPTIONAL :: &
       &  flx_lw_dn(:,:),            & !< Downward LW flux (all-sky) [Wm2]
       &  flx_sw_dn(:,:),            & !< Downward SW flux (all-sky) [Wm2]
       &  flx_lw_up(:,:),            & !< Upward LW flux   (all-sky) [Wm2]
@@ -1085,7 +1085,7 @@ CONTAINS
 #else
     xm_cfc11 (1:jce,:) = gas_profile(jce, klev, irad_cfc11,        &
       &                              mmr_gas = mmr_cfc11 ,         &
-      &                              gas_scenario = ghg_cfcmmr(1)  ) 
+      &                              gas_scenario = ghg_cfcmmr(1)  )
     xm_cfc12 (1:jce,:) = gas_profile(jce, klev, irad_cfc12,        &
       &                              mmr_gas = mmr_cfc12,          &
       &                              gas_scenario = ghg_cfcmmr(2)  )
@@ -1280,7 +1280,7 @@ CONTAINS
     & vis_frc_sfc      ,nir_dff_frc_sfc,vis_dff_frc_sfc ,par_dff_frc_sfc  )
 
     TYPE(datetime), POINTER, INTENT(in) :: current_date
-    
+
     INTEGER,INTENT(in)  ::                &
       &  jg,                              & !< domain index
       &  jb,                              & !< block index
@@ -1447,7 +1447,7 @@ CONTAINS
     flx_uplw_sfc_clr(:) = 0._wp
     flx_upsw_sfc(:)     = 0._wp
     flx_upsw_sfc_clr(:) = 0._wp
-    
+
     l_coupled_reff = icpl_reff > 0
 
     IF (atm_phy_nwp_config(jg)%l_3d_rad_fluxes) THEN
@@ -1468,7 +1468,7 @@ CONTAINS
     IF (PRESENT(nir_dff_frc_sfc))   nir_dff_frc_sfc(:)   = 0._wp
     IF (PRESENT(vis_dff_frc_sfc))   vis_dff_frc_sfc(:)   = 0._wp
     IF (PRESENT(par_dff_frc_sfc))   par_dff_frc_sfc(:)   = 0._wp
-    
+
     !
     ! 1.0 Constituent properties
     !--------------------------------
@@ -1545,11 +1545,11 @@ CONTAINS
       END DO
         !
         ! --- extra cloud properties for rad coupling
-        ! 
+        !
       IF ( l_coupled_reff ) THEN
         DO jl = 1, jce
           reff_liq_vr(jl,jk) = reff_liq(jl,jkb)
-          reff_frz_vr(jl,jk) = reff_frz(jl,jkb)      
+          reff_frz_vr(jl,jk) = reff_frz(jl,jkb)
         END DO
       ELSE
         DO jl = 1, jce
@@ -1662,7 +1662,7 @@ CONTAINS
         & p_nh_state(jg)% metrics% ddqz_z_full(:,:,jb)              ,&
         & aer_tau_sw_vr    ,aer_piz_sw_vr         ,aer_cg_sw_vr     ,&
         & aer_tau_lw_vr                                              )
-      
+
    CASE (iRadAeroKinneVolc)
       CALL set_bc_aeropt_kinne( current_date                        ,&
         & jg                                                        ,&
@@ -1672,7 +1672,7 @@ CONTAINS
         & p_nh_state(jg)% metrics% ddqz_z_full(:,:,jb)              ,&
         & aer_tau_sw_vr    ,aer_piz_sw_vr         ,aer_cg_sw_vr     ,&
         & aer_tau_lw_vr                                              )
-      CALL add_bc_aeropt_cmip6_volc( current_date ,jg,            1 ,&      
+      CALL add_bc_aeropt_cmip6_volc( current_date ,jg,            1 ,&
         & jce              ,kbdim                 ,klev             ,&
         & jb               ,jpsw                  ,jpband           ,&
         & p_nh_state(jg)% metrics% z_mc(:,:,jb)                     ,&
@@ -1691,7 +1691,7 @@ CONTAINS
         & jce          ,kbdim        ,klev         ,jpband       ,jpsw         ,&
         & zglac        ,zland        ,ktype        ,icldlyr      ,tk_fl_vr     ,&
         & zlwp_vr      ,ziwp_vr      ,zlwc_vr      ,ziwc_vr      ,cdnc_vr      ,&
-        & reff_liq_vr  ,reff_frz_vr  ,icpl_reff                                ,& 
+        & reff_liq_vr  ,reff_frz_vr  ,icpl_reff                                ,&
         & cld_tau_lw_vr,cld_tau_sw_vr,cld_piz_sw_vr,cld_cg_sw_vr                )
     ENDIF
 
@@ -1756,14 +1756,14 @@ CONTAINS
       DO jk = 1, klev+1
         jkb = klev+2-jk
         DO jl = jcs, jce
-          flx_lw_dn(jl,jk)      = flx_dnlw_vr(jl,jkb) 
+          flx_lw_dn(jl,jk)      = flx_dnlw_vr(jl,jkb)
           flx_sw_dn(jl,jk)      = flx_dnsw(jl,jk)
-          flx_lw_up(jl,jk)      = flx_uplw_vr(jl,jkb)    
-          flx_sw_up(jl,jk)      = flx_upsw(jl,jk)        
+          flx_lw_up(jl,jk)      = flx_uplw_vr(jl,jkb)
+          flx_sw_up(jl,jk)      = flx_upsw(jl,jk)
           flx_lw_dn_clr(jl,jk)  = flx_dnlw_clr_vr(jl,jkb)
-          flx_sw_dn_clr(jl,jk)  = flx_dnsw_clr(jl,jk)    
+          flx_sw_dn_clr(jl,jk)  = flx_dnsw_clr(jl,jk)
           flx_lw_up_clr(jl,jk)  = flx_uplw_clr_vr(jl,jkb)
-          flx_sw_up_clr(jl,jk)  = flx_upsw_clr(jl,jk)    
+          flx_sw_up_clr(jl,jk)  = flx_upsw_clr(jl,jk)
         END DO
       END DO
     END IF
@@ -1834,7 +1834,7 @@ CONTAINS
     &                 list_seaice_idx, & ! optional: index list of seaice points
     &                 list_lake_count, & ! optional: number of lake points
     &                 list_lake_idx,   & ! optional: index list of lake points
-    &                 gp_count_t,      & ! optional: number of land points per tile 
+    &                 gp_count_t,      & ! optional: number of land points per tile
     &                 idx_lst_t,       & ! optional: index list of land points per tile
     &                 cosmu0,          & ! optional: cosine of zenith angle
     &                 cosmu0_slp,      & ! optional: slope-dependent cosine of zenith angle
@@ -2021,7 +2021,7 @@ CONTAINS
       lcalc_clrflx = .FALSE.
     ENDIF
 
- 
+
     ! Conversion factor for heating rates
     !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1) IF(lzacc)
     !$ACC LOOP GANG VECTOR COLLAPSE(2)
@@ -2047,7 +2047,7 @@ CONTAINS
     !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1) IF(lzacc)
     !$ACC LOOP GANG VECTOR COLLAPSE(2)
     DO jk = 1, klevp1
-      DO jc = jcs, jce 
+      DO jc = jcs, jce
         zflxsw(jc,jk)      = ptrmsw(jc,jk) * pi0(jc)
       END DO
     END DO
@@ -2190,7 +2190,7 @@ CONTAINS
           dflxsw_o_dalb(jc) = - zflxsw(jc,klevp1)*swfac1/((1._wp-albedo(jc))*swfac2)
         ENDDO
         !$ACC END PARALLEL
- 
+
         !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1) IF(lzacc)
         !$ACC LOOP SEQ
         DO jt = 1,ntiles
@@ -2347,7 +2347,7 @@ CONTAINS
       ENDDO
       !$ACC END PARALLEL
     ENDIF
-    IF ( PRESENT(pflxtoalw) ) THEN 
+    IF ( PRESENT(pflxtoalw) ) THEN
       !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1) IF(lzacc)
       !$ACC LOOP GANG VECTOR
       DO jc = jcs, jce

@@ -52,7 +52,7 @@ USE mo_thdyn_functions,      ONLY: latent_heat_sublimation, latent_heat_melting
 USE mo_exception,            ONLY: finish, message, message_text
 USE mo_run_config,           ONLY: ldass_lhn
 
-USE mo_timer,                ONLY:                                                              & 
+USE mo_timer,                ONLY:                                                              &
                               timers_level, timer_start, timer_stop, timer_phys_2mom_dmin_init, &
                               timer_phys_2mom_prepost, timer_phys_2mom_proc, timer_phys_2mom_sedi
 
@@ -111,9 +111,9 @@ USE mo_fortran_tools, ONLY: init
 
 !! Now in namelist phy_ctl!  INTEGER, PARAMETER :: i2mom_solver = 1  ! (0) explicit (1) semi-implicit solve
 !!$  ! now this comes from cfg_params !  INTEGER, PARAMETER :: i2mom_solver = 1  ! (0) explicit (1) semi-implicit solve
-  
+
 CONTAINS
-  
+
   !==============================================================================
   !
   ! Two-moment mixed-phase bulk microphysics
@@ -159,7 +159,7 @@ CONTAINS
                        cfg_2mom_pert      ) ! in: optional: container of perturbed config parameters
 
     ! Declare variables in argument list
-    
+
     INTEGER,            INTENT (IN)  :: isize, ke    ! grid sizes
     INTEGER,  OPTIONAL, INTENT (IN)  :: is, ie, ks   ! start/end indices
 
@@ -189,7 +189,7 @@ CONTAINS
     REAL(wp), DIMENSION(:), INTENT (INOUT) :: &
          &               prec_r, prec_i, prec_s, prec_g, prec_h
     REAL(wp), DIMENSION(:,:), INTENT (INOUT) :: qrsflux
-    
+
     REAL(wp), OPTIONAL, INTENT (INOUT)  :: dtemp(:,:)
 
     INTEGER,  INTENT (IN)             :: msg_level
@@ -199,7 +199,7 @@ CONTAINS
     INTEGER,  OPTIONAL,  INTENT (IN)  :: ithermo_water
 
     TYPE(t_cfg_2mom_pert), OPTIONAL, INTENT(in) :: cfg_2mom_pert
-   
+
 
     ! ... Variables which are global in module_2mom_mcrph_main
 
@@ -255,7 +255,7 @@ CONTAINS
     lprogccn  = PRESENT(nccn)
     lprogin   = PRESENT(ninpot)
     lprogmelt = PRESENT(qgl)
-    
+
 #ifdef _OPENACC
     IF (lprogmelt) THEN
       CALL finish(routine, 'lprogmelt not available on GPU for two-moment microphysics')
@@ -282,7 +282,7 @@ CONTAINS
     snow  => snow_frz
 
     IF (lprogmelt) THEN
-       graupel => graupel_lwf   ! with prognostic melting 
+       graupel => graupel_lwf   ! with prognostic melting
        hail => hail_lwf         ! of graupel and hail
     ELSE
        graupel => graupel_frz   ! simple melting
@@ -307,7 +307,7 @@ CONTAINS
     END IF
     kte = ke
 
-    IF (timers_level > 10) CALL timer_start(timer_phys_2mom_prepost) 
+    IF (timers_level > 10) CALL timer_start(timer_phys_2mom_prepost)
 
     ! inverse of vertical layer thickness
     !$ACC PARALLEL ASYNC(1) DEFAULT(PRESENT)
@@ -345,7 +345,7 @@ CONTAINS
           WHERE(qhl(its:ite,kts:kte) < 0.0_wp) qhl(its:ite,kts:kte) = 0.0_wp
        END IF
     END IF
-    
+
     ! indices as used in two-moment scheme
     ik_slice(1) = its
     ik_slice(2) = ite
@@ -432,12 +432,12 @@ CONTAINS
               &                     + qgl(its:ite,kts:kte) + qhl(its:ite,kts:kte)
       END IF
 
-       IF (timers_level > 10) CALL timer_start(timer_phys_2mom_proc) 
+       IF (timers_level > 10) CALL timer_start(timer_phys_2mom_proc)
        ! .. this subroutine calculates all the microphysical sources and sinks
        CALL clouds_twomoment(ik_slice, dt, lprogin, &
             atmo, cloud, rain, ice, snow, graupel, hail, ninact, nccn, ninpot)
 
-       IF (timers_level > 10) CALL timer_stop(timer_phys_2mom_proc) 
+       IF (timers_level > 10) CALL timer_stop(timer_phys_2mom_proc)
 
        IF (lprogccn) THEN
 #ifdef _OPENACC
@@ -462,15 +462,15 @@ CONTAINS
             ! .. latent heat term for temperature equation
             convice = z_heat_cap_r * led
             convliq = z_heat_cap_r * lwe
-            
+
             ! .. new variables
             q_vap_new = qv(ii,kk)
             if (lprogmelt) then
-              q_liq_new = qr(ii,kk) + qc(ii,kk) + qgl(ii,kk) + qhl(ii,kk) 
+              q_liq_new = qr(ii,kk) + qc(ii,kk) + qgl(ii,kk) + qhl(ii,kk)
             else
               q_liq_new = qr(ii,kk) + qc(ii,kk)
             end if
-             
+
             ! .. update temperature
             dtemp_loc  = - convice * rho_r(ii,kk) * (q_vap_new - q_vap_old(ii,kk))  &
                  &       + convliq * rho_r(ii,kk) * (q_liq_new - q_liq_old(ii,kk))
@@ -484,20 +484,20 @@ CONTAINS
        ENDDO
        !$ACC END PARALLEL
 
-       IF (timers_level > 10) CALL timer_start(timer_phys_2mom_sedi) 
+       IF (timers_level > 10) CALL timer_start(timer_phys_2mom_sedi)
 
        IF (msg_level>dbg_level) CALL message(TRIM(routine)," calling sedimentation")
 
        ! .. if we solve explicitly, then sedimentation is done here after microphysics
        CALL sedimentation_explicit()
-       IF (timers_level > 10) CALL timer_stop(timer_phys_2mom_sedi) 
+       IF (timers_level > 10) CALL timer_stop(timer_phys_2mom_sedi)
 
     ELSE
       CALL clouds_twomoment_implicit ()
     END IF
 
-    IF (timers_level > 10) CALL timer_start(timer_phys_2mom_prepost)    
-    
+    IF (timers_level > 10) CALL timer_start(timer_phys_2mom_prepost)
+
     ! .. check for negative values
     IF (debug) CALL check_clouds()
 
@@ -578,7 +578,7 @@ CONTAINS
           IF ( nccn(ii,kk) < 35e6_wp ) nccn(ii,kk) = 35e6_wp
         ENDDO
       END IF
-  
+
       !$ACC LOOP GANG(STATIC: 1) VECTOR
       DO ii = its,ite
         IF(qc(ii,kk) < 1.0e-12_wp) qnc(ii,kk) = 0.0_wp
@@ -593,7 +593,7 @@ CONTAINS
 
     IF (msg_level>dbg_level) CALL message(TRIM(routine), "two moment mcrph ends!")
 
-    IF (timers_level > 10) CALL timer_stop(timer_phys_2mom_prepost) 
+    IF (timers_level > 10) CALL timer_stop(timer_phys_2mom_prepost)
 
     RETURN
     !
@@ -607,7 +607,7 @@ CONTAINS
       ! approach is used in the COSMO microphysics, e.g, hydci_pp
       ! (see COSMO documentation for details)
       !
-      
+
       ! a few 1d arrays, maybe we can reduce this later or we keep them ...
       REAL(wp), DIMENSION(isize) :: &
            & qr_flux_now,qr_flux_new,qr_sum,vr_sedq_new,vr_sedq_now,qr_impl,xr_now, &
@@ -619,18 +619,18 @@ CONTAINS
            & qh_flux_now,qh_flux_new,qh_sum,vh_sedq_new,vh_sedq_now,qh_impl,xh_now, &
            & nh_flux_now,nh_flux_new,nh_sum,vh_sedn_new,vh_sedn_now,nh_impl,        &
            & qi_flux_now,qi_flux_new,qi_sum,vi_sedq_new,vi_sedq_now,qi_impl,xi_now, &
-           & ni_flux_now,ni_flux_new,ni_sum,vi_sedn_new,vi_sedn_now,ni_impl         
-      
+           & ni_flux_now,ni_flux_new,ni_sum,vi_sedn_new,vi_sedn_now,ni_impl
+
       ! for lwf variables
       REAL(wp), DIMENSION(isize) :: &
            & lh_flux_now,lh_flux_new,lh_sum,vh_sedl_new,vh_sedl_now,lh_impl, &
            & lg_flux_now,lg_flux_new,lg_sum,vg_sedl_new,vg_sedl_now,lg_impl
-      
+
       REAL(wp), DIMENSION(isize,ke) :: rdzdt
       INTEGER :: i, ii, k, kk
-      
+
       LOGICAL, PARAMETER :: lmicro_impl = .TRUE.  ! microphysics within semi-implicit sedimentation loop?
-      
+
       CHARACTER(len=*), PARAMETER :: routine = TRIM(modname)//'::clouds_twomoment_implicit'
 
 #ifdef _OPENACC
@@ -638,7 +638,7 @@ CONTAINS
       CALL finish(routine, 'lprogmelt not available on GPU for two-moment microphysics')
     ENDIF
 #endif
-      
+
       !$ACC DATA &
       !$ACC   CREATE(qr_flux_now, qr_flux_new, qr_sum, vr_sedq_new, vr_sedq_now, qr_impl, xr_now) &
       !$ACC   CREATE(nr_flux_now, nr_flux_new, nr_sum, vr_sedn_new, vr_sedn_now, nr_impl) &
@@ -656,8 +656,8 @@ CONTAINS
       IF (.NOT.lmicro_impl) THEN
 #ifdef _OPENACC
         CALL finish('clouds_twomoment_implicit', 'routine without lmicro_impl not available on GPU')
-#endif        
-        
+#endif
+
         ! ... save old variables for latent heat calculation
         IF (lprogmelt) THEN
           q_vap_old(its:ite,kts:kte) = qv(its:ite,kts:kte)
@@ -667,11 +667,11 @@ CONTAINS
           q_vap_old(its:ite,kts:kte) = qv(its:ite,kts:kte)
           q_liq_old(its:ite,kts:kte) = qc(its:ite,kts:kte) + qr(its:ite,kts:kte)
         END IF
-        
+
         ! .. this subroutine calculates all the microphysical sources and sinks
         CALL clouds_twomoment(ik_slice, dt, lprogin, atmo, cloud, rain, &
-             ice, snow, graupel, hail, ninact, nccn, ninpot) 
-        
+             ice, snow, graupel, hail, ninact, nccn, ninpot)
+
         DO kk=kts,kte
           DO ii = its, ite
             ! .. latent heat term for temperature equation
@@ -682,10 +682,10 @@ CONTAINS
               led = latent_heat_sublimation(tk(ii,kk))
               lwe = latent_heat_melting(tk(ii,kk))
             END IF
-            
+
             convice = z_heat_cap_r * led
             convliq = z_heat_cap_r * lwe
-            
+
             q_vap_new = qv(ii,kk)
             IF (lprogmelt) THEN
               q_liq_new = qr(ii,kk) + qc(ii,kk) + qgl(ii,kk) + qhl(ii,kk)
@@ -696,9 +696,9 @@ CONTAINS
                  &                + convliq * rho_r(ii,kk) * (q_liq_new - q_liq_old(ii,kk))
           ENDDO
         ENDDO
-        
+
       END IF
-      
+
       ! clipping maybe not necessary
       !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1)
       !$ACC LOOP GANG VECTOR COLLAPSE(2)
@@ -717,12 +717,12 @@ CONTAINS
         ENDDO
       ENDDO
       !$ACC END PARALLEL
-      
+
       IF (lprogmelt) THEN
         WHERE(qgl(its:ite,kts:kte) < 0.0_wp) qgl(its:ite,kts:kte) = 0.0_wp
         WHERE(qhl(its:ite,kts:kte) < 0.0_wp) qhl(its:ite,kts:kte) = 0.0_wp
       END IF
-      
+
       !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1)
       !$ACC LOOP GANG VECTOR COLLAPSE(2)
       DO k = kts,kte
@@ -731,7 +731,7 @@ CONTAINS
         ENDDO
       ENDDO
       !$ACC END PARALLEL
-      
+
       !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1)
       !$ACC LOOP GANG VECTOR
       DO i = its,ite
@@ -739,36 +739,36 @@ CONTAINS
         nr_flux_now(i) = 0.0_wp
         qr_flux_new(i) = 0.0_wp
         nr_flux_new(i) = 0.0_wp
-        
+
         qi_flux_now(i) = 0.0_wp
         ni_flux_now(i) = 0.0_wp
         qi_flux_new(i) = 0.0_wp
         ni_flux_new(i) = 0.0_wp
-        
+
         qs_flux_now(i) = 0.0_wp
         ns_flux_now(i) = 0.0_wp
         qs_flux_new(i) = 0.0_wp
         ns_flux_new(i) = 0.0_wp
-        
+
         qg_flux_now(i) = 0.0_wp
         ng_flux_now(i) = 0.0_wp
         qg_flux_new(i) = 0.0_wp
         ng_flux_new(i) = 0.0_wp
-        
+
         qh_flux_now(i) = 0.0_wp
         nh_flux_now(i) = 0.0_wp
         qh_flux_new(i) = 0.0_wp
         nh_flux_new(i) = 0.0_wp
       ENDDO
       !$ACC END PARALLEL
-      
+
       IF (lprogmelt) THEN
         lg_flux_now(:) = 0.0_wp
-        lg_flux_new(:) = 0.0_wp        
+        lg_flux_new(:) = 0.0_wp
         lh_flux_now(:) = 0.0_wp
-        lh_flux_new(:) = 0.0_wp        
+        lh_flux_new(:) = 0.0_wp
       END IF
-      
+
       !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1)
       !$ACC LOOP GANG VECTOR
       DO i=its,ite
@@ -784,20 +784,20 @@ CONTAINS
         vh_sedq_new(i) = hail%vsedi_min
       END DO
       !$ACC END PARALLEL
-      
-      IF (lprogmelt) THEN 
+
+      IF (lprogmelt) THEN
         DO i=its,ite
           vg_sedl_new(i) = graupel%vsedi_min
           vh_sedl_new(i) = hail%vsedi_min
         END DO
       END IF
-      
+
       ! here we simply assume that there is no cloud or precip in the uppermost level
       ! i.e. we start from kts+1 going down in physical space
-      
+
 !DIR$ IVDEP
       DO k=kts+1,kte
-        
+
         !$ACC DATA PRESENT(rain, ice, snow, graupel, hail)
         !$ACC PARALLEL ASYNC(1) DEFAULT(PRESENT)
         !$ACC LOOP GANG(STATIC: 1) VECTOR
@@ -810,7 +810,7 @@ CONTAINS
         END DO
         !$ACC END PARALLEL
         !$ACC END DATA
-        
+
         CALL sedi_vel_rain(rain,rain_coeffs,qr(:,k),xr_now,rhocorr(:,k),vr_sedn_now,vr_sedq_now,its,ite,qc(:,k),lacc=.TRUE.)
         CALL sedi_vel_sphere(ice,ice_coeffs,qi(:,k),xi_now,rhocorr(:,k),vi_sedn_now,vi_sedq_now,its,ite)
         CALL sedi_vel_sphere(snow,snow_coeffs,qs(:,k),xs_now,rhocorr(:,k),vs_sedn_now,vs_sedq_now,its,ite)
@@ -823,7 +823,7 @@ CONTAINS
           CALL sedi_vel_sphere(graupel,graupel_coeffs,qg(:,k),xg_now,rhocorr(:,k),vg_sedn_now,vg_sedq_now,its,ite)
           CALL sedi_vel_sphere(hail,hail_coeffs,qh(:,k),xh_now,rhocorr(:,k),vh_sedn_now,vh_sedq_now,its,ite)
         END IF
-        
+
         CALL implicit_core(qr(:,k), qr_sum,qr_impl,vr_sedq_new,vr_sedq_now,qr_flux_new,qr_flux_now,rdzdt(:,k),its,ite)
         CALL implicit_core(qnr(:,k),nr_sum,nr_impl,vr_sedn_new,vr_sedn_now,nr_flux_new,nr_flux_now,rdzdt(:,k),its,ite)
         CALL implicit_core(qi(:,k), qi_sum,qi_impl,vi_sedq_new,vi_sedq_now,qi_flux_new,qi_flux_now,rdzdt(:,k),its,ite)
@@ -834,17 +834,17 @@ CONTAINS
         CALL implicit_core(qng(:,k),ng_sum,ng_impl,vg_sedn_new,vg_sedn_now,ng_flux_new,ng_flux_now,rdzdt(:,k),its,ite)
         CALL implicit_core(qh(:,k), qh_sum,qh_impl,vh_sedq_new,vh_sedq_now,qh_flux_new,qh_flux_now,rdzdt(:,k),its,ite)
         CALL implicit_core(qnh(:,k),nh_sum,nh_impl,vh_sedn_new,vh_sedn_now,nh_flux_new,nh_flux_now,rdzdt(:,k),its,ite)
-        
+
         IF (lprogmelt) THEN
           CALL implicit_core(qgl(:,k),lg_sum,lg_impl,vg_sedl_new,vg_sedl_now,lg_flux_new,lg_flux_now,rdzdt(:,k),its,ite)
           CALL implicit_core(qhl(:,k),lh_sum,lh_impl,vh_sedl_new,vh_sedl_now,lh_flux_new,lh_flux_now,rdzdt(:,k),its,ite)
         END IF
-        
+
         ! do microphysics on this k-level only (using the star-values)
         IF (lmicro_impl) THEN
-          
+
           ! .. save old variables for latent heat calculation
-          
+
           !$ACC PARALLEL ASYNC(1) DEFAULT(PRESENT)
           !$ACC LOOP GANG(STATIC: 1) VECTOR
           DO ii = its, ite
@@ -858,18 +858,18 @@ CONTAINS
             END IF
           END DO
           !$ACC END PARALLEL
-          
+
           ik_slice(3) = k
           ik_slice(4) = k
           CALL clouds_twomoment(ik_slice, dt, lprogin, &
                atmo, cloud, rain, ice, snow, graupel, hail, &
                ninact, nccn, ninpot)
-          
+
           ! .. latent heat term for temperature equation
           !$ACC PARALLEL ASYNC(1) DEFAULT(PRESENT)
           !$ACC LOOP GANG(STATIC: 1) VECTOR PRIVATE(led, lwe, convice, convliq, q_liq_new, q_vap_new)
           DO ii = its, ite
-            
+
             IF (lconstant_lh) THEN
               led = als
               lwe = (alv-als)
@@ -877,10 +877,10 @@ CONTAINS
               led = latent_heat_sublimation(tk(ii,k))
               lwe = latent_heat_melting(tk(ii,k))
             END IF
-            
+
             convice = z_heat_cap_r * led
             convliq = z_heat_cap_r * lwe
-            
+
             q_vap_new  = qv(ii,k)
             IF (lprogmelt) THEN
 #ifndef _OPENACC
@@ -893,9 +893,9 @@ CONTAINS
                  &                + convliq * rho_r(ii,k) * (q_liq_new - q_liq_old(ii,k))
           END DO
           !$ACC END PARALLEL
-          
+
         END IF
-        
+
         CALL implicit_time(qr(:,k), qr_sum,qr_impl,vr_sedq_new,vr_sedq_now,qr_flux_new,its,ite)
         CALL implicit_time(qnr(:,k),nr_sum,nr_impl,vr_sedn_new,vr_sedn_now,nr_flux_new,its,ite)
         CALL implicit_time(qi(:,k), qi_sum,qi_impl,vi_sedq_new,vi_sedq_now,qi_flux_new,its,ite)
@@ -906,12 +906,12 @@ CONTAINS
         CALL implicit_time(qng(:,k),ng_sum,ng_impl,vg_sedn_new,vg_sedn_now,ng_flux_new,its,ite)
         CALL implicit_time(qh(:,k), qh_sum,qh_impl,vh_sedq_new,vh_sedq_now,qh_flux_new,its,ite)
         CALL implicit_time(qnh(:,k),nh_sum,nh_impl,vh_sedn_new,vh_sedn_now,nh_flux_new,its,ite)
-        
+
         IF (lprogmelt) THEN
           CALL implicit_time(qgl(:,k),lg_sum,lg_impl,vg_sedl_new,vg_sedl_now,lg_flux_new,its,ite)
           CALL implicit_time(qhl(:,k),lh_sum,lh_impl,vh_sedl_new,vh_sedl_now,lh_flux_new,its,ite)
         END IF
-        
+
         IF (ldass_lhn) THEN
           IF (lprogmelt) THEN
             qrsflux(:,k) = qr_flux_new + qi_flux_new + qs_flux_new + qg_flux_new + qh_flux_new + &
@@ -925,9 +925,9 @@ CONTAINS
             !$ACC END PARALLEL
           END IF
         END IF
-        
+
       END DO
-      
+
       IF (lprogmelt) THEN
         ! implicit solver for LWF-scheme still has some issues
         prec_g(:) = MAX( qg_flux_new + lg_flux_new, 0.0_wp )
@@ -946,9 +946,9 @@ CONTAINS
           prec_h(i) = qh_flux_new(i)
         ENDDO
         !$ACC END PARALLEL
-        
+
       END IF
-      
+
       IF (ldass_lhn) THEN
         !$ACC PARALLEL ASYNC(1) DEFAULT(PRESENT)
         !$ACC LOOP GANG VECTOR
@@ -957,12 +957,12 @@ CONTAINS
         ENDDO
         !$ACC END PARALLEL
       END IF
-      
+
       !$ACC WAIT
       !$ACC END DATA ! DATA CREATE PRESENT
 
     END SUBROUTINE clouds_twomoment_implicit
-   
+
    !
    ! sedimentation for explicit solver, i.e., sedimentation is done with an explicit
    ! flux-form semi-lagrangian scheme after the microphysics.
@@ -1031,7 +1031,7 @@ CONTAINS
       ENDIF
 #ifndef _OPENACC
       END IF
-      
+
       IF (ANY(qi(its:ite,kts:kte)>0._wp)) THEN
 #endif
       IF (ldass_lhn) THEN
@@ -1057,7 +1057,7 @@ CONTAINS
       ENDIF
 #ifndef _OPENACC
       END IF
-      
+
       IF (ANY(qs(its:ite,kts:kte)>0._wp)) THEN
 #endif
       IF (ldass_lhn) THEN
@@ -1083,7 +1083,7 @@ CONTAINS
       ENDIF
 #ifndef _OPENACC
       END IF
-      
+
       IF (ANY(qg(its:ite,kts:kte)>0._wp)) THEN
 #endif
       IF (ldass_lhn) THEN
@@ -1119,7 +1119,7 @@ CONTAINS
       ENDIF
 #ifndef _OPENACC
       END IF
-      
+
       IF (ANY(qh(its:ite,kts:kte)>0._wp)) THEN
 #endif
       IF (ldass_lhn) THEN
@@ -1156,24 +1156,24 @@ CONTAINS
 #ifndef _OPENACC
       END IF
 #endif
-      
+
       IF (msg_level > 100)THEN
         WRITE (message_text,'(1X,A,f8.2)') ' sedimentation_explicit  cmax = ',cmax
         CALL message(routine, message_text)
       END IF
-      
+
       !$ACC WAIT
       !$ACC END DATA
-      
+
     END SUBROUTINE sedimentation_explicit
-    
+
     !
     ! check for negative values after microphysics
     !
     SUBROUTINE check_clouds()
-      
+
       REAL(wp), PARAMETER :: meps = -1e-12
-      
+
       CHARACTER(len=*), PARAMETER :: routine = TRIM(modname)//'::check_clouds'
 
       IF (cloud_type < 2000) THEN
@@ -1228,9 +1228,9 @@ CONTAINS
         CALL finish(TRIM(routine),'Error in two_moment_mcrph, hail%n < 0')
       ENDIF
     END SUBROUTINE check_clouds
-    
+
   END SUBROUTINE two_moment_mcrph
-  
+
   SUBROUTINE implicit_core(q_val,q_sum,q_impl,vsed_new,vsed_now,flux_new,flux_now,rdzdt,its,ite)
 
     REAL(wp), DIMENSION(:), INTENT(INOUT) :: &
@@ -1257,20 +1257,20 @@ CONTAINS
       flux_now(i) = max(flux_now(i),0.0_wp)                   ! maybe not necessary
 
       ! time integrated value without implicit weight
-      q_sum(i)  = q_val(i)  + rdzdt(i) * (flux_sum - flux_now(i))      
+      q_sum(i)  = q_val(i)  + rdzdt(i) * (flux_sum - flux_now(i))
 
       ! implicit weight
       q_impl(i) = 1.0_wp/(1.0_wp + vsed_new(i) * rdzdt(i))
 
       ! prepare for source term calculation
-      q_star    = q_impl(i) * q_sum(i)       
+      q_star    = q_impl(i) * q_sum(i)
       q_val(i)  = q_star                     ! source/sinks work on star-values
-      q_sum(i)  = q_sum(i) - q_star           
+      q_sum(i)  = q_sum(i) - q_star
     END DO
     !$ACC END PARALLEL
-    
+
   END SUBROUTINE implicit_core
-  
+
   SUBROUTINE implicit_time(q_val,q_sum,q_impl,vsed_new,vsed_now,flux_new,its,ite)
 
     INTEGER  :: its,ite
@@ -1278,13 +1278,13 @@ CONTAINS
          &    q_val,q_sum,q_impl,vsed_new,vsed_now,flux_new
 
     INTEGER  :: i
-    
+
     !$ACC PARALLEL ASYNC(1) DEFAULT(PRESENT)
     !$ACC LOOP GANG VECTOR
     DO i=its,ite
-      
+
       ! time integration
-      q_val(i) =   MAX( 0.0_wp, q_impl(i)*(q_sum(i) + q_val(i)))    
+      q_val(i) =   MAX( 0.0_wp, q_impl(i)*(q_sum(i) + q_val(i)))
 
       ! prepare for next level
       flux_new(i) = q_val(i) * vsed_new(i)     ! flux_(k),new
@@ -1292,7 +1292,7 @@ CONTAINS
 
     END DO
     !$ACC END PARALLEL
-    
+
   END SUBROUTINE implicit_time
 
   !===========================================================================================
@@ -1323,7 +1323,7 @@ CONTAINS
     END IF
 
     IF (msg_level>5) THEN
-      CALL message (TRIM(routine), " Initialization of two-moment microphysics scheme") 
+      CALL message (TRIM(routine), " Initialization of two-moment microphysics scheme")
       WRITE(message_text,'(A,I5)')   "   inwp_gscp    = ",igscp ; CALL message(TRIM(routine),TRIM(message_text))
       WRITE(message_text,'(A,I5)')   "   i2mom_solver = ",cfg_params%i2mom_solver ; CALL message(TRIM(routine),TRIM(message_text))
       WRITE(message_text,'(A,L5)'  ) "   lconstant_lh = ",lconstant_lh ; CALL message(TRIM(routine),TRIM(message_text))
@@ -1331,7 +1331,7 @@ CONTAINS
 
     ! init of ccn_type, cloud_type and the ccn_coeffs type:
     CALL set_ccn_cloud_type(ccn_type, cloud_type, ccn_coeffs, N_cn0, cfg_2mom)
-    
+
     ! After all inits of Ncn0, overwrite with an explicitly given value from the namelist:
     IF (cfg_params%ccn_Ncn0 > -900.0_wp) THEN
       ccn_coeffs%Ncn0 = cfg_params%ccn_Ncn0
@@ -1356,7 +1356,7 @@ CONTAINS
     END IF
     IF (.NOT. luse_dmin_wetgrowth_table) THEN
       ! check whether 4d-fit is consistent with graupel parameters
-      IF (dmin_wetgrowth_fit_check(graupel)) THEN 
+      IF (dmin_wetgrowth_fit_check(graupel)) THEN
         CALL message (TRIM(routine), " Using 4d-fit for dmin_wetgrowth for "//TRIM(graupel%name))
       ELSE
         CALL finish(TRIM(routine),&
@@ -1364,20 +1364,20 @@ CONTAINS
              & 'but graupel parameters inconsistent with 4d-fit')
       END IF
     END IF
-    
+
     IF (msg_level>dbg_level) CALL message (TRIM(routine), ' finished init_dmin_wetgrowth for '// &
          TRIM(graupel%name)//' and '//TRIM(hail%name))
     !..parameters for CCN and IN are set here. The 3D fields for prognostic CCN are then
     !  initialized in mo_nwp_phy_init.
     IF (timers_level > 10) CALL timer_stop(timer_phys_2mom_dmin_init)
-    
+
     IF (PRESENT(N_cn0)) THEN
       ! ccn_coeffs have been set above by call to set_ccn_cloud_type():
       z0_nccn  = ccn_coeffs%z0
       z1e_nccn = ccn_coeffs%z1e
       N_cn0    = ccn_coeffs%Ncn0
     END IF
-    
+
     WRITE(message_text,'(A)') "  CN properties:" ; CALL message(TRIM(routine),TRIM(message_text))
     WRITE(message_text,'(A,D10.3)') "    Ncn0 = ",ccn_coeffs%Ncn0 ; CALL message(TRIM(routine),TRIM(message_text))
     WRITE(message_text,'(A,D10.3)') "    z0   = ",ccn_coeffs%z0  ; CALL message(TRIM(routine),TRIM(message_text))
@@ -1398,7 +1398,7 @@ CONTAINS
        WRITE(message_text,'(A,D10.3)') "    z0   = ",in_coeffs%z0  ; CALL message(TRIM(routine),TRIM(message_text))
        WRITE(message_text,'(A,D10.3)') "    z1e  = ",in_coeffs%z1e ; CALL message(TRIM(routine),TRIM(message_text))
      END IF
-     
+
     IF (msg_level>5) CALL message (TRIM(routine), " finished two_moment_mcrph_init successfully")
     !$ACC ENTER DATA COPYIN(ccn_coeffs, in_coeffs, cfg_params)
     !$ACC ENTER DATA COPYIN(ltabdminwgg, ltabdminwgh)
@@ -1425,9 +1425,9 @@ CONTAINS
     ! Parameters used in the paramaterization of reff (the same for all)
     CLASS(particle)       , POINTER  :: current_hyd
     REAL(wp)                         :: a_geo, b_geo, mu, nu
-    REAL(wp)                         :: bf, bf2 
+    REAL(wp)                         :: bf, bf2
     LOGICAL                          :: monodisperse
-        
+
     CHARACTER(len=*), PARAMETER :: routine = TRIM(modname)//'::two_mom_reff_coefficients'
 
     ! Check input return_fct
@@ -1451,19 +1451,19 @@ CONTAINS
     END IF
     ! .. set the particle types, but no calculations
     CALL init_2mom_scheme(cloud,rain,ice,snow,graupel,hail)
-   
+
     SELECT CASE ( reff_calc%hydrometeor )    ! Select Hydrometeor
     CASE (0)                                 ! Cloud water
       current_hyd => cloud
-    CASE (1)  
+    CASE (1)
       current_hyd => ice
-    CASE (2)  
+    CASE (2)
       current_hyd => rain
-    CASE (3)  
+    CASE (3)
       current_hyd => snow
-    CASE (4)  
+    CASE (4)
       current_hyd => graupel
-    CASE (5)  
+    CASE (5)
       current_hyd => hail
     END SELECT
 
@@ -1498,23 +1498,23 @@ CONTAINS
       reff_calc%reff_coeff(2)   = b_geo
 
       ! Broadening for not monodisperse
-      IF ( .NOT. monodisperse ) THEN 
+      IF ( .NOT. monodisperse ) THEN
         bf =  GAMMA( (3.0_wp * b_geo + nu + 1.0_wp)/ mu) / GAMMA( (2.0_wp * b_geo + nu + 1.0_wp)/ mu) * &
           & ( GAMMA( (nu + 1.0_wp)/ mu) / GAMMA( (nu + 2.0_wp)/ mu) )**b_geo
 
-        reff_calc%reff_coeff(1) = reff_calc%reff_coeff(1)*bf        
-      END IF      
+        reff_calc%reff_coeff(1) = reff_calc%reff_coeff(1)*bf
+      END IF
 
     CASE (1)                                 ! Fu Random Hexagonal needles:  Dge = 1/(c1 * x**[c2] + c3 * x**[c4])
                                              ! Parameterization based on Fu, 1996; Fu et al., 1998; Fu ,2007
       ! First calculate monodisperse
       reff_calc%reff_coeff(1)   = SQRT( 3.0_wp *SQRT(3.0_wp) * rho_ice * a_geo / 8.0_wp )
-      reff_calc%reff_coeff(2)   = (b_geo - 1.0_wp)/2.0_wp 
+      reff_calc%reff_coeff(2)   = (b_geo - 1.0_wp)/2.0_wp
       reff_calc%reff_coeff(3)   = SQRT(3.0_wp)/4.0_wp/a_geo
       reff_calc%reff_coeff(4)   = -b_geo
 
       ! Broadening for not monodisperse. Generalized gamma distribution
-      IF ( .NOT. monodisperse ) THEN 
+      IF ( .NOT. monodisperse ) THEN
         bf  =  GAMMA( ( b_geo + 2.0_wp * nu + 3.0_wp)/ mu/2.0_wp ) / GAMMA( (nu + 2.0_wp)/ mu) * &
            & ( GAMMA( (nu + 1.0_wp)/ mu) / GAMMA( (nu + 2.0_wp)/ mu) )**( (b_geo-1.0_wp)/2.0_wp)
 

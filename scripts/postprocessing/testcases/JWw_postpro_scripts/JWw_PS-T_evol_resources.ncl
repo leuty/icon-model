@@ -14,7 +14,7 @@
 ; Hui Wan (MPI-M, 2008.07, revised)
 ; Hui Wan (MPI-M, 2009.04, clean-up)
 ;-------------------------------------------------------------------
-; These are the common plot settings for drawing snapshots of 
+; These are the common plot settings for drawing snapshots of
 ; surface pressure and temperature for the Jablonowski-Williamson
 ; baroclinic wave test.
 ;-------------------------------------------------------------------
@@ -31,7 +31,7 @@
      ResC@tmYLLabelFontHeightF      = FontHeight
      ResC@gsnStringFontHeightF      = FontHeight +0.004
 
-     ResC@tmYLLabelDeltaF = -0.6 
+     ResC@tmYLLabelDeltaF = -0.6
 
      ResC@mpProjection       = "CylindricalEquidistant"
 
@@ -53,7 +53,7 @@
      ResC@pmLabelBarOrthogonalPosF = 0.3
      ResC@lbLabelFontHeightF       = FontHeight
 
-     ResC@cnLevelSelectionMode  = "ManualLevels" 
+     ResC@cnLevelSelectionMode  = "ManualLevels"
 
    ;----------------------------------------------------------------
    ; for surface pressure

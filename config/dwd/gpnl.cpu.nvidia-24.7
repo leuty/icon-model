@@ -20,7 +20,7 @@ MODULE_SETTINGS=". ${MODULESHOME}/init/sh; module purge"
 
 eval "$MODULE_SETTINGS"
 
-MODULES=( 
+MODULES=(
     gpu/default
     hdf5/1.10.5-x86-nvhpc24.7
     netcdf4/4.9.2-x86-nvhpc24.7
@@ -158,4 +158,3 @@ if test $(pwd) != $(cd "${ICON_DIR}"; pwd); then
   ln -sf ${ICON_DIR}/data
   ln -sf ${ICON_DIR}/vertical_coord_tables
 fi
-

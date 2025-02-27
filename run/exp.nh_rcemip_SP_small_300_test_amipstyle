@@ -9,15 +9,15 @@
 # ------------------------------------------
 
 #=============================================================================
-# 
+#
 # Run script for RCEMIP ICON-LEM / NWP experiments. See Wing et al. (2018,
 # Geosci Mod Dev) for details. See also readme_icon-lem-nwp_rcemip.
-# 
+#
 # James Ruppert
 # james.ruppert@mpimet.mpg.de
 # 8 July 2018
 #
-# ... slightly modified by 
+# ... slightly modified by
 # Nicolas Rochetin
 # nicolas.rochetin@mpimet.mpg.de
 # 30 August 2018
@@ -55,7 +55,7 @@ restart_interval="P20D" # stop the simulation at this interval
  file_interval_3d="PT8H"
 #
  output_atm_cgrid="no" # 1 file
- output_atm_2d="yes"   # 1 file 
+ output_atm_2d="yes"   # 1 file
  output_atm_3d="yes"   # 1 file
  output_phy_3d="no"   # 1 file
 #
@@ -101,7 +101,7 @@ cat >> ${atmo_namelist} << EOF
  ltransport     = .TRUE.
  ntracer        = 0            ! the model updates this for the microphysics vars
  iforcing       = 2  ! 3: NWP forcing; 6:inhaes forcing
- ltimer         = .true.       ! 
+ ltimer         = .true.       !
  output         = 'nml'
  msg_level      = 12           ! detailed report during integration
  restart_filename = "${EXPNAME}_restart_atm_<rsttime>.nc"
@@ -244,10 +244,10 @@ add_required_file ${basedir}/run/${dict_file}                           ./
 
 #----------------------------------------------------------------------------------
 #
-# 
+#
 # End of namelist settings, automatic settings below.
 # Model output directory is set below.
-# 
+#
 #----------------------------------------------------------------------------------
 #--------------------------------------------------------------------------------------------------
 
@@ -375,4 +375,3 @@ if [[ "$output_phy_3d" == "yes" ]]; then
 /
 EOF
 fi
-

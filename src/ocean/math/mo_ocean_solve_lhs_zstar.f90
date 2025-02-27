@@ -36,15 +36,15 @@ MODULE mo_surface_height_lhs_zstar
     USE mo_fortran_tools, ONLY: set_acc_host_or_device
 
 #ifdef _OPENACC
-    USE openacc, ONLY: acc_is_present 
+    USE openacc, ONLY: acc_is_present
 #endif
 
       IMPLICIT NONE
-    
+
       PRIVATE
-    
+
       PUBLIC :: t_surface_height_lhs_zstar
-    
+
       TYPE, EXTENDS(t_lhs_agen) :: t_surface_height_lhs_zstar
         PRIVATE
         TYPE(t_patch_3d), POINTER :: patch_3d => NULL()
@@ -53,7 +53,7 @@ MODULE mo_surface_height_lhs_zstar
         TYPE(t_operator_coeff), POINTER :: op_coeffs_wp => NULL()
         TYPE(t_solverCoeff_singlePrecision), POINTER :: op_coeffs_sp => NULL()
         REAL(wp), ALLOCATABLE, DIMENSION(:,:), PRIVATE :: z_grad_h_wp, z_e_wp
-        REAL(wp), ALLOCATABLE, DIMENSION(:,:), PRIVATE :: stretch_e 
+        REAL(wp), ALLOCATABLE, DIMENSION(:,:), PRIVATE :: stretch_e
 #ifdef __INTEL_COMPILER
 !DIR$ ATTRIBUTES ALIGN : 64 :: z_grad_h_wp, z_e_wp
 #endif
@@ -64,14 +64,14 @@ MODULE mo_surface_height_lhs_zstar
         PROCEDURE, PRIVATE :: internal_wp => lhs_surface_height_ab_mim_zstar
         PROCEDURE, PRIVATE :: internal_matrix_wp => lhs_surface_height_ab_mim_matrix_wp
         PROCEDURE :: lhs_matrix_shortcut => lhs_surface_height_ab_mim_matrix_shortcut
-        PROCEDURE :: update 
+        PROCEDURE :: update
 
       END TYPE t_surface_height_lhs_zstar
-    
+
       INTEGER, PARAMETER :: topLevel = 1
-    
+
     CONTAINS
-    
+
     !init generator object
       SUBROUTINE lhs_surface_height_construct(this, patch_3d, thick_e, &
           & op_coeffs_wp, op_coeffs_sp, str_e, lacc)
@@ -86,7 +86,7 @@ MODULE mo_surface_height_lhs_zstar
         LOGICAL :: lzacc
 
         CALL set_acc_host_or_device(lzacc, lacc)
-    
+
         CALL this%destruct(lacc=lzacc)
         this%patch_3d => patch_3d
         this%patch_2d => patch_3d%p_patch_2d(1)
@@ -98,22 +98,22 @@ MODULE mo_surface_height_lhs_zstar
         IF (this%patch_2d%cells%max_connectivity .NE. 3 .AND. .NOT.l_lhs_direct) &
           & CALL finish("t_surface_height_lhs::lhs_surface_height_construct", &
           &  "internal matrix implementation only works with triangular grids!")
-    
+
         this%is_init = .true.
         !$ACC ENTER DATA COPYIN(this, this%patch_3d, this%patch_2d, this%thickness_e_wp) &
         !$ACC   COPYIN(this%op_coeffs_wp, this%op_coeffs_sp) ASYNC(1) IF(lzacc)
         !$ACC WAIT(1)
-        
+
         IF (.NOT.ALLOCATED(this%stretch_e)) THEN
           ALLOCATE(this%stretch_e(nproma, this%patch_2d%nblks_e))
           !$ACC ENTER DATA COPYIN(this%stretch_e) ASYNC(1) IF(lzacc)
           !$ACC WAIT(1)
         END IF
- 
+
         CALL this%update(str_e, lacc=lzacc)
-        
+
       END SUBROUTINE lhs_surface_height_construct
-    
+
     ! interface routine clear object internals
       SUBROUTINE lhs_surface_height_destruct(this, lacc)
         CLASS(t_surface_height_lhs_zstar), INTENT(INOUT) :: this
@@ -148,7 +148,7 @@ MODULE mo_surface_height_lhs_zstar
         !$ACC EXIT DATA DELETE(this) ASYNC(1) IF(lzacc)
         !$ACC WAIT(1)
       END SUBROUTINE lhs_surface_height_destruct
-    
+
     ! interface routine for the left hand side computation
       SUBROUTINE lhs_surface_height_zstar(this, x, ax, lacc)
         CLASS(t_surface_height_lhs_zstar), INTENT(INOUT) :: this
@@ -168,7 +168,7 @@ MODULE mo_surface_height_lhs_zstar
         IF (this%use_shortcut) &
           & CALL finish("t_surface_height_lhs::lhs_surface_height_wp", &
             & "should not be here because of shortcut!")
-        
+
         IF ( (select_lhs .EQ. select_lhs_matrix) .OR.  (l_lhs_direct .EQV. .true.) ) THEN
           CALL finish("zstar currently only supports operator based solver", &
             & "Set select_lhs=1 and l_lhs_direct=.false.!!")
@@ -223,7 +223,7 @@ MODULE mo_surface_height_lhs_zstar
         LOGICAL :: lzacc
 
         CALL set_acc_host_or_device(lzacc, lacc)
-        
+
         edges_in_domain => this%patch_2D%edges%all
 
         !$ACC DATA PRESENT(this, this%stretch_e) &
@@ -241,7 +241,7 @@ MODULE mo_surface_height_lhs_zstar
           !$ACC PARALLEL LOOP GANG VECTOR DEFAULT(PRESENT) ASYNC(1) IF(lzacc)
           DO je = start_index, end_index
             IF(this%patch_3D%lsm_e(je, 1, jb) <= sea_boundary)THEN
-              this%stretch_e(je, jb) = str_e(je, jb) 
+              this%stretch_e(je, jb) = str_e(je, jb)
             END IF
           ENDDO
           !$ACC END PARALLEL LOOP
@@ -253,7 +253,7 @@ MODULE mo_surface_height_lhs_zstar
     CALL sync_patch_array(sync_e, this%patch_2D, this%stretch_e, lacc=lzacc)
 
         !$ACC END DATA
-      END SUBROUTINE update 
+      END SUBROUTINE update
 
 
 
@@ -290,7 +290,7 @@ MODULE mo_surface_height_lhs_zstar
         IF (this%patch_2d%cells%max_connectivity /= 3 .AND. my_process_is_mpi_parallel()) &
           & CALL exchange_data(p_pat=this%patch_2D%comm_pat_e, lacc=lzacc, recv=this%z_grad_h_wp)
 
-        !! Multiply with mass matrix and and sum up over column 
+        !! Multiply with mass matrix and and sum up over column
         !! The coefficients are arrived at by having a constant for all levels >= 2
         !! and updating the first level in update_thickness_dependent_operator_coeff
         CALL map_edges2edges_viacell_2D_zstar( this%patch_3d, &
@@ -339,8 +339,8 @@ MODULE mo_surface_height_lhs_zstar
         ENDIF
         !$ACC END DATA
       END SUBROUTINE lhs_surface_height_ab_mim_zstar
- 
-      
+
+
       ! internal backend routine to compute surface height lhs -- "matrix" implementation
       SUBROUTINE lhs_surface_height_ab_mim_matrix_wp(this, x, lhs, lacc)
         CLASS(t_surface_height_lhs_zstar), INTENT(INOUT) :: this
@@ -402,7 +402,7 @@ MODULE mo_surface_height_lhs_zstar
         INTEGER, POINTER, DIMENSION(:,:,:), CONTIGUOUS :: opc_idx, opc_blk
         REAL(wp), POINTER, DIMENSION(:,:,:), CONTIGUOUS :: opc_coeff
         LOGICAL :: lzacc
-    
+
         CALL set_acc_host_or_device(lzacc, lacc)
 
 #ifdef _OPENACC
@@ -413,7 +413,7 @@ MODULE mo_surface_height_lhs_zstar
         IF (.NOT.this%use_shortcut) &
           & CALL finish( &
             & "t_surface_height_lhs::lhs_surface_height_ab_mim_matrix_shortcut", &
-            & "wrong turn!")    
+            & "wrong turn!")
         nidx = SIZE(coeff, 1)
         nblk = SIZE(coeff, 2)
         nnz = 10
@@ -464,8 +464,5 @@ MODULE mo_surface_height_lhs_zstar
 
 
 
-  
+
   END MODULE mo_surface_height_lhs_zstar
-
-
-

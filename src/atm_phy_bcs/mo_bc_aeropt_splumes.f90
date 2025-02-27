@@ -28,7 +28,7 @@ MODULE mo_bc_aeropt_splumes
   USE mo_math_constants,       ONLY: rad2deg
   USE mtime,                   ONLY: datetime, getDayOfYearFromDateTime, &
        &                             getNoOfDaysInYearDateTime
-  
+
   IMPLICIT NONE
 
   PRIVATE
@@ -190,22 +190,22 @@ MODULE mo_bc_aeropt_splumes
   ! SET_TIME_WEIGHT:  The simple plume model assumes that meteorology constrains plume shape and that only source strength
   ! influences the amplitude of a plume associated with a given source region.   This routine retrieves the temporal weights
   ! for the plumes.  Each plume feature has its own temporal weights which varies yearly.  The annual cycle is indexed by
-  ! week in the year and superimposed on the yearly mean value of the weight. 
+  ! week in the year and superimposed on the yearly mean value of the weight.
   !
   SUBROUTINE set_time_weight(current_dt, time_weight, time_weight_bg)
     !
-    ! ---------- 
+    ! ----------
     !
     TYPE(datetime), INTENT(IN) :: current_dt !< Current date and time
     REAL(wp), INTENT(OUT) :: time_weight(nfeatures,nplumes) !< Time-weights to account for BB background
     REAL(wp), INTENT(OUT) :: time_weight_bg(nfeatures,nplumes) !< as time_weight but for natural background in Twomey effect
 
     INTEGER          ::  &
-         iyear          ,& !< Integer year values between 1 and 156 (1850-2100) 
+         iyear          ,& !< Integer year values between 1 and 156 (1850-2100)
          iweek          ,& !< Integer index (between 1 and ntimes); for ntimes=52 this corresponds to weeks (roughly)
          iplume            ! plume number
     !
-    ! ---------- 
+    ! ----------
     !
 
     iyear = INT(current_dt%date%year) - 1849
@@ -362,7 +362,7 @@ MODULE mo_bc_aeropt_splumes
         f4 = time_weight_bg(2,iplume) * ftr_weight(2,iplume) * EXP(-(a_plume2 * ((lon2)**2) + (b_plume2 * ((lat2)**2))))
 
 
-        cw_an(icol) = f1 * aod_spmx(iplume) + f2 * aod_spmx(iplume)  
+        cw_an(icol) = f1 * aod_spmx(iplume) + f2 * aod_spmx(iplume)
         cw_bg(icol) = f3 * aod_fmbg(iplume) + f4 * aod_fmbg(iplume)
       END DO
 
@@ -511,7 +511,7 @@ MODULE mo_bc_aeropt_splumes
          x_cdnc(nproma)                  !< Scale factor for Cloud Droplet Number Concentration
 
     LOGICAL, OPTIONAL, INTENT(IN) :: lacc !< OpenACC flag.
-  
+
     !
     ! --- 0.2 Local variables
     !
@@ -531,8 +531,8 @@ MODULE mo_bc_aeropt_splumes
          lon_sp(nproma)              ,& !< longitude passed to sp
          lat_sp(nproma)              ,& !< latitude passed to sp
          z_fl_vr(nproma,klev)        ,& !< level height [m], vertically reversed indexing (1=lowest level)
-         dz_vr(nproma,klev)          ,& !< level thickness [m], vertically reversed 
-         sp_aod_vr(nproma,klev)      ,& !< simple plume aerosol optical depth, vertically reversed 
+         dz_vr(nproma,klev)          ,& !< level thickness [m], vertically reversed
+         sp_aod_vr(nproma,klev)      ,& !< simple plume aerosol optical depth, vertically reversed
          sp_ssa_vr(nproma,klev)      ,& !< simple plume single scattering albedo, vertically reversed
          sp_asy_vr(nproma,klev)         !< simple plume asymmetry factor, vertically reversed indexing
 

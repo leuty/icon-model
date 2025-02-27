@@ -88,7 +88,7 @@ CONTAINS
     END SUBROUTINE upd_dev
 
     SUBROUTINE upd_host()
-      
+
       SELECT CASE(info%data_type)
       CASE (REAL_T)
         !$ACC UPDATE HOST(element%r_ptr) ASYNC(1) IF(info%lopenacc)

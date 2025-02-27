@@ -21,11 +21,11 @@ MODULE mo_ocean_solve_bicgStab
   USE mo_exception, ONLY: finish
   USE mo_ocean_solve_backend, ONLY: t_ocean_solve_backend
   USE mo_fortran_tools, ONLY: set_acc_host_or_device
- 
+
   IMPLICIT NONE
-  
+
   PRIVATE
- 
+
   PUBLIC :: t_ocean_solve_bicgStab
   CHARACTER(LEN=*), PARAMETER :: this_mod_name = 'mo_ocean_solve_bicgStab'
 
@@ -47,7 +47,7 @@ MODULE mo_ocean_solve_bicgStab
 
 CONTAINS
 
-! get solver arrays (alloc them, if not done so, yet) - wp-variant  
+! get solver arrays (alloc them, if not done so, yet) - wp-variant
   SUBROUTINE ocean_solve_bicgStab_recover_arrays_wp(this, x, b, &
       & r0, r, v, p, ta1, s, ta2)
     CLASS(t_ocean_solve_bicgStab), INTENT(INOUT), TARGET :: this

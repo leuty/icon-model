@@ -53,9 +53,9 @@ MODULE mo_control_bgc
   INTEGER  :: bgc_nproma          !<  actual time steps of run.
 
   REAL(wp) :: rmasks = 0.0_wp     !<  value at wet cells in sediment.
-  REAL(wp) :: rmasko = 0.0_wp     !<  value at wet cells in ocean.    
+  REAL(wp) :: rmasko = 0.0_wp     !<  value at wet cells in ocean.
 
 
   INTEGER:: bgc_gin, bgc_arctic, bgc_lab, bgc_natl, bgc_atl, bgc_tatl, bgc_tropac,  bgc_land, bgc_ind, bgc_soce, bgc_npac, bgc_carb
-  
+
 END MODULE mo_control_bgc

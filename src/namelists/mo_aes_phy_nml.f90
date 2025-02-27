@@ -15,7 +15,7 @@ MODULE mo_aes_phy_nml
 
   USE mo_aes_phy_config   ,ONLY: aes_phy_config, init_aes_phy_config
   USE mo_process_nml      ,ONLY: process_nml
-  
+
   IMPLICIT NONE
   PRIVATE
   PUBLIC :: process_aes_phy_nml

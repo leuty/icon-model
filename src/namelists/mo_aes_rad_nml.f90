@@ -15,7 +15,7 @@ MODULE mo_aes_rad_nml
 
   USE mo_aes_rad_config   ,ONLY: aes_rad_config, init_aes_rad_config
   USE mo_process_nml      ,ONLY: process_nml
-  
+
   IMPLICIT NONE
   PRIVATE
   PUBLIC :: process_aes_rad_nml

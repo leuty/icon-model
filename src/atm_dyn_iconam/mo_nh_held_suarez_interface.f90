@@ -96,7 +96,7 @@ CONTAINS
 
     !$ACC DATA CREATE(zsigma_mc, zsigma_me, ddt_temp, z_ekin, zddt_vn, zlat) &
     !$ACC   PRESENT(p_nh_diag, p_int_state, p_metrics, p_nh_prog, p_patch%cells%center)
-    
+
     !-------------------------------------------------------------------------
     ! First the surface pressure, pressure and temperature must be diagnosed
 
@@ -165,7 +165,7 @@ CONTAINS
 
        ! the tendency in temp must be transfromed to a tendency in the exner function
        ! For this it is assumed that the density is constant
-       
+
        !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1)
        !$ACC LOOP GANG VECTOR COLLAPSE(2)
        DO jk=1,nlev
@@ -174,7 +174,7 @@ CONTAINS
           ENDDO
        ENDDO
        !$ACC END PARALLEL
-       
+
     ENDDO
 !$OMP END DO NOWAIT
 !$OMP END PARALLEL
@@ -220,4 +220,3 @@ CONTAINS
   END SUBROUTINE held_suarez_nh_interface
 
 END MODULE mo_nh_held_suarez_interface
-

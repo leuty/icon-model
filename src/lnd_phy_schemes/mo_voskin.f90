@@ -16,7 +16,7 @@
 ! COMPUTES WARM AND COLD SKIN EFFECTS OVER THE OCEAN
 
 MODULE mo_voskin
- 
+
   USE mo_lnd_nwp_config, ONLY: itype_oskin_warm, itype_oskin_cold
 
   IMPLICIT NONE
@@ -76,20 +76,20 @@ SUBROUTINE VOSKIN(KIDIA, KFDIA, KLON, PTMST,   &
 !     METHOD
 !     ------
 
-!     The cool skin formulation follows Fairall et al. (1996) and  
-!     depends ON surface energy balance and wind speed. The warm skin 
-!     model uses the skin temperature as a prognostic variable for the 
+!     The cool skin formulation follows Fairall et al. (1996) and
+!     depends ON surface energy balance and wind speed. The warm skin
+!     model uses the skin temperature as a prognostic variable for the
 !     top ocean layer. Two formulations exist:
 !     Formulation A follows she diagnostic form by Webster et al. (1996)
-!       cast into a empirical prognostic form. 
+!       cast into a empirical prognostic form.
 !     Formulation C is based on derivation by Xubin Zeng
 
-!     For more details see Beljaars (1997): Air-sea interaction in the 
-!     ECMWF model, in Seminar on Atmospher-surface interaction, 
-!     8-12 September 1997. 
+!     For more details see Beljaars (1997): Air-sea interaction in the
+!     ECMWF model, in Seminar on Atmospher-surface interaction,
+!     8-12 September 1997.
 
-!     Both formulations can be activated independently by 
-!     switches. 
+!     Both formulations can be activated independently by
+!     switches.
 
 !     Takaya et al. (2009)
 !     Modification of the stability function for stable condition
@@ -98,7 +98,7 @@ SUBROUTINE VOSKIN(KIDIA, KFDIA, KLON, PTMST,   &
 
 ! USE PARKIND1  ,ONLY : JPIM     ,JPRB
 ! USE YOMHOOK   ,ONLY : LHOOK,   DR_HOOK
-! 
+!
 ! USE YOS_EXC  , ONLY : RKAP   ,LEOCWA   ,LEOCCO
 ! USE YOS_CST  , ONLY : RG     ,RCPD     ,RETV    ,RLVTT
 
@@ -108,22 +108,22 @@ USE mo_cuparameters ,ONLY : lhook    ,dr_hook  ,&           !yomcst  (& yos_exc)
       & RKAP     ,RG       ,RETV     ,RLVTT    ,&           !yoevdf  (& yos_exc)
       & RCPD                                                !yomcst  (& yos_cst)
 
-INTEGER(KIND=JPIM),INTENT(IN)              :: KLON 
-INTEGER(KIND=JPIM),INTENT(IN)              :: KIDIA 
-INTEGER(KIND=JPIM),INTENT(IN)              :: KFDIA  
-REAL(KIND=JPRB)   ,INTENT(IN)              :: PTMST 
-REAL(KIND=JPRB)   ,INTENT(IN)              :: PSSRFL(:) 
-REAL(KIND=JPRB)   ,INTENT(IN)              :: PSLRFL(:) 
-REAL(KIND=JPRB)   ,INTENT(IN)              :: PAHFS(:) 
-REAL(KIND=JPRB)   ,INTENT(IN)              :: PAHFL(:) 
-REAL(KIND=JPRB)   ,INTENT(IN)              :: PUSTR(:) 
-REAL(KIND=JPRB)   ,INTENT(IN)              :: PVSTR(:)  
-REAL(KIND=JPRB)   ,INTENT(IN)              :: PU10(:) 
-REAL(KIND=JPRB)   ,INTENT(IN)              :: PV10(:) 
-REAL(KIND=JPRB)   ,INTENT(IN)              :: PTSKM1M(:) 
-REAL(KIND=JPRB)   ,INTENT(IN)              :: PSST(:) 
-REAL(KIND=JPRB)   ,INTENT(INOUT),OPTIONAL  :: PDWARM(:) 
-REAL(KIND=JPRB)   ,INTENT(OUT)             :: PDCOOL(:) 
+INTEGER(KIND=JPIM),INTENT(IN)              :: KLON
+INTEGER(KIND=JPIM),INTENT(IN)              :: KIDIA
+INTEGER(KIND=JPIM),INTENT(IN)              :: KFDIA
+REAL(KIND=JPRB)   ,INTENT(IN)              :: PTMST
+REAL(KIND=JPRB)   ,INTENT(IN)              :: PSSRFL(:)
+REAL(KIND=JPRB)   ,INTENT(IN)              :: PSLRFL(:)
+REAL(KIND=JPRB)   ,INTENT(IN)              :: PAHFS(:)
+REAL(KIND=JPRB)   ,INTENT(IN)              :: PAHFL(:)
+REAL(KIND=JPRB)   ,INTENT(IN)              :: PUSTR(:)
+REAL(KIND=JPRB)   ,INTENT(IN)              :: PVSTR(:)
+REAL(KIND=JPRB)   ,INTENT(IN)              :: PU10(:)
+REAL(KIND=JPRB)   ,INTENT(IN)              :: PV10(:)
+REAL(KIND=JPRB)   ,INTENT(IN)              :: PTSKM1M(:)
+REAL(KIND=JPRB)   ,INTENT(IN)              :: PSST(:)
+REAL(KIND=JPRB)   ,INTENT(INOUT),OPTIONAL  :: PDWARM(:)
+REAL(KIND=JPRB)   ,INTENT(OUT)             :: PDCOOL(:)
 
 INTEGER(KIND=JPIM) :: JL, iversion
 
@@ -198,12 +198,12 @@ ZCON5=(ZAN+1.0_JPRB)/(ZAN*ZDZC)
 
 ZCON2=16._JPRB*ZG*ZROC*ZNUW**3/(ZKW**2)
 
-!     2. General 
+!     2. General
 
 IF (LEOCWA .OR. LEOCCO) THEN
   PDCOOL(KIDIA:KFDIA)=0.0_JPRB
 ! PDWARM(KIDIA:KFDIA)=0.0_JPRB
-  
+
   DO JL=KIDIA,KFDIA
 
 !     Atmospheric buoyancy and wind
@@ -222,7 +222,7 @@ IF (LEOCWA .OR. LEOCCO) THEN
     ZUST2=ZUST2*((ZDU2+ZWST2)/ZDU2)
     ZUST(JL)=MAX(SQRT(ZUST2),ZEPUST)
 
-!     Ocean buoyancy 
+!     Ocean buoyancy
     ZALPHA(JL)=MAX(1.E-5_JPRB,1.E-5_JPRB*(PSST(JL)-273._JPRB))
   ENDDO
 ENDIF
@@ -243,7 +243,7 @@ IF (LEOCCO) then
 !     3.2 Solar absorption
 
     ZFC=0.065_JPRB+11._JPRB*ZDELTA&
-     & -(6.6E-5_JPRB/ZDELTA)*(1.0_JPRB-EXP(-ZDELTA/8.E-4_JPRB))  
+     & -(6.6E-5_JPRB/ZDELTA)*(1.0_JPRB-EXP(-ZDELTA/8.E-4_JPRB))
     ZFC=MAX(ZFC,0.01_JPRB)
     ZQ2=MAX(1.0_JPRB,-ZFC*PSSRFL(JL)+ZQ)
     PDCOOL(JL)=-ZDELTA*ZQ2/ZKW
@@ -251,7 +251,7 @@ IF (LEOCCO) then
 ENDIF
 
 IF (LEOCWA) then
-  IF (iversion == 1) THEN 
+  IF (iversion == 1) THEN
 
 !     4.1 Warm layer; formulation A (empirical adapted from Webster al. 1996)
 
@@ -270,7 +270,7 @@ IF (LEOCWA) then
       ZZ=1.0_JPRB+PTMST/(ZGU*ZROC*ZDZ)
       PDWARM(JL)=MAX(0.0_JPRB,(ZDSST+ZSRD*PTMST/(ZDZ*ZROC))/ZZ)
     ENDDO
-  ELSEIF (iversion == 3) THEN 
+  ELSEIF (iversion == 3) THEN
 
 !     4.2 Warm layer; formulation C (Xubin Zeng)
 
@@ -283,27 +283,27 @@ IF (LEOCWA) then
 
         ZSRD=(PSSRFL(JL)*ZFI+PSLRFL(JL)+PAHFS(JL)+PAHFL(JL))/ZROC
 
-         IF (ZDSST > 0.0_JPRB .AND. ZSRD < 0.0_JPRB) THEN 
+         IF (ZDSST > 0.0_JPRB .AND. ZSRD < 0.0_JPRB) THEN
            ZDL=ZUST(JL)**2*(ZROA/ZROW)&
-               &   *SQRT(ZDSST/(5._JPRB*ZDZC*RG*ZALPHA(JL)/ZAN))       
+               &   *SQRT(ZDSST/(5._JPRB*ZDZC*RG*ZALPHA(JL)/ZAN))
          ELSE
            ZDL=ZSRD
          ENDIF
         ZDL=ZCON3*ZALPHA(JL)*ZDL/ZUST(JL)**3
 
-        IF (ZDL > 0.0_JPRB) THEN 
-          ZDL2=ZDL*ZDL 
+        IF (ZDL > 0.0_JPRB) THEN
+          ZDL2=ZDL*ZDL
 !         ZPHI=1._JPRB+5._JPRB*ZDL                           ! Large et al. 1994
 !         ZPHI=1._JPRB+5.0*(ZDL+ZDL**2)/(1.0+3.0*ZDL+ZDL**2) ! SHEBA, Grachev et al. 2007
           ZPHI=1._JPRB+(5._JPRB*ZDL+4._JPRB*ZDL2)/(1._JPRB+3._JPRB*ZDL+0.25_JPRB*ZDL2) ! Takaya et al.
         ELSE
           ZPHI=1._JPRB/SQRT(1._JPRB-16._JPRB*ZDL)
-        ENDIF 
-        
+        ENDIF
+
         ZZ=1.0_JPRB+ZCON4*PTMST*ZUST(JL)/ZPHI
 
         PDWARM(JL)=MAX(0.0_JPRB,(ZDSST+ZCON5*ZSRD*PTMST)/ZZ)
-	
+
     ENDDO
   ENDIF
 ENDIF

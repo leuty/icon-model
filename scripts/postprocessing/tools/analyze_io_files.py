@@ -21,7 +21,7 @@
 #             For this, the stdout output file is required (mapping between
 #             I/O processes and file names) and another input file containing
 #             the result of "ls -l".
-# 
+#
 # IMPORTANT NOTE: We implicitly assume that all file time stamps are generated
 #                 in the format (hh:mm) on the _same date_!
 # NOTE #2:        We synchronize time stamps from "ls -l" and from the program
@@ -34,7 +34,9 @@
 #
 # ---------------------------------------------------------------------------
 
-import re, sys
+import re
+import sys
+
 from sets import Set
 
 if (len(sys.argv) < 2):
@@ -99,7 +101,7 @@ for line in open(file_intvls):
              +       float(m.group(2)[4:6])
         tdone.append( (int(m.group(1)), sec) )
 
-    
+
 # get minimum,maximum time stamp
 t0 = float(sorted(tstart, key=lambda tstamp: float(    tstamp[1]))[0][1])
 t1 = float(sorted(tdone,  key=lambda tstamp: float(-1.*tstamp[1]))[0][1])
@@ -145,7 +147,7 @@ if (len(sys.argv) > 2):
     #                                           ^ group(1)                            ^ group(2)          ^ group(3)
     re_output=re.compile(r'mo_name_list_output: Output to (.*) at simulation time  (.*)     by PE   (\d*)')
     outmsg = re_output.findall(open(file_filenm).read())
-        
+
     # built a list of tuples: (I/O process ; time stamp ; simulation time )
     tstamps_list = []
     for item in outmsg:
@@ -155,7 +157,7 @@ if (len(sys.argv) > 2):
         tstamps_list.append( (int(item[2]),   \
                               float(tstamps_dict[item[0]]), \
                               float(item[1])) )
-            
+
 
 # ---------------------------------------------------------------------------
 # PART 3: Loop over list and print intervals as LaTeX code
@@ -185,7 +187,7 @@ for index,item in enumerate(tstart):
         print "    \\fill[black!20] (%5.2f" % (scale*(item[1]-t0)), ",", scaley*pe_dict[item[0]], \
               ") rectangle ($(%5.2f " % (scale*(tdone[index][1]-t0)), ",", \
               scaley*pe_dict[item[0]], ")+(0,-4pt)$);", \
-              "  %  [", item[1], " , ", tdone[index][1], "]"                
+              "  %  [", item[1], " , ", tdone[index][1], "]"
         print "    \\draw[-] (%5.2f" % (scale*(item[1]-t0)), ",", scaley*pe_dict[item[0]], \
               ") -- ++(0,-4pt) -- ($(%5.2f " % (scale*(tdone[index][1]-t0)), ",", \
               scaley*pe_dict[item[0]], ")+(0,-4pt)$) -- ++(0,4pt);"
@@ -219,6 +221,3 @@ if (len(sys.argv) > 2):
 #   LaTeX footer
 print("\\end{tikzpicture}")
 print("\\end{document}")
-
-
-

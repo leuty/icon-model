@@ -13,7 +13,7 @@
 !        Calc dissolution, update of hydrogen ions
 
 MODULE mo_carchm
-  
+
 USE mo_bgc_memory_types, ONLY  : t_bgc_memory
 
 USE mo_memory_bgc, ONLY     : rrrcl
@@ -53,16 +53,16 @@ CONTAINS
 SUBROUTINE calc_dissol (local_bgc_mem, start_idx, end_idx, klevs, pddpo, psao, ptiestu, lacc)
 
 !! Computes calcium carbonate dissolution
-  
+
   IMPLICIT NONE
 
   !! Arguments
   TYPE(t_bgc_memory), POINTER    :: local_bgc_mem
 
-  INTEGER, INTENT(in) :: start_idx             !< start index for j loop (ICON cells, MPIOM lat dir)    
-  INTEGER, INTENT(in) :: end_idx               !< end index  for j loop  (ICON cells, MPIOM lat dir)    
+  INTEGER, INTENT(in) :: start_idx             !< start index for j loop (ICON cells, MPIOM lat dir)
+  INTEGER, INTENT(in) :: end_idx               !< end index  for j loop  (ICON cells, MPIOM lat dir)
   INTEGER, INTENT(in) :: klevs(bgc_nproma)     !<  vertical levels
-           
+
 
   REAL(wp),INTENT(in) :: pddpo(bgc_nproma,bgc_zlevs) !< size of scalar grid cell (3rd REAL) [m]
   REAL(wp),INTENT(in) :: psao(bgc_nproma,bgc_zlevs)  !< salinity
@@ -71,7 +71,7 @@ SUBROUTINE calc_dissol (local_bgc_mem, start_idx, end_idx, klevs, pddpo, psao, p
 
   !! Local variables
 
-  INTEGER :: k, j, kpke 
+  INTEGER :: k, j, kpke
 
   REAL(wp) :: supsat, undsa, dissol
   REAL(wp) :: supsatup,satdiff,depthdiff   ! needed to calculate depth of lysocline
@@ -86,7 +86,7 @@ SUBROUTINE calc_dissol (local_bgc_mem, start_idx, end_idx, klevs, pddpo, psao, p
   ! Dissolution of calcite, whole water column
   !
   !*********************************************************************
- ! Dissolution in surface layer, 
+ ! Dissolution in surface layer,
  ! needs to be separate from subsurface due to lysocline depth different calculation
   !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1) IF(lzacc)
   !$ACC LOOP GANG VECTOR
@@ -94,10 +94,10 @@ SUBROUTINE calc_dissol (local_bgc_mem, start_idx, end_idx, klevs, pddpo, psao, p
 
         k=1
         iflag = 0
-    
+
         IF(pddpo(j,k) > EPSILON(0.5_wp)) THEN
 
-       
+
               local_bgc_mem%hi(j,k) = update_hi(local_bgc_mem%hi(j,k), local_bgc_mem%bgctra(j,k,isco212), local_bgc_mem%ak13(j,k) , &
           &          local_bgc_mem%ak23(j,k), local_bgc_mem%akw3(j,k),local_bgc_mem%aks3(j,k),local_bgc_mem%akf3(j,k), local_bgc_mem%aksi3(j,k),&
           &          local_bgc_mem%ak1p3(j,k),local_bgc_mem%ak2p3(j,k),local_bgc_mem%ak3p3(j,k),psao(j,k) , local_bgc_mem%akb3(j,k), &
@@ -108,7 +108,7 @@ SUBROUTINE calc_dissol (local_bgc_mem, start_idx, end_idx, klevs, pddpo, psao, p
 
               supsat = local_bgc_mem%co3(j,k)-97._wp*local_bgc_mem%aksp(j,k)   ! 97. = 1./1.03e-2 (MEAN TOTAL [CA++] IN SEAWATER [kmol/m3])
               undsa  = MAX(0._wp, -supsat)
-             
+
               dissol = MIN(undsa,dremcalc*local_bgc_mem%bgctra(j,k,icalc))
               local_bgc_mem%bgctra(j,k,icalc)   = local_bgc_mem%bgctra(j,k,icalc)-dissol
               local_bgc_mem%bgctra(j,k,ialkali) = local_bgc_mem%bgctra(j,k,ialkali)+2._wp*dissol
@@ -122,15 +122,15 @@ SUBROUTINE calc_dissol (local_bgc_mem, start_idx, end_idx, klevs, pddpo, psao, p
 
         ENDIF   ! wet cell
 
-!  Dissolution of subsurface layers 
-   
+!  Dissolution of subsurface layers
+
         kpke=klevs(j)
         !$ACC LOOP SEQ
         DO k = 2, kpke
 
            IF(pddpo(j,k) > EPSILON(0.5_wp)) THEN
 
-       
+
               local_bgc_mem%hi(j,k) = update_hi(local_bgc_mem%hi(j,k), local_bgc_mem%bgctra(j,k,isco212), local_bgc_mem%ak13(j,k) , &
           &          local_bgc_mem%ak23(j,k), local_bgc_mem%akw3(j,k),local_bgc_mem%aks3(j,k),local_bgc_mem%akf3(j,k), local_bgc_mem%aksi3(j,k),&
           &          local_bgc_mem%ak1p3(j,k),local_bgc_mem%ak2p3(j,k),local_bgc_mem%ak3p3(j,k),psao(j,k) , local_bgc_mem%akb3(j,k), &
@@ -141,7 +141,7 @@ SUBROUTINE calc_dissol (local_bgc_mem, start_idx, end_idx, klevs, pddpo, psao, p
 
               supsat = local_bgc_mem%co3(j,k)-97._wp*local_bgc_mem%aksp(j,k)   ! 97. = 1./1.03e-2 (MEAN TOTAL [CA++] IN SEAWATER [kmol/m3])
               undsa  = MAX(0._wp, -supsat)
-             
+
               dissol = MIN(undsa,dremcalc*local_bgc_mem%bgctra(j,k,icalc))
               local_bgc_mem%bgctra(j,k,icalc)   = local_bgc_mem%bgctra(j,k,icalc)-dissol
               local_bgc_mem%bgctra(j,k,ialkali) = local_bgc_mem%bgctra(j,k,ialkali)+2._wp*dissol
@@ -168,11 +168,11 @@ END SUBROUTINE
 FUNCTION update_hi(hi,c,ak1,ak2,akw,aks,akf,aksi,ak1p,ak2p,ak3p,s,akb,sit,pt,alk) RESULT (h)
  !$ACC ROUTINE SEQ
  ! update hydrogen ion concentration
- 
+
  REAL(wp) :: ah1, hi
  REAL(wp), INTENT(in):: ak1,ak2,akw,akb,aks,akf,aksi,c,ak1p,ak2p,&
-&                       ak3p,sit,pt,alk 
- 
+&                       ak3p,sit,pt,alk
+
  ! LOCAL
  REAL(wp) :: bt, sti,ft, hso4,hf,hsi,hpo4,ab,aw,ac,ah2o,ah2,erel,h,s
  INTEGER:: iter,jit
@@ -193,7 +193,7 @@ if (hion_solver == 0) THEN
      hso4 = sti / ( 1._wp + aks / ( ah1 / ( 1._wp + sti / aks ) ) )
      hf   = 1._wp / ( 1._wp + akf / ah1 )
      hsi  = 1._wp/ ( 1._wp + ah1 / aksi )
-     hpo4 = ( ak1p * ak2p * ( ah1 + 2._wp * ak3p ) - ah1**3 ) /    & 
+     hpo4 = ( ak1p * ak2p * ( ah1 + 2._wp * ak3p ) - ah1**3 ) /    &
            &        ( ah1**3 + ak1p * ah1**2 + ak1p * ak2p * ah1 + ak1p * ak2p*ak3p )
      ab   = bt / ( 1._wp + ah1 / akb )
      aw   = akw / ah1 - ah1 / ( 1._wp + sti / aks )
@@ -281,7 +281,7 @@ REAL(wp), INTENT(IN)            :: K1, K2, Kb, Kw, Ks, Kf
 REAL(wp), INTENT(IN)            :: K1p, K2p, K3p, Ksi
 REAL(wp), INTENT(OUT), OPTIONAL :: p_deriveqn
 
-! Local variables 
+! Local variables
 !-----------------
 REAL(wp) :: znumer_dic, zdnumer_dic, zdenom_dic, zalk_dic, zdalk_dic
 REAL(wp) :: znumer_bor, zdnumer_bor, zdenom_bor, zalk_bor, zdalk_bor
@@ -400,13 +400,13 @@ SUBROUTINE ahini_for_at(p_alkcb, p_dictot, p_bortot, K1, K2, Kb, p_hini)
 
 IMPLICIT NONE
 
-! Argument variables 
+! Argument variables
 !--------------------
 REAL(wp), INTENT(IN)   ::  p_alkcb, p_dictot, p_bortot
 REAL(wp), INTENT(IN)   ::  K1, K2, Kb
 REAL(wp), INTENT(OUT)  ::  p_hini
 
-! Local variables 
+! Local variables
 !-----------------
 REAL(wp)  ::  zca, zba
 REAL(wp)  ::  zd, zsqrtd, zhmin
@@ -461,7 +461,7 @@ FUNCTION solve_at_general(p_alktot, p_dictot, p_bortot,                       &
 IMPLICIT NONE
 REAL(wp) :: SOLVE_AT_GENERAL
 
-! Argument variables 
+! Argument variables
 !--------------------
 REAL(wp), INTENT(IN)            :: p_alktot
 REAL(wp), INTENT(IN)            :: p_dictot
@@ -477,7 +477,7 @@ REAL(wp), INTENT(IN)            :: K1p, K2p, K3p, Ksi
 REAL(wp), INTENT(IN), OPTIONAL  :: p_hini
 REAL(wp), INTENT(OUT), OPTIONAL :: p_val
 
-! Local variables 
+! Local variables
 !-----------------
 REAL(wp)  ::  zh_ini, zh, zh_prev, zh_lnfactor
 REAL(wp)  ::  zalknw_inf, zalknw_sup
@@ -641,7 +641,7 @@ IF(PRESENT(p_val)) THEN
       p_val = equation_at(p_alktot, zh,       p_dictot, p_bortot,              &
                           p_po4tot, p_siltot,                                  &
                           p_so4tot, p_flutot,                                  &
-                          K1, K2, Kb, Kw, Ks, Kf, K1p, K2p, K3p, Ksi)    
+                          K1, K2, Kb, Kw, Ks, Kf, K1p, K2p, K3p, Ksi)
    ELSE
       p_val = HUGE(1._wp)
    ENDIF

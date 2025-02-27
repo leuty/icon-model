@@ -71,16 +71,16 @@ MODULE mo_nonhydrostatic_nml
 
 CONTAINS
   !-------------------------------------------------------------------------
-  !! Read Namelist for nonhydrostatic core. 
+  !! Read Namelist for nonhydrostatic core.
   !!
-  !! This subroutine 
+  !! This subroutine
   !! - reads the Namelist for nonhydrostatic core
   !! - sets default values
-  !! - potentially overwrites the defaults by values used in a 
+  !! - potentially overwrites the defaults by values used in a
   !!   previous integration (if this is a resumed run)
   !! - reads the user's (new) specifications
   !! - stores the Namelist for restart
-  !! - fills the configuration state (partly)    
+  !! - fills the configuration state (partly)
   !!
   SUBROUTINE read_nonhydrostatic_namelist( filename )
 
@@ -230,7 +230,7 @@ CONTAINS
     vwind_offctr      = 0.15_wp
     ! Off-centering for density and potential temperature at interface levels
     ! Specifying a negative value here reduces the amount of vertical wind off-centering needed for
-    ! stability of sound waves. 
+    ! stability of sound waves.
     rhotheta_offctr   = -0.1_wp
     ! Off-centering of velocity advection in corrector step
     veladv_offctr = 0.25_wp
@@ -245,12 +245,12 @@ CONTAINS
     ! arise from large-amplitude breaking gravity waves rather than sound wave reflections, values
     ! around 1/3 are better.
 #ifdef __INTEL_COMPILER
-    exner_expol       = 0.333333333333333_wp    
+    exner_expol       = 0.333333333333333_wp
 #else
     exner_expol       = 1._wp/3._wp
 #endif
 
-    ! dummy values for nested domains; will be reset to value of domain 1 
+    ! dummy values for nested domains; will be reset to value of domain 1
     ! if not specified explicitly in the namelist
     damp_height(2:max_dom)    = -1.0_wp
     rayleigh_coeff(2:max_dom) = -1.0_wp
@@ -261,7 +261,7 @@ CONTAINS
     thhgtd_zdiffu  = 200._wp  ! threshold for height difference between adjacent grid points 200 m
 
     !------------------------------------------------------------------
-    ! 2. If this is a resumed integration, overwrite the defaults above 
+    ! 2. If this is a resumed integration, overwrite the defaults above
     !    by values used in the previous integration.
     !------------------------------------------------------------------
     IF (use_restart_namelists()) THEN
@@ -292,7 +292,7 @@ CONTAINS
     !--------------------------------------------------------------------
     ! Sanity and internal checks
     !--------------------------------------------------------------------
-    ! Reset values of rayleigh_coeff and damp_height to that of the 
+    ! Reset values of rayleigh_coeff and damp_height to that of the
     ! global domain if not specified
     SELECT CASE (itime_scheme)
     CASE (TRACER_ONLY, 3,4,5,6 ) !OK

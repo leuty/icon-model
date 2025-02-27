@@ -43,8 +43,8 @@ def parse_args():
     if options.output_dir is None:
         logging.warning(
             """
-        Output directory not given. 
-        File will be saved in the current directory. 
+        Output directory not given.
+        File will be saved in the current directory.
         Path can be supplied with --output_dir.
         """
         )
@@ -80,7 +80,14 @@ def sort_data(data):
 
     df = pd.DataFrame(
         data_sorted,
-        columns=("sdpd", "run_start", "run_end", "sim_start", "sim_end", "job_id"),
+        columns=(
+            "sdpd",
+            "run_start",
+            "run_end",
+            "sim_start",
+            "sim_end",
+            "job_id",
+        ),
     )
     return df
 

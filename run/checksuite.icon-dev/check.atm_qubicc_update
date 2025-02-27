@@ -52,13 +52,13 @@ reference_dir=2025-04-08.icon-mpim.713c10594275
 export REFERENCE=$icon_data_rootFolder/buildbot_data/ref/${reference_dir}/${builder}
 
 #--------------------------------------------------------------------------------
-# 
+#
 # 2. Define the checksuite mode
 
 export MD='u' # update test
 
 #--------------------------------------------------------------------------------
-# 
+#
 # 3. Launch the checksuite
 
 rundir=`pwd`

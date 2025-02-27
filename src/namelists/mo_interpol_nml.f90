@@ -16,7 +16,7 @@ MODULE mo_interpol_nml
   USE mo_kind,                ONLY: wp
   USE mo_exception,           ONLY: finish
   USE mo_impl_constants,      ONLY: max_dom
-  USE mo_mpi,                 ONLY: my_process_is_stdio 
+  USE mo_mpi,                 ONLY: my_process_is_stdio
   USE mo_master_control,      ONLY: use_restart_namelists
   USE mo_io_units,            ONLY: nnml, nnml_output
   USE mo_namelist,            ONLY: position_nml, POSITIONED, open_nml, close_nml
@@ -55,7 +55,7 @@ MODULE mo_interpol_nml
   LOGICAL  :: llsq_lin_consv      ! conservative (TRUE) or non-conservative (FALSE)
                                   ! linear least squares reconstruction
   LOGICAL  :: llsq_high_consv     ! conservative (TRUE) or non-conservative (FALSE)
-                                  ! high order least squares reconstruction 
+                                  ! high order least squares reconstruction
 
   INTEGER  :: lsq_high_ord        ! specific order for higher order lsq
 
@@ -116,16 +116,16 @@ MODULE mo_interpol_nml
 CONTAINS
   !-------------------------------------------------------------------------
   !>
-  !! Read Namelist for interpolation. 
+  !! Read Namelist for interpolation.
   !!
-  !! This subroutine 
+  !! This subroutine
   !! - reads the Namelist for interpolation
   !! - sets default values
-  !! - potentially overwrites the defaults by values used in a 
+  !! - potentially overwrites the defaults by values used in a
   !!   previous integration (if this is a resumed run)
   !! - reads the user's (new) specifications
   !! - stores the Namelist for restart
-  !! - fills the configuration state (partly)    
+  !! - fills the configuration state (partly)
   !!
   SUBROUTINE read_interpol_namelist( filename )
 
@@ -137,7 +137,7 @@ CONTAINS
       &  routine = 'mo_interpol_nml: read_interpol_namelist'
 
     !-----------------------
-    ! 1. default settings   
+    ! 1. default settings
     !-----------------------
     ! LSQ reconstruction at cell center
     llsq_lin_consv   = .FALSE.  ! non-conservative linear reconstruction
@@ -167,7 +167,7 @@ CONTAINS
 
     ! direct interpolation from cell centers to lon-lat points:
     l_intp_c2l   = .TRUE.
-    ! stencil size: 4  = nearest neighbor, 
+    ! stencil size: 4  = nearest neighbor,
     !               13 = vertex stencil,
     !               rbf_c2grad_dim = edge stencil
     rbf_dim_c2l  = 10
@@ -182,7 +182,7 @@ CONTAINS
     lreduced_nestbdry_stencil = .FALSE.
 
     !------------------------------------------------------------------
-    ! 2. If this is a resumed integration, overwrite the defaults above 
+    ! 2. If this is a resumed integration, overwrite the defaults above
     !    by values used in the previous integration.
     !------------------------------------------------------------------
     IF (use_restart_namelists()) THEN
@@ -211,7 +211,7 @@ CONTAINS
     CALL close_nml
 
     !-----------------------------------------------------------------------
-    ! Sanity check 
+    ! Sanity check
     !-----------------------------------------------------------------------
     IF ((rbf_vec_kern_c/=1 ).AND.(rbf_vec_kern_c/=3)) THEN
       CALL finish( TRIM(routine),'wrong value of rbf_vec_kern_c, must be 1 or 3')
@@ -244,8 +244,8 @@ CONTAINS
     !----------------------------------------------------
     config_llsq_lin_consv      = llsq_lin_consv
     config_llsq_high_consv     = llsq_high_consv
-    config_lsq_high_ord        = lsq_high_ord 
-    config_rbf_vec_kern_c      = rbf_vec_kern_c 
+    config_lsq_high_ord        = lsq_high_ord
+    config_rbf_vec_kern_c      = rbf_vec_kern_c
     config_rbf_vec_kern_v      = rbf_vec_kern_v
     config_rbf_vec_kern_e      = rbf_vec_kern_e
     config_rbf_vec_kern_ll     = rbf_vec_kern_ll
@@ -254,12 +254,12 @@ CONTAINS
     config_rbf_vec_scale_e(:)  = rbf_vec_scale_e(:)
     config_rbf_scale_mode_ll   = rbf_scale_mode_ll
 
-    ! historically, the nudging tendency was scaled by 
-    ! the physics-dynamics timestep ratio. 
-    ! Removing the scaling while keeping results the same 
-    ! requires to redefine (scale) the default nudging 
+    ! historically, the nudging tendency was scaled by
+    ! the physics-dynamics timestep ratio.
+    ! Removing the scaling while keeping results the same
+    ! requires to redefine (scale) the default nudging
     ! coefficient and adapt all run scripts.
-    ! In order to avoid changing the run scripts, we scale 
+    ! In order to avoid changing the run scripts, we scale
     ! the user value by the default physics-dynamics timestep ratio (i.e. 5).
     config_nudge_max_coeff     = 5._wp * nudge_max_coeff
 

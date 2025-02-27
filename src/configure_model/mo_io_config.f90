@@ -105,10 +105,10 @@ MODULE mo_io_config
 
   REAL(wp):: wshear_uv_heights(max_wshear) !< heights AGL for which wind shear components WSHEAR_U, WSHEAR_V are desired
   INTEGER :: n_wshear                   !< actual number of wshear heights given in namelist
-  
+
   REAL(wp):: srh_heights(max_srh)       !< heights AGL for which storm relative helicity calculations are desired
   INTEGER :: n_srh                      !< actual number of srh heights given in namelist
-  
+
   ! Derived type to collect logical variables indicating if optional diagnostics are requested for output
   TYPE t_var_in_output
     LOGICAL :: pres_msl     = .FALSE. !< Flag. TRUE if computation of mean sea level pressure desired
@@ -175,7 +175,7 @@ MODULE mo_io_config
     LOGICAL :: lcl_ml       = .FALSE. !< Flag. TRUE if computation of the Lifted Condensation Level is desired
     LOGICAL :: ddt_temp_drag = .FALSE. !< Flag. TRUE if temp-tend. from sso+gravity-wave-drag+Rayleigh-frict. is required
     ! add vars for global mean claclulations
-    LOGICAL :: tas_gmean    = .FALSE. !< Flag. TRUE if computation of global mean T2m 
+    LOGICAL :: tas_gmean    = .FALSE. !< Flag. TRUE if computation of global mean T2m
     LOGICAL :: rsdt_gmean   = .FALSE. !< Flag. TRUE if computation of global mean toa downward short wave rad
     LOGICAL :: rsut_gmean   = .FALSE. !< Flag. TRUE if computation of global mean toa upward short wave rad
     LOGICAL :: rlut_gmean   = .FALSE. !< Flag. TRUE if computation of global mean toa upward long wave rad
@@ -218,7 +218,7 @@ MODULE mo_io_config
   END TYPE t_var_in_output
 
   TYPE(t_var_in_output), ALLOCATABLE :: var_in_output(:)
-  
+
   ! derived variables
   !
   INTEGER, PARAMETER :: read_netcdf_broadcast_method  = 1
@@ -272,7 +272,7 @@ CONTAINS
   SUBROUTINE init_var_in_output(n_dom, lnwp)
 
     INTEGER, INTENT(in)  :: n_dom  ! number of model domains
-    LOGICAL, INTENT(in)  :: lnwp   ! true if ICON runs in NWP mode, implying that the full set of variables 
+    LOGICAL, INTENT(in)  :: lnwp   ! true if ICON runs in NWP mode, implying that the full set of variables
                                    ! needs to be computed
 
     INTEGER :: jg, jgr, jg_nml
@@ -378,9 +378,9 @@ CONTAINS
         ! As a crutch, a character array containing the output groups of SMI from mo_lnd_nwp_config is used
         ! here and also at the add_var call.
         ! The check loops through the output groups. It has to be checked if l_smi is already .true., to not
-        ! overwrite an existing .true. with a false. 
+        ! overwrite an existing .true. with a false.
 
-        IF (.NOT. var_in_output(jg)%smi) THEN 
+        IF (.NOT. var_in_output(jg)%smi) THEN
           ! Check for output groups containing SMI
           DO jgr = 1,SIZE(groups_smi)
             IF (.NOT. var_in_output(jg)%smi) THEN
@@ -572,7 +572,7 @@ CONTAINS
       IF(num_restart_procs < 0) THEN
         ! No matter what, negative process counts are illegal.
         errorMessage = "illegal value of namelist parameter num_restart_procs: value must not be negative"
-        
+
       ELSE IF(restart_write_mode == "") THEN
         ! No restart_write_mode given, so we fall back to the old
         ! behavior of switching between sync/async restart mode based
@@ -586,7 +586,7 @@ CONTAINS
         ELSE
           restartModule = kSyncRestartModule
         END IF
-        
+
       ELSE IF(restart_write_mode == "sync") THEN
         IF(num_restart_procs /= 0) THEN
           errorMessage = "inconsistent namelist parameters: num_restart_procs must be zero OR unset &
@@ -597,7 +597,7 @@ CONTAINS
         restartModule      = kSyncRestartModule
         lDedicatedProcMode = .FALSE.
         nrestartStreams    = 1
-        
+
       ELSE IF(restart_write_mode == "async") THEN
         IF(num_restart_procs == 0) THEN
           errorMessage = "inconsistent namelist parameters: num_restart_procs must be non-zero for &
@@ -611,7 +611,7 @@ CONTAINS
 
       ELSE IF(restart_write_mode == "joint procs multifile") THEN
         dedicatedProcCount = 0
-        
+
         ! if not set otherwise (num_restart_procs=0), set the
         ! number of restart PEs to the number of worker
         ! PEs... this is done later, since the number of workers
@@ -624,7 +624,7 @@ CONTAINS
         restartModule      = kMultifileRestartModule
         lDedicatedProcMode = .FALSE.
         nrestartStreams    = 1
-        
+
       ELSE IF(restart_write_mode == "dedicated procs multifile") THEN
         IF(num_restart_procs == 0) THEN
           errorMessage = "inconsistent namelist parameters: num_restart_procs must be non-zero for &
@@ -635,11 +635,11 @@ CONTAINS
         restartModule      = kMultifileRestartModule
         lDedicatedProcMode = .TRUE.
         nrestartStreams    = nrestart_streams
-        
+
       ELSE
         errorMessage = "illegal value of namelist parameter restart_write_mode: expected one of 'sync', 'async', &
           &'joint procs multifile', or 'dedicated procs multifile'"
-        
+
       END IF
       IF(ALLOCATED(errorMessage)) THEN
         CALL finish(routine, errorMessage//" (got restart_write_mode = '"//TRIM(restart_write_mode)// &
@@ -647,7 +647,7 @@ CONTAINS
       END IF
       cacheValid = .TRUE.
     END IF
-    
+
     ! Ok, the cache IS up to date. What info did the caller want again?
     IF(PRESENT(opt_dedicatedProcCount))  opt_dedicatedProcCount = dedicatedProcCount;
     IF(PRESENT(opt_restartProcCount))    opt_restartProcCount   = restartProcCount;

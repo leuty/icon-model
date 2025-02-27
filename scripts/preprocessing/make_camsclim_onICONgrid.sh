@@ -12,7 +12,7 @@
 # ---------------------------------------------------------------
 
 #############################################
-#  
+#
 #  Download 4D monthly aerosol climatology file
 #  'aerosol_cams_climatology_49r2_1951-2019_4D.nc' from:
 #  https://aux.ecmwf.int/ecpds/home/radiation/aerosol_climatology/
@@ -24,7 +24,7 @@
 #  this script renames 'month' into 'time', selects only the
 #  last epoch of the dataset (2015) and drops the epoch dimension
 #  before interpolating the fields onto the ICON grid.
-#  
+#
 #  References:
 #  Bozzo et al. 2019 https://doi.org/10.5194/gmd-2019-149
 #  Flemming et al. 2013 https://doi.org/10.5194/acp-17-1945-2017
@@ -41,7 +41,7 @@
 #
 #  Note: CDO versions more recent than 2.0.6 may produce HDF-
 #  related warnings. These can be ignored.
-#  
+#
 #############################################
 
 BaseName=aerosol_cams_climatology_49r2_1951-2019_4D
@@ -125,7 +125,7 @@ OFILE=icon_cams_clim_${GridName}.nc
 #       original grid
 # remapbil appears to be the best interpolation option using cdo at this time.
 # Pick your poison!
-GRIDNUM=`cdo sinfov ${TARGETGRID} | grep nvertex=3 | awk '{print $1}'` 
+GRIDNUM=`cdo sinfov ${TARGETGRID} | grep nvertex=3 | awk '{print $1}'`
 cdo -s -P 4 remapbil,"${TARGETGRID}:${GRIDNUM}"  ${sourceFile} t1.nc
 cdo mul -gec,0.0 t1.nc t1.nc t2.nc
 cdo add -mulc,0.0 -ltc,0.0 t1.nc t2.nc ${OFILE}

@@ -51,7 +51,7 @@ MODULE mo_upatmo_impl_const
   !-------------------------------------------------------------------------------
   !-------------------------------------------------------------------------------
 
-  ! Some of the constants below (indicated by "(nitem)") 
+  ! Some of the constants below (indicated by "(nitem)")
   ! follow the construction rule:
   !
   ! TYPE t_ixyz
@@ -71,22 +71,22 @@ MODULE mo_upatmo_impl_const
   !                                           4  ) ! nitem = d, since d is the last list element
   !
   ! Possible advantages of this construction rule:
-  ! * We may want to loop over whatever the items of ixyz identify: 
+  ! * We may want to loop over whatever the items of ixyz identify:
   !
   !    DO jitem = 1, ixyz%nitem
-  !      ! jitem successivly takes the values of ixyz%a, ixyz%b, ixyz%c, ... 
+  !      ! jitem successivly takes the values of ixyz%a, ixyz%b, ixyz%c, ...
   !      ! and can be compared with namelist entries etc.
   !    ENDDO
-  ! 
+  !
   ! Disadvantages of this construction rule:
-  ! * The identifiers, selectable by namelist are fixed to: 1, 2, 3, ... 
-  !   (something like: 5, 6, 8, 20, 124, ... is not possible).  
-  !   An array xyz(1:ixyz%nitem), which contains the actual identifiers, 
-  !   selectable by namelist could handle this, but adds a further level 
+  ! * The identifiers, selectable by namelist are fixed to: 1, 2, 3, ...
+  !   (something like: 5, 6, 8, 20, 124, ... is not possible).
+  !   An array xyz(1:ixyz%nitem), which contains the actual identifiers,
+  !   selectable by namelist could handle this, but adds a further level
   !   of complexity, which we would like to avoid.
   !
-  ! Please, be careful, if you modify the following types, 
-  ! since a reasonable check for the adherence to the above construction rule 
+  ! Please, be careful, if you modify the following types,
+  ! since a reasonable check for the adherence to the above construction rule
   ! during runtime is not possible.
 
   !-------------------------------------------------------------------------------
@@ -180,7 +180,7 @@ MODULE mo_upatmo_impl_const
 
   TYPE t_iorbit
     INTEGER :: vsop87  ! Standard and accurate model
-    INTEGER :: kepler  ! Simple model, appropriate for idealized work 
+    INTEGER :: kepler  ! Simple model, appropriate for idealized work
     !
     INTEGER :: nitem   ! Number of entries
   END TYPE t_iorbit
@@ -251,21 +251,21 @@ MODULE mo_upatmo_impl_const
   TYPE(t_startHeightDef), PARAMETER :: startHeightDef = t_startHeightDef( 75000._wp, &  ! (m) startHeightDef%vdfmol
     &                                                                     85000._wp, &  ! (m) startHeightDef%fric
     &                                                                     80000._wp, &  ! (m) startHeightDef%iondrag
-    &                                                                     80000._wp, &  ! (m) startHeightDef%joule = 
+    &                                                                     80000._wp, &  ! (m) startHeightDef%joule =
     !                                                                                         startHeightDef%iondrag !
     &                                                                     50000._wp, &  ! (m) startHeightDef%srbc
     &                                                                         0._wp, &  ! (m) startHeightDef%nlte
     &                                                                     90000._wp, &  ! (m) startHeightDef%euv
     &                                                                     60000._wp, &  ! (m) startHeightDef%no
     &                                                                     70000._wp  )  ! (m) startHeightDef%chemheat
-  
+
   !-----------------------------------------------------
   !    Identifiers of physics process groups (nitem)
   !-----------------------------------------------------
 
   TYPE t_iUpatmoGrpId
     INTEGER :: imf     ! Ion drag (I), molecular diffusion (M) and frictional heating (F)
-    INTEGER :: rad     ! Radiation and chemical heating 
+    INTEGER :: rad     ! Radiation and chemical heating
     !
     INTEGER :: nitem   ! Number of entries
   END TYPE t_iUpatmoGrpId
@@ -275,7 +275,7 @@ MODULE mo_upatmo_impl_const
     &                                                               2  )  !iUpatmoGrpId%nitem
 
   !-----------------------------------------------------
-  !     Identifiers for modes of physics process 
+  !     Identifiers for modes of physics process
   !                and physics groups
   !-----------------------------------------------------
 
@@ -286,7 +286,7 @@ MODULE mo_upatmo_impl_const
     INTEGER :: offline     ! Tendencies are computed, but not applied
     !
     INTEGER :: startitem   ! Integer of firt list entry (since it differes from 1)
-    INTEGER :: enditem     ! Integer of last list entry 
+    INTEGER :: enditem     ! Integer of last list entry
                            ! (not nitem, since it differs from number of entries)
   END TYPE t_iUpatmoPrcMode
   TYPE(t_iUpatmoPrcMode), PARAMETER :: iUpatmoPrcMode = t_iUpatmoPrcMode( -1, &  !iUpatmoPrcMode%unassigned
@@ -298,7 +298,7 @@ MODULE mo_upatmo_impl_const
     &                                                                      2  )  !iUpatmoPrcMode%enditem
 
   !-----------------------------------------------------
-  !        Identifiers for variables for which 
+  !        Identifiers for variables for which
   !    physics processes compute tendencies (nitem)
   !-----------------------------------------------------
 
@@ -325,7 +325,7 @@ MODULE mo_upatmo_impl_const
 
 
   !-----------------------------------------------------
-  !           Identifiers for physics status 
+  !           Identifiers for physics status
   !           (in the broadest sense) (nitem)
   !-----------------------------------------------------
 
@@ -335,7 +335,7 @@ MODULE mo_upatmo_impl_const
     INTEGER :: initialized      ! Parameterization is initialized
     INTEGER :: finalized        ! Parameterization is finalized
     INTEGER :: afterActivePhase ! Active phase of parameterization is over
-    ! 
+    !
     INTEGER :: nitem        ! Number of entries
   END TYPE t_iUpatmoPrcStat
   TYPE(t_iUpatmoPrcStat), PARAMETER :: iUpatmoPrcStat = t_iUpatmoPrcStat( 1, &  !iUpatmoPrcStat%enabled
@@ -357,11 +357,11 @@ MODULE mo_upatmo_impl_const
     INTEGER :: co2     ! Carbon dioxide
     INTEGER :: no      ! Nitric oxide
     INTEGER :: n2      ! Dinitrogen
-    ! 
+    !
     INTEGER :: nitem   ! Number of entries
     ! Selectors
     INTEGER :: diag    ! Which gas concentration might be computed
-                       ! diagnostically from all other gas concentrations    
+                       ! diagnostically from all other gas concentrations
   END TYPE t_iUpatmoGasId
   TYPE(t_iUpatmoGasId), PARAMETER :: iUpatmoGasId = t_iUpatmoGasId( 1, &  !iUpatmoGasId%o3
     &                                                               2, &  !iUpatmoGasId%o2
@@ -380,14 +380,14 @@ MODULE mo_upatmo_impl_const
 
   TYPE t_iUpatmoGasMode
     INTEGER :: zero        ! Zero gas concentration
-    INTEGER :: const       ! Horizontally/vertically/temporally constant 
-                           ! (single fixed value, read from namelist)          
+    INTEGER :: const       ! Horizontally/vertically/temporally constant
+                           ! (single fixed value, read from namelist)
     INTEGER :: extdat      ! External data read from file
     INTEGER :: diag        ! (Only for N2): determine N2 as the residual of all other gases
-    ! 
+    !
     INTEGER :: startitem   ! Integer of firt list entry (since it differes from 1)
-    INTEGER :: enditem     ! Integer of last list entry 
-                           ! (not nitem, since it differs from number of entries)    
+    INTEGER :: enditem     ! Integer of last list entry
+                           ! (not nitem, since it differs from number of entries)
   END TYPE t_iUpatmoGasMode
   TYPE(t_iUpatmoGasMode), PARAMETER :: iUpatmoGasMode = t_iUpatmoGasMode( 0, &  !iUpatmoGasMode%zero
     &                                                                     1, &  !iUpatmoGasMode%const
@@ -396,7 +396,7 @@ MODULE mo_upatmo_impl_const
     !
     &                                                                     0, &  !iUpatmoGasMode%startitem
     &                                                                     3  )  !iUpatmoGasMode%enditem
-  
+
   !-----------------------------------------------------
   !         Identifiers for gas status (nitem)
   !-----------------------------------------------------
@@ -421,7 +421,7 @@ MODULE mo_upatmo_impl_const
   TYPE t_iUpatmoExtdatId
     INTEGER :: gases      ! Radiatively active gases
     INTEGER :: chemheat   ! Chemical heating
-    ! 
+    !
     INTEGER :: nitem      ! Number of entries
   END TYPE t_iUpatmoExtdatId
   TYPE(t_iUpatmoExtdatId), PARAMETER :: iUpatmoExtdatId = t_iUpatmoExtdatId( 1, &  !iUpatmoExtdatId%gases
@@ -437,7 +437,7 @@ MODULE mo_upatmo_impl_const
     INTEGER :: required     ! External data is required
     INTEGER :: initialized  ! External data is initialized
     INTEGER :: finalized    ! External data is finalized
-    ! 
+    !
     INTEGER :: nitem      ! Number of entries
   END TYPE t_iUpatmoExtdatStat
   TYPE(t_iUpatmoExtdatStat), PARAMETER :: iUpatmoExtdatStat = t_iUpatmoExtdatStat( 1, &  !iUpatmoExtdatStat%required
@@ -452,7 +452,7 @@ MODULE mo_upatmo_impl_const
 
   TYPE t_iUpatmoExtdatLatId
     INTEGER :: deg        ! Latitudes in degree north
-    ! 
+    !
     INTEGER :: nitem      ! Number of entries
   END TYPE t_iUpatmoExtdatLatId
   TYPE(t_iUpatmoExtdatLatId), PARAMETER :: iUpatmoExtdatLatId = t_iUpatmoExtdatLatId( 1, &  !iUpatmoExtdatLatId%deg
@@ -466,7 +466,7 @@ MODULE mo_upatmo_impl_const
   TYPE t_iUpatmoExtdatLevId
     INTEGER :: p          ! Pressure levels
     INTEGER :: z          ! Geometric height levels
-    ! 
+    !
     INTEGER :: nitem      ! Number of entries
   END TYPE t_iUpatmoExtdatLevId
   TYPE(t_iUpatmoExtdatLevId), PARAMETER :: iUpatmoExtdatLevId = t_iUpatmoExtdatLevId( 1, &  !iUpatmoExtdatLevId%p
@@ -480,7 +480,7 @@ MODULE mo_upatmo_impl_const
 
   TYPE t_iUpatmoExtdatTimeId
     INTEGER :: month      ! Times in months
-    ! 
+    !
     INTEGER :: nitem      ! Number of entries
   END TYPE t_iUpatmoExtdatTimeId
   TYPE(t_iUpatmoExtdatTimeId), PARAMETER :: iUpatmoExtdatTimeId = t_iUpatmoExtdatTimeId( 1, &  !iUpatmoExtdatTimeId%month
@@ -491,18 +491,18 @@ MODULE mo_upatmo_impl_const
   ! Identifiers of upper-atmosphere-affected tracers (nitem)
   !----------------------------------------------------------
 
-  ! Please note that they are not (necessarily) identical 
-  ! to the 'iqx' in 'src/configure_model/mo_run_config', 
+  ! Please note that they are not (necessarily) identical
+  ! to the 'iqx' in 'src/configure_model/mo_run_config',
   ! set in 'src/configure_model/mo_nml_crosscheck'.
 
   TYPE t_iUpatmoTracerId
     INTEGER :: qv         ! Water vapor
-    ! 
+    !
     INTEGER :: nitem      ! Number of entries
   END TYPE t_iUpatmoTracerId
   TYPE(t_iUpatmoTracerId), PARAMETER :: iUpatmoTracerId = t_iUpatmoTracerId( 1, &  !iUpatmoTracerId%qv
     !
-    &                                                                        1  )  !iUpatmoTracerId%nitem  
+    &                                                                        1  )  !iUpatmoTracerId%nitem
 
   !----------------------------------------------------------
   !      Identifiers for thermodynamic coupling between
@@ -513,7 +513,7 @@ MODULE mo_upatmo_impl_const
     INTEGER :: isobaric   ! coupling assumes constant pressure
     INTEGER :: isochoric  ! coupling assumes constant volume/mass
     INTEGER :: entropic   ! coupling via heat (entropy) source
-    ! 
+    !
     INTEGER :: nitem      ! Number of entries
   END TYPE t_iThermdynCoupling
   TYPE(t_iThermdynCoupling), PARAMETER :: iThermdynCoupling = t_iThermdynCoupling( 1, &  !iThermdynCoupling%isobaric

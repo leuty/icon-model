@@ -953,7 +953,7 @@ CONTAINS
       &          t_cf_var('atmos_fluxes_FrshFlux_Evaporation', 'm s-1', 'atmos_fluxes_FrshFlux_Evaporation', datatype_flt),&
       &          grib2_var(255, 255, 255, DATATYPE_PACK16, GRID_UNSTRUCTURED, GRID_CELL),     &
       &          ldims=(/nproma,alloc_cell_blocks/),in_group=groups("ice_diag"))
-     
+
     ! river runoff flux                                         [m/s]
     CALL add_var(ocean_default_list,'atmos_fluxes_FrshFlux_Runoff', atmos_fluxes%FrshFlux_Runoff, &
       &          GRID_UNSTRUCTURED_CELL, ZA_SURFACE, &

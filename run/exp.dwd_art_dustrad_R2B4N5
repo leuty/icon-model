@@ -9,21 +9,21 @@
 # ------------------------------------------
 
 # ===========================================================================
-# 
+#
 # Name: exp.dwd_art_dustrad_R2B4N5
 #
-# Purpose: Runscript for ICON on a low resolution global grid and EU nest 
+# Purpose: Runscript for ICON on a low resolution global grid and EU nest
 #          (157km/79km) with ICON-ART mineral dust.
 #
 # Created by: Michael Krayer (DWD)
 #
-# =========================================================================== 
+# ===========================================================================
 
 #--------------------------------------------------------------------------------------------------
 #
 # This experiment describes an ICON-GLO run with a code path similar to DWD's operational
-# mineral dust deterministic forecast. It is computed on a coarse grid with nest (global/EU). 
-# The input data is based on exp.dwd_run_ICON_09_R2B4N5_EPS with some extensions regarding ART. 
+# mineral dust deterministic forecast. It is computed on a coarse grid with nest (global/EU).
+# The input data is based on exp.dwd_run_ICON_09_R2B4N5_EPS with some extensions regarding ART.
 # The initial dust concentration in the atmosphere is close to zero.
 #
 #--------------------------------------------------------------------------------------------------
@@ -37,7 +37,7 @@ num_prefetch_proc=${num_prefetch_proc:-0}
 num_io_procs_radar=${num_io_procs_radar:-0}
 
 # Machine-specific settings
-case ${builder} in 
+case ${builder} in
     bull_milan*)
         # ECCODES_DEFINITION_PATH needs to be set explicitly on levante
         ECCODES_ROOT="$(dirname $(dirname $(ldd ${MODEL} | grep libeccodes.so | awk '{print $3;}')))"
@@ -61,7 +61,7 @@ case ${builder} in
 esac
 
 # Combine START and MODEL if START_MODEL is not already set.
-# START_MODEL is used to ease the execution of a machine that uses a complex 
+# START_MODEL is used to ease the execution of a machine that uses a complex
 # mpirun command with multiple binaries
 START_MODEL="${START_MODEL:=$START $MODEL}"
 
@@ -197,7 +197,7 @@ cat > ${atmo_namelist} << EOF
 &run_nml
  num_lev        = 90,60
  lvert_nest     = .true.       ! use vertical nesting if a nest is active
- modelTimeStep  = "${modelTimeStep}" 
+ modelTimeStep  = "${modelTimeStep}"
  ldynamics      = .true.       ! dynamics
  ltransport     = .true.
  iforcing       = 3            ! NWP forcing
@@ -471,7 +471,7 @@ fi
 # 1) Extract cell grid
 $cdo selname,cell_area iconR2B04_DOM01.nc gridcell_R2B04_DOM01.nc
 $cdo selname,cell_area iconR2B05_DOM02.nc gridcell_R2B05_DOM02.nc
-# 2) Compute total mass/number inside domain 
+# 2) Compute total mass/number inside domain
 $cdo -s -infov -vertint -fldint -setgrid,gridcell_R2B04_DOM01.nc \
      -mul -selvar,rho ${EXP}_DOM01_ML_00030000.nc \
      -selvar,dusta,dustb,dustc,dusta0,dustb0,dustc0 ${EXP}_DOM01_ML_00030000.nc

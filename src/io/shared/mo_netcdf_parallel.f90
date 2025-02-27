@@ -160,7 +160,7 @@ INTEGER FUNCTION p_nf90_inquire_dimension(ncid, dimid, name, len)
     CALL p_bcast(local_name, p_io, p_comm_work)
     name = local_name
   ENDIF
-  
+
   IF (PRESENT(len)) THEN
     CALL p_bcast(local_len, p_io, p_comm_work)
     len = local_len

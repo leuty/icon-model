@@ -64,7 +64,7 @@ MODULE mo_wave_types
       &  f1mean(:,:),         & ! mean frequency based on f-moment  (nproma,nblks_c)
       &  wave_num_c(:,:,:),   & ! wave number at cell centers as a function of
                                 ! circular frequency and water depth (nproma,nfreqs,nblks_c) (1/m)
-      &  wave_num_e(:,:,:),   & ! wave number at cell edges as a function of 
+      &  wave_num_e(:,:,:),   & ! wave number at cell edges as a function of
                                 ! circular frequency and water depth (nproma,nfreqs,nblks_e) (1/m)
       &  akmean(:,:),         & ! mean wavenumber based on sqrt(1/k)-moment  (nproma,nblks_c) (1/m)
       &  xkmean(:,:),         & ! mean wavenumber based on sqrt(k)-moment    (nproma,nblks_c) (1/m)
@@ -97,12 +97,12 @@ MODULE mo_wave_types
       &  femean_sea(:,:),     & ! wind sea mean frequency energy (nproma,nblks_c) (m^2)
       &  f1mean_sea(:,:),     & ! wind sea mean frequency        (nproma,nblks_c) (Hz)
       &  hs_sea(:,:),         & ! sea significant wave height    (nproma,nblks_c) (m)
-      &  hs_sea_dir(:,:),     & ! sea mean wave direction        (nproma,nblks_c) (deg)  
-      &  pp_sea(:,:),         & ! sea peak period                (nproma,nblks_c) (s)  
-      &  mp_sea(:,:),         & ! sea mean period                (nproma,nblks_c) (s)  
-      &  m1_sea(:,:),         & ! sea m1-period                  (nproma,nblks_c) (s) 
+      &  hs_sea_dir(:,:),     & ! sea mean wave direction        (nproma,nblks_c) (deg)
+      &  pp_sea(:,:),         & ! sea peak period                (nproma,nblks_c) (s)
+      &  mp_sea(:,:),         & ! sea mean period                (nproma,nblks_c) (s)
+      &  m1_sea(:,:),         & ! sea m1-period                  (nproma,nblks_c) (s)
       &  m2_sea(:,:),         & ! sea m2-period                  (nproma,nblks_c) (s)
-      &  ds_sea(:,:),         & ! sea directional spreed         (nproma,nblks_c) (deg) 
+      &  ds_sea(:,:),         & ! sea directional spreed         (nproma,nblks_c) (deg)
       ! swell
       &  emean_swell(:,:),    & ! swell energy                   (nproma,nblks_c) (m^2)
       &  femean_swell(:,:),   & ! swell mean frequency energy    (nproma,nblks_c) (m^2)

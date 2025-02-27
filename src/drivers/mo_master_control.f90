@@ -12,10 +12,10 @@
 ! Provides the master control methods and paramaters
 
 MODULE mo_master_control
- 
+
   USE mo_io_units,      ONLY: filename_max
   USE mo_master_config
-  
+
   PUBLIC :: master_namelist_filename,                                     &
     & get_my_namelist_filename, get_my_process_type, get_my_process_name, &
     & atmo_process, ocean_process, ps_radiation_process, testbed_process, &
@@ -122,12 +122,12 @@ CONTAINS
 
   END FUNCTION my_process_is_hamocc
   !------------------------------------------------------------------------
- 
+
   !------------------------------------------------------------------------
   LOGICAL FUNCTION my_process_is_oceanic()
 
     my_process_is_oceanic = (my_process_model == ocean_process) .or. (my_process_model == hamocc_process) &
-      & .or. (my_process_model == icon_output_process) ! FixMe: temporary to make it work with the ocean 
+      & .or. (my_process_model == icon_output_process) ! FixMe: temporary to make it work with the ocean
 
   END FUNCTION my_process_is_oceanic
   !------------------------------------------------------------------------
@@ -139,7 +139,7 @@ CONTAINS
 
   END FUNCTION my_process_is_jsbach
   !------------------------------------------------------------------------
- 
+
   LOGICAL FUNCTION my_process_is_icon_output()
 
     my_process_is_icon_output = (my_process_model == icon_output_process)

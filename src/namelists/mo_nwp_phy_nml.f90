@@ -62,8 +62,8 @@ MODULE mo_nwp_phy_nml
   LOGICAL  :: lstoch_sde(max_dom)         !! use stochastic differential eqns for convection
   LOGICAL  :: lstoch_deep(max_dom)        !! use stochastic deep convection parameterization
   LOGICAL  :: lvvcouple(max_dom)          !! use vertical velocity at 650hPa as criterion to couple
-                                          !! shallow convection with resolved deep convection 
-  LOGICAL  :: lvv_shallow_deep(max_dom)   !! use vertical velocity at 650hPa to distinguish between shallow and 
+                                          !! shallow convection with resolved deep convection
+  LOGICAL  :: lvv_shallow_deep(max_dom)   !! use vertical velocity at 650hPa to distinguish between shallow and
                                           !! deep convection within convection routines (instead of cloud depth)
   LOGICAL  :: lstoch_spinup(max_dom)      !! spin up cloud ensemble to equilibrium, in shallow stochastic convection
   LOGICAL  :: lrestune_off(max_dom)       !! switch off all resolution-dependent tuning in convection setup
@@ -140,17 +140,17 @@ CONTAINS
 
   !-------------------------------------------------------------------------
   !
-  !! Read Namelist for NWP physics. 
+  !! Read Namelist for NWP physics.
   !!
-  !! This subroutine 
+  !! This subroutine
   !! - reads the Namelist for NWP physics
   !! - sets default values
-  !! - potentially overwrites the defaults by values used in a 
+  !! - potentially overwrites the defaults by values used in a
   !!   previous integration (if this is a resumed run)
   !! - reads the user's (new) specifications
   !! - performs sanity checks
   !! - stores the Namelist for restart
-  !! - fills the configuration state (partly)    
+  !! - fills the configuration state (partly)
   !!
   SUBROUTINE read_nwp_phy_namelist( filename )
 
@@ -175,9 +175,9 @@ CONTAINS
 
     icalc_reff_def = 0    ! Default is no calculation of effectives radius
     icpl_rad_reff_def = 0 ! Default is no coupling of effective radius and radiation
-    ithermo_water_def = 0 ! Default is latent heat as a function of temperature in saturation adjustment 
+    ithermo_water_def = 0 ! Default is latent heat as a function of temperature in saturation adjustment
                           ! but constant in microphysics.
-    
+
     inwp_gscp(:)       = param_def
     inwp_satad(:)      = param_def
     inwp_convection(:) = param_def
@@ -189,7 +189,7 @@ CONTAINS
     inwp_surface(:)    = param_def
 
     dt_conv (:) = dt_conv_def
-    dt_ccov (:) = dt_conv_def 
+    dt_ccov (:) = dt_conv_def
     dt_rad  (:) = dt_rad_def
     dt_sso  (:) = dt_sso_def
     dt_gwd  (:) = dt_gwd_def
@@ -213,13 +213,13 @@ CONTAINS
     lsgs_cond(:)          = .TRUE.  ! activate subgrid-scale condensation in cloud cover scheme
 
 
-    lrtm_filename   = 'rrtmg_lw.nc'  
+    lrtm_filename   = 'rrtmg_lw.nc'
     cldopt_filename = 'ECHAM6_CldOptProps.nc'
 
     itype_z0 = 2  !  2 = land-cover related roughness lenght only (i.e. no orographic contrib)
     itype_satpres_coeffs = 1 ! 1 = old coefficients inherited from the COSMO model, 2 = more accurate coefficients used in IFS
-    qi0      = 0.0_wp 
-    qc0      = 0.0_wp 
+    qi0      = 0.0_wp
+    qc0      = 0.0_wp
 
     ! shape parameter for gamma distribution for rain and snow
     mu_rain = 0.0_wp
@@ -247,7 +247,7 @@ CONTAINS
     icpl_aero_gscp = 0  ! 0 = none
                         ! 1 = simple coupling with aerosol climatology disregarding the dependency of aerosol activation on vertical wind speed
                         ! 2 = more accurate coupling with aerosol climatology as a function of vertical wind speed
-                        ! 3 = like 1 but using the cdnc from external parameter 
+                        ! 3 = like 1 but using the cdnc from external parameter
 
     ! scaling of external CDNCs (only for icpl_aero_gscp = 3), mainly for climate projections
     lscale_cdnc = .FALSE.  ! FALSE - no scaling
@@ -276,7 +276,7 @@ CONTAINS
     itype_dissip_heat = 1   ! 0 = none; switch is automatically reset to 0 if dissipative heating is calculated in turbulence scheme
                             ! 1 = SSO + GWD + Rayleigh friction
                             ! 2 = 1 + momemtum dissipation by turbulence
-    
+
     ! Calculation of effective radius
     icalc_reff(:)   =  icalc_reff_def ! 0      = no calculation (current default)
                        ! 1,2,4,5,6,7 = corresponding to the microphysics scheme 1,....,7 (same terminology as inwp_gscp)
@@ -289,7 +289,7 @@ CONTAINS
 
     ithermo_water(:)=  ithermo_water_def ! 0   = Latent heats (LH) constant in microphysics
                                          ! 1   = LH as function of temperature in microphysics
-    
+
     lcuda_graph_turb_tran = .FALSE.   ! cuda graph deactivated by default
 
     IF (my_process_is_stdio()) THEN
@@ -298,7 +298,7 @@ CONTAINS
     END IF
 
     !------------------------------------------------------------------
-    ! 2. If this is a resumed integration, overwrite the defaults above 
+    ! 2. If this is a resumed integration, overwrite the defaults above
     !    by values used in the previous integration.
     !------------------------------------------------------------------
     IF (use_restart_namelists()) THEN
@@ -336,7 +336,7 @@ CONTAINS
       icalc_reff(:)      = -1
       icpl_rad_reff(:)   = -1
       ithermo_water(:)   = -1
-      
+
       READ (nnml, nwp_phy_nml)   ! overwrite default settings
 
       ! Restore default values for global domain where nothing at all has been specified
@@ -362,8 +362,8 @@ CONTAINS
       ! Extra calculation
       IF (icalc_reff(1)      < 0) icalc_reff(1)      = icalc_reff_def    ! Default no calculation of effective radius
       IF (icpl_rad_reff(1)   < 0) icpl_rad_reff(1)   = icpl_rad_reff_def ! Default no coupling of radiation with effective radius
-      IF (ithermo_water(1)   < 0) ithermo_water(1)   = ithermo_water_def ! Default is constant LH in micro. 
-      
+      IF (ithermo_water(1)   < 0) ithermo_water(1)   = ithermo_water_def ! Default is constant LH in micro.
+
       ! Copy values of parent domain (in case of linear nesting) to nested domains where nothing has been specified
 
       DO jg = 2, max_dom
@@ -380,17 +380,17 @@ CONTAINS
         IF (inwp_surface(jg)    < 0) inwp_surface(jg)    = inwp_surface(jg-1)
 
         ! Time steps
-        IF (dt_conv (jg) < 0._wp) dt_conv (jg) = dt_conv (jg-1) 
+        IF (dt_conv (jg) < 0._wp) dt_conv (jg) = dt_conv (jg-1)
         IF (dt_ccov (jg) < 0._wp) dt_ccov (jg) = dt_conv (jg) ! this sets the previous default of dt_ccov=dt_conv
         IF (dt_sso  (jg) < 0._wp) dt_sso  (jg) = dt_sso  (jg-1)
         IF (dt_gwd  (jg) < 0._wp) dt_gwd  (jg) = dt_gwd  (jg-1)
         IF (dt_rad  (jg) < 0._wp) dt_rad  (jg) = dt_rad  (jg-1)
-        
+
         ! Extra calculations
         IF (icalc_reff(jg)      < 0) icalc_reff(jg)       = icalc_reff(jg-1)
         IF (icpl_rad_reff(jg)   < 0) icpl_rad_reff(jg)    = icpl_rad_reff(jg-1)
         IF (ithermo_water(jg)   < 0) ithermo_water(jg)    = ithermo_water(jg-1)
-        
+
         ! Upper-atmosphere physics
         IF (lupatmo_phy(jg)) lupatmo_phy(jg) = lupatmo_phy(jg-1)
 
@@ -407,7 +407,7 @@ CONTAINS
     !----------------------------------------------------
     ! 4. Sanity check
     !----------------------------------------------------
-    
+
     ! check for valid parameters in namelists
 
     DO jg = 1, max_dom
@@ -415,7 +415,7 @@ CONTAINS
       IF ( ALL((/0,1,2,3,4,5,6,7,8,9/) /= inwp_gscp(jg)) ) THEN
         CALL finish( TRIM(routine), 'Incorrect setting for inwp_gscp. Must be 0,1,2,3,4,5,6,7,8 or 9.')
       END IF
-      
+
       IF ( ALL((/0,1,2,4,5,6,7,8,100,101/) /= icalc_reff(jg)) ) THEN
         CALL finish( TRIM(routine), 'Incorrect setting for icalc_reff. Must be 0,1,2,4,5, 6,7,8, 100 or 101.')
       END IF
@@ -423,7 +423,7 @@ CONTAINS
       IF ( ALL((/0,1,2/) /= icpl_rad_reff(jg)) ) THEN
         CALL finish( TRIM(routine), 'Incorrect setting for icpl_rad_reff. Must be 0,1,2')
       END IF
-      
+
       IF ( (icpl_rad_reff(jg) > 0) .AND. (icalc_reff(jg) == 0) ) THEN
         CALL finish( TRIM(routine), 'Incorrect setting for icpl_rad_reff. It must be 0 if no reff is defined (icalc_reff =0)')
       END IF
@@ -441,7 +441,7 @@ CONTAINS
         CALL finish( TRIM(routine),'inwp_gscp == 6, but ICON was compiled with --disable-art')
       ENDIF
 #endif
-      
+
       IF (inwp_surface(jg) == 0 .AND. itype_z0 > 1) THEN
         CALL message(TRIM(routine), 'Warning: itype_z0 is reset to 1 because surface scheme is turned off')
         itype_z0 = 1
@@ -479,7 +479,7 @@ CONTAINS
         CALL finish( TRIM(routine), 'VDIFF turbulence scheme has to be used with JSBACH land-surface scheme, set inwp_surface=2')
       ENDIF
 
-      ! For backward compatibility, do not throw an error message, if inwp_turb=10,11 or 12 
+      ! For backward compatibility, do not throw an error message, if inwp_turb=10,11 or 12
       ! is chosen. reset inwp_turb to 1, instead
       IF ( ANY((/10,11,12/) == inwp_turb(jg)) ) THEN
         inwp_turb(jg) = 1
@@ -514,7 +514,7 @@ CONTAINS
       atm_phy_nwp_config(jg)%inwp_cldcover   = inwp_cldcover(jg)
       atm_phy_nwp_config(jg)%inwp_radiation  = inwp_radiation(jg)
       atm_phy_nwp_config(jg)%inwp_sso        = inwp_sso(jg)
-      atm_phy_nwp_config(jg)%inwp_gwd        = inwp_gwd(jg) 
+      atm_phy_nwp_config(jg)%inwp_gwd        = inwp_gwd(jg)
       atm_phy_nwp_config(jg)%inwp_gscp       = inwp_gscp(jg)
       atm_phy_nwp_config(jg)%inwp_satad      = inwp_satad(jg)
       atm_phy_nwp_config(jg)%inwp_turb       = inwp_turb(jg)
@@ -540,9 +540,9 @@ CONTAINS
       atm_phy_nwp_config(jg)%dt_rad          = dt_rad  (jg)
       atm_phy_nwp_config(jg)%dt_sso          = dt_sso  (jg)
       atm_phy_nwp_config(jg)%dt_gwd          = dt_gwd  (jg)
-      atm_phy_nwp_config(jg)%qi0             = qi0 
-      atm_phy_nwp_config(jg)%qc0             = qc0 
-      atm_phy_nwp_config(jg)%ustart_raylfric = ustart_raylfric 
+      atm_phy_nwp_config(jg)%qi0             = qi0
+      atm_phy_nwp_config(jg)%qc0             = qc0
+      atm_phy_nwp_config(jg)%ustart_raylfric = ustart_raylfric
       atm_phy_nwp_config(jg)%efdt_min_raylfric = efdt_min_raylfric
       atm_phy_nwp_config(jg)%latm_above_top  = latm_above_top(jg)
       atm_phy_nwp_config(jg)%lupatmo_phy     = lupatmo_phy(jg)
@@ -573,8 +573,8 @@ CONTAINS
     !-----------------------------------------------------
     IF(my_process_is_stdio())  THEN
       funit = open_tmpfile()
-      WRITE(funit,NML=nwp_phy_nml)                    
-      CALL store_and_close_namelist(funit, 'nwp_phy_nml') 
+      WRITE(funit,NML=nwp_phy_nml)
+      CALL store_and_close_namelist(funit, 'nwp_phy_nml')
     ENDIF
     ! 7. write the contents of the namelist to an ASCII file
     !
@@ -583,4 +583,3 @@ CONTAINS
   END SUBROUTINE read_nwp_phy_namelist
 
 END MODULE mo_nwp_phy_nml
-

@@ -33,9 +33,9 @@ MODULE mo_post_op
   USE openacc,                  ONLY: acc_is_present
 #endif
   IMPLICIT NONE
-  
+
   PRIVATE
-  
+
   PUBLIC :: perform_post_op
 
   CHARACTER(LEN=*), PARAMETER :: modname = TRIM('mo_post_op')
@@ -51,7 +51,7 @@ MODULE mo_post_op
 
 CONTAINS
 
-  !> Performs small arithmetic operations ("post-ops") on 2D REAL field 
+  !> Performs small arithmetic operations ("post-ops") on 2D REAL field
   !  as post-processing tasks.
   SUBROUTINE perform_post_op_r2D(post_op, field2D, opt_inverse, lacc)
     TYPE (t_post_op_meta), INTENT(IN)    :: post_op
@@ -136,7 +136,7 @@ CONTAINS
   END SUBROUTINE perform_post_op_r2D
 
 
-  !> Performs small arithmetic operations ("post-ops") on 2D REAL field 
+  !> Performs small arithmetic operations ("post-ops") on 2D REAL field
   !  as post-processing tasks.
   SUBROUTINE perform_post_op_s2D(post_op, field2D, opt_inverse, lacc)
     TYPE (t_post_op_meta), INTENT(IN)    :: post_op
@@ -198,7 +198,7 @@ CONTAINS
       END DO
       !$ACC END PARALLEL
 !$OMP END DO
-!$OMP END PARALLEL 
+!$OMP END PARALLEL
 
     CASE(POST_OP_OFFSET)
 
@@ -223,7 +223,7 @@ CONTAINS
   END SUBROUTINE perform_post_op_s2D
 
 
-  !> Performs small arithmetic operations ("post-ops") on 2D INTEGER field 
+  !> Performs small arithmetic operations ("post-ops") on 2D INTEGER field
   !  as post-processing tasks.
   SUBROUTINE perform_post_op_i2D(post_op, field2D, opt_inverse, lacc)
     TYPE (t_post_op_meta), INTENT(IN)    :: post_op
@@ -292,7 +292,7 @@ CONTAINS
   END SUBROUTINE perform_post_op_i2D
 
 
-  !> Performs small arithmetic operations ("post-ops") on 3D REAL field 
+  !> Performs small arithmetic operations ("post-ops") on 3D REAL field
   !  as post-processing tasks.
   SUBROUTINE perform_post_op_r3D(post_op, field3D, opt_inverse, lacc)
     TYPE (t_post_op_meta), INTENT(IN)    :: post_op
@@ -385,7 +385,7 @@ CONTAINS
   END SUBROUTINE perform_post_op_r3D
 
 
-  !> Performs small arithmetic operations ("post-ops") on 3D REAL field 
+  !> Performs small arithmetic operations ("post-ops") on 3D REAL field
   !  as post-processing tasks.
   SUBROUTINE perform_post_op_s3D(post_op, field3D, opt_inverse, lacc)
     TYPE (t_post_op_meta), INTENT(IN)    :: post_op
@@ -479,7 +479,7 @@ CONTAINS
   END SUBROUTINE perform_post_op_s3D
 
 
-  !> Performs small arithmetic operations ("post-ops") on 3D INTEGER field 
+  !> Performs small arithmetic operations ("post-ops") on 3D INTEGER field
   !  as post-processing tasks.
   SUBROUTINE perform_post_op_i3D(post_op, field3D, opt_inverse, lacc)
     TYPE (t_post_op_meta), INTENT(IN)    :: post_op

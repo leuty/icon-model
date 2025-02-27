@@ -30,4 +30,3 @@ $addexp checksuite.ocean_internal/technical/exp.ocean_omip_ptest checksuite.ocea
 #lets see the list
 ./lslist $listname
 #-----------------------------------------------------------
-

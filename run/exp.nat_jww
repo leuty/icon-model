@@ -57,7 +57,7 @@ dt_data=`expr ${dtime} \* ${nsteps}`   # data output at the end of the integrati
 atmo_model_equations=3             # equation system
 #                     1=hydrost. atm. T
 #                     1=hydrost. atm. theta dp
-#                     3=non-hydrost. atm., 
+#                     3=non-hydrost. atm.,
 #                     0=shallow water model
 #                    -1=hydrost. ocean
 nlev=40              # nlev = number of full levels

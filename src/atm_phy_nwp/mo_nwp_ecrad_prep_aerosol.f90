@@ -47,8 +47,8 @@ INTERFACE nwp_ecrad_prep_aerosol
   MODULE PROCEDURE nwp_ecrad_prep_aerosol_td
   MODULE PROCEDURE nwp_ecrad_prep_aerosol_CAMS
 END INTERFACE nwp_ecrad_prep_aerosol
-  
-  
+
+
 CONTAINS
 
   !---------------------------------------------------------------------------------------
@@ -170,7 +170,7 @@ CONTAINS
       &  scal_sct(:,:),         & !< Scaling factor scattering
       &  scal_asy(:,:)            !< Scaling factor asymmetry
     CHARACTER(len=*), PARAMETER :: &
-      &  routine = modname//'::nwp_ecrad_prep_aerosol_tegen' 
+      &  routine = modname//'::nwp_ecrad_prep_aerosol_tegen'
     INTEGER                  :: &
       &  jc, jk, jband,         & !< Loop indices
       &  n_bands_sw,            & !< Number of ecrad shortwave bands
@@ -233,13 +233,13 @@ CONTAINS
               &      + zaeq3(jc,jk) * scal_sct(jband_shift,3) &
               &      + zaeq4(jc,jk) * scal_sct(jband_shift,4) &
               &      + zaeq5(jc,jk) * scal_sct(jband_shift,5)
-    
+
             ! Total optical depth for band jband
             ecrad_aerosol%od_sw (jband,jk,jc) = tau_abs + tau_sca
-            
+
             ! Bulk SW single scattering albedo for band jband
             ecrad_aerosol%ssa_sw(jband,jk,jc) = tau_sca / ( tau_abs + tau_sca )
-    
+
             ! Bulk SW asymmetry factor
             ecrad_aerosol%g_sw  (jband,jk,jc) =                                        &
               & (   zaeq1(jc,jk) * scal_sct(jband_shift,1) * scal_asy(jband_shift,1)   &
@@ -346,7 +346,7 @@ CONTAINS
       &  ecrad_aerosol            !< ecRad aerosol information (input)
     ! Local variables
     CHARACTER(len=*), PARAMETER :: &
-      &  routine = modname//'::nwp_ecrad_prep_aerosol_CAMS' 
+      &  routine = modname//'::nwp_ecrad_prep_aerosol_CAMS'
     INTEGER                  :: &
       &  jc, jk, js              !< Loop indices
 
@@ -356,7 +356,7 @@ CONTAINS
           ecrad_aerosol%mixing_ratio(jc,jk,js)= ptr_camsaermr(js)%p(jc,jk)
         ENDDO
       ENDDO
-    ENDDO    
+    ENDDO
 
   END SUBROUTINE nwp_ecrad_prep_aerosol_CAMS
 #endif

@@ -14,9 +14,9 @@ MODULE mo_reader_abstract
   USE mo_kind,         ONLY: wp
   USE mo_model_domain, ONLY: t_patch
   USE mtime,           ONLY: julianday
-  
+
   IMPLICIT NONE
-  
+
   PUBLIC t_abstract_reader
 
   TYPE, ABSTRACT :: t_abstract_reader

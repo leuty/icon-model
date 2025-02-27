@@ -13,7 +13,7 @@
 
 MODULE mo_ls_forcing_nml
 
-  USE mo_mpi,                 ONLY: my_process_is_stdio 
+  USE mo_mpi,                 ONLY: my_process_is_stdio
   USE mo_exception,           ONLY: message, finish
   USE mo_io_units,            ONLY: nnml, nnml_output
   USE mo_kind,                ONLY: wp
@@ -39,7 +39,7 @@ MODULE mo_ls_forcing_nml
   LOGICAL  :: is_advection          !true if horizontal advective forcing is on for any variable
   LOGICAL  :: is_advection_uv       !true if horizontal advective forcing is on for u and v
   LOGICAL  :: is_advection_tq       !true if horizontal advective forcing is on for temperature and moisture
-  LOGICAL  :: is_geowind            !true if geostophic wind is set 
+  LOGICAL  :: is_geowind            !true if geostophic wind is set
   LOGICAL  :: is_rad_forcing        !true if radiative forcing is on
   LOGICAL  :: is_theta              !true is forcings are in terms of theta
   LOGICAL  :: is_nudging            !true if nudging applied
@@ -49,7 +49,7 @@ MODULE mo_ls_forcing_nml
   REAL(wp) :: nudge_start_height    !height where nudging starts                [m]
   REAL(wp) :: nudge_full_height     !height where nudging reaches full strength [m]
   REAL(wp) :: dt_relax              !time scale for nudging                     [s]
- 
+
   NAMELIST/ls_forcing_nml/ is_subsidence_moment, is_subsidence_heat, is_advection,is_advection_uv,is_advection_tq, &
                            is_geowind, is_rad_forcing, is_theta, is_nudging,is_nudging_uv, is_nudging_tq, &
                            nudge_start_height, nudge_full_height, dt_relax, is_sim_rad
@@ -58,18 +58,18 @@ CONTAINS
   !-------------------------------------------------------------------------
   !! Read Namelist for LS forcing
   !!
-  !! This subroutine 
-  !! - reads the Namelist 
+  !! This subroutine
+  !! - reads the Namelist
   !! - sets default values
-  !! - potentially overwrites the defaults by values used in a 
+  !! - potentially overwrites the defaults by values used in a
   !!   previous integration (if this is a resumed run)
   !! - reads the user's (new) specifications
   !! - stores the Namelist for restart
-  !! - fills the configuration state 
+  !! - fills the configuration state
   !!
   SUBROUTINE read_ls_forcing_namelist( filename )
 
-    CHARACTER(LEN=*), INTENT(IN) :: filename 
+    CHARACTER(LEN=*), INTENT(IN) :: filename
     INTEGER :: istat, funit, iunit
 
     CHARACTER(len=*), PARAMETER ::  &
@@ -96,12 +96,12 @@ CONTAINS
     dt_relax             = 3600.0_wp
 
     !------------------------------------------------------------------
-    ! 2. If this is a resumed integration, overwrite the defaults above 
+    ! 2. If this is a resumed integration, overwrite the defaults above
     !    by values used in the previous integration.
     ! ltestcase is added here because it was causing trouble for AMIP runs
     ! restarting with a file generated long ago
     !------------------------------------------------------------------
-    IF (use_restart_namelists()) THEN 
+    IF (use_restart_namelists()) THEN
       funit = open_and_restore_namelist('ls_forcing_nml')
       READ(funit,NML=ls_forcing_nml)
       CALL close_tmpfile(funit)
@@ -128,7 +128,7 @@ CONTAINS
 
     !4. checks
     !If any atmospheric forcing is ON, turn on is_ls_forcing
-    ! see configure_model/mo_nml_crosscheck.f90 for surface forcing in SCM setup 
+    ! see configure_model/mo_nml_crosscheck.f90 for surface forcing in SCM setup
     IF(is_subsidence_moment .OR. is_subsidence_heat .OR. is_advection .OR. &
       & is_geowind .OR. is_rad_forcing .OR. is_nudging .OR. is_sim_rad) THEN
         is_ls_forcing = .TRUE.
@@ -155,8 +155,8 @@ CONTAINS
     !-----------------------------------------------------
     IF(my_process_is_stdio())  THEN
       funit = open_tmpfile()
-      WRITE(funit,NML=ls_forcing_nml)                    
-      CALL store_and_close_namelist(funit,'ls_forcing_nml') 
+      WRITE(funit,NML=ls_forcing_nml)
+      CALL store_and_close_namelist(funit,'ls_forcing_nml')
     ENDIF
 
     ! 6. write the contents of the namelist to an ASCII file

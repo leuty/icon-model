@@ -75,7 +75,7 @@ MODULE mo_ocean_tke
     &  tke_surf_min,                &
     &  only_tke,                    &
     &  l_lc,                        & !by_Oliver
-    &  clc,                         & !by_Oliver 
+    &  clc,                         & !by_Oliver
     &  use_ubound_dirichlet,        &
     &  use_lbound_dirichlet,        &
     &  vert_cor_type
@@ -218,7 +218,7 @@ CONTAINS
     REAL(wp), TARGET                     :: concsum   (:,:) ! sea ice concentration
     LOGICAL, INTENT(IN), OPTIONAL        :: lacc
 
-    ! pointer for convenience 
+    ! pointer for convenience
     TYPE(t_subset_range), POINTER :: edges_in_domain, all_cells
 
     REAL(wp), POINTER :: prism_thick_c(:,:,:)
@@ -233,8 +233,8 @@ CONTAINS
     REAL(wp), POINTER :: Av_old(:,:,:)
     REAL(wp), POINTER :: kv_old(:,:,:)
     REAL(wp), POINTER :: tke(:,:,:)
- 
-    ! Langmuir turbulence   
+
+    ! Langmuir turbulence
     REAL(wp), POINTER :: tke_plc(:,:,:)
     REAL(wp), POINTER :: tke_plc_ptr(:,:)
     REAL(wp), POINTER :: wlc(:,:,:)
@@ -581,7 +581,7 @@ CONTAINS
     REAL(wp), TARGET                     :: fu10   (:,:) ! t_atmos_for_ocean%fu10
     REAL(wp), TARGET                     :: concsum   (:,:) ! sea ice concentration
 
-    ! pointer for convenience 
+    ! pointer for convenience
     TYPE(t_subset_range), POINTER :: edges_in_domain, all_cells
 
     REAL(wp), POINTER :: prism_thick_c(:,:,:)
@@ -597,8 +597,8 @@ CONTAINS
     REAL(wp), POINTER :: Av_old(:,:,:)
     REAL(wp), POINTER :: kv_old(:,:,:)
     REAL(wp), POINTER :: tke(:,:,:)
- 
-    ! Langmuir turbulence   
+
+    ! Langmuir turbulence
     REAL(wp), POINTER :: tke_plc(:,:,:)
     REAL(wp), POINTER :: tke_plc_ptr(:)
     REAL(wp), POINTER :: wlc(:,:,:)
@@ -784,7 +784,7 @@ CONTAINS
           ENDDO
 
 
-          
+
       !if (jc==8 .and. blockNo==10) then
       !  write(*,*) 'jc = ', jc, 'blockNo = ', blockNo, 'tstep_count = ', tstep_count
       !  !write(*,*) 'dolic_c(jc,blockNo) = ', patch_3d%p_patch_1d(1)%dolic_c(jc,blockNo)
@@ -862,7 +862,7 @@ CONTAINS
           ENDIF
 
           CALL coeffs_tke(                                                          &
-              ! parameter                                                           
+              ! parameter
               i = jc,                                                               &
               j = blockNo,                                                          &
               tstep_count = tstep_count,                                            &

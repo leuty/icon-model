@@ -14,16 +14,16 @@
 ! @literature cr2021_08_03)jsr for further documentation
 
 MODULE mo_aes_bubble_config
-                                                                                     
-  USE mo_exception            ,ONLY: message, message_text, print_value, warning, finish                                                                                 
-  USE mo_kind                 ,ONLY: wp                                              
-  USE mo_parallel_config      ,ONLY: nproma                                          
-                                                                                     
-  IMPLICIT NONE                                                                      
-                                                                                     
-  PRIVATE                                                                            
-                                                                                     
-  ! configuration                                                                    
+
+  USE mo_exception            ,ONLY: message, message_text, print_value, warning, finish
+  USE mo_kind                 ,ONLY: wp
+  USE mo_parallel_config      ,ONLY: nproma
+
+  IMPLICIT NONE
+
+  PRIVATE
+
+  ! configuration
   PUBLIC ::         aes_bubble_config   !< user specified configuration parameters
   PUBLIC ::    init_aes_bubble_config   !< allocate and initialize aes_bubble_config
   PUBLIC ::    eval_aes_bubble_config   !< evaluate aes_bubble_config
@@ -85,13 +85,13 @@ CONTAINS
     hw_z        => aes_bubble_config%hw_z
     x_center    => aes_bubble_config%x_center
 
-    CALL message    ('','')                                                          
+    CALL message    ('','')
     CALL message    ('','------------------------------------------------------------------------')
-    CALL message    ('','')                                                          
+    CALL message    ('','')
     CALL message    ('','Effective input to the aes bubble experiment on a torus')
     CALL message    ('','=======================================================')
-    CALL message    ('','')                                                          
- 
+    CALL message    ('','')
+
     IF (t_am <= 0._wp) THEN
        WRITE (message_text,*) 'Absolute minimum temperature in atmosphere t_am=',t_am, &
             & ' but cannot be below or equal to 0K'
@@ -173,11 +173,11 @@ CONTAINS
 !!!==============================================================================================
 
   SUBROUTINE print_aes_bubble_config
-    CALL message    ('','========================================================================')                                                                      
-    CALL message    ('','')                                                          
+    CALL message    ('','========================================================================')
+    CALL message    ('','')
     CALL message    ('','Aes bubble experiment configuration (on a Torus)')
     CALL message    ('','================================================')
-    CALL message    ('','')                                                          
+    CALL message    ('','')
 
     CALL print_value ('    aes_bubble_config%t_am       ', aes_bubble_config%t_am      )
     CALL print_value ('    aes_bubble_config%psfc       ', aes_bubble_config%psfc      )
@@ -192,7 +192,7 @@ CONTAINS
     CALL print_value ('    aes_bubble_config%hw_z       ', aes_bubble_config%hw_z      )
     CALL print_value ('    aes_bubble_config%x_center   ', aes_bubble_config%x_center  )
     CALL print_value ('    aes_bubble_config%lgaussxz   ', aes_bubble_config%lgaussxy  )
-    
+
   END SUBROUTINE print_aes_bubble_config
 
 !!!==============================================================================================

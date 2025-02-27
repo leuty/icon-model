@@ -14,7 +14,7 @@
 ! configuration setup for synthetic radar data on the model grid
 
 MODULE mo_synradar_config
-  
+
   USE mo_io_units,                ONLY: filename_max
   USE radar_dbzcalc_params_type,  ONLY: t_dbzcalc_params
 

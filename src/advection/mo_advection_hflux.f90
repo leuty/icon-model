@@ -187,7 +187,7 @@ CONTAINS
     ! tracer fields which are advected
     trAdvect => advconf%trAdvect
 
-    ! 
+    !
     IF ( PRESENT(opt_rlend) ) THEN
       i_rlend = opt_rlend
     ELSE
@@ -223,13 +223,13 @@ CONTAINS
       CALL rbf_vec_interpol_edge( p_vn, p_patch, p_int,            &! in
         &                         z_real_vt, lacc=.TRUE.,          &! inout
         &                         opt_rlend=i_rlend_vt,            &! in
-        &                         opt_acc_async = .TRUE. )          ! in  
+        &                         opt_acc_async = .TRUE. )          ! in
     ENDIF
 
 
     !
-    ! Backward trajectory computation for MIURA-scheme with linear 
-    ! reconstruction. In that case it is sufficient to compute 
+    ! Backward trajectory computation for MIURA-scheme with linear
+    ! reconstruction. In that case it is sufficient to compute
     ! only the barycenter of the departure region (instead of all the vertices).
     i_rlstart  = 5
     i_rlend_tr = MIN(i_rlend, min_rledge_int - 1)
@@ -1922,7 +1922,7 @@ CONTAINS
 !$OMP END PARALLEL
 
     !
-    ! 4. If desired, apply a monotonic or positive definite flux limiter 
+    ! 4. If desired, apply a monotonic or positive definite flux limiter
     !    to limit computed fluxes.
     !    The flux limiter is based on work by Zalesak (1979)
     !
@@ -2452,7 +2452,7 @@ CONTAINS
 
 
     !
-    ! 4. If desired, apply a monotonic or positive definite flux limiter 
+    ! 4. If desired, apply a monotonic or positive definite flux limiter
     !    to limit computed fluxes.
     !    The flux limiter is based on work by Zalesak (1979)
     !
@@ -3054,7 +3054,7 @@ CONTAINS
 
 
     !
-    ! 4. If desired, apply a monotonic or positive definite flux limiter 
+    ! 4. If desired, apply a monotonic or positive definite flux limiter
     !    to limit computed fluxes.
     !    The flux limiter is based on work by Zalesak (1979)
     !
@@ -3096,4 +3096,3 @@ CONTAINS
   END SUBROUTINE hflux_ffsl_hybrid
 
 END MODULE mo_advection_hflux
-

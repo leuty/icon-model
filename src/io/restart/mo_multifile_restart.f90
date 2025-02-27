@@ -240,7 +240,7 @@ CONTAINS
     IF(isAsync()) CALL me%transferGlobalParameters()
     !set some local variables describing the communication that needs to be done
     myProcId = p_comm_rank(p_comm_work_restart)
-    myWrt  = rBuddy() 
+    myWrt  = rBuddy()
     nSrcRanks = COUNT((/(rBuddy(pe_in=i) == myWrt, i = 0, num_work_procs -1)/))
     ALLOCATE(srcRanks(nSrcRanks))
     srcRanks = PACK((/(i, i=0,num_work_procs-1)/), &
@@ -350,7 +350,7 @@ CONTAINS
       CALL writeAttributeFile()
     ELSE IF(.NOT.isAsync().OR.iAmRestartWriter()) THEN
       CALL p_barrier(p_comm_work)
-    ELSE 
+    ELSE
       dpTime = p_mpi_wtime() - dpTime
       IF(my_process_is_mpi_workroot()) &
         CALL message(routine, "restart: preparing checkpoint-data took " &
@@ -499,7 +499,7 @@ CONTAINS
     SUBROUTINE createRestartArgs_restart()
       TYPE(t_PackedMessage) :: pmsg
       REAL(dp) :: timing
-  
+
       IF(timers_level >= 7) CALL timer_start(timer_write_restart_wait)
       IF(iAmRestartMaster()) timing = p_mpi_wtime()
       CALL pmsg%bcast(restartBcastRoot(), p_comm_work_2_restart)

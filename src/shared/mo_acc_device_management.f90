@@ -15,20 +15,20 @@ MODULE mo_acc_device_management
 
 !------------------------------------------------------------------------------
 !
-! Description : 
+! Description :
 !  This module provides routines to set up the GPU device as well wrapper
-!  for cuda function calls. The module is empty if preprocessor variable 
+!  for cuda function calls. The module is empty if preprocessor variable
 !  _OPENACC is not set.
 !  Note: routines using STOP in case of error instead of model_abort
 !  as they may be called before mpi init
-!  
+!
 ! Routines contained:
 !  - cudaGetErrorString     : get cuda error
 !  - cudaGetDeviceCount     : get number of devices
 !  - cudaSetDevice          : set device
 !  - cudaDeviceReset        : reset device
 !  - cudaMemGetInfo         : get memory usage
-!  - cudaDeviceSynchronize  : halts CPU/Host thread until GPU has processed all 
+!  - cudaDeviceSynchronize  : halts CPU/Host thread until GPU has processed all
 !                             tasks
 !  - my_cudaErrorCheck      : check and print cuda error if any
 !  - initAccDevice          : init device
@@ -343,7 +343,7 @@ SUBROUTINE initAccDevice()
 !
 ! Description:
 !
-! Initialize GPUs. In case of multi-thread run associates one GPU to each 
+! Initialize GPUs. In case of multi-thread run associates one GPU to each
 ! thread. The last COSMO_NPROC_NODEVICE ranks are not associated to any GPU.
 ! COSMO_NPROC_NODEVICE is an environement variable which should be set before
 ! executing the model
@@ -392,7 +392,7 @@ SUBROUTINE initAccDevice()
   IF (debug) WRITE(*,*) 'DBG: ', myid, ' MYID = ',myid
   IF (debug) WRITE(*,*) 'DBG: ', myid, ' MYLOCID = ',mylocid
 
-  
+
   ! get number of procesors not to connect to a device
   CALL getenv("COSMO_NPROC_NODEVICE", snumid)
   IF (LEN_TRIM(snumid) == 0) THEN
@@ -417,7 +417,7 @@ SUBROUTINE initAccDevice()
 END SUBROUTINE initAccDevice
 
 !==============================================================================
-  
+
 !==============================================================================
 !+ Module procedure "checkAccDevice" in "acc_device_management"
 !------------------------------------------------------------------------------
@@ -454,7 +454,7 @@ SUBROUTINE checkAccDevice(mycomm, mynumranks, myrank)
 
   INTEGER, INTENT(in) :: &
        mycomm, &           ! mpi communicator
-       mynumranks, &       ! number of mpi ranks 
+       mynumranks, &       ! number of mpi ranks
        myrank              ! mpi ranks
 
 ! locals:
@@ -518,7 +518,7 @@ SUBROUTINE checkAccDevice(mycomm, mynumranks, myrank)
     CALL setAccDevice()
 
   ENDIF
-  
+
   ! get the host ID for this rank
   hostid = gethostid()
 
@@ -578,7 +578,7 @@ SUBROUTINE checkAccDevice(mycomm, mynumranks, myrank)
   !  write(0,'(a,i,i)') 'ERROR: mapping between MPI rank and accelerator device is not linear', mydev, localprocs(myid+1)
   !  stop
   !endif
-  
+
   ! inform user
   IF (myid == 0) THEN
     WRITE(*,'(a,1x,i3,1x,a,1x,i3,1x,a,1x,i3,1x,a)') &
@@ -592,7 +592,7 @@ SUBROUTINE checkAccDevice(mycomm, mynumranks, myrank)
 END SUBROUTINE checkAccDevice
 
 !==============================================================================
-  
+
 !==============================================================================
 !+ Module procedure "setAccDevice" in "acc_device_manangement"
 !------------------------------------------------------------------------------
@@ -619,8 +619,8 @@ SUBROUTINE setAccDevice()
 !------------------------------------------------------------------------------
 ! Begin Subroutine setAccDevice
 !------------------------------------------------------------------------------
-  
-  
+
+
   ! setup reasonable defaults
   numdev = 1
   mydev = 0
@@ -667,7 +667,7 @@ SUBROUTINE setAccDevice()
 END SUBROUTINE setAccDevice
 
 !==============================================================================
-  
+
 !==============================================================================
 !+ Module procedure "runSmallAccKernel" in "acc_device_manangement"
 !------------------------------------------------------------------------------
@@ -693,7 +693,7 @@ SUBROUTINE runSmallAccKernel()
 !------------------------------------------------------------------------------
 ! Begin Subroutine runSmallAccKernel
 !------------------------------------------------------------------------------
-  
+
   !$ACC PARALLEL ASYNC(1)
   !$ACC LOOP
   DO idummy = 1,16
@@ -711,7 +711,7 @@ SUBROUTINE runSmallAccKernel()
   IF (myid == 12342134) THEN
     ! this is needed to avoid the compiler to optimize away the dummy
     ! array, but due to the IF above, this is unlikely to be reached.
-    ! only, the compiler can not know this 
+    ! only, the compiler can not know this
     ! (avoid dead code elimination)
     PRINT*, 'Init print: ', SUM(dummy)
   ENDIF
@@ -720,10 +720,10 @@ SUBROUTINE runSmallAccKernel()
 ! End of module procedure runSmallAccKernel
 !------------------------------------------------------------------------------
 
-END SUBROUTINE runSmallAccKernel 
+END SUBROUTINE runSmallAccKernel
 
 !==============================================================================
-  
+
 !==============================================================================
 !+ Module procedure "finalizeAccDevice" in "acc_device_manangement"
 !------------------------------------------------------------------------------
@@ -741,7 +741,7 @@ ENDIF
 END SUBROUTINE finalizeAccDevice
 
 !==============================================================================
-  
+
 !==============================================================================
 !+ Module procedure "printGPUMem" in "acc_device_manangement"
 !------------------------------------------------------------------------------
@@ -798,7 +798,7 @@ SUBROUTINE printGPUMem(mtag)
 END SUBROUTINE printGPUMem
 
 !==============================================================================
-  
+
 !==============================================================================
 !+ Module procedures for the graphs. Needed due to interface change in
 !+ NVHPC 23.11

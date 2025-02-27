@@ -46,7 +46,7 @@ MODULE mo_vdf_sfc
     PROCEDURE :: Compute_diagnostics
     PROCEDURE :: Update_diagnostics
   END TYPE t_vdf_sfc
-  
+
   INTERFACE t_vdf_sfc
     MODULE PROCEDURE t_vdf_sfc_construct
   END INTERFACE
@@ -353,7 +353,7 @@ CONTAINS
           & ins%ssfl(:,:), ins%ice_thickness(:,:), &
           & ins%emissivity(:,:), &
           ! inout &
-          & diags%snow_thickness(:,:), & 
+          & diags%snow_thickness(:,:), &
           ! out &
           & new_tsfc(:,:,jtile), &
           & diags%q_ice_top(:,:), diags%q_ice_bot(:,:), &
@@ -364,7 +364,7 @@ CONTAINS
 !$OMP PARALLEL DO PRIVATE(jc, jb) ICON_OMP_DEFAULT_SCHEDULE
         !$ACC PARALLEL LOOP DEFAULT(PRESENT) GANG VECTOR COLLAPSE(2) ASYNC(1)
           DO jb = 1, this%domain%nblks_c
-            DO jc = 1, this%domain%nproma  
+            DO jc = 1, this%domain%nproma
               new_tsfc_rad(jc,jb,jtile) = new_tsfc(jc,jb,jtile)
               new_tsfc_eff(jc,jb,jtile) = new_tsfc(jc,jb,jtile)
               tend_tsfc(jc,jb,jtile) = (new_tsfc(jc,jb,jtile) - old_tsfc(jc,jb,jtile)) / dtime
@@ -397,7 +397,7 @@ CONTAINS
 !$OMP PARALLEL DO PRIVATE(jc, jb) ICON_OMP_DEFAULT_SCHEDULE
         !$ACC PARALLEL LOOP DEFAULT(PRESENT) GANG VECTOR COLLAPSE(2) ASYNC(1)
         DO jb = 1, this%domain%nblks_c
-          DO jc = 1, this%domain%nproma  
+          DO jc = 1, this%domain%nproma
             tend_tsfc(jc,jb,jtile) = (new_tsfc(jc,jb,jtile) - old_tsfc(jc,jb,jtile)) / dtime
           END DO
         END DO
@@ -409,7 +409,7 @@ CONTAINS
 !$OMP PARALLEL DO PRIVATE(jc, jb) ICON_OMP_DEFAULT_SCHEDULE
       !$ACC PARALLEL LOOP DEFAULT(PRESENT) GANG VECTOR COLLAPSE(2) ASYNC(1)
       DO jb = 1, this%domain%nblks_c
-        DO jc = 1, this%domain%nproma  
+        DO jc = 1, this%domain%nproma
           new_tsfc_rad(jc,jb,jtile) = new_tsfc_rad(jc,jb,jtile)**4._wp
         END DO
       END DO
@@ -605,7 +605,7 @@ CONTAINS
             & diags%moist_rich_tile(:,:,jtile), diags%km_tile(:,:,jtile), diags%km_neutral_tile(:,:,jtile), &
             & diags%u10m_tile(:,:,jtile), diags%v10m_tile(:,:,jtile), diags%wind10m_tile(:,:,jtile) &
             & )
-          
+
           ! Call land in quasi-diagnostic mode with a time step of 1 second
           CALL update_land(jg, this%domain, datetime, 1._wp, conf%cvd, &
             & ins%dz(:,:), ins%psfc(:,:), ins%ta(:,:), ins%qa(:,:), ins%pa(:,:), &
@@ -625,7 +625,7 @@ CONTAINS
             & )
         END IF
       END IF
-  
+
       ! Surface potential temperature
       CALL compute_sfc_potential_temperature(this%domain, diags%nvalid(:,jtile), diags%indices(:,:,jtile), &
         & ins%psfc(:,:), ins%tsfc_tile(:,:,jtile), diags%qsat_tile(:,:,jtile), &
@@ -635,7 +635,7 @@ CONTAINS
       CALL compute_moist_richardson(this%domain, diags%nvalid(:,jtile), diags%indices(:,:,jtile), &
         & conf%fsl, ins%zf(:,:), diags%thetav_atm(:,:), diags%thetav_tile(:,:,jtile), diags%wind(:,:), &
         & diags%moist_rich_tile(:,:,jtile))
-    
+
       ! Surface roughness length
       IF (this%domain%sfc_types(jtile) == isfc_oce) THEN
         rough_min = conf%min_rough
@@ -734,7 +734,7 @@ CONTAINS
       diags => set
     END SELECT
     __acc_attach(diags)
-    
+
     ! CALL message(routine, 'start')
 
     ! state => this%states%Get_ptr_r3d('surface temperature')
@@ -823,7 +823,7 @@ CONTAINS
         END DO
       END DO
       !$ACC END PARALLEL
-  
+
     END DO
 !$OMP END PARALLEL DO
 
@@ -983,7 +983,7 @@ CONTAINS
     CALL inlist%append(t_variable('surface downward shortwave radiation',               shape_2d, "W m-2", type_id="real"))
     CALL inlist%append(t_variable('all-sky surface downward direct visible radiation',  shape_2d, "W m-2", type_id="real"))
     CALL inlist%append(t_variable('all-sky surface downward direct near-IR radiation',  shape_2d, "W m-2", type_id="real"))
-    CALL inlist%append(t_variable('all-sky surface downward direct PAR radiation',      shape_2d, "W m-2", type_id="real"))  
+    CALL inlist%append(t_variable('all-sky surface downward direct PAR radiation',      shape_2d, "W m-2", type_id="real"))
     CALL inlist%append(t_variable('all-sky surface downward diffuse visible radiation', shape_2d, "W m-2", type_id="real"))
     CALL inlist%append(t_variable('all-sky surface downward diffuse near-IR radiation', shape_2d, "W m-2", type_id="real"))
     CALL inlist%append(t_variable('all-sky surface downward diffuse PAR radiation',     shape_2d, "W m-2", type_id="real"))
@@ -1039,7 +1039,7 @@ CONTAINS
       __acc_attach(this%rvds_dir)
       this%rnds_dir => this%list%Get_ptr_r2d('all-sky surface downward direct near-IR radiation')
       __acc_attach(this%rnds_dir)
-      this%rpds_dir => this%list%Get_ptr_r2d('all-sky surface downward direct PAR radiation') 
+      this%rpds_dir => this%list%Get_ptr_r2d('all-sky surface downward direct PAR radiation')
       __acc_attach(this%rpds_dir)
       this%rvds_dif => this%list%Get_ptr_r2d('all-sky surface downward diffuse visible radiation')
       __acc_attach(this%rvds_dif)
@@ -1066,7 +1066,7 @@ CONTAINS
 
       this%ice_thickness  => this%list%Get_ptr_r2d('thickness of sea ice')
       __acc_attach(this%ice_thickness)
-  
+
       this%zf => this%list%Get_ptr_r2d('atm geometric height full')
       __acc_attach(this%zf)
       this%zh => this%list%Get_ptr_r2d('sfc geometric height half')
@@ -1264,7 +1264,7 @@ CONTAINS
       __acc_attach(this%ufts)
       this%ufvs            => this%list%Get_ptr_r2d('energy flux at surface from vapor exchange')
       __acc_attach(this%ufvs)
-   
+
       this%tsfc            => this%list%Get_ptr_r2d('sfc temperature')
       __acc_attach(this%tsfc)
       this%tsfc_rad        => this%list%Get_ptr_r2d('sfc radiative temperature')

@@ -91,7 +91,7 @@ CONTAINS
  !!  Initialization of the initicon coordinate namelist
 
  SUBROUTINE read_initicon_namelist( filename )
-    
+
   CHARACTER(LEN=*), INTENT(IN) :: filename
 
   !local variable
@@ -119,8 +119,8 @@ CONTAINS
 
   REAL(wp) :: zpbl1, zpbl2  ! AGL heights used for vertical gradient computation
   LOGICAL  :: lread_ana     ! If .TRUE., read analysis fields are read from analysis file
-                            ! dwdana_filename. If .FALSE., ICON is soleyly started 
-                            ! from first guess fields.   
+                            ! dwdana_filename. If .FALSE., ICON is soleyly started
+                            ! from first guess fields.
   LOGICAL  :: lconsistency_checks    ! check validity of input fields (FG and ANA)
 
   LOGICAL  :: l_coarse2fine_mode(max_dom)  ! If true, apply special corrections for interpolation from coarse
@@ -129,14 +129,14 @@ CONTAINS
                                      ! assimilation increments
   LOGICAL  :: lp2cintp_sfcana(max_dom) ! If true, perform parent-to-child interpolation of
                                        ! surface analysis data
-  LOGICAL  :: lcouple_ocean_coldstart  ! If true, initialize newly defined land points from ICON-O 
-                                       ! with default T and Q profiles 
+  LOGICAL  :: lcouple_ocean_coldstart  ! If true, initialize newly defined land points from ICON-O
+                                       ! with default T and Q profiles
 
   LOGICAL  :: ltile_coldstart  ! If true, initialize tile-based surface fields from first guess with tile-averaged fields
 
   LOGICAL  :: ltile_init       ! If true, initialize tile-based surface fields from first guess without tiles
 
-  INTEGER  :: icpl_da_sfcevap  ! Type of coupling between data assimilation and model parameters 
+  INTEGER  :: icpl_da_sfcevap  ! Type of coupling between data assimilation and model parameters
                                ! affecting surface evaporation (plants + bare soil)
 
   REAL(wp) :: smi_relax_timescale ! Time scale (days) for ICON-internal soil moisture relaxation
@@ -169,7 +169,7 @@ CONTAINS
 
   INTEGER  :: filetype      ! One of CDI's FILETYPE\_XXX constants. Possible values: 2 (=FILETYPE\_GRB2), 4 (=FILETYPE\_NC2)
 
-  REAL(wp) :: dt_iau        ! Time interval during which incremental analysis update (IAU) is performed [s]. 
+  REAL(wp) :: dt_iau        ! Time interval during which incremental analysis update (IAU) is performed [s].
                             ! Only required for init_mode=MODE_IAU, MODE_IAU_OLD
 
   !> Allows IAU runs to start earlier than the nominal simulation start
@@ -185,29 +185,29 @@ CONTAINS
   INTEGER  :: niter_divdamp ! number of divergence damping iterations on wind increment from DA
   INTEGER  :: niter_diffu   ! number of diffusion iterations on wind increment from DA
 
-  INTEGER :: itype_vert_expol ! Type of vertical extrapolation of initial data. 
-                              ! 1: Linear extrapolation (standard setting) 
-                              ! 2: Blending with climatology 
+  INTEGER :: itype_vert_expol ! Type of vertical extrapolation of initial data.
+                              ! 1: Linear extrapolation (standard setting)
+                              ! 2: Blending with climatology
                               ! (intended for simulations with the upper-atmosphere configuration)
 
 
   TYPE(t_check_input) :: check_ana(max_dom)  ! patch-specific list of mandatory analysis fields.
-                                             ! This list can include a subset or the 
+                                             ! This list can include a subset or the
                                              ! entire set of default analysis fields.
 
-  TYPE(t_check_input) :: check_fg(max_dom)  ! A small subset of first guess input fields are 
-                                            ! declared 'optional' in ICON. By adding them to this list, 
-                                            ! they will become mandatory, meaning that the model 
-                                            ! aborts if any of these fields is missing. This list can 
-                                            ! include a subset of the optional first guess fields, 
-                                            ! or even the entire set of first guess fields (however, 
-                                            ! it only effects the optional ones). On default this list 
-                                            ! is empty, meaning that optional first guess fields 
-                                            ! experience a cold-start initialization if they are missing. 
+  TYPE(t_check_input) :: check_fg(max_dom)  ! A small subset of first guess input fields are
+                                            ! declared 'optional' in ICON. By adding them to this list,
+                                            ! they will become mandatory, meaning that the model
+                                            ! aborts if any of these fields is missing. This list can
+                                            ! include a subset of the optional first guess fields,
+                                            ! or even the entire set of first guess fields (however,
+                                            ! it only effects the optional ones). On default this list
+                                            ! is empty, meaning that optional first guess fields
+                                            ! experience a cold-start initialization if they are missing.
                                             ! The model does not abort.
 
    ! patch-specific list of mandatory first guess fields.
-                                             ! This list can include a subset or the 
+                                             ! This list can include a subset or the
                                              ! entire set of default first guess fields.
 
   ! IFS2ICON input filename, may contain keywords, by default
@@ -259,7 +259,7 @@ CONTAINS
   !
   init_mode   = MODE_IFSANA    ! Start from IFS analysis
   nlevsoil_in = 4              ! number of soil levels of input data
-  zpbl1       = 500._wp        ! AGL heights used for computing vertical 
+  zpbl1       = 500._wp        ! AGL heights used for computing vertical
   zpbl2       = 1000._wp       ! gradients
   lread_ana   = .TRUE.         ! true: read analysis fields from file dwdana_filename
                                ! false: start ICON from first guess file (no analysis)
@@ -269,7 +269,7 @@ CONTAINS
   qrsgana_mode= 0              ! 0/1: use/ignore QR/QS/QG/QH increments
   qnxana_2mom_mode= 0          ! 0/1: use/ignore QNX increments
   use_lakeiceana = .FALSE.     ! do not use ice fraction analysis data over freshwater lakes
-  lconsistency_checks = .TRUE. ! check validity of input fields  
+  lconsistency_checks = .TRUE. ! check validity of input fields
   filetype    = -1             ! "-1": undefined
   dt_iau      = 10800._wp      ! 3-hour interval for IAU
   iterate_iau = .FALSE.        ! no iteration of IAU
@@ -280,20 +280,20 @@ CONTAINS
   itype_vert_expol = ivexpol%lin ! linear vertical extrapolation of initial data
 
   DO jg=1,SIZE(check_ana)
-    check_ana(jg)%list(:) = '' ! list of mandatory analysis fields. This list can include a subset 
+    check_ana(jg)%list(:) = '' ! list of mandatory analysis fields. This list can include a subset
   ENDDO                        ! or the entire set of default analysis fields. If any of these fields
-                               ! is missing in the analysis file, the model aborts. On default 
-                               ! this list is empty, meaning that fields which are missing in the 
-                               ! analysis file (when compared to the default set), are simply 
+                               ! is missing in the analysis file, the model aborts. On default
+                               ! this list is empty, meaning that fields which are missing in the
+                               ! analysis file (when compared to the default set), are simply
                                ! taken from the first guess.
 
   DO jg=1,SIZE(check_fg)
-    check_fg(jg)%list(:) = '' ! A small subset of first guess input fields are declared 'optional' in ICON. 
-  ENDDO                       ! By adding them to this list, they will become mandatory, meaning that the model 
-                              ! aborts if any of these fields is missing. This list can include a subset 
-                              ! of the optional first guess fields, or even the entire set of first guess fields 
-                              ! (however, it only effects the optional first guess fields). On default 
-                              ! this list is empty, meaning that optional first guess fields experience 
+    check_fg(jg)%list(:) = '' ! A small subset of first guess input fields are declared 'optional' in ICON.
+  ENDDO                       ! By adding them to this list, they will become mandatory, meaning that the model
+                              ! aborts if any of these fields is missing. This list can include a subset
+                              ! of the optional first guess fields, or even the entire set of first guess fields
+                              ! (however, it only effects the optional first guess fields). On default
+                              ! this list is empty, meaning that optional first guess fields experience
                               ! a cold-start initialization if they are missing. The model does not abort.
 
   ana_varnames_map_file = " "
@@ -311,7 +311,7 @@ CONTAINS
 
   icpl_da_sfcevap = 0   ! Coupling between data assimilation and parameters affecting surface evaporation
                         ! 0: none
-                        ! 1: use filtered T2M bias 
+                        ! 1: use filtered T2M bias
                         ! 2: use filtered T2M bias and filtered RH increment at lowest model level
                         ! 3: use filtered T and RH increments at lowest model level
                         ! 4: as 3, but uses cr_bsmin instead of c_soil for adapting bare-soil evaporation
@@ -444,7 +444,7 @@ CONTAINS
 
   ! Check setting for vertical extrapolation
   SELECT CASE(itype_vert_expol)
-  CASE(ivexpol%lin, ivexpol%upatmo) 
+  CASE(ivexpol%lin, ivexpol%upatmo)
     ! Ok
   CASE DEFAULT
     CALL finish( TRIM(routine),'Invalid value for itype_vert_expol.' )

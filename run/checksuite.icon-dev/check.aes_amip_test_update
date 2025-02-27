@@ -23,7 +23,7 @@
 # file run/exp.<EXPNAME>. EXPNAME is used also for:
 # - the output directory name: experiments/<EXPNAME>
 # - the output  file names: <EXPNAME>_<TYPE>_<DATE>.nc
-# - the restart file names: 
+# - the restart file names:
 #
 # For this test a separate experiment name is needed. Therefore a soft-link
 # is created for the new name exp.atm_qubicc_test_update:

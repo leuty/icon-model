@@ -100,7 +100,7 @@ SUBROUTINE su_bc_aeropt_kinne(p_patch, nbndlw, nbndsw, opt_from_coupler)
     &              time_config%tc_stopdate%date%day    == 1  .AND. &
     &              time_config%tc_stopdate%time%hour   == 0  .AND. &
     &              time_config%tc_stopdate%time%minute == 0  .AND. &
-    &              time_config%tc_stopdate%time%second == 0 ) 
+    &              time_config%tc_stopdate%time%second == 0 )
 
   nyears = time_config%tc_stopdate%date%year - time_config%tc_startdate%date%year + 1
   IF ( lend_of_year ) nyears = nyears - 1
@@ -112,10 +112,10 @@ SUBROUTINE su_bc_aeropt_kinne(p_patch, nbndlw, nbndsw, opt_from_coupler)
 
   IF ( nyears > 1 ) THEN
     imonth_beg = 0
-    imonth_end = 13  
+    imonth_end = 13
   ELSE
-    imonth_beg = tiw_beg%month1 
-    imonth_end = tiw_end%month2 
+    imonth_beg = tiw_beg%month1
+    imonth_end = tiw_end%month2
     ! special case for runs starting on 1 Jan that run for less than a full year
     IF ( imonth_beg == 12 .AND. time_config%tc_startdate%date%month == 1 ) imonth_beg = 0
     ! special case for runs ending in 2nd half of Dec that run for less than a full year
@@ -181,7 +181,7 @@ SUBROUTINE su_bc_aeropt_kinne(p_patch, nbndlw, nbndsw, opt_from_coupler)
 
 END SUBROUTINE su_bc_aeropt_kinne
 
-  !> SUBROUTINE shift_months_bc_aeropt_kinne -- shifts December of current year into imonth=0 and 
+  !> SUBROUTINE shift_months_bc_aeropt_kinne -- shifts December of current year into imonth=0 and
   !! January of the following year into imonth=1 (these months do not need to be read again.
 
 SUBROUTINE shift_months_bc_aeropt_kinne(p_patch)
@@ -222,18 +222,18 @@ SUBROUTINE shift_months_bc_aeropt_kinne(p_patch)
 
 END SUBROUTINE shift_months_bc_aeropt_kinne
 
-  !> SUBROUTINE read_bc_aeropt_kinne -- read the aerosol optical properties 
+  !> SUBROUTINE read_bc_aeropt_kinne -- read the aerosol optical properties
   !! of the Kinne aerosols for the whole run at the beginning of the run
   !! before entering the time loop
 
 SUBROUTINE read_bc_aeropt_kinne(mtime_current, p_patch, l_filename_year, nbndlw, nbndsw, opt_from_coupler)
-  
+
   TYPE(datetime), POINTER, INTENT(in) :: mtime_current
   TYPE(t_patch), INTENT(in)           :: p_patch
   LOGICAL, INTENT(in)                 :: l_filename_year
   INTEGER, INTENT(in)                 :: nbndlw, nbndsw
   LOGICAL, OPTIONAL, INTENT(IN)       :: opt_from_coupler
- 
+
   !LOCAL VARIABLES
   INTEGER(I8)                   :: iyear
   INTEGER                       :: imonthb, imonthe
@@ -382,7 +382,7 @@ SUBROUTINE set_bc_aeropt_kinne (    current_date,                         &
           & nb_sw,                  nb_lw,                                &
           & zf,                     dz,                                   &
           & paer_tau_sw_vr,         paer_piz_sw_vr,     paer_cg_sw_vr,    &
-          & paer_tau_lw_vr,                                               & 
+          & paer_tau_lw_vr,                                               &
           & lacc,                   opt_from_coupler                      )
 
   ! !INPUT PARAMETERS
@@ -390,7 +390,7 @@ SUBROUTINE set_bc_aeropt_kinne (    current_date,                         &
   TYPE(datetime), POINTER, INTENT(in) :: current_date
   INTEGER,INTENT(in)  :: jg,     &! grid index
                          jcs,    &! actual block, start at column with index jcs
-                         jce,    &! actual block, end at column with index jce 
+                         jce,    &! actual block, end at column with index jce
                          nproma, &! maximum block length
                          klev,   &! number of vertical levels
                          jb,     &! block index
@@ -401,16 +401,16 @@ SUBROUTINE set_bc_aeropt_kinne (    current_date,                         &
 ! !OUTPUT PARAMETERS
   REAL(wp),INTENT(out),DIMENSION(nproma,klev,nb_sw):: &
    paer_tau_sw_vr,   & !aerosol optical depth (solar), sum_i(tau_i)
-   paer_piz_sw_vr,   & !weighted sum of single scattering albedos, 
+   paer_piz_sw_vr,   & !weighted sum of single scattering albedos,
                        !sum_i(tau_i*omega_i)
-   paer_cg_sw_vr       !weighted sum of asymmetry factors, 
+   paer_cg_sw_vr       !weighted sum of asymmetry factors,
                        !sum_i(tau_i*omega_i*g_i)
   REAL(wp),INTENT(out),DIMENSION(nproma,klev,nb_lw):: &
    paer_tau_lw_vr      !aerosol optical depth (far IR)
   LOGICAL, INTENT(IN), OPTIONAL                          :: opt_from_coupler
 
 ! !LOCAL VARIABLES
-  
+
   INTEGER                           :: jl,jk,jwl
   REAL(wp), DIMENSION(nproma,klev)   :: zh_vr, &
                                        zdeltag_vr
@@ -452,7 +452,7 @@ SUBROUTINE set_bc_aeropt_kinne (    current_date,                         &
 
   !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1) IF(lzacc)
 
-! (i) calculate altitude above NN and layer thickness in 
+! (i) calculate altitude above NN and layer thickness in
 !     echam for altitude profiles
   !$ACC LOOP SEQ
   DO jk=1,klev
@@ -467,7 +467,7 @@ SUBROUTINE set_bc_aeropt_kinne (    current_date,                         &
   !$ACC LOOP SEQ
   DO jk = 1, klev
     !$ACC LOOP GANG(STATIC: 1) VECTOR
-    DO jl = jcs, jce 
+    DO jl = jcs, jce
       zq_aod_f(jl,jk)=0._wp
       zq_aod_c(jl,jk)=0._wp
     END DO
@@ -477,7 +477,7 @@ SUBROUTINE set_bc_aeropt_kinne (    current_date,                         &
     !$ACC LOOP SEQ
     DO jk = 1, klev
       !$ACC LOOP GANG(STATIC: 1) VECTOR PRIVATE(kindex)
-      DO jl = jcs, jce 
+      DO jl = jcs, jce
         kindex = MAX(INT(zh_vr(jl,jk)*rdz_clim+0.5_wp),1)
         IF (kindex > 0 .and. kindex <= lev_clim ) THEN
           zq_aod_c(jl,jk)= &
@@ -504,7 +504,7 @@ SUBROUTINE set_bc_aeropt_kinne (    current_date,                         &
       END DO
     END DO
   END IF
-  
+
   ! normalize height profile for coarse mode
   !$ACC LOOP GANG(STATIC: 1) VECTOR
   DO jl = jcs, jce
@@ -535,7 +535,7 @@ SUBROUTINE set_bc_aeropt_kinne (    current_date,                         &
 
   ! normalize height profile for fine mode
   !$ACC LOOP GANG(STATIC: 1) VECTOR
-  DO jl = jcs,jce 
+  DO jl = jcs,jce
     zq_int(jl) = 0._wp
   END DO
 
@@ -648,7 +648,7 @@ SUBROUTINE set_bc_aeropt_kinne (    current_date,                         &
     DO jwl=1,nb_sw
         !$ACC LOOP GANG(STATIC: 1) VECTOR PRIVATE(ztaua_c, ztaua_f)
         DO jl=jcs,jce
-           ! aerosol optical depth 
+           ! aerosol optical depth
            ztaua_c = zt_c(jl,jwl)*zq_aod_c(jl,jk)
            ztaua_f = zt_f(jl,jwl)*zq_aod_f(jl,jk)
            paer_tau_sw_vr(jl,jk,jwl) = ztaua_c + ztaua_f
@@ -678,13 +678,13 @@ SUBROUTINE set_bc_aeropt_kinne (    current_date,                         &
   !$ACC END PARALLEL
   !$ACC WAIT(1)
   !$ACC END DATA
-  
+
 END SUBROUTINE set_bc_aeropt_kinne
 !-------------------------------------------------------------------------
-! 
+!
 !> SUBROUTINE read_months_bc_aeropt_kinne -- reads optical aerosol parameters from file containing
-!! aod, ssa, asy, aer_ex (altitude dependent extinction), dz_clim (layer 
-!! thickness in meters), lev_clim (number of levels), and (optional) surface 
+!! aod, ssa, asy, aer_ex (altitude dependent extinction), dz_clim (layer
+!! thickness in meters), lev_clim (number of levels), and (optional) surface
 !! altitude in meters.
 !!
 SUBROUTINE read_months_bc_aeropt_kinne (                                   &
@@ -695,7 +695,7 @@ SUBROUTINE read_months_bc_aeropt_kinne (                                   &
   l_filename_year                                                          )
 !
   CHARACTER(len=*), INTENT(in)   :: caod,    & ! name of variable containing optical depth of column
-                                    cssa,    & ! name of variable containing single scattering albedo 
+                                    cssa,    & ! name of variable containing single scattering albedo
                                     casy,    & ! name of variable containing asymmetry factor
                                                ! ssa and asy are assumed to be constant over column
                                     caer_ex, & ! name of variable containing altitude dependent extinction
@@ -829,7 +829,7 @@ END SUBROUTINE read_months_bc_aeropt_kinne
 
     CALL message ('mo_bc_aeropt_kinne:read_months_bc_aeropt_kinne', &
          &            ' reading from file '//TRIM(ADJUSTL(cfnameyear)))
-   
+
     CALL openInputFile(stream_id, cfnameyear, p_patch, default_read_method)
 
     CALL read_3D_time(stream_id=stream_id, location=on_cells, &

@@ -87,7 +87,7 @@ start_date=${start_date:="1979-01-01T00:00:00Z"}
 # at least one node for ocean and atmosphere each is necessary
 # default: half of requested nodes for ocean
 mpi_oce_nodes=1
-mpi_oce_nodes=${mpi_oce_nodes:=((no_of_nodes/2))}  
+mpi_oce_nodes=${mpi_oce_nodes:=((no_of_nodes/2))}
 ((mpi_oce_procs=mpi_oce_nodes * mpi_procs_pernode))
 
 # asynchronous diagnostic output processes
@@ -152,16 +152,16 @@ output_oce_moc=yes      #  calc_moc is called every timestep - switch off for hi
 output_oce_ice=yes      #  sea-ice, SST and some deeper levels
 
 # standard debug-flux arrays at surface for coupling debug purpose
-output_atm_dbg=no 
-output_oce_dbg=no 
+output_atm_dbg=no
+output_oce_dbg=no
 
 # output time of geometry file fx:
 start_fx="1979-01-02T00:00:00Z"
 
 # output switches for large atm/oce files - set to "yes" if needed for standard quickplots
 #  - yes writes much output and needs more computing time at least in high resolution
-output_atm_3d=no 
-output_atm_2d=no 
+output_atm_3d=no
+output_atm_2d=no
 output_oce_def=no              # annual mean is sufficient
 oce_output_interval_def="P1Y"  # annual mean output for deep ocean
 # monthly output interval for at least monitoring output if all_output is annual - not used here
@@ -366,7 +366,7 @@ add_link_file $INDIR/APE/ExtParSLM_grid_${atmos_gridID}-ape.nc extpar_iconR2B04_
 
 atmos_init_folder="${icon_data_rootFolder}/grids/public/mpim/${atmos_gridID}"
 INDIR=$atmos_init_folder/initial_condition/r0001/
-add_link_file $INDIR/ifs2icon_1979010100_R02B04_G.nc ifs2icon_R2B04_DOM01.nc 
+add_link_file $INDIR/ifs2icon_1979010100_R02B04_G.nc ifs2icon_R2B04_DOM01.nc
 
 # files needed for radiation
 add_link_file ${basedir}/data/ECHAM6_CldOptProps.nc .
@@ -425,7 +425,7 @@ cat > ${atm_namelist} << EOF
  dynamics_parent_grid_id = 0,1
  lredgrid_phys           = .false.,.false.
  lfeedback               = .false.
-/ 
+/
 &run_nml
  num_lev                 = ${nlev},${nlev}      ! number of full levels of vertical grid
  dtime                   = ${dtime}             ! [s] timestep in seconds
@@ -433,7 +433,7 @@ cat > ${atm_namelist} << EOF
  ltransport              = .TRUE.               ! transport
  iforcing                = ${iforcing}          !
  ntracer                 =  5                   ! number of tracers - default 0
- ltimer                  = .true.               ! 
+ ltimer                  = .true.               !
  ltestcase               = .false.              ! initialize with real data
  timers_level            = 0
  msg_level               = 13                   ! detailed report during integration (5-7 or 13 incl. seaice prints)
@@ -480,7 +480,7 @@ cat > ${atm_namelist} << EOF
 &nwp_tuning_nml
  itune_albedo            = 0                         ! somewhat reduced albedo (w.r.t. MODIS data) over Sahara in order to reduce cold bias
  tune_zceff_min          = 0.025                     ! ** default value to be used for R3B7; use 0.025 for R2B6 in order to get similar temperature biases in upper troposphere **
- tune_gkdrag             = 0.075                     ! R2B6: 0.075  
+ tune_gkdrag             = 0.075                     ! R2B6: 0.075
  tune_gkwake             = 1.5                       ! R2B6: 1.5
  tune_gfrcrit            = 0.425                     ! R2B6: 0.425
  tune_dust_abs           = 0.
@@ -509,8 +509,8 @@ cat > ${atm_namelist} << EOF
  frcsmot                 = 0.2                       ! these 2 switches together apply vertical smoothing of the TKE source terms
  imode_frcsmot           = 2                         ! in the tropics (only), which reduces the moist bias in the tropical lower troposphere
  itype_sher              = 3                         ! use horizontal shear production terms with 1/SQRT(Ri) scaling to prevent unwanted side effects
- ltkeshs                 = .true.                   
- a_hshr                  = 2.0	                    
+ ltkeshs                 = .true.
+ a_hshr                  = 2.0
  icldm_turb              = 1                         ! 2: Gauss clouds for turbulence    1: grid scale clouds
  icldm_tran              = 2                         ! 2: Gauss clouds for surface layer 1: grid scale clouds
 /
@@ -533,38 +533,38 @@ rbf_scale_mode_ll        = 2
  itime_scheme            = 4
  exner_expol             = 0.333
  vwind_offctr            = 0.2                       ! 0.2 for R2B6 and higher resolution, 0.3 for lower resolution
- damp_height             = 44000.                    
+ damp_height             = 44000.
  rayleigh_coeff          = 0.5
  divdamp_order           = 24                        ! 2 ass, 24 fc
  divdamp_type            = 32                        ! optional: 2 assimilation cycle, 32 forecast
  divdamp_fac             = 0.004                     ! 0.004 for R2B6; recommendation for R3B7: 0.003
- divdamp_trans_start     = 12500                     
- divdamp_trans_end       = 17500                     
- igradp_method           = 3	                     
- l_zdiffu_t              = .true.                    
- thslp_zdiffu            = 0.02	                     
- thhgtd_zdiffu           = 125.	                     
- htop_moist_proc         = 22500.                    
- hbot_qvsubstep          = 16000.                    
-/				                     
-&sleve_nml			                     
+ divdamp_trans_start     = 12500
+ divdamp_trans_end       = 17500
+ igradp_method           = 3
+ l_zdiffu_t              = .true.
+ thslp_zdiffu            = 0.02
+ thhgtd_zdiffu           = 125.
+ htop_moist_proc         = 22500.
+ hbot_qvsubstep          = 16000.
+/
+&sleve_nml
  min_lay_thckn           = 20.                       ! lowest level thickness (between half-levels)
  max_lay_thckn           = 400.                      ! maximum layer thickness below htop_thcknlimit
- htop_thcknlimit         = 14000.                    
- top_height              = 75000.                    
- stretch_fac             = 0.9	                     
- decay_scale_1           = 4000.                     
- decay_scale_2           = 2500.                     
- decay_exp               = 1.2	                     
- flat_height             = 16000.                    
+ htop_thcknlimit         = 14000.
+ top_height              = 75000.
+ stretch_fac             = 0.9
+ decay_scale_1           = 4000.
+ decay_scale_2           = 2500.
+ decay_exp               = 1.2
+ flat_height             = 16000.
 /
-&io_nml				                     
+&io_nml
  lflux_avg               = .FALSE.                   ! true: averaged (ashfl_s), false: accumulated fluxes (accshfl_s)
  itype_pres_msl          = 5                         ! (1) 3: IFS-type extrapolation
  itype_rh                = 1                         ! (1) 2: mixed phase (water and ice)
 !dt_checkpoint           = 2592000.                  ! 30 days
- inextra_3d              = 2                         ! 3D extra variables 
- inextra_2d              = 10                        ! 2D extra variables 
+ inextra_3d              = 2                         ! 3D extra variables
+ inextra_2d              = 10                        ! 2D extra variables
  lkeep_in_sync           = .TRUE.                    ! sync after each timestep
  lnetcdf_flt64_output    = .TRUE.                    ! 64 bit output in all files
 /
@@ -590,7 +590,7 @@ rbf_scale_mode_ll        = 2
                            'condhf_ice', 'frac_t_7', 'frac_t_8', 'frac_t_9',
                            'fr_land', 'fr_lake', 'fr_seaice', 't_seasfc',
  !hl_varlist              = 'temp', 'u'
- !h_levels                = 10, 500, 5000 
+ !h_levels                = 10, 500, 5000
  m_levels                = "5...(nlev+1)"
 /
 &output_nml
@@ -599,7 +599,7 @@ rbf_scale_mode_ll        = 2
  output_interval         = "${atm_output_interval}"  ! the output interval and
  file_interval           = "${atm_file_interval}"    ! the file interval
  filetype                = 4                         ! output format: 2=GRIB2, 4=NETCDFv2
- dom                     = -1		             
+ dom                     = -1
  mode                    = 1                         ! 1: forecast mode (relative t-axis)
  include_last            = .TRUE.                    ! flag whether to include the last time step
  output_filename         = "${EXPNAME}_atm_icon"     ! file name base
@@ -614,7 +614,7 @@ rbf_scale_mode_ll        = 2
                            'condhf_ice', 'frac_t_7', 'frac_t_8', 'frac_t_9',
                            'fr_land', 'fr_lake', 'fr_seaice', 't_seasfc', 'lsm_switch', 'lsm_ctr_c', 'topography_c'
  !hl_varlist              = 'temp', 'u'
- !h_levels                = 10, 500, 5000 
+ !h_levels                = 10, 500, 5000
  m_levels                = "5...(nlev+1)"
 /
 &dbg_index_nml
@@ -644,8 +644,8 @@ rbf_scale_mode_ll        = 2
  cwimax_ml               = 5.e-4
  c_soil                  = 1.25
  c_soil_urb              = 0.5
- sstice_mode             = 1           ! 1 for coupled 
- lprog_albsi             = .true. 
+ sstice_mode             = 1           ! 1 for coupled
+ lprog_albsi             = .true.
  hice_min                = 0.05        ! default of nwp sea-ice model
  hice_max                = 4.8         ! corresponding to 40% seaice_limit in icon-o
  itype_snowevap          = 2
@@ -665,7 +665,7 @@ rbf_scale_mode_ll        = 2
  direct_albedo_water     = 3
  albedo_whitecap         = 1
  ecrad_llw_cloud_scat    = .true.
- ecRad_data_path         = '${ecRad_data_path}' 
+ ecRad_data_path         = '${ecRad_data_path}'
 /
 &meteogram_output_nml
   lmeteogram_enabled     = .false., .false.
@@ -695,7 +695,7 @@ ocean_vertical_levels=40
 # HAMOCC
 #
 
-use_hamocc=no  
+use_hamocc=no
 
 if [  "x${use_hamocc}"  = "xyes" ]; then
 lhamocc=".TRUE."
@@ -924,13 +924,13 @@ dzlev_m(1:35)  =    25.0,   10.0,   10.0,   10.0,   15.0,   20.0,   20.0,       
                    200.0,  200.0,  200.0,  200.0,  200.0,  200.0,  200.0,  200.0                         ! 4000 m
   l_edge_based                               = .FALSE.     ! edge- or cell-based mimetic discretization
 ! l_partial_cells                            = .FALSE.     ! partial bottom cells=TRUE: local varying bottom depth
-  select_solver                              = 4           ! 1=gmres_oce_old; 2=ocean_restart_gmres, 3=mixed precisison restart 
+  select_solver                              = 4           ! 1=gmres_oce_old; 2=ocean_restart_gmres, 3=mixed precisison restart
                                                            ! 4=CG (default) 5=CGJ 6=BiCG 7=GMRES restart (legacy) 8=MINRES
   use_absolute_solver_tolerance              = .TRUE.
   solver_tolerance                           = 1.0E-9      ! 1e-10 in omip-YVF - enlarged to 1e-9 (LL opt)
   l_lhs_direct                               = .TRUE.      ! .true.= use lhs implementation directly  .false.= matrix scanner (default)
   select_lhs                                 = 2           ! 1=operator based (default) 2=matrix based - 2=error?
-  solver_FirstGuess                          = 2           ! 0=start from zeros 1=last timestep smoothed 2=last timestep (default) 
+  solver_FirstGuess                          = 2           ! 0=start from zeros 1=last timestep smoothed 2=last timestep (default)
 
 ! solver_max_iter_per_restart                = 14
 ! solver_max_restart_iterations              = 100         ! outer (restart solver)
@@ -964,7 +964,7 @@ dzlev_m(1:35)  =    25.0,   10.0,   10.0,   10.0,   15.0,   20.0,   20.0,       
 
   HarmonicViscosity_scaling                  = 1
   HarmonicViscosity_reference                = 5.0E+4      ! [m2/s] constant horizontal viscosity coefficient for velocity
-  HarmonicViscosity_background               = 0.0  
+  HarmonicViscosity_background               = 0.0
 
   TracerHorizontalDiffusion_scaling          = 1
   Temperature_HorizontalDiffusion_Background = 0.0
@@ -1011,7 +1011,7 @@ dzlev_m(1:35)  =    25.0,   10.0,   10.0,   10.0,   15.0,   20.0,   20.0,       
   i_sea_ice                                  = 1           ! 0 = no sea ice; 1 = sea ice model on; default=1
   lhamocc                                    = ${lhamocc}
   lbgcadv                                    = ${lbgcadv}
-/                                           
+/
 &sea_ice_nml
   i_ice_therm                                = 1           ! 1=zero-layer (default), 2=Winton, 0/2: not allowed
   i_ice_dyn                                  = 1           ! 1/0=switch on/off AWI ice dynamics
@@ -1139,5 +1139,5 @@ fi
 
 #-----------------------------------------------------------------------------
 #
-# Following: automatically appended section to start the model integration. 
+# Following: automatically appended section to start the model integration.
 #

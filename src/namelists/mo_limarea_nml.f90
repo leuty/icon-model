@@ -112,7 +112,7 @@ CONTAINS
     retry_wait_sec      = 10
 
     !------------------------------------------------------------------
-    ! If this is a resumed integration, overwrite the defaults above 
+    ! If this is a resumed integration, overwrite the defaults above
     ! by values used in the previous integration.
     !------------------------------------------------------------------
     IF (use_restart_namelists()) THEN

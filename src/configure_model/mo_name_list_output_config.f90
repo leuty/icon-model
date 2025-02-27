@@ -56,7 +56,7 @@ MODULE mo_name_list_output_config
   TYPE(t_storage_array), POINTER, PRIVATE :: outputvar_dom(:) => NULL()
 
 CONTAINS
-  
+
   !-------------------------------------------------------------------------------------------------
   !>
   !! @return .TRUE. if one of the output namelists has been specified with GRIB output.

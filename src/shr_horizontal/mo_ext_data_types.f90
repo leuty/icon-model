@@ -221,7 +221,7 @@ MODULE mo_ext_data_types
       &  sai(:,:)              ! index1=1,nproma, index2=1,nblks_c
     REAL(wp), POINTER ::   &   !< transpiration area index (vegetation period)   [ ]
       &  tai(:,:)              ! index1=1,nproma, index2=1,nblks_c
-    REAL(wp), POINTER ::   &   !< earth area (evaporative surface area)          [ ] 
+    REAL(wp), POINTER ::   &   !< earth area (evaporative surface area)          [ ]
       &  eai(:,:)              ! index1=1,nproma, index2=1,nblks_c
     REAL(wp), POINTER ::   &   !< surface area index (vegetation period)         [ ]
       &  sai_t(:,:,:)          ! index1=1,nproma, index2=1,nblks_c, ntiles_total+ntiles_water
@@ -259,7 +259,7 @@ MODULE mo_ext_data_types
     REAL(wp), POINTER ::   &   !< annual maximum NDVI                     [ ]
       &  ndvi_max(:,:)         ! index1=1,nproma, index2=1,nblks_c
 
-    REAL(wp), POINTER ::   &   !< proportion of actual value/maximum 
+    REAL(wp), POINTER ::   &   !< proportion of actual value/maximum
       &  ndviratio(:,:)        !< normalized differential vegetation index [ ]
                                !< for starting time of model integration
                                !< (derived from atm_td%ndvi_mrat)
@@ -366,8 +366,8 @@ MODULE mo_ext_data_types
       & frac_t(:,:,:)         ! index1=1,nproma, index2=1,nblks_c, index3=ntiles_total
 
     REAL(wp), POINTER ::  &   !< Inverse of fr_land derived from actual land tile fractions [ ]
-      & inv_frland_from_tiles(:,:) ! needed for aggregation of land-only fields. 
-                              ! Approximately equal to inverse of  
+      & inv_frland_from_tiles(:,:) ! needed for aggregation of land-only fields.
+                              ! Approximately equal to inverse of
                               ! fr_land (extpar) + fr_lake(extpar, where fr_lake<frlake_thrhld)
                               ! index1=1,nproma, index2=1,nblks_c
 
@@ -375,25 +375,25 @@ MODULE mo_ext_data_types
     ! Index lists for land, lake and water points
     !
     TYPE(t_idx_list_blocked) :: list_land   !< Static, blocked grid point index list
-                                            !< contains all points for which the land fraction (fr_land) 
+                                            !< contains all points for which the land fraction (fr_land)
                                             !< exceeds the threshold frlnd_thrhld
 
     TYPE(t_idx_list_blocked) :: list_sea    !< Static, blocked grid point index list
-                                            !< contains all points for which the sea fraction (1-fr_land-fr_lake) 
+                                            !< contains all points for which the sea fraction (1-fr_land-fr_lake)
                                             !< exceeds the threshold frsea_thrhld
 
     TYPE(t_idx_list_blocked) :: list_seawtr !< Dynamic, blocked grid point index list
-                                            !< contains all sea points which are at least partly ice-free. 
-                                            !< I.e. for which the ice-free fraction (1-fr_ice) 
+                                            !< contains all sea points which are at least partly ice-free.
+                                            !< I.e. for which the ice-free fraction (1-fr_ice)
                                             !< exceeds a certain threshold.
 
     TYPE(t_idx_list_blocked) :: list_seaice !< Dynamic, blocked grid point index list
-                                            !< contains all sea points which are at least partly ice covered. 
-                                            !< I.e. for which the seaice fraction fr_ice 
+                                            !< contains all sea points which are at least partly ice covered.
+                                            !< I.e. for which the seaice fraction fr_ice
                                             !< exceeds the threshold frice_thrhld
 
     TYPE(t_idx_list_blocked) :: list_lake   !< Static, blocked grid point index list
-                                            !< contains all points for which the lake fraction fr_lake 
+                                            !< contains all points for which the lake fraction fr_lake
                                             !< exceeds the threshold frlake_thrhld
 
 
@@ -563,7 +563,7 @@ MODULE mo_ext_data_types
   !!
   TYPE :: t_external_ocean
 
-    ! ocean topography <=> bathymetric height used in the ocean 
+    ! ocean topography <=> bathymetric height used in the ocean
     ! cell centers and edges only
     !
     REAL(wp), POINTER ::   &  !<  bathymetric height at cell centers [m]
@@ -613,4 +613,3 @@ MODULE mo_ext_data_types
   END TYPE t_external_data
 
 END MODULE mo_ext_data_types
-

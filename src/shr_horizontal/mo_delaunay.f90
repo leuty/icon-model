@@ -54,7 +54,7 @@ MODULE mo_delaunay
     &                          ccw_spherical, circum_circle_spherical
 
   IMPLICIT NONE
-  
+
   PRIVATE
 
   PUBLIC :: triangulate
@@ -103,7 +103,7 @@ CONTAINS
     TYPE(t_edge)              :: edges(0:(MAX_EDGES-1))
     INTEGER                   :: edges_oedge(0:(MAX_EDGES-1))
     LOGICAL                   :: edges_valid(0:(MAX_EDGES-1))
-                              
+
     ! copy all points since they will be re-ordered:
     npts = points%nentries
     CALL pxyz%initialize()
@@ -124,7 +124,7 @@ CONTAINS
     ! set up the initial triangle: insert the first three points
     IF (ccw_spherical(pxyz%a(0), pxyz%a(1), pxyz%a(2))<0) THEN
       CALL tri%push_back(triangle(0, 1, 2)) ! clockwise starting triangle
-    ELSE 
+    ELSE
       CALL tri%push_back(triangle(0, 2, 1)) ! counter-clockwise starting triangle
     END IF
 
@@ -165,10 +165,10 @@ CONTAINS
       ! find the next "complete" triangle from the back
       ntri   = tri%nentries
       endtri = ntri-1
-      DO 
+      DO
         IF ((tri%a(endtri)%complete==1) .OR. (endtri==j))  EXIT
         endtri = endtri - 1
-      END DO 
+      END DO
 
       ! Set up the edge buffer.
       !
@@ -176,7 +176,7 @@ CONTAINS
       ! three edges of that triangle are added to the edge buffer and
       ! that triangle is removed.
       ne = 0 ! no. of entries in edge buffer
-      LOOP2 : DO 
+      LOOP2 : DO
         IF (j>=ntri)  EXIT LOOP2
         jtri => tri%a(j)
 
@@ -201,7 +201,7 @@ CONTAINS
             ! interior edge
             inside = circum_circle_spherical(ipoint, pxyz, jtri%p)
           END IF
-          
+
           IF (inside) THEN
             ! push triangle's edges onto edge list
             this_edge = ne
@@ -212,7 +212,7 @@ CONTAINS
               this_edge = this_edge + 1
             END DO
 
-            IF (jtri%rdiscard > -1._wp)  ndiscard=ndiscard-1            
+            IF (jtri%rdiscard > -1._wp)  ndiscard=ndiscard-1
             ntri = ntri - 1
             IF (endtri > j) THEN
               tri%a(j)      = tri%a(endtri)
@@ -236,7 +236,7 @@ CONTAINS
         j = j + 1
       END DO LOOP2
       CALL tri%resize(ntri)
-     
+
       ! remove multiple edges
       edges_valid(0:(ne-1)) = .TRUE.
       DO j=0,(ne-1)
@@ -262,7 +262,7 @@ CONTAINS
       ! mark triangle if it violates the global Delaunay condition:
       IF (cos_radius > ipoint%ps) THEN
         DO j=ntri,(tri%nentries-1)
-          IF ((tri%a(j)%oedge == -1) .AND. (tri%a(j)%cap_distance < subset%radius)) THEN  
+          IF ((tri%a(j)%oedge == -1) .AND. (tri%a(j)%cap_distance < subset%radius)) THEN
             ndiscard          = ndiscard + 1
             tri%a(j)%rdiscard = COS(tri%a(j)%cap_distance+2._wp*tri%a(j)%r)
           END IF
@@ -308,7 +308,7 @@ CONTAINS
     ! local variables
 
     !> triangle count that triggers clean-up of "tri" data structure
-    INTEGER, PARAMETER :: cleanup_limit  = 50000  
+    INTEGER, PARAMETER :: cleanup_limit  = 50000
     INTEGER, PARAMETER :: MAX_EDGES      = 10000   !< size of edge buffer
 
     ! For the triangles that are created from the edges 0,1,2: compute
@@ -335,7 +335,7 @@ CONTAINS
     TYPE(t_edge)              :: edges(0:(MAX_EDGES-1))
     INTEGER                   :: edges_oedge(0:(MAX_EDGES-1))
     LOGICAL                   :: edges_valid(0:(MAX_EDGES-1))
-                              
+
     INTEGER                   :: jmin_t
 
 #ifdef __SX__
@@ -365,7 +365,7 @@ CONTAINS
     ! set up the initial triangle: insert the first three points
     IF (ccw_spherical(pxyz%a(0), pxyz%a(1), pxyz%a(2))<0) THEN
       CALL tri%push_back(triangle(0, 1, 2)) ! clockwise starting triangle
-    ELSE 
+    ELSE
       CALL tri%push_back(triangle(0, 2, 1)) ! counter-clockwise starting triangle
     END IF
 
@@ -377,7 +377,7 @@ CONTAINS
     CALL tri%push_back(triangle(tri%a(0)%p(2),tri%a(0)%p(1),gp, 0))
     CALL tri%push_back(triangle(tri%a(0)%p(0),tri%a(0)%p(2),gp, 0))
     CALL tri%a(0)%compute_circumcenter(pxyz, subset)
-    
+
     ninvalid = 0       ! no. of invalid triangles in "tri" DATA structure
     j0       = 0       ! first triangle index that is not "complete"
     ndiscard = 0       ! no. of triangles that violate global Delaunay condition
@@ -565,7 +565,7 @@ CONTAINS
 
 #else
 
-!$omp do reduction(+:new_ninvalid,new_ndiscard) 
+!$omp do reduction(+:new_ninvalid,new_ndiscard)
       DO j=j0,(ntri-1)
         jtri => tri%a(j)
 
@@ -591,7 +591,7 @@ CONTAINS
               jmin          = jmin0
             END IF
           END IF
-          
+
           IF (inside) THEN
             ! push triangle's edges onto edge list
 !$omp atomic capture
@@ -604,7 +604,7 @@ CONTAINS
               edges_valid(this_edge) = .TRUE.
               this_edge = this_edge + 1
             END DO
-            
+
             jtri%complete =       2 ! mark triangle for removal
             new_ninvalid = new_ninvalid + 1
             IF (jtri%rdiscard > -1._wp)  new_ndiscard=new_ndiscard-1
@@ -618,7 +618,7 @@ CONTAINS
       ELSE
         jmin_t = ntri
       END IF
-      
+
       ! remove multiple edges
 !$omp do
       DO j=0,(ne-1)
@@ -661,16 +661,16 @@ CONTAINS
       IF (cos_radius > ipoint%ps) THEN
 !$omp do reduction(+:new_ndiscard)
         DO j=ntri,(tri%nentries-1)
-          IF ((tri%a(j)%oedge == -1) .AND. (tri%a(j)%cap_distance < subset%radius)) THEN  
+          IF ((tri%a(j)%oedge == -1) .AND. (tri%a(j)%cap_distance < subset%radius)) THEN
             new_ndiscard  = new_ndiscard + 1
-            tri%a(j)%rdiscard = COS(tri%a(j)%cap_distance+2._wp*tri%a(j)%r)            
+            tri%a(j)%rdiscard = COS(tri%a(j)%cap_distance+2._wp*tri%a(j)%r)
           END IF
         END DO
 !$omp end do
       END IF
 !$omp end parallel
       ndiscard = ndiscard + new_ndiscard
-      
+
       ! remove "invalid" triangles at regular intervals:
       IF (ninvalid > cleanup_limit) THEN
         ! first, replace invalid triangles by "complete" ones
@@ -695,11 +695,11 @@ CONTAINS
         ! if there are no "complete" triangles left at the list end,
         ! simply remove the invalid triangles:
         endtri = tri%nentries - 1
-        LOOP5 : DO 
+        LOOP5 : DO
           IF (j==endtri)  EXIT LOOP5
           IF (tri%a(j)%complete == 2) THEN
             tri%a(j) = tri%a(endtri)
-            j      = j      - 1            
+            j      = j      - 1
             endtri = endtri - 1
             ntri   = ntri   - 1
           END IF
@@ -898,7 +898,7 @@ CONTAINS
     triangle_edge = t_edge( p1=p(i), p2=p(MOD(i+1,3)) )
   END FUNCTION triangle_edge
 #endif
-  
+
   !> Upper bound for point cloud diameter
   REAL(wp)  FUNCTION point_cloud_diam(pts, p0)
     TYPE(t_point_list), INTENT(IN) :: pts
@@ -933,7 +933,7 @@ CONTAINS
     ! triangulate the partition points and use this triangulation to
     ! define the subset radii:
     ALLOCATE(local_idx(0:(point_set%nentries-1)), STAT=ierrstat)
-    IF (ierrstat /= SUCCESS) CALL finish(routine, "ALLOCATE failed!")    
+    IF (ierrstat /= SUCCESS) CALL finish(routine, "ALLOCATE failed!")
 
     pts0 = point_list(point_set)
     j = 0
@@ -953,7 +953,7 @@ CONTAINS
       ! debugging output to file
       CALL tri0%write_vtk("tri0.vtk", pts0, ldata=.FALSE.)
     END IF
-    
+
     ! radii are set to max. distance between coarse Delaunay triangle
     ! circumcenter and its vertices:
     DO i=0,(tri0%nentries-1)
@@ -972,7 +972,7 @@ CONTAINS
 
     ! clean up
     DEALLOCATE(local_idx, STAT=ierrstat)
-    IF (ierrstat /= SUCCESS) CALL finish(routine, "DEALLOCATE failed!")    
+    IF (ierrstat /= SUCCESS) CALL finish(routine, "DEALLOCATE failed!")
   END SUBROUTINE create_thin_covering
- 
+
 END MODULE mo_delaunay

@@ -462,7 +462,7 @@ CONTAINS
   !
   ! Initial revision by Daniel Reinert, DWD (2018-05-18)
   ! Previously, this code snippet was part of nh_update_tracer_phy
-  ! 
+  !
   SUBROUTINE iau_update_tracer( pt_prog, p_metrics, pt_diag, pt_prog_rcf, &
     &                     jg, jb, i_startidx, i_endidx, kend, lacc )
 
@@ -517,7 +517,7 @@ CONTAINS
               iau_wgt_adv*pt_diag%rhov_incr(jc,jk,jb)/pt_prog%rho(jc,jk,jb)
             pt_prog_rcf%tracer(jc,jk,jb,iqc) = MAX(0._wp,pt_prog_rcf%tracer(jc,jk,jb,iqc) + &
               iau_wgt_adv*pt_diag%rhoc_incr(jc,jk,jb)/pt_prog%rho(jc,jk,jb))
-          ELSE 
+          ELSE
             zqin = (pt_diag%rhov_incr(jc,jk,jb)+pt_diag%rhoc_incr(jc,jk,jb))/pt_prog%rho(jc,jk,jb)
             ! DA increments of humidity are limited to positive values if p > 150 hPa and RH < 2% or QV < 5.e-7
             IF (pt_diag%pres(jc,jk,jb) > 15000._wp .AND. zrhw(jc,jk) < 0.02_wp .OR. &

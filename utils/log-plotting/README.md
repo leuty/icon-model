@@ -16,13 +16,13 @@ This ICON utility provides visual monitoring of job performances and wind speed 
 
 ### Extraction of information from the ICON log files.
 By default, three types of information are extracted from the log files and saved to csv-tables.
-- The times of each computing process 
+- The times of each computing process
 - Wind speed information
-- Cycle times 
+- Cycle times
 
 ### Creating plots from the extracted data.
 - The total times of each compute process are displayed by job and rank.
-- Wind speed distributions and time evolutions 
+- Wind speed distributions and time evolutions
 - The cycle times are plotted as simulated days per day (SDPD) of one experiment.
 - The format of the plots can be configured in the [config file](run/standard_experiments/DEFAULT.config) under the section `[[mon_log]] plot_format:`.
 
@@ -49,7 +49,7 @@ cd ~/icon-mpim/build
 module use ${ICON_DIR}/etc/Modules
 module rm cdo
 module add icon-levante
-``` 
+```
 2. Select the date in the simulation according to the desired job ID
 You can browse for the date or job ID in `${SCRIPT_DIR}/${EXP_ID}.log`.
 
@@ -92,7 +92,7 @@ For better customisability, the possibility of adding your own modules is provid
 
 ### Analyzing modules
 In case you would like to extend the log monitoring on data in the log file you are interested in, these are the steps to follow:
-    
+
 1. Write a custom module:
 
 To work with the `run_log_parser.py` there are a few requirements. The superclass [`BaseAnalyzer`](utils/log_monitoring/BaseAnalyzer.py) provides the general structure of each analyzer class and some default functions. Import and use this superclass when writing your analyzer class. It will raise an error if you forget to implement the two main functions `analyze_line` and `processing`. The function `analyze_line` is supposed to analyze the data of interest from a given line of the log file. In the next step `processing` creates a data frame from the collected data. Please note that conventionally, the last two columns should be the experiment name and job ID. The plotting modules rely on this convention to work without the need to supply experiment and job ID.
@@ -105,11 +105,11 @@ class AnalyzeSomething:
         super().__init__()
         self.data = []
         self.filename = 'Something'
-        
+
     def analyze_line(self, line):
         #extract the data of interest
         return self.data
-    
+
     def processing(self, exp_id, job_id):
         #create a pandas dataframe out of the collected data
         self.df = pd.DataFrame(self.data, columns=("Column1", "Column2"))
@@ -120,18 +120,18 @@ class AnalyzeSomething:
 
 custom_analyzers = [AnalyzeSomething(), ]
 ```
-It is important to name the functions exactly `analyze_line` and `processing` as well as giving a `filename` under which the csv table is saved in the end. 
+It is important to name the functions exactly `analyze_line` and `processing` as well as giving a `filename` under which the csv table is saved in the end.
 
 Your python file should also include a variable called `custom_analyzers`. It is supposed to be a list of the analyzers defined in your python file. This step is necessary so the new analyzing class gets recognized by `run_log_parser.py`.
 
 2. Set up config:
 
-Go to [`/icon-mpim/run/standard_experiments/DEFAULT.config`](run/standard_experiments/DEFAULT.config) and add the name of your module (without `.py`ending) to `custom_modules` under `[[mon_log]]`. 
+Go to [`/icon-mpim/run/standard_experiments/DEFAULT.config`](run/standard_experiments/DEFAULT.config) and add the name of your module (without `.py`ending) to `custom_modules` under `[[mon_log]]`.
 
-This step completes the setup of a new analyzing module. The newly generated csv-files should show up together with the other output in the same directory after the first execution. 
+This step completes the setup of a new analyzing module. The newly generated csv-files should show up together with the other output in the same directory after the first execution.
 
 ### Plotting modules
 
 Adding custom plot modules follows the same approach as for the analyzers. The superclass [`BasePlotter`](utils/log_monitoring/BasePlotter.py) provides the general structure and ready to use function called `extract_data`. If the function `plot` is not defined in the new plotter subclass a NotImplementedError will be raised. The `plot` function must include saving the plots.
 
-As for the analyzers, a file containing the plotter should also include the variable `custom_plotter`. 
+As for the analyzers, a file containing the plotter should also include the variable `custom_plotter`.

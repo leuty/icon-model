@@ -82,7 +82,7 @@ ERROR() {
   set -x
   set +e
   wait
-  smsabort 
+  smsabort
   trap 0
   date
   times
@@ -104,4 +104,3 @@ trap '{ echo "Killed by a signal"; ERROR ; }' \
 [[ -d $TMPDIR ]] && cd $TMPDIR
 
 date
-

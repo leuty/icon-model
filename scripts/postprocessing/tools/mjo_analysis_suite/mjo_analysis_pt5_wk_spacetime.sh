@@ -14,20 +14,20 @@
 #########################################################
 # Part 5 in MJO-Analysis Suite
 #   * Loops through all variables
-#   * Calls NCL-Skript 
+#   * Calls NCL-Skript
 #     "mjo_analysis_clivar_correlations.ncl"
 #     and provides required information on
 #     dimensions etc.
 #   * NCL Script
-#     - Opens FULL data (not anomalies) 
-#  
+#     - Opens FULL data (not anomalies)
+#
 #-------------------------------------------------------
 # DWD, FE 13, Julia Keller, 02/2016
 ########################################################
 
 
 
-for var in  TOT_PREC OLR U200 U850 V850 
+for var in  TOT_PREC OLR U200 U850 V850
 do
   if [ "${var}" == "U200" ]
   then
@@ -63,7 +63,7 @@ do
     varname=${var}
     fileinpart=${var}_"daymean"
   fi
-  
+
   echo "Process "${var}
   ncl 'varname="'${var}'"' \
       'infile="'${filepath}${dataset}'_'${fileinpart}'.grb2"' \
@@ -80,5 +80,3 @@ do
       mjo_analysis_clivar_wk_spacetime.ncl
 
 done
-
-

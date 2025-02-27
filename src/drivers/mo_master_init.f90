@@ -22,7 +22,7 @@ MODULE mo_master_init
 
   IMPLICIT NONE
   PUBLIC :: init_master_control
-   
+
 
 CONTAINS
 
@@ -62,10 +62,10 @@ CONTAINS
     !------------------------------------------------------------
     ! find what is my process
 
-    multiple_models = noOfModels() > 1    
+    multiple_models = noOfModels() > 1
 
     IF ( multiple_models ) THEN
-      
+
       CALL set_my_component_null()
 
       COMPONENT_MODELS: DO model_no = 1, noOfModels()
@@ -75,37 +75,37 @@ CONTAINS
         end_rank  = master_component_models(model_no)%model_max_rank
         inc_rank = master_component_models(model_no)%model_inc_rank
         group_size = master_component_models(model_no)%model_rank_group_size
-        
+
         model_rank = start_rank
-        
+
         DO WHILE(model_rank .LE. end_rank)
-        
+
           DO j = 0, group_size-1, 1
 
             current_rank = model_rank + j
             IF (current_rank > end_rank) EXIT
-            
+
             IF ( get_my_global_mpi_id() == current_rank ) THEN
-              
+
               CALL set_my_component(model_no,                                            &
                   &                master_component_models(model_no)%model_name,         &
                   &                master_component_models(model_no)%model_type,         &
                   &                master_component_models(model_no)%model_do_restart,   &
                   &                master_component_models(model_no)%model_namelist_filename)
-              
+
             ENDIF
-            
+
           ENDDO
-          
+
           model_rank = model_rank + group_size-1 + inc_rank
-        
+
         ENDDO ! WHILE(model_rank .LE. end_rank)
-        
+
       ENDDO COMPONENT_MODELS
 
       CALL split_global_mpi_communicator ( my_model_no, noOfModels() )
 
-    ELSE ! only one component    
+    ELSE ! only one component
 
       model_no = 1
       CALL set_my_component(model_no,                                             &
@@ -119,13 +119,13 @@ CONTAINS
     ENDIF
 
     !------------------------------------------------------------
-    
+
     CALL check_my_component()
-    
+
     !------------------------------------------------------------
-    
+
     init_master_control = 0
-    
+
   END FUNCTION init_master_control
   !------------------------------------------------------------------------
 
@@ -149,7 +149,7 @@ CONTAINS
     my_model_inc_rank    = master_component_models(comp_no)%model_inc_rank
 
     CALL check_my_component()
-    
+
     CALL set_process_mpi_name(TRIM(my_model_name))
 
   END SUBROUTINE set_my_component
@@ -160,7 +160,7 @@ CONTAINS
 
     CHARACTER(len=*), PARAMETER :: method_name='mo_master_control:check_my_component'
 
-    IF (my_model_no < 1) CALL finish(method_name, 'my_model_no < 1') 
+    IF (my_model_no < 1) CALL finish(method_name, 'my_model_no < 1')
     IF (my_namelist_filename == '') CALL finish(method_name, 'my_namelist_filename = NULL')
     IF (my_model_name == '') CALL finish(method_name, 'my_model_name = NULL')
 
@@ -196,4 +196,3 @@ CONTAINS
   !------------------------------------------------------------------------
 END MODULE mo_master_init
 !--------------------------------------------------------------------------------------------------------
-

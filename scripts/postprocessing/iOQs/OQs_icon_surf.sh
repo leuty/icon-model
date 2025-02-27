@@ -24,7 +24,7 @@ cd $TMP_DIR
 
 $BINDIR/OQs_icon_input_mask.sh $GRID $LEV
 
-ref_SAL=$POOL/$GRID/initial_state.nc 
+ref_SAL=$POOL/$GRID/initial_state.nc
 ref_TEM=$POOL/$GRID/initial_state.nc
 
 CATFILE=surfdata.nc
@@ -33,7 +33,7 @@ CATFILE2=surfdata39.nc
 CODE='h_acc,t_acc,s_acc,h_sqr'
 CODE2='hi_acc,hs_acc,conc_acc,mld'
 
-for YEAR in $(seq $Y1 $CHUNK $Y2) 
+for YEAR in $(seq $Y1 $CHUNK $Y2)
 do
 
     INFILE=$(printf $DATADIR/${EXPID}/${EXPID}_oce_min_%04.0f0101T000000Z.nc $YEAR)

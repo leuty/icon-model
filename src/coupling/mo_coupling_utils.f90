@@ -760,7 +760,7 @@ CONTAINS
         DO jc_c = i_startidx, i_endidx
 
           ! determine if current cell is owned by the local process
-          ! and has no children,  If it corresponds to a boundary 
+          ! and has no children,  If it corresponds to a boundary
           ! child cell (refin_ctrl = -1, -2) then keep it.
           cell_is_valid = &
             (p_patch(dom_id)%cells%decomp_info%decomp_domain(jc_c, jb_c) &
@@ -1633,7 +1633,7 @@ CONTAINS
 
   END SUBROUTINE def_patch_combined
   !-----------------------------------------------------------------------------
-  
+
 #else
 
   !-----------------------------------------------------------------------------
@@ -1644,9 +1644,9 @@ CONTAINS
     CHARACTER(LEN=*), INTENT(IN) :: grid_name     ! name of the nested grid
     INTEGER, INTENT(OUT) :: grid_id               ! grid id
     INTEGER, INTENT(OUT) :: cell_point_id         ! cell coordinate id
-    
+
     CALL finish("def_patch_combined", "requires the yaxt library")
-    
+
   END SUBROUTINE def_patch_combined
 #endif
 

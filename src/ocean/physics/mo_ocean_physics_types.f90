@@ -167,7 +167,7 @@ MODULE mo_ocean_physics_types
       & a_veloc_v_back   ! coefficient of vertical velocity diffusion
 
     onCells_HalfLevels :: tracer_windMixing
-    onEdges_HalfLevels :: velocity_windMixing 
+    onEdges_HalfLevels :: velocity_windMixing
 
     REAL(wp),ALLOCATABLE ::         &
       & Tracer_HorizontalDiffusion_Reference(:),    &
@@ -189,7 +189,7 @@ MODULE mo_ocean_physics_types
 
   TYPE(t_ho_params),PUBLIC,TARGET :: v_params
 
-  ! used in only for the winf mixing 
+  ! used in only for the winf mixing
   REAL(wp), POINTER, PUBLIC :: WindMixingDecay(:), WindMixingLevel(:)
 
 CONTAINS
@@ -273,7 +273,7 @@ CONTAINS
         & ldims=(/nproma,n_zlev,nblks_e/),in_group=groups("oce_physics"), lopenacc = .TRUE.)
       __acc_attach(params_oce%BiharmonicViscosity_coeff)
    ENDIF
-   
+
     IF (LeithClosure_order == 1 .or.  LeithClosure_order == 21) THEN
       CALL add_var(ocean_params_list, 'LeithHarmonicViscosity_BasisCoeff', &
         & params_oce%LeithHarmonicViscosity_BasisCoeff , grid_unstructured_edge,&
@@ -340,7 +340,7 @@ CONTAINS
         & ldims=(/nproma,n_zlev+1,alloc_cell_blocks/), &
         & lrestart_cont=.TRUE., in_group=groups("oce_vmix_tke"), lopenacc=.TRUE.)
     __acc_attach(params_oce%vmix_params%tke)
- 
+
     CALL add_var(ocean_params_list, 'tke_Tbpr', params_oce%vmix_params%tke_Tbpr, &
        & grid_unstructured_cell, za_depth_below_sea_half, &
        & t_cf_var('tke_Tbpr', 'm2 s-3', 'TKE tend bpr', datatype_flt),&
@@ -659,7 +659,7 @@ CONTAINS
     ENDIF
 
     ALLOCATE(WindMixingDecay(1:n_zlev+1), WindMixingLevel(1:n_zlev+1))
-    
+
   END SUBROUTINE construct_ho_params
   !-------------------------------------------------------------------------
 
@@ -689,9 +689,9 @@ CONTAINS
     IF (ist/=success) THEN
       CALL finish(TRIM(routine), 'deallocation for tracer Diffusion Background failed')
     END IF
-    
+
     DEALLOCATE(WindMixingDecay, WindMixingLevel)
-    
+
   END SUBROUTINE destruct_ho_params
   !-------------------------------------------------------------------------
 

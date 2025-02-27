@@ -13,21 +13,21 @@
 %manual
   -------------------------------------------------
   SEASONAL_MEAN.SMS
-  ------------------------------------------------- 
+  -------------------------------------------------
   This script is part of the ICON SMS CLIM suite
 
- 
+
   Task objectives:
-  - seasonal means 
+  - seasonal means
 %end
 
 # include the header file for ICON jobs
-%include <init_sc.h> 
+%include <init_sc.h>
 
 # -------------------------------------------------
 
 
-echo "SEASONAL_MEAN.SMS" 
+echo "SEASONAL_MEAN.SMS"
 
 module load python
 module load cdo/1.7.0
@@ -47,16 +47,16 @@ lyearmean=0
 lallmean=1            # full period excluding first month
 
 case %SIMMODE% in
-  1) lcpdata=1        # pre-operations     
+  1) lcpdata=1        # pre-operations
      ldeldata=1  ;;
   2) lcpdata=0        # monthly mean 10day forecasts
      ldeldata=0  ;;
   3) set -A means all seas  # all year seas mon
      lseasonal=1
      lseldate=1
-     lcpdata=1  
+     lcpdata=1
      ldeldata=0
-     lsel2D=1    
+     lsel2D=1
      dout=1      ;;   # 2 days output interval
 esac
 
@@ -68,9 +68,9 @@ esac
 #set -A means year
 #lmonthmean=0
 #lyearmean=0
-#lcpdata=0  
+#lcpdata=0
 #ldeldata=0
-#lsel2D=0  
+#lsel2D=0
 #dout=2
 
 
@@ -99,7 +99,7 @@ if [[ -f NAMELIST_${basename} ]] ; then
  ecp -o  NAMELIST_${basename} $ecfsdir
 else
  ecp  $ecfsdir/NAMELIST_${basename}  .
-fi 
+fi
 bindir=%SCTEMP%/%SUITE%/%EXPNUM%/output/bin
 if [[ -f ${bindir}/icon_rev.txt ]] ; then
  ecp -o  ${bindir}/icon_rev.txt $ecfsdir
@@ -108,7 +108,7 @@ else
 fi
 
 mkdir -p grb_data
-if [[ $lsplitdata = 1 ]] ; then  
+if [[ $lsplitdata = 1 ]] ; then
   rm -f grb_data/*
 fi
 
@@ -153,12 +153,12 @@ for nfile in ${file_nums} ; do
 # Split variables in three groups: pl, zl, sfc
 
   if [[ $lsplitdata = 1 ]] ; then
-  
+
     grib_copy  ${basename}_DOM01_HL_${nfile}.grb  \
-      grb_data/${basename}_DOM01_${nfile}_[shortName]_zl.grb 
+      grb_data/${basename}_DOM01_${nfile}_[shortName]_zl.grb
     grib_copy  ${basename}_DOM01_PL_${nfile}.grb  \
       grb_data/${basename}_DOM01_${nfile}_[shortName]_[typeOfFirstFixedSurface].grb
-  
+
     grib_copy  ${basename}_DOM01_ML_${nfile}.grb        ${basename}_DOM01_ML_${nfile}_[typeOfFirstFixedSurface].grb
     rm         ${basename}_DOM01_ML_${nfile}_150.grb
     cat        ${basename}_DOM01_ML_${nfile}_*.grb   >  ${basename}_DOM01_ML_${nfile}_temp.grb
@@ -166,7 +166,7 @@ for nfile in ${file_nums} ; do
     grib_copy  ${basename}_DOM01_ML_${nfile}_sfc.grb  \
       grb_data/${basename}_DOM01_${nfile}_[shortName]_sfc.grb
     rm         ${basename}_DOM01_ML_${nfile}_*.grb
-  
+
   # fixes
     for levtype2 in sfc ml pl zl ; do
       for bad in unknown '~' ; do
@@ -194,7 +194,7 @@ set -A variables `ls ${basename}_DOM01_0001_*.grb | cut -d_  -f6- | sed 's/.grb/
 
 if [[ $lsplitdata = 1 ]] ; then
   for var in ${variables[*]} ; do
-    cat ${basename}_DOM01_????_${var}.grb > ${basename}_DOM01_all_${var}.grb 
+    cat ${basename}_DOM01_????_${var}.grb > ${basename}_DOM01_all_${var}.grb
   done
 fi
 
@@ -220,7 +220,7 @@ if [[ $lsplitdata = 1 ]] ; then
     fi
   done
 
-  # check if there is more than one time step in files  
+  # check if there is more than one time step in files
 
   for yfile in `ls ${basename}_DOM01_all_*_Y_????.g2 ${basename}_DOM01_all_*_S_???.g2 ${basename}_DOM01_all_*_M_??.g2` ; do
    #nsteps=`cdo ntime ${yfile}`                 # very slow, 1min/ML file!!!  grib_ls faster
@@ -254,35 +254,35 @@ if [[ $lseasonal = 1 ]] ; then
             set -A periods DJF MAM JJA SON ;;
       mon)  rm -f *_M_??_mean.grb
             rm -f *_M_??_std.grb
-            set -A periods 01 02 03 04 05 06 07 08 09 10 11 12 ;; 
+            set -A periods 01 02 03 04 05 06 07 08 09 10 11 12 ;;
     esac
-  
+
     for period in ${periods[*]} ; do
-  
+
       for levt in sfc pl zl ; do
         i=0
         case $mean in
           all)  set -A files `ls *${levt}*_A_${period}.grb` ;;
           year) set -A files `ls *${levt}*_Y_${period}.grb` ;;
           seas) set -A files `ls *${levt}*_S_${period}.grb` ;;
-          mon)  set -A files `ls *${levt}*_M_${period}.grb` ;; 
+          mon)  set -A files `ls *${levt}*_M_${period}.grb` ;;
         esac
-  
+
         for file in ${files[*]} ; do
 %nopp
           file_grb=${file%%.grb}
 %end
           NAME=`cdo showname ${file}`
-          NAME=${NAME#" "}                   #remove the leading blank 
+          NAME=${NAME#" "}                   #remove the leading blank
           nsteps=`cdo ntime ${file}`
           nintv=`expr ${nsteps}  \- 1 `
-          case $NAME in 
+          case $NAME in
             tp|param76.1.0|param77.1.0|lssrwe|csrwe|rain_con|rain_gsp|snow_con|snow_gsp|RAIN_CON|RAIN_GSP|SNOW_CON|SNOW_GSP)
               numdays=$(echo "scale=9; ${nintv} * ${dout} " | bc)
               cdo sub -seltimestep,$nsteps ${file} -seltimestep,1 ${file} out.grb
               #cdo setunit,'"Kg m**-2 d**-1"' out.grb out2.grb
               cdo divc,${numdays} out.grb ${file_grb}_mean.grb
-              rm -f out.grb 
+              rm -f out.grb
               ;;
             ttr|nswrf|ssr|str|sshf|slhf|ACCSOB_T)
               numdays=$(echo "scale=9; ${nintv} * ${dout} " | bc)
@@ -297,20 +297,20 @@ if [[ $lseasonal = 1 ]] ; then
                 all)  cdo timmean  ${file} ${file_grb}_mean.grb   ;;
                 year) cdo timmean  ${file} ${file_grb}_mean.grb   ;;
                 seas) cdo seasmean ${file} ${file_grb}_mean.grb   ;;
-                mon)  cdo monmean  ${file} ${file_grb}_mean.grb   ;; 
+                mon)  cdo monmean  ${file} ${file_grb}_mean.grb   ;;
               esac
               #cdo seasstd ${file} ${file_grb}_std.grb
               ;;
           esac
           i=`expr ${i} \+ 1`
         done
-  
+
         if [[ $i -gt 0 ]] ; then
           case $mean in
             all)  catlist=`ls *${levt}*A*${period}*mean.grb` ;;
             year) catlist=`ls *${levt}*Y*${period}*mean.grb` ;;
             seas) catlist=`ls *${levt}*S*${period}*mean.grb` ;;
-            mon)  catlist=`ls *${levt}*M*${period}*mean.grb` ;; 
+            mon)  catlist=`ls *${levt}*M*${period}*mean.grb` ;;
           esac
           set -A clist ${catlist}
 %nopp
@@ -332,7 +332,7 @@ if [[ $lseasonal = 1 ]] ; then
             all)  rm *${levt}*A*mean.grb ;;
             year) rm *${levt}*Y*mean.grb ;;
             seas) rm *${levt}*S*mean.grb ;;
-            mon)  rm *${levt}*M*mean.grb ;; 
+            mon)  rm *${levt}*M*mean.grb ;;
           esac
         fi
       done # levt
@@ -358,8 +358,8 @@ fi
 # delete data
 
 if [[ $ldeldata = 1 ]] ; then
-  \rm -rf ${outdir}/grb_data 
-  for nfile in ${file_nums} ; do  
+  \rm -rf ${outdir}/grb_data
+  for nfile in ${file_nums} ; do
     for levtype in ML PL HL ; do
       \rm -rf ${outdir}/${basename}_DOM01_${levtype}_${nfile}.grb
     done

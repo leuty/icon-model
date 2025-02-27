@@ -226,7 +226,7 @@ CONTAINS
     !$ACC   CREATE(zthvvar, ztottevn, zch_tile, kedisp, tend_ua_vdf) &
     !$ACC   CREATE(tend_va_vdf, tend_wa_vdf, q_vdf, tend_qtrc_vdf, q_snocpymlt, zco2) &
 #if !(defined(_CRAYFTN) && _RELEASE_MAJOR <= 19)
-    !ACCWA zero sized arrays are not properly supported (CAST-33010) and cause here 
+    !ACCWA zero sized arrays are not properly supported (CAST-33010) and cause here
     ! weird "present" error
     !$ACC   CREATE(tend_qtrc_vdf_dummy) &
 #endif
@@ -1269,7 +1269,7 @@ CONTAINS
                 tend% qtrc_phy(jl,jk,jb,iqi)  = 0._wp
               END DO
             END DO
-          END IF 
+          END IF
           !
           ! diagnostic
           ! 2-tl-scheme
@@ -1293,7 +1293,7 @@ CONTAINS
             !
             field% albvisdir (jl,jb)   = albvisdir (jl,jb)
             field% albnirdir (jl,jb)   = albnirdir (jl,jb)
-            field% albvisdif (jl,jb)   = albvisdif (jl,jb) 
+            field% albvisdif (jl,jb)   = albvisdif (jl,jb)
             field% albnirdif (jl,jb)   = albnirdif (jl,jb)
             field% albedo    (jl,jb)   = albedo    (jl,jb)
           END DO

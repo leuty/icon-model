@@ -22,7 +22,7 @@ MODULE mo_2mom_mcrph_types
   IMPLICIT NONE
 
   PUBLIC
-  
+
   !==================================================================================
   ! Type declarations:
   !==================================================================================
@@ -31,7 +31,7 @@ MODULE mo_2mom_mcrph_types
   TYPE ATMOSPHERE
     REAL(wp), POINTER, DIMENSION(:,:) :: w, p, t, rho, qv, zh, tke
   END TYPE ATMOSPHERE
-  
+
   ! Derived type for hydrometeor species including pointers to data
   TYPE PARTICLE
     CHARACTER(20) :: name       !..name of particle class
@@ -72,14 +72,14 @@ MODULE mo_2mom_mcrph_types
   ! .. Because of OpenMP we have to separate the data pointers from the run-time-invariant coefficients.
   !    Therefore we carry 2 data structures for each particle species, e.g. graupel and graupel_coeff.
   !    The following derived types are for the run-time coefficients
-  
+
   TYPE particle_coeffs
     REAL(wp)      :: a_f  ! ventilation coefficient, vent_coeff_a(particle,1)
     REAL(wp)      :: b_f  ! ventilation coefficient, vent_coeff_b(particle,1) * N_sc**n_f / SQRT(nu_l)
     REAL(wp)      :: c_i  ! 1.0/particle%cap
     REAL(wp)      :: c_z  ! coefficient for 2nd mass moment
   END type particle_coeffs
-  
+
   ! .. for spherical particles we need to store the coefficients for the
   !    power law bulk sedimentation velocity
   TYPE, EXTENDS(particle_coeffs) :: particle_sphere
@@ -231,7 +231,7 @@ MODULE mo_2mom_mcrph_types
   !==================================================================================
   ! Actual instances of types:
   !==================================================================================
-  
+
   ! Types to hold the equidistant lookup table for graupel wetgrowth diameter:
   TYPE(lookupt_4d), TARGET :: ltabdminwgg
   ! Types to hold the equidistant lookup table for hail wetgrowth diameter:

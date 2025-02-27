@@ -51,7 +51,7 @@
 
 #-----------------------------------------------------------------------------
 # Run ICON at ECMWF.
-# 
+#
 # * submit: llsubmit run_ICONAM_ECMWF
 #
 # * set MPI tasks and OpenMP thread:
@@ -118,9 +118,9 @@ nsteps=`expr ${ndays} \* 86400 / ${dtime}`
 DT_DATA=`expr 12 \* 3600  `   # output each 12 hours
 DT_DIAG=`expr 24 \* 3600  `   # ascii diagnostic output each 24 hours
 DT_FILE=`expr 10 \* 86400 `   # 10 days per file
-#DT_DATA=`expr 6  \* 3600  ` 
-#DT_DATA=2             
-#DT_FILE=2  
+#DT_DATA=`expr 6  \* 3600  `
+#DT_DATA=2
+#DT_FILE=2
 
 #-----------------------------------------------------------------------------
 # model parameters
@@ -313,7 +313,7 @@ nudge_zone_width  = 8
  denom_diffu_v    = 150.
 /
 &extpar_nml
- itopo              = 1     ! 0 for aqua-planet, 1 for realistic topography   
+ itopo              = 1     ! 0 for aqua-planet, 1 for realistic topography
  n_iter_smooth_topo = 3
  heightdiff_threshold = 1800.
 /

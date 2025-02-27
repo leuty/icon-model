@@ -22,16 +22,16 @@ MODULE microphysics_1mom_schemes
   USE gscp_cloudice, ONLY: cloudice
   USE gscp_kessler, ONLY: kessler
   USE gscp_ice, ONLY: cloudice2mom
-  USE gscp_data, ONLY: & 
+  USE gscp_data, ONLY: &
       zvz0i, znimax_Thom, zthn, isnow_n0temp, mu_rain, zami, &
       zams_ci, zams_gr, zbms, zcnue, &
       mma, mmb, gscp_set_coefficients, zmi0, zmimax, zn0r, ageo_snow,zmsmin, &
       zn0s1, zn0s2, zxiconv, zxidrift, cloud_num
-  
+
 
   IMPLICIT NONE
 
-  PRIVATE 
+  PRIVATE
 
   PUBLIC :: microphysics_1mom_init
   PUBLIC :: graupel_run, cloudice_run, kessler_run, cloudice2mom_run
@@ -44,7 +44,7 @@ MODULE microphysics_1mom_schemes
   PUBLIC :: get_mean_snowdrift_mass
   PUBLIC :: get_cloud_number
   PUBLIC :: get_snow_temperature
-  
+
 
 CONTAINS
   ! Returns the cloud number from module gscp_data
@@ -251,8 +251,8 @@ CONTAINS
       & ivend  =ivend                          ,    & !< in:  end index of calculation
       & kstart =kstart                  ,    & !< in:  vertical start index
       & zdt    =zdt                     ,    & !< in:  timestep
-      & qi0    =qi0        ,    & 
-      & qc0    =qc0        ,    & 
+      & qi0    =qi0        ,    &
+      & qc0    =qc0        ,    &
       & dz     =dz     ,    & !< in:  vertical layer thickness
       & t      =t           ,    & !< in:  temp,tracer,...
       & p      =p           ,    & !< in:  full level pres
@@ -356,8 +356,8 @@ CONTAINS
       & ivend  =ivend                          ,    & !< in:  end index of calculation
       & kstart =kstart                  ,    & !< in:  vertical start index
       & zdt    =zdt                     ,    & !< in:  timestep
-      & qi0    =qi0        ,    & 
-      & qc0    =qc0        ,    & 
+      & qi0    =qi0        ,    &
+      & qc0    =qc0        ,    &
       & dz     =dz     ,    & !< in:  vertical layer thickness
       & t      =t           ,    & !< in:  temp,tracer,...
       & p      =p           ,    & !< in:  full level pres
@@ -448,14 +448,14 @@ CONTAINS
       & ivend  =ivend                          ,    & !< in:  end index of calculation
       & kstart =kstart                  ,    & !< in:  vertical start index
       & zdt    =zdt                     ,    & !< in:  timestep
-      & qc0    =qc0        ,    & 
+      & qc0    =qc0        ,    &
       & dz     =dz     ,    & !< in:  vertical layer thickness
       & t      =t           ,    & !< in:  temp,tracer,...
       & p      =p           ,    & !< in:  full level pres
       & rho    =rho          ,    & !< in:  density
       & qv     =qv    ,    & !< in:  spec. humidity
       & qc     =qc    ,    & !< in:  cloud water
-      & qr     =qr    ,    & 
+      & qr     =qr    ,    &
       & prr_gsp=prr_gsp     ,    & !< out: precipitation rate of rain
       & qrsflux= qrsflux       ,    & !< out: precipitation flux
       & ldiag_ttend = ldiag_ttend                 ,    & !< in:  if temp. tendency shall be diagnosed
@@ -542,7 +542,7 @@ CONTAINS
     REAL(KIND=wp), DIMENSION(:,:), INTENT(INOUT), OPTIONAL ::  &
       dustnum         ,    & !! dust concentration                            ( 1/kg)
       dustsfc                !! mean surface area of dust                     ( m2  )
-    
+
     REAL(KIND=wp), INTENT(INOUT) :: &
       qrsflux(:,:)           ! total precipitation flux (nudg)
 
@@ -569,7 +569,7 @@ CONTAINS
       & kstart = kstart                           ,    & !< in:  vertical start index
       & zdt    = zdt                              ,    & !< in:  timestep
       & qi0    = qi0                              ,    & !< in:  qi threshold
-      & qc0    = qc0                              ,    & !< in:  qc threshold 
+      & qc0    = qc0                              ,    & !< in:  qc threshold
       & dz     = dz                               ,    & !< in:  vertical layer thickness
       & t      = t                                ,    & !< in:  temp,tracer,...
       & p      = p                                ,    & !< in:  full level pres
@@ -607,4 +607,3 @@ CONTAINS
   END SUBROUTINE cloudice2mom_run
 
 END MODULE microphysics_1mom_schemes
-

@@ -270,4 +270,3 @@ CONTAINS
   END SUBROUTINE create_mipz_level_selections
 
 END MODULE mo_level_selection
-

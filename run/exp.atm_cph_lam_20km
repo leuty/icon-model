@@ -230,7 +230,7 @@ cat > ${atmo_namelist} << EOF
  aes_phy_config(1)%iqneg_d2p = 2
  aes_phy_config(1)%iqneg_p2d = 2
  aes_phy_config(1)%lsstice = .TRUE.
- 
+
 /
 &aes_rad_nml
  aes_rad_config(1)%isolrad    = 1 ! Time dependent solar spectrum from file
@@ -250,7 +250,7 @@ cat > ${atmo_namelist} << EOF
  aes_rad_config(1)%vmr_cfc12  = 495.02e-12
  aes_rad_config(1)%lyr_perp   = .TRUE.
  aes_rad_config(1)%yr_perp    = 2024
- 
+
 /
 &aes_vdf_nml
  aes_vdf_config(1)%turb       = 2
@@ -259,7 +259,7 @@ cat > ${atmo_namelist} << EOF
  aes_vdf_config(1)%energy_type        = 2   ! Only used for tmx
  aes_vdf_config(1)%dissipation_factor = 1.3 ! Only used for tmx
  aes_vdf_config(1)%louis_constant_b   = 4.2 ! default for R2B8
- 
+
 /
 &aes_cov_nml
  aes_cov_config(1)%cqx        = 1.e-6
@@ -295,7 +295,7 @@ EOF
 #----------------------------------
 # jsbach namelist
 # ---------------
-# 
+#
 # domain 1
 #
 cat > ${jsbach_namelist} << EOF
@@ -418,7 +418,7 @@ datadir=${orcestra_data_Folder}
 add_link_file $datadir/ifs2icon_2024090300_ORCESTRA_20km_DOM01.nc              ./ifs2icon.nc
 #
 add_link_file $datadir/bc_ozone_ssp370_2024_ORCESTRA_20km_DOM01.nc                ./bc_ozone.nc
-# 
+#
 add_link_file $datadir/sst-sic-6hourly_ORCESTRA_20km_DOM01.nc       ./sst-sic-runmean_G.nc
 #
 add_link_file $datadir/bc_aeropt_kinne_lw_b16_coa_ORCESTRA_20km_DOM01.nc        ./bc_aeropt_kinne_lw_b16_coa.nc

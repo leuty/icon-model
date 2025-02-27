@@ -34,7 +34,7 @@ set -x
 
 
 # --- select branch to compile --------------------------------------------
- 
+
 #cd ${PERM}/icon-nwp-dev                             # compile icon-nwp-dev
 
 pwd | awk 'BEGIN { FS = "/" } ; { print $6 }'        # compile local branch
@@ -44,10 +44,10 @@ pwd | awk 'BEGIN { FS = "/" } ; { print $6 }'        # compile local branch
 
 arch=x86_64-unknown-linux-gnu
 
-export CRAY_ADD_RPATH=yes 
+export CRAY_ADD_RPATH=yes
 
-module swap cce cce/8.4.5                     # cce/8.4.1  
-    
+module swap cce cce/8.4.5                     # cce/8.4.1
+
 #module load subversion
 module unload eccodes
 module load grib_api/1.15.0                   # grib_api/1.12.3

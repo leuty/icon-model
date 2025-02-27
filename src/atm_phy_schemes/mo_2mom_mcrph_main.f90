@@ -150,7 +150,7 @@ MODULE mo_2mom_mcrph_main
                           gshedr_ltab_tgg_05, gshedr_ltab_tgg_03, gshedr_ltab_tgr_04
   TYPE(gamlookuptable) :: hshedr_ltab_dhh_03, hshedr_ltab_drr_01, hshedr_ltab_dhr_02, &
                           hshedr_ltab_thh_05, hshedr_ltab_thh_03, hshedr_ltab_thr_04
-  
+
   ! choice of mu-D relation for rain, default is mu_Dm_rain_typ = 1
   INTEGER, PARAMETER     :: mu_Dm_rain_typ = 1     ! see init_twomoment() for possible choices
 
@@ -461,7 +461,7 @@ MODULE mo_2mom_mcrph_main
        &        'rainSBB', & !..name
        &        1.000000,  & !..nu
        &        0.333333,  & !..mu
-       &        6.50d-05,  & !..x_max  ! 5 mm 
+       &        6.50d-05,  & !..x_max  ! 5 mm
        &        2.60d-10,  & !..x_min  ! 80 mum
        &        1.24d-01,  & !..a_geo
        &        0.333333,  & !..b_geo
@@ -777,7 +777,7 @@ CONTAINS
        CALL accretionKK(ik_slice, dt, cloud, rain)
        CALL rain_selfcollectionSB(ik_slice, dt, atmo, rain)
     ELSE IF (auto_typ == 3) THEN
-       CALL autoconversionSB(ik_slice, dt, atmo, cloud_coeffs, cloud, rain) 
+       CALL autoconversionSB(ik_slice, dt, atmo, cloud_coeffs, cloud, rain)
        CALL accretionSB(ik_slice, dt, atmo, cloud, rain)
        CALL rain_selfcollectionSB(ik_slice, dt, atmo, rain)
     ENDIF
@@ -917,7 +917,7 @@ CONTAINS
     REAL(wp) :: nu, mu, x_s_i
 
     rhocorr = 1.0_wp
-    
+
     CALL init_2mom_scheme(cloud,rain,ice,snow,graupel,hail)
 
     ice_typ   = cloud_type/1000           ! (0) no ice, (1) no hail (2) with hail
@@ -974,7 +974,7 @@ CONTAINS
     graupel_g1 = graupel_ltable1%igf(graupel_ltable1%n) ! ordinary gamma function of nm1 is the last value in table 1
     graupel_g2 = graupel_ltable2%igf(graupel_ltable2%n) ! ordinary gamma function of nm2 is the last value in table 2
 
-    
+
     ! .. tables and parameters for graupel shedding during cloud riming:
     !    graupel: partial moment; cloud: full moment
     CALL setup_particle_coll_pm_type1_bfull(graupel,cloud,gshedc_coeffs)
@@ -989,7 +989,7 @@ CONTAINS
     CALL incgfct_lower_lookupcreate(gshedc_coeffs%moma(0,3), gshedc_ltab_tgg_03, nlookup, nlookuphr_dummy)
     !    for theta_gr-part:
     CALL incgfct_lower_lookupcreate(gshedc_coeffs%moma(0,4), gshedc_ltab_tgr_04, nlookup, nlookuphr_dummy)
-   
+
     ! .. tables and parameters for hail shedding during cloud riming:
     !    hail: partial moment; cloud: full moment
     CALL setup_particle_coll_pm_type1_bfull(hail,cloud,hshedc_coeffs)
@@ -1020,7 +1020,7 @@ CONTAINS
     CALL incgfct_lower_lookupcreate(gshedr_coeffs%moma(0,3), gshedr_ltab_tgg_03, nlookup, nlookuphr_dummy)
     !    for theta_gr-part:
     CALL incgfct_lower_lookupcreate(gshedr_coeffs%moma(0,4), gshedr_ltab_tgr_04, nlookup, nlookuphr_dummy)
-   
+
     ! .. tables and parameters for hail shedding during rain riming:
     !    hail: partial moment; rain: full moment
     CALL setup_particle_coll_pm_type1_bfull(hail,rain,hshedr_coeffs)
@@ -1041,7 +1041,7 @@ CONTAINS
     CALL init_estick_ltab_equi (ltab_estick_ice,   cfg_params%iice_stick,   'estick_cloudice')
     CALL init_estick_ltab_equi (ltab_estick_snow,  cfg_params%isnow_stick,  'estick_snow')
     CALL init_estick_ltab_equi (ltab_estick_parti, cfg_params%iparti_stick, 'estick_inter-categorical')
-    
+
     ! other options for mue-D-relation of raindrops (for sensitivity studies)
     IF (mu_Dm_rain_typ.EQ.0) THEN
       !..constant mue value
@@ -1496,7 +1496,7 @@ CONTAINS
     !$ACC ENTER DATA COPYIN(rain_ltable2%x, rain_ltable2%xhr, rain_ltable2%igf, rain_ltable2%igfhr)
     !$ACC ENTER DATA COPYIN(rain_ltable3)
     !$ACC ENTER DATA COPYIN(rain_ltable3%x, rain_ltable3%xhr, rain_ltable3%igf, rain_ltable3%igfhr)
-    
+
     !$ACC ENTER DATA COPYIN(gshedc_ltab_dgg_03)
     !$ACC ENTER DATA COPYIN(gshedc_ltab_dgg_03%x, gshedc_ltab_dgg_03%xhr, gshedc_ltab_dgg_03%igf, gshedc_ltab_dgg_03%igfhr)
     !$ACC ENTER DATA COPYIN(gshedc_ltab_drr_01)

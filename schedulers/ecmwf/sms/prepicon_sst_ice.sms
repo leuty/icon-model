@@ -22,11 +22,11 @@
     Florian Prill, DWD, mailto:florian.prill@dwd.de
 
   Task objectives:
-  - interpolate to icon grid the retrieved SST and CI monthly means from MARS ERA interim 
+  - interpolate to icon grid the retrieved SST and CI monthly means from MARS ERA interim
 %end
 
 # include the header file for remote jobs
-%include <init_sc_model.h> 
+%include <init_sc_model.h>
 
 # -------------------------------------------------
 
@@ -96,9 +96,9 @@ do
 
   IFS_FILENAME_GRB="${SSTICEDIR}/ifs_ei_SST_%YYYY%_${month}.grb"
   IFS_FILENAME_NC="${SSTICEDIR}/SST_%YYYY%_${month}_%RES%_DOM01.nc"
-    
+
   if [[ ! -f ${IFS_FILENAME_NC} ]] ; then
-    
+
     cat > NAMELIST_PREPICON << EOF
     ! interpolation regular grid-> ICON
     &remap_nml
@@ -106,7 +106,7 @@ do
      in_filename       = "${IFS_FILENAME_GRB}"
      in_type           = 1
      out_grid_filename = "${ICON_GRIDFILE}"
-     out_filename      = "${IFS_FILENAME_NC}"	
+     out_filename      = "${IFS_FILENAME_NC}"
      out_type          = 2
      s_maxsize         = 500000
      l_have3dbuffer    = .false.
@@ -115,15 +115,15 @@ do
     !rbf_vec_scale     = 0.01
     /
     &input_field_nml  ! SST
-     inputname      = "SST"         
-     outputname     = "SST"          
-     code           = 34          
-    !type_of_layer  = "surface" 
+     inputname      = "SST"
+     outputname     = "SST"
+     code           = 34
+    !type_of_layer  = "surface"
     /
 EOF
 
 # -------------------------------------------------
-    
+
     export USE_SIGNAL_HANDLING=yes
     aprun -N $EC_tasks_per_node -n $EC_total_tasks -d $EC_threads_per_task -j $EC_hyperthreads iconremap_mpi --remap_nml=NAMELIST_PREPICON -vvvv
 
@@ -133,15 +133,15 @@ EOF
 
   fi
 
-    
+
 # CI
 # For a complete list see Namelist_overview and Namelist_overview.pdf
-    
+
   IFS_FILENAME_GRB="${SSTICEDIR}/ifs_ei_CI_%YYYY%_${month}.grb"
   IFS_FILENAME_NC="${SSTICEDIR}/CI_%YYYY%_${month}_%RES%_DOM01.nc"
-    
+
   if [[ ! -f ${IFS_FILENAME_NC} ]] ; then
-    
+
     cat > NAMELIST_PREPICON << EOF
     ! interpolation regular grid-> ICON
     &remap_nml
@@ -149,7 +149,7 @@ EOF
      in_filename        = "${IFS_FILENAME_GRB}"
      in_type            = 1
      out_grid_filename  = "${ICON_GRIDFILE}"
-     out_filename       = "${IFS_FILENAME_NC}"	
+     out_filename       = "${IFS_FILENAME_NC}"
      out_type           = 2
      s_maxsize          = 500000
      l_have3dbuffer     = .false.
@@ -157,15 +157,15 @@ EOF
      !rbf_vec_scale     = 0.01
     /
     &input_field_nml  ! CI
-     inputname      = "CI"         
-     outputname     = "CI"          
-     code           = 31          
-    !type_of_layer  = "surface" 
+     inputname      = "CI"
+     outputname     = "CI"
+     code           = 31
+    !type_of_layer  = "surface"
     /
 EOF
-    
+
 # -------------------------------------------------
-    
+
     export USE_SIGNAL_HANDLING=yes
     aprun -N $EC_tasks_per_node -n $EC_total_tasks -d $EC_threads_per_task -j $EC_hyperthreads iconremap_mpi --remap_nml=NAMELIST_PREPICON -vv
 

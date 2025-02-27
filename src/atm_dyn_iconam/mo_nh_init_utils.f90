@@ -80,7 +80,7 @@ CONTAINS
 
     ! 1. Compute pressure and height of input data, using the IFS routines
 
-    ! If mask field is provided, fill data-void points (mask=.FALSE.) 
+    ! If mask field is provided, fill data-void points (mask=.FALSE.)
     ! with dummy value.
     IF (PRESENT(opt_lmask)) THEN
       !
@@ -134,25 +134,25 @@ CONTAINS
       ELSE
         nlen = p_patch%npromz_c
       ENDIF
-      
+
       ! Check if psfc is really psfc or LOG(psfc)
       IF (MAXVAL(psfc(1:nlen,jb)) <= 100._wp) THEN
         psfc(1:nlen,jb) = EXP(psfc(1:nlen,jb))
       ENDIF
-      
+
       CALL initicon%const%vct%half_level_pressure(psfc(:,jb), nproma, nlen, nlev_in, pres_ic)
-      
+
       CALL initicon%const%vct%full_level_pressure(pres_ic,nproma, nlen, nlev_in, initicon%atm_in%pres(:,:,jb))
-      
+
       CALL initicon%const%vct%auxhyb(pres_ic, nproma, nlen, nlev_in,     & ! in
         delp, rdelp, lnp_ic, rdlnpr, rdalpha) ! out
-      
+
       CALL geopot(temp_v_in(:,:,jb), rdlnpr, rdalpha, phi_sfc(:,jb), & ! in
         nproma, 1, nlen, nlev_in, geop_mc, geop_ic ) ! inout
-      
+
       ! Compute 3D height coordinate field
       initicon%const%z_mc_in(1:nlen,1:nlev_in,jb) = geop_mc(1:nlen,1:nlev_in)/grav
-      
+
     ENDDO
 !$OMP END DO NOWAIT
 !$OMP END PARALLEL
@@ -241,7 +241,7 @@ CONTAINS
     INTEGER , INTENT(IN) :: nblks      ! Number of blocks
     INTEGER , INTENT(IN) :: npromz     ! Length of last block
     INTEGER , INTENT(IN) :: nlev       ! Number of model levels
-    
+
     LOGICAL , INTENT(IN), OPTIONAL :: opt_lmask(:,:) ! logical mask of points to process
 
     ! LOCAL VARIABLES

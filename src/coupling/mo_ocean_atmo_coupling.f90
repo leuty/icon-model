@@ -660,7 +660,7 @@ CONTAINS
       'couple_ocean_toatmo_fluxes', field_id_freshflx_runoff, &
       'runoff', nbr_hor_cells, atmos_fluxes%FrshFlux_Runoff, &
       received_data=received_data)
- 
+
     IF (received_data) THEN
       !
       ! Online diagnose for global total discharge (m3/s) received from YAC:
@@ -740,4 +740,3 @@ CONTAINS
   !--------------------------------------------------------------------------
 
 END MODULE mo_ocean_atmo_coupling
-

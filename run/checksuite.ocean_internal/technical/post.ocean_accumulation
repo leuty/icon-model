@@ -48,7 +48,7 @@ for expDir in ${EXP_DAILY} ${EXP_HOURLY} ${EXPNAME}; do
     case "${expDir}" in
       "${EXP_HOURLY}"|"${EXPNAME}")
         for ifile in ocean_accumulation*.nc*; do
-          for var in u h s t; do 
+          for var in u h s t; do
             myDiff $ifile $var wet_c || exit 1
           done;
         done;

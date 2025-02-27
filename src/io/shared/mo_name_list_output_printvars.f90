@@ -159,10 +159,10 @@ CONTAINS
       &                         gribout_config%generatingSubcenter, '', '')
     ! define Institute
     CALL vlistDefInstitut(tmp_vlistID, tmp_cdiInstID)
-    ! create a dummy time axis 
-    tmp_taxisID = taxisCreate(TAXIS_ABSOLUTE) 
-    ! assign the time axis to the variable list 
-    CALL vlistDefTaxis(tmp_vlistID, tmp_taxisID) 
+    ! create a dummy time axis
+    tmp_taxisID = taxisCreate(TAXIS_ABSOLUTE)
+    ! assign the time axis to the variable list
+    CALL vlistDefTaxis(tmp_vlistID, tmp_taxisID)
     ! create dummy grid (size=1):
     tmp_gridID  = gridCreate(GRID_UNSTRUCTURED, 1)
     ! add the variable in question to the vlist:
@@ -171,22 +171,22 @@ CONTAINS
       &                             gribout_config, i_lctype, out_varnames_dict)
     ! open temporary GRIB2 file, write variable:
     tmp_filename = tmp_filename_base//"."//int2string(get_my_global_mpi_id(),'(i0)')
-    tmp_streamID = streamOpenWrite(TRIM(tmp_filename), FILETYPE_GRB2) 
-    CALL streamDefVlist(tmp_streamID, tmp_vlistID) 
+    tmp_streamID = streamOpenWrite(TRIM(tmp_filename), FILETYPE_GRB2)
+    CALL streamDefVlist(tmp_streamID, tmp_vlistID)
     tmp_var1(:) = 0._dp
     nmiss       = 0
-    CALL streamWriteVarSlice(tmp_streamID, tmp_varID, 0, tmp_var1, nmiss) 
-    CALL streamClose(tmp_streamID) 
+    CALL streamWriteVarSlice(tmp_streamID, tmp_varID, 0, tmp_var1, nmiss)
+    CALL streamClose(tmp_streamID)
     CALL vlistDestroy(tmp_vlistID)
     CALL taxisDestroy(tmp_taxisID)
-    CALL gridDestroy(tmp_gridID) 
+    CALL gridDestroy(tmp_gridID)
     ! Re-open file:
-    tmp_streamID = streamOpenRead(TRIM(tmp_filename)) 
-    ! Get the variable list of the dataset 
-    tmp_vlistID = streamInqVlist(tmp_streamID) 
-    CALL vlistInqVarName(tmp_vlistID, tmp_varID, vname)   
-    ! Close the input stream 
-    CALL streamClose(tmp_streamID) 
+    tmp_streamID = streamOpenRead(TRIM(tmp_filename))
+    ! Get the variable list of the dataset
+    tmp_vlistID = streamInqVlist(tmp_streamID)
+    CALL vlistInqVarName(tmp_vlistID, tmp_varID, vname)
+    ! Close the input stream
+    CALL streamClose(tmp_streamID)
     ierrstat = util_unlink(TRIM(tmp_filename))
   END SUBROUTINE identify_grb2_shortname
 #endif

@@ -37,9 +37,9 @@ SUBROUTINE update_linage (local_bgc_mem, klev,start_idx,end_idx, pddpo, lacc)
 
   ! Arguments
   TYPE(t_bgc_memory), POINTER    :: local_bgc_mem
- 
-  INTEGER, INTENT(in)            :: start_idx              !< start index for j loop (ICON cells, MPIOM lat dir)  
-  INTEGER, INTENT(in)            :: end_idx                !< end index  for j loop  (ICON cells, MPIOM lat dir) 
+
+  INTEGER, INTENT(in)            :: start_idx              !< start index for j loop (ICON cells, MPIOM lat dir)
+  INTEGER, INTENT(in)            :: end_idx                !< end index  for j loop  (ICON cells, MPIOM lat dir)
   INTEGER, INTENT(in), TARGET    :: klev(bgc_nproma)       !<  vertical levels
 
   REAL(wp), INTENT(in), TARGET   :: pddpo(bgc_nproma,bgc_zlevs)      !< size of scalar grid cell (3rd dimension) [m]
@@ -51,7 +51,7 @@ SUBROUTINE update_linage (local_bgc_mem, klev,start_idx,end_idx, pddpo, lacc)
 
   CALL set_acc_host_or_device(lzacc, lacc)
 
-  fac001 = dtbgc/(86400._wp*365._wp) 
+  fac001 = dtbgc/(86400._wp*365._wp)
 
   !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1) IF(lzacc)
   !$ACC LOOP GANG VECTOR
@@ -68,7 +68,7 @@ SUBROUTINE update_linage (local_bgc_mem, klev,start_idx,end_idx, pddpo, lacc)
   !$ACC END PARALLEL
 
 
-END SUBROUTINE update_linage 
+END SUBROUTINE update_linage
 
 SUBROUTINE update_weathering (local_bgc_mem, start_idx,end_idx, pddpo, za, lacc)
 ! apply weathering rates
@@ -79,9 +79,9 @@ SUBROUTINE update_weathering (local_bgc_mem, start_idx,end_idx, pddpo, za, lacc)
 
   ! Arguments
   TYPE(t_bgc_memory), POINTER    :: local_bgc_mem
-  
-  INTEGER, INTENT(in)            :: start_idx              !< start index for j loop (ICON cells, MPIOM lat dir)  
-  INTEGER, INTENT(in)            :: end_idx                !< end index  for j loop  (ICON cells, MPIOM lat dir) 
+
+  INTEGER, INTENT(in)            :: start_idx              !< start index for j loop (ICON cells, MPIOM lat dir)
+  INTEGER, INTENT(in)            :: end_idx                !< end index  for j loop  (ICON cells, MPIOM lat dir)
 
   REAL(wp), INTENT(in), TARGET   :: pddpo(bgc_nproma,bgc_zlevs)      !< size of scalar grid cell (3rd dimension) [m]
   REAL(wp), INTENT(in), TARGET   :: za(bgc_nproma)      !< surface height
@@ -104,7 +104,7 @@ SUBROUTINE update_weathering (local_bgc_mem, start_idx,end_idx, pddpo, za, lacc)
     local_bgc_mem%bgctra(jc,1,isco212) = local_bgc_mem%bgctra(jc,1,isco212) + calcinp / (pddpo(jc,1) + za(jc))
     local_bgc_mem%bgctra(jc,1,ialkali) = local_bgc_mem%bgctra(jc,1,ialkali) + 2._wp * calcinp / (pddpo(jc,1) + za(jc))
     local_bgc_mem%bgctra(jc,1,isilica) = local_bgc_mem%bgctra(jc,1,isilica) + silinp / (pddpo(jc,1) + za(jc))
-  
+
     local_bgc_mem%bgcflux(jc,korginp) = orginp / (pddpo(jc,1) + za(jc))
     local_bgc_mem%bgcflux(jc,ksilinp) = silinp / (pddpo(jc,1) + za(jc))
     local_bgc_mem%bgcflux(jc,kcalinp) = calcinp / (pddpo(jc,1) + za(jc))
@@ -123,15 +123,15 @@ SUBROUTINE nitrogen_deposition (local_bgc_mem, start_idx,end_idx, pddpo, za, nit
 
   !Arguments
   TYPE(t_bgc_memory), POINTER    :: local_bgc_mem
-  
-  INTEGER, INTENT(in)            :: start_idx              !< start index for j loop (ICON cells, MPIOM lat dir)  
-  INTEGER, INTENT(in)            :: end_idx                !< end index  for j loop  (ICON cells, MPIOM lat dir) 
+
+  INTEGER, INTENT(in)            :: start_idx              !< start index for j loop (ICON cells, MPIOM lat dir)
+  INTEGER, INTENT(in)            :: end_idx                !< end index  for j loop  (ICON cells, MPIOM lat dir)
 
   REAL(wp),INTENT(in) :: nitinput(bgc_nproma )                         !< nitrogen input
   REAL(wp), INTENT(in), TARGET   :: pddpo(bgc_nproma,bgc_zlevs)      !< size of scalar grid cell (3rd dimension) [m]
   REAL(wp), INTENT(in), TARGET   :: za(bgc_nproma)                   !< surface height
   LOGICAL, INTENT(IN), OPTIONAL :: lacc
-  
+
   ! Local variables
 
   INTEGER :: jc
@@ -151,7 +151,7 @@ SUBROUTINE nitrogen_deposition (local_bgc_mem, start_idx,end_idx, pddpo, za, nit
 
        local_bgc_mem%bgctra(jc,1,iano3) = local_bgc_mem%bgctra(jc,1,iano3) + ninp
        local_bgc_mem%bgctra(jc,1,ialkali) = local_bgc_mem%bgctra(jc,1,ialkali) - ninp
-       local_bgc_mem%bgctend(jc,1,kn2b)   = local_bgc_mem%bgctend(jc,1,kn2b) - ninp * (pddpo(jc,1) + za(jc)) 
+       local_bgc_mem%bgctend(jc,1,kn2b)   = local_bgc_mem%bgctend(jc,1,kn2b) - ninp * (pddpo(jc,1) + za(jc))
        local_bgc_mem%bgcflux(jc,knitinp) = ninp
 
   endif
@@ -163,16 +163,16 @@ SUBROUTINE nitrogen_deposition (local_bgc_mem, start_idx,end_idx, pddpo, za, nit
 END SUBROUTINE
 SUBROUTINE dust_deposition (local_bgc_mem, start_idx,end_idx, pddpo, za, dustinp, lacc)
 ! apply dust deposition
-  USE mo_memory_bgc, ONLY      : perc_diron 
+  USE mo_memory_bgc, ONLY      : perc_diron
   USE mo_param1_bgc, ONLY     : iiron, idust
   USE mo_control_bgc, ONLY    : dtb
-  
+
   !Arguments
   TYPE(t_bgc_memory), POINTER    :: local_bgc_mem
- 
 
-  INTEGER, INTENT(in)            :: start_idx              !< start index for j loop (ICON cells, MPIOM lat dir)  
-  INTEGER, INTENT(in)            :: end_idx                !< end index  for j loop  (ICON cells, MPIOM lat dir) 
+
+  INTEGER, INTENT(in)            :: start_idx              !< start index for j loop (ICON cells, MPIOM lat dir)
+  INTEGER, INTENT(in)            :: end_idx                !< end index  for j loop  (ICON cells, MPIOM lat dir)
 
   REAL(wp),INTENT(in) :: dustinp(bgc_nproma )                        !< dust input
   REAL(wp), INTENT(in), TARGET   :: pddpo(bgc_nproma,bgc_zlevs)      !< size of scalar grid cell (3rd dimension) [m]
@@ -192,9 +192,9 @@ SUBROUTINE dust_deposition (local_bgc_mem, start_idx,end_idx, pddpo, za, dustinp
 
   if(pddpo(jc,1) > EPSILON(0.5_wp)) then
 
-   local_bgc_mem%bgctra(jc,1,iiron) = local_bgc_mem%bgctra(jc,1,iiron) + dustinp(jc)*dtb/365._wp/(pddpo(jc,1)+za(jc)) *perc_diron 
+   local_bgc_mem%bgctra(jc,1,iiron) = local_bgc_mem%bgctra(jc,1,iiron) + dustinp(jc)*dtb/365._wp/(pddpo(jc,1)+za(jc)) *perc_diron
 
-   local_bgc_mem%bgctra(jc,1,idust) = local_bgc_mem%bgctra(jc,1,idust) + dustinp(jc)*dtb/365._wp/(pddpo(jc,1)+za(jc))  
+   local_bgc_mem%bgctra(jc,1,idust) = local_bgc_mem%bgctra(jc,1,idust) + dustinp(jc)*dtb/365._wp/(pddpo(jc,1)+za(jc))
 
   endif
 
@@ -230,9 +230,9 @@ SUBROUTINE gasex (local_bgc_mem, start_idx,end_idx, pddpo, za, ptho, psao,  &
 
   !! Arguments
   TYPE(t_bgc_memory), POINTER    :: local_bgc_mem
- 
-  INTEGER, INTENT(in)  :: start_idx              !< start index for j loop (ICON cells, MPIOM lat dir)  
-  INTEGER, INTENT(in)  :: end_idx                !< end index  for j loop  (ICON cells, MPIOM lat dir) 
+
+  INTEGER, INTENT(in)  :: start_idx              !< start index for j loop (ICON cells, MPIOM lat dir)
+  INTEGER, INTENT(in)  :: end_idx                !< end index  for j loop  (ICON cells, MPIOM lat dir)
 
   REAL(wp),INTENT(in) :: pddpo(bgc_nproma,bgc_zlevs) !< size of scalar grid cell (3rd REAL) [m]
   REAL(wp),INTENT(in) :: psao(bgc_nproma,bgc_zlevs)  !< salinity
@@ -255,7 +255,7 @@ SUBROUTINE gasex (local_bgc_mem, start_idx,end_idx, pddpo, za, ptho, psao,  &
   LOGICAL :: lzacc
 
   ! for extended N-cycle
-  REAL (wp):: kgammo,kh_nh3i,kh_nh3,pka_nh3,ka_nh3,nh3sw,ammoflux 
+  REAL (wp):: kgammo,kh_nh3i,kh_nh3,pka_nh3,ka_nh3,nh3sw,ammoflux
   REAL (wp):: ecoef,tabs
 
   CALL set_acc_host_or_device(lzacc, lacc)
@@ -273,12 +273,12 @@ SUBROUTINE gasex (local_bgc_mem, start_idx,end_idx, pddpo, za, ptho, psao,  &
 
         IF (pddpo(j, 1) .GT. EPSILON(0.5_wp)) THEN
 
-         
+
            !*********************************************************************
            !
            !  Compute the Schmidt number of CO2 in seawater and the transfer
            !  (piston) velocity using the formulation presented in
-           !   Wanninkhof 2014 
+           !   Wanninkhof 2014
            !*********************************************************************
 
            scco2 = 2116.8_wp - 136.25_wp*ptho(j,1) + 4.7353_wp*ptho(j,1)**2 &
@@ -292,7 +292,7 @@ SUBROUTINE gasex (local_bgc_mem, start_idx,end_idx, pddpo, za, ptho, psao,  &
 
            scdms =  2855.7_wp - 177.63_wp*ptho(j,1)  + 6.0438_wp*ptho(j,1)**2 &
                & - 0.11645_wp*ptho(j,1)**3 + 0.00094743_wp*ptho(j,1)**4
-     
+
            !
            !  Compute the transfer (piston) velocity in m/s
            !  660 = Schmidt number of CO2 @ 20 degC in seawater
@@ -308,11 +308,11 @@ SUBROUTINE gasex (local_bgc_mem, start_idx,end_idx, pddpo, za, ptho, psao,  &
            kwdms = (1._wp - psicomo(j)) * cmh2ms * pfu10( j)**2        &
                 &           * (660._wp / scdms)**0.5_wp
 
-       
+
            kwn2o = (1._wp - psicomo(j)) * cmh2ms * pfu10( j)**2        &
                 &           * (660._wp / scn2o)**0.5_wp
 
-           if(l_cpl_co2)then 
+           if(l_cpl_co2)then
             atco2 = local_bgc_mem%atm(j,iatmco2)
            else
             atco2 = atm_co2
@@ -321,8 +321,8 @@ SUBROUTINE gasex (local_bgc_mem, start_idx,end_idx, pddpo, za, ptho, psao,  &
            atn2  = atm_n2
 
           !*********************************************************************
-          !     
-          ! Calculate air-sea exchange for O2, N2, N2O 
+          !
+          ! Calculate air-sea exchange for O2, N2, N2O
           !
           !*********************************************************************
 
@@ -338,7 +338,7 @@ SUBROUTINE gasex (local_bgc_mem, start_idx,end_idx, pddpo, za, ptho, psao,  &
            local_bgc_mem%bgctra(j,1,ioxygen) = local_bgc_mem%bgctra(j,1,ioxygen)                 &
                 &                - oxflux/(pddpo(j,1)+za(j))
 
-         
+
            ! Surface flux of gaseous nitrogen (same piston velocity as for O2)
            ! (Meiner-Reimer et. al, 2005, Eq. 75)
 
@@ -350,12 +350,12 @@ SUBROUTINE gasex (local_bgc_mem, start_idx,end_idx, pddpo, za, ptho, psao,  &
            local_bgc_mem%bgctra(j,1,igasnit) = local_bgc_mem%bgctra(j,1,igasnit)                   &
                 &                - niflux/(pddpo(j,1)+za(j))
 
-          
+
            ! Surface flux of laughing gas (same piston velocity as for O2 and N2)
            ! (Meiner-Reimer et. al, 2005, Eq. 76)
 
            nlaughflux = kwn2o * dtbgc * (local_bgc_mem%bgctra(j,1,ian2o)              &
-                &     - local_bgc_mem%satn2o(j))  
+                &     - local_bgc_mem%satn2o(j))
 
            local_bgc_mem%bgctra(j,1,ian2o) = local_bgc_mem%bgctra(j,1,ian2o)                     &
                 &              - nlaughflux/(pddpo(j,1)+za(j))
@@ -374,7 +374,7 @@ SUBROUTINE gasex (local_bgc_mem, start_idx,end_idx, pddpo, za, ptho, psao,  &
            local_bgc_mem%bgcflux(j,kdmsflux) = dmsflux/dtbgc
 
         !*********************************************************************
-        !     
+        !
         ! Calculate air sea exchange for CO2
         !
         !*********************************************************************
@@ -394,11 +394,11 @@ SUBROUTINE gasex (local_bgc_mem, start_idx,end_idx, pddpo, za, ptho, psao,  &
            pco2=  local_bgc_mem%bgctra(j,k,isco212)  /((1._wp + local_bgc_mem%aksurf(j,1) * (1._wp + &
              & local_bgc_mem%aksurf(j,2)/local_bgc_mem%hi(j,k))/local_bgc_mem%hi(j,k)) * local_bgc_mem%solco2(j))
 
-           fluxd=atco2*kwco2*dtbgc*local_bgc_mem%solco2(j) ! 
-           fluxu=pco2 *kwco2*dtbgc*local_bgc_mem%solco2(j) ! 
+           fluxd=atco2*kwco2*dtbgc*local_bgc_mem%solco2(j) !
+           fluxu=pco2 *kwco2*dtbgc*local_bgc_mem%solco2(j) !
 
 !         ! new concentrations ocean (kmol/m3 -->ppm)
-           thickness = pddpo(j,1) + za(j)                             
+           thickness = pddpo(j,1) + za(j)
            local_bgc_mem%bgctra(j,1,isco212) = local_bgc_mem%bgctra(j,1,isco212)+ (1._wp - psicomo(j)) * (fluxd-fluxu)/thickness
            local_bgc_mem%bgcflux(j,kcflux) = (1._wp - psicomo(j)) * (fluxu-fluxd)/dtbgc
            local_bgc_mem%bgcflux(j,kcflux_cpl) = (fluxu-fluxd)/dtbgc
@@ -414,7 +414,7 @@ SUBROUTINE gasex (local_bgc_mem, start_idx,end_idx, pddpo, za, ptho, psao,  &
 
               ! gas phase tranfer velocity
               kgammo = (1._wp - psicomo(j))*pfu10(j)/kg_denom
-  
+
               ! Henry's law coefficient
               tabs = ptho(j,1) + 273.15_wp
               ecoef = 4092._wp/tabs - 9.70_wp
@@ -423,13 +423,13 @@ SUBROUTINE gasex (local_bgc_mem, start_idx,end_idx, pddpo, za, ptho, psao,  &
 
               pka_nh3 = -0.467_wp + 0.00113_wp*psao(j,1) + 2887.9_wp/tabs
               ka_nh3 = 10._wp**(-pka_nh3)
-         
+
               ! NH3 in seawater
               nh3sw = local_bgc_mem%bgctra(j,1,iammo)*ka_nh3/(ka_nh3+local_bgc_mem%hi(j,1))
- 
+
               ammoflux = max(0._wp, dtbgc*kgammo*kh_nh3*nh3sw)
               local_bgc_mem%bgctra(j,1,iammo) = local_bgc_mem%bgctra(j,1,iammo) - ammoflux/thickness
-       
+
               ! LR: from mpiom, do not know what this is for ?!
               ! atm(i,j,iatmn2) = atm(i,j,iatmn2) + ammoflux*contppm/2._wp   !closing mass balance
 
@@ -444,5 +444,5 @@ SUBROUTINE gasex (local_bgc_mem, start_idx,end_idx, pddpo, za, ptho, psao,  &
      END DO
      !$ACC END PARALLEL
 
-END SUBROUTINE 
+END SUBROUTINE
 END MODULE mo_bgc_surface

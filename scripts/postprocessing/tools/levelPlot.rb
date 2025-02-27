@@ -39,7 +39,7 @@ dataFile = MyTempfile.path
 
 # read the date
 IO.popen("echo 'date|time|depth|#{varname}' > #{dataFile}")
-Cdo.outputkey('date,time,level,value', 
+Cdo.outputkey('date,time,level,value',
               :input => "-#{operation} -selname,#{varname} #{ifile} >>#{dataFile}")
 unit = Cdo.showunit(:input => "-selname,#{varname} #{ifile}").first
 

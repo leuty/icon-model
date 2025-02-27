@@ -39,4 +39,3 @@ echo ""
 echo ">>> Checked out the scripts for ICON-Land initial file generation from branch ${branch}".
 echo "    cd to ./scripts and see README_initial_files.md for further instructions."
 echo ""
-

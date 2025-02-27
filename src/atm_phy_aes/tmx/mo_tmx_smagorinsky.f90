@@ -43,16 +43,16 @@ MODULE mo_tmx_smagorinsky
   CHARACTER(len=*), PARAMETER :: modname = 'mo_tmx_smagorinsky'
 
   ! PROCEDURE(stability_interface), POINTER :: compute_stability_term => NULL()
-  ! ABSTRACT INTERFACE 
+  ! ABSTRACT INTERFACE
   !  FUNCTION stability_interface(mech_prod,bruvais,rturb_prandtl,jb,jc,jk) result(stability_term)
   !    IMPORT    :: wp
   !    REAL(wp), INTENT(in), POINTER :: mech_prod(:,:,:), bruvais(:,:,:)
   !    REAL(wp), INTENT(in), POINTER :: rturb_prandtl
   !    INTEGER,  INTENT(in)          :: jb,jc,jk
-  !    REAL(wp) :: stability_term 
+  !    REAL(wp) :: stability_term
   !  END FUNCTION stability_interface
   ! END INTERFACE
-  
+
   CONTAINS
     !============================================================================
     SUBROUTINE Smagorinsky_init(domain,config,inputs,diagnostics)
@@ -68,42 +68,42 @@ MODULE mo_tmx_smagorinsky
       REAL(wp), POINTER, DIMENSION(:,:)   :: scaling_factor_louis
       REAL(wp), POINTER :: smag_constant, max_turb_scale
       LOGICAL,  POINTER :: use_louis
-     
+
       mixing_length_sq  => diagnostics%list%get_ptr_r3d('square of mixing length for Smagorinsky model')
 
       use_louis         => config%list%Get_ptr_l0d('switch to activate Louis formula')
       smag_constant     => config%list%Get_ptr_r0d('Smagorinsky constant')
       max_turb_scale    => config%list%Get_ptr_r0d('maximum turbulence length scale')
-      
-      dzh               => inputs%list%get_ptr_s3d('layer thickness half') 
+
+      dzh               => inputs%list%get_ptr_s3d('layer thickness half')
 
       gepot_agl_ic      => inputs%list%get_ptr_r3d('geopotential above groundlevel at interface and cell center')
 
       ! Compute mixing length for Smagorinsky model
       CALL compute_mixing_length(domain, dzh, gepot_agl_ic, smag_constant, max_turb_scale, mixing_length_sq)
 
-      ! Computation of variables for stability correction function 
+      ! Computation of variables for stability correction function
       IF (use_louis) THEN
         ! -> set procedure pointer for computation of stability term
         ! PROCEDURE POINTER ARE NOT SUPPORTED YET BY NVIDIA COMPILER
         !compute_stability_term => compute_stability_term_louis
-       
+
         scaling_factor_louis  => diagnostics%list%Get_ptr_r2d('scaling factor for Louis constant b')
         __acc_attach(scaling_factor_louis)
 
         ! compute scaling_factor_louis in init!
         CALL compute_scaling_factor_louis(domain,scaling_factor_louis)
 
-      !ELSE 
+      !ELSE
         !compute_stability_term => compute_stability_term_classic
       END IF
 
     END SUBROUTINE Smagorinsky_init
     !============================================================================
     !
-    ! Computes the square of the SGS mixing length for the Smagorinsky model. 
+    ! Computes the square of the SGS mixing length for the Smagorinsky model.
     !
-    ! lambda^2 = (Cs * Delta)^2 *(kappa*x_3)^2 / ((Cs * Delta)^2 + (kappa*x_3)^2) 
+    ! lambda^2 = (Cs * Delta)^2 *(kappa*x_3)^2 / ((Cs * Delta)^2 + (kappa*x_3)^2)
     !          = (Cs * Delta * x_3)^2 / ( (Cs * Delta / kappa)^2 + x_3^2 )
     !
     ! with   Cs    : Smagorinsky constant
@@ -125,10 +125,10 @@ MODULE mo_tmx_smagorinsky
       INTEGER :: jg, jk, jb, jc
       INTEGER :: nlevp1
 
-      ! von Karman constant 
+      ! von Karman constant
       kappa = 0.4_wp
 
-      jg     = domain%patch%id             
+      jg     = domain%patch%id
       nlevp1 = domain%nlev + 1
 
 !$OMP PARALLEL
@@ -138,11 +138,11 @@ MODULE mo_tmx_smagorinsky
           DO jc = domain%i_startidx_c(jb), domain%i_endidx_c(jb)
             z_mc  = gepot_agl_ic(jc,jk,jb) * rgrav
 
-            les_filter =  smag_constant           & 
+            les_filter =  smag_constant           &
                           * MIN( max_turb_scale,  &
                                 (dzh(jc,jk,jb) * domain%area(jc,jb))**0.33333_wp &
                                )
-            ! 
+            !
             mixing_length_sq(jc,jk,jb) = (les_filter*z_mc)**2._wp    &
                                          / ((les_filter/kappa)**2._wp+z_mc**2._wp)
 
@@ -157,10 +157,10 @@ MODULE mo_tmx_smagorinsky
     END SUBROUTINE compute_mixing_length
     !============================================================================
     !
-    ! Computes the scaling factor for Louis constant b. 
+    ! Computes the scaling factor for Louis constant b.
     ! Scaling factor for Louis constant b is designed to be 1 with R2B8 setup.
     !
-    SUBROUTINE compute_scaling_factor_louis(domain,scaling_factor_louis)   
+    SUBROUTINE compute_scaling_factor_louis(domain,scaling_factor_louis)
       TYPE(t_domain),           INTENT(in)    :: domain
       REAL(wp), DIMENSION(:,:), INTENT(inout) :: scaling_factor_louis
 
@@ -168,7 +168,7 @@ MODULE mo_tmx_smagorinsky
 
       ! Global mean of cell area for R2B8 [m]
       REAL(wp), PARAMETER :: mean_area_R2B8 = 97294071.23714285_wp
-      
+
 !$OMP PARALLEL DO PRIVATE(jb,jc) ICON_OMP_DEFAULT_SCHEDULE
       DO jb = domain%i_startblk_c, domain%i_endblk_c
         !$ACC PARALLEL LOOP DEFAULT(PRESENT) GANG VECTOR ASYNC(1)
@@ -182,10 +182,10 @@ MODULE mo_tmx_smagorinsky
     END SUBROUTINE compute_scaling_factor_louis
     !============================================================================
     !
-    ! This subroutine calls the models to compute the eddy viscosity and 
-    ! diffusivity based on the Smagorinsky-Lilly eddy viscosity model. 
-    ! Depending on the configuration the classical version (Lilly 1962) or the 
-    ! Louis forumlation (Louis 1979) for the stability correction function is used.  
+    ! This subroutine calls the models to compute the eddy viscosity and
+    ! diffusivity based on the Smagorinsky-Lilly eddy viscosity model.
+    ! Depending on the configuration the classical version (Lilly 1962) or the
+    ! Louis forumlation (Louis 1979) for the stability correction function is used.
     !
     SUBROUTINE Smagorinsky_model( &
       domain,                     &
@@ -229,19 +229,19 @@ MODULE mo_tmx_smagorinsky
     END SUBROUTINE Smagorinsky_model
     !============================================================================
     !
-    ! This subroutine computes the eddy viscosity and diffusivity based on the 
+    ! This subroutine computes the eddy viscosity and diffusivity based on the
     ! classical formulation of the stability correction term:
     !
     !    Km = rho * lambda^2 * stability_term
     !
     ! where the the stability term includes the strain rate into the stability
-    ! correction function: 
+    ! correction function:
     !
     !   stability term = sqrt(|S|^2 - N^2 / Pr_t )
-    !   
+    !
     !   Km     : eddy viscosity
     !   |S|    : magnitude of strain rate  (-> |S|^2 = 0.5*mech_prod)
-    !   N^2    : bruvais 
+    !   N^2    : bruvais
     !   Pr_t   : turbulent Prandtl number
     !   lambda : mixing length
     !
@@ -268,9 +268,9 @@ MODULE mo_tmx_smagorinsky
       INTEGER :: jb,jc,jk,nlev,nlevp1
       INTEGER :: i_startblk, i_endblk, i_startidx, i_endidx
       INTEGER :: rl_start, rl_end
-      REAL(wp) :: stability_term     
+      REAL(wp) :: stability_term
 
-      nlev = domain%nlev 
+      nlev = domain%nlev
       nlevp1 = nlev+1
 
       rl_start   = 3
@@ -291,7 +291,7 @@ MODULE mo_tmx_smagorinsky
 #else
         DO jk = 2 , nlev
           DO jc = i_startidx, i_endidx
-#endif            
+#endif
             stability_term = SQRT(MAX( 0._wp, 0.5_wp * mech_prod(jc,jk,jb) - rturb_prandtl * bruvais(jc,jk,jb) ))
 
             km_ic(jc,jk,jb) = rho_ic(jc,jk,jb)               &
@@ -299,7 +299,7 @@ MODULE mo_tmx_smagorinsky
                               * stability_term
 
             kh_ic(jc,jk,jb) = km_ic(jc,jk,jb) * rturb_prandtl
-            
+
           END DO
         END DO
         !$ACC END PARALLEL LOOP
@@ -318,13 +318,13 @@ MODULE mo_tmx_smagorinsky
     END SUBROUTINE Smagorinsky_model_classic
     !============================================================================
     !
-    ! This subroutine computes the eddy viscosity and diffusivity based on the 
+    ! This subroutine computes the eddy viscosity and diffusivity based on the
     ! Louis formulation of the stability correction term:
     !
     !    Km = rho * lambda^2 * stability_term
     !
     ! where the the stability term includes the strain rate into the stability
-    ! correction function: 
+    ! correction function:
     !
     !     -> stability_term = sqrt(|S|^2 * stability_factor_louis )
     !
@@ -332,11 +332,11 @@ MODULE mo_tmx_smagorinsky
     !
     ! Km        : eddy viscosity
     ! |S|^2     : square of strain rate  (-> |S|^2 = 0.5*mech_prod)
-    ! N^2       : bruvais 
+    ! N^2       : bruvais
     ! Pr_t      : turbulent Prandtl number
     ! lambda    : mixing length
-    ! Ri        : Richardson number 
-    ! b         : Louis constant 
+    ! Ri        : Richardson number
+    ! b         : Louis constant
     !
     SUBROUTINE Smagorinsky_model_louis( &
       domain,                     &
@@ -352,7 +352,7 @@ MODULE mo_tmx_smagorinsky
       kh_ic,                      &
       stability_function          &
       )
-      
+
       TYPE(t_domain), INTENT(in)    :: domain
       REAL(wp), INTENT(in), DIMENSION(:,:,:) :: mech_prod, bruvais, rho_ic, mixing_length_sq
       REAL(wp), INTENT(in), DIMENSION(:,:)    :: scaling_factor_louis
@@ -365,8 +365,8 @@ MODULE mo_tmx_smagorinsky
       INTEGER :: i_startblk, i_endblk, i_startidx, i_endidx
       INTEGER :: rl_start, rl_end
 
-      REAL(wp) :: Ri, stability_term    
-      REAL(wp) :: eps = 1.0e-28_wp 
+      REAL(wp) :: Ri, stability_term
+      REAL(wp) :: eps = 1.0e-28_wp
 
       nlev   = domain%nlev
       nlevp1 = domain%nlev + 1
@@ -390,7 +390,7 @@ MODULE mo_tmx_smagorinsky
         DO jk = 2 , nlev
           DO jc = i_startidx, i_endidx
 #endif
-            Ri  = 2._wp * bruvais(jc,jk,jb) / MAX(eps, mech_prod(jc,jk,jb)) 
+            Ri  = 2._wp * bruvais(jc,jk,jb) / MAX(eps, mech_prod(jc,jk,jb))
 
             stability_function(jc,jk,jb) =  MAX(  1.0_wp - Ri * rturb_prandtl,                       &
                                                   MIN(1._wp,                                         &
@@ -399,7 +399,7 @@ MODULE mo_tmx_smagorinsky
                                                                        * ABS(Ri)                     &
                                                               )**4._wp                               &
                                                      ))
-      
+
             stability_term = SQRT( 0.5_wp * mech_prod(jc,jk,jb) * stability_function(jc,jk,jb) )
 
             km_ic(jc,jk,jb) = rho_ic(jc,jk,jb)              &
@@ -426,17 +426,17 @@ MODULE mo_tmx_smagorinsky
     END SUBROUTINE Smagorinsky_model_louis
     !============================================================================
     !
-    ! This function computes the stability correction term for the eddy viscosity. 
+    ! This function computes the stability correction term for the eddy viscosity.
     ! The stability term includes the strain rate into the stability
-    ! correction function, e.g. 
+    ! correction function, e.g.
     !
     !   stability term = sqrt(|S|^2 - N^2 / Pr_t )
-    !   
+    !
     !   in  Km = rho * lambda^2 * stability_term
     !
     ! Km     : eddy viscosity
     ! |S|    : magnitude of strain rate  (-> |S|^2 = 0.5*mech_prod)
-    ! N^2    : bruvais 
+    ! N^2    : bruvais
     ! Pr_t   : turbulent Prandtl number
     ! lambda : mixing length
     !
@@ -449,7 +449,7 @@ MODULE mo_tmx_smagorinsky
     !   !REAL(wp), INTENT(in), POINTER :: rturb_prandtl,  mech_prod, bruvais
     !   REAL(wp), INTENT(in), POINTER :: rturb_prandtl
     !   INTEGER,  INTENT(in)          :: jb,jc,jk
-    !   REAL(wp) :: stability_term 
+    !   REAL(wp) :: stability_term
 
     !   stability_term = SQRT(MAX( 0._wp, 0.5_wp * mech_prod(jc,jk,jb) - rturb_prandtl * bruvais(jc,jk,jb) ))
 
@@ -457,10 +457,10 @@ MODULE mo_tmx_smagorinsky
     !
     !============================================================================
     !
-    ! This function computes the stability term for the eddy viscosity based on 
-    ! the stability correction function of Louis (1979). 
+    ! This function computes the stability term for the eddy viscosity based on
+    ! the stability correction function of Louis (1979).
     ! The stability term includes the strain rate into the stability
-    ! correction function, e.g. 
+    ! correction function, e.g.
     !     Km = rho * lambda^2 * stability_term
     !
     !     -> stability_term = sqrt(|S|^2 * stability_factor_louis )
@@ -469,11 +469,11 @@ MODULE mo_tmx_smagorinsky
     !
     ! Km        : eddy viscosity
     ! |S|^2     : square of strain rate  (-> |S|^2 = 0.5*mech_prod)
-    ! N^2       : bruvais 
+    ! N^2       : bruvais
     ! Pr_t      : turbulent Prandtl number
     ! lambda    : mixing length
-    ! Ri        : Richardson number 
-    ! b         : Louis constant 
+    ! Ri        : Richardson number
+    ! b         : Louis constant
     !
     ! FUNCTION compute_stability_term_louis(mech_prod,bruvais,rturb_prandtl,jb,jc,jk) result(stability_term)
     ! !$ACC ROUTINE SEQ
@@ -483,34 +483,34 @@ MODULE mo_tmx_smagorinsky
     !   REAL(wp), INTENT(in), POINTER :: rturb_prandtl
     !   !REAL(wp), INTENT(in), POINTER :: scaling_factor_louis
     !   INTEGER,  INTENT(in)          :: jb,jc,jk
-    !   REAL(wp) :: stability_term, Ri, stability_factor_louis 
+    !   REAL(wp) :: stability_term, Ri, stability_factor_louis
 
     !   ! Ri  = 2._wp * bruvais(jc,jk,jb)/ mech_prod(jc,jk,jb)
 
     !   ! stability_factor_louis = MAX(1.0_wp - Ri*rturb_prandtl,                      &
-    !   !                             MIN(1._wp,                                       & 
+    !   !                             MIN(1._wp,                                       &
     !   !                                 1._wp/(1._wp+louis_constant_b                &
     !   !                                        *scaling_factor_louis(jc,jb)          &
     !   !                                        *ABS(Ri))**4._wp))
-      
+
     !   ! stability_term = SQRT( 0.5_wp * mech_prod(jc,jk,jb) * stability_factor_louis )
 
 
-    !   Ri  = 2._wp * bruvais(jc,jk,jb) / mech_prod(jc,jk,jb) 
+    !   Ri  = 2._wp * bruvais(jc,jk,jb) / mech_prod(jc,jk,jb)
 
     !   stability_function(jc,jk,jb) =  MAX(  1.0_wp - Ri*rturb_prandtl,                &
-    !                                         MIN(1._wp,                                & 
+    !                                         MIN(1._wp,                                &
     !                                             1._wp/(1._wp+louis_constant_b         &
     !                                                   *scaling_factor_louis(jc,jb)    &
     !                                                   *ABS(Ri))**4._wp                &
     !                                            ))
-      
+
     !   stability_term = SQRT( 0.5_wp * mech_prod(jc,jk,jb) * stability_function(jc,jk,jb) )
 
     ! END FUNCTION compute_stability_term_louis
     !============================================================================
     !
-    ! This subroutine computes the SGS eddy viscosity (Km) and diffusivity (Kh) 
+    ! This subroutine computes the SGS eddy viscosity (Km) and diffusivity (Kh)
     ! at interface cell centers.
     ! Note: at this point mech_prod is twice the actual mechanical production term.
     !--------------------------------------------------------------------------
@@ -519,7 +519,7 @@ MODULE mo_tmx_smagorinsky
     !
     !   Kh = Km / Pr_t
     !
-    !   with  lambda : mixing length 
+    !   with  lambda : mixing length
     !         N      : Brunt-Vaisala frequency
     !         Pr_t   : turbulent Prandtl number
     !         Ri     : Richardson number (Ri = N^2/|S|^2)
@@ -545,7 +545,7 @@ MODULE mo_tmx_smagorinsky
 !       INTEGER :: i_startblk, i_endblk, i_startidx, i_endidx
 !       INTEGER :: rl_start, rl_end
 
-!       REAL(wp) :: stability_term     
+!       REAL(wp) :: stability_term
 
 !       rl_start   = 3
 !       rl_end     = min_rlcell_int

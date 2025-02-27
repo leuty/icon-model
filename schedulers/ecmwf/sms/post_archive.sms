@@ -32,7 +32,7 @@
 
 # -------------------------------------------------
 
-echo "POST_ARCHIVE.SMS" 
+echo "POST_ARCHIVE.SMS"
 
 
 case %SIMMODE% in
@@ -61,7 +61,7 @@ cd metplots
 for metfile in `ls map*.1.png zon*.1.png` ; do
   metfile2=`echo $metfile | sed 's/\.1\.png/\.png/'`
   mv ${metfile} ${metfile2}
-done 
+done
 cd -
 
 
@@ -101,4 +101,3 @@ fi
 
 # include the standard "tail" file
 %include <end_ws.h>
-

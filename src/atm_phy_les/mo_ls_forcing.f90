@@ -33,7 +33,7 @@ MODULE mo_ls_forcing
   USE mo_ls_forcing_nml,      ONLY: is_subsidence_moment, is_subsidence_heat, is_ls_forcing, &
     &                               is_advection, is_advection_uv,is_advection_tq,           &
     &                               is_nudging, is_nudging_uv, is_nudging_tq, dt_relax,      &
-    &                               is_geowind, is_rad_forcing 
+    &                               is_geowind, is_rad_forcing
   USE mo_fortran_tools,       ONLY: init
   USE mo_scm_nml,             ONLY: i_scm_netcdf, lscm_ls_forcing_ini
   USE mo_read_interface,      ONLY: nf
@@ -72,8 +72,8 @@ MODULE mo_ls_forcing
     bnd_Cm(:),            & !Drag coefficient for momentum
     bnd_Cq(:),            & !Drag coefficient for moisture
     bnd_ustar(:),         & !Friction velocity[m/s]
-    tempf(:,:,:,:),       & 
-    tempf_f(:,:,:,:),     & 
+    tempf(:,:,:,:),       &
+    tempf_f(:,:,:,:),     &
     tempf_sf(:,:,:)
 
   ! To make sure that LS forcing is not applied before it is read in
@@ -151,7 +151,7 @@ MODULE mo_ls_forcing
 
           CALL nf (nf90_inq_dimid(fileid, 'time', dimid), TRIM(routine)//' nt')
           CALL nf (nf90_inquire_dimension(fileid, dimid, len = nt), routine)
-          
+
           WRITE(message_text,'(a,i6,a,i6)') 'SCM LS forcing input file: nk, ', nk, ', nt ', nt
           CALL message (routine,message_text)
 
@@ -204,7 +204,7 @@ MODULE mo_ls_forcing
 
           time_nc = time_nc * time_unit_in_sec  ! conversion to [s] from min/hours/days
 
-          IF (nt<=1) THEN 
+          IF (nt<=1) THEN
             dt_forcing = -999._wp
           ELSE
             dt_forcing = time_nc(2) - time_nc(1)
@@ -368,7 +368,7 @@ MODULE mo_ls_forcing
           DO n = 1 , nt
             !Now perform interpolation to grid levels assuming:
             !a) linear interpolation
-            !b) Beyond the last Z level the values are linearly extrapolated 
+            !b) Beyond the last Z level the values are linearly extrapolated
             !c) Assuming model grid is flat-NOT on sphere
 
             CALL vert_intp_linear_1d(zz_nc(:,n),zw_nc(:,n),p_metrics%z_mc(1,:,1),w_ls(:,n))
@@ -380,7 +380,7 @@ MODULE mo_ls_forcing
             CALL vert_intp_linear_1d(zz_nc(:,n),z_dt_u_adv_nc(:,n),p_metrics%z_mc(1,:,1),ddt_u_hadv_ls(:,n))
             CALL vert_intp_linear_1d(zz_nc(:,n),z_dt_v_adv_nc(:,n),p_metrics%z_mc(1,:,1),ddt_v_hadv_ls(:,n))
           END DO
-  
+
           DEALLOCATE( zz_nc, zw_nc, zu_nc, zv_nc, z_dt_temp_adv_nc, z_dt_temp_rad_nc,     &
                     & z_dt_qv_adv_nc, z_dt_u_adv_nc, z_dt_v_adv_nc, time_nc )
 
@@ -391,10 +391,10 @@ MODULE mo_ls_forcing
 
           CALL nf (nf90_open('init_SCM.nc', NF90_NOWRITE, fileid), &
             & TRIM(routine)//'   File init_SCM.nc cannot be opened')
-    
+
           CALL nf (nf90_inq_dimid(fileid, 'lev', dimid), TRIM(routine)//' lev')
           CALL nf (nf90_inquire_dimension(fileid, dimid, len = nk), routine)
-    
+
           CALL nf (nf90_inq_dimid(fileid, 'nt', dimid), TRIM(routine)//' nt')
           CALL nf (nf90_inquire_dimension(fileid, dimid, len = nt), routine)
 
@@ -405,36 +405,36 @@ MODULE mo_ls_forcing
                     z_dt_temp_rad_nc(nk,nt), z_dt_qv_adv_nc(nk,nt), z_dt_u_adv_nc(nk,nt), z_dt_v_adv_nc(nk,nt) )
           zz_nc=0.0_wp;time_nc=0.0_wp;zw_nc=0.0_wp;zu_nc=0.0_wp;zv_nc=0.0_wp;z_dt_temp_adv_nc=0.0_wp
           z_dt_temp_rad_nc=0.0_wp;z_dt_qv_adv_nc=0.0_wp;z_dt_u_adv_nc=0.0_wp;z_dt_v_adv_nc=0.0_wp
-    
+
           ALLOCATE( w_ls(nlev,nt), u_geo(nlev,nt), v_geo(nlev,nt), ddt_temp_hadv_ls(nlev,nt), &
                     ddt_temp_rad(nlev,nt), ddt_qv_hadv_ls(nlev,nt),&
                     ddt_u_hadv_ls(nlev,nt),ddt_v_hadv_ls(nlev,nt) )
           w_ls=0.0_wp;u_geo=0.0_wp;v_geo=0.0_wp;ddt_temp_hadv_ls=0.0_wp
           ddt_temp_rad=0.0_wp;ddt_qv_hadv_ls=0.0_wp;ddt_u_hadv_ls=0.0_wp;ddt_v_hadv_ls=0.0_wp
-    
+
           ALLOCATE( bnd_sfc_lat_flx(nt), bnd_sfc_sens_flx(nt), bnd_ts(nt), bnd_qvs(nt),&
                     bnd_Ch(nt), bnd_Cm(nt),bnd_Cq(nt), bnd_ustar(nt),bnd_tg(nt))
           bnd_sfc_lat_flx=0.0_wp; bnd_sfc_sens_flx=0.0_wp; bnd_ts=0.0_wp; bnd_qvs=0.0_wp
           bnd_Ch=0.0_wp; bnd_Cm=0.0_wp;bnd_Cq=0.0_wp; bnd_ustar=0.0_wp;bnd_tg=0.0_wp
-    
+
           CALL nf (nf90_inq_varid(fileid, 'height', varid), TRIM(routine)//' height')
           CALL nf (nf90_get_var(fileid, varid, zz_nc), routine)
          !write(*,*) 'zz_nc',zz_nc
           !Check if the file is written in descending order
           IF(zz_nc(1,1) < zz_nc(nk,1)) CALL finish ( routine, 'Write LS forcing data in descending order!')
-    
-    
+
+
           CALL nf(nf90_inq_varid(fileid, 'time', varid), TRIM(routine)//' time')
           CALL nf(nf90_get_var(fileid, varid, time_nc), routine)
           time_unit = ''               !necessary for formatting
           CALL nf(nf90_get_att(fileid, varid, 'units', time_unit), TRIM(routine)//' units')
-    
+
           time_unit_short = time_unit(1:INDEX(time_unit,"since")-2)  ! e.g. "minutes since 2020-1-1 00:00:00"
           IF ( get_my_global_mpi_id() == 0 ) THEN
             WRITE(*,*) 'time unit in init_SCM.nc, long: ', TRIM(time_unit), '   short: ', TRIM(time_unit_short), &
               & '     times: ', time_nc
           END IF
-        
+
           SELECT CASE (time_unit_short)
           CASE ('s', 'sec', 'second', 'seconds')
             time_unit_in_sec = 1
@@ -447,10 +447,10 @@ MODULE mo_ls_forcing
           CASE DEFAULT
             CALL finish ( routine, 'time unit in init_SCM.nc not s/min/h!')
           END SELECT
-    
+
           time_nc = time_nc * time_unit_in_sec  ! conversion to [s] from min/hours/days
-    
-          IF (nt<=1) THEN 
+
+          IF (nt<=1) THEN
             dt_forcing = -999._wp
           ELSE
             dt_forcing = time_nc(2) - time_nc(1)
@@ -460,84 +460,84 @@ MODULE mo_ls_forcing
               END IF
             END DO
           ENDIF
-    
+
           CALL nf (nf90_inq_varid(fileid, 'wLS', varid), TRIM(routine)//' wLS')
           CALL nf (nf90_get_var(fileid, varid,zw_nc), routine)
          !write(*,*) 'wLS',zw_nc(:,1)
-    
+
           CALL nf (nf90_inq_varid(fileid, 'uGEO', varid), TRIM(routine)//' uGEO')
           CALL nf (nf90_get_var(fileid, varid,zu_nc), routine)
          !write(*,*) 'uGEO',zu_nc(:,1)
-    
+
           CALL nf (nf90_inq_varid(fileid, 'vGEO', varid), TRIM(routine)//' vGEO')
           CALL nf (nf90_get_var(fileid, varid,zv_nc), routine)
          !write(*,*) 'vGEO',zv_nc(:,1)
-    
+
           CALL nf (nf90_inq_varid(fileid, 'dTadv', varid), TRIM(routine)//' dTadv')
           CALL nf (nf90_get_var(fileid, varid,z_dt_temp_adv_nc), routine)
          !write(*,*) 'dTadv',z_dt_temp_adv_nc(:,1)
-    
+
           CALL nf (nf90_inq_varid(fileid, 'dTrad', varid), TRIM(routine)//' dTrad')
           CALL nf (nf90_get_var(fileid, varid,z_dt_temp_rad_nc), routine)
          !write(*,*) 'dTrad',z_dt_temp_rad_nc(:,1)
-    
+
           CALL nf (nf90_inq_varid(fileid, 'dQVadv', varid), TRIM(routine)//' dQVadv')
           CALL nf (nf90_get_var(fileid, varid,z_dt_qv_adv_nc), routine)
          !write(*,*) 'dQVadv',z_dt_qv_adv_nc(:,1)
-    
+
           CALL nf (nf90_inq_varid(fileid, 'dUadv', varid), TRIM(routine)//' dUadv')
           CALL nf (nf90_get_var(fileid, varid,z_dt_u_adv_nc), routine)
          !write(*,*) 'dUadv',z_dt_u_adv_nc(:,1)
-    
+
           CALL nf (nf90_inq_varid(fileid, 'dVadv', varid), TRIM(routine)//' dVadv')
           CALL nf (nf90_get_var(fileid, varid,z_dt_v_adv_nc), routine)
          !write(*,*) 'dVadv',z_dt_v_adv_nc(:,1)
-    
+
           CALL nf (nf90_inq_varid(fileid, 'sfc_lat_flx', varid), TRIM(routine)//' sfc_lat_flx')
           CALL nf (nf90_get_var(fileid, varid, bnd_sfc_lat_flx), routine)
          !write(*,*) 'bnd_sfc_lat_flx',bnd_sfc_lat_flx(:)
-    
+
           CALL nf (nf90_inq_varid(fileid, 'sfc_sens_flx', varid), TRIM(routine)//' sfc_sens_flx')
           CALL nf (nf90_get_var(fileid, varid, bnd_sfc_sens_flx), routine)
          !write(*,*) 'bnd_sfc_sens_flx',bnd_sfc_sens_flx(:)
-    
+
           CALL nf (nf90_inq_varid(fileid, 'ts', varid), TRIM(routine)//' ts')
           CALL nf (nf90_get_var(fileid, varid, bnd_ts), routine)
          !write(*,*) 'bnd_ts',bnd_ts(:)
-    
+
           CALL nf (nf90_inq_varid(fileid, 'tg', varid), TRIM(routine)//' tg')
           CALL nf (nf90_get_var(fileid, varid, bnd_tg), routine)
          !write(*,*) 'bnd_tg',bnd_tg(:)
-    
+
           CALL nf (nf90_inq_varid(fileid, 'qvs', varid), TRIM(routine)//' qvs')
           CALL nf (nf90_get_var(fileid, varid, bnd_qvs), routine)
          !write(*,*) 'bnd_qvs',bnd_qvs(:)
-    
+
           CALL nf (nf90_inq_varid(fileid, 'Ch', varid), TRIM(routine)//' Ch')
           CALL nf (nf90_get_var(fileid, varid, bnd_Ch), routine)
          !write(*,*) 'bnd_Ch',bnd_Ch(:)
-    
+
           CALL nf (nf90_inq_varid(fileid, 'Cm', varid), TRIM(routine)//' Cm')
           CALL nf (nf90_get_var(fileid, varid, bnd_Cm), routine)
          !write(*,*) 'bnd_Cm',bnd_Cm(:)
-    
+
           CALL nf (nf90_inq_varid(fileid, 'Cq', varid), TRIM(routine)//' Cq')
           CALL nf (nf90_get_var(fileid, varid, bnd_Cq), routine)
          !write(*,*) 'bnd_Cq',bnd_Cq(:)
-    
+
           CALL nf (nf90_inq_varid(fileid, 'ustar', varid), TRIM(routine)//' ustar')
           CALL nf (nf90_get_var(fileid, varid, bnd_ustar), routine)
          !write(*,*) 'bnd_ustar',bnd_ustar(:)
-    
+
           CALL nf (nf90_close(fileid), routine)
-    
-     
+
+
           DO n = 1 , nt
               !Now perform interpolation to grid levels assuming:
               !a) linear interpolation
-              !b) Beyond the last Z level the values are linearly extrapolated 
+              !b) Beyond the last Z level the values are linearly extrapolated
               !c) Assuming model grid is flat-NOT on sphere
-    
+
               CALL vert_intp_linear_1d(zz_nc(:,n),zw_nc(:,n),p_metrics%z_mc(1,:,1),w_ls(:,n))
               CALL vert_intp_linear_1d(zz_nc(:,n),zu_nc(:,n),p_metrics%z_mc(1,:,1),u_geo(:,n))
               CALL vert_intp_linear_1d(zz_nc(:,n),zv_nc(:,n),p_metrics%z_mc(1,:,1),v_geo(:,n))
@@ -547,11 +547,11 @@ MODULE mo_ls_forcing
               CALL vert_intp_linear_1d(zz_nc(:,n),z_dt_u_adv_nc(:,n),p_metrics%z_mc(1,:,1),ddt_u_hadv_ls(:,n))
               CALL vert_intp_linear_1d(zz_nc(:,n),z_dt_v_adv_nc(:,n),p_metrics%z_mc(1,:,1),ddt_v_hadv_ls(:,n))
           END DO
-    
-    
+
+
           DEALLOCATE( zz_nc, zw_nc, zu_nc, zv_nc, z_dt_temp_adv_nc, z_dt_temp_rad_nc,     &
                     & z_dt_qv_adv_nc, z_dt_u_adv_nc, z_dt_v_adv_nc, time_nc )
-    
+
         ENDIF
 
 !------------------------------------------------------------------------------
@@ -563,61 +563,61 @@ MODULE mo_ls_forcing
         iunit = find_next_free_unit(10,20)
         OPEN (unit=iunit,file='ls_forcing.dat',access='SEQUENTIAL', &
               form='FORMATTED', action='READ', status='OLD', IOSTAT=ist)
-  
+
         IF (ist/=success) CALL finish(routine, 'open ls_forcing.dat failed')
-  
+
         !Read the input file till end. The order of file assumed is:
         !Z(m) - u_geo(m/s) - v_geo(m/s) - w_ls(m/s) - dt_temp_rad(K/s) - ddt_qv_hadv_ls(1/s) - ddt_temp_hadv_ls(K/s)
-  
+
         !Skip the first line and read next 2 lines with information about vertical and time levels
         READ(iunit,*,IOSTAT=ist)                       !skip
         IF (ist == success) READ(iunit,*,IOSTAT=ist)nk,dt_forcing,end_time !vertical levels, forcing interval, end of forcing data
         IF(ist/=success) &
           CALL finish(routine, &
             'Must provide vertical level, forcing interval, end of forcing time info in forcing file')
-  
+
         nt = INT(end_time/dt_forcing)+1
-  
+
         IF (nt>1) THEN
           READ(iunit,*,IOSTAT=ist)nskip !lines to skip between successive time levels
           IF (ist/=success) &
             CALL finish(routine, &
               'Time levels > 1 so must provide number lines to skip between successive time levels in forcing file')
         END IF
-  
+
         IF (nt<=1) dt_forcing=-999._wp
-  
+
         ALLOCATE( zz(nk), zw(nk), zu(nk), zv(nk), z_dt_temp_adv(nk),                        &
                 & z_dt_temp_rad(nk), z_dt_qv_adv(nk), z_dt_u_adv(nk), z_dt_v_adv(nk) )
-  
+
         ALLOCATE( w_ls(nlev,nt), u_geo(nlev,nt), v_geo(nlev,nt), ddt_temp_hadv_ls(nlev,nt), &
                 & ddt_temp_rad(nlev,nt), ddt_qv_hadv_ls(nlev,nt),                           &
                 & ddt_u_hadv_ls(nlev,nt),ddt_v_hadv_ls(nlev,nt) )
-  
+
         DO n = 1,nt
-  
+
           DO jk = nk , 1, -1
             READ(iunit,*,IOSTAT=ist)zz(jk),zu(jk),zv(jk),zw(jk),z_dt_temp_rad(jk), &
                 & z_dt_qv_adv(jk),z_dt_temp_adv(jk),z_dt_u_adv(jk),z_dt_v_adv(jk)
             IF(ist/=success) CALL finish(routine, 'something wrong in forcing.dat')
           END DO
-  
+
           !Skip lines
           IF(nt>1)THEN
             DO i = 1 , nskip
               READ(iunit,*,IOSTAT=ist)
             END DO
           END IF
-  
+
           !Check if the file is written in descending order
           IF (zz(1) < zz(nk)) &
             CALL finish(routine, 'Write LS forcing data in descending order!')
-  
+
           !Now perform interpolation to grid levels assuming:
           !a) linear interpolation
           !b) Beyond the last Z level the values are linearly extrapolated
           !c) Assuming model grid is flat-NOT on sphere
-  
+
           CALL vert_intp_linear_1d(zz,zw,p_metrics%z_mc(1,:,1),w_ls(:,n))
           CALL vert_intp_linear_1d(zz,zu,p_metrics%z_mc(1,:,1),u_geo(:,n))
           CALL vert_intp_linear_1d(zz,zv,p_metrics%z_mc(1,:,1),v_geo(:,n))
@@ -626,11 +626,11 @@ MODULE mo_ls_forcing
           CALL vert_intp_linear_1d(zz,z_dt_qv_adv,p_metrics%z_mc(1,:,1),ddt_qv_hadv_ls(:,n))
           CALL vert_intp_linear_1d(zz,z_dt_u_adv,p_metrics%z_mc(1,:,1),ddt_u_hadv_ls(:,n))
           CALL vert_intp_linear_1d(zz,z_dt_v_adv,p_metrics%z_mc(1,:,1),ddt_v_hadv_ls(:,n))
-  
+
         END DO !n
-  
+
         CLOSE(iunit)
-  
+
         DEALLOCATE( zz, zw, zu, zv, z_dt_temp_adv, z_dt_temp_rad, z_dt_qv_adv,z_dt_u_adv,z_dt_v_adv )
 
       ENDIF
@@ -656,19 +656,19 @@ MODULE mo_ls_forcing
 
           CALL nf (nf90_open('init_SCM.nc', NF90_NOWRITE, fileid), &
             & TRIM(routine)//'   File init_SCM.nc cannot be opened')
-   
+
           CALL nf (nf90_inq_dimid(fileid, 'lev', dimid), TRIM(routine)//' lev')
           CALL nf (nf90_inquire_dimension(fileid, dimid, len = nk), routine)
-  
+
           CALL nf (nf90_inq_dimid(fileid, 'lat', dimid), routine)
           CALL nf (nf90_inquire_dimension(fileid, dimid, len = lat), routine)
-  
+
           CALL nf (nf90_inq_dimid(fileid, 'lon', dimid), routine)
           CALL nf (nf90_inquire_dimension(fileid, dimid, len = lon), routine)
- 
+
           CALL nf (nf90_inq_dimid(fileid, 't0', dimid), routine)
           CALL nf (nf90_inquire_dimension(fileid, dimid, len = t0), routine)
-    
+
           CALL nf (nf90_inq_dimid(fileid, 'nt', dimid), TRIM(routine)//' nt')
           CALL nf (nf90_inquire_dimension(fileid, dimid, len = nt), routine)
 
@@ -678,27 +678,27 @@ MODULE mo_ls_forcing
           ALLOCATE( zz_nc(nk,nt), time_nc(nt), zu_nc(nk,nt), zv_nc(nk,nt), ztheta_nc(nk,nt), z_qv_nc(nk,nt),&
           &tempf(lon,lat,nk,nt) )
           zz_nc=0.0_wp ; time_nc=0.0_wp ; zu_nc=0.0_wp ; zv_nc=0.0_wp ; ztheta_nc=0.0_wp ; z_qv_nc=0.0_wp
-    
+
           ALLOCATE( u_nudg(nlev,nt), v_nudg(nlev,nt), theta_nudg(nlev,nt), qv_nudg(nlev,nt) )
           u_nudg=0.0_wp ; v_nudg=0.0_wp ; theta_nudg=0.0_wp ; qv_nudg=0.0_wp
-    
+
           CALL nf (nf90_inq_varid(fileid, 'height', varid), TRIM(routine)//' height')
           CALL nf (nf90_get_var(fileid, varid, zz_nc), routine)
 !         write(*,*) 'zz_nc',zz_nc
           !Check if the file is written in descending order
           IF(zz_nc(1,1) < zz_nc(nk,1)) CALL finish ( routine, 'Write LS forcing data in descending order!')
-    
+
           CALL nf(nf90_inq_varid(fileid, 'time', varid), TRIM(routine)//' time')
           CALL nf(nf90_get_var(fileid, varid, time_nc), routine)
           time_unit = ''               !necessary for formatting
           CALL nf(nf90_get_att(fileid, varid, 'units', time_unit), TRIM(routine)//' units')
-    
+
           time_unit_short = time_unit(1:INDEX(time_unit,"since")-2)  ! e.g. "minutes since 2020-1-1 00:00:00"
           IF ( get_my_global_mpi_id() == 0 ) THEN
             WRITE(*,*) 'time unit in init_SCM.nc, long: ', TRIM(time_unit), '   short: ', TRIM(time_unit_short), &
               & '     times: ', time_nc
           END IF
-        
+
           SELECT CASE (time_unit_short)
           CASE ('s', 'sec', 'second', 'seconds')
             time_unit_in_sec = 1
@@ -711,10 +711,10 @@ MODULE mo_ls_forcing
           CASE DEFAULT
             CALL finish ( routine, 'time unit in init_SCM.nc not s/min/h!')
           END SELECT
-   
+
           time_nc = time_nc * time_unit_in_sec  ! conversion to [s] from min/hours/days
-   
-          IF (nt<=1) THEN 
+
+          IF (nt<=1) THEN
             dt_nudging = -999._wp
           ELSE
             dt_nudging = time_nc(2) - time_nc(1)
@@ -724,14 +724,14 @@ MODULE mo_ls_forcing
               END IF
             END DO
           ENDIF
-     
+
           IF ( dt_relax <= 0.0_wp ) THEN   ! dt_relax not defined by namelist input
             CALL nf (nf90_inq_varid(fileid, 'dt_relax', varid), TRIM(routine)//' dt_relax')
             CALL nf (nf90_get_var(fileid, varid, temp_nf), routine)
             dt_relax = temp_nf(1)
             write(*,*) 'dt_relax [s]: ', dt_relax
           END IF
-    
+
           nf_status = nf90_inq_varid(fileid, 'u_nudging', varid)
           nf_status2 = nf90_get_var(fileid, varid, tempf)
           IF (nf_status /= nf90_noerr) THEN
@@ -740,7 +740,7 @@ MODULE mo_ls_forcing
           ELSE
            zu_nc=tempf(1,1,:,:)
           END IF
- 
+
           nf_status = nf90_inq_varid(fileid, 'v_nudging',  varid)
           nf_status2 = nf90_get_var(fileid, varid, tempf)
           IF (nf_status /= nf90_noerr) THEN
@@ -749,7 +749,7 @@ MODULE mo_ls_forcing
           ELSE
            zv_nc=tempf(1,1,:,:)
           END IF
-  
+
           nf_status = nf90_inq_varid(fileid, 'theta_nudging', varid)
           nf_status2 = nf90_get_var(fileid, varid, tempf)
           IF (nf_status /= nf90_noerr) THEN
@@ -758,7 +758,7 @@ MODULE mo_ls_forcing
           ELSE
            ztheta_nc=tempf(1,1,:,:)
           END IF
-   
+
           nf_status = nf90_inq_varid(fileid, 'qv_nudging', varid)
           nf_status2 = nf90_get_var(fileid, varid, tempf)
           IF (nf_status /= nf90_noerr) THEN
@@ -767,26 +767,26 @@ MODULE mo_ls_forcing
           ELSE
            z_qv_nc=tempf(1,1,:,:)
           END IF
-    
+
 !         write(*,*) 'uLS',zu_nc(:,1)
 !         write(*,*) 'vLS',zv_nc(:,1)
 !         write(*,*) 'qvLS',z_qv_nc(:,1)
 !         write(*,*) 'thLS',ztheta_nc(:,1)
-    
+
           CALL nf (nf90_close(fileid), routine)
-    
+
           DO n = 1 , nt
             !Now perform interpolation to grid levels assuming:
             !a) linear interpolation
-            !b) Beyond the last Z level the values are linearly extrapolated 
+            !b) Beyond the last Z level the values are linearly extrapolated
             !c) Assuming model grid is flat-NOT on sphere
-    
+
             CALL vert_intp_linear_1d(zz_nc(:,n),zu_nc(:,n)    ,p_metrics%z_mc(1,:,1),u_nudg(:,n))
             CALL vert_intp_linear_1d(zz_nc(:,n),zv_nc(:,n)    ,p_metrics%z_mc(1,:,1),v_nudg(:,n))
             CALL vert_intp_linear_1d(zz_nc(:,n),ztheta_nc(:,n),p_metrics%z_mc(1,:,1),theta_nudg(:,n))
             CALL vert_intp_linear_1d(zz_nc(:,n),z_qv_nc(:,n)  ,p_metrics%z_mc(1,:,1),qv_nudg(:,n))
           END DO
-    
+
           DEALLOCATE( zz_nc, time_nc, zu_nc, zv_nc, ztheta_nc, z_qv_nc )
 
 !------------------------------------------------------------------------------
@@ -796,39 +796,39 @@ MODULE mo_ls_forcing
 
           CALL nf (nf90_open('init_SCM.nc', NF90_NOWRITE, fileid), &
             & TRIM(routine)//'   File init_SCM.nc cannot be opened')
-  
+
           CALL nf (nf90_inq_dimid(fileid, 'lev', dimid), TRIM(routine)//' lev')
           CALL nf (nf90_inquire_dimension(fileid, dimid, len = nk), routine)
-   
+
           CALL nf (nf90_inq_dimid(fileid, 'nt', dimid), TRIM(routine)//' nt')
           CALL nf (nf90_inquire_dimension(fileid, dimid, len = nt), routine)
 
           WRITE(message_text,'(a,i5,a,i5)') 'SCM nudging input: nk', nk, '  nt', nt
           CALL message(routine,message_text)
-    
+
           ALLOCATE( zz_nc(nk,nt), time_nc(nt), zu_nc(nk,nt), zv_nc(nk,nt), ztheta_nc(nk,nt), z_qv_nc(nk,nt) )
           zz_nc=0.0_wp ; time_nc=0.0_wp ; zu_nc=0.0_wp ; zv_nc=0.0_wp ; ztheta_nc=0.0_wp ; z_qv_nc=0.0_wp
-    
+
           ALLOCATE( u_nudg(nlev,nt), v_nudg(nlev,nt), theta_nudg(nlev,nt), qv_nudg(nlev,nt) )
           u_nudg=0.0_wp ; v_nudg=0.0_wp ; theta_nudg=0.0_wp ; qv_nudg=0.0_wp
-    
+
           CALL nf (nf90_inq_varid(fileid, 'height', varid), TRIM(routine)//' height')
           CALL nf (nf90_get_var(fileid, varid, zz_nc), routine)
 !         write(*,*) 'zz_nc',zz_nc
           !Check if the file is written in descending order
           IF(zz_nc(1,1) < zz_nc(nk,1)) CALL finish ( routine, 'Write LS forcing data in descending order!')
-    
+
           CALL nf(nf90_inq_varid(fileid, 'time', varid), TRIM(routine)//' time')
           CALL nf(nf90_get_var(fileid, varid, time_nc), routine)
           time_unit = ''               !necessary for formatting
           CALL nf(nf90_get_att(fileid, varid, 'units', time_unit), TRIM(routine)//' units')
-    
+
           time_unit_short = time_unit(1:INDEX(time_unit,"since")-2)  ! e.g. "minutes since 2020-1-1 00:00:00"
           IF ( get_my_global_mpi_id() == 0 ) THEN
             WRITE(*,*) 'time unit in init_SCM.nc, long: ', TRIM(time_unit), '   short: ', TRIM(time_unit_short), &
               & '     times: ', time_nc
           END IF
-        
+
           SELECT CASE (time_unit_short)
           CASE ('s', 'sec', 'second', 'seconds')
             time_unit_in_sec = 1
@@ -841,10 +841,10 @@ MODULE mo_ls_forcing
           CASE DEFAULT
             CALL finish ( routine, 'time unit in init_SCM.nc not s/min/h!')
           END SELECT
-    
+
           time_nc = time_nc * time_unit_in_sec  ! conversion to [s] from min/hours/days
-  
-          IF (nt<=1) THEN 
+
+          IF (nt<=1) THEN
             dt_nudging = -999._wp
           ELSE
             dt_nudging = time_nc(2) - time_nc(1)
@@ -854,47 +854,47 @@ MODULE mo_ls_forcing
               END IF
             END DO
           ENDIF
-   
+
           IF ( dt_relax <= 0.0_wp ) THEN   ! dt_relax not defined by namelist input
             CALL nf (nf90_inq_varid(fileid, 'dt_relax', varid), TRIM(routine)//' dt_relax')
             CALL nf (nf90_get_var(fileid, varid, temp_nf), routine)
             dt_relax = temp_nf(1)
             write(*,*) 'dt_relax [s]: ', dt_relax
           END IF
-    
+
           CALL nf (nf90_inq_varid(fileid, 'uIN',  varid), TRIM(routine)//' uIN')
           CALL nf (nf90_get_var(fileid, varid, zu_nc), routine)
-    
+
           CALL nf (nf90_inq_varid(fileid, 'vIN',  varid), TRIM(routine)//' vIN')
           CALL nf (nf90_get_var(fileid, varid, zv_nc), routine)
-    
+
           CALL nf (nf90_inq_varid(fileid, 'qvIN', varid), TRIM(routine)//' qvIN')
           CALL nf (nf90_get_var(fileid, varid, z_qv_nc), routine)
-    
+
           CALL nf (nf90_inq_varid(fileid, 'thIN', varid), TRIM(routine)//' thIN')
           CALL nf (nf90_get_var(fileid, varid, ztheta_nc), routine)
-    
+
 !         write(*,*) 'uLS',zu_nc(:,1)
 !         write(*,*) 'vLS',zv_nc(:,1)
 !         write(*,*) 'qvLS',z_qv_nc(:,1)
 !         write(*,*) 'thLS',ztheta_nc(:,1)
-    
+
           CALL nf (nf90_close(fileid), routine)
-    
+
           DO n = 1 , nt
             !Now perform interpolation to grid levels assuming:
             !a) linear interpolation
-            !b) Beyond the last Z level the values are linearly extrapolated 
+            !b) Beyond the last Z level the values are linearly extrapolated
             !c) Assuming model grid is flat-NOT on sphere
-    
+
             CALL vert_intp_linear_1d(zz_nc(:,n),zu_nc(:,n)    ,p_metrics%z_mc(1,:,1),u_nudg(:,n))
             CALL vert_intp_linear_1d(zz_nc(:,n),zv_nc(:,n)    ,p_metrics%z_mc(1,:,1),v_nudg(:,n))
             CALL vert_intp_linear_1d(zz_nc(:,n),ztheta_nc(:,n),p_metrics%z_mc(1,:,1),theta_nudg(:,n))
             CALL vert_intp_linear_1d(zz_nc(:,n),z_qv_nc(:,n)  ,p_metrics%z_mc(1,:,1),qv_nudg(:,n))
           END DO
-    
+
           DEALLOCATE( zz_nc, time_nc, zu_nc, zv_nc, ztheta_nc, z_qv_nc )
-  
+
         ENDIF
 
 !------------------------------------------------------------------------------
@@ -903,31 +903,31 @@ MODULE mo_ls_forcing
       ELSE
 
         !Open formatted file to read nudging data
-        !The order of file assumed is: Z(m) - tau(s) - u(m/s) - v(m/s) - pot. temp(K) - qv(kg/kg) 
+        !The order of file assumed is: Z(m) - tau(s) - u(m/s) - v(m/s) - pot. temp(K) - qv(kg/kg)
         iunit = find_next_free_unit(10,20)
         OPEN (unit=iunit,file='nudging.dat',access='SEQUENTIAL', &
               form='FORMATTED', action='READ', status='OLD', IOSTAT=ist)
- 
+
         IF(ist/=success)THEN
           CALL finish (routine, 'open nudging.dat failed')
         ENDIF
- 
- 
+
+
         !Skip the first line and read next 2 lines with information about vertical and time levels
         READ(iunit,*,IOSTAT=ist)                         !skip
         READ(iunit,*,IOSTAT=ist)nk,dt_nudging,end_time   !vertical levels,time levels and interval
         IF (ist/=success) CALL finish(routine, &
           'Must provide vertical level, time level and time interval info in nudging file')
- 
+
         IF (nt>1) THEN
           READ(iunit,*,IOSTAT=ist)nskip              !lines to skip between successive time levels
           IF (ist/=success) CALL finish(routine, &
             'Time levels > 1 so must provide number lines to skip between successive time levels in nudging file')
         END IF
         IF (nt<=1) dt_nudging=-999._wp
- 
+
         ALLOCATE( zz(nk), zu(nk), zv(nk), ztheta(nk), z_qv(nk) )
- 
+
         ALLOCATE( u_nudg(nlev,nt), v_nudg(nlev,nt), theta_nudg(nlev,nt), qv_nudg(nlev,nt))
 
         DO n = 1 , nt
@@ -938,32 +938,32 @@ MODULE mo_ls_forcing
               IF (ist/=success) CALL finish(routine, 'something wrong in nudging.dat')
             END IF
           END DO
- 
+
           !Skip lines
           IF(nt>1)THEN
             DO i = 1 , nskip
               READ(iunit,*,IOSTAT=ist)
             END DO
           END IF
- 
+
           !Check if the file is written in descending order
           IF (zz(1) < zz(nk)) &
             CALL finish(routine, 'Write nuding data in descending order!')
- 
+
           !Now perform interpolation to grid levels assuming:
           !a) linear interpolation
           !b) Beyond the last Z level the values are linearly extrapolated
           !c) Assuming model grid is flat-NOT on sphere
- 
+
           CALL vert_intp_linear_1d(zz,zu    ,p_metrics%z_mc(1,:,1),u_nudg(:,n))
           CALL vert_intp_linear_1d(zz,zv    ,p_metrics%z_mc(1,:,1),v_nudg(:,n))
           CALL vert_intp_linear_1d(zz,ztheta,p_metrics%z_mc(1,:,1),theta_nudg(:,n))
           CALL vert_intp_linear_1d(zz,z_qv  ,p_metrics%z_mc(1,:,1),qv_nudg(:,n))
- 
+
         END DO
- 
+
         CLOSE(iunit)
- 
+
         DEALLOCATE( zz, zu, zv, ztheta, z_qv )
 
       END IF
@@ -1210,7 +1210,7 @@ MODULE mo_ls_forcing
         IF (n_next .GT. nt) THEN
           CALL finish ( routine, 'end of SCM input file for nudging' )
         END IF
-        
+
         ! Interpolation error catch
         IF (int_weight.LT.0 .OR. int_weight.GT.1) THEN
           WRITE (message_text,'(a,2(i0,", "),g0)') &
@@ -1227,15 +1227,15 @@ MODULE mo_ls_forcing
         ENDIF
         IF(is_nudging_tq) THEN
           temp_nudge      = theta_nudg(:,n_curr)*(1.-int_weight) &
-                        & + theta_nudg(:,n_next)*    int_weight 
+                        & + theta_nudg(:,n_next)*    int_weight
           q_nudge(:,1)    = qv_nudg   (:,n_curr)*(1.-int_weight) &
-                        & + qv_nudg   (:,n_next)*    int_weight 
+                        & + qv_nudg   (:,n_next)*    int_weight
         ENDIF
       ! single time step available
       ELSE
         IF(is_nudging_uv) THEN
           u_nudge         = u_nudg(:,1)
-          v_nudge         = v_nudg(:,1) 
+          v_nudge         = v_nudg(:,1)
         ENDIF
         IF(is_nudging_tq) THEN
           temp_nudge      = theta_nudg(:,1)
@@ -1260,6 +1260,3 @@ MODULE mo_ls_forcing
 !-------------------------------------------------------------------------------
 
 END MODULE mo_ls_forcing
-
-
-

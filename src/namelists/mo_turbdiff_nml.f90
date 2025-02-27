@@ -11,7 +11,7 @@
 
 ! @brief: Namelist for turbulent processes (turbdiff)
 !
-! Completing the 'turbdiff_config'-setup contained in module 'mo_turbdiff_config' by including 
+! Completing the 'turbdiff_config'-setup contained in module 'mo_turbdiff_config' by including
 !  input of "NAMELIST/turbdiff_nml/" and loading the domain-specific configuration state.
 ! This is done through subroutine 'read_turbdiff_namelist' (called in 'read_atmo_namelists').
 
@@ -33,9 +33,9 @@ MODULE mo_turbdiff_nml
 !dom_spec<
 ! USE mo_turbdiff_config, pat_len_def => pat_len !only, if 'pat_len'-values shall be domain-specific
 !dom_spec>
-  
+
   USE mo_nml_annotate,        ONLY: temp_defaults, temp_settings
-  
+
   IMPLICIT NONE
   PRIVATE
 
@@ -58,7 +58,7 @@ MODULE mo_turbdiff_nml
     & impl_s, impl_t, tkhmin, tkmmin, tkhmin_strat, tkmmin_strat, &
     & imode_frcsmot, &
      & frcsmot, tkesmot, &
-    & rlam_heat, rlam_mom, rat_lam, rat_sea, rat_glac, & 
+    & rlam_heat, rlam_mom, rat_lam, rat_sea, rat_glac, &
     & imode_charpar, &
      & alpha0, alpha0_max, alpha1, &
     & lconst_z0, &
@@ -72,7 +72,7 @@ MODULE mo_turbdiff_nml
 
   ! Note:
   ! The individual variable names applied in the namelist are taken from 'mo_turbdiff_config'
-  !  and have already been initialized there by default values at declaration. 
+  !  and have already been initialized there by default values at declaration.
   ! Some of them will be overwritten by namelist-settings below.
   ! If domain-specific values shall be given by the above namelist for any variable, say 'pat_len',
   ! - add ", pat_len_def => pat_len" to "USE mo_turbdiff_config' above
@@ -83,17 +83,17 @@ CONTAINS
 
   !-------------------------------------------------------------------------
   !
-  !! Read Namelist for turbulent diffusion. 
+  !! Read Namelist for turbulent diffusion.
   !!
-  !! This subroutine 
+  !! This subroutine
   !! - reads the Namelist for turbulent diffusion
   !! - sets default values (for domain-specific quantities)
-  !! - potentially overwrites the defaults by values used in a 
+  !! - potentially overwrites the defaults by values used in a
   !!   previous integration (if this is a resumed run)
   !! - reads the user's (new) specifications
   !! - stores the Namelist for restart
   !! - fills the configuration state (almost fully)
-  ! 
+  !
   SUBROUTINE read_turbdiff_namelist( filename )
 
     CHARACTER(LEN=*), INTENT(IN) :: filename
@@ -105,22 +105,22 @@ CONTAINS
       &  routine = 'mo_turbdiff_nml: read_turbdiff_nml'
 
     ! Note:
-    ! If domain-specific values shall be given by the above namelist for any variable, say 'pat_len', 
+    ! If domain-specific values shall be given by the above namelist for any variable, say 'pat_len',
     ! - copy default to vector 'pat_len' via the line "pat_len = pat_len_def" in section 1.
     ! - include the line "pat_len_def = pat_len(jg)" just before "CALL load_turbdiff_config(jg)"
     ! (see out-commented lines parenthesized by "!dom_spec<" and "!dom-spec>")
 
     !------------------------------------------------------------------
-    ! 1. default settings of namelist variables are taken from initialization 
+    ! 1. default settings of namelist variables are taken from initialization
     !    of 'turbdiff_config' in MODULE 'mo_turbdiff_config'
     !------------------------------------------------------------------
 
 !dom_spec<
 !   pat_len = pat_len_def !only, if 'pat_len'-values shall be domain-specific
 !dom_spec>
-  
+
     !------------------------------------------------------------------
-    ! 2. If this is a resumed integration, overwrite the defaults above 
+    ! 2. If this is a resumed integration, overwrite the defaults above
     !    by values used in the previous integration.
     !------------------------------------------------------------------
 
@@ -137,7 +137,7 @@ CONTAINS
     CALL open_nml(TRIM(filename))
     CALL position_nml ('turbdiff_nml', STATUS=istat)
     IF (my_process_is_stdio()) THEN
-      iunit = temp_defaults() 
+      iunit = temp_defaults()
       WRITE(iunit, turbdiff_nml)  ! write defaults to temporary text file
     END IF
     SELECT CASE (istat)
@@ -185,8 +185,8 @@ CONTAINS
     !-----------------------------------------------------
     IF(my_process_is_stdio())  THEN
       funit = open_tmpfile()
-      WRITE(funit,NML=turbdiff_nml)                    
-      CALL store_and_close_namelist(funit, 'turbdiff_nml')             
+      WRITE(funit,NML=turbdiff_nml)
+      CALL store_and_close_namelist(funit, 'turbdiff_nml')
     ENDIF
 
     ! 7. write the contents of the namelist to an ASCII file

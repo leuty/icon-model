@@ -13,7 +13,7 @@
 
 # Run a MPI task with the compute-sanitizer attached to certain tasks
 # Execution:  srun -srun_options ./sanitizer-wrapper.sh path/to/icon
-# 
+#
 set -o pipefail
 
 if [[ -n "${SLURM_PROCID}" ]]; then

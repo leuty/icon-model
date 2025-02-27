@@ -70,7 +70,7 @@ MODULE mo_variable
   INTERFACE t_variable
     MODULE PROCEDURE t_variable_constructor
   END INTERFACE t_variable
-  
+
   INTERFACE bind_variable
     MODULE PROCEDURE bind_variable_l0d
     MODULE PROCEDURE bind_variable_l1d
@@ -533,7 +533,7 @@ CONTAINS
       PRINT *, "ERROR: ", TRIM(tv%name), " is not four dimensional"
     ENDIF
   END SUBROUTINE bind_variable_gc4d
-  
+
   SUBROUTINE allocate_variable(tv)
     CLASS(t_variable), INTENT(INOUT) :: tv
 
@@ -546,7 +546,7 @@ CONTAINS
 
     SELECT CASE( tv%dim )
     CASE (0)
-      IF (tv%type_id == "bool") THEN 
+      IF (tv%type_id == "bool") THEN
         ALLOCATE(tv%l0d_alloc(1)) ; tv%l0d => tv%l0d_alloc(1) ; tv%l0d = .FALSE.
         !$ACC ENTER DATA CREATE(tv%l0d_alloc)
         __acc_attach(tv%l0d)
@@ -556,7 +556,7 @@ CONTAINS
         !$ACC ENTER DATA CREATE(tv%i0d_alloc)
         __acc_attach(tv%i0d)
       ENDIF
-      IF (tv%type_id == "real") THEN 
+      IF (tv%type_id == "real") THEN
         ALLOCATE(tv%r0d_alloc(1)) ; tv%r0d => tv%r0d_alloc(1) ; tv%r0d = 0._wp
         !$ACC ENTER DATA COPYIN(tv%r0d_alloc)
         __acc_attach(tv%r0d)
@@ -676,7 +676,7 @@ CONTAINS
         !ICON_OMP END PARALLEL
       END IF
     CASE DEFAULT
-      PRINT *, "allocation: dimension ", tv%dim, " not currently supported"     
+      PRINT *, "allocation: dimension ", tv%dim, " not currently supported"
     END SELECT
 
     tv%bound = .true.
@@ -688,10 +688,10 @@ CONTAINS
 
     SELECT CASE( tv%dim )
     CASE (0)
-      IF (tv%type_id == "bool") THEN 
+      IF (tv%type_id == "bool") THEN
         DEALLOCATE(tv%l0d_alloc) ; NULLIFY( tv%l0d )
       ENDIF
-      IF (tv%type_id == "int") THEN 
+      IF (tv%type_id == "int") THEN
         DEALLOCATE(tv%i0d_alloc) ; NULLIFY( tv%i0d )
       ENDIF
       IF (tv%type_id == "real") THEN
@@ -722,7 +722,7 @@ CONTAINS
       IF (tv%type_id == "int") DEALLOCATE(tv%i5d)
       IF (tv%type_id == "real") DEALLOCATE(tv%r5d)
     CASE DEFAULT
-      PRINT *, "deallocation: dimension ", tv%dim, " not currently supported"     
+      PRINT *, "deallocation: dimension ", tv%dim, " not currently supported"
     END SELECT
     tv%bound = .false.
   END SUBROUTINE deallocate_variable
@@ -763,7 +763,7 @@ CONTAINS
       IF (tv%type_id == "int") NULLIFY(tv%i5d)
       IF (tv%type_id == "real") NULLIFY(tv%r5d)
     CASE DEFAULT
-      PRINT *, "unbind: dimension ", tv%dim, " not currently supported"     
+      PRINT *, "unbind: dimension ", tv%dim, " not currently supported"
     END SELECT
     tv%bound = .false.
   END SUBROUTINE unbind_variable

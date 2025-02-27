@@ -87,7 +87,7 @@ CONTAINS
     TYPE(datetime), POINTER :: dt
     INTEGER :: date_int
     REAL(dp) :: date_frac
-    CHARACTER(LEN=MAX_CHAR_LENGTH) :: restart_fname 
+    CHARACTER(LEN=MAX_CHAR_LENGTH) :: restart_fname
 
     dt => restartArgs%restart_datetime
     WRITE (datetimeString,'(i4.4,2(i2.2),a,3(i2.2),a)')    &
@@ -162,7 +162,7 @@ CONTAINS
     INTEGER, INTENT(in) :: operation
     TYPE(t_PackedMessage), INTENT(INOUT) :: packedMessage
     CHARACTER(len=*), PARAMETER ::  routine = modname//':restartArgs_packer'
-    
+
     IF (operation == kPackOp .AND. .NOT. ASSOCIATED(me%restart_datetime)) THEN
       CALL finish(routine, 'Assertion failed: cannot pack unconstructed object.')
     ENDIF

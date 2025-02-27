@@ -36,7 +36,7 @@ module mo_generic_linked_list
   implicit none
   private
   public :: t_generic_linked_list, t_generic_linked_list_item, newitem, deleteitem
-  public :: register_generic_linked_list_print_procedure  
+  public :: register_generic_linked_list_print_procedure
   !
   ! type(t_generic_linked_list) is the list header type.
   !
@@ -75,7 +75,7 @@ module mo_generic_linked_list
     end subroutine registered_print_procedure
   end interface
   procedure(registered_print_procedure), pointer :: print_message => null()
-  
+
 contains
   !
   ! Create a new (orphaned) list item.
@@ -194,7 +194,7 @@ contains
       do i=1, huge(i)-1
         if (show_numbers) then
           write (tmp, '(a,i0,a)') 'Item: ', i, ':'
-          call print_message('', trim(tmp)//p%print_list_item())          
+          call print_message('', trim(tmp)//p%print_list_item())
         else
           call print_message('', p%print_list_item())
         endif
@@ -265,13 +265,13 @@ contains
       write(tmp,'(a,f0.0,sp,f0.0,a)') 'complex = ', v, "i"
 #ifndef USE_CLAW
     type is (complex(kind(0d0)))
-      write(tmp,'(a,i0,a,f0.0,sp,f0.0,a)') 'complex(kind=', kind(v), ') = ', v, "i"      
+      write(tmp,'(a,i0,a,f0.0,sp,f0.0,a)') 'complex(kind=', kind(v), ') = ', v, "i"
 #endif
     type is (real)
       write(tmp,'(a,es23.16)') 'real = ', v
 #ifndef USE_CLAW
     type is (real(kind(0d0)))
-      write(tmp,'(a,i0,a,es23.16)') 'real(kind=', kind(v), ') = ', v      
+      write(tmp,'(a,i0,a,es23.16)') 'real(kind=', kind(v), ') = ', v
 #endif
     type is (integer)
       write(tmp,'(a,i0)') 'integer = ', v
@@ -311,5 +311,5 @@ contains
     procedure(registered_print_procedure) :: message_procedure
     print_message => message_procedure
   end subroutine register_generic_linked_list_print_procedure
-  
+
 end module mo_generic_linked_list

@@ -32,7 +32,7 @@
 
 # -------------------------------------------------
 
-echo "METEOGRAM.SMS" 
+echo "METEOGRAM.SMS"
 
 
 #-----------------------------------------------------------------------------
@@ -76,13 +76,13 @@ set -A iStation 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17
 
 set -A varNameSfc \
   t_s      t_g      SHFL      LHFL      T2M     TD2M    U10M    V10M    \
-  w_snow   t_snow   RHO_SNOW  H_SNOW    SOBT    SOBS    THBS    
+  w_snow   t_snow   RHO_SNOW  H_SNOW    SOBT    SOBS    THBS
 
 set -A varName3D \
   t_so     w_so     w_so_ice                \
   P        T        U         V         CLC
 
-#set -A iStation   1 
+#set -A iStation   1
 #set -A varNameSfc T2M
 #set -A varName3D  T
 
@@ -97,7 +97,7 @@ do
       varName=\"${var}\" iStation=${station} expnum=\"${expnum}\" xlabel=\"month\"
   ##convert -trim -geometry 1000x1000 ${oFile}.pdf ${oFile}.png || true
   ##  convert -density 100 ${oFile}.eps ${oFile}.png || true
-  done	
+  done
 
   for var in ${varName3D[*]}
   do
@@ -106,7 +106,7 @@ do
       varName=\"${var}\" iStation=${station} expnum=\"${expnum}\" xlabel=\"month\"
   ##convert -trim -geometry 1000x1000 ${oFile}.pdf ${oFile}.png  || true
   ##convert -density 100 ${oFile}.eps ${oFile}.png || true
-  done	
+  done
 done
 
 
@@ -114,4 +114,3 @@ done
 
 # include the standard "tail" file
 %include <end_ws.h>
-

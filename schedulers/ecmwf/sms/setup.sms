@@ -26,7 +26,7 @@
 %end
 
 # include the header file for remote jobs
-%include <init_ws.h> 
+%include <init_ws.h>
 
 # -------------------------------------------------
 
@@ -42,7 +42,7 @@ fi
 
 
 # Create data directory on ecgate
- 
+
 mkdir -p %ECTEMP%/%SUITE%/%EXPNUM%/%YMD%%INIHOUR%
 
 
@@ -57,4 +57,3 @@ ssh %SCHOST% mkdir -p ${SCDATADIR}/output/%YMD%%INIHOUR%
 
 # include the "tail" file for remote jobs
 %include <end_ws.h>
-

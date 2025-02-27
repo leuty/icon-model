@@ -21,7 +21,7 @@ MODULE mo_ser_debug
   IMPLICIT NONE
 
   PUBLIC :: serialize_debug_output, ser_debug_on
-  
+
   LOGICAL :: ser_debug_on = .FALSE.
 
   CONTAINS

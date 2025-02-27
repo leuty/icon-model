@@ -31,7 +31,7 @@ pro paperopenl
 
  !p.font=0      ;default (hardward postscript font Helvetia, problem with math)
                 ;- better for Illustrator (?)
-;device, /times ;Times postscript font 
+;device, /times ;Times postscript font
 ;device, /avantgarde
  device, /helvetica
 ;device, /palatino

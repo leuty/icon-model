@@ -20,7 +20,7 @@ set -o pipefail
 
 die () { echo "ERROR: $*" >&2; exit 1; }
 
-EXPECTED_PYTHON=$(module show python3 2>&1 | 
+EXPECTED_PYTHON=$(module show python3 2>&1 |
     awk '/^prepend-path\tPATH / {print $3 "/python"}')
 
 module load python3
@@ -31,4 +31,3 @@ then
     die "python is '$REAL_PYTHON' after 'module load python3'" \
         "(should be '$EXPECTED_PYTHON')"
 fi
-

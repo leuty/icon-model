@@ -34,18 +34,18 @@ MODULE mo_ocean_nml_crosscheck
   PUBLIC :: ocean_crosscheck
 
 CONTAINS
-  
+
 
 !<Optimize:inUse>
   SUBROUTINE check_thicknesses
 
     ! ensure, that all used thicknesses are non-zero in case of non-shallow-water.
-    !For shallow-water this test makes no sense since dzlev==0 
+    !For shallow-water this test makes no sense since dzlev==0
     IF(iswm_oce==0)THEN
       IF (MINVAL(dzlev_m(1:n_zlev)) <= 0.0_wp) THEN
         CALL finish("check_thicknesses","Found zero or negative thicknesses")
       END IF
-    ENDIF  
+    ENDIF
   END SUBROUTINE check_thicknesses
 
 !<Optimize:inUse>
@@ -84,10 +84,10 @@ CONTAINS
     ! set the patch-related nlev variable to the ocean setup n_ zlev
     nlev = n_zlev
 
-    IF (p_test_run .AND. l_fast_sum ) THEN                      
+    IF (p_test_run .AND. l_fast_sum ) THEN
        CALL warning(method_name, "p_test_run sets l_fast_sum=.false.")
-       l_fast_sum = .false.                                     
-    ENDIF                                                       
+       l_fast_sum = .false.
+    ENDIF
 
     SELECT CASE (select_solver)
       CASE (select_gmres, select_gmres_r, select_gmres_mp_r, select_cg, select_cg_mp, select_cgj, select_bcgs, &
@@ -106,7 +106,7 @@ CONTAINS
     IF  (RichardsonDiffusion_threshold < convection_InstabilityThreshold) &
       CALL finish (method_name, "RichardsonDiffusion_threshold < convection_InstabilityThreshold")
 
-     
+
     IF (l_rigid_lid .AND. iswm_oce /= 1) THEN
       CALL finish(method_name, "l_rigid_lid .AND. iswm_oce /= 1")
     ENDIF
@@ -115,7 +115,7 @@ CONTAINS
       use_duplicated_connectivity = .FALSE.
       CALL message(method_name, "Set use_duplicated_connectivity to FALSE")
     ENDIF
-    
+
     IF (isRestart() .AND. write_initial_state) THEN
       CALL warning(method_name, "write_initial_state is disabled for restarts")
       write_initial_state = .false.

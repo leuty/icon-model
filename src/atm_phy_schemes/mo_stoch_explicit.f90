@@ -50,7 +50,7 @@
 MODULE mo_stoch_explicit
 
   USE netcdf
-  USE mo_random_util,        ONLY: poisson_distr  
+  USE mo_random_util,        ONLY: poisson_distr
   USE mo_kind,               ONLY: JPRB=>wp ,JPIM=>i4
   USE mo_model_domain,       ONLY: t_patch
   USE mo_loopindices,        ONLY: get_indices_c
@@ -121,7 +121,7 @@ MODULE mo_stoch_explicit
   ! Normally, the cloud ensemble slowly develops over multiple time steps. For starts during actively convecting periods,
   ! instant spinup may be the preferred option.
   LOGICAL           ,INTENT(in)    :: lgrayzone            ! switches on grayzone tuning
-  
+
   REAL(KIND=jprb)   ,INTENT(INOUT), DIMENSION(:,:,:), OPTIONAL :: extra_3d! 3D extra diagnostics
   !! only required when routine is run passively, in piggy-back-mode
   REAL(KIND=jprb)   ,INTENT(IN), OPTIONAL:: ncloudspin(klon) ! number of passive clouds at previous timestep
@@ -158,7 +158,7 @@ MODULE mo_stoch_explicit
 
 
 ! Calculate situation-dependent lambda2 (active Weibull distribution parameter) based on heat-cycle
-! arguments according to Sakradzija and Hohenegger 2017. Uses Bowen ratio, subcloud layer depth 
+! arguments according to Sakradzija and Hohenegger 2017. Uses Bowen ratio, subcloud layer depth
 ! and moist static energy difference between updraft and environment at cloud base
 ! Derive birth rates for passive/active clouds based on distribution parameters
 !------------------------------------------------------------
@@ -176,13 +176,13 @@ MODULE mo_stoch_explicit
 
       ! CALCULATION OF WEIBULL DISTRIBUTION PARAMETERS FOR ACTIVE/PASSIVE CLOUD POPULATIONS
       ! AND CALCULATION OF BIRTH RATES BASED ON Sakradzija and Hohenegger 2017
-        
+
       ! bulk mass flux from first call to convection, convert into units of kg/s
       ! by multiplying with grid box area
       M(i)  = mf_bulk(i)*dxy ! bulk mass flux in kg/s; rho =1 kg/m3
 
       ! Calculate Bowen ratio. Make sure bowen cannot become zero!
-      IF (shfl(i).GE.0._JPRB.OR.lhfl(i).GE.0._JPRB) THEN  
+      IF (shfl(i).GE.0._JPRB.OR.lhfl(i).GE.0._JPRB) THEN
         Bowen = 0._JPRB
       ELSE
         Bowen = shfl(i)/lhfl(i)+1e-13_JPRB ! 1.e-13 added as safety against zero value
@@ -193,18 +193,18 @@ MODULE mo_stoch_explicit
       ! Calculate distribution avgerage mass flux mavg2 for active clouds
       ! based on Eqn 12 Sakradzija and Hohenegger 2017f
       mavg2(i)  = m0 + C1 * ( Bowen/(1+Bowen) + 0.608_JPRB*cpd*temp_s(i)/(alv+Bowen*alv) ) * &
-                  hbas_con(i)*0.5_JPRB/(cpd*temp_s(i)) * & 
+                  hbas_con(i)*0.5_JPRB/(cpd*temp_s(i)) * &
                   (-shfl(i)-lhfl(i))/dh(i)
       ! Check: use Bowen ratio to calculate mavg2 only if surface fluxes are into the atmosphere
       ! otherwise reduce expression for mavg2 to intercept parameter m0
       ! Rescaling is then necessary (since fixed parameters were derived for LES resolution)
-      IF (shfl(i).GE.0._JPRB.OR.lhfl(i).GE.0._JPRB) THEN 
+      IF (shfl(i).GE.0._JPRB.OR.lhfl(i).GE.0._JPRB) THEN
         mavg2(i)  = m0 * 51200._JPRB * 51200._JPRB
       ELSE
         mavg2(i)  = mavg2(i) * 51200._JPRB * 51200._JPRB
         mavg2(i)  = MAX(mavg2(i),10000._JPRB)
       ENDIF
-        
+
       ! heat-cycle dependent Weibull parameter for active clouds
       lambda2(i)  = mavg2(i) / GAMMA(1.+kinv)
 
@@ -215,12 +215,12 @@ MODULE mo_stoch_explicit
              &          gamma(1.+(beta_mf+1)*kinv))
       birth_rate_p(i) = (1._JPRB-active_fraction)*M(i)/(alpha_mf*lambda1(i)**(beta_mf+1)* &
              &          gamma(1.+(beta_mf+1)*kinv))
-        
+
     ELSE
       ! if this grid point has no active shallow convection at this time step, no new clouds will be generated
       birth_rate_p(i) = 0._JPRB
       birth_rate_a(i) = 0._JPRB
-    ENDIF 
+    ENDIF
   ENDDO
 
   ! Ensemble properties are calculated fresh at each time step, hence initialized to zero here
@@ -246,15 +246,15 @@ MODULE mo_stoch_explicit
 !------------------------------------------------------------
   ! Call routine that updates the state of the cloud ensemble by
   ! generating new clouds and removing clouds that have
-  ! exceeded their lifetime, then calculates properties of the updated 
+  ! exceeded their lifetime, then calculates properties of the updated
   ! cloud ensemble.
 
   ! Optional: set ftrace timer flag
   ! call ftrace_region_begin("update_cloud_ensemble")
-  
+
   ! If routine is called in piggy-back-mode, it needs a few extra input variables
   ! in the interface to describe the state of the model at the previous timestep
-  IF (lpassive) THEN 
+  IF (lpassive) THEN
     CALL update_cloud_ensemble(i_startidx,i_endidx, birth_rate_p, birth_rate_a, dt, klon, klev, &
        mbas_con,mtop_con,mavg1,mavg2, &
        nclouds,ncloudsp,ncloudsa, &
@@ -313,8 +313,8 @@ MODULE mo_stoch_explicit
 
 !--------------------------------------------------------------------------------------
 ! Subroutine to update the state of the explicit cloud ensemble:
-! generates new clouds, kills clouds that have 
-! exceeded their lifetime, and calculates properties of the updated 
+! generates new clouds, kills clouds that have
+! exceeded their lifetime, and calculates properties of the updated
 ! cloud ensemble.
 
   SUBROUTINE update_cloud_ensemble(i_startidx,i_endidx, birth_rate_p, birth_rate_a, dt, klon, klev, &
@@ -352,7 +352,7 @@ MODULE mo_stoch_explicit
     REAL(KIND=JPRB),   INTENT(INOUT) :: mf_die_a(klon)      ! decrease of MF due to dying active clouds
     REAL(KIND=JPRB),   INTENT(INOUT) :: mf_new_p(klon)      ! increase of MF due to newly born passive clouds
     REAL(KIND=JPRB),   INTENT(INOUT) :: mf_die_p(klon)      ! decrease of MF due to dying passive clouds
-    
+
     INTEGER(KIND=JPIM),INTENT(INOUT) :: nclouds(klon)       ! number of active+passive clouds in each grid cell
     INTEGER(KIND=JPIM),INTENT(INOUT) :: ncloudsp(klon)      ! number of passive clouds in each grid cell
     INTEGER(KIND=JPIM),INTENT(INOUT) :: ncloudsa(klon)      ! number of active clouds in each grid cell
@@ -371,22 +371,22 @@ MODULE mo_stoch_explicit
     REAL(KIND=jprb)   ,INTENT(inout) :: area_i(:,:)          ! cloud base updraft area
     INTEGER(KIND=JPIM),INTENT(inout) :: depth_i(:,:)         ! max depth of cloud (in model layers)
     INTEGER(KIND=JPIM),INTENT(inout) :: base_i(:,:)          ! cloud base (model layer)
-    INTEGER(KIND=JPIM),INTENT(inout) :: used_cell(:,:)       ! mark whether cloud ensemble space is used    
+    INTEGER(KIND=JPIM),INTENT(inout) :: used_cell(:,:)       ! mark whether cloud ensemble space is used
 
     REAL(KIND=JPRB)   ,INTENT(IN)    :: cell_area(klon)     ! grid cell area
     INTEGER(KIND=JPIM),INTENT(IN)    :: lseed(klon)         ! seed for random number generator
     LOGICAL           ,INTENT(IN)    :: lpassive            ! .true. if this routine is run passively (piggy-backing)
     LOGICAL           ,INTENT(IN)    :: lgrayzone           ! switches on grayzone tuning
     LOGICAL           ,INTENT(IN)    :: lspinup             ! This option enables instant spinup of the cloud ensemble
-    
+
     ! Only required when running in passive/piggy-backing mode
     REAL(KIND=JPRB)   ,INTENT(IN) ,OPTIONAL :: ncloudspin(klon) ! number of passive clouds at previous timestep
     REAL(KIND=JPRB)   ,INTENT(IN) ,OPTIONAL :: ncloudsain(klon) ! number of active clouds at previous timestep
-    
+
     ! Local variables
     REAL(KIND=JPRB)    :: dxy                               ! grid cell area
     REAL(KIND=JPRB)    :: rdxy(klon)                        ! inverse of grid cell area
-    
+
     REAL(KIND=JPRB)    :: ac, carea, cmf, xtime, xf         ! Parameters describing lifetime evolution of mass flux
     INTEGER(KIND=JPIM) :: i, j, k, icld,icld1,icldin,idx    ! Indices
     INTEGER(KIND=JPIM) :: current_depth                     ! cloud depth (model level), evolving with lifetime, at current stage in cloud's life time
@@ -421,10 +421,10 @@ MODULE mo_stoch_explicit
     IF (lspinup) THEN
        ALLOCATE(n1array(spinup_steps))
        ALLOCATE(n2array(spinup_steps))
-    ENDIF 
+    ENDIF
 !------------------------------------------------------------------------
 !
-!  
+!
 !    call ftrace_region_begin("domain_loop")
 
     ! Loop over grid points
@@ -434,7 +434,7 @@ MODULE mo_stoch_explicit
       ! If the grayzone tuning is used (not recommended with stochastic scheme)
       ! ktype=1 (deep) will also be used.
       IF (ktype(i).EQ.2 .or. (lgrayzone .and. ktype(i).EQ.1)) THEN
-        ! Review current state of the cloud ensemble:  
+        ! Review current state of the cloud ensemble:
         ! Generate lists of free/used cells in cloud ensemble
         cntr1=0
         cntr2=0
@@ -456,7 +456,7 @@ MODULE mo_stoch_explicit
           ENDIF
         ENDDO
 
-        !  Get local copy of seed for random number generator        
+        !  Get local copy of seed for random number generator
         iseed = lseed(i)
 
         ! Initialise
@@ -468,15 +468,15 @@ MODULE mo_stoch_explicit
 
         ! specify grid cell area
         dxy     = cell_area(i)
-       
+
 
         !**************************************************************************************
         ! *PASSIVE MODE ONLY*  MATCH CURRENT STATE OF THE CLOUD ENSEMBLE PREDICTED BY SDE
         !
         ! If this routine is run passively, in piggy-back-mode, the state of the ensemble
         ! must first be nudged towards the model state at the previous time step.
-        ! The following IF-loop only adjusts the number of clouds in the ensemble to 
-        ! match that of the previous time step (i.e. killing or newly generating clouds 
+        ! The following IF-loop only adjusts the number of clouds in the ensemble to
+        ! match that of the previous time step (i.e. killing or newly generating clouds
         ! as needed), but does not explicitly nudge/adjust the ensemble total mass flux.
         ! Thus a discrepancy with the mass flux at the previous timestep does remain.
         IF (lpassive) THEN
@@ -485,7 +485,7 @@ MODULE mo_stoch_explicit
             ! determine missing number of clouds to match required number of clouds
             nspin1=MAX(NINT(ncloudspin(i)*dxy)-ncloudsp(i),0)
             nspin2=MAX(NINT(ncloudsain(i)*dxy)-ncloudsa(i),0)
-               
+
             ! Double check that new clouds to be generated don't exceed free spaces
             ! in cloud ensemble. This is theoretically possible as the SDE does not have
             ! a fixed upper limit for the clouds it may generate.
@@ -556,7 +556,7 @@ MODULE mo_stoch_explicit
             DO icld1=1,excessp
               ! Find index of each cloud by looking it up in full_cell_list
               icld=full_cell_list(icld1,i)
-              ! Set cell properties back to default/zero for this cell  
+              ! Set cell properties back to default/zero for this cell
               used_cell(icld,i)=0_JPIM
               type_i(icld,i)=0._JPRB
               ktype_i(icld,i)=0._JPRB
@@ -600,7 +600,7 @@ MODULE mo_stoch_explicit
               ncloudsa(i) = ncloudsa(i) - 1
             ENDDO
           ENDIF
-         
+
           ! Update the list of free/used cells after adjustments
           cntr1=0
           cntr2=0
@@ -620,14 +620,14 @@ MODULE mo_stoch_explicit
              write(6,*) 'Ensemble should contain clouds: ',nint(ncloudspin(i)*dxy)+nint(ncloudsain(i)*dxy)
              write(6,*) 'but actually contains clouds  : ',cntr1
           ENDIF
-             
+
         ENDIF!lpassive
 
         !**************************************************************************************
         ! END *PASSIVE MODE ONLY*
         !**************************************************************************************
-       
-        ! Determine number of newborn clouds by drawing from a Poisson distribution with 
+
+        ! Determine number of newborn clouds by drawing from a Poisson distribution with
         ! "expected value" corresponding to the birth rates calculated above.
         streammax=200
         CALL random_number_generator%initialize(IRngMinstdVector, iseed=iseed, &
@@ -638,11 +638,11 @@ MODULE mo_stoch_explicit
         ! Determine number of newborn passive clouds by drawing from Poisson distribution with given birth rate.
         idx=1! This index keeps track of which random numbers out of the 200 have already been used
         CALL poisson_distr(birth_rate_p(i)*dt,rnd(idx),n1)
-        
+
         ! Determine number of newborn active clouds by drawing from Poisson distribution with given birth rate.
         idx=50! Start at index 50, to make sure to use "fresh" random numbers
         CALL poisson_distr(birth_rate_a(i)*dt,rnd(idx),n2)
-       
+
         ! Count clouds to be born. For small, non-zero birth rates, the Poisson draw
         ! my nevertheless return zero clouds to be born.
         someclouds=n1+n2
@@ -665,8 +665,8 @@ MODULE mo_stoch_explicit
           ! Check total number of clouds to be generated
           someclouds=sum(n1array)+sum(n2array)
         ENDIF
-       
-        idx=200   ! Set random number index counter to 200, so that the first 200 numbers will not be used again  
+
+        idx=200   ! Set random number index counter to 200, so that the first 200 numbers will not be used again
       ELSE !ktype .ne. 2
          ! No new clouds are born if this grid cell has active no shallow convection
          n1 = 0
@@ -679,7 +679,7 @@ MODULE mo_stoch_explicit
       !-------------------------------------------------------------------------------------
       ! BEGIN GENERATING NEW CLOUDS
       !*************************************************************************************
-      
+
       ! Add new clouds to the ensemble book-keeping
       ! Check that clouds to be born exist, and that there is space free in the array
       IF ((someclouds .gt. 0) .AND. ANY(used_cell(:,i).eq.0)) THEN
@@ -692,7 +692,7 @@ MODULE mo_stoch_explicit
            n1=MIN(MAX(n1-INT((n1+n2-freecells)/2._JPRB),0),freecells)
            n2=MIN(MAX(n2-INT((n1+n2-freecells)),0),freecells)
         ENDIF
-        
+
         ! If spinup is enabled...
         IF (lspinup .and. nclouds(i) .eq. 0) THEN
 
@@ -705,12 +705,12 @@ MODULE mo_stoch_explicit
 
           ! Keep track of random number index used, so that random numbers are never used twice
           ! Use same index to pick free slots in the (still empty at start) cloud ensemble
-          nspin2=idx+1 
+          nspin2=idx+1
           ! Iterate over spinup steps
           DO nspin1=1,spinup_steps
 
             ! Loop over each newly born passive cloud
-            DO k=1,n1array(nspin1)    
+            DO k=1,n1array(nspin1)
               ! Since the cloud ensembe is still empty at the beginning of spinup,
               ! simpy pick subsequent free indices from the free_cell list.
               icldin=free_cell_list(nspin2-idx,i)
@@ -719,11 +719,11 @@ MODULE mo_stoch_explicit
                   &             mbas_con(i),mtop_con(i),rnd(nspin2),mf_i(icldin,i),life_i(icldin,i),&
                    &            area_i(icldin,i),depth_i(icldin,i),time_i(icldin,i),type_i(icldin,i),&
                    &            ktype_i(icldin,i),base_i(icldin,i),used_cell(icldin,i))
-              nspin2=nspin2+1 
+              nspin2=nspin2+1
             ENDDO
 
             ! Loop over each newly born active cloud
-            DO k=1,n2array(nspin1)     
+            DO k=1,n2array(nspin1)
               ! Since the cloud ensembe is still empty at the beginning of spinup,
               ! simpy pick subsequent free indices from the free_cell list.
               icldin=free_cell_list(nspin2-idx,i)
@@ -739,8 +739,8 @@ MODULE mo_stoch_explicit
             DO icld = 1, nclds
               ! Advance cloud life time since generation by one phyics time step
               IF (used_cell(icld,i).eq.1) time_i(icld,i) = time_i(icld,i) + dt
-              ! Check if cloud has exceeded its assigned life time 
-              IF ((used_cell(icld,i).eq.1).AND.(time_i(icld,i).GT.life_i(icld,i))) THEN 
+              ! Check if cloud has exceeded its assigned life time
+              IF ((used_cell(icld,i).eq.1).AND.(time_i(icld,i).GT.life_i(icld,i))) THEN
                 ! If so, reset current slot to default
                 used_cell(icld,i)=0_JPIM
                 time_i(icld,i)    = 0._JPRB
@@ -760,11 +760,11 @@ MODULE mo_stoch_explicit
           ncloudsa(i)=0
           ncloudsp(i)=0
 
-          ! Review current state of the cloud ensemble:  
-          ! Generate lists of free/used cells in cloud ensemble 
+          ! Review current state of the cloud ensemble:
+          ! Generate lists of free/used cells in cloud ensemble
           cntr1=0
           cntr2=0
-          
+
           DO icld = 1, nclds
             IF (used_cell(icld,i).eq.1) THEN
               cntr1=cntr1+1
@@ -790,11 +790,11 @@ MODULE mo_stoch_explicit
                &                                  nmaxstreams=streammax)
           ! Retrieve nclds fresh random numbers to use in generation of new clouds
           CALL random_number_generator%uniform_distribution(rnd(1:streammax))
-            
+
         ENDIF
 
         ! Generate new passive clouds
-        DO k=1,n1     
+        DO k=1,n1
           ! add passive cloud to all-cloud and passive counters
           nclouds(i) = nclouds(i) + 1
           ncloudsp(i) = ncloudsp(i) + 1
@@ -837,8 +837,8 @@ MODULE mo_stoch_explicit
         ENDDO
 
         ! Generate new active clouds
-        DO k=1,n2     
-          ! add active cloud to all-cloud and active counters 
+        DO k=1,n2
+          ! add active cloud to all-cloud and active counters
           nclouds(i) = nclouds(i) + 1 !
           ncloudsa(i) = ncloudsa(i) + 1
           ! finde a free slot in the inventory, and generate new cloud
@@ -857,7 +857,7 @@ MODULE mo_stoch_explicit
             ! dimensionless time: time cloud will have lived at the end of the time step,
             ! divided by expected lifetime
             xtime = MIN((time_i(icldin,i)+dt) / life_i(icldin,i),1.0_JPRB)
-            ! normalized life cycle 
+            ! normalized life cycle
             xf    = ABS(4*xtime*(xtime-1._JPRB))
             ac    = 1._JPRB
             ! mass flux of the cloud at the end of the current time step
@@ -884,12 +884,12 @@ MODULE mo_stoch_explicit
       !************************************************************************************
       ! END GENERATING NEW CLOUDS
       !************************************************************************************
-     
-      ! specify grid area
-      rdxy(i)=1._JPRB/cell_area(i) !NOTE: this is the inverse of the gridbox area  
 
-      ! Review current state of the cloud ensemble:  
-      ! Generate lists of free/used cells in cloud ensemble 
+      ! specify grid area
+      rdxy(i)=1._JPRB/cell_area(i) !NOTE: this is the inverse of the gridbox area
+
+      ! Review current state of the cloud ensemble:
+      ! Generate lists of free/used cells in cloud ensemble
       cntr1=0
       cntr2=0
       DO icld=1,nclds
@@ -910,7 +910,7 @@ MODULE mo_stoch_explicit
 
       ! Loop over all occupied places (clouds) in the ensemble
       DO icld1 = 1, cntr1
-        ! Find correct index to access slot in the ensemble 
+        ! Find correct index to access slot in the ensemble
         icld=full_cell_list(icld1,i)
 
         ! Update/lift convection base to level currently predicted by T-B test parcel, to
@@ -918,7 +918,7 @@ MODULE mo_stoch_explicit
         ! Only do this if cloud was generated by shallow convection. Since the cloud top
         ! is kept track of as base+depth, for deep  convection the cloud top might shift
         ! above the model top without correction (adjusting depth also).
-        IF (mbas_con(i) .NE.-1 .AND. (ktype(i).EQ.2 .or. (lgrayzone .and. ktype(i).EQ.1))) THEN 
+        IF (mbas_con(i) .NE.-1 .AND. (ktype(i).EQ.2 .or. (lgrayzone .and. ktype(i).EQ.1))) THEN
            IF (ktype_i(icld,i) .eq. 2) then
             ! pick the higher model level out of the old and new base (model level)
             base_i(icld,i)=MIN(mbas_con(i),base_i(icld,i))
@@ -929,7 +929,7 @@ MODULE mo_stoch_explicit
         time_i(icld,i) = time_i(icld,i) + dt
         ! Check if cloud has now lived longer than its assigned lifetime
         ! NOTE: Results are sensitive to the choice of whether the beginning/middle/end
-        !       of the time step are being considered. 
+        !       of the time step are being considered.
 
         ! This is equivalent to not considering newborn clouds at all yet in the current
         ! time step, but only one full time step later. This is most equivalent to the
@@ -954,7 +954,7 @@ MODULE mo_stoch_explicit
           ! except for diagnostic purposes.
           !
           ! For diagnostics only:
-          ! By definition, MF at time of death is zero, so to determine 
+          ! By definition, MF at time of death is zero, so to determine
           ! the MF of the dying cloud, we really have to calculate the
           ! MF of this cloud at the previous time step.
           ! This is done by calculating the normalised time from the previous time step
@@ -977,7 +977,7 @@ MODULE mo_stoch_explicit
             ! If cloud's expected lifetime is shorter than one timestep
             ! its current mass flux is the lifetime average mass flux,
             ! cloud base level and cloud depth are as defined at the time
-            ! of cloud creation. 
+            ! of cloud creation.
             cmf   = mf_i(icld,i)
           ENDIF
           ! Update diagnostics for passive clouds
@@ -1022,7 +1022,7 @@ MODULE mo_stoch_explicit
           depth_i(icld,i)=0_JPIM
         ELSE ! if cloud remains alive...
           ! Calculate the cloud's mass flux and updraft area fraction at the current time step
-          ! xtime is a dimensionless time normalised by the cloud's expected life time 
+          ! xtime is a dimensionless time normalised by the cloud's expected life time
           xtime =MIN( time_i(icld,i) / life_i(icld,i),1._JPRB)
           ! We assume an idealized life cycle, the exponent ac is a tuning factor, here set to 1.
           !          *
@@ -1065,7 +1065,7 @@ MODULE mo_stoch_explicit
               ! Calculate depth according to life stage
               current_depth = NINT(xf**ac*depth_i(icld,i),KIND=JPIM)
             ELSE
-              ! In second half of the cloud's lifetime, depth=max depth  
+              ! In second half of the cloud's lifetime, depth=max depth
               current_depth = depth_i(icld,i)
               ! Only during the second half of its lifetime is the
               ! cloud assumed to detrain, and detrain all its current
@@ -1095,7 +1095,7 @@ MODULE mo_stoch_explicit
           IF (type_i(icld,i).EQ.2) THEN
             mfa(i)  = mfa(i)  + cmf
           ENDIF
-           
+
         ENDIF ! if cloud still alive
       ENDDO ! Loop over individual clouds
 
@@ -1124,7 +1124,7 @@ MODULE mo_stoch_explicit
   ! and will grow deeper.
   FUNCTION cloud_depth(mf,mavg,mbascon,mtopcon) RESULT(mdep_con)
     ! parameterization of cloud depth as a function of mass flux
-    
+
     REAL(KIND=JPRB)    mf, mavg
     INTEGER(KIND=JPIM) mbascon, mtopcon, mdep_con
 
@@ -1145,33 +1145,33 @@ MODULE mo_stoch_explicit
     mdep_con=MAX(1,MIN(NINT((mbascon-mtopcon)*.3_JPRB*(mf/mavg)),mbascon-mtopcon))
   END FUNCTION cloud_depth
 
-!---------------------------------------------------------------------------------------------  
-  
+!---------------------------------------------------------------------------------------------
+
   ! Calculates the cloud base updraft fraction within the current grid cell by
   ! converting mass flux to updraft area with the simple assumption of a constant updraft
   ! updraft velocity of 1.2m/s, and a constant density of 1kg/kg
   FUNCTION cloud_area(mf) RESULT(area)
 
     ! parameterization of cloud area as a function of mass flux
-    
+
     REAL(KIND=JPRB) area,mf
     REAL(KIND=JPRB) w, rho
 
     w    = 1.2_JPRB   ! assumed constant updraft velocity of 1.2m/s
     rho  = 1._JPRB    ! assumed constant density
     area = mf/(rho*w) ! updraft area at cloud base
-    
+
   END FUNCTION cloud_area
 
 !---------------------------------------------------------------------------------------------
-  
-  ! Assigns lifetime to newly born clouds based on their lifetime-average 
+
+  ! Assigns lifetime to newly born clouds based on their lifetime-average
   ! mass flux. Applied to both active and passive clouds.
   FUNCTION cloud_life_sample(mf,alpha_mf,beta_mf) RESULT(life)
 
     ! Parameterization of cloud lifetime as a function of mass flux
     ! see Sakradzija et al. 2015, Fig. 3 and text
-    
+
     ! Input
     REAL(KIND=JPRB) mf         ! cloud's lifetime-average mass flux
     REAL(KIND=JPRB) beta_mf    ! parameter of the lifetime relationship
@@ -1184,7 +1184,7 @@ MODULE mo_stoch_explicit
   END FUNCTION cloud_life_sample
 
 !---------------------------------------------------------------------------------------------
-  
+
   ! Assigns lifetime-average mass flux to newborn clouds
   FUNCTION cloud_mass_flux_sample(P,lambda,kinv) RESULT(mf)
 
@@ -1198,14 +1198,14 @@ MODULE mo_stoch_explicit
     REAL(KIND=JPRB) kinv         ! Weibull distribution parameter
     ! Output
     REAL(KIND=JPRB) mf           ! cloud's lifetime-average mass flux
-    
+
     !single mode! draw from the inverse of cumulative PDF
     mf = lambda * (-LOG(1-P))**(kinv)  !Weibull
-       
+
   END FUNCTION cloud_mass_flux_sample
 
 !---------------------------------------------------------------------------------------------
-  
+
   ! Creates a new cloud entry in the cloud ensemble at grid cell (i)
   SUBROUTINE newClouds(lambda,alpha_mf,beta_mf,kinv,isactive,ktype, &
        &                  mavg,mbascon,mtopcon,rnd, &

@@ -91,7 +91,7 @@ CONTAINS
       DO jc = jcs, jce
 
         qliquid =   p_nh_state(jg)%prog(jtl_trc)%tracer(jc,jk,jb,iqc) &
-                & + p_nh_state(jg)%prog(jtl_trc)%tracer(jc,jk,jb,iqr) 
+                & + p_nh_state(jg)%prog(jtl_trc)%tracer(jc,jk,jb,iqr)
 
         qfrozen =   p_nh_state(jg)%prog(jtl_trc)%tracer(jc,jk,jb,iqi) &
                 & + p_nh_state(jg)%prog(jtl_trc)%tracer(jc,jk,jb,iqs) &

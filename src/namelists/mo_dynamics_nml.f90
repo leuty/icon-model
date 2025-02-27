@@ -25,7 +25,7 @@ MODULE mo_dynamics_nml
   USE mo_physical_constants,  ONLY: grav
   USE mo_io_units,            ONLY: nnml, nnml_output
   USE mo_namelist,            ONLY: position_nml, positioned, open_nml, close_nml
-  USE mo_mpi,                 ONLY: my_process_is_stdio 
+  USE mo_mpi,                 ONLY: my_process_is_stdio
 
   USE mo_master_control,      ONLY: use_restart_namelists
   USE mo_restart_nml_and_att, ONLY: open_tmpfile, store_and_close_namelist,   &
@@ -37,9 +37,9 @@ MODULE mo_dynamics_nml
   PUBLIC :: read_dynamics_namelist
 
   !---------------------------------------------------------------
-  ! Namelist variables 
+  ! Namelist variables
   !---------------------------------------------------------------
-  ! time stepping scheme 
+  ! time stepping scheme
 
   INTEGER  :: iequations
 
@@ -49,7 +49,7 @@ MODULE mo_dynamics_nml
 
   LOGICAL  :: lmoist_thdyn   ! if .TRUE., moisture terms included in first law
 
-  LOGICAL  :: ldeepatmo      ! if .TRUE., deep-atmosphere modification is applied 
+  LOGICAL  :: ldeepatmo      ! if .TRUE., deep-atmosphere modification is applied
                              ! to the governing equations, on which the dynamical core is based
 
   NAMELIST/dynamics_nml/ iequations, divavg_cntrwgt, &
@@ -75,7 +75,7 @@ CONTAINS
     ldeepatmo      = .FALSE.
 
     !------------------------------------------------------------------------
-    ! If this is a resumed integration, overwrite the defaults above by 
+    ! If this is a resumed integration, overwrite the defaults above by
     ! values in the restart file
     !------------------------------------------------------------------------
     IF (use_restart_namelists()) THEN

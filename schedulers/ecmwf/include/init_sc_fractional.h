@@ -121,7 +121,7 @@ ERROR() {
 #==========================================================================
 # To give access to job output file in PBS spool on Cray systems
 #==========================================================================
- 
+
 if [[ $HOST = @(cc*) ]]; then
   _real_pbs_outputfile=/var/spool/PBS/spool/${PBS_JOBID}.OU
   _pbs_outputfile=/nfs/moms/$HOST${_real_pbs_outputfile}
@@ -142,4 +142,3 @@ trap '{ echo "Killed by a signal"; ERROR ; }' \
 [[ -d $TMPDIR ]] && cd $TMPDIR
 
 date
-

@@ -44,10 +44,10 @@ MODULE mo_nh_dcmip_hadley
    ! test case parameters
    !
    REAL(wp), PARAMETER :: t0    = 300.0_wp    !< temperature           [K]
-   REAL(wp), PARAMETER :: scale_hgt = rd*t0/grav !< scale height       [m] 
-   REAL(wp), PARAMETER :: u0    = 40.0_wp     !< maximum amplitude 
+   REAL(wp), PARAMETER :: scale_hgt = rd*t0/grav !< scale height       [m]
+   REAL(wp), PARAMETER :: u0    = 40.0_wp     !< maximum amplitude
                                               !< of the zonal wind     [m s^-1]
-   REAL(wp), PARAMETER :: w0    = 0.15_wp     !< maximum amplitude 
+   REAL(wp), PARAMETER :: w0    = 0.15_wp     !< maximum amplitude
                                               !< of the vertical wind  [m s^-1]
    REAL(wp), PARAMETER :: z1    = 2000.0_wp   !< lower tracer bound    [m]
    REAL(wp), PARAMETER :: z2    = 5000.0_wp   !< upper tracer bound    [m]
@@ -65,8 +65,8 @@ CONTAINS
 !-------------------------------------------------------------------------
 !
   !>
-  !! Initialization of prognostic state vector for the DCMIP Hadley-like 
-  !! meridional circulation test 
+  !! Initialization of prognostic state vector for the DCMIP Hadley-like
+  !! meridional circulation test
   !!
   SUBROUTINE init_nh_dcmip_hadley( p_patch, p_nh_prog, p_nh_diag, &
     &                         p_int, p_metrics )
@@ -89,7 +89,7 @@ CONTAINS
 
     INTEGER  :: jc, jk, jb                    !< loop indices
     INTEGER  :: i_startidx, i_endidx, i_startblk, i_endblk
-    INTEGER  :: i_rlstart, i_rlend, i_nchdom  
+    INTEGER  :: i_rlstart, i_rlend, i_nchdom
     INTEGER  :: nlev, nlevp1                  !< number of full/half levels
     INTEGER  :: ntracer_alloc                 !< number of allocated tracer fields
 
@@ -212,8 +212,8 @@ CONTAINS
 !--------------------------------------------------------------------
 
   !>
-  !! Initialization of horizontal and vertical velocity field for 
-  !! the DCMIP Hadley-like meridional circulation test 
+  !! Initialization of horizontal and vertical velocity field for
+  !! the DCMIP Hadley-like meridional circulation test
   !!
   SUBROUTINE set_nh_velocity_hadley( p_patch, p_nh_prog, p_nh_diag, p_int,  &
     &                                p_metrics, time, lacc )
@@ -254,7 +254,7 @@ CONTAINS
     REAL(wp) :: ztop                          !< model top
     INTEGER  :: jc, je, jk, jb                !< loop indices
     INTEGER  :: i_startidx, i_endidx, i_startblk, i_endblk
-    INTEGER  :: i_rlstart, i_rlend, i_nchdom  
+    INTEGER  :: i_rlstart, i_rlend, i_nchdom
     INTEGER  :: nlev, nlevp1                  !< number of full and half levels
     LOGICAL  :: lzacc
 
@@ -267,7 +267,7 @@ CONTAINS
     nlevp1 = p_patch%nlevp1
 
     !edges_center        => p_patch%edges%center
-    !edges_primal_normal => p_patch%edges%primal_normal 
+    !edges_primal_normal => p_patch%edges%primal_normal
 
 
     ! number of child domains
@@ -366,7 +366,7 @@ CONTAINS
           z_lat = p_patch%cells%center(jc,jb)%lat
 
           p_nh_prog%w(jc,jk,jb) = (w0/nhadley)                                    &
-            &       * (rho0/p_nh_diag%rho_ic(jc,jk,jb))                           & 
+            &       * (rho0/p_nh_diag%rho_ic(jc,jk,jb))                           &
             &       * (-2.0_wp*SIN(nhadley*z_lat)*SIN(z_lat)                      &
             &       + nhadley*COS(z_lat)*COS(nhadley*z_lat))                      &
             &       * SIN(pi*p_metrics%z_ifc(jc,jk,jb)/p_metrics%z_ifc(jc,1,jb))  &

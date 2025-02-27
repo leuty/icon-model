@@ -175,7 +175,7 @@ CONTAINS
 
           !read external parameters from netCDF file
           ! TODO: read external parameters for unified SCM formal 'uf'
-          CALL read_ext_scm_nc(num_lcc,soiltyp_scm,fr_land_scm,plcov_mx_scm,lai_mx_scm,rootdp_scm, & 
+          CALL read_ext_scm_nc(num_lcc,soiltyp_scm,fr_land_scm,plcov_mx_scm,lai_mx_scm,rootdp_scm, &
             &                  rsmin_scm,z0_scm,topo_scm,emis_rad_scm,lu_class_fr_scm,lctype_scm)
           DO jg = 1, n_dom
             !set external parameters
@@ -924,7 +924,7 @@ CONTAINS
           ENDIF
         ENDIF ! islope_rad >= 2
 
-        CALL read_extdata('LU_CLASS_FRACTION', arr3d=ext_data(jg)%atm%lu_class_fraction,ltime=.FALSE.) 
+        CALL read_extdata('LU_CLASS_FRACTION', arr3d=ext_data(jg)%atm%lu_class_fraction,ltime=.FALSE.)
 
         ! The following fields are only required without surface tiles
         IF (ntiles_lnd == 1) THEN
@@ -1718,13 +1718,13 @@ CONTAINS
                  !
                  ! a) plausibility check for glacier points based on T2M climatology (if available):
                  !    if the warmest month exceeds 10 deg C, then it is unlikely for glaciers to exist
-                 !    This correction requires a monthly T2M climatology, which is available only 
+                 !    This correction requires a monthly T2M climatology, which is available only
                  !    if itype_vegetation_cycle > 1
                  IF (itype_vegetation_cycle > 1) THEN
                    IF (ext_data(jg)%atm%lc_class_t(jc,jb,i_lu) == ext_data(jg)%atm%i_lc_snow_ice) THEN
-                     ! Calculate height-corrected annual maximum of T2M climatology, 
-                     ! including contribution from SSO standard deviation. 
-                     ! This is used below to reset misclassified glacier points 
+                     ! Calculate height-corrected annual maximum of T2M climatology,
+                     ! including contribution from SSO standard deviation.
+                     ! This is used below to reset misclassified glacier points
                      ! (e.g. salt lakes) to bare soil
                      !
                      t2mclim_hc = MAXVAL(ext_data(jg)%atm_td%t2m_m(jc,jb,:)) + dtdz_clim *             &
@@ -2121,9 +2121,9 @@ CONTAINS
        ! For consistency: remove depth_lk information, where fr_lake < frlake_thrhld.
        ! Boundary interpolation zone of nested domains is explicitly included.
        !
-       ! In case of ntiles_lnd > 1, fr_lake ranges from 0<=fr_lake<=1 at nest 
-       ! boundaries, whereas at prognostic points fr_lake ranges from 
-       ! frlake_thrhld<=fr_lake<=1. I.e. fr_lake consistency adjustment 
+       ! In case of ntiles_lnd > 1, fr_lake ranges from 0<=fr_lake<=1 at nest
+       ! boundaries, whereas at prognostic points fr_lake ranges from
+       ! frlake_thrhld<=fr_lake<=1. I.e. fr_lake consistency adjustment
        ! was not performed for nest boundary.
        rl_start = 1
        rl_end   = min_rlcell_int
@@ -2163,8 +2163,8 @@ CONTAINS
   !!
   !! Aggregated external fields are diagnosed based on tile based external
   !! fields. In addition, fr_land, fr_lake and depth_lk are re-diagnosed,
-  !! in order to be consistent with tile-information. Note that the latter 
-  !! re-diagnosis has been moved to init_index_lists in order not to 
+  !! in order to be consistent with tile-information. Note that the latter
+  !! re-diagnosis has been moved to init_index_lists in order not to
   !! compromise restart reproducibility.
   !!
   SUBROUTINE diagnose_ext_aggr (p_patch, ext_data)
@@ -2366,7 +2366,7 @@ CONTAINS
 
     TYPE(t_time_interpolation_weights)  :: current_time_interpolation_weights
     CHARACTER(LEN=MAX_DATETIME_STR_LEN) :: dtime_string
-    
+
     CHARACTER(len=*), PARAMETER :: routine = modname//': interpol_monthly_mean'
 
     !---------------------------------------------------------------
@@ -2376,9 +2376,9 @@ CONTAINS
     mtime_hour => newDatetime(mtime_date)
     mtime_hour%time%minute = 0
     mtime_hour%time%second = 0
-    mtime_hour%time%ms     = 0     
+    mtime_hour%time%ms     = 0
     current_time_interpolation_weights = calculate_time_interpolation_weights(mtime_hour)
-    call deallocateDatetime(mtime_hour)    
+    call deallocateDatetime(mtime_hour)
     mo1 = current_time_interpolation_weights%month1
     mo2 = current_time_interpolation_weights%month2
     zw1 = current_time_interpolation_weights%weight1
@@ -2397,11 +2397,11 @@ CONTAINS
       WRITE (message_text,'(a,f25.15)') '   weight1    = ', zw1
       CALL message('', message_text)
       WRITE (message_text,'(a,f25.15)') '   weight2    = ', zw2
-      CALL message('', message_text)      
+      CALL message('', message_text)
       CALL finish(routine, "Error!")
     END IF
 
-    ! include boundary interpolation zone and halo points 
+    ! include boundary interpolation zone and halo points
     rl_start = 1
     rl_end   = min_rlcell
 
@@ -2452,7 +2452,7 @@ CONTAINS
     REAL(wp) :: t2mclim_hc(nproma),t_asyfac(nproma),tdiff_norm,wfac,dtdz_clim,trans_width,ahf_heat,ahf_cool
     REAL(wp), DIMENSION(num_lcc) :: laimin,threshold_temp,temp_asymmetry,rd_fac
 
-    INTEGER, PARAMETER :: nparam = 4  ! Number of parameters used in lookup table 
+    INTEGER, PARAMETER :: nparam = 4  ! Number of parameters used in lookup table
 
     REAL(wp), DIMENSION(num_lcc*nparam) :: vege_table ! < lookup table with control parameter specifications
 
@@ -2658,7 +2658,7 @@ CONTAINS
 
         ! land-sea-mask switched by ocean, 0: no change, 1: new land, 2: new ocean
         ext_data%atm%lsm_switch     (jc,jb)   = 0
- 
+
         ! ICON-O is ocean but ICON-A is fractional land:
         ! convert ICON-A land and lake to pure ocean (flooded grid-point)
 
@@ -2703,7 +2703,7 @@ CONTAINS
               ext_data%atm%topography_c(jc,jb)  = 0._wp       ! alternative: add little hight (1m?)
               ext_data%atm%soiltyp    (jc,jb)   = 4           ! soil type to sandy loam (sfc_terra_data)
               ext_data%atm%lu_class_fraction(jc,jb,:)                       = 0._wp
-              ext_data%atm%lu_class_fraction(jc,jb,ext_data%atm%i_lc_grass) = 1._wp 
+              ext_data%atm%lu_class_fraction(jc,jb,ext_data%atm%i_lc_grass) = 1._wp
                                                               ! grass-land (read_ext_data_atm)
               ! land use variables will then automatically be set in init_index_lists:
               !   frac_t, lc_frac_t, fr_glac, lc_class_t, llsm_atm_c, llake_c,
@@ -2762,7 +2762,7 @@ CONTAINS
           ENDIF
 
         ! ICON-O is < 0.0 or > 1.0; not allowed (ICON-O input data problems)
-        ELSE   
+        ELSE
           ext_data%atm%lsm_switch   (jc,jb)  = 10
         ENDIF
 
@@ -2775,4 +2775,3 @@ CONTAINS
 
 
 END MODULE mo_ext_data_init
-

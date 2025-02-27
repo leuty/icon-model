@@ -105,4 +105,3 @@ if test $(pwd) != $(cd "${icon_dir}"; pwd); then
   ln -sf ${icon_dir}/data
   ln -sf ${icon_dir}/vertical_coord_tables
 fi
-

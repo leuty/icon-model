@@ -23,7 +23,7 @@ endif
    limit SC 10
    repeat string YMD $DATES1
      task check_periods
-       onws         
+       onws
      family mmeans
        trigger check_periods == complete
        inlimit SC
@@ -88,4 +88,3 @@ endif
          trigger climplot == complete
      endfamily
 endfamily
-

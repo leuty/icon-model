@@ -45,7 +45,7 @@ MODULE mo_tmx_surface_interface
     & compute_2m_temperature, compute_2m_humidity_and_dewpoint, compute_10m_wind
 
   CHARACTER(len=*), PARAMETER :: modname = 'mo_tmx_surface_interface'
-  
+
 CONTAINS
 
   SUBROUTINE update_land(jg, domain, datetime_old, dtime, cvd, &
@@ -199,7 +199,7 @@ CONTAINS
           & km                = km(jcs:jce,jb),                                           & ! out
           & kh_neutral        = kh_neutral(jcs:jce,jb),                                   & ! out
           & km_neutral        = km_neutral(jcs:jce,jb)                                    & ! out
-          ! & t_eff_srf         = ztsfc_lnd_eff(jcs:jce),                                   & ! out (T_s^eff) surface temp 
+          ! & t_eff_srf         = ztsfc_lnd_eff(jcs:jce),                                   & ! out (T_s^eff) surface temp
           !                                                                                     ! (effective, for longwave rad)
           ! & s_srf             = zcpt_lnd(jcs:jce),                                        & ! out (s_s^star, for vdiff scheme)
           ! & fact_q_air        = pcair(jcs:jce),                                           & ! out
@@ -242,7 +242,7 @@ CONTAINS
           & qsat_srf          = qsat(jcs:jce,jb)                                          & ! out
         )
       END IF
-  
+
     END DO
 !$OMP END PARALLEL DO
 
@@ -270,7 +270,7 @@ CONTAINS
 #ifndef __NO_ICON_OCEAN__
   USE mo_ice_interface, ONLY: ice_fast
 #endif
-  
+
     TYPE(t_domain), INTENT(in), POINTER :: domain
     REAL(wp), INTENT(in) :: dtime
     REAL(wp), INTENT(in), DIMENSION(:,:) :: &
@@ -519,7 +519,7 @@ CONTAINS
     & )
 
     USE mo_turb_vdiff_params, ONLY: cchar
-  
+
     ! Domain information
     TYPE(t_domain),  INTENT(in), POINTER :: domain
     INTEGER,         INTENT(in) :: isfc
@@ -633,7 +633,7 @@ CONTAINS
 
     INTEGER  :: jb, jls, js
     REAL(wp), POINTER :: jsb_qsat(:,:) => NULL()
-    
+
     CHARACTER(len=*), PARAMETER :: routine = modname//':compute_sfc_sat_spec_humidity'
 
 #ifdef __NO_JSBACH__
@@ -697,7 +697,7 @@ CONTAINS
 
     USE mo_turb_vdiff_params, ONLY: cchar
     USE mo_nh_testcases_nml,  ONLY: isrfc_type, shflx, lhflx
-  
+
     ! Domain information
     TYPE(t_domain),  INTENT(in), POINTER :: domain
     INTEGER,         INTENT(in) :: isfc
@@ -777,7 +777,7 @@ CONTAINS
 !$OMP PARALLEL DO PRIVATE(jb, jls, js) ICON_OMP_DEFAULT_SCHEDULE
     DO jb = domain%i_startblk_c,domain%i_endblk_c
       !$ACC PARALLEL LOOP DEFAULT(PRESENT) GANG(STATIC: 1) VECTOR ASYNC(1) PRIVATE(js)
-      DO jls = 1, nvalid(jb)  
+      DO jls = 1, nvalid(jb)
         js = indices(jls,jb)
         ! TODO: is the treatment of surface ocean current correct (cf. vdiff code)
         IF (isfc == isfc_oce) THEN
@@ -856,7 +856,7 @@ CONTAINS
       !$ACC PARALLEL LOOP DEFAULT(PRESENT) GANG(STATIC: 1) VECTOR ASYNC(1)
       DO ic = domain%i_startidx_c(ib), domain%i_endidx_c(ib)
         ufts(ic,ib) = shfl(ic,ib)
-        ufvs(ic,ib) = ta(ic,ib) * evapotrans(ic,ib) * (cvv - cvd) 
+        ufvs(ic,ib) = ta(ic,ib) * evapotrans(ic,ib) * (cvv - cvd)
       END DO
       !$ACC END PARALLEL LOOP
     END DO

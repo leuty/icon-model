@@ -30,11 +30,11 @@ MODULE mo_grid_tools
     & my_process_is_stdio, work_mpi_barrier
 
   USE mo_decomposition_tools,ONLY: t_glb2loc_index_lookup, get_local_index, get_valid_local_index
-  
+
   IMPLICIT NONE
-  
+
   PRIVATE
-  
+
   PUBLIC :: calculate_patch_cartesian_positions
   PUBLIC :: rescale_grid
   PUBLIC :: calculate_edge_area
@@ -42,10 +42,10 @@ MODULE mo_grid_tools
   PUBLIC :: find_oriented_edge_from_vertices
   PUBLIC :: create_dummy_cell_closure
   PUBLIC :: check_global_indexes
-  
-  
+
+
   !-------------------------------------------------------------------------
-  
+
 CONTAINS
 
   !-------------------------------------------------------------------------
@@ -141,11 +141,11 @@ CONTAINS
               & edge_subset%patch%verts%decomp_info%glb_index(local_vertex_1d_index(1))
             write(0,*) i, ":", global_vertex_array(i),  local_vertex_1d_index(2), &
               & edge_subset%patch%verts%decomp_info%glb_index(local_vertex_1d_index(2))
-          
+
             write(0,*) my_proc_id, " owns ", global_vertex_array(i-1), global_vertex_array(i), &
              & edge_subset%patch%edges%decomp_info%glb_index((edge_block-1)*nproma+edge_index), &
              & " halo_level=", edge_subset%patch%edges%decomp_info%halo_level(edge_index, edge_block)
-             
+
             owned_edges = owned_edges + 1
             tmp_edge_block_array(owned_edges) = edge_block
             tmp_edge_index_array(owned_edges) = edge_index
@@ -184,9 +184,9 @@ CONTAINS
     IF (my_process_is_stdio()) THEN
        write(0,*) TRIM(edge_subset%name), " Subset total entities=", total_subset_edges, " in vertices=", max_allocation_size
     ENDIF
-    
+
     CALL work_mpi_barrier()
-    
+
   END SUBROUTINE get_oriented_edges_from_global_vertices
   !----------------------------------------------------
 
@@ -199,7 +199,7 @@ CONTAINS
     INTEGER, INTENT(in)   :: vertex_blocks(2), vertex_indexes(2)
     INTEGER, INTENT(out)  :: edge_block, edge_index
     REAL(wp), INTENT(out) :: edge_orientation
-  
+
     INTEGER :: i, j, edge1_block, edge1_idx
     LOGICAL :: found
     CHARACTER(*), PARAMETER :: method_name = "mo_grid_tools:find_oriented_edge_from_vertices"
@@ -266,14 +266,14 @@ CONTAINS
   !> Rescale grids
   ! Note: this does not rescale the cartesian coordinates (used in torus)
   SUBROUTINE rescale_grid( patch, grid_length_rescale_factor)
-    
+
     TYPE(t_patch), INTENT(inout), TARGET ::  patch  ! patch data structure
     REAL(wp), INTENT(in) :: grid_length_rescale_factor
-    
+
     REAL(wp) :: grid_area_rescale_factor
     !-----------------------------------------------------------------------
     grid_area_rescale_factor   = grid_length_rescale_factor * grid_length_rescale_factor
-    
+
     patch%cells%area(:,:)               = patch%cells%area(:,:)               * grid_area_rescale_factor
     patch%verts%dual_area(:,:)          = patch%verts%dual_area(:,:)          * grid_area_rescale_factor
     patch%edges%primal_edge_length(:,:) = patch%edges%primal_edge_length(:,:) * grid_length_rescale_factor
@@ -293,10 +293,10 @@ CONTAINS
 
     IF (patch%geometry_info%mean_characteristic_length == 0.0_wp) &
       & CALL finish("rescale_grid", "mean_characteristic_length=0")
-    
+
   END SUBROUTINE rescale_grid
   !-------------------------------------------------------------------------
-  
+
   !-------------------------------------------------------------------------
   !>
   !! This routine calculates the edge area of the patch
@@ -327,7 +327,7 @@ CONTAINS
 
   END SUBROUTINE calculate_edge_area
   !-------------------------------------------------------------------------
-  
+
   !-------------------------------------------------------------------------
   !>
   !! This method_name calculates the cartesian positions stored in patch.
@@ -341,32 +341,32 @@ CONTAINS
   SUBROUTINE calculate_patch_cartesian_positions ( patch )
     !
     TYPE(t_patch), TARGET, INTENT(inout) :: patch  ! patch on a specific level
-    
+
     TYPE(t_cartesian_coordinates) :: z_vec
     REAL(wp) :: z_lon, z_lat, z_u, z_v  ! location and components of normal
     REAL(wp) :: z_norm                  ! norm of Cartesian normal
-    
+
     INTEGER :: start_index, end_index
-    INTEGER :: jb, je                   ! loop indices    
+    INTEGER :: jb, je                   ! loop indices
     !-----------------------------------------------------------------------
-                
+
 !ICON_OMP_PARALLEL
     ! calculate cells cartesian positions
 !ICON_OMP_DO PRIVATE(jb,je, start_index, end_index) ICON_OMP_DEFAULT_SCHEDULE
     DO jb = patch%cells%all%start_block, patch%cells%all%end_block
       CALL get_index_range(patch%cells%all, jb, start_index, end_index)
-      DO je = start_index, end_index            
+      DO je = start_index, end_index
         ! location of cell center
         patch%cells%cartesian_center(je,jb) = gc2cc(patch%cells%center(je,jb))
       ENDDO
     ENDDO
 !ICON_OMP_END_DO NOWAIT
-    
+
     ! calculate verts cartesian positions
 !ICON_OMP_DO PRIVATE(jb,je, start_index, end_index) ICON_OMP_DEFAULT_SCHEDULE
     DO jb = patch%verts%all%start_block, patch%verts%all%end_block
       CALL get_index_range(patch%verts%all, jb, start_index, end_index)
-      DO je = start_index, end_index            
+      DO je = start_index, end_index
         ! location of cell center
         patch%verts%cartesian(je,jb) = gc2cc(patch%verts%vertex(je,jb))
       ENDDO
@@ -378,23 +378,23 @@ CONTAINS
     DO jb = patch%edges%all%start_block, patch%edges%all%end_block
       CALL get_index_range(patch%edges%all, jb, start_index, end_index)
       DO je = start_index, end_index
-            
+
         ! location of edge midpoint
         patch%edges%cartesian_center(je,jb) = gc2cc(patch%edges%center(je,jb))
         z_lon = patch%edges%center(je,jb)%lon
         z_lat = patch%edges%center(je,jb)%lat
-        
+
         ! zonal and meridional component of primal normal
         z_u = patch%edges%primal_normal(je,jb)%v1
         z_v = patch%edges%primal_normal(je,jb)%v2
-        
+
         ! calculate Cartesian components of primal normal
         CALL gvec2cvec( z_u, z_v, z_lon, z_lat, z_vec%x(1), z_vec%x(2), z_vec%x(3) )
-        
+
         ! compute unit normal to edge je
         z_norm = SQRT( DOT_PRODUCT(z_vec%x(1:3),z_vec%x(1:3)) )
         z_vec%x(1:3) = 1._wp / z_norm * z_vec%x(1:3)
-        
+
         ! save the values in the according type structure of the patch
 !         WRITE(*,*) "----------------------------------"
 !         write(*,*) "primal_cart_normal:", patch%edges%primal_cart_normal(je,jb)%x(:)
@@ -402,44 +402,44 @@ CONTAINS
 !         WRITE(*,*) "----------------------------------"
 !         IF ( MAXVAL(ABS(patch%edges%primal_cart_normal(je,jb)%x - z_vec%x)) > 0.0001_wp) &
 !           CALL finish("","primal_cart_normal(je,jb)%x /=  z_vec%x")
-               
+
         patch%edges%primal_cart_normal(je,jb)%x(1) = z_vec%x(1)
         patch%edges%primal_cart_normal(je,jb)%x(2) = z_vec%x(2)
         patch%edges%primal_cart_normal(je,jb)%x(3) = z_vec%x(3)
-        
+
         ! zonal and meridional component of dual normal
         z_u = patch%edges%dual_normal(je,jb)%v1
         z_v = patch%edges%dual_normal(je,jb)%v2
-        
+
         ! calculate Cartesian components of dual normal
         CALL gvec2cvec( z_u, z_v, z_lon, z_lat, z_vec%x(1), z_vec%x(2), z_vec%x(3) )
-        
+
         ! compute unit normal to edge je
         z_norm = SQRT( DOT_PRODUCT(z_vec%x(1:3),z_vec%x(1:3)) )
         z_vec%x(1:3) = 1._wp / z_norm * z_vec%x(1:3)
-        
+
 !         WRITE(*,*) "----------------------------------"
 !         write(*,*) "dual_cart_normal:", patch%edges%dual_cart_normal(je,jb)%x(:)
 !         write(*,*) "z_vec:", z_vec%x
 !         WRITE(*,*) "----------------------------------"
 !         IF ( MAXVAL(ABS(patch%edges%dual_cart_normal(je,jb)%x - z_vec%x)) > 0.0001_wp) &
 !           CALL finish("","dual_cart_normal(je,jb)%x /=  z_vec%x")
-        
+
         ! save the values in the according type structure of the patch
         patch%edges%dual_cart_normal(je,jb)%x(1) = z_vec%x(1)
         patch%edges%dual_cart_normal(je,jb)%x(2) = z_vec%x(2)
         patch%edges%dual_cart_normal(je,jb)%x(3) = z_vec%x(3)
-        
+
       END DO
-      
+
     END DO
 !ICON_OMP_END_DO NOWAIT
 !ICON_OMP_END_PARALLEL
-    
+
   END SUBROUTINE calculate_patch_cartesian_positions
   !-------------------------------------------------------------------------
 
-    
+
   !-------------------------------------------------------------------------
   !>
   ! adds a dummy cell at the end of the existing cells
@@ -517,7 +517,7 @@ CONTAINS
 
   END SUBROUTINE create_dummy_cell_closure
   !-----------------------------------------------------------------------
-    
+
   !-------------------------------------------------------------------------
   SUBROUTINE check_global_indexes(patch_2D)
     TYPE(t_patch), TARGET, INTENT(in),    OPTIONAL :: patch_2D  ! nag does not return the values in subset
@@ -538,7 +538,7 @@ CONTAINS
 !       &  global_index)
 !     valid_glb2loc = get_valid_local_index(glb2loc_index, global_index, .TRUE.)
 !     write(0,*) my_proc_id, ": edge:", global_index, glb2loc, valid_glb2loc
-    
+
     global_index = 20834
     glb2loc = get_local_index(glb2loc_index, &
       &  global_index)
@@ -564,7 +564,7 @@ CONTAINS
         & patch_2D%edges%center(indexNo, blockNo)%lat, ")", &
         & global_index, glb2loc, valid_glb2loc, loc2glb, owner_local(glb2loc)
     ENDIF
-    
+
     glb2loc_index  => patch_2D%verts%decomp_info%glb2loc_index
     owner_local    => patch_2D%verts%decomp_info%owner_local
 
@@ -611,10 +611,10 @@ CONTAINS
     ENDIF
 
 
-    CALL work_mpi_barrier()    
+    CALL work_mpi_barrier()
 
   END SUBROUTINE check_global_indexes
   !----------------------------------------------------
 
-  
+
 END MODULE mo_grid_tools

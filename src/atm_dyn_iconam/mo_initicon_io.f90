@@ -136,7 +136,7 @@ MODULE mo_initicon_io
   !
   !  1. The variable has to be added to the relevant variable groups, so that input instructions are generated for it, and so that it's requested from the right files.
   !
-  !  2. If the new variable is an optional first guess field, it has to be added manually in the SUBROUTINE collectGroupFgOpt 
+  !  2. If the new variable is an optional first guess field, it has to be added manually in the SUBROUTINE collectGroupFgOpt
   !     in mo_input_instructions
   !
   !  2. Code has to be added to one of the `fetch_dwd...()` routines in this file to retrieve the data from the file(s)
@@ -531,7 +531,7 @@ MODULE mo_initicon_io
         ELSE
           CALL finish(routine,'surface pressure var '//TRIM(psvar)//' dimension mismatch')
         END IF
-        
+
         IF (geopvar_ndims==2)THEN
           CALL read_2d_1time(stream_id, on_cells, TRIM(geop_ml_var), &
             &                     fill_array=phi_sfc)
@@ -545,7 +545,7 @@ MODULE mo_initicon_io
         CALL initicon(jg)%const%vct%construct(ncid, p_io, p_comm_work)
 
       ELSE IF (init_mode == MODE_COSMO) THEN ! in case of COSMO-DE initial data
-        
+
         ! allocate temporary array:
         ALLOCATE(z_ifc_in(nproma,nlev_in+1, p_patch(jg)%nblks_c), STAT=ierrstat)
         IF (ierrstat /= SUCCESS) CALL finish(routine, "ALLOCATE failed!")
@@ -903,7 +903,7 @@ MODULE mo_initicon_io
   !  data, sets correct "FG read attempt" etc. entries in the summary table
   !  and returns a logical flag if success or not:
   SUBROUTINE fetch3d_with_status (caller, context, params, varName, jg, field3d, lfound)
-      
+
     CHARACTER (len=*), INTENT(in)      :: caller   ! string to identify the caller in the diagn. message below
     CHARACTER (len=*), INTENT(in)      :: context  ! string to identify the calling context in the diagn. message below
     TYPE(t_fetchParams), INTENT(INOUT) :: params
@@ -918,7 +918,7 @@ MODULE mo_initicon_io
     IF (.NOT. lfound) THEN
       CALL message(caller, 'Variable '//TRIM(varName)//' not found in '//TRIM(context))
     END IF
-    
+
   END SUBROUTINE fetch3d_with_status
 
   SUBROUTINE fetchSurface(params, varName, jg, field, found)
@@ -997,7 +997,7 @@ MODULE mo_initicon_io
   END SUBROUTINE fetchTiled3d
 
 
-  ! Wrapper for requestList%fetchTiled3d() 
+  ! Wrapper for requestList%fetchTiled3d()
   ! - that falls back to reading copies of untiled input IF ltile_coldstart IS set.
   ! - has a fallback option, if the primary input field is not found.
   SUBROUTINE fetchTiled3dWithFallback(params, varName, varNameFallback, jg, tileCount, field, opt_field_fallback)
@@ -1005,7 +1005,7 @@ MODULE mo_initicon_io
     CHARACTER(LEN = *), INTENT(IN) :: varName, varNameFallback
     INTEGER, INTENT(in) :: jg, tileCount
     REAL(wp),           TARGET, INTENT(INOUT) :: field(:,:,:,:)
-    REAL(wp), OPTIONAL, TARGET, INTENT(INOUT) :: opt_field_fallback(:,:,:,:)  ! optional target field for 
+    REAL(wp), OPTIONAL, TARGET, INTENT(INOUT) :: opt_field_fallback(:,:,:,:)  ! optional target field for
                                                                               ! fallback input
     ! local
     INTEGER :: jt
@@ -1191,10 +1191,10 @@ MODULE mo_initicon_io
             IF (lvert_remap_fg) THEN
 
                 ! the number of input and output levels must be the same for this mode
-                CALL allocate_extana_atm(nblks_c  = p_patch(jg)%nblks_c, & 
-                  &                      nblks_e  = p_patch(jg)%nblks_e, & 
-                  &                      nlev_in  = p_patch(jg)%nlev,    & 
-                  &                      atm_in   = initicon(jg)%atm_in, & 
+                CALL allocate_extana_atm(nblks_c  = p_patch(jg)%nblks_c, &
+                  &                      nblks_e  = p_patch(jg)%nblks_e, &
+                  &                      nlev_in  = p_patch(jg)%nlev,    &
+                  &                      atm_in   = initicon(jg)%atm_in, &
                   &                      const    = initicon(jg)%const  ) !inout
 
                 ! allocate temporary array:
@@ -1205,20 +1205,20 @@ MODULE mo_initicon_io
 !$OMP PARALLEL
 !$OMP DO PRIVATE(jb,jk,jc,nlen) ICON_OMP_DEFAULT_SCHEDULE
                 DO jb = 1, p_patch(jg)%nblks_c
-                  
+
                   IF (jb /= p_patch(jg)%nblks_c) THEN
                     nlen = nproma
                   ELSE
                     nlen = p_patch(jg)%npromz_c
                   ENDIF
 
-                  ! interpolate half-level variables to full levels and diagnose pressure and temperature 
+                  ! interpolate half-level variables to full levels and diagnose pressure and temperature
                   DO jk = 1, nlev_in
                     DO jc = 1, nlen
-                      
+
                       initicon(jg)%const%z_mc_in(jc,jk,jb) = (z_ifc_in(jc,jk,jb) + &
                         &   z_ifc_in(jc,jk+1,jb)) * 0.5_wp
-                      
+
                     END DO
                   END DO
                 END DO
@@ -1285,10 +1285,10 @@ MODULE mo_initicon_io
             IF(.NOT.ASSOCIATED(levelValues)) CALL finish(routine, "no DATA found for domain "//TRIM(int2string(jg))//" of &
                                                                   &required variable 'z_ifc'")
 
-            CALL allocate_extana_atm(nblks_c  = p_patch(jg)%nblks_c,    & 
-              &                      nblks_e  = p_patch(jg)%nblks_e,    & 
-              &                      nlev_in  = SIZE(levelValues,1)-1,  & 
-              &                      atm_in   = initicon(jg)%atm_in  ,  & 
+            CALL allocate_extana_atm(nblks_c  = p_patch(jg)%nblks_c,    &
+              &                      nblks_e  = p_patch(jg)%nblks_e,    &
+              &                      nlev_in  = SIZE(levelValues,1)-1,  &
+              &                      atm_in   = initicon(jg)%atm_in  ,  &
               &                      const    = initicon(jg)%const    ) !inout
 
             ! allocate temporary array:
@@ -1325,7 +1325,7 @@ MODULE mo_initicon_io
             IF (.NOT. lfound_qr) CALL init(initicon(jg)%atm_in%qr(:,:,:), lacc=.FALSE.)
             IF (.NOT. lfound_qs) CALL init(initicon(jg)%atm_in%qs(:,:,:), lacc=.FALSE.)
 !$OMP END PARALLEL
-            
+
             ! fetch additional tracers in first guess
             CALL fetch_tracer_fg('tracer_fg_in', params, jg,       &
               &                   atm_in  = initicon(jg)%atm_in,   &
@@ -1352,7 +1352,7 @@ MODULE mo_initicon_io
             ENDIF
 
             ! Interpolate half level variables from interface levels to main levels, and convert thermodynamic variables
-            ! into temperature and pressure as expected by the vertical interpolation routine  
+            ! into temperature and pressure as expected by the vertical interpolation routine
 !$OMP PARALLEL
 !$OMP DO PRIVATE (jk,jc,jb,i_endidx,tempv,exner) ICON_OMP_DEFAULT_SCHEDULE
             DO jb = 1,p_patch(jg)%nblks_c
@@ -1531,35 +1531,35 @@ MODULE mo_initicon_io
                 IF(lHaveFg.AND.inputInstructions(jg)%ptr%sourceOfVar('qnc') == kInputSourceAna) THEN
                   CALL inputInstructions(jg)%ptr%setSource('qnc', kInputSourceBoth)
                 END IF
-                
+
                 lHaveFg = inputInstructions(jg)%ptr%sourceOfVar('qni') == kInputSourceFg
                 CALL fetch3d_with_status (routine, 'dwdana file', params, 'qni', jg, my_ptr%qni, &
                      atm_phy_nwp_config(jg)%lhydrom_read_from_ana(iqni))
                 IF(lHaveFg.AND.inputInstructions(jg)%ptr%sourceOfVar('qni') == kInputSourceAna) THEN
                   CALL inputInstructions(jg)%ptr%setSource('qni', kInputSourceBoth)
                 END IF
-                
+
                 lHaveFg = inputInstructions(jg)%ptr%sourceOfVar('qnr') == kInputSourceFg
                 CALL fetch3d_with_status (routine, 'dwdana file', params, 'qnr', jg, my_ptr%qnr, &
                      atm_phy_nwp_config(jg)%lhydrom_read_from_ana(iqnr))
                 IF(lHaveFg.AND.inputInstructions(jg)%ptr%sourceOfVar('qnr') == kInputSourceAna) THEN
                   CALL inputInstructions(jg)%ptr%setSource('qnr', kInputSourceBoth)
                 END IF
-                
+
                 lHaveFg = inputInstructions(jg)%ptr%sourceOfVar('qns') == kInputSourceFg
                 CALL fetch3d_with_status (routine, 'dwdana file', params, 'qns', jg, my_ptr%qns, &
                      atm_phy_nwp_config(jg)%lhydrom_read_from_ana(iqns))
                 IF(lHaveFg.AND.inputInstructions(jg)%ptr%sourceOfVar('qns') == kInputSourceAna) THEN
                   CALL inputInstructions(jg)%ptr%setSource('qns', kInputSourceBoth)
                 END IF
-                
+
                 lHaveFg = inputInstructions(jg)%ptr%sourceOfVar('qng') == kInputSourceFg
                 CALL fetch3d_with_status (routine, 'dwdana file', params, 'qng', jg, my_ptr%qng, &
                      atm_phy_nwp_config(jg)%lhydrom_read_from_ana(iqng))
                 IF(lHaveFg.AND.inputInstructions(jg)%ptr%sourceOfVar('qng') == kInputSourceAna) THEN
                   CALL inputInstructions(jg)%ptr%setSource('qng', kInputSourceBoth)
                 END IF
-                
+
                 lHaveFg = inputInstructions(jg)%ptr%sourceOfVar('qnh') == kInputSourceFg
                 CALL fetch3d_with_status (routine, 'dwdana file', params, 'qnh', jg, my_ptr%qnh, &
                      atm_phy_nwp_config(jg)%lhydrom_read_from_ana(iqnh))
@@ -1984,7 +1984,7 @@ MODULE mo_initicon_io
 
 
             ! When starting from ICON or COSMO soil (i.e. MODE_COMBINED or MODE_COSMODE).
-            ! SMI is read if available, with W_SO being the fallback option. If SMI is 
+            ! SMI is read if available, with W_SO being the fallback option. If SMI is
             ! read, it is directly stored in w_so_t. Here, it is converted into w_so
             IF (ANY((/MODE_COMBINED,MODE_COSMO,MODE_ICONVREMAP/) == init_mode)) THEN
                 IF (inputInstructions(jg)%ptr%sourceOfVar('smi')==kInputSourceFg) THEN
@@ -2044,12 +2044,12 @@ MODULE mo_initicon_io
                 ENDDO  ! ntiles
               ENDIF
 
-              ! NOTE: Initialization of sea-water and sea-ice tiles 
-              ! is done later in mo_nwp_sfc_utils:nwp_surface_init for 
+              ! NOTE: Initialization of sea-water and sea-ice tiles
+              ! is done later in mo_nwp_sfc_utils:nwp_surface_init for
               ! two reasons:
-              ! I)  index lists for sea-ice and sea-water are 
+              ! I)  index lists for sea-ice and sea-water are
               !     not yet available at this point.
-              ! II) If an SST-analysis is read in, t_s_t(isub_water) 
+              ! II) If an SST-analysis is read in, t_s_t(isub_water)
               !     must be updated another time, anyway.
 
             ENDDO  ! jb
@@ -2348,4 +2348,3 @@ MODULE mo_initicon_io
   END SUBROUTINE process_input_dwdfg_jsb
 
 END MODULE mo_initicon_io
-

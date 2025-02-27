@@ -308,7 +308,7 @@ CONTAINS
       END SELECT
       p_value => zaxisTypeList%list%getEntry(p_key)
       IF (ASSOCIATED(p_value)) THEN
-        CALL finish(routine, "Key already registered.")        
+        CALL finish(routine, "Key already registered.")
       ELSE
         icon_type = icon_zaxis_type
       END IF

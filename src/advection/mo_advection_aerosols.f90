@@ -308,7 +308,7 @@ CONTAINS
       CALL get_indices_e(p_patch, jb, i_startblk, i_endblk, &
                          i_startidx, i_endidx, i_rlstart, i_rlend)
 
-      IF ( use_zlsq ) THEN 
+      IF ( use_zlsq ) THEN
         DO jt = jtstart, jtend
           DO je = i_startidx, i_endidx
 
@@ -384,4 +384,3 @@ CONTAINS
 
 
 END MODULE mo_advection_aerosols
-

@@ -111,7 +111,7 @@ MODULE mo_sea_ice_types
       & v          (:,:)         ,   & ! Meridional velocity on cell centre (diagn.)            [m/s]
       & vn_e       (:,:)         ,   &  ! Edge normal velocity(prognostic)                      [m/s]
       & vt_e       (:,:)         ,   & ! Edge tangential velocity prognostic                     [m/s]
-      & Delta      (:,:)           ! Delta                                               [1/s]   
+      & Delta      (:,:)           ! Delta                                               [1/s]
     ! not currently used categorywise limiter
     REAL(wp), ALLOCATABLE :: hi_lim(:) ! Thickness limit                                        [m]
 

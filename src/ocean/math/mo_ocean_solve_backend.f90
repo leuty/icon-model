@@ -218,7 +218,7 @@ CONTAINS
     ! FIXME: 2025-01 DKRZ-dzo: Switching to CPU context for the call of this%trans%sctr()
     !        and switching back afterwards. For unknown reasons, this seems necessary to run
     !        ocean experiments using binaries compiled with NVHPC 24.x.
-    !        Otherwise the free surface solver in the GPU version does not seem to converge 
+    !        Otherwise the free surface solver in the GPU version does not seem to converge
     !$ACC UPDATE SELF(this%x_wp, this%x_loc_wp) IF(lzacc)
     CALL this%trans%sctr(this%x_wp, this%x_loc_wp, lacc=.FALSE.)
     !$ACC UPDATE DEVICE(this%x_wp, this%x_loc_wp) IF(lzacc)

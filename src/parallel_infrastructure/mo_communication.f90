@@ -882,7 +882,7 @@ CONTAINS
     TYPE(t_ptr_3d_dp), INTENT(INOUT), TARGET, OPTIONAL :: send3d_arr(:)
     INTEGER, OPTIONAL, INTENT(IN) :: nshift
 
-    CALL exchange_data_mult_dp_(p_pat, lacc, nfields, ndim2tot, & 
+    CALL exchange_data_mult_dp_(p_pat, lacc, nfields, ndim2tot, &
       &                         recv1=recv1, send1=send1, &
       &                         recv2=recv2, send2=send2, &
       &                         recv3=recv3, send3=send3, &
@@ -2260,5 +2260,3 @@ CONTAINS
   END FUNCTION makeScatterPattern
 
 END MODULE mo_communication
-
-

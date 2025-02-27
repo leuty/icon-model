@@ -15,11 +15,16 @@
 # Retrieve ICON data from the DWD "Sky" database.
 #
 # 01/2017 : D. Reinert/F. Prill, DWD
-# 11/2018 : H. Frank; be less strict on arguments 
+# 11/2018 : H. Frank; be less strict on arguments
 # 11/2024 : H. Frank; change categories icogl130l90_* to icogl_*
 
-import argparse, datetime, os, subprocess, traceback, sys, re
-
+import argparse
+import datetime
+import os
+import re
+import subprocess
+import sys
+import traceback
 
 # ------------------------------------------------------------
 # CONSTANTS
@@ -36,9 +41,9 @@ def main():
     print """\nSKY4ICON.PY
     Retrieve ICON data from the DWD "Sky" database.
     01/2017 : D. Reinert/F. Prill, DWD\n"""
-    
+
     try:
-    
+
         # parse command-line options
         parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
         parser.add_argument("startdate",      help="start date [YYYYMMDDhh, YYYYMMDDhhmm, YYYYMMDDhhmmss]")
@@ -90,11 +95,11 @@ def main():
             if (not args.ensemble):
                 # non-ensemble mode
                 cat        = "icogl_main_an_rout"
-                cat_eu     = "icoeu_main_an_rout" 
+                cat_eu     = "icoeu_main_an_rout"
                 cat_vv0    = "icogl_main_fc_rout" # category for VV=0
-                cat_vv0_eu = "icoeu_main_fc_rout" 
+                cat_vv0_eu = "icoeu_main_fc_rout"
                 cat_fg     = "icogl_pre_fc_rout"
-                cat_fg_eu  = "icoeu_pre_fc_rout" 
+                cat_fg_eu  = "icoeu_pre_fc_rout"
                 # lin=20 (localInformationNumber) is related to the
                 # W_SO analysis including SMA.
                 lin       = "lin=20"
@@ -168,8 +173,8 @@ def main():
             cur_date += increment
 
         subprocess.call(["pbank", filelist])  # execute "pbank"
-        print "    * " + datetime.datetime.now().strftime("%b %d %Y %H:%M:%S") + " :: done."    
-    
+        print "    * " + datetime.datetime.now().strftime("%b %d %Y %H:%M:%S") + " :: done."
+
     except Exception as e:
         print "Error: ", str(e)
         traceback.print_exc(file=sys.stdout)

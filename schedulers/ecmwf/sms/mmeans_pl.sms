@@ -119,7 +119,6 @@ if [[ $locfcrange = -99 ]] ; then
                           -x %PLOTPERIOD% -t pl -n $locnumber -i $initime -s $rwindsp -g $rgtcsp
     fi
   fi
-fi 
+fi
 
 %include <endt.h>
-

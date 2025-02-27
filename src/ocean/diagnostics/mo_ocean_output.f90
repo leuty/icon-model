@@ -40,7 +40,7 @@ MODULE mo_ocean_output
   USE mo_util_dbg_prnt,          ONLY: dbg_print
   USE mtime,                     ONLY: datetime, MAX_DATETIME_STR_LEN, datetimeToPosixString
   USE mo_fortran_tools,          ONLY: set_acc_host_or_device
-  
+
   IMPLICIT NONE
 
   PRIVATE
@@ -74,7 +74,7 @@ CONTAINS
     INTEGER,   INTENT(in)                            :: jstep, jstep0
     LOGICAL, OPTIONAL                                :: force_output
     LOGICAL, INTENT(IN), OPTIONAL :: lacc
-   
+
     ! local variables
     LOGICAL :: use_force_output
     INTEGER :: jg, jtrc, out_step
@@ -84,10 +84,10 @@ CONTAINS
     TYPE(t_patch_vert), POINTER :: patch_1d
     INTEGER, POINTER :: dolic(:,:)
     REAL(wp), POINTER :: prism_thickness(:,:,:)
-    
+
     CHARACTER(LEN=MAX_DATETIME_STR_LEN) :: datestring
     CHARACTER(len=32) :: fmtstr
-    
+
     !CHARACTER(LEN=filename_max)  :: outputfile, gridfile
     CHARACTER(LEN=max_char_length), PARAMETER :: &
       & routine = 'mo_ocean_output:output_ocean'

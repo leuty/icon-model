@@ -106,4 +106,3 @@
  cdo -f nc remap,${GRID},${WEIGHTS}  ${EXP}_Q1_Q2_t${TTIME}.nc  ${EXP}_Q1_Q2_t${TTIME}_${GRID}.nc
 
  exit
-

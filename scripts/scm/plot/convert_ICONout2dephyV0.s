@@ -53,4 +53,3 @@ ncrename -d height_3,levh temp6.nc           icon-scm.nc
 # clean
 
 rm -rf temp0.nc temp1.nc temp2.nc temp3.nc temp4.nc temp5.nc
-

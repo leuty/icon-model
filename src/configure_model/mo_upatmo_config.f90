@@ -52,21 +52,21 @@ MODULE mo_upatmo_config
 
   CHARACTER(LEN = *), PARAMETER :: modname = 'mo_upatmo_config'
 
-  ! Note: upper-atmosphere physics and upper-atmosphere extrapolation 
-  ! are regarded as two elements of the upper-atmosphere extension of ICON. 
+  ! Note: upper-atmosphere physics and upper-atmosphere extrapolation
+  ! are regarded as two elements of the upper-atmosphere extension of ICON.
   ! This is why we treat them in one module (as well as code economy).
 
   !------------------------------------------------------------
   !                    Configuration types
   !------------------------------------------------------------
 
-  ! Namelist parameters that control the vertical extrapolation 
+  ! Namelist parameters that control the vertical extrapolation
   ! of the initial atmospheric state into the upper atmosphere.
   !
   TYPE t_upatmo_exp_config
     REAL(wp) :: expol_start_height    ! [m] Height above which extrapolation (blending) of initial data starts
     REAL(wp) :: expol_blending_scale  ! [m] Blending scale height
-    REAL(wp) :: expol_vn_decay_scale  ! [m] Scale height for (exponential) decay of extrapolated 
+    REAL(wp) :: expol_vn_decay_scale  ! [m] Scale height for (exponential) decay of extrapolated
                                       ! horizontal wind component (for stability reasons)
     REAL(wp) :: expol_temp_infty      ! [K] Climatological temperature of exosphere (for z -> infinity)
     LOGICAL  :: lexpol_sanitycheck    ! .TRUE. -> Apply sanity check to extrapolated fields
@@ -76,23 +76,23 @@ MODULE mo_upatmo_config
 
   !------------------------------------------------------------
 
-  ! For reasons of easier generalizability 
-  ! the variables of the above types become domain-dependent. 
-  ! Since they are used, to store the namelist input, 
-  ! i.e. at a point in the program sequence before the actual number of domains is known, 
+  ! For reasons of easier generalizability
+  ! the variables of the above types become domain-dependent.
+  ! Since they are used, to store the namelist input,
+  ! i.e. at a point in the program sequence before the actual number of domains is known,
   ! they have to be allocated for the maximum permissible domain range '0:max_dom'.
-  ! A significant number of parameters are derived from the namelist settings 
-  ! (especially in the context of the upper-atmosphere physics),  
-  ! so they are not gathered in the above, but in the following type(s), 
-  ! which can be allocated for the actual number of domains 'n_dom_start:n_dom', 
+  ! A significant number of parameters are derived from the namelist settings
+  ! (especially in the context of the upper-atmosphere physics),
+  ! so they are not gathered in the above, but in the following type(s),
+  ! which can be allocated for the actual number of domains 'n_dom_start:n_dom',
   ! in order to save some memory in standard simulations without upper-atmosphere.
   !
   TYPE t_exp
-    LOGICAL :: l_expol       ! .TRUE. -> upper-atmosphere-specific vertical extrapolation 
-                             ! of initial data towards climatological values is switched on    
-    INTEGER :: nexpollev     ! Index of grid layer for and above which the extrapolation 
+    LOGICAL :: l_expol       ! .TRUE. -> upper-atmosphere-specific vertical extrapolation
+                             ! of initial data towards climatological values is switched on
+    INTEGER :: nexpollev     ! Index of grid layer for and above which the extrapolation
                              ! of initial data will take place
-    LOGICAL :: l_initicon_config = .FALSE. ! .TRUE. -> first step of configuration of extrapolation 
+    LOGICAL :: l_initicon_config = .FALSE. ! .TRUE. -> first step of configuration of extrapolation
                              ! after namelist read-in has taken place
     ! Status variables
     LOGICAL :: l_status(iUpatmoStat%nitem)
@@ -105,12 +105,12 @@ MODULE mo_upatmo_config
     TYPE(t_upatmo_nwp_phy)   :: nwp_phy
     TYPE(t_exp) :: exp
     ! Miscellaneous
-    REAL(wp) :: dt_fastphy             ! On several occasions we need the domain-specific dtime 
+    REAL(wp) :: dt_fastphy             ! On several occasions we need the domain-specific dtime
                                        ! and 'atm_phy_nwp_config(jg)%dt_fastphy' may not be available
     REAL(wp) :: dt_dyn_nom             ! Domain-specific nominal dynamics time step
     ! Status variables
-    ! (Although desirable, the creation 
-    ! of a status object is currently too complicated 
+    ! (Although desirable, the creation
+    ! of a status object is currently too complicated
     ! and not worth the effort.)
     LOGICAL :: l_status(iUpatmoStat%nitem)
   END TYPE t_upatmo_config
@@ -119,7 +119,7 @@ MODULE mo_upatmo_config
 
   TYPE(t_upatmo_exp_config), TARGET              :: upatmo_exp_config(0:max_dom)
   TYPE(t_upatmo_phy_config), TARGET              :: upatmo_phy_config(0:max_dom)
-  TYPE(t_upatmo_config),     TARGET, ALLOCATABLE :: upatmo_config(:) 
+  TYPE(t_upatmo_config),     TARGET, ALLOCATABLE :: upatmo_config(:)
 
   !------------------------------------------------------------
 
@@ -209,26 +209,26 @@ CONTAINS !......................................................................
     ! (We assume that the setup of 'p_patch' took already place.)
 
     IF (.NOT. ANY((/0, 1/) == n_dom_start)) THEN
-      ! For domain-dependent fields the max. range of allocation 
+      ! For domain-dependent fields the max. range of allocation
       ! with which we can reckon is '0:max_dom'
       !                              -
       CALL finish(routine, 'Something has changed regarding n_dom_start.' )
     ELSEIF (.NOT. PRESENT(vct_a)) THEN
-      ! For the setup of the upper-atmosphere extrapolation, we need 'vct_a', 
+      ! For the setup of the upper-atmosphere extrapolation, we need 'vct_a',
       ! and we take its absence as an indicator that it has not been allocated yet
       CALL finish(routine, 'vct_a still uninitialized.')
     ENDIF
 
-    ! Some of the settings below (especially for the upper-atmosphere extrapolation) 
-    ! are more conveniently done, if the domain loop follows the order: 
-    ! jg = 1, 2, 3, ..., n_dom, n_dom_start, 
-    ! provided that 'n_dom_start = 0'. 
+    ! Some of the settings below (especially for the upper-atmosphere extrapolation)
+    ! are more conveniently done, if the domain loop follows the order:
+    ! jg = 1, 2, 3, ..., n_dom, n_dom_start,
+    ! provided that 'n_dom_start = 0'.
     n_dom_shift = 1 - n_dom_start
 
     ! Domain loop
     DO jg_ordered = n_dom_start, n_dom
 
-      ! First, 'jg = 1' to 'n_dom' ... 
+      ! First, 'jg = 1' to 'n_dom' ...
       jg = jg_ordered + n_dom_shift
       ! ... and then 'jg = 0'
       IF (jg > n_dom) jg = n_dom + 1 - jg
@@ -236,33 +236,33 @@ CONTAINS !......................................................................
       ! Number of grid layers
       nlev   = p_patch(jg)%nlev
       nlevp1 = p_patch(jg)%nlevp1
-      
-      ! Shift of grid layer index, 
+
+      ! Shift of grid layer index,
       ! to account for vertical nesting
       IF (jg > 0) THEN
         nshift_total = p_patch(jg)%nshift_total
       ELSE
-        ! 'nshift_total' is not initialized for 'jg = n_dom_start', 
-        ! if 'n_dom_start = 0', so we take the value from the primary domain 
+        ! 'nshift_total' is not initialized for 'jg = n_dom_start',
+        ! if 'n_dom_start = 0', so we take the value from the primary domain
         nshift_total = p_patch(1)%nshift_total
       ENDIF
 
       !-----------------------------------------------------
       !               Domain-dependent checks
       !-----------------------------------------------------
-      
+
       IF ((jg < n_dom_start) .OR. (jg > n_dom)) THEN
-        ! Some rudimentary checks of the reordering 
+        ! Some rudimentary checks of the reordering
         ! of the domain sequence may be in order
         CALL finish(routine, "Domain index jg has unexpected value.")
       ELSEIF ((jg_ordered == n_dom_start) .AND. (jg /= 1)) THEN
         CALL finish(routine, "First domain to be configured has to be jg=1.")
       ELSEIF (.NOT. upatmo_config(jg)%l_status(iUpatmoStat%checked)) THEN
-        ! (Just to make sure. Actually it should have been set to .true. 
+        ! (Just to make sure. Actually it should have been set to .true.
         ! right after the allocation of 'upatmo_config')
         CALL finish(routine, "Check calling sequence: check_upatmo -> configure_upatmo.")
       ELSEIF (.NOT. upatmo_config(jg)%exp%l_initicon_config) THEN
-        ! For the final configuration of the upper-atmosphere extrapolation it is required 
+        ! For the final configuration of the upper-atmosphere extrapolation it is required
         ! that the preliminary configuration in 'src/configure_model/mo_initicon_config' has taken place
         CALL finish(routine, "Check calling sequence: configure_initicon -> configure_upatmo.")
       ENDIF
@@ -271,15 +271,15 @@ CONTAINS !......................................................................
       !                   Configuration
       !-----------------------------------------------------
 
-      ! On several occasions we need the domain-specific value of dtime, 
-      ! but 'iforcing /= inwp', so that 'atm_phy_nwp_config(jg)%dt_fastphy' is not available. 
-      ! So we compute it here following its computation in 
-      ! 'src/configure_model/mo_atm_phy_nwp_config: configure_atm_phy_nwp'. 
-      ! A potential rescaling of 'dtime' with 'src/configure_model/mo_grid_config: grid_rescale_factor' 
-      ! took already place in 'src/shared/mo_time_management: compute_timestep_settings', 
+      ! On several occasions we need the domain-specific value of dtime,
+      ! but 'iforcing /= inwp', so that 'atm_phy_nwp_config(jg)%dt_fastphy' is not available.
+      ! So we compute it here following its computation in
+      ! 'src/configure_model/mo_atm_phy_nwp_config: configure_atm_phy_nwp'.
+      ! A potential rescaling of 'dtime' with 'src/configure_model/mo_grid_config: grid_rescale_factor'
+      ! took already place in 'src/shared/mo_time_management: compute_timestep_settings',
       ! which is called in 'src/configure_model/mo_nml_crosscheck: atm_crosscheck'.
       upatmo_config(jg)%dt_fastphy = dtime / 2._wp**(p_patch(jg)%level-p_patch(1)%level)
-      
+
       ! We take the opportunity, to compute the nominal dynamics time step
       ! ("nominal", because 'ndyn_substeps' may change its value during runtime)
       upatmo_config(jg)%dt_dyn_nom = upatmo_config(jg)%dt_fastphy / REAL(ndyn_substeps, wp)
@@ -288,24 +288,24 @@ CONTAINS !......................................................................
       !    Physics
       !---------------
 
-      IF (jg > 0) THEN 
+      IF (jg > 0) THEN
         l_upatmo_phy = lupatmo_phy(jg)
         jg_aux       = jg
       ELSE
-        ! Upper-atmosphere physics are not required 
+        ! Upper-atmosphere physics are not required
         ! on the radiation grid 'jg = 0'.
-        ! In addition, there is no entry available, since 'lupatmo_phy(1:max)'. 
+        ! In addition, there is no entry available, since 'lupatmo_phy(1:max)'.
         l_upatmo_phy = .FALSE.
-        ! Likewise, input for 'l_orbvsop87', 'cecc', 'cobld', 'clonp', 'lyr_perp', 'yr_perp', 
-        ! 'start_time' and 'end_time' is only available for domains >= 1, so for 'jg = 0' 
+        ! Likewise, input for 'l_orbvsop87', 'cecc', 'cobld', 'clonp', 'lyr_perp', 'yr_perp',
+        ! 'start_time' and 'end_time' is only available for domains >= 1, so for 'jg = 0'
         ! we simply take the values from the primary domain (that should do no harm)
         jg_aux = 1
       ENDIF
 
-      ! Initialize update period for physics tendencies on previous domain for domain 1 (and 0). 
-      ! It is such that it should have no effect on the update period modification in 
+      ! Initialize update period for physics tendencies on previous domain for domain 1 (and 0).
+      ! It is such that it should have no effect on the update period modification in
       ! 'src/upper_atmosphere/mo_upatmo_phy_config: configure_nwp_event' for domain 1.
-      ! (For the subsequent domains 'configure_upatmo_physics' will return 
+      ! (For the subsequent domains 'configure_upatmo_physics' will return
       ! the corresponding updates of 'dt_grp_prevdom'.)
       IF (jg < 2) THEN
         dt_grp_prevdom(:) = (2._wp + AINT(upatmo_phy_config(jg)%nwp_grp(:)%dt / upatmo_config(jg)%dt_fastphy)) * &
@@ -334,7 +334,7 @@ CONTAINS !......................................................................
         &                            model_base_dir          = model_base_dir,               & !in
         &                            msg_level               = msg_level,                    & !in
         &                            timers_level            = timers_level,                 & !in
-        &                            upatmo_phy_config       = upatmo_phy_config(jg),        & !inout                     
+        &                            upatmo_phy_config       = upatmo_phy_config(jg),        & !inout
         &                            upatmo_aes_phy_config   = upatmo_config(jg)%aes_phy,    & !inout
         &                            upatmo_nwp_phy_config   = upatmo_config(jg)%nwp_phy,    & !inout
         &                            vct_a                   = vct_a                         ) !(opt)in
@@ -342,12 +342,12 @@ CONTAINS !......................................................................
       !---------------
       ! Extrapolation
       !---------------
-      
+
       ! The primary domain is our reference
       ! (-> One reason for the reordering of the domain loop)
       jg_ref = 1
 
-      ! Because of the consistency check within 'configure_upatmo_extrapolation', 
+      ! Because of the consistency check within 'configure_upatmo_extrapolation',
       ! the initialization of 'l_status' has to be done here
       CALL init_logical_1d( variable=upatmo_config(jg)%exp%l_status, value=.FALSE., &
         &                   opt_ilist=(/iUpatmoStat%checked/), opt_mask="list"      )
@@ -384,12 +384,12 @@ CONTAINS !......................................................................
 
       ! Timer monitoring desired?
       upatmo_config(jg)%l_status(iUpatmoStat%timer) = timers_level > itmr_thr%med
-      
+
       ! 'upatmo_config' is allocated in any case, but not necessarily required
       upatmo_config(jg)%l_status(iUpatmoStat%required) = upatmo_config(jg)%aes_phy%l_status(iUpatmoStat%required) .OR. &
         &                                                upatmo_config(jg)%nwp_phy%l_status(iUpatmoStat%required) .OR. &
         &                                                upatmo_config(jg)%exp%l_status(iUpatmoStat%required)
-      
+
       ! Indicate that configuration has taken place
       upatmo_config(jg)%l_status(iUpatmoStat%configured) = upatmo_config(jg)%aes_phy%l_status(iUpatmoStat%configured) .OR. &
         &                                                  upatmo_config(jg)%nwp_phy%l_status(iUpatmoStat%configured) .OR. &
@@ -398,7 +398,7 @@ CONTAINS !......................................................................
       !---------------
       !   Messages
       !---------------
-      
+
       IF (upatmo_config(jg)%l_status(iUpatmoStat%required)) THEN
         CALL print_config( jg,                    & !in
           &                n_dom,                 & !in
@@ -411,14 +411,14 @@ CONTAINS !......................................................................
           &                upatmo_config(jg),     & !in
           &                vct_a                  ) !(opt)in
       ENDIF
-      
+
     ENDDO  !jg_ordered
 
     IF (ltimer) THEN
       CALL timer_stop(timer_upatmo_constr)
       CALL timer_stop(timer_upatmo)
     ENDIF
-    
+
   END SUBROUTINE configure_upatmo
 
   !====================================================================================
@@ -441,12 +441,12 @@ CONTAINS !......................................................................
     INTEGER,                             INTENT(IN)    :: jg, jg_ref            ! Domain indices
     INTEGER,                             INTENT(IN)    :: nlev, nlevp1          ! Number of grid layers and interfaces
     INTEGER,                             INTENT(IN)    :: nshift_total          ! Index shift for vertical nesting
-    REAL(wp),                            INTENT(IN)    :: flat_height           ! Below 'flat_height' grid layer interfaces 
+    REAL(wp),                            INTENT(IN)    :: flat_height           ! Below 'flat_height' grid layer interfaces
                                                                                 ! follow topography
     REAL(wp),                  OPTIONAL, INTENT(IN)    :: vct_a(:)              ! Nominal heights of grid layer interfaces
     TYPE(t_upatmo_exp_config),           INTENT(IN)    :: upatmo_exp_config     ! Namelist parameters
     TYPE(t_upatmo_config),               INTENT(INOUT) :: upatmo_config         ! Upper-atmosphere configuration
-    TYPE(t_upatmo_config),     OPTIONAL, INTENT(IN)    :: opt_upatmo_config_ref ! Configuration of reference domain 
+    TYPE(t_upatmo_config),     OPTIONAL, INTENT(IN)    :: opt_upatmo_config_ref ! Configuration of reference domain
 
     ! Local variables
     INTEGER :: jk, jks
@@ -457,8 +457,8 @@ CONTAINS !......................................................................
 
     !---------------------------------------------------------
 
-    ! The initialization of the extrapolation switch 'l_expol' 
-    ! takes place in 'src/configure_model/mo_initicon_config', 
+    ! The initialization of the extrapolation switch 'l_expol'
+    ! takes place in 'src/configure_model/mo_initicon_config',
     ! depending on 'initicon_nml: itype_vert_expol'.
     ! Here, the final setting takes place.
 
@@ -480,11 +480,11 @@ CONTAINS !......................................................................
     ENDIF
 
     IF (l_present_ref .EQV. (jg == jg_ref)) THEN
-      ! The reference configuration has to be present, 
+      ! The reference configuration has to be present,
       ! if the current domain is not the reference domain, but only then
       CALL finish(routine, "Presence/absence of optional reference has to coincide with jg/=jg_ref/jg=jg_ref.")
     ELSEIF (l_present_ref .AND. (.NOT. l_configured_ref)) THEN
-      ! The reference domain should be the first one, 
+      ! The reference domain should be the first one,
       ! which enters this subroutine
       CALL finish(routine, "Optional reference is present, but not yet configured.")
     ENDIF
@@ -493,37 +493,37 @@ CONTAINS !......................................................................
     !         Initialization with default values
     !-----------------------------------------------------
 
-    ! Please, do not set 'upatmo_config%exp%l_expol' here, 
-    ! otherwise, you overwrite the assignment 
+    ! Please, do not set 'upatmo_config%exp%l_expol' here,
+    ! otherwise, you overwrite the assignment
     ! in 'src/configure_model/mo_initicon_config: configure_initicon'
-    upatmo_config%exp%nexpollev = -1         
+    upatmo_config%exp%nexpollev = -1
 
     !-----------------------------------------------------
     !                   Configuration
     !-----------------------------------------------------
 
     IF ((jg /= jg_ref) .AND. (.NOT. l_expol_ref)) THEN
-      ! If extrapolation has been switched off for domain 1 (reference),    
+      ! If extrapolation has been switched off for domain 1 (reference),
       ! it will be switched off for all other domains
-      upatmo_config%exp%l_expol = .FALSE. 
+      upatmo_config%exp%l_expol = .FALSE.
     ELSEIF (upatmo_exp_config%expol_start_height < flat_height .OR.     &
       &     upatmo_exp_config%expol_start_height > vct_a(1+nshift_total)) THEN
       ! If extrapolation start heigth 'expol_start_height' is below 'flat_height' or
       ! above the domain top, no extrapolation of the upper-atmosphere type should be necessary
-      upatmo_config%exp%l_expol = .FALSE. 
+      upatmo_config%exp%l_expol = .FALSE.
       ! In all other cases the initial setting of 'l_expol' remains
     ENDIF
-    
-    ! Determine vertical index of grid layer for and above which 
-    ! the extrapolation of the upper-atmosphere type of initial data will take place 
+
+    ! Determine vertical index of grid layer for and above which
+    ! the extrapolation of the upper-atmosphere type of initial data will take place
     IF (upatmo_config%exp%l_expol .AND. (jg==jg_ref)) THEN
       l_found = .FALSE.
       DO jk=1, nlevp1
         jks = jk + nshift_total  ! (Not really necessary, but for completeness)
         IF (vct_a(jks) < upatmo_exp_config%expol_start_height) THEN
-          ! The grid cell layer within which 'expol_start_height' is located 
-          ! shall be the lowermost layer to which the upper-atmosphere extrapolation is applied, 
-          ! and the first interface above 'expol_start_height' is the lowermost to which 
+          ! The grid cell layer within which 'expol_start_height' is located
+          ! shall be the lowermost layer to which the upper-atmosphere extrapolation is applied,
+          ! and the first interface above 'expol_start_height' is the lowermost to which
           ! the extrapolation is applied, i.e.'nexpollev' applies to full and half(!) levels
           upatmo_config%exp%nexpollev = jk - 1
           ! Indicate the find
@@ -535,19 +535,19 @@ CONTAINS !......................................................................
       ! Just to make sure
       upatmo_config%exp%nexpollev = MIN( MAX( 1, upatmo_config%exp%nexpollev ), nlev )
     ELSEIF (upatmo_config%exp%l_expol .AND. (jg/=jg_ref)) THEN
-      ! In the current configuration of the upper-atmosphere namelist, 
-      ! no domain-wise specification of the extrapolation parameters is possible. 
-      ! So the settings for jg /= jg_ref should be derivable 
+      ! In the current configuration of the upper-atmosphere namelist,
+      ! no domain-wise specification of the extrapolation parameters is possible.
+      ! So the settings for jg /= jg_ref should be derivable
       ! from the setting for the primary domain
       upatmo_config%exp%nexpollev = opt_upatmo_config_ref%exp%nexpollev - nshift_total
     ENDIF  !IF (upatmo_config%exp%l_expol .AND. (jg==jg_ref))
-    
+
     ! 'upatmo_config' is allocated in any case, but not necessarily required
     upatmo_config%exp%l_status(iUpatmoStat%required) = upatmo_config%exp%l_expol
-    
+
     ! Indicate that configuration has taken place
     upatmo_config%exp%l_status(iUpatmoStat%configured) = .TRUE.
-    
+
   END SUBROUTINE configure_upatmo_extrapolation
 
   !====================================================================================
@@ -569,14 +569,14 @@ CONTAINS !......................................................................
     ! In/out variables
     INTEGER,                         INTENT(IN)    :: jg                ! Domain index
     INTEGER,                         INTENT(IN)    :: n_dom             ! Number of domains
-    INTEGER,                         INTENT(IN)    :: iforcing          ! Switch for physics package 
+    INTEGER,                         INTENT(IN)    :: iforcing          ! Switch for physics package
                                                                         ! (NWP, AES etc.)
-    INTEGER,                         INTENT(IN)    :: nshift_total      ! Shift of vertical grid index 
+    INTEGER,                         INTENT(IN)    :: nshift_total      ! Shift of vertical grid index
     LOGICAL,                         INTENT(IN)    :: lrestart          ! Switch for restart mode
     LOGICAL,                         INTENT(IN)    :: lupatmo_phy       ! Switch for upper-atmosphere physics (NWP)
                                                                         ! for vertical nesting
     INTEGER,                         INTENT(IN)    :: msg_level         ! Message level
-    TYPE(t_upatmo_phy_config),       INTENT(IN)    :: upatmo_phy_config ! Upper-atmosphere physics configuration 
+    TYPE(t_upatmo_phy_config),       INTENT(IN)    :: upatmo_phy_config ! Upper-atmosphere physics configuration
                                                                         ! with namelist settings
     TYPE(t_upatmo_config),           INTENT(INOUT) :: upatmo_config     ! Upper-atmosphere configuration
     REAL(wp),              OPTIONAL, INTENT(IN)    :: vct_a(:)          ! Nominal heights of
@@ -619,8 +619,8 @@ CONTAINS !......................................................................
         !-----------------------------------------------------
         !             "Medium-priority" output
         !-----------------------------------------------------
-        
-        IF (msg_level >= imsg_thr%high) THEN 
+
+        IF (msg_level >= imsg_thr%high) THEN
 
           !-----------------------------------------------------
           !               "Low-priority" output
@@ -728,17 +728,17 @@ CONTAINS !......................................................................
     ! In/out variables
     INTEGER,  INTENT(IN) :: n_dom_start       ! Start index of domains
     INTEGER,  INTENT(IN) :: n_dom             ! End index of domains
-    INTEGER,  INTENT(IN) :: iforcing          ! Switch for physics package 
+    INTEGER,  INTENT(IN) :: iforcing          ! Switch for physics package
                                               ! (nwp, aes etc.)
     LOGICAL,  INTENT(IN) :: lupatmo_phy(:)    ! Switch for upper-atmosphere physics
                                               ! in nwp-mode
     LOGICAL,  INTENT(IN) :: l_limited_area    ! Switch for limited-area mode
     INTEGER,  INTENT(IN) :: ivctype           ! Type of vertical grid (SLEVE etc.)
-    REAL(wp), INTENT(IN) :: flat_height       ! Below 'flat_height' grid layer 
+    REAL(wp), INTENT(IN) :: flat_height       ! Below 'flat_height' grid layer
                                               ! interfaces follow topography
-    INTEGER,  INTENT(IN) :: itype_vert_expol  ! Type of vertical extrapolation 
+    INTEGER,  INTENT(IN) :: itype_vert_expol  ! Type of vertical extrapolation
                                               ! of initial atmosphere state
-    INTEGER,  INTENT(IN) :: init_mode         ! Initialization mode 
+    INTEGER,  INTENT(IN) :: init_mode         ! Initialization mode
     INTEGER,  INTENT(IN) :: inwp_turb(:)      ! Switch for turbulence scheme (NWP)
     INTEGER,  INTENT(IN) :: inwp_radiation(:) ! Switch for radiation scheme (NWP)
 
@@ -753,10 +753,10 @@ CONTAINS !......................................................................
     !    Physics
     !---------------
 
-    IF (lupatmo_phy(1)) THEN 
-      
+    IF (lupatmo_phy(1)) THEN
+
       ! If upper-atmosphere physics are switched on for the NWP-mode ...
-      
+
       IF (iforcing /= inwp) THEN
         ! ... the NWP-mode should be switched on
         WRITE (message_text, '(a,i0)') "nwp_phy_nml: lupatmo_phy only &
@@ -779,8 +779,8 @@ CONTAINS !......................................................................
             "Upper-atmosphere physics require inwp_turb > 0 in dom ", jg
           CALL finish(routine, message_text)
         ENDIF
-        ! Some diagnostic variables, such as the cosine of the solar zenith angle, are computed by 
-        ! the 'standard' radiation schemes, and they are required by the upper-atmosphere radiation schemes as well, 
+        ! Some diagnostic variables, such as the cosine of the solar zenith angle, are computed by
+        ! the 'standard' radiation schemes, and they are required by the upper-atmosphere radiation schemes as well,
         ! so we have to make sure that some standard scheme is switched on
         IF (lupatmo_phy(jg) .AND. inwp_radiation(jg) == 0) THEN
           WRITE (message_text, '(a,i0)') &
@@ -797,14 +797,14 @@ CONTAINS !......................................................................
     ELSEIF (ANY(lupatmo_phy(2:max_dom))) THEN
 
       ! Just to be on the safe side:
-      ! if 'lupatmo_phy' is switched off on dom 1, this should hold for all other doms > 1. 
-      ! Skipping domains - for instance switch on domain 1, switch off domain 2, switch on domain 3 - 
-      ! is not possible for the time being. This is because 'lupatmo_phy' has only two states, 
-      ! so that domain skipping cannot be implemented into 'src/namelists/mo_nwp_phy_nml' 
+      ! if 'lupatmo_phy' is switched off on dom 1, this should hold for all other doms > 1.
+      ! Skipping domains - for instance switch on domain 1, switch off domain 2, switch on domain 3 -
+      ! is not possible for the time being. This is because 'lupatmo_phy' has only two states,
+      ! so that domain skipping cannot be implemented into 'src/namelists/mo_nwp_phy_nml'
       ! in a way comparable to the integer switches, such as 'inwp_satad'.
       CALL finish(routine, "Something is wrong with setting of lupatmo_phy in mo_nwp_phy_nml.")
 
-    ENDIF    
+    ENDIF
 
     !---------------
     ! Extrapolation
@@ -814,7 +814,7 @@ CONTAINS !......................................................................
 
       IF (ivctype == 2 .AND. &
         & ANY(upatmo_exp_config(:)%expol_start_height < flat_height)) THEN
-        ! Upper-atmosphere extrapolation: start height above which extrapolation takes place 
+        ! Upper-atmosphere extrapolation: start height above which extrapolation takes place
         ! should not lie below 'flat_height'
         CALL finish(routine, &
           & "Upper-atmosphere extrapolation: start height has to be above flat_height.")
@@ -834,7 +834,7 @@ CONTAINS !......................................................................
     IF (ALLOCATED(upatmo_config)) THEN
       CALL finish(routine, "Error in calling sequence: upatmo_config is already allocated.")
     ELSE
-      ! Some of the variables in 'upatmo_config' might be necessary for a coarser radiation grid as well, 
+      ! Some of the variables in 'upatmo_config' might be necessary for a coarser radiation grid as well,
       ! so the index range starts with 'n_dom_start' (which is zero, if a coarser radiation grid is used).
       ALLOCATE(upatmo_config(n_dom_start:n_dom), STAT=istat)
       IF (istat /= SUCCESS) CALL finish(routine, "Allocation of upatmo_config failed.")
@@ -843,7 +843,7 @@ CONTAINS !......................................................................
     !---------------
     ! Status update
     !---------------
-    
+
     ! Indicate that crosscheck took place
     upatmo_config(n_dom_start:n_dom)%aes_phy%l_status(iUpatmoStat%checked)   = .TRUE.
     upatmo_config(n_dom_start:n_dom)%nwp_phy%l_status(iUpatmoStat%checked)   = .TRUE.

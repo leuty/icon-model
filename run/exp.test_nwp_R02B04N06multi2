@@ -24,14 +24,14 @@
 #
 
 #--------------------------------------------------------------------------------
-# 
+#
 # 1. Define the experiment and the files to be checked
 
 # EXPERIMENT is the name of the experiment, that defines the experiment descriptor
 # file run/exp.<EXPNAME>. EXPNAME is used also for:
 # - the output directory name: experiments/<EXPNAME>
 # - the output  file names: <EXPNAME>_<TYPE>_<DATE>.nc
-# - the restart file names: 
+# - the restart file names:
 #
 export EXPERIMENT='nwp_R02B04N06multi2'
 
@@ -46,11 +46,11 @@ export TYPES='maxwinds.log'
 export DATES=' '
 
 # RESTART_DATE defines the date and time from which restarts should be performed.
-# 
+#
 export RESTART_DATE='20110101T120000Z'
 
 #--------------------------------------------------------------------------------
-# 
+#
 # 2. Define the checksuite mode
 #
 # u = update test
@@ -64,7 +64,7 @@ export RESTART_DATE='20110101T120000Z'
 export MD='r'
 
 #--------------------------------------------------------------------------------
-# 
+#
 # 3. Launch the checksuite from run/
 
 rundir=`pwd`

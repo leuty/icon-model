@@ -13,12 +13,12 @@
 
 #########################################################
 # Part 1 in MJO-Analysis Suite
-#   * Uses CDO to compute seasonal mean for 
+#   * Uses CDO to compute seasonal mean for
 #     total precipitation and
 #     low-level zonal wind (U at 850hPa)
-#   * Calls NCL-Script 
+#   * Calls NCL-Script
 #     "mjo_analysis_clivar_mean_state.ncl"
-#     with required input information 
+#     with required input information
 #     dimensions etc.
 #   * NCL-Script plots seasonal means
 #
@@ -41,7 +41,7 @@ do
   fi
 
 
-  echo "Process "${season} 
+  echo "Process "${season}
   ncl 'infile1="'${filepath}${dataset}'_TOT_PREC_nh_'${season}'.grb2"' \
       'infile2="'${filepath}${dataset}'_U850_nh_'${season}'.grb2"' \
       'plotdir="'${plotpath}'"' \
@@ -52,6 +52,3 @@ do
       mjo_analysis_clivar_mean_state.ncl
 
 done
-
-
-

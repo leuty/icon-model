@@ -138,7 +138,7 @@ USE mo_physical_constants,   ONLY: cpd, cvd
   REAL(KIND=wp), INTENT(IN)     :: dt
   REAL(KIND=wp), DIMENSION(:,:), INTENT(IN) ::   w
   REAL(KIND=wp), DIMENSION(:,:,:),INTENT(INOUT)   :: chem_new
-  REAL(KIND=wp), DIMENSION(its:ite, kts:kte), INTENT(INOUT) :: & 
+  REAL(KIND=wp), DIMENSION(its:ite, kts:kte), INTENT(INOUT) :: &
    qc,       &
    qnc,      &
    qr,       &
@@ -187,11 +187,11 @@ USE mo_physical_constants,   ONLY: cpd, cvd
   ! ... polar-hucm
   INTEGER :: is_this_cloudbase
   INTEGER :: sat_method
-  REAL(KIND=wp) :: satur_diag,ew_tmp 
+  REAL(KIND=wp) :: satur_diag,ew_tmp
   LOGICAL :: latheatfac1, latheatfac2, latheatfac3, latheatfac4
 
   latheatfac1=.FALSE.
-  latheatfac2=.TRUE.   
+  latheatfac2=.TRUE.
   latheatfac3=.TRUE.   !paper
   latheatfac4=.FALSE.
 
@@ -272,16 +272,16 @@ USE mo_physical_constants,   ONLY: cpd, cvd
         krr = krr + 1
         fccn(krr) = chem_new(i,k,kr)
         IF (fccn(krr) < 0.0)fccn(krr) = 0.0
-      END DO           
+      END DO
       ! ... nucleated ccn - not implemented here
       lh_ce_1 = 0.0;
-      ce_bf = 0.0; ce_af = 0.0; cldnucl_af = 0.0; cldnucl_bf = 0.0; 
+      ce_bf = 0.0; ce_af = 0.0; cldnucl_af = 0.0; cldnucl_bf = 0.0;
       del_cldnucl_sum = 0.0; del_ce_sum = 0.0; del_ds_sum=0.0;
-            
-      auto_cld_nsink_b = 0.0; auto_cld_msink_b = 0.0;  
+
+      auto_cld_nsink_b = 0.0; auto_cld_msink_b = 0.0;
       accr_cld_nsink_b = 0.0; accr_cld_msink_b = 0.0;
       selfc_rain_nchng_b = 0.0
-      
+
      ! +---------------------------------------------+
      ! neucliation, condensation, collisions
      ! +---------------------------------------------+
@@ -292,7 +292,7 @@ USE mo_physical_constants,   ONLY: cpd, cvd
      diag_satur_aa(i,k)=satur_diag
 
      ccn_reg = 0.0
-     del_ccnreg = 0.0  
+     del_ccnreg = 0.0
      tt=t_old(i,k)  !temperature before advection
      qq=qv_oldtmp(i,k) !specific humidity before advection kg/kg
      IF (qq.LE.0.0) qq = 1.d-10
@@ -348,10 +348,10 @@ USE mo_physical_constants,   ONLY: cpd, cvd
          delsup2=(del2ad-del2in)/ncond
          deldiv1=(div3-div1)/ncond
          deldiv2=(div4-div2)/ncond
-                
+
          diffu=1
          IF (div1.EQ.div3) diffu = 0
-         IF (div2.EQ.div4) diffu = 0 
+         IF (div2.EQ.div4) diffu = 0
 
          dtnew = 0.0
          DO ikl=1,ncond
@@ -401,7 +401,7 @@ USE mo_physical_constants,   ONLY: cpd, cvd
                  ff1in(:) = ff1r(:)
                  cldnucl_bf = 3.0*col*( sum(ff1in*(xl**2.0)) )/rhocgs(i,k)
                  is_this_cloudbase = 0
-                 w_stag_my = 0.0d0                 
+                 w_stag_my = 0.0d0
 
                  CALL jernucl01_ks(ff1in,fccn,fccn_nucl         &
                                 ,xl,tt                          &
@@ -424,7 +424,7 @@ USE mo_physical_constants,   ONLY: cpd, cvd
                isym1 = 0
                IF (fmax1 > 0)isym1 = 1
 
-               ce_bf = 3.0*col*( sum(ff1r*(xl**2.0)) )/rhocgs(i,k)                          
+               ce_bf = 3.0*col*( sum(ff1r*(xl**2.0)) )/rhocgs(i,k)
                IF ((tt>273.15) .OR. (tt<273.15-0.187)) THEN
                ! ... only warm phase - diffusional growth
                  supsat_out=0.0
@@ -437,7 +437,7 @@ USE mo_physical_constants,   ONLY: cpd, cvd
                               ,isym2,isym3,isym4,isym5,i,k,w(i,k),ccn_reg &
                               ,latheatfac1,latheatfac2,latheatfac3,latheatfac4,supsat_out,sat_method,rho_phy(i,k))
                END IF
-               ce_af = 3.0*col*( sum(ff1r*(xl**2.0)) )/rhocgs(i,k)               
+               ce_af = 3.0*col*( sum(ff1r*(xl**2.0)) )/rhocgs(i,k)
                del_ce_sum = del_ce_sum + (ce_af - ce_bf)
              END IF ! diff.NE.0
            END IF ! diffu.NE.0
@@ -454,12 +454,12 @@ USE mo_physical_constants,   ONLY: cpd, cvd
          DO ikl = 1,ncoll
            CALL coal_bott_new_warm (ff1r,tt,pp, dt_coll, krdrop)
          END DO ! ncoll - end of ncoll loop
-                                   
+
          t_new(i,k) = tt
          qv(i,k) = qq !kg/kg
 
-       END IF 
-    
+       END IF
+
        !calculate supersaturation after microphysics:
        CALL satcalc_diag(t_new(i,k),qv(i,k),pcgs(i,k),aa1_my,bb1_my,satur_diag,sat_method,rho_phy(i,k))
        diag_satur_am(i,k)=satur_diag
@@ -491,7 +491,7 @@ USE mo_physical_constants,   ONLY: cpd, cvd
 
    ! +-----------------------------+
    ! hydrometeor sedimentation
-   ! +-----------------------------+ 
+   ! +-----------------------------+
    DO i = its,ite
    ! ... drops ...
      DO k = kts,kte
@@ -546,19 +546,19 @@ USE mo_physical_constants,   ONLY: cpd, cvd
            qnc(i,k) = qnc(i,k) &
            + col*chem_new(i,k,kr)*xl(krr)*3.0/rhocgs(i,k)*1000.0        ! [qnc]=#/kg, [chem_new1-33]=#/(gr*cm^3)
 
-           mom_2c=mom_2c+3.0*xl(krr)*chem_new(i,k,kr)*(3.0*xl(krr)/(4.0*pi))**(2.0/3.0) 
-           mom_3c=mom_3c+3.0*xl(krr)*chem_new(i,k,kr)*(3.0*xl(krr)/(4.0*pi)) 
+           mom_2c=mom_2c+3.0*xl(krr)*chem_new(i,k,kr)*(3.0*xl(krr)/(4.0*pi))**(2.0/3.0)
+           mom_3c=mom_3c+3.0*xl(krr)*chem_new(i,k,kr)*(3.0*xl(krr)/(4.0*pi))
          ELSE
            qr(i,k) = qr(i,k) &
            + (1./rhocgs(i,k))*col*chem_new(i,k,kr)*xl(krr)*xl(krr)*3.0  ! [qr]=kg/kg, [chem_new1-33]=#/(gr*cm^3)
            qnr(i,k) = qnr(i,k) &
            + col*chem_new(i,k,kr)*xl(krr)*3.0/rhocgs(i,k)*1000.0        ! [qnr]=#/kg, [chem_new1-33]=#/(gr*cm^3)
 
-           mom_2r=mom_2r+3.0*xl(krr)*chem_new(i,k,kr)*(3.0*xl(krr)/(4.0*pi))**(2.0/3.0) 
-           mom_3r=mom_3r+3.0*xl(krr)*chem_new(i,k,kr)*(3.0*xl(krr)/(4.0*pi)) 
+           mom_2r=mom_2r+3.0*xl(krr)*chem_new(i,k,kr)*(3.0*xl(krr)/(4.0*pi))**(2.0/3.0)
+           mom_3r=mom_3r+3.0*xl(krr)*chem_new(i,k,kr)*(3.0*xl(krr)/(4.0*pi))
          END IF
-         mom_2=mom_2+3.0*xl(krr)*chem_new(i,k,kr)*(3.0*xl(krr)/(4.0*pi))**(2.0/3.0) 
-         mom_3=mom_3+3.0*xl(krr)*chem_new(i,k,kr)*(3.0*xl(krr)/(4.0*pi)) 
+         mom_2=mom_2+3.0*xl(krr)*chem_new(i,k,kr)*(3.0*xl(krr)/(4.0*pi))**(2.0/3.0)
+         mom_3=mom_3+3.0*xl(krr)*chem_new(i,k,kr)*(3.0*xl(krr)/(4.0*pi))
        END DO
 
        IF (qc(i,k) > 1.0e-6 .and. mom_2c > 0.0) THEN
@@ -571,7 +571,7 @@ USE mo_physical_constants,   ONLY: cpd, cvd
          reff(i,k)=(mom_3/mom_2)*1.0e4
        END IF
 
-       ! ... aerosols output 
+       ! ... aerosols output
        krr = 0
        DO kr = p_ff8i01,p_ff8i33
          krr = krr + 1
@@ -599,9 +599,9 @@ USE mo_physical_constants,   ONLY: cpd, cvd
 
    IF (conserv)THEN
      DO i = its,ite
-       DO k = kts,kte        
+       DO k = kts,kte
          rhocgs(i,k)=rho_phy(i,k)*0.001
-         ! ... drops  
+         ! ... drops
          krr=0
          DO kr=p_ff1i01,p_ff1i33
            krr=krr+1
@@ -626,7 +626,7 @@ USE mo_physical_constants,   ONLY: cpd, cvd
      IMPLICIT NONE
      REAL(KIND=wp), INTENT(IN)   :: t,p,a,b
      REAL(KIND=wp),INTENT(IN) :: rho
-     INTEGER, INTENT(IN)   :: sat_method 
+     INTEGER, INTENT(IN)   :: sat_method
      REAL(KIND=wp), INTENT(INOUT):: q
      REAL(KIND=wp), INTENT(INOUT):: satur_diag
      REAL(KIND=wp) :: es1n, ew1n
@@ -652,7 +652,7 @@ USE mo_physical_constants,   ONLY: cpd, cvd
      REAL(KIND=wp), INTENT(INOUT):: temp
      REAL(KIND=wp) :: b2w,b2i,b3,b4w,b4i, & !b1
        & a1_sat,a2_sat,a3_sat,a4_sat,a5_sat,a6_sat
-   
+
 !    b1=10.0*610.78
      b2w=17.269
      b2i=21.875
@@ -666,7 +666,7 @@ USE mo_physical_constants,   ONLY: cpd, cvd
      a4_sat=b3*(1.0-a1_sat)-a2_sat*(b4i+b4w)-a3_sat
      a5_sat=1.0-a1_sat-a2_sat
      a6_sat=b3*a3_sat+b4i*b4w*a2_sat
-   
+
      IF (a5_sat .EQ. 0.0) THEN
        temp=-a6_sat/a4_sat
      ELSE
@@ -747,7 +747,7 @@ USE mo_physical_constants,   ONLY: cpd, cvd
      INTEGER nkr,icemax, isym1, isym2(icemax),isym3,isym4,isym5, iin, kin
      REAL(KIND=wp) ::   col,vr1(nkr)         &
       &       ,aa1_my,bb1_my,aa2_my,bb2_my &
-      &       ,dtcond, w_in,ccn_reg 
+      &       ,dtcond, w_in,ccn_reg
      INTEGER i_bergeron, & !i_abergeron
       & kr,itime,kcond,nr,nrm
      REAL(KIND=wp) :: al1,al2,d,gam,pod, &
@@ -882,7 +882,7 @@ USE mo_physical_constants,   ONLY: cpd, cvd
      dopl=1.+del1s
      dopi=1.+del2s
 
-     ! after each substep, the new sup sat over water and ice are calculated. These values are used to 
+     ! after each substep, the new sup sat over water and ice are calculated. These values are used to
      ! calculate the new temperature and humidity at each substep. Therefore sup sat over ice is calculated even
      ! when there is no ice. The procedure can in future be simplified by assuming a linear changes of T and Q
 
@@ -905,9 +905,9 @@ USE mo_physical_constants,   ONLY: cpd, cvd
        CALL finish(TRIM(modname),"fatal error in onecond1 (rw or pw are nan), model stop")
      END IF
 
-     ! every ncond substep can be still too large for droplets growth. we want that during diffusional growth, 
-     ! the droplet radius change will be less then few bins. therefore ncond substep is further divided by up 
-     ! to kcond=10. in case that after 10 steps, time will be still lower than ncond sub step, the last step 
+     ! every ncond substep can be still too large for droplets growth. we want that during diffusional growth,
+     ! the droplet radius change will be less then few bins. therefore ncond substep is further divided by up
+     ! to kcond=10. in case that after 10 steps, time will be still lower than ncond sub step, the last step
      ! will have this delta time. note that this is done without updates of t,q,s
      kcond=10 ! kcond is a flag
      IF (del1n >= 0.0d0) kcond=11 ! is it diffusional growth or evaporation??? --> kcond
@@ -964,7 +964,7 @@ USE mo_physical_constants,   ONLY: cpd, cvd
        ri_d = ri
        pi_d = pi
 
-       ! solving the equation for 2 supersaturations del1n,del2n. Check, why division of the code for diff 
+       ! solving the equation for 2 supersaturations del1n,del2n. Check, why division of the code for diff
        ! growth and evap is needed (???):
        CALL jersupsat_ks(del1_d,del2_d,del1n,del2n, &
                  rw_d,pw_d,ri_d,pi_d, &
@@ -1024,7 +1024,7 @@ USE mo_physical_constants,   ONLY: cpd, cvd
 
      IF (abs(dal1*delmassl1) > 10.0 )THEN !temperature change during one substep (latent heat release or evaporation)
        PRINT*,"onecond1-in(start)"
-       PRINT*,"i=",iin,"kin",kin,"w",w_in 
+       PRINT*,"i=",iin,"kin",kin,"w",w_in
        PRINT*,"delmassl1",delmassl1,"dt",dtt
        PRINT*,"del1n,del2n,del1,del2,d1n,d2n,rw,pw,ri,pi,dt"
        PRINT*,del1n,del2n,del1,del2,d1n,d2n,rw,pw,ri,pi,dtt
@@ -1069,7 +1069,7 @@ USE mo_physical_constants,   ONLY: cpd, cvd
        del2n = ew1n/es2n-1.
        div2 = ew1n/es2n
      END IF
-     ! calculation of the full integral over the sup sat (dsupintw), without ncond substeps, and 
+     ! calculation of the full integral over the sup sat (dsupintw), without ncond substeps, and
      ! then perform a single remapping, instead of doing remapping after each substep
      IF (isym1 == 1) THEN
        DO kr=1,nkr
@@ -1086,10 +1086,10 @@ USE mo_physical_constants,   ONLY: cpd, cvd
 !!57   CONTINUE
 
      IF (isym1 == 1) THEN
-       ! a single diffusional growth step using the integral of sup sat. we do it for water only, 
+       ! a single diffusional growth step using the integral of sup sat. we do it for water only,
        ! sinceexact collision initiation time is important, to prevent water psd broadening and early rain initiation.
        !bin mass change and remapping - (3.14) in khain&sednev,1996:
-       !the difference between jerdfun_ks and jerdfun_new_ks is: 
+       !the difference between jerdfun_ks and jerdfun_new_ks is:
        !in jerdfun_ks (3.14) is summed up within the ncond loop, and the remapping is done ncond times, but only for t update and not for the update of the final psd.
        !in jerdfun_new_ks (only for water) (3.14) is summed up at the end, after ncond loop, so that the remapping which updates the final psd is performed only once:
        CALL jerdfun_new_ks (r1d,r1nd,supintw, &
@@ -1136,7 +1136,7 @@ USE mo_physical_constants,   ONLY: cpd, cvd
      ccn_reg = ccn_reg + max((totccn_before - totccn_after),0.0_wp)
      IF (abs(dal1*delmassl1) > 10.0_wp )THEN
        PRINT*,"onecond1-out (start)"
-       PRINT*,"i=",iin,"kin",kin,"w",w_in 
+       PRINT*,"i=",iin,"kin",kin,"w",w_in
        PRINT*,"del1n,del2n,d1n,d2n,rw,pw,ri,pi,dt"
        PRINT*,del1n,del2n,d1n,d2n,rw,pw,ri,pi,dtt
        PRINT*,"i=",iin,"kin",kin
@@ -1190,12 +1190,12 @@ USE mo_physical_constants,   ONLY: cpd, cvd
      DO kr=1,nkr
        ff1(kr)=psi1(kr)
      END DO
-     supsat_out=del1n 
-     
+     supsat_out=del1n
+
      RETURN
    END SUBROUTINE onecond1
 
-   SUBROUTINE coal_bott_new_warm(ff1r, tt, pp, dt_coll, krdrop)                  
+   SUBROUTINE coal_bott_new_warm(ff1r, tt, pp, dt_coll, krdrop)
      IMPLICIT NONE
 
      INTEGER,INTENT(IN) :: krdrop
@@ -1210,7 +1210,7 @@ USE mo_physical_constants,   ONLY: cpd, cvd
      INTEGER :: it, ndiv, it_is_rain1, it_is_cloud
      REAL(KIND=wp) :: break_drop_bef,break_drop_aft,dtbreakup,break_drop_per,   &
                       fl1(nkr),                                        &
-                      cld_dsd_nbf,cld_dsd_naf,cld_dsd_mbf, & 
+                      cld_dsd_nbf,cld_dsd_naf,cld_dsd_mbf, &
                       cld_dsd_maf,rain_dsd_nbf, &
                       rain_dsd_naf,rain_dsd_maf,rain_dsd_mbf,dsd_hlp(nkr), &
                       mass_flux(nkr)
@@ -1233,9 +1233,9 @@ USE mo_physical_constants,   ONLY: cpd, cvd
 ! and therefore we do here translation from PSD (integral=concentration) to PSD (integral==mass content):
 
      DO kr=1,nkr !loop over all bins
-       g1(kr) = ff1r(kr)*3.0*xl(kr)*xl(kr)*1.0e3        ! *1.e3 for g->mg  
+       g1(kr) = ff1r(kr)*3.0*xl(kr)*xl(kr)*1.0e3        ! *1.e3 for g->mg
 
-       ! check whether collision/breakup is possible for each type, i.e. 
+       ! check whether collision/breakup is possible for each type, i.e.
        ! if at least one bin is non-zero, we will call collision for this type:
        IF (kr > krmin_breakup .and. g1(kr) > g_lim) icol_drop_brk = 1
        IF (ibreakup == 0) icol_drop_brk = 0
@@ -1250,15 +1250,15 @@ USE mo_physical_constants,   ONLY: cpd, cvd
      IF (icol_drop == 1) THEN
 
        ! +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-       ! here we calculate the autoconversion rate using a dummy call to coll_xxx_lwf();     
+       ! here we calculate the autoconversion rate using a dummy call to coll_xxx_lwf();
        ! evaluating autoconv. from the cloud-mode spectra
-    
+
        dsd_hlp = g1
        rain_dsd_nbf = col*sum(dsd_hlp(krdrop+1:nkr)/xl(krdrop+1:nkr))*1.e-3                                          ! in [#/cm3]
        rain_dsd_mbf = col*sum(dsd_hlp(krdrop+1:nkr))*1.e-3                                                           ! in [g/cm3]
        cld_dsd_mbf  = col*sum(dsd_hlp(1:krdrop))*1.e-3                                                               ! in [g/cm3]
        cld_dsd_nbf  = col*sum(dsd_hlp(1:krdrop)/xl(1:krdrop))*1.e-3                                                  ! in [#/cm3]
-       mass_flux = 0.0                                                  
+       mass_flux = 0.0
        ! x1 - the larger particle type, x2 - the smaller particle type, x3 - the resulting particle type
        ! therefore "xxx" means water + water --> water, or snow + snow --> snow
 
@@ -1269,10 +1269,10 @@ USE mo_physical_constants,   ONLY: cpd, cvd
        cld_dsd_maf  = col*sum(dsd_hlp(1:krdrop))*1.e-3                                                               ! in [g/cm3]
        cld_dsd_naf  = col*sum(dsd_hlp(1:krdrop)/xl(1:krdrop))*1.e-3                                                  ! in [#/cm3]
        it_is_cloud = 0
-       IF (cld_dsd_mbf > 0.01*1.0e-6) it_is_cloud = 1 
+       IF (cld_dsd_mbf > 0.01*1.0e-6) it_is_cloud = 1
        IF ( it_is_cloud == 1 ) THEN
          auto_cld_msink_b  = rain_dsd_maf - rain_dsd_mbf                                                              ! [+]
-         auto_cld_nsink_b  = cld_dsd_nbf  - cld_dsd_naf                                                               ! [+]  
+         auto_cld_nsink_b  = cld_dsd_nbf  - cld_dsd_naf                                                               ! [+]
        END IF
 
        ! evaluating accretion from the full spectra
@@ -1292,7 +1292,7 @@ USE mo_physical_constants,   ONLY: cpd, cvd
        it_is_cloud = 0
        IF (cld_dsd_mbf > 0.01*1.0e-6) it_is_cloud = 1
        IF ( it_is_cloud == 1 ) THEN
-         accr_cld_nsink_b  = cld_dsd_nbf - cld_dsd_naf                                                                ! [+]   
+         accr_cld_nsink_b  = cld_dsd_nbf - cld_dsd_naf                                                                ! [+]
          accr_cld_msink_b  = cld_dsd_mbf - cld_dsd_maf                                                                ! [+]
        END IF
 
@@ -1300,8 +1300,8 @@ USE mo_physical_constants,   ONLY: cpd, cvd
        dsd_hlp = g1
        rain_dsd_mbf = col*sum(dsd_hlp(krdrop+1:nkr))*1.e-3
        rain_dsd_nbf = col*sum(dsd_hlp(krdrop+1:nkr)/xl(krdrop+1:nkr))*1.e-3
-       mass_flux = 0.0                                         
-       it_is_rain1 = 0 
+       mass_flux = 0.0
+       it_is_rain1 = 0
 
        CALL coll_xxx_bott_mod1(dsd_hlp,krdrop+1,nkr,nkr,cwll,xl_mg,chucm,ima,1.0d0,nkr,mass_flux)
 
@@ -1317,7 +1317,7 @@ USE mo_physical_constants,   ONLY: cpd, cvd
        mass_flux = 0.d0
        ! input:  g1 - mass PSD, cwll - collision kernel liquid-liquid, xl_mg - mass bins:
        ! output: new g1:
-       CALL coll_xxx_bott(g1,cwll,xl_mg,chucm,ima,1.0d0,nkr,mass_flux)                                        
+       CALL coll_xxx_bott(g1,cwll,xl_mg,chucm,ima,1.0d0,nkr,mass_flux)
 
 ! --------------------------------------------------------
 ! ... probability of drop breakup after collision:
@@ -1396,7 +1396,7 @@ USE mo_physical_constants,   ONLY: cpd, cvd
      IF (abs(tt-t_new).GT.5.0) THEN
        CALL finish(TRIM(modname),"fatal error in module_mp_warm_sbm del_t 5 k, model stop")
      END IF
-  
+
      tt = t_new
 
      RETURN
@@ -1413,9 +1413,9 @@ USE mo_physical_constants,   ONLY: cpd, cvd
      REAL(KIND=wp):: gmin,x01,x02,x03,gsi,gsj,gsk,gsi_w,gsj_w,gsk_w,gk, &
                           gk_w,fl_gk,fl_gsk,flux,x1,flux_w,g_k_w,g_kp_old,g_kp_w
      INTEGER :: i,ix0,ix1,j,k,kp
-     
+
      gmin=g_lim*1.0d3
-   
+
    ! ix0 - lower limit of integration by i
      DO i=1,nkr-1
        ix0=i
@@ -1423,7 +1423,7 @@ USE mo_physical_constants,   ONLY: cpd, cvd
      END DO
 2000 CONTINUE
      IF (ix0.EQ.nkr-1) RETURN
-   
+
    ! ix1 - upper limit of integration by i
      DO i=nkr-1,1,-1
        ix1=i
@@ -1455,13 +1455,13 @@ USE mo_physical_constants,   ONLY: cpd, cvd
          g(j)=g(j)-gsj
          IF (j.NE.k) g(j)=dmax1(g(j),0.0d0)
          gk=g(k)+gsk
-   
+
          IF (g(j).LT.0.d0.and.gk.LE.gmin) THEN
            g(j)=0.d0
            g(k)=g(k)+gsi
            goto 2021
          END IF
-   
+
          IF (gk.LE.gmin) goto 2021
          gk_w=g(k)*fl(k)+gsk_w
          gk_w=dmin1(gk_w,gk)
@@ -1472,7 +1472,7 @@ USE mo_physical_constants,   ONLY: cpd, cvd
          flux=gsk/x1*(EXP(0.5d0*x1)-EXP(x1*(0.5d0-c(i,j))))
          flux=dmin1(flux,gsk)
          flux=dmin1(flux,gk)
-         ! changed to >= and corrected to bin #33               
+         ! changed to >= and corrected to bin #33
          IF (kp.GE.kp_flux_max) flux=0.5d0*flux
          flux_w=flux*fl_gsk
          flux_w=dmin1(flux_w,gsk_w)
@@ -1497,7 +1497,7 @@ USE mo_physical_constants,   ONLY: cpd, cvd
          IF (fl(k).GT.1.0001d0.OR.fl(kp).GT.1.0001d0 &
                  .OR.fl(k).LT.0.0d0.OR.fl(kp).LT.0.0d0) THEN
            PRINT*,    'in SUBROUTINE coll_xxx_lwf'
-           PRINT*,    'snow - snow = snow'  
+           PRINT*,    'snow - snow = snow'
            IF (fl(k).GT.1.0001d0)  PRINT*, 'fl(k).GT.1.0001d0'
            IF (fl(kp).GT.1.0001d0) PRINT*, 'fl(kp).GT.1.0001d0'
            IF (fl(k).LT.0.0d0)  PRINT*, 'fl(k).LT.0.0d0'
@@ -1505,13 +1505,13 @@ USE mo_physical_constants,   ONLY: cpd, cvd
            PRINT*,    'i,j,k,kp'
            PRINT*,     i,j,k,kp
            PRINT*,    'ix0,ix1'
-           PRINT*,     ix0,ix1   
-           WRITE (*,'(A,4D13.5)') 'ckxx(i,j),x01,x02,x03:  ', ckxx(i,j),x01,x02,x03   
-           WRITE (*,'(A,3D13.5)') 'gsi,gsj,gsk:  ', gsi,gsj,gsk   
+           PRINT*,     ix0,ix1
+           WRITE (*,'(A,4D13.5)') 'ckxx(i,j),x01,x02,x03:  ', ckxx(i,j),x01,x02,x03
+           WRITE (*,'(A,3D13.5)') 'gsi,gsj,gsk:  ', gsi,gsj,gsk
            WRITE (*,'(A,3D13.5)') 'gsi_w,gsj_w,gsk_w:   ', gsi_w,gsj_w,gsk_w
-           WRITE (*,'(A,2D13.5)') 'gk,gk_w:  ', gk,gk_w   
-           WRITE (*,'(A,2D13.5)') 'fl_gk,fl_gsk:  ', fl_gk,fl_gsk   
-           WRITE (*,'(A,2D13.5)') 'x1,c(i,j):  ', x1,c(i,j)   
+           WRITE (*,'(A,2D13.5)') 'gk,gk_w:  ', gk,gk_w
+           WRITE (*,'(A,2D13.5)') 'fl_gk,fl_gsk:  ', fl_gk,fl_gsk
+           WRITE (*,'(A,2D13.5)') 'x1,c(i,j):  ', x1,c(i,j)
            WRITE (*,'(A,D13.5)')  'flux:     ', flux
            WRITE (*,'(A,D13.5)')  'flux_w:   ', flux_w
            WRITE (*,'(A,D13.5)')  'g_k_w:    ', g_k_w
@@ -1530,7 +1530,7 @@ USE mo_physical_constants,   ONLY: cpd, cvd
        END DO
 2020   CONTINUE
      END DO
-   
+
 
      RETURN
    END SUBROUTINE coll_xxx_lwf
@@ -1634,7 +1634,7 @@ USE mo_physical_constants,   ONLY: cpd, cvd
 
      RETURN
    END SUBROUTINE coll_breakup_ks
-  
+
    REAL(KIND=wp) FUNCTION polysvp (tt,itype,sat_method)
 
      IMPLICIT NONE
@@ -1643,7 +1643,7 @@ USE mo_physical_constants,   ONLY: cpd, cvd
      REAL(wp), PARAMETER :: aa1_my = 2.53e12_wp, bb1_my = 5.42e3_wp, &
                             aa2_my = 3.41e13_wp, bb2_my = 6.13e3_wp
      REAL(wp) :: es1n, es2n
-   
+
      method_select: select case(itype)
       ! liquid
       case(0)
@@ -1654,7 +1654,7 @@ USE mo_physical_constants,   ONLY: cpd, cvd
         END IF
         polysvp = es1n ! [dyn/cm2] to [mb]
 
-      ! ice  
+      ! ice
       case(1)
         IF (sat_method == 1) THEN
           es2n = aa2_my*EXP(-bb2_my/tt)
@@ -1665,7 +1665,7 @@ USE mo_physical_constants,   ONLY: cpd, cvd
 
       case default
         polysvp = HUGE(1.0_wp)
-    
+
       end select method_select
 
       RETURN
@@ -1848,7 +1848,7 @@ USE mo_physical_constants,   ONLY: cpd, cvd
      irw = 1
 !    ipw = 1
      iri = 1
-!    ipi = 1  
+!    ipi = 1
      IF (MAX(rw,pw,ri,pi)<=rw_pw_ri_pi_min) THEN
        rw = 0.0
        irw = 0
@@ -2136,13 +2136,13 @@ goto     100
 
      RETURN
    END SUBROUTINE jersupsat_ks
-        
+
    SUBROUTINE jerdfun_ks (xi,xin,b21_my, &
                           fi2,psi2,del2n, &
                           isym2,ind,itype,idrop, &
                           nkr,col,ihydro,iin,kin)
      IMPLICIT NONE
-     INTEGER,INTENT(IN) :: isym2, ind, itype, nkr, ihydro, iin, kin 
+     INTEGER,INTENT(IN) :: isym2, ind, itype, nkr, ihydro, iin, kin
      INTEGER,INTENT(INOUT) :: idrop
      REAL(KIND=wp),INTENT(IN) :: b21_my(:), fi2(:), del2n, col
                                           ! fr_lim(:), frh_lim(:), &
@@ -2397,7 +2397,7 @@ goto     100
                END IF
              END IF
            END IF
-           
+
 3001       CONTINUE
 
          END DO
@@ -2664,12 +2664,12 @@ goto     100
 
        ! the problem is that ncriti=1 and imax=2 may occur 2 times:
        ! a. rccn(1)<rcriti<rccn(2) --> we should clean part of the "1-2" bin: fccnr(imax)=fccnr(imax)*dln1/col
-       ! b. rcriti<rccn(1)         --> we should clean the entire bin:  fccnr(imax)=0 
+       ! b. rcriti<rccn(1)         --> we should clean the entire bin:  fccnr(imax)=0
        ! and there is an option when criti=1 and imax=1, then:
        ! c. rcriti<rccn(1)         --> we should clean part of the "0-1" bin: fccnr(imax)=fccnr(imax)*dln1/(dln1+dln2)
        !                               this bin is special and has a width of dln1+dln2 and not just col
        !---------------------------------------------------
-       IF ((imax-1>ncriti) .OR. ((ncriti==1) .and. (imax==2) .and. (rcriti<rccn(1)))) THEN ! imax bin should be cleaned to zero 
+       IF ((imax-1>ncriti) .OR. ((ncriti==1) .and. (imax==2) .and. (rcriti<rccn(1)))) THEN ! imax bin should be cleaned to zero
          ccnconc(imax) = col*fccnr(imax)
          fccnr_nucl(imax) = fccnr_nucl(imax) + fccnr(imax)
          fccnr(imax) = 0.0d0
@@ -2989,7 +2989,7 @@ goto     100
            output_flux(kp) = output_flux(kp) + flux
          END IF
 
-         IF (g(i) < 0.0 .OR. g(j) < 0.0 .OR. g(k) < 0.0 .OR. g(kp) < 0.0) THEN 
+         IF (g(i) < 0.0 .OR. g(j) < 0.0 .OR. g(k) < 0.0 .OR. g(kp) < 0.0) THEN
            PRINT*,    'i,j,k,kp'
            PRINT*,     i,j,k,kp
            PRINT*,    'ix0,ix1'
@@ -3028,7 +3028,7 @@ goto     100
      END DO
 2000 CONTINUE
      IF (ix0.EQ.nkr-1) RETURN
-     
+
      ! ix1 - upper limit of integration by i
      DO i=nkr-1,1,-1
        ix1=i
@@ -3058,8 +3058,8 @@ goto     100
          g(j)=g(j)-gsj
          gk=g(k)+gsk
          flux=0.d0
-         ! g(i), g(j) - psd f of bins i,j. 
-         ! their parts sum up (=gsk) have to be added to bin gk. 
+         ! g(i), g(j) - psd f of bins i,j.
+         ! their parts sum up (=gsk) have to be added to bin gk.
          ! since it falls between k and kp=k+1, it is added to bins g(k) and g(kp=k+1) via type of remapping (see flux below)
          IF (gk.GT.gmin) THEN
            x1=DLOG(g(kp)/gk+1.0d-12) ! avoid LOG(1) --> x1=0
@@ -3071,7 +3071,7 @@ goto     100
            output_flux(kp) = output_flux(kp) + flux
          END IF
 
-         IF (g(i) < 0.0 .OR. g(j) < 0.0 .OR. g(k) < 0.0 .OR. g(kp) < 0.0) THEN 
+         IF (g(i) < 0.0 .OR. g(j) < 0.0 .OR. g(k) < 0.0 .OR. g(kp) < 0.0) THEN
            PRINT*,    'i,j,k,kp'
            PRINT*,     i,j,k,kp
            PRINT*,    'ix0,ix1'
@@ -3101,10 +3101,10 @@ goto     100
      REAL(KIND=wp):: gmin,x01,x02,x03,gsi,gsj,gsk,gk, flux,x1
      INTEGER :: i,ix0,ix1,j,k,kp,iee,jee
 !    INTEGER :: kp_flux_max
-  
+
      gmin=1.0d-16
 !    kp_flux_max = nkr
-  
+
      ! ix0 - lower limit of integration by i
      DO i=1,nkr-1
        ix0=i
@@ -3112,14 +3112,14 @@ goto     100
      END DO
 2000 CONTINUE
      IF (ix0.EQ.nkr-1) RETURN
-  
+
      ! ix1 - upper limit of integration by i
      DO i=nkr-1,1,-1
        ix1=i
        IF (g(i).GT.gmin) goto 2010
      END DO
 2010 CONTINUE
-  
+
      iee = ie; jee = je
      IF (iee == nkr) iee = nkr-1
      IF (jee == nkr) jee = nkr-1
@@ -3155,8 +3155,8 @@ goto     100
            ! --- [js] output flux - for autoconv.
            output_flux(kp) = output_flux(kp) + flux
          END IF
-  
-         IF (g(i) < 0.0 .OR. g(j) < 0.0 .OR. g(k) < 0.0 .OR. g(kp) < 0.0) THEN  
+
+         IF (g(i) < 0.0 .OR. g(j) < 0.0 .OR. g(k) < 0.0 .OR. g(kp) < 0.0) THEN
            PRINT*,    'i,j,k,kp'
            PRINT*,     i,j,k,kp
            PRINT*,    'ix0,ix1'
@@ -3172,4 +3172,4 @@ goto     100
 
      RETURN
    END SUBROUTINE coll_xxx_bott_mod2
-END MODULE mo_sbm_main 
+END MODULE mo_sbm_main

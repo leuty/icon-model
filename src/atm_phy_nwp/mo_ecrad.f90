@@ -148,11 +148,11 @@ MODULE mo_ecrad
   REAL(wp) :: ecrad_ssi_coddington(14) = (/ 12.045647_wp  , 20.257584_wp  , 23.604472_wp  , 23.37569292_wp, 57.56843759_wp, &
                                             105.6339255_wp, 24.72360028_wp, 345.7746485_wp, 213.5909065_wp, 344.8864993_wp, &
                                             128.6916773_wp, 45.19260459_wp, 2.825112161_wp, 12.821340_wp/)
-  ! Generalized hydrometor list 
+  ! Generalized hydrometor list
   INTEGER, ALLOCATABLE :: ecrad_hyd_list(:)
   ! Constant index for hydrometeors
   ENUM, BIND(C)
-    ENUMERATOR  :: ecrad_iqc = 1, ecrad_iqi = 2, ecrad_iqr = 3, ecrad_iqs = 4, ecrad_iqg = 5 
+    ENUMERATOR  :: ecrad_iqc = 1, ecrad_iqi = 2, ecrad_iqr = 3, ecrad_iqs = 4, ecrad_iqg = 5
   END ENUM
 
 CONTAINS

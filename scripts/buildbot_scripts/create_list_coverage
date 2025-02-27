@@ -27,7 +27,7 @@ listname=${1:-coverage}
 
 #-----------------------------------------------------------
 runTests="checksuite.icon-dev/check.atm_bubble_test exp.test_nwp_R02B04N06multi"
-compCoverage="checksuite.infrastructure/coverage/exp.compute_coverage" 
+compCoverage="checksuite.infrastructure/coverage/exp.compute_coverage"
 
 $addexp "${compCoverage}" --builders "levante_coverage" --list $listname --runflags "queue=shared"
 

@@ -14,10 +14,10 @@
 # -*- coding: utf-8 -*-
 #-----------------------------------------------------------------------------
 
-import os
-import sys
 import glob
+import os
 import re
+import sys
 
 plotYearsPerDay=1
 plotIterationsCellPerSec=2
@@ -31,10 +31,10 @@ maxTimeIndex=4
 def Die(arg):
   print arg
   exit(1)
-  
+
 
 def getFileTimer(fileName, timerName, counterIndex):
-  
+
   #print "proccessing ", fileName, timerName, "..."
   timerValue=-1.0
   try:
@@ -42,7 +42,7 @@ def getFileTimer(fileName, timerName, counterIndex):
   except IOError:
     return timerValue
   #print timerName
-  
+
   for line in infile:
     k=line.find(timerName)
     if (k < 0):
@@ -58,24 +58,24 @@ def getFileTimer(fileName, timerName, counterIndex):
       timerValue = float(s[counterIndex].rstrip('s'))
     except ValueError:
       timerValue = -1.0
-    
+
     #print fileName, timerName, s[counterIndex], timerValue
-    
+
     break
 
   infile.close()
-   
+
   return timerValue
 
 
 def getTimerValues(folderName, timerName, counterIndex):
-  
+
   meanTime = 0.0
   maxTime  = 0.0
   minTime  = 9999999999999.0
   totalCount = 0.0
   for fileName in glob.glob(folderName+'/timer*'):
-    
+
     timerValue = getFileTimer(fileName, timerName, counterIndex)
     if (timerValue > 0.0 ):
       totalCount = totalCount + 1.0
@@ -90,25 +90,25 @@ def getTimerValues(folderName, timerName, counterIndex):
     meanTime = 0.0
     maxTime  = 0.0
     minTime  = 0.0
-    
+
   print folderName, timerName, minTime, meanTime, maxTime
-     
+
   return (minTime, meanTime, maxTime)
 
 
 def sortFile(fileName):
-  
+
   dataFileName=fileName+".dat"
   infile = open(dataFileName, 'r')
   lines = [line for line in infile]
   lines.sort(key=int)
 
 def writeOldTimerProcsDistribution(outName, logFileName, timerName, counterIndex):
-  
+
   outFileName=outName+".dat"
   outFile = open(outFileName, 'w')
   infile = open(logFileName, 'r')
-  
+
   for line in infile:
     s = line.split()
     k=line.find(timerName)
@@ -126,11 +126,11 @@ def writeOldTimerProcsDistribution(outName, logFileName, timerName, counterIndex
       timerValue = float(s[counterIndex].rstrip('s'))
     except ValueError:
       timerValue = -1.0
-    
+
     outFile.write(splitAll[0]+' '+str(timerValue)+"\n")
-  
-  outFile.close()     
-  return 
+
+  outFile.close()
+  return
 
 #logFile="LOG.exp.nat_ape_r2b6_1sendrecv_0initc_78levels_240nodes_8mpi_procs_8threads_11nproma.sdays_1-30.run.o.timers"
 #logFile="./run/LOG.exp.nat_ape_r2b5N6.28nodes.896procs.run.o"
@@ -140,7 +140,7 @@ def writeOldTimerProcsDistribution(outName, logFileName, timerName, counterIndex
 #sys.exit()
 
 def writeTimerProcsDistribution(outName, folderName, timerFilePrefix, timerName, counterIndex):
-  
+
   outFileName=outName+".dat"
   outFile = open(outFileName, 'w')
   noOfCores=len(glob.glob(folderName+'/'+timerFilePrefix+'*'))
@@ -150,13 +150,13 @@ def writeTimerProcsDistribution(outName, folderName, timerFilePrefix, timerName,
     timerValue = getFileTimer(fileName, timerName, counterIndex)
     if (timerValue > 0.0 ):
       outFile.write(str(i)+' '+str(timerValue)+"\n")
-  
-  outFile.close()     
-  return 
+
+  outFile.close()
+  return
 
 
 def getTimeMaxInFiles(folderName, timerFilePrefix, timerName, counterIndex):
-  
+
   noOfCores=len(glob.glob(folderName+'/'+timerFilePrefix+'*'))
   maxTime=0.0
   maxProc=-1
@@ -167,16 +167,16 @@ def getTimeMaxInFiles(folderName, timerFilePrefix, timerName, counterIndex):
     if (timerValue > maxTime ):
       maxTime = timerValue
       maxProc = i
-  
+
   return (maxTime, maxProc)
 
 
 
 def processFolderList(foldersList, timersList, counterIndex):
-  
+
   noOfFolders = len(foldersList)
   noOfTimers  = len(timersList)
-  
+
   minTimeList = [None]*noOfFolders
   meanTimeList = [None]*noOfFolders
   maxTimeList = [None]*noOfFolders
@@ -184,68 +184,68 @@ def processFolderList(foldersList, timersList, counterIndex):
     minTimeList [i] = [0.0]*noOfTimers
     meanTimeList [i] = [0.0]*noOfTimers
     maxTimeList [i] = [0.0]*noOfTimers
-     
+
   # get mean values
   for i in range(noOfFolders):
     for j in range(noOfTimers):
       print "proccessing ", foldersList[i], timersList[j], counterIndex, "..."
       (minTime, meanTime, maxTime) = getTimerValues(foldersList[i], timersList[j], counterIndex)
-      # meanTimeList[i][j] = meanTime, use max time 
+      # meanTimeList[i][j] = meanTime, use max time
       minTimeList[i][j] = minTime
       meanTimeList[i][j] = meanTime
       maxTimeList[i][j] = maxTime
-  
+
   return(minTimeList, meanTimeList, maxTimeList)
-    
+
 def writeSingleTimer(name, timer, coresList):
   noOfFolders = len(timeList)
-  
+
   outFileName=name+".dat"
   outFile = open(outFileName, 'w')
-  
+
   for i in range(noOfFolders):
     outFile.write(str(coresList[i]))
     outFile.write("  "+str(timer[i]) )
-    outFile.write("\n")      
+    outFile.write("\n")
   outFile.close()
 
 def writeParallelEfficency(name, timerList, timerIndex, coresList):
   noOfFolders = len(timerList)
-  
+
   outFileName=name+"_parallel_efficency.dat"
   outFile = open(outFileName, 'w')
 
   referenceTime = timerList[0][timerIndex] * coresList[0]
-  
+
   for i in range(noOfFolders):
     outFile.write(str(coresList[i]))
     outFile.write("  "+str( referenceTime / (timerList[i][timerIndex] * coresList[i])) )
-    outFile.write("\n")      
+    outFile.write("\n")
   outFile.close()
 
 def writeTimerList(name, timeList, coresList):
   noOfFolders = len(timeList)
   noOfTimers  = len(timeList[0])
-  
+
   outFileName=name+".dat"
   outFile = open(outFileName, 'w')
-  
+
   for i in range(noOfFolders):
     outFile.write(str(coresList[i]))
     for j in range(noOfTimers):
       outFile.write("  "+str(timeList[i][j]) )
-    outFile.write("\n")      
+    outFile.write("\n")
   outFile.close()
 
 def writeYearsPerDay(name, timeList, coresList, daysList, timerIndex):
   # write years per day
   noOfFolders = len(coresList)
-  
+
   outFileName=name+"_years_per_day.dat"
   outFile = open(outFileName, 'w')
 
   for i in range(noOfFolders):
-    
+
     print i, "cores:", coresList[i], " time:", timeList[i][0], " days:", daysList[i]
     #yearsPerDay=( daysList[i] * 24.0 * 3600.0 ) / (timeList[i][timerIndex] * 365.0)
     yearsPerDay=( daysList[i] * 236.712329 ) / (timeList[i][timerIndex])
@@ -253,20 +253,20 @@ def writeYearsPerDay(name, timeList, coresList, daysList, timerIndex):
     outFile.write(str(coresList[i])+" "+str(yearsPerDay)+"\n")
 
   outFile.close()
-  
+
 
 def writeStatsAllList(name, timeList, coresList, daysList, grid_size, plotScaling):
-  # write times 
+  # write times
   noOfFolders = len(coresList)
   noOfTimers  = len(timeList[0])
-  
+
   outFileName=name+"_times.dat"
   outFile = open(outFileName, 'w')
   for i in range(noOfFolders):
     outFile.write(str(coresList[i]))
     for j in range(noOfTimers):
       outFile.write("  "+str(timeList[i][j]) )
-    outFile.write("\n")      
+    outFile.write("\n")
   outFile.close()
 
   # write times per iter/cell
@@ -277,7 +277,7 @@ def writeStatsAllList(name, timeList, coresList, daysList, grid_size, plotScalin
     for j in range(noOfTimers):
       normalizedTime=timeList[i][j] / ( grid_size[i] * daysList[i] )
       outFile.write("  "+str(normalizedTime) )
-    outFile.write("\n")      
+    outFile.write("\n")
   outFile.close()
 
   # write normalized times (cost per node, day, grid size
@@ -288,47 +288,47 @@ def writeStatsAllList(name, timeList, coresList, daysList, grid_size, plotScalin
     for j in range(noOfTimers):
       normalizedTime=( (timeList[i][j] / daysList[i]) * coresList[i] ) / grid_size[i]
       outFile.write("  "+str(normalizedTime) )
-    outFile.write("\n")      
+    outFile.write("\n")
   outFile.close()
 
   # write years per day
   if (plotScaling==plotYearsPerDay):
     outFileName=name+"_years_per_day.dat"
     outFile = open(outFileName, 'w')
-  
+
     for i in range(noOfFolders):
       yearsPerDay=( daysList[i] * 24.0 * 3600.0 ) / (timeList[i][0] * 365.0)
 
       outFile.write(str(coresList[i])+" "+str(yearsPerDay)+"\n")
 
     outFile.close()
-  
+
   # write years per day
   if (plotScaling==plotIterationsCellPerSec):
     outFileName=name+"_itercell_per_sec.dat"
     outFile = open(outFileName, 'w')
-  
+
     for i in range(noOfFolders):
       iterPerDay=( daysList[i] * grid_size[i] ) / (timeList[i][0])
 
       outFile.write(str(coresList[i])+" "+str(iterPerDay)+"\n")
 
     outFile.close()
-      
-  return 
+
+  return
 
 
 def getImbalance(minTimeList, maxTimeList, refTimer):
-  # write times 
+  # write times
   noOfFolders = len(minTimeList)
   noOfTimers  = len(minTimeList[0])
-  
+
   imbalanceList = [None]*noOfFolders
   imbalancePerCent = [None]*noOfFolders
   for i in range(noOfFolders):
     imbalanceList [i] = [0.0]*noOfTimers
     imbalancePerCent [i] = [0.0]*noOfTimers
-  
+
   for i in range(noOfFolders):
     for j in range(noOfTimers):
       imbalanceList[i][j]=maxTimeList[i][j] - minTimeList[i][j]
@@ -340,11 +340,11 @@ def getImbalance(minTimeList, maxTimeList, refTimer):
 def normalizeTimerList(timeList, normValueIndex):
   noOfFolders = len(timeList)
   noOfTimers  = len(timeList[0])
-  
+
   normTimeList = [None]*noOfFolders
   for i in range(noOfFolders):
     normTimeList [i] = [0.0]*noOfTimers
-  
+
   for i in range(noOfFolders):
     for j in range(noOfTimers):
       normTimeList[i][j] = timeList[i][j] / timeList[i][normValueIndex]
@@ -355,29 +355,29 @@ def normalizeTimerList(timeList, normValueIndex):
 def addTimers(timerList, timer1, timer2):
   noOfFolders = len(timerList)
   newTimerIndex=len(timerList[0])
-  
+
   for i in range(noOfFolders):
     timerList[i].append(timerList[i][timer1] + timerList[i][timer2])
-      
+
   return newTimerIndex
 
 def subtractTimers(timerList, timer, minus_timer):
   noOfFolders = len(timerList)
   newTimerIndex=len(timerList[0])
-  
+
   for i in range(noOfFolders):
     timerList[i].append(timerList[i][timer] - timerList[i][minus_timer])
 
   return newTimerIndex
 
 def subtractFromTimer(timerList, timer, minus_timer):
-  noOfFolders = len(timerList)  
+  noOfFolders = len(timerList)
   for i in range(noOfFolders):
     timerList[i][timer]=timerList[i][timer] - timerList[i][minus_timer]
 
 def newTimer(timerList):
   noOfFolders = len(timerList)
-  
+
   for i in range(noOfFolders):
     timerList[i].append(0.0)
 
@@ -406,7 +406,7 @@ timersCommunnication=[
 
 
 def stdall_timers_statistics(folders_list, resolution, cores_list, days_list):
-  
+
   (minTimes, meanTimes, maxTimes)=processFolderList(folders_list, timersListNat, totalTimeIndex )
   writeYearsPerDay(resolution, maxTimes, cores_list, days_list, timer_total)
   writeParallelEfficency(resolution, maxTimes, timer_total, cores_list)
@@ -415,12 +415,12 @@ def stdall_timers_statistics(folders_list, resolution, cores_list, days_list):
   timer_radcomm_index=subtractTimers(meanTimes, timer_nwp_radiation_index, timer_radiaton_comp_index)
   normTimeList=normalizeTimerList(meanTimes, timer_total)
   writeTimerList(resolution+"_normalizedCost", normTimeList, cores_list)
-  
+
   #(minTimes, meanTimes, maxTimes)=processFolderList(folders_list, timersCommunnication, totalTimeIndex )
   #normTimeList=normalizeTimerList(meanTimes, timer_total)
   #writeTimerList(resolution+"_communication_times", meanTimes, cores_list)
   #writeTimerList(resolution+"_communication_normalizedCost", normTimeList, cores_list)
-  
+
 #=========================================================================
 timersOcean=[
 " total",          #2
@@ -443,35 +443,35 @@ def getNodesFromFolder(folder):
   return float(folderNumbers[2])
 
 def ocean_timers_statistics(resolution, extent):
-  
+
   folders_list=glob.glob('omip_'+resolution+'*'+str(threads)+'threads'+extent)
   folders_list.sort(key=getNodesFromFolder)
   print folders_list
-  
+
   noOfFolders = len(folders_list)
   cores_list = [None] * noOfFolders
   days_list = [10.0] * noOfFolders
-  
+
   for i in range(noOfFolders):
     # print folders_list[i].split('_')
     # folderNumbers=re.findall(r'\d+', folders_list[i])
     # print  folderNumbers
     # cores_list[i]=float(folderNumbers[2]) * 16
     cores_list[i]=float(getNodesFromFolder(folders_list[i])) * 24.0
-    
+
   print cores_list
   prefix=resolution+"_"+str(threads)+"threads"
-  
+
   (minTimes, meanTimes, maxTimes)=processFolderList(folders_list, timersOcean, totalTimeIndex )
-  writeParallelEfficency(prefix, maxTimes, timer_total, cores_list)  
+  writeParallelEfficency(prefix, maxTimes, timer_total, cores_list)
   writeYearsPerDay(prefix, maxTimes, cores_list, days_list, timer_total)
-      
+
   normTimeList=normalizeTimerList(meanTimes, timer_total)
   writeTimerList(resolution+"_normalizedCost", normTimeList, cores_list)
-  
+
   #writeTimerList(prefix+"_meantimes", meanTimes, cores_list)
   #writeTimerList(prefix+"_maxtimes", maxTimes, cores_list)
-    
+
 def ocean_timer_core_distribution(distibution_folder, timerName):
 
   timerFilePrefix="timer.ocean." # only needed for cores time distribution
@@ -528,7 +528,7 @@ def blizzard_bechmarks_01_03_2013_scaling():
   ]
   cores_list=[1952, 3904, 7872]
   stdall_timers_statistics(folders_list, resolution, cores_list, days_list)
-  
+
   #---------------------------------------------------
   resolution="40km"
   folders_list=[
@@ -541,7 +541,7 @@ def blizzard_bechmarks_01_03_2013_scaling():
   cores_list=[1952, 3904, 7872]
   stdall_timers_statistics(folders_list, resolution, cores_list, days_list)
 
-  
+
   #---------------------------------------------------
   resolution="26km"
   folders_list=[
@@ -600,7 +600,7 @@ blizzard_bechmarks_01_03_2013_scaling()
 
 timersListEcham=[
 " total",
-" exch_data", 
+" exch_data",
 " echam_phy"
 ]
 
@@ -614,7 +614,7 @@ timersListRK=[
 " gw_hines_opt",
 " hdiff_expl",
 " phy2dyn",
-" exch_data" 
+" exch_data"
 ]
 
 timersListSI=[
@@ -887,7 +887,7 @@ nat_days_list=[10]*20
 #writeParallelEfficency("parallel_efficency", maxTimes, timer_total, nat_cores_list)
 
 
-# radiation distribution    
+# radiation distribution
 #distibution_folder="nat-ape_10days_104decm_1-comm_4sendrecv.2threads.32nodes.1024procs.16nproma.iconR2B06-grid.96levels"
 #writeTimerProcsDistribution("32nodes_min_radiaton_comp",  distibution_folder, "timer.atmo.", " radiaton_comp ", minTimeIndex)
 #writeTimerProcsDistribution("32nodes_mean_radiaton_comp", distibution_folder, "timer.atmo.", " radiaton_comp ", meanTimeIndex)
@@ -921,7 +921,7 @@ nat_days_list=[10]*20
 #nat_cores_list=[1216, 2432, 4864 ]
 #---------------------------------------------------------------
 
-    
+
 #---------------------------------------------------------------
 # R2B06, 40km
 #nat_folders_list=[
@@ -932,7 +932,7 @@ nat_days_list=[10]*20
 #]
 #nat_cores_list=[1024, 2048, 4096, 7808 ]
 
-# radiation distribution    
+# radiation distribution
 #distibution_folder="nat-ape_10days_104decm_1-comm_4sendrecv.2threads.32nodes.1024procs.16nproma.iconR2B06-grid.96levels"
 #writeTimerProcsDistribution("32nodes_min_radiaton_comp",  distibution_folder, "timer.atmo.", " radiaton_comp ", minTimeIndex)
 #writeTimerProcsDistribution("32nodes_mean_radiaton_comp", distibution_folder, "timer.atmo.", " radiaton_comp ", meanTimeIndex)
@@ -987,7 +987,7 @@ print "Max of max ", timerName, ": ", mTime, mProc
 writeTimerProcsDistribution("2nodes_min_radiaton_comp",  distibution_folder, timerFilePrefix, timerName, minTimeIndex)
 writeTimerProcsDistribution("2nodes_mean_radiaton_comp",  distibution_folder, timerFilePrefix, timerName, meanTimeIndex)
 writeTimerProcsDistribution("2nodes_max_radiaton_comp",  distibution_folder, timerFilePrefix, timerName, maxTimeIndex)
- 
+
 
 sys.exit()
 
@@ -1203,7 +1203,7 @@ sys.exit()
 
 #processFolderList("nat.16mpi_procs_4threads",
   #FoldersList_nat_16mpi_procs_4threads, nodesList_default,  days_base_2, timerTotal, totalTimeIndex, plotYearScaling )
- 
+
 
 #processFolderList("ssprk_5_4.16mpi_procs_4threads",
   #FoldersList_ssprk_16mpi_procs_4threads, nodesList_default, days_base_2, timerTotal, totalTimeIndex, plotYearScaling )
@@ -1219,10 +1219,9 @@ sys.exit()
 
 #processFolderList("si.16mpi_procs_4threads",
   #FoldersList_si_16mpi_procs_4threads, nodesList_60, days_base_5, timersList, totalTimeIndex )
- 
+
 #processFolderList("nat.16mpi_procs_4threads",
   #FoldersList_nat_16mpi_procs_4threads, nodesList_default,  days_base_2, timersList, totalTimeIndex )
- 
+
 #processFolderList("compareCalls",
   #FoldersList_compare_calls, nodesList_compare, days_compare, timerExchData, totalCallIndex )
-

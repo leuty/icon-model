@@ -16,9 +16,9 @@ MODULE mo_art_config
   USE mo_kind,                 ONLY: wp
   USE mo_impl_constants,       ONLY: max_dom
   USE mo_impl_constants,       ONLY: MAX_CHAR_LENGTH
-  
+
   IMPLICIT NONE
-  
+
   PRIVATE
 
   PUBLIC :: nart_tendphy
@@ -36,16 +36,16 @@ MODULE mo_art_config
   INTEGER, PARAMETER  :: npreslay      = 7   !Number of pressure layers for diagnostic output of maximum concentration
   INTEGER, PARAMETER  :: IART_PATH_LEN = 200 !Maximum length of file- and pathnames
 
-  INTEGER             :: nart_tendphy  = 0  !Maximum number of tracers that are effected by deep convective transport 
-  
-  
+  INTEGER             :: nart_tendphy  = 0  !Maximum number of tracers that are effected by deep convective transport
+
+
   TYPE t_art_config ! Namelist variables for ART
-    
+
     ! Namelist variables
-    
+
     ! General control variables (Details: cf. Tab. 2.2 ICON-ART User Guide)
     CHARACTER(LEN=IART_PATH_LEN) :: &
-      &  cart_input_folder               !< Absolute Path to ART input files 
+      &  cart_input_folder               !< Absolute Path to ART input files
     INTEGER :: iart_ntracer              !< number of transported ART tracers
     INTEGER :: iart_init_aero            !< Initialization of aerosol species
     INTEGER :: iart_init_gas             !< Initialization of gaseous species
@@ -58,10 +58,10 @@ MODULE mo_art_config
     LOGICAL :: lart_pntSrc               !< Enables point sources
     LOGICAL :: lart_excl_end_pntSrc      !< Main switch to exclude endTime from active time interval of point sources
     LOGICAL :: lart_emiss_turbdiff       !< Switch if emission should be included as surface flux condition
-    CHARACTER(LEN=20) :: cart_io_suffix  !< user given suffix instead of automatically generated grid number 
-                                         !  in ICON-ART input filename convention: 
+    CHARACTER(LEN=20) :: cart_io_suffix  !< user given suffix instead of automatically generated grid number
+                                         !  in ICON-ART input filename convention:
                                          !  ART_iconR<n>B<kk>-grid-<yyyy-mm-dd-hh>_<grid_suffix>.nc
-    
+
     ! Atmospheric Chemistry (Details: cf. Tab. 2.3 ICON-ART User Guide)
     LOGICAL :: lart_chem               !< Main switch to enable chemistry
     LOGICAL :: lart_chemtracer         !< switch for parametrised tracers
@@ -118,7 +118,7 @@ MODULE mo_art_config
       &  cart_radioact_file            !< Absolute path + filename of input file for radioactive emissions
     INTEGER :: iart_pollen             !< Treatment of pollen
     INTEGER :: iart_modeshift          !< Doing mode shift (only temporary switch for debug)
-    
+
     ! Feedback processes (Details: cf. Tab. 2.5 ICON-ART User Guide)
     INTEGER :: iart_aci_warm           !< Nucleation of aerosol to cloud droplets
     INTEGER :: iart_aci_cold           !< Nucleation of aerosol to cloud ice
@@ -138,13 +138,13 @@ MODULE mo_art_config
 
     ! Fast Physics Processes (Details: cf. Tab. 2.6 ICON-ART User Guide)
     LOGICAL :: lart_conv               !< Convection of aerosol (TRUE/FALSE)
-    INTEGER :: nconv_tracer            !< number of tracers in convection 
+    INTEGER :: nconv_tracer            !< number of tracers in convection
     LOGICAL :: lart_turb               !< Turbulent diffusion of aerosol (TRUE/FALSE)
     INTEGER :: nturb_tracer            !< number of tracers in turbulence
 
     ! Write DEBUG-Restartfile
     LOGICAL :: lart_debugRestart
-    
+
     ! Time interval over which maximum of air concentration of radionuclides is taken
     REAL(wp):: radioact_maxtint
 
@@ -163,17 +163,17 @@ CONTAINS
   !>
   !! setup components of ICON-ART depending on this namelist
   !!
-  !! Setup of additional ICON-ART control variables depending on the 
-  !! art-NAMELIST and potentially other namelists. This routine is 
-  !! called, after all namelists have been read and a synoptic consistency 
+  !! Setup of additional ICON-ART control variables depending on the
+  !! art-NAMELIST and potentially other namelists. This routine is
+  !! called, after all namelists have been read and a synoptic consistency
   !! check has been done.
   !!
   SUBROUTINE configure_art(jg)
-    INTEGER, INTENT(IN) :: jg          !< patch 
+    INTEGER, INTENT(IN) :: jg          !< patch
 
     art_config(jg)%nconv_tracer=0
     art_config(jg)%nturb_tracer=0
- 
+
   END SUBROUTINE configure_art
 
 

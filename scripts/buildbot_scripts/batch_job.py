@@ -8,8 +8,9 @@
 # See LICENSES/ for license information
 # SPDX-License-Identifier: BSD-3-Clause
 # ---------------------------------------------------------------
-from abc import ABC, abstractmethod
 import subprocess
+from abc import ABC, abstractmethod
+
 
 class BatchJob(ABC):
     def __init__(self, cmd, cwd):
@@ -42,10 +43,10 @@ class BatchJob(ABC):
 
     def failed(self):
         # this only makes sense IF there is a returncode at all
-        if ( None == self.returncode ):
+        if None == self.returncode:
             print("This process has not yet returned any code!")
             return None
 
         _returncode = self.returncode
-        _canceled   = self.wasCanceled()
-        return ((0 != _returncode) or _canceled )
+        _canceled = self.wasCanceled()
+        return (0 != _returncode) or _canceled

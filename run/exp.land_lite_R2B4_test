@@ -17,7 +17,7 @@ author_list="Veronika Gayler, Rainer Schneck, MPIM"
 #--------------------------------------------------------------------------------------------------
 #
 # This file describes an ICON-Land offline experiment for testing.
-# - The simulation runs only for a few days, not enough for natural or antropogenic land cover changes 
+# - The simulation runs only for a few days, not enough for natural or antropogenic land cover changes
 # - The idea is however, to switch on as many proceses as possible
 #
 #--------------------------------------------------------------------------------------------------
@@ -182,20 +182,20 @@ cat > $jsbach_namelist << EOF
  dynamics_grid_filename = ${atmo_dyn_grids}
 ! l_limited_area = .FALSE. ! just to be sure
 ! vertical_grid_filename =
-! ifeedback_type = 2 ! default is 2. Als long as we use only one grid in JS4-driver this does not matter. However, later this has to be 2. 
-!                    ! 1: incremental feedback; 2: relaxation-based feedback. 
+! ifeedback_type = 2 ! default is 2. Als long as we use only one grid in JS4-driver this does not matter. However, later this has to be 2.
+!                    ! 1: incremental feedback; 2: relaxation-based feedback.
 !                    ! Note: vertical nesting requires option 2 to run numerically stable over longer time periods
 /
 &run_nml
  num_lev          = 1           ! Number of full levels for each domain. For JS4-driver we use 1.
  modelTimeStep    = "${modelTimeStep}"     ! this is dtime
  output           = 'nml'
- msg_level        = 0          ! e.g. 15. level of details report during integration 
+ msg_level        = 0          ! e.g. 15. level of details report during integration
  restart_filename = "${EXPNAME}_restart_jsbalone_<rsttime>.nc"  ! rsttime in JS4-ICON-Driver nicht vorhanden???
  activate_sync_timers = .FALSE. ! nur zum debuggen wieder auf .FALSE. setzen
  ltimer           = .TRUE.     ! monitoring the runtime of specific routines
  timers_level     = 10
-! profiling_output = 1   ! 1 ist default. 
+! profiling_output = 1   ! 1 ist default.
                         ! TIMER_MODE_AGGREGATED=1,
                         ! TIMER_MODE_DETAILED=2,
                         ! TIMER_MODE_WRITE_FILES=3
@@ -436,15 +436,15 @@ cat >> $jsbach_namelist << EOF
 ! &jsb_io_nml  ! R: von Julia: src_jsbach4/src/base/mo_jsb_io.f90 ruft auf: src_jsbach4/src/adapters/mo_jsb_io_iface.f90: SUBROUTINE read_io_namelist(filename)
 !     ! --- Experiment name ---
 !     out_expname = "${expid}"
-! 
+!
 !     read_interface_vars=.${read_interface_vars:-false}.
 !     write_interface_vars=.${write_interface_vars:-false}.
 ! /
 &io_nml
  restart_file_type= 5
- restart_write_mode = "sync"  ! Default: " " =Fallback mode. If num_restart_proc == 0 (parallel_nml), then this behaves like ”sync”, otherwise like ”async”. 
-                               ! If async is choosen, the num_restart_procs must be bigger than 0! 
-                               ! "joint procs multifile" not necessary/useful in default r2b4 setup. 
+ restart_write_mode = "sync"  ! Default: " " =Fallback mode. If num_restart_proc == 0 (parallel_nml), then this behaves like ”sync”, otherwise like ”async”.
+                               ! If async is choosen, the num_restart_procs must be bigger than 0!
+                               ! "joint procs multifile" not necessary/useful in default r2b4 setup.
 /
 EOF
 
@@ -552,9 +552,3 @@ EOF
 fi
 
 #-----------------------------------------------------------------------------
-
-
-
-
-
-

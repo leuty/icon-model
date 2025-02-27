@@ -187,7 +187,7 @@ i_endidx_in   = ptr_patch%edges%end_index(rl_end)
 ! This values will be needed to call div_lib
 i_startblk_c = ptr_patch%cells%start_block(rl_start_c)
 i_endblk_c   = ptr_patch%cells%end_block(rl_end_c)
-  
+
 i_startidx_c = ptr_patch%cells%start_index(rl_start_c)
 i_endidx_c   = ptr_patch%cells%end_index(rl_end_c)
 
@@ -195,7 +195,7 @@ i_endidx_c   = ptr_patch%cells%end_index(rl_end_c)
 i_startblk_v = ptr_patch%verts%start_block(rl_start_v)
 i_endblk_v   = ptr_patch%verts%end_block(rl_end_v)
 
-i_startidx_v = ptr_patch%verts%start_index(rl_start_v) 
+i_startidx_v = ptr_patch%verts%start_index(rl_start_v)
 i_endidx_v   = ptr_patch%verts%end_index(rl_end_v)
 
 SELECT CASE (ptr_patch%geometry_info%cell_type)
@@ -205,7 +205,7 @@ CASE (3) ! (cell_type == 3)
 CALL nabla2_vec_atmos_lib( vec_e, &
   &                        ptr_patch%edges%cell_idx, ptr_patch%edges%cell_blk, & ! require to calculate nabla2
   &                        ptr_patch%edges%vertex_idx, ptr_patch%edges%vertex_blk, & ! required to calculate nabla2
-  &                        ptr_patch%cells%edge_idx, ptr_patch%cells%edge_blk, & ! required for div_lib  
+  &                        ptr_patch%cells%edge_idx, ptr_patch%cells%edge_blk, & ! required for div_lib
   &                        ptr_patch%verts%edge_idx, ptr_patch%verts%edge_blk, & ! required for rot_vertex_lib
   &                        ptr_patch%edges%tangent_orientation, ptr_patch%edges%inv_primal_edge_length, &
   &                        ptr_patch%edges%inv_dual_edge_length, ptr_int%geofac_div, ptr_int%geofac_rot, &
@@ -403,7 +403,7 @@ i_endidx_e   = ptr_patch%edges%end_index(rl_end)
 
 CALL nabla2_scalar_lib( psi_c, ptr_patch%cells%neighbor_idx, ptr_patch%cells%neighbor_blk, &
   &                     ptr_patch%edges%cell_idx, ptr_patch%edges%cell_blk, ptr_patch%edges%inv_dual_edge_length, & ! required for grad_fd_norm_lib
-  &                     ptr_patch%cells%edge_idx, ptr_patch%cells%edge_blk, & ! required for div_lib  
+  &                     ptr_patch%cells%edge_idx, ptr_patch%cells%edge_blk, & ! required for div_lib
   &                     ptr_int%geofac_n2s, ptr_int%geofac_div, nabla2_psi_c, &
   &                     i_startblk, i_endblk, i_startidx_in, i_endidx_in, &
   &                     i_startblk_e, i_endblk_e, i_startidx_e, i_endidx_e, &

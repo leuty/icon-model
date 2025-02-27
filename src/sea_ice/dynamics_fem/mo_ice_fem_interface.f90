@@ -51,7 +51,7 @@ MODULE mo_ice_fem_interface
                                       cells2verts_scalar_seaice
   USE mo_fortran_tools,       ONLY: set_acc_host_or_device
 #ifdef _OPENACC
-  USE openacc, ONLY: acc_is_present 
+  USE openacc, ONLY: acc_is_present
 #endif
 
   IMPLICIT NONE
@@ -122,7 +122,7 @@ CONTAINS
 
     !$ACC DATA COPYIN(u_ice, v_ice) &
     !$ACC   COPY(m_ice, m_snow, a_ice, elevation, u_w, v_w, stress_atmice_x, stress_atmice_y) IF(lzacc)
- 
+
     IF (ssh_in_icedyn_type == 1) THEN  ! Fully including ssh
       IF (vert_cor_type == 1) THEN
         !$ACC KERNELS DEFAULT(PRESENT) IF(lzacc)
@@ -169,10 +169,10 @@ CONTAINS
     IF (ltimer) CALL timer_start(timer_ice_interp)
 
     ! Map scalars to vertices. Obtain: m_ice, m_snow, a_ice, elevation
-    IF (atm_pressure_included_in_icedyn) THEN 
+    IF (atm_pressure_included_in_icedyn) THEN
       CALL dbg_print('debug femIWrap: ssh_reduced' , ssh_reduced, str_module, 4, in_subset=p_patch%cells%owned)
       CALL map_icon2fem_scalar(p_patch, p_ice, ssh_reduced, lacc=lzacc)
-    ELSE 
+    ELSE
       CALL map_icon2fem_scalar(p_patch, p_ice, ssh, lacc=lzacc)
     ENDIF
 

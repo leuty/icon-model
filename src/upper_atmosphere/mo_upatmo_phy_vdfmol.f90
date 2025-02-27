@@ -71,16 +71,16 @@ CONTAINS
   !! Compute molecular diffusion
   !!
   !! Literature:
-  !! - Huang, T., Walters, S., Brasseur, G., Hauglustaine, D., and Wu, W. (1998) 
-  !!   Description of SOCRATES: A chemical dynamical radiative tow-dimensional model. 
+  !! - Huang, T., Walters, S., Brasseur, G., Hauglustaine, D., and Wu, W. (1998)
+  !!   Description of SOCRATES: A chemical dynamical radiative tow-dimensional model.
   !!   Tech. Rep. NCAR/TN-440+EDD, NCAR, Boulder, CO.
   !! - Banks, P. M., and Kockarts, G. (1973) Aeronomy. Part B, Elsevier.
   !!
-  SUBROUTINE vdf_mol(jcs, jce, kbdim, klev, ktracer, psteplen, ptvm1, ptm1, pqm1, pum1, pvm1, papm1, paphm1, grav, amu, & 
+  SUBROUTINE vdf_mol(jcs, jce, kbdim, klev, ktracer, psteplen, ptvm1, ptm1, pqm1, pum1, pvm1, papm1, paphm1, grav, amu, &
     &                ptte, pvom, pvol, pqte, opt_istartlev, opt_iendlev, opt_error)
 
     ! in/out variables
-    
+
     INTEGER,  INTENT(IN)  :: jcs, jce, kbdim, klev, ktracer
     REAL(wp), INTENT(IN)  :: psteplen                ! time step length, usually 2*delta_time
     REAL(wp), INTENT(IN)  :: ptvm1(kbdim,klev)       ! virtual temperature   [TV]
@@ -92,7 +92,7 @@ CONTAINS
     REAL(wp), INTENT(IN)  :: paphm1(kbdim,klev+1)    ! half-level pressure   [ph]
     REAL(wp), INTENT(IN)  :: grav(kbdim,klev)        ! gravity acceleration  [g]
     REAL(wp), INTENT(IN)  :: amu(kbdim,klev)         ! molar weight of air   [am]
-    
+
     REAL(wp), INTENT(OUT) :: ptte(kbdim,klev)        ! temperature tendency  [dT/dt]
     REAL(wp), INTENT(OUT) :: pvom(kbdim,klev)        ! u-velocity tendency   [du/dt]
     REAL(wp), INTENT(OUT) :: pvol(kbdim,klev)        ! v-velocity tendency   [dv/dt]
@@ -102,7 +102,7 @@ CONTAINS
     INTEGER,  OPTIONAL, INTENT(OUT) :: opt_error                  ! for optional error handling
 
     ! local variables
-    
+
     INTEGER  :: jl, jk, jtr, istartlev, iendlev, iendlevm1, istartlevp1
     REAL(wp) :: zalpha, zmalpha, ztmst, zpr, zinvpr, zinvtmst
     REAL(wp) :: zmah, zrstar, zgvh, zrhoh, zth, ztvh
@@ -118,18 +118,18 @@ CONTAINS
     REAL(wp), PARAMETER :: inv_tmelt = 1._wp / tmelt ! (tmelt=273.15_wp)
 
     !---------------------------------------------------------
-    
-    ! please do not limit range of assignment 
-    ! (e.g., ptte(jcs:jce,istartlev:iendlev) = 0._wp)), 
+
+    ! please do not limit range of assignment
+    ! (e.g., ptte(jcs:jce,istartlev:iendlev) = 0._wp)),
     ! since tendencies have attribute INTENT(OUT)
     ptte(:,:)   = 0._wp
     pvom(:,:)   = 0._wp
     pvol(:,:)   = 0._wp
     pqte(:,:,:) = 0._wp
 
-    ! we are within openMP-threading, 
+    ! we are within openMP-threading,
     ! so only rudimentary error handling is possible
-    IF (PRESENT(opt_error)) THEN 
+    IF (PRESENT(opt_error)) THEN
       opt_error       = IERR_NO
       l_present_error = .TRUE.
     ELSE
@@ -150,7 +150,7 @@ CONTAINS
       iendlev = klev
     ENDIF
 
-    IF (istartlev >= iendlev) RETURN 
+    IF (istartlev >= iendlev) RETURN
 
     istartlevp1 = istartlev + 1
     iendlevm1   = iendlev - 1
@@ -163,7 +163,7 @@ CONTAINS
       &      zlc(kbdim,istartlev:iendlev), zut(kbdim,istartlev:iendlev))
 
     !** SET PARAMETERS
-    
+
     zrstar        = argas * 1.e3_wp    ! universal gas constant 8314 J/kmol/K
     zpr           = 0.72_wp            ! Prandtl number
     zinvpr        = 1._wp / zpr
@@ -174,10 +174,10 @@ CONTAINS
     zinvmalpha_pr = zinvmalpha * zpr
     ztmst         = psteplen
     zinvtmst      = 1._wp / ztmst
-   
-    !** SET LAYERS' THICKNESS, (DYNAMIC VISCOSITY)*(pg)/(RT) 
+
+    !** SET LAYERS' THICKNESS, (DYNAMIC VISCOSITY)*(pg)/(RT)
     !   AND (DENSITY * TRACER DIFFUSION COEFF)
-    
+
     DO jk = istartlevp1, iendlev
       DO jl = jcs, jce
         zhh(jl,jk)      = 1._wp / ( papm1(jl,jk-1) - papm1(jl,jk) )
@@ -205,7 +205,7 @@ CONTAINS
 
     zlb(jcs:jce,istartlev) = zrwp(jcs:jce,istartlev) * zgmurhoh(jcs:jce,istartlevp1) * zhh(jcs:jce,istartlevp1)
     zlc(jcs:jce,istartlev) = -zlb(jcs:jce,istartlev)
-    
+
     zla(jcs:jce,iendlev) = -zrwp(jcs:jce,iendlev) * zgmurhoh(jcs:jce,iendlev) * zhh(jcs:jce,iendlev)
     zlb(jcs:jce,iendlev) = -zla(jcs:jce,iendlev)
 
@@ -228,29 +228,29 @@ CONTAINS
     !** SET MIDDLE DIAGONAL OF TRI-DIAGONAL MATRIX: zb
 
     zb(jcs:jce,istartlev:iendlev) = 1._wp - zinvpr * zalpha * zlb(jcs:jce,istartlev:iendlev)
-    
+
     !** SET RIGHT-HAND SIDE zr
-    
+
     DO jk = istartlevp1, iendlevm1
       zr(jcs:jce,jk) = zmalpha_invpr * ( zla(jcs:jce,jk) * ptm1(jcs:jce,jk-1) &
         &            + ( zinvmalpha_pr + zlb(jcs:jce,jk) ) * ptm1(jcs:jce,jk) &
-        &            + zlc(jcs:jce,jk) * ptm1(jcs:jce,jk+1) ) 
+        &            + zlc(jcs:jce,jk) * ptm1(jcs:jce,jk+1) )
     ENDDO
-    
+
     zr(jcs:jce,istartlev) = ( 1._wp + zmalpha_invpr * zlb(jcs:jce,istartlev) ) * ptm1(jcs:jce,istartlev) &
       &                   + zmalpha_invpr * zlc(jcs:jce,istartlev) * ptm1(jcs:jce,istartlevp1)
     zr(jcs:jce,iendlev)   = zmalpha_invpr * zla(jcs:jce,iendlev) * ptm1(jcs:jce,iendlevm1) &
       &                   + ( 1._wp + zmalpha_invpr * zlb(jcs:jce,iendlev) ) * ptm1(jcs:jce,iendlev)
 
     !** START OF MATRIX SOLVER (zut IS T(t+dt))
-    
+
     lerror = .FALSE.
 
     DO jl = jcs, jce
       ! avoid division by zero
       IF (ABS(zb(jl,istartlev)) < eps) THEN
         lerror = .TRUE.
-        EXIT 
+        EXIT
       ENDIF
       zbet(jl)          = zb(jl,istartlev)
       zut(jl,istartlev) = zr(jl,istartlev) / zbet(jl)
@@ -301,27 +301,27 @@ CONTAINS
     zb(jcs:jce,istartlev:iendlev) = 1._wp - zalpha * zlb(jcs:jce,istartlev:iendlev)
 
     !** SET RIGHT-HAND SIDE zr
-    
+
     DO jk = istartlevp1, iendlevm1
       zr(jcs:jce,jk) = zmalpha * ( zla(jcs:jce,jk) * pum1(jcs:jce,jk-1)    &
         &            + ( zinvmalpha + zlb(jcs:jce,jk) ) * pum1(jcs:jce,jk) &
         &            + zlc(jcs:jce,jk) * pum1(jcs:jce,jk+1) )
     ENDDO
-    
+
     zr(jcs:jce,istartlev) = ( 1._wp + zmalpha * zlb(jcs:jce,istartlev) ) * pum1(jcs:jce,istartlev) &
       &                   + zmalpha * zlc(jcs:jce,istartlev) * pum1(jcs:jce,istartlevp1)
     zr(jcs:jce,iendlev)   = zmalpha * zla(jcs:jce,iendlev) * pum1(jcs:jce,iendlevm1) &
       &                   + ( 1._wp + zmalpha * zlb(jcs:jce,iendlev) ) * pum1(jcs:jce,iendlev)
 
     !** START OF MATRIX SOLVER (zut IS u(t+dt))
-    
+
     lerror = .FALSE.
 
     DO jl = jcs, jce
       ! avoid division by zero
       IF (ABS(zb(jl,istartlev)) < eps) THEN
         lerror = .TRUE.
-        EXIT 
+        EXIT
       ENDIF
       zbet(jl)          = zb(jl,istartlev)
       zut(jl,istartlev) = zr(jl,istartlev) / zbet(jl)
@@ -366,29 +366,29 @@ CONTAINS
     !   ------------------
     !** 3: V-WIND EQUATION
     !   ------------------
-    
+
     !** SET RIGHT-HAND SIDE zr
-    
+
     DO jk = istartlevp1, iendlevm1
       zr(jcs:jce,jk) = zmalpha * ( zla(jcs:jce,jk) * pvm1(jcs:jce,jk-1)    &
         &            + ( zinvmalpha + zlb(jcs:jce,jk) ) * pvm1(jcs:jce,jk) &
         &            + zlc(jcs:jce,jk) * pvm1(jcs:jce,jk+1) )
     ENDDO
-    
+
     zr(jcs:jce,istartlev) = ( 1._wp + zmalpha * zlb(jcs:jce,istartlev) ) * pvm1(jcs:jce,istartlev) &
       &                   + zmalpha * zlc(jcs:jce,istartlev) * pvm1(jcs:jce,istartlevp1)
     zr(jcs:jce,iendlev)   = zmalpha * zla(jcs:jce,iendlev) * pvm1(jcs:jce,iendlevm1) &
       &                   + ( 1._wp + zmalpha * zlb(jcs:jce,iendlev) ) * pvm1(jcs:jce,iendlev)
-    
+
     !** START OF MATRIX SOLVER (zut IS v(t+dt))
-    
+
     lerror = .FALSE.
 
     DO jl = jcs, jce
       ! avoid division by zero
       IF (ABS(zb(jl,istartlev)) < eps) THEN
         lerror = .TRUE.
-        EXIT 
+        EXIT
       ENDIF
       zbet(jl)          = zb(jl,istartlev)
       zut(jl,istartlev) = zr(jl,istartlev) / zbet(jl)
@@ -435,15 +435,15 @@ CONTAINS
     !   --------------------
 
     !** SET RIGHT-HAND SIDE zr
-    
+
     DO jtr = 1, ktracer
 
       DO jk = istartlevp1, iendlevm1
         zr(jcs:jce,jk) = zmalpha * ( zla(jcs:jce,jk) * pqm1(jcs:jce,jk-1,jtr)    &
-          &            + ( zinvmalpha + zlb(jcs:jce,jk) ) * pqm1(jcs:jce,jk,jtr) & 
+          &            + ( zinvmalpha + zlb(jcs:jce,jk) ) * pqm1(jcs:jce,jk,jtr) &
           &            + zlc(jcs:jce,jk) * pqm1(jcs:jce,jk+1,jtr) )
       ENDDO
-      
+
       zr(jcs:jce,istartlev) = ( 1._wp + zmalpha * zlb(jcs:jce,istartlev) ) * pqm1(jcs:jce,istartlev,jtr) &
         &                   + zmalpha * zlc(jcs:jce,istartlev) * pqm1(jcs:jce,istartlevp1,jtr)
       zr(jcs:jce,iendlev)   = zmalpha * zla(jcs:jce,iendlev) * pqm1(jcs:jce,iendlevm1,jtr) &
@@ -452,24 +452,24 @@ CONTAINS
       !** START OF MATRIX SOLVER (zut IS q(t+dt))
 
       lerror = .FALSE.
-      
+
       DO jl = jcs, jce
         ! avoid division by zero
         IF (ABS(zb(jl,istartlev)) < eps) THEN
           lerror = .TRUE.
-          EXIT 
+          EXIT
         ENDIF
         zbet(jl)          = zb(jl,istartlev)
         zut(jl,istartlev) = zr(jl,istartlev) / zbet(jl)
       ENDDO  !jl
-      
+
       IF (lerror) THEN
         IF (l_present_error) opt_error = IERR_SOLVER
         RETURN
       ENDIF
-      
+
       !** DECOMPOSITION AND FORWARD SUBSTITUTION
-      
+
       OUT_Q: DO jk = istartlevp1, iendlev
         DO jl = jcs, jce
           zgam(jl,jk) = zc(jl,jk-1) / zbet(jl)
@@ -482,14 +482,14 @@ CONTAINS
           zut(jl,jk) = ( zr(jl,jk) - za(jl,jk) * zut(jl,jk-1) ) / zbet(jl)
         ENDDO  !jl
       ENDDO OUT_Q
-      
+
       IF (lerror) THEN
         IF (l_present_error) opt_error = IERR_SOLVER
         RETURN
       ENDIF
-      
+
       !** BACKSUBSTITUTION
-      
+
       DO jk = iendlevm1, istartlev, -1
         DO jl = jcs, jce
           zut(jl,jk) = zut(jl,jk) - zgam(jl,jk+1) * zut(jl,jk+1)
@@ -500,9 +500,9 @@ CONTAINS
         &                                 - pqm1(jcs:jce,istartlev:iendlev,jtr) )
 
     END DO ! ktracer
-    
+
     DEALLOCATE(zgam, zr, za, zb, zc, zla, zlb, zlc, zut)
-    
+
   END SUBROUTINE vdf_mol
-  
+
 END MODULE mo_upatmo_phy_vdfmol

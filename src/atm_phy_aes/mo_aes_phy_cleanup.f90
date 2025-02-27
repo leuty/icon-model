@@ -46,7 +46,7 @@ CONTAINS
        lany = lany .OR. (aes_phy_tc(jg)%dt_rad > dt_zero)
     END DO
     IF (lany) CALL destruct_radiation_forcing_list
-   
+
     lany=.FALSE.
     DO jg = 1,n_dom
        lany = lany .OR. (aes_phy_tc(jg)%dt_mig > dt_zero)
@@ -61,4 +61,3 @@ CONTAINS
   !-------------
 
 END MODULE mo_aes_phy_cleanup
-

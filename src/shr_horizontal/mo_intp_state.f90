@@ -346,10 +346,10 @@ SUBROUTINE allocate_int_state( ptr_patch, ptr_int)
     IF (.NOT.lsdi)  llpi         = is_variable_in_output(var_name="lpi")
     IF (.NOT.llpi)  llpim        = is_variable_in_output(var_name="lpi_max")
     IF (.NOT.llpim) lmconv       = is_variable_in_output(var_name="mconv")
-    llsc         = atm_phy_nwp_config(MAX(1,ptr_patch%id))%lstoch_expl 
+    llsc         = atm_phy_nwp_config(MAX(1,ptr_patch%id))%lstoch_expl
     llsd         = atm_phy_nwp_config(MAX(1,ptr_patch%id))%lstoch_sde
     llde         = atm_phy_nwp_config(MAX(1,ptr_patch%id))%lstoch_deep
-    
+
     ptr_int%cell_environ%is_used = lsdi .OR. llpi .OR. llpim .OR. lmconv .OR. llsc .OR. llsd .OR. llde .OR. &
                                    icpl_da_seaice >= 2 .OR. icpl_da_snowalb >= 2 .OR. lterra_urb
 
@@ -379,7 +379,7 @@ SUBROUTINE allocate_int_state( ptr_patch, ptr_int)
         &            'allocation for cell_environ%area_norm failed')
       ENDIF
 
-      ptr_int%cell_environ%nmbr_nghbr_cells(:,:) = 0 
+      ptr_int%cell_environ%nmbr_nghbr_cells(:,:) = 0
       ptr_int%cell_environ%idx(:,:,:) = 0
       ptr_int%cell_environ%blk(:,:,:) = 0
       ptr_int%cell_environ%area_norm(:,:,:) = 0.0_wp

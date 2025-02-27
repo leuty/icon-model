@@ -624,7 +624,7 @@ REAL(wp), DIMENSION(ptr_patch%geometry_info%cell_type,2)   ::  &  ! geogr. coord
 
 REAL(wp), DIMENSION(nproma,ptr_patch%nblks_c,lsq_dim_c,2) ::  &
   & z_dist_g                                ! for each cell:
-                                            ! distance vectors from control volume cell center 
+                                            ! distance vectors from control volume cell center
                                             ! to cell centers of all cells in the stencil
 
 REAL(wp), DIMENSION(ptr_patch%geometry_info%cell_type,2)   ::  &  ! lat/lon distance vector edge midpoint -> cvertex
@@ -1356,7 +1356,7 @@ TYPE(t_cartesian_coordinates) :: cc_cv, cc_cell(lsq_dim_c), cc_vert(ptr_patch%ge
 
 REAL(wp), DIMENSION(nproma,ptr_patch%nblks_c,lsq_dim_c,2) ::  &
   & z_dist_g                                ! for each cell:
-                                            ! distance vectors from control volume cell center 
+                                            ! distance vectors from control volume cell center
                                             ! to cell centers of all cells in the stencil
 
 REAL(wp), DIMENSION(ptr_patch%geometry_info%cell_type,2)   ::  &  ! lat/lon distance vector edge midpoint -> cvertex

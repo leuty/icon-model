@@ -9,11 +9,12 @@
 # SPDX-License-Identifier: BSD-3-Clause
 # ---------------------------------------------------------------
 
+import pathlib
 import subprocess
 import sys
-import pathlib
 
 from batch_job import BatchJob
+
 
 class CmdLineJob(BatchJob):
     def __init__(self, cmd, cwd):
@@ -26,17 +27,28 @@ class CmdLineJob(BatchJob):
 
     def submit(self, script):
         if len(self.parents) > 0:
-            print("Dependencies are not supported for {}-jobs".format(self.system))
+            print(
+                "Dependencies are not supported for {}-jobs".format(self.system)
+            )
             sys.exit(1)
 
         # store output as LOG-file following the buildbot nameing convention
         full_cmd = "./{}".format(script)
         with open("{}/LOG.{}.o".format(self.cwd, script), "wb") as out:
-            self.job = subprocess.Popen(full_cmd, shell=False, stdout=out, stderr=out, cwd=self.cwd, encoding="UTF-8")
+            self.job = subprocess.Popen(
+                full_cmd,
+                shell=False,
+                stdout=out,
+                stderr=out,
+                cwd=self.cwd,
+                encoding="UTF-8",
+            )
             # wait for job to finish before starting next one
             self.returncode = self.job.wait()
         # Add a symlink following the same naming conventions, but for non-generated runscrits
-        pathlib.Path("{}/LOG.{}.run.o".format(self.cwd, script)).symlink_to(pathlib.Path("{}/LOG.{}.o".format(self.cwd, script)))
+        pathlib.Path("{}/LOG.{}.run.o".format(self.cwd, script)).symlink_to(
+            pathlib.Path("{}/LOG.{}.o".format(self.cwd, script))
+        )
 
     def wasCanceled(self):
         # job cancelling leads to non-zero exit codes on the command line

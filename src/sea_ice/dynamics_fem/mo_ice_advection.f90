@@ -20,7 +20,7 @@ MODULE mo_ice_advection
   !
   USE mo_kind,                ONLY: wp
   USE mo_util_dbg_prnt,       ONLY: dbg_print
-  USE mo_exception,           ONLY: message, message_text, finish  
+  USE mo_exception,           ONLY: message, message_text, finish
   USE mo_run_config,          ONLY: dtime
   USE mo_parallel_config,     ONLY: nproma
   USE mo_sync,                ONLY: SYNC_C, SYNC_E, sync_patch_array, sync_patch_array_mult
@@ -149,7 +149,7 @@ CONTAINS
       & f3din4=p_ice%hs(:,:,:), f3din5=p_ice%hi(:,:,:))
 
 !     CALL finish('sea_ice:upwind advect','Test sync ok')
-   
+
     !---------DEBUG DIAGNOSTICS-------------------------------------------
     CALL dbg_print('ice_adv: vol ice'  , p_ice%vol , str_module, 4, in_subset=patch_2D%cells%owned)
     CALL dbg_print('ice_adv: vol snow' , p_ice%vols, str_module, 4, in_subset=patch_2D%cells%owned)
@@ -223,7 +223,7 @@ CONTAINS
           ENDIF
           ! TODO ram - remove patch_2D%cells%area(jc,jb) and test
           ! See also thermodyn/mo_sea_ice.f90
-          IF ( p_ice%conc(jc,jk,jb) > 0.0_wp) THEN 
+          IF ( p_ice%conc(jc,jk,jb) > 0.0_wp) THEN
             p_ice%hi(jc,jk,jb) = p_ice%vol (jc,jk,jb)   &
               &         /( p_ice%conc(jc,jk,jb)*patch_2D%cells%area(jc,jb) )
             p_ice%hs(jc,jk,jb) = p_ice%vols(jc,jk,jb)   &
@@ -288,7 +288,7 @@ CONTAINS
     !$ACC KERNELS DEFAULT(PRESENT) IF(lzacc)
     pupflux_e(:,:,:) = 0.0_wp
     !$ACC END KERNELS
-    
+
     IF ( PRESENT(opt_slev) ) THEN
       slev = opt_slev
     ELSE

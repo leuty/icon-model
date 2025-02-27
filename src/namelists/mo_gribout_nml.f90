@@ -507,7 +507,7 @@ CONTAINS
       CALL preset_value("localDefinitionNumber", localDefinitionNumber, 230, quiet=.TRUE.)
       ! 1: Forecast products
       CALL preset_value("typeOfProcessedData", typeOfProcessedData, 1, quiet=.TRUE.)
-      
+
     ELSE IF (TRIM(preset) == "modcomp:ensemble") THEN
       !
       ! model composition: ensemble production system
@@ -521,7 +521,7 @@ CONTAINS
       ! 192: other types of ensemble forecasts
       ! Note: atmospheric chemical constituents -> 41
       !       statistically processed data      -> 11
-      CALL preset_value("typeOfEnsembleForecast", typeOfEnsembleForecast, 192, quiet=.FALSE.) 
+      CALL preset_value("typeOfEnsembleForecast", typeOfEnsembleForecast, 192, quiet=.FALSE.)
 
     ELSE IF (LEN_TRIM(preset) > 0) THEN
       !
@@ -613,7 +613,7 @@ CONTAINS
       !-------------------
       ! Production system
       !-------------------
-      
+
       IF (typeOfGeneratingProcess == 2) THEN
         ! typeOfGeneratingProcess = 2: "Forecast"
         ! => deterministic productions system
@@ -621,13 +621,13 @@ CONTAINS
       ELSEIF (typeOfGeneratingProcess == 4) THEN
         ! typeOfGeneratingProcess = 4: "Ensemble forecast"
         ! ensemble productions system
-        localProductionSystem = 253          
+        localProductionSystem = 253
       ENDIF
 
       !-------------------
       ! Model composition
       !-------------------
-      
+
       ! Template 230 allows for 8 model components in total.
       ! Currently, we allow for 3 components at most:
       ! * localDrivingModelComponent   = 1000: "ICON-NWP" (local table 2.231.1)

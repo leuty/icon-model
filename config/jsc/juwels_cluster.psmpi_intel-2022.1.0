@@ -43,7 +43,7 @@ NETCDFF_LIBS='-lnetcdff'
 NETCDF_LIBS='-lnetcdf'
 PNETCDF_LIBS='-lpnetcdf'
 XML2_LIBS='-lxml2'
-MKL_CFLAGS='-qmkl=sequential'  
+MKL_CFLAGS='-qmkl=sequential'
 MKL_FCFLAGS='-qmkl=sequential'
 #MKL_LDFLAGS="-L${MKL_ROOT}/mkl/2022.1.0/lib/intel64 -Wl,-rpath -Wl,${MKL_ROOT}/mkl/2022.1.0/lib/intel64"
 MKL_LDFLAGS="-L${ROOT_IMKL}/mkl/2022.1.0/lib/intel64"

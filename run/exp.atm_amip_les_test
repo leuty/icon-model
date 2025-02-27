@@ -79,7 +79,7 @@ jsbach_with_lakes=yes
 jsbach_with_hd=no
 jsbach_with_carbon=yes        # yes needs jsbach_pfts usecase
 jsbach_with_alcc=no           # yes needs jsbach_pfts usecase
-alcc_scheme='maps'            # only used if jsbach_with_alcc=yes 
+alcc_scheme='maps'            # only used if jsbach_with_alcc=yes
 jsbach_check_wbal=no          # check water balance
 output_lnd=basic              # amount of output: none/basic/medium/full/all
 #
@@ -125,7 +125,7 @@ cat > ${atmo_namelist} << EOF
  ltransport       = .TRUE.      ! transport
  iforcing         = 2           ! 0: none, 1: HS, 2: ECHAM, 3: NWP
  output           = 'nml'
- msg_level        = 15          ! level of details report during integration 
+ msg_level        = 15          ! level of details report during integration
  restart_filename = "${EXPNAME}_restart_atm_<rsttime>.mfr"
  activate_sync_timers = .TRUE.
 /
@@ -657,15 +657,15 @@ if [[ "$output_aer_3d" == "yes" ]]; then
  file_interval    = "${file_interval}"
  include_last     = .FALSE.
  ml_varlist       = 'ps'          , 'pfull'       , 'zg'          ,
-                    'aer_aod_533' , 'aer_ssa_533',  'aer_asy_533' , 
-                    'aer_aod_2325', 'aer_ssa_2325', 'aer_asy_2325', 
+                    'aer_aod_533' , 'aer_ssa_533',  'aer_asy_533' ,
+                    'aer_aod_2325', 'aer_ssa_2325', 'aer_asy_2325',
                     'aer_aod_9731',
 /
 EOF
 fi
 
-# Currently, the JSBACH output_nml's need to be added to atmo_namelist, but this should 
-# eventually be handled by the jsbach_namelist file. 
+# Currently, the JSBACH output_nml's need to be added to atmo_namelist, but this should
+# eventually be handled by the jsbach_namelist file.
 # Available variable groups:
 #   jsb_all, jsb_<process>_all, jsb_all_<level>, jsb_<process>_<level>
 # where <process> is the process name and <level> is the output level (basic/medium/full)

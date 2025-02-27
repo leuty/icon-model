@@ -47,7 +47,7 @@ MODULE mo_aes_phy_config
   !! Name of this unit
   !!
   CHARACTER(LEN=*), PARAMETER :: name = 'aes_phy'
-  
+
   !>
   !! Configuration type containing parameters and switches for the configuration of the AES physics package
   !!
@@ -208,7 +208,7 @@ MODULE mo_aes_phy_config
   !!
   TYPE(t_aes_phy_config), TARGET :: aes_phy_config (max_dom)
   TYPE(t_aes_phy_tc)    , TARGET :: aes_phy_tc     (max_dom)
-  
+
   !>
   !! Events and event group
   !!

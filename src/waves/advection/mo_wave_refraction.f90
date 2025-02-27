@@ -116,7 +116,7 @@ CONTAINS
               tsihkd(jc) = (pi2 * wc%freqs(jf))/SINH(2.0_wp*akd)
             ELSE
               tsihkd(jc) = 0.0_wp
-            END IF 
+            END IF
           ENDDO
 
           DO jd = 1,wc%ndirs

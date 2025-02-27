@@ -50,7 +50,7 @@ MODULE mo_limarea_config
 
   !>
   !!----------------------------------------------------------------------------
-  !! Derived type containing control variables specific to the nonhydrostatic 
+  !! Derived type containing control variables specific to the nonhydrostatic
   !! atm model
   !------------------------------------------------------------------------
   TYPE t_latbc_config
@@ -66,7 +66,7 @@ MODULE mo_limarea_config
     LOGICAL                         :: nudge_hydro_pres    ! use hydrostatic pressure for lateral boundary nudging
 
     ! factor for pressure bias correction of latbc data
-    REAL(wp)                        :: fac_latbc_presbiascor 
+    REAL(wp)                        :: fac_latbc_presbiascor
 
     ! if LatBC data is unavailable: number of retries
     INTEGER                         :: nretries
@@ -76,7 +76,7 @@ MODULE mo_limarea_config
 
     ! dictionary which maps internal variable names onto GRIB2
     ! shortnames or NetCDF var names used in lateral boundary nudging.
-    CHARACTER(LEN=filename_max)     :: latbc_varnames_map_file  
+    CHARACTER(LEN=filename_max)     :: latbc_varnames_map_file
 
     !
     ! settings derived from the namelist parameters above:
@@ -97,7 +97,7 @@ CONTAINS
 
   SUBROUTINE configure_latbc()
   !--------------------------------------------------------------------------------------
-  !  Set up parameters 
+  !  Set up parameters
   !--------------------------------------------------------------------------------------
     CHARACTER(*), PARAMETER :: routine = &
       "mo_limarea_config::configure_latbc"
@@ -136,7 +136,7 @@ CONTAINS
        CALL message(TRIM(routine),message_text)
     ENDIF
 
-  
+
   END SUBROUTINE configure_latbc
   !--------------------------------------------------------------------------------------
 
@@ -153,7 +153,7 @@ CONTAINS
     CHARACTER(MAX_CHAR_LENGTH), PARAMETER       :: routine = modname//'::generate_filename'
     TYPE (t_keyword_list), POINTER              :: keywords => NULL()
     CHARACTER(MAX_CHAR_LENGTH)                  :: str
-    
+
     WRITE(str,'(i4)')   latbc_mtime%date%year
     CALL associate_keyword("<y>",         TRIM(str),                        keywords)
     WRITE(str,'(i2.2)') latbc_mtime%date%month
@@ -166,12 +166,12 @@ CONTAINS
     CALL associate_keyword("<min>",       TRIM(str),                        keywords)
     WRITE(str,'(i2.2)') latbc_mtime%time%second !FLOOR(latbc_mtime%time%second)
     CALL associate_keyword("<sec>",       TRIM(str),                        keywords)
-      
+
     CALL associate_keyword("<nroot>",     TRIM(int2string(nroot,'(i1)')),   keywords)
     CALL associate_keyword("<nroot0>",    TRIM(int2string(nroot,'(i2.2)')), keywords)
     CALL associate_keyword("<jlev>",      TRIM(int2string(jlev, '(i2.2)')), keywords)
     CALL associate_keyword("<dom>",       TRIM(int2string(1,'(i2.2)')),     keywords)
-    
+
     IF (PRESENT(opt_mtime_begin)) THEN
       CALL associate_keyword("<ddhhmmss>", &
         &                    TRIM(mtime_utils%ddhhmmss(opt_mtime_begin, latbc_mtime, FMT_DDHHMMSS)), &

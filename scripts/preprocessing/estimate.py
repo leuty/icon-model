@@ -12,7 +12,9 @@
 # ---------------------------------------------------------------
 
 #------------------------------------------------------------------------------
-import getopt, sys, math
+import getopt
+import math
+import sys
 
 #"R<grid_refine_root>B<grid_refine_level>
 
@@ -46,7 +48,7 @@ def display_thread_load(message, entities, threads, block_size):
     #blocks_total_cell = round(domain_cells  / nproma)
     #blocks_own_edges  = round(owned_edges   / nproma)
     #blocks_own_verts  = round(owned_verts   / nproma)
-  
+
   blocks = (entities / block_size )
   blocks_per_thread = blocks / threads
   blocks_i = round(blocks + 0.25)
@@ -254,11 +256,11 @@ peta = kilo * tera
 size_per_3dvar = (gridpoints*levels*bytesize)/giga
 size_per_step  = (gridpoints*fields*levels*bytesize)/giga
 size_per_day = size_per_step * 4.0 # assuming output every six hours
-size_per_year = size_per_day * 365.0 # 
+size_per_year = size_per_day * 365.0 #
 
 print "Model output estimate:"
 print " - grid points per variable and level:     %10d" % gridpoints
 print " - size per variable and horizontal slice: %10.3f gb" % size_per_3dvar
-print " - size per output time:                   %10.3f gb" % size_per_step  
-print " - size per output day:                    %10.3f gb" % size_per_day  
+print " - size per output time:                   %10.3f gb" % size_per_step
+print " - size per output day:                    %10.3f gb" % size_per_day
 print " - size per output year:                   %10.3f gb" % size_per_year

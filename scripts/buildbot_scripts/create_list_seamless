@@ -66,4 +66,3 @@ $addexp checksuite.nwp/nwpexp.run_ICON_26_R2B4_R2B6_AO-HD_coupled --builders dwd
 #lets see the list
 ./lslist $listname
 #-----------------------------------------------------------
-

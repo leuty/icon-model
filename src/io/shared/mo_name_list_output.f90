@@ -961,7 +961,7 @@ CONTAINS
       CALL MPI_Win_unlock(p_pe_work, of%mem_win%mpi_win_metainfo, mpierr)
 #endif
     END IF
- 
+
 
     IF (participate_in_async_io) THEN
 #ifdef NO_ASYNC_IO_RMA
@@ -1408,7 +1408,7 @@ CONTAINS
       CALL finish(routine,message_text)
     END SELECT
 
-    
+
 
     IF      (ASSOCIATED(r_ptr_5d)) THEN
       !$ACC UPDATE HOST(r_ptr) ASYNC(1) IF(lacc .AND. acc_is_present(r_ptr))
@@ -2980,7 +2980,7 @@ CONTAINS
 #ifdef NO_ASYNC_IO_RMA
     ! Get message from p_pe_work==0
     call mpi_recv(bufr_metainfo, size(bufr_metainfo), p_int, 0, 1103 + file_idx, &
-        p_comm_work_io, MPI_STATUS_IGNORE, mpierr)    
+        p_comm_work_io, MPI_STATUS_IGNORE, mpierr)
 #else ! ASYNC_IO_RMA
     ! Receive metadata from PE0
     CALL MPI_Win_lock(MPI_LOCK_SHARED, 0, MPI_MODE_NOCHECK, of%mem_win%mpi_win_metainfo, mpierr)
@@ -2993,7 +2993,7 @@ CONTAINS
     ! Go over all name list variables for this output file
 
     ioff(:) = 0_MPI_ADDRESS_KIND
-#ifdef NO_ASYNC_IO_RMA    
+#ifdef NO_ASYNC_IO_RMA
     ! For RMA, the window is locked to access the remote memory
     ! Here, we receive all the data that has been sent by the work PEs
     max_win_mem_size = recv_buffer_max_sizes(file_idx)
@@ -3141,7 +3141,7 @@ CONTAINS
           !handle request pool
           req_next = req_next + 1
           req_rampup = req_rampup .AND. req_next <= req_pool_size
-        
+
 #ifdef NO_ASYNC_IO_RMA
           ! Copy data from the receive buffer into the correct variables used by RMA
           ! FIXME: This is inefficient
@@ -3322,7 +3322,7 @@ CONTAINS
 
     DEALLOCATE(bufr_metainfo, STAT=ierrstat)
     IF (ierrstat /= SUCCESS) CALL finish (routine, 'DEALLOCATE failed.')
- 
+
 #ifdef NO_ASYNC_IO_RMA
     ! Deallocate buffers used to receive data
     IF (use_dp_mpi2io) THEN
@@ -3333,7 +3333,7 @@ CONTAINS
         IF (ierrstat /= SUCCESS) CALL finish (routine, 'DEALLOCATE failed.')
     END IF
 #endif
- 
+
   END SUBROUTINE io_proc_write_name_list
 #endif
 
@@ -3601,7 +3601,7 @@ CONTAINS
     DO i = 1, SIZE(output_file)
       IF (output_file(i)%name_list%filetype == FILETYPE_NONE) CYCLE
 #ifdef NO_ASYNC_IO_RMA
-      ! Make sure the buffer can be deallocated 
+      ! Make sure the buffer can be deallocated
       ! Wait on latest requests
       call p_wait(req_send_metainfo(i))
       call p_wait(req_send_data(i))

@@ -43,7 +43,7 @@ MODULE mo_upatmo_extdat
 CONTAINS
 
   !>
-  !! Update external data for the upper atmosphere 
+  !! Update external data for the upper atmosphere
   !! under NWP forcing.
   !!
   SUBROUTINE update_upatmo_extdat_nwp( mtime_datetime,    &  !in
@@ -78,7 +78,7 @@ CONTAINS
     INTEGER  :: istartlev_chemheat, iendlev_chemheat
     INTEGER  :: jlat, jlev, jk, jb, jc, jgas
     INTEGER  :: rl_start, rl_end
-    INTEGER  :: i_startblk, i_endblk 
+    INTEGER  :: i_startblk, i_endblk
     INTEGER  :: i_startidx, i_endidx
     INTEGER  :: istat
 
@@ -89,54 +89,54 @@ CONTAINS
 
     CHARACTER(LEN=*), PARAMETER ::  &
       &  routine = modname//':update_upatmo_extdat_nwp'
-    
+
     !--------------------------------------------------------------
 
     ! Some notes:
     !
-    ! * For the time being, all external data for the upper atmosphere 
+    ! * For the time being, all external data for the upper atmosphere
     !   under NWP forcing are monthly mean values, which we have to interpolate.
-    !   The interpolation procedure is the same for chemical heating tendencies 
-    !   and the various radiatively active gases, so that its outsourcing 
-    !   into a separate subroutine might stand to reason. 
-    !   Nevertheless, we think that the accompanied tightening up of the code 
-    !   does not yet outweigh the loss in performance due to potentially several 
+    !   The interpolation procedure is the same for chemical heating tendencies
+    !   and the various radiatively active gases, so that its outsourcing
+    !   into a separate subroutine might stand to reason.
+    !   Nevertheless, we think that the accompanied tightening up of the code
+    !   does not yet outweigh the loss in performance due to potentially several
     !   invocations of that subroutine.
-    ! 
-    ! * The time resolution of the external data is monthly, 
+    !
+    ! * The time resolution of the external data is monthly,
     !   so the only reason to choose a shorter time scale
-    !   for the update period of their time interpolation is 
-    !   to avoid too strong jumps. 
-    !   An update period on the order of a day may be recommendable. 
+    !   for the update period of their time interpolation is
+    !   to avoid too strong jumps.
+    !   An update period on the order of a day may be recommendable.
     !   Any shorter period is probably a wast of computational resources.
     !
-    ! * The interpolation in time is a conceptual copy of 
+    ! * The interpolation in time is a conceptual copy of
     !   'src/shr_horizontal/mo_ext_data_init: interpol_monthly_mean'
     !
-    ! * If we denote the number of horizontal and vertical grid points 
-    !   of the external data by m and n, 
-    !   and the number of horizontal and vertical grid points of ICON 
-    !   by M and N, and assume that m > n, M > N, M > m and N > n, 
-    !   the following interpolation order should come along with 
+    ! * If we denote the number of horizontal and vertical grid points
+    !   of the external data by m and n,
+    !   and the number of horizontal and vertical grid points of ICON
+    !   by M and N, and assume that m > n, M > N, M > m and N > n,
+    !   the following interpolation order should come along with
     !   the least number of operations:
-    !   
+    !
     !   time  ->  vertical  ->  horizontal.
     !
     !   But this depends crucially on the above assumptions.
     !
-    ! * Currently, external chemical heating tendencies are provided 
-    !   on geometric heights, so we can do the vertical interpolation 
-    !   onto the geometric heights of the ICON grid once here 
+    ! * Currently, external chemical heating tendencies are provided
+    !   on geometric heights, so we can do the vertical interpolation
+    !   onto the geometric heights of the ICON grid once here
     !   and that interpolation is valid until the next call of this subroutine.
-    ! 
-    ! * Currently, external gas data are provided on pressure levels. 
-    !   Their geometric vertical position may change 
-    !   more or less strongly from time t to t + dt_fastphy. 
-    !   Typically, the update period for the time interpolation 
-    !   of the external data is much too long 
-    !   to resolve this variation appropriately. 
-    !   This is the reason, why the vertical interpolation 
-    !   of the external gas data is not done here, 
+    !
+    ! * Currently, external gas data are provided on pressure levels.
+    !   Their geometric vertical position may change
+    !   more or less strongly from time t to t + dt_fastphy.
+    !   Typically, the update period for the time interpolation
+    !   of the external data is much too long
+    !   to resolve this variation appropriately.
+    !   This is the reason, why the vertical interpolation
+    !   of the external gas data is not done here,
     !   but in 'src/upper_atmosphere/mo_upatmo_phy_diag: update_diagnostic_variables'.
 
     ! Domain index
@@ -161,9 +161,9 @@ CONTAINS
     mtime_hour = mtime_datetime
     mtime_hour%time%minute = 0
     mtime_hour%time%second = 0
-    mtime_hour%time%ms     = 0     
+    mtime_hour%time%ms     = 0
     time_intrpl = calculate_time_interpolation_weights(mtime_hour)
-    
+
     !---------------------------------------------------------------------
     !                        Update external data:
     !                     Chemical heating tendencies
@@ -177,7 +177,7 @@ CONTAINS
       iendlat   = prm_upatmo_extdat%chemheat%iendlat
       isteplat  = prm_upatmo_extdat%chemheat%isteplat
       istartlev = prm_upatmo_extdat%chemheat%istartlev
-      iendlev   = prm_upatmo_extdat%chemheat%iendlev 
+      iendlev   = prm_upatmo_extdat%chemheat%iendlev
       isteplev  = prm_upatmo_extdat%chemheat%isteplev
 
       ! Set some convenience pointers:
@@ -206,7 +206,7 @@ CONTAINS
         &       STAT=istat                             )
       IF(istat /= SUCCESS) CALL finish(routine, 'Allocation of ext_intrpl_time/lev failed.')
 
-      ! Currently, the value of 'nlev_ext' is not very large, 
+      ! Currently, the value of 'nlev_ext' is not very large,
       ! so we might not yet profit from parallelizing the vertical loop
       DO jlev = istartlev, iendlev, isteplev
         DO jlat = istartlat, iendlat, isteplat
@@ -221,9 +221,9 @@ CONTAINS
       ! Vertical interpolation
       !------------------------
 
-      ! Please note that the vertical interpolation is onto 
-      ! the nominal grid layer heights, not onto the actual heights 
-      ! of the grid cells for reasons mentioned in 
+      ! Please note that the vertical interpolation is onto
+      ! the nominal grid layer heights, not onto the actual heights
+      ! of the grid cells for reasons mentioned in
       ! 'src/upper_atmosphere/mo_upatmo_extdat_state: construct_upatmo_extdat_nwp'.
 
       DO jk = 1, nlev
@@ -240,8 +240,8 @@ CONTAINS
       ! Horizontal interpolation
       !--------------------------
 
-      ! Start level above which and end level 
-      ! below which temperature tendencies 
+      ! Start level above which and end level
+      ! below which temperature tendencies
       ! from chemical heating are set to zero.
       istartlev_chemheat = upatmo_config%nwp_phy%prc( iUpatmoPrcId%chemheat )%istartlev
       iendlev_chemheat   = upatmo_config%nwp_phy%prc( iUpatmoPrcId%chemheat )%iendlev
@@ -255,31 +255,31 @@ CONTAINS
 !$OMP PARALLEL
 !$OMP DO PRIVATE(jb, jk, jc, i_startidx, i_endidx) ICON_OMP_GUIDED_SCHEDULE
       DO jb = i_startblk, i_endblk
-        
+
         CALL get_indices_c(p_patch, jb, i_startblk, i_endblk, i_startidx, i_endidx, rl_start, rl_end)
-        
+
         DO jk = 1, istartlev_chemheat - 1
-          DO jc = i_startidx, i_endidx      
+          DO jc = i_startidx, i_endidx
             intrpl_rslt(jc,jk,jb) = 0._wp
           ENDDO  !jc
         ENDDO  !jk
-        
+
         DO jk = istartlev_chemheat, iendlev_chemheat
-          DO jc = i_startidx, i_endidx      
+          DO jc = i_startidx, i_endidx
             intrpl_rslt(jc,jk,jb) = wgt_lat1(jc,jb) * ext_intrpl_lev(ilat1(jc,jb),jk) &
               &                   + wgt_lat2(jc,jb) * ext_intrpl_lev(ilat2(jc,jb),jk)
           ENDDO  !jc
         ENDDO  !jk
-        
+
         DO jk = iendlev_chemheat + 1, nlev
-          DO jc = i_startidx, i_endidx      
+          DO jc = i_startidx, i_endidx
             intrpl_rslt(jc,jk,jb) = 0._wp
           ENDDO  !jc
-        ENDDO  !jk        
+        ENDDO  !jk
       ENDDO  !jb
 !$OMP END DO
-!$OMP END PARALLEL      
-      
+!$OMP END PARALLEL
+
       !----------
       ! Clean-up
       !----------
@@ -317,7 +317,7 @@ CONTAINS
         iendlat   = prm_upatmo_extdat%gas( jgas )%iendlat
         isteplat  = prm_upatmo_extdat%gas( jgas )%isteplat
         istartlev = prm_upatmo_extdat%gas( jgas )%istartlev
-        iendlev   = prm_upatmo_extdat%gas( jgas )%iendlev 
+        iendlev   = prm_upatmo_extdat%gas( jgas )%iendlev
         isteplev  = prm_upatmo_extdat%gas( jgas )%isteplev
 
         ext_data_time1 => prm_upatmo_extdat%gas( jgas )%data(:,:,time_intrpl%month1)
@@ -352,35 +352,35 @@ CONTAINS
         !--------------------------
         ! Horizontal interpolation
         !--------------------------
-        
+
         ! Loop boundaries for prognostic domain.
         rl_start   = grf_bdywidth_c + 1
         rl_end     = min_rlcell_int
         i_startblk = p_patch%cells%start_block(rl_start)
         i_endblk   = p_patch%cells%end_block(rl_end)
-        
+
 !$OMP DO PRIVATE(jb, jlev, jc, i_startidx, i_endidx) ICON_OMP_GUIDED_SCHEDULE
         DO jb = i_startblk, i_endblk
-          
+
           CALL get_indices_c(p_patch, jb, i_startblk, i_endblk, i_startidx, i_endidx, rl_start, rl_end)
-          
+
           DO jlev = istartlev, iendlev, isteplev
-            DO jc = i_startidx, i_endidx      
+            DO jc = i_startidx, i_endidx
               intrpl_rslt(jc,jlev,jb) = wgt_lat1(jc,jb) * ext_intrpl_time(ilat1(jc,jb),jlev) &
                 &                     + wgt_lat2(jc,jb) * ext_intrpl_time(ilat2(jc,jb),jlev)
             ENDDO  !jc
           ENDDO  !jlev
         ENDDO  !jb
 !$OMP END DO NOWAIT
-!$OMP END PARALLEL      
-        
+!$OMP END PARALLEL
+
         !----------
         ! Clean-up
         !----------
 
 
         NULLIFY(ilat1, ilat2, wgt_lat1, wgt_lat2, ext_data_time1, ext_data_time2, intrpl_rslt)
-        
+
       ENDDO  !jgas
 
       DEALLOCATE(ext_intrpl_time, STAT=istat)

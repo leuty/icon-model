@@ -47,29 +47,29 @@ MODULE mo_upatmo_flowevent_utils
   !====================================================================================
 
   ! For a restart:
-  ! The procedure to transfer metadata to the restart file is extremely complex. 
-  ! We were not yet able to deduce how to use it correctly 
+  ! The procedure to transfer metadata to the restart file is extremely complex.
+  ! We were not yet able to deduce how to use it correctly
   ! (let alone how it works). With the following type and subroutines,
-  ! we try to emulate examples of usage in 'src/io/restart' 
+  ! we try to emulate examples of usage in 'src/io/restart'
   ! in the hope that we obtain a sufficent result.
 
-  ! All attemps to make direct use of src/upper_atmosphere/mo_upatmo_utils: t_varstate_set 
-  ! for tendStateSet in t_upatmoRestartAttributes below were unsuccessful 
-  ! (e.g., t_PackedMessage raised trouble). So we had no choice but to explicitly repeat 
-  ! the content of t_varstate_set in t_upatmoRestartAttributes 
+  ! All attemps to make direct use of src/upper_atmosphere/mo_upatmo_utils: t_varstate_set
+  ! for tendStateSet in t_upatmoRestartAttributes below were unsuccessful
+  ! (e.g., t_PackedMessage raised trouble). So we had no choice but to explicitly repeat
+  ! the content of t_varstate_set in t_upatmoRestartAttributes
   ! and in all subroutines below.
 
-  ! Important: if more than one nest is used, 
+  ! Important: if more than one nest is used,
   ! some seemingly arbitrary entries of upatmoRestartAttributes%tendStateSet_...
-  ! are no longer written to the restart files. 
-  ! We were not yet able to identify the reason for that. 
+  ! are no longer written to the restart files.
+  ! We were not yet able to identify the reason for that.
   ! Since the restart infrastructure is far too complicated
-  ! to figure out a workaround, we cannot apply a restart 
-  ! for upatmoRestartAttributes%tendStateSet_... of domains with index jg > 2, 
+  ! to figure out a workaround, we cannot apply a restart
+  ! for upatmoRestartAttributes%tendStateSet_... of domains with index jg > 2,
   ! but have to fall back on the "cold start" initialization.
   ! I.e. simulations with n_dom > 2 are not restart-safe!
 
-  ! Please note: if the content of an instance of t_upatmoRestartAttributes 
+  ! Please note: if the content of an instance of t_upatmoRestartAttributes
   ! is allocated, no explicit deallocation takes place in most cases.
 
   TYPE :: t_upatmoRestartAttributes
@@ -130,7 +130,7 @@ CONTAINS !......................................................................
     &                                        upatmoRestartAttributes, & !inout
     &                                        prm_upatmo,              & !inout
     &                                        mtime_current            ) !in
-    
+
     ! In/out variables
     INTEGER,                         INTENT(IN)    :: jg
     TYPE(t_upatmoRestartAttributes), INTENT(INOUT) :: upatmoRestartAttributes
@@ -155,19 +155,19 @@ CONTAINS !......................................................................
     IF (lmessage) CALL message(routine, &
       & 'Start preparation of metadata for restart file on domain '//domStr)
 
-    ! If the current simulation is a multi-domain application, 
-    ! the argument upatmoRestartAttributes may have been used several times 
+    ! If the current simulation is a multi-domain application,
+    ! the argument upatmoRestartAttributes may have been used several times
     ! on the invocation site. So we should deallocate its content, if required.
     CALL upatmoRestartAttributesDeallocate(upatmoRestartAttributes)
-    
-    ! Event management object: get elapsed time since last trigger date 
+
+    ! Event management object: get elapsed time since last trigger date
     CALL upatmo_config(jg)%nwp_phy%event_mgmt_grp%serialize(mtime_current, &
       & upatmoRestartAttributes%elapsedTimePhy                             )
     CALL upatmo_config(jg)%nwp_phy%event_mgmt_extdat%serialize(mtime_current, &
       & upatmoRestartAttributes%elapsedTimeExtdat                             )
-    
-    ! The restart mechanism can only be applied to upatmoRestartAttributes%tendStateSet_... for jg < 3. 
-    ! For jg >= 3, seemingly arbitrary entries of upatmoRestartAttributes%tendStateSet_... are missing 
+
+    ! The restart mechanism can only be applied to upatmoRestartAttributes%tendStateSet_... for jg < 3.
+    ! For jg >= 3, seemingly arbitrary entries of upatmoRestartAttributes%tendStateSet_... are missing
     ! from the attribute lists of the restart files for not yet identified reasons.
     IF (jg <= domRestartLimit) THEN
 
@@ -190,7 +190,7 @@ CONTAINS !......................................................................
         &       STAT=istat                                                     )
       IF(istat /= SUCCESS) CALL finish(routine, &
         & 'Allocation of upatmoRestartAttributes%tendStateSet... failed')
-      
+
       DO i = 1, nsize
         tendStateSet = prm_upatmo%tend%ddt%state(i)%getSet(optWhichSet="set4use")
         upatmoRestartAttributes%tendStateSet_i_old(i)             = tendStateSet%i_old
@@ -218,8 +218,8 @@ CONTAINS !......................................................................
   !***************************************************************
 
   !>
-  !! This subroutine is a structural copy of  
-  !! src/io/restart/mo_restart_patch_description: restartPatchDescription_packer, 
+  !! This subroutine is a structural copy of
+  !! src/io/restart/mo_restart_patch_description: restartPatchDescription_packer,
   !! from where it is called.
   !!
   SUBROUTINE upatmoRestartAttributesPack( jg,                      & !in
@@ -406,7 +406,7 @@ CONTAINS !......................................................................
   SUBROUTINE upatmoRestartAttributesGet( jg,           & !in
     &                                    prm_upatmo,   & !inout
     &                                    mtime_current ) !in
-    
+
     ! In/out variables
     INTEGER,                 INTENT(IN)    :: jg
     TYPE(t_upatmo),          INTENT(INOUT) :: prm_upatmo
@@ -438,14 +438,14 @@ CONTAINS !......................................................................
     ! Event management object
     CALL upatmo_config(jg)%nwp_phy%event_mgmt_grp%deserialize(mtime_current, optAttnamePrefix=keyStrElapsedTimePhy)
     CALL upatmo_config(jg)%nwp_phy%event_mgmt_extdat%deserialize(mtime_current, optAttnamePrefix=keyStrElapsedTimeExtdat)
-        
+
     ! State of accumulative tendencies
     CALL getAttributesForRestarting(restartAttributes)
 
-    ! If src/configure_model/mo_master_config: isRestart() => .FALSE., 
+    ! If src/configure_model/mo_master_config: isRestart() => .FALSE.,
     ! restartAttributes should point to NULL()
     IF (restartAttributes%is_init .AND. jg <= domRestartLimit) THEN
-      
+
       DO i = 1, SIZE(prm_upatmo%tend%ddt%state)
         iStr = int2string(i, '(i2.2)')
         ! i_old:
@@ -475,18 +475,18 @@ CONTAINS !......................................................................
         CALL restartAttributes%get(keyStrTendStateSet_l_finish_on_error//keyStr, tendStateSet%l_finish_on_error)
         ! l_initialized:
         CALL restartAttributes%get(keyStrTendStateSet_l_initialized//keyStr, tendStateSet%l_initialized)
-        ! 
+        !
         CALL prm_upatmo%tend%ddt%state(i)%reset(optSet4Reset=tendStateSet)
       ENDDO
-      
+
     ENDIF
 
-    ! In case of jg > domRestartLimit the initial values of prm_upatmo%tend%ddt%state(i), 
+    ! In case of jg > domRestartLimit the initial values of prm_upatmo%tend%ddt%state(i),
     ! set in src/upper_atmosphere/mo_upatmo_state: new_upatmo_tend_list, remain.
-    
+
     IF (lmessage) CALL message(routine, &
       & 'Finish to get metadata from restart file on domain '//domStr)
-    
+
   END SUBROUTINE upatmoRestartAttributesGet
 
   !***************************************************************
@@ -530,7 +530,7 @@ CONTAINS !......................................................................
     ! l_finish_on_error:
     CALL DO_DEALLOCATE_l1D(upatmoRestartAttributes%tendStateSet_l_finish_on_error)
     ! l_initialized:
-    CALL DO_DEALLOCATE_l1D(upatmoRestartAttributes%tendStateSet_l_initialized)    
+    CALL DO_DEALLOCATE_l1D(upatmoRestartAttributes%tendStateSet_l_initialized)
 
   END SUBROUTINE upatmoRestartAttributesDeallocate
 
@@ -623,8 +623,8 @@ CONTAINS !......................................................................
   !! Auxiliary subroutine.
   !! Structural copy of externals/fortran-support/src/mo_fortran_tools: DO_DEALLOCATE
   !!
-  !! For safety reasons we refrain from integrating this subroutine 
-  !! into the interface DO_DEALLOCATE. 
+  !! For safety reasons we refrain from integrating this subroutine
+  !! into the interface DO_DEALLOCATE.
   !! The latter is too critical infrastructure.
   !!
   SUBROUTINE DO_DEALLOCATE_l1D( object )

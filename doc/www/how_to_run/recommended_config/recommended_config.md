@@ -1,7 +1,7 @@
 (ref_how_to_run_recommconf)=
 # Recommended Configurations
 
-For testing purposes we provide a number of use cases. All use cases provide everything necessary for running ICON: 
+For testing purposes we provide a number of use cases. All use cases provide everything necessary for running ICON:
 
 * [grids and external parameters](ref_how_to_run_gridextpar),
 * [initial and (where necessary) boundary conditions](ref_how_to_run_icbc),
@@ -10,7 +10,7 @@ For testing purposes we provide a number of use cases. All use cases provide eve
 _Please note that the preparation of further use cases is on-going._
 
 
-:::{admonition} Support 
+:::{admonition} Support
 :class: admonition-icontheme
 Besides testing, these use cases serve as recommended configurations which are supported by the developers.
 There will be no support from the ICON partners for configurations that are not listed below.
@@ -26,5 +26,5 @@ nwp-global-R02B06:
 : This use case runs a global ICON application with a resolution of about 40 km (R02B06). It includes a nest (R02B07) over Europe.
 
 nwp-local-R19B07:
-: This use case runs a limited-area (local) ICON application over Germany with a resolution of about 2 km (R19B07). 
+: This use case runs a limited-area (local) ICON application over Germany with a resolution of about 2 km (R19B07).
   It is comparable to DWD's operational application ICON-D2.

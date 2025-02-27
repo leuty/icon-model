@@ -1190,7 +1190,7 @@ subroutine integrate_tke_block( &
   !$ACC KERNELS DEFAULT(PRESENT) ASYNC(1) IF(lzacc)
   ke = 0.0_wp
   !$ACC END KERNELS
-  
+
   !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1) IF(lzacc)
   !$ACC LOOP SEQ
   do k = 1, max_n

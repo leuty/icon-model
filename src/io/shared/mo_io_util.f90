@@ -57,7 +57,7 @@ CONTAINS
     ! local variables
     CHARACTER(len=*), PARAMETER :: routine = modname//'::get_filetype'
     INTEGER :: idx
-    
+
     idx = INDEX(tolower(filename),'.nc')
     IF (idx==0) THEN
       idx = INDEX(tolower(filename),'.grb')
@@ -103,7 +103,7 @@ CONTAINS
   !
   !  Note: opens and closes file and allocates output variables.
   !----------------------------------------------------------------
-  SUBROUTINE read_netcdf_int_1d(filename, varname1, var1, opt_varname2, opt_var2, opt_att) 
+  SUBROUTINE read_netcdf_int_1d(filename, varname1, var1, opt_varname2, opt_var2, opt_att)
 
     CHARACTER(len=*),                 INTENT(IN)    :: filename     ! NetCDF file name
     CHARACTER(len=*),                 INTENT(IN)    :: varname1     ! variable name string
@@ -157,7 +157,7 @@ CONTAINS
       CALL nf(nf90_inquire_variable(ncfileID, varID, dimids = dimids), routine)
       dim_aux = dimids(1)
       CALL nf(nf90_inquire_dimension(ncfileID, dim_aux, len = dimlen), routine)
-      
+
       ! --- allocate output variable, read data
       ALLOCATE(opt_var2(dimlen))
       CALL nf(nf90_get_var(ncfileID, varID, opt_var2), routine)
@@ -194,4 +194,3 @@ CONTAINS
 
 
 END MODULE mo_io_util
-

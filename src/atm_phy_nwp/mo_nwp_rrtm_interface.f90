@@ -66,7 +66,7 @@ CONTAINS
       &  routine = modname//'::nwp_rrtm_radiation'
 
     TYPE(datetime), POINTER, INTENT(in) :: current_date
-    
+
     TYPE(t_patch),        TARGET,INTENT(in) :: pt_patch     !<grid/patch info.
     TYPE(t_external_data),TARGET,INTENT(in) :: ext_data
 
@@ -188,7 +188,7 @@ CONTAINS
       ELSE
         ptr_clc => prm_diag%clc(:,:,jb)
       END IF
-      
+
       IF (atm_phy_nwp_config(jg)%icpl_rad_reff == 0) THEN ! Internal parameterization of reff
         ptr_acdnc  =>  prm_diag%acdnc(:,:,jb)
         ptr_fr_land=>  ext_data%atm%fr_land(:,jb)  !< in     land fraction
@@ -251,8 +251,8 @@ CONTAINS
         & qm_ice     =prm_diag%tot_cld  (:,:,jb,iqi) ,&!< in cloud ice mass mixing ratio at t-dt
         & qm_o3      =ext_data%atm%o3   (:,:,jb)     ,&!< in o3 mass mixing ratio at t-dt
         & cdnc       =ptr_acdnc                      ,&!< in  cloud droplet numb conc. [1/m**3]
-        & reff_liq   =ptr_reff_qc                    ,&!< in effective radius liquid phase 
-        & reff_frz   =ptr_reff_qi                    ,&!< in effective radius frozen phase 
+        & reff_liq   =ptr_reff_qc                    ,&!< in effective radius liquid phase
+        & reff_frz   =ptr_reff_qi                    ,&!< in effective radius frozen phase
         & cld_frc    =ptr_clc                        ,&!< in  cloud fraction [m2/m2]
         & zaeq1      =ptr_aeq1                       ,&!< in aerosol continental
         & zaeq2      =ptr_aeq2                       ,&!< in aerosol maritime
@@ -376,10 +376,10 @@ CONTAINS
     REAL(wp), ALLOCATABLE, TARGET:: zrg_trsol_clr_sfc   (:,:)
     REAL(wp), ALLOCATABLE, TARGET:: zrg_lwflx_clr_sfc   (:,:)
 
-    REAL(wp), ALLOCATABLE, TARGET:: zrg_lwflx_up    (:,:,:)    !< longwave  3D upward   flux          
-    REAL(wp), ALLOCATABLE, TARGET:: zrg_lwflx_dn    (:,:,:)    !< longwave  3D downward flux           
-    REAL(wp), ALLOCATABLE, TARGET:: zrg_swflx_up    (:,:,:)    !< shortwave 3D upward   flux          
-    REAL(wp), ALLOCATABLE, TARGET:: zrg_swflx_dn    (:,:,:)    !< shortwave 3D downward flux          
+    REAL(wp), ALLOCATABLE, TARGET:: zrg_lwflx_up    (:,:,:)    !< longwave  3D upward   flux
+    REAL(wp), ALLOCATABLE, TARGET:: zrg_lwflx_dn    (:,:,:)    !< longwave  3D downward flux
+    REAL(wp), ALLOCATABLE, TARGET:: zrg_swflx_up    (:,:,:)    !< shortwave 3D upward   flux
+    REAL(wp), ALLOCATABLE, TARGET:: zrg_swflx_dn    (:,:,:)    !< shortwave 3D downward flux
     REAL(wp), ALLOCATABLE, TARGET:: zrg_lwflx_up_clr(:,:,:)    !< longwave  3D upward   flux clear-sky
     REAL(wp), ALLOCATABLE, TARGET:: zrg_lwflx_dn_clr(:,:,:)    !< longwave  3D downward flux clear-sky
     REAL(wp), ALLOCATABLE, TARGET:: zrg_swflx_up_clr(:,:,:)    !< shortwave 3D upward   flux clear-sky
@@ -410,7 +410,7 @@ CONTAINS
 
     REAL(wp), DIMENSION(:), ALLOCATABLE :: max_pres_ifc, max_pres, max_temp, max_acdnc, &
         max_qv, max_qc, max_qi, max_cc, min_pres_ifc, min_pres, min_temp, min_acdnc, &
-        min_qv, min_qc, min_qi, min_cc, max_reff_liq, max_reff_frz, min_reff_liq, min_reff_frz 
+        min_qv, min_qc, min_qi, min_cc, max_reff_liq, max_reff_frz, min_reff_liq, min_reff_frz
 
     REAL(wp), DIMENSION(pt_patch%nlevp1) :: max_lwflx, min_lwflx, max_swtrans, min_swtrans
 #ifdef __INTEL_COMPILER
@@ -549,7 +549,7 @@ CONTAINS
         zrg_lwflxall    (nproma,nlev_rg+1,nblks_par_c),&
         zrg_trsolall    (nproma,nlev_rg+1,nblks_par_c),&
         zrg_lwflx_up    (np, nl, nblks_par_c),         &
-        zrg_lwflx_dn    (np, nl, nblks_par_c),         &   
+        zrg_lwflx_dn    (np, nl, nblks_par_c),         &
         zrg_swflx_up    (np, nl, nblks_par_c),         &
         zrg_swflx_dn    (np, nl, nblks_par_c),         &
         zrg_lwflx_up_clr(np, nl, nblks_par_c),         &
@@ -571,7 +571,7 @@ CONTAINS
       irg_zaeq3   = 0
       irg_zaeq4   = 0
       irg_zaeq5   = 0
-    
+
       CALL input_extra_flds%construct(nlev_rg)  ! Extra fields in upscaling routine. 3D fields with nlev_rg
       CALL input_extra_2D%construct(1)          ! Extra fields in upscaling routine: 2D fields
 
@@ -664,7 +664,7 @@ CONTAINS
         & prm_diag%reff_qc, prm_diag%reff_qi,                           &
         & zrg_reff_liq, zrg_reff_frz,input_extra_flds, zrg_extra_flds,  &
         & input_extra_2D, zrg_extra_2D, lacc=.FALSE.)
-    
+
       IF (jg == 1 .AND. l_limited_area) THEN
         rl_start = grf_fbk_start_c
       ELSE
@@ -682,7 +682,7 @@ CONTAINS
                  max_qv(nlev_rg), max_qc(nlev_rg), max_qi(nlev_rg), max_cc(nlev_rg),              &
                  min_pres_ifc(nlev_rg), min_pres(nlev_rg), min_temp(nlev_rg), min_acdnc(nlev_rg), &
                  min_qv(nlev_rg), min_qc(nlev_rg), min_qi(nlev_rg), min_cc(nlev_rg)  )
-                
+
         max_albvisdir = 0._wp
         min_albvisdir = 1.e10_wp
         max_albvisdif = 0._wp
@@ -795,7 +795,7 @@ CONTAINS
         END IF
         IF (l_coupled_reff) THEN
           max_reff_liq = global_max(max_reff_liq)
-          max_reff_frz = global_max(max_reff_frz)        
+          max_reff_frz = global_max(max_reff_frz)
           min_reff_liq = global_min(min_reff_liq)
           min_reff_frz = global_min(min_reff_frz)
         END IF
@@ -826,7 +826,7 @@ CONTAINS
             CALL message(routine, TRIM(message_text))
           ENDDO
         END IF
-      
+
         WRITE(message_text,'(a)') 'max/min QV, QC, QI, CC'
         CALL message(routine, message_text)
 
@@ -899,7 +899,7 @@ CONTAINS
 
 #if !defined(__PGI)
 !FIXME: PGI + OpenMP produce deadlock in this loop. Compiler bug suspected
-!ICON_OMP PARALLEL DO PRIVATE(jb,jk,i_startidx,i_endidx,dust_tunefac,              &    
+!ICON_OMP PARALLEL DO PRIVATE(jb,jk,i_startidx,i_endidx,dust_tunefac,              &
 !ICON_OMP              ptr_acdnc, ptr_fr_land,ptr_fr_glac,ptr_reff_qc,ptr_reff_qi, &
 !ICON_OMP              ptr_aeq1, ptr_aeq2, ptr_aeq3, ptr_aeq4, ptr_aeq5) &
 !ICON_OMP ICON_OMP_GUIDED_SCHEDULE
@@ -1095,7 +1095,7 @@ CONTAINS
         zrg_lwflx_clr_sfc, zrg_emis_rad, zlp_pres_ifc, zlp_tot_cld,                       &
         zrg_lwflx_up    , zrg_lwflx_dn    , zrg_swflx_up    , zrg_swflx_dn,               &
         zrg_lwflx_up_clr, zrg_lwflx_dn_clr, zrg_swflx_up_clr, zrg_swflx_dn_clr            )
-      IF (l_coupled_reff) DEALLOCATE(zrg_reff_liq,zrg_reff_frz)     
+      IF (l_coupled_reff) DEALLOCATE(zrg_reff_liq,zrg_reff_frz)
       IF (input_extra_flds%ntot > 0 ) DEALLOCATE(zrg_extra_flds)
       IF (input_extra_2D%ntot > 0   ) DEALLOCATE(zrg_extra_2D  )
       NULLIFY(ptr_aeq1, ptr_aeq2, ptr_aeq3, ptr_aeq4, ptr_aeq5)
@@ -1103,7 +1103,7 @@ CONTAINS
         ! Work around the hard wired connection between RRTM and Tegen
         IF(ALLOCATED(zaeq1)) DEALLOCATE(zaeq1)
       ENDIF
-    
+
       CALL input_extra_flds%destruct()
       CALL input_extra_2D%destruct()
 
@@ -1111,5 +1111,3 @@ CONTAINS
   !---------------------------------------------------------------------------------------
 
 END MODULE mo_nwp_rrtm_interface
-
-

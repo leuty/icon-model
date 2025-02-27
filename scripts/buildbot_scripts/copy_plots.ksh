@@ -46,7 +46,7 @@ copy_files ()
     dir=`dirname $dir_name`
     mkdir -p ${BASE_DIR}/${dir}
 
- 
+
     if [ "x$1" = "xps" -o "x$1" = "xeps" ]
     then
       if [ ${CONVERT_STATUS} = 0 ]
@@ -54,7 +54,7 @@ copy_files ()
         ${CONVERT} experiments/${dir}/${name}.$1 ${BASE_DIR}/${dir}/${name}.png
         echo "INFO: Convert ${name}.$1  --> ${name}.png "
       else
-        echo "INFO: No convert available " 
+        echo "INFO: No convert available "
       fi
     else
       cp experiments/${dir}/${name}.$1 ${BASE_DIR}/${dir}/${name}.$1
@@ -112,7 +112,7 @@ fi
 
 #if [ -d /tmp/${BUILDER} ]
 #then
-#  rm -rf /tmp/${BUILDER} 
+#  rm -rf /tmp/${BUILDER}
 #fi
 
 #echo "BB_SYSTEM=${SLAVE}"
@@ -121,7 +121,7 @@ fi
 #REV=`svn info | grep Revision | cut -d ':' -f2`
 #echo "REV=${REV}"
 
-#mkdir /tmp/${BUILDER} 
+#mkdir /tmp/${BUILDER}
 #echo "_COMPUTER_ ${SLAVE}" > /tmp/${BUILDER}/job_info.txt
 #echo "_BUILDER_ ${BUILDER}" >> /tmp/${BUILDER}/job_info.txt
 #echo "_REVISION_ ${REV}" >> /tmp/${BUILDER}/job_info.txt
@@ -165,4 +165,3 @@ FILES=`find experiments -name '*.png'`
 copy_files png
 
 #==================== End =====================================================
-

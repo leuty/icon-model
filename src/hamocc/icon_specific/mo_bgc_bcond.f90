@@ -48,7 +48,7 @@ USE mo_master_control,       ONLY: get_my_process_name
 
 #include "add_var_acc_macro.inc"
 
-  
+
   IMPLICIT NONE
 
   PRIVATE
@@ -587,4 +587,3 @@ CONTAINS
 
   END SUBROUTINE update_bgc_bcond
 END MODULE
-

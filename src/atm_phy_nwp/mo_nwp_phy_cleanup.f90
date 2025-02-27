@@ -38,7 +38,7 @@ CONTAINS
   !>
   !! Wrapper routine for NWP physics cleanup
   !!
-  !! Performs destruction of NWP-specific variable lists and calls 
+  !! Performs destruction of NWP-specific variable lists and calls
   !! deallocation routines of individual parameterizations (if necessary).
   !!
   SUBROUTINE cleanup_nwp_phy()
@@ -59,14 +59,13 @@ CONTAINS
       IF ( atm_phy_nwp_config(jg)%icalc_reff > 0 ) CALL reff_calc_dom(jg)%destruct()
       !
       CALL atm_phy_nwp_config(jg)%finalize()
-      
+
       IF ( iprog_aero > 0 ) CALL p_dust_source_const(jg)%finalize()
       IF ( iprog_aero > 2 ) CALL p_fire_source_info(jg)%finalize()
     ENDDO
-    
+
     CALL tegen_scal_factors%finalize()
 
   END SUBROUTINE cleanup_nwp_phy
 
 END MODULE mo_nwp_phy_cleanup
-

@@ -74,7 +74,7 @@ TYPE(lookupt_2D) :: ltab2D
 ! ---------------------------------------------------------------------------
 
 REAL(KIND=ireals), PARAMETER ::       &
-  r2_fix    = 0.03_ireals,            & ! Parameters for simplified lookup table computation; 
+  r2_fix    = 0.03_ireals,            & ! Parameters for simplified lookup table computation;
   lsigs_fix = 0.3_ireals                ! relevant for r2_lsigs_are_fixed = .TRUE.
 
 LOGICAL,       PARAMETER ::       &
@@ -94,7 +94,7 @@ SUBROUTINE nccn_lookupcreate_segalkhain_4D ( ltab )
   ltab%n2 = 5    ! for log(sigma_s)
   ltab%n3 = 8    ! for N_CN
   ltab%n4 = 11   ! for w_cloudbase
-  
+
   ALLOCATE( ltab%x1(ltab%n1) )
   ALLOCATE( ltab%x2(ltab%n2) )
   ALLOCATE( ltab%x3(ltab%n3) )
@@ -118,7 +118,7 @@ SUBROUTINE nccn_lookupcreate_segalkhain_4D ( ltab )
   ltab%odx3 = 1.0_ireals / ltab%dx3
   ltab%odx4 = 1.0_ireals / ltab%dx4
 
-  ! Ncn                            50              100                  200                 400        
+  ! Ncn                            50              100                  200                 400
   !                               800             1600                 3200                6400
   ! interpolated (R2=0.02mum, wcb=0.0m/s)
   ltab%ltable(1,1,:, 1) = (/ 0.0000E+00_ireals, 0.0000E+00_ireals, 0.0000E+00_ireals, 0.0000E+00_ireals,  &
@@ -536,7 +536,7 @@ SUBROUTINE nccn_lookupcreate_segalkhain_2D ( ltab4D, lsigs, r2, ltab2D )
   ltab2D%n1 = ltab4D%n3    ! for log(ncn)
   ltab2D%n2 = ltab4D%n4    ! for wcb
 
-  
+
   ALLOCATE( ltab2D%x1(ltab2D%n1) )
   ALLOCATE( ltab2D%x2(ltab2D%n2) )
   ALLOCATE( ltab2D%ltable(ltab2D%n1,ltab2D%n2) )
@@ -697,7 +697,7 @@ SUBROUTINE specccn_segalkhain ( ie, ke, istart, iend, kstart, kend, ncn, w, qc, 
   ! If there is qc but w < 0, we set w to 0.1 m/s to avoid very small values of cloud_num
 
   IMPLICIT NONE
-  
+
   ! Inputs:
   INTEGER(kind=iintegers), INTENT(in)                 :: ie, ke, istart, iend, kstart, kend
   REAL(kind=ireals), INTENT(in) , DIMENSION(ie,ke)    :: ncn, rho, qc, hhl
@@ -735,16 +735,16 @@ SUBROUTINE specccn_segalkhain ( ie, ke, istart, iend, kstart, kend, ncn, w, qc, 
 
       DO k = kend, kstart, -1
         DO i = istart, iend
-          
+
           kp1 = MIN(k+1,ke)
-          
+
           ! Sehr einfache Alternative:
           IF (qc(i,k) >= eps) THEN
             ! other cloudy grid points, which are not within a vertically "active" cloud:
             CALL interpol_nccn_segalkhain_2D(ltab2D, ncn(i,k), MAX(w(i,k),wcb_min), cloud_num(i,k))
             cloud_num(i,k) = MAX(cloud_num(i,k), cloud_num_min*rho(i,k))
           END IF
-          
+
         END DO
       END DO
 
@@ -752,22 +752,22 @@ SUBROUTINE specccn_segalkhain ( ie, ke, istart, iend, kstart, kend, ncn, w, qc, 
 
       DO k = kend, kstart, -1
         DO i = istart, iend
-          
+
           kp1 = MIN(k+1,ke)
-          
+
           ! Sehr einfache Alternative:
           IF (qc(i,k) >= eps) THEN
             ! other cloudy grid points, which are not within a vertically "active" cloud:
             CALL interpol_nccn_segalkhain_4D(ltab4D, ncn(i,k), MAX(w(i,k),wcb_min), lsigs, r2, cloud_num(i,k))
             cloud_num(i,k) = MAX(cloud_num(i,k), cloud_num_min*rho(i,k))
           END IF
-          
+
         END DO
       END DO
 
     END IF
 
-  ELSE IF (itype_incloud_profile == 2) THEN 
+  ELSE IF (itype_incloud_profile == 2) THEN
 
     ! Determine the w at true cloud bases, wcb, by scanning from bottom to top,
     ! interpolate NCCN from the lookup table.
@@ -786,10 +786,10 @@ SUBROUTINE specccn_segalkhain ( ie, ke, istart, iend, kstart, kend, ncn, w, qc, 
 
       DO k = kend, kstart, -1
         DO i = istart, iend
-      
+
           kp1 = MIN(k+1,ke)
           cloud_num_min_loc = cloud_num_min * rho(i,k)
-          
+
           IF (w(i,kp1) >= wcb_min .AND. qc(i,k) >= eps .AND. (k == ke .OR. qc(i,kp1) < eps ) ) THEN
             ! either saturated updraft at cloud base or in the lowest model level:
             wcb(i,k) = w(i,kp1)
@@ -828,7 +828,7 @@ SUBROUTINE specccn_segalkhain ( ie, ke, istart, iend, kstart, kend, ncn, w, qc, 
             CALL interpol_nccn_segalkhain_2D(ltab2D, ncn(i,k), MAX(w(i,k),wcb_min), cloud_num(i,k))
             cloud_num(i,k) = MAX(cloud_num(i,k), cloud_num_min_loc)
           END IF
-          
+
         END DO
       END DO
 
@@ -838,10 +838,10 @@ SUBROUTINE specccn_segalkhain ( ie, ke, istart, iend, kstart, kend, ncn, w, qc, 
 
       DO k = kend, kstart, -1
         DO i = istart, iend
-      
+
           kp1 = MIN(k+1,ke)
           cloud_num_min_loc = cloud_num_min * rho(i,k)
-          
+
           IF (w(i,kp1) >= wcb_min .AND. qc(i,k) >= eps .AND. (k == ke .OR. qc(i,kp1) < eps ) ) THEN
             ! either saturated updraft at cloud base or in the lowest model level:
             wcb(i,k) = w(i,kp1)
@@ -881,7 +881,7 @@ SUBROUTINE specccn_segalkhain ( ie, ke, istart, iend, kstart, kend, ncn, w, qc, 
             CALL interpol_nccn_segalkhain_4D(ltab4D, r2, lsigs, ncn(i,k), MAX(w(i,k),wcb_min), cloud_num(i,k))
             cloud_num(i,k) = MAX(cloud_num(i,k), cloud_num_min_loc)
           END IF
-          
+
         END DO
       END DO
 
@@ -924,14 +924,14 @@ CONTAINS
   END FUNCTION height_profile
 
 END SUBROUTINE specccn_segalkhain
-  
+
 
 SUBROUTINE specccn_segalkhain_simple (ie, istart, iend, ncn, cloud_num)
 
   ! highly simplified version of above routine disregarding the dependency on height and vertical wind speed
 
   IMPLICIT NONE
-  
+
   ! Inputs:
   INTEGER(kind=iintegers), INTENT(in)            :: ie, istart, iend
   REAL(kind=ireals), INTENT(in) , DIMENSION(ie)  :: ncn
@@ -947,10 +947,10 @@ SUBROUTINE specccn_segalkhain_simple (ie, istart, iend, ncn, cloud_num)
 
 
   DO i = istart, iend
-          
+
     CALL interpol_nccn_segalkhain_2D(ltab2D, ncn(i), wcb, cloud_num(i))
     cloud_num(i) = MAX(cloud_num(i), cloud_num_min)
-          
+
   END DO
 
 END SUBROUTINE specccn_segalkhain_simple
@@ -1006,7 +1006,7 @@ SUBROUTINE ncn_from_tau_aerosol ( ie, ke, hhl, aer_ss, aer_so4, aer_org, aer_dus
        r_org    = 80e-9_ireals, &     ! aerosol mean mass radius in m for organics (50 - 100 nm)
        rho_dust = 3000.0_ireals, &    ! aerosol bulk density kg/m^3 for dust
        r_dust   = 1000e-9_ireals      ! aerosol mean mass radius in m for dust
-  
+
   !   Soluble_fraction_dust: comparatively low number  ~0.0 - 0.1
   !   Soluble_fraction_organics: comparatively high number ~0.9 - 1.0
   REAL(KIND=ireals),    PARAMETER :: &
@@ -1036,7 +1036,7 @@ SUBROUTINE ncn_from_tau_aerosol ( ie, ke, hhl, aer_ss, aer_so4, aer_org, aer_dus
        aer_so4(:)/(beta_ext_so4*rho_so4*r_so4**3)     + &
        aer_ss(:)/(beta_ext_ss*rho_ss*r_ss**3)           &
        )
-           
+
   ! From that, compute the value of the aerosol mass density in the surface layer,
   !  which serves as a scaling parameter in the vertical distribution:
   !  This value is computed under the assumptions that:
@@ -1115,7 +1115,7 @@ SUBROUTINE ncn_from_tau_aerosol_speccnconst ( ie, ke, istart, iend, kstart, kend
        r_org    = 80e-9_ireals, &     ! aerosol mean mass radius in m for organics (50 - 100 nm)
        rho_dust = 3000.0_ireals, &    ! aerosol bulk density kg/m^3 for dust
        r_dust   = 1000e-9_ireals      ! aerosol mean mass radius in m for dust
-  
+
   !   Soluble_fraction_dust: comparatively low number  ~0.0 - 0.1
   !   Soluble_fraction_organics: comparatively high number ~0.9 - 1.0
   REAL(KIND=ireals),    PARAMETER :: &
@@ -1156,7 +1156,7 @@ SUBROUTINE ncn_from_tau_aerosol_speccnconst ( ie, ke, istart, iend, kstart, kend
        aer_so4(:)/(beta_ext_so4*rho_so4*r_so4**3)     + &
        aer_ss(:)/(beta_ext_ss*rho_ss*r_ss**3)           &
        )
-           
+
   ! From that, compute the value of the specific aerosol number (n/rho_air, unit 1/kg) in the surface layer,
   !  which serves as a scaling parameter in the vertical distribution:
   !  This value is computed under the assumptions that:
@@ -1225,7 +1225,7 @@ SUBROUTINE ncn_from_tau_aerosol_speccnconst_dust ( hhl,hhl1, aer_dust, ncn_dust 
   REAL(KIND=ireals),    PARAMETER :: &
        rho_dust = 2500.0_ireals, &    ! aerosol bulk density kg/m^3 for dust Linke et al. (2006)
        r_dust   = 1.0e-6_ireals       ! aerosol mean mass radius in m for dust Wong et al. (2021)
-  
+
   !   Parameters of assumed vertical exponential profile of qcn:
   !    ztrans = transition height in m, constant value below, expon. profile above
   !    z1oe = 1/e - height of expon. decrease above z0
@@ -1255,7 +1255,7 @@ SUBROUTINE ncn_from_tau_aerosol_speccnconst_dust ( hhl,hhl1, aer_dust, ncn_dust 
   !  assuming that the mean mass radius of each species is a constant everywhere:
 
   nscale = 3.0 / (4.0*pi) * (aer_dust/(beta_ext_dust*rho_dust*r_dust**3) )
-        
+
   ! From that, compute the value of the specific aerosol number (n/rho_air, unit 1/kg) in the surface layer,
   !  which serves as a scaling parameter in the vertical distribution:
   !  This value is computed under the assumptions that:
@@ -1343,7 +1343,7 @@ SUBROUTINE ice_nucleation_demott ( t, aerncn , znin )
   REAL(KIND=ireals), PARAMETER :: gama = 0.46_ireals
   REAL(KIND=ireals), PARAMETER :: delta = -11.6_ireals
 
-  znin = alpha * (aerncn**beta) * (EXP(gama * (t0 - t)+delta))  
+  znin = alpha * (aerncn**beta) * (EXP(gama * (t0 - t)+delta))
 
   znin = MAX(MIN(znin,1.0E7_ireals),1.0E-7_ireals)
 
@@ -1358,7 +1358,7 @@ END SUBROUTINE ice_nucleation_demott
 SUBROUTINE aerosol_prepare_inas_dust(istart, iend, kstart, kend, rho, ndusta, ndustb, ndustc, aod, &
                                      ndust, sdust, aod_crit)
   IMPLICIT NONE
-  
+
   INTEGER,  INTENT(IN)            :: &
     &  istart, iend,                 & !< start/end index jc loop
     &  kstart, kend                    !< start/end index jk loop
@@ -1367,9 +1367,9 @@ SUBROUTINE aerosol_prepare_inas_dust(istart, iend, kstart, kend, rho, ndusta, nd
     &  aod(:),                       & !< dust AOD
     &  ndusta(:,:),                  & !< dust concentration, mode A
     &  ndustb(:,:),                  & !< dust concentration, mode B
-    &  ndustc(:,:)                     !< dust concentration, mode C 
+    &  ndustc(:,:)                     !< dust concentration, mode C
   REAL(wp), INTENT(inout), TARGET :: &
-    &  ndust(:,:),                   & !< total number density of dust 
+    &  ndust(:,:),                   & !< total number density of dust
     &  sdust(:,:)                      !< corresponding mean surface area of dust
   REAL(wp), INTENT(in)            :: &
     &  aod_crit                         !< dust AOD threshold for ACI of dust
@@ -1378,14 +1378,14 @@ SUBROUTINE aerosol_prepare_inas_dust(istart, iend, kstart, kend, rho, ndusta, nd
   ! inconsistent with ART, but this simplification can be justified because the variability is
   ! dominated by the number of dust particles. A consistent coupling for ART is available with
   ! the subroutine art_prepare_dust_inas in mo_art_prepare_aerosol.
-  REAL(wp), DIMENSION(3), PARAMETER ::       &   
+  REAL(wp), DIMENSION(3), PARAMETER ::       &
     &  fract_art = (/ 0.02_wp, 1.00_wp, 1.00_wp /),                &   ! fraction of INPs in dust modes
     &  sdust_art  = (/ 0.4e-6_wp**2 * EXP(2.0_wp*LOG(1.7_wp)**2 ), &   ! coefficients for surface area of dust modes
-    &                  5.0e-6_wp**2 * EXP(2.0_wp*LOG(1.6_wp)**2 ), &   ! dust diameters based on Table 2 
+    &                  5.0e-6_wp**2 * EXP(2.0_wp*LOG(1.6_wp)**2 ), &   ! dust diameters based on Table 2
     &                  1.0e-5_wp**2 * EXP(2.0_wp*LOG(1.5_wp)**2 )  /)  ! of Rieger et al. (2017)
 
   REAL(wp) :: fract(3), sfcdust(3)
-  
+
   INTEGER :: jk, jc, nmodes
 
   ! ICON-ART with three modes of mineral dust
@@ -1393,7 +1393,7 @@ SUBROUTINE aerosol_prepare_inas_dust(istart, iend, kstart, kend, rho, ndusta, nd
   fract = fract_art
   sfcdust = sdust_art
   nmodes = 3
-  
+
   ! sum up the available dust modes where dust AOD is larger than aod_crit
   DO jk = kstart,kend
     DO jc = istart, iend
@@ -1406,7 +1406,7 @@ SUBROUTINE aerosol_prepare_inas_dust(istart, iend, kstart, kend, rho, ndusta, nd
         sdust(jc,jk) = ( ndusta(jc,jk) * sfcdust(1) * fract(1)  &
              &         + ndustb(jc,jk) * sfcdust(2) * fract(2)          &
              &         + ndustc(jc,jk) * sfcdust(3) * fract(3) ) / ndust(jc,jk)
-        ! dust per unit volume 
+        ! dust per unit volume
         ndust(jc,jk) = rho(jc,jk) * ndust(jc,jk)
       ELSE
         ndust(jc,jk) = 1.0_wp
@@ -1414,8 +1414,7 @@ SUBROUTINE aerosol_prepare_inas_dust(istart, iend, kstart, kend, rho, ndusta, nd
       END IF
     END DO
   END DO
-  
+
 END SUBROUTINE aerosol_prepare_inas_dust
 
 END MODULE mo_cpl_aerosol_microphys
-

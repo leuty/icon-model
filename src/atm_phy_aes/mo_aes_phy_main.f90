@@ -148,7 +148,7 @@ CONTAINS
        CALL omp_block_loop_cell(patch, interface_cloud_mig)
        !
     END IF
-    CALL omp_block_loop_cell(patch, get_cvair)       
+    CALL omp_block_loop_cell(patch, get_cvair)
 
     !--------------------------------------------------------------------
     ! two-moment cloud microphysics (two) by Seifert and Beheng (2006)

@@ -24,7 +24,7 @@
 
 MODULE mo_local_timer
     USE mo_real_timer, ONLY: new_timer, timer_start, timer_stop
-    
+
     IMPLICIT NONE
 
 PUBLIC

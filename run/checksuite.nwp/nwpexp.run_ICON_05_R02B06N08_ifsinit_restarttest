@@ -15,7 +15,7 @@
 make_and_change_to_experiment_dir # function in ../add_run_routines
 
 # Combine START and MODEL if START_MODEL is not already set.
-# START_MODEL is used to ease the execution of a machine that uses a complex 
+# START_MODEL is used to ease the execution of a machine that uses a complex
 # mpirun command with multiple binaries
 START_MODEL="${START_MODEL:=$START $MODEL}"
 
@@ -194,7 +194,7 @@ cat > NAMELIST_NWP << EOF
  hdiff_order                 =                          5         ! order of nabla operator for diffusion
  itype_vn_diffu              =                          1         ! reconstruction method used for Smagorinsky diffusion
  itype_t_diffu               =                          2         ! discretization of temperature diffusion
- hdiff_efdt_ratio            =                         36.0       ! ratio of e-folding time to time step 
+ hdiff_efdt_ratio            =                         36.0       ! ratio of e-folding time to time step
  hdiff_smag_fac              =                          0.015     ! scaling factor for Smagorinsky diffusion
  lhdiff_vn                   =                      .TRUE.        ! diffusion on the horizontal wind field
  lhdiff_temp                 =                      .TRUE.        ! diffusion on the temperature field
@@ -293,11 +293,11 @@ cat > NAMELIST_NWP << EOF
  output_filename             =             "${ofile_prfx}"        ! file name base
  output_grid                 =                      .TRUE.        ! flag whether grid information is added to output.
  !
- ml_varlist                  =  'u', 'v', 'w', 'temp', 'pres','topography_c', 'pres_msl', 
-                                'qv', 'qc', 'qi', 'qr', 'qs', 'tke',                      
-                                'tkvm', 'tkvh', 'group:pbl_vars',                         
-                                'group:precip_vars',  'group:additional_precip_vars',     
-                                'group:land_vars', 'group:land_tile_vars',                
+ ml_varlist                  =  'u', 'v', 'w', 'temp', 'pres','topography_c', 'pres_msl',
+                                'qv', 'qc', 'qi', 'qr', 'qs', 'tke',
+                                'tkvm', 'tkvh', 'group:pbl_vars',
+                                'group:precip_vars',  'group:additional_precip_vars',
+                                'group:land_vars', 'group:land_tile_vars',
                                 '-tkr'
 /
 
@@ -351,7 +351,7 @@ cat > NAMELIST_NWP << EOF
 &turbdiff_nml
  tkhmin                      =                          0.75      ! scaling factor for minimum vertical diffusion coefficient
  tkmmin                      =                          0.75      ! scaling factor for minimum vertical diffusion coefficient
- pat_len                     =                        100.0       ! 
+ pat_len                     =                        100.0       !
  c_diff                      =                          0.2       !
  rat_sea                     =                          0.8       !
 /

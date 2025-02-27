@@ -192,4 +192,3 @@ CONTAINS
   END SUBROUTINE event_write_dbg_info
 
 END MODULE mo_wave_events
-

@@ -25,7 +25,7 @@
 #SBATCH --exclusive
 #% endif
 #%#-
-#%-if JOB.nodes is defined and JOB.tasks_per_node|default(1): 
+#%-if JOB.nodes is defined and JOB.tasks_per_node|default(1):
 #SBATCH --nodes=%{JOB.nodes}
 #SBATCH --tasks-per-node=%{JOB.tasks_per_node}
 #%   if JOB.tasks|int != JOB.nodes|int * JOB.tasks_per_node|default(1)|int:

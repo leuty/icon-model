@@ -129,7 +129,7 @@ start_year_for_cyclic_forcing=9999 # First year of cyclic forcing; 9999 means us
 forcing_tag="GSWP3"          # some settings and units specific to the forcing dataset
 ghg_scenario=false           # greenhouse gases file for scenario runs
 forcing_steps_per_day="1"     # The number of time steps included by the used forcing file(s) per day
-forcing_synchron_factor="48"  # Factor defines how many time steps the JS4 driver performs for each atmospheric forcing time step that is read in 
+forcing_synchron_factor="48"  # Factor defines how many time steps the JS4 driver performs for each atmospheric forcing time step that is read in
 
 
 #--------------------------------------------------------------------------------------------------
@@ -237,7 +237,7 @@ case ${forcing_tag} in
   ;;
 esac
 
-if [[ ${ghg_scenario} = false ]]; then  
+if [[ ${ghg_scenario} = false ]]; then
   forcing_co2_file="climate_"
 else
   forcing_co2_file="greenhouse_gases.nc"
@@ -261,15 +261,15 @@ cat > $jsbach_namelist << EOF
 
 &run_nml
  num_lev          = 1          ! Number of full levels for each domain. For JS4-driver we use 1.
- modelTimeStep    = "${modelTimeStep}" 
+ modelTimeStep    = "${modelTimeStep}"
  iforcing         = 2           ! 0: none, 1: HS, 2: ECHAM, 3: NWP
  output           = 'nml'
- msg_level        = 12           ! e.g. 15. level of details report during integration 
+ msg_level        = 12           ! e.g. 15. level of details report during integration
  restart_filename = "${EXPNAME}_restart_jsbach_<rsttime>.nc"
  activate_sync_timers = .FALSE.
  ltimer           = .TRUE.     ! monitoring the runtime of specific routines
  timers_level     = 10
-! profiling_output = 1   ! 1 ist default. 
+! profiling_output = 1   ! 1 ist default.
                         ! TIMER_MODE_AGGREGATED=1,
                         ! TIMER_MODE_DETAILED=2,
                         ! TIMER_MODE_WRITE_FILES=3
@@ -432,7 +432,7 @@ then
   (( end_year = start_year + years_for_cyclic_forcing + 1 ))
 fi
 #
-# Provide Links to the climate forcing files 
+# Provide Links to the climate forcing files
 
 year=$start_year
 while [[ $year -le $end_year ]]
@@ -466,7 +466,7 @@ done
 cat >> $jsbach_namelist << EOF
 &io_nml
  restart_file_type= 5
- restart_write_mode = "sync"  ! Default: " " =Fallback mode. If num_restart_proc == 0 (parallel_nml), then this behaves like ”sync”, otherwise like ”async”. 
+ restart_write_mode = "sync"  ! Default: " " =Fallback mode. If num_restart_proc == 0 (parallel_nml), then this behaves like ”sync”, otherwise like ”async”.
 /
 EOF
 

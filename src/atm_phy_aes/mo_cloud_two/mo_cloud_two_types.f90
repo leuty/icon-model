@@ -26,7 +26,7 @@ MODULE mo_cloud_two_types
   PUBLIC :: t_cloud_two_config, t_cloud_two_input, t_cloud_two_output
 
   !-----------------------------------------------------------------------------
-  
+
   TYPE t_cloud_two_config
      !
      ! configuration parameters
@@ -40,7 +40,7 @@ MODULE mo_cloud_two_types
   END TYPE t_cloud_two_config
 
   !-----------------------------------------------------------------------------
-  
+
   TYPE t_cloud_two_input
      !
      ! Input arguments: parameters
@@ -87,7 +87,7 @@ MODULE mo_cloud_two_types
   END TYPE t_cloud_two_input
 
   !-----------------------------------------------------------------------------
-  
+
   TYPE t_cloud_two_output
      !
      ! Output arguments: fields
@@ -139,5 +139,5 @@ MODULE mo_cloud_two_types
   END TYPE t_cloud_two_output
 
   !-----------------------------------------------------------------------------
-  
+
 END MODULE mo_cloud_two_types

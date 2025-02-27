@@ -71,7 +71,7 @@ REAL(KIND=IKIND)  :: ZI_FOUND(KLON)       !index for ZI detection
 REAL(wp)  ::  Z4THIRDS=4.0_wp/3.0_wp
 REAL(wp)  ::  ZTHIRD=1.0_wp/3.0_wp
 INTEGER(KIND=IKIND)  :: JLON, JLEV
-  
+
 !liquid water path and zi
 DO JLON=KIDIA,KFDIA
   ZQ_RAD(JLON,KLEV) = 0.0_wp
@@ -121,7 +121,7 @@ DO JLEV=KTDIA,KLEV
        &ZRHOH(JLON,JLEV)*cpd*D_RAD*ALFA_Z*((MZH(JLON,JLEV)-ZI(JLON))**Z4THIRDS*0.25_wp+&
        &ZI(JLON)*(MZH(JLON,JLEV)-ZI(JLON))**ZTHIRD)
      ENDIF
-     
+
     !if(jlon.eq.1) THEN
     !        write(*,*) "sim_rad0:",jlev,ZF_RAD(JLON,JLEV),&
     !        F0_RAD,F1_RAD,ZQ_RAD(JLON,JLEV),ZSIG_ZI(JLON,JLEV),&

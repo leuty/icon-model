@@ -11,18 +11,18 @@
 # --------------------------------------------------------------------
 # CASE_SETUP
 # --------------------------------------------------------------------
-#                                                                    
-# Purpose of this document:                                          
-#   This file contains the experiment parameters of the             
-#   ICON test case    
-#                                                                    
-# Corresponding author:                                              
-#   Florian Prill, DWD, mailto:florian.prill@dwd.de                  
-#                                                                    
-# Document version:                                                  
+#
+# Purpose of this document:
+#   This file contains the experiment parameters of the
+#   ICON test case
+#
+# Corresponding author:
+#   Florian Prill, DWD, mailto:florian.prill@dwd.de
+#
+# Document version:
 #   $LastChangedDate: 2012-04-11 11:18:42 +0000 (Wed, 11 Apr 2012) $
 #   $Rev: 8630 $ -- $Author: florian.prill $
-#                                                                    
+#
 # --------------------------------------------------------------------
 
 
@@ -91,7 +91,7 @@ dtime=900       # advect, phys   R2B4:900  R2B5:450  R2B6:360  R2B7:180  R2B8:90
 dtconv=1800     # conv, SSO, GWD R2B4:1800 R2B5:900  R2B6:720  R2B7:360  R2B8:360
 dtrad=3600      # rad            R2B4:3600 R2B5:3600 R2B6:3600 R2B7:1800 R2B8:1800
 ndyn_substeps=4 # dyn/adv        R2B4:4    R2B5:5    R2B6:5    R2B7:5    R2B8:5
-ninc_mtgrm=192  # output interval 48h               
+ninc_mtgrm=192  # output interval 48h
 ndays=11000     # number of days to run
 nsteps=`expr ${ndays} \* 86400 / ${dtime}`
 
@@ -148,18 +148,18 @@ done
 #-----------------------------------------------------------------------------
 # output variables
 
-ml_varlist="'temp','u','v','w','pres','pres_sfc', 'pres_msl', 
+ml_varlist="'temp','u','v','w','pres','pres_sfc', 'pres_msl',
 'o3','clc','tot_qv_dia','tot_qc_dia','tot_qi_dia',
 'clct','clch','clcm','clcl', 'tqv_dia', 'tqc_dia', 'tqi_dia', 'tqv', 'tqc', 'tqi', 'tqr', 'tqs',
-'tot_prec','rain_gsp','rain_con','snow_gsp','snow_con', 
+'tot_prec','rain_gsp','rain_con','snow_gsp','snow_con',
 'u_10m','v_10m','sp_10m', 't_2m', 'td_2m',
 'accshfl_s','acclhfl_s',  'accthb_s','accthb_t','accsob_s','accsob_t',
 't_g', 't_ice','h_ice', 't_so', 'w_so', 'fr_seaice', 't_seasfc', 'cape', 'h_snow'"
 #'dzh_snow'
 #'z_pbl'
 
-pl_varlist="'u','v','w','temp','geopot','clc','tot_qv_dia','tot_qc_dia','tot_qi_dia','rh'"      
-hl_varlist="'u','v',    'temp','pres',  'clc','tot_qv_dia','tot_qc_dia','tot_qi_dia'"   
+pl_varlist="'u','v','w','temp','geopot','clc','tot_qv_dia','tot_qc_dia','tot_qi_dia','rh'"
+hl_varlist="'u','v',    'temp','pres',  'clc','tot_qv_dia','tot_qc_dia','tot_qi_dia'"
 
 # ---
 
@@ -183,7 +183,7 @@ cat > ${atmo_namelist} << EOF
 /
 &initicon_nml
  init_mode                    = 2           ! initialization mode (2 for IFS ana, 1 for DWD ana)
- zpbl1                        = 500. 
+ zpbl1                        = 500.
  zpbl2                        = 1000.
  ifs2icon_filename            = '${ifs2icon_filename}'
  l_sst_in                     = .true.
@@ -321,7 +321,7 @@ cat > ${atmo_namelist} << EOF
  lsnowtile                    = .true.  ! true: allow separate snow and snow-free tiles
  lseaice                      = .true.
  itype_lndtbl                 = 3       ! 2: tuned stomata resistance rsmin
- itype_root                   = 2       ! 2: exponetial root distribution, 1: roots at level 3 
+ itype_root                   = 2       ! 2: exponetial root distribution, 1: roots at level 3
  llake                        = .true.
  sstice_mode                  = 4
  sst_td_filename              = '${sst_td_filename}'
@@ -397,7 +397,7 @@ cat > ${atmo_namelist} << EOF
  l_intp_c2l                   = .TRUE.
  l_mono_c2l                   = .TRUE.
 !support_baryctr_intp         = .true.
- rbf_scale_mode_ll            = 1       ! workaround for RBF lat lon interpolation problems at R2B5 
+ rbf_scale_mode_ll            = 1       ! workaround for RBF lat lon interpolation problems at R2B5
 /
 &extpar_nml
  itopo                        = 1
@@ -407,6 +407,5 @@ cat > ${atmo_namelist} << EOF
 /
 EOF
 
- 
-#-----------------------------------------------------------------------------
 
+#-----------------------------------------------------------------------------

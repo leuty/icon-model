@@ -25,7 +25,7 @@ MODULE mo_integrate_density_pa
   USE mo_intp_data_strc,      ONLY: t_int_state
   USE mo_parallel_config,     ONLY: nproma
   USE mo_loopindices,         ONLY: get_indices_c, get_indices_e
-  USE mo_advection_config,    ONLY: advection_config 
+  USE mo_advection_config,    ONLY: advection_config
   USE mo_advection_traj,      ONLY: t_back_traj, btraj_compute_o1
   USE mo_advection_hflux,     ONLY: upwind_hflux_miura, upwind_hflux_miura3
   USE mo_advection_vflux,     ONLY: upwind_vflux_ppm
@@ -72,7 +72,7 @@ CONTAINS
 
     INTEGER,            INTENT(IN)   :: k_step       !< time step counter [1]
     LOGICAL,            INTENT(IN)   :: lcoupled_rho !< integrate mass equation (TRUE/FALSE)
- 
+
     REAL(wp) ::   &                   !< density edge value
       &  z_rho_e(nproma,p_patch%nlev,p_patch%nblks_e)
     REAL(wp) ::   &                   !< time averaged normal velocities
@@ -128,7 +128,7 @@ CONTAINS
 #ifdef _OPENACC
     CALL finish (routine,': OpenACC version in case of lcoupled_rho currently not implemented')
 #endif
-            
+
       lcompute =.TRUE.
       lcleanup =.TRUE.
 
@@ -153,13 +153,13 @@ CONTAINS
         CALL get_indices_e(p_patch, jb, i_startblk, i_endblk, &
                            i_startidx, i_endidx, i_rlstart, i_rlend)
 
-        ! time-averaged velocity field for mass flux and trajectory 
+        ! time-averaged velocity field for mass flux and trajectory
         ! computation.
         DO jk = 1,nlev
           DO je = i_startidx, i_endidx
 
             z_vn_traj(je,jk,jb) = 0.5_wp * (p_prog_now%vn(je,jk,jb) &
-              &                           + p_prog_new%vn(je,jk,jb)) 
+              &                           + p_prog_new%vn(je,jk,jb))
 
           ENDDO  ! je
         ENDDO  ! jk
@@ -185,7 +185,7 @@ CONTAINS
             DO jc = i_startidx, i_endidx
 
               z_w_traj(jc,jk,jb) = 0.5_wp * (p_prog_now%w(jc,jk,jb) &
-                &                         +  p_prog_new%w(jc,jk,jb)) 
+                &                         +  p_prog_new%w(jc,jk,jb))
 
             ENDDO  ! jc
           ENDDO  ! jk
@@ -209,7 +209,7 @@ CONTAINS
         i_endblk   = p_patch%cells%end_blk(i_rlend,i_nchdom)
 
 
-!DR replaced 
+!DR replaced
 !DR \rho^{n+1/2}*w^{n+1/2} by w^{n+1/2}
 !DR \rho^{n} \Delta z by \Delta z
 
@@ -223,7 +223,7 @@ CONTAINS
           &                  p_metrics%ddqz_z_full,                        &! in
           &                  p_metrics%ddqz_z_full,                        &! in
           &                  .TRUE.,                                       &! in
-          &                  ippm_v,                                       &! in           
+          &                  ippm_v,                                       &! in
           &                  p_diag%rho_ic,                                &! out
           &                  opt_lout_edge = .TRUE.,                       &! in
           &                  opt_rlstart=i_rlstart,                        &! in
@@ -302,7 +302,7 @@ CONTAINS
       ! Select desired flux calculation method
       !
       ! Note: It is implicitly assumed, that only one tracer is advected.
-      !       The namelist settings of the first tracer are applied to 
+      !       The namelist settings of the first tracer are applied to
       !       the density as well.
       SELECT CASE( advection_config(pid)%ihadv_tracer(1) )
       CASE( MIURA )
@@ -356,9 +356,9 @@ CONTAINS
 
         DO jk = 1,nlev
           DO je = i_startidx, i_endidx
-            p_diag%mass_fl_e(je,jk,jb) = z_vn_traj(je,jk,jb)                & 
+            p_diag%mass_fl_e(je,jk,jb) = z_vn_traj(je,jk,jb)                &
               &                         * p_metrics%ddqz_z_full_e(je,jk,jb) &
-              &                         * z_rho_e(je,jk,jb)   
+              &                         * z_rho_e(je,jk,jb)
           ENDDO  ! je
         ENDDO  ! jk
       ENDDO  ! jb
@@ -422,7 +422,7 @@ CONTAINS
 
 
 
-!DR replaced 
+!DR replaced
 !DR \rho^{n+1/2}*w^{n+1/2} by w^{n+1/2}
 !DR \rho^{n} \Delta z by \Delta z
 
@@ -436,7 +436,7 @@ CONTAINS
           &                  p_metrics%ddqz_z_full,                        &! in
           &                  p_metrics%ddqz_z_full,                        &! in
           &                  .TRUE.,                                       &! in
-          &                  ippm_v,                                       &! in           
+          &                  ippm_v,                                       &! in
           &                  p_diag%rho_ic,                                &! out
           &                  opt_lout_edge = .TRUE.,                       &! in
           &                  opt_rlstart=i_rlstart,                        &! in
@@ -552,4 +552,3 @@ CONTAINS
 
 
 END MODULE mo_integrate_density_pa
-

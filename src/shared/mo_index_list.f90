@@ -76,7 +76,7 @@ MODULE mo_index_list
         &  conditions, cond_stride,                              &
         &  startid, endid,                                       &
         &  indices, idx_stride,                                  &
-        &  nvalid, data_size,                                    & 
+        &  nvalid, data_size,                                    &
         &  stream )                                              &
         & BIND(C, name="c_generate_index_list_gpu_batched")
 
@@ -111,7 +111,7 @@ MODULE mo_index_list
     INTEGER,     INTENT(in)           :: endid
     INTEGER,     INTENT(out)          :: nvalid
     LOGICAL,     INTENT(IN)           :: lacc
-    ! These arguments are used in the OpenACC variant, but not in the CPU one 
+    ! These arguments are used in the OpenACC variant, but not in the CPU one
     INTEGER,     INTENT(in), OPTIONAL :: opt_acc_async_queue
     LOGICAL,     INTENT(in), OPTIONAL :: opt_acc_copy_to_host
 
@@ -136,7 +136,7 @@ MODULE mo_index_list
     INTEGER,     INTENT(in)           :: endid
     INTEGER,     INTENT(out)          :: nvalid
     LOGICAL,     INTENT(IN)           :: lacc
-    ! These arguments are used in the OpenACC variant, but not in the CPU one 
+    ! These arguments are used in the OpenACC variant, but not in the CPU one
     INTEGER,     INTENT(in), OPTIONAL :: opt_acc_async_queue
     LOGICAL,     INTENT(in), OPTIONAL :: opt_acc_copy_to_host
 
@@ -161,7 +161,7 @@ MODULE mo_index_list
     INTEGER,     INTENT(in)           :: endid
     INTEGER,     INTENT(inout)        :: nvalid(:)
     LOGICAL,     INTENT(in)           :: lacc
-    ! This argument is used in the OpenACC variant, but not in the GPU one 
+    ! This argument is used in the OpenACC variant, but not in the GPU one
     INTEGER,     INTENT(in), OPTIONAL :: opt_acc_async_queue
 
     INTEGER :: i, batch, batch_size
@@ -250,7 +250,7 @@ MODULE mo_index_list
       !$ACC END HOST_DATA
       !$ACC END HOST_DATA
 
-#ifdef __HIP__ 
+#ifdef __HIP__
       CALL acc_wait_all()
 #endif
     ELSE ! run on CPU
@@ -301,7 +301,7 @@ MODULE mo_index_list
       !$ACC END HOST_DATA
       !$ACC END HOST_DATA
 
-#ifdef __HIP__ 
+#ifdef __HIP__
       CALL acc_wait_all()
 #endif
     ELSE ! run on CPU
@@ -358,7 +358,7 @@ MODULE mo_index_list
           & c_loc(nvalid(1)), 1, stream )
       !$ACC END HOST_DATA
 
-#ifdef __HIP__ 
+#ifdef __HIP__
       CALL acc_wait_all()
 #endif
     ELSE ! run on CPU
@@ -412,7 +412,7 @@ MODULE mo_index_list
           & c_loc(nvalid(1)), 4, stream )
       !$ACC END HOST_DATA
 
-#ifdef __HIP__ 
+#ifdef __HIP__
       CALL acc_wait_all()
 #endif
     ELSE ! run on CPU

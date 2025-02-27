@@ -75,7 +75,7 @@ MODULE mo_vdf_atmo
     PROCEDURE :: compute_flux_x
     PROCEDURE :: Update_diagnostics
   END TYPE t_vdf_atmo
-  
+
   ! ABSTRACT INTERFACE
   !   SUBROUTINE i_temp_to_energy(this, configs, inputs, temperature, energy)
   !     IMPORT t_vdf_atmo, t_variable_set
@@ -155,7 +155,7 @@ MODULE mo_vdf_atmo
     PROCEDURE :: Set_pointers => Set_pointers_config
   END TYPE t_vdf_atmo_config
 
-  TYPE t_vel_grad_tensor 
+  TYPE t_vel_grad_tensor
     REAL(wp), DIMENSION(:,:,:), POINTER :: ptr => NULL()
   END TYPE
 
@@ -205,7 +205,7 @@ MODULE mo_vdf_atmo
       ! & pbh_tile(:,:,:)  => NULL(), &
       ! & pcpt_tile(:,:,:) => NULL(), &
       ! & pqsat_tile(:,:,:) => NULL()
-    ! Velocity gradient tensor 
+    ! Velocity gradient tensor
     TYPE(t_vel_grad_tensor) :: vel_grad_e(3,3)
 CONTAINS
     ! PROCEDURE :: Init => init_t_vdf_atmo_variable_set
@@ -249,7 +249,7 @@ CONTAINS
     !$ACC ENTER DATA COPYIN(result%diagnostics)
     ! CALL result%diagnostics%list%allocator()
     ! CALL result%diagnostics%Set_pointers()
- 
+
   END FUNCTION t_vdf_atmo_construct
   !
   !============================================================================
@@ -316,7 +316,7 @@ CONTAINS
     __acc_attach(diags)
 
     ! Prepare variables and pointers
-    domain => this%domain 
+    domain => this%domain
     patch  => domain%patch
 
     jg = patch%id
@@ -326,7 +326,7 @@ CONTAINS
     p_int         => p_int_state(jg)
     p_nh_metrics  => p_nh_state(jg)%metrics
 
-    !----------------------------------------------------------------------------    
+    !----------------------------------------------------------------------------
     ! Get static energy
     !----------------------------------------------------------------------------
     CALL compute_geopotential_height_above_ground(domain, ins%zf(:,:,:), ins%zh(:,:,:) , diags%ghf(:,:,:))
@@ -340,7 +340,7 @@ CONTAINS
     CALL get_virtual_potential_temperature(patch, ins%ptvm1, ins%papm1, diags%theta_v, &
                                            rl_start,rl_end)
 
-    !Get rho at interfaces 
+    !Get rho at interfaces
     CALL vert_intp_full2half_cell_3d(patch, p_nh_metrics, ins%rho, diags%rho_ic, &
                                      2, min_rlcell_int-2, lacc=.TRUE.)
 
@@ -355,16 +355,16 @@ CONTAINS
     !----------------------------------------------------------------------------
     CALL sync_patch_array(SYNC_C, patch, ins%pum1, lacc=.TRUE.)
     CALL sync_patch_array(SYNC_C, patch, ins%pvm1, lacc=.TRUE.)
-    
+
     CALL compute_normal_velocity_edge(ins%pum1, ins%pvm1, patch, p_int,                 &
                                       grf_bdywidth_e+1, min_rledge_int, diags%vn)
 
     CALL sync_patch_array(SYNC_E, patch, diags%vn, lacc=.TRUE.)
 
     !----------------------------------------------------------------------------
-    ! Interpolate velocities at required locations to compute velocity 
+    ! Interpolate velocities at required locations to compute velocity
     ! gradient tensor and turbulent exchange coefficients.
-    ! ->  assumes that prognostic values are all synced, while diagnostic 
+    ! ->  assumes that prognostic values are all synced, while diagnostic
     !     values might not
     !----------------------------------------------------------------------------
 !$OMP PARALLEL
@@ -402,13 +402,13 @@ CONTAINS
     CALL compute_velocity_gradient_tensor(diags%u_vert, diags%v_vert, diags%w_vert,       &
                                           ins%pwp1, diags%vn_ie, diags%vt_ie, diags%w_ie, &
                                           patch, p_nh_metrics, 4, min_rledge_int-2,       &
-                                          diags%vel_grad_e) 
+                                          diags%vel_grad_e)
 
     !----------------------------------------------------------------------------
     ! Compute strain rate and interpolate to required positions
     !----------------------------------------------------------------------------
     CALL compute_shear(diags%vel_grad_e, patch, 4, min_rledge_int-2,        &
-                       diags%shear, diags%div_of_stress)  
+                       diags%shear, diags%div_of_stress)
 
     !Interpolate mech production term from mid level edge to interface level cell
     !except top and bottom boundaries
@@ -419,11 +419,11 @@ CONTAINS
     ! Interpolate mech. production term from mid level edge to interface level cell: mech_prod = 2 * |S|^2
     ! except top and bottom boundaries
     CALL interpolate_rate_of_strain_full2half_edge2cell(diags%shear, patch, p_nh_metrics, p_int, &
-                                                        3, min_rlcell_int-1, diags%mech_prod)  
+                                                        3, min_rlcell_int-1, diags%mech_prod)
 
     !----------------------------------------------------------------------------
-    ! Compute turbulent exchange coefficient Km & Kh according to classical 
-    ! Smagorinsky model with stability correction (Lilly 1962) at interface 
+    ! Compute turbulent exchange coefficient Km & Kh according to classical
+    ! Smagorinsky model with stability correction (Lilly 1962) at interface
     ! cell centers
     !----------------------------------------------------------------------------
 !$OMP PARALLEL
@@ -435,18 +435,18 @@ CONTAINS
 !$OMP END PARALLEL
 
     CALL Smagorinsky_model(domain, diags%mech_prod, diags%bruvais, diags%rho_ic,              &
-                           diags%mixing_length_sq, conf%rturb_prandtl, conf%use_louis,        & 
+                           diags%mixing_length_sq, conf%rturb_prandtl, conf%use_louis,        &
                            conf%louis_constant_b, diags%scaling_factor_louis, patch,          &
                            diags%km_ic, diags%kh_ic, diags%stability_function)
-    
-    
+
+
     !----------------------------------------------------------------------------
-    ! Interpolate turbulent exchange coefficients to required positions for 
+    ! Interpolate turbulent exchange coefficients to required positions for
     ! flux calculation.
     ! -> halos also computed since they are used in diffusion later
     !----------------------------------------------------------------------------
     ! visc at cell center
-    CALL interpolate_eddy_viscosity2cell(diags%km_ic, conf%km_min, patch, grf_bdywidth_c,            & 
+    CALL interpolate_eddy_viscosity2cell(diags%km_ic, conf%km_min, patch, grf_bdywidth_c,            &
                                          min_rlcell_int-1, diags%km_c)
 
     ! visc at vertices
@@ -956,13 +956,13 @@ CONTAINS
       __acc_attach(this%mixing_length_sq)
       ! Velocity gradient tensor
       !$ACC ENTER DATA CREATE(this%vel_grad_e)
-      this%vel_grad_e(1,1)%ptr => this%list%Get_ptr_r3d('normal gradient of normal wind at edge') 
+      this%vel_grad_e(1,1)%ptr => this%list%Get_ptr_r3d('normal gradient of normal wind at edge')
       __acc_attach(this%vel_grad_e(1,1)%ptr)
       this%vel_grad_e(2,1)%ptr => this%list%Get_ptr_r3d('normal gradient of tangential wind at edge')
       __acc_attach(this%vel_grad_e(2,1)%ptr)
       this%vel_grad_e(3,1)%ptr => this%list%Get_ptr_r3d('normal gradient of vertical wind at edge')
       __acc_attach(this%vel_grad_e(3,1)%ptr)
-      this%vel_grad_e(1,2)%ptr => this%list%Get_ptr_r3d('tangential gradient of normal wind at edge')      
+      this%vel_grad_e(1,2)%ptr => this%list%Get_ptr_r3d('tangential gradient of normal wind at edge')
       __acc_attach(this%vel_grad_e(1,2)%ptr)
       this%vel_grad_e(2,2)%ptr => this%list%Get_ptr_r3d('tangential gradient of tangential wind at edge')
       __acc_attach(this%vel_grad_e(2,2)%ptr)
@@ -1230,7 +1230,7 @@ CONTAINS
       DO jk = 1,domain%nlev
         !$ACC LOOP GANG(STATIC: 1) VECTOR
         DO jc = domain%i_startidx_c(jb), domain%i_endidx_c(jb)
-          temperature(jc,jk,jb) = (static_energy(jc,jk,jb) - grav * geo_height(jc,jk,jb)) / spec_heat                                    
+          temperature(jc,jk,jb) = (static_energy(jc,jk,jb) - grav * geo_height(jc,jk,jb)) / spec_heat
         END DO
       END DO
       !$ACC END PARALLEL
@@ -1278,7 +1278,7 @@ CONTAINS
   END SUBROUTINE compute_geopotential_height_above_ground
   !============================================================================
   !
-  ! Compute mass specific internal energy + geopotential from temperature 
+  ! Compute mass specific internal energy + geopotential from temperature
   ! and moisture state
   !
   SUBROUTINE compute_internal_energy( &
@@ -1343,7 +1343,7 @@ CONTAINS
   END SUBROUTINE compute_internal_energy
   !============================================================================
   !
-  ! Compute temperature from mass specific internal energy + geopotential 
+  ! Compute temperature from mass specific internal energy + geopotential
   ! and moisture state
   !
   SUBROUTINE compute_temperature_from_internal_energy( &
@@ -1481,7 +1481,7 @@ CONTAINS
     REAL(wp), INTENT(in), POINTER      :: ptvm1(:,:,:), papm1(:,:,:)
     TYPE(t_patch), INTENT(in), POINTER :: patch
     REAL(wp), INTENT(in), POINTER      :: theta_v(:,:,:)
-    INTEGER,  INTENT(in)               :: rl_start, rl_end 
+    INTEGER,  INTENT(in)               :: rl_start, rl_end
 
     INTEGER  :: jb, jk, jc, nlev
     INTEGER  :: i_startblk, i_endblk, i_startidx, i_endidx
@@ -1506,11 +1506,11 @@ CONTAINS
 !$OMP END PARALLEL DO
 
   END SUBROUTINE get_virtual_potential_temperature
-  !============================================================================  
+  !============================================================================
   !
-  ! This subroutine computes normal velocity component at the edges, based on 
+  ! This subroutine computes normal velocity component at the edges, based on
   ! zonal and meridional wind components at cell centers?
-  !  
+  !
   SUBROUTINE compute_normal_velocity_edge(                  &
     pum1, pvm1, patch, p_int, rl_start, rl_end, vn )
 
@@ -1524,7 +1524,7 @@ CONTAINS
     INTEGER  :: i_startblk, i_endblk, i_startidx, i_endidx
     INTEGER  :: jb, je, jk, jbn, jcn, nlev
     REAL(wp) :: zvn1, zvn2
-    
+
     nlev = SIZE(vn,2)
 
     i_startblk = patch%edges%start_block(rl_start)
@@ -1612,9 +1612,9 @@ CONTAINS
   END SUBROUTINE interpolate_normal_velocity_edge_interface
   !============================================================================
   !
-  ! This subroutine computes the velocity gradient tensor at the cell edge. 
+  ! This subroutine computes the velocity gradient tensor at the cell edge.
   !
-  ! Output: 
+  ! Output:
   !   vel_grad_e[i,j]:   velocity gradient tensor, 3x3 tensor
   !                       -1. index: wind component at cell edge (1: normal, 2: tangential, 3: vertial)
   !                       -2. index: derivative direction (1: normal, 2: tangential, 3: vertial)
@@ -1622,14 +1622,14 @@ CONTAINS
   SUBROUTINE compute_velocity_gradient_tensor(                 &
     u_vert, v_vert, w_vert, pwp1, vn_ie, vt_ie, w_ie,          &
     patch, p_nh_metrics, rl_start, rl_end, vel_grad_e          &
-    )                        
+    )
 
     REAL(wp), INTENT(in) :: u_vert(:,:,:), v_vert(:,:,:), w_vert(:,:,:), pwp1(:,:,:)
     REAL(wp), INTENT(in) :: vn_ie(:,:,:), vt_ie(:,:,:), w_ie(:,:,:)
 
     TYPE(t_patch), INTENT(in), POINTER :: patch
     TYPE(t_nh_metrics),INTENT(in) :: p_nh_metrics
-    
+
     INTEGER, INTENT(in) :: rl_start,rl_end
 
     TYPE(t_vel_grad_tensor), INTENT(in) :: vel_grad_e(3,3)
@@ -1664,48 +1664,48 @@ CONTAINS
         DO je = i_startidx, i_endidx
 #endif
           ! Get normal velocity component at vertices for target edge
-          !TODO: can we modify the subroutine get_normal_velocity_vertex from tmx_numerics 
-          !      to use within OpenACC loop? 
-          vn_vert1 =    u_vert(patch%edges%vertex_idx(je,jb,1),jk,patch%edges%vertex_blk(je,jb,1)) &    
+          !TODO: can we modify the subroutine get_normal_velocity_vertex from tmx_numerics
+          !      to use within OpenACC loop?
+          vn_vert1 =    u_vert(patch%edges%vertex_idx(je,jb,1),jk,patch%edges%vertex_blk(je,jb,1)) &
                         * patch%edges%primal_normal_vert(je,jb,1)%v1                               &
-                      + v_vert(patch%edges%vertex_idx(je,jb,1),jk,patch%edges%vertex_blk(je,jb,1)) &    
+                      + v_vert(patch%edges%vertex_idx(je,jb,1),jk,patch%edges%vertex_blk(je,jb,1)) &
                         * patch%edges%primal_normal_vert(je,jb,1)%v2
 
-          vn_vert2 =    u_vert(patch%edges%vertex_idx(je,jb,2),jk,patch%edges%vertex_blk(je,jb,2)) &    
+          vn_vert2 =    u_vert(patch%edges%vertex_idx(je,jb,2),jk,patch%edges%vertex_blk(je,jb,2)) &
                         * patch%edges%primal_normal_vert(je,jb,2)%v1                               &
-                      + v_vert(patch%edges%vertex_idx(je,jb,2),jk,patch%edges%vertex_blk(je,jb,2)) &    
-                        * patch%edges%primal_normal_vert(je,jb,2)%v2               
+                      + v_vert(patch%edges%vertex_idx(je,jb,2),jk,patch%edges%vertex_blk(je,jb,2)) &
+                        * patch%edges%primal_normal_vert(je,jb,2)%v2
 
-          vn_vert3 =    u_vert(patch%edges%vertex_idx(je,jb,3),jk,patch%edges%vertex_blk(je,jb,3)) &    
+          vn_vert3 =    u_vert(patch%edges%vertex_idx(je,jb,3),jk,patch%edges%vertex_blk(je,jb,3)) &
                         * patch%edges%primal_normal_vert(je,jb,3)%v1                               &
-                      + v_vert(patch%edges%vertex_idx(je,jb,3),jk,patch%edges%vertex_blk(je,jb,3)) &    
+                      + v_vert(patch%edges%vertex_idx(je,jb,3),jk,patch%edges%vertex_blk(je,jb,3)) &
                         * patch%edges%primal_normal_vert(je,jb,3)%v2
-                      
-          vn_vert4 =    u_vert(patch%edges%vertex_idx(je,jb,4),jk,patch%edges%vertex_blk(je,jb,4)) &    
+
+          vn_vert4 =    u_vert(patch%edges%vertex_idx(je,jb,4),jk,patch%edges%vertex_blk(je,jb,4)) &
                         * patch%edges%primal_normal_vert(je,jb,4)%v1                               &
-                      + v_vert(patch%edges%vertex_idx(je,jb,4),jk,patch%edges%vertex_blk(je,jb,4)) &    
+                      + v_vert(patch%edges%vertex_idx(je,jb,4),jk,patch%edges%vertex_blk(je,jb,4)) &
                         * patch%edges%primal_normal_vert(je,jb,4)%v2
 
 
           ! Get tangential velocity component at vertices for target edge
-          vt_vert1 =    u_vert(patch%edges%vertex_idx(je,jb,1),jk,patch%edges%vertex_blk(je,jb,1)) &    
+          vt_vert1 =    u_vert(patch%edges%vertex_idx(je,jb,1),jk,patch%edges%vertex_blk(je,jb,1)) &
                         * patch%edges%dual_normal_vert(je,jb,1)%v1                                 &
-                      + v_vert(patch%edges%vertex_idx(je,jb,1),jk,patch%edges%vertex_blk(je,jb,1)) &    
+                      + v_vert(patch%edges%vertex_idx(je,jb,1),jk,patch%edges%vertex_blk(je,jb,1)) &
                         * patch%edges%dual_normal_vert(je,jb,1)%v2
-                
-          vt_vert2 =    u_vert(patch%edges%vertex_idx(je,jb,2),jk,patch%edges%vertex_blk(je,jb,2)) &    
+
+          vt_vert2 =    u_vert(patch%edges%vertex_idx(je,jb,2),jk,patch%edges%vertex_blk(je,jb,2)) &
                         * patch%edges%dual_normal_vert(je,jb,2)%v1                                 &
-                      + v_vert(patch%edges%vertex_idx(je,jb,2),jk,patch%edges%vertex_blk(je,jb,2)) &    
+                      + v_vert(patch%edges%vertex_idx(je,jb,2),jk,patch%edges%vertex_blk(je,jb,2)) &
                         * patch%edges%dual_normal_vert(je,jb,2)%v2
-          
-          vt_vert3 =    u_vert(patch%edges%vertex_idx(je,jb,3),jk,patch%edges%vertex_blk(je,jb,3)) &    
+
+          vt_vert3 =    u_vert(patch%edges%vertex_idx(je,jb,3),jk,patch%edges%vertex_blk(je,jb,3)) &
                         * patch%edges%dual_normal_vert(je,jb,3)%v1                                 &
-                      + v_vert(patch%edges%vertex_idx(je,jb,3),jk,patch%edges%vertex_blk(je,jb,3)) &    
+                      + v_vert(patch%edges%vertex_idx(je,jb,3),jk,patch%edges%vertex_blk(je,jb,3)) &
                         * patch%edges%dual_normal_vert(je,jb,3)%v2
 
-          vt_vert4 =    u_vert(patch%edges%vertex_idx(je,jb,4),jk,patch%edges%vertex_blk(je,jb,4)) &    
+          vt_vert4 =    u_vert(patch%edges%vertex_idx(je,jb,4),jk,patch%edges%vertex_blk(je,jb,4)) &
                         * patch%edges%dual_normal_vert(je,jb,4)%v1                                 &
-                      + v_vert(patch%edges%vertex_idx(je,jb,4),jk,patch%edges%vertex_blk(je,jb,4)) &    
+                      + v_vert(patch%edges%vertex_idx(je,jb,4),jk,patch%edges%vertex_blk(je,jb,4)) &
                         * patch%edges%dual_normal_vert(je,jb,4)%v2
 
           ! W at full levels
@@ -1722,19 +1722,19 @@ CONTAINS
           w_full_v2  = 0.5_wp * (  w_vert(patch%edges%vertex_idx(je,jb,2),jk,  patch%edges%vertex_blk(je,jb,2))   &
                                  + w_vert(patch%edges%vertex_idx(je,jb,2),jk+1,patch%edges%vertex_blk(je,jb,2)) )
 
-          ! Compute velocity gradient tensor at edge of full levels 
+          ! Compute velocity gradient tensor at edge of full levels
           ! e.g. vgrad_e(1,2) = du_1/dx_2
-          ! with index notation for triangles: 
-          !     1: normal, 2: tangential, 3: vertical direction 
+          ! with index notation for triangles:
+          !     1: normal, 2: tangential, 3: vertical direction
           ! TODO: can we modify get_velocity_gradient_tensor_edge to use within OpenACC loop?
           vel_grad_e(1,1)%ptr(je,jk,jb) = ( vn_vert4 - vn_vert3 ) * patch%edges%inv_vert_vert_length(je,jb)
 
-          vel_grad_e(1,2)%ptr(je,jk,jb) = ( vn_vert2 - vn_vert1 )                      &   
+          vel_grad_e(1,2)%ptr(je,jk,jb) = ( vn_vert2 - vn_vert1 )                      &
                                           * patch%edges%tangent_orientation(je,jb)     &
                                           * patch%edges%inv_primal_edge_length(je,jb)
 
           vel_grad_e(1,3)%ptr(je,jk,jb) = ( vn_ie(je,jk,jb) - vn_ie(je,jk+1,jb) )      &
-                                          * p_nh_metrics%inv_ddqz_z_full_e(je,jk,jb)    
+                                          * p_nh_metrics%inv_ddqz_z_full_e(je,jk,jb)
 
           vel_grad_e(2,1)%ptr(je,jk,jb) = ( vt_vert4-vt_vert3 )                        &
                                           * patch%edges%inv_vert_vert_length(je,jb)
@@ -1755,7 +1755,7 @@ CONTAINS
 
           vel_grad_e(3,3)%ptr(je,jk,jb) = ( w_ie(je,jk,jb) - w_ie(je,jk+1,jb) )        &
                                           * p_nh_metrics%inv_ddqz_z_full_e(je,jk,jb)
-         
+
         ENDDO
       ENDDO
       !$ACC END PARALLEL
@@ -1765,26 +1765,26 @@ CONTAINS
   END SUBROUTINE compute_velocity_gradient_tensor
   !============================================================================
   !
-  ! This subroutine computes the shear (rate of strane |S|) and trace of the 
-  ! strain-rate tensor (S_ij). 
-  ! 
-  !   shear = 2 * |S|^2 =  D_ij * D_ij 
-  !           
+  ! This subroutine computes the shear (rate of strane |S|) and trace of the
+  ! strain-rate tensor (S_ij).
+  !
+  !   shear = 2 * |S|^2 =  D_ij * D_ij
+  !
   !     with  S_ij = 0.5 ( du_i/dx_j + du_j/dx_i )
   !
   !
-  ! Output: 
-  !   shear:          2 * |S|^2 (|S|=sqrt(2*S_ij*S_ij)) 
+  ! Output:
+  !   shear:          2 * |S|^2 (|S|=sqrt(2*S_ij*S_ij))
   !   div_of_stress:  trace(S_ij) = S_jj = 0.5 * D_jj = du_j/dx_j
   !
   ! shear_e = = 2 * |S|^2  (|S|: rate-of-strain)
-  ! with D_ij = 2 * S_ij = du_i/dx_j + du_j/dx_i 
+  ! with D_ij = 2 * S_ij = du_i/dx_j + du_j/dx_i
   ! and  |S| = sqrt(2 * S_ij * S_ij)
   !
   SUBROUTINE compute_shear(                                   &
     vel_grad_e, patch, rl_start, rl_end,        &
     shear, div_of_stress                                      &
-    )                        
+    )
 
     TYPE(t_vel_grad_tensor), INTENT(in) :: vel_grad_e(3,3)
 
@@ -1817,8 +1817,8 @@ CONTAINS
 #else
       DO jk = 1, nlev
         DO je = i_startidx, i_endidx
-#endif        
-         ! Compute local shear at edge: 
+#endif
+         ! Compute local shear at edge:
          !   shear_e = 2 * |S|^2 (|S|=sqrt(2*S_ij*S_ij))
          ! Mechanical prod is half of this value divided by km
 
@@ -1833,7 +1833,7 @@ CONTAINS
                                       + vel_grad_e(3,3)%ptr(je,jk,jb)**2._wp) &
                             + 2._wp * ( D_12**2._wp + D_13**2._wp + D_23**2._wp)
 
-          ! Trace of strain-rate tensor S_ij: 
+          ! Trace of strain-rate tensor S_ij:
           !   trace(S_ij) = S_jj = 0.5 * D_jj = du_j/dx_j
           div_of_stress(je,jk,jb) =   vel_grad_e(1,1)%ptr(je,jk,jb) &
                                     + vel_grad_e(2,2)%ptr(je,jk,jb) &
@@ -1847,19 +1847,19 @@ CONTAINS
   END SUBROUTINE compute_shear
   !============================================================================
   !
-  ! This function comuptes the local velocity gradient tensor at the edges of 
-  ! the full levels, based on central finite differences. 
+  ! This function comuptes the local velocity gradient tensor at the edges of
+  ! the full levels, based on central finite differences.
   !
   ! Normal gradient of the normal & tangential velocity components are computed
-  ! between vertices 3 and 4 (vertex numbering see figure 1 in Zaengl et al. 
+  ! between vertices 3 and 4 (vertex numbering see figure 1 in Zaengl et al.
   ! 2015, Q. J. R. Meteorol. Soc.).
-  ! Normal gradients of vertical velocity component is computed between 
+  ! Normal gradients of vertical velocity component is computed between
   ! adjacent cell centers.
-  ! Tangential gradients are computed between vertices 1 and 2, and vertical 
+  ! Tangential gradients are computed between vertices 1 and 2, and vertical
   ! gradients between edges at adjacent half levels.
-  ! 
-  ! Output: 
-  !   vgrad_e:  velocity gradient tensor (1. index: velocity component; 
+  !
+  ! Output:
+  !   vgrad_e:  velocity gradient tensor (1. index: velocity component;
   !                                       2. index: derivative direction)
   !
   FUNCTION get_velocity_gradient_tensor_edge(               &
@@ -1877,7 +1877,7 @@ CONTAINS
 
     REAL(wp), INTENT(in) :: vn_vert1,vn_vert2,vn_vert3,vn_vert4
     REAL(wp), INTENT(in) :: vt_vert1,vt_vert2,vt_vert3,vt_vert4
-    REAL(wp), INTENT(in) :: w_full_c1,w_full_c2,w_full_v1,w_full_v2 
+    REAL(wp), INTENT(in) :: w_full_c1,w_full_c2,w_full_v1,w_full_v2
 
     REAL(wp), INTENT(in), POINTER :: vn_ie(:,:,:), vt_ie(:,:,:), w_ie(:,:,:)
 
@@ -1885,11 +1885,11 @@ CONTAINS
 
     vgrad_e(1,1) = ( vn_vert4 - vn_vert3 )                            &
                       * patch%edges%inv_vert_vert_length(je,jb)
-    vgrad_e(1,2) = ( vn_vert2 - vn_vert1 )                            &   
+    vgrad_e(1,2) = ( vn_vert2 - vn_vert1 )                            &
                       * patch%edges%tangent_orientation(je,jb)        &
                       * patch%edges%inv_primal_edge_length(je,jb)
     vgrad_e(1,3) =  ( vn_ie(je,jk,jb) - vn_ie(je,jk+1,jb) )           &
-                      * p_nh_metrics%inv_ddqz_z_full_e(je,jk,jb)    
+                      * p_nh_metrics%inv_ddqz_z_full_e(je,jk,jb)
 
     vgrad_e(2,1) = ( vt_vert4-vt_vert3 )                              &
                       * patch%edges%inv_vert_vert_length(je,jb)
@@ -1910,12 +1910,12 @@ CONTAINS
   END FUNCTION get_velocity_gradient_tensor_edge
   !============================================================================
   !
-  ! Computes horizontal divergence at cell mass obtained by Gauss theorem and 
-  ! fluxes defined at edges. (see equation (19) in Zaengl et al. 
-  ! 2015, Q. J. R. Meteorol. Soc.). 
+  ! Computes horizontal divergence at cell mass obtained by Gauss theorem and
+  ! fluxes defined at edges. (see equation (19) in Zaengl et al.
+  ! 2015, Q. J. R. Meteorol. Soc.).
   !
   SUBROUTINE get_horizontal_divergence_strain_rate_cell(                &
-    flux_e,patch,ptr_int,rl_start,rl_end,hdiv_c)                        
+    flux_e,patch,ptr_int,rl_start,rl_end,hdiv_c)
 
     REAL(wp), INTENT(in), POINTER :: flux_e(:,:,:)
     TYPE(t_patch), INTENT(in), POINTER :: patch
@@ -1924,8 +1924,8 @@ CONTAINS
     INTEGER, INTENT(in) :: rl_start,rl_end
     REAL(wp), INTENT(in), POINTER :: hdiv_c(:,:,:)
 
-    INTEGER :: i_startblk, i_endblk, i_startidx, i_endidx 
-    INTEGER :: jb, jk, jc, nlev 
+    INTEGER :: i_startblk, i_endblk, i_startidx, i_endidx
+    INTEGER :: jb, jk, jc, nlev
 
     nlev = SIZE(hdiv_c,2)
 
@@ -1957,16 +1957,16 @@ CONTAINS
   END SUBROUTINE get_horizontal_divergence_strain_rate_cell
   !============================================================================
   !
-  ! Interpolates the rate of strain from edges at full levels to cell center at 
-  ! half levels.  
+  ! Interpolates the rate of strain from edges at full levels to cell center at
+  ! half levels.
   !
   SUBROUTINE interpolate_rate_of_strain_full2half_edge2cell(                &
-    shear_e,                                                                & 
+    shear_e,                                                                &
     patch,                                                                  &
-    p_nh_metrics,                                                           &     
-    ptr_int,                                                                & 
+    p_nh_metrics,                                                           &
+    ptr_int,                                                                &
     rl_start,rl_end,                                                        &
-    shear_ic)                        
+    shear_ic)
 
     REAL(wp), INTENT(in), POINTER :: shear_e(:,:,:)
     TYPE(t_patch), INTENT(in), POINTER :: patch
@@ -2000,7 +2000,7 @@ CONTAINS
                         * ptr_int%e_bln_c_s(jc,3,jb)                                            &
                     )                                                                           &
                 + ( 1._wp - p_nh_metrics%wgtfac_c(jc,jk,jb) )                                   &
-                  * (   shear_e(patch%cells%edge_idx(jc,jb,1),jk-1,patch%cells%edge_blk(jc,jb,1)) & 
+                  * (   shear_e(patch%cells%edge_idx(jc,jb,1),jk-1,patch%cells%edge_blk(jc,jb,1)) &
                         * ptr_int%e_bln_c_s(jc,1,jb)                                            &
                       + shear_e(patch%cells%edge_idx(jc,jb,2),jk-1,patch%cells%edge_blk(jc,jb,2)) &
                         * ptr_int%e_bln_c_s(jc,2,jb)                                            &
@@ -2013,18 +2013,18 @@ CONTAINS
     END DO
 !$OMP END PARALLEL DO
   END SUBROUTINE interpolate_rate_of_strain_full2half_edge2cell
-  !============================================================================  
+  !============================================================================
   !
-  ! Interpolates the eddy viscosity from cell center at half levels to cell 
-  ! center of full levels. 
+  ! Interpolates the eddy viscosity from cell center at half levels to cell
+  ! center of full levels.
   ! The minimum return value of km_c is km_min.
   !
   SUBROUTINE interpolate_eddy_viscosity2cell(                               &
-    km_ic,                                                                  & 
+    km_ic,                                                                  &
     km_min,                                                                 &
     patch,                                                                  &
     rl_start,rl_end,                                                        &
-    km_c )                        
+    km_c )
 
     REAL(wp), INTENT(in), POINTER :: km_ic(:,:,:)
     REAL(wp), INTENT(in) :: km_min
@@ -2065,10 +2065,10 @@ CONTAINS
   !
   SUBROUTINE interpolate_eddy_viscosity2half_vertex(                        &
     km_ic,                                                                  &
-    km_min,                                                                 & 
+    km_min,                                                                 &
     patch,                                                                  &
     ptr_int,                                                                &
-    km_iv)                        
+    km_iv)
 
     REAL(wp), INTENT(in) :: km_ic(:,:,:)
     REAL(wp), INTENT(in) :: km_min
@@ -2106,10 +2106,10 @@ CONTAINS
   !
   SUBROUTINE interpolate_eddy_viscosity2half_edge(                        &
     km_ic,                                                                &
-    km_min,                                                               & 
+    km_min,                                                               &
     patch,                                                                &
     ptr_int,                                                              &
-    km_ie)                        
+    km_ie)
 
     REAL(wp), INTENT(in) :: km_ic(:,:,:)
     REAL(wp), INTENT(in) :: km_min
@@ -2266,7 +2266,7 @@ CONTAINS
   ! terms is depending on the time increment and is omitted
   ! at this point. This allows to use the subroutine for
   ! calculating both, the explicit and the implicit
-  ! coefficients. In case of implicit treatment it is added 
+  ! coefficients. In case of implicit treatment it is added
   ! to the coefficient b later (see module mo_tmx_numerics;
   ! subroutine diffuse_vertical_implicit).
   !

@@ -19,4 +19,3 @@ target_dir=/scratch/mpi/CC/mh0287/data/archive/${DATE}/buildbot/${builder}
 
 ssh ${target_server} mkdir -p ${target_dir}
 scp -r experiments ${target_server}:${target_dir}/${builder_ID}
-

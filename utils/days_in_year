@@ -24,7 +24,7 @@ function usage
 echo "USAGE:"
 echo "${script_name} [ -c calendar ] -- year"
 echo ""
-echo "    calendar - 0: no leap years;" 
+echo "    calendar - 0: no leap years;"
 echo "               1: proleptic gregorian (default)"
 echo "             'n': equal months of 'n' days"
 echo "    year -     year"
@@ -61,7 +61,7 @@ elif [ ${calendar_type} = 1 ]; then
   else
     yr1=0
   fi
-  if [ ${year} -ge 100 ] || [ ${year} -le -100 ]; then 
+  if [ ${year} -ge 100 ] || [ ${year} -le -100 ]; then
     (( yr2 = year / 100 ))
     (( yr2 = yr2 * 100 ))
   else

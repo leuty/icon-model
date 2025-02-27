@@ -12,7 +12,7 @@
 ! Provide an implementation of the sea-ice model diagnostics.
 
 MODULE mo_ice_diagnostics
-  
+
   USE mo_kind,                ONLY: wp
   USE mo_parallel_config,     ONLY: nproma
   USE mo_exception,           ONLY: finish

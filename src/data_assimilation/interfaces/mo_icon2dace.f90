@@ -235,7 +235,7 @@ MODULE mo_icon2dace
   use mo_t_col,       only: u10_use_mlevel    ! use model level for 10m wind?
   use mo_thinning,    only: check_domain,    &! check for out of domain
                             thinning,        &! thinning routine
-                            read_nml_thin     ! read namelist /THINNING/ 
+                            read_nml_thin     ! read namelist /THINNING/
   use mo_blacklist,   only: read_blacklists   ! read blacklist file
   use mo_fg_checks,   only: check_obs,       &! check for valid report
                             check_cons,      &! consistency check
@@ -1612,7 +1612,7 @@ contains
     logical                       :: lceil
     logical                       :: lvis
     ! character(*), parameter :: fields = &
-    !      "ps pf ph t u v den q qcl qci qv_s z0 qv_dia qc_dia qi_dia& 
+    !      "ps pf ph t u v den q qcl qci qv_s z0 qv_dia qc_dia qi_dia&
     !      & t2m td2m rh2m u_10m v_10m clct clcl clcm clch clc&
     !      & tsurf h_snow fr_ice" ! "t_so" currently not used
     character(*), parameter :: fields_default = &
@@ -1659,9 +1659,9 @@ contains
         ptr_clc => phy_d % clc(:,:,:)
       END IF
     END IF
-    
+
     call allocate (state, fields)
-    
+
     ! Ensure that diagnostic fields are up-to-date (HR, CW)
     call rbf_vec_interpol_cell (atm_p%vn, p_patch(1), p_int_state(1), atm_d%u, atm_d%v, lacc=.FALSE.)
 
@@ -1714,7 +1714,7 @@ contains
        do k = 1, nz
           state% den  (j,1,k,1) = atm_p% rho    (idx,k,blk)
        end do
-       
+
        do k = 1, nz
           state%          q      (j,1,k,1) = atm_r% tracer(idx,k,blk,iqv)
           state%          qcl    (j,1,k,1) = atm_r% tracer(idx,k,blk,iqc)
@@ -1725,9 +1725,9 @@ contains
             state%          qc_dia (j,1,k,1) = phy_d% tot_cld  (idx,k,blk,iqc)
             state%          qi_dia (j,1,k,1) = phy_d% tot_cld  (idx,k,blk,iqi)
 
-            if (atm_phy_nwp_config(1)% icalc_reff .gt. 0 .and. use_reff ) then 
-               state%       reff_qc(j,1,k,1) = phy_d% reff_qc (idx,k,blk)    
-               state%       reff_qi(j,1,k,1) = phy_d% reff_qi (idx,k,blk) 
+            if (atm_phy_nwp_config(1)% icalc_reff .gt. 0 .and. use_reff ) then
+               state%       reff_qc(j,1,k,1) = phy_d% reff_qc (idx,k,blk)
+               state%       reff_qi(j,1,k,1) = phy_d% reff_qi (idx,k,blk)
             end if
           end if
           if (lqr) state% qr (j,1,k,1) = atm_r% tracer(idx,k,blk,iqr)
@@ -1952,7 +1952,7 @@ contains
     ! HA: lecheck_ptopf noetig (wie in dace)?
     ! Use status rejected only for COSMO operators; not for all observation types
     where(rept_char(:)% mod == COSMO) rept_use(:)% use(CHK_DOMAIN) = STAT_REJECTED
-         
+
     call check_domain (obs_in(1), grid, horizontal=.true.)
     !lcheck_ptopf=lcheck_ptopf)
 
@@ -2353,7 +2353,7 @@ contains
           call check_suff (obs% o) ! check for sufficient data in report
           first = .false.
        end if
-       
+
 
     end if
 

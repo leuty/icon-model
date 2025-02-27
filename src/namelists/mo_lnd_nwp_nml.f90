@@ -150,7 +150,7 @@ CONTAINS
     INTEGER ::  itype_snowevap    !< treatment of snow evaporation in the presence of vegetation
     INTEGER ::  itype_oskin_warm  !> forecast with ocean warm layer
     INTEGER ::  itype_oskin_cold  !> forecast with ocean cold skin
- 
+
     CHARACTER(LEN=filename_max) :: sst_td_filename, ci_td_filename
 
    LOGICAL ::           &

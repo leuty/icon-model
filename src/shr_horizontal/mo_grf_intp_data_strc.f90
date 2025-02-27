@@ -85,7 +85,7 @@ TYPE t_gridref_state
   REAL(wp), ALLOCATABLE :: fbk_wgt_e(:,:,:)     ! Feedback weights for edge-based variables
 
   ! Mask fields defined at parent level for feedback overlap regions with a nested domain:
-  ! dim1=nproma, dim2=nblks, dim3=n_childdom 
+  ! dim1=nproma, dim2=nblks, dim3=n_childdom
   LOGICAL, ALLOCATABLE :: mask_ovlp_c(:,:,:), mask_ovlp_ch(:,:,:), mask_ovlp_e(:,:,:), mask_ovlp_v(:,:,:)
 
   ! Number of grid points for which tendencies for lateral boundary interpolation need to be computed

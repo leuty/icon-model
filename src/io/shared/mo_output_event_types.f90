@@ -39,7 +39,7 @@ MODULE mo_output_event_types
 
   !>  default event name (ie. events that DO NOT write ready files
   CHARACTER (LEN=*), PARAMETER :: DEFAULT_EVENT_NAME = "default"
-  
+
 
   !---------------------------------------------------------------
   ! types
@@ -124,7 +124,7 @@ MODULE mo_output_event_types
 
   !---------------------------------------------------------------
   ! DEFINITION OF EVENT STEPS
-  
+
   !> Single step of an event.
   !
   !  Events are triggered by the simulation step (INTEGER) only to
@@ -140,7 +140,7 @@ MODULE mo_output_event_types
     TYPE(t_event_step_data), ALLOCATABLE  :: event_step_data(:)               !< event data for each PE
   END TYPE t_event_step
 
-  
+
   !> List of steps for an event.
   !
   TYPE t_output_event
@@ -153,7 +153,7 @@ MODULE mo_output_event_types
 
   !---------------------------------------------------------------
   ! MPI-PARALLEL EVENTS
- 
+
   !> List of steps of an event that is performed on several PEs in
   !  parallel.
   !

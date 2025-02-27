@@ -91,7 +91,7 @@ MODULE mo_nwp_tuning_nml
     &                               config_tune_sbmccn           => tune_sbmccn,           &
     &                               config_tune_urbahf           => tune_urbahf,           &
     &                               config_tune_urbisa           => tune_urbisa
-  
+
   IMPLICIT NONE
   PRIVATE
 
@@ -128,7 +128,7 @@ MODULE mo_nwp_tuning_nml
 
   REAL(wp) :: &                    !< constant in saturation wave spectrum (non-orographic GWD)
     &  tune_gcstar
-  
+
   REAL(wp) :: &                    !< Minimum value for sticking efficiency
     &  tune_zceff_min
 
@@ -137,8 +137,8 @@ MODULE mo_nwp_tuning_nml
 
   REAL(wp) :: &                    !< efficiency for cloud-graupel riming
     &  tune_zcsg
-  
-  REAL(wp) :: &                    !< Terminal fall velocity of ice 
+
+  REAL(wp) :: &                    !< Terminal fall velocity of ice
     &  tune_zvz0i
 
   REAL(wp) :: &                    !< Exponent for density correction of cloud ice sedimentation
@@ -147,13 +147,13 @@ MODULE mo_nwp_tuning_nml
   REAL(wp) :: &                    !< sbm ccn factor
     &  tune_sbmccn
 
-  REAL(wp) :: &                    !< Entrainment parameter for deep convection valid at dx=20 km 
+  REAL(wp) :: &                    !< Entrainment parameter for deep convection valid at dx=20 km
     &  tune_entrorg
 
-  REAL(wp) :: &                    !< Coefficient for conversion of cloud water into precipitation in convection scheme 
+  REAL(wp) :: &                    !< Coefficient for conversion of cloud water into precipitation in convection scheme
     &  tune_rprcon
 
-  REAL(wp) :: &                    !< Maximum allowed shallow convection depth (Pa) 
+  REAL(wp) :: &                    !< Maximum allowed shallow convection depth (Pa)
     &  tune_rdepths
 
   REAL(wp) :: &                    !< Fraction of CAPE diurnal cycle correction applied in the extratropics
@@ -249,7 +249,7 @@ MODULE mo_nwp_tuning_nml
   INTEGER :: &                     !< slope-dependent tuning of parameters affecting stable PBLs
     &  itune_slopecorr             ! 1: slope-dependent reduction of rlam_heat and near-surface tkhmin
 
-  INTEGER :: &                     !< type of artificial ozone tuning 
+  INTEGER :: &                     !< type of artificial ozone tuning
     &  itune_o3                    ! 0: no tuning
                                    ! 1: old tuning for RRTM radiation
                                    ! 2: (default) standard tuning for EcRad with RRTM gas optics
@@ -280,7 +280,7 @@ MODULE mo_nwp_tuning_nml
 
   REAL(wp) :: &                    !< maximum allowed positive freshsnow increment
        &  max_freshsnow_inc
-  
+
   REAL(wp) :: &                    !< critical threshold for lower tropospheric stability (K)
        &  tune_eiscrit             !< to switch off conv param in stratocumulus regions
 
@@ -299,10 +299,10 @@ MODULE mo_nwp_tuning_nml
   REAL(wp) :: &                    !< tuning of anthropogenic heat flux
        &  tune_urbahf(4)
 
-  REAL(wp) :: &                    !< lower and upper bound for variable ISA paraeterization 
+  REAL(wp) :: &                    !< lower and upper bound for variable ISA paraeterization
        &  tune_urbisa(2)           !< depending on smoothed urban fraction
-  
-  
+
+
   NAMELIST/nwp_tuning_nml/ tune_gkwake, tune_gkdrag, tune_gfluxlaun, tune_gcstar, &
     &                      tune_zceff_min, tune_v0snow, tune_zvz0i, tune_zcsg,    &
     &                      tune_entrorg, itune_albedo, tune_albedo_wso,           &
@@ -331,16 +331,16 @@ CONTAINS
 
   !-------------------------------------------------------------------------
   !
-  !! Read Namelist for NWP physics tuning. 
+  !! Read Namelist for NWP physics tuning.
   !!
-  !! This subroutine 
+  !! This subroutine
   !! - reads the Namelist for NWP physics tuning
   !! - sets default values
-  !! - potentially overwrites the defaults by values used in a 
+  !! - potentially overwrites the defaults by values used in a
   !!   previous integration (if this is a resumed run)
   !! - reads the user's (new) specifications
   !! - stores the Namelist for restart
-  !! - fills the configuration state (partly)   
+  !! - fills the configuration state (partly)
   !!
   SUBROUTINE read_nwp_tuning_namelist( filename )
 
@@ -354,12 +354,12 @@ CONTAINS
       &  routine = 'mo_nwp_tuning_nml: read_tuning_namelist'
 
     !-----------------------
-    ! 1. default settings   
+    ! 1. default settings
     !-----------------------
 
-    ! Comment: In case we want to draw from a normal distribution, the namelist 
-    ! parameters could be extended to arrays of size 2. The first value is the mean, 
-    ! while the second one is the standard deviation. 
+    ! Comment: In case we want to draw from a normal distribution, the namelist
+    ! parameters could be extended to arrays of size 2. The first value is the mean,
+    ! while the second one is the standard deviation.
 
     ! SSO tuning
     gkwake_def  = 1.5_wp       ! original COSMO value 0.5
@@ -398,7 +398,7 @@ CONTAINS
     !
 
     !> entrainment parameter for deep convection:
-    tune_entrorg     = 1.95e-3_wp   
+    tune_entrorg     = 1.95e-3_wp
 
     !> coefficient for conversion of cloud water into precipitation
     tune_rprcon      = 1.4e-3_wp
@@ -494,7 +494,7 @@ CONTAINS
     tune_sc_eis      = 1000.0_wp
 
     !> min/max inversion height (m) to identify stratocumulus region for cloud cover
-    !> enhancement. 
+    !> enhancement.
     tune_sc_invmin   = 200._wp
     tune_sc_invmax   = 1500._wp
 
@@ -511,7 +511,7 @@ CONTAINS
     END IF
 
     !------------------------------------------------------------------
-    ! 2. If this is a resumed integration, overwrite the defaults above 
+    ! 2. If this is a resumed integration, overwrite the defaults above
     !    by values used in the previous integration.
     !------------------------------------------------------------------
     IF (use_restart_namelists()) THEN
@@ -639,7 +639,7 @@ CONTAINS
     config_tune_gustlim_fac      = tune_gustlim_fac
     config_itune_vis_diag        = itune_vis_diag
     config_itune_albedo          = itune_albedo
-    config_tune_albedo_wso       = tune_albedo_wso    
+    config_tune_albedo_wso       = tune_albedo_wso
     config_itune_slopecorr       = itune_slopecorr
     config_itune_o3              = itune_o3
     config_lcalib_clcov          = lcalib_clcov
@@ -662,8 +662,8 @@ CONTAINS
     !-----------------------------------------------------
     IF(my_process_is_stdio())  THEN
       funit = open_tmpfile()
-      WRITE(funit,NML=nwp_tuning_nml)                    
-      CALL store_and_close_namelist(funit, 'nwp_tuning_nml')             
+      WRITE(funit,NML=nwp_tuning_nml)
+      CALL store_and_close_namelist(funit, 'nwp_tuning_nml')
     ENDIF
 
     !--------------------------------------------------------

@@ -95,7 +95,7 @@ CONTAINS
     CHARACTER(len=*), PARAMETER :: routine = modname//':compute_sfc_density'
 
     INTEGER  :: jb, jls, js
-    
+
 !$OMP PARALLEL
     CALL init(rhos, 1._wp, lacc=.TRUE.)
 !$OMP END PARALLEL
@@ -144,7 +144,7 @@ CONTAINS
     CHARACTER(len=*), PARAMETER :: routine = modname//':compute_wind_speed'
 
     INTEGER  :: jb, jc
-    
+
 !$OMP PARALLEL
     CALL init(mwind, lacc=.TRUE.)
 !$OMP END PARALLEL
@@ -331,7 +331,7 @@ CONTAINS
       km_neutral
 
     !$ACC ROUTINE SEQ
-  
+
     REAL(wp) :: z_mc, RIB, tcn_mom, tcn_heat, &
       &         shfl_local, lhfl_local, bflx1, ustar, obukhov_length, inv_bus_mom
     REAL(wp) :: tch
@@ -384,7 +384,7 @@ CONTAINS
     ! pbh = MAX( zepsec, tch/pbm*zcons17)
     ! pbm = 1._wp / pbm
     ! pbh = 1._wp / pbh
-  
+
   END SUBROUTINE sfc_exchange_coefficients
   !
   !=================================================================
@@ -440,7 +440,7 @@ CONTAINS
 
     INTEGER  :: jb, jls, js
     REAL(wp) :: dz_temp
-    
+
 !$OMP PARALLEL
     CALL init(km, lacc=.TRUE.)
     CALL init(kh, lacc=.TRUE.)

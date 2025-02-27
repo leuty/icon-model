@@ -163,7 +163,7 @@ REAL(wp) :: z_stencil(UBOUND(ptr_int%rbf_vec_stencil_c,1),UBOUND(ptr_int%rbf_vec
       ptr_int%rbf_vec_idx_c(9,jc,jb) = ptr_patch%cells%edge_idx(ilc,ibc,3)
       ptr_int%rbf_vec_blk_c(9,jc,jb) = ptr_patch%cells%edge_blk(ilc,ibc,3)
 
-      ! take care of cells at patch boundaries, then the value of 
+      ! take care of cells at patch boundaries, then the value of
       ! ptr_int%rbf_vec_stencil_c might be smaller than rbf_vec_dim_c:
 !$NEC unroll(9)
       ptr_int%rbf_vec_stencil_c(jc,jb) = COUNT(ptr_int%rbf_vec_idx_c(1:9,jc,jb) /= 0)
@@ -171,7 +171,7 @@ REAL(wp) :: z_stencil(UBOUND(ptr_int%rbf_vec_stencil_c,1),UBOUND(ptr_int%rbf_vec
     END DO
 
   END DO
-  
+
   DO jb = 1, rbf_vec_dim_c
     CALL sync_idx(SYNC_C, SYNC_E, ptr_patch, ptr_int%rbf_vec_idx_c(jb,:,:), &
       &           ptr_int%rbf_vec_blk_c(jb,:,:), lacc=.FALSE.)
@@ -209,16 +209,16 @@ INTEGER :: rl_start, rl_end, i_nchdom, i_endblk
 
 !--------------------------------------------------------------------
 
-  inidx => ptr_patch%cells%neighbor_idx 
+  inidx => ptr_patch%cells%neighbor_idx
   inblk => ptr_patch%cells%neighbor_blk
 
   ! values for the blocking
   rl_start = 2
   rl_end = min_rlcell_int
-  
+
   i_nchdom   = MAX(1,ptr_patch%n_childdom)
   i_startblk = ptr_patch%cells%start_blk(rl_start,1)
-  i_endblk   = ptr_patch%cells%end_blk(rl_end,i_nchdom)    
+  i_endblk   = ptr_patch%cells%end_blk(rl_end,i_nchdom)
 
   !
   ! The stencil has a total of 10 cells, namely the local cell,
@@ -309,7 +309,7 @@ INTEGER :: rl_start, rl_end, i_nchdom, i_endblk
 END SUBROUTINE rbf_c2grad_index
 
 
-  !! Description: 
+  !! Description:
   !!   For a given search_radius (in m)
   !!   find all triangles with indices (jc, jb), whose circumcenter lies
   !!   in a distance smaller than the search_radius to the circumcenter of
@@ -323,7 +323,7 @@ END SUBROUTINE rbf_c2grad_index
   !!      cell_environ%area_norm (ic, ib, l)
   !!      cell_environ%radius          ! only for later control checks
   !!      cell_environ%max_nmbr_iter   ! only for later control checks
-  !!   The purpose of such a set of indices usually is averaging for postprocessing 
+  !!   The purpose of such a set of indices usually is averaging for postprocessing
   !!   (currently for SDI and LPI)
   !!
   !! Method:
@@ -359,7 +359,7 @@ END SUBROUTINE rbf_c2grad_index
     REAL(wp) :: dx, dy
     REAL(wp) :: cos_phi
     REAL(wp) :: sum
-  
+
     INTEGER, ALLOCATABLE :: idx_new(:)
     INTEGER, ALLOCATABLE :: blk_new(:)
 
@@ -437,13 +437,13 @@ END SUBROUTINE rbf_c2grad_index
                   jb2 = ptr_patch%verts%cell_blk( idx_v, blk_v, k)
 
                   ! dist2 = distance (squared!) between the cell centers of (jc2,jb2) and (ic,ib)
-                  !    (the following is only a quasi-cartesian *approximation* and only applicable over 
+                  !    (the following is only a quasi-cartesian *approximation* and only applicable over
                   !     short distances and for not too coarse grids)
                   dx = ( ptr_patch%cells%center(jc2,jb2)%lon - ptr_patch%cells%center(ic,ib)%lon )   &
-                    &        * deg2rad * earth_radius * cos_phi 
+                    &        * deg2rad * earth_radius * cos_phi
                   dy = ( ptr_patch%cells%center(jc2,jb2)%lat - ptr_patch%cells%center(ic,ib)%lat )   &
                     &        * deg2rad * earth_radius
-                  dist2 = dx*dx + dy*dy 
+                  dist2 = dx*dx + dy*dy
 
                   IF ( dist2 <= radius2 ) THEN
                     il=il+1
@@ -519,7 +519,7 @@ END SUBROUTINE rbf_c2grad_index
         sum = 0.0_wp
         DO l=1, ptr_int%cell_environ%nmbr_nghbr_cells(ic,ib)
           jc2 = ptr_int%cell_environ%idx( ic, ib, l )
-          jb2 = ptr_int%cell_environ%blk( ic, ib, l ) 
+          jb2 = ptr_int%cell_environ%blk( ic, ib, l )
           ptr_int%cell_environ%area_norm( ic, ib, l) = ptr_patch%cells%area( jc2, jb2 )
           sum = sum + ptr_int%cell_environ%area_norm( ic, ib, l)
         END DO
@@ -948,7 +948,7 @@ REAL(wp) ::  checksum_u,checksum_v ! to check if sum of interpolation coefficien
             ELSE IF (rbf_vec_kern_c == 3) THEN
               z_rbfmat(jc,je1,je2) = z_nxprod * inv_multiq(z_dist,rbf_vec_scale_c(MAX(jg,1)))
             ENDIF
-  
+
             IF (je1 > je2) z_rbfmat(jc,je2,je1) = z_rbfmat(jc,je1,je2)
           END DO
         ELSE ! use generic, unvectorizable version of arc_length_v
@@ -992,7 +992,7 @@ REAL(wp) ::  checksum_u,checksum_v ! to check if sum of interpolation coefficien
             ELSE IF (rbf_vec_kern_c == 3) THEN
               z_rbfmat(jc,je1,je2) = z_nxprod * inv_multiq(z_dist,rbf_vec_scale_c(MAX(jg,1)))
             ENDIF
-  
+
             IF (je1 > je2) z_rbfmat(jc,je2,je1) = z_rbfmat(jc,je1,je2)
           END DO
         ENDIF

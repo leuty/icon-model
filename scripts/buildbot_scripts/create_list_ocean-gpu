@@ -67,7 +67,7 @@ $addexp "checksuite.ocean_internal/gpu/exp.ocean_omip_R2B4_V0_GM0_comparison.run
 #    --builders "levante_gpu_validation" --runflags "cpu_time=00:10:00" --list $listname
 # $addexp "checksuite.ocean_internal/gpu/exp.ocean_omip_R2B4_V0_GM1_comparison.run" \
 #    --builders "levante_gpu_validation" --runflags "cpu_time=00:10:00" --list $listname
-# 
+#
 # ./adddep --from-experiment "checksuite.ocean_internal/gpu/exp.ocean_omip_R2B4_V0_GM1_comparison.run" --to-experiment \
 # "checksuite.ocean_internal/gpu/exp.ocean_omip_R2B4_V0_GM1_cpurun.run "\
 # "checksuite.ocean_internal/gpu/exp.ocean_omip_R2B4_V0_GM1_cpurun_lvec.run "\
@@ -109,7 +109,7 @@ $addexp "checksuite.ocean_internal/gpu/exp.ocean_omip_R2B4_V1_GM0_comparison.run
 #    --builders "levante_gpu_validation" --runflags "cpu_time=00:10:00" --list $listname
 # $addexp "checksuite.ocean_internal/gpu/exp.ocean_omip_R2B4_V1_GM1_comparison.run" \
 #    --builders "levante_gpu_validation" --runflags "cpu_time=00:10:00" --list $listname
-# 
+#
 # ./adddep --from-experiment "checksuite.ocean_internal/gpu/exp.ocean_omip_R2B4_V1_GM1_comparison.run" --to-experiment \
 # "checksuite.ocean_internal/gpu/exp.ocean_omip_R2B4_V1_GM1_cpurun.run "\
 # "checksuite.ocean_internal/gpu/exp.ocean_omip_R2B4_V1_GM1_cpurun_lvec.run "\

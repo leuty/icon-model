@@ -48,9 +48,9 @@ CONTAINS
   !>
   !! SUBROUTINE process_sfcfields
   !! Routine to convert surface fields interpolated horizontally by IFS2ICON
-  !! to the ICON prognostic variables. Important ingredients are 
+  !! to the ICON prognostic variables. Important ingredients are
   !! - height adjustment of temperatures (partly done)
-  !! - vertical interpolation of soil temperature and moisture 
+  !! - vertical interpolation of soil temperature and moisture
   !! - conversion of soil moisture information
   !! - height adjustment of snow cover information (not yet done)
   !!
@@ -83,7 +83,7 @@ CONTAINS
     nlev = p_patch%nlev
 
     nlev_in     = initicon%atm_in%nlev
-    nlevsoil_in = initicon%sfc_in%nlevsoil 
+    nlevsoil_in = initicon%sfc_in%nlevsoil
 
     IF (nlev_in == 0) THEN
       CALL finish(routine, "Number of input levels <nlev_in> not yet initialized.")
@@ -146,10 +146,10 @@ CONTAINS
           (initicon%atm%temp(jc,nlev,jb) - initicon%atm_in%temp(jc,nlev_in,jb))
 
         ! Height adjustment for snow variables is not yet implemented
-        initicon%sfc%tsnow(jc,jb)    = initicon%sfc_in%tsnow(jc,jb) 
-        initicon%sfc%snowweq(jc,jb)  = initicon%sfc_in%snowweq(jc,jb) 
-        initicon%sfc%snowdens(jc,jb) = initicon%sfc_in%snowdens(jc,jb) 
-        initicon%sfc%snowalb(jc,jb)  = initicon%sfc_in%snowalb(jc,jb) 
+        initicon%sfc%tsnow(jc,jb)    = initicon%sfc_in%tsnow(jc,jb)
+        initicon%sfc%snowweq(jc,jb)  = initicon%sfc_in%snowweq(jc,jb)
+        initicon%sfc%snowdens(jc,jb) = initicon%sfc_in%snowdens(jc,jb)
+        initicon%sfc%snowalb(jc,jb)  = initicon%sfc_in%snowalb(jc,jb)
       ENDDO
 
       ! Height adjustment of soil temperatures
@@ -275,7 +275,7 @@ CONTAINS
       ! Conversion of soil moisture index SMI into TERRA soil moisture [m]
       !   soil moisture index = (soil moisture - wilting point) / (field capacity - wilting point)
       !   safety: min=air dryness point, max=pore volume
-      ! conversion is only done for hydrological active layers. Remaining layers are filled 
+      ! conversion is only done for hydrological active layers. Remaining layers are filled
       ! based on a zero gradient assumption.
       DO jk = 1, ibot_w_so
 
@@ -288,7 +288,7 @@ CONTAINS
           ist = soiltyp(jc,jb)
 
           ! Catch problematic coast cases: ICON-land but Ocean for source dataset
-          ! 
+          !
           ! can we do better than this??
           IF ( wsoil(jc,jk,jb) <= -999._wp )  THEN   ! check for missing value
             ! set dummy value: 0.5*(fcap+pwp)

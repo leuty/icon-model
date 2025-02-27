@@ -42,4 +42,3 @@ fi
 
 cmake -DCOMIN_ENABLE_EXAMPLES=ON ${basedir}/externals/comin/build
 make -j ${MAKE_PROCS} -C ${basedir}/externals/comin/build
-

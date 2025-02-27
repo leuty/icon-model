@@ -11,10 +11,12 @@
 # SPDX-License-Identifier: BSD-3-Clause
 # ---------------------------------------------------------------
 
+import importlib
 import logging
 import sys
-import importlib
+
 from BasePlotter import get_parser, parse_args
+
 
 class RunLogPlotter:
     """Plot data from ICON log file."""
@@ -37,10 +39,12 @@ class RunLogPlotter:
                 logging.info(f"{script!r} has been imported")
                 if module.custom_plotter is not None:
                     for obj in module.custom_plotter:
-                        self.plotters.append(obj) 
+                        self.plotters.append(obj)
                         logging.info(f"{obj!r} has been added to plotters")
                 else:
-                    logging.error(f"Can't find the plotter(s) in module {script!r}")
+                    logging.error(
+                        f"Can't find the plotter(s) in module {script!r}"
+                    )
                     sys.exit(1)
             else:
                 logging.error(f"Can't find the module {script!r}")
@@ -50,17 +54,28 @@ class RunLogPlotter:
 
     def plot(self):
         for P in self.plotters:
-            p = P(csv_dir=self.csv_dir, output_dir=self.output_dir, plot_format=self.plot_format)
+            p = P(
+                csv_dir=self.csv_dir,
+                output_dir=self.output_dir,
+                plot_format=self.plot_format,
+            )
             p.plot()
 
 
 if __name__ == "__main__":
     parser = get_parser()
     parser.description = "Plot data from icon log file"
-    parser.add_argument("--custom_modules", nargs="*", help="python script to analyze the log customly")
+    parser.add_argument(
+        "--custom_modules",
+        nargs="*",
+        help="python script to analyze the log customly",
+    )
     options = parse_args(parser)
 
-    rlp = RunLogPlotter( 
-        csv_dir=options['csv_dir'], output_dir=options['output_dir'], plot_format=options['plot_format'], custom_plotter=options['custom_modules']
+    rlp = RunLogPlotter(
+        csv_dir=options["csv_dir"],
+        output_dir=options["output_dir"],
+        plot_format=options["plot_format"],
+        custom_plotter=options["custom_modules"],
     )
     rlp.plot()

@@ -64,7 +64,7 @@ definitions:
 #%    else:
         - source_to_target_map
 #%    endif
-#%#  /////include_river_runoff is set    
+#%#  /////include_river_runoff is set
 #%- endif
 
 timestep_unit: ISO_format
@@ -95,15 +95,15 @@ coupling:
 #%  if include_co2 is set:
   - <<: [ *atm2oce, *hcsbb_interp_stack ]
     mapping_side: source
-    field: [co2_mixing_ratio] 
+    field: [co2_mixing_ratio]
   - <<: [ *oce2atm, *conserv_interp_stack ]
     mapping_side: source
-    field: [co2_flux] 
+    field: [co2_flux]
 #%#  /////include_co2 is set
 #%- endif
 #%  if include_slp is set:
   - <<: [ *atm2oce, *conserv_interp_stack ]
     mapping_side: source
-    field: [sea_level_pressure] 
+    field: [sea_level_pressure]
 #%#  /////include_slp is set
 #%- endif

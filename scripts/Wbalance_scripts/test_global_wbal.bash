@@ -321,4 +321,3 @@ $CDO timavg -sub runoff_O.fldsum.nc runoff_A.fldsum.nc runoff-mismatch_${yr1}-${
 get_sea_level_rise runoff-mismatch_${yr1}-${yr2}.nc
 wbal_change=$($CDO output runoff-mismatch_${yr1}-${yr2}.nc)
 echo "  Disch. Ocean [m3 s-1]: ${wbal_change} -> sea_level_rise in $nyrs years [mm]: ${sea_level_rise}"
-

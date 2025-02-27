@@ -82,14 +82,14 @@ CONTAINS
   !! Compute ion drag and corresponding Joule heating
   !!
   !! Literature:
-  !! - Hong, S.-S. and Lindzen, R. S. (1976) Solar semidiurnal tide in the thermosphere. 
+  !! - Hong, S.-S. and Lindzen, R. S. (1976) Solar semidiurnal tide in the thermosphere.
   !!   J. Atmos. Sci., 33, 135-153.
   !!
   SUBROUTINE iondrag(jcs, jce, kbdim, klev, solvar_type, psteplen, lat, pum1, pvm1, pqm1, &
     &                grav, pgeom1, pcp, pvom, pvol, ptte, opt_istartlev, opt_iendlev, opt_error)
 
     !----- SUBROUTINE ARGUMENTS -----
-    
+
     INTEGER,  INTENT(IN)  :: jcs, jce, kbdim, klev
     INTEGER,  INTENT(IN)  :: solvar_type             ! identifier for solar activity
     REAL(wp), INTENT(IN)  :: psteplen                ! time step length, usually 2*delta_time
@@ -105,9 +105,9 @@ CONTAINS
       &                      ptte(kbdim,klev)        ! temperature tendency  [dT/dt]
     INTEGER, OPTIONAL, INTENT(IN)  :: opt_istartlev, opt_iendlev  ! optional vertical start and end indices
     INTEGER, OPTIONAL, INTENT(OUT) :: opt_error      ! for optional error handling
-    
+
     !----- INTERNAL VARIABLES -----
-    
+
     INTEGER                    :: jl, jk, istartlev, iendlev
     REAL(wp)                   :: zlat, zcons1, zcons2, zcons4(3), ztmp(3)
     REAL(wp)                   :: zalpha, zcons5, ztmst, zup1, zvp1
@@ -117,10 +117,10 @@ CONTAINS
     REAL(wp)                   :: zal, zdgeom, zaux0, zaux1, zaux2, zaux3, zdum1, zdvm1
 
     LOGICAL  :: l_present_error
-    
+
     !----- TABLE FOR ION DRAG COEFFICIENTS TAKEN FROM -----
     !_____   HONG AND LINDZEN, 1976: JAS, 33, p. 152  -----
-    
+
     REAL(wp), PARAMETER, DIMENSION(3) :: zamin = (/  6.6E4_wp  , 1.56E5_wp ,  3.0E5_wp  /)
     REAL(wp), PARAMETER, DIMENSION(3) :: zamax = (/ 1.15E5_wp  , 2.75E5_wp , 1.05E6_wp  /)
     REAL(wp), PARAMETER, DIMENSION(3) :: zbmin = (/    1.4_wp  ,    1.0_wp ,   0.35_wp  /)
@@ -134,21 +134,21 @@ CONTAINS
     REAL(wp), PARAMETER               :: zcons3 = 5.0E-10_wp
     REAL(wp), PARAMETER               :: zalmin = 37.3_wp
     REAL(wp), PARAMETER               :: zalmax = 36.7_wp
-    
+
     !---------------------------------------------------------
-    
+
     !----- SET INITIAL VALUES -----
 
-    ! please do not limit range of assignment 
-    ! (e.g., ptte(jcs:jce,istartlev:iendlev) = 0._wp)), 
+    ! please do not limit range of assignment
+    ! (e.g., ptte(jcs:jce,istartlev:iendlev) = 0._wp)),
     ! since tendencies have attribute INTENT(OUT)
     pvom(:,:) = 0._wp
     pvol(:,:) = 0._wp
     ptte(:,:) = 0._wp
 
-    ! we are within openMP-threading, 
+    ! we are within openMP-threading,
     ! so only rudimentary error handling is possible
-    IF (PRESENT(opt_error)) THEN 
+    IF (PRESENT(opt_error)) THEN
       opt_error       = IERR_NO
       l_present_error = .TRUE.
     ELSE
@@ -169,8 +169,8 @@ CONTAINS
       iendlev = klev
     ENDIF
 
-    IF (istartlev > iendlev) RETURN 
-    
+    IF (istartlev > iendlev) RETURN
+
     IF (solvar_type == isolvar%low) THEN       ! solar low
       za  = zamin
       zb  = zbmin
@@ -197,7 +197,7 @@ CONTAINS
       IF (l_present_error) opt_error = IERR_SOLVAR
       RETURN
     ENDIF
-    
+
     ztmst  = psteplen
     zalpha = cvdifts
     zcons5 = ztmst * zalpha
@@ -239,7 +239,7 @@ CONTAINS
 
       ENDDO  !jl
     ENDDO  !jk
-    
+
   END SUBROUTINE iondrag
 
 END MODULE mo_upatmo_phy_iondrag

@@ -943,7 +943,7 @@ CONTAINS
 
   END SUBROUTINE check_comm_pattern
 
-  
+
   !-------------------------------------------------------------------------
   !
   !! Does data exchange according to a communication pattern (in p_pat).
@@ -1344,7 +1344,7 @@ CONTAINS
         CALL p_isend(send_buf(1,iss), pid, 1, p_count=icount, comm=p_pat%comm, use_g2g=use_g2g)
 
       ENDDO
-      
+
       DO np = 1, p_pat%np_recv ! loop over PEs from where to receive the data
 
         pid    = p_pat%pelist_recv(np) ! ID of receiver PE
@@ -2492,7 +2492,7 @@ CONTAINS
 
     CALL acc_wait_comms(get_comm_acc_queue())
     !$ACC END DATA
-    
+
     stop_sync_timer(timer_exch_data)
 
   END SUBROUTINE exchange_data_mult_dp
@@ -2947,7 +2947,7 @@ CONTAINS
     DO n = 1, nfields_sp
       IF (SIZE(recv_sp(n)%p,2) == 1) kshift_sp(n) = 0
     ENDDO
-     
+
     accum = 0
     DO n = 1, nfields_dp
       noffset_dp(n) = accum

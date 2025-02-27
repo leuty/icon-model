@@ -11,18 +11,18 @@
 # --------------------------------------------------------------------
 # CASE_SETUP
 # --------------------------------------------------------------------
-#                                                                    
-# Purpose of this document:                                          
-#   This file contains the experiment parameters of the             
-#   ICON test case    
-#                                                                    
-# Corresponding author:                                              
-#   Florian Prill, DWD, mailto:florian.prill@dwd.de                  
-#                                                                    
-# Document version:                                                  
+#
+# Purpose of this document:
+#   This file contains the experiment parameters of the
+#   ICON test case
+#
+# Corresponding author:
+#   Florian Prill, DWD, mailto:florian.prill@dwd.de
+#
+# Document version:
 #   $LastChangedDate: 2012-04-11 11:18:42 +0000 (Wed, 11 Apr 2012) $
 #   $Rev: 8630 $ -- $Author: florian.prill $
-#                                                                    
+#
 # --------------------------------------------------------------------
 
 
@@ -130,8 +130,8 @@ done
 ml_varlist="'temp','u','v','qv','qc','qi','pres','pres_sfc','z_ifc','fr_land'"
 # 'z_ifc','fr_land' only necessary for one date
 
-pl_varlist="'u','v','temp','geopot','clc','tot_qv_dia','tot_qc_dia','tot_qi_dia','qv','qc','qi'"      
-hl_varlist="'u','v','temp','pres',  'clc','tot_qv_dia','tot_qc_dia','tot_qi_dia','qv','qc','qi'"   
+pl_varlist="'u','v','temp','geopot','clc','tot_qv_dia','tot_qc_dia','tot_qi_dia','qv','qc','qi'"
+hl_varlist="'u','v','temp','pres',  'clc','tot_qv_dia','tot_qc_dia','tot_qi_dia','qv','qc','qi'"
 
 # ---
 
@@ -144,7 +144,7 @@ cat > ${atmo_namelist} << EOF
  num_io_procs                 = 1
  itype_comm                   = 1
  iorder_sendrecv              = 1
- use_dp_mpi2io                = .TRUE.     ! output fields gathered in DOUBLE PRECISION 
+ use_dp_mpi2io                = .TRUE.     ! output fields gathered in DOUBLE PRECISION
 /
 &grid_nml
  cell_type                    = 3
@@ -157,7 +157,7 @@ cat > ${atmo_namelist} << EOF
 /
 &initicon_nml
  init_mode                    = 2           ! initialization mode (2 for IFS ana, 1 for DWD ana)
- zpbl1                        = 500. 
+ zpbl1                        = 500.
  zpbl2                        = 1000.
  ifs2icon_filename            = '${ifs2icon_filename}'
 /
@@ -257,7 +257,7 @@ cat > ${atmo_namelist} << EOF
  lseaice                      = .true.
  llake                        = .false.
  itype_lndtbl                 = 2       ! 2: tuned stomata resistance rsmin
- itype_root                   = 2       ! 2: exponetial root distribution, 1: roots at level 3 
+ itype_root                   = 2       ! 2: exponetial root distribution, 1: roots at level 3
  itype_heatcond               = 2       ! 1: fixed heatcond, 2: moisture dependent heatcond
 /
 &radiation_nml
@@ -347,6 +347,5 @@ cat > ${atmo_namelist} << EOF
 /
 EOF
 
- 
-#-----------------------------------------------------------------------------
 
+#-----------------------------------------------------------------------------

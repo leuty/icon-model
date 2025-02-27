@@ -138,7 +138,7 @@ predef:
   interp_stacks:
     nnn_fixed: &nnn_fixed
       interpolation:
-        - nnn: 
+        - nnn:
             n: 1
             weighted: arithmetic_average
         - fixed:
@@ -526,15 +526,15 @@ if [[ "$output_atm_2d_hiopy" == "yes" ]]; then
  mode             = 1
  output_start     = "${start_date}"
  output_end       = "${end_date}"
- output_interval  = "$output_interval" 
- file_interval    = "${atm_file_interval}"  
+ output_interval  = "$output_interval"
+ file_interval    = "${atm_file_interval}"
 ! operation        = 'mean'
  output_grid      = .TRUE.
- ml_varlist       = 'clivi', 'cllvi', 'qv2m', 
-                    'pr_grpl', 'pres_msl', 'prw', 
+ ml_varlist       = 'clivi', 'cllvi', 'qv2m',
+                    'pr_grpl', 'pres_msl', 'prw',
                     'qgvi', 'qrvi', 'qsvi', 'rlut',
-                    'rsds', 'rsus','rsut', 'rsutcs', 'rlutcs', 
-                    'sic', 'sit', 'tas', 
+                    'rsds', 'rsus','rsut', 'rsutcs', 'rlutcs',
+                    'sic', 'sit', 'tas',
                     'uas', 'vas',
 /
 EOF
@@ -557,9 +557,9 @@ if [[ "$output_atm_fluxes" == "yes" ]]; then
  ml_varlist       = 'hfls', 'hfss', 'pr',
                     'pr_rain', 'pr_ice', 'pr_snow', 'prlr',
                     'pres_sfc', 'prls', 'evspsbl',
-                    'rlds','rlus', 
+                    'rlds','rlus',
                     'rsds', 'rsus', 'sfcwind',
-                    'tauu', 'tauv', 'ts', 
+                    'tauu', 'tauv', 'ts',
 /
 EOF
 fi
@@ -758,7 +758,7 @@ cat >> ${atm_namelist} << EOF
 EOF
 
 #-----------------------------------------------------------------------------
-# III. OCEAN and SEA-ICE (and HAMOCC) 
+# III. OCEAN and SEA-ICE (and HAMOCC)
 #-----------------------------------------------------------------------------
 
 ocean_grid_folder="/work/pd1295/ICON/buildbot_data/coupled/test_coupled_160km-nestedAtm_40kmOce"
@@ -820,7 +820,7 @@ cat >> ${oce_namelist} << EOF
  minVerticalLevels = 10
  n_zlev            = 72
 
- dzlev_m =   2.0,   2.2,   2.5,   2.8,   3.1,   3.5,   3.9,   4.4,   4.9,   5.4, 
+ dzlev_m =   2.0,   2.2,   2.5,   2.8,   3.1,   3.5,   3.9,   4.4,   4.9,   5.4,
              5.9,   6.4,   7.1,   7.7,   8.4,   9.2,  10.1,  11.0,  12.0,  13.2,
             14.4,  15.7,  17.1,  18.7,  20.4,  22.3,  24.3,  26.5,  28.9,  31.5,
             34.3,  37.3,  40.6,  43.1,  45.3,  46.8,  48.4,  50.0,  51.7,  53.4,
@@ -830,7 +830,7 @@ cat >> ${oce_namelist} << EOF
            268.9, 270.1
 
     l_edge_based                  = .FALSE. ! edge- or cell-based mimetic discretization
-    select_solver                 = 4       ! 1=gmres_oce_old; 2=ocean_restart_gmres, 3=mixed precisison restart, 
+    select_solver                 = 4       ! 1=gmres_oce_old; 2=ocean_restart_gmres, 3=mixed precisison restart,
                                             ! 4=CG (default) 5=CGJ 6=BiCG 7=GMRES restart (legacy) 8=MINRES
     use_absolute_solver_tolerance = .TRUE.
     fast_performance_level        = 200     ! performance level 12: for cell-based; 5: default
@@ -1009,7 +1009,7 @@ fi
 if [[ "$output_oce_mon" == "yes" ]]; then
   #
   cat >> ${oce_namelist} << EOF
-&output_nml ! 'oce_mon' 
+&output_nml ! 'oce_mon'
     output_filename  = '${EXPNAME}_oce_mon'
     filename_format  = '<output_filename>_<datetime2>'
     filetype         = 5

@@ -477,7 +477,7 @@ CONTAINS
     DO level = start_level, MIN(end_level, max_dolic_c)
       DO jc = start_index, end_index
         IF (dolic_c(jc,blockNo) < level) CYCLE
-#else         
+#else
     !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1) IF(lzacc)
     !$ACC LOOP GANG VECTOR
     DO jc = start_index, end_index
@@ -540,7 +540,7 @@ CONTAINS
     div_vec_c(:,:) = 0.0_wp
     !$ACC END KERNELS
     !$ACC WAIT(1)
-    
+
     !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1) IF(lzacc)
     !$ACC LOOP GANG VECTOR
     DO jc = start_index, end_index
@@ -1212,7 +1212,7 @@ CONTAINS
       !$ACC KERNELS DEFAULT(PRESENT) ASYNC(1) IF(lzacc)
       rot_vec_v(:,:,blockNo) = 0.0_wp
       !$ACC END KERNELS
-  
+
       !$ACC PARALLEL LOOP GANG VECTOR DEFAULT(PRESENT) &
       !$ACC   PRIVATE(z_vort_internal, z_vort_boundary, z_vt) ASYNC(1) IF(lzacc)
       DO vertexIndex = start_index_v, end_index_v

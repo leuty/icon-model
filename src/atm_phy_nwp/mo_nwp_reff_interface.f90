@@ -45,23 +45,23 @@ MODULE mo_nwp_reff_interface
   USE mo_reff_types,           ONLY: t_reff_calc_dom,  nreff_max_calc
   USE mo_reff_main,            ONLY: init_reff_calc, mapping_indices, mapping_indices_gscp3, calculate_ncn, &
                                      calculate_reff, combine_reff, set_max_reff
-  USE mo_impl_constants,       ONLY: max_dom  
+  USE mo_impl_constants,       ONLY: max_dom
   USE microphysics_1mom_schemes, ONLY: microphysics_1mom_init
 
   IMPLICIT NONE
   PRIVATE
-  
+
   PUBLIC:: set_reff, init_reff, reff_calc_dom, combine_phases_radiation_reff
 
-  TYPE(t_reff_calc_dom) ::  reff_calc_dom(max_dom)        ! Calculations array 
+  TYPE(t_reff_calc_dom) ::  reff_calc_dom(max_dom)        ! Calculations array
 
   CONTAINS
 ! ------------------------------------------------------------------------------------------
 
-! Initialize parameters for reff calculations. 
+! Initialize parameters for reff calculations.
 ! It should be calculated only once after the microphysics
-  SUBROUTINE init_reff (prm_diag, p_patch, p_prog, return_reff) 
-    
+  SUBROUTINE init_reff (prm_diag, p_patch, p_prog, return_reff)
+
     TYPE(t_nwp_phy_diag),INTENT(in)    :: prm_diag         ! Diagnostic statistics from physics (inlcuding reff)
     TYPE(t_patch)       ,INTENT(in)    :: p_patch          ! Grid/patch info.
     TYPE(t_nh_prog)     ,INTENT(in)    :: p_prog           ! The dyn prog vars
@@ -75,8 +75,8 @@ MODULE mo_nwp_reff_interface
     LOGICAL :: available_acdnc   ! Available cloud water cloud droplet concentration from radiation
     LOGICAL :: return_fct       ! Return values
 
-    INTEGER :: nreff_calc       ! Number of effective radius calculations 
-    
+    INTEGER :: nreff_calc       ! Number of effective radius calculations
+
     return_fct = .true.
 
     ! domain ID
@@ -90,13 +90,13 @@ MODULE mo_nwp_reff_interface
 ! Initialize 1 moment scheme coefficients in case, they were not inititated
     SELECT CASE (  atm_phy_nwp_config(jg)%inwp_gscp )
     CASE (1,2,3)
-      IF (msg_level >= 15) THEN 
+      IF (msg_level >= 15) THEN
         WRITE (message_text,*) "Reff: one-moment scheme already initialized"
         CALL message('',message_text)
       END IF
 
     CASE DEFAULT  ! Initialize 1 moment with graupel schme (igscp=2) for subgrid clouds
-      CALL microphysics_1mom_init(            igscp = 2,                             & 
+      CALL microphysics_1mom_init(            igscp = 2,                             &
            &                        tune_zceff_min = tune_zceff_min,                &
            &                        tune_v0snow    = tune_v0snow,                   &
            &                        tune_zcsg      = tune_zcsg,                     &
@@ -116,12 +116,12 @@ MODULE mo_nwp_reff_interface
                             &Using constant number'
 
         ! NOT YET IMPLEMENTED MAYBE EXTRACT TO INDEPENDENT FUNCTION (Called by radiation, microphysics and reff)
-        !     ELSE   
-        
+        !     ELSE
+
         !         CALL ncn_from_tau_aerosol_speccnconst (nproma, nlev, i_startidx, i_endidx, nlev, nlev, &
         !              p_metrics%z_ifc(:,:,jb), prm_diag%aerosol(:,iss,jb), prm_diag%aerosol(:,iso4,jb),    &
         !              prm_diag%aerosol(:,iorg,jb), prm_diag%aerosol(:,idu,jb), zncn)
-        
+
         !         CALL specccn_segalkhain_simple (nproma, i_startidx, i_endidx, zncn(:,nlev), prm_diag%cloud_num(:,jb))
         !         qnc_s(i_startidx:i_endidx) = prm_diag%cloud_num(i_startidx:i_endidx,jb)
 
@@ -129,10 +129,10 @@ MODULE mo_nwp_reff_interface
         CALL message('',message_text)
         available_acdnc = .false.
       END IF
-    ELSE 
+    ELSE
       IF ( ASSOCIATED ( prm_diag%acdnc ) ) THEN
         available_acdnc = .true.
-      ELSE ! Use constant number cloud_num if acdnc is not allocated        
+      ELSE ! Use constant number cloud_num if acdnc is not allocated
         available_acdnc = .false.
         WRITE (message_text,*) 'Warnning Reff: 1 mom cannot generate cloud droplet &
                             &numbers for current options (acdnc is not allocated). &
@@ -157,13 +157,13 @@ MODULE mo_nwp_reff_interface
     SELECT CASE ( icalc_reff_loc )
 
 
-    ! RRTM. 
+    ! RRTM.
     CASE(101)
       ! It uses acdns for number concentration of cloud water. No number concentration of ice needed.
       ! No distinction between grid and subgrid
       nreff_calc = nreff_calc +  1
 
-      IF ( available_acdnc ) THEN 
+      IF ( available_acdnc ) THEN
         CALL  init_reff_calc ( reff_calc_dom(jg)%reff_calc_arr(nreff_calc),&
                       &     hydrometeor   = 0,                             & ! Cloud Water DSD and geom. properties
                       &     grid_scope    = 0,                             & ! Grid and Subgrid
@@ -175,10 +175,10 @@ MODULE mo_nwp_reff_interface
                       &     reff_param    = 0 ,                            & ! Spheroid
                       &     ncn_param     = 101,                           & ! External acdnc field for ncn (default RRTM)
                       &     p_reff        = prm_diag%reff_qc(:,:,:) )        ! Output
-      ELSE 
+      ELSE
         WRITE (message_text,*) 'WARNING: Reff not defined for RRTM when acdnc is not available.'
         CALL message('',message_text)
-        IF ( PRESENT (return_reff) ) return_reff = .false.  
+        IF ( PRESENT (return_reff) ) return_reff = .false.
       END IF
 
 
@@ -188,7 +188,7 @@ MODULE mo_nwp_reff_interface
                     &     grid_scope    = 0 ,                            & ! Grid and Subgrid
                     &     microph_param = 101,                           & ! RRTM Param
                     &     return_fct    = return_fct,                    & ! Return parameter
-                    &     p_q           = p_prog%tracer(:,:,:,iqi),      & ! Grid Ice 
+                    &     p_q           = p_prog%tracer(:,:,:,iqi),      & ! Grid Ice
                     &     p_qtot        = prm_diag%tot_cld(:,:,:,iqi),   & ! Total Ice
                     &     p_reff        = prm_diag%reff_qi(:,:,:) )        ! Output
 
@@ -199,14 +199,14 @@ MODULE mo_nwp_reff_interface
       ! Cloud water using mono-modal spherical particles and ncnd from acdnc (different from standard with cloud_num)
       ! No distinction between grid and subgrid
       nreff_calc = nreff_calc + 1
-      IF ( available_acdnc ) THEN 
+      IF ( available_acdnc ) THEN
         CALL  init_reff_calc ( reff_calc_dom(jg)%reff_calc_arr(nreff_calc),&
                       &     hydrometeor   = 0,                             & ! Cloud Water (here overruled by microph_param)
                       &     grid_scope    = 0,                             & ! Grid and Subgrid
                       &     microph_param = 100,                           & ! Spherical particles
                       &     dsd_type      = 2,                             & ! Generalized gamma distribution
-                      &     nu            = 5.0_wp,                        & ! Consisitent with nu_mass = 1.0 in 2 moment 
-                      &     mu            = 3.0_wp,                        & ! Consisitent with mu_mass = 1.0 in 2 moment 
+                      &     nu            = 5.0_wp,                        & ! Consisitent with nu_mass = 1.0 in 2 moment
+                      &     mu            = 3.0_wp,                        & ! Consisitent with mu_mass = 1.0 in 2 moment
                       &     return_fct    = return_fct,                    & ! Return parameter
                       &     p_q           = p_prog%tracer(:,:,:,iqc),      & ! Total Cloud water
                       &     p_qtot        = prm_diag%tot_cld(:,:,:,iqc),   & ! Grid Cloud water
@@ -215,14 +215,14 @@ MODULE mo_nwp_reff_interface
                       &     ncn_param     = 101,                           & ! External acdnc field for ncn
                       &     p_reff        = prm_diag%reff_qc(:,:,:) )        ! Output
      ! Constant cloud number
-      ELSE 
+      ELSE
         CALL  init_reff_calc ( reff_calc_dom(jg)%reff_calc_arr(nreff_calc),&
                       &     hydrometeor   = 0,                             & ! Cloud Water (here overruled by microph_param)
                       &     grid_scope    = 0,                             & ! Grid and Subgrid
                       &     microph_param = 100,                           & ! Spherical particles
                       &     dsd_type      = 2,                             & ! Generalized gamma distribution
-                      &     nu            = 5.0_wp,                        & ! Consisitent with nu_mass = 1.0 in 2 moment 
-                      &     mu            = 3.0_wp,                        & ! Consisitent with mu_mass = 1.0 in 2 moment 
+                      &     nu            = 5.0_wp,                        & ! Consisitent with nu_mass = 1.0 in 2 moment
+                      &     mu            = 3.0_wp,                        & ! Consisitent with mu_mass = 1.0 in 2 moment
                       &     return_fct    = return_fct,                    & ! Return parameter
                       &     p_q           = p_prog%tracer(:,:,:,iqc),      & ! Total Cloud water
                       &     p_qtot        = prm_diag%tot_cld(:,:,:,iqc),   & ! Grid Cloud water
@@ -244,8 +244,8 @@ MODULE mo_nwp_reff_interface
                     &     reff_param    = 1 ,                            & ! Fu
                     &     ncn_param     = 1,                             & ! 1 moment ncn
                     &     p_reff        = prm_diag%reff_qi(:,:,:) )        ! Output
-    
-      ! Rain using 1 mom 
+
+      ! Rain using 1 mom
       nreff_calc = nreff_calc + 1
       CALL  init_reff_calc ( reff_calc_dom(jg)%reff_calc_arr(nreff_calc),&
                     &     hydrometeor   = 2,                             & ! Rain DSD and geom. properties
@@ -285,11 +285,11 @@ MODULE mo_nwp_reff_interface
       END IF
 
     CASE (3)  ! gscp3 two-moment cloud ice scheme for the global ICON and ICON-ART
-      
+
       ! Cloud water from RRTM to keep a similar radiation balance
       ! No distinction between grid and subgrid
       nreff_calc = nreff_calc + 1
-      IF ( available_acdnc ) THEN 
+      IF ( available_acdnc ) THEN
         CALL  init_reff_calc ( reff_calc_dom(jg)%reff_calc_arr(nreff_calc),&
                       &     hydrometeor   = 0,                             & ! Cloud Water DSD and geom. properties
                       &     grid_scope    = 0,                             & ! Grid and Subgrid
@@ -301,12 +301,12 @@ MODULE mo_nwp_reff_interface
                       &     reff_param    = 0 ,                            & ! Spheroid
                       &     ncn_param     = 101,                           & ! External acdnc field for ncn (default RRTM)
                       &     p_reff        = prm_diag%reff_qc(:,:,:) )        ! Output
-      ELSE 
+      ELSE
         WRITE (message_text,*) 'WARNING: Reff not defined for RRTM when acdnc is not available.'
         CALL message('',message_text)
-        IF ( PRESENT (return_reff) ) return_reff = .false.  
+        IF ( PRESENT (return_reff) ) return_reff = .false.
       END IF
-      
+
       ! Grid ice from 2 moment scheme (microph_param = 3)
       nreff_calc = nreff_calc + 1
       CALL  init_reff_calc ( reff_calc_dom(jg)%reff_calc_arr(nreff_calc),&
@@ -359,10 +359,10 @@ MODULE mo_nwp_reff_interface
                     &     reff_param    = 1 ,                            & ! Fu
                     &     ncn_param     = 1,                             & ! 1 moment ncn
                     &     p_reff        = prm_diag%reff_qs(:,:,:) )        ! Output
-      
-      
+
+
       ! 2 Moment Scheme
-    CASE ( 4,5,6,7,8) 
+    CASE ( 4,5,6,7,8)
 
       ! Grid cloud water from 2 moment scheme
       nreff_calc = nreff_calc + 1
@@ -380,7 +380,7 @@ MODULE mo_nwp_reff_interface
 
       ! Subgrid cloud water (same geometry and DSD, ncn from acdnc)
       nreff_calc = nreff_calc + 1
-       IF ( available_acdnc ) THEN 
+       IF ( available_acdnc ) THEN
          CALL  init_reff_calc ( reff_calc_dom(jg)%reff_calc_arr(nreff_calc),&
                       &     hydrometeor   = 0,                              & ! Cloud Water DSD and geom. properties
                       &     grid_scope    = 2 ,                             & ! Subgrid clouds only
@@ -471,7 +471,7 @@ MODULE mo_nwp_reff_interface
                     &     reff_param    = 1 ,                            & ! Fu
                     &     ncn_param     = 4,                             & ! 2 mom ncn
                     &     p_reff        = prm_diag%reff_qg(:,:,:) )        ! Output
-   
+
 
       ! Hail
       nreff_calc = nreff_calc + 1
@@ -493,7 +493,7 @@ MODULE mo_nwp_reff_interface
 
     IF ( return_fct ) THEN
       IF ( PRESENT (return_reff) ) return_reff = .true.
-      IF (msg_level >= 15) THEN 
+      IF (msg_level >= 15) THEN
         WRITE (message_text,*) "Reff: init_reff finished"
         CALL message('',message_text)
       END IF
@@ -502,7 +502,7 @@ MODULE mo_nwp_reff_interface
       WRITE (message_text,*) 'WARNING Reff: Something went wrong in the initialization.'
       CALL message('',message_text)
     END IF
-  
+
   END SUBROUTINE init_reff
   ! End initiation
 
@@ -530,11 +530,11 @@ MODULE mo_nwp_reff_interface
     INTEGER               :: jb, jg, ireff                !<block indices
     INTEGER               :: i_startblk, i_endblk         !< blocks
     INTEGER               :: is, ie                       !< slices
-    INTEGER               :: i_rlstart, i_rlend           ! blocks limits 
+    INTEGER               :: i_rlstart, i_rlend           ! blocks limits
     INTEGER               :: nlev                         ! Number of grid levels in vertical
     INTEGER               :: jc, jk                       ! loop indices
     LOGICAL               :: return_fct(nreff_max_calc)   ! Return values
-    INTEGER               :: nreff_calc                   ! Number of effective radius calculations 
+    INTEGER               :: nreff_calc                   ! Number of effective radius calculations
 
     ! Pointers for IN parameterization
     REAL(wp), POINTER, DIMENSION(:,:) :: ptr_cams5=>NULL(), ptr_cams6=>NULL()
@@ -577,7 +577,7 @@ MODULE mo_nwp_reff_interface
 
 !$OMP PARALLEL
 !$OMP DO PRIVATE(jb,is,ie,ncn,indices,n_ind,ireff,ptr_cams5,ptr_cams6, ptr_aer_dust) FIRSTPRIVATE(return_fct) ICON_OMP_DEFAULT_SCHEDULE
-    DO jb = i_startblk, i_endblk     
+    DO jb = i_startblk, i_endblk
 
       CALL get_indices_c(p_patch, jb, i_startblk, i_endblk, &
            &                is, ie, i_rlstart, i_rlend)
@@ -633,7 +633,7 @@ MODULE mo_nwp_reff_interface
 
         IF ( .NOT. return_fct(ireff) )  THEN
           WRITE(*,*) "WARNING: Something went wrong with calculate_ncn", ireff,             &
-             &       " in domain ", jg      
+             &       " in domain ", jg
           IF ( PRESENT (return_reff) ) return_reff = .false.
         END IF
 
@@ -645,10 +645,10 @@ MODULE mo_nwp_reff_interface
              &                  fr_land = ext_data%atm%fr_land(:,jb),                       &
              &                  return_fct=return_fct(ireff) )
 
-        IF ( .NOT. return_fct(ireff) )  THEN 
+        IF ( .NOT. return_fct(ireff) )  THEN
           WRITE(*,*) "WARNING: Something went wrong with calculate_reff for calculation ",  &
-             &      ireff ," in domain ", jg      
-          IF ( PRESENT (return_reff) ) return_reff = .false.        
+             &      ireff ," in domain ", jg
+          IF ( PRESENT (return_reff) ) return_reff = .false.
         END IF
 
       END DO
@@ -658,19 +658,19 @@ MODULE mo_nwp_reff_interface
 !$OMP END PARALLEL
 
 
-  
-  IF (msg_level >= 15) THEN 
+
+  IF (msg_level >= 15) THEN
     WRITE (message_text,*) 'Reff calculated for domain ', jg
     CALL message('',message_text)
   END IF
-  
+
   IF ( PRESENT (return_reff) ) THEN
     IF ( .NOT. return_reff ) THEN
       WRITE (message_text,*) 'WARNING: Something wrong in Reff calculations for domain ', jg
       CALL message('',message_text)
     END IF
   END IF
-  
+
   !$ACC WAIT
   !$ACC END DATA ! p_reff
   !$ACC EXIT DATA DELETE(indices, n_ind, ncn)
@@ -723,7 +723,7 @@ MODULE mo_nwp_reff_interface
            &                is, ie, i_rlstart, i_rlend)
 
       ! .. Branch clc_rad from the normal clc and modify it for input to the radiation scheme:
-      
+
       !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1)
       !$ACC LOOP GANG VECTOR COLLAPSE(2)
       DO jk = kstart_moist(jg), nlev
@@ -732,7 +732,7 @@ MODULE mo_nwp_reff_interface
         END DO
       END DO
       !$ACC END PARALLEL
-      
+
 ! Combine rain into the liquid phase and modify clc_rad accordingly:
       IF ( ASSOCIATED( prm_diag%reff_qr ) ) THEN
         CALL combine_reff( prm_diag%tot_cld(:,:,jb,iqc), prm_diag%reff_qc(:,:,jb), &
@@ -772,4 +772,3 @@ MODULE mo_nwp_reff_interface
 
 
 END MODULE mo_nwp_reff_interface
-

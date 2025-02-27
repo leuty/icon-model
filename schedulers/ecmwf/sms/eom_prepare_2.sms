@@ -23,7 +23,7 @@
 
   Task objectives:
   - extract output
-  - generate plots 
+  - generate plots
 %end
 
 # include the header file for remote jobs
@@ -31,13 +31,13 @@
 
 # -------------------------------------------------
 
-echo "EOM_PREPARE.SMS" 
+echo "EOM_PREPARE.SMS"
 
 module load cdo/1.7.0
 
 #module swap grib_api grib_api/1.14.5
 module unload eccodes
-module load grib_api/1.14.5 
+module load grib_api/1.14.5
 
 dwd_grib_api=/home/ms/de/dwd/grib_api
 export GRIB_DEFINITION_PATH="/usr/local/apps/grib_api/1.14.5/CRAY/82/share/grib_api/definitions:${dwd_grib_api}/definitions.edzw-1.14.5"
@@ -131,10 +131,10 @@ if [[ $lcatdata = 1 ]] ; then
    go=0
    case $var in
      0.[0-3]*ml*) if [[ %prepnum% = 1 ]] ; then ; go=1 ; fi ;;   # 0.[0-3]*ml*)
-     [0-9]*)      if [[ %prepnum% = 2 ]] ; then ; go=1 ; fi ;;   # [0-9]*)     
-     [a-t]*ml*)   if [[ %prepnum% = 3 ]] ; then ; go=1 ; fi ;;   # [a-t]*ml*)  
-     [a-t]*)      if [[ %prepnum% = 4 ]] ; then ; go=1 ; fi ;;   # [a-q]*)     
-     *)           if [[ %prepnum% = 5 ]] ; then ; go=1 ; fi ;;   # *)          
+     [0-9]*)      if [[ %prepnum% = 2 ]] ; then ; go=1 ; fi ;;   # [0-9]*)
+     [a-t]*ml*)   if [[ %prepnum% = 3 ]] ; then ; go=1 ; fi ;;   # [a-t]*ml*)
+     [a-t]*)      if [[ %prepnum% = 4 ]] ; then ; go=1 ; fi ;;   # [a-q]*)
+     *)           if [[ %prepnum% = 5 ]] ; then ; go=1 ; fi ;;   # *)
    esac
    if [[ $go = 1 ]] ; then
     echo 'selected variable: ' $var '  PREPNUM: ' %prepnum%
@@ -165,7 +165,7 @@ if [[ $lcatdata = 1 ]] ; then
           done
           rm -f ${base}_${ymdh}_DOM01_0001_${var}_*.grb
         fi
-      fi 
+      fi
 
       cd ${mondir}/tmp_dir
       for time in 0 24 48 72 96 120 144 168 192 216 240 ; do
@@ -250,21 +250,21 @@ if [[ $lcatdata = 1 ]] ; then
       cdo -P 2 sub ${basenameMM}_DOM01_0001_${var}_${DH}_sel-${DD}.grb   \
                    ${basenameMM}_DOM01_0001_${var}_0_sel-${DD}.grb       \
                    ${basenameMM}_DOM01_0001_${var}_0_${DH}_dif-${DD}.grb
-      
+
       cdo timvar   ${basenameMM}_DOM01_0001_${var}_0_${DH}_dif-${DD}.grb \
          ${mondir}/${basenameMM}_DOM01_0001_${var}_0_${DH}_var-${DD}.grb
 
      #cdo timstd   ${basenameMM}_DOM01_0001_${var}_0_${DH}_dif-${DD}.grb \
      #   ${mondir}/${basenameMM}_DOM01_0001_${var}_0_${DH}_rms-${DD}.grb
-      
+
       rm -rf       ${basenameMM}_DOM01_0001_${var}_0_sel-${DD}.grb       \
                    ${basenameMM}_DOM01_0001_${var}_${DH}_sel-${DD}.grb   \
                    ${basenameMM}_DOM01_0001_${var}_0_${DH}_dif-${DD}.grb
 
-      grib_set -s stepRange=${DH} ${mondir}/${basenameMM}_DOM01_0001_${var}_0_${DH}_var-${DD}.grb o${nvar}.grb 
-      mv o${nvar}.grb             ${mondir}/${basenameMM}_DOM01_0001_${var}_0_${DH}_var-${DD}.grb 
-     #grib_set -s stepRange=${DH} ${mondir}/${basenameMM}_DOM01_0001_${var}_0_${DH}_rms-${DD}.grb o${nvar}.grb 
-     #mv o${nvar}.grb             ${mondir}/${basenameMM}_DOM01_0001_${var}_0_${DH}_rms-${DD}.grb 
+      grib_set -s stepRange=${DH} ${mondir}/${basenameMM}_DOM01_0001_${var}_0_${DH}_var-${DD}.grb o${nvar}.grb
+      mv o${nvar}.grb             ${mondir}/${basenameMM}_DOM01_0001_${var}_0_${DH}_var-${DD}.grb
+     #grib_set -s stepRange=${DH} ${mondir}/${basenameMM}_DOM01_0001_${var}_0_${DH}_rms-${DD}.grb o${nvar}.grb
+     #mv o${nvar}.grb             ${mondir}/${basenameMM}_DOM01_0001_${var}_0_${DH}_rms-${DD}.grb
     done
 
 

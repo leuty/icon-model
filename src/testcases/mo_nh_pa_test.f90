@@ -110,7 +110,7 @@ CONTAINS
     REAL(wp) :: z_aleph, rovcp
 
 
-    INTEGER :: ilc1, ibc1  !< line and block indices of cell1 adjacent 
+    INTEGER :: ilc1, ibc1  !< line and block indices of cell1 adjacent
                            !< to the current edge
 !--------------------------------------------------------------------
 !
@@ -202,11 +202,11 @@ CONTAINS
           ptr_patch%edges%f_e(je,jb) = 2.0_wp*grid_angular_velocity &
             & *(SIN(zlat)*COS(z_aleph) - COS(zlon)*COS(zlat)*SIN(z_aleph))
 
-          ! get line and block indices of 
+          ! get line and block indices of
           ilc1 = ptr_patch%edges%cell_idx(je,jb,1)
           ibc1 = ptr_patch%edges%cell_blk(je,jb,1)
 
-          ! Since rho is constant in horizontal direction, there is no need 
+          ! Since rho is constant in horizontal direction, there is no need
           ! for interpolation.
           ptr_nh_diag%mass_fl_e(je,jk,jb) = ptr_nh_prog%rho(ilc1,jk,ibc1)  &
             * ptr_nh_prog%vn(je,jk,jb) * p_metrics%ddqz_z_full_e(je,jk,jb)
@@ -520,8 +520,8 @@ CONTAINS
 ! It is suggested by Jablonowski to update the density, which is needed in order
 ! to convert between \rho*q and q. So far this has been neglected.
 
-!!! ATTENTION: To avoid unused dummy arguments, p_rho_prog_new and 
-!!! p_rho_prog_now have been removed from the argument list. These must be 
+!!! ATTENTION: To avoid unused dummy arguments, p_rho_prog_new and
+!!! p_rho_prog_now have been removed from the argument list. These must be
 !!! re-included in case the following code is used.
 !    !
 !    ! compute updated pressure and density at full levels

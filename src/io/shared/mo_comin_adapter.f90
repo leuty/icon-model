@@ -180,7 +180,7 @@ CONTAINS
     TYPE(c_ptr)                            :: list, it, cptr
     TYPE(t_ptr_2d3d), POINTER :: ptr_arr(:)
 
-    ibits = DATATYPE_PACK16 
+    ibits = DATATYPE_PACK16
     IF (timers_level > 2) CALL timer_start(timer_comin_init)
     DOM_LOOP : DO jg=1,n_dom
       shape3d_c = [ nproma, p_patch(jg)%nlev, p_patch(jg)%nblks_c ]
@@ -772,7 +772,7 @@ CONTAINS
         IF(pos_jb>0) dim_semantics(pos_jb) = COMIN_DIM_SEMANTICS_BLOCK  !block_dimid=3
         IF(pos_jk>0) dim_semantics(pos_jk) = COMIN_DIM_SEMANTICS_LEVEL  !level_dimid=5
         IF(pos_jn>0 .AND. (elem%info%lcontainer)) dim_semantics(pos_jn) = COMIN_DIM_SEMANTICS_CONTAINER !container_dimid=6XS
-        
+
         ! CHECK if memory is CONTIGUOUS
         IF (.NOT. (ANY(dim_semantics(:) == COMIN_DIM_SEMANTICS_UNDEF))) THEN
            DO ic = 5,1,-1
@@ -861,7 +861,7 @@ CONTAINS
 #endif
         ELSE
           CYCLE ! something is fishy here, we dont expose this variable
-        ENDIF 
+        ENDIF
 
         descriptor%name=get_var_name(elem%info)
         descriptor%id=jg
@@ -1353,7 +1353,7 @@ CONTAINS
     ! NOTE: in the exposed_timedep_vars_list are only variables, which
     !       survived the test for CONTIGUOUSy in icon_expose_variable
     !       therefor we do not required these tests here again.
-    
+
     IF (msg_level >= 15) THEN
       WRITE (message_text,*) "Update pointers to current timelevel of exposed ICON variables."
       CALL message(routine, message_text)

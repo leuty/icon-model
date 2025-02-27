@@ -10,7 +10,7 @@
 # SPDX-License-Identifier: BSD-3-Clause
 # ------------------------------------------
 
-# assuming you are in the ICON base directory (i.e. your git repo) 
+# assuming you are in the ICON base directory (i.e. your git repo)
 # Prepare environment on Balfrin
 source /scratch/d1000/apps/buildbot/bb-venv/bin/activate
 

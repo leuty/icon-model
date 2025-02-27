@@ -50,9 +50,9 @@ MODULE mo_aerosol_util
   !RRTM
   REAL  (wp) ::             &
   zaea_rrtm(jpsw+jpband,5), &  ! ratio of optical thickness for the absorption in spectral
-                               ! interval jpspec  and total optical thickness at 0.55m*1.E-06 
+                               ! interval jpspec  and total optical thickness at 0.55m*1.E-06
                                ! for an aerosoltyp specified by second array index
-  zaes_rrtm(jpsw+jpband,5), &  ! analog for the optical thickness of scattering 
+  zaes_rrtm(jpsw+jpband,5), &  ! analog for the optical thickness of scattering
   zaeg_rrtm(jpsw+jpband,5)!, zaef_rrtm(jpsw+jpband,5)
 
   ! The (long wave) wavenumbers from rrtm are not set when not using RRTM
@@ -81,7 +81,7 @@ MODULE mo_aerosol_util
     ! Scaling factors from 550nm to wavelengths bands
     REAL(wp), ALLOCATABLE :: &
       &  absorption(:,:),            & !< Dim [n_bands, nspecies=5]
-      &  scattering(:,:),            & !< Dim [n_bands, nspecies=5] 
+      &  scattering(:,:),            & !< Dim [n_bands, nspecies=5]
       &  asymmetry(:,:)                !< Dim [n_bands, nspecies=5]
     CONTAINS
       PROCEDURE :: init     => init_tegen_scal_factors
@@ -109,9 +109,9 @@ CONTAINS
 
   !!  Subroutine aerdis is simplified version from COSMO model (version 4.16).
   !!
-   
+
   SUBROUTINE aerdis ( klevp1, kbdim, jcs, jce, petah,  pvdaes, pvdael, pvdaeu, pvdaed, lacc )
-    
+
     !------------------------------------------------------------------------------
     !
     ! Description:
@@ -130,21 +130,21 @@ CONTAINS
     ! applied to a temperature ratio smaller than two in order to obtain an index
     ! one in the stratosphere and zero in the troposphere with a relatively smooth
     ! transistion (ptrpt), as well as for adsorption coefficients fo water to the
-    ! three type of troposperic aerosols (paeadk) with a minimum value ( in the 
+    ! three type of troposperic aerosols (paeadk) with a minimum value ( in the
     ! whole atmosphere) for the sum of the products paeadk by the optical depths
-    ! divided by pressure thickness: paeadm. 
+    ! divided by pressure thickness: paeadm.
     !
     ! Method:
     !
     ! Straightforward, equivalent heights are given in meters (8434 for the
     ! atmosphere) and tropospheric and stratospheric pressure boundary values
-    ! are set at 101325 and 19330 Pascal. 
+    ! are set at 101325 and 19330 Pascal.
     !
     !------------------------------------------------------------------------------
-    
+
     ! Subroutine arguments:
     ! --------------------
-    
+
     ! Input data
     ! ----------
     INTEGER, INTENT (IN) ::  &
@@ -180,7 +180,7 @@ CONTAINS
     !==============================================================================
 
     !------------------------------------------------------------------------------
-    ! Begin Subroutine aerdis              
+    ! Begin Subroutine aerdis
     !------------------------------------------------------------------------------
 
     CALL set_acc_host_or_device(lzacc, lacc)
@@ -221,7 +221,7 @@ CONTAINS
 
   END SUBROUTINE aerdis
 
-  
+
   SUBROUTINE init_aerosol_props_tegen_rrtm
 
   ! the following aerosol types (second array index) are considered:
@@ -412,7 +412,7 @@ CONTAINS
     ENDIF
 
     CALL tegen_scal_factors_rrtm%finalize()
-    
+
   END SUBROUTINE init_aerosol_props_tegen_ecrad
   !---------------------------------------------------------------------------------------
 #endif
@@ -713,7 +713,7 @@ CONTAINS
     INTEGER                       :: &
       &  jb, jc,                     &
       &  i_rlstart, i_rlend,         &
-      &  i_startblk, i_endblk,       & 
+      &  i_startblk, i_endblk,       &
       &  i_startidx, i_endidx
 
     diff_coeff      = 0.1_wp
@@ -756,4 +756,3 @@ CONTAINS
   END SUBROUTINE aerosol_2D_diffusion
 
 END MODULE mo_aerosol_util
-

@@ -81,7 +81,7 @@ CONTAINS
     ! Load correct tables
     !
     CALL vlistDefVarIntKey(vlistID, varID, "tablesVersion", grib_conf%tablesVersion)
-    CALL vlistDefVarIntKey(vlistID, varID, "localTablesVersion", grib_conf%localTablesVersion)    
+    CALL vlistDefVarIntKey(vlistID, varID, "localTablesVersion", grib_conf%localTablesVersion)
     !
     CALL vlistDefVarIntKey(vlistID, varID, "significanceOfReferenceTime",     &
       &                    grib_conf%significanceOfReferenceTime)
@@ -106,8 +106,8 @@ CONTAINS
 
     IF (ANY((/TSTEP_AVG,TSTEP_ACCUM,TSTEP_MAX,TSTEP_MIN/) == steptype)) THEN
       ! Always set
-      !   typeOfTimeIncrement = 2 
-      !   "Successive times processed have same start time of forecast, 
+      !   typeOfTimeIncrement = 2
+      !   "Successive times processed have same start time of forecast,
       !    forecast time is incremented"
       ! since this is the only type of time processing available in ICON
       CALL vlistDefVarIntKey(vlistID, varID, "typeOfTimeIncrement", 2)
@@ -163,7 +163,7 @@ CONTAINS
     !   Italy:     80   Rome (RSMC)
     !   Athens:    96
     !   MCH:      215   Zuerich
-    !   Poland:   220   Poland  
+    !   Poland:   220   Poland
     !   Romania:  242   Romania
     !             250   cosmo COnsortium for Small scale MOdelling (COSMO)
 
@@ -218,7 +218,7 @@ CONTAINS
   !! Set GRIB2 ensemble keys (SECTION 4)
   !!
   !! ATTENTION: To be called AFTER set_GRIB2_additional_keys
-  !!            due to its dependency on typeOfGeneratingProcess that may 
+  !!            due to its dependency on typeOfGeneratingProcess that may
   !!            be changed for invariant fields in set_GRIB2_additional_keys
   !!
   SUBROUTINE set_GRIB2_ensemble_keys(vlistID, varID, grib_conf)
@@ -232,7 +232,7 @@ CONTAINS
   !----------------------------------------------------------------
 
     ! get typeOfGeneratingProcess
-    ! We do not make use of grib_conf%typeOfGeneratingProcess, since 
+    ! We do not make use of grib_conf%typeOfGeneratingProcess, since
     ! typeOfGeneratingProcess is modified for invariant fields.
     res = cdiInqKeyInt(vlistID, varID, CDI_KEY_TYPEOFGENERATINGPROCESS, typeOfGeneratingProcess)
     IF (res/=CDI_NOERR) THEN
@@ -260,7 +260,7 @@ CONTAINS
   !! Set GRIB2 keys which are specific to synthetic satellite products.
   !!
   SUBROUTINE set_GRIB2_synsat_keys (vlistID, varID, info)
-    
+
     INTEGER,                INTENT(IN) :: vlistID, varID
     TYPE (t_var_metadata),  INTENT(IN) :: info
 
@@ -298,12 +298,12 @@ CONTAINS
   !! Set keys specific to atmospheric chemical species
   !!
   !! Set GRIB2 keys which are specific to atmospheric chemical species.
-  !! Here, only the PDT will be changed. Additional Template-specific 
-  !! keys will be set at the end of 
+  !! Here, only the PDT will be changed. Additional Template-specific
+  !! keys will be set at the end of
   !! mo_name_list_output_init:add_variables_to_vlist
   !!
   SUBROUTINE set_GRIB2_chem_keys (vlistID, varID, info)
-    
+
     INTEGER,                INTENT(IN) :: vlistID, varID
     TYPE (t_var_metadata),  INTENT(IN) :: info
 
@@ -313,7 +313,7 @@ CONTAINS
     INTEGER :: res
     CHARACTER(len=*), PARAMETER :: routine = 'set_GRIB2_chem_keys'
     ! ----------------------------------------------------------------
-    
+
     SELECT CASE (info%var_class)
     CASE (CLASS_CHEM)
       productDefinitionTemplate = 40
@@ -362,7 +362,7 @@ CONTAINS
     ! local
     INTEGER                   :: res
     INTEGER                   :: typeOfGeneratingProcess
-    INTEGER                   :: productDefinitionTemplate        ! Tile template number 
+    INTEGER                   :: productDefinitionTemplate        ! Tile template number
     INTEGER                   :: natt
     TYPE(t_tileinfo_grb2)     :: tileinfo_grb2
     CHARACTER(len=*), PARAMETER :: routine = 'set_GRIB2_tile_keys'
@@ -386,7 +386,7 @@ CONTAINS
       productDefinitionTemplate = grib2_template_tile%tpl_inst
     ENDIF
 
-! use the following IF condition, once the WMO tile templates for statistical processing 
+! use the following IF condition, once the WMO tile templates for statistical processing
 ! become available (validation by WMO pending).
 !
 !!$    IF (typeOfGeneratingProcess == 4) THEN
@@ -449,9 +449,9 @@ CONTAINS
 
   !------------------------------------------------------------------------------------------------
   !> Set additional, time-dependent GRIB2 keys
-  !!  
+  !!
   !!  This subroutine sets GRIB2 keys that may change during the
-  !!  simulation. Currently this is the case for the start and end time 
+  !!  simulation. Currently this is the case for the start and end time
   !!  of the statistical process interval.
   !!
   !!  Description of how the GRIB2 keys 'forecastTime' and 'lengthOfTimeRange' are computed.
@@ -504,7 +504,7 @@ CONTAINS
     !---------------------------------------------------------
     !
     ! Skip inapplicable fields
-    ! Currently all TSTEP_AVG and TSTEP_ACC fields are skipped, except for special ones 
+    ! Currently all TSTEP_AVG and TSTEP_ACC fields are skipped, except for special ones
     ! listed in ana_avg_vars
 
     ! UB: this method does not work for the internally interpolated vars of name ana_avg_vars, because
@@ -514,20 +514,20 @@ CONTAINS
 !      & (one_of(TRIM(info%name),ana_avg_vars) == -1) ) RETURN
 
     ! DR
-    ! less cumbersome solution, which does no longer skip variables of type 
+    ! less cumbersome solution, which does no longer skip variables of type
     ! TSTEP_AVG, TSTEP_ACCUM. By this, the manual list ana_avg_vars becomes superfluous.
     !
-    ! This version differs from the current version (see above) by the fact that 
-    ! forecastTime and lengthOfTimeRange are set for ALL statistically processed variables 
+    ! This version differs from the current version (see above) by the fact that
+    ! forecastTime and lengthOfTimeRange are set for ALL statistically processed variables
     ! and not only for those of type TSTEP_MAX, TSTEP_MIN and members of the list ana_avg_vars.
     !
-    ! First tests showed that metadata for variables of type TSTEP_AVG, TSTEP_ACCUM are 
-    ! still correct. Putting it the other way around: It is not clear 
-    ! to me why with the currently active version the keys forecastTime and lengthOfTimeRange are 
+    ! First tests showed that metadata for variables of type TSTEP_AVG, TSTEP_ACCUM are
+    ! still correct. Putting it the other way around: It is not clear
+    ! to me why with the currently active version the keys forecastTime and lengthOfTimeRange are
     ! set correctly for variables of type TSTEP_AVG, TSTEP_ACCUM.
     IF ((ALL((/TSTEP_MAX, TSTEP_MIN, TSTEP_AVG, TSTEP_ACCUM/) /= info%isteptype))) RETURN
 
-    ! get vlistID. Note that the stream-internal vlistID must be used. 
+    ! get vlistID. Note that the stream-internal vlistID must be used.
     ! It is obtained via streamInqVlist(streamID)
     vlistID     = streamInqVlist(streamID)
     taxisID     = vlistInqTaxis(vlistID)
@@ -545,31 +545,31 @@ CONTAINS
         CALL finish (routine, 'Illegal actionId')
       ENDIF
 
-      ! get latest (intended) triggering time, which is equivalent to 
+      ! get latest (intended) triggering time, which is equivalent to
       ! the statistical process starting time
       statProc_startDateTime = info%action_list%action(var_actionId)%EventPrevTriggerDate
 
     ELSE
-      ! If there is no RESET action available, it is assumed that the 
+      ! If there is no RESET action available, it is assumed that the
       ! statistical process start time is equal to the model start time
       statProc_startDateTime = start_date
     ENDIF
 
 
     ! get time interval, over which statistical process has been performed
-    ! It is the time difference between the current time (rounded) cur_date and 
+    ! It is the time difference between the current time (rounded) cur_date and
     ! the last time the nullify-action took place (rounded) statProc_startDateTime.
     ! mtime_lengthOfTimeRange = current time - statistical process start time
     mtime_lengthOfTimeRange = cur_date - statProc_startDateTime
 
-    ! time interval over which statistical process has been performed (in secs)    
+    ! time interval over which statistical process has been performed (in secs)
     ilengthOfTimeRange_secs = INT(getTotalSecondsTimeDelta(mtime_lengthOfTimeRange, &
       &                                                statProc_startDateTime)      &
       &                           )
 
 
     ! get forecast_time: forecast_time = statProc_startDateTime - model_startDateTime
-    ! Note that for statistical quantities, the forecast time is the time elapsed between the 
+    ! Note that for statistical quantities, the forecast time is the time elapsed between the
     ! model start time and the start time of the statistical process
     forecast_delta = statProc_startDateTime - start_date
 
@@ -591,12 +591,12 @@ CONTAINS
     END SELECT
 
     ! set forecast time: statProc_startDateTime - model_startDateTime
-    CALL vlistDefVarIntKey(vlistID, varID, "forecastTime", forecast_time) 
+    CALL vlistDefVarIntKey(vlistID, varID, "forecastTime", forecast_time)
 
     !
     ! set length of time range: current time - statProc_startDateTime
     CALL vlistDefVarIntKey(vlistID, varID, "lengthOfTimeRange", ilengthOfTimeRange)
-    ! Note that if one of the statistics templates 4.8 or 4.11 is selected, the time unit 
+    ! Note that if one of the statistics templates 4.8 or 4.11 is selected, the time unit
     ! (GRIB2 key "indicatorOfUnitForTimeRange") is set automatically by CDI.
     ! It is always set identical to "indicatorOfUnitOFTimeRange"
 
@@ -622,7 +622,7 @@ CONTAINS
   !----------------------------------------------------------------
 
 
-    ! get vlistID. Note that the stream-internal vlistID must be used. 
+    ! get vlistID. Note that the stream-internal vlistID must be used.
     ! It is obtained via streamInqVlist(streamID)
     vlistID = streamInqVlist(streamID)
 
@@ -698,7 +698,7 @@ CONTAINS
     ELSEIF (.NOT. ANY([78, 80, 215] == grib_conf%generatingCenter)) THEN
       RETURN
     ENDIF
-    
+
     ! The following keys of the model composition template
     ! will be set here (further keys are set in set_GRIB2_timedep_local_keys):
     !
@@ -800,7 +800,7 @@ CONTAINS
       !
       ! With grib_lib_compat = 1, we try to overwrite the behavior of
       ! ecCodes versions >= 2.32.0 with the behavior of versions < 2.32.0, in this respect.
-      
+
       ! Check if the SecondFixedSurface keys are among the additional integer GRIB keys
       counter = 0
       KEY_LOOP: DO jkey = 1, additional_grib_keys%nint_keys
@@ -825,10 +825,10 @@ CONTAINS
         ! If there are 3 hits, we can already leave the search loop
         IF (counter == 3) EXIT KEY_LOOP
       END DO KEY_LOOP
-      
+
       IF (typeOfSecondFixedSurface > 9) THEN
         ! Figure out if zaxis is level- or layer-based:
-        ! In case a zaxis is layer-based, the lower and upper bounds of a layer - 
+        ! In case a zaxis is layer-based, the lower and upper bounds of a layer -
         ! zaxisLbounds and zaxisUbounds - should have been specified during the creation of the zaxis.
         ! In this case, the CDI functions zaxisInqLbounds and zaxisInqUbounds should return a size > 0.
         zaxisLboundsSize = zaxisInqLbounds(zaxisID)
@@ -848,7 +848,7 @@ CONTAINS
       ENDIF ! IF (typeOfSecondFixedSurface > 9)
 
     ENDIF ! IF (grib_lib_compat == GRIB_LIB_COMPAT_ECC_2_31_0)
-      
+
   END SUBROUTINE grib_lib_compatibility
 
 END MODULE mo_grib2_util

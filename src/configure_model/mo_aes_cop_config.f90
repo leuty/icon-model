@@ -34,7 +34,7 @@ MODULE mo_aes_cop_config
   !! Name of this unit
   !!
   CHARACTER(LEN=*), PARAMETER :: name = 'aes_cop'
-  
+
   !>
   !! Configuration type containing parameters for the configuration of the cloud optical properties
   !!  and parameters of aes cloud microphysics, still used in mo_aes_convect_tables
@@ -65,7 +65,7 @@ MODULE mo_aes_cop_config
   !! Configuration state vectors, for multiple domains/grids.
   !!
   TYPE(t_aes_cop_config), TARGET :: aes_cop_config(max_dom)
-  
+
 CONTAINS
 
   !----

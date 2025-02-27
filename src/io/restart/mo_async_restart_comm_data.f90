@@ -87,14 +87,14 @@ MODULE mo_async_restart_comm_data
     REAL(dp), CONTIGUOUS_POINTER :: win_buf_d(:)
     REAL(sp), CONTIGUOUS_POINTER :: win_buf_s(:)
     INTEGER, CONTIGUOUS_POINTER :: win_buf_i(:)
-    INTEGER :: in_use = -1, win 
+    INTEGER :: in_use = -1, win
     INTEGER, PUBLIC :: maxLevelSize
 #ifdef NO_MPI_RGET
     INTEGER :: next_activate
 #else
     INTEGER :: req_pool(max_inflight)
 #endif
-    TYPE(inbuffer_t) :: inbuffers(max_inflight) 
+    TYPE(inbuffer_t) :: inbuffers(max_inflight)
     TYPE(t_reorder_info) :: ris(3)
   CONTAINS
     PROCEDURE, PUBLIC :: construct => asyncRestartCommData_construct

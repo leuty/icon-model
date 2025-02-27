@@ -2034,4 +2034,3 @@ contains
   end subroutine lwavplankderiv
 
 end module mo_lrtm_coeffs
-

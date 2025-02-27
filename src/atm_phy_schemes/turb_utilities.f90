@@ -16,22 +16,22 @@ MODULE  turb_utilities
 !==============================================================================
 !
 ! Description:
-! 
+!
 !   Routines (module procedures) currently contained:
-!     - turb_setup           : setting up the turbulence model 
-!     - adjust_satur_equil   : sub-grid scale moist physics in terms of a 
+!     - turb_setup           : setting up the turbulence model
+!     - adjust_satur_equil   : sub-grid scale moist physics in terms of a
 !                              statistical saturation adjustment
 !     - solve_turb_budgets   : solution of prognostic TKE-equation and the reduced
 !                              linear system of the other diagnostic 2-nd-order equations
 !                              including the calculation of Standard Deviatin of of Super-Saturation (SDSS)
-!                              and of the near-surface circulation acceleration 
+!                              and of the near-surface circulation acceleration
 !     - turb_cloud           : statistical cloud scheme called by 'adjust_satur_equil'
 !     - turb_stat            : calculation of all 2-nd order moments (only for SC-diagnostics)
 !     - vert_grad_diff       : main routine organizing the general calculation of
 !                              semi-implicit vertical diffusion
-!     - prep_impl_vert_diff  : setting up the tridiagonal system and performing some 
+!     - prep_impl_vert_diff  : setting up the tridiagonal system and performing some
 !                              common calculations being independent on the diffused variable
-!     - calc_impl_vert_diff  : final solutioin of the tridiagonal system 
+!     - calc_impl_vert_diff  : final solutioin of the tridiagonal system
 !     - vert_smooth          : vertical smoothing
 !     - bound_level_interp   : interpolation of full level variables onto half-levels
 !
@@ -44,12 +44,12 @@ MODULE  turb_utilities
 !
 ! Documentation of changes to former versions of these subroutines:
 !
-!  Initial Release, based on SUB's and FUCNTIONS that had been originally contained in a single 
-!   module 'organize_turbdiff' of the common blocked schemes for atmospheric turbulence, vertical 
-!   diffusion and surface-to-atmosphere transfer after some major reorganization. 
-!   These routines are mainly called by SUB 'turbdiff' and SUB 'turbtran' contained in the MODULEs 
+!  Initial Release, based on SUB's and FUCNTIONS that had been originally contained in a single
+!   module 'organize_turbdiff' of the common blocked schemes for atmospheric turbulence, vertical
+!   diffusion and surface-to-atmosphere transfer after some major reorganization.
+!   These routines are mainly called by SUB 'turbdiff' and SUB 'turbtran' contained in the MODULEs
 !   'turb_diffusion' and 'turb_transfer' respectively.  In particular the common blocked routines for
-!   semi-implicit vertical diffusion are now conatained in this MODULE. 
+!   semi-implicit vertical diffusion are now conatained in this MODULE.
 !   Partly new (more consistent) interpretation of already existing selectors and some
 !   further parameters gradually controlling numerical restrictions have been introduced.
 !
@@ -66,12 +66,12 @@ MODULE  turb_utilities
 !   MODULE 'src_turbdiff' CONTAINS now SUBs 'init_canopy', 'organize_turbdiff' and 'turb_cloud'.
 !   The latter was before in 'meteo_utilities' with name 'cloud_diag' and contains a saturation
 !   adjustment with due regard on turbulent fluctuations of thermodynamic model variables.
-!   SUB 'organize_turbdiff' CONTAINS SUBs 'turbtran', 'turbdiff', 'stab_funct', 'diag_level' 
+!   SUB 'organize_turbdiff' CONTAINS SUBs 'turbtran', 'turbdiff', 'stab_funct', 'diag_level'
 !   and ('canopy_source'). Exept 'diag_level' they had been present before as well, partly in INCLUDE-files.
 !   In accordance with ICON rules, SUB 'organize_turbdiff' is CALLed with the most needed parameters
 !   in the SUB header. Some parameters are OPTIONAL, allowing to run the scheme in differen modes.
 !              2011/06/17 Matthias Raschendorfer
-!  Removing a bug related to the saving of the saturation fraction that had been introduced by 
+!  Removing a bug related to the saving of the saturation fraction that had been introduced by
 !  the ICON modifications.
 !              2011/08/26 Matthias Raschendorfer
 !  Introduction of a preconditioning of the tridiagonal system for "imode_turb=3".
@@ -108,14 +108,14 @@ MODULE  turb_utilities
 ! Controlling numerical restrictions gradually namely by the parameters:
 !  tndsmot, tkesmot, stbsmot, frcsecu, tkesecu, stbsecu
 ! Adopting the 3D-options from the COSMO-Version and correcting the horizontal limit of the turbulent length scale.
-!              2016-05-10 Ulrich Schaettler 
+!              2016-05-10 Ulrich Schaettler
 ! Splitting this module from the original module 'organize_turbdiff' as it was used by ICON before.
 ! Moving declarations, allocation and deallocations of ausxilary arrays into MODULE 'turb_data'.
 !
 !==============================================================================
-! 
+!
 ! Declarations:
-! 
+!
 ! Modules used:
 !------------------------------------------------------------------------------
 
@@ -126,7 +126,7 @@ USE mo_turbdiff_config, ONLY : &
     t_turbdiff_config, &
 
 #ifdef SCLM
-    nmvar,        & ! number of dynamically active model variables 
+    nmvar,        & ! number of dynamically active model variables
 
     u_m     ,     & ! zonal velocity-component at the mass center
     v_m     ,     & ! meridional ,,      ,,    ,, ,,   ,,    ,,
@@ -176,7 +176,7 @@ USE mo_physical_constants, ONLY : &
     p0ref,                & ! reference pressure for Exner-function
     b3       => tmelt,    & ! temperature at melting point
 !
-    uc1, ucl                ! params. used in cloud-cover diagnostics based on rel. humidity 
+    uc1, ucl                ! params. used in cloud-cover diagnostics based on rel. humidity
 
 USE mo_math_constants, ONLY : &
 
@@ -288,7 +288,7 @@ REAL (KIND=wp), DIMENSION(:), INTENT(OUT) :: & !always evaluated
      ! effective surface-value within profiles of thermodynamic variables including the surface level:
      prss,   & ! pressure
      tmps,   & ! temperature
-     vaps,   & ! specific humidity 
+     vaps,   & ! specific humidity
      liqs      ! liquid water content at the surface
 
 REAL (KIND=wp), DIMENSION(:,:), INTENT(INOUT) :: & !modified only for initialization
@@ -353,7 +353,7 @@ INTEGER :: i,k
      DO i=i_st, i_en
         liqs(i)=qc_a(i)
      END DO
-    
+
      !Note: This setting belongs to a zero-flux condition at the surface.
   END IF
 
@@ -517,7 +517,7 @@ REAL (KIND=wp), DIMENSION(:,:), INTENT(INOUT) :: &
 
 REAL (KIND=wp), DIMENSION(:,khi:), INTENT(INOUT) :: &
   exner        !current Exner-factor [1]
- 
+
 REAL (KIND=wp), DIMENSION(:,ktp:), TARGET, INTENT(INOUT), CONTIGUOUS :: &
   tet_liq, &   !inp: liquid water potent. temp. (only if 'fip' is present)      [K]
                !out: liquid water potent. temp. (or adjust. 't' , if "ladjout")
@@ -568,12 +568,12 @@ INTEGER :: &
 
    !Note:
    !If 'qc' is not present, it is assumed that 't' and 'qv' already contain liquid water temperature
-   ! and total water content. 
-   !In case of "k_st=khi=k_en", the vertical loop is only for one level. 
+   ! and total water content.
+   !In case of "k_st=khi=k_en", the vertical loop is only for one level.
    !Since a surface variable for 'qc' is not used in general, it is not forseen here as well, assuming
-   ! a zero value at the surface. This implicats the surface variables to be identical with 
+   ! a zero value at the surface. This implicats the surface variables to be identical with
    ! liquid water temperature and total water content (conserved variables for moist water conversions).
-   !If 'fip' is resent, the conseved variables 'tet_liq' and q_h2o' at level 'k' are an interpolation between 
+   !If 'fip' is resent, the conseved variables 'tet_liq' and q_h2o' at level 'k' are an interpolation between
    ! these values and those of the level "k-1" using the weight 'fip'. This is used  in order to interpolate
    ! rigid surface values at level "k=ke1" and those valid for the lowermost atmospheric full level "k=ke"
    ! to an atmopspheric surface level at the top of the roughness layer formed by land use. In this case it is
@@ -660,10 +660,10 @@ INTEGER :: &
       END DO
       !$ACC END PARALLEL
       !Note:
-      !'tet_liq' at level "k-1" needs to be present and it is assumed to be already 
+      !'tet_liq' at level "k-1" needs to be present and it is assumed to be already
       ! a potential (liquid water) temperature there, where it is still a pure
       ! liquid water temperature at level 'k'!
-      !The roughness layer between the current level (at the rigid surface) 
+      !The roughness layer between the current level (at the rigid surface)
       ! and the desired level (at the top of the roughness layer) of index "k=ke1"
       ! is assumend to be a pure CFL layer without any mass. Consequentley
       ! the Exner pressure values at both levels are treated like being equal!
@@ -747,7 +747,7 @@ INTEGER :: &
    IF (lcaltdv .OR. lcalrho) THEN
       virt => g_h2o
    END IF
-   
+
    !$ACC DATA PRESENT(qvap, temp, virt) ASYNC(acc_async_queue) IF(lzacc)
 
    !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(acc_async_queue) IF(lzacc)
@@ -758,7 +758,7 @@ INTEGER :: &
 !DIR$ IVDEP
             !$ACC LOOP GANG(STATIC: 1) VECTOR
             DO i=i_st,i_en
-               temp(i,k)=tet_liq(i,k) 
+               temp(i,k)=tet_liq(i,k)
                qvap(i,k)=  q_h2o(i,k)
             END DO
          END DO
@@ -772,7 +772,7 @@ INTEGER :: &
                qvap(i,k)=  q_h2o(i,k)-      q_liq(i,k) !corrected water vapor
             END DO
          END DO
-      END IF   
+      END IF
       !Note: In the remaining case "ladjout .AND. icldmod.LE.0" 'temp' and 'qvap'
       !      already point to the conserved variables.
    END IF
@@ -809,7 +809,7 @@ INTEGER :: &
             IF (tdc%lcpfluc) THEN
                r_cpd(i,k)=1.0_wp+zrcpv*qvap(i,k)+zrcpl*q_liq(i,k) !Cp/Cpd
             ELSE
-               r_cpd(i,k)=1.0_wp 
+               r_cpd(i,k)=1.0_wp
             END IF
          END DO
       END DO
@@ -861,7 +861,7 @@ INTEGER :: &
                g_h2o(i,k)=grav*(rvd_m_o*virt(i,k)+mcor)         !g    -factor of q_h2o-gradient
 
                g_tet(i,k)=grav*(exner(i,k)/temp(i,k) &          !g/tet-factor of tet_l-gradient
-                               -mcor*exner(i,k)*qst_t(i,k)) 
+                               -mcor*exner(i,k)*qst_t(i,k))
             END DO
          END DO
       END IF
@@ -1026,8 +1026,8 @@ REAL (KIND=wp), DIMENSION(:), INTENT(IN) :: &
   l_pat, & !effective length scale of near-surface circulation patterns [m]
            ! (scaling the near-surface circulation acceleration)
   l_hori   !horizontal grid spacing                                     [m]
- 
-REAL (KIND=wp), DIMENSION(:,ktp:,0:), INTENT(INOUT) :: &  
+
+REAL (KIND=wp), DIMENSION(:,ktp:,0:), INTENT(INOUT) :: &
 !
   grd !inp (3-rd dim. > 0): gradients of 1-st order model-variables including those of conserved variables
       !                      for temperature and moisture needed for SUB 'turb_stat' during a SCM-run
@@ -1112,16 +1112,16 @@ INTEGER :: imode_stbcorr !mode of correcting the stability function (=ABS(imode_
                                        !(otherwise the former values remain unchainged)
   lpres_avt=PRESENT(avt) !array for advection-tendency of TKE is present
   lpres_fcd=PRESENT(fcd) !array for small-scale canpy drag is present
-  
+
   imode_stbcorr=ABS(tdc%imode_stbcalc) !mode of correcting the stability function
   alt_gama=(imode_stbcorr.EQ.1 .AND. .NOT.ltkeinp) !alternative gama-Berechnung
 
   IF (lssintact) THEN !seperate treatment of shear by scale interaction
-     fm2_e => ft2 !effective shear is pure turbulent shear 
+     fm2_e => ft2 !effective shear is pure turbulent shear
   ELSE
      fm2_e => fm2 !effective shear is total mechanical shear
   END IF
-  
+
   CALL set_acc_host_or_device(lzacc, lacc)
 
   IF(PRESENT(opt_acc_async_queue)) THEN
@@ -1181,7 +1181,7 @@ INTEGER :: imode_stbcorr !mode of correcting the stability function (=ABS(imode_
         END DO
      END DO
 
-     !Attention: 
+     !Attention:
      !Even if "a_stab=0." has been set initially (in 'mo_turbdiff_config' or by 'turbdiff_nml'),
      ! this block may be executed due to PERTURBATIONS applied to 'a_stab'!
   END IF
@@ -1216,9 +1216,9 @@ INTEGER :: imode_stbcorr !mode of correcting the stability function (=ABS(imode_
   !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(acc_async_queue) IF(lzacc)
   !$ACC LOOP SEQ PRIVATE(lrogh_lay, lstbsecu, w1, w2)
   DO k=k_st, k_en !ueber alle Schichten beginnend mit der freien Atm.
- 
+
      lrogh_lay=(lporous .AND. k.GE.kcm .AND. lpres_fcd) !innerhalb der Rauhigkeitsschicht
-     
+
      IF (lrogh_lay) THEN !innerhalb der Rauhigkeitsschicht
 
         ! Calculating roughness-layer corrections, except "volume terms" (treated as a part of diffusion):
@@ -1229,7 +1229,7 @@ INTEGER :: imode_stbcorr !mode of correcting the stability function (=ABS(imode_
 !          Berechnung der modifizierten Modellparameter:
 
            wert=3.0_wp*tls(i,k)*fcd(i,k)/tke(i,k,nvor)
-   
+
            dd(i,0)=d_m/(1.0_wp+d_m*wert)
            dd(i,1)=a_h/(1.0_wp+a_h*wert)
            dd(i,2)=a_m/(1.0_wp+2.0_wp*a_m*wert)
@@ -1314,11 +1314,11 @@ INTEGER :: imode_stbcorr !mode of correcting the stability function (=ABS(imode_
            END DO
 
            !Beachte:
-           !Die Advektions-Inkremente werden explizit in 'tvs_0' aufgenommen, 
+           !Die Advektions-Inkremente werden explizit in 'tvs_0' aufgenommen,
            ! damit die spaetere zeitliche Glaettung (tkesmot) nicht die Transportgeschindigkeit
            ! der Advektion beeinflusst (verlangsamt).
            !Da die Advektions-Inkremente auch von benachbarten 'tke'-Werten in horiz. Richtung abhaengen,
-           ! werden sie auch nicht in die optionale Iteration gegen einen Gleichgewichtswert einbezogen 
+           ! werden sie auch nicht in die optionale Iteration gegen einen Gleichgewichtswert einbezogen
            ! und werden somit nur beim letzten Iterations-Schritt addiert.
         ELSE !benutze die Vorgaengerwerte
            k_tvs = k !k-index for tvs_0 only
@@ -1413,7 +1413,7 @@ INTEGER :: imode_stbcorr !mode of correcting the stability function (=ABS(imode_
            sh=1.0_wp; sm=1.0_wp
 !-------------------------------------------------
            !Note:
-           !Although 'sh/m' are being evaluated for each of the follwoing cases, 
+           !Although 'sh/m' are being evaluated for each of the follwoing cases,
            ! default-values needs to be set for vectorization!
 
            lcorr=.TRUE.
@@ -1450,7 +1450,7 @@ INTEGER :: imode_stbcorr !mode of correcting the stability function (=ABS(imode_
 
                  a11=be1*a11; a12=be1*a12
                  a21=be2*a21; a22=be2*a22
-   
+
                  be1=be1*wert*b_h; be2=be2*wert*b_m
 
               END IF
@@ -1472,14 +1472,14 @@ INTEGER :: imode_stbcorr !mode of correcting the stability function (=ABS(imode_
 
            !Note:
            !The pure solution for the stability functions 'sh' and 'sm' through the above linear system, inserting
-           ! given 'tke'-values from the just before solved TKE-equation, may become non-realizable at strongly 
-           ! unstable stratification, where this situation is connected with an infinite positive deviation 
+           ! given 'tke'-values from the just before solved TKE-equation, may become non-realizable at strongly
+           ! unstable stratification, where this situation is connected with an infinite positive deviation
            ! 'gama:=sm*gm-sh*gh' from TKE-equilibrium "gama=dd(i,0)=:d_m".
            !This problem is circumvented by employing a modified solution based on a predescribed deviation 'gama',
            ! which is expressed by 'frc*tim2/tls' and an upper limit 'gam0'.
            !This modified solution is being executed at "lcorr=T" dependent on 'imode_stbcorr':
            ! "imode_stbcorr=1": Just for strictly non-stable stratification, that means at "fh2<0".
-           ! "imode_stbcorr=2": Only, if 'gama' exceeds the threshold 'gam0' or if the standard solution is not possible. 
+           ! "imode_stbcorr=2": Only, if 'gama' exceeds the threshold 'gam0' or if the standard solution is not possible.
            !  At "stbsecu=0", this can only happen for "fh2<0", while it may happen also for "fh2>=0" at "stbsecu>0".
 
            ! Correction with restricted 'gama':
@@ -1490,14 +1490,14 @@ INTEGER :: imode_stbcorr !mode of correcting the stability function (=ABS(imode_
               !die so beschraenkt wird, dass immer eine Loesung moeglich ist:
 
 #ifdef TST_CODE_VERS
-              !Attention: 
+              !Attention:
               !With the below "IF"-statement, NEC does not vectorize this loop!
               IF (alt_gama .OR. lrogh_lay) THEN !below parameters are not constant
 #endif
                  gama=MERGE( MIN( gam0, frc(i)*tim2/tls(i,k) ), gam0, alt_gama )
-                 !Note: 
+                 !Note:
                  !At "fh2<0", "gama<=gama0" always secures a realizable solution for any "0<stbsecu<=1".
-                 !At "fh2>=0" (which implies "imode_stbcorr=2" and thus "alt_gama=F"), it is "0<gama=gam0<sm*gm-sh*gh", 
+                 !At "fh2>=0" (which implies "imode_stbcorr=2" and thus "alt_gama=F"), it is "0<gama=gam0<sm*gm-sh*gh",
                  ! which always secures a realizable solution due to the properties of governing relations.
                  !For "0<fh2->0" and "frcsecu=0", 'gam0' can get arbitrarily close to the critical value,
                  ! which may even be hit or exceeded due to rounding errors!
@@ -1512,7 +1512,7 @@ INTEGER :: imode_stbcorr !mode of correcting the stability function (=ABS(imode_
                  a6=d_6*gama*a_2
 #ifdef TST_CODE_VERS
               END IF
-#endif    
+#endif
 
               val1=(fm2_e(i,k)*bb2+(a5-a3+bb1)*fh2(i,k))/(2.0_wp*bb1)
               val2=val1+SQRT(val1**2-(a6+bb2)*fh2(i,k)*fm2_e(i,k)/bb1)
@@ -1570,14 +1570,14 @@ INTEGER :: imode_stbcorr !mode of correcting the stability function (=ABS(imode_
            !$ACC LOOP GANG(STATIC: 1) VECTOR PRIVATE(fakt, l_coh)
            DO i=i_st, i_en
               fakt=z1-z2*ABS(rcld(i,k)-z1d2) !coherence factor due to cloud-cover
-              l_coh=MAX( l_pat(i), SQRT(fakt*tls(i,k)*l_hori(i)) ) !combintion of pure land-use pattern scale 
+              l_coh=MAX( l_pat(i), SQRT(fakt*tls(i,k)*l_hori(i)) ) !combintion of pure land-use pattern scale
                                                                    ! with acontribution by fractional cloud-cover
               fakt=fh2(i,k)*grd(i,k,0)/(dens(i,k)*grav2)     != Rd/g*exnr*grad(tet_v) (dimensionless Tet_v-gradient)
               l_coh=l_coh*SIGN(z1,fakt)*MIN( ABS(fakt), z1 ) !vert. coeherence-scale of near-surace circ. patterns
 
               grd(i,k,0)=l_coh*fh2(i,k) !resulting circulation acceleration in [m/s2]
            END DO
-        END DO 
+        END DO
         !$ACC END PARALLEL
      END IF
 
@@ -1590,7 +1590,7 @@ INTEGER :: imode_stbcorr !mode of correcting the stability function (=ABS(imode_
 !DIR$ IVDEP
            !$ACC LOOP GANG(STATIC: 1) VECTOR PRIVATE(flw_h2o_g, flw_tet_l)
            DO i=i_st, i_en
-              flw_h2o_g=rcld(i,k)/(z1+lhocp*qst_t(i,k))    !weight of h2o_g-flux dependent on cl-cov. 
+              flw_h2o_g=rcld(i,k)/(z1+lhocp*qst_t(i,k))    !weight of h2o_g-flux dependent on cl-cov.
 !             flw_tet_l=-flw_h2o_g*epr_qst_t               !weight of tet_l-flux
               flw_tet_l=-flw_h2o_g*(exner(i,k)*qst_t(i,k)) !weight of tet_l-flux
 
@@ -1598,7 +1598,7 @@ INTEGER :: imode_stbcorr !mode of correcting the stability function (=ABS(imode_
               grd(i,k,liq) = flw_tet_l*grd(i,k,tet_l) & !eff_grad(liq)
                            + flw_h2o_g*grd(i,k,h2o_g)
            END DO
-        END DO   
+        END DO
         !$ACC END PARALLEL
         !Note: Otherwise, 'grd(:,:,liq)' remains unchanged.
      END IF
@@ -1637,9 +1637,9 @@ INTEGER :: imode_stbcorr !mode of correcting the stability function (=ABS(imode_
               ! Effective vertical gradient of water vapor content and pot. temper.:
               grd(i,k,vap) =  grd(i,k,h2o_g)-grd(i,k,liq)                     !eff_grad(vap)
               grd(i,k,tet) = (grd(i,k,tet_l)+grd(i,k,liq)*lhocp/exner(i,k))   !eff_grad(tet)
- 
+
            END DO
-        END DO   
+        END DO
         !$ACC END PARALLEL
 
      END IF
@@ -1653,11 +1653,11 @@ INTEGER :: imode_stbcorr !mode of correcting the stability function (=ABS(imode_
 !DIR$ IVDEP
            !$ACC LOOP GANG(STATIC: 1) VECTOR
            DO i=i_st, i_en
-              grd(i,k,tet)=grd(i,k,tet_l)*r_cpd(i,k) ! grad(tet)*(Cp/Cpd)   
+              grd(i,k,tet)=grd(i,k,tet_l)*r_cpd(i,k) ! grad(tet)*(Cp/Cpd)
            END DO
-        END DO   
+        END DO
         !$ACC END PARALLEL
-     END IF   
+     END IF
 
     ! Calculating Eddy-Dissipation Rate (EDR):
 
@@ -1718,7 +1718,7 @@ REAL (KIND=wp), INTENT(IN) :: &
     tvs,    & !turbulent velocity scale [m/s]
     tvt,    & !turbulent transport of turbulent velocity scale [m/s2]
     grd(0:)    !vector of vertical gradients of diffused (conserved) variables [{unit}/m]
-               !Note: Index "0" is reserved for the vertical gradient of CKE 
+               !Note: Index "0" is reserved for the vertical gradient of CKE
                !       due to near-surface thermal inhomogeneity (being an related acceleration)
 
 REAL (KIND=wp) ::  &
@@ -1730,7 +1730,7 @@ REAL (KIND=wp) ::  &
    tkm, tkh,             & !turbulent diffusion coefficient for momentum and scalars (heat) [m2/s]
    x1, x2, x3,           & !auxilary TKE source terme values [m2/s3]
    cvar(nmvar,nmvar)       !covariance matrix  [{unit1}*{unit2}]
-   !Notice that (according to module 'mo_turbdiff_config') 'u_m', 'v_m', 'tet_l', 'h2o_g' and 'w_m' are all 
+   !Notice that (according to module 'mo_turbdiff_config') 'u_m', 'v_m', 'tet_l', 'h2o_g' and 'w_m' are all
    ! equal to "1", "2", "3, "4" and "5=nmvar" respectively.
 
    cvar(tet_l,tet_l)=d_h*tls*lsh*grd(tet_l)**2
@@ -1838,9 +1838,9 @@ SUBROUTINE turb_cloud ( tdc, i1dim, ktp, &
 !     A Gaussion distribution is assumed for the local super-saturation
 !     'dq := qt - qs' where 'qt := qv + ql' is the total water content and
 !     'qs' is the saturation specific humidity. Using the standard deviation
-!     of this distribution SDSS (as input) and the quasi-conservative 
+!     of this distribution SDSS (as input) and the quasi-conservative
 !     quantities 'qt' and 'tl' (liquid water temperature), a corrected liquid
-!     water content is determined, which contains also the contributions by 
+!     water content is determined, which contains also the contributions by
 !     subgrid-scale cloud processes. A corresponding cloudiness is calculated as well.
 !
 !------------------------------------------------------------------------------
@@ -1923,7 +1923,7 @@ REAL (KIND=wp) :: &
 ! Note:
 ! If 'qc' is not present, 't' and 'qv' are assumed to be already liquid water temperature (tl)
 !  and total water content (qt), which are conserved for moist conversions
-! In case of "kstart=khi=kend", the vertical loop is only for one level. 
+! In case of "kstart=khi=kend", the vertical loop is only for one level.
 ! Since a surface variable for 'qc' is not used in general, it is not forseen here as well, assuming
 !  't' and 'qv' to already contain the conserved variables.
 ! In this version, atmospheric ice is not included to the adjustment process.
@@ -1969,10 +1969,10 @@ REAL (KIND=wp) :: &
      !$ACC END PARALLEL
 
   ELSE !'qv' and 't' already contain conserved variablesi
-     qt => qv   
-     tl => t    
-  END IF 
-  
+     qt => qv
+     tl => t
+  END IF
+
   !Note: 'qt' and 'tl' are not being changed in the following!
 
   !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(acc_async_queue) IF(lzacc)
@@ -2030,7 +2030,7 @@ REAL (KIND=wp) :: &
         END IF
 
         q = MERGE( MERGE( -tdc%q_crit, zq_max, dq.LE.0.0_wp ), dq/sig, sig.LE.0.0_wp )
-        ! In case of "sig=0", the method is similar to grid-scale saturation adjustment. 
+        ! In case of "sig=0", the method is similar to grid-scale saturation adjustment.
         ! Otherwise, a fractional cloud-cover (saturation fraction) is diagnosed.
 
         !cloud-water 'rcld' and liquid-water content 'clwc':
@@ -2040,7 +2040,7 @@ REAL (KIND=wp) :: &
 
       END IF
 
-    END DO  
+    END DO
   END DO
   !$ACC END PARALLEL
   IF (.NOT. lcuda_graph_turb_tran) THEN
@@ -2093,7 +2093,7 @@ INTEGER, INTENT(IN) :: &
     igrdcon,    &    ! mode index for effective gradient consideration
                      ! 0: no consider., 1: use only the related profile correction
                      !                  2: use complete effective profile
-                     !                  3: !use additional effective gradients of an extra non-turbulent flux-contribution 
+                     !                  3: !use additional effective gradients of an extra non-turbulent flux-contribution
     itndcon          ! mode index of current tendency  consideration
                      ! 0: no consider., 1: consider curr. tend. in implicit equation only
                      !                  2: add curr. tend. increment to current profile
@@ -2198,7 +2198,7 @@ INTEGER :: &
     i,k, &
     k_lw, k_hi, &       ! vertical index of the lowest and highest level used for diffusion
           k_gc          ! vertical index of the uppermost level with gradient correction
-    
+
 
 REAL (KIND=wp) :: &
 !
@@ -2227,7 +2227,7 @@ REAL (KIND=wp), DIMENSION(:,:), POINTER, CONTIGUOUS :: &
 !     tkmin=MAX( con_h, tkhmin )
 !  END IF
 !++++
-  
+
 ! Initial setup and adoptions for new variable type:
 
   IF (linisetup .OR. lnewvtype) THEN
@@ -2250,7 +2250,7 @@ REAL (KIND=wp), DIMENSION(:,:), POINTER, CONTIGUOUS :: &
 !++++
         rhon => invs_mom ; rhoh => rho
 !++++
-        
+
         CALL bound_level_interp( i_st,i_en, k_hi+1,k_lw, &
                                  nvars=1, pvar=(/varprf(rhon,rhoh)/), depth=expl_mom)
 
@@ -2474,7 +2474,7 @@ REAL (KIND=wp), DIMENSION(:,:), POINTER, CONTIGUOUS :: &
   !Final solution of the semi-implicit diffusion equation:
 
   !Note:
-  !'cur_prof' is the current profile including the gradient correction (if "igrdcon>0") 
+  !'cur_prof' is the current profile including the gradient correction (if "igrdcon>0")
   !           including the virtual gradient correction of an explicit time tendency (if "itndcon=3").
   !'dif_tend' is only used, if "itndcon>0" and contains 'cur_prof' updated by the curr. tend. incr..
 
@@ -2614,7 +2614,7 @@ INTEGER :: &
    DO k=k_tp+2, k_sf-1
 !DIR$ IVDEP
       DO i=i_st, i_en
-         expl_mom(i,k)=expl_mom(i,k)-impl_mom(i,k) 
+         expl_mom(i,k)=expl_mom(i,k)-impl_mom(i,k)
       END DO
    END DO
    !$ACC END PARALLEL
@@ -2689,7 +2689,7 @@ INTEGER :: &
          END DO
       END DO
       !$ACC END PARALLEL
-   END IF   
+   END IF
 
 END SUBROUTINE prep_impl_vert_diff
 
@@ -2735,7 +2735,7 @@ REAL (KIND=wp), INTENT(IN) :: &
 REAL (KIND=wp), TARGET, CONTIGUOUS, INTENT(INOUT) :: &
 !
    cur_prof(:,:), & !inp: current vertical variable profile (including gradient corrections)
-                    !out: current vertical variable profile (including tendency increment, if "itndcon>=1") 
+                    !out: current vertical variable profile (including tendency increment, if "itndcon>=1")
    upd_prof(:,:), & !inp: if "|itndcon|>=1": updated vertical variable profile (includ. tendency increment)
                     !aux: interim solution of diffusion equation
                     !out: updated vertical variable profile by vertical diffusion
@@ -2743,9 +2743,9 @@ REAL (KIND=wp), TARGET, CONTIGUOUS, INTENT(INOUT) :: &
    !"itndcon<=-1": 'cur_prof' keeps input profile
    !"itndcon = 0": 'upd_prof' is not used as input
 !
-   eff_flux(:,:)    !out: effective flux density belonging to (semi-)implicit diffusion 
+   eff_flux(:,:)    !out: effective flux density belonging to (semi-)implicit diffusion
                     !     (positiv downward and only, if "leff_flux=.TRUE.")
-                    !aux: explicit flux density (positiv upward) and 
+                    !aux: explicit flux density (positiv upward) and
                     !     full right-hand side of the semi-implicit diffusion equation
 
 LOGICAL, OPTIONAL, INTENT(IN) :: lacc
@@ -2802,7 +2802,7 @@ REAL (KIND=wp), POINTER, CONTIGUOUS :: &
         eff_flux(i,k_sf) = eff_flux(i,k_sf) + impl_mom(i,k_sf) * rhs_prof(i,k_sf-1)
      END DO
      !$ACC END PARALLEL
-     !Note: 
+     !Note:
      !At level 'k_sf' 'impl_mom' still contains the implicit part without scaling,
      ! and it vanishes at all in case of "lsflucond=T" (surface-flux condition)!
      !In all, level "k_sf-1" is treated (semi-)implicitly by this.
@@ -2839,17 +2839,17 @@ REAL (KIND=wp), POINTER, CONTIGUOUS :: &
         END DO
      END DO
      !$ACC END PARALLEL
-  END IF   
+  END IF
 
 !  Save updated profiles (including explicit increments of current tendencies):
-        
+
   IF (itndcon.GT.0) THEN !consideration of explicit tendencies
      !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1) IF(lzacc)
      !$ACC LOOP GANG VECTOR COLLAPSE(2)
      DO k=k_tp+1, k_sf-1
 !DIR$ IVDEP
         DO i=i_st, i_en
-           cur_prof(i,k) = upd_prof(i,k) 
+           cur_prof(i,k) = upd_prof(i,k)
         END DO
      END DO
      !$ACC END PARALLEL
@@ -3001,7 +3001,7 @@ REAL (KIND=wp) :: &
      END DO
      !$ACC END PARALLEL
    ENDIF
-   
+
    !$ACC PARALLEL DEFAULT(PRESENT) PRIVATE(j0, j1, j2, k) ASYNC(1) IF(lacc)
    !$ACC LOOP GANG(STATIC: 1) VECTOR
    DO i=i_st,i_en
@@ -3118,7 +3118,7 @@ REAL (KIND=wp), POINTER, CONTIGUOUS :: blvar(:,:), mlvar(:,:) !facilitates loop 
       !$ACC ENTER DATA ATTACH(pvar(n)%bl, pvar(n)%ml) ASYNC(1) IF(lzacc)
 #endif
    END DO
-    
+
    IF (ldepth) THEN !depth weighted interpolation
 
       IF (lauxil) THEN !precalculation of the reciprocal layer depth
@@ -3130,7 +3130,7 @@ REAL (KIND=wp), POINTER, CONTIGUOUS :: blvar(:,:), mlvar(:,:) !facilitates loop 
             DO i=i_st, i_en
                auxil(i,k)=depth(i,k-1)/(depth(i,k-1)+depth(i,k))
             END DO
-         END DO  
+         END DO
          !$ACC END PARALLEL
 
          DO n=1, nvars
@@ -3185,7 +3185,7 @@ REAL (KIND=wp), POINTER, CONTIGUOUS :: blvar(:,:), mlvar(:,:) !facilitates loop 
    ! See comment above
    DO n=1,nvars
 #ifdef _PGI_LEGACY_WAR
-      IF(lzacc) THEN 
+      IF(lzacc) THEN
          !$ACC WAIT(1)
          CALL acc_detach(pvar(n)%bl)
          CALL acc_detach(pvar(n)%ml)

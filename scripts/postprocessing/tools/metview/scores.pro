@@ -167,11 +167,11 @@ CASE levtype OF
     if (     rms1  +      rms2   ) lt 1e-8 then begin
       rms  = 0.5
     endif
-  
+
     xxx =-0.11+nn*0.125
     yyy =0.93
     vert=0.01
-  
+
     xyouts, xxx+0.035, yyy+0.015, var3d(nn-1), /normal, charsize=0.7                      ;title each column: variable name
     header = 'level    rms      new'
     xyouts, xxx, yyy, header, /normal, charsize=0.7                                       ;header (level, rms, new)
@@ -203,7 +203,7 @@ CASE levtype OF
     xyouts,   xr(0)+0.09  , yr(0)-nk*vert, string(err1,format='(g8.3)'), /normal, charsize=0.4, alignment=1.0 ;new error value
   end
   end
-  
+
   xr = [-0.01,0.0] * amp_ml_rms * refer
   plots, xr(0:1)+0.50, 0.015+[0.0,0.0],  /normal                                          ;reference 1% (bottom page)
   xyouts,xr(1)  +0.51, 0.010, refer_txt, /normal, charsize=0.6                            ;text refernce value
@@ -250,11 +250,11 @@ CASE levtype OF
     if (     rms1  +      rms2   ) lt 1e-8 then begin
       rms  = 0.5
     endif
-  
+
     xxx =-0.23+nn*0.25
     yyy =0.90
     vert=0.033
-  
+
     if stat eq 'rms' then begin
       headernew = 'new'
       header    = 'level      rms        ref'
@@ -264,7 +264,7 @@ CASE levtype OF
     endelse
     xyouts, xxx+0.067, yyy+0.015, headernew, /normal, charsize=0.7,alignment=0.0     ;header (level, rms, new)
     xyouts, xxx-0.007, yyy,       header,    /normal, charsize=0.7                   ;header (level, rms, new)
- 
+
     for nerr=1,2 do begin
       if nerr eq 2 and stat eq 'rms' then continue
       if nerr eq 1 then begin
@@ -293,7 +293,7 @@ CASE levtype OF
       plots,    xr(3:4)+0.04, [yr(3)+0.004,yr(4)-0.004]-nk*vert,      /normal    ;zero
       xr= [-0.01,0.01]             * amp * refer + xxx + xoff
       plots,    xr(0:1)+0.04, yr(0:1)-nk*vert+0.005, /normal                     ;reference 1%
-  
+
       xyouts,   xr(0)       , yr(0)-nk*vert, pres_l(nk-1),/normal, charsize=0.7  ;level
       xyouts,   xr(0)+0.09  , yr(0)-nk*vert+0.007, string(err1,format='(g8.3)'), /normal, charsize=0.5, alignment=1.0 ;new error value
       xyouts,   xr(0)+0.09  , yr(0)-nk*vert-0.007, string(err2,format='(g8.3)'), /normal, charsize=0.5, alignment=1.0 ;old error value
@@ -342,11 +342,11 @@ CASE levtype OF
     if (     rms1  +      rms2   ) lt 1e-8 then begin
       rms  = 0.5
     endif
-  
+
     xxx =-0.11+nn*0.14
     yyy =0.93
     vert=0.01
-  
+
     xyouts, xxx+0.03, yyy+0.015, var3zl(nn-1), /normal, charsize=0.7                     ;title each column: variable name
     header = 'level    rms      new'
     xyouts, xxx, yyy, header, /normal, charsize=0.7                                      ;header (level, rms, new)
@@ -377,7 +377,7 @@ CASE levtype OF
     xyouts,   xr(0)+0.07,   yr(0)-nk*vert, err1,   /normal, charsize=0.4                  ;new error value
    end
   end
-  
+
   xr = [-0.01,0.0] * amp_zl_rms * refer
   plots, xr(0:1)+0.50, 0.015+[0.0,0.0],  /normal                                          ;reference 1% (bottom page)
   xyouts,xr(1)  +0.51, 0.010, refer_txt, /normal, charsize=0.6                            ;text refernce value
@@ -390,7 +390,7 @@ CASE levtype OF
  'sfc': BEGIN
 
   xyouts, 0.15, 0.97, /normal, charsize=1.0, title+'   '+levtype
-  
+
   ; surface parameters (e.g. fluxes) --------------------------------------------------------
 
   for nn=1,nvar2d do begin
@@ -411,12 +411,12 @@ CASE levtype OF
       bias = ( abs(mean1) - abs(mean2) ) / (     rms1   +     rms2   ) + 0.5
     endelse
     rms  =     rms1   / (     rms1   +     rms2   )
-   ;print, var2d(nn-1), ' exp',expref, ' bias:', bias2, 'rms:', rms2 
-  
+   ;print, var2d(nn-1), ' exp',expref, ' bias:', bias2, 'rms:', rms2
+
     xxx = 0.05
     yyy = 0.92
     vert= 0.045
-  
+
     if stat eq 'rms' then begin
       header = 'variable                    rms                new,ref'
     endif else begin
@@ -480,12 +480,12 @@ CASE levtype OF
       bias = ( abs(mean1) - abs(mean2) ) / (     rms1   +     rms2   ) + 0.5
     endelse
     rms  =     rms1   / (     rms1   +     rms2   )
-   ;print, var2obs(nn-1), ' exp',expref, ' bias:', bias2, 'rms:', rms2 
-  
+   ;print, var2obs(nn-1), ' exp',expref, ' bias:', bias2, 'rms:', rms2
+
     xxx = 0.55
     yyy = 0.30
     vert= 0.038
-  
+
     for nerr=1,2 do begin
       if nerr eq 2 and stat eq 'rms' then continue
       if nerr eq 1 then begin
@@ -544,12 +544,12 @@ CASE levtype OF
       bias = ( abs(mean1) - abs(mean2) ) / (     rms1   +     rms2   ) + 0.5
     endelse
     rms  =     rms1   / (     rms1   +     rms2   )
-   ;print, var3lnd(nn-1), ' exp',expref, ' bias:', bias2, 'rms:', rms2 
-  
+   ;print, var3lnd(nn-1), ' exp',expref, ' bias:', bias2, 'rms:', rms2
+
     xxx = 0.55
     yyy = 0.92
     vert= 0.038
-  
+
     if stat eq 'rms' then begin
       header = 'variable                    rms                new,ref'
     endif else begin
@@ -592,20 +592,20 @@ CASE levtype OF
       xyouts,   xr(0)+0.18,   yr(0)-vertical+0.008, err1,  /normal, charsize=0.6
       xyouts,   xr(0)+0.18,   yr(0)-vertical-0.008, err2,  /normal, charsize=0.6
     end
-   end  
+   end
   end
 
   if stat eq 'rms' then begin
     xr = [-0.01,0.0] * amp_sfc_bias * refer
     plots, xr(0:1)+0.40, 0.015+[0.0,0.0],  /normal                                ;reference 1% (bottom page)
     xyouts,xr(1)  +0.41, 0.010, refer_txt+' rms', /normal, charsize=0.6           ;text refernce value
-  
+
   endif else begin
 
     xr = [-0.01,0.0] * amp_sfc_bias * refer
     plots, xr(0:1)+0.40, 0.015+[0.0,0.0],  /normal                                ;reference 1% (bottom page)
     xyouts,xr(1)  +0.41, 0.010, refer_txt+' bias', /normal, charsize=0.6          ;text refernce value
-  
+
     xr = [-0.01,0.0] * amp_sfc_rms * refer
     plots, xr(0:1)+0.60, 0.015+[0.0,0.0],  /normal                                ;reference 1% (bottom page)
     xyouts,xr(1)  +0.61, 0.010, refer_txt+' rms', /normal, charsize=0.6           ;text refernce value

@@ -691,7 +691,7 @@ CONTAINS
         varlist(k) = varnames_dict%get(varlist(k), default=varlist(k))
         varlist(k) = tolower(varlist(k))
       END DO
-      IF (PRESENT(remap)) THEN 
+      IF (PRESENT(remap)) THEN
         IF (k .GT. 1) THEN
           SELECT CASE(remap)
           CASE (REMAP_NONE)
@@ -3110,7 +3110,7 @@ CONTAINS
     INTEGER (KIND=MPI_ADDRESS_KIND) :: mem_size
 
 #ifdef NO_ASYNC_IO_RMA
-    INTEGER :: mpierr 
+    INTEGER :: mpierr
     INTEGER, ALLOCATABLE :: local_recv_buffer_mem_sizes(:)
 
     ! Allocate memory for metainfo requests
@@ -3120,7 +3120,7 @@ CONTAINS
     req_send_metainfo(:) = MPI_REQUEST_NULL
     req_send_data(:) = MPI_REQUEST_NULL
     req_recv_data(:,:) = MPI_REQUEST_NULL
-    
+
     ! Allocate memory for maximum requests sizes
     allocate(recv_buffer_max_sizes(1:SIZE(output_file)))
     allocate(local_recv_buffer_mem_sizes(1:SIZE(output_file)))
@@ -3173,7 +3173,7 @@ CONTAINS
       ! allocate memory window for meta-info communication between
       ! PE#0 and the I/O PEs:
       ! When RMA is not used, this call allocates mem but not window
-      CALL metainfo_allocate_memory_window(output_file(i)%mem_win, output_file(i)%num_vars) 
+      CALL metainfo_allocate_memory_window(output_file(i)%mem_win, output_file(i)%num_vars)
 
 #ifdef NO_ASYNC_IO_RMA
       local_recv_buffer_mem_sizes(i) = mem_size

@@ -28,7 +28,7 @@ USE mo_physical_constants, ONLY: alv   , & !! latent heat of vapourization
                                  als   , & !! invariant part of sublimation enthalpy
                                  tmelt     !! melting temperature of ice/snow
 
-USE mo_aes_thermo, ONLY:        & !! 
+USE mo_aes_thermo, ONLY:        & !!
         qsat_rho               ,&
         qsat_ice_rho           ,&
         internal_energy        ,&
@@ -72,9 +72,9 @@ REAL(wp), PARAMETER, DIMENSION(3) :: params_qg = params(:, lqg)
 
 REAL(wp), PARAMETER :: &
    rho_00 = 1.225_wp        , & ! reference air density
-   q1     = 8.e-6_wp        , &               
+   q1     = 8.e-6_wp        , &
    qmin   = 1.0E-15_wp      , & ! threshold for computation
-   ams    = 0.069_wp        , & ! Formfactor in the mass-size relation of snow particles 
+   ams    = 0.069_wp        , & ! Formfactor in the mass-size relation of snow particles
    bms    = 2.0_wp          , & ! Exponent in the mass-size relation of snow particles
    v0s    = 25.0_wp         , & ! prefactor in snow fall speed
    v1s    = 0.5_wp          , & ! Exponent in the terminal velocity for snow
@@ -90,7 +90,7 @@ REAL(wp), PARAMETER :: &
 TYPE t_qx_ptr                   ! type for pointer vector
   REAL(wp), POINTER    :: p(:), x(:,:)
 END TYPE t_qx_ptr
-  
+
 CONTAINS
 
 !
@@ -116,7 +116,7 @@ CONTAINS
     ke        , & !! number of grid points in vertical direction
     ivstart   , & !! start index for horizontal direction
     ivend     , & !! end index   for horizontal direction
-    kstart        !! start index for the vertical 
+    kstart        !! start index for the vertical
 
   REAL(KIND=wp), INTENT(IN) :: &
     dt            !> time step for integration of microphysics   (  s  )
@@ -141,7 +141,7 @@ CONTAINS
     qnc           !! cloud number concentration
 
   REAL(KIND=wp), DIMENSION(:,:), INTENT(OUT) ::   &   ! dim (ie,ke)
-    pflx          !! total precipitation flux 
+    pflx          !! total precipitation flux
 
   REAL(KIND=wp), TARGET, DIMENSION(:), INTENT(OUT) ::   &   ! dim (ie)
     prr_gsp   , & !> precipitation rate of rain, grid-scale        (kg/(m2*s))
@@ -150,7 +150,7 @@ CONTAINS
     prg_gsp   , & !! precipitation rate of graupel, grid-scale     (kg/(m2*s))
     pre_gsp       !! energy flux at sfc from precipitation         (W/m2)
 
-  LOGICAL :: is_sig_present(nvec*ke) ! is snow, ice or graupel present? 
+  LOGICAL :: is_sig_present(nvec*ke) ! is snow, ice or graupel present?
 
   INTEGER (KIND=i4)  :: iv, k, kp1, j, jmx, jmx_, ix, iqx, &   !> loop indices
                         ind_k(nvec*ke), & ! k index of gathred point
@@ -256,7 +256,7 @@ CONTAINS
       n_ice   = ice_number   (t(iv,k),rho(iv,k))
       m_ice   = ice_mass     (q(lqi)%x(iv,k),n_ice)
       x_ice   = ice_sticking (t(iv,k))
-    
+
       IF (is_sig_present(j)) THEN
         eta           = deposition_factor(t(iv,k),qvsi) ! neglect cloud depth cor. from gcsp_graupel
         sx2x(lqv,lqi) = vapor_x_ice    (q(lqi)%x(iv,k),m_ice,eta,dvsi,rho(iv,k),dt)
@@ -302,7 +302,7 @@ CONTAINS
           sx2x(iqx,:) = sx2x(iqx,:) * stot/sink(iqx)
           sink(iqx)   = SUM(sx2x(iqx,:))
         ENDIF
-      ENDIF 
+      ENDIF
     END DO
 
     !$ACC LOOP SEQ
@@ -311,23 +311,23 @@ CONTAINS
       dqdt(iqx)      = SUM(sx2x(:,iqx)) - sink(iqx)
       q(iqx)%x(iv,k) = MAX(0.0_wp, q(iqx)%x(iv,k) + dqdt(iqx)*dt)
     END DO
-      
+
     qice     = q(lqs)%x(iv,k) + q(lqi)%x(iv,k) + q(lqg)%x(iv,k)
     qliq     = q(lqc)%x(iv,k) + q(lqr)%x(iv,k)
     qtot     = q(lqv)%x(iv,k)  + qice + qliq
     cv       = cvd + (cvv-cvd)*qtot + (clw-cvv)*qliq + (ci-cvv)*qice ! qtot? or qv?
     t(iv,k)  = t(iv,k) + dt *  ( (dqdt(lqc) + dqdt(lqr)) * (lvc-(clw-cvv)*t(iv,k))  &
              + (dqdt(lqi) + dqdt(lqs) + dqdt(lqg)) * (lsc-(ci -cvv)*t(iv,k)) )/cv
-  END DO 
+  END DO
   !$ACC END PARALLEL
 
   !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1)
   !$ACC LOOP SEQ
-  DO  k = kstart, MERGE(ke,kstart-1,lrain)  
+  DO  k = kstart, MERGE(ke,kstart-1,lrain)
     !$ACC LOOP GANG VECTOR &
     !$ACC   PRIVATE(kp1, qliq, qice, e_int, zeta, xrho, vc) &
     !$ACC   PRIVATE(ix, iqx, update)
-    DO iv = ivstart, ivend  
+    DO iv = ivstart, ivend
       IF (k==kstart) THEN
         eflx(iv)    = 0.0_wp
         pre_gsp(iv) = 0.0_wp
@@ -408,7 +408,7 @@ END SUBROUTINE graupel_run
 !!!=============================================================================================
 
 PURE FUNCTION precip(params,zeta,vc,flx,vt,q,q_kp1,rho)
-       
+
   REAL(KIND=wp) precip(3)       !> time step for integration of microphysics  (  s  )
   REAL(KIND=wp), INTENT(IN) :: &
     params(3) , &               !> fall speed parameters
@@ -425,7 +425,7 @@ PURE FUNCTION precip(params,zeta,vc,flx,vt,q,q_kp1,rho)
   !$ACC ROUTINE SEQ
   rho_x        = q*rho
   flx_eff      = rho_x/zeta + 2.0_wp*flx
-  flx_partial  = rho_x * vc * fall_speed(rho_x, params) 
+  flx_partial  = rho_x * vc * fall_speed(rho_x, params)
   flx_partial  = MIN( flx_partial, flx_eff )
   precip(1)    = zeta*(flx_eff-flx_partial) / ((1.0_wp + zeta*vt)*rho)  ! q update
   precip(2)    = (precip(1)*rho*vt + flx_partial)*0.5_wp                ! flx
@@ -449,7 +449,7 @@ PURE FUNCTION vel_scale_factor(iqx,xrho,rho,t,qx)
   REAL (KIND=wp), PARAMETER ::  &
     b_i    =  2.0_wp/3.0_wp   , &
     b_s    = -1.0_wp/6.0_wp
-   
+
    !$ACC ROUTINE SEQ
    SELECT CASE(iqx)
    CASE (lqi)
@@ -467,7 +467,7 @@ END FUNCTION vel_scale_factor
 PURE FUNCTION fall_speed(density, params)
   REAL(KIND=wp)             :: fall_speed
   REAL(KIND=wp), INTENT(IN) :: density   , & ! density of condensate
-          &                    params(3)     ! fall speed parameters    
+          &                    params(3)     ! fall speed parameters
 
   !$ACC ROUTINE SEQ
   fall_speed  =  params(1) * ((density+params(3)) ** params(2))
@@ -499,7 +499,7 @@ PURE FUNCTION snow_number(t,rho,qs)
     n0s4    =  0.5_wp*n0s1         , &
     n0s5    =  1.e6_wp             , &
     n0s6    =  1.e2_wp*n0s1        , &
-    n0s7    =  1.e9_wp       
+    n0s7    =  1.e9_wp
 
   REAL(KIND=wp) ::                   &
     tc                             , &
@@ -508,7 +508,7 @@ PURE FUNCTION snow_number(t,rho,qs)
     n0s                            , &
     y                              , &
     n0smn                          , &
-    n0smx                          
+    n0smx
 
     !$ACC ROUTINE SEQ
     IF (qs > qmin) THEN
@@ -523,7 +523,7 @@ PURE FUNCTION snow_number(t,rho,qs)
       snow_number = MIN(n0smx,MAX(n0smn,n0s))
     ELSE
       snow_number = n0s0
-    ENDIF 
+    ENDIF
 
 END FUNCTION snow_number
 
@@ -536,11 +536,11 @@ PURE FUNCTION snow_lambda(rho,qs,ns)
           &                    ns              ! snow number
 
   REAL(KIND=wp), PARAMETER  ::        &
-      !a1       = ams/bms            , & ! -- used constants in expression 
-      a2       = ams*2.0_wp         , & ! '' (with ams*gam(bms+1.0_wp) where gam(3) = 2) 
+      !a1       = ams/bms            , & ! -- used constants in expression
+      a2       = ams*2.0_wp         , & ! '' (with ams*gam(bms+1.0_wp) where gam(3) = 2)
       lmd_0    = 1.0e+10_wp         , & ! no snow value of lambda
       bx       = 1.0_wp/(bms+1.0_wp), & ! ''
-      qsmin    = 0.0e-6_wp ! previous had 2.0e-6         
+      qsmin    = 0.0e-6_wp ! previous had 2.0e-6
 
   !$ACC ROUTINE SEQ
   IF (qs > qmin) THEN
@@ -548,7 +548,7 @@ PURE FUNCTION snow_lambda(rho,qs,ns)
   ELSE
     snow_lambda =  lmd_0
   ENDIF
-      
+
 END FUNCTION snow_lambda
 
 !!!=============================================================================================
@@ -561,7 +561,7 @@ PURE FUNCTION ice_number(t,rho)
   REAL (KIND=wp), PARAMETER ::    &
     a     = 5.000_wp            , & ! parameter in cooper fit
     b     = 0.304_wp            , & ! parameter in cooper fit
-    nimax = 250.E+3_wp              ! maximal number of ice crystals 
+    nimax = 250.E+3_wp              ! maximal number of ice crystals
 
   !$ACC ROUTINE SEQ
   ice_number =  MIN(nimax,a * EXP(b * (tmelt - t))) / rho
@@ -572,7 +572,7 @@ END FUNCTION ice_number
 
 PURE FUNCTION ice_mass(qi,ni)
   REAL(KIND=wp)             :: ice_mass   ! conversion rate of ice to snow
-  REAL(KIND=wp), INTENT(IN) :: qi             , & ! ice specific mass 
+  REAL(KIND=wp), INTENT(IN) :: qi             , & ! ice specific mass
           &                    ni                 ! ice crystal number
 
   REAL(KIND=wp), PARAMETER  :: &
@@ -580,7 +580,7 @@ PURE FUNCTION ice_mass(qi,ni)
 
   !$ACC ROUTINE SEQ
   ice_mass = MAX( m0_ice, MIN( qi/ni, mi_max ))
-      
+
 END FUNCTION ice_mass
 
 !!!=============================================================================================
@@ -599,39 +599,39 @@ PURE FUNCTION ice_sticking(t)
   ! per original code seems like aggregation is allowed even with no snow present
   !
   !$ACC ROUTINE SEQ
-  ice_sticking = MAX(MIN(EXP(a*(t-tmelt)),b), eff_min, eff_fac*(t-tcrit)) 
-      
+  ice_sticking = MAX(MIN(EXP(a*(t-tmelt)),b), eff_min, eff_fac*(t-tcrit))
+
 END FUNCTION ice_sticking
 
 !!!=============================================================================================
 
 PURE FUNCTION deposition_factor(t,qvsi)
-  REAL(KIND=wp)             :: deposition_factor  ! returns deposition factor 
+  REAL(KIND=wp)             :: deposition_factor  ! returns deposition factor
   REAL(KIND=wp), INTENT(IN) :: t           , & ! temperature
           &                    qvsi            ! saturation (ice) specific vapor mass
 
   REAL(KIND=wp), PARAMETER  ::      &
       kappa  = 2.40E-2_wp         , & ! thermal conductivity of dry air
-      b      = 1.94_wp            , & 
+      b      = 1.94_wp            , &
       a      = als*als/(kappa*rv) , &
       cx     = 2.22E-5_wp * tmelt**(-b) * 101325.0_wp
 
   REAL(KIND=wp) :: x
-      
+
   !$ACC ROUTINE SEQ
   x =  cx/rd * t**(b-1.0_wp)
   deposition_factor    = x / (1.0_wp + a * x * qvsi/(t*t))
-      
+
 END FUNCTION deposition_factor
 
 !!!=============================================================================================
 
 PURE FUNCTION cloud_to_rain(t,qc,qr,nc)
-  REAL(KIND=wp)             :: cloud_to_rain      ! mass from qc to qr 
+  REAL(KIND=wp)             :: cloud_to_rain      ! mass from qc to qr
   REAL(KIND=wp), INTENT(IN) :: t         , & ! temperature
           &                    qc        , & ! cloud water specific mass
           &                    qr        , & ! rain water specific mass
-          &                    nc            ! cloud water number concentration 
+          &                    nc            ! cloud water number concentration
 
   REAL(KIND=wp), PARAMETER  ::  &
           qmin_ac    = 1.00e-06_wp,  & ! threshold for auto conversion
@@ -654,7 +654,7 @@ PURE FUNCTION cloud_to_rain(t,qc,qr,nc)
     ! Kessler (1969) autoconversion rate
     !    scau = zccau * MAX( qc_ik - qc0, 0.0_wp )
     !    scac = zcac  * qc_ik * zeln7o8qrk
-    ! 
+    !
     ! Seifert and Beheng (2001) autoconversion rate
     ! with constant cloud droplet number concentration qnc
     !
@@ -667,7 +667,7 @@ PURE FUNCTION cloud_to_rain(t,qc,qr,nc)
       xau  = au_kernel * (qc*qc/nc)**2.0_wp  * (1.0_wp + phi/(1.0_wp - tau)**2.0_wp)
       xac  = ac_kernel * qc * qr * (tau/(tau+c))**4.0_wp
       cloud_to_rain = xau + xac
-    ENDIF 
+    ENDIF
 
 END FUNCTION cloud_to_rain
 
@@ -684,7 +684,7 @@ PURE FUNCTION cloud_x_ice(t,qc,qi,dt)
   cloud_x_ice = 0.0_wp
   IF (qc > qmin .AND. t < tfrz_hom) cloud_x_ice  =   qc / dt
   IF (qi > qmin .AND. t > tmelt)    cloud_x_ice  = - qi / dt
-      
+
 END FUNCTION cloud_x_ice
 !!!=============================================================================================
 
@@ -704,7 +704,7 @@ PURE FUNCTION cloud_to_snow(t,qc,qs,ns,lambda)
   !$ACC ROUTINE SEQ
   cloud_to_snow = 0.0_wp
   IF (min(qc,qs) > qmin .AND. t > tfrz_hom) THEN
-    cloud_to_snow  = (c_rim * ns)  * qc * lambda**b_rim  
+    cloud_to_snow  = (c_rim * ns)  * qc * lambda**b_rim
   END IF
 
 END FUNCTION cloud_to_snow
@@ -721,19 +721,19 @@ PURE FUNCTION cloud_to_graupel(t,rho,qc,qg)
   REAL(KIND=wp), PARAMETER  :: &
       a_rim  = 4.43_wp,        & ! Constants in riming formula
       b_rim  = 0.94878_wp        ! ''
-  
+
   !$ACC ROUTINE SEQ
   cloud_to_graupel = 0.0_wp
   IF (min(qc,qg) > qmin .AND. t > tfrz_hom) THEN
     cloud_to_graupel = a_rim * qc * (qg*rho)**b_rim
   END IF
-      
+
 END FUNCTION cloud_to_graupel
 
 !!!=============================================================================================
 
 PURE FUNCTION rain_to_vapor(t,rho,qc,qr,dvsw,dt)
-  REAL(KIND=wp)             :: rain_to_vapor   ! mass from qc to qr 
+  REAL(KIND=wp)             :: rain_to_vapor   ! mass from qc to qr
   REAL(KIND=wp), INTENT(IN) :: t           , & ! temperature
           &                    rho         , & ! ambient density
           &                    qc          , & ! specific humidity of cloud
@@ -774,7 +774,7 @@ PURE FUNCTION rain_to_graupel(t,rho,qc,qr,qi,qs,mi,dvsw,dt)
           &                    qi          , & ! cloud ice specific mass
           &                    qs          , & ! snow specific mass
           &                    mi          , & ! ice crystal mass
-          &                    dvsw        , & ! qv-qsat_water(T) 
+          &                    dvsw        , & ! qv-qsat_water(T)
           &                    dt              ! time-step
 
   REAL(KIND=wp), PARAMETER  ::     &
@@ -796,10 +796,10 @@ PURE FUNCTION rain_to_graupel(t,rho,qc,qr,qi,qs,mi,dvsw,dt)
       IF ( dvsw+qc <= 0.0_wp .OR. qr > c4*qc ) THEN
         rain_to_graupel  = (EXP(c2*(tfrz_rain-t))-c3) * (a1*(qr*rho)**b1)
       ENDIF
-    ELSE 
+    ELSE
       rain_to_graupel  = qr/dt
-    ENDIF 
-  ENDIF 
+    ENDIF
+  ENDIF
   IF (min(qi,qr) > qmin .AND. qs > qs_crit) THEN ! rain + ice creating graupel
     rain_to_graupel = rain_to_graupel + a2 * (qi/mi) * (rho*qr)**b2
   END IF
@@ -810,13 +810,13 @@ END FUNCTION rain_to_graupel
 
 PURE FUNCTION deposition_auto_conversion(qi,m_ice,ice_dep)
 
-  REAL(KIND=wp)             :: deposition_auto_conversion  
+  REAL(KIND=wp)             :: deposition_auto_conversion
   REAL(KIND=wp), INTENT(IN) :: qi             , & ! ice specific mass
           &                    m_ice          , & ! ice crystal mass
           &                    ice_dep            ! rate of ice deposition (some to snow)
 
   REAL(KIND=wp), PARAMETER  :: &
-      m0_s  = 3.0E-9_wp      , & ! initial mass of snow crystals      
+      m0_s  = 3.0E-9_wp      , & ! initial mass of snow crystals
       b     = 2.0_wp/3.0_wp  , & ! 2/3
       xcrit = 1.0_wp             ! threshold parameter
 
@@ -828,7 +828,7 @@ PURE FUNCTION deposition_auto_conversion(qi,m_ice,ice_dep)
     tau_inv     = b /((m0_s/m_ice)**b - xcrit)
     deposition_auto_conversion = MAX(0.0_wp,ice_dep)*tau_inv
   END IF
-      
+
 END FUNCTION deposition_auto_conversion
 
 !!!=============================================================================================
@@ -851,7 +851,7 @@ PURE FUNCTION ice_to_snow(qi,ns,lambda,sticking_eff)
   IF (qi > qmin) THEN
     ice_to_snow = sticking_eff  * (c_iau*MAX(0.0_wp,(qi-qi0)) + qi*(c_agg*ns)*(lambda)**b_agg)
   END IF
-      
+
 END FUNCTION ice_to_snow
 
 !!!=============================================================================================
@@ -876,7 +876,7 @@ PURE FUNCTION ice_to_graupel(rho,qr,qg,qi,sticking_eff)
     IF (qg > qmin) ice_to_graupel = sticking_eff*qi*c_agg*((rho*qg)**b_agg)
     IF (qr > qmin) ice_to_graupel = ice_to_graupel + a*qi*((rho*qr)**b )
   END IF
-      
+
 END FUNCTION ice_to_graupel
 
 !!!=============================================================================================
@@ -899,7 +899,7 @@ PURE FUNCTION snow_to_rain(t,p,rho,dvsw0,qs)
   snow_to_rain = 0.0_wp
   IF (t>MAX(tmelt,tmelt - tx*dvsw0) .AND. qs>qmin) THEN
     snow_to_rain =  (c1/p + c2) *(t - tmelt + a*dvsw0) * (qs*rho)**b
-  END IF 
+  END IF
 
 END FUNCTION snow_to_rain
 
@@ -944,7 +944,7 @@ PURE FUNCTION graupel_to_rain(t,p,rho,dvsw0,qg)
   graupel_to_rain = 0.0_wp
   IF (t > MAX(tmelt,tmelt - tx*dvsw0) .AND. qg>qmin) THEN
     graupel_to_rain =  (c1/p + c2) * (t - tmelt + a * dvsw0) * (qg*rho)**b
-  END IF 
+  END IF
 
 END FUNCTION graupel_to_rain
 
@@ -981,7 +981,7 @@ PURE FUNCTION vapor_x_ice(qi,mi,eta,dvsi,rho,dt)
   REAL(KIND=wp), PARAMETER  ::                 &
       ami   = 130.0_wp                       , & ! Formfactor for mass-size relation of cld ice
       a     = 4.0_wp * ami**(-1.0_wp/3.0_wp) , & !
-      b     = -0.67_wp                           ! exp. for conv. (-1 + 0.33) of ice mass to sfc area 
+      b     = -0.67_wp                           ! exp. for conv. (-1 + 0.33) of ice mass to sfc area
 
   !$ACC ROUTINE SEQ
   vapor_x_ice = 0.0_wp
@@ -1026,21 +1026,21 @@ PURE FUNCTION vapor_x_snow(t,p,rho,qs,ns,lambda,eta,ice_dep,dvsw,dvsi,dvsw0,dt)
       c1     = 31282.3_wp                , & !
       c2     = 0.241897_wp               , & !
       c3     = 0.28003_wp                , & !
-      c4     =-0.146293E-6_wp            
+      c4     =-0.146293E-6_wp
 
   !$ACC ROUTINE SEQ
   vapor_x_snow = 0.0_wp
   IF (qs>qmin) THEN
     IF ( t < tmelt ) THEN
       vapor_x_snow = (cnx*ns*eta/rho) * (a0 + a1 * lambda**a2) * dvsi  / (lambda*lambda+eps)
-      ! 
+      !
       ! GZ: This limitation, which was missing in the original graupel scheme,
       ! is crucial for numerical stability in the tropics!
       ! a meaningful distiction between cloud ice and snow
       !
       IF (vapor_x_snow > 0.0_wp) vapor_x_snow = MIN(vapor_x_snow, dvsi/dt-ice_dep)
       IF (qs <= qs_lim) vapor_x_snow = MIN(vapor_x_snow, 0.0_wp)
-    ELSE 
+    ELSE
       IF ( t > (tmelt-tx*dvsw0) ) THEN
         vapor_x_snow = (c1/p+c2) * MIN(0.0_wp,dvsw0) * (qs*rho)**b
       ELSE
@@ -1074,14 +1074,14 @@ PURE FUNCTION vapor_x_graupel(t,p,rho,qg,dvsw,dvsi,dvsw0,dt)
       a6 =-7.86703e-07_wp    , & !
       a7 = 0.0418521_wp      , & !
       a8 =-4.7524E-8_wp      , & !
-      b  = 0.6_wp            
+      b  = 0.6_wp
 
   !$ACC ROUTINE SEQ
   vapor_x_graupel = 0.0_wp
   IF (qg>qmin) THEN
     IF ( t < tmelt ) THEN
       vapor_x_graupel = (a1 +a2*t+ a3/p + a4*p) * dvsi * (qg*rho)**b
-    ELSE 
+    ELSE
       IF ( t > (tmelt-tx*dvsw0 ) ) THEN
         vapor_x_graupel = (a5+a6*p) * MIN(0.0_wp,dvsw0) * (qg*rho)**b
       ELSE

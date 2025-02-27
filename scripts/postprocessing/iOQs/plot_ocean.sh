@@ -41,10 +41,10 @@ run_bg $BINDIR/OQs_icon_moc.sh
 
 wait
 cd ${EXPID}_${Y1}-${Y2}
-cat *_moc*.lst_ > ${EXPID}.lst 
-cat *_surf_*.lst_ >> ${EXPID}.lst 
-cat *_surf39_*.lst_ >> ${EXPID}.lst 
-cat *_subsurf*.lst_ >> ${EXPID}.lst 
+cat *_moc*.lst_ > ${EXPID}.lst
+cat *_surf_*.lst_ >> ${EXPID}.lst
+cat *_surf39_*.lst_ >> ${EXPID}.lst
+cat *_subsurf*.lst_ >> ${EXPID}.lst
 
 
 $BINDIR/create_plot_browser -t $EXPID ${EXPID}.lst > index.html

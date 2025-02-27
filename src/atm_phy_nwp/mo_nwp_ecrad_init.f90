@@ -254,9 +254,9 @@ CONTAINS
             CALL finish(routine, 'ecrad_igraupel_scat not valid for ecRad and use_general_cloud_optics = T')
         END SELECT
       ENDIF
-      
+
     ELSE ! .not.ecrad_conf%use_general_cloud_optics
-      
+
       ! Liquid cloud particle scattering properties
       SELECT CASE (ecrad_iliquid_scat)
         CASE(0)
@@ -266,7 +266,7 @@ CONTAINS
         CASE DEFAULT
           CALL finish(routine, 'ecrad_iliquid_scat not valid for ecRad and use_general_cloud_optics = F')
       END SELECT
-    
+
       ! Ice cloud particle scattering properties
       SELECT CASE (ecrad_iice_scat)
         CASE(0)
@@ -299,7 +299,7 @@ CONTAINS
     !---------------------------------------------------------------------------------------
     ! Currently hardcoded configuration
     !---------------------------------------------------------------------------------------
-  
+
     ecrad_conf%do_lw                       = .true.       !< Do we compute longwave radiation?
     !
     ecrad_conf%do_sw                       = .true.       !< Do we compute shortwave radiation?
@@ -329,7 +329,7 @@ CONTAINS
                                                           !< ice optics producing better results than the fixed version
     !
     ecrad_conf%do_sw_delta_scaling_with_gases = .false.   !< Do SW delta-Eddington scaling on cloud-aerosol-gas mixture (.true.)
-                                                          !< More correct approach of separately scaling the cloud and aerosol 
+                                                          !< More correct approach of separately scaling the cloud and aerosol
                                                           !< scattering properties before merging with gases (.false.)
     !
     ecrad_conf%cloud_fraction_threshold    = 1.0e-6_wp    !< Cloud is present in a layer if cloud fraction exceeds this value
@@ -466,7 +466,7 @@ CONTAINS
 #ifdef _OPENACC
   !---------------------------------------------------------------------------------------
   ! This subroutine checks for unsupported openacc ecRad configurations on the ICON side.
-  ! This minimizes the diff inside ecRad, which is different from the usual openacc error 
+  ! This minimizes the diff inside ecRad, which is different from the usual openacc error
   ! handling approach in ICON where the finish is called when the unported code
   ! part is about to be called.
   SUBROUTINE ecrad_openacc_crosscheck ( ecrad_conf )

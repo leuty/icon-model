@@ -16,7 +16,7 @@ include NumRu
 
 # = MAIN =======================================================================
 ifile = ARGV[0]
-if ifile.nil? or not File.exist?(ifile) 
+if ifile.nil? or not File.exist?(ifile)
   warn "Cound not read input file '#{ifile}'!"
   warn "Usage:\n\t./findEdges.rb <icon-grid-file>"
   exit(1)

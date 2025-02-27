@@ -9,13 +9,14 @@
 # SPDX-License-Identifier: BSD-3-Clause
 # ---------------------------------------------------------------
 
-import subprocess
 import re
+import subprocess
 import sys
 
 from batch_job import BatchJob
 
 debugOutput = False
+
 
 class PBSJob(BatchJob):
     def __init__(self, cmd, cwd):
@@ -31,12 +32,14 @@ class PBSJob(BatchJob):
 
         submit_cmd.append(script)
         print(f"submitting PBS job: '{submit_cmd}'")
-        qsub = subprocess.Popen(submit_cmd,
-                                shell=False,
-                                stdout=subprocess.PIPE,
-                                stderr=subprocess.PIPE,
-                                cwd=self.cwd,
-                                encoding="UTF-8")
+        qsub = subprocess.Popen(
+            submit_cmd,
+            shell=False,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            cwd=self.cwd,
+            encoding="UTF-8",
+        )
 
         try:
             stdout = qsub.stdout.readlines()[0]
@@ -55,14 +58,16 @@ class PBSJob(BatchJob):
 
         # qsub will return immediately. That's why we pass along qwait as the
         # real job. It's results will be handled by the wait() method
-        qwaitCmd = f'qwait {self.jobid}'
+        qwaitCmd = f"qwait {self.jobid}"
         if debugOutput:
             print(f'|qwait call: "{qwaitCmd}"|')
-        self.job = subprocess.Popen(qwaitCmd,
-                                    shell=True,
-                                    stderr=subprocess.PIPE,
-                                    stdout=subprocess.PIPE,
-                                    encoding="utf-8")
+        self.job = subprocess.Popen(
+            qwaitCmd,
+            shell=True,
+            stderr=subprocess.PIPE,
+            stdout=subprocess.PIPE,
+            encoding="utf-8",
+        )
 
     def poll(self, timeout):
         # PBS does not return the exitcode of the submitted script. instead it prints it to stdout
@@ -78,7 +83,9 @@ class PBSJob(BatchJob):
         try:
             exit_code = int(stderr.split()[-1])
         except:
-            print('pbs_job.py: Could not get a proper return value from "qwait"')
+            print(
+                'pbs_job.py: Could not get a proper return value from "qwait"'
+            )
             print(f"qwait: stderr = |{stderr}|")
             exit_code = 1
 
@@ -87,20 +94,22 @@ class PBSJob(BatchJob):
 
         self.returncode = exit_code
 
-        return True # poll successfull, job finished.
+        return True  # poll successfull, job finished.
 
     def cancel(self):
         if None is not self.jobid:
-            qdel = subprocess.Popen(["qdel",self.jobid],
-                                    shell=False,
-                                    stdout=subprocess.PIPE,
-                                    stderr=subprocess.PIPE,
-                                    cwd=self.cwd,
-                                    encoding="UTF-8")
+            qdel = subprocess.Popen(
+                ["qdel", self.jobid],
+                shell=False,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+                cwd=self.cwd,
+                encoding="UTF-8",
+            )
             print(qdel.stdout.readlines())
             print(qdel.stderr.readlines())
         else:
-            print('Cannot find jobid to cancel job!')
+            print("Cannot find jobid to cancel job!")
 
     def wasCanceled(self):
         # job cancelling with PBS results in non-zero exit code. That's why

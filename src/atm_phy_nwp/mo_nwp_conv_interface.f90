@@ -365,7 +365,7 @@ CONTAINS
             !$ACC END PARALLEL
           ENDDO
           ptr_conv_tracer_tend_art => prm_nwp_tend%conv_tracer_tend(jb,1:art_config(jg)%nconv_tracer)
-          ptr_conv_tracer_art      => p_prog_rcf%conv_tracer(jb,1:art_config(jg)%nconv_tracer) 
+          ptr_conv_tracer_art      => p_prog_rcf%conv_tracer(jb,1:art_config(jg)%nconv_tracer)
         ELSE
           ptr_conv_tracer_art      => NULL()
           ptr_conv_tracer_tend_art => NULL()
@@ -483,7 +483,7 @@ CONTAINS
            NULLIFY(p_cloud_ensemble%ktype_i)
            NULLIFY(p_cloud_ensemble%depth_i)
            NULLIFY(p_cloud_ensemble%base_i)
-           NULLIFY(p_cloud_ensemble%used_cell)          
+           NULLIFY(p_cloud_ensemble%used_cell)
         ENDIF
 
         IF ( comin_config%comin_icon_domain_config(jg)%nconv_tracer > 0 ) THEN
@@ -587,7 +587,7 @@ CONTAINS
 &          temp_s =      p_diag%temp(:,nlev,jb)                             ,& !! IN
 &          cell_area    = p_patch%cells%area(:,jb)                          ,& !! IN
 &          iseed        = iseed                                             ,& !! IN
-&          mf_bulk=      prm_diag%mf_b(:,jb)                                ,& !! OUT  
+&          mf_bulk=      prm_diag%mf_b(:,jb)                                ,& !! OUT
 &          mf_perturb =  prm_diag%mf_p(:,jb)                                ,& !! OUT
 &          mf_num =      prm_diag%mf_num(:,jb)                              ,& !! OUT
 &          p_cloud_ensemble = p_cloud_ensemble                              ,& !! INOUT

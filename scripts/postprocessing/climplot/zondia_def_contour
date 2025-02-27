@@ -25,7 +25,7 @@
         contour_shade_label_blanking    :       "off",
         contour_highlight               :       "off",
         contour_hilo                    :       "off",
-        contour_max_level               :       0 
+        contour_max_level               :       0
       )
 
       red = mcont(
@@ -144,7 +144,7 @@
         contour_label_height            :       0.45,
         contour_hilo                    :       "off"
         )
-  
+
       contours_neg = mcont(
         legend                          :       "on",
         contour                         :       "on",
@@ -168,7 +168,7 @@
         contour_label_height            :       0.45,
         contour_hilo                    :       "off"
         )
-  
+
 # Simple background
 
       contours_simple_bg = mcont(

@@ -32,7 +32,7 @@
 
 # -------------------------------------------------
 
-echo "EOM_METVIEW.SMS" 
+echo "EOM_METVIEW.SMS"
 
 
 #-----------------------------------------------------------------------------
@@ -80,7 +80,7 @@ if [[ $lmetview = 1 ]] ; then
     DAYS_FC_MANY='1 10'
   fi
 
-  for DAYS_FC in ${DAYS_FC_MANY} ; do 
+  for DAYS_FC in ${DAYS_FC_MANY} ; do
     # 24h forecast verification:
     # add one day "-s -1" for verification !!!
     # substract one day from number of days (e.g. 31-1=30)
@@ -110,4 +110,3 @@ fi
 
 # include the standard "tail" file
 %include <end_ws.h>
-

@@ -36,7 +36,7 @@
 MODULE mo_thdyn_functions
 
 
-USE mo_kind, ONLY: wp, i4 
+USE mo_kind, ONLY: wp, i4
 USE mo_physical_constants, ONLY: r_v   => rv    , & !> gas constant for water vapour
                                rvd_m_o => vtmpc1 , & !! rv/rd-1._wp
                                  o_m_rdv        , & !! 1 - r_d/r_v
@@ -71,15 +71,15 @@ USE mo_lookup_tables_constants, ONLY:  &
   PUBLIC  :: latent_heat_vaporization
   PUBLIC  :: latent_heat_sublimation
   PUBLIC  :: latent_heat_melting
-  
+
   INTEGER, PARAMETER :: ipsat = 1    ! (1) Tetens (1930)
-                                     ! (2) Murphy-Koop for liq and ice 
+                                     ! (2) Murphy-Koop for liq and ice
 
   REAL (KIND=wp), PARAMETER :: cp_v = 1850._wp ! specific heat of water vapor J
                                                        ! at constant pressure
                                                        ! (Landolt-Bornstein)
   REAL (KIND=wp), PARAMETER :: ci = 2108.0_wp  ! specific heat of ice
-  
+
   real(wp), parameter  ::      &
        &  c1i_mk = 9.550426,    &  ! coefficients in Murphy and Koop saturation vapor pressure
        &  c2i_mk = 5723.265,    &  ! over ice and over  liquid water
@@ -202,7 +202,7 @@ FUNCTION dqsatdT_rho(zqsat, temp, rho)
     beta        = psatw_murphykoop_derivative(temp)
     dqsatdT_rho = beta/(r_v*rho*temp)- zqsat/temp
   END IF
-  
+
 END FUNCTION dqsatdT_rho
 
 ! UB_20100525<<
@@ -265,9 +265,9 @@ FUNCTION latent_heat_vaporization(temp)
   REAL(KIND=wp)             :: latent_heat_vaporization
   REAL(KIND=wp), INTENT(IN) :: temp
   !$ACC ROUTINE SEQ
-  
+
   latent_heat_vaporization = lwd + (cp_v - cl)*(temp-tmelt) - r_v*temp
-  
+
 END FUNCTION latent_heat_vaporization
 
 ! Routine with ACC ROUTINE SEQ cannot be elemental
@@ -287,9 +287,9 @@ FUNCTION latent_heat_sublimation(temp)
   REAL(KIND=wp)             :: latent_heat_sublimation
   REAL(KIND=wp), INTENT(IN) :: temp
   !$ACC ROUTINE SEQ
-  
+
   latent_heat_sublimation = led + (cp_v - ci)*(temp-tmelt) - r_v*temp
-  
+
 END FUNCTION latent_heat_sublimation
 
 ELEMENTAL FUNCTION latent_heat_melting(temp)
@@ -308,53 +308,52 @@ ELEMENTAL FUNCTION latent_heat_melting(temp)
   REAL(KIND=wp), INTENT(IN) :: temp
 
   latent_heat_melting = lwd - led + (ci - cl)*(temp-tmelt)
-  
+
 END FUNCTION latent_heat_melting
 
 ELEMENTAL FUNCTION psatw_murphykoop(tk)
   IMPLICIT NONE
   REAL(KIND=wp)             :: psatw_murphykoop
   REAL(KIND=wp), intent(IN) :: tk
-    
+
   ! Eq. (10) of Murphy and Koop (2005)
   psatw_murphykoop = exp( c1w_mk - c2w_mk/tk - c3w_mk*log(tk) + c4w_mk*tk &
        & + tanh(xi_mk*(tk-t0_mk))*(c5w_mk-c6w_mk/tk-c7w_mk*log(tk)+c8w_mk*tk) )
-    
+
 END FUNCTION psatw_murphykoop
 
 ELEMENTAL FUNCTION psati_murphykoop(tk)
   IMPLICIT NONE
   REAL(KIND=wp)             :: psati_murphykoop
   REAL(KIND=wp), intent(IN) :: tk
-  
+
   ! Eq. (7) of Murphy and Koop (2005)
   psati_murphykoop = exp(c1i_mk - c2i_mk/tk + c3i_mk*log(tk) - c4i_mk*tk )
-    
+
 END FUNCTION psati_murphykoop
-  
+
 ELEMENTAL FUNCTION psatw_murphykoop_derivative(tk)
   IMPLICIT NONE
   REAL(KIND=wp)             :: psatw_murphykoop_derivative
   REAL(KIND=wp), intent(IN) :: tk
-       
+
   ! Derivative of Eq. (10) of Murphy and Koop (2005)
   psatw_murphykoop_derivative = &
        & (c2w_mk/tk**2 - c3w_mk/tk + c4w_mk) * exp( c1w_mk - c2w_mk/tk - c3w_mk*log(tk) + c4w_mk*tk)  &
        & + cosh( xi_mk*(tk-t0_mk))**(-2) * (c5w_mk - c6w_mk/tk - c7w_mk*log(tk) + c8w_mk*tk) &
        & + tanh( xi_mk*(tk-t0_mk)) * (c6w_mk/tk**2 - c7w_mk/tk + c8w_mk)
-    
+
 END FUNCTION psatw_murphykoop_derivative
 
 ELEMENTAL FUNCTION psati_murphykoop_derivative(tk)
   IMPLICIT NONE
   REAL(KIND=wp)             :: psati_murphykoop_derivative
   REAL(KIND=wp), intent(IN) :: tk
-       
+
   ! Derivative of Eq. (7) of Murphy and Koop (2005)
   psati_murphykoop_derivative = (c2i_mk/tk**2 + c3i_mk/tk - c4i_mk) * psati_murphykoop(tk)
-    
+
 END FUNCTION psati_murphykoop_derivative
-  
+
 
 END MODULE mo_thdyn_functions
-

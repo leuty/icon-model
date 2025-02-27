@@ -146,11 +146,11 @@ CONTAINS
         ENDDO
 
       ENDDO
- 
+
     ENDDO
 !ICON_OMP_END_PARALLEL_DO
 
-    CALL message (TRIM(routine), 'end')        
+    CALL message (TRIM(routine), 'end')
 
   END SUBROUTINE init_fem_wgts
 
@@ -267,7 +267,7 @@ CONTAINS
       CALL finish (routine,'deallocating rot_mat_3D failed')
     ENDIF
 
-    CALL message (TRIM(routine), 'end')        
+    CALL message (TRIM(routine), 'end')
 
   END SUBROUTINE destruct_fem_wgts
   !-------------------------------------------------------------------------
@@ -341,7 +341,7 @@ CONTAINS
     ! index_nod2D
     k=0
     DO jb = p_patch%verts%all%start_block, p_patch%verts%all%end_block
-      CALL get_index_range(p_patch%verts%all, jb, i_startidx_v, i_endidx_v) 
+      CALL get_index_range(p_patch%verts%all, jb, i_startidx_v, i_endidx_v)
       DO jv = i_startidx_v,i_endidx_v
         k=k+1
         verts(jv,jb) = k
@@ -390,7 +390,7 @@ CONTAINS
     ! nodes each element is made up of.
     k=0
     DO jb = p_patch%cells%all%start_block, p_patch%cells%all%end_block
-      CALL get_index_range(p_patch%cells%all, jb, i_startidx_c, i_endidx_c) 
+      CALL get_index_range(p_patch%cells%all, jb, i_startidx_c, i_endidx_c)
       DO jc = i_startidx_c,i_endidx_c
         k=k+1
         elem2D_nodes(1,k) =   &
@@ -626,7 +626,7 @@ CONTAINS
     REAL(wp), INTENT(INOUT) :: u1_ice(fem_patch%n_patch_verts), &
          u2_ice(fem_patch%n_patch_verts)
     LOGICAL, INTENT(IN), OPTIONAL :: lacc
-    
+
     LOGICAL :: lzacc
     ! Temporary buffer
     REAL(wp) :: u_(nproma, 2, fem_patch%nblks_v)
@@ -708,7 +708,7 @@ CONTAINS
     CALL basisfunctions_nod
 
     all_verts => p_patch%verts%all
-    
+
     ! Sort the list myList_nod2D using the global index
     ! Note: myList_nod2D==(1:nod2D) and myList_elem2D==(1:elem2D)
     k=0
@@ -725,7 +725,7 @@ CONTAINS
     ! Sort the list myList_elem2D using the global index
     k=0
     DO jb = p_patch%cells%all%start_block, p_patch%cells%all%end_block
-      CALL get_index_range(p_patch%cells%all, jb, i_startidx_c, i_endidx_c) 
+      CALL get_index_range(p_patch%cells%all, jb, i_startidx_c, i_endidx_c)
       DO jc = i_startidx_c,i_endidx_c
         k=k+1
         globList_elem2D(k) = p_patch%cells%decomp_info%glb_index(k)

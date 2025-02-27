@@ -199,15 +199,15 @@ MODULE mo_sppt_core
 
   SUBROUTINE pert_tend(jb, jg, i_startidx, i_endidx, nlev, sppt,  &
                         prm_nwp_tend, rho_atm,                &
-                        ddt_temp, ddt_u_tot, ddt_v_tot, lacc) 
+                        ddt_temp, ddt_u_tot, ddt_v_tot, lacc)
 
     INTEGER,                     INTENT(IN)        :: jb
     INTEGER,                     INTENT(IN)        :: jg             !< patch ID
     INTEGER,                     INTENT(IN)        :: i_startidx
     INTEGER,                     INTENT(IN)        :: i_endidx
-    INTEGER,                     INTENT(IN)        :: nlev 
+    INTEGER,                     INTENT(IN)        :: nlev
 
-    TYPE(t_sppt),                INTENT(INOUT)     :: sppt 
+    TYPE(t_sppt),                INTENT(INOUT)     :: sppt
     TYPE(t_nwp_phy_tend),        INTENT(IN)        :: prm_nwp_tend
 
     REAL(wp),                    INTENT(IN)        :: rho_atm(:,:)
@@ -322,7 +322,7 @@ MODULE mo_sppt_core
 
     REAL(wp),        INTENT(IN)        :: dt             !< (advective) time step applicable to local grid level
 
-    LOGICAL, INTENT(IN), OPTIONAL      :: lacc 
+    LOGICAL, INTENT(IN), OPTIONAL      :: lacc
 
 
     ! Local variables
@@ -438,12 +438,4 @@ MODULE mo_sppt_core
   END SUBROUTINE save_state
 
 
-END MODULE mo_sppt_core	
-
-
-
-
-
-
-
-
+END MODULE mo_sppt_core

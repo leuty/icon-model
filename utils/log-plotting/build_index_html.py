@@ -13,10 +13,11 @@
 
 # This script buildes the index html page which overviews all figures from icon log file data.
 import os
-import textwrap
 import shutil
+import textwrap
 from argparse import ArgumentParser
 from pathlib import Path
+
 
 def main():
     options = parse_args()
@@ -29,7 +30,9 @@ def parse_args():
     parser = ArgumentParser()
     parser.description = "displayes timer plots in html page"
     parser.add_argument("PATH", help="name of directory containing all plots")
-    parser.add_argument("--exp_id", help="give name of experiment", required=True)
+    parser.add_argument(
+        "--exp_id", help="give name of experiment", required=True
+    )
     parser.add_argument("--plot_format", default="png")
     parser.add_argument(
         "--prio_plots",
@@ -64,13 +67,9 @@ def title_parser(path):
         elif discription == "max_W+levelW":
             title = "Maximum of vertical wind speed and level"
         elif discription == "levelW_vs_W":
-            title = (
-                "Distribution of maximum vertical wind speeds and levels of occurence"
-            )
+            title = "Distribution of maximum vertical wind speeds and levels of occurence"
         elif discription == "levelVN_vs_VN":
-            title = (
-                "Distribution of maximum horizontal wind speeds and levels of occurence"
-            )
+            title = "Distribution of maximum horizontal wind speeds and levels of occurence"
         else:
             title = ""
     if path.split(".")[0] == "sdpd":
@@ -91,7 +90,8 @@ def img(path):
         div(
             "\n".join(
                 [
-                    f"<img id='{image_id}' src='{path}' " "class='card-img-top'/>",
+                    f"<img id='{image_id}' src='{path}' "
+                    "class='card-img-top'/>",
                     div(
                         "\n".join(
                             [
@@ -140,7 +140,8 @@ def wind_speed(lines, plots_exp, plots_job, plot_format):
                         "class='card-img-top'/>",
                         "\n".join(
                             [
-                                f"<img src='{plot_job}' " "class='card-img-bottom'/>",
+                                f"<img src='{plot_job}' "
+                                "class='card-img-bottom'/>",
                             ]
                         ),
                         div(
@@ -177,7 +178,9 @@ def index(lines, plots_exp, timer, plot_format):
         # image_id = path.split(".")[-3] + path.split(".")[-2]
         image_id = img_id(path)
         title = title_parser(path)
-        lines.append(f'<a class="nav-link" href="#{image_id}">{title}</a><br />')
+        lines.append(
+            f'<a class="nav-link" href="#{image_id}">{title}</a><br />'
+        )
     lines.append("</nav></div>")
 
 
@@ -202,7 +205,9 @@ def main_text(path, exp_id, prio_plots, plot_format):
             timer.append(plot.rsplit(".", 1)[0])
 
     lines.append(f"<h3>Experiment {exp_id}</h3>")
-    prioritized_plots(prio_plots, lines, plots_job + plots_exp + timer, plot_format)
+    prioritized_plots(
+        prio_plots, lines, plots_job + plots_exp + timer, plot_format
+    )
     lines.append("<h4>Wind speed plots</h4>")
     lines.append('<div class="row row-cols-1 row-cols-md-3 g-4">')
     wind_speed(lines, plots_exp, plots_job, plot_format)
@@ -217,7 +222,10 @@ def main_text(path, exp_id, prio_plots, plot_format):
 
 def build(path, exp_id, prio_plots, plot_format):
     """Write lines to index.html."""
-    shutil.copyfile(Path(__file__).parent / "bootstrap.min.css", Path(path) / "bootstrap.min.css")
+    shutil.copyfile(
+        Path(__file__).parent / "bootstrap.min.css",
+        Path(path) / "bootstrap.min.css",
+    )
 
     header = textwrap.dedent(
         """

@@ -47,7 +47,7 @@ MODULE mo_alloc_patches
     &                                   dist_mult_array_new,                         &
     &                                   dist_mult_array_delete,                      &
     &                                   ppm_int, ppm_real_dp
-#ifdef HAVE_SLOW_PASSIVE_TARGET_ONESIDED 
+#ifdef HAVE_SLOW_PASSIVE_TARGET_ONESIDED
   USE ppm_distributed_array,      ONLY: sync_mode_active_target
 #endif
   USE ppm_extents,                ONLY: extent, extent_start, extent_size
@@ -1202,5 +1202,3 @@ CONTAINS
 
 
 END MODULE mo_alloc_patches
-
-

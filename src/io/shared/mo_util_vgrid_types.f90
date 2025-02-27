@@ -26,7 +26,7 @@ MODULE mo_util_vgrid_types
 
 
   TYPE t_vgrid_buffer
-    ! Geom. height at vertical interface of cells and vertices (nproma,nlevp1,nblks_c/nblks_v): 
+    ! Geom. height at vertical interface of cells and vertices (nproma,nlevp1,nblks_c/nblks_v):
     !
     ! Note: This array is deallocated after being used in
     !       mo_vertical_grid::set_nh_metrics

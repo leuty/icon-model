@@ -97,8 +97,8 @@ MODULE mo_sea_ice_nml
 
   INTEGER, PUBLIC :: n_ice_iter
   REAL(wp),PUBLIC :: Pstar
-  REAL(wp),PUBLIC :: ellipse          
-  REAL(wp),PUBLIC :: c_pressure       
+  REAL(wp),PUBLIC :: ellipse
+  REAL(wp),PUBLIC :: c_pressure
 
   ! Motion
   INTEGER ,PUBLIC :: i_ice_advec     ! type of ice advection: 0 -- upwind on ICON grid; 1 -- FCT advection on FE grid
@@ -310,7 +310,7 @@ CONTAINS
     IF (hci_layer < 0) THEN
       CALL message(TRIM(routine), 'hci_layer < 0, setting it equal to zero')
     ENDIF
-      
+
   ! IF (i_ice_dyn == 1 ) THEN
   !   i_ice_dyn = 0
   !   CALL warning(method_name,"Disable sea-ice dynamics. It does not work.")

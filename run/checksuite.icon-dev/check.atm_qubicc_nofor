@@ -33,13 +33,13 @@ export EXPERIMENT=${exp_original}_${modification}
 sed s/'iforcing=2'/'iforcing=0'/ exp.$exp_original > exp.$EXPERIMENT
 
 #--------------------------------------------------------------------------------
-# 
+#
 # 2. Define the checksuite mode
 
 export MD='b' # base check only
 
 #--------------------------------------------------------------------------------
-# 
+#
 # 3. Launch the checksuite
 
 rundir=`pwd`

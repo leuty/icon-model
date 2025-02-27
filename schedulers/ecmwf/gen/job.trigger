@@ -20,7 +20,7 @@
 # @ queue
 
 # submitted with
-# ecaccess-job-submit -noDirectives -eventIds 167 -queueName ecgate /home/ms/de/dfi0/ICON_r2B06_10d/def/smsfiles/job.trigger 
+# ecaccess-job-submit -noDirectives -eventIds 167 -queueName ecgate /home/ms/de/dfi0/ICON_r2B06_10d/def/smsfiles/job.trigger
 
 
 set -x

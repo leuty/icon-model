@@ -300,7 +300,7 @@ IF (mu > 10.0_JPRB) THEN
 !             THE POISSON PROBABILITIES PK EXCEED THE DISCRETE NORMAL
 !             PROBABILITIES FK WHENEVER K >= M(MU). L=IFIX(MU-1.1484)
 !             IS AN UPPER BOUND TO M(MU) FOR ALL MU >= 10 .
-  
+
   l = INT(mu - 1.1484_JPRB)
   full_init = .FALSE.
 

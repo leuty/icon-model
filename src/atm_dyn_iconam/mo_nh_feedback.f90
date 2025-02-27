@@ -55,7 +55,7 @@ MODULE mo_nh_feedback
   PUBLIC :: incr_feedback, relax_feedback, lhn_feedback
 
 CONTAINS
-  
+
 
   !>
   !! This routine computes the incremental feedback of the prognostic variables from the fine mesh.
@@ -799,7 +799,7 @@ CONTAINS
     ! require synchronization
     TYPE(t_ptr_3d_wp) :: tracer_ptr(advection_config(jg)%trFeedback%len + MIN(1,iprog_aero))
 
-    LOGICAL :: lprog_aero        !< prognostic aerosol scheme 
+    LOGICAL :: lprog_aero        !< prognostic aerosol scheme
     !-----------------------------------------------------------------------
 
     CALL assert_acc_device_only (routine, lacc)
@@ -825,7 +825,7 @@ CONTAINS
     ELSE
       lprog_aero = .FALSE.
     ENDIF
-    
+
     p_grf  => p_grf_state_local_parent(jg)
     p_grfp => p_grf_state(jgp)
     p_gcp  => p_patch_local_parent(jg)%cells
@@ -941,7 +941,7 @@ CONTAINS
         DO jc = i_startidx, i_endidx
 
           theta_v_pr(jc,jk,jb) = p_child_prog%theta_v(jc,jk,jb) - &
-            p_nh_state(jg)%metrics%theta_ref_mc(jc,jk,jb) 
+            p_nh_state(jg)%metrics%theta_ref_mc(jc,jk,jb)
 
         ENDDO
       ENDDO
@@ -985,7 +985,7 @@ CONTAINS
           z_rho_corr = (1.05_wp-0.005_wp*feedback_thv(jc,jk,jb)) &
             &        * p_nh_state(jg)%metrics%rho_ref_corr(jc,jk,jb)
 
-          z_fbk_rho(jc,1,jk) = p_fbkwgt(jc,jb,1) *                            & 
+          z_fbk_rho(jc,1,jk) = p_fbkwgt(jc,jb,1) *                            &
             (p_child_prog%rho(iccidx(jc,jb,1),jk,iccblk(jc,jb,1)) - z_rho_corr)
           z_fbk_rho(jc,2,jk) = p_fbkwgt(jc,jb,2) *                            &
             (p_child_prog%rho(iccidx(jc,jb,2),jk,iccblk(jc,jb,2)) - z_rho_corr)
@@ -1240,7 +1240,7 @@ CONTAINS
 #endif
     CALL sync_patch_array(SYNC_E,p_patch(jgp),diff_vn,lacc=.TRUE.)
 
-    ! 2a. Smoothing of velocity feedback-parent differences 
+    ! 2a. Smoothing of velocity feedback-parent differences
 
     iceidx => p_patch(jgp)%cells%edge_idx
     iceblk => p_patch(jgp)%cells%edge_blk
@@ -1494,8 +1494,8 @@ CONTAINS
 
             ! exner is re-diagnosed from the linearized equation of state
             !
-            ! using the linearized equation of state at this point is consistent with the dynamical core. 
-            ! I.e. in the limit of vanishing feedback increments, the model state on the parent domain 
+            ! using the linearized equation of state at this point is consistent with the dynamical core.
+            ! I.e. in the limit of vanishing feedback increments, the model state on the parent domain
             ! remains unchanged.
             p_parent_prog%exner(jc,jk,jb) = p_parent_prog%exner(jc,jk,jb)                                    &
               &                           * (1._wp + rd_o_cvd                                                &
@@ -1692,7 +1692,7 @@ CONTAINS
 
     ALLOCATE(feedback_temp(nproma, nlev_c, i_startblk:i_endblk), &
              feedback_qv  (nproma, nlev_c, i_startblk:i_endblk)  )
- 
+
 
     ! Set pointers to index and coefficient fields for cell-based variables
     iccidx => p_gcp%child_idx

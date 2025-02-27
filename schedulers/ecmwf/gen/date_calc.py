@@ -10,9 +10,9 @@
 # SPDX-License-Identifier: BSD-3-Clause
 # ------------------------------------------
 
-import optparse
-import datetime
 import calendar
+import datetime
+import optparse
 
 #  -------------------------------------------------
 #  DATE_CALC.PY
@@ -50,10 +50,10 @@ def main():
 
     if (options.action == "printdate"):
         # print date (formatted output)
-        print(date_object2.strftime("%Y%m%d%H")) 
+        print(date_object2.strftime("%Y%m%d%H"))
     elif (options.action == "weekday"):
         # print only day of week
-        print(date_object2.strftime("%w")) 
+        print(date_object2.strftime("%w"))
     elif (options.action == "printfmt"):
         # format as required by ICON:
         print(date_object2.strftime("%Y-%m-%dT%H:00:00Z"))
@@ -72,4 +72,3 @@ def main():
 
 if __name__ == '__main__':
     main()
-

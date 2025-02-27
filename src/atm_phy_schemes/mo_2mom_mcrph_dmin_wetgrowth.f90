@@ -59,7 +59,7 @@ MODULE mo_2mom_mcrph_dmin_wetgrowth
 
 
   CHARACTER(len=*), PARAMETER :: modulename = 'mo_2mom_mcrph_dmin_wetgrowth'
-  
+
   REAL(dp), PARAMETER :: &
        pi      = 3.14159265358_dp , &    ! pi
        c_p     = 1005._dp         , &    ! specific heat capacity (air) [J/(kg K)]
@@ -72,9 +72,9 @@ MODULE mo_2mom_mcrph_dmin_wetgrowth
 
   REAL(dp), PARAMETER :: miss_value = -999.99_dp
   REAL(dp), PARAMETER :: miss_thresh = -900.0_dp
-  
+
 CONTAINS
-  
+
   !**********************************************************************
   !**********************************************************************
 
@@ -85,7 +85,7 @@ CONTAINS
   ! of a particle undergoing riming, evaporation and collisions with
   ! other frozen particles.
   !
-  ! Method: See Appendix A of 
+  ! Method: See Appendix A of
   !
   ! A. Khain, D. Rosenfeld, A. Pokrovsky, U. Blahak, A. Ryzhkov, 2011:
   ! The role of CCN in precipitation and hail in a mid-latitude storm as seen
@@ -132,12 +132,12 @@ CONTAINS
     REAL(dp), ALLOCATABLE :: Doldv(:,:), Dnewv(:,:), D0v(:,:), Dmin(:,:,:,:), rowmean(:)
 
     message_text(:) = ' '
-    WRITE(message_text,'(a)') 'creating wet-growth Dmin table for: '//phail%name  
+    WRITE(message_text,'(a)') 'creating wet-growth Dmin table for: '//phail%name
     CALL message (TRIM(routine), TRIM(message_text))
-    
+
     !=================================================================================
     ! Initializations:
-     
+
     n_pres_o = n_pres
     n_temp_o = n_temp
     n_qw_o   = n_qw
@@ -147,7 +147,7 @@ CONTAINS
     T0 = -30._dp    !    "-"  for temperature
     qw0 = 0.6e-3_dp !    "-"  for supercooled LWC
     qi0 = 0.6e-3_dp !    "-"  for IWC (ice, snow)
-    
+
     delta_p  = 100.e2_dp  ! equi-distant increments for the table vectors
     delta_T = 1._dp       ! may change to non-equidistant below, if n_temp = 23
     delta_qw = 0.2e-3_dp
@@ -195,7 +195,7 @@ CONTAINS
     DO k = 1, n_qw
       qw(k) = qw0 + (k-1)*delta_qw
     END DO
-          
+
     ! .. Ice water values
     DO l = 1, n_qi
       qi(l) = qi0 + (l-1)*delta_qi
@@ -203,14 +203,14 @@ CONTAINS
 
     !=================================================================================
     ! .. Fixpoint iteration for the equilibrium diameter Dnew
-    
+
 #if defined (__SX__) || defined (__NEC_VH__) || defined (__NECSX__)
 
     !=================================================================================
     ! .. Vectorized version:
 
     ALLOCATE(iiv(n_qw,n_qi), Doldv(n_qw,n_qi), Dnewv(n_qw,n_qi), D0v(n_qw,n_qi))
-    
+
 !$OMP parallel do private(i,j,k,l,iiv,Doldv,D0v,Dnewv)
     DO j = 1, n_temp
 
@@ -241,12 +241,12 @@ CONTAINS
                   D0v(k,l)   = ( Dnewv(k,l)-Doldv(k,l) ) / Doldv(k,l)
                   Doldv(k,l) = Dnewv(k,l)
                 END IF
-                
+
               END DO
             END DO
-            
+
           END DO iteration
-            
+
           DO l = 1, n_qi
 !$NEC ivdep
             DO k = 1, n_qw
@@ -254,18 +254,18 @@ CONTAINS
                 Dmin(k,l,i,j) = miss_value
               ELSE
                 Dmin(k,l,i,j) = MIN(Dnewv(k,l),999.99_dp)
-              END IF  
+              END IF
             END DO
           END DO
-          
+
         END DO
-        
+
       ELSE
-        
+
         ! Enforce correct behaviour for Tvec(i) = 0 grad C, because
         ! iteration would lead to DIV0 in the first step otherwise:
         Dmin(:,:,:,j) = 0.0_dp
-        
+
       END IF
 
     END DO
@@ -274,7 +274,7 @@ CONTAINS
     DEALLOCATE(iiv,Doldv,Dnewv,D0v)
 
 #else
-    
+
     !=================================================================================
     ! .. Unvectorized version:
 
@@ -305,7 +305,7 @@ CONTAINS
                 D0 = ( Dnew - Dold ) / Dold
                 Dold = Dnew
               END DO
-              
+
               IF (ABS(D0) > 1.e-4_dp) THEN
                 Dmin(k,l,i,j) = miss_value
               ELSE
@@ -368,7 +368,7 @@ CONTAINS
               END IF
             END DO
           END DO
-          
+
           ! .. Second pass starting from l=n_qi in negative direction:
           DO l = n_qi, 1, -1
 !$NEC ivdep
@@ -393,7 +393,7 @@ CONTAINS
       END DO
 !$OMP end parallel do
       DEALLOCATE(lfill)
-      
+
       IF (ANY(Dmin < miss_thresh)) THEN
 
         nerr = COUNT((Dmin < miss_thresh))
@@ -404,7 +404,7 @@ CONTAINS
         !------------------------------------------------------------------------------
         ! .. Fill missing values by mean value over qi-direction where possible
         !    (here, Dmin varies the least), or by hard 999.99 if all else fails:
-        
+
         ALLOCATE (rowmean(n_qw), rowcount(n_qw))
 !$OMP parallel do private(i,j,k,l,rowmean,rowcount)
         DO j = 1, n_temp
@@ -433,15 +433,15 @@ CONTAINS
 !$OMP end parallel
 
       ELSE
-      
+
         WRITE(message_text,'(a,i0,a)') 'Correction for newly created wet-growth Dmin table for '//TRIM(phail%name)// &
              ' was successful!'
         CALL message ('INFO: '//TRIM(routine), TRIM(message_text))
-      
+
       END IF
 
     END IF
-    
+
     !=================================================================================
     ! .. Permute dimensions of Dmin_lut to Dmin_nc for output:
 
@@ -461,7 +461,7 @@ CONTAINS
 !$OMP end parallel do
 
     DEALLOCATE(Dmin)
-    
+
   END SUBROUTINE dmin_wetgrowth_lookupcreate
 
   !**********************************************************************
@@ -499,7 +499,7 @@ CONTAINS
     CHARACTER(5)  :: zone
 
     ierr = 0
-    
+
     n_pres = SIZE(pres)
     n_temp = SIZE(temp)
     n_qw   = SIZE(qw)
@@ -511,7 +511,7 @@ CONTAINS
     ELSE
       ncfile = TRIM(get_filebase_dmin_lut_file(TRIM(basename), phail)) // '.nc'
     END IF
-    
+
     ! Write table to file, if the file does not yet exist:
 
     ! Inquire, if the table file still does not exist. Maybe another Ensemble member
@@ -666,7 +666,7 @@ CONTAINS
     TYPE(PARTICLE),   INTENT(in) :: phail
 
     CHARACTER(len=300)           :: filebase
-    
+
     REAL(dp)           :: particle_parameters(4)
     INTEGER            :: i, j, ppar_int(4), ppar_dec(4)
     CHARACTER(len=100) :: cparams, ppar_c, ncint, ncdec
@@ -732,13 +732,13 @@ CONTAINS
     Ci = Cice(T_K)
     Ci2 = Cice(T_0C)
     Dv = diff_vap_air(T_K,p);
-    
+
     rho_l = p / (R_a * T_K * (1._dp+0.61_dp*(0.622_dp*esat_w(T_K)/p)))
-    
+
     vf = vfall_graupel(ageo_x,bgeo_x,avel_x,bvel_x,D,T,p)
-  
+
     fv = vent_v(D,rho_l,T_K,vf)       ! Rasmussen & Pruppacher
-  
+
     K = conduct_air(T_K)
 
     tmp_dwg = (2._dp*pi*fv*(Lh_s(T_0C)*Dv* &
@@ -764,11 +764,11 @@ CONTAINS
 
     REAL(dp), INTENT(in) :: D, rhol, & ! D in m, rhol in kg/m3
                             T, v       ! T in K and v in m/s
-    
+
     REAL(dp), PARAMETER :: Nsc = 0.71_dp  ! for water vapor in air; depends on the fluid mixture!!!
     ! Note that the value of 0.71 is wrong, because back in 1971,
     ! they used wrong values of Dv as function of T, and n_sc = kinemat. visc.(T) / Dv(T).
-    ! However, since in the experiments leading to the below formula, 
+    ! However, since in the experiments leading to the below formula,
     ! fv has been measured and related to computed values of fakt,
     ! one has to use 0.71 to retrieve the correct values for fv!
 
@@ -801,7 +801,7 @@ CONTAINS
   REAL(dp) FUNCTION e_colli(T)
     IMPLICIT NONE
     REAL(dp), INTENT(in) :: T
-    
+
     e_colli = MIN(EXP(0.09_dp*(T-T_0C)),1._dp)
 
     RETURN
@@ -815,7 +815,7 @@ CONTAINS
   REAL(dp) FUNCTION e_collw(T)
     IMPLICIT NONE
     REAL(dp), INTENT(in) :: T
-    
+
     e_collw = 1._dp
 
     RETURN
@@ -838,7 +838,7 @@ CONTAINS
     rho = p / (R_a * T_K * (1_dp+0.61_dp*(0.622_dp*esat_w(T_K)/p)))
 
     x = (D/ageo_x)**(1._dp/bgeo_x)
-    
+
     vel = avel_x * x**bvel_x * (1.21_dp/rho)**0.5
 
     vfall_graupel = vel
@@ -875,7 +875,7 @@ CONTAINS
     IMPLICIT NONE
 
     REAL(dp), INTENT(in) :: T     ! T in K
-    
+
     INTEGER,  PARAMETER :: nt = 11
     REAL(dp), PARAMETER :: temp0(nt) = (/ &
          173.16_dp, 183.16_dp, 193.16_dp, 203.16_dp, &
@@ -891,7 +891,7 @@ CONTAINS
     REAL(dp) :: temp, C
 
     temp = MAX(MIN(T,temp0(nt)),temp0(1))
-    
+
 !    CALL locate(temp0,nt,temp,jt)
     jt = MAX(MIN(FLOOR((temp-temp0(1))/dtemp) + 1, nt-1), 1)
 
@@ -915,7 +915,7 @@ CONTAINS
     IMPLICIT NONE
 
     REAL(dp), INTENT(in) :: T     ! T in K
-    
+
     INTEGER,  PARAMETER :: nt = 11
     REAL(dp), PARAMETER :: temp0(nt) = (/ &
          223.16_dp, 233.16_dp, 243.16_dp, 253.16_dp, &
@@ -931,7 +931,7 @@ CONTAINS
     REAL(dp) :: temp, C
 
     temp = MAX(MIN(T,temp0(nt)),temp0(1))
-    
+
     jt = MAX(MIN(FLOOR((temp-temp0(1))/dtemp) + 1, nt-1), 1)
 
     Cwater = linint(C0(jt),C0(jt+1),temp0(jt),temp0(jt+1),temp)
@@ -953,9 +953,9 @@ CONTAINS
     IMPLICIT NONE
 
     REAL(dp), INTENT(in) :: T, p   ! Temp. in K and pressure in Pa
-    
+
     Diff_vap_air = 2.26e-5_dp * (T/T_0C)**1.81 * (1000.e2_dp/p)
-                   
+
   END FUNCTION diff_vap_air
 !
 !**********************************************************************
@@ -1076,7 +1076,7 @@ CONTAINS
     IMPLICIT NONE
 
     REAL(dp), INTENT(in) :: T     ! T in K
-    
+
     INTEGER,  PARAMETER :: nt = 6
     REAL(dp), PARAMETER :: temp0(nt) = (/ &
          223.16_dp, 233.16_dp, 243.16_dp, &
@@ -1090,7 +1090,7 @@ CONTAINS
     REAL(dp) :: temp
 
     temp = MAX(MIN(T,temp0(nt)),temp0(1))
-    
+
     jt = MAX(MIN(FLOOR((temp-temp0(1))/dtemp) + 1, nt-1), 1)
 
     Lh_m = linint(L0(jt),L0(jt+1),temp0(jt),temp0(jt+1),temp)
@@ -1113,7 +1113,7 @@ CONTAINS
     IMPLICIT NONE
 
     REAL(dp), INTENT(in) :: T     ! T in K
-    
+
     INTEGER,  PARAMETER :: nt = 11
     REAL(dp), PARAMETER :: temp0(nt) = (/ &
          173.16_dp, 183.16_dp, 193.16_dp, 203.16_dp, &
@@ -1129,7 +1129,7 @@ CONTAINS
     REAL(dp) :: temp
 
     temp = MAX(MIN(T,temp0(nt)),temp0(1))
-    
+
     jt = MAX(MIN(FLOOR((temp-temp0(1))/dtemp) + 1, nt-1), 1)
 
     Lh_s = linint(L0(jt),L0(jt+1),temp0(jt),temp0(jt+1),temp)
@@ -1152,7 +1152,7 @@ CONTAINS
     IMPLICIT NONE
 
     REAL(dp), INTENT(in) :: T     ! T in K
-    
+
     INTEGER,  PARAMETER :: nt = 11
     REAL(dp), PARAMETER :: temp0(nt) = (/ &
          223.16_dp, 233.16_dp, 243.16_dp, 253.16_dp, &
@@ -1168,7 +1168,7 @@ CONTAINS
     REAL(dp) :: temp
 
     temp = MAX(MIN(T,temp0(nt)),temp0(1))
-    
+
     jt = MAX(MIN(FLOOR((temp-temp0(1))/dtemp) + 1, nt-1), 1)
 
     Lh_e = linint(L0(jt),L0(jt+1),temp0(jt),temp0(jt+1),temp)
@@ -1193,7 +1193,7 @@ CONTAINS
 !     Liefert sehr aehnliche Werte wie die einfache lineare Regression aus
 !     Landolt/Boernstein, so wie sie in der Funktion heatconduct_air(T)
 !     programmiert ist.
-!   
+!
 !  Note: conduct_air in W/m/K
 !
   REAL(dp) FUNCTION conduct_air(T)
@@ -1216,7 +1216,7 @@ CONTAINS
 !     Waermeleitfaehigkeit von Wasser in W/m/K als Funktion der Temperatur
 !     T in K, Fit gueltig fuer 0 - 60 Grad C
 !     Unbekannte Herkunft!!!
-!   
+!
 !  Note: conduct_water in W/m/K
 !
   REAL(dp) FUNCTION conduct_water(T)
@@ -1227,7 +1227,7 @@ CONTAINS
     REAL(dp) :: temp
 
     temp = MIN(MAX(T-273.16_dp,0._dp),60._dp)
-    
+
     conduct_water = 0.56905_dp + 0.0019025_dp*temp - &
          0.000008125_dp*(temp)**2
 
@@ -1271,7 +1271,7 @@ CONTAINS
       ! monotonically decreasing
       xi = MAX(MIN(x,xx(1)),xx(n))
     END IF
-    
+
     searchloop: DO
       jm = (ju+jl) / 2
       IF ((xx(n) >= xx(1)) .EQV. (x >= xx(jm))) THEN
@@ -1279,7 +1279,7 @@ CONTAINS
       ELSE
         ju=jm
       END IF
-      IF (ju-jl <= 1) EXIT searchloop  
+      IF (ju-jl <= 1) EXIT searchloop
     END DO searchloop
 
     IF (x == xx(1)) THEN
@@ -1289,14 +1289,14 @@ CONTAINS
     ELSE
        j = jl
     END IF
-     
+
     RETURN
 
   END SUBROUTINE locate
 
   ! ********************************************************************
   !
-  ! Linear interpolation between two points (x1,y1) and (x2,y2) 
+  ! Linear interpolation between two points (x1,y1) and (x2,y2)
   ! for a given y.
   !
   ! ********************************************************************
@@ -1308,15 +1308,15 @@ CONTAINS
     REAL(dp), INTENT(IN) :: x1, x2, y1, y2, y
     REAL(dp)             :: x
     REAL(dp), PARAMETER  :: eps = 1e-20_dp
-    
+
     IF (ABS(y2-y1) < eps) THEN
       linint = x1
 !      WRITE (*, '(a)') 'Error in thermo::linint(): table nodes y1 and y2 are equal!'
     ELSE
       !..interpolated value
-      linint = x1 + (x2-x1)/(y2-y1) * (y-y1) 
+      linint = x1 + (x2-x1)/(y2-y1) * (y-y1)
     END IF
-    
+
     RETURN
 
   END FUNCTION linint

@@ -28,13 +28,13 @@
 #=========================================================================
 # AUTHOR  Martin Koehler Sept. 2003 & April 2004
 # UPDATED Adrian Tompkins 29r1
-#         Adrian Tompkins 29r2 = plots for operations/esuite 
-#         Adrian Tompkins 30r1 = coupled model 
+#         Adrian Tompkins 29r2 = plots for operations/esuite
+#         Adrian Tompkins 30r1 = coupled model
 #         Adrian Tompkins 31r1 = plots against climatology
 #         Peter  Bechtold 35r2 = remove -i in "env -i" as metview ecfs
 #                                command didn't work anymore
 #         Peter  Bechtold 35r3 = possibility of activating plotting of fields
-#                                against climtology via prepIFS variable LCLIM 
+#                                against climtology via prepIFS variable LCLIM
 #         Peter  Bechtold 36r3 = options for significance, color/bw, article plotting
 #         Peter  Bechtold 37r1 = add diurnal cycle plots
 #         Peter  Bechtold 38r1 = add wavenumber frequency plots and more ml options
@@ -273,4 +273,3 @@ done
 
 
 %include <endt.h>
-

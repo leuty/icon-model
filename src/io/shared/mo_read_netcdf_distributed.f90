@@ -186,7 +186,7 @@ CONTAINS
     IF (ALLOCATED(decomp_info%glb_index)) n = SIZE(decomp_info%glb_index)
     ALLOCATE(owner(MAX(1,n)))
     IF (n .GT. 0) &
-      owner = (partidx_of_elem_uniform_deco(extent(1, bio%n_g), & 
+      owner = (partidx_of_elem_uniform_deco(extent(1, bio%n_g), &
          n_io_proc,  decomp_info%glb_index(:)) - 1) * io_stride &
          + MODULO(io_process_rotate, io_stride)
     n_inner = 0

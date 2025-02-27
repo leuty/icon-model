@@ -11,14 +11,14 @@
 
 ! @brief: Configuration setup for turbulent processes (turbdiff)
 !
-! Configuration setup for the entire turblence parameterization (by M. Raschendorfer) 
+! Configuration setup for the entire turblence parameterization (by M. Raschendorfer)
 !  based on the modules 'turb_[diffusion|transfer|vertdiff|utilities]:
 !
 ! This module 'mo_turbdiff_config' paricularly includes the whole content of the now obsolete module 'turb_data',
 !  that is the declaration and initialization of all required parameters, switches and selectors.
 !
-! The module also contains a mapping of at least all included variable quantities that define the configuration-state 
-!  of the scheme to associated components of the domain-specific config-state vector 'turbdiff_config(jg)'. 
+! The module also contains a mapping of at least all included variable quantities that define the configuration-state
+!  of the scheme to associated components of the domain-specific config-state vector 'turbdiff_config(jg)'.
 ! Some of these quantities are included into the namelist setting in module 'mo_turbdiff_nml'.
 
 MODULE mo_turbdiff_config
@@ -67,7 +67,7 @@ INTEGER, PARAMETER :: &
    tem=nvel+1,  & !                       temperature
    tem_l=tem,   & !liquid-water           temperature
    tet=tem,     & !             potential temperature
-   tet_l=tet,   & !liquid-water potential temperature 
+   tet_l=tet,   & !liquid-water potential temperature
 
    vap=tem+1,   & !water vapor (specific humidity 'qv')
    h2o_g=vap,   & !total water ('qv+qc')
@@ -91,11 +91,11 @@ INTEGER, PARAMETER :: &
    ndim=MAX(nmvar,naux) !(positive) limit of last dimension used for 'zaux' and 'zvari'
 
 !  Note:
-!  The index "0" for the last dimension of 'zaux' and 'zvari' is also used, and it refers to 
-!   'zaux' : saturation fraction (cl_cv) 
+!  The index "0" for the last dimension of 'zaux' and 'zvari' is also used, and it refers to
+!   'zaux' : saturation fraction (cl_cv)
 !   'zvari': potential available energy per volume (pressure) on half levels or
 !            vertical gradient of effectively availabel kinetic energy (per mass)
-!             due to near surface thermal inhomogeneity, being called here Circulation Kinetic Energy (CKE) 
+!             due to near surface thermal inhomogeneity, being called here Circulation Kinetic Energy (CKE)
 
 LOGICAL, PARAMETER :: &
    ldynimp=.FALSE., &   !dynamical calculation of implicit weights for semi-implicit vertical diffusion
@@ -107,7 +107,7 @@ LOGICAL, PARAMETER :: &
    ltst2ml =.FALSE., &   !test required, whether  2m-level is above the lowest main-level
    ltst10ml=.FALSE.      !test required, whether 10m-level is above the lowest half-level
 
-   !Attention: 
+   !Attention:
    !So far, the  2m-level is assumed to be always below the lowest main-level,
    !    and the 10m-level is assumed to be always below the lowest half-level!!
 !#endif
@@ -117,7 +117,7 @@ LOGICAL, PARAMETER :: &
 ! ----------------------------------------------------------------------------------
 
 ! Attention:
-! The given initializations are default settings of the boundary layer parameters. 
+! The given initializations are default settings of the boundary layer parameters.
 ! Some of these initial parameter values may be changed afterwards by model input NAMELISTs.
 
 ! 1. Numerical parameters:
@@ -137,9 +137,9 @@ LOGICAL, PARAMETER :: &
 
   REAL(wp):: ditsmot       =  0.00_wp   ! smoothing factor for direct time-step iterations
 
-  INTEGER :: imode_frcsmot = 2          ! if "frcsmot>0", apply smoothing of TKE source terms 
-                           ! 1: globally or 
-                           ! 2: in the tropics only (if 'trop_mask' is present) 
+  INTEGER :: imode_frcsmot = 2          ! if "frcsmot>0", apply smoothing of TKE source terms
+                           ! 1: globally or
+                           ! 2: in the tropics only (if 'trop_mask' is present)
   REAL(wp):: frcsmot       =  0.00_wp   ! vertical smoothing factor for TKE forcing
   REAL(wp):: tkesmot       =  0.15_wp   ! time smoothing factor for TKE and diffusion coefficients
 
@@ -170,7 +170,7 @@ LOGICAL, PARAMETER :: &
                            ! 1: ordinary wind speed (magnitude of grid-scale averaged wind-vector)
                            ! 2: local wind speed related to additional surface-shear by NTCs|LLDCs (at "rsur_sher>0")
 
-  ! Scaling factor (out of [0, 1]) representing the considered fraction of additional shear-forcing by 
+  ! Scaling factor (out of [0, 1]) representing the considered fraction of additional shear-forcing by
   !  Non-Turbulent subgrid Circulations (NTCs) or via Lower Limits of Diffusion-Coefficients (LLDCs)
   !  being transmitted from level "P" (k=ke) to level "0" (k=ke1): top of R-layer by Land-Use (LU):
   REAL(wp):: rsur_sher     =  0.0_wp    ! (so far deactivated)
@@ -180,7 +180,7 @@ LOGICAL, PARAMETER :: &
   !  which is expressed by "imode_tkemini=2"!
 
   INTEGER :: imode_charpar = 2          ! mode of estimating the Charnock-Parameter
-                           ! 1: use a constant value 
+                           ! 1: use a constant value
                            ! 2: use a wind-dependent value with a constant upper bound
                            ! 3: as "2", but with reduction at wind speeds above 25 m/s for more realistic TC wind speeds
   REAL(wp):: alpha0        =  0.0123_wp ! Charnock-parameter
@@ -198,7 +198,7 @@ LOGICAL, PARAMETER :: &
   REAL(wp):: c_stm         = 0.0_wp      ! (so far deactivated)
 ! REAL(wp):: c_stm         = 2.5_wp      ! surface area density of stems and branches at the plant-covered part of the surface
   !Note:
-  !"c_stm=0" matches with the previous not consistant scaling, considering "c_stm=2.5" only as an additional surface 
+  !"c_stm=0" matches with the previous not consistant scaling, considering "c_stm=2.5" only as an additional surface
   ! part that can hold interception water.
   REAL(wp):: e_surf        = 1.0_wp      ! exponent to get the effective surface area
 
@@ -251,8 +251,8 @@ LOGICAL, PARAMETER :: &
   REAL(wp):: clc_diag      =  0.5_wp     ! cloud cover at saturation
   REAL(wp):: q_crit        =  1.6_wp     ! critical value for normalized super-saturation
 
-  REAL(wp):: c_scld        =  1.0_wp     ! shape-factor (0<=c_scld) applied to pure 'cl_cv' at the moist correct. 
-                                         !  by turbulent phase-transit., providing an eff. 'cl_cv', which scales 
+  REAL(wp):: c_scld        =  1.0_wp     ! shape-factor (0<=c_scld) applied to pure 'cl_cv' at the moist correct.
+                                         !  by turbulent phase-transit., providing an eff. 'cl_cv', which scales
                                          !  the implicit liquid-water flux under turbulent sat.-adj.:
                         !  <1: small eff. 'cl_cv' even at large pure 'cl_cv'
                         !  =1:       eff. 'cl_cv' just equals   pure 'cl_cv'
@@ -273,7 +273,7 @@ LOGICAL, PARAMETER :: &
   LOGICAL :: loutbms       = .FALSE.     ! consider TKE-production by turbulent buoyancy, total mechanical shear
                                          !  or grid-scale mechanical shear for additional output
 
-  LOGICAL :: ltmpcor       = .FALSE.     ! consideration minor turbulent sources in the enthalpy budget 
+  LOGICAL :: ltmpcor       = .FALSE.     ! consideration minor turbulent sources in the enthalpy budget
   LOGICAL :: lcpfluc       = .FALSE.     ! consideration of fluctuations of the heat capacity of air
 
   LOGICAL :: lexpcor       = .FALSE.     ! explicit warm-cloud correct. of implicitly calculated turbul. diff.
@@ -283,7 +283,7 @@ LOGICAL, PARAMETER :: &
   LOGICAL :: ldiff_qs      = .FALSE.     ! turbulent diffusion of snow      QS acitve
   LOGICAL :: lfreeslip     = .FALSE.     ! free-slip lower boundary condition (use for idealized runs only!)
 
-! Notice that the following switches are provided by the parameter-list of 
+! Notice that the following switches are provided by the parameter-list of
 ! SUB 'turbdiff' or 'turbtran':
 
 ! lnsfdia                   :calculation of (synoptical) near-surface variables required
@@ -320,17 +320,17 @@ LOGICAL, PARAMETER :: &
                         ! (-)2: only to avoid non-physic. solution or if current 'gama' is too large
                         ! negative values for additional preconditioning
   INTEGER :: ilow_def_cond = 2           ! type of the default condition at the lower boundary
-                           ! 1: zero surface gradient 
+                           ! 1: zero surface gradient
                            ! 2: zero surface value
 
-  INTEGER :: imode_pat_len = 2           ! mode of determining a length scale of surface patterns used for the "circulation-term" 
+  INTEGER :: imode_pat_len = 2           ! mode of determining a length scale of surface patterns used for the "circulation-term"
                                          !  and additional roughness by tile-variation of land-use:
                            ! 1: employing the constant value 'pat_len' only
                            !    - raw "circulation term" considered as to be due to thermal surface-patterns.
-                           ! 2: using the standard deviat. of SGS orography as a lower limit 
-                           !    - raw "circulation term" considered as to be due to thermal SSO effect 
+                           ! 2: using the standard deviat. of SGS orography as a lower limit
+                           !    - raw "circulation term" considered as to be due to thermal SSO effect
 
-  !Note: 
+  !Note:
   !The theoretical background of the "circulation term" has meanwhile been fundamentally revised.
   !Accordingly, it is going to be substituted by two complementary approaches:
   !i) a thermal SSO parameterization and ii) a new "circulation term" due to thermal surface patterns.
@@ -361,7 +361,7 @@ LOGICAL, PARAMETER :: &
   INTEGER :: imode_trancnf = 2           ! mode of configuring the transfer-scheme (SUB 'turbtran')
                            ![1: eliminated (old version)]
                            ! 2: 1-st ConSAT: start. with estim. Ustar, without a laminar correct. for prof.-funct.;
-                           !    interpol. Tet_l onto "0"-level; calcul. Tet_l-gradients directly; 
+                           !    interpol. Tet_l onto "0"-level; calcul. Tet_l-gradients directly;
                            !    without an upper bound for TKE-forcing; with transmit. skin-layer depth to turbul.
                            ! 3: 2-nd ConSAT: as "2", but with a hyperbolic interpol. of profile function
                            !    for stable stratification
@@ -441,8 +441,8 @@ TYPE :: t_turbdiff_config !configuration state of turbulence mode
 
   INTEGER :: imode_tkvmini ! mode of calculating the minimal turbulent diff. coeffecients
                                            ! Minimal diffusion coefficients in [m^2/s]:
-  REAL(wp):: tkhmin        !  for vertical scalar (heat) transport 
-  REAL(wp):: tkmmin        !  for vertical momentum transport 
+  REAL(wp):: tkhmin        !  for vertical scalar (heat) transport
+  REAL(wp):: tkmmin        !  for vertical momentum transport
   REAL(wp):: tkhmin_strat  ! enhanced 'tkhmin' for stratosphere
   REAL(wp):: tkmmin_strat  ! enhanced 'tkmmin' for stratosphere
 
@@ -529,7 +529,7 @@ TYPE :: t_turbdiff_config !configuration state of turbulence mode
 
   REAL(wp):: clc_diag      ! cloud cover at saturation
   REAL(wp):: q_crit        ! critical value for normalized super-saturation
-  REAL(wp):: c_scld        ! shape-factor (0<=c_scld) applied to pure 'cl_cv' at the moist correct. 
+  REAL(wp):: c_scld        ! shape-factor (0<=c_scld) applied to pure 'cl_cv' at the moist correct.
 
   LOGICAL :: ltkesso       ! consider mechanical SSO-wake production in TKE-equation
   LOGICAL :: ltkecon       ! consider convective buoyancy production in TKE-equation
@@ -540,7 +540,7 @@ TYPE :: t_turbdiff_config !configuration state of turbulence mode
   LOGICAL :: loutshs       ! consider separ. horiz. shear production of TKE for output
   LOGICAL :: loutnst       ! consider produc. by near-surf. thermals of TKE for output
   LOGICAL :: loutbms       ! consider TKE-production by turbulent buoyancy, total mechanical shear
-  LOGICAL :: ltmpcor       ! consideration minor turbulent sources in the enthalpy budget 
+  LOGICAL :: ltmpcor       ! consideration minor turbulent sources in the enthalpy budget
   LOGICAL :: lcpfluc       ! consideration of fluctuations of the heat capacity of air
 
   LOGICAL :: lexpcor       ! explicit warm-cloud correct. of implicitly calculated turbul. diff.
@@ -559,7 +559,7 @@ TYPE :: t_turbdiff_config !configuration state of turbulence mode
 
   INTEGER :: imode_stbcalc ! mode of calculating the stability function (related to 'stbsecu')
   INTEGER :: ilow_def_cond ! type of the default condition at the lower boundary
-  INTEGER :: imode_pat_len ! mode of determining a length scale of surface patterns used for the "circulation-term" 
+  INTEGER :: imode_pat_len ! mode of determining a length scale of surface patterns used for the "circulation-term"
   INTEGER :: imode_shshear ! mode of calculat. the separated horizontal shear (related to 'ltkeshs', 'a_hshr')
   INTEGER :: imode_tkesso  ! mode of calculat. the SSO source term for TKE production (related to 'ltkesso')
   INTEGER :: imode_snowsmot! mode to treating the aerodynamic surface-smoothing by snow
@@ -578,7 +578,7 @@ TYPE :: t_turbdiff_config !configuration state of turbulence mode
   ! - declared as associated component of this configure-state data structre
   ! - included into the loading of the config-vector 'turbdiff_config(jg)' via SUB 'load_turbdiff_config'.
   ! Both, the individual variables and SUB 'load_turbdiff_config', are also USEed in 'mo_turbdiff_nml',
-  !  which saves another 2 listings of these variables there.  
+  !  which saves another 2 listings of these variables there.
   ! For that reason, the individual variables are still required, and pure indirect initialization is not sufficient.
   ! The configure-state allows to USE just all these configure-variables into the modelling routines without
   !  the need to either mention each variable individually or to make the whole configure module accessible.
@@ -607,15 +607,15 @@ TYPE(t_turbdiff_config), TARGET  :: turbdiff_config(max_dom) ! 'turbdiff' config
 CONTAINS
 
 !===================================================================================
-  
+
 SUBROUTINE load_turbdiff_config (jg)
 
 ! Loads the full configuration-state except part 6. in the above TYPE-specificatin of 't_turbdiff_config'
 !  (regarding "control parameters being set at interface level (and neither by pure initialization nor by namelist)")
-! Thus, each component of 'turbdiff_config(jg)' except those of part 6. needs to be included here; and these are all  
+! Thus, each component of 'turbdiff_config(jg)' except those of part 6. needs to be included here; and these are all
 !  not strictly constant configuration-quantities (that means without a "PARAMETER"-attribute) being initialized in this
 !  module and not set at interface level!
-  
+
     INTEGER, INTENT(IN) :: jg !patch index
 
       turbdiff_config(jg)%impl_s         = impl_s
@@ -683,9 +683,9 @@ SUBROUTINE load_turbdiff_config (jg)
       turbdiff_config(jg)%akt            = akt
 
       turbdiff_config(jg)%a_heat         = a_heat
-      turbdiff_config(jg)%a_mom          = a_mom 
+      turbdiff_config(jg)%a_mom          = a_mom
       turbdiff_config(jg)%d_heat         = d_heat
-      turbdiff_config(jg)%d_mom          = d_mom 
+      turbdiff_config(jg)%d_mom          = d_mom
       turbdiff_config(jg)%c_diff         = c_diff
       turbdiff_config(jg)%a_stab         = a_stab
       turbdiff_config(jg)%a_hshr         = a_hshr
@@ -737,7 +737,7 @@ SUBROUTINE load_turbdiff_config (jg)
       turbdiff_config(jg)%imode_adshear  = imode_adshear
 
 END SUBROUTINE load_turbdiff_config
-     
+
 !===================================================================================
 
 END MODULE mo_turbdiff_config

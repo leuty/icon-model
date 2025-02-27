@@ -23,7 +23,7 @@ for case in ${processes} ; do
       ((errors++))
       echo "${output_dir}/${case}/ does not exist."
     else
-        for image in  ${reference_dir}/${case}/*.png ; do 
+        for image in  ${reference_dir}/${case}/*.png ; do
             plot=${image##*/}
             if [ -f "${output_dir}/${case}/${plot}" ]; then
               XX=0

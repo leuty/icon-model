@@ -39,7 +39,7 @@ MODULE mo_prepadv_types
                               !< averaged over dynamics substeps
       vn_traj    (:,:,:) ,  & !< horizontal velocity at edges for computation of backward trajectories [m/s]
                               !< averaged over dynamics substeps
-      q_int      (:,:,:) ,  & !< Storage field for vertical nesting: 
+      q_int      (:,:,:) ,  & !< Storage field for vertical nesting:
                               !< q at child nest interface level [kg/kg]
       q_ubc      (:,:,:)      !< Storage field for vertical nesting:
                               !< q at (nest) upper boundary      [kg/kg]
@@ -58,4 +58,3 @@ MODULE mo_prepadv_types
   END TYPE t_step_adv
 
 END MODULE mo_prepadv_types
-

@@ -43,7 +43,7 @@ MODULE mo_grib2
   TYPE t_grib2_key_list
     INTEGER                :: nint_keys  ! no. of integer keys
     INTEGER                :: ndbl_keys  ! no. of double keys
-    TYPE (t_grib2_int_key) :: int_key(MAX_INT_KEYS)    
+    TYPE (t_grib2_int_key) :: int_key(MAX_INT_KEYS)
     TYPE (t_grib2_dbl_key) :: dbl_key(MAX_DBL_KEYS)
   END TYPE t_grib2_key_list
 
@@ -54,7 +54,7 @@ MODULE mo_grib2
     INTEGER :: bits
     INTEGER :: gridtype
     INTEGER :: subgridtype
-    
+
     ! list of additional GRIB2 key/value pairs
     TYPE (t_grib2_key_list) :: additional_keys
   END TYPE t_grib2_var
@@ -90,11 +90,11 @@ CONTAINS
     INTEGER, INTENT(IN) :: subgridtype
     TYPE(t_grib2_var) :: grib2_var
 
-    grib2_var%discipline  = discipline 
-    grib2_var%category    = category   
-    grib2_var%number      = number     
-    grib2_var%bits        = bits       
-    grib2_var%gridtype    = gridtype   
+    grib2_var%discipline  = discipline
+    grib2_var%category    = category
+    grib2_var%number      = number
+    grib2_var%bits        = bits
+    grib2_var%gridtype    = gridtype
     grib2_var%subgridtype = subgridtype
 
     grib2_var%additional_keys%nint_keys = 0

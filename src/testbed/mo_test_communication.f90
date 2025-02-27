@@ -1422,7 +1422,7 @@ CONTAINS
       &                 comm_pattern = comm_pattern, &
       &                 call_id = 4)
 
-    out_array_dp_2d = in_array_dp_2d ! (nproma,16), (nproma,10) - 
+    out_array_dp_2d = in_array_dp_2d ! (nproma,16), (nproma,10) -
                                    ! out_array_dp_2d now points to memory of in_array_dp_2d, do not deallocate both
     out_array_sp_2d = in_array_sp_2d
     out_array_i_2d = in_array_i_2d
@@ -5026,4 +5026,3 @@ CONTAINS
   END SUBROUTINE
 
 END MODULE mo_test_communication
-

@@ -27,7 +27,7 @@ MODULE mo_radiation_config
     !
     LOGICAL :: lradforcing(2) = (/.FALSE.,.FALSE./) !< diagnostic of instantaneous
     !                                               !< aerosol solar (lradforcing(1)) and
-    !                                               !< thermal (lradforcing(2)) radiation forcing 
+    !                                               !< thermal (lradforcing(2)) radiation forcing
     INTEGER :: isolrad     !< mode of solar constant calculation
     !
     INTEGER :: albedo_type ! 1: albedo based on surface-type specific set of constants
@@ -38,15 +38,15 @@ MODULE mo_radiation_config
     REAL(wp) :: albedo_fixed   ! value of fixed albedo for albedo_type=3
 
     INTEGER :: direct_albedo   ! 1: SZA dependence according to Ritter and Geleyn (1992)
-                               ! 2: limitation to diffuse albedo according to Zaengl 
+                               ! 2: limitation to diffuse albedo according to Zaengl
                                !    applied to all land points
-                               !    Ritter-Geleyn for ice 
+                               !    Ritter-Geleyn for ice
                                ! 3: Parameterization after Yang et al (2008) for snow-free land points
                                !    limitation after Zaengl for snow-coverer points
                                !    Ritter-Geleyn implementation for ice
                                ! 4: Parameterization after Briegleb and Ramanathan (1992) for snow-free land points
                                !    limitation after Zaengl for snow-coverer points
-  
+
     INTEGER :: direct_albedo_water ! 1: Ritter and Geleyn (1992)
                                    ! 2: Yang et al (2008)
                                    ! 3: Taylor et al (1996) as in IFS
@@ -110,7 +110,7 @@ MODULE mo_radiation_config
     REAL(wp) :: vmr_cfc12, mmr_cfc12 !< CFC 12
     !
     ! --- Different specifications of the zenith angle
-    INTEGER  :: izenith           ! circular orbit, no seasonal cycle but with diurnal cycle 
+    INTEGER  :: izenith           ! circular orbit, no seasonal cycle but with diurnal cycle
     REAL(wp) :: cos_zenith_fixed  ! fixed cosine of zenith angle for izenith=6
     !
     ! --- Set minimum (pole) and maximum (equator) overlap
@@ -134,15 +134,15 @@ MODULE mo_radiation_config
                                         !< 1: Baran et al. (2016) (only e_gen_cop=F)
                                         !< 2: Yi et al. (2013) (only e_gen_cop=F)
                                         !< 10: Rough Fu (only only e_gen_cop=T)
-                                        !< 11: Baum (only only e_gen_cop=T)     
+                                        !< 11: Baum (only only e_gen_cop=T)
     INTEGER  :: ecrad_isnow_scat        !< Optical properties for snow scattering (only e_gen_cop=T)
                                         !< -1: Snow is not considered independently in radiation calculation
-                                        !<  0: Fu et al. 
-                                        !< 10: Rough Fu 
+                                        !<  0: Fu et al.
+                                        !< 10: Rough Fu
     INTEGER  :: ecrad_igraupel_scat     !< Optical properties for graupel scattering (only e_gen_cop=T)
                                         !< -1: Graupel is not considered independently in radiation calculation
-                                        !<  0: Fu et al. 
-                                        !< 10: Rough Fu 
+                                        !<  0: Fu et al.
+                                        !< 10: Rough Fu
     INTEGER  :: ecrad_irain_scat        !< Optical properties for rain scattering (only e_gen_cop=T)
                                         !< -1: Rain is not considered independently in radiation calculation
                                         !<  0: Mie Rain
@@ -166,14 +166,14 @@ MODULE mo_radiation_config
 
     CHARACTER(len=MAX_CHAR_LENGTH) :: &
       &  ecrad_data_path                !< Folder containing optical properties
-  
+
     ! 2.0 Non NAMELIST global variables and parameters
     ! --------------------------------
 
     REAL(wp) :: rad_csalbw(10) ! slope of solar albedo with respect to soil water content
                                ! as a function of depth of upper soil layer
-  
-    
+
+
     ! vertical profile parameters (vpp) of CH4 and N2O
     REAL(wp), PARAMETER :: vpp_ch4(3) = (/1.25e-01_wp,  683.0_wp, -1.43_wp/)
     REAL(wp), PARAMETER :: vpp_n2o(3) = (/1.20e-02_wp, 1395.0_wp, -1.43_wp/)
@@ -183,9 +183,9 @@ MODULE mo_radiation_config
     !     different from the actual integration time step, in general it
     !     is in the future relative to actual time step)
     !
-    REAL(wp) :: ssi_radt(14)  !< spectrally resolved solar irradiance (SSI) 
+    REAL(wp) :: ssi_radt(14)  !< spectrally resolved solar irradiance (SSI)
     !                         !< [W/m2] at 1 AU distance from the sun
-  
+
     REAL(wp) :: tsi_radt !< total solar irradiance (TSI) [W/m2]
     !                    !< at 1 AU distance from the sun
     !                    !< = SUM(ssi_radt(:))
@@ -195,13 +195,13 @@ MODULE mo_radiation_config
     !
     REAL(wp) :: tsi
     !
-    ! Radiative transfer routine skips all points with cosmu0<=0. 
+    ! Radiative transfer routine skips all points with cosmu0<=0.
     ! That's why points to be skipped need to be marked with a value <=0
     REAL(wp), PARAMETER :: &
       &  cosmu0_dark = -1.e-9_wp       ! minimum cosmu0, for smaller values no shortwave calculations
 
     !$ACC DECLARE COPYIN(vpp_ch4, vpp_n2o)
-  
+
   !END TYPE t_radiation_config
   !>
   !!

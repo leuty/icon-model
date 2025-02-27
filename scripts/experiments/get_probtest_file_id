@@ -12,11 +12,13 @@
 import click
 from yaml_experiment_test_processor import ExperimentTestCollection
 
+
 @click.command()
 @click.option("--experiment", "exp", type=str, required=True)
 def main(exp):
     tests = ExperimentTestCollection()
     tests.print_file_ids_for_exp(exp)
 
-if __name__ == '__main__':
+
+if __name__ == "__main__":
     main()

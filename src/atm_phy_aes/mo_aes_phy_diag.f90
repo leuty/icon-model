@@ -46,14 +46,14 @@ CONTAINS
     ! Local variables
     !
     TYPE(t_aes_phy_field), POINTER :: field
-    
+
     REAL(wp) :: zfrw (aes_phy_dims(jg)%nproma) !< cell area fraction of open water
     REAL(wp) :: zfri (aes_phy_dims(jg)%nproma) !< cell area fraction of ice covered water
     REAL(wp) :: zfrl (aes_phy_dims(jg)%nproma) !< cell area fraction of land
     INTEGER  :: jc
 
     field => prm_field(jg)
- 
+
     ! 3.3 Weighting factors for fractional surface coverage
     !     Accumulate ice portion for diagnostics
 
@@ -82,10 +82,10 @@ CONTAINS
          !
          ! security for water temperature with changing ice mask
          ! (over lakes; over ocean this is not an issue since, over ocean,
-         ! ts_tile(iwtr) is overwritten again with SST from ocean in 
+         ! ts_tile(iwtr) is overwritten again with SST from ocean in
          ! coupling interface after update_surface)
          IF (zfrw(jc) > 0._wp .AND. field%ts_tile(jc,jb,iwtr) == cdimissval) THEN
-           ! lake was completely frozen in previous time step but only partially 
+           ! lake was completely frozen in previous time step but only partially
            ! frozen in current time step
            field%ts_tile(jc,jb,iwtr) = tmelt
          END IF
@@ -230,7 +230,7 @@ CONTAINS
     nlev   = aes_phy_dims(jg)%nlev
 
     field  => prm_field(jg)
-    
+
     !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1)
     !$ACC LOOP GANG VECTOR COLLAPSE(2) PRIVATE(qliq, qice, qvap, qtot, cv)
     DO jk = 1,nlev
@@ -246,7 +246,7 @@ CONTAINS
     !$ACC END PARALLEL
 
     !$ACC WAIT(1)
-    
+
     NULLIFY(field)
 
   END SUBROUTINE get_cvair
@@ -269,7 +269,7 @@ CONTAINS
     nlev   = aes_phy_dims(jg)%nlev
 
     field => prm_field(jg)
-    
+
     IF (ASSOCIATED(field% q_phy)) THEN
       !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1)
       !$ACC LOOP GANG

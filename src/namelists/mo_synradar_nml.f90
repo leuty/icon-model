@@ -23,10 +23,10 @@ MODULE mo_synradar_nml
   USE mo_restart_nml_and_att,ONLY: open_tmpfile, store_and_close_namelist,   &
                                  & open_and_restore_namelist, close_tmpfile
   USE mo_nml_annotate,       ONLY: temp_defaults, temp_settings
-  USE mo_synradar_config,    ONLY: config_synradar_meta           => synradar_meta          , &               
+  USE mo_synradar_config,    ONLY: config_synradar_meta           => synradar_meta          , &
                                  & config_ydir_mielookup_read     => ydir_mielookup_read    , &
                                  & config_ydir_mielookup_write    => ydir_mielookup_write
-  
+
   USE mo_exception,        ONLY: finish
   USE radar_dbzcalc_params_type, ONLY: t_dbzcalc_params, dbz_namlst_d
 
@@ -37,7 +37,7 @@ MODULE mo_synradar_nml
 
   ! module name
   CHARACTER(*), PARAMETER :: modname = "mo_synradar_nml"
-  
+
 CONTAINS
   !! Read Namelist for I/O.
   !!
@@ -55,7 +55,7 @@ CONTAINS
     CHARACTER(LEN=*), INTENT(IN)   :: filename
 
 #ifdef HAVE_RADARFWO
-    
+
     CHARACTER(*), PARAMETER :: routine = modname//":read_synradar_namelist"
     INTEGER                        :: istat, funit
     INTEGER                        :: iunit
@@ -70,7 +70,7 @@ CONTAINS
     TYPE(t_dbzcalc_params)        :: synradar_meta
     CHARACTER(LEN=filename_max) :: ydir_mielookup_read
     CHARACTER(LEN=filename_max) :: ydir_mielookup_write
-    
+
     NAMELIST/synradar_nml/ synradar_meta, ydir_mielookup_read, ydir_mielookup_write
 
     !-----------------------
@@ -81,7 +81,7 @@ CONTAINS
     synradar_meta%itype_refl = 4      ! default: use the established ICON-method (=4) for dbz-calculations
     ydir_mielookup_read(:)   = ' '    ! only relevant for itype_refl /= 4 (EMVORADO-methods)
     ydir_mielookup_write(:)  = ' '    ! only relevant for itype_refl /= 4 (EMVORADO-methods)
-    
+
     !------------------------------------------------------------------
     ! 2. If this is a resumed integration, overwrite the defaults above
     !    by values used in the previous integration.
@@ -129,7 +129,7 @@ CONTAINS
     config_synradar_meta           = synradar_meta
     config_ydir_mielookup_read     = ydir_mielookup_read
     config_ydir_mielookup_write    = ydir_mielookup_write
-    
+
     !-----------------------------------------------------
     ! 6. Store the namelist for restart
     !-----------------------------------------------------
@@ -149,7 +149,7 @@ CONTAINS
     END IF
 
 #endif
-    
+
   END SUBROUTINE read_synradar_namelist
 
 END MODULE mo_synradar_nml

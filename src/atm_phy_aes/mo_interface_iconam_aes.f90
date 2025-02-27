@@ -420,7 +420,7 @@ CONTAINS
     !
     ! Update the prognostic state with the physics tendencies
     !
-    ! 
+    !
     ! Only if turbulent diffusion parameterizations are used
     IF (aes_phy_tc(jg)%dt_vdf > dt_zero) THEN
       !

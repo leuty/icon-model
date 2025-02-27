@@ -10,8 +10,8 @@
 
 # -------------------------------------------------------------------------------------------------
 # Atmosphere standalone script template
-#   R02B04 for Buildbot testing only: 
-#   To ease maintenance only default grid_refinement, end_date, radTimeStep, restart and output 
+#   R02B04 for Buildbot testing only:
+#   To ease maintenance only default grid_refinement, end_date, radTimeStep, restart and output
 #   intervals are changed compared to the original exp.aes_amip script.
 #   divdamp_order = 24 is commented as it does not work with dt_checkpoint < 2.5 hours
 # -------------------------------------------------------------------------------------------------
@@ -489,7 +489,7 @@ cat dict.iconam.mpim  > ${dict_file}
 add_required_file ${basedir}/run/${dict_file}                             ./
 #
 # initial and boundary conditions
-# 
+#
 datadir=${icon_data_poolFolder}/${grid_id}/initial_conditions/r0100
 if [ ${grid_refinement} == R02B08 ] ; then
    add_link_file $datadir/ifs2icon_1979010100_0054_R02B08_G.nc               ./ifs2icon.nc
@@ -540,8 +540,8 @@ do
     add_link_file $dataaero/bc_aeropt_kinne_sw_b14_fin_${year}.nc         ./bc_aeropt_kinne_sw_b14_fin_${year}.nc
   (( year = year+1 ))
 done
-# 
-# Kinne aerosol 
+#
+# Kinne aerosol
 add_link_file $dataaero/bc_aeropt_kinne_lw_b16_coa.nc                     ./
 add_link_file $dataaero/bc_aeropt_kinne_sw_b14_coa.nc                     ./
 #

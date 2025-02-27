@@ -190,4 +190,3 @@ if test $(pwd) != $(cd "${ICON_DIR}"; pwd); then
   ln -sf ${ICON_DIR}/data
   ln -sf ${ICON_DIR}/vertical_coord_tables
 fi
-

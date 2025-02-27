@@ -68,7 +68,7 @@ MODULE mo_nh_dcmip_tc
   USE mo_grid_config,         ONLY: grid_rescale_factor ,& ! (m/m)     Small planet scaling factor (=1/x)
     &                               grid_sphere_radius  ,& ! (m)       Earth radius/x
     &                               grid_angular_velocity  ! (1/s)     Earth rotation*x
-  ! 
+  !
   USE mo_math_constants,      ONLY: deg2rad                ! (rad/deg) Convert degree to radian
   !
   USE mo_physical_constants,  ONLY: rd                  ,& ! (J/K/kg)  Ideal gas const dry air (J kg^-1 K^1)
@@ -478,4 +478,3 @@ CONTAINS
   END SUBROUTINE init_nh_dcmip_tc
 
 END MODULE mo_nh_dcmip_tc
-

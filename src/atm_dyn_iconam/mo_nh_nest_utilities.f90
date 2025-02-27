@@ -463,7 +463,7 @@ CONTAINS
           p_nh%diag%mflx_ic_int(jc,jb,nsubs+1)       = p_nh%diag%mflx_ic_int(jc,jb,nsubs+1)    * rnsubs
         ENDDO
 
-        ! Compute time tendencies to obtain second order in time accuracy for child nest UBC, 
+        ! Compute time tendencies to obtain second order in time accuracy for child nest UBC,
         ! and store them at index nsubs+2.
         !$ACC LOOP GANG(STATIC: 1) VECTOR
         DO jc = i_startidx, i_endidx
@@ -665,7 +665,7 @@ CONTAINS
   !>
   !! Interpolates time tendencies of prognostic variables to the lateral boundary
   !! of a refined mesh.
-  !! In addition, interpolates prognostic variables to child upper boundary  
+  !! In addition, interpolates prognostic variables to child upper boundary
   !! for vertical nesting.
   !!
   SUBROUTINE boundary_interpolation (jg,jgc,ntp_dyn,ntc_dyn,ntp_tr,ntc_tr, &
@@ -806,7 +806,7 @@ CONTAINS
 
           CALL get_indices_c(p_pp, jb, i_startblk, i_endblk, i_startidx, i_endidx, &
             0, min_rlcell_int)
-        
+
           !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1)
           !$ACC LOOP GANG(STATIC: 1) VECTOR
 !$NEC ivdep
@@ -1059,10 +1059,10 @@ CONTAINS
   !! This routine prepares boundary nudging for use with 1-way nesting.
   !!
   !! The following steps are executed:
-  !! 1. Mapping of parent grid prognostic variables to intermediate grid having 
+  !! 1. Mapping of parent grid prognostic variables to intermediate grid having
   !!    the horizontal resolution of the parent grid, but sharing
   !!    the domain decomposition and vertical dimension with the child grid.
-  !! 2. a) Interpolation/Averaging of child grid variables to intermediate grid. 
+  !! 2. a) Interpolation/Averaging of child grid variables to intermediate grid.
   !!    b) Computation of differences between mapped parent-grid values and averaged child grid
   !!    variables.
   !! 3. Interpolation of difference fields to the child grid
@@ -1181,7 +1181,7 @@ CONTAINS
     !$ACC DATA CREATE(parent_thv, diff_thv, parent_rho, diff_rho, parent_w, diff_w) &
     !$ACC   CREATE(parent_vn, diff_vn)
     !$ACC DATA CREATE(parent_tr, diff_tr) IF(ltransport)
-    
+
     ! Set pointers to index and coefficient fields for cell-based variables
     iidx  => p_gcp%child_idx
     iblk  => p_gcp%child_blk
@@ -1349,7 +1349,7 @@ CONTAINS
     ! Please note that we cannot use sync_patch_array here (comparing parallel/non parallel results)
     ! since the arrays don't start with lower bound 1 in the non parallel case!
 
-    ! Synchronization is needed after the interpolation step because the nudging tendencies are applied outside 
+    ! Synchronization is needed after the interpolation step because the nudging tendencies are applied outside
     ! the dynamical core. This is needed for the scalars for reasons of mass consistency, but is also done for the
     ! wind tendencies because this turns out to improve noise filtering
 
@@ -1399,10 +1399,10 @@ CONTAINS
   !! This routine prepares boundary nudging for density only (for use with 2-way nesting)
   !!
   !! The following steps are executed:
-  !! 1. Mapping of parent grid prognostic variables to intermediate grid having 
+  !! 1. Mapping of parent grid prognostic variables to intermediate grid having
   !!    the horizontal resolution of the parent grid, but sharing
   !!    the domain decomposition and vertical dimension with the child grid.
-  !! 2. a) Interpolation/Averaging of child grid variables to intermediate grid. 
+  !! 2. a) Interpolation/Averaging of child grid variables to intermediate grid.
   !!    b) Computation of differences between mapped parent-grid values and averaged child grid
   !!    variables.
   !! 3. Interpolation of difference fields to the child grid
@@ -1581,7 +1581,7 @@ CONTAINS
     TYPE(t_pi_atm),     INTENT(IN), OPTIONAL :: p_latbc_old, p_latbc_new
     REAL(wp),           INTENT(IN), OPTIONAL :: lc1     ! time interpolation weight
     REAL(wp),           INTENT(IN), OPTIONAL :: lc2     ! time interpolation weight
-    
+
     ! local variables
     INTEGER  :: jb, jc, jk, je, ic, nlev
     INTEGER  :: jg, nshift
@@ -1607,7 +1607,7 @@ CONTAINS
 
     IF (PRESENT(lc1) .AND. PRESENT(lc2)) THEN
       wfac_old = lc1
-      wfac_new = lc2  
+      wfac_new = lc2
     ELSE
       wfac_old = -999._wp
       wfac_new = -999._wp
@@ -1917,14 +1917,14 @@ CONTAINS
 
     IF (PRESENT(lc1) .AND. PRESENT(lc2)) THEN
       wfac_old = lc1
-      wfac_new = lc2  
+      wfac_new = lc2
     ELSE
       wfac_old = -999._wp
       wfac_new = -999._wp
    ENDIF
-   
+
     !
-    ! Check if hydrostatic or nonhydrostatic thermodynamic variables shall be used for computing nudging increments 
+    ! Check if hydrostatic or nonhydrostatic thermodynamic variables shall be used for computing nudging increments
     lnudge_hydro_pres_ubn = nudging_config(jg)%thermdyn_type == ithermdyn_type%hydrostatic .AND. ltransport
     !
     ! Max. nudging coefficients (qv is not nudged in upper boundary zone)
@@ -2104,7 +2104,7 @@ CONTAINS
 
 
   !>
-  !! This routine interpolates lateral boundary data (or more generally forcing data) 
+  !! This routine interpolates lateral boundary data (or more generally forcing data)
   !! from the base domain to a specific child domain (jg), and all childs contained therein.
   !!
   RECURSIVE SUBROUTINE intp_nestubc_nudging (p_patch, latbc_data, jg, lacc)
@@ -2112,7 +2112,7 @@ CONTAINS
     TYPE(t_patch),       INTENT(INOUT) :: p_patch(:)
     TYPE(t_latbc_state), INTENT(INOUT) :: latbc_data        ! source data (for base domain)
 
-    INTEGER, INTENT(IN) :: jg      ! domain ID of the target (child) domain. 
+    INTEGER, INTENT(IN) :: jg      ! domain ID of the target (child) domain.
                                    ! i.e. the domain to which the data are interpolated
     LOGICAL, INTENT(IN) :: lacc ! if true (and compile with OpenACC) use data on GPU
 
@@ -2135,7 +2135,7 @@ CONTAINS
       IF (msg_level >= 12) THEN
         CALL datetimeToString(latbc_data%vDateTime, vDateTime_str_cur)
         WRITE(message_text,'(a,i2,a,a)') 'latbc data interpolation to DOM', jg, &
-          &                               ' at ', TRIM(vDateTime_str_cur) 
+          &                               ' at ', TRIM(vDateTime_str_cur)
         CALL message(routine, message_text)
       ENDIF
 
@@ -2151,7 +2151,7 @@ CONTAINS
 
       ! temporary local_parent arrays
       ALLOCATE(pres_lp(nproma, nlev, p_plp%nblks_c),  &
-        &      temp_lp(nproma, nlev, p_plp%nblks_c),  & 
+        &      temp_lp(nproma, nlev, p_plp%nblks_c),  &
         &      qv_lp  (nproma, nlev, p_plp%nblks_c),  &
         &      vn_lp  (nproma, nlev, p_plp%nblks_e)   )
 
@@ -2202,7 +2202,7 @@ CONTAINS
     ENDIF
 
 
-    ! in case that child domains exist for the current domain jg, repeat the interpolation 
+    ! in case that child domains exist for the current domain jg, repeat the interpolation
     ! for each child domain.
     DO jn = 1, p_patch(jg)%n_childdom
 
@@ -2437,4 +2437,3 @@ CONTAINS
 
 
 END MODULE mo_nh_nest_utilities
-

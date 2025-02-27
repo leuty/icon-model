@@ -33,7 +33,7 @@ MODULE mo_nonhydro_gpu_types
   USE mo_interpol_config,     ONLY: support_baryctr_intp
   USE mo_grid_config,         ONLY: n_dom
   IMPLICIT NONE
-  PRIVATE 
+  PRIVATE
 
   PUBLIC :: h2d_icon, d2h_icon, devcpy_grf_state
 
@@ -50,7 +50,7 @@ CONTAINS
     TYPE ( t_prepare_adv),      INTENT(INOUT) :: prep_adv(:)
     TYPE ( t_advection_config), INTENT(INOUT) :: advection_config(:)
     TYPE ( t_les_config),       INTENT(INOUT) :: les_config(:)
-    INTEGER, INTENT(IN)                       :: iforcing 
+    INTEGER, INTENT(IN)                       :: iforcing
     LOGICAL, INTENT(IN), OPTIONAL :: lacc ! If true, use openacc
     INTEGER :: jg
 !
@@ -95,7 +95,7 @@ CONTAINS
     TYPE ( t_prepare_adv), INTENT(INOUT)      :: prep_adv(:)
     TYPE ( t_advection_config), INTENT(INOUT) :: advection_config(:)
     TYPE ( t_les_config),       INTENT(INOUT) :: les_config(:)
-    INTEGER, INTENT(IN)                       :: iforcing 
+    INTEGER, INTENT(IN)                       :: iforcing
     LOGICAL, INTENT(IN), OPTIONAL :: lacc ! If true, use openacc
 
     !
@@ -108,7 +108,7 @@ CONTAINS
     CALL transfer_prep_adv( prep_adv, .FALSE. )
     CALL transfer_patch( p_patch, .FALSE. )
     CALL transfer_patch( p_patch_local_parent, .FALSE. )
-    CALL transfer_lonlat_grids(.FALSE.)    
+    CALL transfer_lonlat_grids(.FALSE.)
     CALL transfer_int_state( p_int_state, .FALSE. )
     CALL transfer_int_state( p_int_state_local_parent, .FALSE. )
     CALL transfer_advection_config( advection_config, .FALSE. )
@@ -223,13 +223,13 @@ CONTAINS
       DO j=1,SIZE(p_patch)
 
         IF ( host_to_device ) THEN
-        
+
         !$ACC ENTER DATA &
         !$ACC   COPYIN(p_patch(j)%cells, p_patch(j)%edges, p_patch(j)%verts)
 
         !$ACC ENTER DATA &
         !$ACC   COPYIN(p_patch(j)%cells%decomp_info)
-                
+
         !$ACC ENTER DATA &
         !$ACC   COPYIN(p_patch(j)%cells%decomp_info%owner_mask) &
         !$ACC   COPYIN(p_patch(j)%cells%ddqz_z_full, p_patch(j)%cells%area) &
@@ -309,7 +309,7 @@ CONTAINS
 
     DO jg=1, SIZE(prep_adv)
       CALL gpu_update_var_list('prepadv_of_domain_', host_to_device, domain=jg, lacc=.TRUE. )
-    ENDDO    
+    ENDDO
 
   END SUBROUTINE transfer_prep_adv
 
@@ -324,7 +324,7 @@ CONTAINS
     !$ACC ENTER DATA COPYIN(advection_config) IF(host_to_device)
     DO j=1, SIZE(advection_config)
 
-      IF ( host_to_device ) THEN      
+      IF ( host_to_device ) THEN
         !$ACC ENTER DATA COPYIN(advection_config(j)%trHydroMass%list, advection_config(j)%trAdvect%list)
       ELSE
         !$ACC WAIT(1)
@@ -363,7 +363,7 @@ CONTAINS
 
 ! At this point, p_nh and all its underlying subtypes have been created on the device
 ! HB: merged interfaces of gpu_XXX_var_list... therefore the IF condition
-! WS:  currently it appears to be unnecessary to update any of these values back to the host 
+! WS:  currently it appears to be unnecessary to update any of these values back to the host
 !      after the end of the time loop.  Dycore variables are updated in ACC_VALIDATE mode individually
 !      BUT: there should be a way to delete all the variables with DEL_VAR
     IF (.NOT.host_to_device) RETURN

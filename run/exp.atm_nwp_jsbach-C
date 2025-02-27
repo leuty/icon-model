@@ -770,7 +770,7 @@ cat >> ${basedir}/run/${atmo_namelist} << EOF
  filetype         = ${output_format}
  remap            = 0
  operation        = 'mean'
- output_grid      = .TRUE. 
+ output_grid      = .TRUE.
  output_start     = '${first_output_date}'
  output_end       = '${last__output_date}'
  output_interval  = '${atm_output_interval}'

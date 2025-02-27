@@ -38,4 +38,3 @@ echo "FCT_IFS.SMS"
 
 # include the standard "tail" file
 %include <end_ws.h>
-

@@ -24,14 +24,14 @@ cd $TMP_DIR
 
 $BINDIR/OQs_icon_input_mask.sh $GRID $LEV
 
-ref_SAL=$POOL/$GRID/initial_state.nc 
-ref_TEM=$POOL/$GRID/initial_state.nc 
+ref_SAL=$POOL/$GRID/initial_state.nc
+ref_TEM=$POOL/$GRID/initial_state.nc
 
 CATFILE=subsurfdata.nc
 
 CODE='t_acc,s_acc'
 
-for YEAR in $(seq $Y1 $CHUNK $Y2) 
+for YEAR in $(seq $Y1 $CHUNK $Y2)
 do
 
     INFILE=$(printf $DATADIR/${EXPID}/${EXPID}_oce_def_%04.0f0101T000000Z.nc $YEAR)
@@ -51,7 +51,7 @@ infile=$inbase.nc
 outfile=$inbase.pdf
 $CDO timmean $CATFILE $infile
 
-for basin in glo atl_arc indopacific 
+for basin in glo atl_arc indopacific
 do
     $CDO -f nc -zonmean -remapnn,r720x360 -ifthen mask_$basin.nc -selvar,t_acc  $infile  thetao_${basin}.$infile
     $BINDIR/plotsec_ncl --title="Sea_water_potential_temperature_${basin}" --cstring="thetao_${basin}" --lstring="[C]" --rstring="${Y1}-${Y2}" --var=t_acc --min=-2 --max=30 --inc=2 --pal=GMT_haxby  thetao_${basin}.$infile

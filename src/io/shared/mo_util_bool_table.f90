@@ -82,8 +82,8 @@ MODULE mo_util_bool_table
   !> Type definition for a complete table
   TYPE t_bool_table
     INTEGER                         :: n_columns
-    TYPE (t_column)                 :: column(MAX_TABLE_COLUMNS) 
-    CHARACTER(LEN=MAX_ROWNAME_LEN)  :: rowname(MAX_TABLE_ROWS) 
+    TYPE (t_column)                 :: column(MAX_TABLE_COLUMNS)
+    CHARACTER(LEN=MAX_ROWNAME_LEN)  :: rowname(MAX_TABLE_ROWS)
     INTEGER                         :: n_rows
     INTEGER                         :: rowname_len                !< max. length of a row name
   END TYPE t_bool_table
@@ -110,7 +110,7 @@ CONTAINS
     CHARACTER(LEN=*),      INTENT(IN)         :: str_list(:)        !< list of "true" entries
     INTEGER,          INTENT(IN), OPTIONAL    :: opt_nitems         !< optional: length of given list
     CHARACTER(LEN=*), INTENT(IN), OPTIONAL    :: opt_markers(:)     !< list of entry markers (default: 'x')
-    ! local variables    
+    ! local variables
     CHARACTER(LEN=*), PARAMETER :: routine = TRIM(modname)//'::add_column'
     INTEGER :: ierrstat, i, rowname_len, nitems
 
@@ -171,7 +171,7 @@ CONTAINS
     TYPE (t_column),  INTENT(IN) :: column
     ! local variables
     INTEGER :: i
-    
+
     get_bool_table_entry = DEFAULT_CHAR_FALSE
     FIND_LOOP : DO i=1,SIZE(column%true_entries)
       IF (TRIM(tolower(TRIM(rowname))) == TRIM(tolower(TRIM(column%true_entries(i))))) THEN

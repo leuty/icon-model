@@ -152,7 +152,7 @@ CONTAINS
     IF (end_halo_lev1_cells_ext /= end_halo_lev1_cells) CALL finish(routine, 'END_HALO_LEV1_CELLS has deviated &
        &                                                                      from its original value')
 
-    IF (end_all_cells_ext /= end_all_cells) CALL finish(routine, 'END_ALL_CELLS has deviated from its & 
+    IF (end_all_cells_ext /= end_all_cells) CALL finish(routine, 'END_ALL_CELLS has deviated from its &
        &                                                          original value')
 
     IF (start_prog_edges_ext /= start_prog_edges) CALL finish(routine, 'START_PROG_EDGES has deviated from &
@@ -164,7 +164,7 @@ CONTAINS
     IF (end_halo_lev1_edges_ext /= end_halo_lev1_edges) CALL finish(routine, 'END_HALO_LEV1_EDGES has deviated &
        &                                                                      from its original value')
 
-    IF (end_all_edges_ext /= end_all_edges) CALL finish(routine, 'END_ALL_EDGES has deviated from its & 
+    IF (end_all_edges_ext /= end_all_edges) CALL finish(routine, 'END_ALL_EDGES has deviated from its &
        &                                                          original value')
 
     IF (end_prog_verts_ext /= end_prog_verts) CALL finish(routine, 'END_PROG_VERTS has deviated from &
@@ -178,7 +178,7 @@ CONTAINS
 
     IF (max_dom_ext /= max_dom) CALL finish(routine, 'MAX_DOM has deviated from its original value')
 
-    IF (max_dom_dig10_ext /= max_dom_dig10) CALL finish(routine, 'MAX_DOM_dig10 has deviated from & 
+    IF (max_dom_dig10_ext /= max_dom_dig10) CALL finish(routine, 'MAX_DOM_dig10 has deviated from &
        &                                                          its original value')
 
     IF (max_phys_dom_ext /= max_phys_dom) CALL finish(routine, 'MAX_PHYS_DOM has deviated from its original value')
@@ -197,4 +197,3 @@ CONTAINS
   END SUBROUTINE check_ext_constants
 
 END MODULE mo_check_ext_constants
-

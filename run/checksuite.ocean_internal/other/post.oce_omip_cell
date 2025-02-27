@@ -48,4 +48,3 @@ $archiver FILEPATTERN="${EXPNAME}*.nc*" DEBUG=1 TAG='r18136' EXP=${EXPNAME} JOBI
 check_error $? "${EXPNAME}"
 
 exit
-

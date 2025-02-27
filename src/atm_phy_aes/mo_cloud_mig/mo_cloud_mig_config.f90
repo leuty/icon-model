@@ -33,7 +33,7 @@ MODULE mo_cloud_mig_config
   !! Configuration state vectors, for multiple domains/grids.
   !!
   TYPE(t_cloud_mig_config), TARGET :: cloud_mig_config(max_dom)
-  
+
 CONTAINS
 
   !----

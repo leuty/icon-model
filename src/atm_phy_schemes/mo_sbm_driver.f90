@@ -50,14 +50,14 @@ USE mo_sbm_main,             ONLY: warm_sbm
   INTEGER,          PARAMETER :: dbg_level = 25                   ! level for debug prints
 
 CONTAINS
-  
+
   !==============================================================================
   !
   ! SBM warm phase microphysics
   !
   ! qnx in SBM is in units of 1/kg
   ! qx  in SBM is in units of kg/kg
-  ! 
+  !
   !==============================================================================
   SUBROUTINE sbm(            &              ! used to be two_moment_mcrph
                        isize,             & ! in: array size
@@ -81,7 +81,7 @@ CONTAINS
 !                      nccn,              & ! inout: ccn (1/kg atm_dyn_iconam/mo_nonhydro_state.f90)
 !                      ninpot,            & ! inout: potential ice nuclei
                        ninact,            & ! inout: activated ice nuclei
-                       tk,                & ! inout: temp 
+                       tk,                & ! inout: temp
                        w,                 & ! inout: w
                        prec_r,            & ! inout: precip rate rain
                        prec_i,            & ! inout: precip rate ice
@@ -94,10 +94,10 @@ CONTAINS
 !                      l_cv,              & ! in: switch for cv/cp
                        ithermo_water,     & ! in: thermodynamic option - needed for 2M
                        qbin,              &
-                       qv_before_satad,   & 
-                       tk_before_satad,   & 
+                       qv_before_satad,   &
+                       tk_before_satad,   &
                        qv_old,            &
-                       temp_old,          & 
+                       temp_old,          &
 !                      u,                 & ! in: u
 !                      v,                 & ! in: v
                        exner,             & ! in: exner
@@ -105,7 +105,7 @@ CONTAINS
                        lsbm_warm_full)       !0-Piggy Backing with 2M, 1-full warm SBM
 
     ! Declare variables in argument list
-    
+
     INTEGER,            INTENT (IN)  :: isize, ke    ! grid sizes
     INTEGER,  OPTIONAL, INTENT (IN)  :: is, ie, ks   ! start/end indices
 
@@ -139,7 +139,7 @@ CONTAINS
     REAL(wp), DIMENSION(:), INTENT (INOUT) :: &
          &               prec_r, prec_i, prec_s, prec_g, prec_h
     REAL(wp), DIMENSION(:,:), INTENT (INOUT) :: qrsflux
-    
+
 !   REAL(wp), OPTIONAL, INTENT (INOUT)  :: dtemp(:,:)
 
     INTEGER,  INTENT (IN)             :: msg_level
@@ -175,10 +175,10 @@ CONTAINS
     ELSE
       ite = isize
     END IF
-    
+
     kts = 1
     kte = ke
-    
+
     ALLOCATE(theta_old(isize,ke))
     ALLOCATE(theta(isize,ke))
     ALLOCATE(nccn2(isize,ke))
@@ -203,10 +203,10 @@ CONTAINS
     DO ii = its, ite
       DO kk = kts, kte
 
-        nccn2(ii,kk) = 0.0_wp   
-        qna_nucl(ii,kk) = 0.0_wp 
-        lh_rate(ii,kk) = 0.0_wp   
-        ce_rate(ii,kk) = 0.0_wp    
+        nccn2(ii,kk) = 0.0_wp
+        qna_nucl(ii,kk) = 0.0_wp
+        lh_rate(ii,kk) = 0.0_wp
+        ce_rate(ii,kk) = 0.0_wp
         cldnucl_rate(ii,kk) = 0.0_wp
 
         qv_sbm(ii,kk)=qv_before_satad(ii,kk)
@@ -216,7 +216,7 @@ CONTAINS
         qr_sbm(ii,kk) = 0.0_wp
         qnc_sbm(ii,kk) = 0.0_wp
         qnr_sbm(ii,kk) = 0.0_wp
-             
+
         diag_satur_ba(ii,kk)=0.0_wp
         diag_satur_aa(ii,kk)=0.0_wp
         diag_satur_am(ii,kk)=0.0_wp
@@ -227,17 +227,17 @@ CONTAINS
 
     CALL WARM_SBM(dt=dt                &!in:    dt
                  ,dz8w=dz                 &!in:    vertical layer thickness
-!                ,xland=fr_land           &!in:    land fraction 
+!                ,xland=fr_land           &!in:    land fraction
                  ,rho_phy=rho             &!in:    density
                  ,p_phy=pres              &!in:    pressure
                  ,pi_phy=exner            &!in:    exner
-                 ,w=w                     &!in:    velocities 
+                 ,w=w                     &!in:    velocities
                  ,qv_old=qv_old           &
                  ,th_phy=theta            &!inout: theta. Check how to update prognostic theta_v
                  ,qv=qv_sbm               &
                  ,chem_new=qbin           &!inout: 99 mass bins
-                 ,rainncv=prec_r_sbm      &!inout: 1 time step precipitation (mm/sec).    
-                 ,qc=qc_sbm               &!inout: cloud water: input: 0 
+                 ,rainncv=prec_r_sbm      &!inout: 1 time step precipitation (mm/sec).
+                 ,qc=qc_sbm               &!inout: cloud water: input: 0
                  ,qr=qr_sbm               &!inout: rain water:  input: 0
                  ,qnc=qnc_sbm             &!inout: cloud water concentration:input: 0
                  ,qnr=qnr_sbm             &!inout: rain water concentration: input: 0
@@ -257,7 +257,7 @@ CONTAINS
                  ,reff=reff    &
                  ,reffc=reffc  &
                  ,reffr=reffr  &
-                 ,diag_supsat_out=diag_supsat_out) 
+                 ,diag_supsat_out=diag_supsat_out)
 
     IF (lsbm_warm_full) then ! if sbm only is used
       DO ii = its, ite
@@ -310,7 +310,7 @@ CONTAINS
                        qh     = qh, &!ptr_tracer (:,:,jb,iqh), &!inout: hail
                        qnh    = qnh, &!ptr_tracer (:,:,jb,iqnh),&!inout: hail number
                        ninact = ninact, &!ptr_tracer (:,:,jb,ininact), &!inout: IN number
-                       tk     = tk, &!p_diag%temp(:,:,jb),            &!inout: temp 
+                       tk     = tk, &!p_diag%temp(:,:,jb),            &!inout: temp
                        w      = w, &!p_prog%w(:,:,jb),               &!inout: w
                        prec_r = prec_r, &!prm_diag%rain_gsp_rate (:,jb),  &!inout precp rate rain
                        prec_i = prec_i, &!prm_diag%ice_gsp_rate (:,jb),   &!inout precp rate ice
@@ -324,6 +324,6 @@ CONTAINS
 
     END IF
 
-  END SUBROUTINE sbm                 
+  END SUBROUTINE sbm
 
 END MODULE mo_sbm_driver ! used to be mo_2mom_mcrph_driver

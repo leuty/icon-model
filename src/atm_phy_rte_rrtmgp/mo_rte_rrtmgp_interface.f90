@@ -171,7 +171,7 @@ CONTAINS
          tk_sfc(:),       & !< surface temperature in K
          tk_fl(:,:),      & !< full level temperature in K
          tk_hl(:,:),      & !< half level temperature in K
-         xvmr_vap(:,:),   & !< water vapor volume mixing ratio 
+         xvmr_vap(:,:),   & !< water vapor volume mixing ratio
          xm_liq(:,:),     & !< cloud water mass in kg/m2
          xm_ice(:,:),     & !< cloud ice   mass in kg/m2
          cdnc(:,:),       & !< cloud nuclei concentration
@@ -249,12 +249,12 @@ CONTAINS
     IF(lneed_aerosols) THEN
       nbndlw = k_dist_lw%get_nband()
       nbndsw = k_dist_sw%get_nband()
-      
+
       ALLOCATE( aer_tau_lw(nproma,klev,nbndlw), &
                 aer_tau_sw(nproma,klev,nbndsw), &
                 aer_ssa_sw(nproma,klev,nbndsw), &
                 aer_asy_sw(nproma,klev,nbndsw)  )
-         
+
       !$ACC ENTER DATA CREATE(aer_tau_lw, aer_tau_sw, aer_ssa_sw, aer_asy_sw)
 
       !$ACC KERNELS DEFAULT(PRESENT) ASYNC(1)
@@ -282,7 +282,7 @@ CONTAINS
       ! Simple plumes are added to ...
       ! iaero=19: ... Kinne background aerosols (of natural origin, 1850)
         CALL add_bc_aeropt_splumes(                                      &
-              & jg,          jcs,         jce,           nproma,         & 
+              & jg,          jcs,         jce,           nproma,         &
               & klev,        jb,          nbndsw,        this_datetime,  &
               & zf,          dz,          zh(:,klev+1),  wavenum1,       &
               & wavenum2,    aer_tau_sw,  aer_ssa_sw,    aer_asy_sw,     &
@@ -435,10 +435,10 @@ CONTAINS
     INTEGER :: i, j, m, n
 
     ! min and max are level-dependent
-    REAL(wp), DIMENSION(SIZE(src,2)) :: tgt_min, tgt_max 
-    
+    REAL(wp), DIMENSION(SIZE(src,2)) :: tgt_min, tgt_max
+
     !$ACC DATA CREATE(tgt_min, tgt_max) PRESENT(src, tgt)
-    
+
     m = SIZE(src,1)
     n = SIZE(src,2)
     !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1)
@@ -542,7 +542,7 @@ CONTAINS
          zf(:,:),          & !< geometric height at full level in m
          zh(:,:),          & !< geometric height at half level in m
          dz(:,:),          & !< geometric height thickness in m
-         
+
          pp_sfc(:),        & !< surface pressure in Pa
          pp_fl(:,:),       & !< full level pressure in Pa
          pp_hl(:,:),       & !< full level pressure in Pa
@@ -574,7 +574,7 @@ CONTAINS
 
     REAL (wp), INTENT (INOUT) :: &
          rad_2d(:)           !< arbitrary 2d-field in radiation for output
-         
+
 
     REAL (wp), TARGET, INTENT (INOUT) ::       &
          flx_uplw    (:,:), & !<   upward LW flux profile, all sky
@@ -618,7 +618,7 @@ CONTAINS
          re_cryst(ncol,klev)
     REAL(wp) ::                  &
          zswp       (ncol,klev), & !< snow water path [g/m2]
-         zdwp       (ncol,klev), & !< dummy water path 
+         zdwp       (ncol,klev), & !< dummy water path
          re_snow(ncol,klev)        !< snow effective radius
     !
     ! Random seeds for sampling. Needs to get somewhere upstream
@@ -691,13 +691,13 @@ CONTAINS
     ! 1.1 Cloud condensate and cloud fraction
     !
     effective_radius = &
-      1.0e6_wp * droplet_scale * (3.0e-9_wp / (4.0_wp * pi * rhoh2o))**(1.0_wp/3.0_wp) 
+      1.0e6_wp * droplet_scale * (3.0e-9_wp / (4.0_wp * pi * rhoh2o))**(1.0_wp/3.0_wp)
 
     reimin = MAX(cloud_optics_lw%get_min_radius_ice(), cloud_optics_sw%get_min_radius_ice()) ! 10.0_wp  !
     reimax = MIN(cloud_optics_lw%get_max_radius_ice(), cloud_optics_sw%get_max_radius_ice()) ! 124.0_wp !
-    
-    relmin = MAX(cloud_optics_lw%get_min_radius_liq(), cloud_optics_sw%get_min_radius_liq()) ! 2.5_wp  ! 
-    relmax = MIN(cloud_optics_lw%get_max_radius_liq(), cloud_optics_sw%get_max_radius_liq()) ! 21.5_wp ! 
+
+    relmin = MAX(cloud_optics_lw%get_min_radius_liq(), cloud_optics_sw%get_min_radius_liq()) ! 2.5_wp  !
+    relmax = MIN(cloud_optics_lw%get_max_radius_liq(), cloud_optics_sw%get_max_radius_liq()) ! 21.5_wp !
 
     IF (relmax <= relmin .OR. reimax <= reimin) THEN
       CALL finish('rte_rrtmgp_interface_onBlock (mo_rte_rrtmgp_interface.f90)', &
@@ -709,7 +709,7 @@ CONTAINS
       DO jl = 1, ncol
          lts = tk_fl(jl,min(73,klev))*(1e5_wp/pp_fl(jl,min(73,klev)))**(rd_o_cpd) - tk_sfc(jl)*(1e5_wp/pp_sfc(jl))**(rd_o_cpd)
          rad_2d(jl) = inhoml + (inhom_lts_max-inhoml)*(1._wp - atan2(del1,(lts - del2))/pi)
-      END DO 
+      END DO
      !$ACC END PARALLEL LOOP
      ELSE
       !$ACC PARALLEL LOOP DEFAULT(PRESENT) GANG VECTOR ASYNC(1)
@@ -996,7 +996,7 @@ CONTAINS
     END DO
     !$ACC END PARALLEL
 !--jsr, calculate cloud optics including ice and water hydrometeors now
-!       only these are used in the sequel.    
+!       only these are used in the sequel.
     !$ACC WAIT(1)
     IF (ltimer) CALL timer_start(timer_cloud_optics_lw)
     CALL stop_on_err(cloud_optics_lw%cloud_optics( &
@@ -1058,7 +1058,7 @@ CONTAINS
     IF (ltimer) CALL timer_start(timer_snow_bnd_lw)
     CALL snow_bnd_lw%finalize()
     IF (ltimer) CALL timer_stop (timer_snow_bnd_lw)
-    
+
     !
     ! 4.1.5 Longwave all-sky fluxes
     !
@@ -1180,7 +1180,7 @@ CONTAINS
       END DO
     END DO
     !$ACC END PARALLEL
-    
+
     ! new cloud optics: allocate memory for cloud optical properties:
     IF (ltimer) CALL timer_start(timer_clouds_bnd_sw)
     CALL stop_on_err(clouds_bnd_sw%alloc_2str(ncol, klev, &
@@ -1208,7 +1208,7 @@ CONTAINS
     END DO
     !$ACC END PARALLEL
 !--jsr, calculate cloud optics including ice and water hydrometeors now
-!       only these are used in the sequel.    
+!       only these are used in the sequel.
     !$ACC WAIT(1)
     IF (ltimer) CALL timer_start(timer_cloud_optics_sw)
     CALL stop_on_err(cloud_optics_sw%cloud_optics( &
@@ -1301,7 +1301,7 @@ CONTAINS
     !$ACC END DATA
     !$ACC END DATA
     CALL atmos_sw%finalize()
-        
+
 #ifdef RRTMGP_MERGE_DEBUG
 !$OMP CRITICAL (write_record)
     CALL write_record_interface_aes(nproma, pcos_mu0, daylght_frc, &
@@ -1413,7 +1413,7 @@ CONTAINS
  REAL (wp), INTENT (INOUT) :: &
       & tau_ice(:,:),     & !< optical depth of cloud ice integrated over bands
       & tau_snow(:,:)       !< optical depth of snow integrated over bands
- 
+
  REAL (wp), INTENT (INOUT) :: &
       & rad_2d(:)           !< arbitrary 2d-field in radiation for output
 
@@ -1468,7 +1468,7 @@ CONTAINS
       & s_xvmr_o3        (jce-jcs+1,klev),       & !< o3  volume mixing ratio
       & s_xvmr_o2        (jce-jcs+1,klev)          !< o2  volume mixing ratio
 
- REAL(wp), ALLOCATABLE ::    & 
+ REAL(wp), ALLOCATABLE ::    &
       & s_aer_tau_lw(:,:,:), &
       & s_aer_tau_sw(:,:,:), &
       & s_aer_ssa_sw(:,:,:), &
@@ -1542,7 +1542,7 @@ CONTAINS
 
   IF ( lneed_aerosols ) THEN
     ! Aerosols are present, irad_aero /= 0
-    !      
+    !
     ALLOCATE( s_aer_tau_lw(jce-jcs+1,klev,k_dist_lw%get_nband()), &
               s_aer_tau_sw(jce-jcs+1,klev,k_dist_sw%get_nband()), &
               s_aer_ssa_sw(jce-jcs+1,klev,k_dist_sw%get_nband()), &
@@ -1594,7 +1594,7 @@ CONTAINS
       & s_xvmr_cfc(:,:,:),        s_xvmr_o3(:,:),           s_xvmr_o2(:,:),          &
       & s_aer_tau_lw(:,:,:),                                                         &
       & s_aer_tau_sw(:,:,:),      s_aer_ssa_sw(:,:,:),      s_aer_asy_sw(:,:,:),     &
-      !     
+      !
       & s_lw_upw(:,:),            s_lw_upw_clr(:,:),                                 &
       & s_lw_dnw(:,:),            s_lw_dnw_clr(:,:),                                 &
       & s_sw_upw(:,:),            s_sw_upw_clr(:,:),                                 &
@@ -1661,7 +1661,7 @@ END SUBROUTINE reorient_3d_wrt2
 
 SUBROUTINE rearrange_bands2rrtmgp(nproma, klev, nbnd, field)
   INTEGER,  INTENT(IN)    :: nproma, klev, nbnd
-  REAL(wp), INTENT(INOUT) :: field(nproma,klev,nbnd) 
+  REAL(wp), INTENT(INOUT) :: field(nproma,klev,nbnd)
 
 #ifndef _OPENACC
   INTEGER  :: i
@@ -1669,7 +1669,7 @@ SUBROUTINE rearrange_bands2rrtmgp(nproma, klev, nbnd, field)
   REAL(wp) :: last
   INTEGER  :: jk, jl, jband
 #endif
-  
+
 #ifndef _OPENACC
   field(:,:,:) = field(:,:,[nbnd, (i, i = 1, nbnd-1)])
 #else

@@ -316,7 +316,7 @@ MODULE mo_mpi
   PUBLIC :: get_my_mpi_all_comm_size   ! this is the the size of the communicator for the specific component
   PUBLIC :: get_my_mpi_work_communicator   ! the communicator for the workers of this component
   PUBLIC :: get_my_mpi_work_comm_size   ! this is the the size of the workers
-  PUBLIC :: get_hamocc_ocean_mpi_communicator 
+  PUBLIC :: get_hamocc_ocean_mpi_communicator
 
   PUBLIC :: get_mpi_all_workroot_id, get_my_global_mpi_id, get_my_mpi_all_id
   PUBLIC :: get_mpi_all_ioroot_id
@@ -421,7 +421,7 @@ MODULE mo_mpi
   PUBLIC :: p_real_dp_byte, p_real_sp_byte, p_int_byte
   PUBLIC :: p_int_i4_byte, p_int_i8_byte
   PUBLIC :: p_mpi_comm_null
-  
+
   ! mpi reduction operators
   PUBLIC :: mpi_lor, mpi_land, mpi_sum, mpi_min, mpi_max, &
        mpi_minloc, mpi_maxloc
@@ -620,7 +620,7 @@ MODULE mo_mpi
   INTEGER :: p_int_i8_byte  = 0
 
   INTEGER :: p_mpi_comm_null = -32766
-  
+
   ! Flag if processor splitting is active
   LOGICAL, PUBLIC :: proc_split = .FALSE.
 
@@ -628,7 +628,7 @@ MODULE mo_mpi
   INTEGER, PARAMETER :: gpu_comm_queue_depth = 32
   INTEGER :: gpu_comm_queue(gpu_comm_queue_depth)
   INTEGER :: gpu_comm_queue_id = 0
-  LOGICAL :: nccl_active = .FALSE. 
+  LOGICAL :: nccl_active = .FALSE.
   TYPE(ncclComm) :: nccl_comm
   TYPE(ncclUniqueId) :: nccl_id
   PUBLIC :: push_gpu_comm_queue, pop_gpu_comm_queue
@@ -985,7 +985,7 @@ MODULE mo_mpi
   CHARACTER(*), PARAMETER :: modname = 'mo_mpi'
 
   CHARACTER(len=256) :: message_text = ''
-  
+
 
 CONTAINS
 
@@ -2058,28 +2058,28 @@ CONTAINS
 
         IF ((get_my_process_type() == hamocc_process .or. get_my_process_type() == ocean_process) &
             .AND. my_mpi_function == work_mpi_process) THEN
-          my_color = 1 
+          my_color = 1
         ELSE
           my_color = 0
         ENDIF
         ! create a intracommunicator between hamocc and ocean
         CALL mpi_comm_split(global_mpi_communicator, my_color, my_global_mpi_id, &
           tmp_common_intracom, p_error)
-          
+
         IF (my_color == 0)  THEN
           ! we will not use this communicator if not hamocc and ocean
           CALL MPI_COMM_FREE(tmp_common_intracom, p_error)
-          hamocc_ocean_mpi_communicator = MPI_COMM_NULL 
+          hamocc_ocean_mpi_communicator = MPI_COMM_NULL
         ELSE
           !------------------------------------------------
-          ! we neet to create an intercommunicator 
+          ! we neet to create an intercommunicator
           !   split again to the compoment communicators
           CALL MPI_COMM_RANK (tmp_common_intracom, my_common_intracom_mpi_id, p_error)
           my_color = get_my_process_type()
           CALL mpi_comm_split(tmp_common_intracom, my_color, my_common_intracom_mpi_id, &
             tmp_work_intracom, p_error)
-          CALL MPI_COMM_RANK (tmp_work_intracom, my_work_intracom_mpi_id, p_error)        
-        
+          CALL MPI_COMM_RANK (tmp_work_intracom, my_work_intracom_mpi_id, p_error)
+
           ! get the my_common_intracom_mpi_id of the roots to proc 0
           !   first get the hamocc root_buffer
           I_am_sender = .false.
@@ -2091,7 +2091,7 @@ CONTAINS
           ENDIF
           IF (my_common_intracom_mpi_id == 0) I_am_receiver = .true.
           IF (I_am_receiver .and. I_am_sender) THEN
-            ! do nothing 
+            ! do nothing
             I_am_receiver = .false.
             I_am_sender   = .false.
           ENDIF
@@ -2100,12 +2100,12 @@ CONTAINS
             CALL MPI_SEND(root_buffer, 1, p_int, 0, 0, tmp_common_intracom, p_error)
           ENDIF
           IF (I_am_receiver) THEN
-            root_buffer(1) = -1        
+            root_buffer(1) = -1
             CALL MPI_RECV(root_buffer, 1, p_int, MPI_ANY_SOURCE, 0, &
               & tmp_common_intracom, p_status, p_error)
-            hamocc_root = root_buffer(1)          
-          ENDIF        
-          
+            hamocc_root = root_buffer(1)
+          ENDIF
+
           ! now get the ocean root_buffer
           I_am_sender = .false.
           I_am_receiver = .false.
@@ -2116,7 +2116,7 @@ CONTAINS
           ENDIF
           IF (my_common_intracom_mpi_id == 0) I_am_receiver = .true.
           IF (I_am_receiver .and. I_am_sender) THEN
-            ! do nothing 
+            ! do nothing
             I_am_receiver = .false.
             I_am_sender   = .false.
           ENDIF
@@ -2125,23 +2125,23 @@ CONTAINS
             CALL MPI_SEND(root_buffer, 1, p_int, 0, 0, tmp_common_intracom, p_error)
           ENDIF
           IF (I_am_receiver) THEN
-            root_buffer(1) = -1        
+            root_buffer(1) = -1
             CALL MPI_RECV(root_buffer, 1, p_int, MPI_ANY_SOURCE, 0, &
               & tmp_common_intracom, p_status, p_error)
-            ocean_root = root_buffer(1)          
-          ENDIF        
-        
+            ocean_root = root_buffer(1)
+          ENDIF
+
           ! ok, now broadcast the ocean and hamocc roots
           IF (my_common_intracom_mpi_id == 0) THEN
             root_buffer(1) = ocean_root
-            root_buffer(2) = hamocc_root          
+            root_buffer(2) = hamocc_root
             CALL MPI_BCAST(root_buffer, 2, p_int, 0, tmp_common_intracom, p_error)
           ELSE
             CALL MPI_BCAST(root_buffer, 2, p_int, 0, tmp_common_intracom, p_error)
             ocean_root = root_buffer(1)
             hamocc_root = root_buffer(2)
           ENDIF
-          
+
           ! now we are ready to create the intercommunicator between haomcc and ocean
           IF (my_process_is_ocean()) THEN
             CALL MPI_Intercomm_create(tmp_work_intracom, 0, tmp_common_intracom, &
@@ -2150,20 +2150,20 @@ CONTAINS
               ! this is a hamocc process
             CALL MPI_Intercomm_create(tmp_work_intracom, 0, tmp_common_intracom, &
                 & ocean_root, 0, hamocc_ocean_mpi_communicator, p_error)
-                                    
+
           ENDIF
-          
+
           CALL MPI_COMM_FREE(tmp_work_intracom, p_error)
           CALL MPI_COMM_FREE(tmp_common_intracom, p_error)
 
-          ! -- done -- 
+          ! -- done --
         ENDIF
-        
+
         DEALLOCATE(root_buffer)
-       
-      ENDIF ! hamocc process exists 
+
+      ENDIF ! hamocc process exists
 #endif
-    
+
 #ifdef HAVE_YAXT
 !   initialize here yaxt for all the processors
       IF (.NOT. xt_initialized()) CALL xt_initialize(global_mpi_communicator)
@@ -2189,7 +2189,7 @@ CONTAINS
         CALL push_gpu_comm_queue(1)
       END IF
 #endif
-   
+
 
 #ifdef DEBUG
       WRITE (nerr,'(a,a,i5)') method_name, ' p_pe=',            p_pe
@@ -2839,7 +2839,7 @@ CONTAINS
   !------------------------------------------------------------------------------
   SUBROUTINE stop_mpi
 
-    INTEGER :: iexit = 0    
+    INTEGER :: iexit = 0
     ! finish MPI and clean up all PEs
 
 #ifndef NOMPI
@@ -4062,7 +4062,7 @@ CONTAINS
            &         p_comm, out_request, p_error)
       !$ACC END HOST_DATA
 #endif
-                
+
       IF (PRESENT(request)) THEN
         request               = out_request
       ELSE
@@ -6274,7 +6274,7 @@ CONTAINS
 #endif
 
   END SUBROUTINE p_irecv_dp_4d
-  
+
   !================================================================================================
   ! INTEGER SECTION -------------------------------------------------------------------------------
   !
@@ -8971,7 +8971,7 @@ CONTAINS
     TYPE(datetime), POINTER             :: mtime_datetime_ptr
     TYPE(datetime), POINTER             :: datetime_loc
     INTEGER                             :: errno
- 
+
 #ifndef NOMPI
     mtime_datetime_ptr => mtime_datetime
     CALL datetimeToString(mtime_datetime_ptr, mtime_datetime_str, errno)

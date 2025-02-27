@@ -71,7 +71,7 @@ def horizPlot(ifile,timesteps,varnames,experiment,plots,lock,plotDir=".")
   levelsOfVars = {}
   varnames.each {|varname| (1..3).each {|levidx| (levelsOfVars[varname] ||= [] ) << Cdo.showlevel(input: " -sellevidx,#{levidx} -selname,#{varname} #{timestepData}").first }}
 
-  timesteps.each {|ts| 
+  timesteps.each {|ts|
     levelsOfVars.each {|varname,levels|
       levels.each_with_index {|level,levidx|
         im = plotter.scalarPlot(timestepData,"#{varname}_#{level}m_TS#{ts}_#{File.basename(ifile,'.nc')}",varname,
@@ -176,7 +176,7 @@ end
 files.each {|file|
   warn "Cannot read file '#{file}'" unless File.exist?(file)
 }
-unless File.exist?(maskFile) 
+unless File.exist?(maskFile)
   warn "Cannot open maskfile '#{maskFile}' - try to compute it"
   Cdo.selname(maskVar,input: " -seltimestep,1 "+files[0], output: maskFile)
   exit -1 unless File.exist?(maskFile)
@@ -273,4 +273,3 @@ experimentAnalyzedData.each {|experiment,files|
 q.run
 cropSecPlots(secPlots) if plot?
 cropMapPlots(mapPlots) if plot?
-

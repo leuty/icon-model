@@ -553,7 +553,7 @@ CONTAINS
     this%destPE = 0
 #ifndef NOMPI
     memBytes = tOffCl(4) * typeByte(2)
-! as of MPI3.0 standard the following MPI_Alloc_mem interface must be 
+! as of MPI3.0 standard the following MPI_Alloc_mem interface must be
 ! present, if the compiler provides ISO_C_BINDING
     CALL MPI_Alloc_mem(MAX(memBytes, 64_addr), MPI_INFO_NULL, cMemPtr, ierr)
     HANDLE_MPI_ERROR(ierr, 'MPI_Alloc_mem')

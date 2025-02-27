@@ -21,7 +21,3 @@ python $srciptfolder/check_style.py -i $inputfile $outputfile
 if [ $? -ne 0 ];  then
    echo "check_style.py returned an Error. File $filename is unchanged."
 fi
-
-
-
-

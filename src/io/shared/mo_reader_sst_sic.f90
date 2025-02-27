@@ -23,7 +23,7 @@ MODULE mo_reader_sst_sic
        &                                datetime, newdatetime, deallocatedatetime,        &
        &                                OPERATOR(+), ASSIGNMENT(=),                       &
        &                                no_of_ms_in_a_day, no_of_ms_in_a_hour,            &
-       &                                no_of_ms_in_a_minute, no_of_ms_in_a_second 
+       &                                no_of_ms_in_a_minute, no_of_ms_in_a_second
   USE mo_mpi,                     ONLY: my_process_is_stdio, my_process_is_mpi_workroot, &
        &                                process_mpi_root_id, p_comm_work, p_bcast
   USE mo_read_netcdf_distributed, ONLY: distrib_nf_open, distrib_read, distrib_nf_close, &
@@ -124,7 +124,7 @@ CONTAINS
     epoch_datetime => newdatetime(epoch)
     CALL getJulianDayFromDatetime(epoch_datetime, epoch_jd)
     CALL deallocateDatetime(epoch_datetime)
-    
+
     SELECT CASE (base_timeaxis_unit)
     CASE('days')
       time_multiplicator = no_of_ms_in_a_day
@@ -135,7 +135,7 @@ CONTAINS
     CASE('seconds')
       time_multiplicator = no_of_ms_in_a_second
     END SELECT
-    
+
     ALLOCATE(times(ntimes))
 
     DO i = 1, ntimes
@@ -156,7 +156,7 @@ CONTAINS
     TYPE(t_ptr_3d_wp)                    :: tmp(1)
 
     CHARACTER(len=*), PARAMETER :: routine = 'sst_sic_get_one_timelevel'
-    
+
 
     ALLOCATE(temp(get_nproma(), 1, this%p_patch%nblks_c, 1))
     temp(:,:,:,:) = -1.0_wp
@@ -220,7 +220,7 @@ CONTAINS
   SUBROUTINE get_cf_timeaxis_desc(cf_timeaxis_string, epoch, base_timeaxis_unit)
     CHARACTER(len=*), INTENT(in) :: cf_timeaxis_string
     CHARACTER(len=:), ALLOCATABLE, INTENT(out) :: epoch, base_timeaxis_unit
-    
+
     ! The CF convention allows for a timezone to be included. We will
     ! ignore that one for all , but gets stored to word(5), if
     ! provided, to keep the algorithm simple.
@@ -247,14 +247,14 @@ CONTAINS
     normalize_date: BLOCK
       INTEGER :: idx1, idx2
       INTEGER :: year, month, day
-      idx1 = INDEX(word(3), '-')    
+      idx1 = INDEX(word(3), '-')
       idx2 = INDEX(word(3)(idx1+1:), '-')+idx1
       READ(word(3)(      :idx1-1),*) year
       READ(word(3)(idx1+1:idx2-1),*) month
       READ(word(3)(idx2+1:      ),*) day
       WRITE(word(3),'(i0,a,i2.2,a,i2.2)') year, '-', month, '-', day
     END BLOCK normalize_date
-    
+
     IF (word(4) /= "") THEN
       epoch = TRIM(word(3))//'T'//TRIM(word(4))
     ELSE
@@ -264,5 +264,5 @@ CONTAINS
     base_timeaxis_unit = TRIM(word(1))
 
   END SUBROUTINE get_cf_timeaxis_desc
-  
+
 END MODULE mo_reader_sst_sic

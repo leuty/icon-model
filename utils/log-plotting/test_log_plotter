@@ -33,7 +33,7 @@ for exp_id in ${exp_ids_mkexp} ; do
     sample_dir=${sample_dir_base}/${exp_id}
     outdir=${scratchdir}/${exp_id}
     reference_dir=${reference_dir_base}/${exp_id}
-    for year in $(grep end $sample_dir/${exp_id}.log | awk -F '[T ]' '{print $3}' | sort | uniq ) ; do 
+    for year in $(grep end $sample_dir/${exp_id}.log | awk -F '[T ]' '{print $3}' | sort | uniq ) ; do
     time python ../../run/standard_experiments/DEFAULT.mon_log.tmpl --script_dir ${sample_dir} \
            --exp_id ${exp_id} \
            --model_dir $(realpath ./../../) \
@@ -55,4 +55,3 @@ for exp_id in ${exp_ids_make_runscripts} ; do
     ./plot_make_runscripts_log ${sample_dir_base}/${exp_id} ${exp_id} ${scratchdir}/${exp_id}
     ./imagediff ${reference_dir_base}/${exp_id} ${scratchdir}/${exp_id}
 done
-

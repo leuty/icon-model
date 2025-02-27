@@ -100,7 +100,7 @@ SUBROUTINE nwp_turbtrans  ( tcall_turb_jg,                     & !>in
                           & p_prog_rcf,                        & !>inout
                           & p_diag ,                           & !>inout
                           & prm_diag,                          & !>inout
-                          & prm_nwp_tend,                      & !>inout 
+                          & prm_nwp_tend,                      & !>inout
                           & wtr_prog_new,                      & !>in
                           & lnd_prog_new,                      & !>inout
                           & lnd_diag,                          & !>inout
@@ -117,7 +117,7 @@ SUBROUTINE nwp_turbtrans  ( tcall_turb_jg,                     & !>in
   TYPE(t_wtr_prog),            INTENT(in)   :: wtr_prog_new    !< prog vars for wtr
   TYPE(t_lnd_prog),     TARGET,INTENT(inout):: lnd_prog_new    !< prog vars for sfc
   TYPE(t_lnd_diag),            INTENT(inout):: lnd_diag        !< diag vars for sfc
-  TYPE(t_nwp_phy_tend), TARGET,INTENT(inout):: prm_nwp_tend    !< atm tend vars 
+  TYPE(t_nwp_phy_tend), TARGET,INTENT(inout):: prm_nwp_tend    !< atm tend vars
   REAL(wp),                    INTENT(in)   :: tcall_turb_jg   !< time interval for
                                                                !< turbulence
   LOGICAL, OPTIONAL,           INTENT(in)   :: lacc            !< GPU flag
@@ -172,7 +172,7 @@ SUBROUTINE nwp_turbtrans  ( tcall_turb_jg,                     & !>in
   REAL(wp), DIMENSION(nproma,3) :: tkvm_t, tkvh_t, rcld_t
 
   ! 2D fields (tiles)
-  REAL(wp), DIMENSION(nproma,ntiles_total+ntiles_water) :: & !auxilary arrays with tile-dimension for 
+  REAL(wp), DIMENSION(nproma,ntiles_total+ntiles_water) :: & !auxilary arrays with tile-dimension for
    tfm_t, tfh_t, t_2m_t, qv_2m_t, td_2m_t, rh_2m_t           !surface-varibales with (so far) no tile-specific global arrays
 
   REAL(wp), DIMENSION(nproma) :: &
@@ -353,13 +353,13 @@ SUBROUTINE nwp_turbtrans  ( tcall_turb_jg,                     & !>in
 
         !$ACC PARALLEL ASYNC(1) DEFAULT(PRESENT) IF(lzacc)
         !$ACC LOOP GANG VECTOR PRIVATE(jc, lc_class, z0_mod, z0_min, sai_min, fsn_flt, area_frac)
-        DO ic = 1, ext_data%atm%gp_count_t(jb,jt) !loop over all grid-points of current land (sub-)tile 
+        DO ic = 1, ext_data%atm%gp_count_t(jb,jt) !loop over all grid-points of current land (sub-)tile
            jc = ext_data%atm%idx_lst_t(ic,jb,jt)  !  or over all not-tiled land-points
 
           sai_eff_t(ic,it) = ext_data%atm%sai_t(jc,jb,jt) !effective SAI equals current land-use SAI
 
-          ! Reduction of land-cover related roughness length due to vegetation (according G.Z): 
-          lc_class = MAX(1,ext_data%atm%lc_class_t(jc,jb,jt)) !land-class index (MAX-function as to avoid segfaults) 
+          ! Reduction of land-cover related roughness length due to vegetation (according G.Z):
+          lc_class = MAX(1,ext_data%atm%lc_class_t(jc,jb,jt)) !land-class index (MAX-function as to avoid segfaults)
           z0_min = ext_data%atm%z0_lcc_min(lc_class) !minimal roughness length (meets fully smoothed snow-roughness)
           z0_mod = ext_data%atm%z0_lcc    (lc_class) !roughness length according to land class
           z0_mod = MAX( z0_mod*SQRT( MAX( 0.5_wp, MIN( 1._wp, 1.3333_wp*ext_data%atm%plcov_t(jc,jb,jt) ) ) ), & !reduced value
@@ -425,10 +425,10 @@ SUBROUTINE nwp_turbtrans  ( tcall_turb_jg,                     & !>in
         DO ic = 1, ext_data%atm%gp_count_t(jb,jt) !loop over all grid-points belonging to a land (sub-)tile
            jc = ext_data%atm%idx_lst_t(ic,jb,jt)
           sai_eff_t(ic,it) = ext_data%atm%sai(jc,jb) !grid-point average of SAI
-          gz0_eff_t(ic,it) =     prm_diag%gz0(jc,jb) !                  and g*z0 
+          gz0_eff_t(ic,it) =     prm_diag%gz0(jc,jb) !                  and g*z0
 
-          !Note(MR): 
-          !In case of a not-tiled grid-point with a water surface, '%gz0(jc,jb)=%gz0_t(jc,jb,1)' is just the latest update 
+          !Note(MR):
+          !In case of a not-tiled grid-point with a water surface, '%gz0(jc,jb)=%gz0_t(jc,jb,1)' is just the latest update
           ! that has been calculated in SUB 'turbtran'.
           !Attention(MR):
           !Particularly at costal grid-points, the grid-point average may by very different from the tile-specific value,
@@ -446,7 +446,7 @@ SUBROUTINE nwp_turbtrans  ( tcall_turb_jg,                     & !>in
       DO ic = 1, ext_data%atm%gp_count_t(jb,1) !loop over all grid-points belonging to a land point
          jc = ext_data%atm%idx_lst_t(ic,jb,1)
 
-         ! Shift 'sai_eff_t'- and 'gz0_eff_t'-values, which are so far stored contiguously at tile-index "0" 
+         ! Shift 'sai_eff_t'- and 'gz0_eff_t'-values, which are so far stored contiguously at tile-index "0"
          !  for all land points, back to their grid-point indices at tile-index "1":
          sai_eff_t(jc,1) = sai_eff_t(ic,0)
          gz0_eff_t(jc,1) = gz0_eff_t(ic,0)
@@ -465,11 +465,11 @@ SUBROUTINE nwp_turbtrans  ( tcall_turb_jg,                     & !>in
       END DO
       !$ACC END PARALLEL
 
-      !Note(MR): 
+      !Note(MR):
       !This measures are necessary, since SUB 'turbtran' expects grid-point vectors in this case!
     END IF
 
-    !Note(MR): 
+    !Note(MR):
     !For non-land (sub-)tiles, the global tile-specific values '%gz0_t(jc,jb,jt)' (being iteratively updates in SUB 'turbtran')
     ! and '%sai_t(jc,jb,jt)' have not been affected; and they are still being applied in the following!
 
@@ -506,7 +506,7 @@ SUBROUTINE nwp_turbtrans  ( tcall_turb_jg,                     & !>in
           & z0m=prm_diag%gz0(:,jb)/grav,                                   & !in
           !for now z0m is assumed to be equal to z0h - GABLS1
           & z0h=prm_diag%gz0(:,jb)/grav,                                   & !in
-          & prm_nwp_tend = prm_nwp_tend,                                   & !in 
+          & prm_nwp_tend = prm_nwp_tend,                                   & !in
           & tvm          = prm_diag%tvm(:,jb),                             & !inout
           & tvh          = prm_diag%tvh(:,jb),                             & !inout
           & shfl_s       = prm_diag%shfl_s(:,jb),                          & !out
@@ -526,7 +526,7 @@ SUBROUTINE nwp_turbtrans  ( tcall_turb_jg,                     & !>in
 !-------------------------------------------------------------------------
 !< COSMO turbulence scheme by M. Raschendorfer
 !-------------------------------------------------------------------------
- 
+
       ! note that TKE must be converted to the turbulence velocity scale SQRT(2*TKE)
       ! for turbdiff
       ! INPUT to turbtran is timestep new
@@ -667,13 +667,13 @@ SUBROUTINE nwp_turbtrans  ( tcall_turb_jg,                     & !>in
           prm_diag%lhfl_s_t(jc,jb,1) = prm_diag%qhfl_s_t(jc,jb,1) &
                                       *MERGE( lh_s, & !latent heat-flux with respect to ice surface
                                               lh_v, & !                                 water
-                                              l_sice(jc) ) !a frozen surface of a lake or sea-ice point   
+                                              l_sice(jc) ) !a frozen surface of a lake or sea-ice point
           !Notes:
           !So far, for a frozen land-surface, always 'lh_v' is used. However, '%qhfl_s_t' and '%lhfl_s_t',
           ! as well as '%shfl_s_t', are going to be overwritten for land-points by 'terra';
           ! hence, this calculation only matters for non-land points (lakes, sea-water or sea-ice).
           !Further, for atmospheric vertical diffusion, only the grid-point variables of the fluxes
-          ! '%shfl_s, %qhfl_s, umfl_s, vmfl_s' are used, which are loaded by the values for tile "1" 
+          ! '%shfl_s, %qhfl_s, umfl_s, vmfl_s' are used, which are loaded by the values for tile "1"
           ! in 'mo_nwp_sfc_interface'.
           !While, at land points, '%lhfl_s' (as well as '%lhfl_s_t') is only used for model-output,
           ! '%lhfl_s_t' (as well as '%shfl_t') is used as input for the lake- and seaice-schemes.
@@ -771,7 +771,7 @@ SUBROUTINE nwp_turbtrans  ( tcall_turb_jg,                     & !>in
           i_count = gp_num_t(jt)
           !$ACC END KERNELS
           ilist => list_t(jt)%gp_idx
-          !Note(MR): 
+          !Note(MR):
           !Since the scalar 'i_count' is not a constant, it needs special treatment for 'cuda_graph' capturing.
 
 #ifndef _OPENACC
@@ -798,8 +798,8 @@ SUBROUTINE nwp_turbtrans  ( tcall_turb_jg,                     & !>in
             ENDDO
           ENDDO
           !$ACC END PARALLEL
-          
-          !Remapping the unconditionally required levels of all varibales with a tile-specific surface level: 
+
+          !Remapping the unconditionally required levels of all varibales with a tile-specific surface level:
 
           !$ACC PARALLEL ASYNC(acc_async_queue) DEFAULT(PRESENT) IF(lzacc)
           !$ACC LOOP GANG VECTOR PRIVATE(jc)
@@ -835,13 +835,13 @@ SUBROUTINE nwp_turbtrans  ( tcall_turb_jg,                     & !>in
             tkvh_t (ic,2)       = prm_diag%tkvh     (jc,nlev,jb)
             tkvh_t (ic,3)       = prm_diag%tkvh_s_t (jc,jb,jt)     ! tile-specific for lowest level
             tkr_t  (ic)         = prm_diag%tkr_t    (jc,jb,jt)     ! used for time-step iteration (if "imode_trancnf>=4")
-            IF (ladsshr .OR. (tdc%imode_trancnf.LT.4 .AND. tdc%imode_suradap>=1)) THEN 
+            IF (ladsshr .OR. (tdc%imode_trancnf.LT.4 .AND. tdc%imode_suradap>=1)) THEN
                !surface-layer adaptations to additonal shear at "k=ke" required:
               tfm_t(ic,jt)      = prm_diag%tfm      (jc,jb)        ! drag-related reduct.-fact. for 'tkvm(:,ke)'  due to LLDCs
               tfh_t(ic,jt)      = prm_diag%tfh      (jc,jb)        ! addit. shear-forcing at "k=ke" due to the impact of LLDCs
             END IF
             IF (ladsshr) THEN !treatment of additional surface-shear by NTCs or LLDCs active
-              tfv_t(ic)         = prm_diag%tfv      (jc,jb)        ! additional shear-forcing at "k=ke" by NTCs 
+              tfv_t(ic)         = prm_diag%tfv      (jc,jb)        ! additional shear-forcing at "k=ke" by NTCs
             END IF
 
             tvm_t  (ic)         = prm_diag%tvm_t    (jc,jb,jt)
@@ -1315,7 +1315,7 @@ SUBROUTINE nwp_turbtrans  ( tcall_turb_jg,                     & !>in
 
     ! Compute wind speed in 10m
     ! used by mo_albedo (albedo_whitecap=1)
-    ! 
+    !
     !$ACC PARALLEL ASYNC(1) DEFAULT(PRESENT) IF(lzacc)
     !$ACC LOOP GANG VECTOR
     DO jc = i_startidx, i_endidx

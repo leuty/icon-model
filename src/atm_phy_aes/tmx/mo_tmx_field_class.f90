@@ -100,7 +100,7 @@ MODULE mo_tmx_field_class
   END ENUM
 
   CHARACTER(len=*), PARAMETER :: modname = 'mo_tmx_field_class'
-  
+
 CONTAINS
 
   FUNCTION t_tmx_field_constructor(name, dims, type) RESULT(field)
@@ -142,7 +142,7 @@ CONTAINS
     CLASS (t_tmx_field_list) :: this
     CHARACTER(len=*), INTENT(IN) :: name
     CLASS(t_tmx_field), POINTER :: tv
-    
+
     TYPE(t_variable_item), POINTER :: item
     CLASS(*), POINTER :: variable
 
@@ -150,7 +150,7 @@ CONTAINS
 
     item => this%getFirstVariable()
     DO WHILE ( (.NOT. item%is_item_equal_to_key(name)) .AND. ASSOCIATED(item) )
-      item => this%getNextVariable(item) 
+      item => this%getNextVariable(item)
     ENDDO
 
     variable => item%item_value
@@ -264,7 +264,7 @@ CONTAINS
     ALLOCATE(domain%i_endidx_c  (patch%nblks_c))
     ALLOCATE(domain%i_startidx_e(patch%nblks_e))
     ALLOCATE(domain%i_endidx_e  (patch%nblks_e))
-    
+
     rl_start = grf_bdywidth_c + 1
     rl_end   = min_rlcell_int
     domain%i_startblk_c = patch%cells%start_block(rl_start)

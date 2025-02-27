@@ -137,7 +137,7 @@
   ResC@gsnRightStringFontHeightF = FontHeight + 0.004
 
   ResC@cnFillOn             = True
-  ResC@cnLinesOn            = True 
+  ResC@cnLinesOn            = True
   ResC@cnLineLabelsOn       = False
 
   ResC@lbLabelBarOn             = True

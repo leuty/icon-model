@@ -45,7 +45,7 @@ MODULE mo_read_namelists
   USE mo_aes_rad_nml         ,ONLY: process_aes_rad_nml
   USE mo_aes_vdf_nml         ,ONLY: process_aes_vdf_nml
   USE mo_ccycle_nml          ,ONLY: process_ccycle_nml
-  
+
   USE mo_nwp_phy_nml         ,ONLY: read_nwp_phy_namelist
   USE mo_nwp_tuning_nml      ,ONLY: read_nwp_tuning_namelist
   USE mo_ensemble_pert_nml   ,ONLY: read_ensemble_pert_namelist
@@ -219,8 +219,8 @@ CONTAINS
     CALL read_nh_testcase_namelist    (atm_namelist_filename(1:tlen))
     IF (nh_test_name(1:10) == 'aes_bubble') THEN
       CALL process_aes_bubble_nml     (atm_namelist_filename(1:tlen))
-    END IF  
-    
+    END IF
+
     CALL read_scm_namelist            (atm_namelist_filename(1:tlen))
 
     ! Boundary conditions

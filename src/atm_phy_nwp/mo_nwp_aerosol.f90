@@ -20,7 +20,7 @@ MODULE mo_nwp_aerosol
   USE mo_kind,                    ONLY: wp
   USE mo_exception,               ONLY: finish, message, message_text
   USE mo_model_domain,            ONLY: t_patch
-  USE mo_grid_config,             ONLY: nroot 
+  USE mo_grid_config,             ONLY: nroot
   USE mo_ext_data_types,          ONLY: t_external_data
   USE mo_nonhydro_types,          ONLY: t_nh_diag
   USE mo_nwp_phy_types,           ONLY: t_nwp_phy_diag
@@ -190,7 +190,7 @@ CONTAINS
       &  latitude(nproma),     & !< Geographical latitude
       &  time_weight             !< Weihting for temporal interpolation
     REAL(wp),  ALLOCATABLE ::  &
-      &  cams(:,:,:,:)           !< CAMS climatology fields taken from external file 
+      &  cams(:,:,:,:)           !< CAMS climatology fields taken from external file
     INTEGER ::                 &
       &  jk, jc, jb, jt,       &
       &  jg,                   & !< Domain index
@@ -282,7 +282,7 @@ CONTAINS
 
           ! This is where ART should be placed
 
-          ! Compute cloud number concentration depending on aerosol climatology if 
+          ! Compute cloud number concentration depending on aerosol climatology if
           ! aerosol-microphysics or aerosol-convection coupling is turned on
           IF (atm_phy_nwp_config(pt_patch%id)%icpl_aero_gscp == 1 .OR. icpl_aero_conv == 1) THEN
             CALL nwp_cpl_aero_gscp_conv(i_startidx, i_endidx, pt_patch%nlev, pt_diag%pres_sfc(:,jb), pt_diag%pres(:,:,jb), &
@@ -324,7 +324,7 @@ CONTAINS
             DO jb = i_startblk,i_endblk
               CALL get_indices_c(pt_patch,jb,i_startblk,i_endblk,i_startidx,i_endidx,rl_start,rl_end)
               IF (i_startidx>i_endidx) CYCLE
-       
+
               CALL art_rad_aero_interface(zaeq1(:,:,jb),zaeq2(:,:,jb),       & !
                 &                         zaeq3(:,:,jb),zaeq4(:,:,jb),       & !< Tegen aerosol
                 &                         zaeq5(:,:,jb),                     & !
@@ -509,7 +509,7 @@ CONTAINS
         DO jb = i_startblk,i_endblk
           CALL get_indices_c(pt_patch,jb,i_startblk,i_endblk,i_startidx,i_endidx,rl_start,rl_end)
 
-          ! Compute cloud number concentration depending on aerosol climatology if 
+          ! Compute cloud number concentration depending on aerosol climatology if
           ! aerosol-microphysics or aerosol-convection coupling is turned on
           IF (atm_phy_nwp_config(pt_patch%id)%icpl_aero_gscp == 1 .OR. icpl_aero_conv == 1) THEN
             CALL nwp_cpl_aero_gscp_conv(i_startidx, i_endidx, pt_patch%nlev, pt_diag%pres_sfc(:,jb), pt_diag%pres(:,:,jb), &
@@ -688,7 +688,7 @@ CONTAINS
     ENDIF
 
     ! Volcanic stratospheric aerosols for CMIP6
-    IF (ANY( irad_aero == (/iRadAeroVolc,iRadAeroKinneVolc,iRadAeroKinneVolcSP/) )) THEN 
+    IF (ANY( irad_aero == (/iRadAeroVolc,iRadAeroKinneVolc,iRadAeroKinneVolcSP/) )) THEN
       CALL add_bc_aeropt_cmip6_volc(mtime_datetime, jg, i_startidx, i_endidx, nproma, nlev, jb, &
         &                           nbands_sw, nbands_lw, zf(:,:), dz(:,:),            &
         &                           od_sw_vr(:,:,:), ssa_sw_vr(:,:,:),                 &
@@ -840,7 +840,7 @@ CONTAINS
        CALL finish(routine, message_text)
     ENDIF
 
-    ! loop over grid points  
+    ! loop over grid points
     DO jc = i_startidx, i_endidx
       rescale=sfcpres(jc)/(cams_pres_in(jc,nk1)*sigmasfc)
       ! loop over target ICON levels
@@ -1003,9 +1003,9 @@ CONTAINS
       zaeqso (jc) = zvdaes(jc,1) * aerosol(jc,iss)
       zaeqlo (jc) = zvdael(jc,1) * aerosol(jc,iorg)
       zaeqsuo(jc) = zvdael(jc,1) * aerosol(jc,iso4)
-      zaequo (jc) = zvdaeu(jc,1) * aerosol(jc,ibc) 
+      zaequo (jc) = zvdaeu(jc,1) * aerosol(jc,ibc)
       zaeqdo (jc) = zvdaed(jc,1) * aerosol(jc,idu)
-    
+
       ! tropopause pressure and PBL stability
       jk          = k850(jc)
       zslatq      = SIN(latitude(jc))**2
@@ -1118,7 +1118,7 @@ CONTAINS
     time_weight = current_time_interpolation_weights%weight2
 
     CALL deallocateDatetime(current_time_hours)
-    
+
   END SUBROUTINE get_time_intp_weights
 
   !---------------------------------------------------------------------------------------

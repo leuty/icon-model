@@ -263,7 +263,7 @@ CONTAINS
       ELSE IF ( icpl_reff==0 ) THEN
         DO jl=1,jce
           IF (icldlyr(jl,jk)==1 .AND. (zlwp(jl,jk)+ziwp(jl,jk))>ccwmin) THEN
-            ! see ECHAM5 documentation (Roeckner et al, MPI report 349)            
+            ! see ECHAM5 documentation (Roeckner et al, MPI report 349)
             re_crystals(jl) = MAX(reimin ,MIN(reimax  ,83.8_wp*ziwc(jl,jk)**0.216_wp))
 !mk:opt   re_crystals = MAX(20.0_wp,MIN(150.0_wp,83.8_wp*ziwc(jl,jk)**0.216_wp))
             re_droplets(jl) = MAX(relmin,MIN(relmax,zfact*zkap(jl)*(zlwc(jl,jk) &
@@ -274,7 +274,7 @@ CONTAINS
         CALL finish('Invalid option for icpl_reff in newcld_optics')
       ENDIF
 
-!$NEC ivdep 
+!$NEC ivdep
       DO jl=1,jce
         IF (icldlyr(jl,jk)==1 .AND. (zlwp(jl,jk)+ziwp(jl,jk))>ccwmin) THEN
 

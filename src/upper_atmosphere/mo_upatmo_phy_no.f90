@@ -15,7 +15,7 @@ MODULE mo_upatmo_phy_no
 
   USE mo_kind,               ONLY: wp
   USE mo_impl_constants,     ONLY: SUCCESS
-  USE mo_physical_constants, ONLY: ak, avo, argas 
+  USE mo_physical_constants, ONLY: ak, avo, argas
 
   IMPLICIT NONE
 
@@ -24,12 +24,12 @@ MODULE mo_upatmo_phy_no
   PUBLIC :: no_heating
 
 CONTAINS
-  
+
   !>
   !! Compute heating rate due to radiative cooling at 5.3 x 10^-6 m by nitric oxide (NO)
   !!
   !! Literature:
-  !! - Kockarts, G. (1980) Nitric oxide cooling in the terrestrial thermosphere. 
+  !! - Kockarts, G. (1980) Nitric oxide cooling in the terrestrial thermosphere.
   !!   Geophys. Res. Lett., 7, 137-140.
   !!
   SUBROUTINE no_heating(jcs, jce, kbdim, klev, zo, zno, cp, tm1, apm1, amu, ptte, &
@@ -48,7 +48,7 @@ CONTAINS
 
     INTEGER, OPTIONAL, INTENT(IN)  :: opt_istartlev, opt_iendlev  ! optional vertical start and end indices
 
-    ! local variables 
+    ! local variables
     REAL(wp)              :: nd_o                   ! number density (1/m3)
     REAL(wp)              :: nd_no                  ! number density (1/m3)
     REAL(wp)              :: en_rate                ! energy rate (W/m3)
@@ -69,8 +69,8 @@ CONTAINS
 
     !---------------------------------------------------------
 
-    ! please do not limit range of assignment 
-    ! (e.g., ptte(jcs:jce,istartlev:iendlev) = 0._wp)), 
+    ! please do not limit range of assignment
+    ! (e.g., ptte(jcs:jce,istartlev:iendlev) = 0._wp)),
     ! since tendencies have attribute INTENT(OUT)
     ptte(:, :) = 0._wp
 
@@ -88,14 +88,14 @@ CONTAINS
       iendlev = klev
     ENDIF
 
-    IF (istartlev > iendlev) RETURN 
+    IF (istartlev > iendlev) RETURN
 
     DO jk = istartlev, iendlev
       DO jl = jcs, jce
 
         inv_tm1 = 1._wp / tm1(jl,jk)
-        
-        ! (hydrostatic) molar concentration of air = pres / ( R_ideal * temp ), 
+
+        ! (hydrostatic) molar concentration of air = pres / ( R_ideal * temp ),
         ! with the ideal gas constant R_ideal -> argas
         amc = inv_argas * inv_tm1 * apm1(jl,jk)
 
@@ -107,17 +107,17 @@ CONTAINS
         ! calculation of air density
         ! (factor 10^(-3) is for: [amu] = g/mol -> kg/mol)
         rho_air = 1.E-3_wp * amc * amu(jl,jk)
-        
+
         ! calculation of energy rate
         en_rate = ( ( hv_k10_a10 * nd_no * nd_o * EXP( n_hv_o_ak * inv_tm1 ) ) &
           &     / ( k10 * nd_o + a10 ) )
-        
+
         ! calculation of NO heating rate
         ptte(jl,jk) = -en_rate / ( cp(jl,jk) * rho_air )
-        
+
       ENDDO !jl
     ENDDO !jk
-    
+
   END SUBROUTINE no_heating
 
 END MODULE mo_upatmo_phy_no

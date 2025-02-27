@@ -45,7 +45,7 @@ MODULE mo_tmx_time_integration_class
   END INTERFACE
 
   CHARACTER(len=*), PARAMETER :: modname = 'mo_tmx_time_integration_class'
-  
+
 ! CONTAINS
 
 END MODULE mo_tmx_time_integration_class

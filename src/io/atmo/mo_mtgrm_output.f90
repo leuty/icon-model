@@ -985,7 +985,7 @@ CONTAINS
         &              "snow-cover fraction per land-cover class (melting unmodified)", &
         &              sfc_var_info, lnd_diag%snowfrac_lcu_t(:,:,:))
       CALL add_sfc_var(meteogram_config, var_list, VAR_GROUP_SURFACE, &
-       &              "W_I_T", "m H2O", & 
+       &              "W_I_T", "m H2O", &
        &              "water content of interception water", &
        &              sfc_var_info, lnd_prog%w_i_t(:,:,:))
       CALL add_sfc_var(meteogram_config, var_list, VAR_GROUP_SURFACE, &
@@ -3211,7 +3211,7 @@ CONTAINS
     IF (PRESENT(iidx)) THEN
       CALL add_sfc_var_2d(meteogram_config, var_list, igroup_id, zname, &
       &                  zunit, zlong_name, sfc_var_info, source(:,:,iidx))
-    ELSE 
+    ELSE
       nidx = SIZE(source, 3) ! get number of 2d var indices (e.g. tile number)
       DO isource_idx=1,nidx
         CALL add_sfc_var_2d(meteogram_config, var_list, igroup_id, &

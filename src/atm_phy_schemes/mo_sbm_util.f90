@@ -146,7 +146,7 @@ MODULE mo_sbm_util
                             ,ff2r_d,xi_d,vr2_d,vtc_d,fliqfr_id,ro2bl_d
  REAL(KIND=wp) :: t_new_d,rhocgs_d,pcgs_d,dt_d,qv_old_d,qv_d
  REAL(KIND=wp) :: xl_mg(nkr)
- REAL(KIND=wp),PRIVATE :: & 
+ REAL(KIND=wp),PRIVATE :: &
              & xs_mg(nkr),xg_mg(nkr),xh_mg(nkr), &
              & xi1_mg(nkr),xi2_mg(nkr),xi3_mg(nkr)
  ! ----------------------------------------------------------------------------------+
@@ -174,7 +174,7 @@ MODULE mo_sbm_util
  REAL(KIND=wp),ALLOCATABLE ::     fccnr_obs(:),ccnr(:)
  REAL(KIND=wp),ALLOCATABLE ::     scale_ccn_factor,xccn(:),rccn(:)
  ! ... warm-sbm-init
- ! --------------------------------------------------------------------------------+  
+ ! --------------------------------------------------------------------------------+
  INTEGER :: icloud
 ! ----aerosol setup
 ! aerosol size distribution (sd)
@@ -870,7 +870,7 @@ MODULE mo_sbm_util
     RETURN
 
     WRITE( txt , '(a,i4)' )                                               &
-    'module_fast_sbm: error opening hujisbm_data on unit, model stop' 
+    'module_fast_sbm: error opening hujisbm_data on unit, model stop'
     CALL finish(TRIM(modname),txt)
 
   END SUBROUTINE breakinit_ks
@@ -1140,7 +1140,7 @@ MODULE mo_sbm_util
     DO kr = 1,33
       chem_new(kr)=chem_new(kr)/(rhocgs/1000.0) ! local chem_new for ccn (used in sbm): [#/cm^3]. chem_new for ccn advected by the model is [#/kg]
     END DO
-  END SUBROUTINE ccn_init_sbm             
+  END SUBROUTINE ccn_init_sbm
 
 
 
@@ -1182,7 +1182,7 @@ MODULE mo_sbm_util
       !CALL message('pavel Ncn0',TRIM(message_text))
       IF (tune_sbmccn < 1.0_wp) THEN
         atm_phy_nwp_config(jg)%cfg_2mom%ccn_type = 6
-      END IF      
+      END IF
       IF (jg == 1) CALL two_moment_mcrph_init(igscp=4, msg_level=msg_level, cfg_2mom=atm_phy_nwp_config(jg)%cfg_2mom)
     END IF
 

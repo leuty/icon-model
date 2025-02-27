@@ -37,7 +37,7 @@ MODULE mo_icon_output_coupling
   USE mo_math_constants,      ONLY: pi
   USE mo_parallel_config,     ONLY: nproma
   USE mo_coupling_config,     ONLY: is_coupled_run
-  USE mo_time_config,         ONLY: time_config 
+  USE mo_time_config,         ONLY: time_config
   USE mo_hamocc_nml,          ONLY: l_cpl_co2
 
   !-------------------------------------------------------------
@@ -78,10 +78,9 @@ CONTAINS
 
     ! local variables
     CHARACTER(LEN=*), PARAMETER :: method_name = 'couple_icon_output_tomodel'
-    
+
 
   END SUBROUTINE couple_icon_output_tomodel
   !--------------------------------------------------------------------------
 
 END MODULE mo_icon_output_coupling
-

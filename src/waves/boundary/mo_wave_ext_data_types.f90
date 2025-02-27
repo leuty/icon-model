@@ -18,7 +18,7 @@ MODULE mo_wave_ext_data_types
 
   USE mo_kind,               ONLY: wp
   USE mo_fortran_tools,      ONLY: t_ptr_2d3d
-  
+
   IMPLICIT NONE
 
   PRIVATE

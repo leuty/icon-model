@@ -29,13 +29,13 @@
 %{' '*indent}# [%{path}]
 #%     endif
 #%     if offsets:
-%{' '*indent}for((%{year_var} = %{first_var} + %{offsets[0]}; %{year_var} <= %{last_var} + %{offsets[-1]}; ++%{year_var})) 
+%{' '*indent}for((%{year_var} = %{first_var} + %{offsets[0]}; %{year_var} <= %{last_var} + %{offsets[-1]}; ++%{year_var}))
 %{' '*indent}do
-#%       set indent = indent + 4 
+#%       set indent = indent + 4
 #%     endif
 #%#-
 #%#-   Extract variable mappings
-#%#-  
+#%#-
 #%-    for file in files:
 #%       if file[0:5] == '.set ':
 #%         set var = file[5:]
@@ -55,16 +55,16 @@
 #%     endfor
 #%#-
 #%#-   Write directory definition
-#%#-  
+#%#-
 #%-    if base_dir and label:
-#%       set base_var = label+'_dir' 
+#%       set base_var = label+'_dir'
 %{' '*indent}%{base_var}=%{base_dir}
 #%     endif
 #%#-
 #%#-   Generate file commands
 #%#-
 #%-    for file in files:
-#%       if files[file] is not mapping: 
+#%       if files[file] is not mapping:
 #%         if (file[0] != '.') and files[file]:
 #%           if files[file] == '.':
 #%             set source = file
@@ -97,7 +97,7 @@
 #%       endif
 #%     endfor
 #%     if offsets:
-#%       set indent = indent - 4 
+#%       set indent = indent - 4
 %{' '*indent}done # offsets
 #%     endif
 #%   endif

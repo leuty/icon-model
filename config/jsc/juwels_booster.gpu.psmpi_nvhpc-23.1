@@ -59,7 +59,7 @@ CFLAGS='-g -O2'  #remove g and check if this has impact on performance, + testin
 CPPFLAGS="-I${ROOT_ECCODES}/include -I${ROOT_HDF5}/include -I${ROOT_NETCDF}/include -I${ROOT_LIBXML2}/include/libxml2 -I${ROOT_LIBFYAML}/include"
 
 FC="${ROOT_PSMPI}/bin/mpif90"
-FCFLAGS="-I${ROOT_NETCDFMINFORTRAN}/include -g -O2 -Mrecursive -Mallocatable=03 -acc=verystrict,gpu -gpu=cc80 -Minfo=accel,inline -Mstack_arrays" 
+FCFLAGS="-I${ROOT_NETCDFMINFORTRAN}/include -g -O2 -Mrecursive -Mallocatable=03 -acc=verystrict,gpu -gpu=cc80 -Minfo=accel,inline -Mstack_arrays"
 
 LDFLAGS="-L${ROOT_ECCODES}/lib64 -L${ROOT_ECCODES}/lib -L${ROOT_HDF5}/lib -L${ROOT_PNETCDF}/lib -L${ROOT_NETCDF}/lib -L${ROOT_NETCDFMINFORTRAN}/lib -L${ROOT_LIBXML2}/lib64 -L${ROOT_LIBFYAML}/lib -L${ROOT_GCCCORE}/lib64"
 

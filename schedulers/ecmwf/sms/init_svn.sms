@@ -47,9 +47,9 @@ echo "INIT_SVN.SMS"
 # revison date of last git commit (e.g. 20170101)
 
   revision=`git log -1 --date=iso | grep Date | awk '{print $2}' | sed 's/-//g'`
- 
+
   smsevent svn_update
-  
+
   smsmeter revision $revision
 
  #ssh %SCHOST% "cd %SCPERM%/%DEIA_ICON_DIR% ; gmake distclean"
@@ -60,4 +60,3 @@ echo "INIT_SVN.SMS"
 
 # include the standard "tail" file
 %include <end_ws.h>
-

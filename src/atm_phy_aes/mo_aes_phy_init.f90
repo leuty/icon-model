@@ -153,17 +153,17 @@ CONTAINS
 
     ! Diagnostics (all time steps)
     ! ----------------------------
-    
+
     ! For surface processes
     ! nsfc_type, iwtr, etc. are set in this subroutine.
     ! See mo_sfc_indices.f90 for further details.
     !
     CALL init_sfc_indices( nh_test_name )
-    
+
     ! Lookup tables for saturation vapour pressure
     !
     CALL init_convect_tables
-    CALL init_aes_convect_tables 
+    CALL init_aes_convect_tables
 
 
     ! AES physics time control
@@ -230,7 +230,7 @@ CONTAINS
       ! indices in the range [iqt,ntracer].
       !
       ! Precipitating hydrometeors (rain, snow, graupel) are not diffused
-      ! 
+      !
       nhydromet = 2              ! diffuse two hydro meteor specied: cloud water and ice
       ntrac = ntracer - iqt + 1  ! and ntrac further species
       !
@@ -242,14 +242,14 @@ CONTAINS
 #ifndef __NO_JSBACH__
       IF (ilnd <= nsfc_type .AND. ANY(aes_phy_config(:)%ljsb)) THEN
         DO jg=1,ng
-          IF (aes_phy_config(jg)%ljsb) THEN 
+          IF (aes_phy_config(jg)%ljsb) THEN
             CALL jsbach_init(jg)
           END IF
         END DO ! jg
         ! IF (aes_vdf_config(1)%use_tmx) THEN
         !   CALL register_exchange_coefficients_procedure(sfc_exchange_coefficients)
         ! END IF
-      END IF ! 
+      END IF !
 #endif
 
     ENDIF
@@ -513,7 +513,7 @@ CONTAINS
     LOGICAL :: lany
     TYPE(t_stream_id) :: stream_id
 
-    CHARACTER(LEN=30)     :: filename 
+    CHARACTER(LEN=30)     :: filename
     CHARACTER(len=26+2+3) :: land_frac_fn
     CHARACTER(len=26+2+3) :: land_phys_fn
 
@@ -684,7 +684,7 @@ CONTAINS
       !
     END IF
 
-    
+
     ! for radiation and vertical diffusion
     !
     ! Read sea surface temperature, sea ice concentration and depth
@@ -730,9 +730,9 @@ CONTAINS
           ELSE
             filename = 'sst-sic-runmean_G.nc'
           END IF
-        
+
           CALL sst_sic_reader(jg)%init(p_patch(jg), filename)
-        
+
           CALL sst_intp(jg)%init(sst_sic_reader(jg), mtime_current, "SST")
           CALL sst_intp(jg)%intp(mtime_current, sst_dat, lacc=.FALSE.)
 
@@ -740,13 +740,13 @@ CONTAINS
           WHERE (sst_dat(:,1,:,1) > 0.0_wp)
             prm_field(jg)%ts_tile(:,:,iwtr) = sst_dat(:,1,:,1)
           END WHERE
-        
+
           CALL sic_intp(jg)%init(sst_sic_reader(jg), mtime_current, "SIC")
           CALL sic_intp(jg)%intp(mtime_current, sic_dat, lacc=.FALSE.)
           prm_field(jg)%seaice(:,:) = sic_dat(:,1,:,1)
           prm_field(jg)%seaice(:,:) = MERGE(0.99_wp, prm_field(jg)%seaice(:,:), prm_field(jg)%seaice(:,:) > 0.99_wp)
           prm_field(jg)%seaice(:,:) = MERGE(0.0_wp, prm_field(jg)%seaice(:,:), prm_field(jg)%seaice(:,:) <= 0.01_wp)
-        
+
           ! set ice thickness
           WHERE (prm_field(jg)%seaice(:,:) > 0.0_wp)
             prm_field(jg)%siced(:,:) = MERGE(2.0_wp, 1.0_wp, p_patch(jg)%cells%center(:,:)%lat > 0.0_wp)
@@ -786,7 +786,7 @@ CONTAINS
     TYPE(t_aes_phy_tend) ,POINTER :: tend  => NULL()
 
       jg = p_patch%id
-    
+
       field => prm_field(jg)
       tend  => prm_tend (jg)
 
@@ -794,7 +794,7 @@ CONTAINS
       ncd = MAX(1,p_patch%n_childdom)
       rls = 1 ! we need to intiialize also the boundary in the lam case
       rle = min_rlcell_int
-      
+
       jbs     = p_patch%cells%start_blk(rls,  1)
       jbe     = p_patch%cells%  end_blk(rle,ncd)
 
@@ -944,7 +944,7 @@ CONTAINS
         DO jb = jbs,jbe
           !
           CALL get_indices_c( p_patch, jb,jbs,jbe, jcs,jce, rls,rle)
-          IF (jcs>jce) CYCLE 
+          IF (jcs>jce) CYCLE
           !
           IF (.NOT. isrestart()) THEN
             DO jc = jcs,jce
@@ -968,7 +968,7 @@ CONTAINS
 
 #ifndef __NO_JSBACH__
         !
-        IF (.NOT. aes_phy_config(jg)%ljsb) THEN 
+        IF (.NOT. aes_phy_config(jg)%ljsb) THEN
           CALL finish('mo_aes_phy_init:init_aes_phy_field', 'aes_bubble_land testcase but JSBACH not activated (ljsb)')
         END IF
 
@@ -985,7 +985,7 @@ CONTAINS
         DO jb = jbs,jbe
           !
           CALL get_indices_c( p_patch, jb,jbs,jbe, jcs,jce, rls,rle)
-          IF (jcs>jce) CYCLE 
+          IF (jcs>jce) CYCLE
 
           IF (.NOT. isrestart()) THEN
             DO jc = jcs,jce
@@ -1025,7 +1025,7 @@ CONTAINS
         DO jb = jbs,jbe
           !
           CALL get_indices_c( p_patch, jb,jbs,jbe, jcs,jce, rls,rle)
-          IF (jcs>jce) CYCLE 
+          IF (jcs>jce) CYCLE
           !
           IF (.NOT. isrestart()) THEN
             DO jc = jcs,jce
@@ -1052,7 +1052,7 @@ CONTAINS
         DO jb = jbs,jbe
           !
           CALL get_indices_c( p_patch, jb,jbs,jbe, jcs,jce, rls,rle)
-          IF (jcs>jce) CYCLE 
+          IF (jcs>jce) CYCLE
           !
           IF (.NOT. isrestart()) THEN
             DO jc = jcs,jce
@@ -1091,7 +1091,7 @@ CONTAINS
           field% albvisdif_ice(:,:,:) = albi    ! albedo in the visible range for diffuse radiation
           field% albnirdif_ice(:,:,:) = albi    ! albedo in the NIR range for diffuse radiation
         END IF
-       
+
       CASE('APEc','APEc_nh')
         ! The same as APEi, except we initialize with no ice and don't modify the surface
         ! temperature. This is meant for a coupled run.
@@ -1100,7 +1100,7 @@ CONTAINS
         DO jb = jbs,jbe
           !
           CALL get_indices_c( p_patch, jb,jbs,jbe, jcs,jce, rls,rle)
-          IF (jcs>jce) CYCLE 
+          IF (jcs>jce) CYCLE
           !
           IF (.NOT. isrestart()) THEN
             DO jc = jcs,jce
@@ -1131,14 +1131,14 @@ CONTAINS
           field% albvisdif_ice(:,:,:) = albi  ! albedo in the visible range for diffuse radiation
           field% albnirdif_ice(:,:,:) = albi  ! albedo in the NIR range for diffuse radiation
         END IF
-     
+
       CASE('TPEc', 'TPEo') !Note that there is only one surface type (ilnd) in this case
         !
 !$OMP PARALLEL DO PRIVATE(jb,jc,jcs,jce,zlat) ICON_OMP_DEFAULT_SCHEDULE
         DO jb = jbs,jbe
           !
           CALL get_indices_c( p_patch, jb,jbs,jbe, jcs,jce, rls,rle)
-          IF (jcs>jce) CYCLE 
+          IF (jcs>jce) CYCLE
           !
           ! initial and re-start
           field% lsmask(jcs:jce,jb) = 1._wp   ! land fraction = 1
@@ -1161,7 +1161,7 @@ CONTAINS
         DO jb = jbs,jbe
           !
           CALL get_indices_c( p_patch, jb,jbs,jbe, jcs,jce, rls,rle)
-          IF (jcs>jce) CYCLE 
+          IF (jcs>jce) CYCLE
           !
           ! Set the surface temperature to the same value as the lowest model
           ! level above surface. For this test case, currently we assume
@@ -1189,7 +1189,7 @@ CONTAINS
       DO jb = jbs,jbe
         !
         CALL get_indices_c( p_patch, jb,jbs,jbe, jcs,jce, rls,rle)
-        IF (jcs>jce) CYCLE 
+        IF (jcs>jce) CYCLE
         !
         ! Set surface tiling fractions, wrt. the cell area
         DO jc = jcs,jce
@@ -1241,7 +1241,7 @@ CONTAINS
   !-------------
   !>
   !! Initialize the O3 tracer from the Cariolle initial ozone field.
-  !! Initialize ozone mass mixing ratios for Cariolle scheme. 
+  !! Initialize ozone mass mixing ratios for Cariolle scheme.
   !! An approximative initialization that considers the atmosphere as being dry is enough.
   !!
   SUBROUTINE init_o3_lcariolle( mtime_current  ,&
@@ -1283,7 +1283,7 @@ CONTAINS
     DO jb = jbs,jbe
       !
       CALL get_indices_c(p_patch, jb,jbs,jbe, jcs,jce, rls,rle)
-      IF (jcs>jce) CYCLE 
+      IF (jcs>jce) CYCLE
       !
       pfull(:,:)          =  pres (:,:,jb)
       avi%pres            => pfull

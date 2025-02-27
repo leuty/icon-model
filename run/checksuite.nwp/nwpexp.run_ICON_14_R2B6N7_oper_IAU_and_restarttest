@@ -14,7 +14,7 @@
 #
 # Global R2B6 main run with R2B7 EU nest.
 # Starting from DWD analysis (IAU)
-# For the nest, surface analysis is read from file, while atmospheric analysis 
+# For the nest, surface analysis is read from file, while atmospheric analysis
 # is interpolated from parent grid.
 #
 # Checks:
@@ -40,7 +40,7 @@
 make_and_change_to_experiment_dir # function in ../add_run_routines
 
 # Combine START and MODEL if START_MODEL is not already set.
-# START_MODEL is used to ease the execution of a machine that uses a complex 
+# START_MODEL is used to ease the execution of a machine that uses a complex
 # mpirun command with multiple binaries
 START_MODEL="${START_MODEL:=$START $MODEL}"
 
@@ -473,7 +473,7 @@ cat > ${atmo_namelist} << EOF
  damp_height			= 44000.
  rayleigh_coeff			= 0.5
  divdamp_order			= 24
- divdamp_type			= 32 
+ divdamp_type			= 32
  divdamp_fac			= 0.004
  divdamp_trans_start            = 12500
  divdamp_trans_end              = 17500
@@ -614,7 +614,7 @@ cat > ${atmo_namelist} << EOF
  n0_mtgrm          = 0              ! meteogram initial time step (0 is first step!)
  ninc_mtgrm        = ${ninc_mtgrm},${ninc_mtgrm}  ! meteogram output interval
  ldistributed      = .false.,.false.
- stationlist_tot   =  52.17,  14.12, 'Lindenberg',                        
+ stationlist_tot   =  52.17,  14.12, 'Lindenberg',
                       51.97,   4.93, 'Cabauw',
                      -10.08, -61.93, 'LBA_Rondonia',
                       13.50,   2.5 , 'Niamey',

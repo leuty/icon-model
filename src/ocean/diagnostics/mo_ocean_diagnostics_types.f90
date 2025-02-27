@@ -94,8 +94,8 @@ MODULE mo_ocean_diagnostics_types
     REAL(wp), ALLOCATABLE :: tracer_content(:)
   END TYPE t_ocean_monitor
 
-    
-  
+
+
   !----------------------------------------------------------------------------
   !
   ! Ocean areas/regions:
@@ -166,6 +166,5 @@ MODULE mo_ocean_diagnostics_types
       & atlantic = 1, pacific = 3
   END TYPE t_ocean_basins
   !-----------------------------
-  
-END MODULE mo_ocean_diagnostics_types
 
+END MODULE mo_ocean_diagnostics_types

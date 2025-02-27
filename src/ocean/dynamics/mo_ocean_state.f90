@@ -961,7 +961,7 @@ CONTAINS
       & t_cf_var('grad_rho_PP_vert','kg m-4','vertical density gradient at cells', datatype_flt),&
       & dflt_g2_decl_cell,&
       & ldims=(/nproma,n_zlev+1,alloc_cell_blocks/),in_group=groups_oce_diag)
-    !is this usefull ? 
+    !is this usefull ?
     CALL add_var(ocean_default_list, 'zgrad_rho', ocean_state_diag%zgrad_rho , grid_unstructured_cell,&
       & za_depth_below_sea, &
       & t_cf_var('zgrad_rho', 'kg m-4', 'vertical density gradiant', datatype_flt),&
@@ -1013,7 +1013,7 @@ CONTAINS
       & ldims=(/nproma,n_zlev,nblks_e/),in_group=groups_oce_default, &
       & lopenacc=.TRUE., initval=0.0_wp)
     __acc_attach(ocean_state_diag%mass_flx_e)
-      
+
       CALL add_var(ocean_default_list, 'verticallyTotal_mass_flux_e', &
       & ocean_state_diag%verticallyTotal_mass_flux_e, grid_unstructured_edge,&
       & za_surface, &
@@ -1654,10 +1654,10 @@ CONTAINS
         & grib2_var(255, 255, 255, DATATYPE_PACK16, GRID_UNSTRUCTURED, grid_cell),&
         & ldims=(/nproma,n_zlev,alloc_cell_blocks/),lrestart_cont=.FALSE., &
         & in_group=groups("oce_ts_budget"))
-        
+
       ! create pointers from the tracer diagnostic structures to the allocated ones
-      ! note that both old and new point to the same arrays, sinec there is no difference 
-      ! for the diagnostics 
+      ! note that both old and new point to the same arrays, sinec there is no difference
+      ! for the diagnostics
       tracer => ocean_state_prog(nold(1)) %tracer_collection%tracer(1)
       tracer%diagnostics%is_activated = .true.
       tracer%diagnostics%tot =>  ocean_state_diag%Tt_tot
@@ -1678,7 +1678,7 @@ CONTAINS
       tracer%diagnostics%idf =>  ocean_state_diag%Tt_idf
       tracer%diagnostics%sur =>  ocean_state_diag%Tt_sur
       tracer%diagnostics%srf =>  ocean_state_diag%Tt_srf
-       
+
       tracer => ocean_state_prog(nold(1))%tracer_collection%tracer(2)
       tracer%diagnostics%is_activated = .true.
       tracer%diagnostics%tot =>  ocean_state_diag%Ts_tot
@@ -1699,7 +1699,7 @@ CONTAINS
       tracer%diagnostics%idf =>  ocean_state_diag%Ts_idf
       tracer%diagnostics%sur =>  ocean_state_diag%Ts_sur
       tracer%diagnostics%srf =>  ocean_state_diag%Ts_srf
-      
+
     ENDIF
     ! by_nils: end
 
@@ -1847,7 +1847,7 @@ CONTAINS
 
 
 
-    
+
    ! swr fraction absorbed in the surface layer
     CALL add_var(ocean_default_list, 'swsum', ocean_state_diag%swsum , &
       &         grid_unstructured_cell, za_surface,&
@@ -1941,7 +1941,7 @@ CONTAINS
       &          dflt_g2_decl_cell,&
       &          ldims=(/nproma,n_zlev,nblks_e/),in_group=groups_oce_diag)
     ENDIF
-    
+
       !reconstrcuted velocity in cartesian coordinates
     ALLOCATE(ocean_state_diag%p_vn(nproma,n_zlev,alloc_cell_blocks), stat=ist)
     IF (ist/=success) THEN
@@ -2046,7 +2046,7 @@ CONTAINS
      END DO
    END DO
   !$ACC ENTER DATA COPYIN(ocean_state_diag%northernHemisphere, ocean_state_diag%southernHemisphere)
-   
+
 
 !     CALL add_var(ocean_restart_list,'temp_horDiffused',ocean_state_diag%temp_horizontally_diffused, grid_unstructured_cell,&
 !       & za_depth_below_sea, &
@@ -2398,7 +2398,7 @@ CONTAINS
     alloc_cell_blocks = patch_2d%alloc_cell_blocks
     nblks_e = patch_2d%nblks_e
     nblks_v = patch_2d%nblks_v
-    
+
 
     !$ACC ENTER DATA COPYIN(ocean_nudge)
 
@@ -2421,7 +2421,7 @@ CONTAINS
         & za_depth_below_sea, t_cf_var('relax_3dim_coefficient','m s-1','relax_3dim_coefficient', datatype_flt),&
         & dflt_g2_decl_cell,&
         & ldims=(/nproma,n_zlev,alloc_cell_blocks/),in_group=groups_oce_nudge)
-!       ocean_state_aux%relax_3dim_coefficient(:,:,:) = 1.0_wp 
+!       ocean_state_aux%relax_3dim_coefficient(:,:,:) = 1.0_wp
     END IF
     IF (no_tracer >= 2 .AND. type_3dimrelax_salt > 0) THEN
       CALL add_var(ocean_default_list,'data_3dimRelax_Salt',ocean_nudge%data_3dimRelax_Salt,&
@@ -2923,7 +2923,7 @@ CONTAINS
     IF (ist /= success) THEN
       CALL finish (routine,'allocating ocean_volume failed')
     ENDIF
-    
+
     !
     !! 3-dim land-sea-mask at cells, edges and vertices
     !
@@ -3255,7 +3255,7 @@ CONTAINS
     !$ACC   COPYIN(patch_3d%p_patch_2d(1)%verts%f_v) &
     !$ACC   COPYIN(patch_3d%p_patch_2d(1)%verts%all) &
     !$ACC   COPYIN(nold, nnew)
-    
+
     !$ACC ENTER DATA COPYIN(operators_coefficients, operators_coefficients%verticaladvectionppmcoeffs)
     DO blockNo = patch_3D%p_patch_2D(1)%cells%ALL%start_block, patch_3D%p_patch_2D(1)%cells%ALL%end_block
       !$ACC ENTER DATA COPYIN(operators_coefficients%verticaladvectionppmcoeffs(blockNo)%cellheightratio_this_tobelow) &

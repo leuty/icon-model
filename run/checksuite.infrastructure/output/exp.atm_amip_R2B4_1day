@@ -140,9 +140,9 @@ mpi_atm_io_procs=5                 # for atmosphere plus land
 #
 # output_<xyz>=yes : yes --> output files for <xyz>, any other value --> no files for <xyz>
 
-output_atm_vgrid=yes               # produces 1 atm file 
-output_atm_3d=yes                  # produces 1 atm file 
-output_atm_2d=yes                  # produces 1 atm file 
+output_atm_vgrid=yes               # produces 1 atm file
+output_atm_3d=yes                  # produces 1 atm file
+output_atm_2d=yes                  # produces 1 atm file
 output_phy_3d=yes                  # produces 1 atm file
                                    # Note: "yes" increases the output volume significantly!
 
@@ -170,7 +170,7 @@ cat > ${atm_namelist} << EOF
  ltransport       = .TRUE.      ! transport
  iforcing         = 2           ! 0: none, 1: HS, 2: ECHAM, 3: NWP
  output           = 'nml'
- msg_level        = 12          ! level of details report during integration 
+ msg_level        = 12          ! level of details report during integration
  restart_filename = "${EXPNAME}_restart_atm_<rsttime>.nc"
  activate_sync_timers = .TRUE.
 /
@@ -241,7 +241,7 @@ cat > ${atm_namelist} << EOF
  aes_rad_config(1)%isolrad    =  1
  aes_rad_config(1)%irad_h2o   =  1
  aes_rad_config(1)%irad_co2   =  3
- aes_rad_config(1)%irad_ch4   = 13 
+ aes_rad_config(1)%irad_ch4   = 13
  aes_rad_config(1)%irad_n2o   = 13
  aes_rad_config(1)%irad_o3    =  5
  aes_rad_config(1)%irad_o2    =  2

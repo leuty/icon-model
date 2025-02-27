@@ -10,7 +10,7 @@
 #
 #
 # Pre-test script for ComIn plugins
-# 
+#
 # This script is run prior to the actual test jobs that utilize ComIn plugins.
 # It builds the example plugins for the DWD NEC platform, as well as the vector hosts and the vector engine.
 

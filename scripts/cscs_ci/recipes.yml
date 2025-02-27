@@ -106,7 +106,7 @@ include:
     - !reference [.configure_with_uenv, script]
 
 .run_common_santis:
-  extends: .baremetal-runner-santis-gh200 
+  extends: .baremetal-runner-santis-gh200
   timeout: 3h
   stage: run
   dependencies:

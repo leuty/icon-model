@@ -78,7 +78,7 @@ MODULE mo_radiation_nml
   USE mo_io_units,           ONLY: filename_max
 #ifdef _OPENACC
   USE openacc
-#define __acc_attach(ptr) CALL acc_attach(ptr)  
+#define __acc_attach(ptr) CALL acc_attach(ptr)
 #else
 #define __acc_attach(ptr)
 #endif
@@ -102,9 +102,9 @@ MODULE mo_radiation_nml
   REAL(wp) :: albedo_fixed   ! value of fixed albedo for albedo_type=3
 
   INTEGER :: direct_albedo   ! 1: SZA dependence according to Ritter and Geleyn (1992)
-                             ! 2: limitation to diffuse albedo according to Zaengl 
+                             ! 2: limitation to diffuse albedo according to Zaengl
                              !    applied to all land points
-                             !    Ritter-Geleyn for ice 
+                             !    Ritter-Geleyn for ice
                              ! 3: Parameterization after Yang et al (2008) for snow-free land points
                              !    limitation after Zaengl for snow-coverer points
                              !    Ritter-Geleyn implementation for ice
@@ -230,16 +230,16 @@ MODULE mo_radiation_nml
 
 CONTAINS
 
-  !! Read Namelist for radiation. 
+  !! Read Namelist for radiation.
   !!
-  !! This subroutine 
+  !! This subroutine
   !! - reads the Namelist for radiation
   !! - sets default values
-  !! - potentially overwrites the defaults by values used in a 
+  !! - potentially overwrites the defaults by values used in a
   !!   previous integration (if this is a resumed run)
   !! - reads the user's (new) specifications
   !! - stores the Namelist for restart
-  !! - fills the configuration state (partly)    
+  !! - fills the configuration state (partly)
   !!
   SUBROUTINE read_radiation_namelist( filename )
 
@@ -251,7 +251,7 @@ CONTAINS
     !0!  &  routine = 'mo_radiation_nml:read_radiation_namelist'
 
     !-----------------------
-    ! 1. default settings   
+    ! 1. default settings
     !-----------------------
 
     isolrad        = 1
@@ -289,7 +289,7 @@ CONTAINS
     cos_zenith_fixed = 0.5_wp  ! fixed cosine of zenith angle for izenith=6
 
     decorr_pole    = 2000._wp  ! Default: globally uniform decorrelation length scale
-    decorr_equator = 2000._wp  ! of 2km. 
+    decorr_equator = 2000._wp  ! of 2km.
 
     ecrad_llw_cloud_scat = .FALSE.
     ecrad_check_input    = .FALSE.
@@ -304,7 +304,7 @@ CONTAINS
     ecrad_use_general_cloud_optics        = .FALSE.   ! No generalized Hydrometeors
 
     !------------------------------------------------------------------
-    ! 2. If this is a resumed integration, overwrite the defaults above 
+    ! 2. If this is a resumed integration, overwrite the defaults above
     !    by values used in the previous integration.
     !------------------------------------------------------------------
 
@@ -413,7 +413,7 @@ CONTAINS
     IF(my_process_is_stdio())  THEN
       funit = open_tmpfile()
       WRITE(funit,NML=radiation_nml)
-      CALL store_and_close_namelist(funit, 'radiation_nml') 
+      CALL store_and_close_namelist(funit, 'radiation_nml')
     ENDIF
     ! 6. write the contents of the namelist to an ASCII file
     !

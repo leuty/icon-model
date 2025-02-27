@@ -19,7 +19,7 @@ MODULE mo_master_config
   USE mo_impl_constants, ONLY: NORMAL_RESTART, INIT_FROM_RESTART
 
   IMPLICIT NONE
-  
+
   PUBLIC
 
   PUBLIC :: calendar_str
@@ -32,13 +32,13 @@ MODULE mo_master_config
   PUBLIC :: checkpointTimeIntval, restartTimeIntval
   PUBLIC :: setRestartWriteLast, setReadRestartNamelists
   PUBLIC :: isRestart, isInitFromRestart
-  PUBLIC :: read_restart_namelists  
+  PUBLIC :: read_restart_namelists
   ! component model configuration
   !_______________________________________________________________________________________________
   !
   !> Holds name, type, and position of processes in the global communicator
   !  of a component model
-  
+
   TYPE t_master_component_model_config
     CHARACTER(len=132)          :: model_name
     CHARACTER(len=filename_max) :: model_namelist_filename
@@ -54,8 +54,8 @@ MODULE mo_master_config
   INTEGER :: no_of_models = 0
   TYPE(t_master_component_model_config) :: master_component_models(maxNoOfModels)
 
-  ! defaults to DWD to be on the safe side for operational needs  
-  CHARACTER(len=256), PROTECTED :: institution = '' 
+  ! defaults to DWD to be on the safe side for operational needs
+  CHARACTER(len=256), PROTECTED :: institution = ''
 
   LOGICAL, PROTECTED :: read_restart_namelists = .true.
   !> Flag: True, if model run should create restart at experiment end.
@@ -72,7 +72,7 @@ MODULE mo_master_config
   CHARACTER(len=MAX_DATETIME_STR_LEN)  :: experimentStopDate       = ''
   CHARACTER(len=MAX_TIMEDELTA_STR_LEN) :: checkpointTimeIntval     = ''
   CHARACTER(len=MAX_TIMEDELTA_STR_LEN) :: restartTimeIntval        = ''
- 
+
   ! ------------------------------------------------------------------------
   ! keep the master memory here to avoid cycle refrences
   ! it is filled by mo_master_init
@@ -100,9 +100,9 @@ MODULE mo_master_config
 
   CHARACTER(len=filename_max) :: master_namelist_filename = ""
 
-  INTEGER:: my_model_min_rank, my_model_max_rank, my_model_inc_rank 
+  INTEGER:: my_model_min_rank, my_model_max_rank, my_model_inc_rank
   LOGICAL :: multiple_models
- 
+
 CONTAINS
 
   SUBROUTINE setInstitution(update_institute)
@@ -135,9 +135,9 @@ CONTAINS
     CHARACTER(len=*), INTENT(in) :: mbd
     model_base_dir = mbd
   END SUBROUTINE setModelBaseDir
-  
+
   CHARACTER(len=filename_max) FUNCTION getModelBaseDir()
-    getModelBaseDir = model_base_dir 
+    getModelBaseDir = model_base_dir
   END FUNCTION getModelBaseDir
 
   SUBROUTINE addModel()
@@ -147,5 +147,5 @@ CONTAINS
   INTEGER FUNCTION noOfModels()
     noOfModels = no_of_models
   END FUNCTION noOfModels
-  
+
 END MODULE mo_master_config

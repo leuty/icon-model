@@ -47,7 +47,7 @@ ZLIB_LIBS='-lz'
 
 BUILD_ENV="module load cmake; export LD_LIBRARY_PATH=\"${FYAML_ROOT}/lib:${HDF5_ROOT}/lib:${NETCDF_ROOT}/lib:${NETCDFF_ROOT}/lib:${ECCODES_ROOT}/lib64:\${LD_LIBRARY_PATH}\"; export PATH=\"${MPI_ROOT}/bin:\${PATH}\"; ${BLAS_LAPACK_BUILD_ENV}"
 
-# ARCH Optimizations 
+# ARCH Optimizations
 ARCH="-m64 -march=core-avx2 -mtune=core-avx2 -fma -ip -pc64"
 
 CC="${MPI_ROOT}/bin/mpicc"
@@ -119,4 +119,3 @@ if test $(pwd) != $(cd "${icon_dir}"; pwd); then
   ln -sf ${icon_dir}/data
   ln -sf ${icon_dir}/vertical_coord_tables
 fi
-

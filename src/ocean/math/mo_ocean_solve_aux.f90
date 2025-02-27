@@ -16,7 +16,7 @@ MODULE mo_ocean_solve_aux
   USE mo_kind, ONLY: wp
 
   IMPLICIT NONE
-  
+
   PRIVATE
 
   CHARACTER(LEN=*), PARAMETER :: this_mod_name = 'mo_ocean_solve_aux'

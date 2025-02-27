@@ -36,7 +36,7 @@ MODULE mo_grib2_tile
     CHARACTER(len=50) :: attributeOfTile
   END TYPE t_grib2_keys_tile
 
-  ! Type for defining the set of employed tile templates 
+  ! Type for defining the set of employed tile templates
   ! and corresponding key names.
   TYPE t_grib2_template_tile
     ! set of allowed tile templates

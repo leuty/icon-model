@@ -26,8 +26,7 @@ listname=test_hamocc
 $addexp  checksuite.ocean_internal/hamocc/exp.test_hamocc_omip_technical \
  --machines mistral --without-configureflags without-mpi enable-mixed --runflags "cpu_time=00:30:00 mpi_procs_pernode=5"  --list $listname
 
-#----------------------------------------------------------- 
+#-----------------------------------------------------------
 #lets see the list
 ./lslist $listname
 #-----------------------------------------------------------
-

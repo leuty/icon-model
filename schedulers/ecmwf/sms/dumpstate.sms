@@ -27,7 +27,7 @@
 %end
 
 # include the header file for ICON jobs
-%include <init_sc_model.h> 
+%include <init_sc_model.h>
 
 # -------------------------------------------------
 
@@ -113,4 +113,3 @@ date
 
 # include the "tail" file for remote jobs
 %include <end_sc.h>
-

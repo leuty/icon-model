@@ -57,7 +57,7 @@ CONTAINS
   !! Provides tracer-independent parts for a gauss quadrature of order 1.
   !! I.e. a single quadrature point in physical space and the product of weights
   !! and the determinant of the Jacobian for the quadrature point.
-  !! This subroutine is specific to a linear polynomial. It needs to be called 
+  !! This subroutine is specific to a linear polynomial. It needs to be called
   !! only once per time step, independent of the number of advected fields.
   !!
   SUBROUTINE prep_gauss_quadrature_l( p_patch, p_coords_dreg_v,         &
@@ -216,7 +216,7 @@ CONTAINS
   !! Provides tracer-independent parts for a gauss quadrature of order 1.
   !! I.e. a single quadrature point in physical space and the product of weights
   !! and the determinant of the Jacobian for the quadrature point.
-  !! This subroutine is specific to a linear polynomial. It needs to be called 
+  !! This subroutine is specific to a linear polynomial. It needs to be called
   !! only once per time step, independent of the number of advected fields.
   !!
   !! Index-list based version. Otherwise identical to prep_gauss_quadrature_l
@@ -232,8 +232,8 @@ CONTAINS
       &  p_coords_dreg_v(:,:,:,:)   !< in 2D cartesian coordinates
                                     !< dim: (npoints,4,2,nblks_e)
 
-    TYPE(t_list2D), INTENT(IN) :: & !< index list with points for which the standard 
-      &  falist                     !< Miura-type treatment of flux areas is 
+    TYPE(t_list2D), INTENT(IN) :: & !< index list with points for which the standard
+      &  falist                     !< Miura-type treatment of flux areas is
                                     !< insufficient
 
     REAL(vp), INTENT(OUT) :: &      !< quadrature vector
@@ -730,7 +730,7 @@ CONTAINS
       &  p_coords_dreg_v(:,:,:,:)   !< in 2D cartesian coordinates
                                     !< dim: (npoints,4,2,nblks_e)
 
-    TYPE(t_list2D), INTENT(IN) :: & !< index list with points for which the standard 
+    TYPE(t_list2D), INTENT(IN) :: & !< index list with points for which the standard
       &  falist                     !< Miura-type treatment of flux areas is
                                     !< insufficient
 
@@ -1082,7 +1082,7 @@ CONTAINS
   !
   !
   !>
-  !! Prepares integration of a 2D cubic polynomial 
+  !! Prepares integration of a 2D cubic polynomial
   !! over a parallelogram-shaped element.
   !!
   !! Provides tracer-independent vector of polynomial points x^{k}y^{l}
@@ -1282,8 +1282,8 @@ CONTAINS
       &  p_coords_dreg_v(:,:,:,:)   !< in 2D cartesian coordinates
                                     !< dim: (npoints,4,2,nblks_e)
 
-    TYPE(t_list2D), INTENT(IN) :: & !< index list with points for which the standard 
-      &  falist                     !< Miura-type treatment of flux areas is 
+    TYPE(t_list2D), INTENT(IN) :: & !< index list with points for which the standard
+      &  falist                     !< Miura-type treatment of flux areas is
                                     !< insufficient
 
     REAL(vp), INTENT(OUT) :: &      !< quadrature vector
@@ -1475,4 +1475,3 @@ CONTAINS
 
 
 END MODULE mo_advection_quadrature
-

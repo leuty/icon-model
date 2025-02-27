@@ -1016,7 +1016,7 @@ CONTAINS
 
     CALL prepare_patch(wrk_p_patch_pre, wrk_p_patch, &
          SUM(n2_ilev_c(:)), SUM(n2_ilev_e(:)), SUM(n2_ilev_v(:)))
-    
+
 
     !-----------------------------------------------------------------------------------------------
     ! Set the global ownership for cells, edges and verts (needed for boundary exchange).
@@ -1723,7 +1723,7 @@ CONTAINS
       wrk_p_patch%n_patch_cells = n_patch_cells
       IF ((ignore_nproma_use_nblocks_c .OR. ignore_nproma_use_nblocks_e) .AND. wrk_p_patch_pre%id == 1 ) THEN
         ! set nproma for work procs with gridpoints
-        IF (my_process_is_work()) THEN      
+        IF (my_process_is_work()) THEN
           IF(ignore_nproma_use_nblocks_c .AND. n_patch_cells > 0) THEN
             new_nproma = (n_patch_cells-1) / nblocks_c + 1
             ! In AMD GPUs there is significant performance loss if nproma is not aligned
@@ -1740,7 +1740,7 @@ CONTAINS
             new_nproma = ((new_nproma  + 32 - 1) / 32) * 32
 #endif
             CALL set_nproma(new_nproma)
-          ENDIF          
+          ENDIF
 
           IF(num_work_procs > 1) THEN
             nproma_max = global_max(new_nproma)
@@ -1758,7 +1758,7 @@ CONTAINS
             write(message_text,'(i7)') new_nproma
             CALL message('New nproma: ', message_text)
           ENDIF
-          
+
         ENDIF
 
       ENDIF

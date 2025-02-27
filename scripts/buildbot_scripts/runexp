@@ -12,42 +12,43 @@
 # ---------------------------------------------------------------
 
 import json
+import os
 import signal
 import sys
 import time
-import os
 from pathlib import Path
 
-#===============================================================================
+# ===============================================================================
 # this should prevent a blas-related runtime error when using numpy, which is
 # loaded as dependency of the buildbot scripting (pandas)
 # error: https://buildbot.dkrz.de/#/builders/73/builds/4294/steps/4/logs/stdio
-os.environ['OPENBLAS_NUM_THREADS'] = '1'
-#===============================================================================
+os.environ["OPENBLAS_NUM_THREADS"] = "1"
+# ===============================================================================
 # import local modules
 import icon_env
 from buildbot_config import BuildbotConfig
 from cmd_line_job import CmdLineJob
-from icon_paths import run_path, buildbot_list_path, base_path
+from icon_paths import base_path, buildbot_list_path, run_path
 from pbs_job import PBSJob
 from slurm_job import SlurmJob
 
 # global constants
-EX_FAILED   = 1
+EX_FAILED = 1
 STATUS_FILE = Path(base_path) / "LOOP_STATUS_EXP_FILE"
+
 
 # method to write a buildbot status overview file. This needs to be called if
 # - all submitted tests are successfull or failed
 # - submitted tests are canceled
 # - the script itself is canceled, for example with ctrl-c
-def writeStatusFile(filename,experiments):
-    experimentsFailed    = []
+def writeStatusFile(filename, experiments):
+    experimentsFailed = []
     with open(str(filename), "w") as file:
         for eobj in experiments:
             exp_jobid = eobj.batch_job.jobid
             exp_file = eobj.get_run_name(relative=False)
             if eobj.batch_job.returncode is not None:
-                if ( eobj.failed() ):
+                if eobj.failed():
                     experimentsFailed.append(True)
                     exit_msg = f"FAILED (jobID:{exp_jobid})"
                 else:
@@ -55,19 +56,24 @@ def writeStatusFile(filename,experiments):
                     exit_msg = f"OK (jobID:{exp_jobid})"
             else:
                 experimentsFailed.append(True)
-                print(f"internal error, did not get returncode for {eobj.name} (jobID:{exp_jobid})")
+                print(
+                    f"internal error, did not get returncode for {eobj.name} (jobID:{exp_jobid})"
+                )
                 exit_msg = "FAILED"
 
             file.write("{0:50}: {1}\n".format(exp_file.name, exit_msg))
 
     return experimentsFailed
 
+
 # submit all tests, wait for return values/status or wait for cancelling
 def runexp():
     # Get build settings
     setup_dict = icon_env.info()
 
-    builder = "{}_{}".format(setup_dict["use_target"].upper(), setup_dict["use_compiler"])
+    builder = "{}_{}".format(
+        setup_dict["use_target"].upper(), setup_dict["use_compiler"]
+    )
 
     with open(str(run_path / "buildbot_config.json"), "r") as file:
         config = json.load(file)
@@ -89,7 +95,7 @@ def runexp():
     bobj.submit = setup_dict["use_submit"]
 
     # Set up mkexp run-time environment (currently breaks on DWD and Balfrin)
-    if bobj.machine not in ['dwd_nec', 'balfrin']:
+    if bobj.machine not in ["dwd_nec", "balfrin"]:
         icon_env.load()
 
     if bobj.submit.startswith("sbatch"):
@@ -99,7 +105,9 @@ def runexp():
     elif bobj.submit == "":
         Job = CmdLineJob
     else:
-        print(f"no batch job helper class implemented for machine {bobj.machine}")
+        print(
+            f"no batch job helper class implemented for machine {bobj.machine}"
+        )
         sys.exit(EX_FAILED)
 
     # set up the experiments for job submission
@@ -115,17 +123,20 @@ def runexp():
         eobj.submit(bobj)
         exp_jobid = eobj.batch_job.jobid
         if eobj.batch_job.jobid is not None:
-            print(f"Submitted {eobj.get_run_name(relative=True)} (jobID:{eobj.batch_job.jobid})")
+            print(
+                f"Submitted {eobj.get_run_name(relative=True)} (jobID:{eobj.batch_job.jobid})"
+            )
 
     # Signal handling for stopping this script with ctrl-c on the command line:
     # stop all submitted jobs
-    def cleanupOnInterupt(signum,frame):
-        print("runexp: caught signal",signum, frame)
+    def cleanupOnInterupt(signum, frame):
+        print("runexp: caught signal", signum, frame)
         print("runexp: Try to cancel all jobs .........................")
         for eobj in eobjs:
             eobj.batch_job.cancel()
-        experimentsFailed = writeStatusFile(STATUS_FILE,eobjs)
+        experimentsFailed = writeStatusFile(STATUS_FILE, eobjs)
         sys.exit(EX_FAILED)
+
     signal.signal(signal.SIGINT, cleanupOnInterupt)
     signal.signal(signal.SIGTERM, cleanupOnInterupt)
 
@@ -145,22 +156,28 @@ def runexp():
         completed_jobs = set()
         for eobj in incomplete_jobs:
             if eobj.batch_job.poll(timeout=60):
-                if ( eobj.failed() ):
-                  _status = 'FAILED'
+                if eobj.failed():
+                    _status = "FAILED"
                 else:
-                  _status = 'OK'
+                    _status = "OK"
 
-                print(f"job finished: {eobj.get_run_name(relative=True)} (jobID:{eobj.batch_job.jobid}): {_status}")
+                print(
+                    f"job finished: {eobj.get_run_name(relative=True)} (jobID:{eobj.batch_job.jobid}): {_status}"
+                )
                 completed_jobs.add(eobj)
             else:
                 N = len(incomplete_jobs) - len(completed_jobs)
                 if N > 1:
                     print(f"Waiting for {N} jobs:")
-                    for e in (set(incomplete_jobs) - set(completed_jobs)):
-                        print(f"\t{e.get_run_name(relative=True)} ({str(e.batch_job.jobid)})")
+                    for e in set(incomplete_jobs) - set(completed_jobs):
+                        print(
+                            f"\t{e.get_run_name(relative=True)} ({str(e.batch_job.jobid)})"
+                        )
                 elif N == 1:
                     e = [*incomplete_jobs][0]
-                    print(f"Waiting for the last job: {e.get_run_name(relative=True)} ({e.batch_job.jobid})")
+                    print(
+                        f"Waiting for the last job: {e.get_run_name(relative=True)} ({e.batch_job.jobid})"
+                    )
         incomplete_jobs.difference_update(completed_jobs)
 
     # wait a bit longer, because queing or file system might create logfiles
@@ -169,10 +186,11 @@ def runexp():
 
     # 1) parse returncodes of all experiments and fail if at least one of them did fail
     # 2) write STATUS file which is supposed to be shown by buildbot for better overview
-    experimentsFailed = writeStatusFile(STATUS_FILE,eobjs)
+    experimentsFailed = writeStatusFile(STATUS_FILE, eobjs)
 
     exit_code = EX_FAILED if True in experimentsFailed else os.EX_OK
     sys.exit(exit_code)
+
 
 if __name__ == "__main__":
     runexp()

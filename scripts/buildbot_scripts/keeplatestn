@@ -23,6 +23,7 @@ import os
 import shutil
 import sys
 
+
 def remove(f):
     """
     remove file or directory
@@ -58,24 +59,38 @@ def keeplatestn(N, files, dry_run=False, verbose=False):
         except FileNotFoundError:
             # file might be removed in the meantime since the list files was generated
             if verbose:
-                print(f"Cannot delete file. File not found: {item}", file=sys.stderr)
-        else: # if the exception is not raised:
+                print(
+                    f"Cannot delete file. File not found: {item}",
+                    file=sys.stderr,
+                )
+        else:  # if the exception is not raised:
             # print only after removing the file successfully
             if verbose:
                 print(item)
 
 
-
 def main():
-    parser = argparse.ArgumentParser(description="Remove all but the latest N files or directories.")
-    parser.add_argument("N", type=int, help="Number of files or directories to keep")
-    parser.add_argument("file_or_directory", nargs="+", help="List of files or directories to process")
-    parser.add_argument("--dry", action="store_true", help="Dry run (no changes will be made)")
-    parser.add_argument("--verbose", action="store_true", help="Write names of removed files.")
+    parser = argparse.ArgumentParser(
+        description="Remove all but the latest N files or directories."
+    )
+    parser.add_argument(
+        "N", type=int, help="Number of files or directories to keep"
+    )
+    parser.add_argument(
+        "file_or_directory",
+        nargs="+",
+        help="List of files or directories to process",
+    )
+    parser.add_argument(
+        "--dry", action="store_true", help="Dry run (no changes will be made)"
+    )
+    parser.add_argument(
+        "--verbose", action="store_true", help="Write names of removed files."
+    )
 
     args = parser.parse_args()
     keeplatestn(args.N, args.file_or_directory, args.dry, args.verbose)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()

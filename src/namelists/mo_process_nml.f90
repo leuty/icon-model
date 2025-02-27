@@ -44,7 +44,7 @@ CONTAINS
        END SUBROUTINE nml_write
        !
     END INTERFACE
-    
+
     INTEGER :: istat
     INTEGER :: funit
     INTEGER :: iunit

@@ -69,4 +69,3 @@ return=$?
 echo "nvsmi_logger_PID $nvsmi_logger_PID"
 kill_nvsmi
 exit $return
-

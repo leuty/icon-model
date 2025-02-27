@@ -66,8 +66,8 @@ MODULE mo_nwp_ecrad_interface
                                    &   t_ecrad_thermodynamics_type,              &
                                    &   t_ecrad_gas_type, t_ecrad_flux_type,      &
                                    &   t_ecrad_cloud_type, t_opt_ptrs,           &
-                                   &   ecrad_hyd_list,                           &   
-                                   &   ecrad_iqr, ecrad_iqs, ecrad_iqg          
+                                   &   ecrad_hyd_list,                           &
+                                   &   ecrad_iqr, ecrad_iqs, ecrad_iqg
 
   USE mo_nwp_ecrad_prep_aerosol, ONLY: nwp_ecrad_prep_aerosol
   USE mo_nwp_ecrad_utilities,    ONLY: ecrad_check_input_fields,                 &
@@ -130,7 +130,7 @@ CONTAINS
     TYPE(t_nwp_phy_diag), TARGET, INTENT(inout) :: prm_diag      !< ICON physics diagnostics
     TYPE(t_nh_prog), TARGET, INTENT(in)         :: pt_prog        !< ICON dyn prog vars
     TYPE(t_lnd_prog),        INTENT(inout)      :: lnd_prog      !< ICON prognostic land state
-    
+
     REAL(wp),                INTENT(in)         ::   zsct        !< Time-dependent solar constant
 
     TYPE(t_ecrad_conf),      INTENT(in)         :: ecrad_conf    !< ecRad configuration object
@@ -380,7 +380,7 @@ CONTAINS
           &                   ptr_reff_qr, ptr_reff_qs, ptr_reff_qg,                                               &
           &                   atm_phy_nwp_config(jg)%icpl_rad_reff,                                                &
           &                   fact_reffc, ecrad_conf%cloud_fraction_threshold,                                     &
-          &                   ecrad_conf%use_general_cloud_optics,                                                 & 
+          &                   ecrad_conf%use_general_cloud_optics,                                                 &
           &                   pt_patch%cells%center(jcs:jce,jb),                                                   &
           &                   nlev, i_startidx_rad, i_endidx_rad, &
           &                   lacc=.TRUE.)
@@ -1231,7 +1231,7 @@ CONTAINS
           CASE(iRadAeroCAMSclim,iRadAeroCAMStd)
             ! Fill aerosol configuration type with CAMS 3D climatology/forecasted aerosols
             CALL nwp_ecrad_prep_aerosol(1, nlev_rg, i_startidx_rad, i_endidx_rad,  &
-              &                         ecrad_aerosol, ptr_camsaermr)  
+              &                         ecrad_aerosol, ptr_camsaermr)
           CASE(iRadAeroConstKinne,iRadAeroKinne,iRadAeroVolc,iRadAeroKinneVolc,iRadAeroKinneVolcSP,iRadAeroKinneSP, &
             &  iRadAeroART, iRadAeroExternal)
             CALL nwp_ecrad_prep_aerosol(1, nlev_rg, i_startidx_rad, i_endidx_rad,         &

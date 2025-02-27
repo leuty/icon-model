@@ -11,9 +11,9 @@
 
 ! Namelist for Single Column Model
 
-MODULE mo_scm_nml  
-!-------------------------------------------------------------------------  
-!  
+MODULE mo_scm_nml
+!-------------------------------------------------------------------------
+!
 !-------------------------------------------------------------------------
 !
 !
@@ -26,10 +26,10 @@ MODULE mo_scm_nml
   USE mo_mpi,                  ONLY: my_process_is_stdio
   USE mo_restart_nml_and_att,  ONLY: open_tmpfile, store_and_close_namelist,     &
     &                                open_and_restore_namelist, close_tmpfile
-  
-  IMPLICIT NONE  
 
-  PRIVATE 
+  IMPLICIT NONE
+
+  PRIVATE
 
   PUBLIC ::  read_scm_namelist, scm_sfc_temp, scm_sfc_qv, scm_sfc_mom, i_scm_netcdf,   &
   & lon_scm, lat_scm, lscm_read_tke, lscm_read_z0, lscm_icon_ini, lscm_ls_forcing_ini, &
@@ -53,7 +53,7 @@ MODULE mo_scm_nml
                            ! 0: TERRA,1=DIRICHLET(u_s=v_s=0, gz0)
                            ! 2: friction velocity(ustar->tvm)
 
-  INTEGER  :: i_scm_netcdf ! data read from 
+  INTEGER  :: i_scm_netcdf ! data read from
                            ! 0: ASCII
                            ! 1: normal netcdf file
                            ! 2: DEPHY unified format
@@ -138,8 +138,8 @@ CONTAINS
 
     IF(my_process_is_stdio()) WRITE(nnml_output,nml=scm_nml)
 
-    
+
   END SUBROUTINE read_scm_namelist
 
 !-------------------------------------------------------------------------
-END MODULE mo_scm_nml  
+END MODULE mo_scm_nml

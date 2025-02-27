@@ -46,10 +46,9 @@ export HOME=/scratch/mpi/CC/mh0287/users/$USER
 $archiver FILEPATTERN="${EXPNAME}*.nc*" DEBUG=1 TAG='rxxxxx' \
           EXP=${EXPNAME} \
           JOBISRUNNING=true \
-          ACTIONS=archive,preproc,procMoc,plotMoc,procRegio,plotRegio,plotTf,plotHorz,plotX,procTSR,plotTSR,plotPsi,procIce,plotIce,finalDoc 
+          ACTIONS=archive,preproc,procMoc,plotMoc,procRegio,plotRegio,plotTf,plotHorz,plotX,procTSR,plotTSR,plotPsi,procIce,plotIce,finalDoc
           # FORCE=1
 
 check_error $? "${EXPNAME}"
 
 exit
-

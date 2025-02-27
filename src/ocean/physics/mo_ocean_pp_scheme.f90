@@ -97,19 +97,19 @@ MODULE mo_ocean_pp_scheme
   PUBLIC :: update_PP_scheme_zstar
   PUBLIC :: ICON_PP_Edge_vnPredict_scheme
 
-  REAL(wp), POINTER :: WindAmplitude_at10m(:,:)  
+  REAL(wp), POINTER :: WindAmplitude_at10m(:,:)
   REAL(wp), POINTER :: SeaIceConcentration(:,:)
   PUBLIC :: calculate_rho4GMRedi
-  
+
 
 CONTAINS
 
  !-------------------------------------------------------------------------
   !>
-  !! 
+  !!
   !!
   !<Optimize:inUse:done>
-  SUBROUTINE calculate_rho4GMRedi(patch_3d, temperature, salinity, rho_GM) 
+  SUBROUTINE calculate_rho4GMRedi(patch_3d, temperature, salinity, rho_GM)
 
     TYPE(t_patch_3d ),TARGET, INTENT(in) :: patch_3d
     !TYPE(t_hydro_ocean_state), TARGET    :: ocean_state
@@ -174,13 +174,13 @@ CONTAINS
 
         DO jk = 2, levels
           rho_GM(jc,jk,blockNo)=0.5_wp*(z_rho_up(jk)+z_rho_down(jk))
-        
+
           !z_vert_density_grad_c(jc,jk,blockNo) = (z_rho_down(jk) - z_rho_up(jk-1)) *  &
           !  & patch_3d%p_patch_1d(1)%inv_prism_center_dist_c(jc,jk,blockNo)
         END DO ! levels
         !ocean_state%p_diag%grad_rho_PP_vert(jc,2:levels,blockNo)=z_vert_density_grad_c(jc,2:levels,blockNo)
         rho_GM(jc,1,blockNo)=rho_GM(jc,2,blockNo)
- 
+
       END DO ! index
 
 
@@ -195,8 +195,8 @@ CONTAINS
 !     IF (ltimer) CALL timer_stop(timer_extra11)
     DO jk=1,10
       CALL dbg_print('calc_rho4GMRedi: rho_GM',rho_GM(:,jk,:),&
-        & module_name, idt_src, in_subset=all_cells) 
-    END DO          
+        & module_name, idt_src, in_subset=all_cells)
+    END DO
 
   END SUBROUTINE calculate_rho4GMRedi
   !-------------------------------------------------------------------------
@@ -251,12 +251,12 @@ CONTAINS
     REAL(wp), TARGET                     :: concsum(:,:) ! t_sea_ice%concsum
     TYPE(t_ho_params), INTENT(inout)     :: params_oce
     TYPE(t_operator_coeff),INTENT(in)    :: op_coeffs
-    REAL(wp), INTENT(IN) :: eta_c(nproma, patch_3d%p_patch_2d(1)%alloc_cell_blocks) !! sfc ht 
-    REAL(wp), INTENT(IN) :: stretch_c(nproma, patch_3d%p_patch_2d(1)%alloc_cell_blocks) 
-    REAL(wp), INTENT(IN) :: stretch_e(nproma, patch_3d%p_patch_2d(1)%nblks_e) !! stretch factor 
+    REAL(wp), INTENT(IN) :: eta_c(nproma, patch_3d%p_patch_2d(1)%alloc_cell_blocks) !! sfc ht
+    REAL(wp), INTENT(IN) :: stretch_c(nproma, patch_3d%p_patch_2d(1)%alloc_cell_blocks)
+    REAL(wp), INTENT(IN) :: stretch_e(nproma, patch_3d%p_patch_2d(1)%nblks_e) !! stretch factor
 
     INTEGER :: tracer_index
- 
+
     !-------------------------------------------------------------------------
     WindAmplitude_at10m => fu10
     SeaIceConcentration => concsum
@@ -391,7 +391,7 @@ CONTAINS
                   & diffusion_weight * params_oce%a_tracer_v(jc,jk,blockNo,tracer_index)
               ENDIF
             ENDIF
-            
+
           ENDDO ! levels
         ENDDO !  block index
       ENDDO ! tracer_index]
@@ -525,7 +525,7 @@ CONTAINS
     z_rho_up(:)=0.0_wp
     z_rho_down(:)=0.0_wp
     pressure(:) = 0._wp
-    
+
 !ICON_OMP_DO PRIVATE(start_index, end_index, jc, levels, jk, &
 !ICON_OMP z_shear_cell, tracer_index, diffusion_weight) ICON_OMP_DEFAULT_SCHEDULE
     DO blockNo = all_cells%start_block, all_cells%end_block
@@ -554,9 +554,9 @@ CONTAINS
           ocean_state%p_diag%rho_GM(jc,1,blockNo)=0.5_wp*(z_rho_up(2)+z_rho_down(2))
           ocean_state%p_diag%rho_GM(jc,levels:n_zlev,blockNo)=ocean_state%p_diag%rho_GM(jc,levels-1,blockNo)
         ENDIF
-        
+
         DO jk = 2, levels
-                    
+
           z_shear_cell = dbl_eps + &
             & SUM((ocean_state%p_diag%p_vn(jc,jk-1,blockNo)%x - ocean_state%p_diag%p_vn(jc,jk,blockNo)%x)**2)
           z_vert_density_grad_c(jc,jk,blockNo) = (z_rho_down(jk) - z_rho_up(jk-1)) *  &
@@ -615,7 +615,7 @@ CONTAINS
                   & diffusion_weight * params_oce%a_tracer_v(jc,jk,blockNo,tracer_index)
               ENDIF
             ENDIF
-            
+
           ENDDO ! levels
         ENDDO !  block index
       ENDDO ! tracer_index]
@@ -704,9 +704,9 @@ CONTAINS
     TYPE(t_patch_3d ),TARGET, INTENT(in) :: patch_3d
     TYPE(t_hydro_ocean_state), TARGET :: ocean_state
     TYPE(t_ho_params), INTENT(inout)            :: params_oce
-    REAL(wp), INTENT(IN) :: eta_c(nproma, patch_3d%p_patch_2d(1)%alloc_cell_blocks) !! sfc ht 
-    REAL(wp), INTENT(IN) :: stretch_c(nproma, patch_3d%p_patch_2d(1)%alloc_cell_blocks) 
-    REAL(wp), INTENT(IN) :: stretch_e(nproma, patch_3d%p_patch_2d(1)%nblks_e) !! stretch factor 
+    REAL(wp), INTENT(IN) :: eta_c(nproma, patch_3d%p_patch_2d(1)%alloc_cell_blocks) !! sfc ht
+    REAL(wp), INTENT(IN) :: stretch_c(nproma, patch_3d%p_patch_2d(1)%alloc_cell_blocks)
+    REAL(wp), INTENT(IN) :: stretch_e(nproma, patch_3d%p_patch_2d(1)%nblks_e) !! stretch factor
 
     ! Local variables
     INTEGER :: jc, blockNo, je,jk, tracer_index
@@ -754,7 +754,7 @@ CONTAINS
     z_rho_up(:)=0.0_wp
     z_rho_down(:)=0.0_wp
     pressure(:) = 0._wp
-    
+
 !ICON_OMP_DO PRIVATE(start_index, end_index, jc, levels, jk, &
 !ICON_OMP z_shear_cell, tracer_index, diffusion_weight) ICON_OMP_DEFAULT_SCHEDULE
     DO blockNo = all_cells%start_block, all_cells%end_block
@@ -784,9 +784,9 @@ CONTAINS
           ocean_state%p_diag%rho_GM(jc,1,blockNo)=0.5_wp*(z_rho_up(2)+z_rho_down(2))
           ocean_state%p_diag%rho_GM(jc,levels:n_zlev,blockNo)=ocean_state%p_diag%rho_GM(jc,levels-1,blockNo)
         ENDIF
-        
+
         DO jk = 2, levels
-                    
+
           z_shear_cell = dbl_eps + &
             & SUM((ocean_state%p_diag%p_vn(jc,jk-1,blockNo)%x - ocean_state%p_diag%p_vn(jc,jk,blockNo)%x)**2)
           z_vert_density_grad_c(jc,jk,blockNo) = (z_rho_down(jk) - z_rho_up(jk-1)) *  &
@@ -845,7 +845,7 @@ CONTAINS
                   & diffusion_weight * params_oce%a_tracer_v(jc,jk,blockNo,tracer_index)
               ENDIF
             ENDIF
-            
+
           ENDDO ! levels
         ENDDO !  block index
       ENDDO ! tracer_index]

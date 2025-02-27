@@ -50,7 +50,7 @@ CONTAINS
     CHARACTER(*), PARAMETER :: method_name = "mo_icon_testbed:icon_testbed"
 
     write(0,*) TRIM(get_my_process_name()), ': Start of ', method_name
-    
+
     CALL read_icon_testbed_namelist(testbed_namelist_filename)
 
 #ifndef __NO_ICON_COMIN__
@@ -59,7 +59,7 @@ CONTAINS
 #endif
 
     SELECT CASE(testbed_model)
-    
+
     CASE(null_model)
       ! do nothing
       RETURN
@@ -81,11 +81,10 @@ CONTAINS
     CASE default
       CALL finish(method_name, "Unrecognized testbed_model")
 
-    END SELECT    
-   
+    END SELECT
+
 
   END SUBROUTINE icon_testbed
   !-------------------------------------------------------------------------
 
 END MODULE mo_icon_testbed
-

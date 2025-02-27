@@ -20,7 +20,7 @@
 #    add variable assignment at end of namelist group
 # c) the namelist group does not exist:
 #    add group with single variable assignment at end of file
-# 
+#
 
 use warnings;
 use strict;
@@ -49,7 +49,7 @@ while(<>) {
             die("Sorry: cannot open '$ARGV' for writing: $!\n");
         select(ARGVOUT);
         $oldargv = $ARGV;
-    } 
+    }
     # Parse current line
     if(/^\s*&$group\s*$/..m{^\s*/\s*$}) {
     #if(/^\s*&$group\s*$/) {

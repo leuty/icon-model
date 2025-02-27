@@ -379,7 +379,7 @@ MODULE mo_nwp_gpu_util
     !$ACC   HOST(p_nh_state(jg)%diag%u) &
     !$ACC   HOST(p_nh_state(jg)%diag%v) &
     !$ACC   ASYNC(1)
-    
+
     !$ACC UPDATE &
     !$ACC   HOST(p_nh_state(jg)%prog(nnow_rcf(jg))%tracer(:,:,:,iqv:iqv)) &
     !$ACC   HOST(p_nh_state(jg)%prog(nnow_rcf(jg))%tracer(:,:,:,iqc:iqc)) &

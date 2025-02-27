@@ -829,7 +829,7 @@ CONTAINS
       ! stored on this rank
       n_l = SIZE(decomp_info%owner_local)
       DEALLOCATE(rowned) ; ALLOCATE(rowner(n_l), rowned(n_l))
-      
+
       DO jl = 1, n_l
         IF (decomp_info%owner_local(jl) == p_pe_work) THEN
           coord(1) = decomp_info%glb_index(jl)
@@ -1123,4 +1123,3 @@ CONTAINS
 
   !-----------------------------------------------------------------------------
 END MODULE mo_complete_subdivision
-

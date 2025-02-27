@@ -11,9 +11,10 @@
 # SPDX-License-Identifier: BSD-3-Clause
 # ---------------------------------------------------------------
 
-import pandas as pd
 import logging
 import re
+
+import pandas as pd
 from BaseAnalyzer import BaseAnalyzer_
 
 
@@ -57,7 +58,7 @@ class AnalyzeTimer(BaseAnalyzer_):
             return
         number = "[0-9.E\+hms]+"
         columns = f"\s*({number})\s*({number})\s*\[({number})\]\s*({number})\s*({number})\s*\[({number})\]\s*({number})\s*\[({number})\]\s*({number})\s*\[({number})\]\s*({number})\s*{number}$"
-        columns_single = f"\s*({number})\s*({number})\s*({number})\s*({number})\s*({number})\s*({number})\s*({number})$" 
+        columns_single = f"\s*({number})\s*({number})\s*({number})\s*({number})\s*({number})\s*({number})\s*({number})$"
 
         rank = line.split(":")[0]
 
@@ -72,7 +73,8 @@ class AnalyzeTimer(BaseAnalyzer_):
         sub_process = re.match(rf"([0-9\s]+):  (\s*)L\s(.+?){columns}", line)
         if not sub_process:
             sub_process = self.fill_single_match(
-                re.match(rf"([0-9\s]+):  (\s*)L\s(.+?){columns_single}", line), rank
+                re.match(rf"([0-9\s]+):  (\s*)L\s(.+?){columns_single}", line),
+                rank,
             )
         else:
             sub_process = sub_process.groups()

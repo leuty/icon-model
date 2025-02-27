@@ -49,7 +49,7 @@ MODULE mo_nwp_parameters
     ! maximum allowed depth of shallow convection (hPa)
     REAL(wp) :: rdepths
     ! critical stability threshold for stratocumulus (K)
-    REAL(wp) :: eiscrit    
+    REAL(wp) :: eiscrit
     ! switches for activation of shallow, midlevel and deep convection
     LOGICAL :: lmfscv, lmfmid, lmfpen
     ! switch for detrainment of rain and snow to gridscale scheme
@@ -60,11 +60,11 @@ MODULE mo_nwp_parameters
     REAL(wp) :: tune_grzdc_offset
     ! switches on explicit stochastic shallow convection
     LOGICAL :: lstoch_expl
-    ! switches on SDE stochastic shallow convection    
+    ! switches on SDE stochastic shallow convection
     LOGICAL :: lstoch_sde
-    ! switches on SDE stochastic deep convection    
+    ! switches on SDE stochastic deep convection
     LOGICAL :: lstoch_deep
-    ! use 650hPa vertical velocity to switch off conv param at points with rising motion     
+    ! use 650hPa vertical velocity to switch off conv param at points with rising motion
     LOGICAL :: lvvcouple
     ! use 650hPa vertical velocity to distinguish shallow vs deep convection
     LOGICAL :: lvv_shallow_deep
@@ -81,7 +81,7 @@ MODULE mo_nwp_parameters
     !
     ! Parameters which are always computed
     !
-    ! characteristic horizontal length scale (grid-scale) for 
+    ! characteristic horizontal length scale (grid-scale) for
     ! turbulence scheme and convection scheme
     REAL(wp) :: mean_charlen
     ! level index corresponding to the HAG of the 60hPa level (identical to kcon2, if computed)

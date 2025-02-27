@@ -18,7 +18,7 @@
 %include <qsub.h>
 #=========================================================================
 ##.AUTHOR  Martin Koehler 1. September 2003
-## Modified  Adrian Tompkins 23 March 2004: flexible 
+## Modified  Adrian Tompkins 23 March 2004: flexible
 #                 interface + new climate plots
 #            Adrian Tompkins 30r1 - coupled model saves
 #=========================================================================
@@ -61,7 +61,7 @@ if (( $locnumber == -99 )) ; then
   if [[ ${BASETIME} = ${INIDATE1[${ndate}]} ]] ; then
     saveplots=1
     echo 'saving at date: ' $BASETIME
-  fi  
+  fi
 else
   nens=$locnumber
   saveplots=1
@@ -73,7 +73,7 @@ echo 'number of ensemble members is ' $nens
 if (( $saveplots == 1 )) ; then
     # Save plots
     cd $DATA
-    
+
     if [[ $nens -gt 1 ]] ; then
        rm -f `ls | grep .*_nens1_.*ps$` # remove the junk test plots
                                         # workaround for long lists
@@ -85,7 +85,7 @@ if (( $saveplots == 1 )) ; then
         today=`date "+%%C%%y%%m%%d"`            # date of today (e.g. 20020807)
         tag=.${OWNER}.${today}                   # (USERID.DATE)
         exp2="-"${VERFEXP2}
-      else 
+      else
         tag=''
         exp2=''
       fi

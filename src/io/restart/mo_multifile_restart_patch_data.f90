@@ -37,7 +37,7 @@ MODULE mo_multifile_restart_patch_data
 
   IMPLICIT NONE
   PRIVATE
-  
+
   TYPE, EXTENDS(t_RestartPatchData), PUBLIC :: t_MultifilePatchData
     INTEGER :: cnkLvs
     LOGICAL :: shortcut
@@ -47,12 +47,12 @@ MODULE mo_multifile_restart_patch_data
     PROCEDURE :: createCollectors => multifilePatchData_createCollectors
     PROCEDURE :: start_local_access  => multifilePatchData_local_access
     PROCEDURE :: start_remote_access => multifilePatchData_remote_access
-    PROCEDURE :: exposeData  => multifilePatchData_exposeData    
+    PROCEDURE :: exposeData  => multifilePatchData_exposeData
     PROCEDURE :: destruct => multifilePatchData_destruct    ! override
     PROCEDURE :: writeData => multifilePatchData_writeData
     PROCEDURE :: fileStuff => multifilePatchData_fileStuff
   END TYPE t_MultifilePatchData
-  
+
   CHARACTER(*), PARAMETER :: modname = "mo_multifile_restart_patch_data"
 
 CONTAINS

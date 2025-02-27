@@ -79,7 +79,7 @@ Note that you will need to register the hooks for each fresh clone of the reposi
     - do not reference issues and merge requests unless necessary (if referencing is necessary, make sure the reference contains the name and the namespace of the respective repository, e.g. `icon/icon#<issue-id>` and `icon/icon!<mr-id>`);
 
     - break the lines to make them no longer than 80 characters.
-    
+
     > **Note:** The recommendations above apply to the **short** descriptions only. There are no restrictions for the **detailed** section.
 
 4. The lists of co-authors in merge requests are generated automatically based on the authorship of the commits in the source branches. Please ensure that the commits in the source branch have the correct authorship with the correct email addresses (they can be [automatically-generated private commit emails](https://docs.gitlab.com/user/profile/#use-an-automatically-generated-private-commit-email)). If some commits have the wrong authorship, you can provide the list of co-authors using the following format:

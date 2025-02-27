@@ -33,7 +33,7 @@ MODULE mo_2mom_mcrph_util
   USE mo_2mom_mcrph_types,   ONLY: particle, lookupt_1D, lookupt_4D
   USE mo_2mom_mcrph_dmin_wetgrowth, ONLY: dmin_wetgrowth_lookupcreate, &
        &                           write_dmin_wetgrowth_table, get_filebase_dmin_lut_file
-  
+
   IMPLICIT NONE
 
   PRIVATE
@@ -99,7 +99,7 @@ MODULE mo_2mom_mcrph_util
 
   !..Tables for 4D Segal-Khain activation
   TYPE(lookupt_4D) :: otab, tab
-  
+
   ! Type to hold the lookup table for the incomplete gamma functions.
   ! The table is divided into a low resolution part, which spans the
   ! whole range of x-values up to the 99.5 % x-value, and a high resolution part for the
@@ -198,9 +198,9 @@ CONTAINS
         CALL message(modname,TRIM(txt))
         CALL finish(TRIM(modname),'Error in gamma_help_ser')
       END IF
-      
+
       gamser = 0.0_dp
-    
+
     ELSE
 
       ap  = a
@@ -239,7 +239,7 @@ CONTAINS
       gamma_p = 0.0d0
       CALL finish(TRIM(modname),'Error in gamma_p')
     END IF
-    
+
     IF (x < a+1.0_dp) THEN
       CALL gamma_help_ser(gamser,a,x,gln)
       gamma_p = gamser
@@ -247,7 +247,7 @@ CONTAINS
       CALL gamma_help_cf(gammcf,a,x,gln)
       gamma_p = 1.0_dp - gammcf
     ENDIF
-    
+
     RETURN
   END FUNCTION gamma_p
 
@@ -271,7 +271,7 @@ CONTAINS
       CALL gamma_help_cf(gammcf,a,x,gln)
       gamma_q = gammcf
     ENDIF
-    
+
     RETURN
   END FUNCTION gamma_q
 
@@ -299,7 +299,7 @@ CONTAINS
   !*******************************************************************************
 
   REAL(dp) FUNCTION incgfct_lower(a,x)
-    
+
     REAL(dp), INTENT(in) :: a, x
     REAL(dp) :: gam, gln
 
@@ -784,7 +784,7 @@ CONTAINS
 
     IF (my_process_is_stdio()) THEN
 
-      CALL message (TRIM(routine), " Trying to read "//TRIM(dateiname))      
+      CALL message (TRIM(routine), " Trying to read "//TRIM(dateiname))
       OPEN(unitnr, file=TRIM(dateiname), status='old', form='formatted', iostat=error)
       IF (error /= 0) THEN
         WRITE (txt,*) 'init_dmin_wetgrowth: lookup-table ' // TRIM(dateiname) // ' not found'
@@ -1045,7 +1045,7 @@ CONTAINS
     INTEGER,                INTENT (IN)   :: msg_level
 
     CHARACTER(len=300)  :: alt_filebasename
-    
+
     ! grid spacings of the desired fine grid vectors:
     REAL(wp)            :: minT, maxT
     INTEGER             :: i, j, k, l, error, ii
@@ -1069,7 +1069,7 @@ CONTAINS
     !    generate the table on the fly and write it to a netcdf file whose
     !    name has the specific parameters in its filename.
 
-    IF (.NOT. ltab%is_initialized) THEN 
+    IF (.NOT. ltab%is_initialized) THEN
 
       CALL message(TRIM(routine),'Initializing equidistant lookup table for graupel wet growth diameter (2mom)')
 
@@ -1100,7 +1100,7 @@ CONTAINS
           IF (error /= 0) THEN
 
             CALL message(TRIM(routine),'Failed reading Dmin table, generating table on the fly')
-            
+
             ! .. If the other file is also not present, we create the LUT on the fly:
             CALL dmin_wetgrowth_lookupcreate (parti, dmin_wg_g_loc, ltab%n1, anzT_wg_loc, ltab%n3, ltab%n4, &
                  pvec_wg_g_loc, Tvec_wg_g_loc, qwvec_wg_g_loc, qivec_wg_g_loc)
@@ -1115,7 +1115,7 @@ CONTAINS
             IF (error /= 0) THEN
               CALL finish(TRIM(routine),'Error writing Dmin table to file! Stop!')
             END IF
-            
+
             ! .. re-read the newly produced file in order to avoid nonreproducible results because of rounding error
             !    differences of table values which have been observed between the netcdf-file and the on-the-fly LUT:
             CALL message(TRIM(routine),'Re-reading table from file'//TRIM(alt_filebasename)//'.nc to achieve reproducible results')
@@ -1134,10 +1134,10 @@ CONTAINS
           CALL message(TRIM(routine),'Reading of file '//TRIM(filebasename)//'.nc was successful')
         END IF
       END IF    ! my_process_is_stdio()
-      
+
       !------------------------------------------------------------------------------------
       ! .. 2) Distribute the table to the other workers:
-      
+
       CALL p_bcast(ltab%n1      , p_io, p_comm_work)
       CALL p_bcast(anzT_wg_loc  , p_io, p_comm_work)
       CALL p_bcast(ltab%n3      , p_io, p_comm_work)
@@ -1151,7 +1151,7 @@ CONTAINS
         ALLOCATE(ltab%x4(ltab%n4))
         ALLOCATE(dmin_wg_g_loc(ltab%n1,anzT_wg_loc,ltab%n3,ltab%n4))
       END IF
-      
+
       CALL p_bcast(ltab%x1      , p_io, p_comm_work)
       CALL p_bcast(Tvec_wg_g_loc, p_io, p_comm_work)
       CALL p_bcast(ltab%x3      , p_io, p_comm_work)
@@ -1162,7 +1162,7 @@ CONTAINS
       ! 2) Generate equidistant table vector T and construct the
       !    equidistant Dmin-lookuptable by linear oversampling:
       !    (all in SI units!)
-      
+
       ltab%n2 = ndT
 
       NULLIFY ( ltab%x2 )
@@ -1259,7 +1259,7 @@ CONTAINS
     status_netcdf = check_nc( nf90_open(TRIM(ADJUSTL(filename)), NF90_NOWRITE, id_netcdf), &
          'opening '//TRIM(filebasename)//'.nc')
 
-    IF (status_netcdf == nf90_noerr) THEN 
+    IF (status_netcdf == nf90_noerr) THEN
 
       ! Check hydrometeor type:
       nc_hydrotype(:) = ' '
@@ -1310,10 +1310,10 @@ CONTAINS
       END DO
       l_netcdf_format = .true.
 
-      ! Try ascii format if no netcdf is available  
+      ! Try ascii format if no netcdf is available
     ELSE
 
-      CALL message(routine,'Table file '//TRIM(ADJUSTL(filename))// ' not found. Trying ascii file.')   
+      CALL message(routine,'Table file '//TRIM(ADJUSTL(filename))// ' not found. Trying ascii file.')
       OPEN(unitnr, file=TRIM(filebasename)//'.dat', status='old', form='formatted', iostat=error)
       IF (error /= 0) THEN
         WRITE (txt,*) 'Error: table file ' // TRIM(filebasename)//'.dat' // ' not found.'
@@ -1340,7 +1340,7 @@ CONTAINS
       IF (ALLOCATED(dmin_wg_g_loc)) DEALLOCATE(dmin_wg_g_loc)
 
       NULLIFY (ltab%x1, ltab%x3, ltab%x4)
-      
+
       ALLOCATE( Tvec_wg_g_loc(anzT_wg_loc) )
       ALLOCATE( ltab%x1(ltab%n1) )
       ALLOCATE( ltab%x3(ltab%n3) )
@@ -1525,7 +1525,7 @@ CONTAINS
       hilf3_12  = hilf2_112  + (hilf2_212  - hilf2_112 ) * ltab%odx2 * (T_lok-ltab%x2(ju) )
       hilf3_21  = hilf2_121  + (hilf2_221  - hilf2_121 ) * ltab%odx2 * (T_lok-ltab%x2(ju) )
       hilf3_22  = hilf2_122  + (hilf2_222  - hilf2_122 ) * ltab%odx2 * (T_lok-ltab%x2(ju) )
-      
+
       hilf4_1   = hilf3_11   + (hilf3_21   - hilf3_11  ) * ltab%odx3 * (qw_lok-ltab%x3(ku))
       hilf4_2   = hilf3_12   + (hilf3_22   - hilf3_12  ) * ltab%odx3 * (qw_lok-ltab%x3(ku))
 
@@ -1534,7 +1534,7 @@ CONTAINS
 
     RETURN
   END FUNCTION dmin_wg_gr_ltab_equi
-  
+
   SUBROUTINE get_otab(n_r2,n_lsigs,n_ncn,n_wcb)
 
     INTEGER, INTENT(IN) :: n_r2,n_lsigs,n_ncn,n_wcb
@@ -1543,7 +1543,7 @@ CONTAINS
     otab%n2 = n_lsigs
     otab%n3 = n_ncn + 1
     otab%n4 = n_wcb + 1
-    
+
     IF (.NOT. ASSOCIATED(otab%x1) ) THEN
       ALLOCATE( otab%x1(otab%n1) )
       ALLOCATE( otab%x2(otab%n2) )
@@ -1551,7 +1551,7 @@ CONTAINS
       ALLOCATE( otab%x4(otab%n4) )
       ALLOCATE( otab%ltable(otab%n1,otab%n2,otab%n3,otab%n4) )
     END IF
-    
+
     ! original (non-)equidistant table vectors:
     ! r2:
     otab%x1  = (/0.02d0, 0.03d0, 0.04d0/)     ! in 10^(-6) m
@@ -1561,9 +1561,9 @@ CONTAINS
     otab%x3  = (/0.0d6, 50.d06, 100.d06, 200.d06, 400.d06, 800.d06, 1600.d06, 3200.d06, 6400.d06/) ! in m**-3
     ! wcb: (UB: um 0.0 m/s ergaenzt zur linearen Interpolation zw. 0.0 und 0.5 m/s)
     otab%x4  = (/0.0d0, 0.5d0, 1.0d0, 2.5d0, 5.0d0/)
-    
+
     ! look up table for NCCN activated at given R2, lsigs, Ncn and wcb:
-    
+
     ! Ncn              50       100       200       400       800       1600      3200      6400
     ! table4a (R2=0.02mum, wcb=0.5m/s) (for Ncn=3200  and Ncn=6400 "extrapolated")
     otab%ltable(1,1,2:otab%n3,2) =  (/  42.2d06,  70.2d06, 112.2d06, 173.1d06, 263.7d06, 397.5d06, 397.5d06, 397.5d06/)
@@ -1637,7 +1637,7 @@ CONTAINS
     otab%ltable(3,3,2:otab%n3,5) =  (/  49.6d06,  99.2d06, 198.4d06, 396.7d06, 755.5d06,1414.5d06,2565.3d06,4288.1d06/)
     otab%ltable(3,4,2:otab%n3,5) =  (/  46.5d06,  93.0d06, 186.0d06, 371.9d06, 692.9d06,1262.0d06,2188.3d06,3461.2d06/)
     otab%ltable(3,5,2:otab%n3,5) =  (/  39.9d06,  79.9d06, 159.7d06, 319.4d06, 561.7d06, 953.9d06,1493.9d06,2464.7d06/)
-    
+
     ! Additional values for wcb = 0.0 m/s, which are used for linear interpolation between
     ! wcb = 0.0 and 0.5 m/s. Values of 0.0 are reasonable here, because if no
     ! updraft is present, no new nucleation will take place:
@@ -1646,25 +1646,25 @@ CONTAINS
     ! n_cn = 0.0 and 50 m**-3. Values of 0.0 are reasonable, because if no aerosol
     ! particles are present, no nucleation will take place:
     otab%ltable(:,:,1,:) = 0.0d0
-    
+
     !!! otab%dx1 ... otab%odx4 remain empty because this is a non-equidistant table.
-    
+
   END SUBROUTINE get_otab
-    
+
   SUBROUTINE equi_table(nr2,nlsigs,nncn,nwcb)
-    
+
     INTEGER, INTENT(IN) :: nr2,nlsigs,nncn,nwcb
-    
+
     INTEGER :: i, j, k, l, ii, iu, ju,ku, lu
     INTEGER, ALLOCATABLE, DIMENSION(:) :: iuv, juv, kuv, luv
     DOUBLE PRECISION :: odx1, odx2, odx3, odx4
     DOUBLE PRECISION :: hilf1(2,2,2,2), hilf2(2,2,2), hilf3(2,2), hilf4(2)
-    
+
     tab%n1 = nr2
     tab%n2 = nlsigs
     tab%n3 = nncn
     tab%n4 = nwcb
-    
+
     IF (.NOT. ASSOCIATED(tab%x1)) THEN
       ALLOCATE( tab%x1(tab%n1) )
       ALLOCATE( tab%x2(tab%n2) )
@@ -1672,11 +1672,11 @@ CONTAINS
       ALLOCATE( tab%x4(tab%n4) )
       ALLOCATE( tab%ltable(tab%n1,tab%n2,tab%n3,tab%n4) )
     END IF
-    
+
     !===========================================================
     ! construct equidistant table:
     !===========================================================
-    
+
     ! grid distances (also inverse):
     tab%dx1  = (otab%x1(otab%n1) - otab%x1(1)) / (tab%n1 - 1.0d0)  ! dr2
     tab%odx1 = 1.0d0 / tab%dx1
@@ -1686,7 +1686,7 @@ CONTAINS
     tab%odx3 = 1.0d0 / tab%dx3
     tab%dx4  = (otab%x4(otab%n4) - otab%x4(1)) / (tab%n4 - 1.0d0)  ! dwcb
     tab%odx4 = 1.0d0 / tab%dx4
-    
+
     ! grid vectors:
     DO i=1, tab%n1
       tab%x1(i) = otab%x1(1) + (i-1) * tab%dx1
@@ -1700,15 +1700,15 @@ CONTAINS
     DO i=1, tab%n4
       tab%x4(i) = otab%x4(1) + (i-1) * tab%dx4
     END DO
-      
+
     ! Tetra-linear interpolation of the new equidistant lookuptable from
     ! the original non-equidistant table:
-    
+
     ALLOCATE(iuv(tab%n1))
     ALLOCATE(juv(tab%n2))
     ALLOCATE(kuv(tab%n3))
     ALLOCATE(luv(tab%n4))
-    
+
     DO l=1, tab%n1
       iuv(l) = 1
       DO ii=1, otab%n1 - 1
@@ -1718,7 +1718,7 @@ CONTAINS
         END IF
       END DO
     END DO
-    
+
     DO l=1, tab%n2
       juv(l) = 1
       DO ii=1, otab%n2 - 1
@@ -1728,7 +1728,7 @@ CONTAINS
         END IF
       END DO
     END DO
-    
+
     DO l=1, tab%n3
       kuv(l) = 1
       DO ii=1, otab%n3 - 1
@@ -1738,7 +1738,7 @@ CONTAINS
         END IF
       END DO
     END DO
-    
+
     DO l=1, tab%n4
       luv(l) = 1
       DO ii=1, otab%n4 - 1
@@ -1748,9 +1748,9 @@ CONTAINS
         END IF
       END DO
     END DO
-    
+
     ! Tetra-linear interpolation:
-    
+
     DO l=1, tab%n4
       lu = luv(l)
       odx4 = 1.0d0 / ( otab%x4(lu+1) - otab%x4(lu) )
@@ -1775,13 +1775,13 @@ CONTAINS
         END DO
       END DO
     END DO
-    
+
     ! clean up memory:
     DEALLOCATE(iuv,juv,kuv,luv)
 
     RETURN
-  END SUBROUTINE equi_table 
-  
+  END SUBROUTINE equi_table
+
   !*******************************************************************************
   ! 4D rational function to approximate the dmin_wetgrowth_table                 *
   ! for dmin_graupelhail2test4_wetgrowth_lookup.dat                              *
@@ -1789,7 +1789,7 @@ CONTAINS
 
   REAL(wp) ELEMENTAL FUNCTION dmin_wetgrowth_fun(pres,Tk,lwc,iwc) result(dmin)
     IMPLICIT NONE
-    
+
     REAL(wp), INTENT(IN)               :: lwc,iwc,Tk,pres
 
     REAL(wp), PARAMETER, DIMENSION(0:12) :: &
@@ -1811,15 +1811,15 @@ CONTAINS
     T  = Tk - T_3     ! Celsius temperature
     qw = lwc * 1e3    ! liquid water in g/m3
     qi = iwc * 1e3    ! ice water in g/m3
-    
+
     p1 = a(0)+a(1)*qw+a(2)*qi+a(3)*T+a(4)*qw*qw+a(5)*qw*qi+a(6)*qi*qi+a(7)*qi*T+a(8)*T*T+a(9)*qw*T &
          &   +a(10)*qw*qw*qw+a(11)*qi*qi*qi+a(12)*T*T*T
     q1 = 1.00+b(0)*qw+b(1)*qi+b(2)*T+b(3)*qw*qw+b(4)*qw*qi+b(5)*qi*qi+b(6)*qi*T+b(7)*T*T+b(8)*qw*T
 
     pp  = p - 700.0  ! change to pressure deviation from reference pressure of 700 hPa
 
-    p2 = 1.0 + c(0)*pp + c(1)*pp*T + c(2)*pp*pp 
-    q2 = 1.0 + c(3)*pp + c(4)*pp*T + c(5)*pp*pp  
+    p2 = 1.0 + c(0)*pp + c(1)*pp*T + c(2)*pp*pp
+    q2 = 1.0 + c(3)*pp + c(4)*pp*T + c(5)*pp*pp
 
     dmin = p1/q1 * p2/q2 * 1e-3    ! Dmin in m
 
@@ -1851,7 +1851,7 @@ CONTAINS
     real(wp) :: pp(3) = (/300e2,700e2,1000e2/)
     real(wp) :: tt(3) = (/-30.,-20.,-10./)
 
-    WRITE(*,*)    
+    WRITE(*,*)
     WRITE(*,*) 'Dmin_wetgrowth comparison of table and 4d-fit:'
     WRITE(*,'(A,L6)') ' dmin_wetgrowth_fit_check = ',dmin_wetgrowth_fit_check(parti)
     WRITE(*,'(9a20)') 'Tc [Celsius]','Tk [K]','p [hPa]','qw','qi','dmin_table','dmin_fit'
@@ -1871,7 +1871,7 @@ CONTAINS
         END DO
       END DO
     END DO
-    
+
   END SUBROUTINE dmin_wetgrowth_fun_check
 
   LOGICAL FUNCTION dmin_wetgrowth_fit_check(p)
@@ -1880,7 +1880,7 @@ CONTAINS
     REAL(wp), PARAMETER :: dmin_fit_b_geo = 0.314
     REAL(wp), PARAMETER :: dmin_fit_a_vel = 86.89371
     REAL(wp), PARAMETER :: dmin_fit_b_vel = 0.268325
-    
+
     IF (p%a_geo.NE.dmin_fit_a_geo .OR. p%b_geo.NE.dmin_fit_b_geo &
          & .OR. p%a_vel.NE.dmin_fit_a_vel .OR. p%b_vel.NE.dmin_fit_b_vel) THEN
       dmin_wetgrowth_fit_check = .FALSE.
@@ -1913,11 +1913,11 @@ CONTAINS
       ! even higher sticking efficiency also suggested by Lin et al. (1983) and there used for unrimed particles.
       ! Also used by Spichtinger and Gierens, e.g., doi:10.5194/acp-13-9021-2013
       ! (similar to the values given in Pruppacher and Klett, Ch. 16.2, page 601, as used by Mitchell 1988, JAS)
-      e_i = MIN(EXP(0.025_wp*T_c),1.0_wp) 
+      e_i = MIN(EXP(0.025_wp*T_c),1.0_wp)
     CASE (3)
-      ! as previous setting, but reduced sticking eff. below -40 C 
+      ! as previous setting, but reduced sticking eff. below -40 C
       IF ( (T_a-T_3) > -40_wp) THEN
-        e_i = MIN(EXP(0.025_wp*T_c),1.0_wp) 
+        e_i = MIN(EXP(0.025_wp*T_c),1.0_wp)
       ELSE
         e_i = 0.01_wp
       END IF
@@ -2038,7 +2038,7 @@ CONTAINS
     INTEGER, PARAMETER  :: ndT  = 801      ! Number of table nodes
     REAL(wp), PARAMETER :: Tmin = -70.0_wp ! Start T of table [deg C]
     REAL(wp), PARAMETER :: Tmax = 10.0_wp  ! End T of table [deg C]
-    
+
     IF (.NOT. ltab%is_initialized) THEN
 
       ltab%name(:) = ' '
@@ -2050,7 +2050,7 @@ CONTAINS
       ltab%odx1 = 1.0_wp / ltab%dx1
 
       NULLIFY (ltab%x1, ltab%ltable)
-      
+
       ALLOCATE (ltab%x1(ltab%n1))
       ALLOCATE (ltab%ltable(ltab%n1))
 
@@ -2059,7 +2059,7 @@ CONTAINS
         ltab%x1(i) = T_a                     ! equidistant table vector [K]
         ltab%ltable(i) = e_stick(T_a, istick)
       END DO
-      
+
       ltab%is_initialized = .TRUE.
 
     ELSE
@@ -2085,7 +2085,7 @@ CONTAINS
 
     INTEGER  :: iu, io
     REAL(wp) :: T_loc
-    
+
     T_loc = MIN( MAX( T_a, ltab%x1(1)), ltab%x1(ltab%n1) )
     iu = MIN(FLOOR((T_loc - ltab%x1(1)) * ltab%odx1 ) + 1, ltab%n1-1)
     io = iu + 1
@@ -2093,7 +2093,7 @@ CONTAINS
     e_stick = ltab%ltable(iu) + (ltab%ltable(io)-ltab%ltable(iu)) * ltab%odx1 * (T_loc-ltab%x1(iu))
 
   END FUNCTION estick_ltab_equi
-  
+
   !*******************************************************************************
   ! 2D rational functions to evaluate bulk approximations                        *
   ! following Frick et al. (2013; cf. Eq. (31)), for n=2 and n=3                 *
@@ -2109,9 +2109,9 @@ CONTAINS
     REAL(wp)            :: p1,p2
 
     p1 = a(1)+a(2)*x+a(3)*y+a(4)*x*x+a(5)*x*y+a(6)*y*y &
-         &   +a(7)*x*x*x+a(8)*x*x*y+a(9)*x*y*y+a(10)*y*y*y 
+         &   +a(7)*x*x*x+a(8)*x*x*y+a(9)*x*y*y+a(10)*y*y*y
     p2 = eins+b(1)*x+b(2)*y+b(3)*x*x+b(4)*x*y+b(5)*y*y &
-         &  + b(6)*x*x*x+b(7)*x*x*y+b(8)*x*y*y+b(9)*y*y*y 
+         &  + b(6)*x*x*x+b(7)*x*x*y+b(8)*x*y*y+b(9)*y*y*y
 
     rat2do3 = p1/p2
 
@@ -2227,7 +2227,7 @@ CONTAINS
 !    set_qni  = qi / 1e-10   !  qiin / ( ( Dmean / ageo) ** (1.0_wp / bgeo) )
     set_qni  = qi / 1e-10   !  qiin / ( exp(log(( Dmean / ageo)) * (1.0_wp / bgeo)) )
 !     set_qni =  5.0E+0_wp * EXP(0.304_wp *  (T_3 - T))   ! FR: Cooper (1986) used by Greg Thompson(2008)
-      
+
   END FUNCTION set_qni
 
   REAL(wp) Function set_qnr(qr)
@@ -2261,7 +2261,7 @@ CONTAINS
     ELSE
       set_qns = 0.0_wp
     END IF
-    
+
   END FUNCTION set_qns
 
   REAL(wp) Function set_qng(qg)
@@ -2294,7 +2294,7 @@ CONTAINS
 
 !    qnh = qh * 6.0_wp / (pi * rhobulk_hail * Dmean**3.0_wp)
     qnh = qh * 6.0_wp / (pi * rhobulk_hail * EXP(LOG(Dmean)*3.0_wp) )
-    
+
   END FUNCTION set_qnh_Dmean
 
   FUNCTION set_qnh_expPSD_N0const(qh, rhobulk_hail, N0_h) RESULT (qnh)
@@ -2302,21 +2302,21 @@ CONTAINS
     !$ACC ROUTINE SEQ
 
     ! .. Sets qnh based on assumption of an exponential PSD w.r.t. diameter D
-    
+
     REAL(wp), INTENT(in) :: qh           ! has to be [kg/m^3] because of N0 held constant
     REAL(wp), INTENT(in) :: rhobulk_hail ! assumed bulk density of hail [kg/m^3]
     REAL(wp), INTENT(in) :: N0_h         ! assumed constant N0-parameter of expon. size distrib. [1/m^4]
 
     REAL(wp) :: qnh
- 
+
 !    set_qnh = N0_h * ( qh / ( pi * rhobulk_hail * N0_h) )**(0.25)
     IF (qh >= 1e-20_wp) THEN
       qnh = N0_h * EXP( LOG ( qh / ( pi * rhobulk_hail * N0_h) ) * ( 0.25_wp ) )
     ELSE
       qnh = 0.0_wp
     END IF
-    
+
   END FUNCTION set_qnh_expPSD_N0const
 
- 
+
 END MODULE mo_2mom_mcrph_util

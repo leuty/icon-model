@@ -38,7 +38,7 @@ MODULE mo_impl_constants
   INTEGER, PARAMETER :: CELLS               = 123
   INTEGER, PARAMETER :: EDGES               = 345
   INTEGER, PARAMETER :: VERTS               = 678
-  
+
   INTEGER, PARAMETER :: ON_CELLS            = 1
   INTEGER, PARAMETER :: ON_EDGES            = 2
   INTEGER, PARAMETER :: ON_VERTICES         = 3
@@ -129,10 +129,10 @@ MODULE mo_impl_constants
 !   min_rlcell_int- 2: halo cells in the first cell row having no prognostic cell as neighbor
 !   and analogously for the second halo cell row if present. For n_ghost_rows = 1, the index segments
 !   corresponding to min_rlcell_int - 3 and min_rlcell_int - 4 (= min_rlcell) are empty.
-! 
+!
 !   For edges and vertices, one needs to be aware of the fact that outer boundary edges/vertices of a prognostic
 !   cell may not be owned by the current PE because the PE of the neighboring cell has the ownership (otherwise
-!   there would be double-counting). There are, however, operations for which even such edges/vertices can be 
+!   there would be double-counting). There are, however, operations for which even such edges/vertices can be
 !   excluded from prognostic computation because a halo synchronization follows immediately afterwards (and
 !   has to be there anyway). Thus, the following ordering is applied:
 !   min_rledge_int - 1: outer boundary edges of a prognostic cell not owned by the current PE\\
@@ -214,7 +214,7 @@ MODULE mo_impl_constants
   !
   ! end index level for computations excluding all halo cells
   INTEGER, PARAMETER :: end_prog_cells = min_rlcell_int
-  ! end index level for computations including halo level 1 cells (direct neighbors, i.e. halo cells 
+  ! end index level for computations including halo level 1 cells (direct neighbors, i.e. halo cells
   ! sharing an edge with a prognostic cell)
   INTEGER, PARAMETER :: end_halo_lev1_cells = min_rlcell_int - 1
   ! end index for computations including all halo cells (this adds indirect neighbors, i.e.
@@ -256,13 +256,13 @@ MODULE mo_impl_constants
 
   ! maximum allowed number of echotop levels:
   INTEGER, PARAMETER :: max_echotop = 10
-  
+
   ! maximum allowed number of wshear levels:
   INTEGER, PARAMETER :: max_wshear = 10
-  
+
   ! maximum allowed number of srh levels:
   INTEGER, PARAMETER :: max_srh = 10
-  
+
   ! identifiers for model initialization
   INTEGER, PARAMETER :: ianalytic      =  0 ! - from analytical functions
   INTEGER, PARAMETER :: irestart       =  1 ! - from restart file
@@ -275,7 +275,7 @@ MODULE mo_impl_constants
   INTEGER,PARAMETER :: TRACER_ONLY   = 1 ! pure tracer advection
 
   ! Rayleigh damping identifiers
-  INTEGER,PARAMETER :: RAYLEIGH_CLASSIC = 1  ! classical Rayleigh damping, which makes use of 
+  INTEGER,PARAMETER :: RAYLEIGH_CLASSIC = 1  ! classical Rayleigh damping, which makes use of
                                              ! a reference state.
   INTEGER,PARAMETER :: RAYLEIGH_KLEMP   = 2  ! Klemp (2008) type Rayleigh damping
 
@@ -297,25 +297,25 @@ MODULE mo_impl_constants
   INTEGER, PARAMETER :: iphysproc = 10! for NWP:
                                       ! number of physical processes:
                                       ! convection, cloud cover, radiation, radheat, sso,
-                                      ! microphysics, saturation adjustment, gwd, 
+                                      ! microphysics, saturation adjustment, gwd,
                                       ! turbulence, surface
 
   INTEGER, PARAMETER :: iphysproc_short = 6 ! for NWP:
                                             ! number of physical processes:
                                             ! convection, cloud cover, radiation,
                                             ! sso, gwd, fastphysics
-                                            ! i.e. fastphysics processes are treated 
+                                            ! i.e. fastphysics processes are treated
                                             ! as a combined process
 
 
   ! identifiers for different NWP turbulent schemes
   INTEGER, PARAMETER :: icosmo  =  1
   INTEGER, PARAMETER :: igme    =  2
-  INTEGER, PARAMETER :: iprog   =  4  
+  INTEGER, PARAMETER :: iprog   =  4
   INTEGER, PARAMETER :: ismag   =  5
   INTEGER, PARAMETER :: ivdiff  =  6 !< VDIFF turbulent diffusion scheme
 
-  ! identifiers for aerosol classes of Tegen climatology 
+  ! identifiers for aerosol classes of Tegen climatology
   INTEGER, PARAMETER :: iss   =  1
   INTEGER, PARAMETER :: iorg  =  2
   INTEGER, PARAMETER :: ibc   =  3
@@ -323,7 +323,7 @@ MODULE mo_impl_constants
   INTEGER, PARAMETER :: idu   =  5
   INTEGER, PARAMETER :: nclass_aero = 5
 
-  ! Number of CAMS aerosols 
+  ! Number of CAMS aerosols
   INTEGER, PARAMETER :: n_camsaermr = 11
 
   ! external parameter for radiation
@@ -390,12 +390,12 @@ MODULE mo_impl_constants
                                             ! - ocean
   INTEGER, PARAMETER :: impiom         = -1 !   - MPIOM physics
 
-  
+
 
   ! NWP SST-ICE modes
   INTEGER, PARAMETER :: SSTICE_ANA         = 1     ! SST and sea ice read from analysis and kept constant
                                                    ! also used for coupled atmo/ocean setups
-  INTEGER, PARAMETER :: SSTICE_ANA_CLINC   = 2     ! SST and sea ice read from analysis. SST is updated 
+  INTEGER, PARAMETER :: SSTICE_ANA_CLINC   = 2     ! SST and sea ice read from analysis. SST is updated
                                                    ! by climatological increments on a daily basis
   INTEGER, PARAMETER :: SSTICE_CLIM        = 3     ! SST and sea ice based on climatology (monthly fields)
   INTEGER, PARAMETER :: SSTICE_AVG_MONTHLY = 4     ! SST and sea ice based on monthly averages
@@ -522,11 +522,11 @@ MODULE mo_impl_constants
   ! Method for computation of mean sea level pressure:
   INTEGER, PARAMETER :: &
     PRES_MSL_METHOD_GME = 1,  &   ! GME-type extrapolation
-    PRES_MSL_METHOD_SAI = 2,  &   ! stepwise analytical integration 
+    PRES_MSL_METHOD_SAI = 2,  &   ! stepwise analytical integration
     PRES_MSL_METHOD_IFS = 3,  &   ! current IFS method
-    PRES_MSL_METHOD_IFS_CORR = 4,&! modified IFS method that is consistent with 
-                                  ! geopotential computation 
-    PRES_MSL_METHOD_DWD = 5       ! mixture between GME and IFS method (elevation-dependent departure 
+    PRES_MSL_METHOD_IFS_CORR = 4,&! modified IFS method that is consistent with
+                                  ! geopotential computation
+    PRES_MSL_METHOD_DWD = 5       ! mixture between GME and IFS method (elevation-dependent departure
                                   ! level for downward extraplation)
 
   ! Method for computation of relative humidity:
@@ -548,7 +548,7 @@ MODULE mo_impl_constants
   !  POST PROCESSING SCHEDULER TASKS  !
   !-----------------------------------!
 
-  INTEGER, PARAMETER, PUBLIC :: TASK_NONE              = 0 
+  INTEGER, PARAMETER, PUBLIC :: TASK_NONE              = 0
   !------ setup tasks (coefficients,...)
   INTEGER, PARAMETER, PUBLIC :: TASK_INIT_VER_Z        = 1  !< task: setup z-interpolation
   INTEGER, PARAMETER, PUBLIC :: TASK_INIT_VER_P        = 2  !< task: setup p-interpolation
@@ -641,9 +641,9 @@ MODULE mo_impl_constants
 
   REAL(wp), PARAMETER, PUBLIC :: ALB_SI_MISSVAL = -1._wp
 
-  ! The lon-lat parameterization of the torus is 
+  ! The lon-lat parameterization of the torus is
   !    (lon,lat) = [0, 2*pi] x [-max_lat, max_lat]
-  ! where max_lat := pi/180 = 10 degrees 
+  ! where max_lat := pi/180 = 10 degrees
   ! (hard-coded in the torus grid generator)
   REAL(wp), PARAMETER :: TORUS_MAX_LAT = 4._wp / 18._wp * ATAN(1._wp)
 
@@ -654,9 +654,9 @@ MODULE mo_impl_constants
 
   TYPE t_ivexpol
     INTEGER :: lin    !< linear extrapolation
-    INTEGER :: upatmo !< blending with climatology (intended for upper-atmosphere configuration) 
+    INTEGER :: upatmo !< blending with climatology (intended for upper-atmosphere configuration)
   END TYPE t_ivexpol
-  TYPE(t_ivexpol), PARAMETER :: ivexpol = t_ivexpol( 1, &  !lin 
+  TYPE(t_ivexpol), PARAMETER :: ivexpol = t_ivexpol( 1, &  !lin
     &                                                2  )  !upatmo
 
 

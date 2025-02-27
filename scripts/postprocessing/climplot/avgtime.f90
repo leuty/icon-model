@@ -57,7 +57,7 @@ extern avgtime(p1:fieldset,p2:number,p3:number,p4:number,p5:number,p6:number) "f
 ! --- field size
       ISIZE = nlon*nlat
       IPNTS = ISIZE
-      
+
 ! --- allocate some memory
       allocate(values(IPNTS),stat=ierr)
        if (ierr.ne.0) stop 'E to allocate memory'

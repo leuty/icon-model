@@ -24,7 +24,7 @@
 make_and_change_to_experiment_dir # function in ../add_run_routines
 
 # Combine START and MODEL if START_MODEL is not already set.
-# START_MODEL is used to ease the execution of a machine that uses a complex 
+# START_MODEL is used to ease the execution of a machine that uses a complex
 # mpirun command with multiple binaries
 START_MODEL="${START_MODEL:=$START $MODEL}"
 
@@ -74,7 +74,7 @@ mkdir -p ${OUTDIR}
 
 ln -sf ${INPUTDIR}/inidata/caf1979010100_ini.nc .
 ln -sf ${INPUTDIR}/latbc .
-       
+
 ln -sf ${GRIDDIR}/greenhouse_gases/bc_greenhouse_rcp45_1765-2500.nc .
 
 ln -sf ${GRIDDIR}/dict.latbc .
@@ -141,7 +141,7 @@ cat > NAMELIST_${EXPID} << EOF
  /
 
         &parallel_nml
-          nproma             = ${nproma} 
+          nproma             = ${nproma}
           p_test_run         = .false.
           l_test_openmp      = .false.
           l_log_checks       = .true.

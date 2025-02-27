@@ -92,14 +92,14 @@ CONTAINS
 
     !---------------------------------------------------------
 
-    ! please do not limit range of assignment 
-    ! (e.g., heato2(jcs:jce,istartlev:iendlev) = 0._wp)), 
+    ! please do not limit range of assignment
+    ! (e.g., heato2(jcs:jce,istartlev:iendlev) = 0._wp)),
     ! since tendencies have attribute INTENT(OUT)
     heato2(:,:) = 0._wp
 
-    ! we are within openMP-threading, 
+    ! we are within openMP-threading,
     ! so only rudimentary error handling is possible
-    IF (PRESENT(opt_error)) THEN 
+    IF (PRESENT(opt_error)) THEN
       opt_error       = IERR_NO
       l_present_error = .TRUE.
     ELSE
@@ -120,10 +120,10 @@ CONTAINS
       iendlev = klev
     ENDIF
 
-    IF (istartlev > iendlev) RETURN 
+    IF (istartlev > iendlev) RETURN
 
     IF (PRESENT(opt_nsunlit)) THEN
-      ! no further computations are necessary, 
+      ! no further computations are necessary,
       ! if all grid cell columns are dark
       IF (opt_nsunlit < 1) RETURN
       nsunlit           = opt_nsunlit
@@ -138,7 +138,7 @@ CONTAINS
     ELSE
       ! we determine the index list ourselves
       nsunlit = 0
-      ! for convenience, we allocate the index list with kbdim 
+      ! for convenience, we allocate the index list with kbdim
       ! and not with nsunlit
       ALLOCATE(sunlit_idx(kbdim))
       sunlit_idx(:) = 0
@@ -193,10 +193,10 @@ CONTAINS
         ELSE
           effsrc = 0.8320_wp
         END IF
-        
+
         ! O2 amount: downward looking paths
         n2 = tto2(jl, jk) * inv_prmu0(jl)
-        
+
         !=================================================================
         ! Coefficients according to the original Strobel 1978 paper
         !=================================================================
@@ -207,14 +207,14 @@ CONTAINS
         !   &      1.433e-7_wp * f_svar(2)                           * EXP(-1.15e-17_wp * n2)   &
         !   &    ) / n2
         ! src = (src1 + src2) * effsrc
-        
+
         ! ! SRB:
         ! IF(n2 > 1.e18_wp) THEN
         !    srb = 1._wp / (0.67e7_wp * n2 + 3.44e16_wp * SQRT(n2)) * f_svar(4)
         ! ELSE
         !    srb = 2.43e-26 * f_svar(4)
         ! ENDIF
-        
+
         !=================================================================
         ! Coefficients used in HAMMONIA
         !=================================================================
@@ -225,7 +225,7 @@ CONTAINS
           &     0.43883429_wp * f_svar(2)              * EXP(-1.15e-17_wp * n2)   &
           &    ) / n2
         src = (src1 + src2) * effsrc
-        
+
         ! SRB:
         IF(n2 > 1.e18_wp) THEN
           srb = 1._wp / (1.113e-24_wp * n2 + 5.712e-15_wp * SQRT(n2)) * f_svar(4)

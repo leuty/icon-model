@@ -292,8 +292,8 @@ CONTAINS
     ndims = SIZE(ldims)
     ! Check for a variable of the same name in this list
     ! This consistency check only makes sense inside individual lists.
-    ! For single-domain setups and/or when using internal post-processing 
-    ! (e.g. lon-lat or vertically interpolated output)  
+    ! For single-domain setups and/or when using internal post-processing
+    ! (e.g. lon-lat or vertically interpolated output)
     ! duplicate names may exist in different lists
     IF (PRESENT(hor_interp)) THEN
       IF (ASSOCIATED(find_list_element(list, varname,                        &
@@ -695,7 +695,7 @@ CONTAINS
     TYPE(t_var_action), INTENT(IN), OPTIONAL :: action_list
     TYPE(t_var), POINTER :: element
 
-    CALL add_var_list_element_5d(SINGLE_T, this_list, varname, hgrid, vgrid,& 
+    CALL add_var_list_element_5d(SINGLE_T, this_list, varname, hgrid, vgrid,&
       & cf, grib2, ldims, element, loutput, lcontainer, lrestart,          &
       & lrestart_cont, isteptype, lmiss, tlev_source, info, vert_interp,   &
       & hor_interp, in_group, l_pp_scheduler_task, post_op, action_list,   &
@@ -728,7 +728,7 @@ CONTAINS
     TYPE(t_var_action), INTENT(IN), OPTIONAL :: action_list
     TYPE(t_var), POINTER :: element
 
-    CALL add_var_list_element_5d(INT_T, this_list, varname, hgrid, vgrid,  & 
+    CALL add_var_list_element_5d(INT_T, this_list, varname, hgrid, vgrid,  &
       & cf, grib2, ldims, element, loutput, lcontainer, lrestart,          &
       & lrestart_cont, isteptype, lmiss, tlev_source, info, vert_interp,   &
       & hor_interp, in_group, l_pp_scheduler_task, post_op, action_list,   &
@@ -761,7 +761,7 @@ CONTAINS
     TYPE(t_var_action), INTENT(IN), OPTIONAL :: action_list
     TYPE(t_var), POINTER :: element
 
-    CALL add_var_list_element_5d(INT_T, this_list, varname, hgrid, vgrid,  & 
+    CALL add_var_list_element_5d(INT_T, this_list, varname, hgrid, vgrid,  &
       & cf, grib2, ldims, element, loutput, lcontainer, lrestart,          &
       & lrestart_cont, isteptype, lmiss, tlev_source, info, vert_interp,   &
       & hor_interp, in_group, l_pp_scheduler_task, post_op, action_list,   &
@@ -794,7 +794,7 @@ CONTAINS
     TYPE(t_var_action), INTENT(IN), OPTIONAL :: action_list
     TYPE(t_var), POINTER :: element
 
-    CALL add_var_list_element_5d(INT_T, this_list, varname, hgrid, vgrid,  & 
+    CALL add_var_list_element_5d(INT_T, this_list, varname, hgrid, vgrid,  &
       & cf, grib2, ldims, element, loutput, lcontainer, lrestart,          &
       & lrestart_cont, isteptype, lmiss, tlev_source, info, vert_interp,   &
       & hor_interp, in_group, l_pp_scheduler_task, post_op, action_list,   &
@@ -861,7 +861,7 @@ CONTAINS
     TYPE(t_var_action), INTENT(IN), OPTIONAL :: action_list
     TYPE(t_var), POINTER :: element
 
-    CALL add_var_list_element_5d(BOOL_T, this_list, varname, hgrid, vgrid, & 
+    CALL add_var_list_element_5d(BOOL_T, this_list, varname, hgrid, vgrid, &
       & cf, grib2, ldims, element, loutput, lcontainer, lrestart,          &
       & lrestart_cont, isteptype, lmiss, tlev_source, info, vert_interp,   &
       & hor_interp, in_group, l_pp_scheduler_task, post_op, action_list,   &
@@ -895,7 +895,7 @@ CONTAINS
     TYPE(t_var_action), INTENT(IN), OPTIONAL :: action_list
     TYPE(t_var), POINTER :: element
 
-    CALL add_var_list_element_5d(BOOL_T, this_list, varname, hgrid, vgrid, & 
+    CALL add_var_list_element_5d(BOOL_T, this_list, varname, hgrid, vgrid, &
       & cf, grib2, ldims, element, loutput, lcontainer, lrestart,          &
       & lrestart_cont, isteptype, lmiss, tlev_source, info, vert_interp,   &
       & hor_interp, in_group, l_pp_scheduler_task, post_op, action_list,   &
@@ -929,7 +929,7 @@ CONTAINS
     TYPE(t_var_action), INTENT(IN), OPTIONAL :: action_list
     TYPE(t_var), POINTER :: element
 
-    CALL add_var_list_element_5d(BOOL_T, this_list, varname, hgrid, vgrid, & 
+    CALL add_var_list_element_5d(BOOL_T, this_list, varname, hgrid, vgrid, &
       & cf, grib2, ldims, element, loutput, lcontainer, lrestart,          &
       & lrestart_cont, isteptype, lmiss, tlev_source, info, vert_interp,   &
       & hor_interp, in_group, l_pp_scheduler_task, post_op, action_list,   &
@@ -963,7 +963,7 @@ CONTAINS
     TYPE(t_var_action), INTENT(IN), OPTIONAL :: action_list
     TYPE(t_var), POINTER :: element
 
-    CALL add_var_list_element_5d(BOOL_T, this_list, varname, hgrid, vgrid, & 
+    CALL add_var_list_element_5d(BOOL_T, this_list, varname, hgrid, vgrid, &
       & cf, grib2, ldims, element, loutput, lcontainer, lrestart,          &
       & lrestart_cont, isteptype, lmiss, tlev_source, info, vert_interp,   &
       & hor_interp, in_group, l_pp_scheduler_task, post_op, action_list,   &
@@ -1055,7 +1055,7 @@ CONTAINS
       ELSE IF (ASSOCIATED(target_element%l_ptr)) THEN
         max_ref = SIZE(target_element%l_ptr, var_ref_pos)
       END IF
-      ! Counting the number of existing references is deactivated, 
+      ! Counting the number of existing references is deactivated,
       ! if the slice index to be referenced is given explicitly.
       target_info%ncontained = MAX(target_info%ncontained, ref_idx)
       ! only check validity of given slice index
@@ -1253,20 +1253,20 @@ CONTAINS
     CHARACTER(*), INTENT(IN) :: target_name, refname
     REAL(dp), POINTER :: ptr(:,:)
     INTEGER, INTENT(IN) :: hgrid, vgrid, ref_idx, ldims(2)
-    TYPE(t_cf_var), INTENT(IN) :: cf                  
-    TYPE(t_grib2_var), INTENT(IN) :: grib2               
+    TYPE(t_cf_var), INTENT(IN) :: cf
+    TYPE(t_grib2_var), INTENT(IN) :: grib2
     LOGICAL, INTENT(IN), OPTIONAL :: loutput, lrestart, lrestart_cont, &
       & lmiss, in_group(:)
     INTEGER, INTENT(IN), OPTIONAL :: isteptype, tlev_source, var_class, &
       & l_pp_scheduler_task, opt_var_ref_pos, idx_tracer, idx_diag
     REAL(dp), INTENT(IN), OPTIONAL :: initval, resetval, missval
-    CLASS(t_tracer_meta), INTENT(IN), OPTIONAL :: tracer_info         
-    TYPE(t_var_metadata), POINTER, OPTIONAL :: info                
-    TYPE(t_vert_interp_meta),INTENT(IN), OPTIONAL :: vert_interp         
-    TYPE(t_hor_interp_meta), INTENT(IN), OPTIONAL :: hor_interp          
-    TYPE(t_var), POINTER, OPTIONAL :: new_element         
-    TYPE(t_post_op_meta), INTENT(IN), OPTIONAL :: post_op            
-    TYPE(t_var_action), INTENT(IN), OPTIONAL :: action_list         
+    CLASS(t_tracer_meta), INTENT(IN), OPTIONAL :: tracer_info
+    TYPE(t_var_metadata), POINTER, OPTIONAL :: info
+    TYPE(t_vert_interp_meta),INTENT(IN), OPTIONAL :: vert_interp
+    TYPE(t_hor_interp_meta), INTENT(IN), OPTIONAL :: hor_interp
+    TYPE(t_var), POINTER, OPTIONAL :: new_element
+    TYPE(t_post_op_meta), INTENT(IN), OPTIONAL :: post_op
+    TYPE(t_var_action), INTENT(IN), OPTIONAL :: action_list
     CHARACTER(*), PARAMETER :: routine = modname//"::add_var_list_reference_r2d"
     TYPE(t_var), POINTER :: target_element, new_list_element
     INTEGER :: icontainer, vrp
@@ -1648,5 +1648,5 @@ CONTAINS
       element => this%p%vl(iv)%p
     ENDDO
   END FUNCTION find_list_element
-  
+
 END MODULE mo_var_list

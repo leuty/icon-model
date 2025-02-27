@@ -397,43 +397,43 @@ __myACC_directive
        _close_loop_construct_
     CASE(F_MAX)
 __myOMP_directive
-__myACC_directive       
+__myACC_directive
         _begin_loop_construct_
         IF (tmp1(_idx_) .GT. tmp2(_idx_)) tmp2(_idx_) = tmp1(_idx_)
         _close_loop_construct_
     CASE(F_MIN)
 __myOMP_directive
-__myACC_directive       
+__myACC_directive
         _begin_loop_construct_
         IF (tmp1(_idx_) .LT. tmp2(_idx_)) tmp2(_idx_) = tmp1(_idx_)
         _close_loop_construct_
     CASE(F_ACC_SQ)
 __myOMP_directive
-__myACC_directive       
+__myACC_directive
         _begin_loop_construct_
         tmp2(_idx_) = tmp2(_idx_) + tmp1(_idx_) * tmp1(_idx_)
         _close_loop_construct_
     CASE(F_ASS)
 __myOMP_directive
-__myACC_directive       
+__myACC_directive
         _begin_loop_construct_
         tmp2(_idx_) = tmp1(_idx_)
-        _close_loop_construct_               
+        _close_loop_construct_
     CASE(F_ASS_SQ)
 __myOMP_directive
-__myACC_directive       
+__myACC_directive
         _begin_loop_construct_
-        tmp2(_idx_) = tmp1(_idx_) * tmp1(_idx_) 
-        _close_loop_construct_          
+        tmp2(_idx_) = tmp1(_idx_) * tmp1(_idx_)
+        _close_loop_construct_
     CASE(F_WGT)
 __myOMP_directive
-__myACC_directive       
+__myACC_directive
         _begin_loop_construct_
         tmp2(_idx_) = tmp2(_idx_) * weight_dst
         _close_loop_construct_
     CASE(F_MISS)
 __myOMP_directive
-__myACC_directive       
+__myACC_directive
         _begin_loop_construct_
         IF (tmp1(_idx_) .EQ. miss_src) tmp2(_idx_) = miss_dst
         _close_loop_construct_
@@ -450,7 +450,7 @@ __myACC_directive
   !! Execute the accumulation forall internal variables and compute mean values
   !! if the corresponding event is active
   SUBROUTINE update_statistics(lacc)
-    LOGICAL, INTENT(IN) :: lacc 
+    LOGICAL, INTENT(IN) :: lacc
     INTEGER :: iop
 
     DO iop = 1, nops

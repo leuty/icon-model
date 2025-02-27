@@ -22,11 +22,11 @@
     Florian Prill, DWD, mailto:florian.prill@dwd.de
 
   Task objectives:
-  - copy ICON binary 
+  - copy ICON binary
 %end
 
 # include the header file for remote jobs
-%include <init_sc.h> 
+%include <init_sc.h>
 
 # -------------------------------------------------
 

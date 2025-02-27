@@ -61,7 +61,7 @@ cat > ${ocean_namelist} << EOF
  output               = 'nml'        ! namelist controlled output scheme
  activate_sync_timers = .TRUE.
  profiling_output = 3
- test_mode     = 110 
+ test_mode     = 110
 /
 &ocean_dynamics_nml
   n_zlev        =   2      ! number of vertical levels and (dzlev_m) thicknesses

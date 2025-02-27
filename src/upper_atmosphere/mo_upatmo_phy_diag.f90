@@ -26,7 +26,7 @@ MODULE mo_upatmo_phy_diag
   USE mo_upatmo_impl_const,      ONLY: iUpatmoStat, iUpatmoGasId,         &
     &                                  iUpatmoGasMode, iUpatmoExtdatStat, &
     &                                  iUpatmoExtdatId
-  USE mo_run_config,             ONLY: iqv, iqc, iqi 
+  USE mo_run_config,             ONLY: iqv, iqc, iqi
   USE mo_model_domain,           ONLY: t_patch
   USE mo_nonhydro_types,         ONLY: t_nh_prog, t_nh_diag
   USE mo_upatmo_types,           ONLY: t_upatmo_diag, t_upatmo_tend, &
@@ -44,7 +44,7 @@ MODULE mo_upatmo_phy_diag
   USE mo_nh_vert_extrap_utils,   ONLY: sanity_check
 
   IMPLICIT NONE
-  
+
   PRIVATE
 
   PUBLIC :: update_diagnostic_variables
@@ -53,16 +53,16 @@ MODULE mo_upatmo_phy_diag
 
   ! For convenience
   INTEGER, PARAMETER :: next        = iUpatmoExtdatId%nitem ! Number of external data types
-  INTEGER, PARAMETER :: ngas        = iUpatmoGasId%nitem    ! Number of radiatively active gases 
+  INTEGER, PARAMETER :: ngas        = iUpatmoGasId%nitem    ! Number of radiatively active gases
   INTEGER, PARAMETER :: igasDiag    = iUpatmoGasId%diag     ! Identifier for diagnostic gas
   INTEGER, PARAMETER :: imodeConst  = iUpatmoGasMode%const  ! Identifier for constant gas mode
   INTEGER, PARAMETER :: imodeExtdat = iUpatmoGasMode%extdat ! Identifier for external-data gas mode
   INTEGER, PARAMETER :: iextGases   = iUpatmoExtdatId%gases ! Identifier for external gas data
-  
+
 CONTAINS
 
   !>
-  !! Subroutine to update the upper-atmosphere diagnositc variables 
+  !! Subroutine to update the upper-atmosphere diagnositc variables
   !! under NWP forcing.
   !!
   SUBROUTINE update_diagnostic_variables( mtime_datetime,    &  !in
@@ -81,7 +81,7 @@ CONTAINS
     &                                     opt_kstart_moist,  &  !optin
     &                                     opt_gas_vmr,       &  !optinout
     &                                     opt_gas_col,       &  !optinout
-    &                                     opt_gas_cumcol     )  !optinout 
+    &                                     opt_gas_cumcol     )  !optinout
 
     ! In/out variables
     TYPE(datetime),                      INTENT(IN)    :: mtime_datetime          ! Date/time information
@@ -93,29 +93,29 @@ CONTAINS
     TYPE(t_upatmo_tend),       TARGET,   INTENT(INOUT) :: prm_upatmo_tend         ! Upper-atmosphere physics tendencies
     TYPE(t_upatmo_extdat),     TARGET,   INTENT(INOUT) :: prm_upatmo_extdat       ! Upper-atmosphere external data
     TYPE(t_upatmo_config),     TARGET,   INTENT(IN)    :: upatmo_config           ! General upper-atmosphere configuration
-    TYPE(t_upatmo_phy_config), TARGET,   INTENT(IN)    :: upatmo_phy_config       ! Upper-atmosphere physics configuration 
+    TYPE(t_upatmo_phy_config), TARGET,   INTENT(IN)    :: upatmo_phy_config       ! Upper-atmosphere physics configuration
                                                                                   ! with namelist settings
     INTEGER,                             INTENT(IN)    :: nproma                  ! Blocking length
     LOGICAL,                   OPTIONAL, INTENT(IN)    :: opt_linit               ! Switch for initialization mode
     LOGICAL,                   OPTIONAL, INTENT(IN)    :: opt_lrestart            ! Switch for resumed simulation
-    INTEGER,                   OPTIONAL, INTENT(IN)    :: opt_kstart_moist        ! Index of grid layer above which 
+    INTEGER,                   OPTIONAL, INTENT(IN)    :: opt_kstart_moist        ! Index of grid layer above which
                                                                                   ! no condensed water phases exist in the model
     REAL(wp),                  OPTIONAL, INTENT(INOUT) :: opt_gas_vmr(:,:,:,:)    ! Gas volume mixing ratio
                                                                                   ! (nproma,nlev,nblks_c,ngas)
     REAL(wp),                  OPTIONAL, INTENT(INOUT) :: opt_gas_col(:,:,:,:)    ! Gas column number density
-                                                                                  ! (nproma,nlev,nblks_c,ngas) 
+                                                                                  ! (nproma,nlev,nblks_c,ngas)
     REAL(wp),                  OPTIONAL, INTENT(INOUT) :: opt_gas_cumcol(:,:,:,:) ! Gas accumulated column density
-                                                                                  ! (nproma,nlev,nblks_c,ngas) 
-  
-    ! Local variables    
+                                                                                  ! (nproma,nlev,nblks_c,ngas)
+
+    ! Local variables
     REAL(wp), POINTER :: qv(:,:,:), qc(:,:,:), qi(:,:,:)
     REAL(wp) :: mmr, mmr2vmr, mass2mol
-        
+
     INTEGER  :: jg, jb, jk, jc, jgas, jext
     INTEGER  :: nlev, kstart_moist, nlev_gas
     INTEGER  :: rl_start, rl_end
-    INTEGER  :: i_startblk, i_endblk 
-    INTEGER  :: i_startidx, i_endidx 
+    INTEGER  :: i_startblk, i_endblk
+    INTEGER  :: i_startidx, i_endidx
     INTEGER  :: igas_ext
 
     LOGICAL  :: lupdate_extdat( next )
@@ -135,7 +135,7 @@ CONTAINS
     REAL(wp), PARAMETER :: cpv_m_cpd   = cpv - cpd
     CHARACTER(LEN=MAX_CHAR_LENGTH), PARAMETER ::  &
       &  routine = modname//':update_diagnostic_variables'
-    
+
     !--------------------------------------------------------------
 
     !---------------------------------------------------------------------
@@ -152,7 +152,7 @@ CONTAINS
     ENDIF
 
     IF (PRESENT(opt_lrestart)) THEN
-      ! A restart is only considered, 
+      ! A restart is only considered,
       ! if this is an initialization call
       lrestart = opt_lrestart .AND. linit
     ELSE
@@ -171,11 +171,11 @@ CONTAINS
 
     ! Domain index
     jg = p_patch%id
-    
+
     ! Message output desired?
     lmessage = upatmo_config%l_status( iUpatmoStat%message )
     dom_str  = TRIM(int2string(jg))
-    IF (lmessage .AND. linit) THEN 
+    IF (lmessage .AND. linit) THEN
       CALL message(TRIM(routine), &
         & 'Start initialization of diagnostic variables for upper-atmosphere physics on domain '//dom_str)
     ELSEIF (lmessage) THEN
@@ -191,24 +191,24 @@ CONTAINS
       !-------------------------------------
       ! Time interpolation of external data
       !-------------------------------------
-      
-      ! * For chemical heating this means that this 
-      !   is the actual place where the heating tendencies 
-      !   'prm_upatmo_tend%ddt_temp_chemheat' are determined. 
-      
-      ! * The external gas data are interpolated in time 
-      !   and onto the horizontal grid of ICON, 
-      !   but they are still on the original pressure levels 
-      !   of the external data. 
+
+      ! * For chemical heating this means that this
+      !   is the actual place where the heating tendencies
+      !   'prm_upatmo_tend%ddt_temp_chemheat' are determined.
+
+      ! * The external gas data are interpolated in time
+      !   and onto the horizontal grid of ICON,
+      !   but they are still on the original pressure levels
+      !   of the external data.
       !   Their vertical interpolation is done below.
 
-      ! * In case of a restart things get ugly. 
-      !   The fields contained by 'prm_upatmo_extdat' 
-      !   are not (and cannot be) handeled by 'add_var'. 
-      !   As a consequence they cannot be saved in the restart file. 
-      !   So if this is a resumed simulation, 
-      !   we have to interpolate the external data to that datetime 
-      !   when the last interpolation took place 
+      ! * In case of a restart things get ugly.
+      !   The fields contained by 'prm_upatmo_extdat'
+      !   are not (and cannot be) handeled by 'add_var'.
+      !   As a consequence they cannot be saved in the restart file.
+      !   So if this is a resumed simulation,
+      !   we have to interpolate the external data to that datetime
+      !   when the last interpolation took place
       !   in the simulation resumed.
 
       IF (.NOT. lrestart) THEN
@@ -218,16 +218,16 @@ CONTAINS
           &                      mtime_current = mtime_datetime,               & !in
           &                      isInit        = .FALSE.,                      & !in
           &                      lcall_phy     = lupdate_extdat                ) !inout
-        
-        ! If this is the initialization call, 
-        ! we force a first interpolation, 
-        ! in order to fill the gas fields 'prm_upatmo_diag%gas' 
+
+        ! If this is the initialization call,
+        ! we force a first interpolation,
+        ! in order to fill the gas fields 'prm_upatmo_diag%gas'
         ! with reasonable values, for they might have been selected
         ! for data output at time = 0.
         IF (linit) lupdate_extdat(:) = upatmo_nwp%extdat(:)%l_stat( iUpatmoExtdatStat%required )
-        
+
         IF (ANY(lupdate_extdat(:))) THEN
-          
+
           CALL update_upatmo_extdat_nwp( mtime_datetime    = mtime_datetime,    & !in
             &                            p_patch           = p_patch,           & !in
             &                            prm_upatmo_extdat = prm_upatmo_extdat, & !inout
@@ -235,13 +235,13 @@ CONTAINS
             &                            upatmo_config     = upatmo_config,     & !in
             &                            lupdate           = lupdate_extdat,    & !in
             &                            lmessage          = lmessage           ) !in
-        
+
         ENDIF  !IF (ANY(lupdate_extdat(:)))
 
       ELSE  ! Resumed simulation
 
-        ! The last interpolation of the different types of external data 
-        ! may have taken place at different times. 
+        ! The last interpolation of the different types of external data
+        ! may have taken place at different times.
         ! That's why we have to loop over the types of external data.
         lupdate_extdat(:) = .FALSE.
         DO jext = 1, next
@@ -249,11 +249,11 @@ CONTAINS
           lupdate_extdat(jext) = upatmo_nwp%extdat(jext)%l_stat( iUpatmoExtdatStat%required )
 
           IF (lupdate_extdat(jext)) THEN
-          
-            ! We do not have to worry about the case 
-            ! that the restart point in time coincides 
-            ! with a trigger time for one of the external data, 
-            ! because this subroutine will be called again 
+
+            ! We do not have to worry about the case
+            ! that the restart point in time coincides
+            ! with a trigger time for one of the external data,
+            ! because this subroutine will be called again
             ! before the computation of the physics tendencies.
             lastactive     = upatmo_nwp%extdat(jext)%event%getLastActive()
             lastactive_ptr => lastactive
@@ -277,7 +277,7 @@ CONTAINS
     ENDIF  !External data required?
 
     ! In case of a resumed simulation the computations below
-    ! are unnecessary, because the fields contained by 'prm_upatmo_diag' 
+    ! are unnecessary, because the fields contained by 'prm_upatmo_diag'
     ! would have been stored in the restart file.
     IF (lrestart) THEN
       upatmo_nwp => NULL()
@@ -302,8 +302,8 @@ CONTAINS
     qc => p_prog_rcf%tracer(:,:,:,iqc)
     qi => p_prog_rcf%tracer(:,:,:,iqi)
 
-    ! Loop boundaries for prognostic domain. 
-    ! (The upper-atmosphere physics make no use 
+    ! Loop boundaries for prognostic domain.
+    ! (The upper-atmosphere physics make no use
     ! of the halo cells.)
     rl_start   = grf_bdywidth_c + 1
     rl_end     = min_rlcell_int
@@ -313,17 +313,17 @@ CONTAINS
 !$OMP PARALLEL
 !$OMP DO PRIVATE(jb, jk, jc, i_startidx, i_endidx) ICON_OMP_GUIDED_SCHEDULE
     DO jb = i_startblk, i_endblk
-      
+
       CALL get_indices_c( p_patch, jb, i_startblk, i_endblk,     &
         &                 i_startidx, i_endidx, rl_start, rl_end )
 
       !---------------------------------------------------------------------
       !                    Some quantities of the air
-      !--------------------------------------------------------------------- 
-      
+      !---------------------------------------------------------------------
+
       ! For grid layers without condensed water phases ...
       DO jk = 1, kstart_moist
-        DO jc = i_startidx, i_endidx      
+        DO jc = i_startidx, i_endidx
           ! Mass of dry air [kg/m2]:
           ! mass of air minus water vapor mass
           prm_upatmo_diag%mdry(jc,jk,jb) = ( 1._wp - qv(jc,jk,jb) ) * p_diag%airmass_new(jc,jk,jb)
@@ -334,10 +334,10 @@ CONTAINS
 
       ! ... and for grid layers with condensed water phases
       DO jk = kstart_moist + 1, nlev
-        DO jc = i_startidx, i_endidx      
+        DO jc = i_startidx, i_endidx
           prm_upatmo_diag%mdry(jc,jk,jb) = ( 1._wp - qv(jc,jk,jb)     &
             &                                      - qc(jc,jk,jb)     &
-            &                                      - qi(jc,jk,jb) ) * & 
+            &                                      - qi(jc,jk,jb) ) * &
             &                              p_diag%airmass_new(jc,jk,jb)
           prm_upatmo_diag%cpair(jc,jk,jb) = cpd + cpv_m_cpd * qv(jc,jk,jb)
         ENDDO  !jc
@@ -345,28 +345,28 @@ CONTAINS
 
       !---------------------------------------------------------------------
       !                     Initialize diagnostic gas
-      !--------------------------------------------------------------------- 
+      !---------------------------------------------------------------------
 
       IF (lupdate_gas) THEN
 
-        ! The diagnostic gas has to be initialized with 1, 
-        ! because of its iterative computation below 
+        ! The diagnostic gas has to be initialized with 1,
+        ! because of its iterative computation below
         ! (diagnostic gas mass = air mass - all other gas masses)
         DO jk = 1, nlev
-          DO jc = i_startidx, i_endidx              
+          DO jc = i_startidx, i_endidx
             prm_upatmo_diag%gas(jc,jk,jb,igasDiag) = 1._wp
           ENDDO  !jc
-        ENDDO  !jk            
-        
+        ENDDO  !jk
+
       ENDIF  !IF (lupdate_gas)
-     
+
     ENDDO  !jb
 !$OMP END DO
 !$OMP END PARALLEL
 
     !---------------------------------------------------------------------
     !                  Update radiatively active gases
-    !--------------------------------------------------------------------- 
+    !---------------------------------------------------------------------
 
     IF (lupdate_gas) THEN
 
@@ -381,7 +381,7 @@ CONTAINS
 
           !---------------------------------------------------------------------
           !                   Treat the different gas modes
-          !--------------------------------------------------------------------- 
+          !---------------------------------------------------------------------
 
           IF (upatmo_nwp_gas(jgas)%imode == imodeExtdat) THEN
 
@@ -401,46 +401,46 @@ CONTAINS
             !-------------------
             ! Constant gas mode
             !-------------------
-            
+
             ! This has to be done only once during initialization.
 
             ! Mass mixing ratio of gas from settings in upatmo_nml [kg/kg]
             mmr = upatmo_nwp_gas( jgas )%mmr
-            
+
 !$OMP PARALLEL
 !$OMP DO PRIVATE(jb, jk, jc, i_startidx, i_endidx) ICON_OMP_GUIDED_SCHEDULE
             DO jb = i_startblk, i_endblk
-            
+
               CALL get_indices_c( p_patch, jb, i_startblk, i_endblk,     &
                 &                 i_startidx, i_endidx, rl_start, rl_end )
-              
+
               DO jk = 1, nlev
-                DO jc = i_startidx, i_endidx  
+                DO jc = i_startidx, i_endidx
                   ! Amount of gas in a grid cell in terms of kg/kg
                   prm_upatmo_diag%gas(jc,jk,jb,jgas) = mmr
                 ENDDO  !jc
-              ENDDO  !jk               
+              ENDDO  !jk
             ENDDO  !jb
 !$OMP END DO
-!$OMP END PARALLEL            
-            
+!$OMP END PARALLEL
+
           ENDIF  !Gas mode
 
 !$OMP PARALLEL
 !$OMP DO PRIVATE(jb, jk, jc, i_startidx, i_endidx) ICON_OMP_GUIDED_SCHEDULE
           DO jb = i_startblk, i_endblk
-            
+
             CALL get_indices_c( p_patch, jb, i_startblk, i_endblk,     &
               &                 i_startidx, i_endidx, rl_start, rl_end )
-            
+
             IF (upatmo_nwp_gas(jgas)%imode == imodeExtdat) THEN
-              
+
               !------------------------
               ! External-data gas mode
               !------------------------
-              
-              ! The external gas data are provided on pressure levels. 
-              ! Here, we interpolate them to the grid layers of ICON. 
+
+              ! The external gas data are provided on pressure levels.
+              ! Here, we interpolate them to the grid layers of ICON.
               CALL o3_pl2ml( jcs            = i_startidx,                                         & !in
                 &            jce            = i_endidx,                                           & !in
                 &            kbdim          = nproma,                                             & !in
@@ -452,25 +452,25 @@ CONTAINS
                 &            pph            = p_diag%pres_ifc(:,:,jb),                            & !in
                 &            o3_time_int    = prm_upatmo_extdat%gas_interm( igas_ext )%p(:,:,jb), & !in
                 &            o3_clim        = prm_upatmo_diag%gas(:,:,jb,jgas),                   & !out
-                &            opt_o3_initval = 0._wp                                               ) !optin              
-              
+                &            opt_o3_initval = 0._wp                                               ) !optin
+
             ENDIF  !IF (upatmo_nwp_gas(jgas)%imode == imodeExtdat)
-            
+
             !---------------------------
-            ! Update the diagnostic gas 
+            ! Update the diagnostic gas
             !---------------------------
 
             DO jk = 1, nlev
               DO jc = i_startidx, i_endidx
                 ! We assume that the amount of all gases sums up to the amount of dray air:
-                ! 
+                !
                 ! mass(dry air) = sum[ mass(jgas) ] = sum\[ mass(jgas) ] + mass(igasDiag) <=>
                 !
                 ! mass(igasDiag) = mass(dry air) - sum\[ mass(jgas) ],
                 !
                 ! where sum\ denotes the sum over all gases except for the diagnostic gas igasDiag.
                 prm_upatmo_diag%gas(jc,jk,jb,igasDiag) = prm_upatmo_diag%gas(jc,jk,jb,igasDiag) &
-                  &                                    - prm_upatmo_diag%gas(jc,jk,jb,jgas)                
+                  &                                    - prm_upatmo_diag%gas(jc,jk,jb,jgas)
               ENDDO  !jc
             ENDDO  !jk
 
@@ -481,14 +481,14 @@ CONTAINS
         ENDIF  !IF (jgas /= igasDiag)
 
       ENDDO  !jgas
-      
+
       !--------------------------------
       ! Sanity check of diagnostic gas
       !--------------------------------
-      
+
       ! 'lsanitycheck' can be set in 'src/namelists/mo_upatmo_nml'
       IF (upatmo_phy_config%lsanitycheck) THEN
-        
+
         ! Is mass of diagnostic gas positive-definite?
         CALL sanity_check ( p_patch     = p_patch,                             &  !in
           &                 state       = prm_upatmo_diag%gas(:,:,:,igasDiag), &  !in
@@ -505,86 +505,86 @@ CONTAINS
             & //'and/or check the external gas data.'
           CALL finish(TRIM(routine), TRIM(message_text))
         ENDIF
-        
+
       ENDIF  !IF (upatmo_phy_config%lsanitycheck)
-      
+
       !---------------------------------------------------------------------
       !                     Derived gas quantities
-      !--------------------------------------------------------------------- 
-      
-      ! If this subroutine is called for initialization, 
-      ! 'lupdate_gas = .TRUE.' may hold, but 'opt_gas_vmr', 
+      !---------------------------------------------------------------------
+
+      ! If this subroutine is called for initialization,
+      ! 'lupdate_gas = .TRUE.' may hold, but 'opt_gas_vmr',
       ! 'opt_gas_col' and 'opt_gas_cumcol' are not present
       IF (.NOT. linit) THEN
-        
-        ! The following computations 
+
+        ! The following computations
         ! have to be done for all gases
         DO jgas = 1, ngas
-          
+
           ! Conversion factors
           mmr2vmr  = upatmo_nwp%gas( jgas )%mmr2vmr
           mass2mol = upatmo_nwp%gas( jgas )%mass2mol / 10._wp
-          
+
 !$OMP PARALLEL
 !$OMP DO PRIVATE(jb, jk, jc, i_startidx, i_endidx) ICON_OMP_GUIDED_SCHEDULE
           DO jb = i_startblk, i_endblk
-            
+
             CALL get_indices_c( p_patch, jb, i_startblk, i_endblk,     &
               &                 i_startidx, i_endidx, rl_start, rl_end )
-            
-            ! Depending on the gas mode, some of the following computations 
-            ! could be done computationally more efficiently, 
+
+            ! Depending on the gas mode, some of the following computations
+            ! could be done computationally more efficiently,
             ! but to simplify matters we do without a case differentiation for the time being.
-            
+
             !--------------------------------------------------
             ! Volume mixing ratios and column number densities
             !--------------------------------------------------
-            
+
             DO jk = 1, nlev
-              DO jc = i_startidx, i_endidx 
+              DO jc = i_startidx, i_endidx
                 ! Volume mixing ratio ([kg/kg] -> [m3/m3] (= [mol/mol]))
                 opt_gas_vmr(jc,jk,jb,jgas) = mmr2vmr * prm_upatmo_diag%gas(jc,jk,jb,jgas)
                 ! Column number density ([kg/m2] -> [molecules/cm2])
                 opt_gas_col(jc,jk,jb,jgas) = mass2mol * prm_upatmo_diag%gas(jc,jk,jb,jgas) * &
-                  &                          prm_upatmo_diag%mdry(jc,jk,jb)              
+                  &                          prm_upatmo_diag%mdry(jc,jk,jb)
               ENDDO  !jc
-            ENDDO  !jk  
-            
+            ENDDO  !jk
+
             !-------------------------------------
             ! Accumulated column number densities
             !-------------------------------------
-            
+
             ! Initialization
-            DO jc = i_startidx, i_endidx 
+            DO jc = i_startidx, i_endidx
               opt_gas_cumcol(jc,1,jb,jgas) = opt_gas_col(jc,1,jb,jgas)
             ENDDO
-            
+
             ! Integrate from model top downwards
             DO jk = 2, nlev
-              DO jc = i_startidx, i_endidx  
+              DO jc = i_startidx, i_endidx
                 opt_gas_cumcol(jc,jk,jb,jgas) = opt_gas_cumcol(jc,jk-1,jb,jgas) &
                   &                           + opt_gas_col(jc,jk,jb,jgas)
               ENDDO  !jc
-            ENDDO  !jk  
-            
+            ENDDO  !jk
+
           ENDDO  !jb
 !$OMP END DO
 !$OMP END PARALLEL
 
         ENDDO  !jgas
-        
+
       ENDIF  !IF (.NOT. linit)
-      
+
       upatmo_nwp_gas => NULL()
-      
+
     ENDIF  !IF (lupdate_gas)
-    
+
     NULLIFY(upatmo_nwp, qv, qc, qi)
 
     IF (lmessage .AND. linit) THEN
       CALL message(TRIM(routine), &
         & 'Finish initialization of diagnostic variables for upper-atmosphere physics on domain '//dom_str)
-    ELSEIF (lmessage) THEN 
+    ELSEIF (lmessage) THEN
       CALL message(TRIM(routine), &
         & 'Finish update of diagnostic variables for upper-atmosphere physics on domain '//dom_str)
     ENDIF

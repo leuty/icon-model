@@ -14,8 +14,8 @@
 #########################################################
 # Part 2 in MJO-Analysis Suite
 #   * Loops through all variables
-#   * Calls NCL-Skript 
-#     "mjo_analysis_clivar_anomalies.ncl" 
+#   * Calls NCL-Skript
+#     "mjo_analysis_clivar_anomalies.ncl"
 #     and provides required information on
 #     dimensions etc.
 #   * NCL-Script:
@@ -24,7 +24,7 @@
 #     - writes out anomaly fields as .nc in
 #       data directoy
 #     - unifies variable names
-#     - creates anomaly plots 
+#     - creates anomaly plots
 #
 #-------------------------------------------------------
 # DWD, FE 13, Julia Keller, 02/2016
@@ -36,11 +36,11 @@ do
   if [ "${variable}" == "TOT_PREC" ]
   then
     fileinpart=${variable}"_daily"
-  else 
+  else
     fileinpart=${variable}"_"${dataext}"mean"
   fi
   fileoutpart=${variable}"_"${dataext}"anom"
-  echo "Process "${variable}'"' 
+  echo "Process "${variable}'"'
   ncl 'var="'${variable}'"'  \
       'infile="'${filepath}${dataset}'_'${fileinpart}'.grb2"' \
       'outfile="'${filepath}${dataset}'_'${fileoutpart}'.nc"' \
@@ -55,4 +55,3 @@ do
 
 
 done
-

@@ -209,7 +209,7 @@ CONTAINS
 
   SUBROUTINE var__set_auxiliary_pointers(var)
     CLASS(t_var), INTENT(INOUT) :: var
-    
+
 #ifdef __SINGLE_PRECISION
     var%wp_ptr => var%s_ptr
     var%xwp_ptr => var%r_ptr

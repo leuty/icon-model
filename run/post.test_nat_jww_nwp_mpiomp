@@ -45,7 +45,7 @@ fi
 VARN="pres_sfc"
 OUTD="${FILED}plots/"
 if [ ! -d ${OUTD} ]; then
-   mkdir -p ${OUTD} 
+   mkdir -p ${OUTD}
 fi
 OUTF1="${OUTD}${EXP}_global"
 OUTF2="${OUTD}${EXP}_refined"

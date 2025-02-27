@@ -22,11 +22,11 @@
     Florian Prill, DWD, mailto:florian.prill@dwd.de
 
   Task objectives:
-  - build ICON binary 
+  - build ICON binary
 %end
 
 # include the header file for remote jobs
-%include <init_sc.h> 
+%include <init_sc.h>
 
 # -------------------------------------------------
 
@@ -50,12 +50,12 @@ case ${compiler} in
   cray)
     #---IBM
     #module swap fortran fortran/xlf/14.1.0.3
-    
+
     #---CRAY 8.3.1
-    export CRAY_ADD_RPATH=yes 
+    export CRAY_ADD_RPATH=yes
     module swap cce cce/8.4.5
    #module swap PrgEnv-cray PrgEnv-cray/5.1.29
-    
+
    #module load subversion
     module unload eccodes
     module load grib_api/1.15.0
@@ -77,7 +77,7 @@ case ${compiler} in
   intel)
     module swap PrgEnv-cray PrgEnv-intel
     module load netcdf
-    ./configure --with-fortran=intel --with-openmp 
+    ./configure --with-fortran=intel --with-openmp
 esac
 
 smsevent configure
@@ -88,7 +88,7 @@ gmake clean    # distclean
 gmake -j%SCTOTALTASKS%
 smsevent make
 
-# ICON: store branch and revision number of successful compilation 
+# ICON: store branch and revision number of successful compilation
 echo '--- ICON revision ---' > %SCPERMIII%/%DEIA_ICON_DIR%/build/${arch}/bin/icon_rev.txt
 git status | grep -i branch >> %SCPERMIII%/%DEIA_ICON_DIR%/build/${arch}/bin/icon_rev.txt
 git log -1 | cat            >> %SCPERMIII%/%DEIA_ICON_DIR%/build/${arch}/bin/icon_rev.txt
@@ -110,7 +110,7 @@ case ${compiler} in
     module load hdf5/1.8.13
    #module swap PrgEnv-cray/5.1.29
     gmake clean
-    gmake cray_mpi             #-j%SCTOTALTASKS%   
+    gmake cray_mpi             #-j%SCTOTALTASKS%
     ;;
   intel)
     module swap PrgEnv-cray PrgEnv-intel
@@ -119,7 +119,7 @@ case ${compiler} in
     ;;
 esac
 
-# DWD_ICON_TOOLS: store branch and revision number of successful compilation 
+# DWD_ICON_TOOLS: store branch and revision number of successful compilation
 echo ''                       >> %SCPERMIII%/%DEIA_ICON_DIR%/build/${arch}/bin/icon_rev.txt
 echo '--- icon_dwd_tools ---' >> %SCPERMIII%/%DEIA_ICON_DIR%/build/${arch}/bin/icon_rev.txt
 git status | grep -i branch   >> %SCPERMIII%/%DEIA_ICON_DIR%/build/${arch}/bin/icon_rev.txt

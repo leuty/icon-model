@@ -16,7 +16,7 @@
 #
 # Notes: - turn on debug stdout with namelists dbg_index_nml
 #        - PBS options: NE=1-64, CPE=8
-#        - sample script for new users to provide a quick start for running 
+#        - sample script for new users to provide a quick start for running
 #          a full featured atm/oce/hd coupled model with 80/40km resolution
 #          and pyICON output for postprocssing (NOT for buildbot use)
 #

@@ -82,8 +82,8 @@ DO jb = all_cells%start_block, all_cells%end_block
     !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1) IF(lzacc)
     !$ACC LOOP GANG VECTOR
     DO jc=start_index, end_index
-     
-      max_lev = p_patch_3D%p_patch_1d(1)%dolic_c(jc,jb) 
+
+      max_lev = p_patch_3D%p_patch_1d(1)%dolic_c(jc,jb)
 
       IF (max_lev > 0)then
 
@@ -100,7 +100,7 @@ DO jb = all_cells%start_block, all_cells%end_block
 
         !o2min = o2(jc,omz_depth_index,jb) in mol m-3
         hamocc_state%p_tend%o2min(jc,jb)=kilo*hamocc_state%p_prog(i_time_stat)%tracer(jc,omz_depth_index,jb,ioxygen)
-    
+
         !zo2min = sum(thickness(1:omz_depth_index)) + zeta
         hamocc_state%p_tend%zo2min(jc,jb)=SUM(pddpo(jc,1:omz_depth_index,jb)) + ssh(jc,jb)
 
@@ -126,7 +126,7 @@ END SUBROUTINE get_omz
     REAL(wp) :: glob_n2b, glob_pwn2b, glob_srf_thick
     REAL(wp) :: glob_det, glob_doc, glob_phy, glob_zoo, glob_cya
     REAL(wp) :: glob_dic, glob_calc, glob_pwic, glob_sedo12
-    REAL(wp) :: glob_bo12, glob_sedc12, glob_bc12 
+    REAL(wp) :: glob_bo12, glob_sedc12, glob_bc12
 
     TYPE(t_patch), POINTER :: patch_2d
     TYPE(t_subset_range), POINTER :: owned_cells
@@ -541,7 +541,7 @@ END SUBROUTINE get_omz
     hamocc_state%p_tend%monitor%bacfra(1)       = hamocc_state%p_tend%monitor%bacfra(1) * p2gtc
     hamocc_state%p_tend%monitor%net_co2_flux(1) = hamocc_state%p_tend%monitor%net_co2_flux(1) * c2gtc
     hamocc_state%p_tend%monitor%delcar(1)       = hamocc_state%p_tend%monitor%delcar(1) * c2gtc
-    
+
     hamocc_state%p_tend%monitor%n2fix(1)        = hamocc_state%p_tend%monitor%n2fix(1) * n2tgn
     hamocc_state%p_tend%monitor%omex90(1)       = hamocc_state%p_tend%monitor%omex90(1) * p2gtc
     hamocc_state%p_tend%monitor%calex90(1)      = hamocc_state%p_tend%monitor%calex90(1) * c2gtc
@@ -549,7 +549,7 @@ END SUBROUTINE get_omz
     hamocc_state%p_tend%monitor%calex1000(1)    = hamocc_state%p_tend%monitor%calex1000(1) * c2gtc
     hamocc_state%p_tend%monitor%omex2000(1)     = hamocc_state%p_tend%monitor%omex2000(1) * p2gtc
     hamocc_state%p_tend%monitor%calex2000(1)    = hamocc_state%p_tend%monitor%calex2000(1) * c2gtc
-    
+
     hamocc_state%p_tend%monitor%cyaldoc(1)      = hamocc_state%p_tend%monitor%cyaldet(1) * p2gtc * doccya_fac
     hamocc_state%p_tend%monitor%cyaldet(1)      = hamocc_state%p_tend%monitor%cyaldet(1) * p2gtc *(1._wp - doccya_fac)
 
@@ -892,7 +892,7 @@ CALL message_to_own_unit(' ', ' ', io_stdo_bgc)
 
 !-------- Silicate
 watersum =  glob_sil + glob_opal + glob_pwsi
-    
+
 sedsum = glob_sedsi + glob_bsil  - weathering_flag * glob_silinp
 
 total_ocean = watersum + sedsum
@@ -954,7 +954,7 @@ watersum = (glob_det + glob_doc + glob_phy + glob_zoo   &
      &     + rcyano*glob_cya ) *rcar + &
      &     glob_dic + glob_calc + flux_flag * glob_cfl - weathering_flag * (glob_calinp + &
      &     rcar * glob_orginp) + glob_pwic
-    
+
 sedsum =  (glob_sedo12 + glob_bo12 ) * rcar + glob_sedc12 + glob_bc12
 
 
@@ -979,7 +979,7 @@ SUBROUTINE calc_inventory3d(patch3D, lacc, ssh, pddpo, pfield3d, field_globsum, 
 ! if no_thick is given:
 ! inv = sum(tracer * area) --> thickness needs to be cons. elsewhere
 TYPE(t_patch_3d), TARGET, INTENT(in) :: patch3D
-LOGICAL, INTENT(IN) :: lacc  
+LOGICAL, INTENT(IN) :: lacc
 REAL(wp), TARGET    :: pfield3d(:,:,:)
 REAL(wp), INTENT(IN), TARGET:: ssh(:,:)
 REAL(wp), INTENT(IN), TARGET:: pddpo(:,:,:)
@@ -1029,7 +1029,7 @@ SUBROUTINE calc_inventory_sed(patch3D, lacc, pfield3d, sed_state, field_globsum)
 ! sed_state: porsol or porwat (for solid or pore water tracer)
 ! inv = sum (tracer * {porsol or porwat} * area * seddw)
 TYPE(t_patch_3d), TARGET, INTENT(in) :: patch3D
-LOGICAL, INTENT(IN) :: lacc  
+LOGICAL, INTENT(IN) :: lacc
 REAL(wp), TARGET    :: pfield3d(:,:,:)
 REAL(wp) :: sed_state(ks)
 REAL(wp), INTENT(OUT) :: field_globsum
@@ -1105,4 +1105,3 @@ ENDIF
 END SUBROUTINE
 
 END MODULE mo_hamocc_diagnostics
-

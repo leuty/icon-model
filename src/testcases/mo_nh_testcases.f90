@@ -11,16 +11,16 @@
 
 ! Defines the artificial testcases for the nonhydrostatic atmospheric model.
 
-MODULE mo_nh_testcases  
-!-------------------------------------------------------------------------  
-!  
-!    ProTeX FORTRAN source: Style 2  
-!    modified for ICON project, DWD/MPI-M 2006                       
-!  
-!-------------------------------------------------------------------------  
-!  
-!  
-!  
+MODULE mo_nh_testcases
+!-------------------------------------------------------------------------
+!
+!    ProTeX FORTRAN source: Style 2
+!    modified for ICON project, DWD/MPI-M 2006
+!
+!-------------------------------------------------------------------------
+!
+!
+!
   USE mo_kind,                 ONLY: wp
   USE mo_exception,            ONLY: message, finish, message_text
 
@@ -31,7 +31,7 @@ MODULE mo_nh_testcases
   USE mo_model_domain,         ONLY: t_patch
   USE mo_ext_data_types,       ONLY: t_external_data
   USE mo_math_constants,       ONLY: pi
-  USE mo_math_types,           ONLY: t_cartesian_coordinates, t_geographical_coordinates 
+  USE mo_math_types,           ONLY: t_cartesian_coordinates, t_geographical_coordinates
   USE mo_math_utilities,       ONLY: gc2cc, arc_length
   USE mo_parallel_config,      ONLY: nproma
   USE mo_run_config,           ONLY: ltransport, iforcing
@@ -47,19 +47,19 @@ MODULE mo_nh_testcases
   USE mo_nh_pa_test,           ONLY: init_nh_state_prog_patest
   USE mo_nh_df_test,           ONLY: init_nh_state_prog_dftest
   USE mo_nh_hs_test,           ONLY: init_nh_state_prog_held_suarez
-  USE mo_nh_jabw_exp,          ONLY: init_nh_topo_jabw, init_nh_state_prog_jabw,  & 
+  USE mo_nh_jabw_exp,          ONLY: init_nh_topo_jabw, init_nh_state_prog_jabw,  &
                                    & init_passive_tracers_nh_jabw, init_nh_inwp_tracers
   USE mo_nh_mrw_exp,           ONLY: init_nh_topo_mrw, init_nh_state_prog_mrw,    &
-                                   & init_nh_prog_mwbr_const, mount_half_width                     
+                                   & init_nh_prog_mwbr_const, mount_half_width
   USE mo_nh_wk_exp,            ONLY: init_nh_topo_wk, init_nh_env_wk,             &
                                    & init_nh_buble_wk, bubctr_z,                  &
                                    & bub_hor_width, bub_ver_width, bub_amp
-  USE mo_nh_bb13_exp,          ONLY: init_nh_env_bb13, init_nh_bubble_bb13                       
+  USE mo_nh_bb13_exp,          ONLY: init_nh_env_bb13, init_nh_bubble_bb13
   USE mo_nh_dcmip_gw,          ONLY: init_nh_dcmip_gw, init_nh_gw_analyt
-  USE mo_nh_dcmip_hadley,      ONLY: init_nh_dcmip_hadley         
+  USE mo_nh_dcmip_hadley,      ONLY: init_nh_dcmip_hadley
   USE mo_nh_dcmip_schaer,      ONLY: init_nh_prog_dcmip_schaer
   USE mo_nh_dcmip_rest_atm,    ONLY: init_nh_topo_dcmip_rest_atm,                 &
-                                   & init_nh_prog_dcmip_rest_atm  
+                                   & init_nh_prog_dcmip_rest_atm
   USE mo_nh_dcmip_tc,          ONLY: init_nh_dcmip_tc
   USE mo_nh_dcmip_bw,          ONLY: init_nh_dcmip_bw
   USE mo_nh_dcmip_terminator,  ONLY: init_nh_dcmip_terminator
@@ -81,35 +81,35 @@ MODULE mo_nh_testcases
   USE mo_hydro_adjust,         ONLY: hydro_adjust_const_thetav
   USE mo_scm_nml,              ONLY: i_scm_netcdf, lscm_random_noise
 
-  IMPLICIT NONE  
-  
+  IMPLICIT NONE
+
   PRIVATE
-  
+
   PUBLIC :: init_nh_testtopo
   PUBLIC :: init_nh_testcase
   PUBLIC :: init_nh_testcase_scm
 
-  ! !DEFINED PARAMETERS for jablonowski williamson: 
+  ! !DEFINED PARAMETERS for jablonowski williamson:
   !  The rest of the needed parameters are define in mo_nh_jabw_exp
   REAL(wp), PARAMETER :: ps0      = 1.e5_wp     !< surface pressure (Pa)
-  
+
   ! !DEFINED PARAMETERS for mountain induced Rossby wave train:
   REAL(wp), PARAMETER :: pres_sp  = 93000.0_wp  !< pressure surface at the south pole
   REAL(wp), PARAMETER :: temp_mrw = 288._wp     !< temperature of isothermal atmosphere
 
   ! !DEFINED PARAMETERS for APE (now read from namelist)
   !REAL(wp), PARAMETER :: zp_ape   = 101325._wp  !< surface pressure
-  !REAL(wp), PARAMETER :: ztmc_ape = 25.006_wp   !< total moisture content 
+  !REAL(wp), PARAMETER :: ztmc_ape = 25.006_wp   !< total moisture content
 
-  CONTAINS  
-  
+  CONTAINS
+
 !-------------------------------------------------------------------------
 !
 !
   !>
   !! Initialize topography for nonhydrostatic artificial testcases
   !! (not for single column model (SCM))
-  !! 
+  !!
   SUBROUTINE init_nh_testtopo (p_patch, ext_data)
 !
 ! !INPUT VARIABLES:
@@ -123,7 +123,7 @@ MODULE mo_nh_testcases
   TYPE(t_cartesian_coordinates)    :: z_x1_cart, z_x2_cart
   CHARACTER(len=MAX_CHAR_LENGTH), PARAMETER :: &
     &  routine = '(mo_nh_testcases) init_nh_testtopo:'
- 
+
   LOGICAL       :: l_modified
 
 !-----------------------------------------------------------------------
@@ -138,11 +138,11 @@ MODULE mo_nh_testcases
   SELECT CASE (nh_test_name)
 
   CASE ('zero', 'HS_jw')
-    
+
     IF(nh_test_name=='HS_jw') CALL message(TRIM(routine),'running the Held-Suarez test')
 
   CASE ('schaer')
- 
+
     ! limited area test case by Schaer et al. (2002) (plane geometry)
 
     !IF(.NOT.lplane) CALL finish(TRIM(routine),'Schaer test case only for lplane=True')
@@ -173,11 +173,11 @@ MODULE mo_nh_testcases
           ! WRITE(*,'(A,2I7,3F15.4)' ) "topo: ", jc, jb, z_lon, z_dist, ext_data(jg)%atm%topography_c(jc,jb)
 
         ENDDO
-      ENDDO 
-    ENDDO 
+      ENDDO
+    ENDDO
 
   CASE ('atm_at_rest')
- 
+
     !IF(.NOT.lplane) CALL finish(TRIM(routine),'Atm. at Rest test case only for lplane=True')
 
     ! At present the mountain is at position lat=0,lon=0 (given in meters)
@@ -204,11 +204,11 @@ MODULE mo_nh_testcases
           !WRITE(*,'(A,2I7,3F15.4)' ) "topo: ", jc, jb, z_lon, z_dist, ext_data(jg)%atm%topography_c(jc,jb)
 
         ENDDO
-      ENDDO 
-    ENDDO 
+      ENDDO
+    ENDDO
 
   CASE ('gauss3D')
- 
+
     !IF(.NOT.lplane) CALL finish(TRIM(routine),'Atm. at Rest test case only for lplane=True')
 
     ! At present the mountain is at position lat=0,lon=0 (given in meters)
@@ -238,8 +238,8 @@ MODULE mo_nh_testcases
           !WRITE(*,'(A,2I7,3F15.4)' ) "topo: ", jc, jb, z_lon, z_dist, ext_data(jg)%atm%topography_c(jc,jb)
 
         ENDDO
-      ENDDO 
-    ENDDO 
+      ENDDO
+    ENDDO
 
   CASE ('bell')
 
@@ -267,21 +267,21 @@ MODULE mo_nh_testcases
           ext_data(jg)%atm%topography_c(jc,jb) = mount_height/ &
                  (1.0_wp+ (z_dist/mount_half_width)**2)**1.5_wp
         ENDDO
-      ENDDO 
-    ENDDO 
+      ENDDO
+    ENDDO
 
   CASE ('jabw', 'jabw_s')
 
-    DO jg = 1, n_dom 
+    DO jg = 1, n_dom
      nblks_c   = p_patch(jg)%nblks_c
      npromz_c  = p_patch(jg)%npromz_c
 
      CALL init_nh_topo_jabw ( p_patch(jg),ext_data(jg)%atm%topography_c, nblks_c, npromz_c, jw_u0)
     END DO
 
-  CASE ('jabw_m')  
+  CASE ('jabw_m')
 
-    DO jg = 1, n_dom 
+    DO jg = 1, n_dom
      nblks_c   = p_patch(jg)%nblks_c
      npromz_c  = p_patch(jg)%npromz_c
 
@@ -302,18 +302,18 @@ MODULE mo_nh_testcases
      l_modified = .TRUE.
    ENDIF
 
-   DO jg = 1, n_dom 
+   DO jg = 1, n_dom
      nblks_c   = p_patch(jg)%nblks_c
      npromz_c  = p_patch(jg)%npromz_c
 
-     CALL init_nh_topo_mrw ( p_patch(jg),ext_data(jg)%atm%topography_c, nblks_c, npromz_c, l_modified) 
+     CALL init_nh_topo_mrw ( p_patch(jg),ext_data(jg)%atm%topography_c, nblks_c, npromz_c, l_modified)
    ENDDO
 
    CALL message(TRIM(routine),'topography is initialised ')
 
-  CASE ('wk82')  
+  CASE ('wk82')
 
-    DO jg = 1, n_dom 
+    DO jg = 1, n_dom
      nblks_c   = p_patch(jg)%nblks_c
      npromz_c  = p_patch(jg)%npromz_c
 
@@ -349,17 +349,17 @@ MODULE mo_nh_testcases
     CALL message(TRIM(routine),'running the deformational flow 2D-Advection test 4.')
 
   CASE ('HS_nh')
-    ! The topography has been initialized to 0 
+    ! The topography has been initialized to 0
     CALL message(TRIM(routine),'running the Held-Suarez test')
-    
+
   CASE ('APE_nwp')
     ! The topography has been initialized to 0 at the begining of this SUB
     CALL message(TRIM(routine),'running Aqua-Planet Experiment with non-hydrostatic atm. dynamics and NWP physics')
-  
+
   CASE ('APE_aes')
     ! The topography has been initialized to 0 at the begining of this SUB
     CALL message(TRIM(routine),'running Aqua-Planet Experiment with non-hydrostatic atm. dynamics and AES physics')
-  
+
   CASE ('APE_nh')
     ! The topography has been initialized to 0 at the begining of this SUB
     CALL message(TRIM(routine),'running Aqua-Planet Experiment with non-hydrostatic atm. dynamics')
@@ -383,10 +383,10 @@ MODULE mo_nh_testcases
     IF ( itopo == 0 ) THEN
       CALL message(TRIM(routine), 'using zero topography for TPEc experiment')
     END IF
-  
+
   CASE ('g_lim_area')
 
-    DO jg = 1, n_dom 
+    DO jg = 1, n_dom
      nblks_c   = p_patch(jg)%nblks_c
      npromz_c  = p_patch(jg)%npromz_c
 
@@ -397,22 +397,22 @@ MODULE mo_nh_testcases
 
   CASE ('dcmip_pa_12')
 
-    ! The topography has been initialized to 0 
+    ! The topography has been initialized to 0
     CALL message(TRIM(routine),'running the dcmip_pa_12 (PA with Hadley-like circulation) test')
 
   CASE ('dcmip_gw_31')
 
-    ! The topography has been initialized to 0 
+    ! The topography has been initialized to 0
     CALL message(TRIM(routine),'running the dcmip_gw_31 (small planet gravity wave) test')
 
   CASE ('dcmip_gw_32')
 
-    ! The topography has been initialized to 0 
+    ! The topography has been initialized to 0
     CALL message(TRIM(routine),'running the dcmip_gw_32 (analyt. small planet gravity wave) test')
 
   CASE ('dcmip_rest_200')
 
-    DO jg = 1, n_dom 
+    DO jg = 1, n_dom
 
      CALL init_nh_topo_dcmip_rest_atm ( p_patch(jg), ext_data(jg)%atm%topography_c, ext_data(jg)%atm%fis  )
 
@@ -421,10 +421,10 @@ MODULE mo_nh_testcases
     CALL message(TRIM(routine),'running the dcmip_rest_200 (steady state at rest dcmip) test')
 
 !!$  CASE ('dcmip_mw_2x')
-!DR topography_v no longer read in available. If needed, it should be 
+!DR topography_v no longer read in available. If needed, it should be
 !DR interpolated from topography_c.
 !!$
-!!$    DO jg = 1, n_dom 
+!!$    DO jg = 1, n_dom
 !!$
 !!$     CALL init_nh_topo_dcmip_schaer ( p_patch(jg),  ext_data(jg)%atm%topography_c,  &
 !!$                          & ext_data(jg)%atm%topography_v, ext_data(jg)%atm%fis  )
@@ -503,9 +503,9 @@ MODULE mo_nh_testcases
   !>
   !! Defines nonhydrostatic artificial initial conditions.
   !! (not for single column model (SCM))
-  !! 
+  !!
   !! Initializes meteorological fields
-  !! 
+  !!
   SUBROUTINE init_nh_testcase (p_patch, p_nh_state, p_int, p_lnd_state, ext_data, ntl)
 !
 ! !INPUT VARIABLES:
@@ -522,9 +522,9 @@ MODULE mo_nh_testcases
 
   TYPE(t_nh_state), POINTER       :: p_nhdom
   TYPE(t_cartesian_coordinates) :: p
-                            
-  REAL(wp)              :: p_sfc_jabw  ! surface pressure for the jabw test case, 
-                                       ! standard values is 100000 Pa   
+
+  REAL(wp)              :: p_sfc_jabw  ! surface pressure for the jabw test case,
+                                       ! standard values is 100000 Pa
   REAL(wp)              :: global_moist
   REAL(wp) :: z_help
 
@@ -538,7 +538,7 @@ MODULE mo_nh_testcases
   REAL(wp) :: p_surf
 
   CHARACTER(len=MAX_CHAR_LENGTH), PARAMETER :: routine =  &
-                                   '(mo_nh_testcases) init_nh_testcase:' 
+                                   '(mo_nh_testcases) init_nh_testcase:'
 
 !-----------------------------------------------------------------------
 
@@ -552,46 +552,46 @@ MODULE mo_nh_testcases
     ELSE
       CALL message(TRIM(routine),'Attention: iforcing /= inwp')
     ENDIF
-  
+
     IF (nh_test_name == "jabw_s" .OR. nh_test_name == "jabw_m") THEN
       jw_up = 0.0_wp
-    END IF  
+    END IF
       p_sfc_jabw = ps0
-  
+
     DO jg = 1, n_dom
-  
+
       CALL   init_nh_state_prog_jabw ( p_patch(jg), p_nh_state(jg)%prog(nnow(jg)), &
                                      & p_nh_state(jg)%diag, p_nh_state(jg)%metrics, &
                                      & p_int(jg),                                   &
                                      & p_sfc_jabw,jw_up,jw_u0,jw_temp0 )
-    
+
       IF ( ltransport .AND. iforcing /= inwp ) THEN   ! passive tracers
-  
+
          CALL init_passive_tracers_nh_jabw (p_patch(jg), p_nh_state(jg)%prog(nnow(jg)), &
                                            & rotate_axis_deg, tracer_inidist_list, p_sfc_jabw)
 
       END IF
-  
-      IF ( ltransport .AND. iforcing == inwp ) THEN 
+
+      IF ( ltransport .AND. iforcing == inwp ) THEN
         IF ( atm_phy_nwp_config(jg)%inwp_gscp /= 0 .OR.&
                      &                 atm_phy_nwp_config(jg)%inwp_convection /= 0  ) THEN   !
-    
+
         CALL init_nh_inwp_tracers ( p_patch(jg), p_nh_state(jg)%prog(nnow(jg)), &
                                   & p_nh_state(jg)%diag, p_nh_state(jg)%metrics, &
                                   & rh_at_1000hpa, qv_max, l_rediag=.TRUE. )
 
        ELSE
-  
-         p_nh_state(jg)%prog(nnow(jg))%tracer(:,:,:,:) = 0.0_wp   
-  
+
+         p_nh_state(jg)%prog(nnow(jg))%tracer(:,:,:,:) = 0.0_wp
+
        END IF
-  
+
       END IF
-  
+
       CALL duplicate_prog_state(p_nh_state(jg)%prog(nnow(jg)),p_nh_state(jg)%prog(nnew(jg)))
-  
+
     ENDDO !jg
-  
+
     CALL message(TRIM(routine),'End setup Jablonowski test')
 
 
@@ -610,16 +610,16 @@ MODULE mo_nh_testcases
   CASE ('mrw_nh', 'mrw2_nh')
 
    CALL message(TRIM(routine),'MRW test')
-  
+
    l_hydro_adjust = .TRUE.
    l_moist = .FALSE.
 
    DO jg = 1, n_dom
 
      IF ( iforcing == inwp ) THEN
-       CALL message(TRIM(routine),' iforcing == inwp')     
+       CALL message(TRIM(routine),' iforcing == inwp')
        IF ( atm_phy_nwp_config(jg)%inwp_gscp /= 0 .OR.&
-                      &                 atm_phy_nwp_config(jg)%inwp_convection /= 0  ) THEN 
+                      &                 atm_phy_nwp_config(jg)%inwp_convection /= 0  ) THEN
          l_moist = .TRUE.
        END IF
      ENDIF
@@ -643,9 +643,9 @@ MODULE mo_nh_testcases
                                      & opt_rh_at_1000hpa= rh_at_1000hpa,           &
                                      & opt_qv_max=qv_max                           )
     END IF
-   
-    CALL duplicate_prog_state(p_nh_state(jg)%prog(nnow(jg)),p_nh_state(jg)%prog(nnew(jg)))  
- 
+
+    CALL duplicate_prog_state(p_nh_state(jg)%prog(nnow(jg)),p_nh_state(jg)%prog(nnew(jg)))
+
    ENDDO !jg
 
    CALL message(TRIM(routine),'End setup MRW test')
@@ -654,19 +654,19 @@ MODULE mo_nh_testcases
   CASE ('mwbr_const')
 
    CALL message(TRIM(routine),'mwbr_const test case')
-  
+
    l_hydro_adjust = .TRUE.
    l_moist = .FALSE.
 
    DO jg = 1, n_dom
 
      IF ( iforcing == inwp ) THEN
-       CALL message(TRIM(routine),' iforcing == inwp')     
+       CALL message(TRIM(routine),' iforcing == inwp')
        IF ( atm_phy_nwp_config(jg)%inwp_gscp /= 0 .OR.&
-                      &                 atm_phy_nwp_config(jg)%inwp_convection /= 0  ) THEN 
+                      &                 atm_phy_nwp_config(jg)%inwp_convection /= 0  ) THEN
          l_moist = .TRUE.
        END IF
-     ENDIF 
+     ENDIF
 
      IF (.NOT. l_moist) THEN
 
@@ -677,7 +677,7 @@ MODULE mo_nh_testcases
                                       & p_int(jg), l_hydro_adjust, iforcing, l_moist)
 
      ELSE
-  
+
        CALL   init_nh_prog_mwbr_const ( p_patch(jg), p_nh_state(jg)%prog(nnow(jg)), &
                                       & p_nh_state(jg)%diag,                        &
                                       & ext_data(jg)%atm%topography_c,              &
@@ -688,8 +688,8 @@ MODULE mo_nh_testcases
 
     END IF
 
-    CALL duplicate_prog_state(p_nh_state(jg)%prog(nnow(jg)),p_nh_state(jg)%prog(nnew(jg))) 
- 
+    CALL duplicate_prog_state(p_nh_state(jg)%prog(nnow(jg)),p_nh_state(jg)%prog(nnew(jg)))
+
    ENDDO !jg
 
    CALL message(TRIM(routine),'End setup mwbr_const test')
@@ -697,7 +697,7 @@ MODULE mo_nh_testcases
 
   CASE ('zero','bell','schaer', 'gauss3D', 'straka93' )
 
-    ! For the moment we think of a given Brunt Vaisala frequency and a given      
+    ! For the moment we think of a given Brunt Vaisala frequency and a given
     ! zonal wind. The lplane and the lcorio=F options are assumed
 
     DO jg = 1, n_dom
@@ -711,7 +711,7 @@ MODULE mo_nh_testcases
       nlev   = p_patch(jg)%nlev
       nlevp1 = p_patch(jg)%nlevp1
 
-      DO jt = 1, ntl 
+      DO jt = 1, ntl
         ! normal wind
 !$OMP PARALLEL
 !$OMP DO PRIVATE(jb,jk,je,nlen)
@@ -736,7 +736,7 @@ MODULE mo_nh_testcases
 !$OMP END DO NOWAIT
 
       ! scalars (all is dry!)
-!$OMP DO PRIVATE(jb,jk,jc,nlen,z_help) 
+!$OMP DO PRIVATE(jb,jk,jc,nlen,z_help)
         DO jb = 1, nblks_c
           IF (jb /= nblks_c) THEN
              nlen = nproma
@@ -767,7 +767,7 @@ MODULE mo_nh_testcases
 !$OMP END DO
 !$OMP END PARALLEL
 
-        ! compute hydrostatically balanced exner, by integrating the (discretized!) 
+        ! compute hydrostatically balanced exner, by integrating the (discretized!)
         ! 3rd equation of motion under the assumption thetav=const.
         CALL hydro_adjust_const_thetav(p_patch           = p_patch(jg),                   &
           &                            p_nh_metrics      = p_nhdom%metrics,               &
@@ -859,7 +859,7 @@ MODULE mo_nh_testcases
     dTdz_poly(2) = 0.0_wp
 
     h_poly(3)    = vct_a(1)   ! something equal or higher than the model top height
- 
+
     CALL piecewise_polytropic_atm( p_patch,  p_nh_state,    &
         &       nmbr_polytropic_levels, h_poly, T0_poly, dTdz_poly, p_surf, ntl, .TRUE. )
 
@@ -934,23 +934,23 @@ MODULE mo_nh_testcases
     global_moist = ztmc_ape        ! kg/m**2 total moisture content
 
     DO jg = 1, n_dom
-    
+
       CALL   init_nh_state_prog_jabw ( p_patch(jg), p_nh_state(jg)%prog(nnow(jg)), &
                                      & p_nh_state(jg)%diag, p_nh_state(jg)%metrics, &
                                      & p_int(jg),                                   &
                                      & p_sfc_jabw,jw_up,jw_u0,jw_temp0 )
-    
+
       IF ( ltransport ) THEN   !
-    
+
         CALL init_nh_inwp_tracers ( p_patch(jg), p_nh_state(jg)%prog(nnow(jg)), &
                                   & p_nh_state(jg)%diag, p_nh_state(jg)%metrics, &
                                   & rh_at_1000hpa, qv_max, l_rediag=.TRUE.,  &
                                   & opt_global_moist=global_moist)
-    
+
       END IF
-    
+
       CALL duplicate_prog_state(p_nh_state(jg)%prog(nnow(jg)),p_nh_state(jg)%prog(nnew(jg)))
-    
+
     ENDDO !jg
 
     CALL message(TRIM(routine),'End setup non-hydrostatic APE test (APE_nwp, APE_aes, APE_nh, APEc_nh)')
@@ -961,14 +961,14 @@ MODULE mo_nh_testcases
     jw_up = 1._wp
 
     DO jg = 1, n_dom
-    
+
       CALL init_nh_state_prog_TPE(p_patch(jg), p_nh_state(jg)%prog(nnow(jg)), p_nh_state(jg)%diag, &
                                   ext_data(jg), p_nh_state(jg)%metrics,                            &
                                   rh_at_1000hpa, qv_max, tpe_moist, tpe_psfc, tpe_temp)
 
-      ! why do we call this?   
+      ! why do we call this?
       CALL duplicate_prog_state(p_nh_state(jg)%prog(nnow(jg)),p_nh_state(jg)%prog(nnew(jg)))
-    
+
     ENDDO !jg
 
     CALL message(TRIM(routine),'End setup TPEc test')
@@ -977,22 +977,22 @@ MODULE mo_nh_testcases
   CASE ('wk82')
 
    CALL message(TRIM(routine),'wk82 test')
-  
+
    l_hydro_adjust = .TRUE.
 
    DO jg = 1, n_dom
 
          ! initialize environment atmosphere
-  
+
     CALL   init_nh_env_wk ( p_patch(jg), p_nh_state(jg)%prog(nnow(jg)), &
                                      & p_nh_state(jg)%diag,                 &
                                      & p_nh_state(jg)%metrics,              &
                                      & p_int(jg), l_hydro_adjust )
-         ! add perturbation to theta and recalculate theta_v and rho 
+         ! add perturbation to theta and recalculate theta_v and rho
     CALL init_nh_buble_wk ( p_patch(jg),p_nh_state(jg)%metrics,            &
                                      & p_nh_state(jg)%prog(nnow(jg)),      &
                                      & p_nh_state(jg)%diag )
-         
+
 
     CALL duplicate_prog_state(p_nh_state(jg)%prog(nnow(jg)),p_nh_state(jg)%prog(nnew(jg)))
 
@@ -1000,11 +1000,11 @@ MODULE mo_nh_testcases
 
    CALL message(TRIM(routine),'End setup wk82 test')
 
-  
+
   CASE ('bb13')
 
     CALL message(TRIM(routine), 'Baldauf, Brdar (2013) QJRMS test (linear gravity/sound waves in a channel)')
-  
+
     l_hydro_adjust = .TRUE.
 
     DO jg = 1, n_dom
@@ -1014,11 +1014,11 @@ MODULE mo_nh_testcases
                                      & p_nh_state(jg)%diag,                 &
                                      & p_nh_state(jg)%metrics,              &
                                      & l_hydro_adjust  )
-         ! add perturbation to theta and recalculate theta_v and rho 
+         ! add perturbation to theta and recalculate theta_v and rho
       CALL init_nh_bubble_bb13 ( p_patch(jg), p_nh_state(jg)%metrics,       &
                                      & p_nh_state(jg)%prog(nnow(jg)),       &
                                      & p_nh_state(jg)%diag )
-         
+
 
       CALL duplicate_prog_state(p_nh_state(jg)%prog(nnow(jg)),p_nh_state(jg)%prog(nnew(jg)))
 
@@ -1026,11 +1026,11 @@ MODULE mo_nh_testcases
 
     CALL message(TRIM(routine),'End setup Baldauf, Brdar (2013) test')
 
-  
+
   CASE ('g_lim_area')
 
    CALL message(TRIM(routine),'g_lim_area test')
-  
+
    l_hydro_adjust = .TRUE.
 
    IF (.NOT. l_limited_area  .OR. lcoriolis) THEN
@@ -1047,12 +1047,12 @@ MODULE mo_nh_testcases
     SELECT CASE (itype_atmo_ana)
 
     CASE(1)
-    
+
       CALL  init_nh_atmo_ana_nconstlayers( p_patch(jg), p_nh_state(jg)%prog(nnow(jg)), &
                                      & p_nh_state(jg)%diag,                 &
                                      & p_nh_state(jg)%metrics,              &
                                      & l_hydro_adjust  )
-    CASE(2) 
+    CASE(2)
       CALL  init_nh_atmo_ana_poly( p_patch(jg), p_nh_state(jg)%prog(nnow(jg)), &
                                      & p_nh_state(jg)%diag,                 &
                                      & p_nh_state(jg)%metrics,              &
@@ -1066,12 +1066,12 @@ MODULE mo_nh_testcases
             CALL finish  (routine, TRIM(message_text))
 
     END SELECT
- 
+
          ! initialize wind
     CALL   init_nh_anaprof_uv  ( p_patch(jg), p_nh_state(jg)%prog(nnow(jg))%vn, &
                                & p_nh_state(jg)%prog(nnow(jg))%w,               &
-                               & p_nh_state(jg)%metrics, p_int(jg) ) 
-         
+                               & p_nh_state(jg)%metrics, p_int(jg) )
+
     CALL duplicate_prog_state(p_nh_state(jg)%prog(nnow(jg)),p_nh_state(jg)%prog(nnew(jg)))
 
    ENDDO !jg
@@ -1102,7 +1102,7 @@ MODULE mo_nh_testcases
 
     DO jg = 1, n_dom
       CALL init_nh_dcmip_gw( p_patch(jg), p_nh_state(jg)%prog(nnow(jg)),  &
-        &                    p_nh_state(jg)%diag, p_nh_state(jg)%metrics, & 
+        &                    p_nh_state(jg)%diag, p_nh_state(jg)%metrics, &
         &                    l_hydro_adjust)
     ENDDO
 
@@ -1124,7 +1124,7 @@ MODULE mo_nh_testcases
   CASE ('dcmip_rest_200')
 
     CALL message(TRIM(routine),'setup dcmip_rest_200 (steady state at rest) test')
-  
+
     l_hydro_adjust = .TRUE.
 
     IF ( lcoriolis) THEN
@@ -1147,7 +1147,7 @@ MODULE mo_nh_testcases
   CASE ('dcmip_mw_2x')
 
     CALL message(TRIM(routine),'setup dcmip_mw_2x (schaer-type on small planet) test')
-  
+
     l_hydro_adjust = .FALSE.
 
     IF ( lcoriolis) THEN
@@ -1194,18 +1194,18 @@ MODULE mo_nh_testcases
       nlev   = p_patch(jg)%nlev
       CALL init_nh_state_cbl ( p_patch(jg), p_nh_state(jg)%prog(nnow(jg)), p_nh_state(jg)%ref,  &
                       & p_nh_state(jg)%diag, p_int(jg), p_nh_state(jg)%metrics )
- 
+
       CALL add_random_noise_global(in_subset=p_patch(jg)%cells%all,            &
                       & in_var=p_nh_state(jg)%prog(nnow(jg))%w(:,:,:),         &
                       & start_level=nlev-3,                                    &
                       & end_level=nlev,                                        &
-                      & noise_scale=w_perturb )   
+                      & noise_scale=w_perturb )
 
       CALL add_random_noise_global(in_subset=p_patch(jg)%cells%all,            &
                       & in_var=p_nh_state(jg)%prog(nnow(jg))%theta_v(:,:,:),   &
                       & start_level=nlev-3,                                    &
                       & end_level=nlev,                                        &
-                      & noise_scale=th_perturb )   
+                      & noise_scale=th_perturb )
 
       CALL duplicate_prog_state(p_nh_state(jg)%prog(nnow(jg)),p_nh_state(jg)%prog(nnew(jg)))
     END DO !jg
@@ -1257,8 +1257,8 @@ MODULE mo_nh_testcases
       CALL message(TRIM(routine),'before init_nh_state_rce_tprescr_glb')
       CALL init_nh_state_rce_tprescr_glb ( p_patch(jg), p_nh_state(jg)%prog(nnow(jg)), p_nh_state(jg)%ref,  &
                       & p_nh_state(jg)%diag, p_nh_state(jg)%metrics )
-      
-      
+
+
       CALL duplicate_prog_state(p_nh_state(jg)%prog(nnow(jg)),p_nh_state(jg)%prog(nnew(jg)))
 !
       CALL message(TRIM(routine),'End setup global RCE_Tprescr test')
@@ -1272,13 +1272,13 @@ MODULE mo_nh_testcases
       CALL message(TRIM(routine),'before init_aes_bubble')
       CALL init_aes_bubble ( p_patch(jg), p_nh_state(jg)%prog(nnow(jg)), p_nh_state(jg)%ref,  &
                       & p_nh_state(jg)%diag, p_nh_state(jg)%metrics )
-      
-      
+
+
       CALL duplicate_prog_state(p_nh_state(jg)%prog(nnow(jg)),p_nh_state(jg)%prog(nnew(jg)))
 !
       CALL message(TRIM(routine),'End setup '//TRIM(nh_test_name)//' test')
     END DO !jg
-    
+
 
   CASE ('RICO')
 
@@ -1294,14 +1294,14 @@ MODULE mo_nh_testcases
                       & in_var=p_nh_state(jg)%prog(nnow(jg))%w(:,:,:),         &
                       & start_level=nlev-3,                                    &
                       & end_level=nlev,                                        &
-                      & noise_scale=w_perturb )   
+                      & noise_scale=w_perturb )
 
       CALL add_random_noise_global(in_subset=p_patch(jg)%cells%all,            &
                       & in_var=p_nh_state(jg)%prog(nnow(jg))%theta_v(:,:,:),   &
                       & start_level=nlev-3,                                    &
                       & end_level=nlev,                                        &
-                      & noise_scale=th_perturb )   
- 
+                      & noise_scale=th_perturb )
+
       CALL duplicate_prog_state(p_nh_state(jg)%prog(nnow(jg)),p_nh_state(jg)%prog(nnew(jg)))
     END DO !jg
 
@@ -1332,14 +1332,14 @@ MODULE mo_nh_testcases
                       & in_var=p_nh_state(jg)%prog(nnow(jg))%w(:,:,:),         &
                       & start_level=nlev-3,                                    &
                       & end_level=nlev,                                        &
-                      & noise_scale=w_perturb )   
+                      & noise_scale=w_perturb )
 
       CALL add_random_noise_global(in_subset=p_patch(jg)%cells%all,            &
                       & in_var=p_nh_state(jg)%prog(nnow(jg))%theta_v(:,:,:),   &
                       & start_level=nlev-3,                                    &
                       & end_level=nlev,                                        &
-                      & noise_scale=th_perturb )   
-                    
+                      & noise_scale=th_perturb )
+
       CALL duplicate_prog_state(p_nh_state(jg)%prog(nnow(jg)),p_nh_state(jg)%prog(nnew(jg)))
     END DO !jg
 
@@ -1422,7 +1422,7 @@ MODULE mo_nh_testcases
   ! Terminator toy chemistry
   ! possible add on for various test cases
   IF (is_toy_chem) THEN
-    DO jg = 1, n_dom 
+    DO jg = 1, n_dom
       CALL init_nh_dcmip_terminator (p_patch(jg),              &
         &                            p_nh_state(jg)%metrics,   &
         &                            p_nh_state(jg)%prog(:),   &
@@ -1440,9 +1440,9 @@ MODULE mo_nh_testcases
   !>
   !! Defines nonhydrostatic artificial initial conditions.
   !! (for single column model (SCM))
-  !! 
+  !!
   !! Initializes meteorological fields
-  !! 
+  !!
   SUBROUTINE init_nh_testcase_scm (p_patch, p_nh_state, p_int, p_lnd_state, ext_data)
 !
 ! !INPUT VARIABLES:
@@ -1454,9 +1454,9 @@ MODULE mo_nh_testcases
 
   INTEGER        :: jg
   INTEGER        :: nlev               !< number of full and half levels
-                            
+
   CHARACTER(len=MAX_CHAR_LENGTH), PARAMETER :: routine =  &
-                                   '(mo_nh_testcases) init_nh_testcase:' 
+                                   '(mo_nh_testcases) init_nh_testcase:'
 
 !-----------------------------------------------------------------------
 
@@ -1481,15 +1481,15 @@ MODULE mo_nh_testcases
                     & in_var=p_nh_state(jg)%prog(nnow(jg))%w(:,:,:),         &
                     & start_level=nlev-3,                                    &
                     & end_level=nlev,                                        &
-                    & noise_scale=w_perturb )   
+                    & noise_scale=w_perturb )
 
       CALL add_random_noise_global(in_subset=p_patch(jg)%cells%all,          &
                     & in_var=p_nh_state(jg)%prog(nnow(jg))%theta_v(:,:,:),   &
                     & start_level=nlev-3,                                    &
                     & end_level=nlev,                                        &
-                    & noise_scale=th_perturb )   
+                    & noise_scale=th_perturb )
     ENDIF
-                  
+
     CALL duplicate_prog_state(p_nh_state(jg)%prog(nnow(jg)),p_nh_state(jg)%prog(nnew(jg)))
   END DO !jg
 
@@ -1518,7 +1518,7 @@ MODULE mo_nh_testcases
 ! possible add on for various test cases
 
   IF (is_toy_chem) THEN
-    DO jg = 1, n_dom 
+    DO jg = 1, n_dom
       CALL init_nh_dcmip_terminator (p_patch(jg),              &
         &                            p_nh_state(jg)%metrics,   &
         &                            p_nh_state(jg)%prog(:),   &
@@ -1570,7 +1570,7 @@ MODULE mo_nh_testcases
     !   p_nh_state(jg)%prog(jt)%rho(:,:,:))
     !   p_nh_state(jg)%prog(jt)%exner(:,:,:)
     !   p_nh_state(jg)%prog(jt)%theta_v(:,:,:)
-    ! for a piecewise polytropic atmosphere, defined by 
+    ! for a piecewise polytropic atmosphere, defined by
     ! [input]
     !   nmbr_polytropic_levels, h_poly(:), T0_poly(:), dTdz_poly(:), p_surf
     ! Additionally set
@@ -1615,7 +1615,7 @@ MODULE mo_nh_testcases
 
     ALLOCATE( p0_poly (nmbr_polytropic_levels+1 ) )
 
-    ! polytropic pressures at the height intervals 
+    ! polytropic pressures at the height intervals
 
     p0_poly(1) = p_surf
     DO l=1, nmbr_polytropic_levels-1
@@ -1623,7 +1623,7 @@ MODULE mo_nh_testcases
         h1 = 1.0_wp + dTdz_poly(l) / T0_poly(l) * ( h_poly(l+1) - h_poly(l) )
         p0_poly(l+1) = p0_poly(l) * h1**( - grav/(Rd* dTdz_poly(l) ) )
       ELSE
-        ! isothermal 
+        ! isothermal
         delta = grav / ( Rd * T0_poly(l) )
         p0_poly(l+1) = p0_poly(l) * EXP( - delta * ( h_poly(l+1) - h_poly(l) ) )
       END IF
@@ -1640,7 +1640,7 @@ MODULE mo_nh_testcases
       npromz_c  = p_patch(jg)%npromz_c
 
       ! scalars (all is dry!)
-      DO jt = 1, ntl 
+      DO jt = 1, ntl
         DO jb = 1, nblks_c
 
           IF (jb /= nblks_c) THEN
@@ -1663,7 +1663,7 @@ MODULE mo_nh_testcases
                     h1 = 1.0_wp + dTdz_poly(l) / T0_poly(l) * ( z - h_poly(l) )
                     pres = p0_poly(l) * h1**( - grav/(Rd* dTdz_poly(l) ) )
                   ELSE
-                    ! isothermal 
+                    ! isothermal
                     delta = grav / ( Rd * T0_poly(l) )
                     pres = p0_poly(l) * EXP( - delta * ( z - h_poly(l) ) )
                   END IF
@@ -1694,7 +1694,7 @@ MODULE mo_nh_testcases
       nblks_e   = p_patch(jg)%nblks_e
       npromz_e  = p_patch(jg)%npromz_e
 
-      DO jt = 1, ntl 
+      DO jt = 1, ntl
         ! normal wind
         DO jb = 1, nblks_e
           IF (jb /= nblks_e) THEN
@@ -1763,7 +1763,7 @@ MODULE mo_nh_testcases
             p_nh_state(jg)%prog(jt)%rho(jc,jk,jb),     &
             p_nh_state(jg)%prog(jt)%exner(jc,jk,jb),   &
             p_nh_state(jg)%prog(jt)%theta_v(jc,jk,jb), &
-            p_nh_state(jg)%diag%temp(jc,jk,jb),        & 
+            p_nh_state(jg)%diag%temp(jc,jk,jb),        &
             p_nh_state(jg)%diag%pres(jc,jk,jb)
         END DO
       END IF
@@ -1777,5 +1777,5 @@ MODULE mo_nh_testcases
 
   END SUBROUTINE piecewise_polytropic_atm
 
- 
+
 END MODULE mo_nh_testcases

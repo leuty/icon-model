@@ -37,7 +37,7 @@ MODULE mo_interface_aes_tmx
 
   USE mo_run_config          ,ONLY: iqv, iqc, iqi, iqr, iqs, iqg, iqnc, iqni, iqt, ico2
   USE mo_vdf                 ,ONLY: t_vdf, new_vdf
-  
+
   USE mo_aes_sfc_indices     ,ONLY: nsfc_type, iwtr, iice, ilnd
   USE mo_surface_diag        ,ONLY: nsurf_diag
   USE mo_run_config          ,ONLY: lart
@@ -49,7 +49,7 @@ MODULE mo_interface_aes_tmx
   USE mo_nh_testcases_nml    ,ONLY: nh_test_name
 
   USE mo_aes_thermo,          ONLY: potential_temperature
-  
+
 #ifdef _OPENACC
   use openacc
 #define __acc_attach(ptr) CALL acc_attach(ptr)
@@ -150,7 +150,7 @@ CONTAINS
     nlevm1 = nlev-1
     nlevp1 = nlev+1
     ntrac  = ntracer-iqt+1  ! number of tracers excluding water vapour and hydrometeors
- 
+
     nice   = prm_field(jg)%kice
     turb => aes_vdf_config(jg)%turb
 
@@ -185,7 +185,7 @@ CONTAINS
         !
         SELECT TYPE (ins => vdf%atmo%inputs)
         TYPE IS (t_vdf_atmo_inputs)
-    
+
           ptr_r3d => field% qtrc_phy(:,:,:,iqv)
           CALL unbind_variable(vdf%atmo%states%search('water vapor'))
           CALL bind_variable(vdf%atmo%states%search('water vapor'), ptr_r3d)
@@ -193,7 +193,7 @@ CONTAINS
           CALL bind_variable(vdf%atmo%inputs%list%Search('water vapor'), ptr_r3d)
           ins%pqm1 => ins%list%Get_ptr_r3d('water vapor')
           __acc_attach(ins%pqm1)
-      
+
           ptr_r3d => field% qtrc_phy(:,:,:,iqc)
           CALL unbind_variable(vdf%atmo%states%search('cloud water'))
           CALL bind_variable(vdf%atmo%states%search('cloud water'), ptr_r3d)
@@ -209,32 +209,32 @@ CONTAINS
           CALL bind_variable(vdf%atmo%inputs%list%Search('cloud ice'), ptr_r3d)
           ins%pxim1 => ins%list%Get_ptr_r3d('cloud ice')
           __acc_attach(ins%pxim1)
-      
+
           ptr_r3d => field% qtrc_phy(:,:,:,iqr)
           CALL unbind_variable(vdf%atmo%inputs%list%Search('rain'))
           CALL bind_variable(vdf%atmo%inputs%list%Search('rain'), ptr_r3d)
           ins%pxrm1 => ins%list%Get_ptr_r3d('rain')
           __acc_attach(ins%pxrm1)
-      
+
           ptr_r3d => field% qtrc_phy(:,:,:,iqs)
           CALL unbind_variable(vdf%atmo%inputs%list%Search('snow'))
           CALL bind_variable(vdf%atmo%inputs%list%Search('snow'), ptr_r3d)
           ins%pxsm1 => ins%list%Get_ptr_r3d('snow')
           __acc_attach(ins%pxsm1)
-      
+
           ptr_r3d => field% qtrc_phy(:,:,:,iqg)
           CALL unbind_variable(vdf%atmo%inputs%list%Search('graupel'))
           CALL bind_variable(vdf%atmo%inputs%list%Search('graupel'), ptr_r3d)
           ins%pxgm1 => ins%list%Get_ptr_r3d('graupel')
           __acc_attach(ins%pxgm1)
-      
+
           CALL unbind_variable(vdf%atmo%states%search('temperature'))
           CALL bind_variable(vdf%atmo%states%search('temperature'), field%ta)
           CALL unbind_variable(vdf%atmo%inputs%list%Search('temperature'))
           CALL bind_variable(vdf%atmo%inputs%list%Search('temperature'), field%ta)
           ins%ptm1 => ins%list%Get_ptr_r3d('temperature')
           __acc_attach(ins%ptm1)
-      
+
           CALL unbind_variable(vdf%atmo%states%search('vertical velocity'))
           CALL bind_variable(vdf%atmo%states%search('vertical velocity'), field%wa)
           CALL unbind_variable(vdf%atmo%inputs%list%Search('vertical wind'))
@@ -247,7 +247,7 @@ CONTAINS
           CALL bind_variable(vdf%atmo%inputs%list%Search('air density'), field%rho)
           ins%rho => ins%list%Get_ptr_r3d('air density')
           __acc_attach(ins%rho)
-  
+
         END SELECT
 
         SELECT TYPE (ins => vdf%sfc%inputs)
@@ -294,7 +294,7 @@ CONTAINS
         DO jb = jbs, jbe
 
           CALL get_indices_c(patch, jb, jbs, jbe, jcs, jce, rls, rle)
-      
+
           !$ACC PARALLEL DEFAULT(PRESENT) PRESENT(field%qtrc_phy) ASYNC(1)
           !$ACC LOOP GANG(STATIC: 1) VECTOR COLLAPSE(2)
           DO jk = 1, nlev
@@ -323,7 +323,7 @@ CONTAINS
               tend%qtrc_phy(jc,jk,jb,iqi) = tend%qtrc_phy(jc,jk,jb,iqi) + tend_qi_vdf(jc,jk,jb)
               ! Update physics state
               field%qtrc_phy(jc,jk,jb,iqi) = field%qtrc_phy(jc,jk,jb,iqi) + tend_qi_vdf(jc,jk,jb) * dtime
-              ! 
+              !
               tend%ua_phy(jc,jk,jb) = tend%ua_phy(jc,jk,jb) + tend_ua_vdf(jc,jk,jb)
               tend%va_phy(jc,jk,jb) = tend%va_phy(jc,jk,jb) + tend_va_vdf(jc,jk,jb)
               ! Update physics state
@@ -410,7 +410,7 @@ CONTAINS
 
             ! Correction related to implicitness, due to the fact that surface model only used
             ! part of longwave radiation to compute new surface temperature
-            !  
+            !
             IF (ASSOCIATED(field%q_rlw_impl)) THEN
               field%q_rlw_impl(jc,jb) = q_rlw_impl(jc,jb)
             END IF
@@ -481,7 +481,7 @@ CONTAINS
         ! !
         ! field%z0m(:,:) = vdf%sfc%Get_diagnostic_r2d('roughness length momentum')
         ! field%z0h(:,:) = vdf%sfc%Get_diagnostic_r2d('roughness length heat')
-      
+
       END IF
     END IF
 
@@ -547,7 +547,7 @@ CONTAINS
     jbe = patch%cells%end_block  (rle)
 
     ! ALLOCATE(dz_srf(nproma,patch%nblks_c))
-    
+
     ! TODO simple hack here
     ALLOCATE(zco2(nproma,patch%nblks_c))
     !$ACC ENTER DATA CREATE(zco2)
@@ -653,7 +653,7 @@ CONTAINS
     !
     CALL vdf%sfc%Add_state('saturation specific humidity', type=heat_type, dims=[nproma,patch%nblks_c,SIZE(sfc_types)])
     CALL vdf%sfc%Add_state('surface temperature', type=heat_type, field=field%ts_tile)
-    
+
     ! Bind variables to sfc config list
     CALL bind_variable(vdf%sfc%config%list%Search('cpd'), cpd)
     CALL bind_variable(vdf%sfc%config%list%Search('cvd'), cvd)
@@ -756,7 +756,7 @@ CONTAINS
     CALL bind_variable(vdf%sfc%diagnostics%list%Search('sfc mer. wind stress'),                         field%v_stress)
     CALL bind_variable(vdf%sfc%diagnostics%list%Search('sfc evapotranspiration, tile'),                 field%evap_tile)
     CALL bind_variable(vdf%sfc%diagnostics%list%Search('sfc latent heat flux, tile'),                   field%lhflx_tile)
-    CALL bind_variable(vdf%sfc%diagnostics%list%Search('sfc sensible heat flux, tile'),                 field%shflx_tile) 
+    CALL bind_variable(vdf%sfc%diagnostics%list%Search('sfc sensible heat flux, tile'),                 field%shflx_tile)
     CALL bind_variable(vdf%sfc%diagnostics%list%Search('sfc zonal wind stress, tile'),                  field%u_stress_tile)
     CALL bind_variable(vdf%sfc%diagnostics%list%Search('sfc mer. wind stress, tile'),                   field%v_stress_tile)
     IF (ASSOCIATED(field%z0m)) &
@@ -806,7 +806,7 @@ CONTAINS
     CALL vdf%Lock_variable_sets()
 
     vdf_dom(jg)%p => vdf
-    
+
     CALL vdf%atmo%Init()
 
   END SUBROUTINE init_tmx

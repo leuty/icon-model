@@ -29,4 +29,3 @@ $addexp exp.esm_bb_ruby0 --without-configureflags without-mpi --machines mistral
 #lets see the list
 ./lslist $listname
 #-----------------------------------------------------------
-

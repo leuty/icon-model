@@ -514,7 +514,7 @@ CONTAINS
             &                    ekv,                                    & !< vertical kinetic energy density
             &                    egp)                                      !< geopotential energy density
     END IF
-    
+
     !> Compute vertical integrals: energy density (J/m3) -> energy content (J/m2)
     !
     IF (leinvi) THEN
@@ -557,7 +557,7 @@ CONTAINS
   !-------------------------------------------------------------------
 
   SUBROUTINE atm_energy_tend_dyn_3d_vi(jg, jb, jcs, jce)
-    
+
     INTEGER, INTENT(in)             :: jg, jb, jcs, jce                 !< horizontal domain indices
 
     INTEGER                         :: jks, jke                         !< vertical domain indices
@@ -590,7 +590,7 @@ CONTAINS
   !-------------------------------------------------------------------
 
   SUBROUTINE atm_energy_tend_dyn_hi_ti(jg)
-    
+
     INTEGER, INTENT(in)             :: jg                               !< horizontal domain indices
 
     INTEGER                         :: jks, jke                         !< vertical domain indices
@@ -623,7 +623,7 @@ CONTAINS
   !-------------------------------------------------------------------
 
   SUBROUTINE atm_energy_tend_phy_3d_vi(jg, jb, jcs, jce)
-    
+
     INTEGER, INTENT(in)             :: jg, jb, jcs, jce                 !< horizontal domain indices
 
     INTEGER                         :: jks, jke                         !< vertical domain indices
@@ -689,7 +689,7 @@ CONTAINS
   !-------------------------------------------------------------------
 
   SUBROUTINE atm_energy_tend_cld_3d_vi(jg, jb, jcs, jce)
-    
+
     INTEGER, INTENT(in)             :: jg, jb, jcs, jce                !< horizontal domain indices
 
     INTEGER                         :: jks, jke                        !< vertical domain indices
@@ -714,7 +714,7 @@ CONTAINS
   !-------------------------------------------------------------------
 
   SUBROUTINE atm_energy_tend_cld_hi_ti(jg)
-    
+
     INTEGER, INTENT(in)             :: jg                               !< horizontal domain indices
 
     INTEGER                         :: jks, jke                         !< vertical domain indices
@@ -739,7 +739,7 @@ CONTAINS
   !-------------------------------------------------------------------
 
   SUBROUTINE atm_energy_tend_rad_3d_vi(jg, jb, jcs, jce)
-    
+
     INTEGER, INTENT(in)             :: jg, jb, jcs, jce                 !< horizontal domain indices
 
     INTEGER                         :: jks, jke                         !< vertical domain indices
@@ -764,7 +764,7 @@ CONTAINS
   !-------------------------------------------------------------------
 
   SUBROUTINE atm_energy_tend_rad_hi_ti(jg)
-    
+
     INTEGER, INTENT(in)             :: jg                               !< horizontal domain indices
 
     INTEGER                         :: jks, jke                         !< vertical domain indices
@@ -789,7 +789,7 @@ CONTAINS
   !-------------------------------------------------------------------
 
   SUBROUTINE atm_energy_tend_tmx_3d_vi(jg, jb, jcs, jce)
-    
+
     INTEGER, INTENT(in)             :: jg, jb, jcs, jce                 !< horizontal domain indices
 
     INTEGER                         :: jks, jke                         !< vertical domain indices
@@ -818,7 +818,7 @@ CONTAINS
   !-------------------------------------------------------------------
 
   SUBROUTINE atm_energy_tend_tmx_hi_ti(jg)
-    
+
     INTEGER, INTENT(in)             :: jg                               !< horizontal domain indices
 
     INTEGER                         :: jks, jke                         !< vertical domain indices
@@ -946,7 +946,7 @@ CONTAINS
   !-------------------------------------------------------------------
 
   SUBROUTINE atm_energy_copy_2_1_hi_ti(jg)
-    
+
     INTEGER, INTENT(in)             :: jg                               !< horizontal domain indices
 
     INTEGER                         :: jks, jke                         !< vertical domain indices
@@ -1012,7 +1012,7 @@ CONTAINS
   !-------------------------------------------------------------------
 
   SUBROUTINE atm_energy_copy_2_3_hi_ti(jg)
-    
+
     INTEGER, INTENT(in)             :: jg                               !< horizontal domain indices
 
     INTEGER                         :: jks, jke                         !< vertical domain indices
@@ -1127,7 +1127,7 @@ CONTAINS
           !! points of the edges of a cell.
           !! Further it is assumed that the components (u,v,w) are locally orthogonal
           !! to each other.
-          ! 
+          !
           ekh(jc,jk) =                                                & !< (J/m3)  horizontal kinetic energy density
                &        rho(jc,jk)                                    & !< (kg/m3) mass density of air
                &       *0.5_wp*(ua(jc,jk)**2 + va(jc,jk)**2)            !< (J/kg)  specific horizontal kinetic energy
@@ -1170,7 +1170,7 @@ CONTAINS
           !! center on the mid level of a cell.
           !! Further it is assumed that the components (u,v,w) are locally orthogonal
           !! to each other.
-          ! 
+          !
           ekv(jc,jk) =                                                & !< (J/m3)  vertical kinetic energy density
                &        rho(jc,jk)                                    & !< (kg/m3) mass density of air
                &       *0.5_wp*((0.5_wp*(wa(jc,jk) + wa(jc,jk+1)))**2)  !< (J/kg)  specific vertical kinetic energy

@@ -57,7 +57,7 @@ function directoryDiff {
   # - full path to the reference data is provided
   refList=$(find ${refDir} -maxdepth 1 -type f)
 
-  for refFile in ${refList}; do 
+  for refFile in ${refList}; do
     refFileBasename=$(basename ${refFile})
     case "${refFileBasename}" in
       *.nc*) # only netcdf files are taken into account

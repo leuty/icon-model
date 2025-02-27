@@ -34,7 +34,7 @@ MODULE mo_chemcon
   PRIVATE
 
   PUBLIC :: chemcon
-           
+
 
 CONTAINS
 
@@ -42,14 +42,14 @@ CONTAINS
 SUBROUTINE CHEMCON (local_bgc_mem, start_idx, end_idx, klevs, psao, ptho,  &
      &               pddpo, ptiestu, kldtday, lacc)
 
-  
+
   IMPLICIT NONE
 
   !! Arguments
   TYPE(t_bgc_memory), POINTER :: local_bgc_mem
 
-  INTEGER, INTENT(in)  :: start_idx            !< start index for j loop (ICON cells, MPIOM lat dir)  
-  INTEGER, INTENT(in)  :: end_idx              !< end index  for j loop  (ICON cells, MPIOM lat dir) 
+  INTEGER, INTENT(in)  :: start_idx            !< start index for j loop (ICON cells, MPIOM lat dir)
+  INTEGER, INTENT(in)  :: end_idx              !< end index  for j loop  (ICON cells, MPIOM lat dir)
   INTEGER, INTENT(in)  :: klevs(bgc_nproma)    !<  vertical levels
 
   REAL(wp) :: psao(bgc_nproma,bgc_zlevs)  !< salinity [psu]
@@ -80,7 +80,7 @@ SUBROUTINE CHEMCON (local_bgc_mem, start_idx, end_idx, klevs, psao, ptho,  &
   !             CULKIN(1965), CF. BROECKER ET AL. 1982)
   !             ------------- --- -------- -- --- -----
   ! Done in mo_ini_bgc, this routine assigns local-memory only
-!   
+!
 !   calcon = 1.03e-2_wp
 !   rrrcl = salchl * 1.025_wp * bor1 * bor2
 
@@ -129,18 +129,18 @@ SUBROUTINE CHEMCON (local_bgc_mem, start_idx, end_idx, klevs, psao, ptho,  &
               cek0 = c00*ti + c01 + c02 * LOG_q + s * (c03 + c04*t + c05*q2)
               AK0 = EXP(CEK0)*SMICR
               local_bgc_mem%solco2(jc) = AK0
-              
+
 
               pis = 19.924_wp * s / ( 1000._wp - 1.005_wp * s )
               pis2 = pis * pis
 
               !*         DISSOCIATION OF SILICIC ACID
               !
-              !          aksi = [H][SiO(OH)3]/[Si(OH)4] 
+              !          aksi = [H][SiO(OH)3]/[Si(OH)4]
               !          Millero p.671 (1995) using data from Yao and Millero
               !          (1995)
 
-              CKSI =  cksi1/t + cksi2 + cksi3 * LOG(t) & 
+              CKSI =  cksi1/t + cksi2 + cksi3 * LOG(t) &
                  &     + ( cksi4/t + cksi5 ) * sqrt(pis)  &
                  &     + ( cksi6/t + cksi7) * pis     &
                  &     + ( cksi8/t + cksi9) * pis2    &
@@ -149,7 +149,7 @@ SUBROUTINE CHEMCON (local_bgc_mem, start_idx, end_idx, klevs, psao, ptho,  &
 
 
               !
-              !*         DISSOCIATION OF HYDROGEN SULFATE 
+              !*         DISSOCIATION OF HYDROGEN SULFATE
               !          aks = [H][SO4]/[HSO4]
               !          Dickson (1990, J. chem. Thermodynamics 22, 113)
 
@@ -157,19 +157,19 @@ SUBROUTINE CHEMCON (local_bgc_mem, start_idx, end_idx, klevs, psao, ptho,  &
               CKS =  cks1/t + cks2 + cks3 * LOG(t) &
                  &    + ( cks4/t + cks5 + cks6 * LOG(t) ) * sqrt(pis) &
                  &    + ( cks7/t + cks8 + cks9 * LOG(t) ) * pis &
-                 &    + cks10/t * pis**1.5_wp & 
+                 &    + cks10/t * pis**1.5_wp &
                  &    + cks11/t * pis2 &
-                 &    + LOG(1.0_wp + cks12 * s ) 
-              AKS=EXP(CKS)    
+                 &    + LOG(1.0_wp + cks12 * s )
+              AKS=EXP(CKS)
 
-           
-           
+
+
 
               !
-              !*         DISSOCIATION OF HYDROGEN FLUORIDE 
+              !*         DISSOCIATION OF HYDROGEN FLUORIDE
               !
               !          akf = [H][F]/[HF]
-              !          Dickson and Riley (1979) 
+              !          Dickson and Riley (1979)
 
               CKF = ckf1*ti + ckf2  + ckf3*sqrt_s
               AKF=EXP(CKF)
@@ -177,36 +177,36 @@ SUBROUTINE CHEMCON (local_bgc_mem, start_idx, end_idx, klevs, psao, ptho,  &
 
                             !
 
-              !*         DISSOCIATION OF PHOSPHORIC ACID 
+              !*         DISSOCIATION OF PHOSPHORIC ACID
               !
               !          DOE(1994) eq 7.2.20 with footnote using data from
               !          Millero (1974)
               !          AK1P, AK2P, AK3P
               !
-              !          ak1p = [H][H2PO4]/[H3PO4] 
+              !          ak1p = [H][H2PO4]/[H3PO4]
 
 
               CK1P =  ck1p1/t + ck1p2 + ck1p3 * LOG(t) &
                 &  + ( ck1p4/t + ck1p5 ) *  sqrt(s) &
-                &  + ( ck1p6/t + ck1p7 ) * s 
+                &  + ( ck1p6/t + ck1p7 ) * s
               AK1P=EXP(CK1P)
 
-              !          ak2p = [H][HPO4]/[H2PO4] 
-              CK2P = ck2p1/t + ck2p2 + ck2p3 * LOG(t)  & 
+              !          ak2p = [H][HPO4]/[H2PO4]
+              CK2P = ck2p1/t + ck2p2 + ck2p3 * LOG(t)  &
                   &   + ( ck2p4/t + ck2p5 ) *  sqrt(s) &
-                  &   + ( ck2p6/t + ck2p7 ) *s 
+                  &   + ( ck2p6/t + ck2p7 ) *s
               AK2P=EXP(CK2P)
 
               !          ak3p = [H][PO4]/[HPO4]
 
               CK3P = ck3p1/t + ck3p2                  &
                 &     + ( ck3p3/t + ck3p4 ) * sqrt(s) &
-                &     + ( ck3p5/t + ck3p6 ) * s 
+                &     + ( ck3p5/t + ck3p6 ) * s
               AK3P=EXP(CK3P)
 
 
 
-              !      N2O LAUGHING GAS, SEA SURFACE  
+              !      N2O LAUGHING GAS, SEA SURFACE
               !      --------------------------------------
               rs = a1 + a2 * (100._wp *ti) + a3 * LOG(t*0.01_wp) &
              &    + a4*(t*0.01_wp)**2 + s * ( b1 +b2*(t*0.01_wp) + b3*(t*0.01_wp)**2)
@@ -215,7 +215,7 @@ SUBROUTINE CHEMCON (local_bgc_mem, start_idx, end_idx, klevs, psao, ptho,  &
               !
               !      O2 OXYGEN, SEA SURFACE
               ! Garcia & Gordon, 1992, EQ. 8, p 1310
-              ! w/o A3*ts**2 --> see mocsy -> gasx.f90, OMIP paper 
+              ! w/o A3*ts**2 --> see mocsy -> gasx.f90, OMIP paper
               ! t in degC, s in permill
 
               !      -----------------------------------------------
@@ -229,7 +229,7 @@ SUBROUTINE CHEMCON (local_bgc_mem, start_idx, end_idx, klevs, psao, ptho,  &
                 ts4 = ts*ts3
                 ts5 = ts*ts4
 
-              
+
 
               ! O2sat ml/L
                 oxy  = oxya0 + oxya1*ts + oxya2*ts2 + oxya3*ts3 + oxya4*ts4 +oxya5*ts5  &
@@ -300,7 +300,7 @@ SUBROUTINE CHEMCON (local_bgc_mem, start_idx, end_idx, klevs, psao, ptho,  &
 
               SWS2total = 1._wp/total2SWS_0p
 
-              
+
 
 
               !*       21.11 STORE CHEMICAL CONSTANTS AT SEA SURFACE
@@ -327,7 +327,7 @@ SUBROUTINE CHEMCON (local_bgc_mem, start_idx, end_idx, klevs, psao, ptho,  &
   !     ----------------------------------------------------------------
 
   IF ( kldtday == 1 ) THEN
- 
+
      !
      !*     22.1 APPROX. SEAWATER PRESSURE AT U-POINT DEPTH (BAR)
      !  ----------------------------------------------------------------
@@ -368,10 +368,10 @@ SUBROUTINE CHEMCON (local_bgc_mem, start_idx, end_idx, klevs, psao, ptho,  &
 
 
            !
-           !*    22.4 SOLUBILITY OF O2 
+           !*    22.4 SOLUBILITY OF O2
            ! 2 saturation concentration at 1atm total pressure
            ! Garcia & Gordon, 1992, EQ. 8, p 1310
-           ! w/o A3*ts**2 --> see mocsy -> gasx.f90, OMIP paper 
+           ! w/o A3*ts**2 --> see mocsy -> gasx.f90, OMIP paper
            ! t in degC, s in permill
            tt  = 298.15_wp - ptho(jc,k)
            ts  = LOG(tt/t)
@@ -414,80 +414,80 @@ SUBROUTINE CHEMCON (local_bgc_mem, start_idx, end_idx, klevs, psao, ptho,  &
 
            !*         DISSOCIATION OF SILICIC ACID
            !
-           !          aksi = [H][SiO(OH)3]/[Si(OH)4] 
+           !          aksi = [H][SiO(OH)3]/[Si(OH)4]
            !          Millero p.671 (1995) using data from Yao and Millero
            !          (1995)
 
            pis = 19.924_wp * s / ( 1000._wp - 1.005_wp * s )
            pis2 = pis * pis
 
-           CKSI =  cksi1/t + cksi2 + cksi3 * LOG(t) & 
+           CKSI =  cksi1/t + cksi2 + cksi3 * LOG(t) &
               &     + ( cksi4/t + cksi5 ) * sqrt(pis)  &
               &     + ( cksi6/t + cksi7) * pis     &
-              &     + ( cksi8/t + cksi9) * pis2    & 
+              &     + ( cksi8/t + cksi9) * pis2    &
               &     + LOG(1.0_wp + cksi10*s)
 
            AKSI=EXP(CKSI)
 
            !
-           !*         DISSOCIATION OF HYDROGEN SULFATE 
+           !*         DISSOCIATION OF HYDROGEN SULFATE
            !          aks = [H][SO4]/[HSO4]
            !          Dickson (1990, J. chem. Thermodynamics 22, 113)
 
-           
+
 
            CKS =  cks1/t + cks2 + cks3 * LOG(t) &
               &    + ( cks4/t + cks5 + cks6 * LOG(t) ) * sqrt(pis) &
               &    + ( cks7/t + cks8 + cks9 * LOG(t) ) * pis &
-              &    + cks10/t * pis**1.5_wp & 
+              &    + cks10/t * pis**1.5_wp &
               &    + cks11/t * pis2 &
-              &    + LOG(1.0_wp + cks12 * s ) 
+              &    + LOG(1.0_wp + cks12 * s )
 
-           AKS=EXP(CKS)    
+           AKS=EXP(CKS)
 
 
           !
-          !*         DISSOCIATION OF HYDROGEN FLUORIDE 
+          !*         DISSOCIATION OF HYDROGEN FLUORIDE
           !
           !          akf = [H][F]/[HF]
           !          Dickson 2007/2010 (lomip)
-          !          Dickson and Riley (1979) 
+          !          Dickson and Riley (1979)
 
 
           CKF = ckf1*ti + ckf2  + ckf3*sqrt_s
           AKF=EXP(CKF)
 
            !
-           !*         DISSOCIATION OF PHOSPHORIC ACID 
+           !*         DISSOCIATION OF PHOSPHORIC ACID
            !
            !          DOE(1994) eq 7.2.20 with footnote using data from Millero
            !          (1974)
            !          AK1P, AK2P, AK3P
            !
-           !          ak1p = [H][H2PO4]/[H3PO4] 
+           !          ak1p = [H][H2PO4]/[H3PO4]
 
-               
+
 
            CK1P =  ck1p1/t + ck1p2 + ck1p3 * LOG(t) &
              &  + ( ck1p4/t + ck1p5 ) *  sqrt(s) &
-             &  + ( ck1p6/t + ck1p7 ) * s 
+             &  + ( ck1p6/t + ck1p7 ) * s
 
 
            AK1P=EXP(CK1P)
 
-           !          ak2p = [H][HPO4]/[H2PO4] 
-           CK2P = ck2p1/t + ck2p2 + ck2p3 * LOG(t)  & 
+           !          ak2p = [H][HPO4]/[H2PO4]
+           CK2P = ck2p1/t + ck2p2 + ck2p3 * LOG(t)  &
                &   + ( ck2p4/t + ck2p5 ) *  sqrt(s) &
-               &   + ( ck2p6/t + ck2p7 ) *s 
+               &   + ( ck2p6/t + ck2p7 ) *s
 
-               
+
 
            AK2P=EXP(CK2P)
 
            !          ak3p = [H][PO4]/[HPO4]
            CK3P = ck3p1/t + ck3p2                  &
              &     + ( ck3p3/t + ck3p4 ) * sqrt(s) &
-             &     + ( ck3p5/t + ck3p6 ) * s 
+             &     + ( ck3p5/t + ck3p6 ) * s
            AK3P=EXP(CK3P)
 
            TC = ptho(jc,k)
@@ -513,9 +513,9 @@ SUBROUTINE CHEMCON (local_bgc_mem, start_idx, end_idx, klevs, psao, ptho,  &
           ! Pressure effect for diss. const.s of  hydrogen fluoride,
           ! hydrogen sulf ate, phosphoric acid
           ! based on Millero 1995
-          !   1) aks 2) akf 3) ak1p 4) ak2p 
-          !   5) ak3p 6) aksi  7) ak1 8) ak2 
-          !   9) akb 10) akw 11) aksp 
+          !   1) aks 2) akf 3) ak1p 4) ak2p
+          !   5) ak3p 6) aksi  7) ak1 8) ak2
+          !   9) akb 10) akw 11) aksp
 
            DO js = 1,11
 
@@ -551,7 +551,7 @@ SUBROUTINE CHEMCON (local_bgc_mem, start_idx, end_idx, klevs, psao, ptho,  &
           ! Pressure correction on Kf (free scale)
            AKF  = AKF  * EXP(lnkpk0(2))
 
-          ! convert to total scale 
+          ! convert to total scale
            AKF  = AKF / total2free
 
          ! Convert between seawater and total hydrogen (pH) scales
@@ -562,30 +562,30 @@ SUBROUTINE CHEMCON (local_bgc_mem, start_idx, end_idx, klevs, psao, ptho,  &
           SWS2total = 1._wp / total2SWS
 
          ! Convert K1, K2, Kb to seawater scale
-           AK1 = AK1 * total2SWS_0p    
-           AK2 = AK2 * total2SWS_0p    
-           AKB = AKB * total2SWS_0p    
+           AK1 = AK1 * total2SWS_0p
+           AK2 = AK2 * total2SWS_0p
+           AKB = AKB * total2SWS_0p
 
-        ! Pressure correction 
+        ! Pressure correction
 
-           AK1  = AK1 * EXP(lnkpk0(7)) 
-           AK2  = AK2 * EXP(lnkpk0(8)) 
-           AKB = AKB * EXP(lnkpk0(9)) 
-           AKW = AKW * EXP(lnkpk0(10)) 
-           AKSP0 = ARACAL* AKSP0 * EXP(lnkpk0(11)) 
+           AK1  = AK1 * EXP(lnkpk0(7))
+           AK2  = AK2 * EXP(lnkpk0(8))
+           AKB = AKB * EXP(lnkpk0(9))
+           AKW = AKW * EXP(lnkpk0(10))
+           AKSP0 = ARACAL* AKSP0 * EXP(lnkpk0(11))
            AK1P = AK1P * EXP(lnkpk0(3))
            AK2P = AK2P * EXP(lnkpk0(4))
            AK3P = AK3P * EXP(lnkpk0(5))
-           AKSI = AKSI * EXP(lnkpk0(6)) 
+           AKSI = AKSI * EXP(lnkpk0(6))
 
           ! Conversion to total scale and move to 3D var
 
            local_bgc_mem%aks3(jc,k)  = aks ! here free=total scale
-           local_bgc_mem%akf3(jc,k)  = akf ! already at total scale  
+           local_bgc_mem%akf3(jc,k)  = akf ! already at total scale
            local_bgc_mem%ak1p3(jc,k) = ak1p * sws2total
            local_bgc_mem%ak2p3(jc,k) = ak2p * sws2total
            local_bgc_mem%ak3p3(jc,k) = ak3p * sws2total
-           local_bgc_mem%aksi3(jc,k) = aksi * sws2total 
+           local_bgc_mem%aksi3(jc,k) = aksi * sws2total
            local_bgc_mem%ak13(jc,k)  = ak1  * sws2total
            local_bgc_mem%ak23(jc,k)  = ak2  * sws2total
            local_bgc_mem%akb3(jc,k) = akb  * sws2total

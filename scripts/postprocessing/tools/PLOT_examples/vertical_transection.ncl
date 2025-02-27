@@ -24,7 +24,7 @@ load "$NCARG_ROOT/lib/ncarg/nclscripts/csm/contributed.ncl"
 
 ;*************************************************
 ; Main code
-;************************************************* 
+;*************************************************
 begin
 ;  scale   = 1e6
   rad2deg = 45./atan(1.)   ; radians to degrees
@@ -233,4 +233,3 @@ begin
 
   frame(wks)
 end
-

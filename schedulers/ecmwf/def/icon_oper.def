@@ -45,8 +45,8 @@ set FIRST_DATE    20140605
 set LAST_DATE     20150131
 set MONTHS        000000               #---months to be run (not for oper)
 set INIHOUR       00
-set ICON_HOME     /home/ms/de/deia 
-set ICON_ID       deia 
+set ICON_HOME     /home/ms/de/deia
+set ICON_ID       deia
 set RES           "R02B06"             #---ICON resolution dynamics
 set RESRAD        "R02B05"             #---ICON resolution radiation (requires namelist)
 set USER_ICON_DIR icon-nwp             #---location of script, plot and sms files
@@ -81,7 +81,7 @@ setenv -i TMPDIR
 
 # HPC environment:
 set SCHOST      cca
-set SMSLOGHOST  cca-log 
+set SMSLOGHOST  cca-log
 set SCPREFIX    hpc
 set WSHOST      ecgb
 set SCTEMP      /scratch/ms/de/$ICON_ID/icon
@@ -231,10 +231,10 @@ suite $USER
     edit MONTHS     $MONTHS
     edit LDATE_S    0                    # variable used for AMIP runs
 
-    edit ICONNODES        $ICONNODES        
+    edit ICONNODES        $ICONNODES
     edit ICONTOTALTASKS   $ICONTOTALTASKS
-    edit ICONTASKSPERNODE $ICONTASKSPERNODE 
-    edit ICONTHREADS      $ICONTHREADS      
+    edit ICONTASKSPERNODE $ICONTASKSPERNODE
+    edit ICONTHREADS      $ICONTHREADS
     edit ENABLE_DUMPSTATE $ENABLE_DUMPSTATE
 
 
@@ -290,7 +290,7 @@ suite $USER
                 event make
 
             task init_cp_binary
-                trigger (init_build == complete) 
+                trigger (init_build == complete)
                 complete (../../init:YMD gt ${FIRST_DATE}) and (/${USER}:DOW ne $compday)
                 on_hpc_serial
                 edit SCWALLCLOCKLIMIT 00:02:00
@@ -372,17 +372,17 @@ suite $USER
         #trigger (../forecast/model:model_complete)
         complete ($ENABLE_POST == 0)
 
-        task post_prepare   
+        task post_prepare
             on_hpc_serial
             edit SCWALLCLOCKLIMIT 00:40:00
             event meteogram_data
-   
+
         task meteogram
             trigger (post_prepare:meteogram_data)
             complete ($ENABLE_METEOGRAM == 0)
             on_ecgate_submit
-   
-        family metview_all 
+
+        family metview_all
           trigger (post_prepare == complete)
           complete ($ENABLE_POST_METVIEW == 0)
           for set 1 4 ; do
@@ -392,11 +392,11 @@ suite $USER
                 on_ecgate_submit
                 edit metproc $set
             endfamily
-          endfor  
+          endfor
         endfamily
 
         task post_archive
-            trigger meteogram==complete and metview_all==complete 
+            trigger meteogram==complete and metview_all==complete
             complete ($ENABLE_POST_ARCHIVE == 0)
             on_ecgate_submit
     endfamily
@@ -409,7 +409,7 @@ suite $USER
         trigger (post:YMD gt post_1:YMD + 1)
         complete ($ENABLE_POST == 0)
 
-        family metview_all 
+        family metview_all
           complete ($ENABLE_POST_METVIEW == 0)
           for set 1 4 ; do
             set tsk `printf %3.3i $set`
@@ -418,11 +418,11 @@ suite $USER
                 on_ecgate_submit
                 edit metproc $set
             endfamily
-          endfor  
+          endfor
         endfamily
 
         task post_archive
-            trigger metview_all==complete 
+            trigger metview_all==complete
             complete ($ENABLE_POST_ARCHIVE == 0)
             on_ecgate_submit
     endfamily
@@ -444,7 +444,7 @@ suite $USER
             complete (testday==complete) and not (testday:time_eom)
             on_ecgate_submit
 
-        task eom_prepare  
+        task eom_prepare
             trigger   testday==complete
             complete (testday==complete) and not (testday:time_eom)
             on_hpc_serial
@@ -463,7 +463,7 @@ suite $USER
             complete (testday==complete) and not (testday:time_eom)
             on_ecgate_submit
 
-        family eom_metview_all 
+        family eom_metview_all
             trigger (eom_prepare == complete) and (eom_getmars == complete)
             complete (testday==complete) and not (testday:time_eom)
             for set 1 5 ; do
@@ -480,7 +480,7 @@ suite $USER
             trigger eom_metview_all==complete
             complete (testday==complete) and not (testday:time_eom)
             on_ecgate_submit
-   
+
     endfamily
 
   endfamily

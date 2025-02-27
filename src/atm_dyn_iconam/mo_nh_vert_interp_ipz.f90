@@ -44,7 +44,7 @@ MODULE mo_nh_vert_interp_ipz
   USE mo_deepatmo,            ONLY: deepatmo_htrafo
 #ifdef _OPENACC
   USE openacc,                ONLY: acc_is_present
-#endif  
+#endif
 
   IMPLICIT NONE
   PRIVATE
@@ -182,7 +182,7 @@ CONTAINS
       CALL copy(z_auxz(:,:,1:i_endblk), temp_z_out(:,:,1:i_endblk), lacc=.TRUE., opt_acc_async=.TRUE.)
       !$OMP END PARALLEL
     ENDIF
-   
+
     CALL cell_avg(z_auxz, p_patch, p_int_state(jg)%c_bln_avg, temp_z_out, lacc=.TRUE.)
 
     ! Interpolate pressure on z-levels
@@ -631,8 +631,8 @@ CONTAINS
         & start_end_levels=[1,nlevs_ml], radius=grid_sphere_radius, trafo_type='z2zgpot', ierror=istat, lacc=lzacc)
       IF (istat /= SUCCESS) CALL finish(routine, 'deepatmo_htrafo failed')
       z_ml => zgpot_ml
-      ! Note: the heights above ground level, 'zpbl1', 'zpbl2', 'zextrap' and heights derived from them 
-      ! have relatively low values (~ 1 km), so no deep-atmosphere modification is applied to them. 
+      ! Note: the heights above ground level, 'zpbl1', 'zpbl2', 'zextrap' and heights derived from them
+      ! have relatively low values (~ 1 km), so no deep-atmosphere modification is applied to them.
       ! (Put another way: we regard 'zpbl1', 'zpbl2', and 'zextrap' to represent geopotential heights.)
     ENDIF
 

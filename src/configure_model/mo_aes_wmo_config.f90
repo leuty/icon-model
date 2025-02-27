@@ -34,7 +34,7 @@ MODULE mo_aes_wmo_config
   !! Name of this unit
   !!
   CHARACTER(LEN=*), PARAMETER :: name = 'aes_wmo'
-  
+
   !>
   !! Configuration type containing parameters and switches for the configuration of the AES microphysics
   !!
@@ -55,7 +55,7 @@ MODULE mo_aes_wmo_config
   !! Configuration state vectors, for multiple domains/grids.
   !!
   TYPE(t_aes_wmo_config), TARGET :: aes_wmo_config(max_dom)
-  
+
 CONTAINS
 
   !----

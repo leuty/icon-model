@@ -16,7 +16,7 @@ class DataStatistics
   # There are multiple cases of initialization
   # * use mode (Fixnum) to define the shape of the array, where the data is
   #   stored - values, which should be added must have the same shape. If mode
-  #   is missing, then 
+  #   is missing, then
   # * the target argument has to be used. It defines an external NArray, where
   #   the data is accumulated. In addition to these two options
   # * the source paramters can be used to define an external NArray, from which
@@ -72,4 +72,3 @@ class DataStatisticsCollection
     }
   end
 end
-

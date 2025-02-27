@@ -60,7 +60,7 @@ MODULE mo_atm_energy_memory
 CONTAINS
 
   !!--------------------------------------------------------------------------
-  !!                SUBROUTINES FOR BUILDING AND DELETING VARIABLE LISTS 
+  !!                SUBROUTINES FOR BUILDING AND DELETING VARIABLE LISTS
   !!--------------------------------------------------------------------------
   !>
   !! Top-level procedure for building the state
@@ -138,7 +138,7 @@ CONTAINS
        CALL vlr_del(atm_energy_list(jg))
        !
     END DO
-    
+
     !$ACC WAIT(1)
     !$ACC EXIT DATA DELETE(atm_energy)
 
@@ -465,7 +465,7 @@ CONTAINS
          &       linitial  = .FALSE.        ,&
          &       model_type=get_my_process_name())
 
-    
+
     ! add variables to the list
 
 
@@ -1423,7 +1423,7 @@ CONTAINS
     ! dyn: due to dynamics
     ! --------------------
 
-    ! - of internal energy 
+    ! - of internal energy
     !
     IF (ltend_eindyn) THEN
        cf_desc = t_cf_var('tendency_of_atmosphere_moist_internal_energy_density_due_to_dynamics', 'J m-3 s-1', &
@@ -1756,7 +1756,7 @@ CONTAINS
     ! cld: due to cloud microphysics
     ! ------------------------------
 
-    ! - of internal energy 
+    ! - of internal energy
     !
     IF (ltend_eincld) THEN
        cf_desc = t_cf_var('tendency_of_atmosphere_moist_internal_energy_density_due_to_cloud_microphysics', 'J m-3 s-1', &
@@ -1825,7 +1825,7 @@ CONTAINS
     ! rad: due to radiation
     ! ---------------------
 
-    ! - of internal energy 
+    ! - of internal energy
     !
     IF (ltend_einrad) THEN
        cf_desc = t_cf_var('tendency_of_atmosphere_moist_internal_energy_density_due_to_radiation', 'J m-3 s-1', &
@@ -1894,7 +1894,7 @@ CONTAINS
     ! tmx: due to turbulent mixing
     ! ----------------------------
 
-    ! - of internal energy 
+    ! - of internal energy
     !
     IF (ltend_eintmx) THEN
        cf_desc = t_cf_var('tendency_of_atmosphere_moist_internal_energy_density_due_to_turbulent_mixing', 'J m-3 s-1', &
@@ -2095,7 +2095,7 @@ CONTAINS
     ! phy: due to physics
     ! --------------------
 
-    ! - of internal energy 
+    ! - of internal energy
     !
     IF (ltend_einphy) THEN
        cf_desc = t_cf_var('tendency_of_atmosphere_moist_internal_energy_density_due_to_physics', 'J m-3 s-1', &

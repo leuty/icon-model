@@ -23,7 +23,7 @@
 
   Task objectives:
   - extract output
-  - generate plots 
+  - generate plots
 %end
 
 # include the header file for remote jobs
@@ -31,7 +31,7 @@
 
 # -------------------------------------------------
 
-echo "EOM_PREPARE.SMS" 
+echo "EOM_PREPARE.SMS"
 
 module load cdo/1.7.0
 module swap grib_api grib_api/1.14.5
@@ -84,7 +84,7 @@ for levtype1 in ${levtypes} ; do
   YYYYMM=`echo %YMD% | cut -c 1-6`
   date01=${YYYYMM}'01'%INIHOUR%
   date31=%YMD%%INIHOUR%              # e.g. 2012063000
-  
+
   ymdh=${date01}
   while (( ${ymdh} <= ${date31} )) ; do
 
@@ -147,10 +147,10 @@ for levtype1 in ${levtypes} ; do
         for bad in unknown '~' ; do
           grib_copy grb_data/${basename}_DOM01_0001_${bad}_${levtype2}.grb \
                     grb_data/${basename}_DOM01_0001_[discipline].[parameterCategory].[parameterNumber]_${levtype2}.grb || true
-          \rm -rf   grb_data/${basename}_DOM01_0001_${bad}_${levtype2}.grb        
+          \rm -rf   grb_data/${basename}_DOM01_0001_${bad}_${levtype2}.grb
         done
       done
-      
+
 # fix table from 5 to 4 to work with metview (ML type need to be present in GRIB file!!)
 ###      for ml_file in grb_data/${basename}_DOM01_0001_*_ml.grb  grb_data/${basename}_DOM01_0001_*_pl.grb ; do
 ###        cdo -P 2 copy ${ml_file}      ${ml_file}_temp

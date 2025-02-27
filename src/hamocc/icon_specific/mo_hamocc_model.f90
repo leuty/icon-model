@@ -47,7 +47,7 @@ MODULE mo_hamocc_model
     & ltimer,                 & !    :
     & num_lev,                &
     & nshift,                 &
-    & grid_generatingcenter,  & 
+    & grid_generatingcenter,  &
     & grid_generatingsubcenter, &
     & configure_run, output_mode
   USE mo_coupling_config,        ONLY: is_coupled_run
@@ -78,7 +78,7 @@ MODULE mo_hamocc_model
     & init_ho_basins, init_coriolis_oce, init_patch_3d,   &
     & init_patch_3d
   USE mo_hamocc_output,        ONLY: construct_hamocc_var_lists, construct_hamocc_state, &
-    & destruct_hamocc_state      
+    & destruct_hamocc_state
   USE mo_ocean_initial_conditions,  ONLY:  init_ocean_bathymetry
   USE mo_ocean_check_tools,     ONLY: init_oce_index
   USE mo_util_dbg_prnt,       ONLY: init_dbg_index, dbg_print
@@ -87,7 +87,7 @@ MODULE mo_hamocc_model
     & destruct_operators_coefficients
 
    USE mo_impl_constants,      ONLY: success
-  
+
   USE mo_alloc_patches,        ONLY: destruct_patches, destruct_comm_patterns
   USE mo_ocean_read_namelists, ONLY: read_ocean_namelists
   USE mo_load_restart,         ONLY: read_restart_header, read_restart_files
@@ -107,7 +107,7 @@ MODULE mo_hamocc_model
   USE mo_derived_variable_handling, ONLY: update_statistics
   USE mo_name_list_output,       ONLY: write_name_list_output, istime4name_list_output
   USE mo_restart,                ONLY: t_RestartDescriptor, createRestartDescriptor, deleteRestartDescriptor
- 
+
   !-------------------------------------------------------------
   USE mo_construct_icon_hamocc, ONLY: construct_icon_hamocc, destruct_icon_hamocc, init_icon_hamocc
   USE mo_ocean_hamocc_couple_state, ONLY:   t_ocean_to_hamocc_state, t_hamocc_to_ocean_state, &
@@ -164,7 +164,7 @@ MODULE mo_hamocc_model
 
     !-------------------------------------------------------------------
     CALL construct_hamocc_model(hamocc_namelist_filename,shr_namelist_filename)
- 
+
     CALL hamocc_to_ocean_init()
     !-------------------------------------------------------------------
     IF (isRestart()) THEN ! .OR. initialize_fromRestart) THEN
@@ -175,8 +175,8 @@ MODULE mo_hamocc_model
       !  Prepare the initial conditions:
       !  forcing is part of the restart file
     END IF ! isRestart()
-    
-          
+
+
 
     !------------------------------------------------------------------
     ! Initialize output file if necessary;
@@ -190,28 +190,28 @@ MODULE mo_hamocc_model
     ! is executed within process_grid_level
     !------------------------------------------------------------------
     CALL hamocc_timestep()
-    
-    
+
+
     !------------------------------------------------------------------
     ! This is the end...
-    !------------------------------------------------------------------   
+    !------------------------------------------------------------------
     CALL print_timer()
     CALL hamocc_to_ocean_end()
-    
+
     CALL destruct_hamocc_model()
-     
+
   END SUBROUTINE hamocc_model
   !--------------------------------------------------------------------------
-  
+
   !--------------------------------------------------------------------------
   SUBROUTINE hamocc_timestep()
- 
+
     TYPE(datetime), POINTER        :: current_time     => NULL()
     CHARACTER(LEN=32)              :: datestring
     INTEGER :: jstep,  jstep0
     TYPE(t_key_value_store), POINTER :: restartAttributes
     CHARACTER(*), PARAMETER :: method_name = "mo_hamocc_model:hamocc_timestep"
-    
+
     current_time => newNullDatetime()
     jstep0 = 0
     CALL getAttributesForRestarting(restartAttributes)
@@ -219,17 +219,17 @@ MODULE mo_hamocc_model
       ! get start counter for time loop from restart file:
       CALL restartAttributes%get("jstep", jstep0)
     END IF
-    
+
     jstep = jstep0
-    
-    
+
+
     CALL timer_start(timer_total)
     CALL output_hamocc(jstep, get_OceanCurrentTime_Pointer())
-    
+
     ! timestep ...
     !-------------------------------------------------------------------------
     TIME_LOOP: DO
-      jstep = jstep + 1    
+      jstep = jstep + 1
       current_time = ocean_time_nextStep()
 
       CALL datetimeToString(current_time, datestring)
@@ -242,7 +242,7 @@ MODULE mo_hamocc_model
 
       !-------------------------------------------------------------------------
       CALL output_hamocc(jstep, current_time)
-      
+
       CALL update_time_indices
       !-------------------------------------------------------------------------
       IF (isCheckpoint()) THEN
@@ -263,7 +263,7 @@ MODULE mo_hamocc_model
           CALL restartDescriptor%writeRestart(current_time, jstep)
         END IF
       END IF
-      !-------------------------------------------------------------------------            
+      !-------------------------------------------------------------------------
       IF (isEndOfThisRun()) THEN
         ! leave time loop
         EXIT TIME_LOOP
@@ -272,8 +272,8 @@ MODULE mo_hamocc_model
     ENDDO TIME_LOOP
     !-------------------------------------------------------------------------
     CALL timer_stop(timer_total)
-    
-    CALL deallocateDatetime(current_time)   
+
+    CALL deallocateDatetime(current_time)
 
 
   END SUBROUTINE hamocc_timestep
@@ -283,10 +283,10 @@ MODULE mo_hamocc_model
   SUBROUTINE output_hamocc(jstep, this_datetime)
     INTEGER, INTENT(in)      :: jstep
     TYPE(datetime), POINTER  :: this_datetime
-  
+
     CHARACTER(len=32) :: fmtstr
     CHARACTER(LEN=MAX_DATETIME_STR_LEN) :: datestring
- 
+
     !------------------------------------------------------------------
    !CALL calc_slow_oce_diagnostics( patch_3d       , &
    !  &                             ocean_state(jg), &
@@ -303,7 +303,7 @@ MODULE mo_hamocc_model
       call datetimeToPosixString(this_datetime, datestring, fmtstr)
       WRITE(message_text,'(a,a)') 'Write output at:', TRIM(datestring)
       CALL message ("output_hamocc",message_text)
-      
+
       IF (output_mode%l_nml) CALL write_name_list_output(jstep)
     ENDIF
     !------------------------------------------------------------------
@@ -322,7 +322,7 @@ MODULE mo_hamocc_model
     nnew(1)  = n_temp
   END SUBROUTINE update_time_indices
   !-------------------------------------------------------------------------
- 
+
   !--------------------------------------------------------------------------
   !>
   !!
@@ -375,7 +375,7 @@ MODULE mo_hamocc_model
 
   END SUBROUTINE destruct_hamocc_model
   !--------------------------------------------------------------------------
-  
+
   !--------------------------------------------------------------------------
   !>
   !!
@@ -501,14 +501,14 @@ MODULE mo_hamocc_model
      IF (error_status /= success) THEN
        CALL finish(method_name,'allocation for ext_data failed')
     ENDIF
-    
-! 
+
+!
 !     ! allocate memory for oceanic external data and
 !     ! optionally read those data from netCDF file.
     CALL construct_ocean_ext_data(patch_3d%p_patch_2d(1:), ext_data)
     ! initial analytic bathymetry via namelist
     CALL init_ocean_bathymetry(patch_3d=patch_3d,  &
-      & cells_bathymetry=ext_data(1)%oce%bathymetry_c(:,:))    
+      & cells_bathymetry=ext_data(1)%oce%bathymetry_c(:,:))
 
 
     CALL construct_patch_3d(patch_3d)
@@ -522,10 +522,10 @@ MODULE mo_hamocc_model
 
     IF (use_dummy_cell_closure) CALL create_dummy_cell_closure(patch_3d)
     !------------------------------------------------------------------
-    
+
     CALL construct_icon_hamocc(patch_3d, ext_data(1))
-    CALL construct_hamocc_ocean_state(patch_3d)   
-    
+    CALL construct_hamocc_ocean_state(patch_3d)
+
     !---------------------------------------------------------------------
     restartDescriptor => createRestartDescriptor("hamocc")
     !---------------------------------------------------------------------
@@ -536,4 +536,3 @@ MODULE mo_hamocc_model
   !--------------------------------------------------------------------------
 
 END MODULE mo_hamocc_model
-

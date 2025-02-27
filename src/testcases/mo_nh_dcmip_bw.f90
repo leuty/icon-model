@@ -88,7 +88,7 @@ MODULE mo_nh_dcmip_bw
        moistqr    = 0.9_wp,           & ! Maximum saturation ratio
        moisteps   = 0.622_wp,         & ! Ratio of gas constants
        moistT0    = 273.16_wp,        & ! Reference temperature (K)
-       moistE0Ast = 610.78_wp           ! Saturation vapor pressure at T0 (Pa) 
+       moistE0Ast = 610.78_wp           ! Saturation vapor pressure at T0 (Pa)
 
 
   PUBLIC :: init_nh_dcmip_bw
@@ -100,7 +100,7 @@ CONTAINS
   !>
   !! Setup idealized conditions for DCMIP2016 baroclinic instability.
   !!
-  !! Setup idealized conditions for DCMIP2016 baroclinic instability 
+  !! Setup idealized conditions for DCMIP2016 baroclinic instability
   !! test case.
   !!
   SUBROUTINE init_nh_dcmip_bw (p_patch, p_nh_prog, p_nh_diag, p_int, p_metrics)
@@ -163,7 +163,7 @@ CONTAINS
 
     !
     ! Init prognostic variables rho and exner (theta_v)
-    ! The initial velocities provided for the cell center are ignored 
+    ! The initial velocities provided for the cell center are ignored
     ! at this point. They will be recomputed for the cell edges lateron.
 !$OMP PARALLEL
 !$OMP DO PRIVATE(jb,jk,jc,i_startidx,i_endidx,zlon,zlat,zu,zv,zphis,zqv)
@@ -208,15 +208,15 @@ CONTAINS
       ENDDO  ! jk
       IF ( (dcmip_bw%moist==1) .AND. (ntracer>=1)) THEN
         ! initialize qv-Tracer
-        p_nh_prog%tracer(i_startidx:i_endidx,1:nlev,jb,iqv) = zqv(i_startidx:i_endidx,1:nlev) 
+        p_nh_prog%tracer(i_startidx:i_endidx,1:nlev,jb,iqv) = zqv(i_startidx:i_endidx,1:nlev)
       ENDIF
     ENDDO  ! jb
 !$OMP ENDDO
 !$OMP END PARALLEL
 
 
-    ! Interpolate virtual temperature and geometric height to edge midpoints 
-    ! (required for velocity initialization) 
+    ! Interpolate virtual temperature and geometric height to edge midpoints
+    ! (required for velocity initialization)
     CALL cells2edges_scalar(p_nh_diag%tempv, p_patch, p_int%c_lin_e, ztempv_e, lacc=.FALSE.)
     CALL cells2edges_scalar(p_metrics%z_mc, p_patch, p_int%c_lin_e, z_me, lacc=.FALSE.)
     CALL sync_patch_array(SYNC_E,p_patch,ztempv_e, lacc=.FALSE.)
@@ -287,9 +287,9 @@ CONTAINS
   !    pertt    type of perturbation (0 = exponential, 1 = stream function)
   !        X    Earth scaling factor
   !
-  !  Given a point specified by: 
-  !      lon    longitude (radians) 
-  !      lat    latitude (radians) 
+  !  Given a point specified by:
+  !      lon    longitude (radians)
+  !      lat    latitude (radians)
   !      p/z    pressure (Pa) / height (m)
   !  zcoords    1 if z is specified, 0 if p is specified
   !
@@ -407,8 +407,8 @@ CONTAINS
     !   Initialize virtual potential temperature
     !-----------------------------------------------------
     thetav = t * (1.d0 + 0.61d0 * q) * (p0 / p)**(Rd / cp)
-!DR In order to be consistent with the above computation of t, 
-!DR 0.61 should be replaced by Mvap 
+!DR In order to be consistent with the above computation of t,
+!DR 0.61 should be replaced by Mvap
 !DR    thetav = t * (1.d0 + Mvap * q) * (p0 / p)**(Rd / cp)
 
   END SUBROUTINE baroclinic_wave_test
@@ -682,4 +682,3 @@ CONTAINS
 
 
 END MODULE mo_nh_dcmip_bw
-

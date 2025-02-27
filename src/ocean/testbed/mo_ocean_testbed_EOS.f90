@@ -26,8 +26,8 @@ MODULE mo_ocean_testbed_EOS
   PRIVATE
 
   PUBLIC :: ocean_test_EOS
-  
-  
+
+
   !-------------------------------------------------------------------------
 CONTAINS
 
@@ -70,7 +70,7 @@ CONTAINS
     DO l=1,10000
       rho_EOS3 = calculate_density_jmdwfg06_onColumn( &
         & temperature_column,  salinity_column, pressure_column)
-    ENDDO 
+    ENDDO
     CALL timer_stop(timer_extra10)
 
     pressure_column = depth(p) / 10.0_wp !* OceanReferenceDensity * sitodbar
@@ -104,7 +104,7 @@ CONTAINS
         rho_MPIOM = calculate_density_mpiom_onColumn( &
           & temperature_column,  salinity_column, pressure_column)
 
-        
+
 
         DO l=1,columnn_size
           write(0,*) temperature(l), rho_MPIOM(l), rho_EOS3(l), (rho_EOS3(l)-rho_MPIOM(l)) ! / rho_MPIOM(p)

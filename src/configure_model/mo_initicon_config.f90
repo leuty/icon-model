@@ -88,11 +88,11 @@ MODULE mo_initicon_config
   ! ----------------------------------------------------------------------------
   !
   TYPE :: t_initicon_config
-    CHARACTER(LEN=vname_len) :: ana_checklist(max_var_ml) ! list of mandatory analysis fields. 
-                                                        ! This list can include a subset or the 
+    CHARACTER(LEN=vname_len) :: ana_checklist(max_var_ml) ! list of mandatory analysis fields.
+                                                        ! This list can include a subset or the
                                                         ! entire set of default analysis fields.
-    CHARACTER(LEN=vname_len) :: fg_checklist(max_var_ml) ! list of mandatory first guess fields. 
-                                                        ! This list can include a subset or the 
+    CHARACTER(LEN=vname_len) :: fg_checklist(max_var_ml) ! list of mandatory first guess fields.
+                                                        ! This list can include a subset or the
                                                         ! entire set of default first guess fields.
   END TYPE t_initicon_config
   !
@@ -103,8 +103,8 @@ MODULE mo_initicon_config
 
   REAL(wp) :: zpbl1, zpbl2  ! AGL heights used for vertical gradient computation
   LOGICAL  :: lread_ana     ! If .TRUE., read analysis fields are read from analysis file
-                            ! dwdana_filename. If .FALSE., ICON is soleyly started 
-                            ! from first guess fields.   
+                            ! dwdana_filename. If .FALSE., ICON is soleyly started
+                            ! from first guess fields.
 
   LOGICAL  :: lconsistency_checks    ! check validity of input fields (FG and ANA)
 
@@ -114,8 +114,8 @@ MODULE mo_initicon_config
                                      ! assimilation increments
   LOGICAL  :: lp2cintp_sfcana(max_dom) ! If true, perform parent-to-child interpolation of
                                        ! surface analysis data
-  LOGICAL  :: lcouple_ocean_coldstart  ! If true, initialize newly defined land points from ICON-O 
-                                       ! with default T and Q profiles 
+  LOGICAL  :: lcouple_ocean_coldstart  ! If true, initialize newly defined land points from ICON-O
+                                       ! with default T and Q profiles
   LOGICAL  :: ltile_coldstart  ! If true, initialize tile-based surface fields from first guess with tile-averaged fields
 
   LOGICAL  :: ltile_init       ! If true, initialize tile-based surface fields from first guess without tiles
@@ -152,7 +152,7 @@ MODULE mo_initicon_config
 
   INTEGER  :: filetype      ! One of CDI's FILETYPE\_XXX constants. Possible values: 2 (=FILETYPE\_GRB2), 4 (=FILETYPE\_NC2)
 
-  REAL(wp) :: dt_iau        ! Time interval during which incremental analysis update (IAU) is performed [s]. 
+  REAL(wp) :: dt_iau        ! Time interval during which incremental analysis update (IAU) is performed [s].
                             ! Only required for init_mode=MODE_IAU, MODE_IAU_OLD
 
   INTEGER  :: type_iau_wgt  ! Type of weighting function for IAU.
@@ -164,9 +164,9 @@ MODULE mo_initicon_config
   INTEGER  :: niter_divdamp ! number of divergence damping iterations on wind increment from DA
   INTEGER  :: niter_diffu   ! number of diffusion iterations on wind increment from DA
 
-  INTEGER :: itype_vert_expol ! Type of vertical extrapolation of initial data. 
-                              ! 1: Linear extrapolation (standard setting) 
-                              ! 2: Blending with climatology 
+  INTEGER :: itype_vert_expol ! Type of vertical extrapolation of initial data.
+                              ! 1: Linear extrapolation (standard setting)
+                              ! 2: Blending with climatology
                               ! (intended for simulations with the upper-atmosphere configuration)
 
   ! IFS2ICON input filename, may contain keywords, by default
@@ -183,9 +183,9 @@ MODULE mo_initicon_config
 
   ! analysis file: dictionary which maps internal variable names onto
   ! GRIB2 shortnames or NetCDF var names.
-  CHARACTER(LEN=filename_max) :: ana_varnames_map_file      
+  CHARACTER(LEN=filename_max) :: ana_varnames_map_file
 
-   
+
   ! ----------------------------------------------------------------------------
   ! Derived variables / variables based on input file contents
   ! ----------------------------------------------------------------------------
@@ -208,7 +208,7 @@ MODULE mo_initicon_config
   !> determines whether IAU is active at current time
   LOGICAL :: is_iau_active = .FALSE.
 
-  REAL(wp):: iau_wgt_dyn = 0._wp    !< IAU weight for dynamics fields 
+  REAL(wp):: iau_wgt_dyn = 0._wp    !< IAU weight for dynamics fields
   REAL(wp):: iau_wgt_adv = 0._wp    !< IAU weight for tracer fields
 
   !> registers if aerosol fields have been read from the first-guess
@@ -232,9 +232,9 @@ CONTAINS
 
   !! setup additional initicon control variables
   !!
-  !! Setup of additional initicon control variables depending on the 
-  !! initicon-NAMELIST and potentially other namelists. This routine is 
-  !! called, after all namelists have been read and a synoptic consistency 
+  !! Setup of additional initicon control variables depending on the
+  !! initicon-NAMELIST and potentially other namelists. This routine is
+  !! called, after all namelists have been read and a synoptic consistency
   !! check has been done.
   !!
   SUBROUTINE configure_initicon()
@@ -260,17 +260,17 @@ CONTAINS
     ! set switch(es) for vertical extrapolation of initial data
     !
     ! just to make sure
-    IF (.NOT. ALLOCATED(upatmo_config)) THEN 
+    IF (.NOT. ALLOCATED(upatmo_config)) THEN
       CALL finish('mo_initicon_config:configure_initicon', &
         &         'upatmo_config is not allocated')
     ENDIF
     SELECT CASE(itype_vert_expol)
     CASE(ivexpol%lin)
-      ! linear extrapolation is the standard case 
+      ! linear extrapolation is the standard case
       upatmo_config(:)%exp%l_expol = .FALSE.
-    CASE(ivexpol%upatmo) 
-      ! this case is intended for (but not necessarily limited to) 
-      ! upper-atmosphere simulations, further specifiers for 
+    CASE(ivexpol%upatmo)
+      ! this case is intended for (but not necessarily limited to)
+      ! upper-atmosphere simulations, further specifiers for
       ! this extrapolation can be set in 'upatmo_nml'
       upatmo_config(:)%exp%l_expol = .TRUE.
     END SELECT

@@ -48,7 +48,7 @@ The original climatology file can be downloaded from [this ECMWF webpage](https:
 
 At this point in time, ICON does **not** support the new `epoch` dimension of the climatology (i.e. anthropogenic change of aerosol over 5+ year periods).
 The ICON repository contains the script {{ '[`make_camsclim_onICONgrid.sh`](https://gitlab.dkrz.de/icon/icon-model/-/blob/release-{}-public/scripts/preprocessing/make_camsclim_onICONgrid.sh)'.format(release) }} to extract the latest (2015) epoch from the original data file and interpolate the climatology onto an ICON grid of the user’s choice.
-Installation of CDO, NCO and python3 (numpy, xarray) tools is required to run this script. 
+Installation of CDO, NCO and python3 (numpy, xarray) tools is required to run this script.
 
 ###  Using CAMS forecasts
 
@@ -84,12 +84,12 @@ The 43R3 CAMS climatology also had some unrealistic features, such as high dust 
 
 The new 49R2 CAMS climatology was created using an updated version (CY48R1) of the CAMS aerosol model, which contains some significant changes relative to the older version used to create the 43R3 climatology. Therefore, the **new climatology should be used with an appropriate set of optical properties!** A tabulated list of the appropriate optical properties for each version of the climatology/forecasts can be found **[here](https://confluence.ecmwf.int/display/ECRAD/Aerosol-radiation+interactions+in+the+IFS)**.
 
-For this implementation, the appropriate aerosol optical properties have been pre-selected for use with the CAMS 49R2 climatology. The pre-selected default for the CAMS forecasts is set to the most recent CAMS IFS cycle 49R1. If working with **older CAMS forecasts**, the **user has to adapt the selected properties** in `mo_nwp_ecrad_init.f90` (line 342 and following) according to the table linked above.  
+For this implementation, the appropriate aerosol optical properties have been pre-selected for use with the CAMS 49R2 climatology. The pre-selected default for the CAMS forecasts is set to the most recent CAMS IFS cycle 49R1. If working with **older CAMS forecasts**, the **user has to adapt the selected properties** in `mo_nwp_ecrad_init.f90` (line 342 and following) according to the table linked above.
 
-:::{admonition} Known limitations 
+:::{admonition} Known limitations
 :class: admonition-icontheme
 Known limitations of the new 49R2 climatology include that the "far field" aerosol such as in the Arctic is too low.
-The IFS is run with an additional artificial small constant background term to get the best results. 
+The IFS is run with an additional artificial small constant background term to get the best results.
 :::
 
 # Glossary of Namelist Parameters

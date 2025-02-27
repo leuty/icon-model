@@ -43,10 +43,10 @@ set DATE_LIST     "20000701 "
 set FIRST_DATE_S    2000-07-01T00:00:00           # First date to save in the output
 set LAST_DATE_S     2001-06-30T00:00:00           # Last date to save in the output
 set FIRST_SSTICE_YEAR 2000             # First and last year for which we neeed the external SST
-set LAST_SSTICE_YEAR  2002             #  and CI external files 
+set LAST_SSTICE_YEAR  2002             #  and CI external files
 set MONTHS        200007               #---months to be run e.g. 201201_201207
-set ICON_HOME     /home/ms/de/deia 
-set ICON_ID       deia 
+set ICON_HOME     /home/ms/de/deia
+set ICON_ID       deia
 set RES           "R02B05"             #---ICON resolution dynamics
 set RESRAD        "R02B04"             #---ICON resolution radiation (requires namelist)
 set USER_ICON_DIR icon-nwp             #---location of script, plot and sms files
@@ -198,7 +198,7 @@ suite $USER
     set     ENABLE_METEOGRAM      1
     set     ENABLE_POST_METVIEW   0
     set     ENABLE_POST_ARCHIVE   0
-    
+
     set ENABLE_POST_SEAS          0
     set     ENABLE_SEAS_MEAN      0
     # enable this flag, if we do not perform a complete "svn export"
@@ -245,9 +245,9 @@ suite $USER
     edit LDATE_S $LAST_DATE_S
 
 
-    edit ICONNODES        $ICONNODES        
-    edit ICONTASKSPERNODE $ICONTASKSPERNODE 
-    edit ICONTHREADS      $ICONTHREADS      
+    edit ICONNODES        $ICONNODES
+    edit ICONTASKSPERNODE $ICONTASKSPERNODE
+    edit ICONTHREADS      $ICONTHREADS
     edit ENABLE_DUMPSTATE $ENABLE_DUMPSTATE
 
 
@@ -310,7 +310,7 @@ suite $USER
                 event make
 
             task init_cp_binary
-                trigger (init_build == complete) 
+                trigger (init_build == complete)
                 complete (../../init:YMD gt ${FIRST_DATE}) and ($ENABLE_BUILD == 0)
                 on_hpc_serial
                 edit SCWALLCLOCKLIMIT 00:02:00
@@ -340,10 +340,10 @@ suite $USER
 
     endfamily
 
- 
+
     family sst_ice
 
-       repeat integer YYYY ${FIRST_SSTICE_YEAR}  ${LAST_SSTICE_YEAR} 
+       repeat integer YYYY ${FIRST_SSTICE_YEAR}  ${LAST_SSTICE_YEAR}
        trigger (init/build==complete) and (once == complete)
         complete ($ENABLE_SSTICE == 0)
 
@@ -373,7 +373,7 @@ suite $USER
        #repeat date YMD ${FIRST_DATE} ${LAST_DATE}      # cycle over dates
         trigger (init==complete) and (sst_ice==complete)
         complete ($ENABLE_FORECAST == 0)
-        
+
 
         loop DATE ( ${DATE_LIST} ) do
             family $DATE
@@ -383,7 +383,7 @@ suite $USER
                 task pre_clean
                   on_hpc_serial
                   edit SCWALLCLOCKLIMIT 00:20:00
-	      
+
                 task dumpstate
                   trigger (pre_clean == complete)
                   complete ($ENABLE_DUMPSTATE == 0)
@@ -391,14 +391,14 @@ suite $USER
                   event prepare
                   event create_dumpstate
               endfamily
-	      
+
               task model
                 trigger (prepare == complete)
                 complete ($ENABLE_MODEL == 0)
                 on_hpc_parallel
                 edit SCWALLCLOCKLIMIT 05:00:00
                 event model_complete
-	      
+
               task check_progress
                 trigger  (model == active)
                 complete ($ENABLE_CHECK == 0 ) or (model == complete )
@@ -421,12 +421,12 @@ suite $USER
         loop DATE ( ${DATE_LIST}  ) do
             family $DATE
               edit YMD $DATE
-                
+
              # family prepare
              #   task pre_clean
              #     on_hpc_serial
              #     edit SCWALLCLOCKLIMIT 00:20:00
-	     # 
+	     #
              #   task dumpstate
              #     trigger (pre_clean == complete)
              #     complete ($ENABLE_DUMPSTATE == 0)
@@ -434,15 +434,15 @@ suite $USER
              #     event prepare
              #     event create_dumpstate
              # endfamily
-	      
+
               task seasonal_mean
                 #trigger (prepare == complete)
                 complete ($ENABLE_SEAS_MEAN == 0)
                 on_hpc_serial
                 edit SCWALLCLOCKLIMIT 02:00:00
                 #event seasonal_mean_complete
-	      
-              
+
+
 
             endfamily
         endloop
@@ -453,10 +453,10 @@ suite $USER
 
         trigger forecast==complete
 
-        loop DATE ( ${DATE_LIST}  ) do  
-         family $DATE       
+        loop DATE ( ${DATE_LIST}  ) do
+         family $DATE
          edit YMD $DATE
-         task post_prepare   
+         task post_prepare
             on_hpc_serial
             edit SCWALLCLOCKLIMIT 00:40:00
             event meteogram_data
@@ -469,7 +469,7 @@ suite $USER
         endloop
 
     endfamily
- 
+
 
 
 endsuite

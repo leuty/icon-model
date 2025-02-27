@@ -23,7 +23,7 @@
 
   Task objectives:
   - extract output
-  - generate plots 
+  - generate plots
 %end
 
 # include the header file for remote jobs
@@ -31,13 +31,13 @@
 
 # -------------------------------------------------
 
-echo "EOM_PREPARE.SMS" 
+echo "EOM_PREPARE.SMS"
 
 module load cdo/1.7.2
 
 #module swap grib_api grib_api/1.14.5
 module unload eccodes
-module load grib_api/1.14.5 
+module load grib_api/1.14.5
 
 dwd_grib_api=/home/ms/de/dwd/grib_api
 export GRIB_DEFINITION_PATH="/usr/local/apps/grib_api/1.14.5/CRAY/82/share/grib_api/definitions:${dwd_grib_api}/definitions.edzw-1.14.5"
@@ -87,7 +87,7 @@ for levtype1 in PL HL ML ; do
   YYYYMM=`echo %YMD% | cut -c 1-6`
   date01=${YYYYMM}'01'%INIHOUR%
   date31=%YMD%%INIHOUR%              # e.g. 2012063000
-  
+
   ymdh=${date01}
   while (( ${ymdh} <= ${date31} )) ; do
 
@@ -145,10 +145,10 @@ for levtype1 in PL HL ML ; do
         for bad in unknown '~' ; do
           grib_copy grb_data/${basename}_DOM01_0001_${bad}_${levtype2}.grb \
                     grb_data/${basename}_DOM01_0001_[discipline].[parameterCategory].[parameterNumber]_${levtype2}.grb || true
-          \rm -rf   grb_data/${basename}_DOM01_0001_${bad}_${levtype2}.grb        
+          \rm -rf   grb_data/${basename}_DOM01_0001_${bad}_${levtype2}.grb
         done
       done
-      
+
 # fix table from 5 to 4 to work with metview (ML type need to be present in GRIB file!!)
       for ml_file in grb_data/${basename}_DOM01_0001_*_ml.grb  grb_data/${basename}_DOM01_0001_*_pl.grb ; do
         cdo -P 2 copy ${ml_file}      ${ml_file}_temp
@@ -221,7 +221,7 @@ if [[ $lcatdata = 1 ]] ; then
     ymdh=${date01}
 
     rm -f ${mondir}/tmp_dir/${basenameMM}_DOM01_0001_${var}_0.grb
-    rm -f ${mondir}/tmp_dir/${basenameMM}_DOM01_0001_${var}_24.grb   
+    rm -f ${mondir}/tmp_dir/${basenameMM}_DOM01_0001_${var}_24.grb
     rm -f ${mondir}/tmp_dir/${basenameMM}_DOM01_0001_${var}_216.grb
     rm -f ${mondir}/tmp_dir/${basenameMM}_DOM01_0001_${var}_240.grb
 
@@ -245,11 +245,11 @@ if [[ $lcatdata = 1 ]] ; then
                 ${base}_${ymdh}_DOM01_0001_${var}_240.grb ${mondir}/tmp_dir
           rm -f ${base}_${ymdh}_DOM01_0001_${var}_*.grb
         fi
-      fi 
+      fi
 
       cd ${mondir}/tmp_dir
       cat ${base}_${ymdh}_DOM01_0001_${var}_0.grb   >> ${basenameMM}_DOM01_0001_${var}_0.grb
-      cat ${base}_${ymdh}_DOM01_0001_${var}_24.grb  >> ${basenameMM}_DOM01_0001_${var}_24.grb   
+      cat ${base}_${ymdh}_DOM01_0001_${var}_24.grb  >> ${basenameMM}_DOM01_0001_${var}_24.grb
       cat ${base}_${ymdh}_DOM01_0001_${var}_216.grb >> ${basenameMM}_DOM01_0001_${var}_216.grb  || true #10day
       cat ${base}_${ymdh}_DOM01_0001_${var}_240.grb >> ${basenameMM}_DOM01_0001_${var}_240.grb  || true #10day
 
@@ -378,7 +378,7 @@ fi
 
 if [[ $ldeldata = 1 ]] ; then
   cd $mondir
-  \rm -rf grb_data 
+  \rm -rf grb_data
 fi
 
 

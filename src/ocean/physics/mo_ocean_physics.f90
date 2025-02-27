@@ -904,7 +904,7 @@ CONTAINS
       END IF
     END IF
 #endif
-    
+
     SELECT CASE(vert_mix_type)
     CASE(vmix_pp)
       CALL update_PP_scheme(patch_3d, ocean_state, fu10, concsum, params_oce,op_coeffs)

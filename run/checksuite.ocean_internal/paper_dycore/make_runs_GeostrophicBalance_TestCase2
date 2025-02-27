@@ -46,7 +46,7 @@ $make_runscript                  \
   grids_folder="${grids_folder}"   \
   ocean_grids="${ocean_grids}" \
   dtime=$dtime
-  # queue=develop      
+  # queue=develop
 
   cd run
     $use_submit ./$out_script

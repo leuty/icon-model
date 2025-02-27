@@ -75,7 +75,7 @@ ICON_O0_PATH='externals/jsbach/src/base/mo_jsb_process_factory_core.f90'
 ICON_O0_PATH+=':src/hamocc/icon_specific/mo_bgc_icon.f90'
 ICON_O0_FCFLAGS='-O0'
 
-# Due to compiler bug (in 16.0.1, HPE issue number 5376225297) the following file 
+# Due to compiler bug (in 16.0.1, HPE issue number 5376225297) the following file
 # fails to compile with the default optimization level:
 ICON_O1_PATH='src/atm_phy_schemes/mo_cuascn.f90'
 #ICON_O1_PATH+=':src/atm_phy_schemes/mo_adjust.f90'
@@ -164,4 +164,3 @@ if test $(pwd) != $(cd "${icon_dir}"; pwd); then
   ln -sf ${icon_dir}/data
   ln -sf ${icon_dir}/vertical_coord_tables
 fi
-

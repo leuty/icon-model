@@ -17,7 +17,7 @@
 #    job-name   job_name
 #    output     output
 #    error      error
-#    mail-type  notification 
+#    mail-type  notification
 #==========================================================================
 
 #SBATCH --qos=large
@@ -86,7 +86,7 @@ ERROR() {
   set -x
   set +e
   wait
-  smsabort 
+  smsabort
   trap 0
   date
   times
@@ -108,5 +108,3 @@ trap '{ echo "Killed by a signal"; ERROR ; }' \
 [[ -d $TMPDIR ]] && cd $TMPDIR
 
 date
-
-

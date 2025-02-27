@@ -44,13 +44,12 @@ MODULE mo_oem_config
                               &    vprm_tlow                !< VPRM parameter values for T_low
     LOGICAL ::                     lcut_area                !< Switch to turn on/off to select an
                                                             !< area where no fluxes are applied
-    REAL(wp) ::                    lon_cut_start,         & !< longitude start coordinate 
+    REAL(wp) ::                    lon_cut_start,         & !< longitude start coordinate
                               &    lon_cut_end,           & !< longitude end coordinate
                               &    lat_cut_start,         & !< latitude start coordinate
                               &    lat_cut_end              !< latitude end coordinate
- 
+
 
 
 
 END MODULE mo_oem_config
-

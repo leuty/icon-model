@@ -45,10 +45,10 @@ set TIME_LIST     "2000080100/2000080206/2000080312/2000080418"
 set FIRST_DATE_S  2000-09-01T00:00:00  # First date to save in the output
 set LAST_DATE_S   2001-08-31T18:00:00  # Last date to save in the output
 set FIRST_SSTICE_YEAR 2000             # First and last year for which we neeed the external SST
-set LAST_SSTICE_YEAR  2002             #  and CI external files 
+set LAST_SSTICE_YEAR  2002             #  and CI external files
 set MONTHS        200008               #---months to be run e.g. 201201_201207
 set MON_IFS_ICON  ifs
-set ICON_HOME     /home/ms/de/deia 
+set ICON_HOME     /home/ms/de/deia
 set ICON_ID       deia
 set RES           "R02B05"             #---ICON resolution dynamics
 set RESRAD        "R02B04"             #---ICON resolution radiation (requires namelist)
@@ -87,7 +87,7 @@ setenv -i TMPDIR
 
 # HPC environment:
 set SCHOST      cca
-set SMSLOGHOST  cca-log 
+set SMSLOGHOST  cca-log
 set SCPREFIX    hpc
 set WSHOST      ecgb
 set SCTEMP      /scratch/ms/de/$ICON_ID/icon
@@ -196,7 +196,7 @@ suite $USER
     set     ENABLE_METEOGRAM      1
     set     ENABLE_POST_METVIEW   1
     set     ENABLE_POST_ARCHIVE   1
-    
+
     set ENABLE_POST_SEAS          1
     set     ENABLE_SEAS_MEAN      1
     set     ENABLE_CLIMPLOT       1
@@ -257,10 +257,10 @@ suite $USER
     edit TIME_LIST  $TIME_LIST
     edit FCLENGTH   $FCLENGTH
 
-    edit ICONNODES        $ICONNODES        
+    edit ICONNODES        $ICONNODES
     edit ICONTOTALTASKS   $ICONTOTALTASKS
-    edit ICONTASKSPERNODE $ICONTASKSPERNODE 
-    edit ICONTHREADS      $ICONTHREADS      
+    edit ICONTASKSPERNODE $ICONTASKSPERNODE
+    edit ICONTHREADS      $ICONTHREADS
     edit ENABLE_DUMPSTATE $ENABLE_DUMPSTATE
 
 
@@ -276,14 +276,14 @@ suite $USER
     family init
        #repeat date YMD ${FIRST_DATE} ${LAST_DATE}   1   # cycle over dates
        #repeat string DATE ${DATE_LIST}
-       #edit INIHOUR ""  # this is a work around, YMD contains INIHOUR       
+       #edit INIHOUR ""  # this is a work around, YMD contains INIHOUR
         trigger  (once == complete)
         complete ($ENABLE_INIT == 0)
 
         family build
             trigger (../once == complete)
            #complete (testday==complete) #and not (testday:time_domonth)
-      
+
             task init_svn
                 complete ($ENABLE_INIT_SVN == 0) or ($ENABLE_INIT == 0) or \
                   ($ENABLE_BUILD == 0)
@@ -309,11 +309,11 @@ suite $USER
                 event make
 
             task init_cp_binary
-                trigger (init_build == complete) 
+                trigger (init_build == complete)
                #complete ($ENABLE_BUILD == 0)
                 on_hpc_serial
                 edit SCWALLCLOCKLIMIT 00:02:00
-        endfamily  
+        endfamily
 
         loop DATE ( ${DATE_LIST} ) do
            family $DATE
@@ -322,12 +322,12 @@ suite $USER
               edit INIHOUR `echo $DATE |cut -c 9-10`
 
               extern /ifs_trigger/fct_ifs
-      
+
               task testday
                   on_ecgate
                   event time_eom
                   event time_domonth
-      
+
               task setup
                  #time 06:00                                  # use this for tasks running daily (not catch-up mode)
                  #trigger  (/ifs_trigger/fct_ifs == complete)
@@ -336,7 +336,7 @@ suite $USER
                   on_ecgate_submit
                   event enable_build
                   event enable_dumpstate
-      
+
               task get_data
                   trigger (setup == complete) and (../../once == complete)
                   complete ($ENABLE_GET_DATA == 0) or (testday==complete) and not (testday:time_domonth)
@@ -347,7 +347,7 @@ suite $USER
                   edit SCCPUS       4
                   edit SCMEM        3000MB
                   edit SCWALLCLOCKLIMIT 02:00:00
-      
+
               task init_data
                   trigger (get_data == complete) and (../build == complete)
                   complete ($ENABLE_INIT_DATA == 0) or (testday==complete) and not (testday:time_domonth)
@@ -369,7 +369,7 @@ suite $USER
 
     family sst_ice
 
-       repeat integer YYYY ${FIRST_SSTICE_YEAR}  ${LAST_SSTICE_YEAR} 
+       repeat integer YYYY ${FIRST_SSTICE_YEAR}  ${LAST_SSTICE_YEAR}
        trigger (init/build==complete) and (once == complete)
         complete ($ENABLE_SSTICE == 0)
          task retreive_sst_ice
@@ -406,12 +406,12 @@ suite $USER
               #edit YMD $DATE
               edit YMD     `echo $DATE |cut -c 1-8`
               edit INIHOUR `echo $DATE |cut -c 9-10`
-              
+
               family prepare
                 task pre_clean
                   on_hpc_serial
                   edit SCWALLCLOCKLIMIT 00:20:00
-	      
+
                 task dumpstate
                   trigger (pre_clean == complete)
                   complete ($ENABLE_DUMPSTATE == 0)
@@ -419,17 +419,17 @@ suite $USER
                   event prepare
                   event create_dumpstate
               endfamily
-	      
+
               task model
                 trigger (prepare == complete)
                 complete ($ENABLE_MODEL == 0)
                 on_hpc_parallel
                 edit SCWALLCLOCKLIMIT 05:00:00
                 event model_complete
-	      
+
               task check_progress
                 trigger  (model == active)
-                complete ($ENABLE_CHECK == 0 ) or (model == complete) 
+                complete ($ENABLE_CHECK == 0 ) or (model == complete)
                 on_ecgate_submit
                 edit SMSOUT ${SCLOGDIR}
                 edit SCWALLCLOCKLIMIT 12:00:00
@@ -452,13 +452,13 @@ suite $USER
         trigger forecast==complete
         complete ( $ENABLE_POST_SEAS == 0)
         set PLOTPERIODS   5
-       #repeat string YMD ${DATE_LIST} 
+       #repeat string YMD ${DATE_LIST}
         edit YMD     `echo $LAST_DATE |cut -c 1-8`
         edit INIHOUR `echo $DATE |cut -c 9-10`
        #edit INIHOUR "" #This is a work around, YMD contains the hour
 
         family climplot
-             complete ( $ENABLE_CLIMPLOT == 0 ) 
+             complete ( $ENABLE_CLIMPLOT == 0 )
              define rcmd { repeat integer PLOTPERIOD 1 \$PLOTPERIODS }
              rcmd
              #trigger ( climmeans == complete ) ## or \
@@ -495,7 +495,7 @@ suite $USER
            task plot_vdspectra
              trigger getmeans==complete
              on_ecgate_submit
-             complete ($ENABLE_PLOTVDSPECTRA == 0) 
+             complete ($ENABLE_PLOTVDSPECTRA == 0)
            family plot_obs
              trigger (getmeans == complete)
              task plot_obs_1
@@ -531,14 +531,14 @@ suite $USER
 ##           trigger getmeans==complete  and plot_2d==complete  and plot_wind==complete and \
 ##                    plot_z500==complete and plot_zon==complete and plot_obs==complete and \
 ##                    plot_dcycle==complete and plot_wavfreq==complete and plot_vdspectra==complete
-       
+
         endfamily
 
         task climplot_save
            trigger climplot == complete
            complete ($ENABLE_CLIMPLOT_SAVE == 0)
            on_ecgate_submit
-             
+
     endfamily
 
   endfamily

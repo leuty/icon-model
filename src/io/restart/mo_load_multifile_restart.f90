@@ -134,7 +134,7 @@ CONTAINS
       INTEGER :: iG, ndim, dimid(4)
       CHARACTER(*), PARAMETER :: routine = modname//":payloadFile_init"
       CHARACTER(:), ALLOCATABLE :: pathname
-  
+
       IF(timers_level >= 7) CALL timer_start(timer_load_restart_io)
       CALL multifilePayloadPath(mfPath, dom, partId, pathname)
       CALL nf(nf90_open(pathname, NF90_NOWRITE, me%ncid), routine)
@@ -153,7 +153,7 @@ CONTAINS
   SUBROUTINE checkRedistributionPattern(pat, provGlbIdces, reqdGlbIdces)
     CLASS(t_comm_pattern), INTENT(IN), POINTER :: pat
     INTEGER, INTENT(IN) :: provGlbIdces(:), reqdGlbIdces(:)
-    INTEGER :: iSize, oSize, i, error 
+    INTEGER :: iSize, oSize, i, error
     CHARACTER(*), PARAMETER :: routine = modname//":checkRedistributionPattern"
     REAL(KIND=dp), ALLOCATABLE, DIMENSION(:,:) :: input, output
 
@@ -224,7 +224,7 @@ CONTAINS
         & iPk_s, iPk_c, iPk_i, iPk_o, nI_s, nI_c, nI_i, nI_o, oPk_i, oPk_o, oPk_c
       INTEGER :: i, j
 
-#ifdef DEBUG 
+#ifdef DEBUG
       ! consistency checks
       IF(1 > MINVAL(pIds,1)) &
         & CALL finish(routine, "global index out of RANGE (<1)")
@@ -508,7 +508,7 @@ CONTAINS
           CALL C_F_POINTER(cptr_e, buf_3d_i, [nproma,MERGE(lcnt,1,en_bloc),nblk])
         END IF
         DO llId = 1, MERGE(1, lCnt, en_bloc)
-          ofs = 0 
+          ofs = 0
           st(:) = [1, llId, 1]
           IF(timers_level >= 7) CALL timer_start(timer_load_restart_io)
           DO fId = 1, SIZE(files)

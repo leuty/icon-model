@@ -24,7 +24,7 @@ module NmlLib
             f << INDENT
             f << if vv.kind_of?(Array)
               "#{[kk,vv.join(',')].join(' = ')}\n"
-            else 
+            else
               "#{[kk,vv].join(' = ')}\n"
             end
           }
@@ -87,7 +87,7 @@ module TestCases
 end
 
 # Implements the main functionality for running an experiment:
-# * 
+# *
 class Experiment
   @@defaulCompiler = 'gcc'
   @@defaultMpi     = 'openmpi'

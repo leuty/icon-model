@@ -26,9 +26,9 @@ MODULE mo_tracer_metadata_types
   INTEGER, PARAMETER :: VARNAME_LEN = 32
 
   ! Tracer metadata
-  ! 
-  ! Polymorphic type that contains tracer metadata according to the type 
-  ! of tracer (aerosol, chemical, hydrometeor). 
+  !
+  ! Polymorphic type that contains tracer metadata according to the type
+  ! of tracer (aerosol, chemical, hydrometeor).
   TYPE t_tracer_meta
     !
     LOGICAL :: lis_tracer         ! this is a tracer field (TRUE/FALSE)
@@ -43,7 +43,7 @@ MODULE mo_tracer_metadata_types
     LOGICAL :: lconv_tracer       ! Convection  (TRUE/FALSE)
     ! Processes not covered by ICON (requires ART extension)
     TYPE(t_key_value_store) :: opt_meta   ! Storage container for optional metadata
-    
+
     CONTAINS
       procedure :: construct_base => construct_t_tracer_meta
   END TYPE t_tracer_meta
@@ -87,9 +87,9 @@ MODULE mo_tracer_metadata_types
     ! Dry deposition
     REAL(wp) :: vdmol1,  &        ! ratio of mol. diffusion coeff. D_H2O/D_x
              &  vdmol2,  &        ! ratio of mol. diffusion coeff. D_i/D_x with D_i the molecular diffusivity
-                                  ! of the species for which rsmin was determined (usually H2O or CO2, with current 
+                                  ! of the species for which rsmin was determined (usually H2O or CO2, with current
                                   ! parametrization D_i = D_H2O (-> vdmol1 = vdmol2 in this case)) (see Baer, Eq. 12)
-             &  reac,    &        ! Reactivity 
+             &  reac,    &        ! Reactivity
              &  heff              ! Henry's law constant
 
     CONTAINS
@@ -98,7 +98,7 @@ MODULE mo_tracer_metadata_types
 
   ! Hydrometeor metadata
   TYPE, extends(t_tracer_meta) :: t_hydro_meta
-    ! 
+    !
   END TYPE
 
   PUBLIC :: t_tracer_meta

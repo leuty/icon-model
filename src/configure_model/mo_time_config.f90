@@ -62,16 +62,16 @@ MODULE mo_time_config
   END TYPE t_timeshift
 
   !>
-  !! Derived type containing information for time control. 
+  !! Derived type containing information for time control.
   !!
   TYPE t_time_config
 
-    ! from namelist 
+    ! from namelist
 
     REAL(wp)         :: dt_restart         !< Length of restart cycle in seconds
     INTEGER          :: calendar           !< calendar type
 
-    ! not directly from namelist  
+    ! not directly from namelist
 
     !> LOGICAL is_relative_time: .TRUE., if time loop shall start with
     !> step 0 regardless whether we are in a standard run or in a
@@ -82,13 +82,13 @@ MODULE mo_time_config
     ! -----------------------------------------------------------------
     !
     ! experiment
-    
+
     TYPE(datetime),  POINTER :: tc_exp_refdate   => NULL()
 
     TYPE(datetime),  POINTER :: tc_exp_startdate => NULL()
     TYPE(datetime),  POINTER :: tc_exp_stopdate  => NULL()
 
-    ! single run 
+    ! single run
 
     TYPE(datetime),  POINTER :: tc_startdate     => NULL()
     TYPE(datetime),  POINTER :: tc_stopdate      => NULL()
@@ -290,14 +290,14 @@ CONTAINS
 
 
 
-  SUBROUTINE set_tc_exp_refdate(experimentReferenceDate)   
-    CHARACTER(len=*), INTENT(in) :: experimentReferenceDate   
+  SUBROUTINE set_tc_exp_refdate(experimentReferenceDate)
+    CHARACTER(len=*), INTENT(in) :: experimentReferenceDate
     time_config%tc_exp_refdate => newDatetime(experimentReferenceDate)
   END SUBROUTINE set_tc_exp_refdate
 
-  SUBROUTINE set_tc_exp_startdate(experimentStartDate)   
-    CHARACTER(len=*), INTENT(in) :: experimentStartDate   
-    time_config%tc_exp_startdate => newDatetime(experimentStartDate)   
+  SUBROUTINE set_tc_exp_startdate(experimentStartDate)
+    CHARACTER(len=*), INTENT(in) :: experimentStartDate
+    time_config%tc_exp_startdate => newDatetime(experimentStartDate)
   END SUBROUTINE set_tc_exp_startdate
 
   SUBROUTINE set_tc_exp_stopdate(experimentStopDate)
@@ -319,9 +319,9 @@ CONTAINS
     CHARACTER(len=*), INTENT(in) :: checkpointTimeIntval
     time_config%tc_dt_checkpoint => newTimedelta(checkpointTimeIntval)
   END SUBROUTINE set_tc_dt_checkpoint
-  
+
   SUBROUTINE set_tc_dt_restart(restartTimeIntval)
-    CHARACTER(len=*), INTENT(in) :: restartTimeIntval   
+    CHARACTER(len=*), INTENT(in) :: restartTimeIntval
     time_config%tc_dt_restart => newTimedelta(restartTimeIntval)
   END SUBROUTINE set_tc_dt_restart
 
@@ -380,4 +380,3 @@ CONTAINS
   END SUBROUTINE set_tc_timeshift
 
 END MODULE mo_time_config
-

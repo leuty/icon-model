@@ -37,8 +37,8 @@ set FIRST_DATE    20131105
 set LAST_DATE     20131105
 set MONTHS        201311               #---months to be run e.g. 201201_201207
 set INIHOUR       00
-set ICON_HOME     /home/ms/de/deia 
-set ICON_ID       deia 
+set ICON_HOME     /home/ms/de/deia
+set ICON_ID       deia
 set RES           "R02B08"             #---ICON resolution dynamics
 set RESRAD        "R02B07"             #---ICON resolution radiation (requires namelist)
 set USER_ICON_DIR icon-nwp             #---location of script, plot and sms files
@@ -216,9 +216,9 @@ suite $USER
     edit SCSOFT     $SCSOFT
     edit MONTHS     $MONTHS
 
-    edit ICONNODES        $ICONNODES        
-    edit ICONTASKSPERNODE $ICONTASKSPERNODE 
-    edit ICONTHREADS      $ICONTHREADS      
+    edit ICONNODES        $ICONNODES
+    edit ICONTASKSPERNODE $ICONTASKSPERNODE
+    edit ICONTHREADS      $ICONTHREADS
     edit ENABLE_DUMPSTATE $ENABLE_DUMPSTATE
 
 
@@ -268,7 +268,7 @@ suite $USER
                 event make
 
             task init_cp_binary
-                trigger (init_build == complete) 
+                trigger (init_build == complete)
                 complete (../../init:YMD gt ${FIRST_DATE}) and ($ENABLE_BUILD == 0)
                 on_hpc_serial
                 edit SCWALLCLOCKLIMIT 00:02:00
@@ -280,7 +280,7 @@ suite $USER
           for set 0 $NENS ; do
             set tsk `printf %3.3i $set`
 
-            family $tsk  
+            family $tsk
               edit NMEM $tsk
               task setup_eps
                 on_ecgate
@@ -294,7 +294,7 @@ suite $USER
                 edit SCCPUS       4
                 edit SCMEM        3000MB
                 edit SCWALLCLOCKLIMIT 02:00:00
-    
+
               task init_data
                 trigger (get_data == complete) and (../../build == complete)
                 on_hpc_parallel
@@ -325,7 +325,7 @@ suite $USER
                 task pre_clean
                   on_hpc_serial
                   edit SCWALLCLOCKLIMIT 00:20:00
-	      
+
                 task dumpstate
                   trigger (pre_clean == complete)
                   complete ($ENABLE_DUMPSTATE == 0)
@@ -333,14 +333,14 @@ suite $USER
                   event prepare
                   event create_dumpstate
               endfamily
-	      
+
               task model
                 trigger (prepare == complete)
                 complete ($ENABLE_MODEL == 0)
                 on_hpc_parallel
                 edit SCWALLCLOCKLIMIT 06:00:00
                 event model_complete
-	      
+
               task check_progress
                 trigger  (model == active)
                 complete (model == complete)
@@ -363,16 +363,16 @@ suite $USER
         #trigger (../forecast/model:model_complete)
         complete ($ENABLE_POST == 0)
 
-        task post_prepare   
+        task post_prepare
             on_hpc_serial
             edit SCWALLCLOCKLIMIT 01:00:00
             event meteogram_data
-   
+
         task meteogram
             trigger (post_prepare:meteogram_data)
             on_ecgate_submit
-   
-        family metview_all 
+
+        family metview_all
           trigger (post_prepare == complete)
           for set 1 4 ; do
             set tsk `printf %3.3i $set`
@@ -381,11 +381,11 @@ suite $USER
                 on_ecgate_submit
                 edit metproc $set
             endfamily
-          endfor  
+          endfor
         endfamily
 
         task post_archive
-            trigger meteogram==complete and metview_all==complete 
+            trigger meteogram==complete and metview_all==complete
             on_ecgate_submit
     endfamily
 
@@ -406,7 +406,7 @@ suite $USER
             complete (testday==complete) and (not (testday:time_eom) or not (testday:time_domonth))
             on_ecgate_submit
 
-        task eom_prepare  
+        task eom_prepare
             trigger   testday==complete
             complete (testday==complete) and (not (testday:time_eom) or not (testday:time_domonth))
             on_hpc_serial
@@ -425,7 +425,7 @@ suite $USER
             complete (testday==complete) and (not (testday:time_eom) or not (testday:time_domonth))
             on_ecgate_submit
 
-        family eom_metview_all 
+        family eom_metview_all
             trigger (eom_prepare == complete) and (eom_getmars == complete)
             complete (testday==complete) and (not (testday:time_eom) or not (testday:time_domonth))
             for set 1 5 ; do
@@ -435,14 +435,14 @@ suite $USER
                    on_ecgate_submit
                    edit metproc $set
                endfamily
-            endfor  
+            endfor
         endfamily
 
         task eom_archive
             trigger eom_metview_all==complete
             complete (testday==complete) and (not (testday:time_eom) or not (testday:time_domonth))
             on_ecgate_submit
-   
+
     endfamily
 
   endfamily

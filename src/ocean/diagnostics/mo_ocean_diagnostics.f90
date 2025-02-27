@@ -531,7 +531,7 @@ CONTAINS
     CASE (1) ! shallow water mode
 
     CASE default !3D model
-  
+
       ! {{{ compute global mean values of:
       ! total_salt
       total_salt = 0.0_wp
@@ -870,7 +870,7 @@ CONTAINS
            .OR. isRegistered('heat_content_snow')   .OR. isRegistered('heat_content_total') &
            .OR. isRegistered('heat_content_300m')   .OR. isRegistered('heat_content_700m') &
            .OR. isRegistered('global_heat_content') .OR. isRegistered('global_heat_content_solid') ) THEN
-        
+
       	IF (vert_cor_type .EQ. 0) THEN
           CALL calc_heat_content(patch_3d, prism_thickness, ice, tracers, &
              p_diag%heat_content_liquid_water, &
@@ -2788,7 +2788,7 @@ CONTAINS
 
   END SUBROUTINE calc_heat_content
 
-  
+
   SUBROUTINE calc_bottom_pressure(patch_3d,ocean_state,bottom_pressure,fslp,density,thickness,sea_surface_height,ice,stretch_c,lacc)
 
     TYPE(t_patch_3d), TARGET, INTENT(IN)  :: patch_3d

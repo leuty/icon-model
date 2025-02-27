@@ -11,7 +11,7 @@
 # ------------------------------------------
 
 # ===========================================================================
-# 
+#
 # Name: exp.mch_pollen_test.run
 #
 # Purpose: Run script for ICON on a domain over Switzerland
@@ -21,7 +21,7 @@
 #
 # Created by: Christoph Müller (MeteoSwiss), Andreas Pauling (MeteoSwiss)
 #
-# =========================================================================== 
+# ===========================================================================
 
 set -x
 
@@ -42,7 +42,7 @@ input_folder="${testingFolder_prefix}/testing-input-data/c2sm/pollen_test"
 
 # ===========================================================================
 # This experiment describes a ICON-LAM experiment using the physics packages that are
-# used at MeteoSwiss for production. This simulation computes a few time steps on 
+# used at MeteoSwiss for production. This simulation computes a few time steps on
 # a low-resolution grid over Switzerland. The setup is for development purposes.
 #
 # This experiment includes output of accumulated fluxes.
@@ -168,7 +168,7 @@ cat > ${basedir}/run/${atmo_namelist} << EOF
  hdiff_order                 =                          5         ! order of nabla operator for diffusion
  itype_vn_diffu              =                          1         ! reconstruction method used for Smagorinsky diffusion
  itype_t_diffu               =                          2         ! discretization of temperature diffusion
- hdiff_efdt_ratio            =                         24.0       ! ratio of e-folding time to time step 
+ hdiff_efdt_ratio            =                         24.0       ! ratio of e-folding time to time step
  hdiff_smag_fac              =                          0.025     ! scaling factor for Smagorinsky diffusion
 /
 
@@ -198,14 +198,14 @@ cat > ${basedir}/run/${atmo_namelist} << EOF
  check_ana(1)%list            = 'P','QV','T','U','V'
  check_ana(2)%list            = 'FRESHSNW','H_SNOW','T_SO' ! NOOOOOOOOOOOOO in ens
  use_lakeiceana               = .TRUE.
- qcana_mode                   = 0           ! (0) no QC-increments, 
-                                            ! (1) QC+QV-increments added to QV, 
+ qcana_mode                   = 0           ! (0) no QC-increments,
+                                            ! (1) QC+QV-increments added to QV,
                                             ! (2) QC-increments added to QC if already present at gridpoint
                                             !     and added to QV if not
- qiana_mode                   = 0           ! 0/1: ignore/use QI increments 
- qrsgana_mode                 = 0           ! 0/1: ignore/use QR,QS,QG 
+ qiana_mode                   = 0           ! 0/1: ignore/use QI increments
+ qrsgana_mode                 = 0           ! 0/1: ignore/use QR,QS,QG
  dwdfg_filename               = "laf2022041206.grb"    ! initial data filename init_mode 7
- filetype                     = -1        
+ filetype                     = -1
  ana_varnames_map_file        = "map_file.ana"        ! Dictionary for initial data file
  ltile_coldstart              = .TRUE.  ! coldstart for surface tiles
  ltile_init                   = .TRUE.  ! gdm origin .F. set it to .TRUE. if FG data originate from run without tiles
@@ -295,7 +295,7 @@ cat > ${basedir}/run/${atmo_namelist} << EOF
  vwind_offctr                =                          0.2       ! off-centering in vertical wind solver
  damp_height                 =                      12250.0       ! height at which Rayleigh damping of vertical wind starts
  rayleigh_coeff              =                          5.0       ! Rayleigh damping coefficient
- divdamp_order               =                         24         ! order of divergence damping 
+ divdamp_order               =                         24         ! order of divergence damping
  divdamp_type                =                         32         ! gdm default: 3 type of divergence damping
  divdamp_fac                 =                          0.004     ! scaling factor for divergence damping
  igradp_method               =                          3         ! discretization of horizontal pressure gradient
@@ -356,19 +356,19 @@ cat > ${basedir}/run/${atmo_namelist} << EOF
 !gribout_nml: defined and used in: src/namelists/mo_initicon_nml.f90 ------------
 
 &gribout_nml
-    preset                      = 'ensemble' 
+    preset                      = 'ensemble'
     localdefinitionnumber       = 253
     typeofensembleforecast      = 192
     localtypeofensembleforecast = 1
     numberofforecastsinensemble = 11
-    perturbationnumber          = 0 
+    perturbationnumber          = 0
     generatingProcessIdentifier = 141          !bes: should be 141 for ICON-1 and 142 for ICON-2;  waa set 141 with center 215 defined by external parameter file
 /
 &art_nml
  lart_aerosol         = .true.
  iart_volcano         = 0
  iart_seasalt         = 0
- iart_radioact        = 0   
+ iart_radioact        = 0
  iart_dust            = 0
  iart_pollen          = 1
  lart_diag_out        = .true.
@@ -388,7 +388,7 @@ cat > ${basedir}/run/${atmo_namelist} << EOF
  cart_type_sedim      = 'expl'     ! explicit: 'expl', implicit: 'impl'
 /
 
-! output_nml: control the output ------------------------------------------------ 
+! output_nml: control the output ------------------------------------------------
 
 ! Model levels
 &output_nml

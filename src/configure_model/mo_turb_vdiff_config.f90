@@ -69,7 +69,7 @@ MODULE mo_turb_vdiff_config
     ! for tmx only
     LOGICAL  :: use_tmx         !< true: use tmx diffusion
     INTEGER  :: solver_type     !< 1: explicit solver, 2: implicit solver
-    INTEGER  :: energy_type     !< use 1: dry static energy 2: internal energy for thermal diffusion in tmx 
+    INTEGER  :: energy_type     !< use 1: dry static energy 2: internal energy for thermal diffusion in tmx
     REAL(wp) :: dissipation_factor !< for tmx only; factor for dissipation of kinetic energy
     LOGICAL  :: use_louis       !< Switch to activate Louis formula for exchange coefficient
     REAL(wp) :: louis_constant_b!< Louis constant b in Eq. 15 of Louis (1979) [BLM]

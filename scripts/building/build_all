@@ -10,14 +10,15 @@
 # SPDX-License-Identifier: BSD-3-Clause
 # ------------------------------------------
 
+import os
+import stat
+
 # -*- coding: utf-8 -*-
 #==============================================================================
 # Creates the ICON multiple builds based on config/multiple_builds
 # Leonidas Linardakis, MPI-M, 2011-25-1
 #==============================================================================
 import sys
-import os
-import stat
 
 create_folders=["run"]
 
@@ -30,7 +31,7 @@ def warning(where,message):
   print '********************'
   print "Warning: "+where+" "+message
   print '********************'
-  
+
 def error(where,message):
   print '********************'
   print "ERROR: "+where+" "+message
@@ -65,9 +66,9 @@ for line in infile:
     sep_idx=line.find('=')
     if (sep_idx < 1):
       error(line, "wrong syntax")
-    line=line[sep_idx+1:]    
+    line=line[sep_idx+1:]
     line=line.rstrip()
-    
+
     run_scripts=[]
     while (len(line) > 0):
       line=line.lstrip()
@@ -80,24 +81,24 @@ for line in infile:
 
       line=line[sep_idx+1:]
     continue
-        
-  
+
+
   # get build_folder
   sep_idx=line.find('=')
   if (sep_idx < 1):
     error(line, "wrong syntax")
-    continue  
+    continue
   parameter_name=line[0:sep_idx]
   parameter_name=parameter_name.rstrip()
   if (parameter_name != "build_folder"):
     error(parameter_name, " != build_folder")
-    continue    
+    continue
   line=line[sep_idx+1:]
   line=line.lstrip()
   sep_idx=line.find("configure_options")
   if (sep_idx < 1):
     error("configure_options", "parameter not found")
-    continue    
+    continue
   build_folder=line[0:sep_idx]
   build_folder=build_folder.rstrip()
 
@@ -106,9 +107,9 @@ for line in infile:
   sep_idx=line.find('=')
   if (sep_idx < 1):
     error(line, "wrong syntax")
-    continue  
+    continue
   configure_options=line[sep_idx+1:]
- 
+
   print "building for "+build_folder
   os.chdir(build_folder)
   os.system("./build_local &")
@@ -119,4 +120,3 @@ print "Build all is completed"
 print "-------------------------------\n"
 
 sys.exit(0)
-

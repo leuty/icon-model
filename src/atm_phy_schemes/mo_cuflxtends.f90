@@ -67,7 +67,7 @@ CONTAINS
   !OPTIONS XOPT(HSFUN)
   SUBROUTINE cuflxn &
     & (  kidia,    kfdia,    klon,   ktdia,   klev, rmfcfl, &
-    & rhebc_land, rhebc_ocean, rcucov, rhebc_land_trop,     &  
+    & rhebc_land, rhebc_ocean, rcucov, rhebc_land_trop,     &
     & rhebc_ocean_trop, rcucov_trop, lmfdsnow, trop_mask, ptsphy, &
     & pten,     pqen,     pqsen,    ptenh,    pqenh,&
     & paph,     pap,      pgeoh,    ldland,   ldlake, ldcum,&
@@ -1142,7 +1142,7 @@ CONTAINS
     ztsphy=1.0_JPRB/ptsphy
 
     !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1) IF(lacc)
- 
+
     !$ACC LOOP SEQ
     DO jk=1,klev
       !$ACC LOOP GANG(STATIC: 1) VECTOR
@@ -1356,7 +1356,7 @@ CONTAINS
   !=======================================================================
 
   !US this subroutine is only used for ktrac>0 in ART, which is not supported by GPUs
-  
+
   SUBROUTINE cuctracer &
     & ( kidia,    kfdia,   klon,   ktdia, klev, ktrac,&
     & kctop,     kdtop,   &
@@ -1900,4 +1900,3 @@ CONTAINS
   END SUBROUTINE cubidiag
 
 END MODULE mo_cuflxtends
-

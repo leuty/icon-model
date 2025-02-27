@@ -70,4 +70,3 @@ CONTAINS
   END SUBROUTINE t_level_selection_finalize
 
 END MODULE mo_level_selection_types
-

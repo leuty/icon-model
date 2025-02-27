@@ -32,7 +32,7 @@ USE mo_util_sort,            ONLY: radixsort
 #endif
   IMPLICIT NONE
 
-  PRIVATE 
+  PRIVATE
 
   PUBLIC :: reshuffle
 
@@ -57,7 +57,7 @@ CONTAINS
   INTEGER FUNCTION regular_partition_glb2local(this,iidx)
     CLASS(t_regular_partition), INTENT(IN) :: this
     INTEGER,                    INTENT(IN) :: iidx
-    regular_partition_glb2local = iidx - this%local_size()*this%irank 
+    regular_partition_glb2local = iidx - this%local_size()*this%irank
   END FUNCTION regular_partition_glb2local
 
   INTEGER FUNCTION regular_partition_glbidx2pe(this,iidx)
@@ -127,7 +127,7 @@ CONTAINS
   ! OUT: out_values(1,...,ncollisions,1,...,nlocal): buffer for received values
   !      out_count(1,...,ncollisions,1,...,nlocal) : number of received duplicates
   !
-  ! Note: Only those entries in out_values are modified which correspond to 
+  ! Note: Only those entries in out_values are modified which correspond to
   !       entries in "in_glb_idx" on some PE.
   ! -----------------------------------------------------------------------
   SUBROUTINE reshuffle(description, in_glb_idx, in_values, owner_idx, nglb_indices, communicator, out_values, &
@@ -261,7 +261,7 @@ CONTAINS
     glb_idx(:)             = in_glb_idx(permutation(:))
     values(:)              = in_values(permutation(:))
     reordered_owner_idx(:) = owner_idx(permutation_owner(:))
- 
+
     ! ---  PE "a" sends "glb_idx", "owner_idx" to "b"
     npairs_recv       = SUM(irecv)
     npairs_recv_owner = SUM(irecv_owner)
@@ -318,7 +318,7 @@ CONTAINS
         &  irecv_tmp(j:(j+irecv(i)-1))
       j = j+irecv(i)
       irecv_idx_owner( (1+recv_displs_owner(i)):(recv_displs_owner(i)+irecv_owner(i)) ) = &
-        &  irecv_tmp(j:(j+irecv_owner(i)-1)) 
+        &  irecv_tmp(j:(j+irecv_owner(i)-1))
       j = j+irecv_owner(i)
     END DO
 
@@ -363,7 +363,7 @@ CONTAINS
           CALL finish(routine, TRIM(description)//" - Error! Too many collisions!")
         END IF
         reg_partition_buf(nvals, local_idx)   = recv_vals(i)
-        reg_partition_count(nvals, local_idx) = 1 
+        reg_partition_count(nvals, local_idx) = 1
         reg_partition_modified(local_idx)     = nvals
       END IF
     END DO
@@ -392,7 +392,7 @@ CONTAINS
       isendbuf((block_start_count + offset):(block_end_count + offset)) = reg_partition_count(:, src_idx)
     END DO
 
-    ! ---  PE "b" sends values back to "a", together with the information, 
+    ! ---  PE "b" sends values back to "a", together with the information,
     !      which entries have been modified. Each value is a pair: the
     !      value itself and the number of time it has been received.
     DEALLOCATE(irecv_idx_owner)
@@ -405,7 +405,7 @@ CONTAINS
     CALL MPI_ALLTOALLV(isendbuf, irecv_owner, recv_displs_owner, MPI_INTEGER, irecv_idx_owner2, &
       &                icounts_owner, send_displs_owner, MPI_INTEGER, communicator, ierr)
     IF (ierr /= 0)  CALL finish(routine, TRIM(description)//" - MPI Error!")
-    
+
     ! ---  each PE inserts the received index/values pairs into its
     !      part of the global index space
     out_count(:,:) = 0
@@ -425,7 +425,7 @@ CONTAINS
         out_count(:, dst_idx)  = &
           & irecv_idx_owner2((block_start_count + offset):(block_end_count + offset))
       END IF
-    END DO   
+    END DO
     IF (nerror > 0) CALL finish(routine, "Internal error!")
 
     ! ---  clean-up

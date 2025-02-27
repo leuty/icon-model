@@ -32,12 +32,11 @@
 !! #define HAMOCC_OMP_DEFAULT_SCHEDULE SCHEDULE(guided)
 !! #define HAMOCC_OMP_RUNTIME_SCHEDULE SCHEDULE(runtime)
 !! #define HAMOCC_OMP_GUIDED_SCHEDULE  SCHEDULE(guided)
-!! #else 
+!! #else
 !! #define HAMOCC_OMP_DEFAULT_SCHEDULE SCHEDULE(dynamic,1)
 !! #define HAMOCC_OMP_RUNTIME_SCHEDULE SCHEDULE(runtime)
 !! #define HAMOCC_OMP_GUIDED_SCHEDULE  SCHEDULE(guided)
 !! #endif
-!! 
-!! 
+!!
+!!
 !! !-----------------------------------------------
-

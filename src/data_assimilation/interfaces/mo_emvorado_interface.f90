@@ -35,7 +35,7 @@ MODULE mo_emvorado_interface
        &                        timer_radar_comm          , &
        &                        timer_radar_barrier       , &
        &                        timer_radar_composites    , &
-                                timer_radar_bubbles                          
+                                timer_radar_bubbles
   USE mo_real_timer,      ONLY: timer_report_short_gen
   USE mo_kind,            ONLY: sp, dp, wp
   USE mo_run_config,      ONLY: ltimer, nsteps, msg_level
@@ -49,7 +49,7 @@ MODULE mo_emvorado_interface
        &                        num_radario, my_radario_id, time_mod_sec
   USE radar_organize,     ONLY: any_radar_activity, organize_radar
 #endif
-  
+
 !==============================================================================
 
   IMPLICIT NONE
@@ -60,7 +60,7 @@ MODULE mo_emvorado_interface
 #ifndef NOMPI
   PUBLIC :: detach_emvorado_io, exchg_with_detached_emvorado_io
 #endif
-  
+
 !==============================================================================
 
 CONTAINS
@@ -78,7 +78,7 @@ CONTAINS
     CALL p_bcast (grid_Center   , 0, icomm_radar)
     CALL p_bcast (grid_Subcenter, 0, icomm_radar)
 #endif
-    
+
   END SUBROUTINE exchg_with_detached_emvorado_io
 
   ! This is to be called on the radar I/O PEs only ( my_process_is_radario() )
@@ -87,7 +87,7 @@ CONTAINS
     INTEGER, INTENT(in) :: n_dom_model                            ! Number of model domains
     LOGICAL, INTENT(in) :: radar_flag_doms_model (1:n_dom_model)  ! Switch for running EMVORADO for each domain
 
-    
+
     INTEGER :: mpierr,                                &
                mpistatus(MPI_STATUS_SIZE),            &
                sendtag_radar = 0   ! gets SAVE attribute automatically
@@ -103,9 +103,9 @@ CONTAINS
     ! This involves communication among the whole icomm_radar and synchronizes
     !  itself with the workers in a separate call to config_emvorado in mo_atmo_model.f90:
     CALL config_emvorado (n_dom_model, radar_flag_doms_model(1:n_dom_model))
-          
+
     ALLOCATE (jg_list(n_dom_model))
- 
+
 #ifdef HAVE_RADARFWO
 
     IF (msg_level >= 11 .AND. my_process_is_mpi_radarioroot()) THEN
@@ -197,7 +197,7 @@ CONTAINS
     INTEGER, INTENT(in)        :: ntime_qx  (1:n_dom_model)              ! time level for qv, qc, qr, qi, ...
     LOGICAL, INTENT(in)        :: radar_flag_doms_model (1:n_dom_model)  ! Switch for running EMVORADO for each domain
     INTEGER, INTENT(in)        :: jstep, endstep
-    
+
     REAL(wp)  :: sim_time     !< elapsed simulation time
     INTEGER   :: sendtag_radar = 0
     INTEGER   :: jg, jg_list(n_dom_model)
@@ -207,7 +207,7 @@ CONTAINS
 #endif
 
     CALL timer_start (timer_radar_tot)
-      
+
     sim_time = getElapsedSimTimeInSeconds(mtime_current)
     csimtime(:) = ' '
     WRITE (csimtime, '(f0.1)') sim_time
@@ -218,7 +218,7 @@ CONTAINS
     CALL timer_stop  (timer_radar_tot)
 
     CALL config_emvorado (n_dom_model, radar_flag_doms_model (1:n_dom_model))
-      
+
     CALL timer_start (timer_radar_tot)
 
 #ifdef HAVE_RADARFWO
@@ -239,14 +239,14 @@ CONTAINS
       sendtag_radar = sendtag_radar + 2
     END IF
 #endif
-      
+
     DO jg = 1, n_dom_model
       IF ( jg_list(jg) > -1 ) THEN
         IF (msg_level >= 11 .AND. my_process_is_mpi_workroot()) THEN
           CALL message('emvorado_radarfwo(): ', 'calling organize_radar(''compute'') for sim_time = '//TRIM(csimtime)//' s', &
                         all_print=.TRUE.)
         END IF
-        CALL organize_radar('compute', ntime_dyn(jg), ntime_qx(jg), jg)    
+        CALL organize_radar('compute', ntime_dyn(jg), ntime_qx(jg), jg)
       END IF
     END DO
 
@@ -264,7 +264,7 @@ CONTAINS
     END IF
 #endif
 #endif
-      
+
     CALL timer_stop (timer_radar_tot)
 
   END SUBROUTINE emvorado_radarfwo
@@ -272,7 +272,7 @@ CONTAINS
   SUBROUTINE radar_mpi_barrier
 
     INTEGER :: p_error
-    
+
 #ifndef NOMPI
 #ifdef HAVE_RADARFWO
     CALL MPI_BARRIER (icomm_radar, p_error)

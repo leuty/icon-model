@@ -44,7 +44,7 @@ MODULE mo_ocean_testbed
   USE mo_ocean_math_operators,      ONLY: update_height_depdendent_variables
   USE mtime,                        ONLY: datetime
   USE mo_ocean_output
-  USE mo_ocean_time_events,         ONLY: get_OceanCurrentTime_Pointer  
+  USE mo_ocean_time_events,         ONLY: get_OceanCurrentTime_Pointer
 !-------------------------------------------------------------------------
 IMPLICIT NONE
 PRIVATE
@@ -52,7 +52,7 @@ PRIVATE
 PUBLIC :: ocean_testbed
 
 CONTAINS
-  
+
 
   !-------------------------------------------------------------------------
   !>
@@ -103,11 +103,11 @@ CONTAINS
           & oceans_atmosphere_fluxes, ocean_ice,operators_coefficients)
 
       ! 1101 -  other tests
-      CASE (1101) 
+      CASE (1101)
         CALL ocean_test_read( namelist_filename, shr_namelist_filename, &
           & patch_3d)
 
-      CASE (1102) 
+      CASE (1102)
         CALL ocean_test_quads( namelist_filename, shr_namelist_filename, &
           & patch_3d)
 
@@ -135,4 +135,3 @@ CONTAINS
   !-------------------------------------------------------------------------
 
 END MODULE mo_ocean_testbed
-

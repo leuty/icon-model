@@ -112,8 +112,8 @@
 
 \begin{changeitem}{initicon\_nml: l\_ana\_sfc}{ 2013-10-21 }{ 14280 }
   \begin{itemize}
-   \item The above-mentioned namelist parameter \textbf{l\_ana\_sfc} has been replaced by \textbf{lread\_ana}. The default 
-         is set to .TRUE., meaning that analysis fields are required and read on default. With lread\_ana=.FALSE. ICON is able to start from 
+   \item The above-mentioned namelist parameter \textbf{l\_ana\_sfc} has been replaced by \textbf{lread\_ana}. The default
+         is set to .TRUE., meaning that analysis fields are required and read on default. With lread\_ana=.FALSE. ICON is able to start from
          first guess fields only.
   \end{itemize}
 \end{changeitem}
@@ -122,7 +122,7 @@
   \begin{itemize}
    \item The namelist parameters \textbf{lwrite\_ready} and \textbf{ready\_directory} have been replaced
          by a single namelist parameter \textbf{ready\_file}, where \texttt{ready\_file /= 'default'} enables
-         writing ready files. 
+         writing ready files.
    \item Different \texttt{output\_nml}'s may be joined together to form a single ready file event -- they
          share the same \texttt{ready\_file}.
   \end{itemize}
@@ -130,7 +130,7 @@
 
 \begin{changeitem}{output\_nml: output\_bounds }{ 2013-10-25 }{ 14391 }
   \begin{itemize}
-   \item The namelist parameter \textbf{output\_bounds} specifies a start, end, and increment of 
+   \item The namelist parameter \textbf{output\_bounds} specifies a start, end, and increment of
          output invervals.
          It does no longer allow multiple triples.
   \end{itemize}
@@ -150,9 +150,9 @@
          \begin{itemize}
            \item \texttt{ldump\_states},
            \item \texttt{lrestore\_states},
-           \item \texttt{ldump\_dd}, 
-           \item \texttt{lread\_dd},  
-           \item \texttt{nproc\_dd},  
+           \item \texttt{ldump\_dd},
+           \item \texttt{lread\_dd},
+           \item \texttt{nproc\_dd},
            \item \texttt{dd\_filename},
            \item \texttt{dump\_filename},
            \item \texttt{l\_one\_file\_per\_patch}
@@ -194,8 +194,8 @@
             \item out\_expname
             \item dt\_data
             \item dt\_file
-            \item lwrite\_dblprec, lwrite\_decomposition, lwrite\_vorticity, lwrite\_divergence, lwrite\_pres, 
-                  lwrite\_z3, lwrite\_tracer, lwrite\_tend\_phy, lwrite\_radiation, lwrite\_precip, lwrite\_cloud, 
+            \item lwrite\_dblprec, lwrite\_decomposition, lwrite\_vorticity, lwrite\_divergence, lwrite\_pres,
+                  lwrite\_z3, lwrite\_tracer, lwrite\_tend\_phy, lwrite\_radiation, lwrite\_precip, lwrite\_cloud,
                   lwrite\_tke, lwrite\_surface, lwrite\_omega, lwrite\_initial, lwrite\_oce\_timestepping
          \end{itemize}
          are no longer available.
@@ -280,8 +280,8 @@
 \begin{changeitem}{nonhydrostatic\_nml}{2014-11-24 }{20073}
   \begin{itemize}
    \item Removed namelist parameter \texttt{iadv\_rcf} in namelist
-         \texttt{nonhydrostatic\_nml}. The number of dynamics substeps per advective step are now specified 
-         via \texttt{ndyn\_substeps}. 
+         \texttt{nonhydrostatic\_nml}. The number of dynamics substeps per advective step are now specified
+         via \texttt{ndyn\_substeps}.
          The meaning of \texttt{run\_nml:dtime} has changed and denotes the advective time step.
   \end{itemize}
 \end{changeitem}
@@ -289,8 +289,8 @@
 \begin{changeitem}{io\_nml}{2015-03-25 }{21501}
   \begin{itemize}
    \item Namelist parameter \texttt{lzaxis\_reference} is deprecated and has no effect anymore.
-         However, users are not forced to modify their scripts instantaneously: \texttt{lzaxis\_reference=.FALSE.} 
-         is still a valid namelist setting, but it has no effect and a warning will be issued. 
+         However, users are not forced to modify their scripts instantaneously: \texttt{lzaxis\_reference=.FALSE.}
+         is still a valid namelist setting, but it has no effect and a warning will be issued.
          \texttt{lzaxis\_reference} finally removed in \texttt{r24606}.
   \end{itemize}
 \end{changeitem}
@@ -310,7 +310,7 @@
 
 \begin{changeitem}{lnd\_nml}{2016-07-21}{28536}
   \begin{itemize}
-   \item The numbering of the various options for \texttt{sstice\_mode} has changed. Former option $2$ became $3$, 
+   \item The numbering of the various options for \texttt{sstice\_mode} has changed. Former option $2$ became $3$,
    former option $3$ became $4$, and former option $4$ became $5$. This was necessary, because a new option was introduced (option $2$).
   \end{itemize}
 \end{changeitem}
@@ -324,23 +324,23 @@
 
 \begin{changeitem}{transport\_nml}{2016-09-22}{29339}
   \begin{itemize}
-   \item Namelist parameter \texttt{niter\_fct} has been removed, since the functionality of 
+   \item Namelist parameter \texttt{niter\_fct} has been removed, since the functionality of
    iterative flux correction is no longer available.
   \end{itemize}
 \end{changeitem}
 
 \begin{changeitem}{initicon\_nml}{2016-10-07}{29484}
   \begin{itemize}
-   \item Namelist parameter \texttt{l\_sst\_in} has been removed. In case of init\_mode=2 (IFSINIT), 
-   sea points are now initialized with SST, if provided in the input file. Otherwise sea points are initialized 
-   with the skin temperature. The possibility to use the skin temperature despite having the SST available 
+   \item Namelist parameter \texttt{l\_sst\_in} has been removed. In case of init\_mode=2 (IFSINIT),
+   sea points are now initialized with SST, if provided in the input file. Otherwise sea points are initialized
+   with the skin temperature. The possibility to use the skin temperature despite having the SST available
    has been dropped.
   \end{itemize}
 \end{changeitem}
 
 \begin{changeitem}{initicon\_nml}{2016-12-14}{62288ed77b2975182204a2ec6fa210a3fb1ad8a7}
   \begin{itemize}
-   \item Namelist parameters \texttt{ana\_varlist, ana\_varlist\_n2} have been renamed to \texttt{check\_ana(jg)\%list}, 
+   \item Namelist parameters \texttt{ana\_varlist, ana\_varlist\_n2} have been renamed to \texttt{check\_ana(jg)\%list},
    with jg indicating the patch ID.
   \end{itemize}
 \end{changeitem}
@@ -455,14 +455,14 @@ from ...mpi\_phy... to ...echam\_phy... because programmers felt that the acrony
 
 \begin{changeitem}{extpar\_nml}{2021-02-01}{icon-nwp:icon-nwp-dev ebac2edb0}
   \begin{itemize}
-   \item The functionality of \texttt{itype\_vegetation\_cycle}=3 has been replaced by setting the new namelist parameter \texttt{icpl\_da\_sfcevap} 
+   \item The functionality of \texttt{itype\_vegetation\_cycle}=3 has been replaced by setting the new namelist parameter \texttt{icpl\_da\_sfcevap}
     in initicon\_nml to a value of 1.
   \end{itemize}
 \end{changeitem}
 
 \begin{changeitem}{ha\_dyn\_nml / ha\_testcase\_nml}{2021-03-29}{icon-nwp:icon-nwp-dev 599f03e5}
   \begin{itemize}
-   \item The namelists for configuring the hydrostatic model \texttt{ha\_dyn\_nml} as well as the hydrostatic testcases 
+   \item The namelists for configuring the hydrostatic model \texttt{ha\_dyn\_nml} as well as the hydrostatic testcases
    \texttt{ha\_testcase\_nml} have been removed completely, as the hydrostatic model is no longer part of the official code.
   \end{itemize}
 \end{changeitem}
@@ -483,7 +483,7 @@ from ...mpi\_phy... to ...echam\_phy... because programmers felt that the acrony
 
 \begin{changeitem}{transport\_nml}{2022-05-07}{icon-nwp:master 8a351b13}
   \begin{itemize}
-   \item removed Namelist parameter \texttt{iord\_backtraj}, as the option for 2nd order accurate backward trajectory calculation has been removed. 
+   \item removed Namelist parameter \texttt{iord\_backtraj}, as the option for 2nd order accurate backward trajectory calculation has been removed.
          The default behaviour of the code is unchanged.
   \end{itemize}
 \end{changeitem}
@@ -514,7 +514,7 @@ from ...mpi\_phy... to ...echam\_phy... because programmers felt that the acrony
 
 \begin{changeitem}{Optional output diagnostics, see table~\ref{tab:optionaldiagnostics} on page~\pageref{tab:optionaldiagnostics}}{2023-06-13}{icon-nwp:master 0d921fd4}
   \begin{itemize}
-   \item Removed optional output diagnostics \texttt{vor\_u} (\emph{zonal component of relative vorticity}) and \texttt{vor\_v} (\emph{meridional component of relative vorticity}). 
+   \item Removed optional output diagnostics \texttt{vor\_u} (\emph{zonal component of relative vorticity}) and \texttt{vor\_v} (\emph{meridional component of relative vorticity}).
    Reason for removal: the two diagnostics have proven an unfavorable cost-benefit ratio.
   \end{itemize}
 \end{changeitem}
@@ -551,9 +551,9 @@ from ...mpi\_phy... to ...echam\_phy... because programmers felt that the acrony
 
 \begin{changeitem}{upatmo\_nml and nh\_testcase\_nml}{2023-08-18}{icon-nwp:master 255072ef}
   \begin{itemize}
-    \item Removed Namelist switches \texttt{lnontrad}, \texttt{lconstgrav}, \texttt{lcentrifugal} and \texttt{ldeepatmo2phys} without substitution. 
+    \item Removed Namelist switches \texttt{lnontrad}, \texttt{lconstgrav}, \texttt{lcentrifugal} and \texttt{ldeepatmo2phys} without substitution.
          From now on, \texttt{dynamics\_nml/ldeepatmo = .TRUE.} means implicitly \texttt{lnontrad = .TRUE.}, \texttt{lconstgrav = .FALSE.} and \texttt{lcentrifugal = .FALSE.}.
-         The switch \texttt{ldeepatmo2phys} has never been effective anyway. \newline 
+         The switch \texttt{ldeepatmo2phys} has never been effective anyway. \newline
          In addition, deep-atmosphere testcase \texttt{nh\_test\_name =} '\textbf{lahade}' has been removed without substitution.
   \end{itemize}
 \end{changeitem}

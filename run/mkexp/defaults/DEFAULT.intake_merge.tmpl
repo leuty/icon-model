@@ -63,7 +63,7 @@ try:
     # Get non-variable attribute list, init treatment of variable column
     try:
         idx = input_attributes.index(variable_column_name)
-        non_variable_attributes = (input_attributes[:idx] + 
+        non_variable_attributes = (input_attributes[:idx] +
             input_attributes[idx+1:])
     except ValueError:
         non_variable_attributes = input_attributes
@@ -167,7 +167,7 @@ except (IOError, ValueError) as e:
 # Use git to check the output file for changes
 
 if args.git and not output_is_new:
-    if subprocess.run(['git', '-C', output_dir, 'status', '--porcelain', 
+    if subprocess.run(['git', '-C', output_dir, 'status', '--porcelain',
         output_base], check=True, stdout=subprocess.PIPE).stdout:
         logging.error("cannot overwrite '{0}': "
             "file is not in sync with git".format(output_name))
@@ -189,4 +189,3 @@ if args.git:
 # Finish processing
 
 logging.info('%{JOB.id} process finished')
-

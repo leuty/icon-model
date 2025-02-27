@@ -223,7 +223,7 @@ cat > ${atmo_namelist} << EOF
  aes_phy_config(1)%use_shflx_adjustment = .FALSE.
  aes_phy_config(1)%iqneg_d2p = 2
  aes_phy_config(1)%iqneg_p2d = 2
- 
+
  aes_phy_config(2)%dt_rad = "${radTimeStep}"
  aes_phy_config(2)%dt_vdf = "PT120S"
  aes_phy_config(2)%dt_mig = "PT120S"
@@ -235,7 +235,7 @@ cat > ${atmo_namelist} << EOF
  aes_phy_config(2)%use_shflx_adjustment = .FALSE.
  aes_phy_config(2)%iqneg_d2p = 2
  aes_phy_config(2)%iqneg_p2d = 2
- 
+
  aes_phy_config(3)%dt_rad = "${radTimeStep}"
  aes_phy_config(3)%dt_vdf = "PT60S"
  aes_phy_config(3)%dt_mig = "PT60S"
@@ -247,7 +247,7 @@ cat > ${atmo_namelist} << EOF
  aes_phy_config(3)%use_shflx_adjustment = .FALSE.
  aes_phy_config(3)%iqneg_d2p = 2
  aes_phy_config(3)%iqneg_p2d = 2
- 
+
  aes_phy_config(4)%dt_rad = "${radTimeStep}"
  aes_phy_config(4)%dt_vdf = "PT60S"
  aes_phy_config(4)%dt_mig = "PT60S"
@@ -278,7 +278,7 @@ cat > ${atmo_namelist} << EOF
  aes_rad_config(1)%vmr_cfc12  = 495.02e-12
  aes_rad_config(1)%lyr_perp   = .TRUE.
  aes_rad_config(1)%yr_perp    = 2020
- 
+
  aes_rad_config(2)%isolrad    = 1 ! Time dependent solar spectrum from file
  aes_rad_config(2)%irad_h2o   = 1
  aes_rad_config(2)%irad_co2   = 2
@@ -296,7 +296,7 @@ cat > ${atmo_namelist} << EOF
  aes_rad_config(2)%vmr_cfc12  = 495.02e-12
  aes_rad_config(2)%lyr_perp   = .TRUE.
  aes_rad_config(2)%yr_perp    = 2020
- 
+
  aes_rad_config(3)%isolrad    = 1 ! Time dependent solar spectrum from file
  aes_rad_config(3)%irad_h2o   = 1
  aes_rad_config(3)%irad_co2   = 2
@@ -314,7 +314,7 @@ cat > ${atmo_namelist} << EOF
  aes_rad_config(3)%vmr_cfc12  = 495.02e-12
  aes_rad_config(3)%lyr_perp   = .TRUE.
  aes_rad_config(3)%yr_perp    = 2020
- 
+
  aes_rad_config(4)%isolrad    = 1 ! Time dependent solar spectrum from file
  aes_rad_config(4)%irad_h2o   = 1
  aes_rad_config(4)%irad_co2   = 2
@@ -340,21 +340,21 @@ cat > ${atmo_namelist} << EOF
  aes_vdf_config(1)%energy_type        = 2   ! Only used for tmx
  aes_vdf_config(1)%dissipation_factor = 1.3 ! Only used for tmx
  aes_vdf_config(1)%louis_constant_b   = 4.2 ! default for R2B8
- 
+
  aes_vdf_config(2)%turb       = 2
  aes_vdf_config(2)%pr0        = 0.7
  aes_vdf_config(2)%use_tmx    = .TRUE.
  aes_vdf_config(2)%energy_type        = 2   ! Only used for tmx
  aes_vdf_config(2)%dissipation_factor = 1.3 ! Only used for tmx
  aes_vdf_config(2)%louis_constant_b   = 4.2 ! default for R2B8
- 
+
  aes_vdf_config(3)%turb       = 2
  aes_vdf_config(3)%pr0        = 0.7
  aes_vdf_config(3)%use_tmx    = .TRUE.
  aes_vdf_config(3)%energy_type        = 2   ! Only used for tmx
  aes_vdf_config(3)%dissipation_factor = 1.3 ! Only used for tmx
  aes_vdf_config(3)%louis_constant_b   = 4.2 ! default for R2B8
- 
+
  aes_vdf_config(4)%turb       = 2
  aes_vdf_config(4)%pr0        = 0.7
  aes_vdf_config(4)%use_tmx    = .TRUE.
@@ -376,7 +376,7 @@ cat > ${atmo_namelist} << EOF
  aes_cop_config(1)%cn1sea   = 50.0
  aes_cop_config(1)%cn2lnd   = 220.0
  aes_cop_config(1)%cn2sea   = 100.0
- 
+
  aes_cop_config(2)%cinhomi  = 0.6
  aes_cop_config(2)%cinhoms  = 0.6
  aes_cop_config(2)%cinhoml  = 0.4
@@ -384,7 +384,7 @@ cat > ${atmo_namelist} << EOF
  aes_cop_config(2)%cn1sea   = 50.0
  aes_cop_config(2)%cn2lnd   = 220.0
  aes_cop_config(2)%cn2sea   = 100.0
- 
+
  aes_cop_config(3)%cinhomi  = 0.6
  aes_cop_config(3)%cinhoms  = 0.6
  aes_cop_config(3)%cinhoml  = 0.4
@@ -392,7 +392,7 @@ cat > ${atmo_namelist} << EOF
  aes_cop_config(3)%cn1sea   = 50.0
  aes_cop_config(3)%cn2lnd   = 220.0
  aes_cop_config(3)%cn2sea   = 100.0
- 
+
  aes_cop_config(4)%cinhomi  = 0.6
  aes_cop_config(4)%cinhoms  = 0.6
  aes_cop_config(4)%cinhoml  = 0.4
@@ -423,7 +423,7 @@ EOF
 #----------------------------------
 # jsbach namelist
 # ---------------
-# 
+#
 # domain 1
 #
 cat > ${jsbach_namelist}_d1 << EOF
@@ -502,7 +502,7 @@ EOF
 #----------------------------------
 # jsbach namelist
 # ---------------
-# 
+#
 # domain 2
 #
 cat > ${jsbach_namelist}_d2 << EOF
@@ -570,7 +570,7 @@ cat > ${jsbach_namelist}_d2 << EOF
 /
 &jsb_disturb_nml
  active              = .FALSE.
- ic_filename         = 'ic_land_soil_DOM02.nc' 
+ ic_filename         = 'ic_land_soil_DOM02.nc'
  bc_filename         = 'bc_land_phys_DOM02.nc'
  fire_algorithm      = 1
  windbreak_algorithm = 1
@@ -582,7 +582,7 @@ EOF
 #----------------------------------
 # jsbach namelist
 # ---------------
-# 
+#
 # domain 3
 #
 cat > ${jsbach_namelist}_d3 << EOF
@@ -650,7 +650,7 @@ cat > ${jsbach_namelist}_d3 << EOF
 /
 &jsb_disturb_nml
  active              = .FALSE.
- ic_filename         = 'ic_land_soil_DOM03.nc' 
+ ic_filename         = 'ic_land_soil_DOM03.nc'
  bc_filename         = 'bc_land_phys_DOM03.nc'
  fire_algorithm      = 1
  windbreak_algorithm = 1
@@ -662,7 +662,7 @@ EOF
 #----------------------------------
 # jsbach namelist
 # ---------------
-# 
+#
 # domain 4
 #
 cat > ${jsbach_namelist}_d4 << EOF
@@ -730,7 +730,7 @@ cat > ${jsbach_namelist}_d4 << EOF
 /
 &jsb_disturb_nml
  active              = .FALSE.
- ic_filename         = 'ic_land_soil_DOM04.nc' 
+ ic_filename         = 'ic_land_soil_DOM04.nc'
  bc_filename         = 'bc_land_phys_DOM04.nc'
  fire_algorithm      = 1
  windbreak_algorithm = 1
@@ -788,7 +788,7 @@ datadir=${nest_data_Folder}/
 add_link_file $datadir/ic_atmo_DOM01.nc                                   ./ifs2icon_DOM01.nc
 #
 add_link_file $datadir/bc_ozone_DOM01.nc                                  ./bc_ozone_DOM01.nc
-# 
+#
 add_link_file $datadir/bc_sic_DOM01.nc                                    ./bc_sic_DOM01.nc
 add_link_file $datadir/bc_sst_DOM01.nc                                    ./bc_sst_DOM01.nc
 #
@@ -811,7 +811,7 @@ datadir=${nest_data_Folder}/
 add_link_file $datadir/ic_atmo_DOM02.nc                                   ./ifs2icon_DOM02.nc
 #
 add_link_file $datadir/bc_ozone_DOM02.nc                                  ./bc_ozone_DOM02.nc
-# 
+#
 add_link_file $datadir/bc_sic_DOM02.nc                                    ./bc_sic_DOM02.nc
 add_link_file $datadir/bc_sst_DOM02.nc                                    ./bc_sst_DOM02.nc
 #
@@ -834,7 +834,7 @@ datadir=${nest_data_Folder}/
 add_link_file $datadir/ic_atmo_DOM03.nc                                   ./ifs2icon_DOM03.nc
 #
 add_link_file $datadir/bc_ozone_DOM03.nc                                  ./bc_ozone_DOM03.nc
-# 
+#
 add_link_file $datadir/bc_sic_DOM03.nc                                    ./bc_sic_DOM03.nc
 add_link_file $datadir/bc_sst_DOM03.nc                                    ./bc_sst_DOM03.nc
 #
@@ -857,7 +857,7 @@ datadir=${nest_data_Folder}/
 add_link_file $datadir/ic_atmo_DOM04.nc                                   ./ifs2icon_DOM04.nc
 #
 add_link_file $datadir/bc_ozone_DOM04.nc                                  ./bc_ozone_DOM04.nc
-# 
+#
 add_link_file $datadir/bc_sic_DOM04.nc                                    ./bc_sic_DOM04.nc
 add_link_file $datadir/bc_sst_DOM04.nc                                    ./bc_sst_DOM04.nc
 #

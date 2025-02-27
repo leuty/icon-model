@@ -16,8 +16,8 @@ MODULE mo_memory_bgc
   USE mo_kind, ONLY   : wp
   USE mo_param1_bgc, ONLY: natm
   USE mo_control_bgc, ONLY: rmasko, bgc_nproma, bgc_zlevs
-  USE mo_hamocc_nml, ONLY: l_cpl_co2 
- 
+  USE mo_hamocc_nml, ONLY: l_cpl_co2
+
 
   IMPLICIT NONE
 
@@ -42,7 +42,7 @@ MODULE mo_memory_bgc
   REAL(wp) :: dremdoc, dremn2o
   REAL(wp) :: thresh_aerob ! O2 threshold for aerob POC remineralization
   REAL(wp) :: thresh_sred ! O2 threshold for sulfate reduction
-  REAL(wp) :: thresh_o2, prodn2o 
+  REAL(wp) :: thresh_o2, prodn2o
   REAL(wp) :: mc_fac, mc_eu_speed, mc_depth
   REAL(wp) :: n2_fixation
   REAL(wp) :: sulfate_reduction
@@ -57,7 +57,7 @@ MODULE mo_memory_bgc
 
   REAL(wp) :: pi_alpha_cya,cya_growth_max,Topt_cya,T1_cya,T2_cya ! (namelist parameter)
   REAL(wp) :: bkcya_N, doccya_fac           ! (namelist parameter)
-  REAL(wp) :: buoyancyspeed_cya      
+  REAL(wp) :: buoyancyspeed_cya
   REAL(wp) :: ralk, cyamin, ro2ut_cya
 
   ! Extended Nitrogen cycle variables
@@ -73,7 +73,7 @@ MODULE mo_memory_bgc
   REAL(wp), PARAMETER :: contppm=1._wp/ppm2con  !> inverse of conversion factor molC/m**2 to ppm (in AT)
 
   REAL(wp), PARAMETER :: molw_co2=44.011_wp     !> Total Molecular Weight of CO2 (44.011 g/mol)
- 
+
   REAL(wp), PARAMETER :: molw_dry_air=28.970_wp !> mean pseudo-molecular weight of dry air
 
 

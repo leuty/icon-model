@@ -59,14 +59,14 @@ MODULE mo_nh_diagnose_pres_temp
 
 
 !!$    CHARACTER(len=*), PARAMETER ::  &
-!!$      &  routine = 'mo_nh_diagnose_pres_temp:diagnose_pres_temp' 
+!!$      &  routine = 'mo_nh_diagnose_pres_temp:diagnose_pres_temp'
 
     TYPE(t_nh_metrics), INTENT(IN)    :: p_metrics
     TYPE(t_nh_prog),    INTENT(IN)    :: pt_prog      !!the prognostic variables
     TYPE(t_nh_prog),    INTENT(IN)    :: pt_prog_rcf  !!the prognostic variables which are
                                                       !! treated with reduced calling frequency
 
-    TYPE(t_lnd_prog),   INTENT(IN), OPTIONAL :: lnd_prog 
+    TYPE(t_lnd_prog),   INTENT(IN), OPTIONAL :: lnd_prog
     TYPE(t_nh_diag),    INTENT(INOUT) :: pt_diag      !!the diagnostic variables
 
 
@@ -76,7 +76,7 @@ MODULE mo_nh_diagnose_pres_temp
 
     LOGICAL, INTENT(IN), OPTIONAL     :: opt_calc_temp, opt_calc_pres, opt_calc_temp_ifc
 
-    INTEGER, INTENT(IN), OPTIONAL     :: opt_slev, opt_rlend 
+    INTEGER, INTENT(IN), OPTIONAL     :: opt_slev, opt_rlend
 
     INTEGER  :: jb,jk,jc,jg
     INTEGER  :: nlev, nlevp1              !< number of full levels
@@ -168,9 +168,9 @@ MODULE mo_nh_diagnose_pres_temp
       !-------------------------------------------------------------------------
       !> diagnose temperature on interface levels
       !-------------------------------------------------------------------------
-      
+
       IF ( l_opt_calc_temp_ifc ) THEN
-        
+
         !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1) IF(lacc)
         !$ACC LOOP GANG VECTOR COLLAPSE(2)
         DO jk = MAX(slev+1,2), nlev
@@ -216,7 +216,7 @@ MODULE mo_nh_diagnose_pres_temp
 !$OMP END PARALLEL
     !$ACC WAIT(1)
     !$ACC END DATA
-    
+
     IF (timers_level > 8) CALL timer_stop(timer_diagnose_pres_temp)
 
   END SUBROUTINE diagnose_pres_temp
@@ -229,7 +229,7 @@ MODULE mo_nh_diagnose_pres_temp
   !! - pressure on half levels
   !! - pressure thickness
   !! - surface pressure
-  !! Note that the pressure is diagnosed by vertical integration of the 
+  !! Note that the pressure is diagnosed by vertical integration of the
   !! hydrostatic equation!
   !!
   SUBROUTINE diag_pres (pt_prog, pt_diag, p_metrics, jb, i_startidx, i_endidx, slev, nlev, lacc)
@@ -237,7 +237,7 @@ MODULE mo_nh_diagnose_pres_temp
 
     TYPE(t_nh_metrics), INTENT(IN)    :: p_metrics
     TYPE(t_nh_prog),    INTENT(IN)    :: pt_prog      !!the prognostic variables
- 
+
     TYPE(t_nh_diag),    INTENT(INOUT) :: pt_diag      !!the diagnostic variables
 
 
@@ -258,42 +258,42 @@ MODULE mo_nh_diagnose_pres_temp
         dz1 = p_metrics%ddqz_z_full(jc,nlev,jb)
         dz2 = p_metrics%ddqz_z_full(jc,nlev-1,jb)
         dz3 = 0.5_wp*p_metrics%ddqz_z_full(jc,nlev-2,jb)
-        
+
         ! Compute surface pressure starting from third-lowest level; this is done
         ! in order to avoid contamination by sound-wave activity in the presence of strong latent heating
         pt_diag%pres_sfc(jc,jb) = p0ref * EXP( cpd_o_rd*LOG(pt_prog%exner(jc,nlev-2,jb)) + &
           grav_o_rd*(dz1/pt_diag%tempv(jc,nlev,jb) + dz2/pt_diag%tempv(jc,nlev-1,jb) +     &
           dz3/pt_diag%tempv(jc,nlev-2,jb)) )
-        
+
         pt_diag%pres_ifc(jc,nlev+1,jb) = pt_diag%pres_sfc(jc,jb)
       ENDDO
 
-      
+
       !-------------------------------------------------------------------------
       !> diagnose pressure for physics parameterizations
       !! this is accomplished by vertical integration of the hydrostatic equation
-      !! because the physics schemes actually need the air mass represented 
+      !! because the physics schemes actually need the air mass represented
       !! by a given model layer
       !-------------------------------------------------------------------------
-      
+
       !$ACC LOOP SEQ
       DO jk = nlev, slev,-1
 !DIR$ IVDEP
         !$ACC LOOP GANG(STATIC: 1) VECTOR
         DO jc = i_startidx, i_endidx
-          
+
           ! pressure at interface levels
           pt_diag%pres_ifc(jc,jk,jb) = pt_diag%pres_ifc(jc,jk+1,jb)                  &
             & *EXP(-grav_o_rd*p_metrics%ddqz_z_full(jc,jk,jb)/pt_diag%tempv(jc,jk,jb))
-          
+
           ! pressure at main levels
           pt_diag%pres(jc,jk,jb) = SQRT(pt_diag%pres_ifc(jc,jk,jb) * &
                                         pt_diag%pres_ifc(jc,jk+1,jb) )
-          
+
           ! layer thickness with respect to pressure
           pt_diag%dpres_mc(jc,jk,jb) = pt_diag%pres_ifc(jc,jk+1,jb) &
                                      - pt_diag%pres_ifc(jc,jk  ,jb)
-          
+
         ENDDO
       ENDDO
       !$ACC END PARALLEL
@@ -301,7 +301,7 @@ MODULE mo_nh_diagnose_pres_temp
     ELSE
 
       CALL diag_pres_deepatmo(z_mc=p_metrics%z_mc(:,:,jb), z_ifc=p_metrics%z_ifc(:,:,jb),                  &
-        & exner=pt_prog%exner(:,:,jb), tempv=pt_diag%tempv(:,:,jb), pres_sfc=pt_diag%pres_sfc(:,jb),       & 
+        & exner=pt_prog%exner(:,:,jb), tempv=pt_diag%tempv(:,:,jb), pres_sfc=pt_diag%pres_sfc(:,jb),       &
         & pres_ifc=pt_diag%pres_ifc(:,:,jb), pres=pt_diag%pres(:,:,jb), dpres_mc=pt_diag%dpres_mc(:,:,jb), &
         & start_indices=[i_startidx,slev], end_indices=[i_endidx,nlev], lacc=lacc)
 
@@ -313,7 +313,7 @@ MODULE mo_nh_diagnose_pres_temp
 
   !!
   !! Reduced version for temperature diagnosis to be called from within a block loop
-  !! Diagnoses 
+  !! Diagnoses
   !! - virtual temperature
   !! - temperature
   !!
@@ -325,13 +325,13 @@ MODULE mo_nh_diagnose_pres_temp
     TYPE(t_nh_prog),    INTENT(IN)    :: pt_prog       !!the prognostic variables
     TYPE(t_nh_prog),    INTENT(IN)    :: pt_prog_rcf   !!the prognostic variables which are
                                                        !! treated with reduced calling frequency
-    INTEGER        ,    INTENT(IN)    :: &             !! IDs of all tracers containing 
+    INTEGER        ,    INTENT(IN)    :: &             !! IDs of all tracers containing
       &  condensate_list(:)                            !! prognostic condensate. Required for
-                                                       !! computing the water loading term.  
+                                                       !! computing the water loading term.
     TYPE(t_nh_diag),    INTENT(INOUT) :: pt_diag       !!the diagnostic variables
     LOGICAL,            INTENT(IN)    :: lacc          !!ACC active?
 
-    INTEGER, INTENT(IN) :: jb, i_startidx, i_endidx, slev, slev_moist, nlev 
+    INTEGER, INTENT(IN) :: jb, i_startidx, i_endidx, slev, slev_moist, nlev
 
     INTEGER  :: jk,jc
     REAL(wp) :: z_qsum(nproma,nlev)
@@ -425,7 +425,7 @@ MODULE mo_nh_diagnose_pres_temp
   !! Compute air mass within grid cell
   !!
   !! Compute air mass within grid cell. Note that here, the air mass is defined
-  !! as \rho*\Delta z [kg m-2]. Computing the true grid cell air mass 
+  !! as \rho*\Delta z [kg m-2]. Computing the true grid cell air mass
   !! requires an additional multiplication with the grid cell area.
   !!
   SUBROUTINE compute_airmass (p_patch, p_metrics, rho, airmass, lacc)
@@ -560,7 +560,7 @@ MODULE mo_nh_diagnose_pres_temp
 
     !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1) IF(lacc)
     !$ACC LOOP SEQ
-    DO jk = end_indices(2), start_indices(2), -1 
+    DO jk = end_indices(2), start_indices(2), -1
 !DIR$ IVDEP
       !$ACC LOOP GANG VECTOR &
       !$ACC   PRIVATE(zgpot_mc, zgpot_lifc, zgpot_uifc, dzgpot_mc)
@@ -576,8 +576,8 @@ MODULE mo_nh_diagnose_pres_temp
         pres_ifc(jc,jk) = pres_ifc(jc,jk+1) * EXP(-grav_o_rd * dzgpot_mc / tempv(jc,jk))
 
         ! Integrate hydrostatic balance: cell centers
-        ! (since gpot(0.5*(z1+z2)) /= 0.5*(gpot(z1)+gpot(z2)), where gpot(z)=zgpot, 
-        ! the pressure at main levels cannot be computed from the geometric mean, 
+        ! (since gpot(0.5*(z1+z2)) /= 0.5*(gpot(z1)+gpot(z2)), where gpot(z)=zgpot,
+        ! the pressure at main levels cannot be computed from the geometric mean,
         ! so we have to integrate again)
         pres(jc,jk) = pres_ifc(jc,jk+1) * EXP(-grav_o_rd * (zgpot_mc - zgpot_lifc) / tempv(jc,jk))
 
@@ -590,4 +590,3 @@ MODULE mo_nh_diagnose_pres_temp
   END SUBROUTINE diag_pres_deepatmo
 
 END MODULE  mo_nh_diagnose_pres_temp
-

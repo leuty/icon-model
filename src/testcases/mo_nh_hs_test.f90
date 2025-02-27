@@ -205,7 +205,7 @@ CONTAINS
     ENDDO
     !$ACC END PARALLEL
     !$ACC END DATA
-   
+
 
   END SUBROUTINE held_suarez_forcing_vn
   !-------------
@@ -257,7 +257,7 @@ CONTAINS
       zcoslat4(i) = zcoslat2(i)**2
     ENDDO
     !$ACC END PARALLEL
-   
+
     !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1)
     !$ACC LOOP GANG VECTOR COLLAPSE(2) PRIVATE(kT_hs, zsigma0, zTempEq, ztmp)
     DO jk = 1,nlev

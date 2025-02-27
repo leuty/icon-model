@@ -85,7 +85,7 @@ CONTAINS
     !
     ! Dummy variable for 2mom scheme. Used only when
     !  assimilation of radar data using latent heat nudging
-    !  is switched on (ldass_lhn=true). 
+    !  is switched on (ldass_lhn=true).
     REAL(wp) :: zqrsflux(aes_phy_dims(jg)%nproma, aes_phy_dims(jg)%nlev)
     !
     INTEGER  :: jk, jks, jke, jl
@@ -111,7 +111,7 @@ CONTAINS
     ! associate pointers
     jks       =  aes_phy_config(jg)%jks_cloudy
     fc_two    =  aes_phy_config(jg)%fc_two
-    
+
     ptr_tke => NULL()
 
     jke       =  nlev
@@ -186,7 +186,7 @@ CONTAINS
           CALL cloud_two( nproma, nlev                          ,& !< in : grid index
                &          jcs, jce                              ,& !< in : column index range
                &          jks, jke                              ,& !< in : column index range
-               &          msg_level                             ,& !< in : message level 
+               &          msg_level                             ,& !< in : message level
                &          pdtime                                ,& !< in : timestep
                &          field% dz        (:,:,jb)       ,& !< in : vertical layer thickness
                &          field% zh        (:,:,jb)       ,& !< in : height of half levels
@@ -219,7 +219,7 @@ CONTAINS
                &          tend_qnr_two     (:,:)          ,& !< out: tendency of rain droplets
                &          tend_qs_two      (:,:)          ,& !< out: tendency of snow
                &          tend_qns_two     (:,:)          ,& !< out: tendency of snow droplets
-               &          tend_qg_two      (:,:)          ,& !< out: tendency of graupel 
+               &          tend_qg_two      (:,:)          ,& !< out: tendency of graupel
                &          tend_qng_two     (:,:)          ,& !< out: tendency of graupel droplets
                &          tend_qh_two      (:,:)          ,& !< out: tendency of hail
                &          tend_qnh_two     (:,:)          ,& !< out: tendency of hail droplets
@@ -243,7 +243,7 @@ CONTAINS
                  &             + field% graupel_gsp_rate (jc,jb) &
                  &             + field%    hail_gsp_rate (jc,jb)
             field% pr  (jc,jb) = field% rsfl(jc,jb) &               ! = total  precip rate
-                 &             + field% ssfl(jc,jb)   
+                 &             + field% ssfl(jc,jb)
           END DO
           !
           !

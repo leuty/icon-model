@@ -69,7 +69,7 @@ PUBLIC :: t_InputRequestList, InputRequestList_create
 
     CONTAINS
         PROCEDURE :: request => InputRequestList_request    !< Require that a variable be read.
-        PROCEDURE :: requestMultiple => InputRequestList_requestMultiple    !< Require that a list of variables. Unlike request() this will request the 
+        PROCEDURE :: requestMultiple => InputRequestList_requestMultiple    !< Require that a list of variables. Unlike request() this will request the
                                                                             ! trimmed strings (because it's impossible to pass an array of strings of different LEN).
         PROCEDURE :: readFile => InputRequestList_readFile  !< Scan a file for input data to satisfy the requests.
 
@@ -112,7 +112,7 @@ PUBLIC :: t_InputRequestList, InputRequestList_create
 PRIVATE
 
     ! These objects are created via findDomainData(, , opt_lcreate = .TRUE.), which will already instanciate an empty container.
-    ! On the I/O PE, it IS the job of InputRequestList_isRecordValid() to immediately add a MetadataCache, so that ANY DomainData 
+    ! On the I/O PE, it IS the job of InputRequestList_isRecordValid() to immediately add a MetadataCache, so that ANY DomainData
     ! object returned by findDomainData() CONTAINS both a valid InputContainer AND a valid MetadataCache.
     TYPE :: t_DomainData
         INTEGER :: jg
@@ -261,7 +261,7 @@ CONTAINS
         END DO
     END FUNCTION InputRequestList_findTranslatedName
 
-    !XXX: This also ensures that the requests have been given in the same order on all processes. Not technically necessary, but easier to 
+    !XXX: This also ensures that the requests have been given in the same order on all processes. Not technically necessary, but easier to
     !     implement and I guess, if the order is not the same, that's a hint that there is a bug somewhere else.
     SUBROUTINE InputRequestList_checkRequests(me)
         CLASS(t_InputRequestList), INTENT(INOUT) :: me
@@ -510,12 +510,12 @@ CONTAINS
                 generatingCenter = INT(cdiGribIterator_inqLongValue(gribIterator, "centre"))
                 generatingSubCenter = INT(cdiGribIterator_inqLongValue(gribIterator, "subCentre"))
                 instId = institutInq(generatingCenter, generatingSubcenter, '', '')
-                instName => institutInqNamePtr(instId) 
+                instName => institutInqNamePtr(instId)
                 !
                 ! Check if instName is associated as CDI returns a NULL pointer if the center is not found within
                 ! a CDI internal list (instituteDefaultEntries)
                 IF (ASSOCIATED(instName)) THEN
-                  IF (TRIM(toCharacter(instName))=="DWD") THEN 
+                  IF (TRIM(toCharacter(instName))=="DWD") THEN
                     metadata%experimentId = INT(cdiGribIterator_inqLongValue(gribIterator, "localNumberOfExperiment"))
                   ENDIF
                 ENDIF
@@ -715,7 +715,7 @@ CONTAINS
         END IF
         IF (use_omp_input .AND. my_process_is_mpi_workroot()) THEN
            !NEC_RP: if masterprocess: use readField_omp routine that OMP parallelizes read, statistics and distribution
-           DO 
+           DO
                savetime = p_mpi_wtime()
                ret = me%nextField(iterator, p_patch, level, tileId, variableName, recordsIgnored, lIsFg)
                timer(2) = timer(2) + p_mpi_wtime() - savetime
@@ -746,7 +746,7 @@ CONTAINS
            CALL me%sendStopMessage()
         ELSE
           !NEC_RP: all other processes use original code
-          DO 
+          DO
             savetime = p_mpi_wtime()
             ret = me%nextField(iterator, p_patch, level, tileId, variableName, recordsIgnored, lIsFg)
             timer(2) = timer(2) + p_mpi_wtime() - savetime

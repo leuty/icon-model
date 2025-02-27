@@ -10,8 +10,8 @@
 ! ---------------------------------------------------------------
 !
 ! Description:
-!  This module contains variables that are used in the grid scale 
-!  parameterizations (Microphysics). 
+!  This module contains variables that are used in the grid scale
+!  parameterizations (Microphysics).
 !
 ! ---------------------------------------------------------------
 
@@ -55,8 +55,8 @@ REAL (KIND=wp), PARAMETER ::  &
   zqmin = 1.0E-15_wp, & ! threshold for computations
   zeps  = 1.0E-15_wp    ! small number
 
-     
-REAL (KIND=wp), PARAMETER ::  & 
+
+REAL (KIND=wp), PARAMETER ::  &
   zxiconv  = 1.0E-09_wp,      & ! mean crystal mass for convectively generated ice (gscp3 only)
   zxidrift = 1.0E-07_wp         ! mean crystal mass for blowing snow (gscp3 only)
 
@@ -120,7 +120,7 @@ REAL (KIND=wp), PARAMETER ::  &
     co_i           =  0.6_wp          ! coefficients for turbulence correction
 
 
-! Parameters for autoconversion of cloud water and cloud ice 
+! Parameters for autoconversion of cloud water and cloud ice
 ! ----------------------------------------------------------
 
 REAL    (KIND=wp   ), PARAMETER ::  &
@@ -148,7 +148,7 @@ REAL    (KIND=wp   ), PARAMETER ::  &
   zv1s   = 0.50_wp,      & ! Exponent in the terminal velocity for snow
 
   zami   = 130.0_wp,     & ! Formfactor in the mass-size relation of cloud ice
-  zn0s0  = 8.0E5_wp,     & ! 
+  zn0s0  = 8.0E5_wp,     & !
   zn0s1  = 13.5_wp * 5.65E5_wp, & ! parameter in N0S(T)
   zn0s2  = -0.107_wp,    & ! parameter in N0S(T), Field et al
   zcac   = 1.72_wp,      & ! (15/32)*(PI**0.5)*(ECR/RHOW)*V0R*AR**(1/8)
@@ -167,7 +167,7 @@ REAL    (KIND=wp   ), PARAMETER ::  &
 
   zdv    = 2.22e-5_wp,   & ! molecular diffusion coefficient for water vapour
   zlheat = 2.40E-2_wp,   & ! thermal conductivity of dry air
-  zeta   = 1.75e-5_wp      ! kinematic viscosity of air 
+  zeta   = 1.75e-5_wp      ! kinematic viscosity of air
 
 
 ! Additional parameters
@@ -178,10 +178,10 @@ REAL    (KIND=wp   ), PARAMETER ::  &
   zthn   = 236.15_wp,       & ! temperature for hom. freezing of cloud water
   ztrfrz = 271.15_wp,       & ! threshold temperature for heterogeneous freezing of raindrops
   ztmix  = 250.15_wp,       & ! threshold temperature for mixed-phase cloud freezing of cloud drops (Forbes 2012)
-  znimax_Thom = 250.E+3_wp, & ! FR: maximal number of ice crystals 
+  znimax_Thom = 250.E+3_wp, & ! FR: maximal number of ice crystals
   zmi0   = 1.0E-12_wp,      & ! initial crystal mass for cloud ice nucleation
-  zmimax = 1.0E-9_wp,       & ! maximum mass of cloud ice crystals   
-  zmsmin = 3.0E-9_wp,       & ! initial mass of snow crystals        
+  zmimax = 1.0E-9_wp,       & ! maximum mass of cloud ice crystals
+  zmsmin = 3.0E-9_wp,       & ! initial mass of snow crystals
   zbvi   = 0.16_wp,         & ! v = zvz0i*rhoqi^zbvi
 !
   v_sedi_rain_min    = 0.7_wp, & ! in m/s; minimum terminal fall velocity of rain    particles (applied only near the ground)
@@ -234,7 +234,7 @@ REAL    (KIND=wp   ), PARAMETER ::  &
   ageo_ice = zami**(-bgeo_ice)
 
 TYPE(particle_frozen), PARAMETER :: &
-       &        ice2mom =  particle_frozen( & 
+       &        ice2mom =  particle_frozen( &
        &        'ice_gscp3', & !..name
        &        2.000000, & !..nu
        &        0.500000, & !..mu
@@ -259,7 +259,7 @@ TYPE(particle_frozen), PARAMETER :: &
        &        )
 
 TYPE(particle_ice_coeffs) :: ice_coeffs
-  
+
 !$ACC DECLARE CREATE(zvz0i, zceff_min)
 
 CONTAINS
@@ -276,7 +276,7 @@ SUBROUTINE gscp_set_coefficients (igscp, idbg, tune_zceff_min, tune_v0snow, tune
 
 !------------------------------------------------------------------------------
 !> Description:
-!!   Calculates some coefficients for the microphysics schemes. 
+!!   Calculates some coefficients for the microphysics schemes.
 !!   Usually called only once at model startup.
 !------------------------------------------------------------------------------
 
@@ -291,10 +291,10 @@ SUBROUTINE gscp_set_coefficients (igscp, idbg, tune_zceff_min, tune_v0snow, tune
   REAL(wp) ,INTENT(IN) ,OPTIONAL ::  tune_rain_n0_factor
   REAL(wp) ,INTENT(IN) ,OPTIONAL ::  tune_zcsg
   LOGICAL  ,INTENT(IN) ,OPTIONAL ::  lvar_rain_n0
-  
+
 ! Local variable
   REAL(wp) :: zams  ! local value of zams
-  
+
 
 !------------------------------------------------------------------------------
 !>  Initial setting of local and global variables
@@ -364,7 +364,7 @@ SUBROUTINE gscp_set_coefficients (igscp, idbg, tune_zceff_min, tune_v0snow, tune
   ELSE
     lvariable_rain_n0 = .FALSE.
   ENDIF
-  
+
   zconst = zkcau / (20.0_wp*zxstar) * (zcnue+2.0_wp)*(zcnue+4.0_wp)/(zcnue+1.0_wp)**2
   ccsrim = 0.25_wp*pi*zecs*v0snow*GAMMA(zv1s+3.0_wp)
   ccsagg = 0.25_wp*pi*v0snow*GAMMA(zv1s+3.0_wp)

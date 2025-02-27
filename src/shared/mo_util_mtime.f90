@@ -72,8 +72,8 @@ MODULE mo_util_mtime
 
   ! global object serving as a collection of static utility routines
   TYPE(t_mtime_utils) :: mtime_utils
-  
-CONTAINS 
+
+CONTAINS
 
   !> @return DDHHMMSS string of a given time span.
   !
@@ -84,7 +84,7 @@ CONTAINS
     CHARACTER(len=MAX_CHAR_LENGTH)  :: result_str
     TYPE(datetime),    INTENT(IN)   :: start_date, end_date
     CHARACTER(LEN=*),  INTENT(IN)   :: fmt
-    
+
     TYPE(timedelta) :: time_delta
     TYPE(juliandelta) :: julian_delta
     TYPE(t_keyword_list), POINTER  :: keywords => NULL()
@@ -127,7 +127,7 @@ CONTAINS
 
     assumePrevMidnight = current_date
     !
-    assumePrevMidnight%time%hour   = 0 
+    assumePrevMidnight%time%hour   = 0
     assumePrevMidnight%time%minute = 0
     assumePrevMidnight%time%second = 0
     assumePrevMidnight%time%ms     = 0
@@ -149,7 +149,7 @@ CONTAINS
     td_1day =>newTimedelta("P01D")
     assumeNextMidnight = current_date + td_1day
     !
-    assumeNextMidnight%time%hour   = 0 
+    assumeNextMidnight%time%hour   = 0
     assumeNextMidnight%time%minute = 0
     assumeNextMidnight%time%second = 0
     assumeNextMidnight%time%ms     = 0
@@ -162,9 +162,9 @@ CONTAINS
   !>
   !! Returns elapsed simulation time in seconds
   !!
-  !! Elapsed simulation time is computed as the timedelta 
-  !! between the current datetime and the anchor  
-  !! datetime. Unless specified otherwise, the anchor date  
+  !! Elapsed simulation time is computed as the timedelta
+  !! between the current datetime and the anchor
+  !! datetime. Unless specified otherwise, the anchor date
   !! is set to the experiment start date time_config%tc_exp_startdate.
   !!
   REAL(wp) FUNCTION getElapsedSimTimeInSeconds(datetime_current, anchor_datetime) RESULT(sim_time)
@@ -196,8 +196,8 @@ CONTAINS
   !! Creates a datetime object with a defined dummy date
   !!
   !! Creates a datetime object with a defined dummy date
-  !! Can be used for initializing a newly defined datetime 
-  !! object and for checking, whether the datetime object 
+  !! Can be used for initializing a newly defined datetime
+  !! object and for checking, whether the datetime object
   !! at hand has already been touched and filed with a meaningful value.
   !!
   TYPE(datetime) FUNCTION dummyDateTime()
@@ -221,7 +221,7 @@ CONTAINS
 
 
   !>
-  !! Wrapper for mtime function isCurrentEventActive in order to 
+  !! Wrapper for mtime function isCurrentEventActive in order to
   !! encapsulate the vector-host offloading
   !! needed on the NEC Aurora
   !!
@@ -311,7 +311,7 @@ CONTAINS
     TYPE(juliandelta) :: jdelta
 
     jdelta%sign = MERGE(c_char_'+', c_char_'-', dt >= 0.0_dp)
-    change_sign = MERGE(1, -1, dt >= 0.0_dp)    
+    change_sign = MERGE(1, -1, dt >= 0.0_dp)
     dtl = ABS(dt)
     jdelta%ms = change_sign*INT(ABS(MOD(dtl, 86400.0_dp)) * 1000.0_dp, c_int64_t)
     jdelta%day = change_sign*INT(dtl/86400.0_dp, c_int64_t)

@@ -107,7 +107,7 @@ fi
 #    1: whole experiment mean
 
 PLOT_OPT=111
- 
+
 nperiods=`metview -b dates.met $FCLENGTH $inidate $PLOT_OPT $dayl | grep nmon | sed 's/nmon//' | sed 'y/[],/   /'`
 if (( %PLOTPERIOD% <= ${nperiods} )) ; then
   monmeans_clim_batch -a $exp -c $class1 -l $LEVELS -f $FCLENGTH -r $locfcrange -d $inidate -p $PLOT_OPT \
@@ -122,4 +122,3 @@ if (( %PLOTPERIOD% <= ${nperiods} )) ; then
 fi
 
 %include <endt.h>
-

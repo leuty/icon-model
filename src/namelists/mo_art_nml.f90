@@ -14,7 +14,7 @@
 ! Subroutine is called by read_atmo_namelists for setting up the ART-package
 
 MODULE mo_art_nml
- 
+
   USE mo_kind,                ONLY: wp
   USE mo_exception,           ONLY: message, finish, message_text
   USE mo_run_config,          ONLY: lart
@@ -28,7 +28,7 @@ MODULE mo_art_nml
   USE mo_art_config,          ONLY: art_config, IART_PATH_LEN
   USE mo_nml_annotate,        ONLY: temp_defaults, temp_settings
 
-  
+
   IMPLICIT NONE
   PRIVATE
 
@@ -45,23 +45,23 @@ MODULE mo_art_nml
   INTEGER :: iart_init_gas(1:max_dom)           !< Initialization of gaseous species
   INTEGER :: iart_fplume             !< run FPlume model (Volcanic Plumes)
   INTEGER :: iart_volc_numb          !< number of volcanoes
-  CHARACTER(LEN=IART_PATH_LEN)  :: cart_fplume_inp          
+  CHARACTER(LEN=IART_PATH_LEN)  :: cart_fplume_inp
                                      !< path to FPlume input files (use without file extension)
   LOGICAL :: lart_diag_out           !< Enable output of diagnostic fields
   LOGICAL :: lart_diag_xml           !< Create diagnostic fields only if they are defined in diagnostics.xml
   LOGICAL :: lart_pntSrc             !< Enables point sources
   LOGICAL :: lart_excl_end_pntSrc    !< Main switch to exclude endTime from active time interval of point sources
   LOGICAL :: lart_emiss_turbdiff     !< Switch if emissions should be included as surface flux condition
-  CHARACTER(LEN=20) :: & 
-   &  cart_io_suffix(1:max_dom)      !< user given suffix instead of automatically generated grid number 
-                                     !  in ICON-ART input filename convention: 
+  CHARACTER(LEN=20) :: &
+   &  cart_io_suffix(1:max_dom)      !< user given suffix instead of automatically generated grid number
+                                     !  in ICON-ART input filename convention:
                                      !  ART_iconR<n>B<kk>-grid-<yyyy-mm-dd-hh>_<grid_suffix>.nc
 
   ! Atmospheric Chemistry (Details: cf. Tab. 2.2 ICON-ART User Guide)
   LOGICAL :: lart_chem               !< Main switch to enable chemistry
   LOGICAL :: lart_chemtracer         !< switch for parametrised chemtracers
   LOGICAL :: lart_mecca              !< switch for MECCA chemistry
-  LOGICAL :: lart_psc                !< switch for computation of PSCs 
+  LOGICAL :: lart_psc                !< switch for computation of PSCs
   CHARACTER(LEN=IART_PATH_LEN)  :: &
     &  cart_vortex_init_date         !< Date of vortex initialization
   CHARACTER(LEN=IART_PATH_LEN)  :: &
@@ -88,7 +88,7 @@ MODULE mo_art_nml
   CHARACTER(LEN=IART_PATH_LEN)  :: &
     &  cart_emiss_xml_file           !< path and file name of the xml files for emission metadata
   CHARACTER(LEN=IART_PATH_LEN)  :: &
-    &  cart_ext_data_xml             !< Path to XML file for metadata of datasets 
+    &  cart_ext_data_xml             !< Path to XML file for metadata of datasets
                                      !  that can prescribe tracers
   CHARACTER(LEN=IART_PATH_LEN)  :: &
     &  cart_aero_emiss_xml           !< Path to XML file for aerosol emission routines
@@ -112,7 +112,7 @@ MODULE mo_art_nml
     &  cart_radioact_file            !< Absolute path + filename of input file for radioactive emissions
   INTEGER :: iart_pollen             !< Treatment of pollen
   INTEGER :: iart_modeshift          !< Doing mode shift (only temporary switch for debug)
-    
+
   ! Feedback processes (Details: cf. Tab. 2.4 ICON-ART User Guide)
   INTEGER :: iart_aci_warm           !< Nucleation of aerosol to cloud droplets
   INTEGER :: iart_aci_cold           !< Nucleation of aerosol to cloud ice
@@ -180,7 +180,7 @@ CONTAINS
     CHARACTER(LEN=*), INTENT(IN) :: filename
     INTEGER :: istat, funit
     INTEGER :: jg            !< patch loop index
-    LOGICAL :: l_exist       !< variable for inquiring if the xml file 
+    LOGICAL :: l_exist       !< variable for inquiring if the xml file
                                         !   and emission base path exist.
     CHARACTER(len=*), PARAMETER ::  &
       &  routine = 'mo_art_nml: read_art_nml'
@@ -203,7 +203,7 @@ CONTAINS
     iart_fplume                = 0
     iart_volc_numb             = 0
     cart_fplume_inp            = ''
- 
+
     ! Atmospheric Chemistry (Details: cf. Tab. 2.2 ICON-ART User Guide)
     lart_chem             = .FALSE.
     lart_chemtracer       = .FALSE.
@@ -331,7 +331,7 @@ CONTAINS
     !----------------------------------------------------
 
     IF (lart) THEN
-    
+
       IF (iart_aci_cold == 6 .AND. iart_dust == 0) THEN
         CALL finish('mo_art_nml:read_art_namelist',  &
           &         'Invalid combination: iart_aci_cold = 6 and iart_dust = 0')
@@ -344,18 +344,18 @@ CONTAINS
         CALL finish('mo_art_nml:read_art_namelist',  &
           &         'Invalid combination: lart_dusty_cirrus = .TRUE. and iart_dust = 0')
       ENDIF
-  
+
       ! Emission paths and file
       IF (TRIM(cart_emiss_xml_file) /= '') THEN
         INQUIRE(file = TRIM(cart_emiss_xml_file), EXIST = l_exist)
-      
+
         IF (.NOT. l_exist) THEN
           CALL finish('mo_art_nml:read_art_namelist',  &
                       TRIM(cart_emiss_xml_file)//  &
                       & ' could not be found. Check cart_emiss_xml_file.')
         END IF
       END IF
-  
+
 
       ! Diagnostics paths and file
       IF (TRIM(cart_diagnostics_xml) /= '') THEN
@@ -371,7 +371,7 @@ CONTAINS
       ! FPLUME input path
       IF (iart_fplume>=1) THEN
         IF(TRIM(cart_fplume_inp) == '') THEN
-          CALL finish('mo_art_nml:read_art_namelist','namelist parameter cart_fplume_inp' &       
+          CALL finish('mo_art_nml:read_art_namelist','namelist parameter cart_fplume_inp' &
                     //' has to be given for iart_fplume>=1')
         END IF
         IF (iart_volc_numb==0) iart_volc_numb = 1
@@ -398,7 +398,7 @@ CONTAINS
       art_config(jg)%iart_fplume          = iart_fplume
       art_config(jg)%iart_volc_numb       = iart_volc_numb
       art_config(jg)%cart_fplume_inp      = TRIM(cart_fplume_inp)
-      
+
       ! Atmospheric Chemistry (Details: cf. Tab. 2.2 ICON-ART User Guide)
       art_config(jg)%lart_chem             = lart_chem
       art_config(jg)%lart_chemtracer       = lart_chemtracer
@@ -437,7 +437,7 @@ CONTAINS
       art_config(jg)%cart_radioact_file  = TRIM(cart_radioact_file)
       art_config(jg)%iart_pollen         = iart_pollen
       art_config(jg)%iart_modeshift      = iart_modeshift
-      
+
       ! Feedback processes (Details: cf. Tab. 2.4 ICON-ART User Guide)
       art_config(jg)%iart_aci_warm       = iart_aci_warm
       art_config(jg)%iart_aci_cold       = iart_aci_cold

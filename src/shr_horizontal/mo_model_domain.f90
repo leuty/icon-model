@@ -142,7 +142,7 @@ MODULE mo_model_domain
   !           \__   4     _/  \_    2    __/
   !              \_     _/   3  \_    __/
   !                \__ /__________\ _/
-  !                   o            o  
+  !                   o            o
   !                     \__  1  __/
   !                        \_ _/
   !                          *
@@ -152,7 +152,7 @@ MODULE mo_model_domain
   !
   !   - cell child #3 is the "interior" child (containing the parent
   !     cell's mass point)
-  !   
+  !
   TYPE t_grid_cells
 
     INTEGER :: max_connectivity
@@ -464,9 +464,9 @@ MODULE mo_model_domain
 
     ! components of horizontal Coriolis parameter (vector)
     ! index1=1,nproma, index2=1,nblks_e
-    ! NOTE: The horizontal Coriolis parameter components 
+    ! NOTE: The horizontal Coriolis parameter components
     ! are only available on edges!
-    ! normal component 
+    ! normal component
     REAL(wp), ALLOCATABLE :: fn_e(:,:)
     ! tangential component
     REAL(wp), ALLOCATABLE :: ft_e(:,:)
@@ -964,7 +964,7 @@ MODULE mo_model_domain
     REAL(wp), POINTER :: constantPrismCenters_Zdistance(:,:,:) => NULL()
     !!the inverse of the above
     REAL(wp), POINTER :: constantPrismCenters_invZdistance(:,:,:) => NULL()
-    
+
   END TYPE t_patch_vert
 
 
@@ -1033,4 +1033,3 @@ CONTAINS
   END FUNCTION get_startrow_c
 
 END MODULE mo_model_domain
-

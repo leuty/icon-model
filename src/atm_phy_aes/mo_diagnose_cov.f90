@@ -30,7 +30,7 @@ MODULE mo_diagnose_cov
 
 CONTAINS
 
-  SUBROUTINE diagnose_cov(jg, jb, jcs, jce) 
+  SUBROUTINE diagnose_cov(jg, jb, jcs, jce)
 
     ! Arguments
     !

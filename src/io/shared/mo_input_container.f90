@@ -442,7 +442,7 @@ CONTAINS
         CASE(1)  ! First record: only read
 
            CALL read_data(firstcall = .TRUE.)
-   
+
            ! prepare reading the rest of the data
            jg_prev = jg
            level_prev = level
@@ -481,19 +481,19 @@ CONTAINS
               DEALLOCATE(bufferD_prev)
               NULLIFY(bufferD_prev)
             END IF
-            IF (ASSOCIATED(bufferD)) THEN 
+            IF (ASSOCIATED(bufferD)) THEN
               DEALLOCATE(bufferD)
               NULLIFY(bufferD)
-            END IF  
+            END IF
             IF (ASSOCIATED(bufferS_prev)) THEN
                DEALLOCATE(bufferS_prev)
                NULLIFY(bufferS_prev)
             END IF
-            IF (ASSOCIATED(bufferS)) THEN 
+            IF (ASSOCIATED(bufferS)) THEN
               DEALLOCATE(bufferS)
               NULLIFY(bufferS)
-            END IF  
-            
+            END IF
+
         CASE DEFAULT
            !NEC_RP: Read data, distribute them, and compute statistics
 !$OMP PARALLEL SECTIONS NUM_THREADS(3)
@@ -564,7 +564,7 @@ CONTAINS
                packedMessage(1) = gridSize
                packedMessage(2) = datatype
            END IF
-   
+
            SELECT CASE(datatype)
            CASE(CDI_DATATYPE_PACK23:CDI_DATATYPE_PACK32, CDI_DATATYPE_FLT64, CDI_DATATYPE_INT32)
                !ALLOCATE the global buffer
@@ -587,7 +587,7 @@ CONTAINS
                    END IF
                END IF
                IF(error /= SUCCESS) CALL finish(routine, "memory allocation error")
-   
+
                !READ the DATA
                IF(C_ASSOCIATED(iterator%ptr)) THEN
                    savetime = p_mpi_wtime()
@@ -619,7 +619,7 @@ CONTAINS
                    END IF
                END IF
                IF(error /= SUCCESS) CALL finish(routine, "memory allocation error")
-   
+
                !READ the DATA
                IF(C_ASSOCIATED(iterator%ptr)) THEN
                    savetime = p_mpi_wtime()
@@ -680,7 +680,7 @@ CONTAINS
              CLASS DEFAULT
                 CALL finish(routine, "assertion failed")
            END SELECT
-           
+
            !store the DATA IN our hash table
            CALL me%fields%setEntry(key_prev, val) !this will DEALLOCATE both the val AND the key eventually
            me%fieldCount = me%fieldCount + 1

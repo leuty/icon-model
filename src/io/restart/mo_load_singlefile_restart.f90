@@ -117,7 +117,7 @@ CONTAINS
       CALL nf(nf90_close(fID), routine)
     END IF
     CALL p_bcast(skip, 0, comm=p_comm_work)
-    fID = distrib_nf_open(restart_filename) 
+    fID = distrib_nf_open(restart_filename)
     nread = 0
     DO iV = 1, SIZE(vDat)
       IF (skip(iV)) CYCLE

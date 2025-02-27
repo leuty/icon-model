@@ -15,7 +15,7 @@ MODULE mo_cloud_mig_nml
 
   USE mo_cloud_mig_config ,ONLY: cloud_mig_config, init_cloud_mig_config
   USE mo_process_nml      ,ONLY: process_nml
-  
+
   IMPLICIT NONE
   PRIVATE
   PUBLIC :: process_cloud_mig_nml

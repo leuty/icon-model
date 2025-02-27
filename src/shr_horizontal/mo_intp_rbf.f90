@@ -149,7 +149,7 @@ i_endidx_in   = ptr_patch%cells%end_index(rl_end)
 
 CALL rbf_vec_interpol_cell_lib( p_vn_in, ptr_int%rbf_vec_idx_c, ptr_int%rbf_vec_blk_c, &
   &                             ptr_int%rbf_vec_coeff_c, p_u_out, p_v_out, &
-  &                             i_startblk, i_endblk, i_startidx_in, i_endidx_in, & 
+  &                             i_startblk, i_endblk, i_startidx_in, i_endidx_in, &
   &                             slev, elev, nproma, lacc=lacc, acc_async=opt_acc_async )
 
 END SUBROUTINE rbf_vec_interpol_cell
@@ -252,8 +252,8 @@ ENDIF
 !$OMP END PARALLEL
 
 CALL rbf_interpol_c2grad_lib( p_cell_in, ptr_int%rbf_c2grad_idx, ptr_int%rbf_c2grad_blk, &
-  &                           ptr_int%rbf_c2grad_coeff, grad_x, grad_y, & 
-  &                           i_startblk, i_endblk, i_startidx_in, i_endidx_in, & 
+  &                           ptr_int%rbf_c2grad_coeff, grad_x, grad_y, &
+  &                           i_startblk, i_endblk, i_startidx_in, i_endidx_in, &
   &                           slev, elev, nproma, lacc=lacc )
 
 END SUBROUTINE rbf_interpol_c2grad
@@ -348,7 +348,7 @@ i_endidx_in   = ptr_patch%verts%end_index(rl_end)
 
 CALL rbf_vec_interpol_vertex_lib( p_e_in, ptr_int%rbf_vec_idx_v, ptr_int%rbf_vec_blk_v, &
   &                               ptr_int%rbf_vec_coeff_v, p_u_out, p_v_out, &
-  &                               i_startblk, i_endblk, i_startidx_in, i_endidx_in, & 
+  &                               i_startblk, i_endblk, i_startidx_in, i_endidx_in, &
   &                               slev, elev, nproma, lacc=lacc, acc_async=opt_acc_async )
 
 END SUBROUTINE rbf_vec_interpol_vertex_wp
@@ -436,7 +436,7 @@ i_endidx_in   = ptr_patch%verts%end_index(rl_end)
 
 CALL rbf_vec_interpol_vertex_lib( p_e_in, ptr_int%rbf_vec_idx_v, ptr_int%rbf_vec_blk_v, &
   &                               ptr_int%rbf_vec_coeff_v, p_u_out, p_v_out, &
-  &                               i_startblk, i_endblk, i_startidx_in, i_endidx_in, & 
+  &                               i_startblk, i_endblk, i_startidx_in, i_endidx_in, &
   &                               slev, elev, nproma, lacc=lacc, acc_async=opt_acc_async )
 
 END SUBROUTINE rbf_vec_interpol_vertex_vp
@@ -523,11 +523,11 @@ i_endblk   = ptr_patch%edges%end_block(rl_end)
 i_startidx_in = ptr_patch%edges%start_index(rl_start)
 i_endidx_in   = ptr_patch%edges%end_index(rl_end)
 
-CALL rbf_vec_interpol_edge_lib( p_vn_in, ptr_int%rbf_vec_idx_e, ptr_int%rbf_vec_blk_e, & 
+CALL rbf_vec_interpol_edge_lib( p_vn_in, ptr_int%rbf_vec_idx_e, ptr_int%rbf_vec_blk_e, &
   &                             ptr_int%rbf_vec_coeff_e, p_vt_out, &
-  &                             i_startblk, i_endblk, i_startidx_in, i_endidx_in, & 
+  &                             i_startblk, i_endblk, i_startidx_in, i_endidx_in, &
   &                             slev, elev, nproma, lacc=lacc, acc_async=opt_acc_async )
-  
+
 END SUBROUTINE rbf_vec_interpol_edge
 
 

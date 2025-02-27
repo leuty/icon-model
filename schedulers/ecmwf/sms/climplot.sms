@@ -63,7 +63,7 @@ chmod a+x climplot_batch
 #cp $dirscripts/dates.met .
 #chmod a+x dates.met
 #cp $dirscripts/compvar_ens.met .
-#chmod a+x compvar_ens.met 
+#chmod a+x compvar_ens.met
 #cp $dirscripts/ttest_thresh.f90 .
 #cp $dirscripts/save_mean_diurnal_flux.met .
 #cp $dirscripts/plot_amp_phase_clim.met .
@@ -171,16 +171,16 @@ dayl=24
 ##  # > 2 because of dummy date added.
 ##  #
 ##    if (( ${#INIDATE1[*]} > 2  )) ; then
-##  
+##
 ##      datestr=`echo ${INIDATE1[0]} | cut -c 1-8`
 ##      timestr=`echo ${INIDATE1[0]} | cut -c 9-10`
-##  
+##
 ##  # ---------------------------------------------------------------
 ##  # First guess plots: (after first simulation of each ensemble)
 ##  # ---------------------------------------------------------------
-##  
+##
 ###      PLOT_OPT=0100
-##  
+##
 ##      nperiods=`$metview -b dates.met $FCLENGTH $datestr $PLOT_OPT $dayl | grep nmon | sed 's/nmon//' | sed 'y/[],/   /'`
 ##    # use env to reduce the number of environment variables from ~400 (SMS) to solve Magics plotting issues
 ##      if (( %PLOTPERIOD% <= ${nperiods} )) ; then
@@ -195,10 +195,10 @@ dayl=24
 ##                              -s $lsigt -o $lcol -y $lartic -z $ldcycle -e $lmldif -w $lwavfreq \
 ##                              -g $lvdspect -q $lzonnoml
 ##      fi
-##  
-##  
+##
+##
 ##  # -----------------------------------------------------------
-##  
+##
 ##    fi
 ##  fi
 

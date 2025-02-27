@@ -1,6 +1,6 @@
 # Welcome to the ICON Model documentation
 
-:::topic 
+:::topic
 _It's the job that's never started as takes longest to finish - J.R.R. Tolkien_
 :::
 
@@ -41,69 +41,68 @@ Here are some highlights of the upcoming **ICON Release 2025.04**:
 :::{grid-item-card}
 **Installation**
 ^^^
-[](ref_installation_building)  
-[](ref_installation_testing)  
+[](ref_installation_building)
+[](ref_installation_testing)
 [](ref_installation_hardware)
 :::
 
 :::{grid-item-card}
 **How to Run**
 ^^^
-[](ref_how_to_run_gridextpar)  
-[](ref_how_to_run_icbc)  
+[](ref_how_to_run_gridextpar)
+[](ref_how_to_run_icbc)
 [](ref_how_to_run_recommconf)
 :::
 
 :::{grid-item-card}
 **Interfaces & Tools**
 ^^^
-[](ref_tools_gridextpargui)  
-[](ref_tools_yac)  
-[](ref_tools_cdo)  
+[](ref_tools_gridextpargui)
+[](ref_tools_yac)
+[](ref_tools_cdo)
 [](ref_tools_comin)
 :::
 
 :::{grid-item-card}
 **Atmosphere**
 ^^^
-[](ref_atmosphere)  
-[](ref_atmosphere_dycore)  
-[](ref_atmosphere_physics)  
-[](ref_atmosphere_nwp_waves)  
+[](ref_atmosphere)
+[](ref_atmosphere_dycore)
+[](ref_atmosphere_physics)
+[](ref_atmosphere_nwp_waves)
 [](ref_atmosphere_art)
 :::
 
 :::{grid-item-card}
 **Ocean**
 ^^^
-[](ref_ocean_overview)  
-[](ref_ocean_seaice)  
+[](ref_ocean_overview)
+[](ref_ocean_seaice)
 [](ref_ocean_biogeochem)
 :::
 
 :::{grid-item-card}
 **Land**
 ^^^
-[](ref_land)  
-[](ref_land_schemes)  
-[](ref_land_cover_change)  
+[](ref_land)
+[](ref_land_schemes)
+[](ref_land_cover_change)
 [](ref_land_biogeochem)
 :::
 
 :::{grid-item-card}
 **Infrastructure**
 ^^^
-[](ref_infrastructure_parallelization)  
+[](ref_infrastructure_parallelization)
 [](ref_infrastructure_io)
 :::
 
 :::{grid-item-card}
 **Literature**
 ^^^
-[](ref_literature_tutorials)  
-[](ref_literature_technical)  
+[](ref_literature_tutorials)
+[](ref_literature_technical)
 [](ref_literature_science)
 :::
 
 ::::
-

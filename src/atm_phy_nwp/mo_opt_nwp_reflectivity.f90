@@ -29,7 +29,7 @@ MODULE mo_opt_nwp_reflectivity
   USE mo_exception,             ONLY: finish, message
   USE mo_fortran_tools,         ONLY: set_acc_host_or_device
   USE microphysics_1mom_schemes,ONLY: get_params_for_dbz_calculation
-  
+
   IMPLICIT NONE
 
   PRIVATE
@@ -52,7 +52,7 @@ CONTAINS
                                      K_w, K_ice, T_melt, igscp, q_crit_radar,            &
                                      T, rho, q_cloud, q_rain, q_ice, q_snow, z_radar,    &
                                      q_graupel, n_cloud_s, lacc )
- 
+
    !------------------------------------------------------------------------------
     !
     ! Description:  Calculation of grid point values for effective radar
@@ -67,7 +67,7 @@ CONTAINS
     !               Rayleigh scattering, this is equal to assuming instantaneous
     !               melting, because only the square of the total water mass of the particle
     !               counts ( = the total square of its dipole moment).
-    !               
+    !
     ! Inputs:       npr, nlev, nblks : field dimensions
     !               startblk, endblk, jk_start, startidx1, endidx2   : loop start and end indices
     !               rho_w        : bulk density of pure water [kg/m**3]
@@ -79,18 +79,18 @@ CONTAINS
     !               q_crit_radar : threshold for the q's to compute reflectivity  [kg/m**3]
     !               T            : temperature field          [K]
     !               rho          : air density                [kg/m**3]
-    !               q_cloud      : cloud water mixing ratio   [kg/kg] 
-    !               q_rain       : rain water mixing ratio    [kg/kg] 
+    !               q_cloud      : cloud water mixing ratio   [kg/kg]
+    !               q_rain       : rain water mixing ratio    [kg/kg]
     !               q_ice        : cloud ice mixing ratio     [kg/kg]
-    !               q_snow       : snow mixing ratio          [kg/kg]  
-    !   OPTIONAL:   q_graupel    : graupel mixing ratio       [kg/kg] 
-    !   OPTIONAL:   n_cloud_s    : surface value of cloud droplet number concentration [1/kg] 
+    !               q_snow       : snow mixing ratio          [kg/kg]
+    !   OPTIONAL:   q_graupel    : graupel mixing ratio       [kg/kg]
+    !   OPTIONAL:   n_cloud_s    : surface value of cloud droplet number concentration [1/kg]
     !
     ! Output:       z_radar      : 3D field of Z              [mm^6/m^3]
-    ! 
+    !
     !
     !------------------------------------------------------------------------------
-    
+
     ! Input/Output parameters:
     !-------------------------
 
@@ -113,7 +113,7 @@ CONTAINS
     !----------------
 
     CHARACTER(len=*), PARAMETER :: routine = modname//': compute_field_dbz_1mom'
-    
+
     REAL(wp) ::  rho_c, rho_i, rho_r, rho_s, rho_g, z_cloud, z_rain, z_snow, z_ice, z_grau
 
     INTEGER        :: jc, jk, jb, i_startidx, i_endidx
@@ -138,7 +138,7 @@ CONTAINS
 
     TYPE(particle) :: cloud_tmp
 
-    ! Variables for cloud ice parameterization 
+    ! Variables for cloud ice parameterization
     REAL(wp)                             ::  fxna               ! statement function for ice crystal number, Cooper(1986)
     REAL(wp)                             ::  fxna_cooper        ! statement function for ice crystal number, Cooper(1986)
     REAL(wp)                             ::  ztx, ztmelt        ! dummy arguments for statement functions
@@ -171,12 +171,12 @@ CONTAINS
       WRITE(message_text,'(a,i0)') 'Computing dbz3d_lin for inw_gscp = ', igscp
       CALL message(TRIM(routine), TRIM(message_text), all_print=.TRUE.)
     ENDIF
-      
+
     lqnc_input = PRESENT(n_cloud_s)
 
     z_fac_ice_dry = (rho_w/rho_ice)**2 * K_ice/K_w
     z_fac_ice_wet = 1.0_wp
-    
+
     IF (firstcall) THEN
 
       CALL get_params_for_dbz_calculation(isnow_n0temp_arg=isnow_n0temp, &
@@ -192,14 +192,14 @@ CONTAINS
                                           zcnue_arg=zcnue)
 
       mom_fac = (6.0_wp / (pi * rho_w))**2
-      
+
       ! Parameters for cloud droplets:
       !   PSD consistent to autoconversion parameterization of SB2001:
       !   gamma distribution w.r.t. mass with gamma shape parameter zcnue
       D_c_fix = 2.0E-5_wp                         ! constant mean mass diameter of cloud droplets (if n_cloud_s(:,:)
       x_c_fix = pi * rho_w / 6.0_wp * D_c_fix**3  !   is not present in argument list)
       cloud_tmp%nu = zcnue     ! gamma shape parameter mu for cloud droplets, in Axel's notation this is called nu instead!
-      cloud_tmp%mu = 1.0_wp    ! 2nd shape parameter of generalized gamma distribution 
+      cloud_tmp%mu = 1.0_wp    ! 2nd shape parameter of generalized gamma distribution
       z_fac_c = moment_gamma(cloud_tmp,2) * mom_fac
 
       ! Parameters for cloud ice:
@@ -216,10 +216,10 @@ CONTAINS
       nor = 8.0e6_wp * EXP(3.2_wp*mue_rain_c) * (0.01_wp)**(-mue_rain_c)
       p_r = (7.0_wp+mue_rain_c) / (4.0_wp+mue_rain_c)
       z_r = nor*GAMMA(7.0_wp+mue_rain_c) * (pi*rho_w*nor*GAMMA(4.0_wp+mue_rain_c)/6.0_wp)**(-p_r)
-      
+
       ! Parameters for snow and graupel:
       IF (igscp == 1 .or. igscp == 3) THEN
-        
+
         ams = zams_ci
         bms = zbms
         p_s = (2.0_wp*bms+1.0_wp)/(bms+1.0_wp)
@@ -232,7 +232,7 @@ CONTAINS
           WRITE (*,'(A,F10.3)') '     p_s = ', p_s
           WRITE (*,'(A,F10.3)') '     z_s = ', z_s
         ENDIF
-      
+
         firstcall = .FALSE.
 
       ELSEIF (igscp == 2) THEN
@@ -243,8 +243,8 @@ CONTAINS
           CALL finish(TRIM(routine), TRIM(message_text))
         END IF
 
-        ams = zams_gr         
-        bms = zbms        
+        ams = zams_gr
+        bms = zbms
         amg = 169.6_wp
         bmg = 3.1_wp
         nog = 4.E6_wp
@@ -254,7 +254,7 @@ CONTAINS
                          (ams*GAMMA(bms+1.0_wp))**(-p_s)
         z_g = mom_fac*amg**2 * nog*GAMMA(2.0_wp*bmg+1.0_wp) *       &
                          (amg*nog*GAMMA(bmg+1.0_wp))**(-p_g)
-        
+
         IF (lmessage_light) THEN
           WRITE (*, *) TRIM(routine)//": graupel scheme (using rain, snow, graupel)"
           WRITE (*,'(A,F10.3)') '     p_r = ', p_r
@@ -265,15 +265,15 @@ CONTAINS
           WRITE (*,'(A,F10.3)') '     z_g = ', z_g
         ENDIF
         firstcall = .FALSE.
-        
+
       ELSE
-        
+
         message_text(:) = ' '
         WRITE(message_text, '(a,i0,a)') 'inwp_gscp = ',igscp,' not implemented for DBZ calculation!'
         CALL finish(TRIM(routine), trim(message_text))
 
       ENDIF
-      
+
     ENDIF
 
     !$ACC DATA COPYIN(n_cloud_s, mma, mmb) PRESENT(q_cloud, q_graupel, q_ice, q_rain, q_snow, rho, T, z_radar) IF(lzacc)
@@ -320,7 +320,7 @@ CONTAINS
           ELSE
             z_radar(jc,jk,jb) = 0._wp
           END IF
-          
+
           ! .. rain:
           IF (rho_r >= q_crit_radar) THEN
             z_rain  = z_r * EXP(p_r * LOG(rho_r))
@@ -378,7 +378,7 @@ CONTAINS
             hlp = z_s * EXP((1.0_wp-p_s) * LOG(zn0s))
 
             z_snow = hlp * EXP(p_s*LOG(rho_s)) * MERGE(z_fac_ice_dry, z_fac_ice_wet, T(jc,jk,jb) < T_melt)
-            
+
             z_radar(jc,jk,jb) = z_radar(jc,jk,jb) + z_snow * convfac
 
           END IF
@@ -448,7 +448,7 @@ CONTAINS
     !               Rayleigh scattering, this is equal to assuming instantaneous
     !               melting, because only the square of the total water mass of the particle
     !               counts ( = the total square of its dipole moment).
-    !               
+    !
     ! Inputs:       npr, nlev, nblks : field dimensions
     !               startblk, endblk, jk_start, startidx1, endidx2   : loop start and end indices
     !               rho_w        : bulk density of pure water [kg/m**3]
@@ -460,23 +460,23 @@ CONTAINS
     !               luse_mu_Dm_rain : switch to enable usage of mu-D-relation for rain outside cloud cores (Seifert, 2008)
     !               T            : temperature field          [K]
     !               rho          : air density                [kg/m**3]
-    !               q_cloud      : cloud water mixing ratio   [kg/kg] 
-    !               q_rain       : rain water mixing ratio    [kg/kg] 
+    !               q_cloud      : cloud water mixing ratio   [kg/kg]
+    !               q_rain       : rain water mixing ratio    [kg/kg]
     !               q_ice        : cloud ice mixing ratio     [kg/kg]
-    !               q_snow       : snow mixing ratio          [kg/kg]  
+    !               q_snow       : snow mixing ratio          [kg/kg]
     !               q_graupel    : graupel mixing ratio       [kg/kg]
     !               q_hail       : hail mixing ratio          [kg/kg]
-    !               n_cloud      : cloud water number density [1/kg] 
-    !               n_rain       : rain water number density  [1/kg] 
-    !               n_ice        : cloud ice number density   [1/kg] 
-    !               n_snow       : snow number density        [1/kg] 
+    !               n_cloud      : cloud water number density [1/kg]
+    !               n_rain       : rain water number density  [1/kg]
+    !               n_ice        : cloud ice number density   [1/kg]
+    !               n_snow       : snow number density        [1/kg]
     !               n_graupel    : graupel number density     [1/kg]
     !               n_hail       : hail number density        [1/kg]
     !   OPTIONAL:   ql_graupel   : liquid water on graupel mixing ratio  [kg/kg]
     !   OPTIONAL:   ql_hail      : liquid water on hail mixing ratio     [kg/kg]
     !
     ! Output:       z_radar      : 3D field of Z              [mm^6/m^3]
-    ! 
+    !
     !
     !------------------------------------------------------------------------------
 
@@ -507,7 +507,7 @@ CONTAINS
     REAL(wp), INTENT(IN), OPTIONAL ::          &
                             ql_graupel(:,:,:), &
                             ql_hail(:,:,:)
-    
+
     REAL(wp), INTENT(OUT) :: z_radar(:,:,:)
 
     LOGICAL, OPTIONAL, INTENT(IN)  :: lacc              !< initialization flag
@@ -712,8 +712,7 @@ CONTAINS
 
     !$ACC WAIT(1)
     !$ACC END DATA
-  
+
   END SUBROUTINE compute_field_dbz_2mom
 
 END MODULE mo_opt_nwp_reflectivity
-

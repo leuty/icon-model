@@ -51,7 +51,9 @@ def main():
         plot_format=options["plot_format"],
         figsize=options["figsize"],
     )
-    pltt.plot(individual=options.get("individual", False), process=options["process"])
+    pltt.plot(
+        individual=options.get("individual", False), process=options["process"]
+    )
 
 
 class PlotTimer(BasePlotter_):
@@ -127,9 +129,11 @@ class PlotTimer(BasePlotter_):
         plt.xticks(
             df.x,
             [
-                str(df.job_id.values[i])
-                if df.job_id.values[i] != df.job_id.values[i - 1]
-                else None
+                (
+                    str(df.job_id.values[i])
+                    if df.job_id.values[i] != df.job_id.values[i - 1]
+                    else None
+                )
                 for i in range(len(df))
             ],
             rotation=70,

@@ -135,7 +135,7 @@ echo Start of exp.${EXPNAME}
 echo
 set -x
 #
-# QUBICC test experiment for Buildbot 
+# QUBICC test experiment for Buildbot
 #
 author_list='Marco Giorgetta, MPIM'
 #
@@ -607,9 +607,9 @@ then
 &gribout_nml
  preset                          = 'deterministic' ! 'none' seems to produce non-reproducible results
  generatingCenter                = 252    ! This is MPI-M
- generatingSubcenter             =   3    ! 1 (we at DKRZ), 2 (we at CSCS), 3 (we at JSC) 
+ generatingSubcenter             =   3    ! 1 (we at DKRZ), 2 (we at CSCS), 3 (we at JSC)
  tablesVersion                   =   4    ! WMO predefined table version
- localTablesVersion              =   1    ! MPI-M defined local table version 
+ localTablesVersion              =   1    ! MPI-M defined local table version
  significanceOfReferenceTime     =   2    ! grib2/tables/4/1.2.table
  productionStatusOfProcessedData =   2    ! grib2/tables/4/1.3.table
  typeOfProcessedData             =   1    ! grib2/tables/4/1.4.table
@@ -731,7 +731,7 @@ fi # ${output_atm_state_3d_ini}
 # simulated atmospheric state
 # ---------------------------
 # - instantaneous values
-# - from first_output_date to last__output_date 
+# - from first_output_date to last__output_date
 #
 if [ ${output_atm_state_3d_sim} = on ]
 then
@@ -790,7 +790,7 @@ fi # ${output_atm_state_3d_sim}
 # 2-dimensional state variables
 # -----------------------------
 # - instantaneous values
-# - from first_output_date to last__output_date 
+# - from first_output_date to last__output_date
 # - single levels
 # - multi-variables
 #
@@ -830,7 +830,7 @@ fi # ${output_atm_state_2d_sim}
 # tendencies used in the simulation
 # ---------------------------------
 # - time mean over output interval
-# - from first_output_date to last__output_date 
+# - from first_output_date to last__output_date
 #
 if [ ${output_atm_tend_3d} = on ]
 then
@@ -906,7 +906,7 @@ fi # ${output_atm_tend_3d}
 # 2-dimensional flux variables
 # ----------------------------
 # - time mean values for output interval
-# - from first_output_date to last__output_date 
+# - from first_output_date to last__output_date
 # - multi-variables
 # - single levels
 #
@@ -952,7 +952,7 @@ echo
 #!/bin/ksh
 #=============================================================================
 #
-# This section of the run script prepares and starts the model integration. 
+# This section of the run script prepares and starts the model integration.
 #
 # MODEL and START must be defined as environment variables or
 # they must be substituted with appropriate values.
@@ -1029,7 +1029,7 @@ if [ x$namelist_list = x ]; then
     modeltype_list[0]=99
   else
     check_error 1 "No namelist is defined"
-  fi 
+  fi
 fi
 
 #-----------------------------------------------------------------------------
@@ -1091,7 +1091,7 @@ for gridfile in ${all_grids}; do
   ls -l ${HGRIDDIR}/$gridfile
   check_error $? "${HGRIDDIR}/$gridfile does not exist."
   add_link_file ${HGRIDDIR}/${gridfile} ./
-  if [ -f ${HGRIDDIR}/${grfinfofile} ]; then    
+  if [ -f ${HGRIDDIR}/${grfinfofile} ]; then
     add_link_file ${HGRIDDIR}/${grfinfofile} ./
   fi
 done
@@ -1348,7 +1348,7 @@ cd $RUNSCRIPTDIR
 
 #-----------------------------------------------------------------------------
 
-	
+
 # exit 0
 #
 # vim:ft=sh

@@ -190,7 +190,7 @@ CONTAINS
     INTEGER, INTENT(IN) :: act_typ    ! type of action
     ! local
     INTEGER :: ia
- 
+
     n_act = 0
     DO ia=1,var_action%n_actions
       IF (var_action%action(ia)%actionTyp == act_typ) THEN
@@ -240,4 +240,3 @@ CONTAINS
   END FUNCTION var_action__getActiveAction
 
 END MODULE mo_action_types
-

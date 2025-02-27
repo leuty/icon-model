@@ -980,7 +980,7 @@ CONTAINS
     ! We zero out explicitly the put_buffer after the end of the last (possibly shorter) block
     ! in case it contains NaNs, Infs or other problematic stuff after transfer from the GPU
     ! This may not be necessary when running on CPUs, but the cost is negligble so we do it
-    ! anyway. 
+    ! anyway.
     put_buffer(p_patch%npromz_c+1:nproma, p_patch%nblks_c,1) = 0.0_wp
     ! Full coupling including jsbach: surface types ocean, ice, land
     ELSE IF (nsfc_type == 3) THEN
@@ -1013,7 +1013,7 @@ CONTAINS
           IF ( idbg_mxmn >= 1 .OR. idbg_val >=1 ) &
             scr(n,i_blk) = put_buffer(n,i_blk,1)
         ENDDO
-      ENDDO 
+      ENDDO
       !$ACC UPDATE HOST(put_buffer(:,:,1)) ASYNC(1)
       !$ACC WAIT(1)
       !$ACC END DATA
@@ -1059,7 +1059,7 @@ CONTAINS
           put_buffer(n,i_blk,1) = &
             shflx_adjustment_factor*prm_field(jg)%shflx_tile(n,i_blk,iwtr)
         ENDDO
-      ENDDO 
+      ENDDO
       !$ACC UPDATE HOST(put_buffer(:,:,1)) ASYNC(1)
       !$ACC WAIT(1)
 !ICON_OMP_END_PARALLEL_DO

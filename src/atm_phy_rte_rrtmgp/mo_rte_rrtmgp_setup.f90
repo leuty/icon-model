@@ -94,7 +94,7 @@ CONTAINS
     ELSE
       CALL load_cld_padecoeff(cloud_optics_lw, 'rrtmgp-cloud-optics-coeffs-lw.nc')
       CALL load_cld_padecoeff(cloud_optics_sw, 'rrtmgp-cloud-optics-coeffs-sw.nc')
-    ENDIF 
+    ENDIF
     CALL stop_on_err(cloud_optics_lw%set_ice_roughness(2))
     CALL stop_on_err(cloud_optics_sw%set_ice_roughness(2))
 

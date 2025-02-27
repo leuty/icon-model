@@ -164,7 +164,7 @@ case "$use_site" in
       *todi*)
               if test -f "/etc/xthostname"; then
                 host_name=$(cat /etc/xthostname)
-      
+
                 use_load_profile='. /etc/profile.d/modules.sh'
                 use_submit='sbatch'
                 use_sync_submit='sbatch --wait'
@@ -177,14 +177,14 @@ case "$use_site" in
                 fi
               fi
             ;;
-      
+
       *santis*)
               if test -f "/etc/xthostname"; then
                 host_name=$(cat /etc/xthostname)
               else
                 host_name='santis'
               fi
-      
+
               use_load_profile='. /etc/profile.d/modules.sh'
               use_submit='sbatch'
               use_sync_submit='sbatch --wait'
@@ -299,9 +299,9 @@ case "$use_site" in
     case "$use_host" in
       uc2*) use_target='uc2' ;;
       fh2*) use_target='fh2' ;;
-      hk*)  
+      hk*)
         use_target='hk'
-        if test xyes = x"${use_gpu}"; then 
+        if test xyes = x"${use_gpu}"; then
             use_mpi_startrun='@MPI_LAUNCH@ -n ${SLURM_NPROCS} ${basedir}/run/run_wrapper/hk.sh'
         fi
         ;;
@@ -336,8 +336,8 @@ case "$use_site" in
     use_submit='sbatch'
     use_sync_submit='sbatch --wait'
     use_mpi_startrun='@MPI_LAUNCH@ -n ${SLURM_NPROCS}'
-    use_target='leo'; 
-    if test xyes = x"${use_gpu}"; then 
+    use_target='leo';
+    if test xyes = x"${use_gpu}"; then
         use_mpi_startrun='@MPI_LAUNCH@ -n ${SLURM_NPROCS} ${basedir}/run/run_wrapper/leo.sh'
     fi
   ;;

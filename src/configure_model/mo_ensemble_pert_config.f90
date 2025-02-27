@@ -95,43 +95,43 @@ MODULE mo_ensemble_pert_config
   REAL(wp) :: &                    !< gravity wave flux emission
     &  range_gfluxlaun, rnd_gfluxlaun
 
-  REAL(wp) :: &                    !< Terminal fall velocity of ice 
+  REAL(wp) :: &                    !< Terminal fall velocity of ice
     &  range_zvz0i, rnd_zvz0i
 
-  REAL(wp) :: &                    !< Tuning factor for intercept parameter of raindrop size distribution 
+  REAL(wp) :: &                    !< Tuning factor for intercept parameter of raindrop size distribution
     &  range_rain_n0fac, rnd_rain_n0fac
 
   REAL(wp) :: &                    !< Tuning factor for CN concentration near ground for Segal&Khain cloud nucleation (inwp_gscp=4,5,7)
     &  range_ccn_Ncn0, rnd_ccn_Ncn0
-  
+
   REAL(wp) :: &                    !< Additional tuning factor for the tuning factor of parameterized ice nuclei concentration (inwp_gscp=4,5,7)
     &  range_in_fact, rnd_in_fact
-  
+
   REAL(wp) :: &                    !< Tuning factor for graupel fall speed (inwp_gscp=4,5,7)
     &  range_avel_g, rnd_avel_g
-  
+
   REAL(wp) :: &                    !< Tuning factor for cloud ice fall speed (inwp_gscp=4,5,7)
     &  range_avel_i, rnd_avel_i
-  
+
   REAL(wp) :: &                    !< Range for snow capacitance for depositional growth (inwp_gscp=4,5,7)
     &  range_cap_snow, rnd_cap_snow
-  
+
   REAL(wp) :: &                    !< Range for cloud ice capacitance for depositional growth (inwp_gscp=4,5,7)
     &  range_cap_ice, rnd_cap_ice
-  
-  REAL(wp) :: &                    !< Entrainment parameter for deep convection valid at dx=20 km 
+
+  REAL(wp) :: &                    !< Entrainment parameter for deep convection valid at dx=20 km
     &  range_entrorg, rnd_entrorg
 
-  REAL(wp) :: &                    !< Multiplicative perturbation of Entrainment parameter for deep convection valid at dx=20 km 
+  REAL(wp) :: &                    !< Multiplicative perturbation of Entrainment parameter for deep convection valid at dx=20 km
     &  range_entrorg_mult, rnd_entrorg_mult
 
-  REAL(wp) :: &                    !< Maximum shallow convection depth 
+  REAL(wp) :: &                    !< Maximum shallow convection depth
     &  range_rdepths, rnd_rdepths
 
-  REAL(wp) :: &                    !< Factor for fraction of initial downdraft mass flux 
+  REAL(wp) :: &                    !< Factor for fraction of initial downdraft mass flux
     &  range_rmfdeps, rnd_rmfdeps
 
-  REAL(wp) :: &                    !< Entrainment parameter for deep convection valid at dx=20 km 
+  REAL(wp) :: &                    !< Entrainment parameter for deep convection valid at dx=20 km
     &  range_rprcon, rnd_rprcon
 
   REAL(wp) :: &                    !< Fraction of CAPE diurnal cycle correction applied in the extratropics
@@ -179,25 +179,25 @@ MODULE mo_ensemble_pert_config
   REAL(wp), ALLOCATABLE :: &       !< Array of random numbers used for computing the above-mentioned perturbation
     &  rnd_fac_ccqc(:)
 
-  REAL(wp) :: &                    !< Minimum vertical diffusion for heat/moisture 
+  REAL(wp) :: &                    !< Minimum vertical diffusion for heat/moisture
     &  range_tkhmin, rnd_tkhmin
 
-  REAL(wp) :: &                    !< Minimum vertical diffusion for momentum 
+  REAL(wp) :: &                    !< Minimum vertical diffusion for momentum
     &  range_tkmmin, rnd_tkmmin
 
-  REAL(wp) :: &                    !< Perturbation scale (multiplicative) of reduction of minimum diffusion 
-    &  range_tkred_sfc             !  coefficients near the surface 
+  REAL(wp) :: &                    !< Perturbation scale (multiplicative) of reduction of minimum diffusion
+    &  range_tkred_sfc             !  coefficients near the surface
 
   REAL(wp), ALLOCATABLE :: &        !< Array of random numbers used for computing the above-mentioned perturbation
     &  rnd_tkred_sfc(:)
 
-  REAL(wp) :: &                    !< Laminar transport resistance parameter 
+  REAL(wp) :: &                    !< Laminar transport resistance parameter
     &  range_rlam_heat, rnd_rlam_heat
 
-  REAL(wp) :: &                    !< Maximum turbulent mixing length scale 
+  REAL(wp) :: &                    !< Maximum turbulent mixing length scale
     &  range_turlen, rnd_turlen
 
-  REAL(wp) :: &                    !< Scaling factor for extended horizontal shear term in turbulence scheme 
+  REAL(wp) :: &                    !< Scaling factor for extended horizontal shear term in turbulence scheme
     &  range_a_hshr, rnd_a_hshr
 
   REAL(wp) :: &                    !< Scaling factor for stability correction in turbulence scheme
@@ -209,7 +209,7 @@ MODULE mo_ensemble_pert_config
   REAL(wp) :: &                    !< Critical value for normalized supersaturation in turbulent cloud scheme
     &  range_q_crit, rnd_q_crit
 
-  REAL(wp) :: &                    !< Upper and lower bound of wind-speed dependent Charnock parameter 
+  REAL(wp) :: &                    !< Upper and lower bound of wind-speed dependent Charnock parameter
     &  range_charnock, rnd_charnock, rnd_alpha0
 
   REAL(wp) :: &                    !< Scaling factor for latent heat nudging increments
@@ -224,7 +224,7 @@ MODULE mo_ensemble_pert_config
   REAL(wp) :: &                    !< Upper limit for increase of pre-existing latent heating in LHN
     &  range_fac_lhn_up, rnd_fac_lhn_up
 
-  REAL(wp) :: &                    !< Roughness length attributed to land-cover class 
+  REAL(wp) :: &                    !< Roughness length attributed to land-cover class
     &  range_z0_lcc
 
   REAL(wp) :: &                    !< Root depth related to land-cover class
@@ -282,7 +282,7 @@ MODULE mo_ensemble_pert_config
   CONTAINS
 
 
-  !! Application of the ensemble perturbation to the config/namelist variables 
+  !! Application of the ensemble perturbation to the config/namelist variables
   !!
   !! This is done based on random numbers determined by the ensemble member ID
   !!
@@ -327,7 +327,7 @@ MODULE mo_ensemble_pert_config
       linit = .TRUE.
       CALL set_scalar_ens_pert(timedep_pert<2, lacc=.FALSE.)
 
-      ! Renitialize random number generator with the same seed as before, 
+      ! Renitialize random number generator with the same seed as before,
       ! excluding the time dependence applied to the physics perturbations in the case of timedep_pert=1
       DO i = 1, rnd_size
         rnd_seed(i) = (135+i)*ipn - (21+i**2)*(5+MOD(ipn,10))**2 + 3*i**3
@@ -388,7 +388,7 @@ MODULE mo_ensemble_pert_config
           ext_data(jg)%atm%laimax_lcc(i)     = laimax
         ENDDO
 
-        ! store random number for subsequent (in SR compute_ensemble_pert) computation of perturbation of 
+        ! store random number for subsequent (in SR compute_ensemble_pert) computation of perturbation of
         ! minimum diffusion coefficients near the surface
         CALL RANDOM_NUMBER(rnd_num)
         rnd_tkred_sfc(i) = rnd_num
@@ -493,7 +493,7 @@ MODULE mo_ensemble_pert_config
       CASE default
         CALL message ('Warning mo_ensemble_pert_config','this 2-moment microphysics flavor cannot be perturbed')
       END SELECT
-      
+
       ! a) perturbation(s) which are only effective in the init phase:
       IF (atm_phy_nwp_config(1)%cfg_2mom%avel_i < -900.0_wp) THEN
         avel_i_sv  (1:max_dom) = ice%a_vel ! hardcoded value from mo_2mom_mcrph_main.f90
@@ -511,7 +511,7 @@ MODULE mo_ensemble_pert_config
         ccn_Ncn0_sv(1:max_dom) = atm_phy_nwp_config(1:max_dom)%cfg_2mom%ccn_Ncn0
       END IF
       in_fact_sv (1:max_dom) = atm_phy_nwp_config(1:max_dom)%cfg_2mom%in_fact
-      
+
       ! b) perturbation(s) which are effective during time stepping:
       IF (atm_phy_nwp_config(1)%cfg_2mom%cap_snow < -900.0_wp) THEN
         cap_snow_sv(1:max_dom) = snow%cap ! hardcoded value from mo_2mom_mcrph_main.f90
@@ -525,7 +525,7 @@ MODULE mo_ensemble_pert_config
       END IF
 
     ELSE
-      
+
       ! In this case, the above 2-moment scheme perturbations to not have any effect, because
       ! the 2-moment scheme is not used or the ART version of the 2-moment scheme with
       ! fully coupled prognostic CN and IN and without any coupling to namelist parameters
@@ -538,9 +538,9 @@ MODULE mo_ensemble_pert_config
       in_fact_sv (1:max_dom) = atm_phy_nwp_config(1:max_dom)%cfg_2mom%in_fact
       cap_snow_sv(1:max_dom) = atm_phy_nwp_config(1:max_dom)%cfg_2mom%cap_snow
       cap_ice_sv (1:max_dom) = atm_phy_nwp_config(1:max_dom)%cfg_2mom%cap_ice
-      
+
     END IF
-    
+
     ! convection
     rprcon_sv  = tune_rprcon
     entrorg_sv = tune_entrorg
@@ -675,7 +675,7 @@ MODULE mo_ensemble_pert_config
         CALL random_gen(rnd_in_fact, rnd_num)
         rnd_fac = range_in_fact**(2._wp*(rnd_num-0.5_wp))
         atm_phy_nwp_config(1:max_dom)%cfg_2mom_pert%in_fact = in_fact_sv(1:max_dom)*rnd_fac
-        
+
         IF (avel_g_sv(1) > -900.0_wp) THEN
           ! avel_g is not time-dependent in case of timedep_pert=2 because this would entail several recomputations,
           ! and it is a factor based on continuous random numbers, not discrete ones (".TRUE."):
@@ -683,7 +683,7 @@ MODULE mo_ensemble_pert_config
           rnd_fac = range_avel_g**(2._wp*(rnd_num-0.5_wp))
           atm_phy_nwp_config(1:max_dom)%cfg_2mom_pert%avel_g = avel_g_sv(1:max_dom)*rnd_fac
         ENDIF
-        
+
         IF (avel_i_sv(1) > -900.0_wp) THEN
           ! avel_i is not time-dependent in case of timedep_pert=2 because this would entail several recomputations,
           ! and it is a factor based on continuous random numbers, not discrete ones (".TRUE."):
@@ -691,9 +691,9 @@ MODULE mo_ensemble_pert_config
           rnd_fac = range_avel_i**(2._wp*(rnd_num-0.5_wp))
           atm_phy_nwp_config(1:max_dom)%cfg_2mom_pert%avel_i = avel_i_sv(1:max_dom)*rnd_fac
         ENDIF
-        
+
       END IF
-      
+
       ! perturbations for capacitances of snow and cloud ice, at the moment assumed to be uncorrelated
       ! and discrete random numbers. These are time-dependent.
       ! For these time-step dependent perturbations, we have to use the container cfg_2mom_pert:
@@ -715,10 +715,10 @@ MODULE mo_ensemble_pert_config
         ! which they need to be in the container cfg_2mom:
         DO jg = 1, n_dom
           CALL copy_cfg_2mom_pert2all (atm_phy_nwp_config(jg)%cfg_2mom_pert, atm_phy_nwp_config(jg)%cfg_2mom)
-        END DO        
+        END DO
       END IF
     END IF
-    
+
     ! convection
     CALL random_gen(rnd_entrorg, rnd_num)
     tune_entrorg = entrorg_sv + 2._wp*(rnd_num-0.5_wp)*range_entrorg
@@ -747,14 +747,14 @@ MODULE mo_ensemble_pert_config
     ! corresponding parameters for the tropics
     tune_rhebc_land_trop  = rhebc_land_trop_sv  + 2._wp*(rnd_num-0.5_wp)*range_rhebc
     tune_rhebc_ocean_trop = rhebc_ocean_trop_sv + 2._wp*(rnd_num-0.5_wp)*range_rhebc
-    ! 
+    !
     IF (timedep_pert == 2) CALL random_gen(rnd_rcucov, rnd_num)
     tune_rcucov      = rcucov_sv / (1._wp + 15._wp*range_rhebc*(rnd_num-0.5_wp))
     tune_rcucov_trop = rcucov_trop_sv / (1._wp + 15._wp*range_rhebc*(rnd_num-0.5_wp))
 
     CALL random_gen(rnd_texc, rnd_num)
     tune_texc = texc_sv + 2._wp*(rnd_num-0.5_wp)*range_texc
-    
+
     CALL random_gen(rnd_qexc, rnd_num)
     tune_qexc = qexc_sv + 2._wp*(rnd_num-0.5_wp)*range_qexc
 
@@ -837,79 +837,79 @@ MODULE mo_ensemble_pert_config
 
 
 #ifdef _OPENACC
-    IF(acc_is_present(tune_gkdrag)) CALL finish("set_scalar_ens_pert", & 
+    IF(acc_is_present(tune_gkdrag)) CALL finish("set_scalar_ens_pert", &
         "Internal error. `tune_gkdrag` is supposed to be on CPU only.")
-    IF(acc_is_present(tune_gkwake)) CALL finish("set_scalar_ens_pert", & 
+    IF(acc_is_present(tune_gkwake)) CALL finish("set_scalar_ens_pert", &
         "Internal error. `tune_gkwake` is supposed to be on CPU only.")
-    IF(acc_is_present(tune_gfrcrit)) CALL finish("set_scalar_ens_pert", & 
+    IF(acc_is_present(tune_gfrcrit)) CALL finish("set_scalar_ens_pert", &
         "Internal error. `tune_gfrcrit` is supposed to be on CPU only.")
-    IF(acc_is_present(tune_gfluxlaun, 1)) CALL finish("set_scalar_ens_pert", & 
+    IF(acc_is_present(tune_gfluxlaun, 1)) CALL finish("set_scalar_ens_pert", &
         "Internal error. `tune_gfluxlaun` is supposed to be on CPU only.")
     nbytes = C_SIZEOF(tune_zvz0i)
-    IF(acc_is_present(tune_zvz0i, nbytes)) CALL finish("set_scalar_ens_pert", & 
+    IF(acc_is_present(tune_zvz0i, nbytes)) CALL finish("set_scalar_ens_pert", &
         "Internal error. `tune_zvz0i` is supposed to be on CPU only.")
     nbytes = C_SIZEOF(tune_rprcon)
-    IF(acc_is_present(tune_rprcon, nbytes)) CALL finish("set_scalar_ens_pert", & 
+    IF(acc_is_present(tune_rprcon, nbytes)) CALL finish("set_scalar_ens_pert", &
         "Internal error. `tune_rprcon` is supposed to be on CPU only.")
     nbytes = C_SIZEOF(tune_entrorg)
-    IF(acc_is_present(tune_entrorg, nbytes)) CALL finish("set_scalar_ens_pert", & 
+    IF(acc_is_present(tune_entrorg, nbytes)) CALL finish("set_scalar_ens_pert", &
         "Internal error. `tune_entrorg` is supposed to be on CPU only.")
     nbytes = C_SIZEOF(tune_capdcfac_et)
-    IF(acc_is_present(tune_capdcfac_et, nbytes)) CALL finish("set_scalar_ens_pert", & 
+    IF(acc_is_present(tune_capdcfac_et, nbytes)) CALL finish("set_scalar_ens_pert", &
         "Internal error. `tune_capdcfac_et` is supposed to be on CPU only.")
     nbytes = C_SIZEOF(tune_rdepths)
-    IF(acc_is_present(tune_rdepths, nbytes)) CALL finish("set_scalar_ens_pert", & 
+    IF(acc_is_present(tune_rdepths, nbytes)) CALL finish("set_scalar_ens_pert", &
         "Internal error. `tune_rdepths` is supposed to be on CPU only.")
     nbytes = C_SIZEOF(tune_capdcfac_tr)
-    IF(acc_is_present(tune_capdcfac_tr, nbytes)) CALL finish("set_scalar_ens_pert", & 
+    IF(acc_is_present(tune_capdcfac_tr, nbytes)) CALL finish("set_scalar_ens_pert", &
         "Internal error. `tune_capdcfac_tr` is supposed to be on CPU only.")
     nbytes = C_SIZEOF(tune_lowcapefac)
-    IF(acc_is_present(tune_lowcapefac, nbytes)) CALL finish("set_scalar_ens_pert", & 
+    IF(acc_is_present(tune_lowcapefac, nbytes)) CALL finish("set_scalar_ens_pert", &
         "Internal error. `tune_lowcapefac` is supposed to be on CPU only.")
     nbytes = C_SIZEOF(limit_negpblcape)
-    IF(acc_is_present(limit_negpblcape, nbytes)) CALL finish("set_scalar_ens_pert", & 
+    IF(acc_is_present(limit_negpblcape, nbytes)) CALL finish("set_scalar_ens_pert", &
         "Internal error. `limit_negpblcape` is supposed to be on CPU only.")
     nbytes = C_SIZEOF(tune_rhebc_land)
-    IF(acc_is_present(tune_rhebc_land, nbytes)) CALL finish("set_scalar_ens_pert", & 
+    IF(acc_is_present(tune_rhebc_land, nbytes)) CALL finish("set_scalar_ens_pert", &
         "Internal error. `tune_rhebc_land` is supposed to be on CPU only.")
     nbytes = C_SIZEOF(tune_rhebc_ocean)
-    IF(acc_is_present(tune_rhebc_ocean, nbytes)) CALL finish("set_scalar_ens_pert", & 
+    IF(acc_is_present(tune_rhebc_ocean, nbytes)) CALL finish("set_scalar_ens_pert", &
         "Internal error. `tune_rhebc_ocean` is supposed to be on CPU only.")
     nbytes = C_SIZEOF(tune_rhebc_land_trop)
-    IF(acc_is_present(tune_rhebc_land_trop, nbytes)) CALL finish("set_scalar_ens_pert", & 
+    IF(acc_is_present(tune_rhebc_land_trop, nbytes)) CALL finish("set_scalar_ens_pert", &
         "Internal error. `tune_rhebc_land_trop` is supposed to be on CPU only.")
     nbytes = C_SIZEOF(tune_rhebc_ocean_trop)
-    IF(acc_is_present(tune_rhebc_ocean_trop, nbytes)) CALL finish("set_scalar_ens_pert", & 
+    IF(acc_is_present(tune_rhebc_ocean_trop, nbytes)) CALL finish("set_scalar_ens_pert", &
         "Internal error. `tune_rhebc_ocean_trop` is supposed to be on CPU only.")
     nbytes = C_SIZEOF(tune_rcucov)
-    IF(acc_is_present(tune_rcucov, nbytes)) CALL finish("set_scalar_ens_pert", & 
+    IF(acc_is_present(tune_rcucov, nbytes)) CALL finish("set_scalar_ens_pert", &
         "Internal error. `tune_rcucov` is supposed to be on CPU only.")
     nbytes = C_SIZEOF(tune_rcucov_trop)
-    IF(acc_is_present(tune_rcucov_trop, nbytes)) CALL finish("set_scalar_ens_pert", & 
+    IF(acc_is_present(tune_rcucov_trop, nbytes)) CALL finish("set_scalar_ens_pert", &
         "Internal error. `tune_rcucov_trop` is supposed to be on CPU only.")
     nbytes = C_SIZEOF(tune_texc)
-    IF(acc_is_present(tune_texc, nbytes)) CALL finish("set_scalar_ens_pert", & 
+    IF(acc_is_present(tune_texc, nbytes)) CALL finish("set_scalar_ens_pert", &
         "Internal error. `tune_texc` is supposed to be on CPU only.")
     nbytes = C_SIZEOF(tune_qexc)
-    IF(acc_is_present(tune_qexc, nbytes)) CALL finish("set_scalar_ens_pert", & 
+    IF(acc_is_present(tune_qexc, nbytes)) CALL finish("set_scalar_ens_pert", &
         "Internal error. `tune_qexc` is supposed to be on CPU only.")
     nbytes = C_SIZEOF(tune_box_liq)
-    IF(acc_is_present(tune_box_liq, nbytes)) CALL finish("set_scalar_ens_pert", & 
+    IF(acc_is_present(tune_box_liq, nbytes)) CALL finish("set_scalar_ens_pert", &
         "Internal error. `tune_box_liq` is supposed to be on CPU only.")
     nbytes = C_SIZEOF(tune_thicklayfac)
-    IF(acc_is_present(tune_thicklayfac, nbytes)) CALL finish("set_scalar_ens_pert", & 
+    IF(acc_is_present(tune_thicklayfac, nbytes)) CALL finish("set_scalar_ens_pert", &
         "Internal error. `tune_thicklayfac` is supposed to be on CPU only.")
     nbytes = C_SIZEOF(tune_box_liq_asy)
-    IF(acc_is_present(tune_box_liq_asy, nbytes)) CALL finish("set_scalar_ens_pert", & 
+    IF(acc_is_present(tune_box_liq_asy, nbytes)) CALL finish("set_scalar_ens_pert", &
         "Internal error. `tune_box_liq_asy` is supposed to be on CPU only.")
     nbytes = C_SIZEOF(tune_minsnowfrac)
-    IF(acc_is_present(tune_minsnowfrac, nbytes)) CALL finish("set_scalar_ens_pert", & 
+    IF(acc_is_present(tune_minsnowfrac, nbytes)) CALL finish("set_scalar_ens_pert", &
         "Internal error. `tune_minsnowfrac` is supposed to be on CPU only.")
     nbytes = C_SIZEOF(c_soil)
-    IF(acc_is_present(c_soil, nbytes)) CALL finish("set_scalar_ens_pert", & 
+    IF(acc_is_present(c_soil, nbytes)) CALL finish("set_scalar_ens_pert", &
         "Internal error. `c_soil` is supposed to be on CPU only.")
     nbytes = C_SIZEOF(cwimax_ml)
-    IF(acc_is_present(cwimax_ml, nbytes)) CALL finish("set_scalar_ens_pert", & 
+    IF(acc_is_present(cwimax_ml, nbytes)) CALL finish("set_scalar_ens_pert", &
         "Internal error. `cwimax_ml` is supposed to be on CPU only.")
 
     DO jg = 1, n_dom
@@ -953,7 +953,7 @@ MODULE mo_ensemble_pert_config
              atm_phy_nwp_config(1)%cfg_2mom_pert%cap_ice
         CALL message('Perturbed values, ccn_Ncn0, in_fact, avel_i, avel_g, cap_snow, cap_ice', TRIM(message_text))
       END IF
-      
+
       WRITE(message_text,'(2e11.4,f8.1)') tune_entrorg, tune_rprcon, tune_rdepths
       CALL message('Perturbed values, entrorg, rprcon, rdepths', TRIM(message_text))
 
@@ -1161,7 +1161,7 @@ MODULE mo_ensemble_pert_config
             atm_phy_nwp_config(jg)%ldetrain_conv_prec,atm_phy_nwp_config(jg)%lrestune_off,atm_phy_nwp_config(jg)%lmflimiter_off, &
             atm_phy_nwp_config(jg)%lstoch_expl,atm_phy_nwp_config(jg)%lstoch_sde,atm_phy_nwp_config(jg)%lstoch_deep, &
             atm_phy_nwp_config(jg)%lvvcouple, atm_phy_nwp_config(jg)%lvv_shallow_deep)
-          
+
           phy_params(jg)%gkdrag      = tune_gkdrag(jg)
           phy_params(jg)%gkdrag_enh  = tune_gkdrag_enh(jg)
           phy_params(jg)%gkwake      = tune_gkwake(jg)

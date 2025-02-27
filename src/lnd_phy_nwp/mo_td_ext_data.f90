@@ -74,7 +74,7 @@ CONTAINS
   !! modis albedo           : alb_dif, albuv_dif, albni_dif
   !! climatological cloud droplet number         : cdnc
   !!
-  !! Update of aerosol fields, which is based on a monthly climatology 
+  !! Update of aerosol fields, which is based on a monthly climatology
   !! happens in mo_nwp_rrtm_interface:nwp_aerosol.
   !!
   !! In addition, some fields which directly depend on the above ones
@@ -88,8 +88,8 @@ CONTAINS
     TYPE(t_external_data) , INTENT(INOUT) :: ext_data
     TYPE(t_lnd_state)     , INTENT(INOUT) :: p_lnd_state
     TYPE(t_nh_state)      , INTENT(IN)    :: p_nh_state
-    TYPE(t_nwp_phy_diag)  , INTENT(INOUT) :: prm_diag        
-    TYPE(datetime)        , INTENT(IN)    :: ref_datetime     !< reference date for computation 
+    TYPE(t_nwp_phy_diag)  , INTENT(INOUT) :: prm_diag
+    TYPE(datetime)        , INTENT(IN)    :: ref_datetime     !< reference date for computation
                                                               ! of climatological SST increments
     TYPE(datetime)        , INTENT(IN)    :: target_datetime  !< target date for temporal interpolation
     TYPE(datetime)        , INTENT(IN)    :: mtime_old
@@ -182,7 +182,7 @@ CONTAINS
 
     CASE DEFAULT
       !
-      ! do nothing (sstice_mode = SSTICE_ana, SSTICE_INST) 
+      ! do nothing (sstice_mode = SSTICE_ana, SSTICE_INST)
     END SELECT
 
 
@@ -258,24 +258,24 @@ CONTAINS
     TYPE(datetime), POINTER            :: mtime_date
     TYPE(datetime), POINTER            :: mtime_date_old
     TYPE(datetime), POINTER            :: mtime_hour
-    
+
     TYPE(t_time_interpolation_weights) :: current_time_interpolation_weights
-    TYPE(t_time_interpolation_weights) :: old_time_interpolation_weights    
+    TYPE(t_time_interpolation_weights) :: old_time_interpolation_weights
 
     ! this is because newDatetime requires a pointer as input argument
-    mtime_date => target_datetime   
+    mtime_date => target_datetime
     mtime_date_old => datetime_old
 
     SELECT CASE (ext_data_mode)
-      
-    CASE (SSTICE_CLIM) 
+
+    CASE (SSTICE_CLIM)
       ! SST and sea ice fraction updated based on the climatological
       ! monthly values
-      
+
       mtime_hour => newDatetime(mtime_date)
       mtime_hour%time%minute = 0
       mtime_hour%time%second = 0
-      mtime_hour%time%ms     = 0                  
+      mtime_hour%time%ms     = 0
       current_time_interpolation_weights = calculate_time_interpolation_weights(mtime_hour)
       CALL deallocateDatetime(mtime_hour)
 
@@ -321,14 +321,14 @@ CONTAINS
 
 
 
-    CASE (SSTICE_AVG_MONTHLY) 
+    CASE (SSTICE_AVG_MONTHLY)
       ! SST and sea ice fraction updated based on the actual monthly
       ! values
 
       mtime_hour => newDatetime(mtime_date_old)
       mtime_hour%time%minute = 0
       mtime_hour%time%second = 0
-      mtime_hour%time%ms     = 0                  
+      mtime_hour%time%ms     = 0
       old_time_interpolation_weights = calculate_time_interpolation_weights(mtime_hour)
       call deallocateDatetime(mtime_hour)
       m1 = old_time_interpolation_weights%month1
@@ -339,7 +339,7 @@ CONTAINS
       mtime_hour => newDatetime(mtime_date)
       mtime_hour%time%minute = 0
       mtime_hour%time%second = 0
-      mtime_hour%time%ms     = 0                  
+      mtime_hour%time%ms     = 0
       current_time_interpolation_weights = calculate_time_interpolation_weights(mtime_hour)
       call deallocateDatetime(mtime_hour)
       month1 = current_time_interpolation_weights%month1
@@ -487,4 +487,3 @@ CONTAINS
 !-----------------------------------------------------------------------
 
 END MODULE mo_td_ext_data
-

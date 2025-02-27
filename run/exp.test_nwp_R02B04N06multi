@@ -19,7 +19,7 @@
 # The specifications are passed by namelist to the program.
 # For a complete list see Namelist_overview.pdf
 #
-# EXPNAME and NPROMA must be defined as environment variables or they must 
+# EXPNAME and NPROMA must be defined as environment variables or they must
 # be substituted with appropriate values.
 #
 # Initial revision: 2015-04-14, F. Prill, DWD
@@ -132,7 +132,7 @@ cat > ${atmo_namelist} << EOF
  hdiff_order                 =                          5         ! order of nabla operator for diffusion
  itype_vn_diffu              =                          1         ! reconstruction method used for Smagorinsky diffusion
  itype_t_diffu               =                          2         ! discretization of temperature diffusion
- hdiff_efdt_ratio            =                         36.0       ! ratio of e-folding time to time step 
+ hdiff_efdt_ratio            =                         36.0       ! ratio of e-folding time to time step
  hdiff_smag_fac              =                          0.015     ! scaling factor for Smagorinsky diffusion
  lhdiff_vn                   =                      .TRUE.        ! diffusion on the horizontal wind field
  lhdiff_temp                 =                      .TRUE.        ! diffusion on the temperature field
@@ -230,8 +230,8 @@ cat > ${atmo_namelist} << EOF
  output_filename             =                       'NWP'        ! file name base
  output_grid                 =                      .TRUE.        ! flag whether grid information is added to output.
  !
- ml_varlist                  =  'u', 'v', 'w', 'temp', 'pres','topography_c', 'pres_msl', 
-                                'qv', 'qc', 'qi', 'qr', 'qs', 'tke',                      
+ ml_varlist                  =  'u', 'v', 'w', 'temp', 'pres','topography_c', 'pres_msl',
+                                'qv', 'qc', 'qi', 'qr', 'qs', 'tke',
                                 'group:precip_vars', 'group:additional_precip_vars'
 /
 
@@ -265,7 +265,7 @@ cat > ${atmo_namelist} << EOF
 &turbdiff_nml
  tkhmin                      =                          0.2       ! scaling factor for minimum vertical diffusion coefficient
  tkmmin                      =                          0.2       ! scaling factor for minimum vertical diffusion coefficient
- pat_len                     =                        100.0       ! 
+ pat_len                     =                        100.0       !
  c_diff                      =                          0.2       !
  rat_sea                     =                          0.8       !
 /

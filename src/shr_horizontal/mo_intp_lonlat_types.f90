@@ -37,36 +37,36 @@ MODULE mo_intp_lonlat_types
 
   PUBLIC
 
-  !> module name  
+  !> module name
   CHARACTER(LEN=*), PARAMETER :: modname = 'mo_intp_lonlat_types'
 
   !> level of output verbosity (for debugging purposes)
   INTEGER, PARAMETER  :: dbg_level = 0
-  
+
 
   !> General set of interpolation weights and stencil indices.
   !
   TYPE :: t_intp_coeff
-  
+
     INTEGER,  ALLOCATABLE  :: stencil(:,:)      ! array defining number of entries in stencil
-  
+
     INTEGER,  ALLOCATABLE  :: idx(:,:,:)        ! index array defining the
                                                 ! stencil (stencilsize,nproma,nblks_lonlat)
-  
+
     INTEGER,  ALLOCATABLE  :: blk(:,:,:)        ! ... dito for the blocks
-  
+
   CONTAINS
     PROCEDURE            t_intp_coeff_init                             !< constructor
     PROCEDURE, PUBLIC :: finalize       => t_intp_coeff_finalize       !< destructor
     PROCEDURE, PUBLIC :: maxstencilsize => t_intp_coeff_maxstencilsize
-  
+
   END TYPE t_intp_coeff
-  
-  
+
+
   !> Scalar interpolation weights.
   !
   TYPE, EXTENDS(t_intp_coeff) :: t_intp_scalar_coeff
-    REAL(wp), ALLOCATABLE  :: coeff(:,:,:)      ! array containing interpolation 
+    REAL(wp), ALLOCATABLE  :: coeff(:,:,:)      ! array containing interpolation
                                                 ! weights (stencilsize,nproma,nblks_lonlat)
 
     ! monotonicity can be enforced by demanding that the interpolated
@@ -84,24 +84,24 @@ MODULE mo_intp_lonlat_types
     GENERIC,   PUBLIC :: interpolate => t_intp_scalar_interpolate_r, t_intp_scalar_interpolate_i
 
     PROCEDURE, PUBLIC :: visualize_stencil => t_intp_scalar_visualize
-  
+
   END TYPE t_intp_scalar_coeff
 
-  
+
   !> Vector interpolation weights.
   !
   TYPE, EXTENDS(t_intp_coeff) :: t_intp_vec_coeff
-    REAL(wp), ALLOCATABLE  :: coeff(:,:,:,:)      ! array containing interpolation 
+    REAL(wp), ALLOCATABLE  :: coeff(:,:,:,:)      ! array containing interpolation
                                                   ! weights (stencilsize,2,nproma,nblks_lonlat)
-  
+
   CONTAINS
     PROCEDURE, PUBLIC :: init     => t_intp_vec_coeff_init
     PROCEDURE, PUBLIC :: finalize => t_intp_vec_coeff_finalize   !< destructor
     PROCEDURE, PUBLIC :: interpolate => t_intp_vec_interpolate_r
-  
+
   END TYPE t_intp_vec_coeff
-  
-  
+
+
   !> Data structure containing coefficients for (optional)
   !  interpolation onto a particular lon-lat grid.
   !
@@ -109,36 +109,36 @@ MODULE mo_intp_lonlat_types
   !  interpolation methods available.
   !
   TYPE t_lon_lat_intp
-  
+
     ! --- Radial Basis Function (RBF) interpolation
     TYPE(t_intp_vec_coeff) :: rbf_vec
-  
+
     ! --- nearest-neighbor interpolation
     !
     !     (we need interpolation weights also here to blank out points)
-  
+
     TYPE(t_intp_scalar_coeff) :: nnb
-  
+
     ! --- barycentric interpolation
-  
+
     TYPE(t_intp_scalar_coeff) :: baryctr ! stencil and weights for barycentric interpolation
-  
+
     ! --- direct RBF interpolation from cell centers to lon-lat points:
-  
+
     TYPE(t_intp_scalar_coeff) :: rbf_c2l
-  
+
     ! --- other data fields
-  
+
     ! coordinates of the lon-lat points (nproma,nb nblks_lonlat)
     TYPE(t_geographical_coordinates), ALLOCATABLE :: ll_coord(:,:)
-  
+
     INTEGER               :: nthis_local_pts            ! number of points local to this PE
     REAL(wp)              :: rbf_scale                  ! RBF shape parameter
     LOGICAL               :: l_initialized = .FALSE.
-  
+
     ! data field for distributed computations (available on all PEs)
     INTEGER, ALLOCATABLE  :: global_idx(:)    ! for each lon-lat point on this PE: global idx
-  
+
   CONTAINS
     PROCEDURE, PUBLIC :: init          => t_lon_lat_intp_init
     PROCEDURE, PUBLIC :: finalize      => t_lon_lat_intp_finalize
@@ -151,10 +151,10 @@ MODULE mo_intp_lonlat_types
     GENERIC,   PUBLIC :: interpolate   => t_lon_lat_intp_interpolate_rvec, &
       &                                   t_lon_lat_intp_interpolate_r,    &
       &                                   t_lon_lat_intp_interpolate_i
-  
+
   END TYPE t_lon_lat_intp
-  
-  
+
+
   !> Collects all interpolation coefficients together with the
   !  corresponding lon-lat grid and a communication pattern for
   !  gathering.
@@ -174,7 +174,7 @@ MODULE mo_intp_lonlat_types
 
   END TYPE t_lon_lat_data
 
-  
+
   !> Global list of lon-lat grids and interpolation coefficients.
   !
   !  All lon-lat grids needed for output are stored in this
@@ -185,11 +185,11 @@ MODULE mo_intp_lonlat_types
   !        each lon-lat grid only those parts "owned" by the process
   !        are stored.
   !
-  TYPE t_lon_lat_list  
- 
+  TYPE t_lon_lat_list
+
     !> Global list of lon-lat grids and interpolation coefficients.
     TYPE (t_lon_lat_data), ALLOCATABLE :: list(:)
-  
+
     !> Actual no. of lon-lat grids currently used in this model
     INTEGER               :: ngrids
 
@@ -198,14 +198,14 @@ MODULE mo_intp_lonlat_types
     PROCEDURE, PUBLIC :: finalize      => t_lon_lat_list_finalize       !< destructor
     PROCEDURE, PUBLIC :: get_ID        => t_lon_lat_list_get_ID
     PROCEDURE, PUBLIC :: add_new_grid  => t_lon_lat_list_add_new_grid
-  
+
   END TYPE t_lon_lat_list
 
 
   ! MODULE VARIABLES --------------------------------------------------------------
 
   TYPE (t_lon_lat_list), TARGET, SAVE  :: lonlat_grids
-  
+
 CONTAINS
 
   !--------------------------------------------------------------------------------
@@ -374,7 +374,7 @@ CONTAINS
   !> Constructor for lon-lat interpolation data structure.
   !
   SUBROUTINE t_lon_lat_intp_init(this, nproma)
-    CLASS(t_lon_lat_intp), INTENT(INOUT) :: this    
+    CLASS(t_lon_lat_intp), INTENT(INOUT) :: this
     INTEGER,               INTENT(IN)    :: nproma
     INTEGER :: nblks_lonlat
 
@@ -382,15 +382,15 @@ CONTAINS
 
     ! --- Radial Basis Function (RBF) interpolation
     CALL this%rbf_vec%init(rbf_vec_dim_c, nproma, nblks_lonlat)
-    
+
     ! --- direct RBF interpolation from cell centers to lon-lat points:
     CALL this%rbf_c2l%init(rbf_dim_c2l, nproma, nblks_lonlat, l_mono_c2l)
-    
+
     ! --- nearest-neighbor interpolation
     !
     !     (we need interpolation weights also here to blank out points)
     CALL this%nnb%init(1, nproma, nblks_lonlat, .FALSE.)
-    
+
     ! --- barycentric interpolation
     CALL this%baryctr%init(3, nproma, nblks_lonlat, .FALSE.)
 
@@ -403,8 +403,8 @@ CONTAINS
   !> Destructor for lon-lat interpolation data structure.
   !
   SUBROUTINE t_lon_lat_intp_finalize(this)
-    CLASS(t_lon_lat_intp), INTENT(INOUT) :: this    
-    
+    CLASS(t_lon_lat_intp), INTENT(INOUT) :: this
+
     CHARACTER(*), PARAMETER :: routine = modname//"::t_lon_lat_intp_finalize"
     INTEGER :: ist
 
@@ -416,16 +416,16 @@ CONTAINS
     !$ACC EXIT DATA DELETE(this%global_idx)
     ! -- deallocate rbf_vec data structure
     CALL this%rbf_vec%finalize()
-    
+
     ! -- deallocate rbf_c2l data structure
     CALL this%rbf_c2l%finalize()
-    
+
     ! -- deallocate nnb data structure
     CALL this%nnb%finalize()
-    
+
     ! -- deallocate baryctr data structure
     CALL this%baryctr%finalize()
-    
+
     ! -- array with lon-lat coordinates
     DEALLOCATE(this%ll_coord, stat=ist)
     IF (ist /= SUCCESS)  CALL finish (routine, 'Deallocation of array with lon-lat coordinates!')
@@ -464,12 +464,12 @@ CONTAINS
   !  finished.
   SUBROUTINE t_lon_lat_intp_contract(this)
     CLASS(t_lon_lat_intp), INTENT(INOUT) :: this
-    
+
     ! local variables
     CHARACTER(*), PARAMETER :: routine = modname//"::t_lon_lat_intp_contract"
     INTEGER, ALLOCATABLE  :: tmp_global_idx(:)
     INTEGER               :: errstat, nlocal_pts
-    
+
     nlocal_pts  = this%nthis_local_pts
     ! first allocate temporary storage and copy fields:
     ALLOCATE(tmp_global_idx(nlocal_pts), STAT=errstat )
@@ -505,12 +505,12 @@ CONTAINS
     CLASS(t_lon_lat_data), INTENT(INOUT) :: this
     ! local variables
     INTEGER :: jg
-    
+
     DO jg=1,SIZE(this%intp)
       CALL this%intp(jg)%finalize()
     END DO
   END SUBROUTINE t_lon_lat_data_finalize
-  
+
 
   !--------------------------------------------------------------------------------
   !> Constructor: Setup of lon-lat registry
@@ -521,7 +521,7 @@ CONTAINS
     CHARACTER(*), PARAMETER :: routine = modname//"::t_lon_lat_list_init"
     INTEGER,      PARAMETER :: INITIAL_SIZE = 20
     INTEGER :: ist
-    
+
     ! not much to do yet...
     this%ngrids = 0
     ALLOCATE(this%list(INITIAL_SIZE), STAT=ist)  ! Lists are not on the device
@@ -537,7 +537,7 @@ CONTAINS
     ! local variables
     CHARACTER(*), PARAMETER :: routine = modname//"::t_lon_lat_list_finalize"
     INTEGER :: i, ist
-    
+
     DO i=1, this%ngrids
       CALL this%list(i)%finalize()
     END DO
@@ -670,7 +670,7 @@ CONTAINS
     !$ACC END DATA
 
   END SUBROUTINE t_intp_scalar_interpolate_i
-   
+
 
   !--------------------------------------------------------------------------------
   !> Performs vector RBF reconstruction at lon-lat grid points.
@@ -696,7 +696,7 @@ CONTAINS
     REAL(wp),                           INTENT(IN)           :: p_cell_in(:,:,:)
     INTEGER,                            INTENT(IN)           :: nproma, nblks_lonlat, npromz_lonlat
     ! reconstructed scalar value at lon-lat point, dim: (nproma,nlev,nblks_lonlat)
-    REAL(wp),                           INTENT(INOUT)        :: p_out(:,:,:)     
+    REAL(wp),                           INTENT(INOUT)        :: p_out(:,:,:)
     LOGICAL,                            INTENT(in)           :: lacc  ! if true, use openACC
     ! optional vertical start/end level
     INTEGER,                            INTENT(IN), OPTIONAL :: opt_slev, opt_elev
@@ -941,7 +941,7 @@ CONTAINS
   !
   !  Afterwards, run the command-line
   !   asy -f pdf <filename>
-  !  to produce the PDF result. 
+  !  to produce the PDF result.
   !
   SUBROUTINE t_intp_scalar_visualize(this, point_gc, jc,jb, ptr_patch, filename)
     ! Indices of source points and interpolation coefficients
@@ -961,7 +961,7 @@ CONTAINS
     OPEN (unit=out_unit,file=TRIM(filename),action="write",status="replace")
 
     ! --- print asy preamble
-    WRITE (out_unit,*) "import three;import graph3;" 
+    WRITE (out_unit,*) "import three;import graph3;"
     IF (pdf_output) THEN
       WRITE (out_unit,*) 'settings.prc = false; settings.tex = "pdflatex"; settings.render = 0;'
     ELSE
@@ -1057,7 +1057,7 @@ CONTAINS
       vv = p; vv%x(:) = scale_factor * vv%x(:)
       WRITE (out_unit,'(a,3(F10.4,a))') TRIM(prefix)//"((",vv%x(1),",",vv%x(2),",",vv%x(3),"));"
     END SUBROUTINE print_point
-  
+
   END SUBROUTINE t_intp_scalar_visualize
 
 
@@ -1168,36 +1168,36 @@ CONTAINS
     ! horizontal interpolation type
     INTEGER,               INTENT(IN)           :: hintp_type
     LOGICAL,               INTENT(IN)           :: lacc  ! if true, use openACC
-    
+
     ! Local Parameters:
     CHARACTER(*), PARAMETER :: routine = modname//"::t_lon_lat_intp_interpolate_r"
     INTEGER  :: nblks_lonlat, npromz_lonlat
 
     nblks_lonlat  = this%nblks_lonlat(nproma)
     npromz_lonlat = this%npromz_lonlat(nproma)
-    
+
     SELECT CASE(hintp_type)
-      
+
     CASE (HINTP_TYPE_LONLAT_RBF)
       ! RBF interpolation
       CALL this%rbf_c2l%interpolate( p_cell_in(:,:,:), nproma, nblks_lonlat, npromz_lonlat, &
         &                            p_lonlat_out(:,:,:), lacc)
-      
+
     CASE (HINTP_TYPE_LONLAT_NNB)
       ! Nearest-neighbor interpolation
       CALL this%nnb%interpolate( p_cell_in(:,:,:), nproma, nblks_lonlat, npromz_lonlat, &
         &                        p_lonlat_out(:,:,:), lacc)
-      
+
     CASE (HINTP_TYPE_LONLAT_BCTR)
       ! Barycentric interpolation
       CALL this%baryctr%interpolate( p_cell_in(:,:,:), nproma, nblks_lonlat, npromz_lonlat, &
         &                            p_lonlat_out(:,:,:), lacc)
-      
+
     CASE DEFAULT
       CALL finish(routine, "Internal error with variable "//TRIM(name))
-      
+
     END SELECT
-    
+
   END SUBROUTINE t_lon_lat_intp_interpolate_r
 
 
@@ -1218,26 +1218,26 @@ CONTAINS
     ! horizontal interpolation type
     INTEGER,                       INTENT(IN)           :: hintp_type
     LOGICAL,                       INTENT(IN)           :: lacc  ! if true, use openACC
-    
+
     ! Local Parameters:
     CHARACTER(*), PARAMETER :: routine = modname//"::interpol_lonlat_int"
     INTEGER  :: nblks_lonlat, npromz_lonlat
 
     nblks_lonlat  = this%nblks_lonlat(nproma)
     npromz_lonlat = this%npromz_lonlat(nproma)
-    
+
     SELECT CASE(hintp_type)
-      
+
     CASE (HINTP_TYPE_LONLAT_NNB)
       ! Nearest-neighbor interpolation:
       CALL this%nnb%interpolate( p_cell_in(:,:,:), nproma, nblks_lonlat, npromz_lonlat, &
         &                        p_lonlat_out(:,:,:), lacc)
-      
+
     CASE DEFAULT
       CALL finish(routine, "Internal error with variable "//TRIM(name))
-      
+
     END SELECT
-    
+
   END SUBROUTINE t_lon_lat_intp_interpolate_i
 
 
@@ -1269,17 +1269,17 @@ CONTAINS
     npromz_lonlat = this%npromz_lonlat(nproma)
 
     SELECT CASE(hintp_type)
-      
+
     CASE (HINTP_TYPE_LONLAT_RBF)
       ! Nearest-neighbor interpolation:
       CALL this%rbf_vec%interpolate(p_vn_in, nproma, nblks_lonlat, npromz_lonlat, &
         &                           grad_x, grad_y, lacc, opt_slev, opt_elev)
-     
+
     CASE DEFAULT
       CALL finish(routine, "Internal error.")
-      
+
     END SELECT
-    
+
   END SUBROUTINE t_lon_lat_intp_interpolate_rvec
 
 

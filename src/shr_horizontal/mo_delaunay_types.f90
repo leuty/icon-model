@@ -34,7 +34,7 @@ MODULE mo_delaunay_types
   USE mo_util_sort,         ONLY: radixsort
 #endif
   IMPLICIT NONE
-  
+
   PRIVATE
   PUBLIC :: t_edge, t_point, t_triangle
   PUBLIC :: t_spherical_cap
@@ -178,12 +178,12 @@ MODULE mo_delaunay_types
   TYPE t_min_heap_node
     TYPE (t_min_heap_elt) :: elt ! element to be stored
     INTEGER               :: i   ! array from which the element is taken
-    INTEGER               :: j   ! index of the next element to be picked 
+    INTEGER               :: j   ! index of the next element to be picked
   END TYPE t_min_heap_node
 
   TYPE t_min_heap
     TYPE (t_min_heap_node), ALLOCATABLE :: harr(:)  ! array of elements in heap
-    INTEGER                             :: isize    ! size of min heap    
+    INTEGER                             :: isize    ! size of min heap
   END TYPE t_min_heap
 
 
@@ -266,8 +266,8 @@ CONTAINS
   ! --------------------------------------------------------------------
   !> Return TRUE if a point (xp,yp) is inside the circumcircle made up
   !  of the points ip[1,2,3].
-  ! 
-  !  See, e.g., 
+  !
+  !  See, e.g.,
   !  Renka, R. J. Interpolation of Data on the Surface of a Sphere
   !               ACM Trans. Math. Softw., ACM, 1984, 10, 417-436
   !  Renka's STRIPACK algorithm (http://www.netlib.org/toms/772)
@@ -299,7 +299,7 @@ CONTAINS
     d3_z = pxyz%a(ip(2))%z - p%z
 
     d1 = d2_x*d3_y*d1_z  +  d2_y*d1_x*d3_z + d2_z*d3_x*d1_y
-    d2 = d2_y*d3_x*d1_z + d2_x*d1_y*d3_z + d2_z*d1_x*d3_y 
+    d2 = d2_y*d3_x*d1_z + d2_x*d1_y*d3_z + d2_z*d1_x*d3_y
     IF (ABS(d1-d2) < 1.e-12_wp) THEN
       circum_circle_spherical = circum_circle_spherical_q128(p, pxyz, ip)
     ELSE
@@ -311,8 +311,8 @@ CONTAINS
   ! --------------------------------------------------------------------
   !> Return TRUE if a point (xp,yp) is inside the circumcircle made up
   !  of the points ip[1,2,3].
-  ! 
-  !  See, e.g., 
+  !
+  !  See, e.g.,
   !  Renka, R. J. Interpolation of Data on the Surface of a Sphere
   !               ACM Trans. Math. Softw., ACM, 1984, 10, 417-436
   !  Renka's STRIPACK algorithm (http://www.netlib.org/toms/772)
@@ -342,7 +342,7 @@ CONTAINS
     d3_z = pxyz%a(ip(2))%z - p%z
 
     IF ( d2_x*d3_y*d1_z  +  d2_y*d1_x*d3_z + d2_z*d3_x*d1_y &
-      > d2_y*d3_x*d1_z + d2_x*d1_y*d3_z + d2_z*d1_x*d3_y ) THEN 
+      > d2_y*d3_x*d1_z + d2_x*d1_y*d3_z + d2_z*d1_x*d3_y ) THEN
       circum_circle_spherical_q128 = .TRUE.
     ELSE
       circum_circle_spherical_q128 = .FALSE.
@@ -376,14 +376,14 @@ CONTAINS
     REAL(wp), PARAMETER :: FLOAT_ERROR_MARGIN = 1.1e-14_wp
     REAL(wp) :: ccw
 
-    ! det(v1,v2,v3) = <v1 x v2, v3> = | v1 x v2 | cos(a) 
-    !  
+    ! det(v1,v2,v3) = <v1 x v2, v3> = | v1 x v2 | cos(a)
+    !
     ! where a is the angle between v3 and the normal to the plane
     ! defined by v1 and v2.
-    
+
     ccw =           v3%x*(v1%y*v2%z - v2%y*v1%z) &
       &        -    v3%y*(v1%x*v2%z - v2%x*v1%z) &
-      &        +    v3%z*(v1%x*v2%y - v2%x*v1%y) 
+      &        +    v3%z*(v1%x*v2%y - v2%x*v1%y)
 
 
     ! we apply a static error of
@@ -391,9 +391,9 @@ CONTAINS
     ! to decide if a floating-point evaluation e' of an expression e
     ! has the correct sign, see Section 2.2 of
     !
-    ! Burnikel, C.; Funke, S. & Seel, M. 
+    ! Burnikel, C.; Funke, S. & Seel, M.
     ! "Exact geometric computation using Cascading"
-    ! International Journal of Computational Geometry & Applications, 
+    ! International Journal of Computational Geometry & Applications,
     ! World Scientific, 2001, 11, 245-266
     IF (ccw < -FLOAT_ERROR_MARGIN) THEN
       ccw_spherical = -1
@@ -412,11 +412,11 @@ CONTAINS
     TYPE(t_point), INTENT(IN) :: a1, a2
     ! The sagitta of an arc is distance from the center of the arc to the center of its base.
     ! The base is the chord that connects a1 and a2.
-    ! 
+    !
     ! This function assumes 3D points on a unit sphere.
     !
     !       a1          Let 2*q be the chord length between a1 and a2.
-    !     , '\          Let s be sagitta that we are looking for and h the height of the 
+    !     , '\          Let s be sagitta that we are looking for and h the height of the
     !   ,   | \         triangle (center, a1, a2).
     !  ,   q|  \ 1      Then s = 1 - h
     ! ,     |   \         len(a1) = len(a2) = 1
@@ -443,7 +443,7 @@ CONTAINS
     ! note: we test opposite directions first, since this is the
     ! situation for neighboring triangles
     t_edge_equal =                                            &
-      &    ( (e1%p1 == e2%p2) .AND. (e1%p2 == e2%p1) )  .OR.  &  
+      &    ( (e1%p1 == e2%p2) .AND. (e1%p2 == e2%p1) )  .OR.  &
       &    ( (e1%p1 == e2%p1) .AND. (e1%p2 == e2%p2) )
   END FUNCTION t_edge_equal
 
@@ -579,7 +579,7 @@ CONTAINS
   ! --------------------------------------------------------------------
   !> constructor for t_triangle type
   PURE FUNCTION triangle(ip1, ip2, ip3, ioedge, icomplete)
-    TYPE(t_triangle) :: triangle 
+    TYPE(t_triangle) :: triangle
     INTEGER, INTENT(IN)           :: ip1, ip2, ip3
     INTEGER, INTENT(IN), OPTIONAL :: ioedge
     INTEGER, INTENT(IN), OPTIONAL :: icomplete
@@ -612,8 +612,8 @@ CONTAINS
     triangle_edge = t_edge( p1=this%p(i), p2=this%p(MOD(i+1,3)) )
   END FUNCTION triangle_edge
 
-  
-  
+
+
   ! --------------------------------------------------------------------
   PURE SUBROUTINE triangle_compute_circumcenter(this, pxyz, subset)
     CLASS(t_triangle),     INTENT(INOUT) :: this
@@ -627,7 +627,7 @@ CONTAINS
       a = p2 - p3
       b = p1 - p3
       cc0 = t_point( x=(a%y*b%z - b%y*a%z), y=(a%z*b%x - b%z*a%x), z=(a%x*b%y - a%y*b%x), &
-        &            ps=0._wp, gindex=0) 
+        &            ps=0._wp, gindex=0)
       this%cc = cc0/cc0%norm2()
       ! compute square radius
       this%r     = this%cc*p1                   ! dot product
@@ -807,7 +807,7 @@ CONTAINS
     TYPE(t_point), INTENT(IN) :: element
     IF (.NOT. ALLOCATED(this%a)) THEN
       CALL this%reserve(this%nentries + 1)
-    ELSE IF (this%nentries == SIZE(this%a)) THEN  
+    ELSE IF (this%nentries == SIZE(this%a)) THEN
       CALL this%reserve(this%nentries + 1)
     END IF
     this%a(this%nentries) = element
@@ -933,7 +933,7 @@ CONTAINS
   ! --------------------------------------------------------------------
   !> Simple recursive implementation of Hoare's QuickSort algorithm
   !  for a 1D array of INTEGER values.
-  ! 
+  !
   !  Ordering after the sorting process: smallest...largest.
   !
   !  The user provides two callback functions: "cmp"("<") and "swap"
@@ -952,7 +952,7 @@ CONTAINS
 
     IF (r>l) THEN
       ! median-of-three selection of partitioning element
-      IF ((r-l) > 3) THEN 
+      IF ((r-l) > 3) THEN
         m = (l+r)/2
         IF (this%cmp(m,l)) CALL this%swap(l,m)
         IF (this%cmp(r,l)) THEN
@@ -1011,7 +1011,7 @@ CONTAINS
   ! --------------------------------------------------------------------
   !> Simple recursive implementation of Hoare's QuickSort algorithm
   !  for a 1D array of INTEGER values.
-  ! 
+  !
   !  Ordering after the sorting process: smallest...largest.
   !
   RECURSIVE SUBROUTINE quicksort_point_list(this, in_l, in_r)
@@ -1027,7 +1027,7 @@ CONTAINS
 
     IF (r>l) THEN
       ! median-of-three selection of partitioning element
-      IF ((r-l) > 3) THEN 
+      IF ((r-l) > 3) THEN
         m = (l+r)/2
 
         IF (this%a(m) < this%a(l)) CALL swap_point_list(this,l,m)
@@ -1108,13 +1108,13 @@ CONTAINS
     ! setup description of the 4 REAL(wp) fields: x, y, z, ps
     offsets(1)     = 0_MPI_ADDRESS_KIND
     oldtypes(1)    = p_real_dp
-    blockcounts(1) = 4 
-    CALL MPI_TYPE_GET_EXTENT(p_real_dp, typeLB, extent, ierr) 
+    blockcounts(1) = 4
+    CALL MPI_TYPE_GET_EXTENT(p_real_dp, typeLB, extent, ierr)
     offsets(2)     = 4*extent
     oldtypes(2)    = MPI_INTEGER
     blockcounts(2) = 2
-    CALL MPI_TYPE_CREATE_STRUCT(2, blockcounts, offsets, oldtypes, mpi_t_point, ierr) 
-    CALL MPI_TYPE_COMMIT(mpi_t_point, ierr) 
+    CALL MPI_TYPE_CREATE_STRUCT(2, blockcounts, offsets, oldtypes, mpi_t_point, ierr)
+    CALL MPI_TYPE_COMMIT(mpi_t_point, ierr)
 
     ! perform gather operation
     ALLOCATE(recv_tmp(0:(global_nentries-1)), STAT=ierrstat)
@@ -1126,12 +1126,12 @@ CONTAINS
     CALL MPI_ALLGATHERV(tmp, local_nentries, mpi_t_point, recv_tmp, recv_count, recv_displs, &
       &                 mpi_t_point, mpi_comm, ierr)
 
-    CALL MPI_TYPE_FREE(mpi_t_point, ierr) 
+    CALL MPI_TYPE_FREE(mpi_t_point, ierr)
 
     CALL this%resize(global_nentries)
-    this%a(0:(this%nentries-1))%x      = recv_tmp(0:(this%nentries-1))%x 
-    this%a(0:(this%nentries-1))%y      = recv_tmp(0:(this%nentries-1))%y 
-    this%a(0:(this%nentries-1))%z      = recv_tmp(0:(this%nentries-1))%z 
+    this%a(0:(this%nentries-1))%x      = recv_tmp(0:(this%nentries-1))%x
+    this%a(0:(this%nentries-1))%y      = recv_tmp(0:(this%nentries-1))%y
+    this%a(0:(this%nentries-1))%z      = recv_tmp(0:(this%nentries-1))%z
     this%a(0:(this%nentries-1))%ps     = recv_tmp(0:(this%nentries-1))%ps
     IF (lsync_gindex) THEN
       this%a(0:(this%nentries-1))%gindex = recv_tmp(0:(this%nentries-1))%gindex
@@ -1161,18 +1161,18 @@ CONTAINS
 
 
   ! to get index of left child of node at index i
-  ELEMENTAL INTEGER FUNCTION heap_left(i) 
+  ELEMENTAL INTEGER FUNCTION heap_left(i)
     INTEGER, INTENT(IN) :: i
     heap_left = (2*i + 1)
   END FUNCTION heap_left
 
- 
+
   ! build a heap from a given array a[] of given size
   SUBROUTINE construct_heap(heap, a)
     TYPE(t_min_heap),      INTENT(INOUT)  :: heap
     TYPE(t_min_heap_node), INTENT(IN)     :: a(0:)
     INTEGER :: i
-    
+
     heap%isize = SIZE(a)
     ALLOCATE(heap%harr(0:(heap%isize-1)))
     heap%harr(:) = a(:)
@@ -1261,7 +1261,7 @@ CONTAINS
           last_elt        = root%elt
           count = count + 1
         END IF
-        
+
         ! Find the next element that will replace current root of heap.
         ! The next element belongs to same array as the current root.
         IF (root%j < isize(root%i)) THEN
@@ -1273,7 +1273,7 @@ CONTAINS
         END IF
         ! Replace root with next element of array
         heap%harr(0) = root
-        CALL heap_heapify(heap, 0); 
+        CALL heap_heapify(heap, 0);
       END DO
     END IF
     ! clean up
@@ -1323,8 +1323,8 @@ CONTAINS
       offsets(1)     = 0_MPI_ADDRESS_KIND
       oldtypes(1)    = MPI_INTEGER
       blockcounts(1) = 3
-      CALL MPI_TYPE_CREATE_STRUCT(1, blockcounts, offsets, oldtypes, mpi_t_triangle, ierr) 
-      CALL MPI_TYPE_COMMIT(mpi_t_triangle, ierr) 
+      CALL MPI_TYPE_CREATE_STRUCT(1, blockcounts, offsets, oldtypes, mpi_t_triangle, ierr)
+      CALL MPI_TYPE_COMMIT(mpi_t_triangle, ierr)
     ELSE
       RETURN
     END IF
@@ -1436,7 +1436,7 @@ CONTAINS
       CALL MPI_GATHER(local_nentries, 1, MPI_INTEGER, recv_count, 1, MPI_INTEGER, root_pe, mpi_comm, ierr)
       IF (irank == root_pe) THEN
         global_nentries = SUM(recv_count(:)) ! gather a total of "global_nentries" entries
-      
+
         ! perform gather operation
         IF (global_nentries > 0) THEN
           ALLOCATE(recv_tmp(0:(global_nentries-1)), STAT=ierrstat)
@@ -1457,7 +1457,7 @@ CONTAINS
 
       DEALLOCATE(tmp, STAT=ierrstat)
       IF (ierrstat /= SUCCESS) CALL finish(routine, "DEALLOCATE failed!")
-               
+
       IF (irank == root_pe) THEN
         ! NEC_RP exclude processes without local data from kway_merge
         IF (local_nentries > 0) THEN
@@ -1467,7 +1467,7 @@ CONTAINS
             ALLOCATE(kway_merge_array_out(0:0), STAT=ierrstat)
           END IF
           IF (ierrstat /= SUCCESS) CALL finish(routine, "ALLOCATE failed!")
-      
+
           ! perform a k-way merging of the sorted arrays from the k MPI
           ! processes, merge this to "count" entries.
           CALL kway_merge(recv_tmp, recv_count, kway_merge_array_out, count)
@@ -1491,7 +1491,7 @@ CONTAINS
     END IF
 
     ! clean up
-    CALL MPI_TYPE_FREE(mpi_t_triangle, ierr) 
+    CALL MPI_TYPE_FREE(mpi_t_triangle, ierr)
 #endif
   END SUBROUTINE sync_triangulation
 
@@ -1534,8 +1534,8 @@ CONTAINS
     offsets(1)     = 0_MPI_ADDRESS_KIND
     oldtypes(1)    = MPI_INTEGER
     blockcounts(1) = 3
-    CALL MPI_TYPE_CREATE_STRUCT(1, blockcounts, offsets, oldtypes, mpi_t_triangle, ierr) 
-    CALL MPI_TYPE_COMMIT(mpi_t_triangle, ierr) 
+    CALL MPI_TYPE_CREATE_STRUCT(1, blockcounts, offsets, oldtypes, mpi_t_triangle, ierr)
+    CALL MPI_TYPE_COMMIT(mpi_t_triangle, ierr)
 
     ! create an MPI-sendable copy of the triangle list
     ALLOCATE(tmp(0:(alloc_size-1)), STAT=ierr)
@@ -1560,7 +1560,7 @@ CONTAINS
     END IF
 
     ! clean up
-    CALL MPI_TYPE_FREE(mpi_t_triangle, ierr) 
+    CALL MPI_TYPE_FREE(mpi_t_triangle, ierr)
     DEALLOCATE(tmp, STAT=ierr)
     IF (ierr /= SUCCESS) CALL finish(routine, "DEALLOCATE failed!")
 #endif
@@ -1577,7 +1577,7 @@ CONTAINS
     LOGICAL,                INTENT(IN) :: ldata
     ! local variables
     INTEGER :: out_unit, i
-    
+
     ! write triangles in vtk format
     out_unit=20
     OPEN (unit=out_unit,file=TRIM(filename),action="write",status="replace")
@@ -1647,12 +1647,12 @@ CONTAINS
 
     ! define necessary dimension
     CALL nf(nf90_redef(ncfileid), routine)
-    CALL nf(nf90_def_dim(ncfileid, dimname1, tri%nentries, dimID1), routine)    
-    CALL nf(nf90_def_dim(ncfileid, dimname2,            3, dimID2), routine)    
-    CALL nf(nf90_def_var(ncfileid, varname, NF90_INT, (/ dimID1, dimID2 /), varID), routine)    
+    CALL nf(nf90_def_dim(ncfileid, dimname1, tri%nentries, dimID1), routine)
+    CALL nf(nf90_def_dim(ncfileid, dimname2,            3, dimID2), routine)
+    CALL nf(nf90_def_var(ncfileid, varname, NF90_INT, (/ dimID1, dimID2 /), varID), routine)
     ! leave define mode
     CALL nf(nf90_enddef(ncfileid), routine)
-    
+
     ALLOCATE(tri_data(0:(tri%nentries-1), 3), stat=ierrstat)
     IF (ierrstat /= SUCCESS)  CALL finish(routine, "ALLOCATE failed!")
     DO i=0,(tri%nentries-1)

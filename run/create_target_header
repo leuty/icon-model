@@ -38,7 +38,7 @@ TIME_LIMITS="${MINIMAL_TIME} ${DEADLINE}"
 
 add_free_var()
 {
-    # free variables are environment variables that will be added to the job 
+    # free variables are environment variables that will be added to the job
     # script
     varName=$1
     varValue=$2
@@ -1034,7 +1034,7 @@ set_run_target_rcl()
     # make_runscripts and create_target_header must be run from the VectorEngine build directory.
     # Only then, it is possible to choose the correct MPI version depending on the nfort version.
     #
-    # In the following $use_builddir from set-up.info is used because this is directory 
+    # In the following $use_builddir from set-up.info is used because this is directory
     # were the target binary that was created during compilation.
     if [[ "$use_compiler" == "nec" ]]; then
         # "nec" is the VE compiler
@@ -1042,7 +1042,7 @@ set_run_target_rcl()
         if [[ -n "$secondary_build_dir" ]]; then
             MODEL_SCAL="${secondary_build_dir}/bin/icon"
         else
-            # Default fallback 
+            # Default fallback
             # if "VE" is used as build directory, look for "../VH", otherwise use "../host"
             case "$use_builddir" in
                 */VE )
@@ -1052,7 +1052,7 @@ set_run_target_rcl()
                     MODEL_SCAL="${use_builddir}/../host/bin/icon"
                     ;;
                 * )
-                    # fallback assumption: 
+                    # fallback assumption:
                     # host build was configured with '--prefix=$PWD/host' as in buildbot
                     MODEL_SCAL="${use_builddir}/host/bin/icon"
                     ;;
@@ -1214,7 +1214,7 @@ set_run_target_hpc()
 {
     # xce.dwd.de
     icon_data_rootFolder=${icon_data_rootFolder:=""}
-    
+
     set_default use_nproma 64
     set_default use_nproma_sub 64
     set_default use_nblocks_c 0
@@ -1225,7 +1225,7 @@ set_run_target_hpc()
     cdo="/e/uhome/hanlauf/X86_64/bin/cdo"
     cdo_diff="diff"
 
-    
+
     cat >> "$output_script" << EOF
 #### BATCH_SYSTEM=PBS ####
 #-----------------------------------------------------------------------------
@@ -1245,7 +1245,7 @@ fi
 export F_PROGINF=DETAIL
 #-----------------------------------------------------------------------------
 EOF
-  
+
     start_header
 }
 
@@ -1405,7 +1405,7 @@ set_run_target_alps_mch_cpu()
             partition="normal"
         fi
     fi
-        
+
 
     cat >> "$output_script" << EOF
 #-----------------------------------------------------------------------------
@@ -1582,13 +1582,13 @@ EOF
 
 #-----------------------------------------------------------------------------
 set_run_target_pacluster()
-{  
+{
     set_default use_nproma 32
     set_default use_nproma_sub 32
     set_default use_nblocks_c 0
     set_default use_nodes 1
     set_default use_cpu_time 04:00:00
-   
+
     if [[ $use_openmp == "yes" ]]
     then
 	use_mpi="no"
@@ -1625,7 +1625,7 @@ set_run_target_pacluster()
 ################# join standard and error stream (oe, eo) ?
 #PBS -j oe
 ################# do not rerun job if system failure occurs
-#PBS -r n    
+#PBS -r n
 ################# send e-mail when [(a)borting|(b)eginning|(e)nding] job
 ### #PBS -m ae
 ### #PBS -M my_userid@my_institute.my_toplevel_domain
@@ -1686,7 +1686,7 @@ set_run_target_hk()
     if [[ -n "$BB_SYSTEM" ]]; then
         limit_time_bb "00:45:00" "00:45:00"
     fi
-    
+
     if [[ "x$BB_SYSTEM" != 'x' ]]; then
         use_queue="dev_${use_queue}"
     fi
@@ -1743,7 +1743,7 @@ set_run_target_juwels()
     if [[ $use_mpi == "yes" ]]; then
 	if [[ $use_openmp == "yes" ]]; then
 		set_default use_mpi_procs_pernode 24
-	else 
+	else
 		set_default use_mpi_procs_pernode 48
 	fi
     fi
@@ -2480,7 +2480,7 @@ create_target_header()
                 use_tasks=16
                 ;;
             esac
-            ;; 
+            ;;
         *art_oem*.run)
             use_nodes=4
             case $use_target in

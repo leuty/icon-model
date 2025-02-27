@@ -154,7 +154,7 @@ CONTAINS
                &          tend_qi_mig      (:,jks:jke)        ,& !< out: tendency of cloud ice
                &          tend_qr_mig      (:,jks:jke)        ,& !< out: tendency of rain
                &          tend_qs_mig      (:,jks:jke)        ,& !< out: tendency of snow
-               &          tend_qg_mig      (:,jks:jke)        ,& !< out: tendency of graupel 
+               &          tend_qg_mig      (:,jks:jke)        ,& !< out: tendency of graupel
                &          pr_rain          (:)                ,& !& out: precip rate rain
                &          pr_ice           (:)                ,& !& out: precip rate rain
                &          pr_snow          (:)                ,& !& out: precip rate snow

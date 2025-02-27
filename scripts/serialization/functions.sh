@@ -15,7 +15,7 @@ ser_update_file_hash() {
   local hash_file="../${my_iconppdir}/$1.sha1"
   local modif_file="../${my_iconppdir}/$1.modified"
   if [ -e "${hash_file}" ] && ( sha1sum --status -c "${hash_file}" );then
-    rm -f "${modif_file}" 
+    rm -f "${modif_file}"
   else
     rm -f "${hash_file}";
     sha1sum "$1" > "${modif_file}"

@@ -70,7 +70,7 @@ MODULE mo_2mom_mcrph_processes
        & particle_assign, particle_frozen_assign, particle_lwf_assign, &
        & coll_delta_11, coll_delta_12, coll_theta_11, coll_theta_12,   &
        & rain_mue_dm_relation, moment_gamma, n_f, n_sc
-  
+
   USE mo_2mom_mcrph_config,         ONLY: t_cfg_2mom
   USE mo_2mom_mcrph_config_default, ONLY: cfg_2mom_default
   USE mo_2mom_mcrph_util, ONLY: &
@@ -110,7 +110,7 @@ MODULE mo_2mom_mcrph_processes
 
   ! .. lower limit of tke used in turbulent collision enhancement parameterization:
   REAL(wp), PARAMETER :: tke_min = 0.01_wp ** 2 ! [m^2 s^-2]
-  
+
   ! .. some physical parameters not found in ICON
   REAL(wp), PARAMETER :: T_f     = 233.0_wp     !..below this temperature there is no liquid water
 
@@ -151,11 +151,11 @@ MODULE mo_2mom_mcrph_processes
   !$ACC DECLARE COPYIN(afrac_dust, afrac_soot, afrac_orga)
 
   ! .. LWF melting scheme: coefficients for rational approximation functions
-  REAL(wp) ::  &           
+  REAL(wp) ::  &
        &      adstarh(10), bdstarh(9), amelth(10), bmelth(9), aviwch(10), bviwch(9),  &
-       &      avlwch(10),  bvlwch(9),  avnumh(10), bvnumh(9), convqh(4),  convnh(4),  &   
+       &      avlwch(10),  bvlwch(9),  avnumh(10), bvnumh(9), convqh(4),  convnh(4),  &
        &      adstarg(10), bdstarg(9), ameltg(10), bmeltg(9), aviwcg(10), bviwcg(9),  &
-       &      avlwcg(10),  bvlwcg(9),  avnumg(10), bvnumg(9), convqg(4) , convng(4)   
+       &      avlwcg(10),  bvlwcg(9),  avnumg(10), bvnumg(9), convqg(4) , convng(4)
 
   !..Include file with coefficients for lwf melting scheme
   INCLUDE 'hailcoeffs.incf'
@@ -165,14 +165,14 @@ MODULE mo_2mom_mcrph_processes
   REAL(wp), PARAMETER ::             &
        &    ecoll_min = 0.01_wp,     & ! min. eff. for graupel_cloud, ice_cloud and snow_cloud
        &    q_crit_ii = 1.000e-6_wp, & ! q-threshold for ice_selfcollection
-       &    D_crit_ii = 5.0e-6_wp,   & ! D-threshold for ice_selfcollection  
+       &    D_crit_ii = 5.0e-6_wp,   & ! D-threshold for ice_selfcollection
        &    q_crit_r  = 1.000e-5_wp, & ! q-threshold for ice_rain_riming and snow_rain_riming
        &    D_crit_r  = 100.0e-6_wp, & ! D-threshold for ice_rain_riming and snow_rain_riming
        &    q_crit_fr = 1.000e-6_wp, & ! q-threshold for rain_freeze
        &    q_crit_c  = 1.000e-6_wp, & ! q-threshold for cloud water
        &    q_crit    = 1.000e-9_wp, & ! q-threshold elsewhere 1e-7 kg/m3 = 1e-4 g/m3 = 0.1 mg/m3
        &    D_conv_sg = 200.0e-6_wp, & ! D-threshold for conversion of snow to graupel
-       &    D_conv_ig = 200.0e-6_wp, & ! D-threshold for conversion of ice to graupel 
+       &    D_conv_ig = 200.0e-6_wp, & ! D-threshold for conversion of ice to graupel
        &    x_conv    = 0.100e-9_wp, & ! minimum mass of conversion due to riming
        &    D_crit_c  = 10.00e-6_wp, & ! D-threshold for cloud drop collection efficiency
        &    D_coll_c  = 40.00e-6_wp    ! upper bound for diameter in collision efficiency
@@ -187,7 +187,7 @@ MODULE mo_2mom_mcrph_processes
   ! debug switches
   LOGICAL, PARAMETER     :: isdebug = .false.   ! use only when really desperate
   LOGICAL, PARAMETER     :: isprint = .true.    ! print-out initialization values
-  
+
   ! some cloud microphysical switches
   LOGICAL, PARAMETER     :: ice_multiplication = .TRUE.  ! default is .true.
   LOGICAL, PARAMETER     :: enhanced_melting   = .TRUE.  ! default is .true.
@@ -224,14 +224,14 @@ MODULE mo_2mom_mcrph_processes
   PUBLIC :: ice_riming, snow_riming
   PUBLIC :: ccn_activation_sk, ccn_activation_hdcp2, ccn_activation_sk_4d
   PUBLIC :: sedi_icon_rain, sedi_icon_sphere, sedi_icon_sphere_lwf
-  PUBLIC :: set_default_n 
+  PUBLIC :: set_default_n
 
 CONTAINS
-  
+
   !********************************************************************************
   ! bulk sedimentation velocities
   !********************************************************************************
-  
+
   SUBROUTINE sedi_vel_rain(this,thisCoeffs,q,x,rhocorr,vn,vq,its,ite,qc,lacc)
     CLASS(particle), INTENT(in) :: this
     TYPE(particle_rain_coeffs), INTENT(in) :: thisCoeffs
@@ -240,11 +240,11 @@ CONTAINS
     REAL(wp), INTENT(in), OPTIONAL  :: qc(:)
     REAL(wp), INTENT(inout) :: vn(:), vq(:)
     LOGICAL, OPTIONAL, INTENT(in)  :: lacc
-    
+
     INTEGER  :: i
     REAL(wp) :: D_m,mue,D_p
     LOGICAL :: lzacc
-    
+
     CALL set_acc_host_or_device(lzacc, lacc)
 
     !$ACC PARALLEL ASYNC(1) DEFAULT(PRESENT) FIRSTPRIVATE(its, ite) IF(lzacc)
@@ -252,7 +252,7 @@ CONTAINS
     DO i=its,ite
       IF (q(i).GT.q_crit) THEN
         D_m = particle_diameter(this, x(i))
-        
+
         IF (cfg_params%luse_mu_Dm_rain) THEN
           IF (PRESENT(qc)) THEN
             IF (qc(i) >= q_crit) THEN
@@ -266,7 +266,7 @@ CONTAINS
         ELSE
           mue = (this%nu+1.0_wp)/this%b_geo - 1.0_wp
         END IF
-        
+
         D_p = D_m * EXP((-1./3.)*LOG((mue+3.)*(mue+2.)*(mue+1.)))
         vn(i) = thisCoeffs%alfa - thisCoeffs%beta * EXP(-(mue+1.)*LOG(1.0 + thisCoeffs%gama*D_p))
         vq(i) = thisCoeffs%alfa - thisCoeffs%beta * EXP(-(mue+4.)*LOG(1.0 + thisCoeffs%gama*D_p))
@@ -324,14 +324,14 @@ CONTAINS
     INTEGER,  INTENT(in)  :: its,ite
     REAL(wp), INTENT(in)  :: q(:),x(:),ql(:),rhocorr(:)
     REAL(wp), INTENT(out) :: vn(:),vq(:),vl(:)
-    
+
     REAL(wp), DIMENSION(10) :: avq, avl, avn
     REAL(wp), DIMENSION(9)  :: bvq, bvl, bvn
     REAL(wp), PARAMETER     :: eps = 1e-20_wp
-    
+
     INTEGER  :: i
     REAL(wp) :: v_n,v_q,v_l,D_p,D_n,lwf
-    
+
     IF (this%name .EQ. 'hail_vivek') THEN
       avq = aviwch
       bvq = bviwch
@@ -347,9 +347,9 @@ CONTAINS
       avn = avnumg
       bvn = bvnumg
     ELSE
-      CALL finish(TRIM(routine),'Error: unknown particle name in sedi_vel_lwf')      
+      CALL finish(TRIM(routine),'Error: unknown particle name in sedi_vel_lwf')
     END IF
-    
+
     DO i=its,ite
       IF (q(i).GT.q_crit) THEN
         lwf = ql(i)/(q(i)+eps)
@@ -372,20 +372,20 @@ CONTAINS
         vq(i) = 0.0_wp
       END IF
     END DO
-    
+
   END SUBROUTINE sedi_vel_lwf
-  
+
   ! initialize coefficients for bulk sedimentation velocity
   SUBROUTINE init_2mom_sedi_vel(this,thisCoeffs)
     CLASS(particle), INTENT(in) :: this
     CLASS(particle_sphere), INTENT(out) :: thisCoeffs
-    
+
     CHARACTER(len=*), PARAMETER :: sroutine = 'init_2mom_sedi_vel'
-    
+
     thisCoeffs%coeff_alfa_n = this%a_vel * GAMMA((this%nu+this%b_vel+1.0)/this%mu) / GAMMA((this%nu+1.0)/this%mu)
     thisCoeffs%coeff_alfa_q = this%a_vel * GAMMA((this%nu+this%b_vel+2.0)/this%mu) / GAMMA((this%nu+2.0)/this%mu)
     thisCoeffs%coeff_lambda = GAMMA((this%nu+1.0)/this%mu)/GAMMA((this%nu+2.0)/this%mu)
-    
+
     IF (isprint) THEN
       WRITE (txt,'(2A)') "    name  = ",this%name ; CALL message(sroutine,TRIM(txt))
       WRITE (txt,'(A,D14.7)') "    c_lam = ",thisCoeffs%coeff_lambda ; CALL message(sroutine,TRIM(txt))
@@ -473,7 +473,7 @@ CONTAINS
     REAL(wp), PARAMETER :: k_2  = 0.68e+0_wp   !..Parameter fof Phi
     REAL(wp), PARAMETER :: eps  = 1.00e-25_wp
 
-   ! Onishi kernel (of 29 July 2015)                                                                                                          
+   ! Onishi kernel (of 29 July 2015)
     REAL(wp), PARAMETER :: kc1_a1 = 3.985e-03_wp
     REAL(wp), PARAMETER :: kc1_a2 = 6.210e-03_wp
     REAL(wp), PARAMETER :: kc1_a3 = 1.331e+00_wp
@@ -515,7 +515,7 @@ CONTAINS
             n_c = cloud%n(i,k)
             q_r = rain%q(i,k)
             x_c = particle_meanmass(cloud, q_c,n_c)
-   
+
 
             IF (cfg_params%lturb_enhc) THEN
                D_c = particle_diameter(cloud, x_c)
@@ -528,7 +528,7 @@ CONTAINS
             ELSE
                k_turb = 1.0_wp
             END IF
-            
+
             au  = cloud_coeffs%k_au * q_c**2 * x_c**2 * dt &
                  * cloud%rho_v(i,k)
             tau = MIN(MAX(1.0_wp-q_c/(q_c+q_r+eps),eps),0.9_wp)
@@ -597,7 +597,7 @@ CONTAINS
              x_r = particle_meanmass(rain, q_r,n_r)
              IF (cfg_params%lturb_enhc) THEN
                tke = MAX(0.5_wp*(atmo%tke(i,k) + atmo%tke(i,k+1)), tke_min) ! from half levels to full levels
-               diss = MIN(3000.0_wp ,EXP(1.5_wp*LOG(2.0_wp*tke))/(16.6_wp*cfg_params%turb_len) * 1.0E4_wp)  ! Dissipation rate in cm-2 
+               diss = MIN(3000.0_wp ,EXP(1.5_wp*LOG(2.0_wp*tke))/(16.6_wp*cfg_params%turb_len) * 1.0E4_wp)  ! Dissipation rate in cm-2
                k_turb = 1.0_wp + 0.8e-3_wp * diss * (rain%x_min/x_r)**(2.0_wp/3.0_wp) ! Onishi-Seifert Kernel
              ELSE
                k_turb =1.0
@@ -659,13 +659,13 @@ CONTAINS
             D_r = particle_diameter(rain, x_r)
             IF (cfg_params%lturb_enhc) THEN
               tke = MAX(0.5_wp*(atmo%tke(i,k) + atmo%tke(i,k+1)), tke_min) ! from half levels to full levels
-              diss = MIN(3000.0_wp ,EXP(1.5_wp*LOG(2.0_wp*tke))/(16.6_wp*cfg_params%turb_len) * 1.0E4_wp)  ! Dissipation rate in cm-2 
+              diss = MIN(3000.0_wp ,EXP(1.5_wp*LOG(2.0_wp*tke))/(16.6_wp*cfg_params%turb_len) * 1.0E4_wp)  ! Dissipation rate in cm-2
               k_turb = 1.0_wp + 0.8e-3_wp * diss * (rain%x_min/x_r)**(2.0_wp/3.0_wp)
             ELSE
               k_turb = 1.0_wp
             END IF
             !..Selfcollection as in SB2001
-            sc = k_rr *  n_r * q_r * rain%rho_v(i,k) * dt * k_turb 
+            sc = k_rr *  n_r * q_r * rain%rho_v(i,k) * dt * k_turb
 
             !..Breakup as in Seifert (2008, JAS), Eq. (A13)
             br = 0.0_wp
@@ -860,7 +860,7 @@ CONTAINS
     ! istart = slice(1), iend = slice(2), kstart = slice(3), kend = slice(4)
     INTEGER,  INTENT(in) :: ik_slice(4)
     REAL(wp), INTENT(in) :: dt
-    
+
     REAL(wp), INTENT(in) :: rain_gfak   ! this is set in init_twomoment
     TYPE(particle_rain_coeffs), INTENT(in) :: rain_coeffs
 
@@ -883,7 +883,7 @@ CONTAINS
     REAL(wp), PARAMETER :: eva_q_fak_low        = 0.3_wp  ! \  Parameters of the
     REAL(wp), PARAMETER :: eva_q_fak_high       = 1.0_wp  !  Parameters of the
     REAL(wp), PARAMETER :: eva_q_fak_Dbr_minfak = 0.75_wp ! |  ramp-function eva_q_fak(D_m) for reduction
-    REAL(wp), PARAMETER :: eva_q_fak_Dbr_maxfak = 0.9_wp  ! /  of evaporation of drizzle-like rain         
+    REAL(wp), PARAMETER :: eva_q_fak_Dbr_maxfak = 0.9_wp  ! /  of evaporation of drizzle-like rain
 
     LOGICAL, PARAMETER   :: reduce_evaporation = .false.
 
@@ -930,7 +930,7 @@ CONTAINS
              ELSE
                mue = (rain%nu+1.0_wp)/rain%b_geo - 1.0_wp
              END IF
-                
+
              ! Eq. (A8)
              lam = exp(1.0_wp/3.0_wp*log(pi6*rho_w*(mue+3.0_wp)*(mue+2.0_wp)*(mue+1.0_wp)/x_r))
 
@@ -940,7 +940,7 @@ CONTAINS
                   &  + mue * ( -0.1299313363E-01_wp  &
                   &  + mue * ( +0.4002257774E-03_wp  &
                   &  - mue * 0.4856703981E-05_wp ) ) )
-             
+
              ! Mean velocity using the mean diameter: (mue+1)/D
              ! This is more exact than the exponential (Chebychev) approximation for small droplets,
              ! and not too bad for large droplets
@@ -1056,7 +1056,7 @@ CONTAINS
 
             eva_q = g_d * n * coeffs%c_i * d * f_v * s_sw * dt
 
-            eva_q = MAX(-eva_q,0.0_wp) 
+            eva_q = MAX(-eva_q,0.0_wp)
 
             !.. Complete evaporation of some of the melting frozen particles: parameterized in a way
             !   to conserve the mean mass, similar to the case "gamma_eva = 1.0" in rain_evaporation() above:
@@ -1527,7 +1527,7 @@ CONTAINS
                  &      + (xt - AINT(xt)) * (xs - ssr) &
                  &        * afrac_orga(tt+1, ss+1)
           END IF
-          
+
           ! sum up the three modes
           IF (use_prog_in) THEN
             ! n_inpot replaces na_dust, na_soot and na_orga are assumed to be constant
@@ -1696,7 +1696,7 @@ CONTAINS
     LOGICAL, PARAMETER  :: reduce_sublimation = .TRUE.
     REAL(wp), PARAMETER :: dep_n_fac = 0.5_wp  ! UB: if this new parameterization of n-reduction during sublimation
                                                !     really makes sense, move to a global constant or into the particle types
-    
+
     IF (isdebug) CALL message(routine, "vapor_deposition_growth")
 
     istart = ik_slice(1)
@@ -1781,7 +1781,7 @@ CONTAINS
                 END IF
 
                 dep_sum = dep_ice(i,k) + dep_graupel(i,k) + dep_snow(i,k) + dep_hail(i,k)
-                
+
                 IF ( reduce_sublimation) THEN
                   x_i = particle_meanmass(ice    , ice%    q(i,k), ice%    n(i,k))
                   x_s = particle_meanmass(snow   , snow%   q(i,k), snow%   n(i,k))
@@ -1809,7 +1809,7 @@ CONTAINS
                   graupel%n(i,k) = MAX(graupel%n(i,k) + dep_n_fac*dep_graupel_n, 0.0_wp)
                   hail%n(i,k)    = MAX(hail%n(i,k)    + dep_n_fac*dep_hail_n   , 0.0_wp)
                 END IF
-                
+
                 dep_rate_ice(i,k)  = dep_rate_ice(i,k)  + dep_ice(i,k)
                 dep_rate_snow(i,k) = dep_rate_snow(i,k) + dep_snow(i,k)
 
@@ -2073,7 +2073,7 @@ CONTAINS
     ! start and end indices for 2D slices
     ! istart = slice(1), iend = slice(2), kstart = slice(3), kend = slice(4)
     INTEGER,  INTENT(in) :: ik_slice(4)
-    REAL(wp), INTENT(in) :: dt    
+    REAL(wp), INTENT(in) :: dt
     TYPE(particle_ice_coeffs), INTENT(in) :: ice_coeffs
 
     ! 2mom variables
@@ -2094,7 +2094,7 @@ CONTAINS
     IF (isdebug) CALL message(routine, "ice_selfcollection")
 
     p_ltab_estick_ice => ltab_estick_ice
-    
+
     istart = ik_slice(1)
     iend   = ik_slice(2)
     kstart = ik_slice(3)
@@ -2119,7 +2119,7 @@ CONTAINS
 
              !.. Sticking efficiency depending on temperature:
              e_coll = estick_ltab_equi(T_a, p_ltab_estick_ice)  ! equidistant lookup table
-             
+
              v_i = ice%a_vel * x_i**ice%b_vel * ice%rho_v(i,k)
 
              self_n = pi4 * e_coll * ice_coeffs%sc_delta_n * n_i * n_i * D_i * D_i &
@@ -2153,7 +2153,7 @@ CONTAINS
     ! istart = slice(1), iend = slice(2), kstart = slice(3), kend = slice(4)
     INTEGER,  INTENT(in) :: ik_slice(4)
     REAL(wp), INTENT(in) :: dt
-    
+
     TYPE(particle_snow_coeffs), INTENT(in) :: snow_coeffs
     TYPE(atmosphere), INTENT(inout)        :: atmo
     CLASS(particle_frozen), INTENT(inout) :: snow
@@ -2335,27 +2335,27 @@ CONTAINS
     !$ACC   PRIVATE(T_a, q_p, n_p, x_p, d_p, v_p, q_i, n_i, x_i, d_i, v_i, coll_n, coll_q, e_coll)
     DO k = kstart,kend
       DO i = istart,iend
-        
+
         q_i = ctype%q(i,k)
         q_p = ptype%q(i,k)
-        
+
         IF (q_i > q_crit .AND. q_p > q_crit) THEN
           T_a = atmo%T(i,k)
-          
+
           !.. Sticking efficiency depending on temperature:
           e_coll = estick_ltab_equi(T_a, p_ltab_estick_parti)  ! equidistant lookup table
-          
+
           n_i = ctype%n(i,k)
           n_p = ptype%n(i,k)
-          
+
           x_p = particle_meanmass(ptype, q_p,n_p)
           d_p = particle_diameter(ptype, x_p)
           v_p = particle_velocity(ptype, x_p) * ptype%rho_v(i,k)
-          
+
           x_i = particle_meanmass(ctype, q_i,n_i)
           d_i = particle_diameter(ctype, x_i)
           v_i = particle_velocity(ctype, x_i) * ctype%rho_v(i,k)
-          
+
           coll_n = pi4 * n_p * n_i * e_coll * dt      &
                & *     ( coeffs%delta_n_aa * D_p**2   &
                &       + coeffs%delta_n_ab * D_p*D_i  &
@@ -2364,7 +2364,7 @@ CONTAINS
                &       - coeffs%theta_n_ab * v_p*v_i  &
                &       + coeffs%theta_n_bb * v_i**2   &
                &       + ctype%s_vel**2)
-          
+
           coll_q = pi4 * n_p * q_i * e_coll * dt      &
                & *     ( coeffs%delta_q_aa * D_p**2   &
                &       + coeffs%delta_q_ab * D_p*D_i  &
@@ -2559,7 +2559,7 @@ CONTAINS
 
     ! itype_shedding = 2 can be computed if the optional parameters are present. Check a few of them:
     shedding_enabled = PRESENT(shed_coeffs) .AND. PRESENT(ltabdminwgp) .AND. PRESENT(shed_ltab_dpp_03)
-    
+
     IF (shedding_enabled) THEN
       p_ltabdminwgp => ltabdminwgp
     END IF
@@ -2632,7 +2632,7 @@ CONTAINS
             ptype%q(i,k) = ptype%q(i,k) - mult_q
           ENDIF
 
-          ! enhancement of melting 
+          ! enhancement of melting
           IF (T_a > T_3 .AND. enhanced_melting) THEN
             melt_q = const4 * (T_a - T_3) * rime_q
             melt_n = melt_q / x_p
@@ -2645,10 +2645,10 @@ CONTAINS
             ptype%n(i,k) = ptype%n(i,k) - melt_n
             rain%n(i,k)  = rain%n(i,k)  + melt_n
           ENDIF
-          
+
           ! Shedding:
           IF (shedding_enabled .OR. cfg_params%itype_shedding_gh == 1) THEN
-            
+
             SELECT CASE (cfg_params%itype_shedding_gh)
             CASE (1)
               ! simple version from COSMO: Complete shedding for T > T_3, else shedding if particle
@@ -2665,14 +2665,14 @@ CONTAINS
                 ELSE
                   shed_n = shed_q / MAX(x_r,x_p)
                 ENDIF
-                
+
                 ptype%q(i,k) = ptype%q(i,k) - shed_q
                 rain %q(i,k) = rain %q(i,k) + shed_q
                 rain %n(i,k) = rain %n(i,k) + shed_n
               ENDIF
-              
+
             CASE (2)
-              
+
               ! more physical solution involving the wet growth diameter and upper incomplete gamma function:
               IF (T_a > T_shed) THEN
 
@@ -2715,7 +2715,7 @@ CONTAINS
                 !  table node. The table is for the lower incgft, so we have to take
                 !  the difference to the uppermost table value which is the ordinary gamma function:
                 nenner = MAX(nenner, shed_ltab_tpp_03%igf(shed_ltab_tpp_03%n) - &
-                                     shed_ltab_tpp_03%igf(shed_ltab_tpp_03%n-1)) 
+                                     shed_ltab_tpp_03%igf(shed_ltab_tpp_03%n-1))
 
                 vchar = shed_coeffs%theta_aa(0,1) * theta_aa_var / nenner * v_p**2 - &
                         shed_coeffs%theta_ab(0,1) * theta_ab_var / nenner * v_p*v_c + &
@@ -2729,15 +2729,15 @@ CONTAINS
 
                 shed_q = MIN(ptype%q(i,k),shed_q)
                 shed_n = shed_q / x_shed
-                
+
                 ptype%q(i,k) = ptype%q(i,k) - shed_q
                 rain %q(i,k) = rain %q(i,k) + shed_q
                 rain %n(i,k) = rain %n(i,k) + shed_n
 
               END IF
-  
+
             END SELECT
-            
+
           END IF
 
         ENDIF
@@ -2762,7 +2762,7 @@ CONTAINS
     TYPE(collection_coeffs), INTENT(in) :: coeffs
     TYPE(atmosphere), INTENT(inout) :: atmo
     CLASS(particle), INTENT(inout) :: ice, rain, ptype
-    
+
     ! coefficients, add. hydrometeors, incomplete gamma functions
     !  and wet growht LUT for OPTIONAL droplet shedding:
     TYPE(coll_coeffs_ir_pm), INTENT(in), OPTIONAL :: shed_coeffs
@@ -2799,7 +2799,7 @@ CONTAINS
 
     ! itype_shedding = 2 can be computed if the optional parameters are present. Check a few of them:
     shedding_enabled = PRESENT(shed_coeffs) .AND. PRESENT(ltabdminwgp) .AND. PRESENT(shed_ltab_dpp_03)
-    
+
     IF (shedding_enabled) THEN
       p_ltabdminwgp => ltabdminwgp
     END IF
@@ -2880,7 +2880,7 @@ CONTAINS
 
           ! Shedding:
           IF (shedding_enabled .OR. cfg_params%itype_shedding_gh == 1) THEN
-            
+
             SELECT CASE (cfg_params%itype_shedding_gh)
             CASE (1)
               ! simple version from COSMO: Complete shedding for T > T_3, else shedding if particle
@@ -2893,14 +2893,14 @@ CONTAINS
                 ELSE
                   shed_n = shed_q / MAX(x_r,x_p)
                 ENDIF
-                
+
                 ptype%q(i,k) = ptype%q(i,k) - shed_q
                 rain %q(i,k) = rain %q(i,k) + shed_q
                 rain %n(i,k) = rain %n(i,k) + shed_n
               ENDIF
-              
+
             CASE (2)
-              
+
               ! more physical solution involving the wet growth diameter and upper incomplete gamma function:
               IF (T_a > T_shed) THEN
 
@@ -2940,7 +2940,7 @@ CONTAINS
                 !  table node. The table is for the lower incgft, so we have to take
                 !  the difference to the uppermost table value which is the ordinary gamma function:
                 nenner = MAX(nenner, shed_ltab_tpp_03%igf(shed_ltab_tpp_03%n) - &
-                                     shed_ltab_tpp_03%igf(shed_ltab_tpp_03%n-1)) 
+                                     shed_ltab_tpp_03%igf(shed_ltab_tpp_03%n-1))
 
                 vchar = shed_coeffs%theta_aa(0,1) * theta_aa_var / nenner * v_p**2 - &
                         shed_coeffs%theta_ab(0,1) * theta_ab_var / nenner * v_p*v_r + &
@@ -2954,17 +2954,17 @@ CONTAINS
 
                 shed_q = MIN(ptype%q(i,k),shed_q)
                 shed_n = shed_q / x_shed
-                
+
                 ptype%q(i,k) = ptype%q(i,k) - shed_q
                 rain %q(i,k) = rain %q(i,k) + shed_q
                 rain %n(i,k) = rain %n(i,k) + shed_n
 
               END IF
-  
+
             END SELECT
-            
+
           END IF
-          
+
         ENDIF
       ENDDO
     ENDDO
@@ -3236,9 +3236,9 @@ CONTAINS
 
         !! NOTE: LWF has to be given an upper limit!
         !!       Something like 0.85, in which case all meltwater is transfered!
-        
+
         if (qice > 0.0_wp .and. gta(i,k) > 0.0_wp) then
- 
+
           x_p = particle_meanmass(ptype,q_p,n_p)
           D_p = particle_diameter(ptype,x_p)
           D_n = particle_normdiameter(ptype,D_p)
@@ -3248,7 +3248,7 @@ CONTAINS
 
           melt = rat2do3(D_n,lwf,amlt,bmlt)
           !! UB: exp(log()) crashes for very small values of qice!
-          !! Either include a "security-eps" or revert to original power-function 
+          !! Either include a "security-eps" or revert to original power-function
           !! qmlt = gta(i,k) * melt * cmlt1 * exp( cmlt2*log(qliq+qice) )
           qmlt = gta(i,k) * melt * cmlt1 * (qliq+qice)**cmlt2
           qmlt = max( min(qmlt,max_qmlt), 0.0_wp)
@@ -3278,7 +3278,7 @@ CONTAINS
             else
               qshed = 0.0_wp
             end if
-            
+
           end if
 
           ! Forward integration
@@ -3292,7 +3292,7 @@ CONTAINS
           ptype%n(i,k) = n_p
           ptype%q(i,k) = qliq + qice
           ptype%l(i,k) = qliq
-             
+
           rain%q(i,k) = qrain
           rain%n(i,k) = nrain
 
@@ -3343,24 +3343,24 @@ CONTAINS
         e_d   = atmo%qv(i,k) * R_d * T_a
         e_sw  = e_ws(T_a)
         rh_a  = e_d / e_sw
-    
+
         delta_T = T_a - T_3
         delta_q = rh_a * e_sw/T_a - e_ws_T3_o_T3
 
         IF (delta_q < 0.0_wp) delta_q = 0.0_wp
-        
+
         IF  (delta_T > 0.0_wp .OR. delta_q > 0.0_wp) THEN
 
-          eta = dyn_visc_sutherland(T_a)  !..dynamic viscosity        
+          eta = dyn_visc_sutherland(T_a)  !..dynamic viscosity
           Dv  = Dv_Rasmussen(T_a,p_a)     !..diffusivity of water vapour
           ka  = ka_Rasmussen(T_a)         !..conductivity of air
           Le  = lh_evap_RH87(T_a)         !..latent heat of evaporation
           Lm  = lh_melt_RH87(T_a)         !..latent heat of melting
 
-          nu  = eta/rho_a                 !..kinematic viscosity   
+          nu  = eta/rho_a                 !..kinematic viscosity
           Sc  = (nu/Dv)**(1.0_wp/3.0_wp)    !..Schmidt number
-          kt  = ka / (rho_a*cp)           !..diffusivity of air    
-          Pr  = (nu/kt)**(1.0_wp/3.0_wp)    !..Prandtl number    
+          kt  = ka / (rho_a*cp)           !..diffusivity of air
+          Pr  = (nu/kt)**(1.0_wp/3.0_wp)    !..Prandtl number
 
           !.thermodynamic, i.e. environmental, function for melting
           gta(i,k) = 2.0_wp*pi/Lm * ( Pr*ka*delta_T + Sc*Le*Dv*delta_q/R_d )
@@ -3396,7 +3396,7 @@ CONTAINS
     ! 2mom variables
     TYPE(atmosphere), INTENT(inout)       :: atmo
     CLASS(particle),  INTENT(inout)       :: cloud, rain
-    CLASS(particle_frozen), INTENT(inout) :: ice, snow, hail    
+    CLASS(particle_frozen), INTENT(inout) :: ice, snow, hail
     CLASS(particle_frozen), INTENT(inout) :: graupel
 
     ! start and end indices for 2D slices
@@ -3412,7 +3412,7 @@ CONTAINS
     IF (isdebug) CALL message(routine, "graupel_hail_conv_wet_gamlook")
 
     p_ltabdminwgg => ltabdminwgg
-    
+
     istart = ik_slice(1)
     iend   = ik_slice(2)
     kstart = ik_slice(3)
@@ -3616,17 +3616,17 @@ CONTAINS
             END IF
 
           ELSE
-            
+
             !.. 2) Depositional growth negative or smaller than riming growth, therefore ice is
             !      allowed to convert to graupel and / or hail
 
             !.. ice_cloud_riming
-           
+
             n_i = ice%n(i,k)
             q_i = ice%q(i,k)
             x_i = particle_meanmass(ice, q_i,n_i)
             d_i = particle_diameter(ice, x_i)
-              
+
             IF (rime_rate_qc(i,k) > 0.0_wp) THEN
 
               rime_q = rime_rate_qc(i,k)
@@ -3674,7 +3674,7 @@ CONTAINS
 
               x_r = particle_meanmass(rain, rain%q(i,k),rain%n(i,k))
               D_r = particle_diameter(rain, x_r)
-              
+
               rime_qi = rime_rate_qi(i,k)
               rime_qr = rime_rate_qr(i,k)
               rime_n  = rime_rate_nr(i,k)
@@ -3711,7 +3711,7 @@ CONTAINS
                  ! new ice particles from multiplication
                  ice%n(i,k) = ice%n(i,k) + mult_n
                  ice%q(i,k) = ice%q(i,k) + mult_q
-                 
+
                  IF (cfg_params%llim_gr_prod_rain_riming) THEN
                    ! riming to graupel, if bulk density of the collided mean mass
                    ! particles is nearer to equivalent graupel- than to ice bulk density of the collided particle:
@@ -3734,7 +3734,7 @@ CONTAINS
                    ! if the average collided particle is larger than the upper mass limit for ice,
                    ! also convert to graupel:
                    IF (x_coll > ice%x_max) grconvflag = .TRUE.
-                   
+
                  ELSE
                    grconvflag = .TRUE.
                  END IF
@@ -3819,7 +3819,7 @@ CONTAINS
          &                rime_rate_qs, rime_rate_qr, rime_rate_nr)
 
 !!$ This changes the results: !!!    const5 = rho_w/rho_ice * cfg_params%alpha_spacefilling
-    const5 = cfg_params%alpha_spacefilling * rho_w/rho_ice 
+    const5 = cfg_params%alpha_spacefilling * rho_w/rho_ice
 
     !$ACC PARALLEL ASYNC(1) DEFAULT(PRESENT)
     !$ACC LOOP GANG VECTOR COLLAPSE(2) PRIVATE(T_a, q_s, n_s, x_s, d_s, x_r, D_r, rime_n, rime_q) &
@@ -3941,7 +3941,7 @@ CONTAINS
               !.. conversion of snow to graupel, depends on alpha_spacefilling
 
               IF (D_s > D_conv_sg .AND. T_a < cfg_params%Tmax_gr_rime) THEN
-                 q_s = snow%q(i,k)  
+                 q_s = snow%q(i,k)
                  conv_q = (rime_q - mult_q) / ( const5 * (pi6*rho_ice*d_s**3/x_s - 1.0_wp) )
                  conv_q = MIN(q_s,conv_q)
                  x_s    = particle_meanmass(snow, q_s,n_s)
@@ -4064,10 +4064,10 @@ CONTAINS
    CLASS(particle_frozen), INTENT(in):: ptype
    CLASS(particle), INTENT(in) :: cloud
 
-   REAL(wp), INTENT(in)                :: dt 
+   REAL(wp), INTENT(in)                :: dt
    TYPE(collection_coeffs), INTENT(in) :: coeffs
    REAL(wp), INTENT(out)               :: rime_rate_qb(:, :), rime_rate_nb(:, :)
-   
+
    ! start and end indices for 2D slices
    INTEGER :: istart, iend, kstart, kend
    INTEGER             :: i,k
@@ -4091,25 +4091,25 @@ CONTAINS
    !$ACC   PRIVATE(q_c, n_c, x_c, d_c, v_c, e_coll, rime_n, rime_q)
    DO k = kstart,kend
      DO i = istart,iend
-       
+
        n_p = ptype%n(i,k)
        q_p = ptype%q(i,k)
        n_c = cloud%n(i,k)
        q_c = cloud%q(i,k)
-       
+
        x_p = particle_meanmass(ptype, q_p, n_p)
        d_p = particle_diameter(ptype, x_p)
        x_c = particle_meanmass(cloud, q_c, n_c)
        d_c = particle_diameter(cloud, x_c)
-       
+
        IF (q_c > q_crit_c .AND. q_p > ptype%q_crit_c &
             &             .AND. d_p > ptype%D_crit_c .AND. D_c > D_crit_c) THEN
-          
+
          v_c = particle_velocity(cloud,x_c) * cloud%rho_v(i,k)
          v_p = particle_velocity(ptype,x_p) * ptype%rho_v(i,k)
-         
+
          e_coll = MIN(ptype%ecoll_c, MAX(const1*(d_c - D_crit_c), ecoll_min))
-         
+
          rime_n = pi4 * e_coll * n_p * n_c * dt &
               & *     (  coeffs%delta_n_aa * d_p**2 &
               &        + coeffs%delta_n_ab * d_p*d_c &
@@ -4118,7 +4118,7 @@ CONTAINS
               &        - coeffs%theta_n_ab * v_p*v_c &
               &        + coeffs%theta_n_bb * v_c**2 &
               &        + ptype%s_vel**2)
-         
+
          rime_q = pi4 * e_coll * n_p * q_c * dt &
               & *     (  coeffs%delta_q_aa * d_p**2 &
               &        + coeffs%delta_q_ab * d_p*D_c &
@@ -4127,7 +4127,7 @@ CONTAINS
               &        - coeffs%theta_q_ab * v_p*v_c &
               &        + coeffs%theta_q_bb * v_c**2 &
               &        + ptype%s_vel**2)
-         
+
          rime_rate_qb(i,k) = rime_q
          rime_rate_nb(i,k) = rime_n
        ELSE
@@ -4153,7 +4153,7 @@ CONTAINS
     ! istart = slice(1), iend = slice(2), kstart = slice(3), kend = slice(4)
     INTEGER,  INTENT(in) :: ik_slice(4)
     REAL(wp), INTENT(in) :: dt
-    
+
     ! 2mom variables
     CLASS(particle_frozen), INTENT(in) :: ptype
     CLASS(particle), INTENT(in) :: rain
@@ -4265,7 +4265,7 @@ CONTAINS
     REAL(wp)            :: n_c,q_c
     REAL(wp)            :: nuc_n, nuc_q, zf
     REAL(wp), PARAMETER :: eps = 1e-10_wp
-    
+
     ! for activation tables
     INTEGER, PARAMETER :: n_ncn=8, n_r2=3, n_lsigs=5, n_wcb=4
     INTEGER            :: i_lsigs, i_R2
@@ -4348,14 +4348,14 @@ CONTAINS
              IF (PRESENT(n_cn)) THEN
                Ncn = n_cn(i,k) ! number of CN from prognostic variable
              ELSE
-               zf = 0.5_wp*(atmo%zh(i,k)+atmo%zh(i,k+1))             
+               zf = 0.5_wp*(atmo%zh(i,k)+atmo%zh(i,k+1))
                IF(zf > ccn_coeffs%z0) THEN
                  Ncn = ccn_coeffs%Ncn0 * EXP((ccn_coeffs%z0 - zf)/ccn_coeffs%z1e)
                ELSE
                  Ncn = ccn_coeffs%Ncn0
                END IF
              END IF
-             
+
              ! min value for vertical velocity (instead of Nmin of older code)
              wcb = MAX(wcb,ccn_coeffs%wcb_min)
 
@@ -4748,7 +4748,7 @@ CONTAINS
 
     ! call from init_2mom_scheme_once without arguments for initialization of tables
     IF (.NOT.PRESENT(ik_slice)) THEN
-      CALL get_otab(n_r2,n_lsigs,n_ncn,n_wcb)     ! original look-up-table from Segal and Khain      
+      CALL get_otab(n_r2,n_lsigs,n_ncn,n_wcb)     ! original look-up-table from Segal and Khain
       CALL equi_table(nr2,nlsigs,nncn,nwcb)   ! construct the new equidistant table tab:
       !$ACC ENTER DATA COPYIN(tab)
       !$ACC ENTER DATA COPYIN(tab%ltable, tab%x1, tab%x2, tab%x3, tab%x4)
@@ -4778,7 +4778,7 @@ CONTAINS
     iend   = ik_slice(2)
     kstart = ik_slice(3)
     kend   = ik_slice(4)
-    
+
     !$ACC WAIT(1)
     !$ACC EXIT DATA DETACH(tab%ltable, tab%x1, tab%x2, tab%x3, tab%x4) FINALIZE
     !$ACC ENTER DATA ATTACH(tab%ltable, tab%x1, tab%x2, tab%x3, tab%x4)
@@ -4835,7 +4835,7 @@ CONTAINS
           n_c   = cloud%n(i,k)
           q_c   = cloud%q(i,k)
           wcb   = MAX(wcb, wcb_min)  ! enforce a minimal updraft for nucleation
- 
+
           IF (PRESENT(n_cn)) THEN
             Ncn = n_cn(i,k) ! number of CN from prognostic variable
           ELSE
@@ -4864,7 +4864,7 @@ CONTAINS
           hilf4 = hilf3(1,:)     + (hilf3(2,:)     - hilf3(1,:)    ) * tab%odx3 * ( ncn_loc   - tab%x3(ku) )
           nccn  = hilf4(1)       + (hilf4(2)       - hilf4(1)      ) * tab%odx4 * ( wcb_loc   - tab%x4(lu) )
 
-          ! If n_cn is outside the range of the lookup table values, resulting 
+          ! If n_cn is outside the range of the lookup table values, resulting
           ! NCCN are clipped to the margin values. For the case of these margin values
           ! beeing larger than n_cn (which happens sometimes, unfortunately), limit NCCN by n_cn:
           nccn = MIN(nccn, n_cn0)
@@ -5125,7 +5125,7 @@ CONTAINS
           lwf = particle_lwf_idx(ptype,i,k)
 
           IF (.false.) THEN
-            lam = EXP(ptype%b_vel* LOG(pcoeffs%coeff_lambda*x_p))            
+            lam = EXP(ptype%b_vel* LOG(pcoeffs%coeff_lambda*x_p))
             v_n = pcoeffs%coeff_alfa_n * lam
             v_q = pcoeffs%coeff_alfa_q * lam
             v_l = pcoeffs%coeff_alfa_q * lam
@@ -5211,7 +5211,7 @@ CONTAINS
         !$ACC LOOP GANG(STATIC: 1) VECTOR
         DO i = istart,iend
           IF ( cloud%q(i,k) > 0.0_wp .AND. cloud%n(i,k) < eps) THEN
-            cloud%n(i,k) = set_qnc(cloud%q(i,k)) 
+            cloud%n(i,k) = set_qnc(cloud%q(i,k))
           END IF
         END DO
       END IF
@@ -5219,35 +5219,35 @@ CONTAINS
       !$ACC LOOP GANG(STATIC: 1) VECTOR
       DO i = istart,iend
         IF ( ice%q(i,k) > 0.0_wp .AND. ice%n(i,k) < eps) THEN
-          ice%n(i,k) = set_qni(ice%q(i,k)) 
+          ice%n(i,k) = set_qni(ice%q(i,k))
         END IF
       END DO
 
       !$ACC LOOP GANG(STATIC: 1) VECTOR
       DO i = istart,iend
         IF ( rain%q(i,k) > 0.0_wp .AND. rain%n(i,k) < eps) THEN
-          rain%n(i,k) = set_qnr(rain%q(i,k)) 
+          rain%n(i,k) = set_qnr(rain%q(i,k))
         END IF
       END DO
 
       !$ACC LOOP GANG(STATIC: 1) VECTOR
       DO i = istart,iend
         IF ( snow%q(i,k) > 0.0_wp .AND. snow%n(i,k) < eps) THEN
-          snow%n(i,k) = set_qns(snow%q(i,k)) 
+          snow%n(i,k) = set_qns(snow%q(i,k))
         END IF
       END DO
 
       !$ACC LOOP GANG(STATIC: 1) VECTOR
       DO i = istart,iend
         IF ( graupel%q(i,k) > 0.0_wp .AND. graupel%n(i,k) < eps) THEN
-          graupel%n(i,k) = set_qng(graupel%q(i,k)) 
+          graupel%n(i,k) = set_qng(graupel%q(i,k))
         END IF
       END DO
 
       !$ACC LOOP GANG(STATIC: 1) VECTOR
       DO i = istart,iend
         IF ( hail%q(i,k) > 0.0_wp .AND. hail%n(i,k) < eps) THEN
-          hail%n(i,k) = set_qnh_expPSD_N0const(hail%q(i,k),750.0_wp,1.0e6_wp) 
+          hail%n(i,k) = set_qnh_expPSD_N0const(hail%q(i,k),750.0_wp,1.0e6_wp)
         END IF
       END DO
 
@@ -5262,7 +5262,7 @@ CONTAINS
   !     simplified re-write of the above non-reproducible sedi_icon_core:
 
 #if defined (__SX__) || defined (__NEC_VH__) || defined (__NECSX__)
-  
+
   ! Vectorized version for NEC SX
   SUBROUTINE sedi_icon_core(v_n_sedi, v_q_sedi, adz, dt, its, ite, kts, kte, &
                             np, qp, precrate, precrate3D, cmax)
@@ -5302,7 +5302,7 @@ CONTAINS
 
       k_c = IAND(k, 1)
       k_p = 1-IAND(k, 1)
-      
+
       DO i = its,ite
         v_nv(i) = v_n_sedi(i,k)
         v_qv(i) = v_q_sedi(i,k)
@@ -5334,7 +5334,7 @@ CONTAINS
       DO i = its, ite
         s_qv(i) = qp(i,k) * dz(i,k) * MIN(c_qv(i),1.0_wp)
       END DO
-      DO 
+      DO
         IF (kk <= kts) EXIT
         IF (MAXVAL(c_qv) <= 1.0_wp) EXIT
         kk  = kk - 1
@@ -5357,7 +5357,7 @@ CONTAINS
       DO i = its,ite
         np(i,k) = np(i,k) + ( n_fluss(i,k_c) - n_fluss(i,k_p) )*adz(i,k)*dt
         qp(i,k) = qp(i,k) + ( q_fluss(i,k_c) - q_fluss(i,k_p) )*adz(i,k)*dt
-        precrate3D(i,k) = - q_fluss(i,k_c) ! precipitation rate at lower level boundary        
+        precrate3D(i,k) = - q_fluss(i,k_c) ! precipitation rate at lower level boundary
       ENDDO
 
     END DO
@@ -5505,7 +5505,7 @@ CONTAINS
     s_qv(:,:) = 0.0_wp
 
     DO k = kts, kte
-      
+
       DO i = its,ite
 
         v_nv(i) = v_n_sedi(i,k)
@@ -5521,7 +5521,7 @@ CONTAINS
       dz_loc(:) = 0.0_wp  ! Distance from the k'th lower cell face to the k+kk'th
                           !   lower cell face for downward processing starting from k
       DO
-        IF ( k+kk > kte ) EXIT 
+        IF ( k+kk > kte ) EXIT
         IF ( ALL( dz_loc(:) >= -v_nv(:)*dt ) ) EXIT
         DO i = its, ite
           IF ( dz_loc(i) < -v_nv(i)*dt ) THEN
@@ -5537,7 +5537,7 @@ CONTAINS
       kk = 0
       dz_loc(:) = 0.0_wp
       DO
-        IF ( k+kk > kte ) EXIT 
+        IF ( k+kk > kte ) EXIT
         IF ( ALL( dz_loc(:) >= -v_qv(:)*dt ) ) EXIT
         DO i = its, ite
           IF ( dz_loc(i) < -v_qv(i)*dt ) THEN
@@ -5547,7 +5547,7 @@ CONTAINS
         END DO
         kk = kk + 1
       END DO
-      
+
     END DO
 
     ! .. Divide the time-aggregated flux by dt to get the time-averaged
@@ -5794,7 +5794,7 @@ CONTAINS
       DO i = its, ite
         s_qv(i) = qp(i,k) * dz(i,k) * MIN(c_qv(i),1.0_wp)
       END DO
-      DO 
+      DO
         IF (kk <= kts) EXIT
         IF (MAXVAL(c_qv) <= 1.0_wp) EXIT
         kk  = kk - 1
@@ -5810,7 +5810,7 @@ CONTAINS
       DO i = its, ite
         s_ql(i) = ql(i,k) * dz(i,k) * MIN(c_ql(i),1.0_wp)
       END DO
-      DO 
+      DO
         IF (kk <= kts) EXIT
         IF (MAXVAL(c_ql) <= 1.0_wp) EXIT
         kk  = kk - 1
@@ -5825,7 +5825,7 @@ CONTAINS
       ! Flux-limiter to avoid negative values
       k_c = IAND(k, 1)
       k_p = 1-IAND(k, 1)
-      
+
       DO i = its,ite
 
         s_nv(i) = -s_nv(i) * odt
@@ -5838,11 +5838,11 @@ CONTAINS
       END DO
 
       DO i = its,ite
-        
+
         np(i,k) = np(i,k) + ( n_fluss(i,k_c)  - n_fluss (i,k_p) )*adz(i,k)*dt
         qp(i,k) = qp(i,k) + ( q_fluss(i,k_c)  - q_fluss (i,k_p) )*adz(i,k)*dt
         ql(i,k) = ql(i,k) + ( ql_fluss(i,k_c) - ql_fluss(i,k_p) )*adz(i,k)*dt
-        
+
         precrate3D(i,k) = - q_fluss(i,k_c) - ql_fluss(i,k_c) ! precipitation rate at lower level boundary
 
       ENDDO
@@ -5851,7 +5851,7 @@ CONTAINS
 
     IF (PRESENT(cmax)) cmax = cmax_temp
 
-    precrate(its:ite) = - q_fluss(its:ite,IAND(kte, 1)) - ql_fluss(its:ite,IAND(kte, 1)) 
+    precrate(its:ite) = - q_fluss(its:ite,IAND(kte, 1)) - ql_fluss(its:ite,IAND(kte, 1))
 
   END SUBROUTINE sedi_icon_core_lwf
 
@@ -5938,7 +5938,7 @@ CONTAINS
         np(i,k) = np(i,k) + ( n_fluss (i,k_c) - n_fluss (i,k_p) )*adz(i,k)*dt
         qp(i,k) = qp(i,k) + ( q_fluss (i,k_c) - q_fluss (i,k_p) )*adz(i,k)*dt
         ql(i,k) = ql(i,k) + ( ql_fluss(i,k_c) - ql_fluss(i,k_p) )*adz(i,k)*dt
-        
+
         precrate3D(i,k) = - q_fluss(i,k_c) - ql_fluss(i,k_c) ! precipitation rate at lower level boundary
 
       ENDDO
@@ -6016,7 +6016,7 @@ CONTAINS
       dz_loc(:) = 0.0_wp  ! Distance from the k'th lower cell face to the k+kk'th
                           !   lower cell face for downward processing starting from k
       DO
-        IF ( k+kk > kte ) EXIT 
+        IF ( k+kk > kte ) EXIT
         IF ( ALL( dz_loc(:) >= -v_nv(:)*dt ) ) EXIT
         DO i = its, ite
           IF ( dz_loc(i) < -v_nv(i)*dt ) THEN
@@ -6031,7 +6031,7 @@ CONTAINS
       kk = 0
       dz_loc(:) = 0.0_wp
       DO
-        IF ( k+kk > kte ) EXIT 
+        IF ( k+kk > kte ) EXIT
         IF ( ALL( dz_loc(:) >= -v_qv(:)*dt ) ) EXIT
         DO i = its, ite
           IF ( dz_loc(i) < -v_qv(i)*dt ) THEN
@@ -6041,12 +6041,12 @@ CONTAINS
         END DO
         kk = kk + 1
       END DO
-      
+
       ! .. The same for the liquid partial mass density flux:
       kk = 0
       dz_loc(:) = 0.0_wp
       DO
-        IF ( k+kk > kte ) EXIT 
+        IF ( k+kk > kte ) EXIT
         IF ( ALL( dz_loc(:) >= -v_ql(:)*dt ) ) EXIT
         DO i = its, ite
           IF ( dz_loc(i) < -v_ql(i)*dt ) THEN
@@ -6056,7 +6056,7 @@ CONTAINS
         END DO
         kk = kk + 1
       END DO
-      
+
     END DO
 
     ! .. Divide the time-aggregated flux by dt to get the time-averaged

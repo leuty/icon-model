@@ -24,7 +24,7 @@ MODULE mo_nonhydrostatic_config
 
   !>
   !!----------------------------------------------------------------------------
-  !! Derived type containing control variables specific to the nonhydrostatic 
+  !! Derived type containing control variables specific to the nonhydrostatic
   !! atm model
   !!----------------------------------------------------------------------------
 !  TYPE :: t_nonhydrostatic_config
@@ -62,8 +62,8 @@ MODULE mo_nonhydrostatic_config
     INTEGER :: ivctype                  ! Type of vertical coordinate (Gal-Chen / SLEVE)
     REAL(wp):: htop_moist_proc          ! Top height (in m) of the part of the model domain
                                         ! where processes related to moist physics are computed
-    REAL(wp):: hbot_qvsubstep           ! Bottom height (in m) down to which water vapor is 
-                                        ! advected with internal substepping (to circumvent CFL 
+    REAL(wp):: hbot_qvsubstep           ! Bottom height (in m) down to which water vapor is
+                                        ! advected with internal substepping (to circumvent CFL
                                         ! instability in the stratopause region).
     REAL(wp):: htop_aero_proc           ! Top height (in m) of the model domain where (ART) tracers
                                         ! are being transported/diffused/modified
@@ -82,7 +82,7 @@ MODULE mo_nonhydrostatic_config
     INTEGER :: igradp_method    ! Method for computing the horizontal presure gradient
     REAL(wp):: exner_expol      ! Temporal extrapolation of Exner for computation of
                                 ! horizontal pressure gradient
-    LOGICAL :: l_zdiffu_t       ! .true.: apply truly horizontal temperature diffusion 
+    LOGICAL :: l_zdiffu_t       ! .true.: apply truly horizontal temperature diffusion
                                 ! over steep slopes
     REAL(wp):: thslp_zdiffu     ! threshold slope above which temperature diffusion is applied
     REAL(wp):: thhgtd_zdiffu    ! threshold height difference between adjacent model grid points
@@ -97,24 +97,24 @@ MODULE mo_nonhydrostatic_config
     LOGICAL :: lcalc_dpsdt              !< TRUE: compute dpsdt for output even if a
                                         !  low message level (<= 10) is selected
 
-!  END TYPE t_nonhydrostatic_config 
+!  END TYPE t_nonhydrostatic_config
   !>
   !!
-!  TYPE(t_nonhydrostatic_config) :: nonhydrostatic_config(max_dom) ! config state 
+!  TYPE(t_nonhydrostatic_config) :: nonhydrostatic_config(max_dom) ! config state
 
 
 CONTAINS
 
-  !! Setup of additional nonhydrostatic control variables depending on the 
-  !! nonhydrostatic-NAMELIST and potentially other namelists. This routine is 
-  !! called, after all namelists have been read and a synoptic consistency 
+  !! Setup of additional nonhydrostatic control variables depending on the
+  !! nonhydrostatic-NAMELIST and potentially other namelists. This routine is
+  !! called, after all namelists have been read and a synoptic consistency
   !! check has been done.
   !!
   SUBROUTINE configure_nonhydrostatic(jg, nlev, nshift_total)
   !
-    INTEGER,  INTENT(IN) :: jg           !< patch 
-    INTEGER,  INTENT(IN) :: nlev         !< number of full vertical levels 
-    INTEGER,  INTENT(IN) :: nshift_total 
+    INTEGER,  INTENT(IN) :: jg           !< patch
+    INTEGER,  INTENT(IN) :: nlev         !< number of full vertical levels
+    INTEGER,  INTENT(IN) :: nshift_total
 
     INTEGER :: jk, jk1
 

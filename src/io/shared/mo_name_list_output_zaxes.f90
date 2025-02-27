@@ -235,7 +235,7 @@ CONTAINS
         &                                         zaxisUbounds = (/ (0.0_dp, k=1,n_wshear) /),  &
         &                                         zaxisUnits="m"))
     END IF
-    
+
     ! --------------------------------------------------------------------------------------
     ! Definitions for storm relative helicity
     !   (integral between a height AGL and GND)
@@ -249,7 +249,7 @@ CONTAINS
         &                                         zaxisUbounds = (/ (0.0_dp, k=1,n_srh) /),&
         &                                         zaxisUnits="m"))
     END IF
-    
+
     ! Isobaric pressure layer 500 hPa - 850 hPa for the temperature lapse_rate:
     CALL verticalAxisList%append(single_layer_axis(ZA_pressure_lapserate, 500._dp, 850._dp, "hPa"))
 
@@ -428,14 +428,14 @@ CONTAINS
   !> Setup of vertical axes for output module: Ocean component
   !
   SUBROUTINE setup_zaxes_oce(verticalAxisList, level_selection)
-  
+
     TYPE(t_verticalAxisList), INTENT(INOUT) :: verticalAxisList
     TYPE(t_level_selection),  INTENT(IN), POINTER :: level_selection
     ! local variables
     REAL(dp), ALLOCATABLE             :: levels_i(:), levels_m(:)
     REAL(dp), ALLOCATABLE             :: levels_s(:), levels_sp(:)
     REAL(dp), ALLOCATABLE             :: layers_int(:), layers_cent(:)
-    
+
 #ifndef __NO_ICON_OCEAN__
     ALLOCATE(levels_i(n_zlev+1), levels_m(n_zlev))
     CALL set_zlev(levels_i, levels_m, n_zlev, dzlev_m)

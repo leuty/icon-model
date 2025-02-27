@@ -68,8 +68,8 @@ CONTAINS
   !! @par Literature:
   !! - Zalesak, S.T. (1979): Fully Multidimensional Flux-corrected Transport
   !!   Algorithms for Fluids. JCP, 31, 335-362
-  !! - Schaer, C. and P.K. Smolarkiewicz (1996): A synchronous and iterative 
-  !!   flux-correction formalism for coupled transport equations. J. comput. Phys., 
+  !! - Schaer, C. and P.K. Smolarkiewicz (1996): A synchronous and iterative
+  !!   flux-correction formalism for coupled transport equations. J. comput. Phys.,
   !!   128, 101-120
   !!
   SUBROUTINE hflx_limiter_mo( ptr_patch, ptr_int, p_dtime, p_cc,            &
@@ -108,7 +108,7 @@ CONTAINS
     INTEGER, INTENT(IN) ::      &    !< vertical end level
       &  elev
 
-    REAL(wp), INTENT(IN), OPTIONAL ::  & !< factor for multiplicative spreading of range 
+    REAL(wp), INTENT(IN), OPTIONAL ::  & !< factor for multiplicative spreading of range
       &  opt_beta_fct                    !< of permissible values
 
     INTEGER, INTENT(IN), OPTIONAL :: & !< optional: refinement control start level
@@ -139,7 +139,7 @@ CONTAINS
       &  z_fluxdiv_c
 
     REAL(wp) ::                 &    !< new tracer field after hor. transport,
-      &  z_tracer_new_low(nproma,slev:elev,ptr_patch%nblks_c) 
+      &  z_tracer_new_low(nproma,slev:elev,ptr_patch%nblks_c)
                                      !< if the low order fluxes are used
 
     REAL(vp) ::                 &    !< local maximum of current tracer value and low
@@ -149,7 +149,7 @@ CONTAINS
       &  z_tracer_min(nproma,slev:elev,ptr_patch%nblks_c) !< order update
 
     ! remark: single precision would be sufficient for r_m and r_p, but SP-sync is not yet available
-    REAL(wp) ::                 &    !< fraction which must multiply all in/out fluxes 
+    REAL(wp) ::                 &    !< fraction which must multiply all in/out fluxes
       &  r_p(nproma,slev:elev,ptr_patch%nblks_c),&   !< of cell jc to guarantee
       &  r_m(nproma,slev:elev,ptr_patch%nblks_c)     !< no overshoot/undershoot
 
@@ -157,10 +157,10 @@ CONTAINS
                        !< the flux at the edge
 
     REAL(vp) :: z_min(nproma,slev:elev), & !< minimum/maximum value in cell and neighboring cells
-      &         z_max(nproma,slev:elev) 
+      &         z_max(nproma,slev:elev)
     REAL(wp) :: z_signum             !< sign of antidiffusive velocity
     REAL(wp) :: beta_fct             !< factor of allowed over-/undershooting in monotonous limiter
-    REAL(wp) :: r_beta_fct           !< ... and its reverse value   
+    REAL(wp) :: r_beta_fct           !< ... and its reverse value
 
     INTEGER, CONTIGUOUS, POINTER :: &  !< Pointer to line and block indices of two
       &  iilc(:,:,:), iibc(:,:,:)      !< neighbor cells (array)
@@ -259,8 +259,8 @@ CONTAINS
 
 
           ! calculate antidiffusive flux for each edge
-          ! only correct for i_rlend_e = min_rledge_int - 1, if p_mflx_tracer_h 
-          ! is not synchronized. This is sufficient without iterative flux 
+          ! only correct for i_rlend_e = min_rledge_int - 1, if p_mflx_tracer_h
+          ! is not synchronized. This is sufficient without iterative flux
           ! correction which turned out to be overly expensive.
           z_anti(je,jk,jb)     = p_mflx_tracer_h(je,jk,jb) - z_mflx_low(je,jk,jb)
 
@@ -336,7 +336,7 @@ CONTAINS
             & z_mflx_low(iidx(jc,jb,3),jk,iblk(jc,jb,3)) * ptr_int%geofac_div(jc,3,jb)
 !
 ! TODO:  the datum  z_mflx_low(iidx(jc,jb,3),jk,iblk(jc,jb,3)) yields differences later in z_tracer_new_low
-!        The other entries do not cause a problem. 
+!        The other entries do not cause a problem.
 !        Status 2015_09_07: problem still there in spite of corrections to mo_nonhydro_gpu_types,
 !             both iidx(:,:,3) and iblk(:,:,3) possess problem.
 !        Status 2015_09_22: this is related to the COLLAPSE directive mentioned above
@@ -385,7 +385,7 @@ CONTAINS
 
 !$OMP END DO
 
-    ! Additional initialization of lateral boundary points is needed 
+    ! Additional initialization of lateral boundary points is needed
     ! for limited-area mode
     IF ( l_limited_area .AND. ptr_patch%id == 1 ) THEN
 
@@ -472,8 +472,8 @@ CONTAINS
     ! 5. Now loop over all edges and determine the minimum fraction which must
     !    multiply the antidiffusive flux at the edge.
     !
-    !    - at the end, compute new, limited fluxes which are then passed to 
-    !      the main program. Note that p_mflx_tracer_h now denotes the 
+    !    - at the end, compute new, limited fluxes which are then passed to
+    !      the main program. Note that p_mflx_tracer_h now denotes the
     !      LIMITED flux.
     !
 
@@ -782,4 +782,3 @@ CONTAINS
   END SUBROUTINE hflx_limiter_pd
 
 END MODULE mo_advection_hlimit
-

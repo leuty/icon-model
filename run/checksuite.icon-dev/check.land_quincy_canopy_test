@@ -42,7 +42,7 @@ DATES="$DATES 19010101T003000Z 19010101T010000Z 19010101T013000Z \
               19010101T020000Z 19010101T023000Z 19010101T030000Z"  # dates of time steps
 
 # RESTART_DATE defines the date and time from which restarts should be performed.
-# 
+#
 export RESTART_DATE='19010101T020000Z'
 
 #--------------------------------------------------------------------------------

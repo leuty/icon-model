@@ -95,10 +95,10 @@ SUBROUTINE satad_v_3D (maxiter, tol, te, qve, qce,    & ! IN, INOUT
 
   REAL    (KIND=wp),    INTENT (IN),  DIMENSION(:,:) ::  &  !  dim (idim,kdim)
        rhotot    ! density containing dry air and water constituents
-  
+
   REAL    (KIND=wp),    INTENT (IN),  DIMENSION(:,:) ::  &  !  dim (idim,kdim+1)
        w         ! vertical velocity
-  
+
   INTEGER :: count              ! number of iterations actually needed;
                                 ! maximum over all iterated gridpoints
 
@@ -117,11 +117,11 @@ SUBROUTINE satad_v_3D (maxiter, tol, te, qve, qce,    & ! IN, INOUT
 
   REAL    (KIND=wp),  DIMENSION(idim,kdim) ::  &
        lwdocvd,                &  ! (Temperature-dependent) latent heat of vaporization over cv
-       supsatfac                  ! Parameterized supersaturation according to updraft  
+       supsatfac                  ! Parameterized supersaturation according to updraft
 
   REAL (KIND=wp), DIMENSION(idim*kdim) ::  &
        twork, tworkold
-  
+
   !------------ End of header ----------------------------------------------------
   !-------------------------------------------------------------------------------
   ! Begin Subroutine satad
@@ -162,7 +162,7 @@ SUBROUTINE satad_v_3D (maxiter, tol, te, qve, qce,    & ! IN, INOUT
 
       END DO
     END DO
-    
+
     DO k = klo, kup
       DO i = ilo , iup
 
@@ -188,7 +188,7 @@ SUBROUTINE satad_v_3D (maxiter, tol, te, qve, qce,    & ! IN, INOUT
           ! And this is the storage variable for the "old" values in the below iteration:
           ! Add some nonesense increment to the starting, which is sufficient to trigger the
           ! iteration below:
-          tworkold(nsat) = twork(nsat) + 10.0_wp        
+          tworkold(nsat) = twork(nsat) + 10.0_wp
         END IF
 
       END DO
@@ -304,10 +304,10 @@ SUBROUTINE satad_v_3D_gpu (maxiter, tol, te, qve, qce, & ! IN, INOUT
 
   REAL    (KIND=wp),    INTENT (IN),  DIMENSION(:,:) ::  &  !  dim (idim,kdim)
        rhotot    ! density containing dry air and water constituents
-  
+
   REAL    (KIND=wp),    INTENT (IN),  DIMENSION(:,:) ::  &  !  dim (idim,kdim+1)
        w         ! vertical velocity
-  
+
   INTEGER :: count              ! number of iterations actually needed;
                                 ! maximum over all iterated gridpoints
 
@@ -422,7 +422,6 @@ SUBROUTINE satad_v_3D_gpu (maxiter, tol, te, qve, qce, & ! IN, INOUT
 !!!=============================================================================================
 !!!=============================================================================================
 
-END SUBROUTINE satad_v_3D_gpu  
+END SUBROUTINE satad_v_3D_gpu
 
 END MODULE mo_satad
-

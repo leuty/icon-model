@@ -501,7 +501,7 @@ CONTAINS
     this%grp_nelem(:) = 0
     !$ACC END KERNELS
     !$ACC WAIT(1)
-    
+
     image_idx(:) = 0
     image_blk(:) = 0
     grp_codom(:,:) = 0

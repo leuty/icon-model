@@ -76,13 +76,13 @@ USE mo_exception,          ONLY: message, message_text, finish
 
 !------------------------------------------------------------------------------
 
-USE gscp_data, ONLY: &      
+USE gscp_data, ONLY: &
     ccsrim,    ccsagg,    ccsdep,    ccsvel,    ccsvxp,    ccslam,       &
     ccslxp,    ccsaxp,    ccsdxp,    ccshi1,    ccdvtp,    ccidep,       &
     ccswxp,    zconst,    zcevxp,    zbevxp,                             &
     zvzxp,     zxstar,    zxcmin,    zami,                               &
     v0snow,                                                              &
-    zvz0r => zvz0r0,      zbev => zbev0,        zcev => zcev0,           & 
+    zvz0r => zvz0r0,      zbev => zbev0,        zcev => zcev0,           &
     x13o8,     x1o2,      x27o16,    x7o4,      x7o8,      x1o3,         &
     zbvi,      zcac,      zccau,     zciau,     zcicri,                  &
     zcrcri,    zcrfrz,    zcrfrz1,   zcrfrz2,   zeps,      zkcac,        &
@@ -127,9 +127,9 @@ LOGICAL, PARAMETER :: &
 REAL(wp), PARAMETER, DIMENSION(1:5) :: &
      cdust = (/ 286.0_wp, 0.017_wp, 256.7_wp, 0.080_wp, 200.75_wp/)    ! dust of Ullrich et al. (2007)
 
-REAL(wp), PARAMETER ::     & ! constant parameters for INAS-based ice nucleation scheme   
-     numdust = 1e+4_wp,    & ! number density of dust   
-     diadust = 5e-7_wp,    & ! diameter of dust 0.5 mu    
+REAL(wp), PARAMETER ::     & ! constant parameters for INAS-based ice nucleation scheme
+     numdust = 1e+4_wp,    & ! number density of dust
+     diadust = 5e-7_wp,    & ! diameter of dust 0.5 mu
      sigdust = 2.50_wp,    & ! standard deviation of lognormal dust distribution
      sfcdust = pi * EXP( 2.0_wp * LOG( sigdust )**2 ) * diadust**2  ! total surface area of dust
 
@@ -149,7 +149,7 @@ REAL(wp), PARAMETER ::             &  ! some constants needed for Kaercher and L
      M_a     = 28.96e-3          , &  ! molecular mass of air [kg/mol]
      ma_w    = M_w / N_avo       , &  ! mass of water molecule [kg]
      svol    = ma_w / rho_ice         ! specific volume of a water molecule in ice
-     
+
 REAL(wp), PARAMETER ::             &  ! some constants no longer provided by mo_math_constants
      pi4 = pi/4.0_wp
 
@@ -181,7 +181,7 @@ END FUNCTION
 #endif
 
 !==============================================================================
-!> Module procedure "cloudice2mom" in "gscp_ice" for computing effects of 
+!> Module procedure "cloudice2mom" in "gscp_ice" for computing effects of
 !!  grid scale precipitation including cloud water, cloud ice, rain and snow
 !------------------------------------------------------------------------------
 
@@ -192,7 +192,7 @@ SUBROUTINE cloudice2mom (            &
   zdt, dz,                           & !! time step and vertical grid spacing
   t,p,rho,qv,qc,qi,qr,qs,            & !! prognostic variables
   qnc,                               & !! diagnostic cloud droplet number
-  dustnum,                           & !! prognostic dust concentration 
+  dustnum,                           & !! prognostic dust concentration
   dustsfc,                           & !! prognostic dust surface area
   qni,ninact,                        & !! prognostic cloud ice number
   w,                                 & !! vertical velocity (for homogeneous nucleation)
@@ -205,9 +205,9 @@ SUBROUTINE cloudice2mom (            &
   ithermo_water,                     & !! choice of water thermodynamics
   inucleation,                       & !! choice of ice nucleation
   ldiag_ttend,     ldiag_qtend     , & !! switches for optional diagnostic tendency output
-  ddt_tend_t     , ddt_tend_qv     , & !! tendencies which are not 
+  ddt_tend_t     , ddt_tend_qv     , & !! tendencies which are not
   ddt_tend_qc    , ddt_tend_qi     , & !! used anywhere
-  ddt_tend_qr    , ddt_tend_qs       ) 
+  ddt_tend_qr    , ddt_tend_qs       )
 
 !------------------------------------------------------------------------------
 ! Description:
@@ -224,8 +224,8 @@ SUBROUTINE cloudice2mom (            &
 !
 ! Vectorization:
 !   Most computations in this routine are grouped in IF-clauses. But the IFs
-!   inside DO-loops often hinder or even disables vectorization. 
-!   For the big IF-chunks, the condition is now checked at the beginning of 
+!   inside DO-loops often hinder or even disables vectorization.
+!   For the big IF-chunks, the condition is now checked at the beginning of
 !   the subroutine and the corresponding indices are stored in extra index
 !   arrays. The following loops then are running only over these indices,
 !   avoiding at least some IF-clauses inside the loops.
@@ -308,10 +308,10 @@ SUBROUTINE cloudice2mom (            &
 
   !! Local parameters: None, parameters are in module header, gscp_data or data_constants
   !! ----------------
-  
+
   !> Local scalars:
   !! -------------
-  
+
   INTEGER (KIND=i4   ) ::  &
     iv, k             !> loop indices
 
@@ -328,7 +328,7 @@ SUBROUTINE cloudice2mom (            &
   REAL    (KIND=wp   ) ::  &
     fpvsw,             & ! name of statement function
     fxna ,             & ! statement function for ice crystal number
-    fxna_cooper ,      & ! statement function for ice crystal number, Cooper(1986) 
+    fxna_cooper ,      & ! statement function for ice crystal number, Cooper(1986)
     ztx  ,             & ! dummy argument for statement functions
     znimax,            & ! maximum number of cloud ice crystals
     znimix,            & ! number of ice crystals at ztmix -> threshold temp for mixed-phase clouds
@@ -339,14 +339,14 @@ SUBROUTINE cloudice2mom (            &
     zsrsum, zsrmax,    & ! terms for limiting  total rain water depletion
     zssmax,            & ! terms for limiting snow depletion
     znin,              & ! number of cloud ice crystals at nucleation
-    fnuc,              & !FR: coefficient needed for Forbes (2012) SLW layer parameterization 
+    fnuc,              & !FR: coefficient needed for Forbes (2012) SLW layer parameterization
     znid,              & ! number of cloud ice crystals for deposition
     zmi ,              & ! mass of a cloud ice crystal
     zsvidep, zsvisub,  & ! deposition, sublimation of cloud ice
     zsimax , zsisum , zsvmax,& ! terms for limiting total cloud ice depletion
     zqvsw,             & ! sat. specitic humidity at ice and water saturation
     zqvsidiff,         & ! qv-zqvsi
-    ztfrzdiff,         & ! ztrfrz-t  
+    ztfrzdiff,         & ! ztrfrz-t
     zztau, zxfac, zx1, zx2, ztt, &   ! some help variables
     ztau, zphi, zhi, zdvtp, ztc, zeff, zlog_10
 
@@ -439,7 +439,7 @@ SUBROUTINE cloudice2mom (            &
     zeln27o16qrk      ,     & !
     zeln13o8qrk       ,     & !
     zeln5o24qsk       ,     & !
-    zeln2o3qsk          
+    zeln2o3qsk
 
 
   REAL    (KIND=wp   ) ::  &
@@ -588,7 +588,7 @@ SUBROUTINE cloudice2mom (            &
   ELSE
     ice_nucleation = inucleation
   ENDIF
-  
+
 
   !$ACC DATA CREATE(t_in) IF(lldiag_ttend)
   !$ACC DATA CREATE(qv_in, qc_in, qi_in, qr_in, qs_in) IF(lldiag_qtend)
@@ -677,7 +677,7 @@ SUBROUTINE cloudice2mom (            &
     pri_gsp (iv) = 0.0_wp
 #ifndef __LOOP_EXCHANGE
     zlhv(iv)     = lh_v
-    zlhs(iv)     = lh_s    
+    zlhs(iv)     = lh_s
 #endif
   END DO
   !$ACC END PARALLEL
@@ -687,7 +687,7 @@ SUBROUTINE cloudice2mom (            &
   zlhv(:) = lh_v
   zlhs(:) = lh_s
 #endif
-  
+
 ! *********************************************************************
 ! Loop from the top of the model domain to the surface to calculate the
 ! transfer rates  and sedimentation terms
@@ -761,7 +761,7 @@ SUBROUTINE cloudice2mom (            &
       zbsdep = 0.0_wp
       zvz0s  = 0.0_wp
       zn0s   = zn0s0
-      reduce_dep = 1.0_wp  !FR: Reduction coeff. for dep. growth of rain and ice  
+      reduce_dep = 1.0_wp  !FR: Reduction coeff. for dep. growth of rain and ice
 
       !----------------------------------------------------------------------------
       ! 2.1: Preparations for computations and to check the different conditions
@@ -798,7 +798,7 @@ SUBROUTINE cloudice2mom (            &
       ELSE
         znik = 0.0_wp
       END IF
-    
+
       llqr = zqrk > zqmin
       llqs = zqsk > zqmin
       llqi = zqik > zqmin
@@ -868,7 +868,7 @@ SUBROUTINE cloudice2mom (            &
           zvzs(iv) = zlnqsk * ccswxp_ln1o2
         ENDIF
       ENDIF ! qs_prepare
-    
+
       ! sedimentation fluxes
 
       !-------------------------------------------------------------------------
@@ -899,7 +899,7 @@ SUBROUTINE cloudice2mom (            &
           ENDIF
           IF (licenum) THEN
             ! sedimentation of ice number assuming vn=vq for cloud ice
-            zpkin(iv) = znik * zvi * zvnvq  
+            zpkin(iv) = znik * zvi * zvnvq
             IF (zvzin(iv) == 0.0_wp) THEN
               zvzin(iv) = zvi * zbvi_ln1o2 * zvnvq
             ENDIF
@@ -907,16 +907,16 @@ SUBROUTINE cloudice2mom (            &
             zpkin(iv) = 0.0_wp
             zvzin(iv) = 0.0_wp
           ENDIF
-        ELSE ! size-dependent fall speed of ice          
+        ELSE ! size-dependent fall speed of ice
           zvi = vice2mom(zqik,zmi,zrhofac_qi,tropicsmask(iv))
           zpki(iv)  = zqik * zvi
-          zpkin(iv) = znik * zvi * zvnvq 
+          zpkin(iv) = znik * zvi * zvnvq
           IF (zvzin(iv) == 0.0_wp) THEN
             zvzi(iv)  = zvi * zbvi_ln1o2
             zvzin(iv) = zvi * zbvi_ln1o2 * zvnvq
           ENDIF
         END IF
-      ENDIF  
+      ENDIF
 
 
       ! Prevent terminal fall speeds of precip hydrometeors from being zero at the surface level
@@ -966,10 +966,10 @@ SUBROUTINE cloudice2mom (            &
       ssmelt        = 0.0_wp
       sev           = 0.0_wp
       srfrz         = 0.0_wp
-      
+
       zpsati = sat_pres_ice(tg)
       zpsatw = sat_pres_water(tg)
-      
+
       hlp = 1._wp/(rhog * r_v * tg)
       zqvsi = zpsati * hlp
       zqvsw = zpsatw * hlp
@@ -993,7 +993,7 @@ SUBROUTINE cloudice2mom (            &
       ELSE
         zzni   = 0.0_wp
       END IF
-      
+
       zimr   = 1.0_wp / (1.0_wp + zvzr(iv) * zdtdh)
       zims   = 1.0_wp / (1.0_wp + zvzs(iv) * zdtdh)
       zimi   = 1.0_wp / (1.0_wp + zvzi(iv) * zdtdh)
@@ -1002,7 +1002,7 @@ SUBROUTINE cloudice2mom (            &
       ELSE
         zini   = 0.0_wp
       END IF
-      
+
       zqrk   = zzar*zimr
       zqsk   = zzas*zims
       zqik   = zzai*zimi
@@ -1011,10 +1011,10 @@ SUBROUTINE cloudice2mom (            &
       ELSE
         znik   = 0.0_wp
       END IF
-      
+
       llqr = zqrk > zqmin
       llqs = zqsk > zqmin
-      llqi =  qig > zqmin 
+      llqi =  qig > zqmin
       llqc =  qcg > zqmin
 
       !!----------------------------------------------------------------------------
@@ -1053,7 +1053,7 @@ SUBROUTINE cloudice2mom (            &
 
       !!----------------------------------------------------------------------------
       !! 2.7:  slope of snow PSD and coefficients for depositional growth (llqi,llqs; ic3)
-      !!----------------------------------------------------------------------------    
+      !!----------------------------------------------------------------------------
 
       IF (llqi .OR. llqs) THEN
         zdvtp  = ccdvtp * EXP(1.94_wp * LOG(tg)) / ppg
@@ -1070,7 +1070,7 @@ SUBROUTINE cloudice2mom (            &
 
       !!----------------------------------------------------------------------------
       !! 2.8: Deposition nucleation for low temperatures below a threshold (llqv)
-      !!----------------------------------------------------------------------------    
+      !!----------------------------------------------------------------------------
 
       IF ( licenum .and. ice_nucleation > 0 ) THEN
         ! INAS-based deposition nucleation with exponential vertical profile of dust
@@ -1087,7 +1087,7 @@ SUBROUTINE cloudice2mom (            &
           snucn = z1orhog * znin * zdtr
           snuc  = zmi0 * snucn
         ENDIF
-      ELSE      
+      ELSE
         IF ( tg < zthet .AND. qvg >  8.E-6_wp .AND. qig <= 0.0_wp .AND. qvg > zqvsi ) THEN
           IF( lsuper_coolw ) THEN
             znin  = MIN( fxna_cooper(tg), znimax )
@@ -1101,10 +1101,10 @@ SUBROUTINE cloudice2mom (            &
 
       !!----------------------------------------------------------------------------
       !! 2.8: Homogeneous ice nucleation for low temperatures
-      !!----------------------------------------------------------------------------    
+      !!----------------------------------------------------------------------------
 
       IF (licenum .and. lice_hom .and. tg < zthn) THEN
-        
+
         ! critical supersaturation for homogeneous nucleation
         scr = 2.349 - tg * (1.0_wp/ 259.00_wp)
 
@@ -1112,7 +1112,7 @@ SUBROUTINE cloudice2mom (            &
         wcr = w(iv,k)  !* 4.0_wp                  ! and increase w
 
         IF (zssi > scr .AND. nig < ni_hom_max ) THEN
-          
+
           zmi = MAX(MIN(qig/(nig+zeps),zximax),zximin)
           zri = EXP( (1./3.)*LOG(zmi/(4./3.*pi*rho_ice)) ) ! assumes spherical ice
 
@@ -1164,13 +1164,13 @@ SUBROUTINE cloudice2mom (            &
             mi_hom  = MIN(MAX(mi_hom,zximin),zximax)
 
             ! nucleation rate
-            shomn = MIN(MAX(z1orhog*ni_hom, 0.d0),ni_hom_max) * zdtr  
+            shomn = MIN(MAX(z1orhog*ni_hom, 0.d0),ni_hom_max) * zdtr
             shom  = MIN(mi_hom*shomn, zsvmax)
 
           END IF
         END IF
       END IF
-      
+
       !!--------------------------------------------------------------------------
       !! Section 3: Search for cloudy grid points with cloud water and
       !!            calculation of the conversion rates involving qc (ic6)
@@ -1221,7 +1221,7 @@ SUBROUTINE cloudice2mom (            &
         ELSE !tg >= zthn: ! hom. freezing of cloud and rain water
           scfrz = zscmax
           IF (licenum) THEN
-            scfrzn = scfrz / MAX(zxcmin,MIN(qcg/qnc(iv),zxstar)) 
+            scfrzn = scfrz / MAX(zxcmin,MIN(qcg/qnc(iv),zxstar))
           END IF
         ENDIF
         ! Calculation of heterogeneous nucleation of cloud ice.
@@ -1229,16 +1229,16 @@ SUBROUTINE cloudice2mom (            &
         ! for this process (i.e. the existence of cloud water) to exist.
         ! Heterogeneous nucleation is assumed to occur only when no
         ! cloud ice is present and the temperature is below a nucleation
-        ! threshold.        
+        ! threshold.
         IF( licenum .and. ice_nucleation > 0 ) THEN
           IF ( tg <= 267.15_wp .and. tg > 235.0_wp ) THEN
-            zinas = EXP( 151.548_wp - 0.521_wp*tg ) 
+            zinas = EXP( 151.548_wp - 0.521_wp*tg )
             znhet = zndust * (1.0_wp - EXP(-MAX(MIN(zinas*zsdust,30.0_wp),0.0_wp)))
             znin  = MAX(znhet - niactg, 0.0_wp)
             snucn = z1orhog * znin * zdtr
             snuc  = zmi0 * snucn
           END IF
-        ELSE IF ( tg <= 267.15_wp .AND. qig <= 0.0_wp ) THEN   
+        ELSE IF ( tg <= 267.15_wp .AND. qig <= 0.0_wp ) THEN
           IF (lsuper_coolw ) THEN
             znin  = MIN( fxna_cooper(tg), znimax )
           ELSE
@@ -1279,7 +1279,7 @@ SUBROUTINE cloudice2mom (            &
           reduce_dep = MIN(fnuc + (1.0_wp-fnuc)*(reduce_dep_ref + &
                         dist_cldtop(iv)/dist_cldtop_ref), 1.0_wp)
 
-        END IF ! Reduction of dep. growth of snow/ice 
+        END IF ! Reduction of dep. growth of snow/ice
 
       ENDIF
 
@@ -1292,7 +1292,7 @@ SUBROUTINE cloudice2mom (            &
         llqs =  zqsk > zqmin !zqsk > zqmin
         llqi =   qig > zqmin
 
-        IF (tg<=t0) THEN           ! cold case 
+        IF (tg<=t0) THEN           ! cold case
 
           zqvsidiff = qvg-zqvsi
           zsvmax    = zqvsidiff * zdtr
@@ -1303,7 +1303,7 @@ SUBROUTINE cloudice2mom (            &
             znin = MIN( fxna_cooper(tg), znimax )
           ELSE
             znin = MIN( fxna(tg), znimax )
-          END IF          
+          END IF
           zmi  = MAX( MIN( rhog*qig/znin, zmimax ), zmi0 )
           IF (lstickeff.and.licenum) THEN
             zeff = effi2mom(tg,zmi,tropicsmask(iv))
@@ -1321,14 +1321,14 @@ SUBROUTINE cloudice2mom (            &
               zvi   = ice2mom%a_vel * EXP( ice2mom%b_vel*LOG(zmi) ) * zrhofac_qi
               hlp   = pi4 * nig * zdi * zdi * zeff * zdt
               siau  = hlp * ice_coeffs%sc_delta_q * qig                              &
-                  & * SQRT( ice_coeffs%sc_theta_q * zvi * zvi + 2.0*ice2mom%s_vel**2 ) 
+                  & * SQRT( ice_coeffs%sc_theta_q * zvi * zvi + 2.0*ice2mom%s_vel**2 )
               siaun = hlp * ice_coeffs%sc_delta_n * nig                              &
-                  & * SQRT( ice_coeffs%sc_theta_n * zvi * zvi + 2.0*ice2mom%s_vel**2 ) 
+                  & * SQRT( ice_coeffs%sc_theta_n * zvi * zvi + 2.0*ice2mom%s_vel**2 )
             END IF
           ELSE
             siau = zciau * MAX( qig - qi0, 0.0_wp ) * zeff
           END IF
-          sagg = zcagg * EXP(ccsaxp*LOG(zcslam)) * qig * zeff          
+          sagg = zcagg * EXP(ccsaxp*LOG(zcslam)) * qig * zeff
           znid = rhog * qig/zmi
           IF (llqi) THEN
             zlnlogmi  = LOG (zmi)
@@ -1343,8 +1343,8 @@ SUBROUTINE cloudice2mom (            &
           ENDIF
           zsvidep   = 0.0_wp
           zsvisub   = 0.0_wp
-          ! for sedimenting quantities the maximum 
-          ! allowed depletion is determined by the predictor value. 
+          ! for sedimenting quantities the maximum
+          ! allowed depletion is determined by the predictor value.
           IF (lsedi_ice) THEN
             zsimax  = zzai*z1orhog*zdtr
           ELSE
@@ -1385,7 +1385,7 @@ SUBROUTINE cloudice2mom (            &
           ENDIF
 
           sicri      = zcicri * qig * zeln7o8qrk
-          ! Allow growth of snow only if the existing amount of snow is sufficiently large 
+          ! Allow growth of snow only if the existing amount of snow is sufficiently large
           ! for a meaningful distiction between snow and cloud ice
           IF (qsg > 1.e-7_wp) srcri = zcrcri * (qig/zmi) * zeln13o8qrk
 
@@ -1477,7 +1477,7 @@ SUBROUTINE cloudice2mom (            &
       !--------------------------------------------------------------------------
       zsrmax = zzar*z1orhog*zdtr
 
-      zssmax   = zzas * z1orhog * zdtr  
+      zssmax   = zzas * z1orhog * zdtr
 
       zsrsum = sev + srfrz + srcri
       zcorr  = 1.0_wp
@@ -1491,20 +1491,20 @@ SUBROUTINE cloudice2mom (            &
 
       IF (ssdep < 0.0_wp ) THEN
         ssdep = MAX(ssdep, - zssmax)
-      ENDIF      
+      ENDIF
 
-      zqvt =   sev    - sidep  - ssdep  - snuc   - shom 
-      zqct =   simelt - scau   - scfrz  - scac   - sshed  - srim 
+      zqvt =   sev    - sidep  - ssdep  - snuc   - shom
+      zqct =   simelt - scau   - scfrz  - scac   - sshed  - srim
       zqit =   snuc   + shom   + scfrz  - simelt - sicri  + sidep  - sdau   - sagg   - siau
       zqrt =   scau   + sshed  + scac   + ssmelt - sev    - srcri  - srfrz
       zqst =   siau   + sdau   + sagg   - ssmelt + sicri  + srcri  + srim   + ssdep + srfrz
       IF (licenum) THEN
-        znit = snucn + shomn + scfrzn - siaun - ( sdau + sagg + sicri + simelt ) / zmi     
-      ELSE   
+        znit = snucn + shomn + scfrzn - siaun - ( sdau + sagg + sicri + simelt ) / zmi
+      ELSE
         znit = 0.0_wp
       END IF
-      
-#ifdef __LOOP_EXCHANGE      
+
+#ifdef __LOOP_EXCHANGE
       ztt = z_heat_cap_r*( zlhv(k)*(zqct+zqrt) + zlhs(k)*(zqit+zqst) )
 #else
       ztt = z_heat_cap_r*( zlhv(iv)*(zqct+zqrt) + zlhs(iv)*(zqit+zqst) )
@@ -1533,16 +1533,16 @@ SUBROUTINE cloudice2mom (            &
 
       !----------------------------------------------------------------------
       ! Section 8: Store satuaration specitic humidity at ice and water
-      !            saturation of this layer 
+      !            saturation of this layer
       !----------------------------------------------------------------------
       zqvsw_up(iv) = zqvsw ! to be available in the layer below (layer k-1)
-      
+
       !----------------------------------------------------------------------
       ! Section 10: Complete time step
       !----------------------------------------------------------------------
 
       IF ( k /= ke) THEN
-        ! Store precipitation fluxes and sedimentation velocities 
+        ! Store precipitation fluxes and sedimentation velocities
         ! for the next level
         zprvr(iv) = qrg*rhog*zvzr(iv)
         zprvs(iv) = qsg*rhog*zvzs(iv)
@@ -1550,7 +1550,7 @@ SUBROUTINE cloudice2mom (            &
         IF (licenum) THEN
           zprvin(iv) = nig*rhog*zvzin(iv)
         END IF
-        
+
         IF (zprvr(iv) <= zqmin) zprvr(iv)=0.0_wp
         IF (zprvs(iv) <= zqmin) zprvs(iv)=0.0_wp
         IF (licenum) THEN
@@ -1559,15 +1559,15 @@ SUBROUTINE cloudice2mom (            &
             zprvin(iv) = 0.0_wp
           END IF
         ELSE
-          IF (zprvi(iv) <= zqmin) zprvi(iv)=0.0_wp          
+          IF (zprvi(iv) <= zqmin) zprvi(iv)=0.0_wp
         END IF
-        
+
         ! for the latent heat nudging
         IF (ldass_lhn) THEN
           IF (lsedi_ice) THEN
             qrsflux(iv,k) = zprvr(iv)+zprvs(iv)+zprvi(iv)
             qrsflux(iv,k) = 0.5_wp*(qrsflux(iv,k)+zpkr(iv)+zpks(iv)+zpki(iv))
-          ELSE 
+          ELSE
             qrsflux(iv,k) = zprvr(iv)+zprvs(iv)
             qrsflux(iv,k) = 0.5_wp*(qrsflux(iv,k)+zpkr(iv)+zpks(iv))
           END IF
@@ -1583,7 +1583,7 @@ SUBROUTINE cloudice2mom (            &
         ELSE
           zvzs(iv)= zvz0s * EXP(ccswxp*LOG((qsg+qs(iv,k+1))*0.5_wp*rhog)) * zrho1o2
         ENDIF
-        IF (licenum) THEN ! gscp=3 
+        IF (licenum) THEN ! gscp=3
           IF (qig+qi(iv,k+1) <= zqmin ) THEN
             zvzi(iv)  = 0.0_wp
             zvzin(iv) = 0.0_wp
@@ -1605,7 +1605,7 @@ SUBROUTINE cloudice2mom (            &
             zvzi(iv)= zvz0i * EXP(zbvi*LOG((qig+qi(iv,k+1))*0.5_wp*rhog)) * zrhofac_qi
           ENDIF
         END IF
-          
+
       ELSE
         ! Precipitation fluxes at the ground
         prr_gsp(iv) = 0.5_wp * (qrg*rhog*zvzr(iv) + zpkr(iv))
@@ -1628,7 +1628,7 @@ SUBROUTINE cloudice2mom (            &
       qr (iv,k) = qrg
       qs (iv,k) = qsg
       qi (iv,k) = qig
-      t  (iv,k) = t (iv,k) + ztt*zdt 
+      t  (iv,k) = t (iv,k) + ztt*zdt
       qv (iv,k) = MAX ( 0.0_wp, qv(iv,k) + zqvt*zdt )
       qc (iv,k) = MAX ( 0.0_wp, qc(iv,k) + zqct*zdt )
       IF (licenum) THEN
@@ -1715,7 +1715,7 @@ SUBROUTINE cloudice2mom (            &
     !$ACC END PARALLEL
 
     !$ACC END DATA
-    
+
   ENDIF
 
   IF (izdebug > 15) THEN
@@ -1766,15 +1766,15 @@ FUNCTION het_icenuc_inas_depo(tk,ssi) RESULT(inas)
   REAL(wp), INTENT(in)  :: tk           !< temperature in K
   REAL(wp), INTENT(in)  :: ssi          !< supersaturation over ice
   REAL(wp)              :: inas         !< ice nucleating active site density in m^-2
-  REAL(wp)              :: temp, acotan, tfunc, qfunc, pfunc                                
+  REAL(wp)              :: temp, acotan, tfunc, qfunc, pfunc
 
-  LOGICAL,  PARAMETER :: loptimized = .false.   ! only very minor speedup 
+  LOGICAL,  PARAMETER :: loptimized = .false.   ! only very minor speedup
   REAL(wp), PARAMETER :: pcoeff(4) = (/-1.10099003e+07_wp, 1.36991120e+05_wp,-5.77301530e+02_wp, 8.60558248e-01_wp/)
   REAL(wp), PARAMETER :: qcoeff(3) = (/ 8.65974989e+06_wp,-8.45240144e+04_wp, 2.29723476e+02_wp/)
- 
+
   temp   = MIN(MAX(tk,190.0_wp),260.0_wp)
 
-  IF (loptimized) THEN  
+  IF (loptimized) THEN
     ! rational function approximation with MAE smaller than 0.1 %
     ! but only valid for cdust(2:5) = (/ 0.017, 256.7, 0.080, 200.75/)
     pfunc = pcoeff(1) + pcoeff(2)*temp + pcoeff(3)*temp**2 + pcoeff(4)*temp**3
@@ -1782,12 +1782,12 @@ FUNCTION het_icenuc_inas_depo(tk,ssi) RESULT(inas)
     tfunc = pfunc/qfunc
   ELSE
     acotan = pi/2.0_wp - ATAN(cdust(4) * (temp - cdust(5)))
-    tfunc  = COS( cdust(2)*(temp-cdust(3)) )**2 * acotan/pi 
+    tfunc  = COS( cdust(2)*(temp-cdust(3)) )**2 * acotan/pi
   END IF
 
   inas = EXP( cdust(1)*EXP(0.25_wp*LOG(ssi-1.0_wp)) * tfunc )
   inas = MAX(MIN(inas,1e15_wp),1e5_wp) ! paper recommends upper limit of 1e15
-  
+
 END FUNCTION het_icenuc_inas_depo
 
 FUNCTION effi2mom(temp,zmi,ztropics) RESULT(zeff)
@@ -1795,7 +1795,7 @@ FUNCTION effi2mom(temp,zmi,ztropics) RESULT(zeff)
   REAL(wp), INTENT(in)  :: temp, zmi, ztropics
   REAL(wp) :: zeff, xlat, zxi, zfac
 
-  zeff = estick(temp) ! Connolly with zeff(0 C) = 0.14  
+  zeff = estick(temp) ! Connolly with zeff(0 C) = 0.14
 
   IF (lice_lat) THEN
     ! lower value of zceff_min outside of tropics
@@ -1806,11 +1806,11 @@ FUNCTION effi2mom(temp,zmi,ztropics) RESULT(zeff)
       zfac = MAX(EXP(0.2_wp*xlat * LOG(zxi)),0.1_wp)
       zeff = MERGE(zeff, zceff_min*zfac, temp > zthn)
     ELSE
-      zeff = MERGE(zeff, zceff_min, temp > zthn)      
+      zeff = MERGE(zeff, zceff_min, temp > zthn)
     END IF
   ELSE
     ! apply the same zceff_min everywhere
-    zeff = MERGE(zeff, zceff_min, temp > zthn)      
+    zeff = MERGE(zeff, zceff_min, temp > zthn)
   END IF
 
 END FUNCTION effi2mom
@@ -1825,7 +1825,7 @@ FUNCTION estick (temp) RESULT(e_i)
 
   ! piecewise linear sticking efficiency with maximum at -15 C,
   ! inspired by Figure 14 of Connolly et al. ACP 2012, doi:10.5194/acp-12-2055-2012
-  ! Value at -40 C is based on Kajikawa and Heymsfield as cited by Philips et al. (2015, JAS) 
+  ! Value at -40 C is based on Kajikawa and Heymsfield as cited by Philips et al. (2015, JAS)
   ! but not used in the cloudice2mom scheme.
   IF ( T_c >= 0_wp ) THEN
     e_i = 0.14_wp
@@ -1840,13 +1840,13 @@ FUNCTION estick (temp) RESULT(e_i)
   ELSE
     e_i = 0.04_wp
   END IF
-  
+
 END FUNCTION estick
 
 FUNCTION vice2mom(zqi,zmi,zrhofac,ztropics) RESULT(zvi)
   !$ACC ROUTINE SEQ
   REAL(wp), INTENT(in)  :: zqi, zmi, zrhofac, ztropics
-  REAL(wp) :: zvi, zxi, bvi, zvs, xlat 
+  REAL(wp) :: zvi, zxi, bvi, zvs, xlat
   LOGICAL,  PARAMETER :: l2mom_sedi = .false.
   REAL(wp), PARAMETER ::          &
      zxavi = 15.0_wp,             & ! prefactor in v=zxavi*xi**zbxvi
@@ -1868,13 +1868,13 @@ FUNCTION vice2mom(zqi,zmi,zrhofac,ztropics) RESULT(zvi)
   IF (l2mom_sedi) THEN
 
     ! two-moment sedimentation
-    zvi = zxavi*EXP(zxbvi*LOG(zmi)) 
+    zvi = zxavi*EXP(zxbvi*LOG(zmi))
 
   ELSE
-    
-    ! one-moment sedimentation with option for size dependency outside of tropics 
-    zvi = zvz0i*EXP(zbvi*LOG(zqi)) 
-    
+
+    ! one-moment sedimentation with option for size dependency outside of tropics
+    zvi = zvz0i*EXP(zbvi*LOG(zqi))
+
     IF (lice_lat) THEN
       ! multiplicative size dependency only outside of tropics
       xlat = 1.0_wp - ztropics ! [0,1]
@@ -1883,22 +1883,22 @@ FUNCTION vice2mom(zqi,zmi,zrhofac,ztropics) RESULT(zvi)
         bvi = MIN(MAX(0.2*xlat,0.0_wp),0.2_wp)
         zvi = zvi * MAX(EXP(bvi * LOG(zxi)),0.2_wp)
       END IF
-      ! Stokes asymptotic for small qi 
-      bvi = (1.0_wp - 0.9*xlat)   
-      zvs = (zqi*1e6_wp*bvi)**x2o3 
+      ! Stokes asymptotic for small qi
+      bvi = (1.0_wp - 0.9*xlat)
+      zvs = (zqi*1e6_wp*bvi)**x2o3
       zvi = 1.0_wp/(1.0_wp/zvi+1.0_wp/zvs)   ! could be replaced by MIN(zvi,zvs) for efficiency
     ELSE
       zxi = MIN(zmi/zximax,1.0_wp)
       zvi = zvi * MAX(EXP(0.2_wp * LOG(zxi)),0.2_wp)
     END IF
-    
+
   END IF
 
   ! density correction
   zvi = zvi * zrhofac
-  
+
 END FUNCTION vice2mom
 
 !==============================================================================
-  
+
 END MODULE gscp_ice

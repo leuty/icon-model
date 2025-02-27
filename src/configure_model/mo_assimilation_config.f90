@@ -28,7 +28,7 @@ MODULE mo_assimilation_config
   IMPLICIT NONE
 
 
-  PUBLIC 
+  PUBLIC
 
 
   !!--------------------------------------------------------------------------
@@ -36,7 +36,7 @@ MODULE mo_assimilation_config
   !!--------------------------------------------------------------------------
 !  INTEGER, PARAMETER  :: n_noobs  = 36 !Maximum number of times with missing observations
 
-  TYPE :: t_assimilation_config 
+  TYPE :: t_assimilation_config
 
     LOGICAL :: dace_coupling      !> Invoke DACE for model equivalents of observations
     INTEGER :: dace_time_ctrl(3)  !> Steering parameters for DACE time control: start,end,step
@@ -71,7 +71,7 @@ MODULE mo_assimilation_config
       lhn_diag         ,& ! produce more detailed diagnostic output during lhn
       lhn_artif_only   ,& ! apply only artificial temperature profile instead of applying modelled tt_lheat profile
       lhn_refbias         ! apply bias correction of LHN reference precipitation
-  
+
     INTEGER ::  &
       nlhn_start       ,& ! start of latent heat nudging period in timesteps
       nlhn_end         ,& ! end of latent heat nudging period in timesteps
@@ -102,17 +102,17 @@ MODULE mo_assimilation_config
       bbthres           ,& ! threshold of precipitation rate used in bright band detection
       hzerolim             ! limitation of hzerocl used in bright band detection
 
-  
+
    CHARACTER (LEN=100)              ::           &
       radar_in             ,& ! directory for reading radar-files
       radardata_file       ,& ! filename of blacklist for radar data
       blacklist_file       ,& ! filename of blacklist for radar data
       height_file             ! dxheight_file_name
-  
+
    TYPE(t_phyProcFast)  :: dass_lhn   !> event for LHN
    TYPE(t_phyProcFast)  :: dass_lhn_verif   !> event for LHN
    TYPE(t_phyProcFast)  :: dass_lhn_brightband   !> event for LHN
-   TYPE(t_phyProcGroup) :: dass_g        
+   TYPE(t_phyProcGroup) :: dass_g
 
   END TYPE t_assimilation_config
 
@@ -186,7 +186,7 @@ MODULE mo_assimilation_config
              assimilation_config(jg)%lhn_bright = lh_exist
           ENDIF
        ENDIF
-   
+
     ENDIF
 
     IF (assimilation_config(jg)%lhn_logscale) THEN
@@ -239,13 +239,13 @@ MODULE mo_assimilation_config
     ENDIF
     ! Note that the model time is updated at the beginning of a timestep.
     !
-    ! by adding td_dt we make sure, that all events are triggered 
+    ! by adding td_dt we make sure, that all events are triggered
     ! during the first integration step of the given patch.
     CALL getPTStringFromMS(INT(dt_ass*1000._wp,i8), td_dt_str)
     td_dt => newTimedelta(td_dt_str)
    !
     eventStartDate = domStartDate + td_dt
-!    eventStartDate = domStartDate 
+!    eventStartDate = domStartDate
 !    CALL deallocateTimedelta(td_dt)
 
     ! compute event end date
@@ -325,13 +325,13 @@ MODULE mo_assimilation_config
     ENDIF
     ! Note that the model time is updated at the beginning of a timestep.
     !
-    ! by adding td_dt we make sure, that all events are triggered 
+    ! by adding td_dt we make sure, that all events are triggered
     ! during the first integration step of the given patch.
 !    CALL getPTStringFromMS(INT(dt_ass*1000._wp,i8), td_dt_str)
 !    td_dt => newTimedelta(td_dt_str)
    !
     eventStartDate = domStartDate + td_dt
-!    eventStartDate = domStartDate 
+!    eventStartDate = domStartDate
 !    CALL deallocateTimedelta(td_dt)
 
     ! compute event end date

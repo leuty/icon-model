@@ -224,7 +224,7 @@ CONTAINS
             ENDIF
           ENDDO
     ENDIF
-    
+
     CALL p_bcast(subtypeSize, p_io, distribution%communicator)
 
     ! put tile info into local 1D arrays, for broadcasting
@@ -846,7 +846,7 @@ CONTAINS
       END IF
 
       CALL parameters%distribution%distribute(map_buf(:), var_out(:, jk, :), .FALSE.)
- 
+
     END DO ! jk=1,nlevs
 
     ! clean up
@@ -939,7 +939,7 @@ CONTAINS
       END IF
 
       CALL parameters%distribution%distribute(map_buf(:), var_out(:, :), .FALSE.)
- 
+
 
     ! clean up
     DEALLOCATE(tmp_buf, map_buf, STAT=ierrstat)
@@ -1253,7 +1253,7 @@ CONTAINS
     END IF
 
     IF (output_type == FILETYPE_GRB2) THEN
-      
+
       !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
       !!!          ATTENTION                    !!!
       !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
@@ -1309,7 +1309,7 @@ CONTAINS
     ELSE ! NetCDF
       CALL vlistDefVarDatatype(vlistID, varID, this_cf%datatype)
     ENDIF
-   
+
   END FUNCTION create_cdi_variable
 
 

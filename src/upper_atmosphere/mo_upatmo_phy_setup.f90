@@ -35,24 +35,24 @@ MODULE mo_upatmo_phy_setup
   USE mo_upatmo_phy_chemheat,  ONLY: zeroz, onez, effrswmin
   USE mo_upatmo_phy_nlte,      ONLY: nlte_std_co2, nlte_set_co2_pre
   USE mtime,                   ONLY: datetime
-  USE mo_timer,                ONLY: timer_start, timer_stop,   & 
+  USE mo_timer,                ONLY: timer_start, timer_stop,   &
     &                                timer_upatmo_phy, timer_upatmo_phy_init
   USE mo_util_string,          ONLY: int2string
 
   IMPLICIT NONE
-  
+
   PRIVATE
 
   PUBLIC :: init_upatmo_phy_nwp
   PUBLIC :: finalize_upatmo_phy_nwp
 
   CHARACTER(LEN=*), PARAMETER :: modname = 'mo_upatmo_phy_setup'
-  
+
 CONTAINS
 
   !>
   !! Initialize upper-atmosphere physics state variables for NWP forcing.
-  !!  
+  !!
   SUBROUTINE init_upatmo_phy_nwp( mtime_datetime, &  !in
     &                             p_patch,        &  !in
     &                             p_metrics,      &  !in
@@ -64,7 +64,7 @@ CONTAINS
 
     ! In/out-variables
     TYPE(datetime),       POINTER,INTENT(IN)    :: mtime_datetime
-    TYPE(t_patch),        TARGET, INTENT(IN)    :: p_patch 
+    TYPE(t_patch),        TARGET, INTENT(IN)    :: p_patch
     TYPE(t_nh_metrics),           INTENT(IN)    :: p_metrics
     TYPE(t_nh_prog),              INTENT(IN)    :: p_prog
     TYPE(t_nh_diag),              INTENT(IN)    :: p_diag
@@ -78,8 +78,8 @@ CONTAINS
     INTEGER  :: jg, jb, jk, jc, jgrp
     INTEGER  :: nlev
     INTEGER  :: rl_start, rl_end
-    INTEGER  :: i_startblk, i_endblk 
-    INTEGER  :: i_startidx, i_endidx 
+    INTEGER  :: i_startblk, i_endblk
+    INTEGER  :: i_startidx, i_endidx
     LOGICAL  :: lmessage, ltimer, lupdate_gas, lchemheat, lrestart
 
     CHARACTER(LEN=*), PARAMETER ::  &
@@ -93,12 +93,12 @@ CONTAINS
 
     ltimer = upatmo_config(jg)%l_status( iUpatmoStat%timer )
 
-    IF (ltimer) THEN 
+    IF (ltimer) THEN
       CALL timer_start(timer_upatmo_phy)
       CALL timer_start(timer_upatmo_phy_init)
     ENDIF
 
-    IF (.NOT. upatmo_config(jg)%l_status( iUpatmoStat%configured )) THEN 
+    IF (.NOT. upatmo_config(jg)%l_status( iUpatmoStat%configured )) THEN
       CALL finish(routine, 'Upper atmosphere not yet configured.')
     ELSEIF (.NOT. prm_upatmo%diag%linitialized) THEN
       CALL finish(routine, 'prm_upatmo%diag not yet initialized.')
@@ -118,7 +118,7 @@ CONTAINS
       CALL finish(routine, 'Parameterizations already finalized.')
     ELSEIF (upatmo_config(jg)%nwp_phy%l_extdat_stat( iUpatmoExtdatStat%finalized )) THEN
       CALL finish(routine, 'External data already finalized.')
-    ! Check allocation status of some (but not all!) fields 
+    ! Check allocation status of some (but not all!) fields
     ! that we need for the upper-atmosphere physics
     ELSEIF (.NOT. ASSOCIATED(p_prog%tracer)) THEN
       CALL finish(routine, 'p_prog%tracer is not allocated.')
@@ -149,8 +149,8 @@ CONTAINS
     !---------------------------------------------------------------------
 
     ! Any upper-atmosphere physics switched on?
-    ! All fields in 'prm_upatmo' (except for 'prm_upatmo%extdat') 
-    ! are stored in the restart file. 
+    ! All fields in 'prm_upatmo' (except for 'prm_upatmo%extdat')
+    ! are stored in the restart file.
     ! So the following should not be done in case of a restart.
     IF (upatmo_config(jg)%nwp_phy%l_phy_stat( iUpatmoPrcStat%enabled )) THEN
 
@@ -178,19 +178,19 @@ CONTAINS
       ! Time-independent variables
       !----------------------------
 
-      ! The fields contained by 'prm_upatmo%diag' would be stored 
-      ! in the restart file as the case may be. 
-      ! So we can skip most of the following computations 
+      ! The fields contained by 'prm_upatmo%diag' would be stored
+      ! in the restart file as the case may be.
+      ! So we can skip most of the following computations
       ! in case of a resumed simulation.
       IF (.NOT. lrestart) THEN
-        
+
         ! Number of vertical grid levels
         nlev = p_patch%nlev
-        
-        ! Some switches 
+
+        ! Some switches
         lchemheat    = upatmo_config(jg)%nwp_phy%grp( iUpatmoGrpId%rad )%l_stat( iUpatmoPrcStat%enabled ) .AND. &
           &            .NOT. upatmo_config(jg)%nwp_phy%grp( iUpatmoGrpId%rad )%l_stat( iUpatmoPrcStat%offline )
-        
+
         ! Auxiliary factors for efficiency factor from chemical heating
         IF (lchemheat) THEN
           scale4effrsw = 1._wp / (onez - zeroz)
@@ -199,59 +199,59 @@ CONTAINS
           scale4effrsw = 0._wp
           fac4effrsw   = 0._wp
         ENDIF
-        
+
         ! Do initialization for all cells
         rl_start   = 1
         rl_end     = min_rlcell
         i_startblk = p_patch%cells%start_block(rl_start)
         i_endblk   = p_patch%cells%end_block(rl_end)
-        
+
 !$OMP PARALLEL
 !$OMP DO PRIVATE(jb,jk,jc,i_startidx,i_endidx) ICON_OMP_GUIDED_SCHEDULE
         DO jb = i_startblk, i_endblk
-          
+
           CALL get_indices_c(p_patch, jb, i_startblk, i_endblk, i_startidx, i_endidx, rl_start, rl_end)
-          
+
           DO jk = 1, nlev
-            DO jc = i_startidx, i_endidx  
-              
+            DO jc = i_startidx, i_endidx
+
               ! Gravitational acceleration
               ! (includes deep-atmosphere modification)
               prm_upatmo%diag%grav(jc,jk,jb) = grav * p_metrics%deepatmo_gradh_mc(jk)**2
-              
-              ! Molar mass of dry air 
+
+              ! Molar mass of dry air
               ! (constant for the time being)
               prm_upatmo%diag%amd(jc,jk,jb) = amd
-              
+
             ENDDO  !jc
           ENDDO  !jk
-          
+
           IF (upatmo_config(jg)%nwp_phy%grp( iUpatmoGrpId%rad )%l_stat( iUpatmoPrcStat%enabled )) THEN
-            
-            ! The scaling and efficiency factors are actually only required, 
-            ! if the radiation group is switched on.    
-            
+
+            ! The scaling and efficiency factors are actually only required,
+            ! if the radiation group is switched on.
+
             DO jk = 1, nlev
-              DO jc = i_startidx, i_endidx  
-                
+              DO jc = i_startidx, i_endidx
+
                 ! Scaling factor for heating rate from "standard" long-wave radiation
                 ! (just and initialization, it will be diagnosed in the nwp-upatmo-interface)
                 prm_upatmo%diag%sclrlw(jc,jk,jb) = 1._wp
-                
-                ! Time-independent efficiency factor for heating rate 
+
+                ! Time-independent efficiency factor for heating rate
                 ! from "standard" short-wave radiation
                 prm_upatmo%diag%effrsw(jc,jk,jb) = 1._wp - fac4effrsw * &
                   & MIN(1._wp, MAX(0._wp, scale4effrsw * (p_metrics%z_mc(jc,jk,jb) - zeroz)))
-                
+
               ENDDO  !jc
             ENDDO  !jk
-            
+
           ENDIF  !Radiation enabled?
-          
+
         ENDDO  !jb
 !$OMP END DO
 !$OMP END PARALLEL
-        
+
       ENDIF  !IF (.NOT. lrestart)
 
     ENDIF  !Any upper-atmosphere physics switched on?
@@ -275,35 +275,35 @@ CONTAINS
       IF (upatmo_config(jg)%nwp_phy%grp( jgrp )%l_stat( iUpatmoPrcStat%enabled )) THEN
 
         IF (jgrp == iUpatmoGrpId%imf) THEN
-          
+
           !---------------------------------------------------------------------------------
           !   Initialize ion drag (I), molecular diffusion (M) and frictional heating (F)
           !---------------------------------------------------------------------------------
-          
+
         ELSEIF (jgrp == iUpatmoGrpId%rad) THEN
-          
+
           !---------------------------------------------------------------------------------
-          !                   Initialize radiation and chemical heating 
+          !                   Initialize radiation and chemical heating
           !---------------------------------------------------------------------------------
 
           ! Non-LTE infrared cooling due to CO2 and O3.
-          ! This setup has to be done only once for all domains. 
-          ! There are switches in 'src/upper_atmosphere/mo_upatmo_phy_nlte' to guarantee 
-          ! a onetime setup. Although less efficient, we prefer to keep the check 
+          ! This setup has to be done only once for all domains.
+          ! There are switches in 'src/upper_atmosphere/mo_upatmo_phy_nlte' to guarantee
+          ! a onetime setup. Although less efficient, we prefer to keep the check
           ! for the switch position within the subroutines, in order to retain
           ! the safer private status of the switches.
           CALL nlte_std_co2()
           CALL nlte_set_co2_pre()
-          
+
         ELSE
-          
+
           CALL finish(routine, 'Please implement initialization of new physics group ' &
-            & //'into upper_atmosphere/mo_upatmo_phy_setup: init_upatmo_phy_nwp. Thank you!'  ) 
-          
+            & //'into upper_atmosphere/mo_upatmo_phy_setup: init_upatmo_phy_nwp. Thank you!'  )
+
         ENDIF  !IF (jgrp == iUpatmoGrpId%...)
-        
+
       ENDIF  !Physics group enabled?
-      
+
       ! Indicate initialization
       upatmo_config(jg)%nwp_phy%grp( jgrp )%l_stat( iUpatmoPrcStat%initialized ) = .TRUE.
 
@@ -336,7 +336,7 @@ CONTAINS
   SUBROUTINE finalize_upatmo_phy_nwp( p_patch )
 
     ! In/out-variables
-    TYPE(t_patch), TARGET, INTENT(IN) :: p_patch 
+    TYPE(t_patch), TARGET, INTENT(IN) :: p_patch
 
     ! Local variables
     INTEGER  :: jg, jgrp
@@ -382,31 +382,31 @@ CONTAINS
 
       ! Physics group enabled?
       IF (upatmo_config(jg)%nwp_phy%grp( jgrp )%l_stat( iUpatmoPrcStat%enabled )) THEN
-        
+
         IF (jgrp == iUpatmoGrpId%imf) THEN
-          
+
           !---------------------------------------------------------------------------------
           !    Finalize ion drag (I), molecular diffusion (M) and frictional heating (F)
           !---------------------------------------------------------------------------------
-          
+
         ELSEIF (jgrp == iUpatmoGrpId%rad) THEN
-          
+
           !---------------------------------------------------------------------------------
-          !                     Finalize radiation and chemical heating 
+          !                     Finalize radiation and chemical heating
           !---------------------------------------------------------------------------------
 
           ! The destruction of the auxiliary fields in 'src/upper_atmosphere/mo_upatmo_phy_chemheat'
           ! is triggered in 'src/upper_atmosphere/mo_upatmo_extdat_state: destruct_upatmo_extdat_nwp'.
-          
+
         ELSE
-          
+
           CALL finish(routine, 'Please implement finalization of new physics group '      &
-            & //'into upper_atmosphere/mo_upatmo_phy_setup: finalize_upatmo_phy_nwp. Thank you!' ) 
-          
+            & //'into upper_atmosphere/mo_upatmo_phy_setup: finalize_upatmo_phy_nwp. Thank you!' )
+
         ENDIF  !IF (jgrp == iUpatmoGrpId%...)
 
       ENDIF  !Physics group enabled?
-        
+
       ! Indicate finalization
       upatmo_config(jg)%nwp_phy%grp( jgrp )%l_stat( iUpatmoPrcStat%finalized ) = .TRUE.
 

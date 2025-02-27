@@ -23,6 +23,3 @@ cdp << EOF
    sms
    begin icon
 EOF
-
-
-

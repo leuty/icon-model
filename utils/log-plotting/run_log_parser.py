@@ -13,11 +13,11 @@
 
 # This script takes an icon (atmosphere) log file and extracts the timer report information.
 
+import importlib
 import logging
 import os
 import re
 import sys
-import importlib
 from argparse import ArgumentParser
 
 
@@ -67,7 +67,9 @@ class RunLogParser:
                         self.analyzers.append(obj())
                         logging.info(f"{obj!r} has been added to analyzers")
                 else:
-                    logging.error(f"Can't find the analyzer(s) in module {script!r}")
+                    logging.error(
+                        f"Can't find the analyzer(s) in module {script!r}"
+                    )
                     sys.exit(1)
             else:
                 logging.error(f"Can't find the module {script!r}")
@@ -91,19 +93,29 @@ def parse_args():
     """Parses the command line arguments"""
     parser = ArgumentParser()
     parser.description = "extract timer report from icon log file"
-    parser.add_argument("FILES", nargs="+", help="names of (multiple) log file(s)")
-    parser.add_argument("-o", "--output_dir", help="give path to output directory")
-    parser.add_argument("--job_id", help="give job id to be processed", required=True)
-    parser.add_argument("--exp_id", help="give name of experiment", required=True)
     parser.add_argument(
-        "--custom_modules", nargs="*", help="python script to analyze the log customly"
+        "FILES", nargs="+", help="names of (multiple) log file(s)"
+    )
+    parser.add_argument(
+        "-o", "--output_dir", help="give path to output directory"
+    )
+    parser.add_argument(
+        "--job_id", help="give job id to be processed", required=True
+    )
+    parser.add_argument(
+        "--exp_id", help="give name of experiment", required=True
+    )
+    parser.add_argument(
+        "--custom_modules",
+        nargs="*",
+        help="python script to analyze the log customly",
     )
     options = parser.parse_args()
     if options.output_dir is None:
         logging.warning(
             """
-        Output directory not given. 
-        File will be saved in the current directory. 
+        Output directory not given.
+        File will be saved in the current directory.
         Path can be supplied with --output_dir.
         """
         )

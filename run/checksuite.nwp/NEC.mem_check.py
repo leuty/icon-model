@@ -81,10 +81,16 @@ if __name__ == "__main__":
         description="Check the memory usage reported by NEC mpi"
     )
     parser.add_argument(
-        "--upper_mem_limit", default=0, help="Upper limit of the " + needle, type=int
+        "--upper_mem_limit",
+        default=0,
+        help="Upper limit of the " + needle,
+        type=int,
     )
     parser.add_argument(
-        "--lower_mem_limit", default=0, help="Lower limit of the " + needle, type=int
+        "--lower_mem_limit",
+        default=0,
+        help="Lower limit of the " + needle,
+        type=int,
     )
 
     args = parser.parse_args()

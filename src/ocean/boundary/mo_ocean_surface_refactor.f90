@@ -219,7 +219,7 @@ CONTAINS
             &                    - p_ice%draftave(jc,jb)
 
           p_oce_sfc%top_dilution_coeff(jc,jb) = zUnderIce_ini / p_ice%zUnderIce(jc,jb)
-          
+
           !! set correct cell thickness under ice
           p_oce_sfc%cellThicknessUnderIce(jc,jb) = p_ice%zUnderIce(jc,jb)
         ENDIF  !  dolic>0
@@ -658,7 +658,7 @@ CONTAINS
       ENDIF
 
       CALL dbg_print('UpdSfc: eta-old', eta_c,    str_module, 1, in_subset=p_patch%cells%owned)
-      
+
       ! apply volume flux to surface elevation
 #ifdef __LVECTOR__
       !$ACC DATA CREATE(dz_new, z_change, temp_stretch) IF(lzacc)

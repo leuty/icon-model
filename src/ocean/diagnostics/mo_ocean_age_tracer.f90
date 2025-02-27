@@ -79,11 +79,11 @@ CONTAINS
     IF (diagnose_age) THEN
         age_tracer => ocean_state%p_prog(nnew(1))%tracer(:,:,:,age_idx)
         !$ACC KERNELS DEFAULT(PRESENT) ASYNC(1) IF(lzacc)
-        age_tracer(:,:,:) = age_tracer(:,:,:) + patch_3d%wet_c(:,:,:) * dtime    
+        age_tracer(:,:,:) = age_tracer(:,:,:) + patch_3d%wet_c(:,:,:) * dtime
         !$ACC END KERNELS
     END IF
 
-    ! --- green_tracer  
+    ! --- green_tracer
     IF (diagnose_green) THEN
       green_tracer => ocean_state%p_prog(nnew(1))%tracer(:,:,:,green_idx)
       green_target = 0
@@ -94,7 +94,7 @@ CONTAINS
         END IF
       END IF
     END IF
-    
+
     ! --- Surface relaxation phase
     p_patch   => patch_3D%p_patch_2D(1)
     all_cells => p_patch%cells%all
@@ -109,7 +109,7 @@ CONTAINS
         ELSE
           relax_strength = age_tracer_inv_relax_time  * dtime
         END IF
-        
+
         ! --- relax the age to zero
         IF (diagnose_age) THEN
             age_tracer(jc,1,jb) = (1._wp - relax_strength) * age_tracer(jc,1,jb)
@@ -119,12 +119,12 @@ CONTAINS
         IF (diagnose_green) THEN
           green_tracer(jc,1,jb) = green_tracer(jc,1, jb) - relax_strength * (green_tracer(jc,1,jb) - green_target)
         END IF
-      
+
       END DO
       !$ACC END PARALLEL LOOP
     END DO
     !$ACC WAIT(1)
-    
+
     ! --- Check everything is still positive
     DO jb = all_cells%start_block, all_cells%end_block
       elev = p_patch%nlev
@@ -132,7 +132,7 @@ CONTAINS
       !$ACC PARALLEL LOOP GANG VECTOR DEFAULT(PRESENT) ASYNC(1) IF(lzacc)
       DO jk = 1, elev
         DO jc = i_startidx_c, i_endidx_c
-          
+
           ! --- age_tracer
           IF (diagnose_age) THEN
             IF (age_tracer(jc,jk,jb) < 0) THEN
@@ -152,14 +152,14 @@ CONTAINS
       !$ACC END PARALLEL LOOP
     END DO
     !$ACC WAIT(1)
-    
+
     ! --- Clean up the pointers
     NULLIFY(age_tracer)
     NULLIFY(green_tracer)
     NULLIFY(ocean_current_time)
     NULLIFY(all_cells)
     NULLIFY(p_patch)
-    
+
   END SUBROUTINE calc_age_tracer
 
 END MODULE mo_ocean_age_tracer

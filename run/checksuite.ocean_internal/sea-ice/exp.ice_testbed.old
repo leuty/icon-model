@@ -151,7 +151,7 @@ cat > ${ocean_namelist} << EOF
   physics_parameters_type         =   1       ! type of pp-scheme: 1=ICON-optimized; 2=MPIOM-type
   use_wind_mixing                 = .FALSE.   ! true: use wind mixing scheme in MPIOM-type pp-scheme
   GMRedi_configuration            =   0       ! 0=cartesian diffusion 1=GM-Redi: bolus advection + isopycnal diffusion
-/                                           
+/
 &sea_ice_nml
 ! i_ice_therm                     =   1       ! 1=zero-layer (default), 2=Winton, 0/2: not allowed
 ! i_ice_dyn                       =   0       ! 1/0=switch on/off AWI ice dynamics

@@ -89,7 +89,7 @@ my $links = join(', ', @links);
 print <<___;
         <hr/>
         <address>
-            PDF Download: 
+            PDF Download:
             $links
         </address>
         </div>
@@ -115,4 +115,3 @@ print <<___;
     </body>
 </html>
 ___
-

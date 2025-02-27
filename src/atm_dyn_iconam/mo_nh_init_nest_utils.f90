@@ -200,7 +200,7 @@ MODULE mo_nh_init_nest_utils
     ! turned out to cause occasional conflicts with directly interpolating those variables here; thus
     ! the interpolation of the multi-layer snow fields has been completely removed from this routine
     num_lndvars = 2*nlev_soil+1+ &     ! multi-layer soil variables t_so and w_so (w_so_ice is initialized in terra_multlay_init)
-                  5+15+1               ! single-layer prognostic variables + t_g, t_sk, freshsnow, t_seasfc, qv_s, plantevap, hsnow_max, 
+                  5+15+1               ! single-layer prognostic variables + t_g, t_sk, freshsnow, t_seasfc, qv_s, plantevap, hsnow_max,
                                        ! snow_age, t_avginc, t_sk, rh_avginc, t_wgt_avginc, rh_daywgt_avginc, t_daywgt_avginc, vabs_avginc,
                                        ! t_2m_filt, + aux variable for lake temp
     num_wtrvars  = 6                   ! water state fields + fr_seaice + alb_si
@@ -687,7 +687,7 @@ MODULE mo_nh_init_nest_utils
                                              recv4d=tracer_lp)
       l_limit(:) = .TRUE. ! apply positive definite limiter
       CALL interpol_scal_nudging (p_pp, p_int, p_grf%p_dom(i_chidx),  &
-                                  nshift, ntracer, 1,                 & 
+                                  nshift, ntracer, 1,                 &
                                   lacc=.FALSE., f4din=tracer_lp,      &
                                   f4dout=p_child_prog_rcf%tracer, llimit_nneg=l_limit)
       CALL sync_patch_array_mult(SYNC_C, p_pc, ntracer, lacc=.FALSE., f4din=p_child_prog_rcf%tracer)
@@ -811,14 +811,14 @@ MODULE mo_nh_init_nest_utils
           END IF
           IF (atm_phy_nwp_config(jgc)%l2moment) THEN
             prm_diag(jgc)%hail_gsp(jc,jb)      = MAX(0._wp,phdiag_chi(jc,26,jb))
-            prm_diag(jgc)%hail_gsp_rate(jc,jb) = phdiag_chi(jc,27,jb) 
+            prm_diag(jgc)%hail_gsp_rate(jc,jb) = phdiag_chi(jc,27,jb)
           ENDIF
           IF (ANY((/1,2,4,5,6,7,8/) == atm_phy_nwp_config(jgc)%inwp_gscp)) THEN
             prm_diag(jgc)%ice_gsp(jc,jb)        = MAX(0._wp,phdiag_chi(jc,28,jb))
             prm_diag(jgc)%ice_gsp_rate(jc,jb)   = phdiag_chi(jc,29,jb)
           END IF
 
-          prm_diag(jgc)%tot_prec_d(jc,jb)      = MAX(0._wp,phdiag_chi(jc,30,jb)) 
+          prm_diag(jgc)%tot_prec_d(jc,jb)      = MAX(0._wp,phdiag_chi(jc,30,jb))
           prm_diag(jgc)%swflxsfc_a(jc,jb)      = phdiag_chi(jc,31,jb)
           prm_diag(jgc)%asodifd_s(jc,jb)       = phdiag_chi(jc,32,jb)
           prm_diag(jgc)%asodifu_s(jc,jb)       = phdiag_chi(jc,33,jb)
@@ -849,7 +849,7 @@ MODULE mo_nh_init_nest_utils
             prm_diag(jgc)%tot_pr_max(jc,jb)   = phdiag_chi(jc,52,jb)
           ENDIF
           IF (var_in_output(jg)%w_ctmax) THEN
-            prm_diag(jgc)%w_ctmax(jc,jb)      = phdiag_chi(jc,53,jb) 
+            prm_diag(jgc)%w_ctmax(jc,jb)      = phdiag_chi(jc,53,jb)
           ENDIF
           IF (var_in_output(jg)%tcond_max) THEN
             prm_diag(jgc)%tcond_max(jc,jb)    = phdiag_chi(jc,54,jb)
@@ -871,7 +871,7 @@ MODULE mo_nh_init_nest_utils
           prm_diag(jgc)%alhfl_s(jc,jb)     = phdiag_npd_chi(jc,3,jb)
           prm_diag(jgc)%alhfl_bs(jc,jb)    = phdiag_npd_chi(jc,4,jb)
           prm_diag(jgc)%ashfl_s(jc,jb)     = phdiag_npd_chi(jc,5,jb)
-          prm_diag(jgc)%aqhfl_s(jc,jb)     = phdiag_npd_chi(jc,6,jb) 
+          prm_diag(jgc)%aqhfl_s(jc,jb)     = phdiag_npd_chi(jc,6,jb)
           prm_diag(jgc)%aumfl_s(jc,jb)     = phdiag_npd_chi(jc,7,jb)
           prm_diag(jgc)%avmfl_s(jc,jb)     = phdiag_npd_chi(jc,8,jb)
           prm_diag(jgc)%lwflxsfc_a(jc,jb)  = phdiag_npd_chi(jc,9,jb)
@@ -882,7 +882,7 @@ MODULE mo_nh_init_nest_utils
             prm_diag(jgc)%v_10m_a(jc,jb)   = phdiag_npd_chi(jc,12,jb)
           ENDIF
           IF (var_in_output(jg)%vorw_ctmax) THEN
-            prm_diag(jgc)%vorw_ctmax(jc,jb)   = phdiag_npd_chi(jc,13,jb) 
+            prm_diag(jgc)%vorw_ctmax(jc,jb)   = phdiag_npd_chi(jc,13,jb)
           ENDIF
           IF (var_in_output(jg)%dbzcmax) THEN
             prm_diag(jgc)%dbz_cmax(jc,jb)     = phdiag_npd_chi(jc,14,jb)
@@ -1253,8 +1253,8 @@ MODULE mo_nh_init_nest_utils
   !!
   !! Driver routine for interpolating surface analysis data from a parent domain to a child domain
   !! The routine is supposed to work in combination with incremental analysis update only (MODE_IAU);
-  !! it processes 
-  !! * w_so      (increments) 
+  !! it processes
+  !! * w_so      (increments)
   !! * freshsnow (increments)
   !! * h_snow    (increments)
   !! * t_2m      (increments)
@@ -1467,7 +1467,7 @@ MODULE mo_nh_init_nest_utils
     ! sst
     ! Branching is necessary here, as sst can either be read via the field t_seasfc of t_so(0)
     IF (inputInstructions(jg)%ptr%fetchStatus('t_seasfc', lIsFg=.FALSE.) == kStateFailedFetch) THEN
-      ! since we cannot distinguish between t_so which is read from fg and 
+      ! since we cannot distinguish between t_so which is read from fg and
       ! t_so(0)==sst which is read/interpolated from ana, we set
       ! full field: fg, ana(intp), increment: none
       var_src = inputInstructions(jg)%ptr%sourceOfVar('t_so')
@@ -1792,4 +1792,3 @@ MODULE mo_nh_init_nest_utils
 
 
 END MODULE mo_nh_init_nest_utils
-

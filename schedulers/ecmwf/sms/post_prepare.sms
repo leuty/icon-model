@@ -23,7 +23,7 @@
 
   Task objectives:
   - extract output
-  - generate plots 
+  - generate plots
 %end
 
 # include the header file for remote jobs
@@ -31,19 +31,19 @@
 
 # -------------------------------------------------
 
-echo "POST_PREPARE.SMS" 
+echo "POST_PREPARE.SMS"
 
 module load python
 module load cdo/1.7.2
 
 module unload eccodes
-module load grib_api/1.14.5 
+module load grib_api/1.14.5
 
 dwd_grib_api=/home/ms/de/dwd/grib_api
 export GRIB_DEFINITION_PATH="/usr/local/apps/grib_api/1.14.5/CRAY/82/share/grib_api/definitions:${dwd_grib_api}/definitions.edzw-1.14.5"
 
 lsplitdata=1
-lcpdata=1 
+lcpdata=1
 ldeldata=1
 lcatdata=0
 lmeteo=1
@@ -52,15 +52,15 @@ levtypes="ML PL HL"
 lreprocess=1           # after new model results reprocess - eithere in eom_prepare.sms or post_prepare.sms (normally)
 
 case %SIMMODE% in
-  1)              ;;  # pre-operations (use defaults)   
+  1)              ;;  # pre-operations (use defaults)
   2) lcpdata=0        # monthly mean 10day forecasts
-     ldeldata=0  
+     ldeldata=0
      lcatdata=1
      levtypes="ML PL" ;;
   3) lsplitdata=0 ;;  # climate
-  4) lsplitdata=0     # B-matrix 
-     lcpdata=0        
-     lmeteo=0        
+  4) lsplitdata=0     # B-matrix
+     lcpdata=0
+     lmeteo=0
      levtypes="ML" ;;
 esac
 
@@ -263,7 +263,7 @@ fi
 # delete data
 
 if [[ $ldeldata = 1 ]] ; then
-  \rm -rf grb_data 
+  \rm -rf grb_data
   for levtype in ${levtypes} ; do
     \rm -rf ${outdir}/${basename}_DOM01_${levtype}_0001.grb
   done
@@ -290,7 +290,7 @@ if [[ $lcatdata = 1 ]] ; then
 
   for var in $varlist ; do
     mkdir -p ${mondir}/tmp_dir
-  
+
     if [[     -f           grb_data/${basename}_DOM01_0001_${var}.grb  ]] ; then
       if [[ ! -f  ${mondir}/tmp_dir/${basename}_DOM01_0001_${var}_48.grb  ||  $lreprocess = 1 ]] ; then
         grib_copy          grb_data/${basename}_DOM01_0001_${var}.grb            \
@@ -303,8 +303,8 @@ if [[ $lcatdata = 1 ]] ; then
         done
         rm -f   ${basename}_DOM01_0001_${var}_*.grb
       fi
-    fi 
-    
+    fi
+
   done
 
 fi

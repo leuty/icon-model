@@ -28,7 +28,7 @@
 # For this test a separate experiment name is needed. Therefore a soft-link
 # is created for the new name exp.atm_qubicc_test_update:
 rm -f exp.aes_bubble_test_update
-ln -s exp.aes_bubble_test exp.aes_bubble_test_update 
+ln -s exp.aes_bubble_test exp.aes_bubble_test_update
 export EXPERIMENT='aes_bubble_test_update'
 
 # TYPES is a list of names identifying the files <EXPNAME>_<TYPE>_<DATE>.nc

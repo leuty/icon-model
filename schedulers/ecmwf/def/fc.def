@@ -196,7 +196,7 @@ endif
                         (/$OWNER/$EXPVER/an/lag/$hour == complete) ) or \
                       (inigroup$set:YMD lt (/$OWNER/$EXPVER/an/lag:YMD + $SHIFTTRIGGER)) or \
                       /$OWNER/$EXPVER/an/lag == unknown or \
-                      /$OWNER/$EXPVER/an/lag == complete ) 
+                      /$OWNER/$EXPVER/an/lag == complete )
             task getini ; trigger ../make/bins/prepdata==complete ; DATAOK ; QNORM
               edit PRIORITY $fetch_priority
             task inidata ; trigger ../make/bins/ifs==complete and getini==complete ; DATAOK ; IFRFOK
@@ -213,7 +213,7 @@ endif
             task getfcdata ; trigger inidata == complete and getini == complete \
                                and wavini == complete and wcold == complete ; DATAOK ; QNORM ; IFRFOK
             if (LCHEM eq 1 ) then
-              trigger -a prep_chem==complete  
+              trigger -a prep_chem==complete
               task prep_chem ; trigger ../make/bins/prepdata==complete ; DATAOK ; QNORM
             endif
             edit MEM $MEM_LARGE_SERIAL
@@ -344,10 +344,10 @@ endif
           if( !SCOR ) then defstatus complete; endif
         task wamverify ; WAVEOK
           if( !SCOR ) then defstatus complete; endif
-      endfamily        
+      endfamily
 
       family archive ; ARCHOK
-        joblimarch 
+        joblimarch
         edit ARCHTYPE fc
         edit PRIORITY $store_priority
 	 task ml ; event fdb ; MLOK
@@ -364,7 +364,7 @@ endif
          task pv ; event fdb ; PVOK
            trigger ./pl==complete and ./pt == complete and sfc:fdb
          task hl ; HLOK
-           trigger ./pl==complete and ./pv == complete 
+           trigger ./pl==complete and ./pv == complete
        endfamily
 
        set satimtrg ""
@@ -384,7 +384,7 @@ endif
                   edit WMOID     undef
                   family retr
                     edit SATIM_MODE 1
-                    task satimsim 
+                    task satimsim
                   endfamily # retr
 
                   family sat
@@ -423,13 +423,13 @@ endif
           edit DELTA_DAY 0
 	   joblimarch ; QNORM
        endfamily
-    
+
        task logfiles
          onlog
          trigger clean == complete
 
     endfamily # lag
-    
+
     endfor # set of parallel forecasts
 
 endfamily

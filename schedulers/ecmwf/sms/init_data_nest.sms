@@ -27,7 +27,7 @@
 %end
 
 # include the header file for remote jobs
-%include <init_sc_model.h> 
+%include <init_sc_model.h>
 
 # -------------------------------------------------
 
@@ -129,7 +129,7 @@ cat > NAMELIST_PREPICON << EOF
  in_filename       = "${IFS_FILENAME_GRB}"
  in_type           = 1
  out_grid_filename = "${ICON_GRIDFILE}"
- out_filename      = "${IFS_FILENAME_NC}"	
+ out_filename      = "${IFS_FILENAME_NC}"
  out_type          = 2
  s_maxsize         = 5000000
  l_have3dbuffer    = .false.
@@ -139,18 +139,18 @@ cat > NAMELIST_PREPICON << EOF
 ! DEFINITIONS FOR IFS INPUT DATA
 !
 &input_field_nml  ! temperature
- inputname      = "T"         
- outputname     = "T"          
- code           = 130          
-!intp_method    = 3     
+ inputname      = "T"
+ outputname     = "T"
+ code           = 130
+!intp_method    = 3
 /
 EOF
 if [ %SIMMODE% -ne 3  ] ; then
 
 cat >> NAMELIST_PREPICON << EOF
 &input_field_nml  ! horiz. wind comp. u and v
- inputname      = "U", "V"         
- outputname     = "VN"  
+ inputname      = "U", "V"
+ outputname     = "VN"
 /
 EOF
 else
@@ -158,13 +158,13 @@ else
 cat >> NAMELIST_PREPICON << EOF
 &input_field_nml  ! horiz. wind comp. u and v
  inputname      = "U"
- outputname     = "U"  
- code           = 131 
+ outputname     = "U"
+ code           = 131
 /
 &input_field_nml  ! horiz. wind comp. u and v
- inputname      = "V"         
- outputname     = "V" 
- code           = 132  
+ inputname      = "V"
+ outputname     = "V"
+ code           = 132
 /
 EOF
 
@@ -172,179 +172,179 @@ fi
 
 cat >> NAMELIST_PREPICON << EOF
 &input_field_nml  ! vertical velocity
- inputname      = "OMEGA" 
+ inputname      = "OMEGA"
  outputname     = "W"
  code           = 135
-!intp_method    = 3     
+!intp_method    = 3
 /
 &input_field_nml  ! surface pressure
  inputname      = "LNSP"
- outputname     = "LNPS" 
+ outputname     = "LNPS"
  code           = 152
-!intp_method    = 3     
+!intp_method    = 3
 /
 &input_field_nml  ! geopotential
  inputname      = "Z"
  outputname     = "GEOP_SFC"
  code           = 129
-!intp_method    = 3     
+!intp_method    = 3
 /
 &input_field_nml  ! geopotential
  inputname      = "FI"
  outputname     = "GEOP_ML"
  code           = 129
-!intp_method    = 3     
+!intp_method    = 3
 /
 &input_field_nml  ! specific humidity
  inputname      = "QV"
- outputname     = "QV" 
+ outputname     = "QV"
  code           = 133
-!intp_method    = 3     
+!intp_method    = 3
 /
 &input_field_nml  ! cloud liquid water content
  inputname      = "CLWC"
- outputname     = "QC" 
+ outputname     = "QC"
  code           = 246
-!intp_method    = 3     
+!intp_method    = 3
 /
 &input_field_nml  ! cloud ice content
  inputname      = "CIWC"
- outputname     = "QI" 
- code           = 247 
-!intp_method    = 3     
+ outputname     = "QI"
+ code           = 247
+!intp_method    = 3
 /
 &input_field_nml  ! ozone mixing ratio
  inputname      = "O3"
- outputname     = "O3" 
+ outputname     = "O3"
  code           = 203
-!intp_method    = 3     
+!intp_method    = 3
 /
 &input_field_nml  ! snow temperature
  inputname      = "TSN"
- outputname     = "T_SNOW" 
+ outputname     = "T_SNOW"
  code           = 238
-!intp_method    = 3     
+!intp_method    = 3
 /
 &input_field_nml  ! water content of snow
  inputname      = "SD"
- outputname     = "W_SNOW" 
+ outputname     = "W_SNOW"
  code           = 141
-!intp_method    = 3     
+!intp_method    = 3
 /
 &input_field_nml  ! density of snow
  inputname      = "RSN"
- outputname     = "RHO_SNOW" 
+ outputname     = "RHO_SNOW"
  code           = 33
-!intp_method    = 3     
+!intp_method    = 3
 /
 &input_field_nml  ! snow albedo
  inputname      = "ASN"
- outputname     = "ALB_SNOW" 
+ outputname     = "ALB_SNOW"
  code           = 32
-!intp_method    = 3     
+!intp_method    = 3
 /
 &input_field_nml  ! skin temperature
  inputname      = "SKT"
- outputname     = "SKT" 
+ outputname     = "SKT"
  code           = 235
-!intp_method    = 3     
+!intp_method    = 3
 /
 &input_field_nml  ! sea surface temperature
  inputname      = "SST"
- outputname     = "SST" 
+ outputname     = "SST"
  code           = 34
-!intp_method    = 3     
+!intp_method    = 3
 /
 &input_field_nml  ! soil temperature level 1
  inputname      = "STL1"
- outputname     = "STL1" 
+ outputname     = "STL1"
  code           = 139
-!intp_method    = 3     
+!intp_method    = 3
 /
 &input_field_nml  ! soil temperature level 2
  inputname      = "STL2"
- outputname     = "STL2" 
+ outputname     = "STL2"
  code           = 170
-!intp_method    = 3     
+!intp_method    = 3
 /
 &input_field_nml  ! soil temperature level 3
  inputname      = "STL3"
- outputname     = "STL3" 
+ outputname     = "STL3"
  code           = 183
-!intp_method    = 3     
+!intp_method    = 3
 /
 &input_field_nml  ! soil temperature level 4
  inputname      = "STL4"
- outputname     = "STL4" 
+ outputname     = "STL4"
  code           = 236
-!intp_method    = 3     
+!intp_method    = 3
 /
 &input_field_nml  ! sea-ice cover
  inputname      = "CI"
- outputname     = "CI" 
+ outputname     = "CI"
  code           = 31
-!intp_method    = 3     
+!intp_method    = 3
 /
 &input_field_nml  ! water cont. of interception storage
  inputname      = "SRC"
- outputname     = "W_I" 
- code           = 198 
-!intp_method    = 3     
+ outputname     = "W_I"
+ code           = 198
+!intp_method    = 3
 /
 &input_field_nml  ! surface roughness
  inputname      = "SR"
- outputname     = "Z0" 
+ outputname     = "Z0"
  code           = 173
-!intp_method    = 3     
+!intp_method    = 3
 /
 &input_field_nml  ! Land/sea mask
  inputname      = "LSM"
- outputname     = "LSM" 
-!intp_method    = 3     
- code           = 172 
+ outputname     = "LSM"
+!intp_method    = 3
+ code           = 172
 /
 &input_field_nml  ! soil moisture index layer 1
  inputname      = "SWVL1"
- outputname     = "SMIL1" 
+ outputname     = "SMIL1"
  code           = 39
-!intp_method    = 3     
+!intp_method    = 3
 /
 &input_field_nml  ! soil moisture index layer 2
  inputname      = "SWVL2"
- outputname     = "SMIL2" 
+ outputname     = "SMIL2"
  code           = 40
-!intp_method    = 3     
+!intp_method    = 3
 /
 &input_field_nml  ! soil moisture index layer 3
  inputname      = "SWVL3"
- outputname     = "SMIL3" 
+ outputname     = "SMIL3"
  code           = 41
-!intp_method    = 3     
+!intp_method    = 3
 /
 &input_field_nml  ! soil moisture index layer 4
  inputname      = "SWVL4"
- outputname     = "SMIL4" 
+ outputname     = "SMIL4"
  code           = 42
-!intp_method    = 3     
+!intp_method    = 3
 /
 EOF
 
 # 80-83 changed to 39-42!!!
- 
+
 if [ %SIMMODE% -ne 3  -a  %YMD% -ge 20101109 ] ; then
 
 cat >> NAMELIST_PREPICON << EOF
 &input_field_nml  ! rain water content
  inputname      = "CRWC"
- outputname     = "QR" 
- code           = 75 
-!intp_method    = 3     
+ outputname     = "QR"
+ code           = 75
+!intp_method    = 3
 /
 &input_field_nml  ! snow water content
  inputname      = "CSWC"
- outputname     = "QS" 
+ outputname     = "QS"
  code           = 76
-!intp_method    = 3     
+!intp_method    = 3
 /
 EOF
 
@@ -354,7 +354,7 @@ fi
 
 IFSDATADIR2=%SCTEMP%/%SUITE%/%EXPNUM2%/input/%YMD%%INIHOUR%${DIRENS}
 
-#rm -f ${IFSDATADIR2}/${IFS_FILENAME_NC} 
+#rm -f ${IFSDATADIR2}/${IFS_FILENAME_NC}
 if [ -f ${IFSDATADIR2}/${IFS_FILENAME_NC}  -a  %EXPNUM% -ne %EXPNUM2% ] ; then
   echo 'ifs2icon file can be copied - no prepicon!'
   ls -l ${IFSDATADIR2}/${IFS_FILENAME_NC}
@@ -377,7 +377,7 @@ else
  #aprun  -N $EC_tasks_per_node -n $EC_total_tasks -j $EC_hyperthreads iconremap_mpi --remap_nml=NAMELIST_PREPICON -vvv
   aprun -N $EC_tasks_per_node -n $EC_total_tasks -d $EC_threads_per_task -j $EC_hyperthreads iconremap_mpi --remap_nml=NAMELIST_PREPICON -vv
 
-# fractional job: 
+# fractional job:
  #module load cray-snplauncher
  #mpiexec -n $EC_total_tasks iconremap_mpi --remap_nml=NAMELIST_PREPICON -vv
 

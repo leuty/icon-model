@@ -19,7 +19,7 @@
 %include <init_ws_submit.h>
 #=========================================================================
 ##.AUTHOR  Martin Koehler 1. September 2003
-## Modified  Adrian Tompkins 23 March 2004: flexible 
+## Modified  Adrian Tompkins 23 March 2004: flexible
 #                 interface + new climate plots
 #            Adrian Tompkins 30r1 - coupled model saves
 #=========================================================================
@@ -37,7 +37,7 @@ export PLOTDATA=${EXPDIR}
 export ECDIR_SEAS="ec:icon/experiments/%SUITE%/%EXPNUM%/seasonal"
 cd ${EXPDIR}
 DATA=${EXPDIR}
- 
+
 #INIDATE1=${INITIME}
 INIDATE1=%TIME_LIST%
 BASETIME=%YMD%%INIHOUR%
@@ -76,7 +76,7 @@ if (( $locnumber == -99 )) ; then
   if [[ ${BASETIME} = ${INIDATE1[${ndate}]} ]] ; then
     saveplots=1
     echo 'saving at date: ' $BASETIME
-  fi  
+  fi
 else
   nens=$locnumber
   saveplots=1
@@ -101,17 +101,17 @@ if (( $saveplots == 1 )) ; then
     echo "now it should be copy to the ecfs system"
     ecp -o   plots_${exp}${exp2}${tag}.ps.tar.gz ${ECDIR_SEAS}
     #ecp -o   plots_${exp}${exp2}${tag}.ps.tar ${ECDIR_SEAS}
-   
+
 
 #-----------------------------------------------------------------------------
 # ectrans plots to mkoehler@DWD
 
 %nopp
   for metfile in `ls clim_*.ps` `ls diffmap_*.ps` ; do
-    convert -density 250 -resize 35% ${metfile} ${metfile%.ps}.png || true 
+    convert -density 250 -resize 35% ${metfile} ${metfile%.ps}.png || true
   done
   for metfile in `ls zon_*.ps clim_*trmm*.ps` ; do
-    convert -rotate 90 -density 250 -resize 35% ${metfile} ${metfile%.ps}.png || true 
+    convert -rotate 90 -density 250 -resize 35% ${metfile} ${metfile%.ps}.png || true
   done
  #for obsd in gpcp hoap ssmi xiearkin ciwc quikscat isccp modis ; do
 %end
@@ -126,7 +126,7 @@ if (( $saveplots == 1 )) ; then
 
   /home/ms/de/dfr/Perl/ectrans.pl -r ECtoFE04 -O plots ${tarfile}
   rm -f ${tarfile} %SUITE%_%EXPNUM%
-  
+
 fi
 
 # include the standard "tail" file

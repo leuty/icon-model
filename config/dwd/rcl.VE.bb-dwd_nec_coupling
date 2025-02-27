@@ -52,4 +52,3 @@
   acx_cv_prog_mpirun='/opt/nec/ve/mpi/3.5.0/bin/runtime/mpirun' \
   acx_cv_fc_c_compatible_mpi=yes \
   "$@"
-

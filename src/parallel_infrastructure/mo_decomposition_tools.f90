@@ -982,4 +982,3 @@ CONTAINS
   END FUNCTION partidx_of_elem_uniform_deco
 
 END MODULE mo_decomposition_tools
-

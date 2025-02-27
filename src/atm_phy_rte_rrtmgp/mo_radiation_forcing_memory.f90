@@ -99,13 +99,13 @@ MODULE mo_radiation_forcing_memory
   REAL(wp),  POINTER :: d_aflx_lwc(:,:,:) !<3d instantaneous lw forcing clear sky
 
   !--- Heating rate forcing:
-  REAL(wp), POINTER  :: netht_lw(:,:,:)   !<3d forcing of net lw heating rate (K/day) 
+  REAL(wp), POINTER  :: netht_lw(:,:,:)   !<3d forcing of net lw heating rate (K/day)
   REAL(wp), POINTER  :: netht_sw(:,:,:)   !<3d forcing of net sw heating rate (K/day)
 
   END TYPE t_radiation_forcing
 
   !!--------------------------------------------------------------------------
-  !!                          diagnostic variables 
+  !!                          diagnostic variables
   !!--------------------------------------------------------------------------
   !! The variable names have the prefix "prm_" in order to emphasize that they
   !! are defined for and used in parameterisations of radiation.
@@ -120,7 +120,7 @@ MODULE mo_radiation_forcing_memory
 CONTAINS
 
   !!--------------------------------------------------------------------------
-  !!                SUBROUTINES FOR BUILDING AND DELETING VARIABLE LISTS 
+  !!                SUBROUTINES FOR BUILDING AND DELETING VARIABLE LISTS
   !!--------------------------------------------------------------------------
   !>
   !! Top-level procedure for building the physics state
@@ -131,13 +131,13 @@ CONTAINS
     CHARACTER(len=MAX_CHAR_LENGTH) :: listname
     INTEGER :: ndomain, jg, ist, nblks, nlev
     CHARACTER(len=*), PARAMETER :: thissubprog='construct_radiation_forcing_list of mo_radiation_forcing_memory'
-    
+
     !---
 
     IF (.NOT.(lradforcing(1).OR.lradforcing(2))) RETURN
     CALL message(TRIM(thissubprog),'Construction of radiation_forcing_list started.')
 
-    ! Allocate pointer arrays prm_field and prm_tend, 
+    ! Allocate pointer arrays prm_field and prm_tend,
     ! as well as the corresponding list arrays.
 
     ndomain = SIZE(patch_array)
@@ -153,8 +153,8 @@ CONTAINS
     !$ACC ENTER DATA CREATE(prm_radiation_forcing)
 
     ! Build a rte-rrtmgp forcing list for each grid level.
-    ! This includes memory allocation. 
-    
+    ! This includes memory allocation.
+
     DO jg = 1,ndomain
 
       nblks = patch_array(jg)%nblks_c
@@ -347,7 +347,7 @@ CONTAINS
                 & GRID_UNSTRUCTURED_CELL, ZA_SURFACE, cf_desc, grib2_desc, ldims=shape2d,  &
                 & lrestart=.FALSE. )
     END IF
-    
+
     IF (lradforcing(1)) THEN
     cf_desc    = t_cf_var('d_aflx_sw', 'W m-2', '3d instantaneous sw forcing all sky',       &
                & datatype_flt)
@@ -395,7 +395,7 @@ CONTAINS
                & datatype_flt)
     grib2_desc = grib2_var(0, 0, 22, ibits, GRID_UNSTRUCTURED, GRID_CELL)
     CALL add_var( field_list, prefix//'netht_lw', field%netht_lw,                            &
-                & GRID_UNSTRUCTURED_CELL, ZA_REFERENCE, cf_desc, grib2_desc, ldims=shape3d,     & 
+                & GRID_UNSTRUCTURED_CELL, ZA_REFERENCE, cf_desc, grib2_desc, ldims=shape3d,     &
                 & vert_interp =                                                              &
                 &   create_vert_interp_metadata( vert_intp_type=vintp_types("P","Z","I") ),  &
                 & lrestart=.FALSE. )

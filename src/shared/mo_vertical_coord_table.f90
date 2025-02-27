@@ -64,7 +64,7 @@ CONTAINS
 
     INTEGER,           INTENT(IN   ) :: klev
     CHARACTER(LEN=*),  INTENT(IN   ) :: vct_file
-    REAL(wp),          INTENT(INOUT) :: vct_a(:), vct_b(:)  
+    REAL(wp),          INTENT(INOUT) :: vct_a(:), vct_b(:)
 
     ! Local variables
     CHARACTER(len=max_char_length),PARAMETER :: routine  = &
@@ -127,12 +127,11 @@ CONTAINS
     ALLOCATE(vct_a(nlevp1), vct_b(nlevp1), STAT=error_status)
     !$ACC ENTER DATA CREATE(vct_a)
     IF (error_status/=SUCCESS) CALL finish (TRIM(routine), 'allocation of vct_a/vct_b failed')
-    
+
     ! Allocate input for derived variables of input
     ALLOCATE(vct(nlevp1*2), STAT=error_status)
     IF (error_status/=SUCCESS) CALL finish (TRIM(routine), 'allocation of vct failed')
-    
+
   END SUBROUTINE allocate_vct_atmo
 
 END MODULE mo_vertical_coord_table
-

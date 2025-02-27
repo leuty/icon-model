@@ -50,7 +50,7 @@ MODULE mo_upatmo_extdat_utils
 CONTAINS
 
   !>
-  !! Read external gas data for the upper atmosphere 
+  !! Read external gas data for the upper atmosphere
   !! under NWP forcing.
   !!
   SUBROUTINE read_extdat_gas( gas,         &  !inout
@@ -84,14 +84,14 @@ CONTAINS
     CHARACTER(LEN=4),  PARAMETER :: levname  = 'plev'
     CHARACTER(LEN=3),  PARAMETER :: latname  = 'lat'
     CHARACTER(LEN=4),  PARAMETER :: timename = 'time'
-    CHARACTER(LEN=2),  PARAMETER :: levunit  = 'Pa' 
+    CHARACTER(LEN=2),  PARAMETER :: levunit  = 'Pa'
     CHARACTER(LEN=13), PARAMETER :: latunit  = 'degrees_north'
     CHARACTER(LEN=15), PARAMETER :: timeunit = 'month_of_a_year'
-    CHARACTER(LEN=9),  PARAMETER :: gasunit  = 'mol mol-1' 
+    CHARACTER(LEN=9),  PARAMETER :: gasunit  = 'mol mol-1'
     CHARACTER(LEN=MAX_CHAR_LENGTH), PARAMETER ::  &
       &  routine = modname//':read_extdat_gas'
-    
-    !-------------------------------------------------------------- 
+
+    !--------------------------------------------------------------
 
     !--------
     ! Checks
@@ -120,9 +120,9 @@ CONTAINS
     nlat  = -999
 
     ! Please do not remove this!
-    ! (There are some problems with regard to the read-in of strings 
-    ! from the default file with the external data. 
-    ! The reasons are not yet know (maybe it is related to numbers in strings). 
+    ! (There are some problems with regard to the read-in of strings
+    ! from the default file with the external data.
+    ! The reasons are not yet know (maybe it is related to numbers in strings).
     ! This is a workaround for the time being.)
     ALLOCATE(CHARACTER(LEN=LEN_TRIM(gasunit)) :: varunit, STAT=istat)
     IF (istat/=SUCCESS) CALL finish (TRIM(routine), 'Allocation of varunit failed')
@@ -224,7 +224,7 @@ CONTAINS
       ! Number of dimensions should be 3 (or maybe larger)
       IF (ndim < 3) THEN
         message_text = 'Gas '//TRIM(gasname)//' in gas file '//TRIM(filename) &
-          & //' has less than 3 dimensions.' 
+          & //' has less than 3 dimensions.'
         CALL finish(TRIM(routine), TRIM(message_text))
       ENDIF  !IF (ndim < 3)
       ALLOCATE(dimids(ndim), STAT=istat)
@@ -233,19 +233,19 @@ CONTAINS
       ! Check, if variable varies in correct dimensions
       IF (dimids(ndim) /= dimid_time) THEN
         message_text = 'First dimension of gas '//TRIM(gasname) &
-          & //' in gas file '//TRIM(filename)//' needs to be time.' 
+          & //' in gas file '//TRIM(filename)//' needs to be time.'
         CALL finish(TRIM(routine), TRIM(message_text))
       ELSEIF (dimids(ndim-1) /= dimid_lev) THEN
         message_text = 'Second dimension of gas '//TRIM(gasname) &
-          & //' in gas file '//TRIM(filename)//' needs to be level.' 
+          & //' in gas file '//TRIM(filename)//' needs to be level.'
         CALL finish(TRIM(routine), TRIM(message_text))
       ELSEIF (dimids(ndim-2) /= dimid_lat) THEN
         message_text = 'Third dimension of gas '//TRIM(gasname) &
-          & //' in gas file '//TRIM(filename)//' needs to be latitude.' 
+          & //' in gas file '//TRIM(filename)//' needs to be latitude.'
         CALL finish(TRIM(routine), TRIM(message_text))
       ENDIF
       DEALLOCATE(dimids, STAT=istat)
-      IF(istat /= SUCCESS) CALL finish(TRIM(routine), 'Deallocation of dimids failed.')     
+      IF(istat /= SUCCESS) CALL finish(TRIM(routine), 'Deallocation of dimids failed.')
       ! Check variable unit
       CALL nf(nf90_get_att(ncid, varid_gas, 'units', varunit), routine)
       IF (TRIM(varunit) /= gasunit) THEN
@@ -253,7 +253,7 @@ CONTAINS
           & //' but unit in file is: '//TRIM(varunit)
         CALL finish(TRIM(routine), TRIM(message_text))
       ENDIF
- 
+
     ENDIF  !IF (lstdioproc)
 
     !---------------------------
@@ -284,8 +284,8 @@ CONTAINS
     ! Broadcast units
     !-----------------
 
-    ! Below, we will convert the gas unit 
-    ! from volume mixing ratio (mole fraction) 
+    ! Below, we will convert the gas unit
+    ! from volume mixing ratio (mole fraction)
     ! into mass mixing ratio
     gas%unit_data = 'kg kg-1'
     ! Below, we will convert latitudes to rad
@@ -340,7 +340,7 @@ CONTAINS
       gas%iendtime   = 1
       gas%isteptime  = -1
     ENDIF
-    ! Whatever the read-in times are, 
+    ! Whatever the read-in times are,
     ! we overwrite it with 1, 2, 3, ..., 12
     istart = gas%istarttime
     iend   = gas%iendtime
@@ -374,15 +374,15 @@ CONTAINS
       gas%isteplev  = -1
     ENDIF
 
-    ! The half-level pressures, p(jk+-1/2), 
+    ! The half-level pressures, p(jk+-1/2),
     ! are defined:
     !
-    !   p(jk+1/2) = [p(jk) + p(jk+1)] / 2, 
+    !   p(jk+1/2) = [p(jk) + p(jk+1)] / 2,
     !
-    ! and halve the mass per unit area between p(jk+1) and p(jk). 
+    ! and halve the mass per unit area between p(jk+1) and p(jk).
     ! The uppermost and lowermost half-level pressures are defined:
     !
-    !   p(1-1/2)    = 0 Pa, 
+    !   p(1-1/2)    = 0 Pa,
     !   p(nlev+1/2) = 125000 Pa,
     !
     ! so we start with a corresponding bounary check of the read in full pressure levels.
@@ -416,7 +416,7 @@ CONTAINS
     ! Info
     !------
 
-    IF (lmessage) THEN 
+    IF (lmessage) THEN
       CALL message(TRIM(routine), 'istarttime, iendtime, isteptime: ' &
         & //TRIM(int2string(gas%istarttime))//', '                    &
         & //TRIM(int2string(gas%iendtime))//', '                      &
@@ -443,7 +443,7 @@ CONTAINS
   !====================================================================================
 
   !>
-  !! Read external gas data for the upper atmosphere 
+  !! Read external gas data for the upper atmosphere
   !! under NWP forcing.
   !!
   SUBROUTINE read_extdat_chemheat( chemheat,    &  !inout
@@ -462,14 +462,14 @@ CONTAINS
 
     CHARACTER(LEN = :), ALLOCATABLE :: varunit, dimunit_lat, dimunit_lev, dimunit_time
 
-    CHARACTER(LEN=1), PARAMETER :: levunit      = 'm' 
+    CHARACTER(LEN=1), PARAMETER :: levunit      = 'm'
     CHARACTER(LEN=3), PARAMETER :: latunit      = 'rad'
     CHARACTER(LEN=5), PARAMETER :: timeunit     = 'month'
-    CHARACTER(LEN=5), PARAMETER :: chemheatunit = 'K s-1' 
+    CHARACTER(LEN=5), PARAMETER :: chemheatunit = 'K s-1'
     CHARACTER(LEN=MAX_CHAR_LENGTH), PARAMETER ::  &
       &  routine = modname//':read_extdat_chemheat'
-    
-    !-------------------------------------------------------------- 
+
+    !--------------------------------------------------------------
 
     !--------
     ! Checks
@@ -497,8 +497,8 @@ CONTAINS
     !--------------------------
 
     ! Please do not remove this!
-    ! (There are some problems with regard to the read-in of strings 
-    ! from the default file with the external data. 
+    ! (There are some problems with regard to the read-in of strings
+    ! from the default file with the external data.
     ! The reasons are not yet know. This is a workaround for the time being.)
     ALLOCATE(CHARACTER(LEN=LEN_TRIM(chemheatunit)) :: varunit, STAT=istat)
     IF (istat/=SUCCESS) CALL finish (TRIM(routine), 'Allocation of varunit failed')
@@ -568,7 +568,7 @@ CONTAINS
       &       chemheat%time(chemheat%ntime),                             &
       &       STAT=istat                                                 )
     IF(istat /= SUCCESS) CALL finish(TRIM(routine), 'Allocation of gas failed.')
-    
+
     !----------
     ! Get data
     !----------
@@ -593,7 +593,7 @@ CONTAINS
       chemheat%iendtime   = 1
       chemheat%isteptime  = -1
     ENDIF
-    ! Whatever the read-in times are, 
+    ! Whatever the read-in times are,
     ! we overwrite it with 1, 2, 3, ..., 12
     istart = chemheat%istarttime
     iend   = chemheat%iendtime
@@ -632,7 +632,7 @@ CONTAINS
     ! Info
     !------
 
-    IF (lmessage) THEN 
+    IF (lmessage) THEN
       CALL message(TRIM(routine), 'istarttime, iendtime, isteptime: ' &
         & //TRIM(int2string(chemheat%istarttime))//', '               &
         & //TRIM(int2string(chemheat%iendtime))//', '                 &
@@ -676,8 +676,8 @@ CONTAINS
     ! Local variables
     CHARACTER(LEN=MAX_CHAR_LENGTH), PARAMETER ::  &
       &  routine = modname//':get_dim'
-    
-    !-------------------------------------------------------------- 
+
+    !--------------------------------------------------------------
 
     ! Initialize out variables
     dimunit = " "
@@ -694,13 +694,13 @@ CONTAINS
 
   END SUBROUTINE get_dim
 
-  !==================================================================================== 
+  !====================================================================================
 
   !>
   !! Determine auxiliary variables for meridional interpolation.
-  !! Please note: we cannot use 
+  !! Please note: we cannot use
   !! * src/shared/mo_latitude_interpolation: latitude_weights_li
-  !! here, because the latitudes from which we interpolate 
+  !! here, because the latitudes from which we interpolate
   !! (stored in lat_stzstl) are not equidistant in general.
   !!
   SUBROUTINE construct_interpolation_lat( p_patch,    &  !in
@@ -723,7 +723,7 @@ CONTAINS
 
     INTEGER  :: jc, jb, jlat
     INTEGER  :: rl_start, rl_end
-    INTEGER  :: i_startblk, i_endblk 
+    INTEGER  :: i_startblk, i_endblk
     INTEGER  :: i_startidx, i_endidx
 
     LOGICAL  :: lfound
@@ -745,15 +745,15 @@ CONTAINS
 !$OMP PARALLEL
 !$OMP DO PRIVATE(jb, jc, i_startidx, i_endidx, jlat, lat, scale, lfound) ICON_OMP_GUIDED_SCHEDULE
     DO jb = i_startblk, i_endblk
-      
+
       CALL get_indices_c(p_patch, jb, i_startblk, i_endblk, i_startidx, i_endidx, rl_start, rl_end)
-      
+
       DO jc = i_startidx, i_endidx
-        
+
         ! Get meridional position of grid cell
         lat = p_patch%cells%center(jc,jb)%lat
 
-        ! Search latitude among latitudes, 
+        ! Search latitude among latitudes,
         ! from which to interpolate
         lfound = .FALSE.
         LAT_LOOP: DO jlat = istart, iend - istep, istep
@@ -763,7 +763,7 @@ CONTAINS
             ! Linear interpolation
             scale = 1._wp / MAX(eps_dlat, ABS(lat_stzstl(jlat + istep) - lat_stzstl(jlat)))
             intrpl_wgt(1,jc,jb) = scale * ABS(lat_stzstl(jlat + istep) - lat)
-            intrpl_wgt(2,jc,jb) = scale * ABS(lat - lat_stzstl(jlat))       
+            intrpl_wgt(2,jc,jb) = scale * ABS(lat - lat_stzstl(jlat))
             lfound = .TRUE.
             EXIT LAT_LOOP
           ENDIF
@@ -775,13 +775,13 @@ CONTAINS
             intrpl_idx(2,jc,jb) = istart
             intrpl_wgt(1,jc,jb) = 0.5_wp
             intrpl_wgt(2,jc,jb) = 0.5_wp
-            lfound = .TRUE.            
+            lfound = .TRUE.
           ELSEIF (lat >= lat_stzstl(iend)) THEN
             intrpl_idx(1,jc,jb) = iend
             intrpl_idx(2,jc,jb) = iend
             intrpl_wgt(1,jc,jb) = 0.5_wp
             intrpl_wgt(2,jc,jb) = 0.5_wp
-            lfound = .TRUE.            
+            lfound = .TRUE.
           ENDIF
         ENDIF  !IF (.NOT. lfound)
 
@@ -793,7 +793,7 @@ CONTAINS
 
   END SUBROUTINE construct_interpolation_lat
 
-  !==================================================================================== 
+  !====================================================================================
 
   !>
   !! Determine auxiliary variables for vertical interpolation.
@@ -825,7 +825,7 @@ CONTAINS
     REAL(wp), PARAMETER :: eps_dz = 1.e-10_wp
     CHARACTER(LEN=MAX_CHAR_LENGTH), PARAMETER ::  &
       &  routine = modname//':construct_interpolation_lev'
-    
+
     !--------------------------------------------------------------
 
     IF (.NOT. PRESENT(vct_a)) CALL finish(TRIM(routine), 'vct_a has to be present.')
@@ -837,7 +837,7 @@ CONTAINS
     ! Number of grid layers on domain
     nlev = p_patch%nlev
 
-    ! Shift of grid layer index, 
+    ! Shift of grid layer index,
     ! to account for vertical nesting
     nshift_total = p_patch%nshift_total
 
@@ -852,7 +852,7 @@ CONTAINS
       ! Height of grid layer center
       lev = 0.5_wp * ( vct_a(jks) + vct_a(jks + 1) )
 
-      ! Search height among heights, 
+      ! Search height among heights,
       ! from which to interpolate
       lfound = .FALSE.
       LEV_EXT_LOOP: DO jlev = istart_dyn, iend - istep, istep
@@ -864,7 +864,7 @@ CONTAINS
           intrpl_wgt(1,jk) = scale * ABS(lev_stzstl(jlev + istep) - lev)
           intrpl_wgt(2,jk) = scale * ABS(lev - lev_stzstl(jlev))
           lfound = .TRUE.
-          ! For the next search, LEV_EXT_LOOP can start 
+          ! For the next search, LEV_EXT_LOOP can start
           ! at the current position
           istart_aux = jlev
           EXIT LEV_EXT_LOOP
@@ -879,13 +879,13 @@ CONTAINS
           intrpl_idx(2,jk) = istart
           intrpl_wgt(1,jk) = 0.5_wp
           intrpl_wgt(2,jk) = 0.5_wp
-          lfound = .TRUE.            
+          lfound = .TRUE.
         ELSEIF (lev <= lev_stzstl(iend)) THEN
           intrpl_idx(1,jk) = iend
           intrpl_idx(2,jk) = iend
           intrpl_wgt(1,jk) = 0.5_wp
           intrpl_wgt(2,jk) = 0.5_wp
-          lfound = .TRUE.            
+          lfound = .TRUE.
         ENDIF
       ENDIF  !IF (.NOT. lfound)
 
@@ -893,7 +893,7 @@ CONTAINS
         & //' not found among stuetzstellen')
 
     ENDDO  !jk
-    
+
   END SUBROUTINE construct_interpolation_lev
 
 END MODULE mo_upatmo_extdat_utils

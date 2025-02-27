@@ -119,7 +119,7 @@ case $lapack_provider in
     # see it should be done:
     # BLAS_LAPACK_BUILD_ENV="export MKLROOT=\"${MKL_ROOT}\";"
     # BLAS_LAPACK_LDFLAGS="-qmkl=sequential -Wl,-rpath -Wl,${MKL_ROOT}/lib/intel64"
-    BLAS_LAPACK_LIBS='-lmkl_blas95_ilp64 -lmkl_lapack95_ilp64' 
+    BLAS_LAPACK_LIBS='-lmkl_blas95_ilp64 -lmkl_lapack95_ilp64'
     ;;
   *)
     echo "ERROR: unknown LAPACK provider '$lapack_provider'" >&2

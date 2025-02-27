@@ -241,7 +241,7 @@ MODULE mo_apt_routines
 
       CALL get_indices_c(p_patch, jb, i_startblk, i_endblk, i_startidx, i_endidx, rl_start, rl_end)
 
- 
+
       ! tuning factor for rlam_heat depending on skin conductivity and analyzed T2M/RH2M bias
       IF (itype_canopy == 2 .AND. icpl_da_sfcevap >= 3) THEN
         DO jt = 1, ntiles_total + ntiles_water
@@ -329,7 +329,7 @@ MODULE mo_apt_routines
             prm_diag%heatcond_fac(jc,jb) = MAX(0.1_wp,  1._wp+dtfac_heatc*2.5_wp*p_diag%t_wgt_avginc(jc,jb))
             prm_diag%heatcap_fac(jc,jb)  = MAX(0.25_wp, 1._wp+dtfac_heatc*2.0_wp*p_diag%t_wgt_avginc(jc,jb))
           ELSE
-            prm_diag%heatcond_fac(jc,jb) = 1._wp/MAX(0.1_wp,  1._wp-dtfac_heatc*2.5_wp*p_diag%t_wgt_avginc(jc,jb)) 
+            prm_diag%heatcond_fac(jc,jb) = 1._wp/MAX(0.1_wp,  1._wp-dtfac_heatc*2.5_wp*p_diag%t_wgt_avginc(jc,jb))
             prm_diag%heatcap_fac(jc,jb)  = 1._wp/MAX(0.25_wp, 1._wp-dtfac_heatc*2.0_wp*p_diag%t_wgt_avginc(jc,jb))
           ENDIF
         ENDDO
@@ -381,7 +381,7 @@ MODULE mo_apt_routines
           IF (icpl_da_sfcfric == 1 .AND.                                                          &
              (zlon >= 30._wp .AND. zlon <= 50._wp .AND. zlat >= 40._wp .AND. zlat <= 70._wp .OR.  &
               zlon >= 50._wp .AND. zlon <= 90._wp .AND. zlat >= 55._wp .AND. zlat <= 70._wp .OR.  &
-              zlon >= 90._wp .AND. zlon <= 140._wp .AND. zlat >= 50._wp .AND. zlat <= 70._wp)) THEN 
+              zlon >= 90._wp .AND. zlon <= 140._wp .AND. zlat >= 50._wp .AND. zlat <= 70._wp)) THEN
             prm_diag%sfcfric_fac(jc,jb) = MAX(1._wp, prm_diag%sfcfric_fac(jc,jb))
           ENDIF
 
@@ -498,7 +498,7 @@ MODULE mo_apt_routines
     TYPE(t_patch),           INTENT(in)    :: p_patch
     TYPE(t_nwp_phy_diag),    INTENT(in)    :: prm_diag
     TYPE(t_external_data),   INTENT(inout) :: ext_data
- 
+
     INTEGER :: jb, jc
     INTEGER :: rl_start, rl_end
     INTEGER :: i_startblk, i_endblk    !> blocks
@@ -645,7 +645,7 @@ MODULE mo_apt_routines
 
               ! part relevant for bare-soil evap: consider only the upper layers ...
               IF (jk <= 4) smi_inc(jc,jk) = 4.e-3_wp*bsevap_pot(jc)/MAX(0.02_wp,zml_soil(jk))**1.5_wp
-              ! ... and suppress moistening the upper two soil layers in case of dry soil in order avoid a 
+              ! ... and suppress moistening the upper two soil layers in case of dry soil in order avoid a
               ! short-lived impact that quickly disappears during the forecast
               IF (lnd_diag%snowfrac_lc_t(jc,jb,jt) > 0.25_wp .OR. &
                   trh_avginc(jc) > 0._wp .AND. smi(jc,3) <= 0.25_wp .AND. jk <= 2) smi_inc(jc,jk) = 0._wp
@@ -658,7 +658,7 @@ MODULE mo_apt_routines
               smi_incint(jc) = smi_incint(jc)+smi_inc(jc,jk)*dzsoil(jk)
             ENDDO
 
-            ! apply soil water increments; drying below the wilting point and moistening above the 
+            ! apply soil water increments; drying below the wilting point and moistening above the
             ! field capacity are suppressed
             DO jk= 1, nlev_soil_sma
               smi_inc(jc,jk) = smi_inc(jc,jk)/MAX(1.e-10_wp,smi_incint(jc))
@@ -680,4 +680,3 @@ MODULE mo_apt_routines
   END SUBROUTINE apply_sma
 
 END MODULE mo_apt_routines
-

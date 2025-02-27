@@ -17,7 +17,7 @@ BUILD_DIR=$2
 
 # Unset positional parameters
 # so they are not forwarded to spack-c2sm/setup-env.sh
-set -- 
+set --
 set +x
 
 spack env deactivate
@@ -37,7 +37,7 @@ if [[ "$(hostname)" == *"balfrin"* || "$(hostname)" == *"tasna"* ]]; then
     if [[ "$VARIANT" == *"double"* ]]; then
       echo "export NV_TERM=trace" >> $BUILD_DIR/setting
     fi
- 
+
     # add additonal exports
     echo "export CRAY_CUDA_MPS=1" >> $BUILD_DIR/setting
     echo "export MPICH_GPU_SUPPORT_ENABLED=1" >> $BUILD_DIR/setting

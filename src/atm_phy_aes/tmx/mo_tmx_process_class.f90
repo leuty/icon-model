@@ -91,14 +91,14 @@ MODULE mo_tmx_process_class
   END INTERFACE
 
   CHARACTER(len=*), PARAMETER :: modname = 'mo_tmx_process_class'
-  
+
 CONTAINS
 
   SUBROUTINE Init_tmx_process(this, dt, name, domain)
 
     CLASS(t_tmx_process), INTENT(inout)        :: this
     REAL(wp),             INTENT(in)           :: dt
-    CHARACTER(len=*),     INTENT(in), OPTIONAL :: name 
+    CHARACTER(len=*),     INTENT(in), OPTIONAL :: name
     TYPE(t_domain),       POINTER,    OPTIONAL :: domain
 
     this%dt = dt
@@ -247,7 +247,7 @@ CONTAINS
       CALL finish(routine, 'ERROR')
     END IF
 !$OMP END PARALLEL
-    
+
     ! Add variable to tendencies varlist with the same attributes as state
     CALL this%tendencies%append(t_variable(name, dims, "", type_id="real"))
     tv => this%tendencies%Search(name)

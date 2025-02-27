@@ -61,7 +61,7 @@ if [ -e "$expdir"/log_plotting/index.html ]; then
 else
     echo "$expdir/log_plotting/index.html does not exist."
     exit 1
-fi    
+fi
 
 # Check if the log_plotting dir contains at least 5 files
 
@@ -74,7 +74,7 @@ else
     exit 1
 fi
 
-# Check if each csv file has at least 5 lines of content 
+# Check if each csv file has at least 5 lines of content
 
 if [ -d "$expdir"/timer_data ]; then
     echo "$expdir/timer_data exists."
@@ -90,7 +90,7 @@ function csv_header {
     correct_head=$2
     if [ "$head" = "$correct_head" ]; then
         echo "$1 has the correct header"
-    else 
+    else
         echo "$1 has an incorrect header"
         exit 1
     fi
@@ -104,11 +104,11 @@ function csv_contents {
     else
         echo "$1 contains less then 5 lines of content"
         exit 1
-    fi   
+    fi
 }
 
 for csv_file in ${csv_files}; do
-    
+
     substring=$(echo ${csv_file} | rev | cut -d . -f 2 | rev)
     if [ "$substring" = "exp_status" ]; then
         csv_header $csv_file ",sdpd,run_start,run_end,sim_start,sim_end,job_id,exp_id"

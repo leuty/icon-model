@@ -122,4 +122,3 @@ MODULE mo_ocean_surface_types
 ! ---------------------------------------------------------------------------------------
 
 END MODULE mo_ocean_surface_types
-

@@ -1243,7 +1243,7 @@ SUBROUTINE sync_idx(type_arr, type_idx, p_patch, idx, blk, lacc, opt_remap, opt_
     END DO
 
 #ifdef __SX__
-    !NEC: initialize idx and blk in vectroized loop 
+    !NEC: initialize idx and blk in vectroized loop
     DO jl = 1, nproma
       idx(jl,jb) = idx_no(ind_v(jl))
       blk(jl,jb) = blk_no(ind_v(jl))
@@ -1288,7 +1288,7 @@ FUNCTION global_sum_0di (z_in, opt_iroot) RESULT (global_sum)
   INTEGER,          INTENT(in) :: z_in
   INTEGER, OPTIONAL,INTENT(IN) :: opt_iroot
   INTEGER                      :: global_sum
- 
+
   INTEGER :: p_comm_glob, i_in(1), i_out(1)
 !-----------------------------------------------------------------------
 
@@ -1334,7 +1334,7 @@ FUNCTION global_sum_1di (zfield, opt_iroot) RESULT (global_sum)
   INTEGER,          INTENT(in) :: zfield(:)
   INTEGER, OPTIONAL,INTENT(IN) :: opt_iroot
   INTEGER                      :: global_sum(SIZE(zfield))
- 
+
   INTEGER :: p_comm_glob
 !-----------------------------------------------------------------------
 
@@ -2890,4 +2890,3 @@ END SUBROUTINE complete_cumulative_sync
 
 
 END MODULE mo_sync
-

@@ -34,8 +34,8 @@ MODULE mo_nh_pzlev_config
 
     ! namelist variables
     !
-    TYPE (t_value_set) :: zlevels    !< zlevel heights [m] 
-    TYPE (t_value_set) :: plevels    !< plevel heights [Pa] 
+    TYPE (t_value_set) :: zlevels    !< zlevel heights [m]
+    TYPE (t_value_set) :: plevels    !< plevel heights [Pa]
     TYPE (t_value_set) :: ilevels    !< isentropes [K]
 
     ! derived variables
@@ -56,15 +56,15 @@ CONTAINS
 
   !! setup components for output on pressure/height levels and isentropes
   !!
-  !! Setup of additional control variables for output on pressure/height levels 
-  !! and isentropes.  
-  !! These may depend on the nh_pzlev-namelist and potentially other namelists. 
-  !! This routine is called, after all namelists have been read and a synoptic 
+  !! Setup of additional control variables for output on pressure/height levels
+  !! and isentropes.
+  !! These may depend on the nh_pzlev-namelist and potentially other namelists.
+  !! This routine is called, after all namelists have been read and a synoptic
   !! consistency check has been done.
   !!
   SUBROUTINE configure_nh_pzlev( jg, nproma, npromz_c, nblks_c )
   !
-    INTEGER, INTENT(IN) :: jg           !< patch 
+    INTEGER, INTENT(IN) :: jg           !< patch
     INTEGER, INTENT(IN) :: nproma
     INTEGER, INTENT(IN) :: npromz_c
     INTEGER, INTENT(IN) :: nblks_c      !< number of blocks
@@ -118,7 +118,7 @@ CONTAINS
     !$ACC   COPYIN(nh_pzlev_config(jg)%ilevels%values) &
     !$ACC   CREATE(nh_pzlev_config(jg)%p3d, nh_pzlev_config(jg)%z3d, nh_pzlev_config(jg)%i3d)
 
-    ! Fill z3d field of pressure-level data and pressure field of 
+    ! Fill z3d field of pressure-level data and pressure field of
     ! height-level data
     !
 
@@ -165,7 +165,7 @@ CONTAINS
     !$ACC END PARALLEL
 !$OMP END DO
 !$OMP END PARALLEL
-    
+
   END SUBROUTINE configure_nh_pzlev
 
 

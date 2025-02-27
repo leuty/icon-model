@@ -28,4 +28,3 @@ except ImportError:
   # probably not yet twisted 8.2.0 and beyond, can't set log yet
   pass
 BuildMaster(basedir, configfile).setServiceParent(application)
-

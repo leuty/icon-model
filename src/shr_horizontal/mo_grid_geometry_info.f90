@@ -22,17 +22,17 @@ MODULE mo_grid_geometry_info
   USE mo_netcdf_errhandler,  ONLY: nf
   USE mo_lib_grid_geometry_info, ONLY: sphere_geometry, planar_torus_geometry, &
                                        planar_channel_geometry, planar_geometry, &
-                                       triangular_cell, hexagonal_cell, cut_off_grid, & 
+                                       triangular_cell, hexagonal_cell, cut_off_grid, &
                                        refined_bisection_grid, dualy_refined_grid, undefined, &
                                        t_grid_geometry_info
   USE mo_netcdf
 #if !( defined (NOMPI) || defined (__ICON_GRID_GENERATOR__))
   ! The USE statement below lets this module use the routines from
   ! mo_netcdf_parallel where only 1 processor is reading and
-  ! broadcasting the results  
+  ! broadcasting the results
   USE mo_netcdf_parallel, ONLY: p_nf90_get_att
 #endif
-  
+
   IMPLICIT NONE
 
   PRIVATE
@@ -70,7 +70,7 @@ CONTAINS
 
   END SUBROUTINE set_default_geometry_info
   !------------------------------------------------------------------------
-    
+
   !------------------------------------------------------------------------
   !>
   SUBROUTINE copy_grid_geometry_info(from_geometry_info, to_geometry_info)
@@ -92,9 +92,9 @@ CONTAINS
 
   END SUBROUTINE copy_grid_geometry_info
   !------------------------------------------------------------------------
-  
+
   !-------------------------------------------------------------------------
-  !> 
+  !>
   SUBROUTINE set_grid_geometry_derived_info( to_geometry_info )
     TYPE(t_grid_geometry_info) :: to_geometry_info
 
@@ -104,7 +104,7 @@ CONTAINS
 !     write(0,*) "mean_cell_area:", to_geometry_info%mean_cell_area
 !     write(0,*) "mean_characteristic_length:", to_geometry_info%mean_characteristic_length
 !     write(0,*) "------------------------------------------------"
-    
+
   END SUBROUTINE set_grid_geometry_derived_info
   !-------------------------------------------------------------------------
 
@@ -127,19 +127,19 @@ CONTAINS
   END FUNCTION get_resolution_string
   !-------------------------------------------------------------------------
 
-  
+
   !-------------------------------------------------------------------------
   INTEGER FUNCTION parallel_read_geometry_info(ncid, geometry_info)
     INTEGER, INTENT(in) :: ncid
     TYPE(t_grid_geometry_info) :: geometry_info
-    
+
 #if ( defined (NOMPI) || defined (__ICON_GRID_GENERATOR__))
     parallel_read_geometry_info = read_geometry_info(ncid, geometry_info)
 #else
-    
+
     INTEGER :: netcd_status
     CHARACTER(*), PARAMETER :: method_name = "read_geometry_info"
-            
+
     INTEGER :: geometry_type
     INTEGER :: cell_type
     REAL(wp) :: mean_edge_length
@@ -153,13 +153,13 @@ CONTAINS
 
     CALL set_default_geometry_info(geometry_info)
     parallel_read_geometry_info = -1
-    
+
     netcd_status = p_nf90_get_att(ncid, nf90_global,'grid_geometry', geometry_type)
     IF (netcd_status /= nf90_noerr) THEN
 !       CALL finish("Cannot read","grid_geometry")
       RETURN
     ENDIF
-    
+
     geometry_info%geometry_type = geometry_type
 
     netcd_status = p_nf90_get_att(ncid, nf90_global,'grid_cell_type', cell_type)
@@ -167,7 +167,7 @@ CONTAINS
 !       CALL finish("Cannot read","grid_geometry")
       RETURN
     ENDIF
-        
+
     geometry_info%cell_type = cell_type
 
     netcd_status = p_nf90_get_att(ncid, nf90_global,'mean_edge_length', mean_edge_length)
@@ -175,7 +175,7 @@ CONTAINS
 !       CALL finish("Cannot read","mean_edge_length")
       RETURN
     ENDIF
-    
+
     geometry_info%mean_edge_length = mean_edge_length
 
     netcd_status = p_nf90_get_att(ncid, nf90_global,'mean_dual_edge_length', &
@@ -184,7 +184,7 @@ CONTAINS
 !       CALL finish("Cannot read","mean_dual_edge_length")
       RETURN
     ENDIF
-    
+
     geometry_info%mean_dual_edge_length = mean_dual_edge_length
 
     netcd_status = p_nf90_get_att(ncid, nf90_global,'mean_cell_area', mean_cell_area)
@@ -192,7 +192,7 @@ CONTAINS
 !       CALL finish("Cannot read","mean_cell_area")
       RETURN
     ENDIF
-    
+
     geometry_info%mean_cell_area = mean_cell_area
 
     netcd_status = p_nf90_get_att(ncid, nf90_global,'mean_dual_cell_area', mean_dual_cell_area)
@@ -200,7 +200,7 @@ CONTAINS
 !       CALL finish("Cannot read","mean_dual_cell_area")
       RETURN
     ENDIF
-    
+
     geometry_info%mean_dual_cell_area = mean_dual_cell_area
 
     netcd_status = p_nf90_get_att(ncid, nf90_global,'domain_length', domain_length)
@@ -208,7 +208,7 @@ CONTAINS
 !       CALL finish("Cannot read","domain_length")
       RETURN
     ENDIF
-    
+
     geometry_info%domain_length = domain_length
 
     netcd_status = p_nf90_get_att(ncid, nf90_global,'domain_height', domain_height)
@@ -224,7 +224,7 @@ CONTAINS
 !       CALL finish("Cannot read","sphere_radius")
       RETURN
     ENDIF
-    
+
     geometry_info%sphere_radius = sphere_radius
 
     netcd_status = p_nf90_get_att(ncid, nf90_global,'domain_cartesian_center', center_x)
@@ -232,7 +232,7 @@ CONTAINS
 !       CALL finish("Cannot read","domain_cartesian_center")
       RETURN
     ENDIF
-    
+
     geometry_info%center%x = center_x
 
     ! return status ok
@@ -241,16 +241,16 @@ CONTAINS
 
   END FUNCTION parallel_read_geometry_info
   !-------------------------------------------------------------------------
-  
-  
+
+
   !-------------------------------------------------------------------------
   INTEGER FUNCTION read_geometry_info(ncid, geometry_info)
     INTEGER, INTENT(in) :: ncid
     TYPE(t_grid_geometry_info) :: geometry_info
-    
+
     INTEGER :: netcd_status
     CHARACTER(*), PARAMETER :: method_name = "read_geometry_info"
-            
+
     INTEGER :: geometry_type
     INTEGER :: cell_type
     REAL(wp) :: mean_edge_length
@@ -264,13 +264,13 @@ CONTAINS
 
     CALL set_default_geometry_info(geometry_info)
     read_geometry_info = -1
-    
+
     netcd_status = nf90_get_att(ncid, nf90_global,'grid_geometry', geometry_type)
     IF (netcd_status /= nf90_noerr) THEN
 !       CALL finish("Cannot read","grid_geometry")
       RETURN
     ENDIF
-    
+
     geometry_info%geometry_type = geometry_type
 
     netcd_status = nf90_get_att(ncid, nf90_global,'grid_cell_type', cell_type)
@@ -278,7 +278,7 @@ CONTAINS
 !       CALL finish("Cannot read","grid_geometry")
       RETURN
     ENDIF
-                
+
     geometry_info%cell_type = cell_type
 
     netcd_status = nf90_get_att(ncid, nf90_global,'mean_edge_length', mean_edge_length)
@@ -286,7 +286,7 @@ CONTAINS
 !       CALL finish("Cannot read","mean_edge_length")
       RETURN
     ENDIF
-    
+
     geometry_info%mean_edge_length = mean_edge_length
 
     netcd_status = nf90_get_att(ncid, nf90_global,'mean_dual_edge_length', mean_dual_edge_length)
@@ -294,7 +294,7 @@ CONTAINS
 !       CALL finish("Cannot read","mean_dual_edge_length")
       RETURN
     ENDIF
-    
+
     geometry_info%mean_dual_edge_length = mean_dual_edge_length
 
     netcd_status = nf90_get_att(ncid, nf90_global,'mean_cell_area', mean_cell_area)
@@ -302,7 +302,7 @@ CONTAINS
 !       CALL finish("Cannot read","mean_cell_area")
       RETURN
     ENDIF
-    
+
     geometry_info%mean_cell_area = mean_cell_area
 
     netcd_status = nf90_get_att(ncid, nf90_global,'mean_dual_cell_area', mean_dual_cell_area)
@@ -310,7 +310,7 @@ CONTAINS
 !       CALL finish("Cannot read","mean_dual_cell_area")
       RETURN
     ENDIF
-    
+
     geometry_info%mean_dual_cell_area = mean_dual_cell_area
 
     netcd_status = nf90_get_att(ncid, nf90_global,'domain_length', domain_length)
@@ -318,7 +318,7 @@ CONTAINS
 !       CALL finish("Cannot read","domain_length")
       RETURN
     ENDIF
-    
+
     geometry_info%domain_length = domain_length
 
     netcd_status = nf90_get_att(ncid, nf90_global,'domain_height', domain_height)
@@ -334,7 +334,7 @@ CONTAINS
 !       CALL finish("Cannot read","sphere_radius")
       RETURN
     ENDIF
-    
+
     geometry_info%sphere_radius = sphere_radius
 
     netcd_status = nf90_get_att(ncid, nf90_global,'domain_cartesian_center', center_x)
@@ -342,15 +342,15 @@ CONTAINS
 !       CALL finish("Cannot read","domain_cartesian_center")
       RETURN
     ENDIF
-    
+
     geometry_info%center%x = center_x
 
     ! return status ok
     read_geometry_info = 0
-    
+
   END FUNCTION read_geometry_info
   !-------------------------------------------------------------------------
-  
+
   !-------------------------------------------------------------------------
   INTEGER FUNCTION write_geometry_info(ncid, geometry_info)
     INTEGER, INTENT(in) :: ncid
@@ -361,46 +361,37 @@ CONTAINS
 
     CALL nf(nf90_put_att      (ncid, nf90_global, 'grid_geometry',  &
       & geometry_info%geometry_type), routine)
-    
+
     CALL nf(nf90_put_att      (ncid, nf90_global, 'grid_cell_type', &
       & geometry_info%cell_type), routine)
-    
+
     CALL nf(nf90_put_att  (ncid, nf90_global, 'mean_edge_length' , &
       & geometry_info%mean_edge_length), routine)
-      
+
     CALL nf(nf90_put_att  (ncid, nf90_global, 'mean_dual_edge_length' , &
       & geometry_info%mean_dual_edge_length), routine)
-      
+
     CALL nf(nf90_put_att  (ncid, nf90_global, 'mean_cell_area' , &
       & geometry_info%mean_cell_area), routine)
-      
+
     CALL nf(nf90_put_att  (ncid, nf90_global, 'mean_dual_cell_area' , &
       & geometry_info%mean_dual_cell_area), routine)
-      
+
     CALL nf(nf90_put_att   (ncid, nf90_global, 'domain_length' , &
       & geometry_info%domain_length), routine)
-    
+
     CALL nf(nf90_put_att   (ncid, nf90_global, 'domain_height' , &
       & geometry_info%domain_height), routine)
-    
+
     CALL nf(nf90_put_att   (ncid, nf90_global, 'sphere_radius' , &
       & geometry_info%sphere_radius), routine)
-    
+
     CALL nf(nf90_put_att  (ncid, nf90_global, 'domain_cartesian_center', &
       & geometry_info%center%x), routine)
-      
+
     write_geometry_info = 0
 
   END FUNCTION write_geometry_info
 
 END MODULE mo_grid_geometry_info
 !----------------------------------------------------------------------------
-
-
-
-
-
-
-
-
-

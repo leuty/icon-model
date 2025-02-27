@@ -61,7 +61,7 @@ CONTAINS
                          &   ext_data,                  & !>input
                          &   p_diag ,                   & !>inout
                          &   prm_diag,prm_nwp_tend,     & !>inout
-                         &   lacc                    ) !>in 
+                         &   lacc                    ) !>in
 
     LOGICAL, INTENT(IN), OPTIONAL :: lacc ! If true, use openacc
 
@@ -144,14 +144,14 @@ CONTAINS
 
       IF (lcall_sso_jg .AND. atm_phy_nwp_config(jg)%inwp_sso == 1) THEN
 
-        ! ATTENTION: - geopot_agl is the full level geopotential height above ground 
+        ! ATTENTION: - geopot_agl is the full level geopotential height above ground
         !              and not full level geopotential height above MSL.
-        !            - geopot_agl_ifc is the half level geopotential height above ground 
+        !            - geopot_agl_ifc is the half level geopotential height above ground
         !              and not the half level geopotential height above MSL.
-        !              I.e. geopot_agl_ifc(:,nlevp1,jb) is not the surface geopotential height,  
+        !              I.e. geopot_agl_ifc(:,nlevp1,jb) is not the surface geopotential height,
         !              but geopot_agl_ifc(:,nlevp1,jb) = 0
-        !            Since both geopot_agl AND geopot_agl_ifc are defined above ground, the 
-        !            resulting geopotential height which is computed inside of "SSO" is correct. 
+        !            Since both geopot_agl AND geopot_agl_ifc are defined above ground, the
+        !            resulting geopotential height which is computed inside of "SSO" is correct.
         CALL sso(                                          &
           & ie        =nproma                           ,  & !> in:  actual array size
           & ke        =nlev                             ,  & !< in:  actual array size
@@ -200,7 +200,7 @@ CONTAINS
         ! Limit SSO wind tendencies. They can become numerically unstable in the upper stratosphere and mesosphere.
         ! Moreover, they tend to be much too strong in northern hemispheric winter, leading to a huge warm
         ! bias in the north polar middle stratosphere
-        
+
         !$ACC PARALLEL LOOP GANG VECTOR COLLAPSE(2) DEFAULT(PRESENT) ASYNC(1) IF(lzacc)
         DO jk = 1, nlev
 !DIR$ IVDEP
@@ -279,7 +279,7 @@ CONTAINS
             &                + prm_diag%snow_gsp_rate (jc,jb) &  ! snow_gsp
             &                + prm_diag%rain_con_rate_corr (jc,jb) &  ! rain_con
             &                + prm_diag%snow_con_rate_corr (jc,jb)    ! snow_con
-          
+
           !IF (lozpr .AND. ((ngauss==2) .OR. (ngauss==4)) & ! these two variables would have to be imported from data_gwd
           pgelat(jc) = p_patch%cells%center(jc,jb)%lat
         ENDDO
@@ -287,7 +287,7 @@ CONTAINS
 
 
         CALL gwdrag_wms(                                   &
-           & kidia    = i_startidx                      ,  & 
+           & kidia    = i_startidx                      ,  &
            & kfdia    = i_endidx                        ,  &
            & klon     = nproma                          ,  &
            & klev     = nlev                            ,  & !< in:  actual array size

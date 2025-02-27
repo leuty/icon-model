@@ -2696,7 +2696,7 @@ FTRACE_BEGIN('rtifc_direct')
     end if
 
     if (.not.associated(profiles)) call finish(proc, 'profiles not associated')
-    
+
     ! Dimensions
     nchansprofs    = size(chans)
     if (present(istore)) then
@@ -2706,7 +2706,7 @@ FTRACE_BEGIN('rtifc_direct')
       !TODO: not a good method:
        nprof_store = min(nprof,size(lprofs))
        nchans      = nchansprofs/nprof_store
-    end if    
+    end if
     nlay       = profiles(1)% nlayers
     nlevs_coef = coefs(ic)%coef%nlevels
 
@@ -3075,7 +3075,7 @@ FTRACE_BEGIN('rtifc_direct')
       call rttov_print_profile(profiles(ipr(i)), usd, trim(msg))
       call rttov_print_opts(ropts, usd, 'ropts (options for rttov_direct call):')
     end do
-    
+
     ! Allocate/initialize arrays
 #if defined(_RTTOV_GOD)
     l_chk_god = (chk_god /= 0 .and. nprof_store > 0 .and. &
@@ -3869,7 +3869,7 @@ FTRACE_BEGIN('rtifc_k')
       write(msg,*) proc,ipr(i),trim(profiles(ipr(i))%id)
       call rttov_print_profile(profiles(ipr(i)), usd, trim(msg))
       call rttov_print_opts(ropts, usd, 'ropts (options for rttov_direct call):')
-    end do    
+    end do
 
     ! Allocate/initialize arrays
 #if defined(_RTTOV_GOD)
@@ -4751,7 +4751,7 @@ FTRACE_END('rtifc_k')
 
    allocate(vis_atlas(n_opt))
    n_atlas_vis = n_opt
-   
+
    if (io_proc_id == pe_ifc .or. .not.l_distrib) then
      do i = 1, n_opt
        iopt = iopts(i)
@@ -4991,7 +4991,7 @@ FTRACE_END('rtifc_k')
    end if
 
    if (ld) write(usd,*) proc,'lprofs:',lprofs,'chans:',chans
-    
+
    ! Call rtifc_direct for first guesses needed
    call rtifc_direct (                 &
         iopt,                          & ! <--  options index
@@ -5064,7 +5064,7 @@ FTRACE_END('rtifc_k')
          tskin(:) = tskin(:) + tskin_temp(k)
          ndrts = ndrts + 1
          tsfl = .true.
-         
+
          if (ld) then
            write(*,*) proc,&
                 ' chan:', channum(k), &

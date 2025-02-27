@@ -101,7 +101,7 @@ PUBLIC  :: vertdiff
 
 REAL (KIND=wp), PARAMETER :: &
     z0 = 0.0_wp,    &
-    z1 = 1.0_wp      
+    z1 = 1.0_wp
 
 !===============================================================================
 
@@ -141,7 +141,7 @@ SUBROUTINE vertdiff ( &
 
 !-------------------------------------------------------------------------------
 !
-! 
+!
 ! Description:
 !
 ! Method:
@@ -179,7 +179,7 @@ INTEGER,        INTENT(IN) :: &
 
   itndcon         !type of considering explicit tendencies
                   !"0": no consideration of explicit tendencies at all
-                  !"1": apply them on r.h.s of implicit vertical diffusion equation    
+                  !"1": apply them on r.h.s of implicit vertical diffusion equation
                   !"2": add them to current profile before vertical diffusion
                   !"3": calculate corrected virtual vertical profiles from them
 
@@ -219,10 +219,10 @@ REAL (KIND=wp), DIMENSION(:,:), OPTIONAL, INTENT(IN) :: &
 !
   dp0             ! pressure thickness of layer                   (pa )
 
- REAL (KIND=wp), DIMENSION(:,:,0:), TARGET, INTENT(INOUT) :: & 
+ REAL (KIND=wp), DIMENSION(:,:,0:), TARGET, INTENT(INOUT) :: &
   zvari           ! input: effective (possibly non-local) vertical gradients of regular model variables
                   !        (including the effect of turbulent saturation adjustment);
-                  !        used to calculate the vertical divergence of non-gradient vertical fluxes, 
+                  !        used to calculate the vertical divergence of non-gradient vertical fluxes,
                   !        if "ldoexpcor.OR.ldocirflx" is valid
                   ! outpt: effective vertical gradients as resulting from the applied semi-implicit procedure
                   !        for vertical diffusion.
@@ -277,7 +277,7 @@ REAL (KIND=wp), DIMENSION(:), TARGET, INTENT(INOUT) :: &
   tvh             ! for heat and moisture                         ( m/s)
 
   !Notice that 'tcm' and 'tch' are dispensable. The common use of the related
-  !vecolities  'tvm' and 'tvh' makes live much easier!!               
+  !vecolities  'tvm' and 'tvh' makes live much easier!!
 
 ! Atmospheric variables of the turbulence model:
 ! ------------------------------------------------
@@ -336,8 +336,8 @@ REAL (KIND=wp), DIMENSION(:), OPTIONAL, TARGET, INTENT(INOUT) :: &
                  !"1": only a correction for non-gradient flux-contributions is performed
                  !"2": applies corrected variable-profile from effective gradients
                  !"3": adds a non-gradient contribution contained in 'zvari'
-                 !Note: 
-                 !While at "1" and "2" 'zvari' contains the full effective gradients, it contains only 
+                 !Note:
+                 !While at "1" and "2" 'zvari' contains the full effective gradients, it contains only
                  ! the effective gradients of a particular non-gradient flux-contribution at "3"
 
     ivtype,    & !Index fuer Variablentyp
@@ -518,10 +518,10 @@ my_thrd_id = omp_get_thread_num()
 
 !########################################################################
 
-      !Note: 
+      !Note:
       !If ".NOT.lentire .AND. ldogrdcor", only a correction of pure vertical gradient diffusion
       ! due to sub grid scale condensation (or possibly non-local gradients) is performed.
-      
+
 !     Berechnung der Luftdichte und des Exner-Faktors am Unterrand:
 !DIR$ IVDEP
 !$NEC ivdep
@@ -599,7 +599,7 @@ my_thrd_id = omp_get_thread_num()
 
             IF (igrdcon.EQ.2) THEN !full vertical diffusion of given non-gradient fluxes
                k_st_up=ke !only level "k=ke" needs to be provided for bottom-up integration
-            ELSE !vertical profiles needs to be provided 
+            ELSE !vertical profiles needs to be provided
                k_st_up=k_st_pp !up to the first present level
             END IF
 
@@ -626,13 +626,13 @@ my_thrd_id = omp_get_thread_num()
                !Attention:
                !In this case, not the current surface concentration, but the current flux-density at the surface,
                ! is being used in 'vert_grad_diff'!
-               !Nevertheless, 'zvari' contains vertical gradients at this place; and for ".NOT.lsflucond", 
+               !Nevertheless, 'zvari' contains vertical gradients at this place; and for ".NOT.lsflucond",
                ! a related surface concentration will be recalculated in 'vert_grad_diff' so that, in this case,
                ! an implicit deviation of the surface flux may still develop!
-               !For the above calculation, 'tkv(ke1)' needs to be ">0", which is always the case, if it is 
+               !For the above calculation, 'tkv(ke1)' needs to be ">0", which is always the case, if it is
                ! calculated by 'turbtran'; thus "tkvh(ke1)=0.0" should never be forced, if "lsfli=.TRUE"!
                !For tracers, it is always "m=nmvar"!
-              
+
             END IF !surface value input is a flux density instead of a concentration
 
             ! Providing the profiles of concentrations and their current tendencies:
@@ -678,7 +678,7 @@ my_thrd_id = omp_get_thread_num()
                   cur_prof(i,ke1)=z0
                END DO
                !$ACC END PARALLEL
-            ELSE !(tdc%ilow_def_cond.EQ.1) 
+            ELSE !(tdc%ilow_def_cond.EQ.1)
                 !Enforce a zero-flux condition as a default:
 !DIR$ IVDEP
 !$NEC ivdep
@@ -768,7 +768,7 @@ my_thrd_id = omp_get_thread_num()
 
             !Beachte:
             !'frh', 'frm' und 'len_scale' sind genauso wie 'zaux(:,:,1:5)' Hilfsspeicher in 'vert_grad_diff'.
-            !Weil Fluesse ab "n>=liq=nmvar" nicht mehr benoetigt werden, bleibt 'zvari' nur bis 
+            !Weil Fluesse ab "n>=liq=nmvar" nicht mehr benoetigt werden, bleibt 'zvari' nur bis
             ! 'nmvar' dimensioniert und zvari(nmvar) wird auch fuer "n>nmvar" benutzt.
 
 !           Sichern der Tendenzen:
@@ -801,7 +801,7 @@ my_thrd_id = omp_get_thread_num()
 
             IF (n.EQ.vap .AND. PRESENT(qv_conv)) THEN
                !qv-flux-convergence (always a tendency) needs to be adapted:
-               
+
                IF (lqvcrst) THEN !by initializing 'qv_conv' with vertical qv-diffusion
                   !$ACC PARALLEL ASYNC(1) DEFAULT(PRESENT)
                   !$ACC LOOP GANG VECTOR COLLAPSE(2)
@@ -810,7 +810,7 @@ my_thrd_id = omp_get_thread_num()
 !$NEC ivdep
                      DO i=ivstart, ivend
                         qv_conv(i,k)=dicke(i,k)
-                     END DO 
+                     END DO
                   END DO
                   !$ACC END PARALLEL
                ELSE !by adding vertical qv-diffusion to 'qv_conv'
@@ -825,10 +825,10 @@ my_thrd_id = omp_get_thread_num()
                   END DO
                   !$ACC END PARALLEL
                END IF
-            END IF   
-                    
+            END IF
+
          END IF !diffusion calculation requested
-      END DO !1, ndiff 
+      END DO !1, ndiff
 
 !-----------------------------------------------------------------
 
@@ -873,7 +873,7 @@ my_thrd_id = omp_get_thread_num()
 
             !Note:
             !IF ".NOT.latmflu", SHF and LHF either are loaded by the fluxes used for
-            ! the soil budget (lertflu) or they have been loaded above by the explicit 
+            ! the soil budget (lertflu) or they have been loaded above by the explicit
             ! SHF and LHF at the surface (lsurflu).
             !SHF and LHF are positive downward and they may have been corrected with
             ! vertical integrated correction tendencies.

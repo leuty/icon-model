@@ -60,8 +60,8 @@ done
 for var in 'u' 'v' 'temp' 'theta_v' 'qv' 'qc' 'qi' 'qr' 'qs' 'clc'    \
   'tot_qv' 'tot_qc' 'tot_qi' 'qtvar'                                  \
   'ddt_temp_radsw' 'ddt_temp_radlw'  'ddt_temp_turb' 'ddt_temp_pconv' \
-  'ddt_u_turb' 'ddt_u_pconv' 'ddt_v_turb' 'ddt_v_pconv' 'ddt_qv_turb' 'ddt_qv_conv' 
- # 'z_ifc' 'z_mc' 'pres' 
+  'ddt_u_turb' 'ddt_u_pconv' 'ddt_v_turb' 'ddt_v_pconv' 'ddt_qv_turb' 'ddt_qv_conv'
+ # 'z_ifc' 'z_mc' 'pres'
 do
   echo "---------------------------------- plotting:"  $var " -----------------"
   oFile=${plotdir}/${var}_prof_${case}"_"${turb}

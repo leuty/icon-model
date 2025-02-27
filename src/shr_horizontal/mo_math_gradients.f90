@@ -519,13 +519,13 @@ IF ( PRESENT(opt_p_face) ) THEN
 
   i_startblk_opt(1) = ptr_patch%edges%start_block(1)
   i_endblk_opt(1)   = ptr_patch%edges%end_block(1)
-  
+
   i_startblk_opt(2) = ptr_patch%edges%start_block(rl_start)
   i_endblk_opt(2)   = ptr_patch%edges%end_block(rl_end)
-  
+
   i_startidx_opt(1) = ptr_patch%edges%start_index(1)
   i_endidx_opt(1)   = ptr_patch%edges%end_index(1)
-  
+
   i_startidx_opt(2) = ptr_patch%edges%start_index(rl_start)
   i_endidx_opt(2)   = ptr_patch%edges%end_index(rl_end)
 

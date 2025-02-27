@@ -21,7 +21,7 @@ MODULE mo_aes_phy_bcs
   USE mtime                         ,ONLY: datetime , newDatetime ,                        &
        &                                   timedelta, newTimedelta, max_timedelta_str_len, &
        &                                   operator(+), operator(-), operator(*),          &
-       &                                   operator(<=),operator(>),                       &   
+       &                                   operator(<=),operator(>),                       &
        &                                   getPTStringFromSeconds,                         &
        &                                   getTotalSecondsTimeDelta,                       &
        &                                   isCurrentEventActive, deallocateDatetime
@@ -43,7 +43,7 @@ MODULE mo_aes_phy_bcs
 
   USE mo_bcs_time_interpolation     ,ONLY: t_time_interpolation_weights,         &
        &                                   calculate_time_interpolation_weights
-  
+
   USE mo_bc_greenhouse_gases        ,ONLY: bc_greenhouse_gases_time_interpolation
   USE mo_bc_sst_sic                 ,ONLY: get_current_bc_sst_sic_year, read_bc_sst_sic, &
     &                                      bc_sst_sic_time_interpolation
@@ -136,7 +136,7 @@ CONTAINS
     LOGICAL                                  :: ghg_time_interpol_already_done
 
     TYPE(t_time_interpolation_weights), SAVE :: current_time_interpolation_weights
-    TYPE(t_time_interpolation_weights), SAVE :: radiation_time_interpolation_weights 
+    TYPE(t_time_interpolation_weights), SAVE :: radiation_time_interpolation_weights
 
     LOGICAL, ALLOCATABLE                     :: mask_sftof(:,:)
 
@@ -147,7 +147,7 @@ CONTAINS
     !
     !
     jg        =  patch%id ! grid index
-    
+
     !-------------------------------------------------------------------------
     ! Prepare some global parameters or parameter arrays
     !-------------------------------------------------------------------------
@@ -248,7 +248,7 @@ CONTAINS
         !
         END IF
        END IF
-        ! The ice model should be able to handle different thickness classes, 
+        ! The ice model should be able to handle different thickness classes,
         ! but for AMIP we only use one ice class.
         IF (iice <= nsfc_type) THEN
           jbs = LBOUND(field%conc, 3); jbe = UBOUND(field%conc, 3)
@@ -284,7 +284,7 @@ CONTAINS
     IF (luse_rad) THEN
 
       ! total solar irradiation at the mean sun earth distance
-      ! WS TODO: check that this is identical for RTE-RRTMGP and PSrad 
+      ! WS TODO: check that this is identical for RTE-RRTMGP and PSrad
       IF (aes_rad_config(jg)% isolrad == 1) THEN
         CALL read_bc_solar_irradiance(mtime_old%date%year, .FALSE.)
         CALL ssi_time_interpolation(current_time_interpolation_weights, .FALSE., tsi)
@@ -300,7 +300,7 @@ CONTAINS
         ! is for datetime, i.e. the start date and time of the current timestep.
         !
         IF (ASSOCIATED(radtime_domains(jg)%radiation_time)) &
-          & CALL deallocateDatetime(radtime_domains(jg)%radiation_time) 
+          & CALL deallocateDatetime(radtime_domains(jg)%radiation_time)
         radtime_domains(jg)%radiation_time => newDatetime(mtime_old)
         dtrad_loc = getTotalSecondsTimeDelta(aes_phy_tc(jg)%dt_rad,mtime_old) ! [s] local time step of radiation
         dsec = 0.5_wp*(dtrad_loc - dtadv_loc)                     ! [s] time increment for zenith angle

@@ -34,13 +34,12 @@ SSO_SIGMA	        SSO_SIGMA
 FR_LAKE		        FR_LAKE
 DEPTH_LK	        DEPTH_LK
 NDVI_MRAT	        NDVI_MRAT
-topography_v	        
-AER_SS		        
-AER_DUST	        
-AER_ORG		        
-AER_SO4		        
-AER_BC		        
+topography_v
+AER_SS
+AER_DUST
+AER_ORG
+AER_SO4
+AER_BC
 ALB		        ALB_DIF12
-ALUVD		        
-ALNID		        
-
+ALUVD
+ALNID

@@ -41,7 +41,7 @@ MODULE mo_tmx_numerics
   END TYPE t_time_scheme_explicit_euler
 
   CHARACTER(len=*), PARAMETER :: modname = 'mo_tmx_numerics'
-  
+
 CONTAINS
   !============================================================================
   SUBROUTINE step_forward_explicit_euler(process, dt)
@@ -159,7 +159,7 @@ CONTAINS
     ! depending on the time increment (see module mo_vdf_atmo;
     ! subroutine prepare_diffusion_matrix). Hence,
     ! this term is added to bb and rhs to get the
-    ! correct coefficients b and d. 
+    ! correct coefficients b and d.
     REAL(wp), INTENT(in), DIMENSION(:,:) :: &
       & var, &
       & a,   &
@@ -195,7 +195,7 @@ CONTAINS
     !$ACC PARALLEL LOOP DEFAULT(PRESENT) GANG(STATIC: 1) VECTOR COLLAPSE(2) ASYNC(1)
     DO jk=minlvl,maxlvl
       DO jc = ics, ice
-        b(jc,jk) = rdtime + bb(jc,jk) 
+        b(jc,jk) = rdtime + bb(jc,jk)
         d(jc,jk) = var(jc,jk) * rdtime + rhs(jc,jk)
       END DO
     END DO
@@ -220,8 +220,8 @@ CONTAINS
 
   END SUBROUTINE diffuse_vertical_implicit
   !============================================================================
-  ! Determines horizontal velocity component at vertex. 
-  ! jv: vertex index of target edge following the numbering in figure 1 in Zaengl et al. 
+  ! Determines horizontal velocity component at vertex.
+  ! jv: vertex index of target edge following the numbering in figure 1 in Zaengl et al.
   ! 2015, Q. J. R. Meteorol. Soc..
   !============================================================================
   FUNCTION get_normal_velocity_vertex(                         &
@@ -233,16 +233,16 @@ CONTAINS
 
     INTEGER, INTENT(in) :: je, jb, jk, jv
     REAL(wp) :: vn_vert
-   
-    vn_vert =   u_vert(patch%edges%vertex_idx(je,jb,jv),jk,patch%edges%vertex_blk(je,jb,jv)) &    
+
+    vn_vert =   u_vert(patch%edges%vertex_idx(je,jb,jv),jk,patch%edges%vertex_blk(je,jb,jv)) &
                 * patch%edges%primal_normal_vert(je,jb,jv)%v1                                &
-              + v_vert(patch%edges%vertex_idx(je,jb,jv),jk,patch%edges%vertex_blk(je,jb,jv)) &    
+              + v_vert(patch%edges%vertex_idx(je,jb,jv),jk,patch%edges%vertex_blk(je,jb,jv)) &
                 * patch%edges%primal_normal_vert(je,jb,jv)%v2
 
   END FUNCTION get_normal_velocity_vertex
   !============================================================================
-  ! Determines tangential velocity component at vertex. 
-  ! jv: vertex index of target edge following the numbering in figure 1 in Zaengl et al. 
+  ! Determines tangential velocity component at vertex.
+  ! jv: vertex index of target edge following the numbering in figure 1 in Zaengl et al.
   ! 2015, Q. J. R. Meteorol. Soc..
   !============================================================================
   FUNCTION get_tangential_velocity_vertex(                          &
@@ -254,17 +254,17 @@ CONTAINS
 
     INTEGER, INTENT(in) :: je, jb, jk, jv
     REAL(wp) :: vt_vert
-   
-    vt_vert =   u_vert(patch%edges%vertex_idx(je,jb,jv),jk,patch%edges%vertex_blk(je,jb,jv)) &    
+
+    vt_vert =   u_vert(patch%edges%vertex_idx(je,jb,jv),jk,patch%edges%vertex_blk(je,jb,jv)) &
                 * patch%edges%dual_normal_vert(je,jb,jv)%v1                                  &
-              + v_vert(patch%edges%vertex_idx(je,jb,jv),jk,patch%edges%vertex_blk(je,jb,jv)) &    
+              + v_vert(patch%edges%vertex_idx(je,jb,jv),jk,patch%edges%vertex_blk(je,jb,jv)) &
                 * patch%edges%dual_normal_vert(je,jb,jv)%v2
 
-  END FUNCTION get_tangential_velocity_vertex 
+  END FUNCTION get_tangential_velocity_vertex
   !============================================================================
-  ! Local vertical interpolation of pointer scalar variable at cell center. 
-  ! Interpolates between jk and jk+1. 
-  ! jc: cell index to interpolate (cell numbering see figure A1 in Zaengl et al. 
+  ! Local vertical interpolation of pointer scalar variable at cell center.
+  ! Interpolates between jk and jk+1.
+  ! jc: cell index to interpolate (cell numbering see figure A1 in Zaengl et al.
   ! 2015, Q. J. R. Meteorol. Soc.).
   !============================================================================
   FUNCTION vertical_interpolation_scalar_cell(                      &
@@ -276,17 +276,17 @@ CONTAINS
 
     INTEGER, INTENT(in) :: je, jb, jk, jc
     REAL(wp) :: pcint
-   
-    pcint = 0.5_wp * ( & 
-                pc(patch%edges%cell_idx(je,jb,jc),jk,  patch%edges%cell_blk(je,jb,jc)) &   
-              + pc(patch%edges%cell_idx(je,jb,jc),jk+1,patch%edges%cell_blk(je,jb,jc)) &  
+
+    pcint = 0.5_wp * ( &
+                pc(patch%edges%cell_idx(je,jb,jc),jk,  patch%edges%cell_blk(je,jb,jc)) &
+              + pc(patch%edges%cell_idx(je,jb,jc),jk+1,patch%edges%cell_blk(je,jb,jc)) &
               )
 
-  END FUNCTION vertical_interpolation_scalar_cell 
+  END FUNCTION vertical_interpolation_scalar_cell
   !============================================================================
-  ! Local vertical interpolation of pointer scalar variable at vertex. 
-  ! Interpolates between jk and jk+1. 
-  ! jv: vertex index to interpolate (vertex numbering see figure 1 in Zaengl et al. 
+  ! Local vertical interpolation of pointer scalar variable at vertex.
+  ! Interpolates between jk and jk+1.
+  ! jv: vertex index to interpolate (vertex numbering see figure 1 in Zaengl et al.
   ! 2015, Q. J. R. Meteorol. Soc.).
   !============================================================================
   FUNCTION vertical_interpolation_scalar_vertex(                      &
@@ -298,10 +298,10 @@ CONTAINS
 
     INTEGER, INTENT(in) :: je, jb, jk, jv
     REAL(wp) :: pvint
-   
-    pvint = 0.5_wp * ( & 
-                pv(patch%edges%vertex_idx(je,jb,jv),jk,  patch%edges%vertex_blk(je,jb,jv)) &   
-              + pv(patch%edges%vertex_idx(je,jb,jv),jk+1,patch%edges%vertex_blk(je,jb,jv)) &  
+
+    pvint = 0.5_wp * ( &
+                pv(patch%edges%vertex_idx(je,jb,jv),jk,  patch%edges%vertex_blk(je,jb,jv)) &
+              + pv(patch%edges%vertex_idx(je,jb,jv),jk+1,patch%edges%vertex_blk(je,jb,jv)) &
               )
 
   END FUNCTION vertical_interpolation_scalar_vertex

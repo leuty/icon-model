@@ -23,7 +23,7 @@
 # file run/exp.<EXPNAME>. EXPNAME is used also for:
 # - the output directory name: experiments/<EXPNAME>
 # - the output  file names: <EXPNAME>_<TYPE>_<DATE>.nc
-# - the restart file names: 
+# - the restart file names:
 #
 export EXPERIMENT='mch_ch_lowres'
 
@@ -39,11 +39,11 @@ export DATES=$("${basedir}/scripts/experiments/get_checksuite_parameter_by_name"
 
 
 # RESTART_DATE defines the date and time from which restarts should be performed.
-# 
+#
 export RESTART_DATE=$("${basedir}/scripts/experiments/get_checksuite_parameter_by_name" --experiment "$EXPERIMENT" --param restart_date)
 
 #--------------------------------------------------------------------------------
-# 
+#
 # Define the checksuite mode
 #
 export MD=$("${basedir}/scripts/experiments/get_param_for_exp_by_machine" --experiment "$EXPERIMENT" --param checksuite_modes)
@@ -66,5 +66,3 @@ check_final_status $STATUS "$EXPERIMENT"
 
 #--------------------------------------------------------------------------------
 exit
-
-

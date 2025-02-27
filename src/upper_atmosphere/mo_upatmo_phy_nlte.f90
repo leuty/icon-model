@@ -61,30 +61,30 @@ MODULE mo_upatmo_phy_nlte
   USE ieee_arithmetic
 
   IMPLICIT NONE
-  
+
   PRIVATE
-  
+
   PUBLIC :: nlte_std_co2
   PUBLIC :: nlte_set_co2
   PUBLIC :: nlte_set_co2_pre
   PUBLIC :: nlte_heating
-  
+
   !===========================================================================
 
   ! A) flags for initialization
   ! ===========================
-  
+
   LOGICAL :: l_nlte_std_co2=.FALSE.
   LOGICAL :: l_nlte_co2_pre=.FALSE.
-  
+
   !===========================================================================
-  
+
   ! B) pressure scale height (psh) grids, x=log(1000hPa/p)
   ! ======================================================
-  
+
   ! xmb= pressure scale heights (psh) below psh range of
   !      matrix heating rate calculation at which input
-  !      profiles of T must be provided (=0.00-1.75) 
+  !      profiles of T must be provided (=0.00-1.75)
   ! Modification (Guidi Zhou, MPI-M, 2017-03-06):
   !  increased number of levels below matrix calculation to 37 (xmb=0-9)
   INTEGER , PARAMETER :: klmb=37
@@ -93,7 +93,7 @@ MODULE mo_upatmo_phy_nlte
     &    3.0, 3.25, 3.5, 3.75, 4.0, 4.25, 4.5, 4.75, 5.0, 5.25, 5.5, 5.75,&
     &    6.0, 6.25, 6.5, 6.75, 7.0, 7.25, 7.5, 7.75, 8.0, 8.25, 8.5, 8.75,&
     &    9.0/)
-  
+
   ! xm = pressure scale heights (psh) of matrix heating
   !      rate calculation at which input profiles of
   !      T and O3 must be provided (=2.00-12.5)
@@ -113,7 +113,7 @@ MODULE mo_upatmo_phy_nlte
     &   12.0,12.25,12.5/)
   ! scale: 0 at x=9.25 (64.75km), 1 at x=10.57 (73.99km) and above
   REAL(wp), PARAMETER :: xzerofir = xm(1), xonefir = 10.57
-  
+
   ! xco2 = pressure scale heights (psh) of matrix heating
   !      rate calculation at which input profile of
   !      CO2 must be provided (=2.00-16.5)
@@ -133,37 +133,37 @@ MODULE mo_upatmo_phy_nlte
     &   15.0,15.25,15.5,15.75,16.0,16.25,16.5/)
   ! approximate co2 column density at top of xco2 scale (x=16.5)
   REAL(wp), PARAMETER :: co2coltop = 6.E+13
-  
+
   REAL(wp), TARGET :: co2x(klco2)                       ! current profile of CO2 vmr
   REAL(wp), TARGET :: co2colx(klco2)                    ! current profile of accumulated number density
-  
+
   ! xma= pressure scale heights (psh) above psh range of
   !      matrix heating rate calculation at which input
-  !      profiles of T must be provided (=12.75-14.00) 
+  !      profiles of T must be provided (=12.75-14.00)
   INTEGER , PARAMETER :: klma=6
   REAL(wp), PARAMETER :: xma(klma)=&
     & (/ 12.75,13.0,13.25,13.5,13.75,14.0/)
-  
+
   ! xrf = psh's at which the reccurence formula is utilized (=12.5-16.5)
   INTEGER , PARAMETER :: klrf=17
   REAL(wp), PARAMETER :: xrf(klrf)=&
     &(/ 12.5,12.75,13.0,13.25,13.5,13.75,14.0,14.25,14.5,14.75,15.0,15.25,&
     &   15.5,15.75,16.0,16.25,16.5/)
-  
+
   !=============================================================================
-  
+
   ! C) data for "LTE" parameterization of CO2 and O3 (x=2-12.5)
   ! ===========================================================
-  
+
   ! ig = indices of levels used to account for the internal atmospheric
   !      heat exchange
   INTEGER , PARAMETER :: ig(9)=(/-25,-12,-7,-3,-1,0,1,3,6/)
-  
+
   ! co2bas =  basic CO2 concentrations (vmr) for which LTE coefficients are
   !         given in arrays a150, b150, ..., a720, b720
   REAL(wp), PARAMETER :: co2bas(4)=(/ 150.e-6, 360.e-6, 540.e-6, 720.e-6/)
-  
-  
+
+
   ! "LTE-coefficients" for CO2 scheme used to calculate cooling rate in
   ! "erg/g/s" in region x=2-12.5 (with a step of 0.25). 9 atmospheric
   ! levels are needed to account for internal heat exchange. Coefficients are
@@ -174,7 +174,7 @@ MODULE mo_upatmo_phy_nlte
     &                 b540_full(klm_full,9), b720_full(klm_full,9)
   REAL(wp)            :: a150(klm,9), a360(klm,9), a540(klm,9), a720(klm,9), &
     &                 b150(klm,9), b360(klm,9), b540(klm,9), b720(klm,9)
-  
+
   ! ao3 = coefficients for O3 scheme to calculate cooling rate in
   !       "erg/g/s" at levels x=2-10.5 (with a step of 0.25)
   ! Modification (Guidi Zhou, MPI-M, 2017-03-06):
@@ -183,13 +183,13 @@ MODULE mo_upatmo_phy_nlte
   REAL(wp)            :: ao3_full(klo3_full,9)
   INTEGER, PARAMETER  :: klo3=6, klo3_trunc=klo3_full-klo3
   REAL(wp)            :: ao3(klo3,9)
-  
+
   ! coefficients for the matrix parameterization
   REAL(wp)            :: amat(klm,9), bmat(klm,9)
-  
+
   ! coefficients for the recurrence formula
   REAL(wp)            :: al(klrf)
-  
+
   ! reference co2 columns (g/cm^2) and respective heating (K/day) is given
   ! at 49 levels x=2-16 for 10 different reference columns
   INTEGER , PARAMETER :: knir=49, nir_ref=10
@@ -202,19 +202,19 @@ MODULE mo_upatmo_phy_nlte
     &   12.0,12.25,12.5,12.75,13.0,13.25,13.5,13.75,14.0/)
   REAL(wp)            :: nir_refcol(nir_ref,knir)
   REAL(wp)            :: nir_heat(nir_ref,knir)
-  
+
   ! scale: 0 at x=2.65 (19.25km), 1 at x=3.5 (24.5km) and above
   REAL(wp), PARAMETER :: xzeronir = 2.75, xonenir = 3.5
-  
+
   ! Note that starting up from x=14.00, these coefficients are identical
   ! to escape functions which can be calculated at any arbitrary vertical grid.
   ! So that starting up from this level an arbitrary vertical grid can be used.
-  
+
   !=============================================================================
-  
+
   ! D) data for non-LTE parameterization of CO2 (x=12.5-16.5)
   ! =========================================================
-  
+
   ! uco2ro = reference CO2 column amount
   REAL(wp), PARAMETER :: uco2ro(51)=&
     & (/ 2.699726e+11,5.810773e+11,1.106722e+12,&
@@ -228,7 +228,7 @@ MODULE mo_upatmo_phy_nlte
     &    3.488423e+17,4.489076e+17,5.773939e+17,7.423736e+17,9.542118e+17,&
     &    1.226217e+18,1.575480e+18,2.023941e+18,2.599777e+18,3.339164e+18,&
     &    4.288557e+18,5.507602e+18,7.072886e+18/)
-  
+
   ! alo = CO2 escape functions corresponding to uco2ro
   REAL(wp), PARAMETER :: alo(51)= &
     & (/-2.410106e-04,-5.471415e-04,-1.061586e-03,&
@@ -244,7 +244,7 @@ MODULE mo_upatmo_phy_nlte
     &   -5.634115e+00,-5.889388e+00,-6.143488e+00,-6.396436e+00,&
     &   -6.648774e+00,-6.901465e+00,-7.155207e+00,-7.409651e+00,&
     &   -7.663536e+00,-7.915682e+00,-8.165871e+00,-8.415016e+00/)
-  
+
   ! COR150, COR360, COR540, COR720(6) = correction to escape functions to
   ! calculate coefficients for the reccurence formula between x=12.5 and 13.75
   REAL(wp), PARAMETER :: cor150(6)=&
@@ -259,7 +259,7 @@ MODULE mo_upatmo_phy_nlte
   REAL(wp), PARAMETER :: cor720(6)=&
     & (/ 7.989408e-01,6.929009e-01,5.531082e-01,&
     &    3.669253e-01,1.967602e-01,7.187870e-02/)
-  
+
   ! accumulated number density (molecules/cm2 above level) for Fomichev(1998) reference profile
   REAL(wp), PARAMETER :: co2col360_full(klco2_full)=&
     & (/ 1.045635939375230E+21, 8.148256281101538E+20, 6.349565986174357E+20, 4.947658412775414E+20, 3.855226591230714E+20, &
@@ -274,30 +274,30 @@ MODULE mo_upatmo_phy_nlte
     &    1.072116162655158E+16, 7.848032697880164E+15, 5.705037987965076E+15, 4.123426171591436E+15, 2.961847624114941E+15, &
     &    2.113142257060427E+15, 1.497256588461592E+15, 1.052863893706687E+15, 7.342608332889684E+14, 5.075391520040083E+14, &
     &    3.476986278730709E+14, 2.363003414610902E+14, 1.595628873484829E+14, 1.074192242716427/)
-  
+
   REAL(wp), PARAMETER :: co2col360(klco2) = co2col360_full(klco2_trunc + 1 : klco2_full)
-  
+
   REAL(wp) :: co2col150(klco2),co2col540(klco2),co2col720(klco2)   ! reference profiles of accumulated number density
-  
+
   ! Variables computed in the precalculation of the matrix coefficients
   REAL(wp) :: co2inta(4,klm,9),co2intb(4,klm,9)
   REAL(wp) :: refcol(4,klm,9)
-  
+
   !=============================================================================
-  
+
 CONTAINS
-  
+
   !>
   !! E) subroutine to initialize o3 coefficients and co2
-  !!    coefficients for 4 standard volume mixing ratios 
+  !!    coefficients for 4 standard volume mixing ratios
   !!
   SUBROUTINE nlte_std_co2
-    
+
     ! store 1-dimensional array constants in 2-dimensional arrays
     ! for LTE computation of CO2 at 4 standard CO2 concentrations.
-    
+
     INTEGER :: i
-    
+
     ! Fomichev (1998) standard profile (360) is only used here
     ! to scale the nir heating rates
     REAL(wp), PARAMETER :: co2o360(knir)= (/0.360E-03,0.360E-03, &
@@ -315,7 +315,7 @@ CONTAINS
     !---------------------------------------------------------
 
     IF (l_nlte_std_co2) RETURN
-    
+
     ao3_full(:,:) =RESHAPE(&
       & (/ 5.690E+09, 4.997E+09, 4.179E+09, 3.469E+09, 2.930E+09, 2.020E+09,&
       &    1.652E+09, 1.391E+09, 1.197E+09, 9.961E+08, 8.408E+08, 7.250E+08,&
@@ -370,9 +370,9 @@ CONTAINS
       &    1.431E+09, 1.163E+09, 8.840E+08, 6.356E+08, 4.810E+08, 2.258E+08,&
       &    2.211E+08, 1.094E+08, 1.513E+08, 0.000E+00, 0.000E+00, 0.000E+00,&
       &    0.000E+00, 0.000E+00, 0.000E+00/),(/klo3_full,9/))
-    
+
     ao3 = ao3_full(klo3_trunc + 1 : klo3_full, :)
-    
+
     a150_full(:,:)=RESHAPE(&
       & (/ 2.5071E+01, 3.1500E+01, 3.6182E+01, 3.9423E+01, 4.3831E+01,&
       &    1.4878E+01, 1.8783E+01, 2.3009E+01, 2.7052E+01, 3.0101E+01,&
@@ -452,7 +452,7 @@ CONTAINS
       &    2.3983E+03, 2.7041E+03, 3.8499E+03, 3.9419E+03, 2.8183E+03,&
       &    2.5084E+03, 4.2200E+03, 7.3094E+03, 1.0492E+04, 7.9873E+03,&
       &    5.1589E+03, 1.7588E+03/),(/klm_full,9/))
-    
+
     b150_full(:,:)=RESHAPE(&
       & (/ 3.5449E+03, 3.1198E+03, 3.0384E+03, 3.2962E+03, 3.5024E+03,&
       &    1.8651E+03, 2.0892E+03, 2.2587E+03, 2.4497E+03, 2.7043E+03,&
@@ -532,7 +532,7 @@ CONTAINS
       &    3.6928E+04, 4.2544E+04, 5.7412E+04, 5.6638E+04, 4.0323E+04,&
       &    3.4030E+04, 5.2762E+04, 8.5341E+04, 1.3038E+05, 1.0466E+05,&
       &    7.5526E+04, 2.6983E+04/),(/klm_full,9/))
-    
+
     a360_full(:,:)=RESHAPE(&
       & (/ 1.7111E+01, 2.2908E+01, 2.7319E+01, 3.0783E+01, 3.5472E+01,&
       &    9.1326E+00, 1.2883E+01, 1.7280E+01, 2.1699E+01, 2.5391E+01,&
@@ -612,7 +612,7 @@ CONTAINS
       &    1.3204E+04, 1.3320E+04, 1.2734E+04, 1.1002E+04, 8.0859E+03,&
       &    5.7454E+03, 6.1217E+03, 7.6533E+03, 8.9888E+03, 6.6528E+03,&
       &    4.9529E+03, 1.7649E+03/),(/klm_full,9/))
-    
+
     b360_full(:,:)=RESHAPE(&
       & (/ 3.3253E+03, 3.2351E+03, 3.4143E+03, 3.8189E+03, 4.1614E+03,&
       &    2.0223E+03, 2.3376E+03, 2.5827E+03, 2.8409E+03, 3.1770E+03,&
@@ -692,7 +692,7 @@ CONTAINS
       &    2.0210E+05, 2.1699E+05, 2.2092E+05, 1.9769E+05, 1.4922E+05,&
       &    1.0556E+05, 1.0813E+05, 1.2682E+05, 1.4073E+05, 1.0328E+05,&
       &    7.8845E+04, 2.4000E+04/),(/klm_full,9/))
-    
+
     a540_full(:,:)=RESHAPE(&
       & (/ 1.4060E+01, 1.8377E+01, 2.2830E+01, 2.6759E+01, 3.1289E+01,&
       &    6.4033E+00, 9.6287E+00, 1.3553E+01, 1.7715E+01, 2.1440E+01,&
@@ -772,7 +772,7 @@ CONTAINS
       &    1.6977E+04, 1.7767E+04, 1.7635E+04, 1.5995E+04, 1.3261E+04,&
       &    9.7717E+03, 1.0121E+04, 1.0732E+04, 1.0119E+04, 6.1920E+03,&
       &    4.1260E+03, 1.0669E+03/),(/klm_full,9/))
-    
+
     b540_full(:,:)=RESHAPE(&
       & (/ 2.9738E+03, 3.1230E+03, 3.4557E+03, 3.9327E+03, 4.3466E+03,&
       &    2.0002E+03, 2.3635E+03, 2.6734E+03, 2.9926E+03, 3.3620E+03,&
@@ -852,7 +852,7 @@ CONTAINS
       &    2.5862E+05, 2.8879E+05, 3.0929E+05, 2.9778E+05, 2.5922E+05,&
       &    1.9398E+05, 1.9633E+05, 1.9708E+05, 1.8196E+05, 1.1256E+05,&
       &    7.2751E+04, 1.8345E+04/),(/klm_full,9/))
-    
+
     a720_full(:,:)=RESHAPE(&
       & (/ 1.1010E+01, 1.5345E+01, 1.9840E+01, 2.4316E+01, 2.8812E+01,&
       &    4.8874E+00, 7.5931E+00, 1.1095E+01, 1.5052E+01, 1.8840E+01,&
@@ -932,7 +932,7 @@ CONTAINS
       &    1.9654E+04, 2.1106E+04, 2.1728E+04, 2.0471E+04, 1.8375E+04,&
       &    1.3856E+04, 1.4273E+04, 1.3669E+04, 1.1855E+04, 6.3800E+03,&
       &    3.7496E+03, 3.9188E+02/),(/klm_full,9/))
-    
+
     b720_full(:,:)=RESHAPE(&
       & (/ 2.8405E+03, 3.0395E+03, 3.4408E+03, 3.9717E+03, 4.4535E+03,&
       &    1.9917E+03, 2.3613E+03, 2.7008E+03, 3.0362E+03, 3.4208E+03,&
@@ -1012,7 +1012,7 @@ CONTAINS
       &    3.0483E+05, 3.4849E+05, 3.8673E+05, 3.8833E+05, 3.6508E+05,&
       &    2.8233E+05, 2.8721E+05, 2.6558E+05, 2.2449E+05, 1.2915E+05,&
       &    7.3788E+04, 1.6388E+04/),(/klm_full,9/))
-    
+
     a150 = a150_full(klm_trunc + 1 : klm_full, :)
     b150 = b150_full(klm_trunc + 1 : klm_full, :)
     a360 = a360_full(klm_trunc + 1 : klm_full, :)
@@ -1021,7 +1021,7 @@ CONTAINS
     b540 = b540_full(klm_trunc + 1 : klm_full, :)
     a720 = a720_full(klm_trunc + 1 : klm_full, :)
     b720 = b720_full(klm_trunc + 1 : klm_full, :)
-    
+
     nir_refcol(:,:)=RESHAPE(&
       & (/ 3.182E-02, 5.436E-02, 9.286E-02, 1.586E-01, 2.710E-01,&
       &    4.629E-01, 7.907E-01, 1.351E+00, 2.308E+00, 3.942E+00,&
@@ -1122,10 +1122,10 @@ CONTAINS
       &    1.255E-07, 2.144E-07, 3.662E-07, 6.256E-07, 1.069E-06,&
       &    1.826E-06, 3.119E-06, 5.328E-06, 9.101E-06, 1.555E-05/)&
       &    ,(/nir_ref,knir/))
-    
+
     ! convert column from g/cm2 to molecules/cm2
     nir_refcol(:,:) = nir_refcol(:,:)*avo/amco2
-    
+
     nir_heat(:,:)=RESHAPE(&
       & (/ 6.115E-01, 4.645E-01, 3.506E-01, 2.558E-01, 1.704E-01,&
       &    1.104E-01, 7.213E-02, 4.930E-02, 3.405E-02, 2.398E-02,&
@@ -1226,25 +1226,25 @@ CONTAINS
       &    2.322E+00, 2.050E+00, 1.796E+00, 1.511E+00, 1.211E+00,&
       &    8.958E-01, 5.194E-01, 1.920E-01,-1.046E-01,-2.732E-01/)&
       &    ,(/nir_ref,knir/))
-    
+
     ! convert heating rate from K/day to K/s and scale with the reference column
     ! for 360 ppb
-    
+
     DO i=1,nir_ref
       nir_heat(i,:) = nir_heat(i,:) / 86400._wp / co2o360(1:knir)
     ENDDO
-    
+
     l_nlte_std_co2 =.TRUE.
-    
+
   END SUBROUTINE nlte_std_co2
 
   !=============================================================================
-  
+
   !>
   !! Set auxiliary variables
   !!
   SUBROUTINE nlte_set_co2_pre
-    
+
     INTEGER  :: i,isgn,j,imj
 
     REAL(wp), PARAMETER :: fac1 = 150._wp / 360._wp
@@ -1252,20 +1252,20 @@ CONTAINS
     REAL(wp), PARAMETER :: fac3 = 720._wp / 360._wp
 
     !---------------------------------------------------------
-    
+
     IF (l_nlte_co2_pre) RETURN
-    
+
     ! calculate reference profiles through scaling
     co2col150 = fac1 * co2col360
     co2col540 = fac2 * co2col360
     co2col720 = fac3 * co2col360
-    
+
     ! calculate coefficients for the matrix paramerization:
-    
+
     DO i = 1, klm
       DO j = 1, 9
         IF((i <= 5).AND.(j == 2)) CYCLE
-        
+
         ! calculate difference in column amounts between levels i and j
         imj = i + ig(j)
         IF (imj <= 1) imj = 1
@@ -1296,7 +1296,7 @@ CONTAINS
         ELSE
           !
         END IF
-        
+
         ! interpolate b-coefficients, store result in bmat
         isgn = INT(SIGN(1._wp, b150(i,j)) + SIGN(1._wp, b360(i,j)) &
           &  + SIGN(1._wp, b540(i,j)) + SIGN(1._wp,b720(i,j)))
@@ -1317,12 +1317,12 @@ CONTAINS
         ELSE
           !
         END IF
-        
+
       END DO  !j
     END DO  !i
-    
+
     l_nlte_co2_pre = .TRUE.
-    
+
   END SUBROUTINE nlte_set_co2_pre
 
   !=============================================================================
@@ -1345,7 +1345,7 @@ CONTAINS
 
     REAL(wp), ALLOCATABLE :: xvf1(:), plogco2col1(:)
 
-    REAL(wp), PARAMETER :: logco2coltop = 31.725366    ! approximate co2 accumulated column density 
+    REAL(wp), PARAMETER :: logco2coltop = 31.725366    ! approximate co2 accumulated column density
                                                        ! at top of xco2 scale = 6E13
     LOGICAL :: present_co2x, present_co2colx
 
@@ -1354,7 +1354,7 @@ CONTAINS
     present_co2x    = PRESENT(opt_co2x)
     present_co2colx = PRESENT(opt_co2colx)
 
-    IF (xco2(klco2) > xvf(klev)) THEN             ! demanding co2 accumulated column density 
+    IF (xco2(klco2) > xvf(klev)) THEN             ! demanding co2 accumulated column density
                                                   ! at higher levels than provided
       klev1 = klev + 1
       ALLOCATE(xvf1(klev1), plogco2col1(klev1))
@@ -1366,7 +1366,7 @@ CONTAINS
       xvf1 = xvf
       plogco2col1 = plogco2col
     ENDIF
-    
+
     ! interpolate from xvf grid to xco2 grid
     DO j = 1, klco2
       co2x(j)    = EXP(intp_lin(klev, xco2(j), xvf(:), plogco2(:)))
@@ -1381,16 +1381,16 @@ CONTAINS
     ! calculate coefficients for the matrix paramerization:
     DO i = 1, klm
       DO j = 1, 9
-        
+
         IF((i <= 5).AND.(j == 2)) CYCLE
-        
+
         ! calculate difference in column amounts between levels i and j
         imj = i + ig(j)
         IF (imj <= 1) imj = 1
         IF (i.NE.imj) THEN
           realcol = LOG(ABS(co2colx(i) - co2colx(imj)))
         ENDIF
-        
+
         ! interpolate a-coefficients, store result in amat
         isgn = INT(SIGN(1._wp, a150(i,j)) + SIGN(1._wp, a360(i,j)) &
           &  + SIGN(1._wp, a540(i,j)) + SIGN(1._wp, a720(i,j)))
@@ -1414,7 +1414,7 @@ CONTAINS
           ENDIF
         END IF
         amat(i,j) = a * co2x(i)
-        
+
         ! interpolate b-coefficients, store result in bmat
         isgn = INT(SIGN(1._wp, b150(i,j)) + SIGN(1._wp, b360(i,j)) &
           &  + SIGN(1._wp, b540(i,j)) + SIGN(1._wp, b720(i,j)))
@@ -1438,10 +1438,10 @@ CONTAINS
           ENDIF
         END IF
         bmat(i,j) = a * co2x(i)
-        
+
       END DO  !j
     END DO  !i
-    
+
     ! calculate coefficients for the reccurence formula:
     ! between x=12.5 and 13.75 these coefficients (al) are calculated using
     ! correction to escape function. Starting up from x=14.00 parameterization
@@ -1453,15 +1453,15 @@ CONTAINS
       cor     = intp_lin(4, co2colx(klm-1+i), uref, co2intc)
       al(i)   = EXP(cor + a)
     END DO
-    
+
     DO i = 7, klrf
       a = intp_lin(51, co2colx(klm-1+i), uco2ro, alo)
       al(i) =EXP(a)
     END DO
-    
+
     IF (ALLOCATED(xvf1)) DEALLOCATE(xvf1)
     IF (ALLOCATED(plogco2col1)) DEALLOCATE(plogco2col1)
-    
+
   END SUBROUTINE nlte_set_co2
 
   !=============================================================================
@@ -1531,10 +1531,10 @@ CONTAINS
       su(klmb+klm+i)  = EXP(tinv * aku)
       so3(klmb+klm+i) = EXP(tinv * ako3)
     END DO
-    
+
     ! set so3 to 0. for x>11.00
     so3(46:) = 0._wp
-    
+
     ! LTE cooling rate in both O3 and CO2 bands
     ! x=9.25-10.5, the matrix approach is used
     DO i = 1, klo3
@@ -1548,7 +1548,7 @@ CONTAINS
       END DO
       h(i) = h2 + h3 * o3(i)
     END DO
-    
+
     ! LTE cooling rate in CO2 bands
     ! x=10.75-12.5, the matrix approach is used
     DO i = klo3 + 1, klm
@@ -1560,7 +1560,7 @@ CONTAINS
       END DO
       h(i) = h2
     END DO
-    
+
   END SUBROUTINE nlte_matrix
 
   !=============================================================================
@@ -1610,34 +1610,34 @@ CONTAINS
     INTEGER :: i, im
 
     !---------------------------------------------------------
-    
+
     ! su at x=12.5-16.5
     su(:) = EXP(aku / t(:))
-    
+
     ! lambda at x=12.5-16.5
     DO i = 1, klrf
 
       tt = t(i)
       y  = EXP(-one_third * LOG(tt))  ! tt**(-1._wp/3._wp)
-      
+
       ! air number density
       d = 1.e6_wp * EXP(-x(i)) / ( tt * boltz )
-      
+
       ! collisional deactivation rate for n2, o2 and o
       zn2 = 5.5e-17_wp * SQRT(tt) + 6.7e-10_wp * EXP(-83.8_wp * y)
       zo2 = 1.e-15_wp * EXP(23.37_wp - ( 230.9_wp - 564._wp * y ) * y)
       zo  = 3.e-12_wp
       z   = ( n2(i) * zn2 + o2(i) * zo2 + o(i) * zo ) * d
-      
+
       lambda(i) = a10 / ( a10 + z )
-      
+
     ENDDO
-    
+
     ! boundary condition at x=12.5
     ! interface for non-LTE computation above x=12.5
     h(1) = hb
     h1   = hb / ( co2(1) * ( 1._wp - lambda(1) ) * constb )
-    
+
     ! non-LTE heating rate for x=12.75-16.5
     ! the reccurence formula is used
     ! coefficients al(:) are defined as module array
@@ -1651,13 +1651,13 @@ CONTAINS
       h(i) = h2 * co2(i) * ( 1._wp - lambda(i) ) / am(i) * const
       h1   = h2
     ENDDO
-    
+
     ! to determine FLUX
     ! cooling rate above x=16.5 is suggested to be calculated by the formula
     !           H(i) = const/AM(i)*CO2(i)*(1.-lambda(i))*(FLUX-su(i))
     ! no parameterization coefficients are needed and an arbitrary hight grid
     ! can be used above x=16.5 level
-    
+
     flux = h2 + su(klrf)
 
   END SUBROUTINE nlte_recurrence
@@ -1702,13 +1702,13 @@ CONTAINS
     !---------------------------------------------------------
 
     DO i = 1, klev
-      
+
       ! determine quantum survival probability -- lambda:
-      
+
       ! V-T constants for O2 amd N2
       tt = t(i)
       y  = EXP(-one_third * LOG(tt))  ! tt**(-1._wp/3._wp)
-      
+
       ! air number density
       d = 1.e6_wp * EXP(-x(i)) / ( tt * boltz )
       ! collisional deactivation rate
@@ -1716,15 +1716,15 @@ CONTAINS
       zo2 = 1.e-15_wp * EXP(23.37_wp - ( 230.9_wp - 564._wp * y ) * y)
       zo  = 3.e-12_wp
       z   = ( n2(i) * zn2 + o2(i) * zo2 + o(i) * zo ) * d
-      
+
       lambda = a10 / ( a10 + z )
-      
+
       ! source function
       s = EXP(aku / t(i))
-      
+
       ! cooling rate
       h(i) = const / am(i) * co2(i) * ( 1._wp - lambda ) * ( flux - s )
-      
+
     END DO
 
   END SUBROUTINE nlte_escape
@@ -1756,7 +1756,7 @@ CONTAINS
     INTEGER,  OPTIONAL, TARGET, INTENT(IN) :: opt_sunlit_idx(:)  ! optional list with indices of sunlit grid columns
     INTEGER,  OPTIONAL, INTENT(IN) :: opt_nsunlit                ! optional number of sunlit grid columns
     LOGICAL,  OPTIONAL, INTENT(IN) :: opt_loffline               ! optional offline mode
-    
+
     ! local variables:
     REAL(wp) :: pr, hb, flux
     REAL(wp) :: t(klev), o3(klev), sclfir(klev), sclnir(klev), hfir(klev), hnir(klev)
@@ -1767,7 +1767,7 @@ CONTAINS
 
     REAL(wp) :: x(klev,kbdim), logco2(klev,kbdim), logco2col(klev,kbdim)
     REAL(wp) :: co2x_loc(klco2,kbdim), co2colx_loc(klco2,kbdim)
-    
+
     INTEGER  :: jsxm, jexm, jsxrf, jexrf, jsxes
     INTEGER  :: jl,jk
     INTEGER  :: kip(klrf)
@@ -1790,8 +1790,8 @@ CONTAINS
 
     !---------------------------------------------------------
 
-    ! please do not limit range of assignment 
-    ! (e.g., phnlte(jcs:jce,:) = 0._wp)), 
+    ! please do not limit range of assignment
+    ! (e.g., phnlte(jcs:jce,:) = 0._wp)),
     ! since tendencies have attribute INTENT(OUT)
     phnlte(:,:) = 0._wp
     sclrlw(:,:) = 1._wp
@@ -1809,7 +1809,7 @@ CONTAINS
     ELSE
       ! we determine the index list ourselves
       nsunlit = 0
-      ! for convenience, we allocate the index list with kbdim 
+      ! for convenience, we allocate the index list with kbdim
       ! and not with nsunlit
       ALLOCATE(sunlit_idx(kbdim))
       sunlit_idx(:) = 0
@@ -1827,18 +1827,18 @@ CONTAINS
     ELSE
       loffline = .FALSE.
     ENDIF
-    
+
     DO jl = jcs, jce
       ! ------------------
       ! 1. preparation
       ! ------------------
       ! x-grid
       x(:,jl) = LOG(100000._wp / ppf(jl, klev:1:-1))
-      
+
       ! variables in x-order (bottom up)
-      ! TODO: the loop order: jl -> jk is not advantageous for 
-      ! the following copy operations. However, the additional costs 
-      ! that follow from this might be negligible compared to all what follows below. 
+      ! TODO: the loop order: jl -> jk is not advantageous for
+      ! the following copy operations. However, the additional costs
+      ! that follow from this might be negligible compared to all what follows below.
       ! In addition, workarounds would probably increase the memory consumption.
       t      = ptf(jl,klev:1:-1)
       cp     = 10000._wp * pcp(jl,klev:1:-1)
@@ -1874,10 +1874,10 @@ CONTAINS
       ! ------------------
       ! if highest level in this column is lower than lowest level of matrix calculation: no fir calculation at all
       IF (x(klev,jl) >= xm(1)) THEN
-        
+
         ! scale factor for nlte-fir
         sclfir = MAX(MIN((x(:,jl) - xzerofir) / (xonefir - xzerofir), 1._wp), 0._wp)
-        
+
         ! below matrix calculation range
         DO jk = 1, klev
           IF (x(jk,jl) < xm(1)) THEN
@@ -1887,7 +1887,7 @@ CONTAINS
             EXIT
           END IF
         END DO
-        
+
         ! ------------------
         ! 2. matrix calculation
         ! ------------------
@@ -1905,10 +1905,10 @@ CONTAINS
         DO jk = 1, klma
           tma(jk) = EXP(intp_lin(klev, xma(jk), x(:,jl), logt(:)))
         ENDDO
-        
+
         ! calculation in xm grid
         CALL nlte_matrix(tmb(:), tm(:), tma(:), o3m(:), hm(:))
-        
+
         ! interpolation of heating rate to x grid
         DO jk = jsxm, klev
           IF (x(jk,jl) <= xm(klm)) THEN
@@ -1918,34 +1918,34 @@ CONTAINS
             EXIT
           END IF
         END DO
-        
+
         ! if top level is still within matrix calculation range xm, no further calculation is needed
         IF (jexm < klev) THEN
-          
+
           ! ----------------------
           ! 3. recurrence calculation
           ! ----------------------
           ! first level in x which is within recurrence calculation range xrf
           jsxrf = jexm + 1
-          
+
           ! interpolate arrays from x grid to xrf grid
           DO jk = 1, klrf
             ! precalculate interpolation factors for recurrence formula interpolations
             CALL intp_coeffs(xrf(jk), x(:,jl), 1, klev, fip(jk), kip(jk))
-            
+
             trf(jk)   = EXP(intp_with_coeffs(xrf(jk), x(:,jl), logt(:)  ,    1, klev, fip(jk), kip(jk)))
             amrf(jk)  = EXP(intp_with_coeffs(xrf(jk), x(:,jl), logam(:) ,    1, klev, fip(jk), kip(jk)))
             o2rf(jk)  = EXP(intp_with_coeffs(xrf(jk), x(:,jl), logo2(:) ,    1, klev, fip(jk), kip(jk)))
             orf(jk)   = EXP(intp_with_coeffs(xrf(jk), x(:,jl), logop1(:),    1, klev, fip(jk), kip(jk))) - 1._wp
             co2rf(jk) = EXP(intp_with_coeffs(xrf(jk), x(:,jl), logco2(:,jl), 1, klev, fip(jk), kip(jk)))
             n2rf(jk)  = EXP(intp_with_coeffs(xrf(jk), x(:,jl), logn2(:) ,    1, klev, fip(jk), kip(jk)))
-          END DO 
-          
+          END DO
+
           ! recurrence calculation
           hb = hm(klm)
           CALL nlte_recurrence(hb, xrf(:), trf(:), amrf(:), o2rf(:), orf(:), &
             &                  co2rf(:), n2rf(:), hrf(:), flux)
-          
+
           ! interpolate heating rate from xrf grid to x grid
           DO jk = jsxrf, klev
             IF (x(jk,jl) <= xrf(klrf)) THEN
@@ -1955,50 +1955,50 @@ CONTAINS
               EXIT
             END IF
           END DO
-          
+
           ! if top level is still within recurrence calculation range xrf, no further calculation is needed
           IF (jexrf < klev) THEN
-            
+
             ! ------------------
             ! 4. escape calculation
             ! ------------------
             ! first level in x to perform escape calculation
             jsxes = jexrf + 1
-            
+
             ! number of escape calculation levels
             kles = klev - jsxes + 1
-            
+
             ! calculation
             CALL nlte_escape(kles, flux, x(jsxes:klev,jl), t(jsxes:klev), am(jsxes:klev), &
               &              o2(jsxes:klev), o(jsxes:klev), co2(jsxes:klev),           &
               &              n2(jsxes:klev), hfir(jsxes:klev))
-            
+
           END IF !escape calculation
-          
+
         END IF !recurrence calculation
-        
+
         ! final converting and scaling
         hfir = hfir / cp * sclfir
-        
+
       END IF !matrix/fir calculation
-      
+
       ! reverse order
       phnlte(jl,:) = hfir(klev:1:-1)
 
       ! (in the offline mode we keep the above initialization of sclrlw with 1)
       IF (.NOT. loffline) sclrlw(jl,:) = 1._wp - sclfir(klev:1:-1)
-      
+
     END DO !jl
 
     ! ------------------
     ! NIR calculation
     ! ------------------
-    !TODO: check whether nir calculation is included in rrtmg/psrad already. 
-    ! if yes, how to merge? merge with rsw or rlw?    
+    !TODO: check whether nir calculation is included in rrtmg/psrad already.
+    ! if yes, how to merge? merge with rsw or rlw?
 
-    ! temperature tendencies due to NIR would be zero, 
+    ! temperature tendencies due to NIR would be zero,
     ! if all grid cell columns are dark
-    IF (nsunlit < 1) RETURN 
+    IF (nsunlit < 1) RETURN
 
     DO jsunlit = 1, nsunlit
       jl = idxlist(jsunlit)
@@ -2011,17 +2011,17 @@ CONTAINS
 
         ! scale factor for nlte-fir
         sclnir = MAX(MIN((x(:,jl) - xzeronir) / (xonenir - xzeronir), 1._wp), 0._wp)
-        
+
         ! nir calculation
         CALL nlte_nir(klev, prmu0(jl), x(:,jl), logco2(:,jl), logco2col(:,jl), hnir(:), &
           &           opt_co2x=co2x_loc(:,jl), opt_co2colx=co2colx_loc(:,jl))
-        
+
         ! scale
         hnir = hnir * sclnir  ! factor 1/cp included in slantfact of nlte_nir?
 
         ! reverse order
         phnlte(jl,:) = phnlte(jl,:) + hnir(klev:1:-1)
-        
+
       END IF !nir calculation
 
     ENDDO  !jsunlit
@@ -2073,9 +2073,9 @@ CONTAINS
 
     ! compute factor for slant co2 column
     slantfact = 35. / SQRT( 1224._wp * prmu0 ** 2 + 1._wp )
-    
+
     ! compute heating on xnir grid
-    DO jk = 1, knir 
+    DO jk = 1, knir
       IF (jk <= knir_below) THEN
         co2 = EXP(intp_lin(klev, xnir(jk), x(:), logco2(:)))
         co2col = EXP(intp_lin(klev, xnir(jk), x(:), logco2col(:)))
@@ -2086,12 +2086,12 @@ CONTAINS
       co2colslantx = co2col * slantfact
       hx(jk) = intp_lin(nir_ref, co2colslantx, nir_refcol(:,jk), nir_heat(:,jk)) * co2
     ENDDO
-    
+
     ! Reduce heating in the uppermost heating layers in order to have a smoother transition
     ! to the upper model area where the parameterization is not valid and zero heating is assumed.
     hx(knir - 1) = hx(knir - 1) * .667_wp
     hx(knir)     = hx(knir) * .333_wp
-    
+
     ! interpolate heating rate from xnir grid to x grid
     DO jk = 1, klev
       IF (x(jk) >= xnir(1) .AND. x(jk) <= xnir(knir)) THEN
@@ -2122,30 +2122,30 @@ CONTAINS
   !! V. Fomichev, original source
   !!
   FUNCTION intp_spl(x1,y1,x2,n1) RESULT(y2)
-    
+
     ! in/out variables:
     INTEGER , INTENT(IN) :: n1
     REAL(wp), INTENT(IN) :: x1(n1),y1(n1),x2
-    
+
     REAL(wp)             :: y2
-    
+
     ! local variables:
     REAL(wp) :: a(n1),e(n1),f(n1),h(n1)
-    
+
     REAL(wp) :: f1,f2,f3,g,h1,h2
     INTEGER  :: nvs,k,kr,l
-    
+
     !---------------------------------------------------------
-    
+
     h2  = x1(1)
     nvs = n1 - 1
-    
+
     DO k = 1, nvs
       h1   = h2
       h2   = x1(k+1)
       h(k) = h2 - h1
     END DO
-    
+
     a(1)  = 0._wp
     a(n1) = 0._wp
     e(n1) = 0._wp
@@ -2153,7 +2153,7 @@ CONTAINS
     h1    = h(n1-1)
     f1    = y1(n1-1)
     f2    = y1(n1)
-    
+
     DO kr = 2, nvs
       k    = nvs + 2 - kr
       h2   = h1
@@ -2165,20 +2165,20 @@ CONTAINS
       e(k) = -h1 * g
       f(k) = ( 3._wp * ( ( f3 - f2 ) / h2 - ( f2 - f1 ) / h1 ) - h2 * f(k+1) ) * g
     END DO
-    
+
     g = 0._wp
-    
+
     DO k = 2, nvs
       g    = e(k) * g + f(k)
       a(k) = g
     END DO
-    
+
     l = 1
-    
+
     g = x2
 
-    ! TODO: if you happen to be familiar with these prehistoric GOTO-constructs, 
-    ! may we ask you to consider replacing the following specimen by something more modern  
+    ! TODO: if you happen to be familiar with these prehistoric GOTO-constructs,
+    ! may we ask you to consider replacing the following specimen by something more modern
     ! and user-friendly? Thanks a lot!
     DO 6 k = l, nvs
       IF(g > x1(k+1)) GOTO 6
@@ -2195,7 +2195,7 @@ CONTAINS
       & + a(l) * ( 2._wp * f1 - 3._wp * g * h2 + f3 ) ) )
 
   END FUNCTION intp_spl
-  
+
   !=============================================================================
 
   !>
@@ -2231,13 +2231,13 @@ CONTAINS
 
     REAL(wp), OPTIONAL, INTENT(IN) :: below  ! value to be returned if x < xn(1)
     REAL(wp), OPTIONAL, INTENT(IN) :: above  ! value to be returned if x > xn(n)
-    
+
     ! local variables:
     INTEGER :: k
     REAL(wp) :: d(n)
-    
+
     !---------------------------------------------------------
-    
+
     IF( x < xn(1)) THEN
       IF (PRESENT(below)) THEN
         y = below
@@ -2261,9 +2261,9 @@ CONTAINS
     END IF
 
   END FUNCTION intp_lin
-  
+
   !=============================================================================
-  
+
   !>
   !! precalculations for a linear interpolation that
   !! is to be performed in function intp_with_coeffs
@@ -2309,9 +2309,9 @@ CONTAINS
         IF(x <= xn(i)) EXIT
       END DO
       IF(k == 1) k = 2
-      
+
       ! k has been found so that xn(k).le.x.lt.xn(k+1)
-      
+
       f = ( x - xn(k) ) / ( xn(k) - xn(k-1) )
     END IF
 
@@ -2341,17 +2341,17 @@ CONTAINS
     ! in/out variables:
     INTEGER , INTENT(IN) :: m, n     ! first and last index of array range
     ! to be used for interpolation
-    INTEGER , INTENT(IN) :: k        ! 
+    INTEGER , INTENT(IN) :: k        !
 
     REAL(wp), INTENT(IN) :: xn(n)    ! coordinate array xn
     REAL(wp), INTENT(IN) :: yn(n)    ! value array yn=y(xn)
 
     REAL(wp), INTENT(IN) :: x        ! new coordinate x
-    REAL(wp), INTENT(IN) :: f        ! precalculated factor 
+    REAL(wp), INTENT(IN) :: f        ! precalculated factor
     REAL(wp)             :: y        ! interpolated value y(x)
 
     !---------------------------------------------------------
-    
+
     IF(x <= xn(m))      THEN   ! y=yn(m) if x<=xn(m)
       y = yn(m)
     ELSE IF(x >= xn(n)) THEN   ! y=yn(n) if x>=xn(n)
@@ -2361,5 +2361,5 @@ CONTAINS
     END IF
 
   END FUNCTION intp_with_coeffs
-  
+
 END MODULE mo_upatmo_phy_nlte

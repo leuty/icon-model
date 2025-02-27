@@ -202,7 +202,7 @@ CONTAINS
           END IF
           !
           ! for output: LW heating
-          IF (ASSOCIATED(field% q_rlw)) THEN 
+          IF (ASSOCIATED(field% q_rlw)) THEN
             !$ACC LOOP GANG(STATIC: 1) VECTOR COLLAPSE(2)
             DO jk = 1, nlev
               DO jc = jcs, jce

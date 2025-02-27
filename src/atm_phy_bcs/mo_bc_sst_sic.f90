@@ -14,7 +14,7 @@
 ! TODO: ctfreez in echam = 271.38, this is 271.45 K
 
 MODULE mo_bc_sst_sic
-  
+
   USE mo_kind,               ONLY: dp, i8
   USE mo_exception,          ONLY: finish, message, message_text
   USE mo_mpi,                ONLY: my_process_is_mpi_workroot, p_bcast, &
@@ -30,7 +30,7 @@ MODULE mo_bc_sst_sic
   USE mo_bcs_time_interpolation, ONLY: t_time_interpolation_weights, &
        &                               calculate_time_interpolation_weights
   USE mo_time_config,        ONLY: time_config
- 
+
   IMPLICIT NONE
 
   PRIVATE
@@ -57,7 +57,7 @@ MODULE mo_bc_sst_sic
   TYPE(t_time_interpolation_weights) :: tiw_end
 
 CONTAINS
-  
+
   SUBROUTINE read_bc_sst_sic(year, p_patch)
     INTEGER(i8),   INTENT(IN) :: year
     TYPE(t_patch), INTENT(IN) :: p_patch
@@ -69,7 +69,7 @@ CONTAINS
       &              time_config%tc_stopdate%date%day    == 1  .AND. &
       &              time_config%tc_stopdate%time%hour   == 0  .AND. &
       &              time_config%tc_stopdate%time%minute == 0  .AND. &
-      &              time_config%tc_stopdate%time%second == 0 ) 
+      &              time_config%tc_stopdate%time%second == 0 )
 
     nyears = time_config%tc_stopdate%date%year - time_config%tc_startdate%date%year + 1
     IF ( lend_of_year ) nyears = nyears - 1
@@ -81,13 +81,13 @@ CONTAINS
 
     IF ( nyears > 1 ) THEN
       imonth_beg = 0
-      imonth_end = 13  
+      imonth_end = 13
       IF ( tiw_beg%month1_index == 0 ) imonth_end = tiw_end%month2_index
     ELSE
-      imonth_beg = tiw_beg%month1_index 
+      imonth_beg = tiw_beg%month1_index
       imonth_end = tiw_end%month2_index
     ENDIF
- 
+
     IF ( lend_of_year ) imonth_end = 13
 
     WRITE(message_text,'(a,i2,a,i2)') &
@@ -95,7 +95,7 @@ CONTAINS
     CALL message('mo_bc_sst_sic:read_bc_sst_sic', message_text)
 
     IF ( imonth_beg > imonth_end ) THEN
-      WRITE (message_text, '(a)') 'imonth_beg < imonth_end' 
+      WRITE (message_text, '(a)') 'imonth_beg < imonth_end'
       CALL finish('mo_bc_sst_sic:read_bc_sst_sic', message_text)
     ENDIF
 
@@ -128,13 +128,13 @@ CONTAINS
       !$ACC ENTER DATA PCREATE(ext_sea(jg)%sic)
     ENDIF
     CALL read_sst_sic_data(p_patch, ext_sea(jg)%sic, TRIM(fn), year)
-    
+
     IF (jg==n_dom) current_year = year
 
     !$ACC UPDATE DEVICE(ext_sea(jg)%sst, ext_sea(jg)%sic) ASYNC(1)
 
   END SUBROUTINE read_bc_sst_sic
-  
+
   SUBROUTINE read_sst_sic_data(p_patch, dst, fn, y)
 !TODO: switch to reading via mo_read_netcdf_distributed?
     TYPE(t_patch), INTENT(in) :: p_patch
@@ -180,7 +180,7 @@ CONTAINS
               ts_found = ts_found + 1
           END IF
         ELSE IF (INT(vy,i8) == y) THEN
-          IF ( vm >= imonth_beg .AND. vm <= imonth_end ) THEN 
+          IF ( vm >= imonth_beg .AND. vm <= imonth_end ) THEN
             ts_idx = vm
             ts_found = ts_found + 1
             IF ( vm == imonth_end ) found_last_ts = .TRUE.
@@ -219,19 +219,19 @@ CONTAINS
   END SUBROUTINE read_sst_sic_data
 
   SUBROUTINE bc_sst_sic_time_interpolation(tiw, tsw, seaice, siced, p_patch, mask, l_init, lopenacc)
-    
+
     TYPE( t_time_interpolation_weights), INTENT(in) :: tiw
-    REAL(dp)       , INTENT(inout) :: tsw(:,:) 
-    REAL(dp)       , INTENT(out) :: seaice(:,:) 
-    REAL(dp)       , INTENT(out) :: siced(:,:) 
+    REAL(dp)       , INTENT(inout) :: tsw(:,:)
+    REAL(dp)       , INTENT(out) :: seaice(:,:)
+    REAL(dp)       , INTENT(out) :: siced(:,:)
     TYPE(t_patch)  , INTENT(in)  :: p_patch
     LOGICAL        , INTENT(in)  :: mask(:,:)  !< logical mask, indicating where to apply tsw and sea ice/depth
     LOGICAL        , INTENT(in)  :: l_init     !< switch for first call at initialization
     LOGICAL, OPTIONAL, INTENT(in) :: lopenacc  ! Flag to run on GPU
     ! If l_init=.FALSE., tsw is only computed where mask==.TRUE (this is used
-    ! at all time steps in the time loop). If l_init=.TRUE., tsw is computed 
+    ! at all time steps in the time loop). If l_init=.TRUE., tsw is computed
     ! everywhere (this is used during initialization in order to initialize ts_tile(:,:,iwtr)
-    ! also over land/lakes). 
+    ! also over land/lakes).
     ! Note that lakes and ocean/sea ice are mutually exclusive, i.e. a cell cannot
     ! contain both lake and ocean/sea ice.
 
@@ -290,7 +290,7 @@ CONTAINS
         seaice(jc,jb) = MERGE(0.99_dp, seaice(jc,jb), seaice(jc,jb) > 0.99_dp)
         seaice(jc,jb) = MERGE(0.0_dp, seaice(jc,jb), seaice(jc,jb) <= 0.01_dp)
 
-        ztsw(jc,jb) = MERGE(tf_salt, MAX(zts(jc,jb), tf_salt), seaice(jc,jb) > 0.0_dp) 
+        ztsw(jc,jb) = MERGE(tf_salt, MAX(zts(jc,jb), tf_salt), seaice(jc,jb) > 0.0_dp)
       END DO
     END DO
 !$omp end do nowait

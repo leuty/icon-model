@@ -55,7 +55,7 @@ PUBLIC :: ocean_test_performance
 INTEGER :: testbed_iterations = 100
 
 CONTAINS
-  
+
   !-------------------------------------------------------------------------
   !>
   !!
@@ -73,7 +73,7 @@ CONTAINS
     TYPE(t_atmos_fluxes ),    INTENT(inout)          :: oceans_atmosphere_fluxes
     TYPE (t_sea_ice),         INTENT(inout)          :: ocean_ice
     TYPE(t_operator_coeff),   INTENT(inout)          :: operators_coefficients
-    
+
     CHARACTER(*), PARAMETER :: method_name = "ocean_test_performance"
 
     SELECT CASE (test_mode)  !  1000 - 1100
@@ -105,12 +105,12 @@ CONTAINS
 
     !---------------------------------------------------------------------
     write(0,*) TRIM(get_my_process_name()), ': Start of ', method_name
-    
+
     ltimer = .false.
     timers_level = 0
     activate_sync_timers = .false.
     !---------------------------------------------------------------------
-        
+
     !---------------------------------------------------------------------
     ! DO the tests
     timer_prep_trace_trans_0  = new_timer("prep_trace_trans_0")
@@ -151,7 +151,7 @@ CONTAINS
 !       CALL timer_stop(timer_prep_trace_trans_3)
 !     ENDDO
 !     !---------------------------------------------------------------------
-! 
+!
 
     !---------------------------------------------------------------------
     ! print the timers
@@ -160,11 +160,10 @@ CONTAINS
     CALL message(method_name, TRIM(message_text))
     CALL print_timer()
     !---------------------------------------------------------------------
-    
+
 
   END SUBROUTINE test_prepare_tracer_transport
   !-------------------------------------------------------------------------
 
 
 END MODULE mo_testbed_ocean_performance
-

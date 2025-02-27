@@ -44,4 +44,3 @@ For technical details, see `utils/mkexp/doc/mkexp.pdf`.
 * Fallback environment settings if unknown or not specified (`DEFAULT.config`)
 * Specific environment settings and job resource specifications (`<ENVIRONMENT>.config`)
 * Environment template formatting information according to system needs (`<ENVIRONMENT>.tmpl`)
-

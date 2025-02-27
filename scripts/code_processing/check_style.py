@@ -32,7 +32,7 @@
 #      Gives a warning and outputs to outScriptName
 #   4. Changes tabs to spaces = noOfTabSpaces (=2)
 #   5. reformats to the correct indentation
-# 
+#
 # NOTE:
 #   1. Comments and Strings are UNCHANGED
 #      This can potentially be problematic and should be checked
@@ -44,7 +44,8 @@
 #
 #-----------------------------------------------------------------------------
 
-import getopt, sys
+import getopt
+import sys
 
 noOfTabSpaces=2   # replace tabs with that many spaces
 maxNameLength=31  # max variabble name length
@@ -133,7 +134,7 @@ fortran_keywords=[
 "UNIT",
 "WRITE",
 "SAVE",
-# Logical 
+# Logical
 "TRUE",
 "FALSE",
 "AND",
@@ -145,7 +146,7 @@ fortran_keywords=[
 "LE",
 "EQ",
 # FORTRAN 90
-"ALLOCATE",  
+"ALLOCATE",
 "ALLOCATABLE",
 "ALLOCATED",
 "CASE",
@@ -312,7 +313,7 @@ def warning(line,message):
   print lineNumber,": ",line
   print "Warning: "+message
   print '********************'
-  
+
 def error(line,message):
   print '********************'
   print lineNumber,": ",line
@@ -333,10 +334,10 @@ def exceedsNameLength(word):
       scriptfile.close()
 
   return
-  
+
 def findEndOfString(inLine, delim, startCheck):
   global stringContinousDelim
-  
+
   k =  inLine.find(delim, startCheck)
   if (k < 0):
     endOfLine=len(inLine)-1
@@ -346,7 +347,7 @@ def findEndOfString(inLine, delim, startCheck):
       stringContinousDelim = delim
       return (endOfLine, '&')
   return(k, delim)
-    
+
 
 def fortranKeyword(inWord):
   global lineHasNewLevel
@@ -360,7 +361,7 @@ def fortranKeyword(inWord):
   global lineHasFlushKeyword
   global lineHasWhereKeyword
   global lineHasNoLevel
-  
+
   word = inWord.upper()
   if (word in fortran_keywords):
       # we have a fortran keyword
@@ -391,24 +392,24 @@ def fortranKeyword(inWord):
         lineHasPublicKeyword = True
       elif ("FLUSH" == word):
         lineHasFlushKeyword = True
-      if ("WHERE" == word):        
+      if ("WHERE" == word):
         lineHasWhereKeyword = True
-        
+
       if (caseCheck):
         return (True, word)
-      
+
       return (True, inWord)
-        
+
   return (False, inWord)
 
-  
+
 def processVariableName(word):
   n=len(word)
   if (n < 1):
     return word
   if (caseCheck):
     return word.lower()
-  
+
   return word
 
   # this was used only for CamelCase conversion
@@ -422,21 +423,21 @@ def processVariableName(word):
     if (word[i-1].islower() and word[i].isupper()):
       newName += "_"
     newName += word[i].lower()
-  
+
   return newName
-  
+
 
 
 # main processing method
 def processNextWord(inLine):
-    
+
   global lineHasParenthesis
-  
+
   word=''
   remainingLine = ''
   sep=''
   leadingSpaces = 0
-  
+
   workLine = inLine.lstrip()
   workLineLength = len(workLine)
   leadingSpaces = len(inLine) - workLineLength
@@ -457,7 +458,7 @@ def processNextWord(inLine):
     remainingLine = ''
     wordType = is_comment
     return (word, remainingLine, sep, wordType, leadingSpaces)
-  
+
   # check if we are in a string
   if ( stringDelim.find(firstChar) >= 0) :
     (n, sep) = findEndOfString(workLine, firstChar, 1)
@@ -484,15 +485,15 @@ def processNextWord(inLine):
     sep = workLine[n]
     word = workLine[0:n]
     remainingLine = workLine[n+1:]
-  
+
   if ("(" == sep):
     lineHasParenthesis = True
-  
+
   if (len(word) < 1):
     # its just the separator
     wordType = is_separator
     return (word, remainingLine, sep, wordType, leadingSpaces)
- 
+
   if (word.isspace()):
     # this should not happen
     print 'Warning: word is spaces:'+word+'->'+workLine
@@ -509,10 +510,10 @@ def processNextWord(inLine):
       # make sure we have exaclty one space
       remainingLine = remainingLine.lstrip()
   elif (word[0].isdigit()):
-    wordType = is_number  
+    wordType = is_number
   else:
     wordType = is_variable
-    word = processVariableName(word)      
+    word = processVariableName(word)
     if (len(word) > maxNameLength):
       print word[wordLength-3:]
       exceedsNameLength(word)
@@ -536,20 +537,20 @@ def findClosedParenthesis(line):
       # not closed parenthesis
       warning(line, "not closed parenthesis")
       return -1
-    
+
     if (k1 < 0):
       level = level - 1
       k0 = k2 + 1
-      
+
     elif(k2 < k1):
       level = level - 1
       k0 = k2 + 1
-      
+
     else:
       level = level + 1
       k0 = k1 + 1
     # print k0,k1,k2
-  return k0          
+  return k0
 
 
 def findNotInString(inLine,findString):
@@ -558,22 +559,22 @@ def findNotInString(inLine,findString):
   inLineLength = len(inLine)
   n = inLineLength + 1
   for delim in stringDelimeters:
-    # print 'checking for ',delim 
+    # print 'checking for ',delim
     k = inLine.find(delim)
     if (k >= 0):
       n = min(n,k)
-      
+
   if (n > inLineLength):
     endCheck = inLineLength
   else:
     endCheck = n
-          
+
   # print 'endCheck=',endCheck
   # print 'find String in:',inLine[0:endCheck-1]
   k =  inLine.find(findString, 0, endCheck)
   if (k >=0 or endCheck >= inLineLength):
     return k
-  
+
   delim = inLine[endCheck]
   # print 'delim is:'+delim
   (k, sep) = findEndOfString(inLine, delim, endCheck+1)
@@ -590,12 +591,12 @@ def findNotInString(inLine,findString):
 
 def getLineComments(inLine):
   global lineHasCompileDirecitve
-  
+
   # get rid of the commends
   n = findNotInString(inLine,"!")
   if ( n < 0):
     return (inLine, '', 0)
-  
+
   remainingLine = inLine[0:n]
   remainingLine = remainingLine.rstrip()
   commentLine   = inLine[n:]
@@ -609,7 +610,7 @@ def getLineComments(inLine):
         chk_keyword=commentLine[1:keylen+1].upper()
         if (chk_keyword == commWord):
           lineHasCompileDirecitve = True
-          
+
   #if (n == 0 and len(commentLine) > OMPKeywordLength):
     #check_omp=commentLine[1:OMPKeywordLength+1].upper()
     #if (check_omp == OMPKeyword):
@@ -618,8 +619,8 @@ def getLineComments(inLine):
     #check_omp=commentLine[1:POMPKeywordLength+1].upper()
     #if (check_omp == POMPKeyword):
       #lineHasCompileDirecitve = True
-    
-  
+
+
   # print commentLine
   return (remainingLine, commentLine, commentSpaces)
 
@@ -638,7 +639,7 @@ def initNewLine():
   global lineHasCompileDirecitve
   global lineHasWhereKeyword
   global lineHasNoLevel
-   
+
   lineHasNewLevel = False
   lineHasEndLevel = False
   lineHasSelectKeyword = False
@@ -652,7 +653,7 @@ def initNewLine():
   lineHasCompileDirecitve = False
   lineHasWhereKeyword = False
   lineHasNoLevel = False
-  
+
 
 #def splitCommentLine(commentLine)
 
@@ -663,8 +664,8 @@ def initNewLine():
     #k = workLine.find(sep)
     #if ( k >= 0):
       #n = min(n,k)
-   
-   
+
+
    #if (len(outLine) == 0):
      #return splitCommentLine(commentLine)
 
@@ -673,7 +674,7 @@ def initNewLine():
 def splitLine(outLine, commentLine):
   line1 = commentLine
   line2 = outLine
-      
+
   return (line1, line2)
 
 
@@ -683,7 +684,7 @@ def processSourceFortran(inName,outName):
 
   global wordsListCounter
   global lineHasTypeKeyword
-  
+
   print "------------------------------------"
   print "proccessing ", inName, "..."
   infile  = open(inName, 'r')
@@ -692,7 +693,7 @@ def processSourceFortran(inName,outName):
 
   global lineNumber
   global stringContinousDelim
-  
+
   prefixLength = len(prefix)
   lineNumber = 0
   caseRepeats    = 0
@@ -702,23 +703,23 @@ def processSourceFortran(inName,outName):
   addDummy=''
   inContinuation = False
   fileChanged = False
-  
+
   for inLine in infile:
      lineNumber = lineNumber + 1
      stringContinousDelim = ''
      if (not(inContinuation)):
        initNewLine()
      hasPreprocessKeyword = False
-     
+
      # replace tabs with spaces
      line = inLine.expandtabs(noOfTabSpaces)
      # strip leading,trailing spaces
      line = line.rstrip()
-     
+
      if (indentCheck):
        line = addDummy+line.lstrip()
      addDummyLength=len(addDummy)
-     
+
      outLine = ''
 
      (remainingLine,commentLine,commentSpaces) = getLineComments(line)
@@ -737,7 +738,7 @@ def processSourceFortran(inName,outName):
      insert_prefix = False
      while (len(remainingLine) > 0):
        (word, remainingLine, sep, wordType, leadingSpaces) = processNextWord(remainingLine)
- 
+
        if (add_prefix):
            if (word.upper() == keyword):
              insert_prefix=True
@@ -763,7 +764,7 @@ def processSourceFortran(inName,outName):
 
      if (noWrite):
        continue
-    
+
      #end while (len(remainingLine) > 0):
      # process line is done
 
@@ -804,7 +805,7 @@ def processSourceFortran(inName,outName):
          indent=spaces[0:(indentLevel+1)*noOfTabSpaces] + '&'+ spaces[0:noOfTabSpaces-1]
        else:
          indent=spaces[0:indentLevel*noOfTabSpaces]
-     
+
        writeLine = indent + outLine[addDummyLength:] + spaces[0:commentSpaces]+commentLine+'\n'
 
      else:
@@ -823,43 +824,43 @@ def processSourceFortran(inName,outName):
        fileChanged = True
        if (verbose):
          print lineNumber,":\n","<",inLine,">",writeLine
-       
+
      outfile.write(writeLine)
-     
+
      #if (writeLine != inLine):
      #  print inLine
      #  print writeLine
-     
+
      if (indentCheck):
-     
+
       if (lineHasElseKeyword or lineHasContainsKeyword):
         hasNewLevel = True
         hasEndLevel = False
-            
+
       if (lineHasTypeKeyword and not(hasEndLevel) and not(lineHasParenthesis)):
         hasNewLevel = True
-      
+
       if (lineHasCaseKeyword and caseRepeats > 1):
         hasNewLevel = True
         hasEndLevel = False
-      
+
       inContinuation = (sep == '&')
-            
+
       if ( not(hasEndLevel) and not(inContinuation) and hasNewLevel):
         indentLevel =  indentLevel + 1
   #     outfile.write(str(hasNewLevel)+"-"+str(hasEndLevel)+"->"+str(inContinuation)+str(indentLevel)+"\n")
-      
+
       if (hasEndLevel and lineHasSelectKeyword):
         caseLevels = caseLevels-1
         if (caseLevels < 1):
-          caseRepeats = 0      
-      
+          caseRepeats = 0
+
       if (len(stringContinousDelim) > 0 ):
         addDummy=stringContinousDelim
       else:
         addDummy=''
-          
-        
+
+
      #s = line.split()
      #for i in range(len(s)):
      #  print i, s[i]
@@ -867,12 +868,12 @@ def processSourceFortran(inName,outName):
     outfile.close()
     if (indentLevel > 0):
       error('end of program','Wrong indentation')
-      
+
     if (fileChanged):
       print outName, ' is changed.','\n'
     else:
       print outName, ' is not changed.','\n'
-      
+
   return 0
 
 
@@ -890,7 +891,7 @@ def processArgs():
   global printfileName
   global filelistName
   global replaceWord
-  
+
   caseCheck = True
   verbose = False
   sedScript = False
@@ -903,8 +904,8 @@ def processArgs():
   keyword=""
   printfileName=''
   filelistName=''
-  
-  
+
+
   flags="vshicnr"
   longFlags=["verbose","casecheck", "no_casecheck", "indentcheck",
   'no_write', "keyword=", 'printfile=', 'filelist=', "add_trail_prefix="]
@@ -915,12 +916,12 @@ def processArgs():
     print str(err) # will print something like "option -a not recognized"
     usage()
     sys.exit(2)
-      
+
   #if (not (len(args) == 2)):
     #usage()
     #sys.exit(3)
 
-  
+
   for o, a in opts:
     if o == "-v":
        verbose = True
@@ -968,7 +969,7 @@ def main_method():
 
   global wordsListCounter
   wordsListCounter=0
-  
+
   infile, outfile = processArgs()
 
   if (replaceWord):
@@ -979,7 +980,7 @@ def main_method():
       wordsListReplace[wordsListCounter] = arg_list[1]
       wordsListCounter = wordsListCounter+1
     printfile.close()
-  
+
   if (filelistName != ''):
     filelist = open(filelistName, 'r')
     for line in filelist:
@@ -987,7 +988,7 @@ def main_method():
       print arg_list
       processSourceFortran(arg_list[0], arg_list[1])
     filelist.close()
-  else:    
+  else:
     processSourceFortran(infile, outfile)
 
   if (printfileName != ''):

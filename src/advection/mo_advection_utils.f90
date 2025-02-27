@@ -123,7 +123,7 @@ CONTAINS
   !! used in conservative vertical advection routines.
   !! For passive advection, equivalent to any other first
   !! order upwind flux.
-  !! Applicable to height based vertical coordinate systems. 
+  !! Applicable to height based vertical coordinate systems.
   !!
   FUNCTION laxfr_upflux_v( p_w, p_psi1, p_psi2 )  RESULT(p_upflux)
     !
@@ -517,8 +517,8 @@ CONTAINS
                              !! at all to moisture
 
         ntracer = 7+iqb_e+7  !! total number of tracers. Theis order is the following:
-                             !! qv, qc, qi, qr, qs, qg, qh, 
-                             !! 33 mass bins for cloud droplets, 
+                             !! qv, qc, qi, qr, qs, qg, qh,
+                             !! 33 mass bins for cloud droplets,
                              !! 33 mass bins for aerosols,
                              !! qni, qnr, qns, qng, qnh, qnc, ninact
 

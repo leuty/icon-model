@@ -70,7 +70,7 @@ suite ifs_trigger
     edit USER       $USER
 
     # DUMMY TASK (IFS TRIGGER) ------------------------
-    task fct_ifs  
+    task fct_ifs
         on_ecgate
         defstatus unknown
 
