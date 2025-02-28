@@ -241,7 +241,7 @@ Iconbot:
   stage: basic
   variables:
     ICONBOT_TAG: production
-    ICONBOT_REPO: "https://gitlab-ci-token:${CI_JOB_TOKEN}@gitlab.dkrz.de/mpim-sw/iconbot.git"
+    ICONBOT_REPO: "https://gitlab-ci-token:${CI_JOB_TOKEN}@gitlab.dkrz.de/icon/ci-tooling/iconbot.git"
     ICONBOT_DIR: iconbot
     ICONBOT_CONFIG: .gitlab/iconbot/notifier.yml
     GIT_SUBMODULE_STRATEGY: none
