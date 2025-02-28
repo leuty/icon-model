@@ -289,11 +289,12 @@ CONTAINS
   !>
   !! SUBROUTINE interface_aes_ocean_nested -- the interface between
   !! AES physics and the ocean, through a coupler (using only the nested data)
-  SUBROUTINE interface_aes_ocean_nested(p_patch)
+  SUBROUTINE interface_aes_ocean_nested(p_patch,lacc)
 
     ! Arguments
 
     TYPE(t_patch), TARGET, INTENT(INOUT)   :: p_patch(1:n_dom)
+    LOGICAL, INTENT(IN)                    :: lacc
 
     ! Local variables
 
@@ -319,7 +320,6 @@ CONTAINS
     REAL(wp), ALLOCATABLE :: get_buffer(:,:)      ! buffer for incomming data
     LOGICAL :: received_data                      ! indicates whether a get
                                                   ! operation received data
-
     CHARACTER(LEN=*), PARAMETER :: &
       routine = str_module // ':interface_aes_ocean_nested'
 
@@ -628,7 +628,7 @@ CONTAINS
       !   "sea_surface_temperature" - SST
       no_arr = cpl_get_field_collection_size(routine, in_field_ids(jg)%sst)
 !ICON_OMP_PARALLEL
-      CALL init(get_buffer(:,1:no_arr), lacc=.TRUE.)
+      CALL init(get_buffer(:,1:no_arr), lacc=.FALSE.)
 !ICON_OMP_END_PARALLEL
       CALL cpl_get_field( &
         routine, in_field_ids(jg)%sst, 'SST', &
@@ -652,7 +652,7 @@ CONTAINS
         !$ACC WAIT(1)
 !ICON_OMP_END_PARALLEL_DO
 
-        CALL sync_patch_array(sync_c, p_patch(jg), prm_field(jg)%ts_tile(:,:,iwtr))
+        CALL sync_patch_array(sync_c, p_patch(jg), prm_field(jg)%ts_tile(:,:,iwtr), lacc=lacc)
       END IF
 
       !
@@ -662,7 +662,7 @@ CONTAINS
       !
       no_arr = cpl_get_field_collection_size(routine, in_field_ids(jg)%oce_u)
 !ICON_OMP_PARALLEL
-      CALL init(get_buffer(:,1:no_arr), lacc=.TRUE.)
+      CALL init(get_buffer(:,1:no_arr), lacc=.FALSE.)
 !ICON_OMP_END_PARALLEL
       CALL cpl_get_field( &
         routine, in_field_ids(jg)%oce_u, 'u velocity', &
@@ -683,7 +683,7 @@ CONTAINS
         !$ACC WAIT(1)
 !ICON_OMP_END_PARALLEL_DO
 
-        CALL sync_patch_array(sync_c, p_patch(jg), prm_field(jg)%ocu(:,:))
+        CALL sync_patch_array(sync_c, p_patch(jg), prm_field(jg)%ocu(:,:), lacc=lacc)
       END IF
 
       ! ------------------------------
@@ -692,7 +692,7 @@ CONTAINS
       !
       no_arr = cpl_get_field_collection_size(routine, in_field_ids(jg)%oce_v)
 !ICON_OMP_PARALLEL
-      CALL init(get_buffer(:,1:no_arr), lacc=.TRUE.)
+      CALL init(get_buffer(:,1:no_arr), lacc=.FALSE.)
 !ICON_OMP_END_PARALLEL
       CALL cpl_get_field( &
         routine, in_field_ids(jg)%oce_v, 'v velocity', &
@@ -713,7 +713,7 @@ CONTAINS
         !$ACC WAIT(1)
 !ICON_OMP_END_PARALLEL_DO
 
-        CALL sync_patch_array(sync_c, p_patch(jg), prm_field(jg)%ocv(:,:))
+        CALL sync_patch_array(sync_c, p_patch(jg), prm_field(jg)%ocv(:,:), lacc=lacc)
       END IF
 
       ! ------------------------------
@@ -722,7 +722,7 @@ CONTAINS
       !
       no_arr = cpl_get_field_collection_size(routine, in_field_ids(jg)%seaice_oce)
 !ICON_OMP_PARALLEL
-      CALL init(get_buffer(:,1:no_arr), lacc=.TRUE.)
+      CALL init(get_buffer(:,1:no_arr), lacc=.FALSE.)
 !ICON_OMP_END_PARALLEL
       CALL cpl_get_field( &
         routine, in_field_ids(jg)%seaice_oce, 'sea ice', &
@@ -745,9 +745,9 @@ CONTAINS
         !$ACC WAIT(1)
 !ICON_OMP_END_PARALLEL_DO
 
-        CALL sync_patch_array(sync_c, p_patch(jg), prm_field(jg)%hi  (:,1,:))
-        CALL sync_patch_array(sync_c, p_patch(jg), prm_field(jg)%hs  (:,1,:))
-        CALL sync_patch_array(sync_c, p_patch(jg), prm_field(jg)%conc(:,1,:))
+        CALL sync_patch_array(sync_c, p_patch(jg), prm_field(jg)%hi  (:,1,:), lacc=lacc)
+        CALL sync_patch_array(sync_c, p_patch(jg), prm_field(jg)%hs  (:,1,:), lacc=lacc)
+        CALL sync_patch_array(sync_c, p_patch(jg), prm_field(jg)%conc(:,1,:), lacc=lacc)
 
 !ICON_OMP_PARALLEL_DO PRIVATE(i_blk, n, nlen) ICON_OMP_RUNTIME_SCHEDULE
         DO i_blk = 1, nblks_c
@@ -773,7 +773,7 @@ CONTAINS
         !
         no_arr = cpl_get_field_collection_size(routine, in_field_ids(jg)%co2_flx)
 !ICON_OMP_PARALLEL
-        CALL init(get_buffer(:,1:no_arr), lacc=.TRUE.)
+        CALL init(get_buffer(:,1:no_arr), lacc=.FALSE.)
 !ICON_OMP_END_PARALLEL
         CALL cpl_get_field( &
           routine, in_field_ids(jg)%co2_flx, 'CO2 flux', &
@@ -793,7 +793,7 @@ CONTAINS
           ENDDO
           !$ACC WAIT(1)
 !ICON_OMP_END_PARALLEL_DO
-          CALL sync_patch_array(sync_c, p_patch(jg), prm_field(jg)%co2_flux_tile(:,:,iwtr))
+          CALL sync_patch_array(sync_c, p_patch(jg), prm_field(jg)%co2_flux_tile(:,:,iwtr), lacc=lacc)
         ENDIF
 
       END IF
@@ -860,11 +860,12 @@ CONTAINS
   !>
   !! SUBROUTINE interface_aes_ocean_basic -- the interface between
   !! AES physics and the ocean, through a coupler (using only the main patch)
-  SUBROUTINE interface_aes_ocean_basic( p_patch)
+  SUBROUTINE interface_aes_ocean_basic( p_patch,lacc)
 
     ! Arguments
 
     TYPE(t_patch), TARGET, INTENT(INOUT)    :: p_patch
+    LOGICAL, INTENT(IN)                     :: lacc
 
     ! Local variables
 
@@ -1195,7 +1196,7 @@ CONTAINS
     !   "sea_surface_temperature" - SST
     no_arr = cpl_get_field_collection_size(routine, in_field_ids(jg)%sst)
 !ICON_OMP_PARALLEL
-    CALL init(get_buffer(:,1:no_arr), lacc=.TRUE.)
+    CALL init(get_buffer(:,1:no_arr), lacc=.FALSE.)
 !ICON_OMP_END_PARALLEL
     CALL cpl_get_field( &
       routine, in_field_ids(jg)%sst, 'SST', &
@@ -1235,7 +1236,7 @@ CONTAINS
       IF ( idbg_mxmn >= 1 .OR. idbg_val >=1 )  &
         &  CALL dbg_print('AESOce: SSToce-cpl',scr,str_module,4,in_subset=p_patch%cells%owned)
 
-      CALL sync_patch_array(sync_c, p_patch, prm_field(jg)%ts_tile(:,:,iwtr), lacc=.TRUE.)
+      CALL sync_patch_array(sync_c, p_patch, prm_field(jg)%ts_tile(:,:,iwtr), lacc=lacc)
     END IF
     !
     ! ------------------------------
@@ -1244,7 +1245,7 @@ CONTAINS
     !
     no_arr = cpl_get_field_collection_size(routine, in_field_ids(jg)%oce_u)
 !ICON_OMP_PARALLEL
-    CALL init(get_buffer(:,1:no_arr), lacc=.TRUE.)
+    CALL init(get_buffer(:,1:no_arr), lacc=.FALSE.)
 !ICON_OMP_END_PARALLEL
     CALL cpl_get_field( &
       routine, in_field_ids(jg)%oce_u, 'u velocity', &
@@ -1269,7 +1270,7 @@ CONTAINS
       !$ACC WAIT(1)
 !ICON_OMP_END_PARALLEL_DO
 
-      CALL sync_patch_array(sync_c, p_patch, prm_field(jg)%ocu(:,:), lacc=.TRUE.)
+      CALL sync_patch_array(sync_c, p_patch, prm_field(jg)%ocu(:,:), lacc=lacc)
     END IF
 
     ! ------------------------------
@@ -1278,7 +1279,7 @@ CONTAINS
     !
     no_arr = cpl_get_field_collection_size(routine, in_field_ids(jg)%oce_v)
 !ICON_OMP_PARALLEL
-    CALL init(get_buffer(:,1:no_arr), lacc=.TRUE.)
+    CALL init(get_buffer(:,1:no_arr), lacc=.FALSE.)
 !ICON_OMP_END_PARALLEL
     CALL cpl_get_field( &
       routine, in_field_ids(jg)%oce_v, 'v velocity', &
@@ -1303,7 +1304,7 @@ CONTAINS
       !$ACC WAIT(1)
 !ICON_OMP_END_PARALLEL_DO
 
-      CALL sync_patch_array(sync_c, p_patch, prm_field(jg)%ocv(:,:), lacc=.TRUE.)
+      CALL sync_patch_array(sync_c, p_patch, prm_field(jg)%ocv(:,:), lacc=lacc)
     END IF
 
     ! ------------------------------
@@ -1312,7 +1313,7 @@ CONTAINS
     !
     no_arr = cpl_get_field_collection_size(routine, in_field_ids(jg)%seaice_oce)
 !ICON_OMP_PARALLEL
-    CALL init(get_buffer(:,1:no_arr), lacc=.TRUE.)
+    CALL init(get_buffer(:,1:no_arr), lacc=.FALSE.)
 !ICON_OMP_END_PARALLEL
     CALL cpl_get_field( &
       routine, in_field_ids(jg)%seaice_oce, 'sea ice', &
@@ -1339,9 +1340,9 @@ CONTAINS
       !$ACC WAIT(1)
 !ICON_OMP_END_PARALLEL_DO
 
-      CALL sync_patch_array(sync_c, p_patch, prm_field(jg)%hi  (:,1,:), lacc=.TRUE.)
-      CALL sync_patch_array(sync_c, p_patch, prm_field(jg)%hs  (:,1,:), lacc=.TRUE.)
-      CALL sync_patch_array(sync_c, p_patch, prm_field(jg)%conc(:,1,:), lacc=.TRUE.)
+      CALL sync_patch_array(sync_c, p_patch, prm_field(jg)%hi  (:,1,:), lacc=lacc)
+      CALL sync_patch_array(sync_c, p_patch, prm_field(jg)%hs  (:,1,:), lacc=lacc)
+      CALL sync_patch_array(sync_c, p_patch, prm_field(jg)%conc(:,1,:), lacc=lacc)
 
 !ICON_OMP_PARALLEL_DO PRIVATE(i_blk, n, nlen) ICON_OMP_RUNTIME_SCHEDULE
       DO i_blk = 1, p_patch%nblks_c
@@ -1370,7 +1371,7 @@ CONTAINS
 
       no_arr = cpl_get_field_collection_size(routine, in_field_ids(jg)%co2_flx)
 !ICON_OMP_PARALLEL
-        CALL init(get_buffer(:,1:no_arr), lacc=.TRUE.)
+        CALL init(get_buffer(:,1:no_arr), lacc=.FALSE.)
 !ICON_OMP_END_PARALLEL
       CALL cpl_get_field( &
         routine, in_field_ids(jg)%co2_flx, 'CO2 flux', &
@@ -1395,7 +1396,7 @@ CONTAINS
           !$ACC WAIT(1)
 !ICON_OMP_END_PARALLEL_DO
           !
-          CALL sync_patch_array(sync_c, p_patch, prm_field(jg)%co2_flux_tile(:,:,iwtr), lacc=.TRUE.)
+          CALL sync_patch_array(sync_c, p_patch, prm_field(jg)%co2_flux_tile(:,:,iwtr), lacc=lacc)
         ENDIF
 
     END IF
@@ -1503,14 +1504,18 @@ CONTAINS
     ! Arguments
 
     TYPE(t_patch), TARGET, INTENT(INOUT)    :: p_patch(1:n_dom)
-
+#ifdef _OPENACC
+    LOGICAL :: lacc = .TRUE.
+#else
+    LOGICAL :: lacc = .FALSE.
+#endif
     CHARACTER(LEN=*), PARAMETER :: &
       routine = str_module // ':interface_aes_ocean'
 
     IF (n_dom > 1) THEN
-      CALL interface_aes_ocean_nested(p_patch(:))
+      CALL interface_aes_ocean_nested(p_patch(:),lacc)
     ELSE
-      CALL interface_aes_ocean_basic(p_patch(1))
+      CALL interface_aes_ocean_basic(p_patch(1),lacc)
     END IF
 
   END SUBROUTINE interface_aes_ocean

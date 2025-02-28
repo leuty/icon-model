@@ -1135,7 +1135,7 @@ CONTAINS
     !$OMP END PARALLEL
 
 #ifndef __NO_JSBACH__
-    CALL jsbach_finish_timestep (patch%id, datetime_now, delta_time)
+    CALL jsbach_finish_timestep (patch%id, datetime_now, delta_time, linit)
 #endif
 
     !$OMP PARALLEL

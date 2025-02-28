@@ -67,6 +67,9 @@ class WhitespaceSeperatedFiles(click.ParamType):
 
         for f in not_found:
             print("did not find {} in {}".format(f, run_path))
+        # early exit
+        if 0 != len(not_found):
+            raise RuntimeError("Could not find given input files")
 
         # not found
         args = [arg for arg in args if arg not in not_found]

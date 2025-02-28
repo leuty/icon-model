@@ -32,8 +32,6 @@ MODULE mo_upatmo_config
     &                                    configure_upatmo_physics, &
     &                                    print_config_upatmo_physics
   USE mo_upatmo_utils,             ONLY: init_logical_1d
-  USE mo_name_list_output_types,   ONLY: t_output_name_list
-  USE mo_name_list_output_config,  ONLY: is_variable_in_output
   USE mtime,                       ONLY: datetime
   USE mo_timer,                    ONLY: timers_level, timer_start, timer_stop,   &
     &                                    timer_upatmo_constr, timer_upatmo_destr, &

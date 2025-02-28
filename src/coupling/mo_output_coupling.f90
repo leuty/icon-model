@@ -11,7 +11,7 @@
 
 MODULE mo_output_coupling
 
-  USE mo_kind                ,ONLY: wp
+  USE mo_kind                ,ONLY: wp, dp
   USE mo_model_domain        ,ONLY: t_patch
   USE mo_var                 ,ONLY: t_var_ptr
   USE mo_var_groups          ,ONLY: MAX_GROUPS, var_groups_dyn
@@ -315,7 +315,7 @@ CONTAINS
 #endif
 
     LOGICAL, INTENT(IN) :: lacc
-    REAL(wp), OPTIONAL :: valid_mask(:,:,:)
+    REAL(wp), OPTIONAL, INTENT(IN) :: valid_mask(:,:,:)
 
 #ifndef YAC_coupling
    CALL finish(str_module // 'output_coupling', &
@@ -323,8 +323,8 @@ CONTAINS
 #else
    INTEGER                             :: info, ierror, collection_size, nn, now
    INTEGER                             :: ncontained, var_size, var_ref_pos, timer_put
-   REAL(wp), ALLOCATABLE, TARGET, SAVE :: buffer(:,:)
-   REAL(wp), CONTIGUOUS, POINTER       :: tmp_buffer(:,:)
+   REAL(dp), ALLOCATABLE, TARGET, SAVE :: buffer(:,:) ! yac only supports double precision
+   REAL(dp), CONTIGUOUS, POINTER       :: tmp_buffer(:,:)
    TYPE(t_exposed_var), POINTER        :: cur_field
    TYPE(t_var_ptr)                     :: var_now
    TYPE(yac_dble_ptr), ALLOCATABLE     :: buffer_ptr(:, :)
@@ -369,7 +369,11 @@ CONTAINS
        IF (msg_level >= 15) &
           CALL message(str_module, " sending field " // TRIM(var_now%p%info%name))
 
-!$ACC UPDATE HOST(var_now%p%r_ptr) IF(lzacc .AND. acc_is_present(var_now%p%r_ptr))
+       IF (.NOT. ASSOCIATED(var_now%p%wp_ptr)) THEN
+         CALL finish(str_module, " pointer not ASSOCIATED " // TRIM(var_now%p%info%name))
+       ENDIF
+
+!$ACC UPDATE HOST(var_now%p%wp_ptr) IF(lzacc .AND. acc_is_present(var_now%p%wp_ptr))
        var_ref_pos = MERGE(var_now%p%info%var_ref_pos, 4, var_now%p%info%lcontained)
        ncontained = MERGE(var_now%p%info%ncontained, 1, var_now%p%info%lcontained)
        var_size = cur_field%var_size
@@ -377,58 +381,70 @@ CONTAINS
        IF (zaxisTypeList%is_2d(var_now%p%info%vgrid)) THEN
           SELECT CASE (var_ref_pos)
           CASE (1)
-             buffer(1:var_size,1:1) = var_now%p%r_ptr(ncontained, :, :, 1, 1)
-             buffer_ptr(1, 1)%p => buffer(:,1)
+             buffer(:,1) = RESHAPE(var_now%p%wp_ptr(ncontained, :, :, 1, 1), (/var_size/))
+             buffer_ptr(1, 1)%p(1:var_size) => buffer(:,1)
           CASE (2)
-             buffer(1:var_size,1:1) = var_now%p%r_ptr(:, ncontained, :, 1, 1)
-             buffer_ptr(1, 1)%p => buffer(:,1)
+             buffer(:,1) = RESHAPE(var_now%p%wp_ptr(:, ncontained, :, 1, 1), (/var_size/))
+             buffer_ptr(1, 1)%p(1:var_size) => buffer(:,1)
           CASE (3)
-             tmp_buffer => var_now%p%r_ptr(:, :, ncontained, 1, 1)
+#ifdef __SINGLE_PRECISION
+             buffer(:,1) = RESHAPE(var_now%p%wp_ptr(:, :, ncontained, 1, 1), (/var_size/))
+             buffer_ptr(1, 1)%p(1:var_size) => buffer(:,1)
+#else
+             tmp_buffer => var_now%p%wp_ptr(:, :, ncontained, 1, 1)
              buffer_ptr(1, 1)%p(1:var_size) => tmp_buffer
+#endif
           CASE (4)
-             tmp_buffer => var_now%p%r_ptr(:, :, 1, ncontained, 1)
+#ifdef __SINGLE_PRECISION
+             buffer(:,1) => RESHAPE(var_now%p%wp_ptr(:, :, 1, ncontained, 1), (/var_size/))
+             buffer_ptr(1, 1)%p(1:var_size) => buffer(:,1)
+#else
+             tmp_buffer => var_now%p%wp_ptr(:, :, 1, ncontained, 1)
              buffer_ptr(1, 1)%p(1:var_size) => tmp_buffer
+#endif
           CASE (5)
-             tmp_buffer => var_now%p%r_ptr(:, :, 1, 1, ncontained)
+#ifdef __SINGLE_PRECISION
+             buffer(:,1) => RESHAPE(var_now%p%wp_ptr(:, :, 1, 1, ncontained), (/var_size/))
+             buffer_ptr(1, 1)%p(1:var_size) => buffer(:,1)
+#else
+             tmp_buffer => var_now%p%wp_ptr(:, :, 1, 1, ncontained)
              buffer_ptr(1, 1)%p(1:var_size) => tmp_buffer
+#endif
           CASE DEFAULT
              CALL finish(str_module, "Unsupported var_ref_pos " // int2string(var_ref_pos) // &
                   " for variable " // TRIM(var_now%p%info%name))
           END SELECT
+
        ELSE
           DO nn = 1 , collection_size
              SELECT CASE (var_ref_pos)
              CASE (1)
-                buffer(:,nn) = RESHAPE(var_now%p%r_ptr(ncontained, :, nn, :, 1), &
-                     (/ var_size /))
+                buffer(:,nn) = RESHAPE(var_now%p%wp_ptr(ncontained, :, nn, :, 1), (/var_size/))
              CASE (2)
-                buffer(:,nn) = RESHAPE(var_now%p%r_ptr(:, ncontained, nn, :, 1), &
-                     (/ var_size /))
+                buffer(:,nn) = RESHAPE(var_now%p%wp_ptr(:, ncontained, nn, :, 1), (/var_size/))
              CASE (3)
-                buffer(:,nn) = RESHAPE(var_now%p%r_ptr(:, nn, ncontained, :, 1), &
-                     (/ var_size /))
+                buffer(:,nn) = RESHAPE(var_now%p%wp_ptr(:, nn, ncontained, :, 1), (/var_size/))
              CASE (4)
-                buffer(:,nn) = RESHAPE(var_now%p%r_ptr(:, nn, :, ncontained, 1), &
-                     (/ var_size /))
+                buffer(:,nn) = RESHAPE(var_now%p%wp_ptr(:, nn, :, ncontained, 1), (/var_size/))
              CASE (5)
-                buffer(:,nn) = RESHAPE(var_now%p%r_ptr(:, nn, :, 1, ncontained), &
-                     (/ var_size /))
+                buffer(:,nn) = RESHAPE(var_now%p%wp_ptr(:, nn, :, 1, ncontained), (/var_size/))
              CASE DEFAULT
                 CALL finish(str_module, "Unsupported var_ref_pos " // int2string(var_ref_pos) // &
                      " for variable " // TRIM(var_now%p%info%name))
              END SELECT
-             buffer_ptr(1, nn)%p => buffer(:,nn)
+             buffer_ptr(1, nn)%p(1:var_size) => buffer(:,nn)
           ENDDO
        END IF
 
        ! The ocean model does not mask land cells hence we set them to NaN manually before coupling to YAC.
        IF ( PRESENT(valid_mask) ) THEN
           DO nn = 1 , collection_size
-             ! dont overwrite the variable itself
+             ! Variable data stored in `buffer` or variable - dont overwrite if variable itself
              IF (.NOT. ASSOCIATED(buffer_ptr(1, nn)%p, buffer(:,nn))) THEN
                 buffer(:,nn) = buffer_ptr(1, nn)%p
                 buffer_ptr(1, nn)%p => buffer(:,nn)
              ENDIF
+
              ! Duplicate first level of ocean-mask for half-depth fields.
              WHERE ( RESHAPE(valid_mask(:, MAX(1, nn - MAX(0, collection_size - nlev)), :), &
                   (/ var_size /)) .LT. 0.5_wp )

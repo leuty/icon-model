@@ -817,7 +817,7 @@ CONTAINS
 !$OMP PARALLEL DO PRIVATE(jb,jc,jk) ICON_OMP_RUNTIME_SCHEDULE
     DO jb = i_startblk_c,i_endblk_c
 
-      !$ACC PARALLEL DEFAULT(PRESENT)
+      !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1)
       !$ACC LOOP GANG VECTOR COLLAPSE(2)
       DO jk = 1, nlev
         DO jc = i_startidx_c(jb), i_endidx_c(jb)
@@ -843,7 +843,7 @@ CONTAINS
         & c=c(:,:,jb)                               & ! out
         & )
 
-      !$ACC PARALLEL LOOP DEFAULT(PRESENT) GANG(STATIC: 1) VECTOR
+      !$ACC PARALLEL LOOP DEFAULT(PRESENT) GANG(STATIC: 1) VECTOR ASYNC(1)
       ! Set the right hand side
       DO jc = i_startidx_c(jb), i_endidx_c(jb)
         rhs(jc,nlev,jb) = - sfc_flx(jc,jb) * inv_mair(jc,nlev,jb)
@@ -1494,7 +1494,7 @@ CONTAINS
         & c=c(:,:,jb)                               & ! out
         & )
 
-      !$ACC PARALLEL LOOP DEFAULT(PRESENT) GANG(STATIC: 1) VECTOR
+      !$ACC PARALLEL LOOP DEFAULT(PRESENT) GANG(STATIC: 1) VECTOR ASYNC(1)
       DO jc = i_startidx_c(jb), i_endidx_c(jb)     
         ! This results from the condition w=0 at the top and bottom boundary.
         b(jc,2,jb)    = b(jc,2,jb)    + 2._wp * km_c(jc,1,jb)    * inv_dzf(jc,1,jb)    * inv_mair_ic(jc,2,jb)

@@ -2719,7 +2719,7 @@ REAL (KIND=wp), DIMENSION(:,:), POINTER, CONTIGUOUS :: &
 
   IF (igrdcon.EQ.3) THEN !use additional effective gradients of an extra non-turbulent flux-contribution
 !DIR$ IVDEP
-     !$ACC PARALLEL DEFAULT(PRESENT) IF(lzacc)
+     !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1) IF(lzacc)
      !$ACC LOOP GANG VECTOR
      DO i=i_st,i_en
         eff_flux(i,k_sf)=0._wp !non-turbulent circulation fluxes always vanish at the surface

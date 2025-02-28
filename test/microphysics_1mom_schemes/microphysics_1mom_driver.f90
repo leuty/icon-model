@@ -10,7 +10,8 @@
 ! ---------------------------------------------------------------
 PROGRAM microphysics_1mom_driver
   USE netcdf
-  USE ISO_FORTRAN_ENV, ONLY: error_unit, wp => real64, i8 => int64
+  USE ISO_FORTRAN_ENV, ONLY: error_unit
+  USE mo_kind, ONLY: wp, i8
   USE microphysics_1mom_schemes, ONLY: microphysics_1mom_init, graupel_run, cloudice_run, kessler_run, cloudice2mom_run
   USE mo_lookup_tables_constants, ONLY: init_satpres_coeffs
   USE mo_exception, ONLY: init_logger, message_text, finish, message

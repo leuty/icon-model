@@ -376,13 +376,13 @@ MODULE mo_jsb_time_iface
     &                                  divisionquotienttimespan, getDayOfYearFromDateTime,           &
     &                                  getNoOfDaysInMonthDateTime, getNoOfDaysInYearDateTime,        &
     &                                  no_of_sec_in_a_day,                                           &
-    &                                  getNoOfSecondsElapsedInDayDateTime, getTotalSecondsTimeDelta, &
-    &                                  divideDatetimeDifferenceInSeconds !, isCurrentEventActive,      &
+    &                                  getNoOfSecondsElapsedInDayDateTime, getTotalMilliSecondsTimeDelta, &
+    &                                  divideDatetimeDifferenceInSeconds !, isCurrentEventActive
   USE mo_time_config,            ONLY: time_config !configure_time
   USE mo_time_nml,               ONLY: read_time_namelist
   USE mo_bcs_time_interpolation, ONLY: t_time_interpolation_weights,              &
     &                                  calculate_time_interpolation_weights
-  USE mo_aes_phy_config,         ONLY: aes_phy_tc, dt_zero
+  USE mo_aes_phy_config,         ONLY: aes_phy_tc
   USE mo_atm_phy_nwp_config,     ONLY: atm_phy_nwp_config
   USE mo_run_config,             ONLY: l_timer_host => ltimer, iforcing
   USE mo_impl_constants,         ONLY: inwp, itrad
@@ -431,7 +431,8 @@ CONTAINS
     INTEGER, INTENT(in) :: model_id
 
     TYPE(t_datetime), POINTER :: reference_datetime
-    REAL(wp) :: ztime
+    REAL(WP) :: ztime
+    INTEGER  :: dt_in_ms
 
     CHARACTER(len=*), PARAMETER :: routine = modname//':get_time_dt'
 
@@ -444,14 +445,16 @@ CONTAINS
 
       ! First try to get time step from the vertical diffusion config in a coupled experiment
       IF (ASSOCIATED(aes_phy_tc(model_id)%dt_vdf)) THEN
-        ztime = REAL(getTotalSecondsTimeDelta(aes_phy_tc(model_id)%dt_vdf, reference_datetime), wp)
+        dt_in_ms = getTotalMilliSecondsTimeDelta(aes_phy_tc(model_id)%dt_vdf, reference_datetime)
       END IF
 
-      IF (ztime <= 0._wp) THEN
+      IF (dt_in_ms <= 0._wp) THEN
         ! This should only happen for an ICON-Land standalone experiment;
         ! Use "modeltimestep" from run_nml in this case (same for all model_id's!)
-        ztime = REAL(getTotalSecondsTimeDelta(time_config%tc_dt_model, reference_datetime), wp)
+        dt_in_ms = getTotalMilliSecondsTimeDelta(time_config%tc_dt_model, reference_datetime)
       END IF
+
+      ztime = REAL(dt_in_ms, wp) / 1000._wp
 
       CALL deallocateDatetime(reference_datetime)
     END IF
@@ -525,6 +528,7 @@ CONTAINS
 
     CHARACTER(len=max_timedelta_str_len) :: dstring
 
+    ! Note: fractional seconds supported up to a precision of 3 digits
     CALL getPTStringFromSeconds(dt, dstring)
     dt_mtime => newTimedelta(dstring)
 
@@ -547,6 +551,7 @@ CONTAINS
 
     CHARACTER(len=max_timedelta_str_len) :: dstring
 
+    ! Note: fractional seconds supported up to a precision of 3 digits
     CALL getPTStringFromSeconds(dt, dstring)
     dt_mtime => newTimedelta(dstring)
 
@@ -574,8 +579,8 @@ CONTAINS
 
     TYPE(t_datetime), POINTER       :: datetime_next
     TYPE(timedelta),  POINTER, SAVE :: dt_zero => NULL()
-    INTEGER                         :: dt_rad
     LOGICAL                         :: luse_rad
+    REAL(wp)                        :: dt_rad, seconds_in_day
 
     IF (.NOT. ASSOCIATED(dt_zero)) dt_zero => newTimedelta('PT0S')
 
@@ -589,9 +594,10 @@ CONTAINS
       ltrig_rad_m1 = .TRUE.
       IF (ASSOCIATED(aes_phy_tc(model_id)%dt_rad)) THEN
         IF (aes_phy_tc(model_id)%dt_rad > dt_zero) THEN
-          dt_rad = getTotalSecondsTimeDelta(aes_phy_tc(model_id)%dt_rad, datetime_next)
-          ltrig_rad_m1 = MOD(getNoOfSecondsElapsedInDayDateTime(datetime_next), dt_rad) == 0
-          ! Why doesn't this work? It somehow messes up the radiation calculation time step.
+          dt_rad = getTotalMilliSecondsTimeDelta(aes_phy_tc(model_id)%dt_rad, datetime_next) / 1000._wp
+          seconds_in_day = getNoOfSecondsElapsedInDayDateTime(datetime_next) + REAL(datetime_next%time%ms,wp)/1000._wp
+          ltrig_rad_m1 = MOD(seconds_in_day, dt_rad) == 0
+          ! TODO This doesn't work and messes up the radiation calculation time step.
           ! ltrig_rad_m1 = isCurrentEventActive(aes_phy_tc(model_id)%ev_rad, datetime_next)
           luse_rad  = (aes_phy_tc(model_id)%sd_rad <= datetime_next) .AND. &
             &         (aes_phy_tc(model_id)%ed_rad >  datetime_next)
@@ -660,10 +666,10 @@ CONTAINS
 
   END SUBROUTINE finish_timestep
 
-  SUBROUTINE get_date_components(this_datetime, year, month, day, hour, minute, second)
+  SUBROUTINE get_date_components(this_datetime, year, month, day, hour, minute, second, ms)
 
     TYPE(t_datetime),  POINTER, INTENT(in)  :: this_datetime
-    INTEGER, OPTIONAL,          INTENT(out) :: year, month, day, hour, minute, second
+    INTEGER, OPTIONAL,          INTENT(out) :: year, month, day, hour, minute, second, ms
 
     IF (PRESENT(year))   year   = this_datetime%date%year
     IF (PRESENT(month))  month  = this_datetime%date%month
@@ -671,6 +677,7 @@ CONTAINS
     IF (PRESENT(hour))   hour   = this_datetime%time%hour
     IF (PRESENT(minute)) minute = this_datetime%time%minute
     IF (PRESENT(second)) second = this_datetime%time%second
+    IF (PRESENT(ms))     ms     = this_datetime%time%ms
 
   END SUBROUTINE get_date_components
 
@@ -728,9 +735,9 @@ CONTAINS
     ! t_datetime points to mtimes datetime
     TYPE(t_datetime), POINTER, INTENT(in)  :: date
 
-    get_year_day = REAL(getDayOfYearFromDateTime(date), wp) &
-         &        +REAL(getNoOfSecondsElapsedInDayDateTime(date),wp) &
-         &        /REAL(no_of_sec_in_a_day,wp)
+    get_year_day =    REAL(getDayOfYearFromDateTime(date), wp)                                          &
+         &         + (REAL(getNoOfSecondsElapsedInDayDateTime(date), wp) + REAL(date%time%ms, wp) / 1000._wp) &
+         &           / REAL(no_of_sec_in_a_day,wp)
 
   END FUNCTION get_year_day
 
@@ -1586,7 +1593,7 @@ END MODULE mo_jsb_varlist_iface
 !
 MODULE mo_jsb_vertical_axes_iface
 
-  USE mo_kind, ONLY: wp !, dp
+  USE mo_kind, ONLY: wp, dp
   USE mo_name_list_output_zaxes_types, ONLY: t_verticalAxis, t_verticalAxisList
   USE mo_zaxis_type,                   ONLY: zaxisTypeList
 
@@ -1616,9 +1623,9 @@ CONTAINS
     CALL verticalAxisList%append( &
       & t_verticalAxis(zaxisTypeList%getEntry(zaxis_id), &
       &                length,                           &
-      &                zaxisLevels   = levels,           &
-      &                zaxisLbounds  = lbounds,          &
-      &                zaxisUbounds  = ubounds,          &
+      &                zaxisLevels   = REAL(levels, dp), &
+      &                zaxisLbounds  = REAL(lbounds,dp), &
+      &                zaxisUbounds  = REAL(ubounds,dp), &
       &                zaxisUnits    = units,            &
       &                zaxisName     = name,             &
       &                zaxisLongname = longname          &

@@ -24,7 +24,7 @@
 
 MODULE mo_aes_phy_memory
 
-  USE mo_kind,                ONLY: dp, wp
+  USE mo_kind,                ONLY: wp
   USE mo_impl_constants,      ONLY: SUCCESS, vname_len,        &
     &                               VINTP_METHOD_PRES,         &
     &                               VINTP_METHOD_LIN,          &
@@ -587,7 +587,7 @@ MODULE mo_aes_phy_memory
   TYPE(t_var_list_ptr),ALLOCATABLE :: prm_field_list(:)  !< shape: (n_dom)
   TYPE(t_var_list_ptr),ALLOCATABLE :: prm_tend_list (:)  !< shape: (n_dom)
 
-  REAL(dp), SAVE :: cdimissval
+  REAL(wp), SAVE :: cdimissval !< Cast from double-precision value provided by cdi
 
 CONTAINS
 
@@ -611,7 +611,7 @@ CONTAINS
 
     CALL message(thismodule,'Construction of AES physics state started.')
 
-    cdimissval = cdiInqMissval()
+    cdimissval = REAL(cdiInqMissval(),KIND=wp)
 
     ! Allocate pointer arrays prm_field and prm_tend, 
     ! as well as the corresponding list arrays.

@@ -18,7 +18,7 @@
 
 MODULE mo_reff_types
 
-  USE, INTRINSIC :: iso_fortran_env, ONLY: wp => real64
+  USE mo_kind, ONLY: wp
 
   IMPLICIT NONE
   PRIVATE

@@ -23,9 +23,6 @@ MODULE mo_icon_output_coupling
   USE mo_mpi,                 ONLY: p_pe_work
   USE mo_run_config,          ONLY: ltimer
   USE mo_dynamics_config,     ONLY: nold, nnew
-  USE mo_timer,               ONLY: timer_start, timer_stop, timer_coupling, &
-       &                            timer_coupling_put, timer_coupling_get,  &
-       &                            timer_coupling_1stget, timer_coupling_init
   USE mo_sync,                ONLY: sync_c, sync_patch_array
   USE mo_util_dbg_prnt,       ONLY: dbg_print
   USE mo_model_domain,        ONLY: t_patch, t_patch_3d

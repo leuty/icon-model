@@ -107,8 +107,6 @@ MODULE random_rewrite
 !     Phone: (+61) 3 9545-8016      Fax: (+61) 3 9545-8080
 
 REAL(KIND=JPRB), PRIVATE      :: zero = 0.0_JPRB, half = 0.5_JPRB, one = 1.0_JPRB
-                      
-INTEGER, PARAMETER :: dp = SELECTED_REAL_KIND(12, 60)
 
 PUBLIC             :: random_Poisson, random_normal
 

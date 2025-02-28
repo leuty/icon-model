@@ -14,7 +14,7 @@
 #include <omp_definitions.inc>
 MODULE mo_derived_variable_handling
 
-  USE mo_kind,                ONLY: wp, sp
+  USE mo_kind,                ONLY: wp, xwp, dp, sp
   USE mo_model_domain,        ONLY: t_patch
   USE mo_io_config,           ONLY: lnetcdf_flt64_output
   USE mo_dynamics_config,     ONLY: nnow, nnew, nold
@@ -283,44 +283,54 @@ CONTAINS
 
   END SUBROUTINE init_op
 
-  SUBROUTINE perform_op(src, dest, funccode, lacc, weight, miss, miss_s)
+  SUBROUTINE perform_op(src, dest, funccode, lacc, weight, miss_r, miss_s)
     TYPE(t_var), POINTER, INTENT(IN) :: src
     TYPE(t_var), POINTER, INTENT(INOUT) :: dest
     INTEGER(C_INT), INTENT(IN) :: funccode
     LOGICAL, INTENT(IN), OPTIONAL :: lacc ! DyKi: Remove optional when jsbach updated
-    REAL(wp), INTENT(IN), OPTIONAL :: weight, miss
+    REAL(wp), INTENT(IN), OPTIONAL :: weight
+    REAL(dp), INTENT(IN), OPTIONAL :: miss_r
     REAL(sp), INTENT(IN), OPTIONAL :: miss_s
+    ! Local var
+    CHARACTER(*), PARAMETER :: routine = modname//":perform_op"
     REAL(wp) :: miss_src, miss_dst, weight_dst
     INTEGER :: ic,si,sj,sk,sl,sm,ei,ej,ek,el,em,sbi,ebi,bk,sbk,ebk
-    REAL(wp), POINTER :: sd5d(:,:,:,:,:)
-    REAL(sp), POINTER :: ss5d(:,:,:,:,:)
+
+    REAL(wp), POINTER :: s_wp5d(:,:,:,:,:)
+    REAL(xwp), POINTER :: s_xwp5d(:,:,:,:,:)
     LOGICAL :: lzacc
 
     IF (PRESENT(weight)) weight_dst = weight
-    IF (PRESENT(miss)) miss_dst = miss
-    IF (PRESENT(miss)) miss_src = MERGE(miss, REAL(miss_s, wp), ASSOCIATED(src%r_ptr))
+    IF (PRESENT(miss_r) .OR. PRESENT(miss_s)) THEN
+      IF ( .NOT. (PRESENT(miss_r) .AND. PRESENT(miss_s)) ) THEN
+        CALL finish(routine, "miss_r and miss_s must both or none be provided")
+      END IF
+      miss_dst = MERGE(REAL(miss_r,wp), REAL(miss_s,wp), ASSOCIATED(src%r_ptr))
+      miss_src = MERGE(REAL(miss_r,wp), REAL(miss_s,wp), ASSOCIATED(src%r_ptr))
+    END IF
     sm = 1; sl = 1; sk = 1; sj = 1; si = 1
-    em = SIZE(dest%r_ptr, 5); el = SIZE(dest%r_ptr, 4); ek = SIZE(dest%r_ptr, 3)
-    ej = SIZE(dest%r_ptr, 2); ei = SIZE(dest%r_ptr, 1)
+    em = SIZE(dest%wp_ptr, 5); el = SIZE(dest%wp_ptr, 4);
+    ek = SIZE(dest%wp_ptr, 3); ej = SIZE(dest%wp_ptr, 2);
+    ei = SIZE(dest%wp_ptr, 1)
     bk = 0; sbk = -1; ebk = HUGE(ebk); sbi = -1; ebi = HUGE(ebi)
-    NULLIFY(sd5d, ss5d)
-    IF (ASSOCIATED(src%r_ptr)) sd5d => src%r_ptr(:,:,:,:,:)
-    IF (ASSOCIATED(src%s_ptr)) ss5d => src%s_ptr(:,:,:,:,:)
+    NULLIFY(s_wp5d, s_xwp5d)
+    IF (ASSOCIATED(src%wp_ptr)) s_wp5d => src%wp_ptr
+    IF (ASSOCIATED(src%xwp_ptr)) s_xwp5d => src%xwp_ptr
     IF (funccode .NE. F_MISS .AND. src%info%lcontained) THEN
       ic = src%info%ncontained
       SELECT CASE(src%info%var_ref_pos)
       CASE(1)
-        IF (ASSOCIATED(src%r_ptr)) sd5d => src%r_ptr(ic:ic,:,:,:,:)
-        IF (ASSOCIATED(src%s_ptr)) ss5d => src%s_ptr(ic:ic,:,:,:,:)
+        IF (ASSOCIATED(src%wp_ptr))   s_wp5d  => s_wp5d (ic:ic,:,:,:,:)
+        IF (ASSOCIATED(src%xwp_ptr))  s_xwp5d => s_xwp5d(ic:ic,:,:,:,:)
       CASE(2)
-        IF (ASSOCIATED(src%r_ptr)) sd5d => src%r_ptr(:,ic:ic,:,:,:)
-        IF (ASSOCIATED(src%s_ptr)) ss5d => src%s_ptr(:,ic:ic,:,:,:)
+        IF (ASSOCIATED(src%wp_ptr))   s_wp5d  => s_wp5d (:,ic:ic,:,:,:)
+        IF (ASSOCIATED(src%xwp_ptr))  s_xwp5d => s_xwp5d(:,ic:ic,:,:,:)
       CASE(3)
-        IF (ASSOCIATED(src%r_ptr)) sd5d => src%r_ptr(:,:,ic:ic,:,:)
-        IF (ASSOCIATED(src%s_ptr)) ss5d => src%s_ptr(:,:,ic:ic,:,:)
+        IF (ASSOCIATED(src%wp_ptr))   s_wp5d  => s_wp5d (:,:,ic:ic,:,:)
+        IF (ASSOCIATED(src%xwp_ptr))  s_xwp5d => s_xwp5d(:,:,ic:ic,:,:)
       CASE(4)
-        IF (ASSOCIATED(src%r_ptr)) sd5d => src%r_ptr(:,:,:,ic:ic,:)
-        IF (ASSOCIATED(src%s_ptr)) ss5d => src%s_ptr(:,:,:,ic:ic,:)
+        IF (ASSOCIATED(src%wp_ptr))   s_wp5d  => s_wp5d (:,:,:,ic:ic,:)
+        IF (ASSOCIATED(src%xwp_ptr))  s_xwp5d => s_xwp5d(:,:,:,ic:ic,:)
       END SELECT
     ELSE IF (funccode .NE. F_MISS) THEN
       IF (dest%info%ndims .EQ. 3) THEN
@@ -373,19 +383,21 @@ END DO
 #define _idx_ i,j,k,l,m
 #define __myACC_directive !$ACC PARALLEL LOOP PRESENT(tmp1, tmp2) COLLAPSE(5) GANG VECTOR ASYNC(1) IF(lzacc)
 #define __myOMP_directive !ICON_OMP PARALLEL DO PRIVATE(lblk) COLLAPSE(4)
-    IF (ASSOCIATED(sd5d)) THEN
-      tmp1 => sd5d
+
+    IF (ASSOCIATED(s_wp5d)) THEN
+      tmp1 => s_wp5d
       __acc_attach(tmp1)
     ELSE IF (funccode .NE. F_MISS .OR. funccode .NE. F_WGT) THEN
         ALLOCATE(tmp1(si:ei,sj:ej,sk:ek,sl:el,sm:em))
         !$ACC ENTER DATA CREATE(tmp1) IF(lacc)
 __myOMP_directive
-!$ACC PARALLEL LOOP PRESENT(ss5d, tmp1) COLLAPSE(5) GANG VECTOR ASYNC(1) IF(lacc)
+!$ACC PARALLEL LOOP PRESENT(s_xwp5d, tmp1) COLLAPSE(5) GANG VECTOR ASYNC(1) IF(lacc)
       _begin_loop_construct_
-        tmp1(_idx_) = REAL(ss5d(_idx_), wp)
+        tmp1(_idx_) = REAL(s_xwp5d(_idx_), wp)
       _close_loop_construct_
     END IF
-    tmp2 => dest%r_ptr
+
+    tmp2 => dest%wp_ptr
     __acc_attach(tmp2)
     SELECT CASE(funccode)
     CASE(F_ACC)
@@ -437,7 +449,8 @@ __myACC_directive
         IF (tmp1(_idx_) .EQ. miss_src) tmp2(_idx_) = miss_dst
         _close_loop_construct_
     END SELECT
-    IF (ASSOCIATED(ss5d) .AND. ASSOCIATED(tmp1)) THEN
+
+    IF (ASSOCIATED(s_xwp5d) .AND. ASSOCIATED(tmp1)) THEN
       DEALLOCATE(tmp1)
       !$ACC EXIT DATA DELETE(tmp1) IF(lacc)
     END IF
@@ -492,7 +505,7 @@ __myACC_directive
           IF ((O_MEAN .EQ. opcodes(iop) .OR. O_MEAN_SQ .EQ. opcodes(iop)) .AND. ct .GT. 1) &
             & CALL perform_op(src, dst, F_WGT, lacc=lacc, weight=(1._wp / REAL(ct, wp)))
           IF (dst%info%lmiss) & ! (re)set missval where applicable
-            & CALL perform_op(src, dst, F_MISS, lacc=lacc, miss=dst%info%missval%rval, &
+            & CALL perform_op(src, dst, F_MISS, lacc=lacc, miss_r=dst%info%missval%rval, &
                 &             miss_s=src%info%missval%sval)
           ct = 0
         END IF

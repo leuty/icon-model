@@ -1000,13 +1000,7 @@ if [[ ${output_lnd_mon} == yes ]]; then
  output_grid             = .TRUE.                    ! flag whether grid information is added to output.
  remap                   = 0                         ! 1: latlon,  0: native grid
  operation               = "mean"                    ! works on icon grid only (remap=0)
-    ml_varlist = 'hd_water_error_gsum_box',
-                 'hydro_trans_gmean_box', 'hydro_evapotrans_gmean_box',
-                 'hydro_weq_land_gsum_box', 'hydro_discharge_ocean_gsum_box',
-                 'hydro_wtr_rootzone_rel_gmean_box',
-                 'hydro_fract_snow_gsum_box', 'hydro_weq_snow_gsum_box',
-                 'hydro_weq_balance_err_gsum_box', 'pheno_lai_ta_gmean_box',
-                 'pheno_fract_fpc_gmean_box', 'seb_t_gmean_box'
+    ml_varlist = 'group:jsb_mon'
 /
 
 EOF

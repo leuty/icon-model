@@ -14,8 +14,8 @@
 
 MODULE mo_read_interface
 
-  USE mo_kind
-  USE mo_exception,          ONLY: finish, message_text, message
+  USE mo_kind,              ONLY: wp
+  USE mo_exception,         ONLY: finish, message_text, message
   USE mo_io_config,         ONLY:  read_netcdf_broadcast_method, &
     & read_netcdf_distribute_method,  default_read_method
   USE mo_read_netcdf_broadcast_2, ONLY: netcdf_open_input, netcdf_close, &
@@ -261,9 +261,9 @@ CONTAINS
 
     INTEGER, INTENT(IN)          :: file_id
     CHARACTER(LEN=*), INTENT(IN) :: variable_name
-    REAL(dp), INTENT(OUT), OPTIONAL :: fill_array(:)
-    REAL(dp), ALLOCATABLE, INTENT(OUT), OPTIONAL, TARGET :: alloc_array(:)
-    REAL(dp), POINTER, INTENT(OUT), OPTIONAL :: return_pointer(:) !< DEPRECATED, kept for ART
+    REAL(wp), INTENT(OUT), OPTIONAL :: fill_array(:)
+    REAL(wp), ALLOCATABLE, INTENT(OUT), OPTIONAL, TARGET :: alloc_array(:)
+    REAL(wp), POINTER, INTENT(OUT), OPTIONAL :: return_pointer(:) !< DEPRECATED, kept for ART
 
     CHARACTER(LEN=NF90_MAX_NAME)   :: variable_name_
 
@@ -278,7 +278,7 @@ CONTAINS
 
     IF (PRESENT(return_pointer)) THEN
       BLOCK
-        REAL(dp), ALLOCATABLE :: arr(:)
+        REAL(wp), ALLOCATABLE :: arr(:)
         CALL netcdf_read_1D(file_id, variable_name_, alloc_array=arr)
         ALLOCATE(return_pointer(SIZE(arr, 1)))
         return_pointer(:) = arr(:)
@@ -298,8 +298,8 @@ CONTAINS
 
     INTEGER, INTENT(IN)          :: file_id
     CHARACTER(LEN=*), INTENT(IN) :: variable_name
-    REAL(dp), INTENT(OUT), OPTIONAL :: fill_array(:,:)
-    REAL(dp), ALLOCATABLE, INTENT(OUT), OPTIONAL, TARGET :: alloc_array(:,:)
+    REAL(wp), INTENT(OUT), OPTIONAL :: fill_array(:,:)
+    REAL(wp), ALLOCATABLE, INTENT(OUT), OPTIONAL, TARGET :: alloc_array(:,:)
 
     CHARACTER(LEN=NF90_MAX_NAME)   :: variable_name_
 
@@ -326,8 +326,8 @@ CONTAINS
 
     INTEGER, INTENT(IN)          :: file_id
     CHARACTER(LEN=*), INTENT(IN) :: variable_name
-    REAL(dp), INTENT(OUT), OPTIONAL :: fill_array(:,:,:)
-    REAL(dp), ALLOCATABLE, INTENT(OUT), OPTIONAL, TARGET :: alloc_array(:,:,:)
+    REAL(wp), INTENT(OUT), OPTIONAL :: fill_array(:,:,:)
+    REAL(wp), ALLOCATABLE, INTENT(OUT), OPTIONAL, TARGET :: alloc_array(:,:,:)
     CHARACTER(LEN=*), INTENT(IN), OPTIONAL :: dim_names(:)
     INTEGER, INTENT(IN), OPTIONAL:: start_timestep, end_timestep
 
@@ -358,8 +358,8 @@ CONTAINS
 
     INTEGER, INTENT(IN)          :: file_id
     CHARACTER(LEN=*), INTENT(IN) :: variable_name
-    REAL(dp), INTENT(OUT), OPTIONAL :: fill_array(:,:,:,:)
-    REAL(dp), ALLOCATABLE, INTENT(OUT), OPTIONAL, TARGET :: alloc_array(:,:,:,:)
+    REAL(wp), INTENT(OUT), OPTIONAL :: fill_array(:,:,:,:)
+    REAL(wp), ALLOCATABLE, INTENT(OUT), OPTIONAL, TARGET :: alloc_array(:,:,:,:)
     CHARACTER(LEN=*), INTENT(IN), OPTIONAL :: dim_names(:)
     INTEGER, INTENT(IN), OPTIONAL:: start_timestep, end_timestep
 
@@ -389,8 +389,8 @@ CONTAINS
 
     INTEGER, INTENT(IN)          :: file_id
     CHARACTER(LEN=*), INTENT(IN) :: variable_name
-    REAL(dp), INTENT(OUT), OPTIONAL :: fill_array(:,:,:,:)
-    REAL(dp), ALLOCATABLE, INTENT(OUT), OPTIONAL, TARGET :: alloc_array(:,:,:,:)
+    REAL(wp), INTENT(OUT), OPTIONAL :: fill_array(:,:,:,:)
+    REAL(wp), ALLOCATABLE, INTENT(OUT), OPTIONAL, TARGET :: alloc_array(:,:,:,:)
     CHARACTER(LEN=*), INTENT(IN), OPTIONAL :: dim_names(:)
     INTEGER, INTENT(IN), OPTIONAL:: start_extdim1, end_extdim1
 
@@ -588,7 +588,7 @@ CONTAINS
         DO i = 1, n_var
           ALLOCATE(alloc_array(i)%a(nproma, (stream_id%read_info(location, i)%n_l - 1)/nproma + 1))
           var_data_2d(i)%p => alloc_array(i)%a
-          var_data_2d(i)%p(:,:) = 0.0_dp
+          var_data_2d(i)%p(:,:) = 0.0_wp
         END DO
       ENDIF
 
@@ -612,8 +612,8 @@ CONTAINS
     TYPE(t_stream_id), INTENT(INOUT) :: stream_id
     INTEGER, INTENT(IN)          :: location
     CHARACTER(LEN=*), INTENT(IN) :: variable_name
-    REAL(dp), INTENT(INOUT), OPTIONAL, TARGET :: fill_array(:,:)
-    REAL(dp), ALLOCATABLE, INTENT(OUT), OPTIONAL, TARGET :: alloc_array(:,:)
+    REAL(wp), INTENT(INOUT), OPTIONAL, TARGET :: fill_array(:,:)
+    REAL(wp), ALLOCATABLE, INTENT(OUT), OPTIONAL, TARGET :: alloc_array(:,:)
 
     TYPE(t_ptr_2d) :: tmp_ptr(1)
     CHARACTER(LEN=NF90_MAX_NAME) :: variable_name_
@@ -641,7 +641,7 @@ CONTAINS
       ELSE
         ALLOCATE(alloc_array(nproma, (stream_id%read_info(location, 1)%n_l - 1)/nproma + 1))
         tmp_ptr(1)%p => alloc_array
-        tmp_ptr(1)%p(:,:) = 0._dp
+        tmp_ptr(1)%p(:,:) = 0._wp
       ENDIF
 
       CALL distrib_read(stream_id%file_id, variable_name_, tmp_ptr, &
@@ -672,10 +672,10 @@ CONTAINS
     TYPE(t_stream_id), INTENT(INOUT) :: stream_id
     INTEGER, INTENT(IN)              :: location
     CHARACTER(LEN=*), INTENT(IN)     :: variable_name
-    REAL(dp), INTENT(INOUT), CONTIGUOUS, OPTIONAL :: fill_array(:,:)
-    REAL(dp), ALLOCATABLE, INTENT(OUT), OPTIONAL :: alloc_array(:,:)
+    REAL(wp), INTENT(INOUT), CONTIGUOUS, OPTIONAL :: fill_array(:,:)
+    REAL(wp), ALLOCATABLE, INTENT(OUT), OPTIONAL :: alloc_array(:,:)
     LOGICAL, INTENT(OUT), OPTIONAL   :: has_missValue
-    REAL(dp), INTENT(OUT), OPTIONAL  :: missValue
+    REAL(wp), INTENT(OUT), OPTIONAL  :: missValue
 
     CHARACTER(LEN=*), PARAMETER      :: method_name = &
       'mo_read_interface:read_dist_REAL_2D_1time'
@@ -706,13 +706,13 @@ CONTAINS
     INTEGER, INTENT(IN)              :: location
     CHARACTER(LEN=*), INTENT(IN)     :: variable_name
     INTEGER, INTENT(IN)              :: array_shape(2)
-    REAL(dp), INTENT(INOUT), OPTIONAL:: fill_array(array_shape(1), &
+    REAL(wp), INTENT(INOUT), OPTIONAL:: fill_array(array_shape(1), &
       &                                            array_shape(2), 1)
-    REAL(dp), ALLOCATABLE, INTENT(OUT), OPTIONAL :: alloc_array(:,:)
+    REAL(wp), ALLOCATABLE, INTENT(OUT), OPTIONAL :: alloc_array(:,:)
     LOGICAL, INTENT(OUT), OPTIONAL   :: has_missValue
-    REAL(dp), INTENT(OUT), OPTIONAL  :: missValue
+    REAL(wp), INTENT(OUT), OPTIONAL  :: missValue
 
-    REAL(dp), ALLOCATABLE :: alloc_array_(:,:,:)
+    REAL(wp), ALLOCATABLE :: alloc_array_(:,:,:)
 
     ! Since fill_array now has a time dimension we can call
     ! read_dist_REAL_2D_extdim
@@ -756,8 +756,8 @@ CONTAINS
     TYPE(t_stream_id), INTENT(INOUT) :: stream_id
     INTEGER, INTENT(IN)              :: location
     CHARACTER(LEN=*), INTENT(IN)     :: variable_name
-    REAL(dp), INTENT(INOUT), CONTIGUOUS, OPTIONAL :: fill_array(:,:)
-    REAL(dp), ALLOCATABLE, INTENT(OUT), OPTIONAL :: alloc_array(:,:)
+    REAL(wp), INTENT(INOUT), CONTIGUOUS, OPTIONAL :: fill_array(:,:)
+    REAL(wp), ALLOCATABLE, INTENT(OUT), OPTIONAL :: alloc_array(:,:)
 
     CHARACTER(LEN=*), PARAMETER      :: method_name = &
       'mo_read_interface:read_dist_REAL_2D_1lev_1time'
@@ -783,9 +783,9 @@ CONTAINS
     INTEGER, INTENT(IN)              :: location
     CHARACTER(LEN=*), INTENT(IN)     :: variable_name
     INTEGER, INTENT(IN)              :: array_shape(2)
-    REAL(dp), INTENT(INOUT), OPTIONAL:: fill_array(array_shape(1), 1, &
+    REAL(wp), INTENT(INOUT), OPTIONAL:: fill_array(array_shape(1), 1, &
       &                                            array_shape(2), 1)
-    REAL(dp), ALLOCATABLE, INTENT(OUT), OPTIONAL :: alloc_array(:,:)
+    REAL(wp), ALLOCATABLE, INTENT(OUT), OPTIONAL :: alloc_array(:,:)
 
     REAL(wp), ALLOCATABLE :: alloc_array_(:,:,:,:)
 
@@ -825,16 +825,16 @@ CONTAINS
     TYPE(t_stream_id), INTENT(INOUT) :: stream_id
     INTEGER, INTENT(IN)              :: location
     CHARACTER(LEN=*), INTENT(IN)     :: variable_name
-    REAL(dp), INTENT(INOUT), OPTIONAL:: fill_array(:,:,:)
-    REAL(dp), ALLOCATABLE, INTENT(OUT), OPTIONAL, TARGET :: alloc_array(:,:,:)
-    REAL(dp), POINTER, INTENT(OUT), OPTIONAL :: return_pointer(:,:,:) !< DEPRECATED, kept for ART
+    REAL(wp), INTENT(INOUT), OPTIONAL:: fill_array(:,:,:)
+    REAL(wp), ALLOCATABLE, INTENT(OUT), OPTIONAL, TARGET :: alloc_array(:,:,:)
+    REAL(wp), POINTER, INTENT(OUT), OPTIONAL :: return_pointer(:,:,:) !< DEPRECATED, kept for ART
     INTEGER, INTENT(IN), OPTIONAL    :: start_timestep, end_timestep
     LOGICAL, INTENT(OUT), OPTIONAL   :: has_missValue
-    REAL(dp), INTENT(OUT), OPTIONAL  :: missValue
+    REAL(wp), INTENT(OUT), OPTIONAL  :: missValue
 
     IF (PRESENT(return_pointer)) THEN
       BLOCK
-        REAL(dp), ALLOCATABLE :: arr(:,:,:)
+        REAL(wp), ALLOCATABLE :: arr(:,:,:)
         CALL read_dist_REAL_2D_extdim(&
           & stream_id=stream_id, location=location, variable_name=variable_name, &
           & alloc_array=arr,       &
@@ -872,8 +872,8 @@ CONTAINS
     TYPE(t_stream_id), INTENT(INOUT)       :: stream_id
     INTEGER, INTENT(IN)                    :: location
     CHARACTER(LEN=*), INTENT(IN)           :: variable_name
-    REAL(dp), INTENT(INOUT), OPTIONAL, TARGET :: fill_array(:,:,:)
-    REAL(dp), ALLOCATABLE, INTENT(OUT), OPTIONAL, TARGET :: alloc_array(:,:,:)
+    REAL(wp), INTENT(INOUT), OPTIONAL, TARGET :: fill_array(:,:,:)
+    REAL(wp), ALLOCATABLE, INTENT(OUT), OPTIONAL, TARGET :: alloc_array(:,:,:)
     INTEGER, INTENT(IN), OPTIONAL          :: start_extdim, end_extdim
     CHARACTER(LEN=*), INTENT(IN), OPTIONAL :: extdim_name
     LOGICAL, INTENT(OUT), OPTIONAL         :: has_missValue
@@ -944,7 +944,7 @@ CONTAINS
         END IF
         ALLOCATE(alloc_array(nproma, (stream_id%read_info(location, 1)%n_l - 1)/nproma + 1, var_dimlen(2)))
         tmp_ptr(1)%p => alloc_array
-        tmp_ptr(1)%p(:,:,:) = 0._dp
+        tmp_ptr(1)%p(:,:,:) = 0._wp
       ENDIF
 
       CALL distrib_read(stream_id%file_id, variable_name_, tmp_ptr, &
@@ -1057,7 +1057,7 @@ CONTAINS
           ALLOCATE(alloc_array(i)%a(nproma, &
             (stream_id%read_info(location, 1)%n_l - 1)/nproma + 1, var_dimlen(2)))
           var_data_3d(i)%p => alloc_array(i)%a
-          var_data_3d(i)%p(:,:,:) = 0.0_dp
+          var_data_3d(i)%p(:,:,:) = 0.0_wp
         END DO
       ENDIF
 
@@ -1297,8 +1297,8 @@ CONTAINS
 
     INTEGER, INTENT(IN)          :: file_id
     CHARACTER(LEN=*), INTENT(IN) :: variable_name
-    REAL(dp), INTENT(OUT), OPTIONAL :: fill_array(:,:,:)
-    REAL(dp), ALLOCATABLE, INTENT(OUT), OPTIONAL, TARGET :: alloc_array(:,:,:)
+    REAL(wp), INTENT(OUT), OPTIONAL :: fill_array(:,:,:)
+    REAL(wp), ALLOCATABLE, INTENT(OUT), OPTIONAL, TARGET :: alloc_array(:,:,:)
 
     CHARACTER(LEN=NF90_MAX_NAME) :: variable_name_
 
@@ -1329,8 +1329,8 @@ CONTAINS
     TYPE(t_stream_id), INTENT(INOUT)       :: stream_id
     INTEGER, INTENT(IN)                    :: location
     CHARACTER(LEN=*), INTENT(IN)           :: variable_name
-    REAL(dp), INTENT(INOUT), OPTIONAL, TARGET :: fill_array(:,:,:)
-    REAL(dp), ALLOCATABLE, INTENT(OUT), OPTIONAL, TARGET :: alloc_array(:,:,:)
+    REAL(wp), INTENT(INOUT), OPTIONAL, TARGET :: fill_array(:,:,:)
+    REAL(wp), ALLOCATABLE, INTENT(OUT), OPTIONAL, TARGET :: alloc_array(:,:,:)
     CHARACTER(LEN=*), INTENT(IN), OPTIONAL :: levelsDimName
 
     TYPE(t_ptr_3d)                         :: tmp_ptr(1)
@@ -1372,7 +1372,7 @@ CONTAINS
           &                       var_ndims, var_dimlen)
         ALLOCATE(alloc_array(nproma, var_dimlen(2), (stream_id%read_info(location, 1)%n_l - 1)/nproma + 1))
         tmp_ptr(1)%p => alloc_array
-        tmp_ptr(1)%p(:,:,:) = 0._dp
+        tmp_ptr(1)%p(:,:,:) = 0._wp
       ENDIF
 
       CALL distrib_read(stream_id%file_id, variable_name_, tmp_ptr, &
@@ -1403,8 +1403,8 @@ CONTAINS
     TYPE(t_stream_id), INTENT(INOUT)       :: stream_id
     INTEGER, INTENT(IN)                    :: location
     CHARACTER(LEN=*), INTENT(IN)           :: variable_name
-    REAL(dp), INTENT(INOUT), CONTIGUOUS, OPTIONAL :: fill_array(:,:,:)
-    REAL(dp), ALLOCATABLE, INTENT(OUT), OPTIONAL :: alloc_array(:,:,:)
+    REAL(wp), INTENT(INOUT), CONTIGUOUS, OPTIONAL :: fill_array(:,:,:)
+    REAL(wp), ALLOCATABLE, INTENT(OUT), OPTIONAL :: alloc_array(:,:,:)
     CHARACTER(LEN=*), INTENT(IN), OPTIONAL :: levelsDimName
     LOGICAL, INTENT(OUT), OPTIONAL         :: has_missValue
     REAL(wp), INTENT(OUT), OPTIONAL        :: missValue
@@ -1441,13 +1441,13 @@ CONTAINS
     INTEGER, INTENT(IN)                    :: location
     CHARACTER(LEN=*), INTENT(IN)           :: variable_name
     INTEGER, INTENT(IN)                    :: array_shape(3)
-    REAL(dp), INTENT(INOUT), OPTIONAL      :: fill_array(array_shape(1), &
+    REAL(wp), INTENT(INOUT), OPTIONAL      :: fill_array(array_shape(1), &
       &                                                  array_shape(2), &
       &                                                  array_shape(3), 1)
-    REAL(dp), ALLOCATABLE, INTENT(OUT), OPTIONAL :: alloc_array(:,:,:)
+    REAL(wp), ALLOCATABLE, INTENT(OUT), OPTIONAL :: alloc_array(:,:,:)
     CHARACTER(LEN=*), INTENT(IN), OPTIONAL :: levelsDimName
     LOGICAL, INTENT(OUT), OPTIONAL         :: has_missValue
-    REAL(dp), INTENT(OUT), OPTIONAL        :: missValue
+    REAL(wp), INTENT(OUT), OPTIONAL        :: missValue
 
     REAL(wp), ALLOCATABLE :: alloc_array_(:,:,:,:)
 
@@ -1507,17 +1507,17 @@ CONTAINS
     TYPE(t_stream_id), INTENT(INOUT)       :: stream_id
     INTEGER, INTENT(IN)                    :: location
     CHARACTER(LEN=*), INTENT(IN)           :: variable_name
-    REAL(dp), INTENT(INOUT), OPTIONAL      :: fill_array(:,:,:,:)
-    REAL(dp), ALLOCATABLE, INTENT(OUT), OPTIONAL, TARGET :: alloc_array(:,:,:,:)
-    REAL(dp), POINTER, INTENT(OUT), OPTIONAL :: return_pointer(:,:,:,:) !< DEPRECATED, kept for ART
+    REAL(wp), INTENT(INOUT), OPTIONAL      :: fill_array(:,:,:,:)
+    REAL(wp), ALLOCATABLE, INTENT(OUT), OPTIONAL, TARGET :: alloc_array(:,:,:,:)
+    REAL(wp), POINTER, INTENT(OUT), OPTIONAL :: return_pointer(:,:,:,:) !< DEPRECATED, kept for ART
     INTEGER, INTENT(IN), OPTIONAL          :: start_timestep, end_timestep
     CHARACTER(LEN=*), INTENT(IN), OPTIONAL :: levelsDimName
     LOGICAL, INTENT(OUT), OPTIONAL         :: has_missValue
-    REAL(dp), INTENT(OUT), OPTIONAL        :: missValue
+    REAL(wp), INTENT(OUT), OPTIONAL        :: missValue
 
     IF (PRESENT(return_pointer)) THEN
       BLOCK
-        REAL(dp), ALLOCATABLE :: arr(:,:,:,:)
+        REAL(wp), ALLOCATABLE :: arr(:,:,:,:)
         CALL read_dist_REAL_3D_extdim( &
           & stream_id=stream_id,                 &
           & location=location,                   &
@@ -1564,12 +1564,12 @@ CONTAINS
     TYPE(t_stream_id), INTENT(INOUT)       :: stream_id
     INTEGER, INTENT(IN)                    :: location
     CHARACTER(LEN=*), INTENT(IN)           :: variable_name
-    REAL(dp), INTENT(INOUT), OPTIONAL, TARGET :: fill_array(:,:,:,:)
-    REAL(dp), ALLOCATABLE, INTENT(OUT), OPTIONAL, TARGET :: alloc_array(:,:,:,:)
+    REAL(wp), INTENT(INOUT), OPTIONAL, TARGET :: fill_array(:,:,:,:)
+    REAL(wp), ALLOCATABLE, INTENT(OUT), OPTIONAL, TARGET :: alloc_array(:,:,:,:)
     INTEGER, INTENT(IN), OPTIONAL          :: start_extdim, end_extdim
     CHARACTER(LEN=*), INTENT(IN), OPTIONAL :: extdim_name, levelsDimName
     LOGICAL, INTENT(OUT), OPTIONAL         :: has_missValue
-    REAL(dp), INTENT(OUT), OPTIONAL        :: missValue
+    REAL(wp), INTENT(OUT), OPTIONAL        :: missValue
 
     INTEGER                                :: var_ndims, var_dimlen(3), &
       &                                       var_start(3), var_end(3)
@@ -1636,7 +1636,7 @@ CONTAINS
         ALLOCATE(alloc_array(nproma, var_dimlen(2), &
           (stream_id%read_info(location, 1)%n_l - 1)/nproma + 1, var_dimlen(3)))
         tmp_ptr(1)%p => alloc_array
-        tmp_ptr(1)%p(:,:,:,:) = 0.0_dp
+        tmp_ptr(1)%p(:,:,:,:) = 0.0_wp
       ENDIF
 
       var_end(:) = var_start(:) + var_dimlen(:) - 1

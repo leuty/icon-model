@@ -106,7 +106,7 @@
       INTEGER, ALLOCATABLE  :: tri_idx(:,:,:) ! 2, nproma, nblks_lonlat
 
 #ifdef _OPENMP
-      DOUBLE PRECISION       :: time_s_total, toc
+      REAL(wp)              :: time_s_total, toc
 #endif
 
       ! -----------------------------------------------------------

@@ -43,7 +43,7 @@ MODULE gscp_ice
 
 !------------------------------------------------------------------------------
 
-USE, INTRINSIC :: iso_fortran_env, ONLY: wp => real64, i4 => int32
+USE mo_kind, ONLY: wp, i4
 USE mo_math_constants    , ONLY: pi, rad2deg
 USE mo_physical_constants, ONLY: r_v   => rv    , & !> gas constant for water vapour
                                  r_d   => rd    , & !> gas constant for dry air

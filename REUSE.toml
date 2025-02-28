@@ -52,7 +52,10 @@ SPDX-License-Identifier = "CC-BY-4.0"
 # "Unimportant" technical files:
 path = [
   ".gitlab/issue_templates/bug-report.md",
+  ".gitlab/issue_templates/build-failure-report.md",
   ".gitlab/issue_templates/feature-request.md",
+  ".gitlab/merge_request_templates/default.md",
+  ".gitlab/merge_request_templates/nwp-feature.md",
   "config.h.in",
   "config/**/SPACK_TAG_*",
   "run/tolerance/hashes/*",
@@ -76,7 +79,6 @@ path = [
   "test/microphysics_1mom_schemes/tolerance/*",
   "utils/plotems/doc/*.pdf",
   "vertical_coord_tables/atm_hyb_sz_*",
-  ".gitlab/merge_request_templates/nwp-feature.md",
 ]
 SPDX-FileCopyrightText = "2004-2025, DWD, MPI-M, DKRZ, KIT, ETH, MeteoSwiss"
 SPDX-License-Identifier = "BSD-3-Clause"

@@ -37,6 +37,7 @@
       - dep*.config.in
       - m4/*
       - src/shared/mo_util_vcs.f90
+      - utils/cmake-wrapper/*
       - utils/mkhelper/*
       - utils/pvcs.py
     labels: [Build system]
@@ -99,6 +100,12 @@
       - src/parallel_infrastructure/mo_communication*
       - src/parallel_infrastructure/mo_mpi.f90
       - src/parallel_infrastructure/mo_sync.f90
+  - mentions: [k202123]
+    file_names:
+      - run/exp.amip*
+      - run/exp.aes*
+      - run/exp.atm*
+      - run/*.config
 
 icon/icon:
   default:

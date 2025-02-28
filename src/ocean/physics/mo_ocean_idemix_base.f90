@@ -99,58 +99,58 @@ integer,intent(in),optional :: handle_old_vals
 
 ! FIXME: not sure about the allowed ranges for idemix parameters, default values confirm with pyOM testcases
 if (present(tau_v)) then
-  if(tau_v.lt.1.d0*86400.0 .or. tau_v .gt. 100.d0*86400.0) then
+  if(tau_v.lt.1.0_wp*86400.0_wp .or. tau_v .gt. 100.0_wp*86400.0_wp) then
 !    print*, "ERROR:tau_v can only be allowed_range"
 !    stop 1
     CALL finish(method_name,'ERROR:tau_v can only be allowed_range')
   end if
   call idemix_put('tau_v', tau_v, idemix_userdef_constants)
 else
-  call idemix_put('tau_v',1.d0*86400.0 , idemix_userdef_constants)
+  call idemix_put('tau_v',1.0_wp*86400.0_wp , idemix_userdef_constants)
 end if
 
 if (present(tau_h)) then
-  if(tau_h.lt. 0.01*864000. .or. tau_h .gt. 100.*86400.) then
+  if(tau_h.lt. 0.01_wp*864000.0_wp .or. tau_h .gt. 100.0_wp*86400.0_wp) then
 !    print*, "ERROR:tau_h can only be allowed_range"
 !    stop 1
     CALL finish(method_name,'ERROR:tau_h can only be allowed_range')
   end if
   call idemix_put('tau_h', tau_h, idemix_userdef_constants)
 else
-  call idemix_put('tau_h', 15.d0*86400.0, idemix_userdef_constants)
+  call idemix_put('tau_h', 15.0_wp*86400.0_wp, idemix_userdef_constants)
 end if
 
 if (present(gamma)) then
-  if(gamma.lt. 1.d0 .or. gamma .gt. 3.d0) then
+  if(gamma.lt. 1.0_wp .or. gamma .gt. 3.0_wp) then
 !    print*, "ERROR:gamma can only be allowed_range"
 !    stop 1
     CALL finish(method_name,'ERROR:gamma can only be allowed_range')
   end if
   call idemix_put('gamma', gamma, idemix_userdef_constants)
 else
-  call idemix_put('gamma', 1.57d0, idemix_userdef_constants)
+  call idemix_put('gamma', 1.57_wp, idemix_userdef_constants)
 end if
 
 if (present(jstar)) then
-  if(jstar.lt. 5.d0 .or. jstar .gt. 15.d0) then
+  if(jstar.lt. 5.0_wp .or. jstar .gt. 15.0_wp) then
 !    print*, "ERROR:jstar can only be allowed_range"
 !    stop 1
     CALL finish(method_name,'ERROR:jstar can only be allowed_range')
   end if
   call idemix_put('jstar', jstar, idemix_userdef_constants)
 else
-  call idemix_put('jstar', 10.d0 , idemix_userdef_constants)
+  call idemix_put('jstar', 10.0_wp , idemix_userdef_constants)
 end if
 
 if (present(mu0)) then
-  if(mu0.lt. 0.d0 .or. mu0 .gt. 3.d0) then
+  if(mu0.lt. 0.0_wp .or. mu0 .gt. 3.0_wp) then
 !    print*, "ERROR: mu0 can only be allowed_range"
 !    stop 1
     CALL finish(method_name,'ERROR: mu0 can only be allowed_range')
   end if
   call idemix_put('mu0', mu0, idemix_userdef_constants)
 else
-  call idemix_put('mu0', 4.d0/3.0 , idemix_userdef_constants)
+  call idemix_put('mu0', 4.0_wp/3.0_wp , idemix_userdef_constants)
 end if
 
 if (present(handle_old_vals)) then
@@ -218,16 +218,16 @@ subroutine calc_idemix_v0(nlev, max_nlev, Nsqr, dzw, coriolis,    &
   jstar = idemix_constants_in%jstar
  
   ! calculate cstar from OE13 Eq. (13)
-  bN0=0.0
+  bN0=0.0_wp
   do k=2,nlev
-    bN0 = bN0 + max(0.0_wp,Nsqr(k))**0.5*dzw(k) 
+    bN0 = bN0 + max(0.0_wp,Nsqr(k))**0.5_wp*dzw(k) 
   enddo
   cstar = max(1e-2_wp,bN0/(pi*jstar) )
      
   ! calculate horizontal representative group velocity v0
   ! v0: OE13 Eq. (A9)
   do k=1,nlev+1
-    fxa = max(0.0_wp,Nsqr(k))**0.5/(1d-22 + abs(coriolis) )
+    fxa = max(0.0_wp,Nsqr(k))**0.5_wp/(1e-22_wp + abs(coriolis) )
     v0(k)=max(0.0_wp, gamma*cstar*hofx2(fxa))
 
     ! set v0 to zero to prevent horizontal iwe propagation in mixed layer
@@ -245,7 +245,7 @@ subroutine calc_idemix_v0(nlev, max_nlev, Nsqr, dzw, coriolis,    &
     !  write(*,*) 'v0 = ', v0(k)
     !end if
   enddo
-  !v0 = min(3d-1, v0)
+  !v0 = min(3e-1_wp, v0)
 end subroutine calc_idemix_v0
 
 !=================================================================================
@@ -412,7 +412,7 @@ subroutine integrate_idemix( &
   ! calculate cstar from OE13 Eq. (13)
   bN0=0.0_wp
   do k=2,nlev
-    bN0 = bN0 + max(0.0_wp,Nsqr(k))**0.5*dzw(k) 
+    bN0 = bN0 + max(0.0_wp,Nsqr(k))**0.5_wp*dzw(k) 
   enddo
   cstar = max(1e-2_wp,bN0/(pi*jstar) )
      
@@ -420,7 +420,7 @@ subroutine integrate_idemix( &
   ! c0: OE13 Eq. (13) 
   ! alpha_c iwe**2: dissipation of internal wave energy (OE13 Eq. (15))
   do k=1,nlev+1
-    fxa = max(0.0_wp,Nsqr(k))**0.5/(1e-22_wp + abs(coriolis) )
+    fxa = max(0.0_wp,Nsqr(k))**0.5_wp/(1e-22_wp + abs(coriolis) )
     c0(k)=max(0.0_wp, gamma*cstar*gofx2(fxa) )
     v0(k)=max(0.0_wp, gamma*cstar*hofx2(fxa))
     !v0(k)=0.5
@@ -461,15 +461,15 @@ subroutine integrate_idemix( &
     
   ! vertical flux
   do k=1,nlev
-   delta(k) = tau_v/dzw(k) * 0.5*(c0(k)+c0(k+1))
+   delta(k) = tau_v/dzw(k) * 0.5_wp*(c0(k)+c0(k+1))
   enddo
-  delta(nlev+1) = 0.0          ! delta(nlev+1) is never used
+  delta(nlev+1) = 0.0_wp          ! delta(nlev+1) is never used
  
   ! -- a -- 
   do k=2,nlev+1
     a_dif(k) = delta(k-1)*c0(k-1)/dzt(k)
   enddo
-  a_dif(1) = 0.0 ! not part of the diffusion matrix, thus value is arbitrary
+  a_dif(1) = 0.0_wp ! not part of the diffusion matrix, thus value is arbitrary
  
   ! -- b -- 
   do k=2,nlev
@@ -486,11 +486,11 @@ subroutine integrate_idemix( &
   do k=1,nlev
     c_dif(k) = delta(k)*c0(k+1)/dzt(k)
   enddo
-  c_dif(nlev+1) = 0.0 ! not part of the diffusion matrix, thus value is arbitrary
+  c_dif(nlev+1) = 0.0_wp ! not part of the diffusion matrix, thus value is arbitrary
  
   !--- construct tridiagonal matrix to solve diffusion and dissipation implicitely
   a_tri = -dtime*a_dif
-  b_tri = 1+dtime*b_dif
+  b_tri = 1.0_wp+dtime*b_dif
   ! FIXME: nils: Should dissipation also be in first and last layer?
   b_tri(2:nlev) = b_tri(2:nlev) + dtime*alpha_c(2:nlev)*iwe_max(2:nlev)
   c_tri = -dtime*c_dif
@@ -514,7 +514,7 @@ subroutine integrate_idemix( &
   iwe_Tdif(k) = a_dif(k)*iwe_new(k-1) - b_dif(k)*iwe_new(k)
  
   ! dissipation of E_iw
-  iwe_Tdis = 0.0
+  iwe_Tdis = 0.0_wp
   ! FIXME: nils: dissipation also in first or last layer?
   !iwe_Tdis(1:nlev+1) =  -alpha_c(1:nlev+1) * iwe_max(1:nlev+1) * iwe_new(1:nlev+1)
   iwe_Tdis(2:nlev) =  -alpha_c(2:nlev) * iwe_max(2:nlev) * iwe_new(2:nlev)
@@ -525,13 +525,13 @@ subroutine integrate_idemix( &
   iwe_Ttot = (iwe_new-iwe_old)/dtime
  
   ! IDEMIX only shortcut: derive diffusivity and viscosity using Osbourne relation
-  KappaH_out = 0.0
-  KappaM_out = 0.0
+  KappaH_out = 0.0_wp
+  KappaM_out = 0.0_wp
   do k=2,nlev
-    KappaH_out(k) =  0.2/(1.0+0.2) * (-1.0*iwe_Tdis(k)) / max(1e-12_wp, Nsqr(k))
+    KappaH_out(k) =  0.2_wp/(1.0_wp+0.2_wp) * (-1.0_wp*iwe_Tdis(k)) / max(1e-12_wp, Nsqr(k))
     KappaH_out(k) = max(1e-9_wp, KappaH_out(k))
     KappaH_out(k) = min(1.0_wp, KappaH_out(k))
-    KappaM_out(k) =  10.0 * KappaH_out(k)
+    KappaM_out(k) =  10.0_wp * KappaH_out(k)
   enddo
  
   !---------------------------------------------------------------------------------
@@ -590,8 +590,8 @@ function gofx2(x1)
  implicit none
  real(wp) :: gofx2,x1,x2,c
  x2=max(3.0_wp,x1)
- c= 1.-(2./pi)*asin(1./x2)
- gofx2 = 2/pi/c*0.9*x2**(-2./3.)*(1-exp(-x2/4.3))
+ c= 1.0_wp-(2.0_wp/pi)*asin(1.0_wp/x2)
+ gofx2 = 2.0_wp/pi/c*0.9_wp*x2**(-2.0_wp/3.0_wp)*(1.0_wp-exp(-x2/4.3_wp))
 end function gofx2
 
 function hofx2(x1)
@@ -601,7 +601,7 @@ function hofx2(x1)
  implicit none
  real(wp) :: hofx2,x1,x2
  x2 = max(10.0_wp, x1) ! by_nils: it has to be x2>1
- hofx2 = (2./pi)/(1.-(2./pi)*asin(1./x2)) * (x2-1.)/(x2+1.)
+ hofx2 = (2.0_wp/pi)/(1.0_wp-(2.0_wp/pi)*asin(1.0_wp/x2)) * (x2-1.0_wp)/(x2+1.0_wp)
 end function hofx2
 
 !=================================================================================

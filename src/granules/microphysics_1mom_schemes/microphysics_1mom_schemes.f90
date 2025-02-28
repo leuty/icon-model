@@ -17,7 +17,7 @@
 
 MODULE microphysics_1mom_schemes
 
-  USE, INTRINSIC :: iso_fortran_env, ONLY: wp => real64
+  USE mo_kind, ONLY: wp
   USE gscp_graupel, ONLY: graupel
   USE gscp_cloudice, ONLY: cloudice
   USE gscp_kessler, ONLY: kessler

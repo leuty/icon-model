@@ -11,7 +11,7 @@
 
 MODULE mo_reader_sst_sic
 
-  USE mo_kind,                    ONLY: dp, wp, i8
+  USE mo_kind,                    ONLY: wp, i8
   USE mo_parallel_config,         ONLY: get_nproma
   USE mo_exception,               ONLY: finish
   USE mo_reader_abstract,         ONLY: t_abstract_reader
@@ -151,15 +151,15 @@ CONTAINS
     CLASS(t_sst_sic_reader),   INTENT(inout) :: this
     INTEGER,               INTENT(in   ) :: timelevel
     CHARACTER(len=*),      INTENT(in   ) :: varname
-    REAL(dp), ALLOCATABLE, INTENT(inout) :: dat(:,:,:,:)
-    REAL(dp), ALLOCATABLE, TARGET        :: temp(:,:,:,:)
+    REAL(wp), ALLOCATABLE, INTENT(inout) :: dat(:,:,:,:)
+    REAL(wp), ALLOCATABLE, TARGET        :: temp(:,:,:,:)
     TYPE(t_ptr_3d)                       :: tmp(1)
 
     CHARACTER(len=*), PARAMETER :: routine = 'sst_sic_get_one_timelevel'
     
 
     ALLOCATE(temp(get_nproma(), 1, this%p_patch%nblks_c, 1))
-    temp(:,:,:,:) = -1.0_dp
+    temp(:,:,:,:) = -1.0_wp
     IF (.NOT. this%lopened) THEN
       CALL finish(modname, '6 hourly SST/Seaice file not open!')
     END IF

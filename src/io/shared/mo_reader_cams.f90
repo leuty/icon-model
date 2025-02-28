@@ -11,7 +11,7 @@
 
 MODULE mo_reader_cams
 
-  USE mo_kind,                    ONLY: dp, wp, i8
+  USE mo_kind,                    ONLY: wp, i8
   USE mo_parallel_config,         ONLY: get_nproma
   USE mo_exception,               ONLY: finish
   USE mo_reader_abstract,         ONLY: t_abstract_reader

@@ -16,6 +16,7 @@ MODULE mo_bcs_time_interpolation
        &             timedelta, newTimedelta, deallocateTimedelta, &
        &             getNoOfDaysInMonthDateTime,                   &
        &             getNoOfSecondsElapsedInMonthDateTime,         &
+       &             NO_OF_MS_IN_A_SECOND,                         &
        &             OPERATOR(+), ASSIGNMENT(=)
   
   IMPLICIT NONE
@@ -55,16 +56,17 @@ CONTAINS
     TYPE(datetime), POINTER :: previous_month
     TYPE(timedelta), POINTER :: one_month
 
-    INTEGER :: seconds_in_month
-    INTEGER :: seconds_in_middle_of_previous_month, seconds_in_middle_of_month, seconds_in_middle_of_next_month
-    INTEGER :: days_in_previous_month, days_in_month, days_in_next_month
+    REAL(wp) :: seconds_in_month
+    REAL(wp) :: seconds_in_middle_of_previous_month, seconds_in_middle_of_month, seconds_in_middle_of_next_month
+    INTEGER  :: days_in_previous_month, days_in_month, days_in_next_month
     
     time_interpolation_weight%reference_date = current_date
 
     days_in_month = getNoOfDaysInMonthDateTime(current_date) 
-    seconds_in_middle_of_month = 43200 * days_in_month          ! = 86400 * my_month_len / 2
+    seconds_in_middle_of_month = 43200._wp * REAL(days_in_month,wp)          ! = 86400 * my_month_len / 2
     
-    seconds_in_month = INT(getNoOfSecondsElapsedInMonthDateTime(current_date))
+    seconds_in_month =   REAL(getNoOfSecondsElapsedInMonthDateTime(current_date),wp) &
+      &                + REAL(current_date%time%ms,wp) / REAL(NO_OF_MS_IN_A_SECOND,wp)
 
     IF (seconds_in_month <= seconds_in_middle_of_month) THEN
 
@@ -75,12 +77,12 @@ CONTAINS
       ! use patched current_date stored in previous_month to get a proper previous month
       previous_month = previous_month + one_month
       days_in_previous_month = getNoOfDaysInMonthDateTime(previous_month)
-      seconds_in_middle_of_previous_month = 43200 * days_in_previous_month          ! = 86400 * my_month_len / 2
+      seconds_in_middle_of_previous_month = 43200._wp * REAL(days_in_previous_month,wp)          ! = 86400 * my_month_len / 2
 
       ! simple linear interpolation
 
-      time_interpolation_weight%weight1 = REAL(seconds_in_middle_of_month - seconds_in_month,wp) &
-           &                             /REAL(seconds_in_middle_of_month + seconds_in_middle_of_previous_month,wp)
+      time_interpolation_weight%weight1 = (seconds_in_middle_of_month - seconds_in_month) &
+           &                             /(seconds_in_middle_of_month + seconds_in_middle_of_previous_month)
       time_interpolation_weight%weight2 = 1.0_wp - time_interpolation_weight%weight1
       ! does indexing only, so do not use previous_month%date%month
       time_interpolation_weight%month1_index = current_date%date%month - 1 
@@ -102,12 +104,12 @@ CONTAINS
       ! use patched current_date stored in next_month to get a proper next month
       next_month = next_month + one_month      
       days_in_next_month = getNoOfDaysInMonthDateTime(next_month)
-      seconds_in_middle_of_next_month = 43200 * days_in_next_month         ! = 86400 * my_month_len / 2
+      seconds_in_middle_of_next_month = 43200._wp * REAL(days_in_next_month,wp)         ! = 86400 * my_month_len / 2
 
       ! simple linear interpolation
 
-      time_interpolation_weight%weight2 = REAL(seconds_in_month - seconds_in_middle_of_month,wp) &
-           &                             /REAL(seconds_in_middle_of_month + seconds_in_middle_of_next_month,wp)
+      time_interpolation_weight%weight2 = (seconds_in_month - seconds_in_middle_of_month) &
+           &                             /(seconds_in_middle_of_month + seconds_in_middle_of_next_month)
       time_interpolation_weight%weight1 = 1.0_wp - time_interpolation_weight%weight2
       ! does indexing only, so do not use next_month%date%month
       time_interpolation_weight%month1_index = current_date%date%month

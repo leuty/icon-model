@@ -989,7 +989,6 @@ CONTAINS
     ! subset range pointer
     all_cells => patch_2D%cells%all
 
-    !$ACC WAIT(1)
     !$ACC DATA CREATE(Tsurf, tafoK, fu10lim, esta, estw, sphumida, sphumidw, ftdewC, rhoair) &
     !$ACC   CREATE(dragl0, dragl1, dragl, drags, fakts, humi, fa, fw) &
     !$ACC   IF(lzacc)

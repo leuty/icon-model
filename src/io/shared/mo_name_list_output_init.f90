@@ -300,9 +300,9 @@ CONTAINS
     CHARACTER(LEN=vname_len)              :: hl_varlist(max_var_hl)
     CHARACTER(LEN=vname_len)              :: il_varlist(max_var_il)
     CHARACTER(len=MAX_CHAR_LENGTH)        :: m_levels                         !< level selection: model levels
-    REAL(wp)                              :: p_levels(MAX_NPLEVS)             !< pressure levels
-    REAL(wp)                              :: h_levels(MAX_NZLEVS)             !< height levels
-    REAL(wp)                              :: i_levels(MAX_NILEVS)             !< isentropic levels
+    REAL(dp)                              :: p_levels(MAX_NPLEVS)             !< pressure levels
+    REAL(dp)                              :: h_levels(MAX_NZLEVS)             !< height levels
+    REAL(dp)                              :: i_levels(MAX_NILEVS)             !< isentropic levels
     INTEGER                               :: remap
     CHARACTER(LEN=MAX_CHAR_LENGTH)        :: operation
     REAL(wp)                              :: reg_lon_def(3)
@@ -310,7 +310,7 @@ CONTAINS
     INTEGER                               :: reg_def_mode
     REAL(wp)                              :: north_pole(2)
 
-    REAL(wp)                              :: output_bounds(3*MAX_TIME_INTERVALS)
+    REAL(dp)                              :: output_bounds(3*MAX_TIME_INTERVALS)
     INTEGER                               :: output_time_unit
     CHARACTER(LEN=MAX_DATETIME_STR_LEN+1) :: output_start(MAX_TIME_INTERVALS), &
       &                                      output_end(MAX_TIME_INTERVALS)
@@ -441,9 +441,9 @@ CONTAINS
       hl_varlist(:)            = ' '
       il_varlist(:)            = ' '
       m_levels                 = " "
-      p_levels(:)              = -1._wp
-      h_levels(:)              = -1._wp
-      i_levels(:)              = -1._wp
+      p_levels(:)              = -1._dp
+      h_levels(:)              = -1._dp
+      i_levels(:)              = -1._dp
       remap                    = REMAP_NONE
       operation                = ''
       reg_lon_def(:)           = 0._wp
@@ -453,7 +453,7 @@ CONTAINS
       output_start(:)          = ' '
       output_end(:)            = ' '
       output_interval(:)       = ' '
-      output_bounds(:)         = -1._wp
+      output_bounds(:)         = -1._dp
       output_time_unit         = 1
       ready_file               = DEFAULT_EVENT_NAME
       lonlat_id                = 0
@@ -505,17 +505,17 @@ CONTAINS
 
       ! -- Scale output bounds
 
-      IF (output_bounds(1) > -1._wp) THEN
+      IF (output_bounds(1) > -1._dp) THEN
         ! output_bounds is always in seconds - the question is what to do with months or years
         ! output_time_unit: 1 = second, 2=minute, 3=hour, 4=day, 5=month, 6=year
         SELECT CASE(output_time_unit)
         CASE(1); output_bounds(:) = output_bounds(:)
         ! Note: output_bounds == -1 is used later on to check for valid entries
-        CASE(2); WHERE(output_bounds(:) >= 0._wp) output_bounds(:) = output_bounds(:)*60._wp
-        CASE(3); WHERE(output_bounds(:) >= 0._wp) output_bounds(:) = output_bounds(:)*3600._wp
-        CASE(4); WHERE(output_bounds(:) >= 0._wp) output_bounds(:) = output_bounds(:)*86400._wp
-        CASE(5); WHERE(output_bounds(:) >= 0._wp) output_bounds(:) = output_bounds(:)*86400._wp*30._wp  ! Not a real calender month
-        CASE(6); WHERE(output_bounds(:) >= 0._wp) output_bounds(:) = output_bounds(:)*86400._wp*365._wp ! Not a real calender year
+        CASE(2); WHERE(output_bounds(:) >= 0._dp) output_bounds(:) = output_bounds(:)*60._dp
+        CASE(3); WHERE(output_bounds(:) >= 0._dp) output_bounds(:) = output_bounds(:)*3600._dp
+        CASE(4); WHERE(output_bounds(:) >= 0._dp) output_bounds(:) = output_bounds(:)*86400._dp
+        CASE(5); WHERE(output_bounds(:) >= 0._dp) output_bounds(:) = output_bounds(:)*86400._dp*30._dp  ! Not a real calender month
+        CASE(6); WHERE(output_bounds(:) >= 0._dp) output_bounds(:) = output_bounds(:)*86400._dp*365._dp ! Not a real calender year
         CASE DEFAULT
           CALL finish(routine,'Illegal output_time_unit')
         END SELECT
@@ -743,13 +743,13 @@ CONTAINS
   CONTAINS
 
   SUBROUTINE merge_set(levels, intp_name, vl1, mergeset)
-    REAL(wp), INTENT(IN) :: levels(:)
+    REAL(dp), INTENT(IN) :: levels(:)
     CHARACTER(*), INTENT(IN) :: intp_name, vl1
     TYPE(t_value_set), INTENT(INOUT) :: mergeset
     INTEGER :: nlevs
 
     DO nlevs=1,SIZE(levels)
-      IF (levels(nlevs) < 0._wp) EXIT
+      IF (levels(nlevs) < 0._dp) EXIT
     END DO
     nlevs = nlevs - 1
     IF ((nlevs == 0) .AND. (vl1 /= ' ')) &
@@ -1099,7 +1099,7 @@ CONTAINS
       ! there may be multiple "output_bounds" intervals, consider all:
       DO idx=1,MAX_TIME_INTERVALS
         istart = (idx-1)*3
-        IF (p_onl%output_bounds(istart+1) == -1._wp) CYCLE
+        IF (p_onl%output_bounds(istart+1) == -1._dp) CYCLE
 
         CALL mtime_timedelta_from_fseconds(p_onl%output_bounds(istart+1), &
              sim_step_info%sim_start, mtime_td1)
@@ -2375,21 +2375,21 @@ CONTAINS
     TYPE(t_output_file), INTENT(INOUT), TARGET :: of
     ! local constants
     CHARACTER(LEN=*), PARAMETER       :: routine = modname//"::setup_output_vlist"
-    REAL(wp),         PARAMETER       :: ZERO_TOL = 1.e-15_wp
+    REAL(dp),         PARAMETER       :: ZERO_TOL = EPSILON(1._dp)
     ! local variables
     INTEGER                           :: k, i_dom, gridtype, idate, &
       &                                  itime, iret, tlen, ll_dim1, ll_dim2
     TYPE(t_lon_lat_data), POINTER     :: lonlat
-    REAL(wp), PARAMETER               :: pi_180 = ATAN(1._wp)/45._wp
+    REAL(dp), PARAMETER               :: pi_180 = ATAN(1._dp)/45._dp
     INTEGER                           :: max_cell_connectivity, max_vertex_connectivity, &
       &                                  cdiInstID
     INTEGER                           :: i, cdi_grid_ids(3), nvert, errstat, &
       &                                  cdiLonLatGridID, curvilinearGridID
-    REAL(wp), ALLOCATABLE             :: p_lonlat(:)
+    REAL(dp), ALLOCATABLE             :: p_lonlat(:)
     TYPE(t_verticalAxisList), POINTER :: it
     CHARACTER(len=128)                :: comment
     LOGICAL                           :: lrotated
-    REAL(wp), ALLOCATABLE             :: rotated_pts(:,:,:)
+    REAL(dp), ALLOCATABLE             :: rotated_pts(:,:,:)
     TYPE (t_lon_lat_grid), POINTER :: grid
     INTEGER                           :: taxisID
 
@@ -2468,8 +2468,8 @@ CONTAINS
       ll_dim1 = lonlat%grid%lon_dim
       ll_dim2 = lonlat%grid%lat_dim
 
-      lrotated = ( ABS(90._wp - lonlat%grid%north_pole(2)) > ZERO_TOL .OR.  &
-      &    ABS( 0._wp - lonlat%grid%north_pole(1)) > ZERO_TOL )
+      lrotated = ( ABS(90._wp - lonlat%grid%north_pole(2)) > EPSILON(1._wp) .OR.  &
+      &    ABS( 0._wp - lonlat%grid%north_pole(1)) > EPSILON(1._wp) )
 
       IF (.NOT. lrotated) THEN
         cdiLonLatGridID = gridCreate(GRID_LONLAT, ll_dim1*ll_dim2)
@@ -2479,8 +2479,8 @@ CONTAINS
         curvilinearGridID = gridCreate(GRID_CURVILINEAR, ll_dim1*ll_dim2)
         of%cdiLonLatGridID = curvilinearGridID
 
-        CALL gridDefParamRLL(cdiLonLatGridID, lonlat%grid%north_pole(1), &
-          &                  lonlat%grid%north_pole(2), 0._c_double)
+        CALL gridDefParamRLL(cdiLonLatGridID, REAL(lonlat%grid%north_pole(1),kind=c_double), &
+          &                  REAL(lonlat%grid%north_pole(2),kind=c_double), 0._c_double)
       END IF
 
       CALL gridDefXsize(cdiLonLatGridID, ll_dim1)
@@ -2494,11 +2494,11 @@ CONTAINS
       ALLOCATE(p_lonlat(ll_dim1))
       IF (lonlat%grid%reg_lon_def(2) <= threshold_delta_or_intvls) THEN
         DO k=1,ll_dim1
-          p_lonlat(k) = lonlat%grid%reg_lon_def(1) + REAL(k-1,wp)*lonlat%grid%reg_lon_def(2)
+          p_lonlat(k) = lonlat%grid%reg_lon_def(1) + REAL(k-1,dp)*lonlat%grid%reg_lon_def(2)
         END DO
       ELSE
         DO k=1,ll_dim1
-          p_lonlat(k) = (lonlat%grid%start_corner(1) + REAL(k-1,wp)*lonlat%grid%delta(1)) / pi_180
+          p_lonlat(k) = (lonlat%grid%start_corner(1) + REAL(k-1,dp)*lonlat%grid%delta(1)) / pi_180
         END DO
       END IF
       CALL gridDefXvals(cdiLonLatGridID, p_lonlat)
@@ -2507,11 +2507,11 @@ CONTAINS
       ALLOCATE(p_lonlat(ll_dim2))
       IF (lonlat%grid%reg_lat_def(2) <= threshold_delta_or_intvls) THEN
         DO k=1,ll_dim2
-          p_lonlat(k) = lonlat%grid%reg_lat_def(1) + REAL(k-1,wp)*lonlat%grid%reg_lat_def(2)
+          p_lonlat(k) = lonlat%grid%reg_lat_def(1) + REAL(k-1,dp)*lonlat%grid%reg_lat_def(2)
         END DO
       ELSE
         DO k=1,ll_dim2
-          p_lonlat(k) = (lonlat%grid%start_corner(2) + REAL(k-1,wp)*lonlat%grid%delta(2)) / pi_180
+          p_lonlat(k) = (lonlat%grid%start_corner(2) + REAL(k-1,dp)*lonlat%grid%delta(2)) / pi_180
         END DO
       END IF
       CALL gridDefYvals(cdiLonLatGridID, p_lonlat)
@@ -2589,18 +2589,18 @@ CONTAINS
       !
       CALL griddefxsize(of%cdiSingleGridID, 1)
       CALL griddefysize(of%cdiSingleGridID, 1)
-      CALL griddefxvals(of%cdiSingleGridID, (/0.0_wp/))
-      CALL griddefyvals(of%cdiSingleGridID, (/0.0_wp/))
+      CALL griddefxvals(of%cdiSingleGridID, (/0.0_dp/))
+      CALL griddefyvals(of%cdiSingleGridID, (/0.0_dp/))
 
       ! Zonal 1 degree grid
       of%cdiZonal1DegID  = gridCreate(GRID_LONLAT,nlat_moc)
       CALL griddefxsize(of%cdiZonal1DegID, 1)
-      CALL griddefxvals(of%cdiZonal1DegID, (/0.0_wp/))
+      CALL griddefxvals(of%cdiZonal1DegID, (/0.0_dp/))
       CALL griddefysize(of%cdiZonal1DegID, nlat_moc)
       ALLOCATE(p_lonlat(nlat_moc))
       DO k=1,nlat_moc
-        p_lonlat(k) = -90.0_wp-90._wp/REAL(nlat_moc,wp) &
-          &           + REAL(k*180,wp)/REAL(nlat_moc, wp)
+        p_lonlat(k) = -90.0_dp-90._dp/REAL(nlat_moc,dp) &
+          &           + REAL(k*180,dp)/REAL(nlat_moc, dp)
       END DO
       CALL griddefyvals(of%cdiZonal1DegID, p_lonlat)
       DEALLOCATE(p_lonlat)
@@ -2805,7 +2805,7 @@ CONTAINS
     TYPE (t_var_metadata), POINTER :: info
     INTEGER                        :: iv, vlistID, gridID, zaxisID, this_i_lctype
     TYPE(t_verticalAxis), POINTER  :: zaxis
-    REAL(wp)                       :: missval
+    REAL(dp)                       :: missval
     LOGICAL                        :: is_mpi_test
 
     is_mpi_test = my_process_is_mpi_test()

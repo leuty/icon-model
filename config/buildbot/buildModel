@@ -84,14 +84,14 @@ case ${BB_NAME} in
       exit 1
     fi
     ;;
-  lumi_cpu)
+  lumi_cpu*)
     # CSC super computer; CPU partition
     sbatch ${TIME_LIMITS} --wait -A project_465000454 -p debug --time=00:30:00 -n ${MAKE_PROCS} -o ${LOGFILE} -D $(pwd) ${ICON_DIR}/config/buildbot/buildModel.sbatch
     if test 0 -ne "$?" ; then
       exit 1
     fi
     ;;
-  lumi_gpu)
+  lumi_gpu*)
     # CSC super computer; GPU partition
     sbatch ${TIME_LIMITS} --wait -A project_465000454 -p dev-g -n ${MAKE_PROCS} -o ${LOGFILE} -D $(pwd) ${ICON_DIR}/config/buildbot/buildModel.sbatch
     if test 0 -ne "$?" ; then

@@ -494,6 +494,13 @@ MODULE mo_impl_constants
   INTEGER, PARAMETER :: INT_T    = 4
   INTEGER, PARAMETER :: CHAR_T   = 5
 
+  ! Review naming for REAL_T, SINGLE_T, REAL_WP_T
+#ifdef __SINGLE_PRECISION
+  INTEGER, PARAMETER :: REAL_WP_T   = SINGLE_T
+#else
+  INTEGER, PARAMETER :: REAL_WP_T   = REAL_T
+#endif
+
   !----------------!
   !  MODEL OUTPUT  !
   !----------------!

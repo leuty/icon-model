@@ -82,9 +82,38 @@ REAL(wp), PARAMETER :: REL_TOL  = 1.0D-06
 REAL(wp), PARAMETER :: MACH_TOL = 3.0D-14
 #endif
 
+
+! Unit for logging sync errors
+INTEGER, SAVE :: log_unit = -1
+
+! Flag if sync checks are enabled when sync_patch_array et al is called
+#ifndef _OPENACC
+LOGICAL, SAVE :: do_sync_checks = .TRUE.
+#else
+LOGICAL, SAVE :: do_sync_checks = .FALSE.
+#endif
+
+!-------------------------------------------------------------------------
+
+!> Type definition for "cumulative syncs": These are boundary
+!  exchanges for 3D cell-based fields, collecting as many fields as
+!  possible before actually performing the sync.
+TYPE t_cumulative_sync
+  REAL(wp),      POINTER :: f3d(:,:,:)
+  TYPE(t_patch), POINTER :: p_patch
+END TYPE t_cumulative_sync
+
+!> max. no. fields that can be handled by "sync_patch_array_mult"
+INTEGER, PARAMETER :: MAX_CUMULATIVE_SYNC = 5
+!> No. of pending cumulative sync; dim (typ,patch_id,fieldno)
+INTEGER :: ncumul_sync(4,max_dom) = 0
+!> List of cumulative sync fields:
+TYPE(t_cumulative_sync) :: cumul_sync(4,max_dom,MAX_CUMULATIVE_SYNC)
+
 INTERFACE sync_patch_array
   MODULE PROCEDURE sync_patch_array_r2
   MODULE PROCEDURE sync_patch_array_r3
+  MODULE PROCEDURE sync_patch_array_s2
   MODULE PROCEDURE sync_patch_array_s3
   MODULE PROCEDURE sync_patch_array_i2
   MODULE PROCEDURE sync_patch_array_i3
@@ -137,40 +166,12 @@ INTERFACE omp_global_sum_array
   MODULE PROCEDURE omp_global_sum_array_2d
 END INTERFACE
 
+INTERFACE sync_patch_array_mult
+  MODULE PROCEDURE sync_patch_array_mult_dp
+  MODULE PROCEDURE sync_patch_array_mult_sp
+END INTERFACE sync_patch_array_mult
 
-! Unit for logging sync errors
-INTEGER, SAVE :: log_unit = -1
-
-! Flag if sync checks are enabled when sync_patch_array et al is called
-#ifndef _OPENACC
-LOGICAL, SAVE :: do_sync_checks = .TRUE.
-#else
-LOGICAL, SAVE :: do_sync_checks = .FALSE.
-#endif
-
-!-------------------------------------------------------------------------
-
-!> Type definition for "cumulative syncs": These are boundary
-!  exchanges for 3D cell-based fields, collecting as many fields as
-!  possible before actually performing the sync.
-TYPE t_cumulative_sync
-  REAL(wp),      POINTER :: f3d(:,:,:)
-  TYPE(t_patch), POINTER :: p_patch
-END TYPE t_cumulative_sync
-
-!> max. no. fields that can be handled by "sync_patch_array_mult"
-INTEGER, PARAMETER :: MAX_CUMULATIVE_SYNC = 5
-!> No. of pending cumulative sync; dim (typ,patch_id,fieldno)
-INTEGER :: ncumul_sync(4,max_dom) = 0
-!> List of cumulative sync fields:
-TYPE(t_cumulative_sync) :: cumul_sync(4,max_dom,MAX_CUMULATIVE_SYNC)
-
-  INTERFACE sync_patch_array_mult
-    MODULE PROCEDURE sync_patch_array_mult_dp
-    MODULE PROCEDURE sync_patch_array_mult_sp
-  END INTERFACE sync_patch_array_mult
-
-  CHARACTER(len=*), PARAMETER :: modname = 'mo_sync'
+CHARACTER(len=*), PARAMETER :: modname = 'mo_sync'
 
 CONTAINS
 
@@ -344,7 +345,7 @@ END SUBROUTINE sync_patch_array_l3_nolacc
 SUBROUTINE sync_patch_array_r2_nolacc(typ, p_patch, arr, opt_varname)
    INTEGER,       INTENT(IN)    :: typ
    TYPE(t_patch), INTENT(IN) :: p_patch
-   REAL(wp), TARGET, INTENT(INOUT) :: arr(:,:)
+   REAL(dp), TARGET, INTENT(INOUT) :: arr(:,:)
    CHARACTER*(*), INTENT(IN), OPTIONAL :: opt_varname
 #ifdef _OPENACC
    CALL finish("lacc argument of mo_sync:sync_patch_array_r2 has to be provided when compiling the code with OpenACC offloading.")
@@ -359,11 +360,24 @@ SUBROUTINE sync_patch_array_r2(typ, p_patch, arr, lacc, opt_varname)
    LOGICAL, INTENT(IN) :: lacc
    CHARACTER*(*), INTENT(IN), OPTIONAL :: opt_varname
    ! local variable
-   REAL(wp), POINTER :: arr3(:,:,:)
+   REAL(dp), POINTER :: arr3(:,:,:)
 
    CALL insert_dimension(arr3, arr, 2)
    CALL sync_patch_array_r3(typ, p_patch, arr3, lacc=lacc, opt_varname=opt_varname)
 END SUBROUTINE sync_patch_array_r2
+
+SUBROUTINE sync_patch_array_s2(typ, p_patch, arr, lacc, opt_varname)
+   INTEGER,       INTENT(IN)    :: typ
+   TYPE(t_patch), INTENT(IN) :: p_patch
+   REAL(sp), TARGET, INTENT(INOUT) :: arr(:,:)
+   LOGICAL, INTENT(IN) :: lacc
+   CHARACTER*(*), INTENT(IN), OPTIONAL :: opt_varname
+   ! local variable
+   REAL(sp), POINTER :: arr3(:,:,:)
+
+   CALL insert_dimension(arr3, arr, 2)
+   CALL sync_patch_array_s3(typ, p_patch, arr3, lacc=lacc, opt_varname=opt_varname)
+END SUBROUTINE sync_patch_array_s2
 
 
 !-------------------------------------------------------------------------
@@ -422,69 +436,83 @@ END SUBROUTINE sync_patch_array_l2_nolacc
 !! The 4D field can alternatively be passed as an array of 3D fields.
 !!
 SUBROUTINE sync_patch_array_mult_dp(typ, p_patch, nfields, lacc, f3din1, f3din2, f3din3, &
-                                 f3din4, f3din5, f4din, f3din_arr, opt_varname)
+                                f3din4, f3din5, f4din, f3din_arr, opt_varname)
 
    INTEGER, INTENT(IN)             :: typ
    TYPE(t_patch), INTENT(IN), TARGET :: p_patch
    INTEGER,     INTENT(IN)         :: nfields
    LOGICAL, INTENT(IN) :: lacc ! If compiled with OpenACC: IF lacc is True, use GPU memory
 
-   REAL(dp), OPTIONAL, INTENT(INOUT) ::  f3din1(:,:,:), f3din2(:,:,:), f3din3(:,:,:), &
-      &                                  f3din4(:,:,:), f3din5(:,:,:), f4din(:,:,:,:)
+   REAL(dp), TARGET, OPTIONAL, INTENT(INOUT) :: f3din1(:,:,:), f3din2(:,:,:), f3din3(:,:,:), &
+       &                           f3din4(:,:,:), f3din5(:,:,:), f4din(:,:,:,:)
    TYPE(t_ptr_3d), OPTIONAL, INTENT(INOUT) :: f3din_arr(:)
 
    CLASS(t_comm_pattern), POINTER :: p_pat
    CHARACTER(len=*), TARGET, INTENT(IN), OPTIONAL :: opt_varname
-   INTEGER :: i
+   INTEGER :: i, nfields_
    INTEGER :: ndim2tot ! Sum of second dimensions over all input fields
-
+   TYPE(t_ptr_3d) :: fld(nfields)
+   CHARACTER(len=*), PARAMETER :: routine &
+         = modname//'::sync_patch_array_mult_dp'
 !-----------------------------------------------------------------------
 
    p_pat => comm_pat_of_type(p_patch, typ)
 
+   nfields_ = 0
+   ndim2tot = 0
+
+   IF (PRESENT(f3din1)) THEN
+     nfields_ = nfields_ + 1
+     ndim2tot = ndim2tot + SIZE(f3din1,2)
+     fld(nfields_)%p => f3din1
+   END IF
+   IF (PRESENT(f3din2)) THEN
+     nfields_ = nfields_ + 1
+     ndim2tot = ndim2tot + SIZE(f3din2,2)
+     fld(nfields_)%p => f3din2
+   END IF
+   IF (PRESENT(f3din3)) THEN
+     nfields_ = nfields_ + 1
+     ndim2tot = ndim2tot + SIZE(f3din3,2)
+     fld(nfields_)%p => f3din3
+   END IF
+   IF (PRESENT(f3din4)) THEN
+     nfields_ = nfields_ + 1
+     ndim2tot = ndim2tot + SIZE(f3din4,2)
+     fld(nfields_)%p => f3din4
+   END IF
+   IF (PRESENT(f3din5)) THEN
+     nfields_ = nfields_ + 1
+     ndim2tot = ndim2tot + SIZE(f3din5,2)
+     fld(nfields_)%p => f3din5
+   END IF
+   IF (PRESENT(f4din)) THEN
+     DO i = 1, SIZE(f4din,4)
+       nfields_ = nfields_ + 1
+       ndim2tot = ndim2tot + SIZE(f4din,2)
+       fld(nfields_)%p => f4din(:,:,:,i)
+     ENDDO
+   ENDIF
+   IF (PRESENT(f3din_arr)) THEN
+     DO i = 1, SIZE(f3din_arr)
+       nfields_ = nfields_ + 1
+       ndim2tot = ndim2tot + SIZE(f3din_arr(i)%p, 2)
+       fld(nfields_)%p => f3din_arr(i)%p
+     ENDDO
+   ENDIF
+   IF (nfields_ /= nfields) THEN
+     CALL finish(routine, 'internal error')
+   END IF
    ! If this is a verification run, check consistency before doing boundary exchange
    IF (p_test_run .AND. do_sync_checks) THEN
-     IF (PRESENT(f4din)) THEN
-       DO i = 1, SIZE(f4din,4)
-         CALL check_patch_array_3(typ, p_patch, f4din(:,:,:,i), lacc=lacc, opt_varname=opt_varname)
-       ENDDO
-     ENDIF
-
-     IF (PRESENT(f3din_arr)) THEN
-       DO i = 1, SIZE(f3din_arr)
-         CALL check_patch_array_3(typ, p_patch, f3din_arr(i)%p, lacc=lacc, opt_varname=opt_varname)
-       ENDDO
-     ENDIF
-
-     IF (PRESENT(f3din1)) CALL check_patch_array_3(typ, p_patch, f3din1, lacc=lacc, opt_varname=opt_varname)
-     IF (PRESENT(f3din2)) CALL check_patch_array_3(typ, p_patch, f3din2, lacc=lacc, opt_varname=opt_varname)
-     IF (PRESENT(f3din3)) CALL check_patch_array_3(typ, p_patch, f3din3, lacc=lacc, opt_varname=opt_varname)
-     IF (PRESENT(f3din4)) CALL check_patch_array_3(typ, p_patch, f3din4, lacc=lacc, opt_varname=opt_varname)
-     IF (PRESENT(f3din5)) CALL check_patch_array_3(typ, p_patch, f3din5, lacc=lacc, opt_varname=opt_varname)
+     DO i = 1, nfields
+       CALL check_patch_array(typ, p_patch, fld(i)%p, lacc=lacc, opt_varname=opt_varname)
+     ENDDO
    ENDIF
 
    ! Boundary exchange for work PEs
    IF(my_process_is_mpi_parallel()) THEN
-     IF (PRESENT(f4din)) THEN
-       ndim2tot = SIZE(f4din,4)*SIZE(f4din,2)
-     ELSE
-       ndim2tot = 0
-     ENDIF
-     IF (PRESENT(f3din_arr)) THEN
-       DO i = 1, SIZE(f3din_arr)
-         ndim2tot = ndim2tot + SIZE(f3din_arr(i)%p,2)
-       ENDDO
-     ENDIF
-     IF (PRESENT(f3din1)) ndim2tot = ndim2tot+SIZE(f3din1,2)
-     IF (PRESENT(f3din2)) ndim2tot = ndim2tot+SIZE(f3din2,2)
-     IF (PRESENT(f3din3)) ndim2tot = ndim2tot+SIZE(f3din3,2)
-     IF (PRESENT(f3din4)) ndim2tot = ndim2tot+SIZE(f3din4,2)
-     IF (PRESENT(f3din5)) ndim2tot = ndim2tot+SIZE(f3din5,2)
-
-     CALL exchange_data_mult(p_pat=p_pat, lacc=lacc, &
-       &                     nfields=nfields, ndim2tot=ndim2tot, recv1=f3din1, recv2=f3din2, &
-       &                     recv3=f3din3, recv4=f3din4, recv5=f3din5, recv4d=f4din , &
-       &                     recv3d_arr=f3din_arr)
+     CALL p_pat%exchange_data_mult(lacc=lacc, ndim2tot=ndim2tot, recv=fld)
    ENDIF
 
 END SUBROUTINE sync_patch_array_mult_dp
@@ -518,8 +546,10 @@ SUBROUTINE sync_patch_array_mult_sp(typ, p_patch, nfields, lacc, f3din1, f3din2,
    p_pat => comm_pat_of_type(p_patch, typ)
 
    nfields_ = 0
+   ndim2tot = 0
+
    nfields_ = nfields_ + 1
-   ndim2tot = SIZE(f3din1,2)
+   ndim2tot = ndim2tot + SIZE(f3din1,2)
    fld(nfields_)%p => f3din1
    IF (PRESENT(f3din2)) THEN
      nfields_ = nfields_ + 1
@@ -544,13 +574,15 @@ SUBROUTINE sync_patch_array_mult_sp(typ, p_patch, nfields, lacc, f3din1, f3din2,
    IF (PRESENT(f4din)) THEN
      DO i = 1, SIZE(f4din,4)
        nfields_ = nfields_ + 1
+       ndim2tot = ndim2tot + SIZE(f4din,2)
        fld(nfields_)%p => f4din(:,:,:,i)
      ENDDO
    ENDIF
    IF (PRESENT(f3din_arr)) THEN
      DO i = 1, SIZE(f3din_arr)
+       nfields_ = nfields_ + 1
        ndim2tot = ndim2tot + SIZE(f3din_arr(i)%p, 2)
-       fld(nfields_+i)%p => f3din_arr(i)%p
+       fld(nfields_)%p => f3din_arr(i)%p
      ENDDO
    ENDIF
    IF (nfields_ /= nfields) THEN
@@ -569,7 +601,7 @@ SUBROUTINE sync_patch_array_mult_sp(typ, p_patch, nfields, lacc, f3din1, f3din2,
           recv_sp=fld)
    ENDIF
 
- END SUBROUTINE sync_patch_array_mult_sp
+END SUBROUTINE sync_patch_array_mult_sp
 
 
 !-------------------------------------------------------------------------
@@ -1987,7 +2019,7 @@ FUNCTION global_min_0di(zfield) RESULT(global_min)
   ENDIF
 
   IF(p_test_run .AND. do_sync_checks) THEN
-    global_min_check = REAL(global_min)
+    global_min_check = REAL(global_min, KIND=wp)
     CALL check_result( (/ global_min_check /), 'global_min' )
   ENDIF
 
@@ -2072,7 +2104,7 @@ FUNCTION global_max_0di(zfield) RESULT(global_max)
   ENDIF
 
   IF(p_test_run .AND. do_sync_checks) THEN
-    global_max_check = REAL(global_max)
+    global_max_check = REAL(global_max, KIND=wp)
     CALL check_result( (/ global_max_check /), 'global_max' )
   ENDIF
 
