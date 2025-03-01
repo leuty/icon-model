@@ -69,6 +69,7 @@ Climate: ICON-Land
   - Bugfix: static reals were missing decimal
   - Bugfix: some local REAL variables were missing kind statement
 - Small fix for ICON-Land standalone concerning nproma
+- Make PFT parameters available in memory init functions
 - New optional tag for the memory usage report
 - New functions for time control: get_previous_month_length and get_previous_year_length
 - Memory reduction: array allocation only if needed with the specific setup
