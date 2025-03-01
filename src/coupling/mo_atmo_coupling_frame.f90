@@ -183,8 +183,7 @@ CONTAINS
         ! Construct coupling frame for atmosphere/JSBACH-hydrological discharge
         CALL message(str_module, 'Constructing the coupling frame atmosphere/JSBACH-hydrological discharge.')
 
-        CALL jsb_fdef_hd_fields( &
-          comp_id, cell_point_id(1:1), grid_id(1), patch_horz%n_patch_cells)
+        CALL jsb_fdef_hd_fields(comp_id, cell_point_id(1), grid_id(1))
 
       ENDIF
 

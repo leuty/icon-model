@@ -94,6 +94,7 @@ Climate: ICON-Land
 - Update thaw depth diagnostics
 - Enabled JSBACH usecase with PFTs when using TMX
 - Interface: New switch to supress YAC call during initialization phase
+- Update HD-YAC coupling interface to use mo_coupling_utils
 
 ### Externals
 
