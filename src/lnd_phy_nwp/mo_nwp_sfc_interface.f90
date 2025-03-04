@@ -336,8 +336,6 @@ CONTAINS
 
     CALL get_mean_snowdrift_mass(zxidrift)
 
-!$OMP PARALLEL PRIVATE(p_graupel_gsp_rate)
-
 #ifdef ICON_USE_CUDA_GRAPH
 ! Using CUDA graphs here to capture and replay the GPU kernels without host overhead
 ! We need to capture two graphs because the source and destination arrays
@@ -392,7 +390,9 @@ CONTAINS
       p_graupel_gsp_rate => prm_diag%graupel_gsp_rate(:,:)
     ELSE
       ! initialize dummy variable (precipitation rate of graupel, grid-scale)
+!$OMP PARALLEL
       CALL init(dummy_graupel_gsp_rate, lacc=.TRUE., opt_acc_async=.TRUE.)
+!$OMP END PARALLEL
       p_graupel_gsp_rate => dummy_graupel_gsp_rate(:,:)
     ENDIF
 
@@ -400,6 +400,7 @@ CONTAINS
     !$ACC   CREATE(rain_gsp_rate, snow_gsp_rate, graupel_gsp_rate, ice_gsp_rate) &
     !$ACC   PRESENT(p_graupel_gsp_rate) ASYNC(1)
 
+!$OMP PARALLEL
 !$OMP DO PRIVATE(jb,jc,jk,i_startidx,i_endidx,isubs,i_count,ic,isubs_snow,i_count_snow,i_count_seawtr,      &
 !$OMP   tmp1,tmp2,tmp3,fact1,fact2,frac_sv,frac_snow_sv,i_count_init,init_list,it1,it2,is1,is2,             &
 !$OMP   rain_gsp_rate,snow_gsp_rate,ice_gsp_rate,rain_con_rate,snow_con_rate,ps_t,prr_con_t,prs_con_t,      &
@@ -946,7 +947,6 @@ CONTAINS
         &  ke_soil_hy   = ibot_w_so                          , & !IN number of hydrological active soil layers
         &  zmls         = zml_soil                           , & !IN processing soil level structure 
         &  icant        = icant                              , & !IN canopy-type
-        &  nclass_gscp  = atm_phy_nwp_config(jg)%nclass_gscp , & !IN number of hydrometeor classes
         &  dt           = tcall_sfc_jg                       , & !IN time step
 !
         &  soiltyp_subs = soiltyp_t                          , & !IN type of the soil (keys 0-9)         --

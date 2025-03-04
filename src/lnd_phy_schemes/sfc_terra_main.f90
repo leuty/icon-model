@@ -126,7 +126,6 @@ CONTAINS
                   ke_soil_hy       , & ! number of active soil moisture layers
                   zmls             , & ! processing soil level structure
                   icant            , & ! canopy type
-                  nclass_gscp      , & ! number of hydrometeor classes of grid scale microphysics
                   dt               , & ! time step
 !
                   soiltyp_subs     , & ! type of the soil (keys 0-9)                     --
@@ -224,9 +223,6 @@ CONTAINS
                   prs_gsp          , & ! precipitation rate of snow, grid-scale        (kg/m2*s)
                   pri_gsp          , & ! precipitation rate of ice, grid-scale        (kg/m2*s)
                   prg_gsp          , & ! precipitation rate of graupel, grid-scale     (kg/m2*s)
-#ifdef TWOMOM_SB
-                  prh_gsp          , & ! precipitation rate of hail, grid-scale        (kg/m2*s)
-#endif
 !
                   tch              , & ! turbulent transfer coefficient for heat       ( -- )
                   tcm              , & ! turbulent transfer coefficient for momentum   ( -- )
@@ -274,8 +270,6 @@ CONTAINS
                   ke_soil_hy           ! number of active soil moisture layers
   REAL    (KIND = wp), DIMENSION(ke_soil+1), INTENT(IN) :: &
                   zmls                 ! processing soil level structure
-  INTEGER, INTENT(IN)  :: &
-                  nclass_gscp          ! number of hydrometeor classes of grid scale microphysics
   REAL    (KIND = wp), INTENT(IN)  ::  &
                   dt                   ! time step
 
@@ -322,9 +316,6 @@ CONTAINS
                   prs_gsp          , & ! precipitation rate of snow, grid-scale        (kg/m2*s)
                   pri_gsp          , & ! precipitation rate of ice, grid-scale         (kg/m2*s)
                   prg_gsp          , & ! precipitation rate of graupel, grid-scale     (kg/m2*s)
-#ifdef TWOMOM_SB
-                  prh_gsp          , & ! precipitation rate of hail, grid-scale        (kg/m2*s)
-#endif
                   sobs             , & ! solar radiation at the ground                 ( W/m2)
                   thbs             , & ! thermal radiation at the ground               ( W/m2)
                   pabs                 !!!! photosynthetic active radiation            ( W/m2)
@@ -607,9 +598,6 @@ CONTAINS
   !$ACC   PRESENT(heatcond_fac, heatcap_fac, hydiffu_fac) &
   !$ACC   PRESENT(rsmin2d, r_bsmin, u, v, t, qv, qc, qi, ptot, ps, h_snow_gp, u_10m) &
   !$ACC   PRESENT(v_10m, prr_con, prs_con, conv_frac, prr_gsp, prs_gsp, pri_gsp) &
-#ifdef TWOMOM_SB
-  !$ACC   PRESENT(prh_gsp) &
-#endif
   !$ACC   PRESENT(prg_gsp, sobs, thbs, pabs, tsnred, z0) &
 
   ! Subroutine parameters INOUT
@@ -726,20 +714,9 @@ CONTAINS
     sp_10m(i) = SQRT(u_10m(i)**2 + v_10m(i)**2)
 
     ! Sum total rain, snow, and graupel rates.
-    rain_rate(i) = prr_con(i) + prr_gsp(i)
-    snow_rate(i) = prs_con(i) + prs_gsp(i)
-    graupel_rate(i) = prs_con(i)
-
-    IF ( nclass_gscp >= 6 ) THEN
-      snow_rate(i) = snow_rate(i) + prg_gsp(i)
-      graupel_rate(i) = graupel_rate(i) + prg_gsp(i)
-#ifdef TWOMOM_SB
-    ELSE IF (nclass_gscp >= 2000) THEN
-      ! only possible when running 2-moment microphysics
-      snow_rate(i) = snow_rate(i) + prg_gsp(i) + prh_gsp(i)
-      graupel_rate(i) = graupel_rate(i) + prg_gsp(i) + prh_gsp(i)
-#endif
-    ENDIF
+    rain_rate(i)    = prr_con(i) + prr_gsp(i)
+    snow_rate(i)    = prs_con(i) + prg_gsp(i) + prs_gsp(i)
+    graupel_rate(i) = prs_con(i) + prg_gsp(i)
 
     rad_flx(i) = sobs(i)+thbs(i)
     tv_s = t_g (i)*(1.0_wp + rvd_m_o*qv_s(i))
