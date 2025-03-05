@@ -62,7 +62,7 @@ CONTAINS
     USE mo_var_list_register,   ONLY: t_vl_register_iter
     USE mo_var_metadata,        ONLY: get_var_timelevel, get_var_name
     USE mo_cdi_constants,       ONLY: GRID_UNSTRUCTURED_CELL, GRID_UNSTRUCTURED_VERT
-    USE mo_var,                 ONLY: level_type_ml
+    USE mo_var,                 ONLY: level_type_ml, level_type_pl, level_type_hl, level_type_il
     USE mo_coupling_utils,      ONLY: cpl_get_instance_id
 #ifdef YAC_coupling
     USE yac,                    ONLY: yac_fdef_field, YAC_TIME_UNIT_ISO_FORMAT, &
@@ -77,6 +77,7 @@ CONTAINS
     TYPE(t_vl_register_iter), ALLOCATABLE :: vl_iter
     TYPE(t_exposed_var), POINTER :: exposed_var
     CHARACTER(len=:), ALLOCATABLE :: var_name, metadata, comp_name, grid_name
+    CHARACTER(len=4) :: var_name_prefix
     INTEGER :: iv, tl, collection_size, key_notl, count = 0, var_size, grpi, nblks, pos(3)
     INTEGER :: point_id, var_ref_pos, instance_id
 
@@ -93,8 +94,6 @@ CONTAINS
                 'built without coupling support.')
 #else
 
-    CALL construct_output_nml_coupling(comp_id, cell_point_id, vertex_point_id)
-
     instance_id = cpl_get_instance_id()
 
     max_hor_size = MAX(p_patch(1)%n_patch_cells, p_patch(1)%n_patch_verts)
@@ -102,7 +101,20 @@ CONTAINS
     ALLOCATE(vl_iter)
     VARLIST_LOOP: DO WHILE(vl_iter%next())
        IF (vl_iter%cur%p%patch_id .NE. 1) CYCLE ! support ICON horizontal grid only
-       IF (vl_iter%cur%p%vlevel_type /= level_type_ml) CYCLE ! avoid ambigious var names
+       SELECT CASE(vl_iter%cur%p%vlevel_type)
+       CASE (level_type_ml)
+         var_name_prefix = ""
+       CASE (level_type_pl)
+         var_name_prefix = "pl::"
+       CASE (level_type_hl)
+         var_name_prefix = "hl::"
+       CASE (level_type_il)
+         var_name_prefix = "il::"
+       CASE DEFAULT
+         IF (msg_level >= 15) &
+              CALL message(str_module, "Omitted vlist due to unknown vlevel type: " // TRIM(vl_iter%cur%p%vlname))
+         CYCLE
+       END SELECT
        DO iv = 1, vl_iter%cur%p%nvars
 
           ASSOCIATE( elem => vl_iter%cur%p%vl(iv)%p )
@@ -161,7 +173,7 @@ CONTAINS
 
             tl = get_var_timelevel(elem%info%name)
             key_notl = vl_iter%cur%p%key_notl(iv)
-            var_name = TRIM(get_var_name(elem%info))
+            var_name = TRIM(var_name_prefix) // TRIM(get_var_name(elem%info))
             exposed_var => NULL()
             IF(tl /= -1) THEN
                ! check if we already have a timelevel val registered
@@ -477,75 +489,5 @@ CONTAINS
        DEALLOCATE(tmp)
     END DO
   END SUBROUTINE destruct_output_coupling
-
-
-  SUBROUTINE construct_output_nml_coupling(comp_id, cell_point_id, vertex_point_id)
-
-    USE mo_cdi_constants,          ONLY: GRID_UNSTRUCTURED_CELL, GRID_UNSTRUCTURED_VERT
-    USE mo_exception,              ONLY: message_text
-    USE mo_name_list_output_init,  ONLY: output_file, nlevs_of_var
-    USE mo_name_list_output_types, ONLY: FILETYPE_YAC, t_output_name_list
-    USE mo_var_metadata,           ONLY: get_var_name
-    USE mo_var_metadata_types,     ONLY: t_var_metadata
-#ifdef YAC_coupling
-    USE yac,                       ONLY: yac_fdef_field, YAC_TIME_UNIT_ISO_FORMAT
-#endif
-
-    INTEGER, INTENT(IN) :: comp_id
-    INTEGER, INTENT(IN) :: cell_point_id, vertex_point_id
-
-#ifndef YAC_coupling
-    CALL finish(str_module // 'construct_output_coupling', &
-                'built without coupling support.')
-#else
-    TYPE(t_var_metadata), POINTER :: info
-    TYPE(t_output_name_list), POINTER :: name_list
-    CHARACTER(len=:), ALLOCATABLE :: name
-    INTEGER :: i, j, k, nlevs, point_id
-
-    IF (.NOT. ALLOCATED(output_file)) RETURN
-
-    DO i=1,SIZE(output_file)
-       name_list => output_file(i)%name_list
-       IF (name_list%filetype == FILETYPE_YAC) THEN
-          DO j=1,output_file(i)%num_vars
-             info => output_file(i)%var_desc(j)%info
-
-             nlevs = nlevs_of_var(info, output_file(i)%level_selection)
-
-             name = TRIM(name_list%output_filename) // "_" // TRIM(get_var_name(info))
-
-             IF (info%hgrid .EQ. GRID_UNSTRUCTURED_CELL) THEN
-                point_id = cell_point_id
-             ELSEIF (info%hgrid .EQ. GRID_UNSTRUCTURED_VERT) THEN
-                point_id = vertex_point_id
-             ELSE
-                CALL finish(str_module, "Invalid hgrid for yac-coupled output_nml") ! TODO support other grids
-             END IF
-
-             IF (LEN_TRIM(name_list%output_start(1)) == 0 .OR. LEN_TRIM(name_list%output_start(2)) > 1) THEN
-                CALL finish(str_module, "Must be exactly one output interval for yac-coupled output_nml")
-             END IF
-
-             IF (msg_level >= 15) THEN
-                WRITE (message_text,'(a,a,a,i0,a)') 'Defining field for ', name,' with vgrid size ', nlevs, ' for yac-coupled output_nml'
-                CALL message(str_module, message_text)
-             END IF
-
-             CALL yac_fdef_field(                 &
-                  & name,                         &
-                  & comp_id,                      &
-                  & (/point_id/),                 &
-                  & 1,                            &
-                  & nlevs,                        &
-                  & name_list%output_interval(1), &
-                  & YAC_TIME_UNIT_ISO_FORMAT,     &
-                  & info%cdiVarID )
-          END DO
-       END IF
-    END DO
-! YAC_coupling
-#endif
-  END SUBROUTINE construct_output_nml_coupling
 
 END MODULE mo_output_coupling
