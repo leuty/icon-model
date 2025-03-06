@@ -50,6 +50,8 @@ MODULE mo_turbdiff_config
       &  imode_frcsmot
     INTEGER :: &   ! mode of the SSO-turbulence coupling
       &  imode_tkesso
+    INTEGER :: &   ! mode of adapting q=SQRT(2*TKE) and the TMod. to Lower Limits for Diff. Coeffs. (LLDCs)
+      &  imode_tkemini
 
     LOGICAL :: &   ! calculation SSO-wake turbulence production for TKE
       &  ltkesso
@@ -57,14 +59,8 @@ MODULE mo_turbdiff_config
       &  ltkecon
     LOGICAL :: &   ! calculation separ. horiz. shear production for TKE
       &  ltkeshs
-    LOGICAL :: &   ! explicit corrections of the implicit calculated turbul. diff.
-      &  lexpcor
     LOGICAL :: &   ! consideration of minor turbulent sources in the enthalpy budget
       &  ltmpcor
-    LOGICAL :: &   ! using the profile values of the lowest main level instead of
-      &  lprfcor   ! the mean value of the lowest layer for surface flux calulations
-    LOGICAL :: &   ! nonlocal calculation of vertical gradients used for turbul. diff.
-      &  lnonloc 
     LOGICAL :: &   ! free-slip lower boundary condition (use for idealized runs only!)
       &  lfreeslip 
     LOGICAL :: &   ! consideration of fluctuations of the heat capacity of air
@@ -96,7 +92,7 @@ MODULE mo_turbdiff_config
     REAL(wp):: &   ! enhanced minimal diffusion coefficient for momentum in the stratosphere
       &  tkmmin_strat    !
 
-    INTEGER:: &    ! mode to treating the aerodynamic surface-smoothing by snow 
+    INTEGER:: &    ! mode of estimating the Charnock-Parameter
       & imode_charpar
     INTEGER:: &    ! mode to treating the aerodynamic surface-smoothing by snow
       & imode_snowsmot
@@ -140,6 +136,8 @@ MODULE mo_turbdiff_config
     LOGICAL :: &   ! turbulent diffusion of snow QS
       &  ldiff_qs  ! .FALSE.: OFF
 
+    INTEGER :: &   ! indicator for initialization level
+      &  iinit     !
                    
   END TYPE t_turbdiff_config
 

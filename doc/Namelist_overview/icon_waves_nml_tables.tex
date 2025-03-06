@@ -20,6 +20,9 @@
 
 \section{Ocean waves specific namelist parameters}
 
+The following Namelists become active, if ICON is configured with \textbf{\texttt{-\,-enable\_waves}},
+and if \textbf{\texttt{model\_type=98}} is selected in the Namelist \textbf{\texttt{master\_model\_nml}}.
+
 %------------------------------------------------------------------------------
 % energy_propagation_nml:
 %------------------------------------------------------------------------------
@@ -63,8 +66,18 @@ L& .TRUE. &     & .TRUE.: calculate grid refraction &
 Defined and used in: \verb+src/waves/config/mo_energy_propagation_nml.f90+
 
 
+\subsection{initwave\_nml}
 
-\subsection{wave\_nml (used if configurated with --enable-waves and model\_type=98 in master\_model\_nml)}
+\begin{longtab}
+%Parameter    &Type & Default  & Unit & Description&                                                      Scope
+ dt\_shift    & R   & 0.       &  s   & time interval by which the actual model start date (tc\_start\_date)
+                                        is shifted backwards in time. &
+\tabularnewline
+\end{longtab}
+
+Defined and used in: \verb+src/waves/config/mo_initwave_nml.f90+
+
+\subsection{wave\_nml}
 
 \begin{longtab}
 %Parameter &Type& Default   & Unit& Description&                                                      Scope

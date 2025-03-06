@@ -428,9 +428,11 @@ SUBROUTINE gscp_set_coefficients (igscp, idbg, tune_zceff_min, tune_v0snow, tune
 
   IF (igscp == 3) THEN
     CALL setup_ice_selfcollection(ice2mom,ice_coeffs)
+    CALL message('gscp_set_coefficients','microphysical values initialized for cloudice2mom (gscp=3)')
+  ELSE
+    CALL message('gscp_set_coefficients','microphysical values initialized')
   END IF
 
-  CALL message('gscp_set_coefficients','microphysical values initialized')
 
   !$ACC UPDATE DEVICE(zvz0i, zceff_min) ASYNC(1)
 

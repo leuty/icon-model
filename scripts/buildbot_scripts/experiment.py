@@ -48,7 +48,7 @@ class Experiment:
         if self.run_flags :
             out += f" run_flags: {config_dict_to_string(self.run_flags)}"
         if len(self.parents) > 0 :
-            out += " depends: {' '.join([f'{p.name} ({p.builder.name})' for p in self.parents])}"
+            out += f" depends: {' '.join([f'{p.name} ({p.builder.name})' for p in self.parents])}"
         return out
 
     def add_child(self, child):

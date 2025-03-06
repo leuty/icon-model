@@ -21,11 +21,11 @@ MODULE mo_init_wave_physics
 
   USE mo_kind,                 ONLY: wp
   USE mo_mpi,                  ONLY: my_process_is_stdio
-  USE mo_exception,            ONLY: message, message_text, finish
+  USE mo_exception,            ONLY: message, finish
   USE mo_model_domain,         ONLY: t_patch
   USE mo_impl_constants,       ONLY: MAX_CHAR_LENGTH, min_rlcell, SUCCESS
   USE mo_physical_constants,   ONLY: grav
-  USE mo_math_constants,       ONLY: pi2, rpi_2, deg2rad, rad2deg
+  USE mo_math_constants,       ONLY: pi2, rpi_2, rad2deg
   USE mo_loopindices,          ONLY: get_indices_c
 
   USE mo_wave_types,           ONLY: t_wave_diag
@@ -58,15 +58,15 @@ CONTAINS
 
     TYPE(t_patch),               INTENT(IN)    :: p_patch
     TYPE(t_wave_config), TARGET, INTENT(IN)    :: wave_config
-    REAL(wp),                    INTENT(IN)    :: dir10m(:,:)     !< wind direction (deg)
+    REAL(wp),                    INTENT(IN)    :: dir10m(:,:)     !< wind direction (rad)
     REAL(wp),                    INTENT(IN)    :: fp(:,:)         !< jonswap peak frequency (1/s)
     REAL(wp),                    INTENT(IN)    :: alphaj(:,:)     !< jonswap alpha (-)
     REAL(wp),                    INTENT(INOUT) :: et(:,:,:)       !< jonswap spectra (-)
-    REAL(wp),                    INTENT(INOUT) :: tracer(:,:,:) !< wave energy (spectral bins) (?)
+    REAL(wp),                    INTENT(INOUT) :: tracer(:,:,:,:) !< wave energy (spectral bins) (?)
 
     INTEGER :: i_rlstart, i_rlend, i_startblk, i_endblk
     INTEGER :: i_startidx, i_endidx
-    INTEGER :: jc,jb,jd,jf,jt
+    INTEGER :: jc,jb,jd,jf
     REAL(wp):: st
 
     TYPE(t_wave_config), POINTER :: wc => NULL()
@@ -93,26 +93,23 @@ CONTAINS
 
 
 !$OMP PARALLEL
-!$OMP DO PRIVATE(jb,jf,jd,jt,jc,i_startidx,i_endidx,st)
+!$OMP DO PRIVATE(jb,jf,jd,jc,i_startidx,i_endidx,st)
     DO jb = i_startblk, i_endblk
       CALL get_indices_c( p_patch, jb, i_startblk, i_endblk,           &
            &                 i_startidx, i_endidx, i_rlstart, i_rlend)
 
       DO jf = 1,wc%nfreqs
         DO jd = 1,wc%ndirs
-          !
-          jt = wc%tracer_ind(jd,jf)
-          !
-        DO jc = i_startidx, i_endidx
-            st = rpi_2*MAX(0._wp, COS(wc%dirs(jd)-dir10m(jc,jb)*deg2rad) )**2
+          DO jc = i_startidx, i_endidx
+            st = rpi_2*MAX(0._wp, COS(wc%dirs(jd)-dir10m(jc,jb)) )**2
             IF (st < 0.1E-08_wp) st = 0._wp
 
             ! Avoid too small numbers of et
             et(jc,jf,jb) = MAX(et(jc,jf,jb),FLMIN)
 
             ! WAM initialisation
-            tracer(jc,jt,jb) = et(jc,jf,jb) * st
-            tracer(jc,jt,jb) = MAX(tracer(jc,jt,jb),EMIN)
+            tracer(jc,jd,jb,jf) = et(jc,jf,jb) * st
+            tracer(jc,jd,jb,jf) = MAX(tracer(jc,jd,jb,jf),EMIN)
           END DO  !jc
         END DO  !jd
       END DO  !jf
@@ -279,7 +276,7 @@ CONTAINS
   !! Reference
   !! S. Hasselmann and K. Hasselmann, JPO, 1985
   !!
-  SUBROUTINE init_wave_nonlinear(wave_config, p_diag)!, ext_data)
+  SUBROUTINE init_wave_nonlinear(wave_config, p_diag)
 
     CHARACTER(len=MAX_CHAR_LENGTH), PARAMETER ::  &
          &  routine = modname//':init_wave_nonlinear'
@@ -295,7 +292,6 @@ CONTAINS
     INTEGER :: nfreqs, ndirs
     INTEGER :: klp1, ic, kh, klh, k, ks, icl1, icl2, isg, k1, k11, k2, k21
     INTEGER :: m, ikn, i, ie
-    INTEGER :: mc,im,im1,ip,ip1,mm,mm1,mp,mp1,mct
 
     REAL(wp) :: alamd, con, delphi1, delphi2
     REAL(wp) :: deltha, cl1, cl2, al11, al12, ch, cl1h, cl2h
@@ -429,69 +425,6 @@ CONTAINS
     END DO
 
 
-    ! 3. calculate nonlinear tracer index p_diag%non_lin_tr_ind(18,nfreqs+4,2,ndirs)
-    FRE4: DO MC = 1,nfreqs+4
-      MP  = p_diag%IKP (MC)
-      MP1 = p_diag%IKP1(MC)
-      MM  = p_diag%IKM (MC)
-      MM1 = p_diag%IKM1(MC)
-      IC  = MC
-      IP  = MP
-      IP1 = MP1
-      IM  = MM
-      IM1 = MM1
-      IF (IP1.GT.nfreqs) THEN
-        IP1 = nfreqs
-        IF (IP.GT.nfreqs) THEN
-          IP  = nfreqs
-          IF (IC.GT.nfreqs) THEN
-            IC  = nfreqs
-            IF (IM1.GT.nfreqs) THEN
-              IM1 = nfreqs
-            END IF
-          END IF
-        END IF
-      END IF
-
-      MCT = MC
-      IF (MCT.GT.nfreqs) MCT  = nfreqs
-      IF (MM.GT.nfreqs)  MM  = nfreqs
-      IF (MM1.GT.nfreqs) MM1 = nfreqs
-      IF (MP.GT.nfreqs)  MP  = nfreqs
-      IF (MP1.GT.nfreqs) MP1 = nfreqs
-
-      !     2.1.1   ANGULAR LOOP.                                     !
-      DIR2: DO K = 1,ndirs !DIR2
-        MIR2: DO KH = 1,2 !MIR2
-
-          K1  = p_diag%K1W(K,KH)
-          K2  = p_diag%K2W(K,KH)
-          K11 = p_diag%K11W(K,KH)
-          K21 = p_diag%K21W(K,KH)
-
-          p_diag%non_lin_tr_ind( 1,MC,KH,K) = wc%tracer_ind(K1,IP)
-          p_diag%non_lin_tr_ind( 2,MC,KH,K) = wc%tracer_ind(K11,IP)
-          p_diag%non_lin_tr_ind( 3,MC,KH,K) = wc%tracer_ind(K1,IP1)
-          p_diag%non_lin_tr_ind( 4,MC,KH,K) = wc%tracer_ind(K11,IP1)
-          p_diag%non_lin_tr_ind( 5,MC,KH,K) = wc%tracer_ind(K2,IM)
-          p_diag%non_lin_tr_ind( 6,MC,KH,K) = wc%tracer_ind(K21,IM)
-          p_diag%non_lin_tr_ind( 7,MC,KH,K) = wc%tracer_ind(K2,IM1)
-          p_diag%non_lin_tr_ind( 8,MC,KH,K) = wc%tracer_ind(K21,IM1)
-          p_diag%non_lin_tr_ind( 9,MC,KH,K) = wc%tracer_ind(K,IC)
-          p_diag%non_lin_tr_ind(10,MC,KH,K) = wc%tracer_ind(K2 ,MM)
-          p_diag%non_lin_tr_ind(11,MC,KH,K) = wc%tracer_ind(K21,MM)
-          p_diag%non_lin_tr_ind(12,MC,KH,K) = wc%tracer_ind(K2 ,MM1)
-          p_diag%non_lin_tr_ind(13,MC,KH,K) = wc%tracer_ind(K21,MM1)
-          p_diag%non_lin_tr_ind(14,MC,KH,K) = wc%tracer_ind(K  ,MCT)
-          p_diag%non_lin_tr_ind(15,MC,KH,K) = wc%tracer_ind(K1 ,MP)
-          p_diag%non_lin_tr_ind(16,MC,KH,K) = wc%tracer_ind(K11,MP)
-          p_diag%non_lin_tr_ind(17,MC,KH,K) = wc%tracer_ind(K1 ,MP1)
-          p_diag%non_lin_tr_ind(18,MC,KH,K) = wc%tracer_ind(K11,MP1)
-        END DO MIR2
-      END DO DIR2
-    END DO FRE4
-
-
     ! 3. compute tail frequency ratios
     wc%frh(:) = 0._wp ! initialisation
 
@@ -534,7 +467,7 @@ CONTAINS
     END IF
 
 
-    CALL message(TRIM(routine),'finished')
+    CALL message(routine,'finished')
 
   END SUBROUTINE init_wave_nonlinear
 

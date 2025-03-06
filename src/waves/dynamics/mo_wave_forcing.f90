@@ -235,12 +235,12 @@ CONTAINS
     REAL(wp),                INTENT(INOUT) :: u10m(:,:), v10m(:,:)     ! zonal and meridional wind
                                                                        ! components at 10m asl
     REAL(wp),                INTENT(INOUT) :: sp10m(:,:)               ! wind speed at 10m asl
-    REAL(wp),                INTENT(INOUT) :: dir10m(:,:)              ! wind direction at 10m asl
+    REAL(wp),                INTENT(INOUT) :: dir10m(:,:)              ! wind direction at 10m asl [rad]
     REAL(wp),                INTENT(INOUT) :: sic(:,:)                 ! sea ice fraction
     REAL(wp),                INTENT(INOUT) :: slh(:,:)                 ! sea level height
     REAL(wp),                INTENT(INOUT) :: uosc(:,:), vosc(:,:)     ! ocean surface currents
     REAL(wp),                INTENT(INOUT) :: sp_osc(:,:)              ! ocean surface current velocity
-    REAL(wp),                INTENT(INOUT) :: dir_osc(:,:)             ! ocean surface current direction
+    REAL(wp),                INTENT(INOUT) :: dir_osc(:,:)             ! ocean surface current direction [rad]
     INTEGER,                 INTENT(INOUT) :: ice_free_mask_c(:,:)     ! ice mask
 
     ! get new forcing data (read from file)

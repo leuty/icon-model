@@ -478,6 +478,19 @@ CONTAINS
       END DO
       !$ACC END PARALLEL
 
+      ! Add GWD momentum tendency to SSO when dissipative heating is calculated
+      IF (turbdiff_config(jg)%ltmpcor .AND. atm_phy_nwp_config(jg)%inwp_gwd > 0) THEN
+        !$ACC PARALLEL ASYNC(1) DEFAULT(PRESENT)
+        !$ACC LOOP GANG VECTOR COLLAPSE(2)
+        DO jk=1, nlev
+          DO jc=1, nproma
+            ut_sso(jc,jk) = ut_sso(jc,jk) + prm_nwp_tend%ddt_u_gwd(jc,jk,jb)
+            vt_sso(jc,jk) = vt_sso(jc,jk) + prm_nwp_tend%ddt_v_gwd(jc,jk,jb)
+          END DO
+        END DO
+        !$ACC END PARALLEL
+      ENDIF
+
       IF (timers_level > 9) CALL timer_start(timer_nwp_turbdiff)
 
       ! turbdiff
@@ -487,7 +500,6 @@ CONTAINS
 !
         &  iini=0,                 & !no initialization
         &  ltkeinp=.FALSE.,        & !
-        &  lstfnct=.TRUE. ,        & !
         &  l3dturb=.FALSE.,        & ! not yet arranged for ICON
         &  lrunsso=(atm_phy_nwp_config(jg)%inwp_sso > 0),        & ! running COSMO SSO scheme
         &  lruncnv=(atm_phy_nwp_config(jg)%inwp_convection > 0), & ! running convection
@@ -576,10 +588,8 @@ CONTAINS
       CALL vertdiff( & !vertical diffusion of 1-st order variables (including an optional moist
                        ! correction for not-conserved thermodynamic variables T, qv and qc)
 !
-        &  itnd=0,                         & !no consideration of explicit tendencies
-        &          lum_dif=.TRUE. ,        & !vertical diffusion of u-wind
-        &          lvm_dif=.TRUE. ,        & !                      v-wind
-        &          lscadif=.TRUE.,         & !                      all scalars
+                   itndcon=0      ,        & !no consideration of explicit tendencies
+                   lentire=.TRUE. ,        & !entire vertical diffusion required
         &          lsfluse=lsflcnd,        & !use of explicit SHF and WVF at the surface dependent on 'lsflcnd'
         &          lqvcrst=.FALSE.,        & !no reset of WVF convergence 'qv_conv'
         &          lrunscm=.FALSE.,        & !no special calculations for single column run

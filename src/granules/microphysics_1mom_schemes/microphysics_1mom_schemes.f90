@@ -473,125 +473,136 @@ CONTAINS
   ! Calls the cloudice2mom microphysics scheme
   SUBROUTINE cloudice2mom_run(         &
     nvec,ke,                           & !> array dimensions
-    ivstart,ivend, kstart,             & !> optional start/end indicies
-    idbg,                              & !> optional debug level
-    zdt, dz,                           & !> numerics parameters
-    w,t,p,rho,qv,qc,qi,qr,qs,          & !> prognostic variables
-    qnc,                               & !> diagnostic cloud droplet number
-    tropicsmask,                       & !> tropicsmask
-    qi0,qc0,                           & !> cloud ice/water threshold for autoconversion
-    qni, ninact,                       & !> ice number and ice nuclei budget
-    prr_gsp,prs_gsp,pri_gsp,           & !> surface precipitation rates
-    qrsflux,                           & !> total precipitation flux
+    ivstart,ivend, kstart,             & !! optional start/end indicies
+    idbg,                              & !! optional debug level
+    zdt, dz,                           & !! numerics parameters
+    w,t,p,rho,qv,qc,qi,qr,qs,          & !! prognostic variables
+    qnc,                               & !! diagnostic cloud droplet number
+    tropicsmask,                       & !! tropicsmask
+    qi0,qc0,                           & !! cloud ice/water threshold for autoconversion
+    qni, ninact,                       & !! number density of cloud ice and corresponding IN tracer
+    dustnum,                           & !! prognostic dust concentration
+    dustsfc,                           & !! prognostic dust surface area
+    prr_gsp,prs_gsp,pri_gsp,           & !! surface precipitation rates
+    qrsflux,                           & !! total precipitation flux
     l_cv,                              &
-    ithermo_water,                     & !> water thermodynamics
+    ithermo_water,                     & !! water thermodynamics
+    ice_nucleation,                    & !! choice of ice nucleation
     ldass_lhn,                         &
-    ldiag_ttend,     ldiag_qtend     , &
-    ddt_tend_t     , ddt_tend_qv     , &
-    ddt_tend_qc    , ddt_tend_qi     , & !> ddt_tend_xx are tendencies
-    ddt_tend_qr    , ddt_tend_qs)        !>    necessary for dynamics
+    ldiag_ttend,     ldiag_qtend,      &
+    ddt_tend_t,      ddt_tend_qv,      &
+    ddt_tend_qc,     ddt_tend_qi,      & !! ddt_tend_xx are tendencies
+    ddt_tend_qr,     ddt_tend_qs)        !!    necessary for dynamics
 
     INTEGER, INTENT(IN) :: &
-      nvec            ,    & !> number of horizontal points
-      ke                     !> number of grid points in vertical direction
+      nvec      ,          & !> number of horizontal points
+      ke                     !! number of grid points in vertical direction
 
     INTEGER, INTENT(IN) :: &
-      ivstart         ,    & !> optional start index for horizontal direction
-      ivend           ,    & !> optional end index   for horizontal direction
-      kstart          ,    & !> optional start index for the vertical index
-      idbg                   !> optional debug level
+      ivstart   ,    &       !> optional start index for horizontal direction
+      ivend     ,    &       !! optional end index   for horizontal direction
+      kstart    ,    &       !! optional start index for the vertical index
+      idbg                   !! optional debug level
 
     REAL(KIND=wp), INTENT(IN) :: &
-      zdt             ,    & !> time step for integration of microphysics     (  s  )
+      zdt       ,    &       !> time step for integration of microphysics     (  s  )
       qi0,qc0                !> cloud ice/water threshold for autoconversion
 
     REAL(KIND=wp), DIMENSION(:,:), INTENT(IN) :: &
-      dz              ,    & !> layer thickness of full levels                (  m  )
-      rho             ,    & !> density of moist air                          (kg/m3)
-      p                      !> pressure                                      ( Pa  )
+      dz        ,    &       !> layer thickness of full levels                (  m  )
+      rho       ,    &       !! density of moist air                          (kg/m3)
+      p                      !! pressure                                      ( Pa  )
 
     REAL(KIND=wp), DIMENSION(:), INTENT(IN) ::   &
       tropicsmask            !> tropicsmask
 
-    LOGICAL, INTENT(IN)::  &
-      l_cv,                & !> if true, cv is used instead of cp
+    LOGICAL, INTENT(IN):: &
+      l_cv,               &  !! if true, cv is used instead of cp
       ldass_lhn
 
-    INTEGER, INTENT(IN)::  &
-      ithermo_water          !> water thermodynamics
+    INTEGER, INTENT(IN):: &
+      ice_nucleation,     &  !! ice nucleation choice
+      ithermo_water          !! water thermodynamics
 
     LOGICAL, INTENT(IN)::  &
-      ldiag_ttend,         & !> if true, temperature tendency shall be diagnosed
-      ldiag_qtend            !> if true, moisture tendencies shall be diagnosed
+      ldiag_ttend,         & !! if true, temperature tendency shall be diagnosed
+      ldiag_qtend            !! if true, moisture tendencies shall be diagnosed
 
     REAL(KIND=wp), DIMENSION(:,:), INTENT(INOUT) ::  &
       t               ,    & !> temperature                                   (  K  )
-      qv              ,    & !> specific water vapor content                  (kg/kg)
-      qc              ,    & !> specific cloud water content                  (kg/kg)
-      qi              ,    & !> specific cloud ice   content                  (kg/kg)
-      qr              ,    & !> specific rain content                         (kg/kg)
-      qs              ,    & !> specific snow content                         (kg/kg)
-      qni             ,    & !> cloud ice number
-      w               ,    & !> vertical velocity
-      ninact                 !> activated ice nuclei
+      qv              ,    & !! specific water vapor content                  (kg/kg)
+      qc              ,    & !! specific cloud water content                  (kg/kg)
+      qi              ,    & !! specific cloud ice   content                  (kg/kg)
+      qr              ,    & !! specific rain content                         (kg/kg)
+      qs              ,    & !! specific snow content                         (kg/kg)
+      qni             ,    & !! cloud ice number
+      w               ,    & !! vertical velocity
+      ninact                 !< activated ice nuclei
 
+    REAL(KIND=wp), DIMENSION(:,:), INTENT(INOUT), OPTIONAL ::  &
+      dustnum         ,    & !! dust concentration                            ( 1/kg)
+      dustsfc                !! mean surface area of dust                     ( m2  )
+    
     REAL(KIND=wp), INTENT(INOUT) :: &
-      qrsflux(:,:)           !> total precipitation flux (for latent heat nudging)
+      qrsflux(:,:)           ! total precipitation flux (nudg)
 
     REAL(KIND=wp), DIMENSION(:), INTENT(INOUT) ::  &
       prr_gsp,             & !> precipitation rate of rain, grid-scale        (kg/(m2*s))
-      prs_gsp,             & !> precipitation rate of snow, grid-scale        (kg/(m2*s))
-      pri_gsp,             & !> precipitation rate of ice,  grid-scale        (kg/(m2*s))
-      qnc                    !> cloud number concentration
+      prs_gsp,             & !! precipitation rate of snow, grid-scale        (kg/(m2*s))
+      pri_gsp,             & !! precipitation rate of ice,  grid-scale        (kg/(m2*s))
+      qnc                    !! cloud number concentration
 
 
     REAL(KIND=wp), DIMENSION(:,:), INTENT(OUT)::   &
-      ddt_tend_t      ,    & !> tendency T                                       ( 1/s )
-      ddt_tend_qv     ,    & !> tendency qv                                      ( 1/s )
-      ddt_tend_qc     ,    & !> tendency qc                                      ( 1/s )
-      ddt_tend_qi     ,    & !> tendency qi                                      ( 1/s )
-      ddt_tend_qr     ,    & !> tendency qr                                      ( 1/s )
-      ddt_tend_qs            !> tendency qs                                      ( 1/s )
+      ddt_tend_t      , & !> tendency T                                       ( 1/s )
+      ddt_tend_qv     , & !! tendency qv                                      ( 1/s )
+      ddt_tend_qc     , & !! tendency qc                                      ( 1/s )
+      ddt_tend_qi     , & !! tendency qi                                      ( 1/s )
+      ddt_tend_qr     , & !! tendency qr                                      ( 1/s )
+      ddt_tend_qs         !! tendency qs                                      ( 1/s )
 
-    CALL cloudice2mom(                       &
-      & nvec   =nvec                    ,    & !> in:  actual array size
-      & ke     =ke                      ,    & !> in:  actual array size
-      & ivstart=ivstart                 ,    & !> in:  start index of calculation
-      & ivend  =ivend                   ,    & !> in:  end index of calculation
-      & kstart =kstart                  ,    & !> in:  vertical start index
-      & zdt    =zdt                     ,    & !> in:  timestep
-      & qi0    =qi0                     ,    & !> in:  qi threshold (not used)
-      & qc0    =qc0                     ,    & !> in:  qc threshold (not used)  
-      & dz     =dz                      ,    & !> in:  vertical layer thickness
-      & t      =t                       ,    & !> in:  temp,tracer,...
-      & p      =p                       ,    & !> in:  full level pres
-      & rho    =rho                     ,    & !> in:  density
-      & w      =w                       ,    & !> in:  vertical velocity
-      & qv     =qv                      ,    & !> inout:  spec. humidity
-      & qc     =qc                      ,    & !> inout:  cloud water
-      & qi     =qi                      ,    & !> inout:  cloud ice
-      & qr     =qr                      ,    & !> inout:  rain water
-      & qs     =qs                      ,    & !> inout:  snow
-      & qni    = qni                    ,    & !> inout:  cloud ice number
-      & ninact = ninact                 ,    & !> inout:  activated ice nuclei
-      & qnc    = qnc                    ,    & !> in:  cloud number concentration
-      & tropicsmask = tropicsmask       ,    & !> in:  tropics mask 
-      & prr_gsp=prr_gsp                 ,    & !> out: precipitation rate of rain
-      & prs_gsp=prs_gsp                 ,    & !> out: precipitation rate of snow
-      & pri_gsp=pri_gsp                 ,    & !> out: precipitation rate of cloud ice
-      & qrsflux= qrsflux                ,    & !> out: precipitation flux
-      & ldiag_ttend = ldiag_ttend       ,    & !> in:  if temp. tendency shall be diagnosed
-      & ldiag_qtend = ldiag_qtend       ,    & !> in:  if moisture tendencies shall be diagnosed
-      & ddt_tend_t  = ddt_tend_t        ,    & !> out: tendency temperature
-      & ddt_tend_qv = ddt_tend_qv       ,    & !> out: tendency QV
-      & ddt_tend_qc = ddt_tend_qc       ,    & !> out: tendency QC
-      & ddt_tend_qi = ddt_tend_qi       ,    & !> out: tendency QI
-      & ddt_tend_qr = ddt_tend_qr       ,    & !> out: tendency QR
-      & ddt_tend_qs = ddt_tend_qs       ,    & !> out: tendency QS
-      & idbg=idbg                       ,    & !> in: debug mode
-      & l_cv=l_cv                       ,    & !> in: cv or not cv?
-      & ldass_lhn = ldass_lhn           ,    & !> in: lhn or not lhn?
-      & ithermo_water=ithermo_water)           !> in: latent heat formulation
+    CALL cloudice2mom(                                 &
+      & nvec   = nvec                             ,    & !> in:  actual array size
+      & ke     = ke                               ,    & !< in:  actual array size
+      & ivstart= ivstart                          ,    & !< in:  start index of calculation
+      & ivend  = ivend                            ,    & !< in:  end index of calculation
+      & kstart = kstart                           ,    & !< in:  vertical start index
+      & zdt    = zdt                              ,    & !< in:  timestep
+      & qi0    = qi0                              ,    & !< in:  qi threshold
+      & qc0    = qc0                              ,    & !< in:  qc threshold 
+      & dz     = dz                               ,    & !< in:  vertical layer thickness
+      & t      = t                                ,    & !< in:  temp,tracer,...
+      & p      = p                                ,    & !< in:  full level pres
+      & rho    = rho                              ,    & !< in:  density
+      & w      = w                                ,    & !< in:  vertical velocity
+      & qv     = qv                               ,    & !< in:  spec. humidity
+      & qc     = qc                               ,    & !< in:  cloud water
+      & qi     = qi                               ,    & !< in:  cloud ice
+      & qr     = qr                               ,    & !< in:  rain water
+      & qs     = qs                               ,    & !< in:  snow
+      & qni    = qni                              ,    & !< inout:  cloud ice number
+      & ninact = ninact                           ,    & !< inout:  activated ice nuclei
+      & qnc    = qnc                              ,    & !< cloud number concentration
+      & dustnum = dustnum                         ,    & !< prognostic dust concentration
+      & dustsfc = dustsfc                         ,    & !< prognostic dust surface area
+      & tropicsmask = tropicsmask                 ,    & !< latitude
+      & prr_gsp = prr_gsp                         ,    & !< out: precipitation rate of rain
+      & prs_gsp = prs_gsp                         ,    & !< out: precipitation rate of snow
+      & pri_gsp = pri_gsp                         ,    & !< out: precipitation rate of cloud ice
+      & qrsflux = qrsflux                         ,    & !< out: precipitation flux
+      & ldiag_ttend = ldiag_ttend                 ,    & !< in:  if temp. tendency shall be diagnosed
+      & ldiag_qtend = ldiag_qtend                 ,    & !< in:  if moisture tendencies shall be diagnosed
+      & ddt_tend_t  = ddt_tend_t                  ,    & !< out: tendency temperature
+      & ddt_tend_qv = ddt_tend_qv                 ,    & !< out: tendency QV
+      & ddt_tend_qc = ddt_tend_qc                 ,    & !< out: tendency QC
+      & ddt_tend_qi = ddt_tend_qi                 ,    & !< out: tendency QI
+      & ddt_tend_qr = ddt_tend_qr                 ,    & !< out: tendency QR
+      & ddt_tend_qs = ddt_tend_qs                 ,    & !< out: tendency QS
+      & inucleation = ice_nucleation              ,    & !< choice of ice nucleation
+      & ithermo_water = ithermo_water             ,    & !< in: latent heat choice
+      & l_cv = l_cv                               ,    &
+      & ldass_lhn = ldass_lhn                     ,    &
+      & idbg = idbg                               )
 
   END SUBROUTINE cloudice2mom_run
 

@@ -315,6 +315,7 @@ CONTAINS
           & idbg=msg_level, &
           & l_cv=.TRUE., &
           & ldass_lhn=ldass_lhn, &
+          & ice_nucleation=1, &
           & ithermo_water=ithermo_water) !< in: latent heat choice
 
     ELSEIF (igscp == 9) THEN

@@ -46,7 +46,7 @@ MODULE mo_nwp_lnd_state
   USE mo_coupling_config,      ONLY: is_coupled_to_ocean
   USE mo_lnd_nwp_config,       ONLY: nlev_soil, nlev_snow, ntiles_total, &
     &                                lmulti_snow, ntiles_water, lseaice, llake, &
-    &                                itype_interception, l2lay_rho_snow, itype_trvg, &
+    &                                l2lay_rho_snow, itype_trvg, &
     &                                itype_snowevap, groups_smi, zml_soil
   USE mo_io_config,            ONLY: lnetcdf_flt64_output, runoff_interval, &
     &                                melt_interval
@@ -377,8 +377,6 @@ MODULE mo_nwp_lnd_state
     &       p_prog_lnd%t_g, &
     &       p_prog_lnd%t_g_t, &
     &       p_prog_lnd%w_i_t, &
-    &       p_prog_lnd%w_p_t, &
-    &       p_prog_lnd%w_s_t, &
     &       p_prog_lnd%t_so_t, &
     &       p_prog_lnd%w_so_t, &
     &       p_prog_lnd%w_so_ice_t, &
@@ -538,65 +536,6 @@ MODULE mo_nwp_lnd_state
            & in_group=groups("land_tile_vars","dwd_fg_sfc_vars_t"),          &
            & post_op=post_op(POST_OP_SCALE, arg1=1000._wp, new_cf=new_cf_desc) )
     ENDDO
-
-
-    IF (itype_interception == 2) THEN
-
-      ! & p_prog_lnd%w_p_t(nproma,nblks_c,ntiles_total)
-      cf_desc    = t_cf_var('w_p_t', 'm H2O', 'water content of interception water', datatype_flt)
-      grib2_desc = grib2_var(2, 0, 14, ibits, GRID_UNSTRUCTURED, GRID_CELL)
-      CALL add_var( prog_list, vname_prefix//'w_p_t'//suffix, p_prog_lnd%w_p_t,    &
-           & GRID_UNSTRUCTURED_CELL, ZA_SURFACE, cf_desc, grib2_desc,              &
-           & ldims=shape3d_subs, lcontainer=.TRUE., lrestart=.FALSE., loutput=.FALSE.,&
-           & lopenacc=.TRUE.)
-      __acc_attach(p_prog_lnd%w_p_t)
-
-      ! fill the separate variables belonging to the container w_p
-      ALLOCATE(p_prog_lnd%w_p_ptr(ntiles_total))
-      DO jsfc = 1,ntiles_total
-        NULLIFY(p_prog_lnd%w_p_ptr(jsfc)%p_2d, p_prog_lnd%w_p_ptr(jsfc)%p_3d)
-        WRITE(csfc,'(i2)') jsfc  
-        CALL add_ref( prog_list, vname_prefix//'w_p_t'//suffix,                &
-             & vname_prefix//'w_p_t_'//TRIM(ADJUSTL(csfc))//suffix,            &
-             & p_prog_lnd%w_p_ptr(jsfc)%p_2d,                                  &
-             & GRID_UNSTRUCTURED_CELL, ZA_SURFACE,                             &
-             & t_cf_var('w_p_t_'//csfc, '', '', datatype_flt),               &
-             & grib2_var(2, 0, 14, ibits, GRID_UNSTRUCTURED, GRID_CELL),       &
-             & ref_idx=jsfc,                                                   &
-             & ldims=shape2d,                                                  &
-             & var_class=CLASS_TILE_LAND,                                      &
-             & tlev_source=TLEV_NNOW_RCF,                                      &
-             & in_group=groups("land_tile_vars")) ! for output take field from nnow_rcf slice
-      ENDDO
-
-      ! & p_prog_lnd%w_s_t(nproma,nblks_c,ntiles_total)
-      cf_desc    = t_cf_var('w_s_t', 'm H2O', 'water content of interception water', datatype_flt)
-      grib2_desc = grib2_var(2, 0, 15, ibits, GRID_UNSTRUCTURED, GRID_CELL)
-      CALL add_var( prog_list, vname_prefix//'w_s_t'//suffix, p_prog_lnd%w_s_t,     &
-           & GRID_UNSTRUCTURED_CELL, ZA_SURFACE, cf_desc,grib2_desc,                 &
-           & ldims=shape3d_subs, lcontainer=.TRUE., lrestart=.FALSE., loutput=.FALSE.,&
-           & lopenacc=.TRUE.)
-      __acc_attach(p_prog_lnd%w_s_t)
-
-      ! fill the separate variables belonging to the container w_s
-      ALLOCATE(p_prog_lnd%w_s_ptr(ntiles_total))
-      DO jsfc = 1,ntiles_total
-        NULLIFY(p_prog_lnd%w_s_ptr(jsfc)%p_2d, p_prog_lnd%w_s_ptr(jsfc)%p_3d)
-        WRITE(csfc,'(i2)') jsfc  
-        CALL add_ref( prog_list, vname_prefix//'w_s_t'//suffix,                &
-             & vname_prefix//'w_s_t_'//TRIM(ADJUSTL(csfc))//suffix,            &
-             & p_prog_lnd%w_s_ptr(jsfc)%p_2d,                                  &
-             & GRID_UNSTRUCTURED_CELL, ZA_SURFACE,                             &
-             & t_cf_var('w_s_t_'//csfc, '', '', datatype_flt),               &
-             & grib2_var(2, 0, 15, ibits, GRID_UNSTRUCTURED, GRID_CELL),       &
-             & ref_idx=jsfc,                                                   &
-             & ldims=shape2d,                                                  &
-             & var_class=CLASS_TILE_LAND,                                      &
-             & tlev_source=TLEV_NNOW_RCF,                                      &
-             & in_group=groups("land_tile_vars")) ! for output take field from nnow_rcf slice
-      ENDDO
-    END IF  ! itype_interception == 2
-
 
     ! & p_prog_lnd%t_so_t(nproma,nlev_soil+1,nblks_c,ntiles_total) 
     cf_desc    = t_cf_var('t_so_t', 'K', 'soil temperature (main level)', datatype_flt)
@@ -1296,8 +1235,6 @@ MODULE mo_nwp_lnd_state
     &       p_diag_lnd%t_sk, &
     &       p_diag_lnd%t_seasfc, &
     &       p_diag_lnd%w_i, &
-    &       p_diag_lnd%w_p, &
-    &       p_diag_lnd%w_s, &
     &       p_diag_lnd%t_so, &
     &       p_diag_lnd%w_so, &
     &       p_diag_lnd%w_so_ice, &
@@ -1470,39 +1407,6 @@ MODULE mo_nwp_lnd_state
          & lopenacc=.TRUE. )
     __acc_attach(p_diag_lnd%w_i)
 
-
-    IF (itype_interception == 2) THEN
-
-      ! & p_diag_lnd%w_p(nproma,nblks_c)
-      cf_desc     = t_cf_var('w_p', 'm H2O', 'water content of pond interception water', &
-           &                datatype_flt)
-      new_cf_desc = t_cf_var('w_p', 'kg m-2', 'water content of pond interception water', &
-           &                datatype_flt)
-      grib2_desc = grib2_var(255, 255, 255, ibits, GRID_UNSTRUCTURED, GRID_CELL)
-      CALL add_var( diag_list, vname_prefix//'w_p', p_diag_lnd%w_p,                &
-           & GRID_UNSTRUCTURED_CELL, ZA_SURFACE, cf_desc,  grib2_desc,             &
-           & ldims=shape2d, lrestart=.FALSE., loutput=.TRUE.,                      &
-           & in_group=groups("land_vars"),                                         &
-           & post_op=post_op(POST_OP_SCALE, arg1=1000._wp, new_cf=new_cf_desc),    &
-           & lopenacc=.TRUE. )
-      __acc_attach(p_diag_lnd%w_p)
-
-      ! & p_diag_lnd%w_s(nproma,nblks_c)
-      cf_desc     = t_cf_var('w_s', 'm H2O', 'water content of interception snow', &
-           &                datatype_flt)
-      new_cf_desc = t_cf_var('w_s', 'kg m-2', 'water content of interception snow', &
-           &                datatype_flt)
-      grib2_desc = grib2_var(255, 255, 255, ibits, GRID_UNSTRUCTURED, GRID_CELL)
-      CALL add_var( diag_list, vname_prefix//'w_s', p_diag_lnd%w_s,                &
-           & GRID_UNSTRUCTURED_CELL, ZA_SURFACE, cf_desc, grib2_desc,              &
-           & ldims=shape2d, lrestart=.FALSE., loutput=.TRUE.,                      &
-           & in_group=groups("land_vars"),                                         &
-           & post_op=post_op(POST_OP_SCALE, arg1=1000._wp, new_cf=new_cf_desc),    &
-           & lopenacc=.TRUE. )
-      __acc_attach(p_diag_lnd%w_s)
-
-    END IF  ! itype_interception == 2
-
     IF (itype_snowevap == 3) THEN
       ! maximum snow depth reached within current snow-cover period
       cf_desc    = t_cf_var('hsnow_max', 'm', 'maximum snow depth', datatype_flt)
@@ -1535,7 +1439,6 @@ MODULE mo_nwp_lnd_state
       CALL add_var( diag_list, 'qi_snowdrift_flx', p_diag_lnd%qi_snowdrift_flx,              &
              & GRID_UNSTRUCTURED_CELL, ZA_SURFACE, cf_desc, grib2_desc,          &
              & ldims=shape2d, lrestart=.FALSE.,                                  &
-             & in_group=groups('land_vars'),                                     &
              & lopenacc=.TRUE.)
       __acc_attach(p_diag_lnd%qi_snowdrift_flx)
     ENDIF
@@ -2027,7 +1930,6 @@ MODULE mo_nwp_lnd_state
     CALL add_var( diag_list, vname_prefix//'snowfrac', p_diag_lnd%snowfrac,       &
            & GRID_UNSTRUCTURED_CELL, ZA_SURFACE, cf_desc, grib2_desc,             &
            & ldims=shape2d, lrestart=.FALSE., loutput=.TRUE.,                     &
-           & in_group=groups("land_vars"),                                        &
            & post_op=post_op(POST_OP_SCALE, arg1=100._wp, new_cf=new_cf_desc),    &
            & lopenacc=.TRUE. )
     __acc_attach(p_diag_lnd%snowfrac)

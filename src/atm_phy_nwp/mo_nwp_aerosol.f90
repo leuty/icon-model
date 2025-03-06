@@ -284,7 +284,6 @@ CONTAINS
 !$OMP END DO NOWAIT
 !$OMP END PARALLEL
 
-
 #if defined(__ECRAD) && defined(__ICON_ART)
         ! Replace Tegen selectively with ART aerosol
         IF ( irad_aero ==iRadAeroART ) THEN
@@ -471,15 +470,9 @@ CONTAINS
             IF (i_startidx>i_endidx) CYCLE
             pt_diag%camsaermr(:,:,jb,jt) = 0._wp
 
-            IF (irad_aero == iRadAeroCAMStd) THEN
-              CALL cams_forecast_prep(i_startidx, i_endidx, cams=cams(:,:,jb,jt),             &
-                &                                 cams_pres_in=cams(:,:,jb,n_camsaermr+1))
-            END IF
-
-            CALL vinterp_cams(i_startidx, i_endidx, pt_diag%pres_ifc(:,:,jb),                &
+            CALL vinterp_cams(i_startidx, i_endidx, pt_diag%pres(:,:,jb),pt_diag%pres_ifc(:,pt_patch%nlev+1,jb),&
               &               cams_pres_in=cams(:,:,jb,n_camsaermr+1), cams=cams(:,:,jb,jt), &
               &               nlev=pt_patch%nlev, camsaermr=pt_diag%camsaermr(:,:,jb,jt))
-
           END DO
 !$OMP END DO NOWAIT
 !$OMP END PARALLEL
@@ -765,43 +758,17 @@ CONTAINS
 
   END SUBROUTINE nwp_aerosol_update_cams
 
-  !---------------------------------------------------------------------------------------
-  !! Vertical interpolation of CAMS aerosols mixing ratios 3D climatology
-  !! This routine uses the original data of CAMS climatology which has different
-  !! number of pressure levels from ICON and also different lowest/highest pressure values. 
-  !! Therefore, we first move to sigma coordinates in both models. In both ICON and CAMS
-  !! half level pressure are used. The layer directly above surface (nk1+1) pressure thickness 
-  !! is absent from the original CAMS file and was set to 240 Pa for all grid points (evaluated from CAMS data).
-  !! The code loops on each ICON sigma level and calculates the amount of layer-integrated
-  !! mass that is confined within it. For each icon sigma layer we find lmax which is the closest
-  !! CAMS level below icon_sigma2 (jk+1) and lmin which is the closest level above 
-  !! icon_sigma1 (jk). There are 3 cases:
-  !! CASE 1: Current ICON layer completely within one CAMS layer
-  !!                       -----lmin------
-  !!   --------jk-------
-  !!   -------jk+1------
-  !!                       -----lmax------  
-  !! CASE 2: Current ICON layer covers 2 CAMS layer
-  !!                       -----lmin------
-  !!   --------jk-------
-  !!                       ----lmin+1-----  
-  !!   -------jk+1------
-  !!                       -----lmax------
-  !! CASE 3: Current ICON layer covers a few CAMS layer
-  !!                       -----lmin------
-  !!   --------jk-------
-  !!                       ----lmin+1-----  
-  !!                       ---- ... ------ 
-  !!                       ----lmax-1----- 
-  !!   -------jk+1------
-  !!                       -----lmax------
-  !!
-  SUBROUTINE vinterp_cams(i_startidx, i_endidx, pres, cams_pres_in, cams, nlev, camsaermr )
+  !---------------------------------------------------------------------------------------------------------
+  ! Vertically interpolate CAMS climatology onto ICON model levels. CAMS aerosol is provided
+  ! as mixing ratios, and output is mixing ratio on ICON levels
+  SUBROUTINE vinterp_cams(i_startidx, i_endidx, pres,sfcpres, cams_pres_in, cams, nlev, camsaermr )
 
     REAL(wp),      INTENT(in)      :: &
-      &  cams(:,:),                      & !< CAMS fields taken from external file; layer integrated mass [kg/m^2]
-      &  pres(:,:),                      & !< ICON diagnosed pressure
-      &  cams_pres_in(:,:)                 !< CAMS climatology pressure taken from external file
+      &  cams(:,:),                      & !< CAMS fields taken from external file; mixing ratio [kg/kg]
+      &  pres(:,:),                      & !< ICON diagnosed pressure, model layer centers [Pa]
+      &  sfcpres(:),                     & !< ICON surface pressure, lowest model layer interface [Pa]
+      &  cams_pres_in(:,:)                 !< CAMS climatology pressure taken from external file,
+                                           !< on model layer centers [Pa]
     REAL(wp),      INTENT(inout)   :: &
       &  camsaermr(:,:)                    !< CAMS aerosols mixing ratios [kg/kg]
     INTEGER,       INTENT(in)      :: &
@@ -810,177 +777,63 @@ CONTAINS
       &  i_endidx                          !< Loop indices
 
     ! local variables
-    REAL(wp)                       :: &
-      &  g_dp,                           & !< graviational constant divided by pressure thickness
-      &  icon_sigma1, icon_sigma2,       & !< ICON pressure levels
-      &  delta1, delta, delt1, delt,     & !< variables for looping
-      &  dp_cams_surface,                & !< cams near surface pressure thickness
-      &  layer_mass                        !< mass at specific layer
-    REAL(wp) , ALLOCATABLE         :: &
-      &  cams_sigma(:,:),                & !< CAMS sigma coordinate
-      &  icon_sigma(:,:)                   !< ICON sigma coordinate
     INTEGER                        :: &
-      &  jc, jk, jk1, k, lmin, lmax,     & !< Loop indices
+      &  jc, jk, jk1,                 &    !< Loop indices
       &  nk1                               !< number of vertical levels in original CAMS climatology data
+    REAL(wp)                       :: rescale, sigmasfc
 
     CHARACTER(len=*), PARAMETER    :: &
       &  routine = modname//':vinterp_cams'
 
-    nk1 = size(cams_pres_in,2)  
- 
-    ALLOCATE(cams_sigma(size(cams_pres_in,1),size(cams_pres_in,2)+1))
-    ALLOCATE(icon_sigma(size(pres,1),size(pres,2)))
+    nk1 = size(cams_pres_in,2)
+    ! To get CAMS surface pressure, use knowledge of appropriate 'B' hybrid coefficient of second
+    ! lowest model layer interface to reconstruct surface pressure from pressure on lowest model
+    ! layer centre pres_mc(nlev), which is known.
+    ! Coefficients can be found here: https://confluence.ecmwf.int/display/UDOC/Model+level+definitions
+    !
+    !nlev-1: layer interface ~~~~~~~~~~~~~~~~~ A=0, B=0.99XXXX (dependent on number of model layers)
+    !
+    !nlev: layer centre      - - - - - - - - - pres_mc(nlev)=0.5*(pres_ifc(nlev)+pres_ifc(nlev-1))
+    !
+    !nlev: layer interface   ~~~~~~~~~~~~~~~~~ A=0, B=1 (SURFACE)
+    !
+    IF (nk1==60) THEN
+       sigmasfc=1._wp/(0.5_wp*1.997630_wp)
+    ELSEIF (nk1==21) THEN
+       sigmasfc=1._wp/(0.5_wp*1.992281_wp)
+    ELSEIF (nk1==137) THEN
+       sigmasfc=1._wp/(0.5_wp*1.997630_wp)
+    ELSE
+       WRITE(message_text,'(a,i2,a)') 'A CAMS climatology with ',nk1,' number of levels is currently not supported'
+       CALL finish(routine, message_text)
+    ENDIF
 
-    dp_cams_surface = 240.0_wp
-
-    ! move to sigma coordinate  
-    DO jc = i_startidx, i_endidx 
-      cams_sigma(jc,nk1+1) = 1.0_wp
-      DO jk1 = 1, nk1
-        cams_sigma(jc,jk1) = cams_pres_in(jc,jk1)/(cams_pres_in(jc,nk1) + dp_cams_surface)
-      ENDDO
-      DO jk = 1, nlev+1 ! loop on icon vertical pressure ifc levels
-        icon_sigma(jc,jk) = pres(jc,jk)/pres(jc,nlev+1)
+    ! loop over grid points  
+    DO jc = i_startidx, i_endidx
+      rescale=sfcpres(jc)/(cams_pres_in(jc,nk1)*sigmasfc)
+      ! loop over target ICON levels
+      DO jk = 1, nlev
+        IF (pres(jc,jk) .gt. cams_pres_in(jc,nk1)*rescale) THEN
+           ! Current ICON layer is below CAMS surface: extrapolate
+           camsaermr(jc,jk) = cams(jc,nk1)/rescale
+        ENDIF
+        DO jk1 = 1, nk1-1 ! loop over original CAMS levels
+           IF (pres(jc,jk) .gt. cams_pres_in(jc,jk1)*rescale .and. pres(jc,jk).le. cams_pres_in(jc,jk1+1)*rescale) THEN
+              ! Current ICON layer between two CAMS layers: linear interpolation
+              camsaermr(jc,jk) = (cams(jc,jk1)+(pres(jc,jk)-cams_pres_in(jc,jk1)*rescale)* &
+                   & (cams(jc,jk1+1)-cams(jc,jk1))/(cams_pres_in(jc,jk1+1)*rescale-cams_pres_in(jc,jk1)*rescale))/rescale
+           ENDIF
+        ENDDO
+        IF (pres(jc,jk) .le. cams_pres_in(jc,1)*rescale) THEN
+           ! Current ICON layer is above CAMS top: extrapolate
+           camsaermr(jc,jk) = cams(jc,1)/rescale
+        ENDIF
       ENDDO
     ENDDO
 
-    DO jc = i_startidx, i_endidx ! loop on icon horizontal index
-      DO jk = 1, nlev ! loop on icon vertical levels
-
-        camsaermr(jc,jk) = 0.0_wp
-        layer_mass = 0.0_wp
-
-        icon_sigma1 = icon_sigma(jc,jk)
-        icon_sigma2 = icon_sigma(jc,jk+1)
-        g_dp = grav/(pres(jc,nlev+1)*(icon_sigma2-icon_sigma1))
-
-        ! Exclude all ICON levels which have lower pressure than CAMS lowest pressure
-        IF (icon_sigma1 > cams_sigma(jc,1)) THEN
-
-          ! loop to find lmin & lmax that are above/below jk and jk+1 respectively
-          delta = 1.0_wp
-          delt = 1.0_wp
-
-          DO jk1 = 1,nk1+1
-            delta1 = icon_sigma1 - cams_sigma(jc,jk1) 
-            IF (delta1 >= 0.0_wp .AND. ABS(delta1) < delta) THEN
-              lmin = jk1 
-              delta = ABS(delta1)
-            END IF
-
-            delt1 = cams_sigma(jc,jk1)-icon_sigma2 
-            IF (delt1 >= 0.0_wp .AND. ABS(delt1) < delt) THEN
-              lmax = jk1 
-              delt = ABS(delt1)
-            END IF
-          ENDDO
-
-          ! accumulate all mass in between jk and jk+1
-          ! Current ICON layer completely within one cams layer (CASE 1)
-          IF ( lmax == (lmin+1) ) THEN
-          layer_mass = layer_mass + cams(jc,lmin) *            &
-            &         ( (icon_sigma2-icon_sigma1) &
-            &         / (cams_sigma(jc,lmax)-cams_sigma(jc,lmin)) )
-
-          ! Current ICON layer covers more than one CAMS layer (CASE 2,3)
-          ELSE          
-            ! this IF is for CASE 3 only
-            IF (lmax > lmin + 2) THEN
-              DO k = lmin+1, lmax-2
-                layer_mass = layer_mass + cams(jc,k) 
-              END DO           
-            END IF
-
-            layer_mass = layer_mass + cams(jc,lmin) *         &
-              &         ( (cams_sigma(jc,lmin+1)-icon_sigma1) &
-              &         / (cams_sigma(jc,lmin+1)-cams_sigma(jc,lmin)) )
-
-            layer_mass = layer_mass + cams(jc,lmax-1) *       &
-              &         ( (icon_sigma2-cams_sigma(jc,lmax-1)) &
-              &         / (cams_sigma(jc,lmax)-cams_sigma(jc,lmax-1)) )
-
-          END IF
-
-          ! add upper (lowest pressure) CAMS levels mass 
-          ! which does not have any corresponding ICON level
-          ! add this mass to ICON level jk = 1 (lowest pressure level) 
-          IF (jk == 1 .AND. lmin > 1) THEN
-            DO k = 1, lmin-1
-              layer_mass = layer_mass + cams(jc,k)
-            END DO
-              layer_mass = layer_mass + cams(jc,lmin) *       &
-                &         ( (icon_sigma1-cams_sigma(jc,lmin)) &
-                &         / (cams_sigma(jc,lmin+1)-cams_sigma(jc,lmin)) )
-          END IF
-
-        END IF
-
-        ! Include the case where ICON level partialy covers the first CAMS level
-        IF (icon_sigma1 < cams_sigma(jc,1) .AND. icon_sigma2 > cams_sigma(jc,1) ) THEN
-          layer_mass = layer_mass + cams(jc,1) *       &
-            &         ( (icon_sigma2-cams_sigma(jc,1)) &
-            &         / (cams_sigma(jc,2)-cams_sigma(jc,1)) )
-        END IF
-
-        ! move from integrated mass (kg/m^2) to mixing ratios
-        camsaermr(jc,jk) = layer_mass * g_dp
-
-        ! for checking if all gridpoints have meaningful values
-        IF (camsaermr(jc,jk) < 0.0_wp) THEN
-          CALL finish(routine,'mo_nwp_aerosol: vinterp_cams failed')
-        END IF
-
-      ENDDO !jk
-    ENDDO !jc
-
-    DEALLOCATE(cams_sigma)
-    DEALLOCATE(icon_sigma)
-
   END SUBROUTINE vinterp_cams
 
-  !---------------------------------------------------------------------------------------
-  !! Convert CAMS forecasted aerosols from mixing ratios to layer integrated mass
-  SUBROUTINE cams_forecast_prep(i_startidx, i_endidx, cams, cams_pres_in)
 
-    REAL(wp),      INTENT(inout)   :: &
-      &  cams(:,:),                   & !< CAMS fields taken from external file; mixing ratios [kg/kg]
-      &  cams_pres_in(:,:)              !< CAMS half level pressure taken from external file [Pa]
-
-    INTEGER,       INTENT(in)      :: &
-      &  i_startidx,                  & !< Loop indices
-      &  i_endidx                       !< Loop indices
-
-    ! local variables
-    REAL(wp)                       :: &
-      &  dp,                          & !< pressure thickness
-      &  layer_mass                     !< mass at specific layer
-    INTEGER                        :: &
-      &  jc, jk,                      & !< Loop indices
-      &  nk                             !< number of vertical levels in original CAMS climatology data
-
-    CHARACTER(len=*), PARAMETER    :: &
-      &  routine = modname//':cams_forecast_prep'
-
-    nk = size(cams_pres_in,2)  
-
-    DO jc = i_startidx, i_endidx ! loop on icon horizontal index
-      DO jk = 1, nk ! loop on icon vertical levels
- 
-          ! compute pressure thickness at (jc,jk)
-
-          IF ( jk == nk ) THEN
-            dp = 240.0_wp
-          ELSE
-            dp = cams_pres_in(jc,jk+1)-cams_pres_in(jc,jk)
-          ENDIF
-
-          layer_mass  = cams(jc,jk)*dp/grav
-          cams(jc,jk)= layer_mass
-
-      ENDDO !jk
-    ENDDO !jc
-
-  END SUBROUTINE cams_forecast_prep
   !---------------------------------------------------------------------------------------
   SUBROUTINE nwp_aerosol_tegen ( istart, iend, nlev, nlevp1, k850, temp, pres, pres_ifc, qv,             &
     &                            aer_ss_mo1, aer_org_mo1, aer_bc_mo1, aer_so4_mo1, aer_dust_mo1,         &

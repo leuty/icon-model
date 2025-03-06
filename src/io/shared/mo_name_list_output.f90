@@ -95,7 +95,7 @@ MODULE mo_name_list_output
   USE mo_name_list_output_gridinfo, ONLY: write_grid_info_grb2, GRID_INFO_NONE
   USE mo_util_file,                 ONLY: util_rename, get_filename, get_path
   ! config
-  USE mo_master_control,            ONLY: my_process_is_ocean, my_process_is_waves
+  USE mo_master_control,            ONLY: my_process_is_ocean, my_process_is_waves, get_my_process_name
   USE mo_master_config,             ONLY: getModelBaseDir, isRestart
   USE mo_grid_config,               ONLY: n_dom, l_limited_area
   USE mo_run_config,                ONLY: msg_level
@@ -767,7 +767,7 @@ CONTAINS
 #endif
     IF (PRESENT(opt_lhas_output)) opt_lhas_output = lhas_output
     IF (ltimer) CALL timer_stop(timer_write_output)
-    IF (ldebug)  WRITE (0,*) "pe ", p_pe, ": write_name_list_output done."
+    IF (ldebug)  WRITE (0,*) TRIM(get_my_process_name()), " pe ", p_pe, ": write_name_list_output done."
   END SUBROUTINE write_name_list_output
 
   SUBROUTINE write_ready_files_cdipio
@@ -2856,7 +2856,7 @@ CONTAINS
             l_complete = all_output_file_event_finished(output_file(:))
 
             IF (l_complete) THEN
-              IF (ldebug)   WRITE (0,*) p_pe, ": wait for fellow I/O PEs..."
+              IF (ldebug)   WRITE (0,*) TRIM(get_my_process_name()), p_pe, ": wait for fellow I/O PEs..."
               WAIT_FINAL : DO
                 CALL blocking_wait_for_irecvs(all_events)
                 ev => all_events
@@ -2874,7 +2874,7 @@ CONTAINS
                 END DO HANDLE_COMPLETE_STEPS
                 IF (l_complete) EXIT WAIT_FINAL
               END DO WAIT_FINAL
-              IF (ldebug)  WRITE (0,*) p_pe, ": Finalization sequence"
+              IF (ldebug)  WRITE (0,*) TRIM(get_my_process_name()), p_pe, ": Finalization sequence"
             END IF
           END IF
         ELSE IF (action == msg_io_meteogram_flush) THEN
@@ -3465,7 +3465,8 @@ CONTAINS
     TYPE(t_par_output_event), POINTER :: ev
 
     IF (ldebug) &
-         & WRITE (0,*) "pe ", p_pe, ": async_io_send_handshake, jstep=", jstep
+         & WRITE (0,*) TRIM(get_my_process_name()), " pe ", p_pe, &
+         &             ": async_io_send_handshake, jstep=", jstep
 
     ! --- Send a message from this I/O PE to the compute PE #0
     !
@@ -3477,7 +3478,8 @@ CONTAINS
     ! --- I/O PE #0  :  take care of ready files
     IF(p_pe_work == 0) THEN
       DO
-        IF (ldebug)  WRITE (0,*) "pe ", p_pe, ": trigger, async_io_send_handshake"
+        IF (ldebug)  WRITE (0,*) TRIM(get_my_process_name()), " pe ", p_pe, &
+          &                      ": trigger, async_io_send_handshake"
         ev => all_events
         HANDLE_COMPLETE_STEPS : DO WHILE (ASSOCIATED(ev))
           IF (is_output_step_complete(ev) .AND.  &
@@ -3589,7 +3591,8 @@ CONTAINS
     ! Note: We only need to wait for those I/O PEs which are involved
     !       in the current step.
     IF (p_pe_work==0) THEN
-      IF (ldebug)  WRITE (0,*) "pe ", p_pe, ": ", routine, ", jstep=",jstep
+      IF (ldebug)  WRITE (0,*) TRIM(get_my_process_name()), " pe ", p_pe, ": ", &
+        &                      routine, ", jstep=",jstep
       wait_list(:) = -1
       nwait_list   =  0
       reqs = mpi_request_null
@@ -3610,7 +3613,8 @@ CONTAINS
         END IF
       END DO OUTFILE_LOOP
       DO i=1,nwait_list
-        IF (ldebug) WRITE (0,*) "pe ", p_pe, ": wait for PE ",  wait_list(i)
+        IF (ldebug) WRITE (0,*) TRIM(get_my_process_name()), " pe ", p_pe, ": wait for PE ", &
+          &                     wait_list(i)
         CALL p_irecv(msg(i), wait_list(i), 0, comm=p_comm_work_2_io, &
              request=reqs(i))
         ! Just for safety: Check if we got the correct tag
@@ -3621,9 +3625,11 @@ CONTAINS
            CALL finish(routine, 'Got illegal I/O tag')
     END IF
     ! Wait in barrier until message is here
-    IF (ldebug) WRITE (0,*) "pe ", p_pe, ": waiting in barrier ", routine
+    IF (ldebug) WRITE (0,*) TRIM(get_my_process_name()), " pe ", p_pe, &
+      &                     ": waiting in barrier ", routine
     CALL p_barrier(comm=p_comm_work)
-    IF (ldebug) WRITE (0,*) "pe ", p_pe, ": barrier done ", routine
+    IF (ldebug) WRITE (0,*) TRIM(get_my_process_name()), " pe ", p_pe, &
+      &                     ": barrier done ", routine
 
     IF (ltimer) CALL timer_stop(timer_wait_for_async_io)
 
@@ -3633,7 +3639,7 @@ CONTAINS
     CHARACTER(len=*), PARAMETER :: &
       routine = modname//'::compute_final_wait_for_async_io'
     IF (p_pe_work == 0) THEN
-      IF (ldebug)  WRITE (0,*) "pe ", p_pe, ": ", routine
+      IF (ldebug)  WRITE (0,*) TRIM(get_my_process_name()), " pe ", p_pe, ": ", routine
       CALL p_wait()
     END IF
   END SUBROUTINE compute_final_wait_for_async_io
@@ -3651,7 +3657,8 @@ CONTAINS
     INTEGER :: msg(2)
     INTEGER  :: i
 
-    IF (ldebug)  WRITE (0,*) "pe ", p_pe, ": compute_start_async_io, jstep = ",jstep
+    IF (ldebug)  WRITE (0,*) TRIM(get_my_process_name()), " pe ", p_pe, &
+                   &         ": compute_start_async_io, jstep = ",jstep
     CALL p_barrier(comm=p_comm_work) ! make sure all are here
     msg(1) = msg_io_start
     msg(2) = jstep
@@ -3662,12 +3669,14 @@ CONTAINS
       ! the next step. Send a "start message" to all I/O PEs which are
       ! due for output.
       DO i=1,noutput_pe_list
-        IF (ldebug)  WRITE (0,*) "pe ", p_pe, ": send signal to PE ",  output_pe_list(i)
+        IF (ldebug)  WRITE (0,*) TRIM(get_my_process_name()), " pe ", p_pe, &
+          &                      ": send signal to PE ",  output_pe_list(i)
         CALL p_isend(msg, output_pe_list(i), 0, comm=p_comm_work_2_io)
       END DO
       CALL p_wait()
     END IF
-    IF (ldebug)  WRITE (0,*) "pe ", p_pe, ": compute_start_async_io done."
+    IF (ldebug)  WRITE (0,*) TRIM(get_my_process_name()), " pe ", p_pe, &
+      &                      ": compute_start_async_io done."
 
   END SUBROUTINE compute_start_async_io
 #endif
@@ -3681,9 +3690,11 @@ CONTAINS
     INTEGER :: msg(2)
     INTEGER :: pe, i, ierror
 
-    IF (ldebug)  WRITE (0,*) "pe ", p_pe, ": compute_shutdown_async_io."
+    IF (ldebug)  WRITE (0,*) TRIM(get_my_process_name()), " pe ", p_pe, &
+      &                      ": compute_shutdown_async_io."
     CALL p_barrier(comm=p_comm_work) ! make sure all are here
-    IF (ldebug)  WRITE (0,*) "pe ", p_pe, ": compute_shutdown_async_io barrier done."
+    IF (ldebug)  WRITE (0,*) TRIM(get_my_process_name()), " pe ", p_pe, &
+      &                      ": compute_shutdown_async_io barrier done."
     msg(1) = msg_io_shutdown
     msg(2) = 0
     ! tell all I/O PEs about the shutdown

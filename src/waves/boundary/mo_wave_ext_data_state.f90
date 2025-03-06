@@ -220,7 +220,7 @@ CONTAINS
     CALL add_ref(ext_data_wave_list, 'geo_depth_grad_c',                                   &
            & TRIM(out_name), ext_data_wave%grad_ptr(comp)%p_2d,                            &
            & GRID_UNSTRUCTURED_CELL, ZA_SURFACE,                                           &
-           & t_cf_var(TRIM(out_name), 'm/m', 'component of depth gradient', datatype_flt), &
+           & t_cf_var(TRIM(out_name), 'm/m', 'U-component of depth gradient', datatype_flt), &
            & grib2_var(255, 255, 255, ibits, GRID_UNSTRUCTURED, GRID_CELL),                &
            & ref_idx=comp, ldims=shape2d_c, lrestart=.FALSE., loutput=.TRUE., opt_var_ref_pos=1)
 
@@ -229,7 +229,7 @@ CONTAINS
     CALL add_ref(ext_data_wave_list, 'geo_depth_grad_c', &
            & TRIM(out_name), ext_data_wave%grad_ptr(comp)%p_2d, &
            & GRID_UNSTRUCTURED_CELL, ZA_SURFACE,                                            &
-           & t_cf_var(TRIM(out_name), 'm/m','component of depth gradient', datatype_flt),        &
+           & t_cf_var(TRIM(out_name), 'm/m','V-component of depth gradient', datatype_flt),        &
            & grib2_var(255, 255, 255, ibits, GRID_UNSTRUCTURED, GRID_CELL),                 &
            & ref_idx=comp, ldims=shape2d_c, lrestart=.FALSE., loutput=.TRUE., opt_var_ref_pos=1)
 
