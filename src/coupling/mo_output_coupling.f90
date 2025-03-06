@@ -25,6 +25,7 @@ MODULE mo_output_coupling
   USE mo_parallel_config     ,ONLY: nproma
   USE mo_zaxis_type          ,ONLY: zaxisTypeList
   USE mo_fortran_tools       ,ONLY: set_acc_host_or_device
+  USE mo_impl_constants      ,ONLY: REAL_T
 
 #ifdef _OPENACC
   USE openacc
@@ -78,8 +79,10 @@ CONTAINS
     TYPE(t_exposed_var), POINTER :: exposed_var
     CHARACTER(len=:), ALLOCATABLE :: var_name, metadata, comp_name, grid_name
     CHARACTER(len=4) :: var_name_prefix
+    CHARACTER(len=5) :: grib2_discipline, grib2_category, grib2_number, grib2_bits, grib2_gridtype, grib2_subgridtype, grib2_int_val
+    CHARACTER(len=28) :: grib2_dbl_val
     INTEGER :: iv, tl, collection_size, key_notl, count = 0, var_size, grpi, nblks, pos(3)
-    INTEGER :: point_id, var_ref_pos, instance_id
+    INTEGER :: point_id, var_ref_pos, instance_id, grib_i
 
     TYPE t_tmp_timelevel_var
        INTEGER :: key_notl
@@ -130,6 +133,12 @@ CONTAINS
                IF (msg_level >= 15) &
                   CALL message(str_module, "Omitted due to lcontainer: " // TRIM(elem%info%name))
                CYCLE
+            END IF
+
+            IF(elem%info%data_type /= REAL_T) THEN
+              IF (msg_level >= 15) &
+                   CALL message(str_module, "Omitted due to datatype: " // TRIM(elem%info%name))
+              CYCLE
             END IF
 
             ! expose only vars on the icon grid (cells or vertices)
@@ -218,18 +227,67 @@ CONTAINS
                   tmp_timelevel_var%exposed_var => exposed_var
                   tmp_timelevel_var%next => tmp_timelevel_var_head
                   tmp_timelevel_var_head => tmp_timelevel_var
-               END IF
+                END IF
 
-               ! add some metadata
-               metadata = "standard_name: !!str '" // TRIM(elem%info%cf%standard_name) // "'" // newline &
-                    //    "units: !!str '" // TRIM(elem%info%cf%units) // "'" // newline &
-                    //    "short_name: !!str '" // TRIM(elem%info%cf%short_name) // "'" // newline &
-                    //    "long_name: !!str '" // TRIM(elem%info%cf%long_name) // "'" // newline &
-                    //    "groups:" // newline
-               DO grpi = 1,SIZE(var_groups_dyn%gname)
-                  IF (elem%info%in_group(grpi)) metadata = metadata // "  - " // TRIM(var_groups_dyn%gname(grpi)) // newline
-               END DO
-               CALL yac_fdef_field_metadata( &
+                WRITE(grib2_discipline, '(I0)') elem%info%grib2%discipline
+                WRITE(grib2_category, '(I0)') elem%info%grib2%category
+                WRITE(grib2_number, '(I0)') elem%info%grib2%number
+                WRITE(grib2_bits, '(I0)') elem%info%grib2%bits
+                WRITE(grib2_gridtype, '(I0)') elem%info%grib2%gridtype
+                WRITE(grib2_subgridtype, '(I0)') elem%info%grib2%subgridtype
+
+                ! add some metadata in JSON format
+                metadata = "{" // newline &
+                     // '  "cf": {' // newline &
+                     // '    "standard_name": "' // TRIM(elem%info%cf%standard_name) // '",' // newline &
+                     // '    "units": "' // TRIM(elem%info%cf%units) // '",' // newline &
+                     // '    "short_name": "' // TRIM(elem%info%cf%short_name) // '",' // newline &
+                     // '    "long_name":  "' // TRIM(elem%info%cf%long_name) // '"' // newline &
+                     // '  },' // newline &
+                     // '  "grib2": {' // newline &
+                     // '    "discipline": ' // TRIM(grib2_discipline) // ',' // newline &
+                     // '    "category": ' // TRIM(grib2_category) // ',' // newline &
+                     // '    "number": ' // TRIM(grib2_number) // ',' // newline &
+                     // '    "bits": ' // TRIM(grib2_bits) // ',' // newline &
+                     // '    "gridtype": ' // TRIM(grib2_gridtype) // ',' // newline &
+                     // '    "subgridtype": ' // TRIM(grib2_subgridtype)
+                IF (elem%info%grib2%additional_keys%nint_keys > 0 .OR. elem%info%grib2%additional_keys%ndbl_keys > 0) THEN
+                  metadata = metadata // ',' // newline &
+                       // '    "additional_keys": {'
+                  DO grib_i = 1,elem%info%grib2%additional_keys%nint_keys
+                    IF (grib_i > 1) THEN
+                      metadata = metadata // ','
+                    ENDIF
+                    WRITE(grib2_int_val, '(I0)') elem%info%grib2%additional_keys%int_key(grib_i)%val
+                    metadata = metadata &
+                         // newline // '      "' // TRIM(elem%info%grib2%additional_keys%int_key(grib_i)%key) // '": ' &
+                         // TRIM(grib2_int_val)
+                  END DO
+                  DO grib_i = 1,elem%info%grib2%additional_keys%ndbl_keys
+                    IF (grib_i > 1 .OR. elem%info%grib2%additional_keys%nint_keys > 0) THEN
+                      metadata = metadata // ','
+                    ENDIF
+                    WRITE(grib2_dbl_val, '(ES28.20)') elem%info%grib2%additional_keys%dbl_key(grib_i)%val
+                    metadata = metadata &
+                         // newline // '      "' // TRIM(elem%info%grib2%additional_keys%dbl_key(grib_i)%key) // '": ' &
+                         // TRIM(grib2_dbl_val)
+                  END DO
+                  metadata = metadata // newline // '    }'
+                END IF
+                metadata = metadata // newline &
+                     // '  },' // newline &
+                     // '  "groups": ['
+                DO grpi = 1,SIZE(var_groups_dyn%gname)
+                  IF (elem%info%in_group(grpi)) THEN
+                    IF (grpi > 1) THEN
+                      metadata = metadata // ','
+                    ENDIF
+                    metadata = metadata // newline // '    "' // TRIM(var_groups_dyn%gname(grpi)) // '"'
+                  ENDIF
+                END DO
+                metadata = metadata // newline // "  ]" // newline &
+                     // '}'
+                CALL yac_fdef_field_metadata( &
                     instance_id, &
                     yac_fget_component_name(exposed_var%yac_field_id),&
                     yac_fget_grid_name(exposed_var%yac_field_id), &

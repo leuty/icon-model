@@ -18,7 +18,7 @@ import argparse
 import isodate
 import cftime
 import sys
-import yaml
+import json
 
 parser = argparse.ArgumentParser(description="Simple output component. Files can be inspected with ncview.")
 parser.add_argument("filename", type=str, help="output filename")
@@ -93,8 +93,8 @@ for field_desc in args.src:
         var[field_desc] = dataset.createVariable(field_desc[2], "f4", ("time", "level", "clat", "clon"))
     else:
         var[field_desc] = dataset.createVariable(field_desc[2], "f4", ("time", "clat", "clon"))
-    metadata = yaml.safe_load(yac.get_field_metadata(*field_desc)).items()
-    for k, v in metadata:
+    metadata = json.loads(yac.get_field_metadata(*field_desc))
+    for k, v in metadata["cf"].items():
         setattr(var[field_desc], k, v)
 
 data = None
