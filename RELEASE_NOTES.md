@@ -64,6 +64,7 @@ Climate: ICON-Land
     - Inclusion of self-thinning and herbivory in grasslands and pastures (but not crops)
   - Merged the radiation process of QUINCY into the radiation process of JSBACH
   - Use JSBACH4 canopy, soil and snow albedos with QUINCY albedo calculations
+  - Use the turbulence process of JSBACH in QUINCY replacing QUINCY-specific turbulence-code
   - Consolidate and clean up namelist handling and physical parameters between QUINCY and JSBACH
   - Implementation of a harvest process for QUINCY (for now using a global constant)
   - Bugfix: static reals were missing decimal
