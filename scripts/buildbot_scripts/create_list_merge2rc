@@ -295,7 +295,6 @@ $addexp checksuite.art/exp.art_levante_test_short.run --builders "levante_gcc" -
 $addexp checksuite.art/exp.art_levante_test.run --builders "levante_gcc" --list $listname
 
 # add tests for checking yaxt and yac stand-alone; this needs yaxt/yac to be enabled
-#FIXME: exp.check_externals_DWD.run has been deactivated, since the MPI test fails for YAC
 $addexp  checksuite.infrastructure/checkExternals/exp.check_externals_DWD.run --builders dwd_nec_coupling --list ${listname}
 $addexp  checksuite.infrastructure/checkExternals/exp.check_externals_LEVANTE.run --machines levante --list ${listname}
 ./adddep --from-experiment "checksuite.infrastructure/comin/exp.build_comin_plugins_LEVANTE.run" --to-experiment "checksuite.infrastructure/checkExternals/exp.check_externals_LEVANTE.run" --builders "levante_gcc" --list $listname

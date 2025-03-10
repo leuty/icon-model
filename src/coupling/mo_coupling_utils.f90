@@ -18,7 +18,7 @@
 MODULE mo_coupling_utils
 
   USE mo_kind,            ONLY: wp
-  USE mo_exception,       ONLY: message, warning, finish
+  USE mo_exception,       ONLY: message, message_text, warning, finish
   USE mo_model_domain,    ONLY: t_patch
   USE mo_decomposition_tools, ONLY: t_grid_domain_decomp_info
   USE mo_parallel_config, ONLY: nproma
@@ -42,8 +42,10 @@ MODULE mo_coupling_utils
     &                           timer_coupling_init_def_comp, &
     &                           timer_coupling_init_enddef
   USE mo_impl_constants,  ONLY: MAX_CHAR_LENGTH
+  USE mo_util_table,      ONLY: t_table, initialize_table, add_table_column, &
+    &                           set_table_entry, print_table, finalize_table
 #ifdef YAC_coupling
-  USE mo_mpi,             ONLY: p_comm_yac, p_comm_work
+  USE mo_mpi,             ONLY: p_comm_yac, p_comm_work, my_process_is_stdio
   USE yac,                ONLY: yac_finit, yac_finit_comm, &
     &                           yac_fread_config_yaml, &
     &                           yac_ffinalize, yac_fdef_comp, &
@@ -68,7 +70,10 @@ MODULE mo_coupling_utils
     &                           YAC_ACTION_COUPLING, &
     &                           YAC_ACTION_PUT_FOR_RESTART, &
     &                           YAC_ACTION_GET_FOR_RESTART, &
-    &                           YAC_ACTION_OUT_OF_BOUND
+    &                           YAC_ACTION_OUT_OF_BOUND, &
+    &                           yac_string, &
+    &                           yac_fget_comp_names, yac_fget_grid_names, yac_fget_field_names, &
+    &                           yac_fget_field_id, yac_fget_field_timestep
   USE mpi
 #endif
 
@@ -91,6 +96,7 @@ MODULE mo_coupling_utils
   PUBLIC :: cpl_put_field
   PUBLIC :: cpl_sync_def
   PUBLIC :: cpl_enddef
+  PUBLIC :: cpl_write_config_info
 
   CHARACTER(LEN=*), PARAMETER :: yaml_filename = "coupling.yaml"
 
@@ -207,6 +213,160 @@ CONTAINS
     cpl_get_instance_id = yac_instance_id
 
   END FUNCTION cpl_get_instance_id
+
+
+  !
+  ! Write information about coupler configuration to stdout
+  !
+  SUBROUTINE cpl_write_config_info(caller, my_comp_name, my_grid_name)
+    CHARACTER(LEN=*), INTENT(IN) :: caller             ! name of the calling routine (for debugging)
+    CHARACTER(LEN=*), INTENT(IN) :: my_comp_name       ! component for which the config info is requested
+    CHARACTER(LEN=*), INTENT(IN) :: my_grid_name       ! grid for which the config info is requested
+
+#ifdef YAC_coupling
+    ! local
+    CHARACTER(len=*), PARAMETER ::  &
+      &  routine = modname//':cpl_write_config_info'
+
+    INTEGER :: nbr_comp, nbr_grid, nbr_field
+    INTEGER :: i, my_comp_id, my_grid_id
+    INTEGER :: field_id
+    CHARACTER(len=:), ALLOCATABLE:: field_datetime ! coupling startdate
+    CHARACTER(len=:), ALLOCATABLE:: field_timestep
+    INTEGER, PARAMETER :: UNDEF = -1
+    TYPE(yac_string), ALLOCATABLE :: comp_names(:)
+    TYPE(yac_string), ALLOCATABLE :: grid_names(:)
+    TYPE(yac_string), ALLOCATABLE :: field_names(:)
+
+    ! get names of all registered components
+    comp_names = yac_fget_comp_names(yac_instance_id)
+    nbr_comp = SIZE(comp_names)
+    ! get names of all registered grids
+    grid_names = yac_fget_grid_names(yac_instance_id)
+    nbr_grid = SIZE(grid_names)
+
+    ! check availability of my component
+    my_comp_id = UNDEF
+    DO i=1,nbr_comp
+      IF (TRIM(comp_names(i)%string) == TRIM(my_comp_name)) THEN
+        my_comp_id = i
+        EXIT
+      ENDIF
+    ENDDO
+    IF (my_comp_id==UNDEF) CALL finish(routine, "No matching component found")
+
+    ! check availability of my grid
+    my_grid_id = UNDEF
+    DO i=1,nbr_grid
+      IF (TRIM(grid_names(i)%string) == TRIM(my_grid_name)) THEN
+        my_grid_id = i
+        EXIT
+      ENDIF
+    ENDDO
+    IF (my_grid_id==UNDEF) CALL finish(routine, "No matching grid name found")
+
+    ! get all registered fields for my component and my grid
+    field_names = yac_fget_field_names(yac_instance_id, TRIM(my_comp_name), TRIM(my_grid_name))
+    nbr_field = SIZE(field_names)
+
+    ! In the following we assume that all registered coupling fields have the same
+    ! field datetime. This is ensured by the routine construct_X_Y_coupling_finalize,
+    ! stored in the module mo_X_Y_coupling. Hence, it is sufficient at this point
+    ! to request the datetime information for a single field.
+    field_id = yac_fget_field_id(yac_instance_id, TRIM(my_comp_name), TRIM(my_grid_name), &
+      &                          TRIM(field_names(1)%string))
+
+    ! get coupling startdate
+    field_datetime = yac_fget_field_datetime(field_id)
+    ! get field timestep (not to be confused with the coupling period!)
+    field_timestep = yac_fget_field_timestep(field_id)
+
+    ! write configuration details to stdout
+    CALL cpl_write_config()
+
+    CONTAINS
+
+    !
+    ! Write YAC configuration details to stdout for given component
+    !
+    SUBROUTINE cpl_write_config
+
+      TYPE(t_table) :: table
+      CHARACTER(LEN=*), PARAMETER :: colAtt  = 'Attribute',  &
+        &                            colVal  = 'Value'
+      INTEGER :: irow
+
+      ! will only be executed by stdio process
+      IF(.NOT. my_process_is_stdio()) RETURN
+
+      ! poor man's table header
+      WRITE (0,*) " " ! newline
+      WRITE(message_text,'(a,a)') 'YAC configuration details for ', TRIM(my_comp_name)
+      CALL message('', message_text)
+
+      ! table-based output
+      CALL initialize_table(table)
+      CALL add_table_column(table, colAtt)
+      CALL add_table_column(table, colVal)
+
+
+      irow = 1
+      CALL set_table_entry(table, irow, colAtt, 'Components')
+      CALL set_table_entry(table, irow, colVal, TRIM(comp_names(1)%string))
+      !
+      DO i=2,nbr_comp
+        irow = irow+1
+        CALL set_table_entry(table, irow, colAtt, ' ')
+        CALL set_table_entry(table, irow, colVal, TRIM(comp_names(i)%string))
+      ENDDO
+
+      irow = irow+1
+      CALL set_table_entry(table, irow, colAtt, 'Grids')
+      CALL set_table_entry(table, irow, colVal, TRIM(grid_names(1)%string))
+      !
+      DO i=2,nbr_grid
+        irow = irow+1
+        CALL set_table_entry(table, irow, colAtt, ' ')
+        CALL set_table_entry(table, irow, colVal, TRIM(grid_names(i)%string))
+      ENDDO
+
+      irow = irow+1
+      CALL set_table_entry(table, irow, colAtt, 'My component')
+      CALL set_table_entry(table, irow, colVal, TRIM(my_comp_name))
+
+      irow = irow+1
+      CALL set_table_entry(table, irow, colAtt, 'My grid')
+      CALL set_table_entry(table, irow, colVal, TRIM(my_grid_name))
+
+      irow = irow+1
+      CALL set_table_entry(table, irow, colAtt, 'Coupling fields')
+      CALL set_table_entry(table, irow, colVal, TRIM(field_names(1)%string))
+      !
+      DO i=2,nbr_field
+        irow = irow+1
+        CALL set_table_entry(table, irow, colAtt, ' ')
+        CALL set_table_entry(table, irow, colVal, TRIM(field_names(i)%string))
+      ENDDO
+
+      irow = irow+1
+      CALL set_table_entry(table, irow, colAtt, 'Coupling startdate')
+      CALL set_table_entry(table, irow, colVal, TRIM(field_datetime))
+
+      irow = irow+1
+      CALL set_table_entry(table, irow, colAtt, 'Field timestep')
+      CALL set_table_entry(table, irow, colVal, TRIM(field_timestep))
+
+      CALL print_table(table, opt_delimiter=' | ')
+      CALL finalize_table(table)
+
+      WRITE (0,*) " " ! newline
+
+    END SUBROUTINE cpl_write_config
+
+! YAC_coupling
+#endif
+  END SUBROUTINE cpl_write_config_info
+
 
   SUBROUTINE def_patch( &
     p_patch, grid_name, grid_id, cell_point_id, vertex_point_id)

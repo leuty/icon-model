@@ -20,6 +20,14 @@ NWP Physics:
                                                                  https://gitlab.dkrz.de/icon/icon-nwp/-/merge_requests/1627)
 - Tuning option to reduce activity of grayzone deep convection, to be used in ICON-D2 (https://gitlab.dkrz.de/icon/icon-nwp/-/merge_requests/1614)
 - Update visibility diagnostic to be consistent with icpl_rad_reff=1 (typical RUC settings) (https://gitlab.dkrz.de/icon/icon-nwp/-/merge_requests/1604)
+- Aerosol-cloud interaction for cloudice2mom using ART dust for ice nucleation (Aerosol-cloud interaction for cloudice2mom using ART dust for ice nucleation)
+- Reducing the complexity of the operational turbulence scheme for NWP (https://gitlab.dkrz.de/icon/icon-nwp/-/merge_requests/1671,
+                                                                        https://gitlab.dkrz.de/icon/icon-nwp/-/merge_requests/1694,
+                                                                        https://gitlab.dkrz.de/icon/icon-nwp/-/merge_requests/1697)
+- modularized version of TERRA, including water budget fixes (https://gitlab.dkrz.de/icon/icon-nwp/-/merge_requests/1487,
+                                                             https://gitlab.dkrz.de/icon/icon-nwp/-/merge_requests/1696)
+- Implementation of new CAMS climatology (https://gitlab.dkrz.de/icon/icon-nwp/-/merge_requests/1632)
+- EMVORADO: Bugfix call to polarimetric dbz diagnostic in case of Tmatrix (https://gitlab.dkrz.de/icon/icon-nwp/-/merge_requests/1681)
 
 ### ICON-Ocean
 
@@ -35,7 +43,11 @@ NWP Physics:
 ### ICON-Wave
 
 - Memory layout and runtime improvements (https://gitlab.dkrz.de/icon/icon-nwp/-/merge_requests/1657,
-                                          https://gitlab.dkrz.de/icon/icon-nwp/-/merge_requests/1661)
+                                          https://gitlab.dkrz.de/icon/icon-nwp/-/merge_requests/1661,
+                                          https://gitlab.dkrz.de/icon/icon-nwp/-/merge_requests/1663,
+                                          https://gitlab.dkrz.de/icon/icon-nwp/-/merge_requests/1668)
+- Revision of wave-atmosphere coupling (https://gitlab.dkrz.de/icon/icon-nwp/-/merge_requests/1669)
+- Support for wave initialization and coupling with timeshift (https://gitlab.dkrz.de/icon/icon-nwp/-/merge_requests/1677)
 - Bug fix: asynchronous output writing in in coupled mode (https://gitlab.dkrz.de/icon/icon-nwp/-/merge_requests/1623)
 
 ### Soil and Surface
@@ -115,6 +127,7 @@ Climate: ICON-Land
 - Remove hard-coded double-precision settings (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/590)
 - Fix the generation of index lists on GPUs for LAM and nested simulation runs
 - Single-precision support in IO components (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/680)
+- Remove more i_am_accel_node (https://gitlab.dkrz.de/icon/icon-nwp/-/merge_requests/1679)
 
 #### Coupling
 
@@ -145,6 +158,7 @@ Climate: ICON-Land
                                                        https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/694)
 - New path for input data for the ocean buildbot test that is run on mpim sites (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/687)
 - mkexp for amip r2b8 at Levante GPUs with distributed I/O (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/598)
+- Check Memory consumption on NEC (https://gitlab.dkrz.de/icon/icon-nwp/-/merge_requests/1399)
 
 #### Building
 

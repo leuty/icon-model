@@ -15,7 +15,7 @@
 make_and_change_to_experiment_dir # function in ../add_run_routines
 
 OMP_NUM_THREADS=1
-if [ ${BB_NAME} = 'dwd_nec_hybrid' ]; then
+if [[ "$with_openmp" = "yes" ]] ; then
   OMP_NUM_THREADS=2
   let PPN=${CPE}*${NE}/${OMP_NUM_THREADS}         # no. of MPI procs. per NQS job
   let NE1=${NE}-1

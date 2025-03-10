@@ -388,6 +388,17 @@ CONTAINS
           IF (icpl_aero_ice == 1 .AND. .NOT. ANY(irad_aero == (/iRadAeroTegen, iRadAeroCAMSclim, iRadAeroCAMStd/) ) ) &
             & CALL finish(routine,'icpl_aero_ice = 1 requires irad_aero= 6,7 or 8')
 
+          ! check ice nucleation settings for two-moment cloud ice scheme (gscp=3)
+          IF ( (icpl_aero_ice == 2 .OR. icpl_aero_ice == 3 .OR. icpl_aero_ice == 4) .AND. atm_phy_nwp_config(jg)%inwp_gscp /= 3 ) &
+             & CALL finish(routine,'icpl_aero_ice = 2, 3 or 4 requires inwp_gscp = 3')
+          
+          ! check ice nucleation settings for two-moment cloud ice scheme (gscp=3)
+          IF ( (icpl_aero_ice == 3 .OR. icpl_aero_ice == 4) .AND. .not.lart ) &
+               & CALL finish(routine,'icpl_aero_ice = 3 or 4 requires lart=.true.')
+          
+          IF ( icpl_aero_ice == 1 .AND. atm_phy_nwp_config(jg)%inwp_gscp == 3 ) &
+               & CALL finish(routine,'icpl_aero_ice = 1 not supported for inwp_gscp = 3')
+          
 #ifdef _OPENACC
           IF ( icpl_aero_ice == 1 ) THEN
             CALL finish(routine,'DeMott ice nucleation icpl_aero_ice > 0 is currently not supported on GPU.')

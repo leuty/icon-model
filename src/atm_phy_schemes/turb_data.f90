@@ -97,7 +97,7 @@ LOGICAL, PARAMETER :: &
    !Note: The VRRL-treatment is not yet complete!
 
    ltst2ml =.FALSE., &   !test required, whether  2m-level is above the lowest main-level
-   ltst10ml=.FALSE.      !test required, whether 10m-level is above the lowest main-level
+   ltst10ml=.FALSE.      !test required, whether 10m-level is above the lowest half-level
 
    !Attention: 
    !So far, the  2m-level is assumed to be always below the lowest main-level,
@@ -127,13 +127,11 @@ REAL (KIND=wp)     ::        &
 
   ditsmot      =  0.00_wp,   & ! smoothing factor for direct time-step iteration
 
-  tndsmot      =  0.00_wp,   & ! vertical smoothing factor for diffusion tendencies
   frcsmot      =  0.00_wp,   & ! vertical smoothing factor for TKE forcing (in ICON only in the tropics)
   tkesmot      =  0.15_wp,   & ! time smoothing factor for TKE and diffusion coefficients
-  stbsmot      =  0.00_wp,   & ! time smoothing factor for stability function
   frcsecu      =  1.00_wp,   & ! security factor for TKE-forcing       (<=1)
   tkesecu      =  1.00_wp,   & ! security factor in  TKE equation      (out of [0; 1])
-  stbsecu      =  0.00_wp,   & ! security factor in stability function (out of [0; 1])
+  stbsecu      =  0.01_wp,   & ! security factor in stability function (out of ]0; 1])
   prfsecu      =  0.50_wp,   & ! relat. secur. fact. for prof. funct.  (out of ]0; 1[)
 
   epsi         =  1.0E-6_wp    ! relative limit of accuracy for comparison of numbers
@@ -155,9 +153,14 @@ REAL (KIND=wp)     ::        &
 
   rat_can      =  1.0_wp,    & ! ratio of canopy height over sai*z0m
 
-  ! scaling factor for additional shear-forcing by Non-Turbulent subgrid Circulations (NTCs)
-  ! or via Lower Limits of Diffusion-Coefficients (LLDCs) in the surface layer:
+  ! scaling factor (out of [0, 1]) representing the considered fraction of additional shear-forcing by 
+  !  Non-Turbulent subgrid Circulations (NTCs) or via Lower Limits of Diffusion-Coefficients (LLDCs)
+  !  being transmitted from level "P" (k=ke) to level "0" (k=ke1): top of R-layer by Land-Use (LU):
   rsur_sher    =  0.0_wp,    & ! (so far deactivated)
+  ! Notice:
+  ! Through "rsur_sher>0", a related amplification of shear-forcing at the surface is active.
+  ! The LLDC-part is only included, if it is considered to substitue missing shear-forcing,
+  !  which is expressed by "imode_tkemini=2"!
 
   z0m_dia      =  0.2_wp,    & ! roughness length of a typical synoptic station [m]
 
@@ -202,6 +205,7 @@ REAL (KIND=wp)     ::        &
   len_min      =  1.0E-6_wp, & ! minimal turbulent length scale [m]
 
   vel_min      =  0.01_wp,   & ! minimal velocity scale [m/s]
+  vel_max      =  30.0_wp,   & ! maximal velocity scale [m/s]
 
   akt          =  0.4_wp,    & ! von Karman-constant
 
@@ -240,8 +244,6 @@ REAL (KIND=wp)     ::        &
 ! ----------------------------------------------------------------------------
 
 LOGICAL :: &
-  loldtur       =.FALSE., & ! use settings to simulate old ijk turbulence version
-                            ! if .TRUE.: new ICON-like settings are used
   ltkecon       =.FALSE., & ! consider convective buoyancy production in TKE-equation
   ltkeshs       =.TRUE. , & ! consider separ. horiz. shear production in TKE-equation
   loutshs       =.TRUE. , & ! consider separ. horiz. shear production of TKE for output
@@ -252,10 +254,6 @@ LOGICAL :: &
 !    Output of additional TKE production terms:
   loutbms       =.FALSE., & ! consider TKE-production by turbulent buoyancy, total mechanical shear
                             !  or grid-scale mechanical shear for additional output
-
-  lnonloc       =.FALSE., & ! nonlocal calculation of vertical gradients used for turbul. diff.
-  lprfcor       =.FALSE., & ! using the profile values of the lowest main level instead of
-                            ! the mean value of the lowest layer for surface flux calulations
 
   ltmpcor       =.FALSE., & ! consideration minor turbulent sources in the enthalpy budget 
   lcpfluc       =.FALSE.    ! consideration of fluctuations of the heat capacity of air
@@ -269,14 +267,7 @@ LOGICAL :: &
 ! Notice that the following switches are provided by the parameter-list of 
 ! SUB 'turbdiff' or 'turbtran':
 
-! lstfnct                   :calculation of stability function required
 ! lnsfdia                   :calculation of (synoptical) near-surface variables required
-!! lmomdif (obsolete)       :calculation of complete gradient diffusion of horizontal momenum
-! lum_dif                   :calculation of vertical gradient diffusion of horizontal u-momenum
-! lum_dif                   :calculation of vertical gradient diffusion of horizontal v-momenum
-! lscadif                   :calculation of complete gradient diffusion of scalar properties
-! lturatm                   :running turbulence model between atmosph. layers (updating diffusion coefficients)
-!!ltursrf (obsolete)        :running turbulence model at the surface layer (updating transfer coefficients
 ! lsfluse                   :use explicit heat flux densities at the suface
 ! ltkeinp                   :TKE present as input (at level k=ke1 for current time level 'ntur')
 ! lgz0inp                   :gz0 present as input
@@ -305,27 +296,15 @@ INTEGER :: &
                       ! 1: previous plus horizontal shear correction
                       ! 2: previous plus shear from vertical velocity
 
-! To reproduce the old ijk turbulence settings as good as possible, all these switches 
-! have to be set to 1. If loldtur=.TRUE., the re-setting is done in organize_physics.
-
 ! These are the settings for the ICON-like setup of the physics
 INTEGER :: &
-! imode_stbcorr =2, & ! mode of correcting the stability function (related to 'stbsecu')
-  imode_stbcorr =1, & ! mode of correcting the stability function (related to 'stbsecu')
-                      ! 1: always for strict.-non-stb. strat. using a restr. 'gama' in terms of prev. forc.
-                      ! 2: only to avoid non-physic. solution or if current 'gama' is too large
+  imode_stbcalc =1, & ! mode of calculating the stability function (related to 'stbsecu')
+                      ! (-)1: always for unstable strat. using a restr. 'gama' in terms of prev. forc.
+                      ! (-)2: only to avoid non-physic. solution or if current 'gama' is too large
+                      ! negative values for additional preconditioning
   ilow_def_cond =2, & ! type of the default condition at the lower boundary
                       ! 1: zero surface gradient 
                       ! 2: zero surface value
-  imode_calcirc =2, & ! mode of treating the raw "circulation term" (related to 'pat_len', imode_pat_len')
-                      ! 1: explicit calculation of the flux convergence
-                      ! 2: quasi implicit treatment by calculation of effective TKE-gradients
-
-  !Note: 
-  !The theoretical background of the "circulation term" has meanwhile been fundamentally revised.
-  !Accordingly, it is going to be substituted by two complementary approaches:
-  !i) a thermal SSO parameterization and ii) a new "circulation term" due to thermal surface patterns.
-  !Hence in the following, the still active raw parameterization is referred to as raw "circulation term".
 
   imode_pat_len =2, & ! mode of determining a length scale of surface patterns used for the "circulation-term" 
                       !  and additional roughness by tile-variation of land-use:
@@ -333,6 +312,13 @@ INTEGER :: &
                       !    - raw "circulation term" considered as to be due to thermal surface-patterns.
                       ! 2: using the standard deviat. of SGS orography as a lower limit 
                       !    - raw "circulation term" considered as to be due to thermal SSO effect,
+
+  !Note: 
+  !The theoretical background of the "circulation term" has meanwhile been fundamentally revised.
+  !Accordingly, it is going to be substituted by two complementary approaches:
+  !i) a thermal SSO parameterization and ii) a new "circulation term" due to thermal surface patterns.
+  !Hence in the following, the still active raw parameterization is referred to as raw "circulation term".
+
   imode_frcsmot =2, & ! if "frcsmot>0", apply smoothing of TKE source terms 
                       ! 1: globally or 
                       ! 2: in the tropics only (if 'trop_mask' is present) 
@@ -368,52 +354,36 @@ INTEGER :: &
                       ! 1: Considering a fictive surface roughness of a SYNOP lawn
                       ! 2: Considering the mean surface roughness of a grid box
                       !    and using an exponential roughness layer profile
-  imode_2m_diag =2, & ! mode of 2m-diagnostics of temperature and dew-point (related to 'itype_2m_diag')
-                      ! (-)1: direct interpolation of temperature and specific humidity
-                      ! (-)2: interpol. of conserved quantities and subsequent statistical saturation adjustm.,
-                      !       allowing particularly for the diagnostic of cloud water at the 2m-level (fog)
-                      !  > 0: extra pressure-calculat. at 2m-level
-                      !  < 0: surface pressure applied at 2m-level
-  imode_nsf_wind=1, & ! mode of local wind-definition at near-surface levels (applied for 10m wind
-                      !  diagnostics as well as for calculation of sea-surface roughness)
+  imode_nsf_wind=1, & ! mode of local wind-definition at near-surface levels
+                      !  (applied for 10m wind-diagnostics as well as for calculation of sea-surface roughness)
                       ! 1: ordinary wind speed (magnitude of grid-scale averaged wind-vector)
-                      ! 2: including relative wind-speed amplification by NTCs  (at "rsur_shear>0")
-                      !                                        or even by LLDCs (at "imode_suradap=3")
-  imode_qvsatur =2, & ! mode of calculating the saturat. humidity
-                      ! 1: old version using total pressure
-                      ! 2: new version using partial pressure of dry air
+                      ! 2: local wind speed related to additional surface-shear by NTCs|LLDCs (at "rsur_sher>0")
   imode_stadlim =2, & ! mode of limitting statist. saturation adjustment (SUB 'turb_cloud')
                       ! 1: only absolut upper limit of stand. dev. of local super-satur. (sdsd)
                       ! 2: relative limit of sdsd and upper limit of cloud-water
   imode_trancnf =2, & ! mode of configuring the transfer-scheme (SUB 'turbtran')
-                      ! 1: old version: start. with lamin. diffus.; with a lamin. correct. for profile-funct.;
-                      !    interpol. T_s rather then Tet_l onto zero-level; calcul. only approx. Tet_l-grads.;
-                      !    using an upper bound for TKE-forcing; without transmit. skin-layer depth to turbul.
+                      ![1: eliminated (old version)]
                       ! 2: 1-st ConSAT: start. with estim. Ustar, without a laminar correct. for prof.-funct.;
-                      !    interpol. Tet_l onto zero-level; calcul. Tet_l-gradients directly; 
+                      !    interpol. Tet_l onto "0"-level; calcul. Tet_l-gradients directly; 
                       !    without an upper bound for TKE-forcing; with transmit. skin-layer depth to turbul.
                       ! 3: 2-nd ConSAT: as "2", but with a hyperbolic interpol. of profile function
                       !    for stable stratification
                       ! 4: 3-rd ConSAT: as "3", but without using an upper interpolation node
-  imode_lamdiff =1, & ! mode of considering laminar diffusion at surface layer
-                      ! 1: not applied for the profile functions in case of "imode_trancnf.GE.2"
-                      ! 2: always applied
-  imode_tkemini =1, & ! mode of adapting q=2TKE**2 and the TMod. to Lower Limits for Diff. Coeffs. (LLDCs)
+  imode_lamdiff =1, & ! mode of considering laminar diffusion within the surface layer
+                      ! 1: only a limitation of "0"-level DCs at calculating resistnance-lenght values for the R-layer
+                      ! 2: laminar limit of full transfer-resistance values
+  imode_tkemini =1, & ! mode of adapting q=SQRT(2*TKE) and the TMod. to Lower Limits for Diff. Coeffs. (LLDCs)
                       ! 1: LLDC treated as corrections of stability length without any further adaptation
                       ! 2: TKE adapted to that part of LLDC representing so far missing shear forcing, while the
                       !     assumed part of LLDC representing missing drag-forces has no feedback to the TMod.
-                      !Notice:
-                      !Above the surface layer, the TKE-adaption of "imode_tkemini=2" is always applied
-                      ! in case of "rsur_sher>0"!
-  imode_suradap =0, & ! mode of adapting surface-layer profile-functions to Lower Limits of Diff. Coeffs. (LLDCs)
+                      ! 3: Tuned variant of "2" that is suitable for operational forecasts
+  imode_suradap =0, & ! mode of adapting the Diff. Coeff. (DC) at Half-Level (HL) "P" (k=ke) or "0" (k=ke1) as input
+                      ! of the surface-layer profile-function (between levels "0" and "P")
                       ! 0: no adaptations at all
-                      ! 1: removing the artific. drag contrib. by the LLDC for momentum at level "k=ke"
-                      ! 2: "1" and also removing  shear contrib. by LLDCs at level "k=ke" 
-                      ! 3: "1" and employing shear contrib. by LLDCs at surface-level "k=ke1"
-                      !Notice:
-                      !Any shear contrib. by NTCs or LLDCs is only considered at surf.-lev., if "rsur_sher.GT.0".
+                      ! 1: removing the artific. drag  contribut. by Lower Limits of DCs (LLDCs) for momentum at "P"-level
+                      ! 2: "1" and including not transmitted shear contributions by LLDCs and NTCs to DCs at level "0"
   imode_tkediff =2, & ! mode of implicit TKE-Diffusion (related to 'c_diff')
-                      ! 1: in terms of q=SQRT(2*TKE)) 
+                      ! 1: in terms of q=SQRT(2*TKE)
                       ! 2: in terms of TKE=0.5*q**2
   imode_adshear =2    ! mode of considering addit. shear by scale interaction (realt. to 'ltkesso', 'ltkeshs',
                       ! 'ltkecon', 'ltkenst')
@@ -515,14 +485,12 @@ SUBROUTINE get_turbdiff_param (jg)
    imode_shshear= turbdiff_config(jg)%imode_shshear
    imode_frcsmot= turbdiff_config(jg)%imode_frcsmot
    imode_tkesso = turbdiff_config(jg)%imode_tkesso
+   imode_tkemini= turbdiff_config(jg)%imode_tkemini
 
    ltkesso      = turbdiff_config(jg)%ltkesso
    ltkecon      = turbdiff_config(jg)%ltkecon
    ltkeshs      = turbdiff_config(jg)%ltkeshs
-   lexpcor      = turbdiff_config(jg)%lexpcor
    ltmpcor      = turbdiff_config(jg)%ltmpcor
-   lprfcor      = turbdiff_config(jg)%lprfcor
-   lnonloc      = turbdiff_config(jg)%lnonloc
    lfreeslip    = turbdiff_config(jg)%lfreeslip
    lcpfluc      = turbdiff_config(jg)%lcpfluc
    lsflcnd      = turbdiff_config(jg)%lsflcnd

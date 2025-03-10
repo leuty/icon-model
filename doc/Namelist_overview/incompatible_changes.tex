@@ -583,9 +583,15 @@ from ...mpi\_phy... to ...echam\_phy... because programmers felt that the acrony
   \end{itemize}
 \end{changeitem}
 
-\begin{changeitem}{dynamics\_nml}{2023-12-11}{icon-nwp:master xxx}
+\begin{changeitem}{dynamics\_nml}{2023-12-11}{icon-nwp:master a1a19a69}
   \begin{itemize}
    \item Remove Namelist switch \texttt{iequations}. This switch became obsolete, as there exists only one set of governing equations for the atmosphere and ocean each.
+  \end{itemize}
+\end{changeitem}
+
+\begin{changeitem}{lnd\_nml}{2025-02-10}{icon-nwp:master xxx}
+  \begin{itemize}
+    \item Remove \texttt{itype\_interception=2} option. The namelist switch \texttt{itype\_interception} is still accepted but the model is aborted when set to a value different from $1$.
   \end{itemize}
 \end{changeitem}
 % --------------------------------------------------------------------------------------------

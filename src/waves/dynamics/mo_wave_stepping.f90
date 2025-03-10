@@ -53,7 +53,7 @@ MODULE mo_wave_stepping
   USE mo_wave_forcing,             ONLY: t_read_wave_forcing
   USE mo_wave_events,              ONLY: waveCheckpointEvent, waveRestartEvent
   USE mo_wave_td_update,           ONLY: update_speed_and_direction, update_ice_free_mask, &
-    &                                    update_water_depth
+    &                                    update_water_depth_and_grad
   USE mo_wave_advection_stepping,  ONLY: wave_step_advection
   USE mo_coupling_config,          ONLY: is_coupled_to_atmo
   USE mo_timer,                    ONLY: ltimer, timer_start, timer_stop, timer_coupling, timers_level
@@ -99,6 +99,7 @@ CONTAINS
     ! will lose its association status.
     TYPE(t_read_wave_forcing), ALLOCATABLE, TARGET :: reader_wave_forcing(:)
     INTEGER                  :: jstep                       !< time step number
+    INTEGER                  :: jstep_shift                 !< number of time steps for backward shifting
     LOGICAL                  :: lprint_timestep             !< print current datetime information
     LOGICAL                  :: lprint_wave_stats           !< print wave height information
     INTEGER                  :: jg, jlev
@@ -198,12 +199,14 @@ CONTAINS
             &                dir_osc          = wave_forcing_state(jg)%dir_soce_c,    & !out
             &                ice_free_mask_c  = wave_forcing_state(jg)%ice_free_mask_c) !out
 
-          ! update depth
-          CALL update_water_depth(p_patch      = p_patch(jg),                        & !in
-            &                     bathymetry_c = wave_ext_data(jg)%bathymetry_c,     & !in
-            &                     sea_level_c  = wave_forcing_state(jg)%sea_level_c, & !in
-            &                     depth_c      = wave_ext_data(jg)%depth_c)            !out
-
+          ! update depth and gradient
+          CALL update_water_depth_and_grad(p_patch = p_patch(jg),                        & !in
+            &                     p_int_state      = p_int_state(jg),                    & !in
+            &                     bathymetry_c     = wave_ext_data(jg)%bathymetry_c,     & !in
+            &                     sea_level_c      = wave_forcing_state(jg)%sea_level_c, & !in
+            &                     depth_c          = wave_ext_data(jg)%depth_c,          & !out
+            &                     depth_e          = wave_ext_data(jg)%depth_e,          & !out
+            &                     geo_depth_grad_c = wave_ext_data(jg)%geo_depth_grad_c)   !out
         ELSE
 
           WRITE(message_text,'(a,a,a)') 'No forcing files specified, testcase run is assumed.'
@@ -259,7 +262,7 @@ CONTAINS
           &  fp          = p_wave_state(jg)%diag%fp(:,:),                 & !in
           &  alphaj      = p_wave_state(jg)%diag%alphaj(:,:),             & !in
           &  et          = p_wave_state(jg)%diag%et(:,:,:),               & !out  ! purely diagnostic
-          &  tracer      = p_wave_state(jg)%prog(n_now)%tracer(:,:,:))    !out
+          &  tracer      = p_wave_state(jg)%prog(n_now)%tracer(:,:,:,:))    !out
       END IF
 
 
@@ -273,7 +276,7 @@ CONTAINS
       CALL compute_wave_number(                            &
         &  p_patch     = p_patch(jg),                      & !in
         &  wave_config = wave_config(jg),                  & !in
-        &  depth_c     = wave_ext_data(jg)%bathymetry_c,   & !in
+        &  depth_c     = wave_ext_data(jg)%depth_c,        & !in
         &  depth_e     = wave_ext_data(jg)%depth_e,        & !in
         &  wave_num_c  = p_wave_state(jg)%diag%wave_num_c, & !out
         &  wave_num_e  = p_wave_state(jg)%diag%wave_num_e  ) !out
@@ -285,12 +288,10 @@ CONTAINS
         &  wave_config  = wave_config(jg),                  & !in
         &  wave_num_c   = p_wave_state(jg)%diag%wave_num_c, & !in
         &  wave_num_e   = p_wave_state(jg)%diag%wave_num_e, & !in
-        &  bathymetry_c = wave_ext_data(jg)%bathymetry_c,   & !in
+        &  depth_c      = wave_ext_data(jg)%depth_c,        & !in
         &  depth_e      = wave_ext_data(jg)%depth_e,        & !in
         &  gv_c         = p_wave_state(jg)%diag%gv_c,       & !out
-        &  gv_e         = p_wave_state(jg)%diag%gv_e,       & !out
-        &  gvn_e        = p_wave_state(jg)%diag%gvn_e,      & !out
-        &  gvt_e        = p_wave_state(jg)%diag%gvt_e       ) !out
+        &  gv_e         = p_wave_state(jg)%diag%gv_e)         !out
 
     END DO
 
@@ -301,9 +302,20 @@ CONTAINS
       CALL restartAttributes%get("jstep", jstep)
 
     ELSE  ! no restart, or isInitFromRestart
+
       ! initialize time step counter
       !
-      jstep = 0
+      IF (time_config%timeshift%dt_shift < 0._wp) THEN
+        ! get model time step in seconds for base domain
+        dtime = time_config%get_model_timestep_sec(p_patch(1)%nest_level)
+        jstep_shift = NINT(time_config%timeshift%dt_shift/dtime)
+        jstep = jstep_shift
+        !
+        WRITE(message_text,'(a,i6,a)') 'Model start shifted backwards by ', ABS(jstep_shift),' time steps'
+        CALL message(routine, message_text)
+      ELSE
+        jstep = 0
+      ENDIF
 
       DO jg = 1,n_dom
         IF (.NOT. p_patch(jg)%ldom_active) CYCLE
@@ -359,8 +371,10 @@ CONTAINS
       CALL pp_scheduler_process(simulation_status, lacc=.TRUE.)
 
       ! output at initial time
-      IF (output_mode%l_nml) THEN
-        CALL write_name_list_output(jstep=jstep)
+      !
+      ! Ensure that the initial output is skipped for model runs with shifted start date
+      IF (output_mode%l_nml .AND. (mtime_current >= time_config%tc_exp_startdate) ) THEN
+        CALL write_name_list_output(jstep=0)
       END IF
 
     ENDIF  ! isRestart
@@ -435,11 +449,14 @@ CONTAINS
               &                dir_osc          = wave_forcing_state(jg)%dir_soce_c,    & !out
               &                ice_free_mask_c  = wave_forcing_state(jg)%ice_free_mask_c) !out
 
-            ! update depth
-            CALL update_water_depth(p_patch = p_patch(jg),                        & ! IN
-              &          bathymetry_c = wave_ext_data(jg)%bathymetry_c,     & ! IN
-              &           sea_level_c = wave_forcing_state(jg)%sea_level_c, & ! IN
-              &               depth_c = wave_ext_data(jg)%depth_c)            ! OUT
+            ! update depth and gradient
+            CALL update_water_depth_and_grad(p_patch = p_patch(jg),                        & !in
+              &                     p_int_state      = p_int_state(jg),                    & !in
+              &                     bathymetry_c     = wave_ext_data(jg)%bathymetry_c,     & !in
+              &                     sea_level_c      = wave_forcing_state(jg)%sea_level_c, & !in
+              &                     depth_c          = wave_ext_data(jg)%depth_c,          & !out
+              &                     depth_e          = wave_ext_data(jg)%depth_e,          & !out
+              &                     geo_depth_grad_c = wave_ext_data(jg)%geo_depth_grad_c)   !out
 
           END IF
         END IF ! is_coupled_to_atmo()
@@ -462,11 +479,9 @@ CONTAINS
             &                      p_dtime                   = dtime,                                 & !in
             &                      wave_num_c                = p_wave_state(jg)%diag%wave_num_c,      & !in
             &                      gv_c                      = p_wave_state(jg)%diag%gv_c,            & !in
-            &                      bathymetry_c              = wave_ext_data(jg)%bathymetry_c,        & !in
+            &                      gv_e                      = p_wave_state(jg)%diag%gv_e,            & !in
+            &                      depth_c                   = wave_ext_data(jg)%depth_c,             & !in
             &                      geo_depth_grad_c          = wave_ext_data(jg)%geo_depth_grad_c,    & !in
-            &                      p_mflx_h                  = p_wave_state(jg)%diag%gvn_e,           & !in
-            &                      p_vn_traj                 = p_wave_state(jg)%diag%gvn_e,           & !in
-            &                      p_vt_traj                 = p_wave_state(jg)%diag%gvt_e,           & !in
             &                      p_tracer_now              = p_wave_state(jg)%prog(n_now)%tracer,   & !in
             &                      p_tracer_new              = p_wave_state(jg)%prog(n_new)%tracer    ) !out
         ELSE
@@ -557,7 +572,7 @@ CONTAINS
         ! Impose high frequency tail to the spectrum
         CALL impose_high_freq_tail(p_patch(jg), wave_config(jg), &
              p_wave_state(jg)%diag%wave_num_c,         & !IN
-             wave_ext_data(jg)%bathymetry_c,           & !IN
+             wave_ext_data(jg)%depth_c,                & !IN
              p_wave_state(jg)%diag%last_prog_freq_ind, & !IN
              p_wave_state(jg)%prog(n_new)%tracer)        !INOUT
 
@@ -607,7 +622,7 @@ CONTAINS
           CALL src_nonlinear_transfer(                            &
             &  p_patch     = p_patch(jg),                         & !in
             &  wave_config = wave_config(jg),                     & !in
-            &  depth       = wave_ext_data(jg)%bathymetry_c,      & !in
+            &  depth       = wave_ext_data(jg)%depth_c,           & !in
             &  tracer      = p_wave_state(jg)%prog(n_new)%tracer, & !in
             &  p_diag      = p_wave_state(jg)%diag,               & !in
             &  p_source    = p_wave_state(jg)%source)               !inout: fl,sl
@@ -622,17 +637,17 @@ CONTAINS
             &  p_patch     = p_patch(jg),                         & !in
             &  wave_config = wave_config(jg),                     & !in
             &  wave_num_c  = p_wave_state(jg)%diag%wave_num_c,    & !in
-            &  depth       = wave_ext_data(jg)%bathymetry_c,      & !in
+            &  depth       = wave_ext_data(jg)%depth_c,           & !in
             &  tracer      = p_wave_state(jg)%prog(n_new)%tracer, & !in
             &  p_source    = p_wave_state(jg)%source)               !inout: fl, sl
         END IF
 
         ! Calculate dissipation due to depth-induced wave breaking
         IF (wave_config(jg)%lwave_brk_sf) THEN
-          CALL src_wave_breaking(                               &
+          CALL src_wave_breaking(                                 &
             &  p_patch     = p_patch(jg),                         & !in
             &  wave_config = wave_config(jg),                     & !in
-            &  depth_c     = wave_ext_data(jg)%bathymetry_c,      & !in
+            &  depth_c     = wave_ext_data(jg)%depth_c,           & !in
             &  tracer      = p_wave_state(jg)%prog(n_new)%tracer, & !in
             &  p_diag      = p_wave_state(jg)%diag,               & !inout, in: emean, f1mean out: hrms_frac, wbr_frac
             &  p_source    = p_wave_state(jg)%source)               !inout: fl, sl
@@ -676,7 +691,7 @@ CONTAINS
 
         CALL impose_high_freq_tail(p_patch(jg), wave_config(jg), &
              p_wave_state(jg)%diag%wave_num_c,         & !IN
-             wave_ext_data(jg)%bathymetry_c,           & !IN
+             wave_ext_data(jg)%depth_c,                & !IN
              p_wave_state(jg)%diag%last_prog_freq_ind, & !IN
              p_wave_state(jg)%prog(n_new)%tracer)        !INOUT
 
@@ -737,7 +752,7 @@ CONTAINS
       CALL pp_scheduler_process(simulation_status, lacc=.TRUE.)
 
 
-      IF (output_mode%l_nml) THEN
+      IF (l_nml_output) THEN
         CALL write_name_list_output(jstep=jstep)
       END IF
 

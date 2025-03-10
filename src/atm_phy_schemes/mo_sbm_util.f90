@@ -1180,6 +1180,9 @@ MODULE mo_sbm_util
       !CALL message('mo_sbm_util',TRIM(txt))
       !WRITE (message_text,'(1X,A,D10.3)') 'Ncn0=',ccn_coeffs%Ncn0
       !CALL message('pavel Ncn0',TRIM(message_text))
+      IF (tune_sbmccn < 1.0_wp) THEN
+        atm_phy_nwp_config(jg)%cfg_2mom%ccn_type = 6
+      END IF      
       IF (jg == 1) CALL two_moment_mcrph_init(igscp=4, msg_level=msg_level, cfg_2mom=atm_phy_nwp_config(jg)%cfg_2mom)
     END IF
 

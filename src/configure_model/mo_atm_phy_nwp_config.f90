@@ -30,6 +30,7 @@ MODULE mo_atm_phy_nwp_config
   USE mo_vertical_coord_table,ONLY: vct_a
   USE mo_time_config,         ONLY: t_time_config
   USE mo_radiation_config,    ONLY: irad_o3
+  USE mo_turbdiff_config,     ONLY: turbdiff_config
 #ifndef __NO_ICON_LES__
   USE mo_les_config,          ONLY: configure_les, les_config
 #endif
@@ -161,6 +162,8 @@ MODULE mo_atm_phy_nwp_config
     LOGICAL :: lhydrom_read_from_ana(1:20) ! Flag for each hydrometeor tracer, if it has been read from ana file
 
     LOGICAL :: luse_clc_rad
+    LOGICAL :: lcalc_dissip_heat   ! Flag to determine whether dissipative heating related to SSO and GWD
+                                   ! is calculated in the NWP interface
 
 #ifndef __NO_ICON_LES__
     LOGICAL :: is_les_phy          !>TRUE is turbulence is 3D 
@@ -360,6 +363,10 @@ CONTAINS
       ELSE
         atm_phy_nwp_config(jg)%luse_clc_rad = .FALSE.
       END IF
+
+      ! ltmpcor activates the calculation of dissipative heating in turbdiff;
+      ! to prevent double-counting, the respective calculations for SSO and GWD need to be skipped
+      atm_phy_nwp_config(jg)%lcalc_dissip_heat = .NOT. turbdiff_config(jg)%ltmpcor
 
       ! Switch off stochastic convection for horizontal resolution greater than 20km
       IF ((atm_phy_nwp_config(jg)%lstoch_sde .or. atm_phy_nwp_config(jg)%lstoch_expl) .and. &

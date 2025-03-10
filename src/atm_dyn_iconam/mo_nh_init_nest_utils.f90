@@ -35,6 +35,7 @@ MODULE mo_nh_init_nest_utils
   USE mo_grf_bdyintp,           ONLY: interpol_scal_grf, interpol2_vec_grf
   USE mo_grid_config,           ONLY: lfeedback, ifeedback_type
   USE mo_exception,             ONLY: message, message_text
+  USE mo_fortran_tools,         ONLY: init
   USE mo_mpi,                   ONLY: my_process_is_mpi_parallel
   USE mo_communication,         ONLY: exchange_data, exchange_data_mult
   USE mo_sync,                  ONLY: sync_patch_array, sync_patch_array_mult, &
@@ -50,6 +51,8 @@ MODULE mo_nh_init_nest_utils
     &                                 itype_snowevap, dzsoil, frsi_min
   USE mo_initicon_config,       ONLY: icpl_da_sfcevap, icpl_da_skinc, icpl_da_sfcfric
   USE mo_atm_phy_nwp_config,    ONLY: atm_phy_nwp_config, iprog_aero
+  USE mo_nwp_tuning_config,     ONLY: itune_gust_diag
+  USE mo_radiation_config,      ONLY: islope_rad
   USE mo_interpol_config,       ONLY: nudge_zone_width
   USE mo_ext_data_types,        ONLY: t_external_data
   USE mo_nh_diagnose_pres_temp, ONLY: diagnose_pres_temp
@@ -59,6 +62,7 @@ MODULE mo_nh_init_nest_utils
   USE mo_input_instructions,    ONLY: t_readInstructionListPtr, kStateFailedFetch, &
     &                                 kInputSourceAnaI, kInputSourceFgAnaI, kInputSourceAna, &
     &                                 kInputSourceBoth
+  USE mo_io_config,             ONLY: var_in_output, uh_max_nlayer, luh_max_out
 
   IMPLICIT NONE
 
@@ -125,21 +129,22 @@ MODULE mo_nh_init_nest_utils
     INTEGER :: nshift      ! difference between upper boundary of parent or feedback-parent
                            ! domain and upper boundary of child domain (in terms
                            ! of vertical levels)
-    INTEGER :: num_lndvars, num_wtrvars, num_phdiagvars
+    INTEGER :: num_lndvars, num_wtrvars, num_phdiagvars, num_phdiagvars_npd
 
     ! Local arrays for variables living on the local parent grid in the MPI case. These have
     ! to be allocatable because their dimensions differ between MPI and non-MPI runs
     REAL(wp), ALLOCATABLE, DIMENSION(:,:,:)   :: vn_lp, w_lp, thv_pr_lp, rho_pr_lp, phdiag_lp, &
-                                                 lndvars_lp, wtrvars_lp, aero_lp
+                                                 lndvars_lp, wtrvars_lp, aero_lp, phdiag_npd_lp
     REAL(wp), ALLOCATABLE, DIMENSION(:,:,:,:) :: tracer_lp
 
     ! Local arrays on the parent or child grid. These would not have to be allocatable,
     ! but the computational overhead does not matter for an initialization routine
     REAL(wp), ALLOCATABLE, DIMENSION(:,:,:)   :: thv_pr_par, rho_pr_par, lndvars_par, lndvars_chi, &
-                                                 wtrvars_par, wtrvars_chi, phdiag_par, phdiag_chi
+                                                 wtrvars_par, wtrvars_chi, phdiag_par, phdiag_chi, &
+                                                 phdiag_npd_par, phdiag_npd_chi
     REAL(wp), ALLOCATABLE :: tsfc_ref_p(:,:), tsfc_ref_c(:,:) ! Reference temperature at lowest level
 
-    LOGICAL :: l_parallel, l_limit(ntracer)
+    LOGICAL :: l_parallel, l_limit(ntracer), lextra_diag
 
     INTEGER :: i_count, ic, ist
 
@@ -187,6 +192,9 @@ MODULE mo_nh_init_nest_utils
     ! shift between upper model boundaries
     nshift = p_pc%nshift
 
+    ! Additional 3D diagnostics
+    lextra_diag = ANY(luh_max_out(jg, :))  .OR.  ANY(luh_max_out(jgc, :))
+
     ! number of land and water variables to be interpolated
     ! Remark (GZ): the multi-layer snow variables are initialized afterwards in terra_multlay_init. This
     ! turned out to cause occasional conflicts with directly interpolating those variables here; thus
@@ -196,16 +204,19 @@ MODULE mo_nh_init_nest_utils
                                        ! snow_age, t_avginc, t_sk, rh_avginc, t_wgt_avginc, rh_daywgt_avginc, t_daywgt_avginc, vabs_avginc
                                        ! + aux variable for lake temp
     num_wtrvars  = 6                   ! water state fields + fr_seaice + alb_si
-    num_phdiagvars = 32                ! number of physics diagnostic variables (copied from interpol_phys_grf)
+    num_phdiagvars = 59                ! number of positive-definite physics diagnostic variables
+    num_phdiagvars_npd = 16+uh_max_nlayer ! number of other (non-positive-definite) physics diagnostic variables
 
     ALLOCATE(thv_pr_par  (nproma, nlev_p,      p_patch(jg)%nblks_c), &
              rho_pr_par  (nproma, nlev_p,      p_patch(jg)%nblks_c), &
              lndvars_par (nproma, num_lndvars, p_patch(jg)%nblks_c), &
              wtrvars_par (nproma, num_wtrvars, p_patch(jg)%nblks_c), &
              phdiag_par  (nproma, num_phdiagvars, p_patch(jg)%nblks_c), &
+             phdiag_npd_par(nproma, num_phdiagvars_npd, p_patch(jg)%nblks_c), &
              lndvars_chi (nproma, num_lndvars, p_patch(jgc)%nblks_c),&
              wtrvars_chi (nproma, num_wtrvars, p_patch(jgc)%nblks_c),&
              phdiag_chi  (nproma, num_phdiagvars, p_patch(jgc)%nblks_c),&
+             phdiag_npd_chi (nproma, num_phdiagvars_npd, p_patch(jgc)%nblks_c),&
              tsfc_ref_p  (nproma,              p_patch(jg)%nblks_c), &
              tsfc_ref_c  (nproma,              p_patch(jgc)%nblks_c) )
 
@@ -215,6 +226,7 @@ MODULE mo_nh_init_nest_utils
              thv_pr_lp  (nproma, nlev_p,      p_pp%nblks_c),          &
              rho_pr_lp  (nproma, nlev_p,      p_pp%nblks_c),          &
              phdiag_lp  (nproma, num_phdiagvars,p_pp%nblks_c),        &
+             phdiag_npd_lp (nproma, num_phdiagvars_npd,p_pp%nblks_c), &
              tracer_lp  (nproma, nlev_p,      p_pp%nblks_c, ntracer), &
              aero_lp    (nproma, nclass_aero, p_pp%nblks_c),          &
              lndvars_lp (nproma, num_lndvars, p_pp%nblks_c),          &
@@ -224,9 +236,11 @@ MODULE mo_nh_init_nest_utils
       lndvars_par  = 0._wp
       wtrvars_par  = 0._wp
       phdiag_par   = 0._wp
+      phdiag_npd_par = 0._wp
       lndvars_chi  = 0._wp
       wtrvars_chi  = 0._wp
       phdiag_chi   = 0._wp
+      phdiag_npd_chi = 0._wp
     ENDIF
 
 
@@ -288,7 +302,11 @@ MODULE mo_nh_init_nest_utils
     i_startblk = p_patch(jg)%cells%start_blk(grf_bdywidth_c+1,1)
     i_endblk   = p_patch(jg)%cells%end_blk(min_rlcell,i_nchdom)
 
-!$OMP DO PRIVATE(jb,i_startidx,i_endidx,jc,jk,jk1) ICON_OMP_DEFAULT_SCHEDULE
+    CALL init(phdiag_par, lacc=.FALSE.)
+    CALL init(phdiag_npd_par, lacc=.FALSE.)
+!$OMP BARRIER
+
+!$OMP DO PRIVATE(jb,i_startidx,i_endidx,jc,jk,jk1,jt) ICON_OMP_DEFAULT_SCHEDULE
     DO jb = i_startblk, i_endblk
 
       CALL get_indices_c(p_patch(jg), jb, i_startblk, i_endblk, &
@@ -335,33 +353,121 @@ MODULE mo_nh_init_nest_utils
           phdiag_par(jc,19,jb) = prm_diag(jg)%qv_2m(jc,jb)
           phdiag_par(jc,20,jb) = prm_diag(jg)%td_2m(jc,jb)
           phdiag_par(jc,21,jb) = prm_diag(jg)%rh_2m(jc,jb)
-          phdiag_par(jc,22,jb) = prm_diag(jg)%u_10m(jc,jb)
-          phdiag_par(jc,23,jb) = prm_diag(jg)%v_10m(jc,jb)
+          phdiag_par(jc,22,jb) = prm_diag(jg)%prec_gsp_d(jc,jb)
+          phdiag_par(jc,23,jb) = prm_diag(jg)%prec_con_d(jc,jb)
           IF (atm_phy_nwp_config(jg)%lhave_graupel) THEN
             phdiag_par(jc,24,jb) = prm_diag(jg)%graupel_gsp(jc,jb)
             phdiag_par(jc,25,jb) = prm_diag(jg)%graupel_gsp_rate(jc,jb)
-          ELSE
-            phdiag_par(jc,24,jb) = 0._wp
-            phdiag_par(jc,25,jb) = 0._wp
           END IF
           IF (atm_phy_nwp_config(jg)%l2moment) THEN
             phdiag_par(jc,26,jb) = prm_diag(jg)%hail_gsp(jc,jb)
             phdiag_par(jc,27,jb) = prm_diag(jg)%hail_gsp_rate(jc,jb)
-          ELSE
-            phdiag_par(jc,26,jb) = 0._wp
-            phdiag_par(jc,27,jb) = 0._wp
           ENDIF
           IF (ANY((/1,2,4,5,6,7,8/) == atm_phy_nwp_config(jg)%inwp_gscp)) THEN
             phdiag_par(jc,28,jb) = prm_diag(jg)%ice_gsp(jc,jb)
             phdiag_par(jc,29,jb) = prm_diag(jg)%ice_gsp_rate(jc,jb)
-          ELSE
-            phdiag_par(jc,28,jb) = 0._wp
-            phdiag_par(jc,29,jb) = 0._wp
           END IF
           phdiag_par(jc,30,jb) = prm_diag(jg)%tot_prec_d(jc,jb)
-          phdiag_par(jc,31,jb) = prm_diag(jg)%prec_gsp_d(jc,jb)
-          phdiag_par(jc,32,jb) = prm_diag(jg)%prec_con_d(jc,jb)
+          phdiag_par(jc,31,jb) = prm_diag(jg)%swflxsfc_a(jc,jb)
+          phdiag_par(jc,32,jb) = prm_diag(jg)%asodifd_s(jc,jb)
+          phdiag_par(jc,33,jb) = prm_diag(jg)%asodifu_s(jc,jb)
+          phdiag_par(jc,34,jb) = prm_diag(jg)%athu_s(jc,jb)
+          phdiag_par(jc,35,jb) = prm_diag(jg)%athd_s(jc,jb)
+          phdiag_par(jc,36,jb) = prm_diag(jg)%swflxtoa_a(jc,jb)
+          phdiag_par(jc,37,jb) = prm_diag(jg)%asod_t(jc,jb)
+          phdiag_par(jc,38,jb) = prm_diag(jg)%asod_s(jc,jb)
+          phdiag_par(jc,39,jb) = prm_diag(jg)%asou_t(jc,jb)
+          phdiag_par(jc,40,jb) = prm_diag(jg)%asodird_s(jc,jb)
+          phdiag_par(jc,41,jb) = prm_diag(jg)%aswflx_par_sfc(jc,jb)
+          phdiag_par(jc,42,jb) = prm_diag(jg)%swflxclrsfc_a(jc,jb)
+
+          ! Fields for slope-dependent radiation; these need to be filled with the uncorrected
+          ! fields when the slope-dependent radiation is not active in the parent domain
+          IF (islope_rad(jgc) > 0 .AND. islope_rad(jg) > 0) THEN
+            phdiag_par(jc,43,jb) = prm_diag(jg)%swflxsfc_a_os(jc,jb)
+            phdiag_par(jc,44,jb) = prm_diag(jg)%swflxsfc_a_tan_os(jc,jb)
+            phdiag_par(jc,45,jb) = prm_diag(jg)%asodird_s_os(jc,jb)
+            phdiag_par(jc,46,jb) = prm_diag(jg)%asodird_s_tan_os(jc,jb)
+            phdiag_par(jc,47,jb) = prm_diag(jg)%asod_s_os(jc,jb)
+            phdiag_par(jc,48,jb) = prm_diag(jg)%asod_s_tan_os(jc,jb)
+            phdiag_par(jc,49,jb) = prm_diag(jg)%asodifu_s_os(jc,jb)
+            phdiag_par(jc,50,jb) = prm_diag(jg)%asodifu_s_tan_os(jc,jb)
+            phdiag_par(jc,51,jb) = prm_diag(jg)%aswflx_par_sfc_tan_os(jc,jb)
+          ELSE IF (islope_rad(jgc) > 0) THEN
+            phdiag_par(jc,43,jb) = prm_diag(jg)%swflxsfc_a(jc,jb)
+            phdiag_par(jc,44,jb) = prm_diag(jg)%swflxsfc_a(jc,jb)
+            phdiag_par(jc,45,jb) = prm_diag(jg)%asodird_s(jc,jb)
+            phdiag_par(jc,46,jb) = prm_diag(jg)%asodird_s(jc,jb)
+            phdiag_par(jc,47,jb) = prm_diag(jg)%asod_s(jc,jb)
+            phdiag_par(jc,48,jb) = prm_diag(jg)%asod_s(jc,jb)
+            phdiag_par(jc,49,jb) = prm_diag(jg)%asodifu_s(jc,jb)
+            phdiag_par(jc,50,jb) = prm_diag(jg)%asodifu_s(jc,jb)
+            phdiag_par(jc,51,jb) = prm_diag(jg)%aswflx_par_sfc(jc,jb)
+          ENDIF
+
+          IF (var_in_output(jg)%tot_pr_max) THEN
+            phdiag_par(jc,52,jb) = prm_diag(jg)%tot_pr_max(jc,jb)
+          ENDIF
+          IF (var_in_output(jg)%w_ctmax) THEN
+            phdiag_par(jc,53,jb) = prm_diag(jg)%w_ctmax(jc,jb)
+          ENDIF
+          IF (var_in_output(jg)%tcond_max) THEN
+            phdiag_par(jc,54,jb) = prm_diag(jg)%tcond_max(jc,jb)
+          ENDIF
+          IF (var_in_output(jg)%tcond10_max) THEN
+            phdiag_par(jc,55,jb) = prm_diag(jg)%tcond10_max(jc,jb)
+          ENDIF
+          IF (var_in_output(jg)%lpi_max) THEN
+            phdiag_par(jc,56,jb) = prm_diag(jg)%lpi_max(jc,jb)
+          ENDIF
+
+          phdiag_par(jc,57,jb) = prm_diag(jg)%tmax_2m(jc,jb)
+          phdiag_par(jc,58,jb) = prm_diag(jg)%tmin_2m(jc,jb)
+          phdiag_par(jc,59,jb) = prm_diag(jg)%gust10(jc,jb)
+
+
+          ! non-positive definite fields
+          phdiag_npd_par(jc,1,jb) = prm_diag(jg)%u_10m(jc,jb)
+          phdiag_npd_par(jc,2,jb) = prm_diag(jg)%v_10m(jc,jb)
+          phdiag_npd_par(jc,3,jb) = prm_diag(jg)%alhfl_s(jc,jb)
+          phdiag_npd_par(jc,4,jb) = prm_diag(jg)%alhfl_bs(jc,jb)
+          phdiag_npd_par(jc,5,jb) = prm_diag(jg)%ashfl_s(jc,jb)
+          phdiag_npd_par(jc,6,jb) = prm_diag(jg)%aqhfl_s(jc,jb)
+          phdiag_npd_par(jc,7,jb) = prm_diag(jg)%aumfl_s(jc,jb)
+          phdiag_npd_par(jc,8,jb) = prm_diag(jg)%avmfl_s(jc,jb)
+          phdiag_npd_par(jc,9,jb) = prm_diag(jg)%lwflxsfc_a(jc,jb)
+          phdiag_npd_par(jc,10,jb) = prm_diag(jg)%lwflxtoa_a(jc,jb)
+
+          IF (itune_gust_diag == 4) THEN
+            phdiag_npd_par(jc,11,jb) = prm_diag(jg)%u_10m_a(jc,jb)
+            phdiag_npd_par(jc,12,jb) = prm_diag(jg)%v_10m_a(jc,jb)
+          ENDIF
+          IF (var_in_output(jg)%vorw_ctmax) THEN
+            phdiag_npd_par(jc,13,jb) = prm_diag(jg)%vorw_ctmax(jc,jb)
+          ENDIF
+          IF (var_in_output(jg)%dbzcmax) THEN
+            phdiag_npd_par(jc,14,jb) = prm_diag(jg)%dbz_cmax(jc,jb)
+          ENDIF
+          IF (var_in_output(jg)%dbzctmax) THEN
+            phdiag_npd_par(jc,15,jb) = prm_diag(jg)%dbz_ctmax(jc,jb)
+          ENDIF
+          IF (var_in_output(jg)%dbzlmx_low) THEN
+            phdiag_npd_par(jc,16,jb) = prm_diag(jg)%dbzlmx_low(jc,jb)
+          ENDIF
+
         ENDDO
+
+        IF (lextra_diag) THEN
+          jt = 16
+          DO jk = 1, uh_max_nlayer
+            jt = jt+1
+            IF (ANY(luh_max_out(jg, :))) THEN
+              DO jc = i_startidx, i_endidx
+                phdiag_npd_par(jc,jt,jb) = prm_diag(jg)%uh_max_3d(jc,jb,jk)
+              ENDDO
+            ENDIF
+          ENDDO
+        ENDIF
       ENDIF
 
       IF (atm_phy_nwp_config(jg)%inwp_surface == 1) THEN
@@ -489,9 +595,11 @@ MODULE mo_nh_init_nest_utils
     ENDIF
 
     IF (iforcing == inwp) THEN
-      CALL sync_patch_array(SYNC_C,p_patch(jg),phdiag_par,lacc=.FALSE.)
+      CALL sync_patch_array_mult(SYNC_C,p_patch(jg),2,f3din1=phdiag_par,f3din2=phdiag_npd_par,lacc=.FALSE.)
       CALL interpol_scal_grf (p_pp=p_patch(jg), p_pc=p_pc, p_grf=p_grf_state(jg)%p_dom(i_chidx), nfields=1, lacc=.FALSE., &
-        f3din1=phdiag_par, f3dout1=phdiag_chi, lnoshift=.TRUE., nlev_ex=num_phdiagvars)
+        f3din1=phdiag_par, f3dout1=phdiag_chi, lnoshift=.TRUE., llimit_nneg=(/.TRUE./), nlev_ex=num_phdiagvars)
+      CALL interpol_scal_grf (p_pp=p_patch(jg), p_pc=p_pc, p_grf=p_grf_state(jg)%p_dom(i_chidx), nfields=1, lacc=.FALSE., &
+        f3din1=phdiag_npd_par, f3dout1=phdiag_npd_chi, lnoshift=.TRUE., nlev_ex=num_phdiagvars_npd)
     ENDIF
 
     IF (atm_phy_nwp_config(jg)%inwp_surface == 1) THEN
@@ -532,7 +640,10 @@ MODULE mo_nh_init_nest_utils
     ENDIF
 
     IF (iforcing == inwp) &
-      &      CALL exchange_data(p_pat=p_pp%comm_pat_glb_to_loc_c, lacc=.FALSE., RECV=phdiag_lp, SEND=phdiag_par)
+      &      CALL exchange_data_mult(p_pat=p_pp%comm_pat_glb_to_loc_c, lacc=.FALSE., nfields=2, &
+      &                              ndim2tot=num_phdiagvars+num_phdiagvars_npd,                &
+      &                              RECV1=phdiag_lp,     SEND1=phdiag_par,                     &
+      &                              RECV2=phdiag_npd_lp, SEND2=phdiag_npd_par                  )
 
     IF (atm_phy_nwp_config(jg)%inwp_surface == 1) &
       &      CALL exchange_data(p_pat=p_pp%comm_pat_glb_to_loc_c, lacc=.FALSE., RECV=lndvars_lp, SEND=lndvars_par)
@@ -587,9 +698,12 @@ MODULE mo_nh_init_nest_utils
 
     IF (iforcing == inwp) THEN
       IF(l_parallel) CALL exchange_data(p_pat=p_pp%comm_pat_c, lacc=.FALSE., recv=phdiag_lp)
-      CALL interpol_scal_nudging (p_pp, p_int, p_grf%p_dom(i_chidx), 0,      &
-                                  1, 1, lacc=.FALSE.,                        &
-                                  f3din1=phdiag_lp, f3dout1=phdiag_chi, overshoot_fac=1.005_wp )
+      IF(l_parallel) CALL exchange_data(p_pat=p_pp%comm_pat_c, lacc=.FALSE., recv=phdiag_npd_lp)
+      CALL interpol_scal_nudging (p_pp, p_int, p_grf%p_dom(i_chidx), 0,         &
+                                  2, 1, lacc=.FALSE., overshoot_fac=1.005_wp,   &
+                                  f3din1=phdiag_lp,     f3dout1=phdiag_chi,     &
+                                  f3din2=phdiag_npd_lp, f3dout2=phdiag_npd_chi, &
+                                  llimit_nneg=(/.TRUE.,.FALSE./) )
       CALL sync_patch_array(SYNC_C,p_pc,phdiag_chi,lacc=.FALSE.)
     ENDIF
 
@@ -683,8 +797,9 @@ MODULE mo_nh_init_nest_utils
           prm_diag(jgc)%qv_2m(jc,jb)          = phdiag_chi(jc,19,jb)
           prm_diag(jgc)%td_2m(jc,jb)          = phdiag_chi(jc,20,jb)
           prm_diag(jgc)%rh_2m(jc,jb)          = phdiag_chi(jc,21,jb)
-          prm_diag(jgc)%u_10m(jc,jb)          = phdiag_chi(jc,22,jb)
-          prm_diag(jgc)%v_10m(jc,jb)          = phdiag_chi(jc,23,jb)
+          prm_diag(jgc)%prec_gsp_d(jc,jb)     = phdiag_chi(jc,22,jb)
+          prm_diag(jgc)%prec_con_d(jc,jb)     = phdiag_chi(jc,23,jb)
+
           IF (atm_phy_nwp_config(jgc)%lhave_graupel) THEN
             prm_diag(jgc)%graupel_gsp(jc,jb)      = MAX(0._wp,phdiag_chi(jc,24,jb))
             prm_diag(jgc)%graupel_gsp_rate(jc,jb) = phdiag_chi(jc,25,jb)
@@ -697,11 +812,99 @@ MODULE mo_nh_init_nest_utils
             prm_diag(jgc)%ice_gsp(jc,jb)        = MAX(0._wp,phdiag_chi(jc,28,jb))
             prm_diag(jgc)%ice_gsp_rate(jc,jb)   = phdiag_chi(jc,29,jb)
           END IF
-          prm_diag(jgc)%tot_prec_d(jc,jb)      = MAX(0._wp,phdiag_chi(jc,30,jb))
-          prm_diag(jgc)%prec_gsp_d(jc,jb)      = MAX(0._wp,phdiag_chi(jc,31,jb))
-          prm_diag(jgc)%prec_con_d(jc,jb)      = MAX(0._wp,phdiag_chi(jc,32,jb))
+
+          prm_diag(jgc)%tot_prec_d(jc,jb)      = MAX(0._wp,phdiag_chi(jc,30,jb)) 
+          prm_diag(jgc)%swflxsfc_a(jc,jb)      = phdiag_chi(jc,31,jb)
+          prm_diag(jgc)%asodifd_s(jc,jb)       = phdiag_chi(jc,32,jb)
+          prm_diag(jgc)%asodifu_s(jc,jb)       = phdiag_chi(jc,33,jb)
+          prm_diag(jgc)%athu_s(jc,jb)          = phdiag_chi(jc,34,jb)
+          prm_diag(jgc)%athd_s(jc,jb)          = phdiag_chi(jc,35,jb)
+          prm_diag(jgc)%swflxtoa_a(jc,jb)      = phdiag_chi(jc,36,jb)
+          prm_diag(jgc)%asod_t(jc,jb)          = phdiag_chi(jc,37,jb)
+          prm_diag(jgc)%asod_s(jc,jb)          = phdiag_chi(jc,38,jb)
+          prm_diag(jgc)%asou_t(jc,jb)          = phdiag_chi(jc,39,jb)
+          prm_diag(jgc)%asodird_s(jc,jb)       = phdiag_chi(jc,40,jb)
+          prm_diag(jgc)%aswflx_par_sfc(jc,jb)  = phdiag_chi(jc,41,jb)
+          prm_diag(jgc)%swflxclrsfc_a(jc,jb)   = phdiag_chi(jc,42,jb)
+
+          ! Fields for slope-dependent radiation
+          IF (islope_rad(jgc) > 0) THEN
+            prm_diag(jgc)%swflxsfc_a_os(jc,jb)         = phdiag_chi(jc,43,jb)
+            prm_diag(jgc)%swflxsfc_a_tan_os(jc,jb)     = phdiag_chi(jc,44,jb)
+            prm_diag(jgc)%asodird_s_os(jc,jb)          = phdiag_chi(jc,45,jb)
+            prm_diag(jgc)%asodird_s_tan_os(jc,jb)      = phdiag_chi(jc,46,jb)
+            prm_diag(jgc)%asod_s_os(jc,jb)             = phdiag_chi(jc,47,jb)
+            prm_diag(jgc)%asod_s_tan_os(jc,jb)         = phdiag_chi(jc,48,jb)
+            prm_diag(jgc)%asodifu_s_os(jc,jb)          = phdiag_chi(jc,49,jb)
+            prm_diag(jgc)%asodifu_s_tan_os(jc,jb)      = phdiag_chi(jc,50,jb)
+            prm_diag(jgc)%aswflx_par_sfc_tan_os(jc,jb) = phdiag_chi(jc,51,jb)
+          ENDIF
+
+          IF (var_in_output(jg)%tot_pr_max) THEN
+            prm_diag(jgc)%tot_pr_max(jc,jb)   = phdiag_chi(jc,52,jb)
+          ENDIF
+          IF (var_in_output(jg)%w_ctmax) THEN
+            prm_diag(jgc)%w_ctmax(jc,jb)      = phdiag_chi(jc,53,jb) 
+          ENDIF
+          IF (var_in_output(jg)%tcond_max) THEN
+            prm_diag(jgc)%tcond_max(jc,jb)    = phdiag_chi(jc,54,jb)
+          ENDIF
+          IF (var_in_output(jg)%tcond10_max) THEN
+            prm_diag(jgc)%tcond10_max(jc,jb)  = phdiag_chi(jc,55,jb)
+          ENDIF
+          IF (var_in_output(jg)%lpi_max) THEN
+            prm_diag(jgc)%lpi_max(jc,jb)      = phdiag_chi(jc,56,jb)
+          ENDIF
+
+          prm_diag(jgc)%tmax_2m(jc,jb)     = phdiag_chi(jc,57,jb)
+          prm_diag(jgc)%tmin_2m(jc,jb)     = phdiag_chi(jc,58,jb)
+          prm_diag(jgc)%gust10(jc,jb)      = phdiag_chi(jc,59,jb)
+
+          ! non-positive definite fields
+          prm_diag(jgc)%u_10m(jc,jb)       = phdiag_npd_chi(jc,1,jb)
+          prm_diag(jgc)%v_10m(jc,jb)       = phdiag_npd_chi(jc,2,jb)
+          prm_diag(jgc)%alhfl_s(jc,jb)     = phdiag_npd_chi(jc,3,jb)
+          prm_diag(jgc)%alhfl_bs(jc,jb)    = phdiag_npd_chi(jc,4,jb)
+          prm_diag(jgc)%ashfl_s(jc,jb)     = phdiag_npd_chi(jc,5,jb)
+          prm_diag(jgc)%aqhfl_s(jc,jb)     = phdiag_npd_chi(jc,6,jb) 
+          prm_diag(jgc)%aumfl_s(jc,jb)     = phdiag_npd_chi(jc,7,jb)
+          prm_diag(jgc)%avmfl_s(jc,jb)     = phdiag_npd_chi(jc,8,jb)
+          prm_diag(jgc)%lwflxsfc_a(jc,jb)  = phdiag_npd_chi(jc,9,jb)
+          prm_diag(jgc)%lwflxtoa_a(jc,jb)  = phdiag_npd_chi(jc,10,jb)
+
+          IF (itune_gust_diag == 4) THEN
+            prm_diag(jgc)%u_10m_a(jc,jb)   = phdiag_npd_chi(jc,11,jb)
+            prm_diag(jgc)%v_10m_a(jc,jb)   = phdiag_npd_chi(jc,12,jb)
+          ENDIF
+          IF (var_in_output(jg)%vorw_ctmax) THEN
+            prm_diag(jgc)%vorw_ctmax(jc,jb)   = phdiag_npd_chi(jc,13,jb) 
+          ENDIF
+          IF (var_in_output(jg)%dbzcmax) THEN
+            prm_diag(jgc)%dbz_cmax(jc,jb)     = phdiag_npd_chi(jc,14,jb)
+          ENDIF
+          IF (var_in_output(jg)%dbzctmax) THEN
+            prm_diag(jgc)%dbz_ctmax(jc,jb)    = phdiag_npd_chi(jc,15,jb)
+          ENDIF
+          IF (var_in_output(jg)%dbzlmx_low) THEN
+            prm_diag(jgc)%dbzlmx_low(jc,jb)   = phdiag_npd_chi(jc,16,jb)
+          ENDIF
+
         ENDDO
+
+        IF (lextra_diag) THEN
+          jt = 16
+          DO jk = 1, uh_max_nlayer
+            jt = jt+1
+            IF (ANY(luh_max_out(jg, :))) THEN
+              DO jc = i_startidx, i_endidx
+                prm_diag(jgc)%uh_max_3d(jc,jb,jk)  = phdiag_npd_chi(jc,jt,jb)
+              ENDDO
+            ENDIF
+          ENDDO
+        ENDIF
+
       ENDIF
+
 
       IF (atm_phy_nwp_config(jgc)%inwp_surface == 1) THEN
         ! Distribute soil variables
@@ -852,7 +1055,8 @@ MODULE mo_nh_init_nest_utils
 
     DEALLOCATE(thv_pr_par, rho_pr_par, lndvars_par, wtrvars_par, phdiag_par, lndvars_chi, &
       &       wtrvars_chi, phdiag_chi, tsfc_ref_p, tsfc_ref_c, vn_lp, w_lp, thv_pr_lp   , &
-      &       rho_pr_lp, phdiag_lp, tracer_lp, lndvars_lp, wtrvars_lp, aero_lp)
+      &       rho_pr_lp, phdiag_lp, tracer_lp, lndvars_lp, wtrvars_lp, aero_lp,           &
+      &       phdiag_npd_par, phdiag_npd_chi, phdiag_npd_lp)
 
   END SUBROUTINE initialize_nest
 

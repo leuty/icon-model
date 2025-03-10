@@ -23,14 +23,14 @@
 
 MODULE mo_wave_source
 
-  USE mo_kind,                ONLY: wp
+  USE mo_kind,                ONLY: wp, vp
   USE mo_model_domain,        ONLY: t_patch
   USE mo_parallel_config,     ONLY: nproma
   USE mo_impl_constants,      ONLY: MAX_CHAR_LENGTH, min_rlcell
   USE mo_loopindices,         ONLY: get_indices_c
   USE mo_run_config,          ONLY: dtime
   USE mo_physical_constants,  ONLY: grav
-  USE mo_math_constants,      ONLY: deg2rad, pi2
+  USE mo_math_constants,      ONLY: pi2
   USE mo_wave_types,          ONLY: t_wave_source, t_wave_diag
   USE mo_wave_config,         ONLY: t_wave_config
   USE mo_wave_constants,      ONLY: DELTA, CONSS
@@ -106,13 +106,13 @@ CONTAINS
     TYPE(t_wave_diag),           INTENT(IN)    :: p_diag
     TYPE(t_wave_source),         INTENT(IN)    :: p_source
     REAL(wp),                    INTENT(IN)    :: dir10m(:,:)
-    REAL(wp),                    INTENT(INOUT) :: tracer(:,:,:)
+    REAL(wp),                    INTENT(INOUT) :: tracer(:,:,:,:)
 
     TYPE(t_wave_config), POINTER :: wc => NULL()
 
     INTEGER :: i_rlstart, i_rlend, i_startblk, i_endblk
     INTEGER :: i_startidx, i_endidx
-    INTEGER :: jb,jc,jf,jd,jt
+    INTEGER :: jb,jc,jf,jd
 
     REAL(wp) :: temp_1, temp_2, temp_3
     REAL(wp) :: sprd(nproma,wave_config%ndirs)
@@ -127,34 +127,31 @@ CONTAINS
     wc => wave_config
 
 !$OMP PARALLEL
-!$OMP DO PRIVATE(jc,jb,jf,jd,jt,i_startidx,i_endidx,delfl,sprd,temp_1,temp_2,temp_3) ICON_OMP_DEFAULT_SCHEDULE
+!$OMP DO PRIVATE(jc,jb,jf,jd,i_startidx,i_endidx,delfl,sprd,temp_1,temp_2,temp_3) ICON_OMP_DEFAULT_SCHEDULE
     DO jb = i_startblk, i_endblk
       CALL get_indices_c( p_patch, jb, i_startblk, i_endblk,           &
         &                 i_startidx, i_endidx, i_rlstart, i_rlend)
 
       DO jd = 1,wc%ndirs
         DO jc = i_startidx, i_endidx
-          sprd(jc,jd) = MAX(0._wp, COS(wc%dirs(jd)-dir10m(jc,jb)*deg2rad) )**2
+          sprd(jc,jd) = MAX(0._wp, COS(wc%dirs(jd)-dir10m(jc,jb)) )**2
         END DO
       END DO
 
       DO jf = 1,wc%nfreqs
         delfl = 5.0E-07_wp * grav / wc%freqs(jf)**4 * dtime
         DO jd = 1,wc%ndirs
-          !
-          jt = wc%tracer_ind(jd,jf)
-          !
           DO jc = i_startidx, i_endidx
             temp_2 = p_diag%ustar(jc,jb) * delfl &
                  &  * MAX(p_diag%femeanws(jc,jb),p_diag%femean(jc,jb))
 
-            temp_1 = dtime * p_source%sl(jc,jt,jb) &
-                 / MAX(1._wp, 1._wp -  dtime * wc%impl_fac * p_source%fl(jc,jt,jb))
+            temp_1 = dtime * p_source%sl(jc,jd,jb,jf) &
+                 / MAX(1._wp, 1._wp -  dtime * wc%impl_fac * p_source%fl(jc,jd,jb,jf))
 
             temp_3 = MIN(ABS(temp_1),temp_2)
 
-            tracer(jc,jt,jb) = tracer(jc,jt,jb)  + SIGN(temp_3,temp_1)
-            tracer(jc,jt,jb) = MAX(tracer(jc,jt,jb), p_diag%FLMINFR(jc,jf,jb)*sprd(jc,jd))
+            tracer(jc,jd,jb,jf) = tracer(jc,jd,jb,jf)  + SIGN(temp_3,temp_1)
+            tracer(jc,jd,jb,jf) = MAX(tracer(jc,jd,jb,jf), p_diag%FLMINFR(jc,jf,jb)*sprd(jc,jd))
           END DO
         END DO
       END DO
@@ -185,7 +182,7 @@ CONTAINS
     TYPE(t_patch),               INTENT(IN)    :: p_patch
     TYPE(t_wave_config), TARGET, INTENT(IN)    :: wave_config
     REAL(wp),                    INTENT(IN)    :: dir10m(:,:)
-    REAL(wp),                    INTENT(IN)    :: tracer(:,:,:)
+    REAL(wp),                    INTENT(IN)    :: tracer(:,:,:,:)
     TYPE(t_wave_diag),           INTENT(IN)    :: p_diag
     TYPE(t_wave_source),         INTENT(INOUT) :: p_source
 
@@ -193,7 +190,7 @@ CONTAINS
 
     INTEGER :: i_rlstart, i_rlend, i_startblk, i_endblk
     INTEGER :: i_startidx, i_endidx
-    INTEGER :: jb,jc,jf,jd,jt
+    INTEGER :: jb,jc,jf,jd
 
     REAL(wp) :: fac, const, const3, xk, cm, ucn, zcn(nproma), sh, cnsn
     REAL(wp) :: xv1d, temp(nproma,wave_config%ndirs), zbeta1, x, zlog, zlog2x, ufac
@@ -208,7 +205,7 @@ CONTAINS
     i_endblk   = p_patch%cells%end_block(i_rlend)
 
 !$OMP PARALLEL
-!$OMP DO PRIVATE(jc,jb,jf,jd,jt,i_startidx,i_endidx,fac,const,xk,cm,  &
+!$OMP DO PRIVATE(jc,jb,jf,jd,i_startidx,i_endidx,fac,const,xk,cm,  &
 !$OMP            ucn,zcn,sh,cnsn,xv1d,temp,zbeta1,x,zlog,zlog2x,ufac) ICON_OMP_DEFAULT_SCHEDULE
     DO jb = i_startblk, i_endblk
       CALL get_indices_c( p_patch, jb, i_startblk, i_endblk,           &
@@ -216,7 +213,7 @@ CONTAINS
 
       DO jd = 1,wc%ndirs
         DO jc = i_startidx, i_endidx
-          temp(jc,jd) = COS(wc%dirs(jd) - dir10m(jc,jb)*deg2rad)
+          temp(jc,jd) = COS(wc%dirs(jd) - dir10m(jc,jb))
         ENDDO
       ENDDO
 
@@ -229,8 +226,6 @@ CONTAINS
         ENDDO
 
         DIR:DO jd = 1,wc%ndirs
-          jt = wc%tracer_ind(jd,jf)
-
           DO jc = i_startidx, i_endidx
             xk = p_diag%wave_num_c(jc,jf,jb)
             cm = xk / fac
@@ -246,18 +241,18 @@ CONTAINS
               IF (zlog < 0._wp) THEN
                 zlog2x = zlog*zlog * x
                 ufac = EXP(zlog) * zlog2x*zlog2x + zbeta1
-                p_source%llws(jc,jt,jb) = 1
+                p_source%llws(jc,jd,jb,jf) = 1
               ELSE
                 ufac = zbeta1
-                p_source%llws(jc,jt,jb) = 0
+                p_source%llws(jc,jd,jb,jf) = 0
               END IF
             ELSE
               ufac = zbeta1
-              p_source%llws(jc,jt,jb) = 0
+              p_source%llws(jc,jd,jb,jf) = 0
             END IF
 
-            p_source%fl(jc,jt,jb) = cnsn * ufac
-            p_source%sl(jc,jt,jb) = tracer(jc,jt,jb) * p_source%fl(jc,jt,jb) !SL
+            p_source%fl(jc,jd,jb,jf) = cnsn * ufac
+            p_source%sl(jc,jd,jb,jf) = tracer(jc,jd,jb,jf) * p_source%fl(jc,jd,jb,jf) !SL
           END DO
         END DO DIR
       END DO FRE
@@ -293,7 +288,7 @@ CONTAINS
     TYPE(t_patch),               INTENT(IN)    :: p_patch
     TYPE(t_wave_config), TARGET, INTENT(IN)    :: wave_config
     REAL(wp),                    INTENT(IN)    :: wave_num_c(:,:,:) !< wave number (1/m)
-    REAL(wp),                    INTENT(IN)    :: tracer(:,:,:)
+    REAL(wp),                    INTENT(IN)    :: tracer(:,:,:,:)
     TYPE(t_wave_diag),           INTENT(IN)    :: p_diag
     TYPE(t_wave_source),         INTENT(INOUT) :: p_source
 
@@ -301,7 +296,7 @@ CONTAINS
 
     INTEGER :: i_rlstart, i_rlend, i_startblk, i_endblk
     INTEGER :: i_startidx, i_endidx
-    INTEGER :: jb,jc,jf,jd,jt
+    INTEGER :: jb,jc,jf,jd
 
     REAL(wp) :: sds(nproma), temp, sdiss
 
@@ -314,7 +309,7 @@ CONTAINS
     wc => wave_config
 
 !$OMP PARALLEL
-!$OMP DO PRIVATE(jb,jf,jd,jt,jc,sds,temp,sdiss,i_startidx,i_endidx) ICON_OMP_DEFAULT_SCHEDULE
+!$OMP DO PRIVATE(jb,jf,jd,jc,sds,temp,sdiss,i_startidx,i_endidx) ICON_OMP_DEFAULT_SCHEDULE
     DO jb = i_startblk, i_endblk
       CALL get_indices_c( p_patch, jb, i_startblk, i_endblk,           &
            &                 i_startidx, i_endidx, i_rlstart, i_rlend)
@@ -325,14 +320,13 @@ CONTAINS
 
       DO jf = 1,wc%nfreqs
         DO jd = 1, wc%ndirs
-          jt = wc%tracer_ind(jd,jf)
           DO jc = i_startidx, i_endidx
             temp = wave_num_c(jc,jf,jb) / p_diag%xkmean(jc,jb)
             temp = sds(jc) * ((1.0_wp - DELTA) * temp +  DELTA * temp**2)
-            sdiss = temp * tracer(jc,jt,jb)
+            sdiss = temp * tracer(jc,jd,jb,jf)
 
-            p_source%sl(jc,jt,jb) = p_source%sl(jc,jt,jb) + sdiss
-            p_source%fl(jc,jt,jb) = p_source%fl(jc,jt,jb) + temp
+            p_source%sl(jc,jd,jb,jf) = p_source%sl(jc,jd,jb,jf) + sdiss
+            p_source%fl(jc,jd,jb,jf) = p_source%fl(jc,jd,jb,jf) + temp
           END DO
         END DO
       END DO
@@ -362,7 +356,7 @@ CONTAINS
     TYPE(t_patch),       INTENT(IN)         :: p_patch
     TYPE(t_wave_config), TARGET, INTENT(IN) :: wave_config
     REAL(wp),            INTENT(IN)         :: depth_c(:,:)
-    REAL(wp),            INTENT(IN)         :: tracer(:,:,:)
+    REAL(wp),            INTENT(IN)         :: tracer(:,:,:,:)
     TYPE(t_wave_diag),   INTENT(INOUT)      :: p_diag
     TYPE(t_wave_source), INTENT(INOUT)      :: p_source
 
@@ -374,7 +368,7 @@ CONTAINS
 
     INTEGER :: i_rlstart, i_rlend, i_startblk, i_endblk
     INTEGER :: i_startidx, i_endidx
-    INTEGER :: jb,jc,jf,jd,jt
+    INTEGER :: jb,jc,jf,jd
 
     wc => wave_config
 
@@ -388,7 +382,7 @@ CONTAINS
       &                      p_diag%wbr_frac)    !OUT
 
 !$OMP PARALLEL
-!$OMP DO PRIVATE(jc,jb,jf,jd,jt,i_startidx,i_endidx,qb,sbr,dsbr) ICON_OMP_DEFAULT_SCHEDULE
+!$OMP DO PRIVATE(jc,jb,jf,jd,i_startidx,i_endidx,qb,sbr,dsbr) ICON_OMP_DEFAULT_SCHEDULE
     DO jb = i_startblk, i_endblk
       CALL get_indices_c( p_patch, jb, i_startblk, i_endblk,           &
         &                 i_startidx, i_endidx, i_rlstart, i_rlend)
@@ -413,12 +407,9 @@ CONTAINS
 
       DO jf = 1,wc%nfreqs
         DO jd = 1,wc%ndirs
-          !
-          jt = wc%tracer_ind(jd,jf)
-          !
           DO jc = i_startidx, i_endidx
-            p_source%sl(jc,jt,jb) = p_source%sl(jc,jt,jb) + sbr(jc) * tracer(jc,jt,jb)
-            p_source%fl(jc,jt,jb) = p_source%fl(jc,jt,jb) + dsbr(jc)
+            p_source%sl(jc,jd,jb,jf) = p_source%sl(jc,jd,jb,jf) + sbr(jc) * tracer(jc,jd,jb,jf)
+            p_source%fl(jc,jd,jb,jf) = p_source%fl(jc,jd,jb,jf) + dsbr(jc)
           END DO
         END DO
       END DO
@@ -528,14 +519,14 @@ CONTAINS
     TYPE(t_wave_config), TARGET, INTENT(IN)    :: wave_config
     REAL(wp),                    INTENT(IN)    :: wave_num_c(:,:,:) !< wave number (1/m)
     REAL(wp),                    INTENT(IN)    :: depth(:,:)
-    REAL(wp),                    INTENT(IN)    :: tracer(:,:,:)
+    REAL(wp),                    INTENT(IN)    :: tracer(:,:,:,:)
     TYPE(t_wave_source),         INTENT(INOUT) :: p_source
 
     TYPE(t_wave_config), POINTER :: wc => NULL()
 
     INTEGER :: i_rlstart, i_rlend, i_startblk, i_endblk
     INTEGER :: i_startidx, i_endidx
-    INTEGER :: jb,jc,jf,jd,jt
+    INTEGER :: jb,jc,jf,jd
 
     REAL(wp) :: const, tmp, sbo(nproma)
 
@@ -550,7 +541,7 @@ CONTAINS
     const = -2.0_wp*0.038_wp/grav
 
 !$OMP PARALLEL
-!$OMP DO PRIVATE(jb,jf,jd,jt,jc,tmp,sbo,i_startidx,i_endidx) ICON_OMP_DEFAULT_SCHEDULE
+!$OMP DO PRIVATE(jb,jf,jd,jc,tmp,sbo,i_startidx,i_endidx) ICON_OMP_DEFAULT_SCHEDULE
     DO jb = i_startblk, i_endblk
       CALL get_indices_c( p_patch, jb, i_startblk, i_endblk,           &
            &                 i_startidx, i_endidx, i_rlstart, i_rlend)
@@ -561,10 +552,9 @@ CONTAINS
         ENDDO
 
         DO jd = 1, wc%ndirs
-          jt = wc%tracer_ind(jd,jf)
           DO jc = i_startidx, i_endidx
-            p_source%sl(jc,jt,jb) = p_source%sl(jc,jt,jb) + sbo(jc)*tracer(jc,jt,jb)
-            p_source%fl(jc,jt,jb) = p_source%fl(jc,jt,jb) + sbo(jc)
+            p_source%sl(jc,jd,jb,jf) = p_source%sl(jc,jd,jb,jf) + sbo(jc)*tracer(jc,jd,jb,jf)
+            p_source%fl(jc,jd,jb,jf) = p_source%fl(jc,jd,jb,jf) + sbo(jc)
           END DO
         END DO
       END DO
@@ -596,13 +586,12 @@ CONTAINS
     TYPE(t_patch),               INTENT(IN)    :: p_patch
     TYPE(t_wave_config), TARGET, INTENT(IN)    :: wave_config
     REAL(wp),                    INTENT(IN)    :: depth(:,:)
-    REAL(wp),                    INTENT(IN)    :: tracer(:,:,:)
+    REAL(wp),                    INTENT(IN)    :: tracer(:,:,:,:)
     TYPE(t_wave_diag),           INTENT(IN)    :: p_diag
     TYPE(t_wave_source),         INTENT(INOUT) :: p_source
 
     ! local
     TYPE(t_wave_config), POINTER :: wc             => NULL()
-    INTEGER,             POINTER:: tr_idx(:,:,:,:) => NULL()
 
     INTEGER :: i_rlstart, i_rlend, i_startblk, i_endblk
     INTEGER :: i_startidx, i_endidx
@@ -610,21 +599,21 @@ CONTAINS
 
     INTEGER :: nfreqs, ndirs
     INTEGER :: MP, MP1, MM, MM1, IC, IP, IP1, IM, IM1, KH, K
+    INTEGER :: K1, K2, K11, K21
 
-    REAL(wp) :: FFACP, FFACP1, FFACM1, FTAIL, FKLAMP, FKLAMP1, GW1, GW2, GW3, GW4
-    REAL(wp) :: FKLAMPA, FKLAMPB, FKLAMP2, FKLAPA2, FKLAPB2, FKLAP12, FKLAP22
-    REAL(wp) :: FKLAMM, FKLAMM1, GW5, GW6, GW7, GW8, FKLAMMA, FKLAMMB, FKLAMM2
-    REAL(wp) :: FKLAMA2, FKLAMB2, FKLAM12, FKLAM22
-    REAL(wp) :: SAP, SAM, FIJ, FAD1, FAD2, FCEN
+    REAL(vp) :: FFACP, FFACP1, FFACM1, FTAIL, FKLAMP, FKLAMP1, GW1, GW2, GW3, GW4
+    REAL(vp) :: FKLAMPA, FKLAMPB, FKLAMP2, FKLAPA2, FKLAPB2, FKLAP12, FKLAP22
+    REAL(vp) :: FKLAMM, FKLAMM1, GW5, GW6, GW7, GW8, FKLAMMA, FKLAMMB, FKLAMM2
+    REAL(vp) :: FKLAMA2, FKLAMB2, FKLAM12, FKLAM22
+    REAL(vp) :: SAP, SAM, FIJ, FAD1, FAD2, FCEN
 
-    REAL(wp) :: AD
-    REAL(wp) :: DELAD, DELAP, DELAM
-    REAL(wp) :: FTEMP, ENHFR
+    REAL(vp) :: AD, FTEMP
+    REAL(vp) :: DELAD, DELAP, DELAM
+    REAL(vp) :: ENHFR, enh(nproma)
 
 
     ! convenience pointers
     wc     => wave_config
-    tr_idx => p_diag%non_lin_tr_ind(:,:,:,:)
     nfreqs = wc%nfreqs
     ndirs  = wc%ndirs
 
@@ -639,15 +628,16 @@ CONTAINS
 !$OMP           FFACP1,FFACM1,FTAIL,FKLAMP,FKLAMP1, GW1, GW2, GW3, GW4,FKLAMPA, FKLAMPB, &
 !$OMP           FKLAMP2, FKLAPA2, FKLAPB2, FKLAP12, FKLAP22, FKLAMM, FKLAMM1, GW5, GW6, &
 !$OMP           GW7, GW8, FKLAMMA, FKLAMMB, FKLAMM2,FKLAMA2, FKLAMB2, FKLAM12, FKLAM22, &
-!$OMP           SAP, SAM, FIJ, FAD1, FAD2, FCEN, AD, DELAD, DELAP, DELAM ) ICON_OMP_DEFAULT_SCHEDULE
+!$OMP           SAP, SAM, FIJ, FAD1, FAD2, FCEN, AD, DELAD, DELAP, DELAM,               &
+!$OMP           K1,K2,K11,K21, enh) ICON_OMP_DEFAULT_SCHEDULE
     ljb: DO jb = i_startblk, i_endblk
        CALL get_indices_c( p_patch, jb, i_startblk, i_endblk,           &
             &                 i_startidx, i_endidx, i_rlstart, i_rlend)
        DO jc = i_startidx, i_endidx
           ENHFR = MAX(0.75_wp*depth(jc,jb)*p_diag%AKMEAN(jc,jb), 0.5_wp)
-          ENHFR = 1.0_wp + (5.5_wp/ENHFR) * (1.0_wp-0.833_wp*ENHFR) &
-               &                * EXP(-1.25_wp*ENHFR)
-          p_diag%ENH(jc,jb) = ENHFR
+          ENHFR = 1.0_vp + (5.5_vp/ENHFR) * (1.0_wp-0.833_vp*ENHFR) &
+               &                * EXP(-1.25_vp*ENHFR)
+          enh(jc) = ENHFR
        END DO
 
       FRE4: DO jf = 1,nfreqs+4
@@ -655,10 +645,10 @@ CONTAINS
         MP1 = p_diag%IKP1(jf)
         MM  = p_diag%IKM (jf)
         MM1 = p_diag%IKM1(jf)
-        FFACP  = 1._wp
-        FFACP1 = 1._wp
-        FFACM1 = 1._wp
-        FTAIL  = 1._wp
+        FFACP  = 1._vp
+        FFACP1 = 1._vp
+        FFACM1 = 1._vp
+        FTAIL  = 1._vp
         IC  = jf
         IP  = MP
         IP1 = MP1
@@ -731,19 +721,24 @@ CONTAINS
                       !     2.1 LOOP FOR ANLULAR SYMMETRY.                            !
                       MIR2: DO KH = 1,2
 
-                         SAP = &
-                              GW1*tracer(jc,tr_idx(1,jf,KH,K),jb) + &
-                              GW2*tracer(jc,tr_idx(2,jf,KH,K),jb) + &
-                              GW3*tracer(jc,tr_idx(3,jf,KH,K),jb) + &
-                              GW4*tracer(jc,tr_idx(4,jf,KH,K),jb)
-                         SAM = &
-                              GW5*tracer(jc,tr_idx(5,jf,KH,K),jb) + &
-                              GW6*tracer(jc,tr_idx(6,jf,KH,K),jb) + &
-                              GW7*tracer(jc,tr_idx(7,jf,KH,K),jb) + &
-                              GW8*tracer(jc,tr_idx(8,jf,KH,K),jb)
+                         K1  = p_diag%K1W (K,KH)
+                         K2  = p_diag%K2W (K,KH)
+                         K11 = p_diag%K11W(K,KH)
+                         K21 = p_diag%K21W(K,KH)
 
-                         FTEMP = p_diag%AF11(jf) * p_diag%ENH(jc,jb)
-                         FIJ = tracer(jc,tr_idx(9,jf,KH,K),jb)*FTAIL
+                         SAP = &
+                              GW1*tracer(jc,K1 ,jb,IP ) + &
+                              GW2*tracer(jc,K11,jb,IP ) + &
+                              GW3*tracer(jc,K1 ,jb,IP1) + &
+                              GW4*tracer(jc,K11,jb,IP1)
+                         SAM = &
+                              GW5*tracer(jc,K2 ,jb,IM ) + &
+                              GW6*tracer(jc,K21,jb,IM ) + &
+                              GW7*tracer(jc,K2 ,jb,IM1) + &
+                              GW8*tracer(jc,K21,jb,IM1)
+
+                         FTEMP = p_diag%AF11(jf) * enh(jc)
+                         FIJ = tracer(jc,K,jb,IC)*FTAIL
                          FAD1 = FIJ*(SAP+SAM)
                          FAD2 = FAD1-2._wp*SAP*SAM
                          FAD1 = FAD1+FAD2
@@ -753,28 +748,29 @@ CONTAINS
                          DELAP = (FIJ-2._wp*SAM)*wc%DAL1*FCEN
                          DELAM = (FIJ-2._wp*SAP)*wc%DAL2*FCEN
 
-                         p_source%sl(jc,tr_idx(10,jf,KH,K),jb) = p_source%sl(jc,tr_idx(10,jf,KH,K),jb) + AD*FKLAMM1 !SL
-                         p_source%sl(jc,tr_idx(11,jf,KH,K),jb) = p_source%sl(jc,tr_idx(11,jf,KH,K),jb) + AD*FKLAMM2 !SL
-                         p_source%fl(jc,tr_idx(10,jf,KH,K),jb) = p_source%fl(jc,tr_idx(10,jf,KH,K),jb) + DELAM*FKLAM12 !FL
-                         p_source%fl(jc,tr_idx(11,jf,KH,K),jb) = p_source%fl(jc,tr_idx(11,jf,KH,K),jb) + DELAM*FKLAM22 !FL
+                         p_source%sl(jc,K2 ,jb,MM ) = p_source%sl(jc,K2 ,jb,MM ) + AD*FKLAMM1 !SL
+                         p_source%sl(jc,K21,jb,MM ) = p_source%sl(jc,K21,jb,MM ) + AD*FKLAMM2 !SL
+                         p_source%fl(jc,K2 ,jb,MM ) = p_source%fl(jc,K2 ,jb,MM ) + DELAM*FKLAM12 !FL
+                         p_source%fl(jc,K21,jb,MM ) = p_source%fl(jc,K21,jb,MM ) + DELAM*FKLAM22 !FL
 
-                         p_source%sl(jc,tr_idx(12,jf,KH,K),jb) = p_source%sl(jc,tr_idx(12,jf,KH,K),jb) + AD*FKLAMMA
-                         p_source%sl(jc,tr_idx(13,jf,KH,K),jb) = p_source%sl(jc,tr_idx(13,jf,KH,K),jb) + AD*FKLAMMB
-                         p_source%fl(jc,tr_idx(12,jf,KH,K),jb) = p_source%fl(jc,tr_idx(12,jf,KH,K),jb) + DELAM*FKLAMA2
-                         p_source%fl(jc,tr_idx(13,jf,KH,K),jb) = p_source%fl(jc,tr_idx(13,jf,KH,K),jb) + DELAM*FKLAMB2
+                         p_source%sl(jc,K2 ,jb,MM1) = p_source%sl(jc,K2 ,jb,MM1) + AD*FKLAMMA
+                         p_source%sl(jc,K21,jb,MM1) = p_source%sl(jc,K21,jb,MM1) + AD*FKLAMMB
+                         p_source%fl(jc,K2 ,jb,MM1) = p_source%fl(jc,K2 ,jb,MM1) + DELAM*FKLAMA2
+                         p_source%fl(jc,K21,jb,MM1) = p_source%fl(jc,K21,jb,MM1) + DELAM*FKLAMB2
 
-                         p_source%sl(jc,tr_idx(14,jf,KH,K),jb) = p_source%sl(jc,tr_idx(14,jf,KH,K),jb) - 2._wp*AD
-                         p_source%fl(jc,tr_idx(14,jf,KH,K),jb) = p_source%fl(jc,tr_idx(14,jf,KH,K),jb) - 2._wp*DELAD
+                         p_source%sl(jc,K  ,jb,jf ) = p_source%sl(jc,K  ,jb,jf ) - 2._wp*AD
+                         p_source%fl(jc,K  ,jb,jf ) = p_source%fl(jc,K  ,jb,jf ) - 2._wp*DELAD
 
-                         p_source%sl(jc,tr_idx(15,jf,KH,K),jb) = p_source%sl(jc,tr_idx(15,jf,KH,K),jb) + AD*FKLAMP1
-                         p_source%sl(jc,tr_idx(16,jf,KH,K),jb) = p_source%sl(jc,tr_idx(16,jf,KH,K),jb) + AD*FKLAMP2
-                         p_source%fl(jc,tr_idx(15,jf,KH,K),jb) = p_source%fl(jc,tr_idx(15,jf,KH,K),jb) + DELAP*FKLAP12
-                         p_source%fl(jc,tr_idx(16,jf,KH,K),jb) = p_source%fl(jc,tr_idx(16,jf,KH,K),jb) + DELAP*FKLAP22
+                         p_source%sl(jc,K1 ,jb,MP ) = p_source%sl(jc,K1 ,jb,MP ) + AD*FKLAMP1
+                         p_source%sl(jc,K11,jb,MP ) = p_source%sl(jc,K11,jb,MP ) + AD*FKLAMP2
+                         p_source%fl(jc,K1 ,jb,MP ) = p_source%fl(jc,K1 ,jb,MP ) + DELAP*FKLAP12
+                         p_source%fl(jc,K11,jb,MP ) = p_source%fl(jc,K11,jb,MP ) + DELAP*FKLAP22
 
-                         p_source%sl(jc,tr_idx(17,jf,KH,K),jb) = p_source%sl(jc,tr_idx(17,jf,KH,K),jb) + AD*FKLAMPA
-                         p_source%sl(jc,tr_idx(18,jf,KH,K),jb) = p_source%sl(jc,tr_idx(18,jf,KH,K),jb) + AD*FKLAMPB
-                         p_source%fl(jc,tr_idx(17,jf,KH,K),jb) = p_source%fl(jc,tr_idx(17,jf,KH,K),jb) + DELAP*FKLAPA2
-                         p_source%fl(jc,tr_idx(18,jf,KH,K),jb) = p_source%fl(jc,tr_idx(18,jf,KH,K),jb) + DELAP*FKLAPB2
+                         p_source%sl(jc,K1 ,jb,MP1) = p_source%sl(jc,K1 ,jb,MP1) + AD*FKLAMPA
+                         p_source%sl(jc,K11,jb,MP1) = p_source%sl(jc,K11,jb,MP1) + AD*FKLAMPB
+                         p_source%fl(jc,K1 ,jb,MP1) = p_source%fl(jc,K1 ,jb,MP1) + DELAP*FKLAPA2
+                         p_source%fl(jc,K11,jb,MP1) = p_source%fl(jc,K11,jb,MP1) + DELAP*FKLAPB2
+
                       END DO MIR2
                     END DO  ! jc
                   END DO DIR2
@@ -790,19 +786,24 @@ CONTAINS
                       !     3.1 LOOP FOR ANGULAR SYMMETRY.                          !
                       MIR3: DO KH = 1,2
 
-                        SAP = &
-                             GW1*tracer(jc,tr_idx(1,jf,KH,K),jb) + &
-                             GW2*tracer(jc,tr_idx(2,jf,KH,K),jb) + &
-                             GW3*tracer(jc,tr_idx(3,jf,KH,K),jb) + &
-                             GW4*tracer(jc,tr_idx(4,jf,KH,K),jb)
-                        SAM = &
-                             GW5*tracer(jc,tr_idx(5,jf,KH,K),jb) + &
-                             GW6*tracer(jc,tr_idx(6,jf,KH,K),jb) + &
-                             GW7*tracer(jc,tr_idx(7,jf,KH,K),jb) + &
-                             GW8*tracer(jc,tr_idx(8,jf,KH,K),jb)
+                        K1  = p_diag%K1W (K,KH)
+                        K2  = p_diag%K2W (K,KH)
+                        K11 = p_diag%K11W(K,KH)
+                        K21 = p_diag%K21W(K,KH)
 
-                        FTEMP = p_diag%AF11(jf) * p_diag%ENH(jc,jb)
-                        FIJ = tracer(jc,tr_idx(9,jf,KH,K),jb)*FTAIL
+                        SAP = &
+                             GW1*tracer(jc,K1 ,jb,IP ) + &
+                             GW2*tracer(jc,K11,jb,IP ) + &
+                             GW3*tracer(jc,K1 ,jb,IP1) + &
+                             GW4*tracer(jc,K11,jb,IP1)
+                        SAM = &
+                             GW5*tracer(jc,K2 ,jb,IM ) + &
+                             GW6*tracer(jc,K21,jb,IM ) + &
+                             GW7*tracer(jc,K2 ,jb,IM1) + &
+                             GW8*tracer(jc,K21,jb,IM1)
+
+                        FTEMP = p_diag%AF11(jf) * enh(jc)
+                        FIJ = tracer(jc,K,jb,IC)*FTAIL
                         FAD1 = FIJ*(SAP+SAM)
                         FAD2 = FAD1-2._wp*SAP*SAM
                         FAD1 = FAD1+FAD2
@@ -812,23 +813,24 @@ CONTAINS
                         DELAP = (FIJ-2._wp*SAM)*wc%DAL1*FCEN
                         DELAM = (FIJ-2._wp*SAP)*wc%DAL2*FCEN
 
-                        p_source%sl(jc,tr_idx(10,jf,KH,K),jb) = p_source%sl(jc,tr_idx(10,jf,KH,K),jb) + AD*FKLAMM1
-                        p_source%sl(jc,tr_idx(11,jf,KH,K),jb) = p_source%sl(jc,tr_idx(11,jf,KH,K),jb) + AD*FKLAMM2
-                        p_source%fl(jc,tr_idx(10,jf,KH,K),jb) = p_source%fl(jc,tr_idx(10,jf,KH,K),jb) + DELAM*FKLAM12
-                        p_source%fl(jc,tr_idx(11,jf,KH,K),jb) = p_source%fl(jc,tr_idx(11,jf,KH,K),jb) + DELAM*FKLAM22
+                        p_source%sl(jc,K2 ,jb,MM ) = p_source%sl(jc,K2 ,jb,MM ) + AD*FKLAMM1
+                        p_source%sl(jc,K21,jb,MM ) = p_source%sl(jc,K21,jb,MM ) + AD*FKLAMM2
+                        p_source%fl(jc,K2 ,jb,MM ) = p_source%fl(jc,K2 ,jb,MM ) + DELAM*FKLAM12
+                        p_source%fl(jc,K21,jb,MM ) = p_source%fl(jc,K21,jb,MM ) + DELAM*FKLAM22
 
-                        p_source%sl(jc,tr_idx(12,jf,KH,K),jb) = p_source%sl(jc,tr_idx(12,jf,KH,K),jb) + AD*FKLAMMA
-                        p_source%sl(jc,tr_idx(13,jf,KH,K),jb) = p_source%sl(jc,tr_idx(13,jf,KH,K),jb) + AD*FKLAMMB
-                        p_source%fl(jc,tr_idx(12,jf,KH,K),jb) = p_source%fl(jc,tr_idx(12,jf,KH,K),jb) + DELAM*FKLAMA2
-                        p_source%fl(jc,tr_idx(13,jf,KH,K),jb) = p_source%fl(jc,tr_idx(13,jf,KH,K),jb) + DELAM*FKLAMB2
+                        p_source%sl(jc,K2 ,jb,MM1) = p_source%sl(jc,K2 ,jb,MM1) + AD*FKLAMMA
+                        p_source%sl(jc,K21,jb,MM1) = p_source%sl(jc,K21,jb,MM1) + AD*FKLAMMB
+                        p_source%fl(jc,K2 ,jb,MM1) = p_source%fl(jc,K2 ,jb,MM1) + DELAM*FKLAMA2
+                        p_source%fl(jc,K21,jb,MM1) = p_source%fl(jc,K21,jb,MM1) + DELAM*FKLAMB2
 
-                        p_source%sl(jc,tr_idx(14,jf,KH,K),jb) = p_source%sl(jc,tr_idx(14,jf,KH,K),jb) - 2._wp*AD
-                        p_source%fl(jc,tr_idx(14,jf,KH,K),jb) = p_source%fl(jc,tr_idx(14,jf,KH,K),jb) - 2._wp*DELAD
+                        p_source%sl(jc,K  ,jb,jf ) = p_source%sl(jc,K  ,jb,jf ) - 2._wp*AD
+                        p_source%fl(jc,K  ,jb,jf ) = p_source%fl(jc,K  ,jb,jf ) - 2._wp*DELAD
 
-                        p_source%sl(jc,tr_idx(15,jf,KH,K),jb) = p_source%sl(jc,tr_idx(15,jf,KH,K),jb) + AD*FKLAMP1
-                        p_source%sl(jc,tr_idx(16,jf,KH,K),jb) = p_source%sl(jc,tr_idx(16,jf,KH,K),jb) + AD*FKLAMP2
-                        p_source%fl(jc,tr_idx(15,jf,KH,K),jb) = p_source%fl(jc,tr_idx(15,jf,KH,K),jb) + DELAP*FKLAP12
-                        p_source%fl(jc,tr_idx(16,jf,KH,K),jb) = p_source%fl(jc,tr_idx(16,jf,KH,K),jb) + DELAP*FKLAP22
+                        p_source%sl(jc,K1 ,jb,MP ) = p_source%sl(jc,K1 ,jb,MP ) + AD*FKLAMP1
+                        p_source%sl(jc,K11,jb,MP ) = p_source%sl(jc,K11,jb,MP ) + AD*FKLAMP2
+                        p_source%fl(jc,K1 ,jb,MP ) = p_source%fl(jc,K1 ,jb,MP ) + DELAP*FKLAP12
+                        p_source%fl(jc,K11,jb,MP ) = p_source%fl(jc,K11,jb,MP ) + DELAP*FKLAP22
+
                       END DO MIR3
                     END DO !jc
                   END DO DIR3!  BRANCH BACK TO 3.1.1 FOR NEXT DIRECTION.
@@ -845,19 +847,24 @@ CONTAINS
                     !     4.1 LOOP FOR ANGULAR SYMMETRY.
                     MIR4: DO KH = 1,2
 
-                      SAP = &
-                           GW1*tracer(jc,tr_idx(1,jf,KH,K),jb) + &
-                           GW2*tracer(jc,tr_idx(2,jf,KH,K),jb) + &
-                           GW3*tracer(jc,tr_idx(3,jf,KH,K),jb) + &
-                           GW4*tracer(jc,tr_idx(4,jf,KH,K),jb)
-                      SAM = &
-                           GW5*tracer(jc,tr_idx(5,jf,KH,K),jb) + &
-                           GW6*tracer(jc,tr_idx(6,jf,KH,K),jb) + &
-                           GW7*tracer(jc,tr_idx(7,jf,KH,K),jb) + &
-                           GW8*tracer(jc,tr_idx(8,jf,KH,K),jb)
+                      K1  = p_diag%K1W (K,KH)
+                      K2  = p_diag%K2W (K,KH)
+                      K11 = p_diag%K11W(K,KH)
+                      K21 = p_diag%K21W(K,KH)
 
-                      FTEMP = p_diag%AF11(jf) * p_diag%ENH(jc,jb)
-                      FIJ = tracer(jc,tr_idx(9,jf,KH,K),jb)*FTAIL
+                      SAP = &
+                           GW1*tracer(jc,K1 ,jb,IP ) + &
+                           GW2*tracer(jc,K11,jb,IP ) + &
+                           GW3*tracer(jc,K1 ,jb,IP1) + &
+                           GW4*tracer(jc,K11,jb,IP1)
+                      SAM = &
+                           GW5*tracer(jc,K2 ,jb,IM ) + &
+                           GW6*tracer(jc,K21,jb,IM ) + &
+                           GW7*tracer(jc,K2 ,jb,IM1) + &
+                           GW8*tracer(jc,K21,jb,IM1)
+
+                      FTEMP = p_diag%AF11(jf) * enh(jc)
+                      FIJ = tracer(jc,K,jb,IC)*FTAIL
                       FAD1 = FIJ*(SAP+SAM)
                       FAD2 = FAD1-2._wp*SAP*SAM
                       FAD1 = FAD1+FAD2
@@ -867,44 +874,53 @@ CONTAINS
                       DELAP = (FIJ-2._wp*SAM)*wc%DAL1*FCEN
                       DELAM = (FIJ-2._wp*SAP)*wc%DAL2*FCEN
 
-                      p_source%sl(jc,tr_idx(10,jf,KH,K),jb) = p_source%sl(jc,tr_idx(10,jf,KH,K),jb) + AD*FKLAMM1
-                      p_source%sl(jc,tr_idx(11,jf,KH,K),jb) = p_source%sl(jc,tr_idx(11,jf,KH,K),jb) + AD*FKLAMM2
-                      p_source%fl(jc,tr_idx(10,jf,KH,K),jb) = p_source%fl(jc,tr_idx(10,jf,KH,K),jb) + DELAM*FKLAM12
-                      p_source%fl(jc,tr_idx(11,jf,KH,K),jb) = p_source%fl(jc,tr_idx(11,jf,KH,K),jb) + DELAM*FKLAM22
+                      p_source%sl(jc,K2 ,jb,MM ) = p_source%sl(jc,K2 ,jb,MM ) + AD*FKLAMM1
+                      p_source%sl(jc,K21,jb,MM ) = p_source%sl(jc,K21,jb,MM ) + AD*FKLAMM2
+                      p_source%fl(jc,K2 ,jb,MM ) = p_source%fl(jc,K2 ,jb,MM ) + DELAM*FKLAM12
+                      p_source%fl(jc,K21,jb,MM ) = p_source%fl(jc,K21,jb,MM ) + DELAM*FKLAM22
 
-                      p_source%sl(jc,tr_idx(12,jf,KH,K),jb) = p_source%sl(jc,tr_idx(12,jf,KH,K),jb) + AD*FKLAMMA
-                      p_source%sl(jc,tr_idx(13,jf,KH,K),jb) = p_source%sl(jc,tr_idx(13,jf,KH,K),jb) + AD*FKLAMMB
-                      p_source%fl(jc,tr_idx(12,jf,KH,K),jb) = p_source%fl(jc,tr_idx(12,jf,KH,K),jb) + DELAM*FKLAMA2
-                      p_source%fl(jc,tr_idx(13,jf,KH,K),jb) = p_source%fl(jc,tr_idx(13,jf,KH,K),jb) + DELAM*FKLAMB2
+                      p_source%sl(jc,K2 ,jb,MM1) = p_source%sl(jc,K2 ,jb,MM1) + AD*FKLAMMA
+                      p_source%sl(jc,K21,jb,MM1) = p_source%sl(jc,K21,jb,MM1) + AD*FKLAMMB
+                      p_source%fl(jc,K2 ,jb,MM1) = p_source%fl(jc,K2 ,jb,MM1) + DELAM*FKLAMA2
+                      p_source%fl(jc,K21,jb,MM1) = p_source%fl(jc,K21,jb,MM1) + DELAM*FKLAMB2
 
-                      p_source%sl(jc,tr_idx(14,jf,KH,K),jb) = p_source%sl(jc,tr_idx(14,jf,KH,K),jb) - 2._wp*AD
-                      p_source%fl(jc,tr_idx(14,jf,KH,K),jb) = p_source%fl(jc,tr_idx(14,jf,KH,K),jb) - 2._wp*DELAD
+                      p_source%sl(jc,K  ,jb,jf ) = p_source%sl(jc,K  ,jb,jf ) - 2._wp*AD
+                      p_source%fl(jc,K  ,jb,jf ) = p_source%fl(jc,K  ,jb,jf ) - 2._wp*DELAD
+
                     END DO MIR4
                   END DO !jc
                 END DO DIR4
               END IF
             ELSE
-              !     5.1.1   ANGULAR LOOP.                                         !
+              !     5.1.1   ANGULAR LOOP.                                           !
               DIR5: DO K = 1, ndirs
 
+                !     5.1.1.1 LOOP OVER GRIDPOINTS.. NONLINEAR TRANSFER AND         !
+                !             DIAGONAL MATRIX OF FUNCTIONAL DERIVATIVE.             !
+                !             ----------------------------------------------        !
                 DO jc = i_startidx, i_endidx
 
-                  !     5.1 LOOP FOR ANLULAR SYMMETRY.                                !
+                  !     5.1 LOOP FOR ANLULAR SYMMETRY.                              !
                   MIR5: DO KH = 1,2
 
-                    SAP = &
-                         GW1*tracer(jc,tr_idx(1,jf,KH,K),jb) + &
-                         GW2*tracer(jc,tr_idx(2,jf,KH,K),jb) + &
-                         GW3*tracer(jc,tr_idx(3,jf,KH,K),jb) + &
-                         GW4*tracer(jc,tr_idx(4,jf,KH,K),jb)
-                    SAM = &
-                         GW5*tracer(jc,tr_idx(5,jf,KH,K),jb) + &
-                         GW6*tracer(jc,tr_idx(6,jf,KH,K),jb) + &
-                         GW7*tracer(jc,tr_idx(7,jf,KH,K),jb) + &
-                         GW8*tracer(jc,tr_idx(8,jf,KH,K),jb)
+                    K1  = p_diag%K1W (K,KH)
+                    K2  = p_diag%K2W (K,KH)
+                    K11 = p_diag%K11W(K,KH)
+                    K21 = p_diag%K21W(K,KH)
 
-                    FTEMP = p_diag%AF11(jf) * p_diag%ENH(jc,jb)
-                    FIJ = tracer(jc,tr_idx(9,jf,KH,K),jb)*FTAIL
+                    SAP = &
+                         GW1*tracer(jc,K1 ,jb,IP ) + &
+                         GW2*tracer(jc,K11,jb,IP ) + &
+                         GW3*tracer(jc,K1 ,jb,IP1) + &
+                         GW4*tracer(jc,K11,jb,IP1)
+                    SAM = &
+                         GW5*tracer(jc,K2 ,jb,IM ) + &
+                         GW6*tracer(jc,K21,jb,IM ) + &
+                         GW7*tracer(jc,K2 ,jb,IM1) + &
+                         GW8*tracer(jc,K21,jb,IM1)
+
+                    FTEMP = p_diag%AF11(jf) * enh(jc)
+                    FIJ = tracer(jc,K,jb,IC)*FTAIL
                     FAD1 = FIJ*(SAP+SAM)
                     FAD2 = FAD1-2._wp*SAP*SAM
                     FAD1 = FAD1+FAD2
@@ -914,41 +930,50 @@ CONTAINS
                     DELAP = (FIJ-2._wp*SAM)*wc%DAL1*FCEN
                     DELAM = (FIJ-2._wp*SAP)*wc%DAL2*FCEN
 
-                    p_source%sl(jc,tr_idx(10,jf,KH,K),jb) = p_source%sl(jc,tr_idx(10,jf,KH,K),jb) + AD*FKLAMM1
-                    p_source%sl(jc,tr_idx(11,jf,KH,K),jb) = p_source%sl(jc,tr_idx(11,jf,KH,K),jb) + AD*FKLAMM2
-                    p_source%fl(jc,tr_idx(10,jf,KH,K),jb) = p_source%fl(jc,tr_idx(10,jf,KH,K),jb) + DELAM*FKLAM12
-                    p_source%fl(jc,tr_idx(11,jf,KH,K),jb) = p_source%fl(jc,tr_idx(11,jf,KH,K),jb) + DELAM*FKLAM22
+                    p_source%sl(jc,K2 ,jb,MM ) = p_source%sl(jc,K2 ,jb,MM ) + AD*FKLAMM1
+                    p_source%sl(jc,K21,jb,MM ) = p_source%sl(jc,K21,jb,MM ) + AD*FKLAMM2
+                    p_source%fl(jc,K2 ,jb,MM ) = p_source%fl(jc,K2 ,jb,MM ) + DELAM*FKLAM12
+                    p_source%fl(jc,K21,jb,MM ) = p_source%fl(jc,K21,jb,MM ) + DELAM*FKLAM22
 
-                    p_source%sl(jc,tr_idx(12,jf,KH,K),jb) = p_source%sl(jc,tr_idx(12,jf,KH,K),jb) + AD*FKLAMMA
-                    p_source%sl(jc,tr_idx(13,jf,KH,K),jb) = p_source%sl(jc,tr_idx(13,jf,KH,K),jb) + AD*FKLAMMB
-                    p_source%fl(jc,tr_idx(12,jf,KH,K),jb) = p_source%fl(jc,tr_idx(12,jf,KH,K),jb) + DELAM*FKLAMA2
-                    p_source%fl(jc,tr_idx(13,jf,KH,K),jb) = p_source%fl(jc,tr_idx(13,jf,KH,K),jb) + DELAM*FKLAMB2
+                    p_source%sl(jc,K2 ,jb,MM1) = p_source%sl(jc,K2 ,jb,MM1) + AD*FKLAMMA
+                    p_source%sl(jc,K21,jb,MM1) = p_source%sl(jc,K21,jb,MM1) + AD*FKLAMMB
+                    p_source%fl(jc,K2 ,jb,MM1) = p_source%fl(jc,K2 ,jb,MM1) + DELAM*FKLAMA2
+                    p_source%fl(jc,K21,jb,MM1) = p_source%fl(jc,K21,jb,MM1) + DELAM*FKLAMB2
+
                   END DO MIR5
                 END DO !jc
               END DO DIR5
             END IF
           ELSE
-            !     6.1.1   ANGULAR LOOP.                                        !
+            !     6.1.1   ANGULAR LOOP.                                       !
             DIR6: DO K = 1,ndirs
 
+              !     6.1.1.1 LOOP OVER GRIDPOINTS.. NONLINEAR TRANSFER AND     !
+              !             DIAGONAL MATRIX OF FUNCTIONAL DERIVATIVE.         !
+              !             ----------------------------------------------    !
               DO jc = i_startidx, i_endidx
 
-                !     6.1 LOOP FOR ANGULAR SYMMETRY.                                !
+                !     6.1 LOOP FOR ANGULAR SYMMETRY.                          !
                 MIR6: DO KH = 1,2
 
-                  SAP = &
-                       GW1*tracer(jc,tr_idx(1,jf,KH,K),jb) + &
-                       GW2*tracer(jc,tr_idx(2,jf,KH,K),jb) + &
-                       GW3*tracer(jc,tr_idx(3,jf,KH,K),jb) + &
-                       GW4*tracer(jc,tr_idx(4,jf,KH,K),jb)
-                  SAM = &
-                       GW5*tracer(jc,tr_idx(5,jf,KH,K),jb) + &
-                       GW6*tracer(jc,tr_idx(6,jf,KH,K),jb) + &
-                       GW7*tracer(jc,tr_idx(7,jf,KH,K),jb) + &
-                       GW8*tracer(jc,tr_idx(8,jf,KH,K),jb)
+                  K1  = p_diag%K1W (K,KH)
+                  K2  = p_diag%K2W (K,KH)
+                  K11 = p_diag%K11W(K,KH)
+                  K21 = p_diag%K21W(K,KH)
 
-                  FTEMP = p_diag%AF11(jf) * p_diag%ENH(jc,jb)
-                  FIJ = tracer(jc,tr_idx(9,jf,KH,K),jb)*FTAIL
+                  SAP = &
+                       GW1*tracer(jc,K1 ,jb,IP ) + &
+                       GW2*tracer(jc,K11,jb,IP ) + &
+                       GW3*tracer(jc,K1 ,jb,IP1) + &
+                       GW4*tracer(jc,K11,jb,IP1)
+                  SAM = &
+                       GW5*tracer(jc,K2 ,jb,IM ) + &
+                       GW6*tracer(jc,K21,jb,IM ) + &
+                       GW7*tracer(jc,K2 ,jb,IM1) + &
+                       GW8*tracer(jc,K21,jb,IM1)
+
+                  FTEMP = p_diag%AF11(jf) * enh(jc)
+                  FIJ = tracer(jc,K,jb,IC)*FTAIL
                   FAD1 = FIJ*(SAP+SAM)
                   FAD2 = FAD1-2._wp*SAP*SAM
                   FAD1 = FAD1+FAD2
@@ -958,10 +983,11 @@ CONTAINS
                   DELAP = (FIJ-2._wp*SAM)*wc%DAL1*FCEN
                   DELAM = (FIJ-2._wp*SAP)*wc%DAL2*FCEN
 
-                  p_source%sl(jc,tr_idx(10,jf,KH,K),jb) = p_source%sl(jc,tr_idx(10,jf,KH,K),jb) + AD*FKLAMM1
-                  p_source%sl(jc,tr_idx(11,jf,KH,K),jb) = p_source%sl(jc,tr_idx(11,jf,KH,K),jb) + AD*FKLAMM2
-                  p_source%fl(jc,tr_idx(10,jf,KH,K),jb) = p_source%fl(jc,tr_idx(10,jf,KH,K),jb) + DELAM*FKLAM12
-                  p_source%fl(jc,tr_idx(11,jf,KH,K),jb) = p_source%fl(jc,tr_idx(11,jf,KH,K),jb) + DELAM*FKLAM22
+                  p_source%sl(jc,K2 ,jb,MM ) = p_source%sl(jc,K2 ,jb,MM ) + AD*FKLAMM1
+                  p_source%sl(jc,K21,jb,MM ) = p_source%sl(jc,K21,jb,MM ) + AD*FKLAMM2
+                  p_source%fl(jc,K2 ,jb,MM ) = p_source%fl(jc,K2 ,jb,MM ) + DELAM*FKLAM12
+                  p_source%fl(jc,K21,jb,MM ) = p_source%fl(jc,K21,jb,MM ) + DELAM*FKLAM22
+
                 END DO MIR6
               END DO !jc
             END DO DIR6
@@ -970,19 +996,27 @@ CONTAINS
           !     7.1.1   ANGULAR LOOP.                                           !
           DIR7: DO K = 1,ndirs
 
+            !     6.1.1.1 LOOP OVER GRIDPOINTS.. NONLINEAR TRANSFER AND     !
+            !             DIAGONAL MATRIX OF FUNCTIONAL DERIVATIVE.         !
+            !             ----------------------------------------------    !
             DO jc = i_startidx, i_endidx
 
               !     7.1 LOOP FOR ANGULAR SYMMETRY.                                     !
               MIR7: DO KH = 1,2
 
-                SAP = &
-                     GW1*tracer(jc,tr_idx(1,jf,KH,K),jb) + &
-                     GW2*tracer(jc,tr_idx(2,jf,KH,K),jb) + &
-                     GW3*tracer(jc,tr_idx(3,jf,KH,K),jb) + &
-                     GW4*tracer(jc,tr_idx(4,jf,KH,K),jb)
+                K1  = p_diag%K1W (K,KH)
+                K2  = p_diag%K2W (K,KH)
+                K11 = p_diag%K11W(K,KH)
+                K21 = p_diag%K21W(K,KH)
 
-                FTEMP = p_diag%AF11(jf) * p_diag%ENH(jc,jb)
-                FIJ = tracer(jc,tr_idx(9,jf,KH,K),jb)
+                SAP = &
+                     GW1*tracer(jc,K1 ,jb,IP ) + &
+                     GW2*tracer(jc,K11,jb,IP ) + &
+                     GW3*tracer(jc,K1 ,jb,IP1) + &
+                     GW4*tracer(jc,K11,jb,IP1)
+
+                FTEMP = p_diag%AF11(jf) * enh(jc)
+                FIJ = tracer(jc,K,jb,IC)
                 FAD2 = FIJ*SAP
                 FAD1 = 2._wp*FAD2
                 FCEN = FTEMP*FIJ
@@ -990,17 +1024,18 @@ CONTAINS
                 DELAD = FAD1*FTEMP
                 DELAP = FIJ*wc%DAL1*FCEN
 
-                p_source%sl(jc,tr_idx(14,jf,KH,K),jb) = p_source%sl(jc,tr_idx(14,jf,KH,K),jb) - 2._wp*AD
-                p_source%sl(jc,tr_idx(15,jf,KH,K),jb) = p_source%sl(jc,tr_idx(15,jf,KH,K),jb) + AD*FKLAMP1
-                p_source%sl(jc,tr_idx(16,jf,KH,K),jb) = p_source%sl(jc,tr_idx(16,jf,KH,K),jb) + AD*FKLAMP2
-                p_source%sl(jc,tr_idx(17,jf,KH,K),jb) = p_source%sl(jc,tr_idx(17,jf,KH,K),jb) + AD*FKLAMPA
-                p_source%sl(jc,tr_idx(18,jf,KH,K),jb) = p_source%sl(jc,tr_idx(18,jf,KH,K),jb) + AD*FKLAMPB
+                p_source%sl(jc,K  ,jb,jf ) = p_source%sl(jc,K  ,jb,jf ) - 2._wp*AD
+                p_source%sl(jc,K1 ,jb,MP ) = p_source%sl(jc,K1 ,jb,MP ) + AD*FKLAMP1
+                p_source%sl(jc,K11,jb,MP ) = p_source%sl(jc,K11,jb,MP ) + AD*FKLAMP2
+                p_source%sl(jc,K1 ,jb,MP1) = p_source%sl(jc,K1 ,jb,MP1) + AD*FKLAMPA
+                p_source%sl(jc,K11,jb,MP1) = p_source%sl(jc,K11,jb,MP1) + AD*FKLAMPB
 
-                p_source%fl(jc,tr_idx(14,jf,KH,K),jb) = p_source%fl(jc,tr_idx(14,jf,KH,K),jb) - 2._wp*DELAD
-                p_source%fl(jc,tr_idx(15,jf,KH,K),jb) = p_source%fl(jc,tr_idx(15,jf,KH,K),jb) + DELAP*FKLAP12
-                p_source%fl(jc,tr_idx(16,jf,KH,K),jb) = p_source%fl(jc,tr_idx(16,jf,KH,K),jb) + DELAP*FKLAP22
-                p_source%fl(jc,tr_idx(17,jf,KH,K),jb) = p_source%fl(jc,tr_idx(17,jf,KH,K),jb) + DELAP*FKLAPA2
-                p_source%fl(jc,tr_idx(18,jf,KH,K),jb) = p_source%fl(jc,tr_idx(18,jf,KH,K),jb) + DELAP*FKLAPB2
+                p_source%fl(jc,K  ,jb,jf ) = p_source%fl(jc,K  ,jb,jf ) - 2._wp*DELAD
+                p_source%fl(jc,K1 ,jb,MP ) = p_source%fl(jc,K1 ,jb,MP ) + DELAP*FKLAP12
+                p_source%fl(jc,K11,jb,MP ) = p_source%fl(jc,K11,jb,MP ) + DELAP*FKLAP22
+                p_source%fl(jc,K1 ,jb,MP1) = p_source%fl(jc,K1 ,jb,MP1) + DELAP*FKLAPA2
+                p_source%fl(jc,K11,jb,MP1) = p_source%fl(jc,K11,jb,MP1) + DELAP*FKLAPB2
+
               END DO MIR7
             END DO !jc
           END DO DIR7

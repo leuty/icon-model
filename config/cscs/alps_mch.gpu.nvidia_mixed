@@ -13,5 +13,6 @@ set -eu
 
 SCRIPT_DIR=$(cd "$(dirname "$0")"; pwd)
 SPACK_VERSION=$(cat $SCRIPT_DIR/SPACK_TAG_MCH)
+BUILD_DIR=$(pwd)
 
-$SCRIPT_DIR/spack_install $SPACK_VERSION mch_gpu_mixed
+$SCRIPT_DIR/spack_install $SPACK_VERSION mch_gpu_mixed $BUILD_DIR

@@ -51,7 +51,6 @@ MODULE mo_2mom_mcrph_setup
        & coll_coeffs_ir_pm ! , lookupt_1D, lookupt_4D
   USE mo_fortran_tools,      ONLY: init
   USE mo_2mom_mcrph_config,  ONLY: t_cfg_2mom
-  USE mo_nwp_tuning_config,  ONLY: tune_sbmccn
 
 
   IMPLICIT NONE
@@ -1047,21 +1046,12 @@ CONTAINS
       zccn_coeffs%R2    = 0.03_wp       ! in mum
       zccn_coeffs%etas  = 0.8_wp        ! soluble fraction
     CASE(8)
-      IF (tune_sbmccn < 1.0_wp) THEN
-        !... maritime case
-        zccn_coeffs%Ncn0 = 100.0e6_wp   ! CN concentration at ground
-        zccn_coeffs%Nmin =  35.0e6_wp   ! NOT relevant at the moment
-        zccn_coeffs%lsigs = 0.4_wp      ! log(sigma_s)
-        zccn_coeffs%R2    = 0.03_wp     ! in mum
-        zccn_coeffs%etas  = 0.9_wp      ! soluble fraction
-      ELSE
-        !... continental case
-        zccn_coeffs%Ncn0 = 1700.0e6_wp
-        zccn_coeffs%Nmin =   35.0e6_wp  ! NOT relevant at the moment
-        zccn_coeffs%lsigs = 0.2_wp
-        zccn_coeffs%R2    = 0.03_wp     ! in mum
-        zccn_coeffs%etas  = 0.7_wp      ! soluble fraction
-      END IF
+      !... continental case
+      zccn_coeffs%Ncn0 = 1700.0e6_wp
+      zccn_coeffs%Nmin =   35.0e6_wp  ! NOT relevant at the moment
+      zccn_coeffs%lsigs = 0.2_wp
+      zccn_coeffs%R2    = 0.03_wp     ! in mum
+      zccn_coeffs%etas  = 0.7_wp      ! soluble fraction
     CASE(9)
       !... "polluted" continental
       zccn_coeffs%Ncn0 = 3200.0e6_wp

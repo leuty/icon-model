@@ -17,13 +17,13 @@
 
 MODULE mo_atmo_coupling_frame
 
-  USE mo_kind                ,ONLY: wp
   USE mo_model_domain        ,ONLY: t_patch
+  USE mo_master_control,      ONLY: get_my_process_name
   USE mo_grid_config         ,ONLY: n_dom
   USE mo_atm_phy_nwp_config  ,ONLY: atm_phy_nwp_config
-  USE mo_run_config          ,ONLY: iforcing, ltimer
+  USE mo_run_config          ,ONLY: iforcing, ltimer, msg_level
   USE mo_timer               ,ONLY: timer_start, timer_stop, timer_coupling_init
-  USE mo_impl_constants      ,ONLY: MAX_CHAR_LENGTH, iaes, inwp, ivdiff, LSS_JSBACH
+  USE mo_impl_constants      ,ONLY: iaes, inwp, ivdiff, LSS_JSBACH
   USE mo_ext_data_types      ,ONLY: t_external_data
 
 #if !defined(__NO_JSBACH__) && !defined(__NO_JSBACH_HD__) && defined(YAC_coupling)
@@ -51,7 +51,7 @@ MODULE mo_atmo_coupling_frame
 
   USE mo_exception           ,ONLY: finish, message
 
-  USE mo_coupling_utils      ,ONLY: cpl_def_main, cpl_sync_def, cpl_enddef
+  USE mo_coupling_utils      ,ONLY: cpl_def_main, cpl_sync_def, cpl_enddef, cpl_write_config_info
 
   USE mtime                  ,ONLY: timedeltaToString, MAX_TIMEDELTA_STR_LEN
 
@@ -110,6 +110,7 @@ CONTAINS
 
     INTEGER :: jg
 
+    CHARACTER(len=:), ALLOCATABLE :: grid_name
     CHARACTER(LEN=MAX_TIMEDELTA_STR_LEN) :: timestepstring
 
     CHARACTER(LEN=*), PARAMETER   :: routine = str_module // ':construct_atmo_coupling'
@@ -127,23 +128,25 @@ CONTAINS
     CALL icon_call_callback(EP_ATM_YAC_DEFCOMP_BEFORE, COMIN_DOMAIN_OUTSIDE_LOOP, lacc=.FALSE.)
 #endif
 
+    grid_name = "icon_atmos_grid"
+
     ! Do basic initialisation of the component
     IF( is_coupled_to_output() ) THEN
-      CALL cpl_def_main(routine,           & !in
-                        p_patch,           & !in
-                        "icon_atmos_grid", & !in
-                        comp_id,           & !out
-                        output_comp_id,    & !out
-                        grid_id,           & !out
-                        cell_point_id,     & !out
-                        vertex_point_id)     !out
+      CALL cpl_def_main(routine,         & !in
+                        p_patch,         & !in
+                        grid_name,       & !in
+                        comp_id,         & !out
+                        output_comp_id,  & !out
+                        grid_id,         & !out
+                        cell_point_id,   & !out
+                        vertex_point_id)   !out
     ELSE
-      CALL cpl_def_main(routine,           & !in
-                        p_patch,           & !in
-                        "icon_atmos_grid", & !in
-                        comp_id,           & !out
-                        grid_id,           & !out
-                        cell_point_id)       !out
+      CALL cpl_def_main(routine,         & !in
+                        p_patch,         & !in
+                        grid_name,       & !in
+                        comp_id,         & !out
+                        grid_id,         & !out
+                        cell_point_id)     !out
     ENDIF
 
 #ifndef __NO_ICON_COMIN__
@@ -259,7 +262,14 @@ CONTAINS
     IF( is_coupled_to_output() ) CALL construct_output_coupling_finalize()
 
     ! finalizes construction of atmo-wave coupling
-    IF ( is_coupled_to_waves() ) CALL construct_atmo_wave_coupling_finalize()
+    IF ( is_coupled_to_waves() ) THEN
+      CALL construct_atmo_wave_coupling_finalize()
+
+      ! write YAC setup information to stdout
+      IF (msg_level >= 8) THEN
+        CALL cpl_write_config_info(TRIM(routine), TRIM(get_my_process_name()), grid_name)
+      ENDIF
+    ENDIF
 
     IF (ltimer) CALL timer_stop(timer_coupling_init)
 
