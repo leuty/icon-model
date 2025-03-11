@@ -1690,7 +1690,7 @@ set_run_target_hk()
 #SBATCH --chdir=$output_folder
 #SBATCH --job-name=$job_name
 #SBATCH --nodes=${use_nodes}
-#SBATCH --partition=cpuonly
+#SBATCH --partition=dev_cpuonly
 $(if [[ "x$BB_SYSTEM" != 'x' ]]
  then
   printf "#SBATCH ${TIME_LIMITS}
@@ -1699,6 +1699,10 @@ $(if [[ "x$BB_SYSTEM" != 'x' ]]
 #SBATCH --ntasks-per-node=$use_mpi_procs_pernode
 #SBATCH --time=$use_cpu_time
 EOF
+
+    if [[ "x$BB_SYSTEM" != 'x' ]]; then
+        echo "#SBATCH --qos cx" >> "$output_script"
+    fi
 
     start_header
 
@@ -1750,7 +1754,7 @@ set_run_target_hk_gpu()
 #SBATCH --error=$output_folder/$job_log_name.o
 #SBATCH --chdir=$output_folder
 #SBATCH --job-name=$job_name
-#SBATCH --partition=accelerated
+#SBATCH --partition=dev_accelerated
 $(if [[ "x$BB_SYSTEM" != 'x' ]]
  then
   printf "#SBATCH ${TIME_LIMITS}
@@ -1760,6 +1764,10 @@ $(if [[ "x$BB_SYSTEM" != 'x' ]]
 #SBATCH --gres=gpu:4
 #SBATCH --time=$use_cpu_time
 EOF
+
+    if [[ "x$BB_SYSTEM" != 'x' ]]; then
+        echo "#SBATCH --qos cx" >> "$output_script"
+    fi
 
     start_header
 

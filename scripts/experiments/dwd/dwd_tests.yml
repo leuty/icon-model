@@ -18,7 +18,6 @@ tests:
     checksuite_modes:
       - horeka: 't'
     ensemble_num:
-      - horeka_cpu_nvhpc: [50,22,38,16,41,21,13,25,23,20,5,39,18,35,8]
+      - horeka_cpu_nvhpc: [14,24,48,12,31,47,17,1,25,27,3,20,41,16,15]
     tolerance_factor:
-      - horeka: 15
-  
+      - horeka: 10
