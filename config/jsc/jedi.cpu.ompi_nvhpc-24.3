@@ -66,17 +66,14 @@ CXX="${NVHPC_ROOT}/Linux_aarch64/24.3/compilers/bin/nvc++"
 CXXFLAGS='-g -O2'
 
 FC="${MPI_ROOT}/bin/mpifort"
-FCFLAGS="-I${NETCDFF_ROOT}/include -g -O2 -Mrecursive -Mallocatable=03 -Mstack_arrays -Minfo=accel,inline -acc=gpu,verystrict -gpu=cc90"
+FCFLAGS="-I${NETCDFF_ROOT}/include -g -O1 -Mrecursive -Mallocatable=03 -Mstack_arrays -Minfo=inline"
 
-CUDACXX="${NVHPC_ROOT}/Linux_aarch64/24.3/compilers/bin/nvcc"
-CUDAFLAGS="-ccbin=${CXX} -arch=sm_90 -g -O3"
+LDFLAGS="-L${STDCPP_ROOT}/lib64 ${extra_ldflags} ${NETCDF_extra_ldflags} -L${HDF5_ROOT}/lib -L${NETCDF_ROOT}/lib64 -L${NETCDFF_ROOT}/lib ${ECCODES_extra_ldflags} -L${ECCODES_ROOT}/lib64 -L${FYAML_ROOT}/lib -L${XML2_ROOT}/lib64"
 
-LDFLAGS="-L${STDCPP_ROOT}/lib64 ${extra_ldflags} ${NETCDF_extra_ldflags} -L${HDF5_ROOT}/lib -L${NETCDF_ROOT}/lib64 -L${NETCDFF_ROOT}/lib ${ECCODES_extra_ldflags} -L${ECCODES_ROOT}/lib64 -L${FYAML_ROOT}/lib"
+LIBS="${STDCPP_LIBS} ${XML2_LIBS} ${BLAS_LAPACK_LIBS} ${NETCDFF_LIBS} ${NETCDF_LIBS} ${HDF5_LIBS} ${ECCODES_LIBS} ${FYAML_LIBS}"
 
-LIBS="-c++libs -nvmalloc -cuda ${STDCPP_LIBS} ${XML2_LIBS} ${BLAS_LAPACK_LIBS} ${NETCDFF_LIBS} ${NETCDF_LIBS} ${HDF5_LIBS} ${ECCODES_LIBS} ${FYAML_LIBS}"
-
-EXTRA_CONFIG_ARGS='--enable-gpu --enable-mpi-gpu --disable-mpi-checks --disable-parallel-netcdf'
-EXTRA_CONFIG_ARGS+=' --enable-realloc-buf --enable-pgi-inlib'
+# Speed up the configuration by disabling MPI checks:
+EXTRA_CONFIG_ARGS='--disable-mpi-checks --disable-parallel-netcdf --disable-grib2'
 
 ################################################################################
 
@@ -87,12 +84,10 @@ CFLAGS="${CFLAGS}" \
 CPPFLAGS="${CPPFLAGS}" \
 CXX="${CXX}" \
 CXXFLAGS="${CXXFLAGS}" \
-CUDACXX="${CUDACXX}" \
-CUDAFLAGS="${CUDAFLAGS}" \
 FC="${FC}" \
 FCFLAGS="${FCFLAGS}" \
-ICON_YAC_CFLAGS="${ICON_YAC_CFLAGS}" \
 LDFLAGS="${LDFLAGS}" \
+ICON_YAC_CFLAGS="$ICON_YAC_CFLAGS" \
 LIBS="${LIBS}" \
 ${EXTRA_CONFIG_ARGS} \
 "$@"

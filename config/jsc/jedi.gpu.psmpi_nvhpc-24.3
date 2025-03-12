@@ -23,22 +23,27 @@ GCC_ROOT='/p/software/jedi/stages/2024/software/GCCcore/12.3.0'
 STDCPP_ROOT=${GCC_ROOT}
 STDCPP_LIBS='-lstdc++'
 
-MPI_ROOT='/p/software/jedi/stages/2024/software/OpenMPI/4.1.6-NVHPC-24.3-CUDA-12'
+CUDA_ROOT="${NVHPC_ROOT}/Linux_aarch64/24.3/cuda/12.3"
+CUDA_LIBS='-lcuda -lcudart'
 
-HDF5_ROOT='/p/software/jedi/stages/2024/software/HDF5/1.14.2-nvompic-2023a'
-HDF5_LIBS='-lhdf5'
+MPI_ROOT='/p/software/jedi/stages/2024/software/psmpi/5.9.2-1-NVHPC-24.3-CUDA-12'
+MPI_extra_ldflags='-L/p/software/jedi/stages/2024/software/pscom/5-default-GCCcore-12.3.0/lib'
+MPI_extra_libs='-lpscom'
 
-NETCDF_ROOT='/p/software/jedi/stages/2024/software/netCDF/4.9.2-nvompic-2023a'
+HDF5_ROOT='/p/software/default/stages/2024/software/HDF5/1.14.2-npsmpic-2023a'
+HDF5_LIBS='-lhdf5_hl -lhdf5'
+
+NETCDF_ROOT='/p/software/default/stages/2024/software/netCDF/4.9.2-npsmpic-2023a'
 # long list of netcdf deps, not handled by pkg-config like eccodes
-NETCDF_extra_ldflags='-L/p/software/jedi/stages/2024/software/zstd/1.5.5-GCCcore-12.3.0/lib -L/p/software/jedi/stages/2024/software/Szip/2.1.1-GCCcore-12.3.0/lib -L/p/software/jedi/stages/2024/software/PnetCDF/1.12.3-nvompic-2023a/lib -L/p/software/jedi/stages/2024/software/libxml2/2.11.4-GCCcore-12.3.0/lib -L/p/software/jedi/stages/2024/software/HDF5/1.14.2-nvompic-2023a/lib -L/p/software/jedi/stages/2024/software/cURL/8.0.1-GCCcore-12.3.0/lib -L/p/software/jedi/stages/2024/software/bzip2/1.0.8-GCCcore-12.3.0/lib -L/p/software/jedi/stages/2024/software/Blosc/1.21.5-GCCcore-12.3.0/lib -L/p/software/jedi/stages/2024/software/CUDA/12/lib'
+NETCDF_extra_ldflags='-L/p/software/jedi/stages/2024/software/zstd/1.5.5-GCCcore-12.3.0/lib -L/p/software/jedi/stages/2024/software/Szip/2.1.1-GCCcore-12.3.0/lib -L/p/software/jedi/stages/2024/software/PnetCDF/1.12.3-npsmpic-2023a/lib -L/p/software/jedi/stages/2024/software/libxml2/2.11.4-GCCcore-12.3.0/lib -L/p/software/jedi/stages/2024/software/HDF5/1.14.2-npsmpic-2023a/lib -L/p/software/jedi/stages/2024/software/cURL/8.0.1-GCCcore-12.3.0/lib -L/p/software/jedi/stages/2024/software/bzip2/1.0.8-GCCcore-12.3.0/lib -L/p/software/jedi/stages/2024/software/Blosc/1.21.5-GCCcore-12.3.0/lib -L/p/software/jedi/stages/2024/software/CUDA/12/lib'
 NETCDF_LIBS='-lnetcdf -lhdf5_hl -lhdf5 -lm -lz -lblosc -lzstd -lbz2 -lsz -lcurl -lpnetcdf -lxml2'
 
-NETCDFF_ROOT='/p/software/jedi/stages/2024/software/netCDF-Fortran/4.6.1-nvompic-2023a'
+NETCDFF_ROOT='/p/software/default/stages/2024/software/netCDF-Fortran/4.6.1-npsmpic-2023a'
 NETCDFF_LIBS='-lnetcdff'
 
-BLAS_LAPACK_LIBS='-llapack -lblas -fortranlibs'
+BLAS_LAPACK_LIBS='-llapack -lblas'
 
-ECCODES_ROOT='/p/software/jedi/stages/2024/software/ecCodes/2.31.0-nvompic-2023a'
+ECCODES_ROOT='/p/software/default/stages/2024/software/ecCodes/2.31.0-npsmpic-2023a'
 ECCODES_extra_ldflags="$(PKG_CONFIG_PATH=${ECCODES_ROOT}/lib64/pkgconfig:${PKG_CONFIG_PATH-} pkg-config --libs-only-L --libs-only-other --static eccodes)"
 ECCODES_LIBS="$(PKG_CONFIG_PATH=${ECCODES_ROOT}/lib64/pkgconfig:${PKG_CONFIG_PATH-} pkg-config --libs-only-l --static eccodes)"
 
@@ -52,7 +57,7 @@ extra_ldflags='-L/p/software/jedi/stages/2024/software/OpenSSL/1.1/lib'
 
 ################################################################################
 
-MODULES='Stages/2024 NVHPC/24.3-CUDA-12 OpenMPI/4.1.6 netCDF-Fortran/4.6.1 ecCodes/2.31.0 libfyaml/.0.9 CMake'
+MODULES='Stages/2024 NVHPC/24.3-CUDA-12 ParaStationMPI/5.9.2-1 ecCodes/2.31.0 netCDF-Fortran/4.6.1 libfyaml/.0.9 CMake'
 BUILD_ENV="module --force purge; module load ${MODULES}; module list;"
 
 CC="${MPI_ROOT}/bin/mpicc"
@@ -71,9 +76,9 @@ FCFLAGS="-I${NETCDFF_ROOT}/include -g -O2 -Mrecursive -Mallocatable=03 -Mstack_a
 CUDACXX="${NVHPC_ROOT}/Linux_aarch64/24.3/compilers/bin/nvcc"
 CUDAFLAGS="-ccbin=${CXX} -arch=sm_90 -g -O3"
 
-LDFLAGS="-L${STDCPP_ROOT}/lib64 ${extra_ldflags} ${NETCDF_extra_ldflags} -L${HDF5_ROOT}/lib -L${NETCDF_ROOT}/lib64 -L${NETCDFF_ROOT}/lib ${ECCODES_extra_ldflags} -L${ECCODES_ROOT}/lib64 -L${FYAML_ROOT}/lib"
+LDFLAGS="-L${STDCPP_ROOT}/lib64 -L${CUDA_ROOT}/compat -L${CUDA_ROOT}/lib64 ${extra_ldflags} ${MPI_extra_ldflags} ${NETCDF_extra_ldflags} -L${HDF5_ROOT}/lib -L${NETCDF_ROOT}/lib64 -L${NETCDFF_ROOT}/lib ${ECCODES_extra_ldflags}  -L${ECCODES_ROOT}/lib64 -L${FYAML_ROOT}/lib"
 
-LIBS="-c++libs -nvmalloc -cuda ${STDCPP_LIBS} ${XML2_LIBS} ${BLAS_LAPACK_LIBS} ${NETCDFF_LIBS} ${NETCDF_LIBS} ${HDF5_LIBS} ${ECCODES_LIBS} ${FYAML_LIBS}"
+LIBS="-c++libs -nvmalloc -cuda ${CUDA_LIBS} ${STDCPP_LIBS} ${MPI_extra_libs} ${XML2_LIBS} ${FYAML_LIBS} ${ECCODES_LIBS} ${BLAS_LAPACK_LIBS} ${NETCDFF_LIBS} ${NETCDF_LIBS} ${HDF5_LIBS} "
 
 EXTRA_CONFIG_ARGS='--enable-gpu --enable-mpi-gpu --disable-mpi-checks --disable-parallel-netcdf'
 EXTRA_CONFIG_ARGS+=' --enable-realloc-buf --enable-pgi-inlib'
@@ -108,7 +113,7 @@ done
 # Copy runscript-related files when building out-of-source:
 if test $(pwd) != $(cd "${icon_dir}"; pwd); then
   echo "Copying runscript input files from the source directory..."
-  rsync -uavz ${icon_dir}/run . --exclude='*.in' --exclude='.*' --exclude='standard_*' --exclude='*.log'
+  rsync -uavz ${icon_dir}/run . --exclude='*.in' --exclude='.*' --exclude='standard_*'
   ln -sf -t run/ ${icon_dir}/run/standard_*
   ln -sf set-up.info run/SETUP.config
   rsync -uavz ${icon_dir}/externals . --exclude='.git' --exclude='*.f90' --exclude='*.F90' --exclude='*.c' --exclude='*.h' --exclude='*.Po' --exclude='tests' --exclude='*.mod' --exclude='*.o'
