@@ -1899,10 +1899,8 @@ MODULE mo_nh_stepping
     JSTEP_LOOP: DO jstep = 1, num_steps
 
 #ifdef _OPENACC
-      IF (msg_level >= 13) THEN
-        CALL printGPUMem("GPU mem usage")
-        CALL message('',message_text)
-      ENDIF
+      CALL printGPUMem("GPU mem usage")
+      CALL message('',message_text)
 #endif
 
 #ifndef __NO_ICON_COMIN__
