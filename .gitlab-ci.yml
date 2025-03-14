@@ -316,6 +316,7 @@ Granules:
       when: manual
     - when: always
 
+# CSCS test infrastructure adapter
 include: .gitlab/ci/cscs-ci.yml
 
 cscs-ci/santis_cpu:
@@ -343,3 +344,62 @@ cscs-ci/santis_gpu:
     - if: $CSCS_CI_INACTIVE_BUILDERS =~ "/(^|,)santis-gpu(,|$)/"
       when: never
     - when: manual
+
+# official documentation: generation + private/public pages
+.DocsWebsiteBuild: &DocsWebsiteBuild
+  stage: basic
+  variables:
+    PIP_CACHE_DIR: "$CI_PROJECT_DIR/.cache/pip"
+  cache:
+    key: DocsWebsiteBuild
+    paths:
+      - .cache/pip
+  before_script:
+    - pip3 install pydata-sphinx-theme
+    - pip3 install myst-parser
+    - pip3 install sphinx-design
+
+  script:
+    - sphinx-build -W --keep-going -w warnings.html -b html doc/www build/html
+    - mv build/html public
+  tags:
+    - sphinx, dkrz
+  artifacts:
+    when: always
+    paths:
+      - public
+      - warnings.html
+    expire_in: 1day
+
+DocsPreviewLink:
+  extends: .DocsWebsiteBuild
+  variables:
+    DEPLOY_URL: https://$CI_PROJECT_NAMESPACE.$CI_PAGES_DOMAIN/-/$CI_PROJECT_NAME/-/jobs/$CI_JOB_ID/artifacts/public
+  environment:
+    name: review/$CI_COMMIT_REF_NAME
+    url: $DEPLOY_URL/index.html
+  rules:
+    - if: $CI_COMMIT_BRANCH != $CI_DEFAULT_BRANCH
+
+pages:
+  extends: .DocsWebsiteBuild
+  variables:
+    DEPLOY_URL: https://$CI_PROJECT_NAMESPACE.$CI_PAGES_DOMAIN/$CI_PROJECT_NAME
+  environment:
+    name: production
+    url: $DEPLOY_URL
+  rules:
+    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
+
+# manual publishing for docs.icon-model.org
+# - placeholder for a solution for the next release
+# - only possible in icon/icon
+# - not sure about further limitations, yet (web-only, MR-only, gatekeeper-only)
+# DocsIconModelOrg:
+#   extends: .DocsWebsiteBuild
+#   script:
+#     - echo FIXME
+#   rules:
+#     - if: $CI_PROJECT_PATH == "icon/icon"
+#   when: manual
+#   manual_confirmation: 'Are you sure you want to deploy this docu to docs.icon-model.org?'
