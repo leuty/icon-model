@@ -1003,7 +1003,8 @@ SUBROUTINE init_nwp_phy ( p_patch, p_metrics,             &
         ENDIF
         !
         ! Read ozone transient data
-        IF (irad_o3 == 5) CALL read_bc_ozone(ini_date%date%year,p_patch,irad_o3,vmr2mmr_opt=o3mr2gg)
+        IF (irad_o3 == 5) CALL read_bc_ozone(ini_date%date%year,p_patch,irad_o3, &
+     &                                       vmr2mmr_opt=o3mr2gg, lacc=.FALSE.)
 
         ! cloud_num_fac is used in clim_cdnc, but is only available after the 1st call of init_slowphys
         ! however, clim_cdnc has to be called once before the 1st call of init_slowphys

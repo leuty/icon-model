@@ -623,7 +623,6 @@ MODULE mo_mpi
   
   ! Flag if processor splitting is active
   LOGICAL, PUBLIC :: proc_split = .FALSE.
-  LOGICAL, PUBLIC :: i_am_accel_node = .FALSE.
 
 #ifdef USE_NCCL
   INTEGER, PARAMETER :: gpu_comm_queue_depth = 32

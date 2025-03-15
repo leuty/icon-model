@@ -91,7 +91,7 @@ MODULE mo_nh_stepping
   USE mo_memory_log,               ONLY: memory_log_add
   USE mo_mpi,                      ONLY: proc_split, push_glob_comm, pop_glob_comm, &
        &                                 p_comm_work, my_process_is_mpi_workroot,   &
-       &                                 my_process_is_mpi_test, my_process_is_work_only, i_am_accel_node
+       &                                 my_process_is_mpi_test, my_process_is_work_only
 #ifdef NOMPI
   USE mo_mpi,                      ONLY: my_process_is_mpi_all_seq
 #endif
@@ -221,7 +221,6 @@ MODULE mo_nh_stepping
 
 #if defined( _OPENACC )
   USE mo_nonhydro_gpu_types,       ONLY: h2d_icon, d2h_icon, devcpy_grf_state
-  USE mo_mpi,                      ONLY: my_process_is_work
   USE mo_acc_device_management,    ONLY: printGPUMem
 #endif
   USE mo_loopindices,              ONLY: get_indices_c, get_indices_v
@@ -500,7 +499,6 @@ MODULE mo_nh_stepping
 
 #if defined( _OPENACC )
     ! initialize GPU for NWP and AES
-    i_am_accel_node = my_process_is_work()    ! Activate GPUs
     CALL h2d_icon( p_int_state, p_int_state_local_parent, p_patch, p_patch_local_parent, &
     &            p_nh_state, prep_adv, advection_config, les_config, iforcing, lacc=.TRUE. )
     IF (n_dom > 1 .OR. l_limited_area) THEN
@@ -691,7 +689,7 @@ MODULE mo_nh_stepping
 #endif
 
     IF (output_mode%l_nml) THEN
-      CALL write_name_list_output(jstep=0, lacc=i_am_accel_node)
+      CALL write_name_list_output(jstep=0, lacc=.TRUE.)
     END IF
 
 #ifndef __NO_ICON_COMIN__
@@ -722,7 +720,6 @@ MODULE mo_nh_stepping
           DO jg=1, n_dom
             CALL gpu_d2h_dace(jg, atm_phy_nwp_config(jg), prm_diag(jg), p_lnd_state(jg))
           ENDDO
-          i_am_accel_node = .FALSE.
 #endif
           CALL message('perform_nh_stepping','calling run_dace_op')
           IF (timers_level > 4) CALL timer_start(timer_dace_coupling)
@@ -730,7 +727,6 @@ MODULE mo_nh_stepping
           IF (timers_level > 4) CALL timer_stop(timer_dace_coupling)
 #ifdef _OPENACC
           ! There is no data from DACE coming back to ICON, so no data copies are needed
-          i_am_accel_node = my_process_is_work()
 #endif
        END IF
     END IF
@@ -747,7 +743,7 @@ MODULE mo_nh_stepping
       IF (output_mode%l_nml        .AND. &    ! meteogram output is only initialized for nml output
         & p_patch(jg)%ldom_active  .AND. &
         & meteogram_is_sample_step( meteogram_output_config(jg), 0 ) ) THEN
-        CALL meteogram_sample_vars(jg, 0, time_config%tc_startdate, lacc=i_am_accel_node)
+        CALL meteogram_sample_vars(jg, 0, time_config%tc_startdate, lacc=.TRUE.)
       END IF
     END DO
 #ifdef MESSY
@@ -781,7 +777,6 @@ MODULE mo_nh_stepping
     ENDDO
     CALL hostcpy_nwp(lacc=.TRUE.)
   ENDIF
-  i_am_accel_node = .FALSE.                 ! Deactivate GPUs
 #endif
 
   CALL deallocate_nh_stepping
@@ -1132,9 +1127,8 @@ MODULE mo_nh_stepping
 #ifdef _OPENACC
         CALL message('mo_nh_stepping', 'Device to host copy before update_nwp_phy_bcs. This needs to be removed once port is finished!')
         DO jg=1, n_dom
-           CALL gpu_d2h_nh_nwp(jg, ext_data=ext_data(jg), lacc=i_am_accel_node)
+           CALL gpu_d2h_nh_nwp(jg, ext_data=ext_data(jg), lacc=.TRUE.)
         ENDDO
-        i_am_accel_node = .FALSE.
 #endif
         ! assume midnight for climatological updates
         target_datetime = assumePrevMidnight(mtime_current)
@@ -1161,10 +1155,9 @@ MODULE mo_nh_stepping
         mtime_old = mtime_current
 
 #ifdef _OPENACC
-        i_am_accel_node = my_process_is_work()
         CALL message('mo_nh_stepping', 'Host to device copy after update_nwp_phy_bcs. This needs to be removed once port is finished!')
         DO jg=1, n_dom
-          CALL gpu_h2d_nh_nwp(jg, ext_data=ext_data(jg), lacc=i_am_accel_node)
+          CALL gpu_h2d_nh_nwp(jg, ext_data=ext_data(jg), lacc=.TRUE.)
         ENDDO
 #endif
       END IF ! end update of surface parameter fields
@@ -1593,7 +1586,7 @@ MODULE mo_nh_stepping
       IF (my_process_is_mpi_all_seq()) &
 #endif
         CALL supervise_total_integrals_nh( kstep, p_patch(1), p_nh_state(1), p_int_state(1), &
-        &                                  nnow(1), nnow_rcf(1), jstep == (nsteps+jstep0), lacc=i_am_accel_node)
+        &                                  nnow(1), nnow_rcf(1), jstep == (nsteps+jstep0), lacc=.TRUE.)
     ENDIF
 
 
@@ -1662,7 +1655,6 @@ MODULE mo_nh_stepping
             DO jg=1, n_dom
               CALL gpu_d2h_dace(jg, atm_phy_nwp_config(jg), prm_diag(jg), p_lnd_state(jg))
             ENDDO
-            i_am_accel_node = .FALSE.
 #endif
             IF (sim_time == 0._wp) THEN
               CALL message('perform_nh_timeloop','calling run_dace_op for sim_time=0')
@@ -1674,7 +1666,6 @@ MODULE mo_nh_stepping
             IF (timers_level > 4) CALL timer_stop(timer_dace_coupling)
 #ifdef _OPENACC
             ! There is no data from DACE coming back to ICON, so no data copies are needed
-            i_am_accel_node = my_process_is_work()
 #endif
           END IF
        END IF
@@ -2835,8 +2826,7 @@ MODULE mo_nh_stepping
               & CALL message (routine, 'NESTING online init: Switching to CPU for initialization')
 
             ! The online initialization of the nest runs on CPU only.
-            CALL gpu_d2h_nh_nwp(jg, ext_data=ext_data(jg), lacc=i_am_accel_node)
-            i_am_accel_node = .FALSE. ! disable the execution of ACC kernels
+            CALL gpu_d2h_nh_nwp(jg, ext_data=ext_data(jg), lacc=.TRUE.)
 #endif
             CALL initialize_nest(jg, jgc, ext_data(:), prm_diag(:), p_lnd_state(:))
 
@@ -2908,10 +2898,9 @@ MODULE mo_nh_stepping
             ENDIF
 
 #ifdef _OPENACC
-            i_am_accel_node = my_process_is_work()
-            CALL gpu_h2d_nh_nwp(jg, ext_data=ext_data(jg), lacc=i_am_accel_node) ! necessary as Halo-Data can be modified
+            CALL gpu_h2d_nh_nwp(jg, ext_data=ext_data(jg), lacc=.TRUE.) ! necessary as Halo-Data can be modified
             CALL gpu_h2d_nh_nwp(jgc, ext_data=ext_data(jgc), phy_params=phy_params(jgc), &
-                                atm_phy_nwp_config=atm_phy_nwp_config(jg), lacc=i_am_accel_node)
+                                atm_phy_nwp_config=atm_phy_nwp_config(jg), lacc=.TRUE.)
             IF (msg_level >= 7) &
               & CALL message (routine, 'NESTING online init: Switching back to GPU')
 #endif

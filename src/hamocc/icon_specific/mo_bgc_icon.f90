@@ -159,8 +159,9 @@ SUBROUTINE BGC_ICON(p_patch_3D, hamocc_ocean_state, ssh, pddpo, ptiestu, lacc)
  !----------------------------------------------------------------------
  
 IF(l_bgc_check)THEN
- call message_to_own_unit('1. before bgc','inventories',io_stdo_bgc)
- call get_inventories(hamocc_state, ssh, pddpo, hamocc_state%p_prog(nold(1))%tracer, p_patch_3d, 0._wp, 0._wp) 
+ CALL message_to_own_unit('1. before bgc','inventories',io_stdo_bgc)
+ CALL get_inventories(hamocc_state, ssh, pddpo, hamocc_state%p_prog(nold(1))%tracer, &
+   &                  p_patch_3d, 0._wp, 0._wp, lacc=lzacc) 
 ENDIF
 
 kpke = MAXVAL(p_patch_3D%p_patch_1d(1)%dolic_c(:,:))
@@ -471,8 +472,9 @@ ENDIF  ! lsediment_only
   ldtrunbgc = ldtrunbgc + 1
 
   IF(l_bgc_check)THEN
-   call message_to_own_unit('2. after bgc','inventories',io_stdo_bgc)
-   call get_inventories(hamocc_state, ssh, pddpo, hamocc_state%p_prog(nold(1))%tracer, p_patch_3d, 1._wp, 1._wp) 
+   CALL message_to_own_unit('2. after bgc','inventories',io_stdo_bgc)
+   CALL get_inventories(hamocc_state, ssh, pddpo, hamocc_state%p_prog(nold(1))%tracer, &
+ &                      p_patch_3d, 1._wp, 1._wp, lacc=lzacc) 
   ENDIF
   
 

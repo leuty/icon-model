@@ -118,6 +118,7 @@ Climate: ICON-Land
 - Remove hard-coded double-precision settings (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/590)
 - Fix the generation of index lists on GPUs for LAM and nested simulation runs
 - Single-precision support in IO components (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/680)
+- Completely removed i_am_accel_node
 
 #### Coupling
 
