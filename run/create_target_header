@@ -1653,21 +1653,30 @@ set_run_target_hk()
 {
     icon_data_rootFolder=${icon_data_rootFolder:=/hkfs/home/dataset/datasets/icon/pool/data/ICON}
 
-    set_default use_nproma 32
-    set_default use_nproma_sub 8
-    set_default use_nblocks_c 0
+    if [[ "$use_gpu" == "yes" ]]; then
+        set_default use_queue accelerated
+        set_default use_nproma 8192
+        set_default use_nproma_sub 512
+        set_default use_ecrad_isolver 2 # McICA for OpenACC
+        if [[ $use_mpi == "yes" ]]; then
+            set_default use_mpi_procs_pernode 4
+        fi
+    else
+        set_default use_queue cpuonly
+        set_default use_nproma 32
+        set_default use_nproma_sub 8
+        if [[ $use_mpi == "yes" ]]; then
+            set_default use_mpi_procs_pernode 76
+        fi
+        if [[ $use_openmp == "yes" ]]; then
+            set_default use_openmp_threads 2
+        else
+            set_default use_openmp_threads 1
+        fi
+    fi
     set_default use_nodes 1
     set_default use_num_io_procs 1
     set_default use_cpu_time 01:00:00
-
-    if [[ $use_mpi == "yes" ]]; then
-        set_default use_mpi_procs_pernode 76
-    fi
-    if [[ $use_openmp == "yes" ]]; then
-        set_default use_openmp_threads 2
-    else
-        set_default use_openmp_threads 1
-    fi
 
     if [[ -n "$BB_SYSTEM" ]]; then
     # this buildbot, do not use job id
@@ -1679,7 +1688,10 @@ set_run_target_hk()
     if [[ -n "$BB_SYSTEM" ]]; then
         limit_time_bb "00:45:00" "00:45:00"
     fi
-
+    
+    if [[ "x$BB_SYSTEM" != 'x' ]]; then
+        use_queue="dev_${use_queue}"
+    fi
 
     cdo='cdo'
     cdo_diff='diffn'
@@ -1690,18 +1702,19 @@ set_run_target_hk()
 #SBATCH --chdir=$output_folder
 #SBATCH --job-name=$job_name
 #SBATCH --nodes=${use_nodes}
-#SBATCH --partition=dev_cpuonly
-$(if [[ "x$BB_SYSTEM" != 'x' ]]
- then
-  printf "#SBATCH ${TIME_LIMITS}
-";fi)
 #SBATCH --account=hk-project-glori-init
 #SBATCH --ntasks-per-node=$use_mpi_procs_pernode
 #SBATCH --time=$use_cpu_time
+#SBATCH --partition=$use_queue
 EOF
 
     if [[ "x$BB_SYSTEM" != 'x' ]]; then
         echo "#SBATCH --qos cx" >> "$output_script"
+        echo "#SBATCH ${TIME_LIMITS}" >> "$output_script"
+    fi
+
+    if [[ "$use_gpu" == "yes" ]]; then
+        echo '#SBATCH --gres=gpu:4' >> "$output_script"
     fi
 
     start_header
@@ -1709,73 +1722,13 @@ EOF
     cat >> "$output_script" << EOF
 export PATH=/hkfs/home/dataset/datasets/icon/sw/cdo-2.4.0/bin:\${PATH}
 export ECCODES_DEFINITION_PATH=/hkfs/home/dataset/datasets/icon/bacy_data/definitions/2.32.0-2/definitions.edzw:/hkfs/home/dataset/datasets/icon/bacy_data/definitions/2.32.0-2/definitions
-export NVCOMPILER_TERM=trace
-export OMPI_MCA_btl=self,tcp
 EOF
-}
-
-set_run_target_hk_gpu()
-{
-    icon_data_rootFolder=${icon_data_rootFolder:=/hkfs/home/dataset/datasets/icon/pool/data/ICON}
-
-    set_default use_nproma 8192
-    set_default use_nproma_sub 512
-    set_default use_nblocks_c 0
-    set_default use_nodes 1
-    set_default use_num_io_procs 1
-    set_default use_cpu_time 01:00:00
-    set_default use_ecrad_isolver 2 # McICA for OpenACC
-
-    if [[ $use_mpi == "yes" ]]; then
-        set_default use_mpi_procs_pernode 4
+    if [[ "$use_compiler" == "pgi" ]]; then
+        echo 'export NVCOMPILER_TERM=trace' >> "$output_script"
+        if [[ "$use_compiler_version" == 'nv:24.7.0' ]]; then
+            echo "source /hkfs/home/dataset/datasets/icon/sw/buildenv/nvidia-24.7/environment.rc" >> "$output_script"
+        fi
     fi
-    if [[ $use_openmp == "yes" ]]; then
-        set_default use_openmp_threads 2
-    else
-        set_default use_openmp_threads 1
-    fi
-
-    if [[ -n "$BB_SYSTEM" ]]; then
-        job_log_name="LOG.$job_name"
-    else
-        job_log_name="LOG.$job_name.%j"
-    fi
-
-    if [[ -n "$BB_SYSTEM" ]]; then
-        limit_time_bb "00:45:00" "00:45:00"
-    fi
-
-    cdo='cdo'
-    cdo_diff='diffn'
-
-    cat >> "$output_script" << EOF
-#SBATCH --nodes=${use_nodes}
-#SBATCH --output=$output_folder/$job_log_name.o
-#SBATCH --error=$output_folder/$job_log_name.o
-#SBATCH --chdir=$output_folder
-#SBATCH --job-name=$job_name
-#SBATCH --partition=dev_accelerated
-$(if [[ "x$BB_SYSTEM" != 'x' ]]
- then
-  printf "#SBATCH ${TIME_LIMITS}
-";fi)
-#SBATCH --account=hk-project-glori-init
-#SBATCH --ntasks-per-node=$use_mpi_procs_pernode
-#SBATCH --gres=gpu:4
-#SBATCH --time=$use_cpu_time
-EOF
-
-    if [[ "x$BB_SYSTEM" != 'x' ]]; then
-        echo "#SBATCH --qos cx" >> "$output_script"
-    fi
-
-    start_header
-
-    cat >> "$output_script" << EOF
-export PATH=/hkfs/home/dataset/datasets/icon/sw/cdo-2.4.0/bin:\${PATH}
-export ECCODES_DEFINITION_PATH=/hkfs/home/dataset/datasets/icon/bacy_data/definitions/2.32.0-2/definitions.edzw:/hkfs/home/dataset/datasets/icon/bacy_data/definitions/2.32.0-2/definitions
-export NVCOMPILER_TERM=trace
-EOF
 }
 #-----------------------------------------------------------------------------
 set_run_target_juwels()

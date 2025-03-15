@@ -300,12 +300,11 @@ case "$use_site" in
       uc2*) use_target='uc2' ;;
       fh2*) use_target='fh2' ;;
       hk*)  
+        use_target='hk'
         if test xyes = x"${use_gpu}"; then 
-            use_target='hk_gpu';
             use_mpi_startrun='@MPI_LAUNCH@ -n ${SLURM_NPROCS} ${basedir}/run/run_wrapper/hk.sh'
-        else 
-            use_target='hk'; 
         fi
+        ;;
     esac
   ;;
 
