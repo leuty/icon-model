@@ -1,7 +1,7 @@
 ! ICON
 !
 ! ---------------------------------------------------------------
-! Copyright (C) 2004-2024, DWD, MPI-M, DKRZ, KIT, ETH, MeteoSwiss
+! Copyright (C) 2004-2025, DWD, MPI-M, DKRZ, KIT, ETH, MeteoSwiss
 ! Contact information: icon-model.org
 !
 ! See AUTHORS.TXT for a list of authors
@@ -2102,12 +2102,12 @@ MODULE mo_initicon_io
 
             ! sea-surface temperature: fetch T_SEA or, alternatively, T_SO(0)
             my_ptr2d => initicon(jg)%sfc%sst(:,:)
-            CALL fetch2d(params, 't_seasfc', 0.0_wp, jg, my_ptr2d)
+            CALL fetch2d(params, 't_seasfc', 0.0_dp, jg, my_ptr2d)
             !
             IF (inputInstructions(jg)%ptr%fetchStatus('t_seasfc', lIsFg=.FALSE.) == kStateFailedFetch) THEN
               ! T_SO(0). Note that the file may contain a 3D field, of which we ONLY fetch the level at 0.0.
               lHaveFg = inputInstructions(jg)%ptr%sourceOfVar('t_so') == kInputSourceFg
-              CALL fetch2d(params, 't_so', 0.0_wp, jg, my_ptr2d)
+              CALL fetch2d(params, 't_so', 0.0_dp, jg, my_ptr2d)
               ! check whether we are using DATA from both FG AND ANA input, so that it's correctly listed IN the input source table
               IF(lHaveFg.AND.inputInstructions(jg)%ptr%sourceOfVar('t_so') == kInputSourceAna) THEN
                   CALL inputInstructions(jg)%ptr%setSource('t_so', kInputSourceBoth)
@@ -2234,7 +2234,7 @@ MODULE mo_initicon_io
 
   SUBROUTINE fetch_dwdfg_jsb(requestList, inputInstructions)
 
-    USE mo_impl_constants, ONLY: REAL_T, LSS_JSBACH
+    USE mo_impl_constants, ONLY: REAL_WP_T, LSS_JSBACH
     USE mo_var_groups, ONLY: var_groups_dyn
     USE mo_var_list_register, ONLY: t_vl_register_iter
     USE mo_atm_phy_nwp_config, ONLY: atm_phy_nwp_config
@@ -2279,7 +2279,7 @@ MODULE mo_initicon_io
           found = .FALSE.
           nvars = nvars + 1
 
-          IF (vl(i)%p%info%data_type /= REAL_T) THEN
+          IF (vl(i)%p%info%data_type /= REAL_WP_T) THEN
             WRITE(message_text,'(a,a,a,i2)') 'Variable "', TRIM(vl(i)%p%info%name), '" has unhandled type: ', vl(i)%p%info%data_type
             CALL warning(routine, message_text)
             CYCLE
@@ -2287,9 +2287,9 @@ MODULE mo_initicon_io
 
           SELECT CASE (vl(i)%p%info%ndims)
           CASE (2)
-            CALL fetchSurface(params, TRIM(vl(i)%p%info%name), jg, vl(i)%p%r_ptr(:,:,1,1,1), found=found)
+            CALL fetchSurface(params, TRIM(vl(i)%p%info%name), jg, vl(i)%p%wp_ptr(:,:,1,1,1), found=found)
           CASE (3)
-            CALL fetch3d(params, TRIM(vl(i)%p%info%name), jg, vl(i)%p%r_ptr(:,:,:,1,1), found=found)
+            CALL fetch3d(params, TRIM(vl(i)%p%info%name), jg, vl(i)%p%wp_ptr(:,:,:,1,1), found=found)
           CASE DEFAULT
             WRITE(message_text,'(a,a,a,i2)') 'Variable "', TRIM(vl(i)%p%info%name), '" has unhandled number of dimensions: ', vl(i)%p%info%ndims
             CALL warning(routine, message_text)

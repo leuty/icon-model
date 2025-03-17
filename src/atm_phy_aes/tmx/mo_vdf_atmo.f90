@@ -1,7 +1,7 @@
 ! ICON
 !
 ! ---------------------------------------------------------------
-! Copyright (C) 2004-2024, DWD, MPI-M, DKRZ, KIT, ETH, MeteoSwiss
+! Copyright (C) 2004-2025, DWD, MPI-M, DKRZ, KIT, ETH, MeteoSwiss
 ! Contact information: icon-model.org
 !
 ! See AUTHORS.TXT for a list of authors
@@ -17,7 +17,7 @@
 
 MODULE mo_vdf_atmo
 
-  USE mo_kind,              ONLY: wp, sp
+  USE mo_kind,              ONLY: wp, vp, sp
   USE mo_exception,         ONLY: message
   USE mtime,                ONLY: t_datetime => datetime
   USE mo_tmx_process_class, ONLY: t_tmx_process
@@ -88,8 +88,10 @@ MODULE mo_vdf_atmo
   ! END INTERFACE
 
   INTERFACE prepare_diffusion_matrix
-    MODULE PROCEDURE prepare_diffusion_matrix_dp
-    MODULE PROCEDURE prepare_diffusion_matrix_sp
+    MODULE PROCEDURE prepare_diffusion_matrix_wp
+#ifdef __MIXED_PRECISION
+    MODULE PROCEDURE prepare_diffusion_matrix_mp
+#endif
   END INTERFACE prepare_diffusion_matrix
 
   INTERFACE t_vdf_atmo
@@ -122,15 +124,9 @@ MODULE mo_vdf_atmo
       & inv_dzh(:,:,:)                => NULL() , &
       & geopot_agl_ic(:,:,:)          => NULL() , &
       & pfrc(:,:,:)                   => NULL()
-#ifdef __MIXED_PRECISION
-    REAL(sp), POINTER :: &
+    REAL(vp), POINTER :: &
       & inv_dzf(:,:,:)                => NULL() , &
       & dzh(:,:,:)                    => NULL()
-#else
-    REAL(wp), POINTER :: &
-      & inv_dzf(:,:,:)                => NULL() , &
-      & dzh(:,:,:)                    => NULL()
-#endif
   CONTAINS
     ! PROCEDURE :: Init => init_t_vdf_atmo_variable_set
     PROCEDURE :: Set_pointers => Set_pointers_inputs
@@ -709,11 +705,7 @@ CONTAINS
     CALL inlist%append(t_variable('full level pressure', shape_3d, "Pa", type_id="real"))
     CALL inlist%append(t_variable('layer thickness', shape_3d, "m", type_id="real"))
     CALL inlist%append(t_variable('layer thickness full', shape_3d, "m", type_id="real"))
-#ifdef __MIXED_PRECISION
-    CALL inlist%append(t_variable('inverse layer thickness full', shape_3d, "1/m", type_id="single"))
-#else
-    CALL inlist%append(t_variable('inverse layer thickness full', shape_3d, "1/m", type_id="real"))
-#endif
+    CALL inlist%append(t_variable('inverse layer thickness full', shape_3d, "1/m", type_id="real_vp"))
     ! CALL inlist%append(t_variable('saturation specific humidity', shape_3d, "kg/kg", type_id="real"))
     CALL inlist%append(t_variable('moist air mass', shape_3d, "kg/m2", type_id="real"))
     ! CALL inlist%append(t_variable('specific heat of air at constant pressure', shape_3d, "J/kg/K", type_id="real"))
@@ -776,13 +768,8 @@ CONTAINS
       __acc_attach(this%paphm1)
       this%dz      => this%list%Get_ptr_r3d('layer thickness')
       __acc_attach(this%dz)
-#ifdef __MIXED_PRECISION
       this%inv_dzf => this%list%Get_ptr_s3d('inverse layer thickness full')
       this%dzh     => this%list%Get_ptr_s3d('layer thickness half')
-#else
-      this%inv_dzf => this%list%Get_ptr_r3d('inverse layer thickness full')
-      this%dzh     => this%list%Get_ptr_r3d('layer thickness half')
-#endif
       __acc_attach(this%inv_dzf)
       __acc_attach(this%dzh)
       this%inv_dzh => this%list%Get_ptr_r3d('inverse layer thickness half')
@@ -2153,7 +2140,7 @@ CONTAINS
   END SUBROUTINE interpolate_eddy_viscosity2half_edge
   !============================================================================
   !
-  ! double precision version of prepare_diffusion_matrix.
+  ! working precision version of prepare_diffusion_matrix.
   ! The coefficients of the system of equations for the
   ! implicit calculation of the tendencies are set up here.
   ! The coefficients for explicit calculations differ from
@@ -2165,7 +2152,7 @@ CONTAINS
   ! to the coefficient b later (see module mo_tmx_numerics;
   ! subroutine diffuse_vertical_implicit).
   !
-  SUBROUTINE prepare_diffusion_matrix_dp( &
+  SUBROUTINE prepare_diffusion_matrix_wp( &
     & ics, ice,              & ! in
     & minlvl, maxlvl,        & ! in
     & lhalflvl,              & ! in
@@ -2207,7 +2194,7 @@ CONTAINS
     ! Multiplier requiered for some coefficients
     REAL(wp) :: zmulti
 
-    CHARACTER(len=*), PARAMETER :: routine = modname//':prepare_diffusion_matrix'
+    CHARACTER(len=*), PARAMETER :: routine = modname//':prepare_diffusion_matrix_wp'
 
     ! For half levels the coefficient "a" is calclated using
     ! infomation on the upper half level, i.e. jk-1, and the
@@ -2266,10 +2253,12 @@ CONTAINS
     !$ACC END PARALLEL LOOP
     !$ACC WAIT(1)
 
-  END SUBROUTINE prepare_diffusion_matrix_dp
+  END SUBROUTINE prepare_diffusion_matrix_wp
+
+#ifdef __MIXED_PRECISION
   !============================================================================
   !
-  ! single precision version of prepare_diffusion_matrix.
+  ! mixed precision version of prepare_diffusion_matrix.
   ! The coefficients of the system of equations for the
   ! implicit calculation of the tendencies are set up here.
   ! The coefficients for explicit calculations differ from
@@ -2281,7 +2270,7 @@ CONTAINS
   ! to the coefficient b later (see module mo_tmx_numerics;
   ! subroutine diffuse_vertical_implicit).
   !
-  SUBROUTINE prepare_diffusion_matrix_sp( &
+  SUBROUTINE prepare_diffusion_matrix_mp( &
     & ics, ice,              & ! in
     & minlvl, maxlvl,        & ! in
     & lhalflvl,              & ! in
@@ -2299,7 +2288,7 @@ CONTAINS
     ! Iteration boundaries for blocks, cells, and level
     INTEGER, INTENT(in) :: ics, ice, minlvl, maxlvl
 
-    REAL(sp), INTENT(in), DIMENSION(:,:) :: &
+    REAL(vp), INTENT(in), DIMENSION(:,:) :: &
       & inv_dz       ! inverse distance between cell centers/interfaces [1 / m]
 
     REAL(wp), INTENT(in), DIMENSION(:,:) :: &
@@ -2382,7 +2371,8 @@ CONTAINS
     !$ACC END PARALLEL LOOP
     !$ACC WAIT(1)
 
-  END SUBROUTINE prepare_diffusion_matrix_sp
+  END SUBROUTINE prepare_diffusion_matrix_mp
+#endif
   !
   !=================================================================
   !

@@ -1,7 +1,7 @@
 ! ICON
 !
 ! ---------------------------------------------------------------
-! Copyright (C) 2004-2024, DWD, MPI-M, DKRZ, KIT, ETH, MeteoSwiss
+! Copyright (C) 2004-2025, DWD, MPI-M, DKRZ, KIT, ETH, MeteoSwiss
 ! Contact information: icon-model.org
 !
 ! See AUTHORS.TXT for a list of authors
@@ -20,7 +20,6 @@
 
 MODULE mo_name_list_output_config
 
-  USE mo_kind,                  ONLY: wp
   USE mo_exception,             ONLY: finish
   USE mo_impl_constants,        ONLY: max_var_ml, max_var_pl, &
     &                                 max_var_hl, max_var_il, &

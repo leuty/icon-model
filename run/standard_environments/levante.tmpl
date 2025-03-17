@@ -2,7 +2,7 @@
 #%#- ICON
 #%#-
 #%#- ------------------------------------------
-#%#- Copyright (C) 2004-2024, DWD, MPI-M, DKRZ, KIT, ETH, MeteoSwiss
+#%#- Copyright (C) 2004-2025, DWD, MPI-M, DKRZ, KIT, ETH, MeteoSwiss
 #%#- Contact information: icon-model.org
 #%#- See AUTHORS.TXT for a list of authors
 #%#- See LICENSES/ for license information
@@ -11,8 +11,28 @@
 #
 # Setup for levante (SLURM)
 #
-# $Id: levante.tmpl 1 2023-03-01 12:09:29Z m221078 $
+# $Id: levante.tmpl 2 2025-02-11 k202123 $
 #
+#% if calling_from_run is defined
+#SBATCH --account=%{JOB.account|d(ACCOUNT)}
+#% if JOB.qos is defined:
+#SBATCH --qos=%{JOB.qos}
+#% endif
+#SBATCH --job-name=%{EXP_ID}.run
+#SBATCH --partition=%{JOB.partition|d('compute')|join(',')}
+#SBATCH --nodes=%{JOB.nodes}
+#% if JOB.use_gpus is set:
+#SBATCH --gpus-per-node=%{JOB.gpus_per_node}
+#% else
+#SBATCH --threads-per-core=2
+# the following is needed to work around a bug that otherwise leads to
+# a too low number of ranks when using compute,compute2 as queue
+#% endif
+#SBATCH --mem=0
+#SBATCH --output=%{LOG_DIR}/%{EXP_ID}.run.%8j.log
+#SBATCH --exclusive
+#SBATCH --time=%{JOB.time_limit}
+#% endif
 #%  if EMAIL is defined:
 #SBATCH --mail-type=FAIL,ARRAY_TASKS
 #SBATCH --mail-user=%{JOB.email|d(EMAIL)|join(',')}

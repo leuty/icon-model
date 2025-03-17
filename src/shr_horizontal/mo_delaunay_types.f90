@@ -1,7 +1,7 @@
 ! ICON
 !
 ! ---------------------------------------------------------------
-! Copyright (C) 2004-2024, DWD, MPI-M, DKRZ, KIT, ETH, MeteoSwiss
+! Copyright (C) 2004-2025, DWD, MPI-M, DKRZ, KIT, ETH, MeteoSwiss
 ! Contact information: icon-model.org
 !
 ! See AUTHORS.TXT for a list of authors
@@ -23,12 +23,12 @@ MODULE mo_delaunay_types
   USE OMP_LIB
 #endif
 
+  USE mo_kind,              ONLY: wp, qp  ! quadruple precision needed for some determinant computations
   USE mo_util_file,         ONLY: util_file_is_writable
   USE mo_netcdf_errhandler, ONLY: nf
   USE mo_netcdf
   USE mo_exception,         ONLY: finish
   USE mo_impl_constants,    ONLY: SUCCESS
-  USE mo_kind,              ONLY: wp
   USE mo_mpi,               ONLY: p_comm_work, p_real_dp
 #ifdef __SX__
   USE mo_util_sort,         ONLY: radixsort
@@ -45,15 +45,6 @@ MODULE mo_delaunay_types
   PUBLIC :: circum_circle_spherical, ccw_spherical, sagitta_on_unit_sphere
 
   CHARACTER(LEN=*), PARAMETER :: modname = 'mo_delaunay_types'
-
-  ! quadruple precision, needed for some determinant computations
-#if ( defined __PGI )
-#define _NO_QUAD_PRECISION
-#elif ( ! defined NAGFOR && ! defined _SX )
-  INTEGER, PARAMETER :: QR_K = SELECTED_REAL_KIND (32)
-#else
-  INTEGER, PARAMETER :: QR_K = SELECTED_REAL_KIND (2*precision(1.0_wp))
-#endif
 
 
   ! --------------------------------------------------------------------
@@ -280,7 +271,7 @@ CONTAINS
   !  Renka, R. J. Interpolation of Data on the Surface of a Sphere
   !               ACM Trans. Math. Softw., ACM, 1984, 10, 417-436
   !  Renka's STRIPACK algorithm (http://www.netlib.org/toms/772)
-#ifndef _NO_QUAD_PRECISION
+#ifdef __HAVE_QUAD_PRECISION
   PURE &
 #endif
   FUNCTION circum_circle_spherical(p, pxyz, ip)
@@ -325,14 +316,14 @@ CONTAINS
   !  Renka, R. J. Interpolation of Data on the Surface of a Sphere
   !               ACM Trans. Math. Softw., ACM, 1984, 10, 417-436
   !  Renka's STRIPACK algorithm (http://www.netlib.org/toms/772)
-#ifndef _NO_QUAD_PRECISION
+#ifdef __HAVE_QUAD_PRECISION
   PURE FUNCTION circum_circle_spherical_q128(p, pxyz, ip)
     LOGICAL :: circum_circle_spherical_q128
     TYPE (t_point),      INTENT(IN)   :: p
     TYPE (t_point_list), INTENT(IN)   :: pxyz
     INTEGER,             INTENT(IN)   :: ip(0:2)
     ! local variables
-    REAL(QR_K) :: d1_x, d1_y, d1_z,d2_x, d2_y, d2_z,d3_x, d3_y, d3_z
+    REAL(qp) :: d1_x, d1_y, d1_z,d2_x, d2_y, d2_z,d3_x, d3_y, d3_z
 
     ! p lies above the plane of (p1,p3,p2) iff p2 lies above the plane
     ! of (p3,p1,p) iff Det(p2-p,p3-p,p1-p) = (p2-p,p3-p X p1-p) > 0.
@@ -1321,7 +1312,7 @@ CONTAINS
     TYPE(t_mpi_triangle), ALLOCATABLE :: tmp(:), recv_tmp(:)
     TYPE(t_min_heap_elt), ALLOCATABLE :: kway_merge_array_out(:)
 #ifdef _OPENMP
-    DOUBLE PRECISION                  :: time_s, toc
+    REAL(wp)                          :: time_s, toc
 #endif
 
     mpi_comm = p_comm_work

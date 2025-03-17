@@ -3,7 +3,7 @@
 # ICON
 #
 # ---------------------------------------------------------------
-# Copyright (C) 2004-2024, DWD, MPI-M, DKRZ, KIT, ETH, MeteoSwiss
+# Copyright (C) 2004-2025, DWD, MPI-M, DKRZ, KIT, ETH, MeteoSwiss
 # Contact information: icon-model.org
 #
 # See AUTHORS.TXT for a list of authors
@@ -24,7 +24,7 @@
 #  and needs to be calculated. Therefore the 2D data of the natural logarithm of surface pressure - lnsp needs to 
 #  be downloaded also. This time the grib format is needed and also separated file for each timestep 
 #  $CAMSdir/CAMS_lnsp_${dathh}_${n}.grb where "n" is the forecast hour (3 hours resolution).
-#  The 3D pressure is calculated by compute_pressure_on_ml.py which is based on compute_geopotential_on_ml.py given in: 
+#  The 3D pressure is calculated by compute_full_level_pressure_on_ml.py which is based on compute_geopotential_on_ml.py given in: 
 #  https://confluence.ecmwf.int/display/CKB/ERA5%3A+compute+pressure+and+geopotential+on+model+levels%2C+geopotential+height+and+geometric+height   
 #
 #  CDO, python3 and ecmwf-toolbox is needed for this script to work
@@ -51,7 +51,7 @@ CAMSdir=/scratch/.../.../$dathh/CAMS_files # an example, edit here
 
 # A loop on all forecast range to calculate 3D half-level pressure from 2D lnsp
 for n in  `seq 0 3 $frange`; do
-	python3 compute_pressure_on_ml.py $CAMSdir/CAMS_lnsp_${dathh}_${n}.grb -o $CAMSdir/CAMS_pres0_${dathh}_${n}.grb
+	python3 compute_full_level_pressure_on_ml.py $CAMSdir/CAMS_lnsp_${dathh}_${n}.grb -o $CAMSdir/CAMS_pres0_${dathh}_${n}.grb
 done 
 
 # A loop to change the variable name to "pres" and to create netCDF file

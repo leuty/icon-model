@@ -1,7 +1,7 @@
 ! ICON
 !
 ! ---------------------------------------------------------------
-! Copyright (C) 2004-2024, DWD, MPI-M, DKRZ, KIT, ETH, MeteoSwiss
+! Copyright (C) 2004-2025, DWD, MPI-M, DKRZ, KIT, ETH, MeteoSwiss
 ! Contact information: icon-model.org
 !
 ! See AUTHORS.TXT for a list of authors
@@ -2618,12 +2618,6 @@ MODULE mo_initicon_utils
             IF(ASSOCIATED(p_lnd_state(jg)%prog_lnd(i)%w_i_t)) &
               & CALL printChecksum(prefix(1:pfx_tlen)//"w_i_t: ", &
               & p_lnd_state(jg)%prog_lnd(i)%w_i_t)
-            IF(ASSOCIATED(p_lnd_state(jg)%prog_lnd(i)%w_p_t)) &
-              & CALL printChecksum(prefix(1:pfx_tlen)//"w_p_t: ", &
-              & p_lnd_state(jg)%prog_lnd(i)%w_p_t)
-            IF(ASSOCIATED(p_lnd_state(jg)%prog_lnd(i)%w_s_t)) &
-              & CALL printChecksum(prefix(1:pfx_tlen)//"w_s_t: ", &
-              & p_lnd_state(jg)%prog_lnd(i)%w_s_t)
             IF(ASSOCIATED(p_lnd_state(jg)%prog_lnd(i)%t_so_t)) &
               & CALL printChecksum(prefix(1:pfx_tlen)//"t_so_t: ", &
               & p_lnd_state(jg)%prog_lnd(i)%t_so_t)
@@ -2726,12 +2720,6 @@ MODULE mo_initicon_utils
         IF(ASSOCIATED(p_lnd_state(jg)%diag_lnd%w_i)) &
           & CALL printChecksum(prefix(1:pfx_tlen)//"w_i: ", &
           & p_lnd_state(jg)%diag_lnd%w_i)
-        IF(ASSOCIATED(p_lnd_state(jg)%diag_lnd%w_p)) &
-          & CALL printChecksum(prefix(1:pfx_tlen)//"w_p: ", &
-          & p_lnd_state(jg)%diag_lnd%w_p)
-        IF(ASSOCIATED(p_lnd_state(jg)%diag_lnd%w_s)) &
-          & CALL printChecksum(prefix(1:pfx_tlen)//"w_s: ", &
-          & p_lnd_state(jg)%diag_lnd%w_s)
         IF(ASSOCIATED(p_lnd_state(jg)%diag_lnd%t_so)) &
           & CALL printChecksum(prefix(1:pfx_tlen)//"t_so: ", &
           & p_lnd_state(jg)%diag_lnd%t_so)

@@ -1,7 +1,7 @@
 ! ICON
 !
 ! ---------------------------------------------------------------
-! Copyright (C) 2004-2024, DWD, MPI-M, DKRZ, KIT, ETH, MeteoSwiss
+! Copyright (C) 2004-2025, DWD, MPI-M, DKRZ, KIT, ETH, MeteoSwiss
 ! Contact information: icon-model.org
 !
 ! See AUTHORS.TXT for a list of authors
@@ -493,7 +493,7 @@ CONTAINS
         !$ACC PARALLEL LOOP GANG VECTOR DEFAULT(PRESENT) &
         !$ACC   REDUCTION(+: sum_value, number_of_values) &
         !$ACC   REDUCTION(MAX: max_value) &
-        !$ACC   REDUCTION(MIN: min_value) IF(lzacc)
+        !$ACC   REDUCTION(MIN: min_value) ASYNC(1) IF(lzacc)
         DO idx = start_index, end_index
           IF (in_subset%vertical_levels(idx,block) > 0) THEN
             min_value    = MIN(min_value, values(idx, block))
@@ -808,7 +808,7 @@ CONTAINS
         CALL get_index_range(in_subset, block, start_index, end_index)
         
         !$ACC PARALLEL LOOP GANG VECTOR DEFAULT(PRESENT) &
-        !$ACC   REDUCTION(+: total_sum, sum_weight) IF(lzacc)
+        !$ACC   REDUCTION(+: total_sum, sum_weight) ASYNC(1) IF(lzacc)
         DO idx = start_index, end_index
           !$ACC LOOP SEQ
           DO level = start_vertical, MIN(end_vertical, in_subset%vertical_levels(idx,block))
@@ -828,7 +828,7 @@ CONTAINS
         CALL get_index_range(in_subset, block, start_index, end_index)
         
         !$ACC PARALLEL LOOP GANG VECTOR DEFAULT(PRESENT) &
-        !$ACC   REDUCTION(+: total_sum, sum_weight) IF(lzacc)
+        !$ACC   REDUCTION(+: total_sum, sum_weight) ASYNC(1) IF(lzacc)
         DO idx = start_index, end_index
           sum_weight(start_vertical)  = sum_weight(start_vertical) + weights(idx, block)
           !$ACC LOOP SEQ
@@ -923,7 +923,7 @@ CONTAINS
           CALL get_index_range(in_subset, block, start_index, end_index)
         
           !$ACC PARALLEL LOOP GANG VECTOR DEFAULT(PRESENT) &
-          !$ACC   REDUCTION(+: level_sum_value, level_sum_weight) IF(lzacc)
+          !$ACC   REDUCTION(+: level_sum_value, level_sum_weight) ASYNC(1) IF(lzacc)
           DO idx = start_index, end_index
             IF (level <= in_subset%vertical_levels(idx,block)) THEN
               level_sum_value  = level_sum_value + &
@@ -950,7 +950,7 @@ CONTAINS
           CALL get_index_range(in_subset, block, start_index, end_index)
         
           !$ACC PARALLEL LOOP GANG VECTOR DEFAULT(PRESENT) &
-          !$ACC   REDUCTION(+: level_sum_value, level_sum_weight) IF(lzacc)
+          !$ACC   REDUCTION(+: level_sum_value, level_sum_weight) ASYNC(1) IF(lzacc)
           DO idx = start_index, end_index
             level_sum_value  = level_sum_value + &
               & values(idx, level, block) * weights(idx, block)
@@ -1064,7 +1064,7 @@ CONTAINS
 
     totalSum = 0.0_wp
     totalWeight = 0.0_wp
-    !$ACC PARALLEL DEFAULT(PRESENT) IF(lzacc)
+    !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1) IF(lzacc)
     !$ACC LOOP GANG VECTOR
     DO level = start_vertical, end_vertical
       totalSum    = totalSum    + levelWeightedSum(level)
@@ -1138,7 +1138,7 @@ CONTAINS
         CALL get_index_range(in_subset, block, start_index, end_index)
         
         !$ACC PARALLEL LOOP GANG VECTOR DEFAULT(PRESENT) &
-        !$ACC   REDUCTION(+: total_sum, sum_weight) IF(lzacc)
+        !$ACC   REDUCTION(+: total_sum, sum_weight) ASYNC(1) IF(lzacc)
         DO idx = start_index, end_index
           !$ACC LOOP SEQ
           DO level = start_vertical, MIN(end_vertical, in_subset%vertical_levels(idx,block))
@@ -1158,7 +1158,7 @@ CONTAINS
         CALL get_index_range(in_subset, block, start_index, end_index)
         
         !$ACC PARALLEL LOOP GANG VECTOR DEFAULT(PRESENT) &
-        !$ACC   REDUCTION(+: total_sum, sum_weight) IF(lzacc)
+        !$ACC   REDUCTION(+: total_sum, sum_weight) ASYNC(1) IF(lzacc)
         DO idx = start_index, end_index
           !$ACC LOOP SEQ
           DO level = start_vertical, end_vertical
@@ -1250,7 +1250,7 @@ CONTAINS
           CALL get_index_range(in_subset, block, start_index, end_index)
         
           !$ACC PARALLEL LOOP GANG VECTOR DEFAULT(PRESENT) &
-          !$ACC   REDUCTION(+: level_sum_value, level_sum_weight) IF(lzacc)
+          !$ACC   REDUCTION(+: level_sum_value, level_sum_weight) ASYNC(1) IF(lzacc)
           DO idx = start_index, end_index
             IF (level <= in_subset%vertical_levels(idx,block)) THEN
               level_sum_value  = level_sum_value + &
@@ -1278,7 +1278,7 @@ CONTAINS
           CALL get_index_range(in_subset, block, start_index, end_index)
         
           !$ACC PARALLEL LOOP GANG VECTOR DEFAULT(PRESENT) &
-          !$ACC   REDUCTION(+: level_sum_value, level_sum_weight) IF(lzacc)
+          !$ACC   REDUCTION(+: level_sum_value, level_sum_weight) ASYNC(1) IF(lzacc)
           DO idx = start_index, end_index
             level_sum_value  = level_sum_value + &
               & values(idx, level, block) * weights(idx, level, block)
@@ -1389,7 +1389,7 @@ CONTAINS
         CALL get_index_range(in_subset, block, start_index, end_index)
         
         !$ACC PARALLEL LOOP GANG VECTOR DEFAULT(PRESENT) &
-        !$ACC   REDUCTION(+: total_sum, no_of_additions) IF(lzacc)
+        !$ACC   REDUCTION(+: total_sum, no_of_additions) ASYNC(1) IF(lzacc)
         DO idx = start_index, end_index
           !$ACC LOOP SEQ
           DO level = 1, MIN(1, in_subset%vertical_levels(idx,block))
@@ -1408,7 +1408,7 @@ CONTAINS
         CALL get_index_range(in_subset, block, start_index, end_index)
         
         !$ACC PARALLEL LOOP GANG VECTOR DEFAULT(PRESENT) &
-        !$ACC   REDUCTION(+: total_sum, no_of_additions) IF(lzacc)
+        !$ACC   REDUCTION(+: total_sum, no_of_additions) ASYNC(1) IF(lzacc)
         DO idx = start_index, end_index
           total_sum  = total_sum + values(idx, block)
           no_of_additions = no_of_additions + 1
@@ -1464,7 +1464,7 @@ CONTAINS
         DO block = in_subset%start_block, in_subset%end_block
           CALL get_index_range(in_subset, block, start_index, end_index)
           !$ACC PARALLEL LOOP GANG VECTOR DEFAULT(PRESENT) &
-          !$ACC   REDUCTION(+: total_weight, total_sum)
+          !$ACC   REDUCTION(+: total_weight, total_sum) ASYNC(1)
           DO idx = start_index, end_index
             DO level = 1, MIN(1, in_subset%vertical_levels(idx,block))
               total_sum  = total_sum + values(idx, block) * weights(idx, block)
@@ -1478,7 +1478,7 @@ CONTAINS
         DO block = in_subset%start_block, in_subset%end_block
         CALL get_index_range(in_subset, block, start_index, end_index)
           !$ACC PARALLEL LOOP GANG VECTOR DEFAULT(PRESENT) &
-          !$ACC   REDUCTION(+: total_weight, total_sum)
+          !$ACC   REDUCTION(+: total_weight, total_sum) ASYNC(1)
           DO idx = start_index, end_index
             total_sum  = total_sum + values(idx, block) * weights(idx, block)
             total_weight = total_weight + weights(idx, block)
@@ -2457,7 +2457,7 @@ CONTAINS
 !ICON_OMP_PARALLEL_DO PRIVATE(start_index, end_index, idx, level) SCHEDULE(dynamic)
       DO block = subset%start_block, subset%end_block
         CALL get_index_range(subset, block, start_index, end_index)
-        !$ACC PARALLEL LOOP GANG VECTOR DEFAULT(PRESENT) IF(lzacc)
+        !$ACC PARALLEL LOOP GANG VECTOR DEFAULT(PRESENT) ASYNC(1) IF(lzacc)
         DO idx = start_index, end_index
           vint_field(idx,block) = 0.0_wp
           !$ACC LOOP SEQ
@@ -2476,7 +2476,7 @@ CONTAINS
 !ICON_OMP_PARALLEL_DO PRIVATE(start_index, end_index, idx, level) SCHEDULE(dynamic)
       DO block = subset%start_block, subset%end_block
         CALL get_index_range(subset, block, start_index, end_index)
-        !$ACC PARALLEL LOOP GANG VECTOR DEFAULT(PRESENT) IF(lzacc)
+        !$ACC PARALLEL LOOP GANG VECTOR DEFAULT(PRESENT) ASYNC(1) IF(lzacc)
         DO idx = start_index, end_index
            vint_field(idx,block) = 0.0_wp
           !$ACC LOOP SEQ

@@ -1,7 +1,7 @@
 ! ICON
 !
 ! ---------------------------------------------------------------
-! Copyright (C) 2004-2024, DWD, MPI-M, DKRZ, KIT, ETH, MeteoSwiss
+! Copyright (C) 2004-2025, DWD, MPI-M, DKRZ, KIT, ETH, MeteoSwiss
 ! Contact information: icon-model.org
 !
 ! See AUTHORS.TXT for a list of authors
@@ -75,11 +75,7 @@ MODULE mo_tmx_smagorinsky
       smag_constant     => config%list%Get_ptr_r0d('Smagorinsky constant')
       max_turb_scale    => config%list%Get_ptr_r0d('maximum turbulence length scale')
       
-#ifdef __MIXED_PRECISION
       dzh               => inputs%list%get_ptr_s3d('layer thickness half') 
-#else
-      dzh               => inputs%list%get_ptr_r3d('layer thickness half') 
-#endif
 
       gepot_agl_ic      => inputs%list%get_ptr_r3d('geopotential above groundlevel at interface and cell center')
 

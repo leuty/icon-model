@@ -3,7 +3,7 @@
 # ICON
 #
 # ------------------------------------------
-# Copyright (C) 2004-2024, DWD, MPI-M, DKRZ, KIT, ETH, MeteoSwiss
+# Copyright (C) 2004-2025, DWD, MPI-M, DKRZ, KIT, ETH, MeteoSwiss
 # Contact information: icon-model.org
 # See AUTHORS.TXT for a list of authors
 # See LICENSES/ for license information
@@ -78,20 +78,20 @@ case ${BB_NAME} in
     ;;
   horeka_*)
     # KIT horeka: use quarter of a shared node
-    sbatch ${TIME_LIMITS} --wait -A hk-project-glori-init -p dev_cpuonly -t 60 -N 1 -n 19 -o ${LOGFILE} -D ${PWD} ${ICON_DIR}/config/buildbot/buildModel.sbatch
+    sbatch ${TIME_LIMITS} --wait -A hk-project-glori-init -p dev_cpuonly --qos=cx -t 60 -N 1 -n 19 -o ${LOGFILE} -D ${PWD} ${ICON_DIR}/config/buildbot/buildModel.sbatch
     #cd ${ICON_DIR} && ${ICON_DIR}/config/buildbot/buildModel.sbatch > ${LOGFILE} 2>&1
     if test 0 -ne "$?" ; then
       exit 1
     fi
     ;;
-  lumi_cpu)
+  lumi_cpu*)
     # CSC super computer; CPU partition
     sbatch ${TIME_LIMITS} --wait -A project_465000454 -p debug --time=00:30:00 -n ${MAKE_PROCS} -o ${LOGFILE} -D $(pwd) ${ICON_DIR}/config/buildbot/buildModel.sbatch
     if test 0 -ne "$?" ; then
       exit 1
     fi
     ;;
-  lumi_gpu)
+  lumi_gpu*)
     # CSC super computer; GPU partition
     sbatch ${TIME_LIMITS} --wait -A project_465000454 -p dev-g -n ${MAKE_PROCS} -o ${LOGFILE} -D $(pwd) ${ICON_DIR}/config/buildbot/buildModel.sbatch
     if test 0 -ne "$?" ; then

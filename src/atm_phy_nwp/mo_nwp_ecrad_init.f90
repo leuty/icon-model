@@ -1,7 +1,7 @@
 ! ICON
 !
 ! ---------------------------------------------------------------
-! Copyright (C) 2004-2024, DWD, MPI-M, DKRZ, KIT, ETH, MeteoSwiss
+! Copyright (C) 2004-2025, DWD, MPI-M, DKRZ, KIT, ETH, MeteoSwiss
 ! Contact information: icon-model.org
 !
 ! See AUTHORS.TXT for a list of authors
@@ -344,23 +344,42 @@ CONTAINS
     !
     ecrad_conf%max_cloud_od                = 20.0_wp      !< Maximum total optical depth of a cloudy region, for stability
 
-    ! Optical properties data is taken from aerosol_ifs_rrtm_46R1_with_NI_AM.nc :  
-    IF (irad_aero == iRadAeroCAMSclim .OR. irad_aero == iRadAeroCAMStd) THEN
+    IF (irad_aero == iRadAeroCAMStd) THEN
+      ! Optical properties data is taken from aerosol_ifs_49r2.nc, with type map indices corresponding to
+      ! prognostic CAMS IFS cycle 49r1
+      ecrad_conf%aerosol_optics_override_file_name  = 'aerosol_ifs_49R2.nc'
       ecrad_conf%use_aerosols              = .true.
       ecrad_conf%n_aerosol_types           = 11
       ecrad_conf%i_aerosol_type_map(1)     = -1           !< aermr01  Sea Salt Aerosol (0.03 - 0.5 um)   hydrophilic(1)
       ecrad_conf%i_aerosol_type_map(2)     = -2           !< aermr02  Sea Salt Aerosol (0.5 - 5 um)      hydrophilic(2)
       ecrad_conf%i_aerosol_type_map(3)     = -3           !< aermr03  Sea Salt Aerosol (5 - 20 um)       hydrophilic(3)
-      ecrad_conf%i_aerosol_type_map(4)     =  1           !< aermr04  Dust Aerosol (0.03 - 0.55 um)      hydrophobic(1)
-      ecrad_conf%i_aerosol_type_map(5)     =  2           !< aermr05  Dust Aerosol (0.55 - 0.9 um)       hydrophobic(2)
-      ecrad_conf%i_aerosol_type_map(6)     =  3           !< aermr06  Dust Aerosol (0.9 - 20 um)         hydrophobic(3)
-      ecrad_conf%i_aerosol_type_map(7)     = -4           !< aermr07  Hydrophilic Organic Matter Aerosol hydrophilic(4)
-      ecrad_conf%i_aerosol_type_map(8)     = 10           !< aermr08  Hydrophobic Organic Matter Aerosol hydrophobic(10)
+      ecrad_conf%i_aerosol_type_map(4)     = -14          !< aermr04  Dust Aerosol (0.03 - 0.55 um)      hydrophilic(14)
+      ecrad_conf%i_aerosol_type_map(5)     = -15          !< aermr05  Dust Aerosol (0.55 - 0.9 um)       hydrophilic(15)
+      ecrad_conf%i_aerosol_type_map(6)     = -16          !< aermr06  Dust Aerosol (0.9 - 20 um)         hydrophilic(16)
+      ecrad_conf%i_aerosol_type_map(7)     = -11          !< aermr07  Hydrophilic Organic Matter Aerosol hydrophilic(11)
+      ecrad_conf%i_aerosol_type_map(8)     = 18           !< aermr08  Hydrophobic Organic Matter Aerosol hydrophobic(18)
+      ecrad_conf%i_aerosol_type_map(9)     = 12           !< aermr09  Hydrophilic Black Carbon Aerosol   hydrophobic(12)
+      ecrad_conf%i_aerosol_type_map(10)    = 12           !< aermr10  Hydrophobic Black Carbon Aerosol   hydrophobic(12)
+      ecrad_conf%i_aerosol_type_map(11)    = -13          !< aermr11  Sulphate Aerosol                   hydrophilic(13)
+    ENDIF
+    IF (irad_aero == iRadAeroCAMSclim) THEN
+      ! Optical properties data is taken from aerosol_ifs_49r2.nc, with type map indices corresponding to
+      ! prognostic CAMS IFS cycle 38r1, and used operationally in the IFS forecast cycle 49r2
+      ecrad_conf%aerosol_optics_override_file_name  = 'aerosol_ifs_49R2.nc'
+      ecrad_conf%use_aerosols              = .true.
+      ecrad_conf%n_aerosol_types           = 11
+      ecrad_conf%i_aerosol_type_map(1)     = -1           !< aermr01  Sea Salt Aerosol (0.03 - 0.5 um)   hydrophilic(1)
+      ecrad_conf%i_aerosol_type_map(2)     = -2           !< aermr02  Sea Salt Aerosol (0.5 - 5 um)      hydrophilic(2)
+      ecrad_conf%i_aerosol_type_map(3)     = -3           !< aermr03  Sea Salt Aerosol (5 - 20 um)       hydrophilic(3)
+      ecrad_conf%i_aerosol_type_map(4)     =  15          !< aermr04  Dust Aerosol (0.03 - 0.55 um)      hydrophobic(15)
+      ecrad_conf%i_aerosol_type_map(5)     =  16          !< aermr05  Dust Aerosol (0.55 - 0.9 um)       hydrophobic(16)
+      ecrad_conf%i_aerosol_type_map(6)     =  17          !< aermr06  Dust Aerosol (0.9 - 20 um)         hydrophobic(17)
+      ecrad_conf%i_aerosol_type_map(7)     = -11          !< aermr07  Hydrophilic Organic Matter Aerosol hydrophilic(11)
+      ecrad_conf%i_aerosol_type_map(8)     = 18           !< aermr08  Hydrophobic Organic Matter Aerosol hydrophobic(18)
       ecrad_conf%i_aerosol_type_map(9)     = 11           !< aermr09  Hydrophilic Black Carbon Aerosol   hydrophobic(11)
       ecrad_conf%i_aerosol_type_map(10)    = 11           !< aermr10  Hydrophobic Black Carbon Aerosol   hydrophobic(11)
-      ecrad_conf%i_aerosol_type_map(11)    = -5           !< aermr11  Sulphate Aerosol                   hydrophilic(5)
+      ecrad_conf%i_aerosol_type_map(11)    = -13          !< aermr11  Sulphate Aerosol                   hydrophilic(13)
     ENDIF
-
     !---------------------------------------------------------------------------------------
     ! Call to ecRad setup routine. This also consolidates the configuration
     !---------------------------------------------------------------------------------------

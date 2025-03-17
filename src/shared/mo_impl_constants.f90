@@ -1,7 +1,7 @@
 ! ICON
 !
 ! ---------------------------------------------------------------
-! Copyright (C) 2004-2024, DWD, MPI-M, DKRZ, KIT, ETH, MeteoSwiss
+! Copyright (C) 2004-2025, DWD, MPI-M, DKRZ, KIT, ETH, MeteoSwiss
 ! Contact information: icon-model.org
 !
 ! See AUTHORS.TXT for a list of authors
@@ -493,6 +493,13 @@ MODULE mo_impl_constants
   INTEGER, PARAMETER :: BOOL_T   = 3
   INTEGER, PARAMETER :: INT_T    = 4
   INTEGER, PARAMETER :: CHAR_T   = 5
+
+  ! Review naming for REAL_T, SINGLE_T, REAL_WP_T
+#ifdef __SINGLE_PRECISION
+  INTEGER, PARAMETER :: REAL_WP_T   = SINGLE_T
+#else
+  INTEGER, PARAMETER :: REAL_WP_T   = REAL_T
+#endif
 
   !----------------!
   !  MODEL OUTPUT  !

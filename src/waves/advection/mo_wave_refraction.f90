@@ -1,7 +1,7 @@
 ! ICON
 !
 ! ---------------------------------------------------------------
-! Copyright (C) 2004-2024, DWD, MPI-M, DKRZ, KIT, ETH, MeteoSwiss
+! Copyright (C) 2004-2025, DWD, MPI-M, DKRZ, KIT, ETH, MeteoSwiss
 ! Contact information: icon-model.org
 !
 ! See AUTHORS.TXT for a list of authors
@@ -52,13 +52,13 @@ CONTAINS
 
     TYPE(t_patch),               INTENT(IN)   :: p_patch
     TYPE(t_wave_config), TARGET, INTENT(IN)   :: wave_config
-    REAL(wp),                    INTENT(IN)   :: dtime               ! integration time step [s]
+    REAL(wp),                    INTENT(IN)   :: dtime                ! integration time step [s]
     REAL(wp),                    INTENT(IN)   :: wave_num_c(:,:,:)
-    REAL(wp),                    INTENT(IN)   :: gv_c(:,:,:)         ! group velocity at cell centers
+    REAL(wp),                    INTENT(IN)   :: gv_c(:,:,:)          ! group velocity at cell centers
     REAL(wp),                    INTENT(IN)   :: depth(:,:)
-    REAL(wp),                    INTENT(IN)   :: depth_grad(:,:,:)   ! bathymetry gradient (2,jc,jb)
-    REAL(wp), TARGET,            INTENT(IN)   :: tracer_now(:,:,:)   ! energy before transport
-    REAL(wp),                    INTENT(INOUT):: tracer_new(:,:,:)
+    REAL(wp),                    INTENT(IN)   :: depth_grad(:,:,:)    ! bathymetry gradient (2,nproma,nblks_c)
+    REAL(wp), TARGET,            INTENT(IN)   :: tracer_now(:,:,:,:)  ! energy before transport
+    REAL(wp),                    INTENT(INOUT):: tracer_new(:,:,:,:)  ! (nproma,ndirs,nblks_c,nfreqs)
 
 
     TYPE(t_wave_config), POINTER :: wc => NULL()
@@ -66,14 +66,14 @@ CONTAINS
     INTEGER :: i_rlstart, i_rlend, i_startblk, i_endblk
     INTEGER :: i_startidx, i_endidx
     INTEGER :: jc,jb,jf,jd,isub
-    INTEGER :: jt,jtm1,jtp1                       !< tracer index
+    INTEGER :: jdm1,jdp1                       ! index of direction -1/+1
 
-    REAL(wp) :: DELTHR, DELTH, DELTR, DELTH0, sm, sp, akd, DTP, DTM, dDTC, temp, tsihkd(nproma), dtime_sub
+    REAL(wp) :: DELTHR, DELTH, DELTR, DELTH0, sm, sp, akd, DTP, DTM, dDTC, temp, dtime_sub
     REAL(wp) :: thdd(nproma,wave_config%ndirs)
-    REAL(wp) :: delta_ref(nproma,wave_config%nfreqs*wave_config%ndirs)
-    REAL(wp) :: tan_lat(nproma)
-    REAL(wp), TARGET :: tracer_tmp(nproma,wave_config%nfreqs*wave_config%ndirs)
-    REAL(wp), POINTER :: tracer_ptr(:,:)
+    REAL(wp) :: delta_ref(nproma,wave_config%ndirs,wave_config%nfreqs)
+    REAL(wp) :: tsihkd(nproma), tan_lat(nproma)
+    REAL(wp), TARGET :: tracer_tmp(nproma,wave_config%ndirs,wave_config%nfreqs)
+    REAL(wp), POINTER :: tracer_ptr(:,:,:)
 
     wc => wave_config
 
@@ -91,8 +91,8 @@ CONTAINS
 
 
 !$OMP PARALLEL
-!$OMP DO PRIVATE(jb,jf,jd,jc,jt,i_startidx,i_endidx,isub,temp,akd,tsihkd,thdd,tracer_ptr, &
-!$OMP            tracer_tmp,sm,sp,jtm1,jtp1,dtp,dtm,dDTC,delta_ref,tan_lat) ICON_OMP_DEFAULT_SCHEDULE
+!$OMP DO PRIVATE(jb,jf,jd,jc,i_startidx,i_endidx,isub,temp,akd,tsihkd,thdd,tracer_ptr, &
+!$OMP            tracer_tmp,sm,sp,jdm1,jdp1,dtp,dtm,dDTC,delta_ref,tan_lat) ICON_OMP_DEFAULT_SCHEDULE
     DO jb = i_startblk, i_endblk
       CALL get_indices_c( p_patch, jb, i_startblk, i_endblk,           &
            &                 i_startidx, i_endidx, i_rlstart, i_rlend)
@@ -103,7 +103,7 @@ CONTAINS
 
       DO isub = 1,wc%nsubs_refrac
         IF (isub == 1) THEN
-          tracer_ptr => tracer_now(:,:,jb)
+          tracer_ptr => tracer_now(:,:,jb,:)
         ELSE
           tracer_ptr => tracer_tmp
         ENDIF
@@ -133,25 +133,24 @@ CONTAINS
 
           DO jd = 1,wc%ndirs
 
-            sm = DELTH0 * (wc%sin_dir(jd) + wc%sin_dir(wc%dir_neig_ind(1,jd))) !index of direction - 1
-            sp = DELTH0 * (wc%sin_dir(jd) + wc%sin_dir(wc%dir_neig_ind(2,jd))) !index of direction + 1
+            jdm1 = wc%dir_neig_ind(1,jd)  !index of direction - 1
+            jdp1 = wc%dir_neig_ind(2,jd)  !index of direction + 1
 
-            jt   = wc%tracer_ind(jd,jf)
-            jtm1 = wc%tracer_ind(wc%dir_neig_ind(1,jd),jf)
-            jtp1 = wc%tracer_ind(wc%dir_neig_ind(2,jd),jf)
+            sm = DELTH0 * (wc%sin_dir(jd) + wc%sin_dir(jdm1))
+            sp = DELTH0 * (wc%sin_dir(jd) + wc%sin_dir(jdp1))
 
             DO jc = i_startidx, i_endidx
 
               DTP = tan_lat(jc) * gv_c(jc,jf,jb)
 
-              DTM = DTP * SM + thdd(jc,wc%dir_neig_ind(1,jd)) * DELTHR
-              DTP = DTP * SP + thdd(jc,jd) * DELTHR
+              DTM = DTP * SM + thdd(jc,jdm1) * DELTHR
+              DTP = DTP * SP + thdd(jc,jd)   * DELTHR
 
               dDTC = -MAX(0._wp , DTP) + MIN(0._wp , DTM)
               DTP  = -MIN(0._wp , DTP)
               DTM  =  MAX(0._wp , DTM)
 
-              delta_ref(jc,jt) = dDTC*tracer_ptr(jc,jt) + DTM*tracer_ptr(jc,jtm1) + DTP*tracer_ptr(jc,jtp1)
+              delta_ref(jc,jd,jf) = dDTC*tracer_ptr(jc,jd,jf) + DTM*tracer_ptr(jc,jdm1,jf) + DTP*tracer_ptr(jc,jdp1,jf)
             END DO !jc
           END DO !jd
         END DO !jf
@@ -159,18 +158,17 @@ CONTAINS
         IF (isub < wc%nsubs_refrac) THEN
           DO jf = 1,wc%nfreqs
             DO jd = 1,wc%ndirs
-              jt = wc%tracer_ind(jd,jf)
               DO jc = i_startidx, i_endidx
-                tracer_tmp(jc,jt) = tracer_ptr(jc,jt) + delta_ref(jc,jt)
+                tracer_tmp(jc,jd,jf) = tracer_ptr(jc,jd,jf) + delta_ref(jc,jd,jf)
               END DO !jc
             END DO !jd
           END DO !jf
         ELSE
           DO jf = 1,wc%nfreqs
             DO jd = 1,wc%ndirs
-              jt = wc%tracer_ind(jd,jf)
               DO jc = i_startidx, i_endidx
-                tracer_new(jc,jt,jb) = tracer_new(jc,jt,jb) + delta_ref(jc,jt) + (tracer_ptr(jc,jt)-tracer_now(jc,jt,jb))
+                tracer_new(jc,jd,jb,jf) = tracer_new(jc,jd,jb,jf) + delta_ref(jc,jd,jf) + &
+                                          (tracer_ptr(jc,jd,jf)-tracer_now(jc,jd,jb,jf))
               END DO !jc
             END DO !jd
           END DO !jf
@@ -182,6 +180,5 @@ CONTAINS
 !$OMP ENDDO NOWAIT
 !$OMP END PARALLEL
   END SUBROUTINE wave_refraction
-
 
 END MODULE mo_wave_refraction

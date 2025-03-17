@@ -1,7 +1,7 @@
 ! ICON
 !
 ! ---------------------------------------------------------------
-! Copyright (C) 2004-2024, DWD, MPI-M, DKRZ, KIT, ETH, MeteoSwiss
+! Copyright (C) 2004-2025, DWD, MPI-M, DKRZ, KIT, ETH, MeteoSwiss
 ! Contact information: icon-model.org
 !
 ! See AUTHORS.TXT for a list of authors
@@ -116,13 +116,13 @@ MODULE mo_sbm_util
 
  INTEGER,PARAMETER :: isign_ko_1 = 0, isign_ko_2 = 0,  isign_3point = 1,  &
                       idebug_print_debugmodule = 1
- DOUBLE PRECISION, PARAMETER::coeff_remaping = 0.0066667d0
- DOUBLE PRECISION, PARAMETER::ventpl_max = 5.0d0
+ REAL(KIND=wp), PARAMETER::coeff_remaping = 0.0066667d0
+ REAL(KIND=wp), PARAMETER::ventpl_max = 5.0d0
 
- DOUBLE PRECISION, PARAMETER::rw_pw_min = 1.0d-10
- DOUBLE PRECISION, PARAMETER::ri_pi_min = 1.0d-10
- DOUBLE PRECISION, PARAMETER::rw_pw_ri_pi_min = 1.0d-10
- DOUBLE PRECISION, PARAMETER::ratio_icew_min = 1.0d-4
+ REAL(KIND=wp), PARAMETER::rw_pw_min = 1.0d-10
+ REAL(KIND=wp), PARAMETER::ri_pi_min = 1.0d-10
+ REAL(KIND=wp), PARAMETER::rw_pw_ri_pi_min = 1.0d-10
+ REAL(KIND=wp), PARAMETER::ratio_icew_min = 1.0d-4
 
  INTEGER,PARAMETER :: use_cloud_base_nuc = 0
  REAL(KIND=wp), PARAMETER::t_nucl_drop_min = -80.0d0
@@ -132,7 +132,7 @@ MODULE mo_sbm_util
 !using de_mott method : ice_nucl_method == 1
  INTEGER,PARAMETER :: ice_nucl_method = 0
  INTEGER,PARAMETER :: isign_tq_icenucl = 1
- DOUBLE PRECISION, PARAMETER::delsupice_max = 59.0d0 !delsupice_max=59%
+ REAL(KIND=wp), PARAMETER::delsupice_max = 59.0d0 !delsupice_max=59%
  REAL(KIND=wp) :: radxx(nkr,nhydr-1),massxx(nkr,nhydr-1),denxx(nkr,nhydr-1) &
                   ,massxxo(nkr,nhydro),denxxo(nkr,nhydro),vri(nkr)           &
                   ,xx(nkr),roccn(nkr),fccnr_mix(nkr),fccnr(nkr)
@@ -797,7 +797,7 @@ MODULE mo_sbm_util
     !   jmax  : number of bins
     !...local variables
 
-    DOUBLE PRECISION :: xl_d(nkr), dropradii_d(nkr), vr1_d(nkr)
+    REAL(KIND=wp) :: xl_d(nkr), dropradii_d(nkr), vr1_d(nkr)
     INTEGER :: ie,je,ke
     INTEGER :: i,j,k
 
@@ -877,7 +877,7 @@ MODULE mo_sbm_util
 
   !coalescence efficiency as FUNCTION of masses
   !----------------------------------------------------------------------------+
-  DOUBLE PRECISION FUNCTION ecoalmass(x1, x2, dropradii, vr1_breakup, nkr)
+  REAL(KIND=wp) FUNCTION ecoalmass(x1, x2, dropradii, vr1_breakup, nkr)
 
     IMPLICIT NONE
     INTEGER,INTENT(IN) :: nkr
@@ -897,7 +897,7 @@ MODULE mo_sbm_util
   END FUNCTION ecoalmass
   !coalescence efficiency as FUNCTION of diameters
   !---------------------------------------------------------------------------+
-  DOUBLE PRECISION FUNCTION ecoaldiam(deta,dksi,dropradii,vr1_breakup,nkr)
+  REAL(KIND=wp) FUNCTION ecoaldiam(deta,dksi,dropradii,vr1_breakup,nkr)
 
     IMPLICIT NONE
     INTEGER,INTENT(IN) :: nkr
@@ -941,7 +941,7 @@ MODULE mo_sbm_util
 
   !coalescence efficiency (low & list)
   !----------------------------------------------------------------------------+
-  DOUBLE PRECISION FUNCTION ecoallowlist(dgr,dkl,dropradii,vr1_breakup,nkr)
+  REAL(KIND=wp) FUNCTION ecoallowlist(dgr,dkl,dropradii,vr1_breakup,nkr)
 
     IMPLICIT NONE
     INTEGER,INTENT(IN) :: nkr
@@ -978,7 +978,7 @@ MODULE mo_sbm_util
 
   !coalescence efficiency (beard and ochs)
   !---------------------------------------------------------------------------+
-  DOUBLE PRECISION FUNCTION ecoalochs(d_l,d_s,dropradii, vr1_breakup,nkr)
+  REAL(KIND=wp) FUNCTION ecoalochs(d_l,d_s,dropradii, vr1_breakup,nkr)
 
     IMPLICIT NONE
 
@@ -1072,7 +1072,7 @@ MODULE mo_sbm_util
 
   !calculating terminal velocity (beard-formula)
   !------------------------------------------------------------------------+
-  DOUBLE PRECISION FUNCTION vtbeard(diam,dropradii, vr1_breakup, nkr)
+  REAL(KIND=wp) FUNCTION vtbeard(diam,dropradii, vr1_breakup, nkr)
 
     IMPLICIT NONE
 
@@ -1180,6 +1180,9 @@ MODULE mo_sbm_util
       !CALL message('mo_sbm_util',TRIM(txt))
       !WRITE (message_text,'(1X,A,D10.3)') 'Ncn0=',ccn_coeffs%Ncn0
       !CALL message('pavel Ncn0',TRIM(message_text))
+      IF (tune_sbmccn < 1.0_wp) THEN
+        atm_phy_nwp_config(jg)%cfg_2mom%ccn_type = 6
+      END IF      
       IF (jg == 1) CALL two_moment_mcrph_init(igscp=4, msg_level=msg_level, cfg_2mom=atm_phy_nwp_config(jg)%cfg_2mom)
     END IF
 

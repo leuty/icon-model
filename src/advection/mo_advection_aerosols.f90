@@ -1,7 +1,7 @@
 ! ICON
 !
 ! ---------------------------------------------------------------
-! Copyright (C) 2004-2024, DWD, MPI-M, DKRZ, KIT, ETH, MeteoSwiss
+! Copyright (C) 2004-2025, DWD, MPI-M, DKRZ, KIT, ETH, MeteoSwiss
 ! Contact information: icon-model.org
 !
 ! See AUTHORS.TXT for a list of authors
@@ -43,9 +43,10 @@ CONTAINS
   !
   !>
   !! Computes indices for vertically averaged fluxes used for transport of 2D aerosol fields
-  SUBROUTINE setup_aerosol_advection(p_patch)
+  SUBROUTINE setup_aerosol_advection(p_patch, lacc)
 
     TYPE(t_patch),     TARGET, INTENT(IN) :: p_patch  !< patch of current domain
+    LOGICAL, INTENT(IN) :: lacc ! if true, update kend_aero and kstart_aero also on the accelerator
 
     INTEGER :: nlev, jk, jk1, jg, i
 
@@ -76,6 +77,9 @@ CONTAINS
         ENDIF
       ENDDO
     ENDDO
+
+    !$ACC UPDATE DEVICE(advection_config(jg)%kend_aero(:), advection_config(jg)%kstart_aero(:)) &
+    !$ACC   ASYNC(1) IF(lacc)
 
     WRITE(message_text,'(a,i2)') '2D aerosol advection: start and end levels for flux averaging, domain ',jg
     CALL message('',message_text)

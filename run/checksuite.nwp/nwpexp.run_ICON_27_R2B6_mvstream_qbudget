@@ -1,7 +1,7 @@
 # ICON
 #
 # ------------------------------------------
-# Copyright (C) 2004-2024, DWD, MPI-M, DKRZ, KIT, ETH, MeteoSwiss
+# Copyright (C) 2004-2025, DWD, MPI-M, DKRZ, KIT, ETH, MeteoSwiss
 # Contact information: icon-model.org
 # See AUTHORS.TXT for a list of authors
 # See LICENSES/ for license information
@@ -104,11 +104,15 @@ output_filename=(
   "hr_mean"
   "raw_gscp3"
   )
-
 inwp_gscp=(
   1
   1
   3
+  )
+icpl_aero_ice=(
+  0
+  0
+  2
   )
 tune_zceff_min=(
   1e-2
@@ -266,6 +270,7 @@ itype_z0         = 2
 icapdcycl        = 3
 icpl_aero_conv   = 1
 icpl_aero_gscp   = 1
+icpl_aero_ice    = ${icpl_aero_ice[irun]}
 icpl_o3_tp       = 1
 dt_rad           = 2160.
 dt_conv          = 720.,360.

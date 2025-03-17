@@ -3,7 +3,7 @@
 # ICON
 #
 # ------------------------------------------
-# Copyright (C) 2004-2024, DWD, MPI-M, DKRZ, KIT, ETH, MeteoSwiss
+# Copyright (C) 2004-2025, DWD, MPI-M, DKRZ, KIT, ETH, MeteoSwiss
 # Contact information: icon-model.org
 # See AUTHORS.TXT for a list of authors
 # See LICENSES/ for license information
@@ -35,9 +35,9 @@ listname=tolerance-update
 # Set builders inactive, which were used for list_part_update-ref but not for probtest
 ./set_builder_flags Inactive --builders "levante_cpu_nvhpc" --list $listname
 ./set_builder_flags Inactive --builders "levante_gpu_nvhpc" --list $listname
-# New tolerances needed for atm_qubicc_nc_test.
+# New tolerances needed for atm_qubicc_test.
 # In case tolerances are needed for more test cases, please add in the same way.
-./list_probtest $listname atm_qubicc_nc_test
+./list_probtest $listname atm_qubicc_test
 # Set builders active, which were used for list_part_update-ref but not for probtest
 ./set_builder_flags Active --builders "levante_cpu_nvhpc" --list $listname
 ./set_builder_flags Active --builders "levante_gpu_nvhpc" --list $listname

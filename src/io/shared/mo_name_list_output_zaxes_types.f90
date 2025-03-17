@@ -1,7 +1,7 @@
 ! ICON
 !
 ! ---------------------------------------------------------------
-! Copyright (C) 2004-2024, DWD, MPI-M, DKRZ, KIT, ETH, MeteoSwiss
+! Copyright (C) 2004-2025, DWD, MPI-M, DKRZ, KIT, ETH, MeteoSwiss
 ! Contact information: icon-model.org
 !
 ! See AUTHORS.TXT for a list of authors
@@ -24,7 +24,7 @@ MODULE mo_name_list_output_zaxes_types
     &                                             zaxisDefLongname, cdiDefKeyInt, CDI_KEY_TYPEOFFIRSTFIXEDSURFACE, &
     &                                             CDI_GLOBAL
   USE mo_zaxis_type,                        ONLY: t_zaxisType
-  USE mo_kind,                              ONLY: wp, dp
+  USE mo_kind,                              ONLY: dp
   USE mo_exception,                         ONLY: finish
   USE mo_packed_message,                    ONLY: t_PackedMessage
   USE mo_mpi,                               ONLY: p_get_bcast_role
@@ -420,7 +420,7 @@ CONTAINS
   !> Auxiliary function: Check two REAL(dp) arrays for equality.
   !
   LOGICAL FUNCTION array_eqv_dp(array1, array2)
-    REAL(wp), ALLOCATABLE, INTENT(IN) :: array1(:), array2(:)
+    REAL(dp), ALLOCATABLE, INTENT(IN) :: array1(:), array2(:)
     
     array_eqv_dp = .TRUE.
     ! check pointer association status

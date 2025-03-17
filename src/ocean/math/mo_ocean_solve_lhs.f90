@@ -1,7 +1,7 @@
 ! ICON
 !
 ! ---------------------------------------------------------------
-! Copyright (C) 2004-2024, DWD, MPI-M, DKRZ, KIT, ETH, MeteoSwiss
+! Copyright (C) 2004-2025, DWD, MPI-M, DKRZ, KIT, ETH, MeteoSwiss
 ! Contact information: icon-model.org
 !
 ! See AUTHORS.TXT for a list of authors
@@ -722,7 +722,7 @@ CONTAINS
     !$ACC WAIT(1)
     !$ACC END DATA
 
-    !$ACC EXIT DATA DELETE(elem_ct) ASYNC(1) IF(lzacc)
+    !$ACC EXIT DATA DELETE(image_idx, elem_ct) ASYNC(1) IF(lzacc)
     !$ACC WAIT(1)
   END SUBROUTINE lhs_create_matrix_init
 

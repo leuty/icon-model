@@ -1,7 +1,7 @@
 ! ICON
 !
 ! ---------------------------------------------------------------
-! Copyright (C) 2004-2024, DWD, MPI-M, DKRZ, KIT, ETH, MeteoSwiss
+! Copyright (C) 2004-2025, DWD, MPI-M, DKRZ, KIT, ETH, MeteoSwiss
 ! Contact information: icon-model.org
 !
 ! See AUTHORS.TXT for a list of authors
@@ -46,7 +46,7 @@ MODULE mo_delaunay
 #endif
   USE mo_exception,      ONLY: finish
   USE mo_impl_constants, ONLY: SUCCESS
-  USE mo_kind,           ONLY: wp
+  USE mo_kind,           ONLY: wp, qp  ! quadruple precision needed for some determinant computations
   USE mo_delaunay_types, ONLY: t_edge, t_point, t_triangle, t_point_list, t_triangulation,     &
     &                          t_spherical_cap, t_sphcap_list,                                 &
     &                          point_list, triangle, point, spherical_cap,                     &
@@ -748,7 +748,7 @@ CONTAINS
     TYPE(t_edge) :: bedge
     TYPE(t_point) :: v1(start:end),v2(start:end),v3(start:end)
     REAL(wp) :: ccw
-    REAL(SELECTED_REAL_KIND (32)) :: v1_x, v1_y, v1_z,v2_x, v2_y, v2_z,v3_x, v3_y, v3_z
+    REAL(qp) :: v1_x, v1_y, v1_z,v2_x, v2_y, v2_z,v3_x, v3_y, v3_z
     INTEGER :: j, oedge, num , unvec_lst(end-start), i
 
     num = 0
@@ -816,8 +816,8 @@ CONTAINS
     REAL(wp) :: d1_x, d1_y, d1_z,d2_x, &
       &         d2_y, d2_z,d3_x, d3_y, &
       &         d3_z, d1(start:end), d2(start:end)
-    REAL(SELECTED_REAL_KIND (32)) :: dd1_x, dd1_y, dd1_z,dd2_x, dd2_y, dd2_z,dd3_x, dd3_y, dd3_z
-    REAL(SELECTED_REAL_KIND (32)) :: v1_x,v1_y,v1_z,v2_x,v2_y,v2_z,v3_x,v3_y,v3_z
+    REAL(qp) :: dd1_x, dd1_y, dd1_z,dd2_x, dd2_y, dd2_z,dd3_x, dd3_y, dd3_z
+    REAL(qp) :: v1_x,v1_y,v1_z,v2_x,v2_y,v2_z,v3_x,v3_y,v3_z
 
     num = 0
 

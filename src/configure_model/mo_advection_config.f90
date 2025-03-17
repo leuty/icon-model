@@ -1,7 +1,7 @@
 ! ICON
 !
 ! ---------------------------------------------------------------
-! Copyright (C) 2004-2024, DWD, MPI-M, DKRZ, KIT, ETH, MeteoSwiss
+! Copyright (C) 2004-2025, DWD, MPI-M, DKRZ, KIT, ETH, MeteoSwiss
 ! Contact information: icon-model.org
 !
 ! See AUTHORS.TXT for a list of authors
@@ -13,7 +13,7 @@
 
 MODULE mo_advection_config
 
-  USE mo_kind,                      ONLY: wp, dp
+  USE mo_kind,                      ONLY: wp
   USE mo_impl_constants,            ONLY: MAX_NTRACER, MAX_CHAR_LENGTH, max_dom,   &
     &                                     MIURA, MIURA3, FFSL, FFSL_HYB, MCYCL,    &
     &                                     MIURA_MCYCL, MIURA3_MCYCL, FFSL_MCYCL,   &
@@ -862,8 +862,7 @@ CONTAINS
 
       WRITE(message_text,'(2a)') 'Initialize additional passive tracer: ',TRIM(tracer_name)
       CALL message('',message_text)
-      !NOTE (HB): if wp /= dp the following is not correct, since r_ptr is of type REAL(dp)
-      CALL formula%evaluate( fget_var_list_element_r3d (tracer_list(ntl), &
+      CALL formula%evaluate( fget_var_list_element_3d (tracer_list(ntl), &
         &                    TRIM(tracer_name)))
       CALL formula%finalize()
 
@@ -873,20 +872,20 @@ CONTAINS
     ENDDO
 
   CONTAINS
-    FUNCTION fget_var_list_element_r3d (this_list, vname) RESULT(ptr)
+    FUNCTION fget_var_list_element_3d (this_list, vname) RESULT(ptr)
       TYPE(t_var_list_ptr), INTENT(in) :: this_list    ! list
       CHARACTER(*), INTENT(in) :: vname         ! name of variable
-      REAL(dp), POINTER    :: ptr(:,:,:)   ! reference to allocated field
+      REAL(wp), POINTER    :: ptr(:,:,:)   ! reference to allocated field
       TYPE(t_var), POINTER :: element
 
       element => find_list_element(this_list, vname)
       NULLIFY (ptr)
       IF (element%info%lcontained) THEN
-        IF (ASSOCIATED(element)) ptr => element%r_ptr(:,:,:,element%info%ncontained,1)
+        IF (ASSOCIATED(element)) ptr => element%wp_ptr(:,:,:,element%info%ncontained,1)
       ELSE
-        IF (ASSOCIATED(element)) ptr => element%r_ptr(:,:,:,1,1)
+        IF (ASSOCIATED(element)) ptr => element%wp_ptr(:,:,:,1,1)
       ENDIF
-    END FUNCTION fget_var_list_element_r3d
+    END FUNCTION fget_var_list_element_3d
 
   END SUBROUTINE init_passive_tracer
 

@@ -1,7 +1,7 @@
 # ICON
 #
 # ------------------------------------------
-# Copyright (C) 2004-2024, DWD, MPI-M, DKRZ, KIT, ETH, MeteoSwiss
+# Copyright (C) 2004-2025, DWD, MPI-M, DKRZ, KIT, ETH, MeteoSwiss
 # Contact information: icon-model.org
 # See AUTHORS.TXT for a list of authors
 # See LICENSES/ for license information
@@ -111,7 +111,7 @@ file_interval="PT30M"
 # horizontal grid(s)
 #
 # domain globe
-grid_id=0043
+grid_id=0049
 grid_refinement=R02B04
 grid_label=G
 grid_name=icon_grid_${grid_id}_${grid_refinement}_${grid_label}
@@ -141,8 +141,7 @@ modelScheme=quincy                  # jsbach / jsbach_quincy / quincy
 quincy_usecase=quincy_11_pfts       # jsbach_lite or jsbach_pfts or jsbach_jedi -> new: quincy_11_pfts
 quincyModel=canopy                  # canopy, plant, land (different versions of the QUINCY model, i.e., different set of tasks)
 output_lnd=basic                    # amount of output: none/basic/medium/full
-read_deposition=.FALSE.
-read_c_isotopes=.FALSE.
+force_c_isotopes=.FALSE.
 veg_bnf_scheme=unlimited
 leaf_stoichom_scheme=fixed
 biomass_alloc_scheme=fixed
@@ -176,7 +175,7 @@ echo ""
 #
 
 # main dirs and files
-land_datadir=${grids_folder}/land/r0004
+land_datadir=${grids_folder}/land/r0101
 
 # landcover fractions
 quincy_land_cover_file=${land_datadir}/bc_land_frac_quincy_11pfts_esacci_2020.nc
@@ -185,16 +184,16 @@ quincy_land_cover_file=${land_datadir}/bc_land_frac_quincy_11pfts_esacci_2020.nc
 quincy_lctlib_file=${basedir}/externals/jsbach/data/lctlib_quincy_nlct14.def
 
 # met-forcing
-forcingMainDir="/pool/data/JSBACH/jsbalone_forcing/R02B04/0043/"
+forcingMainDir="/pool/data/JSBACH/jsbalone_forcing/R02B04/0049/"
 
 # CO2 forcing
 ghg_dir=${icon_data_rootFolder}/input/r0004/global/atm
 forcingCO2globalFile=${ghg_dir}/bc_greenhouse_rcp45_1765-2500.nc
 
 # ic/bc files
-ic_land_soil_file=${land_datadir}/ic_land_soil_1979.nc
-bc_land_phys_file=${land_datadir}/bc_land_phys_1979.nc
-bc_land_sso_file=${land_datadir}/bc_land_sso_1979.nc
+ic_land_soil_file=${land_datadir}/ic_land_soil.nc
+bc_land_phys_file=${land_datadir}/bc_land_phys.nc
+bc_land_sso_file=${land_datadir}/bc_land_sso.nc
 quincy_soil_file=${land_datadir}/bc_land_soil_quincy.nc
 
 #--------------------------------------------------------------------------------------------------
@@ -323,9 +322,6 @@ cat > $jsbach_namelist << EOF
 
     ! --- wind speed forcing ---
     forcing_wind_unit="${forcing_wind_unit:-""}"
-
-    ! --- deposition forcing ---
-    forcing_dep_file_prefix="climate_"
 /
 EOF
 
@@ -334,14 +330,13 @@ EOF
 # ---------------------------------------------------
 cat >> $jsbach_namelist << EOF
 &jsb_model_nml  ! Same jsb_model_nml namelist name exists in namelist_standalone_master but has different content
-  model_scheme    = "${modelScheme}"
-  usecase         = "${quincy_usecase}"
-  quincy_model    = "${quincyModel}"
-  read_deposition = ${read_deposition}
-  read_c_isotopes = ${read_c_isotopes}
-  use_lakes       = .FALSE.
-  fract_filename  = "bc_land_frac.nc"
-  output_tiles    = ${output_tiles}     ! List of tiles to output
+  model_scheme     = "${modelScheme}"
+  usecase          = "${quincy_usecase}"
+  quincy_model     = "${quincyModel}"
+  force_c_isotopes = ${force_c_isotopes}
+  use_lakes        = .FALSE.
+  fract_filename   = "bc_land_frac.nc"
+  output_tiles     = ${output_tiles}     ! List of tiles to output
 /
 &jsb_rad_nml
   use_alb_veg_simple  = .FALSE.           ! Use TRUE for jsbach_lite, FALSE for jsbach_pfts/jsbach_jedi

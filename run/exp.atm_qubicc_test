@@ -1,7 +1,7 @@
 # ICON
 #
 # ------------------------------------------
-# Copyright (C) 2004-2024, DWD, MPI-M, DKRZ, KIT, ETH, MeteoSwiss
+# Copyright (C) 2004-2025, DWD, MPI-M, DKRZ, KIT, ETH, MeteoSwiss
 # Contact information: icon-model.org
 # See AUTHORS.TXT for a list of authors
 # See LICENSES/ for license information
@@ -61,6 +61,7 @@ author_list='Marco Giorgetta, MPIM'
 #
 # - nproma_sub           = radiation blocking length, <= nproma
 #                          --> nproma_sub
+#
 #--------------------------------------------------------------------------------------------------
 #
 # Variables provided by the header section (->create_target_header) of the full runscript
@@ -114,7 +115,7 @@ atm_output_interval=PT40S
 # output format
 grib_format=2               # with 2nd level compression, see gribout_nml/lgribout_compress_ccsds
 netcdf_format=5             # in 32-bit precision       , see io_nml/lnetcdf_flt64_output
-output_format=${grib_format}
+output_format=${netcdf_format}
 
 # output control
 # - files are produced for every output date for single variables or variable groups, as specified
@@ -155,6 +156,7 @@ dt_vdf=${dt_atm}    # as above
 dt_mig=${dt_atm}    # as above
 #
 run_jsbach=yes      # yes,true: on, else: off
+jsbach_with_lakes=true # true/false
 #
 fi # ${iforcing}
 
@@ -277,7 +279,7 @@ cat >> ${atmo_namelist} << EOF
  aes_phy_config(1)%lamip      = .TRUE.
  aes_phy_config(1)%lice       = .TRUE.
  aes_phy_config(1)%lmlo       = .FALSE.
- aes_phy_config(1)%llake      = .TRUE.
+ aes_phy_config(1)%llake      = .${jsbach_with_lakes}.
 !
 ! top height for cloud processes
  aes_phy_config(1)%zmaxcloudy = ${htop_cloudy}
@@ -355,7 +357,7 @@ jsbach_namelist=NAMELIST_${EXPNAME}_lnd # also used in exec.iconrun
 cat > ${jsbach_namelist} << EOF
 &jsb_model_nml
   usecase                 = 'jsbach_lite'
-  use_lakes               = .TRUE.
+  use_lakes               = .${jsbach_with_lakes}.
   fract_filename          = 'bc_land_frac.nc'
   enforce_water_budget    = 'error'     ! Error: stop in case of water conservation problem
 /
@@ -371,6 +373,7 @@ cat > ${jsbach_namelist} << EOF
 &jsb_turb_nml
   bc_filename             = 'bc_land_phys.nc'
   ic_filename             = 'ic_land_soil.nc'
+  max_ini_rough_m         = -1.0 ! > 0: limit for roughness length from initial file
 /
 &jsb_sse_nml
   l_heat_cap_map          = .FALSE.

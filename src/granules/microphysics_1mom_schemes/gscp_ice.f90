@@ -1,7 +1,7 @@
 ! ICON
 !
 ! ---------------------------------------------------------------
-! Copyright (C) 2004-2024, DWD, MPI-M, DKRZ, KIT, ETH, MeteoSwiss
+! Copyright (C) 2004-2025, DWD, MPI-M, DKRZ, KIT, ETH, MeteoSwiss
 ! Contact information: icon-model.org
 !
 ! See AUTHORS.TXT for a list of authors
@@ -20,6 +20,12 @@
 !
 !   This is the extended version of gscp_cloudice with the option for
 !   prognostic number density of cloud ice
+!
+!   The following parameterizations for heterogenous ice nucleation are
+!   available depending of the integer parameter ice_nucleation.
+!      0: Cooper formula (legacy option)
+!      1: INAS ice nucleation with prescribed one-dimensional dust profile
+!      2: INAS ice nucleation using prognostic ART dust (number and mean surface area)
 !
 ! Method:
 !   Prognostic bulk microphysical parameterization.
@@ -43,7 +49,7 @@ MODULE gscp_ice
 
 !------------------------------------------------------------------------------
 
-USE, INTRINSIC :: iso_fortran_env, ONLY: wp => real64, i4 => int32
+USE mo_kind, ONLY: wp, i4
 USE mo_math_constants    , ONLY: pi, rad2deg
 USE mo_physical_constants, ONLY: r_v   => rv    , & !> gas constant for water vapour
                                  r_d   => rd    , & !> gas constant for dry air
@@ -112,7 +118,6 @@ LOGICAL, PARAMETER :: &
   lice_lat     = .TRUE. ,  &  ! switch for latitude dependency of vice and sticking efficiency
   lice_relax   = .FALSE. , &  ! switch for relaxation of depositional growth
   lice_qvel    = .FALSE. , &  ! switch for simple q-dependent ice fall speed in 2mom ice scheme
-  ldustnum     = .FALSE. , &  ! switch for prognostic dust instead of if(present(dustnum))
   lsuper_coolw = .TRUE.       ! switch for improved supercooled liquid water (work from Felix Rieper)
 
 !------------------------------------------------------------------------------
@@ -578,7 +583,7 @@ SUBROUTINE cloudice2mom (            &
     lldiag_qtend = .FALSE.
   ENDIF
 
-  IF (.not.(PRESENT(inucleation).and.PRESENT(dustnum).and.PRESENT(dustnum))) THEN
+  IF (.not.(PRESENT(inucleation).and.PRESENT(dustnum).and.PRESENT(dustsfc))) THEN
     ice_nucleation = 1
   ELSE
     ice_nucleation = inucleation
@@ -1071,7 +1076,7 @@ SUBROUTINE cloudice2mom (            &
         ! INAS-based deposition nucleation with exponential vertical profile of dust
         zndust = numdust * MAX(MIN(exp(5e-3_wp*(ppg-300e2)),1e2_wp),1.0_wp)
         zsdust = sfcdust
-        IF (ice_nucleation > 1 .and. dustnum(iv,k) > zndust .and. ldustnum) THEN
+        IF (ice_nucleation == 2 .and. dustnum(iv,k) > zndust) THEN
           zndust = dustnum(iv,k)
           zsdust = dustsfc(iv,k)
         END IF

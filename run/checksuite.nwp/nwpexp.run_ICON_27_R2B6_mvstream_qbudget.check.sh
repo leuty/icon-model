@@ -3,7 +3,7 @@
 # ICON
 #
 # ---------------------------------------------------------------
-# Copyright (C) 2004-2024, DWD, MPI-M, DKRZ, KIT, ETH, MeteoSwiss
+# Copyright (C) 2004-2025, DWD, MPI-M, DKRZ, KIT, ETH, MeteoSwiss
 # Contact information: icon-model.org
 #
 # See AUTHORS.TXT for a list of authors
@@ -46,7 +46,7 @@ for irun in 0 2; do
     if [[ irun == 0 ]]; then
         threshold="1*10^-11"     # threshold in MAE of water budget
     else
-        threshold="2*10^-11"
+        threshold="3*10^-11"
     fi
 
     # -------------------------------------------------

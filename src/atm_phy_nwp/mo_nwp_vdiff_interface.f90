@@ -1,7 +1,7 @@
 ! ICON
 !
 ! ---------------------------------------------------------------
-! Copyright (C) 2004-2024, DWD, MPI-M, DKRZ, KIT, ETH, MeteoSwiss
+! Copyright (C) 2004-2025, DWD, MPI-M, DKRZ, KIT, ETH, MeteoSwiss
 ! Contact information: icon-model.org
 !
 ! See AUTHORS.TXT for a list of authors
@@ -1135,7 +1135,7 @@ CONTAINS
     !$OMP END PARALLEL
 
 #ifndef __NO_JSBACH__
-    CALL jsbach_finish_timestep (patch%id, datetime_now, delta_time)
+    CALL jsbach_finish_timestep (patch%id, datetime_now, delta_time, linit)
 #endif
 
     !$OMP PARALLEL

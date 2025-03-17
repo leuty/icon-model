@@ -1,7 +1,7 @@
 # ICON
 #
 # ------------------------------------------
-# Copyright (C) 2004-2024, DWD, MPI-M, DKRZ, KIT, ETH, MeteoSwiss
+# Copyright (C) 2004-2025, DWD, MPI-M, DKRZ, KIT, ETH, MeteoSwiss
 # Contact information: icon-model.org
 # See AUTHORS.TXT for a list of authors
 # See LICENSES/ for license information
@@ -45,7 +45,7 @@ icon_data_poolFolder="${icon_data_rootFolder:-/pool/data/ICON}/grids/public/mpim
 # horizontal grid(s)
 #
 # domain globe
-grid_id=0043
+grid_id=0049
 grid_refinement=R02B04
 grid_label=G
 grid_name=icon_grid_${grid_id}_${grid_refinement}_${grid_label}
@@ -53,7 +53,7 @@ atmo_dyn_grids="'${grid_name}.nc',"
 #
 grids_folder=${icon_data_poolFolder}/${grid_id}
 
-lnd_data_InputFolder=${icon_data_poolFolder}/${grid_id}/land/r0004
+lnd_data_InputFolder=${icon_data_poolFolder}/${grid_id}/land/r0101
 refyear=1979
 
 calendar="proleptic gregorian"  # '365 day year' or '360 day year' or 'proleptic gregorian'
@@ -91,7 +91,8 @@ jsbach_usecase=jsbach_pfts    # jsbach_lite or jsbach_pfts or jsbach_jedi
 jsbach_with_lakes=yes
 jsbach_with_hd=yes
 jsbach_with_carbon=yes        # yes needs jsbach_pfts usecase
-jsbach_check_wbal=yes         # check water balance
+jsbach_check_wbal=no          # check water balance
+output_lnd_mon=yes            # Generate monitoring output
 output_lnd=medium             # amount of output: none/basic/medium/full
                               #  -> Note: full output does not work with all processes switched on
                               #     (too many variables)
@@ -283,8 +284,6 @@ cat >> $jsbach_namelist << EOF
   ic_filename     = 'ic_land_soil.nc'
 /
 &jsb_sse_nml
-  l_heat_cap_map  = .FALSE.
-  l_heat_cond_map = .FALSE.
   l_heat_cap_dyn  = .TRUE.
   l_heat_cond_dyn = .TRUE.
   l_snow          = .TRUE.
@@ -295,8 +294,6 @@ cat >> $jsbach_namelist << EOF
   ic_filename     = 'ic_land_soil.nc'
 /
 &jsb_hydro_nml
-  l_organic       = .FALSE.
-  l_socmap        = .TRUE.
   bc_filename     = 'bc_land_soil.nc'
   ic_filename     = 'ic_land_soil.nc'
   bc_sso_filename = 'bc_land_sso.nc'
@@ -364,9 +361,7 @@ add_required_file ${basedir}/run/$jsbach_namelist            ./
 #
 # - land: source?, date+time?
 datadir=${lnd_data_InputFolder}
-add_link_file ${datadir}/ic_land_soil_${refyear}.nc                     ./ic_land_soil.nc
-# added in namelist, but not active and not yet available (2017-Dec-07)
-#add_link_file ${datadir}/ic_land_carbon_1976.nc                         ./ic_land_carbon.nc
+add_link_file ${datadir}/ic_land_soil.nc                                 ./ic_land_soil.nc
 
 # boundary conditions
 #
@@ -377,15 +372,12 @@ add_link_file $datadir/greenhouse_historical_plus.nc                    ./bc_gre
 # - land parameters
 datadir=${lnd_data_InputFolder}
 add_link_file $datadir/bc_land_frac_${pft_file_tag}${refyear}.nc        ./bc_land_frac.nc
-add_link_file $datadir/bc_land_phys_${refyear}.nc                       ./bc_land_phys.nc
-add_link_file $datadir/bc_land_soil_${refyear}.nc                       ./bc_land_soil.nc
-add_link_file $datadir/bc_land_sso_${refyear}.nc                        ./bc_land_sso.nc
-# added in namelist, but not active and not yet available (2017-Dec-07)
-#datadir=${icon_data_poolFolder}/preliminary_land/r0002/${grid_refinement}_${grid_label}/land
-#add_link_file $datadir/bc_land_carbon_${refyear}.nc                     ./bc_land_carbon.nc
+add_link_file $datadir/bc_land_phys.nc                                  ./bc_land_phys.nc
+add_link_file $datadir/bc_land_soil.nc                                  ./bc_land_soil.nc
+add_link_file $datadir/bc_land_sso.nc                                   ./bc_land_sso.nc
 
 if [[ ${jsbach_with_hd} = yes ]]; then
-  add_link_file $datadir/hdpara_r2b4_0043_no_sinks.nc                   ./bc_land_hd.nc
+  add_link_file $datadir/hdpara_r2b4_0049_sc_hfrac_s_v1.nc              ./bc_land_hd.nc
 fi
 #
 # - lctlib file for JSBACH
@@ -554,6 +546,26 @@ EOF
   fi
   cat >> $jsbach_namelist << EOF
 /
+EOF
+fi
+
+if [[ ${output_lnd_mon} == yes ]]; then
+  cat >> ${jsbach_namelist} << EOF
+&output_nml
+ output_filename  = "${EXPNAME}_lnd_mon"
+ filename_format  = "<output_filename>_<levtype_l>_<datetime2>"
+ filetype         = 5
+ remap            = 0
+ operation        = 'mean'
+ output_grid      = .FALSE.
+ output_start     = "${start_date}"
+ output_end       = "${end_date}"
+ output_interval  = "${output_interval}"
+ file_interval    = "${file_interval}" ! R: PT1H nur zum debuggen
+ include_last     = .FALSE.
+ ml_varlist       = 'group:jsb_mon'
+/
+
 EOF
 fi
 

@@ -3,7 +3,7 @@
 # ICON
 #
 # ------------------------------------------
-# Copyright (C) 2004-2024, DWD, MPI-M, DKRZ, KIT, ETH, MeteoSwiss
+# Copyright (C) 2004-2025, DWD, MPI-M, DKRZ, KIT, ETH, MeteoSwiss
 # Contact information: icon-model.org
 # See AUTHORS.TXT for a list of authors
 # See LICENSES/ for license information
@@ -18,9 +18,6 @@ SCRIPT_DIR=$(cd "$(dirname "$0")"; pwd)
 ICON_DIR=$(cd "${SCRIPT_DIR}/../.."; pwd)
 
 INTEL_ROOT='/software/all/toolkit/Intel_OneAPI/compiler/2023.1.0/linux'
-CC="${INTEL_ROOT}/bin/intel64/icc"
-FC="${INTEL_ROOT}/bin/intel64/ifort"
-AR="${INTEL_ROOT}/bin/intel64/xiar"
 
 MPI_ROOT='/software/all/mpi/openmpi/5.0_intel_2023.1.0'
 MPI_LIBS='-lmpi_usempif08 -lmpi_usempi_ignore_tkr -lmpi_mpifh -lmpi'
@@ -55,6 +52,10 @@ ZLIB_LIBS='-lz'
 
 BUILD_ENV="export LD_LIBRARY_PATH=\"${INTEL_ROOT}/lib:${INTEL_ROOT}/compiler/lib/intel64:${INTEL_ROOT}/compiler/lib/intel64_lin:${MPI_ROOT}/lib64:${CUDA_ROOT}/lib64:${HDF5_ROOT}/lib:${NETCDF_ROOT}/lib:${NETCDFF_ROOT}/lib:${ECCODES_ROOT}/lib64:${FYAML_ROOT}/lib:${MKL_ROOT}/lib/intel64:/usr/lib64:/usr/lib\"; export PATH=\"${HDF5_ROOT}/bin:${NETCDF_ROOT}/bin/:/usr/bin\"; unset CPATH C_INCLUDE_PATH CPLUS_INCLUDE_PATH INCLUDE LIBRARY_PATH;"
 
+CC="${INTEL_ROOT}/bin/intel64/icc"
+FC="${INTEL_ROOT}/bin/intel64/ifort"
+AR="${INTEL_ROOT}/bin/intel64/xiar"
+
 LDFLAGS="-L${INTEL_ROOT}/lib -L${INTEL_ROOT}/compiler/lib/intel64 -L${INTEL_ROOT}/compiler/lib/intel64_lin -L${MPI_ROOT}/lib64 -L${CUDA_ROOT}/lib64 -L${HDF5_ROOT}/lib -L${NETCDF_ROOT}/lib -L${NETCDFF_ROOT}/lib -L${MKL_ROOT}/lib/intel64 -L${ECCODES_ROOT}/lib64 -L${FYAML_ROOT}/lib"
 LIBS="-Wl,--disable-new-dtags -Wl,--as-needed ${MPI_LIBS} ${XML2_LIBS} ${ZLIB_LIBS} ${ECCODES_LIBS} ${FYAML_LIBS} ${MKL_LIBS} ${NETCDFF_LIBS} ${NETCDF_LIBS} ${HDF5_LIBS}"
 
@@ -63,10 +64,10 @@ FCFLAGS="-I${INTEL_ROOT}/include -I${MPI_ROOT}/include -I${MPI_FORTRAN_MOD_DIR} 
 CFLAGS="-I${INTEL_ROOT}/include -g -gdwarf-4 -qno-opt-dynamic-align ${ARCH} -fma -ip -pc64 -std=gnu99 -I${FYAML_ROOT}/include"
 CPPFLAGS="-I${INTEL_ROOT}/include -I${MPI_ROOT}/include -I${HDF5_ROOT}/include -I${NETCDF_ROOT}/include -I${ECCODES_ROOT}/include -I${XML2_INCLUDE_DIR}"
 
-ICON_FCFLAGS='-DDO_NOT_COMBINE_PUT_AND_NOCHECK -O2 -ftz -qoverride-limits -assume realloc_lhs -align array64byte -fma -ip -DOCE_SOLVE_OMP'
+ICON_FCFLAGS='-DDO_NOT_COMBINE_PUT_AND_NOCHECK -O2 -ftz -qoverride-limits -assume realloc_lhs -align array64byte -fma -ip'
 ICON_CFLAGS='-O3 -ftz'
 ICON_OCEAN_FCFLAGS='-O3 -assume norealloc_lhs -reentrancy threaded -qopt-report-file=stdout -qopt-report=0 -qopt-report-phase=vec'
-ICON_BUNDLED_FCFLAGS="-O3 -ftz -std08"
+ICON_BUNDLED_FCFLAGS='-O3 -ftz -std08'
 ICON_BUNDLED_CFLAGS='-O2 -ftz'
 ICON_YAC_CFLAGS=${ICON_BUNDLED_CFLAGS}
 ICON_CDI_CFLAGS=${ICON_BUNDLED_CFLAGS}

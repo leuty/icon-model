@@ -1,7 +1,7 @@
 ! ICON
 !
 ! ---------------------------------------------------------------
-! Copyright (C) 2004-2024, DWD, MPI-M, DKRZ, KIT, ETH, MeteoSwiss
+! Copyright (C) 2004-2025, DWD, MPI-M, DKRZ, KIT, ETH, MeteoSwiss
 ! Contact information: icon-model.org
 !
 ! See AUTHORS.TXT for a list of authors
@@ -605,11 +605,11 @@ CONTAINS
   !! Computes perturbation exner pressure by subtracting the
   !! exner reference state from the actual exner pressure.
   !!
-  SUBROUTINE compute_exner_pert(exner, exner_ref, exner_pr, use_acc)
+  SUBROUTINE compute_exner_pert(exner, exner_ref, exner_pr, lacc)
     REAL(wp), INTENT(IN)    :: exner(:,:,:)         !< exner pressure
     REAL(vp), INTENT(IN)    :: exner_ref(:,:,:)     !< exner reference state
     REAL(wp), INTENT(INOUT) :: exner_pr(:,:,:)      !< perturbation exner pressure
-    LOGICAL,  INTENT(IN)    :: use_acc              !< if True, use openACC
+    LOGICAL,  INTENT(IN)    :: lacc                 !< if True, use openACC
 
     INTEGER :: i,j,k,ie,je,ke
 
@@ -622,7 +622,7 @@ CONTAINS
 #else
 !$OMP DO COLLAPSE(3) PRIVATE(i,j,k)
 #endif
-    !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1) IF(use_acc)
+    !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1) IF(lacc)
     !$ACC LOOP GANG VECTOR COLLAPSE(3)
     DO k = 1, ke
       DO j = 1, je

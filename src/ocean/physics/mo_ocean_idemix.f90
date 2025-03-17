@@ -1,7 +1,7 @@
 ! ICON
 !
 ! ---------------------------------------------------------------
-! Copyright (C) 2004-2024, DWD, MPI-M, DKRZ, KIT, ETH, MeteoSwiss
+! Copyright (C) 2004-2025, DWD, MPI-M, DKRZ, KIT, ETH, MeteoSwiss
 ! Contact information: icon-model.org
 !
 ! See AUTHORS.TXT for a list of authors
@@ -127,11 +127,11 @@ CONTAINS
     
     !! namelist variables
     !REAL(wp) :: &
-    !  tau_v                     = 86400.0             ,& 
-    !  tau_h                     = 1296000.0           ,&
-    !  gamma                     = 1.570               ,&
-    !  jstar                     = 10.0                ,&
-    !  mu0                       = 1.33333333
+    !  tau_v                     = 86400.0_wp             ,& 
+    !  tau_h                     = 1296000.0_wp           ,&
+    !  gamma                     = 1.570_wp               ,&
+    !  jstar                     = 10.0_wp                ,&
+    !  mu0                       = 1.33333333_wp
     !! FIXME: these need to go to calc_idemix
     !LOGICAL :: &
     !  l_idemix_avo_dvo_direct   = .false.
@@ -146,7 +146,7 @@ CONTAINS
     !REAL(wp) :: iwe_surf_forc(nproma, patch_3d%p_patch_2d(1)%alloc_cell_blocks)
     !REAL(wp) :: iwe_bott_forc(nproma, patch_3d%p_patch_2d(1)%alloc_cell_blocks)
     LOGICAL  :: has_missValue = .false.
-    REAL(wp) :: missValue = -123456789999999999.0
+    REAL(wp) :: missValue = -123456789999999999.0_wp
 
     patch_2d   => patch_3d%p_patch_2d(1)
 
@@ -188,7 +188,7 @@ CONTAINS
 
     ! convert from W/m^2 to m^3/s^3
     ! (only 20% of the niw-input are available to penetrate into the deeper ocean)
-    iwe_surf_forc(:,:) = iwe_surf_forc(:,:) / OceanReferenceDensity * 0.2
+    iwe_surf_forc(:,:) = iwe_surf_forc(:,:) / OceanReferenceDensity * 0.2_wp
     iwe_bott_forc(:,:) = iwe_bott_forc(:,:) / OceanReferenceDensity
 
   END SUBROUTINE setup_idemix
@@ -253,12 +253,12 @@ CONTAINS
     REAL(wp) :: dummy_zeros(n_zlev+1)
     LOGICAL  :: debug
 
-    dummy_zeros = 0.0
+    dummy_zeros = 0.0_wp
     debug = .false.
 
     iwe => params_oce%vmix_params%iwe(:,:,:)
-    iwe_kv = 0.0
-    iwe_Av = 0.0
+    iwe_kv = 0.0_wp
+    iwe_Av = 0.0_wp
 
     dz  => patch_3d%p_patch_1d(1)%prism_center_dist_c
     dzi => patch_3d%p_patch_1d(1)%inv_prism_center_dist_c
@@ -300,7 +300,7 @@ CONTAINS
             & temp(jc,2:levels,blockNo), &
             & salt(jc,2:levels,blockNo), &
             & pressure(2:levels), levels-1)
-        Nsqr = 0.
+        Nsqr = 0.0_wp
         DO jk = 2, n_zlev 
           Nsqr(jk) = grav/OceanReferenceDensity * (rho_down(jk) - rho_up(jk-1)) *  dzi(jc,jk,blockNo)
         ENDDO
@@ -513,7 +513,7 @@ CONTAINS
     !write(*,*) "TKE after:"
     !write(*,*) tke(8,:,10)
     
-    !params_oce%a_tracer_v = 1e-5
+    !params_oce%a_tracer_v = 1e-5_wp
     !write(*,*) 'a_tracer_v = ', params_oce%a_tracer_v(8,:,10,1) 
     !write(*,*) 'kbot = ', kbot(8,10) 
     !write(*,*) 'tke_kv = ', tke_kv(8,:,10) 

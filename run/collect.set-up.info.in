@@ -3,7 +3,7 @@
 # ICON
 #
 # ---------------------------------------------------------------
-# Copyright (C) 2004-2024, DWD, MPI-M, DKRZ, KIT, ETH, MeteoSwiss
+# Copyright (C) 2004-2025, DWD, MPI-M, DKRZ, KIT, ETH, MeteoSwiss
 # Contact information: icon-model.org
 # See AUTHORS.TXT for a list of authors
 # See LICENSES/ for license information
@@ -84,17 +84,18 @@ case "$use_host" in
   uan0?) use_site=csc.fi ;;
   nid*)
     case $(sacctmgr -nP show cluster Format=Cluster | head -1) in
-      balfrin|todi) use_site=cscs.ch ;;
+      balfrin|todi|santis) use_site=cscs.ch ;;
       lumi) use_site=csc.fi ;;
       *)
         case ${SLURM_CLUSTER_NAME} in
-          balfrin|todi) use_site=cscs.ch ;;
+          balfrin|todi|santis) use_site=cscs.ch ;;
           lumi) use_site=csc.fi ;;
         esac
         ;;
     esac
     ;;
   *.leonardo.local) use_site=cineca.it ;;
+  glogin*|alogin*) use_site=bsc.es ;;
 esac
 test x"$ICON_DOCKER" = x1 && use_site=docker
 
@@ -176,6 +177,26 @@ case "$use_site" in
                 fi
               fi
             ;;
+      
+      *santis*)
+              if test -f "/etc/xthostname"; then
+                host_name=$(cat /etc/xthostname)
+              else
+                host_name='santis'
+              fi
+      
+              use_load_profile='. /etc/profile.d/modules.sh'
+              use_submit='sbatch'
+              use_sync_submit='sbatch --wait'
+              if test "x${use_gpu}" = "xyes"; then
+                use_target='santis_gpu'
+                use_mpi_startrun='srun -n $mpi_total_procs --ntasks-per-node $mpi_procs_pernode --threads-per-core=1 --distribution=cyclic ${basedir}/run/run_wrapper/todi_gpu.sh'
+              else
+                use_target='santis_cpu'
+                use_mpi_startrun='srun -n $mpi_total_procs --ntasks-per-node $mpi_procs_pernode --threads-per-core=1 --distribution=block:block:block ${basedir}/run/run_wrapper/todi_cpu.sh'
+              fi
+            ;;
+
 
 
     esac
@@ -279,12 +300,11 @@ case "$use_site" in
       uc2*) use_target='uc2' ;;
       fh2*) use_target='fh2' ;;
       hk*)  
+        use_target='hk'
         if test xyes = x"${use_gpu}"; then 
-            use_target='hk_gpu';
             use_mpi_startrun='@MPI_LAUNCH@ -n ${SLURM_NPROCS} ${basedir}/run/run_wrapper/hk.sh'
-        else 
-            use_target='hk'; 
         fi
+        ;;
     esac
   ;;
 
@@ -319,6 +339,19 @@ case "$use_site" in
     use_target='leo'; 
     if test xyes = x"${use_gpu}"; then 
         use_mpi_startrun='@MPI_LAUNCH@ -n ${SLURM_NPROCS} ${basedir}/run/run_wrapper/leo.sh'
+    fi
+  ;;
+
+  bsc.es)
+    use_submit='sbatch'
+    use_sync_submit='sbatch --wait'
+    use_mpi_startrun='srun'
+    if test xyes = x"${use_gpu}"; then
+      use_target='mn5_gpu'
+      use_mpi_startrun='@MPI_LAUNCH@ ${basedir}/run/run_wrapper/mn5_gpu.sh'
+    else
+      use_target='mn5_cpu'
+      use_mpi_startrun='@MPI_LAUNCH@'
     fi
   ;;
 

@@ -1,7 +1,7 @@
 ! ICON
 !
 ! ---------------------------------------------------------------
-! Copyright (C) 2004-2024, DWD, MPI-M, DKRZ, KIT, ETH, MeteoSwiss
+! Copyright (C) 2004-2025, DWD, MPI-M, DKRZ, KIT, ETH, MeteoSwiss
 ! Contact information: icon-model.org
 !
 ! See AUTHORS.TXT for a list of authors
@@ -13,7 +13,7 @@
 
 MODULE mo_scatter_pattern_scatter
     USE mo_impl_constants, ONLY: SUCCESS
-    USE mo_kind, ONLY: wp, dp, sp, i8
+    USE mo_kind, ONLY: dp, sp, i8
     USE mo_scatter_pattern_base
     USE mo_mpi, ONLY: my_process_is_stdio, &
     &                 p_max, p_gather, p_scatter
@@ -36,6 +36,7 @@ PUBLIC :: t_scatterPatternScatter
         PROCEDURE :: construct       => constructScatterPatternScatter !< override
         PROCEDURE :: distribute_dp   => distributeDataScatter_dp       !< override
         PROCEDURE :: distribute_spdp => distributeDataScatter_spdp     !< override
+        PROCEDURE :: distribute_dpsp => distributeDataScatter_dpsp     !< override
         PROCEDURE :: distribute_sp   => distributeDataScatter_sp       !< override
         PROCEDURE :: distribute_int  => distributeDataScatter_int      !< override
         PROCEDURE :: destruct        => destructScatterPatternScatter  !< override
@@ -88,8 +89,8 @@ CONTAINS
     !-------------------------------------------------------------------------------------------------------------------------------
     SUBROUTINE distributeDataScatter_dp(me, globalArray, localArray, ladd_value)
         CLASS(t_scatterPatternScatter), INTENT(INOUT) :: me
-        REAL(dp), INTENT(INOUT) :: globalArray(:)
-        REAL(wp), INTENT(INOUT) :: localArray(:,:)
+        REAL(dp), INTENT(IN   ) :: globalArray(:)
+        REAL(dp), INTENT(INOUT) :: localArray(:,:)
         LOGICAL, INTENT(IN) :: ladd_value
 
         CHARACTER(*), PARAMETER :: routine &
@@ -136,12 +137,64 @@ CONTAINS
     END SUBROUTINE distributeDataScatter_dp
 
     !-------------------------------------------------------------------------------------------------------------------------------
+    !> implementation of t_scatterPattern::distribute_dpsp
+    !-------------------------------------------------------------------------------------------------------------------------------
+    SUBROUTINE distributeDataScatter_dpsp(me, globalArray, localArray, ladd_value)
+        CLASS(t_scatterPatternScatter), INTENT(INOUT) :: me
+        REAL(dp), INTENT(IN   ) :: globalArray(:)
+        REAL(sp), INTENT(INOUT) :: localArray(:,:)
+        LOGICAL, INTENT(IN) :: ladd_value
+
+        CHARACTER(*), PARAMETER :: routine = modname//":distributeDataScatter_spdp"
+        REAL(sp), ALLOCATABLE :: sendArray(:,:), recvArray(:)
+        INTEGER :: i, j, blk, idx, ierr, send_shape(2)
+        LOGICAL :: l_write_debug_info
+
+        l_write_debug_info = debugmodule .AND. me%rank == me%root_rank
+
+        IF (l_write_debug_info) WRITE(0,*) "entering ", routine
+
+        CALL me%startDistribution()
+
+        send_shape = SHAPE(me%pointIndices)
+        ALLOCATE(sendArray(send_shape(1), send_shape(2)), &
+             recvArray(me%slapSize), stat = ierr)
+        IF(ierr /= SUCCESS) CALL finish(routine, "error allocating memory")
+        IF (me%rank == me%root_rank) THEN
+!$OMP PARALLEL DO PRIVATE(i,j)
+          DO j = 1, me%comm_size
+            DO i = 1, me%point_counts(j)
+              sendArray(i, j) = REAL(globalArray(me%pointIndices(i, j)),KIND=sp)
+            END DO
+          END DO
+!$OMP END PARALLEL DO
+        END IF
+        CALL p_scatter(sendArray, recvArray, me%root_rank, me%communicator)
+        IF(ladd_value) THEN
+!$NEC ivdep
+            DO i = 1, me%myPointCount
+                blk = blk_no(i)
+                idx = idx_no(i)
+                localArray(idx, blk) = localArray(idx, blk) + recvArray(i)
+            END DO
+        ELSE
+            DO i = 1, me%myPointCount
+                localArray(idx_no(i), blk_no(i)) = recvArray(i)
+            END DO
+        END IF
+
+        DEALLOCATE(recvArray, sendArray)
+        CALL me%endDistribution(INT(send_shape(1), i8) * INT(send_shape(2), i8) * 4_i8)
+        IF (l_write_debug_info) WRITE(0,*) "leaving ", routine
+    END SUBROUTINE distributeDataScatter_dpsp
+
+    !-------------------------------------------------------------------------------------------------------------------------------
     !> implementation of t_scatterPattern::distribute_spdp
     !-------------------------------------------------------------------------------------------------------------------------------
     SUBROUTINE distributeDataScatter_spdp(me, globalArray, localArray, ladd_value)
         CLASS(t_scatterPatternScatter), INTENT(INOUT) :: me
-        REAL(sp), INTENT(INOUT) :: globalArray(:)
-        REAL(wp), INTENT(INOUT) :: localArray(:,:)
+        REAL(sp), INTENT(IN   ) :: globalArray(:)
+        REAL(dp), INTENT(INOUT) :: localArray(:,:)
         LOGICAL, INTENT(IN) :: ladd_value
 
         CHARACTER(*), PARAMETER :: routine = modname//":distributeDataScatter_spdp"
@@ -192,7 +245,7 @@ CONTAINS
     !-------------------------------------------------------------------------------------------------------------------------------
     SUBROUTINE distributeDataScatter_sp(me, globalArray, localArray, ladd_value)
         CLASS(t_scatterPatternScatter), INTENT(INOUT) :: me
-        REAL(sp), INTENT(INOUT) :: globalArray(:)
+        REAL(sp), INTENT(IN   ) :: globalArray(:)
         REAL(sp), INTENT(INOUT) :: localArray(:,:)
         LOGICAL, INTENT(IN) :: ladd_value
 
@@ -245,7 +298,7 @@ CONTAINS
     !-------------------------------------------------------------------------------------------------------------------------------
     SUBROUTINE distributeDataScatter_int(me, globalArray, localArray, ladd_value)
         CLASS(t_scatterPatternScatter), INTENT(INOUT) :: me
-        INTEGER, INTENT(INOUT) :: globalArray(:)
+        INTEGER, INTENT(IN   ) :: globalArray(:)
         INTEGER, INTENT(INOUT) :: localArray(:,:)
         LOGICAL, INTENT(IN) :: ladd_value
 

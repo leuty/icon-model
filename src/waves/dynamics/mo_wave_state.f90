@@ -1,7 +1,7 @@
 ! ICON
 !
 ! ---------------------------------------------------------------
-! Copyright (C) 2004-2024, DWD, MPI-M, DKRZ, KIT, ETH, MeteoSwiss
+! Copyright (C) 2004-2025, DWD, MPI-M, DKRZ, KIT, ETH, MeteoSwiss
 ! Contact information: icon-model.org
 !
 ! See AUTHORS.TXT for a list of authors
@@ -27,18 +27,16 @@ MODULE mo_wave_state
        &                                  GRID_UNSTRUCTURED_EDGE, GRID_EDGE
   USE mo_cdi,                       ONLY: DATATYPE_FLT32, DATATYPE_FLT64, GRID_UNSTRUCTURED, &
        &                                  DATATYPE_PACK16, DATATYPE_INT
-  USE mo_zaxis_type,                ONLY: ZA_SURFACE, ZA_FREQ_GENERIC, ZA_TR_GENERIC
+  USE mo_zaxis_type,                ONLY: ZA_SURFACE, ZA_FREQ_GENERIC, ZA_DIR_GENERIC
   USE mo_cf_convention,             ONLY: t_cf_var
   USE mo_grib2,                     ONLY: t_grib2_var, grib2_var
   USE mo_io_config,                 ONLY: lnetcdf_flt64_output
-  USE mo_run_config,                ONLY: ntracer
   USE mo_var_metadata,              ONLY: get_timelevel_string, create_hor_interp_metadata
   USE mo_tracer_metadata,           ONLY: create_tracer_metadata
 
   USE mo_wave_types,                ONLY: t_wave_prog, t_wave_source, t_wave_diag, &
        &                                  t_wave_state, t_wave_state_lists
   USE mo_wave_config,               ONLY: t_wave_config, wave_config
-  USE mo_energy_propagation_config, ONLY: t_energy_propagation_config, energy_propagation_config
 
 
   IMPLICIT NONE
@@ -148,36 +146,33 @@ CONTAINS
     CHARACTER(len=*),      INTENT(IN)    :: listname
     INTEGER,               INTENT(IN)    :: timelev
 
+    CHARACTER(len=*), PARAMETER :: routine = modname//'::new_wave_state_prog_list'
     TYPE(t_cf_var)    :: cf_desc
     TYPE(t_grib2_var) :: grib2_desc
 
-    INTEGER :: nblks_c    !< number of cell blocks to allocate
-
+    INTEGER :: nblks_c       !< number of cell blocks to allocate
     INTEGER :: ibits         !< "entropy" of horizontal slice
     INTEGER :: datatype_flt  !< floating point accuracy in NetCDF output
+    INTEGER :: ist
 
     CHARACTER(len=4)         :: suffix
-    CHARACTER(len=VNAME_LEN) :: freq_ind_str, dir_ind_str
+    CHARACTER(len=VNAME_LEN) :: freq_ind_str
     CHARACTER(LEN=VNAME_LEN) :: tracer_container_name
     CHARACTER(len=VNAME_LEN) :: tracer_name
 
-    TYPE(t_energy_propagation_config), POINTER :: enprop_conf
     TYPE(t_wave_config),               POINTER :: wc
 
-
-    INTEGER :: shape3d_c(3), shape2d_c(2)
-    INTEGER :: jt
+    INTEGER :: shape4d_c(4), shape3d_c(3)
+    INTEGER :: jf
 
     !determine size of arrays
     nblks_c = p_patch%nblks_c
 
-    ! pointer to energy_propagation_config(jg) to save some paperwork
-    enprop_conf => energy_propagation_config(p_patch%id)
     ! pointer to wave_config(jg) to save some paperwork
     wc => wave_config(p_patch%id)
 
-    shape3d_c    = (/nproma, ntracer, nblks_c/)
-    shape2d_c    = (/nproma, nblks_c/)
+    shape4d_c = (/nproma, wc%ndirs, nblks_c, wc%nfreqs/)
+    shape3d_c = (/nproma, wc%ndirs, nblks_c/)
 
     ibits = DATATYPE_PACK16   ! "entropy" of horizontal slice
 
@@ -197,38 +192,39 @@ CONTAINS
       &          model_type=get_my_process_name())
 
 
+    ! tracer        p_source%tracer(nproma,ndirs,nblks_c,nfreqs)
     tracer_container_name = 'tracer'//suffix
     cf_desc    = t_cf_var('tracer', '', 'spectral bin of wave energy', datatype_flt)
     grib2_desc = grib2_var(255, 255, 255, ibits, GRID_UNSTRUCTURED, GRID_CELL)
-    CALL add_var( p_prog_list, tracer_container_name, p_prog%tracer, &
-         & GRID_UNSTRUCTURED_CELL, ZA_TR_GENERIC, cf_desc, grib2_desc,&
-         & ldims=shape3d_c ,                                         &
+    CALL add_var( p_prog_list, tracer_container_name, p_prog%tracer,   &
+         & GRID_UNSTRUCTURED_CELL, ZA_DIR_GENERIC, cf_desc, grib2_desc,&
+         & ldims=shape4d_c ,                                           &
          & lcontainer=.TRUE., lrestart=.FALSE., loutput=.FALSE. )
 
-    ALLOCATE(p_prog%tracer_ptr(ntracer))
+    ALLOCATE(p_prog%tracer_ptr(wc%nfreqs), STAT=ist)
+    IF (ist/=SUCCESS) CALL finish(routine, &
+      &                    'allocation of tracer_ptr failed')
 
-    DO jt = 1, ntracer
-       write(freq_ind_str,'(I0.3)') wc%freq_ind(jt)
-       write(dir_ind_str,'(I0.3)') wc%dir_ind(jt)
+    DO jf = 1, wc%nfreqs
+      write(freq_ind_str,'(I0.3)') jf
 
-       tracer_name = TRIM(enprop_conf%tracer_names(jt))//'_'//TRIM(freq_ind_str)//'_'//TRIM(dir_ind_str)//suffix
+      tracer_name = 'tracer_'//TRIM(freq_ind_str)//suffix
 
-       CALL add_ref( p_prog_list, tracer_container_name,                          &
-            & TRIM(tracer_name), p_prog%tracer_ptr(jt)%p_2d,                      &
-            & GRID_UNSTRUCTURED_CELL, ZA_SURFACE,                                 &
-            & t_cf_var(TRIM(tracer_name), '-','spectral bin of wave energy',      &
-            & datatype_flt),                                                      &
-            & grib2_var(255, 255, 255, ibits, GRID_UNSTRUCTURED, GRID_CELL),      &
-            & ldims=shape2d_c, opt_var_ref_pos=2, ref_idx=jt,                     &
-            & loutput=.TRUE., lrestart=.TRUE.,                                    &
-            & tlev_source=TLEV_NNOW_RCF,                                          &
-            & tracer_info=create_tracer_metadata(lis_tracer=.TRUE.,               &
-            &                       name        = TRIM(tracer_name),              &
-            &                       lfeedback   = .TRUE.,                         &
-            &                       ihadv_tracer= 2,                              &
-            &                       ivadv_tracer= 0 ),                            &
-            & in_group=groups("wave_spectrum"))
-
+      CALL add_ref( p_prog_list, tracer_container_name,                          &
+           & TRIM(tracer_name), p_prog%tracer_ptr(jf)%p_3d,                      &
+           & GRID_UNSTRUCTURED_CELL, ZA_DIR_GENERIC,                             &
+           & t_cf_var(TRIM(tracer_name), '-','spectral bin of wave energy',      &
+           & datatype_flt),                                                      &
+           & grib2_var(255, 255, 255, ibits, GRID_UNSTRUCTURED, GRID_CELL),      &
+           & ldims=shape3d_c, ref_idx=jf,                                        &
+           & loutput=.TRUE., lrestart=.TRUE.,                                    &
+           & tlev_source=TLEV_NNOW_RCF,                                          &
+           & tracer_info=create_tracer_metadata(lis_tracer=.TRUE.,               &
+           &                       name        = TRIM(tracer_name),              &
+           &                       lfeedback   = .TRUE.,                         &
+           &                       ihadv_tracer= 2,                              &
+           &                       ivadv_tracer= 0 ),                            &
+           & in_group=groups("wave_spectrum"))
     END DO
 
   END SUBROUTINE new_wave_state_prog_list
@@ -250,11 +246,11 @@ CONTAINS
     INTEGER :: ibits         !< "entropy" of horizontal slice
     INTEGER :: datatype_flt  !< floating point accuracy in NetCDF output
     INTEGER :: nblks_c
-    INTEGER :: jt
+    INTEGER :: jf
     INTEGER :: ist
-    INTEGER :: shape3d_c(3), shape2d_c(2)
+    INTEGER :: shape4d_c(4), shape3d_c(3)
     CHARACTER(len=VNAME_LEN) :: sl_name, fl_name, llws_name
-    CHARACTER(len=3) :: freq_ind_str, dir_ind_str
+    CHARACTER(len=3) :: freq_ind_str
 
     TYPE(t_wave_config), POINTER :: wc
 
@@ -263,8 +259,8 @@ CONTAINS
 
     nblks_c = p_patch%nblks_c
 
-    shape3d_c  = (/nproma, ntracer, nblks_c/)
-    shape2d_c  = (/nproma, nblks_c/)
+    shape4d_c = (/nproma, wc%ndirs, nblks_c, wc%nfreqs/)
+    shape3d_c = (/nproma, wc%ndirs, nblks_c/)
 
     ibits = DATATYPE_PACK16   ! "entropy" of horizontal slice
 
@@ -278,66 +274,65 @@ CONTAINS
       &           model_type=get_my_process_name())
 
 
-    ! fl          p_source%fl(nproma,ntracer,nblks_c)
+    ! fl          p_source%fl(nproma,ndirs,nblks_c,nfreqs)
     cf_desc    = t_cf_var('fl', '-', 'DIAG. MTRX OF FUNC. DERIVATIVE', datatype_flt)
     grib2_desc = grib2_var(255, 255, 255, ibits, GRID_UNSTRUCTURED, GRID_CELL)
     CALL add_var(p_source_list, 'fl', p_source%fl,                  &
-         & GRID_UNSTRUCTURED_CELL, ZA_TR_GENERIC, cf_desc, grib2_desc, &
-         & ldims=shape3d_c, &
+         & GRID_UNSTRUCTURED_CELL, ZA_DIR_GENERIC, cf_desc, grib2_desc, &
+         & ldims=shape4d_c, &
          & lcontainer=.TRUE., lrestart=.FALSE., loutput=.FALSE.)
 
-    ! sl          p_source%sl(nproma,ntracer,nblks_c)
+    ! sl          p_source%sl(nproma,ndirs,nblks_c,nfreqs)
     cf_desc    = t_cf_var('sl', '-', 'TOTAL SOURCE FUNCTION', datatype_flt)
     grib2_desc = grib2_var(255, 255, 255, ibits, GRID_UNSTRUCTURED, GRID_CELL)
-    CALL add_var(p_source_list, 'sl', p_source%sl,                  &
-         & GRID_UNSTRUCTURED_CELL, ZA_TR_GENERIC, cf_desc, grib2_desc, &
-         & ldims=shape3d_c, &
+    CALL add_var(p_source_list, 'sl', p_source%sl,                      &
+         & GRID_UNSTRUCTURED_CELL, ZA_DIR_GENERIC, cf_desc, grib2_desc, &
+         & ldims=shape4d_c, &
          & lcontainer=.TRUE., lrestart=.FALSE., loutput=.FALSE.)
 
-    ! llws        p_source%llws(nproma,ntracer,nblks_c)
+    ! llws        p_source%llws(nproma,ndirs,nblks_c,nfreqs)
     cf_desc    = t_cf_var('llws', '-', '1 where sinput is positive', datatype_int)
     grib2_desc = grib2_var(255, 255, 255, ibits, GRID_UNSTRUCTURED, GRID_CELL)
-    CALL add_var(p_source_list, 'llws', p_source%llws,              &
-         & GRID_UNSTRUCTURED_CELL, ZA_TR_GENERIC, cf_desc, grib2_desc, &
-         & ldims=shape3d_c,                                         &
+    CALL add_var(p_source_list, 'llws', p_source%llws,                  &
+         & GRID_UNSTRUCTURED_CELL, ZA_DIR_GENERIC, cf_desc, grib2_desc, &
+         & ldims=shape4d_c,                                             &
          & lcontainer=.TRUE., lrestart=.FALSE., loutput=.FALSE.)
 
 
-    ALLOCATE(p_source%sl_ptr(ntracer),           &
-      &      p_source%fl_ptr(ntracer),           &
-      &      p_source%llws_ptr(ntracer), STAT=ist)
-    IF (ist/=SUCCESS) CALL finish(routine,               &
-          'allocation of sl_ptr, fl_ptr, llws_ptr failed')
+    ALLOCATE(p_source%sl_ptr(wc%nfreqs),           &
+      &      p_source%fl_ptr(wc%nfreqs),           &
+      &      p_source%llws_ptr(wc%nfreqs), STAT=ist)
+    IF (ist/=SUCCESS) CALL finish(routine, &
+      &                    'allocation of sl_ptr, fl_ptr and llws_ptr failed')
 
-    DO jt = 1, ntracer
-      write(freq_ind_str,'(I0.3)') wc%freq_ind(jt)
-      write(dir_ind_str,'(I0.3)') wc%dir_ind(jt)
+    DO jf = 1, wc%nfreqs
+      write(freq_ind_str,'(I0.3)') jf
 
-      sl_name = 'sl_'//TRIM(freq_ind_str)//'_'//TRIM(dir_ind_str)
+      sl_name = 'sl_'//TRIM(freq_ind_str)
       CALL add_ref(p_source_list, 'sl',                                     &
-           & sl_name, p_source%sl_ptr(jt)%p_2d,                             &
-           & GRID_UNSTRUCTURED_CELL, ZA_SURFACE,                            &
+           & sl_name, p_source%sl_ptr(jf)%p_3d,                             &
+           & GRID_UNSTRUCTURED_CELL, ZA_DIR_GENERIC,                        &
            & t_cf_var(sl_name, '-',sl_name, datatype_flt),                  &
            & grib2_var(255, 255, 255, ibits, GRID_UNSTRUCTURED, GRID_CELL), &
-           & ref_idx=jt, opt_var_ref_pos=2, ldims=shape2d_c,                &
+           & ldims=shape3d_c, ref_idx=jf,                                   &
            & lrestart=.FALSE., loutput=.TRUE.)
 
-      fl_name = 'fl_'//TRIM(freq_ind_str)//'_'//TRIM(dir_ind_str)
+      fl_name = 'fl_'//TRIM(freq_ind_str)
       CALL add_ref(p_source_list, 'fl',                                     &
-           & fl_name, p_source%fl_ptr(jt)%p_2d,                             &
-           & GRID_UNSTRUCTURED_CELL, ZA_SURFACE,                            &
+           & fl_name, p_source%fl_ptr(jf)%p_3d,                             &
+           & GRID_UNSTRUCTURED_CELL, ZA_DIR_GENERIC,                        &
            & t_cf_var(fl_name, '-',fl_name, datatype_flt),                  &
            & grib2_var(255, 255, 255, ibits, GRID_UNSTRUCTURED, GRID_CELL), &
-           & ref_idx=jt, opt_var_ref_pos=2, ldims=shape2d_c,                &
+           & ldims=shape3d_c, ref_idx=jf,                                   &
            & lrestart=.FALSE., loutput=.TRUE.)
 
-      llws_name = 'llws_'//TRIM(freq_ind_str)//'_'//TRIM(dir_ind_str)
+      llws_name = 'llws_'//TRIM(freq_ind_str)
       CALL add_ref(p_source_list, 'llws',                                   &
-           & llws_name, p_source%llws_ptr(jt)%p,                            &
-           & GRID_UNSTRUCTURED_CELL, ZA_SURFACE,                            &
+           & llws_name, p_source%llws_ptr(jf)%p,                            &
+           & GRID_UNSTRUCTURED_CELL, ZA_DIR_GENERIC,                        &
            & t_cf_var(llws_name, '-',llws_name, datatype_int),              &
            & grib2_var(255, 255, 255, ibits, GRID_UNSTRUCTURED, GRID_CELL), &
-           & ldims=shape2d_c, opt_var_ref_pos=2, ref_idx=jt,                &
+           & ldims=shape3d_c, ref_idx=jf,                                   &
            & lrestart=.TRUE., loutput=.TRUE.,                               &
            & in_group=groups("wave_debug"))
     END DO
@@ -362,15 +357,14 @@ CONTAINS
     INTEGER :: datatype_flt  !< floating point accuracy in NetCDF output
     INTEGER :: nblks_c, nblks_e
     INTEGER :: nfreqs, ndirs
-    INTEGER :: jg, jt
+    INTEGER :: jg,jf
     INTEGER :: ist
     INTEGER :: shape2d_c(2)
     INTEGER :: shape3d_freq_c(3), shape3d_freq_e(3)
-    INTEGER :: shape3d_tr_c(3), shape3d_tr_e(3)
     INTEGER :: shape1d_freq_p4(1), shape1d_dir_2(2)
-    INTEGER :: shape4d_freq_p4_2_dir_18(4)
+    INTEGER :: shape4d_c(4), shape3d_dir_c(3)
 
-    CHARACTER(len=3) :: freq_ind_str, dir_ind_str
+    CHARACTER(len=3) :: freq_ind_str
     CHARACTER(len=VNAME_LEN) :: out_name
 
     TYPE(t_wave_config),      POINTER :: wc
@@ -390,9 +384,9 @@ CONTAINS
     shape2d_c         = (/nproma, nblks_c/)
     shape3d_freq_c    = (/nproma, nfreqs, nblks_c/)
     shape3d_freq_e    = (/nproma, nfreqs, nblks_e/)
-    shape3d_tr_c      = (/nproma, ntracer, nblks_c/)
-    shape3d_tr_e      = (/nproma, ntracer, nblks_e/)
-    shape4d_freq_p4_2_dir_18 = (/18,nfreqs+4,2,ndirs/)
+    shape3d_dir_c     = (/nproma, ndirs, nblks_c/)
+    shape4d_c         = (/nproma, ndirs, nblks_c, nfreqs/)
+
 
     ibits = DATATYPE_PACK16   ! "entropy" of horizontal slice
 
@@ -420,19 +414,6 @@ CONTAINS
          & GRID_UNSTRUCTURED_EDGE, ZA_FREQ_GENERIC, cf_desc, grib2_desc, &
          & ldims=shape3d_freq_e, in_group=groups("wave_phy_ext"),        &
          & lrestart=.FALSE., loutput=.TRUE.)
-
-
-    cf_desc    = t_cf_var('normal_group_velocity', 'm s-1', 'group velocity normal to edge', datatype_flt)
-    grib2_desc = grib2_var(255, 255, 255, ibits, GRID_UNSTRUCTURED, GRID_EDGE)
-    CALL add_var(p_diag_list, 'gvn_e', p_diag%gvn_e,                   &
-         & GRID_UNSTRUCTURED_EDGE, ZA_TR_GENERIC, cf_desc, grib2_desc, &
-         & ldims=shape3d_tr_e, lrestart=.FALSE., loutput=.TRUE.)
-
-    cf_desc    = t_cf_var('tangential_group_velocity', 'm s-1', 'group velocity tangential to edge', datatype_flt)
-    grib2_desc = grib2_var(255, 255, 255, ibits, GRID_UNSTRUCTURED, GRID_EDGE)
-    CALL add_var(p_diag_list, 'gvt_e', p_diag%gvt_e,                   &
-         & GRID_UNSTRUCTURED_EDGE, ZA_TR_GENERIC, cf_desc, grib2_desc, &
-         & ldims=shape3d_tr_e, lrestart=.FALSE., loutput=.TRUE.)
 
     !Wave physics group
     cf_desc    = t_cf_var('emean', 'm^2', 'total wave energy', datatype_flt)
@@ -510,35 +491,28 @@ CONTAINS
          & lrestart=.FALSE., loutput=.TRUE.,                        &
          & ldims=shape2d_c, in_group=groups("wave_phy"))
 
-    cf_desc    = t_cf_var('swell_mask', '-', 'swell mask', datatype_int)
+    ! swell_mask       p_source%swell_mask(nproma,ndirs,nblks_c,nfreqs)
+    cf_desc    = t_cf_var('swell_mask', '-', 'swell mask for tracers', datatype_int)
     grib2_desc = grib2_var(255, 255, 255, ibits, GRID_UNSTRUCTURED, GRID_CELL)
-    CALL add_var(p_diag_list, 'swell_mask', p_diag%swell_mask,      &
-         & GRID_UNSTRUCTURED_CELL, ZA_SURFACE, cf_desc, grib2_desc, &
-         & lrestart=.FALSE., loutput=.TRUE.,                        &
-         & ldims=shape2d_c, in_group=groups("wave_debug"))
-
-    cf_desc    = t_cf_var('swell_mask_tr', '-', 'swell mask for tracers', datatype_int)
-    grib2_desc = grib2_var(255, 255, 255, ibits, GRID_UNSTRUCTURED, GRID_CELL)
-    CALL add_var(p_diag_list, 'swell_mask_tr', p_diag%swell_mask_tr,&
-         & GRID_UNSTRUCTURED_CELL, ZA_TR_GENERIC, cf_desc, grib2_desc, &
+    CALL add_var(p_diag_list, 'swell_mask', p_diag%swell_mask,&
+         & GRID_UNSTRUCTURED_CELL, ZA_DIR_GENERIC, cf_desc, grib2_desc, &
          & lcontainer=.TRUE., lrestart=.FALSE., loutput=.FALSE.,    &
-         & ldims=shape3d_tr_c)
+         & ldims=shape4d_c)
 
-    ALLOCATE(p_diag%swmask_ptr(ntracer), STAT=ist)
+    ALLOCATE(p_diag%swmask_ptr(nfreqs), STAT=ist)
     IF (ist/=SUCCESS) CALL finish(routine,               &
           'allocation of swmask_ptr failed')
 
-    DO jt = 1, ntracer
-      write(freq_ind_str,'(I0.3)') wc%freq_ind(jt)
-      write(dir_ind_str,'(I0.3)') wc%dir_ind(jt)
+    DO jf = 1, nfreqs
+      write(freq_ind_str,'(I0.3)') jf
 
-      out_name = 'swmask_'//TRIM(freq_ind_str)//'_'//TRIM(dir_ind_str)
-      CALL add_ref(p_diag_list, 'swell_mask_tr',                            &
-           & out_name, p_diag%swmask_ptr(jt)%p,                             &
-           & GRID_UNSTRUCTURED_CELL, ZA_SURFACE,                            &
+      out_name = 'swmask_'//TRIM(freq_ind_str)
+      CALL add_ref(p_diag_list, 'swell_mask',                               &
+           & out_name, p_diag%swmask_ptr(jf)%p,                             &
+           & GRID_UNSTRUCTURED_CELL, ZA_DIR_GENERIC,                        &
            & t_cf_var(out_name, '-',out_name, datatype_int),                &
            & grib2_var(255, 255, 255, ibits, GRID_UNSTRUCTURED, GRID_CELL), &
-           & ref_idx=jt, opt_var_ref_pos=2, ldims=shape2d_c,                &
+           & ref_idx=jf, ldims=shape3d_dir_c,                               &
            & lrestart=.TRUE., loutput=.TRUE.,                               &
            & in_group=groups("wave_debug"))
     END DO
@@ -642,14 +616,6 @@ CONTAINS
          & lrestart=.FALSE., loutput=.TRUE.,                        &
          & ldims=shape2d_c, in_group=groups("wave_phy"))
 
-    ! nonlinear transfer function coefficients for shallow water
-    cf_desc    = t_cf_var('enh', '-', 'nonlinear transfer function coefficients', datatype_flt)
-    grib2_desc = grib2_var(255, 255, 255, ibits, GRID_UNSTRUCTURED, GRID_CELL)
-    CALL add_var(p_diag_list, 'enh', p_diag%enh,                    &
-         & GRID_UNSTRUCTURED_CELL, ZA_SURFACE, cf_desc, grib2_desc, &
-         & lrestart=.FALSE., loutput=.TRUE.,                        &
-         & ldims=shape2d_c, in_group=groups("wave_debug"))
-
     ! for discrete approximation of nonlinear transfer
     cf_desc    = t_cf_var('IKP', '-', 'IKP', datatype_int)
     grib2_desc = grib2_var(255, 255, 255, ibits, GRID_UNSTRUCTURED, GRID_CELL)
@@ -706,13 +672,6 @@ CONTAINS
          & GRID_UNSTRUCTURED_EDGE, ZA_SURFACE, cf_desc, grib2_desc, &
          & lrestart=.FALSE., loutput=.TRUE.,                        &
          & ldims=shape1d_dir_2)
-
-    cf_desc    = t_cf_var('non_lin_tr_ind', '-', 'non_lin_tr_ind', datatype_int)
-    grib2_desc = grib2_var(255, 255, 255, ibits, GRID_UNSTRUCTURED, GRID_CELL)
-    CALL add_var(p_diag_list, 'non_lin_tr_ind', p_diag%non_lin_tr_ind, &
-         & GRID_UNSTRUCTURED_EDGE, ZA_SURFACE, cf_desc, grib2_desc,    &
-         & lrestart=.FALSE., loutput=.TRUE.,                           &
-         & ldims=shape4d_freq_p4_2_dir_18)
 
     cf_desc    = t_cf_var('JA1', '-', 'JA1', datatype_int)
     grib2_desc = grib2_var(255, 255, 255, ibits, GRID_UNSTRUCTURED, GRID_CELL)
@@ -1021,19 +980,19 @@ CONTAINS
       ! deallocate state lists and arrays
       DEALLOCATE(p_wave_state_lists(jg)%prog_list, stat=ist)
       IF (ist /= success) THEN
-        CALL finish(TRIM(routine),'deallocation for prog_list array failed')
+        CALL finish(routine,'deallocation for prog_list array failed')
       END IF
 
       DEALLOCATE(p_wave_state(jg)%prog, stat=ist)
       IF (ist /= success) THEN
-        CALL finish(TRIM(routine),'deallocation of prognostic state array failed')
+        CALL finish(routine,'deallocation of prognostic state array failed')
       END IF
     ENDDO
 
     ! deallocate states
     DEALLOCATE(p_wave_state, p_wave_state_lists, stat=ist)
     IF (ist /= success) THEN
-      CALL finish(TRIM(routine),'deallocation for p_wave_state failed')
+      CALL finish(routine,'deallocation for p_wave_state failed')
     END IF
 
   END SUBROUTINE destruct_wave_state

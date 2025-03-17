@@ -1,7 +1,7 @@
 ! ICON
 !
 ! ---------------------------------------------------------------
-! Copyright (C) 2004-2024, DWD, MPI-M, DKRZ, KIT, ETH, MeteoSwiss
+! Copyright (C) 2004-2025, DWD, MPI-M, DKRZ, KIT, ETH, MeteoSwiss
 ! Contact information: icon-model.org
 !
 ! See AUTHORS.TXT for a list of authors
@@ -69,7 +69,7 @@ MODULE mo_zaxis_type
     &   ZA_OCE_LAYER_INTERFACE, ZA_OCE_LAYER_CENTRE,                                    &
     &   ZA_GENERIC_ICE, ZA_OCEAN_SEDIMENT, ZA_PRES_FL_BOT_TOP, ZA_ATMOSPHERE,           &
     &   ZA_HEIGHT_2M_LAYER, ZA_ECHOTOP, ZA_TROPOPAUSE, ZA_wshear,                       &
-    &   ZA_PRESSURE_LAPSERATE, ZA_SRH, ZA_FREQ_GENERIC, ZA_TR_GENERIC
+    &   ZA_PRESSURE_LAPSERATE, ZA_SRH, ZA_FREQ_GENERIC, ZA_DIR_GENERIC
 
   !> Derived type holding a the ICON-internal key for a single
   !  vertical axis type. See "t_zaxisTypeList" for details.
@@ -238,7 +238,7 @@ CONTAINS
     ZA_TROPOPAUSE              = za_list%register(cdi_zaxis_type=ZAXIS_GENERIC            , is_2D=.TRUE.)
     ! needed for wave
     ZA_FREQ_GENERIC            = za_list%register(cdi_zaxis_type=ZAXIS_GENERIC            , is_2D=.FALSE.)
-    ZA_TR_GENERIC              = za_list%register(cdi_zaxis_type=ZAXIS_GENERIC            , is_2D=.FALSE.)
+    ZA_DIR_GENERIC             = za_list%register(cdi_zaxis_type=ZAXIS_GENERIC            , is_2D=.FALSE.)
 
   END FUNCTION new_zaxisTypeList
 

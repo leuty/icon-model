@@ -1,7 +1,7 @@
 ! ICON
 !
 ! ---------------------------------------------------------------
-! Copyright (C) 2004-2024, DWD, MPI-M, DKRZ, KIT, ETH, MeteoSwiss
+! Copyright (C) 2004-2025, DWD, MPI-M, DKRZ, KIT, ETH, MeteoSwiss
 ! Contact information: icon-model.org
 !
 ! See AUTHORS.TXT for a list of authors
@@ -11,7 +11,7 @@
 
 MODULE mo_reader_abstract
 
-  USE mo_kind,         ONLY: dp
+  USE mo_kind,         ONLY: wp
   USE mo_model_domain, ONLY: t_patch
   USE mtime,           ONLY: julianday
   
@@ -41,11 +41,11 @@ MODULE mo_reader_abstract
     END SUBROUTINE abstract_init
 
     SUBROUTINE abstract_get_one_timelev (this, timelevel, varname, dat)
-      IMPORT :: t_abstract_reader, dp
+      IMPORT :: t_abstract_reader, wp
       CLASS(t_abstract_reader), INTENT(inout) :: this
       INTEGER,                  INTENT(in   ) :: timelevel
       CHARACTER(len=*),         INTENT(in   ) :: varname
-      REAL(dp), ALLOCATABLE,    INTENT(inout) :: dat(:,:,:,:)
+      REAL(wp), ALLOCATABLE,    INTENT(inout) :: dat(:,:,:,:)
     END SUBROUTINE abstract_get_one_timelev
 
     SUBROUTINE abstract_get_times (this, times)

@@ -1,7 +1,7 @@
 ! ICON
 !
 ! ---------------------------------------------------------------
-! Copyright (C) 2004-2024, DWD, MPI-M, DKRZ, KIT, ETH, MeteoSwiss
+! Copyright (C) 2004-2025, DWD, MPI-M, DKRZ, KIT, ETH, MeteoSwiss
 ! Contact information: icon-model.org
 !
 ! See AUTHORS.TXT for a list of authors
@@ -36,7 +36,7 @@
 MODULE mo_thdyn_functions
 
 
-USE, INTRINSIC :: iso_fortran_env, ONLY: wp => real64, iintegers =>  int32
+USE mo_kind, ONLY: wp, i4 
 USE mo_physical_constants, ONLY: r_v   => rv    , & !> gas constant for water vapour
                                rvd_m_o => vtmpc1 , & !! rv/rd-1._wp
                                  o_m_rdv        , & !! 1 - r_d/r_v
@@ -196,7 +196,7 @@ FUNCTION dqsatdT_rho(zqsat, temp, rho)
   REAL(kind=wp) :: beta
 
   IF (ipsat == 1) THEN
-    beta        = b234w/(temp-b4w)**2_iintegers - 1.0_wp / temp
+    beta        = b234w/(temp-b4w)**2_i4 - 1.0_wp / temp
     dqsatdT_rho = beta * zqsat
   ELSEIF (ipsat == 2) THEN
     beta        = psatw_murphykoop_derivative(temp)

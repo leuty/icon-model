@@ -1,7 +1,7 @@
 ! ICON
 !
 ! ---------------------------------------------------------------
-! Copyright (C) 2004-2024, DWD, MPI-M, DKRZ, KIT, ETH, MeteoSwiss
+! Copyright (C) 2004-2025, DWD, MPI-M, DKRZ, KIT, ETH, MeteoSwiss
 ! Contact information: icon-model.org
 !
 ! See AUTHORS.TXT for a list of authors
@@ -14,12 +14,6 @@
 !
 ! Contains routines for reading data from netcdf-Files of various shape.
 
-#define define_fill_target REAL(wp), TARGET, OPTIONAL
-!#define define_fill_target REAL(wp), TARGET, ALLOCATABLE, OPTIONAL
-!#define define_fill_target REAL(wp), POINTER, OPTIONAL
-#define define_fill_target_int INTEGER, TARGET, OPTIONAL
-!#define define_fill_target_int INTEGER, TARGET, ALLOCATABLE, OPTIONAL
-!#define define_fill_target_int INTEGER, POINTER, OPTIONAL
 
 MODULE mo_read_netcdf_broadcast_2
 
@@ -263,15 +257,15 @@ CONTAINS
 
     INTEGER, INTENT(IN)          :: file_id
     CHARACTER(LEN=*), INTENT(IN) :: variable_name
-    REAL(dp), INTENT(OUT), OPTIONAL, TARGET :: fill_array(:)
-    REAL(dp), ALLOCATABLE, INTENT(OUT), OPTIONAL, TARGET :: alloc_array(:)
+    REAL(wp), INTENT(OUT), OPTIONAL, TARGET :: fill_array(:)
+    REAL(wp), ALLOCATABLE, INTENT(OUT), OPTIONAL, TARGET :: alloc_array(:)
 
     INTEGER :: varid, var_type, var_dims
     INTEGER :: var_size(MAX_VAR_DIMS)
     CHARACTER(LEN=filename_max) :: var_dim_name(MAX_VAR_DIMS)
     INTEGER :: return_status
 
-    REAL(dp), POINTER :: res(:)
+    REAL(wp), POINTER :: res(:)
 
     CHARACTER(LEN=*), PARAMETER :: method_name = &
       'mo_read_netcdf_broadcast_2:netcdf_read_REAL_1D'
@@ -328,12 +322,12 @@ CONTAINS
 
     INTEGER, INTENT(IN)          :: file_id
     CHARACTER(LEN=*), INTENT(IN) :: variable_name
-    REAL(dp), INTENT(OUT), OPTIONAL, TARGET :: fill_array(:,:,:)
-    REAL(dp), ALLOCATABLE, INTENT(OUT), OPTIONAL, TARGET :: alloc_array(:,:,:)
+    REAL(wp), INTENT(OUT), OPTIONAL, TARGET :: fill_array(:,:,:)
+    REAL(wp), ALLOCATABLE, INTENT(OUT), OPTIONAL, TARGET :: alloc_array(:,:,:)
     CHARACTER(LEN=*), INTENT(IN), OPTIONAL :: dim_names(:)
     INTEGER, INTENT(IN), OPTIONAL:: start_timestep, end_timestep
 
-    REAL(dp), POINTER :: res(:,:,:)
+    REAL(wp), POINTER :: res(:,:,:)
 
     INTEGER :: varid, var_type, var_dims
     INTEGER :: var_size(MAX_VAR_DIMS)
@@ -434,12 +428,12 @@ CONTAINS
 
     INTEGER, INTENT(IN)          :: file_id
     CHARACTER(LEN=*), INTENT(IN) :: variable_name
-    REAL(dp), INTENT(OUT), OPTIONAL, TARGET :: fill_array(:,:,:,:)
-    REAL(dp), ALLOCATABLE, INTENT(OUT), OPTIONAL, TARGET :: alloc_array(:,:,:,:)
+    REAL(wp), INTENT(OUT), OPTIONAL, TARGET :: fill_array(:,:,:,:)
+    REAL(wp), ALLOCATABLE, INTENT(OUT), OPTIONAL, TARGET :: alloc_array(:,:,:,:)
     CHARACTER(LEN=*), INTENT(IN), OPTIONAL :: dim_names(:)
     INTEGER, INTENT(IN), OPTIONAL:: start_timestep, end_timestep
 
-    REAL(dp), POINTER :: res(:,:,:,:)
+    REAL(wp), POINTER :: res(:,:,:,:)
 
     INTEGER :: varid, var_type, var_dims
     INTEGER :: var_size(MAX_VAR_DIMS)
@@ -541,12 +535,12 @@ CONTAINS
 
     INTEGER, INTENT(IN)          :: file_id
     CHARACTER(LEN=*), INTENT(IN) :: variable_name
-    REAL(dp), INTENT(OUT), OPTIONAL, TARGET :: fill_array(:,:,:,:)
-    REAL(dp), ALLOCATABLE, INTENT(OUT), OPTIONAL, TARGET :: alloc_array(:,:,:,:)
+    REAL(wp), INTENT(OUT), OPTIONAL, TARGET :: fill_array(:,:,:,:)
+    REAL(wp), ALLOCATABLE, INTENT(OUT), OPTIONAL, TARGET :: alloc_array(:,:,:,:)
     CHARACTER(LEN=*), INTENT(IN), OPTIONAL :: dim_names(:)
     INTEGER, INTENT(IN), OPTIONAL:: start_extdim1, end_extdim1
 
-    REAL(dp), POINTER :: res(:,:,:,:)
+    REAL(wp), POINTER :: res(:,:,:,:)
 
     INTEGER :: varid, var_type, var_dims
     INTEGER :: var_size(MAX_VAR_DIMS)
@@ -748,15 +742,15 @@ CONTAINS
 
     INTEGER, INTENT(IN)          :: file_id
     CHARACTER(LEN=*), INTENT(IN) :: variable_name
-    REAL(dp), INTENT(OUT), OPTIONAL, TARGET :: fill_array(:,:)
-    REAL(dp), ALLOCATABLE, INTENT(OUT), OPTIONAL, TARGET :: alloc_array(:,:)
+    REAL(wp), INTENT(OUT), OPTIONAL, TARGET :: fill_array(:,:)
+    REAL(wp), ALLOCATABLE, INTENT(OUT), OPTIONAL, TARGET :: alloc_array(:,:)
 
     INTEGER :: varid, var_type, var_dims
     INTEGER :: var_size(MAX_VAR_DIMS)
     CHARACTER(LEN=filename_max) :: var_dim_name(MAX_VAR_DIMS)
     INTEGER :: return_status
 
-    REAL(dp), POINTER :: res(:,:)
+    REAL(wp), POINTER :: res(:,:)
 
     CHARACTER(LEN=*), PARAMETER :: method_name = &
       'mo_read_netcdf_broadcast_2:netcdf_read_REAL_2D_all'
@@ -815,8 +809,8 @@ CONTAINS
 
     INTEGER, INTENT(IN)              :: file_id
     CHARACTER(LEN=*), INTENT(IN)     :: variable_name
-    REAL(dp), INTENT(OUT), OPTIONAL, TARGET :: fill_array(:,:)
-    REAL(dp), ALLOCATABLE, INTENT(OUT), OPTIONAL :: alloc_array(:,:)
+    REAL(wp), INTENT(OUT), OPTIONAL, TARGET :: fill_array(:,:)
+    REAL(wp), ALLOCATABLE, INTENT(OUT), OPTIONAL :: alloc_array(:,:)
     INTEGER, INTENT(IN)              :: n_g
     CLASS(t_scatterPattern), INTENT(INOUT), TARGET :: scatter_pattern
 
@@ -943,8 +937,8 @@ CONTAINS
 
     INTEGER, INTENT(IN)              :: file_id
     CHARACTER(LEN=*), INTENT(IN)     :: variable_name
-    REAL(dp), INTENT(OUT), OPTIONAL  :: fill_array(:,:,:)
-    REAL(dp), ALLOCATABLE, INTENT(OUT), OPTIONAL :: alloc_array(:,:,:)
+    REAL(wp), INTENT(OUT), OPTIONAL  :: fill_array(:,:,:)
+    REAL(wp), ALLOCATABLE, INTENT(OUT), OPTIONAL :: alloc_array(:,:,:)
     INTEGER, INTENT(IN)              :: n_g
     CLASS(t_scatterPattern), INTENT(INOUT), TARGET :: scatter_pattern
     INTEGER, INTENT(in), OPTIONAL    :: start_timestep, end_timestep
@@ -970,8 +964,8 @@ CONTAINS
 
     INTEGER, INTENT(IN)                    :: file_id
     CHARACTER(LEN=*), INTENT(IN)           :: variable_name
-    REAL(dp), INTENT(OUT), OPTIONAL, TARGET :: fill_array(:,:,:)
-    REAL(dp), ALLOCATABLE, INTENT(OUT), OPTIONAL, TARGET :: alloc_array(:,:,:)
+    REAL(wp), INTENT(OUT), OPTIONAL, TARGET :: fill_array(:,:,:)
+    REAL(wp), ALLOCATABLE, INTENT(OUT), OPTIONAL, TARGET :: alloc_array(:,:,:)
     INTEGER, INTENT(IN)                    :: n_g
     CLASS(t_scatterPattern), INTENT(INOUT), TARGET :: scatter_pattern
     INTEGER, INTENT(IN), OPTIONAL          :: start_extdim, end_extdim
@@ -1320,15 +1314,15 @@ CONTAINS
 
     INTEGER, INTENT(IN)          :: file_id
     CHARACTER(LEN=*), INTENT(IN) :: variable_name
-    REAL(dp), INTENT(OUT), OPTIONAL, TARGET :: fill_array(:,:,:)
-    REAL(dp), ALLOCATABLE, INTENT(OUT), OPTIONAL, TARGET :: alloc_array(:,:,:)
+    REAL(wp), INTENT(OUT), OPTIONAL, TARGET :: fill_array(:,:,:)
+    REAL(wp), ALLOCATABLE, INTENT(OUT), OPTIONAL, TARGET :: alloc_array(:,:,:)
 
     INTEGER :: varid, var_type, var_dims
     INTEGER :: var_size(MAX_VAR_DIMS)
     CHARACTER(LEN=filename_max) :: var_dim_name(MAX_VAR_DIMS)
     INTEGER :: return_status
 
-    REAL(dp), POINTER :: res(:,:,:)
+    REAL(wp), POINTER :: res(:,:,:)
 
     CHARACTER(LEN=*), PARAMETER :: method_name = &
       'mo_read_netcdf_broadcast_2:netcdf_read_REAL_3D_all'
@@ -1359,7 +1353,7 @@ CONTAINS
         CALL finish (method_name, 'ALLOCATE( netcdf_read_REAL_3D_all )')
       ENDIF
       res => alloc_array
-      res(:,:,:) = 0._dp
+      res(:,:,:) = 0._wp
     ENDIF
 
     ! check if the size is correct
@@ -1396,8 +1390,8 @@ CONTAINS
 
     INTEGER, INTENT(IN)              :: file_id
     CHARACTER(LEN=*), INTENT(IN)     :: variable_name
-    REAL(dp), INTENT(OUT), OPTIONAL, TARGET :: fill_array(:,:,:)
-    REAL(dp), ALLOCATABLE, INTENT(OUT), OPTIONAL, TARGET :: alloc_array(:,:,:)
+    REAL(wp), INTENT(OUT), OPTIONAL, TARGET :: fill_array(:,:,:)
+    REAL(wp), ALLOCATABLE, INTENT(OUT), OPTIONAL, TARGET :: alloc_array(:,:,:)
     INTEGER, INTENT(IN)              :: n_g
     CLASS(t_scatterPattern), INTENT(INOUT) :: scatter_pattern
     CHARACTER(LEN=*), INTENT(IN), OPTIONAL :: levelsdim_name
@@ -1411,8 +1405,8 @@ CONTAINS
     INTEGER :: return_status, i
     REAL(sp), ALLOCATABLE :: tmp_array_sp(:)
     REAL(dp), ALLOCATABLE :: tmp_array_dp(:)
-    REAL(dp), POINTER :: res_level(:,:)
-    REAL(dp), POINTER :: res(:,:,:)
+    REAL(wp), POINTER :: res_level(:,:)
+    REAL(wp), POINTER :: res(:,:,:)
 
     CHARACTER(LEN=*), PARAMETER :: method_name = &
       'mo_read_netcdf_broadcast_2:netcdf_read_REAL_3D'
@@ -1513,8 +1507,8 @@ CONTAINS
 
     INTEGER, INTENT(IN)              :: file_id
     CHARACTER(LEN=*), INTENT(IN)     :: variable_name
-    REAL(dp), INTENT(OUT), OPTIONAL  :: fill_array(:,:,:,:)
-    REAL(dp), ALLOCATABLE, INTENT(OUT), OPTIONAL, TARGET :: alloc_array(:,:,:,:)
+    REAL(wp), INTENT(OUT), OPTIONAL  :: fill_array(:,:,:,:)
+    REAL(wp), ALLOCATABLE, INTENT(OUT), OPTIONAL, TARGET :: alloc_array(:,:,:,:)
     INTEGER, INTENT(IN)              :: n_g
     CLASS(t_scatterPattern), INTENT(INOUT), TARGET :: scatter_pattern
     INTEGER, INTENT(IN), OPTIONAL    :: start_timestep, end_timestep
@@ -1548,8 +1542,8 @@ CONTAINS
 
     INTEGER, INTENT(IN)              :: file_id
     CHARACTER(LEN=*), INTENT(IN)     :: variable_name
-    REAL(dp), INTENT(OUT), OPTIONAL, TARGET :: fill_array(:,:,:,:)
-    REAL(dp), ALLOCATABLE, INTENT(OUT), OPTIONAL, TARGET :: alloc_array(:,:,:,:)
+    REAL(wp), INTENT(OUT), OPTIONAL, TARGET :: fill_array(:,:,:,:)
+    REAL(wp), ALLOCATABLE, INTENT(OUT), OPTIONAL, TARGET :: alloc_array(:,:,:,:)
     INTEGER, INTENT(IN)              :: n_g
     CLASS(t_scatterPattern), INTENT(INOUT) :: scatter_pattern
     INTEGER, INTENT(IN), OPTIONAL    :: start_extdim, end_extdim
@@ -1566,8 +1560,8 @@ CONTAINS
     INTEGER :: return_status, i, tt
     REAL(sp), ALLOCATABLE :: tmp_array_sp(:)
     REAL(dp), ALLOCATABLE :: tmp_array_dp(:)
-    REAL(dp), POINTER :: res(:,:,:,:)
-    REAL(dp), POINTER :: res_level(:,:)
+    REAL(wp), POINTER :: res(:,:,:,:)
+    REAL(wp), POINTER :: res_level(:,:)
 
     CHARACTER(LEN=*), PARAMETER :: method_name = &
       'mo_read_netcdf_broadcast_2:netcdf_read_REAL_3D_extdim'
@@ -1752,7 +1746,7 @@ CONTAINS
     LOGICAL                      :: has_missValue
     REAL(wp)                     :: missValue
 
-    REAL(dp) :: readMissValue
+    REAL(wp) :: readMissValue
     REAL(wp) :: broadcastValue(2)
     INTEGER :: varid, return_status
 

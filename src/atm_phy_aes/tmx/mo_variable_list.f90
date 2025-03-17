@@ -1,7 +1,7 @@
 ! ICON
 !
 ! ---------------------------------------------------------------
-! Copyright (C) 2004-2024, DWD, MPI-M, DKRZ, KIT, ETH, MeteoSwiss
+! Copyright (C) 2004-2025, DWD, MPI-M, DKRZ, KIT, ETH, MeteoSwiss
 ! Contact information: icon-model.org
 !
 ! See AUTHORS.TXT for a list of authors
@@ -11,7 +11,7 @@
 
 MODULE mo_variable_list
 
-  USE mo_kind,                ONLY: wp, sp
+  USE mo_kind,                ONLY: wp, vp
   USE mo_generic_linked_list, ONLY: t_generic_linked_list, t_generic_linked_list_item
   USE mo_variable,            ONLY: t_variable, &
        &                            allocate_variable, &
@@ -123,8 +123,11 @@ CONTAINS
 
     item => this%getFirstVariable()
     DO WHILE ( (.NOT. item%is_item_equal_to_key(name)) .AND. ASSOCIATED(item) )
-      item => this%getNextVariable(item) 
+      item => this%getNextVariable(item)
+      IF (.NOT. ASSOCIATED(item)) EXIT
     ENDDO
+
+    IF (.NOT. ASSOCIATED(item)) RETURN
 
     p => item%item_value
 
@@ -159,14 +162,17 @@ CONTAINS
     CHARACTER(len=*), INTENT(IN) :: name
     LOGICAL, POINTER :: ptr
     
-    ASSOCIATE (tv => this%search(name))
-      SELECT TYPE (tv)
-      TYPE IS (t_variable)
+    TYPE(t_variable), POINTER :: tv
+    
+    ptr => NULL()
+
+    tv => this%search(name)
+    IF (ASSOCIATED(tv)) THEN
+      IF (ASSOCIATED(tv%l0d)) THEN
         ptr => tv%l0d
-      CLASS DEFAULT
-        ptr => NULL()
-      END SELECT
-    END ASSOCIATE
+        __acc_attach(ptr)
+      END IF
+    END IF
 
   END FUNCTION t_variable_list_get_ptr_l0d
 
@@ -175,14 +181,17 @@ CONTAINS
     CHARACTER(len=*), INTENT(IN) :: name
     LOGICAL, POINTER :: ptr(:)
     
-    ASSOCIATE (tv => this%search(name))
-      SELECT TYPE (tv)
-      CLASS IS (t_variable)
+    TYPE(t_variable), POINTER :: tv
+    
+    ptr => NULL()
+
+    tv => this%search(name)
+    IF (ASSOCIATED(tv)) THEN
+      IF (ASSOCIATED(tv%l1d)) THEN
         ptr => tv%l1d
-      CLASS DEFAULT
-        ptr => NULL()
-      END SELECT
-    END ASSOCIATE
+        __acc_attach(ptr)
+      END IF
+    END IF
 
   END FUNCTION t_variable_list_get_ptr_l1d
 
@@ -191,14 +200,17 @@ CONTAINS
     CHARACTER(len=*), INTENT(IN) :: name
     INTEGER, POINTER :: ptr
     
-    ASSOCIATE (tv => this%search(name))
-      SELECT TYPE (tv)
-      CLASS IS (t_variable)
+    TYPE(t_variable), POINTER :: tv
+    
+    ptr => NULL()
+
+    tv => this%search(name)
+    IF (ASSOCIATED(tv)) THEN
+      IF (ASSOCIATED(tv%i0d)) THEN
         ptr => tv%i0d
-      CLASS DEFAULT
-        ptr => NULL()
-      END SELECT
-    END ASSOCIATE
+        __acc_attach(ptr)
+      END IF
+    END IF
 
   END FUNCTION t_variable_list_get_ptr_i0d
 
@@ -207,14 +219,17 @@ CONTAINS
     CHARACTER(len=*), INTENT(IN) :: name
     INTEGER, POINTER :: ptr(:)
     
-    ASSOCIATE (tv => this%search(name))
-      SELECT TYPE (tv)
-      CLASS IS (t_variable)
+    TYPE(t_variable), POINTER :: tv
+    
+    ptr => NULL()
+
+    tv => this%search(name)
+    IF (ASSOCIATED(tv)) THEN
+      IF (ASSOCIATED(tv%i1d)) THEN
         ptr => tv%i1d
-      CLASS DEFAULT
-        ptr => NULL()
-      END SELECT
-    END ASSOCIATE
+        __acc_attach(ptr)
+      END IF
+    END IF
 
   END FUNCTION t_variable_list_get_ptr_i1d
 
@@ -223,15 +238,17 @@ CONTAINS
     CHARACTER(len=*), INTENT(IN) :: name
     INTEGER, POINTER :: ptr(:,:)
     
-    ASSOCIATE (tv => this%search(name))
-      SELECT TYPE (tv)
-      CLASS IS (t_variable)
+    TYPE(t_variable), POINTER :: tv
+    
+    ptr => NULL()
+
+    tv => this%search(name)
+    IF (ASSOCIATED(tv)) THEN
+      IF (ASSOCIATED(tv%i2d)) THEN
         ptr => tv%i2d
         __acc_attach(ptr)
-      CLASS DEFAULT
-        ptr => NULL()
-      END SELECT
-    END ASSOCIATE
+      END IF
+    END IF
 
   END FUNCTION t_variable_list_get_ptr_i2d
 
@@ -240,15 +257,17 @@ CONTAINS
     CHARACTER(len=*), INTENT(IN) :: name
     INTEGER, POINTER :: ptr(:,:,:)
     
-    ASSOCIATE (tv => this%search(name))
-      SELECT TYPE (tv)
-      CLASS IS (t_variable)
+    TYPE(t_variable), POINTER :: tv
+    
+    ptr => NULL()
+
+    tv => this%search(name)
+    IF (ASSOCIATED(tv)) THEN
+      IF (ASSOCIATED(tv%i3d)) THEN
         ptr => tv%i3d
         __acc_attach(ptr)
-      CLASS DEFAULT
-        ptr => NULL()
-      END SELECT
-    END ASSOCIATE
+      END IF
+    END IF
 
   END FUNCTION t_variable_list_get_ptr_i3d
 
@@ -257,14 +276,17 @@ CONTAINS
     CHARACTER(len=*), INTENT(IN) :: name
     REAL(wp), POINTER :: ptr
     
-    ASSOCIATE (tv => this%search(name))
-      SELECT TYPE (tv)
-      CLASS IS (t_variable)
+    TYPE(t_variable), POINTER :: tv
+    
+    ptr => NULL()
+
+    tv => this%search(name)
+    IF (ASSOCIATED(tv)) THEN
+      IF (ASSOCIATED(tv%r0d)) THEN
         ptr => tv%r0d
-      CLASS DEFAULT
-        ptr => NULL()
-      END SELECT
-    END ASSOCIATE
+        __acc_attach(ptr)
+      END IF
+    END IF
 
   END FUNCTION t_variable_list_get_ptr_r0d
 
@@ -273,14 +295,17 @@ CONTAINS
     CHARACTER(len=*), INTENT(IN) :: name
     REAL(wp), POINTER :: ptr(:)
     
-    ASSOCIATE (tv => this%search(name))
-      SELECT TYPE (tv)
-      CLASS IS (t_variable)
+    TYPE(t_variable), POINTER :: tv
+    
+    ptr => NULL()
+
+    tv => this%search(name)
+    IF (ASSOCIATED(tv)) THEN
+      IF (ASSOCIATED(tv%r1d)) THEN
         ptr => tv%r1d
-      CLASS DEFAULT
-        ptr => NULL()
-      END SELECT
-    END ASSOCIATE
+        __acc_attach(ptr)
+      END IF
+    END IF
 
   END FUNCTION t_variable_list_get_ptr_r1d
 
@@ -289,15 +314,17 @@ CONTAINS
     CHARACTER(len=*), INTENT(IN) :: name
     REAL(wp), POINTER :: ptr(:,:)
     
-    ASSOCIATE (tv => this%search(name))
-      SELECT TYPE (tv)
-      CLASS IS (t_variable)
+    TYPE(t_variable), POINTER :: tv
+    
+    ptr => NULL()
+
+    tv => this%search(name)
+    IF (ASSOCIATED(tv)) THEN
+      IF (ASSOCIATED(tv%r2d)) THEN
         ptr => tv%r2d
         __acc_attach(ptr)
-      CLASS DEFAULT
-        ptr => NULL()
-      END SELECT
-    END ASSOCIATE
+      END IF
+    END IF
 
   END FUNCTION t_variable_list_get_ptr_r2d
 
@@ -305,50 +332,56 @@ CONTAINS
     CLASS (t_variable_list) :: this
     CHARACTER(len=*), INTENT(IN) :: name
     REAL(wp), POINTER :: ptr(:,:,:)
+
+    TYPE(t_variable), POINTER :: tv
     
-    ASSOCIATE (tv => this%search(name))
-      SELECT TYPE (tv)
-      CLASS IS (t_variable)
+    ptr => NULL()
+
+    tv => this%search(name)
+    IF (ASSOCIATED(tv)) THEN
+      IF (ASSOCIATED(tv%r3d)) THEN
         ptr => tv%r3d
         __acc_attach(ptr)
-      CLASS DEFAULT
-        ptr => NULL()
-      END SELECT
-    END ASSOCIATE
+      END IF
+    END IF
 
   END FUNCTION t_variable_list_get_ptr_r3d
 
   FUNCTION t_variable_list_get_ptr_s2d(this, name) result(ptr)
     CLASS (t_variable_list) :: this
     CHARACTER(len=*), INTENT(IN) :: name
-    REAL(sp), POINTER :: ptr(:,:)
+    REAL(vp), POINTER :: ptr(:,:)
+
+    TYPE(t_variable), POINTER :: tv
     
-    ASSOCIATE (tv => this%search(name))
-      SELECT TYPE (tv)
-      CLASS IS (t_variable)
+    ptr => NULL()
+
+    tv => this%search(name)
+    IF (ASSOCIATED(tv)) THEN
+      IF (ASSOCIATED(tv%s2d)) THEN
         ptr => tv%s2d
         __acc_attach(ptr)
-      CLASS DEFAULT
-        ptr => NULL()
-      END SELECT
-    END ASSOCIATE
+      END IF
+    END IF
 
   END FUNCTION t_variable_list_get_ptr_s2d
 
   FUNCTION t_variable_list_get_ptr_s3d(this, name) result(ptr)
     CLASS (t_variable_list) :: this
     CHARACTER(len=*), INTENT(IN) :: name
-    REAL(sp), POINTER :: ptr(:,:,:)
+    REAL(vp), POINTER :: ptr(:,:,:)
+
+    TYPE(t_variable), POINTER :: tv
     
-    ASSOCIATE (tv => this%search(name))
-      SELECT TYPE (tv)
-      CLASS IS (t_variable)
+    ptr => NULL()
+
+    tv => this%search(name)
+    IF (ASSOCIATED(tv)) THEN
+      IF (ASSOCIATED(tv%s3d)) THEN
         ptr => tv%s3d
         __acc_attach(ptr)
-      CLASS DEFAULT
-        ptr => NULL()
-      END SELECT
-    END ASSOCIATE
+      END IF
+    END IF
 
   END FUNCTION t_variable_list_get_ptr_s3d
 
@@ -544,6 +577,10 @@ CONTAINS
                 CALL fs_read_field(serializer_ref, savepoint, variable%name, variable%r2d )
                 !$ACC ENTER DATA COPYIN(variable%r2d)
               ENDIF
+              IF (variable%type_id == "real_vp") THEN
+                CALL fs_read_field(serializer_ref, savepoint, variable%name, variable%s2d )
+                !$ACC ENTER DATA COPYIN(variable%s2d)
+              ENDIF
               IF (variable%type_id == "geocoord") THEN
                 ALLOCATE( lon( variable%dims(1), variable%dims(2) ), lat( variable%dims(1), variable%dims(2) ) )
                 ! For geographical coordinates two fields are read and then copied to the target type instance
@@ -566,6 +603,10 @@ CONTAINS
               IF (variable%type_id == "real") THEN
                 CALL fs_read_field(serializer_ref, savepoint, variable%name, variable%r3d )
                 !$ACC ENTER DATA COPYIN(variable%r3d)
+              ENDIF
+              IF (variable%type_id == "real_vp") THEN
+                CALL fs_read_field(serializer_ref, savepoint, variable%name, variable%s3d )
+                !$ACC ENTER DATA COPYIN(variable%s3d)
               ENDIF
             CASE (4)
               IF (variable%type_id == "int") THEN
@@ -652,6 +693,7 @@ CONTAINS
             CASE (2)
               IF (variable%type_id == "int") CALL fs_write_field(serializer_ref, savepoint, variable%name, variable%i2d )
               IF (variable%type_id == "real") CALL fs_write_field(serializer_ref, savepoint, variable%name, variable%r2d )
+              IF (variable%type_id == "real_vp") CALL fs_write_field(serializer_ref, savepoint, variable%name, variable%s2d )
               IF (variable%type_id == "geocoord") THEN
                ALLOCATE( lon( variable%dims(1), variable%dims(2) ), lat( variable%dims(1), variable%dims(2) ) )
                DO j=1,variable%dims(2)
@@ -667,6 +709,7 @@ CONTAINS
             CASE (3)
               IF (variable%type_id == "int") CALL fs_write_field(serializer_ref, savepoint, variable%name, variable%i3d )
               IF (variable%type_id == "real") CALL fs_write_field(serializer_ref, savepoint, variable%name, variable%r3d )
+              IF (variable%type_id == "real_vp") CALL fs_write_field(serializer_ref, savepoint, variable%name, variable%s3d )
             CASE (4)
               IF (variable%type_id == "int") CALL fs_write_field(serializer_ref, savepoint, variable%name, variable%i4d )
               IF (variable%type_id == "real") CALL fs_write_field(serializer_ref, savepoint, variable%name, variable%r4d )
@@ -807,6 +850,9 @@ CONTAINS
               IF (variable%type_id == "real") THEN
                 !$ACC UPDATE HOST(variable%r2d)
               ENDIF
+              IF (variable%type_id == "real_vp") THEN
+                !$ACC UPDATE HOST(variable%s2d)
+              ENDIF
               IF (variable%type_id == "geocoord") THEN
                 !$ACC UPDATE HOST(variable%gc2d)
               ENDIF
@@ -816,6 +862,9 @@ CONTAINS
               ENDIF
               IF (variable%type_id == "real") THEN
                 !$ACC UPDATE HOST(variable%r3d)
+              ENDIF
+              IF (variable%type_id == "real_vp") THEN
+                !$ACC UPDATE HOST(variable%s3d)
               ENDIF
             CASE (4)
               IF (variable%type_id == "int") THEN

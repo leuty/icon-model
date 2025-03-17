@@ -1,7 +1,7 @@
 # ICON
 #
 # ---------------------------------------------------------------
-# Copyright (C) 2004-2024, DWD, MPI-M, DKRZ, KIT, ETH, MeteoSwiss
+# Copyright (C) 2004-2025, DWD, MPI-M, DKRZ, KIT, ETH, MeteoSwiss
 # Contact information: icon-model.org
 # See AUTHORS.TXT for a list of authors
 # See LICENSES/ for license information
@@ -25,7 +25,9 @@ path = [
   "doc/**/*.md",
   "doc/**/*.pdf",
   "doc/**/*.png",
+  "doc/**/*.PNG",
   "doc/**/*.svg",
+  "doc/**/*.ico",
   "run/**/README*",
   "schedulers/ecmwf/doc/doc.html",
   "scripts/**/README*",
@@ -35,7 +37,7 @@ path = [
   "utils/plotems/doc/CHANGES.txt",
   "vertical_coord_tables/README",
 ]
-SPDX-FileCopyrightText = "2004-2024, DWD, MPI-M, DKRZ, KIT, ETH, MeteoSwiss"
+SPDX-FileCopyrightText = "2004-2025, DWD, MPI-M, DKRZ, KIT, ETH, MeteoSwiss"
 SPDX-License-Identifier = "CC-BY-4.0"
 
 [[annotations]]
@@ -45,16 +47,19 @@ path = [
   "data/microphysics/SBM_input_33/*",
   "scripts/scm/init_create/LANFEX_create/*.txt",
 ]
-SPDX-FileCopyrightText = "2004-2024, DWD, MPI-M, DKRZ, KIT, ETH, MeteoSwiss"
+SPDX-FileCopyrightText = "2004-2025, DWD, MPI-M, DKRZ, KIT, ETH, MeteoSwiss"
 SPDX-License-Identifier = "CC-BY-4.0"
 
 [[annotations]]
 # "Unimportant" technical files:
 path = [
   ".gitlab/issue_templates/bug-report.md",
+  ".gitlab/issue_templates/build-failure-report.md",
   ".gitlab/issue_templates/feature-request.md",
+  ".gitlab/merge_request_templates/default.md",
+  ".gitlab/merge_request_templates/nwp-feature.md",
   "config.h.in",
-  "config/**/SPACK_TAG_*",
+  "config/**/*_TAG*",
   "run/tolerance/hashes/*",
   "schedulers/ecmwf/gen/mapfile_vlist.txt",
   "scripts/**/TAG",
@@ -62,7 +67,7 @@ path = [
   "scripts/postprocessing/tools/iconplot_ncl/*.list",
   "test/microphysics_1mom_schemes/input-data.nc.md5",
 ]
-SPDX-FileCopyrightText = "2004-2024, DWD, MPI-M, DKRZ, KIT, ETH, MeteoSwiss"
+SPDX-FileCopyrightText = "2004-2025, DWD, MPI-M, DKRZ, KIT, ETH, MeteoSwiss"
 SPDX-License-Identifier = "CC0-1.0"
 
 [[annotations]]
@@ -76,9 +81,8 @@ path = [
   "test/microphysics_1mom_schemes/tolerance/*",
   "utils/plotems/doc/*.pdf",
   "vertical_coord_tables/atm_hyb_sz_*",
-  ".gitlab/merge_request_templates/nwp-feature.md",
 ]
-SPDX-FileCopyrightText = "2004-2024, DWD, MPI-M, DKRZ, KIT, ETH, MeteoSwiss"
+SPDX-FileCopyrightText = "2004-2025, DWD, MPI-M, DKRZ, KIT, ETH, MeteoSwiss"
 SPDX-License-Identifier = "BSD-3-Clause"
 
 # External files:

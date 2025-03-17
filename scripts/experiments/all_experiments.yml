@@ -1,7 +1,7 @@
 # ICON
 #
 # ------------------------------------------
-# Copyright (C) 2004-2024, DWD, MPI-M, DKRZ, KIT, ETH, MeteoSwiss
+# Copyright (C) 2004-2025, DWD, MPI-M, DKRZ, KIT, ETH, MeteoSwiss
 # Contact information: icon-model.org
 # See AUTHORS.TXT for a list of authors
 # See LICENSES/ for license information
@@ -12,6 +12,5 @@ include:
   - c2sm/mch_experiments.yml
   - c2sm/clm_experiments.yml
   - c2sm/idealized_cscs_experiments.yml
-  - mpim/qubicc_experiments.yml
   - dwd/dwd_experiments.yml
   - dkrz/dkrz_experiments.yml

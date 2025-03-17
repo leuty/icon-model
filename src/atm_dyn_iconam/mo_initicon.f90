@@ -1,7 +1,7 @@
 ! ICON
 !
 ! ---------------------------------------------------------------
-! Copyright (C) 2004-2024, DWD, MPI-M, DKRZ, KIT, ETH, MeteoSwiss
+! Copyright (C) 2004-2025, DWD, MPI-M, DKRZ, KIT, ETH, MeteoSwiss
 ! Contact information: icon-model.org
 !
 ! See AUTHORS.TXT for a list of authors
@@ -17,7 +17,7 @@
 
 MODULE mo_initicon
 
-  USE mo_kind,                ONLY: dp, wp, vp, sp
+  USE mo_kind,                ONLY: wp, vp, sp
   USE mo_io_units,            ONLY: filename_max
   USE mo_parallel_config,     ONLY: nproma
   USE mo_run_config,          ONLY: iqv, iqc, iqi, iqr, iqs, iqg, iqm_max, iforcing, check_uuid_gracefully, &
@@ -2128,7 +2128,7 @@ MODULE mo_initicon
     INTEGER :: jg, ic, jc, jk, jb, jt, ist     ! loop indices
     INTEGER :: ntlr
     INTEGER :: nblks_c
-    REAL(dp):: missval
+    REAL(wp):: missval                         ! cast from double-precision provided by cdiInqMissval
     INTEGER :: rl_start, rl_end
     INTEGER :: i_startidx, i_endidx, i_endblk
     LOGICAL :: lp_mask(nproma)
@@ -2145,7 +2145,7 @@ MODULE mo_initicon
 
 
     ! get CDImissval
-    missval = cdiInqMissval()
+    missval = REAL(cdiInqMissval(), KIND=wp)
 
     DO jg = 1, n_dom
 

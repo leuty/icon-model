@@ -1,7 +1,7 @@
 ! ICON
 !
 ! ---------------------------------------------------------------
-! Copyright (C) 2004-2024, DWD, MPI-M, DKRZ, KIT, ETH, MeteoSwiss
+! Copyright (C) 2004-2025, DWD, MPI-M, DKRZ, KIT, ETH, MeteoSwiss
 ! Contact information: icon-model.org
 !
 ! See AUTHORS.TXT for a list of authors
@@ -217,9 +217,9 @@ CONTAINS
     n_echotop = echotop_meta(log_patch_id)%nechotop
     IF ( n_echotop > 0) THEN
       CALL verticalAxisList%append(t_verticalAxis(zaxisTypeList%getEntry(ZA_ECHOTOP), &
-                                   n_echotop, &
-                                   zaxisLevels=echotop_meta(log_patch_id)%dbzthresh(1:n_echotop), &
-                                   zaxisUnits="dBZ") )
+        &                                         n_echotop, &
+        &                                         zaxisLevels=REAL(echotop_meta(log_patch_id)%dbzthresh(1:n_echotop),dp), &
+        &                                         zaxisUnits="dBZ") )
     END IF
 
     ! --------------------------------------------------------------------------------------
@@ -229,11 +229,11 @@ CONTAINS
     n_wshear = COUNT(wshear_uv_heights > 0.0_wp)
     IF ( n_wshear > 0) THEN
       CALL verticalAxisList%append(t_verticalAxis(zaxisTypeList%getEntry(ZA_WSHEAR), &
-           &                                         n_wshear, &
-           &                                         zaxisLevels  = wshear_uv_heights(1:n_wshear), &
-           &                                         zaxisLbounds = wshear_uv_heights(1:n_wshear), &
-           &                                         zaxisUbounds = (/ (0.0_wp, k=1,n_wshear) /),  &
-           &                                         zaxisUnits="m"))
+        &                                         n_wshear, &
+        &                                         zaxisLevels  = REAL(wshear_uv_heights(1:n_wshear),dp), &
+        &                                         zaxisLbounds = REAL(wshear_uv_heights(1:n_wshear),dp), &
+        &                                         zaxisUbounds = (/ (0.0_dp, k=1,n_wshear) /),  &
+        &                                         zaxisUnits="m"))
     END IF
     
     ! --------------------------------------------------------------------------------------
@@ -243,11 +243,11 @@ CONTAINS
     n_srh = COUNT(srh_heights > 0.0_wp)
     IF ( n_srh > 0) THEN
       CALL verticalAxisList%append(t_verticalAxis(zaxisTypeList%getEntry(ZA_SRH), &
-           &                                         n_srh, &
-           &                                         zaxisLevels  = srh_heights(1:n_srh), &
-           &                                         zaxisLbounds = srh_heights(1:n_srh), &
-           &                                         zaxisUbounds = (/ (0.0_wp, k=1,n_srh) /),&
-           &                                         zaxisUnits="m"))
+        &                                         n_srh, &
+        &                                         zaxisLevels  = REAL(srh_heights(1:n_srh),dp), &
+        &                                         zaxisLbounds = REAL(srh_heights(1:n_srh),dp), &
+        &                                         zaxisUbounds = (/ (0.0_dp, k=1,n_srh) /),&
+        &                                         zaxisUnits="m"))
     END IF
     
     ! Isobaric pressure layer 500 hPa - 850 hPa for the temperature lapse_rate:
@@ -432,9 +432,9 @@ CONTAINS
     TYPE(t_verticalAxisList), INTENT(INOUT) :: verticalAxisList
     TYPE(t_level_selection),  INTENT(IN), POINTER :: level_selection
     ! local variables
-    REAL(wp), ALLOCATABLE             :: levels_i(:), levels_m(:)
-    REAL(wp), ALLOCATABLE             :: levels_s(:), levels_sp(:)
-    REAL(wp), ALLOCATABLE             :: layers_int(:), layers_cent(:)
+    REAL(dp), ALLOCATABLE             :: levels_i(:), levels_m(:)
+    REAL(dp), ALLOCATABLE             :: levels_s(:), levels_sp(:)
+    REAL(dp), ALLOCATABLE             :: layers_int(:), layers_cent(:)
     
 #ifndef __NO_ICON_OCEAN__
     ALLOCATE(levels_i(n_zlev+1), levels_m(n_zlev))
@@ -443,11 +443,11 @@ CONTAINS
     CALL verticalAxisList%append(single_level_axis(ZA_surface))
     CALL verticalAxisList%append(vertical_axis(ZA_depth_below_sea, &
       &                          n_zlev,                           &
-      &                          levels = REAL(levels_m,wp), &
+      &                          levels = levels_m, &
       &                          level_selection=level_selection))
     CALL verticalAxisList%append(vertical_axis(ZA_depth_below_sea_half, &
       &                          n_zlev+1,                              &
-      &                          levels = REAL(levels_i,wp),            &
+      &                          levels = levels_i,            &
       &                          level_selection=level_selection))
     CALL verticalAxisList%append(single_level_axis(ZA_GENERIC_ICE))
 
@@ -460,21 +460,21 @@ CONTAINS
 
     CALL set_zlev(levels_sp, levels_s, ks, dzsed)
     CALL verticalAxisList%append(t_verticalAxis(zaxisTypeList%getEntry(ZA_OCEAN_SEDIMENT), ks, &
-      &                                         zaxisLevels=REAL(levels_s,dp)))
+      &                                         zaxisLevels=levels_s))
     DEALLOCATE(levels_s, levels_sp)
     endif
 
     if (use_layers) then
     ALLOCATE(layers_int(1:n_dlev+1), layers_cent(1:n_dlev))
-    layers_int = rho_lev_in(1:n_dlev+1)
-    layers_cent = 0.5*(layers_int(1:n_dlev)+layers_int(2:n_dlev+1))
+    layers_int = REAL(rho_lev_in(1:n_dlev+1), KIND=dp)
+    layers_cent = 0.5_dp*(layers_int(1:n_dlev)+layers_int(2:n_dlev+1))
     CALL verticalAxisList%append(vertical_axis(ZA_OCE_LAYER_INTERFACE, &
       &                          n_dlev+1,                              &
-      &                          levels = REAL(layers_int,wp),            &
+      &                          levels = layers_int,            &
       &                          level_selection=level_selection))
     CALL verticalAxisList%append(vertical_axis(ZA_OCE_LAYER_CENTRE, &
       &                          n_dlev,                              &
-      &                          levels = REAL(layers_cent,wp),            &
+      &                          levels = layers_cent,            &
       &                          level_selection=level_selection))
     DEALLOCATE(layers_int, layers_cent)
     endif

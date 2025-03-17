@@ -1,7 +1,7 @@
 ! ICON
 !
 ! ---------------------------------------------------------------
-! Copyright (C) 2004-2024, DWD, MPI-M, DKRZ, KIT, ETH, MeteoSwiss
+! Copyright (C) 2004-2025, DWD, MPI-M, DKRZ, KIT, ETH, MeteoSwiss
 ! Contact information: icon-model.org
 !
 ! See AUTHORS.TXT for a list of authors
@@ -47,8 +47,8 @@ MODULE mo_nwp_turbtrans_interface
   USE mo_nonhydrostatic_config,ONLY: kstart_moist
   USE mo_advection_config,     ONLY: advection_config
   USE turb_data,               ONLY: get_turbdiff_param, &
-                                     ltst2ml, ltst10ml, lprfcor, &
-                                     rsur_sher, imode_suradap, rat_can, c_lnd, imode_snowsmot
+                                     ltst2ml, ltst10ml, &
+                                     rsur_sher, imode_suradap, imode_trancnf, rat_can, c_lnd, imode_snowsmot
   USE mo_initicon_config,      ONLY: icpl_da_sfcfric
   USE sfc_flake_data,          ONLY: h_Ice_min_flk, tpl_T_f
   USE turb_transfer,           ONLY: turbtran
@@ -66,6 +66,7 @@ MODULE mo_nwp_turbtrans_interface
   USE mo_run_config,           ONLY: timers_level
   USE mo_fortran_tools,        ONLY: set_acc_host_or_device
   USE mo_coupling_config,      ONLY: is_coupled_to_waves
+  USE mo_turbdiff_config,      ONLY: turbdiff_config
 
 #ifdef ICON_USE_CUDA_GRAPH
   USE mo_acc_device_management,ONLY: accGraph, accBeginCapture, accEndCapture, accGraphLaunch
@@ -142,9 +143,10 @@ SUBROUTINE nwp_turbtrans  ( tcall_turb_jg,                     & !>in
 
   LOGICAL  :: l_lake(nproma), l_sice(nproma), &     !< lake-, ice-surface points
    l_land, l_water
-  LOGICAL  :: lgz0inp_loc !< FALSE: turbtran updates gz0 at water points
-                          !< TRUE : gz0 is provided externally (e.g. by the wave model) and is not updated by turbtran
-  LOGICAL  :: ladsshr     !<treatment of additional shear by NTCs or LLDCs activ
+  INTEGER  :: igz0inp_loc !< 0: turbtran updates gz0 at water points
+                          !< 1 : gz0 is provided externally and is not updated by turbtran
+                          !< 2 : z0_waves is provided from wave model and used to updated gz0 by turbtran
+  LOGICAL  :: ladsshr     !<treatment of additional surface-shear by NTCs or LLDCs activ
 
   ! Local variables related to surface roughness:
 
@@ -158,7 +160,7 @@ SUBROUTINE nwp_turbtrans  ( tcall_turb_jg,                     & !>in
 
   ! 1D fields
   REAL(wp), DIMENSION(nproma)   :: pres_sfc_t, l_hori, rlamh_fac,   &
-   urb_isa_t, t_g_t, qv_s_t   
+   urb_isa_t, t_g_t, qv_s_t, z0_waves_t
 
   ! 2D half-level fields
   REAL(wp), DIMENSION(nproma,3) :: z_ifc_t
@@ -275,19 +277,19 @@ SUBROUTINE nwp_turbtrans  ( tcall_turb_jg,                     & !>in
   ! Scaling factor for SSO contribution to roughness length ("Erdmann Heise formula")
   fact_z0rough = 1.e-5_wp*ATAN(phy_params(jg)%mean_charlen/2250._wp)
 
-  ladsshr = (rsur_sher>0._wp) !treatment of additional shear by NTCs or LLDCs active
+  ladsshr = (rsur_sher>0._wp) !treatment of additional surface-shear by NTCs or LLDCs active
 
 !$OMP PARALLEL
 !$OMP DO PRIVATE(jb,jt,jc,jk,ic,it,ik,ilist,i_startidx,i_endidx,i_count, &
 !$OMP fr_land_t,urb_isa_t,l_land,l_water,l_lake,l_sice,h_ice_t, &
 !$OMP shfl_s_t,lhfl_s_t,qhfl_s_t,umfl_s_t,vmfl_s_t, &
 !$OMP nzprv,lc_class,z_tvs,tcm_t,tch_t,tfm_t,tfh_t,tfv_t,tvm_t,tvh_t,tkr_t,l_hori, &
-!$OMP z0_mod,z0_min,gz0_eff_t,sai_min,sai_eff_t,fsn_flt, &
+!$OMP z0_mod,z0_min,gz0_eff_t,z0_waves_t,sai_min,sai_eff_t,fsn_flt, &
 !$OMP t_g_t,qv_s_t,t_2m_t,qv_2m_t,td_2m_t,rh_2m_t,u_10m_t,v_10m_t,pres_sfc_t, &
 !$OMP u_t,v_t,temp_t,qv_t,qc_t,epr_t,tkvm_t,tkvh_t,rcld_t,tvs_t,z_ifc_t, &
 !$OMP area_frac,nlevcm,jk_gust, &
 !$OMP gp_num_t,list_t, &
-!$OMP rho_s,rlamh_fac,lgz0inp_loc) ICON_OMP_GUIDED_SCHEDULE
+!$OMP rho_s,rlamh_fac,igz0inp_loc) ICON_OMP_GUIDED_SCHEDULE
 
   DO jb = i_startblk, i_endblk
 
@@ -549,7 +551,7 @@ SUBROUTINE nwp_turbtrans  ( tcall_turb_jg,                     & !>in
       IF (ntiles_total == 1) THEN ! tile approach not used; use tile-averaged fields from extpar
       !----------------------------
 
-        !$ACC DATA CREATE(l_hori, l_lake, l_sice) ASYNC(1) IF(lzacc)
+        !$ACC DATA CREATE(l_hori, l_lake, l_sice, z0_waves_t) ASYNC(1) IF(lzacc)
 
         !$ACC KERNELS ASYNC(1) DEFAULT(PRESENT) IF(lzacc)
         l_hori(i_startidx:i_endidx)=phy_params(jg)%mean_charlen !horizontal grid-scale (should be dependent on location in future!)
@@ -567,6 +569,7 @@ SUBROUTINE nwp_turbtrans  ( tcall_turb_jg,                     & !>in
                                      (lnd_prog_new%t_g  (jc,jb)<tf_salt), & !or frozen salty sea due to surface temperature
                                      lseaice ), & !dependent on whether sea-ice scheme is active or not
                               l_lake(jc) ) !seperate treatment of lake points and non-lake points
+          z0_waves_t(jc) = 0._wp ! dummy value; wave coupling requires tiles
         END DO
         !$ACC END PARALLEL
 
@@ -575,7 +578,7 @@ SUBROUTINE nwp_turbtrans  ( tcall_turb_jg,                     & !>in
         ! while frozen land points e.g. covered by snow or glaciers) are excluded.
         !This is additionally ensured by only considering points with "%fr_land(jc,jb)<=0.5p".
 
-        IF (ladsshr) THEN !treatment of additional shear by NTCs or LLDCs active
+        IF (ladsshr) THEN !treatment of additional surface-shear by NTCs or LLDCs active
           !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1) IF(lzacc)
           !$ACC LOOP GANG VECTOR
           DO jc = i_startidx, i_endidx
@@ -590,14 +593,14 @@ SUBROUTINE nwp_turbtrans  ( tcall_turb_jg,                     & !>in
         ! turbtran
         CALL turbtran (               & ! only surface-layer turbulence
 !
-          &  iini=0,                  & !
+          &  iini=turbdiff_config(jg)%iinit, & ! no initialization ("iinit=-1: first time step
+                                               !                    "iinit= 0: any later time step)
           &  ltkeinp=.FALSE.,         & !
-          &  lgz0inp=.FALSE.,         &
-          &  lstfnct=.TRUE. ,         & ! with stability function
+          &  igz0inp= 0     ,         &
           &  lsrflux=.TRUE. ,         & !
           &  lnsfdia=.TRUE. ,         & ! including near-surface diagnostics
           &  lrunscm=.FALSE.,         & ! no single column run
-          &  ladsshr=ladsshr,         & !treatment of additional shear by NTCs or LLDCs for surface layer active
+          &  ladsshr=ladsshr,         & !treatment of additional surface-shear by NTCs or LLDCs active
 !
           &  dt_tke=tcall_turb_jg,                                                     & !in
           &  nprv=nzprv, ntur=1, ntim=1,                                               & !in ('tke' without time-dimension)
@@ -613,6 +616,7 @@ SUBROUTINE nwp_turbtrans  ( tcall_turb_jg,                     & !>in
 !
           &  rlamh_fac=prm_diag%rlamh_fac_t(:,jb,1),                                   & !in
           &  gz0=gz0_eff_t(:,1),                                                       & !inout (incl. all above modificat.)
+          &  z0_waves=z0_waves_t(:),                                                   & !in
           &  sai=sai_eff_t(:,1),                                                       & !in    (incl. all above modificat.)
           &  urb_isa=ext_data%atm%urb_isa_t(:,jb,1),                                   & !in
 !
@@ -640,8 +644,8 @@ SUBROUTINE nwp_turbtrans  ( tcall_turb_jg,                     & !>in
           &  tkvm=prm_diag%tkvm(:,nlev-1:nlevp1,jb),                                   & !inout
           &  tkvh=prm_diag%tkvh(:,nlev-1:nlevp1,jb),                                   & !inout
           &  rcld=prm_diag%rcld(:,nlev-1:nlevp1,jb),                                   & !inout
-          ! Note: 'ddt_tke' is only employed here in order to transfer "0"-values for the surface level!
           &  tketens=prm_nwp_tend%ddt_tke(:,nlevp1:nlevp1,jb),                         & !in
+          ! Note: 'ddt_tke' is only employed here in order to transfer "0"-values for the surface level!
 !
           &  t_2m=prm_diag%t_2m(:,jb),                                                 & !inout
           &  qv_2m=prm_diag%qv_2m(:,jb),                                               & !out
@@ -748,15 +752,17 @@ SUBROUTINE nwp_turbtrans  ( tcall_turb_jg,                     & !>in
         !-----------------------------
 
           IF (is_coupled_to_waves().AND.(jt==isub_water)) THEN
-            lgz0inp_loc = .TRUE.  ! gz0 at non ice-covered sea water points is provided
-                                  ! from external sources (e.g. ICON-waves). No update by turbtran.
-          ELSE
-            lgz0inp_loc = .FALSE. ! gz0 at water points is updated by turbtran
+            igz0inp_loc = 2  ! z0_waves at non ice-covered sea water points is provided from external sources
+                             ! (e.g. ICON-waves). Combined with capillary roughness length in turbtran
+          ELSE IF (jt==isub_water .OR. jt==isub_lake) THEN
+            igz0inp_loc = 0 ! gz0 at water points is updated by turbtran
+          ELSE              ! for clarity only; redundant with the turbtran-internal check for water points:
+            igz0inp_loc = 1 ! gz0 is provided externally; no update by turbtran
           END IF
 
           IF (multi_queue_processing) acc_async_queue = jt
           !$ACC DATA CREATE(u_t, v_t, temp_t, qv_t, qc_t, epr_t, z_ifc_t, pres_sfc_t) &
-          !$ACC   CREATE(l_hori, fr_land_t, l_lake, l_sice, h_ice_t, rlamh_fac) &
+          !$ACC   CREATE(l_hori, fr_land_t, l_lake, l_sice, h_ice_t, rlamh_fac, z0_waves_t) &
           !$ACC   CREATE(urb_isa_t, t_g_t, qv_s_t, i_count) &
           !$ACC   CREATE(tcm_t, tch_t, tfv_t, tvm_t, tvh_t, tkr_t, tkvm_t, tkvh_t, rcld_t, tvs_t) &
           !$ACC   CREATE(u_10m_t, v_10m_t, shfl_s_t, lhfl_s_t, qhfl_s_t, umfl_s_t, vmfl_s_t) &
@@ -779,7 +785,7 @@ SUBROUTINE nwp_turbtrans  ( tcall_turb_jg,                     & !>in
           !Remapping the required non-surface levels of variables with a conditional top-level:
 
           !$ACC PARALLEL ASYNC(acc_async_queue) DEFAULT(PRESENT) IF(lzacc)
-          DO ik = MERGE( 1, 2, ltst2ml .OR. ltst10ml .OR. lprfcor ), 2 !local level loop with conditional first index
+          DO ik = MERGE( 1, 2, ltst2ml .OR. ltst10ml ), 2 !local level loop with conditional first index
             jk = nlev-2+ik !associated global level index
             !$ACC LOOP GANG VECTOR PRIVATE(jc)
 !$NEC ivdep
@@ -803,14 +809,21 @@ SUBROUTINE nwp_turbtrans  ( tcall_turb_jg,                     & !>in
             jc = ilist(ic)
 
             z_ifc_t(ic,1:3)     = p_metrics%z_ifc   (jc,nlev-1:nlevp1,jb)
-            ! Note: For wind-interpolation onto the 10m-level, level 'nlev-1' is always required.
             u_t    (ic,1:2)     = p_diag%u          (jc,nlev-1:nlev  ,jb)
             v_t    (ic,1:2)     = p_diag%v          (jc,nlev-1:nlev  ,jb)
+            ! Note: For wind-interpolation onto the 10m-level, level 'nlev-1' is always required.
+
             pres_sfc_t(ic)      = p_diag%pres_sfc   (jc,jb)
+
             IF (jt>ntiles_total) THEN !only for non-land (sub-)tiles
               gz0_eff_t(ic,jt)  = prm_diag%gz0_t    (jc,jb,jt)     ! effective value equals previous global value
               sai_eff_t(ic,jt)  = ext_data%atm%sai_t(jc,jb,jt)     ! effective value equals previous global value
             END IF
+            IF (igz0inp_loc == 2) THEN ! sea-water tile and wave coupling
+              z0_waves_t(ic)    = prm_diag%z0_waves(jc,jb)
+            ELSE
+              z0_waves_t(ic)    = 0._wp
+            ENDIF
 
             t_g_t  (ic)         = lnd_prog_new%t_g_t(jc,jb,jt)
             qv_s_t (ic)         = lnd_diag%qv_s_t   (jc,jb,jt)
@@ -823,12 +836,12 @@ SUBROUTINE nwp_turbtrans  ( tcall_turb_jg,                     & !>in
             tkvh_t (ic,2)       = prm_diag%tkvh     (jc,nlev,jb)
             tkvh_t (ic,3)       = prm_diag%tkvh_s_t (jc,jb,jt)     ! tile-specific for lowest level
             tkr_t  (ic)         = prm_diag%tkr_t    (jc,jb,jt)     ! used for time-step iteration (if "imode_trancnf>=4")
-            IF (imode_suradap>0) THEN !artific. amplification of 'tkvm(:,ke)' required for surface layer
-              tfm_t(ic,jt)      = prm_diag%tfm      (jc,jb)        ! reduct.-fact. for 'tkvm(:,ke)' due to LLDCs
-              tfh_t(ic,jt)      = prm_diag%tfh      (jc,jb)        ! reduct.-fact. for 'tkvh(:,ke)' due to LLDCs
+            IF (ladsshr .OR. (imode_trancnf.LT.4 .AND. imode_suradap>=1)) THEN !surface-layer adaptations to addit. shear at "k=ke" required
+              tfm_t(ic,jt)      = prm_diag%tfm      (jc,jb)        ! drag-related reduct.-fact. for 'tkvm(:,ke)'  due to LLDCs
+              tfh_t(ic,jt)      = prm_diag%tfh      (jc,jb)        ! addit. shear-forcing at "k=ke" due to the impact of LLDCs
             END IF
-            IF (ladsshr) THEN !treatment of additional shear by NTCs or LLDCs for surface layer active
-              tfv_t(ic)         = prm_diag%tfv      (jc,jb)        ! wind-shear amplificat.-factor  due to NTCs
+            IF (ladsshr) THEN !treatment of additional surface-shear by NTCs or LLDCs active
+              tfv_t(ic)         = prm_diag%tfv      (jc,jb)        ! additional shear-forcing at "k=ke" by NTCs 
             END IF
 
             tvm_t  (ic)         = prm_diag%tvm_t    (jc,jb,jt)
@@ -900,14 +913,14 @@ SUBROUTINE nwp_turbtrans  ( tcall_turb_jg,                     & !>in
           ! turbtran
           CALL turbtran (               & ! only surface-layer turbulence
 !
-            &  iini=0,                  & !
+            &  iini=turbdiff_config(jg)%iinit, & ! no initialization ("iinit=-1: first time step
+                                                 !                    "iinit= 0: any later time step)
             &  ltkeinp=.FALSE.,         & !
-            &  lgz0inp=lgz0inp_loc,     & !
-            &  lstfnct=.TRUE. ,         & ! with stability function
+            &  igz0inp=igz0inp_loc,     & !
             &  lsrflux=.TRUE. ,         & !
             &  lnsfdia=.TRUE. ,         & ! including near-surface diagnostics
             &  lrunscm=.FALSE.,         & ! no single column run
-            &  ladsshr=ladsshr,         & !treatment of additional shear by NTCs or LLDCs for surface layer active
+            &  ladsshr=ladsshr,         & !treatment of additional surface-shear by NTCs or LLDCs active
 !
             &  dt_tke=tcall_turb_jg,                                        & !in
             &  nprv=nzprv, ntur=1, ntim=1,                                  & !in
@@ -922,6 +935,7 @@ SUBROUTINE nwp_turbtrans  ( tcall_turb_jg,                     & !>in
             &  l_sice=l_sice(:),                                            & !in (ice  surfaces)
             &  rlamh_fac=rlamh_fac(:),                                      & !in
             &  gz0=gz0_eff_t(:,jt),                                         & !inout effective value including all modifictions
+            &  z0_waves=z0_waves_t(:),                                      & !in
             &  sai=sai_eff_t(:,jt),                                         & !in    effective value including all modifictions
             &  urb_isa=urb_isa_t(:),                                        & !in
 !
@@ -949,8 +963,8 @@ SUBROUTINE nwp_turbtrans  ( tcall_turb_jg,                     & !>in
             &  tkvm=tkvm_t(:,:),                                            & !inout
             &  tkvh=tkvh_t(:,:),                                            & !inout
             &  rcld=rcld_t(:,:),                                            & !inout
-            ! Note: 'ddt_tke' is only employed here in order to transfer "0"-values for the surface level!
             &  tketens=prm_nwp_tend%ddt_tke(:,nlevp1:nlevp1,jb),            & !in
+            ! Note: 'ddt_tke' is only employed here in order to transfer "0"-values for the surface level!
 !
             &   t_2m= t_2m_t(:,jt),                                         & !out
             &  qv_2m=qv_2m_t(:,jt),                                         & !out
@@ -1308,6 +1322,8 @@ SUBROUTINE nwp_turbtrans  ( tcall_turb_jg,                     & !>in
   ENDDO ! jb
 !$OMP END DO NOWAIT
 !$OMP END PARALLEL
+
+  IF (turbdiff_config(jg)%iinit==-1) turbdiff_config(jg)%iinit=0 !first time-step has passed
 
   !$ACC END DATA
 

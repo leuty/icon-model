@@ -1,7 +1,7 @@
 # ICON
 #
 # ------------------------------------------
-# Copyright (C) 2004-2024, DWD, MPI-M, DKRZ, KIT, ETH, MeteoSwiss
+# Copyright (C) 2004-2025, DWD, MPI-M, DKRZ, KIT, ETH, MeteoSwiss
 # Contact information: icon-model.org
 # See AUTHORS.TXT for a list of authors
 # See LICENSES/ for license information
@@ -18,7 +18,6 @@ tests:
     checksuite_modes:
       - horeka: 't'
     ensemble_num:
-      - horeka_cpu_nvhpc: [50,22,38,16,41,21,13,25,23,20,5,39,18,35,8]
+    - horeka_cpu_nvhpc: [18,29,12,24,30,31,3,32,41,33,26,11,43,40,27]
     tolerance_factor:
-      - horeka: 15
-  
+    - horeka: 10

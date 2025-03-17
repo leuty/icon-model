@@ -1,7 +1,7 @@
 # ICON
 #
 # ------------------------------------------
-# Copyright (C) 2004-2024, DWD, MPI-M, DKRZ, KIT, ETH, MeteoSwiss
+# Copyright (C) 2004-2025, DWD, MPI-M, DKRZ, KIT, ETH, MeteoSwiss
 # Contact information: icon-model.org
 # See AUTHORS.TXT for a list of authors
 # See LICENSES/ for license information
@@ -122,7 +122,7 @@ cat > ${atmo_namelist} << EOF
  sol_const        = 551.58
 /
 &aes_bubble_nml
- aes_bubble_config%t0  =303.15
+ aes_bubble_config%t0  =293.15
 /
 &nonhydrostatic_nml
  ndyn_substeps    = 5           ! dtime/dt_dyn
@@ -153,11 +153,10 @@ cat > ${atmo_namelist} << EOF
  tracer_names     = 'hus','clw','cli','qr','qs','qg',
  ivadv_tracer     =    3 ,   3 ,   3 ,  3 ,  3 ,  3 ,
  itype_hlimit     =    3 ,   4 ,   4 ,  4 ,  4 ,  4 ,
- ihadv_tracer     =   52 ,   2 ,   2 ,  2 ,  2 ,  2 ,
+ ihadv_tracer     =   20 ,  20 ,  20 , 20 , 20 , 20 ,
 /
 &dynamics_nml
  lcoriolis      = .FALSE.
- lmoist_thdyn   = .TRUE.
 /
 &aes_phy_nml
 !
@@ -165,8 +164,8 @@ cat > ${atmo_namelist} << EOF
 ! --------
 !
 ! atmospheric physics (""=never)
- aes_phy_config(1)%dt_rad = ""
- aes_phy_config(1)%dt_vdf = ""
+ aes_phy_config(1)%dt_rad = "$radiationTimeStep"
+ aes_phy_config(1)%dt_vdf = "$modelTimeStep"
  aes_phy_config(1)%dt_mig = "$modelTimeStep"
  aes_phy_config(1)%dt_two = ""
 !
@@ -206,8 +205,12 @@ cat > ${atmo_namelist} << EOF
  aes_rad_config(1)%irad_aero  =  0
 /
 &aes_vdf_nml
- aes_vdf_config(1)%pr0        = 0.7
- aes_vdf_config(1)%turb       = 2
+ aes_vdf_config(1)%pr0         = 0.7
+ aes_vdf_config(1)%use_tmx     = .TRUE.
+ aes_vdf_config(1)%use_louis   = .TRUE.
+ aes_vdf_config(1)%turb        = 2 ! 1: TTE, 2: Smagorinsky (only 2 for use_tmx=true)
+ aes_vdf_config(1)%solver_type = 2 ! for tmx only; 1: explicit solver, 2: implicit solver
+ aes_vdf_config(1)%energy_type = 2 ! for tmx only; use 1: dry static energy, 2: internal energy for thermal vert. diffusion
 /
 &aes_cop_nml
  aes_cop_config(1)%cn1lnd     =  50.0

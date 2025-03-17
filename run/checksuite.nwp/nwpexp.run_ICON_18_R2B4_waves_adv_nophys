@@ -1,7 +1,7 @@
 # ICON
 #
 # ------------------------------------------
-# Copyright (C) 2004-2024, DWD, MPI-M, DKRZ, KIT, ETH, MeteoSwiss
+# Copyright (C) 2004-2025, DWD, MPI-M, DKRZ, KIT, ETH, MeteoSwiss
 # Contact information: icon-model.org
 # See AUTHORS.TXT for a list of authors
 # See LICENSES/ for license information
@@ -173,7 +173,7 @@ cat > ${wave_namelist} << EOF
  ml_varlist              = 'bathymetry_c',
                            'group:wave_forcing',
                            'group:wave_phy','group:wave_short',
-                           'q112_010_004','q1_001_001','fl_020_010','fl_025_001'
+                           'tracer_001','fl_001'
 /
 &output_nml
  filetype                =                          4         ! output format: 2=GRIB2, 4=NETCDFv2
@@ -188,7 +188,7 @@ cat > ${wave_namelist} << EOF
  reg_lon_def             =                 0., 1, 360.
  reg_lat_def             =                 -90.,1.,90.
  ml_varlist              = 'bathymetry_c','hs','emean',
-                           'q112_010_004','q1_001_001','fl_020_010','fl_025_001'
+                           'tracer_001'
 /
 EOF
 

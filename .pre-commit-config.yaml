@@ -1,7 +1,7 @@
 # ICON
 #
 # ---------------------------------------------------------------
-# Copyright (C) 2004-2024, DWD, MPI-M, DKRZ, KIT, ETH, MeteoSwiss
+# Copyright (C) 2004-2025, DWD, MPI-M, DKRZ, KIT, ETH, MeteoSwiss
 # Contact information: icon-model.org
 # See AUTHORS.TXT for a list of authors
 # See LICENSES/ for license information
@@ -9,7 +9,14 @@
 # ---------------------------------------------------------------
 
 repos:
-  - repo: https://gitlab.dkrz.de/icon-libraries/icon-openacc-beautifier.git
+  - repo: https://gitlab.dkrz.de/icon/ci-tooling/icon-openacc-beautifier.git
     rev: v1.1.0
     hooks:
       - id: icon-openacc-beautifier
+  - repo: https://github.com/fsfe/reuse-tool
+    rev: v5.0.2
+    hooks:
+      - id: reuse
+        stages: [manual]
+        always_run: true
+        verbose: true

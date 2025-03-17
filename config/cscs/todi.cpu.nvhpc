@@ -3,7 +3,7 @@
 # ICON
 #
 # ------------------------------------------
-# Copyright (C) 2004-2024, DWD, MPI-M, DKRZ, KIT, ETH, MeteoSwiss
+# Copyright (C) 2004-2025, DWD, MPI-M, DKRZ, KIT, ETH, MeteoSwiss
 # Contact information: icon-model.org
 # See AUTHORS.TXT for a list of authors
 # See LICENSES/ for license information
@@ -39,5 +39,5 @@ export SPACK_USER_CACHE_PATH=$GIT_ROOT/spack-cache
 echo "Setting SPACK_USER_CACHE_PATH to $SPACK_USER_CACHE_PATH"
 
 MAKE_PROCS=22
-spack env activate config/cscs/spack/$SPACK_VERSION/todi_cpu_nvhpc || exit 1
+spack env activate config/cscs/spack/todi_cpu_nvhpc || exit 1
 spack install -v -j ${MAKE_PROCS} || exit 1

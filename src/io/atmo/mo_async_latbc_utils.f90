@@ -1,7 +1,7 @@
 ! ICON
 !
 ! ---------------------------------------------------------------
-! Copyright (C) 2004-2024, DWD, MPI-M, DKRZ, KIT, ETH, MeteoSwiss
+! Copyright (C) 2004-2025, DWD, MPI-M, DKRZ, KIT, ETH, MeteoSwiss
 ! Contact information: icon-model.org
 !
 ! See AUTHORS.TXT for a list of authors
@@ -875,14 +875,13 @@
 
          ! allocate temporary array:
          ALLOCATE(omega(nproma, (nlev_in), nblks_c), STAT=ierrstat)
+!$OMP PARALLEL
+         CALL init(omega(:,:,:), lacc=lacc)
+!$OMP END PARALLEL
          IF (ierrstat /= SUCCESS) CALL finish(routine, "ALLOCATE failed!")
 
          IF (latbc%buffer%lread_w) THEN
            CALL get_data(latbc, 'w', omega, read_params(icell), latbc_dict)
-         ELSE
-!$OMP PARALLEL
-           CALL init(omega(:,:,:), lacc=lacc)
-!$OMP END PARALLEL
          ENDIF
 
       ELSE

@@ -1,7 +1,7 @@
 ! ICON
 !
 ! ---------------------------------------------------------------
-! Copyright (C) 2004-2024, DWD, MPI-M, DKRZ, KIT, ETH, MeteoSwiss
+! Copyright (C) 2004-2025, DWD, MPI-M, DKRZ, KIT, ETH, MeteoSwiss
 ! Contact information: icon-model.org
 !
 ! See AUTHORS.TXT for a list of authors
@@ -305,7 +305,7 @@
       INTEGER                           :: errstat, i
       TYPE (t_spherical_cap)            :: subset
 #ifdef _OPENMP
-      DOUBLE PRECISION                  :: time_s, toc
+      REAL(wp)                          :: time_s, toc
 #endif
 
       ! --- create an array-like data structure containing the mass points
@@ -427,7 +427,7 @@
       TYPE (t_point_list)             :: p_local
       TYPE (t_spherical_cap)          :: subset
 #ifdef _OPENMP
-      DOUBLE PRECISION                :: time_s, toc
+      REAL(wp)                        :: time_s, toc
 #endif
       TYPE(t_point)                   :: centroid
       TYPE(t_cartesian_coordinates)   :: p_x
@@ -638,7 +638,7 @@
       REAL(wp)                        :: brange(2,3)          !< box range (min/max, dim=1,2,3)
       TYPE (t_point), POINTER         :: previous_p, current_p
 #ifdef _OPENMP
-      DOUBLE PRECISION                :: time_s, toc
+      REAL(wp)                        :: time_s, toc
 #endif
       LOGICAL                         :: llocal_partition
 
@@ -830,7 +830,7 @@
         &                                      i, j, k, idx0, idx1(3), nblks_lonlat, &
         &                                      npromz_lonlat, i_scale
 #ifdef _OPENMP
-      DOUBLE PRECISION                      :: time_s, toc
+      REAL(wp)                              :: time_s, toc
 #endif
       INTEGER                               :: obj_list(NMAX_HITS)  !< query result (triangle search)
       TYPE(t_cartesian_coordinates)         :: ll_point_c           !< cartes. coordinates of lon-lat points

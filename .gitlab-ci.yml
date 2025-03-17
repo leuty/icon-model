@@ -1,7 +1,7 @@
 # ICON
 #
 # ---------------------------------------------------------------
-# Copyright (C) 2004-2024, DWD, MPI-M, DKRZ, KIT, ETH, MeteoSwiss
+# Copyright (C) 2004-2025, DWD, MPI-M, DKRZ, KIT, ETH, MeteoSwiss
 # Contact information: icon-model.org
 # See AUTHORS.TXT for a list of authors
 # See LICENSES/ for license information
@@ -11,16 +11,15 @@
 workflow:
   auto_cancel:
     on_new_commit: none
-    on_job_failure: none
   rules:
     - if: $CI_PIPELINE_SOURCE == "merge_request_event"
       auto_cancel:
         on_new_commit: interruptible
-        on_job_failure: all
     - if: $CI_PIPELINE_SOURCE == "web"
 
 stages:
   - basic
+  - system
   - test
 
 .colorized:
@@ -32,28 +31,7 @@ stages:
   variables:
     CI_GITIGNORE_DIR: ${CI_PROJECT_DIR}/.ci_dir
 
-Licenses:
-  stage: basic
-  variables:
-    GIT_DEPTH: 1
-    GIT_SUBMODULE_STRATEGY: none
-  before_script:
-    - python3 -m pip install --upgrade pip
-    - python3 -m pip install reuse
-    - reuse --version
-  script:
-    - reuse lint
-    # Additional license checks:
-    - ${CI_PROJECT_DIR}/scripts/ci_scripts/check_license.py
-  tags:
-    - sphinx
-  rules:
-    - if: $CI_PIPELINE_SOURCE == "web"
-      when: manual
-    - when: always
-  interruptible: true
-
-OpenACC Style:
+.common_pre_commit:
   stage: basic
   extends:
     - .colorized
@@ -61,7 +39,6 @@ OpenACC Style:
   variables:
     APK_CACHE_DIR: ${CI_GITIGNORE_DIR}/apk-cache
     PRE_COMMIT_HOME: ${CI_GITIGNORE_DIR}/pre-commit
-    STYLE_PATCH: acc_style.patch
     GIT_SUBMODULE_STRATEGY: none
   before_script:
     - mkdir -p "${APK_CACHE_DIR}"
@@ -77,26 +54,6 @@ OpenACC Style:
           python3 --version > "${PRE_COMMIT_HOME}/python_version.txt"
         }
       )
-  script:
-    - |
-      # pre-commit run --all-files icon-openacc-beautifier
-      pre-commit run --color=always --all-files icon-openacc-beautifier || {
-        git diff --ignore-submodules --patch-with-raw > "${STYLE_PATCH}" && {
-          test -s "${STYLE_PATCH}" && {
-            printf "${RED}The issues can be resolved with the patch (see artifacts):
-        ${CI_JOB_URL}/artifacts/raw/${STYLE_PATCH}.\n${DEFAULT}"
-          } || {
-            printf "${RED}The issues cannot be resolved with a patch.\n${DEFAULT}"
-            rm -f "${STYLE_PATCH}"
-          }
-        } || {
-          printf "${RED}Failed to generate a patch file.\n${DEFAULT}"
-          rm -f "${STYLE_PATCH}"
-        }
-        printf "${RED}You can reproduce this check locally with \`pre-commit run --all-files icon-openacc-beautifier\`.
-      See also ${CI_PROJECT_URL}/-/blob/${CI_DEFAULT_BRANCH}/CONTRIBUTING.md#coding-style.\n${DEFAULT}"
-        exit 1
-      }
   tags:
     - alpine
   cache:
@@ -109,16 +66,53 @@ OpenACC Style:
           - .pre-commit-config.yaml
       paths:
         - ${PRE_COMMIT_HOME}
-  artifacts:
-    paths:
-      - ${STYLE_PATCH}
-    expire_in: 1 week
-    when: on_failure
   rules:
     - if: $CI_PIPELINE_SOURCE == "web"
       when: manual
     - when: always
   interruptible: true
+
+Licenses:
+  extends: .common_pre_commit
+  script:
+    - |
+      # pre-commit run --hook-stage manual reuse
+      pre-commit run --color=always --hook-stage manual reuse || {
+        printf "${RED}You can reproduce this check locally with \`pre-commit run --hook-stage manual reuse\`.
+      See also ${CI_PROJECT_URL}/-/blob/${CI_DEFAULT_BRANCH}/CONTRIBUTING.md#coding-style.\n${DEFAULT}"
+        exit 1
+      }
+    - ${CI_PROJECT_DIR}/scripts/ci_scripts/check_license.py
+
+Coding Style:
+  extends: .common_pre_commit
+  variables:
+    STYLE_PATCH: style.patch
+  script:
+    - |
+      # pre-commit run --all-files
+      pre-commit run --color=always --all-files || {
+        git diff --ignore-submodules --patch-with-raw > "${STYLE_PATCH}" && {
+          test -s "${STYLE_PATCH}" && {
+            printf "${RED}The issues can be resolved with the patch (see artifacts):
+        ${CI_JOB_URL}/artifacts/raw/${STYLE_PATCH}.\n${DEFAULT}"
+          } || {
+            printf "${RED}The issues cannot be resolved with a patch.\n${DEFAULT}"
+            rm -f "${STYLE_PATCH}"
+          }
+        } || {
+          printf "${RED}Failed to generate a patch file.\n${DEFAULT}"
+          rm -f "${STYLE_PATCH}"
+        }
+        printf "${RED}You can reproduce this check locally with \`pre-commit run --all-files\`.
+      See also ${CI_PROJECT_URL}/-/blob/${CI_DEFAULT_BRANCH}/CONTRIBUTING.md#coding-style.\n${DEFAULT}"
+        exit 1
+      }
+  artifacts:
+    paths:
+      - ${STYLE_PATCH}
+    expire_in: 1 week
+    when: on_failure
 
 General Style:
   stage: basic
@@ -151,16 +145,22 @@ General Style:
     - when: always
   interruptible: true
 
-Autoreconf:
+Autoconf:
   stage: basic
-  extends: .colorized
+  extends:
+    - .colorized
+    - .ci_dir
   variables:
+    APK_CACHE_DIR: ${CI_GITIGNORE_DIR}/apk-cache
     AUTOCONF_VERSION: "2.69"
     AUTOCONF_SHA256: 954bd69b391edc12d6a4a51a2dd1476543da5c6bbf05a95b59dc0dd6fd4c2969
-    AUTOCONF_DIR: ${CI_PROJECT_DIR}/autoconf
+    AUTOCONF_DIR: ${CI_GITIGNORE_DIR}/autoconf
+    AUTOCONF_PATCH: autoconf.patch
     GIT_SUBMODULE_STRATEGY: none
   before_script:
-    - apk add --no-cache automake curl git m4 make perl
+    - mkdir -p "${APK_CACHE_DIR}"
+    - apk --cache-dir "${APK_CACHE_DIR}" --update-cache add automake curl git m4 make perl
+    - apk --cache-dir "${APK_CACHE_DIR}" cache clean
     - |
       # Fetching Autoconf
       test -f "${AUTOCONF_DIR}/autoconf-${AUTOCONF_VERSION}.tar.gz" && \
@@ -175,7 +175,7 @@ Autoreconf:
         } && \
         echo "${AUTOCONF_SHA256} autoconf-${AUTOCONF_VERSION}.tar.gz" | sha256sum -c
       ) || {
-        printf "${RED}ERROR: failed to fetch Autoconf ${AUTOCONF_VERSION}${DEFAULT}\n"
+        printf "${RED}Failed to fetch Autoconf ${AUTOCONF_VERSION}.\n${DEFAULT}"
         exit 1
       }
     - |
@@ -187,36 +187,42 @@ Autoreconf:
         ./configure && \
         make -j4 install
       ) || {
-        printf "${RED}ERROR: failed to install Autoconf ${AUTOCONF_VERSION}${DEFAULT}\n"
+        printf "${RED}Failed to install Autoconf ${AUTOCONF_VERSION}.\n${DEFAULT}"
         exit 1
       }
   script:
     - autoreconf -fvi
-    - git diff --ignore-submodules --patch-with-raw > autoreconf.patch
     - |
       # Checking the consistency
-      test ! -s autoreconf.patch || {
-        printf "${RED}ERROR: the automatically generated Autotools files \
-      (e.g. 'configure') are inconsistent with 'configure.ac' and/or \
-      Autoconf ${AUTOCONF_VERSION} (see artifacts)${DEFAULT}\n"
+      git diff --ignore-submodules --patch-with-raw > "${AUTOCONF_PATCH}" || {
+        printf "${RED}Failed to generate a patch file.\n${DEFAULT}"
+        rm -f "${AUTOCONF_PATCH}"
         exit 1
+      }
+      test ! -s "${AUTOCONF_PATCH}" || {
+        printf "${RED}The automatically generated Autotools files (e.g. 'configure') \
+      are inconsistent with 'configure.ac' and/or Autoconf ${AUTOCONF_VERSION}.
+      The issue can be resolved with the patch (see artifacts):
+        ${CI_JOB_URL}/artifacts/raw/${AUTOCONF_PATCH}.\n${DEFAULT}"
+          exit 1
       }
   tags:
     - alpine
   cache:
-    policy: push
-    key: ${AUTOCONF_SHA256}
-    paths:
-      - ${AUTOCONF_DIR}/autoconf-${AUTOCONF_VERSION}.tar.gz
+    - key: apk-autoconf-prereqs
+      paths:
+        - ${APK_CACHE_DIR}
+    - key: ${AUTOCONF_SHA256}
+      paths:
+        - ${AUTOCONF_DIR}/autoconf-${AUTOCONF_VERSION}.tar.gz
   artifacts:
     paths:
-      - autoreconf.patch
+      - ${AUTOCONF_PATCH}
     expire_in: 1 week
     when: on_failure
   rules:
     - if: $CI_PIPELINE_SOURCE == "merge_request_event"
       changes:
-        - ${CI_CONFIG_PATH}
         - config.h.in
         - configure
         - configure.ac
@@ -235,7 +241,7 @@ Iconbot:
   stage: basic
   variables:
     ICONBOT_TAG: production
-    ICONBOT_REPO: "https://gitlab-ci-token:${CI_JOB_TOKEN}@gitlab.dkrz.de/mpim-sw/iconbot.git"
+    ICONBOT_REPO: "https://gitlab-ci-token:${CI_JOB_TOKEN}@gitlab.dkrz.de/icon/ci-tooling/iconbot.git"
     ICONBOT_DIR: iconbot
     ICONBOT_CONFIG: .gitlab/iconbot/notifier.yml
     GIT_SUBMODULE_STRATEGY: none
@@ -249,7 +255,6 @@ Iconbot:
   rules:
     - if: $CI_PIPELINE_SOURCE == "merge_request_event"
       changes:
-        - ${CI_CONFIG_PATH}
         - ${ICONBOT_CONFIG}
     - if: $CI_PIPELINE_SOURCE == "merge_request_event"
       when: never
@@ -299,7 +304,6 @@ Granules:
         - src/atm_phy_schemes/mo_2mom_mcrph_types.f90
         - src/atm_phy_schemes/mo_2mom_mcrph_setup.f90
         - src/configure_model/mo_2mom_mcrph_config.f90
-        - configure_model/mo_nwp_tuning_config.f90
         - src/granules/microphysics_1mom_schemes/**/*
         - src/shared/mo_kind.f90
         - src/shared/mo_physical_constants.f90
@@ -311,3 +315,91 @@ Granules:
     - if: $CI_PIPELINE_SOURCE == "web"
       when: manual
     - when: always
+
+# CSCS test infrastructure adapter
+include: .gitlab/ci/cscs-ci.yml
+
+cscs-ci/santis_cpu:
+  stage: system
+  needs: []
+  extends: .common_cscs_ci
+  variables:
+    CSCS_CI_BUILDER: santis-cpu
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "web"
+      when: manual
+    - if: $CSCS_CI_INACTIVE_BUILDERS =~ "/(^|,)santis-cpu(,|$)/"
+      when: never
+    - when: manual
+
+cscs-ci/santis_gpu:
+  stage: system
+  needs: []
+  extends: .common_cscs_ci
+  variables:
+    CSCS_CI_BUILDER: santis-gpu
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "web"
+      when: manual
+    - if: $CSCS_CI_INACTIVE_BUILDERS =~ "/(^|,)santis-gpu(,|$)/"
+      when: never
+    - when: manual
+
+# official documentation: generation + private/public pages
+.DocsWebsiteBuild: &DocsWebsiteBuild
+  stage: basic
+  variables:
+    PIP_CACHE_DIR: "$CI_PROJECT_DIR/.cache/pip"
+  cache:
+    key: DocsWebsiteBuild
+    paths:
+      - .cache/pip
+  before_script:
+    - pip3 install pydata-sphinx-theme
+    - pip3 install myst-parser
+    - pip3 install sphinx-design
+
+  script:
+    - sphinx-build -W --keep-going -w warnings.html -b html doc/www build/html
+    - mv build/html public
+  tags:
+    - sphinx, dkrz
+  artifacts:
+    when: always
+    paths:
+      - public
+      - warnings.html
+    expire_in: 1day
+
+DocsPreviewLink:
+  extends: .DocsWebsiteBuild
+  variables:
+    DEPLOY_URL: https://$CI_PROJECT_NAMESPACE.$CI_PAGES_DOMAIN/-/$CI_PROJECT_NAME/-/jobs/$CI_JOB_ID/artifacts/public
+  environment:
+    name: review/$CI_COMMIT_REF_NAME
+    url: $DEPLOY_URL/index.html
+  rules:
+    - if: $CI_COMMIT_BRANCH != $CI_DEFAULT_BRANCH
+
+pages:
+  extends: .DocsWebsiteBuild
+  variables:
+    DEPLOY_URL: https://$CI_PROJECT_NAMESPACE.$CI_PAGES_DOMAIN/$CI_PROJECT_NAME
+  environment:
+    name: production
+    url: $DEPLOY_URL
+  rules:
+    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
+
+# manual publishing for docs.icon-model.org
+# - placeholder for a solution for the next release
+# - only possible in icon/icon
+# - not sure about further limitations, yet (web-only, MR-only, gatekeeper-only)
+# DocsIconModelOrg:
+#   extends: .DocsWebsiteBuild
+#   script:
+#     - echo FIXME
+#   rules:
+#     - if: $CI_PROJECT_PATH == "icon/icon"
+#   when: manual
+#   manual_confirmation: 'Are you sure you want to deploy this docu to docs.icon-model.org?'

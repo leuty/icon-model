@@ -35,3 +35,8 @@ ICON versions are named using the scheme `icon-yyyy.mm` where `yyyy` is the year
 # Quick Start
 
 The [Quick Start](./doc/Quick_Start.md) provides technical details on how to build the model, as well as the description of basic steps required to run it.
+
+
+# Contributing
+
+ICON contribution guidelines can be found [here](./CONTRIBUTING.md).

@@ -1,7 +1,7 @@
 ! ICON
 !
 ! ---------------------------------------------------------------
-! Copyright (C) 2004-2024, DWD, MPI-M, DKRZ, KIT, ETH, MeteoSwiss
+! Copyright (C) 2004-2025, DWD, MPI-M, DKRZ, KIT, ETH, MeteoSwiss
 ! Contact information: icon-model.org
 !
 ! See AUTHORS.TXT for a list of authors
@@ -17,13 +17,13 @@
 
 MODULE mo_wave_physics
 
-  USE mo_kind,                ONLY: wp
+  USE mo_kind,                ONLY: wp, vp
   USE mo_model_domain,        ONLY: t_patch
   USE mo_impl_constants,      ONLY: MAX_CHAR_LENGTH, min_rlcell, min_rledge
   USE mo_loopindices,         ONLY: get_indices_c, get_indices_e
   USE mo_parallel_config,     ONLY: nproma
   USE mo_physical_constants,  ONLY: grav
-  USE mo_math_constants,      ONLY: deg2rad, dbl_eps, pi, pi2
+  USE mo_math_constants,      ONLY: dbl_eps, pi, pi2
   USE mo_fortran_tools,       ONLY: init
   USE mo_wave_types,          ONLY: t_wave_diag
   USE mo_wave_config,         ONLY: t_wave_config
@@ -41,7 +41,7 @@ MODULE mo_wave_physics
   PUBLIC :: wave_stress
   PUBLIC :: mean_frequency_and_total_energy
   PUBLIC :: compute_wave_number
-  PUBLIC :: compute_group_velocity
+  PUBLIC :: compute_group_velocity, wave_group_velocity_nt
   PUBLIC :: set_energy2emin
   PUBLIC :: mask_energy
 
@@ -54,58 +54,37 @@ CONTAINS
   !! Calculation of group velocity.
   !!
   !! Wrapper routine for computing group velocity absolute values at
-  !! cell centers and edge midpoints, as well as the components in
-  !! normal and tangential direction at edge midpoints.
+  !! cell centers and edge midpoints.
   !!
-  SUBROUTINE compute_group_velocity(p_patch, wave_config, bathymetry_c, depth_e, &
-    &                               wave_num_c, wave_num_e, gv_c, gv_e, gvn_e, gvt_e)
+  SUBROUTINE compute_group_velocity(p_patch, wave_config, depth_c, depth_e, &
+    &                               wave_num_c, wave_num_e, gv_c, gv_e)
 
     TYPE(t_patch),       INTENT(IN)   :: p_patch
     TYPE(t_wave_config), INTENT(IN)   :: wave_config
-    REAL(wp),            INTENT(IN)   :: bathymetry_c(:,:) !< bathymetric height at cell centers ( m )
+    REAL(wp),            INTENT(IN)   :: depth_c(:,:)      !< water depth at cell centers ( m )
     REAL(wp),            INTENT(IN)   :: depth_e(:,:)      !< water depth at edge midpoints ( m )
     REAL(wp),            INTENT(IN)   :: wave_num_c(:,:,:) !< wave number at cell center (1/m)
     REAL(wp),            INTENT(IN)   :: wave_num_e(:,:,:) !< wave number at edge midpoints (1/m)
     REAL(wp),            INTENT(INOUT):: gv_c(:,:,:)       !< group velocity at cell center (absolute value)  ( m/s )
     REAL(wp),            INTENT(INOUT):: gv_e(:,:,:)       !< group velocity edge midpoint (absolute value)  ( m/s )
-    REAL(wp),            INTENT(INOUT):: gvn_e(:,:,:)      !< edge-normal group velocity ( m/s )
-    REAL(wp),            INTENT(INOUT):: gvt_e(:,:,:)      !< edge-tangential group velocity  ( m/s )
 
     ! compute absolute value of group velocity at cell centers
     !
-    CALL wave_group_velocity_c(            & !in
-      &  p_patch      = p_patch,           & !in
-      &  p_config     = wave_config,       & !in
-      &  wave_num_c   = wave_num_c(:,:,:), & !in
-      &  bathymetry_c = bathymetry_c(:,:), & !in
-      &  gv_c         = gv_c(:,:,:))         !out
+    CALL wave_group_velocity_c(           & !in
+      &  p_patch     = p_patch,           & !in
+      &  p_config    = wave_config,       & !in
+      &  wave_num_c  = wave_num_c(:,:,:), & !in
+      &  depth_c     = depth_c(:,:),      & !in
+      &  gv_c        = gv_c(:,:,:))         !out
 
     ! compute absolute value of group velocity at edge midpoints
     !
-    CALL wave_group_velocity_e(            & !in
-      &  p_patch      = p_patch,           & !in
-      &  p_config     = wave_config,       & !in
-      &  wave_num_e   = wave_num_e(:,:,:), & !in
-      &  depth_e      = depth_e(:,:),      & !in
-      &  gv_e         = gv_e(:,:,:))         !out
-
-
-    ! compute normal and tangential components of group velocity vector
-    ! at edge midpoints
-    CALL wave_group_velocity_nt(           &
-      &  p_patch      = p_patch,           & !in
-      &  p_config     = wave_config,       & !in
-      &  gv_e         = gv_e(:,:,:),       & !in
-      &  gvn_e        = gvn_e(:,:,:),      & !out
-      &  gvt_e        = gvt_e(:,:,:))        !out
-
-    ! Set the wave group velocity to zero at the boundary edge
-    ! in case of wave energy propagation towards the ocean,
-    ! and set gn = deep water group velocity otherwise.
-    CALL wave_group_velocity_bnd(          &
-      &  p_patch      = p_patch,           & !in
-      &  p_config     = wave_config,       & !in
-      &  gvn_e        = gvn_e(:,:,:))        !inout
+    CALL wave_group_velocity_e(           & !in
+      &  p_patch     = p_patch,           & !in
+      &  p_config    = wave_config,       & !in
+      &  wave_num_e  = wave_num_e(:,:,:), & !in
+      &  depth_e     = depth_e(:,:),      & !in
+      &  gv_e        = gv_e(:,:,:))         !out
 
   END SUBROUTINE compute_group_velocity
 
@@ -116,7 +95,7 @@ CONTAINS
   !! Calculation of shallow water cell centered
   !! wave group velocity
   !!
-  SUBROUTINE wave_group_velocity_c(p_patch, p_config, wave_num_c, bathymetry_c, gv_c)
+  SUBROUTINE wave_group_velocity_c(p_patch, p_config, wave_num_c, depth_c, gv_c)
 
     CHARACTER(len=MAX_CHAR_LENGTH), PARAMETER ::  &
          &  routine = modname//':wave_group_velocity_c'
@@ -124,7 +103,7 @@ CONTAINS
     TYPE(t_patch),       INTENT(IN)   :: p_patch
     TYPE(t_wave_config), INTENT(IN)   :: p_config
     REAL(wp),            INTENT(IN)   :: wave_num_c(:,:,:) !< wave number (1/m)
-    REAL(wp),            INTENT(IN)   :: bathymetry_c(:,:) !< bathymetric height at cell centers (nproma,nblks_c) ( m )
+    REAL(wp),            INTENT(IN)   :: depth_c(:,:)      !< water depth at cell centers (nproma,nblks_c) ( m )
     REAL(wp),            INTENT(INOUT):: gv_c(:,:,:)       !< group velocity (nproma,nfreqs,nblks_c)  ( m/s )
 
     INTEGER :: i_rlstart, i_rlend, i_startblk, i_endblk
@@ -154,7 +133,7 @@ CONTAINS
         DO jc = i_startidx, i_endidx
           ! shallow water group velocity
           ak = wave_num_c(jc,jf,jb)
-          akd = ak * bathymetry_c(jc,jb)
+          akd = ak * depth_c(jc,jb)
 
           IF (akd <= 10.0_wp) THEN
             gv = 0.5_wp * SQRT(grav * TANH(akd)/ak) * (1.0_wp + 2.0_wp*akd/SINH(2.0_wp*akd))
@@ -238,164 +217,96 @@ CONTAINS
   !! edge-normal and -tangential projections of
   !! wave group velocities using spectral directions
   !!
-  SUBROUTINE wave_group_velocity_nt(p_patch, p_config, gv_e, gvn_e, gvt_e)
+  SUBROUTINE wave_group_velocity_nt(p_patch, p_config, jf, gv_e, gvn_e, gvt_e)
 
     CHARACTER(len=MAX_CHAR_LENGTH), PARAMETER ::  &
          &  routine = modname//':wave_group_velocity_nt'
 
     TYPE(t_patch),       INTENT(IN)   :: p_patch
     TYPE(t_wave_config), INTENT(IN)   :: p_config
+    INTEGER ,            INTENT(IN)   :: jf           !< frequency index
     REAL(wp),            INTENT(IN)   :: gv_e(:,:,:)  !< group velocity (nproma,nfreqs,nblks_e)  ( m/s )
-    REAL(wp),            INTENT(INOUT):: gvn_e(:,:,:) !< normal group velocity (nproma,dirs*nfreqs,nblks_e)  ( m/s )
-    REAL(wp),            INTENT(INOUT):: gvt_e(:,:,:) !< tangential group velocity (nproma,ndirs*nfreqs,nblks_e)  ( m/s )
+    REAL(wp),            INTENT(INOUT):: gvn_e(:,:,:) !< normal group velocity (nproma,ndirs,nblks_e)  ( m/s )
+    REAL(wp),            INTENT(INOUT):: gvt_e(:,:,:) !< tangential group velocity (nproma,ndirs,nblks_e)  ( m/s )
 
     INTEGER :: i_rlstart, i_rlend, i_startblk, i_endblk
     INTEGER :: i_startidx, i_endidx
-    INTEGER :: jb,jf,jd,jt,je
+    INTEGER :: jb,jd,je,ic,jje,jjb
     INTEGER :: nfreqs, ndirs
+    LOGICAL :: is_towards_coastline
 
-    REAL(wp) :: gvu, gvv
+    REAL(wp) :: gvu, gvv, gv
 
     i_rlstart  = 1
     i_rlend    = min_rledge
     i_startblk = p_patch%edges%start_block(i_rlstart)
     i_endblk   = p_patch%edges%end_block(i_rlend)
 
-    nfreqs = p_config%nfreqs
     ndirs  = p_config%ndirs
+    gv = grav / (2.0_wp * pi2 * p_config%freqs(jf))
 
 !$OMP PARALLEL
-!$OMP DO PRIVATE(jb,jf,jd,jt,je,i_startidx,i_endidx,gvu,gvv) ICON_OMP_DEFAULT_SCHEDULE
+!$OMP DO PRIVATE(jb,jd,je,i_startidx,i_endidx,gvu,gvv) ICON_OMP_DEFAULT_SCHEDULE
     DO jb = i_startblk, i_endblk
       CALL get_indices_e( p_patch, jb, i_startblk, i_endblk,           &
         &                 i_startidx, i_endidx, i_rlstart, i_rlend)
-      DO jf = 1, nfreqs
-        DO jd = 1, ndirs
-          jt = p_config%tracer_ind(jd,jf)
-          DO je = i_startidx, i_endidx
-            gvu = gv_e(je,jf,jb) * p_config%sin_dir(jd)
-            gvv = gv_e(je,jf,jb) * p_config%cos_dir(jd)
+      DO jd = 1, ndirs
+        DO je = i_startidx, i_endidx
+          gvu = gv_e(je,jf,jb) * p_config%sin_dir(jd)
+          gvv = gv_e(je,jf,jb) * p_config%cos_dir(jd)
 
-            gvn_e(je,jt,jb) = &
-                 gvu * p_patch%edges%primal_normal(je,jb)%v1 + &
-                 gvv * p_patch%edges%primal_normal(je,jb)%v2
+          gvn_e(je,jd,jb) = &
+               gvu * p_patch%edges%primal_normal(je,jb)%v1 + &
+               gvv * p_patch%edges%primal_normal(je,jb)%v2
 
-            gvt_e(je,jt,jb) = &
-                 gvu * p_patch%edges%dual_normal(je,jb)%v1 + &
-                 gvv * p_patch%edges%dual_normal(je,jb)%v2
-          END DO
+          gvt_e(je,jd,jb) = &
+               gvu * p_patch%edges%dual_normal(je,jb)%v1 + &
+               gvv * p_patch%edges%dual_normal(je,jb)%v2
         END DO
       END DO
     END DO
+!$OMP ENDDO
+
+    ! Correction of normal to edge group velocity,
+    ! avoiding of wave energy propagation from land
+    ! and insuring full "outflow" of wave energy towards land.
+
+    ! Set the wave group velocity to zero at the boundary edge
+    ! in case of wave energy propagation towards the ocean,
+    ! and set gn = deep water group velocity otherwise.
+
+    ! We make use of the fact that the edge-normal velocity vector points
+    ! * towards the coast, if
+    !   cells%edge_orientation > 0 .AND. vn > 0
+    !   OR
+    !   cells%edge_orientation < 0 .AND. vn < 0
+    ! * towards the sea, if
+    !   cells%edge_orientation > 0 .AND. vn < 0
+    !   OR
+    !   cells%edge_orientation < 0 .AND. vn > 0
+
+    ! hence:
+    ! * towards the coast, if (cells%edge_orientation * vn) > 0
+    ! * towards the sea,   if (cells%edge_orientation * vn) < 0
+
+    ! For optimization, the index list of the coastal edge points is precomputed, 
+    ! and p_config%orient_coastedges contains the values of cells%edge_orientation
+
+!$OMP DO PRIVATE(jd,ic,jje,jjb,is_towards_coastline) ICON_OMP_DEFAULT_SCHEDULE
+!NEC$ outerloop_unroll(4)
+    DO jd = 1, ndirs
+!$NEC ivdep
+      DO ic = 1, p_config%n_coastedges
+        jje = p_config%idx_coastedges(ic)
+        jjb = p_config%blk_coastedges(ic)
+        is_towards_coastline = (p_config%orient_coastedges(ic)*gvn_e(jje,jd,jjb)) > 0._wp
+        gvn_e(jje,jd,jjb) = MERGE(gv, 0.0_wp, is_towards_coastline)
+      ENDDO  !jc
+    ENDDO  !jd
 !$OMP ENDDO NOWAIT
+
 !$OMP END PARALLEL
   END SUBROUTINE wave_group_velocity_nt
-
-
-  !>
-  !! Correction of normal to edge group velocity,
-  !! avoiding of wave energy propagation from land
-  !! and insuring full "outflow" of wave energy towards land.
-  !!
-  !! Set the wave group velocity to zero at the boundary edge
-  !! in case of wave energy propagation towards the ocean,
-  !! and set gn = deep water group velocity otherwise.
-  !!
-  !! We make use of the fact that the edge-normal velocity vector points
-  !! * towards the coast, if
-  !!   cells%edge_orientation > 0 .AND. vn > 0
-  !!   OR
-  !!   cells%edge_orientation < 0 .AND. vn < 0
-  !! * towards the sea, if
-  !!   cells%edge_orientation > 0 .AND. vn < 0
-  !!   OR
-  !!   cells%edge_orientation < 0 .AND. vn > 0
-  !!
-  !! hence:
-  !! * towards the coast, if (cells%edge_orientation * vn) > 0
-  !! * towards the sea,   if (cells%edge_orientation * vn) < 0
-  !!
-  SUBROUTINE wave_group_velocity_bnd(p_patch, p_config, gvn_e)
-
-    CHARACTER(len=MAX_CHAR_LENGTH), PARAMETER ::  &
-      &  routine = modname//':wave_group_velocity_bnd'
-
-    TYPE(t_patch),       INTENT(IN)   :: p_patch
-    TYPE(t_wave_config), INTENT(IN)   :: p_config
-    REAL(wp),            INTENT(INOUT):: gvn_e(:,:,:)!< normal group velocity (nproma,dirs*nfreqs,nblks_e)  ( m/s )
-
-    ! local variables
-    REAL(wp):: gv
-    INTEGER :: jb, jc, jf, jd, jt, ic
-    INTEGER :: jce                   !< loop index for cell edges
-    INTEGER :: eidx, eblk            !< edge index and block
-    INTEGER :: jje, jjb              !< line and block index of boundary edge
-    INTEGER :: i_rlstart_c, i_rlend_c
-    INTEGER :: i_startblk_c, i_endblk_c
-    INTEGER :: i_startidx_c, i_endidx_c
-    INTEGER :: nfreqs, ndirs
-    INTEGER :: ile(nproma), ibe(nproma)
-    REAL(wp):: e_orient(nproma)
-    INTEGEr :: cnt
-    LOGICAL :: is_towards_coastline  !< TRUE if normal component of group velocity vector
-                                     !  at land-sea boundary points towards coastline
-
-    nfreqs = p_config%nfreqs
-    ndirs  = p_config%ndirs
-
-    ! set up loop over boundary cells (refine_c_ctrl==1)
-    i_rlstart_c  = 1
-    i_rlend_c    = 1
-    i_startblk_c = p_patch%cells%start_block(i_rlstart_c)
-    i_endblk_c   = p_patch%cells%end_block(i_rlend_c)
-
-    DO jb = i_startblk_c, i_endblk_c
-      CALL get_indices_c(p_patch, jb, i_startblk_c, i_endblk_c, &
-        &                i_startidx_c, i_endidx_c, i_rlstart_c, i_rlend_c)
-
-      cnt = 0
-      !
-      DO jc = i_startidx_c, i_endidx_c
-
-        ! build list of coastline edges (refin_e_ctrl==1)
-        ! and store edge orientation.
-        !
-        DO jce =1,3
-          eidx = p_patch%cells%edge_idx(jc,jb,jce)
-          eblk = p_patch%cells%edge_blk(jc,jb,jce)
-
-          IF (p_patch%edges%refin_ctrl(eidx,eblk) == 1) THEN
-            ! coastline edge found
-            cnt = cnt + 1
-            ile(cnt) = eidx
-            ibe(cnt) = eblk
-            e_orient(cnt) = p_patch%cells%edge_orientation(jc,jb,jce)
-          ENDIF
-        ENDDO
-
-      ENDDO  !jc
-
-      ! Correction of normal to edge group velocity, avoiding of wave energy propagation from land
-      ! and insuring full "outflow" of wave energy towards land.
-      !
-      DO jf = 1, nfreqs
-        ! deep water group velocity
-        gv = grav / (2.0_wp * pi2 * p_config%freqs(jf))
-        DO jd = 1, ndirs
-          jt = p_config%tracer_ind(jd,jf)
-!$NEC ivdep
-          DO ic = 1, cnt
-            jje = ile(ic)
-            jjb = ibe(ic)
-            is_towards_coastline = (e_orient(ic) * gvn_e(jje,jt,jjb)) > 0._wp
-            gvn_e(jje,jt,jjb) = MERGE(gv, 0.0_wp, is_towards_coastline)
-          ENDDO  !jc
-        ENDDO  !jd
-      ENDDO  !jf
-
-    ENDDO  !jb
-
-  END SUBROUTINE wave_group_velocity_bnd
 
 
   !>
@@ -484,7 +395,7 @@ CONTAINS
           ustar(jc,jb) = SQRT(taunew)
 
           IF (ABS(taunew-tauold(jc))<= dbl_eps) l_converged(jc) = .TRUE.
-          
+
           ustm1(jc)  = 1.0_wp/MAX(ustar(jc,jb),EPSUS)
           tauold(jc) = taunew
         END DO  !jc
@@ -517,18 +428,16 @@ CONTAINS
 
     TYPE(t_patch),               INTENT(IN)    :: p_patch
     TYPE(t_wave_config), TARGET, INTENT(IN)    :: wave_config
-    REAL(wp), INTENT(IN)  :: tracer(:,:,:) !energy spectral bins (nproma,ntracer,nblks_c)
-    INTEGER,  INTENT(IN)  :: llws(:,:,:)   !=1 where wind_input is positive (nproma,ntracer,nblks_c)
-    REAL(wp), INTENT(INOUT) :: emean(:,:)    !total energy (nproma,nblks_c)
-    REAL(wp), INTENT(INOUT) :: emeanws(:,:)  !total windsea energy (nproma,nblks_c)
-    REAL(wp), INTENT(INOUT) :: femean(:,:)   !mean frequency energy (nproma,nblks_c)
-    REAL(wp), INTENT(INOUT) :: femeanws(:,:) !mean windsea frequency energy (nproma,nblks_c)
+    REAL(wp), INTENT(IN)    :: tracer(:,:,:,:) !energy spectral bins (nproma,ndirs,nblks_c,nfreqs)
+    INTEGER,  INTENT(IN)    :: llws(:,:,:,:)   !=1 where wind_input is positive (nproma,ndirs,nblks_c,nfreqs)
+    REAL(wp), INTENT(INOUT) :: emean(:,:)      !total energy (nproma,nblks_c)
+    REAL(wp), INTENT(INOUT) :: emeanws(:,:)    !total windsea energy (nproma,nblks_c)
+    REAL(wp), INTENT(INOUT) :: femean(:,:)     !mean frequency energy (nproma,nblks_c)
+    REAL(wp), INTENT(INOUT) :: femeanws(:,:)   !mean windsea frequency energy (nproma,nblks_c)
 
     INTEGER :: i_rlstart, i_rlend, i_startblk, i_endblk
     INTEGER :: i_startidx, i_endidx
-    INTEGER :: jc,jb,jf
-    INTEGER :: jt                       !< tracer index
-    INTEGER :: n                        !< loop index
+    INTEGER :: jc,jb,jf,jd
 
     REAL(wp) :: temp(nproma,wave_config%nfreqs), temp_1(nproma,wave_config%nfreqs)
     TYPE(t_wave_config), POINTER :: wc => NULL()
@@ -543,28 +452,24 @@ CONTAINS
 
 
 !$OMP PARALLEL
-!$OMP DO PRIVATE(jb,jc,jf,n,jt,i_startidx,i_endidx,temp,temp_1) ICON_OMP_DEFAULT_SCHEDULE
+!$OMP DO PRIVATE(jb,jc,jd,jf,i_startidx,i_endidx,temp,temp_1) ICON_OMP_DEFAULT_SCHEDULE
     DO jb = i_startblk, i_endblk
       CALL get_indices_c( p_patch, jb, i_startblk, i_endblk,           &
         &                 i_startidx, i_endidx, i_rlstart, i_rlend)
 
       DO jf = 1,wc%nfreqs
-
         DO jc = i_startidx, i_endidx
           temp(jc,jf)   = 0._wp
           temp_1(jc,jf) = 0._wp
         ENDDO
 
-        DO n=1,SIZE(wc%list_tr(jf)%p)
-          jt = wc%list_tr(jf)%p(n)
+!nec$ outerloop_unroll(4)
+        DO jd = 1,wc%ndirs
           DO jc = i_startidx, i_endidx
-            temp(jc,jf) = temp(jc,jf) + tracer(jc,jt,jb)
-            IF (llws(jc,jt,jb)==1) THEN
-              temp_1(jc,jf) = temp_1(jc,jf) + tracer(jc,jt,jb)
-            ENDIF
+            temp(jc,jf)   = temp(jc,jf)   + tracer(jc,jd,jb,jf)
+            temp_1(jc,jf) = temp_1(jc,jf) + tracer(jc,jd,jb,jf)*REAL(llws(jc,jd,jb,jf),wp)
           ENDDO
-        ENDDO  ! n
-
+        ENDDO  ! jd
       END DO  ! jf
 
       DO jc = i_startidx, i_endidx
@@ -574,6 +479,7 @@ CONTAINS
         femeanws(jc,jb) = wc%MM1_TAIL * temp_1(jc,wc%nfreqs)
       END DO
 
+!nec$ outerloop_unroll(4)
       DO jf = 1,wc%nfreqs
         DO jc = i_startidx, i_endidx
           emean(jc,jb)    = emean(jc,jb)    + temp(jc,jf)   * wc%DFIM(jf)
@@ -622,13 +528,14 @@ CONTAINS
     TYPE(t_patch),               INTENT(IN)    :: p_patch
     TYPE(t_wave_config), TARGET, INTENT(IN)    :: wave_config
     REAL(wp),                    INTENT(IN)    :: dir10m(:,:)
-    REAL(wp),                    INTENT(IN)    :: sl(:,:,:)
-    REAL(wp),                    INTENT(IN)    :: tracer(:,:,:)
+    REAL(vp),                    INTENT(IN)    :: sl(:,:,:,:)
+    REAL(wp),                    INTENT(IN)    :: tracer(:,:,:,:)
     TYPE(t_wave_diag),           INTENT(INOUT) :: p_diag
 
     INTEGER :: i_rlstart, i_rlend, i_startblk, i_endblk
     INTEGER :: i_startidx, i_endidx
-    INTEGER :: jc,jb,jf,jd,jtd
+    INTEGER :: jc,jb,jf,jd
+    INTEGER :: jf_lp     ! last prognostic frequency index
 
     REAL(wp) :: gm1, const, sinplus, cosw
     REAL(wp) :: cmrhowgdfth
@@ -659,7 +566,7 @@ CONTAINS
 !$OMP PARALLEL
     CALL init(p_diag%phiaw, lacc=.FALSE.)
 !$OMP BARRIER
-!$OMP DO PRIVATE(jb,jc,jf,jd,jtd,i_startidx,i_endidx,cm,const1,const2,         &
+!$OMP DO PRIVATE(jb,jc,jf,jd,jf_lp,i_startidx,i_endidx,cm,const1,const2,       &
 !$OMP            rhowgdfth,sinplus,sumt,sumx,sumy,cmrhowgdfth,xstress,ystress, &
 !$OMP            xstress_tot,ystress_tot,cosw,temp1,temp2) ICON_OMP_DEFAULT_SCHEDULE
     DO jb = i_startblk, i_endblk
@@ -693,9 +600,8 @@ CONTAINS
         END DO
 
         DO jd = 1, wc%ndirs
-          jtd = wc%tracer_ind(jd,jf)
           DO jc = i_startidx, i_endidx
-            sinplus = MAX(sl(jc,jtd,jb),0._wp)
+            sinplus = MAX(sl(jc,jd,jb,jf),0._wp)
             sumt(jc) = sumt(jc) + sinplus
             sumx(jc) = sumx(jc) + sinplus * wc%sin_dir(jd)
             sumy(jc) = sumy(jc) + sinplus * wc%cos_dir(jd)
@@ -724,13 +630,12 @@ CONTAINS
 
       DO jd = 1, wc%ndirs
         DO jc = i_startidx, i_endidx
-          jtd = wc%tracer_ind(jd,p_diag%last_prog_freq_ind(jc,jb))
+          jf_lp = p_diag%last_prog_freq_ind(jc,jb)
 
-          cosw = MAX(COS(wc%dirs(jd)-dir10m(jc,jb)*deg2rad),0.0_wp)
-          temp1(jc) = temp1(jc) + tracer(jc,jtd,jb) * cosw**3
-          temp2(jc) = temp2(jc) + tracer(jc,jtd,jb) * cosw**2
+          cosw = MAX(COS(wc%dirs(jd)-dir10m(jc,jb)),0.0_wp)
+          temp1(jc) = temp1(jc) + tracer(jc,jd,jb,jf_lp) * cosw**3
+          temp2(jc) = temp2(jc) + tracer(jc,jd,jb,jf_lp) * cosw**2
         END DO
-
       END DO
 
       CALL high_frequency_stress(wave_config        = wave_config,                     & !IN
@@ -749,8 +654,8 @@ CONTAINS
 
         p_diag%phiaw(jc,jb) = p_diag%phiaw(jc,jb) + p_diag%phihf(jc,jb)
 
-        xstress_tot = xstress(jc)/roair + p_diag%tauhf(jc,jb)*SIN(dir10m(jc,jb)*deg2rad)
-        ystress_tot = ystress(jc)/roair + p_diag%tauhf(jc,jb)*COS(dir10m(jc,jb)*deg2rad)
+        xstress_tot = xstress(jc)/roair + p_diag%tauhf(jc,jb)*SIN(dir10m(jc,jb))
+        ystress_tot = ystress(jc)/roair + p_diag%tauhf(jc,jb)*COS(dir10m(jc,jb))
 
         p_diag%tauw(jc,jb) = SQRT(xstress_tot**2+ystress_tot**2)
         p_diag%tauw(jc,jb) = MIN(p_diag%tauw(jc,jb),p_diag%ustar(jc,jb)**2 - EPS1)
@@ -934,14 +839,15 @@ CONTAINS
     REAL(wp),                    INTENT(IN)    :: wave_num_c(:,:,:)  !< wave number (1/m)
     REAL(wp),                    INTENT(IN)    :: depth(:,:)
     INTEGER,                     INTENT(IN)    :: last_prog_freq_ind(:,:)
-    REAL(wp),                    INTENT(INOUT) :: tracer(:,:,:)
+    REAL(wp),                    INTENT(INOUT) :: tracer(:,:,:,:)
 
 
     TYPE(t_wave_config), POINTER :: wc => NULL()
 
     INTEGER :: i_rlstart, i_rlend, i_startblk, i_endblk
     INTEGER :: i_startidx, i_endidx
-    INTEGER :: jb,jf,jc,jd,jt,jtl
+    INTEGER :: jb,jf,jc,jd
+    INTEGER :: jf_lp     ! last prognostic frequency index
 
     REAL(wp) :: gh, ak, akd, tcgond, akm1
     REAL(wp) :: temp(nproma, wave_config%nfreqs)
@@ -956,7 +862,7 @@ CONTAINS
     i_endblk   = p_patch%cells%end_block(i_rlend)
 
 !$OMP PARALLEL
-!$OMP DO PRIVATE(jb,jf,jc,jd,jt,jtl,i_startidx,i_endidx,ak,akd,tcgond,akm1,temp,tfac) ICON_OMP_DEFAULT_SCHEDULE
+!$OMP DO PRIVATE(jb,jf,jc,jd,jf_lp,i_startidx,i_endidx,ak,akd,tcgond,akm1,temp,tfac) ICON_OMP_DEFAULT_SCHEDULE
     DO jb = i_startblk, i_endblk
       CALL get_indices_c( p_patch, jb, i_startblk, i_endblk,           &
            &                 i_startidx, i_endidx, i_rlstart, i_rlend)
@@ -984,15 +890,14 @@ CONTAINS
 
       DO jd = 1, wc%ndirs
         DO jc = i_startidx, i_endidx
-          jtl = wc%tracer_ind(jd,last_prog_freq_ind(jc,jb))
-          tfac(jc) = tracer(jc,jtl,jb)
+          jf_lp = last_prog_freq_ind(jc,jb)
+          tfac(jc) = tracer(jc,jd,jb,jf_lp)
         ENDDO
         !
         DO jf = 1, wc%nfreqs
-          jt = wc%tracer_ind(jd,jf)
           DO jc = i_startidx, i_endidx
             IF (jf >=last_prog_freq_ind(jc,jb)+1) THEN
-              tracer(jc,jt,jb) = temp(jc,jf) * tfac(jc)
+              tracer(jc,jd,jb,jf) = temp(jc,jf) * tfac(jc)
             END IF
           END DO  !jc
         END DO  !jf
@@ -1025,7 +930,7 @@ CONTAINS
     TYPE(t_patch),               INTENT(IN)    :: p_patch
     TYPE(t_wave_config), TARGET, INTENT(IN)    :: wave_config
     REAL(wp),                    INTENT(IN)    :: wave_num_c(:,:,:) !< wave number (1/m)
-    REAL(wp),                    INTENT(IN)    :: tracer(:,:,:)
+    REAL(wp),                    INTENT(IN)    :: tracer(:,:,:,:)
     REAL(wp),                    INTENT(IN)    :: emean(:,:)    !< total wave energy
     REAL(wp),                    INTENT(INOUT) :: tm1(:,:)        !< tm1 period (nproma,nblks_c)
     REAL(wp),                    INTENT(INOUT) :: tm2(:,:)        !< tm2 period (nproma,nblks_c)
@@ -1037,8 +942,7 @@ CONTAINS
 
     INTEGER :: i_rlstart, i_rlend, i_startblk, i_endblk
     INTEGER :: i_startidx, i_endidx
-    INTEGER :: jb,jc,jf,jt
-    INTEGER :: n
+    INTEGER :: jb,jc,jf,jd
 
     REAL(wp) :: temp(nproma, wave_config%nfreqs)
     REAL(wp) :: temp2(nproma, wave_config%nfreqs)
@@ -1051,7 +955,7 @@ CONTAINS
     i_endblk   = p_patch%cells%end_block(i_rlend)
 
 !$OMP PARALLEL
-!$OMP DO PRIVATE(jc,jb,jf,jt,i_startidx,i_endidx,temp,temp2) ICON_OMP_DEFAULT_SCHEDULE
+!$OMP DO PRIVATE(jc,jb,jf,jd,i_startidx,i_endidx,temp,temp2) ICON_OMP_DEFAULT_SCHEDULE
     DO jb = i_startblk, i_endblk
       CALL get_indices_c( p_patch, jb, i_startblk, i_endblk,           &
            &                 i_startidx, i_endidx, i_rlstart, i_rlend)
@@ -1064,10 +968,10 @@ CONTAINS
         ENDDO
         !
         ! sum
-        DO n=1,SIZE(wc%list_tr(jf)%p)
-          jt = wc%list_tr(jf)%p(n)
+!nec$ outerloop_unroll(4)
+        DO jd = 1,wc%ndirs
           DO jc = i_startidx, i_endidx
-            temp(jc,jf) = temp(jc,jf) + tracer(jc,jt,jb)
+            temp(jc,jf) = temp(jc,jf) + tracer(jc,jd,jb,jf)
           END DO
         ENDDO
       END DO  !jf
@@ -1333,13 +1237,13 @@ CONTAINS
 
     TYPE(t_patch),               INTENT(IN)    :: p_patch
     TYPE(t_wave_config), TARGET, INTENT(IN)    :: wave_config
-    REAL(wp),                    INTENT(INOUT) :: tracer(:,:,:)
+    REAL(wp),                    INTENT(INOUT) :: tracer(:,:,:,:)
 
     TYPE(t_wave_config), POINTER :: wc => NULL()
 
     INTEGER :: i_rlstart, i_rlend, i_startblk, i_endblk
     INTEGER :: i_startidx, i_endidx
-    INTEGER :: jb,jc,jf,jd,jt
+    INTEGER :: jb,jc,jf,jd
     i_rlstart  = 1
     i_rlend    = min_rlcell
     i_startblk = p_patch%cells%start_block(i_rlstart)
@@ -1348,18 +1252,15 @@ CONTAINS
     ! save some paperwork
     wc => wave_config
 !$OMP PARALLEL
-!$OMP DO PRIVATE(jb,jf,jd,jt,jc,i_startidx,i_endidx) ICON_OMP_DEFAULT_SCHEDULE
+!$OMP DO PRIVATE(jb,jf,jd,jc,i_startidx,i_endidx) ICON_OMP_DEFAULT_SCHEDULE
     DO jb = i_startblk, i_endblk
       CALL get_indices_c( p_patch, jb, i_startblk, i_endblk,           &
            &                 i_startidx, i_endidx, i_rlstart, i_rlend)
 
       DO jf = 1,wc%nfreqs
         DO jd = 1,wc%ndirs
-          !
-          jt = wc%tracer_ind(jd,jf)
-          !
           DO jc = i_startidx, i_endidx
-            tracer(jc,jt,jb) = MAX(tracer(jc,jt,jb),EMIN)
+            tracer(jc,jd,jb,jf) = MAX(tracer(jc,jd,jb,jf),EMIN)
           END DO
         END DO
       END DO
@@ -1380,13 +1281,13 @@ CONTAINS
     TYPE(t_patch),               INTENT(IN)    :: p_patch
     TYPE(t_wave_config), TARGET, INTENT(IN)    :: wave_config
     INTEGER,                     INTENT(IN)    :: mask(:,:)
-    REAL(wp),                    INTENT(INOUT) :: tracer(:,:,:)
+    REAL(wp),                    INTENT(INOUT) :: tracer(:,:,:,:)
 
     TYPE(t_wave_config), POINTER :: wc => NULL()
 
     INTEGER :: i_rlstart, i_rlend, i_startblk, i_endblk
     INTEGER :: i_startidx, i_endidx
-    INTEGER :: jb,jc,jf,jd,jt
+    INTEGER :: jb,jc,jf,jd
 
     i_rlstart  = 1
     i_rlend    = min_rlcell
@@ -1396,18 +1297,15 @@ CONTAINS
     ! save some paperwork
     wc => wave_config
 !$OMP PARALLEL
-!$OMP DO PRIVATE(jb,jf,jd,jt,jc,i_startidx,i_endidx) ICON_OMP_DEFAULT_SCHEDULE
+!$OMP DO PRIVATE(jb,jf,jd,jc,i_startidx,i_endidx) ICON_OMP_DEFAULT_SCHEDULE
     DO jb = i_startblk, i_endblk
       CALL get_indices_c( p_patch, jb, i_startblk, i_endblk,           &
            &                 i_startidx, i_endidx, i_rlstart, i_rlend)
 
       DO jf = 1,wc%nfreqs
         DO jd = 1,wc%ndirs
-
-          jt = wc%tracer_ind(jd,jf)
-
           DO jc = i_startidx, i_endidx
-            tracer(jc,jt,jb) = tracer(jc,jt,jb) * REAL(mask(jc,jb),wp)
+            tracer(jc,jd,jb,jf) = tracer(jc,jd,jb,jf) * REAL(mask(jc,jb),wp)
           END DO
         END DO
       END DO

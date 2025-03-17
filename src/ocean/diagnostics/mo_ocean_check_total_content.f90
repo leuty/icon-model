@@ -1,7 +1,7 @@
 ! ICON
 !
 ! ---------------------------------------------------------------
-! Copyright (C) 2004-2024, DWD, MPI-M, DKRZ, KIT, ETH, MeteoSwiss
+! Copyright (C) 2004-2025, DWD, MPI-M, DKRZ, KIT, ETH, MeteoSwiss
 ! Contact information: icon-model.org
 !
 ! See AUTHORS.TXT for a list of authors
@@ -208,17 +208,16 @@ CONTAINS
 
     CALL set_acc_host_or_device(lzacc, lacc)
 
-    !$ACC DATA COPY(salt, saltinseaice, saltinliquidwater) IF(lzacc)
+    !$ACC DATA CREATE(salt, saltinseaice, saltinliquidwater) IF(lzacc)
 
     CALL calc_salt_content(so, patch_2d, h, thickness, ice, im , &
-                           salt, saltinseaice, saltinliquidwater, lacc=lzacc )
+                           salt, saltinseaice, saltinliquidwater, lacc=lzacc)
+
+    total_salt = global_sum_array(salt, lacc=lzacc)
+    total_saltinseaice = global_sum_array(saltinseaice, lacc=lzacc)
+    total_saltinliquidwater = global_sum_array(saltinliquidwater, lacc=lzacc)
 
     !$ACC END DATA
-
-    total_salt = global_sum_array(salt)
-    total_saltinseaice = global_sum_array(saltinseaice)
-    total_saltinliquidwater = global_sum_array(saltinliquidwater)
-
   END SUBROUTINE calc_total_salt_content
   !-------------------------------------------------------------------------
   
@@ -496,17 +495,16 @@ CONTAINS
 
     CALL set_acc_host_or_device(lzacc, lacc)
 
-    !$ACC DATA COPY(salt, saltinseaice, saltinliquidwater) IF(lzacc)
+    !$ACC DATA CREATE(salt, saltinseaice, saltinliquidwater) IF(lzacc)
 
     CALL calc_salt_content_zstar(so, patch_2d, stretch, thickness, ice, &
                            salt, saltinseaice, saltinliquidwater, lacc=lzacc )
 
+    total_salt = global_sum_array(salt, lacc=lzacc)
+    total_saltinseaice = global_sum_array(saltinseaice, lacc=lzacc)
+    total_saltinliquidwater = global_sum_array(saltinliquidwater, lacc=lzacc)
+
     !$ACC END DATA
-
-    total_salt = global_sum_array(salt)
-    total_saltinseaice = global_sum_array(saltinseaice)
-    total_saltinliquidwater = global_sum_array(saltinliquidwater)
-
   END SUBROUTINE calc_total_salt_content_zstar
  
   
@@ -535,9 +533,12 @@ CONTAINS
 
     IF(no_tracer<=1)RETURN
 
-    salt         = 0.0_wp
-    saltinseaice = 0.0_wp
-    saltinliquidwater = 0.0_wp
+    !$ACC KERNELS DEFAULT(PRESENT) ASYNC(1) IF(lzacc)
+    salt(:,:)              = 0.0_wp
+    saltinseaice(:,:)      = 0.0_wp
+    saltinliquidwater(:,:) = 0.0_wp
+    !$ACC END KERNELS
+    !$ACC WAIT(1)
 
     rhoicwa = rhoi / rho_ref
     rhosnwa = rhos / rho_ref

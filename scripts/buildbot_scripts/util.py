@@ -1,7 +1,7 @@
 # ICON
 #
 # ---------------------------------------------------------------
-# Copyright (C) 2004-2024, DWD, MPI-M, DKRZ, KIT, ETH, MeteoSwiss
+# Copyright (C) 2004-2025, DWD, MPI-M, DKRZ, KIT, ETH, MeteoSwiss
 # Contact information: icon-model.org
 #
 # See AUTHORS.TXT for a list of authors
@@ -67,6 +67,9 @@ class WhitespaceSeperatedFiles(click.ParamType):
 
         for f in not_found:
             print("did not find {} in {}".format(f, run_path))
+        # early exit
+        if 0 != len(not_found):
+            raise RuntimeError("Could not find given input files")
 
         # not found
         args = [arg for arg in args if arg not in not_found]

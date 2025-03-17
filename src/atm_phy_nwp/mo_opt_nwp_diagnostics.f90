@@ -1,7 +1,7 @@
 ! ICON
 !
 ! ---------------------------------------------------------------
-! Copyright (C) 2004-2024, DWD, MPI-M, DKRZ, KIT, ETH, MeteoSwiss
+! Copyright (C) 2004-2025, DWD, MPI-M, DKRZ, KIT, ETH, MeteoSwiss
 ! Contact information: icon-model.org
 !
 ! See AUTHORS.TXT for a list of authors
@@ -85,6 +85,7 @@ MODULE mo_opt_nwp_diagnostics
   USE mo_synradar_config,         ONLY: synradar_meta, ydir_mielookup_read, ydir_mielookup_write
   USE mo_mpi,                     ONLY: get_my_mpi_work_comm_size
 #endif
+  USE sfc_terra_data,             ONLY: cpwp, cfcap
 
   IMPLICIT NONE
 
@@ -413,9 +414,14 @@ CONTAINS
         !$ACC LOOP VECTOR PRIVATE(ierr_wsoil2smi) REDUCTION(MIN: ierr)
         DO jk = 1, nlev_soil-1
 
+          ! We have to pass in cpwp and cfcap here because of a bug
+          ! in Cray Fortran's OpenACC implementation that forbids use
+          ! of the parameter arrays from inside an ACC routine.
           CALL wsoil2smi(wsoil   = diag_lnd%w_so(jc,jk,jb),     & !in
             &            dzsoil  = dzsoil(jk),                  & !in
             &            soiltyp = ext_data%atm%soiltyp(jc,jb), & !in
+            &            cpwp    = cpwp,                        & !in
+            &            cfcap   = cfcap,                       & !in
             &            smi     = out_var(jc,jk,jb),           & !out
             &            ierr    = ierr_wsoil2smi               ) !out
           !
@@ -4516,7 +4522,7 @@ CONTAINS
                pMPi              = synradar_meta%polMP_i, &
                pMPs              = synradar_meta%polMP_s, &
                pMPg              = synradar_meta%polMP_g, &
-               pMPh              = synradar_meta%polMP_g, &
+               pMPh              = synradar_meta%polMP_h, &
                rho               = rho_tot(:,:,:), &
                t                 = t(:,:,:), &
                qc                = qc(:,:,:), &
@@ -6266,4 +6272,3 @@ CONTAINS
 !$OMP END PARALLEL
   END SUBROUTINE compute_field_inversion_height
 END MODULE mo_opt_nwp_diagnostics
-

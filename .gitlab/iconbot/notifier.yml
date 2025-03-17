@@ -1,7 +1,7 @@
 # ICON
 #
 # ---------------------------------------------------------------
-# Copyright (C) 2004-2024, DWD, MPI-M, DKRZ, KIT, ETH, MeteoSwiss
+# Copyright (C) 2004-2025, DWD, MPI-M, DKRZ, KIT, ETH, MeteoSwiss
 # Contact information: icon-model.org
 # See AUTHORS.TXT for a list of authors
 # See LICENSES/ for license information
@@ -9,7 +9,7 @@
 # ---------------------------------------------------------------
 
 # A configuration file for the Iconbot notifier
-# See https://gitlab.dkrz.de/mpim-sw/iconbot
+# See https://gitlab.dkrz.de/icon/ci-tooling/iconbot
 
 # The server runs with ICONBOT_CONFIG_SOURCE='mr:source_branch',
 # which means that the configuration file is taken from the source branch of a
@@ -25,6 +25,7 @@
       - .gitlab-ci.yml
       - .gitlab/ci/*
       - scripts/ci_scripts/*
+      - scripts/cscs_ci/*
     labels: [CI]
     mentions: [m300488, k202125]
   # Build system:
@@ -36,6 +37,7 @@
       - dep*.config.in
       - m4/*
       - src/shared/mo_util_vcs.f90
+      - utils/cmake-wrapper/*
       - utils/mkhelper/*
       - utils/pvcs.py
     labels: [Build system]
@@ -98,6 +100,12 @@
       - src/parallel_infrastructure/mo_communication*
       - src/parallel_infrastructure/mo_mpi.f90
       - src/parallel_infrastructure/mo_sync.f90
+  - mentions: [k202123]
+    file_names:
+      - run/exp.amip*
+      - run/exp.aes*
+      - run/exp.atm*
+      - run/*.config
 
 icon/icon:
   default:

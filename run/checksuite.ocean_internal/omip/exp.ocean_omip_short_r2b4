@@ -3,7 +3,7 @@
 # ICON
 #
 # ------------------------------------------
-# Copyright (C) 2004-2024, DWD, MPI-M, DKRZ, KIT, ETH, MeteoSwiss
+# Copyright (C) 2004-2025, DWD, MPI-M, DKRZ, KIT, ETH, MeteoSwiss
 # Contact information: icon-model.org
 # See AUTHORS.TXT for a list of authors
 # See LICENSES/ for license information
@@ -41,7 +41,7 @@ init_relax=1
 ocean_vertical_levels=40
 grid_name="icon_grid_0036_R02B04_O"
 ocean_grids="R2B4_ocean-grid.nc"
-ocean_data_InputFolder="${icon_data_rootFolder}/oes/input/r0004/${grid_name}"
+ocean_data_InputFolder="${icon_data_rootFolder}/oes_mpim/input/r0004/${grid_name}"
 grids_folder=${ocean_data_InputFolder}
 nproma=8
 #-----------------------------------------------------------------------------

@@ -1,7 +1,7 @@
 ! ICON
 !
 ! ---------------------------------------------------------------
-! Copyright (C) 2004-2024, DWD, MPI-M, DKRZ, KIT, ETH, MeteoSwiss
+! Copyright (C) 2004-2025, DWD, MPI-M, DKRZ, KIT, ETH, MeteoSwiss
 ! Contact information: icon-model.org
 !
 ! See AUTHORS.TXT for a list of authors
@@ -39,8 +39,7 @@ MODULE gscp_kessler
 ! Microphysical constants and variables
 !------------------------------------------------------------------------------
 
-USE, INTRINSIC :: iso_fortran_env, ONLY: wp => real64, &
-                                         i4 => int32
+USE mo_kind, ONLY: wp, i4
 USE mo_physical_constants, ONLY: r_v   => rv    , & !> gas constant for water vapour
                                  o_m_rdv        , & !! 1 - r_d/r_v
                                  rdv            , & !! r_d / r_v

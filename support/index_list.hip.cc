@@ -1,7 +1,7 @@
 // ICON
 //
 // ---------------------------------------------------------------
-// Copyright (C) 2004-2024, DWD, MPI-M, DKRZ, KIT, ETH, MeteoSwiss
+// Copyright (C) 2004-2025, DWD, MPI-M, DKRZ, KIT, ETH, MeteoSwiss
 // Contact information: icon-model.org
 //
 // See AUTHORS.TXT for a list of authors
@@ -53,30 +53,14 @@ private:
 
 SyncStorage storage;
 
-template<typename T>
-struct ZeroCmp
-{
-    const T* conditions;
-    const int startid;
-
-    ZeroCmp(const int startid, const T* conditions) :
-        startid(startid), conditions(conditions)
-    { }
-
-    __device__ __host__ __forceinline__
-    bool operator() (const int &id)
-    {
-      return (conditions[ id - startid ] != 0);
-    }
-};
-
 template <typename T>
 static
 void c_generate_index_list_gpu_generic_device(
             const T* dev_conditions,
             const int startid, const int endid,
             int* dev_indices,
-            int* dev_nvalid, gpuStream_t stream)
+            int* dev_nvalid,
+            gpuStream_t stream)
 {
     const int n = endid - startid + 1;
 
@@ -86,7 +70,7 @@ void c_generate_index_list_gpu_generic_device(
     // Determine temporary device storage requirements
     size_t storageRequirement;
     hipcub::DeviceSelect::Flagged(nullptr, storageRequirement,
-            iterator, dev_conditions, dev_indices,
+            iterator, dev_conditions + startid - 1, dev_indices,
             dev_nvalid, n, 0);
 
     // Allocate temporary storage
@@ -95,12 +79,10 @@ void c_generate_index_list_gpu_generic_device(
         dev_nvalid = storage.getNvalidPtr();
     }
 
-    ZeroCmp<T> select(startid, dev_conditions);
-    hipcub::DeviceSelect::If(
-            storage.getScratchPtr(), storageRequirement,
-            iterator, dev_indices,
-            dev_nvalid, n,
-            select, 0);
+    hipcub::DeviceSelect::Flagged(
+        storage.getScratchPtr(), storageRequirement,
+        iterator, dev_conditions + startid - 1, dev_indices,
+        dev_nvalid, n, 0);
 }
 
 template <typename T>
@@ -128,14 +110,12 @@ void c_generate_index_list_gpu_generic(
             int* dev_indices, int* ptr_nvalid,
             bool copy_to_host, gpuStream_t stream)
 {
-    int* local_dev_nvalid = nullptr;
-
     c_generate_index_list_gpu_generic_device(
             dev_conditions, startid, endid, dev_indices,
-            copy_to_host ? local_dev_nvalid : ptr_nvalid, 0);
+            copy_to_host ? storage.getNvalidPtr() : ptr_nvalid, 0);
 
     if (copy_to_host) {
-        hipMemcpyAsync(ptr_nvalid, local_dev_nvalid, sizeof(int), hipMemcpyDeviceToHost, 0);
+        hipMemcpyAsync(ptr_nvalid, storage.getNvalidPtr(), sizeof(int), hipMemcpyDeviceToHost, 0);
         hipStreamSynchronize(0);
     }
 }

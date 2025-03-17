@@ -1,7 +1,7 @@
 ! ICON
 !
 ! ---------------------------------------------------------------
-! Copyright (C) 2004-2024, DWD, MPI-M, DKRZ, KIT, ETH, MeteoSwiss
+! Copyright (C) 2004-2025, DWD, MPI-M, DKRZ, KIT, ETH, MeteoSwiss
 ! Contact information: icon-model.org
 !
 ! See AUTHORS.TXT for a list of authors
@@ -27,7 +27,6 @@ MODULE mo_icon_interpolation_scalar
   USE mo_model_domain,        ONLY: t_patch
   USE mo_parallel_config,     ONLY: nproma
   USE mo_run_config,          ONLY: timers_level
-  USE mo_loopindices,         ONLY: get_indices_c, get_indices_e, get_indices_v
   USE mo_timer,               ONLY: timer_start, timer_stop, timer_intp
   USE mo_lib_interpolation_scalar, ONLY: verts2edges_scalar_lib, cells2edges_scalar_lib, &
                                          edges2verts_scalar_lib, edges2cells_scalar_lib, &
@@ -146,11 +145,12 @@ END SUBROUTINE verts2edges_scalar
 !!  Computes  average of scalar fields from centers of triangular faces to
 !!  velocity points.
 !!
-SUBROUTINE cells2edges_scalar( p_cell_in, ptr_patch, c_int, p_edge_out, lacc,             &
-  &                            opt_slev, opt_elev, opt_rlstart, opt_rlend, opt_fill_latbc )
+SUBROUTINE cells2edges_scalar( p_cell_in, ptr_patch, c_int, p_edge_out, lacc,  &
+  &                            opt_slev, opt_elev, opt_rlstart, opt_rlend,     &
+  &                            opt_has_latbcs, opt_fill_latbc )
 !
 
-TYPE(t_patch), TARGET, INTENT(in) :: ptr_patch
+TYPE(t_patch), INTENT(in) :: ptr_patch
 
 ! cell based scalar input field
 REAL(wp), INTENT(in) :: p_cell_in(:,:,:)   ! dim: (nproma,nlev,nblks_c)
@@ -167,6 +167,11 @@ INTEGER, INTENT(in), OPTIONAL :: opt_elev  ! optional vertical end level
 ! start and end values of refin_ctrl flag
 INTEGER, INTENT(in), OPTIONAL :: opt_rlstart, opt_rlend
 
+LOGICAL, INTENT(in), OPTIONAL :: opt_has_latbcs      ! set to true, if base domain has lateral boundaries
+                                                     ! without being a limited-area domain, e.g. for wave model.
+                                                     ! Enables filling of lateral domain boundaries,
+                                                     ! which is finally controlled by opt_fill_latbc.
+
 LOGICAL, INTENT(in), OPTIONAL :: opt_fill_latbc  ! if true, fill lateral nest boundaries
 
 ! edge based scalar output field
@@ -181,7 +186,7 @@ INTEGER, DIMENSION(2) :: i_endidx_in                  ! end index
 
 INTEGER :: rl_start, rl_end
 LOGICAL :: lfill_latbc
-
+LOGICAL :: lhas_latbcs
 !-----------------------------------------------------------------------
 
 ! check optional arguments
@@ -206,11 +211,19 @@ IF ( PRESENT(opt_rlstart) ) THEN
 ELSE
   rl_start = 2
 END IF
+
 IF ( PRESENT(opt_rlend) ) THEN
   rl_end = opt_rlend
 ELSE
   rl_end = min_rledge
 END IF
+
+IF ( PRESENT(opt_has_latbcs) ) THEN
+  lhas_latbcs = opt_has_latbcs
+ELSE
+  lhas_latbcs = l_limited_area
+END IF
+
 IF ( PRESENT(opt_fill_latbc) ) THEN
   lfill_latbc = opt_fill_latbc
 ELSE
@@ -233,7 +246,7 @@ IF (timers_level > 10) CALL timer_start(timer_intp)
 
 CALL cells2edges_scalar_lib( p_cell_in, ptr_patch%edges%cell_idx, ptr_patch%edges%cell_blk, c_int, p_edge_out, & 
   &                          i_startblk_in, i_endblk_in, i_startidx_in, i_endidx_in, & 
-  &                          slev, elev, nproma, ptr_patch%id, l_limited_area, lfill_latbc, lacc)
+  &                          slev, elev, nproma, ptr_patch%id, lhas_latbcs, lfill_latbc, lacc)
 
 IF (timers_level > 10) CALL timer_stop(timer_intp)
 

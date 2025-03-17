@@ -1,7 +1,7 @@
 ! ICON
 !
 ! ---------------------------------------------------------------
-! Copyright (C) 2004-2024, DWD, MPI-M, DKRZ, KIT, ETH, MeteoSwiss
+! Copyright (C) 2004-2025, DWD, MPI-M, DKRZ, KIT, ETH, MeteoSwiss
 ! Contact information: icon-model.org
 !
 ! See AUTHORS.TXT for a list of authors
@@ -117,12 +117,12 @@ MODULE mo_aes_phy_init
   PUBLIC  :: init_o3_lcariolle
   PUBLIC  :: sst_intp, sic_intp, sst_sic_reader
 
-  CHARACTER(len=*), PARAMETER :: modname = 'mo_aes_phy_init'
-  TYPE(t_sst_sic_reader), TARGET :: sst_sic_reader
-  TYPE(t_time_intp)      :: sst_intp
-  TYPE(t_time_intp)      :: sic_intp
-  REAL(wp), ALLOCATABLE  :: sst_dat(:,:,:,:)
-  REAL(wp), ALLOCATABLE  :: sic_dat(:,:,:,:)
+  CHARACTER(len=*)      , PARAMETER           :: modname = 'mo_aes_phy_init'
+  TYPE(t_sst_sic_reader), ALLOCATABLE, TARGET :: sst_sic_reader(:)
+  TYPE(t_time_intp),      ALLOCATABLE         :: sst_intp(:)
+  TYPE(t_time_intp),      ALLOCATABLE         :: sic_intp(:)
+  REAL(wp),               ALLOCATABLE         :: sst_dat(:,:,:,:)
+  REAL(wp),               ALLOCATABLE         :: sic_dat(:,:,:,:)
 
 CONTAINS
   !>
@@ -300,6 +300,13 @@ CONTAINS
                    &'Cariolle initialization not ready for ng>1')
       END IF
       CALL lcariolle_init()
+    END IF
+
+    ! Allocate memory for 6hourly-prescribed sst and sic data
+    IF (ANY(aes_phy_config(:)%lsstice)) THEN
+      ALLOCATE(sst_sic_reader(ng))
+      ALLOCATE(sst_intp(ng))
+      ALLOCATE(sic_intp(ng))
     END IF
 
     IF (timers_level > 1) CALL timer_stop(timer_prep_aes_phy)
@@ -506,6 +513,7 @@ CONTAINS
     LOGICAL :: lany
     TYPE(t_stream_id) :: stream_id
 
+    CHARACTER(LEN=30)     :: filename 
     CHARACTER(len=26+2+3) :: land_frac_fn
     CHARACTER(len=26+2+3) :: land_phys_fn
 
@@ -713,25 +721,37 @@ CONTAINS
         ELSE
           !
           ! READ 6-hourly sst values (dyamond+- setup, preliminary)
-          CALL sst_sic_reader%init(p_patch(1), 'sst-sic-runmean_G.nc')
-          CALL sst_intp%init(sst_sic_reader, mtime_current, "SST")
-          CALL sst_intp%intp(mtime_current, sst_dat, lacc=.FALSE.)
-          WHERE (sst_dat(:,1,:,1) > 0.0_wp)
-            prm_field(1)%ts_tile(:,:,iwtr) = sst_dat(:,1,:,1)
-          END WHERE
-          !
-          CALL sic_intp%init(sst_sic_reader, mtime_current, "SIC")
-          CALL sic_intp%intp(mtime_current, sic_dat, lacc=.FALSE.)
-          prm_field(1)%seaice(:,:) = sic_dat(:,1,:,1)
-          prm_field(1)%seaice(:,:) = MERGE(0.99_wp, prm_field(1)%seaice(:,:), prm_field(1)%seaice(:,:) > 0.99_wp)
-          prm_field(1)%seaice(:,:) = MERGE(0.0_wp, prm_field(1)%seaice(:,:), prm_field(1)%seaice(:,:) <= 0.01_wp)
+          ! Update to account for nested domains. The original ng=1 filename is kept as is to avoid conflicts.
+          DO jg = 1, ng
+            IF (ng > 1) THEN
+              WRITE(filename, '(A,I2.2,A)') 'sst-sic-runmean_DOM', jg, '.nc'
+            ELSE
+              filename = 'sst-sic-runmean_G.nc'
+            END IF
+          
+            CALL sst_sic_reader(jg)%init(p_patch(jg), filename)
+          
+            CALL sst_intp(jg)%init(sst_sic_reader(jg), mtime_current, "SST")
+            CALL sst_intp(jg)%intp(mtime_current, sst_dat, lacc=.FALSE.)
 
-          ! set ice thickness
-          WHERE (prm_field(1)%seaice(:,:) > 0.0_wp)
-            prm_field(1)%siced(:,:) = MERGE(2.0_wp, 1.0_wp, p_patch(1)%cells%center(:,:)%lat > 0.0_wp)
-          ELSEWHERE
-            prm_field(1)%siced(:,:) = 0.0_wp
-          ENDWHERE
+            ! set sea surface temperature
+            WHERE (sst_dat(:,1,:,1) > 0.0_wp)
+              prm_field(jg)%ts_tile(:,:,iwtr) = sst_dat(:,1,:,1)
+            END WHERE
+          
+            CALL sic_intp(jg)%init(sst_sic_reader(jg), mtime_current, "SIC")
+            CALL sic_intp(jg)%intp(mtime_current, sic_dat, lacc=.FALSE.)
+            prm_field(jg)%seaice(:,:) = sic_dat(:,1,:,1)
+            prm_field(jg)%seaice(:,:) = MERGE(0.99_wp, prm_field(jg)%seaice(:,:), prm_field(jg)%seaice(:,:) > 0.99_wp)
+            prm_field(jg)%seaice(:,:) = MERGE(0.0_wp, prm_field(jg)%seaice(:,:), prm_field(jg)%seaice(:,:) <= 0.01_wp)
+          
+            ! set ice thickness
+            WHERE (prm_field(jg)%seaice(:,:) > 0.0_wp)
+              prm_field(jg)%siced(:,:) = MERGE(2.0_wp, 1.0_wp, p_patch(jg)%cells%center(:,:)%lat > 0.0_wp)
+            ELSEWHERE
+              prm_field(jg)%siced(:,:) = 0.0_wp
+            ENDWHERE
+          END DO
         !
         END IF
         !

@@ -1,7 +1,7 @@
 ! ICON
 !
 ! ---------------------------------------------------------------
-! Copyright (C) 2004-2024, DWD, MPI-M, DKRZ, KIT, ETH, MeteoSwiss
+! Copyright (C) 2004-2025, DWD, MPI-M, DKRZ, KIT, ETH, MeteoSwiss
 ! Contact information: icon-model.org
 !
 ! See AUTHORS.TXT for a list of authors
@@ -156,7 +156,8 @@ CONTAINS
     ! of monthly means onto the actual integration time step
     current_time_interpolation_weights = calculate_time_interpolation_weights(mtime_old)
 
-    ! Read and interpolate in time monthly mean SST for AMIP simulations
+    ! Read and interpolate in time monthly mean SST for AMIP simulations...
+    ! ... or use the 6hourly-prescribed profiles (one per physical domain)
     ! SST is needed for turbulent vertical fluxes and for radiation.
     !
     IF (aes_phy_tc(jg)%dt_rad > dt_zero .OR. aes_phy_tc(jg)%dt_vdf > dt_zero) THEN
@@ -196,7 +197,7 @@ CONTAINS
         ELSE
           !
           ! Interpolate 6-hourly sst values
-          CALL sst_intp%intp(time_config%tc_current_date, sst_dat, lacc=.TRUE.)
+          CALL sst_intp(jg)%intp(time_config%tc_current_date, sst_dat, lacc=.TRUE.)
           jbs = LBOUND(field%ts_tile, 2); jbe = UBOUND(field%ts_tile, 2)
           jcs = LBOUND(field%ts_tile, 1); jce = UBOUND(field%ts_tile, 1)
 
@@ -212,7 +213,7 @@ CONTAINS
           !$ACC END PARALLEL
           !
           ! Interpolate 6-hourly sic values
-          CALL sic_intp%intp(time_config%tc_current_date, sic_dat, lacc=.TRUE.)
+          CALL sic_intp(jg)%intp(time_config%tc_current_date, sic_dat, lacc=.TRUE.)
 
           jbs = LBOUND(field%seaice, 2); jbe = UBOUND(field%seaice, 2)
           jcs = LBOUND(field%seaice, 1); jce = UBOUND(field%seaice, 1)

@@ -1,7 +1,7 @@
 ! ICON
 !
 ! ---------------------------------------------------------------
-! Copyright (C) 2004-2024, DWD, MPI-M, DKRZ, KIT, ETH, MeteoSwiss
+! Copyright (C) 2004-2025, DWD, MPI-M, DKRZ, KIT, ETH, MeteoSwiss
 ! Contact information: icon-model.org
 !
 ! See AUTHORS.TXT for a list of authors
@@ -29,7 +29,7 @@ MODULE mo_wave_model
   USE mo_impl_constants,          ONLY: success, pio_type_async, pio_type_cdipio
   USE mo_dynamics_config,         ONLY: configure_dynamics
   USE mo_run_config,              ONLY: configure_run, ldynamics, ltransport,    &
-       &                                ntracer, ltimer, dtime,                  &
+       &                                ltimer, dtime,                           &
        &                                nshift, num_lev, output_mode, msg_level, &
        &                                grid_generatingcenter, grid_generatingsubcenter
   USE mo_gribout_config,          ONLY: configure_gribout
@@ -58,7 +58,7 @@ MODULE mo_wave_model
 
   USE mo_wave_ext_data_state,     ONLY: wave_ext_data, wave_ext_data_list, construct_wave_ext_data_state, &
     &                                   destruct_wave_ext_data_state
-  USE mo_wave_ext_data_init,      ONLY: init_wave_ext_data
+  USE mo_wave_ext_data_init,      ONLY: init_wave_ext_data, init_coastedge_list
 
   USE mo_alloc_patches,           ONLY: destruct_patches
   USE mo_icon_comm_interface,     ONLY: construct_icon_communication, destruct_icon_communication
@@ -270,7 +270,7 @@ CONTAINS
     ! setup wave model
     ! - configuration of the wave spectrum
     !
-    CALL configure_wave(n_dom, ntracer)
+    CALL configure_wave(n_dom)
 
     !------------------------------------------------------------------
     ! Create and optionally read external data fields
@@ -278,6 +278,8 @@ CONTAINS
     CALL construct_wave_ext_data_state(p_patch(1:))
     !
     CALL init_wave_ext_data (p_patch(1:), p_int_state, wave_ext_data)
+
+    CALL init_coastedge_list (p_patch(1:))
 
     CALL message(routine, 'finished.')
 

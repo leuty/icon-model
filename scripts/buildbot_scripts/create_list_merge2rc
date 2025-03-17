@@ -3,7 +3,7 @@
 # ICON
 #
 # ------------------------------------------
-# Copyright (C) 2004-2024, DWD, MPI-M, DKRZ, KIT, ETH, MeteoSwiss
+# Copyright (C) 2004-2025, DWD, MPI-M, DKRZ, KIT, ETH, MeteoSwiss
 # Contact information: icon-model.org
 # See AUTHORS.TXT for a list of authors
 # See LICENSES/ for license information
@@ -34,8 +34,7 @@ listname=${1:-merge2rc}
 NVHPC_GPU_BUILDERS='levante_gpu_nvhpc'
 NVHPC_CPU_BUILDERS='levante_cpu_nvhpc'
 NVHPC_DEV_BUILDERS='levante_gpu_validation levante_cpu_nvhpc_dev levante_gpu_nvhpc_dev'
-NVHPC_OCE_BUILDERS='levante_cpu_nvhpc_oce levante_gpu_nvhpc_oce'
-GPU_BUILDERS="${NVHPC_CPU_BUILDERS} ${NVHPC_GPU_BUILDERS} ${NVHPC_DEV_BUILDERS} ${NVHPC_OCE_BUILDERS}"
+GPU_BUILDERS="${NVHPC_CPU_BUILDERS} ${NVHPC_GPU_BUILDERS} ${NVHPC_DEV_BUILDERS}"
 ./set_builder_flags Inactive --builders "levante_aurora ${GPU_BUILDERS}" --list $listname
 #-----------------------------------------------------------
 # AES
@@ -44,40 +43,85 @@ GPU_BUILDERS="${NVHPC_CPU_BUILDERS} ${NVHPC_GPU_BUILDERS} ${NVHPC_DEV_BUILDERS} 
 # the number for ntasks is the current default set in create_targe_header for
 # levante setting queue=shared,compute can lead to only 2 cpus available for
 # the job. so for consistency of the environment ntasks is set here
-$addexp "checksuite.icon-dev/check.atm_qubicc"            --machines "levante" --list $listname --runflags="ntasks=16 queue=shared,compute memory=32G"
-$addexp "checksuite.icon-dev/check.atm_qubicc_nofor"      --machines "levante" --list $listname --runflags="ntasks=16 queue=shared,compute memory=32G"
-$addexp "checksuite.icon-dev/check.atm_qubicc_onlyfor"    --machines "levante" --list $listname --runflags="ntasks=16 queue=shared,compute memory=32G"
-$addexp "checksuite.icon-dev/check.atm_heldsuarez"        --machines "levante" --list $listname --runflags "ntasks=16 queue=shared,compute"
-$addexp "checksuite.icon-dev/check.atm_ape"               --machines "levante" --list $listname --runflags "queue=compute"
-$addexp "checksuite.icon-dev/check.atm_sma"               --machines "levante" --list $listname --runflags "queue=compute"
-$addexp "checksuite.icon-dev/check.atm_bubble_test"       --machines "levante" --list $listname --runflags "ntasks=16 queue=shared"
+# but for mpi tests the number of tasks must not be specified!
+#
+#---------------------------------------------------------------------------------------------------------
+# add global atmosphere tests to levante excluding NVHPC_CPU/GPU_BUILDERS and excluding levante_nag_serial
+./set_builder_flags Inactive --builders "levante_nag_serial"    --list $listname
+#---------------------------------------------------------------------------------------------------------
+$addexp "checksuite.icon-dev/check.aes_amip_test"          --machines "levante" --list $listname --runflags "ntasks=16 queue=compute memory=32G"
+$addexp "checksuite.icon-dev/check.aes_amip_test_update"   --machines "levante" --list $listname --runflags "ntasks=16 queue=compute memory=32G"
+#
+$addexp "checksuite.icon-dev/check.atm_cph_nest_R2B4_test"         --machines "levante" --list $listname --runflags "ntasks=16 queue=compute memory=32G"
+$addexp "checksuite.icon-dev/check.atm_cph_nest_R2B4_test_update"  --machines "levante" --list $listname --runflags "ntasks=16 queue=compute memory=32G"
+./set_builder_flags Active   --builders "levante_nag_serial"    --list $listname
+#
+#---------------------------------------------------------------------------------------------------------
+# add global atmosphere tests to levante including NVHPC_CPU_BUILDERS and excluding levante_nag_serial
+./set_builder_flags Active   --builders "${NVHPC_CPU_BUILDERS}" --list $listname
+./set_builder_flags Inactive --builders "levante_nag_serial"    --list $listname
+#---------------------------------------------------------------------------------------------------------
+$addexp "checksuite.icon-dev/check.atm_qubicc"             --machines "levante" --list $listname --runflags="ntasks=16 queue=shared,compute memory=32G"
+$addexp "checksuite.icon-dev/check.atm_qubicc_grb"         --machines "levante" --list $listname --runflags="ntasks=16 queue=shared,compute memory=32G"
+$addexp "checksuite.icon-dev/check.atm_qubicc_nofor"       --machines "levante" --list $listname --runflags="ntasks=16 queue=shared,compute memory=32G"
+$addexp "checksuite.icon-dev/check.atm_qubicc_onlyfor"     --machines "levante" --list $listname --runflags="ntasks=16 queue=shared,compute memory=32G"
+$addexp "checksuite.icon-dev/check.atm_qubicc_update"      --machines "levante" --list $listname --runflags "ntasks=16 queue=shared,compute memory=32G"
+./set_builder_flags Inactive --builders "${NVHPC_CPU_BUILDERS}" --list $listname
+./set_builder_flags Active   --builders "levante_nag_serial"    --list $listname
+#
+#---------------------------------------------------------------------------------------------------------
+# add global atmosphere tests to levante NVHPC_GPU_BUILDERS
+./set_builder_flags Active   --builders "${NVHPC_GPU_BUILDERS}" --list $listname
+$addexp "checksuite.icon-dev/check.atm_qubicc"             --builders "${NVHPC_GPU_BUILDERS}" --list $listname --runflags "mpi_procs_pernode=4"
+$addexp "checksuite.icon-dev/check.atm_qubicc_grb"         --builders "${NVHPC_GPU_BUILDERS}" --list $listname --runflags "mpi_procs_pernode=4"
+$addexp "checksuite.icon-dev/check.atm_qubicc_nofor"       --builders "${NVHPC_GPU_BUILDERS}" --list $listname --runflags "mpi_procs_pernode=4"
+$addexp "checksuite.icon-dev/check.atm_qubicc_onlyfor"     --builders "${NVHPC_GPU_BUILDERS}" --list $listname --runflags "mpi_procs_pernode=4"
+$addexp "checksuite.icon-dev/check.atm_qubicc_update"      --builders "${NVHPC_GPU_BUILDERS}" --list $listname --runflags "mpi_procs_pernode=4"
+./set_builder_flags Inactive --builders "${NVHPC_GPU_BUILDERS}" --list $listname
+#
+#---------------------------------------------------------------------------------------------------------
+#
+# add global atmosphere tests to mpimac and breeze
+for builder in mpimac_gcc breeze_gcc breeze_nag breeze_intel; do
+  $addexp "checksuite.icon-dev/check.atm_qubicc_short"     --builders ${builder} --list $listname --runflags "mpi_procs_pernode=4"
+done
+#---------------------------------------------------------------------------------------------------------
+# add idealized atm. tests to levante, but some not on levante_nag_serial
+$addexp "checksuite.icon-dev/check.atm_heldsuarez"         --machines "levante" --list $listname --runflags "ntasks=16 queue=shared,compute"
+#
+$addexp "checksuite.icon-dev/check.atm_ape"                --machines "levante" --list $listname --runflags "queue=compute"
+./rmexp "checksuite.icon-dev/check.atm_ape"                --builders "levante_nag_serial" --list $listname
+#
+$addexp "checksuite.icon-dev/check.atm_sma"                --machines "levante" --list $listname --runflags "queue=compute"
+./rmexp "checksuite.icon-dev/check.atm_sma"                --builders "levante_nag_serial" --list $listname
+./rmexp "checksuite.icon-dev/check.atm_sma"                --builders "levante_intel_hybrid_mixed" --list $listname
+#
+$addexp "checksuite.icon-dev/check.atm_bubble_test"        --machines "levante" --list $listname --runflags "ntasks=16 queue=shared"
 $addexp "checksuite.icon-dev/check.atm_bubble_test_update" --machines "levante" --list $listname --runflags "ntasks=16 queue=shared"
 ./rmexp "checksuite.icon-dev/check.atm_bubble_test_update" --builders "levante_nag_serial" --list $listname
-$addexp "checksuite.icon-dev/check.atm_bubble_land_test"  --machines "levante" --list $listname --runflags "ntasks=16 queue=shared"
-$addexp "checksuite.atm/exp.test_coupled_160kmNestedAtm_40kmOce" --builders "levante_gcc_hybrid levante_nag" --list $listname  --runflags "cpu_time=00:10:00 no_of_nodes=2"   
-# add qubicc update test on Levante (netcdf) only
-$addexp "checksuite.icon-dev/check.atm_qubicc_nc_update"  --machines "levante" --list $listname --runflags "ntasks=16 queue=compute memory=32G"
-./rmexp "checksuite.icon-dev/check.atm_qubicc_nc_update"  --builders "levante_nag_serial" --list $listname
-
-#sma fails in a hybrid mixed build
-./rmexp "checksuite.icon-dev/check.atm_sma"  --builders "levante_intel_hybrid_mixed" --list $listname
-
-# limitted area runs
-$addexp "checksuite.les/exp.ac3_les_20210211.run" --builders "levante_intel_hybrid" --list $listname
-
-
-# wave model tests, including coupled atmo-wave tests
+$addexp "checksuite.icon-dev/check.atm_bubble_land_test"   --machines "levante" --list $listname --runflags "ntasks=16 queue=shared"
 #
+#---------------------------------------------------------------------------------------------------------
+# add idealized atm_bubble tests to levante NVHPC_CPU_BUILDERS
+./set_builder_flags Active   --builders "${NVHPC_CPU_BUILDERS}" --list $listname
+$addexp "checksuite.icon-dev/check.atm_bubble_test"        --builders "${NVHPC_CPU_BUILDERS}" --list $listname --runflags "queue=shared ntasks=16 memory=32G"
+$addexp "checksuite.icon-dev/check.atm_bubble_test_update" --builders "${NVHPC_CPU_BUILDERS}" --list $listname --runflags "queue=shared ntasks=16 memory=32G"
+$addexp "checksuite.icon-dev/check.atm_bubble_land_test"   --builders "${NVHPC_CPU_BUILDERS}" --list $listname --runflags "queue=shared ntasks=16 memory=32G"
+./set_builder_flags Inactive --builders "${NVHPC_CPU_BUILDERS}" --list $listname
+#
+#---------------------------------------------------------------------------------------------------------
+# Other tests
+# limited area runs
+$addexp "checksuite.les/exp.ac3_les_20210211.run" --builders "levante_intel_hybrid" --list $listname
+# wave model tests, including coupled atmo-wave tests
 $addexp "checksuite.nwp/nwpexp.run_ICON_18_R2B4_waves_adv_nophys"         --builders "levante_intel_hybrid levante_nag dwd_nec_hybrid"  --list $listname
 $addexp "checksuite.nwp/nwpexp.run_ICON_21_R2B4_waves_standalone_restart" --builders "levante_intel_hybrid dwd_nec_hybrid"  --list $listname
 $addexp "checksuite.icon-dev/check.waves_R2B4_global_no_forcing"          --builders "dwd_nec_hybrid levante_intel_hybrid levante_nag" --list $listname
 # coupled tests
 $addexp "checksuite.nwp/nwpexp.run_ICON_23_R2B4_atmo_waves_coupled"       --builders "levante_gcc levante_intel" --list $listname --runflags "queue=compute"
 $addexp "checksuite.nwp/nwpexp.run_ICON_28_R2B6_IAU_atmo_waves_coupled"   --builders "dwd_nec_coupling" --list $listname
-
-# add bubble test
-#off#$addexp "checksuite.icon-dev/check.atm_2mom_bubble_rceTorus"               --list $listname
-#-----------------------------------------------------------
+# implementation of coupling the nested atmosphere to the ocean
+$addexp "checksuite.atm/exp.test_coupled_160kmNestedAtm_40kmOce" --builders "levante_gcc_hybrid levante_nag" --list $listname  --runflags "cpu_time=00:10:00 no_of_nodes=2"
 
 #-----------------------------------------------------------
 # OES
@@ -239,7 +283,6 @@ done
 
 # activate experiments for the Mac builder and breeze
 for builder in mpimac_gcc breeze_gcc breeze_nag breeze_intel; do
-  $addexp exp.atm_qubicc_test_short --builders ${builder} --list $listname --runflags "mpi_procs_pernode=4"
   $addexp checksuite.ocean_internal/omip/exp.ocean_omip_short_r2b4 --builders ${builder} --list $listname --runflags "mpi_procs_pernode=4"
 done
 
@@ -252,7 +295,6 @@ $addexp checksuite.art/exp.art_levante_test_short.run --builders "levante_gcc" -
 $addexp checksuite.art/exp.art_levante_test.run --builders "levante_gcc" --list $listname
 
 # add tests for checking yaxt and yac stand-alone; this needs yaxt/yac to be enabled
-#FIXME: exp.check_externals_DWD.run has been deactivated, since the MPI test fails for YAC
 $addexp  checksuite.infrastructure/checkExternals/exp.check_externals_DWD.run --builders dwd_nec_coupling --list ${listname}
 $addexp  checksuite.infrastructure/checkExternals/exp.check_externals_LEVANTE.run --machines levante --list ${listname}
 ./adddep --from-experiment "checksuite.infrastructure/comin/exp.build_comin_plugins_LEVANTE.run" --to-experiment "checksuite.infrastructure/checkExternals/exp.check_externals_LEVANTE.run" --builders "levante_gcc" --list $listname
@@ -262,23 +304,10 @@ $addexp  checksuite.infrastructure/checkExternals/exp.check_externals_LEVANTE.ru
 # atm runs on default builders
 $addexp exp.atm_tracer_Hadley --builders "${NVHPC_GPU_BUILDERS}" --list ${listname} --runflags "mpi_procs_pernode=5"
 $addexp exp.atm_tracer_Hadley --builders "${NVHPC_CPU_BUILDERS}" --list ${listname} --runflags "queue=compute"
-$addexp "checksuite.icon-dev/check.atm_bubble_test" --builders "${NVHPC_CPU_BUILDERS}" --list $listname --runflags "queue=shared ntasks=16 memory=32G"
-$addexp "checksuite.icon-dev/check.atm_bubble_test_update" --builders "${NVHPC_CPU_BUILDERS}" --list $listname --runflags "queue=shared ntasks=16 memory=32G"
-$addexp "checksuite.icon-dev/check.atm_bubble_land_test" --builders "${NVHPC_CPU_BUILDERS}" --list $listname --runflags "queue=shared ntasks=16 memory=32G"
 
-# add qubicc tests without tolerances on netcdf to levante nvhpc
-$addexp "checksuite.icon-dev/check.atm_qubicc_nc"         --builders "${NVHPC_GPU_BUILDERS}" --list $listname --runflags "mpi_procs_pernode=3"
-$addexp "checksuite.icon-dev/check.atm_qubicc_nc"         --builders "${NVHPC_CPU_BUILDERS}" --list $listname --runflags "queue=shared ntasks=16 memory=32G"
-$addexp "checksuite.icon-dev/check.atm_qubicc_nc_update"  --builders "${NVHPC_GPU_BUILDERS}" --list $listname --runflags "mpi_procs_pernode=3"
-$addexp "checksuite.icon-dev/check.atm_qubicc_nc_update"  --builders "${NVHPC_CPU_BUILDERS}" --list $listname --runflags "queue=shared ntasks=16 memory=32G"
-$addexp "checksuite.icon-dev/check.atm_qubicc_nc_nofor"   --builders "${NVHPC_GPU_BUILDERS}" --list $listname --runflags "mpi_procs_pernode=3"
-$addexp "checksuite.icon-dev/check.atm_qubicc_nc_nofor"   --builders "${NVHPC_CPU_BUILDERS}" --list $listname --runflags "queue=shared ntasks=16 memory=32G"
-$addexp "checksuite.icon-dev/check.atm_qubicc_nc_onlyfor" --builders "${NVHPC_GPU_BUILDERS}" --list $listname --runflags "mpi_procs_pernode=3"
-$addexp "checksuite.icon-dev/check.atm_qubicc_nc_onlyfor" --builders "${NVHPC_CPU_BUILDERS}" --list $listname --runflags "queue=shared ntasks=16 memory=32G"
-
-# add ocean_omip test for GPU but only on outdated
-$addexp "checksuite.ocean_internal/gpu/exp.ocean_omip_R2B4_V0_GM0"  --builders "${NVHPC_OCE_BUILDERS}" --list $listname --runflags "cpu_time=00:10:00"
-$addexp "checksuite.ocean_internal/gpu/exp.ocean_omip_R2B4_V1_GM0"  --builders "${NVHPC_OCE_BUILDERS}" --list $listname --runflags "cpu_time=00:10:00"
+# add ocean_omip test for GPU
+$addexp "checksuite.ocean_internal/gpu/exp.ocean_omip_R2B4_V0_GM0"  --builders "${NVHPC_CPU_BUILDERS} ${NVHPC_GPU_BUILDERS}" --list $listname --runflags "cpu_time=00:10:00"
+$addexp "checksuite.ocean_internal/gpu/exp.ocean_omip_R2B4_V1_GM0"  --builders "${NVHPC_CPU_BUILDERS} ${NVHPC_GPU_BUILDERS}" --list $listname --runflags "cpu_time=00:10:00"
 
 $addexp  checksuite.infrastructure/checkExternals/exp.check_externals_LEVANTE.run     --builders "${NVHPC_CPU_BUILDERS}" --list ${listname}
 $addexp  checksuite.infrastructure/checkExternals/exp.check_externals_LEVANTE_gpu.run --builders "${NVHPC_GPU_BUILDERS}" --list ${listname}
@@ -296,15 +325,10 @@ do
   ./rmexp $experiment --builders levante_nag --list $listname
 done
 for experiment in \
-  checksuite.icon-dev/check.atm_ape \
-  checksuite.icon-dev/check.atm_qubicc \
-  checksuite.icon-dev/check.atm_qubicc_nofor \
-  checksuite.icon-dev/check.atm_qubicc_onlyfor \
   checksuite.ocean_internal/omip/exp.test_ocean_omip_10days \
   checksuite.ocean_internal/hamocc/exp.test_hamocc_omip_10days \
   checksuite.ocean_internal/omip/exp.test_ocean_zstar_omip_10days \
-  checksuite.ocean_internal/omip/exp.test_ocean_newice_omip_10days \
-  checksuite.icon-dev/check.atm_sma
+  checksuite.ocean_internal/omip/exp.test_ocean_newice_omip_10days
 do
   ./rmexp $experiment --builders levante_nag_serial --list $listname
 done

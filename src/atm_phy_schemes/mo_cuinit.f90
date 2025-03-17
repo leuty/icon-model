@@ -199,16 +199,19 @@ CONTAINS
     !$ACC   IF(lacc)
 
     !is set below:  zph  (:) = 0.0_JPRB
-   
+
 !   zalfa=LOG(2.0_JPRB)
     zorcpd=1._jprb/rcpd
 
+#if defined(_CRAYFTN) && _RELEASE_MAJOR <= 15
     !$ACC WAIT(1) ! ACCWA (cray 15.0.1): The WAIT(1) and missing ASYNC(1) are required to avoid the error
                   !                      "Invalid accelerator routine parallelism attribute: cuadjtq".
                   !                      Note that cuadjtq is also called in other regions of the code,
                   !                      but only the call here in cuinin raises the error above.
     !$ACC PARALLEL DEFAULT(PRESENT) IF(lacc)
-
+#else
+    !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1) IF(lacc)
+#endif
     !$ACC LOOP SEQ
     DO jk=ktdia+1,klev
 

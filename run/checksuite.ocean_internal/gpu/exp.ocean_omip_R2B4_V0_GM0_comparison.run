@@ -3,7 +3,7 @@
 # ICON
 #
 # ------------------------------------------
-# Copyright (C) 2004-2024, DWD, MPI-M, DKRZ, KIT, ETH, MeteoSwiss
+# Copyright (C) 2004-2025, DWD, MPI-M, DKRZ, KIT, ETH, MeteoSwiss
 # Contact information: icon-model.org
 # See AUTHORS.TXT for a list of authors
 # See LICENSES/ for license information
@@ -22,7 +22,6 @@
 #SBATCH --output=LOG.exp.ocean_omip_R2B4_V0_GM0_comparison.run.run.o
 #SBATCH  --error=LOG.exp.ocean_omip_R2B4_V0_GM0_comparison.run.run.o
 #SBATCH --time=00:10:00
-#SBATCH --qos=buildbot
 
 module load cdo
 

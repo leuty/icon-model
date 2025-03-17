@@ -1,7 +1,7 @@
 ! ICON
 !
 ! ---------------------------------------------------------------
-! Copyright (C) 2004-2024, DWD, MPI-M, DKRZ, KIT, ETH, MeteoSwiss
+! Copyright (C) 2004-2025, DWD, MPI-M, DKRZ, KIT, ETH, MeteoSwiss
 ! Contact information: icon-model.org
 !
 ! See AUTHORS.TXT for a list of authors
@@ -767,7 +767,7 @@ CONTAINS
     !$ACC END PARALLEL
     
     ! clipping for number concentrations
-    IF(atm_phy_nwp_config(jg)%l2moment)THEN
+    IF(atm_phy_nwp_config(jg)%l2moment .OR. atm_phy_nwp_config(jg)%inwp_gscp == 3)THEN
       !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1) IF(lzacc)
       !$ACC LOOP GANG VECTOR COLLAPSE(3)
       DO jt=iqni, ininact  ! qni,qnr,qns,qng,qnh,qnc and ninact (but not yet ninpot)

@@ -1,7 +1,7 @@
 ! ICON
 !
 ! ---------------------------------------------------------------
-! Copyright (C) 2004-2024, DWD, MPI-M, DKRZ, KIT, ETH, MeteoSwiss
+! Copyright (C) 2004-2025, DWD, MPI-M, DKRZ, KIT, ETH, MeteoSwiss
 ! Contact information: icon-model.org
 !
 ! See AUTHORS.TXT for a list of authors
@@ -19,8 +19,7 @@ MODULE gscp_data
 
 !==============================================================================
 
-USE, INTRINSIC :: iso_fortran_env, ONLY: wp => real64, i4 => int32
-
+USE mo_kind, ONLY: wp
 USE mo_math_constants    , ONLY: pi
 
 USE mo_physical_constants, ONLY: r_v   => rv    , & !> gas constant for water vapour
@@ -429,9 +428,11 @@ SUBROUTINE gscp_set_coefficients (igscp, idbg, tune_zceff_min, tune_v0snow, tune
 
   IF (igscp == 3) THEN
     CALL setup_ice_selfcollection(ice2mom,ice_coeffs)
+    CALL message('gscp_set_coefficients','microphysical values initialized for cloudice2mom (gscp=3)')
+  ELSE
+    CALL message('gscp_set_coefficients','microphysical values initialized')
   END IF
 
-  CALL message('gscp_set_coefficients','microphysical values initialized')
 
   !$ACC UPDATE DEVICE(zvz0i, zceff_min) ASYNC(1)
 

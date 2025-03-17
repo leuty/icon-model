@@ -1,7 +1,7 @@
 ! ICON
 !
 ! ---------------------------------------------------------------
-! Copyright (C) 2004-2024, DWD, MPI-M, DKRZ, KIT, ETH, MeteoSwiss
+! Copyright (C) 2004-2025, DWD, MPI-M, DKRZ, KIT, ETH, MeteoSwiss
 ! Contact information: icon-model.org
 !
 ! See AUTHORS.TXT for a list of authors
@@ -17,7 +17,7 @@ MODULE mo_wave_adv_exp
   USE mo_model_domain,         ONLY: t_patch
   USE mo_wave_forcing_types,   ONLY: t_wave_forcing
   USE mo_wave_config,          ONLY: t_wave_config
-  USE mo_math_constants,       ONLY: pi, rad2deg, deg2rad, dbl_eps
+  USE mo_math_constants,       ONLY: pi, deg2rad, dbl_eps
   USE mo_impl_constants,       ONLY: MAX_CHAR_LENGTH, min_rlcell
   USE mo_loopindices,          ONLY: get_indices_c
 
@@ -85,7 +85,7 @@ CONTAINS
         p_forcing%v10m(jc,jb) = MAX(1._wp + COS(pi*d1) * wc%peak_v10, dbl_eps)
         p_forcing%sp10m(jc,jb) = SQRT(p_forcing%u10m(jc,jb)**2 + p_forcing%v10m(jc,jb)**2)
         ! 45 degree towards NE
-        p_forcing%dir10m(jc,jb) = ATAN2(p_forcing%v10m(jc,jb),p_forcing%u10m(jc,jb))*rad2deg
+        p_forcing%dir10m(jc,jb) = ATAN2(p_forcing%v10m(jc,jb),p_forcing%u10m(jc,jb))
       END DO ! cell loop
     END DO
 !$OMP END DO NOWAIT

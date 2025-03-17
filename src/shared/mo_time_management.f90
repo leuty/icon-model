@@ -1,7 +1,7 @@
 ! ICON
 !
 ! ---------------------------------------------------------------
-! Copyright (C) 2004-2024, DWD, MPI-M, DKRZ, KIT, ETH, MeteoSwiss
+! Copyright (C) 2004-2025, DWD, MPI-M, DKRZ, KIT, ETH, MeteoSwiss
 ! Contact information: icon-model.org
 !
 ! See AUTHORS.TXT for a list of authors
@@ -45,7 +45,7 @@ MODULE mo_time_management
     &                                    set_tc_dt_model, set_tc_timeshift,                &
     &                                    calendar_index2string
   USE mo_run_config,               ONLY: dtime, mtime_modelTimeStep => modelTimeStep
-  USE mo_master_control,           ONLY: my_process_is_atmo
+  USE mo_master_control,           ONLY: my_process_is_atmo, my_process_is_waves
   USE mo_impl_constants,           ONLY: max_dom,                                          &
     &                                    dtime_proleptic_gregorian => proleptic_gregorian, &
     &                                    dtime_cly360              => cly360,              &
@@ -666,7 +666,7 @@ CONTAINS
     !
     ! timeshift-operations for CURRENT DATE
     !
-    IF (my_process_is_atmo()) THEN
+    IF (my_process_is_atmo() .OR. my_process_is_waves()) THEN
 
       ! A timeshift can be used to shift the current model date, and thus
       ! the actual start date by time_config%timeshift%dt_shift backwards in time.

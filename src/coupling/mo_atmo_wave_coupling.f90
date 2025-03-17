@@ -1,7 +1,7 @@
 ! ICON
 !
 ! ---------------------------------------------------------------
-! Copyright (C) 2004-2024, DWD, MPI-M, DKRZ, KIT, ETH, MeteoSwiss
+! Copyright (C) 2004-2025, DWD, MPI-M, DKRZ, KIT, ETH, MeteoSwiss
 ! Contact information: icon-model.org
 !
 ! See AUTHORS.TXT for a list of authors
@@ -18,7 +18,7 @@
 MODULE mo_atmo_wave_coupling
 
   USE mo_kind,               ONLY: wp
-  USE mo_exception,          ONLY: message, message_text
+  USE mo_exception,          ONLY: message, message_text, finish
   USE mo_model_domain,       ONLY: t_patch
   USE mo_fortran_tools,      ONLY: assert_acc_host_only
   USE mo_coupling_utils,     ONLY: cpl_def_field, cpl_get_field_datetime, &
@@ -31,7 +31,6 @@ MODULE mo_atmo_wave_coupling
   USE mo_loopindices,        ONLY: get_indices_c
   USE mtime,                 ONLY: datetime, OPERATOR(<), OPERATOR(==)
   USE mo_time_config,        ONLY: time_config
-  USE mo_exception,          ONLY: finish
 
 
   IMPLICIT NONE
@@ -118,7 +117,7 @@ CONTAINS
   !! This subroutine is called from nwp_nh_interface.
   !!
   SUBROUTINE couple_atmo_to_wave(p_patch, list_sea, u10m, v10m, fr_seaice, frac_t, &
-    &                            z0_waves, gz0_t, gz0, lacc)
+    &                            z0_waves, lacc)
 
     CHARACTER(len=*), PARAMETER ::  &
       &  routine = modname//':couple_atmo_to_wave'
@@ -130,8 +129,6 @@ CONTAINS
     REAL(wp), CONTIGUOUS, TARGET, INTENT(IN)    :: fr_seaice(:,:) !< fraction_of_ocean_covered_by_sea_ice [1]
     REAL(wp), CONTIGUOUS,         INTENT(IN)    :: frac_t(:,:,:)  !< tile-specific area fraction [1]
     REAL(wp), CONTIGUOUS, TARGET, INTENT(INOUT) :: z0_waves(:,:)  !< surface roughness length [m]
-    REAL(wp), CONTIGUOUS,         INTENT(INOUT) :: gz0_t(:,:,:)   !< tile-based roughness length times gravity [m2 s-2]
-    REAL(wp), CONTIGUOUS,         INTENT(INOUT) :: gz0(:,:)       !< aggregated roughness length times gravity [m2 s-2]
     LOGICAL,  OPTIONAL,           INTENT(IN)    :: lacc           ! If true, use openacc
 
     LOGICAL :: write_coupler_restart, received_data
@@ -139,7 +136,6 @@ CONTAINS
     INTEGER :: i_rlstart, i_rlend, i_startblk, i_endblk
     INTEGER :: i_startidx, i_endidx
     INTEGER :: jb,ic,jc
-    INTEGER :: isubs
     LOGICAL, SAVE :: lcheck_for_timelag = .TRUE.
     TYPE(datetime) :: curr_datetime_u10m
 
@@ -149,7 +145,7 @@ CONTAINS
     ! A component may execute timesteps for dates before the actual
     ! start of this simulation (e.g. due to IAU). These timesteps are currently
     ! not considered for coupling, which is why they are skipped here.
-    ! The first actual coupling timestep usually is a start_date + lag * field_timestep.
+    ! The first actual coupling timestep usually is at start_date + lag * field_timestep.
     IF (lcheck_for_timelag) THEN
 
       ! query current timestamps of source/target fields
@@ -219,26 +215,14 @@ CONTAINS
       i_endblk   = p_patch%cells%end_block(i_rlend)
 
 !$OMP PARALLEL
-!$OMP DO PRIVATE(jb,ic,jc,i_startidx,i_endidx,isubs) ICON_OMP_DEFAULT_SCHEDULE
+!$OMP DO PRIVATE(jb,ic,jc,i_startidx,i_endidx) ICON_OMP_DEFAULT_SCHEDULE
       DO jb = i_startblk, i_endblk
         CALL get_indices_c( p_patch, jb, i_startblk, i_endblk,           &
           &                 i_startidx, i_endidx, i_rlstart, i_rlend)
         DO ic = 1, list_sea%ncount(jb)
           jc = list_sea%idx(ic,jb)
           z0_waves(jc,jb) = MAX(z0_waves(jc,jb),1.e-6_wp)
-          gz0_t(jc,jb,isub_water) = grav * z0_waves(jc,jb)
         END DO
-
-        ! aggregate gz0_t
-        DO jc = i_startidx, i_endidx
-          gz0(jc,jb) = 0._wp
-        ENDDO
-        !
-        DO isubs = 1, SIZE(frac_t,3)
-          DO jc = i_startidx, i_endidx
-            gz0(jc,jb)= gz0(jc,jb) + gz0_t(jc,jb,isubs) * frac_t(jc,jb,isubs)
-          ENDDO
-        ENDDO  !isubs
       ENDDO  !jb
 !$OMP ENDDO NOWAIT
 !$OMP END PARALLEL

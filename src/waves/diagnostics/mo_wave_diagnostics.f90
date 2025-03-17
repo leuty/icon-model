@@ -1,7 +1,7 @@
 ! ICON
 !
 ! ---------------------------------------------------------------
-! Copyright (C) 2004-2024, DWD, MPI-M, DKRZ, KIT, ETH, MeteoSwiss
+! Copyright (C) 2004-2025, DWD, MPI-M, DKRZ, KIT, ETH, MeteoSwiss
 ! Contact information: icon-model.org
 !
 ! See AUTHORS.TXT for a list of authors
@@ -23,7 +23,7 @@ MODULE mo_wave_diagnostics
   USE mo_impl_constants,      ONLY: min_rlcell
   USE mo_loopindices,         ONLY: get_indices_c
   USE mo_physical_constants,  ONLY: grav
-  USE mo_math_constants,      ONLY: pi2, rad2deg, deg2rad
+  USE mo_math_constants,      ONLY: pi2, rad2deg
   USE mo_parallel_config,     ONLY: nproma
   USE mo_kind,                ONLY: wp
   USE mo_fortran_tools,       ONLY: init
@@ -46,9 +46,9 @@ CONTAINS
     TYPE(t_patch),         INTENT(IN)    :: p_patch
     TYPE(t_wave_config),   INTENT(IN)    :: wave_config
     REAL(wp),              INTENT(IN)    :: sp10m(:,:)
-    REAL(wp),              INTENT(IN)    :: dir10m(:,:)
+    REAL(wp),              INTENT(IN)    :: dir10m(:,:)     ! wind direction in 10m [rad]
     REAL(wp),              INTENT(IN)    :: depth(:,:)      ! water depth
-    REAL(wp),              INTENT(IN)    :: tracer(:,:,:)   ! energy spectral bins
+    REAL(wp),              INTENT(IN)    :: tracer(:,:,:,:) ! energy spectral bins
     TYPE(t_wave_diag),     INTENT(INOUT) :: p_diag
 
     CHARACTER(len=*), PARAMETER ::  &
@@ -60,15 +60,14 @@ CONTAINS
       &               wave_config = wave_config, &
       &                    dir10m = dir10m, &
       &                     ustar = p_diag%ustar, &
-      &                swell_mask = p_diag%swell_mask, &  ! OUT
-      &             swell_mask_tr = p_diag%swell_mask_tr) ! OUT
+      &                swell_mask = p_diag%swell_mask) ! OUT
 
     ! separate total energy according to swell mask
     !
     CALL total_energy_sep(p_patch = p_patch, &
       &               wave_config = wave_config, &
       &                    tracer = tracer, &
-      &                      mask = p_diag%swell_mask_tr, &
+      &                      mask = p_diag%swell_mask, &
       &                   emeanws = p_diag%emean_sea, & ! OUT
       &                    emeans = p_diag%emean_swell) ! OUT
 
@@ -77,7 +76,7 @@ CONTAINS
     CALL mean_frequency_energy_sep(p_patch = p_patch, &
       &               wave_config = wave_config, &
       &                    tracer = tracer, &
-      &                      mask = p_diag%swell_mask_tr, &
+      &                      mask = p_diag%swell_mask, &
       &                   emeanws = p_diag%emean_sea, &
       &                    emeans = p_diag%emean_swell, &
       &                  femeanws = p_diag%femean_sea, & ! OUT
@@ -116,7 +115,7 @@ CONTAINS
     CALL mean_wave_direction_spread_sep(p_patch = p_patch, &
       &                             wave_config = wave_config, &
       &                                  tracer = tracer, &
-      &                                    mask = p_diag%swell_mask_tr, &
+      &                                    mask = p_diag%swell_mask, &
       &                                  md_sea = p_diag%hs_sea_dir, &   ! OUT
       &                                  ms_sea = p_diag%ds_sea, &       ! OUT
       &                                md_swell = p_diag%hs_swell_dir, & ! OUT
@@ -142,18 +141,18 @@ CONTAINS
 
     ! separate M1 and M2 periods according to swell mask
     !
-    CALL m1_m2_periods_sep(p_patch = p_patch,              &
-      &                wave_config = wave_config,          &
-      &                     tracer = tracer,               &
-      &                       mask = p_diag%swell_mask_tr, &
-      &                    emeanws = p_diag%emean_sea,     &
-      &                     emeans = p_diag%emean_swell,   &
-      &                       m1ws = p_diag%m1_sea,        & ! OUT
-      &                        m1s = p_diag%m1_swell,      & ! OUT
-      &                       m2ws = p_diag%m2_sea,        & ! OUT
-      &                        m2s = p_diag%m2_swell,      & ! OUT
-      &                   f1meanws = p_diag%f1mean_sea,    & ! OUT
-      &                    f1means = p_diag%f1mean_swell)    ! OUT
+    CALL m1_m2_periods_sep(p_patch = p_patch,            &
+      &                wave_config = wave_config,        &
+      &                     tracer = tracer,             &
+      &                       mask = p_diag%swell_mask,  &
+      &                    emeanws = p_diag%emean_sea,   &
+      &                     emeans = p_diag%emean_swell, &
+      &                       m1ws = p_diag%m1_sea,      & ! OUT
+      &                        m1s = p_diag%m1_swell,    & ! OUT
+      &                       m2ws = p_diag%m2_sea,      & ! OUT
+      &                        m2s = p_diag%m2_swell,    & ! OUT
+      &                   f1meanws = p_diag%f1mean_sea,  & ! OUT
+      &                    f1means = p_diag%f1mean_swell)  ! OUT
 
     ! calculate peak wave period
     !
@@ -167,7 +166,7 @@ CONTAINS
     CALL peak_wave_period_sep(p_patch = p_patch, &
       &                   wave_config = wave_config, &
       &                        tracer = tracer, &
-      &                          mask = p_diag%swell_mask_tr, &
+      &                          mask = p_diag%swell_mask, &
       &                        pp_sea = p_diag%pp_sea, & ! OUT
       &                      pp_swell = p_diag%pp_swell) ! OUT
 
@@ -246,8 +245,8 @@ CONTAINS
 
     TYPE(t_patch),               INTENT(IN)    :: p_patch
     TYPE(t_wave_config), TARGET, INTENT(IN)    :: wave_config
-    REAL(wp),                    INTENT(IN)    :: tracer(:,:,:)   !< energy spectral bins (nproma,ntracer,nblks_c)
-    INTEGER,                     INTENT(IN)    :: mask(:,:,:)
+    REAL(wp),                    INTENT(IN)    :: tracer(:,:,:,:) !< energy spectral bins (nproma,ndirs,nblks_c,nfreqs)
+    INTEGER,                     INTENT(IN)    :: mask(:,:,:,:)   !< swell mask
     REAL(wp),                    INTENT(IN)    :: emeanws(:,:)    !< wind sea energy (nproma,nblks_c)
     REAL(wp),                    INTENT(IN)    :: emeans(:,:)     !< swell energy (nproma,nblks_c)
     REAL(wp),                    INTENT(INOUT) :: m1ws(:,:)       !< wind sea m1 period (nproma,nblks_c)
@@ -260,9 +259,7 @@ CONTAINS
     ! local
     INTEGER :: i_rlstart, i_rlend, i_startblk, i_endblk
     INTEGER :: i_startidx, i_endidx
-    INTEGER :: jc,jb,jf
-    INTEGER :: jt                       !< tracer index
-    INTEGER :: n                        !< loop index
+    INTEGER :: jc,jb,jf,jd
     REAL(wp):: temp(nproma,wave_config%nfreqs), temp1(nproma,wave_config%nfreqs)
 
     TYPE(t_wave_config), POINTER :: wc => NULL()
@@ -276,7 +273,7 @@ CONTAINS
     wc => wave_config
 
 !$OMP PARALLEL
-!$OMP DO PRIVATE(jb,jc,jf,jt,n,i_startidx,i_endidx,temp,temp1) ICON_OMP_DEFAULT_SCHEDULE
+!$OMP DO PRIVATE(jb,jc,jf,jd,i_startidx,i_endidx,temp,temp1) ICON_OMP_DEFAULT_SCHEDULE
     DO jb = i_startblk, i_endblk
       CALL get_indices_c( p_patch, jb, i_startblk, i_endblk,           &
            &                 i_startidx, i_endidx, i_rlstart, i_rlend)
@@ -289,16 +286,15 @@ CONTAINS
           temp1(jc,jf) = 0._wp
         END DO
 
-        DO n=1,SIZE(wc%list_tr(jf)%p)
-          jt = wc%list_tr(jf)%p(n)
+        DO jd = 1,wc%ndirs
           DO jc = i_startidx, i_endidx
-            IF (mask(jc,jt,jb)==1) THEN ! belongs to swell
-              temp(jc,jf) = temp(jc,jf) + tracer(jc,jt,jb)
+            IF (mask(jc,jd,jb,jf)==1) THEN ! belongs to swell
+              temp(jc,jf) = temp(jc,jf) + tracer(jc,jd,jb,jf)
             ELSE
-              temp1(jc,jf) = temp1(jc,jf) + tracer(jc,jt,jb)
+              temp1(jc,jf) = temp1(jc,jf) + tracer(jc,jd,jb,jf)
             END IF
           END DO
-        END DO  ! n
+        END DO  ! jd
 
       END DO  ! jf
 
@@ -362,18 +358,16 @@ CONTAINS
 
     TYPE(t_patch),               INTENT(IN)    :: p_patch
     TYPE(t_wave_config), TARGET, INTENT(IN)    :: wave_config
-    REAL(wp), INTENT(IN)  :: tracer(:,:,:)   !energy spectral bins (nproma,ntracer,nblks_c)
-    INTEGER,  INTENT(IN)  :: mask(:,:,:)     !=1 - swell           (nproma,ntracer,nblks_c)
-    REAL(wp), INTENT(IN)  :: emeanws(:,:)    !wind sea energy      (nproma,nblks_c)
-    REAL(wp), INTENT(IN)  :: emeans(:,:)     !swell energy         (nproma,nblks_c)
-    REAL(wp), INTENT(INOUT) :: femeans(:,:)  !swell mean frequency energy    (nproma,nblks_c)
-    REAL(wp), INTENT(INOUT) :: femeanws(:,:) !wind sea mean frequency energy (nproma,nblks_c)
+    REAL(wp), INTENT(IN)    :: tracer(:,:,:,:) !energy spectral bins (nproma,ndirs,nblks_c,nfreqs)
+    INTEGER,  INTENT(IN)    :: mask(:,:,:,:)   !=1 - swell           (nproma,ndirs,nblks_c,nfreqs)
+    REAL(wp), INTENT(IN)    :: emeanws(:,:)    !wind sea energy      (nproma,nblks_c)
+    REAL(wp), INTENT(IN)    :: emeans(:,:)     !swell energy         (nproma,nblks_c)
+    REAL(wp), INTENT(INOUT) :: femeans(:,:)    !swell mean frequency energy    (nproma,nblks_c)
+    REAL(wp), INTENT(INOUT) :: femeanws(:,:)   !wind sea mean frequency energy (nproma,nblks_c)
 
     INTEGER :: i_rlstart, i_rlend, i_startblk, i_endblk
     INTEGER :: i_startidx, i_endidx
-    INTEGER :: jc,jb,jf
-    INTEGER :: jt                       !< tracer index
-    INTEGER :: n                        !< loop index
+    INTEGER :: jc,jb,jf,jd
 
     REAL(wp) :: temp(nproma,wave_config%nfreqs), temp_1(nproma,wave_config%nfreqs)
     TYPE(t_wave_config), POINTER :: wc => NULL()
@@ -388,7 +382,7 @@ CONTAINS
 
 
 !$OMP PARALLEL
-!$OMP DO PRIVATE(jb,jc,jf,n,jt,i_startidx,i_endidx,temp,temp_1) ICON_OMP_DEFAULT_SCHEDULE
+!$OMP DO PRIVATE(jb,jc,jf,jd,i_startidx,i_endidx,temp,temp_1) ICON_OMP_DEFAULT_SCHEDULE
     DO jb = i_startblk, i_endblk
       CALL get_indices_c( p_patch, jb, i_startblk, i_endblk,           &
         &                 i_startidx, i_endidx, i_rlstart, i_rlend)
@@ -400,16 +394,15 @@ CONTAINS
           temp_1(jc,jf) = 0._wp
         ENDDO
 
-        DO n=1,SIZE(wc%list_tr(jf)%p)
-          jt = wc%list_tr(jf)%p(n)
+        DO jd = 1,wc%ndirs
           DO jc = i_startidx, i_endidx
-            IF (mask(jc,jt,jb)==1) THEN ! belongs to swell
-              temp(jc,jf) = temp(jc,jf) + tracer(jc,jt,jb)
+            IF (mask(jc,jd,jb,jf)==1) THEN ! belongs to swell
+              temp(jc,jf) = temp(jc,jf) + tracer(jc,jd,jb,jf)
             ELSE ! belongs to wind sea
-              temp_1(jc,jf) = temp_1(jc,jf) + tracer(jc,jt,jb)
+              temp_1(jc,jf) = temp_1(jc,jf) + tracer(jc,jd,jb,jf)
             ENDIF
           ENDDO
-        ENDDO  ! n
+        ENDDO  ! jd
 
       END DO  ! jf
 
@@ -450,16 +443,14 @@ CONTAINS
 
     TYPE(t_patch),               INTENT(IN)    :: p_patch
     TYPE(t_wave_config), TARGET, INTENT(IN)    :: wave_config
-    REAL(wp), INTENT(IN)    :: tracer(:,:,:)  !energy spectral bins (nproma,ntracer,nblks_c)
-    INTEGER,  INTENT(IN)    :: mask(:,:,:)    !=1 where energy belongs to swell emeans, =0 - belongs to wind sea emeanws
-    REAL(wp), INTENT(INOUT) :: emeanws(:,:)   !wind sea energy (nproma,nblks_c)
-    REAL(wp), INTENT(INOUT) :: emeans(:,:)    !swell energy (nproma,nblks_c)
+    REAL(wp), INTENT(IN)    :: tracer(:,:,:,:) !energy spectral bins (nproma,ndirs,nblks_c,nfreqs)
+    INTEGER,  INTENT(IN)    :: mask(:,:,:,:)   !=1 where energy belongs to swell emeans, =0 - belongs to wind sea emeanws
+    REAL(wp), INTENT(INOUT) :: emeanws(:,:)    !wind sea energy (nproma,nblks_c)
+    REAL(wp), INTENT(INOUT) :: emeans(:,:)     !swell energy (nproma,nblks_c)
 
     INTEGER :: i_rlstart, i_rlend, i_startblk, i_endblk
     INTEGER :: i_startidx, i_endidx
-    INTEGER :: jc,jb,jf
-    INTEGER :: jt                       !< tracer index
-    INTEGER :: n                        !< loop index
+    INTEGER :: jc,jb,jf,jd
 
     REAL(wp):: sum1(nproma,wave_config%nfreqs), sum2(nproma,wave_config%nfreqs)
     TYPE(t_wave_config), POINTER :: wc => NULL()
@@ -474,7 +465,7 @@ CONTAINS
 
 
 !$OMP PARALLEL
-!$OMP DO PRIVATE(jb,jc,jf,jt,n,i_startidx,i_endidx,sum1,sum2) ICON_OMP_DEFAULT_SCHEDULE
+!$OMP DO PRIVATE(jb,jc,jf,jd,i_startidx,i_endidx,sum1,sum2) ICON_OMP_DEFAULT_SCHEDULE
     DO jb = i_startblk, i_endblk
       CALL get_indices_c( p_patch, jb, i_startblk, i_endblk,           &
         &                 i_startidx, i_endidx, i_rlstart, i_rlend)
@@ -489,16 +480,15 @@ CONTAINS
           sum2(jc,jf) = 0._wp
         ENDDO
 
-        DO n=1,SIZE(wc%list_tr(jf)%p)
-          jt = wc%list_tr(jf)%p(n)
+        DO jd = 1,wc%ndirs
           DO jc = i_startidx, i_endidx
-            IF (mask(jc,jt,jb) == 1) THEN
-              sum1(jc,jf) = sum1(jc,jf) + tracer(jc,jt,jb)
+            IF (mask(jc,jd,jb,jf) == 1) THEN
+              sum1(jc,jf) = sum1(jc,jf) + tracer(jc,jd,jb,jf)
             ELSE
-              sum2(jc,jf) = sum2(jc,jf) + tracer(jc,jt,jb)
+              sum2(jc,jf) = sum2(jc,jf) + tracer(jc,jd,jb,jf)
             END IF
           END DO
-        END DO  ! n
+        END DO  ! jd
 
       ENDDO  ! jf
 
@@ -543,7 +533,7 @@ CONTAINS
   !! The waves which do not interact with the wind are
   !! considered as swell.
   !!
-  SUBROUTINE swell_separation(p_patch, wave_config, dir10m, ustar, swell_mask, swell_mask_tr)
+  SUBROUTINE swell_separation(p_patch, wave_config, dir10m, ustar, swell_mask)
 
     CHARACTER(len=*), PARAMETER ::  &
       &  routine = modname//':swell_separation'
@@ -552,12 +542,11 @@ CONTAINS
     TYPE(t_wave_config), TARGET, INTENT(IN) :: wave_config
     REAL(wp),                    INTENT(IN) :: dir10m(:,:)
     REAL(wp),                    INTENT(IN) :: ustar(:,:)
-    INTEGER,                  INTENT(INOUT) :: swell_mask(:,:)
-    INTEGER,                  INTENT(INOUT) :: swell_mask_tr(:,:,:)
+    INTEGER,                  INTENT(INOUT) :: swell_mask(:,:,:,:)
 
     INTEGER :: i_rlstart, i_rlend, i_startblk, i_endblk
     INTEGER :: i_startidx, i_endidx
-    INTEGER :: jc,jb,jf,jd,jt
+    INTEGER :: jc,jb,jf,jd
 
 
     TYPE(t_wave_config), POINTER :: wc => NULL()
@@ -575,24 +564,17 @@ CONTAINS
     wc => wave_config
 
 !$OMP PARALLEL
-!$OMP DO PRIVATE(jb,jf,jd,jc,jt,i_startidx,i_endidx,dw_phase_vel,trhld) ICON_OMP_DEFAULT_SCHEDULE
+!$OMP DO PRIVATE(jb,jf,jd,jc,i_startidx,i_endidx,dw_phase_vel,trhld) ICON_OMP_DEFAULT_SCHEDULE
     DO jb = i_startblk, i_endblk
       CALL get_indices_c( p_patch, jb, i_startblk, i_endblk,           &
         &                 i_startidx, i_endidx, i_rlstart, i_rlend)
       DO jf = 1,wc%nfreqs
         dw_phase_vel = grav/(pi2*wc%freqs(jf))
         DO jd = 1, wc%ndirs
-          jt =  wc%tracer_ind(jd,jf)
           DO jc = i_startidx, i_endidx
 
-            trhld = fric/dw_phase_vel * 1.2_wp*ustar(jc,jb)*COS(wc%dirs(jd) - dir10m(jc,jb)*deg2rad)
-            IF (trhld.LT.1._wp) THEN
-              swell_mask(jc,jb) = 1
-              swell_mask_tr(jc,jt,jb) = 1
-            ELSE
-              swell_mask(jc,jb) = 0
-              swell_mask_tr(jc,jt,jb) = 0
-            END IF
+            trhld = fric/dw_phase_vel * 1.2_wp*ustar(jc,jb)*COS(wc%dirs(jd) - dir10m(jc,jb))
+            swell_mask(jc,jd,jb,jf) = MERGE(1, 0, trhld < 1._wp)
 
           END DO
         END DO
@@ -653,14 +635,12 @@ CONTAINS
 
     TYPE(t_patch),       INTENT(IN)         :: p_patch
     TYPE(t_wave_config), TARGET, INTENT(IN) :: wave_config
-    REAL(wp),            INTENT(IN)         :: tracer(:,:,:) !energy spectral bins
+    REAL(wp),            INTENT(IN)         :: tracer(:,:,:,:) !energy spectral bins
     REAL(wp),            INTENT(INOUT)      :: pp(:,:)     !< significant wave height [m]
 
     INTEGER :: i_rlstart, i_rlend, i_startblk, i_endblk
     INTEGER :: i_startidx, i_endidx
-    INTEGER :: jc,jb,jf
-    INTEGER :: jt                       !< tracer index
-    INTEGER :: n                        !< loop index
+    INTEGER :: jc,jb,jf,jd
     INTEGER :: peak_ind(nproma)
 
     REAL(wp):: temp(nproma,wave_config%nfreqs)
@@ -677,7 +657,7 @@ CONTAINS
     wc => wave_config
 
 !$OMP PARALLEL
-!$OMP DO PRIVATE(jb,jc,jf,n,jt,i_startidx,i_endidx,temp,temp_max,peak_ind) ICON_OMP_DEFAULT_SCHEDULE
+!$OMP DO PRIVATE(jb,jc,jf,jd,i_startidx,i_endidx,temp,temp_max,peak_ind) ICON_OMP_DEFAULT_SCHEDULE
     DO jb = i_startblk, i_endblk
       CALL get_indices_c( p_patch, jb, i_startblk, i_endblk,           &
         &                 i_startidx, i_endidx, i_rlstart, i_rlend)
@@ -688,12 +668,11 @@ CONTAINS
           temp(jc,jf)   = 0._wp
         END DO
 
-        DO n=1,SIZE(wc%list_tr(jf)%p)
-          jt = wc%list_tr(jf)%p(n)
+        DO jd = 1,wc%ndirs
           DO jc = i_startidx, i_endidx
-            temp(jc,jf) = temp(jc,jf) + tracer(jc,jt,jb)
+            temp(jc,jf) = temp(jc,jf) + tracer(jc,jd,jb,jf)
           END DO
-        END DO  ! n
+        END DO  ! jd
 
       END DO  ! jf
 
@@ -736,16 +715,14 @@ CONTAINS
 
     TYPE(t_patch),       INTENT(IN)         :: p_patch
     TYPE(t_wave_config), TARGET, INTENT(IN) :: wave_config
-    REAL(wp),            INTENT(IN)         :: tracer(:,:,:)   !energy spectral bins
-    INTEGER,             INTENT(IN)         :: mask(:,:,:)     !=1 where energy belongs to swell, =0 - belongs to wind sea
+    REAL(wp),            INTENT(IN)         :: tracer(:,:,:,:) !energy spectral bins
+    INTEGER,             INTENT(IN)         :: mask(:,:,:,:)   !=1 where energy belongs to swell, =0 - belongs to wind sea
     REAL(wp),            INTENT(INOUT)      :: pp_sea(:,:)     !< wind sea peak wave period
     REAL(wp),            INTENT(INOUT)      :: pp_swell(:,:)   !< swell peak wave period
 
     INTEGER :: i_rlstart, i_rlend, i_startblk, i_endblk
     INTEGER :: i_startidx, i_endidx
-    INTEGER :: jc,jb,jf
-    INTEGER :: jt                       !< tracer index
-    INTEGER :: n                        !< loop index
+    INTEGER :: jc,jb,jf,jd
     INTEGER :: peak_ind1(nproma)
     INTEGER :: peak_ind2(nproma)
 
@@ -765,7 +742,7 @@ CONTAINS
     wc => wave_config
 
 !$OMP PARALLEL
-!$OMP DO PRIVATE(jb,jc,jf,n,jt,i_startidx,i_endidx,temp1,temp2,temp1_max,temp2_max, &
+!$OMP DO PRIVATE(jb,jc,jf,jd,i_startidx,i_endidx,temp1,temp2,temp1_max,temp2_max, &
 !$OMP            peak_ind1,peak_ind2) ICON_OMP_DEFAULT_SCHEDULE
     DO jb = i_startblk, i_endblk
       CALL get_indices_c( p_patch, jb, i_startblk, i_endblk,           &
@@ -778,16 +755,15 @@ CONTAINS
           temp2(jc,jf)   = 0._wp
         END DO
 
-        DO n=1,SIZE(wc%list_tr(jf)%p)
-          jt = wc%list_tr(jf)%p(n)
+        DO jd = 1,wc%ndirs
           DO jc = i_startidx, i_endidx
-            IF (mask(jc,jt,jb) == 1) THEN !swell
-              temp1(jc,jf) = temp1(jc,jf) + tracer(jc,jt,jb)
+            IF (mask(jc,jd,jb,jf) == 1) THEN !swell
+              temp1(jc,jf) = temp1(jc,jf) + tracer(jc,jd,jb,jf)
             ELSE
-              temp2(jc,jf) = temp2(jc,jf) + tracer(jc,jt,jb)
+              temp2(jc,jf) = temp2(jc,jf) + tracer(jc,jd,jb,jf)
             END IF
           END DO
-        END DO  ! n
+        END DO  ! jd
       END DO  ! jf
 
       DO jc = i_startidx, i_endidx
@@ -885,7 +861,7 @@ CONTAINS
 
     TYPE(t_patch),               INTENT(IN)    :: p_patch
     TYPE(t_wave_config), TARGET, INTENT(IN)    :: wave_config
-    REAL(wp),                    INTENT(IN)    :: tracer(:,:,:) !energy spectral bins
+    REAL(wp),                    INTENT(IN)    :: tracer(:,:,:,:) !energy spectral bins
     REAL(wp),                    INTENT(INOUT) :: mean_dir(:,:)
     REAL(wp),                    INTENT(INOUT) :: mean_spread(:,:)
 
@@ -896,7 +872,7 @@ CONTAINS
 
     INTEGER :: i_rlstart, i_rlend, i_startblk, i_endblk
     INTEGER :: i_startidx, i_endidx
-    INTEGER :: jc,jb,jf,jd,jt
+    INTEGER :: jc,jb,jf,jd
 
     wc => wave_config
 
@@ -906,7 +882,7 @@ CONTAINS
     i_endblk   = p_patch%cells%end_block(i_rlend)
 
 !$OMP PARALLEL
-!$OMP DO PRIVATE(jb,jc,jf,jd,jt,i_startidx,i_endidx,si,ci,temp,temp_dsum) ICON_OMP_DEFAULT_SCHEDULE
+!$OMP DO PRIVATE(jb,jc,jf,jd,i_startidx,i_endidx,si,ci,temp,temp_dsum) ICON_OMP_DEFAULT_SCHEDULE
     DO jb = i_startblk, i_endblk
       CALL get_indices_c( p_patch, jb, i_startblk, i_endblk,           &
            &                 i_startidx, i_endidx, i_rlstart, i_rlend)
@@ -927,9 +903,8 @@ CONTAINS
 
       DO jf = 1,wc%nfreqs
         DO jd = 1, wc%ndirs
-          jt =  wc%tracer_ind(jd,jf)
           DO jc = i_startidx, i_endidx
-            temp(jc,jd) = temp(jc,jd) + tracer(jc,jt,jb) * wc%DFIM(jf)
+            temp(jc,jd) = temp(jc,jd) + tracer(jc,jd,jb,jf) * wc%DFIM(jf)
           END DO
         END DO
       END DO
@@ -989,8 +964,8 @@ CONTAINS
 
     TYPE(t_patch),               INTENT(IN)    :: p_patch
     TYPE(t_wave_config), TARGET, INTENT(IN)    :: wave_config
-    REAL(wp),                    INTENT(IN)    :: tracer(:,:,:)   !energy spectral bins
-    INTEGER,                     INTENT(IN)    :: mask(:,:,:)     !=1 where energy belongs to swell,
+    REAL(wp),                    INTENT(IN)    :: tracer(:,:,:,:) !energy spectral bins
+    INTEGER,                     INTENT(IN)    :: mask(:,:,:,:)   !=1 where energy belongs to swell,
                                                                   !=0 - belongs to wind sea
     REAL(wp),                    INTENT(INOUT) :: md_sea(:,:) ! wind sea direction
     REAL(wp),                    INTENT(INOUT) :: ms_sea(:,:) ! wind sea spread
@@ -1004,7 +979,7 @@ CONTAINS
 
     INTEGER :: i_rlstart, i_rlend, i_startblk, i_endblk
     INTEGER :: i_startidx, i_endidx
-    INTEGER :: jc,jb,jf,jd,jt
+    INTEGER :: jc,jb,jf,jd
 
     wc => wave_config
 
@@ -1014,7 +989,7 @@ CONTAINS
     i_endblk   = p_patch%cells%end_block(i_rlend)
 
 !$OMP PARALLEL
-!$OMP DO PRIVATE(jb,jc,jf,jd,jt,i_startidx,i_endidx,si1,ci1,temp1,si2,ci2,temp2,temp1_dsum,temp2_dsum) ICON_OMP_DEFAULT_SCHEDULE
+!$OMP DO PRIVATE(jb,jc,jf,jd,i_startidx,i_endidx,si1,ci1,temp1,si2,ci2,temp2,temp1_dsum,temp2_dsum) ICON_OMP_DEFAULT_SCHEDULE
     DO jb = i_startblk, i_endblk
       CALL get_indices_c( p_patch, jb, i_startblk, i_endblk,           &
            &                 i_startidx, i_endidx, i_rlstart, i_rlend)
@@ -1039,12 +1014,11 @@ CONTAINS
 
       DO jf = 1,wc%nfreqs
         DO jd = 1, wc%ndirs
-          jt =  wc%tracer_ind(jd,jf)
           DO jc = i_startidx, i_endidx
-            IF (mask(jc,jt,jb).EQ.1) THEN
-              temp1(jc,jd) = temp1(jc,jd) + tracer(jc,jt,jb) * wc%DFIM(jf) ! swell
+            IF (mask(jc,jd,jb,jf).EQ.1) THEN
+              temp1(jc,jd) = temp1(jc,jd) + tracer(jc,jd,jb,jf) * wc%DFIM(jf) ! swell
             ELSE
-              temp2(jc,jd) = temp2(jc,jd) + tracer(jc,jt,jb) * wc%DFIM(jf) ! wind sea
+              temp2(jc,jd) = temp2(jc,jd) + tracer(jc,jd,jb,jf) * wc%DFIM(jf) ! wind sea
             END IF
           END DO
         END DO
@@ -1143,7 +1117,7 @@ CONTAINS
     TYPE(t_wave_config), TARGET, INTENT(IN)    :: wave_config
     REAL(wp),                    INTENT(IN)    :: wave_num_c(:,:,:)  !< wave number (1/m)
     REAL(wp),                    INTENT(IN)    :: depth(:,:)
-    REAL(wp),                    INTENT(IN)    :: tracer(:,:,:) !energy spectral bins
+    REAL(wp),                    INTENT(IN)    :: tracer(:,:,:,:) !energy spectral bins
     REAL(wp),                    INTENT(INOUT) :: u_stokes(:,:)
     REAL(wp),                    INTENT(INOUT) :: v_stokes(:,:)
 
@@ -1154,7 +1128,7 @@ CONTAINS
 
     INTEGER :: i_rlstart, i_rlend, i_startblk, i_endblk
     INTEGER :: i_startidx, i_endidx
-    INTEGER :: jc,jb,jf,jd,jt
+    INTEGER :: jc,jb,jf,jd
 
     wc => wave_config
 
@@ -1167,7 +1141,7 @@ CONTAINS
     CALL init(u_stokes, lacc=.FALSE.)
     CALL init(v_stokes, lacc=.FALSE.)
 !$OMP BARRIER
-!$OMP DO PRIVATE(jb,jc,jf,jd,jt,i_startidx,i_endidx,ak,akd,si,ci,fact,tailfac) ICON_OMP_DEFAULT_SCHEDULE
+!$OMP DO PRIVATE(jb,jc,jf,jd,i_startidx,i_endidx,ak,akd,si,ci,fact,tailfac) ICON_OMP_DEFAULT_SCHEDULE
     DO jb = i_startblk, i_endblk
       CALL get_indices_c( p_patch, jb, i_startblk, i_endblk,           &
            &                 i_startidx, i_endidx, i_rlstart, i_rlend)
@@ -1180,10 +1154,9 @@ CONTAINS
 
       freqs:DO jf = 1,wc%nfreqs
         DO jd = 1, wc%ndirs
-          jt =  wc%tracer_ind(jd,jf)
           DO jc = i_startidx, i_endidx
-            si(jc) = si(jc) + tracer(jc,jt,jb) * wc%sin_dir(jd)
-            ci(jc) = ci(jc) + tracer(jc,jt,jb) * wc%cos_dir(jd)
+            si(jc) = si(jc) + tracer(jc,jd,jb,jf) * wc%sin_dir(jd)
+            ci(jc) = ci(jc) + tracer(jc,jd,jb,jf) * wc%cos_dir(jd)
           END DO
         END DO
 

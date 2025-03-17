@@ -1,7 +1,7 @@
 ! ICON
 !
 ! ---------------------------------------------------------------
-! Copyright (C) 2004-2024, DWD, MPI-M, DKRZ, KIT, ETH, MeteoSwiss
+! Copyright (C) 2004-2025, DWD, MPI-M, DKRZ, KIT, ETH, MeteoSwiss
 ! Contact information: icon-model.org
 !
 ! See AUTHORS.TXT for a list of authors
@@ -430,6 +430,11 @@ CONTAINS
 !$OMP PARALLEL
       CALL init(act_obj%var_element_ptr(ivar)%p%r_ptr, &
            act_obj%var_element_ptr(ivar)%p%info%resetval%rval, lacc=.TRUE.)
+!$OMP END PARALLEL
+    ELSE IF (ASSOCIATED(act_obj%var_element_ptr(ivar)%p%s_ptr)) THEN
+!$OMP PARALLEL
+      CALL init(act_obj%var_element_ptr(ivar)%p%s_ptr, &
+           act_obj%var_element_ptr(ivar)%p%info%resetval%sval, lacc=.TRUE.)
 !$OMP END PARALLEL
     ELSE IF (ASSOCIATED(act_obj%var_element_ptr(ivar)%p%i_ptr)) THEN
 !$OMP PARALLEL

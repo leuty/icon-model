@@ -1,7 +1,7 @@
 ! ICON
 !
 ! ---------------------------------------------------------------
-! Copyright (C) 2004-2024, DWD, MPI-M, DKRZ, KIT, ETH, MeteoSwiss
+! Copyright (C) 2004-2025, DWD, MPI-M, DKRZ, KIT, ETH, MeteoSwiss
 ! Contact information: icon-model.org
 !
 ! See AUTHORS.TXT for a list of authors
@@ -378,7 +378,7 @@ MODULE mo_nh_stepping
       CALL compute_exner_pert(exner     = p_nh_state(jg)%prog(nnow(jg))%exner,  & !in
         &                     exner_ref = p_nh_state(jg)%metrics%exner_ref_mc,  & !in
         &                     exner_pr  = p_nh_state(jg)%diag%exner_pr,         & !inout
-        &                     use_acc   =.FALSE.)
+        &                     lacc      = .FALSE.)
     ENDIF
 
   ENDDO
@@ -486,7 +486,7 @@ MODULE mo_nh_stepping
         CALL init_cloud_aero_cpl (mtime_current, p_patch(jg), p_nh_state(jg)%metrics, ext_data(jg), prm_diag(jg))
       ENDIF
 
-      IF (iprog_aero >= 1) CALL setup_aerosol_advection(p_patch(jg))
+      IF (iprog_aero >= 1) CALL setup_aerosol_advection(p_patch(jg), lacc=.FALSE.)
 
     ENDDO
 
@@ -498,9 +498,9 @@ MODULE mo_nh_stepping
   END IF  ! iforcing == inwp
 
 
-#if defined( _OPENACC )
+#ifdef _OPENACC
     ! initialize GPU for NWP and AES
-    i_am_accel_node = my_process_is_work()    ! Activate GPUs
+    i_am_accel_node = .TRUE. ! Activate GPUs, this variable is just needed for JSBACH
     CALL h2d_icon( p_int_state, p_int_state_local_parent, p_patch, p_patch_local_parent, &
     &            p_nh_state, prep_adv, advection_config, les_config, iforcing, lacc=.TRUE. )
     IF (n_dom > 1 .OR. l_limited_area) THEN
@@ -691,7 +691,7 @@ MODULE mo_nh_stepping
 #endif
 
     IF (output_mode%l_nml) THEN
-      CALL write_name_list_output(jstep=0, lacc=i_am_accel_node)
+      CALL write_name_list_output(jstep=0, lacc=.TRUE.)
     END IF
 
 #ifndef __NO_ICON_COMIN__
@@ -722,16 +722,13 @@ MODULE mo_nh_stepping
           DO jg=1, n_dom
             CALL gpu_d2h_dace(jg, atm_phy_nwp_config(jg), prm_diag(jg), p_lnd_state(jg))
           ENDDO
-          i_am_accel_node = .FALSE.
 #endif
           CALL message('perform_nh_stepping','calling run_dace_op')
           IF (timers_level > 4) CALL timer_start(timer_dace_coupling)
-          IF (my_process_is_work_only()) CALL run_dace_op (mtime_current)
+          IF (my_process_is_work_only()) CALL run_dace_op (mtime_current) ! not ported to OpenACC
           IF (timers_level > 4) CALL timer_stop(timer_dace_coupling)
-#ifdef _OPENACC
           ! There is no data from DACE coming back to ICON, so no data copies are needed
-          i_am_accel_node = my_process_is_work()
-#endif
+
        END IF
     END IF
 
@@ -747,7 +744,7 @@ MODULE mo_nh_stepping
       IF (output_mode%l_nml        .AND. &    ! meteogram output is only initialized for nml output
         & p_patch(jg)%ldom_active  .AND. &
         & meteogram_is_sample_step( meteogram_output_config(jg), 0 ) ) THEN
-        CALL meteogram_sample_vars(jg, 0, time_config%tc_startdate, lacc=i_am_accel_node)
+        CALL meteogram_sample_vars(jg, 0, time_config%tc_startdate, lacc=.TRUE.)
       END IF
     END DO
 #ifdef MESSY
@@ -1132,9 +1129,8 @@ MODULE mo_nh_stepping
 #ifdef _OPENACC
         CALL message('mo_nh_stepping', 'Device to host copy before update_nwp_phy_bcs. This needs to be removed once port is finished!')
         DO jg=1, n_dom
-           CALL gpu_d2h_nh_nwp(jg, ext_data=ext_data(jg), lacc=i_am_accel_node)
+           CALL gpu_d2h_nh_nwp(jg, ext_data=ext_data(jg), lacc=.TRUE.)
         ENDDO
-        i_am_accel_node = .FALSE.
 #endif
         ! assume midnight for climatological updates
         target_datetime = assumePrevMidnight(mtime_current)
@@ -1143,7 +1139,7 @@ MODULE mo_nh_stepping
 
         DO jg=1, n_dom
 
-          CALL update_nwp_phy_bcs (p_patch         = p_patch(jg),      &
+          CALL update_nwp_phy_bcs (p_patch         = p_patch(jg),      & ! not ported to OpenACC
             &                      ext_data        = ext_data(jg),     &
             &                      p_lnd_state     = p_lnd_state(jg),  &
             &                      p_nh_state      = p_nh_state(jg),   &
@@ -1154,17 +1150,16 @@ MODULE mo_nh_stepping
 
           ! Apply adaptive parameter tuning if selected by namelist; the tuning needs to be re-applied
           ! after each update of the time-interpolated albedo fields
-          CALL apply_landalb_tuning (p_patch(jg), prm_diag(jg), ext_data(jg))
+          CALL apply_landalb_tuning (p_patch(jg), prm_diag(jg), ext_data(jg)) ! not ported to OpenACC
 
         ENDDO  ! jg
 
         mtime_old = mtime_current
 
 #ifdef _OPENACC
-        i_am_accel_node = my_process_is_work()
         CALL message('mo_nh_stepping', 'Host to device copy after update_nwp_phy_bcs. This needs to be removed once port is finished!')
         DO jg=1, n_dom
-          CALL gpu_h2d_nh_nwp(jg, ext_data=ext_data(jg), lacc=i_am_accel_node)
+          CALL gpu_h2d_nh_nwp(jg, ext_data=ext_data(jg), lacc=.TRUE.)
         ENDDO
 #endif
       END IF ! end update of surface parameter fields
@@ -1593,7 +1588,7 @@ MODULE mo_nh_stepping
       IF (my_process_is_mpi_all_seq()) &
 #endif
         CALL supervise_total_integrals_nh( kstep, p_patch(1), p_nh_state(1), p_int_state(1), &
-        &                                  nnow(1), nnow_rcf(1), jstep == (nsteps+jstep0), lacc=i_am_accel_node)
+        &                                  nnow(1), nnow_rcf(1), jstep == (nsteps+jstep0), lacc=.TRUE.)
     ENDIF
 
 
@@ -1662,7 +1657,6 @@ MODULE mo_nh_stepping
             DO jg=1, n_dom
               CALL gpu_d2h_dace(jg, atm_phy_nwp_config(jg), prm_diag(jg), p_lnd_state(jg))
             ENDDO
-            i_am_accel_node = .FALSE.
 #endif
             IF (sim_time == 0._wp) THEN
               CALL message('perform_nh_timeloop','calling run_dace_op for sim_time=0')
@@ -1670,12 +1664,9 @@ MODULE mo_nh_stepping
               CALL message('perform_nh_timeloop','calling run_dace_op')
             END IF
             IF (timers_level > 4) CALL timer_start(timer_dace_coupling)
-            IF (my_process_is_work_only()) CALL run_dace_op (mtime_current)
+            IF (my_process_is_work_only()) CALL run_dace_op (mtime_current) ! not ported to OpenACC
             IF (timers_level > 4) CALL timer_stop(timer_dace_coupling)
-#ifdef _OPENACC
             ! There is no data from DACE coming back to ICON, so no data copies are needed
-            i_am_accel_node = my_process_is_work()
-#endif
           END IF
        END IF
     END IF
@@ -2838,27 +2829,26 @@ MODULE mo_nh_stepping
               & CALL message (routine, 'NESTING online init: Switching to CPU for initialization')
 
             ! The online initialization of the nest runs on CPU only.
-            CALL gpu_d2h_nh_nwp(jg, ext_data=ext_data(jg), lacc=i_am_accel_node)
-            i_am_accel_node = .FALSE. ! disable the execution of ACC kernels
+            CALL gpu_d2h_nh_nwp(jg, ext_data=ext_data(jg), lacc=.TRUE.)
 #endif
-            CALL initialize_nest(jg, jgc, ext_data(:), prm_diag(:), p_lnd_state(:))
+            CALL initialize_nest(jg, jgc, ext_data(:), prm_diag(:), p_lnd_state(:)) ! not ported to OpenACC
 
             ! Apply hydrostatic adjustment, using downward integration
-            CALL hydro_adjust_const_thetav(p_patch(jgc), p_nh_state(jgc)%metrics, .TRUE.,    &
+            CALL hydro_adjust_const_thetav(p_patch(jgc), p_nh_state(jgc)%metrics, .TRUE.,    & ! not ported to OpenACC
               p_nh_state(jgc)%prog(nnow(jgc))%rho, p_nh_state(jgc)%prog(nnow(jgc))%exner,    &
               p_nh_state(jgc)%prog(nnow(jgc))%theta_v )
 
             ! initialize perturbation exner pressure exner_pr
-            CALL compute_exner_pert(exner     = p_nh_state(jgc)%prog(nnow(jgc))%exner, & !in
+            CALL compute_exner_pert(exner     = p_nh_state(jgc)%prog(nnow(jgc))%exner, & !in ! not ported to OpenACC
               &                     exner_ref = p_nh_state(jgc)%metrics%exner_ref_mc,  & !in
               &                     exner_pr  = p_nh_state(jgc)%diag%exner_pr,         & !inout
-              &                     use_acc   =.FALSE.)
+              &                     lacc      = .FALSE.)
 
             ! Activate cold-start mode in TERRA-init routine irrespective of what has been used for the global domain
             init_mode_soil = 1
             IF (iforcing == inwp) THEN
 #ifndef __NO_NWP__
-              CALL init_nwp_phy(                           &
+              CALL init_nwp_phy(                           & ! not ported to OpenACC
                 & p_patch(jgc)                            ,&
                 & p_nh_state(jgc)%metrics                 ,&
                 & p_nh_state(jgc)%prog(nnow(jgc))         ,&
@@ -2876,7 +2866,7 @@ MODULE mo_nh_stepping
 
 #ifdef __ICON_ART
               IF (lart) THEN
-                CALL art_init_atmo_tracers_nwp(                          &
+                CALL art_init_atmo_tracers_nwp(                          & ! not ported to OpenACC
                      &  jgc,                                             &
                      &  datetime_local(jgc)%ptr,                         &
                      &  p_nh_state(jgc),                                 &
@@ -2889,35 +2879,36 @@ MODULE mo_nh_stepping
               END IF
 #endif
 
-              CALL init_cloud_aero_cpl (datetime_local(jgc)%ptr, p_patch(jgc), p_nh_state(jgc)%metrics, &
+              CALL init_cloud_aero_cpl (datetime_local(jgc)%ptr, p_patch(jgc), p_nh_state(jgc)%metrics, & ! not ported to OpenACC
                 &                       ext_data(jgc), prm_diag(jgc))
 
-              IF (iprog_aero >= 1) CALL setup_aerosol_advection(p_patch(jgc))
+              IF (iprog_aero >= 1) CALL setup_aerosol_advection(p_patch(jgc), lacc=.TRUE.)
 #endif
             ENDIF
+
+#ifdef _OPENACC
+            i_am_accel_node = my_process_is_work()
+            ! Move data back to accelerator.
+            CALL gpu_h2d_nh_nwp(jg, ext_data=ext_data(jg), lacc=.TRUE.) ! necessary as Halo-Data can be modified
+            CALL gpu_h2d_nh_nwp(jgc, ext_data=ext_data(jgc), phy_params=phy_params(jgc), &
+                                atm_phy_nwp_config=atm_phy_nwp_config(jg), lacc=.TRUE.)
+            IF (msg_level >= 7) &
+              & CALL message (routine, 'NESTING online init: Switching back to GPU')
+#endif
 
             ! init airmass_new (diagnose airmass from \rho(now)). airmass_now not needed
             CALL compute_airmass(p_patch   = p_patch(jgc),                        & !in
               &                  p_metrics = p_nh_state(jgc)%metrics,             & !in
               &                  rho       = p_nh_state(jgc)%prog(nnow(jgc))%rho, & !in
               &                  airmass   = p_nh_state(jgc)%diag%airmass_new,    & !inout
-              &                  lacc      = .FALSE.)                               !in
+              &                  lacc      = .TRUE.)                               !in
 
             IF ( lredgrid_phys(jgc) ) THEN
-              CALL interpol_rrg_grf(jg, jgc, jn, nnow_rcf(jg), prm_diag(:), p_lnd_state(:), lacc=.FALSE.)
+              CALL interpol_rrg_grf(jg, jgc, jn, nnow_rcf(jg), prm_diag(:), p_lnd_state(:), lacc=.TRUE.)
               IF (atm_phy_nwp_config(jgc)%latm_above_top) THEN
-                CALL copy_rrg_ubc(jg, jgc, prm_diag(:), lacc=.FALSE.)
+                CALL copy_rrg_ubc(jg, jgc, prm_diag(:), lacc=.TRUE.)
               ENDIF
             ENDIF
-
-#ifdef _OPENACC
-            i_am_accel_node = my_process_is_work()
-            CALL gpu_h2d_nh_nwp(jg, ext_data=ext_data(jg), lacc=i_am_accel_node) ! necessary as Halo-Data can be modified
-            CALL gpu_h2d_nh_nwp(jgc, ext_data=ext_data(jgc), phy_params=phy_params(jgc), &
-                                atm_phy_nwp_config=atm_phy_nwp_config(jg), lacc=i_am_accel_node)
-            IF (msg_level >= 7) &
-              & CALL message (routine, 'NESTING online init: Switching back to GPU')
-#endif
 
             CALL init_slowphysics (datetime_local(jgc)%ptr, jgc, dt_sub, lacc=.TRUE.)
 

@@ -1,7 +1,7 @@
 ! ICON
 !
 ! ---------------------------------------------------------------
-! Copyright (C) 2004-2024, DWD, MPI-M, DKRZ, KIT, ETH, MeteoSwiss
+! Copyright (C) 2004-2025, DWD, MPI-M, DKRZ, KIT, ETH, MeteoSwiss
 ! Contact information: icon-model.org
 !
 ! See AUTHORS.TXT for a list of authors
@@ -22,7 +22,9 @@ MODULE mo_wave_td_update
   USE mo_model_domain,        ONLY: t_patch
   USE mo_impl_constants,      ONLY: MAX_CHAR_LENGTH, min_rlcell
   USE mo_loopindices,         ONLY: get_indices_c
-  USE mo_math_constants,      ONLY: rad2deg, dbl_eps
+  USE mo_math_constants,      ONLY: dbl_eps
+  USE mo_intp_data_strc,      ONLY: t_int_state
+  USE mo_wave_ext_data_init,  ONLY: cells2edges_bathymetry, compute_depth_gradient
 
   IMPLICIT NONE
 
@@ -30,7 +32,7 @@ MODULE mo_wave_td_update
 
   PUBLIC :: update_speed_and_direction
   PUBLIC :: update_ice_free_mask
-  PUBLIC :: update_water_depth
+  PUBLIC :: update_water_depth_and_grad
 
   CHARACTER(LEN=*), PARAMETER :: modname = 'mo_wave_td_update'
 
@@ -38,14 +40,20 @@ CONTAINS
 
   !>
   !! calculate water depth from bathymetry and sea level height
+  !! on cells and edges and rediagnose depth gradient.
   !!
   !!
-  SUBROUTINE update_water_depth(p_patch, bathymetry_c, sea_level_c, depth_c)
+  !!
+  SUBROUTINE update_water_depth_and_grad(p_patch, p_int_state, bathymetry_c, sea_level_c, &
+    &                                    depth_c, depth_e, geo_depth_grad_c)
 
     TYPE(t_patch),     INTENT(IN)    :: p_patch
-    REAL(wp),          INTENT(IN)    :: bathymetry_c(:,:)
-    REAL(wp),          INTENT(IN)    :: sea_level_c(:,:)
-    REAL(wp),          INTENT(INOUT) :: depth_c(:,:)
+    TYPE(t_int_state), INTENT(IN)    :: p_int_state
+    REAL(wp),          INTENT(IN)    :: bathymetry_c(:,:)       ! bathymetric height on cells
+    REAL(wp),          INTENT(IN)    :: sea_level_c(:,:)        ! sea level height on cells
+    REAL(wp),          INTENT(INOUT) :: depth_c(:,:)            ! water depth on cells
+    REAL(wp),          INTENT(INOUT) :: depth_e(:,:)            ! water depth on edges
+    REAL(wp),          INTENT(INOUT) :: geo_depth_grad_c(:,:,:) ! gradient of water depth on cells
 
     CHARACTER(len=MAX_CHAR_LENGTH), PARAMETER :: routine = modname//':update_depth'
 
@@ -70,11 +78,23 @@ CONTAINS
 !$OMP END DO NOWAIT
 !$OMP END PARALLEL
 
-  END SUBROUTINE update_water_depth
+    ! calculate depth gradient
+    CALL compute_depth_gradient(p_patch          = p_patch,               & !in
+                                p_int_state      = p_int_state,           & !in
+                                depth_c          = depth_c(:,:),          & !in
+                                geo_depth_grad_c = geo_depth_grad_c(:,:,:)) !out
+
+    ! interpolate updated water depth to edges
+    CALL cells2edges_bathymetry(p_patch      = p_patch,     & !in
+      &                         p_int_state  = p_int_state, & !in
+      &                         bathymetry_c = depth_c(:,:),& !in
+      &                         bathymetry_e = depth_e(:,:))  !out
+
+  END SUBROUTINE update_water_depth_and_grad
 
 
   !>
-  !! calculate speed and direction (deg) from U and V
+  !! calculate speed and direction (rad) from U and V
   !!
   !!
   SUBROUTINE update_speed_and_direction(p_patch, u, v, sp, dir)
@@ -82,7 +102,7 @@ CONTAINS
     TYPE(t_patch),     INTENT(IN)    :: p_patch
     REAL(wp),          INTENT(IN)    :: u(:,:), v(:,:) ! U and V components
     REAL(wp),          INTENT(INOUT) :: sp(:,:)        ! speed
-    REAL(wp),          INTENT(INOUT) :: dir(:,:)       ! direction
+    REAL(wp),          INTENT(INOUT) :: dir(:,:)       ! direction [rad]
 
     CHARACTER(len=MAX_CHAR_LENGTH), PARAMETER :: routine = modname//':update_speed_and_direction'
 
@@ -107,7 +127,7 @@ CONTAINS
         vc = SIGN(MAX(ABS(v(jc,jb)),dbl_eps),v(jc,jb))
 
         sp(jc,jb) = SQRT( uc**2 + vc**2 )
-        dir(jc,jb) = ATAN2(vc,uc)*rad2deg
+        dir(jc,jb) = ATAN2(vc,uc)
 
       END DO
     END DO

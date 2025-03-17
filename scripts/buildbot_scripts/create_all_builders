@@ -3,7 +3,7 @@
 # ICON
 #
 # ------------------------------------------
-# Copyright (C) 2004-2024, DWD, MPI-M, DKRZ, KIT, ETH, MeteoSwiss
+# Copyright (C) 2004-2025, DWD, MPI-M, DKRZ, KIT, ETH, MeteoSwiss
 # Contact information: icon-model.org
 # See AUTHORS.TXT for a list of authors
 # See LICENSES/ for license information
@@ -76,10 +76,6 @@ machine=levante
 ./addbuilder levante_gpu_nvhpc_dev          --machine $machine  --build_script="config/buildbot/levante_gpu_nvhpc_dev" \
   --configureflags="--with-mpi --without-openmp"  --builderflags="Active" --list $list
 ./addbuilder levante_cpu_nvhpc_dev          --machine $machine  --build_script="config/buildbot/levante_cpu_nvhpc_dev" \
-  --configureflags="--with-mpi --without-openmp"  --builderflags="Active" --list $list
-./addbuilder levante_gpu_nvhpc_oce              --machine $machine  --build_script="config/buildbot/levante_gpu_nvhpc_oce" \
-  --configureflags="--with-mpi --without-openmp"  --builderflags="Active" --list $list
-./addbuilder levante_cpu_nvhpc_oce              --machine $machine  --build_script="config/buildbot/levante_cpu_nvhpc_oce" \
   --configureflags="--with-mpi --without-openmp"  --builderflags="Active" --list $list
 ./addbuilder levante_gpu_validation         --machine $machine --build_script="config/buildbot/levante_gpu_validation" \
   --configureflags="--with-mpi --without-openmp"  --builderflags="Active" --list $list

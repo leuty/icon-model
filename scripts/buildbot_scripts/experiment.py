@@ -1,7 +1,7 @@
 # ICON
 #
 # ---------------------------------------------------------------
-# Copyright (C) 2004-2024, DWD, MPI-M, DKRZ, KIT, ETH, MeteoSwiss
+# Copyright (C) 2004-2025, DWD, MPI-M, DKRZ, KIT, ETH, MeteoSwiss
 # Contact information: icon-model.org
 #
 # See AUTHORS.TXT for a list of authors
@@ -48,7 +48,7 @@ class Experiment:
         if self.run_flags :
             out += f" run_flags: {config_dict_to_string(self.run_flags)}"
         if len(self.parents) > 0 :
-            out += " depends: {' '.join([f'{p.name} ({p.builder.name})' for p in self.parents])}"
+            out += f" depends: {' '.join([f'{p.name} ({p.builder.name})' for p in self.parents])}"
         return out
 
     def add_child(self, child):

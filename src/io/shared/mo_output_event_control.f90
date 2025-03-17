@@ -1,7 +1,7 @@
 ! ICON
 !
 ! ---------------------------------------------------------------
-! Copyright (C) 2004-2024, DWD, MPI-M, DKRZ, KIT, ETH, MeteoSwiss
+! Copyright (C) 2004-2025, DWD, MPI-M, DKRZ, KIT, ETH, MeteoSwiss
 ! Contact information: icon-model.org
 !
 ! See AUTHORS.TXT for a list of authors
@@ -140,7 +140,7 @@ CONTAINS
 
     ! first, we compute the dynamic time step which is equal or larger than
     ! the desired date "mtime_current"
-    ! intvlsec    = REAL(dtime)
+    ! intvlsec    = REAL(dtime, KIND=wp)
     ! step        = CEILING(datetimedividebyseconds(mtime_begin, mtime_date1, intvlsec))
     CALL mtime_timedelta_from_fseconds(dtime, mtime_begin, vlsec)
 

@@ -1,7 +1,7 @@
 ! ICON
 !
 ! ---------------------------------------------------------------
-! Copyright (C) 2004-2024, DWD, MPI-M, DKRZ, KIT, ETH, MeteoSwiss
+! Copyright (C) 2004-2025, DWD, MPI-M, DKRZ, KIT, ETH, MeteoSwiss
 ! Contact information: icon-model.org
 !
 ! See AUTHORS.TXT for a list of authors
@@ -25,7 +25,7 @@ USE mo_physical_constants, ONLY: &
     lhocp    => alvdcp  !, & !! lh_v/cp_d
 !    b3       => tmelt   , & !! melting temperature of ice/snow
 
-USE data_turbulence, ONLY: &
+USE turb_data, ONLY : &
     clc_diag            , & !! cloud cover at saturation in statistical cloud diagnostic
     q_crit                  !! critical value for normalized over-saturation
 

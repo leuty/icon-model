@@ -1,7 +1,7 @@
 ! ICON
 !
 ! ---------------------------------------------------------------
-! Copyright (C) 2004-2024, DWD, MPI-M, DKRZ, KIT, ETH, MeteoSwiss
+! Copyright (C) 2004-2025, DWD, MPI-M, DKRZ, KIT, ETH, MeteoSwiss
 ! Contact information: icon-model.org
 !
 ! See AUTHORS.TXT for a list of authors
@@ -730,7 +730,6 @@ CONTAINS
 
     INTEGER  :: jb, jl, jls, js
 
-    ! REAL ::
     REAL(wp), POINTER, DIMENSION(:,:) :: &
       &jsb_evapotrans_ptr => NULL(), jsb_latent_hflx_ptr => NULL(), jsb_sensible_hflx_ptr => NULL()
 

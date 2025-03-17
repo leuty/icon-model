@@ -3,7 +3,7 @@
 # ICON
 #
 # ---------------------------------------------------------------
-# Copyright (C) 2004-2024, DWD, MPI-M, DKRZ, KIT, ETH, MeteoSwiss
+# Copyright (C) 2004-2025, DWD, MPI-M, DKRZ, KIT, ETH, MeteoSwiss
 # Contact information: icon-model.org
 #
 # See AUTHORS.TXT for a list of authors
@@ -25,7 +25,7 @@ ICON_LICENSE = """\
 ICON
 
 ---------------------------------------------------------------
-Copyright (C) 2004-2024, DWD, MPI-M, DKRZ, KIT, ETH, MeteoSwiss
+Copyright (C) 2004-2025, DWD, MPI-M, DKRZ, KIT, ETH, MeteoSwiss
 Contact information: icon-model.org
 
 See AUTHORS.TXT for a list of authors
@@ -61,7 +61,8 @@ ICON_IGNORED_PATTERNS = [
     "src/atm_phy_schemes/mo_lrtm_*.f90",
     "src/atm_phy_schemes/mo_srtm*.f90",
     # ECMWF (Apache-2.0):
-    "scripts/preprocessing/compute_pressure_on_ml.py",
+    "scripts/preprocessing/compute_full_level_pressure_on_ml.py",
+    "scripts/preprocessing/compute_half_level_pressure_on_ml.py",
     "src/atm_phy_schemes/cloud_random_numbers.f90",
     "src/atm_phy_schemes/data_gwd.f90",
     "src/atm_phy_schemes/mo_adjust.f90",

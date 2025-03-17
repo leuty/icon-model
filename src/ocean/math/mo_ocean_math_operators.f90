@@ -1,7 +1,7 @@
 ! ICON
 !
 ! ---------------------------------------------------------------
-! Copyright (C) 2004-2024, DWD, MPI-M, DKRZ, KIT, ETH, MeteoSwiss
+! Copyright (C) 2004-2025, DWD, MPI-M, DKRZ, KIT, ETH, MeteoSwiss
 ! Contact information: icon-model.org
 !
 ! See AUTHORS.TXT for a list of authors
@@ -2904,9 +2904,9 @@ CONTAINS
 
     IF (select_lhs .GE. select_lhs_matrix .AND. select_lhs .LE. select_lhs_matrix + 1) &
 #if defined(__LVECTOR__) && !defined(__LVEC_BITID__)
-      CALL update_lhs_matrix_coeff_lvector( patch_3D, operators_coefficients)
+      CALL update_lhs_matrix_coeff_lvector( patch_3D, operators_coefficients, lacc=lzacc)
 #else
-      CALL update_lhs_matrix_coeff( patch_3D, operators_coefficients, lacc = lzacc)
+      CALL update_lhs_matrix_coeff( patch_3D, operators_coefficients, lacc=lzacc)
 #endif
 
     !---------Debug Diagnostics-------------------------------------------
@@ -2967,6 +2967,8 @@ CONTAINS
 !     write(0,*) "Calculating lhs_matrix_coeff..."
 
     CALL set_acc_host_or_device(lzacc, lacc)
+
+    IF (lzacc) CALL finish('update_lhs_matrix_coeff_lvector', 'OpenACC version not tested/validated')
 
     patch_2D            => patch_3D%p_patch_2D(1)
     cells_in_domain  => patch_2D%cells%in_domain

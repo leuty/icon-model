@@ -1,7 +1,7 @@
 ! ICON
 !
 ! ---------------------------------------------------------------
-! Copyright (C) 2004-2024, DWD, MPI-M, DKRZ, KIT, ETH, MeteoSwiss
+! Copyright (C) 2004-2025, DWD, MPI-M, DKRZ, KIT, ETH, MeteoSwiss
 ! Contact information: icon-model.org
 !
 ! See AUTHORS.TXT for a list of authors
@@ -19,13 +19,15 @@ MODULE mo_wave_coupling_frame
 
   USE mo_exception,       ONLY: finish, message
   USE mo_model_domain,    ONLY: t_patch
+  USE mo_master_control,  ONLY: get_my_process_name
   USE mo_grid_config,     ONLY: n_dom
-  USE mo_run_config,      ONLY: ltimer
+  USE mo_run_config,      ONLY: ltimer, msg_level
   USE mo_time_config,     ONLY: time_config
   USE mtime,              ONLY: timedeltaToString, MAX_TIMEDELTA_STR_LEN
   USE mo_coupling_config, ONLY: is_coupled_run, is_coupled_to_atmo
-  USE mo_wave_atmo_coupling, ONLY: construct_wave_atmo_coupling
-  USE mo_coupling_utils,  ONLY: cpl_def_main, cpl_enddef
+  USE mo_wave_atmo_coupling, ONLY: construct_wave_atmo_coupling, &
+    &                              construct_wave_atmo_coupling_finalize
+  USE mo_coupling_utils,  ONLY: cpl_def_main, cpl_enddef, cpl_write_config_info
   USE mo_timer,           ONLY: timer_start, timer_stop, timer_coupling_init
 
   IMPLICIT NONE
@@ -65,7 +67,7 @@ CONTAINS
     INTEGER :: cell_point_id(0:n_dom)
 
     INTEGER :: jg
-
+    CHARACTER(len=:), ALLOCATABLE :: grid_name
     CHARACTER(LEN=MAX_TIMEDELTA_STR_LEN):: timestepstring
 
     CHARACTER(len=*), PARAMETER :: routine = str_module//':construct_wave_coupling'
@@ -79,28 +81,38 @@ CONTAINS
     jg = 1
     patch_horz => p_patch(jg)
 
+    grid_name = "icon_waves_grid"
+
     ! do basic initialisation of the component
-    CALL cpl_def_main(routine,           & !in
-                      p_patch,           & !in
-                      "icon_waves_grid", & !in
-                      comp_id,           & !out
-                      grid_id,           & !out
-                      cell_point_id)       !out
+    CALL cpl_def_main(routine,       & !in
+                      p_patch,       & !in
+                      grid_name,     & !in
+                      comp_id,       & !out
+                      grid_id,       & !out
+                      cell_point_id)   !out
 
     ! get model timestep
     CALL timedeltaToString(time_config%tc_dt_model, timestepstring)
 
     IF ( is_coupled_to_atmo() ) THEN
-
       CALL message(str_module, 'Constructing the coupling frame wave-atmosphere.')
 
       CALL construct_wave_atmo_coupling( &
         comp_id, cell_point_id(1), timestepstring)
-
     END IF
 
     ! End definition of coupling fields and search
     CALL cpl_enddef(routine)
+
+    IF ( is_coupled_to_atmo() ) THEN
+      ! finalizes construction of wave-atmo coupling
+      CALL construct_wave_atmo_coupling_finalize()
+
+      ! write YAC setup information to stdout
+      IF (msg_level >= 8) THEN
+        CALL cpl_write_config_info(TRIM(routine), TRIM(get_my_process_name()), grid_name)
+      ENDIF
+    ENDIF
 
     IF (ltimer) CALL timer_stop(timer_coupling_init)
 

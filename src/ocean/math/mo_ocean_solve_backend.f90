@@ -1,7 +1,7 @@
 ! ICON
 !
 ! ---------------------------------------------------------------
-! Copyright (C) 2004-2024, DWD, MPI-M, DKRZ, KIT, ETH, MeteoSwiss
+! Copyright (C) 2004-2025, DWD, MPI-M, DKRZ, KIT, ETH, MeteoSwiss
 ! Contact information: icon-model.org
 !
 ! See AUTHORS.TXT for a list of authors
@@ -168,7 +168,7 @@ CONTAINS
       CALL this%trans%into(this%x_loc_wp, this%x_wp, this%b_loc_wp, this%b_wp, 1, lacc=lzacc)
     END IF
 
-    !$ACC DATA PRESENT(this%x_loc_wp, this%x_wp, this%b_wp, this%b_loc_wp, this%b_wp) IF(lzacc)
+    !$ACC DATA PRESENT(this%x_loc_wp, this%x_wp, this%b_wp, this%b_loc_wp) IF(lzacc)
     this%niter_cal(2) = -2
     IF (this%par_sp%nidx .EQ. this%par%nidx .AND. this%trans%is_solver_pe) THEN
 #ifdef _OPENACC
@@ -214,7 +214,15 @@ CONTAINS
     IF (ltimer) CALL timer_start(this%timer_wait)
     IF (ltimer) CALL p_barrier(p_comm_work)
     IF (ltimer) CALL timer_stop(this%timer_wait)
-    CALL this%trans%sctr(this%x_wp, this%x_loc_wp, lacc=lzacc)
+
+    ! FIXME: 2025-01 DKRZ-dzo: Switching to CPU context for the call of this%trans%sctr()
+    !        and switching back afterwards. For unknown reasons, this seems necessary to run
+    !        ocean experiments using binaries compiled with NVHPC 24.x.
+    !        Otherwise the free surface solver in the GPU version does not seem to converge 
+    !$ACC UPDATE SELF(this%x_wp, this%x_loc_wp) IF(lzacc)
+    CALL this%trans%sctr(this%x_wp, this%x_loc_wp, lacc=.FALSE.)
+    !$ACC UPDATE DEVICE(this%x_wp, this%x_loc_wp) IF(lzacc)
+
     !> these are 1d arrays with size two
     ! 2024-09 DKRZ-dzo: Since this%res_wp and this%niter_cal are only in CPU memory, have lacc=.FALSE.
     CALL this%trans%bcst(this%res_wp, this%res_loc_wp, lacc=.FALSE.)

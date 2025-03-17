@@ -1,7 +1,7 @@
 # ICON
 #
 # ------------------------------------------
-# Copyright (C) 2004-2024, DWD, MPI-M, DKRZ, KIT, ETH, MeteoSwiss
+# Copyright (C) 2004-2025, DWD, MPI-M, DKRZ, KIT, ETH, MeteoSwiss
 # Contact information: icon-model.org
 # See AUTHORS.TXT for a list of authors
 # See LICENSES/ for license information
@@ -45,7 +45,7 @@ icon_data_poolFolder="${icon_data_rootFolder:-/pool/data/ICON}/grids/public/mpim
 # horizontal grid(s)
 #
 # domain globe
-grid_id=0043
+grid_id=0049
 grids_folder=${icon_data_poolFolder}/${grid_id}
 grid_refinement=R02B04
 grid_label=G
@@ -236,10 +236,8 @@ cat > ${jsbach_namelist} << EOF
   ic_filename     = 'ic_land_soil.nc'
 /
 &jsb_sse_nml
-  l_heat_cap_map  = .FALSE.
-  l_heat_cond_map = .FALSE.
-  l_heat_cap_dyn  = .FALSE.
-  l_heat_cond_dyn = .FALSE.
+  l_heat_cap_dyn  = .TRUE.
+  l_heat_cond_dyn = .TRUE.
   l_snow          = .TRUE.
   l_dynsnow       = .TRUE.
   l_freeze        = .TRUE.
@@ -248,7 +246,6 @@ cat > ${jsbach_namelist} << EOF
   ic_filename     = 'ic_land_soil.nc'
 /
 &jsb_hydro_nml
-  l_organic       = .FALSE.
   bc_filename     = 'bc_land_soil.nc'
   ic_filename     = 'ic_land_soil.nc'
   bc_sso_filename = 'bc_land_sso.nc'
@@ -336,10 +333,8 @@ datadir=${grids_folder}/initial_condition/r0001
 add_link_file $datadir/ifs2icon_1979010100_${grid_refinement}_${grid_label}.nc ./ifs2icon.nc
 #
 # - land: source?, date+time?
-datadir=${grids_folder}/land/r0004
-add_link_file ${datadir}/ic_land_soil_1979.nc                           ./ic_land_soil.nc
-# added in namelist, but not active and not yet available (2017-Dec-07)
-#add_link_file ${datadir}/ic_land_carbon_1979.nc                         ./ic_land_carbon.nc
+datadir=${grids_folder}/land/r0101
+add_link_file ${datadir}/ic_land_soil.nc                                ./ic_land_soil.nc
 
 # boundary conditions
 #
@@ -413,17 +408,14 @@ datadir=${icon_data_poolFolder}/common/solar_radiation
 add_link_file $datadir/swflux_14band_cmip6_1850-2299-v3.2.nc            ./bc_solar_irradiance_sw_b14.nc
 #
 # - topography and sso parameters
-datadir=${grids_folder}/land/r0004
-add_link_file $datadir/bc_land_sso_1979.nc                              ./bc_land_sso.nc
+datadir=${grids_folder}/land/r0101
+add_link_file $datadir/bc_land_sso.nc                                   ./bc_land_sso.nc
 #
 # - land parameters
-datadir=${grids_folder}/land/r0004
+datadir=${grids_folder}/land/r0101
 add_link_file $datadir/bc_land_frac_${pft_file_tag}1979.nc              ./bc_land_frac.nc
-add_link_file $datadir/bc_land_phys_1979.nc                             ./bc_land_phys.nc
-add_link_file $datadir/bc_land_soil_1979.nc                             ./bc_land_soil.nc
-# added in namelist, but not active and not yet available (2017-Dec-07)
-#datadir=${icon_data_poolFolder}/preliminary_land/r0002/${grid_refinement}_${grid_label}/land
-#add_link_file $datadir/bc_land_carbon_1979.nc                           ./bc_land_carbon.nc
+add_link_file $datadir/bc_land_phys.nc                                  ./bc_land_phys.nc
+add_link_file $datadir/bc_land_soil.nc                                  ./bc_land_soil.nc
 
 # - land: cover fractions
 if [[ ${jsbach_with_alcc} == "yes" ]]
@@ -478,7 +470,7 @@ fi
 # - HD model input by Tom Riddick
 #
 if [[ ${jsbach_with_hd} = yes ]]; then
-  datadir=${grids_folder}/land/r0004
+  datadir=${grids_folder}/land/r0101
   add_link_file $datadir/bc_land_hd.nc                                  ./bc_land_hd.nc
 fi
 #

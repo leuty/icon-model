@@ -1,7 +1,7 @@
 ! ICON
 !
 ! ---------------------------------------------------------------
-! Copyright (C) 2004-2024, DWD, MPI-M, DKRZ, KIT, ETH, MeteoSwiss
+! Copyright (C) 2004-2025, DWD, MPI-M, DKRZ, KIT, ETH, MeteoSwiss
 ! Contact information: icon-model.org
 !
 ! See AUTHORS.TXT for a list of authors
@@ -42,7 +42,6 @@ MODULE mo_upatmo_phy_config
   USE mo_phy_events,               ONLY: t_phyProcSlow, t_phyProcGroup
   USE mo_io_units,                 ONLY: filename_max
   USE mo_mpi,                      ONLY: my_process_is_stdio
-  USE mo_name_list_output_types,   ONLY: t_output_name_list
   USE mo_grid_config,              ONLY: DEFAULT_ENDTIME
   USE mo_cdi,                      ONLY: FILETYPE_GRB, FILETYPE_GRB2
   
