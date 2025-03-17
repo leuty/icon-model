@@ -22,7 +22,7 @@ MODULE mo_wave_td_update
   USE mo_model_domain,        ONLY: t_patch
   USE mo_impl_constants,      ONLY: MAX_CHAR_LENGTH, min_rlcell
   USE mo_loopindices,         ONLY: get_indices_c
-  USE mo_math_constants,      ONLY: dbl_eps
+  USE mo_math_constants,      ONLY: dbl_eps, pi2
   USE mo_intp_data_strc,      ONLY: t_int_state
   USE mo_wave_ext_data_init,  ONLY: cells2edges_bathymetry, compute_depth_gradient
 
@@ -127,7 +127,8 @@ CONTAINS
         vc = SIGN(MAX(ABS(v(jc,jb)),dbl_eps),v(jc,jb))
 
         sp(jc,jb) = SQRT( uc**2 + vc**2 )
-        dir(jc,jb) = ATAN2(vc,uc)
+        dir(jc,jb) = ATAN2(uc,vc)
+        IF (dir(jc,jb) < 0._wp) dir(jc,jb) = dir(jc,jb) + pi2
 
       END DO
     END DO
