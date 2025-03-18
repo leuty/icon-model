@@ -166,6 +166,7 @@ MODULE mo_nwp_lnd_types
     TYPE(t_ptr_2d3d), ALLOCATABLE :: runoff_s_ptr(:)
     TYPE(t_ptr_2d3d), ALLOCATABLE :: runoff_g_ptr(:)
     TYPE(t_ptr_2d3d), ALLOCATABLE :: resid_wso_ptr(:)
+    TYPE(t_ptr_2d3d), ALLOCATABLE :: resid_wso_inst_ptr(:)
     TYPE(t_ptr_2d3d), ALLOCATABLE :: snow_melt_ptr(:)
 
   END TYPE t_lnd_diag

@@ -22,6 +22,7 @@ MODULE mo_io_config
   USE mo_name_list_output_config, ONLY: is_variable_in_output, &
     &                                   is_variable_in_output_dom
   USE mo_lnd_nwp_config,          ONLY: groups_smi
+  USE mo_coupling_config,         ONLY: is_coupled_to_hydrodisc
 
   IMPLICIT NONE
   PUBLIC
@@ -284,8 +285,13 @@ CONTAINS
         &                          is_variable_in_output(var_name="psl_m")
       var_in_output(jg)%omega    = is_variable_in_output(var_name="omega")    .OR. &
         &                          is_variable_in_output(var_name="wap_m")
-      var_in_output(jg)%res_soilwatb = is_variable_in_output_dom(var_name="resid_wso", jg=jg)
       var_in_output(jg)%ddt_temp_drag = is_variable_in_output_dom(var_name="ddt_temp_drag", jg=jg)
+      var_in_output(jg)%res_soilwatb = is_variable_in_output_dom(var_name="resid_wso", jg=jg)
+
+      ! water residuum by TERRA is required in coupling to HD to close water budget
+      IF ( is_coupled_to_hydrodisc() ) THEN
+        var_in_output(jg)%res_soilwatb = .TRUE.
+      ENDIF
     END DO
 
 

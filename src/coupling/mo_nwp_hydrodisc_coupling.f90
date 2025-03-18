@@ -23,7 +23,7 @@ MODULE mo_nwp_hydrodisc_coupling
   USE mo_nwp_lnd_types       ,ONLY: t_lnd_diag
   USE mo_nwp_phy_types       ,ONLY: t_nwp_phy_diag
   USE mo_ext_data_types      ,ONLY: t_external_data
-  USE mo_lnd_nwp_config      ,ONLY: ntiles_total, ntiles_water
+  USE mo_lnd_nwp_config      ,ONLY: ntiles_total, ntiles_water, isub_lake
   USE mo_fortran_tools       ,ONLY: init, assert_acc_host_only
   USE mo_parallel_config     ,ONLY: nproma
   USE mo_atm_phy_nwp_config  ,ONLY: atm_phy_nwp_config
@@ -31,6 +31,7 @@ MODULE mo_nwp_hydrodisc_coupling
   USE mo_physical_constants  ,ONLY: rhoh2o
   USE mo_run_config          ,ONLY: dtime, msg_level
   USE mo_loopindices         ,ONLY: get_indices_c
+  USE mo_dbg_nml             ,ONLY: str_mod_tst
 
   USE mo_coupling_utils      ,ONLY: cpl_def_field, cpl_put_field
 #if !defined NOMPI && defined YAC_coupling
@@ -148,19 +149,26 @@ CONTAINS
 !ICON_OMP_PARALLEL_DO PRIVATE(jb, jc, i_startidx, i_endidx, isubs) ICON_OMP_RUNTIME_SCHEDULE
     DO jb = i_startblk, i_endblk
       CALL get_indices_c(p_patch, jb, i_startblk, i_endblk, &
-                       & i_startidx, i_endidx, start_prog_cells, end_prog_cells)
+           & i_startidx, i_endidx, start_prog_cells, end_prog_cells)
 
-      ! aggregate over tiles
-      DO isubs = 1, ntiles_total + ntiles_water
+      ! aggregate over land tiles (ocean, sea-ice, lake should not have any runoff)
+      DO isubs = 1, ntiles_total
         DO jc = i_startidx, i_endidx
-          buffer(jc,jb,1) = buffer(jc,jb,1) + lnd_diag%runoff_s_inst_t(jc,jb,isubs) / dtime &
-            &           * ext_data%atm%frac_t(jc,jb,isubs)
-          buffer(jc,jb,2) = buffer(jc,jb,2) + lnd_diag%runoff_g_inst_t(jc,jb,isubs) / dtime &
-            &           * ext_data%atm%frac_t(jc,jb,isubs)
+          buffer(jc,jb,1) = buffer(jc,jb,1) + lnd_diag%runoff_s_inst_t(jc,jb,isubs) / dtime  &
+            &                               * ext_data%atm%frac_t(jc,jb,isubs)
+          buffer(jc,jb,2) = buffer(jc,jb,2) + lnd_diag%runoff_g_inst_t(jc,jb,isubs) / dtime  &
+            &                               * ext_data%atm%frac_t(jc,jb,isubs)
+          ! add water residuum from TERRA to ground runoff (only land)
+          buffer(jc,jb,2) = buffer(jc,jb,2) + lnd_diag%resid_wso_inst_t(jc,jb,isubs) / dtime &
+            &                               * ext_data%atm%frac_t(jc,jb,isubs)
         ENDDO
-      ENDDO  ! isubs
-    ENDDO ! jb
-
+      ENDDO
+      ! add lake P-E into surface runoff
+      DO jc = i_startidx, i_endidx
+        buffer(jc,jb,1) = buffer(jc,jb,1) + lnd_diag%runoff_s_inst_t(jc,jb,isub_lake) / dtime &
+          &                               * ext_data%atm%frac_t(jc,jb,isub_lake)
+      ENDDO
+    ENDDO
 !ICON_OMP_END_PARALLEL_DO
 
 #if !defined NOMPI && defined YAC_coupling
@@ -175,6 +183,26 @@ CONTAINS
         diag_runoff = global_sum_array(buffer(:,:,2) * p_patch%cells%area(:,:) / rhoh2o)
         WRITE(message_text,'(a,f15.3)') ' NWP-HD: global total ground runoff (m3/s) :' , diag_runoff
         CALL message(routine, message_text)
+
+        ! Optional tile-based global budgets
+        IF (ANY(str_mod_tst(:) == 'hd')) THEN
+          DO isubs = 1, ntiles_total + ntiles_water
+            diag_runoff = global_sum_array(lnd_diag%runoff_s_inst_t(:,:,isubs)  &
+                        & / dtime * p_patch%cells%area(:,:) / rhoh2o)
+            WRITE(message_text,'(a,i5,f15.3)') ' NWP-HD: runoff_s_inst_t (m3/s) :'  , isubs, diag_runoff
+            CALL message(routine, message_text)
+
+            diag_runoff = global_sum_array(lnd_diag%runoff_g_inst_t(:,:,isubs)  &
+                        & / dtime * p_patch%cells%area(:,:) / rhoh2o)
+            WRITE(message_text,'(a,i5,f15.3)') ' NWP-HD: runoff_g_inst_t (m3/s) :'  , isubs, diag_runoff
+            CALL message(routine, message_text)
+
+            diag_runoff = global_sum_array(lnd_diag%resid_wso_inst_t(:,:,isubs) &
+                        & / dtime * p_patch%cells%area(:,:) / rhoh2o)
+            WRITE(message_text,'(a,i5,f15.3)') ' NWP-HD: resid_wso_inst_t (m3/s) :' , isubs, diag_runoff
+            CALL message(routine, message_text)
+          ENDDO
+        ENDIF
       ENDIF
     ENDIF
 #endif

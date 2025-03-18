@@ -692,6 +692,14 @@ CONTAINS
 !ICON_OMP_END_PARALLEL_DO
       !
       CALL sync_patch_array(sync_c, patch_horz, atmos_fluxes%FrshFlux_Runoff(:,:), lacc=.FALSE.)
+
+      ! Online diagnose for global total discharge (m3/s) received from YAC:
+      IF (msg_level >= 20) THEN
+        diag_runoff = global_sum_array(atmos_fluxes%FrshFlux_Runoff(:,:) * patch_horz%cells%area(:,:))
+        WRITE(message_text,'(a,f15.3)') 'HD-Ocean: Global total river discharge (m3/s) :' , diag_runoff
+        CALL message (TRIM(routine), TRIM(message_text))
+      ENDIF
+
     END IF
 
     !---------DEBUG DIAGNOSTICS-------------------------------------------

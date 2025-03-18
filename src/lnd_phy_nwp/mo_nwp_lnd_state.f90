@@ -1687,9 +1687,25 @@ MODULE mo_nwp_lnd_state
                 & ldims=shape2d,                                                  &
   !               & isteptype=TSTEP_ACCUM,                                          &
                 & var_class=CLASS_TILE_LAND )
+      END DO
+
+      ! fill the separate variables belonging to the container resid_wso_inst
+      ALLOCATE(p_diag_lnd%resid_wso_inst_ptr(ntiles_total))
+      DO jsfc = 1,ntiles_total
+        NULLIFY(p_diag_lnd%resid_wso_inst_ptr(jsfc)%p_2d, p_diag_lnd%resid_wso_inst_ptr(jsfc)%p_3d)
+        WRITE(csfc,'(i2)') jsfc
+        CALL add_ref( diag_list, vname_prefix//'resid_wso_inst_t',                &
+                & vname_prefix//'resid_wso_inst_t_'//ADJUSTL(TRIM(csfc)),         &
+                & p_diag_lnd%resid_wso_inst_ptr(jsfc)%p_2d,                       &
+                & GRID_UNSTRUCTURED_CELL, ZA_DEPTH_RUNOFF_G,                      &
+                & t_cf_var('resid_wso_inst_t_'//csfc, '', '', datatype_flt),      &
+                & grib2_var(2, 3, 195, ibits, GRID_UNSTRUCTURED, GRID_CELL),      &
+                & ref_idx=jsfc,                                                   &
+                & ldims=shape2d,                                                  &
+                & var_class=CLASS_TILE_LAND )
        END DO
     ENDIF
-    
+
     IF (var_in_output(p_jg)%snow_melt) THEN
         NULLIFY(p_diag_lnd%snow_melt,p_diag_lnd%snow_melt_flux_t)
         
