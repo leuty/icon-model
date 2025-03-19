@@ -62,6 +62,7 @@ Climate: ICON-Land
     - Read elevation for QUINCY from file
     - Improved handling of n and p deposition reading from forcing data
     - Inclusion of self-thinning and herbivory in grasslands and pastures (but not crops)
+    - Improvements regarding C:N and N:P ratios in leaves and soil-organic matter
   - Merged the radiation process of QUINCY into the radiation process of JSBACH
   - Use JSBACH4 canopy, soil and snow albedos with QUINCY albedo calculations
   - Use the turbulence process of JSBACH in QUINCY replacing QUINCY-specific turbulence-code
