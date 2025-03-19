@@ -42,6 +42,11 @@
       - utils/pvcs.py
     labels: [Build system]
     mentions: [m300488]
+  # Documentation:
+  - file_names:
+      - doc/www/*
+    labels: [Documentation]
+    mentions: [m300368]
   # GPU-related changes:
   - file_names: ['*.f90', '*.F90']
     diff_regexps: ['(?i)^\s*!\$acc']
