@@ -190,7 +190,8 @@
 
     IF (l_bgc_check) THEN
       CALL message_to_own_unit('3. after bgc + fluxes and weathering', 'inventories', io_stdo_bgc)
-      CALL get_inventories(hamocc_state, ssh, pddpo, hamocc_state%p_prog(nold(1))%tracer, patch_3d, 0._wp, 0._wp)
+      CALL get_inventories(hamocc_state, ssh, pddpo, hamocc_state%p_prog(nold(1))%tracer, &
+   &                       patch_3d, 0._wp, 0._wp, lacc=lzacc)
     ENDIF
 
     !------------------------------------------------------------------------
@@ -245,7 +246,8 @@
 
     IF (l_bgc_check) THEN
       CALL message_to_own_unit('4. after transport', 'inventories', io_stdo_bgc)
-      CALL get_inventories(hamocc_state, ssh_new, pddpo_new, hamocc_state%p_prog(nnew(1))%tracer, patch_3d, 0._wp, 0._wp)
+      CALL get_inventories(hamocc_state, ssh_new, pddpo_new, hamocc_state%p_prog(nnew(1))%tracer, &
+   &                       patch_3d, 0._wp, 0._wp, lacc=lzacc)
     ENDIF
     !------------------------------------------------------------------------
 

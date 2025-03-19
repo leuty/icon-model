@@ -6988,11 +6988,12 @@ If this namelist parameter is chosen as "default", then we have
 %\hline
 filetype &
 I&4& &
-One of CDI's FILETYPE\_XXX constants.
+One of CDI's FILETYPE\_XXX constants, or FILETYPE\_NONE to prevent writing a file but adding the diagnostics (e.g.\ pressure level remap) to the variable list.
 Possible values:\\
 2=FILETYPE\_GRB2,\\
 4=FILETYPE\_NC2, \\
-5=FILETYPE\_NC4
+5=FILETYPE\_NC4, \\
+999=FILETYPE\_NONE
 &
 \tabularnewline
 

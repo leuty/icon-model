@@ -13,12 +13,16 @@
 
 source [file join [file dirname $ModulesCurrentModulefile] .pkg]
 
-set_dependencies {
+set modules {
     python3/2023.01-gcc-11.2.0
     cdo/2.2.2-gcc-11.2.0
     ncl
     ghostscript
     imagemagick
+}
+
+foreach module $modules {
+    module switch $module
 }
 
 source [file join [file dirname $ModulesCurrentModulefile] icon-runtime]

@@ -718,6 +718,18 @@ cat >> ${atm_namelist} << EOF
   dbg_lon_in       = -30.0                    ! longitude location of one cell debug output
   str_mod_tst      ='InterFaceOce'            ! define modules to print out in debug mode
 /
+&output_nml
+ output_filename  = "pressure_level_for_output_coupling"
+ filename_format  = "<output_filename>_<levtype_l>"
+ filetype         = 999
+ remap            = 0
+ output_start     = "${start_date}"           ! output_start = output_end
+ output_end       = "${end_date}"             ! --> write once only irrespective of
+ output_interval  = "${atmTimeStep}"          !     the output interval and
+ file_interval    = "P999Y"    !     the file interval
+ pl_varlist       = 'temp'
+ p_levels         =  20000, 50000, 85000
+/
 EOF
 
 # Define output files
@@ -1406,6 +1418,7 @@ if [[ "$START" == *"srun"* ]]; then
 0 ${basedir}/externals/yac/examples/toy_output/toy_output.x atmo_output icon_atmos_grid tas
 1 ${basedir}/externals/yac/examples/toy_output/toy_output.x ocean_output icon_ocean_grid to
 2 ${basedir}/externals/yac/examples/toy_output/toy_output.x atmo_output icon_atmos_grid temp
+3 ${basedir}/externals/yac/examples/toy_output/toy_output.x atmo_output icon_atmos_grid pl::temp
 * ${MODEL}
 EOF
     add_required_file ${basedir}/run/mpmd.conf                        ./

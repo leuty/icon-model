@@ -16,6 +16,7 @@
 MODULE mo_aes_bubble
   USE mo_kind,                ONLY: wp
   USE mo_model_domain,        ONLY: t_patch
+  USE mo_math_constants,      ONLY: pi
   USE mo_physical_constants,  ONLY: rd, grav, p0ref,rd_o_cpd, o_m_rdv
   USE mo_nonhydro_types,      ONLY: t_nh_prog, t_nh_diag, t_nh_metrics, t_nh_ref
   USE mo_parallel_config,     ONLY: nproma
@@ -50,11 +51,12 @@ MODULE mo_aes_bubble
 
     REAL(wp), ALLOCATABLE :: temp(:,:,:), rh(:,:,:), zeta_xy(:,:)
     REAL(wp)              :: pres(nproma), tt(nproma)
-    REAL(wp)              :: qv, x, y, z, dz, sat_pres, wat_pres, tv, sigma_x, sigma_z, zeta
+    REAL(wp)              :: qv, x_center, x, y_center, y, z, dz, sat_pres,  &
+                           & wat_pres, tv, sigma_x, sigma_z, zeta
 
     REAL(wp), POINTER     :: psfc,        t_am,      t0,        gamma0,      &
                            & gamma1,      z0,        t_perturb, relhum_bg,   &
-                           & relhum_mx,   hw_x,      hw_z,      x_center
+                           & relhum_mx,   hw_x,      hw_z
     LOGICAL, POINTER      :: lgaussxy
 
     psfc        => aes_bubble_config%psfc
@@ -68,9 +70,11 @@ MODULE mo_aes_bubble
     relhum_mx   => aes_bubble_config%relhum_mx
     hw_x        => aes_bubble_config%hw_x
     hw_z        => aes_bubble_config%hw_z
-    x_center    => aes_bubble_config%x_center
     lgaussxy    => aes_bubble_config%lgaussxy
     
+    x_center    = ptr_patch%geometry_info%center%x(1) + aes_bubble_config%x_center
+    y_center    = ptr_patch%geometry_info%center%x(2)
+
     ! values for the blocking
     nblks_c  = ptr_patch%nblks_c
     npromz_c = ptr_patch%npromz_c
@@ -89,7 +93,7 @@ MODULE mo_aes_bubble
     ptr_nh_prog%tracer(:,:,:,:) = 0._wp
 
     ! Parameters for horizontal Gaussian profile
-    sigma_x = hw_x / (2._wp * SQRT(2._wp * LOG(2._wp)))
+    sigma_x = hw_x / (2._WP * SQRT(2._wp * LOG(2._wp)))
     sigma_z = hw_z / (2._wp * SQRT(2._wp * LOG(2._wp)))
     DO jb = 1, nblks_c
       IF (jb /= nblks_c) THEN
@@ -105,7 +109,7 @@ MODULE mo_aes_bubble
             x = ptr_patch%cells%cartesian_center(jl, jb)%x(1)
             y = ptr_patch%cells%cartesian_center(jl, jb)%x(2)
             zeta_xy(jl,jb) = gaussian(x_center, sigma_x, 1._wp, x) * &
-                           & gaussian(x_center, sigma_x, 1._wp, y)
+                           & gaussian(y_center, sigma_x, 1._wp, y)
          END DO
       ELSE
          DO jl = 1, nlen

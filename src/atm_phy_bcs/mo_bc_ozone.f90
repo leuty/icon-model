@@ -24,8 +24,7 @@ MODULE mo_bc_ozone
   USE mo_read_interface,           ONLY: openInputFile, closeFile,        &
   &                                      read_3D_time, t_stream_id, on_cells
   USE mo_mpi,                      ONLY: my_process_is_stdio, p_bcast,        &
-  &                                      p_comm_work_test, p_comm_work, p_io, &
-  &                                      i_am_accel_node
+  &                                      p_comm_work_test, p_comm_work, p_io
   USE mo_impl_constants,           ONLY: max_dom
   USE mo_grid_config,              ONLY: n_dom
   USE mo_aes_rad_config,           ONLY: aes_rad_config
@@ -39,7 +38,8 @@ MODULE mo_bc_ozone
                                           timer_coupling
   USE mo_atmo_o3_provider_coupling, ONLY: nplev_o3_provider, &
                                           couple_atmo_to_o3_provider
-
+  USE mo_fortran_tools,        ONLY: set_acc_host_or_device
+  
   IMPLICIT NONE
   PRIVATE
   INTEGER(i8), SAVE                 :: pre_year(max_dom)=-HUGE(1) ! Variable to check if it is time to read
@@ -63,13 +63,14 @@ MODULE mo_bc_ozone
 
 CONTAINS
 
-  SUBROUTINE read_bc_ozone(year, p_patch, irad_o3, vmr2mmr_opt, opt_from_coupler)
+  SUBROUTINE read_bc_ozone(year, p_patch, irad_o3, vmr2mmr_opt, opt_from_coupler, lacc)
 
-    INTEGER(i8)  , INTENT(in)            :: year
-    TYPE(t_patch), TARGET, INTENT(in)    :: p_patch
-    INTEGER      , INTENT(in)            :: irad_o3
-    REAL(wp)     , INTENT(in), OPTIONAL  :: vmr2mmr_opt
+    INTEGER(i8)  , INTENT(IN)            :: year
+    TYPE(t_patch), TARGET, INTENT(IN)    :: p_patch
+    INTEGER      , INTENT(IN)            :: irad_o3
+    REAL(wp)     , INTENT(IN), OPTIONAL  :: vmr2mmr_opt
     LOGICAL      , INTENT(IN), OPTIONAL  :: opt_from_coupler
+    LOGICAL      , INTENT(IN), OPTIONAL  :: lacc
 
     CHARACTER(len=512)                :: fname
     TYPE(t_stream_id)                 :: stream_id
@@ -83,11 +84,13 @@ CONTAINS
     INTEGER                           :: nmonths
     REAL(wp), ALLOCATABLE             :: zo3_plev(:,:,:,:)           ! (nproma, levels, blocks, time)
     REAL(wp)                          :: vmr2mmr_o3
-    LOGICAL                           :: l_first
+    LOGICAL                           :: l_first, lzacc
     LOGICAL                           :: from_coupler = .FALSE.
 
     jg    = p_patch%id
     WRITE(cjg,'(i2.2)') jg
+
+    CALL set_acc_host_or_device(lzacc, lacc)
 
     IF ( PRESENT(vmr2mmr_opt) ) THEN
       vmr2mmr_o3 = vmr2mmr_opt
@@ -131,7 +134,7 @@ CONTAINS
 
        IF (ltimer) CALL timer_start(timer_coupling)
        CALL couple_atmo_to_o3_provider( &
-         p_patch, vmr2mmr_o3, ext_ozone(jg)% o3_plev, lacc=i_am_accel_node)
+         p_patch, vmr2mmr_o3, ext_ozone(jg)% o3_plev, lacc=lzacc)
        IF (ltimer) CALL timer_stop(timer_coupling)
 
        fname = 'bc_ozone.nc'

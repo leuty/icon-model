@@ -74,13 +74,16 @@ Climate: ICON-Land
     - Read elevation for QUINCY from file
     - Improved handling of n and p deposition reading from forcing data
     - Inclusion of self-thinning and herbivory in grasslands and pastures (but not crops)
+    - Improvements regarding C:N and N:P ratios in leaves and soil-organic matter
   - Merged the radiation process of QUINCY into the radiation process of JSBACH
   - Use JSBACH4 canopy, soil and snow albedos with QUINCY albedo calculations
+  - Use the turbulence process of JSBACH in QUINCY replacing QUINCY-specific turbulence-code
   - Consolidate and clean up namelist handling and physical parameters between QUINCY and JSBACH
   - Implementation of a harvest process for QUINCY (for now using a global constant)
   - Bugfix: static reals were missing decimal
   - Bugfix: some local REAL variables were missing kind statement
 - Small fix for ICON-Land standalone concerning nproma
+- Make PFT parameters available in memory init functions
 - New optional tag for the memory usage report
 - New functions for time control: get_previous_month_length and get_previous_year_length
 - Memory reduction: array allocation only if needed with the specific setup
@@ -105,6 +108,7 @@ Climate: ICON-Land
 - Update thaw depth diagnostics
 - Enabled JSBACH usecase with PFTs when using TMX
 - Interface: New switch to supress YAC call during initialization phase
+- Update HD-YAC coupling interface to use mo_coupling_utils
 
 ### Externals
 
@@ -128,6 +132,7 @@ Climate: ICON-Land
 - Fix the generation of index lists on GPUs for LAM and nested simulation runs
 - Single-precision support in IO components (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/680)
 - Remove more i_am_accel_node (https://gitlab.dkrz.de/icon/icon-nwp/-/merge_requests/1679)
+- Completely removed i_am_accel_node
 
 #### Coupling
 

@@ -18,7 +18,7 @@ MODULE mo_io_util
   USE mo_util_string,           ONLY: tolower
   USE mo_netcdf_errhandler,     ONLY: nf
   USE mo_netcdf
-  USE mo_name_list_output_types, ONLY: FILETYPE_YAC
+  USE mo_name_list_output_types, ONLY: FILETYPE_NONE
 
   IMPLICIT NONE
   PRIVATE
@@ -90,12 +90,8 @@ CONTAINS
       CALL finish(routine,'GRIB1 not supported')
     CASE (FILETYPE_GRB2)
       extn = '.grb'
-    CASE (FILETYPE_YAC)
-#ifdef YAC_coupling
+    CASE (FILETYPE_NONE)
       extn = ''
-#else
-      CALL finish(routine,'using yac-coupled output but yac coupling is disabled')
-#endif
     CASE default
       CALL finish(routine,'unknown output_type')
     END SELECT
