@@ -35,7 +35,7 @@ MODULE mo_wave_stepping
   USE mo_pp_scheduler,             ONLY: new_simulation_status, pp_scheduler_process
   USE mo_pp_tasks,                 ONLY: t_simulation_status
   USE mo_wave_adv_exp,             ONLY: init_wind_adv_test
-  USE mo_init_wave_physics,        ONLY: init_wave_spectrum, init_wave_nonlinear, fetch_law, jonswap
+  USE mo_init_wave_physics,        ONLY: init_wave_spectrum, init_wave_nonlinear, fetch_law, jonswap, min_energy
   USE mo_wave_state,               ONLY: p_wave_state
   USE mo_wave_ext_data_state,      ONLY: wave_ext_data
   USE mo_wave_forcing_state,       ONLY: wave_forcing_state
@@ -43,7 +43,7 @@ MODULE mo_wave_stepping
   USE mo_wave_source,              ONLY: src_wind_input, src_dissipation, src_bottom_friction, &
     &                                    src_nonlinear_transfer, integrate_in_time_src, &
     &                                    src_wave_breaking
-  USE mo_wave_physics,             ONLY: tm1_tm2_periods_and_wm1_wm2_wavenumber, set_energy2emin, &
+  USE mo_wave_physics,             ONLY: tm1_tm2_periods_and_wm1_wm2_wavenumber, &
        &                                 mean_frequency_and_total_energy, air_sea, last_prog_freq_ind, &
        &                                 impose_high_freq_tail, wave_stress, &
        &                                 mask_energy, compute_wave_number, compute_group_velocity
@@ -224,32 +224,20 @@ CONTAINS
       n_now  = nnow(jg)
       n_new  = nnew(jg)
 
+      ! Calculate the minimum values of energy allowed 
+      ! for each frequency for a given wind speed bin
+      ! from 1 to wave_config%jmax, and up to wave_config%umax
+      CALL min_energy(wave_config(jg), p_wave_state(jg)%diag%flminfr_tab)
+
       IF (isRestart() .OR. isInitFromRestart()) THEN
         ! do nothing
       ELSE  ! coldstart
-        ! Set minimum values of energy allowed in the spectrum
-        CALL fetch_law(                                       &
-          &  p_patch     = p_patch(jg),                       & !in
-          &  fetch       = wave_config(jg)%fetch_min_energy,  & !in
-          &  fm          = wave_config(jg)%fm,                & !in
-          &  sp10m       = wave_forcing_state(jg)%sp10m(:,:), & !in
-          &  fp          = p_wave_state(jg)%diag%fp(:,:),     & !out
-          &  alphaj      = p_wave_state(jg)%diag%alphaj(:,:))   !out
-
-        CALL jonswap(p_patch(jg),                             & !in
-          &  wave_config(jg)%freqs,                           & !in
-          &  p_wave_state(jg)%diag%alphaj*0.01_wp,            & !in
-          &  wave_config(jg)%GAMMA_wave,                      & !in
-          &  wave_config(jg)%SIGMA_A,                         & !in
-          &  wave_config(jg)%SIGMA_B,                         & !in
-          &  p_wave_state(jg)%diag%fp,                        & !in
-          &  p_wave_state(jg)%diag%flminfr)                     !out
 
         ! Initialisation of the wave spectrum
         CALL fetch_law(                                       &
           &  p_patch     = p_patch(jg),                       & !in
           &  fetch       = wave_config(jg)%fetch,             & !in
-          &  fm          = wave_config(jg)%fm,                & !in
+          &  fpmax       = wave_config(jg)%fm,                & !in
           &  sp10m       = wave_forcing_state(jg)%sp10m(:,:), & !in
           &  fp          = p_wave_state(jg)%diag%fp(:,:),     & !out
           &  alphaj      = p_wave_state(jg)%diag%alphaj(:,:))   !out
@@ -603,7 +591,7 @@ CONTAINS
         ! Calculate dissipation source function
         IF (wave_config(jg)%ldissip_sf) THEN
           IF (timers_level >= 8) CALL timer_start(timer_wave_src_dissipation)
-     
+
           CALL src_dissipation(                                   &
             &  p_patch     = p_patch(jg),                         & !in
             &  wave_config = wave_config(jg),                     & !in
@@ -663,6 +651,7 @@ CONTAINS
           &  wave_config = wave_config(jg),                   & !in
           &  p_diag      = p_wave_state(jg)%diag,             & !in ustar, femeanws, femean
           &  p_source    = p_wave_state(jg)%source,           & !in sl, fl
+          &  sp10m       = wave_forcing_state(jg)%sp10m,      & !in
           &  dir10m      = wave_forcing_state(jg)%dir10m,     & !in
           &  tracer      = p_wave_state(jg)%prog(n_new)%tracer) !inout
 
@@ -694,10 +683,6 @@ CONTAINS
              wave_ext_data(jg)%depth_c,                & !IN
              p_wave_state(jg)%diag%last_prog_freq_ind, & !IN
              p_wave_state(jg)%prog(n_new)%tracer)        !INOUT
-
-        ! Set energy to absolute allowed minimum
-        CALL set_energy2emin(p_patch(jg), wave_config(jg), &
-             p_wave_state(jg)%prog(n_new)%tracer) ! INOUT
 
         ! Update total and mean frequency energy
         CALL mean_frequency_and_total_energy(p_patch(jg), wave_config(jg), &

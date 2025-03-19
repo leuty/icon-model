@@ -40,6 +40,7 @@ MODULE mo_init_wave_physics
   PUBLIC :: init_wave_nonlinear
   PUBLIC :: fetch_law
   PUBLIC :: jonswap
+  PUBLIC :: min_energy
 
   CHARACTER(LEN=*), PARAMETER :: modname = 'mo_init_wave_physics'
 
@@ -71,18 +72,17 @@ CONTAINS
 
     TYPE(t_wave_config), POINTER :: wc => NULL()
 
-    REAL(wp), PARAMETER :: FLMIN = 0.000001_wp !! absolute minimum energy in spectral bins
-
     ! save some paperwork
     wc => wave_config
 
     ! Set JONSWAP spectrum
-    CALL JONSWAP(p_patch,                       & !in
-         wc%freqs,                              & !in
-         alphaj,                                & !in
-         wc%GAMMA_wave, wc%SIGMA_A, wc%SIGMA_B, & !in
-         fp,                                    & !in
-         et)                                      !out
+    CALL JONSWAP(p_patch,                        & !in
+      &   wc%freqs,                              & !in
+      &   alphaj,                                & !in
+      &   wc%GAMMA_wave, wc%SIGMA_A, wc%SIGMA_B, & !in
+      &   fp,                                    & !in
+      &   wc%flmin,                              & !in
+      &   et)                                      !out
 
 
     ! halo points must be included
@@ -96,7 +96,7 @@ CONTAINS
 !$OMP DO PRIVATE(jb,jf,jd,jc,i_startidx,i_endidx,st)
     DO jb = i_startblk, i_endblk
       CALL get_indices_c( p_patch, jb, i_startblk, i_endblk,           &
-           &                 i_startidx, i_endidx, i_rlstart, i_rlend)
+        &                 i_startidx, i_endidx, i_rlstart, i_rlend)
 
       DO jf = 1,wc%nfreqs
         DO jd = 1,wc%ndirs
@@ -104,10 +104,7 @@ CONTAINS
             st = rpi_2*MAX(0._wp, COS(wc%dirs(jd)-dir10m(jc,jb)) )**2
             IF (st < 0.1E-08_wp) st = 0._wp
 
-            ! Avoid too small numbers of et
-            et(jc,jf,jb) = MAX(et(jc,jf,jb),FLMIN)
-
-            ! WAM initialisation
+            ! Wave model initialisation
             tracer(jc,jd,jb,jf) = et(jc,jf,jb) * st
             tracer(jc,jd,jb,jf) = MAX(tracer(jc,jd,jb,jf),EMIN)
           END DO  !jc
@@ -117,7 +114,7 @@ CONTAINS
 !$OMP END DO NOWAIT
 !$OMP END PARALLEL
 
-    CALL message(TRIM(routine),'finished')
+    CALL message(routine,'finished')
 
   END SUBROUTINE init_wave_spectrum
 
@@ -128,24 +125,23 @@ CONTAINS
   !! Hasselmann et al. 1973. Adaptation of WAM 4.5
   !! subroutine JONSWAP.
   !!
-  SUBROUTINE jonswap(p_patch, freqs, ALPHAJ, GAMMA, SA, SB, FP, ET)
-    TYPE(t_patch), INTENT(IN)  :: p_patch
-    REAL(wp),      INTENT(IN)  :: freqs(:)      !! FREQUENCiIES.
-    REAL(wp),      INTENT(IN)  :: ALPHAJ(:,:)   !! OVERALL ENERGY LEVEL OF JONSWAP SPECTRA.
-    REAL(wp),      INTENT(IN)  :: GAMMA         !! OVERSHOOT FACTOR.
-    REAL(wp),      INTENT(IN)  :: SA            !! LEFT PEAK WIDTH.
-    REAL(wp),      INTENT(IN)  :: SB            !! RIGHT PEAK WIDTH.
-    REAL(wp),      INTENT(IN)  :: FP(:,:)       !! PEAK FREQUENCIES.
+  SUBROUTINE jonswap(p_patch, freqs, ALPHAJ, GAMMA, SA, SB, FP, flmin, ET)
+    TYPE(t_patch), INTENT(IN)    :: p_patch
+    REAL(wp),      INTENT(IN)    :: freqs(:)      !! FREQUENCiIES.
+    REAL(wp),      INTENT(IN)    :: ALPHAJ(:,:)   !! OVERALL ENERGY LEVEL OF JONSWAP SPECTRA.
+    REAL(wp),      INTENT(IN)    :: GAMMA         !! OVERSHOOT FACTOR.
+    REAL(wp),      INTENT(IN)    :: SA            !! LEFT PEAK WIDTH.
+    REAL(wp),      INTENT(IN)    :: SB            !! RIGHT PEAK WIDTH.
+    REAL(wp),      INTENT(IN)    :: FP(:,:)       !! PEAK FREQUENCIES.
+    REAL(wp),      INTENT(IN)    :: flmin
     REAL(wp),      INTENT(INOUT) :: ET(:,:,:)   !! JONSWAP SPECTRA. !is only OUT parameter, NAG requirement
 
     CHARACTER(len=MAX_CHAR_LENGTH), PARAMETER ::  &
          &  routine = modname//':JONSWAP'
 
-    REAL(wp) :: ARG, sigma, G2ZPI4FRH5M
-
     INTEGER :: i_rlstart, i_rlend, i_startblk, i_endblk
     INTEGER :: i_startidx, i_endidx
-    INTEGER :: jc,jb,jf
+    INTEGER :: jb
 
     i_rlstart  = 1
     i_rlend    = min_rlcell
@@ -154,40 +150,74 @@ CONTAINS
 
 
 !$OMP PARALLEL
-!$OMP DO PRIVATE(jb,jf,jc,i_startidx,i_endidx,G2ZPI4FRH5M,sigma,ARG) ICON_OMP_DEFAULT_SCHEDULE
-    DO jb = i_startblk, i_endblk
+!$OMP DO PRIVATE(jb,i_startidx,i_endidx) ICON_OMP_DEFAULT_SCHEDULE
+        DO jb = i_startblk, i_endblk
 
-      CALL get_indices_c( p_patch, jb, i_startblk, i_endblk,           &
-           &                 i_startidx, i_endidx, i_rlstart, i_rlend)
+          CALL get_indices_c( p_patch, jb, i_startblk, i_endblk,           &
+            &                 i_startidx, i_endidx, i_rlstart, i_rlend)
 
-      DO jf = 1,SIZE(freqs)
+          CALL jonswap_1d(i_startidx, i_endidx, freqs, ALPHAJ(:,jb), GAMMA, SA, SB, FP(:,jb), flmin, ET(:,:,jb))
 
-        G2ZPI4FRH5M = grav**2 / pi2**4 * freqs(jf)**(-5)
-
-        DO jc = i_startidx, i_endidx
-
-          sigma = MERGE(sb,sa, freqs(jf)>fp(jc,jb))
-          ET(jc,jf,jb) = 0._wp
-
-          ARG = 1.25_wp*(FP(jc,jb)/freqs(jf))**4
-          IF (ARG.LT.50.0_wp) THEN
-            ET(jc,jf,jb) = ALPHAJ(jc,jb) * G2ZPI4FRH5M * EXP(-ARG)
-          END IF
-
-          ARG = 0.5_wp*((freqs(jf)-FP(jc,jb)) / (sigma*FP(jc,jb)))**2
-          IF (ARG.LT.99._wp) THEN
-            ET(jc,jf,jb) = ET(jc,jf,jb)*exp(log(GAMMA)*EXP(-ARG))
-          END IF
-
-        END DO  !jc
-      END DO  !jf
-    END DO  !jb
+        END DO  !jb
 !$OMP ENDDO NOWAIT
 !$OMP END PARALLEL
 
-    CALL message(TRIM(routine),'finished')
+    CALL message(routine,'finished')
 
   END SUBROUTINE jonswap
+
+
+  !>
+  !! Calculation of the JONSWAP spectrum according to
+  !! Hasselmann et al. 1973. Adaptation of WAM 4.5
+  !! subroutine JONSWAP.
+  !!
+  !! Non-blocked version
+  !!
+  SUBROUTINE jonswap_1d(i_startidx, i_endidx, freqs, ALPHAJ, GAMMA, SA, SB, FP, flmin, ET)
+    INTEGER,       INTENT(IN)    :: i_startidx, i_endidx
+    REAL(wp),      INTENT(IN)    :: freqs(:)  !! FREQUENCiIES.
+    REAL(wp),      INTENT(IN)    :: ALPHAJ(:) !! OVERALL ENERGY LEVEL OF JONSWAP SPECTRA.
+    REAL(wp),      INTENT(IN)    :: GAMMA     !! OVERSHOOT FACTOR.
+    REAL(wp),      INTENT(IN)    :: SA        !! LEFT PEAK WIDTH.
+    REAL(wp),      INTENT(IN)    :: SB        !! RIGHT PEAK WIDTH.
+    REAL(wp),      INTENT(IN)    :: FP(:)     !! PEAK FREQUENCIES.
+    REAL(wp),      INTENT(IN)    :: flmin
+    REAL(wp),      INTENT(INOUT) :: ET(:,:)   !! JONSWAP SPECTRA. !is only OUT parameter, NAG requirement
+
+    CHARACTER(len=MAX_CHAR_LENGTH), PARAMETER ::  &
+         &  routine = modname//':JONSWAP_1d'
+
+    REAL(wp) :: ARG, sigma, G2ZPI4FRH5M
+
+    INTEGER :: jc,jf
+
+    DO jf = 1,SIZE(freqs)
+
+      G2ZPI4FRH5M = grav**2 / pi2**4 * freqs(jf)**(-5)
+
+      DO jc = i_startidx, i_endidx
+
+        sigma = MERGE(sb,sa, freqs(jf)>fp(jc))
+        ET(jc,jf) = 0._wp
+
+        ARG = 1.25_wp*(FP(jc)/freqs(jf))**4
+        IF (ARG.LT.50.0_wp) THEN
+          ET(jc,jf) = ALPHAJ(jc) * G2ZPI4FRH5M * EXP(-ARG)
+        END IF
+
+        ARG = 0.5_wp*((freqs(jf)-FP(jc)) / (sigma*FP(jc)))**2
+        IF (ARG.LT.99._wp) THEN
+          ET(jc,jf) = ET(jc,jf)*exp(log(GAMMA)*EXP(-ARG))
+        END IF
+
+        ET(jc,jf) = MAX(ET(jc,jf),flmin)
+
+      END DO  !jc
+    END DO  !jf
+
+END SUBROUTINE jonswap_1d
+
 
   !>
   !! Calculation of JONSWAP parameters.
@@ -201,25 +231,20 @@ CONTAINS
   !!
   !! Adopted from WAM 4.5.
   !!
-  SUBROUTINE fetch_law(p_patch, fetch, fm, sp10m, fp, alphaj)
+  SUBROUTINE fetch_law(p_patch, fetch, fpmax, sp10m, fp, alphaj)
     CHARACTER(len=MAX_CHAR_LENGTH), PARAMETER ::  &
          &  routine = modname//':fetch_law'
     !
-    TYPE(t_patch), INTENT(IN)  :: p_patch
-    REAL(wp),      INTENT(IN)  :: fetch
-    REAL(wp),      INTENT(IN)  :: fm
-    REAL(wp),      INTENT(IN)  :: sp10m(:,:)  ! wind speed at 10m (m/s)
+    TYPE(t_patch), INTENT(IN)    :: p_patch
+    REAL(wp),      INTENT(IN)    :: fetch
+    REAL(wp),      INTENT(IN)    :: fpmax ! maximum peak frequency (Hz)
+    REAL(wp),      INTENT(IN)    :: sp10m(:,:)  ! wind speed at 10m (m/s)
     REAL(wp),      INTENT(INOUT) :: fp(:,:)     ! jonswap peak frequency (1/s) !is only OUT parameter, NAG requirement
     REAL(wp),      INTENT(INOUT) :: alphaj(:,:) ! jonswap alpha (-) !is only OUT parameter, NAG requirement
 
     INTEGER :: i_rlstart, i_rlend, i_startblk, i_endblk
     INTEGER :: i_startidx, i_endidx
-    INTEGER :: jc, jb
-
-    REAL(wp), PARAMETER :: A = 2.84_wp,  D = -(3._wp/10._wp) !! PEAK FREQUENCY FETCH LAW CONSTANTS
-    REAL(wp), PARAMETER :: B = 0.033_wp, E = 2._wp/3._wp     !! ALPHA-PEAK FREQUENCY LAW CONSTANTS
-
-    REAL(wp) :: ug
+    INTEGER :: jb
 
     ! halo points must be included !
     i_rlstart  = 1
@@ -227,37 +252,79 @@ CONTAINS
     i_startblk = p_patch%cells%start_block(i_rlstart)
     i_endblk   = p_patch%cells%end_block(i_rlend)
 
+
     ! ---------------------------------------------------------------------------- !
     !                                                                              !
     !     1. COMPUTE VALUES FROM FETCH LAWS.                                       !
     !        -------------------------------
 !$OMP PARALLEL
-!$OMP DO PRIVATE(jb,jc,i_startidx,i_endidx,ug)
+!$OMP DO PRIVATE(jb,i_startidx,i_endidx)
     DO jb = i_startblk, i_endblk
       CALL get_indices_c( p_patch, jb, i_startblk, i_endblk,           &
-           &                 i_startidx, i_endidx, i_rlstart, i_rlend)
-      DO jc = i_startidx, i_endidx
-        IF (sp10m(jc,jb).GT.0.1E-08_wp) THEN
-          ug = grav / sp10m(jc,jb)
-          fp(jc,jb) = MAX(0.13_wp, A*((grav*fetch)/(sp10m(jc,jb)**2))**D)
+        &                 i_startidx, i_endidx, i_rlstart, i_rlend)
 
-          fp(jc,jb) = MIN(fp(jc,jb), fm/ug)
-          alphaj(jc,jb) = MAX(0.0081_wp, B * fp(jc,jb)**E)
-          fp(jc,jb) = fp(jc,jb) * ug
-        ELSE
-          alphaj(jc,jb) = 0.0081_wp
-          fp(jc,jb) = fm
-        END IF
-      END DO
+      CALL fetch_law_1d(i_startidx, i_endidx, fetch, fpmax, sp10m(:,jb), fp(:,jb), alphaj(:,jb))
     END DO
 !$OMP ENDDO NOWAIT
 !$OMP END PARALLEL
 
-    CALL message(TRIM(routine),'finished')
+    CALL message(routine,'finished')
 
   END SUBROUTINE fetch_law
 
 
+  !>
+  !! Calculation of JONSWAP parameters.
+  !!
+  !! Calculate the peak frequency from a fetch law
+  !! and the JONSWAP alpha.
+  !!
+  !! Developted by S. Hasselmann (July 1990) and H. Guenther (December 1990).
+  !! K.HASSELMAN,D.B.ROOS,P.MUELLER AND W.SWELL. A parametric wave prediction
+  !! model. Journal of physical oceanography, Vol. 6, No. 2, March 1976.
+  !!
+  !! Adopted from WAM 4.5.
+  !!
+  !! non-blocked version
+  !!
+  SUBROUTINE fetch_law_1d(i_startidx, i_endidx, fetch, fpmax, sp10m, fp, alphaj)
+    CHARACTER(len=MAX_CHAR_LENGTH), PARAMETER ::  &
+         &  routine = modname//':fetch_law_1d'
+    !
+    INTEGER,       INTENT(IN)    :: i_startidx, i_endidx
+    REAL(wp),      INTENT(IN)    :: fetch
+    REAL(wp),      INTENT(IN)    :: fpmax     ! maximum peak frequency (Hz)
+    REAL(wp),      INTENT(IN)    :: sp10m(:)  ! wind speed at 10m (m/s)
+    REAL(wp),      INTENT(INOUT) :: fp(:)     ! jonswap peak frequency (1/s) !is only OUT parameter, NAG requirement
+    REAL(wp),      INTENT(INOUT) :: alphaj(:) ! jonswap alpha (-) !is only OUT parameter, NAG requirement
+
+    INTEGER :: jc
+
+    REAL(wp), PARAMETER :: A = 2.84_wp,  D = -(3._wp/10._wp) !! PEAK FREQUENCY FETCH LAW CONSTANTS
+    REAL(wp), PARAMETER :: B = 0.033_wp, E = 2._wp/3._wp     !! ALPHA-PEAK FREQUENCY LAW CONSTANTS
+
+    REAL(wp) :: ug
+
+    ! ---------------------------------------------------------------------------- !
+    !                                                                              !
+    !     1. COMPUTE VALUES FROM FETCH LAWS.                                       !
+    !        -------------------------------
+    DO jc = i_startidx, i_endidx
+        IF (sp10m(jc) > 0.1E-08_wp) THEN
+          ug = grav / sp10m(jc)
+          fp(jc) = MAX(0.13_wp, A*((grav*fetch)/(sp10m(jc)**2))**D)
+
+          fp(jc) = MIN(fp(jc), fpmax/ug)
+
+          alphaj(jc) = MAX(0.0081_wp, B * fp(jc)**E)
+          fp(jc) = fp(jc) * ug
+        ELSE
+          alphaj(jc) = 0.0081_wp
+          fp(jc) = fpmax
+        END IF
+    END DO
+
+  END SUBROUTINE fetch_law_1d
 
   !>
   !! Calculation of index arrays and weights for the computation of
@@ -498,5 +565,75 @@ CONTAINS
 
   END FUNCTION JAFU
 
+
+  !>
+  !! Computation of minimum energy in spectral bins.
+  !!
+  !! Adopted from WAM 4.5 MIN_ENERGY
+  !!
+  !! J. Bidlot    ECMWF
+  !!
+  !! Computate of a table for minimum energy in spectral bins.
+  !!
+  !! Method:
+  !!
+  !! For each windspeed u10 as listed in the stress table the JONSWAP
+  !! spectrum is computed from fetch laws and 1% of its value is stored for
+  !! each frequency bin. Too small values are replaced by a given minimum.
+  !!
+  SUBROUTINE min_energy(wave_config, flminfr_tab)
+    CHARACTER(len=MAX_CHAR_LENGTH), PARAMETER ::  &
+         &  routine = modname//':min_energy'
+
+    TYPE(t_wave_config), INTENT(IN)    :: wave_config
+    REAL(wp),            INTENT(INOUT) :: flminfr_tab(:,:) ! minimum energy for a given frequency and wind spped bin (jmax,nfreqs)
+
+    INTEGER  :: j, nfreqs, jmax
+
+    REAL(wp) :: flmin       !! absolute minimum energy in spectral bins
+    REAL(wp) :: delu        !! wind increment
+
+    REAL(wp) :: u10(SIZE(flminfr_tab,1))
+    REAL(wp) :: fpk(SIZE(flminfr_tab,1))      ! JONSWAP peak frequency
+    REAL(wp) :: alphaj0(SIZE(flminfr_tab,1))  ! JONSWAP alpha
+
+    nfreqs = wave_config%nfreqs
+    jmax = wave_config%jmax
+    flmin = wave_config%flmin
+    delu = wave_config%delu
+
+    ! sanity check
+    IF (SIZE(flminfr_tab,1) /= jmax) THEN
+      CALL finish(routine, "Size of field flminfr_tab must be equal to jmax.")
+    ENDIF
+
+    ! compute windspeeds from table parameters
+    DO j = 1,jmax
+      u10(j) = REAL(j,wp)*delu
+    END DO
+
+    ! peak frequencies and alpha parameter from fetch law
+    CALL fetch_law_1d(                                  &
+          & i_startidx  = 1,                            & !in
+          & i_endidx    = jmax,                         & !in
+          & fetch       = wave_config%fetch_min_energy, & !in
+          & fpmax       = wave_config%freqs(nfreqs),    & !in
+          & sp10m       = u10(:),                       & !in
+          & fp          = fpk(:),                       & !out
+          & alphaj      = alphaj0(:))                     !out
+
+    ! JONSWAP spectra
+    CALL jonswap_1d(                             &
+          & i_startidx = 1,                      & !in
+          & i_endidx   = jmax,                   & !in
+          & freqs      = wave_config%freqs,      & !in
+          & ALPHAJ     = alphaj0(:)*0.01_wp,     & !in
+          & GAMMA      = wave_config%GAMMA_wave, & !in
+          & SA         = wave_config%SIGMA_A,    & !in
+          & SB         = wave_config%SIGMA_B,    & !in
+          & FP         = fpk(:),                 & !in
+          & flmin      = flmin,                  & !in
+          & ET         = flminfr_tab(:,:))         !out
+  END SUBROUTINE min_energy
 
 END MODULE mo_init_wave_physics

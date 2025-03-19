@@ -356,7 +356,7 @@ CONTAINS
     INTEGER :: ibits         !< "entropy" of horizontal slice
     INTEGER :: datatype_flt  !< floating point accuracy in NetCDF output
     INTEGER :: nblks_c, nblks_e
-    INTEGER :: nfreqs, ndirs
+    INTEGER :: nfreqs, ndirs, jmax
     INTEGER :: jg,jf
     INTEGER :: ist
     INTEGER :: shape2d_c(2)
@@ -376,8 +376,9 @@ CONTAINS
     nblks_c = p_patch%nblks_c
     nblks_e = p_patch%nblks_e
 
-    nfreqs = wave_config(jg)%nfreqs
-    ndirs  = wave_config(jg)%ndirs
+    nfreqs = wc%nfreqs
+    ndirs  = wc%ndirs
+    jmax = wc%jmax
 
     shape1d_freq_p4   = (/nfreqs+4/)
     shape1d_dir_2     = (/ndirs, 2/)
@@ -529,14 +530,14 @@ CONTAINS
     grib2_desc = grib2_var(255, 255, 255, ibits, GRID_UNSTRUCTURED, GRID_CELL)
     CALL add_var(p_diag_list, 'ALPHAJ', p_diag%ALPHAJ,              &
          & GRID_UNSTRUCTURED_CELL, ZA_SURFACE, cf_desc, grib2_desc, &
-         & lrestart=.TRUE., loutput=.TRUE.,                        &
+         & lrestart=.TRUE., loutput=.TRUE.,                         &
          & ldims=shape2d_c , in_group=groups("wave_phy"))
 
     cf_desc    = t_cf_var('FP', 'Hz', 'JONSWAP peak frequency', datatype_flt)
     grib2_desc = grib2_var(255, 255, 255, ibits, GRID_UNSTRUCTURED, GRID_CELL)
     CALL add_var(p_diag_list, 'FP', p_diag%FP,                      &
          & GRID_UNSTRUCTURED_CELL, ZA_SURFACE, cf_desc, grib2_desc, &
-         & lrestart=.TRUE., loutput=.TRUE.,                        &
+         & lrestart=.TRUE., loutput=.TRUE.,                         &
          & ldims=shape2d_c , in_group=groups("wave_phy"))
 
     cf_desc    = t_cf_var('ET', '-', 'JONSWAP spectra', datatype_flt)
@@ -546,12 +547,12 @@ CONTAINS
          & lrestart=.FALSE., loutput=.TRUE.,                             &
          & ldims=shape3d_freq_c)
 
-    cf_desc    = t_cf_var('flminfr', '-', 'minimum allowed energy level', datatype_flt)
+    cf_desc    = t_cf_var('flminfr_tab', 'm**2 Hz-1', 'minimum allowed energy level', datatype_flt)
     grib2_desc = grib2_var(255, 255, 255, ibits, GRID_UNSTRUCTURED, GRID_CELL)
-    CALL add_var(p_diag_list, 'flminfr', p_diag%flminfr,                 &
-         & GRID_UNSTRUCTURED_CELL, ZA_FREQ_GENERIC, cf_desc, grib2_desc, &
-         & ldims=shape3d_freq_c,                                        &
-         & lrestart=.TRUE., loutput=.TRUE.)
+    CALL add_var(p_diag_list, 'flminfr_tab', p_diag%flminfr_tab,          &
+         & GRID_UNSTRUCTURED_CELL, ZA_FREQ_GENERIC, cf_desc, grib2_desc,  &
+         & ldims=(/jmax, nfreqs/),                                        &
+         & lrestart=.FALSE., loutput=.FALSE.)
 
     cf_desc    = t_cf_var('friction_velocity', 'm s-1', 'friction velocity', datatype_flt)
     grib2_desc = grib2_var(10, 0, 17, ibits, GRID_UNSTRUCTURED, GRID_CELL)

@@ -49,6 +49,11 @@ MODULE mo_wave_config
     REAL(wp) :: co       ! frequency ratio
     INTEGER  :: iref     ! frequency bin number of reference frequency
 
+    REAL(wp) :: umax     ! maximum wind speed in flminfr table
+    INTEGER  :: jmax     ! number of wind speed bins in flminfr table
+    REAL(wp) :: flmin    ! minimum of energy in flminfr table
+    REAL(wp) :: delu     ! wind speed increment in flminfr table
+
     REAL(wp) :: alpha      ! phillips' parameter  (not used if iopti = 1)
     REAL(wp) :: fm         ! peak frequency (hz) and/or maximum frequency
     REAL(wp) :: gamma_wave ! overshoot factor
@@ -262,6 +267,9 @@ CONTAINS
       ALLOCATE(wc%dir_neig_ind (2,wc%ndirs), stat=ist)
       IF (ist/=SUCCESS) CALL finish(routine, "allocation for fields of type INTEGER failed")
 
+
+      ! calculate wind speed interval in the flminfr table
+      wc%delu = wc%umax/REAL(wc%jmax,wp)
 
       !
       ! configuration of spectral setup
