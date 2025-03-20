@@ -507,7 +507,7 @@ check-bundled: $(bundled_makefiles) $(bundled_cmake_builddirs) $(if $(filter che
 	fail=; pass=; \
 	for d in $(bundled_builddirs); do \
 	  case ' $(bundled_cmake_builddirs) ' in \
-	    *" $$d "*) $(MAKE) -C "$$d" test VERBOSE=$(filter-out 0,$(V)) && pass="$$pass$$d " || fail="$$fail$$d " ;; \
+	    *" $$d "*) MAKEFLAGS='$(filter-out --jobserver-fds=% --jobserver-auth=%,$(MAKEFLAGS))' $(MAKE) -j1 -C "$$d" test VERBOSE=$(filter-out 0,$(V)) && pass="$$pass$$d " || fail="$$fail$$d " ;; \
 	    *) $(MAKE) -C "$$d" check V=$(V) && pass="$$pass$$d " || fail="$$fail$$d " ;; \
 	  esac \
 	done; \
