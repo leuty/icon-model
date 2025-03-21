@@ -59,7 +59,7 @@ MODULE mo_initicon_io
   USE mo_lnd_nwp_config,      ONLY: ntiles_total,  l2lay_rho_snow, &
     &                               ntiles_water, lmulti_snow, lsnowtile, &
     &                               isub_lake, isub_water, llake, lprog_albsi, itype_trvg, &
-    &                               itype_snowevap, itype_canopy, nlev_soil
+    &                               itype_snowevap, itype_canopy, nlev_soil, itype_ahf
   USE mo_master_config,       ONLY: getModelBaseDir
   USE mo_nwp_sfc_interp,      ONLY: smi_to_wsoil
   USE mo_initicon_utils,      ONLY: allocate_extana_atm, allocate_extana_sfc, &
@@ -1805,6 +1805,10 @@ MODULE mo_initicon_io
             IF (itype_snowevap == 3) THEN
               CALL fetchSurface(params, 'hsnow_max', jg, lnd_diag%hsnow_max)
               CALL fetchSurface(params, 'snow_age',  jg, lnd_diag%snow_age)
+            ENDIF
+
+            IF (itype_ahf >= 3) THEN
+              CALL fetchSurface(params, 't_2m_filt', jg, prm_diag(jg)%t_2m_filt)
             ENDIF
 
             IF (lmulti_snow) THEN

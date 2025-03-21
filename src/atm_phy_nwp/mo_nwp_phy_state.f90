@@ -79,7 +79,7 @@ USE mo_radiation_config,    ONLY: irad_aero, iRadAeroTegen, iRadAeroART, iRadAer
                                   iRadAeroConst, iRadAeroCAMSclim, iRadAeroCAMStd, islope_rad, &
                                   iRadAeroConstKinne, iRadAeroKinne, iRadAeroVolc, iRadAeroKinneVolc, &
                                   iRadAeroKinneVolcSP, iRadAeroKinneSP
-USE mo_lnd_nwp_config,      ONLY: ntiles_total, ntiles_water, nlev_soil
+USE mo_lnd_nwp_config,      ONLY: ntiles_total, ntiles_water, nlev_soil, itype_ahf
 USE mo_nwp_tuning_config,   ONLY: itune_gust_diag
 USE mo_var_list,            ONLY: add_var, add_ref, t_var_list_ptr
 USE mo_var_list_register,   ONLY: vlr_add, vlr_del
@@ -3453,7 +3453,6 @@ SUBROUTINE new_nwp_phy_diag_list( k_jg, klev, klevp1, kblks,    &
     __acc_attach(diag%t_tilemin_inst_2m)
 
 
-
     ! &      diag%t_2m_land(nproma,nblks_c)
     cf_desc    = t_cf_var('t_2m_land', 'K ','temperature in 2m over land fraction', &
       &          datatype_flt)
@@ -3464,6 +3463,23 @@ SUBROUTINE new_nwp_phy_diag_list( k_jg, klev, klevp1, kblks,    &
       & ldims=shape2d, lrestart=.FALSE., in_group=groups("pbl_vars"),     &
       & lopenacc=.TRUE. )
     __acc_attach(diag%t_2m_land)
+
+
+    IF (itype_ahf >= 3) THEN
+      ! &      diag%t_2m_filt(nproma,nblks_c)
+      cf_desc    = t_cf_var('t_2m_filt', 'K ','time-filtered temperature in 2m', &
+        &          datatype_flt)
+      grib2_desc = grib2_var(0, 210, 2, ibits, GRID_UNSTRUCTURED, GRID_CELL)    &
+                 + t_grib2_int_key("scaleFactorOfFirstFixedSurface", 0)         &
+                 + t_grib2_int_key("scaledValueOfFirstFixedSurface", 2)         &
+                 + t_grib2_int_key("typeOfFirstFixedSurface", 103)
+      CALL add_var( diag_list, 't_2m_filt', diag%t_2m_filt,                      &
+        & GRID_UNSTRUCTURED_CELL, ZA_HEIGHT_2M_LAYER, cf_desc, grib2_desc,       &
+        & ldims=shape2d, lrestart=.TRUE., lopenacc=.TRUE., initval=99.9_wp,      &
+        & in_group=groups("mode_iau_fg_in","mode_dwd_fg_in","mode_combined_in")  )
+      __acc_attach(diag%t_2m_filt)
+    ENDIF
+
 
     ! &      diag%tmax_2m(nproma,nblks_c)
     cf_desc    = t_cf_var('tmax_2m', 'K ','Max 2m temperature', datatype_flt)

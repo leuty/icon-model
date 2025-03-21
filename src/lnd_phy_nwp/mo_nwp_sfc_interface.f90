@@ -40,7 +40,7 @@ MODULE mo_nwp_sfc_interface
     &                               ntiles_lnd, lsnowtile, isub_water, isub_seaice,   &
     &                               isub_lake, l2lay_rho_snow, lprog_albsi,           &
     &                               itype_trvg, lterra_urb, itype_snowevap, zml_soil, &
-    &                               lcuda_graph_lnd
+    &                               lcuda_graph_lnd, itype_ahf
   USE mo_nwp_tuning_config,   ONLY: itune_gust_diag
   USE mo_radiation_config,    ONLY: islope_rad
   USE mo_extpar_config,       ONLY: itype_vegetation_cycle
@@ -49,7 +49,7 @@ MODULE mo_nwp_sfc_interface
   USE mo_ensemble_pert_config,ONLY: sst_pert_corrfac
   USE mo_thdyn_functions,     ONLY: sat_pres_water, sat_pres_ice, spec_humi, dqsatdT_ice
   USE sfc_terra_main,         ONLY: terra
-  USE mo_nwp_sfc_utils,       ONLY: diag_snowfrac_tg, update_idx_lists_lnd, update_idx_lists_sea
+  USE mo_nwp_sfc_utils,       ONLY: diag_snowfrac_tg, update_idx_lists_lnd, update_idx_lists_sea, update_ahf
   USE sfc_flake,              ONLY: flake_interface
   USE sfc_flake_data,         ONLY: h_Ice_min_flk
   USE sfc_seaice,             ONLY: seaice_timestep_nwp
@@ -463,6 +463,11 @@ CONTAINS
 
       IF ( atm_phy_nwp_config(jg)%inwp_surface == 1 ) THEN
 
+       IF (lterra_urb .AND. itype_ahf >= 3) THEN ! update AHF and filtered T2M
+         CALL update_ahf(i_startidx, i_endidx, ext_data%atm%lc_class_t(:,jb,:), ext_data%atm%i_lc_urban, tcall_sfc_jg, &
+                         prm_diag%t_2m(:,jb), prm_diag%t_2m_filt(:,jb), ext_data%atm%ahf_t(:,jb,:)  )
+       ENDIF
+
        IF (ext_data%atm%list_land%ncount(jb) == 0) CYCLE ! skip loop if there is no land point
 
        ! Copy precipitation fields for subsequent downscaling
@@ -495,7 +500,6 @@ CONTAINS
            !$ACC END PARALLEL
          ENDIF
        END DO
-
 
        IF (lsnowtile .AND. itype_snowevap == 3) THEN
          !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1) IF(lzacc)
@@ -1677,6 +1681,13 @@ CONTAINS
              ENDDO  ! jc
            ENDDO  ! jk
          ENDIF
+
+         IF (lterra_urb .AND. itype_ahf >= 3) THEN
+           !$ACC LOOP GANG VECTOR
+           DO jc = i_startidx, i_endidx
+             ext_data%atm%ahf(jc,jb)  = ext_data%atm%ahf_t(jc,jb,1) 
+           ENDDO
+         ENDIF
          !$ACC END PARALLEL
 
        ELSE ! aggregate fields over tiles
@@ -1694,6 +1705,13 @@ CONTAINS
            prm_diag%vmfl_s (jc,jb) = 0._wp
            prm_diag%lhfl_bs(jc,jb) = 0._wp
          ENDDO
+
+         IF (lterra_urb .AND. itype_ahf >= 3) THEN
+           !$ACC LOOP GANG VECTOR
+           DO jc = i_startidx, i_endidx
+             ext_data%atm%ahf(jc,jb)  = 0._wp
+           ENDDO
+         ENDIF
 
          !$ACC LOOP SEQ
          DO jk = 1, nlev_soil
@@ -1733,6 +1751,15 @@ CONTAINS
              prm_diag%lhfl_bs(jc,jb) = prm_diag%lhfl_bs(jc,jb) + prm_diag%lhfl_bs_t(jc,jb,isubs) * area_frac
              lnd_diag%h_snow(jc,jb)  = lnd_diag%h_snow(jc,jb) + lnd_diag%h_snow_t(jc,jb,isubs) * area_frac
            ENDDO  ! jc
+
+           IF (lterra_urb .AND. itype_ahf >= 3) THEN
+             !$ACC LOOP GANG(STATIC: 1) VECTOR PRIVATE(area_frac)
+             DO jc = i_startidx, i_endidx
+               area_frac = ext_data%atm%frac_t(jc,jb,isubs)*ext_data%atm%inv_frland_from_tiles(jc,jb)
+               ext_data%atm%ahf(jc,jb) = ext_data%atm%ahf(jc,jb) + ext_data%atm%ahf_t(jc,jb,isubs) * area_frac
+             ENDDO
+           ENDIF
+
            !$ACC LOOP SEQ
            DO jk=1,nlev_soil
              !$ACC LOOP GANG(STATIC: 1) VECTOR

@@ -105,3 +105,5 @@ pollalnu            ALNUsnc
 pollbetu            BETUsnc
 pollpoac            POACsnc
 pollambr            AMBRsnc
+t_2m_filt           T_2M_FILT_DCYCLE
+

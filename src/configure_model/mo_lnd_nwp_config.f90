@@ -83,7 +83,7 @@ MODULE mo_lnd_nwp_config
                                  !< (see Schulz and Vogel 2020)
   REAL(wp)::  cskinc             !< skin conductivity (W/m**2/K)
   REAL(wp)::  tau_skin           !< relaxation time scale for the computation of the skin temperature
-  LOGICAL ::  lterra_urb         !< activate urban model TERRA_URB (see Schulz et al. 2023)
+  LOGICAL ::  lterra_urb         !< activate urban model TERRA_URB (see Schulz et al. 2022)
   LOGICAL ::  lurbalb            !< use urban albedo and emissivity
   INTEGER ::  itype_ahf          !< type of urban anthropogenic heat flux
   INTEGER ::  itype_kbmo         !< type of bluff-body thermal roughness length parameterisation

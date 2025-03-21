@@ -222,7 +222,7 @@ CONTAINS
           &                'rh_avginc       ','t_avginc        ','t_wgt_avginc    ','p_avginc        ', &
           &                'clmf_a          ','clmf_p          ','clmf_d          ','clnum_a         ', &
           &                'clnum_p         ','clnum_d         ','vabs_avginc     ','t_daywgt_avginc ', &
-          &                'rh_daywgt_avginc'/))
+          &                'rh_daywgt_avginc','t_2m_filt       '/))
 
         CALL vlr_group('jsb_init_vars', jsbGroup, jsbGroupSize, loutputvars_only=.FALSE., lremap_lonlat=.FALSE.)
         CALL add_to_list(outGroup, outGroupSize, jsbGroup, jsbGroupSize)

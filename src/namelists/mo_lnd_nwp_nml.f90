@@ -138,7 +138,7 @@ CONTAINS
                                   !< (see Schulz and Vogel 2020)
     REAL(wp)::  cskinc            !< skin conductivity (W/m**2/K)
     REAL(wp)::  tau_skin          !< relaxation time scale for the computation of the skin temperature
-    LOGICAL ::  lterra_urb        !< activate urban model TERRA_URB (see Schulz et al. 2023)
+    LOGICAL ::  lterra_urb        !< activate urban model TERRA_URB (see Schulz et al. 2022)
     LOGICAL ::  lurbalb           !< use urban albedo and emissivity
     INTEGER ::  itype_ahf         !< type of urban anthropogenic heat flux
     INTEGER ::  itype_kbmo        !< type of bluff-body thermal roughness length parameterisation
@@ -268,11 +268,12 @@ CONTAINS
     tau_skin      = 3600._wp ! relaxation time scale for the computation of the skin temperature
     !
     lterra_urb     = .FALSE. ! if .TRUE., activate urban model TERRA_URB by Wouters et al. (2016, 2017)
-                             ! (see Schulz et al. 2023)
+                             ! (see Schulz et al. 2022)
     lurbalb        = .TRUE.  ! if .TRUE., use urban albedo and emissivity (Wouters et al. 2016)
-    itype_ahf      = 2       ! if >0, use urban anthropogenic heat flux (Wouters et al. 2016)
-                             !  1: constant AHF, 2: AHF based on climatological T2M,
-                             !  3: to be implemented (AHF based on time-filtered predicted T2M)
+    itype_ahf      = 2       ! type of urban anthropogenic heat flux (AHF) (Wouters et al. 2016)
+                             !  1: constant AHF
+                             !  2: AHF based on climatological 2-m temperature
+                             !  3: AHF based on time-filtered predicted 2-m temperature
     itype_kbmo     = 2       ! type of bluff-body thermal roughness length parameterisation
                              !  1: standard SAI-based turbtran (Raschendorfer 2001)
                              !  2: Brutsaert-Kanda parameterisation for bluff-body elements (kB-1)

@@ -43,7 +43,7 @@ MODULE mo_nwp_sfc_utils
     &                               lterra_urb, l2lay_rho_snow, lprog_albsi, itype_trvg, &
                                     itype_snowevap, zml_soil, dzsoil, frsi_min, hice_min
   USE mo_atm_phy_nwp_config,  ONLY: atm_phy_nwp_config
-  USE mo_nwp_tuning_config,   ONLY: tune_minsnowfrac
+  USE mo_nwp_tuning_config,   ONLY: tune_minsnowfrac, tune_urbahf
   USE mo_initicon_config,     ONLY: init_mode_soil, ltile_coldstart, init_mode, lanaread_tseasfc, use_lakeiceana, &
                                     icpl_da_snowalb
   USE mo_run_config,          ONLY: msg_level
@@ -98,6 +98,7 @@ INTEGER, PARAMETER :: nlsoil= 8
   PUBLIC :: init_sea_lists
   PUBLIC :: copy_lnd_prog_now2new
   PUBLIC :: seaice_albedo_coldstart
+  PUBLIC :: update_ahf
   
 
 CONTAINS
@@ -2156,6 +2157,54 @@ CONTAINS
 
   END SUBROUTINE diag_snowfrac_tg
 
+
+  !-------------------------------------------------------------------------
+
+  ! Update anthropogenic heat flux for TERRA_URB
+  !
+  SUBROUTINE update_ahf(istart, iend, lc_class, i_lc_urban, dt, t_2m, t_2m_filt, ahf)
+
+    INTEGER, INTENT (IN) :: istart, iend ! start and end-indices of the computation
+    INTEGER, INTENT (IN) :: lc_class(:,:)  ! list of land-cover classes
+    INTEGER, INTENT (IN) :: i_lc_urban   ! land-cover class index for urban / artificial surface
+    REAL(wp),INTENT (IN) :: dt           ! time step
+
+    REAL(wp), DIMENSION(:), INTENT(IN)      :: t_2m
+    REAL(wp), DIMENSION(:), INTENT(INOUT)   :: t_2m_filt
+    REAL(wp), DIMENSION(:,:), INTENT(INOUT) :: ahf
+
+    INTEGER :: jt, jc
+    REAL(wp) :: ahf_heat, ahf_cool
+    REAL(wp) :: dt_filt ! time scale for filtering
+
+    dt_filt = 86400._wp  ! 24 h - needs to be tested
+
+    !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1)
+    !$ACC LOOP GANG VECTOR
+    DO jc = istart, iend
+      IF (t_2m_filt(jc) < 100._wp) THEN ! cold start initialization needed because no FG was available
+        t_2m_filt(jc) = t_2m(jc)
+      ELSE ! relaxation of filtered T2M towards T2M
+        t_2m_filt(jc) = t_2m_filt(jc) + dt/dt_filt*(t_2m(jc)-t_2m_filt(jc))
+      ENDIF
+    ENDDO
+    !$ACC END PARALLEL
+
+    ! Update anthropogenic heat flux
+    DO jt = 1, ntiles_total
+      !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1)
+      !$ACC LOOP GANG VECTOR PRIVATE(ahf_heat, ahf_cool)
+      DO jc = istart, iend
+        IF (lc_class(jc,jt) == i_lc_urban) THEN
+          ahf_heat = tune_urbahf(2)*MAX(0._wp,288.15_wp-t_2m_filt(jc))
+          ahf_cool = tune_urbahf(3)*MAX(0._wp,t_2m_filt(jc)-293.15_wp)
+          ahf(jc,jt) = MIN(tune_urbahf(1) + MAX(ahf_heat,ahf_cool), tune_urbahf(4))
+        ENDIF
+      ENDDO
+    !$ACC END PARALLEL
+    ENDDO
+
+  END SUBROUTINE update_ahf
 
 
 
