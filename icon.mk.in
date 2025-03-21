@@ -490,7 +490,7 @@ install: all
 	$(silent_none)for d in $(filter externals/hd externals/comin/build,$(bundled_subdirs)); do \
 	  $(MAKE) -C "$$d" $@ V=$(V); \
 	done
-@MTIME_PYTHON_ENABLED@	$(silent_none)$(MAKE) -C externals/mtime/python $@ V=$(V)
+@MTIME_PYTHON_ENABLED@	$(silent_none)$(MAKE) -C externals/mtime/build/python $@ V=$(V)
 @YAC_PYTHON_ENABLED@	$(silent_none)$(MAKE) -C externals/yac/python $@ V=$(V)
 
 # Explicit configuration rule for the bundled packages:
