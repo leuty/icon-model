@@ -16,9 +16,8 @@ tests:
     tags: ['merge2rc']
     machines:
       - name: santis
-        include_only: ['santis_gpu_nvhpc'] 
     checksuite_modes:
-      - santis: 'b'
+      - santis: 'br'
 
   - name: atm_tracer_Hadley
     tags: ['merge2rc']

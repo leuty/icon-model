@@ -137,7 +137,8 @@
       _EOF
   tags:
     - alpine
-  timeout: 2h
+  # Dont want parent job to timeout before child job finishes
+  timeout: 6h
   cache:
     - key: apk-cscs-ci
       paths:

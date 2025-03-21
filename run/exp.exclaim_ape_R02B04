@@ -62,7 +62,7 @@ end_date=${end_date:="2000-01-01T00:00:30Z"}
 
 # restart intervals (set in master namelist)
 # ---------------------------
-checkpoint_interval="P1D"
+checkpoint_interval="PT20S"
 restart_interval="P1D"
 
 # output intervals
@@ -71,10 +71,10 @@ restart_interval="P1D"
 #output_bounds="0.,10000000.,600"
 #steps_per_file=6
 
-atm_file_interval="P1D"
-atm_file_interval_2d="P1D"
-atm_file_interval_3d="P1D"
-atm_file_interval_pl="P1D"
+atm_file_interval="PT10S"
+atm_file_interval_2d="PT10S"
+atm_file_interval_3d="PT10S"
+atm_file_interval_pl="PT10S"
 
 atm_output_interval="PT2S"
 atm_output_interval_2d="PT2S"
@@ -126,6 +126,7 @@ cat > ${basedir}/run/${atmo_namelist} << EOF
  timers_level                =                         10         ! performance timer granularity
  check_uuid_gracefully       =                     .TRUE.         ! give only warnings for non-matching uuids
  output                      =                      "nml"         ! main switch for enabling/disabling components of the model output
+ restart_filename       = '${EXPNAME}_restart_atm_<rsttime>.mfr'
 /
 
 ! nwp_phy_nml: switches for the physics schemes ------------------------------
@@ -189,7 +190,6 @@ izenith                     =                          3         ! zenith angle 
  ndyn_substeps               =                         5         ! number of dynamics steps per fast-physics step
  damp_height                 =                   50000.0         ! height at which Rayleigh damping of vertical wind starts
  rayleigh_coeff              =                       0.1         ! Rayleigh damping coefficient
- divdamp_order               =                        24         ! order of divergence damping
  divdamp_type                =                         3         ! type of divergence damping
  divdamp_fac                 =                    0.0025         ! scaling factor for divergence damping
  l_zdiffu_t                  =                   .FALSE.         ! specifies computation of Smagorinsky temperature diffusion
@@ -264,7 +264,7 @@ izenith                     =                          3         ! zenith angle 
  output_filename             =              '${EXPNAME}_atm_2d'  ! file name base
  filetype                    =                               5   ! output format 5:NetCDFv4
  filename_format             = "<output_filename>_<datetime2>"   ! Output filename format
- output_start                =          "2000-01-01T00:00:03Z"
+ output_start                =                 "${start_date}"
  output_end                  =                   "${end_date}"
  output_interval             =     "${atm_output_interval_2d}"
  file_interval               =      "${atm_file_interval_2d}"

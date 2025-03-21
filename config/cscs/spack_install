@@ -18,7 +18,8 @@ ICON_DIR=$(cd "${SCRIPT_DIR}/../.."; pwd)
 SPACK_VERSION=$1
 VARIANT=$2
 BUILD_DIR=$3
-MCH_ENV_TAG=$(cat $SCRIPT_DIR/MCH_ENV_TAG)
+ENV_TAG=$4
+BUILD_TRHEADS=$5
 
 # Unset positional parameters
 # so they are not forwarded to spack-c2sm/setup-env.sh
@@ -35,7 +36,7 @@ else
     git clone --depth 1 --recurse-submodules --shallow-submodules -b $SPACK_VERSION https://github.com/C2SM/spack-c2sm.git $ICON_DIR/spack-c2sm
 fi
 
-source $ICON_DIR/spack-c2sm/setup-env.sh $MCH_ENV_TAG
+source $ICON_DIR/spack-c2sm/setup-env.sh $ENV_TAG
 
 # The spack spec, i.e. the icon configuration is defined in the enviroment file in the path below
 # and is set by the spack activate command
@@ -57,6 +58,6 @@ else
   spack develop --path $ICON_DIR icon@develop
 fi
 
-spack install -v 
+spack install -v  -j $BUILD_TRHEADS
 
 $SCRIPT_DIR/create_sh_env $VARIANT $BUILD_DIR

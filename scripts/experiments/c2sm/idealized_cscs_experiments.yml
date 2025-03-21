@@ -22,8 +22,8 @@ experiments:
   - name: exclaim_ape_R02B04
     check: checksuite.icon-dev/check.exclaim_ape_R02B04
     types: ['atm_2d atm_3d_pl']
-    dates: ['20000101T000000Z']
-    restart_date: ['20000101T001600Z']
+    dates: ['20000101T000000Z', '20000101T000030Z']
+    restart_date: ['20000101T000020Z']
     tolerance:
       file_id:
         - NetCDF: ['*atm_3d_pl*.nc', '*atm_2d*.nc']

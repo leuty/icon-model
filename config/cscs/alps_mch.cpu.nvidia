@@ -14,5 +14,7 @@ set -eu
 SCRIPT_DIR=$(cd "$(dirname "$0")"; pwd)
 SPACK_VERSION=$(cat $SCRIPT_DIR/SPACK_TAG_MCH)
 BUILD_DIR=$(pwd)
+ENV_TAG=$(cat $SCRIPT_DIR/MCH_ENV_TAG)
+BUILD_TRHEADS=16
 
-$SCRIPT_DIR/spack_install $SPACK_VERSION mch_cpu_double $BUILD_DIR
+$SCRIPT_DIR/spack_install $SPACK_VERSION mch_cpu_double $BUILD_DIR $ENV_TAG $BUILD_TRHEADS
