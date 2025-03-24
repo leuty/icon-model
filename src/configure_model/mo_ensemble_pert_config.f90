@@ -75,7 +75,7 @@ MODULE mo_ensemble_pert_config
             box_liq_sv, thicklayfac_sv, box_liq_asy_sv, range_lhn_coef, range_lhn_artif_fac,            &
             range_fac_lhn_down, range_fac_lhn_up, range_fac_ccqc, range_rmfdeps, range_entrorg_mult,    &
             range_ccn_Ncn0, range_in_fact, range_avel_g, range_avel_i, range_cap_snow, range_cap_ice,   &
-            range_dustyci_crit, range_dustyci_rhi, fac_rng_spinup
+            range_dustyci_crit, range_dustyci_rhi, fac_rng_spinup, shift_ratsea, shift_boxliq_asy
 
   !!--------------------------------------------------------------------------
   !! Basic configuration setup for ensemble perturbations
@@ -248,6 +248,10 @@ MODULE mo_ensemble_pert_config
 
   REAL(wp) :: &                    !< Tuning factor for saturation pressure over oceans, compensating the systematic
     &  sst_pert_corrfac            !  increase of evaporation related to the SST perturbations
+
+  ! Options to reduce bias differences between DET and EPS by shifting tuning parameters w.r.t the deterministic value
+  REAL(wp) :: shift_ratsea         !< Option to shift rat_sea w.r.t. deterministic setting
+  REAL(wp) :: shift_boxliq_asy     !< Option to shift tune_box_liq_asy w.r.t. deterministic setting
 
   INTEGER :: itype_pert_gen        !< type of ensemble perturbation generation
   INTEGER :: timedep_pert          !< time dependence of ensemble perturbations
@@ -559,6 +563,9 @@ MODULE mo_ensemble_pert_config
     thicklayfac_sv = tune_thicklayfac
     box_liq_asy_sv = tune_box_liq_asy
 
+    ! optional shift of EPS mean
+    box_liq_asy_sv = box_liq_asy_sv + shift_boxliq_asy
+
     ! turbulence
     tkhmin_sv(1:max_dom)       = turbdiff_config(1:max_dom)%tkhmin
     tkhmin_strat_sv(1:max_dom) = turbdiff_config(1:max_dom)%tkhmin_strat
@@ -573,6 +580,9 @@ MODULE mo_ensemble_pert_config
     q_crit_sv(1:max_dom)       = turbdiff_config(1:max_dom)%q_crit
     alpha0_sv(1:max_dom)       = turbdiff_config(1:max_dom)%alpha0
     alpha0_max_sv(1:max_dom)   = turbdiff_config(1:max_dom)%alpha0_max
+
+    ! optional shift of EPS mean
+    rat_sea_sv(1:max_dom) = rat_sea_sv(1:max_dom) + shift_ratsea
 
     ! TERRA
     minsnowfrac_sv = tune_minsnowfrac

@@ -79,6 +79,8 @@ MODULE mo_ensemble_pert_nml
     &                               config_itype_pert_gen  => itype_pert_gen,  &
     &                               config_timedep_pert    => timedep_pert,    &
     &                               config_fac_rng_spinup  => fac_rng_spinup,  &
+    &                               config_shift_ratsea    => shift_ratsea,    &
+    &                               config_shift_boxliq_asy  => shift_boxliq_asy, &
     &                               config_use_ensemble_pert => use_ensemble_pert
 
   
@@ -249,6 +251,10 @@ MODULE mo_ensemble_pert_nml
     &  stdev_sst_pert              !  this switch controls a correction term compensating the systematic
                                    !  increase of evaporation related to the SST perturbations
 
+  ! Options to reduce bias differences between DET and EPS by shifting tuning parameters w.r.t the deterministic value
+  REAL(wp) :: shift_ratsea         !< Option to shift rat_sea w.r.t. deterministic setting
+  REAL(wp) :: shift_boxliq_asy     !< Option to shift tune_box_liq_asy w.r.t. deterministic setting
+
   INTEGER :: itype_pert_gen        !< type of ensemble perturbation generation
   INTEGER :: timedep_pert          !< time dependence of ensemble perturbations
   INTEGER :: fac_rng_spinup        !< factor for number of RNG spinup calls
@@ -266,7 +272,8 @@ MODULE mo_ensemble_pert_nml
     &                         range_fac_lhn_down, range_fac_lhn_up, range_fac_ccqc, range_rmfdeps,         &
     &                         range_ccn_Ncn0, range_in_fact, range_avel_i, range_avel_g,                   &
     &                         range_cap_snow, range_cap_ice,                                               &
-    &                         range_entrorg_mult, range_dustyci_crit, range_dustyci_rhi, fac_rng_spinup
+    &                         range_entrorg_mult, range_dustyci_crit, range_dustyci_rhi, fac_rng_spinup,   &
+    &                         shift_ratsea, shift_boxliq_asy
 
 
 CONTAINS
@@ -380,6 +387,9 @@ CONTAINS
     range_dustyci_crit = 20.0_wp    ! Dust specific mass concentration threshold for dusty cirrus
     range_dustyci_rhi  = 0.1_wp     ! Ice saturation ratio threshold for dusty cirrus
 
+    ! Options to reduce bias differences between DET and EPS in global system
+    shift_ratsea       = 0.0_wp     ! shift rat_sea w.r.t. deterministic setting
+    shift_boxliq_asy   = 0.0_wp     ! shift tune_box_liq_asy w.r.t. deterministic setting
 
     use_ensemble_pert = .FALSE.     ! Usage of ensemble perturbations must be turned on explicitly
     itype_pert_gen    = 1           ! Type of ensemble perturbation generation:
@@ -484,11 +494,14 @@ CONTAINS
     config_range_laimax       = range_laimax
     config_range_dustyci_crit = range_dustyci_crit
     config_range_dustyci_rhi  = range_dustyci_rhi
+    config_shift_ratsea       = shift_ratsea
+    config_shift_boxliq_asy   = shift_boxliq_asy
     config_stdev_sst_pert     = stdev_sst_pert
     config_use_ensemble_pert  = use_ensemble_pert
     config_itype_pert_gen     = itype_pert_gen
     config_fac_rng_spinup     = fac_rng_spinup
     config_timedep_pert       = timedep_pert
+
 
     !-----------------------------------------------------
     ! 6. Store the namelist for restart

@@ -62,7 +62,7 @@ MODULE mo_nh_interface_nwp
   USE mo_physical_constants,      ONLY: rd, rd_o_cpd, vtmpc1, p0ref, rcvd, cvd, cvv, grav
 
   USE mo_nh_diagnose_pres_temp,   ONLY: diagnose_pres_temp, diag_pres, diag_temp, calc_qsum
-  USE mo_atm_phy_nwp_config,      ONLY: atm_phy_nwp_config, iprog_aero
+  USE mo_atm_phy_nwp_config,      ONLY: atm_phy_nwp_config, iprog_aero, itype_dissip_heat
   USE mo_iau,                     ONLY: iau_update_tracer
   USE mo_util_phys,               ONLY: tracer_add_phytend, inversion_height_index
   USE mo_lnd_nwp_config,          ONLY: ntiles_total, ntiles_water
@@ -2145,7 +2145,7 @@ CONTAINS
 #endif
         ENDIF
 
-        IF (atm_phy_nwp_config(jg)%lcalc_dissip_heat) THEN ! skipped if dissipative heating is calculated in turbdiff
+        IF (itype_dissip_heat >= 1) THEN ! add dissipative heating for SSO, GWD and Rayleigh friction
 
           ! SQRT of Richardson number between the two lowest model levels
           ! This is used below to reduce frictional heating near the surface under very stable conditions
@@ -2204,7 +2204,7 @@ CONTAINS
           !$ACC END PARALLEL
         ENDIF
 
-        IF (atm_phy_nwp_config(jg)%lcalc_dissip_heat .AND. l_out_ddt_temp_drag) THEN
+        IF (itype_dissip_heat >= 1 .AND. l_out_ddt_temp_drag) THEN
           !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1) IF(lacc)
           !$ACC LOOP GANG VECTOR COLLAPSE(2)
           DO jk = 1, nlev

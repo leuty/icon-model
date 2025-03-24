@@ -39,7 +39,7 @@ MODULE mo_nwp_turbdiff_interface
   USE mo_parallel_config,        ONLY: nproma
   USE mo_run_config,             ONLY: msg_level, iqv, iqc, iqi, iqnc, iqni, iqtke, &
     &                                  iqs, iqns, lart, ltestcase
-  USE mo_atm_phy_nwp_config,     ONLY: atm_phy_nwp_config
+  USE mo_atm_phy_nwp_config,     ONLY: atm_phy_nwp_config, itype_dissip_heat
   USE mo_nonhydrostatic_config,  ONLY: kstart_moist, kstart_tracer
   USE turb_data,                 ONLY: get_turbdiff_param, lsflcnd, modvar, ndim, ilow_def_cond, &
                                        u_m, v_m, tet, vap, liq
@@ -814,6 +814,15 @@ CONTAINS
         ELSE IF (prm_nwp_tend%ddt_v_turb(jc,jk,jb) < -0.1_wp) THEN
           prm_nwp_tend%ddt_v_turb(jc,jk,jb) = -0.1_wp
         END IF
+
+        ! add dissipative heating from momentum dissipation by turbulent mixing;
+        ! needs to be divided by cp rather than cv because the conversion is done below
+        ! for the whole turbulence tendency term!
+        IF (itype_dissip_heat == 2) THEN
+          prm_nwp_tend%ddt_temp_turb(jc,jk,jb) = prm_nwp_tend%ddt_temp_turb(jc,jk,jb) - &
+            (p_diag%u(jc,jk,jb)*prm_nwp_tend%ddt_u_turb(jc,jk,jb) +                     &
+             p_diag%v(jc,jk,jb)*prm_nwp_tend%ddt_v_turb(jc,jk,jb) )/cpd
+        ENDIF
 
         p_prog_rcf%tracer(jc,jk,jb,iqv) =MAX(0._wp, p_prog_rcf%tracer(jc,jk,jb,iqv) &
              &           + tcall_turb_jg*prm_nwp_tend%ddt_tracer_turb(jc,jk,jb,iqv))

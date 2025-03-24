@@ -33,6 +33,7 @@ MODULE mo_nwp_phy_nml
     &                               config_icpl_aero_conv  => icpl_aero_conv,  &
     &                               config_iprog_aero      => iprog_aero,      &
     &                               config_icpl_o3_tp      => icpl_o3_tp,      &
+    &                               config_itype_dissip_heat => itype_dissip_heat, &
     &                               config_icpl_aero_ice   => icpl_aero_ice,   &
     &                               config_lcuda_graph_turb_tran => lcuda_graph_turb_tran
 
@@ -88,6 +89,7 @@ MODULE mo_nwp_phy_nml
   INTEGER  :: icpl_aero_conv     !! type of coupling between aerosols and convection scheme
   INTEGER  :: iprog_aero         !! type of prognostic aerosol
   INTEGER  :: icpl_o3_tp         !! type of ozone-tropopause coupling
+  INTEGER  :: itype_dissip_heat  !! Options for the calculation of dissipative heating
   REAL(wp) :: qi0, qc0           !! variables for hydci_pp
   REAL(wp) :: ustart_raylfric    !! velocity at which extra Rayleigh friction starts
   REAL(wp) :: efdt_min_raylfric  !! e-folding time corresponding to maximum relaxation coefficient
@@ -103,7 +105,7 @@ MODULE mo_nwp_phy_nml
   INTEGER  :: icalc_reff(max_dom)    !! type of effective radius calculation
   INTEGER  :: icpl_rad_reff(max_dom) !! coupling radiation and effective radius
   INTEGER  :: ithermo_water(max_dom) !! thermodynamic of water
-    
+
   LOGICAL  :: lcuda_graph_turb_tran  !! Activate CUDA GRAPH in turbulent transfer
 
   !> NetCDF file containing longwave absorption coefficients and other data
@@ -131,7 +133,8 @@ MODULE mo_nwp_phy_nml
     &                    icalc_reff, lupatmo_phy, icpl_rad_reff,     &
     &                    lgrayzone_deepconv, ithermo_water,          &
     &                    lsbm_warm_full, lcuda_graph_turb_tran,      &
-    &                    lscale_cdnc, lvariable_rain_n0
+    &                    lscale_cdnc, lvariable_rain_n0,             &
+    &                    itype_dissip_heat
 
 CONTAINS
 
@@ -267,7 +270,12 @@ CONTAINS
     ! coupling between ozone and the tropopause
     icpl_o3_tp = 1      ! 0 = none
                         ! 1 = take climatological values from 100/350 hPa above/below the tropopause in the extratropics
+                        ! 2 = improved variant of 1 that avoids exaggerated additional ozone for low tropopauses
 
+    ! options for calculating dissipative heating in the NWP interface
+    itype_dissip_heat = 1   ! 0 = none; switch is automatically reset to 0 if dissipative heating is calculated in turbulence scheme
+                            ! 1 = SSO + GWD + Rayleigh friction
+                            ! 2 = 1 + momemtum dissipation by turbulence
     
     ! Calculation of effective radius
     icalc_reff(:)   =  icalc_reff_def ! 0      = no calculation (current default)
@@ -555,9 +563,11 @@ CONTAINS
     config_icpl_aero_conv        = icpl_aero_conv
     config_iprog_aero            = iprog_aero
     config_icpl_o3_tp            = icpl_o3_tp
+    config_itype_dissip_heat     = itype_dissip_heat
     config_lcuda_graph_turb_tran = lcuda_graph_turb_tran
     config_icpl_aero_ice         = icpl_aero_ice
 
+    !$ACC UPDATE DEVICE(config_icpl_o3_tp, config_itype_dissip_heat)
     !-----------------------------------------------------
     ! 6. Store the namelist for restart
     !-----------------------------------------------------
