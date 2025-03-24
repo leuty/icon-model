@@ -78,7 +78,7 @@ ICON_IGNORED_PATTERNS = [
     "src/atm_phy_schemes/mo_sso_cosmo.f90",
     "src/atm_phy_schemes/mo_sso_ifs.f90",
     "src/atm_phy_schemes/mo_vdftofdc.f90",
-    "src/atm_phy_schemes/mo_voskin.f90",
+    "src/lnd_phy_schemes/mo_voskin.f90",
     # Alan Miller (ACM):
     "src/atm_phy_schemes/random_rewrite.f90",
     # AER, Rebecca Adams-Selin (BSD-3-Clause):

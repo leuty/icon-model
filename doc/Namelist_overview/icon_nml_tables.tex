@@ -4388,6 +4388,26 @@ iforcing=3
 \tabularnewline
 
 %\hline
+itype\_oskin\_warm &
+I &
+0 &
+&
+SST skin formulation: warm layer component \\
+0: off \\
+1: activated&
+\tabularnewline
+
+%\hline
+itype\_oskin\_cold &
+I &
+0 &
+&
+SST skin formulation: cold skin component \\
+0: off \\
+1: activated&
+\tabularnewline
+
+%\hline
 hice\_min &
 R&
 0.05&
@@ -4414,6 +4434,7 @@ keyword $<$path$>$ which will be substituted by model\_base\_dir \newline
 In case sstice\_mode=6, SST data for all time steps in the current simulation should be prepared in one single file, variable should be named SST in this file. &
 sstice\_mode=3,4,5,6
 \tabularnewline
+
 %\hline
 ci\_td\_filename &
 C&
@@ -4425,6 +4446,7 @@ the keyword $<$path$>$ which will be substituted by model\_base\_dir \newline
 In case sstice\_mode=6, sea ice data for all time steps in the current simulation should be prepared in one single file, variable should be named SIC in this file. &
 sstice\_mode=3,4,5,6
 \tabularnewline
+
 %\hline
 lcuda\_graph\_lnd &
 L&

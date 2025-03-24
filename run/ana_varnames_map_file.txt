@@ -64,6 +64,8 @@ smi                 SMI
 t_so                T_SO
 t_sk                SKT
 t_seasfc            T_SEA
+sst_warm_layer      DSST_WARM_LAYER
+sst_cold_skin       DSST_COLD_SKIN
 gz0                 Z0
 t_mnw_lk            T_MNW_LK
 t_wml_lk            T_WML_LK

@@ -96,8 +96,8 @@ MODULE mo_nwp_phy_init
   USE mo_turb_vdiff_config,   ONLY: vdiff_config
 
   USE mo_nwp_sfc_utils,       ONLY: nwp_surface_init, init_snowtile_lists, init_sea_lists, &
-    &                               aggregate_tg_qvs, copy_lnd_prog_now2new
-  USE mo_lnd_nwp_config,      ONLY: ntiles_total, lsnowtile, ntiles_water, llake, &
+    &                               aggregate_tg_qvs, copy_lnd_prog_now2new, reset_ocean_skin
+  USE mo_lnd_nwp_config,      ONLY: ntiles_total, lsnowtile, ntiles_water, llake, loskin, &
     &                               lseaice, zml_soil, nlev_soil, dzsoil_icon => dzsoil
   USE sfc_flake_data,         ONLY: h_Ice_min_flk, tpl_T_f
   USE sfc_terra_data,         ONLY: csalbw, cpwp, cfcap
@@ -344,6 +344,15 @@ SUBROUTINE init_nwp_phy ( p_patch, p_metrics,             &
         & lacc=.TRUE. &
       )
   END IF
+
+  ! reset SST warm layer and cold skin to 0 for new pure sea-ice points (no open water fraction)
+  IF (loskin) THEN
+    CALL reset_ocean_skin( p_patch        = p_patch,                        & ! in
+      &                    list_seaice    = ext_data%atm%list_seaice,       & ! in
+      &                    fr_seaice      = p_diag_lnd%fr_seaice     (:,:), & ! in
+      &                    sst_warm_layer = p_diag_lnd%sst_warm_layer(:,:), & ! inout
+      &                    sst_cold_skin  = p_diag_lnd%sst_cold_skin (:,:)  ) ! inout
+  ENDIF
 
   IF (.NOT. lreset_mode) THEN
     IF (itype_vegetation_cycle >= 2) CALL vege_clim (p_patch, ext_data, p_diag)

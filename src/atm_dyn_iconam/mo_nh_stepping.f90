@@ -1134,8 +1134,9 @@ MODULE mo_nh_stepping
 #endif
         ! assume midnight for climatological updates
         target_datetime = assumePrevMidnight(mtime_current)
-        ! assume midnight for reference date which is used when computing climatological SST increments
-        ref_datetime    = assumePrevMidnight(time_config%tc_exp_startdate)
+        ! assume midnight for previous day which is used when computing climatological SST increments
+        ! The SST increment is forced to be zero for jstep = 0 because the SST analysis is then up to date
+        ref_datetime    = MERGE(assumePrevMidnight(mtime_current), assumePrevMidnight(mtime_old), jstep==0)
 
         DO jg=1, n_dom
 

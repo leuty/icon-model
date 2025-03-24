@@ -17,15 +17,18 @@
 
 MODULE mo_voskin
  
+  USE mo_lnd_nwp_config, ONLY: itype_oskin_warm, itype_oskin_cold
+
+  IMPLICIT NONE
+
   PUBLIC :: voskin
 
 CONTAINS
 
-SUBROUTINE VOSKIN(KIDIA,KFDIA,KLON,&
- & PTMST,&
- & PSSRFL ,PSLRFL ,PAHFS, PAHFL, PUSTR, PVSTR, &
- & PU10,PV10,PTSKM1M,PSST,&
- & PTSK )  
+SUBROUTINE VOSKIN(KIDIA, KFDIA, KLON, PTMST,   &
+ & PSSRFL, PSLRFL, PAHFS, PAHFL, PUSTR, PVSTR, &
+ & PU10, PV10, PTSKM1M, PSST,                  &
+ & PDWARM, PDCOOL )
 !     ------------------------------------------------------------------
 
 !**   *VOSKIN* - COMPUTES WARM AND COLD SKIN EFFECTS OVER THE OCEAN
@@ -63,8 +66,12 @@ SUBROUTINE VOSKIN(KIDIA,KFDIA,KLON,&
 !     *PSST*         SST
 
 !     OUTPUT PARAMETERS (REAL):
+!     *PDCOOL*       COLD SKIN SST INCREMENT
+!!    *PTSK*         NEW SKIN TEMPERATURE (now calculated in nwp_surface)
 
-!     *PTSK*         NEW SKIN TEMPERATURE 
+!     IN/OUTPUT PARAMETERS (REAL):
+
+!     *PDWARM*       WARM LAYER SST INCREMENT
 
 !     METHOD
 !     ------
@@ -84,6 +91,9 @@ SUBROUTINE VOSKIN(KIDIA,KFDIA,KLON,&
 !     Both formulations can be activated independently by 
 !     switches. 
 
+!     Takaya et al. (2009)
+!     Modification of the stability function for stable condition
+
 !     ------------------------------------------------------------------
 
 ! USE PARKIND1  ,ONLY : JPIM     ,JPRB
@@ -98,43 +108,42 @@ USE mo_cuparameters ,ONLY : lhook    ,dr_hook  ,&           !yomcst  (& yos_exc)
       & RKAP     ,RG       ,RETV     ,RLVTT    ,&           !yoevdf  (& yos_exc)
       & RCPD                                                !yomcst  (& yos_cst)
 
-!! There parameters turn on warm layer (WA) and cold skin (CO).
-!! There could be added as namelist parameters but here are constants
-!!      & LEOCWA   ,LEOCCO                                    !yoephy  (& yos_exc)
+INTEGER(KIND=JPIM),INTENT(IN)              :: KLON 
+INTEGER(KIND=JPIM),INTENT(IN)              :: KIDIA 
+INTEGER(KIND=JPIM),INTENT(IN)              :: KFDIA  
+REAL(KIND=JPRB)   ,INTENT(IN)              :: PTMST 
+REAL(KIND=JPRB)   ,INTENT(IN)              :: PSSRFL(:) 
+REAL(KIND=JPRB)   ,INTENT(IN)              :: PSLRFL(:) 
+REAL(KIND=JPRB)   ,INTENT(IN)              :: PAHFS(:) 
+REAL(KIND=JPRB)   ,INTENT(IN)              :: PAHFL(:) 
+REAL(KIND=JPRB)   ,INTENT(IN)              :: PUSTR(:) 
+REAL(KIND=JPRB)   ,INTENT(IN)              :: PVSTR(:)  
+REAL(KIND=JPRB)   ,INTENT(IN)              :: PU10(:) 
+REAL(KIND=JPRB)   ,INTENT(IN)              :: PV10(:) 
+REAL(KIND=JPRB)   ,INTENT(IN)              :: PTSKM1M(:) 
+REAL(KIND=JPRB)   ,INTENT(IN)              :: PSST(:) 
+REAL(KIND=JPRB)   ,INTENT(INOUT),OPTIONAL  :: PDWARM(:) 
+REAL(KIND=JPRB)   ,INTENT(OUT)             :: PDCOOL(:) 
 
-IMPLICIT NONE
-
-INTEGER(KIND=JPIM),INTENT(IN)    :: KLON 
-INTEGER(KIND=JPIM),INTENT(IN)    :: KIDIA 
-INTEGER(KIND=JPIM),INTENT(IN)    :: KFDIA  
-REAL(KIND=JPRB)   ,INTENT(IN)    :: PTMST 
-REAL(KIND=JPRB)   ,INTENT(IN)    :: PSSRFL(:) 
-REAL(KIND=JPRB)   ,INTENT(IN)    :: PSLRFL(:) 
-REAL(KIND=JPRB)   ,INTENT(IN)    :: PAHFS(:) 
-REAL(KIND=JPRB)   ,INTENT(IN)    :: PAHFL(:) 
-REAL(KIND=JPRB)   ,INTENT(IN)    :: PUSTR(:) 
-REAL(KIND=JPRB)   ,INTENT(IN)    :: PVSTR(:)  
-REAL(KIND=JPRB)   ,INTENT(IN)    :: PU10(:) 
-REAL(KIND=JPRB)   ,INTENT(IN)    :: PV10(:) 
-REAL(KIND=JPRB)   ,INTENT(IN)    :: PTSKM1M(:) 
-REAL(KIND=JPRB)   ,INTENT(IN)    :: PSST(:) 
-REAL(KIND=JPRB)   ,INTENT(OUT)   :: PTSK(:) 
-
-INTEGER(KIND=JPIM) :: JL
-CHARACTER*1 CHVER
+INTEGER(KIND=JPIM) :: JL, iversion
 
 REAL(KIND=JPRB) :: ZNUW,ZROW,ZROA,ZCPW,ZKW,ZG,ZROC,ZCONM13,ZCON23,ZCON34,&
  & ZCON2,ZCON3,ZCON4,ZCON5,ZQ,ZQ2,ZLAMB,ZDELTA,ZFC,&
  & ZSRD,ZGU,ZDSST,ZZ,ZPARZI,ZEPDU2,&
- & ZEPUST,ZUST2,ZDZC,ZFI,ZDU2,ZDL,&
+ & ZEPUST,ZUST2,ZDZC,ZFI,ZDU2,ZDL,ZDL2,&
  & ZENHAN,ZA1,ZA2,ZD1,ZD2,ZROWT,ZROWQ,ZUSTW2,&
  & ZWST2,ZDZ,ZPHI,ZROADRW,ZAN
 
-REAL(KIND=JPRB) :: ZBUO(KLON),ZU(KLON),ZALPHA(KLON),ZDCOOL(KLON),&
-                 & ZDWARM(KLON),ZUST(KLON)
+REAL(KIND=JPRB) :: ZBUO(KLON),ZU(KLON),ZALPHA(KLON),ZUST(KLON)
 REAL(KIND=JPRB) :: ZHOOK_HANDLE
 
+! The parameters turn on warm layer (WA) and cold skin (CO).
 LOGICAL :: LEOCWA, LEOCCO
+
+LOGICAL :: PDWARM_PRESENT
+
+
+PDWARM_PRESENT = PRESENT(PDWARM)
 
 !     1. Initialize constants for ocean warm layer and cool skin
 
@@ -142,10 +151,10 @@ LOGICAL :: LEOCWA, LEOCCO
 
 IF (LHOOK) CALL DR_HOOK('VOSKIN_MOD:VOSKIN',0,ZHOOK_HANDLE)
 
-LEOCCO=.TRUE.      !    turn on cold skin  - if vokin ON
-LEOCWA=.TRUE.      !    turn on warm layer - if vokin ON
+LEOCCO = itype_oskin_cold > 0  ! turn on cold skin
+LEOCWA = itype_oskin_warm > 0  ! turn on warm layer
 
-CHVER="C"          !    formulation A,B, or C
+iversion=3         !    formulation 1 or 3
 ZNUW=1.E-6_JPRB    !    kinematic viscosity of water        (m2/s)
 ZROW=1025._JPRB    !    density of water                    (kg/m3)
 ZROA=1.2_JPRB      !    density of air (approximately)      (kg/m3)
@@ -155,7 +164,7 @@ ZG=RG              !    gravitational constant              (m/s2)
 ZPARZI=1000._JPRB  !    BL height for convective scaling    (m)
 ZEPDU2=0.01_JPRB   !    security constant for velocity**2   (m2/s2)
 ZEPUST=0.0001_JPRB !    security constant for velocity      (m/s)
-ZROADRW=ZROA/ZROW  !    Density ratio                      (-)
+ZROADRW=ZROA/ZROW  !    Density ratio                       (-)
 
 ZROC=ZROW*ZCPW
 ZCONM13=-1._JPRB/3._JPRB
@@ -184,6 +193,7 @@ ZCON3=ZDZC*RKAP*RG/(ZROA/ZROW)**1.5_JPRB
 ZAN=0.3_JPRB       !    Nu (exponent of temperature profile)
 ZCON4=(ZAN+1.0_JPRB)*RKAP*SQRT(ZROA/ZROW)/ZDZC
 ZCON5=(ZAN+1.0_JPRB)/(ZAN*ZDZC)
+
 !     1.3 Cool skin parametrization constants
 
 ZCON2=16._JPRB*ZG*ZROC*ZNUW**3/(ZKW**2)
@@ -191,8 +201,8 @@ ZCON2=16._JPRB*ZG*ZROC*ZNUW**3/(ZKW**2)
 !     2. General 
 
 IF (LEOCWA .OR. LEOCCO) THEN
-  ZDCOOL(KIDIA:KFDIA)=0.0_JPRB
-  ZDWARM(KIDIA:KFDIA)=0.0_JPRB
+  PDCOOL(KIDIA:KFDIA)=0.0_JPRB
+! PDWARM(KIDIA:KFDIA)=0.0_JPRB
   
   DO JL=KIDIA,KFDIA
 
@@ -222,7 +232,7 @@ ENDIF
 IF (LEOCCO) then
   DO JL=KIDIA,KFDIA
 
-!      3.2 Apply empirical formulas
+!     3.1 Apply empirical formulas
 
     ZUSTW2=ZROADRW*ZUST(JL)**2
     ZQ=MAX(1.0_JPRB,-PSLRFL(JL)-PAHFS(JL)-PAHFL(JL))
@@ -230,23 +240,27 @@ IF (LEOCCO) then
 
     ZDELTA=ZLAMB*ZNUW/SQRT(ZUSTW2)
 
-!          Solar absorption
+!     3.2 Solar absorption
 
     ZFC=0.065_JPRB+11._JPRB*ZDELTA&
      & -(6.6E-5_JPRB/ZDELTA)*(1.0_JPRB-EXP(-ZDELTA/8.E-4_JPRB))  
     ZFC=MAX(ZFC,0.01_JPRB)
     ZQ2=MAX(1.0_JPRB,-ZFC*PSSRFL(JL)+ZQ)
-    ZDCOOL(JL)=-ZDELTA*ZQ2/ZKW
+    PDCOOL(JL)=-ZDELTA*ZQ2/ZKW
   ENDDO
 ENDIF
 
 IF (LEOCWA) then
-  IF (CHVER == "A") THEN 
+  IF (iversion == 1) THEN 
 
-!     2.2 Warm layer; formulation A (empirical adapted from Webster al. 1996)
+!     4.1 Warm layer; formulation A (empirical adapted from Webster al. 1996)
 
     DO JL=KIDIA,KFDIA
-      ZDSST=MAX(PTSKM1M(JL)-PSST(JL)-ZDCOOL(JL),0.0_JPRB)
+      IF ( PDWARM_PRESENT ) THEN
+        ZDSST=MAX(PDWARM(JL),0.0_JPRB)
+      ELSE
+        ZDSST=MAX(PTSKM1M(JL)-PSST(JL)-PDCOOL(JL),0.0_JPRB)
+      ENDIF
       IF (ZU(JL) < 2.0_JPRB) THEN
         ZGU=ZENHAN*(ZA1+ZD1*LOG(ZU(JL)))
       ELSE
@@ -254,14 +268,18 @@ IF (LEOCWA) then
       ENDIF
       ZSRD=PSSRFL(JL)/0.93_JPRB
       ZZ=1.0_JPRB+PTMST/(ZGU*ZROC*ZDZ)
-      ZDWARM(JL)=MAX(0.0_JPRB,(ZDSST+ZSRD*PTMST/(ZDZ*ZROC))/ZZ)
+      PDWARM(JL)=MAX(0.0_JPRB,(ZDSST+ZSRD*PTMST/(ZDZ*ZROC))/ZZ)
     ENDDO
-  ELSEIF (CHVER == "C") THEN 
-!
-!     2.2 Warm layer; formulation C (Xubin Zeng)
-!
+  ELSEIF (iversion == 3) THEN 
+
+!     4.2 Warm layer; formulation C (Xubin Zeng)
+
     DO JL=KIDIA,KFDIA
-        ZDSST=PTSKM1M(JL)-PSST(JL)-ZDCOOL(JL)
+        IF ( PDWARM_PRESENT ) THEN
+          ZDSST=PDWARM(JL)
+        ELSE
+          ZDSST=PTSKM1M(JL)-PSST(JL)-PDCOOL(JL)
+        ENDIF
 
         ZSRD=(PSSRFL(JL)*ZFI+PSLRFL(JL)+PAHFS(JL)+PAHFL(JL))/ZROC
 
@@ -274,21 +292,26 @@ IF (LEOCWA) then
         ZDL=ZCON3*ZALPHA(JL)*ZDL/ZUST(JL)**3
 
         IF (ZDL > 0.0_JPRB) THEN 
-          ZPHI=1._JPRB+5._JPRB*ZDL
+          ZDL2=ZDL*ZDL 
+!         ZPHI=1._JPRB+5._JPRB*ZDL                           ! Large et al. 1994
+!         ZPHI=1._JPRB+5.0*(ZDL+ZDL**2)/(1.0+3.0*ZDL+ZDL**2) ! SHEBA, Grachev et al. 2007
+          ZPHI=1._JPRB+(5._JPRB*ZDL+4._JPRB*ZDL2)/(1._JPRB+3._JPRB*ZDL+0.25_JPRB*ZDL2) ! Takaya et al.
         ELSE
           ZPHI=1._JPRB/SQRT(1._JPRB-16._JPRB*ZDL)
         ENDIF 
         
         ZZ=1.0_JPRB+ZCON4*PTMST*ZUST(JL)/ZPHI
-        ZDWARM(JL)=MAX(0.0_JPRB,(ZDSST+ZCON5*ZSRD*PTMST)/ZZ)
-        
+
+        PDWARM(JL)=MAX(0.0_JPRB,(ZDSST+ZCON5*ZSRD*PTMST)/ZZ)
+	
     ENDDO
   ENDIF
 ENDIF
 
-!     3. Apply warm layer and cool skin effects
+!     5. Apply warm layer and cool skin effects
 
-PTSK(KIDIA:KFDIA)=PSST(KIDIA:KFDIA)+ZDWARM(KIDIA:KFDIA)+ZDCOOL(KIDIA:KFDIA)
+! The update of surface skin temperature (T_G) is now done in nwp_surface and nwp_surface_init
+! PTSK(KIDIA:KFDIA)=PSST(KIDIA:KFDIA)+PDWARM(KIDIA:KFDIA)+PDCOOL(KIDIA:KFDIA)
 
 IF (LHOOK) CALL DR_HOOK('VOSKIN_MOD:VOSKIN',1,ZHOOK_HANDLE)
 END SUBROUTINE VOSKIN

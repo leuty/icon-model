@@ -7,6 +7,8 @@ The ocean component of ICON consists of three parts:
 2. [The sea-ice module](ref_ocean_seaice)
 3. and the [bio-geochemistry module HAMOCC](ref_ocean_biogeochem).
 
+Additionally, an [ocean skin parameterisation](ref_ocean_skin) is available.
+
 ## Ocean model components
 
 (ref_ocean_model)=
@@ -38,6 +40,18 @@ The ocean biogeochemistry component is provided by HAMOCC6 ({term}`Ilyina et al.
 It also simulates the upper sediment by 12 biologically active layers and a burial layer to represent the dissolution and decomposition of inorganic and organic matter as well as the diffusion of pore water constituents. 
 The co-limiting nutrients consist of phosphate, nitrate, silicate, and iron. 
 A fixed stoichiometry for all organic compounds is assumed.
+
+(ref_ocean_skin)=
+### Ocean warm layer and cold skin
+The ocean surface layer often features a __warm layer__ caused by solar radiation penetrating up to 3 meters, resulting in a strong diurnal cycle. Also a __cold skin__ develops due to cooling effects of surface latent and sensible heat fluxes, influencing the top millimeter of the ocean.
+
+The ICON implementation is based on the ideas of {term}`Zeng and Beljaars 2005` with modifications from {term}`Takaya, Bidlot, Beljaars and Janssen 2010`.
+The following applications are currently supported: 
+- atmospheric forecasts
+- forecasts coupled to an ocean
+- full data assimilation (DA) with cycling of the variables `sst_warm_layer` and `sst_cold_cycle` including weak coupling to ocean DA. 
+
+The ocean surface layer parameterisation components - warm layer and cold_skin - can be turned on separately with the parameters `itype_oskin_warm` and `itype_oskin_cold` (0/1 meaning off/activated respectively).
 
 ## Model configurations
 

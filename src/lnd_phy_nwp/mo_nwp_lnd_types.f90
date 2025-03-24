@@ -104,6 +104,8 @@ MODULE mo_nwp_lnd_types
     &  t_s          (:,:)   , & ! temperature of the ground surface             (  K  )
     &  t_sk         (:,:)   , & ! skin temperature                              (  K  )
     &  t_seasfc     (:,:)   , & ! temperature of the sea surface                (  K  )
+    &  sst_warm_layer(:,:)  , & ! SST warm layer increment                      (  K  )
+    &  sst_cold_skin(:,:)   , & ! SST cold skin increment                       (  K  )
     &  w_i          (:,:)   , & ! water content of interception water           (m H2O)
     &  t_so         (:,:,:) , & ! soil temperature (main level)                 (  K  )
     &  w_so         (:,:,:) , & ! total water content (ice + liquid water)      (m H20)

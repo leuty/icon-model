@@ -44,9 +44,10 @@ MODULE mo_nwp_lnd_state
   USE mo_io_config,            ONLY: var_in_output
   USE mo_atm_phy_nwp_config,   ONLY: atm_phy_nwp_config
   USE mo_coupling_config,      ONLY: is_coupled_to_ocean
-  USE mo_lnd_nwp_config,       ONLY: nlev_soil, nlev_snow, ntiles_total, &
+  USE mo_lnd_nwp_config,       ONLY: nlev_soil, nlev_snow, ntiles_total,        &
     &                                lmulti_snow, ntiles_water, lseaice, llake, &
-    &                                l2lay_rho_snow, itype_trvg, &
+    &                                itype_oskin_warm, itype_oskin_cold,        &
+    &                                sstice_mode, l2lay_rho_snow, itype_trvg,   &
     &                                itype_snowevap, groups_smi, zml_soil
   USE mo_io_config,            ONLY: lnetcdf_flt64_output, runoff_interval, &
     &                                melt_interval
@@ -1234,6 +1235,8 @@ MODULE mo_nwp_lnd_state
     &       p_diag_lnd%t_s, &
     &       p_diag_lnd%t_sk, &
     &       p_diag_lnd%t_seasfc, &
+    &       p_diag_lnd%sst_warm_layer, &
+    &       p_diag_lnd%sst_cold_skin, &
     &       p_diag_lnd%w_i, &
     &       p_diag_lnd%t_so, &
     &       p_diag_lnd%w_so, &
@@ -1380,15 +1383,52 @@ MODULE mo_nwp_lnd_state
     ! & p_diag_lnd%t_seasfc(nproma,nblks_c)
     cf_desc    = t_cf_var('t_seasfc', 'K', 'sea surface temperature', datatype_flt)
     grib2_desc = grib2_var(10, 3, 0, ibits, GRID_UNSTRUCTURED, GRID_CELL)
-    CALL add_var( diag_list, vname_prefix//'t_seasfc', p_diag_lnd%t_seasfc,      &
-         & GRID_UNSTRUCTURED_CELL, ZA_SURFACE, cf_desc, grib2_desc,              &
-         & ldims=shape2d, lrestart=.TRUE., loutput=.TRUE.,                       &
-         & lmiss=.TRUE., missval=0.0_wp,                                         &
-         & hor_interp=create_hor_interp_metadata(hor_intp_type=HINTP_TYPE_LONLAT_NNB ), & 
-         & in_group=groups("dwd_fg_sfc_vars","mode_dwd_ana_in",                  &
-         &                 "mode_iau_ana_in","mode_iau_old_ana_in"),             &
+    CALL add_var( diag_list, vname_prefix//'t_seasfc', p_diag_lnd%t_seasfc,                   &
+         & GRID_UNSTRUCTURED_CELL, ZA_SURFACE, cf_desc, grib2_desc,                           &
+         & ldims=shape2d, lrestart=.TRUE., loutput=.TRUE.,                                    &
+         & lmiss=.TRUE., missval=0.0_wp,                                                      &
+         & hor_interp=create_hor_interp_metadata(hor_intp_type=HINTP_TYPE_LONLAT_NNB ),       & 
+         & in_group=groups("dwd_fg_sfc_vars","mode_dwd_ana_in","mode_iau_ana_in",             &
+         &     "mode_iau_old_ana_in","mode_dwd_fg_in","mode_iau_fg_in","mode_iau_old_fg_in"), &
          & lopenacc=.TRUE. )
     __acc_attach(p_diag_lnd%t_seasfc)
+
+
+    IF (itype_oskin_warm > 0) THEN
+
+      ! & p_diag_lnd%sst_warm_layer(nproma,nblks_c)
+      cf_desc    = t_cf_var('sst_warm_layer', 'K', 'SST warm layer', datatype_flt)
+      grib2_desc = grib2_var(10, 3, 194, ibits, GRID_UNSTRUCTURED, GRID_CELL)             &
+                 + t_grib2_int_key("typeOfFirstFixedSurface", 160)                        &
+                 + t_grib2_int_key("scaleFactorOfFirstFixedSurface", 0)                   &
+                 + t_grib2_int_key("scaledValueOfFirstFixedSurface", 0)
+      CALL add_var( diag_list, vname_prefix//'sst_warm_layer', p_diag_lnd%sst_warm_layer, &
+           & GRID_UNSTRUCTURED_CELL, ZA_SURFACE, cf_desc, grib2_desc,                     &
+           & ldims=shape2d, lrestart=.TRUE., loutput=.TRUE., initval=0._wp,               &
+           & hor_interp=create_hor_interp_metadata(hor_intp_type=HINTP_TYPE_LONLAT_NNB ), & 
+           & in_group=groups("dwd_fg_sfc_vars","mode_dwd_fg_in",                          &
+           &                 "mode_iau_fg_in","mode_iau_old_fg_in","iau_restore_vars") ,  &
+           & lopenacc=.FALSE. )
+ !     __acc_attach(p_diag_lnd%sst_warm_layer) !! not yet ported
+  
+    ENDIF
+
+    IF (itype_oskin_cold > 0) THEN
+
+      ! & p_diag_lnd%sst_cold_skin(nproma,nblks_c)
+      cf_desc    = t_cf_var('sst_cold_skin', 'K', 'SST cold skin', datatype_flt)
+      grib2_desc = grib2_var(10, 3, 193, ibits, GRID_UNSTRUCTURED, GRID_CELL)             &
+                 + t_grib2_int_key("typeOfFirstFixedSurface", 160)                        &
+                 + t_grib2_int_key("scaleFactorOfFirstFixedSurface", 0)                   &
+                 + t_grib2_int_key("scaledValueOfFirstFixedSurface", 0)
+      CALL add_var( diag_list, vname_prefix//'sst_cold_skin', p_diag_lnd%sst_cold_skin,   &
+           & GRID_UNSTRUCTURED_CELL, ZA_SURFACE, cf_desc, grib2_desc,                     &
+           & ldims=shape2d, lrestart=.TRUE., loutput=.TRUE., initval=0._wp,               &
+           & hor_interp=create_hor_interp_metadata(hor_intp_type=HINTP_TYPE_LONLAT_NNB ), & 
+           & in_group=groups("dwd_fg_sfc_vars","iau_restore_vars") , lopenacc=.FALSE.)
+  !    __acc_attach(p_diag_lnd%sst_cold_skin) !! not yet ported
+
+    ENDIF
 
 
     ! & p_diag_lnd%w_i(nproma,nblks_c)

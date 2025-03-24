@@ -35,7 +35,8 @@ MODULE mo_lnd_nwp_config
   ! VARIABLES
   PUBLIC :: dzsoil, zml_soil, depth_hl, nlev_soil, nlev_snow, ibot_w_so, ntiles_total, ntiles_lnd, ntiles_water
   PUBLIC :: frlnd_thrhld, frlndtile_thrhld, frlake_thrhld, frsea_thrhld, frsi_min, hice_min, hice_max
-  PUBLIC :: lseaice, lprog_albsi, lbottom_hflux, llake, lmelt, lmelt_var, lmulti_snow, lsnowtile, max_toplaydepth
+  PUBLIC :: lseaice, lprog_albsi, lbottom_hflux, llake, loskin, itype_oskin_warm, itype_oskin_cold
+  PUBLIC :: lmulti_snow, lsnowtile, max_toplaydepth, lmelt, lmelt_var
   PUBLIC :: itype_trvg, itype_evsl, itype_lndtbl, l2lay_rho_snow
   PUBLIC :: itype_root, itype_heatcond, &
             itype_hydbound, idiag_snowfrac, itype_snowevap, cwimax_ml, c_soil, c_soil_urb, cr_bsmin
@@ -95,6 +96,9 @@ MODULE mo_lnd_nwp_config
   LOGICAL ::  lseaice     !> forecast with sea-ice model
   LOGICAL ::  lprog_albsi !> sea-ice albedo is computed prognostically from a rate equation
   LOGICAL ::  llake       !! forecast with lake model FLake
+  LOGICAL ::  loskin      !! forecast with ocean skin layer (warm layer or cold skin)
+  INTEGER ::  itype_oskin_warm   !! forecast with SST warm layer
+  INTEGER ::  itype_oskin_cold   !! forecast with SST cold skin
   LOGICAL ::  lmelt       !! soil model with melting process
   LOGICAL ::  lmelt_var   !! freezing temperature dependent on water content
   LOGICAL ::  lmulti_snow !! run the multi-layer snow model
@@ -192,6 +196,9 @@ CONTAINS
     ELSE
        frsi_min = 0.015_wp    ! ICON uncoupled, limit at 1.5% seaice fraction (Dmitrii Mironov)
     END IF
+
+    ! main control parameter for ocean skin parameterization
+    loskin = (itype_oskin_cold > 0) .OR. (itype_oskin_warm > 0)
 
     !
     ! settings dealing with surface tiles

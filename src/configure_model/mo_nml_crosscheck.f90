@@ -568,7 +568,8 @@ CONTAINS
             & calculated within the turbulence scheme'
           CALL message(routine, message_text)
         ENDIF
-
+     
+        !! check land surface schemes
         SELECT CASE (atm_phy_nwp_config(jg)%inwp_surface)
         CASE (0)
           IF (ntiles_lnd > 1) THEN
