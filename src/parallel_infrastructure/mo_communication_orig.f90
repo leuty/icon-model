@@ -4004,7 +4004,7 @@ CONTAINS
             ENDIF
           ENDDO
 
-          !$ACC UPDATE HOST(auxs_buf(:,ioffset+1:ioffset+isum)) ASYNC(1) IF(use_staging)
+          !$ACC UPDATE HOST(auxs_buf(:,ioffset+1:isum)) ASYNC(1) IF(use_staging)
           !$ACC WAIT(1)
 
           IF(isum > ioffset) CALL p_send(auxs_buf(1,ioffset+1), pid, 1, &
@@ -4032,7 +4032,7 @@ CONTAINS
             ENDIF
           ENDDO
 
-          !$ACC UPDATE HOST(auxs_buf(:,ioffset+1:ioffset+isum)) ASYNC(1) IF(use_staging)
+          !$ACC UPDATE HOST(auxs_buf(:,ioffset+1:isum)) ASYNC(1) IF(use_staging)
           !$ACC WAIT(1)
 
           IF(isum > ioffset) CALL p_isend(auxs_buf(1,ioffset+1), pid, 1, &
@@ -4089,7 +4089,7 @@ CONTAINS
             ENDIF
           ENDDO
 
-          !$ACC UPDATE HOST(auxs_buf(:,ioffset+1:ioffset+isum)) ASYNC(1) IF(use_staging)
+          !$ACC UPDATE HOST(auxs_buf(:,ioffset+1:isum)) ASYNC(1) IF(use_staging)
           !$ACC WAIT(1)
 !$OMP MASTER
           IF(isum > ioffset) CALL p_isend(auxs_buf(1,ioffset+1), pid, 1, &
@@ -4522,7 +4522,7 @@ CONTAINS
             ENDIF
           ENDDO
 
-          !$ACC UPDATE HOST(auxs_buf(:,ioffset+1:ioffset+isum)) ASYNC(1) IF(use_staging)
+          !$ACC UPDATE HOST(auxs_buf(:,ioffset+1:isum)) ASYNC(1) IF(use_staging)
           !$ACC WAIT(1)
 
           IF(isum > ioffset) CALL p_send(auxs_buf(1,ioffset+1), pid, 1, &
@@ -4550,7 +4550,7 @@ CONTAINS
             ENDIF
           ENDDO
 
-          !$ACC UPDATE HOST(auxs_buf(:,ioffset+1:ioffset+isum)) ASYNC(1) IF(use_staging)
+          !$ACC UPDATE HOST(auxs_buf(:,ioffset+1:isum)) ASYNC(1) IF(use_staging)
           !$ACC WAIT(1)
 
           IF(isum > ioffset) CALL p_isend(auxs_buf(1,ioffset+1), pid, 1, &
@@ -4607,7 +4607,7 @@ CONTAINS
             ENDIF
           ENDDO
 
-          !$ACC UPDATE HOST(auxs_buf(:,ioffset+1:ioffset+isum)) ASYNC(1) IF(use_staging)
+          !$ACC UPDATE HOST(auxs_buf(:,ioffset+1:isum)) ASYNC(1) IF(use_staging)
           !$ACC WAIT(1)
 !$OMP MASTER
           IF(isum > ioffset) CALL p_isend(auxs_buf(1,ioffset+1), pid, 1, &
