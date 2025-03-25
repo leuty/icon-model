@@ -145,6 +145,8 @@ MODULE mo_aes_phy_memory
       & tv        (:,:,:)=>NULL(),  &!< [K]     virtual temperature
       & qtrc_dyn  (:,:,:,:)=>NULL(),&!< [kg/kg] mass fraction of tracer in air
       & qtrc_phy  (:,:,:,:)=>NULL(),&!< [kg/kg] mass fraction of tracer in air
+      & qall      (:,:,:)=>NULL(),  &!< [kg/kg] mass fraction of all hydrometeors in air
+      & clwvi     (:,:)=>NULL(),    &!< [kg/m2] vertically integrated cloud condensed water (= liquid water + ice)
       & mtrcvi    (:,:,:)=>NULL(),  &!< [kg/m2] atmosphere mass content of tracer
       & tcw       (:,:)=>NULL(),    &!< [kg/m2] vertically integrated total column water
       & cptgzvi   (:,:)=>NULL(),    &!< [kg/m2] dry static energy  , vertically integrated through the atmospheric column
@@ -1264,6 +1266,40 @@ CONTAINS
            &        isteptype=TSTEP_INSTANT,                                     &
            &        lopenacc=.TRUE.)
       __acc_attach(field%tcw)
+      !
+    END IF
+
+    IF (is_variable_in_output(var_name=prefix//'qall')) THEN
+       cf_desc    = t_cf_var('mass_fraction_of_all_hydrometeors_in_air', 'kg kg-1', 'mass fraction of all hydrometeors in air', datatype_flt)
+       grib2_desc = grib2_var(255,255,255, ibits, GRID_UNSTRUCTURED, GRID_CELL)
+       CALL add_var( field_list,                                                  &
+                   & prefix//"qall", field%qall,                                  &
+                   & GRID_UNSTRUCTURED_CELL, ZA_REFERENCE,                        &
+                   & cf_desc, grib2_desc,                                         &
+                   & ldims=shape3d,                                               &
+                   & vert_interp=create_vert_interp_metadata(                     &
+                   &             vert_intp_type=vintp_types("P","Z","I"),         &
+                   &             vert_intp_method=VINTP_METHOD_LIN,               &
+                   &             l_loglin=.FALSE.,                                &
+                   &             l_extrapol=.FALSE.),                             &
+                   & lrestart=.FALSE.,                                            &
+                   & lopenacc=.TRUE.)
+        __acc_attach(field%qall)
+    END IF
+
+    IF (is_variable_in_output(var_name=prefix//'clwvi')) THEN
+      ! &       field% clwvi   (nproma,nblks),          &
+      cf_desc    = t_cf_var('atmosphere_mass_content_of_cloud_condensed_water', 'kg m-2', 'cloud condensed water path', &
+           &                datatype_flt)
+      grib2_desc = grib2_var(255,255,255, ibits, GRID_UNSTRUCTURED, GRID_CELL)
+      CALL add_var( field_list, prefix//'clwvi', field%clwvi,                    &
+           &        GRID_UNSTRUCTURED_CELL, ZA_ATMOSPHERE,                       &
+           &        cf_desc, grib2_desc,                                         &
+           &        ldims=shape2d,                                               &
+           &        lrestart = .FALSE.,                                          &
+           &        isteptype=TSTEP_INSTANT,                                     &
+           &        lopenacc=.TRUE.)
+      __acc_attach(field%clwvi)
       !
     END IF
 
