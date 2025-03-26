@@ -80,6 +80,9 @@ Seifert & Beheng 2006
 Smagorinsky 1963
   Smagorinsky, J. (1963): General Circulation Experiments with the Primitive Equations. Mon. Weather Rev., 91, 99.
 
+Tegen et al. 1997
+  Tegen, I., Hollrig, P., Chin, M., Fung, I., Jacob, D., & Penner, J. (1997). Contribution of different aerosol species to the global aerosol extinction optical thickness: Estimates from model results. Journal of Geophysical Research: Atmospheres, 102(D20), 23895-23915.
+
 Thuburn & White 2013
   Thuburn, J., and White, A. A. (2013). A geometrical view of the shallow-atmosphere approximation, with application to the semi-Lagrangian departure point calculation. Quarterly Journal of the Royal Meteorological Society, 139(670), 261-268.
 

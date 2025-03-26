@@ -22,6 +22,7 @@ From `<n>` and `<k>` the resolution of the grid can be estimated by the formula:
 A set of predefined grid and external parameter datasets is available at **[http://icon-downloads.mpimet.mpg.de/](http://icon-downloads.mpimet.mpg.de/)**.
 :::
 
+(ref_how_to_run_external_param)=
 ### External Parameters (NWP)
 
 _Please note that this description applies to the [](ref_atmosphere_nwp_physics)_.
