@@ -113,16 +113,14 @@ export OMP_STACKSIZE=${use_omp_stacksize:-200M}
 #
 # MPI variables
 # -------------
-num_gpus_pernode=${use_num_gpus_pernode:-0}
-num_io_procs=${use_num_io_procs:-0}
+proc0_shift=$use_proc0_shift
+num_io_procs=${use_num_io_procs}
+
 : \${no_of_nodes:=${use_nodes}} \${mpi_procs_pernode:=${use_mpi_procs_pernode}}
 export no_of_nodes
 export mpi_procs_pernode
 ((mpi_total_procs=no_of_nodes * mpi_procs_pernode))
 export no_of_nodes mpi_procs_pernode mpi_total_procs
-
-proc0_shift=$use_proc0_shift
-num_io_procs=${use_num_io_procs}
 
 #
 # blocking length
@@ -483,9 +481,8 @@ set_run_target_bullx_gpu()
     if [[ $use_mpi == "yes" ]]
     then
 	num_gpus_pernode=4
-	set_default use_num_gpus_pernode ${num_gpus_pernode}
-	set_default use_mpi_procs_pernode '"\$(( \$num_gpus_pernode + 1 ))"'
-	srun_cmd="srun -l --kill-on-bad-exit=1 --nodes=\${SLURM_JOB_NUM_NODES:-1} --gpus-per-node=\${num_gpus_pernode}"
+	set_default use_mpi_procs_pernode '"\$(( $num_gpus_pernode + 1 ))"'
+	srun_cmd="srun -l --kill-on-bad-exit=1 --nodes=\${SLURM_JOB_NUM_NODES:-1} --gpus-per-node=${num_gpus_pernode}"
     srun_cmd="${srun_cmd} --ntasks=\$((no_of_nodes * mpi_procs_pernode))"
     srun_cmd="${srun_cmd} \${basedir}/run/run_wrapper_levante.sh -n \${mpi_total_procs} -o \${num_io_procs} -e"
     use_mpi_startrun="${srun_cmd}"
@@ -546,7 +543,7 @@ $(if [[ "x$BB_SYSTEM" != 'x' ]]
 #SBATCH --partition=$queue
 #SBATCH --chdir=$output_folder
 #SBATCH --nodes=$use_nodes
-#SBATCH --gpus-per-node=4
+#SBATCH --gpus-per-node=$num_gpus_pernode
 #SBATCH --mem=0
 #SBATCH --output=$output_folder/$job_log_name.o
 #SBATCH --error=$output_folder/$job_log_name.o
