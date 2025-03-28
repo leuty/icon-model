@@ -80,6 +80,7 @@ Climate: ICON-Land
   - Use the turbulence process of JSBACH in QUINCY replacing QUINCY-specific turbulence-code
   - Consolidate and clean up namelist handling and physical parameters between QUINCY and JSBACH
   - Implementation of a harvest process for QUINCY (for now using a global constant)
+  - Technical implementation of an agriculture process for QUINCY (scientifically not yet ready for use)
   - Bugfix: static reals were missing decimal
   - Bugfix: some local REAL variables were missing kind statement
 - Small fix for ICON-Land standalone concerning nproma
