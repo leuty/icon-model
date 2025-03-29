@@ -17,7 +17,7 @@
 
 MODULE mo_nh_vert_interp_les
 
-  USE mo_kind,                ONLY: wp
+  USE mo_kind,                ONLY: wp, vp
   USE mo_nonhydro_types,      ONLY: t_nh_metrics
   USE mo_intp_data_strc,      ONLY: t_int_state
   USE mo_intp,                ONLY: cells2verts_scalar, edges2cells_scalar
@@ -34,7 +34,7 @@ MODULE mo_nh_vert_interp_les
   USE mo_physical_constants,  ONLY: grav
   USE mo_les_config,          ONLY: les_config
   USE mo_exception,           ONLY: finish
-  USE mo_fortran_tools,       ONLY: init, set_acc_host_or_device
+  USE mo_fortran_tools,       ONLY: init, set_acc_host_or_device, copy
 
   IMPLICIT NONE
 
@@ -55,12 +55,25 @@ MODULE mo_nh_vert_interp_les
     TYPE(t_int_state),         INTENT(in)     :: p_int
     TYPE(t_nh_metrics),        INTENT(inout)  :: p_metrics
 
+    REAL(vp), POINTER :: e_bln_c_s_vp(:,:,:) ! REAL(p_int%e_bln_c_s, KIND=vp)
+    REAL(vp), POINTER :: cells_aw_verts_vp(:,:,:) ! REAL(p_int%cells_aw_verts, KIND=vp)
+
     ! local variables
     CHARACTER(*), PARAMETER :: routine = &
         "mo_les_utilities:init_vertical_grid_for_les"
 
     IF(.NOT.les_config(jg)%les_metric) &
       RETURN
+
+    ! Unnecessary copy if not mixed precision, only during initialization
+    ALLOCATE(e_bln_c_s_vp(SIZE(p_int%e_bln_c_s,1), &
+      &                   SIZE(p_int%e_bln_c_s,2), &
+      &                   SIZE(p_int%e_bln_c_s,3)))
+    CALL copy(src=p_int%e_bln_c_s, dest=e_bln_c_s_vp, lacc=.FALSE.)
+    ALLOCATE(cells_aw_verts_vp(SIZE(p_int%cells_aw_verts,1), &
+      &                        SIZE(p_int%cells_aw_verts,2), &
+      &                        SIZE(p_int%cells_aw_verts,3)))
+    CALL copy(src=p_int%cells_aw_verts, dest=cells_aw_verts_vp, lacc=.FALSE.)
 
     IF (p_test_run) THEN
 !$OMP PARALLEL
@@ -76,17 +89,17 @@ MODULE mo_nh_vert_interp_les
     END IF
 
     ! half_c sync
-    CALL edges2cells_scalar(p_metrics%ddxn_z_half_e, p_patch, p_int%e_bln_c_s, &
+    CALL edges2cells_scalar(p_metrics%ddxn_z_half_e, p_patch, e_bln_c_s_vp, &
       &                     p_metrics%ddxn_z_half_c, lacc=.FALSE.)
 
-    CALL edges2cells_scalar(p_metrics%ddxt_z_half_e, p_patch, p_int%e_bln_c_s, &
+    CALL edges2cells_scalar(p_metrics%ddxt_z_half_e, p_patch, e_bln_c_s_vp, &
       &                     p_metrics%ddxt_z_half_c, lacc=.FALSE.)
 
     ! full_c sync
-    CALL edges2cells_scalar(p_metrics%ddxn_z_full, p_patch, p_int%e_bln_c_s, &
+    CALL edges2cells_scalar(p_metrics%ddxn_z_full, p_patch, e_bln_c_s_vp, &
       &                     p_metrics%ddxn_z_full_c, lacc=.FALSE.)
 
-    CALL edges2cells_scalar(p_metrics%ddxt_z_full, p_patch, p_int%e_bln_c_s, &
+    CALL edges2cells_scalar(p_metrics%ddxt_z_full, p_patch, e_bln_c_s_vp, &
       &                     p_metrics%ddxt_z_full_c, lacc=.FALSE.)
     CALL sync_patch_array_mult(SYNC_C, p_patch, 4, lacc=.FALSE., &
       &                        f3din1=p_metrics%ddxn_z_half_c, &
@@ -96,17 +109,17 @@ MODULE mo_nh_vert_interp_les
 
     ! full_v sync
     CALL cells2verts_scalar(p_metrics%ddxn_z_full_c, p_patch, &
-      &                     p_int%cells_aw_verts, p_metrics%ddxn_z_full_v, lacc=.FALSE.)
+      &                     cells_aw_verts_vp, p_metrics%ddxn_z_full_v, lacc=.FALSE.)
 
     CALL cells2verts_scalar(p_metrics%ddxt_z_full_c, p_patch, &
-      &                     p_int%cells_aw_verts, p_metrics%ddxt_z_full_v, lacc=.FALSE.)
+      &                     cells_aw_verts_vp, p_metrics%ddxt_z_full_v, lacc=.FALSE.)
 
     CALL cells2verts_scalar(p_metrics%inv_ddqz_z_full, p_patch, &
       &                     p_int%cells_aw_verts, p_metrics%inv_ddqz_z_full_v, lacc=.FALSE.)
 
     ! half_v sync
     CALL cells2verts_scalar(p_metrics%ddxt_z_half_c, p_patch, &
-         p_int%cells_aw_verts, p_metrics%ddxt_z_half_v, lacc=.FALSE.)
+      &                     cells_aw_verts_vp, p_metrics%ddxt_z_half_v, lacc=.FALSE.)
 #ifdef __MIXED_PRECISION
     CALL sync_patch_array_mult_mp(SYNC_V, p_patch, 1, 3, lacc=.FALSE., &
       &                 f3din1_sp=p_metrics%ddxn_z_full_v, &

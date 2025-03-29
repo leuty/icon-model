@@ -27,7 +27,7 @@ MODULE mo_intp_rbf
 !
 !
 !
-USE mo_kind,                ONLY: wp, sp
+USE mo_kind,                ONLY: wp, vp
 USE mo_impl_constants,      ONLY: min_rlcell_int, min_rledge_int, min_rlvert_int
 USE mo_model_domain,        ONLY: t_patch
 USE mo_loopindices,         ONLY: get_indices_c, get_indices_e, get_indices_v
@@ -47,7 +47,9 @@ PUBLIC :: rbf_vec_interpol_cell, rbf_interpol_c2grad,     &
 
 INTERFACE rbf_vec_interpol_vertex
   MODULE PROCEDURE rbf_vec_interpol_vertex_wp
+#ifdef __MIXED_PRECISION
   MODULE PROCEDURE rbf_vec_interpol_vertex_vp
+#endif
 END INTERFACE
 
 
@@ -351,7 +353,8 @@ CALL rbf_vec_interpol_vertex_lib( p_e_in, ptr_int%rbf_vec_idx_v, ptr_int%rbf_vec
 
 END SUBROUTINE rbf_vec_interpol_vertex_wp
 
-! Variant for mixed precision mode (output fields in single precision)
+#ifdef __MIXED_PRECISION
+! Variant for mixed precision mode
 SUBROUTINE rbf_vec_interpol_vertex_vp( p_e_in, ptr_patch, ptr_int, &
                                        p_u_out, p_v_out,           &
                                        lacc,                       &
@@ -378,11 +381,11 @@ INTEGER, INTENT(in), OPTIONAL ::  &
 INTEGER, INTENT(in), OPTIONAL :: opt_rlstart, opt_rlend
 
 ! reconstructed x-component (u) of velocity vector
-REAL(sp),INTENT(INOUT) ::  &
+REAL(vp),INTENT(INOUT) ::  &
   &  p_u_out(:,:,:) ! dim: (nproma,nlev,nblks_v)
 
 ! reconstructed y-component (v) of velocity vector
-REAL(sp),INTENT(INOUT) ::  &
+REAL(vp),INTENT(INOUT) ::  &
   &  p_v_out(:,:,:) ! dim: (nproma,nlev,nblks_v)
 
 LOGICAL, INTENT(IN) :: lacc  ! if true, use OpenACC
@@ -437,6 +440,7 @@ CALL rbf_vec_interpol_vertex_lib( p_e_in, ptr_int%rbf_vec_idx_v, ptr_int%rbf_vec
   &                               slev, elev, nproma, lacc=lacc, acc_async=opt_acc_async )
 
 END SUBROUTINE rbf_vec_interpol_vertex_vp
+#endif
 
 !-------------------------------------------------------------------------
 !

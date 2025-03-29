@@ -23,7 +23,7 @@ MODULE mo_upatmo_types
 
   USE mo_kind,                 ONLY: wp
   USE mo_impl_constants,       ONLY: MAX_CHAR_LENGTH
-  USE mo_fortran_tools,        ONLY: t_ptr_2d3d, t_ptr_3d
+  USE fortran_support,         ONLY: t_ptr_2d3d, t_ptr_3d_wp
   USE mo_upatmo_utils,         ONLY: t_varstate
 
   IMPLICIT NONE
@@ -259,7 +259,7 @@ MODULE mo_upatmo_types
     INTEGER,                   ALLOCATABLE :: mapgasid2indx(:) ! Map global gas id to local gas index
     INTEGER,                   ALLOCATABLE :: mapgasindx2id(:) ! Map local gas index to global gas id
 
-    TYPE(t_ptr_3d),            ALLOCATABLE :: gas_interm(:)    ! Gas on horizontal grid of ICON, 
+    TYPE(t_ptr_3d_wp),            ALLOCATABLE :: gas_interm(:)    ! Gas on horizontal grid of ICON, 
                                                                ! but still on pressure levels of external data (ngas)
     ! Status
     LOGICAL :: linitialized = .FALSE.

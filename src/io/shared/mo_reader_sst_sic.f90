@@ -28,7 +28,7 @@ MODULE mo_reader_sst_sic
        &                                process_mpi_root_id, p_comm_work, p_bcast
   USE mo_read_netcdf_distributed, ONLY: distrib_nf_open, distrib_read, distrib_nf_close, &
        &                                idx_lvl_blk
-  USE mo_fortran_tools,           ONLY: t_ptr_3d
+  USE fortran_support,            ONLY: t_ptr_3d_wp
 
   IMPLICIT NONE
 
@@ -153,7 +153,7 @@ CONTAINS
     CHARACTER(len=*),      INTENT(in   ) :: varname
     REAL(wp), ALLOCATABLE, INTENT(inout) :: dat(:,:,:,:)
     REAL(wp), ALLOCATABLE, TARGET        :: temp(:,:,:,:)
-    TYPE(t_ptr_3d)                       :: tmp(1)
+    TYPE(t_ptr_3d_wp)                    :: tmp(1)
 
     CHARACTER(len=*), PARAMETER :: routine = 'sst_sic_get_one_timelevel'
     

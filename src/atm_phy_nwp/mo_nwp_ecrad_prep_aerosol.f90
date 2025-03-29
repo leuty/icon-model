@@ -22,7 +22,7 @@ MODULE mo_nwp_ecrad_prep_aerosol
 
   USE mo_kind,                   ONLY: wp
   USE mo_exception,              ONLY: finish
-  USE mo_fortran_tools,          ONLY: assert_acc_host_only, assert_acc_device_only,t_ptr_2d
+  USE fortran_support,           ONLY: assert_acc_host_only, assert_acc_device_only, t_ptr_2d_wp
   USE mo_impl_constants,         ONLY: n_camsaermr
   USE mo_radiation_config,       ONLY: ecrad_check_input
 #ifdef __ECRAD
@@ -340,7 +340,7 @@ CONTAINS
     INTEGER, INTENT(in)                      :: &
       &  slev, nlev,            & !< Start and end index of vertical loop
       &  i_startidx, i_endidx     !< Start and end index of horizontal loop
-    TYPE(t_ptr_2d), INTENT(in)               :: &
+    TYPE(t_ptr_2d_wp), INTENT(in)            :: &
       &  ptr_camsaermr(11)
     TYPE(t_ecrad_aerosol_type),INTENT(inout) :: &
       &  ecrad_aerosol            !< ecRad aerosol information (input)

@@ -345,7 +345,7 @@ TYPE(t_patch), TARGET, INTENT(in) :: ptr_patch
 REAL(dp), INTENT(in) ::  p_edge_in(:,:,:)  ! dim: (nproma,nlev,nblks_e)
 
 ! coefficients for (area weighted) interpolation
-REAL(wp), INTENT(in) ::  c_int(:,:,:)      ! dim: (nproma,cell_type,nblks_c)
+REAL(dp), INTENT(in) ::  c_int(:,:,:)      ! dim: (nproma,cell_type,nblks_c)
 
 LOGICAL, INTENT(in)  ::  lacc  ! if true, use openACC
 
@@ -423,7 +423,7 @@ TYPE(t_patch), TARGET, INTENT(in) :: ptr_patch
 REAL(sp), INTENT(in) ::  p_edge_in(:,:,:)  ! dim: (nproma,nlev,nblks_e)
 
 ! coefficients for (area weighted) interpolation
-REAL(wp), INTENT(in) ::  c_int(:,:,:)      ! dim: (nproma,cell_type,nblks_c)
+REAL(sp), INTENT(in) ::  c_int(:,:,:)      ! dim: (nproma,cell_type,nblks_c)
 
 LOGICAL, INTENT(in)  ::  lacc  ! if true, use openACC
 
@@ -499,7 +499,7 @@ TYPE(t_patch), TARGET, INTENT(in) :: ptr_patch
 REAL(dp), INTENT(in) :: p_cell_in(:,:,:)   ! dim: (nproma,nlev,nblks_c)
 
 ! coefficients for interpolation
-REAL(wp), INTENT(in) :: c_int(:,:,:)       ! dim: (nproma,9-cell_type,nblks_v)
+REAL(dp), INTENT(in) :: c_int(:,:,:)       ! dim: (nproma,9-cell_type,nblks_v)
 
 LOGICAL, INTENT(in)  ::  lacc  ! if true, use openACC
 
@@ -577,7 +577,7 @@ TYPE(t_patch), TARGET, INTENT(in) :: ptr_patch
 REAL(sp), INTENT(in) :: p_cell_in(:,:,:)   ! dim: (nproma,nlev,nblks_c)
 
 ! coefficients for interpolation
-REAL(wp), INTENT(in) :: c_int(:,:,:)       ! dim: (nproma,9-cell_type,nblks_v)
+REAL(sp), INTENT(in) :: c_int(:,:,:)       ! dim: (nproma,9-cell_type,nblks_v)
 
 LOGICAL, INTENT(in)  ::  lacc  ! if true, use openACC
 
@@ -653,7 +653,7 @@ END SUBROUTINE cells2verts_scalar_sp
     REAL(sp), INTENT(in) :: p_cell_in(:,:,:)   ! dim: (nproma,nlev,nblks_c)
 
     ! coefficients for interpolation
-    REAL(wp), INTENT(in) :: c_int(:,:,:)       ! dim: (nproma,9-cell_type,nblks_v)
+    REAL(dp), INTENT(in) :: c_int(:,:,:)       ! dim: (nproma,9-cell_type,nblks_v)
 
     LOGICAL, INTENT(in)  ::  lacc  ! if true, use openACC
 

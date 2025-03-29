@@ -48,7 +48,7 @@ MODULE mo_nh_feedback
   USE mo_lnd_nwp_config,      ONLY: ntiles_total, ntiles_water, lseaice
   USE mo_atm_phy_nwp_config,  ONLY: atm_phy_nwp_config, iprog_aero
   USE mo_radar_data_types,    ONLY: t_lhn_diag
-  USE mo_fortran_tools,       ONLY: t_ptr_3d, assert_acc_device_only, assert_acc_host_only
+  USE fortran_support,        ONLY: t_ptr_3d_wp, assert_acc_device_only, assert_acc_host_only
 
   IMPLICIT NONE
 
@@ -797,7 +797,7 @@ CONTAINS
 
     ! for collecting all tracer fields which undergo feedback and thus
     ! require synchronization
-    TYPE(t_ptr_3d) :: tracer_ptr(advection_config(jg)%trFeedback%len + MIN(1,iprog_aero))
+    TYPE(t_ptr_3d_wp) :: tracer_ptr(advection_config(jg)%trFeedback%len + MIN(1,iprog_aero))
 
     LOGICAL :: lprog_aero        !< prognostic aerosol scheme 
     !-----------------------------------------------------------------------

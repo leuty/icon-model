@@ -41,7 +41,7 @@ USE yaxt, ONLY: xt_initialized, xt_initialize, xt_idxlist, &
   &             xt_xmap_get_num_sources, xt_xmap_get_num_destinations, &
   &             xt_xmap_get_source_ranks, xt_com_list, xt_redist_repeat_new, &
   &             xt_mpi_comm_mark_exclusive, xt_int_kind, xt_slice_c_loc
-USE mo_fortran_tools,        ONLY: t_ptr_3d, t_ptr_3d_sp, insert_dimension
+USE fortran_support,         ONLY: t_ptr_3d_dp, t_ptr_3d_sp, insert_dimension
 USE iso_c_binding, ONLY: c_int, c_loc, c_ptr, c_null_ptr
 USE mo_communication_types, ONLY: t_comm_pattern, t_p_comm_pattern, &
   & t_comm_pattern_collection, xfer_list
@@ -1680,8 +1680,8 @@ SUBROUTINE exchange_data_mult_dp(p_pat, lacc, ndim2tot, recv, send, nshift)
   CLASS(t_comm_pattern_yaxt), TARGET, INTENT(INOUT) :: p_pat
 
   LOGICAL, INTENT(IN) :: lacc ! If true, use openacc
-  TYPE(t_ptr_3d), PTR_INTENT(in) :: recv(:)
-  TYPE(t_ptr_3d), OPTIONAL, PTR_INTENT(in) :: send(:)
+  TYPE(t_ptr_3d_dp), PTR_INTENT(in) :: recv(:)
+  TYPE(t_ptr_3d_dp), OPTIONAL, PTR_INTENT(in) :: send(:)
 
   INTEGER, INTENT(IN)           :: ndim2tot
   INTEGER, OPTIONAL, INTENT(IN) :: nshift
@@ -1693,8 +1693,8 @@ SUBROUTINE exchange_data_mult_dp_top(p_pat, lacc, ndim2tot, recv, send, nshift)
    CLASS(t_comm_pattern_yaxt), INTENT(INOUT) :: p_pat
    LOGICAL, INTENT(IN) :: lacc ! If true, use openacc
 
-   TYPE(t_ptr_3d), TARGET, PTR_INTENT(in) :: recv(:)
-   TYPE(t_ptr_3d), TARGET, OPTIONAL, PTR_INTENT(in) :: send(:)
+   TYPE(t_ptr_3d_dp), TARGET, PTR_INTENT(in) :: recv(:)
+   TYPE(t_ptr_3d_dp), TARGET, OPTIONAL, PTR_INTENT(in) :: send(:)
 
    INTEGER, INTENT(IN)           :: ndim2tot
    INTEGER, OPTIONAL, INTENT(IN) :: nshift
@@ -1704,7 +1704,7 @@ SUBROUTINE exchange_data_mult_dp_top(p_pat, lacc, ndim2tot, recv, send, nshift)
    INTEGER :: nproma1, nblk, nl, cpy_shape(3), cpy_size
    INTEGER :: i, nfields
    LOGICAL :: lsend, nproma_mismatch_found, cpy_recv
-   TYPE(t_ptr_3d), POINTER :: send_(:)
+   TYPE(t_ptr_3d_dp), POINTER :: send_(:)
 
    CHARACTER(len=*), PARAMETER :: &
      routine = "mo_communication::exchange_data_mult_dp"
@@ -1785,8 +1785,8 @@ END SUBROUTINE exchange_data_mult_dp_top
     CLASS(t_comm_pattern_yaxt), INTENT(INOUT) :: p_pat
 
     LOGICAL, INTENT(IN) :: lacc ! If true, use openacc
-    TYPE(t_ptr_3d), PTR_INTENT(in) :: recv(:)
-    TYPE(t_ptr_3d), POINTER, PTR_INTENT(in) :: send(:)
+    TYPE(t_ptr_3d_dp), PTR_INTENT(in) :: recv(:)
+    TYPE(t_ptr_3d_dp), POINTER, PTR_INTENT(in) :: send(:)
 
     INTEGER, INTENT(IN) :: cpy_size, nlev(SIZE(recv), 2)
     LOGICAL, INTENT(IN)           :: needs_cpy(SIZE(recv), 2)
@@ -2243,8 +2243,8 @@ SUBROUTINE exchange_data_mult_mixprec(p_pat, lacc, nfields_dp, ndim2tot_dp, &
   CLASS(t_comm_pattern_yaxt), TARGET, INTENT(INOUT) :: p_pat
 
     LOGICAL, INTENT(IN) :: lacc ! If true, use openacc
-    TYPE(t_ptr_3d), PTR_INTENT(in), OPTIONAL :: recv_dp(:)
-    TYPE(t_ptr_3d), PTR_INTENT(in), OPTIONAL :: send_dp(:)
+    TYPE(t_ptr_3d_dp), PTR_INTENT(in), OPTIONAL :: recv_dp(:)
+    TYPE(t_ptr_3d_dp), PTR_INTENT(in), OPTIONAL :: send_dp(:)
     TYPE(t_ptr_3d_sp), PTR_INTENT(in), OPTIONAL :: recv_sp(:)
     TYPE(t_ptr_3d_sp), PTR_INTENT(in), OPTIONAL :: send_sp(:)
 
@@ -2746,7 +2746,7 @@ SUBROUTINE exchange_data_grf_dp(p_pat_coll, lacc, nfields, ndim2tot, recv, send)
    !> sum of vertical levels of input fields
    INTEGER, INTENT(IN)           :: ndim2tot
    !> recv itself is intent(in), but the pointed to data will be modified
-   TYPE(t_ptr_3d), PTR_INTENT(in) :: recv(nfields), send(nfields)
+   TYPE(t_ptr_3d_dp), PTR_INTENT(in) :: recv(nfields), send(nfields)
 
    CHARACTER(len=*), PARAMETER :: routine = "mo_communication::exchange_data_grf_dp"
 
@@ -2936,7 +2936,7 @@ SUBROUTINE exchange_data_grf_sp(p_pat_coll, lacc, nfields, ndim2tot, recv, send)
     LOGICAL, INTENT(in) :: needs_cpy(nfields, 2)
 
     ! recv itself is intent(in), but the pointed to data will be modified
-    TYPE(t_ptr_3d), PTR_INTENT(in) :: recv(nfields), send(nfields)
+    TYPE(t_ptr_3d_dp), PTR_INTENT(in) :: recv(nfields), send(nfields)
     LOGICAL, INTENT(IN) :: lacc ! If true, use openacc
 
     REAL(dp), TARGET :: cpy_buf(cpy_size)

@@ -25,7 +25,7 @@ MODULE mo_communication_types
 !
 USE mo_kind, ONLY: sp, dp
 USE mo_decomposition_tools, ONLY: t_glb2loc_index_lookup
-USE mo_fortran_tools, ONLY: t_ptr_3d, t_ptr_3d_sp ! TODO: Replace t_ptr_3d -> t_ptr_3d_dp when merged from fortran_support
+USE fortran_support,  ONLY: t_ptr_3d_dp, t_ptr_3d_sp
 
 IMPLICIT NONE
 
@@ -154,11 +154,11 @@ ABSTRACT INTERFACE
 
   SUBROUTINE interface_exchange_data_mult_dp( &
     p_pat, lacc, ndim2tot, recv, send, nshift)
-    IMPORT t_comm_pattern, t_ptr_3d
+    IMPORT t_comm_pattern, t_ptr_3d_dp
     CLASS(t_comm_pattern), TARGET, INTENT(INOUT) :: p_pat
     LOGICAL, INTENT(IN) :: lacc ! If true, use openacc
-    TYPE(t_ptr_3d), PTR_INTENT(IN) :: recv(:)
-    TYPE(t_ptr_3d), PTR_INTENT(IN), OPTIONAL :: send(:)
+    TYPE(t_ptr_3d_dp), PTR_INTENT(IN) :: recv(:)
+    TYPE(t_ptr_3d_dp), PTR_INTENT(IN), OPTIONAL :: send(:)
     INTEGER, INTENT(IN)           :: ndim2tot
     INTEGER, OPTIONAL, INTENT(IN) :: nshift
   END SUBROUTINE interface_exchange_data_mult_dp
@@ -177,11 +177,11 @@ ABSTRACT INTERFACE
   SUBROUTINE interface_exchange_data_mult_mixprec( &
     p_pat, lacc, nfields_dp, ndim2tot_dp, nfields_sp, ndim2tot_sp, recv_dp, send_dp, &
     recv_sp, send_sp, nshift)
-    IMPORT t_comm_pattern, t_ptr_3d, t_ptr_3d_sp
+    IMPORT t_comm_pattern, t_ptr_3d_dp, t_ptr_3d_sp
     CLASS(t_comm_pattern), TARGET, INTENT(INOUT) :: p_pat
     LOGICAL, INTENT(IN) :: lacc ! If true, use openacc
-    TYPE(t_ptr_3d), PTR_INTENT(in), OPTIONAL :: recv_dp(:)
-    TYPE(t_ptr_3d), PTR_INTENT(in), OPTIONAL :: send_dp(:)
+    TYPE(t_ptr_3d_dp), PTR_INTENT(in), OPTIONAL :: recv_dp(:)
+    TYPE(t_ptr_3d_dp), PTR_INTENT(in), OPTIONAL :: send_dp(:)
     TYPE(t_ptr_3d_sp), PTR_INTENT(in), OPTIONAL :: recv_sp(:)
     TYPE(t_ptr_3d_sp), PTR_INTENT(in), OPTIONAL :: send_sp(:)
     INTEGER, INTENT(IN)           :: nfields_dp, ndim2tot_dp, nfields_sp, &
@@ -279,13 +279,13 @@ ABSTRACT INTERFACE
 
   SUBROUTINE interface_exchange_data_grf_dp(p_pat_coll, lacc, nfields, ndim2tot, &
        recv, send)
-    IMPORT t_comm_pattern_collection, t_ptr_3d
+    IMPORT t_comm_pattern_collection, t_ptr_3d_dp
     CLASS(t_comm_pattern_collection), TARGET, INTENT(INOUT) :: p_pat_coll
     LOGICAL, INTENT(IN) :: lacc ! If true, use openacc
     INTEGER, INTENT(IN) :: nfields
     INTEGER, INTENT(IN) :: ndim2tot
     ! recv itself is intent(in), but the pointed to data will be modified
-    TYPE(t_ptr_3d), PTR_INTENT(in) :: recv(nfields), send(nfields)
+    TYPE(t_ptr_3d_dp), PTR_INTENT(in) :: recv(nfields), send(nfields)
   END SUBROUTINE interface_exchange_data_grf_dp
 
   SUBROUTINE interface_exchange_data_grf_sp(p_pat_coll, lacc, nfields, ndim2tot, &

@@ -39,11 +39,8 @@ fi
 if test "$(uname -s)" = Darwin; then
   # Do not export irrelevante environment variable:
   export_ld_path=no
-  # Work around the wrong endianness detection in fortran-support:
-  ICON_FORTRAN_SUPPORT_CFLAGS=' -D__DARWIN_BYTE_ORDER=1234 -D__DARWIN_LITTLE_ENDIAN=1234'
 else
   export_ld_path=no
-  ICON_FORTRAN_SUPPORT_CFLAGS=
 fi
 
 if test -d "${ICON_SW_PREFIX}"; then
@@ -145,7 +142,6 @@ FCFLAGS="${FCFLAGS}" \
 ICON_BUNDLED_CFLAGS="${ICON_BUNDLED_CFLAGS}" \
 ICON_BUNDLED_CXXFLAGS="${ICON_BUNDLED_CXXFLAGS}" \
 ICON_CFLAGS="${ICON_CFLAGS}" \
-ICON_FORTRAN_SUPPORT_CFLAGS="${ICON_BUNDLED_CFLAGS}${ICON_FORTRAN_SUPPORT_CFLAGS-}" \
 LDFLAGS="${LDFLAGS}" \
 LIBS="${LIBS}" \
 MPI_LAUNCH="${MPI_LAUNCH}" \

@@ -22,7 +22,7 @@
 MODULE mo_ocean_solve_transfer
 
   USE mo_kind, ONLY: sp, dp, i8
-  USE mo_fortran_tools, ONLY: t_ptr_2d, t_ptr_2d_sp
+  USE fortran_support,  ONLY: t_ptr_2d_dp, t_ptr_2d_sp
   USE mo_parallel_config, ONLY: l_fast_sum
   USE mo_timer, ONLY: timer_start, timer_stop
   USE mo_mpi, ONLY: p_sum, p_max
@@ -247,7 +247,7 @@ CONTAINS
     CLASS(t_transfer), INTENT(IN) :: this
     REAL(KIND=dp), INTENT(IN), TARGET :: data_in1(:,:)
     REAL(KIND=dp), INTENT(OUT) :: summa1
-    TYPE(t_ptr_2d) :: data_in_ptr(1)
+    TYPE(t_ptr_2d_dp) :: data_in_ptr(1)
     REAL(KIND=dp) :: sums(1)
 #ifdef __INTEL_COMPILER
     !DIR$ ATTRIBUTES ALIGN : 64 :: sums
@@ -265,7 +265,7 @@ CONTAINS
     REAL(KIND=dp), INTENT(IN), TARGET :: &
       & data_in1(:,:), data_in2(:,:)
     REAL(KIND=dp), INTENT(OUT) :: summa1, summa2
-    TYPE(t_ptr_2d) :: data_in_ptr(2)
+    TYPE(t_ptr_2d_dp) :: data_in_ptr(2)
     REAL(KIND=dp) :: sums(2)
 #ifdef __INTEL_COMPILER
     !DIR$ ATTRIBUTES ALIGN : 64 :: sums
@@ -285,7 +285,7 @@ CONTAINS
     REAL(KIND=dp), INTENT(IN), TARGET :: &
       & data_in1(:,:), data_in2(:,:), data_in3(:,:)
     REAL(KIND=dp), INTENT(OUT) :: summa1, summa2, summa3
-    TYPE(t_ptr_2d) :: data_in_ptr(3)
+    TYPE(t_ptr_2d_dp) :: data_in_ptr(3)
     REAL(KIND=dp) :: sums(3)
 #ifdef __INTEL_COMPILER
     !DIR$ ATTRIBUTES ALIGN : 64 :: sums
@@ -364,7 +364,7 @@ CONTAINS
   SUBROUTINE ocean_solve_transfer_global_sum_2d_dp(this, n, xp, gbl_sum)
     CLASS(t_transfer), INTENT(IN) :: this
     INTEGER, INTENT(IN) :: n
-    TYPE(t_ptr_2d), INTENT(IN) :: xp(n)
+    TYPE(t_ptr_2d_dp), INTENT(IN) :: xp(n)
     REAL(dp), INTENT(OUT) :: gbl_sum(n)
     REAL(dp) :: loc_sum(n), abs_max_l(n), abs_max(n)
     INTEGER(KIND=i8) :: isum_loc(2*n), isum(2*n), tisum(2)

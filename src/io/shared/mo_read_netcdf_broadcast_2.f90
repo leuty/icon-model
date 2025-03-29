@@ -25,7 +25,7 @@ MODULE mo_read_netcdf_broadcast_2
   USE mo_mpi,                ONLY: my_process_is_mpi_workroot, p_comm_work, &
     &                              process_mpi_root_id, p_bcast
   USE mo_communication,      ONLY: t_scatterPattern
-  USE mo_fortran_tools,      ONLY: t_ptr_2d, t_ptr_2d_int, t_ptr_3d, t_ptr_3d_int
+  USE fortran_support,       ONLY: t_ptr_2d_wp, t_ptr_2d_int, t_ptr_3d_wp, t_ptr_3d_int
   USE mo_read_netcdf_types,  ONLY: t_alloc_2d, t_alloc_2d_int, t_alloc_3d, t_alloc_3d_int
   USE mo_netcdf_errhandler,  ONLY: nf
   USE mo_netcdf
@@ -814,7 +814,7 @@ CONTAINS
     INTEGER, INTENT(IN)              :: n_g
     CLASS(t_scatterPattern), INTENT(INOUT), TARGET :: scatter_pattern
 
-    TYPE(t_ptr_2d) :: fill_arrays(1)
+    TYPE(t_ptr_2d_wp) :: fill_arrays(1)
     TYPE(t_alloc_2d), TARGET :: alloc_arrays(1)
     TYPE(t_p_scatterPattern) :: scatter_pattern_(1)
 
@@ -852,12 +852,12 @@ CONTAINS
     INTEGER, INTENT(IN)                     :: n_vars
     INTEGER, INTENT(IN)                     :: file_id
     CHARACTER(LEN=*), INTENT(IN)            :: variable_name
-    TYPE(t_ptr_2d), INTENT(INOUT), OPTIONAL :: fill_arrays(n_vars)
+    TYPE(t_ptr_2d_wp), INTENT(INOUT), OPTIONAL :: fill_arrays(n_vars)
     TYPE(t_alloc_2d), INTENT(OUT), OPTIONAL, TARGET :: alloc_arrays(n_vars)
     INTEGER, INTENT(IN)                     :: n_g
     TYPE(t_p_scatterPattern), INTENT(INOUT) :: scatter_patterns(n_vars)
 
-    TYPE(t_ptr_2d) :: res(n_vars)
+    TYPE(t_ptr_2d_wp) :: res(n_vars)
 
     INTEGER :: varid, var_type(1), var_dims
     INTEGER :: var_size(MAX_VAR_DIMS)
@@ -971,7 +971,7 @@ CONTAINS
     INTEGER, INTENT(IN), OPTIONAL          :: start_extdim, end_extdim
     CHARACTER(LEN=*), INTENT(IN), OPTIONAL :: extdim_name
 
-    TYPE(t_ptr_3d) :: fill_arrays(1)
+    TYPE(t_ptr_3d_wp) :: fill_arrays(1)
     TYPE(t_alloc_3d), TARGET :: alloc_arrays(1)
     TYPE(t_p_scatterPattern) :: scatter_pattern_(1)
 
@@ -1009,14 +1009,14 @@ CONTAINS
     INTEGER, INTENT(IN)                     :: n_vars
     INTEGER, INTENT(IN)                     :: file_id
     CHARACTER(LEN=*), INTENT(IN)            :: variable_name
-    TYPE(t_ptr_3d), INTENT(INOUT), OPTIONAL :: fill_arrays(n_vars)
+    TYPE(t_ptr_3d_wp), INTENT(INOUT), OPTIONAL :: fill_arrays(n_vars)
     TYPE(t_alloc_3d), INTENT(OUT), OPTIONAL, TARGET :: alloc_arrays(n_vars)
     INTEGER, INTENT(IN)                     :: n_g
     TYPE(t_p_scatterPattern), INTENT(INOUT) :: scatter_patterns(n_vars)
     INTEGER, INTENT(in), OPTIONAL           :: start_extdim, end_extdim
     CHARACTER(LEN=*), INTENT(IN), OPTIONAL  :: extdim_name
 
-    TYPE(t_ptr_3d)          :: res(n_vars)
+    TYPE(t_ptr_3d_wp)          :: res(n_vars)
 
     INTEGER :: varid, var_type(1), var_dims
     INTEGER, TARGET :: var_size(MAX_VAR_DIMS)

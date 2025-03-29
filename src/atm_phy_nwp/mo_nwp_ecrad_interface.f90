@@ -40,7 +40,7 @@ MODULE mo_nwp_ecrad_interface
   USE mo_model_domain,           ONLY: t_patch, p_patch_local_parent
   USE mo_impl_constants,         ONLY: min_rlcell_int, n_camsaermr
   USE mo_impl_constants_grf,     ONLY: grf_bdywidth_c, grf_ovlparea_start_c, grf_fbk_start_c
-  USE mo_fortran_tools,          ONLY: init, assert_acc_device_only,t_ptr_2d
+  USE fortran_support,           ONLY: init, assert_acc_device_only,t_ptr_2d_wp
   USE mo_parallel_config,        ONLY: nproma, nproma_sub, nblocks_sub
   USE mo_loopindices,            ONLY: get_indices_c
   USE mo_grid_config,            ONLY: l_limited_area, nexlevs_rrg_vnest
@@ -149,7 +149,7 @@ CONTAINS
       &  ecrad_flux                        !< ecRad flux information (output)
     TYPE(t_opt_ptrs),ALLOCATABLE      :: &
       &  opt_ptrs_lw(:), opt_ptrs_sw(:)    !< Contains pointers to aerosol optical properties
-    TYPE(t_ptr_2d), ALLOCATABLE       :: &
+    TYPE(t_ptr_2d_wp), ALLOCATABLE    :: &
       &  ptr_camsaermr(:)                  !< Pointer to CAMS aerosol mass mixing ratios
     REAL(wp)                 :: &
       &  fact_reffc               !< Factor in the calculation of cloud droplet effective radius
@@ -687,7 +687,7 @@ CONTAINS
 
     TYPE(t_opt_ptrs),ALLOCATABLE :: &
       &  opt_ptrs_lw(:), opt_ptrs_sw(:)    !< Contains pointers to aerosol optical properties
-    TYPE(t_ptr_2d), ALLOCATABLE :: &
+    TYPE(t_ptr_2d_wp), ALLOCATABLE :: &
       &  ptr_camsaermr(:)                  !< Contains pointers to cams mass mixing ratios
 
     REAL(wp), DIMENSION(:), POINTER :: &

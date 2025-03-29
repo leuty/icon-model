@@ -50,7 +50,7 @@ USE mo_communication,      ONLY: exchange_data, exchange_data_4de1,            &
 
 USE mo_timer,           ONLY: timer_start, timer_stop, activate_sync_timers, &
   & timer_global_sum, timer_omp_global_sum, timer_ordglb_sum!, timer_omp_ordglb_sum
-USE mo_fortran_tools,   ONLY: t_ptr_3d, t_ptr_3d_sp, insert_dimension, assert_acc_host_only, set_acc_host_or_device
+USE fortran_support,    ONLY: t_ptr_3d_dp, t_ptr_3d_sp, insert_dimension, assert_acc_host_only, set_acc_host_or_device
 
 IMPLICIT NONE
 
@@ -444,14 +444,14 @@ SUBROUTINE sync_patch_array_mult_dp(typ, p_patch, nfields, lacc, f3din1, f3din2,
    LOGICAL, INTENT(IN) :: lacc ! If compiled with OpenACC: IF lacc is True, use GPU memory
 
    REAL(dp), TARGET, OPTIONAL, INTENT(INOUT) :: f3din1(:,:,:), f3din2(:,:,:), f3din3(:,:,:), &
-       &                           f3din4(:,:,:), f3din5(:,:,:), f4din(:,:,:,:)
-   TYPE(t_ptr_3d), OPTIONAL, INTENT(INOUT) :: f3din_arr(:)
+      &                           f3din4(:,:,:), f3din5(:,:,:), f4din(:,:,:,:)
+   TYPE(t_ptr_3d_dp), OPTIONAL, INTENT(INOUT) :: f3din_arr(:)
 
    CLASS(t_comm_pattern), POINTER :: p_pat
    CHARACTER(len=*), TARGET, INTENT(IN), OPTIONAL :: opt_varname
    INTEGER :: i, nfields_
    INTEGER :: ndim2tot ! Sum of second dimensions over all input fields
-   TYPE(t_ptr_3d) :: fld(nfields)
+   TYPE(t_ptr_3d_dp) :: fld(nfields)
    CHARACTER(len=*), PARAMETER :: routine &
          = modname//'::sync_patch_array_mult_dp'
 !-----------------------------------------------------------------------

@@ -34,7 +34,7 @@ MODULE mo_aes_phy_memory
     &                               GRID_CELL
   USE mo_exception,           ONLY: message, finish
   USE mo_master_control,      ONLY: get_my_process_name
-  USE mo_fortran_tools,       ONLY: t_ptr_2d, t_ptr_3d
+  USE fortran_support,        ONLY: t_ptr_2d_wp, t_ptr_3d_wp
   USE mo_parallel_config,     ONLY: nproma
   USE mo_io_config,           ONLY: lnetcdf_flt64_output
   USE mo_name_list_output_config,   ONLY: is_variable_in_output
@@ -165,7 +165,7 @@ MODULE mo_aes_phy_memory
       & ufts      (:,  :)=>NULL(),  &!< energy flux at surface from thermal exchange [K kg/m2/s ] 
       & ufvs      (:,  :)=>NULL(),  &!< energy flux at surface from vapor exchange   [K kg/m2/s ] 
       & ufcs      (:,  :)=>NULL()    !< energy flux at surface from condensate       [K kg/m2/s ] 
-    TYPE(t_ptr_2d),ALLOCATABLE :: mtrcvi_ptr(:)
+    TYPE(t_ptr_2d_wp),ALLOCATABLE :: mtrcvi_ptr(:)
 
     ! Radiation
     REAL(wp),POINTER ::       &
@@ -329,7 +329,7 @@ MODULE mo_aes_phy_memory
       & co2_flux_tile   (:,:,:)=>NULL(),  &!< CO2 flux on tiles (land, ocean)
       & fco2nat         (:,  :)=>NULL()    !< Surface Carbon Mass Flux into the Atmosphere Due to Natural Sources
 
-    TYPE(t_ptr_2d),ALLOCATABLE :: co2_flux_tile_ptr(:)
+    TYPE(t_ptr_2d_wp),ALLOCATABLE :: co2_flux_tile_ptr(:)
 
     ! Sea ice.
     ! See also sea_ice/thermodyn/mo_sea_ice_types.f90
@@ -371,8 +371,8 @@ MODULE mo_aes_phy_memory
       & cftotte (:,:,:)=>NULL(),     &!< turbulent exchange coefficient
       & cfthv   (:,:,:)=>NULL()       !< turbulent exchange coefficient
 
-    TYPE(t_ptr_2d),ALLOCATABLE :: cfm_tile_ptr(:)
-    TYPE(t_ptr_2d),ALLOCATABLE :: cfh_tile_ptr(:)
+    TYPE(t_ptr_2d_wp),ALLOCATABLE :: cfm_tile_ptr(:)
+    TYPE(t_ptr_2d_wp),ALLOCATABLE :: cfh_tile_ptr(:)
 
     REAL(wp),POINTER ::     &
       & coriol(:,:)=>NULL(),        &!< Coriolis parameter
@@ -396,11 +396,11 @@ MODULE mo_aes_phy_memory
       & lwflxsfc_tile(:,:,:)=>NULL(),  &!< [ W/m2] longwave net flux at surface
       & dlwflxsfc_dT (:,:)  =>NULL()    !< [ W/m2/K] longwave net flux temp tend at surface
 
-    TYPE(t_ptr_2d),ALLOCATABLE :: swflxsfc_tile_ptr(:)
-    TYPE(t_ptr_2d),ALLOCATABLE :: lwflxsfc_tile_ptr(:)
+    TYPE(t_ptr_2d_wp),ALLOCATABLE :: swflxsfc_tile_ptr(:)
+    TYPE(t_ptr_2d_wp),ALLOCATABLE :: lwflxsfc_tile_ptr(:)
 
-    TYPE(t_ptr_2d),ALLOCATABLE :: z0m_tile_ptr(:), z0h_tile_ptr(:)
-    TYPE(t_ptr_2d),ALLOCATABLE :: wstar_tile_ptr(:)
+    TYPE(t_ptr_2d_wp),ALLOCATABLE :: z0m_tile_ptr(:), z0h_tile_ptr(:)
+    TYPE(t_ptr_2d_wp),ALLOCATABLE :: wstar_tile_ptr(:)
 
     ! need only for vdiff ----
 
@@ -420,8 +420,8 @@ MODULE mo_aes_phy_memory
       & ts     (:,  :)=>NULL(),     &!< surface temperature, grid box mean
       & qs_sfc_tile(:,:,:)=>NULL()   !< saturation specific humidity at surface 
 
-    TYPE(t_ptr_2d),ALLOCATABLE :: ts_tile_ptr(:)
-    TYPE(t_ptr_2d),ALLOCATABLE :: qs_sfc_tile_ptr(:)
+    TYPE(t_ptr_2d_wp),ALLOCATABLE :: ts_tile_ptr(:)
+    TYPE(t_ptr_2d_wp),ALLOCATABLE :: qs_sfc_tile_ptr(:)
 
     ! Surface albedo
     REAL(wp),POINTER :: &
@@ -440,7 +440,7 @@ MODULE mo_aes_phy_memory
     REAL(wp),POINTER :: &
       & emissivity     (:,:  )=>NULL()    !< [ ] surface emissivity, grid-box mean
 
-    TYPE(t_ptr_2d),ALLOCATABLE :: albvisdir_tile_ptr(:), albvisdif_tile_ptr(:), &
+    TYPE(t_ptr_2d_wp),ALLOCATABLE :: albvisdir_tile_ptr(:), albvisdif_tile_ptr(:), &
       & albnirdir_tile_ptr(:), albnirdif_tile_ptr(:), albedo_tile_ptr(:)
 
     REAL(wp),POINTER :: &
@@ -455,10 +455,10 @@ MODULE mo_aes_phy_memory
                                        !  - fraction of ice covered water in the grid box, for sea and lakes
                                        !  - fraction of open water in the grid box, for sea and lakes
 
-    TYPE(t_ptr_2d),ALLOCATABLE :: lhflx_tile_ptr(:)
-    TYPE(t_ptr_2d),ALLOCATABLE :: shflx_tile_ptr(:)
-    TYPE(t_ptr_2d),ALLOCATABLE :: evap_tile_ptr(:)
-    TYPE(t_ptr_2d),ALLOCATABLE :: frac_tile_ptr(:)
+    TYPE(t_ptr_2d_wp),ALLOCATABLE :: lhflx_tile_ptr(:)
+    TYPE(t_ptr_2d_wp),ALLOCATABLE :: shflx_tile_ptr(:)
+    TYPE(t_ptr_2d_wp),ALLOCATABLE :: evap_tile_ptr(:)
+    TYPE(t_ptr_2d_wp),ALLOCATABLE :: frac_tile_ptr(:)
 
     REAL(wp),POINTER :: &
       & u_stress     (:,  :)=>NULL(), &!< grid box mean wind stress
@@ -466,8 +466,8 @@ MODULE mo_aes_phy_memory
       & u_stress_tile(:,:,:)=>NULL(), &!< wind stress on tiles
       & v_stress_tile(:,:,:)=>NULL()   !< wind stress on tiles
 
-    TYPE(t_ptr_2d),ALLOCATABLE :: u_stress_tile_ptr(:)
-    TYPE(t_ptr_2d),ALLOCATABLE :: v_stress_tile_ptr(:)
+    TYPE(t_ptr_2d_wp),ALLOCATABLE :: u_stress_tile_ptr(:)
+    TYPE(t_ptr_2d_wp),ALLOCATABLE :: v_stress_tile_ptr(:)
 
     ! Near surface diagnostics (2m temp; 2m dew point temp; 10m wind)
     !
@@ -487,12 +487,12 @@ MODULE mo_aes_phy_memory
       & dew2_tile   (:,:,:)=>NULL(),   &!< 2m dew point temperature on tiles
       & qv2m_tile   (:,:,:)=>NULL()     !< 2m specific humidity on tiles
 
-    TYPE(t_ptr_2d),ALLOCATABLE :: sfcwind_tile_ptr(:)
-    TYPE(t_ptr_2d),ALLOCATABLE :: uas_tile_ptr(:)
-    TYPE(t_ptr_2d),ALLOCATABLE :: vas_tile_ptr(:)
-    TYPE(t_ptr_2d),ALLOCATABLE :: tas_tile_ptr(:)
-    TYPE(t_ptr_2d),ALLOCATABLE :: dew2_tile_ptr(:)
-    TYPE(t_ptr_2d),ALLOCATABLE :: qv2m_tile_ptr(:)
+    TYPE(t_ptr_2d_wp),ALLOCATABLE :: sfcwind_tile_ptr(:)
+    TYPE(t_ptr_2d_wp),ALLOCATABLE :: uas_tile_ptr(:)
+    TYPE(t_ptr_2d_wp),ALLOCATABLE :: vas_tile_ptr(:)
+    TYPE(t_ptr_2d_wp),ALLOCATABLE :: tas_tile_ptr(:)
+    TYPE(t_ptr_2d_wp),ALLOCATABLE :: dew2_tile_ptr(:)
+    TYPE(t_ptr_2d_wp),ALLOCATABLE :: qv2m_tile_ptr(:)
 
     ! global diagnostics
     REAL(wp),POINTER ::       &
@@ -565,10 +565,10 @@ MODULE mo_aes_phy_memory
       ! 
       &   o3_car (:,:,:)=>NULL()      !< mass fraction of ozone in air
 
-    TYPE(t_ptr_3d),ALLOCATABLE :: qtrc_phy_ptr(:)
-    TYPE(t_ptr_3d),ALLOCATABLE :: qtrc_vdf_ptr(:)
+    TYPE(t_ptr_3d_wp),ALLOCATABLE :: qtrc_phy_ptr(:)
+    TYPE(t_ptr_3d_wp),ALLOCATABLE :: qtrc_vdf_ptr(:)
               
-    TYPE(t_ptr_2d),ALLOCATABLE :: mtrcvi_phy_ptr(:)
+    TYPE(t_ptr_2d_wp),ALLOCATABLE :: mtrcvi_phy_ptr(:)
 
   END TYPE t_aes_phy_tend
 

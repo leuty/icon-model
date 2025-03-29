@@ -87,7 +87,7 @@ MODULE mo_model_domimp_patches
 #endif
   USE ppm_distributed_array,  ONLY: dist_mult_array_local_ptr, &
     &                               dist_mult_array_expose
-  USE mo_fortran_tools, ONLY: t_ptr_2d, t_ptr_2d_int, t_ptr_3d, t_ptr_3d_int
+  USE fortran_support,  ONLY: t_ptr_2d_wp, t_ptr_2d_int, t_ptr_3d_wp, t_ptr_3d_int
   USE mo_netcdf, ONLY: nf90_nowrite, nf90_global, nf90_noerr
 
 #if defined(NOMPI) || defined(HAVE_PARALLEL_NETCDF)
@@ -1591,9 +1591,9 @@ CONTAINS
     TYPE(t_patch), POINTER :: p_p, patch0
     TYPE(p_t_patch), TARGET :: patches(0:n_lp)
     TYPE(t_ptr_2d_int)  :: multivar_2d_data_int(0:n_lp)
-    TYPE(t_ptr_2d)  :: multivar_2d_data_wp(0:n_lp)
+    TYPE(t_ptr_2d_wp)  :: multivar_2d_data_wp(0:n_lp)
     TYPE(t_ptr_3d_int) :: multivar_3d_data_int(0:n_lp)
-    TYPE(t_ptr_3d) :: multivar_3d_data_wp(0:n_lp)
+    TYPE(t_ptr_3d_wp) :: multivar_3d_data_wp(0:n_lp)
     LOGICAL :: lhave_phys_id
 
 
@@ -2192,7 +2192,7 @@ CONTAINS
     INTEGER,       INTENT(in)    ::  id_lp(:) ! IDs of local parents on the same level
     TYPE(p_t_patch), TARGET, INTENT(in) :: patches(0:n_lp)
 
-    TYPE(t_ptr_2d)  :: multivar_2d_data_wp(0:n_lp)
+    TYPE(t_ptr_2d_wp)  :: multivar_2d_data_wp(0:n_lp)
     INTEGER :: ip
 #ifdef __GNUC__
     INTEGER :: nblks

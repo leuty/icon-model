@@ -29,8 +29,8 @@ MODULE mo_read_netcdf_distributed
   USE mo_parallel_config, ONLY: nproma, io_process_stride, idx_1d, &
     & io_process_rotate
   USE mo_communication_factory, ONLY: setup_comm_pattern
-  USE mo_fortran_tools, ONLY: t_ptr_2d, t_ptr_2d_int, t_ptr_2d_sp, &
-    & t_ptr_3d, t_ptr_3d_int, t_ptr_3d_sp, t_ptr_4d, t_ptr_4d_int, &
+  USE fortran_support, ONLY: t_ptr_2d_dp, t_ptr_2d_int, t_ptr_2d_sp, &
+    & t_ptr_3d_dp, t_ptr_3d_int, t_ptr_3d_sp, t_ptr_4d_dp, t_ptr_4d_int, &
     & t_ptr_4d_sp
   USE mo_netcdf_errhandler, ONLY: nf
   USE mo_netcdf
@@ -351,19 +351,19 @@ CONTAINS
     END IF
     IF (ish(1) .GT. 0) CALL nf(nf90_inq_varid(ncid, vname, vid), routine)
     SELECT TYPE(vdata)
-    TYPE IS(t_ptr_2d)
+    TYPE IS(t_ptr_2d_dp)
       CALL read_multi_var_2ddp(vdata)
     TYPE IS(t_ptr_2d_sp)
       CALL read_multi_var_2dsp(vdata)
     TYPE IS(t_ptr_2d_int)
       CALL read_multi_var_2dint(vdata)
-    TYPE IS(t_ptr_3d)
+    TYPE IS(t_ptr_3d_dp)
       CALL read_multi_var_3ddp(vdata, dimo)
     TYPE IS(t_ptr_3d_sp)
       CALL read_multi_var_3dsp(vdata, dimo)
     TYPE IS(t_ptr_3d_int)
       CALL read_multi_var_3dint(vdata, dimo)
-    TYPE IS(t_ptr_4d)
+    TYPE IS(t_ptr_4d_dp)
       CALL read_multi_var_4ddp(vdata)
     TYPE IS(t_ptr_4d_sp)
       CALL read_multi_var_4dsp(vdata)
@@ -397,7 +397,7 @@ CONTAINS
     END SUBROUTINE read_multi_var_2dint
 
     SUBROUTINE read_multi_var_2ddp(vd)
-      TYPE(t_ptr_2d), INTENT(INOUT) :: vd(:)
+      TYPE(t_ptr_2d_dp), INTENT(INOUT) :: vd(:)
       INTEGER :: i, j, idx
 
       ALLOCATE(bufi_d(ish(1),ish(2),ish(3)), bufo_d(osh(1),osh(2),osh(3),osh(4)))
@@ -480,7 +480,7 @@ CONTAINS
     END SUBROUTINE read_multi_var_3dint
 
     SUBROUTINE read_multi_var_3ddp(vd, o)
-      TYPE(t_ptr_3d), INTENT(INOUT) :: vd(:)
+      TYPE(t_ptr_3d_dp), INTENT(INOUT) :: vd(:)
       INTEGER, INTENT(IN) :: o
       INTEGER :: i, j, k, idx
 
@@ -590,7 +590,7 @@ CONTAINS
     END SUBROUTINE read_multi_var_4dint
 
     SUBROUTINE read_multi_var_4ddp(vd)
-      TYPE(t_ptr_4d), INTENT(INOUT) :: vd(:)
+      TYPE(t_ptr_4d_dp), INTENT(INOUT) :: vd(:)
       INTEGER :: i, j, k, l, idx
 
       ALLOCATE(bufi_d(ish(1),ish(2),ish(3)), bufo_d(osh(1),osh(2),osh(3),osh(4)))

@@ -48,7 +48,7 @@ USE mo_parallel_config,      ONLY: iorder_sendrecv, nproma, itype_exch_barrier
 USE mo_timer,                ONLY: timer_start, timer_stop, timer_exch_data, &
      &                             timer_barrier, &
      &                             timer_exch_data_wait
-USE mo_fortran_tools,        ONLY: t_ptr_3d, t_ptr_3d_sp, t_ptr_1d_int, &
+USE fortran_support,         ONLY: t_ptr_3d_dp, t_ptr_3d_sp, t_ptr_1d_int, &
      &                             insert_dimension, init
 USE mo_run_config,           ONLY: msg_level, activate_sync_timers
 USE mo_decomposition_tools,  ONLY: t_glb2loc_index_lookup, get_local_index
@@ -2221,9 +2221,9 @@ CONTAINS
     INTEGER, INTENT(IN)           :: ndim2tot
     INTEGER, OPTIONAL, INTENT(IN) :: nshift
 
-    CHARACTER(len=*), PARAMETER :: routine = modname//"::exchange_data_mult_dp"
-    TYPE(t_ptr_3d), PTR_INTENT(in) :: recv(:)
-    TYPE(t_ptr_3d), OPTIONAL, PTR_INTENT(in) :: send(:)
+    CHARACTER(len=*), PARAMETER :: routine = modname//"::exchange_data_mult"
+    TYPE(t_ptr_3d_dp), PTR_INTENT(in) :: recv(:)
+    TYPE(t_ptr_3d_dp), OPTIONAL, PTR_INTENT(in) :: send(:)
     INTEGER        :: ndim2(SIZE(recv)), noffset(SIZE(recv))
 
 #ifdef __REALLOC_BUF
@@ -2790,8 +2790,8 @@ CONTAINS
     LOGICAL, INTENT(IN) :: lacc ! If true, use openacc
 
     INTEGER, INTENT(IN)           :: nfields_dp, ndim2tot_dp, nfields_sp, ndim2tot_sp
-    TYPE(t_ptr_3d), PTR_INTENT(in), OPTIONAL :: recv_dp(:)
-    TYPE(t_ptr_3d), PTR_INTENT(in), OPTIONAL :: send_dp(:)
+    TYPE(t_ptr_3d_dp), PTR_INTENT(in), OPTIONAL :: recv_dp(:)
+    TYPE(t_ptr_3d_dp), PTR_INTENT(in), OPTIONAL :: send_dp(:)
     TYPE(t_ptr_3d_sp), PTR_INTENT(in), OPTIONAL :: recv_sp(:)
     TYPE(t_ptr_3d_sp), PTR_INTENT(in), OPTIONAL :: send_sp(:)
 
@@ -3532,8 +3532,7 @@ CONTAINS
     !$ACC   IF(lzacc)
 
 #ifdef _OPENACC
-    ! TODO: Replace this when merge from Fortran-support complete
-    CALL init_2d_sp_tmp(recv_buf, lacc=lzacc, opt_acc_async=.TRUE.)
+    CALL init(recv_buf, lacc=lzacc, opt_acc_async=.TRUE.)
 #endif
 
     IF ((iorder_sendrecv == 1 .OR. iorder_sendrecv == 3)) THEN
@@ -3712,7 +3711,7 @@ CONTAINS
     CHARACTER(len=*), PARAMETER :: routine = modname//"::exchange_data_grf_dp"
     INTEGER, INTENT(IN)           :: nfields  ! total number of input fields
     INTEGER, INTENT(IN)           :: ndim2tot ! sum of vertical levels of input fields
-    TYPE(t_ptr_3d), PTR_INTENT(in) :: recv(nfields), send(nfields)
+    TYPE(t_ptr_3d_dp), PTR_INTENT(in) :: recv(nfields), send(nfields)
 
     INTEGER           :: nsendtot ! total number of send points
     INTEGER           :: nrecvtot ! total number of receive points
@@ -5273,40 +5272,6 @@ CONTAINS
 
     pelist_recv = comm_pat%pelist_recv
   END SUBROUTINE get_pelist_recv
-
-  ! Temporary function until added to fortran-support
-  SUBROUTINE init_2d_sp_tmp(init_var, lacc, opt_acc_async)
-    REAL(sp), INTENT(OUT) :: init_var(:, :)
-    LOGICAL, INTENT(IN) :: lacc
-    LOGICAL, INTENT(IN), OPTIONAL :: opt_acc_async
-
-    INTEGER :: i1, i2, m1, m2
-    LOGICAL :: lzacc
-
-    !CALL set_acc_host_or_device(lzacc, lacc)
-    lzacc=lacc
-
-    m1 = SIZE(init_var, 1)
-    m2 = SIZE(init_var, 2)
-
-    !$ACC PARALLEL LOOP DEFAULT(PRESENT) ASYNC(1) COLLAPSE(2) IF(lzacc)
-#if (defined(__INTEL_COMPILER))
-!$omp do private(i1,i2)
-#else
-!$omp do collapse(2)
-#endif
-    DO i2 = 1, m2
-      DO i1 = 1, m1
-        init_var(i1, i2) = 0.0_sp
-      END DO
-    END DO
-!$omp end do nowait
-
-    !CALL acc_wait_if_requested(1, opt_acc_async)
-    !$ACC WAIT(1)
-  END SUBROUTINE init_2d_sp_tmp
-
-
 
 END MODULE mo_communication_orig
 !

@@ -35,7 +35,7 @@ MODULE mo_load_singlefile_restart
   USE mo_netcdf
   USE mo_master_config,      ONLY: isInitFromRestart
   USE mo_dynamics_config,    ONLY: nnow, nnow_rcf
-  USE mo_fortran_tools,      ONLY: t_ptr_3d, t_ptr_3d_int, t_ptr_3d_sp
+  USE fortran_support,       ONLY: t_ptr_3d_dp, t_ptr_3d_int, t_ptr_3d_sp
 
   IMPLICIT NONE
   PRIVATE
@@ -86,7 +86,7 @@ CONTAINS
     TYPE(t_patch), TARGET, INTENT(IN) :: ptc
     INTEGER, INTENT(IN) :: ndom
     LOGICAL :: int_is_int
-    TYPE(t_ptr_3d) :: r(1)
+    TYPE(t_ptr_3d_dp) :: r(1)
     TYPE(t_ptr_3d_sp) :: s(1)
     TYPE(t_ptr_3d_int) :: i(1)
     CHARACTER(:), ALLOCATABLE :: restart_filename
