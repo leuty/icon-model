@@ -20,6 +20,7 @@ If your changes require the generation of new reference data, please refer to th
 #### Finalize Feature
 - [ ] _Author:_ Cleanup and update branch with icon-nwp:master
 - [ ] _Author:_ Test your code according to [How to test](#how-to-test)
+- [ ] _Author:_ Add/update [docs.icon-model.org documentation](https://gitlab.dkrz.de/icon/wiki/-/wikis/Documentation)
 
 #### Scientific Review
 - [ ] _Author:_ Select a scientific reviewer and add the label ![inScientificReview](https://img.shields.io/badge/-inScientificReview-orange)
