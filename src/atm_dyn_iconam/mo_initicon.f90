@@ -1774,7 +1774,7 @@ MODULE mo_initicon
     TYPE(t_lnd_diag), POINTER :: lnd_diag          ! shortcut to diagnostic land state
 
     REAL(wp) :: h_snow_t_fg(nproma,ntiles_total)   ! intermediate storage of h_snow first guess
-    REAL(wp) :: snowfrac_lim, wfac
+    REAL(wp) :: snowfrac_lim, wfac, gl_frac(nproma)
 
     REAL(wp), PARAMETER :: min_hsnow_inc=0.001_wp  ! minimum hsnow increment (1mm absolute value)
                                                    ! in order to avoid grib precision problems
@@ -1795,7 +1795,7 @@ MODULE mo_initicon
       lnd_diag     =>p_lnd_state(jg)%diag_lnd
 
 !$OMP PARALLEL
-!$OMP DO PRIVATE(jb,jt,ic,jc,i_startidx,i_endidx,h_snow_t_fg,snowfrac_lim,wfac)
+!$OMP DO PRIVATE(jb,jt,ic,jc,i_startidx,i_endidx,h_snow_t_fg,snowfrac_lim,wfac,gl_frac)
       DO jb = 1, nblks_c
 
         CALL get_indices_c(p_patch(jg), jb, 1, nblks_c, &
@@ -1804,6 +1804,26 @@ MODULE mo_initicon
 
         ! store a copy of FG field for subsequent consistency checks
         h_snow_t_fg(:,:) = lnd_diag%h_snow_t(:,jb,:)
+
+        ! set snow increments on sub-grid land points to zero because the snow analysis artificially removes 
+        ! existing snow there (this is fixed in snowana versions higher than 2.26)
+        WHERE (ext_data(jg)%atm%fr_land(i_startidx:i_endidx,jb) < 0.5_wp) 
+          initicon(jg)%sfc_inc%h_snow(i_startidx:i_endidx,jb) = 0._wp
+        END WHERE
+
+        ! in addition, artificial snow increments on the non-glaciated part of partial glacier points need to be ignored
+        ! for the time being.
+        ! As a preparation, determine if a grid point has a glacier tile (note that ext_data%fr_glac contains
+        ! the glacier fraction of the raw data, which is not what is needed here)
+        gl_frac(:) = 0._wp
+        DO jt = 1, ntiles_lnd
+!NEC$ ivdep
+          DO ic = 1, ext_data(jg)%atm%lp_count_t(jb,jt)
+            jc = ext_data(jg)%atm%idx_lst_lp_t(ic,jb,jt)
+            IF (ext_data(jg)%atm%lc_class_t(jc,jb,jt) == ext_data(jg)%atm%i_lc_snow_ice) &
+              gl_frac(jc) = ext_data(jg)%atm%lc_frac_t(jc,jb,jt)
+          ENDDO
+        ENDDO
 
         ! add h_snow and freshsnow increments onto respective first guess fields
         DO jt = 1, ntiles_total
@@ -1821,7 +1841,10 @@ MODULE mo_initicon
             IF (ABS(initicon(jg)%sfc_inc%h_snow(jc,jb)) < min_hsnow_inc) THEN
               ! h_snow increment is neglected in order to avoid artefacts due to GRIB2 precision limitation
               ! minimum height: 0m; maximum height: 40m
-              lnd_diag%h_snow_t   (jc,jb,jt) = MIN(40._wp,MAX(0._wp,lnd_diag%h_snow_t(jc,jb,jt)))
+              lnd_diag%h_snow_t(jc,jb,jt) = MIN(40._wp,MAX(0._wp,lnd_diag%h_snow_t(jc,jb,jt)))
+            ELSE IF (gl_frac(jc) > 0._wp .AND. ext_data(jg)%atm%lc_class_t(jc,jb,jt) /= ext_data(jg)%atm%i_lc_snow_ice) THEN
+              ! in addition, ignore snow increment on glacier-free part of a partly glaciated grid point
+              lnd_diag%h_snow_t(jc,jb,jt) = MIN(40._wp,MAX(0._wp,lnd_diag%h_snow_t(jc,jb,jt)))
             ELSE
               IF (lsnowtile .AND. (jt > ntiles_lnd .OR. ltile_coldstart) ) THEN
                 ! in case of tile warmstart, add increment to snow-covered tiles only, rescaled with the snow-cover fraction

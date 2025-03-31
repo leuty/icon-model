@@ -749,6 +749,7 @@ CONTAINS
     INTEGER :: i_startidx, i_endidx   !< slices
 
     REAL(wp):: albfac, albthresh             ! for MODIS albedo tuning
+    REAL(wp):: lu_sum, lu_scale              ! for provisional correction of inconsistent extpar data
 
     LOGICAL :: l_exist
     INTEGER :: error_status
@@ -1058,6 +1059,56 @@ CONTAINS
             ENDDO
 !$OMP END DO
           ENDIF  ! Antarctic albedo tuning
+
+          ! Provisional workaround for the lack of proper landuse data over Antarctica; to achieve reasonable T2M in summer
+          ! in combination with recent fixes in TERRA, we need to assume partial glaciation for coastal points with less
+          ! than 50% land fraction. This workaround is also implemented in extpar since April 2025 but repeated here
+          ! in order to prevent poor forecast quality with older extpar files
+          !
+          ! In addition, inconsistencies in the LU fractions occurring around Antarctica are fixed
+!$OMP DO PRIVATE(jb,jc,i_startidx,i_endidx,lu_sum,lu_scale)
+          DO jb = i_startblk, i_endblk
+            CALL get_indices_c(p_patch(jg), jb, i_startblk, i_endblk, i_startidx, i_endidx, rl_start, rl_end)
+
+            DO jc = i_startidx,i_endidx
+              IF (p_patch(jg)%cells%center(jc,jb)%lat*rad2deg < -57._wp) THEN
+                ! ensure that the lu_class_fraction is set on water points
+                ext_data(jg)%atm%lu_class_fraction(jc,jb,ext_data(jg)%atm%i_lc_water) = 1._wp-ext_data(jg)%atm%fr_land(jc,jb)
+                !
+                ! enforce that the lu_class_fractions sum up to 1
+                lu_sum = SUM(ext_data(jg)%atm%lu_class_fraction(jc,jb,:))
+                IF (ABS(lu_sum-1._wp) > 1.e-4_wp) THEN
+                  IF (ext_data(jg)%atm%fr_land(jc,jb) == 0._wp) THEN
+                    ! reset all fractions to 0 and re-establish water fraction
+                    ext_data(jg)%atm%lu_class_fraction(jc,jb,:) = 0._wp
+                    ext_data(jg)%atm%lu_class_fraction(jc,jb,ext_data(jg)%atm%i_lc_water) = 1._wp
+                  ELSE IF (lu_sum > ext_data(jg)%atm%lu_class_fraction(jc,jb,ext_data(jg)%atm%i_lc_water)) THEN
+                    ! scale non-water fractions in order to sum up to 1
+                    lu_scale = ext_data(jg)%atm%fr_land(jc,jb) / &
+                      (lu_sum-ext_data(jg)%atm%lu_class_fraction(jc,jb,ext_data(jg)%atm%i_lc_water))
+                    ext_data(jg)%atm%lu_class_fraction(jc,jb,:) = ext_data(jg)%atm%lu_class_fraction(jc,jb,:)*lu_scale
+                    ext_data(jg)%atm%lu_class_fraction(jc,jb,ext_data(jg)%atm%i_lc_water) = 1._wp-ext_data(jg)%atm%fr_land(jc,jb)
+                  ELSE ! happens only with extpar data created before February 2014
+                    CYCLE ! do nothing because it's hopeless
+                  ENDIF
+                ENDIF
+                ext_data(jg)%atm%fr_glac(jc,jb) = ext_data(jg)%atm%lu_class_fraction(jc,jb,ext_data(jg)%atm%i_lc_snow_ice)
+              ENDIF
+
+              IF (ext_data(jg)%atm%fr_glac(jc,jb) > 0.01_wp  .AND. p_patch(jg)%cells%center(jc,jb)%lat*rad2deg < -60._wp &
+                  .AND. ext_data(jg)%atm%fr_land(jc,jb) < 0.5_wp .AND. ext_data(jg)%atm%topography_c(jc,jb) < 100._wp ) THEN
+                ext_data(jg)%atm%lu_class_fraction(jc,jb,ext_data(jg)%atm%i_lc_snow_ice)  = 0.6_wp*ext_data(jg)%atm%fr_land(jc,jb)
+                ext_data(jg)%atm%lu_class_fraction(jc,jb,ext_data(jg)%atm%i_lc_bare_soil) = 0.4_wp*ext_data(jg)%atm%fr_land(jc,jb)
+                ext_data(jg)%atm%fr_glac(jc,jb) = ext_data(jg)%atm%lu_class_fraction(jc,jb,ext_data(jg)%atm%i_lc_snow_ice)
+                ext_data(jg)%atm_td%alb_dif(jc,jb,1:12)   = 0.15_wp
+                ext_data(jg)%atm_td%albuv_dif(jc,jb,1:12) = 0.15_wp
+                ext_data(jg)%atm_td%albni_dif(jc,jb,1:12) = 0.15_wp
+              ENDIF
+
+            ENDDO
+          ENDDO
+!$OMP END DO
+
 !$OMP END PARALLEL
 
         END IF  !  albedo_type
