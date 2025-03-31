@@ -412,9 +412,7 @@ class CscsCiInterface(ExperimentTestCollection):
         super().__init__()
     
     def get_items_for_builder(self, builder):
-        supported_builders = { 'todi': set(('todi_cpu_nvhpc', 'todi_gpu_nvhpc')),
-                               'santis': set(('santis_cpu_nvhpc', 'santis_gpu_nvhpc')),
-                               'balfrin': set(('balfrin_cpu_nvidia', 'balfrin_gpu_nvidia'))}
+        supported_builders = { 'santis': set(('santis_cpu_nvhpc', 'santis_gpu_nvhpc'))}
         items = []
         for exp in self.items['tests']:
             # in case of no machines section, we assume not needed to run on this builder
@@ -447,12 +445,8 @@ class CscsCiInterface(ExperimentTestCollection):
             yaml.dump(pipeline, outfile, default_flow_style=False,sort_keys=False,indent=2)
 
     def _gen_step_build(self,builder):
-        images = {'todi_cpu_nvhpc': '.build_todi_cpu_nvhpc',
-                  'todi_gpu_nvhpc': '.build_todi_gpu_nvhpc',
-                  'santis_cpu_nvhpc': '.build_santis_cpu_nvhpc',
-                  'santis_gpu_nvhpc': '.build_santis_gpu_nvhpc',
-                  'balfrin_cpu_nvidia': '.build_alps_a100_cpu_nvhpc',
-                  'balfrin_gpu_nvidia': '.build_alps_a100_gpu_nvhpc'}
+        images = { 'santis_cpu_nvhpc': '.build_santis_cpu_nvhpc',
+                  'santis_gpu_nvhpc': '.build_santis_gpu_nvhpc'}
         return {
                 'extends': images[builder],
             }
@@ -477,12 +471,8 @@ class CscsCiInterface(ExperimentTestCollection):
                 'extends': '.run_common_santis',
                 'variables':{
                     'EXPERIMENT': test['name'],
-                    'TYPES': self._get_checksuite_param_for_exp_as_string('types',test['name']),
-                    'DATES': self._get_checksuite_param_for_exp_as_string('dates',test['name']),
-                    'RESTART_DATE': self._get_checksuite_param_for_exp_as_string('restart_date',test['name']),
-                    'MD': self._get_param_for_exp_by_machine_as_string(test['name'],'checksuite_modes',builder),
-                    'FACTOR': self._get_param_for_exp_by_machine_as_string(test['name'],'tolerance_factor',builder),
-
+                    'CHECK': test['check'],
+                    'BB_NAME': builder,
                 },
 
             }

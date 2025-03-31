@@ -9,38 +9,11 @@
 # See LICENSES/ for license information
 # SPDX-License-Identifier: BSD-3-Clause
 # ------------------------------------------
+set -eu
 
-set -u
-
-GIT_ROOT=$(git rev-parse --show-toplevel)
-PWD=$(pwd)
 SCRIPT_DIR=$(cd "$(dirname "$0")"; pwd)
+SPACK_VERSION=$(cat $SCRIPT_DIR/SPACK_TAG_SANTIS)
+BUILD_DIR=$(pwd)
+BUILD_TRHEADS=72
 
-if [[ $GIT_ROOT != $PWD ]]; then
-    echo ''
-    echo 'You are building out-of-source!'
-    echo ''
-    echo 'See spack-c2sm docs at "https://c2sm.github.io/spack-c2sm/latest/QuickStart.html#icon"' 
-    echo 'and "https://c2sm.github.io/spack-c2sm/latest/CodeDevelopment.html#environments-with-spack-develop"'
-    echo 'for more information.'
-    echo ''
-    exit 1
-fi
-
-SPACK_VERSION=$(cat $SCRIPT_DIR/SPACK_TAG_ALPS)
-
-GIT_REMOTE='https://github.com/C2SM/spack-c2sm.git'
-
-git clone --depth 1 --recurse-submodules --shallow-submodules -b ${SPACK_VERSION} ${GIT_REMOTE}
-
-. spack-c2sm/setup-env.sh /user-environment
-
-export SPACK_USER_CACHE_PATH=$GIT_ROOT/spack-cache
-echo "Setting SPACK_USER_CACHE_PATH to $SPACK_USER_CACHE_PATH"
-
-# icon-wcp/v1:rc4 depends on system installation of gmake
-spack external find gmake
-
-MAKE_PROCS=22
-spack env activate config/cscs/spack/$SPACK_VERSION/santis_cpu_nvhpc || exit 1
-spack install -v -j ${MAKE_PROCS} || exit 1
+$SCRIPT_DIR/spack_install $SPACK_VERSION santis_cpu_double $BUILD_DIR "/user-environment" $BUILD_TRHEADS

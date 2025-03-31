@@ -48,7 +48,7 @@ USE mo_util_sort,            ONLY: quicksort
 USE mo_util_sort,            ONLY: radixsort
 #endif
 USE mo_util_string,          ONLY: int2string
-USE mo_fortran_tools,        ONLY: t_ptr_3d, t_ptr_3d_sp
+USE fortran_support,         ONLY: t_ptr_3d_dp, t_ptr_3d_sp
 USE mo_communication_types,  ONLY: t_comm_pattern, t_comm_pattern_collection, &
   &                                t_p_comm_pattern
 USE mo_communication_types,  ONLY: t_comm_pattern, t_comm_pattern_collection, &
@@ -625,7 +625,7 @@ CONTAINS
     INTEGER, INTENT(IN)           :: nfields  ! total number of input fields
     INTEGER, INTENT(IN)           :: ndim2tot ! sum of vertical levels of input fields
 
-    TYPE(t_ptr_3d) :: recv(nfields), send(nfields)
+    TYPE(t_ptr_3d_dp) :: recv(nfields), send(nfields)
 
     INTEGER :: n, n4d
 
@@ -725,7 +725,7 @@ CONTAINS
     INTEGER, INTENT(IN)           :: nfields  ! total number of input fields
     INTEGER, INTENT(IN)           :: ndim2tot ! sum of vertical levels of input fields
 
-    TYPE(t_ptr_3d) :: recv(nfields), send(nfields)
+    TYPE(t_ptr_3d_dp) :: recv(nfields), send(nfields)
 
     INTEGER :: n, n4d
 
@@ -878,8 +878,8 @@ CONTAINS
       send7(:,:,:)
 
     INTEGER, INTENT(IN)           :: nfields, ndim2tot
-    TYPE(t_ptr_3d), INTENT(   IN), TARGET, OPTIONAL :: recv3d_arr(:)
-    TYPE(t_ptr_3d), INTENT(INOUT), TARGET, OPTIONAL :: send3d_arr(:)
+    TYPE(t_ptr_3d_dp), INTENT(   IN), TARGET, OPTIONAL :: recv3d_arr(:)
+    TYPE(t_ptr_3d_dp), INTENT(INOUT), TARGET, OPTIONAL :: send3d_arr(:)
     INTEGER, OPTIONAL, INTENT(IN) :: nshift
 
     CALL exchange_data_mult_dp_(p_pat, lacc, nfields, ndim2tot, & 
@@ -927,8 +927,8 @@ CONTAINS
       send7(:,:,:), send4d(:,:,:,:)
 
     INTEGER, INTENT(IN)           :: nfields, ndim2tot
-    TYPE(t_ptr_3d), INTENT(   IN), TARGET, OPTIONAL :: recv3d_arr(:)
-    TYPE(t_ptr_3d), INTENT(INOUT), TARGET, OPTIONAL :: send3d_arr(:)
+    TYPE(t_ptr_3d_dp), INTENT(   IN), TARGET, OPTIONAL :: recv3d_arr(:)
+    TYPE(t_ptr_3d_dp), INTENT(INOUT), TARGET, OPTIONAL :: send3d_arr(:)
     INTEGER, OPTIONAL, INTENT(IN) :: nshift
 
     CALL exchange_data_mult_dp_(p_pat, lacc, nfields, ndim2tot, &
@@ -960,12 +960,12 @@ CONTAINS
       send7(:,:,:), send4d(:,:,:,:)
 
     INTEGER, INTENT(IN)           :: nfields, ndim2tot
-    TYPE(t_ptr_3d), INTENT(   IN), TARGET, OPTIONAL :: recv3d_arr(:)
-    TYPE(t_ptr_3d), INTENT(INOUT), TARGET, OPTIONAL :: send3d_arr(:)
+    TYPE(t_ptr_3d_dp), INTENT(   IN), TARGET, OPTIONAL :: recv3d_arr(:)
+    TYPE(t_ptr_3d_dp), INTENT(INOUT), TARGET, OPTIONAL :: send3d_arr(:)
     INTEGER, OPTIONAL, INTENT(IN) :: nshift
 
     CHARACTER(len=*), PARAMETER :: routine = modname//"::exchange_data_mult_dp_"
-    TYPE(t_ptr_3d) :: recv(nfields), send(nfields)
+    TYPE(t_ptr_3d_dp) :: recv(nfields), send(nfields)
 
     INTEGER :: i, nf4d
     LOGICAL :: lsend
@@ -1255,7 +1255,7 @@ CONTAINS
     INTEGER, OPTIONAL, INTENT(IN) :: nshift
 
 
-    TYPE(t_ptr_3d) :: recv_dp(nfields_dp), send_dp(nfields_dp)
+    TYPE(t_ptr_3d_dp) :: recv_dp(nfields_dp), send_dp(nfields_dp)
     TYPE(t_ptr_3d_sp) :: recv_sp(nfields_sp), send_sp(nfields_sp)
 
     INTEGER :: i, nf4d_dp, nf4d_sp

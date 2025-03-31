@@ -27,7 +27,7 @@ MODULE mo_reader_cams
                                     &   no_of_ms_in_a_minute, no_of_ms_in_a_second
   USE mo_mpi,                     ONLY: my_process_is_mpi_workroot, process_mpi_root_id, p_comm_work, p_bcast
   USE mo_read_netcdf_distributed, ONLY: distrib_nf_open, distrib_read, distrib_nf_close, idx_blk_time
-  USE mo_fortran_tools,           ONLY: t_ptr_4d
+  USE fortran_support,            ONLY: t_ptr_4d_wp
   USE mo_radiation_config,        ONLY: irad_aero, iRadAeroCAMSclim, iRadAeroCAMStd
 
   IMPLICIT NONE
@@ -193,7 +193,7 @@ CONTAINS
     CHARACTER(len=*), INTENT(in   )      :: varname
     REAL(wp), ALLOCATABLE, INTENT(inout) :: dat(:,:,:,:)
     REAL(wp), ALLOCATABLE, TARGET        :: temp(:,:,:,:)
-    TYPE(t_ptr_4d)                       :: tmp(1)
+    TYPE(t_ptr_4d_wp)                    :: tmp(1)
     INTEGER                              :: var_dimlen(3),var_start(3), var_end(3), jt
 
 

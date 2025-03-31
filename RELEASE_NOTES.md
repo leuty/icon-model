@@ -108,9 +108,10 @@ Climate: ICON-Land
 
 ### Externals
 
-- Replace math-support and math-interpolation with iconmath 1.1.1
-- Make use of the math-horizontal component of iconmath 1.1.1
-- Switch to fortran-support 2.0.1
+- Replace math-support and math-interpolation with iconmath 1.2.0
+- Make use of the math-horizontal component of iconmath 1.2.0
+- Switch to fortran-support 2.1.0
+- Switch to mtime 1.3.0
 
 ### Infrastructure
 

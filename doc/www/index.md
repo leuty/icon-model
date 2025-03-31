@@ -16,6 +16,7 @@ tools/tools.md
 tools/comin/comin.md
 atmosphere/atmosphere.md
 atmosphere/art/art.md
+atmosphere/ecrad/ecrad_overview.md
 ocean/ocean.md
 land/land.md
 infrastructure/infrastructure.md

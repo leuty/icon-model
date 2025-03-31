@@ -38,8 +38,8 @@ MODULE mo_read_interface
     &                                   distrib_inq_var_dims, idx_lvl_blk, &
     &                                   idx_blk_time, distrib_nf_inq_varexists
   USE mo_read_netcdf_types, ONLY: t_alloc_2d, t_alloc_2d_int, t_alloc_3d, t_alloc_3d_int
-  USE mo_fortran_tools, ONLY: t_ptr_2d, t_ptr_2d_int, t_ptr_3d, t_ptr_3d_int, &
-    & t_ptr_4d
+  USE fortran_support, ONLY: t_ptr_2d_wp, t_ptr_2d_int, t_ptr_3d_wp, t_ptr_3d_int, &
+    & t_ptr_4d_wp
   USE mo_model_domain, ONLY: t_patch
   USE mo_parallel_config, ONLY: nproma, p_test_run
   USE mo_model_domain, ONLY: t_patch
@@ -542,12 +542,12 @@ CONTAINS
     INTEGER, INTENT(IN)               :: location
     CHARACTER(LEN=*), INTENT(IN)      :: variable_name
     INTEGER, INTENT(IN)               :: n_var
-    TYPE(t_ptr_2d), INTENT(INOUT), OPTIONAL :: fill_array(:)
+    TYPE(t_ptr_2d_wp), INTENT(INOUT), OPTIONAL :: fill_array(:)
     TYPE(t_alloc_2d), INTENT(OUT), OPTIONAL, TARGET :: alloc_array(:)
 
     TYPE(t_p_scatterPattern)          :: scatter_patterns(n_var)
     INTEGER                           :: n_g, i
-    TYPE(t_ptr_2d)                    :: var_data_2d(n_var)
+    TYPE(t_ptr_2d_wp)                 :: var_data_2d(n_var)
     CHARACTER(LEN=NF90_MAX_NAME)      :: variable_name_
     CHARACTER(LEN=*), PARAMETER       :: method_name = &
       'mo_read_interface:read_dist_REAL_2D_multivar'
@@ -615,7 +615,7 @@ CONTAINS
     REAL(wp), INTENT(INOUT), OPTIONAL, TARGET :: fill_array(:,:)
     REAL(wp), ALLOCATABLE, INTENT(OUT), OPTIONAL, TARGET :: alloc_array(:,:)
 
-    TYPE(t_ptr_2d) :: tmp_ptr(1)
+    TYPE(t_ptr_2d_wp) :: tmp_ptr(1)
     CHARACTER(LEN=NF90_MAX_NAME) :: variable_name_
     CHARACTER(LEN=*), PARAMETER :: method_name = &
       'mo_read_interface:read_dist_REAL_2D'
@@ -879,7 +879,7 @@ CONTAINS
     LOGICAL, INTENT(OUT), OPTIONAL         :: has_missValue
     REAL(wp), INTENT(OUT), OPTIONAL        :: missValue
 
-    TYPE(t_ptr_3d)                         :: tmp_ptr(1)
+    TYPE(t_ptr_3d_wp)                         :: tmp_ptr(1)
     INTEGER                                :: var_dimlen(2), var_start(2), &
       &                                       var_end(2), var_ndims
     CHARACTER(LEN=NF90_MAX_NAME)             :: variable_name_
@@ -972,14 +972,14 @@ CONTAINS
     INTEGER, INTENT(IN)                    :: location
     CHARACTER(LEN=*), INTENT(IN)           :: variable_name
     INTEGER, INTENT(IN)                    :: n_var
-    TYPE(t_ptr_3d), INTENT(INOUT), OPTIONAL :: fill_array(:)
+    TYPE(t_ptr_3d_wp), INTENT(INOUT), OPTIONAL :: fill_array(:)
     TYPE(t_alloc_3d), INTENT(OUT), OPTIONAL, TARGET :: alloc_array(:)
     INTEGER, INTENT(IN), OPTIONAL          :: start_extdim, end_extdim
     CHARACTER(LEN=*), INTENT(IN), OPTIONAL :: extdim_name
 
     TYPE(t_p_scatterPattern)               :: scatter_patterns(n_var)
     INTEGER                                :: n_g, i
-    TYPE(t_ptr_3d)                         :: var_data_3d(n_var)
+    TYPE(t_ptr_3d_wp)                      :: var_data_3d(n_var)
     INTEGER                                :: var_dimlen(2), var_ndims, &
       &                                       var_start(2), var_end(2)
     CHARACTER(LEN=NF90_MAX_NAME)             :: variable_name_
@@ -1333,7 +1333,7 @@ CONTAINS
     REAL(wp), ALLOCATABLE, INTENT(OUT), OPTIONAL, TARGET :: alloc_array(:,:,:)
     CHARACTER(LEN=*), INTENT(IN), OPTIONAL :: levelsDimName
 
-    TYPE(t_ptr_3d)                         :: tmp_ptr(1)
+    TYPE(t_ptr_3d_wp)                      :: tmp_ptr(1)
     INTEGER                                :: var_ndims, var_dimlen(2)
     CHARACTER(LEN=NF90_MAX_NAME)           :: variable_name_
     CHARACTER(LEN=*), PARAMETER            :: method_name = &
@@ -1573,7 +1573,7 @@ CONTAINS
 
     INTEGER                                :: var_ndims, var_dimlen(3), &
       &                                       var_start(3), var_end(3)
-    TYPE(t_ptr_4d)                         :: tmp_ptr(1)
+    TYPE(t_ptr_4d_wp)                      :: tmp_ptr(1)
     CHARACTER(LEN=128)                     :: temp_string_array(2)
     CHARACTER(LEN=NF90_MAX_NAME)             :: variable_name_
     CHARACTER(LEN=*), PARAMETER            :: method_name = &

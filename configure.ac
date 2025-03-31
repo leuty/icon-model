@@ -2012,7 +2012,7 @@ dnl A list of library files (i.e. *.a files) of the enabled bundled packages:
 AC_SUBST([BUNDLED_LIBFILES], [''])
 
 dnl A list of relative paths to the root source directories of the bundled
-dnl packages to be passed to the version provenance collection tool:
+dnl libraries to be passed to the version provenance collection tool:
 AC_SUBST([icon_pvcs_subdirs], [''])
 
 dnl A space-separated list of unwanted linker arguments to be excluded from the
@@ -2041,7 +2041,6 @@ accordingly])])
      [Fortran compiler flags to be appended to FCFLAGS when configuring the
 bundled version of RTE+RRTMGP library @<:@default=$ICON_BUNDLED_FCFLAGS@:>@])dnl
    ICON_RTE_RRTMGP_FCFLAGS=${ICON_RTE_RRTMGP_FCFLAGS-$ICON_BUNDLED_FCFLAGS}
-   AS_VAR_APPEND([icon_pvcs_subdirs], [' externals/rte-rrtmgp'])
    ACX_SUBDIR_INIT_CONFIG([externals/rte-rrtmgp], [no-run])
    ACX_SUBDIR_REMOVE_ARGS([externals/rte-rrtmgp],
      [BUILD_ENV=*|ICON_*FLAGS=*|CFLAGS=*|FCFLAGS=*],
@@ -2065,7 +2064,8 @@ dnl library itself.
         [--disable-tests])])
    AS_VAR_APPEND([bundled_includes], ["${FC_MOD_IN}externals/rte-rrtmgp "])
    BUNDLED_LIBFILES="externals/rte-rrtmgp/librte.a $BUNDLED_LIBFILES"
-   BUNDLED_LIBFILES="externals/rte-rrtmgp/librrtmgp.a $BUNDLED_LIBFILES"])
+   BUNDLED_LIBFILES="externals/rte-rrtmgp/librrtmgp.a $BUNDLED_LIBFILES"
+   AS_VAR_APPEND([icon_pvcs_subdirs], [' externals/rte-rrtmgp'])])
 
 AS_IF([test "x$enable_ecrad" = xyes && test "x$with_external_ecrad" = xno],
   [icon_subdir_srcdir="$srcdir/externals/ecrad"
@@ -2080,7 +2080,6 @@ LIBS accordingly])])
      [Fortran compiler flags to be appended to FCFLAGS when configuring the
 bundled version of ECRAD library @<:@default=$ICON_BUNDLED_FCFLAGS@:>@])dnl
    ICON_ECRAD_FCFLAGS=${ICON_ECRAD_FCFLAGS-$ICON_BUNDLED_FCFLAGS}
-   AS_VAR_APPEND([icon_pvcs_subdirs], [' externals/ecrad'])
    ACX_SUBDIR_INIT_CONFIG([externals/ecrad], [no-run])
    ACX_SUBDIR_REMOVE_ARGS([externals/ecrad],
      [BUILD_ENV=*|ICON_*FLAGS=*|CFLAGS=*|FCFLAGS=*],
@@ -2097,7 +2096,8 @@ bundled version of ECRAD library @<:@default=$ICON_BUNDLED_FCFLAGS@:>@])dnl
    BUNDLED_LIBFILES="externals/ecrad/libifsaux.a $BUNDLED_LIBFILES"
    BUNDLED_LIBFILES="externals/ecrad/libutilities.a $BUNDLED_LIBFILES"
    BUNDLED_LIBFILES="externals/ecrad/libifsrrtm.a $BUNDLED_LIBFILES"
-   BUNDLED_LIBFILES="externals/ecrad/libradiation.a $BUNDLED_LIBFILES"])
+   BUNDLED_LIBFILES="externals/ecrad/libradiation.a $BUNDLED_LIBFILES"
+   AS_VAR_APPEND([icon_pvcs_subdirs], [' externals/ecrad'])])
 
 AS_IF([test "x$enable_sct" = xyes && test "x$with_external_sct" = xno],
   [icon_subdir_srcdir="$srcdir/externals/sct"
@@ -2115,7 +2115,6 @@ bundled version of SCT library @<:@default=$ICON_BUNDLED_FCFLAGS@:>@])dnl
      [C compiler flags to be appended to CFLAGS when configuring the bundled
 version of SCT library @<:@default=$ICON_BUNDLED_CFLAGS@:>@])dnl
    ICON_SCT_CFLAGS=${ICON_SCT_CFLAGS-$ICON_BUNDLED_CFLAGS}
-   AS_VAR_APPEND([icon_pvcs_subdirs], [' externals/sct'])
    ACX_SUBDIR_INIT_CONFIG([externals/sct], [no-run])
    ACX_SUBDIR_REMOVE_ARGS([externals/sct],
      [BUILD_ENV=*|ICON_*FLAGS=*|CFLAGS=*|FCFLAGS=*|AR=*|RANLIB=*],
@@ -2142,7 +2141,8 @@ version of SCT library @<:@default=$ICON_BUNDLED_CFLAGS@:>@])dnl
      [--enable-silent-rules="$enable_silent_rules"],
      [--without-libpapi-prefix], [--without-libhdf5-prefix])
    AS_VAR_APPEND([bundled_includes], ["${FC_MOD_IN}externals/sct/src "])
-   BUNDLED_LIBFILES="externals/sct/src/.libs/libsct.a $BUNDLED_LIBFILES"])
+   BUNDLED_LIBFILES="externals/sct/src/.libs/libsct.a $BUNDLED_LIBFILES"
+   AS_VAR_APPEND([icon_pvcs_subdirs], [' externals/sct'])])
 
 AS_VAR_IF([with_external_yaxt], [no],
   [icon_bundled_yaxt_fc=no
@@ -2184,7 +2184,6 @@ bundled version of YAXT library @<:@default=$ICON_BUNDLED_FCFLAGS@:>@])dnl
         [C compiler flags to be appended to CFLAGS when configuring the bundled
 version of YAXT library @<:@default=$ICON_BUNDLED_CFLAGS@:>@])dnl
       ICON_YAXT_CFLAGS=${ICON_YAXT_CFLAGS-$ICON_BUNDLED_CFLAGS}
-      AS_VAR_APPEND([icon_pvcs_subdirs], [' externals/yaxt'])
       ACX_SUBDIR_INIT_CONFIG([externals/yaxt], [no-run])
       ACX_SUBDIR_REMOVE_ARGS([externals/yaxt],
         [BUILD_*=*|ICON_*FLAGS=*|CFLAGS=*|FCFLAGS=*|AR=*|RANLIB=*|MPI_LAUNCH=*],
@@ -2234,7 +2233,8 @@ version of YAXT library @<:@default=$ICON_BUNDLED_CFLAGS@:>@])dnl
         [AS_VAR_SET([BUNDLED_LIBFILES],
            ["externals/yaxt/src/.libs/libyaxt.a $BUNDLED_LIBFILES"])],
         [no],
-        [ACX_SUBDIR_APPEND_ARGS([externals/yaxt], [FC=no])])])])
+        [ACX_SUBDIR_APPEND_ARGS([externals/yaxt], [FC=no])])
+      AS_VAR_APPEND([icon_pvcs_subdirs], [' externals/yaxt'])])])
 
 AS_VAR_IF([with_external_ppm], [no],
   [icon_bundled_ppm_needed=no
@@ -2259,7 +2259,6 @@ bundled version of PPM library @<:@default=$ICON_BUNDLED_FCFLAGS@:>@])dnl
         [C compiler flags to be appended to CFLAGS when configuring the bundled
 version of PPM library @<:@default=$ICON_BUNDLED_CFLAGS@:>@])dnl
       ICON_PPM_CFLAGS=${ICON_PPM_CFLAGS-$ICON_BUNDLED_CFLAGS}
-      AS_VAR_APPEND([icon_pvcs_subdirs], [' externals/ppm'])
       ACX_SUBDIR_INIT_CONFIG([externals/ppm], [no-run])
       ACX_SUBDIR_REMOVE_ARGS([externals/ppm],
         [BUILD_*=*|ICON_*FLAGS=*|CFLAGS=*|FCFLAGS=*|MPI_LAUNCH=*|AR=*],
@@ -2308,7 +2307,8 @@ version of PPM library @<:@default=$ICON_BUNDLED_CFLAGS@:>@])dnl
 dnl There is currently no need in the Fortran interface of the library:
         [FC=no])
       BUNDLED_LIBFILES="externals/ppm/src/.libs/libscalesppmcore.a dnl
-$BUNDLED_LIBFILES"])])
+$BUNDLED_LIBFILES"
+      AS_VAR_APPEND([icon_pvcs_subdirs], [' externals/ppm'])])])
 
 AS_VAR_IF([with_external_cdi], [no],
   [icon_subdir_srcdir="$srcdir/externals/cdi"
@@ -2326,7 +2326,6 @@ bundled version of CDI library @<:@default=$ICON_BUNDLED_FCFLAGS@:>@])dnl
      [C compiler flags to be appended to CFLAGS when configuring the bundled
 version of CDI library @<:@default=$ICON_BUNDLED_CFLAGS@:>@])dnl
    ICON_CDI_CFLAGS=${ICON_CDI_CFLAGS-$ICON_BUNDLED_CFLAGS}
-   AS_VAR_APPEND([icon_pvcs_subdirs], [' externals/cdi'])
    ACX_SUBDIR_INIT_CONFIG([externals/cdi], [no-run])
    ACX_SUBDIR_REMOVE_ARGS([externals/cdi],
      [BUILD_*=*|ICON_*FLAGS=*|CFLAGS=*|FCFLAGS=*|F77=*|CXX=*|AR=*|RANLIB=*],
@@ -2467,7 +2466,8 @@ ${icon_abs_top_builddir}/externals/yaxt/src/libyaxt_c.la"])
       BUNDLED_LIBFILES="externals/cdi/src/.libs/libcdipio.a $BUNDLED_LIBFILES"])
    AS_VAR_APPEND([bundled_includes], ["${FC_MOD_IN}externals/cdi/src "])
    BUNDLED_LIBFILES="externals/cdi/src/.libs/libcdi.a $BUNDLED_LIBFILES"
-   BUNDLED_LIBFILES="externals/cdi/src/.libs/libcdi_f2003.a $BUNDLED_LIBFILES"])
+   BUNDLED_LIBFILES="externals/cdi/src/.libs/libcdi_f2003.a $BUNDLED_LIBFILES"
+   AS_VAR_APPEND([icon_pvcs_subdirs], [' externals/cdi'])])
 
 AS_VAR_IF([with_external_mtime], [no],
   [icon_subdir_srcdir="$srcdir/externals/mtime"
@@ -2485,35 +2485,31 @@ bundled version of MTIME library @<:@default=$ICON_BUNDLED_FCFLAGS@:>@])dnl
      [C compiler flags to be appended to CFLAGS when configuring the bundled
 version of MTIME library @<:@default=$ICON_BUNDLED_CFLAGS@:>@])dnl
    ICON_MTIME_CFLAGS=${ICON_MTIME_CFLAGS-$ICON_BUNDLED_CFLAGS}
-   AS_IF(
-     [test x"${icon_mtime_python}" = xyes || test x"${icon_yac_python}" = xyes],
-     [icon_mtime_pic=yes], [icon_mtime_pic=no])
-   AS_VAR_APPEND([icon_pvcs_subdirs], [' externals/mtime'])
-   ACX_SUBDIR_INIT_CONFIG([externals/mtime], [no-run])
-   ACX_SUBDIR_REMOVE_ARGS([externals/mtime],
-     [BUILD_ENV=*|ICON_*FLAGS=*|CFLAGS=*|FCFLAGS=*|PYTHON=*|AR=*|RANLIB=*],
-     [ACX_SUBDIR_CONFIG_PATTERN_ENABLE([silent-rules])],
-     [ACX_SUBDIR_CONFIG_PATTERN_ENABLE([maintainer-mode])],
-     [ACX_SUBDIR_CONFIG_PATTERN_ENABLE([shared])],
-     [ACX_SUBDIR_CONFIG_PATTERN_ENABLE([static])],
-     [ACX_SUBDIR_CONFIG_PATTERN_ENABLE([examples])],
-     [ACX_SUBDIR_CONFIG_PATTERN_ENABLE([fortran-hl])],
-     [ACX_SUBDIR_CONFIG_PATTERN_ENABLE([python])],
-     [ACX_SUBDIR_CONFIG_PATTERN_WITH([pic])])
-   ACX_SUBDIR_APPEND_ARGS([externals/mtime],
-     [CFLAGS="$subdir_CFLAGS $ICON_MTIME_CFLAGS"],
-     [FCFLAGS="$subdir_FCFLAGS $ICON_MTIME_FCFLAGS"], [PYTHON="$PYTHON"],
-     [AR="$AR"], [RANLIB="$RANLIB"],
-     [--enable-silent-rules="$enable_silent_rules"],
-     [--disable-maintainer-mode], [--enable-shared="$icon_mtime_python"],
-     [--enable-static], [--disable-examples], [--disable-fortran-hl],
-     [--enable-python="$icon_mtime_python"], [--with-pic="$icon_mtime_pic"])
+   ACX_SUBDIR_INIT_CMAKE([externals/mtime],
+     [no-run no-adjust-compilers no-adjust-utilities], [externals/mtime/build],
+     ['${CMAKE}'])
+   ACX_SUBDIR_REMOVE_ARGS([externals/mtime/build],
+     [-DCMAKE_C_FLAGS=*|-DCMAKE_Fortran_FLAGS=*|-DCMAKE_CXX_*=*])
+   ACX_SUBDIR_APPEND_ARGS([externals/mtime/build],
+     [-DCMAKE_AR="$AR"], [-DCMAKE_RANLIB="$RANLIB"],
+     [-DCMAKE_C_FLAGS="$subdir_CFLAGS $ICON_MTIME_CFLAGS $subdir_CPPFLAGS"],
+     [-DCMAKE_Fortran_FLAGS="$subdir_FCFLAGS $ICON_MTIME_FCFLAGS"],
+     [-DCMAKE_BUILD_TYPE=None],
+     [-DCMAKE_PREFIX_PATH="$bundled_CMAKE_PREFIX_PATH"],
+     [-DBUILD_SHARED_LIBS=OFF], [-DBUILD_TESTING=OFF],
+     [-DMTIME_ENABLE_PYTHON="$icon_mtime_python"],
+     [-DPython_EXECUTABLE="$PYTHON"])
+   AS_VAR_APPEND([bundled_CMAKE_PREFIX_PATH],
+     ["${bundled_CMAKE_PREFIX_PATH:+";"}dnl
+${icon_abs_top_builddir}/externals/mtime/build"])
    AS_VAR_IF([icon_mtime_python], [yes],
      [AS_VAR_APPEND([BUNDLED_PYTHONPATH],
-        ["${BUNDLED_PYTHONPATH:+"${PATH_SEPARATOR}"}dnl
-${icon_abs_top_builddir}/externals/mtime/python"])])
-   AS_VAR_APPEND([bundled_includes], ["${FC_MOD_IN}externals/mtime/src "])
-   BUNDLED_LIBFILES="externals/mtime/src/.libs/libmtime.a $BUNDLED_LIBFILES"])
+        ["${BUNDLED_PYTHONPATH+"${PATH_SEPARATOR}"}dnl
+${icon_abs_top_builddir}/externals/mtime/build/python"])])
+   AS_VAR_APPEND([bundled_includes],
+     ["${FC_MOD_IN}externals/mtime/build/src/mod "])
+   BUNDLED_LIBFILES="externals/mtime/build/src/libmtime.a $BUNDLED_LIBFILES"
+   AS_VAR_APPEND([icon_pvcs_subdirs], [' externals/mtime'])])
 
 AS_IF([test "x$enable_coupling" = xyes && test "x$with_external_yac" = xno],
   [icon_subdir_srcdir="$srcdir/externals/yac"
@@ -2532,7 +2528,6 @@ bundled version of YAC library @<:@default=$ICON_BUNDLED_FCFLAGS@:>@])dnl
      [C compiler flags to be appended to CFLAGS when configuring the bundled
 version of YAC library @<:@default=$ICON_BUNDLED_CFLAGS@:>@])dnl
    ICON_YAC_CFLAGS=${ICON_YAC_CFLAGS-$ICON_BUNDLED_CFLAGS}
-   AS_VAR_APPEND([icon_pvcs_subdirs], [' externals/yac'])
    ACX_SUBDIR_INIT_CONFIG([externals/yac], [no-run])
    ACX_SUBDIR_REMOVE_ARGS([externals/yac],
      [BUILD_ENV=*|ICON_*FLAGS=*|CFLAGS=*|FCFLAGS=*|AR=*|RANLIB=*],
@@ -2599,16 +2594,18 @@ ${icon_abs_top_builddir}/externals/yaxt/src/.libs/libyaxt_c.a"])],
      [ACX_SUBDIR_APPEND_ARGS([externals/yac],
         [MTIME_CFLAGS="-I${icon_abs_top_srcdir}/externals/mtime/include"],
         [acx_cv_c_lib_func_datetimeToString=dnl
-"${icon_abs_top_builddir}/externals/mtime/src/.libs/libmtime.a"])
+"${icon_abs_top_builddir}/externals/mtime/build/src/libmtime.a"])
       AS_VAR_IF([icon_yac_python], [yes],
-        [icon_bundled_build_after_build([externals/yac], [externals/mtime])])])
+        [icon_bundled_build_after_build([externals/yac],
+           [externals/mtime/build])])])
    AS_VAR_IF([icon_yac_python], [yes],
      [AS_VAR_APPEND([BUNDLED_PYTHONPATH],
         ["${BUNDLED_PYTHONPATH:+"${PATH_SEPARATOR}"}dnl
 ${icon_abs_top_builddir}/externals/yac/python"])])
    AS_VAR_APPEND([bundled_includes], ["${FC_MOD_IN}externals/yac/src/mci "])
    BUNDLED_LIBFILES="externals/yac/src/core/libyac_core.a $BUNDLED_LIBFILES"
-   BUNDLED_LIBFILES="externals/yac/src/mci/libyac_mci.a $BUNDLED_LIBFILES"])
+   BUNDLED_LIBFILES="externals/yac/src/mci/libyac_mci.a $BUNDLED_LIBFILES"
+   AS_VAR_APPEND([icon_pvcs_subdirs], [' externals/yac'])])
 
 AS_IF([test "x$enable_art" = xyes && test "x$with_external_tixi" = xno],
   [icon_subdir_srcdir="$srcdir/externals/tixi"
@@ -2627,7 +2624,6 @@ bundled version of TIXI library @<:@default=$ICON_BUNDLED_FCFLAGS@:>@])dnl
      [C compiler flags to be appended to CFLAGS when configuring the bundled
 version of TIXI library @<:@default=$ICON_BUNDLED_CFLAGS@:>@])dnl
    ICON_TIXI_CFLAGS=${ICON_TIXI_CFLAGS-$ICON_BUNDLED_CFLAGS}
-   AS_VAR_APPEND([icon_pvcs_subdirs], [' externals/tixi'])
    ACX_SUBDIR_INIT_CONFIG([externals/tixi], [no-run])
    ACX_SUBDIR_REMOVE_ARGS([externals/tixi],
      [BUILD_ENV=*|ICON_*FLAGS=*|CFLAGS=*|FCFLAGS=*|AR=*|RANLIB=*],
@@ -2641,7 +2637,8 @@ version of TIXI library @<:@default=$ICON_BUNDLED_CFLAGS@:>@])dnl
      [--disable-maintainer-mode],
      [--enable-silent-rules="$enable_silent_rules"])
    AS_VAR_APPEND([bundled_includes], ["${FC_MOD_IN}externals/tixi/src "])
-   BUNDLED_LIBFILES="externals/tixi/src/libicon_tixi.a $BUNDLED_LIBFILES"])
+   BUNDLED_LIBFILES="externals/tixi/src/libicon_tixi.a $BUNDLED_LIBFILES"
+   AS_VAR_APPEND([icon_pvcs_subdirs], [' externals/tixi'])])
 
 AS_IF([test "x$enable_comin" = xyes && test "x$with_external_comin" = xno],
   [icon_subdir_srcdir="$srcdir/externals/comin"
@@ -2661,7 +2658,6 @@ version of COMIN library @<:@default=$ICON_BUNDLED_CFLAGS@:>@])dnl
      [C++ compiler flags to be appended to CXXFLAGS when configuring the
 bundled version of COMIN library @<:@default=$ICON_BUNDLED_CXXFLAGS@:>@])dnl
    ICON_COMIN_CXXFLAGS=${ICON_COMIN_CXXFLAGS-$ICON_BUNDLED_CXXFLAGS}
-   AS_VAR_APPEND([icon_pvcs_subdirs], [' externals/comin'])
    ACX_SUBDIR_INIT_CMAKE([externals/comin],
      [no-run no-adjust-compilers no-adjust-utilities],
      [externals/comin/build], ['${CMAKE}'])
@@ -2683,7 +2679,8 @@ bundled version of COMIN library @<:@default=$ICON_BUNDLED_CXXFLAGS@:>@])dnl
      ["${bundled_CMAKE_PREFIX_PATH:+";"}dnl
 ${icon_abs_top_builddir}/externals/comin/build"])
    AS_VAR_APPEND([bundled_includes], ["${FC_MOD_IN}externals/comin/build/mod "])
-   BUNDLED_LIBFILES="externals/comin/build/libcomin.a $BUNDLED_LIBFILES"])
+   BUNDLED_LIBFILES="externals/comin/build/libcomin.a $BUNDLED_LIBFILES"
+   AS_VAR_APPEND([icon_pvcs_subdirs], [' externals/comin'])])
 
 AS_VAR_IF([with_external_fortran_support], [no],
   [icon_subdir_srcdir="$srcdir/externals/fortran-support"
@@ -2706,7 +2703,6 @@ bundled version of FORTRAN-SUPPORT library
 @<:@default=$ICON_BUNDLED_CFLAGS@:>@])dnl
    ICON_FORTRAN_SUPPORT_CFLAGS=dnl
 ${ICON_FORTRAN_SUPPORT_CFLAGS-$ICON_BUNDLED_CFLAGS}
-   AS_VAR_APPEND([icon_pvcs_subdirs], [' externals/fortran-support'])
    ACX_SUBDIR_INIT_CMAKE([externals/fortran-support],
      [no-run no-adjust-compilers no-adjust-utilities],
      [externals/fortran-support/build], ['${CMAKE}'])
@@ -2731,7 +2727,8 @@ ${icon_abs_top_builddir}/externals/fortran-support/build"])
    AS_VAR_APPEND([bundled_includes],
      ["${FC_MOD_IN}externals/fortran-support/build/src/mod "])
    BUNDLED_LIBFILES=dnl
-"externals/fortran-support/build/src/libfortran-support.a $BUNDLED_LIBFILES"])
+"externals/fortran-support/build/src/libfortran-support.a $BUNDLED_LIBFILES"
+   AS_VAR_APPEND([icon_pvcs_subdirs], [' externals/fortran-support'])])
 
 icon_subdir_srcdir="$srcdir/externals/iconmath"
 icon_subdir_unique_file="src/support/mo_math_constants.f90"
@@ -2743,7 +2740,6 @@ AC_ARG_VAR([ICON_ICONMATH_FCFLAGS],
 bundled version of ICONMATH library
 @<:@default=$ICON_BUNDLED_FCFLAGS@:>@])dnl
 ICON_ICONMATH_FCFLAGS=${ICON_ICONMATH_FCFLAGS-$ICON_BUNDLED_FCFLAGS}
-AS_VAR_APPEND([icon_pvcs_subdirs], [' externals/iconmath'])
 ACX_SUBDIR_INIT_CMAKE([externals/iconmath],
   [no-run no-adjust-compilers no-adjust-utilities],
   [externals/iconmath/build], ['${CMAKE}'])
@@ -2782,6 +2778,7 @@ AS_VAR_APPEND([bundled_includes],
 BUNDLED_LIBFILES=dnl
 "externals/iconmath/build/src/interpolation/libiconmath-interpolation.a dnl
 $BUNDLED_LIBFILES"
+AS_VAR_APPEND([icon_pvcs_subdirs], [' externals/iconmath'])
 
 dnl Prepend the include search flags to FCFLAGS:
 FCFLAGS="${bundled_includes}${FCFLAGS}"
@@ -2826,9 +2823,9 @@ ${icon_abs_top_builddir}/externals/yac/src/core/libyac_core.a"
             AS_VAR_IF([with_external_mtime], [no],
               [AS_VAR_APPEND([icon_hd_yac_lib],
                  [dnl
-" ${icon_abs_top_builddir}/externals/mtime/src/.libs/libmtime.a"])
+" ${icon_abs_top_builddir}/externals/mtime/build/src/libmtime.a"])
                icon_bundled_build_after_build(
-                 [externals/hd], [externals/mtime])])
+                 [externals/hd], [externals/mtime/build])])
             AS_VAR_IF([with_external_yaxt], [no],
               [AS_VAR_APPEND([icon_hd_yac_lib],
                  [dnl

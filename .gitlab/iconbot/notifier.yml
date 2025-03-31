@@ -42,6 +42,11 @@
       - utils/pvcs.py
     labels: [Build system]
     mentions: [m300488]
+  # Documentation:
+  - file_names:
+      - doc/www/*
+    labels: [Documentation]
+    mentions: [m300368]
   # GPU-related changes:
   - file_names: ['*.f90', '*.F90']
     diff_regexps: ['(?i)^\s*!\$acc']
@@ -89,6 +94,9 @@
       - externals/jsbach
       - shared/mo_util_jsbach.f90
     labels: [ICON-Land]
+  - file_names:
+      - externals/ecrad
+    mentions: [m300368, b381110]
   # Various personal notifications:
   - mentions: [k202170]
     file_names:
@@ -106,6 +114,13 @@
       - run/exp.aes*
       - run/exp.atm*
       - run/*.config
+  - mentions: [m300368, b381110]
+    file_names:
+      - src/atm_phy_nwp/*ecrad*
+      - src/atm_phy_nwp/mo_nwp_rad_interface.f90
+  - mentions: [m300368]
+    file_names:
+      - src/atm_phy_nwp/mo_nwp_aerosol.f90
 
 icon/icon:
   default:

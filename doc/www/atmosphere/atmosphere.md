@@ -107,6 +107,19 @@ _to be added_
 | **Land**                             | See **[](ref_land_schemes)** | {term}`inwp_surface` |
 :::
 
+More detailed descriptions of some of above options are available here:
+
+::::{grid} 1 2 2 3
+:gutter: 1 1 1 2
+
+:::{grid-item-card}
+**Radiation (ecRad)**
+^^^
+[](ref_atmosphere_ecrad)  
+[](ref_atmosphere_ecrad_redgrid)  
+[](ref_atmosphere_ecrad_aerosol)
+:::
+::::
 
 _to be extended_
 

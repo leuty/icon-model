@@ -59,7 +59,7 @@ MODULE mo_multifile_restart_collector
     & typeMax, typeID, facTtoSP
   USE mo_timer, ONLY: timer_start, timer_stop, timer_restart_collector_setup, &
     & timer_restart_indices_setup, timers_level
-  USE mo_fortran_tools, ONLY: t_ptr_1d_int, t_ptr_1d_sp
+  USE fortran_support,  ONLY: t_ptr_1d_int, t_ptr_1d_sp
 
   IMPLICIT NONE
   PRIVATE

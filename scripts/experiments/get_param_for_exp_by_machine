@@ -18,6 +18,8 @@ from yaml_experiment_test_processor import ExperimentTestCollection
 @click.option("--param", "param", type=str, required=True)
 def main(exp, param):
     bb_name = os.getenv('BB_NAME')
+    if not bb_name:
+        raise Exception("Environment variable BB_NAME is not set")
     tests = ExperimentTestCollection()
     tests.print_param_for_exp_by_machine(exp,param,bb_name)
 
