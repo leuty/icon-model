@@ -13,7 +13,7 @@ spack:
     - gmake%gcc
     - gnuconfig%gcc
     - cosmo-eccodes-definitions@2.25.0.2
-    - icon @develop %nvhpc +grib2 +eccodes-definitions +ecrad ~emvorado +art +dace
+    - icon @develop %nvhpc +grib2 +eccodes-definitions +ecrad ~emvorado +art
       gpu=openacc+cuda +mpi-gpu +realloc-buf ~aes ~jsbach ~ocean ~coupling ~rte-rrtmgp
       ~loop-exchange ~async-io-rma ~pgi-inlib +cuda-graphs
   view: true
@@ -23,5 +23,5 @@ spack:
     icon:
       path: ../../../../..
       spec: icon @develop %nvhpc +grib2 +eccodes-definitions +ecrad ~emvorado +art
-        +dace gpu=openacc+cuda +mpi-gpu +realloc-buf ~aes ~jsbach ~ocean
+        gpu=openacc+cuda +mpi-gpu +realloc-buf ~aes ~jsbach ~ocean
         ~coupling ~rte-rrtmgp ~loop-exchange ~async-io-rma ~pgi-inlib +cuda-graphs

@@ -62,7 +62,8 @@ MODULE mo_icon2dace
   USE mo_nh_diagnose_pres_temp, ONLY: diagnose_pres_temp
   USE mo_intp_rbf,              ONLY: rbf_vec_interpol_cell
   USE mo_intp_data_strc,        ONLY: p_int_state
-  USE mo_atm_phy_nwp_config,    ONLY: atm_phy_nwp_config 
+  USE mo_atm_phy_nwp_config,    ONLY: atm_phy_nwp_config
+  USE mo_nwp_tuning_config,     ONLY: itune_gust_diag
   !-------------------
   ! ICON event control
   !-------------------
@@ -196,7 +197,8 @@ MODULE mo_icon2dace
                             TSK_READ,        &!
                             TSK_R,           &!
                             TSK_Y,           &! flag to process_obs
-                            n_dace_op,     &! lenght of non-empty entries in dace_op
+                            n_dace_op,       &! lenght of non-empty entries in dace_op
+                            rof_files,       &! rof-files to read
                             COSMO             ! observation module numbers
   use mo_obs_set,     only: t_obs_set,       &! observation data type set
                             destruct,        &! t_obs_set destructor routine
@@ -213,6 +215,11 @@ MODULE mo_icon2dace
   use mo_cloud,       only: cloud_detect,     &! cloud detection for all radiances
                             cloud_detect_init,&! initialize cloud detection
                             PH_ABC
+  use mo_hum_ana,     only: read_nml_hum_ana
+  use mo_radbias_3dv, only: radbias_init,     &! Initialize radiance bias correction
+                            radbias_bfg,      &! Apply bc., called before FG check
+                            radbias_afg
+  use mo_biasc_io,    only: read_nml_biasc     ! read namelist /BIASCORR/
   use mo_obs_sndrcv,  only: p_alltoall,      &! MPI_ALLTOALL (t_obs)
                             p_bcast           ! MPI_BCAST    (t_obs)
   use mo_obs_rules,   only: read_nml_rules    ! read namelists /RULES/
@@ -225,6 +232,7 @@ MODULE mo_icon2dace
   use mo_std,         only: read_std_nml_dace ! read namelist /STD_OBS/
   use mo_boxes,       only: set_input_boxes, &! distribute files over PEs
                             set_veri_boxes    ! associate obs. with boxes
+  use mo_t_col,       only: u10_use_mlevel    ! use model level for 10m wind?
   use mo_thinning,    only: check_domain,    &! check for out of domain
                             thinning,        &! thinning routine
                             read_nml_thin     ! read namelist /THINNING/ 
@@ -359,8 +367,9 @@ MODULE mo_icon2dace
   character(len=512) :: obstypes     = 'TEMP PILOT SYNOP DRIBU AIREP SATOB'
   integer            :: interpolation= -1    ! >0: use nth slot, 0:nn -1:interval
   integer            :: fg_check     = -1    ! switch how to apply quality checks
+  logical            :: u10_use_av   = .false. !currently deactivated, removed from namelist
 
-  namelist /mec_obs/ obstypes, prefix_out, interpolation, fg_check
+  namelist /mec_obs/ obstypes, prefix_out, interpolation, fg_check, u10_use_mlevel
 
 #endif /* __DACE__ */
   !============================================================================
@@ -1607,12 +1616,13 @@ contains
     !      & t2m td2m rh2m u_10m v_10m clct clcl clcm clch clc&
     !      & tsurf h_snow fr_ice" ! "t_so" currently not used
     character(*), parameter :: fields_default = &
-         "ps pf ph t u v den q qcl qci qv_s z0& 
+         "ps pf ph t u v den q qcl qci qv_s z0&
          & t2m td2m rh2m u_10m v_10m clct clcl clcm clch&
          & tsurf h_snow fr_ice" ! "t_so" currently not used
     character(*), parameter :: fields_rad_cld      = &
                                                   "qv_dia qc_dia qi_dia clc"
-    character(*), parameter :: fields_rad_reff  = "reff_qc reff_qi" 
+    character(*), parameter :: fields_rad_reff     = "reff_qc reff_qi"
+    character(*), parameter :: fields_10m_wind_av  = "u_10m_av v_10m_av"
     character(512)          :: fields
     integer                 :: ou
 
@@ -1639,7 +1649,7 @@ contains
     if (l_rad_cld) fields = trim(fields)//' '//trim(fields_rad_cld)
     if (l_rad_cld .and. use_reff .and. atm_phy_nwp_config(1)% icalc_reff .gt. 0) &
        fields = trim(fields)//' '//trim(fields_rad_reff)
-
+    if (itune_gust_diag == 4 .and. u10_use_av) fields = trim(fields)//' '//trim(fields_10m_wind_av)
     IF (l_rad_cld) THEN
       NULLIFY(ptr_clc)
       ! Decide which field for cloud cover has to be used:
@@ -1731,6 +1741,10 @@ contains
        state% rh2m   (j,1,1,1) = phy_d% rh_2m    (idx,blk)
        state% u_10m  (j,1,1,1) = phy_d% u_10m    (idx,blk)
        state% v_10m  (j,1,1,1) = phy_d% v_10m    (idx,blk)
+       if (itune_gust_diag == 4 .and. u10_use_av) then
+         state% u_10m_av  (j,1,1,1) = phy_d% u_10m_a    (idx,blk)
+         state% v_10m_av  (j,1,1,1) = phy_d% v_10m_a    (idx,blk)
+       end if
        state% clct   (j,1,1,1) = phy_d% clct     (idx,blk)*100._wp !convert to percent
        state% clcl   (j,1,1,1) = phy_d% clcl     (idx,blk)*100._wp !convert to percent
        state% clcm   (j,1,1,1) = phy_d% clcm     (idx,blk)*100._wp !convert to percent
@@ -1878,16 +1892,18 @@ contains
     call read_nml_mec_obs () ! read namelist /MEC_OBS/
     call read_obs_nml     () ! read namelist /observations/
     call read_std_nml_dace() ! read namelist /STD_OBS/
+    call read_nml_hum_ana    ! read namelist /HUM_ANA/
     call init_fdbk_tables () ! initialise tables
     call disable_gh       () ! disable generalized humidity transformation
     call read_nml_report     ! set defaults in table 'rept_use'
     !call read_tovs_nml      ! read namelists /TOVS_OBS/ and /TOVS_OBS_CHAN_NML/
     call read_nml_thin       ! read namelist /THINNING/
     call cloud_detect_init   ! read namelists /TOVS_CLOUD/ and /CLOUD_DETECT_COEFFS/
-    if (n_dace_op > 0) then
+    if (n_dace_op > 0 .or. any (rof_files /= '')) then
        call read_blacklists  ! read namelist /BLACKLIST/ (and blacklist file)
     end if
     flush (6)
+    call read_nml_biasc       ! read namelist /BIASCORR/
 
 
     if  (use_reff .and. atm_phy_nwp_config(1)% icalc_reff <= 0) &
@@ -1985,6 +2001,7 @@ contains
     deallocate    (pes)
     call destruct (obs_in(1))
 
+    call radbias_init(obs_b% o) ! read namelist /RADBIASCOR/
     !------------------------------
     ! write report usage statistics
     !------------------------------
@@ -2308,8 +2325,10 @@ contains
 
        call thin_superob_tovs(obs, H_det)
        call process_obs (TSK_R,    obs)
+       call radbias_bfg     (obs, H_det, x= obs% b% xb)
        call cloud_detect(obs, H_det, PH_ABC)
 
+       call radbias_afg (obs, 1, H_det,  obs% b% xb)
        if (first) then
           !-------------------------
           ! apply consistency checks
@@ -2319,7 +2338,7 @@ contains
           ! apply observation specific rules
           !---------------------------------
           call check_rule (obs% o) ! check for specific rules
-          if (n_dace_op > 0) then
+          if (n_dace_op > 0 .or. any (rof_files /= '')) then
              !call read_blacklists
              call check_black (obs% o) ! check for blacklisting
           end if
@@ -2474,6 +2493,8 @@ contains
     prefix_out   = 'fof' ! feedback output file prefix
     interpolation= -1    ! >0: use nth slot, 0:nn -1:interval
     fg_check     = -1    ! switch how to apply quality checks
+    u10_use_mlevel = .false. ! default: use 10m wind instead of (lowest) model level
+    !u10_use_av     = .false.
 
     !--------------
     ! read namelist
@@ -2498,6 +2519,8 @@ contains
       write (6,'(a,a )')   '  obstypes      = ',trim(obstypes)
       write (6,'(a,a )')   '  prefix_out    = ',     prefix_out
       write (6,'(a,i0)')   '  fg_check      = ',fg_check
+      write (6,'(a,l1  )') '  u10_use_mlevel= ',u10_use_mlevel
+      !write (6,'(a,l1  )') '  u10_use_av    = ',u10_use_av
       select case (interpolation)
       case default
         write (6,'(a,i0)') '  interpolation = ',interpolation
@@ -2518,6 +2541,8 @@ contains
     call p_bcast (prefix_out    ,dace% pio)
     call p_bcast (interpolation ,dace% pio)
     call p_bcast (fg_check      ,dace% pio)
+    call p_bcast (u10_use_mlevel,dace% pio)
+    !call p_bcast (u10_use_av    ,dace% pio)
     if (interpolation < -1) call finish ("read_nml_mec_obs",    &
                                          "invalid interpolation")
     if (interpolation >  1) call finish ("read_nml_mec_obs",              &
