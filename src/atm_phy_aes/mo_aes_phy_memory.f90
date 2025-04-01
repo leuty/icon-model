@@ -624,10 +624,14 @@ CONTAINS
     IF (ist/=SUCCESS) CALL finish(thismodule, &
       &'allocation of prm_field/tend array failed')
 
+    !$ACC ENTER DATA COPYIN(prm_field, prm_tend)
+
     ALLOCATE( prm_field_list(ndomain), prm_tend_list(ndomain), STAT=ist)
     IF (ist/=SUCCESS) CALL finish(thismodule, &
       &'allocation of prm_field/tend list array failed')
 
+    !$ACC ENTER DATA COPYIN(prm_field_list, prm_tend_list)
+  
     ! Build a field list and a tendency list for each grid level.
     ! This includes memory allocation. 
 
@@ -750,7 +754,6 @@ CONTAINS
 
     tl_suffix = get_timelevel_string(jt)
 
-    !$ACC ENTER DATA COPYIN(field)
     ! Register a field list and apply default settings
 
     CALL vlr_add(field_list, listname, patch_id=jg, lrestart=.TRUE., &
