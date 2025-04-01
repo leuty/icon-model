@@ -20,6 +20,7 @@ MODULE mo_coupling_config
   !!
   LOGICAL :: config_coupled_to_ocean     = .FALSE.
   LOGICAL :: config_coupled_to_waves     = .FALSE.
+  LOGICAL :: config_coupled_to_cleo     = .FALSE.
   LOGICAL :: config_coupled_to_atmo      = .FALSE.
   LOGICAL :: config_coupled_to_hydrodisc = .FALSE.
   LOGICAL :: config_coupled_to_output    = .FALSE.
@@ -30,6 +31,7 @@ MODULE mo_coupling_config
   ! variables
   PUBLIC :: config_coupled_to_ocean
   PUBLIC :: config_coupled_to_waves
+  PUBLIC :: config_coupled_to_cleo
   PUBLIC :: config_coupled_to_atmo
   PUBLIC :: config_coupled_to_hydrodisc
   PUBLIC :: config_coupled_to_output
@@ -40,6 +42,7 @@ MODULE mo_coupling_config
   PUBLIC :: is_coupled_run
   PUBLIC :: is_coupled_to_ocean
   PUBLIC :: is_coupled_to_waves
+  PUBLIC :: is_coupled_to_cleo
   PUBLIC :: is_coupled_to_atmo
   PUBLIC :: is_coupled_to_hydrodisc
   PUBLIC :: is_coupled_to_output
@@ -53,6 +56,7 @@ CONTAINS
 
     is_coupled_run = config_coupled_to_ocean .OR.     &
       &              config_coupled_to_waves .OR.     &
+      &              config_coupled_to_cleo .OR.     &
       &              config_coupled_to_atmo  .OR.     &
       &              config_coupled_to_hydrodisc .OR. &
       &              config_coupled_to_output .OR.    &
@@ -74,6 +78,13 @@ CONTAINS
     is_coupled_to_waves = config_coupled_to_waves
 
   END FUNCTION is_coupled_to_waves
+
+  !------------------------------------------------------------------------
+  LOGICAL FUNCTION is_coupled_to_cleo()
+
+    is_coupled_to_cleo = config_coupled_to_cleo
+
+  END FUNCTION is_coupled_to_cleo
 
   !------------------------------------------------------------------------
   LOGICAL FUNCTION is_coupled_to_atmo()
