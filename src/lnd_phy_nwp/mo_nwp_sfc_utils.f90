@@ -52,7 +52,7 @@ MODULE mo_nwp_sfc_utils
   USE sfc_flake,              ONLY: flake_init
   USE sfc_seaice,             ONLY: seaice_init_nwp, seaice_coldinit_albsi_nwp
   USE sfc_terra_data,         ONLY: cadp, cf_snow, crhosmin_ml, crhosmax_ml
-  USE turb_data,              ONLY: c_lnd, c_sea, c_stm
+  USE mo_turbdiff_config,     ONLY: turbdiff_config
   USE mo_thdyn_functions,     ONLY: sat_pres_water, sat_pres_ice, spec_humi
   USE mo_sync,                ONLY: global_max, global_min
   USE mo_nonhydro_types,      ONLY: t_nh_diag
@@ -77,7 +77,7 @@ MODULE mo_nwp_sfc_utils
 
 #ifdef __SX__
 ! parameter for loop unrolling
-INTEGER, PARAMETER :: nlsoil= 8
+  INTEGER, PARAMETER :: nlsoil= 8
 #endif
 
   REAL(KIND=wp), PARAMETER ::            &
@@ -1885,7 +1885,7 @@ CONTAINS
             ext_data%atm%list_seaice%idx(i_count_ice,jb) = jc
             ext_data%atm%list_seaice%ncount(jb)          = i_count_ice
             ! set surface area index (needed by turbtran)
-            ext_data%atm%sai_t(jc,jb,isub_seaice) = c_sea
+            ext_data%atm%sai_t(jc,jb,isub_seaice) = turbdiff_config(jg)%c_sea
           ELSE
             !
             ! water point: all sea points with fr_seaice < 0.5
@@ -1925,7 +1925,7 @@ CONTAINS
 !DR Note that sai at seaice points is initialized with c/=c_sea, a corresponding update
 !DR of sai_t needs to be added to the procedure which updates the seaice index list.
             ! set surface area index (needed by turbtran)
-            ext_data%atm%sai_t(jc,jb,isub_seaice)  = c_sea
+            ext_data%atm%sai_t(jc,jb,isub_seaice)  = turbdiff_config(jg)%c_sea
           ELSE
             cond_ice(ic) = 0
             ext_data%atm%frac_t(jc,jb,isub_seaice) = 0._wp
@@ -3499,7 +3499,7 @@ CONTAINS
     TYPE(t_nh_diag),      INTENT(IN)    :: nh_diag
 
     ! local
-    INTEGER  :: jb,jt,ic,jc, jt_in
+    INTEGER  :: jg,jb,jt,ic,jc, jt_in
     INTEGER  :: rl_start, rl_end
     INTEGER  :: i_startblk, i_endblk    !> blocks
     INTEGER  :: i_count
@@ -3507,6 +3507,7 @@ CONTAINS
 
     !-------------------------------------------------------------------------
 
+     jg = p_patch%id
 
      ! exclude the boundary interpolation zone of nested domains
      rl_start = grf_bdywidth_c+1
@@ -3524,20 +3525,20 @@ CONTAINS
          DO ic = 1, i_count
            jc = ext_data%atm%idx_lst_lp_t(ic,jb,1)
            ! plant cover
-           ext_data%atm%plcov_t  (jc,jb,1)  = ext_data%atm%ndviratio(jc,jb)                                      &
+           ext_data%atm%plcov_t  (jc,jb,1)  = ext_data%atm%ndviratio(jc,jb)           &
              &     * MIN(ext_data%atm%ndvi_max(jc,jb),ext_data%atm%plcov_mx(jc,jb))
            ! transpiration area index
-           ext_data%atm%tai_t    (jc,jb,1)  = ext_data%atm%plcov_t  (jc,jb,1)                                    &
+           ext_data%atm%tai_t    (jc,jb,1)  = ext_data%atm%plcov_t  (jc,jb,1)         &
              &                                  * ext_data%atm%lai_mx(jc,jb)
            ! surface area index
            IF (lterra_urb) THEN
-             ext_data%atm%sai_t  (jc,jb,1)  = c_lnd * (1.0_wp - ext_data%atm%urb_isa_t(jc,jb,1))                 &
+             ext_data%atm%sai_t  (jc,jb,1)  = turbdiff_config(jg)%c_lnd * (1.0_wp - ext_data%atm%urb_isa_t(jc,jb,1)) &
                                             + ext_data%atm%urb_ai_t(jc,jb,1) * ext_data%atm%urb_isa_t(jc,jb,1)
            ELSE
-             ext_data%atm%sai_t  (jc,jb,1)  = c_lnd
+             ext_data%atm%sai_t  (jc,jb,1)  = turbdiff_config(jg)%c_lnd
            END IF
-           ext_data%atm%sai_t(jc,jb,1) = ext_data%atm%sai_t(jc,jb,1) + ext_data%atm%tai_t  (jc,jb,1)             &
-                                                                 + c_stm*ext_data%atm%plcov_t(jc,jb,1)
+           ext_data%atm%sai_t(jc,jb,1) = ext_data%atm%sai_t(jc,jb,1) + ext_data%atm%tai_t  (jc,jb,1)                 &
+                                                                 +turbdiff_config(jg)% c_stm*ext_data%atm%plcov_t(jc,jb,1)
 
          END DO
        ELSE ! ntiles_lnd > 1
@@ -3560,20 +3561,20 @@ CONTAINS
              IF (lu_subs < 0) CYCLE
 
              ! plant cover
-             ext_data%atm%plcov_t(jc,jb,jt) = ext_data%atm%ndviratio(jc,jb)                                      &
+             ext_data%atm%plcov_t(jc,jb,jt) = ext_data%atm%ndviratio(jc,jb)             &
                & * MIN(ext_data%atm%ndvi_max(jc,jb),ext_data%atm%plcovmax_lcc(lu_subs))
              ! transpiration area index
-             ext_data%atm%tai_t  (jc,jb,jt) = ext_data%atm%plcov_t(jc,jb,jt)                                     &
+             ext_data%atm%tai_t  (jc,jb,jt) = ext_data%atm%plcov_t(jc,jb,jt)            &
                & * ext_data%atm%laimax_lcc(lu_subs)
              ! surface area index
              IF (lterra_urb) THEN
-               ext_data%atm%sai_t(jc,jb,jt) = c_lnd * (1.0_wp - ext_data%atm%urb_isa_t(jc,jb,jt))                &
+               ext_data%atm%sai_t(jc,jb,jt) = turbdiff_config(jg)%c_lnd * (1.0_wp - ext_data%atm%urb_isa_t(jc,jb,jt)) &
                                             + ext_data%atm%urb_ai_t(jc,jb,jt) * ext_data%atm%urb_isa_t(jc,jb,jt)
              ELSE
-               ext_data%atm%sai_t(jc,jb,jt) = c_lnd
+               ext_data%atm%sai_t(jc,jb,jt) = turbdiff_config(jg)%c_lnd
              END IF
-             ext_data%atm%sai_t  (jc,jb,jt) = ext_data%atm%sai_t(jc,jb,jt) + ext_data%atm%tai_t  (jc,jb,jt)      &
-                                                                     + c_stm*ext_data%atm%plcov_t(jc,jb,jt)
+             ext_data%atm%sai_t  (jc,jb,jt) = ext_data%atm%sai_t(jc,jb,jt) + ext_data%atm%tai_t  (jc,jb,jt)           &
+                                                                     + turbdiff_config(jg)%c_stm*ext_data%atm%plcov_t(jc,jb,jt)
 
            END DO !ic
          END DO !jt

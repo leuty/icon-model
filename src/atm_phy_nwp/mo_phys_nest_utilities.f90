@@ -55,7 +55,6 @@ USE sfc_flake,              ONLY: flake_coldinit
 USE sfc_flake_data,         ONLY: tpl_T_r, C_T_min, rflk_depth_bs_ref
 USE mo_fortran_tools,       ONLY: init, copy, set_acc_host_or_device, assert_acc_host_only
 USE mo_io_config,           ONLY: var_in_output, n_wshear, n_srh, uh_max_nlayer, echotop_meta, luh_max_out
-USE turb_data,              ONLY: imode_tkemini, rsur_sher
 
 ! ACC LOOP Comment "comment_collapse"
 ! ===================================

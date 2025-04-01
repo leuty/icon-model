@@ -55,7 +55,6 @@ MODULE mo_nh_torus_exp
   USE mo_grid_config,         ONLY: l_scm_mode
   USE mo_scm_nml,             ONLY: i_scm_netcdf, scm_sfc_temp, scm_sfc_qv, scm_sfc_mom, lscm_icon_ini, &
      &                              lscm_ls_forcing_ini, lat_scm, lon_scm
-  USE turb_data,              ONLY: vel_min  
   USE mo_lnd_nwp_config,      ONLY: nlev_soil
   USE mo_ext_data_types,      ONLY: t_external_data
   USE mo_read_interface,      ONLY: nf
@@ -1998,14 +1997,16 @@ MODULE mo_nh_torus_exp
   
   !-----------------------------------------------------
   !set boundary conditions for SCM
-  
-  SUBROUTINE  set_scm_bnd( nvec, ivstart, ivend, u_s, v_s, th_b, qv_b, pres_sfc, dz_bs,z0m,z0h,&
+
+  SUBROUTINE  set_scm_bnd( nvec, ivstart, ivend, vel_min,u_s, v_s, th_b, qv_b, pres_sfc, dz_bs,z0m,z0h,&
     & prm_nwp_tend, tvm, tvh, shfl_s, qhfl_s, lhfl_s,umfl_s,vmfl_s, qv_s, t_g )
 
     INTEGER,        INTENT(IN) :: &
     nvec,         & ! nproma
     ivstart,      & ! start index in the nproma vector
     ivend           ! end index in the nproma vector
+
+    REAL (KIND=wp), INTENT(IN)  :: vel_min !minimal velocity scale                                       ( m/s )
 
     REAL (KIND=wp), DIMENSION(:), TARGET, INTENT(IN) :: &
     u_s,          & ! zonal wind speed in surface layer       (at mass positions)           ( m/s )

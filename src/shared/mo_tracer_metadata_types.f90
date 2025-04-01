@@ -84,6 +84,13 @@ MODULE mo_tracer_metadata_types
                                   !   0 = No washout
                                   !   1 = Monodisperse aerosol
                                   !   2 = As part of an according aerosol mode
+    ! Dry deposition
+    REAL(wp) :: vdmol1,  &        ! ratio of mol. diffusion coeff. D_H2O/D_x
+             &  vdmol2,  &        ! ratio of mol. diffusion coeff. D_i/D_x with D_i the molecular diffusivity
+                                  ! of the species for which rsmin was determined (usually H2O or CO2, with current 
+                                  ! parametrization D_i = D_H2O (-> vdmol1 = vdmol2 in this case)) (see Baer, Eq. 12)
+             &  reac,    &        ! Reactivity 
+             &  heff              ! Henry's law constant
 
     CONTAINS
         PROCEDURE, PASS(this) :: set_tracer_meta => create_tracer_metadata_chem
@@ -206,6 +213,12 @@ CONTAINS
     ELSE
       this%iwash_tracer = 0
     ENDIF
+
+    ! dry deposition
+    this%heff = 0.0_wp
+    this%reac = 0.0_wp
+    this%vdmol1 = 0.0_wp
+    this%vdmol2 = 0.0_wp
 
 
 END SUBROUTINE create_tracer_metadata_chem

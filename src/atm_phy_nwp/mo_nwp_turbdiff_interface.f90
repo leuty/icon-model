@@ -41,7 +41,9 @@ MODULE mo_nwp_turbdiff_interface
     &                                  iqs, iqns, lart, ltestcase
   USE mo_atm_phy_nwp_config,     ONLY: atm_phy_nwp_config, itype_dissip_heat
   USE mo_nonhydrostatic_config,  ONLY: kstart_moist, kstart_tracer
-  USE turb_data,                 ONLY: get_turbdiff_param, lsflcnd, modvar, ndim, ilow_def_cond, &
+
+  USE mo_turbdiff_config,        ONLY: turbdiff_config, t_turbdiff_config, &
+                                       modvar, ndim, &   
                                        u_m, v_m, tet, vap, liq
   USE turb_diffusion,            ONLY: turbdiff
   USE turb_vertdiff,             ONLY: vertdiff
@@ -49,7 +51,6 @@ MODULE mo_nwp_turbdiff_interface
 
   USE mo_art_config,             ONLY: art_config
   USE mo_advection_config,       ONLY: advection_config
-  USE mo_turbdiff_config,        ONLY: turbdiff_config
   USE mo_comin_config,           ONLY: comin_config, t_comin_tracer_info
 #ifdef __ICON_ART
   USE mo_art_turbdiff_interface, ONLY: art_turbdiff_interface
@@ -70,6 +71,8 @@ MODULE mo_nwp_turbdiff_interface
   PUBLIC  ::  nwp_turbdiff
 
   CHARACTER(LEN=*), PARAMETER :: modname = 'mo_nwp_turbdiff_interface'
+
+  TYPE(t_turbdiff_config), POINTER :: tdc ! 'turbdiff' configuration state for a single patch (domain)
 
 CONTAINS
   !!
@@ -145,9 +148,8 @@ CONTAINS
   INTEGER, ALLOCATABLE :: idx_nturb_tracer(:)    !< indices of the turbulent tracers in the prognostic list
 
   LOGICAL :: ltwomoment                          !< using 2mom microphysics?
-  LOGICAL :: ldiff_qi, ldiff_qs                  !< turbulent diffusion of cloud-ice and -snow is active
 
-  LOGICAL :: ldoexpcor !consider explicit war-cloud correct. for turb. scalar fluxes
+  LOGICAL :: ldoexpcor !consider explicit warm-cloud correct. for turb. scalar fluxes
   LOGICAL :: ldocirflx !consider circulation heat-flux
 
   REAL(wp), TARGET      :: & 
@@ -173,6 +175,8 @@ CONTAINS
 
   jg = p_patch%id
 
+  tdc => turbdiff_config(jg)
+
   ! number of vertical levels
   nlev   = p_patch%nlev
   nlevp1 = p_patch%nlevp1
@@ -188,19 +192,13 @@ CONTAINS
   i_startblk = p_patch%cells%start_block(rl_start)
   i_endblk   = p_patch%cells%end_block(rl_end)
 
-  
-  IF ( atm_phy_nwp_config(jg)%inwp_turb == icosmo ) THEN
-     CALL get_turbdiff_param(jg)
-  ENDIF
-
+ 
   IF ( lart .AND. art_config(jg)%nturb_tracer > 0 ) THEN
      ALLOCATE(idx_nturb_tracer(art_config(jg)%nturb_tracer))
   END IF
 
   ! logical for SB two-moment scheme
   ltwomoment = atm_phy_nwp_config(jg)%l2moment
-  ldiff_qi = turbdiff_config(jg)%ldiff_qi
-  ldiff_qs = turbdiff_config(jg)%ldiff_qs
 
   !$ACC DATA CREATE(ddt_turb_qnc, ddt_turb_qni, ddt_turb_qs, ddt_turb_qns) &
   !$ACC   CREATE(l_hori, zvari, zrhon, z_tvs, ztmassfl_s, ut_sso, vt_sso)
@@ -319,7 +317,7 @@ CONTAINS
         ptr(ncloud_offset)%kstart =  kstart_moist(jg)
       ENDIF ! ltwomoment
 
-      IF (ldiff_qi) THEN
+      IF (tdc%ldiff_qi) THEN
         ! register cloud ice for turbulent diffusion
         ncloud_offset = ncloud_offset + 1
         !$ACC PARALLEL ASYNC(1) DEFAULT(PRESENT)
@@ -352,7 +350,7 @@ CONTAINS
         ENDIF ! ltwomoment
       ENDIF ! ldiff_qi
 
-      IF (ldiff_qs) THEN
+      IF (tdc%ldiff_qs) THEN
         ! register snow mass for turbulent diffusion
         ncloud_offset = ncloud_offset + 1
         !$ACC PARALLEL ASYNC(1) DEFAULT(PRESENT)
@@ -417,7 +415,7 @@ CONTAINS
           ENDIF
           this_info => this_info%next
         ENDDO
-        IF (ilow_def_cond /= 2) &
+        IF (tdc%ilow_def_cond /= 2) &
           &  CALL finish (routine, "ComIn tracers require zero-surface-value (ilow_def_cond = 2)")
         IF (nturb /= nturb_tracer_tot) THEN
           WRITE (message_text,'(A,A,I3,A,I3)') "Number of turbulent tracer is inconsistent: ",  &
@@ -429,6 +427,7 @@ CONTAINS
       IF ( ltestcase .AND. l_scm_mode .AND. &
         &  ((scm_sfc_mom >= 2) .OR. (scm_sfc_temp >= 2) .OR. (scm_sfc_qv >= 2)) ) THEN
         CALL set_scm_bnd( nvec=nproma, ivstart=i_startidx, ivend=i_endidx, &
+          & vel_min      = tdc%vel_min,                                    & !in
           & u_s          = p_diag%u(:,nlev,jb),                            & !in
           & v_s          = p_diag%v(:,nlev,jb),                            & !in
           & th_b         = p_diag%temp(:,nlev,jb)/p_prog%exner(:,nlev,jb), & !in
@@ -479,7 +478,7 @@ CONTAINS
       !$ACC END PARALLEL
 
       ! Add GWD momentum tendency to SSO when dissipative heating is calculated
-      IF (turbdiff_config(jg)%ltmpcor .AND. atm_phy_nwp_config(jg)%inwp_gwd > 0) THEN
+      IF (tdc%ltmpcor .AND. atm_phy_nwp_config(jg)%inwp_gwd > 0) THEN
         !$ACC PARALLEL ASYNC(1) DEFAULT(PRESENT)
         !$ACC LOOP GANG VECTOR COLLAPSE(2)
         DO jk=1, nlev
@@ -498,20 +497,23 @@ CONTAINS
                        ! calculating diffusion coefficients, TKE, SDSS, and optional tendencies (being apart
                        ! from turbulent diffusion)
 !
+        &  tdc=tdc,                & !in (current config-state for turbulence)
+!
         &  iini=0,                 & !no initialization
         &  ltkeinp=.FALSE.,        & !
         &  l3dturb=.FALSE.,        & ! not yet arranged for ICON
         &  lrunsso=(atm_phy_nwp_config(jg)%inwp_sso > 0),        & ! running COSMO SSO scheme
         &  lruncnv=(atm_phy_nwp_config(jg)%inwp_convection > 0), & ! running convection
         &  lrunscm=.FALSE.,                                      & ! no single column model
-        &  ldoexpcor=ldoexpcor,  & !consider explicit warm-cloud correct. for turb. scalar fluxes !out
-        &  ldocirflx=ldocirflx,  & !consider circulation heat-flux                                !out
+        &  ldoexpcor=ldoexpcor,    & !consider explicit warm-cloud correct. for turb. scalar fluxes !out
+        &  ldocirflx=ldocirflx,    & !consider circulation heat-flux                                !out
 !
         &  dt_var=tcall_turb_jg,                                                      & !in
         &  dt_tke=tcall_turb_jg,                                                      & !in
         &  nprv=nzprv, ntur=1, ntim=1,                                                & !in ('tke' without time-dimension)
         &  nvec=nproma, ke=nlev, ke1=nlevp1, kcm=nlevcm, iblock=jb,                   & !in
         &  ivstart=i_startidx, ivend=i_endidx,                                        & !in
+!
 !
         &  l_hori=l_hori,                                                             & !in
         &  hhl=p_metrics%z_ifc(:,:,jb),                                               & !in
@@ -534,7 +536,6 @@ CONTAINS
         &  rhon=zrhon(:,:),                                                           & !out
         &  epr=p_prog%exner(:,:,jb),                                                  & !in
 !
-        &  impl_weight=turbdiff_config(jg)%impl_weight,                               & !in
         &  tvm=prm_diag%tvm(:,jb),                                                    & !inout
         &  tvh=prm_diag%tvh(:,jb),                                                    & !inout
         &  tfm=prm_diag%tfm(:,jb),                                                    & !inout
@@ -588,9 +589,12 @@ CONTAINS
       CALL vertdiff( & !vertical diffusion of 1-st order variables (including an optional moist
                        ! correction for not-conserved thermodynamic variables T, qv and qc)
 !
+        &          tdc=tdc,                & !in (current config-state for turbulence)
+!
                    itndcon=0      ,        & !no consideration of explicit tendencies
                    lentire=.TRUE. ,        & !entire vertical diffusion required
-        &          lsfluse=lsflcnd,        & !use of explicit SHF and WVF at the surface dependent on 'lsflcnd'
+!
+        &          lsfluse=tdc%lsflcnd,    & !use of explicit SHF and WVF at the surface dependent on 'lsflcnd'
         &          lqvcrst=.FALSE.,        & !no reset of WVF convergence 'qv_conv'
         &          lrunscm=.FALSE.,        & !no special calculations for single column run
 !
@@ -604,6 +608,7 @@ CONTAINS
         &  kcm=nlevcm, kstart_cloud=kstart_moist(jg),             & !in
         &  iblock=jb,                                             & !in
         &  ivstart=i_startidx, ivend=i_endidx,                    & !in
+!
 !
         &  hhl       = p_metrics%z_ifc(:,:,jb),                   & !in
 !
@@ -621,9 +626,9 @@ CONTAINS
         &  rhon      = zrhon(:,:),                                & !in
         &  epr       = p_prog%exner(:,:,jb),                      & !in
 !
-        &  impl_weight=turbdiff_config(jg)%impl_weight,           & !in
         &  ptr       = ptr(:),                                    & !inout
         &  ndtr      = nturb_tracer_tot,                          & !in: diffusion of additional tracer variables!
+!
         &  tvm       = prm_diag%tvm(:,jb),                        & !inout
         &  tvh       = prm_diag%tvh(:,jb),                        & !inout
         &  tkvm      = prm_diag%tkvm(:,:,jb),                     & !inout
@@ -645,14 +650,14 @@ CONTAINS
 
       ! re-diagnose turbulent deposition fluxes for qc and qi (positive downward)
 
-      IF (ilow_def_cond==2) THEN !only in case of a zero surface-concentration as a default
+      IF (tdc%ilow_def_cond==2) THEN !only in case of a zero surface-concentration as a default
         !$ACC PARALLEL ASYNC(1) DEFAULT(PRESENT)
         !$ACC LOOP GANG VECTOR
         DO jc = i_startidx, i_endidx
           ztmassfl_s(jc) = zrhon(jc,nlevp1) * prm_diag%tvh(jc,jb) !turbulent mass flux at the surface
           prm_diag%qcfl_s(jc,jb) = ztmassfl_s(jc) * p_prog_rcf%tracer(jc,nlev,jb,iqc) !'qc'-flux at the surface
         END DO
-        IF (ldiff_qi) THEN !vertical diffusion of 'qi' is active
+        IF (tdc%ldiff_qi) THEN !vertical diffusion of 'qi' is active
           !$ACC LOOP GANG VECTOR
           DO jc = i_startidx, i_endidx
             prm_diag%qifl_s(jc,jb) = ztmassfl_s(jc) * p_prog_rcf%tracer(jc,nlev,jb,iqi) !'qi'-flux at the surface
@@ -689,7 +694,7 @@ CONTAINS
 !DR End Test
 
       ! preparation for concentration boundary condition. Usually inactive for standard ICON runs.
-      IF ( .NOT. lsflcnd ) THEN
+      IF ( .NOT. tdc%lsflcnd ) THEN
         !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1)
         !$ACC LOOP GANG VECTOR
         DO jc = i_startidx, i_endidx 
@@ -747,7 +752,8 @@ CONTAINS
 #endif
 
       ! turbulent diffusion coefficients in atmosphere
-      CALL partura( zh=p_metrics%z_ifc(:,:,jb), zf=p_metrics%z_mc(:,:,jb),                 & !in
+      CALL partura( tdc=tdc,                                                               & !in
+        &           zh=p_metrics%z_ifc(:,:,jb), zf=p_metrics%z_mc(:,:,jb),                 & !in
         &           u=p_diag%u(:,:,jb),         v=p_diag%v(:,:,jb), t=p_diag%temp(:,:,jb), & !in
         &           qv=p_prog_rcf%tracer(:,:,jb,iqv), qc=p_prog_rcf%tracer(:,:,jb,iqc),    & !in
         &           ph=p_diag%pres_ifc(:,:,jb), pf=p_diag%pres(:,:,jb),                    & !in
@@ -861,7 +867,7 @@ CONTAINS
       !$ACC END PARALLEL
     ENDIF ! ltwomoment
 
-    IF (ldiff_qi) THEN
+    IF (tdc%ldiff_qi) THEN
       !$ACC PARALLEL ASYNC(1) DEFAULT(PRESENT)
       !$ACC LOOP GANG VECTOR COLLAPSE(2)
       DO jk = kstart_moist(jg), nlev
@@ -889,7 +895,7 @@ CONTAINS
       ENDIF ! ltwomoment
     ENDIF ! ldiff_qi
 
-    IF (ldiff_qs) THEN
+    IF (tdc%ldiff_qs) THEN
       ! QS update
       !$ACC PARALLEL ASYNC(1) DEFAULT(PRESENT)
       !$ACC LOOP GANG VECTOR COLLAPSE(2)

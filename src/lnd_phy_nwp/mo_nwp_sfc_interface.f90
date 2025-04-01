@@ -55,7 +55,6 @@ MODULE mo_nwp_sfc_interface
   USE sfc_flake_data,         ONLY: h_Ice_min_flk
   USE sfc_seaice,             ONLY: seaice_timestep_nwp
   USE sfc_terra_data                ! soil and vegetation parameters for TILES
-  USE turb_data,              ONLY: ilow_def_cond
   USE mo_physical_constants,  ONLY: tmelt, grav, salinity_fac, rhoh2o, tf_salt
   USE mo_nwp_oskin_interface, ONLY: nwp_oskin
   USE mo_index_list,          ONLY: generate_index_list
@@ -323,8 +322,8 @@ CONTAINS
     SELECT CASE (atm_phy_nwp_config(jg)%inwp_turb)
     CASE(icosmo) !Raschendorfer-scheme for turbulence (based on 'turbtran', turbdiff' and 'vertdiff')
        icant=2 !canopy-treatment according to transfer-scheme 'turbtran'
-       ldepo_qw = (ilow_def_cond == 2) !deposition of (liquid or frozen) cloud water required, if and only if
-                                       ! a zero-concentration condition is applied for turbulent vertical diffusion
+       ldepo_qw = (turbdiff_config(jg)%ilow_def_cond == 2) !deposition of (liquid or frozen) cloud water required, if and only if
+                                                           ! a zero-concentration condition is applied for turbulent vertical diffusion
     CASE DEFAULT
        icant=1 !canopy-treatment related to Louis-transfer-scheme
        ldepo_qw = .FALSE. !no deposition of (liquid or frozen) cloud water considered

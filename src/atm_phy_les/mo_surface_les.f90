@@ -33,7 +33,6 @@ MODULE mo_surface_les
   USE mo_les_config,          ONLY: les_config
   USE mo_math_constants,      ONLY: pi_2, ln2
   USE mo_impl_constants_grf,  ONLY: grf_bdywidth_c
-  USE turb_data,              ONLY: akt, alpha0
   USE mo_turbdiff_config,     ONLY: turbdiff_config
   USE mo_fortran_tools,       ONLY: insert_dimension, set_acc_host_or_device
   USE mo_io_units,            ONLY: find_next_free_unit
@@ -64,6 +63,8 @@ MODULE mo_surface_les
 
   REAL(wp), SAVE, ALLOCATABLE ::  ts(:), qvs(:)
   REAL(wp), SAVE :: dt_interval = 0._wp
+
+  REAL(wp), POINTER :: akt, alpha0
 
   CONTAINS
 
@@ -114,6 +115,9 @@ MODULE mo_surface_les
          CALL message(TRIM(routine), '')
 
     jg = p_patch%id
+
+    akt    => turbdiff_config(jg)%akt
+    alpha0 => turbdiff_config(jg)%alpha0
 
     IF(les_config(jg)%isrfc_type > 1) THEN
       IF(les_config(jg)%psfc < 0._wp)THEN

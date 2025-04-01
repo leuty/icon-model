@@ -49,6 +49,7 @@ MODULE mo_sgs_turbulence
   USE mo_grid_config,         ONLY: l_scm_mode
   USE mo_scm_nml,             ONLY: scm_sfc_mom, scm_sfc_temp ,scm_sfc_qv
   USE mo_nh_torus_exp,        ONLY: set_scm_bnd
+  USE mo_turbdiff_config,     ONLY: turbdiff_config
 
   IMPLICIT NONE
 
@@ -177,6 +178,7 @@ MODULE mo_sgs_turbulence
       &  ((scm_sfc_mom .GE. 2) .AND. (scm_sfc_temp .GE. 2) .AND. (scm_sfc_qv .GE. 2))) THEN
      DO jb = i_startblk,i_endblk
       CALL set_scm_bnd( nvec=nproma, ivstart=i_startidx, ivend=i_endidx,      &
+        & vel_min      = turbdiff_config(jg)%vel_min,                         & !in
         & u_s          = p_nh_diag%u(:,nlev,jb),                              & !in
         & v_s          = p_nh_diag%v(:,nlev,jb),                              & !in
         & th_b         = p_nh_diag%temp(:,nlev,jb)/p_nh_prog%exner(:,nlev,jb),& !in

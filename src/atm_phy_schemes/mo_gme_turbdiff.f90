@@ -15,7 +15,7 @@ MODULE mo_gme_turbdiff
   USE mo_physical_constants, ONLY: grav, cpd, rcpd, vtmpc1, p0ref, rd_o_cpd, &
                                    tmelt, alvdcp, alv, als, rd, rdv, O_m_rdv
   USE mo_thdyn_functions,    ONLY: sat_pres_water, sat_pres_ice, spec_humi, dqsatdT
-  USE turb_data,             ONLY: Rkarman => akt, tkhmin, tkmmin
+  USE mo_turbdiff_config,    ONLY: t_turbdiff_config
 
   USE mo_lnd_nwp_config,     ONLY: lseaice
 
@@ -32,12 +32,15 @@ MODULE mo_gme_turbdiff
 
   PUBLIC :: partura, parturs, progimp_turb, nearsfc
 
+  REAL(wp), POINTER :: Rkarman
+
   CONTAINS
 
-SUBROUTINE partura( zh  , zf , u  , v  , t   ,  &
-     &              qv  , qc , ph , pf ,        &
-     &              ie  , ke , ke1,             &
-     &              i_startidx, i_endidx,       &
+SUBROUTINE partura( tdc ,                      &
+                    zh  , zf , u  , v  , t  ,  &
+     &              qv  , qc , ph , pf ,       &
+     &              ie  , ke , ke1,            &
+     &              i_startidx, i_endidx,      &
      &              tkvm, tkvh)
 !
  
@@ -52,7 +55,9 @@ SUBROUTINE partura( zh  , zf , u  , v  , t   ,  &
 !==============================================================================
 
   IMPLICIT NONE
-!
+
+  TYPE(t_turbdiff_config), POINTER :: tdc ! 'turbdiff' configuration state for a single patch (domain)
+ 
 ! array dimensions
   INTEGER, INTENT(IN) :: ie, ke, ke1, &        ! horizontal, vertical
                          i_startidx, i_endidx  ! start and end indices of loops in horizontal
@@ -70,7 +75,7 @@ SUBROUTINE partura( zh  , zf , u  , v  , t   ,  &
 ! turbulent diffusion coefficients (m^2/s)
   REAL(KIND=wp), INTENT(INOUT) :: tkvm(ie,2:ke) ! for momentum
   REAL(KIND=wp), INTENT(INOUT) :: tkvh(ie,2:ke) ! for heat
- 
+
 ! Local arrays and variables
 
       REAL(KIND=wp) :: ztpm   (ie)
@@ -154,9 +159,11 @@ SUBROUTINE partura( zh  , zf , u  , v  , t   ,  &
 !
       IF ( msg_level >= 15) CALL message( 'mo_gme_turbdiff:', 'partura')
 
+      Rkarman => tdc%akt
+
       ! take minimum diffusion coefficients from namelist
-      ztkmmin   = tkmmin
-      ztkhmin   = tkhmin
+      ztkmmin   = tdc%tkmmin
+      ztkhmin   = tdc%tkhmin
 
 !     Presettings
       ztmmin_a  = ztmmin *0.1_wp
@@ -427,7 +434,8 @@ END SUBROUTINE partura
 
 !=======================================================================
 
-SUBROUTINE parturs( zsurf, z1  , u1   , v1     , t1   , qv1  ,    &
+SUBROUTINE parturs( tdc  ,                                        &
+                    zsurf, z1  , u1   , v1     , t1   , qv1  ,    &
                     t_g  , qv_s, ps   , fr_land, h_ice,           &
                     ie   , i_startidx , i_endidx,                 &
                     tcm  , tch , gz0  ,                           &
@@ -449,6 +457,9 @@ SUBROUTINE parturs( zsurf, z1  , u1   , v1     , t1   , qv1  ,    &
 !
 !     Input data
 !
+
+  TYPE(t_turbdiff_config), POINTER :: tdc   ! 'turbdiff' configuration state for a single patch (domain)
+
   INTEGER,       INTENT(IN) :: ie,      &   ! array dimensions
                                i_startidx, i_endidx  ! start and end indices of loops
 
@@ -520,6 +531,8 @@ SUBROUTINE parturs( zsurf, z1  , u1   , v1     , t1   , qv1  ,    &
   LOGICAL, OPTIONAL, INTENT(in)   :: lacc  ! GPU flag
 
       CALL assert_acc_device_only("parturs", lacc)
+
+      Rkarman => tdc%akt
 
       !$ACC DATA CREATE(zvpb, zx, ztcm, ztch, zdfip, zris, zgz0m, zgz0h, lo_ice)
 
@@ -1122,7 +1135,8 @@ SUBROUTINE parturs( zsurf, z1  , u1   , v1     , t1   , qv1  ,    &
 
 !==============================================================================
 
-  SUBROUTINE nearsfc( t     , qv    , u     , v     , zf   ,  &
+  SUBROUTINE nearsfc( tdc   ,                                 &
+                      t     , qv    , u     , v     , zf   ,  &
                &      ps    , t_g   , tcm   , tch   , gz0  ,  &  ! gz0s, 
                &      shfl_s, lhfl_s, umfl_s, vmfl_s, zsurf,  &
                &      fr_land,pf1   , qv_s  , ie    , ke   ,  &
@@ -1151,8 +1165,11 @@ SUBROUTINE parturs( zsurf, z1  , u1   , v1     , t1   , qv1  ,    &
 !
 !=======================================================================
 !
+
+  TYPE(t_turbdiff_config), POINTER :: tdc      ! 'turbdiff' configuration state for a single patch (domain)
+
 ! array dimensions
-  INTEGER, INTENT(IN) :: ie, ke,   &         ! horizontal, vertical
+  INTEGER, INTENT(IN) :: ie, ke,   &           ! horizontal, vertical
                          i_startidx, i_endidx  ! start and end indices of loops in horizontal
 
 !=======================================================================
@@ -1279,6 +1296,8 @@ SUBROUTINE parturs( zsurf, z1  , u1   , v1     , t1   , qv1  ,    &
   LOGICAL                         :: lzacc ! non-optional version of lacc
 
       CALL set_acc_host_or_device(lzacc, lacc)
+
+      Rkarman => tdc%akt
 
       !$ACC DATA CREATE(zv, zcm, zch, zgz0) IF(lzacc)
 

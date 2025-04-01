@@ -1572,6 +1572,7 @@ CONTAINS
 #endif
 #ifndef __NO_ICON_COMIN__
     CALL icon_call_callback(EP_ATM_RADHEAT_BEFORE, jg, lacc=lacc)
+
 #endif
 
         IF ( lcall_phy_jg(itradheat) ) THEN
@@ -2160,7 +2161,6 @@ CONTAINS
           ENDDO
           !$ACC END PARALLEL
 
-
           !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1) IF(lacc)
           !$ACC LOOP GANG VECTOR PRIVATE(wfac) COLLAPSE(2)
           DO jk = 1, nlev
@@ -2188,7 +2188,9 @@ CONTAINS
             ENDDO
           ENDDO
           !$ACC END PARALLEL
+
         ELSE
+
           !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1) IF(lacc)
           !$ACC LOOP GANG VECTOR PRIVATE(wfac) COLLAPSE(2)
           DO jk = 1, nlev
@@ -2202,6 +2204,7 @@ CONTAINS
             ENDDO
           ENDDO
           !$ACC END PARALLEL
+
         ENDIF
 
         IF (itype_dissip_heat >= 1 .AND. l_out_ddt_temp_drag) THEN

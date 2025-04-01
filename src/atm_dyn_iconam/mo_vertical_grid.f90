@@ -54,22 +54,22 @@ MODULE mo_vertical_grid
   USE mo_util_vgrid_types,      ONLY: vgrid_buffer
   USE mo_sync,                  ONLY: SYNC_C, SYNC_E, SYNC_V, sync_patch_array, global_sum_array, &
                                       sync_patch_array_mult, global_min, global_max
-  USE mo_atm_phy_nwp_config,   ONLY: atm_phy_nwp_config
-  USE mo_les_config,           ONLY: les_config
-  USE mo_impl_constants,       ONLY: min_rlvert_int
-  USE turb_data,               ONLY: akt
-  USE mo_fortran_tools,        ONLY: init
-  USE mo_util_string,          ONLY: int2string, real2string
-  USE mo_mpi,                  ONLY: my_process_is_stdio
-  USE mo_util_table,           ONLY: t_table, initialize_table, add_table_column, &
-    &                                set_table_entry, print_table, finalize_table
-  USE mo_nudging_config,       ONLY: nudging_config, indg_type, indg_profile
-  USE mo_dynamics_config,      ONLY: ldeepatmo
-  USE mo_aes_vdf_config,       ONLY: aes_vdf_config
-  USE mo_turb_vdiff_params,    ONLY: VDIFF_TURB_3DSMAGORINSKY
-  USE mo_var_list,             ONLY: t_var_list_ptr
-  USE mo_nonhydro_state,       ONLY: new_zd_metrics  
-  USE mo_deepatmo,             ONLY: deepatmo_htrafo
+  USE mo_atm_phy_nwp_config,    ONLY: atm_phy_nwp_config
+  USE mo_les_config,            ONLY: les_config
+  USE mo_impl_constants,        ONLY: min_rlvert_int
+  USE mo_turbdiff_config,       ONLY: turbdiff_config
+  USE mo_fortran_tools,         ONLY: init
+  USE mo_util_string,           ONLY: int2string, real2string
+  USE mo_mpi,                   ONLY: my_process_is_stdio
+  USE mo_util_table,            ONLY: t_table, initialize_table, add_table_column, &
+    &                                 set_table_entry, print_table, finalize_table
+  USE mo_nudging_config,        ONLY: nudging_config, indg_type, indg_profile
+  USE mo_dynamics_config,       ONLY: ldeepatmo
+  USE mo_aes_vdf_config,        ONLY: aes_vdf_config
+  USE mo_turb_vdiff_params,     ONLY: VDIFF_TURB_3DSMAGORINSKY
+  USE mo_var_list,              ONLY: t_var_list_ptr
+  USE mo_nonhydro_state,        ONLY: new_zd_metrics  
+  USE mo_deepatmo,              ONLY: deepatmo_htrafo
   IMPLICIT NONE
 
   PRIVATE
@@ -2154,7 +2154,7 @@ MODULE mo_vertical_grid
                       (p_nh%metrics%ddqz_z_half(jc,jk,jb)*p_patch%cells%area(jc,jb))**0.33333_wp )
           
           p_nh%metrics%mixing_length_sq(jc,jk,jb) = (les_filter*z_mc)**2    &
-               / ((les_filter/akt)**2+z_mc**2)
+               / ((les_filter/turbdiff_config(jg)%akt)**2+z_mc**2)
 
           p_nh%metrics%inv_ddqz_z_half(jc,jk,jb) = 1._wp / p_nh%metrics%ddqz_z_half(jc,jk,jb)
         END DO

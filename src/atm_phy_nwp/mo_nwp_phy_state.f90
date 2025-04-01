@@ -73,7 +73,7 @@ USE mo_exception,           ONLY: message, finish !,message_text
 USE mo_model_domain,        ONLY: t_patch, p_patch, p_patch_local_parent
 USE mo_grid_config,         ONLY: n_dom, n_dom_start, nexlevs_rrg_vnest
 USE mo_atm_phy_nwp_config,  ONLY: atm_phy_nwp_config, icpl_aero_conv, iprog_aero
-USE turb_data,              ONLY: ltkecon, imode_tkemini, imode_trancnf, rsur_sher
+USE mo_turbdiff_config,     ONLY: turbdiff_config, t_turbdiff_config
 USE mo_initicon_config,     ONLY: icpl_da_sfcevap, icpl_da_snowalb, icpl_da_landalb, icpl_da_skinc, icpl_da_seaice
 USE mo_radiation_config,    ONLY: irad_aero, iRadAeroTegen, iRadAeroART, iRadAeroNone, &
                                   iRadAeroConst, iRadAeroCAMSclim, iRadAeroCAMStd, islope_rad, &
@@ -169,7 +169,7 @@ PUBLIC :: prm_nwp_stochconv_list  !< variable lists
 !! domain-dependent (computed during physics initialization phase)
 !!-------------------------------------------------------------------------
   TYPE (t_phy_params), ALLOCATABLE :: phy_params(:)  !< shape: (n_dom)
-
+  TYPE(t_turbdiff_config), POINTER :: tdc            !< 'turbdiff' configuration state for a single patch (domain)
 
 CONTAINS
 
@@ -217,6 +217,8 @@ SUBROUTINE construct_nwp_phy_state( p_patch, var_in_output )
      ! number of vertical levels
      nlev   = p_patch(jg)%nlev
      nlevp1 = p_patch(jg)%nlevp1
+
+     tdc => turbdiff_config(jg)
 
      WRITE(listname,'(a,i2.2)') 'prm_diag_of_domain_',jg
      CALL new_nwp_phy_diag_list( jg, nlev, nlevp1, nblks_c, listname,  &
@@ -3901,7 +3903,7 @@ SUBROUTINE new_nwp_phy_diag_list( k_jg, klev, klevp1, kblks,    &
          & grib2_var(255, 255, 255, ibits, GRID_UNSTRUCTURED, GRID_CELL),   &
          & ref_idx=jsfc, ldims=shape2d,                               &
          & var_class=CLASS_TILE,                                      &
-         & lrestart=(imode_trancnf.GE.4), loutput=.TRUE.)
+         & lrestart=(tdc%imode_trancnf.GE.4), loutput=.TRUE.)
     ENDDO
 
 
@@ -4406,7 +4408,7 @@ SUBROUTINE new_nwp_phy_diag_list( k_jg, klev, klevp1, kblks,    &
        & ldims=shape3dkp1, in_group=groups("pbl_vars"), lopenacc=.TRUE.) 
      __acc_attach(diag%tkvh)
  
-     IF (imode_tkemini.EQ.2 .OR. rsur_sher.GT.0_wp) THEN !TKE-adaptation to shear-related part of LLDCc
+     IF (tdc%imode_tkemini.EQ.2 .OR. tdc%rsur_sher.GT.0_wp) THEN !TKE-adaptation to shear-related part of LLDCc
        shape3duse=shape3dkp1 !shape of 3D half-level variable
        lrestart=.TRUE.       !needs to be saved for restart
      ELSE
@@ -6681,7 +6683,7 @@ SUBROUTINE new_nwp_phy_tend_list( k_jg, klev,  kblks,   &
                 & in_group=groups("phys_tendencies") )
     __acc_attach(phy_tend%ddt_tke)
   
-    IF (ltkecon) THEN
+    IF (tdc%ltkecon) THEN
       lrestart = .TRUE.
     ELSE
       lrestart = .FALSE.

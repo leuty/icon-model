@@ -167,6 +167,8 @@ CONTAINS
 
     ! Physics
     !
+    CALL read_turbdiff_namelist       (atm_namelist_filename(1:tlen))
+
     SELECT CASE (iforcing)
     CASE (iaes, ILDF_ECHAM)
        !
@@ -192,7 +194,6 @@ CONTAINS
        CALL read_nwp_tuning_namelist     (atm_namelist_filename(1:tlen))
        CALL read_ensemble_pert_namelist  (atm_namelist_filename(1:tlen))
        CALL read_radiation_namelist      (atm_namelist_filename(1:tlen))
-       CALL read_turbdiff_namelist       (atm_namelist_filename(1:tlen))
        CALL read_nwp_lnd_namelist        (atm_namelist_filename(1:tlen))
 
        CALL vdiff_read_namelist          (atm_namelist_filename(1:tlen))

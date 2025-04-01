@@ -2273,6 +2273,7 @@ MODULE mo_nh_stepping
             CALL art_sedi_interface( p_patch(jg),             &!in
                &      dt_loc,                                 &!in
                &      p_nh_state(jg)%prog(n_new_rcf),         &!in
+               &      p_nh_state_lists(jg)%prog_list(n_new_rcf),    &
                &      p_nh_state(jg)%metrics,                 &!in
                &      p_nh_state(jg)%diag,                    &!in
                &      p_nh_state(jg)%prog(n_new_rcf)%tracer,  &!inout
