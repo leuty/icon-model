@@ -48,10 +48,13 @@ USE mo_physical_constants, ONLY : &
 ! Turbulence data (should be the same in ICON and COSMO)
 !-------------------------------------------------------------------------------
 
+!! prematurely altered due to icon-kit-compilation
+USE mo_turbdiff_config, ONLY: modvar
 USE turb_data, ONLY : &
 
     ! used derived types
-    modvar, turvar, varprf, & !
+    turvar, varprf, & !
+!! end of premature alteration
 
 ! Switches controlling the turbulence model, turbulent transfer and diffusion:
 ! ----------------------------------------------------------------------------

@@ -21,6 +21,19 @@ MODULE mo_turbdiff_config
   IMPLICIT NONE
   PUBLIC
 
+  !! prematurely added for icon-kit compilation
+  TYPE modvar !model variable
+    REAL (KIND=wp), POINTER, CONTIGUOUS     ::         &
+            av(:,:) => NULL(), & !atmospheric values
+            sv(:)   => NULL(), & !surface     values (concentration or flux density)
+            at(:,:) => NULL()    !atmospheric time tendencies
+    LOGICAL                                 ::         &
+            fc                   !surface values are flux densities
+    INTEGER                                 ::         &
+             kstart  = 1          !start level for vertical diffusion
+  END TYPE modvar
+  !! end of premature addition
+
 
   !!--------------------------------------------------------------------------
   !! Basic configuration setup for turbulent diffusion (turbdiff)
@@ -67,6 +80,11 @@ MODULE mo_turbdiff_config
       &  lcpfluc
     LOGICAL :: &   ! lower flux condition for vertical diffusion calculation
       &  lsflcnd
+
+    !! prematurely added for icon-kit compilation
+    REAL(wp):: akt           ! von-Karman constant
+    !! end of premature addition
+
 
     REAL(wp):: &   ! turbulent master length scale 
       &  tur_len   ! (devided by roughness length)

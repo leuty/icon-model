@@ -41,8 +41,11 @@ MODULE mo_nwp_turbdiff_interface
     &                                  iqs, iqns, lart, ltestcase
   USE mo_atm_phy_nwp_config,     ONLY: atm_phy_nwp_config
   USE mo_nonhydrostatic_config,  ONLY: kstart_moist, kstart_tracer
-  USE turb_data,                 ONLY: get_turbdiff_param, lsflcnd, modvar, ndim, ilow_def_cond, &
+
+  USE mo_turbdiff_config,        ONLY: modvar
+  USE turb_data,                 ONLY: get_turbdiff_param, lsflcnd, ndim, ilow_def_cond, &
                                        u_m, v_m, tet, vap, liq
+
   USE turb_diffusion,            ONLY: turbdiff
   USE turb_vertdiff,             ONLY: vertdiff
   USE mo_gme_turbdiff,           ONLY: partura, progimp_turb
