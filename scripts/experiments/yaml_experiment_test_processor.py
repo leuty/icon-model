@@ -25,6 +25,19 @@ class ExperimentTestCollection:
                                                                self._load_yaml_with_key(exp_yml,'experiments'))
         self.defaults = self._load_defaults()
 
+        # supported machines and builders, any other machine or builder will raise an error
+        # BuildBot
+        self.supported_machines_BB = {'balfrin','horeka', 'levante'}
+        self.supported_builders_BB = {'balfrin_cpu_nvidia','balfrin_gpu_nvidia', 'balfrin_cpu_nvidia_mixed', 
+                                      'balfrin_gpu_nvidia_mixed','alps_mch_test_cpu', 'alps_mch_test_gpu',
+                                      'horeka_cpu_nvhpc','horeka_gpu_nvhpc'}
+        # CSCS-CI
+        self.supported_machines_CSCS_CI = {'santis'}
+        self.supported_builders_CSCS_CI = {'santis_cpu_nvhpc', 'santis_gpu_nvhpc'}
+
+        self.supported_builders = self.supported_builders_BB.union(self.supported_builders_CSCS_CI)
+        self.supported_machines = self.supported_machines_BB.union(self.supported_machines_CSCS_CI)
+
     def get_items_by_tag(self,tag_name):
         items_by_tag = []
         for item in self.items['tests']:
@@ -77,12 +90,31 @@ class ExperimentTestCollection:
                 raise Exception(f"Check {experiment['check']} is not a file")
 
             for machine in experiment.get('machines', []):
+                # Check that machine is in supported machines
+                if machine['name'] not in self.supported_machines:
+                    raise Exception(f"Machine {machine['name']} not in supported machines")
+
                 # Check that 'include_only' and 'exclude' are not both present
                 if 'include_only' in machine and 'exclude' in machine:
                     raise Exception(
                         f"Machine {machine['name']} in experiment {experiment['name']} "
                         "has both 'include_only' and 'exclude'"
                     )
+                # Check that 'include_only' has only supported builders
+                if 'include_only' in machine:
+                    for builder in machine['include_only']:
+                        if builder not in self.supported_builders:
+                            raise Exception(
+                                f"Builder {builder} in machine {machine['name']} "
+                                "is not in supported builders"
+                            )
+                # Check that 'exclude' has only supported builders
+                if 'exclude' in machine:
+                    for builder in machine['exclude']:
+                        if builder not in self.supported_builders:
+                            raise Exception(
+                                f"Builder {builder} in machine {machine['name']} "
+                                "is not in supported builders")
 
             # Check that 'refgen' is present when 'probtest' is in 'tags'
             if 'probtest' in experiment['tags'] and 'refgen' not in experiment:
@@ -231,12 +263,31 @@ class BuildBotInterface(ExperimentTestCollection):
             raise Exception("Environment variable BB_NAME is not set")
 
     def items_to_bb(self):
+        self.items['tests'] = self._get_experiments_with_suppported_machines()
         if (self.list_name == 'tolerance' or self.list_name == 'tolerance-update'):
             self._register_tolerance_list()
         elif self.list_name == 'select-members':
             self._register_select_members_list()
         else:
             self._register_default_list()
+
+    def _get_experiments_with_suppported_machines(self):
+        valid_experiments = []
+        # Add experiments on supported machines only
+        for exp in self.items['tests']:
+            # Check intersection of supported machines and machines in the experiment
+            valid_machines = self.supported_builders_BB.intersection(
+                {machine['name'] for machine in exp.get('machines', [])})
+
+            if valid_machines:
+                exp.update({
+                    'machines': [
+                        machine for machine in exp.get('machines', [])
+                        if machine['name'] in valid_machines
+                    ]
+                })
+                valid_experiments.append(exp)
+        return valid_experiments
 
     def _register_tolerance_list(self):
         all_tolerance_exps = []
@@ -320,7 +371,6 @@ class BuildBotInterface(ExperimentTestCollection):
                         machines=[machine['name']],
                         runflags=machine.get('runflags'))
 
-    
     def _add_to_bb_list(self,experiment_name, builders=None, machines=None, runflags=None):
         runflags = self._convert_types_for_bb(runflags)
         addexp(experiment_name, builders, None, None, machines, runflags, self.list_name)
@@ -502,7 +552,7 @@ def register_experiments_for_bb(list_name, exp=None):
         tag_name = 'probtest'
     else:
         tag_name = list_name
-    # only keep the relevent entries for list list_name
+    # only keep the relevant entries for list list_name
     bbi.items = bbi.get_items_by_tag(tag_name)
 
     bbi.items_to_bb()
