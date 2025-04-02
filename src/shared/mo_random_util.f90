@@ -25,8 +25,13 @@ MODULE mo_random_util
   IMPLICIT NONE
   PRIVATE
  
-  PUBLIC :: add_random_noise_global, add_random_noise_3d, add_random_noise_2d
+  PUBLIC :: add_random_noise_global, add_random_noise_3d, add_random_noise_2d, poisson_distr
 
+  INTERFACE poisson_distr
+     MODULE PROCEDURE poisson_distr_array
+     MODULE PROCEDURE poisson_distr_scalar
+  END INTERFACE poisson_distr
+  
 CONTAINS
 
   !-----------------------------------------------------------------------
@@ -195,5 +200,138 @@ CONTAINS
     ENDDO !jb
 
   END SUBROUTINE add_random_noise_2d
+
+
+  !-----------------------------------------------------------
+  ! Determine a vector 'random_vals( 1:nmbr )' of Poisson 
+  ! distributed random numbers with mean values 'mu'.
+  !-----------------------------------------------------------
+
+  
+  SUBROUTINE poisson_distr_array( mu, random_vals, poisson_vals )
+
+    IMPLICIT NONE
+
+    REAL(wp),   INTENT(in)    :: mu   ! mean value of Poisson distribution
+    REAL(wp),   INTENT(in)    :: random_vals(:)
+    INTEGER(i4),INTENT(inout) :: poisson_vals(:)
+    !
+    CHARACTER(*), PARAMETER :: routine = "poisson_distr"
+    INTEGER :: n_seed ! for initialisation of the randon number generator; might be an input variable!
+
+    INTEGER :: n_alloc, nmbr
+    INTEGER :: idx_min_all, idx_max_all, idx_min, idx_max, idx, i
+    REAL(wp), ALLOCATABLE :: probs(:)
+    REAL(wp), ALLOCATABLE :: limits(:)
+    REAL(wp), ALLOCATABLE :: random_uniform(:)
+    REAL(wp) :: rand, prob_log
+    LOGICAL :: is_finish
+
+    nmbr = SIZE( random_vals(:) )
+    n_alloc = INT( 20 * (mu + 1) )   ! large enough, rough estimation
+
+    ALLOCATE( probs ( 0:n_alloc) )
+    ALLOCATE( limits( 0:n_alloc) )
+    ALLOCATE( random_uniform( 1:nmbr ) )
+
+    ! Determine 'start values':
+    IF ( mu < 300.0_wp ) THEN
+      ! i.e. mu is small enough, therefore, the normalization constant is large enough,
+      ! and one can directly start with the probability p(k=0):
+      idx_min_all = 0 
+      probs (0) = EXP( -mu )
+      limits(0) = 0.0_wp
+
+    ELSE
+      ! for too large mu, the normalization factor of the Poisson distribution becomes to small
+      ! for double precision and an underflow occurs.
+      ! To prevent this, use the logarithm of the probability and search for the first index k,
+      ! with a large enough probability
+
+      i=0
+      prob_log = -mu  ! = log( p(k=0) ) = log( exp(-mu) )
+      DO WHILE ( prob_log < -300.0_wp )
+        i=i+1
+        prob_log = prob_log + LOG( mu / REAL(i, wp) )  ! log of Poisson distribution
+      END DO
+
+      idx_min_all = i
+      probs ( idx_min_all ) = EXP( prob_log )
+      limits( idx_min_all ) = 0.0_wp  ! approximation: all probabilities p(k) for smaller k
+                                      ! are so small that they are neglegible.
+    END IF
+
+    ! determine the probabilities of the Poisson distribution
+    ! and fill up the 'decision limits'
+
+    is_finish = .FALSE.
+
+    i = idx_min_all
+    DO WHILE (.NOT. is_finish )
+      i = i+1
+
+      ! (with a proper estimation one probably can avoid this if-condition:)
+      IF ( i > n_alloc ) THEN
+        WRITE(0,*) "ERROR in poisson_distr: you have to increase n_alloc!"
+      END IF
+
+      probs (i) = probs (i-1) * mu / REAL(i, wp)  ! Poisson distribution
+      limits(i) = limits(i-1) + probs(i-1)
+
+      IF ( probs(i) < probs(i-1) ) THEN
+        ! maximum of Poisson distribution has been reached,
+        ! now, stop when values become lower than floating point precision (relative to 1)
+        IF ( probs(i) < 1.0e-16_wp ) THEN
+          is_finish = .TRUE.
+        END IF
+      END IF
+
+    END DO
+
+    idx_max_all = i
+
+    ! determine the Poisson distributed random number by searching in limits(:)
+    ! note: limits(:) is automatically sorted by construction
+
+    DO i=1, nmbr
+
+      rand = random_vals(i)
+
+      ! Bisection search:
+      idx_min = idx_min_all
+      idx_max = idx_max_all
+
+      DO WHILE ( idx_max > idx_min+1 )
+        idx = idx_min + (idx_max - idx_min ) / 2
+        IF ( rand < limits( idx ) ) THEN
+          idx_max = idx
+        ELSE
+          idx_min = idx
+        END IF
+      END DO
+
+      poisson_vals(i) = idx_min    
+
+    END DO
+
+  END SUBROUTINE poisson_distr_array
+
+  !----------------------------------------------------------------
+  ! Scalar version of the above subroutine poisson_distr_array().
+  !----------------------------------------------------------------
+  SUBROUTINE poisson_distr_scalar( mu, random_vals, poisson_vals )
+
+    IMPLICIT NONE
+
+    REAL(wp),   INTENT(in)    :: mu   ! mean value of Poisson distribution
+    REAL(wp),   INTENT(in)    :: random_vals   ! uniformly distributed random number
+    INTEGER(i4),INTENT(inout) :: poisson_vals
+
+    INTEGER(i4) :: poisson_vals_vec(1:1)
+
+    CALL poisson_distr_array( mu, [random_vals], poisson_vals_vec )
+    poisson_vals = poisson_vals_vec(1)
+
+  END SUBROUTINE poisson_distr_scalar
 
 END MODULE mo_random_util
