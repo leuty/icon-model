@@ -46,7 +46,7 @@ MODULE mo_wave_stepping
   USE mo_wave_physics,             ONLY: tm1_tm2_periods_and_wm1_wm2_wavenumber, &
        &                                 mean_frequency_and_total_energy, air_sea, last_prog_freq_ind, &
        &                                 impose_high_freq_tail, wave_stress, &
-       &                                 mask_energy, compute_wave_number, compute_group_velocity
+       &                                 mask_energy, compute_wave_number, compute_group_velocity, sdepth_lim
   USE mo_wave_config,              ONLY: wave_config, generate_filename
   USE mo_energy_propagation_config,ONLY: energy_propagation_config
   USE mo_wave_forcing_state,       ONLY: wave_forcing_state
@@ -449,7 +449,6 @@ CONTAINS
           END IF
         END IF ! is_coupled_to_atmo()
 
-
         ! horizontal propagation of binned wave energy
         ! Here, we integrate the spectral energy equation in time without sources and sinks,
         ! only taking into account advection and refraction.
@@ -490,6 +489,19 @@ CONTAINS
              p_wave_state(jg)%diag%emeanws, & ! OUT
              p_wave_state(jg)%diag%femean, & ! OUT
              p_wave_state(jg)%diag%femeanws) ! OUT
+
+        ! The advection of wave energy is not directly limited by depth and has no control over
+        ! whether the amount of energy transported may lead to an unphysically high level
+        ! for a given depth (only transit from deep to shallow regions are affected).
+        ! Therefore, the level of energy is cutted by a depth limiter just after transport.
+        ! This allows the subsequent calls of source function terms to start from
+        ! the 'correct' level of energy.
+        ! Reduce wave energy if larger than depth limited energy level
+        CALL sdepth_lim(p_patch     = p_patch(jg),                       & ! IN
+                        wave_config = wave_config(jg),                   & ! IN
+                        depth       = wave_ext_data(jg)%depth_c,         & ! IN
+                        emean       = p_wave_state(jg)%diag%emean,       & ! INOUT
+                        tracer      = p_wave_state(jg)%prog(n_new)%tracer) ! INOUT
 
         ! Calculate tm1 period and f1 frequency and wavenumbers
         CALL tm1_tm2_periods_and_wm1_wm2_wavenumber(p_patch(jg), wave_config(jg), &

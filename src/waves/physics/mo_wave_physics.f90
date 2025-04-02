@@ -44,6 +44,7 @@ MODULE mo_wave_physics
   PUBLIC :: compute_group_velocity, wave_group_velocity_nt
   PUBLIC :: set_energy2emin
   PUBLIC :: mask_energy
+  PUBLIC :: sdepth_lim
 
   CHARACTER(LEN=*), PARAMETER :: modname = 'mo_wave_physics'
 
@@ -1226,6 +1227,61 @@ CONTAINS
 
   END SUBROUTINE wave_number_e
 
+  ! Adaptation of WAM 4.5 code, SUBROUTINE SDEPTHLIM
+  !*    PURPOSE.
+  !     --------
+  ! Limits the level of total energy such that the wave height
+  ! does not exceed the maximum wave height allowed for a given depth
+  !
+  SUBROUTINE sdepth_lim(p_patch, wave_config, depth, emean, tracer)
+    CHARACTER(len=MAX_CHAR_LENGTH), PARAMETER ::  &
+         &  routine = 'sdepth_lim'
+
+    TYPE(t_patch),               INTENT(IN)    :: p_patch
+    TYPE(t_wave_config), TARGET, INTENT(IN)    :: wave_config
+    REAL(wp),                    INTENT(IN)    :: depth(:,:)
+    REAL(wp),                    INTENT(INOUT) :: emean(:,:)
+    REAL(wp),                    INTENT(INOUT) :: tracer(:,:,:,:)
+
+    INTEGER  :: i_rlstart, i_rlend, i_startblk, i_endblk
+    INTEGER  :: i_startidx, i_endidx
+    INTEGER  :: jb,jc,jf,jd
+    REAL(wp) :: em(nproma)
+
+    REAL, PARAMETER :: gamd  = 0.8_wp  !! Parameter of depth limited wave height
+
+    TYPE(t_wave_config), POINTER :: wc => NULL()
+
+    wc  => wave_config
+
+    i_rlstart  = 1
+    i_rlend    = min_rlcell
+    i_startblk = p_patch%cells%start_block(i_rlstart)
+    i_endblk   = p_patch%cells%end_block(i_rlend)
+
+!$OMP PARALLEL
+!$OMP DO PRIVATE(jb,jf,jd,jc,i_startidx,i_endidx,em) ICON_OMP_DEFAULT_SCHEDULE
+    DO jb = i_startblk, i_endblk
+      CALL get_indices_c( p_patch, jb, i_startblk, i_endblk,           &
+           &                 i_startidx, i_endidx, i_rlstart, i_rlend)
+
+      DO jc = i_startidx, i_endidx
+        em(jc) = MIN((0.25_wp*gamd*depth(jc,jb))**2/emean(jc,jb),1._wp)
+        emean(jc,jb) = em(jc) * emean(jc,jb)
+      END DO
+
+      DO jf = 1,wc%nfreqs
+        DO jd = 1,wc%ndirs
+          DO jc = i_startidx, i_endidx
+            tracer(jc,jd,jb,jf) = tracer(jc,jd,jb,jf) * em(jc)
+          END DO
+        END DO
+      END DO
+
+    END DO
+!$OMP ENDDO NOWAIT
+!$OMP END PARALLEL
+  END SUBROUTINE sdepth_lim
 
   !>
   !! Set wave spectrum to absolute allowed minimum
