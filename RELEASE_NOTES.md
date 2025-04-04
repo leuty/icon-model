@@ -90,7 +90,8 @@ Climate: ICON-Land
 - Memory reduction: array allocation only if needed with the specific setup
 - Fix for initializing carbon pools from file (read_cpools)
 - The script suite to generate ICON-Land input data now also includes scripts to generate
-  HD parameter files (for internal HD) and HD receive masks (for external HD)
+  HD parameter files (for internal HD) and HD receive masks (for external HD), besides
+  high-resolution Merit-Rema topography data is used.
 - Bug fix: replace dp by wp in add_var wrappers
 - Added diagnostic variable for volumetric soil moisture content for soil layers
 - Fix for the calculation of snow aging
