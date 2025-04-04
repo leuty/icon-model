@@ -78,6 +78,7 @@ Climate: ICON-Land
   - Merged the radiation process of QUINCY into the radiation process of JSBACH
   - Use JSBACH4 canopy, soil and snow albedos with QUINCY albedo calculations
   - Use the turbulence process of JSBACH in QUINCY replacing QUINCY-specific turbulence-code
+  - Preparations for using further JSBACH physics processes with QUINCY
   - Consolidate and clean up namelist handling and physical parameters between QUINCY and JSBACH
   - Implementation of a harvest process for QUINCY (for now using a global constant)
   - Technical implementation of an agriculture process for QUINCY (scientifically not yet ready for use)

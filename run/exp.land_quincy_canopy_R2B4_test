@@ -192,6 +192,7 @@ forcingCO2globalFile=${ghg_dir}/bc_greenhouse_rcp45_1765-2500.nc
 
 # ic/bc files
 ic_land_soil_file=${land_datadir}/ic_land_soil.nc
+bc_land_soil_file=${land_datadir}/bc_land_soil.nc
 bc_land_phys_file=${land_datadir}/bc_land_phys.nc
 bc_land_sso_file=${land_datadir}/bc_land_sso.nc
 quincy_soil_file=${land_datadir}/bc_land_soil_quincy.nc
@@ -375,6 +376,25 @@ cat >> $jsbach_namelist << EOF
   active          = .TRUE.
   ic_filename     = 'ic_land_soil.nc'
 /
+&jsb_seb_nml
+  bc_filename     = 'bc_land_phys.nc'
+  ic_filename     = 'ic_land_soil.nc'
+/
+&jsb_sse_nml
+  l_heat_cap_dyn  = .TRUE.
+  l_heat_cond_dyn = .TRUE.
+  l_snow          = .TRUE.
+  l_dynsnow       = .TRUE.
+  l_freeze        = .TRUE.
+  l_supercool     = .TRUE.
+  bc_filename     = 'bc_land_soil.nc'
+  ic_filename     = 'ic_land_soil.nc'
+/
+&jsb_hydro_nml
+  bc_filename     = 'bc_land_soil.nc'
+  ic_filename     = 'ic_land_soil.nc'
+  bc_sso_filename = 'bc_land_sso.nc'
+/
 EOF
 
 #--------------------------------------------------------------------------------------------------
@@ -395,6 +415,7 @@ add_link_file ${forcingCO2globalFile}                            ./bc_greenhouse
 add_link_file ${quincy_land_cover_file}                          ./bc_land_frac.nc
 add_link_file ${bc_land_sso_file}                                ./bc_land_sso.nc
 add_link_file ${bc_land_phys_file}                               ./bc_land_phys.nc
+add_link_file ${bc_land_soil_file}                               ./bc_land_soil.nc
 add_link_file ${ic_land_soil_file}                               ./ic_land_soil.nc
 add_link_file ${quincy_soil_file}                                ./bc_quincy_soil.nc
 
