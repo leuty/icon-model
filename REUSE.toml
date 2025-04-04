@@ -36,6 +36,7 @@ path = [
   "src/**/README*",
   "utils/plotems/doc/CHANGES.txt",
   "vertical_coord_tables/README",
+  "utils/log-plotting/README.md",
 ]
 SPDX-FileCopyrightText = "2004-2025, DWD, MPI-M, DKRZ, KIT, ETH, MeteoSwiss"
 SPDX-License-Identifier = "CC-BY-4.0"
@@ -117,3 +118,8 @@ SPDX-License-Identifier = "GPL-3.0-or-later WITH Autoconf-exception-generic-3.0"
 [[annotations]]
 path = "utils/install-sh"
 SPDX-License-Identifier = "X11-distribute-modifications-variant"
+
+[[annotations]]
+path = "utils/log-plotting/bootstrap.min.css"
+SPDX-FileCopyrightText = "Copyright 2011-2021 The Bootstrap Authors"
+SPDX-License-Identifier = "MIT"

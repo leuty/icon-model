@@ -257,6 +257,8 @@ $addexp exp.seamless_bb-ecradmin --builders "levante_intel_hybrid levante_gcc_hy
 
 # nextGEMS test setup (!) ALPHA
 $addexp test_nextGEMS.config --builders levante_intel_hybrid --list $listname
+$addexp checksuite.infrastructure/mkexpLogMonitoring/exp.mkexp_log_monitoring.run --builders levante_intel_hybrid --list $listname
+./adddep --from-experiment "checksuite.infrastructure/mkexpLogMonitoring/exp.mkexp_log_monitoring.run" --to-experiment "test_nextGEMS.config" --builders "levante_intel_hybrid" --list $listname
 $addexp test_yaxt_xchange.config --builders levante_intel_hybrid --list $listname
 
 # test memory loggin in amip setup
