@@ -146,9 +146,9 @@ MODULE mo_2mom_mcrph_processes
        &    afrac_dust, &  ! look-up table of activated fraction of dust particles acting as ice nuclei
        &    afrac_soot, &  ! ... of soot particles
        &    afrac_orga     ! ... of organic material
-  !$ACC DECLARE COPYIN(afrac_dust, afrac_soot, afrac_orga)
 
   INCLUDE 'phillips_nucleation_2010.incf'
+  !$ACC DECLARE COPYIN(afrac_dust, afrac_soot, afrac_orga)
 
   ! .. LWF melting scheme: coefficients for rational approximation functions
   REAL(wp) ::  &           
