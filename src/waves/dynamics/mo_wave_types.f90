@@ -83,6 +83,7 @@ MODULE mo_wave_types
       &  femean(:,:),         & ! mean frequency energy          (nproma,nblks_c) (m^2)
       &  femeanws(:,:),       & ! windsea mean frequency energy  (nproma,nblks_c) (m^2)
       &  hs(:,:),             & ! total significant wave height  (nproma,nblks_c) (m)
+      &  hs_max(:,:),         & ! maximum individual wave height (nproma,nblks_c) (m)
       &  hs_dir(:,:),         & ! total mean wave direction      (nproma,nblks_c) (deg)
       &  tpp(:,:),            & ! total peak wave period         (nproma,nblks_c) (s)
       &  tmp(:,:),            & ! total mean wave period         (nproma,nblks_c) (s)
