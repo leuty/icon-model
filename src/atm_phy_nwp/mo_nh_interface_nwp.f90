@@ -891,7 +891,8 @@ CONTAINS
                 &                   prm_diag = prm_diag,   & !> optional
                 &                   lacc=lacc)
 
-        CALL art_washout_interface(pt_prog,pt_diag,        & !>in
+        CALL art_washout_interface(pt_prog,p_prog_list,    & !>in
+                &            pt_diag,                      & !>in
                 &            dt_phy_jg(itfastphy),         & !>in
                 &            pt_patch,                     & !>in
                 &            prm_diag,                     & !>in
