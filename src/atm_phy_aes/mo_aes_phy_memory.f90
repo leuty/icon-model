@@ -1242,14 +1242,12 @@ CONTAINS
         !
         ! set memory references for fields which are requested for output
         !
-        IF ( is_variable_in_output(var_name=TRIM(var_name)) ) THEN
-          CALL add_ref( diag_list, 'tracer_vi',                   &
-                      & TRIM(var_name), field%mtrcvi_ptr(jtrc)%p, &
-                      & GRID_UNSTRUCTURED_CELL, ZA_SURFACE,       &
-                      & cf_desc, grib2_desc,                      &
-                      & ref_idx=jtrc, ldims=(/kproma,kblks/),     &
-                      & lrestart = .FALSE. )
-        END IF
+        CALL add_ref( diag_list, 'tracer_vi',                   &
+                    & TRIM(var_name), field%mtrcvi_ptr(jtrc)%p, &
+                    & GRID_UNSTRUCTURED_CELL, ZA_SURFACE,       &
+                    & cf_desc, grib2_desc,                      &
+                    & ref_idx=jtrc, ldims=(/kproma,kblks/),     &
+                    & lrestart = .FALSE. )
         !
       END DO
       !
@@ -4818,14 +4816,12 @@ CONTAINS
           !
           ! set memory references for fields which are requested for output
           !
-          IF ( is_variable_in_output(var_name=TRIM(var_name)) ) THEN
-             CALL add_ref( tend_list, prefix//'mtrcvi_phy',             &
-                         & TRIM(var_name), tend%mtrcvi_phy_ptr(jtrc)%p, &
-                         & GRID_UNSTRUCTURED_CELL, ZA_ATMOSPHERE,       &
-                         & cf_desc, grib2_desc,                         &
-                         & ref_idx=jtrc, ldims=(/kproma,kblks/),        &
-                         & lrestart = .FALSE. )
-          END IF
+          CALL add_ref( tend_list, prefix//'mtrcvi_phy',             &
+                      & TRIM(var_name), tend%mtrcvi_phy_ptr(jtrc)%p, &
+                      & GRID_UNSTRUCTURED_CELL, ZA_ATMOSPHERE,       &
+                      & cf_desc, grib2_desc,                         &
+                      & ref_idx=jtrc, ldims=(/kproma,kblks/),        &
+                      & lrestart = .FALSE. )
           !
        END DO
        !
