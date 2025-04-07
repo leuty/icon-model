@@ -167,6 +167,7 @@ Climate: ICON-Land
 - New path for input data for the ocean buildbot test that is run on mpim sites (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/687)
 - mkexp for amip r2b8 at Levante GPUs with distributed I/O (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/598)
 - Check Memory consumption on NEC (https://gitlab.dkrz.de/icon/icon-nwp/-/merge_requests/1399)
+- Added script to check global water conservation of coupled ICON XPP runs (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/762)
 
 #### Building
 
