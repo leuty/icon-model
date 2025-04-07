@@ -18,7 +18,7 @@ MODULE mo_wave_state
   USE mo_parallel_config,           ONLY: nproma
   USE mo_model_domain,              ONLY: t_patch
   USE mo_grid_config,               ONLY: n_dom, l_limited_area, ifeedback_type
-  USE mo_impl_constants,            ONLY: success, max_char_length, VNAME_LEN, TLEV_NNOW_RCF, &
+  USE mo_impl_constants,            ONLY: success, max_char_length, VNAME_LEN, TLEV_NNOW, &
     &                                     HINTP_TYPE_LONLAT_NNB, HINTP_TYPE_LONLAT_BCTR
   USE mo_var_list,                  ONLY: add_var, add_ref, t_var_list_ptr
   USE mo_var_list_register,         ONLY: vlr_add, vlr_del
@@ -218,7 +218,7 @@ CONTAINS
            & grib2_var(255, 255, 255, ibits, GRID_UNSTRUCTURED, GRID_CELL),      &
            & ldims=shape3d_c, ref_idx=jf,                                        &
            & loutput=.TRUE., lrestart=.TRUE.,                                    &
-           & tlev_source=TLEV_NNOW_RCF,                                          &
+           & tlev_source=TLEV_NNOW,                                              &
            & tracer_info=create_tracer_metadata(lis_tracer=.TRUE.,               &
            &                       name        = TRIM(tracer_name),              &
            &                       lfeedback   = .TRUE.,                         &
