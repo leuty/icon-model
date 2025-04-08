@@ -964,7 +964,7 @@ if [[ ${MD} =~ .*m.* ]]; then
     EXP_TEST=${EXPERIMENT}_${TEST}
     if [ "${OVERWRITE}" == 'yes' -o ! -d ${MODEL_DIR}/experiments/${EXP_TEST} ]; then
         cd ${SCRIPT_DIR}
-        MPI=`grep with_mpi ${PREFIX}.${SCRIPT}.run`
+        MPI=`grep '# with_mpi=' ${PREFIX}.${SCRIPT}.run`
         MPIYES='# with_mpi=yes'
         if [ "$MPI" == "$MPIYES" ]; then
 
@@ -1062,7 +1062,7 @@ if [[ ${MD} =~ .*o.* ]]; then
     EXP_TEST=${EXPERIMENT}_${TEST}
     if [ "${OVERWRITE}" == 'yes' -o ! -d ${MODEL_DIR}/experiments/${EXP_TEST} ]; then
         cd ${SCRIPT_DIR}
-        OMP=`grep with_openmp ${PREFIX}.${SCRIPT}.run`
+        OMP=`grep '# with_openmp=' ${PREFIX}.${SCRIPT}.run`
         OMPYES='# with_openmp=yes'
         if [ "$OMP" == "$OMPYES" ]; then
 
