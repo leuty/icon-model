@@ -39,6 +39,9 @@ MODULE mo_var_list
     &                            init_contiguous_i4, init_contiguous_l
   USE mo_action_types,     ONLY: t_var_action
 
+#ifndef __NO_ICON_COMIN__
+  USE mo_comin_config,     ONLY: comin_secondary_constructor_called
+#endif
   IMPLICIT NONE
   PRIVATE
 
@@ -283,6 +286,9 @@ CONTAINS
     LOGICAL :: referenced, is_restart_var
     CHARACTER(*), PARAMETER :: routine = modname//":add_var_list_element_5d"
 
+#ifndef __NO_ICON_COMIN__
+    IF (comin_secondary_constructor_called) CALL finish (routine, "variables can not be added after comin secondary constructor.")
+#endif
     ndims = SIZE(ldims)
     ! Check for a variable of the same name in this list
     ! This consistency check only makes sense inside individual lists.
@@ -999,6 +1005,9 @@ CONTAINS
     CHARACTER(*), PARAMETER :: routine = modname//":add_var_list_reference_util"
     INTEGER :: var_ref_pos, ndims, di(5), di3, max_ref, ts_pos
 
+#ifndef __NO_ICON_COMIN__
+    IF (comin_secondary_constructor_called) CALL finish (routine, "reference can not be added after comin secondary constructor.")
+#endif
     ndims = SIZE(ldims)
     target_element => find_list_element(this_list, target_name)
     IF (.NOT. ASSOCIATED(target_element)) THEN

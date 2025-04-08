@@ -28,7 +28,7 @@
 MODULE mo_nwp_ecrad_init
 
   USE mo_kind,                 ONLY: wp
-  USE mo_exception,            ONLY: finish, message
+  USE mo_exception,            ONLY: finish, message, message_text
   USE mo_radiation_config,     ONLY: icld_overlap, irad_aero, ecrad_data_path,             &
                                  &   ecrad_isolver, ecrad_igas_model, isolrad,             &
                                  &   ecrad_llw_cloud_scat, ecrad_iliquid_scat,             &
@@ -38,9 +38,9 @@ MODULE mo_nwp_ecrad_init
                                  &   iRadAeroConst, iRadAeroTegen, iRadAeroART,            &
                                  &   iRadAeroConstKinne, iRadAeroKinne, iRadAeroVolc,      &
                                  &   iRadAeroKinneVolc,  iRadAeroKinneVolcSP,              &
-                                 &   iRadAeroKinneSP, iRadAeroNone,                        &
+                                 &   iRadAeroKinneSP, iRadAeroNone, iRadAeroExternal,      &
                                  &   iRadAeroCAMSclim, iRadAeroCAMStd,                     &
-                                 &   ecrad_check_input
+                                 &   ecrad_nbands_sw, ecrad_nbands_lw, ecrad_check_input
 #ifdef __ECRAD
   USE mo_ecrad,                ONLY: t_ecrad_conf, ecrad_setup,                            &
                                  &   ISolverHomogeneous, ISolverMcICA, ISolverMcICAACC,    &
@@ -128,8 +128,9 @@ CONTAINS
     SELECT CASE (irad_aero)
       CASE (iRadAeroNone) ! No aerosol
         ecrad_conf%use_aerosols = .false.
-      CASE (iRadAeroConst, iRadAeroTegen, iRadAeroCAMSclim, iRadAeroCAMStd, iRadAeroART, iRadAeroConstKinne,  &
-        &   iRadAeroKinne, iRadAeroVolc, iRadAeroKinneVolc,  iRadAeroKinneVolcSP, iRadAeroKinneSP)
+      CASE (iRadAeroConst, iRadAeroExternal, iRadAeroTegen, iRadAeroCAMSclim, iRadAeroCAMStd, &
+        &   iRadAeroART, iRadAeroConstKinne, iRadAeroKinne, iRadAeroVolc, iRadAeroKinneVolc, &
+        &   iRadAeroKinneVolcSP, iRadAeroKinneSP)
         ecrad_conf%use_aerosols = .true.
       CASE DEFAULT
         CALL finish(routine, 'irad_aero not valid for ecRad')
@@ -439,6 +440,21 @@ CONTAINS
     !$ACC   COPYIN(ecrad_conf%gas_optics_sw%spectral_def)
     !$ACC ENTER DATA COPYIN(ecrad_conf%gas_optics_sw%spectral_def%wavenumber1_band) &
     !$ACC   COPYIN(ecrad_conf%gas_optics_sw%spectral_def%wavenumber2_band)
+
+    !---------------------------------------------------------------------------------------
+    ! Crosschecks
+    !---------------------------------------------------------------------------------------
+
+    IF (ecrad_nbands_lw /= ecrad_conf%n_bands_lw) THEN
+      WRITE (message_text, '(a,i2,a,i2)') &
+        &  "ecrad_nbands_lw /= ecrad_conf%n_bands_lw: ", ecrad_nbands_lw, " /= ", ecrad_conf%n_bands_lw
+      CALL finish(routine, message_text)
+    ENDIF
+    IF (ecrad_nbands_sw /= ecrad_conf%n_bands_sw) THEN
+      WRITE (message_text, '(a,i2,a,i2)') &
+        &  "ecrad_nbands_sw /= ecrad_conf%n_bands_sw: ", ecrad_nbands_sw, " /= ", ecrad_conf%n_bands_sw
+      CALL finish(routine, message_text)
+    ENDIF
 
 #ifdef _OPENACC
     CALL ecrad_openacc_crosscheck(ecrad_conf)

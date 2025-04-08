@@ -76,9 +76,10 @@ USE mo_atm_phy_nwp_config,  ONLY: atm_phy_nwp_config, icpl_aero_conv, iprog_aero
 USE turb_data,              ONLY: ltkecon, imode_tkemini, imode_trancnf, rsur_sher
 USE mo_initicon_config,     ONLY: icpl_da_sfcevap, icpl_da_snowalb, icpl_da_landalb, icpl_da_skinc, icpl_da_seaice
 USE mo_radiation_config,    ONLY: irad_aero, iRadAeroTegen, iRadAeroART, iRadAeroNone, &
-                                  iRadAeroConst, iRadAeroCAMSclim, iRadAeroCAMStd, islope_rad, &
-                                  iRadAeroConstKinne, iRadAeroKinne, iRadAeroVolc, iRadAeroKinneVolc, &
-                                  iRadAeroKinneVolcSP, iRadAeroKinneSP
+  &                               iRadAeroConst, iRadAeroCAMSclim, iRadAeroCAMStd, islope_rad, &
+  &                               iRadAeroConstKinne, iRadAeroKinne, iRadAeroVolc, iRadAeroKinneVolc, &
+  &                               iRadAeroKinneVolcSP, iRadAeroKinneSP, iRadAeroExternal, &
+  &                               ecrad_nbands_sw, ecrad_nbands_lw
 USE mo_lnd_nwp_config,      ONLY: ntiles_total, ntiles_water, nlev_soil
 USE mo_nwp_tuning_config,   ONLY: itune_gust_diag
 USE mo_var_list,            ONLY: add_var, add_ref, t_var_list_ptr
@@ -329,6 +330,7 @@ SUBROUTINE new_nwp_phy_diag_list( k_jg, klev, klevp1, kblks,    &
       &        shape2d_synsat(2), shape3d_aero(3), shape3dechotop(3), shape3dwshear(3),shape3d_hail(3)
     INTEGER :: shape3dkp1(3), shape3dflux(3), shape3d_uh_max(3), shape3dturb(3), shape3dsrh(3)
     INTEGER :: shape3duse(3) ! used shape for conditionally allocated 3D arrays
+    INTEGER :: shape4d_lwbands(4), shape4d_swbands(4)
     INTEGER :: ibits,  kcloud
     INTEGER :: jsfc, ist
     CHARACTER(len=NF90_MAX_NAME) :: long_name
@@ -381,6 +383,8 @@ SUBROUTINE new_nwp_phy_diag_list( k_jg, klev, klevp1, kblks,    &
     shape3dwshear  = (/nproma, n_wshear,     kblks/)
     shape3dsrh     = (/nproma, n_srh,        kblks/)
     shape3d_hail   = (/nproma, 5,            kblks/)
+    shape4d_lwbands= (/nproma, klev,         kblks, ecrad_nbands_lw/)
+    shape4d_swbands= (/nproma, klev,         kblks, ecrad_nbands_sw/)
 
     !------------------------------
     ! Ensure that all pointers have a defined association status
@@ -428,6 +432,7 @@ SUBROUTINE new_nwp_phy_diag_list( k_jg, klev, klevp1, kblks,    &
       &     diag%fac_rmfdeps, &
       &     diag%graupel_gsp, &
       &     diag%graupel_gsp_rate, &
+      &     diag%g_sw, &
       &     diag%hail_gsp, &
       &     diag%hail_gsp_rate, &
       &     diag%hbas_sc, &
@@ -447,6 +452,8 @@ SUBROUTINE new_nwp_phy_diag_list( k_jg, klev, klevp1, kblks,    &
       &     diag%lpi, &
       &     diag%lwflxsfc_t, &
       &     diag%mech_prod, &
+      &     diag%od_lw, &
+      &     diag%od_sw, &
       &     diag%p_cbase, &
       &     diag%p_ctop, &
       &     diag%pv, &
@@ -464,6 +471,7 @@ SUBROUTINE new_nwp_phy_diag_list( k_jg, klev, klevp1, kblks,    &
       &     diag%snowalb_fac, &
       &     diag%landalb_inc, &
       &     diag%srh, &
+      &     diag%ssa_sw, &
       &     diag%tot_pr_max, &
       &     diag%swflxsfc_t, &
       &     diag%synsat_arr, &
@@ -2862,6 +2870,40 @@ SUBROUTINE new_nwp_phy_diag_list( k_jg, klev, klevp1, kblks,    &
       lrestart = .TRUE.
     ELSE
       lrestart = .FALSE.
+    ENDIF
+
+    IF (irad_aero == iRadAeroExternal) THEN
+      cf_desc    = t_cf_var('od_lw', '-', 'long wave aerosol optical depth', datatype_flt)
+      grib2_desc = grib2_var(255, 255, 255, ibits, GRID_UNSTRUCTURED, GRID_CELL)
+      CALL add_var( diag_list, 'od_lw', diag%od_lw, &
+                & GRID_UNSTRUCTURED_CELL, ZA_REFERENCE, &
+                & cf_desc, grib2_desc, ldims=shape4d_lwbands, &
+                & lrestart=.FALSE., loutput=.FALSE., lopenacc=.TRUE.)
+      __acc_attach(diag%od_lw)
+
+      cf_desc    = t_cf_var('od_sw', '-', 'short wave aerosol optical depth', datatype_flt)
+      grib2_desc = grib2_var(255, 255, 255, ibits, GRID_UNSTRUCTURED, GRID_CELL)
+      CALL add_var( diag_list, 'od_sw', diag%od_sw, &
+                & GRID_UNSTRUCTURED_CELL, ZA_REFERENCE, &
+                & cf_desc, grib2_desc, ldims=shape4d_swbands, &
+                & lrestart=.FALSE., loutput=.FALSE., lopenacc=.TRUE.)
+      __acc_attach(diag%od_sw)
+
+      cf_desc    = t_cf_var('ssa_sw', '-', 'short wave aerosol single scattering albedo', datatype_flt)
+      grib2_desc = grib2_var(255, 255, 255, ibits, GRID_UNSTRUCTURED, GRID_CELL)
+      CALL add_var( diag_list, 'ssa_sw', diag%ssa_sw, &
+                & GRID_UNSTRUCTURED_CELL, ZA_REFERENCE, &
+                & cf_desc, grib2_desc, ldims=shape4d_swbands, &
+                & lrestart=.FALSE., loutput=.FALSE., lopenacc=.TRUE.)
+      __acc_attach(diag%ssa_sw)
+
+      cf_desc    = t_cf_var('g_sw', '-', 'short wave aerosol asymmetry parameter', datatype_flt)
+      grib2_desc = grib2_var(255, 255, 255, ibits, GRID_UNSTRUCTURED, GRID_CELL)
+      CALL add_var( diag_list, 'g_sw', diag%g_sw, &
+                & GRID_UNSTRUCTURED_CELL, ZA_REFERENCE, &
+                & cf_desc, grib2_desc, ldims=shape4d_swbands, &
+                & lrestart=.FALSE., loutput=.FALSE., lopenacc=.TRUE.)
+      __acc_attach(diag%g_sw)
     ENDIF
 
     ! &      diag%cloud_num(nproma,nblks_c)

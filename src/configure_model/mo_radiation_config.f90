@@ -86,9 +86,11 @@ MODULE mo_radiation_config
     INTEGER  :: irad_aero   !< aerosols
     LOGICAL  :: lrad_aero_diag  !< diagnose aerosols
     ENUM, BIND(C)
-        ENUMERATOR :: iRadAeroNone=0,         iRadAeroConst=2,      iRadAeroTegen=6,        iRadAeroCAMSclim=7, &
-          &           iRadAeroCAMStd=8,       iRadAeroART=9,        iRadAeroConstKinne=12,  iRadAeroKinne=13,   &
-          &           iRadAeroVolc=14,        iRadAeroKinneVolc=15, iRadAeroKinneVolcSP=18, iRadAeroKinneSP=19
+        ENUMERATOR :: iRadAeroNone=0,         iRadAeroConst=2,       iRadAeroExternal=3,     &
+          &           iRadAeroTegen=6,        iRadAeroCAMSclim=7,    iRadAeroCAMStd=8,       &
+          &           iRadAeroART=9,          iRadAeroConstKinne=12, iRadAeroKinne=13,       &
+          &           iRadAeroVolc=14,        iRadAeroKinneVolc=15,  iRadAeroKinneVolcSP=18, &
+          &           iRadAeroKinneSP=19
     END ENUM
     !
     ! --- Name of the file that contains  dynamic greenhouse values
@@ -153,6 +155,14 @@ MODULE mo_radiation_config
     INTEGER  :: ecrad_igas_model        !< Gas model and spectral bands
                                         !< 0: RRTMG (Iacono et al. 2008)
                                         !< 1: ecckd (Hogan and Matricardi 2020)
+
+    ! Derived values: The number of bands can be requested from ecrad after initialization.
+    !                 However, this init call is only after new_nwp_phy_diag_list where
+    !                 we need to add some variables with number of bands as dimension.
+    !                 So these will be filled based on ecrad_igas_model and later checked for
+    !                 consistency with the internal values from ecrad.
+    INTEGER  :: ecrad_nbands_sw         !< Number of short wave bands
+    INTEGER  :: ecrad_nbands_lw         !< Number of long wave bands
 
     CHARACTER(len=MAX_CHAR_LENGTH) :: &
       &  ecrad_data_path                !< Folder containing optical properties

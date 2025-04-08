@@ -59,6 +59,8 @@ MODULE mo_radiation_nml
                                  & config_ecrad_igraupel_scat => ecrad_igraupel_scat,   &
                                  & config_ecrad_isolver => ecrad_isolver,               &
                                  & config_ecrad_igas_model => ecrad_igas_model,         &
+                                 & config_ecrad_nbands_sw => ecrad_nbands_sw,           &
+                                 & config_ecrad_nbands_lw => ecrad_nbands_lw,           &
                                  & config_ecrad_data_path => ecrad_data_path,           &
                                  & iRadAeroConst
 
@@ -386,6 +388,15 @@ CONTAINS
     config_ecrad_igas_model     = ecrad_igas_model
     config_ecrad_use_general_cloud_optics    = ecrad_use_general_cloud_optics
     config_ecrad_data_path      = TRIM(ecrad_data_path)
+
+    SELECT CASE(ecrad_igas_model)
+      CASE(0) ! RRTMG
+        config_ecrad_nbands_sw = 14
+        config_ecrad_nbands_lw = 16
+      CASE(1) ! ecckd
+        config_ecrad_nbands_sw = 32
+        config_ecrad_nbands_lw = 32
+    END SELECT
 
     IF ( direct_albedo_water == 3 ) THEN
       csalb => csalb2

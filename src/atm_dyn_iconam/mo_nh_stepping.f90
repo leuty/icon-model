@@ -264,6 +264,7 @@ MODULE mo_nh_stepping
   USE mo_comin_adapter,            ONLY: icon_update_current_datetime, &
     &                                    icon_update_expose_variables, &
     &                                    icon_call_callback
+  USE mo_comin_config,             ONLY: comin_config
 #endif
 
   USE mo_coupling_config       ,ONLY: is_coupled_to_ocean
@@ -2171,7 +2172,9 @@ MODULE mo_nh_stepping
 
 
 #ifndef __NO_ICON_COMIN__
-        CALL icon_update_expose_variables(TLEV_NNOW, nnew(jg))
+        IF (comin_config%nplugins /= 0) THEN
+           CALL icon_update_expose_variables(TLEV_NNOW, nnew(jg))
+        END IF
         CALL icon_call_callback(EP_ATM_ADVECTION_BEFORE, jg, lacc=.TRUE.)
 #endif
 
@@ -2244,7 +2247,9 @@ MODULE mo_nh_stepping
           !$ser verbatim CALL serialize_all(nproma, jg, "step_advection", .FALSE., opt_dt=datetime_local(jg)%ptr, opt_id=iau_iter)
 
 #ifndef __NO_ICON_COMIN__
-          CALL icon_update_expose_variables(TLEV_NNOW_RCF, nnew_rcf(jg))
+          IF (comin_config%nplugins /= 0) THEN
+             CALL icon_update_expose_variables(TLEV_NNOW_RCF, nnew_rcf(jg))
+          END IF
 #endif
           
 #ifndef __NO_NWP__

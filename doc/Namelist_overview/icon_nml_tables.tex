@@ -7985,9 +7985,10 @@ I&
 &
 Aerosols\\
 0: none\\
-1: prognostic variable\\
 2: global constant\\
-3: externally specified\\
+3: externally specified. This creates additional 4D-fields for: optical depth long wave (od\_lw),
+optical depth short wave (od\_sw), single scattering albedo short wave (ssa\_sw) and asymmetry parameter short wave (g\_sw).
+These fields need to be filled externally (e.g. by a ComIn plugin).\\
 6: Tegen aerosol climatology {\color{red}for run\_nml/iforcing = 3 (NWP) .AND. itopo =1 }\\
 7: CAMS 3D aerosol climatology, the filename can be specified via cams\_aero\_filename in \&radiation\_nml\\
 8: CAMS 3D forecasted aerosol, the filename can be specified via cams\_aero\_filename in \&radiation\_nml\\

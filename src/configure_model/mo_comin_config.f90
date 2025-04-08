@@ -44,6 +44,7 @@ MODULE mo_comin_config
 
   TYPE(t_comin_config), TARGET :: comin_config
 
+  LOGICAL :: comin_secondary_constructor_called = .FALSE.
 
 CONTAINS
 

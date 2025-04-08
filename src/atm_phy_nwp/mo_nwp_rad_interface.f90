@@ -107,11 +107,12 @@ MODULE mo_nwp_rad_interface
       &  zaeq2(:,:,:),   & !< relative to 550 nm, including   2: maritime
       &  zaeq3(:,:,:),   & !< a vertical profile              3: desert
       &  zaeq4(:,:,:),   & !< for 5 different                 4: urban
-      &  zaeq5(:,:,:),   & !< aerosol species.                5: stratospheric background
+      &  zaeq5(:,:,:)      !< aerosol species.                5: stratospheric background
+    REAL(wp), POINTER :: &
       &  od_lw(:,:,:,:), & !< LW optical thickness of aerosols
       &  od_sw(:,:,:,:), & !< SW aerosol optical thickness
       &  g_sw (:,:,:,:), & !< SW aerosol asymmetry factor
-      &  ssa_sw(:,:,:,:)     !< SW aerosol single scattering albedo
+      &  ssa_sw(:,:,:,:)   !< SW aerosol single scattering albedo
 
     CHARACTER(len=max_timedelta_str_len) :: dstring
     INTEGER :: jg
@@ -128,6 +129,12 @@ MODULE mo_nwp_rad_interface
 
     wavenum1_sw => NULL()
     wavenum2_sw => NULL()
+
+    od_lw   => NULL()
+    od_sw   => NULL()
+    g_sw    => NULL()
+    ssa_sw  => NULL()
+
     ! patch ID
     jg = pt_patch%id
 

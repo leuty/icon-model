@@ -152,10 +152,12 @@ MODULE mo_atmo_model
 
 #ifndef __NO_ICON_COMIN__
   USE comin_host_interface,       ONLY: comin_parallel_mpi_handshake,     &
-    &                                   mpi_handshake_dummy
+    &                                   mpi_handshake_dummy,              &
+    &                                   comin_plugin_primaryconstructor
   USE mo_comin_config,            ONLY: comin_config
   USE mo_comin_adapter,           ONLY: icon_expose_descrdata
   USE mo_time_config,             ONLY: time_config
+  USE mo_timer,                   ONLY: timer_comin_primary_constructors
   USE mo_run_config,              ONLY: number_of_grid_used
   USE mo_util_vgrid_types,        ONLY: vgrid_buffer
   USE mo_run_config,              ONLY: dtime
@@ -661,31 +663,37 @@ CONTAINS
 
 #ifndef __NO_ICON_COMIN__
     ! expose descriptive data structures
-    CALL icon_expose_descrdata( &
-      &  msg_level = msg_level, &
-      &  n_dom = n_dom, &
-      &  max_dom = max_dom, &
-      &  nproma = nproma, &
-      &  min_rlcell_int = min_rlcell_int, &
-      &  min_rlcell = min_rlcell, &
-      &  max_rlcell = max_rlcell, &
-      &  min_rlvert_int = min_rlvert_int, &
-      &  min_rlvert = min_rlvert, &
-      &  max_rlvert = max_rlvert, &
-      &  min_rledge_int = min_rledge_int, &
-      &  min_rledge = min_rledge, &
-      &  max_rledge = max_rledge, &
-      &  grf_bdywidth_c = grf_bdywidth_c, &
-      &  grf_bdywidth_e = grf_bdywidth_e, &
-      &  lrestart = isRestart(), &
-      &  vct_a = vct_a, &
-      &  p_patch = p_patch(1:), &
-      &  number_of_grid_used = number_of_grid_used, &
-      &  vgrid_buffer = vgrid_buffer, &
-      &  start_time = start_time, &
-      &  end_time = end_time, &
-      &  time_config = time_config, &
-      &  dtime = dtime )
+    IF(comin_config%nplugins /= 0) THEN
+       CALL icon_expose_descrdata( &
+            &  msg_level = msg_level, &
+            &  n_dom = n_dom, &
+            &  max_dom = max_dom, &
+            &  nproma = nproma, &
+            &  min_rlcell_int = min_rlcell_int, &
+            &  min_rlcell = min_rlcell, &
+            &  max_rlcell = max_rlcell, &
+            &  min_rlvert_int = min_rlvert_int, &
+            &  min_rlvert = min_rlvert, &
+            &  max_rlvert = max_rlvert, &
+            &  min_rledge_int = min_rledge_int, &
+            &  min_rledge = min_rledge, &
+            &  max_rledge = max_rledge, &
+            &  grf_bdywidth_c = grf_bdywidth_c, &
+            &  grf_bdywidth_e = grf_bdywidth_e, &
+            &  lrestart = isRestart(), &
+            &  vct_a = vct_a, &
+            &  p_patch = p_patch(1:), &
+            &  number_of_grid_used = number_of_grid_used, &
+            &  vgrid_buffer = vgrid_buffer, &
+            &  start_time = start_time, &
+            &  end_time = end_time, &
+            &  time_config = time_config, &
+            &  dtime = dtime )
+    END IF
+    ! - call primary constructors
+    IF (timers_level > 2) CALL timer_start(timer_comin_primary_constructors)
+    CALL comin_plugin_primaryconstructor(comin_config%plugin_list(1:comin_config%nplugins))
+    IF (timers_level > 2) CALL timer_stop(timer_comin_primary_constructors)
 #endif
 
     CALL init_tracer_settings(iforcing, n_dom, ltransport,                 &

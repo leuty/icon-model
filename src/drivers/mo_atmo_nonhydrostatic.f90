@@ -81,8 +81,6 @@ USE mo_nh_stepping,          ONLY: perform_nh_stepping
 ! Initialization with real data
 USE mo_initicon,            ONLY: init_icon
 USE mo_ext_data_state,      ONLY: ext_data
-! Community Interface (ComIn)
-USE mo_comin_config,        ONLY: configure_comin
 ! meteogram output
 USE mo_meteogram_output,    ONLY: meteogram_init, meteogram_finalize
 USE mo_meteogram_config,    ONLY: meteogram_output_config
@@ -186,6 +184,8 @@ USE mo_icon2dace,           ONLY: init_dace, finish_dace
     &                               destruct_atmo_coupling
 
 #ifndef __NO_ICON_COMIN__
+! Community Interface (ComIn)
+  USE mo_comin_config,      ONLY: configure_comin, comin_config
   USE comin_host_interface, ONLY: EP_SECONDARY_CONSTRUCTOR,           &
     &                             EP_ATM_INIT_FINALIZE,               &
     &                             EP_DESTRUCTOR,                      &
@@ -199,6 +199,8 @@ USE mo_icon2dace,           ONLY: init_dace, finish_dace
     &                             icon_append_comin_tracer_phys_tend, &
     &                             icon_expose_variables,              &
     &                             icon_call_callback
+  USE mo_comin_config,      ONLY: comin_secondary_constructor_called
+
 #endif
 
 
@@ -290,11 +292,12 @@ CONTAINS
 
 #ifndef __NO_ICON_COMIN__
     CALL icon_call_callback(EP_DESTRUCTOR, COMIN_DOMAIN_OUTSIDE_LOOP, lacc=.TRUE.)
-
-    CALL comin_var_list_finalize()
-    CALL comin_var_request_list_finalize()
-    CALL comin_descrdata_finalize()
-    CALL comin_setup_finalize()
+    IF (comin_config%nplugins /= 0) THEN
+       CALL comin_var_list_finalize()
+       CALL comin_var_request_list_finalize()
+       CALL comin_descrdata_finalize()
+       CALL comin_setup_finalize()
+    END IF
 #endif
 
     !---------------------------------------------------------------------
@@ -438,31 +441,6 @@ CONTAINS
       ENDIF
 #endif
     END IF
-#ifndef __NO_ICON_COMIN__
-    ! ----------------------------------------------------------
-    ! ICON ComIn
-    !
-    ! loop over the total list of additional requested variables and
-    ! perform `add_var` / `add_ref` operations needed.
-    !
-    ! Remarks:
-    ! - Variables are added to a separate variable list.
-    !
-    ! - Further below, additional AES tracers are added. This happens
-    !   in a slightly different way than for NWP and subtly changes
-    !   the role of the `ncontained` counter in the tracer
-    !   container. ComIn, however, relies on the fact that
-    !   `ncontained` provides the total number of tracer references
-    !   added so far. This (and probably other ICON components) is
-    !   incompatible with the AES implementation. Calling the ComIn
-    !   tracer handling *before* the AES constructor is an imperfect
-    !   work-around which will be changed when a better solution on
-    !   the ICON side has been implemented.
-    CALL icon_append_comin_tracer_variables(p_patch(1:), p_nh_state, p_nh_state_lists)
-    CALL icon_append_comin_tracer_phys_tend(p_patch(1:))
-    CALL icon_append_comin_variables(p_patch(1:))
-    ! ----------------------------------------------------------
-#endif
 
     IF (iforcing == iaes) THEN
 #ifdef __NO_AES__   
@@ -494,14 +472,18 @@ CONTAINS
 
 #ifndef __NO_ICON_COMIN__
     ! ----------------------------------------------------------
-    ! expose ICON's variables to the ComIn infrastructure.
-
-    CALL icon_expose_variables()
-
-    ! call to secondary constructor
-    !   third party modules retrieve pointers to data arrays, telling
-    !   ICON ComIn about the context where these will be accessed.
-    CALL icon_call_callback(EP_SECONDARY_CONSTRUCTOR, COMIN_DOMAIN_OUTSIDE_LOOP, lacc=.FALSE.)
+    ! ICON ComIn
+    !
+    ! loop over the total list of additional requested variables and
+    ! perform `add_var` / `add_ref` operations needed.
+    !
+    ! Remarks:
+    ! - Variables are added to a separate variable list.
+    IF (comin_config%nplugins /= 0) THEN
+       CALL icon_append_comin_tracer_variables(p_patch(1:), p_nh_state, p_nh_state_lists)
+       CALL icon_append_comin_tracer_phys_tend(p_patch(1:))
+       CALL icon_append_comin_variables(p_patch(1:))
+    END IF
     ! ----------------------------------------------------------
 #endif
 
@@ -826,7 +808,9 @@ CONTAINS
     ! Status output for the Community Interface (ComIn)
     !------------------------------------------------------------------
 
+#ifndef __NO_ICON_COMIN__
     CALL configure_comin()
+#endif
 
 
     !------------------------------------------------------------------
@@ -925,10 +909,23 @@ CONTAINS
     CALL messy_init_coupling
     CALL messy_init_tracer
 #endif
-
+    
 #ifndef __NO_ICON_COMIN__
+    ! ----------------------------------------------------------
+    ! expose ICON's variables to the ComIn infrastructure.
+    IF (comin_config%nplugins /= 0) THEN
+       CALL icon_expose_variables()
+    END IF
+    ! call to secondary constructor
+    !   third party modules retrieve pointers to data arrays, telling
+    !   ICON ComIn about the context where these will be accessed.
+    CALL icon_call_callback(EP_SECONDARY_CONSTRUCTOR, COMIN_DOMAIN_OUTSIDE_LOOP, lacc=.FALSE.)
+    comin_secondary_constructor_called = .TRUE.
+    
+    ! ----------------------------------------------------------
     CALL icon_call_callback(EP_ATM_INIT_FINALIZE, COMIN_DOMAIN_OUTSIDE_LOOP, lacc=.FALSE.)
 #endif
+
     ! Determine if temporally averaged vertically integrated moisture quantities need to be computed
 
     IF (iforcing == inwp) THEN

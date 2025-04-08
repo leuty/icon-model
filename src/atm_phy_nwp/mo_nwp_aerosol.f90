@@ -42,7 +42,7 @@ MODULE mo_nwp_aerosol
   USE mo_radiation_config,        ONLY: irad_aero, iRadAeroConstKinne, iRadAeroKinne, iRadAeroCAMSclim,     &
                                     &   iRadAeroCAMStd, iRadAeroVolc, iRadAeroKinneVolc, iRadAeroART, &
                                     &   iRadAeroKinneVolcSP, iRadAeroKinneSP, iRadAeroTegen,                &
-                                    &   cams_aero_filename
+                                    &   iRadAeroExternal, cams_aero_filename
 ! External infrastruture
   USE mtime,                      ONLY: datetime, timedelta, newDatetime, newTimedelta,       &
                                     &   operator(+), deallocateTimedelta, deallocateDatetime
@@ -75,6 +75,15 @@ MODULE mo_nwp_aerosol
 
   TYPE(t_cams_reader),      ALLOCATABLE, TARGET :: cams_reader(:)
   TYPE(t_time_intp),        ALLOCATABLE         :: cams_intp(:)
+
+  ! Local memory for aerosol fields.
+  ! These are only allocated for certain aerosol options in the scope of the radiation.
+  ! If available, global memory fields from prm_diag are used instead
+  REAL(wp), TARGET, ALLOCATABLE :: &
+    &  locmem_od_lw(:,:,:,:), & !< LW optical thickness of aerosols
+    &  locmem_od_sw(:,:,:,:), & !< SW aerosol optical thickness
+    &  locmem_g_sw (:,:,:,:), & !< SW aerosol asymmetry factor
+    &  locmem_ssa_sw(:,:,:,:)   !< SW aerosol single scattering albedo
 
 CONTAINS
 
@@ -160,7 +169,7 @@ CONTAINS
     INTEGER, INTENT(in) ::     &
       &  inwp_radiation,       & !< Radiation scheme (1=rrtmg, 4=ecrad)
       &  nbands_lw, nbands_sw    !< Number of short and long wave bands
-    REAL(wp), ALLOCATABLE, INTENT(out) :: &
+    REAL(wp), POINTER, INTENT(out) :: &
       &  od_lw(:,:,:,:),       & !< Longwave optical thickness
       &  od_sw(:,:,:,:),       & !< Shortwave optical thickness
       &  ssa_sw(:,:,:,:),      & !< Shortwave asymmetry factor
@@ -292,10 +301,10 @@ CONTAINS
 #endif
           IF (inwp_radiation == 4) THEN
             ! Allocations
-            ALLOCATE(od_lw        (nproma,pt_patch%nlev,pt_patch%nblks_c,nbands_lw), &
-              &      od_sw        (nproma,pt_patch%nlev,pt_patch%nblks_c,nbands_sw), &
-              &      ssa_sw       (nproma,pt_patch%nlev,pt_patch%nblks_c,nbands_sw), &
-              &      g_sw         (nproma,pt_patch%nlev,pt_patch%nblks_c,nbands_sw), &
+            ALLOCATE(locmem_od_lw (nproma,pt_patch%nlev,pt_patch%nblks_c,nbands_lw), &
+              &      locmem_od_sw (nproma,pt_patch%nlev,pt_patch%nblks_c,nbands_sw), &
+              &      locmem_ssa_sw(nproma,pt_patch%nlev,pt_patch%nblks_c,nbands_sw), &
+              &      locmem_g_sw  (nproma,pt_patch%nlev,pt_patch%nblks_c,nbands_sw), &
               &      od_lw_art_vr (nproma,pt_patch%nlev,                 nbands_lw), &
               &      od_sw_art_vr (nproma,pt_patch%nlev,                 nbands_lw), &
               &      ssa_sw_art_vr(nproma,pt_patch%nlev,                 nbands_lw), &
@@ -303,6 +312,11 @@ CONTAINS
               &      STAT=istat)
             IF(istat /= SUCCESS) &
               &  CALL finish(routine, 'Allocation of od_lw, od_sw, ssa_sw, g_sw plus ART variants failed')
+            od_lw  => locmem_od_lw
+            od_sw  => locmem_od_sw
+            ssa_sw => locmem_ssa_sw
+            g_sw   => locmem_g_sw
+
 !$OMP PARALLEL
 !$OMP DO PRIVATE(jb,i_startidx,i_endidx,                              &
 !$OMP            od_lw_art_vr,od_sw_art_vr,ssa_sw_art_vr,g_sw_art_vr, &
@@ -386,14 +400,19 @@ CONTAINS
           &                                 nbands_lw, nbands_sw)
 
         ! Allocations
-        ALLOCATE(od_lw (nproma,pt_patch%nlev,pt_patch%nblks_c,nbands_lw)  , &
-          &      od_sw (nproma,pt_patch%nlev,pt_patch%nblks_c,nbands_sw)  , &
-          &      ssa_sw(nproma,pt_patch%nlev,pt_patch%nblks_c,nbands_sw)  , &
-          &      g_sw  (nproma,pt_patch%nlev,pt_patch%nblks_c,nbands_sw)  , &
+        ALLOCATE(locmem_od_lw (nproma,pt_patch%nlev,pt_patch%nblks_c,nbands_lw)  , &
+          &      locmem_od_sw (nproma,pt_patch%nlev,pt_patch%nblks_c,nbands_sw)  , &
+          &      locmem_ssa_sw(nproma,pt_patch%nlev,pt_patch%nblks_c,nbands_sw)  , &
+          &      locmem_g_sw  (nproma,pt_patch%nlev,pt_patch%nblks_c,nbands_sw)  , &
           &      STAT=istat)
-        !$ACC ENTER DATA CREATE(od_lw, od_sw, ssa_sw, g_sw) IF(lzacc)
         IF(istat /= SUCCESS) &
           &  CALL finish(routine, 'Allocation of od_lw, od_sw, ssa_sw, g_sw failed')
+        !$ACC ENTER DATA CREATE(locmem_od_lw, locmem_od_sw, locmem_ssa_sw, locmem_g_sw) IF(lzacc)
+        od_lw  => locmem_od_lw
+        od_sw  => locmem_od_sw
+        ssa_sw => locmem_ssa_sw
+        g_sw   => locmem_g_sw
+        !$ACC ENTER DATA ATTACH(od_lw, od_sw, ssa_sw, g_sw) IF(lzacc)
 
         IF ( .NOT. ASSOCIATED(wavenum1_sw) .OR. .NOT. ASSOCIATED(wavenum2_sw) ) &
           &  CALL finish(routine, 'wavenum1 or wavenum2 not associated')
@@ -500,6 +519,19 @@ CONTAINS
         ENDDO !jb
 !$OMP END DO NOWAIT
 !$OMP END PARALLEL
+
+      CASE(iRadAeroExternal)
+
+        IF ( .NOT. ASSOCIATED(prm_diag%od_lw) .OR. .NOT. ASSOCIATED(prm_diag%od_sw) .OR. &
+          &  .NOT. ASSOCIATED(prm_diag%ssa_sw) .OR. .NOT. ASSOCIATED(prm_diag%g_sw) ) &
+          &  CALL finish(routine, 'od_lw, od_sw, ssa_sw or g_sw not associated!')
+
+        ! Externally specified aerosol is stored in prm_diag
+        od_lw  => prm_diag%od_lw
+        od_sw  => prm_diag%od_sw
+        ssa_sw => prm_diag%ssa_sw
+        g_sw   => prm_diag%g_sw
+        !$ACC ENTER DATA ATTACH(od_lw, od_sw, ssa_sw, g_sw) IF(lzacc)
 
       CASE DEFAULT
         ! Currently continue as not all cases are ported to nwp_aerosol_interface yet
@@ -1100,7 +1132,8 @@ CONTAINS
       &  zaeq2(:,:,:),         & !< relative to 550 nm, including   2: maritime
       &  zaeq3(:,:,:),         & !< a vertical profile              3: desert
       &  zaeq4(:,:,:),         & !< for 5 different                 4: urban
-      &  zaeq5(:,:,:),         & !< aerosol species.                5: stratospheric background
+      &  zaeq5(:,:,:)            !< aerosol species.                5: stratospheric background
+    REAL(wp), POINTER, INTENT(inout) :: &
       &  od_lw(:,:,:,:),       & !< Longwave optical thickness
       &  od_sw(:,:,:,:),       & !< Shortwave optical thickness
       &  ssa_sw(:,:,:,:),      & !< Shortwave asymmetry factor
@@ -1110,6 +1143,15 @@ CONTAINS
     LOGICAL, INTENT(IN), OPTIONAL :: lacc
 
     CALL assert_acc_device_only("nwp_aerosol_cleanup", lacc)
+
+    !$ACC EXIT DATA DETACH(od_lw) IF(ASSOCIATED(od_lw))
+    !$ACC EXIT DATA DETACH(od_sw) IF(ASSOCIATED(od_sw))
+    !$ACC EXIT DATA DETACH(ssa_sw) IF(ASSOCIATED(ssa_sw))
+    !$ACC EXIT DATA DETACH(g_sw) IF(ASSOCIATED(g_sw))
+    NULLIFY(od_lw)
+    NULLIFY(od_sw)
+    NULLIFY(ssa_sw)
+    NULLIFY(g_sw)
 
     !$ACC WAIT
     IF( ALLOCATED(zaeq1) ) THEN
@@ -1138,25 +1180,25 @@ CONTAINS
       IF(istat /= SUCCESS) CALL finish(routine, 'Deallocation of zaeq5 failed.')
     ENDIF
 
-    IF( ALLOCATED(od_lw) ) THEN
-      !$ACC EXIT DATA DELETE(od_lw)
-      DEALLOCATE(od_lw, STAT=istat)
-      IF(istat /= SUCCESS) CALL finish(routine, 'Deallocation of od_lw failed.')
+    IF( ALLOCATED(locmem_od_lw) ) THEN
+      !$ACC EXIT DATA DELETE(locmem_od_lw)
+      DEALLOCATE(locmem_od_lw, STAT=istat)
+      IF(istat /= SUCCESS) CALL finish(routine, 'Deallocation of locmem_od_lw failed.')
     ENDIF
-    IF( ALLOCATED(od_sw) ) THEN
-      !$ACC EXIT DATA DELETE(od_sw)
-      DEALLOCATE(od_sw, STAT=istat)
-      IF(istat /= SUCCESS) CALL finish(routine, 'Deallocation of od_sw failed.')
+    IF( ALLOCATED(locmem_od_sw) ) THEN
+      !$ACC EXIT DATA DELETE(locmem_od_sw)
+      DEALLOCATE(locmem_od_sw, STAT=istat)
+      IF(istat /= SUCCESS) CALL finish(routine, 'Deallocation of locmem_od_sw failed.')
     ENDIF
-    IF( ALLOCATED(ssa_sw) ) THEN
-      !$ACC EXIT DATA DELETE(ssa_sw)
-      DEALLOCATE(ssa_sw, STAT=istat)
-      IF(istat /= SUCCESS) CALL finish(routine, 'Deallocation of ssa_sw failed.')
+    IF( ALLOCATED(locmem_ssa_sw) ) THEN
+      !$ACC EXIT DATA DELETE(locmem_ssa_sw)
+      DEALLOCATE(locmem_ssa_sw, STAT=istat)
+      IF(istat /= SUCCESS) CALL finish(routine, 'Deallocation of locmem_ssa_sw failed.')
     ENDIF
-    IF( ALLOCATED(g_sw) ) THEN
-      !$ACC EXIT DATA DELETE(g_sw)
-      DEALLOCATE(g_sw, STAT=istat)
-      IF(istat /= SUCCESS) CALL finish(routine, 'Deallocation of g_sw failed.')
+    IF( ALLOCATED(locmem_g_sw) ) THEN
+      !$ACC EXIT DATA DELETE(locmem_g_sw)
+      DEALLOCATE(locmem_g_sw, STAT=istat)
+      IF(istat /= SUCCESS) CALL finish(routine, 'Deallocation of locmem_g_sw failed.')
     ENDIF
 
   END SUBROUTINE nwp_aerosol_cleanup

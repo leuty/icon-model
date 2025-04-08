@@ -424,6 +424,13 @@ MODULE mo_nwp_phy_types
       & aercl_du  (:,:),    &
       & aerosol   (:,:,:)
 
+    ! Fields for externally specified aerosol, e.g. by ComIn
+    REAL(wp), POINTER, CONTIGUOUS :: &
+      &  od_lw(:,:,:,:), & !< LW optical thickness of aerosols (-)
+      &  od_sw(:,:,:,:), & !< SW aerosol optical thickness (-)
+      &  g_sw (:,:,:,:), & !< SW aerosol asymmetry factor (-)
+      &  ssa_sw(:,:,:,:)   !< SW aerosol single scattering albedo (-)
+
     INTEGER, POINTER, CONTIGUOUS :: &
       &  mbas_con(:,:),     & !< cloud base level index
       &  mtop_con(:,:),     & !< cloud top  level index

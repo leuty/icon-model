@@ -56,7 +56,7 @@ MODULE mo_nwp_ecrad_interface
                                    &   iRadAeroART, iRadAeroConstKinne, iRadAeroKinne,        &
                                    &   iRadAeroVolc, iRadAeroKinneVolc,  iRadAeroKinneVolcSP, &
                                    &   iRadAeroKinneSP, iRadAeroCAMSclim, iRadAeroCAMStd,     &
-                                   &   ecrad_check_input
+                                   &   iRadAeroExternal, ecrad_check_input
   USE mo_phys_nest_utilities,    ONLY: t_upscale_fields, upscale_rad_input, downscale_rad_output
   USE mtime,                     ONLY: datetime
 #ifdef __ECRAD
@@ -119,7 +119,8 @@ CONTAINS
       & zaeq2 (:,:,:),    & !< Climatological aerosol (Tegen)
       & zaeq3 (:,:,:),    & !< Climatological aerosol (Tegen)
       & zaeq4 (:,:,:),    & !< Climatological aerosol (Tegen)
-      & zaeq5 (:,:,:),    & !< Climatological aerosol (Tegen)
+      & zaeq5 (:,:,:)       !< Climatological aerosol (Tegen)
+    REAL(wp), POINTER, INTENT(in) :: &
       & od_lw (:,:,:,:),  & !< LW aerosol optical thickness
       & od_sw (:,:,:,:),  & !< SW aerosol optical thickness
       & g_sw  (:,:,:,:),  & !< SW aerosol asymmetry factor
@@ -417,7 +418,7 @@ CONTAINS
             CALL nwp_ecrad_prep_aerosol(1, nlev, i_startidx_rad, i_endidx_rad,      &
               &                         ecrad_aerosol, ptr_camsaermr)
           CASE(iRadAeroConstKinne,iRadAeroKinne,iRadAeroVolc,iRadAeroKinneVolc,iRadAeroKinneVolcSP,iRadAeroKinneSP, &
-            &  iRadAeroART)
+            &  iRadAeroART, iRadAeroExternal)
             DO jw = 1, ecrad_conf%n_bands_lw
               opt_ptrs_lw(jw)%ptr_od  => od_lw(jcs:jce,:,jb,jw)
               !$ACC ENTER DATA ATTACH(opt_ptrs_lw(jw)%ptr_od) ASYNC(1)
@@ -570,7 +571,8 @@ CONTAINS
       & zaeq2 (:,:,:),    & !< Climatological aerosol (Tegen)
       & zaeq3 (:,:,:),    & !< Climatological aerosol (Tegen)
       & zaeq4 (:,:,:),    & !< Climatological aerosol (Tegen)
-      & zaeq5 (:,:,:),    & !< Climatological aerosol (Tegen)
+      & zaeq5 (:,:,:)       !< Climatological aerosol (Tegen)
+    REAL(wp), POINTER, INTENT(in) :: &
       & od_lw (:,:,:,:),  & !< LW aerosol optical thickness
       & od_sw (:,:,:,:),  & !< SW aerosol optical thickness
       & g_sw  (:,:,:,:),  & !< SW aerosol asymmetry factor
@@ -900,8 +902,9 @@ CONTAINS
       CALL input_extra_flds%assign(zaeq5(:,:,:), irg_zaeq5)
     ENDIF
 
-    IF (ANY( irad_aero == (/iRadAeroConstKinne,iRadAeroKinne,iRadAeroVolc,iRadAeroART,  &
-      &                     iRadAeroKinneVolc,iRadAeroKinneVolcSP,iRadAeroKinneSP/) )) THEN
+    IF (ANY( irad_aero == (/iRadAeroConstKinne,iRadAeroKinne,iRadAeroVolc,iRadAeroART, &
+      &                     iRadAeroKinneVolc,iRadAeroKinneVolcSP,iRadAeroKinneSP, &
+      &                     iRadAeroExternal/) )) THEN
       ! Aerosol extra fields
       DO jw = 1, ecrad_conf%n_bands_lw
         CALL input_extra_flds%assign(od_lw(:,:,:,jw), irg_od_lw(jw))
@@ -1230,7 +1233,7 @@ CONTAINS
             CALL nwp_ecrad_prep_aerosol(1, nlev_rg, i_startidx_rad, i_endidx_rad,  &
               &                         ecrad_aerosol, ptr_camsaermr)  
           CASE(iRadAeroConstKinne,iRadAeroKinne,iRadAeroVolc,iRadAeroKinneVolc,iRadAeroKinneVolcSP,iRadAeroKinneSP, &
-            &  iRadAeroART)
+            &  iRadAeroART, iRadAeroExternal)
             CALL nwp_ecrad_prep_aerosol(1, nlev_rg, i_startidx_rad, i_endidx_rad,         &
               &                         opt_ptrs_lw, opt_ptrs_sw,                         &
               &                         ecrad_conf, ecrad_aerosol, lacc=.TRUE.)

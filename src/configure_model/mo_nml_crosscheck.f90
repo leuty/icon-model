@@ -52,6 +52,7 @@ MODULE mo_nml_crosscheck
     &                                    iRadAeroCAMSclim, iRadAeroCAMStd,                 &
     &                                    iRadAeroKinne, iRadAeroVolc, iRadAeroKinneVolc,   &
     &                                    iRadAeroKinneVolcSP, iRadAeroKinneSP,             &
+    &                                    iRadAeroExternal,                                 &
     &                                    irad_o3, irad_h2o, irad_co2, irad_ch4,            &
     &                                    irad_n2o, irad_o2, irad_cfc11, irad_cfc12,        &
     &                                    icld_overlap, ecrad_llw_cloud_scat, isolrad,      &
@@ -441,7 +442,8 @@ CONTAINS
               &  CALL finish(routine,'For inwp_radiation = 4, irad_cfc12 has to be 0, 2 or 4')
             IF (.NOT. ANY( irad_aero    == (/iRadAeroNone, iRadAeroConst, iRadAeroTegen, iRadAeroART, &
               &             iRadAeroConstKinne, iRadAeroKinne, iRadAeroVolc, iRadAeroCAMSclim,        &
-              &             iRadAeroCAMStd, iRadAeroKinneVolc, iRadAeroKinneVolcSP, iRadAeroKinneSP/) ) ) THEN
+              &             iRadAeroCAMStd, iRadAeroKinneVolc, iRadAeroKinneVolcSP, iRadAeroKinneSP,  &
+              &             iRadAeroExternal/) ) ) THEN
               WRITE(message_text,'(a,i2,a)') 'irad_aero = ', irad_aero,' is invalid for inwp_radiation=4'
               CALL finish(routine,message_text)
             ENDIF

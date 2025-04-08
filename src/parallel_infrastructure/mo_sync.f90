@@ -121,6 +121,7 @@ INTERFACE sync_patch_array
   MODULE PROCEDURE sync_patch_array_l3
   MODULE PROCEDURE sync_patch_array_r2_nolacc ! Please remove
   MODULE PROCEDURE sync_patch_array_r3_nolacc ! these subroutines
+  MODULE PROCEDURE sync_patch_array_s2_nolacc !
   MODULE PROCEDURE sync_patch_array_s3_nolacc ! once this
   MODULE PROCEDURE sync_patch_array_i2_nolacc ! interface is
   MODULE PROCEDURE sync_patch_array_i3_nolacc ! called with
@@ -283,6 +284,19 @@ SUBROUTINE sync_patch_array_s3(typ, p_patch, arr, lacc, opt_varname)
    ENDIF
 END SUBROUTINE sync_patch_array_s3
 
+!-------------------------------------------------------------------------
+!> Does boundary exchange for a 2-D single precision array.
+!
+SUBROUTINE sync_patch_array_s2_nolacc(typ, p_patch, arr, opt_varname)
+   INTEGER,       INTENT(IN)    :: typ
+   TYPE(t_patch), TARGET, INTENT(IN)    :: p_patch
+   REAL(sp),      INTENT(INOUT) :: arr(:,:)
+   CHARACTER(len=*), TARGET, INTENT(IN), OPTIONAL :: opt_varname
+#ifdef _OPENACC
+   CALL finish("lacc argument of mo_sync:sync_patch_array_s2_nolacc has to be provided when compiling the code with OpenACC offloading.")
+#endif
+   CALL sync_patch_array_s2(typ, p_patch, arr, lacc=.FALSE., opt_varname=opt_varname)
+END SUBROUTINE sync_patch_array_s2_nolacc
 
 !-------------------------------------------------------------------------
 !> Does boundary exchange for a 3-D INTEGER array.
