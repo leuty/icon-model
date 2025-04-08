@@ -112,6 +112,7 @@ Climate: ICON-Land
 - Enabled JSBACH usecase with PFTs when using TMX
 - Interface: New switch to supress YAC call during initialization phase
 - Update HD-YAC coupling interface to use mo_coupling_utils
+- Implemented experimental formulation of skin temperature (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/775)
 
 ### Externals
 

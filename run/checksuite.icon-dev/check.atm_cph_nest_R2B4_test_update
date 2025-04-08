@@ -61,7 +61,7 @@ export MD='u'
 #--------------------------------------------------------------------------------
 #
 # 3. Launch the checksuite from run/
-reference_dir=2025-01-30.icon-mpim.0c433b8e43f3
+reference_dir=2025-04-08.icon-mpim.713c10594275
 
 [[ ! -z $BB_NAME ]] && builder=$(echo ${BB_NAME} | tr '[:upper:]' '[:lower:]')
 export REFERENCE=$icon_data_rootFolder/buildbot_data/ref/${reference_dir}/${builder}
