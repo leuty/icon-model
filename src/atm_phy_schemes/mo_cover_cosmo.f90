@@ -85,6 +85,8 @@ SUBROUTINE cover_cosmo ( &
     t_g        ,    & ! weighted surface temperature                  (  k  )
     clc_sgs    ,    & ! subgrid-scale stratiform cloud cover          ( --- )
     clc_con    ,    & ! cloud cover due to convection                 ( --- )
+    clc_diag  ,     & ! cloud cover at saturation in statistical cloud diagnostic
+    q_crit    ,     & ! critical value for normalized super-saturation
     icldm_rad  ,    & ! mode of cloud representation in radiation parametr.
     itype_wcld ,    & ! type of water cloud diagnosis
     lprog_qi   ,    & ! if .TRUE., running with cloud ice
@@ -131,6 +133,10 @@ REAL(KIND=ireals), DIMENSION(ie,nnew), INTENT(IN) ::   &
 REAL(KIND=ireals), DIMENSION(ie,ke), INTENT(IN) ::   &
   & p0               , & ! reference pressure at full levels             ( pa  )
   & pgeo                 ! geopotential                                  (m2/s2 )
+
+REAL(KIND=ireals) :: &
+  & clc_diag,          & ! cloud cover at saturation in statistical cloud diagnostic
+  & q_crit               ! critical value for normalized super-saturation
 
 INTEGER(KIND=iintegers), INTENT(IN) ::  &
   & icldm_rad        , & ! mode of cloud representation in radiation  parametr.
@@ -309,6 +315,7 @@ REAL(KIND=ireals), PARAMETER :: &
          ie, 1 , ke,                                         &
          t(:,:,nzx), qv(:,:,nzx), qc(:,:,nzx), pp(:,:,nzx),  &
          p0, rcld, ps(:,nzx),                                &
+         clc_diag, q_crit, & 
          itype_wcld )
 
     DO  k = kstart, ke

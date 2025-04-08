@@ -40,6 +40,7 @@ MODULE mo_nwp_sfc_interface
     &                               ntiles_lnd, lsnowtile, isub_water, isub_seaice,   &
     &                               isub_lake, l2lay_rho_snow, lprog_albsi,           &
     &                               itype_trvg, lterra_urb, itype_snowevap, zml_soil, &
+    &                               itype_oskin_warm, itype_oskin_cold, itype_ahf,    &
     &                               lcuda_graph_lnd
   USE mo_nwp_tuning_config,   ONLY: itune_gust_diag
   USE mo_radiation_config,    ONLY: islope_rad
@@ -49,13 +50,13 @@ MODULE mo_nwp_sfc_interface
   USE mo_ensemble_pert_config,ONLY: sst_pert_corrfac
   USE mo_thdyn_functions,     ONLY: sat_pres_water, sat_pres_ice, spec_humi, dqsatdT_ice
   USE sfc_terra_main,         ONLY: terra
-  USE mo_nwp_sfc_utils,       ONLY: diag_snowfrac_tg, update_idx_lists_lnd, update_idx_lists_sea
+  USE mo_nwp_sfc_utils,       ONLY: diag_snowfrac_tg, update_idx_lists_lnd, update_idx_lists_sea, update_ahf
   USE sfc_flake,              ONLY: flake_interface
   USE sfc_flake_data,         ONLY: h_Ice_min_flk
   USE sfc_seaice,             ONLY: seaice_timestep_nwp
   USE sfc_terra_data                ! soil and vegetation parameters for TILES
-  USE turb_data,              ONLY: ilow_def_cond
-  USE mo_physical_constants,  ONLY: tmelt, grav, salinity_fac, rhoh2o
+  USE mo_physical_constants,  ONLY: tmelt, grav, salinity_fac, rhoh2o, tf_salt
+  USE mo_nwp_oskin_interface, ONLY: nwp_oskin
   USE mo_index_list,          ONLY: generate_index_list
   USE mo_fortran_tools,       ONLY: init, set_acc_host_or_device, assert_acc_device_only
   USE microphysics_1mom_schemes, ONLY: get_mean_snowdrift_mass
@@ -280,6 +281,7 @@ CONTAINS
     REAL(wp) :: plevap_t    (nproma)
     REAL(wp) :: rstom_t     (nproma)
     REAL(wp) :: z0_t        (nproma)
+    REAL(wp) :: t_g_new
 
     LOGICAL :: ldiff_qi, ldiff_qs, ldepo_qw
 
@@ -320,8 +322,8 @@ CONTAINS
     SELECT CASE (atm_phy_nwp_config(jg)%inwp_turb)
     CASE(icosmo) !Raschendorfer-scheme for turbulence (based on 'turbtran', turbdiff' and 'vertdiff')
        icant=2 !canopy-treatment according to transfer-scheme 'turbtran'
-       ldepo_qw = (ilow_def_cond == 2) !deposition of (liquid or frozen) cloud water required, if and only if
-                                       ! a zero-concentration condition is applied for turbulent vertical diffusion
+       ldepo_qw = (turbdiff_config(jg)%ilow_def_cond == 2) !deposition of (liquid or frozen) cloud water required, if and only if
+                                                           ! a zero-concentration condition is applied for turbulent vertical diffusion
     CASE DEFAULT
        icant=1 !canopy-treatment related to Louis-transfer-scheme
        ldepo_qw = .FALSE. !no deposition of (liquid or frozen) cloud water considered
@@ -463,6 +465,11 @@ CONTAINS
 
       IF ( atm_phy_nwp_config(jg)%inwp_surface == 1 ) THEN
 
+       IF (lterra_urb .AND. itype_ahf >= 3) THEN ! update AHF and filtered T2M
+         CALL update_ahf(i_startidx, i_endidx, ext_data%atm%lc_class_t(:,jb,:), ext_data%atm%i_lc_urban, tcall_sfc_jg, &
+                         prm_diag%t_2m(:,jb), prm_diag%t_2m_filt(:,jb), ext_data%atm%ahf_t(:,jb,:)  )
+       ENDIF
+
        IF (ext_data%atm%list_land%ncount(jb) == 0) CYCLE ! skip loop if there is no land point
 
        ! Copy precipitation fields for subsequent downscaling
@@ -495,7 +502,6 @@ CONTAINS
            !$ACC END PARALLEL
          ENDIF
        END DO
-
 
        IF (lsnowtile .AND. itype_snowevap == 3) THEN
          !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1) IF(lzacc)
@@ -1618,7 +1624,61 @@ CONTAINS
 !$OMP END DO
 !$OMP END PARALLEL
 
-    
+
+    IF ( (itype_oskin_warm > 0) .OR. (itype_oskin_cold > 0)) THEN
+
+      !
+      ! Call ocean skin and warm layer model
+      !
+      CALL nwp_oskin(tcall_sfc_jg, p_patch, prm_diag, ext_data, lnd_prog_now, lnd_diag)
+
+      !
+      ! Update skin temperature T_g and T_s over ocean
+      !   no skin:    T_g = SST
+      !   oskin:      add warm layer and cold skin
+      !   sst_cl_inc: climatological increment
+      !   (only needed if either SST or skin update)
+      !
+
+!$OMP PARALLEL
+!$OMP DO PRIVATE(jb,ic,jc,t_g_new)
+      DO jb=i_startblk, i_endblk
+
+        ! loop over all open water points
+
+        !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1) IF(lzacc)
+        !$ACC LOOP GANG VECTOR PRIVATE(jc, t_g_new)
+        DO ic = 1, ext_data%atm%list_seawtr%ncount(jb)
+          jc = ext_data%atm%list_seawtr%idx(ic,jb)
+
+          t_g_new = lnd_diag%t_seasfc(jc,jb)   ! foundation SST, including climatological update if activated
+
+          ! add cold skin and warm layer
+          IF ( itype_oskin_warm > 0 ) t_g_new = t_g_new + lnd_diag%sst_warm_layer(jc,jb)
+          IF ( itype_oskin_cold > 0 ) t_g_new = t_g_new + lnd_diag%sst_cold_skin(jc,jb)
+
+          ! make sure, that the updated SST does not drop below salt-water freezing point
+          ! NOTE: this clean-up was only done at clim. update timesteps in old code and
+          !       therefore changes results
+          t_g_new = MAX(t_g_new, tf_salt)
+
+          lnd_prog_new%t_g_t (jc,jb,isub_water) = t_g_new
+          lnd_prog_new%t_sk_t(jc,jb,isub_water) = t_g_new
+
+          ! surface saturation specific humidity 
+          ! includes reduction of saturation pressure due to salt content
+          lnd_diag%qv_s_t(jc,jb,isub_water) = salinity_fac * &
+            &  spec_humi( sat_pres_water(t_g_new), p_diag%pres_sfc(jc,jb) )
+
+        ENDDO  ! ic
+        !$ACC END PARALLEL
+
+      ENDDO  ! jb
+!$OMP END DO
+!$OMP END PARALLEL
+    ENDIF
+
+
     !
     ! Call seaice parameterization
     !
@@ -1626,6 +1686,7 @@ CONTAINS
       CALL nwp_seaice(p_patch, p_diag, prm_diag, p_prog_wtr_now, p_prog_wtr_new, &
         &             lnd_prog_now, lnd_prog_new, ext_data, lnd_diag, tcall_sfc_jg, lacc=lzacc)
     ENDIF
+
 
     !
     ! Call fresh water lake model (Flake)
@@ -1677,6 +1738,13 @@ CONTAINS
              ENDDO  ! jc
            ENDDO  ! jk
          ENDIF
+
+         IF (lterra_urb .AND. itype_ahf >= 3) THEN
+           !$ACC LOOP GANG VECTOR
+           DO jc = i_startidx, i_endidx
+             ext_data%atm%ahf(jc,jb)  = ext_data%atm%ahf_t(jc,jb,1) 
+           ENDDO
+         ENDIF
          !$ACC END PARALLEL
 
        ELSE ! aggregate fields over tiles
@@ -1694,6 +1762,13 @@ CONTAINS
            prm_diag%vmfl_s (jc,jb) = 0._wp
            prm_diag%lhfl_bs(jc,jb) = 0._wp
          ENDDO
+
+         IF (lterra_urb .AND. itype_ahf >= 3) THEN
+           !$ACC LOOP GANG VECTOR
+           DO jc = i_startidx, i_endidx
+             ext_data%atm%ahf(jc,jb)  = 0._wp
+           ENDDO
+         ENDIF
 
          !$ACC LOOP SEQ
          DO jk = 1, nlev_soil
@@ -1733,6 +1808,15 @@ CONTAINS
              prm_diag%lhfl_bs(jc,jb) = prm_diag%lhfl_bs(jc,jb) + prm_diag%lhfl_bs_t(jc,jb,isubs) * area_frac
              lnd_diag%h_snow(jc,jb)  = lnd_diag%h_snow(jc,jb) + lnd_diag%h_snow_t(jc,jb,isubs) * area_frac
            ENDDO  ! jc
+
+           IF (lterra_urb .AND. itype_ahf >= 3) THEN
+             !$ACC LOOP GANG(STATIC: 1) VECTOR PRIVATE(area_frac)
+             DO jc = i_startidx, i_endidx
+               area_frac = ext_data%atm%frac_t(jc,jb,isubs)*ext_data%atm%inv_frland_from_tiles(jc,jb)
+               ext_data%atm%ahf(jc,jb) = ext_data%atm%ahf(jc,jb) + ext_data%atm%ahf_t(jc,jb,isubs) * area_frac
+             ENDDO
+           ENDIF
+
            !$ACC LOOP SEQ
            DO jk=1,nlev_soil
              !$ACC LOOP GANG(STATIC: 1) VECTOR
@@ -1963,10 +2047,10 @@ CONTAINS
 
       ! condhf and qtop are not allocated when the run is not coupled.
       IF (lis_coupled_run) THEN
-        condhf_ice_blk => p_lnd_diag%condhf_ice(:,jb)
+        condhf_ice_blk  => p_lnd_diag%condhf_ice(:,jb)
         meltpot_ice_blk => p_lnd_diag%meltpot_ice(:,jb)
       ELSE
-        condhf_ice_blk => NULL()
+        condhf_ice_blk  => NULL()
         meltpot_ice_blk => NULL()
       ENDIF
 

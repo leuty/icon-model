@@ -48,7 +48,7 @@ MODULE mo_nh_init_nest_utils
   USE mo_nwp_lnd_types,         ONLY: t_lnd_state, t_lnd_prog, t_lnd_diag, t_wtr_prog
   USE mo_lnd_nwp_config,        ONLY: ntiles_total, ntiles_water, nlev_soil, lseaice, itype_trvg, &
     &                                 llake, isub_lake, frlake_thrhld, frsea_thrhld, lprog_albsi, &
-    &                                 itype_snowevap, dzsoil, frsi_min
+    &                                 itype_snowevap, dzsoil, frsi_min, itype_ahf
   USE mo_initicon_config,       ONLY: icpl_da_sfcevap, icpl_da_skinc, icpl_da_sfcfric
   USE mo_atm_phy_nwp_config,    ONLY: atm_phy_nwp_config, iprog_aero
   USE mo_nwp_tuning_config,     ONLY: itune_gust_diag
@@ -200,9 +200,9 @@ MODULE mo_nh_init_nest_utils
     ! turned out to cause occasional conflicts with directly interpolating those variables here; thus
     ! the interpolation of the multi-layer snow fields has been completely removed from this routine
     num_lndvars = 2*nlev_soil+1+ &     ! multi-layer soil variables t_so and w_so (w_so_ice is initialized in terra_multlay_init)
-                  5+14+1               ! single-layer prognostic variables + t_g, t_sk, freshsnow, t_seasfc, qv_s, plantevap, hsnow_max, 
-                                       ! snow_age, t_avginc, t_sk, rh_avginc, t_wgt_avginc, rh_daywgt_avginc, t_daywgt_avginc, vabs_avginc
-                                       ! + aux variable for lake temp
+                  5+15+1               ! single-layer prognostic variables + t_g, t_sk, freshsnow, t_seasfc, qv_s, plantevap, hsnow_max, 
+                                       ! snow_age, t_avginc, t_sk, rh_avginc, t_wgt_avginc, rh_daywgt_avginc, t_daywgt_avginc, vabs_avginc,
+                                       ! t_2m_filt, + aux variable for lake temp
     num_wtrvars  = 6                   ! water state fields + fr_seaice + alb_si
     num_phdiagvars = 59                ! number of positive-definite physics diagnostic variables
     num_phdiagvars_npd = 16+uh_max_nlayer ! number of other (non-positive-definite) physics diagnostic variables
@@ -538,6 +538,11 @@ MODULE mo_nh_init_nest_utils
           ELSE
             lndvars_par(jc,jk1+18,jb) = 0._wp
             lndvars_par(jc,jk1+19,jb) = 0._wp
+          ENDIF
+          IF (itype_ahf >= 3) THEN
+            lndvars_par(jc,jk1+20,jb) = prm_diag(jg)%t_2m_filt(jc,jb)
+          ELSE
+            lndvars_par(jc,jk1+20,jb) = 0._wp
           ENDIF
 
         ENDDO
@@ -976,6 +981,9 @@ MODULE mo_nh_init_nest_utils
             IF (icpl_da_sfcevap >= 5) THEN
               p_child_diag%t_daywgt_avginc(jc,jb) = lndvars_chi(jc,jk1+18,jb)
               p_child_diag%rh_daywgt_avginc(jc,jb) = lndvars_chi(jc,jk1+19,jb)
+            ENDIF
+            IF (itype_ahf >= 3) THEN
+              prm_diag(jgc)%t_2m_filt(jc,jb) = lndvars_chi(jc,jk1+20,jb)
             ENDIF
           ENDDO
         ENDDO

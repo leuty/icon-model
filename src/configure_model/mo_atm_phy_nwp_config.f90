@@ -30,7 +30,6 @@ MODULE mo_atm_phy_nwp_config
   USE mo_vertical_coord_table,ONLY: vct_a
   USE mo_time_config,         ONLY: t_time_config
   USE mo_radiation_config,    ONLY: irad_o3
-  USE mo_turbdiff_config,     ONLY: turbdiff_config
 #ifndef __NO_ICON_LES__
   USE mo_les_config,          ONLY: configure_les, les_config
 #endif
@@ -68,6 +67,7 @@ MODULE mo_atm_phy_nwp_config
   PUBLIC :: ltuning_kessler
   PUBLIC :: icpl_aero_conv
   PUBLIC :: icpl_o3_tp
+  PUBLIC :: itype_dissip_heat
   PUBLIC :: iprog_aero
   PUBLIC :: setup_nwp_diag_events
   PUBLIC :: icpl_aero_ice
@@ -162,8 +162,6 @@ MODULE mo_atm_phy_nwp_config
     LOGICAL :: lhydrom_read_from_ana(1:20) ! Flag for each hydrometeor tracer, if it has been read from ana file
 
     LOGICAL :: luse_clc_rad
-    LOGICAL :: lcalc_dissip_heat   ! Flag to determine whether dissipative heating related to SSO and GWD
-                                   ! is calculated in the NWP interface
 
 #ifndef __NO_ICON_LES__
     LOGICAL :: is_les_phy          !>TRUE is turbulence is 3D 
@@ -220,6 +218,9 @@ MODULE mo_atm_phy_nwp_config
   INTEGER  :: iprog_aero         !! type of prognostic aerosol
   INTEGER  :: icpl_o3_tp         !! type of coupling between ozone and the tropopause
   INTEGER  :: icpl_aero_ice      !! type of coupling between aersols and ice nucleation
+  INTEGER  :: itype_dissip_heat  !! Options for the calculation of dissipative heating
+
+  !$ACC DECLARE CREATE(itype_dissip_heat, icpl_o3_tp)
 
   REAL(wp) ::  &                       !> Field of calling-time interval (seconds) for
     &  dt_phy(max_dom,iphysproc_short) !! each domain and phys. process
@@ -363,10 +364,6 @@ CONTAINS
       ELSE
         atm_phy_nwp_config(jg)%luse_clc_rad = .FALSE.
       END IF
-
-      ! ltmpcor activates the calculation of dissipative heating in turbdiff;
-      ! to prevent double-counting, the respective calculations for SSO and GWD need to be skipped
-      atm_phy_nwp_config(jg)%lcalc_dissip_heat = .NOT. turbdiff_config(jg)%ltmpcor
 
       ! Switch off stochastic convection for horizontal resolution greater than 20km
       IF ((atm_phy_nwp_config(jg)%lstoch_sde .or. atm_phy_nwp_config(jg)%lstoch_expl) .and. &
@@ -568,8 +565,6 @@ CONTAINS
     ENDDO  ! jg loop
 
 
-
-
     ! Configure lateral boundary condition for limited area model (or global nudging)
     IF( l_limited_area .OR. ANY(nudging_config(1:n_dom)%lnudging) ) THEN
       CALL configure_latbc()
@@ -597,14 +592,19 @@ CONTAINS
       ENDIF
     CASE (79,97) ! Blending between GEMS and MACC climatologies
       IF (itune_o3 > 0) CALL message(routine, 'Use blending between GEMS and MACC ozone climatologies with tuning')
-      IF (itune_o3 >= 2) THEN
+      IF (itune_o3 == 3) THEN
+        tune_ozone_ztop   = 29000.0_wp
+        tune_ozone_zmid2  = 22500.0_wp
+        tune_ozone_zmid   = 20000.0_wp
+      ELSE IF (itune_o3 >= 2) THEN
         tune_ozone_ztop   = 29000.0_wp
         tune_ozone_zmid2  = 24000.0_wp
+        tune_ozone_zmid   = 19000.0_wp
       ELSE
         tune_ozone_ztop   = 29000.0_wp
         tune_ozone_zmid2  = 26000.0_wp
+        tune_ozone_zmid   = 19000.0_wp
       ENDIF
-      tune_ozone_zmid   = 19000.0_wp
       tune_ozone_zbot   = 16000.0_wp
       ozone_shapemode   = 2
       tune_ozone_lat    = 30._wp
@@ -612,17 +612,13 @@ CONTAINS
       CASE (1,2)
         tune_ozone_fac    = 0.25_wp
       CASE (3)
-        tune_ozone_fac    = 0.35_wp
+        tune_ozone_fac    = 0.2_wp
       CASE (4)
         tune_ozone_fac    = 0.1_wp
       CASE DEFAULT
         tune_ozone_fac    = 0.0_wp
       END SELECT
-      IF (itune_o3 == 3) THEN
-        tune_ozone_maxinc = 1.75e-6_wp
-      ELSE
-        tune_ozone_maxinc = 1.25e-6_wp
-      ENDIF
+      tune_ozone_maxinc = 1.25e-6_wp
     CASE DEFAULT
       IF (itune_o3 /= 0) THEN
         CALL message(routine, 'itune_o3 is reset to 0 because irad_o3 is not 7, 79 or 97')

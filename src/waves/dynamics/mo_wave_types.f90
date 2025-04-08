@@ -60,7 +60,7 @@ MODULE mo_wave_types
       &  alphaj(:,:),         & ! jonswap alpha                     (nproma,nblks_c)         (-)
       &  fp(:,:),             & ! jonswap peak frequency            (nproma,nblks_c)         (hz)
       &  et(:,:,:),           & ! jonswap spectra                   (nproma,nfreqs,nblks_c)  (-)
-      &  flminfr(:,:,:),      & ! the minimum value in spectral bins for a given frequency (nproma,nfreqs,nblks_c)
+      &  flminfr_tab(:,:),    & ! minimum value of energy for a given frequency and wind speed bin (jmax,nfreqs)
       &  f1mean(:,:),         & ! mean frequency based on f-moment  (nproma,nblks_c)
       &  wave_num_c(:,:,:),   & ! wave number at cell centers as a function of
                                 ! circular frequency and water depth (nproma,nfreqs,nblks_c) (1/m)
@@ -83,6 +83,7 @@ MODULE mo_wave_types
       &  femean(:,:),         & ! mean frequency energy          (nproma,nblks_c) (m^2)
       &  femeanws(:,:),       & ! windsea mean frequency energy  (nproma,nblks_c) (m^2)
       &  hs(:,:),             & ! total significant wave height  (nproma,nblks_c) (m)
+      &  hs_max(:,:),         & ! maximum individual wave height (nproma,nblks_c) (m)
       &  hs_dir(:,:),         & ! total mean wave direction      (nproma,nblks_c) (deg)
       &  tpp(:,:),            & ! total peak wave period         (nproma,nblks_c) (s)
       &  tmp(:,:),            & ! total mean wave period         (nproma,nblks_c) (s)

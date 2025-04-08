@@ -1140,9 +1140,10 @@ CONTAINS
     INTEGER  :: idy,im,imn,im1,im2,jk_start,i_startidx,i_endidx,i_nchdom,i_startblk,i_endblk
     INTEGER  :: rl_start,rl_end,k375,k100,ktp
     REAL(wp) :: ztimi,zxtime,zjl,zlatint,zint,zadd_o3,tuneo3_1(nlev_gems),tuneo3_2(nlev_gems),&
-                o3_macc1,o3_macc2,o3_gems1,o3_gems2,z1,z2,zgrad,fac_tr70,fac_mst,fac_ust
+                o3_macc1,o3_macc2,o3_gems1,o3_gems2,z1,z2,zgrad,fac_tr70,fac_mst,fac_ant
     REAL(wp) :: dzsum,dtdzavg,tpshp,wfac,wfac_lat(ilat),wfac_p(nlev_gems),wfac_tr(ilat),&
-                wfac_p_tr(nlev_gems),wfac_p_tr2(nlev_gems),wfac_p_mst(nlev_gems),wfac_p_ust(nlev_gems),trfac,wfac2
+                wfac_p_tr(nlev_gems),wfac_p_tr2(nlev_gems),wfac_p_mst(nlev_gems),       &
+                wfac_p_ant(nlev_gems),trfac,wfac2,o3_shift
     LOGICAL  :: lfound_all
 
     LOGICAL :: lk100_less_than_0
@@ -1160,24 +1161,27 @@ CONTAINS
     CASE (1,2)
       fac_tr70 = -0.3_wp
       fac_mst  =  0.1_wp
-      fac_ust  =  0.0_wp
+      fac_ant  =  0.0_wp
     CASE (3)
       fac_tr70 = -0.3_wp
       fac_mst  =  0.075_wp
-      fac_ust  = -0.125_wp
+      fac_ant  =  0.15_wp
     CASE (4)
       fac_tr70 = -0.4_wp
       fac_mst  =  0.05_wp
-      fac_ust  =  0.0_wp
+      fac_ant  =  0.0_wp
     CASE DEFAULT
       fac_tr70 =  0.0_wp
       fac_mst  =  0.0_wp
-      fac_ust  =  0.0_wp
+      fac_ant  =  0.0_wp
     END SELECT
+
+    ! Ozone-tropopause coupling: Upper limit for 'ozone shifting' (Pa)
+     o3_shift = 12500._wp
 
     !$ACC DATA CREATE(idx0, zlat, zozn, zpresh, rclpr, zo3, zviozo, zozovi) &
     !$ACC   CREATE(deltaz, dtdz, l_found, tuneo3_1, tuneo3_2, wfac_lat, wfac_p) &
-    !$ACC   CREATE(wfac_tr, wfac_p_tr, wfac_p_tr2, wfac_p_mst, wfac_p_ust) &
+    !$ACC   CREATE(wfac_tr, wfac_p_tr, wfac_p_tr2, wfac_p_mst, wfac_p_ant) &
     !$ACC   PRESENT(atm_phy_nwp_config, o3, p_diag, prm_diag, pt_patch, RGHG7, RGHG7_MACC) &
     !$ACC   IF(lacc)
 
@@ -1373,27 +1377,6 @@ CONTAINS
         ENDDO
       ENDIF
 
-      ! Pressure mask field for ozone reduction in the upper stratosphere peaking between 3 and 5 hPa
-      IF (itune_o3 == 3) THEN
-        !$ACC LOOP GANG(STATIC: 1) VECTOR
-        DO jk = 1, nlev_gems
-          IF (zrefp(jk) >= 200._wp .AND. zrefp(jk) <= 300._wp) THEN
-            wfac_p_ust(jk) = (zrefp(jk)-200._wp)/100._wp
-          ELSE IF (zrefp(jk) >= 300._wp .AND. zrefp(jk) <= 500._wp) THEN
-            wfac_p_ust(jk) = 1._wp
-          ELSE IF (zrefp(jk) >= 500._wp .AND. zrefp(jk) <= 700._wp) THEN
-            wfac_p_ust(jk) = (700._wp-zrefp(jk))/200._wp
-          ELSE
-            wfac_p_ust(jk) = 0._wp
-          ENDIF
-        ENDDO
-      ELSE
-        !$ACC LOOP GANG(STATIC: 1) VECTOR
-        DO jk = 1, nlev_gems
-          wfac_p_ust(jk) = 0._wp
-        ENDDO
-      ENDIF
-
       ! Profile functions for accelerated ozone hole filling in November
       ! (Accomplished by taking a weighted average between November and December climatologies)
       !$ACC LOOP GANG(STATIC: 1) VECTOR
@@ -1418,6 +1401,27 @@ CONTAINS
           tuneo3_2(jk) = 0._wp
         ENDIF
       ENDDO
+
+      ! Additional ozone tuning for Antarctic lower stratosphere
+      IF (itune_o3 == 3) THEN
+        !$ACC LOOP GANG(STATIC: 1) VECTOR
+        DO jk = 1, nlev_gems
+          IF (zrefp(jk) >= 1500._wp .AND. zrefp(jk) <= 2000._wp) THEN
+            wfac_p_ant(jk) = (zrefp(jk)-1500._wp)/500._wp
+          ELSE IF (zrefp(jk) >= 2000._wp .AND. zrefp(jk) <= 4500._wp) THEN
+            wfac_p_ant(jk) = 1._wp
+          ELSE IF (zrefp(jk) >= 4000._wp .AND. zrefp(jk) <= 5000._wp) THEN
+            wfac_p_ant(jk) = (5000._wp-zrefp(jk))/1000._wp
+          ELSE
+            wfac_p_ant(jk) = 0._wp
+          ENDIF
+        ENDDO
+      ELSE
+        !$ACC LOOP GANG(STATIC: 1) VECTOR
+        DO jk = 1, nlev_gems
+          wfac_p_ant(jk) = 0._wp
+        ENDDO
+      ENDIF
       !$ACC END PARALLEL
 
       !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1) IF(lacc)
@@ -1436,7 +1440,8 @@ CONTAINS
           o3_gems2 = RGHG7(JL,JK,IM2) + MERGE(wfac_tr(jl)*wfac_p_tr(jk)*&
                      MAX(0._wp,RGHG7(JL,JK,12)-RGHG7(JL,JK,IM2)), 0._wp, im2>=1 .AND. im2<=5)
 
-          trfac    = 1._wp + fac_tr70*wfac_tr(jl)*wfac_p_tr2(jk) + fac_mst*wfac_p_mst(jk) + fac_ust*wfac_p_ust(jk)
+          trfac    = 1._wp + fac_tr70*wfac_tr(jl)*wfac_p_tr2(jk) + fac_mst*wfac_p_mst(jk) + &
+                     fac_ant*wfac_p_ant(jk)*wfac_lat(jl)**2
 
           zozn(JL,JK) = amo3/amd * trfac* ( wfac * (o3_macc2+ZTIMI*(o3_macc1-o3_macc2)) + &
                                      (1._wp-wfac)* (o3_gems2+ZTIMI*(o3_gems1-o3_gems2)) )
@@ -1614,7 +1619,7 @@ CONTAINS
       ! the latter is used to compute a weighting factor. Afterwards, climatological O3 mixing ratios are modified
       ! in order to get a sharp jump at the tropopause, using the climatological values at 100 hPa (375 hPa) as
       ! proxies for the lower stratospheric (tropospheric) ozone values
-      IF (icpl_o3_tp == 1) THEN
+      IF (icpl_o3_tp >= 1) THEN
         !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1) IF(lacc)
         !$ACC LOOP GANG VECTOR COLLAPSE(2)
         DO jk = 1,pt_patch%nlev-1
@@ -1688,30 +1693,61 @@ CONTAINS
               DO jkkk = k100-1, k375
                 o3_clim(jkkk) = o3(jc,jkkk,jb)
               ENDDO
-              jkk = k100
-              !$ACC LOOP SEQ
-              DO jk = k100, k375
-                ! Modify ozone profiles; the climatological profile is shifted down by at most 125 hPa
-                IF (jk < ktp) THEN ! levels above the tropopause
-                  IF (p_diag%pres(jc,jk,jb) < 22500._wp) THEN
-                    o3(jc,jk,jb) = (1._wp-wfac)*o3(jc,jk,jb) + &
-                      &            wfac*((1._wp-wfac2)*o3_clim(k100)+wfac2*o3_clim(k100-1))
-                  ELSE
-                    !$ACC LOOP SEQ
+              IF (icpl_o3_tp == 1) THEN
+                jkk = k100
+                !$ACC LOOP SEQ
+                DO jk = k100, k375
+                  ! Modify ozone profiles; the climatological profile is shifted down by at most 'o3_shift' Pa
+                  IF (jk < ktp) THEN ! levels above the tropopause
+                    IF (p_diag%pres(jc,jk,jb) < 10000._wp+o3_shift) THEN
+                      o3(jc,jk,jb) = (1._wp-wfac)*o3(jc,jk,jb) + &
+                        &            wfac*((1._wp-wfac2)*o3_clim(k100)+wfac2*o3_clim(k100-1))
+                    ELSE
+                      !$ACC LOOP SEQ
 !$NEC novector
-                    DO jk1 = jkk, k375
-                      IF (p_diag%pres(jc,jk,jb) - p_diag%pres(jc,jk1-1,jb) >= 12500._wp .AND. &
-                          p_diag%pres(jc,jk,jb) - p_diag%pres(jc,jk1,jb)   < 12500._wp ) THEN
-                        o3(jc,jk,jb) = (1._wp-wfac)*o3(jc,jk,jb) + wfac*o3_clim(jk1)
-                        jkk = jk1
-                        EXIT
-                      ENDIF
-                    ENDDO
+                      DO jk1 = jkk, k375
+                        IF (p_diag%pres(jc,jk,jb) - p_diag%pres(jc,jk1-1,jb) >= o3_shift .AND. &
+                            p_diag%pres(jc,jk,jb) - p_diag%pres(jc,jk1,jb)   < o3_shift ) THEN
+                          o3(jc,jk,jb) = (1._wp-wfac)*o3(jc,jk,jb) + wfac*o3_clim(jk1)
+                          jkk = jk1
+                          EXIT
+                        ENDIF
+                      ENDDO
+                    ENDIF
+                  ELSE IF (jk > ktp) THEN ! levels below the tropopause
+                    o3(jc,jk,jb) = (1._wp-wfac)*o3(jc,jk,jb) + wfac*o3_clim(k375)
                   ENDIF
-                ELSE IF (jk > ktp) THEN ! levels below the tropopause
-                  o3(jc,jk,jb) = (1._wp-wfac)*o3(jc,jk,jb) + wfac*o3_clim(k375)
+                ENDDO ! jk = k100, k375
+              ELSE ! icpl_o3_tp == 2
+                ! Modify ozone profiles; the climatological profile is shifted down by at most 'o3_shift' Pa,
+                ! and the depth of the layer of modified ozone is additionally limited to 'o3_shift' Pa
+                !
+                ! determine source level for ozone shift
+                IF (p_diag%pres(jc,ktp,jb) < 10000._wp+o3_shift) THEN
+                  jkk = k100
+                ELSE
+                  !$ACC LOOP SEQ
+!$NEC novector
+                  DO jk = k100, k375
+                    IF (p_diag%pres(jc,ktp,jb) - p_diag%pres(jc,jk-1,jb) >= o3_shift .AND. &
+                        p_diag%pres(jc,ktp,jb) - p_diag%pres(jc,jk,jb)   < o3_shift ) THEN
+                      jkk = jk
+                      EXIT
+                    ENDIF
+                  ENDDO
                 ENDIF
-              ENDDO ! jk = k100, k375
+                !$ACC LOOP SEQ
+                DO jk = k100, k375
+                  ! levels within 'o3_shift' Pa above the tropopause
+                  IF (jk < ktp .AND. p_diag%pres(jc,ktp,jb)-p_diag%pres(jc,jk,jb) <= o3_shift) THEN
+                    o3(jc,jk,jb) = (1._wp-wfac)*o3(jc,jk,jb) + &
+                        &          wfac*((1._wp-wfac2)*o3_clim(jkk)+wfac2*o3_clim(jkk-1))
+                  ELSE IF (jk > ktp) THEN ! levels below the tropopause
+                    o3(jc,jk,jb) = (1._wp-wfac)*o3(jc,jk,jb) + wfac*o3_clim(k375)
+                  ENDIF
+                ENDDO ! jk = k100, k375
+              ENDIF ! icpl_o3_tp
+
             ENDIF ! (k100 < 0)
           ENDIF ! (ABS(pt_patch%cells%center(jc,jb)%lat)*rad2deg > 25._wp)
         ENDDO ! jc = i_startidx,i_endidx

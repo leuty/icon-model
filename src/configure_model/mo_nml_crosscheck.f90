@@ -43,7 +43,7 @@ MODULE mo_nml_crosscheck
   USE mo_nonhydrostatic_config,    ONLY: itime_scheme_nh => itime_scheme,                  &
     &                                    rayleigh_type, ivctype, iadv_rhotheta
   USE mo_atm_phy_nwp_config,       ONLY: atm_phy_nwp_config, icpl_aero_conv, iprog_aero,   &
-    &                                    icpl_aero_ice
+    &                                    icpl_aero_ice, itype_dissip_heat
   USE mo_lnd_nwp_config,           ONLY: ntiles_lnd, lsnowtile, sstice_mode, llake
   USE mo_aes_phy_config,           ONLY: aes_phy_config
   USE mo_aes_vdf_config,           ONLY: aes_vdf_config
@@ -562,6 +562,16 @@ CONTAINS
                       'in two-moment scheme (lturb_enhc) not applicable for aes physics.')
         ENDIF
 
+        ! ltmpcor activates the calculation of dissipative heating in turbdiff;
+        ! to prevent double-counting, the respective calculations in the NWP interface need to be skipped
+        IF (turbdiff_config(1)%ltmpcor) THEN
+          itype_dissip_heat = 0
+          WRITE(message_text,'(a)') 'itype_dissip_heat is reset to 0 because dissipative heating is&
+            & calculated within the turbulence scheme'
+          CALL message(routine, message_text)
+        ENDIF
+     
+        !! check land surface schemes
         SELECT CASE (atm_phy_nwp_config(jg)%inwp_surface)
         CASE (0)
           IF (ntiles_lnd > 1) THEN

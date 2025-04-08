@@ -23,11 +23,16 @@ NWP Physics:
 - Aerosol-cloud interaction for cloudice2mom using ART dust for ice nucleation (Aerosol-cloud interaction for cloudice2mom using ART dust for ice nucleation)
 - Reducing the complexity of the operational turbulence scheme for NWP (https://gitlab.dkrz.de/icon/icon-nwp/-/merge_requests/1671,
                                                                         https://gitlab.dkrz.de/icon/icon-nwp/-/merge_requests/1694,
-                                                                        https://gitlab.dkrz.de/icon/icon-nwp/-/merge_requests/1697)
+                                                                        https://gitlab.dkrz.de/icon/icon-nwp/-/merge_requests/1697,
+                                                                        https://gitlab.dkrz.de/icon/icon-nwp/-/merge_requests/1709)
 - modularized version of TERRA, including water budget fixes (https://gitlab.dkrz.de/icon/icon-nwp/-/merge_requests/1487,
                                                              https://gitlab.dkrz.de/icon/icon-nwp/-/merge_requests/1696)
 - Implementation of new CAMS climatology (https://gitlab.dkrz.de/icon/icon-nwp/-/merge_requests/1632)
 - EMVORADO: Bugfix call to polarimetric dbz diagnostic in case of Tmatrix (https://gitlab.dkrz.de/icon/icon-nwp/-/merge_requests/1681)
+- Improve coupled-model water conservation (https://gitlab.dkrz.de/icon/icon-nwp/-/merge_requests/1465)
+- Implementation of ocean surface layer parameterization: warm layer, cold skin (https://gitlab.dkrz.de/icon/icon-nwp/-/merge_requests/1469)
+- Fix for homogeneous ice nucleation of cloudice2mom (gscp3) (https://gitlab.dkrz.de/icon/icon-nwp/-/merge_requests/1720)
+- Fix for extpar data and the usage of snow analysis increments on subgrid-scale glacier points (https://gitlab.dkrz.de/icon/icon-nwp/-/merge_requests/1732)
 
 ### ICON-Ocean
 
@@ -48,7 +53,10 @@ NWP Physics:
                                           https://gitlab.dkrz.de/icon/icon-nwp/-/merge_requests/1668)
 - Revision of wave-atmosphere coupling (https://gitlab.dkrz.de/icon/icon-nwp/-/merge_requests/1669)
 - Support for wave initialization and coupling with timeshift (https://gitlab.dkrz.de/icon/icon-nwp/-/merge_requests/1677)
-- Bug fix: asynchronous output writing in in coupled mode (https://gitlab.dkrz.de/icon/icon-nwp/-/merge_requests/1623)
+- Fix for asynchronous output writing in in coupled mode (https://gitlab.dkrz.de/icon/icon-nwp/-/merge_requests/1623)
+- Fix calculation of wind direction for wind forcing (https://gitlab.dkrz.de/icon/icon-nwp/-/merge_requests/1717)
+- Fix implementation of a minimum allowed level of wave energy for each frequency (https://gitlab.dkrz.de/icon/icon-nwp/-/merge_requests/1703)
+- Fix output source time level for prognostic wave energy (https://gitlab.dkrz.de/icon/icon-nwp/-/merge_requests/1736)
 
 ### Soil and Surface
 
@@ -172,7 +180,7 @@ Climate: ICON-Land
 - Replaced `sp` with `vp` in TMX for single-precision support (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/652)
 - Add contribution guidelines
 - Add various issue and merge request templates
-
+- replace Poisson routine in stochastic NWP convection code (https://gitlab.dkrz.de/icon/icon-nwp/-/merge_requests/1680)
 
 # Release notes for icon-2024.10
 

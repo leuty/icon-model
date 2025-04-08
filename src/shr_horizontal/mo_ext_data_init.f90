@@ -61,7 +61,7 @@ MODULE mo_ext_data_init
     &                              read_2D, read_2D_int, read_3D_extdim, read_2D_extdim, read_inq_varexists
   USE mo_netcdf_errhandler,  ONLY: nf
   USE mo_netcdf
-  USE turb_data,             ONLY: c_lnd, c_sea, c_stm
+  USE mo_turbdiff_config,    ONLY: turbdiff_config
   USE mo_util_cdi,           ONLY: read_cdi_2d, read_cdi_3d, t_inputParameters,   &
     &                              makeInputParameters, deleteInputParameters
   USE mo_cdi,                ONLY: FILETYPE_GRB2, streamClose, cdi_undefid
@@ -749,6 +749,7 @@ CONTAINS
     INTEGER :: i_startidx, i_endidx   !< slices
 
     REAL(wp):: albfac, albthresh             ! for MODIS albedo tuning
+    REAL(wp):: lu_sum, lu_scale              ! for provisional correction of inconsistent extpar data
 
     LOGICAL :: l_exist
     INTEGER :: error_status
@@ -1058,6 +1059,56 @@ CONTAINS
             ENDDO
 !$OMP END DO
           ENDIF  ! Antarctic albedo tuning
+
+          ! Provisional workaround for the lack of proper landuse data over Antarctica; to achieve reasonable T2M in summer
+          ! in combination with recent fixes in TERRA, we need to assume partial glaciation for coastal points with less
+          ! than 50% land fraction. This workaround is also implemented in extpar since April 2025 but repeated here
+          ! in order to prevent poor forecast quality with older extpar files
+          !
+          ! In addition, inconsistencies in the LU fractions occurring around Antarctica are fixed
+!$OMP DO PRIVATE(jb,jc,i_startidx,i_endidx,lu_sum,lu_scale)
+          DO jb = i_startblk, i_endblk
+            CALL get_indices_c(p_patch(jg), jb, i_startblk, i_endblk, i_startidx, i_endidx, rl_start, rl_end)
+
+            DO jc = i_startidx,i_endidx
+              IF (p_patch(jg)%cells%center(jc,jb)%lat*rad2deg < -57._wp) THEN
+                ! ensure that the lu_class_fraction is set on water points
+                ext_data(jg)%atm%lu_class_fraction(jc,jb,ext_data(jg)%atm%i_lc_water) = 1._wp-ext_data(jg)%atm%fr_land(jc,jb)
+                !
+                ! enforce that the lu_class_fractions sum up to 1
+                lu_sum = SUM(ext_data(jg)%atm%lu_class_fraction(jc,jb,:))
+                IF (ABS(lu_sum-1._wp) > 1.e-4_wp) THEN
+                  IF (ext_data(jg)%atm%fr_land(jc,jb) == 0._wp) THEN
+                    ! reset all fractions to 0 and re-establish water fraction
+                    ext_data(jg)%atm%lu_class_fraction(jc,jb,:) = 0._wp
+                    ext_data(jg)%atm%lu_class_fraction(jc,jb,ext_data(jg)%atm%i_lc_water) = 1._wp
+                  ELSE IF (lu_sum > ext_data(jg)%atm%lu_class_fraction(jc,jb,ext_data(jg)%atm%i_lc_water)) THEN
+                    ! scale non-water fractions in order to sum up to 1
+                    lu_scale = ext_data(jg)%atm%fr_land(jc,jb) / &
+                      (lu_sum-ext_data(jg)%atm%lu_class_fraction(jc,jb,ext_data(jg)%atm%i_lc_water))
+                    ext_data(jg)%atm%lu_class_fraction(jc,jb,:) = ext_data(jg)%atm%lu_class_fraction(jc,jb,:)*lu_scale
+                    ext_data(jg)%atm%lu_class_fraction(jc,jb,ext_data(jg)%atm%i_lc_water) = 1._wp-ext_data(jg)%atm%fr_land(jc,jb)
+                  ELSE ! happens only with extpar data created before February 2014
+                    CYCLE ! do nothing because it's hopeless
+                  ENDIF
+                ENDIF
+                ext_data(jg)%atm%fr_glac(jc,jb) = ext_data(jg)%atm%lu_class_fraction(jc,jb,ext_data(jg)%atm%i_lc_snow_ice)
+              ENDIF
+
+              IF (ext_data(jg)%atm%fr_glac(jc,jb) > 0.01_wp  .AND. p_patch(jg)%cells%center(jc,jb)%lat*rad2deg < -60._wp &
+                  .AND. ext_data(jg)%atm%fr_land(jc,jb) < 0.5_wp .AND. ext_data(jg)%atm%topography_c(jc,jb) < 100._wp ) THEN
+                ext_data(jg)%atm%lu_class_fraction(jc,jb,ext_data(jg)%atm%i_lc_snow_ice)  = 0.6_wp*ext_data(jg)%atm%fr_land(jc,jb)
+                ext_data(jg)%atm%lu_class_fraction(jc,jb,ext_data(jg)%atm%i_lc_bare_soil) = 0.4_wp*ext_data(jg)%atm%fr_land(jc,jb)
+                ext_data(jg)%atm%fr_glac(jc,jb) = ext_data(jg)%atm%lu_class_fraction(jc,jb,ext_data(jg)%atm%i_lc_snow_ice)
+                ext_data(jg)%atm_td%alb_dif(jc,jb,1:12)   = 0.15_wp
+                ext_data(jg)%atm_td%albuv_dif(jc,jb,1:12) = 0.15_wp
+                ext_data(jg)%atm_td%albni_dif(jc,jb,1:12) = 0.15_wp
+              ENDIF
+
+            ENDDO
+          ENDDO
+!$OMP END DO
+
 !$OMP END PARALLEL
 
         END IF  !  albedo_type
@@ -1505,26 +1556,26 @@ CONTAINS
                ext_data(jg)%atm%rootdp_t (jc,jb,1)  = ext_data(jg)%atm%rootdp(jc,jb)
 
                ! plant cover
-               ext_data(jg)%atm%plcov_t  (jc,jb,1)  = ptr_ndviratio(jc,jb)                                                   &
+               ext_data(jg)%atm%plcov_t  (jc,jb,1)  = ptr_ndviratio(jc,jb)                           &
                  &     * MIN(ext_data(jg)%atm%ndvi_max(jc,jb),ext_data(jg)%atm%plcov_mx(jc,jb))
 
                ! transpiration area index
-               ext_data(jg)%atm%tai_t    (jc,jb,1)  = ext_data(jg)%atm%plcov_t(jc,jb,1)                                      &
+               ext_data(jg)%atm%tai_t    (jc,jb,1)  = ext_data(jg)%atm%plcov_t(jc,jb,1)              &
                  &                                  * ext_data(jg)%atm%lai_mx(jc,jb)
 
                ! surface area index
                IF (lterra_urb) THEN
-                 ext_data(jg)%atm%sai_t  (jc,jb,1)  = c_lnd * (1.0_wp - ext_data(jg)%atm%urb_isa_t(jc,jb,1))                 &
+                 ext_data(jg)%atm%sai_t  (jc,jb,1)  = turbdiff_config(jg)%c_lnd * (1.0_wp - ext_data(jg)%atm%urb_isa_t(jc,jb,1)) &
                                    + ext_data(jg)%atm%urb_ai_t(jc,jb,1)*ext_data(jg)%atm%urb_isa_t(jc,jb,1)
                ELSE
-                 ext_data(jg)%atm%sai_t  (jc,jb,1)  = c_lnd
+                 ext_data(jg)%atm%sai_t  (jc,jb,1)  = turbdiff_config(jg)%c_lnd
                END IF
-               ext_data(jg)%atm%sai_t    (jc,jb,1)  = ext_data(jg)%atm%sai_t(jc,jb,1) + ext_data(jg)%atm%tai_t  (jc,jb,1)    &
-                                                                                + c_stm*ext_data(jg)%atm%plcov_t(jc,jb,1)
+               ext_data(jg)%atm%sai_t    (jc,jb,1)  = ext_data(jg)%atm%sai_t(jc,jb,1) + ext_data(jg)%atm%tai_t  (jc,jb,1)        &
+                                                                                + turbdiff_config(jg)%c_stm*ext_data(jg)%atm%plcov_t(jc,jb,1)
 
                ! evaporative soil area index
                IF (icpl_da_sfcevap >= 4 .OR. itype_evsl == 5) THEN
-                 ext_data(jg)%atm%eai_t(jc,jb,1)    = MERGE(0.75_wp,                                                         &
+                 ext_data(jg)%atm%eai_t(jc,jb,1)    = MERGE(0.75_wp,                                 &
                    2.0_wp-1.25_wp*tile_frac(ext_data(jg)%atm%i_lc_urban),lhave_urban)
                  ext_data(jg)%atm%r_bsmin(jc,jb)    = cr_bsmin
                ELSE
@@ -1533,7 +1584,7 @@ CONTAINS
                ENDIF
 
                IF (lterra_urb .AND. ((itype_eisa == 2) .OR. (itype_eisa == 3))) THEN
-                 ext_data(jg)%atm%eai_t(jc,jb,1)    = ext_data(jg)%atm%eai_t(jc,jb,1)                                        &
+                 ext_data(jg)%atm%eai_t(jc,jb,1)    = ext_data(jg)%atm%eai_t(jc,jb,1)                &
                                                     * (1.0_wp - ext_data(jg)%atm%urb_isa_t(jc,jb,1))
                END IF
 
@@ -1754,14 +1805,14 @@ CONTAINS
 
                  ! surface area index
                  IF (lterra_urb) THEN
-                   ext_data(jg)%atm%sai_t  (jc,jb,i_lu)  = c_lnd * (1.0_wp - ext_data(jg)%atm%urb_isa_t(jc,jb,i_lu))       &
+                   ext_data(jg)%atm%sai_t  (jc,jb,i_lu)  = turbdiff_config(jg)%c_lnd * (1.0_wp - ext_data(jg)%atm%urb_isa_t(jc,jb,i_lu)) &
                                      + ext_data(jg)%atm%urb_ai_t(jc,jb,i_lu)*ext_data(jg)%atm%urb_isa_t(jc,jb,i_lu)
                  ELSE
-                   ext_data(jg)%atm%sai_t  (jc,jb,i_lu)  = c_lnd
+                   ext_data(jg)%atm%sai_t  (jc,jb,i_lu)  = turbdiff_config(jg)%c_lnd
                  END IF
                  ext_data(jg)%atm%sai_t    (jc,jb,i_lu)  = ext_data(jg)%atm%sai_t  (jc,jb,i_lu)                            &
                                                          + ext_data(jg)%atm%tai_t  (jc,jb,i_lu)                            &
-                                                   + c_stm*ext_data(jg)%atm%plcov_t(jc,jb,i_lu)
+                                                   + turbdiff_config(jg)%c_stm*ext_data(jg)%atm%plcov_t(jc,jb,i_lu)
 
                  ! evaporative soil area index
                  IF (icpl_da_sfcevap >= 4 .OR. itype_evsl == 5) THEN
@@ -1847,7 +1898,7 @@ CONTAINS
              ext_data(jg)%atm%lc_frac_t(jc,jb,isub_lake)  = ext_data(jg)%atm%fr_lake(jc,jb)
 
              ! set surface area index (needed by turbtran)
-             ext_data(jg)%atm%sai_t    (jc,jb,isub_lake)  = c_sea
+             ext_data(jg)%atm%sai_t    (jc,jb,isub_lake)  = turbdiff_config(jg)%c_sea
            ENDIF
 
            !
@@ -1875,7 +1926,7 @@ CONTAINS
                ext_data(jg)%atm%lc_frac_t(jc,jb,isub_water) = 0._wp
 
              ! set surface area index (needed by turbtran)
-             ext_data(jg)%atm%sai_t    (jc,jb,isub_water)  = c_sea
+             ext_data(jg)%atm%sai_t    (jc,jb,isub_water)  = turbdiff_config(jg)%c_sea
 
              ! set land-cover class for seaice tile
              ! sea-ice and sea have the same land cover class. This is consistent with the
@@ -2121,7 +2172,7 @@ CONTAINS
     TYPE(t_patch)        , INTENT(IN)    :: p_patch
     TYPE(t_external_data), INTENT(INOUT) :: ext_data
 
-    INTEGER  :: jb,jt,ic,jc
+    INTEGER  :: jg,jb,jt,ic,jc
     INTEGER  :: rl_start, rl_end
     INTEGER  :: i_startblk, i_endblk    !> blocks
     INTEGER  :: i_startidx, i_endidx
@@ -2141,9 +2192,11 @@ CONTAINS
     i_startblk = p_patch%cells%start_block(rl_start)
     i_endblk   = p_patch%cells%end_block(rl_end)
 
+    jg = p_patch%id
+
     ! Fill nest boundary points of sai with c_sea because the initial call of turbtran
     ! may produce invalid operations otherwise
-    ext_data%atm%sai(:,1:i_startblk) = c_sea
+    ext_data%atm%sai(:,1:i_startblk) = turbdiff_config(jg)%c_sea
 
 !$OMP PARALLEL
 !$OMP DO PRIVATE(jb,jt,ic,i_startidx,i_endidx,i_count,jc,area_frac)
@@ -2391,7 +2444,7 @@ CONTAINS
     TYPE(t_external_data), INTENT(INOUT) :: ext_data
     TYPE(t_nh_diag),  INTENT(IN)         :: nh_diag
 
-    INTEGER  :: jb,jt,ic,jc,i
+    INTEGER  :: jg,jb,jt,ic,jc,i
     INTEGER  :: rl_start, rl_end
     INTEGER  :: i_startblk, i_endblk,i_startidx, i_endidx
     INTEGER  :: i_count,ilu
@@ -2433,6 +2486,8 @@ CONTAINS
     !-------------------------------------------------------------------------
 
     CALL message('','Modify NDVI-based plant cover properties using T2M climatology')
+
+    jg = p_patch%id
 
     ! store table values according to landuse class
     ilu = 0
@@ -2508,14 +2563,14 @@ CONTAINS
             (wfac*ext_data%atm%laimax_lcc(ilu) + (1._wp-wfac)*laimin(ilu))/MAX(0.01_wp,ext_data%atm%laimax_lcc(ilu))
 
           IF (lterra_urb) THEN
-            ext_data%atm%sai_t(jc,jb,jt) = c_lnd * (1.0_wp - ext_data%atm%urb_isa_t(jc,jb,jt)) &
+            ext_data%atm%sai_t(jc,jb,jt) = turbdiff_config(jg)%c_lnd * (1.0_wp - ext_data%atm%urb_isa_t(jc,jb,jt)) &
                                          + ext_data%atm%urb_ai_t(jc,jb,jt)*ext_data%atm%urb_isa_t(jc,jb,jt)
           ELSE
-            ext_data%atm%sai_t(jc,jb,jt) = c_lnd
+            ext_data%atm%sai_t(jc,jb,jt) = turbdiff_config(jg)%c_lnd
           END IF
           ext_data%atm%sai_t  (jc,jb,jt) = ext_data%atm%sai_t  (jc,jb,jt) &
                                          + ext_data%atm%tai_t  (jc,jb,jt) &
-                                   + c_stm*ext_data%atm%plcov_t(jc,jb,jt)
+                                   + turbdiff_config(jg)%c_stm*ext_data%atm%plcov_t(jc,jb,jt)
 
           ! modification of root depth
           ext_data%atm%rootdp_t(jc,jb,jt) = ext_data%atm%rootdmax_lcc(ilu) ! reset to table-based value

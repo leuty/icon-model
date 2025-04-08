@@ -57,17 +57,15 @@ add_library(microphysics_1mom_schemes
   ${CONFIG_PATH}/mo_2mom_mcrph_config.f90
   ${SATAD_PATH}/mo_lookup_tables_constants.f90
   ${SHARED_PATH}/mo_kind.f90
+  ${SHARED_PATH}/mo_impl_constants_grf.f90
+  ${SHARED_PATH}/mo_physical_constants.f90
+  ${SHARED_PATH}/mo_impl_constants.f90
   ${MICROPHYSICS_PATH}/gscp_graupel.f90
   ${MICROPHYSICS_PATH}/gscp_data.f90
   ${MICROPHYSICS_PATH}/gscp_kessler.f90
   ${MICROPHYSICS_PATH}/gscp_cloudice.f90
   ${MICROPHYSICS_PATH}/gscp_ice.f90
   ${MICROPHYSICS_PATH}/microphysics_1mom_schemes.f90
-  ${ICON_SOURCE_DIR}/src/shared/mo_kind.f90
-  ${ICON_SOURCE_DIR}/src/shared/mo_impl_constants_grf.f90
-  ${ICON_SOURCE_DIR}/src/shared/mo_physical_constants.f90
-  ${ICON_SOURCE_DIR}/src/shared/mo_impl_constants.f90
-  ${CONFIG_PATH}/mo_2mom_mcrph_config.f90
 )
 
 target_link_libraries(microphysics_1mom_schemes

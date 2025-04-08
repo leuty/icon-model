@@ -46,7 +46,7 @@ CONTAINS
 
     INTEGER  :: ndirs    ! NUMBER OF DIRECTIONS.
     INTEGER  :: nfreqs   ! NUMBER OF FREQUENCIES.
-    INTEGER  :: IREF     ! FREQUENCY BIN NUMBER OF REFERENCE FREQUENCY
+    INTEGER  :: iref     ! FREQUENCY BIN NUMBER OF REFERENCE FREQUENCY
 
     REAL(wp) :: fr1      ! FIRST FREQUENCY [HZ].
     REAL(wp) :: CO       ! FREQUENCY RATIO
@@ -113,9 +113,14 @@ CONTAINS
                                ! impl_fac=1   : first order Euler backward scheme
                                ! valid range: 0.5 <= impl_fac <= 1
 
+    ! not available to the outside world for the time being
+    INTEGER,  PARAMETER :: jmax  = 300            ! number of wind speed bins in flminfr table
+    REAL(wp), PARAMETER :: flmin = 0.000001_wp    ! minimum of energy in flminfr table
+    REAL(wp), PARAMETER :: umax  = 75.0_wp        ! maximum wind speed in flminfr table
+
     NAMELIST /wave_nml/ &
          forc_file_prefix,          &
-         ndirs, nfreqs, fr1, CO, IREF,                      &
+         ndirs, nfreqs, fr1, CO, iref, &
          ALPHA, FM, GAMMA_wave, SIGMA_A, SIGMA_B, fetch, fetch_min_energy, &
          roair, RNUAIR, RNUAIRM, ROWATER, XEPS, XINVEPS, &
          XKAPPA, XNLEV, BETAMAX, ZALP, jtot_tauhf, ALPHA_CH, &
@@ -131,7 +136,7 @@ CONTAINS
     nfreqs     = 25             !! NUMBER OF FREQUENCIES.
     fr1        = 0.04177248_wp  !! FIRST FREQUENCY [HZ].
     CO         = 1.1_wp         !! FREQUENCY RATIO
-    IREF       = 1              !! FREQUENCY BIN NUMBER OF REFERENCE FREQUENCY
+    iref       = 1              !! FREQUENCY BIN NUMBER OF REFERENCE FREQUENCY
 
     ALPHA      = 0.018_wp       !! PHILLIPS PARAMETER.
     FM         = 0.2_wp         !! PEAK FREQUENCY (HZ) AND/OR MAXIMUM FREQUENCY.
@@ -239,7 +244,10 @@ CONTAINS
       wave_config(jg)%nfreqs            = nfreqs
       wave_config(jg)%fr1               = fr1
       wave_config(jg)%CO                = CO
-      wave_config(jg)%IREF              = IREF
+      wave_config(jg)%iref              = iref
+      wave_config(jg)%jmax              = jmax
+      wave_config(jg)%flmin             = flmin
+      wave_config(jg)%umax              = umax
       wave_config(jg)%ALPHA             = ALPHA
       wave_config(jg)%FM                = FM
       wave_config(jg)%GAMMA_wave        = GAMMA_wave

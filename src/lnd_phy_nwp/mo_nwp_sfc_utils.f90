@@ -39,11 +39,12 @@ MODULE mo_nwp_sfc_utils
   USe mo_extpar_config,       ONLY: itopo, itype_vegetation_cycle
   USE mo_lnd_nwp_config,      ONLY: nlev_soil, nlev_snow, ntiles_total, ntiles_water, &
     &                               lseaice, llake, lmulti_snow, idiag_snowfrac, ntiles_lnd, &
-    &                               lsnowtile, isub_water, isub_seaice, isub_lake,    &
+    &                               lsnowtile, isub_water, isub_seaice, isub_lake, &
     &                               lterra_urb, l2lay_rho_snow, lprog_albsi, itype_trvg, &
-                                    itype_snowevap, zml_soil, dzsoil, frsi_min, hice_min
+    &                               itype_snowevap, zml_soil, dzsoil, frsi_min, hice_min, &
+    &                               lcuda_graph_lnd, itype_oskin_cold, itype_oskin_warm
   USE mo_atm_phy_nwp_config,  ONLY: atm_phy_nwp_config
-  USE mo_nwp_tuning_config,   ONLY: tune_minsnowfrac
+  USE mo_nwp_tuning_config,   ONLY: tune_minsnowfrac, tune_urbahf
   USE mo_initicon_config,     ONLY: init_mode_soil, ltile_coldstart, init_mode, lanaread_tseasfc, use_lakeiceana, &
                                     icpl_da_snowalb
   USE mo_run_config,          ONLY: msg_level
@@ -51,7 +52,7 @@ MODULE mo_nwp_sfc_utils
   USE sfc_flake,              ONLY: flake_init
   USE sfc_seaice,             ONLY: seaice_init_nwp, seaice_coldinit_albsi_nwp
   USE sfc_terra_data,         ONLY: cadp, cf_snow, crhosmin_ml, crhosmax_ml
-  USE turb_data,              ONLY: c_lnd, c_sea, c_stm
+  USE mo_turbdiff_config,     ONLY: turbdiff_config
   USE mo_thdyn_functions,     ONLY: sat_pres_water, sat_pres_ice, spec_humi
   USE mo_sync,                ONLY: global_max, global_min
   USE mo_nonhydro_types,      ONLY: t_nh_diag
@@ -66,8 +67,6 @@ MODULE mo_nwp_sfc_utils
   USE mo_fortran_tools,       ONLY: set_acc_host_or_device, assert_acc_device_only
   USE mo_timer,               ONLY: ltimer, timer_nh_diagnostics, timer_start, timer_stop
 
-  USE mo_lnd_nwp_config,      ONLY: lcuda_graph_lnd
-
 #ifdef __NVCOMPILER
   USE mo_coupling_config,     ONLY: is_coupled_to_ocean
 #endif
@@ -78,7 +77,7 @@ MODULE mo_nwp_sfc_utils
 
 #ifdef __SX__
 ! parameter for loop unrolling
-INTEGER, PARAMETER :: nlsoil= 8
+  INTEGER, PARAMETER :: nlsoil= 8
 #endif
 
   REAL(KIND=wp), PARAMETER ::            &
@@ -98,6 +97,8 @@ INTEGER, PARAMETER :: nlsoil= 8
   PUBLIC :: init_sea_lists
   PUBLIC :: copy_lnd_prog_now2new
   PUBLIC :: seaice_albedo_coldstart
+  PUBLIC :: reset_ocean_skin
+  PUBLIC :: update_ahf
   
 
 CONTAINS
@@ -324,40 +325,39 @@ CONTAINS
         END DO
       ENDIF
 
-      ! t_s_t: initialization for open water and sea-ice tiles
-      ! proper values are needed to perform surface analysis
-      ! open water points: set it to SST
-      ! sea-ice points   : set it to tf_salt (salt-water freezing point)
-      !
-      ! Note that after aggregation, t_s is copied to t_so(1)
-      !
-      DO ic = 1, ext_data%atm%list_seawtr%ncount(jb)
-        jc = ext_data%atm%list_seawtr%idx(ic,jb)
-        p_prog_lnd_now%t_s_t(jc,jb,isub_water) = p_lnd_diag%t_seasfc(jc,jb)
-        p_prog_lnd_new%t_s_t(jc,jb,isub_water) = p_lnd_diag%t_seasfc(jc,jb)
-        p_prog_lnd_now%t_sk_t(jc,jb,isub_water) = p_lnd_diag%t_seasfc(jc,jb)
-        p_prog_lnd_new%t_sk_t(jc,jb,isub_water) = p_lnd_diag%t_seasfc(jc,jb)
-      ENDDO
+      ! initialization of surface temperatures for open water and sea-ice tiles
+      ! open water points: set water  tile temperature to SST
+      ! sea-ice points   : set seaice tile temperature to tf_salt (salt-water freezing point)
 
       DO ic = 1, ext_data%atm%list_seaice%ncount(jb)
         jc = ext_data%atm%list_seaice%idx(ic,jb)
-        p_prog_lnd_now%t_s_t(jc,jb,isub_seaice) = tf_salt
-        p_prog_lnd_new%t_s_t(jc,jb,isub_seaice) = tf_salt
+        p_prog_lnd_now%t_s_t (jc,jb,isub_seaice) = tf_salt
+        p_prog_lnd_new%t_s_t (jc,jb,isub_seaice) = tf_salt
         p_prog_lnd_now%t_sk_t(jc,jb,isub_seaice) = tf_salt
         p_prog_lnd_new%t_sk_t(jc,jb,isub_seaice) = tf_salt
       ENDDO
 
-
-      ! Init t_g_t for sea water points
-      !
+     ! loop over all open water points
       DO ic = 1, ext_data%atm%list_seawtr%ncount(jb)
         jc = ext_data%atm%list_seawtr%idx(ic,jb)
-        temp =  p_lnd_diag%t_seasfc(jc,jb)
-        p_prog_lnd_now%t_g_t(jc,jb,isub_water) = temp
-        p_prog_lnd_new%t_g_t(jc,jb,isub_water) = temp
+
+        p_prog_lnd_now%t_s_t (jc,jb,isub_water) = p_lnd_diag%t_seasfc(jc,jb)
+        p_prog_lnd_new%t_s_t (jc,jb,isub_water) = p_lnd_diag%t_seasfc(jc,jb)
+
+        temp = p_lnd_diag%t_seasfc(jc,jb)
+
+        ! add cold skin and warm layer increments to t_g and t_sk
+        IF (itype_oskin_cold > 0) temp = temp + p_lnd_diag%sst_cold_skin(jc,jb)
+        IF (itype_oskin_warm > 0) temp = temp + p_lnd_diag%sst_warm_layer(jc,jb)
+
+        p_prog_lnd_now%t_g_t (jc,jb,isub_water) = temp
+        p_prog_lnd_new%t_g_t (jc,jb,isub_water) = temp
+        p_prog_lnd_now%t_sk_t(jc,jb,isub_water) = temp
+        p_prog_lnd_new%t_sk_t(jc,jb,isub_water) = temp
+
         ! includes reduction of saturation pressure due to salt content
         p_lnd_diag%qv_s_t(jc,jb,isub_water)    = salinity_fac * &  
-          &       spec_humi(sat_pres_water(temp ),p_diag%pres_sfc(jc,jb) )
+          &  spec_humi(sat_pres_water(temp), p_diag%pres_sfc(jc,jb) )
       END DO
 
 
@@ -1885,7 +1885,7 @@ CONTAINS
             ext_data%atm%list_seaice%idx(i_count_ice,jb) = jc
             ext_data%atm%list_seaice%ncount(jb)          = i_count_ice
             ! set surface area index (needed by turbtran)
-            ext_data%atm%sai_t(jc,jb,isub_seaice) = c_sea
+            ext_data%atm%sai_t(jc,jb,isub_seaice) = turbdiff_config(jg)%c_sea
           ELSE
             !
             ! water point: all sea points with fr_seaice < 0.5
@@ -1925,7 +1925,7 @@ CONTAINS
 !DR Note that sai at seaice points is initialized with c/=c_sea, a corresponding update
 !DR of sai_t needs to be added to the procedure which updates the seaice index list.
             ! set surface area index (needed by turbtran)
-            ext_data%atm%sai_t(jc,jb,isub_seaice)  = c_sea
+            ext_data%atm%sai_t(jc,jb,isub_seaice)  = turbdiff_config(jg)%c_sea
           ELSE
             cond_ice(ic) = 0
             ext_data%atm%frac_t(jc,jb,isub_seaice) = 0._wp
@@ -2157,6 +2157,54 @@ CONTAINS
   END SUBROUTINE diag_snowfrac_tg
 
 
+  !-------------------------------------------------------------------------
+
+  ! Update anthropogenic heat flux for TERRA_URB
+  !
+  SUBROUTINE update_ahf(istart, iend, lc_class, i_lc_urban, dt, t_2m, t_2m_filt, ahf)
+
+    INTEGER, INTENT (IN) :: istart, iend ! start and end-indices of the computation
+    INTEGER, INTENT (IN) :: lc_class(:,:)  ! list of land-cover classes
+    INTEGER, INTENT (IN) :: i_lc_urban   ! land-cover class index for urban / artificial surface
+    REAL(wp),INTENT (IN) :: dt           ! time step
+
+    REAL(wp), DIMENSION(:), INTENT(IN)      :: t_2m
+    REAL(wp), DIMENSION(:), INTENT(INOUT)   :: t_2m_filt
+    REAL(wp), DIMENSION(:,:), INTENT(INOUT) :: ahf
+
+    INTEGER :: jt, jc
+    REAL(wp) :: ahf_heat, ahf_cool
+    REAL(wp) :: dt_filt ! time scale for filtering
+
+    dt_filt = 86400._wp  ! 24 h - needs to be tested
+
+    !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1)
+    !$ACC LOOP GANG VECTOR
+    DO jc = istart, iend
+      IF (t_2m_filt(jc) < 100._wp) THEN ! cold start initialization needed because no FG was available
+        t_2m_filt(jc) = t_2m(jc)
+      ELSE ! relaxation of filtered T2M towards T2M
+        t_2m_filt(jc) = t_2m_filt(jc) + dt/dt_filt*(t_2m(jc)-t_2m_filt(jc))
+      ENDIF
+    ENDDO
+    !$ACC END PARALLEL
+
+    ! Update anthropogenic heat flux
+    DO jt = 1, ntiles_total
+      !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1)
+      !$ACC LOOP GANG VECTOR PRIVATE(ahf_heat, ahf_cool)
+      DO jc = istart, iend
+        IF (lc_class(jc,jt) == i_lc_urban) THEN
+          ahf_heat = tune_urbahf(2)*MAX(0._wp,288.15_wp-t_2m_filt(jc))
+          ahf_cool = tune_urbahf(3)*MAX(0._wp,t_2m_filt(jc)-293.15_wp)
+          ahf(jc,jt) = MIN(tune_urbahf(1) + MAX(ahf_heat,ahf_cool), tune_urbahf(4))
+        ENDIF
+      ENDDO
+    !$ACC END PARALLEL
+    ENDDO
+
+  END SUBROUTINE update_ahf
+
 
 
   !-------------------------------------------------------------------------
@@ -2314,8 +2362,7 @@ CONTAINS
     &                              hice_old, tice_old, albsi_now, albsi_new,            &
     &                              t_g_t_now, t_g_t_new, t_s_t_now, t_s_t_new,          &
     &                              t_sk_t_now, t_sk_t_new, qv_s_t, t_seasfc, condhf,    &
-    &                              meltpot                                              )
-
+    &                              meltpot )
 
     REAL(wp),    INTENT(IN)    ::  &   !< sea-ice depth at new time level  [m]
       &  hice_n(:)                     !< dim: (nproma)
@@ -2428,7 +2475,8 @@ CONTAINS
     !$ACC   PRESENT(frac_t_water, lc_frac_t_water, fr_seaice) &
     !$ACC   PRESENT(hice_old, tice_old, albsi_now, albsi_new) &
     !$ACC   PRESENT(t_g_t_now, t_g_t_new, t_s_t_now, t_s_t_new) &
-    !$ACC   PRESENT(t_sk_t_now, t_sk_t_new, qv_s_t, t_seasfc) NO_CREATE(condhf, meltpot)
+    !$ACC   PRESENT(t_sk_t_now, t_sk_t_new, qv_s_t, t_seasfc) &
+    !$ACC   NO_CREATE(condhf, meltpot)
 
     !$ACC PARALLEL LOOP GANG VECTOR ASYNC(1) DEFAULT(PRESENT)
     DO ic = 1, list_seaice_count
@@ -2605,14 +2653,14 @@ CONTAINS
 
   !> sstice_mode = MODE SSTICE_ANA_CLINC
   !!
-  !! Climatological SST increments are computed, based on the climatological 
-  !! SST fields read from the external parameter file. The increment is defined 
-  !! as the climatological SST difference between the actual date (target_datetime) 
-  !! and the experiment start date (ref_datetime). 
-  !! The increment is used to update the surface temperature of the sea water tile 
-  !! (t_g_t, t_s_t, t_sk_t). 
-  !! Please note that the original SST field t_seasfc remains unchanged, i.e. 
-  !! the SST increment is NOT added to t_seasfc.
+  !! The foundation SST is updated by climatological SST increments on a daily basis.
+  !! The increments are computed from the SST climatology which is read
+  !! from the external parameter file. The SST increment is defined as the difference
+  !! between the actual date (target_datetime) and the previous day date (prev_datetime).
+  !! It is added to the foundation SST field t_seasfc.
+  !!
+  !! The updated foundation SST is copied to the various surface temperature fields of the sea water tile
+  !! (t_g_t, t_s_t, t_sk_t).
   !!
   SUBROUTINE sst_add_climatological_incr (p_patch, ext_data, prog_lnd, diag_lnd, pres_sfc, &
     &                       ref_datetime, target_datetime)
@@ -2622,7 +2670,7 @@ CONTAINS
     TYPE(t_lnd_prog),        INTENT(INOUT) :: prog_lnd(:)      !< prog vars for sfc
     TYPE(t_lnd_diag),        INTENT(INOUT) :: diag_lnd         !< diag vars for sfc
     REAL(wp),                INTENT(IN)    :: pres_sfc(:,:)    !< surface pressure
-    TYPE(datetime),          INTENT(IN)    :: ref_datetime     !< experiment start datetime
+    TYPE(datetime),          INTENT(IN)    :: ref_datetime     !< reference datetime (previous day)
     TYPE(datetime),          INTENT(IN)    :: target_datetime  !< actual datetime
 
     ! Local scalars:
@@ -2634,11 +2682,10 @@ CONTAINS
     INTEGER :: n_now, n_new
     INTEGER :: ierr
     REAL(wp):: sst_cl_inc
-    REAL(wp):: new_sst            ! updated SST value
     REAL(wp):: max_inc, min_inc   ! max/min SST increment on given PE
 
-    REAL(wp)::  &                 ! climatological sst field for the model initialization day
-      &  sst_cl_ini_day(nproma,p_patch%nblks_c)
+    REAL(wp)::  &                 ! climatological sst field for the previous day
+      &  sst_cl_prev_day(nproma,p_patch%nblks_c)
 
     REAL(wp)::  &                 ! climatological sst field for the current day
       &  sst_cl_cur_day(nproma,p_patch%nblks_c)
@@ -2674,9 +2721,9 @@ CONTAINS
       WRITE(message_text,'(a)') 'Update SST with climatological increments'
       CALL message(routine, TRIM(message_text))
       !
-      CALL datetimeToString(target_datetime, target_datetime_PTString, ierr)
+     CALL datetimeToString(target_datetime, target_datetime_PTString, ierr)
       CALL datetimeToString(ref_datetime, ref_datetime_PTString, ierr)
-      WRITE(message_text,'(a,i2,a,a)') 'Target Date for DOM ',jg,': ',TRIM(target_datetime_PTString) 
+     WRITE(message_text,'(a,i2,a,a)') 'Target Date for DOM ',jg,': ',TRIM(target_datetime_PTString)
       CALL message('', TRIM(message_text))
       WRITE(message_text,'(a,i2,a,a)') 'Reference Date for DOM ',jg,': ',TRIM(ref_datetime_PTString) 
       CALL message('', TRIM(message_text))
@@ -2687,7 +2734,7 @@ CONTAINS
     !
     CALL interpol_monthly_mean(p_patch, ref_datetime,         &! in
       &                        ext_data%atm_td%sst_m,         &! in
-      &                        sst_cl_ini_day                 )! out
+      &                        sst_cl_prev_day                )! out
 
     CALL interpol_monthly_mean(p_patch, target_datetime,      &! in
       &                        ext_data%atm_td%sst_m,         &! in
@@ -2695,7 +2742,7 @@ CONTAINS
 
 
 !$OMP PARALLEL
-!$OMP DO PRIVATE(jb,ic,jc,sst_cl_inc,new_sst)
+!$OMP DO PRIVATE(jb,ic,jc,sst_cl_inc)
     DO jb=i_startblk, i_endblk
 
       ! loop over all open water points and add climatological increments
@@ -2703,20 +2750,20 @@ CONTAINS
       DO ic = 1, ext_data%atm%list_seawtr%ncount(jb)
         jc = ext_data%atm%list_seawtr%idx(ic,jb)
 
-        sst_cl_inc = sst_cl_cur_day(jc,jb) - sst_cl_ini_day(jc,jb)
-        ! make sure, that the updated SST does not drop below 
+        sst_cl_inc = sst_cl_cur_day(jc,jb) - sst_cl_prev_day(jc,jb)
+        ! make sure, that the updated SST does not drop below
         ! the salt-water freezing point
-        new_sst = MAX(tf_salt,diag_lnd%t_seasfc(jc,jb) + sst_cl_inc)
+        diag_lnd%t_seasfc(jc,jb) = MAX(tf_salt,diag_lnd%t_seasfc(jc,jb) + sst_cl_inc)
         !
-        prog_lnd(n_now)%t_g_t (jc,jb,isub_water) = new_sst
-        prog_lnd(n_now)%t_s_t (jc,jb,isub_water) = new_sst
-        prog_lnd(n_now)%t_sk_t(jc,jb,isub_water) = new_sst
-        prog_lnd(n_new)%t_g_t (jc,jb,isub_water) = new_sst
-        prog_lnd(n_new)%t_s_t (jc,jb,isub_water) = new_sst
-        prog_lnd(n_new)%t_sk_t(jc,jb,isub_water) = new_sst
+        prog_lnd(n_now)%t_g_t (jc,jb,isub_water) = diag_lnd%t_seasfc(jc,jb)
+        prog_lnd(n_now)%t_s_t (jc,jb,isub_water) = diag_lnd%t_seasfc(jc,jb)
+        prog_lnd(n_now)%t_sk_t(jc,jb,isub_water) = diag_lnd%t_seasfc(jc,jb)
+        prog_lnd(n_new)%t_g_t (jc,jb,isub_water) = diag_lnd%t_seasfc(jc,jb)
+        prog_lnd(n_new)%t_s_t (jc,jb,isub_water) = diag_lnd%t_seasfc(jc,jb)
+        prog_lnd(n_new)%t_sk_t(jc,jb,isub_water) = diag_lnd%t_seasfc(jc,jb)
 
         ! includes reduction of saturation pressure due to salt content
-        diag_lnd%qv_s_t(jc,jb,isub_water) = salinity_fac *                       & 
+        diag_lnd%qv_s_t(jc,jb,isub_water) = salinity_fac *                       &
           &   spec_humi( sat_pres_water(prog_lnd(n_now)%t_g_t(jc,jb,isub_water)),&
           &                                  pres_sfc(jc,jb) )
 
@@ -2733,6 +2780,7 @@ CONTAINS
       &                    t_g     = prog_lnd(n_now)%t_g(:,:),      & ! inout
       &                    qv_s    = diag_lnd%qv_s(:,:)             ) ! inout
 
+
     ! debug output
     IF (msg_level >= 13) THEN
       sst_inc(:,:) = 0._wp
@@ -2740,7 +2788,7 @@ CONTAINS
         ! loop over all open water points and add climatological increments
         DO ic = 1, ext_data%atm%list_seawtr%ncount(jb)
           jc = ext_data%atm%list_seawtr%idx(ic,jb)
-          sst_inc(jc,jb) =  sst_cl_cur_day(jc,jb) - sst_cl_ini_day(jc,jb)
+          sst_inc(jc,jb) =  sst_cl_cur_day(jc,jb) - sst_cl_prev_day(jc,jb)
         ENDDO
       ENDDO
       max_inc = MAXVAL(sst_inc(:,:))
@@ -2752,7 +2800,6 @@ CONTAINS
     ENDIF
 
   END SUBROUTINE sst_add_climatological_incr
-
 
 
   !> sstice_mode = SSTICE_INST, SSTICE_CLIM, SSTICE_AVG_MONTHLY, SSTICE_AVG_DAILY, 
@@ -3187,6 +3234,10 @@ CONTAINS
               &                             spec_humi( sat_pres_water(tf_salt ),    &
               &                             pres_sfc(jc,jb) )
 
+            ! reset SST warm layer and cold skin to 0 for new pure sea-ice points
+            IF (itype_oskin_warm > 0) diag_lnd%sst_warm_layer(jc,jb) = 0._wp
+            IF (itype_oskin_cold > 0) diag_lnd%sst_cold_skin (jc,jb) = 0._wp
+
           ENDDO  ! ic
           !$ACC END PARALLEL
         END IF  ! ntiles_total > 1
@@ -3290,6 +3341,7 @@ CONTAINS
       &                    t_g     = prog_lnd_new%t_g(:,:),      & ! inout
       &                    qv_s    = diag_lnd%qv_s(:,:),         & ! inout
       &                    lacc    = lzacc                       )
+
 
   END SUBROUTINE process_sst_and_seaice
 
@@ -3447,7 +3499,7 @@ CONTAINS
     TYPE(t_nh_diag),      INTENT(IN)    :: nh_diag
 
     ! local
-    INTEGER  :: jb,jt,ic,jc, jt_in
+    INTEGER  :: jg,jb,jt,ic,jc, jt_in
     INTEGER  :: rl_start, rl_end
     INTEGER  :: i_startblk, i_endblk    !> blocks
     INTEGER  :: i_count
@@ -3455,6 +3507,7 @@ CONTAINS
 
     !-------------------------------------------------------------------------
 
+     jg = p_patch%id
 
      ! exclude the boundary interpolation zone of nested domains
      rl_start = grf_bdywidth_c+1
@@ -3472,20 +3525,20 @@ CONTAINS
          DO ic = 1, i_count
            jc = ext_data%atm%idx_lst_lp_t(ic,jb,1)
            ! plant cover
-           ext_data%atm%plcov_t  (jc,jb,1)  = ext_data%atm%ndviratio(jc,jb)                                      &
+           ext_data%atm%plcov_t  (jc,jb,1)  = ext_data%atm%ndviratio(jc,jb)           &
              &     * MIN(ext_data%atm%ndvi_max(jc,jb),ext_data%atm%plcov_mx(jc,jb))
            ! transpiration area index
-           ext_data%atm%tai_t    (jc,jb,1)  = ext_data%atm%plcov_t  (jc,jb,1)                                    &
+           ext_data%atm%tai_t    (jc,jb,1)  = ext_data%atm%plcov_t  (jc,jb,1)         &
              &                                  * ext_data%atm%lai_mx(jc,jb)
            ! surface area index
            IF (lterra_urb) THEN
-             ext_data%atm%sai_t  (jc,jb,1)  = c_lnd * (1.0_wp - ext_data%atm%urb_isa_t(jc,jb,1))                 &
+             ext_data%atm%sai_t  (jc,jb,1)  = turbdiff_config(jg)%c_lnd * (1.0_wp - ext_data%atm%urb_isa_t(jc,jb,1)) &
                                             + ext_data%atm%urb_ai_t(jc,jb,1) * ext_data%atm%urb_isa_t(jc,jb,1)
            ELSE
-             ext_data%atm%sai_t  (jc,jb,1)  = c_lnd
+             ext_data%atm%sai_t  (jc,jb,1)  = turbdiff_config(jg)%c_lnd
            END IF
-           ext_data%atm%sai_t(jc,jb,1) = ext_data%atm%sai_t(jc,jb,1) + ext_data%atm%tai_t  (jc,jb,1)             &
-                                                                 + c_stm*ext_data%atm%plcov_t(jc,jb,1)
+           ext_data%atm%sai_t(jc,jb,1) = ext_data%atm%sai_t(jc,jb,1) + ext_data%atm%tai_t  (jc,jb,1)                 &
+                                                                 +turbdiff_config(jg)% c_stm*ext_data%atm%plcov_t(jc,jb,1)
 
          END DO
        ELSE ! ntiles_lnd > 1
@@ -3508,20 +3561,20 @@ CONTAINS
              IF (lu_subs < 0) CYCLE
 
              ! plant cover
-             ext_data%atm%plcov_t(jc,jb,jt) = ext_data%atm%ndviratio(jc,jb)                                      &
+             ext_data%atm%plcov_t(jc,jb,jt) = ext_data%atm%ndviratio(jc,jb)             &
                & * MIN(ext_data%atm%ndvi_max(jc,jb),ext_data%atm%plcovmax_lcc(lu_subs))
              ! transpiration area index
-             ext_data%atm%tai_t  (jc,jb,jt) = ext_data%atm%plcov_t(jc,jb,jt)                                     &
+             ext_data%atm%tai_t  (jc,jb,jt) = ext_data%atm%plcov_t(jc,jb,jt)            &
                & * ext_data%atm%laimax_lcc(lu_subs)
              ! surface area index
              IF (lterra_urb) THEN
-               ext_data%atm%sai_t(jc,jb,jt) = c_lnd * (1.0_wp - ext_data%atm%urb_isa_t(jc,jb,jt))                &
+               ext_data%atm%sai_t(jc,jb,jt) = turbdiff_config(jg)%c_lnd * (1.0_wp - ext_data%atm%urb_isa_t(jc,jb,jt)) &
                                             + ext_data%atm%urb_ai_t(jc,jb,jt) * ext_data%atm%urb_isa_t(jc,jb,jt)
              ELSE
-               ext_data%atm%sai_t(jc,jb,jt) = c_lnd
+               ext_data%atm%sai_t(jc,jb,jt) = turbdiff_config(jg)%c_lnd
              END IF
-             ext_data%atm%sai_t  (jc,jb,jt) = ext_data%atm%sai_t(jc,jb,jt) + ext_data%atm%tai_t  (jc,jb,jt)      &
-                                                                     + c_stm*ext_data%atm%plcov_t(jc,jb,jt)
+             ext_data%atm%sai_t  (jc,jb,jt) = ext_data%atm%sai_t(jc,jb,jt) + ext_data%atm%tai_t  (jc,jb,jt)           &
+                                                                     + turbdiff_config(jg)%c_stm*ext_data%atm%plcov_t(jc,jb,jt)
 
            END DO !ic
          END DO !jt
@@ -3718,5 +3771,49 @@ CONTAINS
 !$OMP END PARALLEL
 
   END SUBROUTINE seaice_albedo_coldstart
+
+
+  !! Reset SST warm layer and cold skin to 0 for new pure sea-ice points (no open water fraction)
+
+  SUBROUTINE reset_ocean_skin ( p_patch, list_seaice, fr_seaice, sst_warm_layer, sst_cold_skin )
+
+    TYPE(t_patch),            INTENT(IN)    :: p_patch
+    TYPE(t_idx_list_blocked), INTENT(IN)    :: list_seaice
+    REAL(wp),                 INTENT(IN)    :: fr_seaice     (:,:)    !< fraction sea ice
+    REAL(wp),                 INTENT(INOUT) :: sst_warm_layer(:,:)    !< SST warm layer increment
+    REAL(wp),                 INTENT(INOUT) :: sst_cold_skin (:,:)    !< SST cold skin  increment
+
+    ! Local scalars:
+    !
+    INTEGER :: jb, ic, jc
+    INTEGER :: rl_start, rl_end
+    INTEGER :: i_startblk, i_endblk
+
+    ! exclude nest boundary and halo points
+    rl_start = grf_bdywidth_c+1
+    rl_end   = min_rlcell_int
+
+    i_startblk = p_patch%cells%start_block(rl_start)
+    i_endblk   = p_patch%cells%end_block(rl_end)
+
+!$OMP PARALLEL
+!$OMP DO PRIVATE(jb,jc,ic), SCHEDULE(guided)
+    DO jb = i_startblk, i_endblk
+
+      ! select seaice points that are NOT in the sea list (fr_seaice almost 1.0)
+      DO ic = 1, list_seaice%ncount(jb)
+        jc = list_seaice%idx(ic,jb)
+        IF ( fr_seaice(jc,jb) > (1.0_wp-frsi_min) ) THEN
+          IF (itype_oskin_warm > 0) sst_warm_layer(jc,jb) = 0._wp
+          IF (itype_oskin_cold > 0) sst_cold_skin (jc,jb) = 0._wp
+        ENDIF
+      ENDDO
+
+    ENDDO
+!$OMP END DO
+!$OMP END PARALLEL
+
+  END SUBROUTINE reset_ocean_skin
+
 
 END MODULE mo_nwp_sfc_utils

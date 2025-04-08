@@ -25,10 +25,6 @@ USE mo_physical_constants, ONLY: &
     lhocp    => alvdcp  !, & !! lh_v/cp_d
 !    b3       => tmelt   , & !! melting temperature of ice/snow
 
-USE turb_data, ONLY : &
-    clc_diag            , & !! cloud cover at saturation in statistical cloud diagnostic
-    q_crit                  !! critical value for normalized over-saturation
-
 USE mo_physical_constants, ONLY: &
     uc1                 , & !! variables for computing the rate of cloud cover in
     ucl                     !! the unsaturated case
@@ -59,6 +55,7 @@ SUBROUTINE cloud_diag ( clc, clwc,                         &
                         iis, iie, ijs, ije, iks, ike,      &
                         ie , je , ke,                      &
                         t, qv, qc, pp, p0, rcld, ps,       &
+                        clc_diag, q_crit,      &
                         itype_wcld )
 ! Attention:
 ! This routine contains just a copy of an older version of the currently used code contained in
@@ -112,6 +109,9 @@ INTEGER (KIND=iintegers), INTENT (IN) :: &  ! dimensions and run indices
 ! Array arguments with intent(in):
 
 REAL (KIND=ireals), INTENT (IN)        :: & !
+  clc_diag,            & ! cloud cover at saturation in statistical cloud diagnostic
+  q_crit,              & ! critical value for normalized super-saturation
+
   t   (ie,je,ke ) ,    & ! temperature (main levels)
   qv  (ie,je,ke ) ,    & ! water vapour (")
   qc  (ie,je,ke ) ,    & ! cloud water  (")

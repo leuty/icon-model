@@ -1160,14 +1160,12 @@ SUBROUTINE cloudice2mom (            &
             ni_hom  = phi / R_im                                              ! ni Eq.9 KHL06
             ri_0    = 1. + 0.5 * sqrtkap * ren                                ! for Eq. 3 KHL06
             ri_hom  = (ri_0 * (1. + delta) - 1. ) / bcoeff(2)                 ! Eq. 3 KHL06 * REN = Eq.23 KHL06
-            mi_hom  = (4./3. * pi * rho_ice) * ni_hom * ri_hom**3
-            mi_hom  = MAX(mi_hom,zximin)
+            mi_hom  = (4./3. * pi * rho_ice) * ri_hom**3
+            mi_hom  = MIN(MAX(mi_hom,zximin),zximax)
 
             ! nucleation rate
             shomn = MIN(MAX(z1orhog*ni_hom, 0.d0),ni_hom_max) * zdtr  
-            shom  = mi_hom * shomn
-            shom  = MIN(shom, zsvmax)
-            shomn = shom / mi_hom
+            shom  = MIN(mi_hom*shomn, zsvmax)
 
           END IF
         END IF

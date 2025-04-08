@@ -446,6 +446,8 @@ cat > ${atmo_namelist} << EOF
  c_soil_urb                     = 0.5
  sstice_mode                    = 2  ! 1: constant SST; 2: with climatological SST increments
  itype_snowevap                 = 3
+ itype_oskin_warm               = 1  ! 1: ocean warm-layer
+ itype_oskin_cold               = 1  ! 1: ocean cold skin
 /
 &radiation_nml
  irad_o3			= 79

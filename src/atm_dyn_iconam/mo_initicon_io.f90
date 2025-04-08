@@ -58,8 +58,8 @@ MODULE mo_initicon_io
   USE mo_nwp_sfc_tiles,       ONLY: t_tileinfo_icon, trivial_tile_att
   USE mo_lnd_nwp_config,      ONLY: ntiles_total,  l2lay_rho_snow, &
     &                               ntiles_water, lmulti_snow, lsnowtile, &
-    &                               isub_lake, isub_water, llake, lprog_albsi, itype_trvg, &
-    &                               itype_snowevap, itype_canopy, nlev_soil
+    &                               isub_lake, isub_water, llake, itype_oskin_warm, lprog_albsi, itype_trvg, &
+    &                               itype_snowevap, itype_canopy, nlev_soil, itype_ahf
   USE mo_master_config,       ONLY: getModelBaseDir
   USE mo_nwp_sfc_interp,      ONLY: smi_to_wsoil
   USE mo_initicon_utils,      ONLY: allocate_extana_atm, allocate_extana_sfc, &
@@ -1754,6 +1754,9 @@ MODULE mo_initicon_io
             IF ( lprog_albsi ) THEN  ! prognostic sea-ice albedo
               CALL fetchSurface(params, 'alb_si', jg, wtr_prog%alb_si)
             ENDIF
+            IF ( itype_oskin_warm > 0 ) THEN  ! prognostic SST warm layer
+              CALL fetchSurface(params, 'sst_warm_layer', jg, lnd_diag%sst_warm_layer)
+            ENDIF
 
             !These two fields are required for the processing step below, AND they are NOT initialized before this SUBROUTINE IS called, so they are fetched as required.
             !This diverges from the code that I found which READ them conditionally.
@@ -1805,6 +1808,10 @@ MODULE mo_initicon_io
             IF (itype_snowevap == 3) THEN
               CALL fetchSurface(params, 'hsnow_max', jg, lnd_diag%hsnow_max)
               CALL fetchSurface(params, 'snow_age',  jg, lnd_diag%snow_age)
+            ENDIF
+
+            IF (itype_ahf >= 3) THEN
+              CALL fetchSurface(params, 't_2m_filt', jg, prm_diag(jg)%t_2m_filt)
             ENDIF
 
             IF (lmulti_snow) THEN
@@ -1859,6 +1866,9 @@ MODULE mo_initicon_io
 
 
             CALL fetchTiled3d(params, 't_so', jg, ntiles_total, lnd_prog%t_so_t)
+
+            ! fetch SST if available in FG
+            CALL fetchSurface(params, 't_seasfc', jg, lnd_diag%t_seasfc)
 
             ! Skipped in MODE_COMBINED and in MODE_COSMO (i.e. when starting from ICON/COSMO soil)
             ! Instead z0 is re-initialized (see mo_nwp_phy_init)

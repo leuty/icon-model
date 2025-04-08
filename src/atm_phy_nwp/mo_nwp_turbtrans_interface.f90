@@ -46,9 +46,8 @@ MODULE mo_nwp_turbtrans_interface
   USE mo_atm_phy_nwp_config,   ONLY: atm_phy_nwp_config, lcuda_graph_turb_tran
   USE mo_nonhydrostatic_config,ONLY: kstart_moist
   USE mo_advection_config,     ONLY: advection_config
-  USE turb_data,               ONLY: get_turbdiff_param, &
-                                     ltst2ml, ltst10ml, &
-                                     rsur_sher, imode_suradap, imode_trancnf, rat_can, c_lnd, imode_snowsmot
+  USE mo_turbdiff_config,      ONLY: turbdiff_config, t_turbdiff_config, &
+                                     ltst2ml, ltst10ml
   USE mo_initicon_config,      ONLY: icpl_da_sfcfric
   USE sfc_flake_data,          ONLY: h_Ice_min_flk, tpl_T_f
   USE turb_transfer,           ONLY: turbtran
@@ -66,7 +65,6 @@ MODULE mo_nwp_turbtrans_interface
   USE mo_run_config,           ONLY: timers_level
   USE mo_fortran_tools,        ONLY: set_acc_host_or_device
   USE mo_coupling_config,      ONLY: is_coupled_to_waves
-  USE mo_turbdiff_config,      ONLY: turbdiff_config
 
 #ifdef ICON_USE_CUDA_GRAPH
   USE mo_acc_device_management,ONLY: accGraph, accBeginCapture, accEndCapture, accGraphLaunch
@@ -80,6 +78,7 @@ MODULE mo_nwp_turbtrans_interface
 
   PUBLIC  ::  nwp_turbtrans
 
+  TYPE(t_turbdiff_config), POINTER :: tdc ! 'turbdiff' configuration state for a single patch (domain)
 
 #ifdef ICON_USE_CUDA_GRAPH
   TYPE(accGraph) :: graphs(max_dom*2)
@@ -211,6 +210,8 @@ SUBROUTINE nwp_turbtrans  ( tcall_turb_jg,                     & !>in
   ! domain
   jg = p_patch%id
 
+  tdc => turbdiff_config(jg)
+
 #ifdef ICON_USE_CUDA_GRAPH
   IF (lzacc .AND. lcuda_graph_turb_tran) THEN
     cur_graph_id = -1
@@ -269,15 +270,10 @@ SUBROUTINE nwp_turbtrans  ( tcall_turb_jg,                     & !>in
   i_startblk = p_patch%cells%start_block(rl_start)
   i_endblk   = p_patch%cells%end_block(rl_end)
 
-
-  IF ( ANY( (/icosmo/)==atm_phy_nwp_config(jg)%inwp_turb ) ) THEN
-     CALL get_turbdiff_param(jg)
-  ENDIF
-
   ! Scaling factor for SSO contribution to roughness length ("Erdmann Heise formula")
   fact_z0rough = 1.e-5_wp*ATAN(phy_params(jg)%mean_charlen/2250._wp)
 
-  ladsshr = (rsur_sher>0._wp) !treatment of additional surface-shear by NTCs or LLDCs active
+  ladsshr = (tdc%rsur_sher>0._wp) !treatment of additional surface-shear by NTCs or LLDCs active
 
 !$OMP PARALLEL
 !$OMP DO PRIVATE(jb,jt,jc,jk,ic,it,ik,ilist,i_startidx,i_endidx,i_count, &
@@ -357,8 +353,8 @@ SUBROUTINE nwp_turbtrans  ( tcall_turb_jg,                     & !>in
 
         !$ACC PARALLEL ASYNC(1) DEFAULT(PRESENT) IF(lzacc)
         !$ACC LOOP GANG VECTOR PRIVATE(jc, lc_class, z0_mod, z0_min, sai_min, fsn_flt, area_frac)
-        DO ic = 1, ext_data%atm%gp_count_t(jb,jt) !loop over all grid-points of current land (sub-)tile or over all not-tiled land-points
-           jc = ext_data%atm%idx_lst_t(ic,jb,jt)
+        DO ic = 1, ext_data%atm%gp_count_t(jb,jt) !loop over all grid-points of current land (sub-)tile 
+           jc = ext_data%atm%idx_lst_t(ic,jb,jt)  !  or over all not-tiled land-points
 
           sai_eff_t(ic,it) = ext_data%atm%sai_t(jc,jb,jt) !effective SAI equals current land-use SAI
 
@@ -374,19 +370,19 @@ SUBROUTINE nwp_turbtrans  ( tcall_turb_jg,                     & !>in
           prm_diag%gz0_t(jc,jb,jt) = grav*z0_mod
 
           ! Reduction of R-length (and SAI) due to the presence of snow:
-          IF (imode_snowsmot>0) THEN !any surface smoothing by snow required
-            IF (imode_snowsmot>=2) THEN !extentension according to M.R.
-              IF (imode_snowsmot==2) THEN !full smoothing for z0 and SAI:
-                sai_min = c_lnd !only standard SAI of a non-vegetated surface (full smoothing of SAI)
+          IF (tdc%imode_snowsmot>0) THEN !any surface smoothing by snow required
+            IF (tdc%imode_snowsmot>=2) THEN !extentension according to M.R.
+              IF (tdc%imode_snowsmot==2) THEN !full smoothing for z0 and SAI:
+                sai_min = tdc%c_lnd !only standard SAI of a non-vegetated surface (full smoothing of SAI)
               ELSE !dynamic surface smoothing by snow of both z0 and SAI dependent on snow- and roughness height
                 !smoothing factor of the surface due to the snow-cover:
-                fsn_flt = lnd_diag%h_snow_t(jc,jb,jt)/( rat_can*sai_eff_t(ic,it)*z0_mod + lnd_diag%h_snow_t(jc,jb,jt) )
+                fsn_flt = lnd_diag%h_snow_t(jc,jb,jt)/( tdc%rat_can*sai_eff_t(ic,it)*z0_mod + lnd_diag%h_snow_t(jc,jb,jt) )
                 !estimated z0-value for a fully snow-cov. surface approaching z0_mini for large snow-depth:
                 z0_min = MAX( 0._wp, z0_mod - z0_min) !z0_luse - z0_mini
                 z0_min = z0_mod - z0_min*fsn_flt      !effective z0-value for a fully snow-covered surface
 
                 !estimated sai-value for a fully snow-cov. surface approaching sai_mini for large snow-depth:
-                sai_min = MAX( 0._wp, sai_eff_t(ic,it) - c_lnd ) !sai_luse - sai_mini
+                sai_min = MAX( 0._wp, sai_eff_t(ic,it) - tdc%c_lnd ) !sai_luse - sai_mini
                 sai_min = sai_eff_t(ic,it) - sai_min*fsn_flt     !effective SAI for a fully snow-cov. surface
               END IF
               sai_eff_t(ic,it) = (1._wp-lnd_diag%snowfrac_t(jc,jb,jt))*sai_eff_t(ic,it) + & !SAI including
@@ -400,8 +396,6 @@ SUBROUTINE nwp_turbtrans  ( tcall_turb_jg,                     & !>in
           ! Further modification of tile-specific R-length as a contribution by Adaptive Parameter Tuning (APT):
           IF (icpl_da_sfcfric >= 1) THEN !apply tuning factor for surface friction derived from DA
             z0_mod = MIN( 1.5_wp, prm_diag%sfcfric_fac(jc,jb)*z0_mod )
-
-            ! thus it is only applied to 'gz0_eff_t' and not to '%gz0_t'!
           END IF
 
           ! Further modification of tile-specific R-length as a contribution by SSO:
@@ -502,6 +496,7 @@ SUBROUTINE nwp_turbtrans  ( tcall_turb_jg,                     & !>in
       CALL finish( TRIM(routine),'set_scm_bnd is not supported with OpenACC.')
 #endif
       CALL set_scm_bnd( nvec=nproma, ivstart=i_startidx, ivend=i_endidx,   &
+          & vel_min      = tdc%vel_min,                                    & !in
           & u_s          = p_diag%u(:,nlev,jb),                            & !in
           & v_s          = p_diag%v(:,nlev,jb),                            & !in
           & th_b         = p_diag%temp(:,nlev,jb)/p_prog%exner(:,nlev,jb), & !in
@@ -593,8 +588,10 @@ SUBROUTINE nwp_turbtrans  ( tcall_turb_jg,                     & !>in
         ! turbtran
         CALL turbtran (               & ! only surface-layer turbulence
 !
-          &  iini=turbdiff_config(jg)%iinit, & ! no initialization ("iinit=-1: first time step
-                                               !                    "iinit= 0: any later time step)
+          &  tdc=tdc,                 &  !in (current config-state for turbulence)
+!
+          &  iini=tdc%iinit,          & ! no initialization ("iinit=-1: first time step
+                                        !                    "iinit= 0: any later time step)
           &  ltkeinp=.FALSE.,         & !
           &  igz0inp= 0     ,         &
           &  lsrflux=.TRUE. ,         & !
@@ -606,6 +603,7 @@ SUBROUTINE nwp_turbtrans  ( tcall_turb_jg,                     & !>in
           &  nprv=nzprv, ntur=1, ntim=1,                                               & !in ('tke' without time-dimension)
           &  nvec=nproma, ke=2,    ke1=3,      kcm=nlevcm, iblock=jb,                  & !in
           &  ivstart=i_startidx, ivend=i_endidx,                                       & !in
+!
 !
           &  l_pat=ext_data%atm%l_pat(:,jb),                                           & !in
           &  l_hori=l_hori,                                                            & !in
@@ -669,13 +667,14 @@ SUBROUTINE nwp_turbtrans  ( tcall_turb_jg,                     & !>in
           prm_diag%lhfl_s_t(jc,jb,1) = prm_diag%qhfl_s_t(jc,jb,1) &
                                       *MERGE( lh_s, & !latent heat-flux with respect to ice surface
                                               lh_v, & !                                 water
-                                              l_sice(jc) ) !a frozen surface of a lake or sea-ice point
+                                              l_sice(jc) ) !a frozen surface of a lake or sea-ice point   
           !Notes:
           !So far, for a frozen land-surface, always 'lh_v' is used. However, '%qhfl_s_t' and '%lhfl_s_t',
           ! as well as '%shfl_s_t', are going to be overwritten for land-points by 'terra';
           ! hence, this calculation only matters for non-land points (lakes, sea-water or sea-ice).
           !Further, for atmospheric vertical diffusion, only the grid-point variables of the fluxes
-          ! '%shfl_s, %qhfl_s, umfl_s, vmfl_s' are used, which are loaded by the values for tile "1" in 'mo_nwp_sfc_interface'.
+          ! '%shfl_s, %qhfl_s, umfl_s, vmfl_s' are used, which are loaded by the values for tile "1" 
+          ! in 'mo_nwp_sfc_interface'.
           !While, at land points, '%lhfl_s' (as well as '%lhfl_s_t') is only used for model-output,
           ! '%lhfl_s_t' (as well as '%shfl_t') is used as input for the lake- and seaice-schemes.
           IF (ext_data%atm%fr_land(jc,jb)<=0.5_wp) THEN !for ice- or water-surfaces only
@@ -836,7 +835,8 @@ SUBROUTINE nwp_turbtrans  ( tcall_turb_jg,                     & !>in
             tkvh_t (ic,2)       = prm_diag%tkvh     (jc,nlev,jb)
             tkvh_t (ic,3)       = prm_diag%tkvh_s_t (jc,jb,jt)     ! tile-specific for lowest level
             tkr_t  (ic)         = prm_diag%tkr_t    (jc,jb,jt)     ! used for time-step iteration (if "imode_trancnf>=4")
-            IF (ladsshr .OR. (imode_trancnf.LT.4 .AND. imode_suradap>=1)) THEN !surface-layer adaptations to addit. shear at "k=ke" required
+            IF (ladsshr .OR. (tdc%imode_trancnf.LT.4 .AND. tdc%imode_suradap>=1)) THEN 
+               !surface-layer adaptations to additonal shear at "k=ke" required:
               tfm_t(ic,jt)      = prm_diag%tfm      (jc,jb)        ! drag-related reduct.-fact. for 'tkvm(:,ke)'  due to LLDCs
               tfh_t(ic,jt)      = prm_diag%tfh      (jc,jb)        ! addit. shear-forcing at "k=ke" due to the impact of LLDCs
             END IF
@@ -913,8 +913,10 @@ SUBROUTINE nwp_turbtrans  ( tcall_turb_jg,                     & !>in
           ! turbtran
           CALL turbtran (               & ! only surface-layer turbulence
 !
-            &  iini=turbdiff_config(jg)%iinit, & ! no initialization ("iinit=-1: first time step
-                                                 !                    "iinit= 0: any later time step)
+            &  tdc=tdc,                 & !in (current config-state for turbulence)
+!
+            &  iini=tdc%iinit,          & ! no initialization ("iinit=-1: first time step
+                                          !                    "iinit= 0: any later time step)
             &  ltkeinp=.FALSE.,         & !
             &  igz0inp=igz0inp_loc,     & !
             &  lsrflux=.TRUE. ,         & !
@@ -1222,7 +1224,8 @@ SUBROUTINE nwp_turbtrans  ( tcall_turb_jg,                     & !>in
 !-------------------------------------------------------------------------
 
       ! turbulent diffusion coefficients at the surface
-      CALL parturs( zsurf=p_metrics%z_ifc(:,nlevp1,jb), z1=p_metrics%z_mc(:,nlev,jb),   & !in
+      CALL parturs( tdc=tdc,                                                            & !in
+        &           zsurf=p_metrics%z_ifc(:,nlevp1,jb), z1=p_metrics%z_mc(:,nlev,jb),   & !in
         &           u1=p_diag%u(:,nlev,jb), v1=p_diag%v(:,nlev,jb),                     & !in
         &           t1=p_diag%temp(:,nlev,jb), qv1=p_prog_rcf%tracer(:,nlev,jb,iqv),    & !in
         &           t_g=lnd_prog_new%t_g(:,jb), qv_s=lnd_diag%qv_s(:,jb),               & !in
@@ -1241,7 +1244,8 @@ SUBROUTINE nwp_turbtrans  ( tcall_turb_jg,                     & !>in
       !DR Shouldn't we simply pass qhfl_s ?
       !
       ! diagnose 2 m temperature, humidity, 10 m wind
-      CALL nearsfc( t=p_diag%temp(:,:,jb), qv=p_prog_rcf%tracer(:,:,jb,iqv),            & !in
+      CALL nearsfc( tdc=tdc,                                                            & !in
+        &           t=p_diag%temp(:,:,jb), qv=p_prog_rcf%tracer(:,:,jb,iqv),            & !in
         &           u=p_diag%u(:,:,jb),    v=p_diag%v(:,:,jb),                          & !in
         &           zf=p_metrics%z_mc(:,:,jb), ps=p_diag%pres_ifc(:,nlevp1,jb),         & !in
         &           t_g=lnd_prog_new%t_g(:,jb),                                         & !in
@@ -1323,7 +1327,8 @@ SUBROUTINE nwp_turbtrans  ( tcall_turb_jg,                     & !>in
 !$OMP END DO NOWAIT
 !$OMP END PARALLEL
 
-  IF (turbdiff_config(jg)%iinit==-1) turbdiff_config(jg)%iinit=0 !first time-step has passed
+! IF (turbdiff_config(jg)%iinit==-1) turbdiff_config(jg)%iinit=0 !first time-step has passed
+  IF (tdc%iinit==-1) tdc%iinit=0 !first time-step has passed
 
   !$ACC END DATA
 

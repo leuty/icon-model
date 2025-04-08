@@ -89,3 +89,7 @@ Note that you will need to register the hooks for each fresh clone of the reposi
     ```
 
 > **Note:** Tagging issues shows activity and prevents them from becoming `Stale`. Writing `Closes #<issue-ID>` in a merge request description automatically closes the issue when the request is merged.
+
+### Documentation
+
+The [ICON documentation](https://docs.icon-model.org) is automatically generated from the content of the subdirectory `doc/www/`. Please consider extending and updating the documentation with each merge request.

@@ -866,8 +866,8 @@ ICON_COMPONENT1_VH_procs=$((num_restart_procs + num_io_procs + num_prefetch_proc
 # ----------------------------------------------------------------------
 
 if [[ "$builder" = "rcl_nec" ]] && [[ "$with_openmp" = "no" ]]; then
-  LOWER_MEM_LIMIT=36650
-  UPPER_MEM_LIMIT=36915
+  LOWER_MEM_LIMIT=36550
+  UPPER_MEM_LIMIT=36850
   set -o pipefail
   # Check the memory consumption on NEC
   $START_MODEL 3>&1 1>&2 2>&3 | $ICONDIR/run/checksuite.nwp/NEC.mem_check.py --lower_mem_limit "$LOWER_MEM_LIMIT" --upper_mem_limit "$UPPER_MEM_LIMIT" 3>&1 1>&2 2>&3

@@ -99,34 +99,40 @@ Zaengl et al. 2015
 :::{glossary}
 
 Brüggemann et al. 2024
-   Brüggemann, N., and Coauthors, 2024: Parameterized Internal Wave Mixing in Three Ocean General Circulation Models. Journal of Advances in Modeling Earth Systems, 16, e2023MS003768, <https://doi.org/10.1029/2023MS003768>.
+   Brüggemann, N., and Coauthors (2024): Parameterized Internal Wave Mixing in Three Ocean General Circulation Models. Journal of Advances in Modeling Earth Systems, 16, e2023MS003768, <https://doi.org/10.1029/2023MS003768>.
 
 Danilov et al. 2015
-  Danilov, S., Q. Wang, R. Timmermann, N. Iakovlev, D. Sidorenko, M. Kimmritz, T. Jung, and J. Schröter, 2015: Finite-Element Sea Ice Model (FESIM), version 2. Geoscientific Model Development, 8, 1747–1761, <https://doi.org/10.5194/gmd-8-1747-2015>.
+  Danilov, S., Q. Wang, R. Timmermann, N. Iakovlev, D. Sidorenko, M. Kimmritz, T. Jung, and J. Schröter (2015): Finite-Element Sea Ice Model (FESIM), version 2. Geoscientific Model Development, 8, 1747-1761, <https://doi.org/10.5194/gmd-8-1747-2015>.
 
 Gaspar et al. 1990
-  Gaspar, P., Y. Grégoris, and J.-M. Lefevre, 1990: A simple eddy kinetic energy model for simulations of the oceanic vertical mixing: Tests at station Papa and long-term upper ocean study site. J. Geophys. Res., 95, 16179–16193.
+  Gaspar, P., Y. Grégoris, and J.-M. Lefevre (1990): A simple eddy kinetic energy model for simulations of the oceanic vertical mixing: Tests at station Papa and long-term upper ocean study site. J. Geophys. Res., 95, 16179-16193.
 
 Korn 2018
-  Korn, P., 2018: A structure-preserving discretization of ocean parametrizations on unstructured grids. Ocean Modelling, 132, 73–90.
+  Korn, P. (2018): A structure-preserving discretization of ocean parametrizations on unstructured grids. Ocean Modelling, 132, 73-90.
 
 Korn et al. 2022
-  Korn, P., and Coauthors, 2022: ICON-O: The Ocean Component of the ICON Earth System Model–Global Simulation Characteristics and Local Telescoping Capability. J Adv Model Earth Syst, 14, e2021MS002952, <https://doi.org/10.1029/2021MS002952>.
+  Korn, P., and Coauthors (2022): ICON-O: The Ocean Component of the ICON Earth System Model-Global Simulation Characteristics and Local Telescoping Capability. J Adv Model Earth Syst, 14, e2021MS002952, <https://doi.org/10.1029/2021MS002952>.
 
 Ilyina et al. 2013
-  Ilyina, T., K. D. Six, J. Segschneider, E. Maier-Reimer, H. Li, and I. Núñez-Riboni, 2013: Global ocean biogeochemistry model HAMOCC: Model architecture and performance as component of the MPI-Earth system model in different CMIP5 experimental realizations. Journal of Advances in Modeling Earth Systems, 5, 287–315, <https://doi.org/10.1029/2012MS000178>.
+  Ilyina, T., K. D. Six, J. Segschneider, E. Maier-Reimer, H. Li, and I. Núñez-Riboni (2013): Global ocean biogeochemistry model HAMOCC: Model architecture and performance as component of the MPI-Earth system model in different CMIP5 experimental realizations. Journal of Advances in Modeling Earth Systems, 5, 287-315, <https://doi.org/10.1029/2012MS000178>.
 
 Mehlmann and Korn 2021
-  Mehlmann, C., and P. Korn, 2021: Sea-ice dynamics on triangular grids. Journal of Computational Physics, 428, 110086, <https://doi.org/10.1016/j.jcp.2020.110086>.
+  Mehlmann, C., and P. Korn (2021): Sea-ice dynamics on triangular grids. Journal of Computational Physics, 428, 110086, <https://doi.org/10.1016/j.jcp.2020.110086>.
 
 Olbers and Eden 2013
-  Olbers, D., and C. Eden, 2013: A Global Model for the Diapycnal Diffusivity Induced by Internal Gravity Waves. Journal of Physical Oceanography, 43, 1759–1779, <https://doi.org/10.1175/JPO-D-12-0207.1>.
+  Olbers, D., and C. Eden (2013): A Global Model for the Diapycnal Diffusivity Induced by Internal Gravity Waves. Journal of Physical Oceanography, 43, 1759-1779, <https://doi.org/10.1175/JPO-D-12-0207.1>.
 
 Semtner 1976
-  Semtner, A. J., 1976: A Model for the Thermodynamic Growth of Sea Ice in Numerical Investigations of Climate. Journal of Physical Oceanography, 6, 379–389, <https://doi.org/10.1175/1520-0485(1976)006<0379:AMFTTG>2.0.CO;2>.
+  Semtner, A. J. (1976): A Model for the Thermodynamic Growth of Sea Ice in Numerical Investigations of Climate. Journal of Physical Oceanography, 6, 379-389, <https://doi.org/10.1175/1520-0485(1976)006<0379:AMFTTG>2.0.CO;2>.
 
 Six and Maier-Reimer 1996
-  Six, K. D., and E. Maier-Reimer, 1996: Effects of plankton dynamics on seasonal carbon fluxes in an ocean general circulation model. Global Biogeochemical Cycles, 10, 559–583, <https://doi.org/10.1029/96GB02561>.
+  Six, K. D., and E. Maier-Reimer (1996): Effects of plankton dynamics on seasonal carbon fluxes in an ocean general circulation model. Global Biogeochemical Cycles, 10, 559-583, <https://doi.org/10.1029/96GB02561>.
+
+Takaya, Bidlot, Beljaars and Janssen 2010
+  Takaya, Y., Bidlot, J. R., Beljaars, A., & Janssen, P. A. E. M. (2010): Improved modeling of sea surface temperature diurnal cycle and its impact on coupled simulations. Journal of Advances in Modeling Earth Systems, 2(1).
+
+Zeng and Beljaars 2005
+  Zeng, X., & Beljaars, A. (2005): A prognostic scheme of sea surface skin temperature for modeling and data assimilation. Geophysical Research Letters, 32(14).
 :::
 
 (ref_land_literature)=

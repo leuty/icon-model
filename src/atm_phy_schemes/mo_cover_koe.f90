@@ -76,6 +76,8 @@ MODULE mo_cover_koe
     INTEGER(KIND=i4)        ::     inwp_cpl_re   ! coupling reff (for qs altering qi)
     INTEGER(KIND=i4)        ::     inwp_reff     ! reff option (for qs altering qi)
     REAL   (KIND=wp)        ::     tune_box_liq_sfc_fac ! tuning factor for near-surface reduction of liquid box width
+    REAL   (KIND=wp)        ::     clc_diag      ! cloud cover at saturation
+    REAL   (KIND=wp)        ::     q_crit        ! critical value for normalized super-saturation
   END TYPE t_cover_koe_config
 
 !-------------------------------------------------------------------------
@@ -562,6 +564,8 @@ CASE( 3 )
     t_g        ,    & ! weighted surface temperature                  (  K  )
     cc_turb    ,    & ! OUT: subgrid-scale stratiform cloud cover     (  1  )
     cc_conv    ,    & ! OUT: cloud cover due to convection            (  1  )
+    cover_koe_config%clc_diag, & ! IN: cloud cover at saturation in statistical cloud diagnostic
+    cover_koe_config%q_crit  , & ! IN: critical value for normalized super-saturation
     icldm_rad  ,    & ! mode of cloud representation in radiation parametr.
     itype_wcld ,    & ! type of water cloud diagnosis
     lprog_qi   ,    & ! if .TRUE., running with cloud ice
@@ -590,6 +594,7 @@ CASE( 4 )
                     kidia, kfdia, 1, 1, kstart, klev, &
                     klon , 1 , klev,                  &
                     tt, qv, qc, pp, p0, rcld, ps,     &
+                    cover_koe_config%clc_diag, cover_koe_config%q_crit, &
                     itype_wcld )
 
   qi_tot     = 0.0_wp

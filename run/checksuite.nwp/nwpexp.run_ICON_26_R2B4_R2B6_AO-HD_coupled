@@ -768,6 +768,8 @@ cat > ${atm_namelist} << EOF
  lsnowtile               = .true.
  lseaice                 = .true.
  llake                   = .true.
+ itype_oskin_warm        = 1
+ itype_oskin_cold        = 1
  itype_lndtbl            = 4
  itype_evsl              = 4
  itype_trvg              = 3

@@ -348,6 +348,7 @@ MODULE mo_nwp_phy_types
       tprn(:,:,:),         & !! turbulent Prandtl-number                        --   
       t_2m(:,:)       ,    & !! temperature in 2m                             (  K  )
       t_2m_land(:,:)  ,    & !! temperature in 2m (land tiles only)           (  K  )
+      t_2m_filt(:,:)  ,    & !! time-filtered T2M (used for TERRA-URB)        (  K  )
       tmax_2m(:,:)    ,    & !! maximum temperature in 2m (for specified timerange) ( K )
       tmin_2m(:,:)    ,    & !! minimum temperature in 2m (for specified timerange) ( K )
       t_tilemax_inst_2m(:,:), & !! instantaneous 2m temperature; maximum over tiles (  K  )

@@ -166,56 +166,25 @@ USE mo_physical_constants, ONLY : &
     lh_v     => alv,      & ! evaporation heat
     lhocp    => alvdcp,   & ! lh_v / cp_d
     con_m,                & ! kinematic vsicosity of dry air (m2/s)
-    con_h,                & ! scalar conductivity of dry air (m2/s)
-    grav                    ! acceleration due to gravity
+con_h,                & ! scalar conductivity of dry air (m2/s)
+grav                    ! acceleration due to gravity
 
 !-------------------------------------------------------------------------------
 ! From Flake model
 !-------------------------------------------------------------------------------
 
 USE sfc_flake_data, ONLY: &
-    h_Ice_min_flk      ! Minimum ice thickness [m]
+h_Ice_min_flk      ! Minimum ice thickness [m]
 
 !-------------------------------------------------------------------------------
 ! Turbulence data (should be the same in ICON and COSMO)
 !-------------------------------------------------------------------------------
 
-USE turb_data, ONLY : &
+USE mo_turbdiff_config, ONLY :          &
+    t_turbdiff_config, &
 
 ! Numerical constants and parameters:
 ! -----------------------------------
-
-    tkhmin,       & ! minimal diffusion coefficients for heat
-    tkmmin,       & ! minimal diffusion coefficients for momentum
-    tkhmin_strat, & ! additional minimal diffusion coefficients for heat for stratosphere
-    tkmmin_strat, & ! additional minimal diffusion coefficients for momentum for stratosphere
-    frcsmot,      & ! vertical smoothing factor for TKE forcing
-    imode_frcsmot,& ! mode for TKE forcing
-    epsi,         & ! relative limit of accuracy for comparison of numbers
-    it_end,       & ! number of initialization iterations (>=0)
-
-! Parameters describing physical properties of the lower boundary 
-! of the atmosphere:
-!---------------------------------------------------------------
-
-    pat_len,      & ! effective global length scale of subscale patterns over land [m]
-    len_min,      & ! minimal turbulent length scale [m]
-    vel_min,      & ! minimal velocity scale [m/s]
-    akt,          & ! von Karman-constant
-!
-    d_h=>d_heat,  & ! length-scale factor for dissipation of turb. scalar variances
-    d_m=>d_mom,   & ! length-scale factor for dissipation of turb. momentum variances
-!
-    c_diff,       & ! length-scale factor for turbulent diffusion of TKE
-    a_hshr,       & ! length-scale factor of separated horizontal shear circulations
-    rsur_sher,    & ! scaling factor (out of [0, 1]) representing the considered fraction of additional shear-forcing by 
-                    !  Non-Turbulent subgrid Circulations (NTCs) or via Lower Limits of Diffusion-Coefficients (LLDCs)
-                    !  being transmitted from level "P" (k=ke) to level "0" (k=ke1): top of R-layer by Land-Use (LU)
-                    ! Notice:
-                    ! Through "rsur_sher>0", a related amplification of shear-forcing at the surface is active.
-                    ! The LLDC-part is only included, if it is considered to substitue missing shear-forcing,
-                    !  which is expressed by "imode_tkemini>=2"!
-
     ! derived parameters calculated in 'turb_setup'
     tet_g, rim, b_m, b_h, sm_0, sh_0,   &
     a_3, a_5 ,a_6,                      &
@@ -224,96 +193,8 @@ USE turb_data, ONLY : &
     ! used derived types
     modvar, turvar, varprf, & !
 
-! Switches controlling the turbulence model, turbulent transfer and diffusion:
-! ----------------------------------------------------------------------------
-
-    ltkecon,      & ! consider convective buoyancy production in TKE-equation
-    ltkeshs,      & ! consider separ. horiz. shear production in TKE-equation
-    loutshs,      & ! consider separ. horiz. shear production of TKE for output
-    ltkesso,      & ! consider mechanical SSO-wake production in TKE-equation
-    loutsso,      & ! consider mechanical SSO-wake production of TKE for output
-    ltkenst,      & ! consider produc. by near-surf. thermals in TKE-equation
-    loutnst,      & ! consider produc. by near-surf. thermals of TKE for output
-    loutbms,      & ! onsider TKE-production by turbulent buoyancy, total mechanical shear
-                    !  or grid-scale mechanical shear for additional output
-    ltmpcor,      & ! consideration minor turbulent sources in the enthalpy budget
-    lcirflx,      & ! consideration of non-turbulent fluxes related to near-surface circulations
-    lcpfluc,      & ! consideration of fluctuations of the heat capacity of air
-    lexpcor,      & ! explicit warm-cloud correct. of implicitly calculated turbul. diff.
     ldynimp,      & ! dynamical calculation of implicit weights
-    lprecnd         ! preconditioning of tridiagonal matrix
-
-USE turb_data, ONLY : &
-
-! Selectors controlling the turbulence model, turbulent transfer and diffusion:
-! ----------------------------------------------------------------------------
-!
-    imode_turb,   & ! mode of TKE-equation in turbulence scheme                  (compare 'imode_tran')
-                    !  0: diagnostic equation
-                    !  1: prognostic equation (default)
-                    !  2: prognostic equation (implicitly positive definit)
-    icldm_turb,   & ! mode of water cloud representation in turbulence parametr. (compare 'icldm_tran')
-                    ! -1: ignoring cloud water completely (pure dry scheme)
-                    !  0: no clouds considered (all cloud water is evaporated)
-                    !  1: only grid scale condensation possible
-                    !  2: also sub grid (turbulent) condensation considered
-    itype_sher,   & ! type of shear production for TKE
-                    ! 0: only vertical shear of horizontal wind
-                    ! 1: previous plus horizontal shear correction
-                    ! 2: previous plus shear from vertical velocity
-    ilow_def_cond,& !type of the default condition at the lower boundary
-                    ! 1: zero surface gradient 
-                    ! 2: zero surface value
-
-    imode_pat_len,& ! mode of determining a length scale of surface patterns used for the "circulation-term" 
-                    ! 1: employing the constant value 'pat_len' only
-                    !    - raw "circulation term" considered as to be due to thermal surface-patterns.
-                    ! 2: using the standard deviat. of SGS orography as a lower limit 
-                    !    - raw "circulation term" considered as to be due to thermal SSO effect,
-
-    !Note:
-    !The theoretical background of the "circulation term" has meanwhile been fundamentally revised.
-    !Accordingly, it is going to be substituted by two complementary approaches:
-    !i) a thermal SSO parameterization and ii) a new "circulation term" due to thermal surface patterns.
-    !Hence in the following, the still active raw parameterization is referred to as raw "circulation term".
-
-    imode_shshear,& ! mode of calculat. the separated horizontal shear mode related to 'ltkeshs', 'a_hshr')
-                    ! 0: with a constant length scale and based on 3D-shear and incompressibility
-                    ! 1: with a constant length scale 
-                    ! 2: with a Ri-dependent length sclale correction
-    imode_tkesso,&  ! mode of calculat. the SSO source term for TKE production
-                    ! 1: original implementation
-                    ! 2: with a Ri-dependent reduction factor for Ri>1
-                    ! 3: as "2", but additional reduction for mesh sizes < 2 km
-    imode_tkvmini,& ! mode of calculating the minimal turbulent diff. coeffecients
-                    ! 1: with a constant value
-                    ! 2: with a stability dependent correction
-    imode_trancnf,& ! mode of configuring the transfer-scheme 
-                    ! 2: 1-st ConSAT: start. with estim. Ustar, without a laminar correct. for prof.-funct.;
-                    !    interpol. Tet_l onto zero-level; calcul. Tet_l-gradients directly; 
-                    !    without an upper bound for TKE-forcing; with transmit. skin-layer depth to turbul.
-                    ! 3: 2-nd ConSAT: as "2", but with a hyperbolic interpol. of profile function
-                    !    for stable stratification
-                    ! 4: 3-rd ConSAT: as "3", but without using an upper interpolation node
-    imode_suradap,& ! mode of adapting the Diff. Coeff. (DC) at Half-Level (HL) "P" (k=ke) or "0" (k=ke1) as input
-                    ! of the surface-layer profile-function (between levels "0" and "P")
-                    ! 0: no adaptations at all
-                    ! 1: removing the artific. drag  contribut. by Lower Limits of DCs (LLDCs) for momentum at "P"-level
-                    ! 2: "1" and including not transmitted shear contributions by LLDCs and NTCs to DCs at level "0"
-    imode_tkediff,& ! mode of implicit TKE-Diffusion (related to 'c_diff')
-                    ! 1: in terms of q=SQRT(2*TKE))
-                    ! 2: in terms of TKE=0.5*q**2
-    imode_adshear,& ! mode of considering additional shear by scale interaction 
-                    ! (realt. to 'ltkesso', 'ltkeshs', 'ltkecon')
-                    ! 1: not  considered for stability functions
-                    ! 2: also considered for stability functions
-    imode_tkemini   ! mode of adapting q=SQRT(2*TKE) and the TMod. to Lower Limits for Diff. Coeffs. (LLDCs)
-                    ! 1: LLDC treated as corrections of stability length without any further adaptation
-                    ! 2: TKE adapted to that part of LLDC representing so far missing shear forcing, while the
-                    !     assumed part of LLDC representing missing drag-forces has no feedback to the TMod.
-                    ! 3: Tuned variant of "2" that is suitable for operational forecasts
-
-USE turb_data, ONLY : &
+    lprecnd,      & ! preconditioning of tridiagonal matrix
 
     ! numbers and indices
 
@@ -339,9 +220,6 @@ USE turb_data, ONLY : &
 
 !-------------------------------------------------------------------------------
 ! Control parameters for the run
-!-------------------------------------------------------------------------------
-
-! ICON data have to be declared for these variables, which is done later on
 !-------------------------------------------------------------------------------
 
 USE turb_utilities,          ONLY:   &
@@ -399,6 +277,8 @@ CONTAINS
 
 SUBROUTINE turbdiff ( &
 !
+          tdc,                                                       &
+!
           iini, ltkeinp, l3dturb,                                    &
                 lrunsso, lruncnv, lrunscm,                           &
                 ldoexpcor, ldocirflx,                                &
@@ -407,14 +287,13 @@ SUBROUTINE turbdiff ( &
 !
           nvec, ke, ke1, kcm, iblock, ivstart, ivend,                &
 !
+!
           l_hori, hhl, dp0, trop_mask, innertrop_mask,               &
 !
           gz0, l_pat, c_big, c_sml, r_air,                           &
 !
           t_g, qv_s, ps,                                             &
           u, v, w, t, qv, qc, prs, rhoh, rhon, epr,                  &
-!
-          impl_weight,                                               &
 !
           tvm, tvh, tfm, tfh, tfv, tkred_sfc, tkred_sfc_h,           &
           tke, tkvm, tkvh, tprn, rcld, tkhm, tkhh,                   &
@@ -553,6 +432,8 @@ SUBROUTINE turbdiff ( &
 ! Parameters controlling the call of 'turbtran':
 ! ----------------------------------------------
 
+TYPE(t_turbdiff_config), POINTER, INTENT(IN) :: tdc ! 'turbdiff' configuration state for a single patch (domain)
+
 LOGICAL, INTENT(IN) :: &
   l3dturb,      & !a model run with 3D-(turbulent)-diffusion
 
@@ -655,10 +536,6 @@ REAL (KIND=wp), DIMENSION(:,:), TARGET, INTENT(OUT) :: &
 
 REAL (KIND=wp), DIMENSION(:,:), OPTIONAL, INTENT(IN) :: &
   w               ! vertical wind speed (defined at half levels)  ( m/s )
-
-REAL (KIND=wp), DIMENSION(:), INTENT(IN) :: &
-  impl_weight     ! profile of precalculated implicit weights 
-
 
 ! Diagnostic surface variable of the turbulence model:
 ! -----------------------------------------------------
@@ -948,7 +825,7 @@ LOGICAL :: lzacc
  ndiff=nmvar      !number of 1-st order variables used in the turbulence model
                   !without additional tracer: these are treated in vertdiff
 
-! According to module 'turb_data' it holds:
+! According to module 'mo_turbdiff_config' it holds:
 !      nmvar = nscal+nvel: number of model variables being dynamically active for turbulence
 !              nvel  = 2    active horizontal wind components:  'u_m', 'v_m'
 !                           u_m = 1:     zonal      wind
@@ -965,7 +842,8 @@ LOGICAL :: lzacc
 
  kem=ke !lowest model-layer, SUB 'turbdiff' is applied to
 
-  ! Begin of pointer assignments
+  ! Pointer assignments:
+
   IF (PRESENT(edr)) THEN
      ediss => edr
   ELSE
@@ -1030,10 +908,10 @@ LOGICAL :: lzacc
   END IF
 
 !-------------------------------------------------------------------------------
-  CALL turb_setup (i_st=ivstart, i_en=ivend, k_st=1, k_en=ke1, &
+  CALL turb_setup (tdc=tdc, i_st=ivstart, i_en=ivend, k_st=1, k_en=ke1, &
                    iini=iini, dt_tke=dt_tke, nprv=nprv, l_hori=l_hori, &
                    ps=ps, t_g=t_g, qv_s=qv_s, qc_a=qc(:,ke), &
-                   lini=lini, it_start=it_start, nvor=nvor, fr_tke=fr_tke,  &
+                   lini=lini, it_start=it_start, nvor=nvor, fr_tke=fr_tke, &
                    l_scal=l_scal, fc_min=fc_min, &
                    prss=prss(:,ke1), tmps=tmps(:,ke1), vaps=vaps(:,ke1), liqs=liqs(:,ke1), rcld=rcld, &
                    lacc=lzacc)
@@ -1053,41 +931,41 @@ my_thrd_id = omp_get_thread_num()
 !------------------------------------------------------------------------------------
 
   !Additional TKE-sources due to following processes can be calculated:
-  lcircterm=(pat_len > z0) !according to raw "circulation term"
+  lcircterm=(tdc%pat_len > z0) !according to raw "circulation term"
 
-  ltkeshshr=(a_hshr > z0)  !separ. horiz. shear-circ.
+  ltkeshshr=(tdc%a_hshr > z0)  !separ. horiz. shear-circ.
 
                            !ordinary mech. SSO-circ.:
   ltkemcsso=(lrunsso .AND. PRESENT(ut_sso) .AND. PRESENT(vt_sso))
             !SSO-scheme is running and related tendencies are present
 
   !Output required for addit. TKE-sources (STIC-terms) due to shear by NTCs related to:
-  loutthcrc=(lcircterm .AND. loutnst .AND. PRESENT(tket_nstc)) !raw "circulation-term"
-  loutshshr=(ltkeshshr .AND. loutshs .AND. PRESENT(tket_hshr)) !separated horiz. shear production
-  loutmcsso=(ltkemcsso .AND. loutsso .AND. PRESENT(tket_sso))  !mechanical SSO production
+  loutthcrc=(lcircterm .AND. tdc%loutnst .AND. PRESENT(tket_nstc)) !raw "circulation-term"
+  loutshshr=(ltkeshshr .AND. tdc%loutshs .AND. PRESENT(tket_hshr)) !separated horiz. shear production
+  loutmcsso=(ltkemcsso .AND. tdc%loutsso .AND. PRESENT(tket_sso))  !mechanical SSO production
 
   !Consideration of additional TKE-sources due to:
-  lcircterm=(lcircterm .AND. ltkenst)            !raw "circulation-term"
-  ltkeshshr=(ltkeshshr .AND. ltkeshs)            !separ. horiz. shear-circ.
-  ltkemcsso=(ltkemcsso .AND. ltkesso)            !ordinary mech. SSO-circ.
+  lcircterm=(lcircterm .AND. tdc%ltkenst)            !raw "circulation-term"
+  ltkeshshr=(ltkeshshr .AND. tdc%ltkeshs)            !separ. horiz. shear-circ.
+  ltkemcsso=(ltkemcsso .AND. tdc%ltkesso)            !ordinary mech. SSO-circ.
 
-  ldotkedif=(c_diff > z0)
+  ldotkedif=(tdc%c_diff > z0)
 
-  lssintact=((ltkemcsso.OR.ltkeshshr.OR.ltkecon) .AND. imode_adshear == 1)
+  lssintact=((ltkemcsso.OR.ltkeshshr.OR.tdc%ltkecon) .AND. tdc%imode_adshear == 1)
 
-  ltkeadapt=(imode_tkemini == 2) !full TKE-adaptation to shear-related part of LLDCs,
-  lsrfshear=(rsur_sher > 0 .OR. (imode_trancnf < 4 .AND. imode_suradap >= 1))
+  ltkeadapt=(tdc%imode_tkemini == 2) !full TKE-adaptation to shear-related part of LLDCs,
+  lsrfshear=(tdc%rsur_sher > 0 .OR. (tdc%imode_trancnf < 4 .AND. tdc%imode_suradap >= 1))
             !specific preparations for surface-layer adaptations to additional "P"-level shear
 
   ! Thermodynamische Hilfsvariablen auf Hauptflaechen:
-  CALL adjust_satur_equil ( i1dim=nvec, khi=1, ktp=1,               & !in
+  CALL adjust_satur_equil( tdc=tdc, i1dim=nvec, khi=1, ktp=1,       & !in
 
            i_st=ivstart, i_en=ivend, k_st=1, k_en=ke,               & !in
 
            lcalrho=.FALSE., lcalepr=.FALSE.,                        & !in
            lcaltdv=.TRUE., lpotinp=.FALSE., ladjout=.FALSE.,        & !in
 
-           icldmod=icldm_turb,                                      & !in
+           icldmod=tdc%icldm_turb,                                  & !in
 
            zrcpv=tur_rcpv, zrcpl=tur_rcpl,                          & !in
 
@@ -1108,14 +986,14 @@ my_thrd_id = omp_get_thread_num()
            lacc=lzacc )
 
   ! Thermodynamische Hilfsvariablen auf Unterrand der Prandtl-Schicht:
-  CALL adjust_satur_equil ( i1dim=nvec, khi=1, ktp=1,               & !in
+  CALL adjust_satur_equil( tdc=tdc, i1dim=nvec, khi=1, ktp=1,       & !in
 
            i_st=ivstart, i_en=ivend, k_st=ke1, k_en=ke1,            & !in
 
            lcalrho=.TRUE., lcalepr=.TRUE.,                          & !in
            lcaltdv=.TRUE., lpotinp=.FALSE., ladjout=.FALSE.,        & !in
 
-           icldmod=icldm_turb,                                      & !in
+           icldmod=tdc%icldm_turb,                                  & !in
 
            zrcpv=tur_rcpv, zrcpl=tur_rcpl,                          & !in
 
@@ -1177,7 +1055,7 @@ my_thrd_id = omp_get_thread_num()
 
   n=0; pvar(n)%bl => rcld       ; pvar(n)%ml => rcld        !cl_covr
   n=1; pvar(n)%bl => zaux(:,:,n); pvar(n)%ml => epr         !ex_fakt
-  m=MERGE( n, n+1, lcpfluc ) !interpolation of "r_cpd=zaux(:,:,2)" only at "lcpfluc=T"
+  m=MERGE( n, n+1, tdc%lcpfluc ) !interpolation of "r_cpd=zaux(:,:,2)" only at "lcpfluc=T"
   DO WHILE (m < naux)                                       !2:cp_fakt, 3:dQs/dT, 4:g_tet l, 5:g_vap
     n=n+1; m=m+1; pvar(n)%bl => zaux(:,:,m) ; pvar(n)%ml => zaux(:,:,m)
   END DO
@@ -1247,7 +1125,7 @@ my_thrd_id = omp_get_thread_num()
   DO k=ke1,1,-1
 !DIR$ IVDEP
     DO i=ivstart, ivend
-      len_scale(i,k)=akt*MAX( len_min, l_scal(i)*len_scale(i,k)/(l_scal(i)+len_scale(i,k)) )
+      len_scale(i,k)=tdc%akt*MAX( tdc%len_min, l_scal(i)*len_scale(i,k)/(l_scal(i)+len_scale(i,k)) )
     END DO
   END DO
   !$ACC END PARALLEL
@@ -1297,7 +1175,7 @@ my_thrd_id = omp_get_thread_num()
         ELSE
           val1=lm*fm2; val2=lh*fh2
           wert=MAX( val1-val2, rim*val1 )
-          tke(i,k,1)=MAX( vel_min, SQRT(d_m*com_len*wert) ) !Initialwert fuer SQRT(2TKE)
+          tke(i,k,1)=MAX( tdc%vel_min, SQRT(tdc%d_mom*com_len*wert) ) !Initialwert fuer SQRT(2TKE)
         END IF
 
         val1=con_m; tkvm(i,k)=lm*tke(i,k,1)
@@ -1310,7 +1188,7 @@ my_thrd_id = omp_get_thread_num()
         ! Turbulence Model (TMod) in SUB 'solve_turb_budgets' (dependent on 'imode_stbcalc'), at least 
         ! the laminar limit is used for securing a reasonable start of this kind of time-step iteration.
 
-        IF (imode_tkemini >= 2) THEN !any adaptation of TKE and the TMod. to lower limits
+        IF (tdc%imode_tkemini >= 2) THEN !any adaptation of TKE and the TMod. to lower limits
           tke(i,k,1)=tke(i,k,1)*MAX( z1, val2/tkvh(i,k) ) !adapted 'tke'
         ENDIF
         IF (ltkeadapt) THEN !full adaptation of TKE and the TMod. to lower limits
@@ -1495,7 +1373,7 @@ my_thrd_id = omp_get_thread_num()
 
   ! Mechanical forcing by vertical shear:
 
-  IF (itype_sher == 2 .AND. (PRESENT(dwdx) .AND. PRESENT(dwdy) .AND. PRESENT(hdiv))) THEN
+  IF (tdc%itype_sher == 2 .AND. (PRESENT(dwdx) .AND. PRESENT(dwdy) .AND. PRESENT(hdiv))) THEN
 
     !Include 3D-shear correction by the vertical wind (employing incomressibility):
 
@@ -1529,7 +1407,7 @@ my_thrd_id = omp_get_thread_num()
   ! Mechanical forcing by horizontal shear:
 
   IF (PRESENT(hdef2)) THEN 
-    IF (itype_sher >= 1) THEN   !Apply horizontal 3D-shear correction:
+    IF (tdc%itype_sher >= 1) THEN   !Apply horizontal 3D-shear correction:
       !$ACC PARALLEL ASYNC(1) DEFAULT(PRESENT) IF(lzacc)
       !$ACC LOOP GANG VECTOR COLLAPSE(2)
       DO k=2,kem 
@@ -1543,7 +1421,7 @@ my_thrd_id = omp_get_thread_num()
   END IF
 
   IF (lssintact .OR. & !full shear (including NTC impact) and mean shear to be separated
-      loutbms ) THEN   !output of (traditional) purely grid-scale shear requested
+      tdc%loutbms ) THEN !output of (traditional) purely grid-scale shear requested
     !$ACC PARALLEL ASYNC(1) DEFAULT(PRESENT) IF(lzacc)
     !$ACC LOOP GANG VECTOR COLLAPSE(2)
     DO k=2,kem
@@ -1553,7 +1431,7 @@ my_thrd_id = omp_get_thread_num()
       END DO
     END DO
     !$ACC END PARALLEL
-  ELSEIF (rsur_sher > z0) THEN !addit. shear by NTCs|LLDCs at "P"-level to be transmitted to "0"-level
+  ELSEIF (tdc%rsur_sher > z0) THEN !addit. shear by NTCs|LLDCs at "P"-level to be transmitted to "0"-level
 !DIR$ IVDEP
     !$ACC PARALLEL ASYNC(1) DEFAULT(PRESENT) IF(lzacc)
     !$ACC LOOP GANG VECTOR
@@ -1585,11 +1463,11 @@ my_thrd_id = omp_get_thread_num()
 
   IF (PRESENT(hdef2)) THEN
 
-!   IF ((ltkeshs .OR. (loutshs .AND. PRESENT(tket_hshr))) .AND. PRESENT(hdiv)) THEN 
+!   IF ((tdc%ltkeshs .OR. (tdc%loutshs .AND. PRESENT(tket_hshr))) .AND. PRESENT(hdiv)) THEN 
     IF ((ltkeshshr .OR. loutshshr) .AND. PRESENT(hdiv)) THEN 
       !Include separated horizontal shear mode:
 
-      fakt=z1/(z2*sm_0)**2; wert=a_hshr*akt*z1d2
+      fakt=z1/(z2*sm_0)**2; wert=tdc%a_hshr*tdc%akt*z1d2
 
 !DIR$ IVDEP
       !$ACC PARALLEL ASYNC(1) DEFAULT(PRESENT) IF(lzacc)
@@ -1599,7 +1477,7 @@ my_thrd_id = omp_get_thread_num()
       END DO
       !$ACC END PARALLEL
 
-      IF (imode_shshear == 2) THEN !Ri-dependent length sclale correction
+      IF (tdc%imode_shshear == 2) THEN !Ri-dependent length sclale correction
 !GZ: For tuning. <
 !---------------------------------------------------------------------------
         !$ACC PARALLEL ASYNC(1) DEFAULT(PRESENT) IF(lzacc)
@@ -1634,7 +1512,7 @@ my_thrd_id = omp_get_thread_num()
       ENDIF
 
       !strain velocity of the separated horizontal shear mode saved in 'hlp':
-      IF (imode_shshear == 0) THEN !former variant based on 3D-shear and incompressibility
+      IF (tdc%imode_shshear == 0) THEN !former variant based on 3D-shear and incompressibility
         !$ACC PARALLEL ASYNC(1) DEFAULT(PRESENT) IF(lzacc)
         !$ACC LOOP GANG VECTOR COLLAPSE(2)
         DO k=2,kem
@@ -1754,11 +1632,11 @@ my_thrd_id = omp_get_thread_num()
           END IF
 
           IF (ltkemcsso) THEN !consideration of addit. TKE-sources due to ordinary mech. SSO-circulation
-            IF (imode_tkesso == 1) THEN !without further manipulation
+            IF (tdc%imode_tkesso == 1) THEN !without further manipulation
               frm(i,k)=frm(i,k) + wert/tkvm(i,k)
-            ELSE IF (imode_tkesso == 2) THEN ! reduction in the presence of large Richardson numbers
+            ELSE IF (tdc%imode_tkesso == 2) THEN ! reduction in the presence of large Richardson numbers
               frm(i,k)=frm(i,k) + wert/tkvm(i,k)*MIN(1.0_wp,MAX(0.01_wp,xri(i,k)))
-            ELSE IF (imode_tkesso == 3) THEN ! Reduce TKE production in the presence of large Richardson numbers
+            ELSE IF (tdc%imode_tkesso == 3) THEN ! Reduce TKE production in the presence of large Richardson numbers
               frm(i,k)=frm(i,k) + wert/tkvm(i,k)*MIN(1.0_wp,MAX(0.01_wp,xri(i,k)))*MIN(1.0_wp,l_hori(i)/2000._wp)
             END IF
           END IF  
@@ -1770,7 +1648,7 @@ my_thrd_id = omp_get_thread_num()
     END IF !clac. or output of addit. TKE-sources due to ordinary mech. SSO-circ.
   
     !Adding shear due to sub-grid convective circulation:
-    IF (lruncnv .AND. ltkecon .AND. PRESENT(tket_conv)) THEN
+    IF (lruncnv .AND. tdc%ltkecon .AND. PRESENT(tket_conv)) THEN
       !Convection scheme is active, it is desired for impacting turbulence and 'tket_conv' is present:
 
       !$ACC PARALLEL ASYNC(1) DEFAULT(PRESENT) IF(lzacc)
@@ -1843,7 +1721,7 @@ my_thrd_id = omp_get_thread_num()
        
   ENDIF !Berechnung von Korrekturtermen innerhalb der Rauhigkeitsschicht
 
-  IF (rsur_sher > 0) THEN !shear factor by NTCs at lowest half-level required for surface layer
+  IF (tdc%rsur_sher > 0) THEN !shear factor by NTCs at lowest half-level required for surface layer
 !DIR$ IVDEP
      !$ACC PARALLEL ASYNC(1) DEFAULT(PRESENT) IF(lzacc)
      !$ACC LOOP GANG VECTOR
@@ -1855,7 +1733,7 @@ my_thrd_id = omp_get_thread_num()
 
   ! Optional output of source terms:
 
-  IF (loutbms) THEN !output of additional TKE-sources required
+  IF (tdc%loutbms) THEN !output of additional TKE-sources required
      !$ACC PARALLEL ASYNC(1) DEFAULT(PRESENT) IF(lzacc)
      !$ACC LOOP SEQ
      DO k=2, ke1
@@ -1871,8 +1749,8 @@ my_thrd_id = omp_get_thread_num()
   END IF
 
   ! Check if vertical smoothing of TKE forcing terms is needed:
-  IF (frcsmot > z0) THEN
-    luse_mask=(imode_frcsmot == 2 .AND. .NOT.lini)
+  IF (tdc%frcsmot > z0) THEN
+    luse_mask=(tdc%imode_frcsmot == 2 .AND. .NOT.lini)
     IF (luse_mask) THEN 
       lcond=(ANY(trop_mask(ivstart:ivend) > z0)) !not all points are masked out
     ELSE
@@ -1882,12 +1760,12 @@ my_thrd_id = omp_get_thread_num()
     IF (lcond) THEN !vertical smoothing required
       ! Optionale vertikale Glaettung des mechanischen Antriebs:
       CALL vert_smooth (i_st=ivstart, i_en=ivend, k_tp=1, k_sf=ke1, &
-                        disc_mom=dicke, cur_tend=frm, vertsmot=frcsmot, &
+                        disc_mom=dicke, cur_tend=frm, vertsmot=tdc%frcsmot, &
                         smotfac=trop_mask, luse_mask=luse_mask, lacc=lzacc )
   
       ! Optionale vertikale Glaettung des thermischen Antriebs:
       CALL vert_smooth (i_st=ivstart, i_en=ivend, k_tp=1, k_sf=ke1, &
-                        disc_mom=dicke, cur_tend=frh, vertsmot=frcsmot, &
+                        disc_mom=dicke, cur_tend=frh, vertsmot=tdc%frcsmot, &
                         smotfac=trop_mask, luse_mask=luse_mask, lacc=lzacc )
     END IF
   END IF  
@@ -1918,7 +1796,7 @@ my_thrd_id = omp_get_thread_num()
   !At "imode_tkemini=3", only a reduced (tuned) 'tke-adaptation has been applied and the additional drag-impact
   ! of 'tkvm' has not been removed (by means of 'tprn').
 
-  IF (ltmpcor .AND. lcpfluc) THEN !consideration of temperature tendency due to phase-diffusion 
+  IF (tdc%ltmpcor .AND. tdc%lcpfluc) THEN !consideration of temperature tendency due to phase-diffusion 
     !  Berechnung des vert. Temp.grad. fuer den Phasendiffusionsterm:
 
     !$ACC PARALLEL ASYNC(1) DEFAULT(PRESENT) IF(lzacc)
@@ -1931,7 +1809,7 @@ my_thrd_id = omp_get_thread_num()
     END DO
     !$ACC END PARALLEL
 
-    IF (icldm_turb.NE.-1) THEN !water phase changes are possible
+    IF (tdc%icldm_turb.NE.-1) THEN !water phase changes are possible
       !$ACC PARALLEL ASYNC(1) DEFAULT(PRESENT) IF(lzacc)
       !$ACC LOOP GANG VECTOR COLLAPSE(2)
       DO k=2, ke1
@@ -1950,7 +1828,7 @@ my_thrd_id = omp_get_thread_num()
 !      und Berechnung der turbulenten Diffusionskoeffizienten:
 !------------------------------------------------------------------------------------
 
-  DO it_durch=it_start, it_end !iteration
+  DO it_durch=it_start, tdc%it_end !iteration
 
     !Die Schleife wird nur bei der Initialisierung (d.h. beim ersten Aufruf) wiederholt,
     !um TKE-Gleichgewicht anzunaehern. Die resultierenden TKE-Werte der Zeitstufe 'ntur'
@@ -1960,7 +1838,7 @@ my_thrd_id = omp_get_thread_num()
     !die gegenueber den Vorgaengerwerten um einen Zeitschritt weiter in der Zukunft liegen,
     !also wieder zur Zeitstufe der uebrigen prognostischen Variablen gehoeren.
 
-    CALL solve_turb_budgets (it_s=it_durch, it_start=it_start,                        & !in
+    CALL solve_turb_budgets( tdc=tdc, it_s=it_durch, it_start=it_start,               & !in
 
                              i1dim=nvec, i_st=ivstart, i_en=ivend,                    & !in
                              khi=1, ktp=1, kcm=kcm, k_st=2, k_en=kem, k_sf=ke1,       & !in
@@ -1972,7 +1850,7 @@ my_thrd_id = omp_get_thread_num()
                              lssintact=lssintact,    lupfrclim=.FALSE.,               & !in
                              lpres_edr=(lsrfshear .OR. PRESENT(edr)),                 & !in
                              ltkeinp=ltkeinp,                                         & !in
-                             imode_stke=imode_turb,  imode_vel_min=1,                 & !in
+                             imode_stke=tdc%imode_turb,  imode_vel_min=1,             & !in
 
                              dt_tke=dt_tke, fr_tke=fr_tke,                            & !in
 
@@ -1982,8 +1860,8 @@ my_thrd_id = omp_get_thread_num()
                              fcd=can, tvt=tketens, avt=tketadv,                       & !in
                              tke=tke, ediss=ediss,                                    & !inout, out
 
-                             lactcnv=(icldm_turb.NE.-1),                              & !in (activ. flux-conversion)
-                             laddcnv=(ltmpcor .AND. lcpfluc),                         & !in (addit. flux-conversion)
+                             lactcnv=(tdc%icldm_turb.NE.-1),                          & !in (activ. flux-conversion)
+                             laddcnv=(tdc%ltmpcor .AND. tdc%lcpfluc),                    & !in (addit. flux-conversion)
 
                              exner=zaux(:,:,1), r_cpd=zaux(:,:,2), qst_t=zaux(:,:,3), & !in
 
@@ -2007,7 +1885,7 @@ my_thrd_id = omp_get_thread_num()
 
                              lacc=lzacc)                                                !in
 
-    IF (it_durch < it_end .AND. .NOT.ltkeinp) THEN
+    IF (it_durch < tdc%it_end .AND. .NOT.ltkeinp) THEN
       nvor=ntur !benutze nun aktuelle TKE-Werte als Vorgaengerwerte
     END IF
 
@@ -2066,7 +1944,7 @@ my_thrd_id = omp_get_thread_num()
 
   ! Beschraenkung der Diffusionskoeffizienten nach unten:
 
-  vel1=MAX(con_m, tkmmin); vel2=MAX(con_h, tkhmin) 
+  vel1=MAX(con_m, tdc%tkmmin); vel2=MAX(con_h, tdc%tkhmin) 
 
   !$ACC PARALLEL ASYNC(1) DEFAULT(PRESENT) IF(lzacc)
   !$ACC LOOP GANG VECTOR COLLAPSE(2) PRIVATE(fakt, fakt1, fakt2, wert, val1, val2, x4, x4i)
@@ -2078,7 +1956,7 @@ my_thrd_id = omp_get_thread_num()
 
 !GZ: For tuning. <
 !---------------------------------------------------------------------------
-    IF (imode_tkvmini == 2 .AND. iini.NE.1) THEN !using addit. empirical modificat. by means of 'xri'
+    IF (tdc%imode_tkvmini == 2 .AND. iini.NE.1) THEN !using addit. empirical modificat. by means of 'xri'
 
       ! Factor for variable minimum diffusion coefficient proportional to 1/SQRT(Ri):
 
@@ -2089,7 +1967,7 @@ my_thrd_id = omp_get_thread_num()
       val1=val1*MIN( 2.5_wp, MAX( 0.01_wp, MIN( z1, fakt1 )*xri(i,k) ) )
       val2=val2*MIN( 2.5_wp, MAX( 0.01_wp, MIN( z1, fakt2 )*xri(i,k) ) )
 
-      IF (imode_tkemini == 3) THEN !restricted (tuned) adaptation of TKE and the TMod. to lower limits
+      IF (tdc%imode_tkemini == 3) THEN !restricted (tuned) adaptation of TKE and the TMod. to lower limits
         tke(i,k,ntur)=tke(i,k,ntur)*SQRT(MAX( z1, val2/tkvh(i,k)) ) !adapted 'tke'
 
         !Note: 
@@ -2098,7 +1976,7 @@ my_thrd_id = omp_get_thread_num()
         !So far, both modifications appear to be necessary with the current state of the entire model.
       END IF
 
-      IF (tkhmin_strat > z0 .OR. tkmmin_strat > z0) THEN
+      IF (tdc%tkhmin_strat > z0 .OR. tdc%tkmmin_strat > z0) THEN
         ! Enhanced diffusion in the stratosphere - needed primarily for momentum because 
         ! there is otherwise too little dynamic coupling between adjacent model levels
 
@@ -2108,7 +1986,7 @@ my_thrd_id = omp_get_thread_num()
         x4i =z1-z2d3*innertrop_mask(i)*MIN(z1, 2.e-4_wp*MAX(z0, 27500._wp-hhl(i,k)) )
         wert=SQRT(xri(i,k))
         fakt=fakt*MIN( x4*1.5_wp, MAX( 0.25_wp, wert ) )
-        val1=MAX( val1, tkmmin_strat*MIN(x4,x4i)*fakt ); val2=MAX( val2, tkhmin_strat*x4*fakt )
+        val1=MAX( val1, tdc%tkmmin_strat*MIN(x4,x4i)*fakt ); val2=MAX( val2, tdc%tkhmin_strat*x4*fakt )
       END IF
 
       ! Remark (GZ): The enhanced stratospheric diffusion seems to parameterize a missing 
@@ -2192,15 +2070,15 @@ my_thrd_id = omp_get_thread_num()
     !(this block lasts until the end of SUB 'turbdiff')
 !------------------------------------------------------------------------------------------------
 
-    ldoexpcor=(lexpcor .AND. icldm_turb.NE.-1) !consider explicit warm-cloud correct. for turb. scalar fluxes
-    ldocirflx=(lcirflx .AND. lcircterm) !consider circulation heat-flux
+    ldoexpcor=(tdc%lexpcor .AND. tdc%icldm_turb.NE.-1) !consider explicit warm-cloud correct. for turb. scalar fluxes
+    ldocirflx=(tdc%lcirflx .AND. lcircterm) !consider circulation heat-flux
     
 !------------------------------------------------------------------------------------
 ! 5)  Berechnung der zu TKE-Quellen gehoerigen Temperaturtendenzen
 !     (ausser der Divergenz des Zirkulationsflusses):
 !------------------------------------------------------------------------------------
   
-    IF (ltmpcor) THEN
+    IF (tdc%ltmpcor) THEN
       !$ACC PARALLEL ASYNC(1) DEFAULT(PRESENT) IF(lzacc)
       !$ACC LOOP GANG VECTOR COLLAPSE(2) PRIVATE(phasdif)
       DO k=2, ke1
@@ -2208,7 +2086,7 @@ my_thrd_id = omp_get_thread_num()
         DO i=ivstart, ivend
           ! Beachte:
           ! In 'hlp' steht an dieser Stelle der Temp.-Gradient (auf Neben-Flaechen)!
-          IF (lcpfluc) THEN
+          IF (tdc%lcpfluc) THEN
              phasdif=tkvh(i,k)*hlp(i,k)*(tur_rcpv*zvari(i,k,vap)+tur_rcpl*zvari(i,k,liq))
              hlp(i,k)=ediss(i,k)/cp_d + phasdif
           ELSE
@@ -2270,7 +2148,7 @@ my_thrd_id = omp_get_thread_num()
     sav_prof => zaux(:,:,2)
 
     IF (ldotkedif .OR. lcircterm) THEN
-       !ldotkedif=(c_diff > 0.0): partly implicit vertical diffusion for TKE
+       !ldotkedif=(tdc%c_diff > 0.0): partly implicit vertical diffusion for TKE
        !lcircterm: raw "circulation term" computed together with TKE diffusion
 
       expl_mom => zaux(:,:,3)
@@ -2281,16 +2159,16 @@ my_thrd_id = omp_get_thread_num()
       DO k=2, ke1
 !DIR$ IVDEP
         DO i=ivstart, ivend
-          IF (imode_tkediff == 2) THEN !Diffusion in terms of TKE
+          IF (tdc%imode_tkediff == 2) THEN !Diffusion in terms of TKE
 !___________________________________________________________________________
 !test: TKE-Diffusion mit Stab.fnkt. fuer Skalare: <
-            sav_prof(i,k)=c_diff*len_scale(i,k)*tke(i,k,ntur) !diff.-coeff. for TKE
-! sav_prof(i,k)=c_diff*tkvh(i,k)
+            sav_prof(i,k)=tdc%c_diff*len_scale(i,k)*tke(i,k,ntur) !diff.-coeff. for TKE
+! sav_prof(i,k)=tdc%c_diff*tkvh(i,k)
 !test>
 !___________________________________________________________________________
 
           ELSE !Diffusion in terms of q=SQRT(2*TKE)
-            sav_prof(i,k)=c_diff*len_scale(i,k)*tke(i,k,ntur)**2 !diff.coeff. for q
+            sav_prof(i,k)=tdc%c_diff*len_scale(i,k)*tke(i,k,ntur)**2 !diff.coeff. for q
           END IF
         END DO
       END DO
@@ -2311,7 +2189,7 @@ my_thrd_id = omp_get_thread_num()
       END DO
       !$ACC END PARALLEL
 
-      IF (imode_tkediff == 2) THEN !Diffusion in terms of TKE
+      IF (tdc%imode_tkediff == 2) THEN !Diffusion in terms of TKE
         !$ACC PARALLEL ASYNC(1) DEFAULT(PRESENT) IF(lzacc)
         !$ACC LOOP GANG VECTOR COLLAPSE(2)
         DO k=2, ke1
@@ -2389,7 +2267,7 @@ my_thrd_id = omp_get_thread_num()
       ! Explizite Berechnung des Zirkulationsterms und der Konvergenz des zugehoerigen Theta-Flusses:
       !----------------------------------------------------------------------------------------------
 
-      IF (lcirflx .OR. loutthcrc) THEN !explicit TKE-source of raw "circulation-term" required
+      IF (tdc%lcirflx .OR. loutthcrc) THEN !explicit TKE-source of raw "circulation-term" required
 
 !DIR$ IVDEP
         !$ACC PARALLEL ASYNC(1) DEFAULT(PRESENT) IF(lzacc)
@@ -2424,7 +2302,7 @@ my_thrd_id = omp_get_thread_num()
           DO i=ivstart, ivend
 
             shv(i,k)=upd_prof(i,k)*fr_tke
-            IF (imode_tkediff == 1) THEN !'upd_prf' conatins q-increments
+            IF (tdc%imode_tkediff == 1) THEN !'upd_prf' conatins q-increments
                shv(i,k)=shv(i,k)*tke(i,k,ntur)
                !Note that 'upd_prf' contains the factor "1/dicke", where 'dicke' includes the factor 'tke(:,:,ntur)'.
             END IF
@@ -2534,13 +2412,14 @@ my_thrd_id = omp_get_thread_num()
       !Die bisherige Hauptflaechenindizierung musste daher fuer die Uebergabefelder
       !der Routinen 'prep_impl_vert_diff' und 'calc_impl_vert_diff' um "1" verschoben werden.
 
-      CALL prep_impl_vert_diff( lsflucond=.FALSE., ldynimpwt=ldynimp, lprecondi=lprecnd,   &
+      CALL prep_impl_vert_diff( tdc=tdc,                                                   &
+                                lsflucond=.FALSE., ldynimpwt=ldynimp, lprecondi=lprecnd,   &
                                 i_st=ivstart, i_en=ivend, k_tp=1, k_sf=ke1,                &
 !Achtung: q_Diff:
 !disc_mom=sav_prof*dicke,    expl_mom=expl_mom,                      &
                                 disc_mom=dicke,    expl_mom=expl_mom,                      &
                                 impl_mom=impl_mom, invs_mom=invs_mom,                      &
-                                invs_fac=frh, scal_fac=frm, impl_weight=impl_weight,       &
+                                invs_fac=frh, scal_fac=frm,                                &
                                 lacc=lzacc )
 
       ! Berechnung der vertikalen Diffusionstendenzen von TKE=z1d2*q**2:
@@ -2600,7 +2479,7 @@ my_thrd_id = omp_get_thread_num()
 !10)  Speichern der zugehoerigen q-Tendenzen:
 !------------------------------------------------------------------------------------
 
-      IF (imode_tkediff == 2) THEN !Diffusion in terms of TKE
+      IF (tdc%imode_tkediff == 2) THEN !Diffusion in terms of TKE
         !'upd_prof' ist ein TKE-Profil:
         !$ACC PARALLEL ASYNC(1) DEFAULT(PRESENT) IF(lzacc)
         !$ACC LOOP GANG VECTOR COLLAPSE(2)

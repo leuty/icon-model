@@ -18,7 +18,7 @@ MODULE mo_lnd_nwp_nml
 
   USE mo_kind,                ONLY: wp
   USE mo_exception,           ONLY: finish, message
-  USE mo_impl_constants,      ONLY: SSTICE_ANA, max_nsoil
+  USE mo_impl_constants,      ONLY: SSTICE_ANA, SSTICE_ANA_CLINC, max_nsoil
   USE mo_namelist,            ONLY: position_nml, positioned, open_nml, close_nml
   USE mo_mpi,                 ONLY: my_process_is_stdio
   USE mo_io_units,            ONLY: nnml, nnml_output, filename_max
@@ -39,6 +39,8 @@ MODULE mo_lnd_nwp_nml
     &                               config_lprog_albsi        => lprog_albsi       , &
     &                               config_lbottom_hflux      => lbottom_hflux     , &
     &                               config_llake              => llake             , &
+    &                               config_itype_oskin_warm   => itype_oskin_warm  , &
+    &                               config_itype_oskin_cold   => itype_oskin_cold  , &
     &                               config_lmelt              => lmelt             , &
     &                               config_lmelt_var          => lmelt_var         , &
     &                               config_lmulti_snow        => lmulti_snow       , &
@@ -138,7 +140,7 @@ CONTAINS
                                   !< (see Schulz and Vogel 2020)
     REAL(wp)::  cskinc            !< skin conductivity (W/m**2/K)
     REAL(wp)::  tau_skin          !< relaxation time scale for the computation of the skin temperature
-    LOGICAL ::  lterra_urb        !< activate urban model TERRA_URB (see Schulz et al. 2023)
+    LOGICAL ::  lterra_urb        !< activate urban model TERRA_URB (see Schulz et al. 2022)
     LOGICAL ::  lurbalb           !< use urban albedo and emissivity
     INTEGER ::  itype_ahf         !< type of urban anthropogenic heat flux
     INTEGER ::  itype_kbmo        !< type of bluff-body thermal roughness length parameterisation
@@ -146,11 +148,12 @@ CONTAINS
     INTEGER ::  itype_hydbound    !< type of hydraulic lower boundary condition
     INTEGER ::  idiag_snowfrac    !< method for diagnosis of snow-cover fraction
     INTEGER ::  itype_snowevap    !< treatment of snow evaporation in the presence of vegetation
-
+    INTEGER ::  itype_oskin_warm  !> forecast with ocean warm layer
+    INTEGER ::  itype_oskin_cold  !> forecast with ocean cold skin
+ 
     CHARACTER(LEN=filename_max) :: sst_td_filename, ci_td_filename
 
-
-    LOGICAL ::           &
+   LOGICAL ::           &
          lseaice,        & !> forecast with sea ice model
          lprog_albsi,    & !> sea-ice albedo is computed prognostically
          llake,          & !> forecast with lake model FLake
@@ -168,8 +171,9 @@ CONTAINS
     !--------------------------------------------------------------------
 
     NAMELIST/lnd_nml/ nlev_snow, zml_soil, ntiles                             , &
-         &               frlnd_thrhld, lseaice, lprog_albsi, llake, lmelt     , &
-         &               frlndtile_thrhld, frlake_thrhld                      , &
+         &               lseaice, lprog_albsi, llake, lmelt                   , &
+         &               itype_oskin_warm, itype_oskin_cold                   , &
+         &               frlnd_thrhld, frlndtile_thrhld, frlake_thrhld        , &
          &               frsea_thrhld, lmelt_var, lmulti_snow                 , &
          &               hice_min, hice_max, lbottom_hflux                    , &
          &               itype_trvg, idiag_snowfrac, max_toplaydepth          , &
@@ -268,11 +272,12 @@ CONTAINS
     tau_skin      = 3600._wp ! relaxation time scale for the computation of the skin temperature
     !
     lterra_urb     = .FALSE. ! if .TRUE., activate urban model TERRA_URB by Wouters et al. (2016, 2017)
-                             ! (see Schulz et al. 2023)
+                             ! (see Schulz et al. 2022)
     lurbalb        = .TRUE.  ! if .TRUE., use urban albedo and emissivity (Wouters et al. 2016)
-    itype_ahf      = 2       ! if >0, use urban anthropogenic heat flux (Wouters et al. 2016)
-                             !  1: constant AHF, 2: AHF based on climatological T2M,
-                             !  3: to be implemented (AHF based on time-filtered predicted T2M)
+    itype_ahf      = 2       ! type of urban anthropogenic heat flux (AHF) (Wouters et al. 2016)
+                             !  1: constant AHF
+                             !  2: AHF based on climatological 2-m temperature
+                             !  3: AHF based on time-filtered predicted 2-m temperature
     itype_kbmo     = 2       ! type of bluff-body thermal roughness length parameterisation
                              !  1: standard SAI-based turbtran (Raschendorfer 2001)
                              !  2: Brutsaert-Kanda parameterisation for bluff-body elements (kB-1)
@@ -291,6 +296,8 @@ CONTAINS
     lprog_albsi    = .FALSE. ! .TRUE.: sea-ice albedo is computed prognostically
                              ! (only takes effect if "lseaice=.TRUE.")
     llake          = .TRUE.  ! .TRUE.: lake model is used
+    itype_oskin_warm = 0     ! 1: turn on SST warm layer
+    itype_oskin_cold = 0     ! 1: turn on SST cold skin
     !
     lcuda_graph_lnd = .FALSE. ! cuda graph deactivated by default
 
@@ -360,7 +367,6 @@ CONTAINS
       lprog_albsi = .FALSE.
     ENDIF
 
-
     ! Number of actual soil layers
 
     nlev_soil = count( zml_soil(:) > 0.0_wp )
@@ -391,7 +397,13 @@ CONTAINS
 
     ! Check if target GPU configuration is supported
 #ifdef _OPENACC
-    IF(lmulti_snow) CALL finish(routine, "GPU version not available for lmulti_snow == .TRUE.")
+    IF ( lmulti_snow ) THEN
+      CALL finish(routine, "GPU version not available for lmulti_snow == .TRUE.")
+    END IF
+
+    IF ( (itype_oskin_warm > 0) .OR. (itype_oskin_cold > 0) ) THEN
+      CALL finish(routine, "SST skin parameterization not available on GPU")
+    END IF
 #endif
 
     IF (itype_interception /= 1) CALL finish(routine, "itype_interception = 2 has been removed.")
@@ -417,6 +429,8 @@ CONTAINS
     config_lseaice            = lseaice
     config_lprog_albsi        = lprog_albsi
     config_llake              = llake
+    config_itype_oskin_warm   = itype_oskin_warm
+    config_itype_oskin_cold   = itype_oskin_cold
     config_lmelt              = lmelt
     config_lmelt_var          = lmelt_var
     config_lmulti_snow        = lmulti_snow

@@ -1885,6 +1885,26 @@ which compensates the systematic increase of evaporation due to the SST perturba
 &
 \tabularnewline
 
+
+\hline
+shift\_boxliq\_asy&
+R&
+0.&
+ &
+Option to shift ensemble mean of tune\_box\_liq\_asy w.r.t. the deterministic value.
+&
+\tabularnewline
+
+\hline
+shift\_ratsea&
+R&
+0.&
+ &
+Option to shift ensemble mean of rat\_sea w.r.t. the deterministic value.
+&
+\tabularnewline
+
+
 \end{longtab}
 
 
@@ -4236,7 +4256,7 @@ itype\_ahf &
 I & 2 &  & If $\ge$1, use urban anthropogenic heat flux (Wouters et al.\ 2016) \\
 1: constant value given by the first entry in tuning\_nml:tune\_urbahf \\
 2: variable value depending on climatological T2M as specified in tuning\_nml:tune\_urbahf \\
-3: to be implemented (variable value depending on time-filtered predicted T2M) & lterra\_urb = .TRUE.
+3: as option 2, but using a time-filtered predicted T2M rather than climatology & lterra\_urb = .TRUE.
 \tabularnewline
 
 itype\_kbmo &
@@ -4368,6 +4388,26 @@ iforcing=3
 \tabularnewline
 
 %\hline
+itype\_oskin\_warm &
+I &
+0 &
+&
+SST skin formulation: warm layer component \\
+0: off \\
+1: activated&
+\tabularnewline
+
+%\hline
+itype\_oskin\_cold &
+I &
+0 &
+&
+SST skin formulation: cold skin component \\
+0: off \\
+1: activated&
+\tabularnewline
+
+%\hline
 hice\_min &
 R&
 0.05&
@@ -4394,6 +4434,7 @@ keyword $<$path$>$ which will be substituted by model\_base\_dir \newline
 In case sstice\_mode=6, SST data for all time steps in the current simulation should be prepared in one single file, variable should be named SST in this file. &
 sstice\_mode=3,4,5,6
 \tabularnewline
+
 %\hline
 ci\_td\_filename &
 C&
@@ -4405,6 +4446,7 @@ the keyword $<$path$>$ which will be substituted by model\_base\_dir \newline
 In case sstice\_mode=6, sea ice data for all time steps in the current simulation should be prepared in one single file, variable should be named SIC in this file. &
 sstice\_mode=3,4,5,6
 \tabularnewline
+
 %\hline
 lcuda\_graph\_lnd &
 L&
@@ -5532,7 +5574,17 @@ I&
 1&
  &
 0: off \\
-1: simple coupling between the ozone mixing ratio and the thermal tropopause, restricted to the extratropics & irad\_o3 = 7 or 9
+1: simple coupling between the ozone mixing ratio and the thermal tropopause, restricted to the extratropics \\
+2: improved variant of 1 that avoids excessive additional ozone for low tropopauses & irad\_o3 = 7 or 9
+\tabularnewline
+
+itype\_dissip\_heat&
+I&
+1&
+ & Options for calculating dissipative heating in NWP interface \\
+0: off; setting turbdiff\_nml:ltmpcor = .TRUE. forces reset to 0 because dissipative heating is then calculated in turbdiff \\
+1: dissipative heating from SSO, GWD and Rayleigh friction \\
+2: as 1, plus dissipative heating from momentum dissipation by turbulence & turbdiff\_nml:ltmpcor = .FALSE.
 \tabularnewline
 
 %\hline
@@ -6140,7 +6192,7 @@ run\_nml:iforcing = inwp
 \tabularnewline
 
 \hline
-tune\_grzdc\_offset
+tune\_grzdc\_offset&
 R&
 0.0&
 &
@@ -6405,7 +6457,7 @@ Ozone tuning\\
 0: no tuning \\
 1: old tuning for RRTM radiation \\
 2: standard tuning for EcRad with RRTM gas optics \\
-3: improved (for middle/upper stratosphere) tuning for EcRad with RRTM gas optics \\
+3: updated variant of 2 for combination with icpl\_o3\_tp = 2 \\
 4: provisional tuning for EcRad with EcCKD gas optics &
 run\_nml:iforcing = inwp\\
 irad\_o3=7, 79 or 97

@@ -97,7 +97,7 @@ CONTAINS
   !!
   !! Adaptation of WAM 4.5 code.
   !!
-  SUBROUTINE integrate_in_time_src(p_patch, wave_config, p_diag, p_source, dir10m, tracer)
+  SUBROUTINE integrate_in_time_src(p_patch, wave_config, p_diag, p_source, sp10m, dir10m, tracer)
     CHARACTER(len=MAX_CHAR_LENGTH), PARAMETER ::  &
          &  routine = 'integrate_in_time_src'
 
@@ -105,6 +105,7 @@ CONTAINS
     TYPE(t_wave_config), TARGET, INTENT(IN)    :: wave_config
     TYPE(t_wave_diag),           INTENT(IN)    :: p_diag
     TYPE(t_wave_source),         INTENT(IN)    :: p_source
+    REAL(wp),                    INTENT(IN)    :: sp10m(:,:)
     REAL(wp),                    INTENT(IN)    :: dir10m(:,:)
     REAL(wp),                    INTENT(INOUT) :: tracer(:,:,:,:)
 
@@ -117,6 +118,8 @@ CONTAINS
     REAL(wp) :: temp_1, temp_2, temp_3
     REAL(wp) :: sprd(nproma,wave_config%ndirs)
     REAL(wp) :: delfl
+    REAL(wp) :: flminfr(nproma)
+    INTEGER  :: ju(nproma)      ! u10 table index
 
     i_rlstart  = 1
     i_rlend    = min_rlcell
@@ -127,7 +130,7 @@ CONTAINS
     wc => wave_config
 
 !$OMP PARALLEL
-!$OMP DO PRIVATE(jc,jb,jf,jd,i_startidx,i_endidx,delfl,sprd,temp_1,temp_2,temp_3) ICON_OMP_DEFAULT_SCHEDULE
+!$OMP DO PRIVATE(jc,jb,jf,jd,ju,i_startidx,i_endidx,delfl,flminfr,sprd,temp_1,temp_2,temp_3) ICON_OMP_DEFAULT_SCHEDULE
     DO jb = i_startblk, i_endblk
       CALL get_indices_c( p_patch, jb, i_startblk, i_endblk,           &
         &                 i_startidx, i_endidx, i_rlstart, i_rlend)
@@ -138,8 +141,17 @@ CONTAINS
         END DO
       END DO
 
+      DO jc = i_startidx, i_endidx
+        ju(jc) = MIN(wc%jmax,MAX(NINT(sp10m(jc,jb)/wc%delu),1))
+      END DO
+
       DO jf = 1,wc%nfreqs
         delfl = 5.0E-07_wp * grav / wc%freqs(jf)**4 * dtime
+
+        DO jc = i_startidx, i_endidx
+          flminfr(jc) = p_diag%flminfr_tab(ju(jc),jf)
+        END DO
+
         DO jd = 1,wc%ndirs
           DO jc = i_startidx, i_endidx
             temp_2 = p_diag%ustar(jc,jb) * delfl &
@@ -150,8 +162,8 @@ CONTAINS
 
             temp_3 = MIN(ABS(temp_1),temp_2)
 
-            tracer(jc,jd,jb,jf) = tracer(jc,jd,jb,jf)  + SIGN(temp_3,temp_1)
-            tracer(jc,jd,jb,jf) = MAX(tracer(jc,jd,jb,jf), p_diag%FLMINFR(jc,jf,jb)*sprd(jc,jd))
+            tracer(jc,jd,jb,jf) = tracer(jc,jd,jb,jf) + SIGN(temp_3,temp_1)
+            tracer(jc,jd,jb,jf) = MAX(tracer(jc,jd,jb,jf), flminfr(jc)*sprd(jc,jd))
           END DO
         END DO
       END DO

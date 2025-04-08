@@ -48,29 +48,15 @@ USE mo_physical_constants, ONLY : &
 ! Turbulence data (should be the same in ICON and COSMO)
 !-------------------------------------------------------------------------------
 
-USE turb_data, ONLY : &
+USE mo_turbdiff_config, ONLY : &
 
-    ! used derived types
-    modvar, turvar, varprf, & !
+    ! derived types
+    t_turbdiff_config, modvar, turvar, varprf, &
 
-! Switches controlling the turbulence model, turbulent transfer and diffusion:
-! ----------------------------------------------------------------------------
-
-
-!   for semi-implicit vertical diffusion:
-    lsflcnd,      & ! lower flux condition
     ldynimp,      & ! dynamical calculation of implicit weights
     lprecnd,      & ! preconditioning of tridiagonal matrix
 
-! Selectors controlling the turbulence model, turbulent transfer and diffusion:
-! ----------------------------------------------------------------------------
-!
-    ilow_def_cond,& !type of the default condition at the lower boundary
-                    ! 1: zero surface gradient
-                    ! 2: zero surface value
-
     ! numbers and indices
-
     nvel    ,     & ! number of velocity components
     naux    ,     & ! number of auxilary variables
     nmvar   ,     & ! number of included prognostic model-variables
@@ -90,9 +76,6 @@ USE turb_data, ONLY : &
 
 !-------------------------------------------------------------------------------
 ! Control parameters for the run
-!-------------------------------------------------------------------------------
-
-! ICON data have to be declared for these variables, which is done later on
 !-------------------------------------------------------------------------------
 
 USE turb_utilities,          ONLY:   &
@@ -130,6 +113,8 @@ CONTAINS
 
 SUBROUTINE vertdiff ( &
 !
+          tdc,                               &
+!
           itndcon, lentire, lsfluse, lqvcrst, lrunscm, &
           ldoexpcor, ldocirflx, l3dflxout,   &
 !
@@ -144,7 +129,6 @@ SUBROUTINE vertdiff ( &
           u, v, t, qv, qc, prs,              &
           rhoh, rhon, epr,                   &
 !
-          impl_weight,                       &
           ptr, ndtr,                         &
 !
           tvm, tvh, tkvm, tkvh,              &
@@ -170,7 +154,10 @@ SUBROUTINE vertdiff ( &
 ! Formal Parameters:
 !-------------------
 
-! 0. Parameters controlling the call of 'organize_turbdiff':
+! Parameters controlling the call of 'organize_turbdiff':
+! --------------------------------------------------------------------
+
+TYPE(t_turbdiff_config), POINTER, INTENT(IN) :: tdc ! 'turbdiff' configuration state for a single patch (domain)
 
 LOGICAL, INTENT(IN) :: &
 
@@ -276,11 +263,8 @@ REAL (KIND=wp), DIMENSION(:,:), TARGET, INTENT(IN) :: &
 REAL (KIND=wp), DIMENSION(:,:), TARGET, INTENT(INOUT) :: &
   rhon           ! total density of air (at half levels)         (kg/m3)
 
-REAL (KIND=wp), DIMENSION(:), INTENT(IN) :: &
-!
-  impl_weight    ! profile of precalculated implicit weights 
-
 TYPE (modvar), OPTIONAL, INTENT(INOUT) :: ptr(:) ! passive tracers
+
 INTEGER                , INTENT(IN)    :: ndtr   ! number of tracers to be diffused
 
 REAL (KIND=wp), DIMENSION(:), TARGET, INTENT(INOUT) :: &
@@ -436,7 +420,7 @@ REAL (KIND=wp), DIMENSION(:), OPTIONAL, TARGET, INTENT(INOUT) :: &
       ndiff=nmvar+ndtr !number of 1-st order variables used in the turbulence model
                        !note that cloud ice is treated like a passive trace here
 
-      !According to the setting in 'turb_data' it holds:
+      !According to the setting in 'mo_turbdiff_config' it holds:
       ! nmvar = nscal+nvel: number of model variables being dynamically active for turbulence
       !         nvel  = 2    active horizontal wind components:  'u_m', 'v_m'
       !                      u_m = 1:     zonal      wind
@@ -597,7 +581,7 @@ my_thrd_id = omp_get_thread_num()
             ELSE !a scalar property
                IF (ivtype.EQ.mom) lnewvtype=.TRUE.
 
-               lsflucond=lsflcnd !use chosen type of lower boundary condition
+               lsflucond=tdc%lsflcnd !use chosen type of lower boundary condition
 
                ivtype=sca
             END IF
@@ -684,7 +668,7 @@ my_thrd_id = omp_get_thread_num()
                   cur_prof(i,ke1)=dvar_sv(i)
                END DO
                !$ACC END PARALLEL
-            ELSEIF (n.LE.nvel .OR. ilow_def_cond.EQ.2) THEN
+            ELSEIF (n.LE.nvel .OR. tdc%ilow_def_cond.EQ.2) THEN
                !No-slip-condition for momentum or zero-concentr. condition as a default:
 !DIR$ IVDEP
 !$NEC ivdep
@@ -694,7 +678,7 @@ my_thrd_id = omp_get_thread_num()
                   cur_prof(i,ke1)=z0
                END DO
                !$ACC END PARALLEL
-            ELSE !(ilow_def_cond.EQ.1) 
+            ELSE !(tdc%ilow_def_cond.EQ.1) 
                 !Enforce a zero-flux condition as a default:
 !DIR$ IVDEP
 !$NEC ivdep
@@ -739,7 +723,7 @@ my_thrd_id = omp_get_thread_num()
 !Achtung: Belegung von 'cur_prof' ev. verzichtbar bei "igrdcon=2"!
 
             leff_flux= .FALSE. !so far no extra vertical calculation of final fluxes necessary
-            IF (.NOT.(lsfluse .AND. lsflcnd)) THEN ! calculation of effective flux density required
+            IF (.NOT.(lsfluse .AND. tdc%lsflcnd)) THEN ! calculation of effective flux density required
                IF ( ( n.EQ.tet .AND. PRESENT(shfl_s) ) .OR. ( n.EQ.vap .AND. PRESENT(qvfl_s) ) ) THEN
                   leff_flux = .TRUE.
                END IF
@@ -759,9 +743,9 @@ my_thrd_id = omp_get_thread_num()
 !XL_COMMENTS : this print seems to occurs for any debug level, on purpose ?
 !            print*, ivtype, associated(vtyp(ivtype)%tkv)
 
-            CALL vert_grad_diff( kcm,                                &
+            CALL vert_grad_diff( tdc=tdc, kcm=kcm,                    &
 !
-                 i_st=ivstart, i_en=ivend, k_tp=k_st_pp-1, k_sf=ke1, &
+                 i_st=ivstart, i_en=ivend, k_tp=k_st_pp-1, k_sf=ke1,  &
 !
                  dt_var=dt_var, ivtype=ivtype, igrdcon=igrdcon, itndcon=itndcon, &
 !
@@ -773,8 +757,6 @@ my_thrd_id = omp_get_thread_num()
                  rho=rhoh, rho_n=rhon, hhl=hhl, r_air=r_air,          &
 !
                  tkv=vtyp(ivtype)%tkv, tsv=vtyp(ivtype)%tsv,          &
-!
-                 impl_weight=impl_weight,                             &
 !
                  disc_mom=zaux(:,:,1), expl_mom=zaux(:,:,2),          &
                  impl_mom=zaux(:,:,3), invs_mom=zaux(:,:,4),          &
@@ -857,7 +839,7 @@ my_thrd_id = omp_get_thread_num()
 !     Update of surface fluxes, if the vertical diffusion has determined them implicitly:
 
 !Achtung: "lscadif" ergaenzt
-      IF (.NOT.(lsfluse .AND. lsflcnd)) THEN
+      IF (.NOT.(lsfluse .AND. tdc%lsflcnd)) THEN
          !effektive Oberfl.flussdichten wurden neu bestimmt
 
          IF (PRESENT(shfl_s) .OR. lrunscm) THEN

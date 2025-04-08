@@ -2231,7 +2231,7 @@ CONTAINS
         ENDDO
         !$ACC END PARALLEL
 
-        ! (open) water points (needed for A-O coupling)
+        ! (open) water points (needed for A-O coupling and air-sea interaction)
         !
         !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1) IF(lzacc)
         !$ACC LOOP GANG VECTOR PRIVATE(jc)

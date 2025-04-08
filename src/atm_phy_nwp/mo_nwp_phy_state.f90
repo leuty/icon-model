@@ -73,14 +73,14 @@ USE mo_exception,           ONLY: message, finish !,message_text
 USE mo_model_domain,        ONLY: t_patch, p_patch, p_patch_local_parent
 USE mo_grid_config,         ONLY: n_dom, n_dom_start, nexlevs_rrg_vnest
 USE mo_atm_phy_nwp_config,  ONLY: atm_phy_nwp_config, icpl_aero_conv, iprog_aero
-USE turb_data,              ONLY: ltkecon, imode_tkemini, imode_trancnf, rsur_sher
+USE mo_turbdiff_config,     ONLY: turbdiff_config, t_turbdiff_config
 USE mo_initicon_config,     ONLY: icpl_da_sfcevap, icpl_da_snowalb, icpl_da_landalb, icpl_da_skinc, icpl_da_seaice
 USE mo_radiation_config,    ONLY: irad_aero, iRadAeroTegen, iRadAeroART, iRadAeroNone, &
   &                               iRadAeroConst, iRadAeroCAMSclim, iRadAeroCAMStd, islope_rad, &
   &                               iRadAeroConstKinne, iRadAeroKinne, iRadAeroVolc, iRadAeroKinneVolc, &
   &                               iRadAeroKinneVolcSP, iRadAeroKinneSP, iRadAeroExternal, &
   &                               ecrad_nbands_sw, ecrad_nbands_lw
-USE mo_lnd_nwp_config,      ONLY: ntiles_total, ntiles_water, nlev_soil
+USE mo_lnd_nwp_config,      ONLY: ntiles_total, ntiles_water, nlev_soil, itype_ahf
 USE mo_nwp_tuning_config,   ONLY: itune_gust_diag
 USE mo_var_list,            ONLY: add_var, add_ref, t_var_list_ptr
 USE mo_var_list_register,   ONLY: vlr_add, vlr_del
@@ -170,7 +170,7 @@ PUBLIC :: prm_nwp_stochconv_list  !< variable lists
 !! domain-dependent (computed during physics initialization phase)
 !!-------------------------------------------------------------------------
   TYPE (t_phy_params), ALLOCATABLE :: phy_params(:)  !< shape: (n_dom)
-
+  TYPE(t_turbdiff_config), POINTER :: tdc            !< 'turbdiff' configuration state for a single patch (domain)
 
 CONTAINS
 
@@ -218,6 +218,8 @@ SUBROUTINE construct_nwp_phy_state( p_patch, var_in_output )
      ! number of vertical levels
      nlev   = p_patch(jg)%nlev
      nlevp1 = p_patch(jg)%nlevp1
+
+     tdc => turbdiff_config(jg)
 
      WRITE(listname,'(a,i2.2)') 'prm_diag_of_domain_',jg
      CALL new_nwp_phy_diag_list( jg, nlev, nlevp1, nblks_c, listname,  &
@@ -3495,7 +3497,6 @@ SUBROUTINE new_nwp_phy_diag_list( k_jg, klev, klevp1, kblks,    &
     __acc_attach(diag%t_tilemin_inst_2m)
 
 
-
     ! &      diag%t_2m_land(nproma,nblks_c)
     cf_desc    = t_cf_var('t_2m_land', 'K ','temperature in 2m over land fraction', &
       &          datatype_flt)
@@ -3506,6 +3507,23 @@ SUBROUTINE new_nwp_phy_diag_list( k_jg, klev, klevp1, kblks,    &
       & ldims=shape2d, lrestart=.FALSE., in_group=groups("pbl_vars"),     &
       & lopenacc=.TRUE. )
     __acc_attach(diag%t_2m_land)
+
+
+    IF (itype_ahf >= 3) THEN
+      ! &      diag%t_2m_filt(nproma,nblks_c)
+      cf_desc    = t_cf_var('t_2m_filt', 'K ','time-filtered temperature in 2m', &
+        &          datatype_flt)
+      grib2_desc = grib2_var(0, 210, 2, ibits, GRID_UNSTRUCTURED, GRID_CELL)    &
+                 + t_grib2_int_key("scaleFactorOfFirstFixedSurface", 0)         &
+                 + t_grib2_int_key("scaledValueOfFirstFixedSurface", 2)         &
+                 + t_grib2_int_key("typeOfFirstFixedSurface", 103)
+      CALL add_var( diag_list, 't_2m_filt', diag%t_2m_filt,                      &
+        & GRID_UNSTRUCTURED_CELL, ZA_HEIGHT_2M_LAYER, cf_desc, grib2_desc,       &
+        & ldims=shape2d, lrestart=.TRUE., lopenacc=.TRUE., initval=99.9_wp,      &
+        & in_group=groups("mode_iau_fg_in","mode_dwd_fg_in","mode_combined_in")  )
+      __acc_attach(diag%t_2m_filt)
+    ENDIF
+
 
     ! &      diag%tmax_2m(nproma,nblks_c)
     cf_desc    = t_cf_var('tmax_2m', 'K ','Max 2m temperature', datatype_flt)
@@ -3927,7 +3945,7 @@ SUBROUTINE new_nwp_phy_diag_list( k_jg, klev, klevp1, kblks,    &
          & grib2_var(255, 255, 255, ibits, GRID_UNSTRUCTURED, GRID_CELL),   &
          & ref_idx=jsfc, ldims=shape2d,                               &
          & var_class=CLASS_TILE,                                      &
-         & lrestart=(imode_trancnf.GE.4), loutput=.TRUE.)
+         & lrestart=(tdc%imode_trancnf.GE.4), loutput=.TRUE.)
     ENDDO
 
 
@@ -4432,7 +4450,7 @@ SUBROUTINE new_nwp_phy_diag_list( k_jg, klev, klevp1, kblks,    &
        & ldims=shape3dkp1, in_group=groups("pbl_vars"), lopenacc=.TRUE.) 
      __acc_attach(diag%tkvh)
  
-     IF (imode_tkemini.EQ.2 .OR. rsur_sher.GT.0_wp) THEN !TKE-adaptation to shear-related part of LLDCc
+     IF (tdc%imode_tkemini.EQ.2 .OR. tdc%rsur_sher.GT.0_wp) THEN !TKE-adaptation to shear-related part of LLDCc
        shape3duse=shape3dkp1 !shape of 3D half-level variable
        lrestart=.TRUE.       !needs to be saved for restart
      ELSE
@@ -6707,7 +6725,7 @@ SUBROUTINE new_nwp_phy_tend_list( k_jg, klev,  kblks,   &
                 & in_group=groups("phys_tendencies") )
     __acc_attach(phy_tend%ddt_tke)
   
-    IF (ltkecon) THEN
+    IF (tdc%ltkecon) THEN
       lrestart = .TRUE.
     ELSE
       lrestart = .FALSE.

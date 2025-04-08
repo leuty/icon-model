@@ -132,6 +132,7 @@ CONTAINS
 
     SELECT CASE(sstice_mode)
     CASE (SSTICE_ANA_CLINC)
+
       !
       ! add climatological SST increment (updates t_g_t, t_s_t, t_sk_t, qv_s_t)
       !
