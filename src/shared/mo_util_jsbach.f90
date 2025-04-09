@@ -1792,7 +1792,8 @@ CONTAINS
       &                   ldiur,            l_sph_symm_irr,  & ! in
       &                   patch,                             & ! in
       &                   cos_zenith_angle(:,:),             & ! out
-      &                   daylight_frc(:,:))                   ! out
+      &                   daylight_frc(:,:),                 & ! out
+      &                   lacc=.FALSE.                       ) ! in
 
     cos_zenith_angle(:,:) = cos_zenith_angle(:,:) * daylight_frc(:,:)
 

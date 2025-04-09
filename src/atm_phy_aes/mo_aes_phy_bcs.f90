@@ -323,8 +323,8 @@ CONTAINS
              & .OR. aes_rad_config(jg)% irad_o3 ==  6 &       ! climatological annual cycle defined by monthly data
              & .OR. aes_rad_config(jg)% irad_o3 ==  5 &       ! transient monthly means
              & .OR. aes_rad_config(jg)% irad_o3 == 10 ) THEN  ! coupled to ART
-          CALL read_bc_ozone(mtime_old%date%year, patch, aes_rad_config(jg)%irad_o3,   &
-      &                      opt_from_coupler=is_coupled_to_o3())
+          CALL read_bc_ozone(mtime_old%date%year, patch, aes_rad_config(jg)%irad_o3, &
+      &                      opt_from_coupler=is_coupled_to_o3(), lacc=.TRUE.)
         END IF
         !
         ! irad_aero==13: transient tropospheric aerosol optical properties after S. Kinne (including anthropogenic)
@@ -374,9 +374,6 @@ CONTAINS
              & mtime_old,                 ltrig_rad,                          &
              & prm_field(jg)%cosmu0,      prm_field(jg)%daylght_frc,          &
              & prm_field(jg)%cosmu0_rt,   prm_field(jg)%daylght_frc_rt        )
-        !$ACC UPDATE DEVICE(prm_field(jg)%cosmu0, prm_field(jg)%cosmu0_rt) &
-        !$ACC   DEVICE(prm_field(jg)%daylght_frc, prm_field(jg)%daylght_frc_rt) &
-        !$ACC   ASYNC(1)
       END IF
 #endif
 

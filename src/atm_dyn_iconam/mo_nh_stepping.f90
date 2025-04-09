@@ -91,7 +91,7 @@ MODULE mo_nh_stepping
   USE mo_memory_log,               ONLY: memory_log_add
   USE mo_mpi,                      ONLY: proc_split, push_glob_comm, pop_glob_comm, &
        &                                 p_comm_work, my_process_is_mpi_workroot,   &
-       &                                 my_process_is_mpi_test, my_process_is_work_only, i_am_accel_node
+       &                                 my_process_is_mpi_test, my_process_is_work_only
 #ifdef NOMPI
   USE mo_mpi,                      ONLY: my_process_is_mpi_all_seq
 #endif
@@ -130,6 +130,8 @@ MODULE mo_nh_stepping
 #ifndef __NO_AES__
   USE mo_omp_block_loop,           ONLY: omp_block_loop_cell
   USE mo_diagnose_tcw,             ONLY: diagnose_tcw
+  USE mo_diagnose_clwvi,           ONLY: diagnose_clwvi
+  USE mo_diagnose_qall,            ONLY: diagnose_qall
   USE mo_diagnose_qvi,             ONLY: diagnose_qvi
   USE mo_diagnose_uvi,             ONLY: diagnose_uvd, diagnose_uvp
   USE mo_aes_diagnostics,          ONLY: aes_global_diagnostics
@@ -221,7 +223,6 @@ MODULE mo_nh_stepping
 
 #if defined( _OPENACC )
   USE mo_nonhydro_gpu_types,       ONLY: h2d_icon, d2h_icon, devcpy_grf_state
-  USE mo_mpi,                      ONLY: my_process_is_work
   USE mo_acc_device_management,    ONLY: printGPUMem
 #endif
   USE mo_loopindices,              ONLY: get_indices_c, get_indices_v
@@ -501,7 +502,6 @@ MODULE mo_nh_stepping
 
 #ifdef _OPENACC
     ! initialize GPU for NWP and AES
-    i_am_accel_node = .TRUE. ! Activate GPUs, this variable is just needed for JSBACH
     CALL h2d_icon( p_int_state, p_int_state_local_parent, p_patch, p_patch_local_parent, &
     &            p_nh_state, prep_adv, advection_config, les_config, iforcing, lacc=.TRUE. )
     IF (n_dom > 1 .OR. l_limited_area) THEN
@@ -779,7 +779,6 @@ MODULE mo_nh_stepping
     ENDDO
     CALL hostcpy_nwp(lacc=.TRUE.)
   ENDIF
-  i_am_accel_node = .FALSE.                 ! Deactivate GPUs
 #endif
 
   CALL deallocate_nh_stepping
@@ -1892,10 +1891,8 @@ MODULE mo_nh_stepping
     JSTEP_LOOP: DO jstep = 1, num_steps
 
 #ifdef _OPENACC
-      IF (msg_level >= 13) THEN
-        CALL printGPUMem("GPU mem usage")
-        CALL message('',message_text)
-      ENDIF
+      CALL printGPUMem("GPU mem usage")
+      CALL message('',message_text)
 #endif
 
 #ifndef __NO_ICON_COMIN__
@@ -2427,7 +2424,9 @@ MODULE mo_nh_stepping
             !
             CALL omp_block_loop_cell ( p_patch(jg), diagnose_qvi ) ! tracer mass and tracer mass tendency vertical integral
             CALL omp_block_loop_cell ( p_patch(jg), diagnose_uvp ) ! internal energy vertical integral after physics
-            CALL omp_block_loop_cell ( p_patch(jg), diagnose_tcw ) ! total cloud water integral after physics
+            CALL omp_block_loop_cell ( p_patch(jg), diagnose_tcw ) ! total water vertical integral after physics
+            CALL omp_block_loop_cell ( p_patch(jg), diagnose_clwvi)! cloud condensed water vertical integral after physics
+            CALL omp_block_loop_cell ( p_patch(jg), diagnose_qall) ! mass fraction of all hydrometeors in air
             CALL aes_global_diagnostics ( p_patch(jg), dt_loc, p_nh_state(jg)%prog(nnew(jg)), p_nh_state(jg)%diag )  ! global mean diagnostics
             !
             IF (ltimer) CALL timer_stop(timer_iconam_aes)
@@ -2893,7 +2892,6 @@ MODULE mo_nh_stepping
             ENDIF
 
 #ifdef _OPENACC
-            i_am_accel_node = my_process_is_work()
             ! Move data back to accelerator.
             CALL gpu_h2d_nh_nwp(jg, ext_data=ext_data(jg), lacc=.TRUE.) ! necessary as Halo-Data can be modified
             CALL gpu_h2d_nh_nwp(jgc, ext_data=ext_data(jgc), phy_params=phy_params(jgc), &

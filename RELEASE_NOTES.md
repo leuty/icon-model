@@ -13,6 +13,12 @@ AES Physics:
   - Fix for gcc14 in TMX (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/667)
 - Added support for time steps with fractional seconds in AES/ICON-Land (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/606)
 - Fixes to latbc and nesting (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/671)
+- Recenter aes bubble relative to grid center (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/734)
+- Diagnostics of clwvi and qall (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/752)
+- OpenACC port of solar_parameters and pre_rte_rrtmgp_radiation (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/741)
+- Fixes to nesting on GPU and restarting with lsstice=.true. (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/723)
+- Bugfix phillips_nucleation values on GPU (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/725)
+- Fix add_ref for mtrcvi_ptr and mtrcvi_phy_ptr (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/765)
 
 NWP Physics:
 
@@ -44,6 +50,8 @@ NWP Physics:
 - More consistent precision of literal floating point values used in TKE and IDEMIX (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/528)
 - Correct unit conversion for tos (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/704)
 - Improvements for ocean GPU runs and validation tests (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/641)
+- Bugfix for dynamic short wave radiation absorption (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/726)
+- Fix bugs when initializing the ocean from restart files (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/753)
 
 ### ICON-Wave
 
@@ -82,19 +90,25 @@ Climate: ICON-Land
     - Read elevation for QUINCY from file
     - Improved handling of n and p deposition reading from forcing data
     - Inclusion of self-thinning and herbivory in grasslands and pastures (but not crops)
+    - Improvements regarding C:N and N:P ratios in leaves and soil-organic matter
   - Merged the radiation process of QUINCY into the radiation process of JSBACH
   - Use JSBACH4 canopy, soil and snow albedos with QUINCY albedo calculations
+  - Use the turbulence process of JSBACH in QUINCY replacing QUINCY-specific turbulence-code
+  - Preparations for using further JSBACH physics processes with QUINCY
   - Consolidate and clean up namelist handling and physical parameters between QUINCY and JSBACH
   - Implementation of a harvest process for QUINCY (for now using a global constant)
+  - Technical implementation of an agriculture process for QUINCY (scientifically not yet ready for use)
   - Bugfix: static reals were missing decimal
   - Bugfix: some local REAL variables were missing kind statement
 - Small fix for ICON-Land standalone concerning nproma
+- Make PFT parameters available in memory init functions
 - New optional tag for the memory usage report
 - New functions for time control: get_previous_month_length and get_previous_year_length
 - Memory reduction: array allocation only if needed with the specific setup
 - Fix for initializing carbon pools from file (read_cpools)
 - The script suite to generate ICON-Land input data now also includes scripts to generate
-  HD parameter files (for internal HD) and HD receive masks (for external HD)
+  HD parameter files (for internal HD) and HD receive masks (for external HD), besides
+  high-resolution Merit-Rema topography data is used.
 - Bug fix: replace dp by wp in add_var wrappers
 - Added diagnostic variable for volumetric soil moisture content for soil layers
 - Fix for the calculation of snow aging
@@ -113,6 +127,8 @@ Climate: ICON-Land
 - Update thaw depth diagnostics
 - Enabled JSBACH usecase with PFTs when using TMX
 - Interface: New switch to supress YAC call during initialization phase
+- Update HD-YAC coupling interface to use mo_coupling_utils
+- Implemented experimental formulation of skin temperature (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/775)
 
 ### Externals
 
@@ -137,6 +153,8 @@ Climate: ICON-Land
 - Fix the generation of index lists on GPUs for LAM and nested simulation runs
 - Single-precision support in IO components (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/680)
 - Remove more i_am_accel_node (https://gitlab.dkrz.de/icon/icon-nwp/-/merge_requests/1679)
+- Completely removed i_am_accel_node (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/732)
+- Minor fix for communication_orig with g2g communication disabled (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/714)
 
 #### Coupling
 
@@ -145,6 +163,9 @@ Climate: ICON-Land
 - Allow for component wise model initialization from restart file (https://gitlab.dkrz.de/icon/icon-nwp/-/merge_requests/1611)
 - Improve coupling timers (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/717)
 - Bugfix for array initialization in coupled simulations using GPUs (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/711)
+- Output coupling on pressure levels (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/653)
+- Improve metadata exposure (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/707)
+- Initial version of coupling infrastructure and entry point for one-way coupling with CLEO (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/471)
 
 #### Scripting and testing
 
@@ -168,6 +189,10 @@ Climate: ICON-Land
 - New path for input data for the ocean buildbot test that is run on mpim sites (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/687)
 - mkexp for amip r2b8 at Levante GPUs with distributed I/O (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/598)
 - Check Memory consumption on NEC (https://gitlab.dkrz.de/icon/icon-nwp/-/merge_requests/1399)
+- Added script to check global water conservation of coupled ICON XPP runs (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/762)
+- Bubble script configuration (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/411)
+- Extend mkexp monitoring to log files (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/601)
+- Fix openmp test in icon-dev.checksuite (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/768)
 
 #### Building
 
@@ -181,6 +206,8 @@ Climate: ICON-Land
 - Add contribution guidelines
 - Add various issue and merge request templates
 - replace Poisson routine in stochastic NWP convection code (https://gitlab.dkrz.de/icon/icon-nwp/-/merge_requests/1680)
+- Always print out GPU memory usage if using OpenACC (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/740)
+- Restructure documentation for scripting (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/746)
 
 # Release notes for icon-2024.10
 

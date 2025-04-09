@@ -27,7 +27,7 @@ MODULE mo_coupling_nml
   USE mo_coupling_config, ONLY: config_coupled_to_ocean, config_coupled_to_waves,    &
     &                           config_coupled_to_hydrodisc, config_coupled_to_atmo, &
     &                           config_coupled_to_output, config_coupled_to_aero,    &
-    &                           config_coupled_to_o3
+    &                           config_coupled_to_o3, config_coupled_to_cleo
   USE mo_coupling_utils,  ONLY: cpl_config_file_exists
   USE mo_master_control,  ONLY: get_my_process_type, get_my_process_name,           &
     &                           atmo_process, ocean_process, ps_radiation_process,  &
@@ -62,7 +62,8 @@ CONTAINS
                coupled_to_hydrodisc, can_couple_to_hydrodisc, &
                coupled_to_output, can_couple_to_output, &
                coupled_to_aero, can_couple_to_aero, &
-               coupled_to_o3, can_couple_to_o3
+               coupled_to_o3, can_couple_to_o3, &
+               coupled_to_cleo, can_couple_to_cleo
 
     LOGICAL :: coupled_mode
     INTEGER :: istat
@@ -74,7 +75,7 @@ CONTAINS
 
     NAMELIST /coupling_mode_nml/ coupled_to_ocean, coupled_to_waves, &
          coupled_to_atmo, coupled_to_hydrodisc, coupled_to_output, &
-         coupled_to_aero, coupled_to_o3
+         coupled_to_aero, coupled_to_o3, coupled_to_cleo
 
     !--------------------------------------------------------------------
     ! 1. Set default values
@@ -87,6 +88,7 @@ CONTAINS
     coupled_to_output       = .FALSE.
     coupled_to_aero         = .FALSE.
     coupled_to_o3           = .FALSE.
+    coupled_to_cleo         = .FALSE.
 
     can_couple_to_ocean        = .FALSE.
     can_couple_to_waves        = .FALSE.
@@ -95,6 +97,7 @@ CONTAINS
     can_couple_to_output       = .FALSE.
     can_couple_to_aero         = .FALSE.
     can_couple_to_o3           = .FALSE.
+    can_couple_to_cleo         = .FALSE.
 
     !--------------------------------------------------------------------
     ! 2. Read user's (new) specifications (done so far by all MPI processes)
@@ -120,6 +123,7 @@ CONTAINS
     config_coupled_to_output       = coupled_to_output
     config_coupled_to_aero         = coupled_to_aero
     config_coupled_to_o3           = coupled_to_o3
+    config_coupled_to_cleo         = coupled_to_cleo
 
     coupled_mode = ANY((/coupled_to_ocean,     &
                          coupled_to_waves,     &
@@ -127,7 +131,8 @@ CONTAINS
                          coupled_to_hydrodisc, &
                          coupled_to_output,    &
                          coupled_to_aero,      &
-                         coupled_to_o3/))
+                         coupled_to_o3,        &
+                         coupled_to_cleo/))
 
     !----------------------------------------------------
     ! 3. Sanity checks
@@ -153,6 +158,7 @@ CONTAINS
         can_couple_to_output = .TRUE.
         can_couple_to_aero = .TRUE.
         can_couple_to_o3 = .TRUE.
+        can_couple_to_cleo = .TRUE.
       CASE (ocean_process)
         can_couple_to_atmo = .TRUE.
         can_couple_to_hydrodisc = .TRUE.
@@ -210,6 +216,12 @@ CONTAINS
       CALL finish( &
         routine, 'Component ' // TRIM(get_my_process_name()) // &
         ' does not support coupling to o3')
+    ENDIF
+
+    IF (coupled_to_cleo .AND. .NOT. can_couple_to_cleo) THEN
+      CALL finish( &
+        routine, 'Component ' // TRIM(get_my_process_name()) // &
+        ' does not support coupling to CLEO')
     ENDIF
 
     IF (coupled_mode .AND. .NOT. cpl_config_file_exists()) THEN

@@ -60,7 +60,8 @@ CONTAINS
        &                      icosmu0,     dt_ext,          &
        &                      ldiur,       l_sph_symm_irr,  &
        &                      p_patch,                      &
-       &                      cos_mu0,     daylight_frc     )
+       &                      cos_mu0,     daylight_frc,    &
+       &                      lacc                          )
 
     REAL(wp), INTENT(in)  :: &
          decl_sun,           & !< delination of the sun
@@ -76,6 +77,8 @@ CONTAINS
     REAL(wp), INTENT(out) :: &
          cos_mu0(:,:),       & !< cos_mu_0, cosine of the solar zenith angle
          daylight_frc(:,:)     !< daylight fraction (0 or 1) with diurnal cycle
+    LOGICAL, INTENT(in)   :: lacc
+
 
     INTEGER     :: i, j
     REAL(wp)    :: zen1, zen2, zen3, xx
@@ -96,6 +99,8 @@ CONTAINS
 
     INTEGER :: nprom, npromz, nblks
 
+    !$ACC DECLARE CREATE(cosrad, sinrad)
+
     nprom=nproma
     npromz=p_patch%npromz_c
     nblks=p_patch%nblks_c
@@ -103,11 +108,13 @@ CONTAINS
     IF (.NOT.ldiur.AND..NOT.initialized_sincos) THEN
        !
        ! sin and cos arrays for zonal mean radiation
+       !$ACC KERNELS DEFAULT(PRESENT) ASYNC(1) IF(lacc)
        DO i = 1, nds
           xx = pi2*(i-1.0_wp)/nds
           sinrad(i) = SIN(xx)
           cosrad(i) = COS(xx)
        END DO
+       !$ACC END KERNELS
        !
        initialized_sincos = .TRUE.
     END IF
@@ -151,6 +158,10 @@ CONTAINS
        ALLOCATE(coslon(nprom,nblks))
        ALLOCATE(coslat(nprom,nblks))
        ALLOCATE(mu0(nprom,nblks))
+
+       !$ACC DATA CREATE(sinlon, sinlat, coslon, coslat, mu0) IF(lacc)
+
+       !$ACC KERNELS DEFAULT(PRESENT) ASYNC(1) IF(lacc)
        sinlon(:,:)=0._wp
        sinlat(:,:)=0._wp
        coslon(:,:)=0._wp
@@ -163,9 +174,11 @@ CONTAINS
        sinlat(1:npromz,nblks)=SIN(p_patch%cells%center(1:npromz,nblks)%lat)
        coslon(1:npromz,nblks)=COS(p_patch%cells%center(1:npromz,nblks)%lon)
        coslat(1:npromz,nblks)=COS(p_patch%cells%center(1:npromz,nblks)%lat)
+       !$ACC END KERNELS
        !
        IF (ldiur) THEN                  ! - with local diurnal cycle
           !
+          !$ACC KERNELS DEFAULT(PRESENT) ASYNC(1) IF(lacc)
           ! cos(zenith angle), positive for sunlit hemisphere
           cos_mu0(:,:)     =  zen1*sinlat(:,:)                &
                &             -zen2*coslat(:,:)*coslon(:,:)    &
@@ -173,6 +186,7 @@ CONTAINS
           !
           ! zenith angle
           mu0(:,:) = ACOS(cos_mu0(:,:))
+          !$ACC END KERNELS
           !
           ! increment of mu0 to include a rim of width dmu0= (dt_ext/2)*2pi/1day around
           ! the sunlit hemisphere at the radiation time so that the extended area includes
@@ -183,10 +197,12 @@ CONTAINS
           !
           ! add increment dcos_mu0 for the definition of the extended daylight area
           ! set day/night indicator to 1/0
+          !$ACC KERNELS DEFAULT(PRESENT) ASYNC(1) IF(lacc)
           daylight_frc(:,:) = 1.0_wp
           WHERE (cos_mu0(:,:)+dcos_mu0 < 0.0_wp)
              daylight_frc(:,:) = 0.0_wp
           END WHERE
+          !$ACC END KERNELS
           !
           IF (dt_ext/=0.0_wp) THEN
              !
@@ -200,17 +216,21 @@ CONTAINS
                 !
                 ! minimum value
                 !
+                !$ACC KERNELS DEFAULT(PRESENT) ASYNC(1) IF(lacc)
                 WHERE (daylight_frc(:,:) == 1.0_wp)
                    cos_mu0(:,:) = MAX(0.1_wp,cos_mu0(:,:))
                 END WHERE
+                !$ACC END KERNELS
                 !
              CASE (2)
                 !
                 ! shift and rescale
                 !
+                !$ACC KERNELS DEFAULT(PRESENT) ASYNC(1) IF(lacc)
                 WHERE (daylight_frc(:,:) == 1.0_wp)
                    cos_mu0(:,:) = (cos_mu0(:,:)+dcos_mu0)/(1._wp+dcos_mu0)
                 END WHERE
+                !$ACC END KERNELS
                 !
              CASE (3)
                 !
@@ -221,9 +241,11 @@ CONTAINS
                 !   center     = original terminator : mu0=pi/2      --> cos_mu0 = cos(pi/2-dmu0)/2
                 !   outer edge = extended terminator : mu0=pi/2+dmu0 --> cos_mu0 = 0
                 !
+                !$ACC KERNELS DEFAULT(PRESENT) ASYNC(1) IF(lacc)
                 WHERE (ABS(mu0(:,:)-pi_2)<dmu0)
                    cos_mu0(:,:) = 0.5_wp*SIN(dmu0)*(1._wp-(mu0(:,:)-pi_2)/dmu0)
                 END WHERE
+                !$ACC END KERNELS
                 !
              CASE (4)
                 !
@@ -237,9 +259,11 @@ CONTAINS
                 ! mu0s is the solution of : cos(mu0s) = sin(mu0s)*(pi/2+dmu0-mu0s)
                 ! so that cos_mu0 is a C1 function in [0,pi/2+dmu0]
                 !
+                !$ACC KERNELS DEFAULT(PRESENT) ASYNC(1) IF(lacc)
                 WHERE ((mu0s<mu0(:,:)).AND.(mu0(:,:)<(pi_2+dmu0)))
                    cos_mu0(:,:) = sin_mu0s*(pi_2+dmu0-mu0(:,:))
                 END WHERE
+                !$ACC END KERNELS
                 !
              END SELECT
           END IF
@@ -250,6 +274,7 @@ CONTAINS
           ! latitude circle of the cell. Then compute the zonal mean of cos(mu0) for the latitude
           ! of this cell as the average over all longitudes, where cos(mu0)>=epsilon.
           !
+          !$ACC PARALLEL LOOP DEFAULT(PRESENT) COLLAPSE(2) ASYNC(1) IF(lacc)
           DO j = 1, SIZE(cos_mu0,2)
              DO i = 1, SIZE(cos_mu0,1)
                 !
@@ -281,9 +306,12 @@ CONTAINS
                 !
              END DO
           END DO
+          !$ACC END PARALLEL LOOP
           !
        END IF
        !
+       !$ACC WAIT(1)
+       !$ACC END DATA
        DEALLOCATE(sinlon)
        DEALLOCATE(sinlat)
        DEALLOCATE(coslon)
@@ -297,26 +325,31 @@ CONTAINS
        IF (ldiur) THEN                  ! - with diurnal cycle of (0degE,0degN), i.e.
           !                                 local noon is at 12:00 UTC in all points
           !
+          !$ACC KERNELS DEFAULT(PRESENT) ASYNC(1) IF(lacc)
           cos_mu0(:,:) = -zen2          !   = cos_mu0 at (0degE,0degN)
           IF (-zen2 < 0.0_wp) THEN
              daylight_frc(:,:) = 0.0_wp
           ELSE
              daylight_frc(:,:) = 1.0_wp
           END IF
+          !$ACC END KERNELS
           !
        ELSE                             ! - without diurnal cycle
           !                                 all grid points have the same constant cos_mu0
           !
           ! cos_mu0(:,:) = pi_4           !  = pi/4 (why this choice?)
           ! quickhack for RCEMIP_analytical
+          !$ACC KERNELS DEFAULT(PRESENT) ASYNC(1) IF(lacc)
           cos_mu0(:,:) = COS(42.05_wp*pi/180._wp)           !  = pi/4 (why this choice?)
           daylight_frc(:,:) = 1.0_wp
+          !$ACC END KERNELS
           !
        END IF
        !
        !
     END IF
 
+    !$ACC WAIT(1)
   END SUBROUTINE solar_parameters
 
 END MODULE mo_solar_parameters

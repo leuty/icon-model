@@ -74,6 +74,9 @@ MODULE mo_aes_phy_main
   USE mo_comin_adapter,     ONLY: icon_call_callback
 #endif
 
+  USE mo_coupling_config,     ONLY: is_coupled_to_cleo
+  USE mo_interface_cleo,     ONLY: interface_cleo
+
   IMPLICIT NONE
   PRIVATE
   PUBLIC  :: aes_phy_main
@@ -123,6 +126,12 @@ CONTAINS
 #ifndef __NO_ICON_COMIN__
     CALL icon_call_callback(EP_ATM_MICROPHYSICS_BEFORE, jg, lacc=.TRUE.)
 #endif
+    !-------------------------------------------------------------------
+    ! CLEO microphysics
+    !-------------------------------------------------------------------
+
+    if(is_coupled_to_cleo()) CALL interface_cleo(jg)
+
     !-------------------------------------------------------------------
     ! single moment cloud microphysics "Graupel" (mig)
     !-------------------------------------------------------------------

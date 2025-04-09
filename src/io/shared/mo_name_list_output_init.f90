@@ -150,7 +150,7 @@ MODULE mo_name_list_output_init
     &                                             GRP_PREFIX, TILE_PREFIX,                        &
     &                                             t_fname_metadata, all_events, t_patch_info_ll,  &
     &                                             is_grid_info_var, GRB2_GRID_INFO_NAME,          &
-    &                                             t_event_data_local, FILETYPE_YAC
+    &                                             t_event_data_local, FILETYPE_NONE
   USE mo_name_list_output_gridinfo,         ONLY: set_grid_info_grb2, set_grid_info_netcdf,       &
     &                                             collect_all_grid_info, copy_grid_info,          &
     &                                             allgather_grid_info, deallocate_all_grid_info,  &
@@ -2709,12 +2709,8 @@ CONTAINS
           END SELECT
         CASE (FILETYPE_GRB2)
           ! handled later...
-        CASE (FILETYPE_YAC)
-#ifdef YAC_coupling
+        CASE (FILETYPE_NONE)
            ! handled later...
-#else
-           CALL finish(routine,'using yac-coupled output but yac coupling is disabled')
-#endif
         CASE DEFAULT
           CALL finish(routine, "Unknown output_type")
         END SELECT

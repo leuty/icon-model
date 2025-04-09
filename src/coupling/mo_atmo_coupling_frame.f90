@@ -35,7 +35,8 @@ MODULE mo_atmo_coupling_frame
     &                               is_coupled_to_waves,     &
     &                               is_coupled_to_output,    &
     &                               is_coupled_to_aero,      &
-    &                               is_coupled_to_o3
+    &                               is_coupled_to_o3,        &
+    &                               is_coupled_to_cleo
   USE mo_aes_phy_config      ,ONLY: aes_phy_config
   USE mo_time_config         ,ONLY: time_config
 
@@ -43,6 +44,7 @@ MODULE mo_atmo_coupling_frame
                                     construct_atmo_wave_coupling_finalize
   USE mo_atmo_ocean_coupling ,ONLY: construct_atmo_ocean_coupling, &
                                     destruct_atmo_ocean_coupling
+  USE mo_atmo_cleo_coupling  ,ONLY: construct_atmo_cleo_coupling_post_sync
   USE mo_atmo_o3_provider_coupling,ONLY: &
     construct_atmo_o3_provider_coupling_post_sync
   USE mo_atmo_aero_provider_coupling,ONLY: &
@@ -186,8 +188,7 @@ CONTAINS
         ! Construct coupling frame for atmosphere/JSBACH-hydrological discharge
         CALL message(str_module, 'Constructing the coupling frame atmosphere/JSBACH-hydrological discharge.')
 
-        CALL jsb_fdef_hd_fields( &
-          comp_id, cell_point_id(1:1), grid_id(1), patch_horz%n_patch_cells)
+        CALL jsb_fdef_hd_fields(comp_id, cell_point_id(1), grid_id(1))
 
       ENDIF
 
@@ -244,6 +245,12 @@ CONTAINS
       CALL construct_atmo_aero_provider_coupling_post_sync( &
         comp_id, cell_point_id(1), TRIM(aes_phy_config(jg)%dt_rad))
 
+    END IF
+
+    IF ( is_coupled_to_cleo() ) THEN
+      CALL message(str_module, 'Constructing the coupling frame atmosphere-CLEO.')
+      CALL construct_atmo_cleo_coupling_post_sync(comp_id, cell_point_id(1), &
+                                                  patch_horz%n_patch_cells, timestepstring)
     END IF
 
     ! End definition of coupling fields and search

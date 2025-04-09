@@ -692,9 +692,9 @@ CONTAINS
     !
     IF (iwtr <= nsfc_type .AND. iice <= nsfc_type) THEN
       !
-      IF (.NOT. isrestart()) THEN
+      IF (.NOT.  ANY(aes_phy_config(:)%lsstice)) THEN
         !
-        IF (.NOT.  ANY(aes_phy_config(:)%lsstice)) THEN
+        IF (.NOT. isrestart()) THEN
           !
           ! interpolation weights for linear interpolation of monthly means to the current time
           current_time_interpolation_weights = calculate_time_interpolation_weights(mtime_current)
@@ -717,44 +717,44 @@ CONTAINS
             !
           END DO
           !
-          !
-        ELSE
-          !
-          ! READ 6-hourly sst values (dyamond+- setup, preliminary)
-          ! Update to account for nested domains. The original ng=1 filename is kept as is to avoid conflicts.
-          DO jg = 1, ng
-            IF (ng > 1) THEN
-              WRITE(filename, '(A,I2.2,A)') 'sst-sic-runmean_DOM', jg, '.nc'
-            ELSE
-              filename = 'sst-sic-runmean_G.nc'
-            END IF
-          
-            CALL sst_sic_reader(jg)%init(p_patch(jg), filename)
-          
-            CALL sst_intp(jg)%init(sst_sic_reader(jg), mtime_current, "SST")
-            CALL sst_intp(jg)%intp(mtime_current, sst_dat, lacc=.FALSE.)
-
-            ! set sea surface temperature
-            WHERE (sst_dat(:,1,:,1) > 0.0_wp)
-              prm_field(jg)%ts_tile(:,:,iwtr) = sst_dat(:,1,:,1)
-            END WHERE
-          
-            CALL sic_intp(jg)%init(sst_sic_reader(jg), mtime_current, "SIC")
-            CALL sic_intp(jg)%intp(mtime_current, sic_dat, lacc=.FALSE.)
-            prm_field(jg)%seaice(:,:) = sic_dat(:,1,:,1)
-            prm_field(jg)%seaice(:,:) = MERGE(0.99_wp, prm_field(jg)%seaice(:,:), prm_field(jg)%seaice(:,:) > 0.99_wp)
-            prm_field(jg)%seaice(:,:) = MERGE(0.0_wp, prm_field(jg)%seaice(:,:), prm_field(jg)%seaice(:,:) <= 0.01_wp)
-          
-            ! set ice thickness
-            WHERE (prm_field(jg)%seaice(:,:) > 0.0_wp)
-              prm_field(jg)%siced(:,:) = MERGE(2.0_wp, 1.0_wp, p_patch(jg)%cells%center(:,:)%lat > 0.0_wp)
-            ELSEWHERE
-              prm_field(jg)%siced(:,:) = 0.0_wp
-            ENDWHERE
-          END DO
-        !
         END IF
         !
+      ELSE
+        !
+        ! READ 6-hourly sst values (dyamond+- setup, preliminary)
+        ! Update to account for nested domains. The original ng=1 filename is kept as is to avoid conflicts.
+        ! Note: this still needs to be initialized for restart runs.
+        DO jg = 1, ng
+          IF (ng > 1) THEN
+            WRITE(filename, '(A,I2.2,A)') 'sst-sic-runmean_DOM', jg, '.nc'
+          ELSE
+            filename = 'sst-sic-runmean_G.nc'
+          END IF
+        
+          CALL sst_sic_reader(jg)%init(p_patch(jg), filename)
+        
+          CALL sst_intp(jg)%init(sst_sic_reader(jg), mtime_current, "SST")
+          CALL sst_intp(jg)%intp(mtime_current, sst_dat, lacc=.FALSE.)
+
+          ! set sea surface temperature
+          WHERE (sst_dat(:,1,:,1) > 0.0_wp)
+            prm_field(jg)%ts_tile(:,:,iwtr) = sst_dat(:,1,:,1)
+          END WHERE
+        
+          CALL sic_intp(jg)%init(sst_sic_reader(jg), mtime_current, "SIC")
+          CALL sic_intp(jg)%intp(mtime_current, sic_dat, lacc=.FALSE.)
+          prm_field(jg)%seaice(:,:) = sic_dat(:,1,:,1)
+          prm_field(jg)%seaice(:,:) = MERGE(0.99_wp, prm_field(jg)%seaice(:,:), prm_field(jg)%seaice(:,:) > 0.99_wp)
+          prm_field(jg)%seaice(:,:) = MERGE(0.0_wp, prm_field(jg)%seaice(:,:), prm_field(jg)%seaice(:,:) <= 0.01_wp)
+        
+          ! set ice thickness
+          WHERE (prm_field(jg)%seaice(:,:) > 0.0_wp)
+            prm_field(jg)%siced(:,:) = MERGE(2.0_wp, 1.0_wp, p_patch(jg)%cells%center(:,:)%lat > 0.0_wp)
+          ELSEWHERE
+            prm_field(jg)%siced(:,:) = 0.0_wp
+          ENDWHERE
+        END DO
+      !
       END IF
       !
     END IF

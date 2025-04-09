@@ -38,7 +38,7 @@
 	url = https://github.com/MeteoSwiss/probtest.git
 [submodule "utils/mkexp"]
 	path = utils/mkexp
-	url = https://git.mpimet.mpg.de/public/mkexp
+	url = ../../esmenv/mkexp.git
 [submodule "externals/art"]
 	path = externals/art
 	url = ../../art/art.git

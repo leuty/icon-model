@@ -33,8 +33,7 @@ MODULE mo_derived_variable_handling
   USE mo_time_config,         ONLY: time_config
   USE mo_cdi,                 ONLY: DATATYPE_FLT32, DATATYPE_FLT64, GRID_LONLAT, TSTEP_CONSTANT
   USE mo_util_texthash,       ONLY: text_hash_c
-  USE mo_mpi,                 ONLY: p_bcast, i_am_accel_node
-  USE mo_fortran_tools,       ONLY: set_acc_host_or_device
+  USE mo_mpi,                 ONLY: p_bcast
   USE ISO_C_BINDING,          ONLY: C_INT
 
 #include <add_var_acc_macro.inc>
@@ -287,7 +286,7 @@ CONTAINS
     TYPE(t_var), POINTER, INTENT(IN) :: src
     TYPE(t_var), POINTER, INTENT(INOUT) :: dest
     INTEGER(C_INT), INTENT(IN) :: funccode
-    LOGICAL, INTENT(IN), OPTIONAL :: lacc ! DyKi: Remove optional when jsbach updated
+    LOGICAL, INTENT(IN) :: lacc
     REAL(wp), INTENT(IN), OPTIONAL :: weight
     REAL(dp), INTENT(IN), OPTIONAL :: miss_r
     REAL(sp), INTENT(IN), OPTIONAL :: miss_s
@@ -298,7 +297,6 @@ CONTAINS
 
     REAL(wp), POINTER :: s_wp5d(:,:,:,:,:)
     REAL(xwp), POINTER :: s_xwp5d(:,:,:,:,:)
-    LOGICAL :: lzacc
 
     IF (PRESENT(weight)) weight_dst = weight
     IF (PRESENT(miss_r) .OR. PRESENT(miss_s)) THEN
@@ -347,22 +345,13 @@ CONTAINS
       ebi = dest%info%subset%end_index
     END IF
 
-    ! DyKi: Update jsbach for mandatory lacc, then remove i_am_accel_node
-    IF (PRESENT(lacc)) THEN
-      lzacc = dest%info%lopenacc .AND. lacc
-    ELSE 
-      lzacc = dest%info%lopenacc .AND. i_am_accel_node
-    END IF
-    CALL perform_op_5d(lacc=lzacc)
+    CALL perform_op_5d(lacc=(dest%info%lopenacc.AND.lacc) )
   CONTAINS
 
   SUBROUTINE perform_op_5d(lacc)
     LOGICAL, INTENT(IN) :: lacc
     INTEGER :: i,j,k,l,m,lblk
     REAL(wp), POINTER :: tmp1(:,:,:,:,:), tmp2(:,:,:,:,:)
-    LOGICAL :: lzacc
-
-    CALL set_acc_host_or_device(lzacc,lacc)
 
 #define _begin_loop_construct_ \
 DO m = sm, em;\
@@ -381,7 +370,7 @@ DO m = sm, em;\
   END DO;\
 END DO
 #define _idx_ i,j,k,l,m
-#define __myACC_directive !$ACC PARALLEL LOOP PRESENT(tmp1, tmp2) COLLAPSE(5) GANG VECTOR ASYNC(1) IF(lzacc)
+#define __myACC_directive !$ACC PARALLEL LOOP PRESENT(tmp1, tmp2) COLLAPSE(5) GANG VECTOR ASYNC(1) IF(lacc)
 #define __myOMP_directive !ICON_OMP PARALLEL DO PRIVATE(lblk) COLLAPSE(4)
 
     IF (ASSOCIATED(s_wp5d)) THEN
@@ -461,7 +450,7 @@ __myACC_directive
   !! Execute the accumulation forall internal variables and compute mean values
   !! if the corresponding event is active
   SUBROUTINE update_statistics(lacc)
-    LOGICAL, INTENT(IN), OPTIONAL :: lacc ! DyKi: Remove optional when jsbach updated
+    LOGICAL, INTENT(IN) :: lacc 
     INTEGER :: iop
 
     DO iop = 1, nops
@@ -471,7 +460,7 @@ __myACC_directive
   CONTAINS
 
   SUBROUTINE update_op(lacc)
-    LOGICAL, INTENT(IN), OPTIONAL :: lacc ! DyKi: Remove optional when jsbach updated
+    LOGICAL, INTENT(IN) :: lacc
     INTEGER :: tl, iv, ie, it, ne, nv
     INTEGER, POINTER :: ct
     TYPE(t_var), POINTER :: src, dst

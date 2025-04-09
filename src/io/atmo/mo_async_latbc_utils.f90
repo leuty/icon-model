@@ -78,7 +78,6 @@
     USE mo_util_string,         ONLY: tolower
     USE mo_util_sysinfo,        ONLY: check_file_exists
     USE mo_dictionary,          ONLY: t_dictionary
-    USE mo_mpi,                 ONLY: i_am_accel_node, my_process_is_work
 
     IMPLICIT NONE
     PRIVATE
@@ -1282,7 +1281,6 @@
       !$ACC   HOST(p_nh_state%diag%grf_tend_thv) &
       !$ACC   HOST(p_nh_state%diag%grf_tend_w) &
       !$ACC   ASYNC(1)
-      i_am_accel_node = .FALSE.
 #endif
 
       ! compute processors wait for msg from
@@ -1357,7 +1355,6 @@
         !$ACC   DEVICE(p_nh_state%diag%grf_tend_w) &
         !$ACC   DEVICE(p_nh_state%diag%grf_tend_tracer) &
         !$ACC   ASYNC(1)
-        i_am_accel_node = my_process_is_work()
 #endif
 #endif
     END SUBROUTINE recv_latbc_data

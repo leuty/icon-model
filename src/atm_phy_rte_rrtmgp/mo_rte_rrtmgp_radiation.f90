@@ -144,20 +144,21 @@ MODULE mo_rte_rrtmgp_radiation
     ! In both cases use the orbit parameters "decl_sun" and "dist_sun" valid for
     ! the "orbit_date_rt".
     !
-    !DA TODO: move to the GPU?
     SELECT CASE (icosmu0)
     CASE (0)
        CALL solar_parameters(decl_sun,        time_of_day_rt,  &
             &                icosmu0,         dt_ext,          &
             &                ldiur,           l_sph_symm_irr,  &
             &                p_patch,                          &
-            &                amu0_x,          rdayl_x          )
+            &                amu0_x,          rdayl_x,         &
+            &                lacc=.TRUE.                       )
     CASE (1:4)
        CALL solar_parameters(decl_sun,        time_of_day,     &
             &                icosmu0,         dt_ext,          &
             &                ldiur,           l_sph_symm_irr,  &
             &                p_patch,                          &
-            &                amu0_x,          rdayl_x          )
+            &                amu0_x,          rdayl_x,         &
+            &                lacc=.TRUE.                       )
     CASE DEFAULT
        CALL finish('mo_rte_rrtmgp_radiation/pre_rte_rrtmgp_radiation','invalid icosmu0, must be in 0:4')
     END SELECT
@@ -186,16 +187,19 @@ MODULE mo_rte_rrtmgp_radiation
            &                icosmu0,         dt_ext,           &
            &                ldiur,           l_sph_symm_irr,   &
            &                p_patch,                           &
-           &                amu0m_x,         rdaylm_x          )
+           &                amu0m_x,         rdaylm_x,         &
+           &                lacc=.TRUE.                        )
       !
       ! Consider curvature of the atmosphere for high zenith angles:
       ! The atmospheric path for a zenith angle mu0 through a spherical shell of
       ! thickness H and an inner radius R (and ratio rae=H/R) is shorter than
       ! a path at equal zenith angle through a plane parallel layer of thickness H.
       !
-      WHERE (rdaylm_x == 1.0_wp) 
+      !$ACC KERNELS DEFAULT(PRESENT)
+      WHERE (rdaylm_x(:,:) == 1.0_wp) 
          amu0m_x(:,:)  = rae/(SQRT(amu0m_x(:,:)**2+rae*(rae+2.0_wp))-amu0m_x(:,:))
       END WHERE
+      !$ACC END KERNELS
 
       !++jsr&hs
       ! 3.0 Prepare possibly time dependent total solar and spectral irradiance
