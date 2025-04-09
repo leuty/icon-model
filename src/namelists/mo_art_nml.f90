@@ -92,6 +92,8 @@ MODULE mo_art_nml
                                      !  that can prescribe tracers
   CHARACTER(LEN=IART_PATH_LEN)  :: &
     &  cart_aero_emiss_xml           !< Path to XML file for aerosol emission routines
+  CHARACTER(LEN=IART_PATH_LEN)  :: &
+    &  cart_opt_props_nc             !< Path to NetCDF file for prescribed optical properties
 
   ! Atmospheric Aerosol (Details: cf. Tab. 2.3 ICON-ART User Guide)
   LOGICAL :: lart_aerosol            !< Main switch for the treatment of atmospheric aerosol
@@ -156,8 +158,8 @@ MODULE mo_art_nml
    &                lart_emiss_turbdiff, nart_substeps_sedi,                            &
    &                cart_chemtracer_xml, cart_mecca_xml, cart_aerosol_xml,              &
    &                cart_modes_xml, cart_pntSrc_xml, cart_diagnostics_xml,              &
-   &                lart_psc, cart_coag_xml, cart_aero_emiss_xml, cart_type_sedim,      &
-   &                lart_debugRestart, radioact_maxtint, irad_multicall
+   &                lart_psc, cart_coag_xml, cart_aero_emiss_xml, cart_opt_props_nc,    &
+   &                cart_type_sedim, lart_debugRestart, radioact_maxtint, irad_multicall
 
 CONTAINS
   !-------------------------------------------------------------------------
@@ -223,6 +225,7 @@ CONTAINS
     cart_emiss_xml_file   = ''
     cart_ext_data_xml     = ''
     cart_aero_emiss_xml   = ''
+    cart_opt_props_nc     = ''
 
     ! Atmospheric Aerosol (Details: cf. Tab. 2.3 ICON-ART User Guide)
     lart_aerosol        = .FALSE.
@@ -417,6 +420,7 @@ CONTAINS
       art_config(jg)%cart_emiss_xml_file   = TRIM(cart_emiss_xml_file)
       art_config(jg)%cart_ext_data_xml     = TRIM(cart_ext_data_xml)
       art_config(jg)%cart_aero_emiss_xml   = TRIM(cart_aero_emiss_xml)
+      art_config(jg)%cart_opt_props_nc     = TRIM(cart_opt_props_nc)
 
       ! Atmospheric Aerosol (Details: cf. Tab. 2.3 ICON-ART User Guide)
       art_config(jg)%lart_aerosol        = lart_aerosol

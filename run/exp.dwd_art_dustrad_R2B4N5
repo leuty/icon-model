@@ -79,6 +79,7 @@ DISABLE_COMPUTE_TOTALDUST=0 # Disables computation of total dust content with cd
 ICONDIR="${basedir}" # basedir can be set with create_target_header
 DATAROOT="${icon_data_poolFolder}/Checksuite_data_small/art_dustrad_R2B4N5"
 ECRADDIR="${ICONDIR}/externals/ecrad/data"
+ARTDIR="${ICONDIR}/externals/art"
 XMLROOT="${ICONDIR}/run/xml_art/art_dustrad_R2B4N5"
 
 # Link input files from ICON source
@@ -100,13 +101,13 @@ ln -sf ${DATAROOT}/fc_R02B05_N02.20220228223000_with_dust fg_R2B05_DOM02.grb
 ln -sf ${DATAROOT}/hwsd_icon_art_grid_0012b_R02B04_G.nc   ART_STY_iconR2B04-grid_TCNR.nc
 ln -sf ${DATAROOT}/hwsd_icon_art_grid_0099_R02B05_N02.nc  ART_STY_iconR2B05-grid_TCNR.nc
 
-# Link ART XML configuration
+# Link ART XML/NetCDF configuration
 ln -sf ${XMLROOT}/tracers_dust.xml      tracers.xml
 ln -sf ${XMLROOT}/modes_dust.xml        modes.xml
 ln -sf ${XMLROOT}/diagnostics_dust.xml  diagnostics.xml
 ln -sf ${XMLROOT}/coagulate.xml         coagulate.xml
 ln -sf ${XMLROOT}/aero_emiss.xml        aero_emiss.xml
-ln -sf ${XMLROOT}/Meng_ICON_CMD_USE.xml Meng_ICON_CMD_USE.xml 
+ln -sf ${ARTDIR}/runctrl_examples/init_ctrl/PrescribedOpticalProperties_CMD_USE.nc prescribed_opt_props.nc
 
 # Cleanup out
 [[ -d out ]]       && rm -Rf out
@@ -434,6 +435,7 @@ cat > ${atmo_namelist} << EOF
  cart_coag_xml        = './coagulate.xml'
  cart_aero_emiss_xml  = './aero_emiss.xml'
  cart_diagnostics_xml = './diagnostics.xml'
+ cart_opt_props_nc    = './prescribed_opt_props.nc'
 /
 EOF
 
