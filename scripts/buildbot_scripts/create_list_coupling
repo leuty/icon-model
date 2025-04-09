@@ -33,7 +33,7 @@ listname=${1:-coupling}
 ./set_builder_flags Inactive --builders 'levante_aurora levante_gpu_nvhpc levante_cpu_nvhpc levante_gpu_validation levante_nag levante_nag_serial' --list $listname
 #-----------------------------------------------------------
 # AES
-$addexp "checksuite.atm/exp.test_coupled_160km-nestedAtm_40kmOce" --builders "levante_gcc_hybrid" --list $listname  --runflags "cpu_time=00:10:00 no_of_nodes=2"
+$addexp "checksuite.atm/exp.test_coupled_160kmNestedAtm_40kmOce" --builders "levante_gcc_hybrid" --list $listname  --runflags "cpu_time=00:10:00 no_of_nodes=2"
 
 # DWD coupled tests on levante
 $addexp "checksuite.infrastructure/coupling/exp.run_ICON_17_R2B4_AO_coupled_LEVANTE.run" --builders "levante_gcc levante_intel_hybrid" --list $listname

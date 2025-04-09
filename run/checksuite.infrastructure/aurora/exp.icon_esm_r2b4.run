@@ -405,22 +405,23 @@ predef:
   time_config: &time_config
     coupling_period: ${couplingTimeStep}
     time_reduction: average
+    src_lag: 1
+    tgt_lag: 1
+  components:
+    atm: &atm
+      component: ${modelname_list[0]}
+      grid: icon_atmos_grid
+    oce: &oce
+      component: ${modelname_list[1]}
+      grid: icon_ocean_grid
   component_configs:
     atm2ocn: &atm2ocn
-      src_component: atmo
-      src_grid: icon_atmos_grid
-      src_lag: 1
-      tgt_component: ocean
-      tgt_grid: icon_ocean_grid
-      tgt_lag: 1
+      source: *atm
+      target: *oce
       <<: [ *time_config ]
     ocn2atm: &ocn2atm
-      src_component: ocean
-      src_grid: icon_ocean_grid
-      src_lag: 1
-      tgt_component: atmo
-      tgt_grid: icon_atmos_grid
-      tgt_lag: 1
+      source: *oce
+      target: *atm
       <<: [ *time_config ]
 
 timestep_unit: ISO_format

@@ -158,54 +158,50 @@ predef:
   time_config: &time_config
     coupling_period: ${couplingTimeStep}
     time_reduction: average
+    src_lag: 1
+    tgt_lag: 1
   component_configs:
+    atm_src: &atm_src
+      component: atmo
+      grid: icon_atmos_grid
+    atm_tgt: &atm_tgt
+      component: atmo
+      grid: [icon_atmos_grid_1,
+             icon_atmos_grid_2,
+             icon_atmos_grid_3]
+    ocn: &ocn
+      component: ocean
+      grid: icon_ocean_grid
     atm2ocn: &atm2ocn
-      src_component: atmo
-      src_grid: icon_atmos_grid
-      src_lag: 1
-      tgt_component: ocean
-      tgt_grid: icon_ocean_grid
-      tgt_lag: 1
+      source: *atm_src
+      target: *ocn
       <<: [ *time_config ]
-    ocn2atm_fields: &ocn2atm_fields
-      field:
-        - sea_surface_temperature
-        - eastward_sea_water_velocity
-        - northward_sea_water_velocity
-        - ocean_sea_ice_bundle
     ocn2atm: &ocn2atm
-      src_component: ocean
-      src_grid: icon_ocean_grid
-      src_lag: 1
-      tgt_component: atmo
-#      tgt_grid: icon_atmos_grid
-      tgt_lag: 1
-      mapping_side: target
+      source: *ocn
+      target: *atm_tgt
       <<: [ *time_config ]
-    ocn2atm_1: &ocn2atm_1
-      tgt_grid: icon_atmos_grid_1
-      <<: *ocn2atm
-    ocn2atm_2: &ocn2atm_2
-      tgt_grid: icon_atmos_grid_2
-      <<: *ocn2atm
-    ocn2atm_3: &ocn2atm_3
-      tgt_grid: icon_atmos_grid_3
-      <<: *ocn2atm
+      mapping_side: target
 
 timestep_unit: ISO_format
 calendar: proleptic-gregorian
 coupling:
 # ATM -> OCN
   - <<: [ *atm2ocn, *conserv_interp ]
-    field: [ surface_downward_eastward_stress, surface_downward_northward_stress]
+    field: [surface_downward_eastward_stress,
+            surface_downward_northward_stress]
   - <<: [ *atm2ocn, *conserv_interp ]
-    field: [surface_fresh_water_flux, total_heat_flux, atmosphere_sea_ice_bundle, 10m_wind_speed]
+    field: [surface_fresh_water_flux,
+            total_heat_flux,
+            atmosphere_sea_ice_bundle,
+            10m_wind_speed]
 #  - <<: [ *atm2ocn, *source2target ]
 #    field: [river_runoff]
 # OCN -> ATM
-  - <<: [ *ocn2atm_1, *conserv_interp, *ocn2atm_fields ]
-  - <<: [ *ocn2atm_2, *conserv_interp, *ocn2atm_fields ]
-  - <<: [ *ocn2atm_3, *conserv_interp, *ocn2atm_fields ]
+  - <<: [ *ocn2atm, *conserv_interp]
+    field: [sea_surface_temperature,
+            eastward_sea_water_velocity,
+            northward_sea_water_velocity,
+            ocean_sea_ice_bundle]
 
 EOF
 

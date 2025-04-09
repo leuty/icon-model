@@ -253,19 +253,22 @@ wave_lag=-14  # in order to start coupling at the shifted start date
 
 cat > coupling_${EXP}.yaml << EOF
 definitions:
+  components:
+    atm: &atm
+      component: ${modelname_list[0]}
+      grid: icon_atmos_grid
+    wave: &wave
+      component: ${modelname_list[1]}
+      grid: icon_waves_grid
   atm2wave: &atm2wave
-    src_component: ${modelname_list[0]}
-    src_grid: icon_atmos_grid
-    tgt_component: ${modelname_list[1]}
-    tgt_grid: icon_waves_grid
+    source: *atm
+    target: *wave
     time_reduction: none
     src_lag: ${atm_lag}
     tgt_lag: ${wave_lag}
   wave2atm: &wave2atm
-    src_component: ${modelname_list[1]}
-    src_grid: icon_waves_grid
-    tgt_component: ${modelname_list[0]}
-    tgt_grid: icon_atmos_grid
+    source: *wave
+    target: *atm
     time_reduction: none
     src_lag: ${wave_lag}
     tgt_lag: ${atm_lag}

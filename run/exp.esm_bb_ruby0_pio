@@ -316,22 +316,28 @@ runoffweightfile=runoff_$EXPNAME
 #
 cat > coupling_${EXPNAME}.yaml << EOF
 definitions:
-  atm2oce: &atm2oce
-    src_component: ${modelname_list[0]}
-    src_grid: icon_atmos_grid
-    tgt_component: ${modelname_list[1]}
-    tgt_grid: icon_ocean_grid
+  time_config: &time_config
     coupling_period: ${couplingTimeStep}
     time_reduction: average
+  components:
+    atm: &atm
+      component: ${modelname_list[0]}
+      grid: icon_atmos_grid
+    oce: &oce
+      component: ${modelname_list[1]}
+      grid: icon_ocean_grid
+    riv: &riv
+      component: ${modelname_list[2]}
+  atm2oce: &atm2oce
+    source: *atm
+    target: *oce
+    <<: [ *time_config ]
     src_lag: ${atm_lag}
     tgt_lag: ${oce_lag}
   oce2atm: &oce2atm
-    src_component: ${modelname_list[1]}
-    src_grid: icon_ocean_grid
-    tgt_component: ${modelname_list[0]}
-    tgt_grid: icon_atmos_grid
-    coupling_period: ${couplingTimeStep}
-    time_reduction: average
+    source: *oce
+    target: *atm
+    <<: [ *time_config ]
     src_lag: ${oce_lag}
     tgt_lag: ${atm_lag}
   interp_stacks:
