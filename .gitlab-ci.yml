@@ -10,17 +10,21 @@
 
 workflow:
   auto_cancel:
-    on_new_commit: none
+    on_new_commit: interruptible
   rules:
+    - if: $CI_PROJECT_PATH == "icon/icon-model"
+      when: never
+    - if: $CI_PIPELINE_SOURCE == "push"
     - if: $CI_PIPELINE_SOURCE == "merge_request_event"
-      auto_cancel:
-        on_new_commit: interruptible
     - if: $CI_PIPELINE_SOURCE == "web"
+      auto_cancel:
+        on_new_commit: none
 
 stages:
   - basic
   - system
   - test
+  - documentation
 
 .colorized:
   variables:
@@ -69,7 +73,7 @@ stages:
   rules:
     - if: $CI_PIPELINE_SOURCE == "web"
       when: manual
-    - when: always
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
   interruptible: true
 
 Licenses:
@@ -142,7 +146,7 @@ General Style:
   rules:
     - if: $CI_PIPELINE_SOURCE == "web"
       when: manual
-    - when: always
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
   interruptible: true
 
 Autoconf:
@@ -221,6 +225,8 @@ Autoconf:
     expire_in: 1 week
     when: on_failure
   rules:
+    - if: $CI_PIPELINE_SOURCE == "web"
+      when: manual
     - if: $CI_PIPELINE_SOURCE == "merge_request_event"
       changes:
         - config.h.in
@@ -230,11 +236,6 @@ Autoconf:
         - utils/config.guess
         - utils/config.sub
         - utils/install-sh
-    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
-      when: never
-    - if: $CI_PIPELINE_SOURCE == "web"
-      when: manual
-    - when: always
   interruptible: true
 
 Iconbot:
@@ -253,38 +254,12 @@ Iconbot:
   tags:
     - sphinx
   rules:
+    - if: $CI_PIPELINE_SOURCE == "web"
+      when: manual
     - if: $CI_PIPELINE_SOURCE == "merge_request_event"
       changes:
         - ${ICONBOT_CONFIG}
-    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
-      when: never
-    - if: $CI_PIPELINE_SOURCE == "web"
-      when: manual
-    - when: always
   interruptible: true
-
-Namelist Overview:
-  stage: basic
-  variables:
-    GIT_SUBMODULE_STRATEGY: none
-  tags:
-    - latex, dkrz
-  artifacts:
-    paths:
-      - doc/Namelist_overview/Namelist_overview.pdf
-    expire_in: 1 day
-  rules:
-    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
-      changes:
-        - doc/Namelist_overview/*.tex
-    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
-      when: never
-    - if: $CI_PIPELINE_SOURCE == "web"
-      when: manual
-    - when: always
-  script:
-    - cd doc/Namelist_overview
-    - pdflatex Namelist_overview.tex
 
 Granules:
   stage: test
@@ -293,6 +268,8 @@ Granules:
     include: .gitlab/ci/granules.yml
     strategy: depend
   rules:
+    - if: $CI_PIPELINE_SOURCE == "web"
+      when: manual
     - if: $CI_PIPELINE_SOURCE == "merge_request_event"
       changes:
         - .gitlab/ci/granules.yml
@@ -310,11 +287,88 @@ Granules:
         - src/shared/mo_impl_constants.f90
         - src/shared/mo_impl_constants_grf.f90
         - test/microphysics_1mom_schemes/**/*
+
+Namelist Overview:
+  stage: documentation
+  needs: []
+  variables:
+    GIT_SUBMODULE_STRATEGY: none
+  script:
+    - cd doc/Namelist_overview
+    - pdflatex Namelist_overview.tex
+  artifacts:
+    paths:
+      - doc/Namelist_overview/Namelist_overview.pdf
+    expire_in: 1 day
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "web"
+      when: manual
     - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+      changes:
+        - doc/Namelist_overview/*.tex
+  tags:
+    - latex, dkrz
+  interruptible: true
+
+.common_html:
+  extends: .ci_dir
+  stage: documentation
+  needs: []
+  variables:
+    PIP_CACHE_DIR: ${CI_GITIGNORE_DIR}/pip-cache
+    GIT_SUBMODULE_STRATEGY: none
+  before_script:
+    - python3 -m pip install --root-user-action=ignore --upgrade pip
+    - >
+      python3 -m pip install --root-user-action=ignore
+      myst-parser
+      pydata-sphinx-theme
+      sphinx-design
+  script:
+    - sphinx-build -W --keep-going -w warnings.html -b html doc/www build/html
+    - test -s warnings.html || rm -f warnings.html
+    - mv build/html public
+  cache:
+    key: pip-docs
+    paths:
+      - ${PIP_CACHE_DIR}
+  tags:
+    - sphinx, dkrz
+  artifacts:
+    when: always
+    paths:
+      - public
+      - warnings.html
+    expire_in: 1 day
+
+Generate HTML:
+  extends: .common_html
+  variables:
+    REVIEW_URL: https://${CI_PAGES_HOSTNAME}/-/${CI_PROJECT_NAME}/-/jobs/${CI_JOB_ID}/artifacts/public/index.html
+  environment:
+    name: review/${CI_COMMIT_REF_SLUG}
+    url: ${REVIEW_URL}
+  script:
+    - !reference [.common_html, script]
+    - echo "${REVIEW_URL}"
+  rules:
+    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
       when: never
     - if: $CI_PIPELINE_SOURCE == "web"
       when: manual
-    - when: always
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+  interruptible: true
+
+Generate and publish HTML:
+  extends: .common_html
+  pages: true
+  rules:
+    - if: $CI_COMMIT_BRANCH != $CI_DEFAULT_BRANCH
+      when: never
+    - if: $CI_PIPELINE_SOURCE == "web"
+      when: manual
+    - if: $CI_PIPELINE_SOURCE == "push"
+  manual_confirmation: This job updates the GitLab Pages of the current project
 
 # CSCS test infrastructure adapter
 include: .gitlab/ci/cscs-ci.yml
@@ -330,7 +384,8 @@ cscs-ci/santis_cpu:
       when: manual
     - if: $CSCS_CI_INACTIVE_BUILDERS =~ "/(^|,)santis-cpu(,|$)/"
       when: never
-    - when: manual
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+      when: manual
 
 cscs-ci/santis_gpu:
   stage: system
@@ -343,63 +398,5 @@ cscs-ci/santis_gpu:
       when: manual
     - if: $CSCS_CI_INACTIVE_BUILDERS =~ "/(^|,)santis-gpu(,|$)/"
       when: never
-    - when: manual
-
-# official documentation: generation + private/public pages
-.DocsWebsiteBuild: &DocsWebsiteBuild
-  stage: basic
-  variables:
-    PIP_CACHE_DIR: "$CI_PROJECT_DIR/.cache/pip"
-  cache:
-    key: DocsWebsiteBuild
-    paths:
-      - .cache/pip
-  before_script:
-    - pip3 install pydata-sphinx-theme
-    - pip3 install myst-parser
-    - pip3 install sphinx-design
-
-  script:
-    - sphinx-build -W --keep-going -w warnings.html -b html doc/www build/html
-    - mv build/html public
-  tags:
-    - sphinx, dkrz
-  artifacts:
-    when: always
-    paths:
-      - public
-      - warnings.html
-    expire_in: 1day
-
-DocsPreviewLink:
-  extends: .DocsWebsiteBuild
-  variables:
-    DEPLOY_URL: https://$CI_PROJECT_NAMESPACE.$CI_PAGES_DOMAIN/-/$CI_PROJECT_NAME/-/jobs/$CI_JOB_ID/artifacts/public
-  environment:
-    name: review/$CI_COMMIT_REF_NAME
-    url: $DEPLOY_URL/index.html
-  rules:
-    - if: $CI_COMMIT_BRANCH != $CI_DEFAULT_BRANCH
-
-pages:
-  extends: .DocsWebsiteBuild
-  variables:
-    DEPLOY_URL: https://$CI_PROJECT_NAMESPACE.$CI_PAGES_DOMAIN/$CI_PROJECT_NAME
-  environment:
-    name: production
-    url: $DEPLOY_URL
-  rules:
-    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
-
-# manual publishing for docs.icon-model.org
-# - placeholder for a solution for the next release
-# - only possible in icon/icon
-# - not sure about further limitations, yet (web-only, MR-only, gatekeeper-only)
-# DocsIconModelOrg:
-#   extends: .DocsWebsiteBuild
-#   script:
-#     - echo FIXME
-#   rules:
-#     - if: $CI_PROJECT_PATH == "icon/icon"
-#   when: manual
-#   manual_confirmation: 'Are you sure you want to deploy this docu to docs.icon-model.org?'
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+      when: manual
