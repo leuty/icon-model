@@ -98,6 +98,8 @@ MODULE mo_art_config
                                       !  datasets which can prescribe tracers
     CHARACTER(LEN=IART_PATH_LEN) :: &
       &  cart_aero_emiss_xml          !< Path to XML file for aerosol emission routines
+    CHARACTER(LEN=IART_PATH_LEN) :: &
+      &  cart_opt_props_nc            !< Path to NetCDF file for prescribed optical properties
 
     ! Atmospheric Aerosol (Details: cf. Tab. 2.4 ICON-ART User Guide)
     LOGICAL :: lart_aerosol            !< Main switch for the treatment of atmospheric aerosol
