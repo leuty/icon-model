@@ -325,7 +325,7 @@ class BuildBotInterface(ExperimentTestCollection):
             raise Exception("Environment variable BB_NAME is not set")
 
     def items_to_bb(self):
-        self.items["tests"] = self._get_experiments_with_suppported_machines()
+        self.items["tests"] = self._get_experiments_with_supported_machines()
         if (
             self.list_name == "tolerance"
             or self.list_name == "tolerance-update"
@@ -336,12 +336,12 @@ class BuildBotInterface(ExperimentTestCollection):
         else:
             self._register_default_list()
 
-    def _get_experiments_with_suppported_machines(self):
+    def _get_experiments_with_supported_machines(self):
         valid_experiments = []
         # Add experiments on supported machines only
         for exp in self.items["tests"]:
             # Check intersection of supported machines and machines in the experiment
-            valid_machines = self.supported_builders_BB.intersection(
+            valid_machines = self.supported_machines_BB.intersection(
                 {machine["name"] for machine in exp.get("machines", [])}
             )
 
