@@ -8,15 +8,15 @@ rendered or use a Markdown viewer of your choice
 
 # Introduction
 
-This directory contains generic
-[configuration wrappers](../../doc/Quick_Start.md#configuration-wrappers) for
-ICON. You can use them either inside the [docker containers](#docker-containers)
-or [natively](#native-building) on your system:
+This directory includes generic
+[configuration wrappers](/doc/Quick_Start.md#configuration-wrappers) designed
+for ICON. You can use them either inside the
+[docker containers](#docker-containers) or [natively](#native-building) on your
+system:
 - [macOS with MacPorts](#macos-with-macports)
 - [macOS with Homebrew](#macos-with-homebrew)
 - [Ubuntu with Apt](#ubuntu-with-apt)
 - [Arch Linux with Pacman](#arch-linux-with-pacman)
-- [macOS/Linux with Spack](#macoslinux-with-spack)
 
 # Docker containers
 
@@ -24,15 +24,15 @@ The easiest way to build and run ICON on your personal machine is to use Docker
 images from the
 [`iconmodel` repository on Docker Hub](https://hub.docker.com/u/iconmodel).
 
-The recommended workflow is to build and run ICON inside the container and
-manage and edit the source code in a separate terminal, using the tools
+We recommend building and running ICON inside the container while managing and
+editing the source code separately in another terminal, utilizing the tools
 available on your machine. This scenario implies that the directory with ICON
 source code is located on the host machine and mounted to the container. You
 will also need to mount a so-called `pool` directory containing ICON input
-files, e.g. grid files. The contents and the layout of the directory depends on
+files, e.g. grid files. The contents and the layout of the directory depend on
 the experiment you want to run and are not covered in this document.
 
-Run the container in the interactive mode as follows:
+Run the container in interactive mode as follows:
 ```bash
 docker run -it -v /path/to/icon-src:/home/icon/icon -v /path/to/pool:/home/icon/pool iconmodel/icon-dev
 ```
@@ -40,7 +40,7 @@ where `/path/to/icon-src` and `/path/to/pool` are paths to ICON source and
 `pool` directories on your machine, and `/home/icon/icon` and `/home/icon/pool`
 are respective mount points of the directories inside the container.
 
-As a result of the previous command you will get an interactive command prompt
+As a result of the previous command, you will get an interactive command prompt
 of the container. You can now configure, build and run ICON using the following
 commands as a reference:
 ```console
@@ -56,23 +56,22 @@ increase the amount of RAM available to Docker (Preferences->Resources->Memory).
 
 # Native building
 
-The generic wrappers in this directory are written with the assumption that the
-required [software libraries](#software-libraries) are installed to the same
-prefix. The prefix defaults to `/opt/local` with a fallback to `/opt/homebrew`
-on macOS and to `/usr` on other platforms. The default values can be overridden
-by setting the environment variable `ICON_SW_PREFIX`:
+These generic wrappers assume that all required
+[software libraries](#software-libraries) are installed under the same prefix.
+The prefix defaults to `/opt/local` with a fallback to `/opt/homebrew` on macOS
+and to `/usr` on other platforms. The default values can be overridden by
+setting the environment variable `ICON_SW_PREFIX`:
 ```bash
 export ICON_SW_PREFIX='/path/to/icon/prerequisites'
 ```
 
 ## Prerequisites
 
-This section provides a list of software required for building and running
-ICON. The users can build and install (to the same prefix) the listed packages
-manually or use a
-[package managers](https://en.wikipedia.org/wiki/Package_manager) available for
-their platform. The basic instructions on how to do it on several popular
-platforms are provided in section [Tested platforms](#tested-platforms).
+This section provides a list of software required for building and running ICON.
+Users can build and install (to the same prefix) the listed packages manually or
+use the [package managers](https://en.wikipedia.org/wiki/Package_manager)
+available for their platform. Basic instructions on how to do it on several
+popular platforms are provided in section [Tested platforms](#tested-platforms).
 
 ### Building tools
 
@@ -124,16 +123,16 @@ support (only C interface required)
 - [libfyaml](https://github.com/pantoniou/libfyaml)
 - [Libxml2](http://www.xmlsoft.org)
 
-See section [ICON dependencies](../../doc/Quick_Start.md#icon-dependencies) for
-more details.
+See section [ICON dependencies](/doc/Quick_Start.md#icon-dependencies) for more
+details.
 
 ### Optional tools
 
 - <a name="cdo"/> [CDO](https://code.mpimet.mpg.de/projects/cdo) for pre- and
 post-processing, also used by some of the
-[generated runscripts](../../doc/Quick_Start.md#running)
+[generated runscripts](/doc/Quick_Start.md#running)
 - [rsync](https://rsync.samba.org/) for the generated runscipts in the case of
-[out-of-source building](../../doc/Quick_Start.md#out-of-source-configuration-building)
+[out-of-source building](/doc/Quick_Start.md#out-of-source-configuration-building)
 
 ## Tested platforms and tools
 
@@ -197,8 +196,8 @@ sudo port -N install cdo +netcdf
 > **_NOTE:_** You can try replacing `mpich` with `openmpi` in the commands above
 if the version of MPICH that is currently available via MacPorts fails the tests
 described in the [Software libraries](#software-libraries) section.
-<a name="macos-openmpi-note"/>Note, however, that OpenMPI is known to have
-problems with running on macOS. Although the
+<a name="macos-openmpi-note"/>Please note that OpenMPI is known to encounter
+issues when running on macOS. Although the
 [list of known issues](https://www.open-mpi.org/faq/?category=osx) is very
 dated, some of them are still relevant. In particular,
 [this one](https://www.open-mpi.org/faq/?category=osx#startup-errors-with-open-mpi-2.0.x)
@@ -273,7 +272,7 @@ GCC 12, you can run the foolowing commands:
 
 ### Ubuntu with [Apt](https://wiki.debian.org/Apt)
 
-**Tested on `Ubuntu Jammy Jellyfish 22.04.3 LTS`.**
+**Tested on `Ubuntu Noble Numbat 24.04.2 LTS`.**
 
 ```bash
 # Install building tools and ICON dependencies:
@@ -297,8 +296,8 @@ sudo apt install -y \
 sudo update-alternatives --set mpi /usr/bin/mpicc.openmpi
 sudo update-alternatives --set mpirun /usr/bin/mpirun.openmpi
 
-# If the two non-interactive commands above do not work,
-# try the interactive analogues:
+# If the previous non-interactive commands fail,
+# attempt the following interactive alternatives:
 # sudo update-alternatives --config mpi
 # sudo update-alternatives --config mpirun
 
@@ -337,49 +336,4 @@ sudo pacman -S --noconfirm rsync
 ( git clone https://aur.archlinux.org/udunits.git && cd udunits && makepkg -csi --noconfirm )
 ( git clone https://aur.archlinux.org/magics++.git && cd magics++ && makepkg -csi --noconfirm )
 ( git clone https://aur.archlinux.org/cdo.git && cd cdo && makepkg -csi --noconfirm )
-```
-
-### macOS/Linux with [Spack](https://spack.io)
-
-**Tested on `Ubuntu Desktop Jammy Jellyfish 22.04.3 LTS`.**
-
-> **_NOTE:_** Spack has its own list of
-[prerequisites](https://spack.readthedocs.io/en/latest/getting_started.html#prerequisites).
-The default Ubuntu Desktop installation seems to be missing only few of them:
->```bash
->sudo apt install -y build-essential git gfortran
->```
-
-```bash
-# Install Spack:
-git clone https://github.com/spack/spack.git
-. ./spack/share/spack/setup-env.sh
-
-# Find compilers and building tools that are already installed on the system:
-spack compiler find
-spack external find
-
-# Install ICON dependencies:
-spack install                             \
-  cmake                                   \
-  openmpi                                 \
-  netcdf-fortran ^hdf5+hl+szip+threadsafe \
-  eccodes                                 \
-  netlib-lapack                           \
-  libfyaml                                \
-  libxml2
-
-# Symlink the dependencies to a single prefix (e.g. to $HOME/icon-sw):
-export ICON_SW_PREFIX="$HOME/icon-sw"
-spack view symlink -i "$ICON_SW_PREFIX" \
-  cmake                                 \
-  openmpi                               \
-  netcdf-fortran                        \
-  eccodes                               \
-  netlib-lapack                         \
-  libfyaml                              \
-  libxml2
-
-# Install optional tools:
-spack install cdo
 ```
