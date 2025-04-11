@@ -86,6 +86,7 @@ CONTAINS
 
     TYPE t_tmp_timelevel_var
        INTEGER :: key_notl
+       INTEGER :: vgrid
        TYPE(t_exposed_var), POINTER :: exposed_var
        TYPE(t_tmp_timelevel_var), POINTER :: next => NULL()
     END type t_tmp_timelevel_var
@@ -168,9 +169,10 @@ CONTAINS
             IF (elem%info%used_dimensions(pos(1)) .NE. nproma .OR. &
                elem%info%used_dimensions(pos(3)) .LT. nblks)  THEN !the blk dimension could be larger than nblks
                IF (msg_level >= 15) &
-                  CALL message(str_module, "Omitted due to invalid dimensions: " // TRIM(elem%info%name) // &
-                       "nproma: " // int2string(elem%info%used_dimensions(pos(1))) // ", " // &
-                       "nblks: " // int2string(elem%info%used_dimensions(pos(3))))
+                    CALL message(str_module, &
+                    & "Omitted due to invalid dimensions: " // TRIM(elem%info%name) // ", " // &
+                    & "nproma: " // int2string(elem%info%used_dimensions(pos(1))) // ", " // &
+                    & "nblks: " // int2string(elem%info%used_dimensions(pos(3))))
                CYCLE
             END IF
 
@@ -181,6 +183,11 @@ CONTAINS
             END IF
 
             tl = get_var_timelevel(elem%info%name)
+            IF (tl > 3) THEN
+              CALL message(str_module, &
+                    & "Omitted due to invalid timelevel: " // TRIM(elem%info%name))
+               CYCLE
+            END IF
             key_notl = vl_iter%cur%p%key_notl(iv)
             var_name = TRIM(var_name_prefix) // TRIM(get_var_name(elem%info))
             exposed_var => NULL()
@@ -188,8 +195,11 @@ CONTAINS
                ! check if we already have a timelevel val registered
                tmp_timelevel_var => tmp_timelevel_var_head
                TL_VAR_LOOP: DO WHILE(ASSOCIATED(tmp_timelevel_var))
-                  IF (tmp_timelevel_var%key_notl == key_notl) THEN
+                  IF (tmp_timelevel_var%key_notl == key_notl .AND. elem%info%vgrid == tmp_timelevel_var%vgrid) THEN
                      exposed_var => tmp_timelevel_var%exposed_var
+                     IF (msg_level >= 15) &
+                          CALL message(str_module, &
+                          & "Found already exposed timestep variable for: " // TRIM(elem%info%name))
                      EXIT TL_VAR_LOOP
                   ENDIF
                   tmp_timelevel_var => tmp_timelevel_var%next
@@ -205,6 +215,8 @@ CONTAINS
                   exposed_var%var(1) = vl_iter%cur%p%vl(iv)
                   exposed_var%tlev_source = -1
                ENDIF
+               IF (msg_level >= 15) &
+                    CALL message(str_module, "Register field " // var_name )
                CALL yac_fdef_field(             &
                     & var_name,                 &
                     & comp_id,                  &
@@ -224,6 +236,7 @@ CONTAINS
                IF (tl /= -1) THEN
                   ALLOCATE(tmp_timelevel_var)
                   tmp_timelevel_var%key_notl = key_notl
+                  tmp_timelevel_var%vgrid = elem%info%vgrid
                   tmp_timelevel_var%exposed_var => exposed_var
                   tmp_timelevel_var%next => tmp_timelevel_var_head
                   tmp_timelevel_var_head => tmp_timelevel_var
