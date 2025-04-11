@@ -529,24 +529,20 @@ mpi_oce_io_procs=%{namelists.NAMELIST_oce.parallel_nml.num_io_procs}
 #%      if JOB.use_hostfile is set:
 #%         if IO_DISTRIBUTION_OVER_GPUS is set and JOB.use_gpus is set:
 #%            include "mkexp/environments/hostfiles_levante/hostfile_distrib_io_on_gpus.tmpl" 
-
 #%         else:
 #%            include "mkexp/environments/hostfiles_levante/hostfile.tmpl" 
-
 #%         endif
 #%      endif
 #%  else:
 #%#     use_openmp_hack is set
 #%      include "mkexp/environments/hostfiles_levante/hostfile_openmp_hack.tmpl"
-
 #%  endif
 
 #% if JOB.use_gpus is set:   
 #%     include "mkexp/environments/run_wrapper_levante_gpu.tmpl"
-
 #% endif
 
-
+#%#
 cp -p ${MODEL} ./icon
 export MODEL=./icon
 
