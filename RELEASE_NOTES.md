@@ -136,6 +136,7 @@ Climate: ICON-Land
 - Make use of the math-horizontal component of iconmath 1.2.0
 - Switch to fortran-support 2.1.0
 - Switch to mtime 1.3.0
+- Switch to CDI 2.5.2
 
 ### Infrastructure
 
