@@ -1515,7 +1515,7 @@ MODULE mo_nh_stepping
       ENDIF
     ENDDO
 
-    IF (iforcing == inwp) CALL fill_nestlatbc_phys(lacc=.TRUE.)
+    IF (iforcing == inwp .AND. l_compute_diagnostic_quants) CALL fill_nestlatbc_phys(lacc=.TRUE.)
 #endif
 
 #ifdef MESSY
