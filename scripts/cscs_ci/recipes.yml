@@ -121,4 +121,4 @@ include:
     - !reference [.check_with_uenv, script]
   variables:
     GIT_STRATEGY: none
-    SLURM_TIMELIMIT: '00:15:00'
+    SLURM_TIMELIMIT: '00:30:00'

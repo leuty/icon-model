@@ -14,7 +14,7 @@
 export LOCAL_RANK=$SLURM_LOCALID
 export GLOBAL_RANK=$SLURM_PROCID
 export NUMA=(0 1 2 3)
-export SOCKET_ID=$(($LOCAL_RANK / 72))
+export SOCKET_ID=$(($LOCAL_RANK / 70))
 export NUMA_NODE=${NUMA[$SOCKET_ID]}
 
 ulimit -s unlimited

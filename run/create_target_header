@@ -1882,7 +1882,7 @@ set_run_target_santis_cpu()
     is_serial_run="no"
 
     # only single processor runs work
-    set_default use_mpi_procs_pernode 288
+    set_default use_mpi_procs_pernode 280
 
     job_type=parallel
     tasks_per_node=$use_mpi_procs_pernode
@@ -1969,129 +1969,6 @@ set_run_target_santis_gpu()
 #SBATCH --job-name=$job_name
 #SBATCH --output=$output_folder/$job_log_name.o
 #SBATCH --error=$output_folder/$job_log_name.o
-#$SBATCH_nodes
-#$SBATCH_ntasks_per_node
-#$s_cpu_time
-EOF
-
-    start_header
-    cat >> "$output_script" <<EOF
-export CUDA_BUFFER_PAGE_IN_THRESHOLD_MS=0.001
-export FI_CXI_SAFE_DEVMEM_COPY_THRESHOLD=0
-export FI_CXI_RX_MATCH_MODE=software
-export FI_MR_CACHE_MONITOR=disabled
-export MPICH_GPU_SUPPORT_ENABLED=1
-export NVCOMPILER_ACC_DEFER_UPLOADS=1
-export NVCOMPILER_TERM=trace
-
-
-EOF
-}
-
-set_run_target_todi_cpu()
-{
-    icon_data_rootFolder=" /capstor/scratch/cscs/wsawyer/share/pool/data/ICON/"
-
-    set_default use_nodes 1
-    set_default use_nproma 48
-    set_default use_nproma_sub 48
-    set_default use_nblocks_c 0
-    set_default use_prefetch_proc 0
-    set_default use_num_io_procs 0
-    set_default use_account_no "$(id -gn)"
-    use_OMP_SCHEDULE="static,1"
-
-    is_serial_run="no"
-
-    # only single processor runs work
-    set_default use_mpi_procs_pernode 288
-
-    job_type=parallel
-    tasks_per_node=$use_mpi_procs_pernode
-    SBATCH_nodes="SBATCH --nodes=$use_nodes"
-    SBATCH_ntasks_per_node="SBATCH --ntasks-per-node=${tasks_per_node}"
-
-    job_log_name="LOG.$job_name.%j"
-
-    s_cpu_time=""
-    if [[ "x$use_cpu_time" != "x" ]]
-    then
-      s_cpu_time="SBATCH --time=$use_cpu_time"
-    fi
-
-    use_nodes=${use_nodes}
-    use_mpi_procs_pernode=${use_mpi_procs_pernode}
-
-    cat >> "$output_script" << EOF
-#=============================================================================
-
-# todi cpu batch job parameters
-# ------------------------------
-#SBATCH --job-name=$job_name
-#SBATCH --output=$output_folder/$job_log_name.o
-#SBATCH --error=$output_folder/$job_log_name.o
-#SBATCH --chdir=$output_folder
-#$SBATCH_nodes
-#$SBATCH_ntasks_per_node
-#$s_cpu_time
-EOF
-
-    start_header
-    cat >> "$output_script" <<EOF
-export CUDA_BUFFER_PAGE_IN_THRESHOLD_MS=0.001
-export FI_CXI_SAFE_DEVMEM_COPY_THRESHOLD=0
-export FI_CXI_RX_MATCH_MODE=software
-export FI_MR_CACHE_MONITOR=disabled
-export MPICH_GPU_SUPPORT_ENABLED=1
-export NVCOMPILER_ACC_DEFER_UPLOADS=1
-export NVCOMPILER_TERM=trace
-
-EOF
-}
-
-set_run_target_todi_gpu()
-{
-    icon_data_rootFolder=" /capstor/scratch/cscs/wsawyer/share/pool/data/ICON/"
-
-    set_default use_nodes 1
-    set_default use_nproma 0
-    set_default use_nproma_sub 8000
-    set_default use_nblocks_c 1
-    set_default use_prefetch_proc 0
-    set_default use_num_io_procs 0
-    set_default use_account_no "$(id -gn)"
-    use_OMP_SCHEDULE="static,1"
-
-    is_serial_run="no"
-
-    # hardcode number of nodes
-    set_default use_mpi_procs_pernode 4
-
-    job_type=parallel
-    tasks_per_node=$use_mpi_procs_pernode
-    SBATCH_nodes="SBATCH --nodes=$use_nodes"
-    SBATCH_ntasks_per_node="SBATCH --ntasks-per-node=${tasks_per_node}"
-
-    job_log_name="LOG.$job_name.%j"
-
-    s_cpu_time=""
-    if [[ "x$use_cpu_time" != "x" ]]
-    then
-      s_cpu_time="SBATCH --time=$use_cpu_time"
-    fi
-
-    use_nodes=${use_nodes}
-    use_mpi_procs_pernode=${use_mpi_procs_pernode}
-
-    cat >> "$output_script" << EOF
-#=============================================================================
-
-# todi gpu batch job parameters
-# ------------------------------
-#SBATCH --job-name=$job_name
-#SBATCH --output=$output_folder/$job_log_name.o
-#SBATCH --error=$output_folder/$job_log_name.o
-#SBATCH --chdir=$output_folder
 #$SBATCH_nodes
 #$SBATCH_ntasks_per_node
 #$s_cpu_time

@@ -11,7 +11,7 @@
 .common_cscs_ci:
   variables:
     APK_CACHE_DIR: ${CI_PROJECT_DIR}/.ci_dir/apk-cache
-    CSCS_CI_GIT_REF: ${CI_COMMIT_REF_NAME}
+    CSCS_CI_COMMIT_SHA: ${CI_COMMIT_SHA}
     CSCS_CI_TAG: merge2rc
     GIT_STRATEGY: none
   before_script:
@@ -35,12 +35,12 @@
           return f"{status}: {http.client.responses.get(status, 'Unknown status')}"
 
 
-      def trigger_ci(builder, git_ref, ci_tag, ci_token):
+      def trigger_ci(builder, ci_sha, ci_tag, ci_token):
           url = "https://cicd-ext-mw.cscs.ch/ci/pipeline/trigger"
           headers = {"Content-Type": "application/x-yaml"}
           data = yaml.dump(
               {
-                  "ref": git_ref,
+                  "ref": f"sha:{ci_sha}",
                   "pipeline": builder,
                   "variables": {
                       "TAG": ci_tag,
@@ -124,14 +124,14 @@
 
 
       builder = os.environ.get("CSCS_CI_BUILDER")
-      git_ref = os.environ.get("CSCS_CI_GIT_REF")
+      ci_sha = os.environ.get("CSCS_CI_COMMIT_SHA")
       ci_tag = os.environ.get("CSCS_CI_TAG")
       ci_token = os.environ.get("CSCS_CI_TOKEN")
       print(
-          f"Triggering {builder} for {git_ref} ({ci_tag})",
+          f"Triggering {builder} for {ci_sha} ({ci_tag})",
           flush=True,
       )
-      status_url = trigger_ci(builder, git_ref, ci_tag, ci_token)
+      status_url = trigger_ci(builder, ci_sha, ci_tag, ci_token)
       pipeline_succeeded = wait_for_ci(status_url)
       exit(0 if pipeline_succeeded else 1)
       _EOF
