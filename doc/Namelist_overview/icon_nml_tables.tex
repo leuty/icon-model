@@ -8780,6 +8780,13 @@ For reflectivity calculations: directory for reading the reflectivity lookup tab
 iforcing=3, \\ ICON configure'd with \verb+--enable-emvorado+, \\ \squeezeme{synradar\_meta\%itype\_refl=1, 5, 6} \\ \squeezeme{synradar\_meta\%llookup\_mie=.TRUE.}
 \tabularnewline
 
+%\hline
+rain2mom\_mu\_incloud&
+R& -999.99 & &
+For Mie- or T-matrix calculations together with the two-moment mircophysics: value to overwrite the shape parameter $\mu$ of rain drop size distribution in regions where $q_c>0$ (the ``incloud'' value), but only in the EMVORADO, not in the microphysics itself! This is to provide a possibility for forward operator tuning with regards to polarimetric radar parameters.\\If rain2mom\_mu\_incloud$\le$-1.0, then the original value of the two-moment microphysics is used. &
+iforcing=3, \\ ICON configure'd with \verb+--enable-emvorado+, \\ \squeezeme{synradar\_meta\%itype\_refl=1, 5, 6} \\ \squeezeme{inwp\_gscp=4, 5, 6, 7}
+\tabularnewline
+
 \end{longtab}
 
 Defined and used in: \verb+src/namelists/mo_synradar_nml.f90+

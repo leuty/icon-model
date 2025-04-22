@@ -16,6 +16,7 @@
 MODULE mo_synradar_config
 
   USE mo_io_units,                ONLY: filename_max
+  USE mo_kind,                    ONLY: wp
   USE radar_dbzcalc_params_type,  ONLY: t_dbzcalc_params
 
   IMPLICIT NONE
@@ -27,9 +28,10 @@ MODULE mo_synradar_config
 
   ! Meta data for reflectivity computations (DBZ, DBZ850, DBZ_CMAX, etc.) on the model grid by using advanced methods
   !  from EMVORADO (Mie-scattering, T-matrix):
-  TYPE(t_dbzcalc_params)        :: synradar_meta
+  TYPE(t_dbzcalc_params)      :: synradar_meta
   CHARACTER(LEN=filename_max) :: ydir_mielookup_read
   CHARACTER(LEN=filename_max) :: ydir_mielookup_write
+  REAL(wp)                    :: rain2mom_mu_incloud
 
 
 END MODULE mo_synradar_config
