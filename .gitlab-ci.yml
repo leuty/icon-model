@@ -296,6 +296,8 @@ Namelist Overview:
   script:
     - cd doc/Namelist_overview
     - pdflatex Namelist_overview.tex
+    # needs to be called a 2nd time for generating the ToC
+    - pdflatex Namelist_overview.tex
   artifacts:
     paths:
       - doc/Namelist_overview/Namelist_overview.pdf
