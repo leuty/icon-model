@@ -1,44 +1,63 @@
-# Release notes for icon-YYYY.MM
+# Release notes for icon-2025.04
 
 ### ICON-Atmo
 
 AES Physics:
 
-- Some re-work for LAM and Global+Nest in AES physics (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/561)
-- DestinE Phase 2: Add new variables (tcw, rsntcs, rsnscs, rlntcs, rlnscs)
-- Fix bug in microphysics: the value for total_ice was not updated before the second call to saturation_adjustment
-- TMX turbulence
-  - Fix OpenACC performance issue and OpenMP PRIVATE
-  - Fix inconsistency in floating point operations by adding missing \_wp to some constants
-  - Fix for gcc14 in TMX (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/667)
-- Added support for time steps with fractional seconds in AES/ICON-Land (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/606)
-- Fixes to latbc and nesting (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/671)
-- Recenter aes bubble relative to grid center (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/734)
-- Diagnostics of clwvi and qall (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/752)
-- OpenACC port of solar_parameters and pre_rte_rrtmgp_radiation (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/741)
-- Fixes to nesting on GPU and restarting with lsstice=.true. (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/723)
-- Bugfix phillips_nucleation values on GPU (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/725)
-- Fix add_ref for mtrcvi_ptr and mtrcvi_phy_ptr (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/765)
+- Add new radiation fields:
+    - rsntcs: toa net clear-sky shortwave
+    - rsnscs: surface net clear sky shortwave
+    - rlntcs: toa net clear-sky longwave
+    - rlnscs: surface net longwave
+- Added support for time steps with fractional seconds in AES/ICON-Land
+- Add diagnostics for cloud condensed water and total water mass fraction
+- OpenACC port of solar_parameters() and pre_rte_rrtmgp_radiation()
+- Fixes for:
+    - TMX: GPU and OpenMP, \_wp inconsistency, gcc-14
+    - Bubble test
+    - Vertical integrals for cloud condensed water + ice and related diagnostics
+    - Total ice in cloud microphysics
+    - Phillips nucleation von GPU
+    - Initialization for nesting and latbc
+    - Nesting and restarting with sea-ice on GPU
 
 NWP Physics:
 
-- Option for more accurate coefficients for saturation pressure (https://gitlab.dkrz.de/icon/icon-nwp/-/merge_requests/1609,
-                                                                 https://gitlab.dkrz.de/icon/icon-nwp/-/merge_requests/1627)
-- Tuning option to reduce activity of grayzone deep convection, to be used in ICON-D2 (https://gitlab.dkrz.de/icon/icon-nwp/-/merge_requests/1614)
-- Update visibility diagnostic to be consistent with icpl_rad_reff=1 (typical RUC settings) (https://gitlab.dkrz.de/icon/icon-nwp/-/merge_requests/1604)
-- Aerosol-cloud interaction for cloudice2mom using ART dust for ice nucleation (Aerosol-cloud interaction for cloudice2mom using ART dust for ice nucleation)
-- Reducing the complexity of the operational turbulence scheme for NWP (https://gitlab.dkrz.de/icon/icon-nwp/-/merge_requests/1671,
-                                                                        https://gitlab.dkrz.de/icon/icon-nwp/-/merge_requests/1694,
-                                                                        https://gitlab.dkrz.de/icon/icon-nwp/-/merge_requests/1697,
-                                                                        https://gitlab.dkrz.de/icon/icon-nwp/-/merge_requests/1709)
-- modularized version of TERRA, including water budget fixes (https://gitlab.dkrz.de/icon/icon-nwp/-/merge_requests/1487,
-                                                             https://gitlab.dkrz.de/icon/icon-nwp/-/merge_requests/1696)
-- Implementation of new CAMS climatology (https://gitlab.dkrz.de/icon/icon-nwp/-/merge_requests/1632)
-- EMVORADO: Bugfix call to polarimetric dbz diagnostic in case of Tmatrix (https://gitlab.dkrz.de/icon/icon-nwp/-/merge_requests/1681)
-- Improve coupled-model water conservation (https://gitlab.dkrz.de/icon/icon-nwp/-/merge_requests/1465)
-- Implementation of ocean surface layer parameterization: warm layer, cold skin (https://gitlab.dkrz.de/icon/icon-nwp/-/merge_requests/1469)
-- Fix for homogeneous ice nucleation of cloudice2mom (gscp3) (https://gitlab.dkrz.de/icon/icon-nwp/-/merge_requests/1720)
-- Fix for extpar data and the usage of snow analysis increments on subgrid-scale glacier points (https://gitlab.dkrz.de/icon/icon-nwp/-/merge_requests/1732)
+- 1-moment Microphysics
+  - Option to use more accurate coefficients for saturation pressure from IFS: itype_satpres_coeffs
+  - Three new namelist variables for tuning of graupel microphysics to reduce overprediction of high precip intensities:
+     - tune_supsat_limfac: allows for supersaturation in updrafts in the saturation adjustment
+     - lvariable_rain_n0: if .TRUE., the variable intercept parameter is activated. The multiplicative factor rain_n0_factor is used for drizzle (small qr) while the default value is approached for heavy rain (large qr).
+     - tune_box_ice: scales the ice cloud cover in cloud cover scheme
+  - GPU port for icpl_aero_gscp = 3  (MODIS climatology for cloud-droplet number)
+- 2-moment Microphysics
+  - Aerosol-cloud interaction for cloudice2mom using ART dust for ice nucleation
+     - icpl_aero_ice=3: simplified coupling with fixed modal diameters
+     - icpl_aero_ice=4: full coupling with aerosol size information from ART
+  - Removed a confusion between specific mass and mean mass in the parameterization of homogeneous ice nucleation in cloudice2mom (gscp=3)
+  - Added consistent treatment of effective radius for the two-moment cloud ice scheme (gscp=3).
+    In addition, the cloud ice number source for the snow drift term is introduced.
+  - New ensemble perturbation parameters are added (range_ccn_Ncn0, range_in_fact, range_avel_i, range_avel_g, range_cap_snow, range_cap_ice).
+- Radiation
+  - CAMS climatology: The format of the CAMS aerosol climatologies has changed, and aerosol is now provided as mixing ratio (kg/kg) instead of layer integrated mass.
+  - ecRad: new logical namelist variable ecrad_check_input: if .TRUE., several input fields are checked for physical consistency and the verbosity of ecRad is increased.
+- Convection: new namelist tune_grzdc_offset: Scaling factor for offset in CAPE closure for grayzone deep convection. Positive values reduce the activity of the convection scheme and suppress convective drizzle (recommendation: 0.1--0.2)
+- Turbulence: The complexity of the operational turbulence scheme for NWP has been reduced in several steps.
+- SSO: Fix of array access for inwp_sso=2 in a diagnostic computation.
+- Tuning: New NWP physics options for tuning and improved physical consistency
+  - itype_dissip_heat=2: new option to take into account dissipative heating from turbulent momentum dissipation in the turbulence interface
+  - icpl_o3_tp=2: improved option for ozone-tropopause coupling to avoid excessive additional ozone for low tropopauses (in combination with itune_o3=3)
+  - shift_ratsea: option to shift ensemble mean of rat_sea w.r.t. the deterministic value
+  - shift_boxliq_asy: option to shift ensemble mean of tune_box_liq_asy w.r.t. the deterministic value
+- Diagnostics
+  - Update visibility diagnostic to be consistent with icpl_rad_reff=1 (typical RUC settings)
+  - GPU port of the diagnosis of planetary boundary layer height
+  - Add accumulated and max/min diagnostic fields to nest start interpolation
+  - EMVORADO: Bugfix call to polarimetric dbz diagnostic in case of Tmatrix
+
+Modifications by the CLM Community:
+
+- Fixes in soil-moisture dependent albedo tuning to enable reproducibilty of ICON-CLM on GPU
 
 ### ICON-Ocean
 
@@ -46,89 +65,125 @@ NWP Physics:
 - Add diagnostics for upper ocean heat content (hc300m and hc700m)
 - Add new output variables (tos, sos, sivol, snvol)
 - Add GRIB codes for ocean variables (mld, mlotst, normal_velocity, stretch_c, hctm, hc300m, hc700m, snhc, sihc)
-- Improved GPU code and performance optimizations
-- More consistent precision of literal floating point values used in TKE and IDEMIX (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/528)
-- Correct unit conversion for tos (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/704)
-- Improvements for ocean GPU runs and validation tests (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/641)
-- Bugfix for dynamic short wave radiation absorption (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/726)
-- Fix bugs when initializing the ocean from restart files (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/753)
+- Improved GPU code and performance optimizations and validation tests
+- More consistent precision of literal floating point values used in TKE and IDEMIX
+- Bugfix correct unit conversion for tos
+- Bugfix for dynamic short wave radiation absorption
+- Bugfix when initializing the ocean from restart files
 
-### ICON-Wave
+### ICON-Waves
 
-- Memory layout and runtime improvements (https://gitlab.dkrz.de/icon/icon-nwp/-/merge_requests/1657,
-                                          https://gitlab.dkrz.de/icon/icon-nwp/-/merge_requests/1661,
-                                          https://gitlab.dkrz.de/icon/icon-nwp/-/merge_requests/1663,
-                                          https://gitlab.dkrz.de/icon/icon-nwp/-/merge_requests/1668)
-- Revision of wave-atmosphere coupling (https://gitlab.dkrz.de/icon/icon-nwp/-/merge_requests/1669)
-- Support for wave initialization and coupling with timeshift (https://gitlab.dkrz.de/icon/icon-nwp/-/merge_requests/1677)
-- Fix for asynchronous output writing in in coupled mode (https://gitlab.dkrz.de/icon/icon-nwp/-/merge_requests/1623)
-- Fix calculation of wind direction for wind forcing (https://gitlab.dkrz.de/icon/icon-nwp/-/merge_requests/1717)
-- Fix implementation of a minimum allowed level of wave energy for each frequency (https://gitlab.dkrz.de/icon/icon-nwp/-/merge_requests/1703)
-- Fix output source time level for prognostic wave energy (https://gitlab.dkrz.de/icon/icon-nwp/-/merge_requests/1736)
+- Memory layout (blocks as last dimension) and runtime improvements (precomputation of expensive operations where possible)
+- Revision of wave-atmosphere coupling, specifically for the usage of z0 (roughness length) passed from the wave model to the atmosphere
+- Wave initialization and coupling:
+  - Similar to the atmosphere model, the wave model start date can be shifted backwards in time (new Namelist parameter dt_shift in initwave_nml)
+  - When shifting the YAC startdate backwards in time as well (using src_lag/tgt_lag to match with dt_shift of the coupled models) it is possible to start the coupling at the very first integration step.
+- Implement depth-limited level of energy
+- Add timers for ICON-waves
+- Several fixes for:
+  - Asynchronous output writing in coupled mode
+  - Calculation of 10m wind direction for wind forcing
+  - Implementation of a minimum allowed level of wave energy for each frequency
+  - Setting of the output source time level for prognostic wave energy
+  - Usage of bathymetry versus water depth field
+  - Formula for Charnock output parameter
 
 ### Soil and Surface
 
 Climate: ICON-Land
 
-- Add per-process namelist option lrestart_cont to allow restarting from other experiments run
+- Added per-process namelist option lrestart_cont to allow restarting from other experiments run
   without that process
 - QUINCY development
   - Added experiment file for ICON-Land standalone runs using QUINCY in CANOPY mode (no biogeochemistry)
   - Initial GPU port of QUINCY - running in CANOPY mode with the ICON-Land standalone driver
   - Minor scientific updates
     - Improvement in the first soil-layer hydrology
-    - Bugfixes in snow melt calculations
-    - Bugfix in calculation of grassland phenology
-    - Bugfix: add minimum level of C limitation on nitrification and denitrification
+    - Bugfix: snow melt calculations
+    - Bugfix: calculation of grassland phenology
+    - Bugfix: added minimum level of C limitation on nitrification and denitrification
     - Bugfix: diffusion water flux limitation in QUINCY soil physics
     - Fixed calculation of saturated water content from input data
     - Improvements in the computation of several rate modifiers used in soil biogeochemistry calculations
-    - Clean-up calculation of stand-replacing harvest
-    - Runtime optimisation: reduce number of aggregated variables
-    - Reduce number of variables in the restart file
-    - Include forcing and output of carbon isotopes
-    - Read elevation for QUINCY from file
+    - Clean-up of calculation of stand-replacing harvest
+    - Runtime optimisation: reduced number of aggregated variables
+    - Reduced number of variables in the restart file
+    - Included forcing and output of carbon isotopes
+    - Read elevation external parameter for QUINCY from file
     - Improved handling of n and p deposition reading from forcing data
     - Inclusion of self-thinning and herbivory in grasslands and pastures (but not crops)
-    - Improvements regarding C:N and N:P ratios in leaves and soil-organic matter
+    - Improvements regarding C:N and N:P ratios in leaves and soil organic matter
   - Merged the radiation process of QUINCY into the radiation process of JSBACH
   - Use JSBACH4 canopy, soil and snow albedos with QUINCY albedo calculations
   - Use the turbulence process of JSBACH in QUINCY replacing QUINCY-specific turbulence-code
   - Preparations for using further JSBACH physics processes with QUINCY
-  - Consolidate and clean up namelist handling and physical parameters between QUINCY and JSBACH
+  - Consolidated and cleaned up namelist handling and physical parameters between QUINCY and JSBACH
   - Implementation of a harvest process for QUINCY (for now using a global constant)
   - Technical implementation of an agriculture process for QUINCY (scientifically not yet ready for use)
   - Bugfix: static reals were missing decimal
   - Bugfix: some local REAL variables were missing kind statement
-- Small fix for ICON-Land standalone concerning nproma
-- Make PFT parameters available in memory init functions
+- Made PFT parameters available in memory init functions
 - New optional tag for the memory usage report
 - New functions for time control: get_previous_month_length and get_previous_year_length
 - Memory reduction: array allocation only if needed with the specific setup
-- Fix for initializing carbon pools from file (read_cpools)
 - The script suite to generate ICON-Land input data now also includes scripts to generate
   HD parameter files (for internal HD) and HD receive masks (for external HD), besides
   high-resolution Merit-Rema topography data is used.
-- Bug fix: replace dp by wp in add_var wrappers
 - Added diagnostic variable for volumetric soil moisture content for soil layers
-- Fix for the calculation of snow aging
-- Fix for computation of fast drainage within the ARNO scheme of JSBACH hydrology
 - Represent soil ice as ice volume, not as water equivalent anymore, thereby fixing
   an energy balance inconsistency during soil ice melt
 - Changed handling of excess soil moisture
 - Changes and fixes for inline documentation
 - Improved vectorization on NEC machines
 - Clean-up of ICON-Land code
-- Bug fix: enable simulations with JSBACH assimilation and LAI prescribed from climatology
-- Fix: The HD global water conservation test was too strict.
-- Introduction of an output group for jsbach monitoring variables.
-- Fix for bare soil evaporation and modification of roughness (heat) and photosynthetic efficiency parameters
-- Implement soil hydrology parametrization for uniform scale
-- Update thaw depth diagnostics
+- Introduction of an output group for jsbach monitoring variables
+- Implemented soil hydrology parametrization for uniform scale
+- Updated thaw depth diagnostics
 - Enabled JSBACH usecase with PFTs when using TMX
 - Interface: New switch to supress YAC call during initialization phase
-- Update HD-YAC coupling interface to use mo_coupling_utils
-- Implemented experimental formulation of skin temperature (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/775)
+- Updated HD-YAC coupling interface to use mo_coupling_utils
+- Implemented experimental formulation of skin temperature
+- Fixes:
+  - Bare soil evaporation and modification of roughness (heat) and photosynthetic efficiency parameters
+  - Calculation of snow aging
+  - Computation of fast drainage within the ARNO scheme of JSBACH hydrology
+  - For supporting single precision
+  - Initialization of carbon pools from file (read_cpools)
+  - ICON-Land standalone concerning nproma
+  - Simulations with JSBACH assimilation and LAI prescribed from climatology
+  - HD global water conservation test
+
+NWP: TERRA and other surface issues
+
+- Modularization: The one long TERRA routine has been split into smaller subroutines containing one task each. Some issues for the water budget have been fixed
+- nwp_sfc_interface: move accumulation of runoff_[sg] to nwp_statistics
+- itype_ahf=3: Option for time-dependent specification of anthropogenic heat flux based on time-filtered T2M
+- Improve coupled-model water conservation by adding TERRA's water nonconservation diagnostic to the subsurface runoff that gets passed to the HD model.
+- Implementation of ocean surface layer parameterization: warm layer, cold skin
+- Fix for extpar data and the usage of snow analysis increments on subgrid-scale glacier points
+
+### ICON-ART
+
+- Implemented LinozV3 ozone chemistry parameterization
+- Added Upper Boundary NOy to stratospheric SimNOy scheme
+- Enhanced simplified OH chemistry with O(1D) calculation and consideration of CFC
+- Fixed bugs in LinozV2 polar chemistry
+- Added a dedicated module for chemical constants
+- Improved flexibility and configuration for prescribed aerosol optical properties
+- Introduced Subpollen Particles (SPP) parameterization
+- Updated FPlume module
+- Improved robustness of dust radiation calculations
+- Implemented a new dry deposition scheme for gases
+- Added wet deposition processes for trace gases
+
+#### Coupling
+
+- First implementation of coupling the nested AES atmosphere to the ocean model
+- Support coupled setups with one component starting from IAU
+- Support component wise model initialization from restarts
+- Improvements for coupling timers, metadata handling and GPU setups
+- Output coupling improvements for prognostic variables, variables on pressure levels and more vertical grids
+- Add coupling infrastructure for one-way coupling with Super-Droplet cloud micropphysics model CLEO
 
 ### Externals
 
@@ -136,79 +191,45 @@ Climate: ICON-Land
 - Make use of the math-horizontal component of iconmath 1.2.0
 - Switch to fortran-support 2.1.0
 - Switch to mtime 1.3.0
+- Switch to YAXT 0.11.2
 - Switch to CDI 2.5.2
+- Switch to Comin 0.3.0
+- Switch to YAC v3.6.2_p2
+- Switch to the latest version of HD
 
 ### Infrastructure
 
-- Use OMP and ACC reductions in mo_statistics.f90
-- Use t_tangent_vectors from mo_math_types (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/556)
-- Separate pre_patch related content from mo_model_domain (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/579)
-- Fix GPU-to-GPU communication issues (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/580)
-- Single precision extensions to mo_mpi (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/570)
-- NetCDF read_interface: use allocatable arrays instead of returning pointers (https://gitlab.dkrz.de/icon/icon-nwp/-/merge_requests/1620)
-- Bug fix: Fix NetCDF time axis date for synchronous and asynchronous restart files (https://gitlab.dkrz.de/icon/icon-nwp/-/merge_requests/1607)
-- Single precision extensions to mo_communication (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/574)
-- Improved flexibility of t_var%r_ptr for variable working-precision (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/602)
-- Fix ncontained counter for add_ref usage (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/614)
-- Remove hard-coded double-precision settings (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/590)
+- Several improvements for single precision: communication, mpi, io
 - Fix the generation of index lists on GPUs for LAM and nested simulation runs
-- Single-precision support in IO components (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/680)
-- Remove more i_am_accel_node (https://gitlab.dkrz.de/icon/icon-nwp/-/merge_requests/1679)
-- Completely removed i_am_accel_node (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/732)
-- Minor fix for communication_orig with g2g communication disabled (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/714)
-
-#### Coupling
-
-- First implementation of coupling the nested AES atmosphere to the ocean model
-- Support for coupled setups where one component starts from IAU (https://gitlab.dkrz.de/icon/icon-nwp/-/merge_requests/1629)
-- Allow for component wise model initialization from restart file (https://gitlab.dkrz.de/icon/icon-nwp/-/merge_requests/1611)
-- Improve coupling timers (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/717)
-- Bugfix for array initialization in coupled simulations using GPUs (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/711)
-- Output coupling on pressure levels (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/653)
-- Improve metadata exposure (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/707)
-- Initial version of coupling infrastructure and entry point for one-way coupling with CLEO (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/471)
 
 #### Scripting and testing
 
-- Increase time limit for test_yaxt_xchange.config experiment
-- Fix atm_memLog experiment scripts and enable tests in buildbot again
-- Provide configs to setup ICON-Land standalone (jsbalone.config) and AMIP-style (NWP ATM) experiments
-- Add resolution R02B06 to amip script for testing purposes only (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/613)
-- Introduce Git-LFS repository for test input data at CSCS (https://gitlab.dkrz.de/icon/icon-nwp/-/merge_requests/1558,
-                                                            https://gitlab.dkrz.de/icon/icon-nwp/-/merge_requests/1652)
-- Fixed runscript generation of bubble test cases on levante (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/658,
-                                                              https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/699)
-- Use a more recent land data revision in run scripts for simulations with ICON-Land on R02B04 grid 0049.
-- Add buildbot tests for LAM/Nest and AMIP, update bubble (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/631)
-- MareNostrum 5 (BSC) porting (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/630)
-- Switch off mpi test for aes_amip and cph_nest (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/656)
-- Fix the update reference experiment list (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/654)
-- Fix the test_coupled_160kmNestedAtm_40kmOce experiment (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/673)
-- Repair and revise atm_qubicc test and check scripts (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/679,
-                                                       https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/689,
-                                                       https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/694)
-- New path for input data for the ocean buildbot test that is run on mpim sites (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/687)
-- mkexp for amip r2b8 at Levante GPUs with distributed I/O (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/598)
-- Check Memory consumption on NEC (https://gitlab.dkrz.de/icon/icon-nwp/-/merge_requests/1399)
-- Added script to check global water conservation of coupled ICON XPP runs (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/762)
-- Bubble script configuration (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/411)
-- Extend mkexp monitoring to log files (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/601)
-- Fix openmp test in icon-dev.checksuite (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/768)
+- Update land data for simulations with ICON-Land on R02B04 grid 0049
+- Add check for memory consumption on vector machines
+- Add tests for LAM/Nest and AMIP
+- Add offline check for global water conservation of coupled ICON XPP
+- Add 40km mesh size (R02B06) for AMIP development test
+- Add mkexp setup for ICON-Land standalone and AMIP-style (NWP ATM)
+- Add 10km AMIP template for mkexp (cpu + gpu, distributed IO)
+- Restructure mkexp templates and add bubble test
+- Add log file monitoring to mkexp
 
 #### Building
 
-- Fix 'make srclist' on macOS (BSD sed)
+- Improve building on macOS
 - Update the generic configure wrapper and its documentation
 
 #### Miscellaneous
 
 - Improve support for Cray compiler 17+ for AMD GPUs
-- Replaced `sp` with `vp` in TMX for single-precision support (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/652)
+- Single precision improvements for TMX
 - Add contribution guidelines
 - Add various issue and merge request templates
-- replace Poisson routine in stochastic NWP convection code (https://gitlab.dkrz.de/icon/icon-nwp/-/merge_requests/1680)
-- Always print out GPU memory usage if using OpenACC (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/740)
-- Restructure documentation for scripting (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/746)
+- Replace Poisson routine in stochastic NWP convection code
+- Add logging of GPU memory usage
+- Clean up documentation
+- Integration of online documentation
+
 
 # Release notes for icon-2024.10
 
