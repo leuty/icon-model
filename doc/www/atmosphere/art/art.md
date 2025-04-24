@@ -1,3 +1,7 @@
+```{eval-rst}
+:orphan:
+```
+
 ```{image} logo_art_black.svg
 :class: only-light
 :width: 200px

@@ -1,10 +1,14 @@
-(ref_how_to_run_recommconf)=
+```{eval-rst}
+:orphan:
+```
+
+(ref_buildrun_recommconf)=
 # Recommended Configurations
 
 For testing purposes we provide a number of use cases. All use cases provide everything necessary for running ICON:
 
-* [grids and external parameters](ref_how_to_run_gridextpar),
-* [initial and (where necessary) boundary conditions](ref_how_to_run_icbc),
+* [grids and external parameters](ref_buildrun_gridextpar),
+* [initial and (where necessary) boundary conditions](ref_buildrun_icbc),
 * namelist input to start the ICON run
 
 _Please note that the preparation of further use cases is on-going._

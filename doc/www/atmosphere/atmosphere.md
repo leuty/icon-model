@@ -115,8 +115,8 @@ More detailed descriptions of some of above options are available here:
 :::{grid-item-card}
 **Radiation (ecRad)**
 ^^^
-[](ref_atmosphere_ecrad)
-[](ref_atmosphere_ecrad_redgrid)
+[](ref_atmosphere_ecrad)  
+[](ref_atmosphere_ecrad_redgrid)  
 [](ref_atmosphere_ecrad_aerosol)
 :::
 ::::

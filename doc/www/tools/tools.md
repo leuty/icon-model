@@ -6,7 +6,7 @@
 
 _A publicly available tool for the generation of grid files and external parameter datasets is currently under development.
 For the time being, we have to refer to the **[list of predefined grids and external parameter datasets](http://icon-downloads.mpimet.mpg.de/)**
-and the **[](ref_how_to_run_recommconf)**._
+and the **[](ref_buildrun_recommconf)**._
 
 (ref_tools_yac)=
 ## Coupling (YAC)

@@ -1,3 +1,7 @@
+```{eval-rst}
+:orphan:
+```
+
 (ref_atmosphere_ecrad)=
 # ecRad Overview
 
@@ -29,7 +33,7 @@ For a more detailed description of the reduced radiation grid implementation, se
 Climatological aerosol based on the {term}`Tegen et al. 1997` climatology can be selected by choosing **{term}`irad_aero``=6`**.
 This options has the following characteristics:
 
-- Optical thicknesses at the wavelength 550 nm of the 5 species **Sea Salt**, **Soil Dust**, **Sulfate**, **Organic Carbon** and **Black Carbon** are provided in the [external parameter file](ref_how_to_run_external_param).
+- Optical thicknesses at the wavelength 550 nm of the 5 species **Sea Salt**, **Soil Dust**, **Sulfate**, **Organic Carbon** and **Black Carbon** are provided in the [external parameter file](ref_buildrun_external_param).
 - The annual cycle is considered by providing monthly data which is linearly interpolated inside ICON to the target date.
 - The original data is vertically integrated optical thickness. For the use in ecRad, an exponentially decaying, normalized vertical profile is added by ICON.
 - The target variables optical thickness (SW/LW), single scattering albedo (SW) and asymmetry parameter (SW) at the radiation wavelength bands are derived based on lookup tables in the ICON code.

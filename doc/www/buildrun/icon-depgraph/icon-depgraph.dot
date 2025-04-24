@@ -10,6 +10,8 @@
 
 digraph ICON {
 
+	bgcolor="transparent"
+
 	node [style=filled; shape=oval; fillcolor="#79C547"];
 
 	subgraph clusterMain {

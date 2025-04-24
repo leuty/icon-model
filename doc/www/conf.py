@@ -15,6 +15,8 @@
 # full list see the documentation:
 # http://www.sphinx-doc.org/en/master/config
 
+import os
+
 import pydata_sphinx_theme
 
 # -- Project information -----------------------------------------------------
@@ -33,9 +35,23 @@ myst_heading_anchors = 4
 
 myst_enable_extensions = ["deflist", "colon_fence", "substitution"]
 
+myst_substitutions = {"release": "2024.10"}
+
 # Important: This needs to be updated with a new release.
 # Several URLs are built using this string
-myst_substitutions = {"release": "2024.10"}
+if os.getenv("CI_PIPELINE_SOURCE", None) == "merge_request_event":
+    project_url = os.getenv("CI_MERGE_REQUEST_SOURCE_PROJECT_URL")
+    commit_ref_name = os.getenv("CI_MERGE_REQUEST_SOURCE_BRANCH_NAME")
+else:
+    project_url = os.getenv(
+        "CI_PROJECT_URL", "https://gitlab.dkrz.de/icon/icon-model"
+    )
+    commit_ref_name = os.getenv(
+        "CI_COMMIT_REF_NAME",
+        "release-" + myst_substitutions["release"] + "-public",
+    )
+
+myst_substitutions["base_url"] = project_url + "/-/blob/" + commit_ref_name
 
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ["_templates"]
@@ -96,7 +112,7 @@ html_theme_options = {
             "name": "icon-model.org",
             "url": "https://icon-model.org",
             "icon": "fas fa-home",
-        }
+        },
     ],
     "logo": {
         "image_light": "_static/ICON_logo_black.svg",

@@ -42,15 +42,6 @@ SPDX-FileCopyrightText = "2004-2025, DWD, MPI-M, DKRZ, KIT, ETH, MeteoSwiss"
 SPDX-License-Identifier = "CC-BY-4.0"
 
 [[annotations]]
-# Example files with documentation character:
-path = [
-  "run/examples/*",
-  "run/examples/**/*",
-]
-SPDX-FileCopyrightText = "2004-2024, DWD, MPI-M, DKRZ, KIT, ETH, MeteoSwiss"
-SPDX-License-Identifier = "CC-BY-4.0"
-
-[[annotations]]
 # Input files:
 path = [
   "data/*.nc",
