@@ -1,37 +1,44 @@
-## ICON AUTHORS
-
-List of authors in the ICON repository including all branches.
+# ICON AUTHORS
 
 Abishek Gopal
 Achim Randelhoff
 Alberto de Lozar
 Ali Hoshyaripour
+Ali Sedighi
 Almut Gassmann
+Andre Walser
 Andrea Leuthard
-Andreas Baer
 Andrea Schneidereit
+Andreas Baer
 Andreas Jocksch
 Andreas Pfeiffer
-Andre Walser
 Anika Rohde
 Anja Stieren
+Anne Roches
 Annika Lauber
 Anurag Dipankar
+Aparna Devulapalli
 Arash Hamzehloo
+Astrid Kerkweg
 Avetik Hayrapetyan
 Axel Seifert
 Bastian Kern
 Bjorn Stevens
+Bo Liu
+Bodo Ritter
 Burkhardt Rockel
 Carmen Köhler
 Carolin Mehlmann
 Carolin Walter
 Christine Sgoff
-Christopher Moseley
 Christoph Gebhardt
+Christoph Heinze
 Christoph Müller
+Christopher Moseley
+Christopher Purr
 Claudia Frauen
 Constantin Junk
+Corina Keller
 Daniel Hupp
 Daniel Klocke
 Daniel Krüger
@@ -40,11 +47,13 @@ Daniel Reinert
 Daniel Rieger
 David Leutwyler
 David Nielsen
+Detlev Majewski
 Dian Putrasahan
 Dirk Notz
 Dmitrii Mironov
 Dmitry Alexeev
 Dominic Hofer
+Dominik Brunner
 Dominik Zobel
 Dylan Kierans
 Einar Olason
@@ -52,27 +61,38 @@ Ekaterina Machulskaya
 Elsa Germann
 Emmanuele Russo
 Enrico Metzner
+Erdmann Heise
+Erich Roeckner
+Ernst Maier-Reimer
+Evgenii Churiulin
 Fabian Gessler
 Fatemeh Chegini
 Felix Köhler
 Felix Pithan
 Florian Prill
+Florian Ziemen
 Fraser Goldsworth
 Gabriel Vollenweider
 Georgiana Mania
+Gerd Vogel
 Gergely Bölöni
 Giacomo Serafini
 Guidi Zhou
 Guido Cioni
 Guido Schröder
 Guillaume Van Parys
-Günther Zängl
 Gustavo Hime
+Guy Brasseur
 Guy de Morsier
+Günther Doms
+Günther Zängl
+Hanna Paulsen
+Hannah-Theresa Gaenslen
 Harald Anlauf
 Harald Braun
 Harald Rybka
 Harel Muskatel
+Harshada Balasubramanian
 Hauke Schmidt
 Hauke Schulz
 Heike Vogel
@@ -88,28 +108,34 @@ Inge Bischoff-Gauß
 Ingo Kirchner
 Irene Stemmler
 Ivan Bastak Duran
+Jairo Segura
 Jan Ackmann
 Jan Engel
 Jan Frederik Engels
 Jan-Niklas Welss
 Jan-Peter Schulz
 Jennifer Buchmüller
+Jens-Olaf Beismann
+Jochem Marotzke
 Jochen Förstner
+Joeran Maerz
 Jonas Jucker
 Jonas Straub
-Jörg Behrens
 Josiane Salameh
 Julia Bruckert
 Julia Duras
 Julia Nabel
 Junhong Lee
-Jürgen Helmert
 Jussi Enkovaara
+Jörg Behrens
+Jürgen Helmert
 Kai Logemann
 Karl-Hermann Wieners
 Karolina Slominska-Durdasiak
+Katharina Six
 Katherine Osterried
 Kay Schaefer
+Kerstin Hartung
 Khompat Satitkovitchai
 Klaus Stephan
 Kristina Fröhlich
@@ -118,15 +144,19 @@ Lennart Ramme
 Leonidas Linardakis
 Levi Silvers
 Linda Schlemmer
+Luca Bunaventura
 Luis Kornblueh
+Lukas Jansing
 Lukas Kluft
+Mahnoosh Haghighatnasab
 Maike Ahlgrimm
+Manoel Römmer
 Marco Giorgetta
 Marco Wurth
 Mareike Burba
 Marek Jacob
-Mariano Mertens
 Maria Pilar Ripodas
+Mariano Mertens
 Martin Charron
 Martin Köhler
 Martin Sprengel
@@ -150,12 +180,14 @@ Moritz Mathis
 Moritz Waldmann
 Mukund Pondkule
 Nadja Samtleben
+Nander Wever
 Nathanael Huebbe
 Nikolas Porz
-Nils-Arne Dreier
 Nils Brüggemann
 Nils Noll
+Nils-Arne Dreier
 Nora Schenk
+Oliver Fuhrer
 Oliver Gutjahr
 Panagiotis Adamidis
 Pavel Khain
@@ -169,6 +201,7 @@ Ralf Müller
 Raphael Schlarb
 Reiner Schnur
 Reinhard Budich
+Reinhold Schrodin
 Remo Dietlicher
 Renate Brokopf
 Rene Redler
@@ -180,12 +213,14 @@ Roland Wirth
 Romain Fievet
 Roman Svoboda
 Ronny Petrik
+Sascha Bellaire
 Sebastian Borchert
 Sebastian Rast
 Sergey Danilov
 Sergey Kosukhin
 Shweta Singh
 Slavko Brdar
+Sönke Zaehle
 Sophia Schäfer
 Stefan Koerner
 Stefan Poll
@@ -194,6 +229,8 @@ Stephan Lorenz
 Susanne Fuchs
 Sven Werchner
 Sven Willner
+Tatiana Ilyina
+Thijs Heus
 Thomas Heinze
 Thomas Hüther
 Thomas Jahns
@@ -210,6 +247,7 @@ Ulrich Blahak
 Ulrich Schaettler
 Ulrike Niemeier
 Uwe Schulzweida
+Valentin Hanft
 Veit Lüchow
 Vera Maurer
 Veronika Gayler
@@ -219,6 +257,7 @@ Victoria Cherkas
 Vikram Singh
 Vladimir Lapin
 Walter Sauf
+Werner Bauer
 William Sawyer
 Wilton Jaciel Loch
 Xavier Lapillonne
@@ -227,36 +266,3 @@ Xingran Wang
 Yen-Chen Chen
 Yen-Sen Lu
 Yunchang He
-
-
-## HaMOCC AUTHORS
-
-Ernst Maier-Reimer
-Tatiana Ilyina
-Katharina Six
-Christoph Heinze
-Irene Stemmler
-Joeran Maerz
-Bo Liu
-Hanna Paulsen
-Fatemeh Chegini
-
-
-## Contributors to the ICON model
-
-Thijs Heus
-Luca Bunaventura
-Erich Roeckner
-Guy Brasseur
-Werner Bauer
-Jochem Marotzke
-Sascha Bellaire
-Anne Roches
-Dominik Brunner
-Oliver Fuhrer
-Detlev Majewski
-Erdmann Heise
-Bodo Ritter
-Günther Doms
-Gerd Vogel
-Reinhold Schrodin
