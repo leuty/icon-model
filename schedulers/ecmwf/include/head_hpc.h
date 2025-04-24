@@ -1,7 +1,11 @@
-#!/bin/ksh
+#SBATCH --job-name=%ECF_JOB%
+#SBATCH --qos=%QUEUE%
+#SBATCH --output=%ECF_JOBOUT%
+#SBATCH --error=%ECF_JOBOUT%
+#SBATCH --time=04:00:00
 
 # ------------------------------------------
-# Copyright (C) 2004-2025, DWD, MPI-M, DKRZ, KIT, ETH, MeteoSwiss
+# Copyright (C) 2004-2024, DWD, MPI-M, DKRZ, KIT, ETH, MeteoSwiss
 # Contact information: icon-model.org
 # See AUTHORS.TXT for a list of authors
 # See LICENSES/ for license information

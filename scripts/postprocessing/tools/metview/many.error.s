@@ -45,9 +45,9 @@ cd ${scriptdir}
 
 metview=metview
 #metview=/usr/local/apps/Metview/metview4_dev
-module swap metview/4.5.0
+#module swap metview/4.5.0
 
-met_job=met.job.all.$nstart
+met_job=met.job.all.$DAYS_FC     ###.$nstart
 \rm -rf $met_job
 
 integer nt
@@ -60,7 +60,7 @@ while [[ $nt < ${#inidate[*]} ]]; do
               TQ1             TQ2            TQ3              TQ4       TQ5      \
               PS              PMSL                                               \
               ACCSOB_S        ACCTHB_S       ACCSOB_T         ACCTHB_T           \
-              ACCLHFL_S       ACCSHFL_S                                          \
+              ACCSOD_T        ACCLHFL_S      ACCSHFL_S                           \
               TOT_PREC        RAIN_GSP       SNOW_GSP         RAIN_CON  SNOW_CON \
               T_G             T_2M           U_10M            V_10M              \
               SP_10M          DZH_SNOW                                           \
@@ -91,8 +91,8 @@ while [[ $nt < ${#inidate[*]} ]]; do
   done
 
   # -------------------------------------------------------
-
-  set -A vars  SP_10M  T_2M  T_G  ACCLHFL_S  ACCSHFL_S  ACCSOB_T  ACCTHB_T     #comparison to observations,     QV_2M
+  # comparison to observations
+  set -A vars SP_10M T_2M T_G QV_2M ACCLHFL_S ACCSHFL_S ACCSOB_T ACCTHB_T ACCSOD_T TOT_PREC TCC #QV_2M
   for var in ${vars[*]}
   do
     echo ${metview} -b ${scriptdir}map.error $expnum $expref $var sfc diff_obs ${inidate[nt]} ${initime[nt]} ${verdate[nt]} ${vertime[nt]} ${ndays} ${res} >> $met_job
@@ -142,11 +142,12 @@ while [[ $nt < ${#inidate[*]} ]]; do
 
   # -------------------------------------------------------
 
-  set -A vars ttendcds qtendcds utendcds vtendcds \
-              ttendts  qtendt   utendts  vtendts  \
-              ttends   utends   vtends            \
-              ewgd     nsgd                       \
-              ttendsw  ttendlw  O3
+  set -A vars ttendcds      qtendcds    utendcds    vtendcds    \
+              ttendts       qtendt      utendts     vtendts     \
+              ddt_temp_gscp ddt_qv_gscp ddt_qc_gscp ddt_qi_gscp \
+              ttends        utends      vtends                  \
+              ewgd          nsgd        ddt_temp_dyn            \
+              ttendsw       ttendlw     O3
   for var in ${vars[*]}
   do
     echo ${metview} -b ${scriptdir}zonal.error $expnum $expref $var ml snap     ${inidate[nt]} ${initime[nt]} ${verdate[nt]} ${vertime[nt]} ${ndays} ${res} >> $met_job

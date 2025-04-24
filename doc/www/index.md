@@ -13,6 +13,7 @@ installation/installation.md
 how_to_run/how_to_run.md
 how_to_run/recommended_config/recommended_config.md
 tools/tools.md
+tools/ecflow-ecmwf.md
 tools/comin/comin.md
 atmosphere/atmosphere.md
 atmosphere/art/art.md

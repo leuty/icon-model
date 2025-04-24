@@ -1,7 +1,16 @@
-#!/bin/ksh
+#SBATCH --job-name=icon
+#SBATCH --qos=%QUEUE%
+#SBATCH --ntasks=%NTASKS%
+#SBATCH --cpus-per-task=%CPUSPERTASK%
+#SBATCH --hint=nomultithread
+#SBATCH --time=00:40:00       # If time obmitted, SLURM will predict the time
+##SBATCH --contiguous         # No need on atos-ecmwf.  It would make waiting time longer!!
+#SBATCH --mem-bind=local
+#SBATCH --output=%ECF_JOBOUT%
+#SBATCH --error=%ECF_JOBOUT%
 
 # ------------------------------------------
-# Copyright (C) 2004-2025, DWD, MPI-M, DKRZ, KIT, ETH, MeteoSwiss
+# Copyright (C) 2004-2024, DWD, MPI-M, DKRZ, KIT, ETH, MeteoSwiss
 # Contact information: icon-model.org
 # See AUTHORS.TXT for a list of authors
 # See LICENSES/ for license information

@@ -12,14 +12,16 @@
 #
 # run as: metview4 -b map.error dei2_005 dei2_004 T ml diff 20120101 00 20120102 00 1 R2B06
 #
-# export PLOTDIR=metplots
-# export DATADIR=grb_data
+# cd post/202201/grb_data
+# export PLOTDIR=../metplots
+# export DATADIR=./          #grb_data
 # export DATAREF=../../184/201201/grb_data
-# export YYYYMM=201201
-# export LMONTH=0
-# export TAILFILE=.grb
+# export YYYYMM=202201
 # export LMONTH=1
 # export TAILFILE=_0_24_mn2-31.grb   or  _0_240_mn11-31.grb
+# export SCTEMP=/ec/res4/scratch/dei2/icon
+## export LMONTH=0
+## export TAILFILE=.grb
 #
 # Koehler Martin, August 2011
 #-----------------------------------------------------------------------
@@ -71,10 +73,14 @@ dataref  = getenv("DATAREF")
 tailfile = getenv("TAILFILE")
 lmonth   = getenv("LMONTH")
 yyyymm   = getenv("YYYYMM")
+sctemp   = getenv("SCTEMP")
 
 
 #-----------------------------------------------------------------------
 # --- setup
+
+ifsdir = sctemp&'/../ifs_data'
+obsdir = sctemp&'/../obs_data'
 
 if levtype = 'sfc' then
   grid     = [1.0,1.0]          # default: '' or [1.5,1.5]
@@ -122,11 +128,15 @@ else
   nd_txt2 = ''
 end if
 
-if varname = 'ACCSOB_T' or varname = 'ACCTHB_T' then
-  obs = 'CERES'
-else
-  obs = 'WHOI'
-end if
+#--- observation types
+case varname of
+  'ACCSOB_T':  obs = 'CERES'  end
+  'ACCSOD_T':  obs = 'CERES'  end
+  'ACCTHB_T':  obs = 'CERES'  end
+  'TCC'     :  obs = 'CERES'  end
+  'TOT_PREC':  obs = 'IMERG'  end
+  otherwise :  obs = 'WHO'    end    # SP_10M T_2M T_G QV_2M ACCLHFL_S ACCSHFL_S
+end case
 
 if stat = 'rms' then
   score_file = plotdir&"/scores_"&expnum&"_rms.txt"
@@ -188,6 +198,7 @@ varfile  = lowercase(varname)
 case varname of
  'ACCSOB_S':  varfile = 'ssr'         end
  'ACCSOB_T':  varfile = 'nswrf'       end
+ 'ACCSOD_T':  varfile = 'dswrf'       end
  'ACCTHB_S':  varfile = 'str'         end
  'ACCTHB_T':  varfile = 'ttr'         end
  'ACCLHFL_S': varfile = 'slhf'        end
@@ -218,7 +229,7 @@ case varname of
  'Q3'      :  varfile = '0.1.82'      end    # prog
  'QR'      :  varfile = 'rwmr'        end    # prog
  'QS'      :  varfile = 'snmr'        end    # prog
- 'CC'      :  varfile = '0.6.22'      end
+ 'CC'      :  varfile = 'ccl'         end    # '0.6.22'
  'QTVAR'   :  varfile = '192.201.39'  end
  'ttendsw' :  varfile = '0.4.192'     end
  'ttendlw' :  varfile = '0.5.192'     end
@@ -239,7 +250,7 @@ case varname of
  'PS'      :  varfile = 'sp'          end
  'PMSL'    :  varfile = 'prmsl'       end
  'DZH_SNOW':  varfile = 'sd'          end
- 'DZH_SNOW_M':varfile = '0.1.11'      end  # levtype =114
+ 'DZH_SNOW_M':varfile = 'sde'         end  # levtype =114  0.1.11
  'RHO_SNOW_M':varfile = '0.1.61'      end  # levtype =114
  'T_SNOW_M'  :varfile = '0.0.18'      end  # levtype =114
  'SST'     :  varfile = 'sst'         end
@@ -247,7 +258,7 @@ case varname of
  'H_SEAICE':  varfile = 'icetk'       end
  'T_SEAICE':  varfile = 'ist'         end
  'W_SO'    :  varfile = '2.3.20'      end  # levtype =sfc
- 'T_SO'    :  varfile = '2.3.18'      end  # levtype =sfc
+ 'T_SO'    :  varfile = 'sot'         end  # levtype =sfc '2.3.18'
  'EXTRA3D1':  varfile = '255.255.1'   end
  'EXTRA3D2':  varfile = '255.255.2'   end
 end case
@@ -293,15 +304,15 @@ for nd=1 to ndays do
     source_ini_icon = datadir&'/'&expnum&'_'&inidate&initime&'_DOM01_0001_'&varfile&'_'&levtype&'.grb'
     source_ref_icon = dataref&'/'&expref&'_'&inidate&initime&'_DOM01_0001_'&varfile&'_'&levtype&'.grb'
     source_ver_icon = datadir&'/'&expnum&'_'&verdate&vertime&'_DOM01_0001_'&varfile2&'_'&levtype&'.grb'
-    source_pl_ifs   ='/scratch/ms/de/deia/ifs_data/ifs_oper_1x1_'&yyyymm&'.pl.grb'
-    source_sfc_ifs  ='/scratch/ms/de/deia/ifs_data/ifs_oper_1x1_'&yyyymm&'.sfc.grb'
+    source_pl_ifs   =ifsdir&'/ifs_oper_1x1_'&yyyymm&'.pl.grb'
+    source_sfc_ifs  =ifsdir&'/ifs_oper_1x1_'&yyyymm&'.sfc.grb'
     nfc = ndays
   else
     source_ini_icon = datadir&'/'&expnum&'_'&yyyymm&'_DOM01_0001_'&varfile&'_'&levtype&tailfile
     source_ref_icon = dataref&'/'&expref&'_'&yyyymm&'_DOM01_0001_'&varfile&'_'&levtype&tailfile
     source_ver_icon = datadir&'/'&expnum&'_'&yyyymm&'_DOM01_0001_'&varfile2&'_'&levtype&tailfile
-    source_pl_ifs   ='/scratch/ms/de/deia/ifs_data/ifs_oper_1x1_'&yyyymm&'.pl.' &mntxt[3]
-    source_sfc_ifs  ='/scratch/ms/de/deia/ifs_data/ifs_oper_1x1_'&yyyymm&'.sfc.'&mntxt[3]
+    source_pl_ifs   =ifsdir&'/ifs_oper_1x1_'&yyyymm&'.pl.' &mntxt[3]
+    source_sfc_ifs  =ifsdir&'/ifs_oper_1x1_'&yyyymm&'.sfc.'&mntxt[3]
     nfc = parse(mntxt[3], "-")
     nfc = parse(nfc[2],".")
     nfc = nfc[1]
@@ -339,7 +350,7 @@ for nd=1 to ndays do
 # fluxes: take last 24h diff
     if varname = 'ACCSOB_S'  or varname = 'ACCTHB_S'  or varname = 'ACCSOB_T' or varname = 'ACCTHB_T' or
        varname = 'ACCLHFL_S' or varname = 'ACCSHFL_S' or varname = 'TOT_PREC' or varname = 'RAIN_CON' or
-       varname = 'RAIN_GSP'  or varname = 'SNOW_CON'  or varname = 'SNOW_GSP' then
+       varname = 'RAIN_GSP'  or varname = 'SNOW_CON'  or varname = 'SNOW_GSP' or varname = 'ACCSOD_T' then
       temp_24h = read(
                 SOURCE   : source_ini_icon,
                 grid     : grid,
@@ -365,6 +376,7 @@ for nd=1 to ndays do
       'ACCTHB_S':        scale= 1.0/86400.0 end
       'ACCSOB_T':        scale= 1.0/86400.0 end
       'ACCTHB_T':        scale= 1.0/86400.0 end
+      'ACCSOD_T':        scale= 1.0/86400.0 end
       'ACCLHFL_S':       scale= 1.0/86400.0 end
       'ACCSHFL_S':       scale= 1.0/86400.0 end
       'TCC':             scale= 0.01        end
@@ -441,6 +453,7 @@ for nd=1 to ndays do
           'RHO_SNOW':        param = 'RSN'  end
           'T_G':             param = 'SKT'  end
           'ACCSOB_S':        param = 'SSR'  ; scale= 1.0/86400.0 end
+          'ACCSOD_S':        param = 'SSR'  ; scale= 1.0/86400.0 end
           'ACCTHB_S':        param = 'STR'  ; scale= 1.0/86400.0 end
           'ACCSOB_T':        param = 'TSR'  ; scale= 1.0/86400.0 end
           'ACCTHB_T':        param = 'TTR'  ; scale= 1.0/86400.0 end
@@ -459,8 +472,8 @@ for nd=1 to ndays do
                 grid     : grid,
   		param    : param,
   		time     : vertime,
-                date     : date_sfc,
-                step     : step_sfc   # attention: all IFS sfc data was retrieved as step=24
+                date     : date_sfc
+#               step     : step_sfc   # attention: all IFS sfc data was retrieved as step=24
       	)
         temp = temp * scale
         end
@@ -505,7 +518,7 @@ if varname = 'SP_10M'    or varname = 'T_2M'      or varname = 'T_G' or varname 
       'ACCLHFL_S':   param = 'lh'  end
       'ACCSHFL_S':   param = 'sh'  end
    end case
-   source_obs = '/scratch/ms/de/deia/obs_data/'&param&'_oaflux_'&yyyymm&'.grb'
+   source_obs = obsdir&'/'&param&'_oaflux_'&yyyymm&'.grb'
    var_obs = read(
       SOURCE   : source_obs,
       grid     : grid )
@@ -528,17 +541,32 @@ end if
 #     - cdo -f grb2 -remapcon,r360x181 -seldate,20150815 -selname,solar_mon               -invertlat CERES_EBAF-TOA_Ed2.8_Subset_201501-201512.nc  solar_ceres_201508.grb
 #     - cdo add toa_sw_ceres_201508.grb solar_ceres_201508.grb toa_sw_net_ceres_201508.grb # ?????
 
-if varname = 'ACCSOB_T' or varname = 'ACCTHB_T' then
+if varname = 'ACCSOB_T' or varname = 'ACCTHB_T' or varname = 'ACCSOD_T' or varname = 'TCC' then
    case varname of
       'ACCSOB_T' :   param = 'toa_sw_net' end
       'ACCTHB_T' :   param = 'toa_lw'     end
+      'ACCSOD_T' :   param = 'solar'      end
+      'TCC'      :   param = 'tcc'        end
    end case
-   source_obs = '/scratch/ms/de/deia/obs_data/'&param&'_ceres_'&yyyymm&'.grb'
+   source_obs = obsdir&'/'&param&'_ceres_'&yyyymm&'.grb'
    var_obs = read(
       SOURCE   : source_obs,
       grid     : grid )
    ocean = 1
 end if
+
+#--- IMERGE GPM precipitation observational
+#--- origin:  https://gpm.nasa.gov/data/imerg (monthly and daily)
+
+if varname = 'TOT_PREC' then
+   param = 'prec'
+   source_obs = obsdir&'/'&param&'_imerg_'&yyyymm&'.grb'
+   var_obs = read(
+      SOURCE   : source_obs,
+      grid     : grid )
+   ocean = 1
+end if
+
 
 
 #-----------------------------------------------------------------------

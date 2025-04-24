@@ -1,7 +1,18 @@
-#!/bin/ksh
+#SBATCH --job-name=icon
+#SBATCH --qos=%QUEUE%
+#SBATCH --ntasks=%NTASKS%
+#SBATCH --cpus-per-task=%NTHREADS%
+#SBATCH --ntasks-per-node=1
+#SBATCH --hint=nomultithread
+#SBATCH --time=02:00:00
+##SBATCH --contiguous    # No need on atos-ecmwf.  It would make waiting time longer!!
+#SBATCH --mem-bind=local
+#SBATCH --mem=16G        # 16GB needed for oper IFS data
+#SBATCH --output=%ECF_JOBOUT%
+#SBATCH --error=%ECF_JOBOUT%
 
 # ------------------------------------------
-# Copyright (C) 2004-2025, DWD, MPI-M, DKRZ, KIT, ETH, MeteoSwiss
+# Copyright (C) 2004-2024, DWD, MPI-M, DKRZ, KIT, ETH, MeteoSwiss
 # Contact information: icon-model.org
 # See AUTHORS.TXT for a list of authors
 # See LICENSES/ for license information

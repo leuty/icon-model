@@ -71,10 +71,13 @@ dataref  = getenv("DATAREF")
 tailfile = getenv("TAILFILE")
 lmonth   = getenv("LMONTH")
 yyyymm   = getenv("YYYYMM")
+sctemp   = getenv("SCTEMP")
 
 
 #-----------------------------------------------------------------------
 # --- setup
+
+ifsdir = sctemp&'/../ifs_data'
 
 grid = [1.0,1.0]         # default: '' or [1.5,1.5]
 
@@ -204,16 +207,21 @@ case varname of
  'Q3'      :  varfile = '0.1.82'      end    # prog
  'QR'      :  varfile = 'rwmr'        end    # prog
  'QS'      :  varfile = 'snmr'        end    # prog
- 'CC'      :  varfile = '0.6.22'      end
+ 'CC'      :  varfile = 'ccl'         end    # '0.6.22'
  'QTVAR'   :  varfile = '192.201.39'  end
  'ttendsw' :  varfile = '0.4.192'     end
  'ttendlw' :  varfile = '0.5.192'     end
  'ttendcds':  varfile = '0.0.192'     end
- 'qtendcds':  varfile = '0.1.197'     end
+ 'qtendcds':  varfile = '255.255.255' end
  'utendcds':  varfile = '0.2.192'     end
  'vtendcds':  varfile = '0.2.193'     end
  'utends'  :  varfile = '0.2.194'     end
  'vtends'  :  varfile = '0.2.195'     end
+ 'ddt_temp_gscp': varfile = '192.162.203' end
+ 'ddt_qv_gscp'  : varfile = '192.162.204' end
+ 'ddt_qc_gscp'  : varfile = '192.162.205' end
+ 'ddt_qi_gscp'  : varfile = '192.162.206' end
+ 'ddt_temp_dyn' : varfile = '0.3.197' end
  'T_G'     :  varfile = 't'           end
  'T_2M'    :  varfile = '2t'          end
  'U_10M'   :  varfile = '10u'         end
@@ -273,15 +281,15 @@ for nd=1 to ndays do
     source_ini_icon = datadir&'/'&expnum&'_'&inidate&initime&'_DOM01_0001_'&varfile&'_'&levtype&'.grb'
     source_ref_icon = dataref&'/'&expref&'_'&inidate&initime&'_DOM01_0001_'&varfile&'_'&levtype&'.grb'
     source_ver_icon = datadir&'/'&expnum&'_'&verdate&vertime&'_DOM01_0001_'&varfile2&'_'&levtype&'.grb'
-    source_pl_ifs   ='/scratch/ms/de/deia/ifs_data/ifs_oper_1x1_'&yyyymm&'.pl.grb'
-    source_sfc_ifs  ='/scratch/ms/de/deia/ifs_data/ifs_oper_1x1_'&yyyymm&'.sfc.grb'
+    source_pl_ifs   =ifsdir&'/ifs_oper_1x1_'&yyyymm&'.pl.grb'
+    source_sfc_ifs  =ifsdir&'/ifs_oper_1x1_'&yyyymm&'.sfc.grb'
     nfc = ndays
   else
     source_ini_icon = datadir&'/'&expnum&'_'&yyyymm&'_DOM01_0001_'&varfile&'_'&levtype&tailfile
     source_ref_icon = dataref&'/'&expref&'_'&yyyymm&'_DOM01_0001_'&varfile&'_'&levtype&tailfile
     source_ver_icon = datadir&'/'&expnum&'_'&yyyymm&'_DOM01_0001_'&varfile2&'_'&levtype&tailfile
-    source_pl_ifs   ='/scratch/ms/de/deia/ifs_data/ifs_oper_1x1_'&yyyymm&'.pl.' &mntxt[3]
-    source_sfc_ifs  ='/scratch/ms/de/deia/ifs_data/ifs_oper_1x1_'&yyyymm&'.sfc.'&mntxt[3]
+    source_pl_ifs   =ifsdir&'/ifs_oper_1x1_'&yyyymm&'.pl.' &mntxt[3]
+    source_sfc_ifs  =ifsdir&'/ifs_oper_1x1_'&yyyymm&'.sfc.'&mntxt[3]
     nfc = parse(mntxt[3], "-")
     nfc = parse(nfc[2],".")
     nfc = nfc[1]
