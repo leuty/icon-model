@@ -35,7 +35,7 @@ myst_heading_anchors = 4
 
 myst_enable_extensions = ["deflist", "colon_fence", "substitution"]
 
-myst_substitutions = {"release": "2024.10"}
+myst_substitutions = {"release": "2025.04"}
 
 # Important: This needs to be updated with a new release.
 # Several URLs are built using this string
