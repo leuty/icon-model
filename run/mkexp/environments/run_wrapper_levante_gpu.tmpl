@@ -41,7 +41,7 @@ if (( \$SLURM_PROCID < $compute_tasks ))
 then
     echo Compute process \$SLURM_LOCALID on \$(hostname)
     export CUDA_VISIBLE_DEVICES=\${gpus[\${reorder[lrank]}]}
-    export UCX_TLS=cma,rc,mm,cuda_ipc,cuda_copy
+    export UCX_TLS=self,cma,rc_x,ud_x,cuda_ipc,cuda_copy
 else
     echo IO process \$SLURM_LOCALID on \$(hostname)
     export CUDA_VISIBLE_DEVICES=

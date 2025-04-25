@@ -49,9 +49,6 @@ set -eu
 
 lrank=$SLURM_LOCALID%4
 
-export OMPI_MCA_pml=ucx
-export OMPI_MCA_btl="^vader,tcp,openib,smcuda"
-
 # need to check in run script that the variables make sense and are
 # exported!
 
@@ -79,13 +76,9 @@ then
     export UCX_NET_DEVICES=${nic_reorder[lrank]}
     export CUDA_VISIBLE_DEVICES=${gpus[${reorder[lrank]}]}
 
-    export UCX_RNDV_SCHEME=put_zcopy
     export UCX_RNDV_THRESH=16384
 
-    export UCX_IB_GPU_DIRECT_RDMA=yes
-
-    export UCX_TLS=cma,rc,mm,cuda_ipc,cuda_copy,gdr_copy
-    export UCX_MEMTYPE_CACHE=n
+    export UCX_TLS=self,cma,rc_x,ud_x,cuda_ipc,cuda_copy
 
 else
 
@@ -107,13 +100,9 @@ else
 
     export UCX_NET_DEVICES=${nic_reorder[lrank]}
 
-    export UCX_RNDV_SCHEME=put_zcopy
     export UCX_RNDV_THRESH=16384
 
-    export UCX_IB_GPU_DIRECT_RDMA=yes
-
-    export UCX_TLS=cma,rc,mm,cuda_ipc,cuda_copy,gdr_copy
-    export UCX_MEMTYPE_CACHE=n
+    export UCX_TLS=self,cma,rc_x,ud_x,cuda_ipc,cuda_copy
 
 fi
 

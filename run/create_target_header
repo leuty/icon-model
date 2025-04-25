@@ -575,14 +575,6 @@ $(case $use_flags_group in
       ;;
   esac)
 
-export OMPI_MCA_pml=ucx
-export OMPI_MCA_btl="^vader,tcp,openib,smcuda"
-export UCX_RNDV_SCHEME=put_zcopy
-export UCX_RNDV_THRESH=16384
-export UCX_IB_GPU_DIRECT_RDMA=yes
-export UCX_TLS=cma,rc,mm,cuda_ipc,cuda_copy,gdr_copy
-export UCX_MEMTYPE_CACHE=n
-
 EOF
 }
 
