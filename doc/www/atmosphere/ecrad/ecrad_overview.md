@@ -51,14 +51,14 @@ Aerosol species affected by human activity have an additional dimension `epoch` 
 The original climatology file can be downloaded from [this ECMWF webpage](https://aux.ecmwf.int/ecpds/home/radiation/aerosol_climatology/aerosol_cams_climatology_49r2_1951-2019_4D.nc).
 
 At this point in time, ICON does **not** support the new `epoch` dimension of the climatology (i.e. anthropogenic change of aerosol over 5+ year periods).
-The ICON repository contains the script {{ '[`make_camsclim_onICONgrid.sh`](https://gitlab.dkrz.de/icon/icon-model/-/blob/release-{}-public/scripts/preprocessing/make_camsclim_onICONgrid.sh)'.format(release) }} to extract the latest (2015) epoch from the original data file and interpolate the climatology onto an ICON grid of the user’s choice.
+The ICON repository contains the script {{ '[`make_camsclim_onICONgrid.sh`]({}/scripts/preprocessing/make_camsclim_onICONgrid.sh)'.format(base_url) }} to extract the latest (2015) epoch from the original data file and interpolate the climatology onto an ICON grid of the user’s choice.
 Installation of CDO, NCO and python3 (numpy, xarray) tools is required to run this script.
 
 ###  Using CAMS forecasts
 
 ICON can also use CAMS forecast aerosol fields on 137 model levels. This option is activated with the namelist parameter **{term}`irad_aero``=8`**.
 
-CAMS forecast aerosol fields can be retrieved from ECMWF via MARS request. The ICON repository contains the script {{ '[`make_camsforc_onICONgrid.sh`](https://gitlab.dkrz.de/icon/icon-model/-/blob/release-{}-public/scripts/preprocessing/make_camsforc_onICONgrid.sh)'.format(release) }} which then interpolates the CAMS forecast aerosol onto an ICON grid of the user’s choice.
+CAMS forecast aerosol fields can be retrieved from ECMWF via MARS request. The ICON repository contains the script {{ '[`make_camsforc_onICONgrid.sh`]({}/scripts/preprocessing/make_camsforc_onICONgrid.sh)'.format(base_url) }} which then interpolates the CAMS forecast aerosol onto an ICON grid of the user’s choice.
 The script header contains more information on how to retrieve CAMS forecast aerosol from MARS.
 CDO, python3 and ecmwf-toolbox are required to run this script.
 
