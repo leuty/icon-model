@@ -9,9 +9,6 @@
 [submodule "externals/yac"]
 	path = externals/yac
 	url = ../../dkrz-sw/YAC.git
-[submodule "externals/tixi"]
-	path = externals/tixi
-	url = ../../icon-libraries/libtixi.git
 [submodule "externals/yaxt"]
 	path = externals/yaxt
 	url = ../../dkrz-sw/yaxt.git
@@ -27,27 +24,15 @@
 [submodule "externals/ecrad"]
 	path = externals/ecrad
 	url = ../../dwd-sw/libecrad.git
-[submodule "externals/dace_icon"]
-	path = externals/dace_icon
-	url = ../../dwd-sw/dace-icon-interface.git
-[submodule "externals/emvorado"]
-	path = externals/emvorado
-	url = ../../dwd-sw/emvorado-for-icon.git
 [submodule "externals/probtest"]
 	path = externals/probtest
 	url = https://github.com/MeteoSwiss/probtest.git
 [submodule "utils/mkexp"]
 	path = utils/mkexp
 	url = ../../esmenv/mkexp.git
-[submodule "externals/art"]
-	path = externals/art
-	url = ../../art/art.git
 [submodule "externals/ppm"]
 	path = externals/ppm
 	url = ../../dkrz-sw/ppm.git
-[submodule "externals/comin"]
-	path = externals/comin
-	url = ../../icon-comin/comin.git
 [submodule "externals/hd"]
 	path = externals/hd
 	url = https://gitlab.dkrz.de/hd-model/hd-couple.git
