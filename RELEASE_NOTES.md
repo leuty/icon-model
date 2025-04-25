@@ -1,3 +1,11 @@
+# Release notes for icon-YYYY.MM
+
+AES Physics:
+
+- Fixes for:
+  - GPU port of solar_parameters() (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/776)
+
+
 # Release notes for icon-2025.04
 
 ### ICON-Atmo

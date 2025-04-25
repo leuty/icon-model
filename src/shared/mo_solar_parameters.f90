@@ -241,11 +241,15 @@ CONTAINS
                 !   center     = original terminator : mu0=pi/2      --> cos_mu0 = cos(pi/2-dmu0)/2
                 !   outer edge = extended terminator : mu0=pi/2+dmu0 --> cos_mu0 = 0
                 !
-                !$ACC KERNELS DEFAULT(PRESENT) ASYNC(1) IF(lacc)
-                WHERE (ABS(mu0(:,:)-pi_2)<dmu0)
-                   cos_mu0(:,:) = 0.5_wp*SIN(dmu0)*(1._wp-(mu0(:,:)-pi_2)/dmu0)
-                END WHERE
-                !$ACC END KERNELS
+                !$ACC PARALLEL LOOP DEFAULT(PRESENT) COLLAPSE(2) ASYNC(1) IF(lacc)
+                DO j=1,nblks
+                  DO i=1,nproma
+                    IF (ABS(mu0(i,j)-pi_2)<dmu0) THEN
+                      cos_mu0(i,j) = 0.5_wp*SIN(dmu0)*(1._wp-(mu0(i,j)-pi_2)/dmu0)
+                    END IF
+                  END DO
+                END DO
+                !$ACC END PARALLEL LOOP
                 !
              CASE (4)
                 !
