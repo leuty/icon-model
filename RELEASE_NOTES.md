@@ -12,6 +12,7 @@ Climate: ICON-Land
 
 - QUINCY development
   - Implemented reading of land-use data for QUINCY agriculture and sylviculture processes in ICON-Land
+- Updated inline documentation of hydrology process
 - Fixes:
   - Verification check for some JSBACH lctlib parameters when compiling with single precision
 
