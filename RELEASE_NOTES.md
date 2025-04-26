@@ -10,7 +10,9 @@ AES Physics:
 Climate: ICON-Land
 
 - QUINCY development
-    - Implemented reading of land-use data for QUINCY agriculture and sylviculture processes in ICON-Land
+  - Implemented reading of land-use data for QUINCY agriculture and sylviculture processes in ICON-Land
+- Fixes:
+  - Verification check for some JSBACH lctlib parameters when compiling with single precision
 
 
 # Release notes for icon-2025.04
