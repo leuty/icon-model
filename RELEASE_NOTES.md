@@ -5,6 +5,13 @@ AES Physics:
 - Fixes for:
   - GPU port of solar_parameters() (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/776)
 
+### Soil and Surface
+
+Climate: ICON-Land
+
+- QUINCY development
+    - Implemented reading of land-use data for QUINCY agriculture and sylviculture processes in ICON-Land
+
 
 # Release notes for icon-2025.04
 
