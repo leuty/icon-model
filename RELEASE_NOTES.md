@@ -2,6 +2,7 @@
 
 AES Physics:
 
+- Implemented a new convective boundary layer (CBL) test case for TMX validation
 - Fixes for:
   - GPU port of solar_parameters() (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/776)
 

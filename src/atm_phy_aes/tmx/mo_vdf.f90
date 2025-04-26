@@ -327,6 +327,8 @@ CONTAINS
 
     INTEGER :: iproc, jtile, nlev, nlevm1
     INTEGER :: jc, jb, jk
+    !LOGICAL, POINTER :: use_km_const
+    !REAL(wp), POINTER :: km_const, rturb_prandtl
     REAL(wp), POINTER, DIMENSION(:,:,:) :: &
       & new_ta, new_qv, new_qc, new_qi, new_ua, new_va, &
       & new_tsfc
@@ -381,7 +383,10 @@ CONTAINS
       km_ic  => diags_atmo%km_ic,    &
       kh_ic  => diags_atmo%kh_ic,    &
       km_sfc => diags_sfc%km,        &
-      kh_sfc => diags_sfc%kh         &
+      kh_sfc => diags_sfc%kh,        &
+      use_km_const => conf_atmo%use_km_const, &
+      km_const => conf_atmo%km_const, &
+      rturb_prandtl => conf_atmo%rturb_prandtl &
       & )
 
     new_tsfc => this%sfc %new_states%Get_ptr_r3d('surface temperature')
@@ -442,12 +447,23 @@ CONTAINS
           kh(jc,jk,jb) = kh_ic(jc,jk+1,jb)
         END DO
       END DO
-      !$ACC LOOP GANG(STATIC: 1) VECTOR
-      DO jc = domain%i_startidx_c(jb), domain%i_endidx_c(jb)
-        km(jc,nlev,jb) = km_sfc(jc,jb)
-        kh(jc,nlev,jb) = kh_sfc(jc,jb)
-      END DO
       !$ACC END PARALLEL
+
+      IF (use_km_const) THEN
+        !$ACC PARALLEL LOOP DEFAULT(PRESENT) GANG VECTOR ASYNC(1)
+        DO jc = domain%i_startidx_c(jb), domain%i_endidx_c(jb)
+          km(jc,nlev,jb) = km_const
+          kh(jc,nlev,jb) = km_const * rturb_prandtl
+        END DO
+        !$ACC END PARALLEL LOOP
+      ELSE
+        !$ACC PARALLEL LOOP DEFAULT(PRESENT) GANG VECTOR ASYNC(1)
+        DO jc = domain%i_startidx_c(jb), domain%i_endidx_c(jb)
+          km(jc,nlev,jb) = km_sfc(jc,jb)
+          kh(jc,nlev,jb) = kh_sfc(jc,jb)
+        END DO
+        !$ACC END PARALLEL LOOP
+      END IF
     END DO
 !$OMP END PARALLEL DO
 
@@ -745,7 +761,7 @@ CONTAINS
     INTEGER :: i_startblk, i_endblk, i_startidx, i_endidx
     INTEGER,  DIMENSION(:,:,:), POINTER :: iecidx, iecblk, ieidx, ieblk
 
-    REAL(wp) :: rdtime
+    REAL(wp) :: rdtime, zfactor
     REAL(wp) :: sfc_flx(domain%nproma,domain%nblks_c), top_flx(domain%nproma,domain%nblks_c)
     REAL(wp) :: nabla2_e(domain%nproma,atmo%domain%nlev,domain%nblks_e)
 
@@ -783,6 +799,8 @@ CONTAINS
       dtime        => conf_atmo%dtime,      &
       solver_type  => conf_atmo%solver_type,&
       rturb_prandtl=> conf_atmo%rturb_prandtl,&
+      use_scale_turb_energy_flux=>conf_atmo%use_scale_turb_energy_flux,&
+      scale_turb_energy_flux=>conf_atmo%scale_turb_energy_flux,&
       kh_ic        => diags_atmo%kh_ic,        &
       km_ie        => diags_atmo%km_ie,        &
       heating      => diags_atmo%heating,   &
@@ -808,6 +826,12 @@ CONTAINS
     CALL init(tend_energy, lacc=.TRUE.)
     CALL init(rhs, lacc=.TRUE.)
 !$OMP END PARALLEL
+
+    IF (use_scale_turb_energy_flux) THEN ! Scale turbulent energy flux
+      zfactor = scale_turb_energy_flux
+    ELSE
+      zfactor = 1.0_wp
+    END IF
 
     CALL atmo%temp_to_energy(state_ta(:,:,:), energy(:,:,:), use_new_moisture_state=.FALSE.)
 
@@ -838,6 +862,7 @@ CONTAINS
         & inv_mair=inv_mair(:,:,jb),                & ! in
         & inv_dz=inv_dzh(:,:,jb),                   & ! in
         & zk=kh_ic(:,:,jb),                         & ! in
+        & zprefac=zfactor,                          & ! in
         & a=a(:,:,jb),                              & ! out
         & b=b(:,:,jb),                              & ! out
         & c=c(:,:,jb)                               & ! out
@@ -846,8 +871,8 @@ CONTAINS
       !$ACC PARALLEL LOOP DEFAULT(PRESENT) GANG(STATIC: 1) VECTOR ASYNC(1)
       ! Set the right hand side
       DO jc = i_startidx_c(jb), i_endidx_c(jb)
-        rhs(jc,nlev,jb) = - sfc_flx(jc,jb) * inv_mair(jc,nlev,jb)
-        rhs(jc,1   ,jb) = + top_flx(jc,jb) * inv_mair(jc,1   ,jb)
+        rhs(jc,nlev,jb) = - sfc_flx(jc,jb) * zfactor * inv_mair(jc,nlev,jb)
+        rhs(jc,1   ,jb) = + top_flx(jc,jb) * zfactor * inv_mair(jc,1   ,jb)
       END DO
       !$ACC END PARALLEL LOOP
 
@@ -923,7 +948,8 @@ CONTAINS
       !$ACC PARALLEL LOOP DEFAULT(PRESENT) GANG VECTOR COLLAPSE(2) ASYNC(1)
       DO jk = 1, nlev
         DO je = i_startidx, i_endidx
-          nabla2_e(je,jk,jb) = 0.5_wp * rturb_prandtl * ( km_ie(je,jk,jb) + km_ie(je,jk+1,jb) ) &
+          nabla2_e(je,jk,jb) = 0.5_wp * zfactor *                                               &
+                                rturb_prandtl * ( km_ie(je,jk,jb) + km_ie(je,jk+1,jb) )         &
                               * patch%edges%inv_dual_edge_length(je,jb)                         &
                               * (  energy(iecidx(je,jb,2),jk,iecblk(je,jb,2))                   &
                                  - energy(iecidx(je,jb,1),jk,iecblk(je,jb,1))                   &

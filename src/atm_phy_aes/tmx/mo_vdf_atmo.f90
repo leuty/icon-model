@@ -143,13 +143,17 @@ MODULE mo_vdf_atmo
       turb_prandtl                    => NULL(), &
       louis_constant_b                => NULL(), &
       km_min                          => NULL(), &
+      km_const                        => NULL(), &
+      scale_turb_energy_flux          => NULL(), &
       dtime                           => NULL(), &
       k_s                             => NULL()
     INTEGER, POINTER :: &
       solver_type                     => NULL(), &
       energy_type                     => NULL()
     LOGICAL, POINTER :: &
-      use_louis                       => NULL()
+      use_louis                       => NULL(), &
+      use_km_const                    => NULL(), &
+      use_scale_turb_energy_flux      => NULL()
     CONTAINS
     ! PROCEDURE :: Init => init_t_vdf_atmo_variable_set
     PROCEDURE :: Set_pointers => Set_pointers_config
@@ -434,11 +438,16 @@ CONTAINS
     CALL init(diags%km_ic, lacc=.TRUE.)
 !$OMP END PARALLEL
 
-    CALL Smagorinsky_model(domain, diags%mech_prod, diags%bruvais, diags%rho_ic,              &
-                           diags%mixing_length_sq, conf%rturb_prandtl, conf%use_louis,        &
-                           conf%louis_constant_b, diags%scaling_factor_louis, patch,          &
-                           diags%km_ic, diags%kh_ic, diags%stability_function)
-
+    IF (.NOT. conf%use_km_const) THEN
+      CALL Smagorinsky_model(domain, diags%mech_prod, diags%bruvais, diags%rho_ic,              &
+                             diags%mixing_length_sq, conf%rturb_prandtl, conf%use_louis,        &
+                             conf%louis_constant_b, diags%scaling_factor_louis, patch,          &
+                             diags%km_ic, diags%kh_ic, diags%stability_function)
+    ELSE
+      CALL Assign_constant_eddy_viscosity(domain,  diags%rho_ic, conf%km_const,     &
+                                          conf%rturb_prandtl, patch,                &
+                                          diags%km_ic, diags%kh_ic)
+    END IF
 
     !----------------------------------------------------------------------------
     ! Interpolate turbulent exchange coefficients to required positions for
@@ -458,6 +467,7 @@ CONTAINS
                                               diags%km_ie)
 
   END SUBROUTINE Compute_diagnostics
+  !============================================================================
   !
   !============================================================================
   !
@@ -628,6 +638,10 @@ CONTAINS
     CALL configlist%append(t_variable('prandtl number', shape_0d, "", type_id="real"))
     CALL configlist%append(t_variable('switch to activate Louis formula', shape_0d, "", type_id="logical"))
     CALL configlist%append(t_variable('Louis constant b', shape_0d, "", type_id="real"))
+    CALL configlist%append(t_variable('switch to use constant turbulent viscosity', shape_0d, "", type_id="logical"))
+    CALL configlist%append(t_variable('constant Km', shape_0d, "", type_id="real"))
+    CALL configlist%append(t_variable('switch to scale turbulent energy flux', shape_0d, "", type_id="logical"))
+    CALL configlist%append(t_variable('scaling factor turbulent energy flux', shape_0d, "", type_id="real"))
     CALL configlist%append(t_variable('time step', shape_0d, "s", type_id="real"))
     CALL configlist%append(t_variable('solver type', shape_0d, "", type_id="integer"))
     CALL configlist%append(t_variable('energy type', shape_0d, "", type_id="integer"))
@@ -657,8 +671,16 @@ CONTAINS
       __acc_attach(this%use_louis)
       this%louis_constant_b => this%list%Get_ptr_r0d('Louis constant b')
       __acc_attach(this%louis_constant_b)
+      this%use_km_const => this%list%Get_ptr_l0d('switch to use constant turbulent viscosity')
+      __acc_attach(this%use_km_const)
+      this%km_const => this%list%Get_ptr_r0d('constant Km')
+      __acc_attach(this%km_const)
       this%km_min => this%list%Get_ptr_r0d('minimum Km')
       __acc_attach(this%km_min)
+      this%use_scale_turb_energy_flux => this%list%Get_ptr_l0d('switch to scale turbulent energy flux')
+      __acc_attach(this%use_scale_turb_energy_flux)
+      this%scale_turb_energy_flux => this%list%Get_ptr_r0d('scaling factor turbulent energy flux')
+      __acc_attach(this%scale_turb_energy_flux)
       this%k_s => this%list%Get_ptr_r0d('k_s')
       __acc_attach(this%k_s)
       this%dtime => this%list%Get_ptr_r0d('time step')
@@ -2373,6 +2395,72 @@ CONTAINS
 
   END SUBROUTINE prepare_diffusion_matrix_mp
 #endif
+  !
+  ! This subroutine assigns a constant eddy viscosity and diffusivity (Km=const=Kh).
+  ! For validation purposes of turbunce model.
+  !
+  SUBROUTINE Assign_constant_eddy_viscosity( &
+    domain,                     &
+    rho_ic,                     &
+    km_const,                   &
+    rturb_prandtl,              &
+    patch,                      &
+    km_ic,                      &
+    kh_ic                       &
+    )
+
+    TYPE(t_domain), INTENT(in)    :: domain
+    REAL(wp), INTENT(in), DIMENSION(:,:,:)  :: rho_ic
+    REAL(wp), INTENT(in) :: km_const, rturb_prandtl
+    TYPE(t_patch), INTENT(in) :: patch
+
+    REAL(wp), INTENT(inout), DIMENSION(:,:,:) :: km_ic, kh_ic
+
+    INTEGER :: jb,jc,jk,nlev,nlevp1
+    INTEGER :: i_startblk, i_endblk, i_startidx, i_endidx
+    INTEGER :: rl_start, rl_end
+
+    nlev = domain%nlev
+    nlevp1 = nlev+1
+
+    rl_start   = 3
+    rl_end     = min_rlcell_int
+    i_startblk = patch%cells%start_block(rl_start)
+    i_endblk   = patch%cells%end_block(rl_end)
+
+!$OMP PARALLEL DO PRIVATE(jb, jk, jc, i_startidx, i_endidx) ICON_OMP_DEFAULT_SCHEDULE
+    DO jb = i_startblk,i_endblk
+      CALL get_indices_c(patch, jb, i_startblk, i_endblk, &
+                              i_startidx, i_endidx, rl_start, rl_end)
+
+    !$ACC PARALLEL LOOP DEFAULT(PRESENT) GANG VECTOR COLLAPSE(2) ASYNC(1)
+#ifdef __LOOP_EXCHANGE
+      DO jc = i_startidx, i_endidx
+        DO jk = 2 , nlev
+#else
+      DO jk = 2 , nlev
+        DO jc = i_startidx, i_endidx
+#endif
+          km_ic(jc,jk,jb) = rho_ic(jc,jk,jb) * km_const
+
+          kh_ic(jc,jk,jb) = km_ic(jc,jk,jb) * rturb_prandtl
+
+        END DO
+      END DO
+      !$ACC END PARALLEL LOOP
+
+      !$ACC PARALLEL LOOP DEFAULT(PRESENT) GANG VECTOR ASYNC(1)
+      DO jc = i_startidx, i_endidx
+        kh_ic(jc,1,jb)      = kh_ic(jc,2,jb)
+        kh_ic(jc,nlevp1,jb) = kh_ic(jc,nlev,jb)
+        km_ic(jc,1,jb)      = km_ic(jc,2,jb)
+        km_ic(jc,nlevp1,jb) = km_ic(jc,nlev,jb)
+      END DO
+      !$ACC END PARALLEL LOOP
+    END DO
+!$OMP END PARALLEL DO
+
+  END SUBROUTINE Assign_constant_eddy_viscosity
   !
   !=================================================================
   !

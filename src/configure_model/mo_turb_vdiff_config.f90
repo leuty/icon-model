@@ -67,12 +67,16 @@ MODULE mo_turb_vdiff_config
     INTEGER  :: turb            !< turbulence scheme: VDIFF_TURB_TTE or VDIFF_TURB_3DSMAGORINSKY.
     !
     ! for tmx only
-    LOGICAL  :: use_tmx         !< true: use tmx diffusion
-    INTEGER  :: solver_type     !< 1: explicit solver, 2: implicit solver
-    INTEGER  :: energy_type     !< use 1: dry static energy 2: internal energy for thermal diffusion in tmx
-    REAL(wp) :: dissipation_factor !< for tmx only; factor for dissipation of kinetic energy
-    LOGICAL  :: use_louis       !< Switch to activate Louis formula for exchange coefficient
-    REAL(wp) :: louis_constant_b!< Louis constant b in Eq. 15 of Louis (1979) [BLM]
+    LOGICAL  :: use_tmx                    !< true: use tmx diffusion
+    INTEGER  :: solver_type                !< 1: explicit solver, 2: implicit solver
+    INTEGER  :: energy_type                !< use 1: dry static energy 2: internal energy for thermal diffusion in tmx
+    REAL(wp) :: dissipation_factor         !< for tmx only; factor for dissipation of kinetic energy
+    LOGICAL  :: use_louis                  !< Switch to activate Louis formula for exchange coefficient
+    REAL(wp) :: louis_constant_b           !< Louis constant b in Eq. 15 of Louis (1979) [BLM]
+    LOGICAL  :: use_km_const               !< Switch to use a constant turbulent viscosity/diffusivity for CBL testcase debugging
+    REAL(wp) :: km_const                   !< value of constant turbulent viscosity -> kh = km / turb_prandtl (CBL testcase)
+    LOGICAL  :: use_scale_turb_energy_flux !< Switch to scale the turbulent energy flux for CBL testcase debugging
+    REAL(wp) :: scale_turb_energy_flux     !< Scaling factor for turbulent energy flux for CBL testcase debugging
     !
     REAL(wp) :: smag_constant
     REAL(wp) :: turb_prandtl    !< Turbulent Prandtl number
@@ -144,12 +148,16 @@ CONTAINS
     config%turb     =  VDIFF_TURB_TTE
     !
     ! for tmx
-    config%use_tmx                 = .FALSE.
-    config%solver_type             = 2
-    config%energy_type             = 2
-    config%dissipation_factor      = 1._wp
-    config%use_louis               = .TRUE.
-    config%louis_constant_b        = 4.2_wp
+    config%use_tmx                    = .FALSE.
+    config%solver_type                = 2
+    config%energy_type                = 2
+    config%dissipation_factor         = 1._wp
+    config%use_louis                  = .TRUE.
+    config%louis_constant_b           = 4.2_wp
+    config%use_km_const               = .FALSE.
+    config%km_const                   = 1.0_wp
+    config%use_scale_turb_energy_flux = .FALSE.
+    config%scale_turb_energy_flux     = 1.0_wp
     !
     config%smag_constant = 0.23_wp
     config%max_turb_scale= 300._wp

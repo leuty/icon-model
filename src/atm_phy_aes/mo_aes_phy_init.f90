@@ -936,7 +936,7 @@ CONTAINS
 
       SELECT CASE (nh_test_name)
 
-      CASE('APE','APE_aes','RCEhydro','RCE_glb','RCE_Tconst','RCE_Tprescr','aes_bubble','CBL_flxconst','RCEMIP_analytical', &
+      CASE('APE','APE_aes','RCEhydro','RCE_glb','RCE_Tconst','RCE_Tprescr','aes_bubble','aes_cbl','CBL_flxconst','RCEMIP_analytical', &
         &  'dcmip_tc_52')
         ! Note that there is only one surface type in this case !!!
         !
