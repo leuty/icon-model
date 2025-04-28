@@ -133,7 +133,7 @@ SUBROUTINE calc_evapotranspiration ( &
   REAL(wp) :: eva_sum !< Sum of evapotranspiration contributions [kg/(m**2 s)].
   REAL(wp) :: w_i_scale
   REAL(wp) :: b2iw, b4iw, b234iw, q_s, dq_s, q_snow, dq_snow
-  REAL(wp) :: smth_heav, area_fac
+  REAL(wp) :: smth_heav, area_fac, potevap, temp
 
   INTEGER :: i
 
@@ -148,10 +148,10 @@ SUBROUTINE calc_evapotranspiration ( &
 
   !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(acc_async_queue) IF(lzacc)
   !$ACC LOOP GANG(STATIC: 1) VECTOR PRIVATE(w_i_scale, b2iw, b4iw, b234iw, q_s, dq_s, q_snow) &
-  !$ACC   PRIVATE(dq_snow, smth_heav, area_fac)
+  !$ACC   PRIVATE(dq_snow, smth_heav, area_fac, potevap, temp)
   DO i = ivstart, ivend
     ! Compute fraction covered by interception water.
-    w_i_scale  = MAX( 0.25_wp * cf_w, 0.4_wp * cwimax_ml * MAX(2.5_wp * plcov(i), tai(i)))
+    w_i_scale  = MAX( 0.25_wp * cf_w, 0.25_wp * MIN(5.e-4_wp, cwimax_ml) * MAX(2.5_wp * plcov(i), tai(i)))
 
     IF (lterra_urb .AND. itype_eisa == 3) THEN
       w_i_scale = urb_isa(i) * cwisamax + (1.0_wp - urb_isa(i)) * w_i_scale
@@ -187,10 +187,11 @@ SUBROUTINE calc_evapotranspiration ( &
     ! if evapot_s<0 indicates potential evaporation for temperature Ts
     ! amount of water evaporated is limited to total content of store
 
-    ! Only 1/3 to 1/2 of the wet area actually participates, depending on skin temperature. Linear
-    ! transition between 0C and 2C.
-    smth_heav = MAX(0._wp, 1._wp - MAX(0._wp, 0.5_wp*(t_sk(i) - t0_melt)))
-    area_fac = (1._wp + 0.5_wp*smth_heav)/3._wp
+    ! Between 25% and 100% of the wet area actually participate, depending on skin temperature, with a linear
+    ! transition between 15C and 0C. The reduced weight at high temperatures is needed to reduce noise
+    ! in the presence of convective precipitation.
+    smth_heav = MAX(0._wp, 1._wp - MAX(0._wp, (t_sk(i) - t0_melt)/15._wp))
+    area_fac = (1._wp + 3._wp*smth_heav)/4._wp
 
     eva_w_i(i) = MERGE(MAX( &
         & & ! Evaporate freely, ...
@@ -211,11 +212,15 @@ SUBROUTINE calc_evapotranspiration ( &
         & evapot_snow(i) < 0._wp &
       )
 
-    ! Formation of dew or rime, if evapot_s > 0. Distinction between
+    ! Formation of dew or rime, if evapot_s > 0. The distinction between
     ! dew or rime is only controlled by sign of surface temperature
-    ! and not affected by presence of snow !
-    dew_rate(i) = MERGE(evapot_s(i), 0._wp, t_sk(i) >= t0_melt .AND. evapot_s(i) >= 0.)
-    rime_rate(i) = MERGE(evapot_snow(i), 0._wp, t_sk(i) < t0_melt .AND. evapot_snow(i) >= 0.)
+    ! and not affected by presence of snow, but the variables entering into
+    ! the calculation differ because t_snow_top does not contain t_sk
+    ! in the absence of snow
+    potevap = MERGE(evapot_snow(i), evapot_s(i), w_snow(i) > eps_soil)
+    temp    = MERGE(t_snow_top(i),  t_sk(i),     w_snow(i) > eps_soil)
+    dew_rate(i)  = MERGE(potevap, 0._wp, temp >= t0_melt .AND. potevap >= 0._wp)
+    rime_rate(i) = MERGE(potevap, 0._wp, temp <  t0_melt .AND. potevap >= 0._wp)
   END DO
   !$ACC END PARALLEL
 
