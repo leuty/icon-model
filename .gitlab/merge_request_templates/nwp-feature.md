@@ -38,7 +38,5 @@ If your changes require the generation of new reference data, please refer to th
 
 **Note:** Updating the reference data, rebasing and monitoring the buildbot-tests stays in the responsibility of the author.
 
-{{< comment >}}
-The following is a list of gitlab quick actions for further tweaking the default MR setting. Please don't remove!
-{{< /comment >}}
+[The following is a list of gitlab quick actions for further tweaking MR settings. Please don't remove!]: #
 /draft
