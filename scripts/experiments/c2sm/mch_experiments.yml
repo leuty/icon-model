@@ -99,7 +99,7 @@ experiments:
         - meteogram: ['Meteogram*.nc']
         - total_integrals: ['total_integrals.dat']
         - tracer_total_integrals: ['tracer_total_integrals.dat']
-        - emvorado_vrsim_volscan: ['radar_dom1/cdfin*zrsim*volscan.nc']
+        - emvorado_vrsim_volscan: ['radar_dom1/cdfin*zrsim*PPI0080.nc']
   - name: mch_opr_r04b07_nest
     check: checksuite.icon-dev/check.mch_opr_r04b07_nest
     types: ['atm_3d_DOM01_pl', 'atm_3d_DOM02_pl', 'atm_3d_DOM01_hl']
