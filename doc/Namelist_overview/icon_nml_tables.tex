@@ -1164,16 +1164,18 @@ L &
 coupled\_to\_aero &
 L &
 .FALSE. &  &
-.TRUE.: Activates the coupling of aes atmosphere to Kinne aerosole input files. \newline
-        Kinne aerosol input is taken from python processes rather than direct reading from pre-processed input files. rte-rrtmgp radiation supported only. In this case yac coupling routines are called.&
+.TRUE.: Activates the coupling of the atmosphere (iforcing=2,3) to Kinne aerosole input files. \newline
+        Kinne aerosol input is taken from python processes rather than direct reading from pre-processed input files. rte-rrtmgp and ecRad radiation supported only. In this case yac coupling routines are called for read in and spatial and temporal interpolation to the chosen ICON grid.&
+For inwp\_radiation = 4 (ecRad), irad\_aero = 13 and irad\_aero = 19 are supported.
 \tabularnewline
 
 %\hline
 coupled\_to\_o3 &
 L &
 .FALSE. &  &
-.TRUE.: Activates the coupling of aes atmosphere to o3 input files. \newline
-        O3 input is taken from python processes rather than direct reading from pre-processed input files. In this case yac coupling routines are called.&
+.TRUE.: Activates the coupling of the atmosphere (iforcing = 2,3) to o3 input files. \newline
+        O3 input is taken from python processes rather than direct reading from pre-processed input files. In this case yac coupling routines are called for read in and spacial and temporal interpolation to the chosen ICON grid.&
+For inwp\_radiation = 4 (ecRad), irad\_o3 = 5 is supported.
 \tabularnewline
 
 %\hline

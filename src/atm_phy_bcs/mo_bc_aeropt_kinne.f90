@@ -138,6 +138,7 @@ SUBROUTINE su_bc_aeropt_kinne(p_patch, nbndlw, nbndsw, opt_from_coupler)
 
     ! set vertical grid spacing
     dz_clim = 500.0
+    rdz_clim = 1._wp/dz_clim
 
     WRITE(message_text,'(a,f6.2)') ' delta_z set to ', dz_clim
     CALL message('mo_bc_aeropt_kinne:read_months_bc_aeropt_kinne', message_text)
@@ -197,7 +198,7 @@ SUBROUTINE shift_months_bc_aeropt_kinne(p_patch)
      &              'ext_aeropt_kinne is not allocated')
 
   IF ( imonth_beg > 0 .OR. imonth_end < 13 ) THEN
-     WRITE(message_text,'(a,i2,a,i2)') &
+     WRITE(message_text,'(a,i2,a,i2,a)') &
      & ' Kinne aerosols are allocated for months ', imonth_beg, ' to ', imonth_end, 'only.'
      CALL message('mo_bc_aeropt_kinne:shift_months_bc_aeropt_kinne', message_text)
      CALL finish('mo_bc_aeropt_kinne:shift_months_bc_aeropt_kinne', &
@@ -448,6 +449,7 @@ SUBROUTINE set_bc_aeropt_kinne (    current_date,                         &
   !$ACC DATA CREATE(zh_vr, zdeltag_vr, zq_int, zs_i, zt_c, zt_f, zs_c, zs_f) &
   !$ACC   CREATE(zg_c, zg_f, zq_aod_c, zq_aod_f) &
   !$ACC   COPYIN(tiw) &
+  !$ACC   COPYIN(from_coupler) &
   !$ACC   IF(lzacc)
 
   !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1) IF(lzacc)

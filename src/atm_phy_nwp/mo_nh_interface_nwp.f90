@@ -1911,7 +1911,6 @@ CONTAINS
 
       IF (ltimer) CALL timer_stop(timer_coupling)
 #endif
-
     END IF
 
 

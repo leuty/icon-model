@@ -138,6 +138,7 @@ MODULE mo_nwp_phy_init
   USE mo_bc_aeropt_splumes,   ONLY: setup_bc_aeropt_splumes
   USE mo_bc_ozone,            ONLY: read_bc_ozone
   USE mo_bc_solar_irradiance, ONLY: read_bc_solar_irradiance
+  USE mo_coupling_config,     ONLY: is_coupled_to_aero, is_coupled_to_o3
 
   USE mo_sppt_state,          ONLY: sppt
   USE mo_sppt_config,         ONLY: sppt_config
@@ -1018,7 +1019,8 @@ SUBROUTINE init_nwp_phy ( p_patch, p_metrics,             &
         IF (ANY( irad_aero == (/iRadAeroConstKinne, iRadAeroKinneVolcSP, iRadAeroKinneSP/) )) THEN
           ! Only the background aerosol (pre-industry) is read in:
           l_filename_year = .FALSE.
-          CALL read_bc_aeropt_kinne(ini_date, p_patch, l_filename_year, ecrad_conf%n_bands_lw, ecrad_conf%n_bands_sw)
+          CALL read_bc_aeropt_kinne(ini_date, p_patch, l_filename_year, ecrad_conf%n_bands_lw, ecrad_conf%n_bands_sw,&
+      &                             opt_from_coupler = is_coupled_to_aero())
         ENDIF
 
         CALL nwp_aerosol_init(ini_date, p_patch)
@@ -1026,7 +1028,8 @@ SUBROUTINE init_nwp_phy ( p_patch, p_metrics,             &
         IF (ANY( irad_aero == (/iRadAeroKinne,iRadAeroKinneVolc/) )) THEN
           ! Transient Kinne aerosol:
           l_filename_year = .TRUE.
-          CALL read_bc_aeropt_kinne(ini_date, p_patch, l_filename_year, ecrad_conf%n_bands_lw, ecrad_conf%n_bands_sw)
+          CALL read_bc_aeropt_kinne(ini_date, p_patch, l_filename_year, ecrad_conf%n_bands_lw, ecrad_conf%n_bands_sw, &
+       &                            opt_from_coupler = is_coupled_to_aero())
         ENDIF
         IF (ANY( irad_aero == (/iRadAeroVolc,iRadAeroKinneVolc,iRadAeroKinneVolcSP/) )) THEN
           ! Volcanic aerosol from CMIP6
@@ -1039,7 +1042,8 @@ SUBROUTINE init_nwp_phy ( p_patch, p_metrics,             &
         !
         ! Read ozone transient data
         IF (irad_o3 == 5) CALL read_bc_ozone(ini_date%date%year,p_patch,irad_o3, &
-     &                                       vmr2mmr_opt=o3mr2gg, lacc=.FALSE.)
+     &                                       vmr2mmr_opt=o3mr2gg,opt_from_coupler=is_coupled_to_o3(), &
+     &                                       lacc=.FALSE.)
 
         ! cloud_num_fac is used in clim_cdnc, but is only available after the 1st call of init_slowphys
         ! however, clim_cdnc has to be called once before the 1st call of init_slowphys

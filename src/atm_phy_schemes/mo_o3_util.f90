@@ -37,6 +37,7 @@ MODULE mo_o3_util
   USE mo_nwp_phy_types,        ONLY: t_nwp_phy_diag
   USE mo_o3_gems_data,         ONLY: rghg7
   USE mo_o3_macc_data,         ONLY: rghg7_macc
+  USE mo_coupling_config,      ONLY: is_coupled_to_o3
   USE mo_radiation_config,     ONLY: irad_o3
   USE mo_nwp_tuning_config,    ONLY: itune_o3
   USE mo_bc_ozone,             ONLY: ext_ozone, read_bc_ozone
@@ -85,8 +86,11 @@ CONTAINS
       &  prev_radtime            !< Datetime of previous radiation time step
     TYPE(timedelta), POINTER ::&
       &  td_dt_rad               !< Radiation time step
+    REAL(wp), POINTER       :: &
+      &  ptr_o3_timint(:,:)
+    REAL(wp), ALLOCATABLE, TARGET :: &
+      &  zo3_timint(:,:) !< intermediate value of ozone, for irad_o3=5
     REAL(wp), ALLOCATABLE   :: &
-      &  zo3_timint(:,:),      & !< intermediate value of ozone, for irad_o3=5
       &  zptop32(:,:),         & !< irad_o3=6
       &  zo3_hm  (:,:),        & !< irad_o3=6
       &  zo3_top (:,:),        & !< irad_o3=6
@@ -169,7 +173,7 @@ CONTAINS
           IF(istat /= SUCCESS) CALL finish(routine, 'Deallocation of zptop32,zo3_hm,zo3_top,zpbot32,zo3_bot failed')
 
       CASE (7,9,79,97)
-       !$ACC WAIT
+        !$ACC WAIT
         CALL calc_o3_gems(pt_patch,mtime_datetime,pt_diag,prm_diag,o3,use_acc=lzacc)
       CASE(5)
 
@@ -177,8 +181,8 @@ CONTAINS
         td_dt_rad => newTimedelta('-',0,0,0,0,0, second=NINT(dt_rad), ms=0)
         prev_radtime => newDatetime(mtime_datetime + td_dt_rad)
         IF (prev_radtime%date%day /= mtime_datetime%date%day) THEN
-          IF (irad_o3 == 5) CALL read_bc_ozone(mtime_datetime%date%year, pt_patch, irad_o3, &
-                                               vmr2mmr_opt=amo3/amd, lacc=lzacc)
+          CALL read_bc_ozone(mtime_datetime%date%year, pt_patch, irad_o3, vmr2mmr_opt=amo3/amd, &
+            &                 opt_from_coupler = is_coupled_to_o3(), lacc=lzacc                 )
         END IF
         CALL deallocateTimedelta(td_dt_rad)
         CALL deallocateDatetime(prev_radtime)
@@ -190,36 +194,49 @@ CONTAINS
           CALL finish(routine, message_text)
         END IF
 
-        ALLOCATE(zo3_timint(nproma,ext_ozone(jg)%nplev_o3), STAT=istat)
+        IF (.NOT. is_coupled_to_o3()) THEN
+          ALLOCATE(zo3_timint(nproma,ext_ozone(jg)%nplev_o3), STAT=istat)
           IF(istat /= SUCCESS) CALL finish(routine, 'Allocation of zo3_timint failed')
-        !$ACC ENTER DATA CREATE(zo3_timint)
+          !$ACC ENTER DATA CREATE(zo3_timint)
+        END IF
+
 !$OMP PARALLEL
-!$OMP DO PRIVATE(jb,i_startidx,i_endidx,zo3_timint) ICON_OMP_DEFAULT_SCHEDULE
+!$OMP DO PRIVATE(jb,i_startidx,i_endidx,zo3_timint,ptr_o3_timint) ICON_OMP_DEFAULT_SCHEDULE
         DO jb = i_startblk,i_endblk
-          CALL get_indices_c(pt_patch,jb,i_startblk,i_endblk,i_startidx,i_endidx,rl_start,rl_end)
-          CALL o3_timeint(jcs = 1, jce = i_endidx, kbdim = nproma,       & ! IN
-               &          nlev_pres    = ext_ozone(jg)%nplev_o3,         & ! IN
-               &          ext_o3       = ext_ozone(jg)%o3_plev(:,:,jb,:),& ! IN
-               &          current_date = mtime_datetime,                 & ! IN
-               &          o3_time_int  = zo3_timint,                     & ! OUT
-               &          opt_use_acc  = lzacc                           )
-          CALL o3_pl2ml  (jcs = 1, jce = i_endidx, kbdim = nproma,       &
-               &          nlev_pres    = ext_ozone(jg)%nplev_o3,         & ! IN
-               &          klev         = pt_patch%nlev,                  & ! IN
-               &          pfoz         = ext_ozone(jg)%plev_full_o3,     & ! IN
-               &          phoz         = ext_ozone(jg)%plev_half_o3,     & ! IN
-               &          ppf          = pt_diag%pres(:,:,jb),           & ! IN
-               &          pph          = pt_diag%pres_ifc(:,:,jb),       & ! IN
-               &          o3_time_int  = zo3_timint,                     & ! IN
-               &          o3_clim      = o3(:,:,jb),                     & ! OUT ozone mass mixing ratio [kg/kg]
-               &          opt_use_acc  = lzacc                           )
+           CALL get_indices_c(pt_patch,jb,i_startblk,i_endblk,i_startidx,i_endidx,rl_start,rl_end)
+           IF (is_coupled_to_o3()) THEN
+              ptr_o3_timint => ext_ozone(jg)%o3_plev(:,:,jb,1)
+           ELSE
+              CALL o3_timeint(jcs = i_startidx, jce = i_endidx, kbdim = nproma, & ! IN
+                   &          nlev_pres    = ext_ozone(jg)%nplev_o3,            & ! IN
+                   &          ext_o3       = ext_ozone(jg)%o3_plev(:,:,jb,:),   & ! IN
+                   &          current_date = mtime_datetime,                    & ! IN
+                   &          o3_time_int  = zo3_timint,                        & ! OUT
+                   &          opt_use_acc  = lzacc                              )
+              ptr_o3_timint => zo3_timint
+           END IF
+
+           CALL o3_pl2ml  (jcs = i_startidx, jce = i_endidx, kbdim = nproma, &
+                &          nlev_pres    = ext_ozone(jg)%nplev_o3,            &
+                &          klev         = pt_patch%nlev,                     &
+                &          pfoz         = ext_ozone(jg)%plev_full_o3,        &
+                &          phoz         = ext_ozone(jg)%plev_half_o3,        &
+                &          ppf          = pt_diag%pres(:,:,jb),              &
+                &          pph          = pt_diag%pres_ifc(:,:,jb),          &
+                &          o3_time_int  = ptr_o3_timint,                     & ! IN
+                &          o3_clim      = o3(:,:,jb),                        & ! OUT ozone mass mixing ratio [kg/kg]
+                &          opt_use_acc  = lzacc                              )
         ENDDO !jb
 !$OMP END DO NOWAIT
 !$OMP END PARALLEL
 
-      !$ACC EXIT DATA DELETE(zo3_timint)
-      DEALLOCATE(zo3_timint, STAT=istat)
-        IF(istat /= SUCCESS) CALL finish(routine, 'Deallocation of zo3_timint failed')
+
+        IF (.NOT. is_coupled_to_o3()) THEN
+          !$ACC EXIT DATA DELETE(zo3_timint)
+          DEALLOCATE(zo3_timint, STAT=istat)
+          IF(istat /= SUCCESS) CALL finish(routine, 'Deallocation of zo3_timint failed')
+        END IF
+
     CASE(10)
       !CALL message('mo_nwp_rg_interface:irad_o3=10', &
       !  &          'Ozone used for radiation is calculated by ART')

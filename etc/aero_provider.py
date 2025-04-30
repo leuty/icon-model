@@ -10,19 +10,25 @@
 # See LICENSES/ for license information
 # SPDX-License-Identifier: BSD-3-Clause
 # ---------------------------------------------------------------
+#
+# some early definition changable by user
+#
+VERBOSE = 3
+DRYRUN = False
+UPDATE_CASE = 1
+#
+# ---------------------------------------------------------------
 
 import socket
 import sys
-from datetime import date
+from datetime import date, datetime
 from glob import glob
 
 import f90nml
 import isodate
 import numpy as np
+import pandas as pd
 import xarray as xr
-
-VERBOSE = 2
-DRYRUN = False
 
 if not DRYRUN:
     from yac import *
@@ -30,12 +36,16 @@ if not DRYRUN:
 
 def get_hostname():
 
-    fqdn = socket.getfqdn().split(".")
+    fqdn = socket.getfqdn().split(".", 3)
+    while len(fqdn) < 4:
+        fqdn.append("")
 
     if "nid" == fqdn[0][:3]:
         hostname = "Lumi"
     elif "lvt.dkrz.de" == fqdn[1] + "." + fqdn[2] + "." + fqdn[3]:
         hostname = "Levante"
+    elif "jupiter" == parts[1]:
+        hostname = "Jupiter"
     else:
         hostname = "unknown"
         raise ValueError("aero_provider: Host cannot be detected")
@@ -64,6 +74,9 @@ if get_hostname() == "Levante":
 if get_hostname() == "Lumi":
     dataPath = "/appl/local/climatedt/pool/data/ICON/grids/public/mpim/common/aerosol_kinne/"
 
+if get_hostname() == "Jupiter":
+    dataPath = "/p/data1/slmet/model_data/ICON/common/aerosol_kinne/"
+
 fileRoot = "aeropt_kinne"
 
 iso_data_interval = "P1M"
@@ -72,8 +85,120 @@ NAMELIST = sys.argv[1]
 nml_fname = glob(NAMELIST)[0]
 nml = f90nml.read(nml_fname)
 
-irad_aero = nml["aes_rad_nml"]["aes_rad_config"][0]["irad_aero"]
-print("aero_provider: found irad_aero =", irad_aero, "in", nml_fname)
+
+iforcing = nml["run_nml"]["iforcing"]
+
+if iforcing < 2 or iforcing > 3:
+    print("aero_provider: iforcing ", iforcing, "is not supported", nml_fname)
+    sys.exit(1)
+
+if iforcing == 2:
+
+    try:
+        irad_aero = nml["aes_rad_nml"]["aes_rad_config"][0]["irad_aero"]
+        if VERBOSE > 0:
+            print(
+                "aero_provider: found irad_aero =",
+                irad_aero,
+                "in",
+                nml_fname,
+                flush=True,
+            )
+    except:
+        print("aero_provider: irad_aero for aes not set in", nml_fname)
+        sys.exit(1)
+
+    try:
+        iso_coupling_interval = nml["aes_phy_nml"]["aes_phy_config"][0][
+            "dt_rad"
+        ]
+        if VERBOSE > 0:
+            print(
+                "aero_provider: found dt_rad =",
+                iso_coupling_interval,
+                "in",
+                nml_fname,
+                flush=True,
+            )
+    except:
+        print("aero_provider: dt_rad for aes not set in", nml_fname)
+        sys.exit(1)
+
+    try:
+        lyr_perp = nml["aes_rad_nml"]["aes_rad_config"][0]["lyr_perp"]
+        if VERBOSE > 0:
+            print(
+                "aero_provider: found lyr_perp =",
+                lyr_perp,
+                "in",
+                nml_fname,
+                flush=True,
+            )
+    except:
+        print("aero_provider: lyr_perp not set in", nml_fname)
+        lyr_perp = False
+
+    if lyr_perp:
+
+        try:
+            yr_perp = nml["aes_rad_nml"]["aes_rad_config"][0]["yr_perp"]
+            if VERBOSE > 0:
+                print(
+                    "aero_provider: found yr_perp =",
+                    yr_perp,
+                    "in",
+                    nml_fname,
+                    flush=True,
+                )
+        except:
+            print("aero_provider: yr_perp for aes not set in", nml_fname)
+            sys.exit(1)
+
+if iforcing == 3:
+
+    try:
+        irad_aero = nml["radiation_nml"]["irad_aero"]
+        if VERBOSE > 0:
+            print(
+                "aero_provider: found irad_aero =",
+                irad_aero,
+                "in",
+                nml_fname,
+                flush=True,
+            )
+    except:
+        print("aero_provider: irad_aero for nwp not set in", nml_fname)
+        sys.exit(1)
+
+    dt_rad = 86400.0
+    dr = pd.Timedelta(dt_rad, "s")
+    iso_coupling_interval = dr.isoformat()
+    if VERBOSE > 0:
+        print(
+            "aero_provider: found dt_rad =", dt_rad, "in", nml_fname, flush=True
+        )
+        print(
+            "aero_provider: dt_rad converted to",
+            iso_coupling_interval,
+            flush=True,
+        )
+
+    try:
+        nwp_dtime = nml["run_nml"]["dtime"]
+        if VERBOSE > 0:
+            print(
+                "aero_provider: found dtime =",
+                nwp_dtime,
+                "in",
+                nml_fname,
+                flush=True,
+            )
+
+    except:
+        print("aero_provider: dtime for nwp not set in", nml_fname)
+        sys.exit(1)
+
+    lyr_perp = False
 
 if (
     irad_aero != 12
@@ -88,12 +213,14 @@ if (
 
 try:
     coupled_to_aero = nml["coupling_mode_nml"]["coupled_to_aero"]
-    print(
-        "aero_provider: found coupled_to_aero =",
-        coupled_to_aero,
-        "in",
-        nml_fname,
-    )
+    if VERBOSE > 0:
+        print(
+            "aero_provider: found coupled_to_aero =",
+            coupled_to_aero,
+            "in",
+            nml_fname,
+            flush=True,
+        )
 except:
     print("aero_provider: coupled_to_aero not set in", nml_fname)
     coupled_to_aero = False
@@ -102,25 +229,6 @@ if not coupled_to_aero:
     raise ValueError(
         "aero_provider: coupled_to_aero = .FALSE. cannot be used when running aero_provider "
     )
-
-try:
-    iso_coupling_interval = nml["aes_phy_nml"]["aes_phy_config"][0]["dt_rad"]
-    print("o3_provider: found dt_rad =", iso_coupling_interval, "in", nml_fname)
-except:
-    print("o3_provider: dt_rad not set in", nml_fname)
-    raise SystemExit(1)
-    exit
-
-try:
-    lyr_perp = nml["aes_rad_nml"]["aes_rad_config"][0]["lyr_perp"]
-    print("aero_provider: found lyr_perp =", lyr_perp, "in", nml_fname)
-except:
-    print("aero_provider: lyr_perp not set in", nml_fname)
-    lyr_perp = False
-
-if lyr_perp:
-    yr_perp = nml["aes_rad_nml"]["aes_rad_config"][0]["yr_perp"]
-    print("aero_provider: found yr_perp =", yr_perp, "in", nml_fname)
 
 if irad_aero == 12 or irad_aero == 18 or irad_aero == 19:
     scenario = "picontrol"  # Kinne background from 1850
@@ -167,9 +275,16 @@ deg2rad = np.pi / 180
 lon = deg2rad * sw_b14_coa["lon"]
 lat = deg2rad * sw_b14_coa["lat"]
 
+if VERBOSE > 0:
+    print("aero_provider: size of lw  is", lw_b16_coa.sizes["lnwl"], flush=True)
+    print("aero_provider: size of sw  is", sw_b14_coa.sizes["lnwl"], flush=True)
+    print("aero_provider: size of lev is", lw_b16_coa.sizes["lev"], flush=True)
+
 if not DRYRUN:
 
-    grid = Reg2dGrid("aero_grid", lon, lat)
+    grid = Reg2dGrid("aero_grid", lon, lat, cyclic=[True, False])
+    grid.set_global_index(np.arange(grid.nbr_corners), Location.CORNER)
+
     points = grid.def_points(Location.CORNER, lon, lat)
 
     aod_lw_b16_coa_field = Field.create(
@@ -329,7 +444,7 @@ while model_date < end_date:
 
         if other_year == this_year and switch_year:
             switch_year = False
-            other_sw_b14_fin = sw_b14_fin
+            other_sw_b14_fin = this_sw_b14_fin
             if VERBOSE > 0:
                 print(
                     "aero_provider: Complete switch to year ",
@@ -455,7 +570,7 @@ while model_date < end_date:
 
         watch_other = other_month
 
-    if VERBOSE > 1:
+    if VERBOSE > 2:
         print(
             "aero_provider: ",
             this_date.isoformat(),
@@ -517,7 +632,21 @@ while model_date < end_date:
         asy_sw_b14_fin_field.put(asy_sw_b14_fin_array)
         aer_sw_b14_fin_field.put(aer_sw_b14_fin_array)
 
-    model_date = model_date + coupling_interval
+    if iforcing == 3:
+        # mimicks strange intervals in nwp case
+        if UPDATE_CASE == 1:
+            model_date = model_date
+            UPDATE_CASE = 2
+        elif UPDATE_CASE == 2:
+            UPDATE_CASE = 3
+            model_date = (
+                np.datetime64(model_date) + np.timedelta64(nwp_dtime, "s")
+            ).astype(datetime)
+        else:
+            model_date = model_date + coupling_interval
+
+    else:
+        model_date = model_date + coupling_interval
 
 if VERBOSE > 0:
     print("aero_provider: Done \n", flush=True)

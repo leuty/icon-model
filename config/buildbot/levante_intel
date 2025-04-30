@@ -21,9 +21,9 @@ if [ ! -z "${BB_NAME-}" ]; then
   set MPI_LAUNCH='srun -A mh0156 -p compute -N 1 -t 2'
 
   # use python environment suited for this icon build
-  PYTHON='PYTHON=/fastdata/mh0156/buildbot/venv/bin/python3'
+  PYTHON='PYTHON=/fastdata/mh0156/buildbot/venv-3.10.10-p24a46/bin/python3'
   # help comin find the python installation
-  export Python3_ROOT_DIR='/fastdata/mh0156/buildbot/venv'
+  export Python3_ROOT_DIR='/fastdata/mh0156/buildbot/venv-3.10.10-p24a46'
 else
   PYTHON=''
 
