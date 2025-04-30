@@ -12,3 +12,8 @@ This section will be removed from the commit message when the request is merged.
 
 - [ ] I have read the [contribution guidelines for merge requests](/CONTRIBUTING.md#merge-requests) (last update: 2025-03-26).
 - [ ] I have considered updating the [docs.icon-model.org documentation](https://gitlab.dkrz.de/icon/wiki/-/wikis/Documentation).
+
+{{< comment >}}
+The following is a list of gitlab quick actions for further tweaking the default MR setting. Please don't remove!
+{{< /comment >}}
+/draft

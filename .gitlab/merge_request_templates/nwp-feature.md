@@ -37,3 +37,8 @@ If your changes require the generation of new reference data, please refer to th
 - [ ] _Gatekeeper:_ Prior to merging, please remove any boilerplate from the MR description, e.g. tick items, retaining only the _Feature Description_ to maintain clean commit messages.
 
 **Note:** Updating the reference data, rebasing and monitoring the buildbot-tests stays in the responsibility of the author.
+
+{{< comment >}}
+The following is a list of gitlab quick actions for further tweaking the default MR setting. Please don't remove!
+{{< /comment >}}
+/draft
