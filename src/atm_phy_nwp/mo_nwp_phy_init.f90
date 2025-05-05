@@ -53,7 +53,8 @@ MODULE mo_nwp_phy_init
     &                               iRadAeroKinneSP,                                  &
     &                               ssi_radt, tsi_radt,irad_o3, rad_csalbw,           &
     &                               ghg_filename, irad_co2, irad_cfc11, irad_cfc12,   &
-    &                               irad_n2o, irad_ch4, isolrad
+    &                               irad_n2o, irad_ch4, isolrad, lcalculate_fsd,      &
+    &                               fsd_gridlen
   USE mo_nwp_aerosol,         ONLY: nwp_aerosol_init
   USE mo_srtm_config,         ONLY: setup_srtm, ssi_amip, ssi_coddington
   USE mo_aerosol_util,        ONLY: init_aerosol_props_tegen_rrtm,                  &
@@ -917,9 +918,20 @@ SUBROUTINE init_nwp_phy ( p_patch, p_metrics,             &
   cover_koe_config(jg)%inwp_cpl_re = atm_phy_nwp_config(jg)%icpl_rad_reff
   cover_koe_config(jg)%inwp_reff   = atm_phy_nwp_config(jg)%icalc_reff
   cover_koe_config(jg)%lsgs_cond   = atm_phy_nwp_config(jg)%lsgs_cond
+  cover_koe_config(jg)%lcalculate_fsd= lcalculate_fsd
   cover_koe_config(jg)%tune_box_liq_sfc_fac = tune_box_liq_sfc_fac(jg)
   cover_koe_config(jg)%clc_diag    = tdc%clc_diag
   cover_koe_config(jg)%q_crit      = tdc%q_crit
+  cover_koe_config(jg)%fsd_gridlen = fsd_gridlen(jg)
+
+  ! FSD for the ice phase can only be calculated if deep convection parameterization is active
+  ! Create separate logical for ice FSD, and set to .false. if deep convection param is inactive.
+  cover_koe_config(jg)%lcalculate_ice_fsd=cover_koe_config(jg)%lcalculate_fsd
+  IF (atm_phy_nwp_config(jg)%lshallowconv_only .OR.atm_phy_nwp_config(jg)%lgrayzone_deepconv &
+       & .OR. atm_phy_nwp_config(jg)%inwp_convection==0 ) THEN
+     cover_koe_config(jg)%lcalculate_ice_fsd=.false.
+     CALL message(modname,'Warning: Ice FSD not calculated, default value 1 is used in ice cloud.')
+  ENDIF
 
 #ifdef _OPENACC
   SELECT CASE( cover_koe_config(jg)%icldscheme )

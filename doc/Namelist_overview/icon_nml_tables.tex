@@ -8233,6 +8233,33 @@ Debug mode for ecRad input: \\
 \tabularnewline
 
 %\hline
+fsd\_background &
+R&
+1&
+&
+Background value for fractional standard deviation (FSD) \\
+& inwp\_radiation=4 (ecRad)
+\tabularnewline
+
+%\hline
+fsd\_gridlen(max\_dom) &
+R&
+80&
+km&
+Value for assumed horizontal grid spacing in FSD parameterization
+& inwp\_radiation=4 (ecRad)
+\tabularnewline
+
+%\hline
+lcalculate\_fsd &
+L&
+.false.&
+&
+Calculates regime-dependent FSD for radiation if .true.
+& inwp\_radiation=4 (ecRad)
+\tabularnewline
+
+%\hline
 \end{longtab}
 
 Defined and used in: \verb+src/namelists/mo_radiation_nml.f90+

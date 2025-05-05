@@ -51,12 +51,12 @@ MODULE mo_nwp_ecrad_interface
   USE mo_physical_constants,     ONLY: rhoh2o
   USE mo_run_config,             ONLY: msg_level, iqv, iqi, iqc, iqr, iqs, iqg
   USE mo_atm_phy_nwp_config,     ONLY: atm_phy_nwp_config
-  USE mo_radiation_config,       ONLY: irad_aero, ssi_radt,                                   &
+  USE mo_radiation_config,       ONLY: irad_aero, ssi_radt, fsd_background,                   &
                                    &   iRadAeroNone, iRadAeroConst, iRadAeroTegen,            &
                                    &   iRadAeroART, iRadAeroConstKinne, iRadAeroKinne,        &
                                    &   iRadAeroVolc, iRadAeroKinneVolc,  iRadAeroKinneVolcSP, &
                                    &   iRadAeroKinneSP, iRadAeroCAMSclim, iRadAeroCAMStd,     &
-                                   &   iRadAeroExternal, ecrad_check_input
+                                   &   iRadAeroExternal, ecrad_check_input, lcalculate_fsd
   USE mo_phys_nest_utilities,    ONLY: t_upscale_fields, upscale_rad_input, downscale_rad_output
   USE mtime,                     ONLY: datetime
 #ifdef __ECRAD
@@ -185,7 +185,7 @@ CONTAINS
       &  ptr_acdnc => NULL(),                                                 &
       &  ptr_qr => NULL(),      ptr_qs => NULL(),      ptr_qg => NULL(),      &
       &  ptr_reff_qc => NULL(), ptr_reff_qi => NULL(), ptr_reff_qr => NULL(), &
-      &  ptr_reff_qs => NULL(), ptr_reff_qg => NULL()
+      &  ptr_reff_qs => NULL(), ptr_reff_qg => NULL(), ptr_fsd => NULL()
     REAL(wp), DIMENSION(:),    POINTER :: &
       &  ptr_fr_glac => NULL(), ptr_fr_land => NULL()
 
@@ -263,7 +263,7 @@ CONTAINS
     END IF
     ! Currently hardcoded values for FSD
     !$ACC WAIT
-    CALL ecrad_cloud%create_fractional_std(nproma_sub, nlev, 1._wp)
+    CALL ecrad_cloud%create_fractional_std(nproma_sub, nlev, fsd_background)
 
     IF ( ecrad_conf%use_aerosols ) THEN
       ! Allocate aerosol container
@@ -277,12 +277,12 @@ CONTAINS
 
     CALL ecrad_flux%allocate(ecrad_conf, 1, nproma_sub, nlev)
 
-!$OMP DO PRIVATE(jb, jc, i_startidx, i_endidx,                   &
-!$OMP            jb_rad, jcs, jce, i_startidx_sub, i_endidx_sub, &
-!$OMP            i_startidx_rad, i_endidx_rad,                   &
-!$OMP            ptr_clc, ptr_acdnc, ptr_fr_land, ptr_fr_glac,   &
-!$OMP            ptr_reff_qc, ptr_reff_qi, ptr_qr, ptr_reff_qr,  &
-!$OMP            ptr_qs, ptr_reff_qs, ptr_qg, ptr_reff_qg),      &
+!$OMP DO PRIVATE(jb, jc, i_startidx, i_endidx,                      &
+!$OMP            jb_rad, jcs, jce, i_startidx_sub, i_endidx_sub,    &
+!$OMP            i_startidx_rad, i_endidx_rad,                      &
+!$OMP            ptr_clc, ptr_acdnc, ptr_fr_land, ptr_fr_glac,      &
+!$OMP            ptr_reff_qc, ptr_reff_qi, ptr_qr, ptr_reff_qr,     &
+!$OMP            ptr_qs, ptr_reff_qs, ptr_qg, ptr_reff_qg, ptr_fsd),&
 !$OMP ICON_OMP_GUIDED_SCHEDULE
     DO jb = i_startblk, i_endblk
       CALL get_indices_c(pt_patch, jb, i_startblk, i_endblk, &
@@ -299,7 +299,12 @@ CONTAINS
         IF (i_startidx_rad > i_endidx_rad) CYCLE
 
         NULLIFY(ptr_clc, ptr_acdnc,ptr_fr_land,ptr_fr_glac,ptr_reff_qc,ptr_reff_qi,    &
-                ptr_qr, ptr_reff_qr, ptr_qs, ptr_reff_qs,ptr_qg, ptr_reff_qg)
+                ptr_qr, ptr_reff_qr, ptr_qs, ptr_reff_qs,ptr_qg, ptr_reff_qg, ptr_fsd)
+
+        !use cloud horizontal fractional standard deviation from convection scheme
+        IF (lcalculate_fsd) THEN
+          ptr_fsd => prm_diag%cloud_fsd(jcs:jce, :, jb)
+        ENDIF
 
         ! Decide which field for cloud cover has to be used:
         IF (atm_phy_nwp_config(jg)%luse_clc_rad) THEN
@@ -377,7 +382,7 @@ CONTAINS
           &                   pt_diag%temp(jcs:jce,:,jb), pt_diag%pres(jcs:jce,:,jb),                              &
           &                   ptr_acdnc, ptr_fr_glac, ptr_fr_land,                                                 &
           &                   ptr_qr, ptr_qs, ptr_qg, ptr_reff_qc, ptr_reff_qi,                                    &
-          &                   ptr_reff_qr, ptr_reff_qs, ptr_reff_qg,                                               &
+          &                   ptr_reff_qr, ptr_reff_qs, ptr_reff_qg, ptr_fsd,                                      &
           &                   atm_phy_nwp_config(jg)%icpl_rad_reff,                                                &
           &                   fact_reffc, ecrad_conf%cloud_fraction_threshold,                                     &
           &                   ecrad_conf%use_general_cloud_optics,                                                 &
@@ -676,7 +681,8 @@ CONTAINS
     ! and therefore have to be aggregated to the radiation grid
     INTEGER :: irg_acdnc, irg_fr_glac, irg_fr_land,  irg_qr, irg_qs, irg_qg,  &
       &        irg_reff_qr, irg_reff_qs, irg_reff_qg, irg_camsaermr(n_camsaermr), &
-      &        irg_zaeq1, irg_zaeq2, irg_zaeq3, irg_zaeq4, irg_zaeq5
+      &        irg_zaeq1, irg_zaeq2, irg_zaeq3, irg_zaeq4, irg_zaeq5, irg_fsd
+
     INTEGER, DIMENSION (ecrad_conf%n_bands_lw) :: irg_od_lw
     INTEGER, DIMENSION (ecrad_conf%n_bands_sw) :: irg_od_sw, irg_ssa_sw, irg_g_sw
     REAL(wp), DIMENSION(:,:),  POINTER :: &
@@ -685,7 +691,7 @@ CONTAINS
       &  ptr_reff_qc => NULL(), ptr_reff_qi => NULL(), ptr_reff_qr => NULL(), &
       &  ptr_reff_qs => NULL(), ptr_reff_qg => NULL(),                        &
       &  ptr_aeq1 => NULL(), ptr_aeq2 => NULL(), ptr_aeq3 => NULL(),          &
-      &  ptr_aeq4 => NULL(), ptr_aeq5 => NULL()
+      &  ptr_aeq4 => NULL(), ptr_aeq5 => NULL(), ptr_fsd => NULL()
 
     TYPE(t_opt_ptrs),ALLOCATABLE :: &
       &  opt_ptrs_lw(:), opt_ptrs_sw(:)    !< Contains pointers to aerosol optical properties
@@ -862,6 +868,7 @@ CONTAINS
     irg_od_sw        = 0
     irg_ssa_sw       = 0
     irg_g_sw         = 0
+    irg_fsd          = 0
     irg_camsaermr(:) = 0
     irg_zaeq1        = 0
     irg_zaeq2        = 0
@@ -914,6 +921,10 @@ CONTAINS
         CALL input_extra_flds%assign(ssa_sw(:,:,:,jw), irg_ssa_sw(jw))
         CALL input_extra_flds%assign(g_sw(:,:,:,jw), irg_g_sw(jw))
       ENDDO
+    ENDIF
+
+    IF (lcalculate_fsd) THEN
+       CALL input_extra_flds%assign(prm_diag%cloud_fsd(:,:,:),irg_fsd)
     ENDIF
 
      IF (irad_aero == iRadAeroCAMSclim .OR. irad_aero == iRadAeroCAMStd) THEN
@@ -1054,7 +1065,7 @@ CONTAINS
 
     ! Currently hardcoded values for FSD
     !$ACC WAIT
-    CALL ecrad_cloud%create_fractional_std(nproma_sub, nlev_rg, 1._wp)
+    CALL ecrad_cloud%create_fractional_std(nproma_sub, nlev_rg, fsd_background)
 
     IF ( ecrad_conf%use_aerosols ) THEN
       ! Allocate aerosol container
@@ -1082,7 +1093,8 @@ CONTAINS
 !$OMP            ptr_reff_qc, ptr_reff_qi, ptr_qr, ptr_reff_qr, &
 !$OMP            ptr_qs, ptr_reff_qs, ptr_qg, ptr_reff_qg,      &
 !$OMP            ptr_aeq1, ptr_aeq2, ptr_aeq3, ptr_aeq4,        &
-!$OMP            ptr_aeq5),                                     &
+!$OMP            ptr_aeq5,ptr_fsd),                             &
+
 !$OMP ICON_OMP_GUIDED_SCHEDULE
     DO jb = i_startblk, i_endblk
       CALL get_indices_c(ptr_pp, jb, i_startblk, i_endblk, &
@@ -1175,6 +1187,9 @@ CONTAINS
           ENDDO
         ENDIF
 
+        ! Use cloud horizontal fractional standard deviation calculated in cover_koe scheme
+        IF ( irg_fsd > 0 ) ptr_fsd => zrg_extra_flds(jcs:jce,:,jb,irg_fsd)
+
 ! Fill single level configuration type
         CALL ecrad_set_single_level(ecrad_single_level, current_datetime, ptr_pp%cells%center(jcs:jce,jb),            &
           &                         zrg_cosmu0(jcs:jce,jb), zrg_tsfc(jcs:jce,jb), zrg_albvisdif(jcs:jce,jb),          &
@@ -1196,7 +1211,7 @@ CONTAINS
           &                   zrg_temp(jcs:jce,:,jb), zrg_pres(jcs:jce,:,jb), ptr_acdnc,        &
           &                   ptr_fr_glac, ptr_fr_land,                                         &
           &                   ptr_qr, ptr_qs, ptr_qg, ptr_reff_qc, ptr_reff_qi,                 &
-          &                   ptr_reff_qr, ptr_reff_qs, ptr_reff_qg,                            &
+          &                   ptr_reff_qr, ptr_reff_qs, ptr_reff_qg, ptr_fsd,                   &
           &                   atm_phy_nwp_config(jg)%icpl_rad_reff,                             &
           &                   fact_reffc, ecrad_conf%cloud_fraction_threshold,                  &
           &                   ecrad_conf%use_general_cloud_optics,                              &

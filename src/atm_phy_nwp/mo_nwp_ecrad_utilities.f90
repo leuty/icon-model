@@ -33,7 +33,7 @@ MODULE mo_nwp_ecrad_utilities
                                    &   irad_n2o, irad_ch4,                       &
                                    &   irad_o2, irad_cfc11, irad_cfc12,          &
                                    &   vpp_ch4, vpp_n2o, decorr_pole, decorr_equator, &
-                                   &   ecrad_check_input
+                                   &   ecrad_check_input, lcalculate_fsd
   USE mo_nwp_tuning_config,      ONLY: tune_difrad_3dcont
   USE mtime,                     ONLY: datetime
   USE mo_bc_greenhouse_gases,    ONLY: ghg_co2mmr, ghg_ch4mmr, ghg_n2ommr, ghg_cfcmmr
@@ -79,6 +79,7 @@ MODULE mo_nwp_ecrad_utilities
   PUBLIC :: ecrad_store_fluxes
   PUBLIC :: add_3D_diffuse_rad
   PUBLIC :: get_indices_rad_subblock
+  PUBLIC :: lcalculate_fsd
 
   ! helper functions to be removed once acc is merged into libecrad
 
@@ -306,7 +307,7 @@ CONTAINS
   !!
   SUBROUTINE ecrad_set_clouds(ecrad_cloud, ecrad_thermodynamics, qc, qi, clc, temp, pres, acdnc,                  &
     &                         fr_glac, fr_land, qr,qs,qg,reff_liq, reff_frz, reff_rain, reff_snow, reff_graupel,  &
-    &                         icpl_reff, fact_reffc, clc_min, use_general_cloud_optics, cell_center,              &
+    &                         fsd, icpl_reff, fact_reffc, clc_min, use_general_cloud_optics, cell_center,         &
     &                         nlev, i_startidx, i_endidx, lacc)
 
     CHARACTER(len=*), PARAMETER:: routine = modname//'::ecrad_set_clouds'
@@ -337,7 +338,8 @@ CONTAINS
       &  reff_frz(:,:),         & !< effective radius of the frozen phase (external)
       &  reff_rain(:,:),        & !< effective radius of the rain phase (external)
       &  reff_snow(:,:),        & !< effective radius of the snow phase (external)
-      &  reff_graupel(:,:)        !< effective radius of the graupel phase (external)
+      &  reff_graupel(:,:),     & !< effective radius of the graupel phase (external)
+      &  fsd(:,:)                 !< fractional standard deviation
     INTEGER, INTENT(in)      :: &
       &  icpl_reff,             & !< Option for effective radius
       &  nlev,                  & !< Number of vertical full levels
@@ -558,6 +560,18 @@ CONTAINS
         !$ACC END PARALLEL
       ENDIF
     ENDIF
+
+    IF (lcalculate_fsd) THEN
+      !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1)
+      !$ACC LOOP GANG VECTOR COLLAPSE(2)
+      DO jk = 1, nlev
+        DO jc = i_startidx, i_endidx
+          ecrad_cloud%fractional_std(jc,jk)=fsd(jc,jk)
+        ENDDO
+      ENDDO
+      !$ACC END PARALLEL
+    ENDIF
+
     !$ACC WAIT
     !$ACC END DATA
     !$ACC END DATA

@@ -32,6 +32,12 @@ The DOI and ISSN referenced series **[Reports on ICON](https://www.icon-model.or
 ### Literature for atmosphere modeling in ICON
 
 :::{glossary}
+Ahlgrimm et al. 2016
+  Ahlgrimm, M. and Forbes, R.M. (2016): Regime dependence of cloud condensate variability observed at the Atmospheric Radiation Measurement Sites. Q.J.R. Meteorol. Soc., 142: 1605-1617. <https://doi.org/10.1002/qj.2783>
+
+Ahlgrimm et al. 2017
+  Ahlgrimm, M. and Forbes, R.M. (2017): Regime dependence of ice cloud heterogeneity - a convective life-cycle effect? Q.J.R. Meteorol. Soc., 143: 3259-3268. <https://doi.org/10.1002/qj.3178>
+
 Barker et al. 2003
   Barker, H. W., G. L. Stephens, P. T. Partain, and Coauthors (2003): Assessing 1D atmospheric solar radiative transfer models: Interpretation and handling of unresolved clouds. J. Clim., 16 (16), 2676-2699.
 

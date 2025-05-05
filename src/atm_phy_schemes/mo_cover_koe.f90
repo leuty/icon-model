@@ -52,6 +52,8 @@ MODULE mo_cover_koe
 
   USE mo_impl_constants,      ONLY: max_dom
 
+  USE mo_radiation_config,    ONLY: fsd_background
+
   USE mo_fortran_tools,       ONLY: set_acc_host_or_device, assert_acc_host_only
 
   IMPLICIT NONE
@@ -75,9 +77,13 @@ MODULE mo_cover_koe
     INTEGER(KIND=i4)        ::     inwp_gscp     ! microphysics scheme number
     INTEGER(KIND=i4)        ::     inwp_cpl_re   ! coupling reff (for qs altering qi)
     INTEGER(KIND=i4)        ::     inwp_reff     ! reff option (for qs altering qi)
+    LOGICAL                 ::     lcalculate_fsd! use parameterised FSD in radiation calculations
+    LOGICAL                 ::     lcalculate_ice_fsd ! set .false. if deep convection param is not active
     REAL   (KIND=wp)        ::     tune_box_liq_sfc_fac ! tuning factor for near-surface reduction of liquid box width
     REAL   (KIND=wp)        ::     clc_diag      ! cloud cover at saturation
     REAL   (KIND=wp)        ::     q_crit        ! critical value for normalized super-saturation
+    REAL   (KIND=wp)        ::     fsd_gridlen   ! assumed horizontal grid spacing for FSD calculation
+
   END TYPE t_cover_koe_config
 
 !-------------------------------------------------------------------------
@@ -123,7 +129,7 @@ SUBROUTINE cover_koe( &
   & qv, qc, qi, qs, qc_sgs          , & ! inout: prognostic cloud variables
   & lacc                            , & ! in:    parameter to prevent openacc during init
   & ttend_clcov                     , & ! out:   temperature tendency due to sgs condensation
-  & cc_tot, qv_tot, qc_tot, qi_tot    ) ! out:   cloud output diagnostic
+  & cc_tot, qv_tot, qc_tot, qi_tot, fsd)! out:   cloud output diagnostic
 
 !! Subroutine arguments:
 !! --------------------
@@ -197,6 +203,9 @@ REAL(KIND=wp), DIMENSION(:,:), INTENT(INOUT) ::   &
   & qc_tot           , & ! specific cloud water content diagnostic       (kg/kg)
   & qi_tot               ! specific cloud ice   content diagnostic       (kg/kg)
 
+REAL(KIND=wp), DIMENSION(:,:), INTENT(OUT), OPTIONAL  :: &
+  & fsd                  !cloud fractional standard deviation
+
 !! Local variables:
 !! ----------------
 
@@ -213,7 +222,7 @@ REAL(KIND=wp), DIMENSION(klon,klev)  :: &
   & cc_turb, qc_turb, qi_turb, &
   & cc_conv, qc_conv, qi_conv, &
   & cc_turb_liq, cc_turb_ice , &
-  & p0
+  & p0, zratfsd
 
 REAL(KIND=wp), DIMENSION(klon) ::  &
   & zsc_top
@@ -227,6 +236,8 @@ REAL(KIND=wp) :: &
 
 REAL(KIND=wp), DIMENSION(klon,klev)  :: &
   zqlsat , zqisat, zagl_lim, zdqlsat_dT
+
+REAL(KIND=wp), DIMENSION(klon) :: qsum_col(klon)
 
 LOGICAL, DIMENSION(klon) ::  &
      & stratocumulus
@@ -242,6 +253,7 @@ REAL(KIND=wp), PARAMETER  :: &
 
 REAL(KIND=wp), PARAMETER :: grav_i = 1._wp/grav
 REAL(KIND=wp), PARAMETER :: lvocv = alv/cvd
+
 
 !-----------------------------------------------------------------------
 
@@ -262,6 +274,12 @@ REAL(KIND=wp), PARAMETER :: lvocv = alv/cvd
 !-----------------------------------------------------------------------
 
   CALL set_acc_host_or_device(lzacc, lacc)
+
+!$ACC DATA &
+!$ACC   CREATE(cc_turb, qc_turb, qi_turb, cc_conv, qc_conv, qi_conv, cc_turb_liq, cc_turb_ice) &
+!$ACC   CREATE(p0, zqlsat, zqisat, zagl_lim, zdqlsat_dT, stratocumulus, zsc_top, zratfsd, qsum_col) &
+!$ACC   CREATE(zcldlim) &
+!$ACC   IF(lzacc)
 
 ! saturation mixing ratio at -50 C and 200 hPa
 zqisat_m50 = fgqs ( fgee(223.15_wp), 0._wp, 20000._wp )
@@ -288,9 +306,8 @@ l_addsnow = (cover_koe_config%inwp_cpl_re == 0) .OR. (cover_koe_config%inwp_reff
             (cover_koe_config%inwp_reff == 101)
 
 ! Set cloud fields for stratospheric levels to zero
-!$ACC PARALLEL IF(lzacc) DEFAULT(PRESENT) ASYNC(1) &
-!$ACC   CREATE(cc_turb, qc_turb, qi_turb, cc_conv, qc_conv, qi_conv, cc_turb_liq, cc_turb_ice) &
-!$ACC   CREATE(p0, zqlsat, zqisat, zagl_lim, zdqlsat_dT, stratocumulus, zsc_top)
+!$ACC PARALLEL IF(lzacc) DEFAULT(PRESENT) ASYNC(1)
+
 !$ACC LOOP SEQ
 DO jk = 1,kstart-1
   !$ACC LOOP GANG(STATIC: 1) VECTOR
@@ -517,6 +534,44 @@ CASE( 1 )
   ENDDO
 
 
+
+  ! Calculate the detrainment ratio for FSD: ratio of detrained condensate mass to total
+  ! condensate mass within the grid cell.
+
+  IF (cover_koe_config%lcalculate_ice_fsd) THEN
+    !$ACC LOOP GANG(STATIC: 1) VECTOR
+    DO jl = kidia,kfdia
+      qsum_col(jl) = 0._wp
+    ENDDO
+
+    !$ACC LOOP SEQ
+    DO jk = kstart,klev
+      !$ACC LOOP GANG(STATIC: 1) VECTOR
+      DO jl = kidia,kfdia
+        qsum_col(jl) = qsum_col(jl) + qc_tot(jl,jk) + qi_tot(jl,jk)
+        zratfsd(jl,jk) = 0._wp
+      ENDDO
+    ENDDO
+
+    ! Only calculate ratio if sufficient mass is in the grid box
+    !$ACC LOOP SEQ
+    DO jk = kstart,klev
+      !$ACC LOOP GANG(STATIC: 1) VECTOR
+      DO jl = kidia,kfdia
+        IF (qc_tot(jl,jk)+qi_tot(jl,jk) .GT. zcldlim) THEN
+          !Note: the definition of the detrainment ratio here is no longer identical
+          !to the definition described in Ahlgrimm et al. 2017, which was developed
+          !with the prognostic cloud scheme of the IFS in mind. The additional exponent
+          !in the new expression ensures that the detrainment ratio covers a similar
+          !range of values in ICON as the original expression does in the IFS.
+          zratfsd(jl,jk)=((qc_conv(jl,jk)+qi_conv(jl,jk))/qsum_col(jl))**0.4_wp
+          !safety - ratio between 0 and 1
+          zratfsd(jl,jk)=MAX(0.0_wp,MIN(1.0_wp,zratfsd(jl,jk)))
+        ENDIF
+      ENDDO
+    ENDDO
+  ENDIF
+
 !-----------------------------------------------------------------------
 
 ! prognostic total water variance
@@ -663,12 +718,230 @@ DO jk = kstart,klev
       qi_tot(jl,jk) = 0.0_wp
       cc_tot(jl,jk) = 0.0_wp
     ENDIF
-
   ENDDO
 ENDDO
 !$ACC END PARALLEL
 
+IF (cover_koe_config%lcalculate_fsd) THEN
+   CALL calculate_fsd( &
+        & kidia, kfdia, klon, kstart, klev   , & ! in:    dimensions (turn off physics above kstart)
+        & lzacc                              , & ! in:    parameter to prevent openacc during init
+        & cover_koe_config%lcalculate_ice_fsd, & ! in:    whether ice FSD is to be calculated
+        & deltaz                             , & ! in:    layer thickness
+        & qv, qc, qi                         , & ! in:    prognostic cloud variables
+        & fsd_background                     , & ! in:    default FSD value
+        & cover_koe_config%fsd_gridlen       , & ! in:    assumed horizontal grid spacing in km
+        & zcldlim                            , & ! in:    min condensate amount
+        & cc_tot, qv_tot, qc_tot, qi_tot     , & ! in:    cloud output diagnostic
+        & zratfsd, stratocumulus             , & ! in:    ratio of detrained condensate to total condensate
+        & fsd)
+ENDIF
+!$ACC WAIT(1)
+!$ACC END DATA
 END SUBROUTINE cover_koe
+
+!-------------------------------------------------------------------------
+!
+!  Calculation of regime-dependent condensate variability, expressed
+!  as fractional standard deviation (stddev/mean) of liquid/ice
+!  condensate.
+!
+!  Liquid and ice FSD are calculated separately. Current default for
+!  mixed phase is to use a mass-weighted average of ice and liquid FSD.
+!
+!  Note on fsd_gridlen parameter:
+!  ICON is tuned at all resolutions to expect an FSD value of 1 for a reasonable
+!  TOA radiation balance, even though observations suggest that at higher resolution
+!  there should be less subgrid-scale heterogeneity left (and FSD should get smaller)
+!  Here, a fixed gridlen/resolution is chosen to "tune" the FSD parameterization to
+!  maintain an average FSD value of around 1 globally, to maintain the tuned TOA
+!  radiation balance. Hence this parameter is set in the radiation namelist, rather
+!  than taken from the actual ICON grid resolution.
+!
+!  Relevant publications:
+!  Ahlgrimm and Forbes 2016 QJRMS 10.1002/qj.2783
+!  Ahlgrimm and Forbes 2017 QJRMS 10.1002/qj.3178
+!
+!-------------------------------------------------------------------------
+
+SUBROUTINE calculate_fsd( &
+  & kidia, kfdia, klon, kstart, klev, & ! in:    dimensions (turn off physics above kstart)
+  & lacc                            , & ! in:    parameter to prevent openacc during init
+  & lcalculate_ice_fsd              , & ! in:    whether ice FSD is to be calculated
+  & deltaz                          , & ! in:    layer thickness
+  & qv, qc, qi                      , & ! in:    prognostic cloud variables
+  & fsd_background                  , & ! in:    default FSD value
+  & fsd_gridlen                     , & ! in:    assumed horizontal grid spacing in km
+  & zcldlim                         , & ! in:    condensate min amount
+  & cc_tot, qv_tot, qc_tot, qi_tot  , & ! in:    cloud output diagnostic
+  & zratfsd,stratocumulus           , & ! in:    ratio of detrained condensate to total condensate
+  & fsd                               ) ! out:   fractional standard deviation
+
+!! Subroutine arguments:
+!! --------------------
+
+INTEGER(KIND=i4), INTENT(IN) ::  &
+  & kidia            , & ! horizontal start index
+  & kfdia            , & ! horizontal end   index
+  & klon             , & ! horizontal dimension
+  & kstart           , & ! vertical start index (turn off physics above)
+  & klev                 ! vertical dimension
+LOGICAL, INTENT(IN):: lacc !parameter to prevent openacc during init
+
+REAL(KIND=wp), DIMENSION(klon,klev), INTENT(IN) ::  &
+  & deltaz           , & ! layer thickness                               (m)
+  & qv               , & ! specific water vapor content                  (kg/kg)
+  & qc               , & ! specific cloud water content                  (kg/kg)
+  & qi               , & ! specific cloud ice   content                  (kg/kg)
+  & cc_tot           , & ! cloud cover diagnostic
+  & qv_tot           , & ! specific water vapor content diagnostic       (kg/kg)
+  & qc_tot           , & ! specific cloud water content diagnostic       (kg/kg)
+  & qi_tot           , & ! specific cloud ice   content diagnostic       (kg/kg)
+  & zratfsd              ! detrainment ratio                             (unitless)
+
+REAL(KIND=wp), INTENT(IN) ::  &
+  & fsd_background   , & ! default FSD value
+  & fsd_gridlen      , & ! assumed horizontal grid spacing in km
+  & zcldlim              ! min condensate value for presence of cloud
+
+REAL(KIND=wp), DIMENSION(klon,klev), INTENT(INOUT) ::   &
+  & fsd                  ! fractional standard deviation                 (unitless)
+
+LOGICAL, DIMENSION(klon) :: stratocumulus ! logical marking stratocumulus region
+LOGICAL, INTENT(IN)      :: lcalculate_ice_fsd !whether ice FSD is to be calculated
+                         !! only possible if deep conv param is active
+
+!----------------------------------------------------------------------------------
+! LOCAL VARIABLES AND PARAMETERS
+
+INTEGER (KIND=i4) :: jl, jk
+
+REAL(KIND=wp) :: zphic, zfracsdc
+REAL(KIND=wp) :: zphip1, zphip2, zphip3, zqtot
+REAL(KIND=wp) :: zdelz              ! Layer thickness in km
+REAL(KIND=wp) :: zphi               ! Factor to account for layer thickness and total water in ice FSD calculation
+REAL(KIND=wp) :: zliqf              ! Final cloud liquid at end of cloudsc
+REAL(KIND=wp) :: zicef              ! Final cloud ice at end of cloudsc
+REAL(KIND=wp) :: zlfsd              ! Liquid condensate FSD
+REAL(KIND=wp) :: zifsd              ! Ice condensate FSD
+REAL(KIND=wp) :: zanew              ! Modified cloud fraction for liquid FSD (avoiding very small cloud fractions)
+REAL(KIND=wp) :: zifsdback          ! Background ice FSD dependent on model grid scale
+
+REAL(KIND=wp), PARAMETER :: ZR12=1.3_wp ! Factor accounting for parameterized along-track variability being an
+                                        ! underestimate of the true area variability. 1.3 taken from Hill et al. 2015
+REAL(KIND=wp), PARAMETER :: zu1=0.446585_wp !Parameters used in background ice FSD calculation
+REAL(KIND=wp), PARAMETER :: zu2=0.308061_wp
+REAL(KIND=wp), PARAMETER :: zu3=0.395736_wp
+REAL(KIND=wp), PARAMETER :: zu4=-0.744527_wp
+
+!$ACC DATA &
+!$ACC   CREATE(zphic, zfracsdc, zphip1, zphip2, zphip3, zqtot, zdelz, zphi, zliqf) &
+!$ACC   CREATE(zicef, zlfsd, zifsd, zanew, zifsdback, ZR12, zu1, zu2, zu3, zu4) &
+!$ACC   IF(lacc)
+
+
+!$ACC PARALLEL IF(lacc) DEFAULT(PRESENT) ASYNC(1)
+!$ACC LOOP GANG VECTOR COLLAPSE(2)
+DO jk = 1,klev
+  DO jl = kidia,kfdia
+    fsd(jl,jk)=fsd_background
+  ENDDO
+ENDDO
+!$ACC END PARALLEL
+
+!$ACC PARALLEL IF(lacc) DEFAULT(PRESENT) ASYNC(1)
+!$ACC LOOP GANG VECTOR COLLAPSE(2) PRIVATE(zqtot, zlfsd, zliqf, zphip1, zphip2) &
+!$ACC   PRIVATE(zphip3, zanew, zphic, zfracsdc, zifsd, zicef, zifsdback, zdelz, zphi)
+DO jk = kstart,klev
+  DO jl = kidia,kfdia
+
+     ! Total water (vapour+liquid+ice) in g/kg
+     zqtot = MIN((qv_tot(jl,jk)+qc_tot(jl,jk)+qi_tot(jl,jk))*1000._wp,30._wp)
+
+     ! Liquid FSD calculation
+     !-----------------------------------
+     zlfsd=fsd_background
+     zliqf=0._wp
+     ! only calculate if liquid is present
+     IF (qc_tot(jl,jk) .gt. zcldlim) THEN
+        zliqf=qc_tot(jl,jk)/(qi_tot(jl,jk)+qc_tot(jl,jk))
+        !Note: the expression for the a1 parameter (here zphip1)
+        !in Ahlgrimm et al. 2016 has been modified to a 3rd order
+        !polynomial with parameters differing from the paper publication.
+        zphip1=.2_wp+.01_wp*zqtot+.0027_wp*zqtot**2-.00008_wp*zqtot**3
+        zphip2 = zphip1-0.2_wp
+        zphip3 = 0.123_wp*EXP(-zphip1*0.55_wp)
+        !cut off very low cloud fraction at 0.1  to avoid very low FSD values
+        zanew=MAX(cc_tot(jl,jk),0.1_wp) ! cut off very low cloud fraction to avoid
+
+        ! Autoconversion enhancement factor from Boutle et al. 2013
+        zphic = (fsd_gridlen*zanew)**(1._wp/3._wp)* &
+             &  ((zphip3*fsd_gridlen*zanew)**1.5_wp + 3._wp*zphip3)**(-0.17_wp)
+
+        ! Fractional standard deviation for cloud condensate
+        zfracsdc = (zphip1 - zphip2*zanew)*zphic
+
+        ! Unique value when essentially no cloud edges
+        !IF (cc_tot(jl,jk) > 0.95_wp) zfracsdc = 0.17_wp*zphic
+        IF (stratocumulus(jl) .or. cc_tot(jl,jk) > 0.95_wp) zfracsdc = 0.17_wp*zphic
+
+        ! multiply by 1D-to-2D variability enhancement factor
+        zlfsd=zr12*zfracsdc
+     ENDIF
+
+     ! Ice FSD calculation
+     !-----------------------------------
+     zifsd=fsd_background
+     zicef=0._wp
+     IF (lcalculate_ice_fsd .AND. qi_tot(jl,jk) .gt. zcldlim) THEN
+        zicef=qi_tot(jl,jk)/(qi_tot(jl,jk)+qc_tot(jl,jk))
+        zifsdback=zu1*fsd_gridlen**(1._wp/3._wp)*((zu2*fsd_gridlen)**zu3+1._wp)**ZU4
+
+        !param updated in Sept 2017.
+        zqtot = max(min((qv(jl,jk)+qi(jl,jk))*1000._wp,30._wp),0.00001_wp)
+        zdelz =deltaz(jl,jk)*0.001_wp  !layer thickness in km
+        zdelz=max(min(zdelz,.5_wp),.001_wp)
+        zphi=(zdelz/.24_wp)**.11_wp*(zqtot/10._wp)**.03_wp
+
+        IF (cc_tot(jl,jk) .GT. 0.95_wp) THEN !treat as overcast
+           zifsd=zifsdback*zphi
+           !add detrainment enhancement, multiply by 1D-to-2D enhancement factor
+           zifsd=zr12*(zifsd+zratfsd(jl,jk)*1.5_wp)
+        ELSE IF (cc_tot(jl,jk) .GT. 0.001_wp .AND. cc_tot(jl,jk) .LE. 0.95_wp) THEN
+           zifsd=zifsdback*zphi*1.5_wp
+           !add detrainment enhancement, multiply by 1D-to-2D enhancement factor
+           zifsd=zr12*(zifsd+zratfsd(jl,jk)*1.5_wp)
+        END IF
+     ENDIF
+
+     ! Assign liquid or ice FSD based on liquid fraction.
+     ! In all other cases, the default_fsd remains set
+     ! This is where the choice for mixed-phase clouds may be altered
+
+     ! Option 1: mass weighted average of liquid and ice FSD
+     IF (qi_tot(jl,jk) +qc_tot(jl,jk) .gt. zcldlim) THEN
+        fsd(jl,jk)=zicef*zifsd+zliqf*zlfsd
+     ENDIF
+
+     ! Option 2: Any cell with ice in it gets the ice FSD, and
+     ! any cell with liquid but without ice gets the liquid FSD.
+     !IF (zicef .GT. zcldlim ) THEN
+     !   fsd(jl,jk)=zifsd
+     !ENDIF
+     !IF (zliqf .gt. 0._wp .AND. zicef .le. zcldlim) THEN
+     !   fsd(jl,jk)=zlfsd
+     !ENDIF
+
+     ! Consistent with limits of possible FSD [0.1,3.575] in
+     ! lookup tables for Gamma/Log-normal functions in ecRad.
+     fsd(jl,jk)=MIN(MAX(0.1_wp,fsd(jl,jk)),3.575_wp)
+
+  END DO
+END DO
+!$ACC END PARALLEL
+!$ACC END DATA
+
+END SUBROUTINE calculate_fsd
 
 
 END MODULE mo_cover_koe

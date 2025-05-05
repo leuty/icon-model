@@ -167,6 +167,12 @@ MODULE mo_radiation_config
     CHARACTER(len=MAX_CHAR_LENGTH) :: &
       &  ecrad_data_path                !< Folder containing optical properties
 
+    LOGICAL  :: lcalculate_fsd          !< calculate regime-dependent FSD parameter if .true., else use default value
+    REAL(wp) :: fsd_background          !< background value for fractional standard deviation used in radiation calculations
+    REAL(wp) :: fsd_gridlen(max_dom)    !< value for horizontal mesh size used in FSD parameterization,
+                                        !< tuning parameter for TOA radiation balance
+    !$ACC DECLARE CREATE(fsd_background, fsd_gridlen)
+
     ! 2.0 Non NAMELIST global variables and parameters
     ! --------------------------------
 
