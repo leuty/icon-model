@@ -130,6 +130,10 @@ html_sidebars = {
     # "index": ['hello.html', 'searchbox.html' , 'sidebar-nav-bs.html','localtoc.html',], # 'globaltoc.html'
 }
 
+# -- Options for LaTeX syntax rendering
+
+mathjax_path = "tex-mml-chtml.js"
+
 # -- Options for LaTeX output ------------------------------------------------
 
 latex_elements = {}

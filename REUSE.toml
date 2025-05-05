@@ -124,3 +124,8 @@ SPDX-License-Identifier = "X11-distribute-modifications-variant"
 path = "utils/log-plotting/bootstrap.min.css"
 SPDX-FileCopyrightText = "Copyright 2011-2021 The Bootstrap Authors"
 SPDX-License-Identifier = "MIT"
+
+[[annotations]]
+path = "doc/www/_static/tex-mml-chtml.js"
+SPDX-FileCopyrightText = "Copyright (c) 2017-2022 The MathJax Consortium"
+SPDX-License-Identifier = "Apache-2.0"
