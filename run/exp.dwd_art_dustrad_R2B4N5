@@ -472,10 +472,10 @@ fi
 $cdo selname,cell_area iconR2B04_DOM01.nc gridcell_R2B04_DOM01.nc
 $cdo selname,cell_area iconR2B05_DOM02.nc gridcell_R2B05_DOM02.nc
 # 2) Compute total mass/number inside domain
-$cdo -s -infov -vertint -fldint -setgrid,gridcell_R2B04_DOM01.nc \
+$cdo -s -infon -vertint -fldint -setgrid,gridcell_R2B04_DOM01.nc \
      -mul -selvar,rho ${EXP}_DOM01_ML_00030000.nc \
      -selvar,dusta,dustb,dustc,dusta0,dustb0,dustc0 ${EXP}_DOM01_ML_00030000.nc
-$cdo -s -infov -vertint -fldint -setgrid,gridcell_R2B05_DOM02.nc \
+$cdo -s -infon -vertint -fldint -setgrid,gridcell_R2B05_DOM02.nc \
      -mul -selvar,rho ${EXP}_DOM02_ML_00030000.nc \
      -selvar,dusta,dustb,dustc,dusta0,dustb0,dustc0 ${EXP}_DOM02_ML_00030000.nc
 
