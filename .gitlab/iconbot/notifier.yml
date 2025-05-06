@@ -87,6 +87,11 @@
       - src/shared/mo_impl_constants_grf.f90
       - test/microphysics_1mom_schemes/**/*
     mentions: [b382090]
+  # ComIn
+  - file_names:
+      - src/io/shared/mo_comin_adapter.f90
+    mentions: [k202160]
+    labels: [ComIn]
   # Externals:
   - file_names:
       - externals/*
@@ -101,6 +106,13 @@
   - file_names:
       - externals/ecrad
     mentions: [m300368, b381110]
+  # AES test references:
+  - file_names:
+      - run/checksuite.icon-dev/check.aes_amip_test_update
+      - run/checksuite.icon-dev/check.atm_bubble_test_update
+      - run/checksuite.icon-dev/check.atm_cph_nest_R2B4_test_update
+      - run/checksuite.icon-dev/check.atm_qubicc_update
+    mentions: [m214002]
   # Various personal notifications:
   - mentions: [k202170]
     file_names:
