@@ -4684,7 +4684,7 @@ CONTAINS
                          & GRID_UNSTRUCTURED_CELL, ZA_REFERENCE, &
                          & cf_desc, grib2_desc,                  &
                          & ldims = shape3d,                      &
-                         & lrestart=.FALSE., loutput=.FALSE.,    &
+                         & lrestart=.FALSE., loutput=.TRUE.,     &
                          & lopenacc=.TRUE. )
              __acc_attach(tend%o3_car)
           END IF

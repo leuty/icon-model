@@ -41,6 +41,9 @@ TYPES="$TYPES ddt_va_dyn_ml ddt_va_adv_ml ddt_va_cor_ml ddt_va_dmp_ml ddt_va_hdf
 TYPES="$TYPES tend_ta_rlw_ml tend_ta_rsw_ml"                                                                # tendencies, radiation
 TYPES="$TYPES tend_ta_vdf_ml tend_ua_vdf_ml tend_va_vdf_ml tend_hus_vdf_ml tend_clw_vdf_ml tend_cli_vdf_ml" # tendencies, vertical diffusion
 TYPES="$TYPES tend_ta_mig_ml                               tend_hus_mig_ml tend_clw_mig_ml tend_cli_mig_ml" # tendencies, cloud microphysics
+TYPES="$TYPES e3d_state_ml e2d_state_ml"                                                                    # energy of the atmospheric state
+TYPES="$TYPES e3d_tends_ml e2d_tends_ml"                                                                    # energy tendencies
+TYPES="$TYPES mig_varin_ml mig_varout_ml"                                                                   # graupel microphysics input and output variables
 
 # DATES is a list of dates identifying the files <EXPERIMENT>_<TYPE>_<DATE>.<FORMAT> to be checked.
 #
