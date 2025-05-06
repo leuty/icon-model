@@ -664,6 +664,11 @@ if [ "${EXPERIMENT}" == 'atm_2mom_bubble_rceTorus_test' ]; then
     DATES=${DATES='20080801T000000Z 20080801T000200Z 20080801T000400Z'}
     RESTART_DATE=${RESTART_DATE='20080801T000200Z'}
 fi
+if [ "${EXPERIMENT}" == 'atm_qubicc_test_aero' ]; then
+    TYPES=${TYPES='wa_ml' 'va_ml' 'ua_ml' 'tend_va_vdf_ml' 'tend_ua_vdf_ml' 'tend_ta_vdf_ml' 'tend_ta_rsw_ml' 'tend_ta_rlw_ml' 'tend_ta_mig_ml' 'ta_ml' 'rho_ml' 'qs_ml' 'qr_ml' 'qg_ml' 'pfull_ml' 'hus_ml' 'flx2d_ml' 'aer_3d_ml'}
+    DATES=${DATES='19790101T000040Z 19790101T000120Z 19790101T000200Z 19790101T000240Z 19790101T000320Z 19790101T000400Z'}
+    RESTART_DATE=${RESTART_DATE='19790101T000200Z'}
+fi
 
 echo " "
 echo "=================================================================="
@@ -905,7 +910,7 @@ if [[ ${MD} =~ .*n.* ]]; then
         # change experiment name, except in the data package name
         sed "s/${SCRIPT}/${EXP_TEST}/g;s/data.${EXP_TEST}/data.${SCRIPT}/g" ${PREFIX}.${SCRIPT}.run > ${RUN_SCRIPT}
 
-        TEST_POSSIBLE=no
+	TEST_POSSIBLE=no
         N_NPROMA_NEW=$nproma
         N_NBLOCKS_C_NEW=$nblocks_c
 

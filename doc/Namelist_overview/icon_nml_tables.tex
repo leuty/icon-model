@@ -543,12 +543,15 @@ aes\_phy\_config(jg)\% dt\_rad > 0.000s \tabularnewline
 %
 aes\_rad\_config(jg)\% irad\_aero & I & 2 & &
 Selects source of aerosol types\\
-0: No aerosol in radiation \\
-13: total tropospheric 'Kinne' aerosols, time dependent from file \\
-19: tropospheric natural 'Kinne' aerosols from pre--industrial period
-(the 1850--file has to be linked for all simulated years under a name
-that does not contain the year) +
-parameterized time dependent anthropogenic 'simple plumes'&
+0: No aerosols in radiation \\
+12: tropospheric background aerosol (Kinne). The filename linked to
+the file containing the background aerosols data must not contain a year.\\
+13: transient tropospheric aerosol  (Kinne) including anthropogenic
+aerosols\\
+18: tropospheric background aerosol (Kinne, filename without year) + stratospheric cmip6
+aerosols + simple plumes (parameterized time dependent anthropogenic aerosols)\\
+19: tropospheric background aerosol (Kinne, filename without year), no stratospheric aerosols
++ simple plumes (parameterized time dependent anthropogenic aerosols) &
 aes\_phy\_config(jg)\% dt\_rad > 0.000s \tabularnewline
 \end{longtab}
 

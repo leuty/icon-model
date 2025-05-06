@@ -14,12 +14,10 @@ MODULE mo_rte_rrtmgp_interface
   USE mo_math_constants,             ONLY: pi
   USE mo_physical_constants,         ONLY: rhoh2o, rd_o_cpd
   USE mo_exception,                  ONLY: finish
-#ifdef _OPENACC
-  USE mo_exception,                  ONLY: warning
-#endif
   USE mo_parallel_config,            ONLY: nproma_sub
   USE mo_bc_aeropt_kinne,            ONLY: set_bc_aeropt_kinne
-  USE mo_bc_aeropt_splumes,          ONLY: add_bc_aeropt_splumes
+  USE mo_bc_aeropt_splumes_opt,      ONLY: add_bc_aeropt_splumes_opt
+   USE mo_bc_aeropt_cmip6_volc,       ONLY: add_bc_aeropt_cmip6_volc
 
   USE mo_optical_props,              ONLY: ty_optical_props_1scl, &
                                            ty_optical_props_2str
@@ -59,6 +57,7 @@ MODULE mo_rte_rrtmgp_interface
   USE mo_radiation_general,          ONLY: wavenum1, wavenum2
   USE mo_aes_rad_config,             ONLY: aes_rad_config
   USE mtime,                         ONLY: datetime
+  USE mo_fortran_tools,              ONLY: set_acc_host_or_device
 
 
 #ifdef RRTMGP_MERGE_DEBUG
@@ -73,11 +72,6 @@ MODULE mo_rte_rrtmgp_interface
   IMPLICIT NONE
 
   PRIVATE
-#ifdef _OPENACC
-  LOGICAL, PARAMETER :: use_acc  = .TRUE.
-#else
-  LOGICAL, PARAMETER :: use_acc  = .FALSE.
-#endif
 
   LOGICAL, PARAMETER :: top_at_1 = .true.
   LOGICAL            :: lneed_aerosols
@@ -130,7 +124,7 @@ CONTAINS
       & vis_up_sfc      ,par_up_sfc      ,nir_up_sfc                       ,&
       & aer_aod_533     ,aer_ssa_533     ,aer_asy_533                      ,&
       & aer_aod_2325    ,aer_ssa_2325    ,aer_asy_2325                     ,&
-      & aer_aod_9731                                                       )
+      & aer_aod_9731                                                        )
 #ifdef __INTEL_COMPILER
 !DIR$ OPTIMIZE:1
 #endif
@@ -223,6 +217,7 @@ CONTAINS
 
     LOGICAL :: lclrsky_lw, lclrsky_sw
     LOGICAL :: inhom_lts
+    LOGICAL :: use_acc
     REAL(wp) :: inhom_lts_max
 
     ! --------------------------------------------------------------------------
@@ -236,6 +231,8 @@ CONTAINS
          aer_asy_sw(:,:,:)     !< aerosol asymmetry factor
 
     IF (ltimer) CALL timer_start(timer_rte_rrtmgp_int)
+
+    CALL set_acc_host_or_device(use_acc, .TRUE.)
 
     ! --------------------------------------------------------------------------
     !
@@ -263,12 +260,20 @@ CONTAINS
       aer_ssa_sw(:,:,:) = 1.0_wp
       aer_asy_sw(:,:,:) = 0.0_wp
       !$ACC END KERNELS
-      IF (irad_aero==12 .OR. irad_aero==13 .OR. irad_aero==19) THEN
-      ! irad_aero=12 Kinne aerosols (natural background, data are read
-      !      from a file without year in its name.
-      ! irad_aero=13: only Kinne aerosols are used
-      ! irad_aero=19: Kinne aerosols (background of natural origin,
-      ! read from a file without year in its name!) + simple plumes
+      IF (irad_aero==12 .OR. irad_aero==13 .OR. &
+      & irad_aero==18 .OR. irad_aero==19) THEN
+        ! irad_aero==12: tropospheric background aerosol (Kinne)
+        ! irad_aero==13: transient tropospheric aerosol  (Kinne)
+        !   - including anthropogenic
+        ! irad_aero==18: tropospheric background aerosol (Kinne)
+        !   + stratospheric cmip6 aerosols
+        !   + simple plumes
+        ! irad_aero==19: tropospheric background aerosol (Kinne)
+        !   - no stratospheric aerosols
+        !   + simple plumes (analytical, nothing to be read here, initialization
+        !   see init_aes_phy (mo_aes_phy_init)) the file name of the Kinne
+        !   aerosols must not contain a year and the data must contain the
+        !   natural background (Kinne of 1850)
         CALL set_bc_aeropt_kinne(this_datetime,                        &
               & jg,                                                    &
               & jcs,            jce,                   nproma,         &
@@ -278,16 +283,28 @@ CONTAINS
               & aer_tau_sw,     aer_ssa_sw,            aer_asy_sw,     &
               & aer_tau_lw, opt_from_coupler=lrad_coupled, lacc=use_acc)
       END IF
-      IF (irad_aero==19) THEN
+      IF (irad_aero==18 .OR. irad_aero==19) THEN
       ! Simple plumes are added to ...
-      ! iaero=19: ... Kinne background aerosols (of natural origin, 1850)
-        CALL add_bc_aeropt_splumes(                                      &
+      ! iaero=18, 19: ... Kinne background aerosols (of natural origin, 1850)
+        CALL add_bc_aeropt_splumes_opt(                                  &
               & jg,          jcs,         jce,           nproma,         &
               & klev,        jb,          nbndsw,        this_datetime,  &
               & zf,          dz,          zh(:,klev+1),  wavenum1,       &
               & wavenum2,    aer_tau_sw,  aer_ssa_sw,    aer_asy_sw,     &
-              & lacc=use_acc                                              )
+              & opt_use_acc=use_acc                                      )
       END IF
+
+      IF (irad_aero==18) THEN
+         ! cmip6 volcanic aerosols are added to Kinne background + simple plumes
+         CALL add_bc_aeropt_cmip6_volc(                                  &
+           & this_datetime,         jg,                jcs,              &
+           & jce,                   nproma,            klev,             &
+           & jb,                    nbndsw,            nbndlw,           &
+           & zf,                    dz,                                  &
+           & aer_tau_sw,            aer_ssa_sw,        aer_asy_sw,       &
+           & aer_tau_lw,            lacc=use_acc                         )
+      END IF
+
 
       ! this should be decativated in the concurrent version and make the aer_* global variables for output
       IF (lrad_aero_diag) THEN
@@ -977,8 +994,8 @@ CONTAINS
 
     ! !$ACC update host(zlwp,     ziwp,    re_drop,    re_cryst)
     ! write (0,*) "newcloudsss", sum(zlwp),     sum(ziwp),    sum(re_drop),    sum(re_cryst)
-!++jsr, first, detect cloud ice optical depth with zdwp=0,
-!       then calculate cloud optical depth
+    !++jsr, first, detect cloud ice optical depth with zdwp=0,
+    !       then calculate cloud optical depth
     !$ACC WAIT(1)
     IF (ltimer) CALL timer_start(timer_cloud_optics_lw)
     CALL stop_on_err(cloud_optics_lw%cloud_optics( &
@@ -995,8 +1012,8 @@ CONTAINS
       END DO
     END DO
     !$ACC END PARALLEL
-!--jsr, calculate cloud optics including ice and water hydrometeors now
-!       only these are used in the sequel.
+    !--jsr, calculate cloud optics including ice and water hydrometeors now
+    !       only these are used in the sequel.
     !$ACC WAIT(1)
     IF (ltimer) CALL timer_start(timer_cloud_optics_lw)
     CALL stop_on_err(cloud_optics_lw%cloud_optics( &
@@ -1110,8 +1127,8 @@ CONTAINS
     IF (ltimer) CALL timer_start(timer_k_dist_sw)
     CALL stop_on_err(&
        k_dist_sw%gas_optics(play, plev, tlay, &
-                            gas_concs, atmos_sw, &
-                            toa_flux))
+         &                  gas_concs, atmos_sw, &
+         &                  toa_flux))
     IF (ltimer) CALL timer_stop (timer_k_dist_sw)
     !toa_flux is output, some flux of rrtmgp, see mo_gas_optics_rrtmgp.F90
     !
@@ -1120,7 +1137,7 @@ CONTAINS
     IF ( lneed_aerosols ) THEN
       IF (ltimer) CALL timer_start(timer_aerosol_sw)
       CALL stop_on_err(aerosol_sw%alloc_2str(ncol, klev, &
-                                            k_dist_sw%get_band_lims_wavenumber()))
+        &                                    k_dist_sw%get_band_lims_wavenumber()))
       IF (ltimer) CALL timer_stop (timer_aerosol_sw)
       !$ACC DATA CREATE(aerosol_sw)
       !$ACC DATA CREATE(aerosol_sw%tau, aerosol_sw%ssa, aerosol_sw%g) &
@@ -1189,8 +1206,8 @@ CONTAINS
     !$ACC DATA CREATE(clouds_bnd_sw)
     !$ACC DATA CREATE(clouds_bnd_sw%tau, clouds_bnd_sw%ssa, clouds_bnd_sw%g)
     ! then compute cloud optics
-!++jsr, first, detect cloud ice optical depth with zdwp=0,
-!       then calculate cloud optical depth
+    !++jsr, first, detect cloud ice optical depth with zdwp=0,
+    !       then calculate cloud optical depth
     !$ACC WAIT(1)
     IF (ltimer) CALL timer_start(timer_cloud_optics_sw)
     CALL stop_on_err(cloud_optics_sw%cloud_optics( &
@@ -1207,8 +1224,8 @@ CONTAINS
       END DO
     END DO
     !$ACC END PARALLEL
-!--jsr, calculate cloud optics including ice and water hydrometeors now
-!       only these are used in the sequel.
+    !--jsr, calculate cloud optics including ice and water hydrometeors now
+    !       only these are used in the sequel.
     !$ACC WAIT(1)
     IF (ltimer) CALL timer_start(timer_cloud_optics_sw)
     CALL stop_on_err(cloud_optics_sw%cloud_optics( &
@@ -1225,7 +1242,7 @@ CONTAINS
     IF (ltimer) CALL timer_start(timer_clouds_bnd_sw)
     CALL clouds_bnd_sw%finalize()
     IF (ltimer) CALL timer_stop (timer_clouds_bnd_sw)
-    !
+
     ! optics for snow
     IF (ltimer) CALL timer_start(timer_snow_bnd_sw)
     CALL stop_on_err(snow_bnd_sw%alloc_2str(ncol, klev, &
@@ -1305,16 +1322,16 @@ CONTAINS
 #ifdef RRTMGP_MERGE_DEBUG
 !$OMP CRITICAL (write_record)
     CALL write_record_interface_aes(nproma, pcos_mu0, daylght_frc, &
-      alb_vis_dir, alb_nir_dir, alb_vis_dif, alb_nir_dif, &
-      tk_sfc, zf, zh, dz, pp_fl, pp_hl, tk_fl, tk_hl, &
-      play, plev, tlay, tlev, &
-      xvmr_vap, xvmr_co2, xvmr_ch4, xvmr_o2, xvmr_o3, xvmr_n2o, cdnc, &
-      cld_frc, &
-      flx_dnlw_clr, flx_uplw_clr, flx_dnsw_clr, flx_upsw_clr, &
-      flx_dnlw, flx_uplw, flx_dnsw, flx_upsw, &
-      vis_dn_dir_sfc, par_dn_dir_sfc, nir_dn_dir_sfc, &
-      vis_dn_dff_sfc, par_dn_dff_sfc, nir_dn_dff_sfc, &
-      vis_up_sfc,     par_up_sfc,     nir_up_sfc      )
+      & alb_vis_dir, alb_nir_dir, alb_vis_dif, alb_nir_dif, &
+      & tk_sfc, zf, zh, dz, pp_fl, pp_hl, tk_fl, tk_hl, &
+      & play, plev, tlay, tlev, &
+      & xvmr_vap, xvmr_co2, xvmr_ch4, xvmr_o2, xvmr_o3, xvmr_n2o, cdnc, &
+      & cld_frc, &
+      & flx_dnlw_clr, flx_uplw_clr, flx_dnsw_clr, flx_upsw_clr, &
+      & flx_dnlw, flx_uplw, flx_dnsw, flx_upsw, &
+      & vis_dn_dir_sfc, par_dn_dir_sfc, nir_dn_dir_sfc, &
+      & vis_dn_dff_sfc, par_dn_dff_sfc, nir_dn_dff_sfc, &
+      & vis_up_sfc,     par_up_sfc,     nir_up_sfc      )
 !$OMP END CRITICAL (write_record)
 #endif
 
