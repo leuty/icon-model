@@ -1,3 +1,10 @@
+# Release notes for icon-2025.04-1
+
+### Externals
+
+- Switch to the latest version of ICON-TIXI
+
+
 # Release notes for icon-2025.04
 
 ### ICON-Atmo
