@@ -308,6 +308,9 @@ CONTAINS
     ! SCM Nudging
     REAL(wp) :: nudgecoeff
 
+    ! parameterized FSD
+    REAL(wp), POINTER :: cloud_fsd_2d(:,:) => NULL()
+
 #ifdef __ICON_ART
     ! ART Radiation multicall
     INTEGER :: ncall !< loop index
@@ -1414,6 +1417,10 @@ CONTAINS
           !$ACC END PARALLEL
         ENDIF
 
+
+
+        IF ( ASSOCIATED(prm_diag%cloud_fsd) ) cloud_fsd_2d => prm_diag%cloud_fsd(:,:,jb)
+
         CALL cover_koe &
 &             (kidia  = i_startidx ,   kfdia  = i_endidx  ,       & !! in:  horizonal begin, end indices
 &              klon = nproma,  kstart = kstart_moist(jg)  ,       & !! in:  horiz. and vert. vector length
@@ -1452,7 +1459,8 @@ CONTAINS
 &              qv_tot = prm_diag%tot_cld     (:,:,jb,iqv) ,       & !! out: qv       -"-
 &              qc_tot = prm_diag%tot_cld     (:,:,jb,iqc) ,       & !! out: clw      -"-
 &              qc_sgs = prm_diag%qc_sgs      (:,:,jb) ,           & !! inout: sgs clw from RH scheme
-&              qi_tot = prm_diag%tot_cld     (:,:,jb,iqi)         ) !! out: ci       -"-
+&              qi_tot = prm_diag%tot_cld     (:,:,jb,iqi) ,       & !! out: ci       -"-
+&              fsd    = cloud_fsd_2d               )                !! out: cloud fractional standard deviation
 
 #ifdef __ICON_ART
         ! dusty cirrus parameterization for ICON-ART prognostic 3D mineral dust
@@ -1911,7 +1919,6 @@ CONTAINS
 
       IF (ltimer) CALL timer_stop(timer_coupling)
 #endif
-
     END IF
 
 

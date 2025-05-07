@@ -96,6 +96,32 @@ Known limitations of the new 49R2 climatology include that the "far field" aeros
 The IFS is run with an additional artificial small constant background term to get the best results.
 :::
 
+(ref_atmosphere_ecrad_fsd)=
+# Condensate heterogeneity - the FSD parameter
+
+ICON predicts one value for the condensate mixing ratios of liquid and ice for each grid box. This is supplemented by a cloud fraction from the diagnostic cloud scheme. Because the amount of radiation reflected or absorbed depends non-linearly on condensate amount, it matters how this condensate is distributed within each grid box. The default assumption is that the condensate amount is distributed within the cloudy part of the grid box with the functional shape of a Gamma distribution. The distribution average corresponds to the predicted grid box condensate amount, while the width of the distribution is given by the "fractional standard deviation" (FSD) parameter, which is defined as
+
+
+```{math}
+FSD=\frac{standard\, deviation}{ mean}
+```
+
+By default, ICON assumes that `FSD=1` everywhere, i.e. the normalised width of the condensate distribution is the same everywhere. However, observations show that this is not the case. Condensate is distributed more homogeneously in stratiform clouds compared to cumuliform clouds. Also, grid boxes containing cloud edges (i.e. not overcast, with a `cloud fraction < 1`) have wider condensate distributions than overcast grid boxes, because cloud edges naturally contain less condensate than the cloud interior.
+
+To account for this effect, a regime-dependent parameterization for the FSD parameter can be used by setting the namelist parameter in the `radiation_nml`:
+
+{term}`lcalculate_fsd`` = .true.`
+
+This parameterization is based on the publications {term}`Ahlgrimm et al. 2016` and {term}`Ahlgrimm et al. 2017`, with some minor modifications documented in the ICON code. Broadly, the effect of using this parameterization is to make clouds appear more reflective in areas dominated by stratiform clouds (e.g. stratocumulus regions, extratropics) and less reflective in regions dominated by more convective cloud (e.g. trade cumulus regions, tropics).
+
+Two additional parameters may be set in the `radiation_nml`:
+
+{term}`fsd_background`` = 1` is the default value used when the parameterization is switched off entirely, or in cloud-free regions of the model atmosphere when the parameterization is active. When radiation is calculated on the reduced grid, the interpolation from the full grid to the reduced grid may interpolate between cloudy and cloud-free grid points, which therefore must be assigned a valid FSD value.
+
+{term}`fsd_gridlen`` = 80` is the assumed horizontal grid spacing of the ICON grid (by default set to 80km). Observations show that the unresolved condensate heterogeneity that must be parameterized should reduce as the resolution of the model increases. This means the parameterized FSD parameter becomes smaller (clouds become more homogeneous) for a finer grid resolution. However, ICON has been operating with a fixed FSD value of 1 at all resolutions for years, and produces a resolution-independent top-of-the-atmosphere radiation balance with this fixed value. Replacing this fixed value with a resolution-dependent FSD value (in the absence of compensating changes elsewhere) would produce a resolution-dependent TOA radiation balance, which is not desirable. Therefore, for the time being, it is recommended to use the fixed gridlength value of 80km at all resolutions, as this produces FSD values that average out to approximately 1 globally, maintaining the usual TOA radiation balance.
+
+Lastly, it should be mentioned that the FSD calculation for liquid clouds depends on the cloud fraction: High cloud fraction is a proxy for stratiform clouds, which are assigned lower FSD values. In cases where the model predicts an incorrect cloud fraction (e.g. prediction cloud fractions <50% in stratocumulus regions), the error in the cloud radiative effect may be enhanced when using the FSD parameterization. In this example, the parameterization would make clouds with fraction <50% less reflective in an area where cloud cover (and therefore cloud radiative effect) is already too low.
+
 # Glossary of Namelist Parameters
 
 _Operational NWP setting marked by {material-regular}`settings;1em;pst-color-secondary`_
@@ -112,4 +138,13 @@ latm_above_top
 
 irad_aero
   (`&radiation_nml`) Specify aerosol input for radiation. **0:** None, **3:** externally specified (e.g. [](ref_tools_comin)) **6:** {material-regular}`settings;1em;pst-color-secondary` Tegen climatology, **7:** CAMS 3D climatology, **8:** CAMS 3D forecasted, **9:** [](ref_atmosphere_art), **12:** tropospheric Kinne climatology (constant in time), **13:** tropospheric Kinne climatology (time-dependent), **14:** volcanic stratospheric aerosols for CMIP6 (time dependent), **15:** combination of 13 and 14, **18:** tropospheric natural Kinne climatology + volcanic stratospheric aerosols + anthropogenic 'simple plumes' (time-dependent), **19:** as 18 without volcanic stratospheric aerosols
+
+lcalculate_fsd
+  (`&radiation_nml`) Main switch to activate regime-dependent FSD parameterization (Default: `.FALSE.`{material-regular}`settings;1em;pst-color-secondary`)
+
+fsd_background
+  (`&radiation_nml`) Background value for assumed horizontal grid spacing in FSD parameterization.
+
+fsd_gridlen
+  (`&radiation_nml`) Value for assumed horizontal grid spacing in FSD parameterization.
 :::

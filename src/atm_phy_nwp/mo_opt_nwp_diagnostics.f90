@@ -77,12 +77,14 @@ MODULE mo_opt_nwp_diagnostics
     &                                   initialize_tmax_atomic_2mom, &
     &                                   initialize_tmin_atomic_1mom, &
     &                                   initialize_tmin_atomic_2mom, &
-    &                                   init_1mom_types, init_2mom_types
+    &                                   init_1mom_types, init_2mom_types, update_mph
   USE radar_mie_iface_cosmo_1mom, ONLY: radar_mie_1mom_vec, &
     &                                   radar_rayleigh_oguchi_1mom_vec
   USE radar_mie_iface_cosmo_2mom, ONLY: radar_mie_2mom_vec, &
     &                                   radar_rayleigh_oguchi_2mom_vec
-  USE mo_synradar_config,         ONLY: synradar_meta, ydir_mielookup_read, ydir_mielookup_write
+  USE mo_synradar_config,         ONLY: synradar_meta, &
+                                        ydir_mielookup_read, ydir_mielookup_write, &
+                                        rain2mom_mu_incloud
   USE mo_mpi,                     ONLY: get_my_mpi_work_comm_size
 #endif
   USE sfc_terra_data,             ONLY: cpwp, cfcap
@@ -4447,7 +4449,9 @@ CONTAINS
           qhl => dummy0(:,:,:)
         END IF
 
+        itype_gscp_emvo = 260 ! corresponding itype_gscp in COSMO and EMVORADO
         CALL init_2mom_types()
+        CALL update_mph(rain2mom_mu_incloud, itype_gscp_emvo)
 
         ALLOCATE ( Tmax_i(nproma,ptr_patch%nblks_c), Tmax_s(nproma,ptr_patch%nblks_c), &
              Tmax_g(nproma,ptr_patch%nblks_c), Tmax_h(nproma,ptr_patch%nblks_c) )
@@ -4487,7 +4491,7 @@ CONTAINS
           CALL radar_mie_2mom_vec( &
                myproc            = get_my_mpi_work_id(), &
                lambda_radar      = synradar_meta%lambda_radar, &
-               itype_gscp_fwo    = 260, &
+               itype_gscp_fwo    = itype_gscp_emvo, &
                itype_refl        = synradar_meta%itype_refl, &
                luse_tmatrix      = (synradar_meta%itype_refl >= 5), &
                ldo_nonsphere     = (synradar_meta%itype_refl == 5), &

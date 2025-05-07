@@ -1639,6 +1639,9 @@ CONTAINS
         & snow_rate=snow_rate(:), &
         & ice_rate=pri_gsp(:), &
         & qhfl_sfc=zqhfl_sfc(:), &
+        & rho_ch=rho_ch(:), &
+        & qc_atm=qc(:), &
+        & qi_atm=qi(:), &
         & runoff_s=runoff_s(:), &
         & runoff_g=runoff_g(:), &
         & w_snow_new=w_snow_new(:), &
@@ -1648,6 +1651,8 @@ CONTAINS
         & w_so_new=w_so_new(:,:), &
         & w_so_now=w_so_now(:,:), &
         & resid_wso=resid_wso(:), & ! inout
+        & ldepo_qw=ldepo_qw, &
+        & ldiff_qi=ldiff_qi, &
         & lzacc=lzacc, &
         & acc_async_queue=acc_async_queue &
       )
@@ -1978,9 +1983,9 @@ END SUBROUTINE
 
 SUBROUTINE update_water_budget_diagnostic ( &
       & ivstart, ivend, nvec, ke_soil_hy, dt, budget_w_so_start, rain_rate, snow_rate, &
-      & ice_rate, &
+      & ice_rate, rho_ch, qc_atm, qi_atm, &
       & qhfl_sfc, runoff_s, runoff_g, w_snow_new, w_snow_now, w_i_new, w_i_now, w_so_new, &
-      & w_so_now, resid_wso, lzacc, acc_async_queue &
+      & w_so_now, resid_wso, ldepo_qw, ldiff_qi, lzacc, acc_async_queue &
     )
 
   INTEGER, INTENT(IN) :: ivstart !< Array start index.
@@ -1995,6 +2000,9 @@ SUBROUTINE update_water_budget_diagnostic ( &
   REAL(wp), INTENT(IN) :: snow_rate(nvec) !< Total snow rate (convective + grid-scale), excluding ice [kg/(m^2 s)].
   REAL(wp), INTENT(IN) :: ice_rate(nvec) !< Ice precipitation rate [kg/(m^2 s)].
   REAL(wp), INTENT(IN) :: qhfl_sfc(nvec) !< Vapor flux at surface [kg/(m^2 s)].
+  REAL(wp), INTENT(IN) :: rho_ch(nvec) !< Surface air density times transfer velocity [kg/(m**2 s)].
+  REAL(wp), INTENT(IN) :: qc_atm(nvec) !< Cloud water in lowest level [kg/kg].
+  REAL(wp), INTENT(IN) :: qi_atm(nvec) !< Cloud ice in lowest level [kg/kg].
   REAL(wp), INTENT(IN) :: runoff_s(nvec) !< Final surface runoff [kg/m^2].
   REAL(wp), INTENT(IN) :: runoff_g(nvec) !< Final subsurface runoff [kg/m^2].
   REAL(wp), INTENT(IN) :: w_snow_new(nvec) !< Final snow-water equivalent [m H2O].
@@ -2005,6 +2013,9 @@ SUBROUTINE update_water_budget_diagnostic ( &
   REAL(wp), INTENT(IN) :: w_so_now(nvec, ke_soil_hy) !< Initial total water in soil layer [m H2O].
 
   REAL(wp), INTENT(INOUT) :: resid_wso(nvec) !< Total water residual [kg/m^2].
+
+  LOGICAL, INTENT(IN) :: ldepo_qw !< Cloud-water deposition is enabled.
+  LOGICAL, INTENT(IN) :: ldiff_qi !< Ice diffusion is enabled.
 
   LOGICAL, INTENT(IN) :: lzacc
   INTEGER, INTENT(IN) :: acc_async_queue
@@ -2022,6 +2033,14 @@ SUBROUTINE update_water_budget_diagnostic ( &
     budget_w_so_start(i) = budget_w_so_start(i) + (rain_rate(i) + snow_rate(i) + ice_rate(i))*dt
     ! the evapotranspiration
     budget_w_so_start(i) = budget_w_so_start(i) + qhfl_sfc(i)*dt
+
+    IF (ldepo_qw) THEN
+      ! water droplet deposition
+      budget_w_so_start(i) = budget_w_so_start(i) + rho_ch(i) * qc_atm(i) * dt
+      ! cloud ice deposition
+      IF (ldiff_qi) budget_w_so_start(i) = budget_w_so_start(i) + rho_ch(i) * qi_atm(i) * dt
+    END IF
+
     ! surface + subsurface runoff (subtraction because water is lost)
     ! The initial values were saved on entry to terra.
     budget_w_so_start(i) = budget_w_so_start(i) - runoff_s(i) - runoff_g(i)

@@ -1,3 +1,42 @@
+# Release notes for icon-2025.10
+
+### ICON-Atmo
+
+AES Physics:
+
+NWP Physics:
+
+- enable reading and interpolating ozone and Kinne aerosol data using YAC (icon-nwp!1716)
+
+### ICON-Ocean
+
+### ICON-Waves
+
+### Soil and Surface
+
+Climate: ICON-Land
+
+NWP: TERRA and other surface issues
+
+- Fixes:
+  - rime formation term for interception storage (icon-nwp!1740)
+  - w_i nonconservation (icon-nwp!1746)
+
+### ICON-ART
+
+#### Coupling
+
+### Externals
+
+### Infrastructure
+
+#### Scripting and testing
+
+#### Building
+
+#### Miscellaneous
+
+
 # Release notes for icon-2025.04
 
 ### ICON-Atmo

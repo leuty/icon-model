@@ -232,8 +232,14 @@ CONTAINS
       ! Construct coupling frame for atmosphere-o3 provider
       CALL message(str_module, 'Constructing the coupling frame atmosphere-o3 provider.')
 
-      CALL construct_atmo_o3_provider_coupling_post_sync( &
-        comp_id, cell_point_id(1), TRIM(aes_phy_config(jg)%dt_rad))
+      IF ( iforcing == iaes ) THEN
+        CALL construct_atmo_o3_provider_coupling_post_sync( &
+          comp_id, cell_point_id(1), TRIM(aes_phy_config(jg)%dt_rad))
+      ELSE IF ( iforcing == inwp ) THEN
+        ! Only daily updates for ozon in nwp o3_interface
+        CALL construct_atmo_o3_provider_coupling_post_sync( &
+          comp_id, cell_point_id(1), "P1D")
+      END IF
 
     END IF
 
@@ -242,8 +248,14 @@ CONTAINS
       ! Construct coupling frame for atmosphere-aero provider
       CALL message(str_module, 'Constructing the coupling frame atmosphere-aero provider.')
 
-      CALL construct_atmo_aero_provider_coupling_post_sync( &
-        comp_id, cell_point_id(1), TRIM(aes_phy_config(jg)%dt_rad))
+      IF ( iforcing == iaes ) THEN
+        CALL construct_atmo_aero_provider_coupling_post_sync( &
+          comp_id, cell_point_id(1), TRIM(aes_phy_config(jg)%dt_rad))
+      ELSE IF ( iforcing == inwp ) THEN
+        ! Only daily updates for aerosol in nwp_aerosol_daily_update
+        CALL construct_atmo_aero_provider_coupling_post_sync( &
+          comp_id, cell_point_id(1), "P1D")
+      END IF
 
     END IF
 

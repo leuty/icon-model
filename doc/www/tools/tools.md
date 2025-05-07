@@ -62,3 +62,15 @@ Examples:
   ```shell
   cdo ap2pl,50000,82500 <input> <output>
   ```
+
+## ICON forecast set with ecflow at ECMWF
+
+This suite provides an easy way to test ICON model physics.  Short forecasts for January and July are performed and many plots are generated.  References are the ICON or IFS analysis, a reference experiment and observations (CERES radiation, IMERG precipitation and WHOI ocean surface parameters).  The tests are done on atos at ECMWF using an ecflow scheduler.
+
+The following issues need to be considered:
+- apply for access to ECMWF computers and the ecflow server
+- compile ICON at ECMWF
+- ICON ECMWF scheduler code is part of the ICON repository here: schedulers/ecmwf.  Key directories are suites (python ecflow setup), tasks and cases (namelists).
+- automatic transfer of plots to the DWD plot-catalog
+
+More details are available here **[](ref_tools_ec_ecflow)**.

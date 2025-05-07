@@ -51,6 +51,7 @@ MODULE mo_nwp_aerosol
   USE mo_bc_aeropt_kinne,         ONLY: read_bc_aeropt_kinne, set_bc_aeropt_kinne
   USE mo_bc_aeropt_cmip6_volc,    ONLY: read_bc_aeropt_cmip6_volc, add_bc_aeropt_cmip6_volc
   USE mo_bc_aeropt_splumes,       ONLY: add_bc_aeropt_splumes
+  USE mo_coupling_config,         ONLY: is_coupled_to_aero
   USE mo_bcs_time_interpolation,  ONLY: t_time_interpolation_weights,         &
     &                                   calculate_time_interpolation_weights
   USE mo_io_config,               ONLY: var_in_output
@@ -599,7 +600,8 @@ CONTAINS
     IF (prev_radtime%date%day /= mtime_datetime%date%day) THEN
       IF (inwp_radiation == 4) THEN
         IF (ANY(irad_aero == [iRadAeroKinne, iRadAeroKinneVolc])) &
-            & CALL read_bc_aeropt_kinne(mtime_datetime, pt_patch, .TRUE., nbands_lw, nbands_sw)
+            & CALL read_bc_aeropt_kinne(mtime_datetime, pt_patch, .TRUE., nbands_lw, nbands_sw, &
+                                        opt_from_coupler = is_coupled_to_aero())
         IF (ANY(irad_aero == [iRadAeroVolc, iRadAeroKinneVolc, iRadAeroKinneVolcSP])) &
             & CALL read_bc_aeropt_cmip6_volc(mtime_datetime, nbands_lw, nbands_sw)
       ENDIF
@@ -684,7 +686,9 @@ CONTAINS
       CALL set_bc_aeropt_kinne(mtime_datetime, jg, i_startidx, i_endidx, nproma, nlev, jb, &
         &                      nbands_sw, nbands_lw, zf(:,:), dz(:,:),            &
         &                      od_sw_vr(:,:,:), ssa_sw_vr(:,:,:),                 &
-        &                      g_sw_vr (:,:,:), od_lw_vr(:,:,:), lacc=lzacc)
+        &                      g_sw_vr (:,:,:), od_lw_vr(:,:,:),                  &
+        &                      lacc=lzacc, opt_from_coupler = is_coupled_to_aero())
+
     ENDIF
 
     ! Volcanic stratospheric aerosols for CMIP6

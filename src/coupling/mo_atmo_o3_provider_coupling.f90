@@ -17,14 +17,13 @@
 
 MODULE mo_atmo_o3_provider_coupling
 
-  USE mo_kind,            ONLY: wp
-  USE mo_model_domain,    ONLY: t_patch
-  USE mo_exception,       ONLY: finish
-  USE mo_aes_rad_config,  ONLY: aes_rad_config
-  USE mo_coupling_config, ONLY: is_coupled_to_o3
-  USE mo_coupling_utils,  ONLY: cpl_def_field, cpl_get_field, &
-                                cpl_get_field_collection_size
-  USE mo_sync,            ONLY: SYNC_C, sync_patch_array
+  USE mo_kind,             ONLY: wp
+  USE mo_model_domain,     ONLY: t_patch
+  USE mo_coupling_utils,   ONLY: cpl_def_field, cpl_get_field,  &
+                                 cpl_get_field_collection_size, &
+                                 cpl_get_field_metadata,        &
+                                 cpl_get_instance_id
+  USE mo_sync,             ONLY: SYNC_C, sync_patch_array
 
   IMPLICIT NONE
 
@@ -33,11 +32,13 @@ MODULE mo_atmo_o3_provider_coupling
   CHARACTER(len=*), PARAMETER :: str_module = 'mo_atmo_o3_provider_coupling' ! Output of module for debug
 
   PUBLIC :: construct_atmo_o3_provider_coupling_post_sync, &
-            couple_atmo_to_o3_provider, nplev_o3_provider
+            couple_atmo_to_o3_provider, nplev_o3_provider, &
+            plev_o3_provider
 
   INTEGER :: field_id_o3
-  INTEGER :: nplev_o3_provider
 
+  INTEGER               :: nplev_o3_provider
+  REAL(wp), ALLOCATABLE :: plev_o3_provider(:)
   REAL(wp), ALLOCATABLE :: recv_buf(:,:)
 
 CONTAINS
@@ -57,13 +58,15 @@ CONTAINS
 
     INTEGER, PARAMETER :: jg = 1
 
+    INTEGER            :: io3
+
+    INTEGER            :: nplev_o3
+
+    CHARACTER(len=:), ALLOCATABLE :: str_plev
+
     CHARACTER(LEN=*), PARAMETER   :: &
       routine = str_module // ':construct_atmo_o3_provider_coupling_post_sync'
 
-    IF  (.NOT. is_coupled_to_o3() .OR. &
-         (aes_rad_config(jg)%irad_o3 /= 5 .AND. &
-          aes_rad_config(jg)%irad_o3 /= 6)) &
-      CALL finish(routine, "invalid configuration")
 
     nplev_o3_provider = &
       cpl_get_field_collection_size( &
@@ -72,6 +75,14 @@ CONTAINS
     CALL cpl_def_field( &
       comp_id, cell_point_id, timestepstring, &
       "o3", nplev_o3_provider, field_id_o3)
+
+    ALLOCATE(plev_o3_provider(nplev_o3_provider))
+
+    str_plev = &
+       cpl_get_field_metadata( &
+       routine, "o3_provider", "o3_grid", "o3")
+
+    READ (str_plev,*) nplev_o3, plev_o3_provider(:)
 
   END SUBROUTINE construct_atmo_o3_provider_coupling_post_sync
 

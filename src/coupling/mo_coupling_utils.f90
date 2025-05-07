@@ -57,6 +57,7 @@ MODULE mo_coupling_utils
     &                           yac_fget_action, yac_fupdate, &
     &                           yac_dble_ptr, yac_fput, yac_fget, &
     &                           yac_fget_field_collection_size, &
+    &                           yac_fget_field_metadata_instance, &
     &                           yac_fget_collection_size_from_field_id, &
     &                           yac_fget_field_datetime, &
     &                           yac_fsync_def, yac_fenddef, &
@@ -92,6 +93,7 @@ MODULE mo_coupling_utils
   PUBLIC :: cpl_def_field
   PUBLIC :: cpl_get_field
   PUBLIC :: cpl_get_field_collection_size
+  PUBLIC :: cpl_get_field_metadata
   PUBLIC :: cpl_get_field_datetime
   PUBLIC :: cpl_put_field
   PUBLIC :: cpl_sync_def
@@ -1989,6 +1991,35 @@ CONTAINS
 #endif
 
   END FUNCTION cpl_get_field_datetime
+
+  ! gets the meta data of a field
+  ! (only works after the respective field has been definied and
+  !  its information has been distributed among all processes either
+  !  by a call to yac_fsync_def or yac_fenddef)
+  FUNCTION cpl_get_field_metadata( &
+    caller, comp_name, grid_name, field_name)
+
+    CHARACTER(LEN=*), INTENT(IN) :: comp_name  ! name of the component
+    CHARACTER(LEN=*), INTENT(IN) :: grid_name  ! name of the grid
+    CHARACTER(LEN=*), INTENT(IN) :: field_name ! name of the field
+    CHARACTER(LEN=*), INTENT(IN) :: caller     ! name of the calling routine (for debugging)
+
+    CHARACTER(LEN=:), ALLOCATABLE :: cpl_get_field_metadata
+
+#ifndef YAC_coupling
+    CALL finish( &
+      TRIM(caller) // ':cpl_get_field_metadata', &
+      'built without coupling support.')
+#else
+
+    cpl_get_field_metadata = &
+      yac_fget_field_metadata_instance(yac_instance_id, &
+        comp_name, grid_name, field_name)
+
+! YAC_coupling
+#endif
+
+  END FUNCTION cpl_get_field_metadata
 
 #ifdef YAC_coupling
 

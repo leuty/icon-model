@@ -79,7 +79,7 @@ USE mo_radiation_config,    ONLY: irad_aero, iRadAeroTegen, iRadAeroART, iRadAer
   &                               iRadAeroConst, iRadAeroCAMSclim, iRadAeroCAMStd, islope_rad, &
   &                               iRadAeroConstKinne, iRadAeroKinne, iRadAeroVolc, iRadAeroKinneVolc, &
   &                               iRadAeroKinneVolcSP, iRadAeroKinneSP, iRadAeroExternal, &
-  &                               ecrad_nbands_sw, ecrad_nbands_lw
+  &                               ecrad_nbands_sw, ecrad_nbands_lw, lcalculate_fsd
 USE mo_lnd_nwp_config,      ONLY: ntiles_total, ntiles_water, nlev_soil, itype_ahf
 USE mo_nwp_tuning_config,   ONLY: itune_gust_diag
 USE mo_var_list,            ONLY: add_var, add_ref, t_var_list_ptr
@@ -496,7 +496,8 @@ SUBROUTINE new_nwp_phy_diag_list( k_jg, klev, klevp1, kblks,    &
       &     diag%wshear_u, &
       &     diag%wshear_v, &
       &     diag%aod_550nm,   &
-      &     diag%z_pbl)
+      &     diag%z_pbl,    &
+      &     diag%cloud_fsd)
 
 
     ! Register a field list and apply default settings
@@ -5860,6 +5861,17 @@ SUBROUTINE new_nwp_phy_diag_list( k_jg, klev, klevp1, kblks,    &
                   & lrestart = .FALSE., ldims=(/1/),                             &
                   & lopenacc=.TRUE.)
       __acc_attach(diag%radtop_gmean)
+    ENDIF
+
+    IF (lcalculate_fsd) THEN
+      ! calculate fractional standard deviation of cloud condensate for radiation
+      cf_desc    = t_cf_var('fractional_standard_deviation', '-', 'fractional standard deviation', datatype_flt)
+      grib2_desc = grib2_var(255, 255, 255, ibits, GRID_UNSTRUCTURED, GRID_CELL)
+      CALL add_var( diag_list, 'cloud_fsd', diag%cloud_fsd,                       &
+        &           GRID_UNSTRUCTURED_CELL, ZA_REFERENCE, cf_desc, grib2_desc,      &
+        &           ldims=shape3d ,                                             &
+        &           lrestart=.FALSE., loutput=.TRUE.,lopenacc=.TRUE.)
+      __acc_attach(diag%cloud_fsd)
     ENDIF
 
     ! Initialize JSBACH + VDIFF state.

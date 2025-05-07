@@ -342,6 +342,39 @@ cat > NAMELIST_NWP << EOF
  'ATHB_S','ATHB_T','tmax_2m','tmin_2m','t_2m','pres_sfc','pres_msl','gust10','z_mc'
 /
 
+! output_nml: test ddt tendency output --------------------------------------
+&output_nml
+ filetype        = 4
+ dom             = -1
+ mode            = 1
+ steps_per_file  = 1
+ output_bounds   = 900., 900., 9999.
+ output_filename = 'ddt_native'
+ ml_varlist      = 'ddt_temp_radlw','ddt_temp_radsw',
+                   'ddt_temp_turb' ,'ddt_u_turb'    ,'ddt_v_turb' ,'ddt_qv_turb',
+                   'ddt_temp_gscp' ,'ddt_qv_gscp'   ,'ddt_qc_gscp','ddt_qi_gscp',
+                   'ddt_temp_pconv','ddt_v_pconv'   ,'ddt_u_pconv','ddt_qv_conv',
+                   'ddt_u_sso'     ,'ddt_v_sso'     ,'ddt_v_gwd'  ,'ddt_u_gwd'  ,
+                   'ddt_temp_dyn'  ,'ddt_temp_drag'
+ remap           = 0
+/
+
+&output_nml
+ filetype        = 4
+ dom             = -1
+ mode            = 1
+ steps_per_file  = 1
+ output_bounds   = 900., 900., 9999.
+ output_filename = 'ddt_latlon'
+ ml_varlist      = 'ddt_temp_radlw','ddt_temp_radsw',
+                   'ddt_temp_turb' ,'ddt_u_turb'    ,'ddt_v_turb' ,'ddt_qv_turb',
+                   'ddt_temp_gscp' ,'ddt_qv_gscp'   ,'ddt_qc_gscp','ddt_qi_gscp',
+                   'ddt_v_pconv'   ,'ddt_u_pconv'   ,'ddt_qv_conv'
+ remap           = 1
+ reg_lon_def     = -7.0,0.1,7.0
+ reg_lat_def     = -6.5,0.1,6.5
+/
+
 ! radiation_nml: radiation scheme ---------------------------------------------
 &radiation_nml
  irad_o3                     =                          7         ! ozone climatology

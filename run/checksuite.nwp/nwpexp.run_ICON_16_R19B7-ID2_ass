@@ -729,7 +729,8 @@ dom =  1
       ! resolution of the cartesian grid for superobing [m]: (default: 20000.0)
       supob_cart_resolution = 20000.0,
       ! width of averaging area for superobing [m]: (default: sqrt(2)*20000.0 = 28284.3)
-      supob_ave_width = 28284.3,
+      supob_ave_width_vr = 28284.3,
+      supob_ave_width_z  = 28284.3,
       ! min. ranges of superobing points for vr and z [m]: (default: 0.75*sqrt(2)*20000.0 = 21213.2)
       supob_minrange_vr = 21213.2,
       supob_minrange_z = 21213.2,

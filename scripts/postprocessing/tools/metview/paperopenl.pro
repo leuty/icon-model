@@ -1,5 +1,4 @@
-; ICON
-;
+ pro paperopenl, fname
 ; ---------------------------------------------------------------
 ; Copyright (C) 2004-2025, DWD, MPI-M, DKRZ, KIT, ETH, MeteoSwiss
 ; Contact information: icon-model.org
@@ -8,15 +7,14 @@
 ; SPDX-License-Identifier: BSD-3-Clause
 ; ---------------------------------------------------------------
 
-pro paperopenl
-;-----------------------------------------------------------------------;
+;----------------------------------------------------------------
 ; Open postscript landscape page.
 ;
 ; Martin Koehler, 2-20-95
-;-----------------------------------------------------------------------;
+;----------------------------------------------------------------
 
  set_plot,'ps',/copy
- device,filename='plot.ps',/color,/landscape,   $
+ device,filename=fname,/color,/landscape,   $
 ;   /inches, xsize=10.5,ysize=7.7, xoffset=0.25,yoffset=10.75
     xsize=28.5,ysize=19, xoffset=0.5,yoffset=29.5
 ;, xoffset=1,yoffset=28.5

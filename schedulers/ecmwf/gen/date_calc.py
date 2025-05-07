@@ -67,7 +67,7 @@ def main():
         else:
             print("0")
     else:
-        print "Unknown command line option \"", options.action,"\"!"
+        print("Unknown command line option \"", options.action,"\"!")
 
 
 if __name__ == '__main__':

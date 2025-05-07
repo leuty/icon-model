@@ -10,14 +10,21 @@
 # See LICENSES/ for license information
 # SPDX-License-Identifier: BSD-3-Clause
 # ---------------------------------------------------------------
-
+#
+# some early definition changable by user
+#
+VERBOSE = 3
 DRYRUN = False
+UPDATE_CASE = 1
+#
+# ---------------------------------------------------------------
 
 if not DRYRUN:
     from yac import *
 
 import datetime as dt
 import socket
+import subprocess
 import sys
 from datetime import datetime
 from glob import glob
@@ -30,20 +37,14 @@ import pandas as pd
 import xarray as xr
 from cdo import *
 
-cdo = Cdo(tempdir="/scratch/m/m300083/tmp")
-
-# ------------------------------------------
-#
-# some early definition changable by user
-#
-VERBOSE = 2
-
-iso_data_interval = "P1M"
-PERP_YEAR = 1850
+cdo = Cdo(tempdir="./tmp_cdo_o3")
 
 # ------------------------------------------
 # get setting from namelist
 # ------------------------------------------
+
+iso_data_interval = "P1M"
+PERP_YEAR = 1850
 
 NAMELIST = sys.argv[1]
 nml_fname = glob(NAMELIST)[0]
@@ -51,35 +52,118 @@ nml = f90nml.read(nml_fname)
 
 perpetual_year = PERP_YEAR
 
-try:
-    iso_coupling_interval = nml["aes_phy_nml"]["aes_phy_config"][0]["dt_rad"]
-    print("o3_provider: found dt_rad =", iso_coupling_interval, "in", nml_fname)
-except:
-    print("o3_provider: dt_rad not set in", nml_fname)
-    raise SystemExit(1)
-    exit
+iforcing = nml["run_nml"]["iforcing"]
 
-try:
-    irad_o3 = nml["aes_rad_nml"]["aes_rad_config"][0]["irad_o3"]
-    print("o3_provider: found irad_o3 =", irad_o3, "in", nml_fname)
-except:
-    print("o3_provider: irad_o3 not set in", nml_fname)
-    raise SystemExit(1)
-    exit
+if iforcing < 2 or iforcing > 3:
+    print("o3_provider: iforcing ", iforcing, "is not supported", nml_fname)
+    sys.exit(1)
 
-try:
-    lyr_perp = nml["aes_rad_nml"]["aes_rad_config"][0]["lyr_perp"]
-    print("o3_provider: found lyr_perp =", lyr_perp, "in", nml_fname)
-except:
-    print("o3_provider: lyr_perp not set in", nml_fname)
+if iforcing == 2:
+
+    try:
+        iso_coupling_interval = nml["aes_phy_nml"]["aes_phy_config"][0][
+            "dt_rad"
+        ]
+        if VERBOSE > 0:
+            print(
+                "o3_provider: found dt_rad =",
+                iso_coupling_interval,
+                "in",
+                nml_fname,
+                flush=True,
+            )
+    except:
+        print("o3_provider: dt_rad  for aes not set in", nml_fname)
+        sys.exit(1)
+
+    try:
+        irad_o3 = nml["aes_rad_nml"]["aes_rad_config"][0]["irad_o3"]
+        if VERBOSE > 0:
+            print(
+                "o3_provider: found irad_o3 =",
+                irad_o3,
+                "in",
+                nml_fname,
+                flush=True,
+            )
+    except:
+        print("o3_provider: irad_o3  for aes not set in", nml_fname)
+        sys.exit(1)
+
+    try:
+        lyr_perp = nml["aes_rad_nml"]["aes_rad_config"][0]["lyr_perp"]
+        if VERBOSE > 0:
+            print(
+                "o3_provider: found lyr_perp =",
+                lyr_perp,
+                "in",
+                nml_fname,
+                flush=True,
+            )
+    except:
+        print("o3_provider: lyr_perp for aes not set in", nml_fname)
+        lyr_perp = False
+
+    if lyr_perp:
+        try:
+            yr_perp = nml["aes_rad_nml"]["aes_rad_config"][0]["yr_perp"]
+            if VERBOSE > 0:
+                print(
+                    "o3_provider: found yr_perp =",
+                    yr_perp,
+                    "in",
+                    nml_fname,
+                    flush=True,
+                )
+        except:
+            print(
+                "o3_provider: lyr_perp is set to True bit no year is provided."
+            )
+            sys.exit(1)
+
+if iforcing == 3:
+
+    dt_rad = 86400.0
+    dr = pd.Timedelta(dt_rad, "s")
+    iso_coupling_interval = dr.isoformat()
+    if VERBOSE > 0:
+        print("o3_provider: using dt_rad =", dt_rad, flush=True)
+        print(
+            "o3_provider: dt_rad converted to",
+            iso_coupling_interval,
+            flush=True,
+        )
+
+    try:
+        nwp_dtime = nml["run_nml"]["dtime"]
+        if VERBOSE > 0:
+            print(
+                "o3_provider: found dtime =",
+                nwp_dtime,
+                "in",
+                nml_fname,
+                flush=True,
+            )
+
+    except:
+        print("o3_provider: dtime for nwp not set in", nml_fname)
+        sys.exit(1)
+
+    try:
+        irad_o3 = nml["radiation_nml"]["irad_o3"]
+        if VERBOSE > 0:
+            print(
+                "o3_provider: found irad_o3 =",
+                irad_o3,
+                "in",
+                nml_fname,
+                flush=True,
+            )
+    except:
+        print("o3_provider: irad_o3 for nwp not set in", nml_fname)
+        sys.exit(1)
+
     lyr_perp = False
-
-if lyr_perp:
-    yr_perp = nml["aes_rad_nml"]["aes_rad_config"][0]["yr_perp"]
-    print("o3_provider: found yr_perp =", yr_perp, "in", nml_fname)
-
-if irad_o3 == 6:
-    scenario = "picontrol"
 
 if irad_o3 == 5:
     scenario = "historical"
@@ -87,14 +171,26 @@ if irad_o3 == 5:
         scenario = "perpetual"
         perpetual_year = yr_perp
 
+if irad_o3 == 6:
+    scenario = "picontrol"
+
+    if iforcing == 3:
+        print("o3_provider: irad_o3 ", irad_o3, "is not supported for nwp.")
+        sys.exit(1)
+
 if irad_o3 != 5 and irad_o3 != 6:
     print("o3_provider: irad_o3 =", irad_o3, "is not supported")
-    raise SystemExit(1)
-    exit
+    sys.exit(1)
 
 try:
     coupled_to_o3 = nml["coupling_mode_nml"]["coupled_to_o3"]
-    print("o3_provider: found coupled_to_o3 =", coupled_to_o3, "in", nml_fname)
+    print(
+        "o3_provider: found coupled_to_o3 =",
+        coupled_to_o3,
+        "in",
+        nml_fname,
+        flush=True,
+    )
 except:
     print("o3_provider: coupled_to_o3 not set in", nml_fname)
     coupled_to_o3 = False
@@ -103,8 +199,7 @@ if not coupled_to_o3:
     print(
         "o3_provider: coupled_to_o3 = .FALSE. cannot be used when running o3_provider"
     )
-    raise SystemExit(1)
-    exit
+    sys.exit(1)
 
 # ------------------------------------------
 # definition of fuctions
@@ -113,12 +208,16 @@ if not coupled_to_o3:
 
 def get_hostname():
 
-    fqdn = socket.getfqdn().split(".")
+    fqdn = socket.getfqdn().split(".", 3)
+    while len(fqdn) < 4:
+        fqdn.append("")
 
     if "nid" == fqdn[0][:3]:
         hostname = "Lumi"
     elif "lvt.dkrz.de" == fqdn[1] + "." + fqdn[2] + "." + fqdn[3]:
         hostname = "Levante"
+    elif "jupiter" == fqdn[1]:
+        hostname = "Jupiter"
     else:
         hostname = "unknown"
         raise ValueError(f"Host cannot be detected")
@@ -149,6 +248,8 @@ def input_historical(year):
         dataPath = "/work/kd0956/INPUT4MIPS/data/input4MIPs/CMIP6/CMIP/UReading/UReading-CCMI-1-0/atmos/mon/vmro3/gn/v20160711/"
     if get_hostname() == "Lumi":
         dataPath = "/appl/local/climatedt/pool/data/ICON/grids/public/mpim/common/CMIP6_ozone"
+    if get_hostname() == "Jupiter":
+        dataPath = "/p/data1/slmet/model_data/ICON/common/ozone_cmip6_forcing/"
 
     fileRoot = "vmro3_input4MIPs_ozone_CMIP_UReading-CCMI-1-0_gn_"
     filename = filename_year(dataPath, fileRoot, "historical", year_range)
@@ -182,6 +283,9 @@ def input_scenario(scenario, year):
     if get_hostname() == "Lumi":
         dataPath = "/appl/local/climatedt/pool/data/ICON/grids/public/mpim/common/CMIP6_ozone"
 
+    if get_hostname() == "Jupiter":
+        dataPath = "/p/data1/slmet/model_data/ICON/common/ozone_cmip6_forcing/"
+
     fileRoot = (
         "vmro3_input4MIPs_ozone_ScenarioMIP_UReading-CCMI-"
         + scenario
@@ -202,34 +306,34 @@ def input_file(scenario, year, perpetual_year=PERP_YEAR):
         if year < 2015:
             filename = input_historical(year)
             if VERBOSE > 0:
-                print("o3_provider: reading from historical")
+                print("o3_provider: reading from historical", flush=True)
         else:
             filename = input_scenario("ssp370", year)
             if VERBOSE > 0:
-                print("o3_provider: reading from ssp370")
+                print("o3_provider: reading from ssp370", flush=True)
 
     elif scenario[:3] == "ssp":
 
         if year < 2015:
             filename = input_historical(year)
             if VERBOSE > 0:
-                print("o3_provider: reading from historical")
+                print("o3_provider: reading from historical", flush=True)
         else:
             filename = input_scenario(scenario, year)
             if VERBOSE > 0:
-                print("o3_provider: reading from", scenario)
+                print("o3_provider: reading from", scenario, flush=True)
 
     elif scenario == "perpetual":
 
         if 1849 < perpetual_year < 2015:
             filename = input_historical(perpetual_year)
             if VERBOSE > 0:
-                print("o3_provider: reading from historical")
+                print("o3_provider: reading from historical", flush=True)
         elif 2014 < perpetual_year < 2100:
             scenario = "ssp370"
             filename = input_scenario(scenario, perpetual_year)
             if VERBOSE > 0:
-                print("o3_provider: reading from", scenario)
+                print("o3_provider: reading from", scenario, flush=True)
 
     if exists(filename):
         return filename
@@ -245,12 +349,14 @@ def input_file(scenario, year, perpetual_year=PERP_YEAR):
 
 def filelist(scenario, start_year, end_year):
     db = {}
-    for year in range(start_year, end_year + 1):
+    istart = max(1850, start_year)
+    iend = min(2099, end_year)
+    for year in range(istart, iend + 1):
         db[year] = input_file(scenario, year)
 
     filenames = []
-    filenames.append(db[start_year])
-    for year in range(start_year + 1, end_year + 1):
+    filenames.append(db[istart])
+    for year in range(istart + 1, iend + 1):
         yearm1 = year - 1
         if db[year] != db[yearm1]:
             filenames.append(db[year])
@@ -287,7 +393,15 @@ plev_string += "".join(
 )
 
 if not DRYRUN:
-    o3_grid = Reg2dGrid("o3_grid", lon, lat)
+    o3_gid_corner = np.arange(len(lon) * len(lat), dtype=np.int32).reshape(
+        len(lat), len(lon)
+    )
+    # all corners on first and last row are on the pole -> same coordiante -> same global id
+    o3_gid_corner[0, :] = o3_gid_corner[0, 0]
+    o3_gid_corner[-1, :] = o3_gid_corner[-1, -1]
+
+    o3_grid = Reg2dGrid("o3_grid", lon, lat, cyclic=[True, False])
+    o3_grid.set_global_index(o3_gid_corner.ravel(), Location.CORNER)
     o3_points = o3_grid.def_points(Location.CORNER, lon, lat)
 
     o3_field = Field.create(
@@ -297,6 +411,10 @@ if not DRYRUN:
         dataset.sizes["plev"],
         iso_coupling_interval,
         TimeUnit.ISO_FORMAT,
+    )
+
+    yac.def_field_metadata(
+        "o3_provider", "o3_grid", "o3", plev_string.encode("utf-8")
     )
 
 dataset.close()
@@ -310,8 +428,8 @@ if not DRYRUN:
     start_date = isodate.parse_datetime(yac.start_datetime)
     end_date = isodate.parse_datetime(yac.end_datetime)
 else:
-    start_date = isodate.parse_datetime("1970-01-01T00:00:00.000")
-    end_date = isodate.parse_datetime("1970-03-01T00:00:00.000")
+    start_date = isodate.parse_datetime("1850-01-01T00:00:00.000")
+    end_date = isodate.parse_datetime("1850-03-01T00:00:00.000")
 
 coupling_interval = isodate.parse_duration(iso_coupling_interval)
 data_interval = isodate.parse_duration(iso_data_interval)
@@ -340,7 +458,7 @@ if "perpetual" == scenario or "picontrol" == scenario:
     vmro3_date = model_date.replace(year=PERP_YEAR)
 
 if VERBOSE > 0:
-    print("o3_provider: reading from", filenames)
+    print("o3_provider: reading from", filenames, flush=True)
 
 # file read with cdo and calendar conversion
 input = "-select,name=vmro3,year={1}/{2} {0}".format(
@@ -405,17 +523,39 @@ while model_date < end_date:
             ).isoformat()
     else:
 
-        ds_prev_elem = ds.sel(time=vmro3_date, method="ffill")
+        if vmro3_date < dt.datetime(1850, 1, 16, 12, 0, 0):
+            if VERBOSE > 1:
+                print(
+                    "o3_provider: WARNING",
+                    vmro3_date,
+                    "is out of data range",
+                    flush=True,
+                )
+            ds_prev_elem = ds.sel(time=vmro3_date, method="nearest")
+        else:
+            ds_prev_elem = ds.sel(time=vmro3_date, method="ffill")
+
         o3_prev_date = datetime.strptime(
             str(ds_prev_elem["time"].values), "%Y-%m-%d %H:%M:%S"
         ).isoformat()
 
-        ds_next_elem = ds.sel(time=vmro3_date, method="bfill")
+        if vmro3_date > dt.datetime(2099, 12, 31, 12, 0, 0):
+            if VERBOSE > 1:
+                print(
+                    "o3_provider: WARNING",
+                    vmro3_date,
+                    "is out of data range",
+                    flush=True,
+                )
+            ds_next_elem = ds.sel(time=vmro3_date, method="nearest")
+        else:
+            ds_next_elem = ds.sel(time=vmro3_date, method="bfill")
+
         o3_next_date = datetime.strptime(
             str(ds_next_elem["time"].values), "%Y-%m-%d %H:%M:%S"
         ).isoformat()
 
-    if VERBOSE > 2:
+    if VERBOSE > 3:
         print(
             "o3_provider:",
             o3_prev_date,
@@ -425,6 +565,7 @@ while model_date < end_date:
             vmro3_date,
             ":",
             o3_next_date,
+            flush=True,
         )
 
     if o3_next_date == o3_prev_date:
@@ -467,17 +608,18 @@ while model_date < end_date:
                 o3_prev_date,
             )
 
-    next_wght = 1 - prev_wght
+        if VERBOSE > 3:
+            print(
+                "o3_provider: delta_sec",
+                delta_sec,
+                ":",
+                o3_prev_date,
+                " to ",
+                o3_next_date,
+                flush=True,
+            )
 
-    if VERBOSE > 2:
-        print(
-            "o3_provider: delta_sec",
-            delta_sec,
-            ":",
-            o3_prev_date,
-            " to ",
-            o3_next_date,
-        )
+    next_wght = 1 - prev_wght
 
     if VERBOSE > 1:
         print(
@@ -491,6 +633,7 @@ while model_date < end_date:
             "%8.6f" % next_wght,
             "*",
             "%2i" % dt.datetime.fromisoformat(o3_next_date).month,
+            flush=True,
         )
 
     # apply weights, revert data on vertical (pressure level) axis and send out
@@ -506,7 +649,23 @@ while model_date < end_date:
     if not DRYRUN:
         o3_field.put(o3_array)
 
-    model_date = model_date + coupling_interval
+    if iforcing == 3:
+        # mimicks strange intervals in nwp case
+        if UPDATE_CASE == 1:
+            model_date = model_date
+            UPDATE_CASE = 2
+        elif UPDATE_CASE == 2:
+            UPDATE_CASE = 3
+            model_date = (
+                np.datetime64(model_date) + np.timedelta64(nwp_dtime, "s")
+            ).astype(datetime)
+        else:
+            model_date = model_date + coupling_interval
+
+    else:
+        model_date = model_date + coupling_interval
 
 if VERBOSE > 0:
     print("o3_provider: Done \n", flush=True)
+
+subprocess.run(["rm", "-r", "tmp_cdo_o3"])

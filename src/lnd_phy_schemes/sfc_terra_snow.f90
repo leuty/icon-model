@@ -216,6 +216,8 @@ SUBROUTINE snow_calc_precipitation_phase_change ( &
 
   REAL(wp), PARAMETER :: t_so_min = t0_melt-0.25_wp !< Minimum soil temperature after melting [K].
 
+  OPENACC_SUPPRESS_UNUSED_LZACC
+
   !$ACC DATA PRESENT(ivend) ASYNC(acc_async_queue) IF(lzacc)
   !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(acc_async_queue) IF(lzacc)
 
@@ -858,8 +860,6 @@ SUBROUTINE snow_single_update_new_state ( &
       w_snow_new(i) = 0.0_wp
       t_snow_new(i) = t_so_new_top(i)
     ENDIF
-
-    IF (w_i_new(i) <= 1.0E-4_wp*eps_soil) w_i_new(i) = 0.0_wp
 
     mstyp = soiltyp_subs(i)
 

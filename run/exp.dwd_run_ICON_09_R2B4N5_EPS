@@ -427,6 +427,9 @@ dt_gwd                        = 1440.,
  ecrad_llw_cloud_scat         = .false.
 ! llw_cloud_scat         = .false.   ! for backward compatibility for CLIMA mode
  ecrad_data_path     = './ecrad_data'
+ lcalculate_fsd      = .true.
+ fsd_background      = 1.
+ fsd_gridlen         = 80.
 /
 !------------------------
 ! ICON nonhydrostatic_nml

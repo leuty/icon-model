@@ -541,6 +541,10 @@ MODULE mo_nwp_phy_types
     REAL(wp), ALLOCATABLE :: &
       turb_diag_1dvar(:,:), turb_diag_0dvar(:)
 
+    REAL(wp), POINTER ::    & !
+     &  cloud_fsd(:,:,:)    & !> radiation FSD parameter
+     &  => NULL()
+
     TYPE(t_nwp_vdiff_state) :: nwp_vdiff_state
 
     ! vars for global diagnostics based on src/atm_phy_echam/mo_echam_phy_memory.f90

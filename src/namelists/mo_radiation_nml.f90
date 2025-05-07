@@ -62,6 +62,9 @@ MODULE mo_radiation_nml
                                  & config_ecrad_nbands_sw => ecrad_nbands_sw,           &
                                  & config_ecrad_nbands_lw => ecrad_nbands_lw,           &
                                  & config_ecrad_data_path => ecrad_data_path,           &
+                                 & config_lcalculate_fsd => lcalculate_fsd,             &
+                                 & config_fsd_background => fsd_background,             &
+                                 & config_fsd_gridlen => fsd_gridlen,                   &
                                  & iRadAeroConst
 
   USE mo_kind,               ONLY: wp
@@ -192,6 +195,11 @@ MODULE mo_radiation_nml
 
   CHARACTER(len=MAX_CHAR_LENGTH) :: ecrad_data_path
 
+  ! background value FSD parameter, horizontal mesh size
+  LOGICAL  :: lcalculate_fsd
+  REAL(wp) :: fsd_background
+  REAL(wp) :: fsd_gridlen(max_dom)
+
   !
   NAMELIST /radiation_nml/ isolrad,               &
     &                      albedo_type,           &
@@ -226,6 +234,9 @@ MODULE mo_radiation_nml
     &                      ecrad_isolver,         &
     &                      ecrad_igas_model,      &
     &                      ecrad_data_path,       &
+    &                      lcalculate_fsd,        &
+    &                      fsd_background,        &
+    &                      fsd_gridlen,           &
     &                      ecrad_use_general_cloud_optics
 
 CONTAINS
@@ -301,6 +312,9 @@ CONTAINS
     ecrad_isolver        = 0
     ecrad_igas_model     = 0
     ecrad_data_path      = '.'
+    lcalculate_fsd       = .false.   ! use regime-dependent parameterization for FSD if .true.
+    fsd_background       = 1._wp     ! background fractional standard deviation
+    fsd_gridlen(:)       = 80._wp    ! horizontal mesh size for FSD calculation 80km
     ecrad_use_general_cloud_optics        = .FALSE.   ! No generalized Hydrometeors
 
     !------------------------------------------------------------------
@@ -388,6 +402,10 @@ CONTAINS
     config_ecrad_igas_model     = ecrad_igas_model
     config_ecrad_use_general_cloud_optics    = ecrad_use_general_cloud_optics
     config_ecrad_data_path      = TRIM(ecrad_data_path)
+
+    config_lcalculate_fsd       = lcalculate_fsd
+    config_fsd_background       = fsd_background
+    config_fsd_gridlen          = fsd_gridlen
 
     SELECT CASE(ecrad_igas_model)
       CASE(0) ! RRTMG

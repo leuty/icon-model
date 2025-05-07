@@ -115,7 +115,7 @@ CONTAINS
 
     radario_async: DO
 
-      CALL timer_start (timer_radar_asynio_barrier)
+      IF (ltimer) CALL timer_start (timer_radar_asynio_barrier)
 
       IF (my_process_is_mpi_radarioroot()) THEN
         CALL mpi_recv (sim_time, 1, p_real, &
@@ -127,8 +127,8 @@ CONTAINS
       CALL p_bcast (sim_time, 0, icomm_radario)
       CALL p_bcast (jg_list , 0, icomm_radario)
 
-      CALL timer_stop  (timer_radar_asynio_barrier)
-      CALL timer_start (timer_radar_asynio)
+      IF (ltimer) CALL timer_stop  (timer_radar_asynio_barrier)
+      IF (ltimer) CALL timer_start (timer_radar_asynio)
 
       IF (sim_time < -9999.0_wp) THEN
         EXIT radario_async
@@ -145,7 +145,7 @@ CONTAINS
             ! radario_dom(jg) communicators
           END IF
         END DO
-        CALL timer_stop (timer_radar_asynio)
+        IF (ltimer) CALL timer_stop (timer_radar_asynio)
       END IF
 
     END DO radario_async
@@ -153,7 +153,7 @@ CONTAINS
 
     DEALLOCATE (jg_list)
 
-    CALL timer_stop (timer_radar_asynio)
+    IF (ltimer) CALL timer_stop (timer_radar_asynio)
 
 #ifndef __SCT__
     IF (ltimer) THEN
@@ -206,7 +206,7 @@ CONTAINS
     INTEGER   :: mpierr, mpirequest
 #endif
 
-    CALL timer_start (timer_radar_tot)
+    IF (ltimer) CALL timer_start (timer_radar_tot)
 
     sim_time = getElapsedSimTimeInSeconds(mtime_current)
     csimtime(:) = ' '
@@ -215,11 +215,11 @@ CONTAINS
     time_mod_sec = sim_time   ! internal timer of EMVORADO
 #endif
 
-    CALL timer_stop  (timer_radar_tot)
+    IF (ltimer) CALL timer_stop  (timer_radar_tot)
 
     CALL config_emvorado (n_dom_model, radar_flag_doms_model (1:n_dom_model))
 
-    CALL timer_start (timer_radar_tot)
+    IF (ltimer) CALL timer_start (timer_radar_tot)
 
 #ifdef HAVE_RADARFWO
     DO jg = 1, n_dom_model
@@ -265,7 +265,7 @@ CONTAINS
 #endif
 #endif
 
-    CALL timer_stop (timer_radar_tot)
+    IF (ltimer) CALL timer_stop (timer_radar_tot)
 
   END SUBROUTINE emvorado_radarfwo
 

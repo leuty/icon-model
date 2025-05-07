@@ -2200,6 +2200,21 @@ MODULE mo_initicon
                            i_startidx, i_endidx, rl_start, rl_end)
 
 
+        IF (lfgread_tseasfc) THEN
+
+          ! Reset t_seasfc to 0 over land points if they carry an explicit missing value (-9e33)
+          ! This is needed to obtain correct masking when writing the field into the output
+          !
+          ! Unfortunately, the missval returned from cdiInqMissval() is not bit-identical to the missval
+          ! appearing in the field. Thus, checking for an exact match fails.
+          DO jc = i_startidx, i_endidx
+            IF (p_lnd_state(jg)%diag_lnd%t_seasfc(jc,jb) < 0.99_wp*missval) THEN
+              p_lnd_state(jg)%diag_lnd%t_seasfc(jc,jb) = 0._wp
+            ENDIF
+          ENDDO
+
+        ENDIF
+
         IF (lanaread_tseasfc(jg)) THEN
           !
           ! SST analysis (T_SO(0) or T_SEA) was read into initicon(jg)%sfc%sst.
@@ -2212,17 +2227,6 @@ MODULE mo_initicon
           END DO
 
         ELSE IF (lfgread_tseasfc) THEN
-
-          ! Reset t_seasfc to 0 over land points if they carry an explicit missing value (-9e33)
-          ! This is needed to obtain correct masking when writing the field into the output
-          !
-          ! Unfortunately, the missval returned from cdiInqMissval() is not bit-identical to the missval
-          ! appearing in the field. Thus, checking for an exact match fails.
-          DO jc = i_startidx, i_endidx
-            IF (p_lnd_state(jg)%diag_lnd%t_seasfc(jc,jb) < 0.99_wp*missval) THEN
-              p_lnd_state(jg)%diag_lnd%t_seasfc(jc,jb) = 0._wp
-            ENDIF
-          ENDDO
 
           ! If the number of sea points changes w.r.t. the input data (e.g. because of updating the extpar file),
           ! missing data in t_seasfc need to be recovered from t_g_t(isub_water)

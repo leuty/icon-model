@@ -37,6 +37,7 @@ MODULE mo_bc_ozone
   USE mo_timer,                     ONLY: ltimer, timer_start, timer_stop, &
                                           timer_coupling
   USE mo_atmo_o3_provider_coupling, ONLY: nplev_o3_provider, &
+                                          plev_o3_provider,  &
                                           couple_atmo_to_o3_provider
   USE mo_fortran_tools,        ONLY: set_acc_host_or_device
 
@@ -87,6 +88,8 @@ CONTAINS
     LOGICAL                           :: l_first, lzacc
     LOGICAL                           :: from_coupler = .FALSE.
 
+    IF (PRESENT(opt_from_coupler)) from_coupler = opt_from_coupler
+
     jg    = p_patch%id
     WRITE(cjg,'(i2.2)') jg
 
@@ -121,8 +124,6 @@ CONTAINS
 
     l_first = .NOT. ALLOCATED(ext_ozone(jg)% o3_plev)
 
-    IF (PRESENT(opt_from_coupler)) from_coupler = opt_from_coupler
-
     IF (from_coupler) THEN
 
        nplev_o3 =  nplev_o3_provider
@@ -137,7 +138,9 @@ CONTAINS
          p_patch, vmr2mmr_o3, ext_ozone(jg)% o3_plev, lacc=lzacc)
        IF (ltimer) CALL timer_stop(timer_coupling)
 
-       fname = 'bc_ozone.nc'
+       ext_ozone(jg)%year  = year
+
+       !$ACC UPDATE DEVICE(ext_ozone(jg)%o3_plev) ASYNC(1)
 
     END IF
 
@@ -466,15 +469,19 @@ CONTAINS
       ALLOCATE(ext_ozone(jg)% plev_half_o3(nplev_o3+1))
       !$ACC ENTER DATA PCREATE(ext_ozone(jg)%plev_full_o3, ext_ozone(jg)%plev_half_o3)
 
-      mpi_comm = MERGE(p_comm_work_test, p_comm_work, p_test_run)
+      IF ( from_coupler ) THEN
+        ext_ozone(jg)% plev_full_o3 = plev_o3_provider
+      ELSE
+        mpi_comm = MERGE(p_comm_work_test, p_comm_work, p_test_run)
 
-      IF(my_process_is_stdio()) THEN
-        CALL nf(nf90_open(TRIM(fname), NF90_NOWRITE, ncid), subprog_name)
-        CALL nf(nf90_inq_varid(ncid, 'plev', varid), subprog_name)
-        CALL nf(nf90_get_var(ncid, varid, ext_ozone(jg)% plev_full_o3), subprog_name)
-        CALL nf(nf90_close(ncid), subprog_name)
+        IF(my_process_is_stdio()) THEN
+          CALL nf(nf90_open(TRIM(fname), NF90_NOWRITE, ncid), subprog_name)
+          CALL nf(nf90_inq_varid(ncid, 'plev', varid), subprog_name)
+          CALL nf(nf90_get_var(ncid, varid, ext_ozone(jg)% plev_full_o3), subprog_name)
+          CALL nf(nf90_close(ncid), subprog_name)
+        END IF
+        CALL p_bcast(ext_ozone(jg)% plev_full_o3(:), p_io, mpi_comm)
       END IF
-      CALL p_bcast(ext_ozone(jg)% plev_full_o3(:), p_io, mpi_comm)
 
       ! define half levels of ozone pressure grid
       ! upper boundary: ph =      0.Pa -> extrapolation of uppermost value

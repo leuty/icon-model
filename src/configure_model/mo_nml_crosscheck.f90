@@ -47,6 +47,7 @@ MODULE mo_nml_crosscheck
   USE mo_lnd_nwp_config,           ONLY: ntiles_lnd, lsnowtile, sstice_mode, llake
   USE mo_aes_phy_config,           ONLY: aes_phy_config
   USE mo_aes_vdf_config,           ONLY: aes_vdf_config
+  USE mo_aes_rad_config,           ONLY: aes_rad_config
   USE mo_radiation_config,         ONLY: irad_aero, iRadAeroNone, iRadAeroConst,           &
     &                                    iRadAeroTegen, iRadAeroART, iRadAeroConstKinne,   &
     &                                    iRadAeroCAMSclim, iRadAeroCAMStd,                 &
@@ -83,7 +84,8 @@ MODULE mo_nml_crosscheck
   USE mo_upatmo_config,            ONLY: check_upatmo
   USE mo_name_list_output_config,  ONLY: is_variable_in_output_dom
   USE mo_coupling_config,          ONLY: is_coupled_to_ocean, is_coupled_to_waves,         &
-    &                                    is_coupled_to_hydrodisc
+    &                                    is_coupled_to_hydrodisc, is_coupled_to_aero,      &
+    &                                    is_coupled_to_o3
 
   USE mo_assimilation_config,      ONLY: assimilation_config
   USE mo_scm_nml,                  ONLY: i_scm_netcdf, scm_sfc_temp, scm_sfc_qv, scm_sfc_mom
@@ -602,6 +604,42 @@ CONTAINS
 #endif
 
     END IF
+
+    !--------------------------------------------------------------------
+    ! YAC for reading Kinne aerosol data
+    !--------------------------------------------------------------------
+
+    ! General for iforcing=inwp,iaes
+    IF (is_coupled_to_aero()) THEN
+      IF (iforcing == inwp .AND. ALL([iRadAeroKinne,  iRadAeroKinneSP] /= irad_aero)) THEN
+        CALL finish(routine, 'Aerosol read-in via YAC is only supported for iRadAeroKinne (irad_aero=13) and iRadAeroKinneSP (irad_aero=19)')
+      END IF
+
+      IF (iforcing == iaes) THEN
+        DO jg = 1, n_dom
+          IF (ALL([iRadAeroKinne, iRadAeroKinneSP] /= aes_rad_config(jg)%irad_aero)) &
+            CALL finish(routine, 'Aerosol read-in via YAC is only supported for iRadAeroKinne (irad_aero=13) and iRadAeroKinneSP (irad_aero=19)')
+        END DO
+      END IF
+    END IF
+
+    !--------------------------------------------------------------------
+    ! YAC for reading ozone data
+    !--------------------------------------------------------------------
+
+    ! General supported for iforcing=inwp,iaes
+    IF (is_coupled_to_o3()) THEN
+      IF (iforcing == inwp .AND. irad_o3 /= 5) THEN
+        CALL finish(routine, 'Ozone read-in via YAC is only supported for irad_o3=5')
+      END IF
+
+      DO jg = 1, n_dom
+        IF (iforcing == iaes .AND. ALL([5, 6] /= aes_rad_config(jg)%irad_o3 )) THEN
+          CALL finish(routine, 'Ozone read-in via YAC is only supported for irad_o3=5')
+        END IF
+      END DO
+    END IF
+
 
     !--------------------------------------------------------------------
     ! Tracers and diabatic forcing

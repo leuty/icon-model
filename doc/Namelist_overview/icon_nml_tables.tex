@@ -1164,16 +1164,18 @@ L &
 coupled\_to\_aero &
 L &
 .FALSE. &  &
-.TRUE.: Activates the coupling of aes atmosphere to Kinne aerosole input files. \newline
-        Kinne aerosol input is taken from python processes rather than direct reading from pre-processed input files. rte-rrtmgp radiation supported only. In this case yac coupling routines are called.&
+.TRUE.: Activates the coupling of the atmosphere (iforcing=2,3) to Kinne aerosole input files. \newline
+        Kinne aerosol input is taken from python processes rather than direct reading from pre-processed input files. rte-rrtmgp and ecRad radiation supported only. In this case yac coupling routines are called for read in and spatial and temporal interpolation to the chosen ICON grid.&
+For inwp\_radiation = 4 (ecRad), irad\_aero = 13 and irad\_aero = 19 are supported.
 \tabularnewline
 
 %\hline
 coupled\_to\_o3 &
 L &
 .FALSE. &  &
-.TRUE.: Activates the coupling of aes atmosphere to o3 input files. \newline
-        O3 input is taken from python processes rather than direct reading from pre-processed input files. In this case yac coupling routines are called.&
+.TRUE.: Activates the coupling of the atmosphere (iforcing = 2,3) to o3 input files. \newline
+        O3 input is taken from python processes rather than direct reading from pre-processed input files. In this case yac coupling routines are called for read in and spacial and temporal interpolation to the chosen ICON grid.&
+For inwp\_radiation = 4 (ecRad), irad\_o3 = 5 is supported.
 \tabularnewline
 
 %\hline
@@ -8231,6 +8233,33 @@ Debug mode for ecRad input: \\
 \tabularnewline
 
 %\hline
+fsd\_background &
+R&
+1&
+&
+Background value for fractional standard deviation (FSD) \\
+& inwp\_radiation=4 (ecRad)
+\tabularnewline
+
+%\hline
+fsd\_gridlen(max\_dom) &
+R&
+80&
+km&
+Value for assumed horizontal grid spacing in FSD parameterization
+& inwp\_radiation=4 (ecRad)
+\tabularnewline
+
+%\hline
+lcalculate\_fsd &
+L&
+.false.&
+&
+Calculates regime-dependent FSD for radiation if .true.
+& inwp\_radiation=4 (ecRad)
+\tabularnewline
+
+%\hline
 \end{longtab}
 
 Defined and used in: \verb+src/namelists/mo_radiation_nml.f90+
@@ -8778,6 +8807,13 @@ ydir\_mielookup\_read&
 C& ' ' & &
 For reflectivity calculations: directory for reading the reflectivity lookup tables in case of EMVORADO-methods that employ reflectivity lookup tables to boost efficiency (synradar\_meta\%itype\_refl=1, 5, 6 together with synradar\_meta\%llookup\_mie=.TRUE.) &
 iforcing=3, \\ ICON configure'd with \verb+--enable-emvorado+, \\ \squeezeme{synradar\_meta\%itype\_refl=1, 5, 6} \\ \squeezeme{synradar\_meta\%llookup\_mie=.TRUE.}
+\tabularnewline
+
+%\hline
+rain2mom\_mu\_incloud&
+R& -999.99 & &
+For Mie- or T-matrix calculations together with the two-moment mircophysics: value to overwrite the shape parameter $\mu$ of rain drop size distribution in regions where $q_c>0$ (the ``incloud'' value), but only in the EMVORADO, not in the microphysics itself! This is to provide a possibility for forward operator tuning with regards to polarimetric radar parameters.\\If rain2mom\_mu\_incloud$\le$-1.0, then the original value of the two-moment microphysics is used. &
+iforcing=3, \\ ICON configure'd with \verb+--enable-emvorado+, \\ \squeezeme{synradar\_meta\%itype\_refl=1, 5, 6} \\ \squeezeme{inwp\_gscp=4, 5, 6, 7}
 \tabularnewline
 
 \end{longtab}

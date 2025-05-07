@@ -11,6 +11,8 @@ This website contains a collection of ICON documentation including references to
 :hidden:
 buildrun/buildrun_quickstart.md
 tools/tools.md
+tools/ecflow-ecmwf.md
+tools/comin/comin.md
 atmosphere/atmosphere.md
 ocean/ocean.md
 land/land.md
