@@ -86,7 +86,7 @@ case ${BB_NAME} in
     ;;
   lumi_cpu*)
     # CSC super computer; CPU partition
-    sbatch ${TIME_LIMITS} --wait -A project_465000454 -p debug --time=00:30:00 -n ${MAKE_PROCS} -o ${LOGFILE} -D $(pwd) ${ICON_DIR}/config/buildbot/buildModel.sbatch
+    sbatch ${TIME_LIMITS} --wait -A project_462000911 -p debug --time=00:30:00 -n ${MAKE_PROCS} -o ${LOGFILE} -D $(pwd) ${ICON_DIR}/config/buildbot/buildModel.sbatch
     if test 0 -ne "$?" ; then
       exit 1
     fi
