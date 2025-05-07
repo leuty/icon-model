@@ -30,6 +30,7 @@ NWP: TERRA and other surface issues
 
 - Switch to the latest version of ICON-TIXI
 - Switch to fortran-support 2.2.0
+- Switch to YAXT 0.11.4
 
 ### Infrastructure
 

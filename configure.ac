@@ -2574,7 +2574,7 @@ version of YAC library @<:@default=$ICON_BUNDLED_CFLAGS@:>@])dnl
         [YAXT_CFLAGS=], [YAXT_FCFLAGS=])],
      [ACX_SUBDIR_RUN_EXTRA([externals/yac],
         [icon_try=dnl
-"${MAKE-make} -C '${icon_abs_top_builddir}/externals/yaxt/inst_headers' yaxt.h"
+"${MAKE-make} -C '${icon_abs_top_builddir}/externals/yaxt/inst_headers'"
          AC_MSG_NOTICE([running $icon_try])
          AC_TRY_EVAL([icon_try]) >&AS_MESSAGE_LOG_FD])
       ACX_SUBDIR_APPEND_ARGS([externals/yac],

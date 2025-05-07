@@ -2428,7 +2428,7 @@ fi
 
 acx_subdir_extra_run_0 ()
 {
-icon_try="${MAKE-make} -C '${icon_abs_top_builddir}/externals/yaxt/inst_headers' yaxt.h"
+icon_try="${MAKE-make} -C '${icon_abs_top_builddir}/externals/yaxt/inst_headers'"
          { $as_echo "$as_me:${as_lineno-$LINENO}: running $icon_try" >&5
 $as_echo "$as_me: running $icon_try" >&6;}
          { { eval echo "\"\$as_me\":${as_lineno-$LINENO}: \"$icon_try\""; } >&5
