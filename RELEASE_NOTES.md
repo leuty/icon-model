@@ -19,6 +19,8 @@ Climate: ICON-Land
 - Updated inline documentation of hydrology process
 - Fixes:
   - Verification check for some JSBACH lctlib parameters when compiling with single precision
+- Code cleaning:
+  - Only use one variable representing time step length
 
 
 # Release notes for icon-2025.04

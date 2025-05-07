@@ -497,7 +497,7 @@ CONTAINS
       IF (aes_phy_config(jg)%ljsb ) THEN
       IF (aes_phy_config(jg)%llake) THEN
         CALL jsbach_interface ( jg, nblock, jcs, jce,                                     & ! in
-          & datetime, pdtime, pdtime,                                                        & ! in
+          & datetime, pdtime,                                                             & ! in
           & t_air             = ptemp(jcs:jce),                                           & ! in
           & q_air             = pq(jcs:jce),                                              & ! in
           & rain              = rain_tmp(jcs:jce),                                        & ! in
@@ -619,7 +619,7 @@ CONTAINS
 
       ELSE
         CALL jsbach_interface ( jg, nblock, jcs, jce,                                     & ! in
-          & datetime, pdtime, pdtime,                                                        & ! in
+          & datetime, pdtime,                                                             & ! in
           & t_air             = ptemp(jcs:jce),                                           & ! in
           & q_air             = pq(jcs:jce),                                              & ! in
           & rain              = rain_tmp(jcs:jce),                                        & ! in
