@@ -29,7 +29,7 @@ else
   set dummy; shift
 fi
 
-${icon_dir}/config/generic/gcc ICON_YAXT_CFLAGS=-g1 "$@"
+${icon_dir}/config/generic/gcc "$@"
 
 make_job_count=10
 make -j ${make_job_count}

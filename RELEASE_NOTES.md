@@ -3,6 +3,7 @@
 ### Externals
 
 - Switch to the latest version of ICON-TIXI
+- Switch to YAXT 0.11.4
 
 
 # Release notes for icon-2025.04
