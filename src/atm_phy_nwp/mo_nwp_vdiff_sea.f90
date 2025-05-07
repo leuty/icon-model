@@ -419,9 +419,9 @@ CONTAINS
     ! We need a parallel region around these orphaned routines because we are in a parallel region
     ! ourselves.
     !$OMP PARALLEL
-      CALL init (alb%alb_vis_dif(ics:ice,iblk,SFT_SWTR), csalb(ist_seawtr), lacc=.TRUE., opt_acc_async=.TRUE.)
-      CALL init (alb%lw_emissivity(ics:ice,iblk,SFT_SWTR), zemiss_def, lacc=.TRUE., opt_acc_async=.TRUE.)
-      CALL init (alb%lw_emissivity(ics:ice,iblk,SFT_SICE), lw_emissivity_ice, lacc=.TRUE., opt_acc_async=.TRUE.)
+      CALL init (alb%alb_vis_dif(ics:ice,iblk,SFT_SWTR), csalb(ist_seawtr), lacc=.TRUE.)
+      CALL init (alb%lw_emissivity(ics:ice,iblk,SFT_SWTR), zemiss_def, lacc=.TRUE.)
+      CALL init (alb%lw_emissivity(ics:ice,iblk,SFT_SICE), lw_emissivity_ice, lacc=.TRUE.)
     !$OMP END PARALLEL
 
     IF (lprog_albsi) THEN
@@ -429,8 +429,7 @@ CONTAINS
         CALL copy ( &
             & prog_wtr_new%alb_si(ics:ice,iblk), &
             & alb%alb_vis_dif(ics:ice,iblk,SFT_SICE), &
-            & lacc=.TRUE., &
-            & opt_acc_async=.TRUE. &
+            & lacc=.TRUE. &
           )
       !$OMP END PARALLEL
     ELSE
@@ -476,46 +475,39 @@ CONTAINS
       CALL copy ( &
           & alb%alb_vis_dir(ics:ice,iblk,SFT_SWTR:SFT_SICE), &
           & alb%alb_nir_dir(ics:ice,iblk,SFT_SWTR:SFT_SICE), &
-          & lacc=.TRUE., &
-          & opt_acc_async=.TRUE. &
+          & lacc=.TRUE. &
         )
       CALL copy ( &
           & alb%alb_vis_dif(ics:ice,iblk,SFT_SWTR:SFT_SICE), &
           & alb%alb_nir_dif(ics:ice,iblk,SFT_SWTR:SFT_SICE), &
-          & lacc=.TRUE., &
-          & opt_acc_async=.TRUE. &
+          & lacc=.TRUE. &
         )
 
       ! Save state for next invocation.
       CALL copy ( &
           & alb%alb_nir_dir(ics:ice,iblk,SFT_SWTR:SFT_SICE), &
           & sea_state%alb_nir_dir(ics:ice,iblk,SFT_SWTR:SFT_SICE), &
-          & lacc=.TRUE., &
-          & opt_acc_async=.TRUE. &
+          & lacc=.TRUE. &
         )
       CALL copy ( &
           & alb%alb_nir_dif(ics:ice,iblk,SFT_SWTR:SFT_SICE), &
           & sea_state%alb_nir_dif(ics:ice,iblk,SFT_SWTR:SFT_SICE), &
-          & lacc=.TRUE., &
-          & opt_acc_async=.TRUE. &
+          & lacc=.TRUE. &
         )
       CALL copy ( &
           & alb%alb_vis_dir(ics:ice,iblk,SFT_SWTR:SFT_SICE), &
           & sea_state%alb_vis_dir(ics:ice,iblk,SFT_SWTR:SFT_SICE), &
-          & lacc=.TRUE., &
-          & opt_acc_async=.TRUE. &
+          & lacc=.TRUE. &
         )
       CALL copy ( &
           & alb%alb_vis_dif(ics:ice,iblk,SFT_SWTR:SFT_SICE), &
           & sea_state%alb_vis_dif(ics:ice,iblk,SFT_SWTR:SFT_SICE), &
-          & lacc=.TRUE., &
-          & opt_acc_async=.TRUE. &
+          & lacc=.TRUE. &
         )
       CALL copy ( &
           & alb%lw_emissivity(ics:ice,iblk,SFT_SWTR:SFT_SICE), &
           & sea_state%lw_emissivity(ics:ice,iblk,SFT_SWTR:SFT_SICE), &
-          & lacc=.TRUE., &
-          & opt_acc_async=.TRUE. &
+          & lacc=.TRUE. &
         )
     !$OMP END PARALLEL
 

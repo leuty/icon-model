@@ -501,13 +501,13 @@ CONTAINS
     ktrac = MAX(0, ntracer + 1 - iqt)
 
     !$OMP PARALLEL
-      CALL init(zero2d(:,:), lacc=.TRUE., opt_acc_async=.TRUE.)
-      CALL init(tracer_srf_emission(:,:,:), lacc=.TRUE., opt_acc_async=.TRUE.)
-      CALL init(ddt_tracer(:,:,:,:), lacc=.TRUE., opt_acc_async=.TRUE.)
-      CALL init(flx_heat_latent_sft(:,:,:), lacc=.TRUE., opt_acc_async=.TRUE.)
-      CALL init(flx_heat_sensible_sft(:,:,:), lacc=.TRUE., opt_acc_async=.TRUE.)
-      CALL init(t2m_sft(:,:,:), lacc=.TRUE., opt_acc_async=.TRUE.)
-      CALL init(td2m_sft(:,:,:), lacc=.TRUE., opt_acc_async=.TRUE.)
+      CALL init(zero2d(:,:), lacc=.TRUE.)
+      CALL init(tracer_srf_emission(:,:,:), lacc=.TRUE.)
+      CALL init(ddt_tracer(:,:,:,:), lacc=.TRUE.)
+      CALL init(flx_heat_latent_sft(:,:,:), lacc=.TRUE.)
+      CALL init(flx_heat_sensible_sft(:,:,:), lacc=.TRUE.)
+      CALL init(t2m_sft(:,:,:), lacc=.TRUE.)
+      CALL init(td2m_sft(:,:,:), lacc=.TRUE.)
     !$OMP END PARALLEL
 
     CALL get_surface_type_fractions(patch, ext_data, mem, diag_lnd, fr_sfc, fr_sft, lacc=.TRUE.)
@@ -688,13 +688,13 @@ CONTAINS
     ! vdiff_down does not initialize the INTENT(OUT) tendencies from the Smagorinsky if TTE is chosen :(
     IF (vdiff_config%turb /= VDIFF_TURB_3DSMAGORINSKY) THEN
       !$OMP PARALLEL
-        CALL init(ddt_u_smag(:,:,:), lacc=.TRUE., opt_acc_async=.TRUE.)
-        CALL init(ddt_v_smag(:,:,:), lacc=.TRUE., opt_acc_async=.TRUE.)
-        CALL init(ddt_w_smag(:,:,:), lacc=.TRUE., opt_acc_async=.TRUE.)
-        CALL init(ddt_horiz_temp(:,:,:), lacc=.TRUE., opt_acc_async=.TRUE.)
-        CALL init(ddt_horiz_qv(:,:,:), lacc=.TRUE., opt_acc_async=.TRUE.)
-        CALL init(ddt_horiz_qc(:,:,:), lacc=.TRUE., opt_acc_async=.TRUE.)
-        CALL init(ddt_horiz_qi(:,:,:), lacc=.TRUE., opt_acc_async=.TRUE.)
+        CALL init(ddt_u_smag(:,:,:), lacc=.TRUE.)
+        CALL init(ddt_v_smag(:,:,:), lacc=.TRUE.)
+        CALL init(ddt_w_smag(:,:,:), lacc=.TRUE.)
+        CALL init(ddt_horiz_temp(:,:,:), lacc=.TRUE.)
+        CALL init(ddt_horiz_qv(:,:,:), lacc=.TRUE.)
+        CALL init(ddt_horiz_qc(:,:,:), lacc=.TRUE.)
+        CALL init(ddt_horiz_qi(:,:,:), lacc=.TRUE.)
       !$OMP END PARALLEL
     END IF
 
@@ -1144,22 +1144,21 @@ CONTAINS
       CALL copy ( &
           & mem%temp_sft(:,:,SFT_LWTR:SFT_NUM), &
           & t_eff_sft(:,:,SFT_LWTR:SFT_NUM), &
-          & lacc=.TRUE., &
-          & opt_acc_async=.TRUE. &
+          & lacc=.TRUE. &
         )
 
       ! JSBACH only provides a single albedo for lakes. Copy them to all flavors.
-      CALL copy(alb%alb_vis_dif(:,:,SFT_LWTR), alb%alb_nir_dif(:,:,SFT_LWTR), lacc=.TRUE., opt_acc_async=.TRUE.)
-      CALL copy(alb%alb_vis_dif(:,:,SFT_LWTR), alb%alb_nir_dir(:,:,SFT_LWTR), lacc=.TRUE., opt_acc_async=.TRUE.)
-      CALL copy(alb%alb_vis_dif(:,:,SFT_LWTR), alb%alb_vis_dir(:,:,SFT_LWTR), lacc=.TRUE., opt_acc_async=.TRUE.)
+      CALL copy(alb%alb_vis_dif(:,:,SFT_LWTR), alb%alb_nir_dif(:,:,SFT_LWTR), lacc=.TRUE.)
+      CALL copy(alb%alb_vis_dif(:,:,SFT_LWTR), alb%alb_nir_dir(:,:,SFT_LWTR), lacc=.TRUE.)
+      CALL copy(alb%alb_vis_dif(:,:,SFT_LWTR), alb%alb_vis_dir(:,:,SFT_LWTR), lacc=.TRUE.)
 
-      CALL copy(alb%alb_vis_dif(:,:,SFT_LICE), alb%alb_nir_dif(:,:,SFT_LICE), lacc=.TRUE., opt_acc_async=.TRUE.)
-      CALL copy(alb%alb_vis_dif(:,:,SFT_LICE), alb%alb_nir_dir(:,:,SFT_LICE), lacc=.TRUE., opt_acc_async=.TRUE.)
-      CALL copy(alb%alb_vis_dif(:,:,SFT_LICE), alb%alb_vis_dir(:,:,SFT_LICE), lacc=.TRUE., opt_acc_async=.TRUE.)
+      CALL copy(alb%alb_vis_dif(:,:,SFT_LICE), alb%alb_nir_dif(:,:,SFT_LICE), lacc=.TRUE.)
+      CALL copy(alb%alb_vis_dif(:,:,SFT_LICE), alb%alb_nir_dir(:,:,SFT_LICE), lacc=.TRUE.)
+      CALL copy(alb%alb_vis_dif(:,:,SFT_LICE), alb%alb_vis_dir(:,:,SFT_LICE), lacc=.TRUE.)
 
       ! For consistency, we set the long-wave emissivity of land and lake surfaces to the value
       ! used by JSBACH to deduce net long-wave radiation.
-      CALL init(alb%lw_emissivity(:,:,SFT_LAND:SFT_LICE), zemiss_def, lacc=.TRUE., opt_acc_async=.TRUE.)
+      CALL init(alb%lw_emissivity(:,:,SFT_LAND:SFT_LICE), zemiss_def, lacc=.TRUE.)
 
       ! Update grid-box temperature.
       CALL weighted_average ( &
@@ -1221,26 +1220,22 @@ CONTAINS
       CALL copy ( &
           & ddt_tracer(:,:,:,1:nqtendphy), &
           & phy_tend%ddt_tracer_turb(:,:,:,1:nqtendphy), &
-          & lacc=.TRUE., &
-          & opt_acc_async=.TRUE. &
+          & lacc=.TRUE. &
         )
       CALL copy ( &
           & flx_heat_sensible_sft(:,:,:), &
           & mem%flx_heat_sensible_sft(:,:,:), &
-          & lacc=.TRUE., &
-          & opt_acc_async=.TRUE. &
+          & lacc=.TRUE. &
         )
       CALL copy ( &
           & flx_heat_latent_sft(:,:,:), &
           & mem%flx_heat_latent_sft(:,:,:), &
-          & lacc=.TRUE., &
-          & opt_acc_async=.TRUE. &
+          & lacc=.TRUE. &
         )
       CALL copy ( &
         & evapo_sft(:,:,:), &
         & mem%flx_water_vapor_sft(:,:,:), &
-        & lacc=.TRUE., &
-        & opt_acc_async=.TRUE. &
+        & lacc=.TRUE. &
       )
 
       CALL weighted_average ( &
@@ -1271,27 +1266,25 @@ CONTAINS
       CALL copy ( &
           & mem%flx_heat_latent_sft(:,:,SFT_LAND), &
           & phy_diag%lhfl_pl(:,1,:), &
-          & lacc=.TRUE., &
-          & opt_acc_async=.TRUE. &
+          & lacc=.TRUE. &
         )
-      CALL init (phy_diag%lhfl_pl(:,2:,:), lacc=.TRUE., opt_acc_async=.TRUE.)
+      CALL init (phy_diag%lhfl_pl(:,2:,:), lacc=.TRUE.)
 
       CALL copy ( &
           & mem%flx_heat_latent_sft(:,:,SFT_LAND), &
           & phy_diag%lhfl_bs(:,:), &
-          & lacc=.TRUE., &
-          & opt_acc_async=.TRUE. &
+          & lacc=.TRUE. &
         )
 
       ! AES switches off theta_v and water variance. theta_v is replicated here for consistency.
       ! Water variance is diagnosed below.
 
-      CALL init (mem%theta_v_var(:,:,:), lacc=.TRUE., opt_acc_async=.TRUE.)
+      CALL init (mem%theta_v_var(:,:,:), lacc=.TRUE.)
 
-      CALL copy (t2m_sft(:,:,SFT_LAND), phy_diag%t_2m_land(:,:), lacc=.TRUE., opt_acc_async=.TRUE.)
-      CALL copy (td2m_sft(:,:,SFT_LAND), phy_diag%td_2m_land(:,:), lacc=.TRUE., opt_acc_async=.TRUE.)
-      CALL copy (phy_diag%t_2m(:,:), phy_diag%t_tilemin_inst_2m(:,:), lacc=.TRUE., opt_acc_async=.TRUE.)
-      CALL copy (phy_diag%t_2m(:,:), phy_diag%t_tilemax_inst_2m(:,:), lacc=.TRUE., opt_acc_async=.TRUE.)
+      CALL copy (t2m_sft(:,:,SFT_LAND), phy_diag%t_2m_land(:,:), lacc=.TRUE.)
+      CALL copy (td2m_sft(:,:,SFT_LAND), phy_diag%td_2m_land(:,:), lacc=.TRUE.)
+      CALL copy (phy_diag%t_2m(:,:), phy_diag%t_tilemin_inst_2m(:,:), lacc=.TRUE.)
+      CALL copy (phy_diag%t_2m(:,:), phy_diag%t_tilemax_inst_2m(:,:), lacc=.TRUE.)
     !$OMP END PARALLEL
 
     CALL update_nwp_tile_state (patch, delta_time, fr_sft, prog_lnd_new, diag_lnd, phy_diag)
@@ -2190,34 +2183,34 @@ CONTAINS
 #endif
 
     !$OMP PARALLEL
-      CALL copy(prog_lnd_new%t_g(:,:), prog_lnd_new%t_g_t(:,:,1), lacc=.TRUE., opt_acc_async=.TRUE.)
-      CALL copy(diag_lnd%t_s(:,:), prog_lnd_new%t_s_t(:,:,1), lacc=.TRUE., opt_acc_async=.TRUE.)
-      CALL copy(diag_lnd%t_s(:,:), prog_lnd_new%t_sk_t(:,:,1), lacc=.TRUE., opt_acc_async=.TRUE.)
-      CALL copy(diag_lnd%t_s(:,:), prog_lnd_new%t_so_t(:,1,:,1), lacc=.TRUE., opt_acc_async=.TRUE.)
-      CALL copy(diag_lnd%t_s(:,:), diag_lnd%t_sk(:,:), lacc=.TRUE., opt_acc_async=.TRUE.)
-      CALL copy(diag_lnd%t_s(:,:), diag_lnd%t_so(:,1,:), lacc=.TRUE., opt_acc_async=.TRUE.)
-      CALL copy(diag_lnd%qv_s(:,:), diag_lnd%qv_s_t(:,:,1), lacc=.TRUE., opt_acc_async=.TRUE.)
+      CALL copy(prog_lnd_new%t_g(:,:), prog_lnd_new%t_g_t(:,:,1), lacc=.TRUE.)
+      CALL copy(diag_lnd%t_s(:,:), prog_lnd_new%t_s_t(:,:,1), lacc=.TRUE.)
+      CALL copy(diag_lnd%t_s(:,:), prog_lnd_new%t_sk_t(:,:,1), lacc=.TRUE.)
+      CALL copy(diag_lnd%t_s(:,:), prog_lnd_new%t_so_t(:,1,:,1), lacc=.TRUE.)
+      CALL copy(diag_lnd%t_s(:,:), diag_lnd%t_sk(:,:), lacc=.TRUE.)
+      CALL copy(diag_lnd%t_s(:,:), diag_lnd%t_so(:,1,:), lacc=.TRUE.)
+      CALL copy(diag_lnd%qv_s(:,:), diag_lnd%qv_s_t(:,:,1), lacc=.TRUE.)
 
-      CALL copy(phy_diag%albnirdif(:,:), phy_diag%albnirdif_t(:,:,1), lacc=.TRUE., opt_acc_async=.TRUE.)
-      CALL copy(phy_diag%albvisdif(:,:), phy_diag%albvisdif_t(:,:,1), lacc=.TRUE., opt_acc_async=.TRUE.)
-      CALL copy(phy_diag%albdif(:,:), phy_diag%albdif_t(:,:,1), lacc=.TRUE., opt_acc_async=.TRUE.)
+      CALL copy(phy_diag%albnirdif(:,:), phy_diag%albnirdif_t(:,:,1), lacc=.TRUE.)
+      CALL copy(phy_diag%albvisdif(:,:), phy_diag%albvisdif_t(:,:,1), lacc=.TRUE.)
+      CALL copy(phy_diag%albdif(:,:), phy_diag%albdif_t(:,:,1), lacc=.TRUE.)
 
-      CALL copy(phy_diag%shfl_s(:,:), phy_diag%shfl_s_t(:,:,1), lacc=.TRUE., opt_acc_async=.TRUE.)
-      CALL copy(phy_diag%lhfl_s(:,:), phy_diag%lhfl_s_t(:,:,1), lacc=.TRUE., opt_acc_async=.TRUE.)
-      CALL copy(phy_diag%qhfl_s(:,:), phy_diag%qhfl_s_t(:,:,1), lacc=.TRUE., opt_acc_async=.TRUE.)
-      CALL copy(phy_diag%umfl_s(:,:), phy_diag%umfl_s_t(:,:,1), lacc=.TRUE., opt_acc_async=.TRUE.)
-      CALL copy(phy_diag%vmfl_s(:,:), phy_diag%vmfl_s_t(:,:,1), lacc=.TRUE., opt_acc_async=.TRUE.)
+      CALL copy(phy_diag%shfl_s(:,:), phy_diag%shfl_s_t(:,:,1), lacc=.TRUE.)
+      CALL copy(phy_diag%lhfl_s(:,:), phy_diag%lhfl_s_t(:,:,1), lacc=.TRUE.)
+      CALL copy(phy_diag%qhfl_s(:,:), phy_diag%qhfl_s_t(:,:,1), lacc=.TRUE.)
+      CALL copy(phy_diag%umfl_s(:,:), phy_diag%umfl_s_t(:,:,1), lacc=.TRUE.)
+      CALL copy(phy_diag%vmfl_s(:,:), phy_diag%vmfl_s_t(:,:,1), lacc=.TRUE.)
 
-      CALL copy (phy_diag%u_10m(:,:), phy_diag%u_10m_t(:,:,1), lacc=.TRUE., opt_acc_async=.TRUE.)
-      CALL copy (phy_diag%v_10m(:,:), phy_diag%v_10m_t(:,:,1), lacc=.TRUE., opt_acc_async=.TRUE.)
+      CALL copy (phy_diag%u_10m(:,:), phy_diag%u_10m_t(:,:,1), lacc=.TRUE.)
+      CALL copy (phy_diag%v_10m(:,:), phy_diag%v_10m_t(:,:,1), lacc=.TRUE.)
 
-      CALL copy (phy_diag%lhfl_pl(:,:,:), phy_diag%lhfl_pl_t(:,:,:,1), lacc=.TRUE., opt_acc_async=.TRUE.)
-      CALL copy (phy_diag%lhfl_bs(:,:), phy_diag%lhfl_bs_t(:,:,1), lacc=.TRUE., opt_acc_async=.TRUE.)
+      CALL copy (phy_diag%lhfl_pl(:,:,:), phy_diag%lhfl_pl_t(:,:,:,1), lacc=.TRUE.)
+      CALL copy (phy_diag%lhfl_bs(:,:), phy_diag%lhfl_bs_t(:,:,1), lacc=.TRUE.)
 
 #ifndef __NO_JSBACH__
       !$ACC ENTER DATA ATTACH(p_runoff, p_drainage) ASYNC(1)
-        CALL copy(p_runoff(:,:), diag_lnd%runoff_s_inst_t(:,:,1), lacc=.TRUE., opt_acc_async=.TRUE.)
-        CALL copy(p_drainage(:,:), diag_lnd%runoff_g_inst_t(:,:,1), lacc=.TRUE., opt_acc_async=.TRUE.)
+        CALL copy(p_runoff(:,:), diag_lnd%runoff_s_inst_t(:,:,1), lacc=.TRUE.)
+        CALL copy(p_drainage(:,:), diag_lnd%runoff_g_inst_t(:,:,1), lacc=.TRUE.)
       !$ACC WAIT(1)
       !$ACC EXIT DATA DETACH(p_runoff, p_drainage)
 

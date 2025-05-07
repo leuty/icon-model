@@ -3285,7 +3285,7 @@ CONTAINS
     !$ACC   IF(lzacc)
 
 #ifdef _OPENACC
-    CALL init(recv_buf, lacc=lzacc, opt_acc_async=.TRUE.)
+    CALL init(recv_buf, lacc=lzacc)
 #endif
 
     IF ((iorder_sendrecv == 1 .OR. iorder_sendrecv == 3)) THEN
@@ -3532,7 +3532,7 @@ CONTAINS
     !$ACC   IF(lzacc)
 
 #ifdef _OPENACC
-    CALL init(recv_buf, lacc=lzacc, opt_acc_async=.TRUE.)
+    CALL init(recv_buf, lacc=lzacc)
 #endif
 
     IF ((iorder_sendrecv == 1 .OR. iorder_sendrecv == 3)) THEN

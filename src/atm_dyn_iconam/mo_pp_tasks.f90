@@ -1139,10 +1139,10 @@ CONTAINS
       IF (dbg_level >= 10)  CALL message(routine, "PRES_MSL_METHOD_SAI: stepwise analytical integration")
 
       !$ACC DATA CREATE(kpbl1, wfacpbl1, kpbl2, wfacpbl2)
-      CALL init(kpbl1, lacc=.TRUE., opt_acc_async=.TRUE.)
-      CALL init(wfacpbl1, lacc=.TRUE., opt_acc_async=.TRUE.)
-      CALL init(kpbl2, lacc=.TRUE., opt_acc_async=.TRUE.)
-      CALL init(wfacpbl2, lacc=.TRUE., opt_acc_async=.TRUE.)
+      CALL init(kpbl1, lacc=.TRUE.)
+      CALL init(wfacpbl1, lacc=.TRUE.)
+      CALL init(kpbl2, lacc=.TRUE.)
+      CALL init(wfacpbl2, lacc=.TRUE.)
 
       ! compute extrapolation coefficients:
       CALL prepare_extrap(p_metrics%z_mc,                                     & !in
@@ -1183,9 +1183,9 @@ CONTAINS
         ENDIF
       ENDIF
       !$ACC DATA CREATE(kpbl1, wfacpbl1, zextrap)
-      CALL init(kpbl1, lacc=.TRUE., opt_acc_async=.TRUE.)
-      CALL init(wfacpbl1, lacc=.TRUE., opt_acc_async=.TRUE.)
-      CALL init(zextrap, lacc=.TRUE., opt_acc_async=.TRUE.)
+      CALL init(kpbl1, lacc=.TRUE.)
+      CALL init(wfacpbl1, lacc=.TRUE.)
+      CALL init(zextrap, lacc=.TRUE.)
       ! compute extrapolation coefficients:
       CALL prepare_extrap_ifspp(p_metrics%z_ifc, p_metrics%z_mc,              & !in
         &                 nblks_c, npromz_c, nlev,                            & !in
@@ -1208,7 +1208,7 @@ CONTAINS
     IF (l_limited_area .OR. jg > 1) THEN ! copy outermost nest boundary row in order to avoid missing values
       i_endblk = p_patch%cells%end_blk(1,1)
       !$OMP PARALLEL
-      CALL copy(pmsl_aux(:,1,1:i_endblk), pmsl_avg(:,1,1:i_endblk), lacc=.TRUE., opt_acc_async=.TRUE.)
+      CALL copy(pmsl_aux(:,1,1:i_endblk), pmsl_avg(:,1,1:i_endblk), lacc=.TRUE.)
       !$OMP END PARALLEL
     ENDIF
 
@@ -1217,7 +1217,7 @@ CONTAINS
 
     !$OMP PARALLEL
     CALL copy(pmsl_avg(:,1,1:i_endblk), out_var%wp_ptr(:,1:i_endblk,out_var_idx,1,1), &
-      &       lacc=.TRUE., opt_acc_async=.TRUE.)
+      &       lacc=.TRUE.)
     !$OMP END PARALLEL
     !$ACC WAIT
     !$ACC END DATA

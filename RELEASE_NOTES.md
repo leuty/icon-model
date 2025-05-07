@@ -29,6 +29,7 @@ NWP: TERRA and other surface issues
 ### Externals
 
 - Switch to the latest version of ICON-TIXI
+- Switch to fortran-support 2.2.0
 
 ### Infrastructure
 

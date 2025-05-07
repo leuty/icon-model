@@ -146,8 +146,8 @@ CONTAINS
         &                       vcoeff_z%lin_cell%wfacpbl1,                                  & !out
         &                       lacc=.TRUE.)
       !$OMP PARALLEL
-      CALL init(vcoeff_z%lin_cell%kpbl2(:,:), lacc=.TRUE., opt_acc_async=.TRUE.)
-      CALL init(vcoeff_z%lin_cell%wfacpbl2(:,:), lacc=.TRUE., opt_acc_async=.TRUE.)
+      CALL init(vcoeff_z%lin_cell%kpbl2(:,:), lacc=.TRUE.)
+      CALL init(vcoeff_z%lin_cell%wfacpbl2(:,:), lacc=.TRUE.)
       !$OMP END PARALLEL
     ELSE
       CALL prepare_extrap(p_metrics%z_mc, nblks_c, npromz_c, nlev,                           & !in
@@ -179,7 +179,7 @@ CONTAINS
     IF (jg > 1 .OR. l_limited_area) THEN ! copy outermost nest boundary row in order to avoid missing values
       i_endblk = p_patch%cells%end_blk(1,1)
       !$OMP PARALLEL
-      CALL copy(z_auxz(:,:,1:i_endblk), temp_z_out(:,:,1:i_endblk), lacc=.TRUE., opt_acc_async=.TRUE.)
+      CALL copy(z_auxz(:,:,1:i_endblk), temp_z_out(:,:,1:i_endblk), lacc=.TRUE.)
       !$OMP END PARALLEL
     ENDIF
 
@@ -199,7 +199,7 @@ CONTAINS
     IF (jg > 1 .OR. l_limited_area) THEN ! copy outermost nest boundary row in order to avoid missing values
       i_endblk = p_patch%cells%end_blk(1,1)
       !$OMP PARALLEL
-      CALL copy(z_auxz(:,:,1:i_endblk), pres_z_out(:,:,1:i_endblk), lacc=.TRUE., opt_acc_async=.TRUE.)
+      CALL copy(z_auxz(:,:,1:i_endblk), pres_z_out(:,:,1:i_endblk), lacc=.TRUE.)
       !$OMP END PARALLEL
     ENDIF
 
@@ -333,7 +333,7 @@ CONTAINS
     IF (jg > 1 .OR. l_limited_area) THEN ! copy outermost nest boundary row in order to avoid missing values
       i_endblk = p_patch%cells%end_blk(1,1)
       !$OMP PARALLEL
-      CALL copy(z_auxp(:,:,1:i_endblk), gh_p_out(:,:,1:i_endblk), lacc=.TRUE., opt_acc_async=.TRUE.)
+      CALL copy(z_auxp(:,:,1:i_endblk), gh_p_out(:,:,1:i_endblk), lacc=.TRUE.)
       !$OMP END PARALLEL
     ENDIF
 
@@ -369,7 +369,7 @@ CONTAINS
     IF (jg > 1 .OR. l_limited_area) THEN ! copy outermost nest boundary row in order to avoid missing values
       i_endblk = p_patch%cells%end_blk(1,1)
       !$OMP PARALLEL
-      CALL copy(z_auxp(:,:,1:i_endblk), temp_p_out(:,:,1:i_endblk), lacc=.TRUE., opt_acc_async=.TRUE.)
+      CALL copy(z_auxp(:,:,1:i_endblk), temp_p_out(:,:,1:i_endblk), lacc=.TRUE.)
       !$OMP END PARALLEL
     ENDIF
 

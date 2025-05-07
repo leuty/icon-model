@@ -799,7 +799,7 @@ CONTAINS
         i_startblk = p_patch%cells%start_block(min_rlcell_int - 2)
         i_endblk   = p_patch%cells%end_block(min_rlcell_int - 2)
 !$OMP PARALLEL
-        CALL init(z_lsq_coeff(:,:,:,i_startblk:i_endblk), lacc=.TRUE., opt_acc_async=.TRUE.)
+        CALL init(z_lsq_coeff(:,:,:,i_startblk:i_endblk), lacc=.TRUE.)
 !$OMP END PARALLEL
       ENDIF
 
@@ -855,7 +855,7 @@ CONTAINS
       i_startblk = p_patch%edges%start_block(i_rlend_e-1)
       i_endblk   = p_patch%edges%end_block(min_rledge_int-3)
 
-      CALL init(p_out_e(:,:,i_startblk:i_endblk), lacc=.TRUE., opt_acc_async=.TRUE.)
+      CALL init(p_out_e(:,:,i_startblk:i_endblk), lacc=.TRUE.)
 !$OMP BARRIER
     ENDIF
 

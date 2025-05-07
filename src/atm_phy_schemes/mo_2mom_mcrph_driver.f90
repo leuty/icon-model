@@ -995,11 +995,11 @@ CONTAINS
       ntsedi_hail = 1
     ENDIF
 
-     CALL init(prec_r, lacc=.TRUE., opt_acc_async=.TRUE.)
-     CALL init(prec_i, lacc=.TRUE., opt_acc_async=.TRUE.)
-     CALL init(prec_s, lacc=.TRUE., opt_acc_async=.TRUE.)
-     CALL init(prec_g, lacc=.TRUE., opt_acc_async=.TRUE.)
-     CALL init(prec_h, lacc=.TRUE., opt_acc_async=.TRUE.)
+     CALL init(prec_r, lacc=.TRUE.)
+     CALL init(prec_i, lacc=.TRUE.)
+     CALL init(prec_s, lacc=.TRUE.)
+     CALL init(prec_g, lacc=.TRUE.)
+     CALL init(prec_h, lacc=.TRUE.)
 
      ! The following IF ANY conditions are important only for performance on CPU and don't work with OpenACC
 #ifndef _OPENACC

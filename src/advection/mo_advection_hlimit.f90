@@ -392,8 +392,8 @@ CONTAINS
       i_startblk   = ptr_patch%cells%start_blk(1,1)
       i_endblk     = ptr_patch%cells%end_blk(grf_bdywidth_c-1,1)
 
-      CALL init(r_m(:,:,i_startblk:i_endblk), lacc=.TRUE., opt_acc_async=.TRUE.)
-      CALL init(r_p(:,:,i_startblk:i_endblk), lacc=.TRUE., opt_acc_async=.TRUE.)
+      CALL init(r_m(:,:,i_startblk:i_endblk), lacc=.TRUE.)
+      CALL init(r_p(:,:,i_startblk:i_endblk), lacc=.TRUE.)
 
 !$OMP BARRIER
 

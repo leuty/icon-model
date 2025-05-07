@@ -337,12 +337,12 @@ MODULE mo_nh_diffusion
 
 #ifdef _OPENACC
       ! needs to be always initialized with OpenACC
-        CALL init(u_vert, lacc=.TRUE., opt_acc_async=.TRUE.)
-        CALL init(v_vert, lacc=.TRUE., opt_acc_async=.TRUE.)
+        CALL init(u_vert, lacc=.TRUE.)
+        CALL init(v_vert, lacc=.TRUE.)
 #else
       IF (p_test_run) THEN
-        CALL init(u_vert, lacc=.FALSE., opt_acc_async=.FALSE.)
-        CALL init(v_vert, lacc=.FALSE., opt_acc_async=.FALSE.)
+        CALL init(u_vert, lacc=.FALSE.)
+        CALL init(v_vert, lacc=.FALSE.)
       ENDIF
 #endif
       !  RBF reconstruction of velocity at vertices

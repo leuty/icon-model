@@ -223,7 +223,7 @@ CONTAINS
 
 
 !$OMP PARALLEL
-    CALL init(z_qsum, opt_acc_async=.TRUE., lacc=.TRUE.)
+    CALL init(z_qsum, lacc=.TRUE.)
 !$OMP BARRIER
 
 !$OMP DO PRIVATE(jb,jk,jc,nlen)
@@ -315,12 +315,12 @@ CONTAINS
 #else
 
 !$OMP PARALLEL
-    CALL init(z_total_mass_2d, lacc=.TRUE., opt_acc_async=.TRUE.)
-    CALL init(z_dry_mass_2d, lacc=.TRUE., opt_acc_async=.TRUE.)
-    CALL init(z_kin_energy_2d, lacc=.TRUE., opt_acc_async=.TRUE.)
-    CALL init(z_int_energy_2d, lacc=.TRUE., opt_acc_async=.TRUE.)
-    CALL init(z_pot_energy_2d, lacc=.TRUE., opt_acc_async=.TRUE.)
-    CALL init(z_surfp_2d, lacc=.TRUE., opt_acc_async=.TRUE.)
+    CALL init(z_total_mass_2d, lacc=.TRUE.)
+    CALL init(z_dry_mass_2d, lacc=.TRUE.)
+    CALL init(z_kin_energy_2d, lacc=.TRUE.)
+    CALL init(z_int_energy_2d, lacc=.TRUE.)
+    CALL init(z_pot_energy_2d, lacc=.TRUE.)
+    CALL init(z_surfp_2d, lacc=.TRUE.)
 !$OMP BARRIER
 
 !$OMP DO PRIVATE(jb,jk,jc,nlen,z_volume)
@@ -415,7 +415,7 @@ CONTAINS
 
       DO jt=1, ntracer
 !$OMP PARALLEL
-        CALL init(z_aux_tracer(:,:), lacc=.TRUE., opt_acc_async=.TRUE.) ! reinitialize for each jt
+        CALL init(z_aux_tracer(:,:), lacc=.TRUE.) ! reinitialize for each jt
 !$OMP BARRIER
 
 !$OMP DO PRIVATE(jb,jk,jc,nlen,z_volume)

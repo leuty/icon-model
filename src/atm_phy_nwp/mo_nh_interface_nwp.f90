@@ -2072,8 +2072,8 @@ CONTAINS
 #endif
       ! needs to be always initialized with OpenACC
       IF (p_test_run .OR. lacc) THEN
-        CALL init(z_ddt_u_tot, lacc=lacc, opt_acc_async=.TRUE.)
-        CALL init(z_ddt_v_tot, lacc=lacc, opt_acc_async=.TRUE.)
+        CALL init(z_ddt_u_tot, lacc=lacc)
+        CALL init(z_ddt_v_tot, lacc=lacc)
       ENDIF
 
       IF (timers_level > 10) CALL timer_start(timer_phys_acc_1)

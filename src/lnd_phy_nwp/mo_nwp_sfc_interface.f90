@@ -393,7 +393,7 @@ CONTAINS
     ELSE
       ! initialize dummy variable (precipitation rate of graupel, grid-scale)
 !$OMP PARALLEL
-      CALL init(dummy_graupel_gsp_rate, lacc=.TRUE., opt_acc_async=.TRUE.)
+      CALL init(dummy_graupel_gsp_rate, lacc=.TRUE.)
 !$OMP END PARALLEL
       p_graupel_gsp_rate => dummy_graupel_gsp_rate(:,:)
     ENDIF
