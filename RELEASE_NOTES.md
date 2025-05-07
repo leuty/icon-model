@@ -1,4 +1,4 @@
-# Release notes for icon-2025.10
+# Release notes for icon-YYYY.MM
 
 ### ICON-Atmo
 
@@ -24,9 +24,11 @@ NWP: TERRA and other surface issues
 
 ### ICON-ART
 
-#### Coupling
+### Coupling
 
 ### Externals
+
+- Switch to the latest version of ICON-TIXI
 
 ### Infrastructure
 
