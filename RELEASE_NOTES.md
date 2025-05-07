@@ -14,7 +14,8 @@ Climate: ICON-Land
 
 - QUINCY development
   - Implemented reading of land-use data for QUINCY agriculture and sylviculture processes
-  - Improve vegetation nitrogen uptake from soil
+  - Improved the agriculture process of QUINCY (ready to use)
+  - Improved vegetation nitrogen uptake from soil
   - Minor modifications for using JSBACH physics processes with QUINCY
 - Updated inline documentation of hydrology process
 - Fixes:
