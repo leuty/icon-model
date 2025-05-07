@@ -82,8 +82,8 @@ $addexp "checksuite.icon-dev/check.atm_qubicc_onlyfor"     --builders "${NVHPC_G
 $addexp "checksuite.icon-dev/check.atm_qubicc_pfts"        --builders "${NVHPC_GPU_BUILDERS}" --list $listname --runflags "mpi_procs_pernode=4"
 $addexp "checksuite.icon-dev/check.atm_qubicc_tmx"         --builders "${NVHPC_GPU_BUILDERS}" --list $listname --runflags "mpi_procs_pernode=4"
 $addexp "checksuite.icon-dev/check.atm_qubicc_update"      --builders "${NVHPC_GPU_BUILDERS}" --list $listname --runflags "mpi_procs_pernode=4"
-# Currently disabled since 30 minutes run time are not enough (even without aerosols we come rather close to the limit)
 $addexp "checksuite.icon-dev/check.atm_qubicc_test_aero"   --builders "${NVHPC_GPU_BUILDERS}" --list $listname --runflags "mpi_procs_pernode=4"
+$addexp "checksuite.atm/gpu/test_amip-aes_R2B6_gpu.config" --builders "${NVHPC_GPU_BUILDERS}" --list $listname
 ./set_builder_flags Inactive --builders "${NVHPC_GPU_BUILDERS}" --list $listname
 #
 #---------------------------------------------------------------------------------------------------------
