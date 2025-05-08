@@ -16,11 +16,13 @@ set -x
 #
 # QUBICC test experiment for Buildbot
 #
-author_list='Henning Franke, MPIM; Marco Giorgetta, MPIM'
+author_list='Marco Giorgetta, MPIM'
 #
-# This file describes a QUBICC experiment on a R2B7 grid (dx=20km) using dt_atm = 40s.
-# The integration extends over 2 hours with 2-hourly output and daily checkpointing.
-# In this experiment the Cariolle ozone scheme is turned on and the associated ozone tracer is used for calculating the radiative fluxes.
+# This file describes a test experiment for the atmosphere using Sapphire physics.
+# The specific setup is derived from a QUBICC experiment on a R2B9 grid (dx=5km).
+# This test runs on the R2B4 grid (dx=160km) using the original time step dt_atm = 40s.
+# The length is reduced to 6 time steps = 4min with checkpointing every 3rd time step.
+# Therefore the radiation time step dt_rad is reduced from 12 to 2 minutes.
 #
 # This experiment depends on data files for the grid, the initial conditions and
 # the specification of atmosphere and land conditions. These data are stored
@@ -30,11 +32,7 @@ author_list='Henning Franke, MPIM; Marco Giorgetta, MPIM'
 # - SST and sea ice
 # - spectral solar irradiation
 # - well mixed greenhouse gases CO2, CH4, N2O, CFCs
-#
-# - no aerosols  --> aes_rad_nml/aes_rad_config(1)%irad_aero  =  0
-#                    THIS SHOULD BE CHANGED TO TRANSIENT AEROSOLS
-#                    INCLUDING BACKGROUND, ANTHROPOGENIC (PLUMES)
-#                    AND VOLCANIC.
+# - O3 concentration
 #
 #--------------------------------------------------------------------------------------------------
 #
@@ -56,8 +54,8 @@ author_list='Henning Franke, MPIM; Marco Giorgetta, MPIM'
 #                          --> parallel_nml/nproma
 #                          --> parallel_nml/nblocks_c
 #
-# - rrtmgp_columns_chunk = radiation blocking length, <= nproma
-#                          --> aes_rad_nml(1)%rrtmgp_columns_chunk
+# - nproma_sub           = radiation blocking length, <= nproma
+#                          --> nproma_sub
 #
 #--------------------------------------------------------------------------------------------------
 #
@@ -76,7 +74,7 @@ author_list='Henning Franke, MPIM; Marco Giorgetta, MPIM'
 # nblocks_c             = number of looping chunks used for cells
 #                         which is set in run/create_target_header for the used machine
 #
-# rrtmgp_columns_chunk  = radiation blocking length
+#  nproma_sub           = radiation blocking length
 #
 #--------------------------------------------------------------------------------------------------
 #
@@ -96,47 +94,23 @@ author_list='Henning Franke, MPIM; Marco Giorgetta, MPIM'
 # (1) Define the experimental setup: time frame and output
 
 # date+time
-start_date=2004-04-01T00:00:00Z
-  end_date=2004-04-01T02:00:00Z
+start_date=1979-01-01T00:00:00Z
+  end_date=1979-01-01T00:04:00Z
 
 # restart intervals
-checkpoint_interval=PT2H
-   restart_interval=PT2H
+checkpoint_interval=PT2M
+   restart_interval=PT4M
 
 # output intervals
-first_output_date=2004-04-01T02:00:00Z
-last__output_date=2004-04-01T02:00:00Z
-atm_output_interval=PT2H
-  atm_file_interval=PT2H
+first_output_date=1979-01-01T00:00:40Z
+last__output_date=1979-01-01T00:04:00Z
+atm_output_interval=PT40S
+  atm_file_interval=PT40S
 
 # output format
-grib_format=2
-netcdf_format=5
+grib_format=2               # with 2nd level compression, see gribout_nml/lgribout_compress_ccsds
+netcdf_format=5             # in 32-bit precision       , see io_nml/lnetcdf_flt64_output
 output_format=${netcdf_format}
-
-# options for NetCDF format:
-if [ ${output_format} -eq ${netcdf_format} ]
-then
-#
-# include (.TRUE.) or exclude (.FALSE.) lon/lat grid data in output files
-output_grid=.TRUE.          # used in output_nml
-#
-# 64bit (.TRUE.) or 32bit (.FALSE.) floating point format
-flt64_output=.FALSE.        # used in io_nml
-#
-fi
-
-# options for GRIB format:
-if [ ${output_format} -eq ${grib_format} ]
-then
-#
-# exclude (.FALSE.) grid data (lon/lat) in output files
-output_grid=.FALSE.         # used in output_nml
-#
-# standard (.FALSE.) or ccsds compressed (.TRUE.) GRIB format
-compress_ccsds=.FALSE.      # used in gribout_nml
-#
-fi
 
 # output control
 # - files are produced for every output date for single variables or variable groups, as specified
@@ -147,9 +121,6 @@ output_atm_state_3d_sim=on  # 1 file/variable/date        , first_output_date to
 output_atm_state_2d_sim=on  # 1 file/(variable group)/date, first_output_date to last__output_date
 output_atm_tend_3d=on       # 1 file/variable/date        , first_output_date to last__output_date
 output_atm_flux_2d=on       # 1 file/(variable group)/date, first_output_date to last__output_date
-
-# output processes
-num_io_procs=16
 
 #--------------------------------------------------------------------------------------------------
 
@@ -169,19 +140,18 @@ iforcing=2          #     2 : Sapphire ,  0     : off
 if [ ${iforcing} -eq 2 ]
 then
 #
-dt_rad=PT12M        # '': off, any valid PT... > 0s: on and recomputed with the specified time step
+dt_rad=PT2M         # '': off, any valid PT... > 0s: on and recomputed with the specified time step
 if [ x${dt_rad} != x ]
 then
 lclearsky=.TRUE.    # .TRUE.: clear sky fluxes computed, .FALSE.: ... not computed
 fi # ${dt_rad}
 #
-dt_vdf=${dt_atm}    # as for dt_rad
+dt_vdf=${dt_atm}    # as above
 #
-dt_mig=${dt_atm}    # as for dt_rad
-#
-dt_car=${dt_atm}    # as for dt_rad
+dt_mig=${dt_atm}    # as above
 #
 run_jsbach=yes      # yes,true: on, else: off
+jsbach_with_lakes=true # true/false
 #
 fi # ${iforcing}
 
@@ -192,7 +162,8 @@ cat > ${atmo_namelist} << EOF
 &parallel_nml
  nproma             = ${nproma}
  nblocks_c          = ${nblocks_c}
- num_io_procs       = ${num_io_procs}
+ nproma_sub         = ${nproma_sub}
+ num_io_procs       = 1
  io_proc_chunk_size = 16
  iorder_sendrecv    = 3
 /
@@ -227,6 +198,8 @@ cat > ${atmo_namelist} << EOF
 &initicon_nml
  init_mode          = 2           ! 2: initialize from IFS analysis
  ifs2icon_filename  = 'ic_atmosphere.nc'
+ pinit_seed         = 0           ! seed for perturbation of initial model state. no perturbation by default
+ pinit_amplitude    = 0.          ! amplitude of perturbation
 /
 EOF
 
@@ -241,7 +214,7 @@ cat >> ${atmo_namelist} << EOF
  damp_height        = 50000.      ! [m]
  rayleigh_coeff     = 1.0
  vwind_offctr       = 0.2
- divdamp_order      = 4
+ !divdamp_order      = 24         ! 24 is not allowed for checkpoint_interval < 2.5h (why?)
  divdamp_type       = 3
  divdamp_fac        = 0.004
  thslp_zdiffu       = 0.02
@@ -265,16 +238,16 @@ fi # ${ldynamics}
 cat >> ${atmo_namelist} << EOF
 !
 &transport_nml
- tracer_names       = 'hus','clw','cli', 'qr', 'qs', 'qg', 'o3'
+ tracer_names       = 'hus','clw','cli', 'qr', 'qs', 'qg'
 EOF
 #
 # Additional parameters are needed if the transport scheme is used
 if [ ${ltransport} = .TRUE. ]
 then
 cat >> ${atmo_namelist} << EOF
- ivadv_tracer       =    3 ,   3 ,   3 ,   3 ,   3 ,   3 ,   3
- itype_hlimit       =    3 ,   4 ,   4 ,   4 ,   4 ,   4 ,   4
- ihadv_tracer       =   20 ,  20 ,  20 ,  20 ,  20 ,  20 ,  20
+ ivadv_tracer       =    3 ,   3 ,   3 ,   3 ,   3 ,   3
+ itype_hlimit       =    3 ,   4 ,   4 ,   4 ,   4 ,   4
+ ihadv_tracer       =   20 ,  20 ,  20 ,  20 ,  20 ,  20
 EOF
 fi # ${ltransport}
 #
@@ -295,14 +268,13 @@ cat >> ${atmo_namelist} << EOF
  aes_phy_config(1)%dt_rad     = '${dt_rad}'
  aes_phy_config(1)%dt_vdf     = '${dt_vdf}'
  aes_phy_config(1)%dt_mig     = '${dt_mig}'
- aes_phy_config(1)%dt_car     = '${dt_car}'
 !
 ! surface (.TRUE. or .FALSE.)
  aes_phy_config(1)%ljsb       = .TRUE.
  aes_phy_config(1)%lamip      = .TRUE.
  aes_phy_config(1)%lice       = .TRUE.
  aes_phy_config(1)%lmlo       = .FALSE.
- aes_phy_config(1)%llake      = .TRUE.
+ aes_phy_config(1)%llake      = .${jsbach_with_lakes}.
 !
 ! top height for cloud processes
  aes_phy_config(1)%zmaxcloudy = ${htop_cloudy}
@@ -312,7 +284,6 @@ cat >> ${atmo_namelist} << EOF
  aes_phy_config(1)%iqneg_p2d  = 2     ! after physics : set neg. humidity to 0
 /
 &aes_cov_nml ! grid(1)
- aes_cov_config(1)%icov       = 3     ! 0/1 scheme based on cloud condensate
  aes_cov_config(1)%cqx        = 1.e-6
 /
 &aes_cop_nml ! grid(1)
@@ -338,12 +309,12 @@ cat >> ${atmo_namelist} << EOF
  aes_rad_config(1)%irad_co2   =  3
  aes_rad_config(1)%irad_ch4   =  13
  aes_rad_config(1)%irad_n2o   =  13
- aes_rad_config(1)%irad_o3    =  1
+ aes_rad_config(1)%irad_o3    =  5
  aes_rad_config(1)%irad_o2    =  2
  aes_rad_config(1)%irad_cfc11 =  3
  aes_rad_config(1)%irad_cfc12 =  3
- aes_rad_config(1)%irad_aero  =  0
- aes_rad_config(1)%rrtmgp_columns_chunk = ${rrtmgp_columns_chunk}
+ aes_rad_config(1)%irad_aero  =  18
+ aes_rad_config(1)%lrad_aero_diag = .TRUE.
 /
 EOF
 fi # ${dt_rad}
@@ -382,8 +353,9 @@ jsbach_namelist=NAMELIST_${EXPNAME}_lnd # also used in exec.iconrun
 cat > ${jsbach_namelist} << EOF
 &jsb_model_nml
   usecase                 = 'jsbach_lite'
-  use_lakes               = .TRUE.
+  use_lakes               = .${jsbach_with_lakes}.
   fract_filename          = 'bc_land_frac.nc'
+  enforce_water_budget    = 'error'     ! Error: stop in case of water conservation problem
 /
 &jsb_seb_nml
   bc_filename             = 'bc_land_phys.nc'
@@ -397,6 +369,7 @@ cat > ${jsbach_namelist} << EOF
 &jsb_turb_nml
   bc_filename             = 'bc_land_phys.nc'
   ic_filename             = 'ic_land_soil.nc'
+  max_ini_rough_m         = -1.0 ! > 0: limit for roughness length from initial file
 /
 &jsb_sse_nml
   l_heat_cap_map          = .FALSE.
@@ -444,7 +417,7 @@ fi # ${iforcing}
 # (3) Define the input: model constants, grid, initial state, boundary conditions
 
 # data directory for the input of this experiment
-datadir=${icon_data_rootFolder}/experiments/data.${EXPNAME}.r1
+datadir=${icon_data_rootFolder}/experiments/data.atm_qubicc_test.r1
 if [ ! -d ${datadir} ]
 then
     echo "ERROR: input data directory ${datadir} not found"
@@ -470,6 +443,24 @@ ln -s ${basedir}/data/rrtmgp-gas-sw-g112.nc ${expdir}/coefficients_sw.nc
 # - constants for cloud optical properties
 ln -s ${basedir}/data/ECHAM6_CldOptProps_rrtmgp_lw.nc ${expdir}/rrtmgp-cloud-optics-coeffs-lw.nc
 ln -s ${basedir}/data/ECHAM6_CldOptProps_rrtmgp_sw.nc ${expdir}/rrtmgp-cloud-optics-coeffs-sw.nc
+#
+# - aerosols
+# Aerosols do no make sense in the aqua planet and are here for tests only. They are switched off. Please, do no remove the following links.
+dataaero=/pool/data/ICON/grids/public/mpim/0043/aerosol_kinne/r0001
+#climatological
+add_link_file $dataaero/bc_aeropt_kinne_sw_b14_fin_1850.nc                ./bc_aeropt_kinne_sw_b14_fin.nc
+# Kinne aerosol
+add_link_file $dataaero/bc_aeropt_kinne_lw_b16_coa.nc                     ./
+add_link_file $dataaero/bc_aeropt_kinne_sw_b14_coa.nc                     ./
+# simple plumes
+add_link_file ${basedir}/data/MACv2.0-SP_v1.nc                          ./MACv2.0-SP_v1.nc
+#
+#CMIP6 volcanic aerosols, (local data) faking 1979 as 1992...for seeing something for Pinatubo
+#cmip6_datadir=/scratch/local1/m218036/m218036_scratch_local2/icon/data
+cmip6_datadir=/pool/data/ICON/grids/public/mpim/common/aerosol_volcanic_cmip6
+add_link_file $cmip6_datadir/bc_aeropt_cmip6_volc_lw_b16_sw_b14_1991.nc        ./bc_aeropt_cmip6_volc_lw_b16_sw_b14_1978.nc
+add_link_file $cmip6_datadir/bc_aeropt_cmip6_volc_lw_b16_sw_b14_1992.nc        ./bc_aeropt_cmip6_volc_lw_b16_sw_b14_1979.nc
+add_link_file $cmip6_datadir/bc_aeropt_cmip6_volc_lw_b16_sw_b14_1993.nc        ./bc_aeropt_cmip6_volc_lw_b16_sw_b14_1980.nc
 #
 fi # ${dt_rad}
 
@@ -519,7 +510,7 @@ then
  typeOfProcessedData             =   1    ! grib2/tables/4/1.4.table
  typeOfGeneratingProcess         =   2    ! grib2/tables/4/4.3.table
  generatingProcessIdentifier     =   0
- lgribout_compress_ccsds         = ${compress_ccsds}
+ lgribout_compress_ccsds         = .FALSE.
 /
 EOF
 fi # ${output_format}
@@ -533,7 +524,7 @@ cat >> ${atmo_namelist} << EOF
  itype_pres_msl       = 4
  restart_file_type    = 5
  restart_write_mode   = 'joint procs multifile'
- lnetcdf_flt64_output = ${flt64_output}
+ lnetcdf_flt64_output = .TRUE.
 /
 EOF
 
@@ -561,7 +552,7 @@ do
  ready_file       = '${EXPNAME}_${var//\'}_ml.ready'
  filetype         = ${output_format}
  remap            = 0
- output_grid      = ${output_grid}
+ output_grid      = .FALSE.
  output_start     = '${start_date}'
  output_end       = '${start_date}'
  output_interval  = '${atm_output_interval}'
@@ -583,7 +574,7 @@ then
 #
 # - all levels
 #
-varlist="'pfull' 'ta' 'rho' 'ua' 'va' 'wa' 'hus' 'o3'"
+varlist="'pfull' 'ta' 'rho' 'ua' 'va' 'wa' 'hus'"
 #
 for var in ${varlist}
 do
@@ -594,7 +585,7 @@ do
  ready_file       = '${EXPNAME}_${var//\'}_ml_<datetime2>.ready'
  filetype         = ${output_format}
  remap            = 0
- output_grid      = ${output_grid}
+ output_grid      = .FALSE.
  output_start     = '${start_date}'
  output_end       = '${start_date}'
  output_interval  = '${atm_output_interval}'
@@ -618,7 +609,7 @@ do
  ready_file       = '${EXPNAME}_${var//\'}_ml_<datetime2>.ready'
  filetype         = ${output_format}
  remap            = 0
- output_grid      = ${output_grid}
+ output_grid      = .FALSE.
  output_start     = '${start_date}'
  output_end       = '${start_date}'
  output_interval  = '${atm_output_interval}'
@@ -642,7 +633,7 @@ then
 #
 # - all levels
 #
-varlist="'pfull' 'ta' 'rho' 'ua' 'va' 'wa' 'hus' 'o3'"
+varlist="'pfull' 'ta' 'rho' 'ua' 'va' 'wa' 'hus'"
 #
 for var in ${varlist}
 do
@@ -653,7 +644,7 @@ do
  ready_file       = '${EXPNAME}_${var//\'}_ml_<datetime2>.ready'
  filetype         = ${output_format}
  remap            = 0
- output_grid      = ${output_grid}
+ output_grid      = .FALSE.
  output_start     = '${first_output_date}'
  output_end       = '${last__output_date}'
  output_interval  = '${atm_output_interval}'
@@ -677,7 +668,7 @@ do
  ready_file       = '${EXPNAME}_${var//\'}_ml_<datetime2>.ready'
  filetype         = ${output_format}
  remap            = 0
- output_grid      = ${output_grid}
+ output_grid      = .FALSE.
  output_start     = '${first_output_date}'
  output_end       = '${last__output_date}'
  output_interval  = '${atm_output_interval}'
@@ -690,7 +681,32 @@ EOF
 done
 #
 fi # ${output_atm_state_3d_sim}
-
+#
+output_aer_3d=yes # "yes" needs lrad_aero_diag=.TRUE. in radiation_nml
+#
+if [[ "$output_aer_3d" == "yes" ]]; then
+  #
+  cat >> ${atmo_namelist} << EOF
+&output_nml
+ output_filename  = "${EXPNAME}_aer_3d"
+ filename_format  = "<output_filename>_ml_<datetime2>"
+ filetype         = ${output_format}
+ remap            = 0
+ output_grid      = .TRUE.
+ output_start     = "${first_output_date}"
+ output_end       = "${last__output_date}"
+ output_interval  = "${atm_output_interval}"
+ file_interval    = "${atm_file_interval}"
+ include_last     = .FALSE.
+ m_levels         = '70...nlev'
+ ml_varlist       = 'ps'          , 'pfull'       , 'zg'          ,
+                    'aer_aod_533' , 'aer_ssa_533',  'aer_asy_533' ,
+                    'aer_aod_2325', 'aer_ssa_2325', 'aer_asy_2325',
+                    'aer_aod_9731',
+/
+EOF
+fi
+#
 # 2-dimensional state variables
 # -----------------------------
 # - instantaneous values
@@ -718,7 +734,7 @@ cat >> ${atmo_namelist} << EOF
  ready_file       = '${EXPNAME}_atm2d_ml_<datetime2>.ready'
  filetype         = ${output_format}
  remap            = 0
- output_grid      = ${output_grid}
+ output_grid      = .FALSE.
  output_start     = '${first_output_date}'
  output_end       = '${last__output_date}'
  output_interval  = '${atm_output_interval}'
@@ -749,9 +765,8 @@ if [ ${ldynamics}  = .TRUE. ] ; then varlist="${varlist}                        
 #
 if [ ${iforcing} -eq 2 ] ; then
 if [ x${dt_rad} != x ] ; then varlist="${varlist} 'tend_ta_rlw' 'tend_ta_rsw'"  ; fi
-if [ x${dt_vdf} != x ] ; then varlist="${varlist} 'tend_ua_vdf' 'tend_va_vdf' 'tend_ta_vdf' 'tend_qhus_vdf'"; fi
-if [ x${dt_mig} != x ] ; then varlist="${varlist} 'tend_ta_mig' 'tend_qhus_mig'"; fi
-if [ x${dt_car} != x ] ; then varlist="${varlist} 'tend_o3_car' 'tend_qo3_phy'"; fi
+if [ x${dt_vdf} != x ] ; then varlist="${varlist} 'tend_ua_vdf' 'tend_va_vdf' 'tend_ta_vdf' 'tend_hus_vdf'"; fi
+if [ x${dt_mig} != x ] ; then varlist="${varlist} 'tend_ta_mig' 'tend_hus_mig'"; fi
 fi # ${iforcing}
 #
 for var in ${varlist}
@@ -764,7 +779,7 @@ do
  filetype         = ${output_format}
  remap            = 0
  operation        = 'mean'
- output_grid      = ${output_grid}
+ output_grid      = .FALSE.
  output_start     = '${first_output_date}'
  output_end       = '${last__output_date}'
  output_interval  = '${atm_output_interval}'
@@ -780,8 +795,8 @@ done
 varlist=''
 #
 if [ ${iforcing} -eq 2 ] ; then
-if [ x${dt_vdf} != x ] ; then varlist="${varlist} 'tend_qclw_vdf' 'tend_qcli_vdf'"; fi
-if [ x${dt_mig} != x ] ; then varlist="${varlist} 'tend_qclw_mig' 'tend_qcli_mig'"; fi
+if [ x${dt_vdf} != x ] ; then varlist="${varlist} 'tend_clw_vdf' 'tend_cli_vdf'"; fi
+if [ x${dt_mig} != x ] ; then varlist="${varlist} 'tend_clw_mig' 'tend_cli_mig'"; fi
 fi # iforcing
 #
 for var in ${varlist}
@@ -794,7 +809,7 @@ cat >> ${atmo_namelist} << EOF
  filetype         = ${output_format}
  remap            = 0
  operation        = 'mean'
- output_grid      = ${output_grid}
+ output_grid      = .FALSE.
  output_start     = '${first_output_date}'
  output_end       = '${last__output_date}'
  output_interval  = '${atm_output_interval}'
@@ -836,7 +851,7 @@ cat >> ${atmo_namelist} << EOF
  filetype         = ${output_format}
  remap            = 0
  operation        = 'mean'
- output_grid      = ${output_grid}
+ output_grid      = .FALSE.
  output_start     = '${first_output_date}'
  output_end       = '${last__output_date}'
  output_interval  = '${atm_output_interval}'

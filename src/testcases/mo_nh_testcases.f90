@@ -72,6 +72,7 @@ MODULE mo_nh_testcases
   USE mo_nh_rce_exp,           ONLY: init_nh_state_rce_glb,                       &
                                    & init_nh_state_rce_tprescr_glb
   USE mo_aes_bubble,           ONLY: init_aes_bubble
+  USE mo_aes_cbl,              ONLY: init_aes_cbl_dry, print_aes_cbl_testcase_config
   USE mo_nh_torus_exp,         ONLY: init_nh_state_cbl, init_nh_state_rico,       &
                                    & init_torus_netcdf_sounding,                  &
                                    & init_torus_ascii_sounding, init_warm_bubble, &
@@ -434,6 +435,11 @@ MODULE mo_nh_testcases
   CASE ('dcmip_tc_52')
     ! itopo == 0 --> The topography is initialized to 0 at the begining of this subroutine
     CALL message(TRIM(routine),'running DCMIP tropical cyclone testcase 52')
+
+  CASE ('aes_cbl')
+    CALL message(TRIM(routine),'running ICON CBL on torus')
+
+    CALL print_aes_cbl_testcase_config()
 
   CASE ('CBL')
 
@@ -1161,7 +1167,7 @@ MODULE mo_nh_testcases
       CALL init_nh_prog_dcmip_schaer( p_patch(jg), p_nh_state(jg)%prog(nnow(jg)), &
         &                    p_nh_state(jg)%diag, p_nh_state(jg)%ref,             &
         &                    p_nh_state(jg)%metrics, p_int(jg),l_hydro_adjust )
-    CALL duplicate_prog_state(p_nh_state(jg)%prog(nnow(jg)),p_nh_state(jg)%prog(nnew(jg)))
+      CALL duplicate_prog_state(p_nh_state(jg)%prog(nnow(jg)),p_nh_state(jg)%prog(nnew(jg)))
     ENDDO
 
     CALL message(TRIM(routine),'End setup dcmip_mw_2x test')
@@ -1185,10 +1191,40 @@ MODULE mo_nh_testcases
     CALL message(TRIM(routine),'End setup dcmip_tc_52')
 
 
+  CASE ('aes_cbl')
+
+    IF(p_patch(1)%geometry_info%geometry_type/=planar_torus_geometry)&
+      CALL finish(TRIM(routine),'CBL case is only for plane torus!')
+
+     ! u,v,w are initialized to zero.  initialize with potential temperature profile
+    DO jg = 1, n_dom
+      nlev   = p_patch(jg)%nlev
+      CALL message(TRIM(routine),'before init_aes_cbl_dry')
+      CALL init_aes_cbl_dry( p_patch(jg), p_nh_state(jg)%prog(nnow(jg)), p_nh_state(jg)%ref,  &
+                      & p_nh_state(jg)%diag, p_nh_state(jg)%metrics )
+
+      CALL add_random_noise_global(in_subset=p_patch(jg)%cells%all,            &
+                      & in_var=p_nh_state(jg)%prog(nnow(jg))%w(:,:,:),   &
+                      & start_level=nlev-nlev_pert,                                    &
+                      & end_level=nlev,                                        &
+                      & noise_scale=w_perturb )
+
+      CALL add_random_noise_global(in_subset=p_patch(jg)%cells%all,            &
+                      & in_var=p_nh_state(jg)%prog(nnow(jg))%theta_v(:,:,:),   &
+                      & start_level=nlev-nlev_pert,                                    &
+                      & end_level=nlev,                                        &
+                      & noise_scale=th_perturb )
+
+      CALL duplicate_prog_state(p_nh_state(jg)%prog(nnow(jg)),p_nh_state(jg)%prog(nnew(jg)))
+!
+      CALL message(TRIM(routine),'End setup '//TRIM(nh_test_name)//' test')
+    END DO !jg
+
+
   CASE ('CBL')
 
     IF(p_patch(1)%geometry_info%geometry_type/=planar_torus_geometry)&
-        CALL finish(TRIM(routine),'CBL case is only for plane torus!')
+      CALL finish(TRIM(routine),'CBL case is only for plane torus!')
 
     DO jg = 1, n_dom
       nlev   = p_patch(jg)%nlev

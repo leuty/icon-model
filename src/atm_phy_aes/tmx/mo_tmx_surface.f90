@@ -164,7 +164,7 @@ CONTAINS
 
       IF (PRESENT(km)) THEN
         CALL jsbach_interface ( jg, jb, jcs, jce,                                         & ! in
-          & datetime_old, dtime, dtime,                                                   & ! in
+          & datetime_old, dtime,                                                          & ! in
           & t_air             = ptemp(jcs:jce,jb),                                        & ! in
           & q_air             = pq(jcs:jce,jb),                                           & ! in
           & press_air         = pres_air(jcs:jce,jb),                                     & ! in
@@ -216,7 +216,7 @@ CONTAINS
         )
       ELSE
         CALL jsbach_interface ( jg, jb, jcs, jce,                                         & ! in
-          & datetime_old, dtime, dtime,                                                   & ! in
+          & datetime_old, dtime,                                                          & ! in
           & t_air             = ptemp(jcs:jce,jb),                                        & ! in
           & q_air             = pq(jcs:jce,jb),                                           & ! in
           & press_air         = pres_air(jcs:jce,jb),                                     & ! in

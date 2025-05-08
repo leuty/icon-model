@@ -95,8 +95,8 @@ MODULE mo_aes_phy_init
   USE mo_bcs_time_interpolation, ONLY: t_time_interpolation_weights, calculate_time_interpolation_weights
   USE mo_bc_sst_sic,           ONLY: read_bc_sst_sic, bc_sst_sic_time_interpolation
   USE mo_bc_greenhouse_gases,  ONLY: read_bc_greenhouse_gases, bc_greenhouse_gases_time_interpolation, &
-    &                                bc_greenhouse_gases_file_read
-  USE mo_bc_aeropt_splumes,    ONLY: setup_bc_aeropt_splumes
+       &                                bc_greenhouse_gases_file_read
+  USE mo_bc_aeropt_splumes_opt,ONLY: setup_bc_aeropt_splumes_opt
 
   ! for 6hourly sst and ice data
   USE mo_reader_sst_sic,       ONLY: t_sst_sic_reader
@@ -628,9 +628,6 @@ CONTAINS
 
     END DO ! jg
 
-    ! external data:
-
-
     ! for radiation
     !
     ! Read file for simple plumes aerosol distributions
@@ -643,13 +640,15 @@ CONTAINS
       !
       ! parameterized simple plumes of tropospheric aerosols
       !
-      IF (ANY(aes_rad_config(:)%irad_aero == 19)) THEN
-        CALL setup_bc_aeropt_splumes
+      ! Currently, there is no option 18 (Kinne background + simple plumes +
+      ! stratospheric volcanic aerosols)
+       IF (ANY(aes_rad_config(:)%irad_aero == 18) .OR. &
+        &  ANY(aes_rad_config(:)%irad_aero == 19) ) THEN
+         CALL setup_bc_aeropt_splumes_opt
       END IF
 
       !
     END IF
-
 
     ! for radiation and carbon cycle
     !
@@ -936,7 +935,7 @@ CONTAINS
 
       SELECT CASE (nh_test_name)
 
-      CASE('APE','APE_aes','RCEhydro','RCE_glb','RCE_Tconst','RCE_Tprescr','aes_bubble','CBL_flxconst','RCEMIP_analytical', &
+      CASE('APE','APE_aes','RCEhydro','RCE_glb','RCE_Tconst','RCE_Tprescr','aes_bubble','aes_cbl','CBL_flxconst','RCEMIP_analytical', &
         &  'dcmip_tc_52')
         ! Note that there is only one surface type in this case !!!
         !

@@ -4,6 +4,12 @@
 
 AES Physics:
 
+- Implemented a new convective boundary layer (CBL) test case for TMX validation
+- Optimization of the read-in of ozone data
+- Update atm_qubicc_test and its checksuite
+- Fixes for:
+  - GPU port of solar_parameters() (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/776)
+
 NWP Physics:
 
 - enable reading and interpolating ozone and Kinne aerosol data using YAC (icon-nwp!1716)
@@ -15,6 +21,17 @@ NWP Physics:
 ### Soil and Surface
 
 Climate: ICON-Land
+
+- QUINCY development
+  - Implemented reading of land-use data for QUINCY agriculture and sylviculture processes
+  - Improved the agriculture process of QUINCY (ready to use)
+  - Improved vegetation nitrogen uptake from soil
+  - Minor modifications for using JSBACH physics processes with QUINCY
+- Updated inline documentation of hydrology process
+- Fixes:
+  - Verification check for some JSBACH lctlib parameters when compiling with single precision
+- Code cleaning:
+  - Only use one variable representing time step length
 
 NWP: TERRA and other surface issues
 

@@ -812,7 +812,6 @@ CONTAINS
             & ice=ice, &
             & current_datetime=datetime_now,&
             & dtime=MERGE(1._wp, delta_time, linit), &
-            & steplen=delta_time, &
             & t_air=nh_diag%temp(ics:ice, patch%nlev, i_blk), &
             & q_air=tracer(ics:ice, patch%nlev, i_blk, iqv), &
             & rain=rain_srf(ics:ice,i_blk), &

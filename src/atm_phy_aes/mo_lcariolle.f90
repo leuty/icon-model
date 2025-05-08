@@ -101,13 +101,18 @@ CONTAINS
 
     SUBROUTINE read_fill_array(aname, arr)
       CHARACTER(*), INTENT(IN) :: aname
-      REAL(wp), INTENT(OUT) :: arr(:,:,0:)
+      REAL(wp), INTENT(OUT) :: arr(0:,:,0:)
       REAL(wp) :: a_3d(nmonthx,nlevx,nlatx)
 
       CALL read_bcast_REAL_3D(file_id, aname, fill_array=a_3d)
+      ! store external data on indices (1:nlatx,:,1:12)
       arr(1:nlatx,:,1:12)=RESHAPE(a_3d,(/nlatx,nlevx,nmonthx/),ORDER=(/3,2,1/))
-      arr(1:nlatx,:,0)=arr(1:nlatx,:,12)
-      arr(1:nlatx,:,13)=arr(1:nlatx,:,1)
+      ! copy data from month index 12 to 0 and from 1 to 13
+      arr(1:nlatx,:, 0) = arr(1:nlatx,:,12)
+      arr(1:nlatx,:,13) = arr(1:nlatx,:, 1)
+      ! copy data from latitudes index 1 to 0 and from index nlatx to nlatx+1
+      arr(      0,:,0:13) = arr(    1,:,0:13)
+      arr(nlatx+1,:,0:13) = arr(nlatx,:,0:13)
     END SUBROUTINE read_fill_array
   END SUBROUTINE lcariolle_init
 

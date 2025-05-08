@@ -527,6 +527,11 @@ CONTAINS
           CALL message('','only Kinne natural background aerosols are used')
        CASE(13)
           CALL message('','time dependent Kinne aerosols are used')
+       CASE(18)
+          CALL message('','Kinne natural background aerosols + simple plume anthropogenic aerosols + volcanic cmip6 aerosols are used')
+#ifdef _OPENACC
+          CALL message('','cmip6 volcanic aerosols are NOT tested on gpus although they may work even on gpus')
+#endif
        CASE(19)
           CALL message('','Kinne natural background aerosols + simple plume anthropogenic aerosols are used')
        CASE default
