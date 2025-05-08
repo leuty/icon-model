@@ -16,8 +16,9 @@ unset CDPATH
 script_dir=$(cd "$(dirname "$0")"; pwd)
 icon_dir=$(cd "${script_dir}/../.."; pwd)
 
-modules='nvhpc/23.7'
-sw_root='/sw/bullseye-x64/views/icon/nompi/nvhpc-23.7'
+sw_root='/sw/bullseye-x64/views/icon/mpich/nvhpc-25.3'
+
+gcc_root='/sw/bullseye-x64/compilers/gcc-11.2.0'
 
 if test -r "${sw_root}/lib/librttov_main.a"; then
   RTTOV_LIBS='-lrttov_other -lrttov_emis_atlas -lrttov_brdf_atlas -lrttov_parallel -lrttov_coef_io -lrttov_hdf -lrttov_main'
@@ -40,22 +41,26 @@ fi
 
 ################################################################################
 
-BUILD_ENV=". \"${ENV}\";. \"${script_dir}/module_switcher\"; switch_for_module ${modules}; export PATH=\"${sw_root}/bin:\${PATH-}\"; export LD_LIBRARY_PATH=\"${sw_root}/lib:\${LD_LIBRARY_PATH-}\"; export PYTHONPATH=\"${sw_root}/python/pp_ser:\${PYTHONPATH-}\";"
+BUILD_ENV="export PATH=\"${gcc_root}/bin:${sw_root}/bin:\${PATH-}\"; export LD_LIBRARY_PATH=\"${gcc_root}/lib64:${sw_root}/lib:\${LD_LIBRARY_PATH-}\"; export PYTHONPATH=\"${sw_root}/python/pp_ser:\${PYTHONPATH-}\";"
 
-CC='nvc'
+CC='mpicc'
 CFLAGS='-g -O2'
 
-CXX='nvc++'
+CXX=$(eval "${BUILD_ENV}" >/dev/null; mpicxx -show | sed 's: .*$::')
 CXXFLAGS='-g -O2'
 
 CPPFLAGS="-I${sw_root}/include -I${sw_root}/include/libxml2"
 
-FC='nvfortran'
-FCFLAGS="${RTTOV_FCFLAGS-} -I${sw_root}/include -g -Mrecursive -Mallocatable=03 -Mstack_arrays -Minfo=inline"
+FC='mpif90'
+FCFLAGS="${RTTOV_FCFLAGS-} -I${sw_root}/include -g -Mrecursive -Mallocatable=03 -Mstack_arrays -Minfo=accel,inline -acc=gpu,verystrict -gpu=sm_61,cuda11.8"
 
 ICON_FCFLAGS='-O2'
 
-LDFLAGS="${RTTOV_LDFLAGS-} -L${sw_root}/lib"
+# CUDA compiler must be from the same prefix as the Fortran compiler:
+CUDACXX="$(cd "$(dirname "$(eval "${BUILD_ENV}" >/dev/null; ${FC} -show | sed 's: .*$::')")/../.."; pwd)/cuda/11.8/bin/nvcc"
+CUDAFLAGS='-arch=sm_61 -g -O3'
+
+LDFLAGS="-c++libs -cuda -L${gcc_root}/lib64 ${RTTOV_LDFLAGS-} -L${sw_root}/lib"
 # The configure scripts of some of the bundled libraries (e.g. SCT) are
 # generated using original (non-patched) Libtool macros, which are not aware of
 # NVidia HPC compilers. As a result, their libtool scripts do not keep the
@@ -65,9 +70,12 @@ LDFLAGS="${RTTOV_LDFLAGS-} -L${sw_root}/lib"
 # are meant for the linker only via ICON_LDFLAGS so that they are not passed to
 # any libtool script:
 ICON_LDFLAGS='-Wl,--disable-new-dtags -Wl,--as-needed'
-LIBS="-lxml2 -lSerialboxFortran -leccodes ${RTTOV_LIBS-} -llapack -lblas -lnetcdff -lnetcdf -lhdf5_hl_fortran -lhdf5_fortran -lhdf5"
 
-EXTRA_CONFIG_ARGS='--enable-loop-exchange --enable-grib2 --disable-mpi --disable-coupling'
+LIBS="-lxml2 -lfyaml -lSerialboxFortran -leccodes_f90 -leccodes ${RTTOV_LIBS-} -llapack -lblas -lnetcdff -lnetcdf -lhdf5_hl_fortran -lhdf5_fortran -lhdf5 -lz"
+
+MPI_LAUNCH='mpiexec'
+
+EXTRA_CONFIG_ARGS='--enable-gpu --enable-dim-swap --enable-grib2'
 
 ################################################################################
 
@@ -76,6 +84,8 @@ BUILD_ENV="${BUILD_ENV}" \
 CC="${CC}" \
 CFLAGS="${CFLAGS}" \
 CPPFLAGS="${CPPFLAGS}" \
+CUDACXX="${CUDACXX}" \
+CUDAFLAGS="${CUDAFLAGS}" \
 CXX="${CXX}" \
 CXXFLAGS="${CXXFLAGS}" \
 FC="${FC}" \
@@ -84,6 +94,7 @@ ICON_FCFLAGS="${ICON_FCFLAGS}" \
 ICON_LDFLAGS="${ICON_LDFLAGS}" \
 LDFLAGS="${LDFLAGS}" \
 LIBS="${LIBS}" \
+MPI_LAUNCH="${MPI_LAUNCH}" \
 ${EXTRA_CONFIG_ARGS} \
 "$@"
 
