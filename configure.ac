@@ -725,6 +725,14 @@ component but the ART component is disabled: either disable the the dnl
 GPL-licensed code of the component (--disable-art-gpl) or enable the ART dnl
 component (--enable-art)])])])
 
+AS_VAR_IF([enable_parallel_netcdf], [yes],
+  [AS_VAR_IF([enable_mpi], [no],
+     [AC_MSG_ERROR([unsupported combination of the configure options: you dnl
+are trying to configure with the parallel features of NetCDF but MPI dnl
+(parallelization) support is disabled: either disable usage of the parallel dnl
+features of NetCDF (--disable-parallel-netcdf) or enable MPI dnl
+(parallelization) support (--enable-mpi)])])])
+
 AS_VAR_IF([enable_cdi_pio], [yes],
   [AS_VAR_IF([enable_mpi], [no],
      [AC_MSG_ERROR([unsupported combination of the configure options: you dnl
@@ -742,6 +750,12 @@ library (--without-external-cdi), or provide the version of YAXT library dnl
 (--with-external-yaxt) that the provided CDI library has been built with by dnl
 setting FCFLAGS, LDFLAGS and LIBS accordingly])])])
 
+AS_IF([test "x$enable_yaxt" = xyes && test "x$enable_mpi" = xno],
+  [AC_MSG_ERROR([unsupported combination of the configure options: you are dnl
+trying to configure with the YAXT data exchange but MPI (parallelization) dnl
+support is disabled: either disable the YAXT data exchange (--disable-yaxt) dnl
+or enable MPI (parallelization) support (--enable-mpi)])])
+
 AS_CASE(["$with_external_mtime$icon_mtime_python"],
   [yesyes], [AC_MSG_ERROR([unsupported combination of the configure options: dnl
 you are trying to configure with the Python interface of the bundled MTIME dnl
@@ -751,21 +765,27 @@ version of MTIME library (--without-external-mtime)])],
   [noauto], [icon_mtime_python=yes],
   [*auto], [icon_mtime_python=no])
 
-AS_IF([test "x$enable_coupling" = xyes && test "x$with_external_yac" = xyes],
-  [AS_VAR_IF([with_external_mtime], [no],
+AS_VAR_IF([enable_coupling], [yes],
+  [AS_VAR_IF([enable_mpi], [no],
      [AC_MSG_ERROR([unsupported combination of the configure options: you dnl
+are trying to configure with the coupling but MPI (parallelization) support dnl
+is disabled: either disable the coupling (--disable-coupling) or enable MPI dnl
+(parallelization) support (--enable-mpi)])])
+   AS_VAR_IF([x$with_external_yac], [yes],
+     [AS_VAR_IF([with_external_mtime], [no],
+        [AC_MSG_ERROR([unsupported combination of the configure options: you dnl
 are trying to configure with an external YAC library and the bundled MTIME dnl
 library: either disable the coupling (--disable-coupling) or use the bundled dnl
 version of YAC library (--without-external-yac), or provide the version of dnl
 MTIME library (--with-external-mtime) that the provided YAC library has been dnl
 built with by setting FCFLAGS, LDFLAGS and LIBS accordingly])])
-   AS_VAR_IF([with_external_yaxt], [no],
-     [AC_MSG_ERROR([unsupported combination of the configure options: you dnl
+      AS_VAR_IF([with_external_yaxt], [no],
+        [AC_MSG_ERROR([unsupported combination of the configure options: you dnl
 are trying to configure with an external YAC library and the bundled YAXT dnl
 library: either disable the coupling (--disable-coupling) or use the bundled dnl
 version of YAC library (--without-external-yac), or provide the version of dnl
 YAXT library (--with-external-yaxt) that the provided YAC library has been dnl
-built with by setting FCFLAGS, LDFLAGS and LIBS accordingly])])])
+built with by setting FCFLAGS, LDFLAGS and LIBS accordingly])])])])
 
 AS_CASE(["$enable_coupling$with_external_yac$icon_yac_python"],
   [no*yes], [AC_MSG_ERROR([unsupported combination of the configure options: dnl
@@ -1343,7 +1363,11 @@ switch the secondary GPU compiler (e.g. dnl
      [[// override default includes]])
    ACX_LANG_POP_HIP])
 
-AS_IF([test "x$enable_mpi" = xyes || test "x$enable_yaxt" = xyes],
+dnl The positive value (yes) of the following variable indicates that we have a
+dnl working MPI_LAUNCH command:
+icon_have_mpi_launch=no
+
+AS_VAR_IF([enable_mpi], [yes],
   [AC_CACHE_CHECK([whether the Fortran 90 interface of MPI library is dnl
 available], [icon_cv_have_mpi],
      [icon_cv_have_mpi=no
@@ -1360,6 +1384,14 @@ available], [icon_cv_have_mpi],
 interface of MPI library: either disable MPI support (--disable-mpi) and the dnl
 YAXT data exchange (--disable-yaxt) or set FC to the MPI Fortran compiler dnl
 wrapper, or set FCFLAGS, LDFLAGS and LIBS accordingly])])
+dnl
+dnl We check whether MPI_LAUNCH works as early as possible because we might need
+dnl it for the following library checks (the respective precious variable is
+dnl declared below, together with other auxiliary commands):
+   ACX_PROG_MPIRUN([MPI_LAUNCH],
+     [MPI_LAUNCH=$acx_cv_prog_mpirun
+      ACX_PROG_SEARCH_ABSPATH_IF_NOT_ABSPATH([MPI_LAUNCH])
+      icon_have_mpi_launch=yes], [:])
 dnl
    AC_MSG_CHECKING([for the version of the supported MPI standard])
    AS_IF([AS_VAR_TEST_SET([icon_cv_mpi_version]) &&
@@ -1394,7 +1426,7 @@ required (--disable-mpi-rget)])
          enable_mpi_rget=yes],
         [enable_mpi_rget=no])])
    AS_VAR_IF([enable_mpi_rget], [no],
-     [AS_VAR_APPEND([FCFLAGS], [" ${FC_PP_DEF}NO_MPI_RGET"])])])
+     [AS_VAR_APPEND([FCFLAGS], [" ${FC_PP_DEF}NO_MPI_RGET"])])
 dnl
    AC_CACHE_CHECK(
      [for interfaces for MPI routines with choice arguments],
@@ -1422,7 +1454,7 @@ dnl
        [icon_cv_have_mpi_cptr=yes],
        [icon_cv_have_mpi_cptr=no])])
     AS_VAR_IF([icon_cv_have_mpi_cptr], [no],
-      [AS_VAR_APPEND([FCFLAGS], [" ${FC_PP_DEF}NO_MPI_CPTR_ARG"])])
+      [AS_VAR_APPEND([FCFLAGS], [" ${FC_PP_DEF}NO_MPI_CPTR_ARG"])])])
 
 AS_VAR_IF([enable_emvorado], [yes],
   [AC_CACHE_CHECK([whether C ZLIB library is available via the Fortran dnl
@@ -1508,17 +1540,12 @@ dnl launcher on some platforms. Moreover, MPI launchers often return invalid
 dnl exit codes. Therefore, we build a test program that prints
 dnl 'conftest_parallel_yes' if NetCDF-Fortran library is built with parallel
 dnl support, otherwise, the output is 'conftest_parallel_no'. We launch the
-dnl program only if MPI_LAUNCH is set to a non-empty value and fail the
-dnl configuration only if the output of the test program contains
+dnl program with MPI_LAUNCH if it is known to work and without it otherwise. We
+dnl fail the configuration only if the output of the test program contains
 dnl 'conftest_parallel_no' (some MPI implementations print warning messages to
 dnl the standard output stream, therefore we cannot compare the output
 dnl literally). If the output contains, 'conftest_parallel_yes', the test is
-dnl considered successful. In all other cases, we issue a warning. Note that we
-dnl do not run a proper check whether MPI_LAUNCH is a valid interactive MPI
-dnl launcher command (as some of the bundled packages do) because the main
-dnl purpose of the test is to bring the user's attention to the fact that
-dnl something is wrong, and if MPI_LAUNCH command is invalid, we will not get
-dnl the expected output from the test program and issue a warning.
+dnl considered successful. In all other cases, we issue a warning.
       AC_LINK_IFELSE([AC_LANG_PROGRAM([], [[
       use mpi, only: mpi_init, mpi_finalize, &
                    & MPI_COMM_WORLD, MPI_INFO_NULL
@@ -1538,8 +1565,10 @@ dnl the expected output from the test program and issue a warning.
         write(*,"(a)") "conftest_parallel_yes"
       endif
       call mpi_finalize(tmp)]])],
-        [icon_exec_result=dnl
-`${MPI_LAUNCH:-false} -n 1 ./conftest$ac_exeext 2>/dev/null`
+        [icon_exec_prefix=
+         AS_VAR_IF([icon_have_mpi_launch], [yes],
+           [icon_exec_prefix="$MPI_LAUNCH -n 1"])
+         icon_exec_result=`$icon_exec_prefix ./conftest$ac_exeext 2>/dev/null`
          rm -f conftest.nc
          AS_IF(
            [echo "$icon_exec_result" | dnl
@@ -1882,14 +1911,6 @@ dnl The message generated by AC_PROG_LN_S is misleading in our case, therefore
 dnl we do what the standard macro does but without the message:
 AC_SUBST([LN_S], [$as_ln_s])
 
-m4_define([icon_prog_search_if_not_abspath],
-  [AS_CASE([AS_VAR_GET([$1])],
-     [[[\\/]]* | ?:[[\\/]]*], [],
-     [ACX_PROG_SEARCH_ABSPATH([AS_VAR_GET([$1])],
-        [AS_VAR_SET([$1], ["$acx_prog_search_abspath"])],
-        [AC_MSG_WARN(
-           [unable to find the absolute path to AS_VAR_GET([$1])])])])])dnl
-
 AC_ARG_VAR([AR], [archiver command])dnl
 AC_ARG_VAR([ARFLAGS], [archiver flags])dnl
 ARFLAGS=${ARFLAGS-cr}
@@ -1901,11 +1922,11 @@ ACX_PROG_SEARCH([AR], [ar],
       rm -f libconftest.a])
    test $ac_status -eq 0],
   [AR=$acx_cv_prog_AR])
-icon_prog_search_if_not_abspath([AR])
+ACX_PROG_SEARCH_ABSPATH_IF_NOT_ABSPATH([AR])
 
 AC_ARG_VAR([RANLIB], [archive indexer command])dnl
 AC_PROG_RANLIB
-icon_prog_search_if_not_abspath([RANLIB])
+ACX_PROG_SEARCH_ABSPATH_IF_NOT_ABSPATH([RANLIB])
 
 AC_ARG_VAR([PYTHON], [Python interpreter command])dnl
 ACX_PROG_SEARCH([PYTHON], [python3 python],
@@ -1913,14 +1934,14 @@ ACX_PROG_SEARCH([PYTHON], [python3 python],
 '$acx_candidate $srcdir/utils/mkhelper/depgen.py -h >/dev/null'
    AC_TRY_EVAL([icon_prog_try])],
   [PYTHON=$acx_cv_prog_PYTHON])
-icon_prog_search_if_not_abspath([PYTHON])
+ACX_PROG_SEARCH_ABSPATH_IF_NOT_ABSPATH([PYTHON])
 
 AC_ARG_VAR([CMAKE], [CMake command])dnl
 ACX_PROG_SEARCH([CMAKE], [cmake],
   [icon_prog_try='$acx_candidate --version >&AS_MESSAGE_LOG_FD'
    AC_TRY_EVAL([icon_prog_try])],
   [CMAKE=$acx_cv_prog_CMAKE])
-icon_prog_search_if_not_abspath([CMAKE])
+ACX_PROG_SEARCH_ABSPATH_IF_NOT_ABSPATH([CMAKE])
 
 AC_ARG_VAR([FPP], [Fortran preprocessor command])dnl
 AS_VAR_IF([enable_explicit_fpp], [yes],
@@ -1962,7 +1983,25 @@ in the PYTHONPATH environment variable, or set SB2PP accordingly])])],
    [SB2PP=])
 
 AC_ARG_VAR([MPI_LAUNCH], [interactive MPI launcher command])dnl
-AS_IF([test -n "$MPI_LAUNCH"], [icon_prog_search_if_not_abspath([MPI_LAUNCH])])
+dnl Save the command to pass it later to the bundled packages.
+AS_VAR_IF([icon_have_mpi_launch], [yes],
+  [dnl The command works and should be passed to bundled packages:
+   subdir_MPI_LAUNCH=$MPI_LAUNCH],
+  [dnl We either did not check whether the command works or it does not work, or
+dnl it works but we failed to detect that. The bundled packages are free to try
+dnl to do better. Some of them, however, see the difference between MPI_LAUNCH
+dnl not being set and being set to an empty string. Therefore, we make sure that
+dnl subdir_MPI_LAUNCH is unset when MPI_LAUNCH is not set (i.e. not provided by
+dnl the user):
+   AS_VAR_SET_IF([MPI_LAUNCH],
+     [subdir_MPI_LAUNCH=$MPI_LAUNCH],
+     [AS_UNSET([subdir_MPI_LAUNCH])])
+dnl We are not going to use MPI_LAUNCH ourselves:
+   MPI_LAUNCH=
+dnl Some of the bundled packages honour MPI_LAUNCH only if it is an absolute
+dnl path:
+   AS_IF([test -n "$subdir_MPI_LAUNCH"],
+     [ACX_PROG_SEARCH_ABSPATH_IF_NOT_ABSPATH([subdir_MPI_LAUNCH])])])
 
 ############################### BUNDLED PACKAGES ###############################
 
@@ -2134,7 +2173,7 @@ version of SCT library @<:@default=$ICON_BUNDLED_CFLAGS@:>@])dnl
    ACX_SUBDIR_APPEND_ARGS([externals/sct],
      [CFLAGS="$subdir_CFLAGS $ICON_SCT_CFLAGS"],
      [FCFLAGS="$subdir_FCFLAGS $ICON_SCT_FCFLAGS"], [AR="$AR"],
-     [RANLIB="$RANLIB"], [MPICC=], [MPIFC=], [MPI_LAUNCH="$MPI_LAUNCH"],
+     [RANLIB="$RANLIB"], [MPICC=], [MPIFC=], [MPI_LAUNCH="$subdir_MPI_LAUNCH"],
      [--enable-static], [--disable-shared], [--disable-maintainer-mode],
      [--enable-mpi="$enable_mpi"], [--enable-openmp="$enable_openmp"],
      [--disable-rpath], [--disable-papi], [--enable-hdf5],
@@ -2205,7 +2244,7 @@ version of YAXT library @<:@default=$ICON_BUNDLED_CFLAGS@:>@])dnl
       ACX_SUBDIR_APPEND_ARGS([externals/yaxt],
         [CFLAGS="$subdir_CFLAGS $ICON_YAXT_CFLAGS"],
         [FCFLAGS="$subdir_FCFLAGS $ICON_YAXT_FCFLAGS"], [AR="$AR"],
-        [RANLIB="$RANLIB"], [MPI_LAUNCH="$MPI_LAUNCH"], [MPIROOT=],
+        [RANLIB="$RANLIB"], [MPI_LAUNCH="$subdir_MPI_LAUNCH"], [MPIROOT=],
         [MPI_C_INCLUDE=], [MPI_C_LIB=], [MPI_FC_MOD=], [MPI_FC_LIB=],
         [BUILD_CFLAGS=], [BUILD_FCFLAGS=], [BUILD_LDFLAGS=], [BUILD_LIBS=],
         [BUILD_CC=], [BUILD_FC=],
@@ -2292,7 +2331,7 @@ version of PPM library @<:@default=$ICON_BUNDLED_CFLAGS@:>@])dnl
       ACX_SUBDIR_APPEND_ARGS([externals/ppm],
         [CFLAGS="$subdir_CFLAGS $ICON_PPM_CFLAGS"],
         [FCFLAGS="$subdir_FCFLAGS $ICON_PPM_FCFLAGS"],
-        [MPI_LAUNCH="$MPI_LAUNCH"], [AR="$AR"], [RANLIB="$RANLIB"],
+        [MPI_LAUNCH="$subdir_MPI_LAUNCH"], [AR="$AR"], [RANLIB="$RANLIB"],
         [PYTHON="$PYTHON"], [PLATFORM_OPT_LIBM=], [IEEE_ARITHMETICROOT=],
         [IEEE_ARITHMETIC_FC_MOD=], [IEEE_ARITHMETIC_FC_LIB=],
         [IEEE_ARHMETIC_FCFLAGS=], [MPIROOT=], [MPI_C_INCLUDE=], [MPI_C_LIB=],
@@ -2388,12 +2427,13 @@ dnl the C++ compiler at all (e.g. like in YAXT).
      [UTIL_LINUX_UUID_C_INCLUDE=], [UTIL_LINUX_UUID_C_LIB=],
      [OSSP_UUID_C_INCLUDE=], [OSSP_UUID_C_LIB=], [DCE_UUID_C_INCLUDE=],
      [DCE_UUID_C_LIB=], [MPIROOT=], [MPI_C_INCLUDE=], [MPI_C_LIB=],
-     [MPI_LAUNCH="$MPI_LAUNCH"], [MPI_FC_MOD=], [MPI_FC_LIB=], [PKG_CONFIG=],
-     [YAXT_C_INCLUDE=], [YAXT_C_LIB=], [YAXT_FC_MOD=], [YAXT_FC_LIB=],
-     [PPM_CORE_C_INCLUDE=], [PPM_CORE_C_LIB=], [PYTHON="$PYTHON"],
-     [BUILD_CFLAGS=], [BUILD_FCFLAGS=], [BUILD_LDFLAGS=], [BUILD_LIBS=],
-     [BUILD_MPI_C_LIB=], [BUILD_MPI_FC_LIB=], [BUILD_CC=], [BUILD_CXX=],
-     [BUILD_FC=], [BUILD_F77=], [--enable-silent-rules="$enable_silent_rules"],
+     [MPI_LAUNCH="$subdir_MPI_LAUNCH"], [MPI_FC_MOD=], [MPI_FC_LIB=],
+     [PKG_CONFIG=], [YAXT_C_INCLUDE=], [YAXT_C_LIB=], [YAXT_FC_MOD=],
+     [YAXT_FC_LIB=], [PPM_CORE_C_INCLUDE=], [PPM_CORE_C_LIB=],
+     [PYTHON="$PYTHON"], [BUILD_CFLAGS=], [BUILD_FCFLAGS=], [BUILD_LDFLAGS=],
+     [BUILD_LIBS=], [BUILD_MPI_C_LIB=], [BUILD_MPI_FC_LIB=], [BUILD_CC=],
+     [BUILD_CXX=], [BUILD_FC=], [BUILD_F77=],
+     [--enable-silent-rules="$enable_silent_rules"],
      [--disable-maintainer-mode], [--enable-mpi="$enable_cdi_pio"],
      [--enable-iso-c-interface], [--enable-cf-interface="$enable_cdi_pio"],
      [--disable-ruby-interface], [--disable-python-interface],
@@ -2567,8 +2607,9 @@ version of YAC library @<:@default=$ICON_BUNDLED_CFLAGS@:>@])dnl
      [--enable-netcdf], [--enable-python-bindings="$icon_yac_python"],
      [--with-pic="$icon_yac_python"], [--with-external-lapack=fortran],
      [--with-external-mtime])
-   AS_VAR_SET_IF([MPI_LAUNCH],
-     [ACX_SUBDIR_APPEND_ARGS([externals/yac], [MPI_LAUNCH="$MPI_LAUNCH"])])
+   AS_VAR_SET_IF([subdir_MPI_LAUNCH],
+     [ACX_SUBDIR_APPEND_ARGS([externals/yac],
+        [MPI_LAUNCH="$subdir_MPI_LAUNCH"])])
    AS_VAR_IF([with_external_yaxt], [yes],
      [ACX_SUBDIR_APPEND_ARGS([externals/yac],
         [YAXT_CFLAGS=], [YAXT_FCFLAGS=])],

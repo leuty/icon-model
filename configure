@@ -2179,48 +2179,6 @@ $as_echo "$ac_res" >&6; }
 
 } # ac_fn_hip_check_header_compile
 
-# ac_fn_fc_try_run LINENO
-# -----------------------
-# Try to link conftest.$ac_ext, and return whether this succeeded. Assumes
-# that executables *can* be run.
-ac_fn_fc_try_run ()
-{
-  as_lineno=${as_lineno-"$1"} as_lineno_stack=as_lineno_stack=$as_lineno_stack
-  if { { ac_try="$ac_link"
-case "(($ac_try" in
-  *\"* | *\`* | *\\*) ac_try_echo=\$ac_try;;
-  *) ac_try_echo=$ac_try;;
-esac
-eval ac_try_echo="\"\$as_me:${as_lineno-$LINENO}: $ac_try_echo\""
-$as_echo "$ac_try_echo"; } >&5
-  (eval "$ac_link") 2>&5
-  ac_status=$?
-  $as_echo "$as_me:${as_lineno-$LINENO}: \$? = $ac_status" >&5
-  test $ac_status = 0; } && { ac_try='./conftest$ac_exeext'
-  { { case "(($ac_try" in
-  *\"* | *\`* | *\\*) ac_try_echo=\$ac_try;;
-  *) ac_try_echo=$ac_try;;
-esac
-eval ac_try_echo="\"\$as_me:${as_lineno-$LINENO}: $ac_try_echo\""
-$as_echo "$ac_try_echo"; } >&5
-  (eval "$ac_try") 2>&5
-  ac_status=$?
-  $as_echo "$as_me:${as_lineno-$LINENO}: \$? = $ac_status" >&5
-  test $ac_status = 0; }; }; then :
-  ac_retval=0
-else
-  $as_echo "$as_me: program exited with status $ac_status" >&5
-       $as_echo "$as_me: failed program was:" >&5
-sed 's/^/| /' conftest.$ac_ext >&5
-
-       ac_retval=$ac_status
-fi
-  rm -rf conftest.dSYM conftest_ipa8_conftest.oo
-  eval $as_lineno_stack; ${as_lineno_stack:+:} unset as_lineno
-  as_fn_set_status $ac_retval
-
-} # ac_fn_fc_try_run
-
 acx_prog_search_abspath_fn ()
 {
 acx_prog_exec=$1
@@ -2262,6 +2220,48 @@ fi ;; #(
 esac ;;
 esac
 } # acx_prog_search_abspath_fn
+
+# ac_fn_fc_try_run LINENO
+# -----------------------
+# Try to link conftest.$ac_ext, and return whether this succeeded. Assumes
+# that executables *can* be run.
+ac_fn_fc_try_run ()
+{
+  as_lineno=${as_lineno-"$1"} as_lineno_stack=as_lineno_stack=$as_lineno_stack
+  if { { ac_try="$ac_link"
+case "(($ac_try" in
+  *\"* | *\`* | *\\*) ac_try_echo=\$ac_try;;
+  *) ac_try_echo=$ac_try;;
+esac
+eval ac_try_echo="\"\$as_me:${as_lineno-$LINENO}: $ac_try_echo\""
+$as_echo "$ac_try_echo"; } >&5
+  (eval "$ac_link") 2>&5
+  ac_status=$?
+  $as_echo "$as_me:${as_lineno-$LINENO}: \$? = $ac_status" >&5
+  test $ac_status = 0; } && { ac_try='./conftest$ac_exeext'
+  { { case "(($ac_try" in
+  *\"* | *\`* | *\\*) ac_try_echo=\$ac_try;;
+  *) ac_try_echo=$ac_try;;
+esac
+eval ac_try_echo="\"\$as_me:${as_lineno-$LINENO}: $ac_try_echo\""
+$as_echo "$ac_try_echo"; } >&5
+  (eval "$ac_try") 2>&5
+  ac_status=$?
+  $as_echo "$as_me:${as_lineno-$LINENO}: \$? = $ac_status" >&5
+  test $ac_status = 0; }; }; then :
+  ac_retval=0
+else
+  $as_echo "$as_me: program exited with status $ac_status" >&5
+       $as_echo "$as_me: failed program was:" >&5
+sed 's/^/| /' conftest.$ac_ext >&5
+
+       ac_retval=$ac_status
+fi
+  rm -rf conftest.dSYM conftest_ipa8_conftest.oo
+  eval $as_lineno_stack; ${as_lineno_stack:+:} unset as_lineno
+  as_fn_set_status $ac_retval
+
+} # ac_fn_fc_try_run
 
 acx_subdir_srcdirs_fn ()
 {
@@ -3884,6 +3884,12 @@ if test "x$enable_art" = xno; then :
 fi
 fi
 
+if test "x$enable_parallel_netcdf" = xyes; then :
+  if test "x$enable_mpi" = xno; then :
+  as_fn_error $? "unsupported combination of the configure options: you are trying to configure with the parallel features of NetCDF but MPI (parallelization) support is disabled: either disable usage of the parallel features of NetCDF (--disable-parallel-netcdf) or enable MPI (parallelization) support (--enable-mpi)" "$LINENO" 5
+fi
+fi
+
 if test "x$enable_cdi_pio" = xyes; then :
   if test "x$enable_mpi" = xno; then :
   as_fn_error $? "unsupported combination of the configure options: you are trying to configure with the parallel features of CDI but MPI (parallelization) support is disabled: either disable usage of the parallel features of CDI (--disable-cdi-pio) or enable MPI (parallelization) support (--enable-mpi)" "$LINENO" 5
@@ -3891,6 +3897,10 @@ fi
    if test "x$with_external_cdi" = xyes && test "x$with_external_yaxt" = xno; then :
   as_fn_error $? "unsupported combination of the configure options: you are trying to configure with the parallel features of an external CDI library and the bundled YAXT library: either disable usage of the parallel features of CDI (--disable-cdi-pio) or use the bundled version of CDI library (--without-external-cdi), or provide the version of YAXT library (--with-external-yaxt) that the provided CDI library has been built with by setting FCFLAGS, LDFLAGS and LIBS accordingly" "$LINENO" 5
 fi
+fi
+
+if test "x$enable_yaxt" = xyes && test "x$enable_mpi" = xno; then :
+  as_fn_error $? "unsupported combination of the configure options: you are trying to configure with the YAXT data exchange but MPI (parallelization) support is disabled: either disable the YAXT data exchange (--disable-yaxt) or enable MPI (parallelization) support (--enable-mpi)" "$LINENO" 5
 fi
 
 case "$with_external_mtime$icon_mtime_python" in #(
@@ -3904,12 +3914,17 @@ case "$with_external_mtime$icon_mtime_python" in #(
      ;;
 esac
 
-if test "x$enable_coupling" = xyes && test "x$with_external_yac" = xyes; then :
+if test "x$enable_coupling" = xyes; then :
+  if test "x$enable_mpi" = xno; then :
+  as_fn_error $? "unsupported combination of the configure options: you are trying to configure with the coupling but MPI (parallelization) support is disabled: either disable the coupling (--disable-coupling) or enable MPI (parallelization) support (--enable-mpi)" "$LINENO" 5
+fi
+   if eval test \"x\$"x$with_external_yac"\" = x"yes"; then :
   if test "x$with_external_mtime" = xno; then :
   as_fn_error $? "unsupported combination of the configure options: you are trying to configure with an external YAC library and the bundled MTIME library: either disable the coupling (--disable-coupling) or use the bundled version of YAC library (--without-external-yac), or provide the version of MTIME library (--with-external-mtime) that the provided YAC library has been built with by setting FCFLAGS, LDFLAGS and LIBS accordingly" "$LINENO" 5
 fi
-   if test "x$with_external_yaxt" = xno; then :
+      if test "x$with_external_yaxt" = xno; then :
   as_fn_error $? "unsupported combination of the configure options: you are trying to configure with an external YAC library and the bundled YAXT library: either disable the coupling (--disable-coupling) or use the bundled version of YAC library (--without-external-yac), or provide the version of YAXT library (--with-external-yaxt) that the provided YAC library has been built with by setting FCFLAGS, LDFLAGS and LIBS accordingly" "$LINENO" 5
+fi
 fi
 fi
 
@@ -8269,7 +8284,9 @@ ac_compiler_gnu=$ac_cv_fc_compiler_gnu
      ;;
 esac
 
-if test "x$enable_mpi" = xyes || test "x$enable_yaxt" = xyes; then :
+icon_have_mpi_launch=no
+
+if test "x$enable_mpi" = xyes; then :
   { $as_echo "$as_me:${as_lineno-$LINENO}: checking whether the Fortran 90 interface of MPI library is available" >&5
 $as_echo_n "checking whether the Fortran 90 interface of MPI library is available... " >&6; }
 if ${icon_cv_have_mpi+:} false; then :
@@ -8303,6 +8320,104 @@ $as_echo "$as_me: error: in \`$ac_pwd':" >&2;}
 as_fn_error $? "unable to link a test program using the Fortran 90 interface of MPI library: either disable MPI support (--disable-mpi) and the YAXT data exchange (--disable-yaxt) or set FC to the MPI Fortran compiler wrapper, or set FCFLAGS, LDFLAGS and LIBS accordingly
 See \`config.log' for more details
 ${icon_usr_note}" "$LINENO" 5; }
+fi
+   { $as_echo "$as_me:${as_lineno-$LINENO}: checking for MPI launch program" >&5
+$as_echo_n "checking for MPI launch program... " >&6; }
+   acx_tmp=
+   if ${acx_cv_prog_mpirun+:} false; then :
+  $as_echo_n "(cached) " >&6
+else
+  cat > conftest.$ac_ext <<_ACEOF
+      program main
+      use mpi
+      implicit none
+      integer :: s, r, e1, e2
+      s = -1
+      r = -1
+      call MPI_Init(e1)
+      if (e1 /= MPI_SUCCESS) then
+        call MPI_Abort(MPI_COMM_WORLD, e1, e2)
+      endif
+      call MPI_Comm_size(MPI_COMM_WORLD, s, e1)
+      if (e1 /= MPI_SUCCESS) then
+        call MPI_Abort(MPI_COMM_WORLD, e1, e2)
+      endif
+      call MPI_Comm_rank(MPI_COMM_WORLD, r, e1)
+      if (e1 /= MPI_SUCCESS) then
+        call MPI_Abort(MPI_COMM_WORLD, e1, e2)
+      endif
+      if (r == 0) write(*, "(a,i0)") 'conftest: ', s
+      call MPI_Finalize(e1)
+      if (e1 /= MPI_SUCCESS) then
+        call MPI_Abort(MPI_COMM_WORLD, e1, e2)
+      endif
+      end
+_ACEOF
+if ac_fn_fc_try_link "$LINENO"; then :
+  if ${MPI_LAUNCH+:} false; then :
+  set dummy "$MPI_LAUNCH"
+else
+  set dummy mpirun mpiexec srun
+fi
+         shift
+         for acx_candidate in "$@"; do
+            $as_echo "$as_me:${as_lineno-$LINENO}: acx_exec_result=\`$acx_candidate -n 2 ./conftest$ac_exeext 2>&5\`" >&5
+            acx_exec_result=`$acx_candidate -n 2 ./conftest$ac_exeext 2>&5`
+            acx_status=$?
+            $as_echo "$as_me:${as_lineno-$LINENO}: \$? = $acx_status" >&5
+            if test $acx_status -eq 0; then :
+  $as_echo "$as_me:${as_lineno-$LINENO}: \$acx_exec_result = $acx_exec_result" >&5
+               $as_echo "$as_me:${as_lineno-$LINENO}: acx_exec_result=\`$as_echo \"\$acx_exec_result\" | sed -n '/^conftest: 2$/p'\`" >&5
+               acx_exec_result=`$as_echo "$acx_exec_result" | sed -n '/^conftest: 2$/p'`
+               $as_echo "$as_me:${as_lineno-$LINENO}: \$acx_exec_result = $acx_exec_result" >&5
+               if test "x$acx_exec_result" = x'conftest: 2'; then :
+  acx_cv_prog_mpirun=$acx_candidate
+                  break
+fi
+fi
+         done
+else
+  acx_tmp='failed to link MPI test program'
+fi
+rm -f core conftest.err conftest.$ac_objext \
+    conftest$ac_exeext conftest.$ac_ext
+fi
+
+   if ${acx_cv_prog_mpirun+:} false; then :
+  { $as_echo "$as_me:${as_lineno-$LINENO}: result: $acx_cv_prog_mpirun" >&5
+$as_echo "$acx_cv_prog_mpirun" >&6; }
+      MPI_LAUNCH=$acx_cv_prog_mpirun
+      case $MPI_LAUNCH in #(
+  [\\/]* | ?:[\\/]*) :
+     ;; #(
+  *) :
+       acx_prog_search_abspath=unknown
+   set dummy $MPI_LAUNCH; shift; acx_prog_exec=$1; shift; acx_prog_args="$@"
+   { $as_echo "$as_me:${as_lineno-$LINENO}: checking for the absolute path to $acx_prog_exec" >&5
+$as_echo_n "checking for the absolute path to $acx_prog_exec... " >&6; }
+   acx_prog_search_abspath_fn "$acx_prog_exec"
+   { $as_echo "$as_me:${as_lineno-$LINENO}: result: $acx_prog_search_abspath" >&5
+$as_echo "$acx_prog_search_abspath" >&6; }
+   if test "x$acx_prog_search_abspath" = xunknown; then :
+  set dummy $MPI_LAUNCH; shift
+            { $as_echo "$as_me:${as_lineno-$LINENO}: WARNING: unable to find the absolute path to $1" >&5
+$as_echo "$as_me: WARNING: unable to find the absolute path to $1" >&2;}
+else
+  if test -n "$acx_prog_args"; then :
+  as_fn_append acx_prog_search_abspath " $acx_prog_args"
+fi
+      MPI_LAUNCH="$acx_prog_search_abspath"
+fi ;;
+esac
+      icon_have_mpi_launch=yes
+else
+  { $as_echo "$as_me:${as_lineno-$LINENO}: result: unknown" >&5
+$as_echo "unknown" >&6; }
+      if test -n "$acx_tmp"; then :
+  { $as_echo "$as_me:${as_lineno-$LINENO}: WARNING: $acx_tmp" >&5
+$as_echo "$as_me: WARNING: $acx_tmp" >&2;}
+fi
+      :
 fi
    { $as_echo "$as_me:${as_lineno-$LINENO}: checking for the version of the supported MPI standard" >&5
 $as_echo_n "checking for the version of the supported MPI standard... " >&6; }
@@ -8486,7 +8601,6 @@ fi
    if test "x$enable_mpi_rget" = xno; then :
   as_fn_append FCFLAGS " ${FC_PP_DEF}NO_MPI_RGET"
 fi
-fi
    { $as_echo "$as_me:${as_lineno-$LINENO}: checking for interfaces for MPI routines with choice arguments" >&5
 $as_echo_n "checking for interfaces for MPI routines with choice arguments... " >&6; }
 if ${icon_cv_have_mpi_choice+:} false; then :
@@ -8540,6 +8654,7 @@ fi
 $as_echo "$icon_cv_have_mpi_cptr" >&6; }
     if test "x$icon_cv_have_mpi_cptr" = xno; then :
   as_fn_append FCFLAGS " ${FC_PP_DEF}NO_MPI_CPTR_ARG"
+fi
 fi
 
 if test "x$enable_emvorado" = xyes; then :
@@ -8720,7 +8835,11 @@ else
       end
 _ACEOF
 if ac_fn_fc_try_link "$LINENO"; then :
-  icon_exec_result=`${MPI_LAUNCH:-false} -n 1 ./conftest$ac_exeext 2>/dev/null`
+  icon_exec_prefix=
+         if test "x$icon_have_mpi_launch" = xyes; then :
+  icon_exec_prefix="$MPI_LAUNCH -n 1"
+fi
+         icon_exec_result=`$icon_exec_prefix ./conftest$ac_exeext 2>/dev/null`
          rm -f conftest.nc
          if echo "$icon_exec_result" | grep 'conftest_parallel_no' >/dev/null 2>&1; then :
   icon_cv_have_netcdf_parallel=no
@@ -9500,7 +9619,6 @@ $as_echo "$MKDIR_P" >&6; }
 LN_S=$as_ln_s
 
 
-
 ARFLAGS=${ARFLAGS-cr}
    { $as_echo "$as_me:${as_lineno-$LINENO}: checking for ar" >&5
 $as_echo_n "checking for ar... " >&6; }
@@ -9563,8 +9681,9 @@ $as_echo_n "checking for the absolute path to $acx_prog_exec... " >&6; }
    { $as_echo "$as_me:${as_lineno-$LINENO}: result: $acx_prog_search_abspath" >&5
 $as_echo "$acx_prog_search_abspath" >&6; }
    if test "x$acx_prog_search_abspath" = xunknown; then :
-  { $as_echo "$as_me:${as_lineno-$LINENO}: WARNING: unable to find the absolute path to $AR" >&5
-$as_echo "$as_me: WARNING: unable to find the absolute path to $AR" >&2;}
+  set dummy $AR; shift
+            { $as_echo "$as_me:${as_lineno-$LINENO}: WARNING: unable to find the absolute path to $1" >&5
+$as_echo "$as_me: WARNING: unable to find the absolute path to $1" >&2;}
 else
   if test -n "$acx_prog_args"; then :
   as_fn_append acx_prog_search_abspath " $acx_prog_args"
@@ -9677,8 +9796,9 @@ $as_echo_n "checking for the absolute path to $acx_prog_exec... " >&6; }
    { $as_echo "$as_me:${as_lineno-$LINENO}: result: $acx_prog_search_abspath" >&5
 $as_echo "$acx_prog_search_abspath" >&6; }
    if test "x$acx_prog_search_abspath" = xunknown; then :
-  { $as_echo "$as_me:${as_lineno-$LINENO}: WARNING: unable to find the absolute path to $RANLIB" >&5
-$as_echo "$as_me: WARNING: unable to find the absolute path to $RANLIB" >&2;}
+  set dummy $RANLIB; shift
+            { $as_echo "$as_me:${as_lineno-$LINENO}: WARNING: unable to find the absolute path to $1" >&5
+$as_echo "$as_me: WARNING: unable to find the absolute path to $1" >&2;}
 else
   if test -n "$acx_prog_args"; then :
   as_fn_append acx_prog_search_abspath " $acx_prog_args"
@@ -9738,8 +9858,9 @@ $as_echo_n "checking for the absolute path to $acx_prog_exec... " >&6; }
    { $as_echo "$as_me:${as_lineno-$LINENO}: result: $acx_prog_search_abspath" >&5
 $as_echo "$acx_prog_search_abspath" >&6; }
    if test "x$acx_prog_search_abspath" = xunknown; then :
-  { $as_echo "$as_me:${as_lineno-$LINENO}: WARNING: unable to find the absolute path to $PYTHON" >&5
-$as_echo "$as_me: WARNING: unable to find the absolute path to $PYTHON" >&2;}
+  set dummy $PYTHON; shift
+            { $as_echo "$as_me:${as_lineno-$LINENO}: WARNING: unable to find the absolute path to $1" >&5
+$as_echo "$as_me: WARNING: unable to find the absolute path to $1" >&2;}
 else
   if test -n "$acx_prog_args"; then :
   as_fn_append acx_prog_search_abspath " $acx_prog_args"
@@ -9799,8 +9920,9 @@ $as_echo_n "checking for the absolute path to $acx_prog_exec... " >&6; }
    { $as_echo "$as_me:${as_lineno-$LINENO}: result: $acx_prog_search_abspath" >&5
 $as_echo "$acx_prog_search_abspath" >&6; }
    if test "x$acx_prog_search_abspath" = xunknown; then :
-  { $as_echo "$as_me:${as_lineno-$LINENO}: WARNING: unable to find the absolute path to $CMAKE" >&5
-$as_echo "$as_me: WARNING: unable to find the absolute path to $CMAKE" >&2;}
+  set dummy $CMAKE; shift
+            { $as_echo "$as_me:${as_lineno-$LINENO}: WARNING: unable to find the absolute path to $1" >&5
+$as_echo "$as_me: WARNING: unable to find the absolute path to $1" >&2;}
 else
   if test -n "$acx_prog_args"; then :
   as_fn_append acx_prog_search_abspath " $acx_prog_args"
@@ -9989,28 +10111,39 @@ else
   SB2PP=
 fi
 
-if test -n "$MPI_LAUNCH"; then :
-  case $MPI_LAUNCH in #(
+if test "x$icon_have_mpi_launch" = xyes; then :
+     subdir_MPI_LAUNCH=$MPI_LAUNCH
+else
+     if ${MPI_LAUNCH+:} false; then :
+  subdir_MPI_LAUNCH=$MPI_LAUNCH
+else
+  { subdir_MPI_LAUNCH=; unset subdir_MPI_LAUNCH;}
+fi
+   MPI_LAUNCH=
+   if test -n "$subdir_MPI_LAUNCH"; then :
+  case $subdir_MPI_LAUNCH in #(
   [\\/]* | ?:[\\/]*) :
      ;; #(
   *) :
        acx_prog_search_abspath=unknown
-   set dummy $MPI_LAUNCH; shift; acx_prog_exec=$1; shift; acx_prog_args="$@"
+   set dummy $subdir_MPI_LAUNCH; shift; acx_prog_exec=$1; shift; acx_prog_args="$@"
    { $as_echo "$as_me:${as_lineno-$LINENO}: checking for the absolute path to $acx_prog_exec" >&5
 $as_echo_n "checking for the absolute path to $acx_prog_exec... " >&6; }
    acx_prog_search_abspath_fn "$acx_prog_exec"
    { $as_echo "$as_me:${as_lineno-$LINENO}: result: $acx_prog_search_abspath" >&5
 $as_echo "$acx_prog_search_abspath" >&6; }
    if test "x$acx_prog_search_abspath" = xunknown; then :
-  { $as_echo "$as_me:${as_lineno-$LINENO}: WARNING: unable to find the absolute path to $MPI_LAUNCH" >&5
-$as_echo "$as_me: WARNING: unable to find the absolute path to $MPI_LAUNCH" >&2;}
+  set dummy $subdir_MPI_LAUNCH; shift
+            { $as_echo "$as_me:${as_lineno-$LINENO}: WARNING: unable to find the absolute path to $1" >&5
+$as_echo "$as_me: WARNING: unable to find the absolute path to $1" >&2;}
 else
   if test -n "$acx_prog_args"; then :
   as_fn_append acx_prog_search_abspath " $acx_prog_args"
 fi
-      MPI_LAUNCH="$acx_prog_search_abspath"
+      subdir_MPI_LAUNCH="$acx_prog_search_abspath"
 fi ;;
 esac
+fi
 fi
 
 ############################### BUNDLED PACKAGES ###############################
@@ -10312,7 +10445,7 @@ esac
 esac
      shift
    done
-   set dummy CFLAGS="$subdir_CFLAGS $ICON_SCT_CFLAGS" FCFLAGS="$subdir_FCFLAGS $ICON_SCT_FCFLAGS" AR="$AR" RANLIB="$RANLIB" MPICC= MPIFC= MPI_LAUNCH="$MPI_LAUNCH" --enable-static --disable-shared --disable-maintainer-mode --enable-mpi="$enable_mpi" --enable-openmp="$enable_openmp" --disable-rpath --disable-papi --enable-hdf5 --enable-silent-rules="$enable_silent_rules" --without-libpapi-prefix --without-libhdf5-prefix; shift
+   set dummy CFLAGS="$subdir_CFLAGS $ICON_SCT_CFLAGS" FCFLAGS="$subdir_FCFLAGS $ICON_SCT_FCFLAGS" AR="$AR" RANLIB="$RANLIB" MPICC= MPIFC= MPI_LAUNCH="$subdir_MPI_LAUNCH" --enable-static --disable-shared --disable-maintainer-mode --enable-mpi="$enable_mpi" --enable-openmp="$enable_openmp" --disable-rpath --disable-papi --enable-hdf5 --enable-silent-rules="$enable_silent_rules" --without-libpapi-prefix --without-libhdf5-prefix; shift
    for acx_tmp; do
      case $acx_tmp in #(
   *\'*) :
@@ -10431,7 +10564,7 @@ esac
 esac
      shift
    done
-      set dummy CFLAGS="$subdir_CFLAGS $ICON_YAXT_CFLAGS" FCFLAGS="$subdir_FCFLAGS $ICON_YAXT_FCFLAGS" AR="$AR" RANLIB="$RANLIB" MPI_LAUNCH="$MPI_LAUNCH" MPIROOT= MPI_C_INCLUDE= MPI_C_LIB= MPI_FC_MOD= MPI_FC_LIB= BUILD_CFLAGS= BUILD_FCFLAGS= BUILD_LDFLAGS= BUILD_LIBS= BUILD_CC= BUILD_FC= --enable-silent-rules="$enable_silent_rules" --disable-maintainer-mode --disable-shared --enable-static --with-pic="$icon_yac_python" --with-regard-for-quality="$enable_mpi_checks" --with-on-demand-check-programs --without-example-programs --without-perf-programs; shift
+      set dummy CFLAGS="$subdir_CFLAGS $ICON_YAXT_CFLAGS" FCFLAGS="$subdir_FCFLAGS $ICON_YAXT_FCFLAGS" AR="$AR" RANLIB="$RANLIB" MPI_LAUNCH="$subdir_MPI_LAUNCH" MPIROOT= MPI_C_INCLUDE= MPI_C_LIB= MPI_FC_MOD= MPI_FC_LIB= BUILD_CFLAGS= BUILD_FCFLAGS= BUILD_LDFLAGS= BUILD_LIBS= BUILD_CC= BUILD_FC= --enable-silent-rules="$enable_silent_rules" --disable-maintainer-mode --disable-shared --enable-static --with-pic="$icon_yac_python" --with-regard-for-quality="$enable_mpi_checks" --with-on-demand-check-programs --without-example-programs --without-perf-programs; shift
    for acx_tmp; do
      case $acx_tmp in #(
   *\'*) :
@@ -10586,7 +10719,7 @@ esac
 esac
      shift
    done
-      set dummy CFLAGS="$subdir_CFLAGS $ICON_PPM_CFLAGS" FCFLAGS="$subdir_FCFLAGS $ICON_PPM_FCFLAGS" MPI_LAUNCH="$MPI_LAUNCH" AR="$AR" RANLIB="$RANLIB" PYTHON="$PYTHON" PLATFORM_OPT_LIBM= IEEE_ARITHMETICROOT= IEEE_ARITHMETIC_FC_MOD= IEEE_ARITHMETIC_FC_LIB= IEEE_ARHMETIC_FCFLAGS= MPIROOT= MPI_C_INCLUDE= MPI_C_LIB= MPI_FC_MOD= MPI_FC_LIB= BUILD_CFLAGS= BUILD_FCFLAGS= BUILD_LDFLAGS= BUILD_FCLDFLAGS= --enable-silent-rules="$enable_silent_rules" --disable-maintainer-mode --disable-shared --enable-static --enable-MPI --disable-netcdf --disable-hdf5 --disable-parmetis --disable-metis --disable-crypto --with-regard-for-quality="$enable_mpi_checks" --with-on-demand-check-programs --without-example-programs         FC=no; shift
+      set dummy CFLAGS="$subdir_CFLAGS $ICON_PPM_CFLAGS" FCFLAGS="$subdir_FCFLAGS $ICON_PPM_FCFLAGS" MPI_LAUNCH="$subdir_MPI_LAUNCH" AR="$AR" RANLIB="$RANLIB" PYTHON="$PYTHON" PLATFORM_OPT_LIBM= IEEE_ARITHMETICROOT= IEEE_ARITHMETIC_FC_MOD= IEEE_ARITHMETIC_FC_LIB= IEEE_ARHMETIC_FCFLAGS= MPIROOT= MPI_C_INCLUDE= MPI_C_LIB= MPI_FC_MOD= MPI_FC_LIB= BUILD_CFLAGS= BUILD_FCFLAGS= BUILD_LDFLAGS= BUILD_FCLDFLAGS= --enable-silent-rules="$enable_silent_rules" --disable-maintainer-mode --disable-shared --enable-static --enable-MPI --disable-netcdf --disable-hdf5 --disable-parmetis --disable-metis --disable-crypto --with-regard-for-quality="$enable_mpi_checks" --with-on-demand-check-programs --without-example-programs         FC=no; shift
    for acx_tmp; do
      case $acx_tmp in #(
   *\'*) :
@@ -10735,7 +10868,7 @@ esac
 esac
      shift
    done
-   set dummy CFLAGS="$subdir_CFLAGS $ICON_CDI_CFLAGS" FCFLAGS="$subdir_FCFLAGS $ICON_CDI_FCFLAGS"      F77=no      CXX=no AR="$AR" RANLIB="$RANLIB" UTIL_LINUX_UUID_C_INCLUDE= UTIL_LINUX_UUID_C_LIB= OSSP_UUID_C_INCLUDE= OSSP_UUID_C_LIB= DCE_UUID_C_INCLUDE= DCE_UUID_C_LIB= MPIROOT= MPI_C_INCLUDE= MPI_C_LIB= MPI_LAUNCH="$MPI_LAUNCH" MPI_FC_MOD= MPI_FC_LIB= PKG_CONFIG= YAXT_C_INCLUDE= YAXT_C_LIB= YAXT_FC_MOD= YAXT_FC_LIB= PPM_CORE_C_INCLUDE= PPM_CORE_C_LIB= PYTHON="$PYTHON" BUILD_CFLAGS= BUILD_FCFLAGS= BUILD_LDFLAGS= BUILD_LIBS= BUILD_MPI_C_LIB= BUILD_MPI_FC_LIB= BUILD_CC= BUILD_CXX= BUILD_FC= BUILD_F77= --enable-silent-rules="$enable_silent_rules" --disable-maintainer-mode --enable-mpi="$enable_cdi_pio" --enable-iso-c-interface --enable-cf-interface="$enable_cdi_pio" --disable-ruby-interface --disable-python-interface --disable-openmp --disable-shared --enable-static --enable-grib --disable-across --enable-cgribex --disable-cdi-app --enable-ppm-dist-array="$enable_cdi_pio" --without-util-linux-uuid --without-ossp-uuid --without-dce-uuid --without-threads --without-fdb5 --without-szlib --with-netcdf      --with-eccodes="$enable_grib2" --without-grib_api --with-on-demand-check-programs --without-example-programs      acx_cv_have_netcdf2=yes acx_cv_have_netcdf4=yes      acx_cv_have_pnetcdf=no      acx_cv_have_libnc_dap=no acx_cv_have_nc4hdf5=no; shift
+   set dummy CFLAGS="$subdir_CFLAGS $ICON_CDI_CFLAGS" FCFLAGS="$subdir_FCFLAGS $ICON_CDI_FCFLAGS"      F77=no      CXX=no AR="$AR" RANLIB="$RANLIB" UTIL_LINUX_UUID_C_INCLUDE= UTIL_LINUX_UUID_C_LIB= OSSP_UUID_C_INCLUDE= OSSP_UUID_C_LIB= DCE_UUID_C_INCLUDE= DCE_UUID_C_LIB= MPIROOT= MPI_C_INCLUDE= MPI_C_LIB= MPI_LAUNCH="$subdir_MPI_LAUNCH" MPI_FC_MOD= MPI_FC_LIB= PKG_CONFIG= YAXT_C_INCLUDE= YAXT_C_LIB= YAXT_FC_MOD= YAXT_FC_LIB= PPM_CORE_C_INCLUDE= PPM_CORE_C_LIB= PYTHON="$PYTHON" BUILD_CFLAGS= BUILD_FCFLAGS= BUILD_LDFLAGS= BUILD_LIBS= BUILD_MPI_C_LIB= BUILD_MPI_FC_LIB= BUILD_CC= BUILD_CXX= BUILD_FC= BUILD_F77= --enable-silent-rules="$enable_silent_rules" --disable-maintainer-mode --enable-mpi="$enable_cdi_pio" --enable-iso-c-interface --enable-cf-interface="$enable_cdi_pio" --disable-ruby-interface --disable-python-interface --disable-openmp --disable-shared --enable-static --enable-grib --disable-across --enable-cgribex --disable-cdi-app --enable-ppm-dist-array="$enable_cdi_pio" --without-util-linux-uuid --without-ossp-uuid --without-dce-uuid --without-threads --without-fdb5 --without-szlib --with-netcdf      --with-eccodes="$enable_grib2" --without-grib_api --with-on-demand-check-programs --without-example-programs      acx_cv_have_netcdf2=yes acx_cv_have_netcdf4=yes      acx_cv_have_pnetcdf=no      acx_cv_have_libnc_dap=no acx_cv_have_nc4hdf5=no; shift
    for acx_tmp; do
      case $acx_tmp in #(
   *\'*) :
@@ -10943,8 +11076,8 @@ esac
 esac
      as_fn_append acx_subdir_run_args_externals_yac " '$acx_tmp'"
    done
-   if ${MPI_LAUNCH+:} false; then :
-  set dummy MPI_LAUNCH="$MPI_LAUNCH"; shift
+   if ${subdir_MPI_LAUNCH+:} false; then :
+  set dummy MPI_LAUNCH="$subdir_MPI_LAUNCH"; shift
    for acx_tmp; do
      case $acx_tmp in #(
   *\'*) :
