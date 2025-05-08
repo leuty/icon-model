@@ -116,7 +116,14 @@ if test $(pwd) != $(cd "${icon_dir}"; pwd); then
   rsync -uavz ${icon_dir}/run . --exclude='*.in' --exclude='.*' --exclude='standard_*' --exclude=mkexp
   ln -sf -t run/ ${icon_dir}/run/{standard_*,mkexp}
   ln -sf set-up.info run/SETUP.config
-  rsync -uavz ${icon_dir}/externals . --exclude='.git' --exclude='*.f90' --exclude='*.F90' --exclude='*.c' --exclude='*.h' --exclude='*.Po' --exclude='tests' --exclude='*.mod' --exclude='*.o'
+  for dir in \
+    'externals/art/runctrl_examples' \
+    'externals/ecrad/data' \
+    'externals/jsbach/data'
+  do
+    src="${icon_dir}/${dir}"
+    test -d "${src}" && mkdir -p "${dir}" && rsync -uavz "${src}/" "${dir}"
+  done
   rsync -uavz ${icon_dir}/make_runscripts .
   rsync -uavz ${icon_dir}/scripts .
   ln -sf ${icon_dir}/data
