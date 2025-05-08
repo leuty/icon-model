@@ -12,14 +12,21 @@
 
 set -eu
 
+unset CDPATH
 script_dir=$(cd "$(dirname "$0")"; pwd)
 icon_dir=$(cd "${script_dir}/../.."; pwd)
 
-if [ ! -z "${BB_NAME-}" ] ; then
-  export MAKEFLAGS='-j22'
+if test -n "${BB_NAME-}"; then
+  job_count=${SLURM_NTASKS:-22}
 else
-  export MAKEFLAGS='-j8'
+  job_count=8
 fi
 
+unset MAKEFLAGS
+makeflags="--jobs=${job_count} --no-print-directory --output-sync=target V=1"
+
+set -x
+
 ${icon_dir}/config/csc/lumi.cpu.cce
-make V=1
+
+make ${makeflags}

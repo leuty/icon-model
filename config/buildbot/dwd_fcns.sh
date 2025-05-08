@@ -42,6 +42,8 @@ build_dwd() {
     )
   fi
 
+  unset MAKEFLAGS
+
   # create vector and host binaries in parallel using make
   make --jobs="${MAKE_PROCS}" V=1 -f - <<_EOF
 GNUMAKEFLAGS= --no-print-directory --output-sync=line

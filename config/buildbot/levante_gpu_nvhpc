@@ -12,27 +12,24 @@
 
 set -eu
 
-MY_DIR=$(cd "$(dirname "$0")"; pwd)
-ICON_DIR=$(cd "${MY_DIR}/../.."; pwd)
+unset CDPATH
+script_dir=$(cd "$(dirname "$0")"; pwd)
+icon_dir=$(cd "${script_dir}/../.."; pwd)
 
-if [ ! -z "${BB_NAME}" ]; then
-  set -x
-  set MPI_LAUNCH='srun -A mh0156 -p compute -N 1'
-  PYTHON='PYTHON=/fastdata/mh0156/buildbot/venv/bin/python3'
+if test -n "${BB_NAME-}"; then
+  job_count=${SLURM_NTASKS:-22}
+  set MPI_LAUNCH='srun'
 else
-  # Setting MPI_LAUNCH to an empty string is not the same as not setting it at
-  # all for the configure script of YAC. With the following, we make sure that
-  # we do not pass any additional arguments:
+  job_count=8
+  # Do not override arguments set in the wrapper:
   set dummy; shift
 fi
 
-${ICON_DIR}/config/dkrz/levante.gpu.nvhpc --disable-openmp --enable-ecrad --enable-testbed --enable-yaxt --enable-comin --enable-bundled-python=comin,mtime ${PYTHON} "$@"
+unset MAKEFLAGS
+makeflags="--jobs=${job_count} --no-print-directory --output-sync=target V=1"
 
-if [ ! -z "${BB_NAME}" ] ; then
-  MAKE_PROCS=22
-  echo "MAKE_PROCS=${MAKE_PROCS}"
-else
-  MAKE_PROCS=8
-fi
+set -x
 
-make -j ${MAKE_PROCS}
+${icon_dir}/config/dkrz/levante.gpu.nvhpc --disable-openmp --enable-ecrad --enable-testbed --enable-yaxt --enable-comin --enable-bundled-python=comin,mtime PYTHON='/fastdata/mh0156/buildbot/venv/bin/python3' "$@"
+
+make ${makeflags}

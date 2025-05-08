@@ -12,38 +12,30 @@
 
 set -eu
 
-MY_DIR=$(cd "$(dirname "$0")"; pwd)
-ICON_DIR=$(cd "${MY_DIR}/../.."; pwd)
+unset CDPATH
+script_dir=$(cd "$(dirname "$0")"; pwd)
+icon_dir=$(cd "${script_dir}/../.."; pwd)
 
-if [ ! -z "${BB_NAME-}" ]; then
-  set -x
-
-  set MPI_LAUNCH='srun -A mh0156 -p compute -N 1 -t 2'
-
-  # use python environment suited for this icon build
-  PYTHON='PYTHON=/fastdata/mh0156/buildbot/venv/bin/python3'
-  # help comin find the python installation
-  export Python3_ROOT_DIR='/fastdata/mh0156/buildbot/venv'
+if test -n "${BB_NAME-}"; then
+  job_count=${SLURM_NTASKS:-22}
+  set MPI_LAUNCH='srun'
 else
-  PYTHON=''
-  # Setting MPI_LAUNCH to an empty string is not the same as not setting it at
-  # all for the configure script of YAC. With the following, we make sure that
-  # we do not pass any additional arguments:
+  job_count=8
+  # Do not override arguments set in the wrapper:
   set dummy; shift
 fi
 
-${ICON_DIR}/config/dkrz/levante.intel --enable-openmp --enable-separate-mods --enable-bundled-python=yac,comin,mtime "${PYTHON}" --enable-testbed "$@"
+unset MAKEFLAGS
+makeflags="--jobs=${job_count} --no-print-directory --output-sync=target V=1"
 
-if [ ! -z "${BB_NAME-}" ] ; then
-  MAKE_PROCS=22
-else
-  MAKE_PROCS=8
-fi
+set -x
 
-make -j ${MAKE_PROCS}
+${icon_dir}/config/dkrz/levante.intel --enable-openmp --enable-separate-mods --enable-bundled-python=yac,comin,mtime --enable-testbed PYTHON='/fastdata/mh0156/buildbot/venv/bin/python3' "$@"
 
-if [ ! -z "${BB_NAME-}" ] ; then
-  "${ICON_DIR}/scripts/buildbot_scripts/build_checks/check_depgen_warnings.sh"
-  "${ICON_DIR}/scripts/buildbot_scripts/build_checks/check_remake.sh"
-  "${ICON_DIR}/scripts/buildbot_scripts/build_checks/check_git_untracked.sh"
+make ${makeflags}
+
+if test -n "${BB_NAME-}"; then
+  "${icon_dir}/scripts/buildbot_scripts/build_checks/check_depgen_warnings.sh"
+  "${icon_dir}/scripts/buildbot_scripts/build_checks/check_remake.sh"
+  "${icon_dir}/scripts/buildbot_scripts/build_checks/check_git_untracked.sh"
 fi

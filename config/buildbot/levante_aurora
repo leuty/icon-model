@@ -14,42 +14,42 @@ set -euo pipefail
 
 ulimit -s unlimited
 
-MY_DIR=$(cd "$(dirname "$0")"; pwd)
-ICON_DIR=$(cd "${MY_DIR}/../.."; pwd)
+unset CDPATH
+script_dir=$(cd "$(dirname "$0")"; pwd)
+icon_dir=$(cd "${script_dir}/../.."; pwd)
 
 # These paths are critical to proper loggin by buildbot
-VE_DIR="${ICON_DIR}/build/ve"
-VH_DIR="${ICON_DIR}/build/vh"
+ve_dir="${icon_dir}/build/ve"
+vh_dir="${icon_dir}/build/vh"
 
-if [ ! -z "${BB_NAME-}" ] ; then
-  MAKE_PROCS=22
+if test -n "${BB_NAME-}"; then
+  job_count=22
 else
-  MAKE_PROCS=8
+  job_count=8
 fi
 
-make --jobs="${MAKE_PROCS}" V=1 -f - <<_EOF
+unset MAKEFLAGS
+makeflags="--jobs=${job_count} V=1"
+
+set -x
+
+make ${makeflags} -f - <<_EOF
 GNUMAKEFLAGS= --no-print-directory --output-sync=line
 SHELL= /bin/bash
 .PHONY: all host vector
 all: host vector
 host:
-	@mkdir -p ${VH_DIR}
+	@mkdir -p ${vh_dir}
 	# configuring host
-	cd ${VH_DIR} && ${ICON_DIR}/config/dkrz/aurora.VH.gcc_mpi-3.4.0 --disable-openmp
-	set -o pipefail; cd ${VH_DIR} && \$(MAKE) |& tee make.log
+	cd ${vh_dir} && ${icon_dir}/config/dkrz/aurora.VH.gcc_mpi-3.4.0 --disable-openmp
+	set -o pipefail; cd ${vh_dir} && \$(MAKE) |& tee make.log
 vector:
-	@mkdir -p ${VE_DIR}
+	@mkdir -p ${ve_dir}
 	# configuring vector
-	cd ${VE_DIR} && ${ICON_DIR}/config/dkrz/aurora.VE.nfort-5.0.1_mpi-3.4.0 --disable-openmp
-	set -o pipefail; cd ${VE_DIR} && \$(MAKE) |& tee make.log
+	cd ${ve_dir} && ${icon_dir}/config/dkrz/aurora.VE.nfort-5.0.1_mpi-3.4.0 --disable-openmp
+	set -o pipefail; cd ${ve_dir} && \$(MAKE) |& tee make.log
 _EOF
 
-# copy around the generated system description because the buildbot-scripting
-# needs it
-cat ${VE_DIR}/run/set-up.info
-cp -v ${VE_DIR}/run/set-up.info ${ICON_DIR}/run
-
-cd ${ICON_DIR}
-
-export VECTOR_BINARY="${VE_DIR}/bin/icon"
-export HOST_BINARY="${VH_DIR}/bin/icon"
+# Copy the generated system description because the buildbot-scripting needs it:
+cat ${ve_dir}/run/set-up.info
+cp -v ${ve_dir}/run/set-up.info ${icon_dir}/run
