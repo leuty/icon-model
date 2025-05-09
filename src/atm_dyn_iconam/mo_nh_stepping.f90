@@ -28,7 +28,7 @@ MODULE mo_nh_stepping
 !
 !
 
-  USE mo_kind,                     ONLY: wp, vp
+  USE mo_kind,                     ONLY: wp, vp, dp
   USE mo_io_units,                 ONLY: filename_max
   USE mo_nonhydro_state,           ONLY: p_nh_state, p_nh_state_lists
   USE mo_nonhydrostatic_config,    ONLY: itime_scheme, divdamp_order,                                 &
@@ -2671,7 +2671,7 @@ MODULE mo_nh_stepping
         rdt_loc     = 1._wp/dt_loc
         dt_sub      = dt_loc/2._wp    ! (adv.) time step on next refinement level
         mtime_dt_sub => newTimedelta(mtime_dt_loc)
-        mtime_dt_sub = mtime_dt_sub*0.5_wp
+        mtime_dt_sub = mtime_dt_sub*0.5_dp ! scaling timedelta by dp
         rdtmflx_loc = 1._wp/(dt_loc*(REAL(MAX(1,ndyn_substeps_var(jg)-1),wp)/REAL(ndyn_substeps_var(jg),wp)))
 
         IF (ltimer)            CALL timer_start(timer_nesting)

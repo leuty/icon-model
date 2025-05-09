@@ -18,7 +18,7 @@ MODULE mo_derived_variable_handling
   USE mo_model_domain,        ONLY: t_patch
   USE mo_io_config,           ONLY: lnetcdf_flt64_output
   USE mo_dynamics_config,     ONLY: nnow, nnew, nold
-  USE mo_impl_constants,      ONLY: vname_len, REAL_T, TIMELEVEL_SUFFIX, max_dom
+  USE mo_impl_constants,      ONLY: vname_len, TIMELEVEL_SUFFIX, max_dom
   USE mo_cdi_constants,       ONLY: GRID_UNSTRUCTURED_CELL, GRID_UNSTRUCTURED_EDGE, &
                               & GRID_ZONAL, GRID_UNSTRUCTURED_VERT
   USE mo_name_list_output_types, ONLY: t_output_name_list
@@ -255,7 +255,7 @@ CONTAINS
     TYPE(t_var_metadata), POINTER :: info
 
     info => deriv%src(1)%p%info
-    CALL add_var(REAL_T, src_list, dname, info%hgrid, info%vgrid, info%cf, &
+    CALL add_var(info%data_type, src_list, dname, info%hgrid, info%vgrid, info%cf, &
       & info%grib2, info%used_dimensions(1:info%ndims), vl_elem, &
       & tlev_source=info%tlev_source, isteptype=info%isteptype, &
       & post_op=info%post_op, initval_r=info%initval%rval, &

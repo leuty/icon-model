@@ -11,7 +11,7 @@
 
 MODULE mo_time_config
 
-  USE mo_kind,                  ONLY: wp
+  USE mo_kind,                  ONLY: wp, dp
   USE mo_exception,             ONLY: message, message_text, finish
   USE mtime,                    ONLY: datetime, timedelta, newDatetime, newTimedelta, &
     &                                 deallocateDatetime, deallocateTimedelta,        &
@@ -238,9 +238,9 @@ CONTAINS
     CLASS(t_time_config)     :: me
     INTEGER, INTENT(IN)      :: nest_level   !< nesting level for which the time step is returned
     !
-    REAL(wp)                 :: fac
+    REAL(dp)                 :: fac          !< scaling timedelta by dp
 
-    fac = 1._wp/REAL(2**nest_level,wp)
+    fac = 1._dp/REAL(2**nest_level,dp)
     ! timestep in timedelta ISO format
     dtime_td = me%tc_dt_model * fac
 

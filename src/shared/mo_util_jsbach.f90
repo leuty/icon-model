@@ -431,7 +431,7 @@ CONTAINS
     INTEGER, INTENT(in) :: model_id
 
     TYPE(t_datetime), POINTER :: reference_datetime
-    REAL(WP) :: ztime
+    REAL(wp) :: ztime
     INTEGER  :: dt_in_ms
 
     CHARACTER(len=*), PARAMETER :: routine = modname//':get_time_dt'
@@ -448,7 +448,7 @@ CONTAINS
         dt_in_ms = getTotalMilliSecondsTimeDelta(aes_phy_tc(model_id)%dt_vdf, reference_datetime)
       END IF
 
-      IF (dt_in_ms <= 0._wp) THEN
+      IF (dt_in_ms <= 0) THEN
         ! This should only happen for an ICON-Land standalone experiment;
         ! Use "modeltimestep" from run_nml in this case (same for all model_id's!)
         dt_in_ms = getTotalMilliSecondsTimeDelta(time_config%tc_dt_model, reference_datetime)
@@ -1407,7 +1407,7 @@ CONTAINS
     INTEGER,              INTENT(in), OPTIONAL :: isteptype           ! type of statistical processing
     REAL(wp),             INTENT(in), OPTIONAL :: resetval_r          ! reset value (after accumulation)
     LOGICAL,              INTENT(in), OPTIONAL :: lmiss               ! missing value flag
-    REAL(dp),             INTENT(in), OPTIONAL :: missval_r           ! missing value
+    REAL(wp),             INTENT(in), OPTIONAL :: missval_r           ! missing value
     INTEGER,              INTENT(in), OPTIONAL :: tlev_source         ! actual TL for TL dependent vars
     TYPE(t_var_metadata), POINTER,    OPTIONAL :: info                ! returns reference to metadata
     REAL(wp),             TARGET, CONTIGUOUS, OPTIONAL :: p5(:,:,:,:,:)       ! provided pointer
@@ -1478,7 +1478,7 @@ CONTAINS
     INTEGER,              INTENT(in), OPTIONAL :: isteptype           ! type of statistical processing
     REAL(wp),             INTENT(in), OPTIONAL :: resetval_r          ! reset value (after accumulation)
     LOGICAL,              INTENT(in), OPTIONAL :: lmiss               ! missing value flag
-    REAL(dp),             INTENT(in), OPTIONAL :: missval_r           ! missing value
+    REAL(wp),             INTENT(in), OPTIONAL :: missval_r           ! missing value
     INTEGER,              INTENT(in), OPTIONAL :: tlev_source         ! actual TL for TL dependent vars
     TYPE(t_var_metadata), POINTER,    OPTIONAL :: info                ! returns reference to metadata
     REAL(wp),             TARGET, CONTIGUOUS, OPTIONAL :: p5(:,:,:,:,:)       ! provided pointer
@@ -1547,7 +1547,7 @@ CONTAINS
     INTEGER,              INTENT(in), OPTIONAL :: isteptype           ! type of statistical processing
     REAL(wp),             INTENT(in), OPTIONAL :: resetval_r          ! reset value (after accumulation)
     LOGICAL,              INTENT(in), OPTIONAL :: lmiss               ! missing value flag
-    REAL(dp),             INTENT(in), OPTIONAL :: missval_r           ! missing value
+    REAL(wp),             INTENT(in), OPTIONAL :: missval_r           ! missing value
     INTEGER,              INTENT(in), OPTIONAL :: tlev_source         ! actual TL for TL dependent vars
     TYPE(t_var_metadata), POINTER,    OPTIONAL :: info                ! returns reference to metadata
     REAL(wp),             TARGET, CONTIGUOUS, OPTIONAL :: p5(:,:,:,:,:)       ! provided pointer

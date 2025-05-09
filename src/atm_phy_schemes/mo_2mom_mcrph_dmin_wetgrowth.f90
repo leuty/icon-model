@@ -29,7 +29,7 @@
 
 MODULE mo_2mom_mcrph_dmin_wetgrowth
 
-  USE mo_kind,             ONLY : sp, dp, wp
+  USE mo_kind,             ONLY : wp
   USE mo_2mom_mcrph_types, ONLY : particle
   USE mo_exception,        ONLY : message, finish, message_text
 
@@ -59,19 +59,18 @@ MODULE mo_2mom_mcrph_dmin_wetgrowth
 
 
   CHARACTER(len=*), PARAMETER :: modulename = 'mo_2mom_mcrph_dmin_wetgrowth'
-
-  REAL(dp), PARAMETER :: &
-       pi      = 3.14159265358_dp , &    ! pi
-       c_p     = 1005._dp         , &    ! specific heat capacity (air) [J/(kg K)]
-       Rgas    = 8.3145_dp        , &    ! universal gas constant [J/(mol K)]
-       M_w     = 18.01528e-3_dp   , &    ! molecular mass of water [kg/mol]
-       M_a     = 28.96e-3_dp      , &    ! molecular mass of air [kg/mol]
+  REAL(wp), PARAMETER :: &
+       pi      = 3.14159265358_wp , &    ! pi
+       c_p     = 1005._wp         , &    ! specific heat capacity (air) [J/(kg K)]
+       Rgas    = 8.3145_wp        , &    ! universal gas constant [J/(mol K)]
+       M_w     = 18.01528e-3_wp   , &    ! molecular mass of water [kg/mol]
+       M_a     = 28.96e-3_wp      , &    ! molecular mass of air [kg/mol]
        R_w     = Rgas / M_w       , &    ! gas constant for water [J/(kg K)]
        R_a     = Rgas / M_a       , &    ! gas constant for air [J/(kg K)]
-       T_0C    = 273.16_dp
+       T_0C    = 273.16_wp
 
-  REAL(dp), PARAMETER :: miss_value = -999.99_dp
-  REAL(dp), PARAMETER :: miss_thresh = -900.0_dp
+  REAL(wp), PARAMETER :: miss_value = -999.99_wp
+  REAL(wp), PARAMETER :: miss_thresh = -900.0_wp
 
 CONTAINS
 
@@ -123,13 +122,13 @@ CONTAINS
     CHARACTER(len=*), PARAMETER :: routine = TRIM(modulename)//'::dmin_wetgrowth_lookupcreate'
 
     !..Initial and interval values in double precision:
-    REAL(dp) :: p0, delta_p, T0, delta_T, &
+    REAL(wp) :: p0, delta_p, T0, delta_T, &
          qw0, delta_qw, qi0, delta_qi
 
     INTEGER               :: i, j, k, l, ii, nerr
     INTEGER,  ALLOCATABLE :: iiv(:,:), rowcount(:), lfill(:)
-    REAL(dp)              :: Dold, Dnew, D0
-    REAL(dp), ALLOCATABLE :: Doldv(:,:), Dnewv(:,:), D0v(:,:), Dmin(:,:,:,:), rowmean(:)
+    REAL(wp)              :: Dold, Dnew, D0
+    REAL(wp), ALLOCATABLE :: Doldv(:,:), Dnewv(:,:), D0v(:,:), Dmin(:,:,:,:), rowmean(:)
 
     message_text(:) = ' '
     WRITE(message_text,'(a)') 'creating wet-growth Dmin table for: '//phail%name
@@ -143,15 +142,15 @@ CONTAINS
     n_qw_o   = n_qw
     n_qi_o   = n_qi
 
-    p0 = 300.e2_dp  ! Starting value for the table vector for pressure
-    T0 = -30._dp    !    "-"  for temperature
-    qw0 = 0.6e-3_dp !    "-"  for supercooled LWC
-    qi0 = 0.6e-3_dp !    "-"  for IWC (ice, snow)
+    p0 = 300.e2_wp  ! Starting value for the table vector for pressure
+    T0 = -30._wp    !    "-"  for temperature
+    qw0 = 0.6e-3_wp !    "-"  for supercooled LWC
+    qi0 = 0.6e-3_wp !    "-"  for IWC (ice, snow)
 
-    delta_p  = 100.e2_dp  ! equi-distant increments for the table vectors
-    delta_T = 1._dp       ! may change to non-equidistant below, if n_temp = 23
-    delta_qw = 0.2e-3_dp
-    delta_qi = 0.2e-3_dp
+    delta_p  = 100.e2_wp  ! equi-distant increments for the table vectors
+    delta_T = 1._wp       ! may change to non-equidistant below, if n_temp = 23
+    delta_qw = 0.2e-3_wp
+    delta_qi = 0.2e-3_wp
 
     ! .. Allocate variables, deallocate first for safety:
     IF (ALLOCATED(pres))     DEALLOCATE (pres)
@@ -160,24 +159,24 @@ CONTAINS
     IF (ALLOCATED(qi))       DEALLOCATE (qi)
     IF (ALLOCATED(Dmin_lut)) DEALLOCATE (Dmin_lut)
 
-    ALLOCATE( pres(n_pres) )                     ; pres = 0._dp
-    ALLOCATE( temp(n_temp) )                     ; temp = 0._dp
-    ALLOCATE( qw(n_qw) )                         ; qw = 0._dp
-    ALLOCATE( qi(n_qi) )                         ; qi = 0._dp
-    ALLOCATE( Dmin(n_qw,n_qi,n_pres,n_temp) )    ; Dmin = 0._dp     ! suitable index order for vectorized iteration
+    ALLOCATE( pres(n_pres) )                     ; pres = 0._wp
+    ALLOCATE( temp(n_temp) )                     ; temp = 0._wp
+    ALLOCATE( qw(n_qw) )                         ; qw = 0._wp
+    ALLOCATE( qi(n_qi) )                         ; qi = 0._wp
+    ALLOCATE( Dmin(n_qw,n_qi,n_pres,n_temp) )    ; Dmin = 0._wp     ! suitable index order for vectorized iteration
 
     ! .. Built table vectors before the iteration loop:
     IF (n_temp == 23) THEN ! special case on non-equi. distant T
       ! .. Non-equidistant temperature values:
-      delta_T = 2._dp
+      delta_T = 2._wp
       DO j = 1, n_temp
         IF (j == 1) THEN
           temp(j) = T0
         ELSE
           temp(j) = temp(j-1) + delta_T
         END IF
-        IF (temp(j)+T_0C > 263.0_dp) delta_T = 1.0_dp
-        IF (temp(j)+T_0C > 271.0_dp) delta_T = 0.5_dp
+        IF (temp(j)+T_0C > 263.0_wp) delta_T = 1.0_wp
+        IF (temp(j)+T_0C > 271.0_wp) delta_T = 0.5_wp
       END DO
     ELSE
       ! .. Equidistant temperature values [Celsius]:
@@ -214,26 +213,26 @@ CONTAINS
 !$OMP parallel do private(i,j,k,l,iiv,Doldv,D0v,Dnewv)
     DO j = 1, n_temp
 
-      IF (temp(j) < 0.0_dp) THEN
+      IF (temp(j) < 0.0_wp) THEN
 
         DO i = 1, n_pres
 
           ! .. 1) initialization of the iteration:
           iiv(:,:) = 0
-          Doldv(:,:) = 5.e-3_dp
-          D0v(:,:) = 1.0_dp
+          Doldv(:,:) = 5.e-3_wp
+          D0v(:,:) = 1.0_wp
 
           ! .. Actual vectorizable iteration:
-          iteration: DO WHILE (ANY(ABS(D0v) > 1.e-4_dp .AND. iiv < maxiter))
+          iteration: DO WHILE (ANY(ABS(D0v) > 1.e-4_wp .AND. iiv < maxiter))
 
             DO l = 1, n_qi
 !$NEC ivdep
               DO k = 1, n_qw
 
-                IF ( ABS(D0v(k,l)) > 1.e-4_dp .AND. iiv(k,l) < maxiter) THEN
+                IF ( ABS(D0v(k,l)) > 1.e-4_wp .AND. iiv(k,l) < maxiter) THEN
                   iiv(k,l) = iiv(k,l) + 1
                   Dnewv(k,l) = dwg_fpi(phail%a_geo,phail%b_geo,phail%a_vel,phail%b_vel,Doldv(k,l),temp(j),pres(i),qw(k),qi(l))
-                  IF (Dnewv(k,l) <= 0.0_dp) THEN
+                  IF (Dnewv(k,l) <= 0.0_wp) THEN
                     ! This means that ice and supercooled liquid are so cold
                     ! that wet growth cannot occur.
                     iiv(k,l) = maxiter + 1;
@@ -250,10 +249,10 @@ CONTAINS
           DO l = 1, n_qi
 !$NEC ivdep
             DO k = 1, n_qw
-              IF (ABS(D0v(k,l)) > 1.e-4_dp) THEN
+              IF (ABS(D0v(k,l)) > 1.e-4_wp) THEN
                 Dmin(k,l,i,j) = miss_value
               ELSE
-                Dmin(k,l,i,j) = MIN(Dnewv(k,l),999.99_dp)
+                Dmin(k,l,i,j) = MIN(Dnewv(k,l),999.99_wp)
               END IF
             END DO
           END DO
@@ -264,7 +263,7 @@ CONTAINS
 
         ! Enforce correct behaviour for Tvec(i) = 0 grad C, because
         ! iteration would lead to DIV0 in the first step otherwise:
-        Dmin(:,:,:,j) = 0.0_dp
+        Dmin(:,:,:,j) = 0.0_wp
 
       END IF
 
@@ -288,16 +287,16 @@ CONTAINS
 
             ! .. 1) initialization of the iteration:
             ii = 0
-            Dold = 5.e-3_dp
-            D0 = 1.0_dp
+            Dold = 5.e-3_wp
+            D0 = 1.0_wp
 
-            IF (temp(j) < 0.0_dp) THEN
+            IF (temp(j) < 0.0_wp) THEN
 
               ! .. Actual iteration:
-             DO WHILE (ABS(D0) > 1.e-4_dp .AND. ii < maxiter)
+             DO WHILE (ABS(D0) > 1.e-4_wp .AND. ii < maxiter)
                 ii = ii +1
                 Dnew = dwg_fpi(phail%a_geo,phail%b_geo,phail%a_vel,phail%b_vel,Dold,temp(j),pres(i),qw(k),qi(l))
-                IF (Dnew <= 0.0_dp) THEN
+                IF (Dnew <= 0.0_wp) THEN
                   ! This means that ice and supercooled liquid are so cold
                   ! that wet growth cannot occur.
                   ii = maxiter + 1;
@@ -306,17 +305,17 @@ CONTAINS
                 Dold = Dnew
               END DO
 
-              IF (ABS(D0) > 1.e-4_dp) THEN
+              IF (ABS(D0) > 1.e-4_wp) THEN
                 Dmin(k,l,i,j) = miss_value
               ELSE
-                Dmin(k,l,i,j) = MIN(Dnew,999.99_dp)
+                Dmin(k,l,i,j) = MIN(Dnew,999.99_wp)
               END IF
 
             ELSE
 
               ! Enforce correct behaviour for Tvec(i) = 0 grad C, because
               ! iteration would lead to DIV0 in the first step otherwise:
-              Dmin(k,l,i,j) = 0.0_dp
+              Dmin(k,l,i,j) = 0.0_wp
 
             END IF
 
@@ -354,11 +353,11 @@ CONTAINS
             DO k = 1, n_qw
               IF (Dmin(k,l,i,j) < miss_thresh) THEN
                 IF (l == 1) THEN
-                  IF (Dmin(k,2,i,j) >= 0.0_dp) THEN
+                  IF (Dmin(k,2,i,j) >= 0.0_wp) THEN
                     lfill(k) = 2
-                  ELSE IF (Dmin(k,3,i,j) >= 0.0_dp) THEN
+                  ELSE IF (Dmin(k,3,i,j) >= 0.0_wp) THEN
                     lfill(k) = 3
-                  ELSE IF (Dmin(k,4,i,j) >= 0.0_dp) THEN
+                  ELSE IF (Dmin(k,4,i,j) >= 0.0_wp) THEN
                     lfill(k) = 4
                   END IF
                 ELSE
@@ -375,11 +374,11 @@ CONTAINS
             DO k = 1, n_qw
               IF (Dmin(k,l,i,j) < miss_thresh) THEN
                 IF (l == n_qi) THEN
-                  IF (Dmin(k,n_qi-1,i,j) >= 0.0_dp) THEN
+                  IF (Dmin(k,n_qi-1,i,j) >= 0.0_wp) THEN
                     lfill(k) = n_qi-1
-                  ELSE IF (Dmin(k,n_qi-2,i,j) >= 0.0_dp) THEN
+                  ELSE IF (Dmin(k,n_qi-2,i,j) >= 0.0_wp) THEN
                     lfill(k) = n_qi-2
-                  ELSE IF (Dmin(k,n_qi-3,i,j) >= 0.0_dp) THEN
+                  ELSE IF (Dmin(k,n_qi-3,i,j) >= 0.0_wp) THEN
                     lfill(k) = n_qi-3
                   END IF
                 ELSE
@@ -429,7 +428,7 @@ CONTAINS
         DEALLOCATE (rowmean, rowcount)
 
 !$OMP parallel
-        WHERE (Dmin < miss_thresh) Dmin = 999.99_dp
+        WHERE (Dmin < miss_thresh) Dmin = 999.99_wp
 !$OMP end parallel
 
       ELSE
@@ -445,7 +444,7 @@ CONTAINS
     !=================================================================================
     ! .. Permute dimensions of Dmin_lut to Dmin_nc for output:
 
-    ALLOCATE( Dmin_lut(n_pres,n_temp,n_qw,n_qi) ); Dmin_lut = 0._dp ! index order for final LUT
+    ALLOCATE( Dmin_lut(n_pres,n_temp,n_qw,n_qi) ); Dmin_lut = 0._wp ! index order for final LUT
 
 !$OMP parallel do private(i,j,k,l)
     DO j = 1, n_temp
@@ -479,7 +478,7 @@ CONTAINS
 
     CHARACTER(len=*), INTENT(in) :: basename
     TYPE(PARTICLE),   INTENT(in) :: phail
-    REAL(dp),         INTENT(in) :: Dmin_lut(:,:,:,:), pres(:), temp(:), qw(:), qi(:) ! in SI units!
+    REAL(wp),         INTENT(in) :: Dmin_lut(:,:,:,:), pres(:), temp(:), qw(:), qi(:) ! in SI units!
     INTEGER,          INTENT(out):: ierr
     CHARACTER(len=*), INTENT(in), OPTIONAL :: filename
 
@@ -667,7 +666,7 @@ CONTAINS
 
     CHARACTER(len=300)           :: filebase
 
-    REAL(dp)           :: particle_parameters(4)
+    REAL(wp)           :: particle_parameters(4)
     INTEGER            :: i, j, ppar_int(4), ppar_dec(4)
     CHARACTER(len=100) :: cparams, ppar_c, ncint, ncdec
 
@@ -680,7 +679,7 @@ CONTAINS
     !    the parameters are in decimal format with at least one digit before the komma and 4 decimals after the Komma.
     !    This hack is necessary, because different compilers implement different behaviour of Format "i0"
     ppar_int = INT(particle_parameters)
-    ppar_dec = NINT(MODULO(particle_parameters, 1.0_dp) * 1e4)
+    ppar_dec = NINT(MODULO(particle_parameters, 1.0_wp) * 1e4)
 
     cparams(:) = ' '
     DO i=1, SIZE(particle_parameters)
@@ -711,7 +710,7 @@ CONTAINS
 !**********************************************************************
 !**********************************************************************
 !
-  REAL(dp) FUNCTION dwg_fpi(ageo_x,bgeo_x,avel_x,bvel_x,D,T,p,qw,qi)
+  REAL(wp) FUNCTION dwg_fpi(ageo_x,bgeo_x,avel_x,bvel_x,D,T,p,qw,qi)
 !
 ! Implizite Funktion fuer den Gleichgewichtsdurchmesser bei Ts = 0 Grad C eines fallenden
 ! (trockenen) Hagelkorns unter der (konstanten) Wirkung von Riming, Akkretion von
@@ -722,9 +721,9 @@ CONTAINS
 
     IMPLICIT NONE
 
-    REAL(dp), INTENT(in) :: ageo_x, bgeo_x, avel_x, bvel_x, D, T, p, qw, qi
+    REAL(wp), INTENT(in) :: ageo_x, bgeo_x, avel_x, bvel_x, D, T, p, qw, qi
 
-    REAL(dp) :: T_K, Cwat, Ci, Ci2, Dv, rho_l, vf, fv, K, tmp_dwg
+    REAL(wp) :: T_K, Cwat, Ci, Ci2, Dv, rho_l, vf, fv, K, tmp_dwg
 
     T_K = T + T_0C
 
@@ -733,7 +732,7 @@ CONTAINS
     Ci2 = Cice(T_0C)
     Dv = diff_vap_air(T_K,p);
 
-    rho_l = p / (R_a * T_K * (1._dp+0.61_dp*(0.622_dp*esat_w(T_K)/p)))
+    rho_l = p / (R_a * T_K * (1._wp+0.61_wp*(0.622_wp*esat_w(T_K)/p)))
 
     vf = vfall_graupel(ageo_x,bgeo_x,avel_x,bvel_x,D,T,p)
 
@@ -741,9 +740,9 @@ CONTAINS
 
     K = conduct_air(T_K)
 
-    tmp_dwg = (2._dp*pi*fv*(Lh_s(T_0C)*Dv* &
+    tmp_dwg = (2._wp*pi*fv*(Lh_s(T_0C)*Dv* &
          (esat_i(T_0C)/T_0C - esat_w(T_K)/T_K)/R_w - K*T) ) / &
-         (pi/4._dp*vf*(e_collw(T_K)*qw*(Lh_m(T_K)+Cwat*T)+e_colli(T_0C)*qi*Ci*T))
+         (pi/4._wp*vf*(e_collw(T_K)*qw*(Lh_m(T_K)+Cwat*T)+e_colli(T_0C)*qi*Ci*T))
 
     dwg_fpi = tmp_dwg
 
@@ -758,32 +757,32 @@ CONTAINS
 ! water droplet, see Pruppacher and Klett, 1997, p. 541 of Beard
 ! and Pruppacher (1971):
 !
-  REAL(dp) FUNCTION vent_v(D,rhol,T,v)
+  REAL(wp) FUNCTION vent_v(D,rhol,T,v)
 
     IMPLICIT NONE
 
-    REAL(dp), INTENT(in) :: D, rhol, & ! D in m, rhol in kg/m3
+    REAL(wp), INTENT(in) :: D, rhol, & ! D in m, rhol in kg/m3
                             T, v       ! T in K and v in m/s
 
-    REAL(dp), PARAMETER :: Nsc = 0.71_dp  ! for water vapor in air; depends on the fluid mixture!!!
+    REAL(wp), PARAMETER :: Nsc = 0.71_wp  ! for water vapor in air; depends on the fluid mixture!!!
     ! Note that the value of 0.71 is wrong, because back in 1971,
     ! they used wrong values of Dv as function of T, and n_sc = kinemat. visc.(T) / Dv(T).
     ! However, since in the experiments leading to the below formula,
     ! fv has been measured and related to computed values of fakt,
     ! one has to use 0.71 to retrieve the correct values for fv!
 
-    REAL(dp), PARAMETER :: chi_lim = 1.4_dp
-    REAL(dp) :: nu_l, Re, chi, tmp
+    REAL(wp), PARAMETER :: chi_lim = 1.4_wp
+    REAL(wp) :: nu_l, Re, chi, tmp
 
     nu_l = dyn_visc_air(T) / rhol
     Re = v * D / nu_l
 
-    chi = Nsc**0.33333_dp * SQRT(Re)
+    chi = Nsc**0.33333_wp * SQRT(Re)
 
     IF (chi < chi_lim) THEN
-       tmp = 1._dp + 0.108_dp * chi**2
+       tmp = 1._wp + 0.108_wp * chi**2
     ELSE
-       tmp = 0.78_dp + 0.308_dp * chi
+       tmp = 0.78_wp + 0.308_wp * chi
     END IF
 
     vent_v = tmp
@@ -798,11 +797,11 @@ CONTAINS
 ! Sticking efficiency nach Lin et al. (1983) fuer die Kollision
 ! von Hagel mit Eis- und Schneepartikeln:
 !
-  REAL(dp) FUNCTION e_colli(T)
+  REAL(wp) FUNCTION e_colli(T)
     IMPLICIT NONE
-    REAL(dp), INTENT(in) :: T
+    REAL(wp), INTENT(in) :: T
 
-    e_colli = MIN(EXP(0.09_dp*(T-T_0C)),1._dp)
+    e_colli = MIN(EXP(0.09_wp*(T-T_0C)),1._wp)
 
     RETURN
   END FUNCTION e_colli
@@ -812,11 +811,11 @@ CONTAINS
 !
 ! Riming eff. of cloud and rain water on graupel/hail, assumed as 1
 !
-  REAL(dp) FUNCTION e_collw(T)
+  REAL(wp) FUNCTION e_collw(T)
     IMPLICIT NONE
-    REAL(dp), INTENT(in) :: T
+    REAL(wp), INTENT(in) :: T
 
-    e_collw = 1._dp
+    e_collw = 1._wp
 
     RETURN
   END FUNCTION e_collw
@@ -826,20 +825,20 @@ CONTAINS
 !
 ! Fall velocity of graupel/hail
 !
-  REAL(dp) FUNCTION vfall_graupel(ageo_x,bgeo_x,avel_x,bvel_x,D,T,p)
+  REAL(wp) FUNCTION vfall_graupel(ageo_x,bgeo_x,avel_x,bvel_x,D,T,p)
 
     IMPLICIT NONE
 
-    REAL(dp), INTENT(in) :: ageo_x, bgeo_x, avel_x, bvel_x, D, T, p
-    REAL(dp) :: rho, T_K, vel, x
+    REAL(wp), INTENT(in) :: ageo_x, bgeo_x, avel_x, bvel_x, D, T, p
+    REAL(wp) :: rho, T_K, vel, x
 
     T_K = T + T_0C
 
-    rho = p / (R_a * T_K * (1_dp+0.61_dp*(0.622_dp*esat_w(T_K)/p)))
+    rho = p / (R_a * T_K * (1_wp+0.61_wp*(0.622_wp*esat_w(T_K)/p)))
 
-    x = (D/ageo_x)**(1._dp/bgeo_x)
+    x = (D/ageo_x)**(1._wp/bgeo_x)
 
-    vel = avel_x * x**bvel_x * (1.21_dp/rho)**0.5
+    vel = avel_x * x**bvel_x * (1.21_wp/rho)**0.5
 
     vfall_graupel = vel
 
@@ -870,25 +869,25 @@ CONTAINS
 !
 !  Note: Cice in J/kg/K
 !
-  REAL(dp) FUNCTION Cice(T)
+  REAL(wp) FUNCTION Cice(T)
 
     IMPLICIT NONE
 
-    REAL(dp), INTENT(in) :: T     ! T in K
+    REAL(wp), INTENT(in) :: T     ! T in K
 
     INTEGER,  PARAMETER :: nt = 11
-    REAL(dp), PARAMETER :: temp0(nt) = (/ &
-         173.16_dp, 183.16_dp, 193.16_dp, 203.16_dp, &
-         213.16_dp, 223.16_dp, 233.16_dp, 243.16_dp, &
-         253.16_dp, 263.16_dp, 273.16_dp /)
-    REAL(dp), PARAMETER :: C0(nt) = (/ &
-         1382._dp, 1449._dp, 1520._dp, 1591._dp, &
-         1662._dp, 1738._dp, 1813._dp, 1884._dp, &
-         1959._dp, 2031._dp, 2106._dp /)
-    REAL(dp), PARAMETER :: dtemp = temp0(2) - temp0(1)
+    REAL(wp), PARAMETER :: temp0(nt) = (/ &
+         173.16_wp, 183.16_wp, 193.16_wp, 203.16_wp, &
+         213.16_wp, 223.16_wp, 233.16_wp, 243.16_wp, &
+         253.16_wp, 263.16_wp, 273.16_wp /)
+    REAL(wp), PARAMETER :: C0(nt) = (/ &
+         1382._wp, 1449._wp, 1520._wp, 1591._wp, &
+         1662._wp, 1738._wp, 1813._wp, 1884._wp, &
+         1959._wp, 2031._wp, 2106._wp /)
+    REAL(wp), PARAMETER :: dtemp = temp0(2) - temp0(1)
 
     INTEGER  :: jt
-    REAL(dp) :: temp, C
+    REAL(wp) :: temp, C
 
     temp = MAX(MIN(T,temp0(nt)),temp0(1))
 
@@ -910,25 +909,25 @@ CONTAINS
 !
 !  Note: Cwater in J/kg/K
 !
-  REAL(dp) FUNCTION Cwater(T)
+  REAL(wp) FUNCTION Cwater(T)
 
     IMPLICIT NONE
 
-    REAL(dp), INTENT(in) :: T     ! T in K
+    REAL(wp), INTENT(in) :: T     ! T in K
 
     INTEGER,  PARAMETER :: nt = 11
-    REAL(dp), PARAMETER :: temp0(nt) = (/ &
-         223.16_dp, 233.16_dp, 243.16_dp, 253.16_dp, &
-         263.16_dp, 273.16_dp, 283.16_dp, 293.16_dp, &
-         303.16_dp, 313.16_dp, 323.16_dp /)
-    REAL(dp), PARAMETER :: C0(nt) = (/ &
-         5400._dp, 4770._dp, 4520._dp, 4350._dp, &
-         4270._dp, 4217.8_dp, 4192.3_dp, 4181.8_dp, &
-         4178.5_dp, 4178.5_dp, 4180.6_dp /)
-    REAL(dp), PARAMETER :: dtemp = temp0(2) - temp0(1)
+    REAL(wp), PARAMETER :: temp0(nt) = (/ &
+         223.16_wp, 233.16_wp, 243.16_wp, 253.16_wp, &
+         263.16_wp, 273.16_wp, 283.16_wp, 293.16_wp, &
+         303.16_wp, 313.16_wp, 323.16_wp /)
+    REAL(wp), PARAMETER :: C0(nt) = (/ &
+         5400._wp, 4770._wp, 4520._wp, 4350._wp, &
+         4270._wp, 4217.8_wp, 4192.3_wp, 4181.8_wp, &
+         4178.5_wp, 4178.5_wp, 4180.6_wp /)
+    REAL(wp), PARAMETER :: dtemp = temp0(2) - temp0(1)
 
     INTEGER  :: jt
-    REAL(dp) :: temp, C
+    REAL(wp) :: temp, C
 
     temp = MAX(MIN(T,temp0(nt)),temp0(1))
 
@@ -948,13 +947,13 @@ CONTAINS
 !       temperature and pressure in m2/s
 !       Following Montgomery (1947)
 !
-  REAL(dp) FUNCTION diff_vap_air(T,p)
+  REAL(wp) FUNCTION diff_vap_air(T,p)
 
     IMPLICIT NONE
 
-    REAL(dp), INTENT(in) :: T, p   ! Temp. in K and pressure in Pa
+    REAL(wp), INTENT(in) :: T, p   ! Temp. in K and pressure in Pa
 
-    Diff_vap_air = 2.26e-5_dp * (T/T_0C)**1.81 * (1000.e2_dp/p)
+    Diff_vap_air = 2.26e-5_wp * (T/T_0C)**1.81 * (1000.e2_wp/p)
 
   END FUNCTION diff_vap_air
 !
@@ -967,17 +966,17 @@ CONTAINS
 !        als Funktion der Temperatur T in K. Gueltigkeitsbereich nach
 !        Landolt-Boernstein: T element aus [-70.0, 40.0] grad C
 !
-  REAL(dp) FUNCTION dyn_visc_air(T)
+  REAL(wp) FUNCTION dyn_visc_air(T)
 
     IMPLICIT NONE
 
-    REAL(dp), INTENT(in) :: T     ! Temp. in K
-    REAL(dp) :: temp
+    REAL(wp), INTENT(in) :: T     ! Temp. in K
+    REAL(wp) :: temp
 
-    temp = MAX(MIN(T,313.16_dp),203.16_dp)
+    temp = MAX(MIN(T,313.16_wp),203.16_wp)
 
-    dyn_visc_air = 1.8325e-5_dp * (temp/296.16_dp)**1.5 * &
-         (296.16_dp+120._dp)/(temp+120._dp)
+    dyn_visc_air = 1.8325e-5_wp * (temp/296.16_wp)**1.5 * &
+         (296.16_wp+120._wp)/(temp+120._wp)
 
   END FUNCTION dyn_visc_air
 !
@@ -988,18 +987,18 @@ CONTAINS
 !        Saturation vapour pressure in Pa over ice as a funct. of
 !        temperature in Kelvin. As in LM.
 !
-  REAL(dp) FUNCTION esat_i(T)
+  REAL(wp) FUNCTION esat_i(T)
 
     IMPLICIT NONE
 
-    REAL(dp), INTENT(in) :: T     ! Temp. in K
-    REAL(dp), PARAMETER  :: Tlim = 7.66_dp + 1.e-6_dp
-    REAL(dp) :: tmp
+    REAL(wp), INTENT(in) :: T     ! Temp. in K
+    REAL(wp), PARAMETER  :: Tlim = 7.66_wp + 1.e-6_wp
+    REAL(wp) :: tmp
 
     IF (T > Tlim) THEN
-       tmp = 610.78_dp * EXP(21.8745584_dp*(T-T_0C)/(T-7.66_dp))
+       tmp = 610.78_wp * EXP(21.8745584_wp*(T-T_0C)/(T-7.66_wp))
     ELSE
-       tmp = 0._dp
+       tmp = 0._wp
     END IF
 
     esat_i = tmp
@@ -1015,18 +1014,18 @@ CONTAINS
 !        Saturation vapour pressure in Pa over water as a funct. of
 !        temperature in Kelvin. As in LM.
 !
-  REAL(dp) FUNCTION esat_w(T)
+  REAL(wp) FUNCTION esat_w(T)
 
     IMPLICIT NONE
 
-    REAL(dp), INTENT(in) :: T     ! Temp. in K
-    REAL(dp), PARAMETER  :: Tlim = 35.86_dp + 1.e-6_dp
-    REAL(dp) :: tmp
+    REAL(wp), INTENT(in) :: T     ! Temp. in K
+    REAL(wp), PARAMETER  :: Tlim = 35.86_wp + 1.e-6_wp
+    REAL(wp) :: tmp
 
     IF (T > Tlim) THEN
-       tmp = 610.78_dp * EXP(17.2693882_dp*(T-T_0C)/(T-35.86_dp))
+       tmp = 610.78_wp * EXP(17.2693882_wp*(T-T_0C)/(T-35.86_wp))
     ELSE
-       tmp = 0._dp
+       tmp = 0._wp
     END IF
 
     esat_w = tmp
@@ -1042,18 +1041,18 @@ CONTAINS
 !        Saturation vapour pressure in Pa over water as a funct. of
 !        temperature in Kelvin. Following Bolton.
 !
-  REAL(dp) FUNCTION esat_w_bolton(T)
+  REAL(wp) FUNCTION esat_w_bolton(T)
 
     IMPLICIT NONE
 
-    REAL(dp), INTENT(in) :: T     ! Temp. in K
-    REAL(dp), PARAMETER  :: Tlim = 29.66_dp + 1.e-6_dp
-    REAL(dp) :: tmp
+    REAL(wp), INTENT(in) :: T     ! Temp. in K
+    REAL(wp), PARAMETER  :: Tlim = 29.66_wp + 1.e-6_wp
+    REAL(wp) :: tmp
 
     IF (T > Tlim) THEN
-       tmp = 611.2_dp * EXP(17.67_dp*(T-T_0C)/(T-29.66_dp))
+       tmp = 611.2_wp * EXP(17.67_wp*(T-T_0C)/(T-29.66_wp))
     ELSE
-       tmp = 0._dp
+       tmp = 0._wp
     END IF
 
     esat_w_bolton = tmp
@@ -1071,23 +1070,23 @@ CONTAINS
 !
 !  Note: Lh_m in J/kg
 !
-  REAL(dp) FUNCTION Lh_m(T)
+  REAL(wp) FUNCTION Lh_m(T)
 
     IMPLICIT NONE
 
-    REAL(dp), INTENT(in) :: T     ! T in K
+    REAL(wp), INTENT(in) :: T     ! T in K
 
     INTEGER,  PARAMETER :: nt = 6
-    REAL(dp), PARAMETER :: temp0(nt) = (/ &
-         223.16_dp, 233.16_dp, 243.16_dp, &
-         253.16_dp, 263.16_dp, 273.16_dp /)
-    REAL(dp), PARAMETER :: L0(nt) = 1.e6 * (/ &
-         0.2035_dp, 0.2357_dp, 0.2638_dp, &
-         0.2889_dp, 0.3119_dp, 0.3337_dp /)
-    REAL(dp), PARAMETER :: dtemp = temp0(2) - temp0(1)
+    REAL(wp), PARAMETER :: temp0(nt) = (/ &
+         223.16_wp, 233.16_wp, 243.16_wp, &
+         253.16_wp, 263.16_wp, 273.16_wp /)
+    REAL(wp), PARAMETER :: L0(nt) = 1.e6 * (/ &
+         0.2035_wp, 0.2357_wp, 0.2638_wp, &
+         0.2889_wp, 0.3119_wp, 0.3337_wp /)
+    REAL(wp), PARAMETER :: dtemp = temp0(2) - temp0(1)
 
     INTEGER  :: jt
-    REAL(dp) :: temp
+    REAL(wp) :: temp
 
     temp = MAX(MIN(T,temp0(nt)),temp0(1))
 
@@ -1108,25 +1107,25 @@ CONTAINS
 !
 !  Note: Lh_s in J/kg
 !
-  REAL(dp) FUNCTION Lh_s(T)
+  REAL(wp) FUNCTION Lh_s(T)
 
     IMPLICIT NONE
 
-    REAL(dp), INTENT(in) :: T     ! T in K
+    REAL(wp), INTENT(in) :: T     ! T in K
 
     INTEGER,  PARAMETER :: nt = 11
-    REAL(dp), PARAMETER :: temp0(nt) = (/ &
-         173.16_dp, 183.16_dp, 193.16_dp, 203.16_dp, &
-         213.16_dp, 223.16_dp, 233.16_dp, 243.16_dp, &
-         253.16_dp, 263.16_dp, 273.16_dp /)
-    REAL(dp), PARAMETER :: L0(nt) = 1.e6 * (/ &
-         2.8236_dp, 2.8278_dp, 2.8316_dp, 2.8345_dp, &
-         2.8366_dp, 2.8383_dp, 2.8387_dp, 2.8387_dp, &
-         2.8383_dp, 2.8366_dp, 2.8345_dp /)
-    REAL(dp), PARAMETER :: dtemp = temp0(2) - temp0(1)
+    REAL(wp), PARAMETER :: temp0(nt) = (/ &
+         173.16_wp, 183.16_wp, 193.16_wp, 203.16_wp, &
+         213.16_wp, 223.16_wp, 233.16_wp, 243.16_wp, &
+         253.16_wp, 263.16_wp, 273.16_wp /)
+    REAL(wp), PARAMETER :: L0(nt) = 1.e6 * (/ &
+         2.8236_wp, 2.8278_wp, 2.8316_wp, 2.8345_wp, &
+         2.8366_wp, 2.8383_wp, 2.8387_wp, 2.8387_wp, &
+         2.8383_wp, 2.8366_wp, 2.8345_wp /)
+    REAL(wp), PARAMETER :: dtemp = temp0(2) - temp0(1)
 
     INTEGER  :: jt
-    REAL(dp) :: temp
+    REAL(wp) :: temp
 
     temp = MAX(MIN(T,temp0(nt)),temp0(1))
 
@@ -1147,25 +1146,25 @@ CONTAINS
 !
 !  Note: Lh_e in J/kg
 !
-  REAL(dp) FUNCTION Lh_e(T)
+  REAL(wp) FUNCTION Lh_e(T)
 
     IMPLICIT NONE
 
-    REAL(dp), INTENT(in) :: T     ! T in K
+    REAL(wp), INTENT(in) :: T     ! T in K
 
     INTEGER,  PARAMETER :: nt = 11
-    REAL(dp), PARAMETER :: temp0(nt) = (/ &
-         223.16_dp, 233.16_dp, 243.16_dp, 253.16_dp, &
-         263.16_dp, 273.16_dp, 283.16_dp, 293.16_dp, &
-         303.16_dp, 313.16_dp, 323.16_dp /)
-    REAL(dp), PARAMETER :: L0(nt) = 1.e6 * (/ &
-         2.6348_dp, 2.6030_dp, 2.5749_dp, 2.5494_dp, &
-         2.5247_dp, 2.50084_dp, 2.4774_dp, 2.4535_dp, &
-         2.4300_dp, 2.4062_dp, 2.3823_dp /)
-    REAL(dp), PARAMETER :: dtemp = temp0(2) - temp0(1)
+    REAL(wp), PARAMETER :: temp0(nt) = (/ &
+         223.16_wp, 233.16_wp, 243.16_wp, 253.16_wp, &
+         263.16_wp, 273.16_wp, 283.16_wp, 293.16_wp, &
+         303.16_wp, 313.16_wp, 323.16_wp /)
+    REAL(wp), PARAMETER :: L0(nt) = 1.e6 * (/ &
+         2.6348_wp, 2.6030_wp, 2.5749_wp, 2.5494_wp, &
+         2.5247_wp, 2.50084_wp, 2.4774_wp, 2.4535_wp, &
+         2.4300_wp, 2.4062_wp, 2.3823_wp /)
+    REAL(wp), PARAMETER :: dtemp = temp0(2) - temp0(1)
 
     INTEGER  :: jt
-    REAL(dp) :: temp
+    REAL(wp) :: temp
 
     temp = MAX(MIN(T,temp0(nt)),temp0(1))
 
@@ -1174,7 +1173,7 @@ CONTAINS
     Lh_e = linint(L0(jt),L0(jt+1),temp0(jt),temp0(jt+1),temp)
 
     ! Naeherung von Bolton:
-!!$    Lh_e = (2.501_dp - 0.00237_dp*(T-T_0C) ) * 1.e6_dp
+!!$    Lh_e = (2.501_wp - 0.00237_wp*(T-T_0C) ) * 1.e6_wp
 
     RETURN
 
@@ -1196,14 +1195,14 @@ CONTAINS
 !
 !  Note: conduct_air in W/m/K
 !
-  REAL(dp) FUNCTION conduct_air(T)
+  REAL(wp) FUNCTION conduct_air(T)
 
     IMPLICIT NONE
 
-    REAL(dp), INTENT(in) :: T    ! Temp. in K
+    REAL(wp), INTENT(in) :: T    ! Temp. in K
 
-    conduct_air = 0.0242_dp*(T/T_0C)**1.5 * &
-         (T_0C+120._dp)/(T+120._dp)
+    conduct_air = 0.0242_wp*(T/T_0C)**1.5 * &
+         (T_0C+120._wp)/(T+120._wp)
 
     RETURN
 
@@ -1219,17 +1218,17 @@ CONTAINS
 !
 !  Note: conduct_water in W/m/K
 !
-  REAL(dp) FUNCTION conduct_water(T)
+  REAL(wp) FUNCTION conduct_water(T)
 
     IMPLICIT NONE
 
-    REAL(dp), INTENT(in) :: T    ! Temp. in K
-    REAL(dp) :: temp
+    REAL(wp), INTENT(in) :: T    ! Temp. in K
+    REAL(wp) :: temp
 
-    temp = MIN(MAX(T-273.16_dp,0._dp),60._dp)
+    temp = MIN(MAX(T-273.16_wp,0._wp),60._wp)
 
-    conduct_water = 0.56905_dp + 0.0019025_dp*temp - &
-         0.000008125_dp*(temp)**2
+    conduct_water = 0.56905_wp + 0.0019025_wp*temp - &
+         0.000008125_wp*(temp)**2
 
     RETURN
 
@@ -1255,11 +1254,11 @@ CONTAINS
     IMPLICIT NONE
 
     INTEGER,  INTENT(in) :: n
-    REAL(dp), INTENT(in) :: xx(n), x
+    REAL(wp), INTENT(in) :: xx(n), x
     INTEGER, INTENT(out) :: j
 
     INTEGER              :: jl, jm, ju
-    REAL(dp)             :: xi
+    REAL(wp)             :: xi
 
     jl=0
     ju=n+1
@@ -1301,13 +1300,13 @@ CONTAINS
   !
   ! ********************************************************************
 
-  REAL(dp) FUNCTION linint(x1,x2,y1,y2,y)
+  REAL(wp) FUNCTION linint(x1,x2,y1,y2,y)
 
     IMPLICIT NONE
 
-    REAL(dp), INTENT(IN) :: x1, x2, y1, y2, y
-    REAL(dp)             :: x
-    REAL(dp), PARAMETER  :: eps = 1e-20_dp
+    REAL(wp), INTENT(IN) :: x1, x2, y1, y2, y
+    REAL(wp)             :: x
+    REAL(wp), PARAMETER  :: eps = 1e-20_wp
 
     IF (ABS(y2-y1) < eps) THEN
       linint = x1

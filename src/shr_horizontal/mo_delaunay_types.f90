@@ -29,7 +29,7 @@ MODULE mo_delaunay_types
   USE mo_netcdf
   USE mo_exception,         ONLY: finish
   USE mo_impl_constants,    ONLY: SUCCESS
-  USE mo_mpi,               ONLY: p_comm_work, p_real_dp
+  USE mo_mpi,               ONLY: p_comm_work, p_real
 #ifdef __SX__
   USE mo_util_sort,         ONLY: radixsort
 #endif
@@ -1107,9 +1107,9 @@ CONTAINS
     !
     ! setup description of the 4 REAL(wp) fields: x, y, z, ps
     offsets(1)     = 0_MPI_ADDRESS_KIND
-    oldtypes(1)    = p_real_dp
+    oldtypes(1)    = p_real
     blockcounts(1) = 4
-    CALL MPI_TYPE_GET_EXTENT(p_real_dp, typeLB, extent, ierr)
+    CALL MPI_TYPE_GET_EXTENT(p_real, typeLB, extent, ierr)
     offsets(2)     = 4*extent
     oldtypes(2)    = MPI_INTEGER
     blockcounts(2) = 2

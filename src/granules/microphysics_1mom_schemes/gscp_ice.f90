@@ -1164,7 +1164,7 @@ SUBROUTINE cloudice2mom (            &
             mi_hom  = MIN(MAX(mi_hom,zximin),zximax)
 
             ! nucleation rate
-            shomn = MIN(MAX(z1orhog*ni_hom, 0.d0),ni_hom_max) * zdtr
+            shomn = MIN(MAX(z1orhog*ni_hom, 0.0_wp),ni_hom_max) * zdtr
             shom  = MIN(mi_hom*shomn, zsvmax)
 
           END IF

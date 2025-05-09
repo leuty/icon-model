@@ -20,7 +20,7 @@ MODULE mo_async_restart_patch_data
   USE ISO_C_BINDING,                ONLY: C_PTR, C_F_POINTER, C_LOC
   USE mo_async_restart_comm_data,   ONLY: t_AsyncRestartCommData
   USE mo_exception,                 ONLY: finish
-  USE mo_kind,                      ONLY: wp, dp, sp
+  USE mo_kind,                      ONLY: dp, sp
   USE mo_impl_constants,            ONLY: SINGLE_T, REAL_T, INT_T
   USE mo_parallel_config,           ONLY: crcs => restart_chunk_size
   USE mo_run_config,                ONLY: msg_level
@@ -147,9 +147,9 @@ CONTAINS
       END DO
     END DO
     IF (msg_level >= 7) &
-      & WRITE (0,'(10(a,f10.3))') ' Checkpointing: Got ', REAL(bGet, dp)*1.d-6, ' MB, time get: ', t_get, ' s [', &
-           & REAL(bGet, dp)*1.d-6/MAX(1.e-6_wp, t_get), ' MB/s], time write: ', t_write, ' s [', &
-           & REAL(bWrite, dp)*1.d-6/MAX(1.e-6_wp,t_write), ' MB/s]'
+      & WRITE (0,'(10(a,f10.3))') ' Checkpointing: Got ', REAL(bGet, dp)*1.e-6_dp, ' MB, time get: ', t_get, ' s [', &
+           & REAL(bGet, dp)*1.e-6_dp/MAX(1.e-6_dp, t_get), ' MB/s], time write: ', t_write, ' s [', &
+           & REAL(bWrite, dp)*1.e-6_dp/MAX(1.e-6_dp,t_write), ' MB/s]'
   END SUBROUTINE asyncPatchData_writeData
 #endif
 END MODULE mo_async_restart_patch_data

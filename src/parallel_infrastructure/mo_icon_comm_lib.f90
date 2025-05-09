@@ -31,7 +31,7 @@ MODULE mo_icon_comm_lib
   USE mo_model_domain,    ONLY: t_patch
   USE mo_decomposition_tools, ONLY: t_glb2loc_index_lookup, get_local_index
   USE mo_mpi,             ONLY: p_send, p_irecv, p_wait, p_isend, &
-     & p_send, p_real_dp, my_process_is_mpi_seq,   &
+     & p_send, p_real, my_process_is_mpi_seq,   &
      & work_mpi_barrier, &
      & get_my_mpi_work_communicator, get_my_mpi_work_comm_size, &
      & get_my_mpi_work_id
@@ -2461,8 +2461,8 @@ CONTAINS
     INTEGER(MPI_ADDRESS_KIND) :: typeLB, rextent, mpi_disp(2)
 
     ! create a user-defined type for MPI allreduce operation:
-    mpi_type  = (/ p_real_dp, MPI_INTEGER /)
-    CALL MPI_TYPE_GET_EXTENT(p_real_dp, typeLB, rextent, ierr)
+    mpi_type  = (/ p_real, MPI_INTEGER /)
+    CALL MPI_TYPE_GET_EXTENT(p_real, typeLB, rextent, ierr)
     mpi_disp  = (/ 0_MPI_ADDRESS_KIND, rextent /)
     mpi_block = (/ 1, 2 /)
     CALL MPI_TYPE_CREATE_STRUCT(2, mpi_block, mpi_disp, mpi_type, min_type, ierr)

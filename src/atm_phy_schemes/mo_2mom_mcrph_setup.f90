@@ -20,7 +20,7 @@
 
 MODULE mo_2mom_mcrph_setup
 
-  USE mo_kind,               ONLY: sp, wp
+  USE mo_kind,               ONLY: wp
   USE mo_exception,          ONLY: finish, message, txt => message_text
   USE mo_math_constants,     ONLY: pi, pi4 => pi_4
   USE mo_physical_constants, ONLY: &

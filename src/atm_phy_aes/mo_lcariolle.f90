@@ -14,7 +14,7 @@
 
 MODULE mo_lcariolle
 
-  USE mo_kind, ONLY: wp => dp, wi => i4
+  USE mo_kind, ONLY: wp, wi => i4
   USE mo_read_interface, ONLY: read_bcast_REAL_3D, read_1D,  &
     & closeFile, openInputFile
   USE mo_physical_constants, ONLY: avo

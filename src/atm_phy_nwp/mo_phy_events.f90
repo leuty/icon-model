@@ -15,7 +15,7 @@
 
 MODULE mo_phy_events
 
-  USE mo_kind,                     ONLY: wp
+  USE mo_kind,                     ONLY: wp, dp
   USE mo_impl_constants,           ONLY: max_char_length, SUCCESS
   USE mo_exception,                ONLY: finish, message, message_text
   USE mtime,                       ONLY: datetime, newDatetime, timedelta, &
@@ -766,7 +766,7 @@ CONTAINS
 
     ! local
     INTEGER                               :: iproc               ! loop conter
-    REAL(wp)                              :: elapsedTime
+    REAL(wp)                              :: elapsedTime         ! data type must match put in phyPhrocGroup_serialize
     TYPE(timedelta)                       :: mtime_elapsedTime   ! elapsed time in mtime format
     TYPE(t_key_value_store), POINTER :: restartAttributes
     CHARACTER(len=MAX_CHAR_LENGTH)        :: attname             ! attribute name
@@ -789,7 +789,7 @@ CONTAINS
 
         ! Note that elapsedTime is multiplied by -1, since we only have a
         ! '+' operator available.
-        CALL mtime_timedelta_from_fseconds(-elapsedTime, mtime_current, &
+        CALL mtime_timedelta_from_fseconds(REAL(-elapsedTime,KIND=dp), mtime_current, &
           &                                mtime_elapsedTime)
         phyProcGrp%proc(iproc)%p%lastActive = mtime_current + mtime_elapsedTime
         !

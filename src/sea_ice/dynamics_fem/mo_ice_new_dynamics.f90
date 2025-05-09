@@ -436,7 +436,7 @@ CONTAINS
                 CALL compute_2Dvector_grad(cell_index,cell_block,e11,e12,e21,e22,cell_area_c(cell_index,1,cell_block),&
                      &x1_c(cell_index,1,cell_block),x2_c(cell_index,1,cell_block),x3_c(cell_index,1,cell_block),p_patch_3D, p_ice)
 
-                p_ice%Delta(cell_index,cell_block)=dsqrt(delta_min*delta_min+ e12*e12 + 1.25_wp*(e11*e11+e22*e22)+1.5_wp*e11*e22)
+                p_ice%Delta(cell_index,cell_block)=sqrt(delta_min*delta_min+ e12*e12 + 1.25_wp*(e11*e11+e22*e22)+1.5_wp*e11*e22)
 
                 P=p_ice%hi(cell_index,1,cell_block)*Pstar*EXP(-20.0_wp*(1.0_wp-p_ice%conc(cell_index,1,cell_block)))
 

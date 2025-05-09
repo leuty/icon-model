@@ -35,7 +35,7 @@ MODULE mo_2mom_mcrph_processes
 !   - sedi_icon_box_core_lwf() (vectorized version #if defined (__SX__) || defined (__NEC_VH__) || defined (__NECSX__))
 !===============================================================================!
 
-  USE mo_kind,               ONLY: sp, wp
+  USE mo_kind,               ONLY: wp, sp
   USE mo_exception,          ONLY: finish, message, txt => message_text
   USE mo_math_constants,     ONLY: pi, pi4 => pi_4
   USE mo_physical_constants, ONLY: &
@@ -2725,7 +2725,7 @@ CONTAINS
                      ( shed_coeffs%delta_aa(0,1) * delta_aa_var * D_p**2 + &
                        shed_coeffs%delta_ab(0,1) * delta_ab_var * D_p*D_c + &
                        shed_coeffs%delta_bb(0,1) * delta_bb_var * D_c**2 ) * &
-                     SQRT( MAX(vchar, 0.0d0) )
+                     SQRT( MAX(vchar, 0._wp) )
 
                 shed_q = MIN(ptype%q(i,k),shed_q)
                 shed_n = shed_q / x_shed
@@ -2950,7 +2950,7 @@ CONTAINS
                      ( shed_coeffs%delta_aa(0,1) * delta_aa_var * D_p**2 + &
                        shed_coeffs%delta_ab(0,1) * delta_ab_var * D_p*D_r + &
                        shed_coeffs%delta_bb(0,1) * delta_bb_var * D_r**2 ) * &
-                     SQRT( MAX(vchar, 0.0d0) )
+                     SQRT( MAX(vchar, 0._wp) )
 
                 shed_q = MIN(ptype%q(i,k),shed_q)
                 shed_n = shed_q / x_shed
@@ -4369,7 +4369,7 @@ CONTAINS
              ! interpol. with respect to wcb = ip_ndrop_wcb
              nuc_n = MAX(ccn_coeffs%etas * ip_ndrop_wcb(tab_Ndrop_i,tab_wcb,wcb),ccn_coeffs%Nmin) - n_c
 
-             nuc_n = MAX(nuc_n,0.0d0)
+             nuc_n = MAX(nuc_n,0._wp)
 
              nuc_q = MIN(nuc_n * cloud%x_min, atmo%qv(i,k))
              nuc_n = nuc_q / cloud%x_min
@@ -4869,7 +4869,7 @@ CONTAINS
 
           nuc_n = etas * nccn - n_c
 
-          nuc_n = MAX(nuc_n,0.0d0)
+          nuc_n = MAX(nuc_n,0._wp)
 
           nuc_q = MIN(nuc_n * cloud%x_min,atmo%qv(i,k))
           nuc_n = nuc_q / cloud%x_min

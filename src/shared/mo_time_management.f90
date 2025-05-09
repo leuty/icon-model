@@ -18,7 +18,7 @@
 MODULE mo_time_management
 
   USE, INTRINSIC :: iso_c_binding, ONLY: c_int32_t
-  USE mo_kind,                     ONLY: wp, i8
+  USE mo_kind,                     ONLY: wp, dp, i8
   USE mo_master_config,            ONLY: lrestart_write_last
   USE mo_parallel_config,          ONLY: num_restart_procs
   USE mo_util_string,              ONLY: tolower, int2string
@@ -144,7 +144,7 @@ CONTAINS
     ! "grid_rescale_factor".
     !
     IF (lrescale_timestep .AND. grid_rescale_factor /= 1.0_wp) THEN
-      dtime1 = dtime1 * grid_rescale_factor
+      dtime1 = dtime1 * REAL(grid_rescale_factor, KIND=dp)
       CALL timedeltaToString(dtime1, dtime_string)
       IF (dtime_real > 0._wp)  dtime_real = dtime_real * grid_rescale_factor
 

@@ -16,7 +16,7 @@
 
 MODULE mo_bc_solar_irradiance
 
-  USE mo_kind,            ONLY: dp, i8
+  USE mo_kind,            ONLY: wp, i8
   USE mo_exception,       ONLY: finish, message, warning, message_text
   USE mo_netcdf,          ONLY: nf90_nowrite, nf90_noerr
   USE mo_netcdf_parallel, ONLY: p_nf90_open, p_nf90_inq_dimid, p_nf90_inquire_dimension, &
@@ -28,8 +28,8 @@ MODULE mo_bc_solar_irradiance
   IMPLICIT NONE
   PRIVATE
 
-  REAL(dp), POINTER :: tsi_radt_m(:) => NULL(), tsi_m(:) => NULL()
-  REAL(dp), POINTER :: ssi_radt_m(:,:) => NULL()
+  REAL(wp), POINTER :: tsi_radt_m(:) => NULL(), tsi_m(:) => NULL()
+  REAL(wp), POINTER :: ssi_radt_m(:,:) => NULL()
 
   INTEGER, ALLOCATABLE :: ssi_years(:)
   INTEGER, ALLOCATABLE :: ssi_months(:)
@@ -129,8 +129,8 @@ CONTAINS
   SUBROUTINE ssi_time_interpolation(tiw, lradt, tsi, ssi)
     TYPE( t_time_interpolation_weights), INTENT(in) :: tiw
     LOGICAL, INTENT(in)             :: lradt
-    REAL(dp), INTENT(out)           :: tsi
-    REAL(dp), INTENT(out), OPTIONAL :: ssi(:)
+    REAL(wp), INTENT(out)           :: tsi
+    REAL(wp), INTENT(out), OPTIONAL :: ssi(:)
     CHARACTER(len=14)               :: ctsi
 
     IF (lradt) THEN

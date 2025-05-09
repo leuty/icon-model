@@ -55,8 +55,10 @@ MODULE mo_solve_nonhydro
   USE mo_vertical_coord_table,ONLY: vct_a
   USE mo_prepadv_types,     ONLY: t_prepare_adv
   USE mo_initicon_config,   ONLY: is_iau_active, iau_wgt_dyn
-  USE mo_fortran_tools,     ONLY: init_zero_contiguous_dp, init_zero_contiguous_sp,             & ! Import both for mixed prec.
-    &                             assert_acc_device_only
+  USE mo_fortran_tools,     ONLY: init_zero_contiguous_dp, assert_acc_device_only
+#if defined(__SINGLE_PRECISION) || defined(__MIXED_PRECISION)
+  USE mo_fortran_tools,     ONLY: init_zero_contiguous_sp
+#endif
 #ifdef _OPENACC
   USE mo_mpi,               ONLY: my_process_is_work
 #endif
@@ -475,7 +477,8 @@ MODULE mo_solve_nonhydro
       IF (istep == 1 .AND. (jg > 1 .OR. l_limited_area)) THEN
 
 #ifdef __SWAPDIM
-#ifdef __MIXED_PRECISION
+          ! Abusing contiguous memory here by going out of bounds, init_zero_contiguous expects 1d array
+#if defined(__SINGLE_PRECISION) || defined(__MIXED_PRECISION)
           CALL init_zero_contiguous_sp(z_rth_pr(1,1,1,1), nproma*nlev*i_startblk, opt_acc_async=.TRUE., &
             & lacc=.TRUE.)
           CALL init_zero_contiguous_sp(z_rth_pr(1,1,1,2), nproma*nlev*i_startblk, opt_acc_async=.TRUE., &
@@ -487,7 +490,8 @@ MODULE mo_solve_nonhydro
             & lacc=.TRUE.)
 #endif
 #else
-#ifdef __MIXED_PRECISION
+          ! Abusing contiguous memory here by going out of bounds, init_zero_contiguous expects 1d array
+#if defined(__SINGLE_PRECISION) || defined(__MIXED_PRECISION)
           CALL init_zero_contiguous_sp(z_rth_pr(1,1,1,1), 2*nproma*nlev*i_startblk, opt_acc_async=.TRUE., &
             & lacc=.TRUE.)
 #else
@@ -888,10 +892,18 @@ MODULE mo_solve_nonhydro
         i_endblk   = p_patch%edges%end_block(min_rledge_int-2)
 
         IF (i_endblk >= i_startblk) THEN
+          ! Abusing contiguous memory here by going out of bounds, init_zero_contiguous expects 1d array
+#if defined(__SINGLE_PRECISION)
+          CALL init_zero_contiguous_sp(z_rho_e    (1,1,i_startblk), nproma*nlev*(i_endblk-i_startblk+1), &
+            & opt_acc_async=.TRUE., lacc=.TRUE.)
+          CALL init_zero_contiguous_sp(z_theta_v_e(1,1,i_startblk), nproma*nlev*(i_endblk-i_startblk+1), &
+            & opt_acc_async=.TRUE., lacc=.TRUE.)
+#else
           CALL init_zero_contiguous_dp(z_rho_e    (1,1,i_startblk), nproma*nlev*(i_endblk-i_startblk+1), &
             & opt_acc_async=.TRUE., lacc=.TRUE.)
           CALL init_zero_contiguous_dp(z_theta_v_e(1,1,i_startblk), nproma*nlev*(i_endblk-i_startblk+1), &
             & opt_acc_async=.TRUE., lacc=.TRUE.)
+#endif
 !$OMP BARRIER
         ENDIF
 
@@ -903,10 +915,18 @@ MODULE mo_solve_nonhydro
 
         ! initialize also nest boundary points with zero
         IF (jg > 1 .OR. l_limited_area) THEN
+          ! Abusing contiguous memory here by going out of bounds, init_zero_contiguous expects 1d array
+#if defined(__SINGLE_PRECISION)
+          CALL init_zero_contiguous_sp(z_rho_e    (1,1,1), nproma*nlev*i_startblk, opt_acc_async=.TRUE., &
+          & lacc=.TRUE.)
+          CALL init_zero_contiguous_sp(z_theta_v_e(1,1,1), nproma*nlev*i_startblk, opt_acc_async=.TRUE., &
+          & lacc=.TRUE.)
+#else
           CALL init_zero_contiguous_dp(z_rho_e    (1,1,1), nproma*nlev*i_startblk, opt_acc_async=.TRUE., &
           & lacc=.TRUE.)
           CALL init_zero_contiguous_dp(z_theta_v_e(1,1,1), nproma*nlev*i_startblk, opt_acc_async=.TRUE., &
           & lacc=.TRUE.)
+#endif
 !$OMP BARRIER
         ENDIF
 

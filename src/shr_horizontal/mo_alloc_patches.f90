@@ -46,7 +46,7 @@ MODULE mo_alloc_patches
   USE ppm_distributed_array,      ONLY: global_array_desc,                           &
     &                                   dist_mult_array_new,                         &
     &                                   dist_mult_array_delete,                      &
-    &                                   ppm_int, ppm_real_dp
+    &                                   ppm_int, ppm_real_wp
 #ifdef HAVE_SLOW_PASSIVE_TARGET_ONESIDED
   USE ppm_distributed_array,      ONLY: sync_mode_active_target
 #endif
@@ -688,7 +688,7 @@ CONTAINS
          = extent(first = 1, size = p_patch_pre%n_patch_cells_g)
     dist_cell_desc(c_center)%rect(2) &
          = extent(first = 1, size = 2)
-    dist_cell_desc(c_center)%element_dt = ppm_real_dp
+    dist_cell_desc(c_center)%element_dt = ppm_real_wp
 
     dist_cell_desc(c_refin_ctrl) = dist_cell_desc(c_num_edges)
 
@@ -724,7 +724,7 @@ CONTAINS
          = extent(first = 1, size = p_patch_pre%n_patch_verts_g)
     dist_vert_desc(v_vertex)%rect(2) &
          = extent(first = 1, size = 2)
-    dist_vert_desc(v_vertex)%element_dt = ppm_real_dp
+    dist_vert_desc(v_vertex)%element_dt = ppm_real_wp
 
     dist_vert_desc(v_refin_ctrl) = dist_vert_desc(v_num_edges)
 
