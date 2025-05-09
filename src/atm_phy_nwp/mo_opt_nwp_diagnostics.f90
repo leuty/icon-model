@@ -4991,11 +4991,14 @@ CONTAINS
             ! The reflectivity in dbz3d_lin(:,:,:) is linear:
             zzdbzA = EXP( 0.66666_wp * LOG(dbz3d_lin(jc,jk  ,jb)+repsilon) )
             zzdbzB = EXP( 0.66666_wp * LOG(dbz3d_lin(jc,jk-1,jb)+repsilon) ) ! Should be < zzdbzA, according to the logic above
-            zzdbzB = MIN(zzdbzB - zzdbzA, -repsilon) ! To prevent numerical division by "almost" 0 in the next line
-            ! This is the logarithmically interpolated pressure:
-            zpA  = LOG( p_diag%pres(jc,jk  ,jb) )
-            zpB  = LOG( p_diag%pres(jc,jk-1,jb) )
-            pechotop = EXP(zpA + (zpB-zpA) / zzdbzB * (zzthresh-zzdbzA))
+            IF (zzdbzA - zzdbzB > repsilon .AND. zzdbzA >= zzthresh .AND. zzdbzB < zzthresh) THEN
+              ! This is the logarithmically interpolated pressure:
+              zpA  = LOG( p_diag%pres(jc,jk  ,jb) )
+              zpB  = LOG( p_diag%pres(jc,jk-1,jb) )
+              pechotop = EXP(zpA + (zpB-zpA) / (zzdbzB-zzdbzA) * (zzthresh-zzdbzA))
+            ELSE
+              pechotop = p_diag%pres(jc,jk-1,jb)
+            END IF
             IF ( echotop_p(jc,lev_etop,jb) < 0.0_wp ) THEN
               echotop_p (jc,lev_etop,jb) = pechotop
             ELSE
@@ -5098,11 +5101,14 @@ CONTAINS
             ! The reflectivity in dbz3d_lin(:,:,:) is linear:
             zzdbzA = EXP( 0.66666_wp * LOG(dbz3d_lin(jc,jk  ,jb)+repsilon) )
             zzdbzB = EXP( 0.66666_wp * LOG(dbz3d_lin(jc,jk-1,jb)+repsilon) ) ! Should be < zzdbzA, according to the logic above
-            zzdbzB = MIN(zzdbzB - zzdbzA, -repsilon) ! To prevent numerical division by "almost" 0 in the next line
-            ! This is the interpolated height:
-            zA  = p_metrics%z_mc( jc, jk  , jb)  ! lower bound for linear interpolation
-            zB  = p_metrics%z_mc( jc, jk-1, jb)  ! upper bound
-            zechotop = zA + (zB-zA) / zzdbzB * (zzthresh-zzdbzA)
+            IF (zzdbzA - zzdbzB > repsilon .AND. zzdbzA >= zzthresh .AND. zzdbzB < zzthresh) THEN
+              ! This is the interpolated height:
+              zA  = p_metrics%z_mc( jc, jk  , jb)  ! lower bound for linear interpolation
+              zB  = p_metrics%z_mc( jc, jk-1, jb)  ! upper bound
+              zechotop = zA + (zB-zA) / (zzdbzB-zzdbzA) * (zzthresh-zzdbzA)
+            ELSE
+              zechotop = p_metrics%z_mc( jc, jk-1, jb)
+            END IF
             echotop_z (jc,lev_etop,jb) = MAX(echotop_z(jc,lev_etop,jb), zechotop)
           END IF
         END DO
