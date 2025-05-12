@@ -19,6 +19,7 @@ icon_dir=$(cd "${script_dir}/../.."; pwd)
 if test -n "${BB_NAME-}"; then
   job_count=${SLURM_NTASKS:-22}
   set MPI_LAUNCH='srun'
+  PYTHON='PYTHON=/fastdata/mh0156/buildbot/venv/bin/python3'
 else
   job_count=8
   # Do not override arguments set in the wrapper:
@@ -30,6 +31,6 @@ makeflags="--jobs=${job_count} --no-print-directory --output-sync=target V=1"
 
 set -x
 
-${icon_dir}/config/dkrz/levante.cpu.nvhpc --disable-openmp --enable-ecrad "$@"
+${icon_dir}/config/dkrz/levante.cpu.nvhpc --disable-openmp --enable-ecrad --enable-comin --enable-bundled-python=comin,mtime "$@"
 
 make ${makeflags}
