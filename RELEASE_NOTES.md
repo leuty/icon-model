@@ -32,6 +32,7 @@ Climate: ICON-Land
   - Verification check for some JSBACH lctlib parameters when compiling with single precision
 - Code cleaning:
   - Only use one variable representing time step length
+- Updated JSBACH usecase with TMX and PFTs
 
 NWP: TERRA and other surface issues
 
@@ -52,6 +53,8 @@ NWP: TERRA and other surface issues
 ### Infrastructure
 
 #### Scripting and testing
+
+- Added AMIP test for TMX with PFTs in ICON-Land
 
 #### Building
 

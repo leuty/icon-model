@@ -115,6 +115,12 @@ builders='levante_gcc levante_gcc_hybrid levante_intel levante_intel_hybrid leva
 runflags='ntasks=16 queue=compute memory=32G'
 add_experiments
 
+exp_base='exp.aes_amip_pfts_test_update_base'
+exp_refgen='checksuite.icon-dev/pp.refgen_aes_amip_pfts_test_update-ref'
+builders='levante_gcc levante_gcc_hybrid levante_intel levante_intel_hybrid levante_intel_hybrid_mixed levante_nag'
+runflags='ntasks=16 queue=compute memory=32G'
+add_experiments
+
 exp_base='exp.waves_R2B4_global_no_forcing_base'
 exp_refgen='checksuite.icon-dev/pp.refgen_waves_R2B4_global_no_forcing_update-ref'
 builders='levante_intel_hybrid'

@@ -52,6 +52,9 @@ GPU_BUILDERS="${NVHPC_CPU_BUILDERS} ${NVHPC_GPU_BUILDERS} ${NVHPC_DEV_BUILDERS}"
 $addexp "checksuite.icon-dev/check.aes_amip_test"          --machines "levante" --list $listname --runflags "ntasks=16 queue=compute memory=32G"
 $addexp "checksuite.icon-dev/check.aes_amip_test_update"   --machines "levante" --list $listname --runflags "ntasks=16 queue=compute memory=32G"
 #
+$addexp "checksuite.icon-dev/check.aes_amip_pfts_test"          --machines "levante" --list $listname --runflags "ntasks=16 queue=compute memory=32G"
+$addexp "checksuite.icon-dev/check.aes_amip_pfts_test_update"   --machines "levante" --list $listname --runflags "ntasks=16 queue=compute memory=32G"
+#
 $addexp "checksuite.icon-dev/check.atm_cph_nest_R2B4_test"         --machines "levante" --list $listname --runflags "ntasks=16 queue=compute memory=32G"
 $addexp "checksuite.icon-dev/check.atm_cph_nest_R2B4_test_update"  --machines "levante" --list $listname --runflags "ntasks=16 queue=compute memory=32G"
 ./set_builder_flags Active   --builders "levante_nag_serial"    --list $listname
