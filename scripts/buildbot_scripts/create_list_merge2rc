@@ -123,7 +123,6 @@ $addexp "checksuite.nwp/nwpexp.run_ICON_23_R2B4_atmo_waves_coupled"       --buil
 $addexp "checksuite.nwp/nwpexp.run_ICON_28_R2B6_IAU_atmo_waves_coupled"   --builders "dwd_nec_coupling" --list $listname
 # implementation of coupling the nested atmosphere to the ocean
 $addexp "checksuite.atm/exp.test_coupled_160kmNestedAtm_40kmOce" --builders "levante_gcc_hybrid levante_nag" --list $listname  --runflags "cpu_time=00:10:00 no_of_nodes=2"
-
 #-----------------------------------------------------------
 # OES
 # add omip technical tests only with mpi parallelization
@@ -222,7 +221,10 @@ $addexp checksuite.nwp/nwpexp.run_ICON_19_R2B4_cmip_forcing                    -
 
 # pure atmospheric transport tests
 $addexp "checksuite.icon-dev/check.atm_tracer_df4" --builders "dwd_nec_oper levante_intel_hybrid levante_nag" --list $listname
-
+#
+#---------------------------------------------------------------------------------------------------------
+# towards XPP
+$addexp --builders levante_intel --list $listname checksuite.nwp/exp.test_atm_nwp_yac_o3coupling.run
 #-----------------------------------------------------------
 # ICON Coupled Setups
 # Ruby0 coupled tests, only with mpi

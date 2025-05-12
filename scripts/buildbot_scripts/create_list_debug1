@@ -19,7 +19,5 @@ listname=debug1
 
 #  de-activate builders - must be commented if lists for debugging are switched on
 ./set_builder_flags Inactive --builders "$(./lslist $listname --builders-only)" --list $listname
-./set_builder_flags Active --builders "levante_intel" --list $listname
-./addexp --builders levante_intel --list $listname checksuite.nwp/exp.test_atm_nwp_yac_o3coupling.run
 
 ./lslist $listname
