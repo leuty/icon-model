@@ -30,6 +30,7 @@ Climate: ICON-Land
 - Updated inline documentation of hydrology process
 - Fixes:
   - Verification check for some JSBACH lctlib parameters when compiling with single precision
+  - Account for proc0_shift from the parallel namelist when running ICON-Land standalone
 - Code cleaning:
   - Only use one variable representing time step length
 - Updated JSBACH usecase with TMX and PFTs

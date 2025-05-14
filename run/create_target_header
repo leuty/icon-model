@@ -2116,6 +2116,13 @@ create_target_header()
                 ;;
             esac
             ;;
+	    *land_*_test*)
+            case $use_target in
+                *_gpu*)
+                    use_num_io_procs=0
+                ;;
+            esac
+            ;;
         *run_ICON_01_R3B9_lam*)
             case $use_target in
                 rcl)
