@@ -575,6 +575,8 @@ $(case $use_flags_group in
       ;;
   esac)
 
+# Enable CUDA graphs support. Setting this is harmless when the graphs are not used
+export NVCOMPILER_ACC_USE_GRAPH=1
 EOF
 }
 
@@ -1976,6 +1978,8 @@ export MPICH_GPU_SUPPORT_ENABLED=1
 export NVCOMPILER_ACC_DEFER_UPLOADS=1
 export NVCOMPILER_TERM=trace
 
+# Enable CUDA graphs support. Setting this is harmless when the graphs are not used
+export NVCOMPILER_ACC_USE_GRAPH=1
 
 EOF
 }
@@ -2027,7 +2031,7 @@ create_target_header()
                 ;;
             esac
             ;;
-        *atm_tracer_Hadley*)
+        *atm_tracer_Hadley*|*atm_cph_nest*)
             case $use_target in
                 bullx_gpu*)
                     use_nproma=8000

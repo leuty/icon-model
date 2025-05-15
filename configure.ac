@@ -516,7 +516,8 @@ AC_ARG_ENABLE([pgi-inlib],
 
 AC_ARG_ENABLE([nccl],
   [AS_HELP_STRING([--enable-nccl],
-     [enable NCCL for communication @<:@default=no@:>@])],
+     [enable usage of the NVIDIA Collective Communications Library (NCCL)
+@<:@default=no@:>@])],
   [AS_IF([test x"$enableval" != xno], [enable_nccl=yes])],
   [enable_nccl=no])
 
@@ -1124,9 +1125,6 @@ AS_VAR_IF([enable_mixed_precision], [yes],
 AS_VAR_IF([enable_intel_consistency], [yes],
   [AS_VAR_APPEND([FCFLAGS], [" ${FC_PP_DEF}IFORT_CONSISTENCY_ENFORCE"])])
 
-AS_VAR_IF([enable_nccl], [yes],
-  [AS_VAR_APPEND([FCFLAGS], [" ${FC_PP_DEF}USE_NCCL"])])
-
 AS_VAR_IF([enable_cuda_graphs], [yes],
   [icon_warn=yes
    AS_CASE(["$FC_VENDOR,$FC_VERSION"],
@@ -1362,6 +1360,21 @@ switch the secondary GPU compiler (e.g. dnl
 (--disable-gpu), or set HIPFLAGS accordingly])],
      [[// override default includes]])
    ACX_LANG_POP_HIP])
+
+AS_VAR_IF([enable_nccl], [yes],
+  [AC_CACHE_CHECK([whether NCCL library is available], [icon_cv_have_nccl],
+     [icon_cv_have_nccl=no
+      AC_LINK_IFELSE([AC_LANG_PROGRAM([], [[
+       use nccl
+       implicit none
+       TYPE(ncclResult) :: ierror
+       ierror = ncclGroupStart()]])],
+        [icon_cv_have_nccl=yes])])
+   AS_VAR_IF([icon_cv_have_nccl], [yes],
+     [AS_VAR_APPEND([FCFLAGS], [" ${FC_PP_DEF}USE_NCCL"])],
+     [AC_MSG_FAILURE([unable to link a test program using NCCL library: dnl
+either disable usage of the NVIDIA Collective Communications Library dnl
+(--disable-nccl) or set LDFLAGS and LIBS accordingly])])])
 
 dnl The positive value (yes) of the following variable indicates that we have a
 dnl working MPI_LAUNCH command:

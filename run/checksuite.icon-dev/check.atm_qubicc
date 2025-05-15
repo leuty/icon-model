@@ -61,7 +61,7 @@ builder="unknown"
 [[ $BB_NAME ]] && builder=$(echo ${BB_NAME} | tr '[:upper:]' '[:lower:]')
 
 case $builder in
-    levante_gpu*) export MD='rm'   ;; # GPU setup uses nblocks_c=1 -> no nproma test, and no OMP parallelization -> no omp test
+    levante_gpu*) export MD='rmg'  ;; # GPU setup uses nblocks_c=1 -> no nproma test, and no OMP parallelization -> no omp test, and with CUDA graphs
     *)            export MD='rnmo' ;;
 esac
 

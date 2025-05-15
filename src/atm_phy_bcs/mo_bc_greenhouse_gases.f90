@@ -60,9 +60,11 @@ MODULE mo_bc_greenhouse_gases
 
   REAL(wp), PROTECTED :: ghg_co2mmr, ghg_ch4mmr, ghg_n2ommr
   REAL(wp), PROTECTED :: ghg_cfcmmr(ghg_no_cfc)
+  !$ACC DECLARE CREATE(ghg_co2mmr, ghg_ch4mmr, ghg_n2ommr, ghg_cfcmmr)
 
   REAL(wp), PROTECTED :: ghg_co2vmr, ghg_ch4vmr, ghg_n2ovmr
   REAL(wp), PROTECTED :: ghg_cfcvmr(ghg_no_cfc)
+  !$ACC DECLARE CREATE(ghg_co2vmr, ghg_ch4vmr, ghg_n2ovmr, ghg_cfcvmr)
 
   LOGICAL, SAVE :: bc_greenhouse_gases_file_read = .FALSE.
 
@@ -90,7 +92,7 @@ CONTAINS
     ALLOCATE (ghg_ch4(ghg_no_years))
     ALLOCATE (ghg_n2o(ghg_no_years))
     ALLOCATE (ghg_cfc(ghg_no_years,ghg_no_cfc))
-    !$ACC ENTER DATA PCREATE(ghg_years, ghg_co2, ghg_ch4, ghg_n2o, ghg_cfc, ghg_cfcmmr, ghg_cfcvmr)
+    !$ACC ENTER DATA CREATE(ghg_years, ghg_co2, ghg_ch4, ghg_n2o, ghg_cfc)
 
     CALL nf_check(p_nf90_inq_varid (ncid, 'time', nvarid))
     CALL nf_check(p_nf90_get_var (ncid, nvarid, ghg_years))
@@ -226,7 +228,8 @@ CONTAINS
       END IF
     END IF
 
-    !$ACC UPDATE DEVICE(ghg_cfcvmr, ghg_cfcmmr) ASYNC(1)
+    !$ACC UPDATE DEVICE(ghg_co2mmr, ghg_ch4mmr, ghg_n2ommr, ghg_cfcmmr) &
+    !$ACC   DEVICE(ghg_co2vmr, ghg_ch4vmr, ghg_n2ovmr, ghg_cfcvmr)
 
   END SUBROUTINE bc_greenhouse_gases_time_interpolation
 
@@ -237,7 +240,6 @@ CONTAINS
     !$ACC EXIT DATA DELETE(ghg_ch4) IF(ALLOCATED(ghg_ch4))
     !$ACC EXIT DATA DELETE(ghg_n2o) IF(ALLOCATED(ghg_n2o))
     !$ACC EXIT DATA DELETE(ghg_cfc) IF(ALLOCATED(ghg_cfc))
-    !$ACC EXIT DATA DELETE(ghg_cfcmmr)
     IF (ALLOCATED(ghg_years)) DEALLOCATE(ghg_years)
     IF (ALLOCATED(ghg_co2))   DEALLOCATE(ghg_co2)
     IF (ALLOCATED(ghg_ch4))   DEALLOCATE(ghg_ch4)

@@ -56,7 +56,7 @@ MODULE mo_ice_interface
   USE mo_ocean_nml,          ONLY: n_zlev
 
   USE mo_impl_constants,     ONLY: sea_boundary,sea, land, boundary
-  USE mo_fortran_tools,      ONLY: set_acc_host_or_device
+  USE mo_fortran_tools,      ONLY: set_acc_host_or_device, set_acc_async_queue
 
   IMPLICIT NONE
 
@@ -443,7 +443,8 @@ CONTAINS
             &   albnirdir,      & ! Albedo NIR, direct/parallel
             &   albnirdif,      & ! Albedo NIR, diffuse
             &   doy,            & ! Day of the year
-            &   lacc)
+            &   lacc,           &
+            &   opt_acc_async_queue)
 
     INTEGER, INTENT(IN)    :: i_startidx_c, i_endidx_c, nbdim, kice
     REAL(wp),INTENT(IN)    :: pdtime
@@ -465,13 +466,16 @@ CONTAINS
 
     INTEGER, OPTIONAL,INTENT(IN)  :: doy
     LOGICAL, OPTIONAL,INTENT(IN)  :: lacc
+    INTEGER, INTENT(IN), OPTIONAL :: opt_acc_async_queue
 
     INTEGER :: jk, ji
     LOGICAL :: lzacc
+    INTEGER :: acc_async_queue
 
     !-------------------------------------------------------------------------
 
     CALL set_acc_host_or_device(lzacc, lacc)
+    CALL set_acc_async_queue(acc_async_queue, opt_acc_async_queue)
 
     IF (ltimer) CALL timer_start(timer_ice_fast)
 
@@ -479,24 +483,26 @@ CONTAINS
 
     CASE (1)
       CALL set_ice_temp_zerolayer(i_startidx_c, i_endidx_c, nbdim, kice, pdtime, &
-                            &   Tsurf, hi, hs, Qtop, Qbot, SWnet, nonsolar, dnonsolardT, Tfw, lacc=lzacc)
+                            &   Tsurf, hi, hs, Qtop, Qbot, SWnet, nonsolar, dnonsolardT, Tfw, &
+                            &   lacc=lzacc, opt_acc_async_queue=acc_async_queue)
 
     CASE (2)
       CALL set_ice_temp_winton(i_startidx_c, i_endidx_c, nbdim, kice, pdtime, &
-                    &   Tsurf, T1, T2, hi, hs, Qtop, Qbot, SWnet, nonsolar, dnonsolardT, Tfw, lacc=lzacc)
+                    &   Tsurf, T1, T2, hi, hs, Qtop, Qbot, SWnet, nonsolar, dnonsolardT, Tfw, &
+                    &   lacc=lzacc, opt_acc_async_queue=acc_async_queue)
 
     CASE (3)
       IF ( .NOT. PRESENT(doy) ) THEN
         CALL finish(TRIM('mo_ice_interface:ice_fast'),'i_ice_therm = 3 not allowed in this context')
       ENDIF
       CALL set_ice_temp_zerolayer_analytical(i_startidx_c, i_endidx_c, nbdim, kice, &
-            &   Tsurf, hi, hs, Qtop, Qbot, Tfw, doy, lacc=lzacc)
+            &   Tsurf, hi, hs, Qtop, Qbot, Tfw, doy, &
+            &   lacc=lzacc, opt_acc_async_queue=acc_async_queue)
 
     CASE (4)
-      !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1) IF(lzacc)
-      !$ACC LOOP SEQ
+      !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(acc_async_queue) IF(lzacc)
+      !$ACC LOOP GANG VECTOR COLLAPSE(2)
       DO ji = 1, kice
-        !$ACC LOOP GANG VECTOR
         DO jk = 1, nbdim
           IF ( hi(jk,ji) > 0._wp ) THEN
             Tsurf(jk,ji) = min(0._wp, Tsurf(jk,ji) + (SWnet(jk,ji)+nonsolar(jk,ji) + ki/hi(jk,ji)*(Tf-Tsurf(jk,ji))) &
@@ -512,7 +518,7 @@ CONTAINS
 
     ! New albedo based on the new surface temperature
     CALL set_ice_albedo(i_startidx_c, i_endidx_c, nbdim, kice, Tsurf, hi, hs, &
-      & albvisdir, albvisdif, albnirdir, albnirdif, lacc=lzacc)
+      & albvisdir, albvisdif, albnirdir, albnirdif, lacc=lzacc, opt_acc_async_queue=acc_async_queue)
 
     IF (ltimer) CALL timer_stop(timer_ice_fast)
 

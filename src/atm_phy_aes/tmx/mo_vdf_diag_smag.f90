@@ -38,7 +38,7 @@ MODULE mo_vdf_diag_smag
   USE mo_loopindices,       ONLY: get_indices_e, get_indices_c
   USE mo_impl_constants_grf,ONLY: grf_bdywidth_c, grf_bdywidth_e
   USE mo_intp_rbf,          ONLY: rbf_vec_interpol_edge
-  USE mo_fortran_tools,     ONLY: init
+  USE mo_fortran_tools,     ONLY: init, set_acc_async_queue
 
   USE mo_aes_thermo,        ONLY: potential_temperature, sat_pres_water, sat_pres_ice, specific_humidity
   ! USE mo_jsb_interface,     ONLY: jsbach_get_var
@@ -73,7 +73,8 @@ CONTAINS
     & domain,                                            &
     & nvalid, indices,                                   &
     & qsat_sfc, ppsfc, ptsfc,  &
-    & rhos)
+    & rhos, &
+    & opt_acc_async_queue )
 
     ! Domain information
     TYPE(t_domain),        INTENT(in), POINTER :: domain
@@ -91,18 +92,25 @@ CONTAINS
     ! Output variables
     !
     REAL(wp), DIMENSION(:,:), INTENT(out) :: rhos
+    !
+    ! Optional ACC queue
+    !
+    INTEGER, INTENT(IN), OPTIONAL :: opt_acc_async_queue
+    INTEGER :: acc_async_queue
 
     CHARACTER(len=*), PARAMETER :: routine = modname//':compute_sfc_density'
 
     INTEGER  :: jb, jls, js
 
+    CALL set_acc_async_queue(acc_async_queue, opt_acc_async_queue)
+
 !$OMP PARALLEL
-    CALL init(rhos, 1._wp, lacc=.TRUE.)
+    CALL init(rhos, 1._wp, lacc=.TRUE., opt_acc_async_queue=acc_async_queue)
 !$OMP END PARALLEL
 
 !$OMP PARALLEL DO PRIVATE(jb, jls, js) ICON_OMP_DEFAULT_SCHEDULE
     DO jb = domain%i_startblk_c, domain%i_endblk_c
-      !$ACC PARALLEL LOOP DEFAULT(PRESENT) GANG(STATIC: 1) VECTOR ASYNC(1) PRIVATE(js)
+      !$ACC PARALLEL LOOP DEFAULT(PRESENT) GANG VECTOR ASYNC(acc_async_queue) PRIVATE(js)
       DO jls = 1, nvalid(jb)
         js = indices(jls,jb)
         rhos(js,jb) = ppsfc(js,jb) / (rd * ptsfc(js,jb) * (1._wp + vtmpc1 * qsat_sfc(js,jb)))
@@ -113,8 +121,6 @@ CONTAINS
       !$ACC END PARALLEL LOOP
     END DO !jb
 !$OMP END PARALLEL DO
-
-    !$ACC WAIT(1)
 
   END SUBROUTINE compute_sfc_density  !
 !
@@ -151,7 +157,7 @@ CONTAINS
 
 !$OMP PARALLEL DO PRIVATE(jb, jc) ICON_OMP_DEFAULT_SCHEDULE
     DO jb = domain%i_startblk_c, domain%i_endblk_c
-      !$ACC PARALLEL LOOP DEFAULT(PRESENT) GANG(STATIC: 1) VECTOR ASYNC(1)
+      !$ACC PARALLEL LOOP DEFAULT(PRESENT) GANG VECTOR ASYNC(1)
       DO jc = domain%i_startidx_c(jb), domain%i_endidx_c(jb)
         mwind(jc,jb) = MAX( min_sfc_wind, SQRT(pum1(jc,jb)**2._wp + pvm1(jc,jb)**2._wp) )
       END DO !jc
@@ -194,7 +200,7 @@ CONTAINS
 
 !$OMP PARALLEL DO PRIVATE(jb, jc) ICON_OMP_DEFAULT_SCHEDULE
     DO jb = domain%i_startblk_c, domain%i_endblk_c
-      !$ACC PARALLEL LOOP DEFAULT(PRESENT) GANG(STATIC: 1) VECTOR ASYNC(1)
+      !$ACC PARALLEL LOOP DEFAULT(PRESENT) GANG VECTOR ASYNC(1)
       DO jc = domain%i_startidx_c(jb), domain%i_endidx_c(jb)
         theta (jc,jb) = potential_temperature(ptm1(jc,jb),  papm1(jc,jb))
         thetav(jc,jb) = potential_temperature(ptvm1(jc,jb), papm1(jc,jb))
@@ -211,7 +217,8 @@ CONTAINS
     & domain,                  &
     & nvalid, indices,         &
     & ppsfc, ptsfc, qsat,      &
-    & theta, thetav            &
+    & theta, thetav,           &
+    & opt_acc_async_queue      &
     )
 
     ! Domain information
@@ -230,19 +237,26 @@ CONTAINS
     ! Output variables
     !
     REAL(wp), DIMENSION(:,:), INTENT(out) :: theta, thetav
+    !
+    ! Optional ACC queue
+    !
+    INTEGER, INTENT(IN), OPTIONAL :: opt_acc_async_queue
+    INTEGER :: acc_async_queue
 
     CHARACTER(len=*), PARAMETER :: routine = modname//':compute_sfc_potential_temperature'
 
     INTEGER  :: jb, jls, js
 
+    CALL set_acc_async_queue(acc_async_queue, opt_acc_async_queue)
+
 !$OMP PARALLEL
-    CALL init(theta, lacc=.TRUE.)
-    CALL init(thetav, lacc=.TRUE.)
+    CALL init(theta,  lacc=.TRUE., opt_acc_async_queue=acc_async_queue)
+    CALL init(thetav, lacc=.TRUE., opt_acc_async_queue=acc_async_queue)
 !$OMP END PARALLEL
 
 !$OMP PARALLEL DO PRIVATE(jb, jls, js) ICON_OMP_DEFAULT_SCHEDULE
     DO jb = domain%i_startblk_c,domain%i_endblk_c
-      !$ACC PARALLEL LOOP DEFAULT(PRESENT) GANG(STATIC: 1) VECTOR ASYNC(1) PRIVATE(js)
+      !$ACC PARALLEL LOOP DEFAULT(PRESENT) GANG VECTOR ASYNC(acc_async_queue) PRIVATE(js)
       DO jls = 1, nvalid(jb)
         js = indices(jls,jb)
         theta(js,jb)  = potential_temperature(ptsfc(js,jb), ppsfc(js,jb))
@@ -261,7 +275,8 @@ CONTAINS
     & nvalid, indices,           &
     & fsl, zf, &
     & thetav_atm, thetav_sfc, wind, &
-    & richardson_number)
+    & richardson_number, &
+    & opt_acc_async_queue )
 
     ! Domain information
     TYPE(t_domain),  INTENT(in), POINTER :: domain
@@ -277,22 +292,29 @@ CONTAINS
       & zf, thetav_atm, thetav_sfc, wind
     REAL(wp), DIMENSION(:,:), INTENT(out) :: &
       & richardson_number
+      !
+    ! Optional ACC queue
+    !
+    INTEGER, INTENT(IN), OPTIONAL :: opt_acc_async_queue
+    INTEGER :: acc_async_queue
 
     REAL(wp) :: zthetav_mid, w1, w2
     INTEGER :: jb, jls, js
 
     CHARACTER(len=*), PARAMETER :: routine = modname//':compute_moist_richardson'
 
+    CALL set_acc_async_queue(acc_async_queue, opt_acc_async_queue)
+
     w1 = fsl
     w2 = 1._wp - fsl
 
 !$OMP PARALLEL
-    CALL init(richardson_number, lacc=.TRUE.)
+    CALL init(richardson_number, lacc=.TRUE., opt_acc_async_queue=acc_async_queue)
 !$OMP END PARALLEL
 
 !$OMP PARALLEL DO PRIVATE(jb, jls, js, zthetav_mid) ICON_OMP_DEFAULT_SCHEDULE
     DO jb = domain%i_startblk_c,domain%i_endblk_c
-      !$ACC PARALLEL LOOP DEFAULT(PRESENT) GANG(STATIC: 1) VECTOR ASYNC(1) PRIVATE(js)
+      !$ACC PARALLEL LOOP DEFAULT(PRESENT) GANG VECTOR ASYNC(acc_async_queue) PRIVATE(js)
       DO jls = 1, nvalid(jb)
         js = indices(jls,jb)
         zthetav_mid = w1 * thetav_atm(js,jb) + w2 * thetav_sfc(js,jb)
@@ -397,7 +419,8 @@ CONTAINS
     & nvalid, indices, dz,                               &
     & pqm1,                                              &
     & thetam1, mwind, rough_m, theta_sfc, qsat_sfc,      &
-    & km, kh, km_neutral, kh_neutral                     &
+    & km, kh, km_neutral, kh_neutral,                    &
+    & opt_acc_async_queue                                &
     )
 
     ! Domain information
@@ -435,22 +458,29 @@ CONTAINS
         km,         &
         kh_neutral, &
         km_neutral
+      !
+      ! Optional ACC queue
+      !
+      INTEGER, INTENT(IN), OPTIONAL :: opt_acc_async_queue
+      INTEGER :: acc_async_queue
 
     CHARACTER(len=*), PARAMETER :: routine = modname//':compute_sfc_exchange_coefficients'
 
     INTEGER  :: jb, jls, js
     REAL(wp) :: dz_temp
 
+    CALL set_acc_async_queue(acc_async_queue, opt_acc_async_queue)
+
 !$OMP PARALLEL
-    CALL init(km, lacc=.TRUE.)
-    CALL init(kh, lacc=.TRUE.)
-    CALL init(km_neutral, lacc=.TRUE.)
-    CALL init(kh_neutral, lacc=.TRUE.)
+    CALL init(km,         lacc=.TRUE., opt_acc_async_queue=acc_async_queue)
+    CALL init(kh,         lacc=.TRUE., opt_acc_async_queue=acc_async_queue)
+    CALL init(km_neutral, lacc=.TRUE., opt_acc_async_queue=acc_async_queue)
+    CALL init(kh_neutral, lacc=.TRUE., opt_acc_async_queue=acc_async_queue)
 !$OMP END PARALLEL
 
 !$OMP PARALLEL DO PRIVATE(jb,jls,js, dz_temp) ICON_OMP_DEFAULT_SCHEDULE
     DO jb = domain%i_startblk_c, domain%i_endblk_c
-      !$ACC PARALLEL LOOP DEFAULT(PRESENT) GANG(STATIC: 1) VECTOR ASYNC(1) PRIVATE(js, dz_temp)
+      !$ACC PARALLEL LOOP DEFAULT(PRESENT) GANG VECTOR ASYNC(acc_async_queue) PRIVATE(js, dz_temp)
       DO jls = 1, nvalid(jb)
         js=indices(jls,jb)
 
@@ -467,8 +497,6 @@ CONTAINS
       !$ACC END PARALLEL LOOP
     END DO !jb
 !$OMP END PARALLEL DO
-
-    !$ACC WAIT(1)
 
   END SUBROUTINE compute_sfc_exchange_coefficients  !
   !

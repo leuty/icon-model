@@ -26,7 +26,7 @@ MODULE mo_ice_winton
   USE mo_sea_ice_types,       ONLY: t_sea_ice
   USE mo_grid_subset,         ONLY: t_subset_range, get_index_range
   USE mo_util_dbg_prnt,       ONLY: dbg_print
-  USE mo_fortran_tools,       ONLY: set_acc_host_or_device
+  USE mo_fortran_tools,       ONLY: set_acc_host_or_device, set_acc_async_queue
 
   IMPLICIT NONE
 
@@ -71,7 +71,8 @@ CONTAINS
             &   nonsolar,       & ! Latent and sensible heat flux and longwave radiation [W/m^2]
             &   dnonsolardT,    & ! Derivative of non-solar fluxes w.r.t. temperature [W/m^2/K]
             &   Tfw,            & ! Freezing temperature of the ocean
-            &   lacc)
+            &   lacc,           &
+            &   opt_acc_async_queue )
 
     INTEGER, INTENT(IN)    :: i_startidx_c, i_endidx_c, nbdim, kice
     REAL(wp),INTENT(IN)    :: pdtime
@@ -87,6 +88,7 @@ CONTAINS
     REAL(wp),INTENT(IN)    :: dnonsolardT(nbdim,kice)
     REAL(wp),INTENT(IN)    :: Tfw        (nbdim)
     LOGICAL, INTENT(IN), OPTIONAL :: lacc
+    INTEGER, INTENT(IN), OPTIONAL :: opt_acc_async_queue
 
     !!Local variables
     REAL(wp) ::      &
@@ -109,15 +111,17 @@ CONTAINS
 
     INTEGER :: k, jk, jc ! loop indices
     LOGICAL :: lzacc
+    INTEGER :: acc_async_queue
 
     CALL set_acc_host_or_device(lzacc, lacc)
+    CALL set_acc_async_queue(acc_async_queue, opt_acc_async_queue)
 
     muS = mu*Sice
 
    !-------------------------------------------------------------------------------
 
     ! initialization
-    !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1) IF(lzacc)
+    !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(acc_async_queue) IF(lzacc)
     !$ACC LOOP SEQ
     DO k = 1,kice
       !$ACC LOOP GANG VECTOR
@@ -129,7 +133,7 @@ CONTAINS
     !$ACC END PARALLEL
     idt2   =  1.0_wp / (2.0_wp*pdtime)
 
-    !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1) IF(lzacc)
+    !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(acc_async_queue) IF(lzacc)
     !$ACC LOOP SEQ
     DO k=1,kice
       !$ACC LOOP GANG VECTOR PRIVATE(B, A, K1, K2, D, iK1B, Tsurfm, A1a, A1) &

@@ -19,6 +19,8 @@
 exp_original=atm_qubicc_test
 modification=pfts
 #
+check_script=checksuite.icon-dev/check.${exp_original%_test}
+#
 #--------------------------------------------------------------------------------
 #
 # 1. Define the experiment and the files to be checked
@@ -26,6 +28,18 @@ modification=pfts
 # EXPERIMENT contains the name of the modified experiment
 #
 export EXPERIMENT=${exp_original}_${modification}
+
+# TYPES AND DATES are needed if the CUDA graph check is performed
+#
+# TYPES is a list of names identifying the files <EXPERIMENT>_<TYPE>_<DATE>.<FORMAT> to be checked.
+# Get TYPES from the main check script
+grep 'TYPES=' $check_script > ${check_script}_TYPES
+. ./${check_script}_TYPES
+
+# DATES is a list of dates identifying the files <EXPERIMENT>_<TYPE>_<DATE>.<FORMAT> to be checked.
+# Get DATES from main check script
+grep 'DATES=' $check_script > ${check_script}_DATES
+. ./${check_script}_DATES
 
 # construct the experiment
 #
@@ -35,7 +49,14 @@ sed s/jsb_case=\"\'jsbach_lite\'\"/jsb_case=\"\'jsbach_pfts\'\"/ exp.$exp_origin
 #
 # 2. Define the checksuite mode
 
-export MD='b' # base check only
+builder="unknown"
+[[ $BB_NAME ]] && builder=$(echo ${BB_NAME} | tr '[:upper:]' '[:lower:]')
+
+# base check only
+case $builder in
+    levante_gpu*) export MD='bg' ;;
+    *)            export MD='b' ;;
+esac
 
 #--------------------------------------------------------------------------------
 #

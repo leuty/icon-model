@@ -377,7 +377,6 @@ CONTAINS
 !$OMP END DO
 !$OMP END PARALLEL
 
-   !$ACC WAIT
    CALL sync_patch_array(SYNC_E, p_patch, vn, lacc=.TRUE.)
 
 !#########################################################################
@@ -644,8 +643,6 @@ CONTAINS
     ! RBF reconstruction of velocity at vertices: include halos
     CALL rbf_vec_interpol_vertex(vn, p_patch, p_int, u_vert, v_vert, lacc=.TRUE., &
                                  opt_rlend=min_rlvert_int, opt_acc_async=.TRUE. )
-
-    !$ACC WAIT
 
     !sync them
     CALL sync_patch_array_mult(SYNC_V, p_patch, 3, lacc=.TRUE., f3din1=w_vert, f3din2=u_vert, f3din3=v_vert)
@@ -954,8 +951,6 @@ CONTAINS
     END DO
 !$OMP END DO
 !$OMP END PARALLEL
-
-    !$ACC WAIT
 
     CALL sync_patch_array(SYNC_C, p_patch, kh_ic, lacc=.TRUE.)
     CALL sync_patch_array(SYNC_C, p_patch, km_ic, lacc=.TRUE.)
@@ -1273,7 +1268,6 @@ CONTAINS
     END DO
 !$OMP END DO
 !$OMP END PARALLEL
-    !$ACC WAIT
 
     CALL sync_patch_array(SYNC_E, p_patch, tot_tend, lacc=.TRUE.)
     CALL rbf_vec_interpol_cell(tot_tend, p_patch, p_int, ddt_u, ddt_v, &
@@ -1693,7 +1687,6 @@ CONTAINS
     END DO
     !$ACC END PARALLEL LOOP
 
-    !$ACC WAIT
     CALL sync_patch_array(SYNC_C, p_patch, var, lacc=.TRUE.)
 
     !1) First set local vars to 1 for other scalars

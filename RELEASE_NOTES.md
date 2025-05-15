@@ -34,6 +34,7 @@ Climate: ICON-Land
 - Code cleaning:
   - Only use one variable representing time step length
 - Updated JSBACH usecase with TMX and PFTs
+- Added support for CUDA graphs with AES physics (VDIFF and TMX)
 
 NWP: TERRA and other surface issues
 
@@ -60,6 +61,8 @@ NWP: TERRA and other surface issues
 #### Building
 
 #### Miscellaneous
+
+- Some OpenACC optimizations and fixes
 
 
 # Release notes for icon-2025.04

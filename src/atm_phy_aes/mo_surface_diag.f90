@@ -83,7 +83,7 @@ CONTAINS
     !$ACC   PRESENT(plhflx_tile, pshflx_gbm, pshflx_lnd, pshflx_lwtr) &
     !$ACC   PRESENT(pshflx_lice, pevap_gbm, pevap_lnd, pevap_lwtr) &
     !$ACC   PRESENT(pevap_lice, pevap_tile, plhflx_lnd, plhflx_lwtr) &
-    !$ACC   PRESENT(pshflx_tile)
+    !$ACC   PRESENT(pshflx_tile) ASYNC(1)
 
     !$ACC PARALLEL LOOP DEFAULT(PRESENT) GANG VECTOR COLLAPSE(2) ASYNC(1)
     DO jsfc = 1,ksfc_type
@@ -310,7 +310,7 @@ CONTAINS
     !$ACC   PRESENT(pocu, pocv) &
     !$ACC   PRESENT(pu_stress_gbm, pv_stress_gbm, pcfm_tile, pu_rtpfac1) &
     !$ACC   PRESENT(pv_rtpfac1) &
-    !$ACC   PRESENT(is, loidx)
+    !$ACC   PRESENT(is, loidx) ASYNC(1)
 
     !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1)
     !$ACC LOOP SEQ
@@ -452,7 +452,7 @@ CONTAINS
     !$ACC   PRESENT(psfcWind_gbm, psfcWind_tile, ptas_gbm, ptas_tile) &
     !$ACC   PRESENT(pdew2_gbm, pdew2_tile, puas_gbm, puas_tile, pvas_gbm) &
     !$ACC   PRESENT(pvas_tile) &
-    !$ACC   CREATE(zrh2m, zaph2m, zfrac, ua, is, loidx, icond)
+    !$ACC   CREATE(zrh2m, zaph2m, zfrac, ua, is, loidx, icond) ASYNC(1)
 
     !CONSTANTS
     zhuv          =  10._wp ! 10m
@@ -485,10 +485,10 @@ CONTAINS
 
     CALL generate_index_list_batched(icond(:,:), loidx(jcs:,:), jcs, jce, is, &
       &                              lacc=.TRUE., opt_acc_async_queue=1)
-
-    !$ACC UPDATE HOST(is) ASYNC(1)
-    !$ACC WAIT(1)
+    !$ACC KERNELS ASYNC(1)
     is(:) = is(:) + jcs - 1
+    !$ACC END KERNELS
+
 
     !
     !           5.96   2M DEW POINT
@@ -496,7 +496,6 @@ CONTAINS
 
     DO jsfc = 1,ksfc_type
 
-      !$ACC WAIT
       CALL lookup_ua_list_spline('nsurf_diag(1)', jcs, jce, is(jsfc), loidx(:,jsfc), ptm1, ua)
 
       IF ( jsfc == idx_lnd ) THEN
@@ -528,8 +527,6 @@ CONTAINS
             (1._wp - zhtq*grav / ( rd * ptas_tile(jl,jsfc) * (1._wp + vtmpc1 * pqm1(jl) - pxm1(jl))))
       ENDDO
       !$ACC END PARALLEL
-
-      !$ACC WAIT
 
       CALL lookup_ua_list_spline('nsurf_diag(2)', jcs, kbdim, is(jsfc), loidx(:,jsfc), ptas_tile(:,jsfc), ua)
 
@@ -609,7 +606,6 @@ CONTAINS
     ENDDO
     !$ACC END PARALLEL LOOP
 
-  !$ACC WAIT
   !$ACC END DATA
 
   END SUBROUTINE nsurf_diag

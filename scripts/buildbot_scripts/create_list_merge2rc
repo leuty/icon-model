@@ -78,6 +78,9 @@ $addexp "checksuite.icon-dev/check.atm_qubicc_test_aero"   --machines "levante" 
 #---------------------------------------------------------------------------------------------------------
 # add global atmosphere tests to levante NVHPC_GPU_BUILDERS
 ./set_builder_flags Active   --builders "${NVHPC_GPU_BUILDERS}" --list $listname
+$addexp "checksuite.icon-dev/check.aes_amip_test"          --builders "${NVHPC_GPU_BUILDERS}" --list $listname --runflags "mpi_procs_pernode=4"
+$addexp "checksuite.icon-dev/check.aes_amip_pfts_test"     --builders "${NVHPC_GPU_BUILDERS}" --list $listname --runflags "mpi_procs_pernode=4"
+$addexp "checksuite.icon-dev/check.atm_cph_nest_R2B4_test" --builders "${NVHPC_GPU_BUILDERS}" --list $listname --runflags "mpi_procs_pernode=4"
 $addexp "checksuite.icon-dev/check.atm_qubicc"             --builders "${NVHPC_GPU_BUILDERS}" --list $listname --runflags "mpi_procs_pernode=4"
 $addexp "checksuite.icon-dev/check.atm_qubicc_grb"         --builders "${NVHPC_GPU_BUILDERS}" --list $listname --runflags "mpi_procs_pernode=4"
 $addexp "checksuite.icon-dev/check.atm_qubicc_nofor"       --builders "${NVHPC_GPU_BUILDERS}" --list $listname --runflags "mpi_procs_pernode=4"

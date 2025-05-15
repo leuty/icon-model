@@ -637,6 +637,10 @@ aes\_vdf\_config(jg)\% min\_sfc\_wind & R & 1. &  &
 min sfc wind in free convection limit &
 aes\_phy\_config(jg)\% dt\_vdf > 0.000s \tabularnewline
 %
+aes\_vdf\_config(jg)\% lcuda\_graph\_vdf & L & .FALSE. & &
+Activate cuda graphs for JSBACH land model. Automatically set to .FALSE. if not compiled with the ICON\_USE\_CUDA\_GRAPH cpp key. &
+ICON\_USE\_CUDA\_GRAPH activated \tabularnewline
+%
 \end{longtab}
 
 %------------------------------------------------------------------------------

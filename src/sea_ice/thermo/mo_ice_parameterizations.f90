@@ -31,7 +31,7 @@ MODULE mo_ice_parameterizations
   USE mo_sea_ice_nml,         ONLY: i_ice_albedo, i_Qio_type, i_ice_therm, albi, albim, albsm, albs, Cd_io, Ch_io
   USE mo_ocean_types,         ONLY: t_hydro_ocean_state
   USE mo_sea_ice_types,       ONLY: t_sea_ice
-  USE mo_fortran_tools,       ONLY: set_acc_host_or_device
+  USE mo_fortran_tools,       ONLY: set_acc_host_or_device, set_acc_async_queue
 
 
   IMPLICIT NONE
@@ -52,7 +52,7 @@ CONTAINS
   !! ! set_ice_albedo: set ice albedo
   !!
   SUBROUTINE set_ice_albedo(i_startidx_c, i_endidx_c, nbdim, kice, Tsurf, hi, hs, &
-      & albvisdir, albvisdif, albnirdir, albnirdif, lacc)
+      & albvisdir, albvisdif, albnirdir, albnirdif, lacc, opt_acc_async_queue)
 
     INTEGER, INTENT(IN)  :: i_startidx_c, i_endidx_c, nbdim, kice
     REAL(wp),INTENT(IN)  :: Tsurf(nbdim,kice)
@@ -63,6 +63,7 @@ CONTAINS
     REAL(wp),INTENT(OUT) :: albnirdir  (nbdim,kice)
     REAL(wp),INTENT(OUT) :: albnirdif  (nbdim,kice)
     LOGICAL, INTENT(IN), OPTIONAL :: lacc
+    INTEGER, INTENT(IN), OPTIONAL :: opt_acc_async_queue
 
 
     !Local variables
@@ -70,14 +71,16 @@ CONTAINS
     REAL(wp)            :: albflag, frac_snow
     INTEGER             :: jc,k
     LOGICAL :: lzacc
+    INTEGER :: acc_async_queue
     !-------------------------------------------------------------------------------
 
     CALL set_acc_host_or_device(lzacc, lacc)
+    CALL set_acc_async_queue(acc_async_queue, opt_acc_async_queue)
 
     SELECT CASE (i_ice_albedo)
     CASE (1)
       ! This is Uwe's albedo expression from the old budget function
-      !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1) IF(lzacc)
+      !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(acc_async_queue) IF(lzacc)
       !$ACC LOOP SEQ
       DO k=1,kice
         !$ACC LOOP GANG VECTOR PRIVATE(albflag)
@@ -100,7 +103,7 @@ CONTAINS
       !$ACC END PARALLEL
 
       ! all albedos are the same
-      !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1) IF(lzacc)
+      !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(acc_async_queue) IF(lzacc)
       !$ACC LOOP SEQ
       DO k=1,kice
         !$ACC LOOP GANG VECTOR
@@ -114,7 +117,7 @@ CONTAINS
 
     CASE (2)
       ! This is the CCSM 3 albedo scheme
-      !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1) IF(lzacc)
+      !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(acc_async_queue) IF(lzacc)
       !$ACC LOOP SEQ
 !PREVENT_INCONSISTENT_IFORT_FMA
       DO k=1,kice
@@ -135,7 +138,7 @@ CONTAINS
       !$ACC END PARALLEL
 
       ! diffuse and direct albedos are the same
-      !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1) IF(lzacc)
+      !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(acc_async_queue) IF(lzacc)
       !$ACC LOOP SEQ
       DO k=1,kice
         !$ACC LOOP GANG VECTOR

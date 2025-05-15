@@ -314,7 +314,7 @@ CONTAINS
   SUBROUTINE Update_diagnostics(this)
 
     USE mo_tmx_surface_interface, ONLY: compute_2m_temperature, compute_2m_humidity_and_dewpoint, compute_10m_wind
-    USE mo_vdf_sfc,               ONLY: average_tiles
+    USE mo_vdf_sfc,               ONLY: t_vdf_aggregator
 
     CLASS(t_vdf), INTENT(inout), TARGET :: this
 
@@ -324,6 +324,7 @@ CONTAINS
     TYPE(t_vdf_sfc_config),       POINTER :: conf_sfc
     TYPE(t_vdf_sfc_inputs),       POINTER :: ins_sfc
     TYPE(t_vdf_sfc_diagnostics),  POINTER :: diags_sfc
+    TYPE(t_vdf_aggregator) :: aggregator
 
     INTEGER :: iproc, jtile, nlev, nlevm1
     INTEGER :: jc, jb, jk
@@ -347,33 +348,27 @@ CONTAINS
     TYPE IS (t_vdf_atmo_config)
       conf_atmo => v
     END SELECT
-    __acc_attach(conf_atmo)
     SELECT TYPE (v => this%atmo%inputs)
     TYPE IS (t_vdf_atmo_inputs)
       ins_atmo => v
     END SELECT
-    __acc_attach(ins_atmo)
     SELECT TYPE (v => this%atmo%diagnostics)
     TYPE IS (t_vdf_atmo_diagnostics)
       diags_atmo => v
     END SELECT
-    __acc_attach(diags_atmo)
 
     SELECT TYPE (v => this%sfc%config)
     TYPE IS (t_vdf_sfc_config)
       conf_sfc => v
     END SELECT
-    __acc_attach(conf_sfc)
     SELECT TYPE (v => this%sfc%inputs)
     TYPE IS (t_vdf_sfc_inputs)
       ins_sfc => v
     END SELECT
-    __acc_attach(ins_sfc)
     SELECT TYPE (v => this%sfc%diagnostics)
     TYPE IS (t_vdf_sfc_diagnostics)
       diags_sfc => v
     END SELECT
-    __acc_attach(diags_sfc)
 
     ASSOCIATE( &
       domain => this%atmo%domain,    &
@@ -429,13 +424,15 @@ CONTAINS
 
     END DO
 
-    CALL average_tiles(domain_sfc, ins_sfc%fract_tile, diags_sfc%nvalid, diags_sfc%indices, diags_sfc%t2m_tile,   diags_sfc%t2m)
-    CALL average_tiles(domain_sfc, ins_sfc%fract_tile, diags_sfc%nvalid, diags_sfc%indices, diags_sfc%hus2m_tile, diags_sfc%hus2m)
-    CALL average_tiles(domain_sfc, ins_sfc%fract_tile, diags_sfc%nvalid, diags_sfc%indices, diags_sfc%dew2m_tile, diags_sfc%dew2m)
-    CALL average_tiles(domain_sfc, ins_sfc%fract_tile, diags_sfc%nvalid, diags_sfc%indices, diags_sfc%u10m_tile,  diags_sfc%u10m)
-    CALL average_tiles(domain_sfc, ins_sfc%fract_tile, diags_sfc%nvalid, diags_sfc%indices, diags_sfc%v10m_tile,  diags_sfc%v10m)
-    CALL average_tiles(domain_sfc, ins_sfc%fract_tile, diags_sfc%nvalid, diags_sfc%indices, &
+    CALL aggregator%BeginAggregate()
+    CALL aggregator%Aggregate(domain_sfc, ins_sfc%fract_tile, diags_sfc%nvalid, diags_sfc%indices, diags_sfc%t2m_tile,   diags_sfc%t2m)
+    CALL aggregator%Aggregate(domain_sfc, ins_sfc%fract_tile, diags_sfc%nvalid, diags_sfc%indices, diags_sfc%hus2m_tile, diags_sfc%hus2m)
+    CALL aggregator%Aggregate(domain_sfc, ins_sfc%fract_tile, diags_sfc%nvalid, diags_sfc%indices, diags_sfc%dew2m_tile, diags_sfc%dew2m)
+    CALL aggregator%Aggregate(domain_sfc, ins_sfc%fract_tile, diags_sfc%nvalid, diags_sfc%indices, diags_sfc%u10m_tile,  diags_sfc%u10m)
+    CALL aggregator%Aggregate(domain_sfc, ins_sfc%fract_tile, diags_sfc%nvalid, diags_sfc%indices, diags_sfc%v10m_tile,  diags_sfc%v10m)
+    CALL aggregator%Aggregate(domain_sfc, ins_sfc%fract_tile, diags_sfc%nvalid, diags_sfc%indices, &
       & diags_sfc%wind10m_tile, diags_sfc%wind10m)
+    CALL aggregator%EndAggregate()
 
 !$OMP PARALLEL DO PRIVATE(jb,jc,jk) ICON_OMP_DEFAULT_SCHEDULE
     DO jb = domain%i_startblk_c, domain%i_endblk_c

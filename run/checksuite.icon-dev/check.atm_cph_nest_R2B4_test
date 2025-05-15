@@ -54,7 +54,14 @@ export RESTART_DATE='19790101T001600Z'
 #
 # default: MD='rnmo'
 #
-export MD='ro'
+
+builder="unknown"
+[[ $BB_NAME ]] && builder=$(echo ${BB_NAME} | tr '[:upper:]' '[:lower:]')
+
+case $builder in
+    levante_gpu*) export MD='rg' ;;
+    *)            export MD='ro' ;;
+esac
 
 #--------------------------------------------------------------------------------
 #

@@ -130,6 +130,7 @@ CONTAINS
        CALL print_value('    aes_vdf_config('//TRIM(cg)//')% km_min         ',aes_vdf_config(jg)% km_min         )
        CALL print_value('    aes_vdf_config('//TRIM(cg)//')% max_turb_scale ',aes_vdf_config(jg)% max_turb_scale )
        CALL print_value('    aes_vdf_config('//TRIM(cg)//')% min_sfc_wind   ',aes_vdf_config(jg)% min_sfc_wind   )
+       CALL print_value('    aes_vdf_config('//TRIM(cg)//')% lcuda_graph_vdf ',aes_vdf_config(jg)% lcuda_graph_vdf)
        CALL message    ('','')
        !
     END DO

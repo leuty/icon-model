@@ -84,6 +84,9 @@ MODULE mo_turb_vdiff_config
     REAL(wp) :: km_min          !< min mass weighted turbulent viscosity
     REAL(wp) :: max_turb_scale  !< max turbulence length scale
     REAL(wp) :: min_sfc_wind    !< min sfc wind in free convection limit
+    !
+    ! Optimization
+    LOGICAL :: lcuda_graph_vdf
   END TYPE t_vdiff_config
 
   !---------------------
@@ -164,6 +167,8 @@ CONTAINS
     config%turb_prandtl  = 0.33333333333_wp
     config%km_min        =  0.001_wp
     config%min_sfc_wind  =  1._wp
+    !
+    config%lcuda_graph_vdf = .FALSE.
 
     CALL vdiff_config_update(config)
 

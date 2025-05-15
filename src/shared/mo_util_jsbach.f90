@@ -387,9 +387,13 @@ MODULE mo_jsb_time_iface
   USE mo_run_config,             ONLY: l_timer_host => ltimer, iforcing
   USE mo_impl_constants,         ONLY: inwp, itrad
   USE mo_master_config,          ONLY: isRestart
+  USE mo_fortran_tools,          ONLY: set_acc_async_queue
 
   IMPLICIT NONE
   PRIVATE
+
+  TYPE(t_time_interpolation_weights) :: current_time_interpolation_weights
+  !$ACC DECLARE CREATE(current_time_interpolation_weights)
 
   PUBLIC :: t_datetime, deallocateDatetime
   PUBLIC :: get_year_length, get_month_length, get_day_length, get_year_day
@@ -401,6 +405,7 @@ MODULE mo_jsb_time_iface
   PUBLIC :: start_timestep, finish_timestep
   PUBLIC :: configure_time_and_events
   PUBLIC :: get_date_components
+  PUBLIC :: cache_time_interpolation_weights
   PUBLIC :: get_time_interpolation_weights
   PUBLIC :: get_asselin_coef
   PUBLIC :: l_timer_host
@@ -741,23 +746,28 @@ CONTAINS
 
   END FUNCTION get_year_day
 
-  SUBROUTINE  get_time_interpolation_weights(w1, w2, n1, n2)
+  SUBROUTINE  cache_time_interpolation_weights()
+    current_time_interpolation_weights = calculate_time_interpolation_weights(time_config%tc_current_date)
+    !$ACC UPDATE DEVICE(current_time_interpolation_weights)
+  END SUBROUTINE cache_time_interpolation_weights
+
+  SUBROUTINE  get_time_interpolation_weights(w1, w2, n1, n2, opt_acc_async_queue)
 
     REAL(wp), INTENT(out) :: w1, w2
     INTEGER, INTENT(out)  :: n1, n2
+    INTEGER, INTENT(IN), OPTIONAL :: opt_acc_async_queue
+    INTEGER :: acc_async_queue
 
     CHARACTER(len=*), PARAMETER :: routine = modname//':get_time_interpolation_weights'
 
-    TYPE(t_time_interpolation_weights) :: current_time_interpolation_weights
+    CALL set_acc_async_queue(acc_async_queue, opt_acc_async_queue)
 
-!    CALL message('', '')
-!    CALL message(routine, 'generate time interpolation weights.')
-!    CALL message('', '')
-    current_time_interpolation_weights = calculate_time_interpolation_weights(time_config%tc_current_date)
+    !$ACC SERIAL PRESENT(w1, w2, n1, n2, current_time_interpolation_weights) ASYNC(acc_async_queue)
     w1 = current_time_interpolation_weights%weight1
     w2 = current_time_interpolation_weights%weight2
     n1 = current_time_interpolation_weights%month1_index
     n2 = current_time_interpolation_weights%month2_index
+    !$ACC END SERIAL
 
   END SUBROUTINE get_time_interpolation_weights
 
