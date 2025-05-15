@@ -57,6 +57,8 @@ NWP: TERRA and other surface issues
 #### Scripting and testing
 
 - Added AMIP test for TMX with PFTs in ICON-Land
+- Added 158, 49, 5 and 2.1 km AMIP template with AES physics for mkexp (cpu + gpu, distributed IO)
+- Added 49km AMIP BuildBot test with AES physics on one Levante GPU
 
 #### Building
 
