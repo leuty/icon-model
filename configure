@@ -635,6 +635,8 @@ icon_pvcs_subdirs
 BUNDLED_LIBFILES
 BUNDLED_PYTHONPATH
 BUNDLED_RULES
+ICON_BUNDLED_HIPFLAGS
+ICON_BUNDLED_CUDAFLAGS
 ICON_BUNDLED_CXXFLAGS
 ICON_BUNDLED_CFLAGS
 ICON_BUNDLED_FCFLAGS
@@ -652,8 +654,10 @@ INSTALL_DATA
 INSTALL_SCRIPT
 INSTALL_PROGRAM
 DEPGEN_FCFLAGS
+ICON_HIPFLAGS
 HIPFLAGS
 HIPCXX
+ICON_CUDAFLAGS
 CUDAFLAGS
 CUDACXX
 CXXFLAGS
@@ -824,8 +828,10 @@ CXX
 CXXFLAGS
 CUDACXX
 CUDAFLAGS
+ICON_CUDAFLAGS
 HIPCXX
 HIPFLAGS
+ICON_HIPFLAGS
 AR
 ARFLAGS
 RANLIB
@@ -837,6 +843,8 @@ MPI_LAUNCH
 ICON_BUNDLED_FCFLAGS
 ICON_BUNDLED_CFLAGS
 ICON_BUNDLED_CXXFLAGS
+ICON_BUNDLED_CUDAFLAGS
+ICON_BUNDLED_HIPFLAGS
 ICON_RTE_RRTMGP_FCFLAGS
 ICON_ECRAD_FCFLAGS
 ICON_SCT_FCFLAGS
@@ -1707,8 +1715,14 @@ Some influential environment variables:
   CXXFLAGS    C++ compiler flags
   CUDACXX     CUDA C++ compiler command
   CUDAFLAGS   CUDA C++ compiler flags
+  ICON_CUDAFLAGS
+              CUDA C++ compiler flags to be appended to CUDAFLAGS when
+              configuring ICON
   HIPCXX      HIP C++ compiler command
   HIPFLAGS    HIP C++ compiler flags
+  ICON_HIPFLAGS
+              HIP C++ compiler flags to be appended to HIPFLAGS when
+              configuring ICON
   AR          archiver command
   ARFLAGS     archiver flags
   RANLIB      archive indexer command
@@ -1726,6 +1740,12 @@ Some influential environment variables:
   ICON_BUNDLED_CXXFLAGS
               C++ compiler flags to be appended to CXXFLAGS when configuring
               the bundled packages
+  ICON_BUNDLED_CUDAFLAGS
+              CUDA C++ compiler flags to be appended to CUDAFLAGS when
+              configuring the bundled packages [default=$ICON_CUDAFLAGS]
+  ICON_BUNDLED_HIPFLAGS
+              HIP C++ compiler flags to be appended to HIPFLAGS when
+              configuring the bundled packages [default=$ICON_HIPFLAGS]
   ICON_RTE_RRTMGP_FCFLAGS
               Fortran compiler flags to be appended to FCFLAGS when
               configuring the bundled version of RTE+RRTMGP library
@@ -6860,19 +6880,14 @@ export CXX
 
 ###################### SECONDARY GPU COMPILERS AND FLAGS #######################
 
+subdir_CUDAFLAGS=${CUDAFLAGS-}
+subdir_HIPFLAGS=${HIPFLAGS-}
+
 icon_gpu_secondary_arch=unknown
 case $icon_gpu_secondary in #(
   cuda) :
-    if ${CUDACXX+false} : && ${NVCC+:} false; then :
-  CUDACXX=$NVCC
-       { $as_echo "$as_me:${as_lineno-$LINENO}: WARNING: variable NVCC is deprecated: use variable CUDACXX instead" >&5
-$as_echo "$as_me: WARNING: variable NVCC is deprecated: use variable CUDACXX instead" >&2;}
-fi
-    if ${CUDAFLAGS+false} : && ${NVCFLAGS+:} false; then :
-  CUDAFLAGS=$NVCFLAGS
-       { $as_echo "$as_me:${as_lineno-$LINENO}: WARNING: variable NVCFLAGS is deprecated: use variable CUDAFLAGS instead" >&5
-$as_echo "$as_me: WARNING: variable NVCFLAGS is deprecated: use variable CUDAFLAGS instead" >&2;}
-fi
+    CUDAFLAGS=${CUDAFLAGS-}
+    as_fn_append CUDAFLAGS "${ICON_CUDAFLAGS:+ }${ICON_CUDAFLAGS}"
 
 
 
@@ -7158,7 +7173,8 @@ ac_compile='$CC -c $CFLAGS $CPPFLAGS conftest.$ac_ext >&5'
 ac_link='$CC -o conftest$ac_exeext $CFLAGS $CPPFLAGS $LDFLAGS conftest.$ac_ext $LIBS >&5'
 ac_compiler_gnu=$ac_cv_c_compiler_gnu
 
-    case $acx_prog_cudacxx_works in #(
+    export CUDACXX
+        case $acx_prog_cudacxx_works in #(
   no) :
     { { $as_echo "$as_me:${as_lineno-$LINENO}: error: in \`$ac_pwd':" >&5
 $as_echo "$as_me: error: in \`$ac_pwd':" >&2;}
@@ -7397,6 +7413,8 @@ ac_compiler_gnu=$ac_cv_c_compiler_gnu
 
     HIPCXX=; HIPFLAGS= ;; #(
   hip) :
+    HIPFLAGS=${HIPFLAGS-}
+    as_fn_append HIPFLAGS "${ICON_HIPFLAGS:+ }${ICON_HIPFLAGS}"
 
 
 
@@ -7682,7 +7700,8 @@ ac_compile='$CC -c $CFLAGS $CPPFLAGS conftest.$ac_ext >&5'
 ac_link='$CC -o conftest$ac_exeext $CFLAGS $CPPFLAGS $LDFLAGS conftest.$ac_ext $LIBS >&5'
 ac_compiler_gnu=$ac_cv_c_compiler_gnu
 
-    case $acx_prog_hipcxx_works in #(
+    export HIPCXX
+        case $acx_prog_hipcxx_works in #(
   no) :
     { { $as_echo "$as_me:${as_lineno-$LINENO}: error: in \`$ac_pwd':" >&5
 $as_echo "$as_me: error: in \`$ac_pwd':" >&2;}
@@ -10348,6 +10367,10 @@ ICON_BUNDLED_FCFLAGS=${ICON_BUNDLED_FCFLAGS-$ICON_FCFLAGS}
 ICON_BUNDLED_CFLAGS=${ICON_BUNDLED_CFLAGS-$ICON_CFLAGS}
 
 
+ICON_BUNDLED_CUDAFLAGS=${ICON_BUNDLED_CUDAFLAGS-$ICON_CUDAFLAGS}
+
+ICON_BUNDLED_HIPFLAGS=${ICON_BUNDLED_HIPFLAGS-$ICON_HIPFLAGS}
+
 bundled_CMAKE_PREFIX_PATH=
 
 BUNDLED_RULES=''
@@ -11765,7 +11788,8 @@ fi
 done
 
 if test "x$enable_delayed_config" = xyes; then :
-     as_fn_append BUNDLED_RULES "$as_nl# Configure delayed bundled packages:${as_nl}export FC CC CXX"
+     as_fn_append BUNDLED_RULES "$as_nl# Configure delayed bundled packages:
+export FC CC CXX CUDACXX HIPCXX"
    for icon_bundled_builddir in $extra_build_subdirs; do
      icon_bundled_config_cmd="`eval 'as_val=${'acx_subdir_run_cmd_\`$as_echo "$icon_bundled_builddir" | $as_tr_sh\`'};$as_echo "$as_val"'` `eval 'as_val=${'acx_subdir_run_args_\`$as_echo "$icon_bundled_builddir" | $as_tr_sh\`'};$as_echo "$as_val"'`"
      eval icon_bundled_type=\$acx_subdir_build_type_`$as_echo "$icon_bundled_builddir" | $as_tr_sh`

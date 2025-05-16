@@ -1202,21 +1202,28 @@ export CXX
 
 ###################### SECONDARY GPU COMPILERS AND FLAGS #######################
 
+dnl Save the flags to pass them later to the bundled packages:
+subdir_CUDAFLAGS=${CUDAFLAGS-}
+subdir_HIPFLAGS=${HIPFLAGS-}
+
 icon_gpu_secondary_arch=unknown
 dnl We do not use AS_CASE to prevent checking for CUDACXX and HIPCXX when GPU
 dnl support is disabled:
 case $icon_gpu_secondary in #(
   cuda) :
-dnl Honor NVCC and NVCFLAGS for backwards compatibility:
-    AS_IF([${CUDACXX+false} : && ${NVCC+:} false],
-      [CUDACXX=$NVCC
-       AC_MSG_WARN(
-         [variable NVCC is deprecated: use variable CUDACXX instead])])
-    AS_IF([${CUDAFLAGS+false} : && ${NVCFLAGS+:} false],
-      [CUDAFLAGS=$NVCFLAGS
-       AC_MSG_WARN(
-         [variable NVCFLAGS is deprecated: use variable CUDAFLAGS instead])])
+dnl Override the default flags set by ACX_PROG_CUDACXX:
+    CUDAFLAGS=${CUDAFLAGS-}
+dnl Make sure the configure checks are run with ICON_CUDAFLAGS:
+    AS_VAR_APPEND([CUDAFLAGS], ["${ICON_CUDAFLAGS:+ }${ICON_CUDAFLAGS}"])
     ACX_PROG_CUDACXX
+dnl Make sure that the bundled packages pick up the same CUDACXX if not set by
+dnl the user on the command line:
+    export CUDACXX
+dnl We put the following declaration here (i.e. after AC_PROG_CUDAXX) for better
+dnl readability of the help message:
+    AC_ARG_VAR([ICON_CUDAFLAGS],
+      [CUDA C++ compiler flags to be appended to CUDAFLAGS when configuring
+ICON])dnl
     AS_CASE([$acx_prog_cudacxx_works],
       [no],
       [AC_MSG_FAILURE([unable to find a working CUDA Compiler: either switch dnl
@@ -1271,7 +1278,19 @@ accordingly])])
     AC_LANG_POP([Fortran])
     HIPCXX=; HIPFLAGS= ;; #(
   hip) :
+dnl Override the default flags set by ACX_PROG_HIPCXX:
+    HIPFLAGS=${HIPFLAGS-}
+dnl Make sure the configure checks are run with ICON_HIPFLAGS:
+    AS_VAR_APPEND([HIPFLAGS], ["${ICON_HIPFLAGS:+ }${ICON_HIPFLAGS}"])
     ACX_PROG_HIPCXX
+dnl Make sure that the bundled packages pick up the same HIPCXX if not set by
+dnl the user on the command line:
+    export HIPCXX
+dnl We put the following declaration here (i.e. after AC_PROG_HIPXX) for better
+dnl readability of the help message:
+    AC_ARG_VAR([ICON_HIPFLAGS],
+      [HIP C++ compiler flags to be appended to HIPFLAGS when configuring
+ICON])dnl
     AS_CASE([$acx_prog_hipcxx_works],
       [no],
       [AC_MSG_FAILURE([unable to find a working HIP Compiler: either switch dnl
@@ -2087,6 +2106,16 @@ ICON_BUNDLED_CFLAGS=${ICON_BUNDLED_CFLAGS-$ICON_CFLAGS}
 AC_ARG_VAR([ICON_BUNDLED_CXXFLAGS],
   [C++ compiler flags to be appended to CXXFLAGS when configuring the bundled
 packages])dnl
+
+AC_ARG_VAR([ICON_BUNDLED_CUDAFLAGS],
+  [CUDA C++ compiler flags to be appended to CUDAFLAGS when configuring the
+bundled packages @<:@default=$ICON_CUDAFLAGS@:>@])dnl
+ICON_BUNDLED_CUDAFLAGS=${ICON_BUNDLED_CUDAFLAGS-$ICON_CUDAFLAGS}
+
+AC_ARG_VAR([ICON_BUNDLED_HIPFLAGS],
+  [HIP C++ compiler flags to be appended to HIPFLAGS when configuring the
+bundled packages @<:@default=$ICON_HIPFLAGS@:>@])dnl
+ICON_BUNDLED_HIPFLAGS=${ICON_BUNDLED_HIPFLAGS-$ICON_HIPFLAGS}
 
 dnl A list of paths to the build directories of the CMake-bundled packages:
 bundled_CMAKE_PREFIX_PATH=
@@ -2979,10 +3008,11 @@ dnl or register all the libraries for the configuration by this top-level
 dnl configure script:
 AS_VAR_IF([enable_delayed_config], [yes],
   [dnl
-dnl Make sure that the bundled packages pick up the same FC, CC and CXX if not
-dnl set by the user on the command line when configuring ICON:
+dnl Make sure that the bundled packages pick up the same FC, CC, CXX, CUDACXX
+dnl and HIPCXX if not set by the user on the command line when configuring ICON:
    AS_VAR_APPEND([BUNDLED_RULES],
-     ["$as_nl@%:@ Configure delayed bundled packages:${as_nl}export FC CC CXX"])
+     ["$as_nl@%:@ Configure delayed bundled packages:
+export FC CC CXX CUDACXX HIPCXX"])
    for icon_bundled_builddir in $extra_build_subdirs; do
      ACX_SUBDIR_GET_RUN_CMD([icon_bundled_config_cmd], [$icon_bundled_builddir])
      ACX_SUBDIR_GET_BUILD_TYPE([icon_bundled_type], [$icon_bundled_builddir])
