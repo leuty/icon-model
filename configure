@@ -6860,6 +6860,7 @@ export CXX
 
 ###################### SECONDARY GPU COMPILERS AND FLAGS #######################
 
+icon_gpu_secondary_arch=unknown
 case $icon_gpu_secondary in #(
   cuda) :
     if ${CUDACXX+false} : && ${NVCC+:} false; then :
@@ -7174,13 +7175,68 @@ ${icon_usr_note}" "$LINENO" 5; } ;; #(
   *) :
     CUDAFLAGS="`eval 'as_val=${'acx_cv_prog_cudacxx_${acx_prog_cudacxx_works}_flag'};$as_echo "$as_val"'` $CUDAFLAGS" ;;
 esac
+
+{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for the CUDA architecture" >&5
+$as_echo_n "checking for the CUDA architecture... " >&6; }
+if ${icon_cv_cuda_arch+:} false; then :
+  $as_echo_n "(cached) " >&6
+else
+  icon_cv_cuda_arch=unknown
+       ac_ext=cu
+ac_compile='$CUDACXX -c $CUDAFLAGS conftest.$ac_ext >&5'
+ac_link='$CUDACXX -o conftest$ac_exeext $CUDAFLAGS $LDFLAGS conftest.$ac_ext $LIBS >&5'
+ac_compiler_gnu=$acx_cv_cuda_compiler_gnu
+
+       icon_nvidia_arch=unknown
+       cat > conftest.$ac_ext <<_ACEOF
+
+int
+main ()
+{
+#define CONFTEST_FIRST_ARG_helper(x, ...) x
+#define CONFTEST_FIRST_ARG(x, ...) CONFTEST_FIRST_ARG_helper(x)
+#define ICON_NVIDIA_ARCH CONFTEST_FIRST_ARG(__CUDA_ARCH_LIST__)
+#if ICON_NVIDIA_ARCH != ICON_EXPECTED_NVIDIA_ARCH
+choke me
+#endif
+  ;
+  return 0;
+}
+_ACEOF
+       icon_save_CUDAFLAGS=$CUDAFLAGS
+       for icon_tmp in 800 900 1000 890 860 750 610 600 1200 \
+                       870 720 700 530 520 500 370 350 320 300; do
+         CUDAFLAGS="${acx_save_CUDAFLAGS} -DICON_EXPECTED_NVIDIA_ARCH=${icon_tmp}"
+         if ac_fn_cuda_try_compile "$LINENO"; then :
+  icon_nvidia_arch=$icon_tmp
+fi
+rm -f core conftest.err conftest.$ac_objext
+         test "x$icon_nvidia_arch" != xunknown && break
+       done
+       rm -f conftest.$ac_ext
+       CUDAFLAGS=$icon_save_CUDAFLAGS
+       icon_cv_cuda_arch=$icon_nvidia_arch
+       ac_ext=c
+ac_cpp='$CPP $CPPFLAGS'
+ac_compile='$CC -c $CFLAGS $CPPFLAGS conftest.$ac_ext >&5'
+ac_link='$CC -o conftest$ac_exeext $CFLAGS $CPPFLAGS $LDFLAGS conftest.$ac_ext $LIBS >&5'
+ac_compiler_gnu=$ac_cv_c_compiler_gnu
+
+fi
+{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $icon_cv_cuda_arch" >&5
+$as_echo "$icon_cv_cuda_arch" >&6; }
+    if test "x$icon_cv_cuda_arch" = xunknown; then :
+  { $as_echo "$as_me:${as_lineno-$LINENO}: WARNING: unable to detect the CUDA architecture specified in the compiler invocation" >&5
+$as_echo "$as_me: WARNING: unable to detect the CUDA architecture specified in the compiler invocation" >&2;}
+else
+  icon_gpu_secondary_arch=$icon_cv_cuda_arch
+fi
     ac_ext=${ac_fc_srcext-f}
 ac_compile='$FC -c $FCFLAGS $ICON_FCFLAGS $ac_fcflags_srcext conftest.$ac_ext >&5'
 ac_link='$FC -o conftest$ac_exeext $FCFLAGS $ICON_FCFLAGS $LDFLAGS $ac_fcflags_srcext conftest.$ac_ext $LIBS >&5'
 ac_compiler_gnu=$ac_cv_fc_compiler_gnu
 
-
-   { $as_echo "$as_me:${as_lineno-$LINENO}: checking whether Fortran compiler can link objects compiled with CUDA compiler" >&5
+       { $as_echo "$as_me:${as_lineno-$LINENO}: checking whether Fortran compiler can link objects compiled with CUDA compiler" >&5
 $as_echo_n "checking whether Fortran compiler can link objects compiled with CUDA compiler... " >&6; }
 if ${acx_cv_fc_cuda_compatible+:} false; then :
   $as_echo_n "(cached) " >&6
@@ -7642,13 +7698,122 @@ ${icon_usr_note}" "$LINENO" 5; } ;; #(
   *) :
     HIPFLAGS="`eval 'as_val=${'acx_cv_prog_hipcxx_${acx_prog_hipcxx_works}_flag'};$as_echo "$as_val"'` $HIPFLAGS" ;;
 esac
+
+{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for the HIP architecture" >&5
+$as_echo_n "checking for the HIP architecture... " >&6; }
+if ${icon_cv_hip_arch+:} false; then :
+  $as_echo_n "(cached) " >&6
+else
+  icon_cv_hip_arch=unknown
+       ac_ext=cc
+ac_compile='$HIPCXX -c $HIPFLAGS conftest.$ac_ext >&5'
+ac_link='$HIPCXX -o conftest$ac_exeext $HIPFLAGS $LDFLAGS conftest.$ac_ext $LIBS >&5'
+ac_compiler_gnu=$acx_cv_hip_compiler_gnu
+
+       cat > conftest.$ac_ext <<_ACEOF
+
+int
+main ()
+{
+#ifdef __CUDACC__
+#else
+      choke me
+#endif
+  ;
+  return 0;
+}
+_ACEOF
+if ac_fn_hip_try_compile "$LINENO"; then :
+  acx_macro_defined=yes
+else
+  acx_macro_defined=no
+fi
+rm -f core conftest.err conftest.$ac_objext conftest.$ac_ext
+       if test "x$acx_macro_defined" = xyes; then :
+  icon_nvidia_arch=unknown
+       cat > conftest.$ac_ext <<_ACEOF
+
+int
+main ()
+{
+#define CONFTEST_FIRST_ARG_helper(x, ...) x
+#define CONFTEST_FIRST_ARG(x, ...) CONFTEST_FIRST_ARG_helper(x)
+#define ICON_NVIDIA_ARCH CONFTEST_FIRST_ARG(__CUDA_ARCH_LIST__)
+#if ICON_NVIDIA_ARCH != ICON_EXPECTED_NVIDIA_ARCH
+choke me
+#endif
+  ;
+  return 0;
+}
+_ACEOF
+       icon_save_HIPFLAGS=$HIPFLAGS
+       for icon_tmp in 800 900 1000 890 860 750 610 600 1200 \
+                       870 720 700 530 520 500 370 350 320 300; do
+         HIPFLAGS="${acx_save_HIPFLAGS} -DICON_EXPECTED_NVIDIA_ARCH=${icon_tmp}"
+         if ac_fn_hip_try_compile "$LINENO"; then :
+  icon_nvidia_arch=$icon_tmp
+fi
+rm -f core conftest.err conftest.$ac_objext
+         test "x$icon_nvidia_arch" != xunknown && break
+       done
+       rm -f conftest.$ac_ext
+       HIPFLAGS=$icon_save_HIPFLAGS
+          icon_cv_hip_arch=$icon_nvidia_arch
+else
+  for icon_amd_arch in gfx90a gfx1103 gfx1100 gfx1030 \
+                               gfx940 gfx942 gfx908 gfx906; do
+            cat > conftest.$ac_ext <<_ACEOF
+#ifdef __HIP_DEVICE_COMPILE__
+#ifdef __${icon_amd_arch}__
+#define ICON_AMD_ARCH_DETECTED
+#endif
+#else
+#define ICON_AMD_ARCH_DETECTED
+#endif
+int
+main ()
+{
+#ifdef ICON_AMD_ARCH_DETECTED
+#else
+      choke me
+#endif
+  ;
+  return 0;
+}
+_ACEOF
+if ac_fn_hip_try_compile "$LINENO"; then :
+  acx_macro_defined=yes
+else
+  acx_macro_defined=no
+fi
+rm -f core conftest.err conftest.$ac_objext conftest.$ac_ext
+            if test "x$acx_macro_defined" = xyes; then :
+  icon_cv_hip_arch=$icon_amd_arch
+               break
+fi
+          done
+          ac_ext=c
+ac_cpp='$CPP $CPPFLAGS'
+ac_compile='$CC -c $CFLAGS $CPPFLAGS conftest.$ac_ext >&5'
+ac_link='$CC -o conftest$ac_exeext $CFLAGS $CPPFLAGS $LDFLAGS conftest.$ac_ext $LIBS >&5'
+ac_compiler_gnu=$ac_cv_c_compiler_gnu
+
+fi
+fi
+{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $icon_cv_hip_arch" >&5
+$as_echo "$icon_cv_hip_arch" >&6; }
+    if test "x$icon_cv_hip_arch" = xunknown; then :
+  { $as_echo "$as_me:${as_lineno-$LINENO}: WARNING: unable to detect the HIP architecture specified in the compiler invocation" >&5
+$as_echo "$as_me: WARNING: unable to detect the HIP architecture specified in the compiler invocation" >&2;}
+else
+  icon_gpu_secondary_arch=$icon_cv_hip_arch
+fi
     ac_ext=${ac_fc_srcext-f}
 ac_compile='$FC -c $FCFLAGS $ICON_FCFLAGS $ac_fcflags_srcext conftest.$ac_ext >&5'
 ac_link='$FC -o conftest$ac_exeext $FCFLAGS $ICON_FCFLAGS $LDFLAGS $ac_fcflags_srcext conftest.$ac_ext $LIBS >&5'
 ac_compiler_gnu=$ac_cv_fc_compiler_gnu
 
-
-   { $as_echo "$as_me:${as_lineno-$LINENO}: checking whether Fortran compiler can link objects compiled with HIP compiler" >&5
+       { $as_echo "$as_me:${as_lineno-$LINENO}: checking whether Fortran compiler can link objects compiled with HIP compiler" >&5
 $as_echo_n "checking whether Fortran compiler can link objects compiled with HIP compiler... " >&6; }
 if ${acx_cv_fc_hip_compatible+:} false; then :
   $as_echo_n "(cached) " >&6
@@ -7917,8 +8082,8 @@ $as_echo_n "checking for the value of the Fortran preprocessor macro _OPENMP... 
 if ${acx_cv_fc_macro__OPENMP_value+:} false; then :
   $as_echo_n "(cached) " >&6
 else
-  acx_cv_fc_macro__OPENMP_value=unknown
-      if test "x$cross_compiling" = xno; then :
+  acx_macro_value=unknown
+   if test "x$cross_compiling" = xno; then :
   cat > conftest.$ac_ext <<_ACEOF
 #ifndef _OPENMP
       choke me
@@ -7959,32 +8124,30 @@ else
 _ACEOF
 if ac_fn_fc_try_link "$LINENO"; then :
   acx_exec_result=`./conftest$ac_exeext 2>&5`
-            if test $? -eq 0; then :
-  acx_cv_fc_macro__OPENMP_value=$acx_exec_result
+         if test $? -eq 0; then :
+  acx_macro_value=$acx_exec_result
 fi
 fi
 rm -f core conftest.err conftest.$ac_objext \
     conftest$ac_exeext conftest.$ac_ext
 fi
-      if test "x$acx_cv_fc_macro__OPENMP_value" = xunknown; then :
-  set dummy 201511 201307 201107 200805 200505 200011 199911 199710; shift
-            while test $# != 0; do
-              cat > conftest.$ac_ext <<_ACEOF
+   if test "x$acx_macro_value" = xunknown; then :
+  for acx_tmp in 201511 201307 201107 200805 200505 200011 199911 199710; do
+           cat > conftest.$ac_ext <<_ACEOF
       program main
-#if _OPENMP == _CONFTEST_UNDEFINED_OR_EMPTY || _OPENMP != $1
+#if _OPENMP == _CONFTEST_UNDEFINED_OR_EMPTY || _OPENMP != $acx_tmp
       choke me
 #endif
       end
 _ACEOF
 if ac_fn_fc_try_compile "$LINENO"; then :
-  acx_cv_fc_macro__OPENMP_value=$1
-                 set dummy; shift
-else
-  shift
+  acx_macro_value=$acx_tmp
 fi
 rm -f core conftest.err conftest.$ac_objext conftest.$ac_ext
-            done
+           test "x$acx_macro_value" = xunknown || break
+         done
 fi
+      acx_cv_fc_macro__OPENMP_value=$acx_macro_value
 fi
 { $as_echo "$as_me:${as_lineno-$LINENO}: result: $acx_cv_fc_macro__OPENMP_value" >&5
 $as_echo "$acx_cv_fc_macro__OPENMP_value" >&6; }
@@ -8018,7 +8181,7 @@ else
       end
 _ACEOF
 if ac_fn_fc_try_compile "$LINENO"; then :
-  acx_cv_fc_macro__OPENMP_defined=yes
+  acx_macro_defined=yes
 else
   cat > conftest.$ac_ext <<_ACEOF
       program main
@@ -8029,13 +8192,14 @@ else
       end
 _ACEOF
 if ac_fn_fc_try_compile "$LINENO"; then :
-  acx_cv_fc_macro__OPENMP_defined=no
+  acx_macro_defined=no
 else
-  acx_cv_fc_macro__OPENMP_defined=unsupported
+  acx_macro_defined=unsupported
 fi
 rm -f core conftest.err conftest.$ac_objext conftest.$ac_ext
 fi
 rm -f core conftest.err conftest.$ac_objext conftest.$ac_ext
+      acx_cv_fc_macro__OPENMP_defined=$acx_macro_defined
 fi
 { $as_echo "$as_me:${as_lineno-$LINENO}: result: $acx_cv_fc_macro__OPENMP_defined" >&5
 $as_echo "$acx_cv_fc_macro__OPENMP_defined" >&6; }
@@ -8098,8 +8262,8 @@ $as_echo_n "checking for the value of the Fortran preprocessor macro _OPENACC...
 if ${acx_cv_fc_macro__OPENACC_value+:} false; then :
   $as_echo_n "(cached) " >&6
 else
-  acx_cv_fc_macro__OPENACC_value=unknown
-      if test "x$cross_compiling" = xno; then :
+  acx_macro_value=unknown
+   if test "x$cross_compiling" = xno; then :
   cat > conftest.$ac_ext <<_ACEOF
 #ifndef _OPENACC
       choke me
@@ -8140,32 +8304,30 @@ else
 _ACEOF
 if ac_fn_fc_try_link "$LINENO"; then :
   acx_exec_result=`./conftest$ac_exeext 2>&5`
-            if test $? -eq 0; then :
-  acx_cv_fc_macro__OPENACC_value=$acx_exec_result
+         if test $? -eq 0; then :
+  acx_macro_value=$acx_exec_result
 fi
 fi
 rm -f core conftest.err conftest.$ac_objext \
     conftest$ac_exeext conftest.$ac_ext
 fi
-      if test "x$acx_cv_fc_macro__OPENACC_value" = xunknown; then :
-  set dummy 201711 201510 201308 201306 201111; shift
-            while test $# != 0; do
-              cat > conftest.$ac_ext <<_ACEOF
+   if test "x$acx_macro_value" = xunknown; then :
+  for acx_tmp in 201711 201510 201308 201306 201111; do
+           cat > conftest.$ac_ext <<_ACEOF
       program main
-#if _OPENACC == _CONFTEST_UNDEFINED_OR_EMPTY || _OPENACC != $1
+#if _OPENACC == _CONFTEST_UNDEFINED_OR_EMPTY || _OPENACC != $acx_tmp
       choke me
 #endif
       end
 _ACEOF
 if ac_fn_fc_try_compile "$LINENO"; then :
-  acx_cv_fc_macro__OPENACC_value=$1
-                 set dummy; shift
-else
-  shift
+  acx_macro_value=$acx_tmp
 fi
 rm -f core conftest.err conftest.$ac_objext conftest.$ac_ext
-            done
+           test "x$acx_macro_value" = xunknown || break
+         done
 fi
+      acx_cv_fc_macro__OPENACC_value=$acx_macro_value
 fi
 { $as_echo "$as_me:${as_lineno-$LINENO}: result: $acx_cv_fc_macro__OPENACC_value" >&5
 $as_echo "$acx_cv_fc_macro__OPENACC_value" >&6; }
@@ -8199,7 +8361,7 @@ else
       end
 _ACEOF
 if ac_fn_fc_try_compile "$LINENO"; then :
-  acx_cv_fc_macro__OPENACC_defined=yes
+  acx_macro_defined=yes
 else
   cat > conftest.$ac_ext <<_ACEOF
       program main
@@ -8210,13 +8372,14 @@ else
       end
 _ACEOF
 if ac_fn_fc_try_compile "$LINENO"; then :
-  acx_cv_fc_macro__OPENACC_defined=no
+  acx_macro_defined=no
 else
-  acx_cv_fc_macro__OPENACC_defined=unsupported
+  acx_macro_defined=unsupported
 fi
 rm -f core conftest.err conftest.$ac_objext conftest.$ac_ext
 fi
 rm -f core conftest.err conftest.$ac_objext conftest.$ac_ext
+      acx_cv_fc_macro__OPENACC_defined=$acx_macro_defined
 fi
 { $as_echo "$as_me:${as_lineno-$LINENO}: result: $acx_cv_fc_macro__OPENACC_defined" >&5
 $as_echo "$acx_cv_fc_macro__OPENACC_defined" >&6; }

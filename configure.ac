@@ -1202,6 +1202,7 @@ export CXX
 
 ###################### SECONDARY GPU COMPILERS AND FLAGS #######################
 
+icon_gpu_secondary_arch=unknown
 dnl We do not use AS_CASE to prevent checking for CUDACXX and HIPCXX when GPU
 dnl support is disabled:
 case $icon_gpu_secondary in #(
@@ -1228,6 +1229,35 @@ support for the C++11 standard: either switch the secondary GPU compiler dnl
 (--disable-gpu), or set CUDAFLAGS accordingly])],
       [CUDAFLAGS=dnl
 "AS_VAR_GET([acx_cv_prog_cudacxx_${acx_prog_cudacxx_works}_flag]) $CUDAFLAGS"])
+    m4_define([ICON_NVIDIA_ARCH_DETECT],
+      [icon_nvidia_arch=unknown
+       AC_LANG_CONFTEST([AC_LANG_PROGRAM([],
+         [[#define CONFTEST_FIRST_ARG_helper(x, ...) x
+#define CONFTEST_FIRST_ARG(x, ...) CONFTEST_FIRST_ARG_helper(x)
+#define ICON_NVIDIA_ARCH CONFTEST_FIRST_ARG(__CUDA_ARCH_LIST__)
+#if ICON_NVIDIA_ARCH != ICON_EXPECTED_NVIDIA_ARCH
+choke me
+#endif]])])
+       icon_save_[]_AC_LANG_PREFIX[]FLAGS=$[]_AC_LANG_PREFIX[]FLAGS
+       for icon_tmp in 800 900 1000 890 860 750 610 600 1200 \
+                       870 720 700 530 520 500 370 350 320 300; do
+         _AC_LANG_PREFIX[]FLAGS="${acx_save_[]_AC_LANG_PREFIX[]FLAGS} dnl
+-DICON_EXPECTED_NVIDIA_ARCH=${icon_tmp}"
+         AC_COMPILE_IFELSE([], [icon_nvidia_arch=$icon_tmp])
+         test "x$icon_nvidia_arch" != xunknown && break
+       done
+       rm -f conftest.$ac_ext
+       _AC_LANG_PREFIX[]FLAGS=$icon_save_[]_AC_LANG_PREFIX[]FLAGS])dnl
+    AC_CACHE_CHECK([for the CUDA architecture], [icon_cv_cuda_arch],
+      [icon_cv_cuda_arch=unknown
+       ACX_LANG_PUSH_CUDA
+       ICON_NVIDIA_ARCH_DETECT
+       icon_cv_cuda_arch=$icon_nvidia_arch
+       ACX_LANG_POP_CUDA])
+    AS_VAR_IF([icon_cv_cuda_arch], [unknown],
+      [AC_MSG_WARN([unable to detect the CUDA architecture specified in the dnl
+compiler invocation])],
+      [icon_gpu_secondary_arch=$icon_cv_cuda_arch])
     AC_LANG_PUSH([Fortran])
     ACX_LANG_CUDA_COMPATIBLE([],
       [AC_MSG_FAILURE([Fortran compiler cannot link objects compiled with dnl
@@ -1254,6 +1284,32 @@ support for the C++11 standard: either switch the secondary GPU compiler dnl
 (--disable-gpu), or set HIPFLAGS accordingly])],
       [HIPFLAGS=dnl
 "AS_VAR_GET([acx_cv_prog_hipcxx_${acx_prog_hipcxx_works}_flag]) $HIPFLAGS"])
+    AC_CACHE_CHECK([for the HIP architecture], [icon_cv_hip_arch],
+      [icon_cv_hip_arch=unknown
+       ACX_LANG_PUSH_HIP
+       ACX_LANG_MACRO_CHECK_DEFINED_SILENT([__CUDACC__])
+       AS_VAR_IF([acx_macro_defined], [yes],
+         [ICON_NVIDIA_ARCH_DETECT
+          icon_cv_hip_arch=$icon_nvidia_arch],
+         [for icon_amd_arch in gfx90a gfx1103 gfx1100 gfx1030 \
+                               gfx940 gfx942 gfx908 gfx906; do
+            ACX_LANG_MACRO_CHECK_DEFINED_SILENT([ICON_AMD_ARCH_DETECTED],
+              [#ifdef __HIP_DEVICE_COMPILE__
+#ifdef __${icon_amd_arch}__
+#define ICON_AMD_ARCH_DETECTED
+#endif
+#else
+#define ICON_AMD_ARCH_DETECTED
+#endif])
+            AS_VAR_IF([acx_macro_defined], [yes],
+              [icon_cv_hip_arch=$icon_amd_arch
+               break])
+          done
+          ACX_LANG_POP_HIP])])
+    AS_VAR_IF([icon_cv_hip_arch], [unknown],
+      [AC_MSG_WARN([unable to detect the HIP architecture specified in the dnl
+compiler invocation])],
+      [icon_gpu_secondary_arch=$icon_cv_hip_arch])
     AC_LANG_PUSH([Fortran])
     ACX_LANG_HIP_COMPATIBLE([],
       [AC_MSG_FAILURE([Fortran compiler cannot link objects compiled with dnl
