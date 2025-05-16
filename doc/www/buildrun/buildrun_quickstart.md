@@ -8,7 +8,13 @@ ICON is simultaneously developed in several repositories. There is the *primary*
 Clone the ICON repository of choice and its submodules using the following command:
 
 ```sh
-git clone --recursive git@gitlab.dkrz.de/icon/icon-model.git
+git clone --recursive https://gitlab.dkrz.de/icon/icon-model.git
+```
+
+Users _with a DKRZ GitLab account_ are recommended to clone the repository via the SSH protocol:
+
+```sh
+git clone --recursive git@gitlab.dkrz.de:icon/icon-model.git
 ```
 
 ## Configuring and Building
