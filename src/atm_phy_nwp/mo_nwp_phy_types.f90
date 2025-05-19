@@ -449,6 +449,7 @@ MODULE mo_nwp_phy_types
       &  k700    (:,:),     & !< level index that corresponds to the height
                               !< of the standard atmosphere 700hPa level above ground
       &  ktop_envel(:,:),   & !< level index of upper boundary of SSO envelope layer
+      &  k_inversion(:,:),  & !< level of lowest inversion
       &  iww     (:,:),     & !< significant weather
       &  wup_mask(:,:)        ! mask for tracking of strong updrafts
 

@@ -294,8 +294,7 @@ CONTAINS
 #endif
 
     ! inversion height diagnostic for cover_koe with stratocumulus
-    INTEGER :: kc_inversion(nproma), kc_entr_zone(nproma)
-    LOGICAL :: lfound_inversion(nproma)
+    INTEGER :: kc_entr_zone(nproma)
 
     ! Pointer to IDs of tracers which contain prognostic condensate.
     ! Required for computing the water loading term
@@ -398,7 +397,7 @@ CONTAINS
     ENDIF ! end of lsppt
 
     !$ACC DATA CREATE(zddt_v_raylfric, zddt_u_raylfric, sqrt_ri, z_ddt_temp, z_ddt_temp_drag, z_ddt_alpha, z_ddt_v_tot) &
-    !$ACC   CREATE(zcosmu0, z_ddt_u_tot, z_exner_sv, z_qsum, kc_inversion, kc_entr_zone, lfound_inversion) IF(lacc)
+    !$ACC   CREATE(zcosmu0, z_ddt_u_tot, z_exner_sv, z_qsum, kc_entr_zone) IF(lacc)
     !$ACC DATA COPYIN(dt_phy_jg)
 
     IF ( lcall_phy_jg(itturb) .OR. lcall_phy_jg(itconv) .OR.           &
@@ -1385,7 +1384,7 @@ CONTAINS
       !$ser verbatim IF (.not. linit) CALL serialize_all(nproma, jg, "cover", .TRUE., opt_dt=mtime_datetime)
 #ifndef __GFORTRAN__
 ! FIXME: libgomp seems to run in deadlock here
-!$OMP PARALLEL DO PRIVATE(jb,jc,i_startidx,i_endidx,kc_inversion,kc_entr_zone,lfound_inversion) ICON_OMP_GUIDED_SCHEDULE
+!$OMP PARALLEL DO PRIVATE(jb,jc,i_startidx,i_endidx,kc_entr_zone) ICON_OMP_GUIDED_SCHEDULE
 #endif
       DO jb = i_startblk, i_endblk
         !
@@ -1395,24 +1394,22 @@ CONTAINS
         IF (lcalc_inv) THEN
           ! inversion height diagnostic for EIS-based stratocumulus parameterization in cover_koe
           ! ( for efficiency reasons this could be integrated in cover_koe and called with an index list )
-          CALL inversion_height_index(                             &
+          CALL inversion_height_index(                           &
              &  p_metrics%z_mc(:,:,jb),                          &
              &  p_metrics%z_ifc(:,nlev+1,jb),                    &
              &  pt_prog_rcf%tracer(:,:,jb,iqc),                  &
              &  pt_diag%temp(:,:,jb),                            &
-             &  pt_diag%pres(:,:,jb),                            &
+             &  pt_prog%exner(:,:,jb),                           &
              &  i_startidx,i_endidx,kstart_moist(jg),nlev,nlev,  &
-             &  kc_inversion(:),                                 &
+             &  prm_diag%k_inversion(:,jb),                      &
              &  kc_entr_zone(:),                                 &
-             &  lfound_inversion(:),                             &
              &  lacc=lacc)
         ELSE
           !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1) IF(lacc)
           !$ACC LOOP GANG VECTOR
           DO jc = i_startidx, i_endidx
-            kc_inversion(jc)=0._wp
-            kc_entr_zone(jc)=0._wp
-            lfound_inversion(jc)=.FALSE.
+            prm_diag%k_inversion(jc,jb) = nlev
+            kc_entr_zone(jc)            = nlev
           ENDDO
           !$ACC END PARALLEL
         ENDIF
@@ -1441,8 +1438,7 @@ CONTAINS
 &              kcbot  = prm_diag%mbas_con    (:,jb)       ,       & !! in:  convective cloud base
 &              kctop  = prm_diag%mtop_con    (:,jb)       ,       & !! in:  convective cloud top
 &              ktype  = prm_diag%ktype       (:,jb)       ,       & !! in:  convection type
-&              kcinv  = kc_inversion         (:)          ,       & !! in:  inversion height index
-&              linversion = lfound_inversion (:)          ,       & !! in:  inversion height logical
+&              kcinv  = prm_diag%k_inversion (:,jb)       ,       & !! in:  inversion height index
 &              peis     = prm_diag%conv_eis  (:,jb)       ,       & !! in:  estimated inversion strength
 &              fac_ccqc = prm_diag%fac_ccqc  (:,jb)       ,       & !! in:  factor for CLC-QC relationship (for EPS perturbations)
 &              pmfude_rate = prm_diag%con_udd(:,:,jb,3)   ,       & !! in:  convective updraft detrainment rate

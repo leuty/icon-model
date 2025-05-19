@@ -865,28 +865,30 @@ CONTAINS
   !!
   !! The inversion height is identified as the maximum gradient of liquid potential temperature
 
-  SUBROUTINE inversion_height_index(z,zsurf,qc,te,prs,i_startidx,i_endidx,jktop,jkbot,nlev, &
-                      &             i_inversion,i_ent_zone,lfound_inversion,lacc)
+  SUBROUTINE inversion_height_index(z,zsurf,qc,te,exner,i_startidx,i_endidx,jktop,jkbot,nlev, &
+                      &             k_inversion,k_ent_zone,lacc)
     REAL(wp),      INTENT(IN)  ::  z(:,:)     ! Height above sea level
     REAL(wp),      INTENT(IN)  ::  zsurf(:)   ! Surface height above sea level
     REAL(wp),      INTENT(IN)  ::  qc(:,:)  ! Liquid water
     REAL(wp),      INTENT(IN)  ::  te(:,:)  ! Temperature
-    REAL(wp),      INTENT(IN)  ::  prs(:,:) ! Pressure
+    REAL(wp),      INTENT(IN)  ::  exner(:,:) ! Exner pressure
     INTEGER,       INTENT(IN)  ::  i_startidx,i_endidx,jktop,jkbot,nlev ! loop indices
 
-    INTEGER,       INTENT(OUT) ::  i_inversion(nproma) ! Inversion index
-    INTEGER,       INTENT(OUT) ::  i_ent_zone(nproma)  ! Lowest inversion index
-    LOGICAL,       INTENT(OUT) ::  lfound_inversion(nproma) ! Inversion found (true/false)
+    INTEGER,       INTENT(OUT) ::  k_inversion(nproma) ! Inversion index (main level below the inversion,
+                                                       ! or interface level index of the inversion)
+    INTEGER,       INTENT(OUT) ::  k_ent_zone(nproma)  ! Lowest inversion index
     LOGICAL, OPTIONAL ,INTENT(IN) :: lacc           ! If true, use openacc
 
     REAL (wp),      PARAMETER  ::   p0 = 1.e5_wp    ! reference pressure for calculation of potential temperature
-    REAL (wp),     PARAMETER   ::  zmin_inv =  400.0_wp  ! Lowest possible inversion (in m Above Surface)
+    REAL (wp),     PARAMETER   ::  zmin_inv =  100.0_wp  ! Lowest possible inversion (in m Above Surface)
     REAL (wp),     PARAMETER   ::  zmax_inv = 3000.0_wp  ! Highest possible inversion(in m Above Surface)
 
     ! Local variables
     REAL(wp) ::   theta_l(nproma,nlev)    ! Liquid potential temperature
     REAL(WP) ::   dthetadz(nproma,3)      ! Gradiente of liquid potential temperature
     LOGICAL  ::   lbelow_zmax(nproma)     ! Height below zmax_inv
+
+    LOGICAL  ::   lfound_inversion(nproma) ! Inversion found (true/false)
 
     REAL    ::     lapse_lim              ! Stratification limit to be considered as a inversion
     INTEGER ::     jc,jk
@@ -895,23 +897,17 @@ CONTAINS
 
     CALL set_acc_host_or_device(lzacc, lacc)
 
-    ! Limit to be in the entrainment zone (Van Wevweberg et al. Month Weath. Rev. 2021)
-    lapse_lim = grav/cpd*0.1_wp
+    ! Limit to be in the entrainment zone (Van Weverberg et al. Month Weath. Rev. 2021)
+    lapse_lim = grav/cpd*2._wp ! minimum lapse rate in inversion layer
 
     ! Start arrays
     !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1) IF(lzacc) &
-    !$ACC   CREATE(theta_l, dthetadz, lbelow_zmax)
-    !$ACC LOOP SEQ
-    DO jk = 1, nlev
-      !$ACC LOOP GANG(STATIC: 1) VECTOR
-      DO jc = i_startidx, i_endidx
-        theta_l(jc,jk) = 0.0_wp
-      ENDDO
-    ENDDO
+    !$ACC   CREATE(theta_l, dthetadz, lbelow_zmax, lfound_inversion)
+
     !$ACC LOOP GANG(STATIC: 1) VECTOR
     DO jc = i_startidx, i_endidx
-      i_ent_zone(jc) = jkbot-3
-      i_inversion(jc) = jkbot-3
+      k_ent_zone(jc)  = jkbot
+      k_inversion(jc) = jkbot ! this indicates that no inversion was found
       lfound_inversion(jc) = .false.
       lbelow_zmax(jc) = .true.
     ENDDO
@@ -921,15 +917,15 @@ CONTAINS
     DO jk = jktop,jkbot
       !$ACC LOOP GANG(STATIC: 1) VECTOR
       DO jc = i_startidx, i_endidx
-        theta_l(jc,jk) = (te(jc,jk) - alvdcp *qc(jc,jk))*(prs(jc,jk)/p0)**rd_o_cpd
+        theta_l(jc,jk) = (te(jc,jk) - alvdcp*qc(jc,jk))/exner(jc,jk)
       END DO
     END DO
 
     ! Lowest two levels
     !$ACC LOOP GANG(STATIC: 1) VECTOR
     DO jc = i_startidx, i_endidx
-      dthetadz(jc,1) = (theta_l(jc,jkbot-2) - theta_l(jc,jkbot  ) ) / (z(jc,jkbot-2) - z(jc,jkbot  ))
-      dthetadz(jc,2) = (theta_l(jc,jkbot-3) - theta_l(jc,jkbot-1) ) / (z(jc,jkbot-3) - z(jc,jkbot-1))
+      dthetadz(jc,1) = (theta_l(jc,jkbot-2) - theta_l(jc,jkbot-1) ) / (z(jc,jkbot-2) - z(jc,jkbot-1))
+      dthetadz(jc,2) = (theta_l(jc,jkbot-3) - theta_l(jc,jkbot-2) ) / (z(jc,jkbot-3) - z(jc,jkbot-2))
     END DO
 
     ! Loop from bottom to top
@@ -939,17 +935,17 @@ CONTAINS
       DO jc = i_startidx, i_endidx
         ! Calculate when the inversion has not been found and below max z level
         IF ( lbelow_zmax(jc) .AND. .NOT. lfound_inversion(jc) ) THEN
-          dthetadz(jc,3) = (theta_l(jc,jk-1) - theta_l(jc,jk+1) ) / (z(jc,jk-1) - z(jc,jk+1))
+          dthetadz(jc,3) = (theta_l(jc,jk-1) - theta_l(jc,jk) ) / (z(jc,jk-1) - z(jc,jk))
           ! Criteria for entrainment zone
           IF ( dthetadz(jc,2) > lapse_lim .AND. z(jc,jk+1) > (zmin_inv + zsurf(jc)) ) THEN
             ! Maximum: criteria for inversion height
             IF ( dthetadz(jc,2) > dthetadz(jc,3) .AND. dthetadz(jc,2) > dthetadz(jc,1) ) THEN
               lfound_inversion(jc) = .true.
-              i_inversion(jc) = MAX(MIN(jk + 1,jkbot),1)
+              k_inversion(jc) = MAX(MIN(jk + 1,jkbot),1)
             END IF
           ELSE
             ! We are not in the entrainment zone, we shift the limit upwards
-            i_ent_zone(jc) = MAX(MIN(jk,jkbot),1)
+            k_ent_zone(jc) = MAX(MIN(jk,jkbot),1)
           END IF
           ! Shift the array
           dthetadz(jc,1) = dthetadz(jc,2)

@@ -125,7 +125,6 @@ SUBROUTINE cover_koe( &
   & peis                            , & ! in:    estimated inversion strength
   & rhoc_tend                       , & ! in:    convective rhoc tendency
   & kcinv                           , & ! in:    inversion height index
-  & linversion                      , & ! in:    inversion logical
   & qv, qc, qi, qs, qc_sgs          , & ! inout: prognostic cloud variables
   & lacc                            , & ! in:    parameter to prevent openacc during init
   & ttend_clcov                     , & ! out:   temperature tendency due to sgs condensation
@@ -183,8 +182,6 @@ REAL(KIND=wp), DIMENSION(:), INTENT(IN) ::  &
 
 INTEGER, DIMENSION(:), INTENT(IN) ::  &
   & kcinv                ! inversion height index
-
-LOGICAL, DIMENSION(:), INTENT(IN) :: linversion
 
 REAL(KIND=wp), DIMENSION(:,:), INTENT(IN) ::  &
   & pmfude_rate      , & ! convective updraft detrainment rate           (kg/(m3*s))
@@ -348,12 +345,12 @@ ENDDO
 ! falling between a critical min/max level.
 !$ACC LOOP GANG(STATIC: 1) VECTOR
 DO jl = kidia,kfdia
-  IF (linversion(jl)) THEN
+  IF (kcinv(jl) < klev) THEN
     zsc_top(jl) = pgeo(jl,kcinv(jl))*grav_i
   ELSE
     zsc_top(jl) = 0._wp
   END IF
-  stratocumulus(jl) = ( linversion(jl)  .and. peis(jl) > 0.75_wp*tune_sc_eis    &
+  stratocumulus(jl) = ( peis(jl) > 0.75_wp*tune_sc_eis    &
                &       .and. zsc_top(jl) > tune_sc_invmin .and. zsc_top(jl) < tune_sc_invmax )
 END DO
 
@@ -411,7 +408,7 @@ CASE( 1 )
       ! cloud cover (instead of quadratic). The exponent sc_exp varies linearly across critical EIS threshold, and
       ! for temperatures decreasing from -5C to -15C for a smoother transition between the default value of sc_exp=2
       ! and the stratocumulus-region value sc_exp=1.
-      IF (stratocumulus(jl) .and. pgeo(jl,jk)*grav_i < zsc_top(jl) .and. pgeo(jl,jk)*grav_i > tune_sc_invmin) THEN
+      IF (stratocumulus(jl) .and. pgeo(jl,jk)*grav_i <= zsc_top(jl) .and. pgeo(jl,jk)*grav_i > tune_sc_invmin) THEN
         sc_exp = MAX(0._wp,MIN(1._wp,3._wp/tune_sc_eis*(peis(jl)-0.75_wp*tune_sc_eis),0.1_wp*(tt(jl,jk)+15._wp-tmelt)))
       ELSE
         sc_exp = 0._wp

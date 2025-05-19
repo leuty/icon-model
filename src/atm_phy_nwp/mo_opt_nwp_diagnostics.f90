@@ -6215,8 +6215,6 @@ CONTAINS
     ! Local variables
     INTEGER  ::   i_inversion(nproma)  ! k-idex for inversion
     INTEGER  ::   i_ent_zone(nproma)   ! k-idex for entrainment zone
-    LOGICAL  ::   lfound_inversion(nproma)  ! To stop loop when inversion is found
-
 
 
     ! Pointers
@@ -6224,7 +6222,7 @@ CONTAINS
     REAL(wp),POINTER      ::   z_ifc(:,:,:)    ! height at interface levels
     REAL(wp),POINTER      ::   te(:,:,:)       ! temperature
     REAL(wp),POINTER      ::   qc(:,:,:)       ! cloud water
-    REAL(wp),POINTER      ::   prs(:,:,:)      ! pressure (from physics)
+    REAL(wp),POINTER      ::   exner(:,:,:)    ! exner pressure
     REAL(WP),POINTER      ::   low_ent_zone(:,:) ! output variable
 
     INTEGER :: i_rlstart,  i_rlend
@@ -6240,7 +6238,7 @@ CONTAINS
     i_endblk   = ptr_patch%cells%end_block  ( i_rlend   )
 
     ! Set pointers
-    prs => p_diag%pres
+    exner => p_prog%exner
     te  => p_diag%temp
     qc  => p_prog%tracer_ptr(iqc)%p_3d
     z   => p_metrics%z_mc
@@ -6255,22 +6253,21 @@ CONTAINS
 
 
 !$OMP PARALLEL
-!$OMP DO PRIVATE(jb,i_startidx,i_endidx,lfound_inversion,i_inversion, &
-!$OMP            i_ent_zone), ICON_OMP_RUNTIME_SCHEDULE
+!$OMP DO PRIVATE(jb,i_startidx,i_endidx,i_inversion, i_ent_zone), ICON_OMP_RUNTIME_SCHEDULE
     DO jb = i_startblk, i_endblk
 
         CALL get_indices_c( ptr_patch, jb, i_startblk, i_endblk,     &
                             i_startidx, i_endidx, i_rlstart, i_rlend)
 
-        CALL inversion_height_index(z(:,:,jb),z_ifc(:,nlev+1,jb),qc(:,:,jb),te(:,:,jb),prs(:,:,jb), &
+        CALL inversion_height_index(z(:,:,jb),z_ifc(:,nlev+1,jb),qc(:,:,jb),te(:,:,jb),exner(:,:,jb), &
                       &            i_startidx,i_endidx,jktop,jkbot,nlev, &
-                      &            i_inversion(:),i_ent_zone(:),lfound_inversion(:))
+                      &            i_inversion(:),i_ent_zone(:))
 
 ! Calculate the inversion height in meters and set non-values
         DO jc = i_startidx, i_endidx
-          IF (lfound_inversion(jc)) THEN
-            inv_height(jc,jb)   = z(jc,i_inversion(jc),jb)
-            low_ent_zone(jc,jb) = z(jc,i_ent_zone(jc),jb)
+          IF (i_inversion(jc) < nlev) THEN
+            inv_height(jc,jb)   = z_ifc(jc,i_inversion(jc),jb)
+            low_ent_zone(jc,jb) = z_ifc(jc,i_ent_zone(jc),jb)
           ELSE
             inv_height(jc,jb)   = no_inversion_value
             low_ent_zone(jc,jb) = no_inversion_value
