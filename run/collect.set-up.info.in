@@ -191,7 +191,7 @@ case "$use_site" in
         use_submit='sbatch'
         use_sync_submit='sbatch --wait'
         use_target='euler'
-        use_mpi_startrun='mpirun -n $mpi_total_procs'
+        use_mpi_startrun='srun -n $mpi_total_procs'
       ;;
     esac
   ;;

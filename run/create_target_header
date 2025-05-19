@@ -1529,25 +1529,17 @@ set_run_target_euler()
   icon_data_rootFolder=${icon_data_rootFolder:=${poolFolder_prefix}/icon_input}
   icon_data_poolFolder=${icon_data_poolFolder:=${poolFolder_prefix}/icon_input}
 
+  testingFolder_prefix=/cluster/work/climate/icon_testing_input
+
   set_default use_nproma 64
   set_default use_rrtmgp_columns_chunk 64
   set_default use_nodes 1
-
-  #JENKINS_NO_OF_CORES can is unbound when not used with jenkins icon
-  set +eu
-
-  set_default use_mpi_procs_pernode 1
   set_default use_openmp_threads 1
-
-  set -eu
-
-  cdo="/cluster/apps/climate/2.0/bin/cdo"
-  cdo_diff="diff"
+  set_default use_mpi_procs_pernode 12
 
   job_log_name="LOG.$job_name.%J"
   s_cpu_time="SBATCH --time=00:15:00"
-  # Use ntasks (#cores) for no of nodes on Euler!
-  SBATCH_nodes="SBATCH --ntasks=${use_nodes}"
+  SBATCH_nodes="SBATCH --ntasks=${use_mpi_procs_pernode}"
 
   cat >> "$output_script" << EOF
 # ---------------------------
