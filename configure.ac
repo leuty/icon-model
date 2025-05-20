@@ -2086,11 +2086,15 @@ bundled version of ECRAD library @<:@default=$ICON_BUNDLED_FCFLAGS@:>@])dnl
      [NETCDF_FCFLAGS=*|NETCDF_FCLIBS=*|AR=*|PYTHON=*],
      [ACX_SUBDIR_CONFIG_PATTERN_ENABLE([silent-rules])],
      [ACX_SUBDIR_CONFIG_PATTERN_ENABLE([single-precision])],
+     [ACX_SUBDIR_CONFIG_PATTERN_ENABLE([openacc])],
      [ACX_SUBDIR_CONFIG_PATTERN_ENABLE([pgi-inlib])])
+   AS_VAR_IF([icon_gpu_primary], [openacc],
+     [icon_ecrad_openacc=yes], [icon_ecrad_openacc=no])
    ACX_SUBDIR_APPEND_ARGS([externals/ecrad],
      [FCFLAGS="$subdir_FCFLAGS $ICON_ECRAD_FCFLAGS"],
      [NETCDF_FCFLAGS=], [NETCDF_FCLIBS=], [AR="$AR"], [PYTHON="$PYTHON"],
      [--enable-silent-rules="$enable_silent_rules"],
+     [--enable-openacc="$icon_ecrad_openacc"],
      [--enable-pgi-inlib="$enable_pgi_inlib"])
    AS_VAR_APPEND([bundled_includes], ["${FC_MOD_IN}externals/ecrad/mod "])
    BUNDLED_LIBFILES="externals/ecrad/libifsaux.a $BUNDLED_LIBFILES"
