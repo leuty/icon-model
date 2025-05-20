@@ -13,6 +13,8 @@ AES Physics:
 NWP Physics:
 
 - enable reading and interpolating ozone and Kinne aerosol data using YAC (icon-nwp!1716)
+- Fixes:
+  - Inconsistent initialization time step length in vdiff interface and jsbach
 
 ### ICON-Ocean
 
