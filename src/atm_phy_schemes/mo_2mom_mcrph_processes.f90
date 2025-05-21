@@ -4742,6 +4742,7 @@ CONTAINS
     REAL(wp)             :: z0_nccn, z1e_nccn, zf, etas
     INTEGER              :: i, k, kp1_fl
     INTEGER              :: iu, ju, ku, lu
+    INTEGER              :: size_rho
     REAL(wp)             :: hilf1(2,2,2,2), hilf2(2,2,2), hilf3(2,2), hilf4(2)
 
     LOGICAL, PARAMETER   :: lincloud_nuc = .TRUE.
@@ -4779,12 +4780,14 @@ CONTAINS
     kstart = ik_slice(3)
     kend   = ik_slice(4)
 
+    size_rho = SIZE(atmo%rho,dim=2)
+
     !ACCWA (nvhpc 24.5): In the following parallel region tab%ltable needs to be explicitly
     !                    flagged as PRESENT to avoid a "partially present" error (randomly occurring).
     !$ACC PARALLEL ASYNC(1) DEFAULT(PRESENT) PRESENT(tab%ltable) CREATE(hilf1, hilf2, hilf3, hilf4)
     !$ACC LOOP SEQ
     DO k = kstart,kend
-      kp1_fl = MIN(k+1,SIZE(atmo%rho,dim=2))
+      kp1_fl = MIN(k+1,size_rho)
 !NEC$ ivdep
       !$ACC LOOP GANG(STATIC: 1) VECTOR PRIVATE(n_c, q_c, nuc_n, nuc_q, ncn, nccn, wcb) &
       !$ACC   PRIVATE(r2_loc, lsigs_loc, ncn_loc, wcb_loc, zf, iu, ju, ku, lu) &

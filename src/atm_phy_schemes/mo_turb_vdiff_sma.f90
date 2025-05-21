@@ -222,6 +222,7 @@ CONTAINS
     INTEGER  :: loidx (kbdim,ksfc_type)     !< counter for masks
     INTEGER  :: is    (ksfc_type)           !< counter for masks
     INTEGER  :: jsfc, jls, js
+    INTEGER  :: dim_km_1, dim_km_2, dim_km_3
     INTEGER  :: jcn,jbn                     !< jc and jb of neighbor cells sharing an edge je
     REAL(wp),parameter :: zcons17 = 1._wp / ckap**2
 
@@ -1000,11 +1001,14 @@ CONTAINS
                             lacc=.TRUE., opt_rlstart=5, opt_rlend=min_rlvert_int-1,   &
                             opt_acc_async=.TRUE.)
 
+    dim_km_1 = SIZE(km_iv, 1)
+    dim_km_2 = SIZE(km_iv, 2)
+    dim_km_3 = SIZE(km_iv, 3)
     !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1)
     !$ACC LOOP GANG VECTOR COLLAPSE(3)
-    DO jb = 1, SIZE(km_iv, 3)
-      DO jk = 1, SIZE(km_iv, 2)
-        DO jc = 1, SIZE(km_iv, 1)
+    DO jb = 1, dim_km_3
+      DO jk = 1, dim_km_2
+        DO jc = 1, dim_km_1
           km_iv(jc,jk,jb) = MAX( km_min,  km_iv(jc,jk,jb) * turb_prandtl )
         END DO
       END DO
@@ -1015,11 +1019,14 @@ CONTAINS
     CALL cells2edges_scalar(kh_ic, p_patch, p_int%c_lin_e, km_ie, lacc=.TRUE.,      &
                             opt_rlstart=grf_bdywidth_e, opt_rlend=min_rledge_int-1  )
 
+    dim_km_1 = SIZE(km_ie, 1)
+    dim_km_2 = SIZE(km_ie, 2)
+    dim_km_3 = SIZE(km_ie, 3)
     !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1)
     !$ACC LOOP GANG VECTOR COLLAPSE(3)
-    DO jb = 1,  SIZE(km_ie, 3)
-      DO jk = 1, SIZE(km_ie, 2)
-        DO jc = 1, SIZE(km_ie, 1)
+    DO jb = 1, dim_km_3
+      DO jk = 1, dim_km_2
+        DO jc = 1, dim_km_1
           km_ie(jc,jk,jb) = MAX( km_min,  km_ie(jc,jk,jb) * turb_prandtl )
         END DO
       END DO
