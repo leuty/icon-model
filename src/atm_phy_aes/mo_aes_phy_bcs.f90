@@ -50,6 +50,7 @@ MODULE mo_aes_phy_bcs
   USE mo_bc_solar_irradiance        ,ONLY: read_bc_solar_irradiance, ssi_time_interpolation
   USE mo_bc_ozone                   ,ONLY: read_bc_ozone
   USE mo_bc_aeropt_kinne            ,ONLY: read_bc_aeropt_kinne
+  USE mo_bc_aeropt_cmip6_volc       ,ONLY: read_bc_aeropt_cmip6_volc
 
   ! for 6hourly sst and ice data
   USE mo_time_config,          ONLY: time_config
@@ -140,12 +141,11 @@ CONTAINS
 
     LOGICAL, ALLOCATABLE                     :: mask_sftof(:,:)
 
-!!$    CHARACTER(*), PARAMETER :: method_name = "aes_phy_bcs"
-    !
+    !CHARACTER(*), PARAMETER :: method_name = "aes_phy_bcs"
+
     INTEGER          :: jc, jb, jg,  jcs, jce, jbs, jbe
     TYPE(t_aes_phy_field) , POINTER    :: field
-    !
-    !
+
     jg        =  patch%id ! grid index
 
     !-------------------------------------------------------------------------
@@ -290,62 +290,78 @@ CONTAINS
         CALL ssi_time_interpolation(current_time_interpolation_weights, .FALSE., tsi)
       END IF
 
-      !
+
       ! quantities needed for the radiative transfer only
       !
       IF (ltrig_rad) THEN
-        !
+
         ! Set the time instance datetime_radtran for the zenith angle to be used
         ! in the radiative transfer. All other input for the radiative transfer
         ! is for datetime, i.e. the start date and time of the current timestep.
-        !
         IF (ASSOCIATED(radtime_domains(jg)%radiation_time)) &
           & CALL deallocateDatetime(radtime_domains(jg)%radiation_time)
         radtime_domains(jg)%radiation_time => newDatetime(mtime_old)
-        dtrad_loc = getTotalSecondsTimeDelta(aes_phy_tc(jg)%dt_rad,mtime_old) ! [s] local time step of radiation
-        dsec = 0.5_wp*(dtrad_loc - dtadv_loc)                     ! [s] time increment for zenith angle
+
+        ! [s] local time step of radiation
+        dtrad_loc = getTotalSecondsTimeDelta(aes_phy_tc(jg)%dt_rad,mtime_old)
+
+        ! [s] time increment for zenith angle
+        dsec = 0.5_wp*(dtrad_loc - dtadv_loc)
         CALL getPTStringFromSeconds(dsec, dstring)
+
         td_radiation_offset => newTimedelta(dstring)
         radtime_domains(jg)%radiation_time = radtime_domains(jg)%radiation_time + td_radiation_offset
-        !
+
         ! interpolation weights for linear interpolation
         ! of monthly means onto the radiation time step
         radiation_time_interpolation_weights = calculate_time_interpolation_weights(radtime_domains(jg)%radiation_time)
-        !
+
         ! total and spectral solar irradiation at the mean sun earth distance
         IF (aes_rad_config(jg)% isolrad == 1) THEN
           CALL read_bc_solar_irradiance(mtime_old%date%year,.TRUE.)
           CALL ssi_time_interpolation(radiation_time_interpolation_weights,.TRUE.,tsi_radt,ssi_radt)
         END IF
-        !
+
         ! ozone concentration
         IF   (      aes_rad_config(jg)% irad_o3 ==  4 &       ! constant in time
              & .OR. aes_rad_config(jg)% irad_o3 ==  6 &       ! climatological annual cycle defined by monthly data
              & .OR. aes_rad_config(jg)% irad_o3 ==  5 &       ! transient monthly means
              & .OR. aes_rad_config(jg)% irad_o3 == 10 ) THEN  ! coupled to ART
           CALL read_bc_ozone(mtime_old%date%year, patch, aes_rad_config(jg)%irad_o3, &
-      &                      opt_from_coupler=is_coupled_to_o3(), lacc=.TRUE.)
+          &                  opt_from_coupler=is_coupled_to_o3(), lacc=.TRUE.)
         END IF
-        !
-        ! irad_aero==13: transient tropospheric aerosol optical properties after S. Kinne (including anthropogenic)
+
+
+        ! irad_aero==12: tropospheric background aerosol (Kinne)
+        ! irad_aero==13: transient tropospheric aerosol  (Kinne)
+        !   - including anthropogenic
+        ! irad_aero==18: tropospheric background aerosol (Kinne)
+        !   + stratospheric cmip6 aerosols
+        !   + simple plumes
+        ! irad_aero==19: tropospheric background aerosol (Kinne)
+        !   - no stratospheric aerosols
+        !   + simple plumes (analytical, nothing to be read here, initialization
+        !   see init_aes_phy (mo_aes_phy_init)) the file name of the Kinne
+        !   aerosols must not contain a year and the data must contain the
+        !   natural background (Kinne of 1850)
         IF (aes_rad_config(jg)% irad_aero == 13) THEN
           l_filename_year = .TRUE.
           CALL read_bc_aeropt_kinne(mtime_old, patch, l_filename_year, nbndlw, nbndsw, &
-      &                             opt_from_coupler=is_coupled_to_aero())
+          &                         opt_from_coupler=is_coupled_to_aero())
         END IF
-        !
-        ! irad_aero==12: tropospheric background aerosols (Kinne) only
-        ! irad_aero==19: tropospheric background aerosols (Kinne), no stratospheric
-        ! aerosols + simple plumes (analytical, nothing to be read
-        ! here, initialization see init_aes_phy (mo_aes_phy_init))
-        ! the file name of the Kinne aerosols must not contain a year and
-        ! the data must contain the natural background (Kinne of 1850)
-        IF (aes_rad_config(jg)% irad_aero == 12 .OR. aes_rad_config(jg)% irad_aero == 19) THEN
+        IF (aes_rad_config(jg)% irad_aero == 12 .OR. &
+          & aes_rad_config(jg)% irad_aero == 18 .OR. &
+          & aes_rad_config(jg)% irad_aero == 19) THEN
+
           l_filename_year = .FALSE.
-          CALL read_bc_aeropt_kinne     (mtime_old, patch, l_filename_year, nbndlw, nbndsw, &
-      &                                  opt_from_coupler=is_coupled_to_aero())
+          CALL read_bc_aeropt_kinne(mtime_old, patch, l_filename_year, nbndlw, nbndsw, &
+          &                        opt_from_coupler=is_coupled_to_aero())
         END IF
-        !
+
+        IF (aes_rad_config(jg)% irad_aero == 18) THEN
+           CALL read_bc_aeropt_cmip6_volc(mtime_old, nbndlw, nbndsw)
+        END IF
+
         ! greenhouse gas concentrations, assumed constant in horizontal dimensions
         ghg_time_interpol_already_done = .FALSE.
         IF  ( aes_rad_config(jg)%irad_co2   == 3 .OR. &
@@ -359,7 +375,7 @@ CONTAINS
           ghg_time_interpol_already_done = .TRUE.
         END IF
       END IF ! ltrig_rad
-      !
+
       ! co2 concentration for carbon cycle
       IF  ( ccycle_config(jg)%iccycle  == 2 .AND. &       ! c-cycle is used with prescribed co2 conc.
           & ccycle_config(jg)%ico2conc == 4 .AND. &       ! co2 conc. is read from scenario file

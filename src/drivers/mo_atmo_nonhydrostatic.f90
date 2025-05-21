@@ -120,6 +120,7 @@ USE mo_aes_phy_config,      ONLY: aes_phy_tc, dt_zero, aes_phy_config
 USE mo_aes_rad_config,      ONLY: aes_rad_config
 USE mo_aes_vdf_config,      ONLY: aes_vdf_config
 #ifndef __NO_AES__
+USE mo_bc_aeropt_splumes_memory, ONLY: construct_bc_aeropt_splumes_memory
 USE mo_aes_phy_memory,      ONLY: construct_aes_phy_memory
 USE mo_cloud_mig_memory,    ONLY: construct_cloud_mig_memory
 USE mo_cloud_two_memory,    ONLY: construct_cloud_two_memory
@@ -451,6 +452,12 @@ CONTAINS
       CALL construct_cloud_two_memory  ( p_patch(1:) )
       CALL construct_rad_forcing_list  ( p_patch(1:) )
       CALL construct_atm_energy        ( p_patch(1:) )
+      IF ( (ANY(aes_rad_config(:)%irad_aero == 18) .OR. &
+       &   ANY(aes_rad_config(:)%irad_aero == 19)) .AND. &
+       &  ANY(aes_phy_config(:)%dt_rad /= '')) THEN
+      CALL construct_bc_aeropt_splumes_memory ( p_patch(1:) )
+    END IF
+
 #endif
     END IF
 

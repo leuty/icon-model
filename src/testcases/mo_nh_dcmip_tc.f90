@@ -91,7 +91,7 @@ MODULE mo_nh_dcmip_tc
   !-----------------------------------------------------
 
   REAL(wp), PARAMETER :: rp1        = 282000.0_wp       ,& ! (m)   Radius for calculation of PS
-    &                    dp         = 1115.0_wp         ,& ! (Pa)  Delta P for calculation of PS
+    &                    dpres      = 1115.0_wp         ,& ! (Pa)  Delta P for calculation of PS
     &                    zp         = 7000.0_wp         ,& ! (m)   Height for calculation of P
     &                    q0         = 0.0210_wp         ,& !       q at surface from Jordan
     &                    gamma      = 0.0070_wp         ,& ! (K/m) Lapse rate
@@ -277,7 +277,7 @@ CONTAINS
 
         ! pressure at surface                                           (eqs.99)
         !-----------------------------------------------------------------------
-        ps(jc,jb) = p00-dp*EXP(-(gr(jc,jb)/rp)**exppr)
+        ps(jc,jb) = p00-dpres*EXP(-(gr(jc,jb)/rp)**exppr)
 
         ! factors for u and v components of the tangential wind    (eqs.109-113)
         !-----------------------------------------------------------------------
@@ -323,14 +323,14 @@ CONTAINS
 
             ! pressure                                                   (eqs.94+98)
             !-----------------------------------------------------------------------
-            p(jc,jk,jb) = (p00-dp*EXP(-(gr(jc,jb)/rp)**exppr-(z(jc,jk,jb)/zp)**exppz)) &
+            p(jc,jk,jb) = (p00-dpres*EXP(-(gr(jc,jb)/rp)**exppr-(z(jc,jk,jb)/zp)**exppz)) &
               &          *((t0-gamma*z(jc,jk,jb))/t0)**(1.0_wp/exponent)
 
             ! virtual temperature                                       (eqs.92,102)
             !-----------------------------------------------------------------------
             tv(jc,jk,jb) =  (t0-gamma*z(jc,jk,jb))                                                     &
               &            /(1.0_wp + (exppz*rd*(t0-gamma*z(jc,jk,jb))*z(jc,jk,jb))                    &
-              &                      /(grav*zp**exppz*(1.0_wp-p00/dp*EXP( (gr(jc,jb)/rp)**exppr        &
+              &                      /(grav*zp**exppz*(1.0_wp-p00/dpres*EXP( (gr(jc,jb)/rp)**exppr        &
               &                                                          +(z(jc,jk,jb)/zp)**exppz) )))
 
             ! specific humidity                                              (eq.91)
@@ -343,7 +343,7 @@ CONTAINS
               &               +SQRT( (f*gr(jc,jb)/2.0_wp)**2                                                &
               &                     - ( exppr*(gr(jc,jb)/rp)**exppr*rd*(t0-gamma*z(jc,jk,jb)))              &
               &                      /( 1.0_wp+exppz*rd*(t0-gamma*z(jc,jk,jb))*z(jc,jk,jb)/(grav*zp**exppz) &
-              &                        -p00/dp*EXP((gr(jc,jb)/rp)**exppr+(z(jc,jk,jb)/zp)**exppz)))
+              &                        -p00/dpres*EXP((gr(jc,jb)/rp)**exppr+(z(jc,jk,jb)/zp)**exppz)))
 
           END IF
 

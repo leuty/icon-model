@@ -70,7 +70,7 @@ MODULE mo_2mom_mcrph_main
 !   which are calculated once in the driver
 !===============================================================================!
 
-  USE mo_kind,               ONLY: sp, wp
+  USE mo_kind,               ONLY: wp
   USE mo_exception,          ONLY: finish, message, txt => message_text
   USE mo_math_constants,     ONLY: pi, pi4 => pi_4
   USE mo_2mom_mcrph_types, ONLY: &
@@ -796,7 +796,7 @@ CONTAINS
           cloud%n(i,k) = MIN(cloud%n(i,k), cloud%q(i,k)/cloud%x_min)
           cloud%n(i,k) = MAX(cloud%n(i,k), cloud%q(i,k)/cloud%x_max)
           ! Hard upper limit for cloud number conc.
-          cloud%n(i,k) = MIN(cloud%n(i,k), 5000d6)
+          cloud%n(i,k) = MIN(cloud%n(i,k), 5000e6_wp)
         END DO
       END IF
 

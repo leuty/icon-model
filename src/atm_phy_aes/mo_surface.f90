@@ -13,7 +13,7 @@ MODULE mo_surface
 
   USE mo_kind,              ONLY: wp, i1
 #ifdef _OPENACC
-  USE mo_exception,         ONLY: warning
+  USE mo_exception,         ONLY: warning, message
 #endif
 #ifdef __NO_JSBACH__
   USE mo_exception,         ONLY: finish
@@ -247,8 +247,7 @@ CONTAINS
     INTEGER     :: is       (      ksfc_type) !< counter for masks
 
     INTEGER  :: jsfc, jk, jkm1, im, k, jl, jls, js
-
-    REAL(wp) :: se_sum(kbdim), qv_sum(kbdim), wgt_sum(kbdim), wgt(kbdim)
+    REAL(wp) :: se_sum(kbdim), qv_sum(kbdim), wgt_sum(kbdim), wgt
     REAL(wp) :: zca(kbdim,ksfc_type), zcs(kbdim,ksfc_type)
     REAL(wp) :: zfrc_oce(kbdim)
 
@@ -280,14 +279,14 @@ CONTAINS
 
     ! Sea ice
     REAL(wp) :: Tfw(kbdim)
-    REAL(wp) :: swflx_ice(kbdim,kice), nonsolar_ice(kbdim,kice), dnonsolardT(kbdim,kice), conc_sum(kbdim)
+    REAL(wp) :: swflx_ice(kbdim,kice), nonsolar_ice(kbdim,kice), dnonsolardT(kbdim,kice), conc_sum
 
     LOGICAL :: mask(kbdim)
 
     REAL(wp) :: delz(kbdim)
 
     !$ACC DATA &
-    !$ACC   CREATE(loidx, is, se_sum, qv_sum, wgt_sum, wgt, zca, zcs) &
+    !$ACC   CREATE(loidx, is, se_sum, qv_sum, wgt_sum, zca, zcs) &
     !$ACC   CREATE(zfrc_oce, zen_h, zfn_h, zen_qv, zfn_qv, zlhflx_lnd) &
     !$ACC   CREATE(zlhflx_lwtr, zlhflx_lice, zshflx_lnd, zshflx_lwtr) &
     !$ACC   CREATE(zshflx_lice, pfrc_test) &
@@ -298,10 +297,10 @@ CONTAINS
     !$ACC   CREATE(ztsfc_lice, rvds, rnds, rpds, rsns, rlns) &
     !$ACC   CREATE(fract_par_diffuse, zalbedo_lwtr, zalbedo_lice) &
     !$ACC   CREATE(zgrnd_hflx, zgrnd_hcap, Tfw, swflx_ice, nonsolar_ice) &
-    !$ACC   CREATE(dnonsolardT, conc_sum, mask, delz, zwindspeed_lnd) &
+    !$ACC   CREATE(dnonsolardT, mask, delz, zwindspeed_lnd) &
     !$ACC   CREATE(zwindspeed10m_lnd) &
     !$ACC   CREATE(rain_tmp, snow_tmp, drag_srf_tmp, pch_tmp, drag_wtr_tmp) &
-    !$ACC   CREATE(drag_ice_tmp)
+    !$ACC   CREATE(drag_ice_tmp) ASYNC(1)
 
     ! Shortcuts to components of aes_vdf_config
     !
@@ -321,7 +320,6 @@ CONTAINS
 
     CALL generate_index_list_batched(pfrc_test(:,:), loidx, jcs, jce, is, &
       &   lacc=.TRUE., opt_acc_async_queue=1)
-    !$ACC UPDATE HOST(is) ASYNC(1)
 
     ! Compute factor for conversion temperature to dry static energy
     !DO jsfc=1,ksfc_type
@@ -342,7 +340,6 @@ CONTAINS
       delz(jl) = (pmair(jl,klev) / pfac_sfc(jl) / tpfac2 * pdtime)
     END DO
     !$ACC END PARALLEL
-    !$ACC WAIT
 
     ! Turbulent transport of moisture:
     ! - finish matrix set up;
@@ -492,12 +489,14 @@ CONTAINS
       END DO
       !$ACC END PARALLEL
 
-      !$ACC WAIT
-
+      IF (.NOT. aes_vdf_config(jg)%lcuda_graph_vdf) THEN
+        ! In case something in JSBACH is not asynchronous
+        !$ACC WAIT
+      END IF
       IF (aes_phy_config(jg)%ljsb ) THEN
       IF (aes_phy_config(jg)%llake) THEN
         CALL jsbach_interface ( jg, nblock, jcs, jce,                                     & ! in
-          & datetime, pdtime, pdtime,                                                        & ! in
+          & datetime, pdtime,                                                             & ! in
           & t_air             = ptemp(jcs:jce),                                           & ! in
           & q_air             = pq(jcs:jce),                                              & ! in
           & rain              = rain_tmp(jcs:jce),                                        & ! in
@@ -619,7 +618,7 @@ CONTAINS
 
       ELSE
         CALL jsbach_interface ( jg, nblock, jcs, jce,                                     & ! in
-          & datetime, pdtime, pdtime,                                                        & ! in
+          & datetime, pdtime,                                                             & ! in
           & t_air             = ptemp(jcs:jce),                                           & ! in
           & q_air             = pq(jcs:jce),                                              & ! in
           & rain              = rain_tmp(jcs:jce),                                        & ! in
@@ -697,6 +696,11 @@ CONTAINS
 
       END IF ! llake
       END IF ! ljsb
+
+      IF (.NOT. aes_vdf_config(jg)%lcuda_graph_vdf) THEN
+        ! In case something in JSBACH is not asynchronous
+        !$ACC WAIT
+      END IF
 
 #ifdef _OPENACC
       !$ACC PARALLEL LOOP DEFAULT(PRESENT) GANG VECTOR ASYNC(1)
@@ -852,12 +856,12 @@ CONTAINS
 
     !$ACC LOOP SEQ
     DO jsfc = 1,ksfc_type
-      !$ACC LOOP GANG(STATIC: 1) VECTOR
+      !$ACC LOOP GANG(STATIC: 1) PRIVATE(wgt) VECTOR
       DO jl = jcs,jce
-             wgt(jl) = pfrc(jl,jsfc)
-         wgt_sum(jl) = wgt_sum(jl) + wgt(jl)
-          se_sum(jl) = se_sum(jl) + bb_btm(jl,jsfc,ih ) * wgt(jl)
-          qv_sum(jl) = qv_sum(jl) + bb_btm(jl,jsfc,iqv) * wgt(jl)
+             wgt     = pfrc(jl,jsfc)
+         wgt_sum(jl) = wgt_sum(jl) + wgt
+          se_sum(jl) = se_sum(jl) + bb_btm(jl,jsfc,ih ) * wgt
+          qv_sum(jl) = qv_sum(jl) + bb_btm(jl,jsfc,iqv) * wgt
       ENDDO
     ENDDO
 
@@ -959,8 +963,7 @@ CONTAINS
 
 
     IF (lsfc_heat_flux) THEN
-       !$ACC WAIT
-       CALL surface_fluxes( jcs, jce, kbdim, ksfc_type,        &! in
+       CALL surface_fluxes( jcs, jce, kbdim, ksfc_type,           &! in
             &               idx_wtr, idx_ice, idx_lnd, ih, iqv,   &! in
             &               pdtime,                               &! in
             &               pfrc, lsm, alake,                     &! in
@@ -1022,7 +1025,6 @@ CONTAINS
           ztsfc_wtr(jl)=ptsfc_tile(jl, idx_wtr)
         ENDDO
         !$ACC END PARALLEL LOOP
-        !$ACC WAIT
         CALL ml_ocean ( kbdim, jcs, jce, pdtime, &
           & pahflw=plhflx_tile(:,idx_wtr),        & ! dependency on jce has to be checked
           & pahfsw=pshflx_tile(:,idx_wtr),        & ! dependency on jce has to be checked
@@ -1060,9 +1062,6 @@ CONTAINS
     !===========================================================================
 
     IF (idx_ice <= ksfc_type .AND. aes_phy_config(jg)%lice) THEN
-
-      ! DA: wait while the other kernels are not async
-      !$ACC WAIT
 
 #ifndef __NO_ICON_OCEAN__
 
@@ -1124,7 +1123,6 @@ CONTAINS
       ENDIF ! aes_phy_config(jg)%use_shflx_adjustment .AND.
             ! .NOT. aes_phy_config(jg)%suppress_shflx_adjustment_over_ice
 
-      !$ACC WAIT
       CALL ice_fast(jcs, jce, kbdim, kice, pdtime, &
         &   Tsurf,              & ! inout
         &   T1,                 & ! inout
@@ -1167,19 +1165,19 @@ CONTAINS
       ENDIF
 
       ! Average the albedo.
-      !$ACC PARALLEL LOOP DEFAULT(PRESENT) GANG VECTOR ASYNC(1)
+      !$ACC PARALLEL LOOP DEFAULT(PRESENT) PRIVATE(conc_sum) GANG VECTOR ASYNC(1)
       DO jl = jcs,jce
-        conc_sum(jl) = SUM(conc(jl,:))
+        conc_sum = SUM(conc(jl,:))
         IF (alake(jl) < EPSILON(1._wp)) THEN
           albvisdir_tile(jl,idx_ice) = 0._wp
           albvisdif_tile(jl,idx_ice) = 0._wp
           albnirdir_tile(jl,idx_ice) = 0._wp
           albnirdif_tile(jl,idx_ice) = 0._wp
-          IF (conc_sum(jl) > 1.e-6_wp) THEN
-            albvisdir_tile(jl,idx_ice) = SUM( conc(jl,:) * albvisdir_ice(jl,:)) / conc_sum(jl)
-            albvisdif_tile(jl,idx_ice) = SUM( conc(jl,:) * albvisdif_ice(jl,:)) / conc_sum(jl)
-            albnirdir_tile(jl,idx_ice) = SUM( conc(jl,:) * albnirdir_ice(jl,:)) / conc_sum(jl)
-            albnirdif_tile(jl,idx_ice) = SUM( conc(jl,:) * albnirdif_ice(jl,:)) / conc_sum(jl)
+          IF (conc_sum > 1.e-6_wp) THEN
+            albvisdir_tile(jl,idx_ice) = SUM( conc(jl,:) * albvisdir_ice(jl,:)) / conc_sum
+            albvisdif_tile(jl,idx_ice) = SUM( conc(jl,:) * albvisdif_ice(jl,:)) / conc_sum
+            albnirdir_tile(jl,idx_ice) = SUM( conc(jl,:) * albnirdir_ice(jl,:)) / conc_sum
+            albnirdif_tile(jl,idx_ice) = SUM( conc(jl,:) * albnirdif_ice(jl,:)) / conc_sum
 
             ! Set the tile temperature, convert back to K
             ptsfc_tile(jl,idx_ice) = Tsurf(jl,1) + tmelt
@@ -1394,7 +1392,6 @@ CONTAINS
     !
     !---------------------------------------------------------------------------
 
-    !$ACC WAIT
     !$ACC END DATA
 
   END SUBROUTINE update_surface

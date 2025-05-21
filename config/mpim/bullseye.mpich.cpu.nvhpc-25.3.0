@@ -16,7 +16,9 @@ unset CDPATH
 script_dir=$(cd "$(dirname "$0")"; pwd)
 icon_dir=$(cd "${script_dir}/../.."; pwd)
 
-sw_root='/sw/bullseye-x64/views/icon/mpich/nvhpc-23.7'
+sw_root='/sw/bullseye-x64/views/icon/mpich/nvhpc-25.3'
+
+gcc_root='/sw/bullseye-x64/compilers/gcc-11.2.0'
 
 if test -r "${sw_root}/lib/librttov_main.a"; then
   RTTOV_LIBS='-lrttov_other -lrttov_emis_atlas -lrttov_brdf_atlas -lrttov_parallel -lrttov_coef_io -lrttov_hdf -lrttov_main'
@@ -39,7 +41,7 @@ fi
 
 ################################################################################
 
-BUILD_ENV="export PATH=\"${sw_root}/bin:\${PATH-}\"; export LD_LIBRARY_PATH=\"${sw_root}/lib:\${LD_LIBRARY_PATH-}\"; export PYTHONPATH=\"${sw_root}/python/pp_ser:\${PYTHONPATH-}\";"
+BUILD_ENV="export PATH=\"${sw_root}/bin:\${PATH-}\"; export LD_LIBRARY_PATH=\"${gcc_root}/lib64:${sw_root}/lib:\${LD_LIBRARY_PATH-}\"; export PYTHONPATH=\"${sw_root}/python/pp_ser:\${PYTHONPATH-}\";"
 
 CC='mpicc'
 CFLAGS='-g -O2'
@@ -50,27 +52,11 @@ CXXFLAGS='-g -O2'
 CPPFLAGS="-I${sw_root}/include -I${sw_root}/include/libxml2"
 
 FC='mpif90'
-FCFLAGS="${RTTOV_FCFLAGS-} -I${sw_root}/include -g -Mrecursive -Mallocatable=03 -Mstack_arrays -Minfo=accel,inline -acc=gpu,verystrict -gpu=cuda11.8"
+FCFLAGS="${RTTOV_FCFLAGS-} -I${sw_root}/include -g -Mrecursive -Mallocatable=03 -Mstack_arrays -Minfo=inline"
 
 ICON_FCFLAGS='-O2'
 
-# Also generate parallel CPU code to make the executable runnable on machines
-# that do not have GPUs (note that in order to run the CPU code, you might need
-# to set the NVCOMPILER_ACC_DEVICE_TYPE environment variable to MULTICORE before
-# running ICON, additionally, it make sense to limit the number of parallel
-# threads per MPI process with the ACC_NUM_CORES environment variable):
-ICON_FCFLAGS+=' -acc=multicore'
-
-# The compiler fails to process the following file with the -acc=multicore
-# flag:
-ICON_WORKAROUND1_FCFLAGS='-O2 -acc=host'
-ICON_WORKAROUND1_PATH='src/lnd_phy_nwp/mo_nwp_sfc_utils.f90'
-
-# CUDA compiler must be from the same prefix as the Fortran compiler:
-CUDACXX="$(cd "$(dirname "$(eval "${BUILD_ENV}" >/dev/null; ${FC} -show | sed 's: .*$::')")/../.."; pwd)/cuda/11.8/bin/nvcc"
-CUDAFLAGS='-g -O3'
-
-LDFLAGS="-c++libs -cuda ${RTTOV_LDFLAGS-} -L${sw_root}/lib"
+LDFLAGS="-L${gcc_root}/lib64 ${RTTOV_LDFLAGS-} -L${sw_root}/lib"
 # The configure scripts of some of the bundled libraries (e.g. SCT) are
 # generated using original (non-patched) Libtool macros, which are not aware of
 # NVidia HPC compilers. As a result, their libtool scripts do not keep the
@@ -80,16 +66,11 @@ LDFLAGS="-c++libs -cuda ${RTTOV_LDFLAGS-} -L${sw_root}/lib"
 # are meant for the linker only via ICON_LDFLAGS so that they are not passed to
 # any libtool script:
 ICON_LDFLAGS='-Wl,--disable-new-dtags -Wl,--as-needed'
-
 LIBS="-lxml2 -lfyaml -lSerialboxFortran -leccodes_f90 -leccodes ${RTTOV_LIBS-} -llapack -lblas -lnetcdff -lnetcdf -lhdf5_hl_fortran -lhdf5_fortran -lhdf5 -lz"
 
 MPI_LAUNCH='mpiexec'
 
-EXTRA_CONFIG_ARGS='--enable-gpu --enable-dim-swap --enable-grib2 --enable-fcgroup-WORKAROUND1'
-
-# The compiler fails one of the YAC configure-time tests, which we suppress and
-# hope for the best:
-EXTRA_CONFIG_ARGS+=' yac_cv_fc_is_contiguous_works=yes'
+EXTRA_CONFIG_ARGS='--enable-loop-exchange --enable-grib2'
 
 ################################################################################
 
@@ -98,16 +79,12 @@ BUILD_ENV="${BUILD_ENV}" \
 CC="${CC}" \
 CFLAGS="${CFLAGS}" \
 CPPFLAGS="${CPPFLAGS}" \
-CUDACXX="${CUDACXX}" \
-CUDAFLAGS="${CUDAFLAGS}" \
 CXX="${CXX}" \
 CXXFLAGS="${CXXFLAGS}" \
 FC="${FC}" \
 FCFLAGS="${FCFLAGS}" \
 ICON_FCFLAGS="${ICON_FCFLAGS}" \
 ICON_LDFLAGS="${ICON_LDFLAGS}" \
-ICON_WORKAROUND1_FCFLAGS="${ICON_WORKAROUND1_FCFLAGS}" \
-ICON_WORKAROUND1_PATH="${ICON_WORKAROUND1_PATH}" \
 LDFLAGS="${LDFLAGS}" \
 LIBS="${LIBS}" \
 MPI_LAUNCH="${MPI_LAUNCH}" \

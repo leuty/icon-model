@@ -24,6 +24,7 @@ MODULE mo_sbm_util
   USE mo_loopindices,        ONLY: get_indices_c
   USE mo_atm_phy_nwp_config, ONLY: atm_phy_nwp_config
   USE mo_2mom_mcrph_driver,  ONLY: two_moment_mcrph_init
+  USE mo_math_constants,     ONLY: pi
 
   IMPLICIT NONE
 
@@ -90,7 +91,7 @@ MODULE mo_sbm_util
  LOGICAL, PARAMETER :: ipolar_hucm = .false.
  INTEGER,PARAMETER :: hail_opt = 1
  REAL, PARAMETER :: dx_bound = 1433
- REAL(KIND=wp), PARAMETER ::  scal = 1.d0
+ REAL(KIND=wp), PARAMETER ::  scal = 1.e0
  INTEGER,PARAMETER :: iceprocs = 0
  INTEGER,PARAMETER :: iceturb = 0, liqturb = 0
  INTEGER,PARAMETER :: icempl=1,icemax=3,ncd=33,nhydr=5,nhydro=7                &
@@ -111,28 +112,28 @@ MODULE mo_sbm_util
  INTEGER :: ncond, ncoll
 
  INTEGER,PARAMETER :: kp_flux_max = 33
- REAL(KIND=wp), PARAMETER :: g_lim = 1.0d-16 ! [g/cm^3]
+ REAL(KIND=wp), PARAMETER :: g_lim = 1.0e-16 ! [g/cm^3]
  INTEGER,PARAMETER :: kr_sgs_max = 20 ! rg(20)=218.88 mkm
 
  INTEGER,PARAMETER :: isign_ko_1 = 0, isign_ko_2 = 0,  isign_3point = 1,  &
                       idebug_print_debugmodule = 1
- REAL(KIND=wp), PARAMETER::coeff_remaping = 0.0066667d0
- REAL(KIND=wp), PARAMETER::ventpl_max = 5.0d0
+ REAL(KIND=wp), PARAMETER::coeff_remaping = 0.0066667e0
+ REAL(KIND=wp), PARAMETER::ventpl_max = 5.0e0
 
- REAL(KIND=wp), PARAMETER::rw_pw_min = 1.0d-10
- REAL(KIND=wp), PARAMETER::ri_pi_min = 1.0d-10
- REAL(KIND=wp), PARAMETER::rw_pw_ri_pi_min = 1.0d-10
- REAL(KIND=wp), PARAMETER::ratio_icew_min = 1.0d-4
+ REAL(KIND=wp), PARAMETER::rw_pw_min = 1.0e-10
+ REAL(KIND=wp), PARAMETER::ri_pi_min = 1.0e-10
+ REAL(KIND=wp), PARAMETER::rw_pw_ri_pi_min = 1.0e-10
+ REAL(KIND=wp), PARAMETER::ratio_icew_min = 1.0e-4
 
  INTEGER,PARAMETER :: use_cloud_base_nuc = 0
- REAL(KIND=wp), PARAMETER::t_nucl_drop_min = -80.0d0
- REAL(KIND=wp), PARAMETER::t_nucl_ice_min = -37.0d0
+ REAL(KIND=wp), PARAMETER::t_nucl_drop_min = -80.0e0
+ REAL(KIND=wp), PARAMETER::t_nucl_ice_min = -37.0e0
 !ice nucleation method
 !using meyers method  : ice_nucl_method == 0
 !using de_mott method : ice_nucl_method == 1
  INTEGER,PARAMETER :: ice_nucl_method = 0
  INTEGER,PARAMETER :: isign_tq_icenucl = 1
- REAL(KIND=wp), PARAMETER::delsupice_max = 59.0d0 !delsupice_max=59%
+ REAL(KIND=wp), PARAMETER::delsupice_max = 59.0e0 !delsupice_max=59%
  REAL(KIND=wp) :: radxx(nkr,nhydr-1),massxx(nkr,nhydr-1),denxx(nkr,nhydr-1) &
                   ,massxxo(nkr,nhydro),denxxo(nkr,nhydro),vri(nkr)           &
                   ,xx(nkr),roccn(nkr),fccnr_mix(nkr),fccnr(nkr)
@@ -237,7 +238,7 @@ MODULE mo_sbm_util
     IF (.not. allocated(tab_snow)) allocate(tab_snow(nkr))
     IF (.not. allocated(bin_log)) allocate(bin_log(nkr))
 
-    dlnr=LOG(2.d0)/(3.d0)
+    dlnr=LOG(2.e0)/(3.e0)
 
     IF (my_process_is_stdio()) THEN
       unitnr=find_next_free_unit(10,999)
@@ -463,7 +464,7 @@ MODULE mo_sbm_util
  ! +-----------------------------------------------------------------------+
 
  ! calculation of the mass(in mg) for categories boundaries :
-    ax=2.d0**(1.0)
+    ax=2.e0**(1.0)
 
     DO i=1,nkr
        xl_mg(i) = xl(i)*1.e3
@@ -477,7 +478,7 @@ MODULE mo_sbm_util
 
     IF (.not. allocated(ima)) allocate(ima(nkr,nkr))
     IF (.not. allocated(chucm)) allocate(chucm(nkr,nkr))
-    chucm  = 0.0d0
+    chucm  = 0.0e0
     ima = 0
     CALL courant_bott_ks(xl, nkr, chucm, ima, scal)
     WRITE(txt, '(a,i2)') 'fast_sbm_init : succesfull reading "courant_bott_ks" '
@@ -488,7 +489,7 @@ MODULE mo_sbm_util
     contccnin=0.
     IF (.not. allocated(dropradii)) allocate(dropradii(nkr))
     DO kr=1,nkr
-       dropradii(kr)=(3.0*xl(kr)/4.0/3.141593/1.0)**deg01
+       dropradii(kr)=(3.0*xl(kr)/4.0/pi/1.0)**deg01
     END DO
 
  ! +-------------------------------------------------------------+
@@ -539,8 +540,8 @@ MODULE mo_sbm_util
     IF (.not. allocated(brkweight)) allocate(brkweight(jbreak))
     pkij = 0.0e0
     qkj = 0.0e0
-    ecoalmassm = 0.0d0
-    brkweight = 0.0d0
+    ecoalmassm = 0.0e0
+    brkweight = 0.0e0
     CALL breakinit_ks(pkij,qkj,ecoalmassm,xl,dropradii,jbreak,nkr,vr1) ! rain spontanous breakup
 
     CALL p_bcast(pkij, p_io, p_comm_work)
@@ -580,7 +581,7 @@ MODULE mo_sbm_util
     REAL(KIND=wp) :: dlnr, scal, p_1, p_2, p_3, ckern_1, ckern_2, &
                                                   ckern_3
     scal = 1.0
-    dlnr = LOG(2.0d0)/(3.0d0*scal)
+    dlnr = LOG(2._wp)/(3._wp*scal)
 
     p_1=p1
     p_2=p2
@@ -637,25 +638,24 @@ MODULE mo_sbm_util
                       arg11,arg12,arg13,arg21,arg22,arg23,      &
                       arg31,arg32,arg33,dnbydlogr_norm1,dnbydlogr_norm2,dnbydlogr_norm3
 
-    REAL(KIND=wp) , PARAMETER :: rccn_max = 0.4d-4         ! [cm]
+    REAL(KIND=wp) , PARAMETER :: rccn_max = 0.4e-4         ! [cm]
     ! ... minimal radii for dry aerosol for the 3 log normal distribution
-    REAL(KIND=wp) , PARAMETER :: rccn_min_3ln = 0.00048d-4 ! [cm]
-    REAL(KIND=wp) , PARAMETER :: pi = 3.14159265d0
+    REAL(KIND=wp) , PARAMETER :: rccn_min_3ln = 0.00048e-4 ! [cm]
     REAL(KIND=wp) , PARAMETER :: roccn0 = 0.1000e01 !---yz2020mar
 
     ! ... calculating the ccn radius grid
-    !ro_solute_nacl = 2.16d0  ! [g/cm3]
+    !ro_solute_nacl = 2.16e0  ! [g/cm3]
     !ro_solute_ammon = 1.79  ! [g/cm3]
 
     ! note: rccn(1) = 1.2 nm
     !       rccn(33) = 2.1 um
-    deg01 = 1.0d0/3.0d0
+    deg01 = 1.0e0/3.0e0
     x0drop = xl(1)
     x0ccn = x0drop/(2.0**(nkr_local))
     DO kr = nkr_local,1,-1
       roccn(kr) = roccn0
-      x0 = x0ccn*2.0d0**(kr)
-      r0 = (3.0d0*x0/4.0d0/3.141593d0/roccn(kr))**deg01
+      x0 = x0ccn*2.0e0**(kr)
+      r0 = (3.0e0*x0/4.0e0/pi/roccn(kr))**deg01
       xccn(kr) = x0
       rccn(kr) = r0
     END DO
@@ -663,15 +663,15 @@ MODULE mo_sbm_util
     IF (itype == 1) THEN ! maritime regime
 
       ccncon1 = 340.000
-      radius_mean1 = 0.00500d-04
+      radius_mean1 = 0.00500e-04
       sig1 = 1.60000
 
       ccncon2 = 60.0000
-      radius_mean2 = 0.03500d-04
+      radius_mean2 = 0.03500e-04
       sig2 = 2.00000
 
       ccncon3 = 3.10000
-      radius_mean3 = 0.31000d-04
+      radius_mean3 = 0.31000e-04
       sig3 = 2.70000
 
     ELSE IF(itype == 2) THEN ! continental regime
@@ -679,24 +679,24 @@ MODULE mo_sbm_util
 !     IF (tune_sbmccn .LT. 0.06 ) THEN ! assuming clean case
 !       ccncon1 = 6000.000 !then, when multiplied by tune_sbmccn=0.059, it will become ~340
 !     END IF
-      radius_mean1 = 0.00800d-04
+      radius_mean1 = 0.00800e-04
       sig1 = 1.60000
 
       ccncon2 = 800.0000
-      radius_mean2 = 0.03400d-04
+      radius_mean2 = 0.03400e-04
       sig2 = 2.10000
 
       ccncon3 = 0.72000
-      radius_mean3 = 0.46000d-04
+      radius_mean3 = 0.46000e-04
       sig3 = 2.20000
     END IF
 
     fccnr_tmp = 0.0
     concccnin = 0.0
 
-    arg11 = ccncon1/(sqrt(2.0d0*pi)*LOG(sig1))
-    arg21 = ccncon2/(sqrt(2.0d0*pi)*LOG(sig2))
-    arg31 = ccncon3/(sqrt(2.0d0*pi)*LOG(sig3))
+    arg11 = ccncon1/(sqrt(2.0e0*pi)*LOG(sig1))
+    arg21 = ccncon2/(sqrt(2.0e0*pi)*LOG(sig2))
+    arg31 = ccncon3/(sqrt(2.0e0*pi)*LOG(sig3))
 
     dnbydlogr_norm1 = 0.0
     dnbydlogr_norm2 = 0.0
@@ -704,13 +704,13 @@ MODULE mo_sbm_util
     DO kr = nkr_local,1,-1
       IF (rccn(kr) > rccn_min_3ln .and. rccn(kr) < rccn_max)THEN
         arg12 = (LOG(rccn(kr)/radius_mean1))**2.0
-        arg13 = 2.0d0*((LOG(sig1))**2.0);
+        arg13 = 2.0e0*((LOG(sig1))**2.0);
         dnbydlogr_norm1 = arg11*exp(-arg12/arg13)*(LOG(2.0)/3.0)
         arg22 = (LOG(rccn(kr)/radius_mean2))**2.0
-        arg23 = 2.0d0*((LOG(sig2))**2.0)
+        arg23 = 2.0e0*((LOG(sig2))**2.0)
         dnbydlogr_norm2 = dnbydlogr_norm1 + arg21*exp(-arg22/arg23)*(LOG(2.0)/3.0)
         arg32 = (LOG(rccn(kr)/radius_mean3))**2.0
-        arg33 = 2.0d0*((LOG(sig3))**2.0)
+        arg33 = 2.0e0*((LOG(sig3))**2.0)
         dnbydlogr_norm3 = dnbydlogr_norm2 + arg31*exp(-arg32/arg33)*(LOG(2.0)/3.0);
         fccnr_tmp(kr) = dnbydlogr_norm3
       END IF
@@ -744,9 +744,9 @@ MODULE mo_sbm_util
     ! logarithmic grid distance(dlnr) :
 
     !xl_mg(0)=xl_mg(1)/2
-    xl_mg(1:nkr) = xl(1:nkr)*1.0d3
+    xl_mg(1:nkr) = xl(1:nkr)*1.0e3
 
-    dlnr=LOG(2.0d0)/(3.0d0*scal)
+    dlnr=LOG(2.0e0)/(3.0e0*scal)
 
     DO i = 1,nkr
       DO j = i,nkr
@@ -756,9 +756,9 @@ MODULE mo_sbm_util
           kk = k
           IF (k == 1) goto 1000
             IF (xl_mg(k) >= x0 .and. xl_mg(k-1) < x0) THEN
-              chucm(i,j) = LOG(x0/xl_mg(k-1))/(3.d0*dlnr)
-              IF (chucm(i,j) > 1.0d0-1.d-08) THEN
-                chucm(i,j) = 0.0d0
+              chucm(i,j) = LOG(x0/xl_mg(k-1))/(3.e0*dlnr)
+              IF (chucm(i,j) > 1.0e0-1.e-08) THEN
+                chucm(i,j) = 0.0e0
                 kk = kk + 1
               END IF
               ima(i,j) = min(nkr-1,kk-1)
@@ -864,7 +864,7 @@ MODULE mo_sbm_util
     END DO
     ! ... correction of coalescence efficiencies for drop collision kernels
     DO j=25,31
-      ecoalmassm(nkr,j)=0.1d-29
+      ecoalmassm(nkr,j)=0.1e-29
     END DO
 
     RETURN
@@ -883,13 +883,12 @@ MODULE mo_sbm_util
     INTEGER,INTENT(IN) :: nkr
     REAL(KIND=wp),INTENT(IN) :: dropradii(nkr), vr1_breakup(nkr), x1, x2
 
-    REAL(KIND=wp) :: rho, pi, akpi, deta, dksi
-    rho=1.0d0             ! [rho]=g/cm^3
-    pi=3.1415927d0
-    akpi=6.0d0/pi
+    REAL(KIND=wp) :: rho, akpi, deta, dksi
+    rho=1.0e0             ! [rho]=g/cm^3
+    akpi=6.0e0/pi
 
-    deta = (akpi*x1/rho)**(1.0d0/3.0d0)
-    dksi = (akpi*x2/rho)**(1.0d0/3.0d0)
+    deta = (akpi*x1/rho)**(1.0e0/3.0e0)
+    dksi = (akpi*x2/rho)**(1.0e0/3.0e0)
 
     ecoalmass = ecoaldiam(deta, dksi, dropradii, vr1_breakup, nkr)
 
@@ -904,37 +903,37 @@ MODULE mo_sbm_util
     REAL(KIND=wp),INTENT(IN) :: dropradii(nkr), vr1_breakup(nkr),deta,dksi
 
     REAL(KIND=wp) :: dgr, dkl, rgr, rkl, q, qmin, qmax, e, x, e1, e2, sin1, cos1
-    REAL(KIND=wp), PARAMETER :: one=1.0d0,eps=1.0d-30,pi=3.1415927d0
+    REAL(KIND=wp), PARAMETER :: one=1.0e0,eps=1.0e-30
 
-    dgr=dmax1(deta,dksi)
-    dkl=dmin1(deta,dksi)
+    dgr=max(deta,dksi)
+    dkl=min(deta,dksi)
 
-    rgr=0.5d0*dgr
-    rkl=0.5d0*dkl
+    rgr=0.5e0*dgr
+    rkl=0.5e0*dkl
 
-    q=0.5d0*(rkl+rgr)
+    q=0.5e0*(rkl+rgr)
 
-    qmin=250.0d-4
-    qmax=500.0d-4
+    qmin=250.0e-4
+    qmax=500.0e-4
 
 
-    IF (dkl<100.0d-4) THEN
-      e=1.0d0
+    IF (dkl<100.0e-4) THEN
+      e=1.0e0
     ELSE IF (q<qmin) THEN
       e = ecoalochs(dgr,dkl,dropradii, vr1_breakup, nkr)
     ELSE IF(q>=qmin.and.q<qmax) THEN
       x=(q-qmin)/(qmax-qmin)
-      sin1=sin(pi/2.0d0*x)
-      cos1=cos(pi/2.0d0*x)
+      sin1=sin(pi/2.0e0*x)
+      cos1=cos(pi/2.0e0*x)
       e1=ecoalochs(dgr, dkl, dropradii, vr1_breakup, nkr)
       e2=ecoallowlist(dgr, dkl, dropradii, vr1_breakup, nkr)
       e=cos1**2*e1+sin1**2*e2
     ELSE IF(q>=qmax) THEN
       e=ecoallowlist(dgr, dkl, dropradii, vr1_breakup, nkr)
     ELSE
-      e=0.999d0
+      e=0.999e0
     END IF
-    ecoaldiam=dmax1(dmin1(one,e),eps)
+    ecoaldiam=max(min(one,e),eps)
 
     RETURN
   END FUNCTION ecoaldiam
@@ -949,26 +948,26 @@ MODULE mo_sbm_util
     REAL(KIND=wp),INTENT(INOUT) :: dgr, dkl
 
     REAL(KIND=wp) :: sigma, aka, akb, dstsc, st, sc, et, cke, qq0, qq1, qq2, ecl, w1, w2, dc
-    REAL(KIND=wp), PARAMETER :: epsi=1.d-20
+    REAL(KIND=wp), PARAMETER :: epsi=1.e-20
 
     ! 1 j = 10^7 g cm^2/s^2
 
-    sigma=72.8d0    ! surface tension,[sigma]=g/s^2 (7.28e-2 n/m)
-    aka=0.778d0      ! empirical constant
-    akb=2.61d-4      ! empirical constant,[b]=2.61e6 m^2/j^2
+    sigma=72.8e0    ! surface tension,[sigma]=g/s^2 (7.28e-2 n/m)
+    aka=0.778e0      ! empirical constant
+    akb=2.61e-4      ! empirical constant,[b]=2.61e6 m^2/j^2
 
     CALL collenergy(dgr,dkl,cke,st,sc,w1,w2,dc,dropradii,vr1_breakup,nkr)
 
     dstsc=st-sc         ! diff. of surf. energies   [dstsc] = g*cm^2/s^2
     et=cke+dstsc        ! coal. energy,             [et]    =     "
 
-    IF (et<50.0d0) THEN    ! et < 5 uj (= 50 g*cm^2/s^2)
-      qq0=1.0d0+(dkl/dgr)
+    IF (et<50.0e0) THEN    ! et < 5 uj (= 50 g*cm^2/s^2)
+      qq0=1.0e0+(dkl/dgr)
       qq1=aka/qq0**2
       qq2=akb*sigma*(et**2)/(sc+epsi)
-      ecl=qq1*dexp(-qq2)
+      ecl=qq1*exp(-qq2)
     ELSE
-      ecl=0.0d0
+      ecl=0.0e0
     END IF
 
     ecoallowlist=ecl
@@ -985,33 +984,32 @@ MODULE mo_sbm_util
     INTEGER,INTENT(IN) :: nkr
     REAL(KIND=wp),INTENT(IN) :: dropradii(nkr), vr1_breakup(nkr), d_l, d_s
 
-    REAL(KIND=wp) :: pi, sigma, r_s, r_l, p, vtl, vts, dv, weber_number, pa1, pa2, pa3, g, x, e
-    REAL(KIND=wp), PARAMETER :: fpmin=1.d-30
+    REAL(KIND=wp) :: sigma, r_s, r_l, p, vtl, vts, dv, weber_number, pa1, pa2, pa3, g, x, e
+    REAL(KIND=wp), PARAMETER :: fpmin=1.e-30
 
-    pi=3.1415927d0
-    sigma=72.8d0       ! surface tension [sigma] = g/s^2 (7.28e-2 n/m)
+    sigma=72.8e0       ! surface tension [sigma] = g/s^2 (7.28e-2 n/m)
                     ! alles in cgs (1 j = 10^7 g cm^2/s^2)
-    r_s=0.5d0*d_s
-    r_l=0.5d0*d_l
+    r_s=0.5e0*d_s
+    r_l=0.5e0*d_l
     p=r_s/r_l
 
     vtl=vtbeard(d_l,dropradii, vr1_breakup,nkr)
     vts=vtbeard(d_s,dropradii, vr1_breakup,nkr)
 
-    dv=dabs(vtl-vts)
+    dv=abs(vtl-vts)
 
     IF (dv<fpmin) dv=fpmin
 
     weber_number=r_s*dv**2/sigma
 
-    pa1=1.0d0+p
-    pa2=1.0d0+p**2
-    pa3=1.0d0+p**3
+    pa1=1.0e0+p
+    pa2=1.0e0+p**2
+    pa3=1.0e0+p**3
 
-    g=2**(3.0d0/2.0d0)/(6.0d0*pi)*p**4*pa1/(pa2*pa3)
-    x=weber_number**(0.5d0)*g
+    g=2**(3.0e0/2.0e0)/(6.0e0*pi)*p**4*pa1/(pa2*pa3)
+    x=weber_number**(0.5e0)*g
 
-    e=0.767d0-10.14d0*x
+    e=0.767e0-10.14e0*x
 
     ecoalochs=e
 
@@ -1028,18 +1026,17 @@ MODULE mo_sbm_util
     REAL(KIND=wp),INTENT(INOUT) :: dgr, dkl, cke, st, sc, w1, w2, dc
 
     REAL(KIND=wp) :: pi, rho, sigma, ak10, dgka2, dgka3, v1, v2, dv, dgkb3
-    REAL(KIND=wp), PARAMETER :: epsf = 1.d-30, fpmin = 1.d-30
+    REAL(KIND=wp), PARAMETER :: epsf = 1.e-30, fpmin = 1.e-30
 
     !external vtbeard
 
-    pi=3.1415927d0
-    rho=1.0d0            ! water density,[rho]=g/cm^3
-    sigma=72.8d0         ! surf. tension,(h2o,20C)=7.28d-2 n/m
+    rho=1.0e0            ! water density,[rho]=g/cm^3
+    sigma=72.8e0         ! surf. tension,(h2o,20C)=7.28e-2 n/m
                          ! [sigma]=g/s^2
-    ak10=rho*pi/12.0d0
+    ak10=rho*pi/12.0e0
 
-    dgr=dmax1(dgr,epsf)
-    dkl=dmax1(dkl,epsf)
+    dgr=max(dgr,epsf)
+    dkl=max(dkl,epsf)
 
     dgka2=(dgr**2)+(dkl**2)
 
@@ -1055,16 +1052,16 @@ MODULE mo_sbm_util
       dgkb3=(dgr**3)*(dkl**3)
       cke=ak10*dv*dgkb3/dgka3         ! collision energy [cke]=g*cm^2/s^2
     ELSE
-      cke = 0.0d0
+      cke = 0.0e0
     END IF
 
     st=pi*sigma*dgka2                 ! surf.energy (parent drop)
-    sc=pi*sigma*dgka3**(2.0d0/3.0d0)  ! surf.energy (coal.system)
+    sc=pi*sigma*dgka3**(2.0e0/3.0e0)  ! surf.energy (coal.system)
 
     w1=cke/(sc+epsf)                  ! weber number 1
     w2=cke/(st+epsf)                  ! weber number 2
 
-    dc=dgka3**(1.0d0/3.0d0)           ! diam. of coal. system
+    dc=dgka3**(1.0e0/3.0e0)           ! diam. of coal. system
 
     RETURN
   END SUBROUTINE collenergy
@@ -1082,7 +1079,7 @@ MODULE mo_sbm_util
     INTEGER :: kr
     REAL(KIND=wp) :: aa
 
-    aa   = diam/2.0d0           ! radius in cm
+    aa   = diam/2.0e0           ! radius in cm
 
     IF (aa <= dropradii(1)) vtbeard=vr1_breakup(1)
     IF (aa > dropradii(nkr)) vtbeard=vr1_breakup(nkr)

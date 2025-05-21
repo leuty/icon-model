@@ -20,7 +20,6 @@ MODULE mo_turb_vdiff_diag
   USE mo_kind,              ONLY: wp, i1
   USE mo_convect_tables,    ONLY: compute_qsat, cthomi, csecfrl
 
-  ! DA: is it fine??
 #ifndef _OPENACC
   USE mo_convect_tables,    ONLY: prepare_ua_index_spline, lookup_ua_spline
 #else
@@ -193,7 +192,7 @@ CONTAINS
     !$ACC   CREATE(zlh, ztheta, zthetav, zthetal, zqsat, km, kh, zlhmid, zdgmid) &
     !$ACC   CREATE(zccovermid, zqxmid, zqmid, zqsatmid, zthetamid, zthetavmid, ztmid, ztvmid) &
     !$ACC   CREATE(ihpblc, ihpbld, idx, za, zhdyn, zpapm1i, zua) &
-    !$ACC   CREATE(idx_batch, za_batch, zua_batch)
+    !$ACC   CREATE(idx_batch, za_batch, zua_batch) ASYNC(1)
 
     f_tau0   = vdiff_config%f_tau0
     f_theta0 = vdiff_config%f_theta0
@@ -559,7 +558,6 @@ CONTAINS
 361   END DO
 372 END DO
     !$ACC END PARALLEL
-    !$ACC WAIT
     !$ACC END DATA
   END SUBROUTINE atm_exchange_coeff
   !-------------
@@ -746,7 +744,7 @@ CONTAINS
 
     !$ACC DATA &
     !$ACC   CREATE(pchn_tile, pcdn_tile, pcfnc_tile, zdu2, zcfnch, zustar, zqts, zthetavmid) &
-    !$ACC   CREATE(zdthetal, lmix, e_kin, e_pot, f_tau, f_theta, z0h, pfrc_test, loidx, is)
+    !$ACC   CREATE(zdthetal, lmix, e_kin, e_pot, f_tau, f_theta, z0h, pfrc_test, loidx, is) ASYNC(1)
     !-------------------
     ! Some constants
     !-------------------
@@ -813,9 +811,6 @@ CONTAINS
 
     CALL generate_index_list_batched(pfrc_test(:,:), loidx, jcs, kproma, is, &
       &   lacc=.TRUE., opt_acc_async_queue=1)
-    !$ACC UPDATE HOST(is) ASYNC(1)
-    !$ACC WAIT(1)
-
     DO jsfc = 1,ksfc_type
 
       CALL compute_qsat( kproma, is(jsfc), loidx(:,jsfc), ppsfc, ptsfc(:,jsfc), pqsat_tile(:,jsfc), lacc=.TRUE., error_reporter=lookup_error_)
@@ -1284,7 +1279,6 @@ CONTAINS
       END DO
     END IF
 
-    !$ACC WAIT
     !$ACC END DATA
   CONTAINS
 

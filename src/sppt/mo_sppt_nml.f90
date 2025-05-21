@@ -79,7 +79,7 @@ MODULE mo_sppt_nml
 
     lsppt = .FALSE.     ! if TRUE SPPT is switched on
 
-    hinc_rn = 21600_wp    ! time increment for drawing a new field of random numbers        (seconds)
+    hinc_rn = 21600._wp    ! time increment for drawing a new field of random numbers        (seconds)
 
     ! converted from deg to rad when copied to the config state (see below)
     dlat_rn = 1e-1_wp    ! random number coarse grid point distance in meridional direction (deg)

@@ -131,7 +131,8 @@ ghg_scenario=false           # greenhouse gases file for scenario runs
 forcing_steps_per_day="1"     # The number of time steps included by the used forcing file(s) per day
 forcing_synchron_factor="48"  # Factor defines how many time steps the JS4 driver performs for each atmospheric forcing time step that is read in
 
-
+num_io_procs=${num_io_procs:-0}
+proc0_shift=${proc0_shift:-0}
 #--------------------------------------------------------------------------------------------------
 # (3) Define the model configuration
 #
@@ -256,7 +257,8 @@ cat > $jsbach_namelist << EOF
  nproma           = ${nproma}
  nblocks_c        = ${nblocks_c}
  nproma_sub       = ${nproma_sub}
- num_io_procs     = 0
+ num_io_procs     = ${num_io_procs}
+ proc0_shift      = ${proc0_shift}
 /
 
 &run_nml

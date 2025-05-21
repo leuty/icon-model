@@ -4,9 +4,19 @@
 
 AES Physics:
 
+- Implemented a new convective boundary layer (CBL) test case for TMX validation
+- Bug fix for reading ozone input data (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/785)
+- Optimization of the read-in of ozone data
+- Update atm_qubicc_test and its checksuite
+- Re-introduction of the optimized simple plumes (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/751)
+- Fixes for:
+  - GPU port of solar_parameters() (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/776)
+
 NWP Physics:
 
 - enable reading and interpolating ozone and Kinne aerosol data using YAC (icon-nwp!1716)
+- Fixes:
+  - Inconsistent initialization time step length in vdiff interface and jsbach
 
 ### ICON-Ocean
 
@@ -15,6 +25,21 @@ NWP Physics:
 ### Soil and Surface
 
 Climate: ICON-Land
+
+- QUINCY development
+  - Implemented reading of land-use data for QUINCY agriculture and sylviculture processes
+  - Improved the agriculture process of QUINCY (ready to use)
+  - Improved vegetation nitrogen uptake from soil
+  - Minor modifications for using JSBACH physics processes with QUINCY
+  - Replace memory variables of QUINCY physics process by variables from JSBACH physics processes
+- Updated inline documentation of hydrology process
+- Fixes:
+  - Verification check for some JSBACH lctlib parameters when compiling with single precision
+  - Account for proc0_shift from the parallel namelist when running ICON-Land standalone
+- Code cleaning:
+  - Only use one variable representing time step length
+- Updated JSBACH usecase with TMX and PFTs
+- Added support for CUDA graphs with AES physics (VDIFF and TMX)
 
 NWP: TERRA and other surface issues
 
@@ -26,6 +51,8 @@ NWP: TERRA and other surface issues
 
 ### Coupling
 
+- Optimization of synchronization between atmosphere and ocean in coupled configurations (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/799)
+
 ### Externals
 
 - Switch to the latest version of ICON-TIXI
@@ -34,11 +61,25 @@ NWP: TERRA and other surface issues
 
 ### Infrastructure
 
+- Collection of additional changes required for single-precision (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/771)
+
 #### Scripting and testing
+
+- Added AMIP test for TMX with PFTs in ICON-Land
+- Added 158, 49, 5 and 2.1 km AMIP template with AES physics for mkexp (cpu + gpu, distributed IO)
+- Added 49km AMIP BuildBot test with AES physics on one Levante GPU
+- Support more ocean setups and output options in omip run script template (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/644)
 
 #### Building
 
+- Find and check MPI_LAUNCH command in the configure script
+- Detect GPU architecture in the configure script
+- Configure CUDA/HIP C++ compiler and flags
+- Pass ICON_LDFLAGS to the Fortran compiler only
+
 #### Miscellaneous
+
+- Some OpenACC optimizations and fixes
 
 
 # Release notes for icon-2025.04

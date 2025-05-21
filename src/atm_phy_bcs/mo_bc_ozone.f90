@@ -164,8 +164,9 @@ CONTAINS
           ! For other irad_o3 cases no new data must be read.
           ! Nothing needs to be done.
           !
-          WRITE(message_text,'(2a)') 'Copy ozone for months 12:13 to months 0:1'
+          WRITE(message_text,'(a)') 'Copy ozone for months 12:13 to months 0:1'
           CALL message('read_bc_ozone', message_text)
+
           ext_ozone(jg)% o3_plev(:,:,:,0:1) = ext_ozone(jg)% o3_plev(:,:,:,12:13)
 
           WRITE(cyear,'(i4)') year
@@ -228,12 +229,24 @@ CONTAINS
         CASE (6) ! Ozone has a climatological annual cycle defined by monthly data in an annual file
           !
           IF ( nyears > 1 ) THEN
-            imonth_beg = 0
-            imonth_end = 13
+            IF ( year < time_config%tc_stopdate%date%year ) THEN
+              imonth_end = 13
+            ELSE
+              imonth_end = tiw_end%month2_index
+              IF ( lend_of_year ) imonth_end = 13
+            ENDIF
+            IF ( year > time_config%tc_startdate%date%year ) THEN
+              imonth_beg = 0
+            ELSE
+              imonth_beg = tiw_beg%month1_index
+            ENDIF
           ELSE
             imonth_beg = tiw_beg%month1_index
             imonth_end = tiw_end%month2_index
-            IF ( lend_of_year ) imonth_end = 13
+            ! special case for runs starting on 1 Jan that run for less than a full year
+            IF ( imonth_beg == 12 .AND. time_config%tc_startdate%date%month == 1 ) imonth_beg = 0
+            ! special case for runs ending in 2nd half of Dec that run for less than a full year
+            IF ( lend_of_year .OR. ( imonth_end == 1 .AND. time_config%tc_stopdate%date%month == 12 ) ) imonth_end = 13
           ENDIF
           !
           kmonth_beg=MAX( 1,imonth_beg)
@@ -257,8 +270,7 @@ CONTAINS
             &               start_timestep=kmonth_beg,end_timestep=kmonth_end)
           !
           ! Now the spatial dimensions are known --> allocate memory for months 0:13
-          WRITE(message_text,'(a,i2.2,a1,i2.2)') 'Alloc clim. annual cycle of ozone for months ', &
-            &                                        imonth_beg, ':', imonth_end
+          WRITE(message_text,'(a)') 'Allocating clim. annual cycle of ozone for months 0 to 13'
           CALL message('read_bc_ozone', message_text)
           ALLOCATE(ext_ozone(jg)% o3_plev(SIZE(zo3_plev,1), &
             &                             SIZE(zo3_plev,2), &
@@ -322,18 +334,27 @@ CONTAINS
           !
           ext_ozone(jg)% o3_plev(:,:,:,1) = vmr2mmr_o3*zo3_plev(:,:,:,1)
           !
-          !
-
         CASE (5) ! Ozone is transient and defined by monthly data in annual files
-
           !
           IF ( nyears > 1 ) THEN
-            imonth_beg = 0
-            imonth_end = 13
+            IF ( year < time_config%tc_stopdate%date%year ) THEN
+              imonth_end = 13
+            ELSE
+              imonth_end = tiw_end%month2_index
+              IF ( lend_of_year ) imonth_end = 13
+            ENDIF
+            IF ( year > time_config%tc_startdate%date%year ) THEN
+              imonth_beg = 0
+            ELSE
+              imonth_beg = tiw_beg%month1_index
+            ENDIF
           ELSE
             imonth_beg = tiw_beg%month1_index
             imonth_end = tiw_end%month2_index
-            IF ( lend_of_year ) imonth_end = 13
+            ! special case for runs starting on 1 Jan that run for less than a full year
+            IF ( imonth_beg == 12 .AND. time_config%tc_startdate%date%month == 1 ) imonth_beg = 0
+            ! special case for runs ending in 2nd half of Dec that run for less than a full year
+            IF ( lend_of_year .OR. ( imonth_end == 1 .AND. time_config%tc_stopdate%date%month == 12 ) ) imonth_end = 13
           ENDIF
           !
           kmonth_beg=MAX( 1,imonth_beg)
@@ -360,17 +381,23 @@ CONTAINS
               &               start_timestep=12,end_timestep=12)
             CALL closeFile(stream_id)
             !
-            ! Now the spatial dimensions are known -->
-            !       allocate memory for months imonth_beg to imonth_end
-            ! o3_plev has to be allocated from 0:13, because
-            ! time dimensions are hardcoded in o3_timeint as well
-            ALLOCATE(ext_ozone(jg)% o3_plev(SIZE(zo3_plev,1), &
-                                            SIZE(zo3_plev,2), &
-                                            SIZE(zo3_plev,3), 0:13))
-            ext_ozone(jg)% o3_plev = 0.0_wp
-            !$ACC ENTER DATA PCREATE(ext_ozone(jg)%o3_plev)
+            IF ( .NOT. ALLOCATED(ext_ozone(jg)% o3_plev) ) THEN
+              ! o3_plev has to be allocated from 0:13, because
+              ! time dimensions are hardcoded in o3_timeint as well
+              WRITE(message_text,'(a)') 'Allocating transient ozone for months 0 to 13'
+              CALL message('read_bc_ozone', message_text)
+              !
+              ALLOCATE(ext_ozone(jg)% o3_plev(SIZE(zo3_plev,1), &
+                                              SIZE(zo3_plev,2), &
+                                              SIZE(zo3_plev,3), 0:13))
+              ext_ozone(jg)% o3_plev = 0.0_wp
+              !
+              !$ACC ENTER DATA PCREATE(ext_ozone(jg)%o3_plev)
+              !
+            ENDIF
             !
             ext_ozone(jg)% o3_plev(:,:,:,0) = vmr2mmr_o3*zo3_plev(:,:,:,1)
+            !
           ENDIF
           !
           ! 2. Read January-December of this year
@@ -391,16 +418,19 @@ CONTAINS
             &               start_timestep=kmonth_beg,end_timestep=kmonth_end)
           CALL closeFile(stream_id)
           !
-          ! Now the spatial dimensions are known -->
-          !       allocate memory for months imonth_beg to imonth_end
-          IF ( imonth_beg > 0 ) THEN
+          IF ( .NOT. ALLOCATED(ext_ozone(jg)% o3_plev) ) THEN
             ! o3_plev has to be allocated from 0:13, because
             ! time dimensions are hardcoded in o3_timeint as well
+            WRITE(message_text,'(a)') 'Allocating transient ozone for months 0 to 13'
+            CALL message('read_bc_ozone', message_text)
+            !
             ALLOCATE(ext_ozone(jg)% o3_plev(SIZE(zo3_plev,1), &
                                             SIZE(zo3_plev,2), &
                                             SIZE(zo3_plev,3), 0:13))
             ext_ozone(jg)% o3_plev = 0.0_wp
+            !
             !$ACC ENTER DATA PCREATE(ext_ozone(jg)%o3_plev)
+            !
           ENDIF
           !
           ext_ozone(jg)% o3_plev(:,:,:,kmonth_beg:kmonth_end) = vmr2mmr_o3*zo3_plev(:,:,:,1:nmonths)
@@ -423,17 +453,19 @@ CONTAINS
                &              start_timestep=1,end_timestep=1)
             CALL closeFile(stream_id)
             !
-            ! Safety dance, as this should not happen, but who knows ...
-            ! Now the spatial dimensions are known -->
-            !       allocate memory for month 13 only
-            IF ( imonth_beg == 13 ) THEN
+            IF ( .NOT. ALLOCATED(ext_ozone(jg)% o3_plev) ) THEN
               ! o3_plev has to be allocated from 0:13, because
               ! time dimensions are hardcoded in o3_timeint as well
+              WRITE(message_text,'(a)') 'Allocating transient ozone for months 0 to 13'
+              CALL message('read_bc_ozone', message_text)
+              !
               ALLOCATE(ext_ozone(jg)% o3_plev(SIZE(zo3_plev,1), &
                                               SIZE(zo3_plev,2), &
                                               SIZE(zo3_plev,3), 0:13))
               ext_ozone(jg)% o3_plev = 0.0_wp
+              !
               !$ACC ENTER DATA PCREATE(ext_ozone(jg)%o3_plev)
+              !
             ENDIF
             !
             ext_ozone(jg)% o3_plev(:,:,:,13) = vmr2mmr_o3*zo3_plev(:,:,:,1)

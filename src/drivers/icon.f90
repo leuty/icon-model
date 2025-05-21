@@ -144,6 +144,11 @@ PROGRAM icon
 
   !-------------------------------------------------------------------
   ! Initialize MPI, this should always be the first call
+  ! unless OpenACC is in use: then we should initialize the device before
+  ! Cray compiler doesn't know ACC INIT
+#ifdef __NVCOMPILER
+  !$ACC INIT
+#endif
   CALL start_mpi('ICON')
 
   !-------------------------------------------------------------------

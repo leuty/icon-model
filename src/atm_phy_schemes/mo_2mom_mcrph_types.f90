@@ -16,7 +16,7 @@
 
 MODULE mo_2mom_mcrph_types
 
-  USE mo_kind,               ONLY: sp, wp
+  USE mo_kind,               ONLY: wp
   USE mo_exception,          ONLY: finish, message, txt => message_text
 
   IMPLICIT NONE

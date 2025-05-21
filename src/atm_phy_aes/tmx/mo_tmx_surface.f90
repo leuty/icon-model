@@ -19,7 +19,7 @@ MODULE mo_tmx_surface_interface
 
   USE mo_kind, ONLY: wp, vp
   USE mo_exception, ONLY: finish
-  USE mo_fortran_tools, ONLY: init
+  USE mo_fortran_tools, ONLY: init, set_acc_async_queue
   USE mtime, ONLY: datetime
   USE mo_physical_constants, ONLY: grav, rgrav, tmelt, Tf, stbo, rhos, alf, cvv, clw, ci, vtmpc1, rd
   USE mo_aes_thermo, ONLY: &
@@ -131,7 +131,7 @@ CONTAINS
 
 #ifndef __NO_JSBACH__
 
-    !$ACC DATA CREATE(dz_srf, rain_tmp, snow_tmp, rvds, rnds, rpds, fract_par_diffuse, t_acoef, t_bcoef, q_acoef, q_bcoef)
+    !$ACC DATA CREATE(dz_srf, rain_tmp, snow_tmp, rvds, rnds, rpds, fract_par_diffuse, t_acoef, t_bcoef, q_acoef, q_bcoef) ASYNC(1)
 
 !$OMP PARALLEL DO PRIVATE(jb, jcs, jce, jc, dz_srf, rain_tmp, snow_tmp, rvds, rnds, rpds, fract_par_diffuse, &
 !$OMP                     t_acoef, t_bcoef, q_acoef, q_bcoef) ICON_OMP_DEFAULT_SCHEDULE
@@ -140,7 +140,7 @@ CONTAINS
       jcs = domain%i_startidx_c(jb)
       jce = domain%i_endidx_c(jb)
 
-      !$ACC PARALLEL LOOP DEFAULT(PRESENT) GANG(STATIC: 1) VECTOR ASYNC(1)
+      !$ACC PARALLEL LOOP DEFAULT(PRESENT) GANG VECTOR ASYNC(1)
       DO jc = jcs, jce
         dz_srf(jc) = dz(jc,jb) * 0.5_wp
         rain_tmp(jc) = rsfl(jc,jb)
@@ -160,11 +160,9 @@ CONTAINS
       END DO
       !$ACC END PARALLEL LOOP
 
-      !$ACC WAIT(1)
-
       IF (PRESENT(km)) THEN
         CALL jsbach_interface ( jg, jb, jcs, jce,                                         & ! in
-          & datetime_old, dtime, dtime,                                                   & ! in
+          & datetime_old, dtime,                                                          & ! in
           & t_air             = ptemp(jcs:jce,jb),                                        & ! in
           & q_air             = pq(jcs:jce,jb),                                           & ! in
           & press_air         = pres_air(jcs:jce,jb),                                     & ! in
@@ -216,7 +214,7 @@ CONTAINS
         )
       ELSE
         CALL jsbach_interface ( jg, jb, jcs, jce,                                         & ! in
-          & datetime_old, dtime, dtime,                                                   & ! in
+          & datetime_old, dtime,                                                          & ! in
           & t_air             = ptemp(jcs:jce,jb),                                        & ! in
           & q_air             = pq(jcs:jce,jb),                                           & ! in
           & press_air         = pres_air(jcs:jce,jb),                                     & ! in
@@ -246,8 +244,6 @@ CONTAINS
     END DO
 !$OMP END PARALLEL DO
 
-    !$ACC WAIT(1)
-
     !$ACC END DATA
 
 #else
@@ -265,7 +261,8 @@ CONTAINS
     & snow_thickness, &
     ! out &
     & new_tsfc, q_top, q_bot, &
-    & albvisdir, albvisdif, albnirdir, albnirdif)
+    & albvisdir, albvisdif, albnirdir, albnirdif, &
+    & opt_acc_async_queue )
 
 #ifndef __NO_ICON_OCEAN__
   USE mo_ice_interface, ONLY: ice_fast
@@ -295,6 +292,9 @@ CONTAINS
       & albnirdir, &
       & albnirdif
 
+    INTEGER, INTENT(IN), OPTIONAL :: opt_acc_async_queue
+    INTEGER :: acc_async_queue
+
     INTEGER :: jb, jc, jcs, jce, kice
     REAL(wp), DIMENSION(domain%nproma) :: &
       & Tfw, nonsolar_flux, dnonsolar_flux_dt, &
@@ -302,18 +302,20 @@ CONTAINS
 
     CHARACTER(len=*), PARAMETER :: routine = modname//':update_sea_ice'
 
-    !$ACC DATA CREATE(Tfw, nonsolar_flux, dnonsolar_flux_dt, T1, T2)
+    CALL set_acc_async_queue(acc_async_queue, opt_acc_async_queue)
+
+    !$ACC DATA CREATE(Tfw, nonsolar_flux, dnonsolar_flux_dt, T1, T2) ASYNC(acc_async_queue)
 
 !$OMP PARALLEL
-    CALL init(new_tsfc, lacc=.TRUE.)
-    CALL init(q_top, lacc=.TRUE.)
-    CALL init(q_bot, lacc=.TRUE.)
-    CALL init(albvisdir, lacc=.TRUE.)
-    CALL init(albvisdif, lacc=.TRUE.)
-    CALL init(albnirdir, lacc=.TRUE.)
-    CALL init(albnirdif, lacc=.TRUE.)
-    CALL init(T1, lacc=.TRUE.)
-    CALL init(T2, lacc=.TRUE.)
+    CALL init(new_tsfc,  lacc=.TRUE., opt_acc_async_queue=acc_async_queue)
+    CALL init(q_top,     lacc=.TRUE., opt_acc_async_queue=acc_async_queue)
+    CALL init(q_bot,     lacc=.TRUE., opt_acc_async_queue=acc_async_queue)
+    CALL init(albvisdir, lacc=.TRUE., opt_acc_async_queue=acc_async_queue)
+    CALL init(albvisdif, lacc=.TRUE., opt_acc_async_queue=acc_async_queue)
+    CALL init(albnirdir, lacc=.TRUE., opt_acc_async_queue=acc_async_queue)
+    CALL init(albnirdif, lacc=.TRUE., opt_acc_async_queue=acc_async_queue)
+    CALL init(T1,        lacc=.TRUE., opt_acc_async_queue=acc_async_queue)
+    CALL init(T2,        lacc=.TRUE., opt_acc_async_queue=acc_async_queue)
 !$OMP END PARALLEL
 
 #ifndef __NO_ICON_OCEAN__
@@ -324,7 +326,7 @@ CONTAINS
     DO jb = domain%i_startblk_c,domain%i_endblk_c
       jcs = domain%i_startidx_c(jb)
       jce = domain%i_endidx_c(jb)
-      !$ACC PARALLEL LOOP DEFAULT(PRESENT) GANG(STATIC: 1) VECTOR ASYNC(1)
+      !$ACC PARALLEL LOOP DEFAULT(PRESENT) GANG VECTOR ASYNC(acc_async_queue)
       DO jc = jcs, jce
         Tfw(jc) = Tf
         nonsolar_flux(jc) = lwflx_net(jc,jb) + lhflx(jc,jb) + shflx(jc,jb)
@@ -350,13 +352,14 @@ CONTAINS
         &   albvisdif(:,jb),       & ! out
         &   albnirdir(:,jb),       & ! out
         &   albnirdif(:,jb),       & ! out
-        &   lacc=.TRUE.)             ! in
+        &   lacc=.TRUE.,           & ! in
+        &   opt_acc_async_queue=acc_async_queue) ! in
 
       ! Update the thickness of snow on ice in atmosphere only simulation.
       ! In coupled experiments this is done by the ocean model in either
       ! ice_growth_zerolayer or ice_growth_winton.
       IF ( .NOT. is_coupled_to_ocean() ) THEN
-        !$ACC PARALLEL LOOP DEFAULT(PRESENT) GANG(STATIC: 1) VECTOR ASYNC(1)
+        !$ACC PARALLEL LOOP DEFAULT(PRESENT) GANG VECTOR ASYNC(acc_async_queue)
         DO jc = jcs, jce
           ! Snowfall on ice - no ice => no snow
           IF (ice_thickness(jc,jb) > 0._wp) THEN
@@ -373,7 +376,7 @@ CONTAINS
         !$ACC END PARALLEL LOOP
       ENDIF
 
-      !$ACC PARALLEL LOOP DEFAULT(PRESENT) GANG(STATIC: 1) VECTOR ASYNC(1)
+      !$ACC PARALLEL LOOP DEFAULT(PRESENT) GANG VECTOR ASYNC(acc_async_queue)
       DO jc=jcs,jce
         new_tsfc(jc,jb) = new_tsfc(jc,jb) + tmelt
       END DO
@@ -382,8 +385,6 @@ CONTAINS
     END DO
 
 !$OMP END PARALLEL DO
-
-    !$ACC WAIT(1)
 
 #else
     CALL finish(routine, "The ice process requires the ICON_OCEAN component")
@@ -399,7 +400,8 @@ CONTAINS
     & emissivity,                &
     & rlds,                      &
     & tsfc,                      &
-    & lwfl_net                   &
+    & lwfl_net,                  &
+    & opt_acc_async_queue        &
     & )
 
     USE mo_physical_constants,ONLY: stbo
@@ -420,18 +422,25 @@ CONTAINS
     ! Output variables
     !
     REAL(wp), DIMENSION(:,:), INTENT(out) :: lwfl_net
+    !
+    ! Optional ACC queue
+    !
+    INTEGER, INTENT(IN), OPTIONAL :: opt_acc_async_queue
+    INTEGER :: acc_async_queue
 
     INTEGER  :: jb, jl, jls, js
 
     CHARACTER(len=*), PARAMETER :: routine = modname//':compute_lw_rad_net'
 
+    CALL set_acc_async_queue(acc_async_queue, opt_acc_async_queue)
+
 !$OMP PARALLEL
-    CALL init(lwfl_net, lacc=.TRUE.)
+    CALL init(lwfl_net, lacc=.TRUE., opt_acc_async_queue=acc_async_queue)
 !$OMP END PARALLEL
 
 !$OMP PARALLEL DO PRIVATE(jb, jls, js) ICON_OMP_DEFAULT_SCHEDULE
     DO jb = domain%i_startblk_c,domain%i_endblk_c
-      !$ACC PARALLEL LOOP DEFAULT(PRESENT) GANG(STATIC: 1) VECTOR ASYNC(1) PRIVATE(js)
+      !$ACC PARALLEL LOOP DEFAULT(PRESENT) GANG VECTOR ASYNC(acc_async_queue) PRIVATE(js)
       DO jls = 1, nvalid(jb)
         js = indices(jls,jb)
         lwfl_net(js,jb) = emissivity(js,jb) * (rlds(js,jb) - stbo * tsfc(js,jb)**4._wp)
@@ -455,7 +464,8 @@ CONTAINS
     & alb_vis_dif,               &
     & alb_nir_dir,               &
     & alb_nir_dif,               &
-    & swfl_net                   &
+    & swfl_net,                  &
+    & opt_acc_async_queue        &
     & )
 
     USE mo_physical_constants,ONLY: stbo
@@ -481,18 +491,25 @@ CONTAINS
     ! Output variables
     !
     REAL(wp), DIMENSION(:,:), INTENT(out) :: swfl_net
+    !
+    ! Optional ACC queue
+    !
+    INTEGER, INTENT(IN), OPTIONAL :: opt_acc_async_queue
+    INTEGER :: acc_async_queue
 
     INTEGER  :: jb, jl, jls, js
 
     CHARACTER(len=*), PARAMETER :: routine = modname//':compute_sw_rad_net'
 
+    CALL set_acc_async_queue(acc_async_queue, opt_acc_async_queue)
+
 !$OMP PARALLEL
-    CALL init(swfl_net, lacc=.TRUE.)
+    CALL init(swfl_net, lacc=.TRUE., opt_acc_async_queue=acc_async_queue)
 !$OMP END PARALLEL
 
 !$OMP PARALLEL DO PRIVATE(jb, jls, js) ICON_OMP_DEFAULT_SCHEDULE
     DO jb = domain%i_startblk_c,domain%i_endblk_c
-      !$ACC PARALLEL LOOP DEFAULT(PRESENT) GANG(STATIC: 1) VECTOR ASYNC(1) PRIVATE(js)
+      !$ACC PARALLEL LOOP DEFAULT(PRESENT) GANG VECTOR ASYNC(acc_async_queue) PRIVATE(js)
       DO jls = 1, nvalid(jb)
         js = indices(jls,jb)
         swfl_net(js,jb) = &
@@ -515,7 +532,8 @@ CONTAINS
     & isfc,                    &
     & nvalid, indices,         &
     & rough_min, rough_oce, rough_ice, wind, km,  &
-    & rough_h, rough_m         &
+    & rough_h, rough_m,        &
+    & opt_acc_async_queue      &
     & )
 
     USE mo_turb_vdiff_params, ONLY: cchar
@@ -538,6 +556,11 @@ CONTAINS
     ! Output variables
     !
     REAL(wp), DIMENSION(:,:), INTENT(out) :: rough_h, rough_m
+    !
+    ! Optional ACC queue
+    !
+    INTEGER, INTENT(IN), OPTIONAL :: opt_acc_async_queue
+    INTEGER :: acc_async_queue
 
     INTEGER  :: jb, jl, jls, js
 
@@ -546,15 +569,17 @@ CONTAINS
 
     CHARACTER(len=*), PARAMETER :: routine = modname//':compute_sfc_roughness'
 
+    CALL set_acc_async_queue(acc_async_queue, opt_acc_async_queue)
+
 !$OMP PARALLEL
-    CALL init(rough_h, lacc=.TRUE.)
-    CALL init(rough_m, lacc=.TRUE.)
+    CALL init(rough_h, lacc=.TRUE., opt_acc_async_queue=acc_async_queue)
+    CALL init(rough_m, lacc=.TRUE., opt_acc_async_queue=acc_async_queue)
 !$OMP END PARALLEL
 
 !$OMP PARALLEL DO PRIVATE(jb, jl, jls, js, rough_tmp) ICON_OMP_DEFAULT_SCHEDULE
 
     DO jb = domain%i_startblk_c,domain%i_endblk_c
-      !$ACC PARALLEL LOOP DEFAULT(PRESENT) GANG(STATIC: 1) VECTOR PRIVATE(js, rough_tmp) ASYNC(1)
+      !$ACC PARALLEL LOOP DEFAULT(PRESENT) GANG VECTOR PRIVATE(js, rough_tmp) ASYNC(acc_async_queue)
       DO jls = 1, nvalid(jb)
         js = indices(jls,jb)
 
@@ -581,11 +606,11 @@ CONTAINS
 
     IF (isfc == isfc_lnd) THEN
 #ifndef __NO_JSBACH__
-      CALL jsbach_get_var('turb_rough_m', domain%patch%id, ptr2d=jsb_rough_m, lacc=.TRUE.)
-      CALL jsbach_get_var('turb_rough_h', domain%patch%id, ptr2d=jsb_rough_h, lacc=.TRUE.)
+      CALL jsbach_get_var('turb_rough_m', domain%patch%id, ptr2d=jsb_rough_m, lacc=.TRUE., opt_acc_async_queue=acc_async_queue)
+      CALL jsbach_get_var('turb_rough_h', domain%patch%id, ptr2d=jsb_rough_h, lacc=.TRUE., opt_acc_async_queue=acc_async_queue)
 !$OMP PARALLEL DO PRIVATE(jb, jls, js) ICON_OMP_DEFAULT_SCHEDULE
       DO jb = domain%i_startblk_c,domain%i_endblk_c
-        !$ACC PARALLEL LOOP DEFAULT(PRESENT) GANG(STATIC: 1) VECTOR ASYNC(1) PRIVATE(js)
+        !$ACC PARALLEL LOOP DEFAULT(PRESENT) GANG VECTOR ASYNC(acc_async_queue) PRIVATE(js)
         DO jls = 1, nvalid(jb)
           js = indices(jls,jb)
           rough_m(js,jb) = jsb_rough_m(js,jb)
@@ -600,8 +625,6 @@ CONTAINS
 #endif
     END IF
 
-    !$ACC WAIT(1)
-
   END SUBROUTINE compute_sfc_roughness
   !
   !=================================================================
@@ -610,7 +633,8 @@ CONTAINS
     & linit, domain, isfc,     &
     & nvalid, indices,         &
     & ppsfc, ptsfc,            &
-    & qsat                     &
+    & qsat,                    &
+    & opt_acc_async_queue      &
     )
 
     ! Domain information
@@ -630,6 +654,11 @@ CONTAINS
     ! Output variables
     !
     REAL(wp), DIMENSION(:,:), INTENT(out) :: qsat
+    !
+    ! Optional ACC queue
+    !
+    INTEGER, INTENT(IN), OPTIONAL :: opt_acc_async_queue
+    INTEGER :: acc_async_queue
 
     INTEGER  :: jb, jls, js
     REAL(wp), POINTER :: jsb_qsat(:,:) => NULL()
@@ -640,6 +669,8 @@ CONTAINS
     IF (isfc == isfc_lnd) CALL finish(routine, "The JSBACH component is not activated")
 #endif
 
+    CALL set_acc_async_queue(acc_async_queue, opt_acc_async_queue)
+
 !$OMP PARALLEL DO PRIVATE(jb, jls, js) ICON_OMP_DEFAULT_SCHEDULE
     DO jb = domain%i_startblk_c,domain%i_endblk_c
 
@@ -647,7 +678,7 @@ CONTAINS
       !   qsat(jl,jb) = 0._wp
       ! END DO
 
-      !$ACC PARALLEL LOOP DEFAULT(PRESENT) GANG(STATIC: 1) VECTOR ASYNC(1) PRIVATE(js)
+      !$ACC PARALLEL LOOP DEFAULT(PRESENT) GANG VECTOR ASYNC(acc_async_queue) PRIVATE(js)
       DO jls = 1, nvalid(jb)
         js = indices(jls,jb)
         IF (isfc == isfc_oce) THEN
@@ -664,10 +695,11 @@ CONTAINS
 
 #ifndef __NO_JSBACH__
     IF (isfc == isfc_lnd .AND. .NOT. linit) THEN
-      CALL jsbach_get_var('seb_qsat_star', domain%patch%id, ptr2d=jsb_qsat, lacc=.TRUE.)
+      CALL jsbach_get_var('seb_qsat_star', domain%patch%id, ptr2d=jsb_qsat, &
+        lacc=.TRUE., opt_acc_async_queue=acc_async_queue)
 !$OMP PARALLEL DO PRIVATE(jb, jls, js) ICON_OMP_DEFAULT_SCHEDULE
       DO jb = domain%i_startblk_c,domain%i_endblk_c
-        !$ACC PARALLEL LOOP DEFAULT(PRESENT) GANG(STATIC: 1) VECTOR ASYNC(1) PRIVATE(js)
+        !$ACC PARALLEL LOOP DEFAULT(PRESENT) GANG VECTOR ASYNC(acc_async_queue) PRIVATE(js)
         DO jls = 1, nvalid(jb)
           js = indices(jls,jb)
           qsat(js,jb) = jsb_qsat(js,jb)
@@ -678,8 +710,6 @@ CONTAINS
       NULLIFY(jsb_qsat)
     END IF
 #endif
-
-    !$ACC WAIT(1)
 
   END SUBROUTINE compute_sfc_sat_spec_humidity
   !
@@ -692,7 +722,8 @@ CONTAINS
     & cvd,                     &
     ! & ua, va, thetam1, qm1, wind, rho, qsat_sfc, theta_sfc, kh, km,  &
     & ua, va, ta, qm1, wind, u_sfc_oce, v_sfc_oce, rho, qsat_sfc, t_sfc, kh, km,  &
-    & evapotrans, latent_hflx, sensible_hflx, ustress, vstress  &
+    & evapotrans, latent_hflx, sensible_hflx, ustress, vstress,  &
+    & opt_acc_async_queue      &
     & )
 
     USE mo_turb_vdiff_params, ONLY: cchar
@@ -727,6 +758,11 @@ CONTAINS
     ! Output variables
     !
     REAL(wp), DIMENSION(:,:), INTENT(out) :: evapotrans, latent_hflx, sensible_hflx, ustress, vstress
+    !
+    ! Optional ACC queue
+    !
+    INTEGER, INTENT(IN), OPTIONAL :: opt_acc_async_queue
+    INTEGER :: acc_async_queue
 
     INTEGER  :: jb, jl, jls, js
 
@@ -737,18 +773,20 @@ CONTAINS
 
     ! CALL message(routine, 'Start')
 
+    CALL set_acc_async_queue(acc_async_queue, opt_acc_async_queue)
+
 !$OMP PARALLEL
-      CALL init(evapotrans, lacc=.TRUE.)
-      CALL init(latent_hflx, lacc=.TRUE.)
-      CALL init(sensible_hflx, lacc=.TRUE.)
-      CALL init(ustress, lacc=.TRUE.)
-      CALL init(vstress, lacc=.TRUE.)
+      CALL init(evapotrans,    lacc=.TRUE., opt_acc_async_queue=acc_async_queue)
+      CALL init(latent_hflx,   lacc=.TRUE., opt_acc_async_queue=acc_async_queue)
+      CALL init(sensible_hflx, lacc=.TRUE., opt_acc_async_queue=acc_async_queue)
+      CALL init(ustress,       lacc=.TRUE., opt_acc_async_queue=acc_async_queue)
+      CALL init(vstress,       lacc=.TRUE., opt_acc_async_queue=acc_async_queue)
 !$OMP END PARALLEL
 
     IF (isrfc_type == 1) THEN
 !$OMP PARALLEL DO PRIVATE(jb, jls, js) ICON_OMP_DEFAULT_SCHEDULE
       DO jb = domain%i_startblk_c,domain%i_endblk_c
-        !$ACC PARALLEL LOOP DEFAULT(PRESENT) GANG(STATIC: 1) VECTOR ASYNC(1) PRIVATE(js)
+        !$ACC PARALLEL LOOP DEFAULT(PRESENT) GANG VECTOR ASYNC(acc_async_queue) PRIVATE(js)
         DO jls = 1, nvalid(jb)
           js = indices(jls,jb)
           latent_hflx(js,jb)   = -lhflx * rho(js,jb) * (lvc+(cvv-clw)*t_sfc(js,jb))
@@ -758,7 +796,6 @@ CONTAINS
         !$ACC END PARALLEL LOOP
       END DO
 !$OMP END PARALLEL DO
-      !$ACC WAIT(1)
       RETURN
     END IF
 
@@ -768,15 +805,18 @@ CONTAINS
 
     IF (isfc == isfc_lnd) THEN
 #ifndef __NO_JSBACH__
-      CALL jsbach_get_var('hydro_evapotrans',  domain%patch%id, ptr2d=jsb_evapotrans_ptr, lacc=.TRUE.)
-      CALL jsbach_get_var('seb_latent_hflx',   domain%patch%id, ptr2d=jsb_latent_hflx_ptr, lacc=.TRUE.)
-      CALL jsbach_get_var('seb_sensible_hflx', domain%patch%id, ptr2d=jsb_sensible_hflx_ptr, lacc=.TRUE.)
+      CALL jsbach_get_var('hydro_evapotrans',  domain%patch%id, ptr2d=jsb_evapotrans_ptr, &
+        & lacc=.TRUE., opt_acc_async_queue=acc_async_queue)
+      CALL jsbach_get_var('seb_latent_hflx',   domain%patch%id, ptr2d=jsb_latent_hflx_ptr, &
+        & lacc=.TRUE., opt_acc_async_queue=acc_async_queue)
+      CALL jsbach_get_var('seb_sensible_hflx', domain%patch%id, ptr2d=jsb_sensible_hflx_ptr, &
+        & lacc=.TRUE., opt_acc_async_queue=acc_async_queue)
 #endif
     END IF
 
 !$OMP PARALLEL DO PRIVATE(jb, jls, js) ICON_OMP_DEFAULT_SCHEDULE
     DO jb = domain%i_startblk_c,domain%i_endblk_c
-      !$ACC PARALLEL LOOP DEFAULT(PRESENT) GANG(STATIC: 1) VECTOR ASYNC(1) PRIVATE(js)
+      !$ACC PARALLEL LOOP DEFAULT(PRESENT) GANG VECTOR ASYNC(acc_async_queue) PRIVATE(js)
       DO jls = 1, nvalid(jb)
         js = indices(jls,jb)
         ! TODO: is the treatment of surface ocean current correct (cf. vdiff code)
@@ -803,8 +843,6 @@ CONTAINS
       !$ACC END PARALLEL LOOP
     END DO !jb
 !$OMP END PARALLEL DO
-
-    !$ACC WAIT(1)
 
     IF (isfc == isfc_lnd) THEN
       NULLIFY(jsb_evapotrans_ptr, jsb_latent_hflx_ptr, jsb_sensible_hflx_ptr)
@@ -853,7 +891,7 @@ CONTAINS
 
 !$OMP PARALLEL DO PRIVATE(ib, ic) ICON_OMP_DEFAULT_SCHEDULE
     DO ib = domain%i_startblk_c, domain%i_endblk_c
-      !$ACC PARALLEL LOOP DEFAULT(PRESENT) GANG(STATIC: 1) VECTOR ASYNC(1)
+      !$ACC PARALLEL LOOP DEFAULT(PRESENT) GANG VECTOR ASYNC(1)
       DO ic = domain%i_startidx_c(ib), domain%i_endidx_c(ib)
         ufts(ic,ib) = shfl(ic,ib)
         ufvs(ic,ib) = ta(ic,ib) * evapotrans(ic,ib) * (cvv - cvd)
@@ -878,7 +916,8 @@ CONTAINS
     & alb_vis_dif,               &
     & alb_nir_dir,               &
     & alb_nir_dif,               &
-    & albedo                     &
+    & albedo,                    &
+    & opt_acc_async_queue        &
     & )
 
     USE mo_physical_constants,ONLY: stbo
@@ -905,19 +944,26 @@ CONTAINS
     ! Output variables
     !
     REAL(wp), DIMENSION(:,:), INTENT(out) :: albedo
+    !
+    ! Optional ACC queue
+    !
+    INTEGER, INTENT(IN), OPTIONAL :: opt_acc_async_queue
+    INTEGER :: acc_async_queue
 
     INTEGER  :: jb, jls, js
     REAL(wp) :: zalbvis, zalbnir, rvds, rnds
 
     CHARACTER(len=*), PARAMETER :: routine = modname//':compute_albedo'
 
+    CALL set_acc_async_queue(acc_async_queue, opt_acc_async_queue)
+
 !$OMP PARALLEL
-    CALL init(albedo, lacc=.TRUE.)
+    CALL init(albedo, lacc=.TRUE., opt_acc_async_queue=acc_async_queue)
 !$OMP END PARALLEL
 
 !$OMP PARALLEL DO PRIVATE(jb, jls, js, zalbvis, zalbnir, rvds, rnds) ICON_OMP_DEFAULT_SCHEDULE
     DO jb = domain%i_startblk_c, domain%i_endblk_c
-      !$ACC PARALLEL LOOP DEFAULT(PRESENT) GANG(STATIC: 1) VECTOR ASYNC(1) PRIVATE(js)
+      !$ACC PARALLEL LOOP DEFAULT(PRESENT) GANG VECTOR ASYNC(acc_async_queue) PRIVATE(js)
       DO jls = 1, nvalid(jb)
         js = indices(jls,jb)
 
@@ -954,7 +1000,8 @@ CONTAINS
     & nvalid, indices, zf, zh,    &
     & ua, va, u_oce, v_oce,       &
     & moist_rich, km, km_neutral, &
-    & u10m, v10m, wind10m)
+    & u10m, v10m, wind10m,        &
+    & opt_acc_async_queue)
 
     ! Domain information
     TYPE(t_domain),  INTENT(in), POINTER :: domain
@@ -970,6 +1017,11 @@ CONTAINS
       & ua, va, u_oce, v_oce, moist_rich, km, km_neutral
     REAL(wp), DIMENSION(:,:), INTENT(out) :: &
       & u10m, v10m, wind10m
+    !
+    ! Optional ACC queue
+    !
+    INTEGER, INTENT(IN), OPTIONAL :: opt_acc_async_queue
+    INTEGER :: acc_async_queue
 
     INTEGER :: jb, jls, js
     REAL(wp) :: zrat, zbm, zcbn, zcbs, zcbu, zmerge, zred
@@ -981,15 +1033,17 @@ CONTAINS
 
     CHARACTER(len=*), PARAMETER :: routine = modname//':compute_10m_wind'
 
+    CALL set_acc_async_queue(acc_async_queue, opt_acc_async_queue)
+
 !$OMP PARALLEL
-    CALL init(u10m, lacc=.TRUE.)
-    CALL init(v10m, lacc=.TRUE.)
-    CALL init(wind10m, lacc=.TRUE.)
+    CALL init(u10m,    lacc=.TRUE., opt_acc_async_queue=acc_async_queue)
+    CALL init(v10m,    lacc=.TRUE., opt_acc_async_queue=acc_async_queue)
+    CALL init(wind10m, lacc=.TRUE., opt_acc_async_queue=acc_async_queue)
 !$OMP END PARALLEL
 
 !$OMP PARALLEL DO PRIVATE(jb, jls, js, zrat, zbm, zcbn, zcbs, zcbu, zmerge, zred) ICON_OMP_DEFAULT_SCHEDULE
     DO jb = domain%i_startblk_c,domain%i_endblk_c
-      !$ACC PARALLEL LOOP DEFAULT(PRESENT) GANG(STATIC: 1) VECTOR ASYNC(1) PRIVATE(js, zrat, zbm, zcbn, zcbs, zcbu, zmerge, zred)
+      !$ACC PARALLEL LOOP DEFAULT(PRESENT) GANG VECTOR ASYNC(acc_async_queue) PRIVATE(js, zrat, zbm, zcbn, zcbs, zcbu, zmerge, zred)
       DO jls = 1, nvalid(jb)
         js = indices(jls,jb)
         zbm    = 1._wp / MAX(zepsec, SQRT(km(js,jb)) / ckap)
@@ -1053,7 +1107,7 @@ CONTAINS
 
 !$OMP PARALLEL DO PRIVATE(jb, jls, js, zrat, zbm, zbh, zcbn, zcbs, zcbu, zmerge, zred) ICON_OMP_DEFAULT_SCHEDULE
     DO jb = domain%i_startblk_c,domain%i_endblk_c
-      !$ACC PARALLEL LOOP DEFAULT(PRESENT) GANG(STATIC: 1) VECTOR ASYNC(1) PRIVATE(js, zrat, zbm, zcbn, zcbs, zcbu, zmerge, zred)
+      !$ACC PARALLEL LOOP DEFAULT(PRESENT) GANG VECTOR ASYNC(1) PRIVATE(js, zrat, zbm, zcbn, zcbs, zcbu, zmerge, zred)
       DO jls = 1, nvalid(jb)
         js = indices(jls,jb)
         zrat = 2._wp / (zf(js,jb) - zh(js,jb))

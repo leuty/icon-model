@@ -13,7 +13,7 @@
 
 MODULE mo_sppt_config
 
-  USE mo_kind,                    ONLY: wp,i8
+  USE mo_kind,                    ONLY: wp, dp, i8
   USE mo_exception,               ONLY: finish, message, message_text
   USE mo_impl_constants,          ONLY: max_dom, SUCCESS, min_rlcell_int
   USE mo_time_config,             ONLY: time_config
@@ -148,7 +148,7 @@ MODULE mo_sppt_config
       ! Convert hinc_rn into mtime timedelta
       !--------------------------------
 
-      CALL mtime_timedelta_from_fseconds(sppt_config(jg)%hinc_rn, mtime_current, sppt_config(jg)%mtime_hinc_rn)
+      CALL mtime_timedelta_from_fseconds(REAL(sppt_config(jg)%hinc_rn,KIND=dp), mtime_current, sppt_config(jg)%mtime_hinc_rn)
 
       !---------------------------------
       ! Create factors for tapering

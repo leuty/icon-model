@@ -364,7 +364,7 @@ CONTAINS
     !---- Local variables
     !$ACC DATA &
     !$ACC   CREATE(zghf, zghh, zfactor, zrmairm, zrmairh, jztottevn) &
-    !$ACC   CREATE(ztheta_b, zthetav_b, zthetal_b, zqsat_b, zlh_b)
+    !$ACC   CREATE(ztheta_b, zthetav_b, zthetal_b, zqsat_b, zlh_b) ASYNC(1)
 
 
     rls = grf_bdywidth_c+1
@@ -465,7 +465,6 @@ CONTAINS
         IF (jcs>jce) CYCLE
       !##############################################################################
 
-        ! DA: this routine is async aware, so it's safe not not wait here
         CALL atm_exchange_coeff( jb,                                                        &! in, for debugging only
                               & jcs, jce, kbdim, klev, klevm1,                              &! in
                               & pdtime, pcoriol(:,jb),                                      &! in
@@ -498,7 +497,6 @@ CONTAINS
         !    Get boundary condition for TTE and variance of theta_v.
         !-----------------------------------------------------------------------
 
-        ! DA: this routine is async, no need to wait
         CALL sfc_exchange_coeff( jb, jcs, jce, kbdim, ksfc_type, patch,        &! in
                               & idx_wtr, idx_ice, idx_lnd,                     &! in
                               & pz0m_tile(:,jb,:),  ptsfc_tile(:,jb,:),        &! in
@@ -548,6 +546,9 @@ CONTAINS
       !##############################################################################
 
     CASE ( VDIFF_TURB_3DSMAGORINSKY )
+
+      ! Smagorinsky is not fully async due to horizontal dependencies
+      !$ACC WAIT
 
       !$ACC DATA &
       !$ACC   CREATE(kh_ic, km_ic, km_c, km_iv, km_ie, vn, u_vert, v_vert, w_vert, inv_rho_ic, div_c, w_ie)
@@ -656,7 +657,6 @@ CONTAINS
                              & vdiff_config%rturb_prandtl)
         END IF
       END IF
-      !$ACC WAIT
       !$ACC END DATA
 
     END SELECT    !select turbulent scheme
@@ -746,7 +746,6 @@ CONTAINS
     !$OMP END PARALLEL DO
     !##############################################################################
 
-    !$ACC WAIT
     !$ACC END DATA
 
   END SUBROUTINE vdiff_down
@@ -1299,7 +1298,6 @@ CONTAINS
 
     INTEGER :: ist
 
-    !$ACC WAIT(1)
     !$ACC EXIT DATA DELETE(matrix_idx, ibtmoffset_mtrx, ibtmoffset_var)
     DEALLOCATE( matrix_idx,ibtmoffset_mtrx,ibtmoffset_var, STAT=ist)
     IF (ist/=SUCCESS) CALL finish('cleanup_vdiff_solver','Deallocation failed')
@@ -1350,7 +1348,7 @@ CONTAINS
     INTEGER  :: jkm1, jmax
 
     !---- Local Variables
-    !$ACC DATA CREATE(zkstar, zkh)
+    !$ACC DATA CREATE(zkstar, zkh) ASYNC(1)
 
     !-----------------------------------------------------------------------
     ! For all prognostic variables: no turbulent flux at the upper boundary
@@ -1684,7 +1682,6 @@ CONTAINS
     !  aa(:,1:klev+ibtmoffset_mtrx(im)-1,3,:) becomes -A (Eqn. 19).
     ! See subroutine matrix_to_richtmyer_coeff.
 
-  !$ACC WAIT
   !$ACC END DATA
 
   END SUBROUTINE matrix_setup_elim
@@ -1730,8 +1727,7 @@ CONTAINS
     INTEGER  :: jsfc, jt, irhs, im, jk, jc
 
     !---- Local Variables
-    !$ACC DATA &
-    !$ACC   CREATE(ztmp)
+    !$ACC DATA CREATE(ztmp) ASYNC(1)
 
     !-------------------------------------------------------------------
     ! First handle variables that are defined on full levels
@@ -1933,9 +1929,7 @@ CONTAINS
     !                               & + pxt_emis(jcs:kproma,1:klev,jt)   &
     !                               &      *ztmp(jcs:kproma,1:klev)
     !ENDDO
-  !$ACC WAIT
   !$ACC END DATA
-
 
   END SUBROUTINE rhs_setup
 
@@ -2048,8 +2042,6 @@ CONTAINS
       bb(jc,klev,ithv) = bb(jc,klev-1,ithv)
     ENDDO
     !$ACC END PARALLEL
-
-    !$ACC WAIT
 
   END SUBROUTINE rhs_elim
 
@@ -2216,8 +2208,6 @@ CONTAINS
     END DO
     !$ACC END PARALLEL
 
-    !$ACC WAIT
-
   END SUBROUTINE matrix_to_richtmyer_coeff
   !--------------------------------------------------------------------------------
 
@@ -2262,8 +2252,6 @@ CONTAINS
       ENDDO
     END DO
     !$ACC END PARALLEL
-
-    !$ACC WAIT
 
   END SUBROUTINE rhs_bksub
   !-------------
@@ -2338,7 +2326,7 @@ CONTAINS
     !-------------------------------------------------------------------
     ! Start GPU data region
     !-------------------------------------------------------------------
-    !$ACC DATA CREATE(zdis)
+    !$ACC DATA CREATE(zdis) ASYNC(1)
 
     zrdt   = 1._wp/pdtime
 
@@ -2381,14 +2369,18 @@ CONTAINS
     ! Compute TTE at the new time step.
     !-------------------------------------------------------------------
     ztest = 0._wp
-    !$ACC PARALLEL LOOP GANG VECTOR COLLAPSE(2) DEFAULT(PRESENT) REDUCTION(+: ztest) ASYNC(1) COPY(ztest)
+    !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1)
+    !$ACC LOOP GANG VECTOR COLLAPSE(2)
     DO jk = 1,klevm1
       DO jl = jcs,kproma
         ptotte(jl,jk) = bb(jl,jk,itotte) + tpfac3*pztottevn(jl,jk)
+#ifndef _OPENACC
+        ! Turned off for OpenACC
         ztest = ztest+MERGE(1._wp,0._wp,ptotte(jl,jk)<0._wp)
+#endif
       END DO
     END DO
-    !$ACC END PARALLEL LOOP
+    !$ACC END PARALLEL
 
     IF( vdiff_config%turb == VDIFF_TURB_3DSMAGORINSKY ) THEN
       ztest = 1._wp
@@ -2562,7 +2554,6 @@ CONTAINS
     !-------------------------------------------------------------------
     ! End GPU data region
     !-------------------------------------------------------------------
-    !$ACC WAIT
     !$ACC END DATA
 
 

@@ -259,7 +259,7 @@ MODULE mo_upatmo_types
     INTEGER,                   ALLOCATABLE :: mapgasid2indx(:) ! Map global gas id to local gas index
     INTEGER,                   ALLOCATABLE :: mapgasindx2id(:) ! Map local gas index to global gas id
 
-    TYPE(t_ptr_3d_wp),            ALLOCATABLE :: gas_interm(:)    ! Gas on horizontal grid of ICON,
+    TYPE(t_ptr_3d_wp),         ALLOCATABLE :: gas_interm(:)    ! Gas on horizontal grid of ICON,
                                                                ! but still on pressure levels of external data (ngas)
     ! Status
     LOGICAL :: linitialized = .FALSE.

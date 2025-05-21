@@ -22,7 +22,7 @@ MODULE mo_icon_output_read_namelists
   USE mo_run_config,        ONLY: nsteps, dtime, nlev, configure_run
   USE mo_time_config,       ONLY: time_config, dt_restart
   USE mo_io_config,         ONLY: dt_checkpoint, write_initial_state, lnetcdf_flt64_output
-  USE mo_grid_config,       ONLY: grid_rescale_factor, use_duplicated_connectivity, init_grid_configuration
+  USE mo_grid_config,       ONLY: use_duplicated_connectivity, init_grid_configuration
   USE mo_master_config,     ONLY: isRestart
   USE mo_time_management,   ONLY: compute_timestep_settings,                        &
     &                             compute_restart_settings,                         &

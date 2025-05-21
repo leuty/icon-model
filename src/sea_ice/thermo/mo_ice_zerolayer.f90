@@ -27,7 +27,7 @@ MODULE mo_ice_zerolayer
   USE mo_physical_constants,  ONLY: rhoi, rhos, rho_ref, ki, ks, ci, alf, zemiss_def, stbo, tmelt
   USE mo_sea_ice_nml,         ONLY: hci_layer, use_no_flux_gradients
   USE mo_sea_ice_types,       ONLY: t_sea_ice
-  USE mo_fortran_tools,       ONLY: set_acc_host_or_device
+  USE mo_fortran_tools,       ONLY: set_acc_host_or_device, set_acc_async_queue
 
   IMPLICIT NONE
   PRIVATE
@@ -229,7 +229,8 @@ CONTAINS
             &   nonsolar,       &  ! net nonsolar fluxes = lat + sens + LWnet
             &   dnonsolardT,    &  ! gradient of nonsolar fluxes = dlatdT + dsensdT + dLWdT
             &   Tfw,            &  ! sea surface freezing temperature
-            &   lacc)
+            &   lacc,           &
+            &   opt_acc_async_queue )
 
     INTEGER, INTENT(IN)    :: i_startidx_c, i_endidx_c, nbdim, kice
     REAL(wp),INTENT(IN)    :: pdtime
@@ -243,6 +244,7 @@ CONTAINS
     REAL(wp),INTENT(IN)    :: dnonsolardT(nbdim,kice)
     REAL(wp),INTENT(IN)    :: Tfw        (nbdim)
     LOGICAL, INTENT(IN), OPTIONAL :: lacc
+    INTEGER, INTENT(IN), OPTIONAL :: opt_acc_async_queue
 
     ! Local variables
     REAL(wp) ::             &
@@ -258,11 +260,13 @@ CONTAINS
 
     INTEGER :: k, jk, jc ! loop indices
     LOGICAL :: lzacc
+    INTEGER :: acc_async_queue
 
     CALL set_acc_host_or_device(lzacc, lacc)
+    CALL set_acc_async_queue(acc_async_queue, opt_acc_async_queue)
 
     ! initialization of the output
-    !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1) IF(lzacc)
+    !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(acc_async_queue) IF(lzacc)
     !$ACC LOOP SEQ
     DO k = 1,kice
       !$ACC LOOP GANG VECTOR
@@ -283,7 +287,7 @@ CONTAINS
         nfg_flag = 1._wp
     ENDIF
 
-    !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1) IF(lzacc)
+    !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(acc_async_queue) IF(lzacc)
     !$ACC LOOP SEQ
     DO k=1,kice
       !$ACC LOOP GANG VECTOR PRIVATE(k_effective, F_A, F_S, deltaT) &
@@ -333,7 +337,7 @@ CONTAINS
   !! Initial release by Vladimir Lapin, MPI (2016-11)
   !
   SUBROUTINE set_ice_temp_zerolayer_analytical(i_startidx_c, i_endidx_c, nbdim, kice, &
-            &   Tsurf, hi, hs, Qtop, Qbot, Tfw, doy, lacc)
+            &   Tsurf, hi, hs, Qtop, Qbot, Tfw, doy, lacc, opt_acc_async_queue)
 
     INTEGER, INTENT(IN)    :: i_startidx_c, i_endidx_c, nbdim, kice
     REAL(wp),INTENT(INOUT) :: Tsurf      (nbdim,kice)
@@ -344,6 +348,7 @@ CONTAINS
     REAL(wp),INTENT(IN)    :: Tfw        (nbdim)
     INTEGER, INTENT(IN)    :: doy
     LOGICAL, INTENT(IN), OPTIONAL :: lacc
+    INTEGER, INTENT(IN), OPTIONAL :: opt_acc_async_queue
     ! Local variables
     REAL(wp) ::             &
       & F_A         ,       &  ! net atmospheric heat flux                  (positive=upward)
@@ -354,11 +359,13 @@ CONTAINS
     ! Loop indices
     INTEGER :: k, jk, jc
     LOGICAL :: lzacc
+    INTEGER :: acc_async_queue
 
     CALL set_acc_host_or_device(lzacc, lacc)
+    CALL set_acc_async_queue(acc_async_queue, opt_acc_async_queue)
 
     ! initialization of output variables
-    !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1) IF(lzacc)
+    !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(acc_async_queue) IF(lzacc)
     !$ACC LOOP SEQ
     DO k = 1,kice
       !$ACC LOOP GANG VECTOR
@@ -369,7 +376,7 @@ CONTAINS
     END DO
     !$ACC END PARALLEL
 
-    !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1) IF(lzacc)
+    !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(acc_async_queue) IF(lzacc)
     !$ACC LOOP SEQ
     DO k=1,kice
       !$ACC LOOP GANG VECTOR PRIVATE(k_effective, F_A, F_S, deltaT) &

@@ -466,68 +466,75 @@ CONTAINS
     REAL(wp) :: a,b,c,d,dx,ddx,x,bxa
     INTEGER  ::  jl
 
-    !$ACC DATA PRESENT(idx, zalpha, table)
-    !$ACC DATA PRESENT(ua) IF(PRESENT(ua))
-    !$ACC DATA PRESENT(dua) IF(PRESENT(dua))
+    !$ACC PARALLEL DEFAULT(PRESENT) NO_CREATE(ua, dua) ASYNC(1)
+    !$ACC LOOP GANG VECTOR PRIVATE(x, dx, ddx, a, b, c, d, bxa)
+    DO jl = jcs,size
 
-    IF (PRESENT(ua) .AND. .NOT. PRESENT(dua)) THEN
-      !$ACC PARALLEL ASYNC(1)
-      !$ACC LOOP GANG VECTOR PRIVATE(x, dx, ddx, a, b, c, d, bxa)
-      DO jl = jcs,size
+      x = zalpha(jl)
 
-        x = zalpha(jl)
+      ! derivative and second derivative approximations (2 flops)
 
-        ! derivative and second derivative approximations (2 flops)
+      dx   = table(1,idx(jl)+1) - table(1,idx(jl))
+      ddx  = table(2,idx(jl)+1) + table(2,idx(jl))
 
-        dx   = table(1,idx(jl)+1) - table(1,idx(jl))
-        ddx  = table(2,idx(jl)+1) + table(2,idx(jl))
+      ! determine coefficients (2 fma + 1 flop)
 
-        ! determine coefficients (2 fma + 1 flop)
+      a = ddx - 2._wp*dx
+      b = 3._wp*dx - ddx - table(2,idx(jl))
+      c = table(2,idx(jl))
+      d = table(1,idx(jl))
 
-        a = ddx - 2._wp*dx
-        b = 3._wp*dx - ddx - table(2,idx(jl))
-        c = table(2,idx(jl))
-        d = table(1,idx(jl))
+      ! Horner's scheme to compute the spline functions (3 fmas)
 
-        ! Horner's scheme to compute the spline functions (3 fmas)
-
-        bxa = b + x*a
-        ua(jl) = d + x*(c + x*bxa)
-      END DO
-      !$ACC END PARALLEL
-    ELSE IF (PRESENT(ua) .AND. PRESENT(dua)) THEN
-      !$ACC PARALLEL ASYNC(1)
-      !$ACC LOOP GANG VECTOR PRIVATE(x, dx, ddx, a, b, c, d, bxa)
-      DO jl = jcs,size
-
-        x = zalpha(jl)
-
-        ! derivate and second derivate approximations (2 flops)
-
-        dx   = table(1,idx(jl)+1) - table(1,idx(jl))
-        ddx  = table(2,idx(jl)+1) + table(2,idx(jl))
-
-        ! determine coefficients (2 fma + 1 flop)
-
-        a = ddx - 2._wp*dx
-        b = 3._wp*dx - ddx - table(2,idx(jl))
-        c = table(2,idx(jl))
-        d = table(1,idx(jl))
-
-        ! Horner's scheme to compute the spline functions (5 fmas + 1 flop)
-
-        bxa = b + x*a
-        ua(jl)  = d + x*(c + x*bxa)
-        dua(jl) = 20._wp*(c + x*(3._wp*bxa - b))
-      END DO
-      !$ACC END PARALLEL
-    END IF
-
-    !$ACC END DATA
-    !$ACC END DATA
-    !$ACC END DATA
+      bxa = b + x*a
+      IF (PRESENT(ua))   ua(jl) = d + x*(c + x*bxa)
+      IF (PRESENT(dua)) dua(jl) = 20._wp*(c + x*(3._wp*bxa - b))
+    END DO
+    !$ACC END PARALLEL
 
   END SUBROUTINE fetch_ua_spline
+
+  SUBROUTINE fetch_ua_spline_async(jcs,size,kidx,idx,zalpha,table,ua,dua)
+
+    INTEGER,            INTENT(in) :: jcs, size, kidx
+    INTEGER,            INTENT(in) :: idx(size)
+    REAL(wp),           INTENT(in) :: zalpha(size)
+    REAL(wp),           INTENT(in) :: table(1:2,lucupmin-2:lucupmax+1)
+
+    REAL(wp), OPTIONAL, INTENT(out) :: ua(size), dua(size)
+
+    REAL(wp) :: a,b,c,d,dx,ddx,x,bxa
+    INTEGER  ::  jl
+
+    !$ACC DATA COPYIN(kidx) ASYNC(1)
+    !$ACC PARALLEL DEFAULT(PRESENT) NO_CREATE(ua, dua) ASYNC(1)
+    !$ACC LOOP GANG VECTOR PRIVATE(x, dx, ddx, a, b, c, d, bxa)
+    DO jl = jcs,kidx
+
+      x = zalpha(jl)
+
+      ! derivative and second derivative approximations (2 flops)
+
+      dx   = table(1,idx(jl)+1) - table(1,idx(jl))
+      ddx  = table(2,idx(jl)+1) + table(2,idx(jl))
+
+      ! determine coefficients (2 fma + 1 flop)
+
+      a = ddx - 2._wp*dx
+      b = 3._wp*dx - ddx - table(2,idx(jl))
+      c = table(2,idx(jl))
+      d = table(1,idx(jl))
+
+      ! Horner's scheme to compute the spline functions (3 fmas)
+
+      bxa = b + x*a
+      IF (PRESENT(ua))   ua(jl) = d + x*(c + x*bxa)
+      IF (PRESENT(dua)) dua(jl) = 20._wp*(c + x*(3._wp*bxa - b))
+    END DO
+    !$ACC END PARALLEL
+    !$ACC END DATA
+
+  END SUBROUTINE fetch_ua_spline_async
 
 
   SUBROUTINE fetch_ua(size,idx,table,u)
@@ -1045,7 +1052,7 @@ CONTAINS
   SUBROUTINE lookup_ua_list_spline_2(name, size, kidx, list, temp, lacc, ua, dua, error_reporter)
     CHARACTER(len=*),   INTENT(in)  :: name
     INTEGER,            INTENT(in)  :: size, kidx
-    INTEGER,            INTENT(in)  :: list(kidx)
+    INTEGER,            INTENT(in)  :: list(size)
     REAL(wp),           INTENT(in)  :: temp(size)
     LOGICAL,            INTENT(in)  :: lacc
     REAL(wp), OPTIONAL, INTENT(out) :: ua(size), dua(size)
@@ -1060,20 +1067,19 @@ CONTAINS
 
     CALL assert_acc_device_only ('lookup_ua_list_spline_2', lacc)
 
-    !$ACC DATA PRESENT(list, temp) &
-    !$ACC   CREATE(idx, zalpha)
-    !$ACC DATA PRESENT(ua) IF(PRESENT(ua))
-    !$ACC DATA PRESENT(dua) IF(PRESENT(dua))
+    !$ACC DATA PRESENT(list, temp, kidx) &
+    !$ACC   CREATE(idx, zalpha) ASYNC(1)
 
     zinbounds = 1.0_wp
     ztmin = flucupmin
     ztmax = flucupmax
 
     ! first compute all lookup indices and check if they are all within allowed bounds
+    ! DA: Don't do the check in OpenACC for the performance reasons
 
 !IBM* ASSERT(NODEPS)
-    !$ACC PARALLEL LOOP GANG VECTOR DEFAULT(PRESENT) PRIVATE(jl, ztshft, ztt) &
-    !$ACC   REDUCTION(*: zinbounds) ASYNC(1) COPY(zinbounds)
+    !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1)
+    !$ACC LOOP GANG VECTOR PRIVATE(jl, ztshft, ztt) PRIVATE(zinbounds)
     DO nl = 1, kidx
       jl = list(nl)
       ztshft = FSEL(tmelt-temp(jl),1.0_wp,0.0_wp)
@@ -1084,8 +1090,10 @@ CONTAINS
       zinbounds = FSEL(ztmin-ztt,0.0_wp,zinbounds)
       zinbounds = FSEL(ztt-ztmax,0.0_wp,zinbounds)
     END DO
-    !$ACC END PARALLEL LOOP
+    !$ACC END PARALLEL
 
+#ifndef _OPENACC
+    ! Check is turned off for OpenACC
     ! if one index was out of bounds -> print error and exit
     IF (zinbounds == 0.0_wp) THEN
 
@@ -1104,11 +1112,9 @@ CONTAINS
 
       CALL lookuperror(name)
     END IF
+#endif
 
-    CALL fetch_ua_spline(1,kidx, idx, zalpha, tlucu, ua, dua)
-    !$ACC WAIT(1)
-    !$ACC END DATA
-    !$ACC END DATA
+    CALL fetch_ua_spline_async(1,size,kidx, idx, zalpha, tlucu, ua, dua)
     !$ACC END DATA
 
   END SUBROUTINE lookup_ua_list_spline_2
@@ -1284,7 +1290,7 @@ CONTAINS
     lookupoverflow = .FALSE.
 
     !$ACC DATA PRESENT(loidx, ppsfc, ptsfc, pqs) &
-    !$ACC   CREATE(ua)
+    !$ACC   CREATE(ua) COPYIN(is) ASYNC(1)
 
     CALL lookup_ua_list_spline_2('compute_qsat',kbdim,is,loidx(:), ptsfc(:), lacc=.TRUE., ua=ua(:), error_reporter=error_reporter)
 !
@@ -1298,7 +1304,6 @@ CONTAINS
       pqs(jl) = zes*zcor
     ENDDO
     !$ACC END PARALLEL
-    !$ACC WAIT(1)
 !
     IF (lookupoverflow) CALL lookuperror ('compute_qsat')
     !$ACC END DATA

@@ -226,7 +226,7 @@ CONTAINS
      &  D_0   = 75.e-6_wp,    & !< Saltation occurs for u_* > u_*t(D_0) (m)
      &  A_N   = 0.0123_wp,    & !< Coefficient (-)       (Shao and Lu, 2000)
      &  gamma = 3.e-4_wp,     & !< Coefficient (kg s-2)  (Shao and Lu, 2000)
-     &  rho_s = 2650_wp,      & !< Bulk soil density (kg m-3)
+     &  rho_s = 2650._wp,      & !< Bulk soil density (kg m-3)
      &  constval = A_N * ( rho_s * grav * D_0 + gamma / D_0)
 
     ! Use global minimum of threshold friction velocity d_min as in Rieger et al. (2017)
@@ -333,7 +333,7 @@ CONTAINS
     !wgrav=100._wp*(w_so/dzsoil)*rho_s_bulk/rho_w
     ! Give w_so_ice a factor 10 penalty to efficiently inhibit
     ! mineral dust emission on frozen soil
-    wgrav=150_wp*( (w_so + 9._wp * w_so_ice )/dzsoil)
+    wgrav=150._wp*( (w_so + 9._wp * w_so_ice )/dzsoil)
 
   END FUNCTION calc_wgrav
 

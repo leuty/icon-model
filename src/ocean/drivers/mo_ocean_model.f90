@@ -182,6 +182,17 @@ MODULE mo_ocean_model
       !  Prepare the initial conditions:
       !  forcing is part of the restart file
     END IF ! isRestart()
+
+    !-------------------------------------------------------------------
+    IF ( is_coupled_run() ) THEN
+       ! Calls the coupling definition and syncronisation with other
+       ! coupling processes after the sometimes very time-consuming
+       ! reading of restart.
+      IF (ltimer) CALL timer_start(timer_coupling)
+      CALL construct_ocean_coupling(ocean_patch_3d)
+      IF (ltimer) CALL timer_stop(timer_coupling)
+    END IF
+
     !------------------------------------------------------------------
     ! Now start the time stepping:
     ! The special initial time step for the three time level schemes
@@ -598,11 +609,6 @@ MODULE mo_ocean_model
     CALL construct_atmos_fluxes(patch_3d%p_patch_2d(1), atmos_fluxes, kice)
 
     CALL construct_ocean_surface(patch_3d, p_oce_sfc)
-    IF ( is_coupled_run() ) THEN
-      IF (ltimer) CALL timer_start(timer_coupling)
-      CALL construct_ocean_coupling(ocean_patch_3d)
-      IF (ltimer) CALL timer_stop(timer_coupling)
-    END IF
 
     !------------------------------------------------------------------
     CALL construct_oce_diagnostics( ocean_patch_3d, ocean_state(1))

@@ -20,7 +20,7 @@ MODULE mo_ocean_nml_crosscheck
   USE mo_run_config,        ONLY: nsteps, dtime, nlev
   USE mo_time_config,       ONLY: time_config, dt_restart
   USE mo_io_config,         ONLY: dt_checkpoint, write_initial_state, lnetcdf_flt64_output
-  USE mo_grid_config,       ONLY: grid_rescale_factor, use_duplicated_connectivity
+  USE mo_grid_config,       ONLY: use_duplicated_connectivity
   USE mo_ocean_nml
   USE mo_master_config,     ONLY: isRestart
   USE mo_time_management,   ONLY: compute_timestep_settings,                        &

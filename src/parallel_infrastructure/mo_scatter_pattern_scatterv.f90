@@ -15,8 +15,7 @@ MODULE mo_scatter_pattern_scatterv
     USE mo_impl_constants, ONLY: SUCCESS
     USE mo_scatter_pattern_base
     USE mo_kind, ONLY: dp, sp, i8
-    USE mo_mpi, ONLY: p_real_dp, p_real_sp, p_int, &
-    &                 p_gather, p_gatherv, p_scatterv
+    USE mo_mpi, ONLY: p_gather, p_gatherv, p_scatterv
     USE mo_parallel_config, ONLY: blk_no, idx_no
     USE mo_exception, ONLY: finish
 

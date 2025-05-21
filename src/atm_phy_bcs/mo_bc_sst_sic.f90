@@ -15,7 +15,7 @@
 
 MODULE mo_bc_sst_sic
 
-  USE mo_kind,               ONLY: dp, i8
+  USE mo_kind,               ONLY: wp, i8
   USE mo_exception,          ONLY: finish, message, message_text
   USE mo_mpi,                ONLY: my_process_is_mpi_workroot, p_bcast, &
     &                              process_mpi_root_id, p_comm_work
@@ -25,7 +25,12 @@ MODULE mo_bc_sst_sic
   USE mo_physical_constants, ONLY: tf_salt !, tmelt
   USE mo_impl_constants,     ONLY: MAX_CHAR_LENGTH, max_dom
   USE mo_cdi,                ONLY: streamOpenRead, streamInqVlist, streamClose, &
-    & vlistInqTaxis, streamInqTimestep, taxisInqVdate, streamReadVarSlice
+    & vlistInqTaxis, streamInqTimestep, taxisInqVdate
+#ifdef __SINGLE_PRECISION
+  USE mo_cdi,                ONLY: streamReadVarSliceF
+#else
+  USE mo_cdi,                ONLY: streamReadVarSlice
+#endif
   USE mo_util_cdi,           ONLY: cdiGetStringError
   USE mo_bcs_time_interpolation, ONLY: t_time_interpolation_weights, &
        &                               calculate_time_interpolation_weights
@@ -36,8 +41,8 @@ MODULE mo_bc_sst_sic
   PRIVATE
 
   TYPE t_ext_sea
-    REAL(dp), CONTIGUOUS, POINTER :: sst(:,:,:) => NULL()
-    REAL(dp), CONTIGUOUS, POINTER :: sic(:,:,:) => NULL()
+    REAL(wp), CONTIGUOUS, POINTER :: sst(:,:,:) => NULL()
+    REAL(wp), CONTIGUOUS, POINTER :: sic(:,:,:) => NULL()
   END TYPE t_ext_sea
 
   TYPE(t_ext_sea), TARGET :: ext_sea(max_dom)
@@ -138,11 +143,11 @@ CONTAINS
   SUBROUTINE read_sst_sic_data(p_patch, dst, fn, y)
 !TODO: switch to reading via mo_read_netcdf_distributed?
     TYPE(t_patch), INTENT(in) :: p_patch
-    REAL(dp), CONTIGUOUS, INTENT(INOUT) :: dst(:,:,imonth_beg:)
+    REAL(wp), CONTIGUOUS, INTENT(INOUT) :: dst(:,:,imonth_beg:)
     CHARACTER(len=*), INTENT(IN) :: fn
     INTEGER(i8), INTENT(in) :: y
-    REAL(dp), ALLOCATABLE :: zin(:)
-    REAL(dp) :: dummy(0)
+    REAL(wp), ALLOCATABLE :: zin(:)
+    REAL(wp) :: dummy(0)
     INTEGER :: vlID, taxID, tsID, ts_idx, strID, nmiss, vd, vy, vm, ts_found
     LOGICAL :: found_last_ts, lexist
     CHARACTER(LEN=MAX_CHAR_LENGTH) :: cdiErrorText
@@ -193,9 +198,13 @@ CONTAINS
           END IF
         END IF
         IF (ts_idx /= -1) THEN
-          CALL streamReadVarSlice(strID, 0, 0, zin, nmiss)
+#ifdef __SINGLE_PRECISION
+          CALL streamReadVarSliceF(strID, 0, 0, zin, nmiss)
+#else
+          CALL streamReadVarSlice (strID, 0, 0, zin, nmiss)
+#endif
           CALL p_bcast(ts_idx, process_mpi_root_id, p_comm_work)
-          dst(:,SIZE(dst,2),ts_idx) = 0._dp
+          dst(:,SIZE(dst,2),ts_idx) = 0._wp
           CALL p_patch%comm_pat_scatter_c%distribute(zin, dst(:,:,ts_idx), .FALSE.)
         ENDIF
         tsID = tsID+1
@@ -212,7 +221,7 @@ CONTAINS
       DO
         CALL p_bcast(ts_idx, process_mpi_root_id, p_comm_work)
         IF(ts_idx .EQ. -1) EXIT
-        dst(:,SIZE(dst,2),ts_idx) = 0._dp
+        dst(:,SIZE(dst,2),ts_idx) = 0._wp
         CALL p_patch%comm_pat_scatter_c%distribute(dummy, dst(:,:,ts_idx), .FALSE.)
       END DO
     END IF
@@ -221,9 +230,9 @@ CONTAINS
   SUBROUTINE bc_sst_sic_time_interpolation(tiw, tsw, seaice, siced, p_patch, mask, l_init, lopenacc)
 
     TYPE( t_time_interpolation_weights), INTENT(in) :: tiw
-    REAL(dp)       , INTENT(inout) :: tsw(:,:)
-    REAL(dp)       , INTENT(out) :: seaice(:,:)
-    REAL(dp)       , INTENT(out) :: siced(:,:)
+    REAL(wp)       , INTENT(inout) :: tsw(:,:)
+    REAL(wp)       , INTENT(out) :: seaice(:,:)
+    REAL(wp)       , INTENT(out) :: siced(:,:)
     TYPE(t_patch)  , INTENT(in)  :: p_patch
     LOGICAL        , INTENT(in)  :: mask(:,:)  !< logical mask, indicating where to apply tsw and sea ice/depth
     LOGICAL        , INTENT(in)  :: l_init     !< switch for first call at initialization
@@ -235,10 +244,10 @@ CONTAINS
     ! Note that lakes and ocean/sea ice are mutually exclusive, i.e. a cell cannot
     ! contain both lake and ocean/sea ice.
 
-    REAL(dp) :: zts(SIZE(tsw,1),SIZE(tsw,2))
-    REAL(dp) :: zic(SIZE(tsw,1),SIZE(tsw,2))
-    REAL(dp) :: ztsw(SIZE(tsw,1),SIZE(tsw,2))
-    REAL(dp), CONTIGUOUS, POINTER :: sst(:,:,:), sic(:,:,:)
+    REAL(wp) :: zts(SIZE(tsw,1),SIZE(tsw,2))
+    REAL(wp) :: zic(SIZE(tsw,1),SIZE(tsw,2))
+    REAL(wp) :: ztsw(SIZE(tsw,1),SIZE(tsw,2))
+    REAL(wp), CONTIGUOUS, POINTER :: sst(:,:,:), sic(:,:,:)
 
     INTEGER  :: jc, jb, jg, jce, nblk
 #ifdef _OPENACC
@@ -278,7 +287,7 @@ CONTAINS
     DO jb = 1, nblk
       DO jc = 1, jce
         ! assuming input data is in percent
-        seaice(jc,jb) = zic(jc,jb) * MERGE(0.01_dp, 0.0_dp, mask(jc,jb))
+        seaice(jc,jb) = zic(jc,jb) * MERGE(0.01_wp, 0.0_wp, mask(jc,jb))
       END DO
     END DO
 !$omp end do nowait
@@ -287,10 +296,10 @@ CONTAINS
     !$ACC LOOP GANG(STATIC: 1) VECTOR COLLAPSE(2)
     DO jb = 1, nblk
       DO jc = 1, jce
-        seaice(jc,jb) = MERGE(0.99_dp, seaice(jc,jb), seaice(jc,jb) > 0.99_dp)
-        seaice(jc,jb) = MERGE(0.0_dp, seaice(jc,jb), seaice(jc,jb) <= 0.01_dp)
+        seaice(jc,jb) = MERGE(0.99_wp, seaice(jc,jb), seaice(jc,jb) > 0.99_wp)
+        seaice(jc,jb) = MERGE(0.0_wp, seaice(jc,jb), seaice(jc,jb) <= 0.01_wp)
 
-        ztsw(jc,jb) = MERGE(tf_salt, MAX(zts(jc,jb), tf_salt), seaice(jc,jb) > 0.0_dp)
+        ztsw(jc,jb) = MERGE(tf_salt, MAX(zts(jc,jb), tf_salt), seaice(jc,jb) > 0.0_wp)
       END DO
     END DO
 !$omp end do nowait
@@ -321,10 +330,10 @@ CONTAINS
     !$ACC LOOP GANG(STATIC: 1) VECTOR COLLAPSE(2)
     DO jb = 1, nblk
       DO jc = 1, jce
-        IF (seaice(jc,jb) > 0.0_dp) THEN
-          siced(jc,jb) = MERGE(2._dp, 1._dp, p_patch%cells%center(jc,jb)%lat > 0.0_dp)
+        IF (seaice(jc,jb) > 0.0_wp) THEN
+          siced(jc,jb) = MERGE(2._wp, 1._wp, p_patch%cells%center(jc,jb)%lat > 0.0_wp)
         ELSE
-          siced(jc,jb) = 0._dp
+          siced(jc,jb) = 0._wp
         END IF
       END DO
     END DO

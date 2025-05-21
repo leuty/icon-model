@@ -76,8 +76,8 @@ run "make distclean" there first])])
 
 AC_ARG_ENABLE([rpaths],
   [AS_HELP_STRING([--enable-rpaths],
-     [add directories specified with -L flags in LDFLAGS and LIBS to the
-runtime library search paths (RPATH) @<:@default=yes@:>@])],
+     [add directories specified with -L flags in LDFLAGS, ICON_LDFLAGS and LIBS
+to the runtime library search paths (RPATH) @<:@default=yes@:>@])],
   [AS_IF([test x"$enableval" != xno], [enable_rpaths=yes])],
   [enable_rpaths=yes])
 
@@ -516,7 +516,8 @@ AC_ARG_ENABLE([pgi-inlib],
 
 AC_ARG_ENABLE([nccl],
   [AS_HELP_STRING([--enable-nccl],
-     [enable NCCL for communication @<:@default=no@:>@])],
+     [enable usage of the NVIDIA Collective Communications Library (NCCL)
+@<:@default=no@:>@])],
   [AS_IF([test x"$enableval" != xno], [enable_nccl=yes])],
   [enable_nccl=no])
 
@@ -725,6 +726,14 @@ component but the ART component is disabled: either disable the the dnl
 GPL-licensed code of the component (--disable-art-gpl) or enable the ART dnl
 component (--enable-art)])])])
 
+AS_VAR_IF([enable_parallel_netcdf], [yes],
+  [AS_VAR_IF([enable_mpi], [no],
+     [AC_MSG_ERROR([unsupported combination of the configure options: you dnl
+are trying to configure with the parallel features of NetCDF but MPI dnl
+(parallelization) support is disabled: either disable usage of the parallel dnl
+features of NetCDF (--disable-parallel-netcdf) or enable MPI dnl
+(parallelization) support (--enable-mpi)])])])
+
 AS_VAR_IF([enable_cdi_pio], [yes],
   [AS_VAR_IF([enable_mpi], [no],
      [AC_MSG_ERROR([unsupported combination of the configure options: you dnl
@@ -742,6 +751,12 @@ library (--without-external-cdi), or provide the version of YAXT library dnl
 (--with-external-yaxt) that the provided CDI library has been built with by dnl
 setting FCFLAGS, LDFLAGS and LIBS accordingly])])])
 
+AS_IF([test "x$enable_yaxt" = xyes && test "x$enable_mpi" = xno],
+  [AC_MSG_ERROR([unsupported combination of the configure options: you are dnl
+trying to configure with the YAXT data exchange but MPI (parallelization) dnl
+support is disabled: either disable the YAXT data exchange (--disable-yaxt) dnl
+or enable MPI (parallelization) support (--enable-mpi)])])
+
 AS_CASE(["$with_external_mtime$icon_mtime_python"],
   [yesyes], [AC_MSG_ERROR([unsupported combination of the configure options: dnl
 you are trying to configure with the Python interface of the bundled MTIME dnl
@@ -751,21 +766,27 @@ version of MTIME library (--without-external-mtime)])],
   [noauto], [icon_mtime_python=yes],
   [*auto], [icon_mtime_python=no])
 
-AS_IF([test "x$enable_coupling" = xyes && test "x$with_external_yac" = xyes],
-  [AS_VAR_IF([with_external_mtime], [no],
+AS_VAR_IF([enable_coupling], [yes],
+  [AS_VAR_IF([enable_mpi], [no],
      [AC_MSG_ERROR([unsupported combination of the configure options: you dnl
+are trying to configure with the coupling but MPI (parallelization) support dnl
+is disabled: either disable the coupling (--disable-coupling) or enable MPI dnl
+(parallelization) support (--enable-mpi)])])
+   AS_VAR_IF([x$with_external_yac], [yes],
+     [AS_VAR_IF([with_external_mtime], [no],
+        [AC_MSG_ERROR([unsupported combination of the configure options: you dnl
 are trying to configure with an external YAC library and the bundled MTIME dnl
 library: either disable the coupling (--disable-coupling) or use the bundled dnl
 version of YAC library (--without-external-yac), or provide the version of dnl
 MTIME library (--with-external-mtime) that the provided YAC library has been dnl
 built with by setting FCFLAGS, LDFLAGS and LIBS accordingly])])
-   AS_VAR_IF([with_external_yaxt], [no],
-     [AC_MSG_ERROR([unsupported combination of the configure options: you dnl
+      AS_VAR_IF([with_external_yaxt], [no],
+        [AC_MSG_ERROR([unsupported combination of the configure options: you dnl
 are trying to configure with an external YAC library and the bundled YAXT dnl
 library: either disable the coupling (--disable-coupling) or use the bundled dnl
 version of YAC library (--without-external-yac), or provide the version of dnl
 YAXT library (--with-external-yaxt) that the provided YAC library has been dnl
-built with by setting FCFLAGS, LDFLAGS and LIBS accordingly])])])
+built with by setting FCFLAGS, LDFLAGS and LIBS accordingly])])])])
 
 AS_CASE(["$enable_coupling$with_external_yac$icon_yac_python"],
   [no*yes], [AC_MSG_ERROR([unsupported combination of the configure options: dnl
@@ -850,14 +871,14 @@ dnl Save the flags to pass them later to the bundled packages:
 subdir_FCFLAGS=$FCFLAGS
 
 dnl Make sure the configure checks are run with ICON_*FLAGS:
-AS_VAR_APPEND([LDFLAGS], ["${ICON_LDFLAGS:+ }${ICON_LDFLAGS}"])
-dnl We cannot literally append ICON_FCFLAGS to FCFLAGS now because it will be
-dnl difficult to replace ICON_FCFLAGS with ICON_OCEAN_FCFLAGS afterwards.
-dnl Instead, we make sure that all the checks are run with
-dnl '$FCFLAGS $ICON_FCFLAGS':
+dnl   Note that we cannot literally append ICON_FCFLAGS to FCFLAGS now because
+dnl   it will be difficult to replace ICON_FCFLAGS with ICON_<NAME>_FCFLAGS (see
+dnl   Fortran compile groups). We do not append ICON_LDFLAGS to LDFLAGS either
+dnl   because the former is meant for the Fortran compiler only and the latter
+dnl   is used for configure-time check with other languages.
 m4_pushdef([AC_LANG(Fortran)],
   m4_bpatsubst(m4_dquote(m4_defn([AC_LANG(Fortran)])),
-    [FCFLAGS],[FCFLAGS $ICON_FCFLAGS]))dnl
+    [FCFLAGS\|LDFLAGS],[\& $ICON_\&]))dnl
 
 dnl Delay the cross-compilation check:
 ACX_COMPILER_CROSS_CHECK_DELAY
@@ -928,9 +949,10 @@ AC_SUBST([FC_VERSION], [$acx_cv_fc_compiler_version])
 dnl Generate RPATH flags:
 AS_VAR_IF([enable_rpaths], [yes],
   [ACX_SHLIB_FC_RPATH_FLAG
-   ASX_EXTRACT_ARGS([icon_L_args], ["$LDFLAGS $LIBS"], ['-L@<:@ @:>@*'])
+   ASX_EXTRACT_ARGS([icon_L_args],
+     ["$LDFLAGS $ICON_LDFLAGS $LIBS"], ['-L@<:@ @:>@*'])
    for icon_L_arg in $icon_L_args; do
-     ASX_VAR_APPEND_UNIQ([LDFLAGS], ["$acx_cv_fc_rpath_flag$icon_L_arg"], [' '])
+     ASX_VAR_APPEND_UNIQ([ICON_LDFLAGS], ["$acx_cv_fc_rpath_flag$icon_L_arg"], [' '])
    done
    ACX_SHLIB_RPATH_FLAGS_CHECK])
 
@@ -1104,9 +1126,6 @@ AS_VAR_IF([enable_mixed_precision], [yes],
 AS_VAR_IF([enable_intel_consistency], [yes],
   [AS_VAR_APPEND([FCFLAGS], [" ${FC_PP_DEF}IFORT_CONSISTENCY_ENFORCE"])])
 
-AS_VAR_IF([enable_nccl], [yes],
-  [AS_VAR_APPEND([FCFLAGS], [" ${FC_PP_DEF}USE_NCCL"])])
-
 AS_VAR_IF([enable_cuda_graphs], [yes],
   [icon_warn=yes
    AS_CASE(["$FC_VENDOR,$FC_VERSION"],
@@ -1184,20 +1203,28 @@ export CXX
 
 ###################### SECONDARY GPU COMPILERS AND FLAGS #######################
 
+dnl Save the flags to pass them later to the bundled packages:
+subdir_CUDAFLAGS=${CUDAFLAGS-}
+subdir_HIPFLAGS=${HIPFLAGS-}
+
+icon_gpu_secondary_arch=unknown
 dnl We do not use AS_CASE to prevent checking for CUDACXX and HIPCXX when GPU
 dnl support is disabled:
 case $icon_gpu_secondary in #(
   cuda) :
-dnl Honor NVCC and NVCFLAGS for backwards compatibility:
-    AS_IF([${CUDACXX+false} : && ${NVCC+:} false],
-      [CUDACXX=$NVCC
-       AC_MSG_WARN(
-         [variable NVCC is deprecated: use variable CUDACXX instead])])
-    AS_IF([${CUDAFLAGS+false} : && ${NVCFLAGS+:} false],
-      [CUDAFLAGS=$NVCFLAGS
-       AC_MSG_WARN(
-         [variable NVCFLAGS is deprecated: use variable CUDAFLAGS instead])])
+dnl Override the default flags set by ACX_PROG_CUDACXX:
+    CUDAFLAGS=${CUDAFLAGS-}
+dnl Make sure the configure checks are run with ICON_CUDAFLAGS:
+    AS_VAR_APPEND([CUDAFLAGS], ["${ICON_CUDAFLAGS:+ }${ICON_CUDAFLAGS}"])
     ACX_PROG_CUDACXX
+dnl Make sure that the bundled packages pick up the same CUDACXX if not set by
+dnl the user on the command line:
+    export CUDACXX
+dnl We put the following declaration here (i.e. after AC_PROG_CUDAXX) for better
+dnl readability of the help message:
+    AC_ARG_VAR([ICON_CUDAFLAGS],
+      [CUDA C++ compiler flags to be appended to CUDAFLAGS when configuring
+ICON])dnl
     AS_CASE([$acx_prog_cudacxx_works],
       [no],
       [AC_MSG_FAILURE([unable to find a working CUDA Compiler: either switch dnl
@@ -1210,6 +1237,35 @@ support for the C++11 standard: either switch the secondary GPU compiler dnl
 (--disable-gpu), or set CUDAFLAGS accordingly])],
       [CUDAFLAGS=dnl
 "AS_VAR_GET([acx_cv_prog_cudacxx_${acx_prog_cudacxx_works}_flag]) $CUDAFLAGS"])
+    m4_define([ICON_NVIDIA_ARCH_DETECT],
+      [icon_nvidia_arch=unknown
+       AC_LANG_CONFTEST([AC_LANG_PROGRAM([],
+         [[#define CONFTEST_FIRST_ARG_helper(x, ...) x
+#define CONFTEST_FIRST_ARG(x, ...) CONFTEST_FIRST_ARG_helper(x)
+#define ICON_NVIDIA_ARCH CONFTEST_FIRST_ARG(__CUDA_ARCH_LIST__)
+#if ICON_NVIDIA_ARCH != ICON_EXPECTED_NVIDIA_ARCH
+choke me
+#endif]])])
+       icon_save_[]_AC_LANG_PREFIX[]FLAGS=$[]_AC_LANG_PREFIX[]FLAGS
+       for icon_tmp in 800 900 1000 890 860 750 610 600 1200 \
+                       870 720 700 530 520 500 370 350 320 300; do
+         _AC_LANG_PREFIX[]FLAGS="${acx_save_[]_AC_LANG_PREFIX[]FLAGS} dnl
+-DICON_EXPECTED_NVIDIA_ARCH=${icon_tmp}"
+         AC_COMPILE_IFELSE([], [icon_nvidia_arch=$icon_tmp])
+         test "x$icon_nvidia_arch" != xunknown && break
+       done
+       rm -f conftest.$ac_ext
+       _AC_LANG_PREFIX[]FLAGS=$icon_save_[]_AC_LANG_PREFIX[]FLAGS])dnl
+    AC_CACHE_CHECK([for the CUDA architecture], [icon_cv_cuda_arch],
+      [icon_cv_cuda_arch=unknown
+       ACX_LANG_PUSH_CUDA
+       ICON_NVIDIA_ARCH_DETECT
+       icon_cv_cuda_arch=$icon_nvidia_arch
+       ACX_LANG_POP_CUDA])
+    AS_VAR_IF([icon_cv_cuda_arch], [unknown],
+      [AC_MSG_WARN([unable to detect the CUDA architecture specified in the dnl
+compiler invocation])],
+      [icon_gpu_secondary_arch=$icon_cv_cuda_arch])
     AC_LANG_PUSH([Fortran])
     ACX_LANG_CUDA_COMPATIBLE([],
       [AC_MSG_FAILURE([Fortran compiler cannot link objects compiled with dnl
@@ -1223,7 +1279,19 @@ accordingly])])
     AC_LANG_POP([Fortran])
     HIPCXX=; HIPFLAGS= ;; #(
   hip) :
+dnl Override the default flags set by ACX_PROG_HIPCXX:
+    HIPFLAGS=${HIPFLAGS-}
+dnl Make sure the configure checks are run with ICON_HIPFLAGS:
+    AS_VAR_APPEND([HIPFLAGS], ["${ICON_HIPFLAGS:+ }${ICON_HIPFLAGS}"])
     ACX_PROG_HIPCXX
+dnl Make sure that the bundled packages pick up the same HIPCXX if not set by
+dnl the user on the command line:
+    export HIPCXX
+dnl We put the following declaration here (i.e. after AC_PROG_HIPXX) for better
+dnl readability of the help message:
+    AC_ARG_VAR([ICON_HIPFLAGS],
+      [HIP C++ compiler flags to be appended to HIPFLAGS when configuring
+ICON])dnl
     AS_CASE([$acx_prog_hipcxx_works],
       [no],
       [AC_MSG_FAILURE([unable to find a working HIP Compiler: either switch dnl
@@ -1236,6 +1304,32 @@ support for the C++11 standard: either switch the secondary GPU compiler dnl
 (--disable-gpu), or set HIPFLAGS accordingly])],
       [HIPFLAGS=dnl
 "AS_VAR_GET([acx_cv_prog_hipcxx_${acx_prog_hipcxx_works}_flag]) $HIPFLAGS"])
+    AC_CACHE_CHECK([for the HIP architecture], [icon_cv_hip_arch],
+      [icon_cv_hip_arch=unknown
+       ACX_LANG_PUSH_HIP
+       ACX_LANG_MACRO_CHECK_DEFINED_SILENT([__CUDACC__])
+       AS_VAR_IF([acx_macro_defined], [yes],
+         [ICON_NVIDIA_ARCH_DETECT
+          icon_cv_hip_arch=$icon_nvidia_arch],
+         [for icon_amd_arch in gfx90a gfx1103 gfx1100 gfx1030 \
+                               gfx940 gfx942 gfx908 gfx906; do
+            ACX_LANG_MACRO_CHECK_DEFINED_SILENT([ICON_AMD_ARCH_DETECTED],
+              [#ifdef __HIP_DEVICE_COMPILE__
+#ifdef __${icon_amd_arch}__
+#define ICON_AMD_ARCH_DETECTED
+#endif
+#else
+#define ICON_AMD_ARCH_DETECTED
+#endif])
+            AS_VAR_IF([acx_macro_defined], [yes],
+              [icon_cv_hip_arch=$icon_amd_arch
+               break])
+          done
+          ACX_LANG_POP_HIP])])
+    AS_VAR_IF([icon_cv_hip_arch], [unknown],
+      [AC_MSG_WARN([unable to detect the HIP architecture specified in the dnl
+compiler invocation])],
+      [icon_gpu_secondary_arch=$icon_cv_hip_arch])
     AC_LANG_PUSH([Fortran])
     ACX_LANG_HIP_COMPATIBLE([],
       [AC_MSG_FAILURE([Fortran compiler cannot link objects compiled with dnl
@@ -1343,7 +1437,26 @@ switch the secondary GPU compiler (e.g. dnl
      [[// override default includes]])
    ACX_LANG_POP_HIP])
 
-AS_IF([test "x$enable_mpi" = xyes || test "x$enable_yaxt" = xyes],
+AS_VAR_IF([enable_nccl], [yes],
+  [AC_CACHE_CHECK([whether NCCL library is available], [icon_cv_have_nccl],
+     [icon_cv_have_nccl=no
+      AC_LINK_IFELSE([AC_LANG_PROGRAM([], [[
+       use nccl
+       implicit none
+       TYPE(ncclResult) :: ierror
+       ierror = ncclGroupStart()]])],
+        [icon_cv_have_nccl=yes])])
+   AS_VAR_IF([icon_cv_have_nccl], [yes],
+     [AS_VAR_APPEND([FCFLAGS], [" ${FC_PP_DEF}USE_NCCL"])],
+     [AC_MSG_FAILURE([unable to link a test program using NCCL library: dnl
+either disable usage of the NVIDIA Collective Communications Library dnl
+(--disable-nccl) or set LDFLAGS and LIBS accordingly])])])
+
+dnl The positive value (yes) of the following variable indicates that we have a
+dnl working MPI_LAUNCH command:
+icon_have_mpi_launch=no
+
+AS_VAR_IF([enable_mpi], [yes],
   [AC_CACHE_CHECK([whether the Fortran 90 interface of MPI library is dnl
 available], [icon_cv_have_mpi],
      [icon_cv_have_mpi=no
@@ -1360,6 +1473,14 @@ available], [icon_cv_have_mpi],
 interface of MPI library: either disable MPI support (--disable-mpi) and the dnl
 YAXT data exchange (--disable-yaxt) or set FC to the MPI Fortran compiler dnl
 wrapper, or set FCFLAGS, LDFLAGS and LIBS accordingly])])
+dnl
+dnl We check whether MPI_LAUNCH works as early as possible because we might need
+dnl it for the following library checks (the respective precious variable is
+dnl declared below, together with other auxiliary commands):
+   ACX_PROG_MPIRUN([MPI_LAUNCH],
+     [MPI_LAUNCH=$acx_cv_prog_mpirun
+      ACX_PROG_SEARCH_ABSPATH_IF_NOT_ABSPATH([MPI_LAUNCH])
+      icon_have_mpi_launch=yes], [:])
 dnl
    AC_MSG_CHECKING([for the version of the supported MPI standard])
    AS_IF([AS_VAR_TEST_SET([icon_cv_mpi_version]) &&
@@ -1394,7 +1515,7 @@ required (--disable-mpi-rget)])
          enable_mpi_rget=yes],
         [enable_mpi_rget=no])])
    AS_VAR_IF([enable_mpi_rget], [no],
-     [AS_VAR_APPEND([FCFLAGS], [" ${FC_PP_DEF}NO_MPI_RGET"])])])
+     [AS_VAR_APPEND([FCFLAGS], [" ${FC_PP_DEF}NO_MPI_RGET"])])
 dnl
    AC_CACHE_CHECK(
      [for interfaces for MPI routines with choice arguments],
@@ -1422,7 +1543,7 @@ dnl
        [icon_cv_have_mpi_cptr=yes],
        [icon_cv_have_mpi_cptr=no])])
     AS_VAR_IF([icon_cv_have_mpi_cptr], [no],
-      [AS_VAR_APPEND([FCFLAGS], [" ${FC_PP_DEF}NO_MPI_CPTR_ARG"])])
+      [AS_VAR_APPEND([FCFLAGS], [" ${FC_PP_DEF}NO_MPI_CPTR_ARG"])])])
 
 AS_VAR_IF([enable_emvorado], [yes],
   [AC_CACHE_CHECK([whether C ZLIB library is available via the Fortran dnl
@@ -1508,17 +1629,12 @@ dnl launcher on some platforms. Moreover, MPI launchers often return invalid
 dnl exit codes. Therefore, we build a test program that prints
 dnl 'conftest_parallel_yes' if NetCDF-Fortran library is built with parallel
 dnl support, otherwise, the output is 'conftest_parallel_no'. We launch the
-dnl program only if MPI_LAUNCH is set to a non-empty value and fail the
-dnl configuration only if the output of the test program contains
+dnl program with MPI_LAUNCH if it is known to work and without it otherwise. We
+dnl fail the configuration only if the output of the test program contains
 dnl 'conftest_parallel_no' (some MPI implementations print warning messages to
 dnl the standard output stream, therefore we cannot compare the output
 dnl literally). If the output contains, 'conftest_parallel_yes', the test is
-dnl considered successful. In all other cases, we issue a warning. Note that we
-dnl do not run a proper check whether MPI_LAUNCH is a valid interactive MPI
-dnl launcher command (as some of the bundled packages do) because the main
-dnl purpose of the test is to bring the user's attention to the fact that
-dnl something is wrong, and if MPI_LAUNCH command is invalid, we will not get
-dnl the expected output from the test program and issue a warning.
+dnl considered successful. In all other cases, we issue a warning.
       AC_LINK_IFELSE([AC_LANG_PROGRAM([], [[
       use mpi, only: mpi_init, mpi_finalize, &
                    & MPI_COMM_WORLD, MPI_INFO_NULL
@@ -1538,8 +1654,10 @@ dnl the expected output from the test program and issue a warning.
         write(*,"(a)") "conftest_parallel_yes"
       endif
       call mpi_finalize(tmp)]])],
-        [icon_exec_result=dnl
-`${MPI_LAUNCH:-false} -n 1 ./conftest$ac_exeext 2>/dev/null`
+        [icon_exec_prefix=
+         AS_VAR_IF([icon_have_mpi_launch], [yes],
+           [icon_exec_prefix="$MPI_LAUNCH -n 1"])
+         icon_exec_result=`$icon_exec_prefix ./conftest$ac_exeext 2>/dev/null`
          rm -f conftest.nc
          AS_IF(
            [echo "$icon_exec_result" | dnl
@@ -1882,14 +2000,6 @@ dnl The message generated by AC_PROG_LN_S is misleading in our case, therefore
 dnl we do what the standard macro does but without the message:
 AC_SUBST([LN_S], [$as_ln_s])
 
-m4_define([icon_prog_search_if_not_abspath],
-  [AS_CASE([AS_VAR_GET([$1])],
-     [[[\\/]]* | ?:[[\\/]]*], [],
-     [ACX_PROG_SEARCH_ABSPATH([AS_VAR_GET([$1])],
-        [AS_VAR_SET([$1], ["$acx_prog_search_abspath"])],
-        [AC_MSG_WARN(
-           [unable to find the absolute path to AS_VAR_GET([$1])])])])])dnl
-
 AC_ARG_VAR([AR], [archiver command])dnl
 AC_ARG_VAR([ARFLAGS], [archiver flags])dnl
 ARFLAGS=${ARFLAGS-cr}
@@ -1901,11 +2011,11 @@ ACX_PROG_SEARCH([AR], [ar],
       rm -f libconftest.a])
    test $ac_status -eq 0],
   [AR=$acx_cv_prog_AR])
-icon_prog_search_if_not_abspath([AR])
+ACX_PROG_SEARCH_ABSPATH_IF_NOT_ABSPATH([AR])
 
 AC_ARG_VAR([RANLIB], [archive indexer command])dnl
 AC_PROG_RANLIB
-icon_prog_search_if_not_abspath([RANLIB])
+ACX_PROG_SEARCH_ABSPATH_IF_NOT_ABSPATH([RANLIB])
 
 AC_ARG_VAR([PYTHON], [Python interpreter command])dnl
 ACX_PROG_SEARCH([PYTHON], [python3 python],
@@ -1913,14 +2023,14 @@ ACX_PROG_SEARCH([PYTHON], [python3 python],
 '$acx_candidate $srcdir/utils/mkhelper/depgen.py -h >/dev/null'
    AC_TRY_EVAL([icon_prog_try])],
   [PYTHON=$acx_cv_prog_PYTHON])
-icon_prog_search_if_not_abspath([PYTHON])
+ACX_PROG_SEARCH_ABSPATH_IF_NOT_ABSPATH([PYTHON])
 
 AC_ARG_VAR([CMAKE], [CMake command])dnl
 ACX_PROG_SEARCH([CMAKE], [cmake],
   [icon_prog_try='$acx_candidate --version >&AS_MESSAGE_LOG_FD'
    AC_TRY_EVAL([icon_prog_try])],
   [CMAKE=$acx_cv_prog_CMAKE])
-icon_prog_search_if_not_abspath([CMAKE])
+ACX_PROG_SEARCH_ABSPATH_IF_NOT_ABSPATH([CMAKE])
 
 AC_ARG_VAR([FPP], [Fortran preprocessor command])dnl
 AS_VAR_IF([enable_explicit_fpp], [yes],
@@ -1962,7 +2072,25 @@ in the PYTHONPATH environment variable, or set SB2PP accordingly])])],
    [SB2PP=])
 
 AC_ARG_VAR([MPI_LAUNCH], [interactive MPI launcher command])dnl
-AS_IF([test -n "$MPI_LAUNCH"], [icon_prog_search_if_not_abspath([MPI_LAUNCH])])
+dnl Save the command to pass it later to the bundled packages.
+AS_VAR_IF([icon_have_mpi_launch], [yes],
+  [dnl The command works and should be passed to bundled packages:
+   subdir_MPI_LAUNCH=$MPI_LAUNCH],
+  [dnl We either did not check whether the command works or it does not work, or
+dnl it works but we failed to detect that. The bundled packages are free to try
+dnl to do better. Some of them, however, see the difference between MPI_LAUNCH
+dnl not being set and being set to an empty string. Therefore, we make sure that
+dnl subdir_MPI_LAUNCH is unset when MPI_LAUNCH is not set (i.e. not provided by
+dnl the user):
+   AS_VAR_SET_IF([MPI_LAUNCH],
+     [subdir_MPI_LAUNCH=$MPI_LAUNCH],
+     [AS_UNSET([subdir_MPI_LAUNCH])])
+dnl We are not going to use MPI_LAUNCH ourselves:
+   MPI_LAUNCH=
+dnl Some of the bundled packages honour MPI_LAUNCH only if it is an absolute
+dnl path:
+   AS_IF([test -n "$subdir_MPI_LAUNCH"],
+     [ACX_PROG_SEARCH_ABSPATH_IF_NOT_ABSPATH([subdir_MPI_LAUNCH])])])
 
 ############################### BUNDLED PACKAGES ###############################
 
@@ -1979,6 +2107,16 @@ ICON_BUNDLED_CFLAGS=${ICON_BUNDLED_CFLAGS-$ICON_CFLAGS}
 AC_ARG_VAR([ICON_BUNDLED_CXXFLAGS],
   [C++ compiler flags to be appended to CXXFLAGS when configuring the bundled
 packages])dnl
+
+AC_ARG_VAR([ICON_BUNDLED_CUDAFLAGS],
+  [CUDA C++ compiler flags to be appended to CUDAFLAGS when configuring the
+bundled packages @<:@default=$ICON_CUDAFLAGS@:>@])dnl
+ICON_BUNDLED_CUDAFLAGS=${ICON_BUNDLED_CUDAFLAGS-$ICON_CUDAFLAGS}
+
+AC_ARG_VAR([ICON_BUNDLED_HIPFLAGS],
+  [HIP C++ compiler flags to be appended to HIPFLAGS when configuring the
+bundled packages @<:@default=$ICON_HIPFLAGS@:>@])dnl
+ICON_BUNDLED_HIPFLAGS=${ICON_BUNDLED_HIPFLAGS-$ICON_HIPFLAGS}
 
 dnl A list of paths to the build directories of the CMake-bundled packages:
 bundled_CMAKE_PREFIX_PATH=
@@ -2138,7 +2276,7 @@ version of SCT library @<:@default=$ICON_BUNDLED_CFLAGS@:>@])dnl
    ACX_SUBDIR_APPEND_ARGS([externals/sct],
      [CFLAGS="$subdir_CFLAGS $ICON_SCT_CFLAGS"],
      [FCFLAGS="$subdir_FCFLAGS $ICON_SCT_FCFLAGS"], [AR="$AR"],
-     [RANLIB="$RANLIB"], [MPICC=], [MPIFC=], [MPI_LAUNCH="$MPI_LAUNCH"],
+     [RANLIB="$RANLIB"], [MPICC=], [MPIFC=], [MPI_LAUNCH="$subdir_MPI_LAUNCH"],
      [--enable-static], [--disable-shared], [--disable-maintainer-mode],
      [--enable-mpi="$enable_mpi"], [--enable-openmp="$enable_openmp"],
      [--disable-rpath], [--disable-papi], [--enable-hdf5],
@@ -2209,7 +2347,7 @@ version of YAXT library @<:@default=$ICON_BUNDLED_CFLAGS@:>@])dnl
       ACX_SUBDIR_APPEND_ARGS([externals/yaxt],
         [CFLAGS="$subdir_CFLAGS $ICON_YAXT_CFLAGS"],
         [FCFLAGS="$subdir_FCFLAGS $ICON_YAXT_FCFLAGS"], [AR="$AR"],
-        [RANLIB="$RANLIB"], [MPI_LAUNCH="$MPI_LAUNCH"], [MPIROOT=],
+        [RANLIB="$RANLIB"], [MPI_LAUNCH="$subdir_MPI_LAUNCH"], [MPIROOT=],
         [MPI_C_INCLUDE=], [MPI_C_LIB=], [MPI_FC_MOD=], [MPI_FC_LIB=],
         [BUILD_CFLAGS=], [BUILD_FCFLAGS=], [BUILD_LDFLAGS=], [BUILD_LIBS=],
         [BUILD_CC=], [BUILD_FC=],
@@ -2296,7 +2434,7 @@ version of PPM library @<:@default=$ICON_BUNDLED_CFLAGS@:>@])dnl
       ACX_SUBDIR_APPEND_ARGS([externals/ppm],
         [CFLAGS="$subdir_CFLAGS $ICON_PPM_CFLAGS"],
         [FCFLAGS="$subdir_FCFLAGS $ICON_PPM_FCFLAGS"],
-        [MPI_LAUNCH="$MPI_LAUNCH"], [AR="$AR"], [RANLIB="$RANLIB"],
+        [MPI_LAUNCH="$subdir_MPI_LAUNCH"], [AR="$AR"], [RANLIB="$RANLIB"],
         [PYTHON="$PYTHON"], [PLATFORM_OPT_LIBM=], [IEEE_ARITHMETICROOT=],
         [IEEE_ARITHMETIC_FC_MOD=], [IEEE_ARITHMETIC_FC_LIB=],
         [IEEE_ARHMETIC_FCFLAGS=], [MPIROOT=], [MPI_C_INCLUDE=], [MPI_C_LIB=],
@@ -2392,12 +2530,13 @@ dnl the C++ compiler at all (e.g. like in YAXT).
      [UTIL_LINUX_UUID_C_INCLUDE=], [UTIL_LINUX_UUID_C_LIB=],
      [OSSP_UUID_C_INCLUDE=], [OSSP_UUID_C_LIB=], [DCE_UUID_C_INCLUDE=],
      [DCE_UUID_C_LIB=], [MPIROOT=], [MPI_C_INCLUDE=], [MPI_C_LIB=],
-     [MPI_LAUNCH="$MPI_LAUNCH"], [MPI_FC_MOD=], [MPI_FC_LIB=], [PKG_CONFIG=],
-     [YAXT_C_INCLUDE=], [YAXT_C_LIB=], [YAXT_FC_MOD=], [YAXT_FC_LIB=],
-     [PPM_CORE_C_INCLUDE=], [PPM_CORE_C_LIB=], [PYTHON="$PYTHON"],
-     [BUILD_CFLAGS=], [BUILD_FCFLAGS=], [BUILD_LDFLAGS=], [BUILD_LIBS=],
-     [BUILD_MPI_C_LIB=], [BUILD_MPI_FC_LIB=], [BUILD_CC=], [BUILD_CXX=],
-     [BUILD_FC=], [BUILD_F77=], [--enable-silent-rules="$enable_silent_rules"],
+     [MPI_LAUNCH="$subdir_MPI_LAUNCH"], [MPI_FC_MOD=], [MPI_FC_LIB=],
+     [PKG_CONFIG=], [YAXT_C_INCLUDE=], [YAXT_C_LIB=], [YAXT_FC_MOD=],
+     [YAXT_FC_LIB=], [PPM_CORE_C_INCLUDE=], [PPM_CORE_C_LIB=],
+     [PYTHON="$PYTHON"], [BUILD_CFLAGS=], [BUILD_FCFLAGS=], [BUILD_LDFLAGS=],
+     [BUILD_LIBS=], [BUILD_MPI_C_LIB=], [BUILD_MPI_FC_LIB=], [BUILD_CC=],
+     [BUILD_CXX=], [BUILD_FC=], [BUILD_F77=],
+     [--enable-silent-rules="$enable_silent_rules"],
      [--disable-maintainer-mode], [--enable-mpi="$enable_cdi_pio"],
      [--enable-iso-c-interface], [--enable-cf-interface="$enable_cdi_pio"],
      [--disable-ruby-interface], [--disable-python-interface],
@@ -2571,8 +2710,9 @@ version of YAC library @<:@default=$ICON_BUNDLED_CFLAGS@:>@])dnl
      [--enable-netcdf], [--enable-python-bindings="$icon_yac_python"],
      [--with-pic="$icon_yac_python"], [--with-external-lapack=fortran],
      [--with-external-mtime])
-   AS_VAR_SET_IF([MPI_LAUNCH],
-     [ACX_SUBDIR_APPEND_ARGS([externals/yac], [MPI_LAUNCH="$MPI_LAUNCH"])])
+   AS_VAR_SET_IF([subdir_MPI_LAUNCH],
+     [ACX_SUBDIR_APPEND_ARGS([externals/yac],
+        [MPI_LAUNCH="$subdir_MPI_LAUNCH"])])
    AS_VAR_IF([with_external_yaxt], [yes],
      [ACX_SUBDIR_APPEND_ARGS([externals/yac],
         [YAXT_CFLAGS=], [YAXT_FCFLAGS=])],
@@ -2873,10 +3013,11 @@ dnl or register all the libraries for the configuration by this top-level
 dnl configure script:
 AS_VAR_IF([enable_delayed_config], [yes],
   [dnl
-dnl Make sure that the bundled packages pick up the same FC, CC and CXX if not
-dnl set by the user on the command line when configuring ICON:
+dnl Make sure that the bundled packages pick up the same FC, CC, CXX, CUDACXX
+dnl and HIPCXX if not set by the user on the command line when configuring ICON:
    AS_VAR_APPEND([BUNDLED_RULES],
-     ["$as_nl@%:@ Configure delayed bundled packages:${as_nl}export FC CC CXX"])
+     ["$as_nl@%:@ Configure delayed bundled packages:
+export FC CC CXX CUDACXX HIPCXX"])
    for icon_bundled_builddir in $extra_build_subdirs; do
      ACX_SUBDIR_GET_RUN_CMD([icon_bundled_config_cmd], [$icon_bundled_builddir])
      ACX_SUBDIR_GET_BUILD_TYPE([icon_bundled_type], [$icon_bundled_builddir])

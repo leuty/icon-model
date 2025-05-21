@@ -20,7 +20,7 @@
 
 MODULE mo_bc_greenhouse_gases
 
-  USE mo_kind,               ONLY: wp, dp, i8
+  USE mo_kind,               ONLY: wp, i8
   USE mo_exception,          ONLY: finish, message, message_text, warning
   USE mo_physical_constants, ONLY: vmr_to_mmr_co2, vmr_to_mmr_ch4, vmr_to_mmr_n2o, vmr_to_mmr_c11, vmr_to_mmr_c12
   USE mo_netcdf,             ONLY: nf90_noerr, nf90_nowrite, nf90_max_var_dims
@@ -60,9 +60,11 @@ MODULE mo_bc_greenhouse_gases
 
   REAL(wp), PROTECTED :: ghg_co2mmr, ghg_ch4mmr, ghg_n2ommr
   REAL(wp), PROTECTED :: ghg_cfcmmr(ghg_no_cfc)
+  !$ACC DECLARE CREATE(ghg_co2mmr, ghg_ch4mmr, ghg_n2ommr, ghg_cfcmmr)
 
   REAL(wp), PROTECTED :: ghg_co2vmr, ghg_ch4vmr, ghg_n2ovmr
   REAL(wp), PROTECTED :: ghg_cfcvmr(ghg_no_cfc)
+  !$ACC DECLARE CREATE(ghg_co2vmr, ghg_ch4vmr, ghg_n2ovmr, ghg_cfcvmr)
 
   LOGICAL, SAVE :: bc_greenhouse_gases_file_read = .FALSE.
 
@@ -90,7 +92,7 @@ CONTAINS
     ALLOCATE (ghg_ch4(ghg_no_years))
     ALLOCATE (ghg_n2o(ghg_no_years))
     ALLOCATE (ghg_cfc(ghg_no_years,ghg_no_cfc))
-    !$ACC ENTER DATA PCREATE(ghg_years, ghg_co2, ghg_ch4, ghg_n2o, ghg_cfc, ghg_cfcmmr, ghg_cfcvmr)
+    !$ACC ENTER DATA CREATE(ghg_years, ghg_co2, ghg_ch4, ghg_n2o, ghg_cfc)
 
     CALL nf_check(p_nf90_inq_varid (ncid, 'time', nvarid))
     CALL nf_check(p_nf90_get_var (ncid, nvarid, ghg_years))
@@ -137,18 +139,18 @@ CONTAINS
     TYPE(datetime), POINTER, INTENT(in) :: radiation_date
     LOGICAL, INTENT(IN), OPTIONAL :: print_report
 
-    REAL(dp) :: zsecref, zsecnow
-    REAL(dp) :: zw1, zw2
+    REAL(wp) :: zsecref, zsecnow
+    REAL(wp) :: zw1, zw2
     REAL(wp) :: zco2int, zch4int, zn2oint
     REAL(wp) :: zcfc(ghg_no_cfc)
     INTEGER :: iyear, iyearm, iyearp
 
     ! interpolation in time
 
-    zsecref =   REAL(getNoOfDaysInYearDateTime(radiation_date)*NO_OF_SEC_IN_A_DAY, dp)
-    zsecnow =   REAL(getDayOfYearFromDateTime(radiation_date)-1, dp) * REAL(NO_OF_SEC_IN_A_DAY, dp) &
-      &       + REAL(getNoOfSecondsElapsedInDayDateTime(radiation_date), dp)                        &
-      &       + REAL(radiation_date%time%ms, dp) / REAL(NO_OF_MS_IN_A_SECOND, dp)
+    zsecref =   REAL(getNoOfDaysInYearDateTime(radiation_date)*NO_OF_SEC_IN_A_DAY, wp)
+    zsecnow =   REAL(getDayOfYearFromDateTime(radiation_date)-1, wp) * REAL(NO_OF_SEC_IN_A_DAY, wp) &
+      &       + REAL(getNoOfSecondsElapsedInDayDateTime(radiation_date), wp)                        &
+      &       + REAL(radiation_date%time%ms, wp) / REAL(NO_OF_MS_IN_A_SECOND, wp)
 
     iyear  = radiation_date%date%year - INT(ghg_base_year) + 1   ! set right index to access in ghg fields
     iyearm = iyear - 1
@@ -170,8 +172,8 @@ CONTAINS
 
       ENDIF
 
-      zw1 = zsecnow/zsecref + 0.5_dp
-      zw2 = 1.0_dp - zw1
+      zw1 = zsecnow/zsecref + 0.5_wp
+      zw2 = 1.0_wp - zw1
 
       zco2int   = 1.0e-06_wp * ( zw1*ghg_co2(iyear)   + zw2*ghg_co2(iyearm)   )
       zch4int   = 1.0e-09_wp * ( zw1*ghg_ch4(iyear)   + zw2*ghg_ch4(iyearm)   )
@@ -190,8 +192,8 @@ CONTAINS
 
       ENDIF
 
-      zw2= zsecnow/zsecref - 0.5_dp
-      zw1= 1.0_dp - zw2
+      zw2= zsecnow/zsecref - 0.5_wp
+      zw1= 1.0_wp - zw2
 
       zco2int   = 1.0e-06_wp * ( zw1*ghg_co2(iyear)   + zw2*ghg_co2(iyearp)   )
       zch4int   = 1.0e-09_wp * ( zw1*ghg_ch4(iyear)   + zw2*ghg_ch4(iyearp)   )
@@ -226,7 +228,8 @@ CONTAINS
       END IF
     END IF
 
-    !$ACC UPDATE DEVICE(ghg_cfcvmr, ghg_cfcmmr) ASYNC(1)
+    !$ACC UPDATE DEVICE(ghg_co2mmr, ghg_ch4mmr, ghg_n2ommr, ghg_cfcmmr) &
+    !$ACC   DEVICE(ghg_co2vmr, ghg_ch4vmr, ghg_n2ovmr, ghg_cfcvmr)
 
   END SUBROUTINE bc_greenhouse_gases_time_interpolation
 
@@ -237,7 +240,6 @@ CONTAINS
     !$ACC EXIT DATA DELETE(ghg_ch4) IF(ALLOCATED(ghg_ch4))
     !$ACC EXIT DATA DELETE(ghg_n2o) IF(ALLOCATED(ghg_n2o))
     !$ACC EXIT DATA DELETE(ghg_cfc) IF(ALLOCATED(ghg_cfc))
-    !$ACC EXIT DATA DELETE(ghg_cfcmmr)
     IF (ALLOCATED(ghg_years)) DEALLOCATE(ghg_years)
     IF (ALLOCATED(ghg_co2))   DEALLOCATE(ghg_co2)
     IF (ALLOCATED(ghg_ch4))   DEALLOCATE(ghg_ch4)

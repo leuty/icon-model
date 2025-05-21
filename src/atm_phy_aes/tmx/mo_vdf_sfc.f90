@@ -26,6 +26,12 @@ MODULE mo_vdf_sfc
   USE mo_tmx_field_class,   ONLY: t_tmx_field, t_domain, isfc_oce, isfc_ice, isfc_lnd
   USE mo_variable,          ONLY: t_variable
   USE mo_variable_list,     ONLY: t_variable_list, t_variable_set
+  USE mo_aes_vdf_config,    ONLY: aes_vdf_config
+  USE mo_cuda_graphs,       ONLY: t_cuda_graphs, id_captured, create_graphs, &
+                                  begin_capture, end_capture, replay, reset
+  USE mo_jsb_interface,     ONLY: invalidate_cuda_graphs
+  USE mo_jsb_time,          ONLY: is_time_ltrig_rad_m1
+  USE, INTRINSIC :: iso_c_binding, ONLY: c_loc
 
 #ifdef _OPENACC
   use openacc
@@ -37,9 +43,10 @@ MODULE mo_vdf_sfc
   IMPLICIT NONE
   PRIVATE
 
-  PUBLIC :: t_vdf_sfc, t_vdf_sfc_inputs, t_vdf_sfc_config, t_vdf_sfc_diagnostics, average_tiles
+  PUBLIC :: t_vdf_sfc, t_vdf_sfc_inputs, t_vdf_sfc_config, t_vdf_sfc_diagnostics, t_vdf_aggregator
 
   TYPE, EXTENDS(t_tmx_process) :: t_vdf_sfc
+    TYPE(t_cuda_graphs) :: graphs
   CONTAINS
     PROCEDURE :: Init => Init_vdf_sfc
     PROCEDURE :: Compute
@@ -191,6 +198,14 @@ MODULE mo_vdf_sfc
     PROCEDURE :: Set_pointers => Set_pointers_diagnostics
   END TYPE t_vdf_sfc_diagnostics
 
+  TYPE t_vdf_aggregator
+    INTEGER :: aggregation_queue
+  CONTAINS
+    PROCEDURE :: BeginAggregate => begin_averaging
+    PROCEDURE :: EndAggregate   => end_averaging
+    PROCEDURE :: Aggregate      => average_tiles
+  END TYPE
+
   CHARACTER(len=*), PARAMETER :: modname = 'mo_vdf_sfc'
 
 CONTAINS
@@ -254,8 +269,9 @@ CONTAINS
     TYPE(t_vdf_sfc_config),      POINTER :: conf
     TYPE(t_vdf_sfc_inputs),      POINTER :: ins
     TYPE(t_vdf_sfc_diagnostics), POINTER :: diags
+    TYPE(t_vdf_aggregator) :: aggregator
 
-    INTEGER :: jg, jtile, isfc, jc, jb
+    INTEGER :: jg, jtile, isfc, jc, jb, graph_id
     REAL(wp), POINTER, DIMENSION(:,:,:) :: &
       & old_tsfc, tend_tsfc, new_tsfc, &
       & new_qsfc
@@ -265,44 +281,38 @@ CONTAINS
       & lwfl_net    (this%domain%nproma,this%domain%nblks_c), &
       & swfl_net    (this%domain%nproma,this%domain%nblks_c)
 
+    INTEGER :: acc_async_queues(this%domain%ntiles) ! OACC queues to process tiles in parallel
+
     CHARACTER(len=*), PARAMETER :: routine = modname//':Compute'
 
     jg = this%domain%patch%id
-
-    !$ACC DATA CREATE(new_tsfc_rad, new_tsfc_eff, lwfl_net, swfl_net)
 
     SELECT TYPE (set => this%config)
     TYPE IS (t_vdf_sfc_config)
       conf => set
     END SELECT
-    __acc_attach(conf)
     SELECT TYPE (set => this%inputs)
     TYPE IS (t_vdf_sfc_inputs)
       ins => set
     END SELECT
-    __acc_attach(ins)
     SELECT TYPE (set => this%diagnostics)
     TYPE IS (t_vdf_sfc_diagnostics)
       diags => set
     END SELECT
-    __acc_attach(diags)
     ! set => this%config
     ! SELECT TYPE (set)
     ! TYPE IS (t_vdf_sfc_config)
     !   conf => set
-    !   __acc_attach(conf)
     ! END SELECT
     ! set => this%inputs
     ! SELECT TYPE (set)
     ! TYPE IS (t_vdf_sfc_inputs)
     !   ins => set
-    !   __acc_attach(ins)
     ! END SELECT
     ! set => this%diagnostics
     ! SELECT TYPE (set)
     ! TYPE IS (t_vdf_sfc_diagnostics)
     !   diags => set
-    !   __acc_attach(diags)
     ! END SELECT
 
     old_tsfc  => this%states    %Get_ptr_r3d('surface temperature')
@@ -320,7 +330,46 @@ CONTAINS
       & rsds     => ins%rsds        &
       & )
 
-    ! DO isfc=1,SIZE(this%domain%sfc_types)
+    graph_id = -1
+    IF (aes_vdf_config(jg)%lcuda_graph_vdf .AND. .NOT. this%is_initial_time) THEN
+      IF (.NOT. this%graphs%initialized) THEN
+        CALL create_graphs(this%graphs, 3, modname)
+      END IF
+      IF (invalidate_cuda_graphs) THEN
+        CALL reset(this%graphs)
+      ELSE
+        graph_id = id_captured( this%graphs, ptr_keys=(/ C_LOC(ins%ta(1,1)) /), &
+          int_keys=(/ 1, merge(1, 0, is_time_ltrig_rad_m1(datetime, dtime, jg)) /) )
+        IF (graph_id > 0) THEN
+          CALL replay(this%graphs, graph_id, 1)
+          !$ACC WAIT(1)
+          RETURN
+        ELSE
+          CALL begin_capture( this%graphs, 1, ptr_keys=(/ C_LOC(ins%ta(1,1)) /), &
+            int_keys=(/ 1, merge(1, 0, is_time_ltrig_rad_m1(datetime, dtime, jg)) /) )
+        END IF
+      END IF
+    END IF
+
+    !$ACC DATA CREATE(new_tsfc_rad, new_tsfc_eff, lwfl_net, swfl_net) &
+    !$ACC   PRESENT(old_tsfc, tend_tsfc, new_tsfc, new_qsfc, tsfc_rad, lwfl_up, swfl_up, rlds, rsds) ASYNC(1)
+
+    ! Process tiles in multiple OpenACC queues
+    DO jtile=1,this%domain%ntiles
+      isfc = this%domain%sfc_types(jtile)
+
+      SELECT CASE(isfc)
+      CASE(isfc_oce)
+        acc_async_queues(jtile) = 98
+      CASE(isfc_ice)
+        acc_async_queues(jtile) = 99
+      CASE(isfc_lnd)
+        acc_async_queues(jtile) = 1 ! land tile should run on queue 1 to match jsbach
+      END SELECT
+
+      !$ACC WAIT(1) ASYNC(acc_async_queues(jtile))
+    END DO
+
     DO jtile=1,this%domain%ntiles
       isfc = this%domain%sfc_types(jtile)
 
@@ -328,20 +377,21 @@ CONTAINS
       CASE(isfc_oce)
         ! Ocean surface temperature is calculated outside of this, set tendency to zero
 !$OMP PARALLEL
-        CALL init(tend_tsfc(:,:,jtile), lacc=.TRUE.)
-        CALL copy(old_tsfc(:,:,jtile), new_tsfc(:,:,jtile), lacc=.TRUE.)
-        CALL copy(old_tsfc(:,:,jtile), new_tsfc_rad(:,:,jtile), lacc=.TRUE.)
-        CALL copy(old_tsfc(:,:,jtile), new_tsfc_eff(:,:,jtile), lacc=.TRUE.)
+        CALL init(tend_tsfc(:,:,jtile),                         lacc=.TRUE., opt_acc_async_queue=acc_async_queues(jtile))
+        CALL copy(old_tsfc(:,:,jtile), new_tsfc(:,:,jtile),     lacc=.TRUE., opt_acc_async_queue=acc_async_queues(jtile))
+        CALL copy(old_tsfc(:,:,jtile), new_tsfc_rad(:,:,jtile), lacc=.TRUE., opt_acc_async_queue=acc_async_queues(jtile))
+        CALL copy(old_tsfc(:,:,jtile), new_tsfc_eff(:,:,jtile), lacc=.TRUE., opt_acc_async_queue=acc_async_queues(jtile))
 !$OMP END PARALLEL
         CALL compute_sfc_sat_spec_humidity(.FALSE., this%domain, this%domain%sfc_types(jtile), &
           & diags%nvalid(:,jtile), diags%indices(:,:,jtile), &
-          & ins%psfc(:,:), new_tsfc(:,:,jtile), new_qsfc(:,:,jtile))
+          & ins%psfc(:,:), new_tsfc(:,:,jtile), new_qsfc(:,:,jtile), &
+          & opt_acc_async_queue=acc_async_queues(jtile))
         ! TODO: This should be replaced by routine mo_surface_ocean:update_albedo_ocean from ECHAM6.2
 !$OMP PARALLEL
-        CALL init(diags%albvisdir_tile(:,:,jtile), albedoW, lacc=.TRUE.)
-        CALL init(diags%albvisdif_tile(:,:,jtile), albedoW, lacc=.TRUE.)
-        CALL init(diags%albnirdir_tile(:,:,jtile), albedoW, lacc=.TRUE.)
-        CALL init(diags%albnirdif_tile(:,:,jtile), albedoW, lacc=.TRUE.)
+        CALL init(diags%albvisdir_tile(:,:,jtile), albedoW, lacc=.TRUE., opt_acc_async_queue=acc_async_queues(jtile))
+        CALL init(diags%albvisdif_tile(:,:,jtile), albedoW, lacc=.TRUE., opt_acc_async_queue=acc_async_queues(jtile))
+        CALL init(diags%albnirdir_tile(:,:,jtile), albedoW, lacc=.TRUE., opt_acc_async_queue=acc_async_queues(jtile))
+        CALL init(diags%albnirdif_tile(:,:,jtile), albedoW, lacc=.TRUE., opt_acc_async_queue=acc_async_queues(jtile))
 !$OMP END PARALLEL
       CASE(isfc_ice)
         IF (conf%nice_thickness_classes /= 1) CALL finish(routine, 'Only one ice thickness class (kice) implemented!')
@@ -358,11 +408,12 @@ CONTAINS
           & new_tsfc(:,:,jtile), &
           & diags%q_ice_top(:,:), diags%q_ice_bot(:,:), &
           & diags%albvisdir_tile(:,:,jtile), diags%albvisdif_tile(:,:,jtile), &
-          & diags%albnirdir_tile(:,:,jtile), diags%albnirdif_tile(:,:,jtile)  &
+          & diags%albnirdir_tile(:,:,jtile), diags%albnirdif_tile(:,:,jtile),  &
+          & opt_acc_async_queue=acc_async_queues(jtile) &
           & )
 
 !$OMP PARALLEL DO PRIVATE(jc, jb) ICON_OMP_DEFAULT_SCHEDULE
-        !$ACC PARALLEL LOOP DEFAULT(PRESENT) GANG VECTOR COLLAPSE(2) ASYNC(1)
+        !$ACC PARALLEL LOOP DEFAULT(PRESENT) GANG VECTOR COLLAPSE(2) ASYNC(acc_async_queues(jtile))
           DO jb = 1, this%domain%nblks_c
             DO jc = 1, this%domain%nproma
               new_tsfc_rad(jc,jb,jtile) = new_tsfc(jc,jb,jtile)
@@ -375,7 +426,8 @@ CONTAINS
 
         CALL compute_sfc_sat_spec_humidity(.FALSE., this%domain, this%domain%sfc_types(jtile), &
           & diags%nvalid(:,jtile), diags%indices(:,:,jtile), &
-          & ins%psfc(:,:), new_tsfc(:,:,jtile), new_qsfc(:,:,jtile))
+          & ins%psfc(:,:), new_tsfc(:,:,jtile), new_qsfc(:,:,jtile), &
+          & opt_acc_async_queue=acc_async_queues(jtile))
       CASE(isfc_lnd)
         CALL update_land(jg, this%domain, datetime, this%dt, conf%cvd, &
           & ins%dz(:,:), ins%psfc(:,:), ins%ta(:,:), ins%qa(:,:), ins%pa(:,:), &
@@ -395,7 +447,7 @@ CONTAINS
           & )
 
 !$OMP PARALLEL DO PRIVATE(jc, jb) ICON_OMP_DEFAULT_SCHEDULE
-        !$ACC PARALLEL LOOP DEFAULT(PRESENT) GANG VECTOR COLLAPSE(2) ASYNC(1)
+        !$ACC PARALLEL LOOP DEFAULT(PRESENT) GANG VECTOR COLLAPSE(2) ASYNC(acc_async_queues(jtile))
         DO jb = 1, this%domain%nblks_c
           DO jc = 1, this%domain%nproma
             tend_tsfc(jc,jb,jtile) = (new_tsfc(jc,jb,jtile) - old_tsfc(jc,jb,jtile)) / dtime
@@ -407,7 +459,7 @@ CONTAINS
       END SELECT
 
 !$OMP PARALLEL DO PRIVATE(jc, jb) ICON_OMP_DEFAULT_SCHEDULE
-      !$ACC PARALLEL LOOP DEFAULT(PRESENT) GANG VECTOR COLLAPSE(2) ASYNC(1)
+      !$ACC PARALLEL LOOP DEFAULT(PRESENT) GANG VECTOR COLLAPSE(2) ASYNC(acc_async_queues(jtile))
       DO jb = 1, this%domain%nblks_c
         DO jc = 1, this%domain%nproma
           new_tsfc_rad(jc,jb,jtile) = new_tsfc_rad(jc,jb,jtile)**4._wp
@@ -432,31 +484,42 @@ CONTAINS
         & diags%kh_tile(:,:,jtile), diags%km_tile(:,:,jtile), &
         ! Output
         & diags%evapotrans_tile(:,:,jtile), diags%lhfl_tile(:,:,jtile), diags%shfl_tile(:,:,jtile), &
-        & diags%ustress_tile(:,:,jtile), diags%vstress_tile(:,:,jtile))
+        & diags%ustress_tile(:,:,jtile), diags%vstress_tile(:,:,jtile), &
+        & opt_acc_async_queue=acc_async_queues(jtile))
 
       CALL compute_lw_rad_net(this%domain, diags%nvalid(:,jtile), diags%indices(:,:,jtile), &
-        & ins%emissivity(:,:), ins%rlds(:,:), new_tsfc_eff(:,:,jtile), diags%lwfl_net_tile(:,:,jtile) )
+        & ins%emissivity(:,:), ins%rlds(:,:), new_tsfc_eff(:,:,jtile), diags%lwfl_net_tile(:,:,jtile), &
+        & opt_acc_async_queue=acc_async_queues(jtile) )
 
       CALL compute_sw_rad_net(this%domain, diags%nvalid(:,jtile), diags%indices(:,:,jtile), &
         & ins%rvds_dir(:,:), ins%rvds_dif(:,:), ins%rnds_dir(:,:), ins%rnds_dif(:,:), &
         & diags%albvisdir_tile(:,:,jtile), diags%albvisdif_tile(:,:,jtile), &
         & diags%albnirdir_tile(:,:,jtile), diags%albnirdif_tile(:,:,jtile), &
-        & diags%swfl_net_tile(:,:,jtile))
+        & diags%swfl_net_tile(:,:,jtile), &
+        & opt_acc_async_queue=acc_async_queues(jtile))
 
         CALL compute_albedo(this%domain, diags%nvalid(:,jtile), diags%indices(:,:,jtile), &
         & ins%rsds(:,:), ins%rvds_dir(:,:), ins%rvds_dif(:,:), ins%rnds_dir(:,:), ins%rnds_dif(:,:), &
         & diags%albvisdir_tile(:,:,jtile), diags%albvisdif_tile(:,:,jtile), &
         & diags%albnirdir_tile(:,:,jtile), diags%albnirdif_tile(:,:,jtile), &
-        & diags%albedo_tile(:,:,jtile))
+        & diags%albedo_tile(:,:,jtile), &
+        & opt_acc_async_queue=acc_async_queues(jtile))
 
     END DO
 
-    CALL average_tiles(this%domain, ins%fract_tile, diags%nvalid, diags%indices, new_tsfc(:,:,:), diags%tsfc, 'tsfc')
+    ! Join streams before aggregating
+    DO jtile=1,this%domain%ntiles
+      !$ACC WAIT(acc_async_queues(jtile)) ASYNC(1)
+    END DO
 
-    CALL average_tiles(this%domain, ins%fract_tile, diags%nvalid, diags%indices, new_tsfc_rad(:,:,:), tsfc_rad, 'tsfc_rad4')
+    CALL aggregator%BeginAggregate()
+
+    CALL aggregator%Aggregate(this%domain, ins%fract_tile, diags%nvalid, diags%indices, new_tsfc(:,:,:), diags%tsfc, 'tsfc')
+
+    CALL aggregator%Aggregate(this%domain, ins%fract_tile, diags%nvalid, diags%indices, new_tsfc_rad(:,:,:), tsfc_rad, 'tsfc_rad4')
 !$OMP PARALLEL DO PRIVATE(jc, jb) ICON_OMP_DEFAULT_SCHEDULE
     DO jb = domain%i_startblk_c, domain%i_endblk_c
-      !$ACC PARALLEL LOOP DEFAULT(PRESENT) GANG(STATIC: 1) VECTOR ASYNC(1)
+      !$ACC PARALLEL LOOP DEFAULT(PRESENT) GANG VECTOR ASYNC(aggregator%aggregation_queue)
       DO jc = domain%i_startidx_c(jb), domain%i_endidx_c(jb)
         tsfc_rad(jc,jb) = tsfc_rad(jc,jb)**0.25_wp
       END DO
@@ -465,24 +528,24 @@ CONTAINS
 !$OMP END PARALLEL DO
 
     ! Aggregate surface fluxes
-    CALL average_tiles(this%domain, ins%fract_tile, diags%nvalid, diags%indices,diags%evapotrans_tile,diags%evapotrans,'evapotrans')
-    CALL average_tiles(this%domain, ins%fract_tile, diags%nvalid, diags%indices, diags%lhfl_tile,       diags%lhfl, 'lhfl')
-    CALL average_tiles(this%domain, ins%fract_tile, diags%nvalid, diags%indices, diags%shfl_tile,       diags%shfl, 'shfl')
-    CALL average_tiles(this%domain, ins%fract_tile, diags%nvalid, diags%indices, diags%ustress_tile,    diags%ustress, 'ustress')
-    CALL average_tiles(this%domain, ins%fract_tile, diags%nvalid, diags%indices, diags%vstress_tile,    diags%vstress, 'vstress')
+    CALL aggregator%Aggregate(this%domain, ins%fract_tile, diags%nvalid, diags%indices, diags%evapotrans_tile, diags%evapotrans,'evapotrans')
+    CALL aggregator%Aggregate(this%domain, ins%fract_tile, diags%nvalid, diags%indices, diags%lhfl_tile,       diags%lhfl, 'lhfl')
+    CALL aggregator%Aggregate(this%domain, ins%fract_tile, diags%nvalid, diags%indices, diags%shfl_tile,       diags%shfl, 'shfl')
+    CALL aggregator%Aggregate(this%domain, ins%fract_tile, diags%nvalid, diags%indices, diags%ustress_tile,    diags%ustress, 'ustress')
+    CALL aggregator%Aggregate(this%domain, ins%fract_tile, diags%nvalid, diags%indices, diags%vstress_tile,    diags%vstress, 'vstress')
     !
-    CALL average_tiles(this%domain, ins%fract_tile, diags%nvalid, diags%indices, diags%albvisdir_tile, diags%albvisdir, 'albvisdir')
-    CALL average_tiles(this%domain, ins%fract_tile, diags%nvalid, diags%indices, diags%albvisdif_tile, diags%albvisdif, 'albvisdif')
-    CALL average_tiles(this%domain, ins%fract_tile, diags%nvalid, diags%indices, diags%albnirdir_tile, diags%albnirdir, 'albnirdir')
-    CALL average_tiles(this%domain, ins%fract_tile, diags%nvalid, diags%indices, diags%albnirdif_tile, diags%albnirdif, 'albnirdif')
+    CALL aggregator%Aggregate(this%domain, ins%fract_tile, diags%nvalid, diags%indices, diags%albvisdir_tile,  diags%albvisdir, 'albvisdir')
+    CALL aggregator%Aggregate(this%domain, ins%fract_tile, diags%nvalid, diags%indices, diags%albvisdif_tile,  diags%albvisdif, 'albvisdif')
+    CALL aggregator%Aggregate(this%domain, ins%fract_tile, diags%nvalid, diags%indices, diags%albnirdir_tile,  diags%albnirdir, 'albnirdir')
+    CALL aggregator%Aggregate(this%domain, ins%fract_tile, diags%nvalid, diags%indices, diags%albnirdif_tile,  diags%albnirdif, 'albnirdif')
     !
-    CALL average_tiles(this%domain, ins%fract_tile, diags%nvalid, diags%indices, diags%albedo_tile,    diags%albedo, 'albedo')
+    CALL aggregator%Aggregate(this%domain, ins%fract_tile, diags%nvalid, diags%indices, diags%albedo_tile,     diags%albedo, 'albedo')
     !
-    CALL average_tiles(this%domain, ins%fract_tile, diags%nvalid, diags%indices, diags%lwfl_net_tile, lwfl_net, 'lwfl_net')
-    CALL average_tiles(this%domain, ins%fract_tile, diags%nvalid, diags%indices, diags%swfl_net_tile, swfl_net, 'swfl_net')
+    CALL aggregator%Aggregate(this%domain, ins%fract_tile, diags%nvalid, diags%indices, diags%lwfl_net_tile,   lwfl_net, 'lwfl_net')
+    CALL aggregator%Aggregate(this%domain, ins%fract_tile, diags%nvalid, diags%indices, diags%swfl_net_tile,   swfl_net, 'swfl_net')
 !$OMP PARALLEL DO PRIVATE(jc, jb) ICON_OMP_DEFAULT_SCHEDULE
     DO jb = domain%i_startblk_c, domain%i_endblk_c
-      !$ACC PARALLEL LOOP DEFAULT(PRESENT) GANG(STATIC: 1) VECTOR ASYNC(1)
+      !$ACC PARALLEL LOOP DEFAULT(PRESENT) GANG VECTOR ASYNC(aggregator%aggregation_queue)
       DO jc = domain%i_startidx_c(jb), domain%i_endidx_c(jb)
         lwfl_up(jc,jb) = rlds(jc,jb) - lwfl_net(jc,jb)
         swfl_up(jc,jb) = rsds(jc,jb) - swfl_net(jc,jb)
@@ -491,15 +554,22 @@ CONTAINS
     END DO
 !$OMP END PARALLEL DO
 
+    CALL aggregator%EndAggregate()
+
     CALL compute_energy_fluxes( &
       & this%domain, conf%cvv, conf%cvd, &
       & diags%shfl, diags%evapotrans, ins%ta, ins%rho_atm, &
       & diags%ufts, diags%ufvs)
 
+    !$ACC END DATA
+
     END ASSOCIATE
 
+    IF (graph_id == 0) THEN
+      graph_id = end_capture(this%graphs)
+      CALL replay(this%graphs, graph_id, 1)
+    END IF
     !$ACC WAIT(1)
-    !$ACC END DATA
 
   END SUBROUTINE Compute
 
@@ -518,8 +588,9 @@ CONTAINS
     TYPE(t_vdf_sfc_config),      POINTER :: conf
     TYPE(t_vdf_sfc_inputs),      POINTER :: ins
     TYPE(t_vdf_sfc_diagnostics), POINTER :: diags
+    TYPE(t_vdf_aggregator) :: aggregator
 
-    INTEGER :: jg, jtile
+    INTEGER :: jg, jtile, graph_id
 
     REAL(wp) :: rough_min
     REAL(wp), POINTER, DIMENSION(:,:,:) :: old_tsfc, old_qsat
@@ -534,16 +605,13 @@ CONTAINS
     TYPE IS (t_vdf_sfc_config)
       conf => set
     END SELECT
-    __acc_attach(conf)
     SELECT TYPE (set => this%inputs)
     TYPE IS (t_vdf_sfc_inputs)
       ins => set
     END SELECT
-    __acc_attach(ins)
     SELECT TYPE (set => this%diagnostics)
     TYPE IS (t_vdf_sfc_diagnostics)
       diags => set
-      __acc_attach(diags)
     END SELECT
 
     old_tsfc => this%states%Get_ptr_r3d('surface temperature')
@@ -557,6 +625,25 @@ CONTAINS
       & indices  => diags%indices     &
       & )
 
+    graph_id = -1
+    IF (aes_vdf_config(jg)%lcuda_graph_vdf .AND. .NOT. this%is_initial_time) THEN
+      IF (.NOT. this%graphs%initialized) THEN
+        CALL create_graphs(this%graphs, 3, modname)
+      END IF
+      IF (invalidate_cuda_graphs) THEN
+        CALL reset(this%graphs)
+      ELSE
+        graph_id = id_captured( this%graphs, ptr_keys=(/ C_LOC(ins%ta(1,1)) /), int_keys=(/ 2, 0 /) )
+        IF (graph_id > 0) THEN
+          CALL replay(this%graphs, graph_id, 1)
+          !$ACC WAIT(1)
+          RETURN
+        ELSE
+          CALL begin_capture( this%graphs, 1, ptr_keys=(/ C_LOC(ins%ta(1,1)) /), int_keys=(/ 2, 0 /) )
+        END IF
+      END IF
+    END IF
+
     CALL compute_valid_indices(domain, fract_tile, nvalid, indices)
 
     CALL compute_wind_speed(this%domain, conf%min_sfc_wind, ins%ua(:,:), ins%va(:,:), diags%wind(:,:))
@@ -564,19 +651,31 @@ CONTAINS
     CALL compute_atm_potential_temperature(this%domain, ins%ta(:,:), ins%tv(:,:), ins%pa(:,:), &
       & diags%theta_atm(:,:), diags%thetav_atm(:,:))
 
+    ! Process tiles in multiple OpenACC queues
+    ! Since jsbach here is only called once in the beginning,
+    ! we don't have to run the land tile on queue 1 like in `Compute`
+    DO jtile=1,this%domain%ntiles
+      !$ACC WAIT(1) ASYNC(jtile)
+    END DO
+
     DO jtile=1,this%domain%ntiles
 
       ! Surface saturated humidity
       CALL compute_sfc_sat_spec_humidity(this%is_initial_time .AND. .NOT. isrestart(), this%domain, this%domain%sfc_types(jtile), &
         & diags%nvalid(:,jtile), diags%indices(:,:,jtile), &
-        & ins%psfc(:,:), ins%tsfc_tile(:,:,jtile), diags%qsat_tile(:,:,jtile))
+        & ins%psfc(:,:), ins%tsfc_tile(:,:,jtile), diags%qsat_tile(:,:,jtile), &
+        & opt_acc_async_queue=jtile)
 
       ! Density at surface
       CALL compute_sfc_density(this%domain, diags%nvalid(:,jtile), diags%indices(:,:,jtile), &
         ! & diags%qsat_tile(:,:,jtile), ins%psfc(:,:), ins%ta(:,:), diags%rho_tile(:,:,jtile))
-        & diags%qsat_tile(:,:,jtile), ins%psfc(:,:), ins%tsfc_tile(:,:,jtile), diags%rho_tile(:,:,jtile))
+        & diags%qsat_tile(:,:,jtile), ins%psfc(:,:), ins%tsfc_tile(:,:,jtile), diags%rho_tile(:,:,jtile), &
+        & opt_acc_async_queue=jtile)
 
       IF (this%is_initial_time .AND. .NOT. isrestart()) THEN
+
+        ! This only happens once, no need to use multiple streams here
+        !$ACC WAIT(jtile) ASYNC(1)
 
         IF (this%domain%sfc_types(jtile) == isfc_lnd) THEN
           ! Compute inital 10m wind for update_land
@@ -623,18 +722,22 @@ CONTAINS
             ! & diags%kh_tile(:,:,jtile), diags%km_tile(:,:,jtile), &
             ! & diags%kh_neutral_tile(:,:,jtile), diags%km_neutral_tile(:,:,jtile) &
             & )
+
+          !$ACC WAIT(1) ASYNC(jtile)
         END IF
       END IF
 
       ! Surface potential temperature
       CALL compute_sfc_potential_temperature(this%domain, diags%nvalid(:,jtile), diags%indices(:,:,jtile), &
         & ins%psfc(:,:), ins%tsfc_tile(:,:,jtile), diags%qsat_tile(:,:,jtile), &
-        & diags%theta_tile(:,:,jtile), diags%thetav_tile(:,:,jtile))
+        & diags%theta_tile(:,:,jtile), diags%thetav_tile(:,:,jtile), &
+        & opt_acc_async_queue=jtile)
 
       ! Moist Richardson number
       CALL compute_moist_richardson(this%domain, diags%nvalid(:,jtile), diags%indices(:,:,jtile), &
         & conf%fsl, ins%zf(:,:), diags%thetav_atm(:,:), diags%thetav_tile(:,:,jtile), diags%wind(:,:), &
-        & diags%moist_rich_tile(:,:,jtile))
+        & diags%moist_rich_tile(:,:,jtile), &
+        & opt_acc_async_queue=jtile)
 
       ! Surface roughness length
       IF (this%domain%sfc_types(jtile) == isfc_oce) THEN
@@ -645,7 +748,8 @@ CONTAINS
       ! Uses old value of km_tile before computation of new exchange coefficients (only in case of ocean)
       CALL compute_sfc_roughness(this%is_initial_time .AND. .NOT. isrestart(), this%domain, this%domain%sfc_types(jtile), &
         & diags%nvalid(:,jtile), diags%indices(:,:,jtile), rough_min, conf%rough_m_oce, conf%rough_m_ice, &
-        & diags%wind(:,:), diags%km_tile(:,:,jtile), diags%rough_h_tile(:,:,jtile), diags%rough_m_tile(:,:,jtile))
+        & diags%wind(:,:), diags%km_tile(:,:,jtile), diags%rough_h_tile(:,:,jtile), diags%rough_m_tile(:,:,jtile), &
+        & opt_acc_async_queue=jtile)
 
       ! Surface exchange coefficients
       ! Note: coefficients for land will be computed in the land model itself
@@ -658,7 +762,8 @@ CONTAINS
           & diags%theta_tile(:,:,jtile), diags%qsat_tile(:,:,jtile), &
             ! Output
           & diags%km_tile(:,:,jtile), diags%kh_tile(:,:,jtile), &
-          & diags%km_neutral_tile(:,:,jtile), diags%kh_neutral_tile(:,:,jtile))
+          & diags%km_neutral_tile(:,:,jtile), diags%kh_neutral_tile(:,:,jtile), &
+          & opt_acc_async_queue=jtile)
       END IF
 
       IF (this%domain%sfc_types(jtile) == isfc_ice) THEN
@@ -676,7 +781,8 @@ CONTAINS
           & diags%kh_tile(:,:,jtile), diags%km_tile(:,:,jtile), &
           ! Output
           & diags%evapotrans_tile(:,:,jtile), diags%lhfl_tile(:,:,jtile), diags%shfl_tile(:,:,jtile), &
-          & diags%ustress_tile(:,:,jtile), diags%vstress_tile(:,:,jtile))
+          & diags%ustress_tile(:,:,jtile), diags%vstress_tile(:,:,jtile), &
+          & opt_acc_async_queue=jtile)
 
           ! The ice model needs the shortwave net surface flux as input (based on old state)
         CALL compute_sw_rad_net(this%domain, diags%nvalid(:,jtile), diags%indices(:,:,jtile), &
@@ -684,19 +790,33 @@ CONTAINS
           & diags%albvisdir_tile(:,:,jtile), diags%albvisdif_tile(:,:,jtile), &
           & diags%albnirdir_tile(:,:,jtile), diags%albnirdif_tile(:,:,jtile), &
           ! Out
-          & diags%swfl_net_tile(:,:,jtile))
+          & diags%swfl_net_tile(:,:,jtile), &
+          & opt_acc_async_queue=jtile)
 
           ! The ice model needs the longwave net surface flux as input (based on old state)
         CALL compute_lw_rad_net(this%domain, diags%nvalid(:,jtile), diags%indices(:,:,jtile), &
-          & ins%emissivity(:,:), ins%rlds(:,:), ins%tsfc_tile(:,:,jtile), diags%lwfl_net_tile(:,:,jtile) )
+          & ins%emissivity(:,:), ins%rlds(:,:), ins%tsfc_tile(:,:,jtile), diags%lwfl_net_tile(:,:,jtile), &
+          & opt_acc_async_queue=jtile )
       END IF
 
     END DO
 
-    CALL average_tiles(this%domain, ins%fract_tile, diags%nvalid, diags%indices, diags%rough_m_tile, diags%rough_m, 'rough_m')
-    CALL average_tiles(this%domain, ins%fract_tile, diags%nvalid, diags%indices, diags%rough_h_tile, diags%rough_h, 'rough_h')
+    DO jtile=1,this%domain%ntiles
+      !$ACC WAIT(jtile) ASYNC(1)
+    END DO
+
+    CALL aggregator%BeginAggregate()
+    CALL aggregator%Aggregate(this%domain, ins%fract_tile, diags%nvalid, diags%indices, diags%rough_m_tile, diags%rough_m, 'rough_m')
+    CALL aggregator%Aggregate(this%domain, ins%fract_tile, diags%nvalid, diags%indices, diags%rough_h_tile, diags%rough_h, 'rough_h')
+    CALL aggregator%EndAggregate()
 
     END ASSOCIATE
+
+    IF (graph_id == 0) THEN
+      graph_id = end_capture(this%graphs)
+      CALL replay(this%graphs, graph_id, 1)
+    END IF
+    !$ACC WAIT(1)
 
   END SUBROUTINE Compute_diagnostics
 
@@ -707,6 +827,7 @@ CONTAINS
     TYPE(t_vdf_sfc_config),      POINTER :: conf
     TYPE(t_vdf_sfc_inputs),      POINTER :: ins
     TYPE(t_vdf_sfc_diagnostics), POINTER :: diags
+    TYPE(t_vdf_aggregator) :: aggregator
 
     INTEGER :: jg, jtile
     REAL(wp), POINTER, DIMENSION(:,:,:) :: &
@@ -723,17 +844,14 @@ CONTAINS
     TYPE IS (t_vdf_sfc_config)
       conf => set
     END SELECT
-    __acc_attach(conf)
     SELECT TYPE (set => this%inputs)
     TYPE IS (t_vdf_sfc_inputs)
       ins => set
     END SELECT
-    __acc_attach(ins)
     SELECT TYPE (set => this%diagnostics)
     TYPE IS (t_vdf_sfc_diagnostics)
       diags => set
     END SELECT
-    __acc_attach(diags)
 
     ! CALL message(routine, 'start')
 
@@ -753,8 +871,10 @@ CONTAINS
 
     ! TODO: Update roughness length for heat and momentum
 
-    CALL average_tiles(this%domain, ins%fract_tile, diags%nvalid, diags%indices, diags%km_tile, diags%km, 'km')
-    CALL average_tiles(this%domain, ins%fract_tile, diags%nvalid, diags%indices, diags%kh_tile, diags%kh, 'kh')
+    CALL aggregator%BeginAggregate()
+    CALL aggregator%Aggregate(this%domain, ins%fract_tile, diags%nvalid, diags%indices, diags%km_tile, diags%km, 'km')
+    CALL aggregator%Aggregate(this%domain, ins%fract_tile, diags%nvalid, diags%indices, diags%kh_tile, diags%kh, 'kh')
+    CALL aggregator%EndAggregate()
 
     IF (this%is_initial_time) this%is_initial_time = .FALSE.
 
@@ -777,7 +897,7 @@ CONTAINS
 
     ntiles = domain%ntiles
 
-    !$ACC DATA CREATE(pfrc_test, loidx, is) PRESENT(fract_tile, indices, nvalid)
+    !$ACC DATA CREATE(pfrc_test, loidx, is) PRESENT(fract_tile, indices, nvalid) ASYNC(1)
 
 !$OMP PARALLEL
     CALL init(nvalid, lacc=.TRUE.)
@@ -827,13 +947,27 @@ CONTAINS
     END DO
 !$OMP END PARALLEL DO
 
-    !$ACC WAIT(1)
     !$ACC END DATA
 
   END SUBROUTINE compute_valid_indices
 
-  SUBROUTINE average_tiles(domain, fract_tile, nvalid, indices, var_in, var_out, msg)
+  SUBROUTINE begin_averaging(this)
+    CLASS(t_vdf_aggregator), INTENT(inout) :: this
+    this%aggregation_queue = 1
+  END SUBROUTINE
 
+  SUBROUTINE end_averaging(this)
+    CLASS(t_vdf_aggregator), INTENT(in) :: this
+    INTEGER :: queue
+
+    DO queue = 2, this%aggregation_queue
+      !$ACC WAIT(queue) ASYNC(1)
+    END DO
+  END SUBROUTINE
+
+  SUBROUTINE average_tiles(this, domain, fract_tile, nvalid, indices, var_in, var_out, msg)
+
+    CLASS(t_vdf_aggregator), INTENT(inout) :: this
     TYPE(t_domain), INTENT(in), POINTER :: domain
     REAL(wp), INTENT(in)  :: &
       & fract_tile(:,:,:)
@@ -858,22 +992,25 @@ CONTAINS
     jbs = domain%i_startblk_c
     jbe = domain%i_endblk_c
 
+    this%aggregation_queue = this%aggregation_queue + 1
+    !$ACC WAIT(1) ASYNC(this%aggregation_queue)
+
     IF (ntiles == 1) THEN
 
 !$OMP PARALLEL
-      CALL copy(var_in(:,:,1), var_out(:,:), lacc=.TRUE.)
+      CALL copy(var_in(:,:,1), var_out(:,:), lacc=.TRUE., opt_acc_async_queue=this%aggregation_queue)
 !$OMP END PARALLEL
 
     ELSE
 
 !$OMP PARALLEL
-      CALL init(var_out, lacc=.TRUE.)
+      CALL init(var_out, lacc=.TRUE., opt_acc_async_queue=this%aggregation_queue)
 !$OMP END PARALLEL
 
 !$OMP PARALLEL DO PRIVATE(jb,jls,js,jsfc) ICON_OMP_RUNTIME_SCHEDULE
       DO jb = jbs, jbe
         DO jsfc = 1, ntiles
-          !$ACC PARALLEL LOOP DEFAULT(PRESENT) GANG VECTOR ASYNC(1) PRIVATE(js)
+          !$ACC PARALLEL LOOP DEFAULT(PRESENT) GANG VECTOR ASYNC(this%aggregation_queue) PRIVATE(js)
           DO jls = 1, nvalid(jb,jsfc)
             js=indices(jls,jb,jsfc)
             var_out(js,jb) = var_out(js,jb) + fract_tile(js,jb,jsfc) * var_in(js,jb,jsfc)
@@ -884,8 +1021,6 @@ CONTAINS
 !$OMP END PARALLEL DO
 
     END IF
-
-    !$ACC WAIT(1)
 
     ! IF (PRESENT(msg)) CALL message(routine, 'average complete for '//msg)
 

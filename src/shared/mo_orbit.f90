@@ -59,6 +59,7 @@ MODULE mo_orbit
   USE mtime,             ONLY : julianday, newJulianday, deallocateJulianday, getJulianDayFromDatetime, &
        &                        newDateTime, deallocateDateTime, datetime, no_of_ms_in_a_day, &
        &                        getNoOfDaysInYearDateTime
+  USE mo_fortran_tools,  ONLY: set_acc_host_or_device, set_acc_async_queue
 
   IMPLICIT NONE
   PRIVATE
@@ -75,6 +76,7 @@ MODULE mo_orbit
   REAL(wp), PARAMETER :: sec2rad     = deg2rad/3600.0_wp
 
   REAL(wp), SAVE      :: declination  = 0.0_wp
+  !$ACC DECLARE COPYIN(declination)
   LOGICAL , SAVE      :: decl_warning = .TRUE.
 
 CONTAINS
@@ -164,6 +166,7 @@ CONTAINS
     dist_sun  = 1.0_wp-cecc*COS(big_e)
 
     declination = decl_sun
+    !$ACC UPDATE DEVICE(declination)
     initialized = .TRUE.
 
   END SUBROUTINE orbit_kepler
@@ -209,6 +212,7 @@ CONTAINS
     CALL aberration (t, obl, rasc_sun, decl_sun)
 
     declination = decl_sun
+    !$ACC UPDATE DEVICE(declination)
     initialized = .TRUE.
 
   END SUBROUTINE orbit_vsop87
@@ -799,9 +803,17 @@ CONTAINS
   !>
   !! @brief Returns declination calculated in last orbit call, or default value
   !
-  SUBROUTINE inquire_declination(xdec)
+  SUBROUTINE inquire_declination(xdec, lacc, opt_acc_async_queue)
 
     REAL(wp), INTENT(out) :: xdec !< declination of the sun
+    LOGICAL, OPTIONAL, INTENT(IN) :: lacc
+    INTEGER, INTENT(IN), OPTIONAL :: opt_acc_async_queue
+
+    LOGICAL :: lzacc
+    INTEGER :: acc_async_queue
+
+    CALL set_acc_host_or_device(lzacc, lacc)
+    CALL set_acc_async_queue(acc_async_queue, opt_acc_async_queue)
 
     IF (.NOT.initialized .AND. decl_warning) THEN
       CALL warning    ('mo_radiation_radiation/inquire_declination',                                  &
@@ -810,7 +822,9 @@ CONTAINS
       decl_warning = .FALSE.
     END IF
 
+    !$ACC KERNELS PRESENT(xdec, declination) ASYNC(acc_async_queue) IF(lzacc)
     xdec = declination
+    !$ACC END KERNELS
 
   END SUBROUTINE inquire_declination
 

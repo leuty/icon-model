@@ -603,7 +603,7 @@ CONTAINS
 
       !SELECT APPROPRIATE EQUATIONS FOR TERMINAL VELOCITY DEPENDING ON
       !THE BEST NUMBER
-      IF (GX.LT.550_wp) THEN
+      IF (GX.LT.550._wp) THEN
         W=LOG10(GX)
         Y= -1.7095_wp + 1.33438_wp*W - 0.11591_wp*(W**2.0_wp)
         RE=10._wp**Y

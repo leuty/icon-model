@@ -91,6 +91,8 @@ CONTAINS
     REAL(wp) :: max_turb_scale(SIZE(vdiff_config))  !< max turbulence length scale
     REAL(wp) :: min_sfc_wind(SIZE(vdiff_config))    !< min sfc wind in free convection limit
 
+    LOGICAL  :: lcuda_graph_vdf(SIZE(vdiff_config)) !< use CUDA graph to speed up execution
+
     NAMELIST /turb_vdiff_nml/ &
       lsfc_mom_flux, &
       lsfc_heat_flux, &
@@ -116,7 +118,8 @@ CONTAINS
       turb_prandtl, &
       km_min, &
       max_turb_scale, &
-      min_sfc_wind
+      min_sfc_wind, &
+      lcuda_graph_vdf
 
     !------
 
@@ -147,6 +150,7 @@ CONTAINS
     km_min(:) = defaults%km_min
     max_turb_scale(:) = defaults%max_turb_scale
     min_sfc_wind(:) = defaults%min_sfc_wind
+    lcuda_graph_vdf(:) = defaults%lcuda_graph_vdf
 
     IF (my_process_is_stdio()) THEN
       iunit = temp_defaults()
@@ -226,6 +230,11 @@ CONTAINS
       END IF
     END IF
 
+#ifndef ICON_USE_CUDA_GRAPH
+    lcuda_graph_vdf(:) = .FALSE.
+#endif
+
+
     !----------------------------------------------------
     ! 4. Fill the configuration state
     !----------------------------------------------------
@@ -254,6 +263,7 @@ CONTAINS
     vdiff_config(:)%km_min = km_min(:)
     vdiff_config(:)%max_turb_scale = max_turb_scale(:)
     vdiff_config(:)%min_sfc_wind = min_sfc_wind(:)
+    vdiff_config(:)%lcuda_graph_vdf = lcuda_graph_vdf(:)
 
     DO jg = 1, SIZE(turb)
       vdiff_config(jg)%turb = turb_from_str(turb(jg))

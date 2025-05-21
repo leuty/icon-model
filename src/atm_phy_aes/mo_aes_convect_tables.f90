@@ -442,54 +442,59 @@ CONTAINS
     REAL(wp) :: a, b, c, d, dx, ddx, x, bxa
     INTEGER :: jl
 
-    !$ACC DATA PRESENT(idx, zalpha, table)
-
-    IF (PRESENT(ua) .AND. .NOT. PRESENT(dua)) THEN
-      !$ACC DATA PRESENT(ua)
-      !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1)
-      !$ACC LOOP GANG VECTOR PRIVATE(x, dx, ddx, a, b, c, d, bxa)
-      DO jl = jcs,size
-        x = zalpha(jl)
-        ! derivative and second derivative approximations (2 flops)
-        dx   = table(1,idx(jl)+1) - table(1,idx(jl))
-        ddx  = table(2,idx(jl)+1) + table(2,idx(jl))
-        ! determine coefficients (2 fma + 1 flop)
-        a = ddx - 2.0_wp*dx
-        b = 3.0_wp*dx - ddx - table(2,idx(jl))
-        c = table(2,idx(jl))
-        d = table(1,idx(jl))
-        ! Horner's scheme to compute the spline functions (3 fmas)
-        bxa = b + x*a
-        ua(jl) = d + x*(c + x*bxa)
-      END DO
-      !$ACC END PARALLEL
-      !$ACC END DATA
-    ELSE IF (PRESENT(ua) .AND. PRESENT(dua)) THEN
-      !$ACC DATA PRESENT(ua, dua)
-      !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1)
-      !$ACC LOOP GANG VECTOR PRIVATE(x, dx, ddx, a, b, c, d, bxa)
-      DO jl = jcs,size
-        x = zalpha(jl)
-        ! derivate and second derivate approximations (2 flops)
-        dx   = table(1,idx(jl)+1) - table(1,idx(jl))
-        ddx  = table(2,idx(jl)+1) + table(2,idx(jl))
-        ! determine coefficients (2 fma + 1 flop)
-        a = ddx - 2.0_wp*dx
-        b = 3.0_wp*dx - ddx - table(2,idx(jl))
-        c = table(2,idx(jl))
-        d = table(1,idx(jl))
-        ! Horner's scheme to compute the spline functions (5 fmas + 1 flop)
-        bxa = b + x*a
-        ua(jl)  = d + x*(c + x*bxa)
-        dua(jl) = rsdeltat*(c + x*(3.0_wp*bxa - b))
-      END DO
-      !$ACC END PARALLEL
-      !$ACC END DATA
-    END IF
-
-    !$ACC END DATA
+    !$ACC PARALLEL DEFAULT(PRESENT) NO_CREATE(dua) ASYNC(1)
+    !$ACC LOOP GANG VECTOR PRIVATE(x, dx, ddx, a, b, c, d, bxa)
+    DO jl = jcs,size
+      x = zalpha(jl)
+      ! derivative and second derivative approximations (2 flops)
+      dx   = table(1,idx(jl)+1) - table(1,idx(jl))
+      ddx  = table(2,idx(jl)+1) + table(2,idx(jl))
+      ! determine coefficients (2 fma + 1 flop)
+      a = ddx - 2.0_wp*dx
+      b = 3.0_wp*dx - ddx - table(2,idx(jl))
+      c = table(2,idx(jl))
+      d = table(1,idx(jl))
+      ! Horner's scheme to compute the spline functions (3 fmas)
+      bxa = b + x*a
+      ua(jl) = d + x*(c + x*bxa)
+      IF (PRESENT(dua)) dua(jl) = rsdeltat*(c + x*(3.0_wp*bxa - b))
+    END DO
+    !$ACC END PARALLEL
 
   END SUBROUTINE fetch_ua_spline
+  !----------------------------------------------------------------------------
+  SUBROUTINE fetch_ua_spline_async(jcs,size,kidx,idx,zalpha,table,ua,dua)
+    INTEGER,            INTENT(in)  :: jcs, size, kidx
+    INTEGER,            INTENT(in)  :: idx(size)
+    REAL(wp),           INTENT(in)  :: zalpha(size)
+    REAL(wp),           INTENT(in)  :: table(1:2,lucupmin-2:lucupmax+1)
+    REAL(wp), OPTIONAL, INTENT(out) :: ua(size), dua(size)
+
+    REAL(wp) :: a, b, c, d, dx, ddx, x, bxa
+    INTEGER :: jl
+
+    !$ACC DATA COPYIN(kidx) ASYNC(1)
+    !$ACC PARALLEL DEFAULT(PRESENT) NO_CREATE(dua) ASYNC(1)
+    !$ACC LOOP GANG VECTOR PRIVATE(x, dx, ddx, a, b, c, d, bxa)
+    DO jl = jcs,kidx
+      x = zalpha(jl)
+      ! derivative and second derivative approximations (2 flops)
+      dx   = table(1,idx(jl)+1) - table(1,idx(jl))
+      ddx  = table(2,idx(jl)+1) + table(2,idx(jl))
+      ! determine coefficients (2 fma + 1 flop)
+      a = ddx - 2.0_wp*dx
+      b = 3.0_wp*dx - ddx - table(2,idx(jl))
+      c = table(2,idx(jl))
+      d = table(1,idx(jl))
+      ! Horner's scheme to compute the spline functions (3 fmas)
+      bxa = b + x*a
+      ua(jl) = d + x*(c + x*bxa)
+      IF (PRESENT(dua)) dua(jl) = rsdeltat*(c + x*(3.0_wp*bxa - b))
+    END DO
+    !$ACC END PARALLEL
+    !$ACC END DATA
+
+  END SUBROUTINE fetch_ua_spline_async
   !----------------------------------------------------------------------------
   SUBROUTINE fetch_ua(size, idx, table, u)
     INTEGER,  INTENT(in)  :: size
@@ -966,7 +971,7 @@ SUBROUTINE prepare_ua_index_spline(jg, name, jcs, size, temp, idx, zalpha, &
 
     CALL assert_acc_device_only ('prepare_ua_index_spline_batch', lacc)
     !
-    !$ACC DATA PRESENT(temp, idx, zalpha)
+    !$ACC DATA PRESENT(temp, idx, zalpha) ASYNC(1)
     !
 
     zoutofbounds = 0
@@ -981,7 +986,7 @@ SUBROUTINE prepare_ua_index_spline(jg, name, jcs, size, temp, idx, zalpha, &
 
     IF (PRESENT(xi)) THEN
       !$ACC DATA PRESENT(xi, zphase, iphase, nphase) &
-      !$ACC   CREATE(znphase, zoutofbounds_vec)
+      !$ACC   CREATE(znphase, zoutofbounds_vec) ASYNC(1)
 
       !$ACC PARALLEL LOOP GANG VECTOR DEFAULT(PRESENT) ASYNC(1)
       DO batch = 1,batch_size
@@ -1189,8 +1194,8 @@ SUBROUTINE prepare_ua_index_spline(jg, name, jcs, size, temp, idx, zalpha, &
     INTEGER :: nl, jl
 
     !$ACC DATA PRESENT(list, temp) &
-    !$ACC   NO_CREATE(ua, dua) &
-    !$ACC   CREATE(idx, zalpha)
+    !$ACC   CREATE(idx, zalpha) &
+    !$ACC   COPYIN(kidx) ASYNC(1)
 
     zinbounds = 1.0_wp
     ztmin = flucupmin
@@ -1235,9 +1240,8 @@ SUBROUTINE prepare_ua_index_spline(jg, name, jcs, size, temp, idx, zalpha, &
       CALL lookuperror(name, 'lookup_ua_list_spline')
     ENDIF
 #endif
-    CALL fetch_ua_spline(jcs, kidx, idx, zalpha, tlucu, ua, dua)
+    CALL fetch_ua_spline_async(jcs, size, kidx, idx, zalpha, tlucu, ua, dua)
 
-    !$ACC WAIT(1)
     !$ACC END DATA
   END SUBROUTINE lookup_ua_list_spline
   !----------------------------------------------------------------------------

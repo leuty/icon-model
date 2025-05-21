@@ -20,7 +20,7 @@ MODULE mo_output_event_control
   USE mo_mpi,                ONLY: my_process_is_mpi_test, my_process_is_mpi_workroot
   USE mo_impl_constants,     ONLY: SUCCESS, MAX_CHAR_LENGTH
   USE mo_exception,          ONLY: finish, message_text
-  USE mo_kind,               ONLY: wp, i4, i8
+  USE mo_kind,               ONLY: wp, dp, i4, i8
   USE mo_master_config,      ONLY: getModelBaseDir
   USE mtime,                 ONLY: MAX_DATETIME_STR_LEN,          &
     &                              MAX_TIMEDELTA_STR_LEN, datetime,                     &
@@ -142,7 +142,7 @@ CONTAINS
     ! the desired date "mtime_current"
     ! intvlsec    = REAL(dtime, KIND=wp)
     ! step        = CEILING(datetimedividebyseconds(mtime_begin, mtime_date1, intvlsec))
-    CALL mtime_timedelta_from_fseconds(dtime, mtime_begin, vlsec)
+    CALL mtime_timedelta_from_fseconds(REAL(dtime,KIND=dp), mtime_begin, vlsec)
 
     CALL divideDatetimeDifferenceInSeconds(mtime_current, mtime_begin, vlsec, tq)
 

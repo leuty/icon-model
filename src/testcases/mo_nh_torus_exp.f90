@@ -183,6 +183,8 @@ MODULE mo_nh_torus_exp
       DO jk = 1 , nlev
          ptr_nh_prog%rho(1:nlen,jk,jb) = (ptr_nh_prog%exner(1:nlen,jk,jb)**cvd_o_rd)*p0ref/rd / &
                                          ptr_nh_prog%theta_v(1:nlen,jk,jb)
+         ! Mistake in following formula???
+         ! Shouldn't it be rho*Rd*Tv with Tv = Exner * theta_v ???
          ptr_nh_diag%pres(1:nlen,jk,jb) = ptr_nh_prog%rho(1:nlen,jk,jb)*rd*th_cbl(1)
       END DO !jk
 

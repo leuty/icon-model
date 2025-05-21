@@ -82,6 +82,9 @@ ghg_scenario="false"             # greenhouse gases file for scenario runs
 forcing_steps_per_day="1"        # Number of forcing time steps per day, e.g. 1 for daily forcing
 forcing_synchron_factor="48"     # Number of model time steps per forcing time step,
                                  #  e.g. 48 for daily forcing and half-hourly time step.
+
+num_io_procs=${num_io_procs:-0}
+proc0_shift=${proc0_shift:-0}
 #--------------------------------------------------------------------------------------------------
 
 # (3) Define the model configuration
@@ -173,7 +176,8 @@ cat > $jsbach_namelist << EOF
  nproma           = ${nproma}
  nproma_sub       = ${nproma_sub}
  nblocks_c        = ${nblocks_c}
- num_io_procs     = 0     ! Number of procs for output (not more than number of output files!)
+ num_io_procs     = ${num_io_procs}     ! Number of procs for output (not more than number of output files!)
+ proc0_shift      = ${proc0_shift}
 ! pio_type         = 1          ! 1 is default and means pio_type_async
 ! num_restart_procs = 2         ! 0 for sync restart_write_mode
 /

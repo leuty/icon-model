@@ -31,7 +31,7 @@
 
     USE mo_async_latbc_types,   ONLY: t_latbc_state, t_latbc_data, t_buffer
     USE mo_reorder_info,        ONLY: t_reorder_info
-    USE mo_kind,                ONLY: wp, i8
+    USE mo_kind,                ONLY: wp, dp, i8
     USE mo_util_string,         ONLY: int2string
     USE mo_parallel_config,     ONLY: nproma, proc0_offloading
     USE mo_model_domain,        ONLY: t_patch
@@ -533,7 +533,7 @@
         !
         CALL getTriggerNextEventAtDateTime(latbc%prefetchEvent,time_config%tc_current_date,nextActive,ierr)
         IF (nextActive > time_config%tc_current_date) THEN
-          latbc_read_datetime = nextActive + latbc%delta_dtime*(-1._wp)
+          latbc_read_datetime = nextActive + latbc%delta_dtime*(-1._dp) ! scale timedelta by dp
         ELSE
           latbc_read_datetime = nextActive
         ENDIF
@@ -1019,7 +1019,7 @@
         !
         CALL getTriggerNextEventAtDateTime(latbc%prefetchEvent,time_config%tc_current_date,nextActive,ierr)
         IF (nextActive > time_config%tc_current_date) THEN
-          latbc_read_datetime = nextActive + latbc%delta_dtime*(-1._wp)
+          latbc_read_datetime = nextActive + latbc%delta_dtime*(-1._dp) ! scale timedelta by dp
         ELSE
           latbc_read_datetime = nextActive
         ENDIF
@@ -1257,7 +1257,7 @@
 
       ! check for event been active
       my_duration_slack => newTimedelta("PT0S")
-      my_duration_slack = time_config%tc_dt_model*0.4999_wp
+      my_duration_slack = time_config%tc_dt_model*0.4999_dp ! scale timedelta by dp
 
       isactive = isCurrentEventActive(latbc%prefetchEvent, cur_datetime, my_duration_slack, my_duration_slack)
       CALL deallocateTimedelta(my_duration_slack)
@@ -1430,7 +1430,7 @@
       ! compute timedelta from validity times of consecutive boundary data timeslices.
       td = latbc_data(tlev)%vDateTime - latbc_data(prev_latbc_tlev)%vDateTime
       ! update frequency in s
-      dt = REAL(getTotalSecondsTimedelta(td, latbc_data(tlev)%vDateTime))
+      dt = REAL(getTotalSecondsTimedelta(td, latbc_data(tlev)%vDateTime),KIND=wp)
 
 
       IF (msg_level >= 15) THEN

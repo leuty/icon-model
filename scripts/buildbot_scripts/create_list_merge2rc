@@ -38,7 +38,7 @@ GPU_BUILDERS="${NVHPC_CPU_BUILDERS} ${NVHPC_GPU_BUILDERS} ${NVHPC_DEV_BUILDERS}"
 ./set_builder_flags Inactive --builders "levante_aurora ${GPU_BUILDERS}" --list $listname
 #-----------------------------------------------------------
 # AES
-# add qubicc tests incl. GRIB output to Levante only
+# add qubicc tests
 #
 # the number for ntasks is the current default set in create_targe_header for
 # levante setting queue=shared,compute can lead to only 2 cpus available for
@@ -51,6 +51,9 @@ GPU_BUILDERS="${NVHPC_CPU_BUILDERS} ${NVHPC_GPU_BUILDERS} ${NVHPC_DEV_BUILDERS}"
 #---------------------------------------------------------------------------------------------------------
 $addexp "checksuite.icon-dev/check.aes_amip_test"          --machines "levante" --list $listname --runflags "ntasks=16 queue=compute memory=32G"
 $addexp "checksuite.icon-dev/check.aes_amip_test_update"   --machines "levante" --list $listname --runflags "ntasks=16 queue=compute memory=32G"
+#
+$addexp "checksuite.icon-dev/check.aes_amip_pfts_test"          --machines "levante" --list $listname --runflags "ntasks=16 queue=compute memory=32G"
+$addexp "checksuite.icon-dev/check.aes_amip_pfts_test_update"   --machines "levante" --list $listname --runflags "ntasks=16 queue=compute memory=32G"
 #
 $addexp "checksuite.icon-dev/check.atm_cph_nest_R2B4_test"         --machines "levante" --list $listname --runflags "ntasks=16 queue=compute memory=32G"
 $addexp "checksuite.icon-dev/check.atm_cph_nest_R2B4_test_update"  --machines "levante" --list $listname --runflags "ntasks=16 queue=compute memory=32G"
@@ -65,18 +68,28 @@ $addexp "checksuite.icon-dev/check.atm_qubicc"             --machines "levante" 
 $addexp "checksuite.icon-dev/check.atm_qubicc_grb"         --machines "levante" --list $listname --runflags="ntasks=16 queue=shared,compute memory=32G"
 $addexp "checksuite.icon-dev/check.atm_qubicc_nofor"       --machines "levante" --list $listname --runflags="ntasks=16 queue=shared,compute memory=32G"
 $addexp "checksuite.icon-dev/check.atm_qubicc_onlyfor"     --machines "levante" --list $listname --runflags="ntasks=16 queue=shared,compute memory=32G"
+$addexp "checksuite.icon-dev/check.atm_qubicc_pfts"        --machines "levante" --list $listname --runflags "ntasks=16 queue=shared,compute memory=32G"
+$addexp "checksuite.icon-dev/check.atm_qubicc_tmx"         --machines "levante" --list $listname --runflags "ntasks=16 queue=shared,compute memory=32G"
 $addexp "checksuite.icon-dev/check.atm_qubicc_update"      --machines "levante" --list $listname --runflags "ntasks=16 queue=shared,compute memory=32G"
+$addexp "checksuite.icon-dev/check.atm_qubicc_test_aero"   --machines "levante" --list $listname --runflags "ntasks=16 queue=shared,compute memory=32G"
 ./set_builder_flags Inactive --builders "${NVHPC_CPU_BUILDERS}" --list $listname
 ./set_builder_flags Active   --builders "levante_nag_serial"    --list $listname
 #
 #---------------------------------------------------------------------------------------------------------
 # add global atmosphere tests to levante NVHPC_GPU_BUILDERS
 ./set_builder_flags Active   --builders "${NVHPC_GPU_BUILDERS}" --list $listname
+$addexp "checksuite.icon-dev/check.aes_amip_test"          --builders "${NVHPC_GPU_BUILDERS}" --list $listname --runflags "mpi_procs_pernode=4"
+$addexp "checksuite.icon-dev/check.aes_amip_pfts_test"     --builders "${NVHPC_GPU_BUILDERS}" --list $listname --runflags "mpi_procs_pernode=4"
+$addexp "checksuite.icon-dev/check.atm_cph_nest_R2B4_test" --builders "${NVHPC_GPU_BUILDERS}" --list $listname --runflags "mpi_procs_pernode=4"
 $addexp "checksuite.icon-dev/check.atm_qubicc"             --builders "${NVHPC_GPU_BUILDERS}" --list $listname --runflags "mpi_procs_pernode=4"
 $addexp "checksuite.icon-dev/check.atm_qubicc_grb"         --builders "${NVHPC_GPU_BUILDERS}" --list $listname --runflags "mpi_procs_pernode=4"
 $addexp "checksuite.icon-dev/check.atm_qubicc_nofor"       --builders "${NVHPC_GPU_BUILDERS}" --list $listname --runflags "mpi_procs_pernode=4"
 $addexp "checksuite.icon-dev/check.atm_qubicc_onlyfor"     --builders "${NVHPC_GPU_BUILDERS}" --list $listname --runflags "mpi_procs_pernode=4"
+$addexp "checksuite.icon-dev/check.atm_qubicc_pfts"        --builders "${NVHPC_GPU_BUILDERS}" --list $listname --runflags "mpi_procs_pernode=4"
+$addexp "checksuite.icon-dev/check.atm_qubicc_tmx"         --builders "${NVHPC_GPU_BUILDERS}" --list $listname --runflags "mpi_procs_pernode=4"
 $addexp "checksuite.icon-dev/check.atm_qubicc_update"      --builders "${NVHPC_GPU_BUILDERS}" --list $listname --runflags "mpi_procs_pernode=4"
+$addexp "checksuite.icon-dev/check.atm_qubicc_test_aero"   --builders "${NVHPC_GPU_BUILDERS}" --list $listname --runflags "mpi_procs_pernode=4"
+$addexp "checksuite.atm/gpu/test_amip-aes_R2B6_gpu.config" --builders "${NVHPC_GPU_BUILDERS}" --list $listname
 ./set_builder_flags Inactive --builders "${NVHPC_GPU_BUILDERS}" --list $listname
 #
 #---------------------------------------------------------------------------------------------------------

@@ -723,11 +723,11 @@ CONTAINS
           !$ACC LOOP GANG VECTOR
           DO ic = ics, ice
             drag_coef(ic,SFC_LAND) = grav * prefactor_exchange(ic,i_blk) &
-                & * mem%exchange_coeff_h_sfc(ic,i_blk,SFC_LAND)
+                & * mem%exchange_coeff_h_sfc(ic,i_blk,SFC_LAND) / MERGE(delta_time, 1._wp, linit)
             drag_coef(ic,SFC_WATER) = grav * prefactor_exchange(ic,i_blk) &
-                & * mem%exchange_coeff_h_sfc(ic,i_blk,SFC_WATER)
+                & * mem%exchange_coeff_h_sfc(ic,i_blk,SFC_WATER) / MERGE(delta_time, 1._wp, linit)
             drag_coef(ic,SFC_ICE) = grav * prefactor_exchange(ic,i_blk) &
-                & * mem%exchange_coeff_h_sfc(ic,i_blk,SFC_ICE)
+                & * mem%exchange_coeff_h_sfc(ic,i_blk,SFC_ICE) / MERGE(delta_time, 1._wp, linit)
             ch_sfc(ic,i_blk,SFC_LAND) = &
                 & MERGE(ch_sfc(ic,i_blk,SFC_LAND), 1._wp, ext_data%atm%fr_land(ic,i_blk) > 0._wp)
           END DO
@@ -812,7 +812,6 @@ CONTAINS
             & ice=ice, &
             & current_datetime=datetime_now,&
             & dtime=MERGE(1._wp, delta_time, linit), &
-            & steplen=delta_time, &
             & t_air=nh_diag%temp(ics:ice, patch%nlev, i_blk), &
             & q_air=tracer(ics:ice, patch%nlev, i_blk, iqv), &
             & rain=rain_srf(ics:ice,i_blk), &

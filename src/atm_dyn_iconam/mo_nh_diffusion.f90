@@ -337,8 +337,8 @@ MODULE mo_nh_diffusion
 
 #ifdef _OPENACC
       ! needs to be always initialized with OpenACC
-        CALL init(u_vert, lacc=.TRUE.)
-        CALL init(v_vert, lacc=.TRUE.)
+      CALL init(u_vert, lacc=.TRUE.)
+      CALL init(v_vert, lacc=.TRUE.)
 #else
       IF (p_test_run) THEN
         CALL init(u_vert, lacc=.FALSE.)

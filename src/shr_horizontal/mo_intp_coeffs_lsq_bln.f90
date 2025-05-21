@@ -1238,6 +1238,22 @@ CHARACTER(len=*), PARAMETER :: routine = modname//':lsq_compute_coeff_cell_spher
       ! as this would require an explicit interface for DGESDD.
       ! For clarity, the keyword arguments are provided as a comment.
       !
+#ifdef __SINGLE_PRECISION
+      CALL SGESDD('A',                 & !JOBZ  (in)
+        &         lsq_dim_c,           & !M     (in)
+        &         lsq_dim_unk,         & !N     (in)
+        &         z_lsq_mat_c(jc,:,:), & !A     (inout) Note: destroyed on output
+        &         lsq_dim_c,           & !LDA   (in)
+        &         zs(:,jc),            & !S     (out)
+        &         zu(:,:,jc),          & !U     (out)
+        &         lsq_dim_c,           & !LDU   (in)
+        &         zv_t(:,:,jc),        & !VT    (out)
+        &         lsq_dim_unk,         & !LDVT  (in)
+        &         zwork,               & !WORK  (out)
+        &         lwork,               & !LWORK (in)
+        &         ziwork,              & !IWORK (inout)
+        &         icheck               ) !INFO  (out)
+#else
       CALL DGESDD('A',                 & !JOBZ  (in)
         &         lsq_dim_c,           & !M     (in)
         &         lsq_dim_unk,         & !N     (in)
@@ -1252,6 +1268,7 @@ CHARACTER(len=*), PARAMETER :: routine = modname//':lsq_compute_coeff_cell_spher
         &         lwork,               & !LWORK (in)
         &         ziwork,              & !IWORK (inout)
         &         icheck               ) !INFO  (out)
+#endif
       ist = ist + ABS(icheck)                    ! icheck can be positive, negative, or zero
     ENDDO
     IF (ist /= SUCCESS) THEN
@@ -1962,7 +1979,8 @@ REAL(wp) :: za_debug(nproma,lsq_dim_c,lsq_dim_unk)
       !              + max(max(M,N),4*min(M,N)*min(M,N)+4*min(M,N))  (IN)
       ! iwork       : workspace(8*min(M,N))                          (IN)
 
-      CALL DGESDD('A',                 & !in
+#ifdef __SINGLE_PRECISION
+      CALL SGESDD('A',                 & !JOBZ  (in)
         &         lsq_dim_c,           & !in
         &         lsq_dim_unk,         & !in
         &         z_lsq_mat_c(jc,:,:), & !inout Note: destroyed on output
@@ -1976,6 +1994,22 @@ REAL(wp) :: za_debug(nproma,lsq_dim_c,lsq_dim_unk)
         &         lwork,               & !in
         &         ziwork,              & !inout
         &         icheck               ) !out
+#else
+      CALL DGESDD('A',                 & !JOBZ  (in)
+        &         lsq_dim_c,           & !in
+        &         lsq_dim_unk,         & !in
+        &         z_lsq_mat_c(jc,:,:), & !inout Note: destroyed on output
+        &         lsq_dim_c,           & !in
+        &         zs(:,jc),            & !out
+        &         zu(:,:,jc),          & !out
+        &         lsq_dim_c,           & !in
+        &         zv_t(:,:,jc),        & !out
+        &         lsq_dim_unk,         & !in
+        &         zwork,               & !out
+        &         lwork,               & !in
+        &         ziwork,              & !inout
+        &         icheck               ) !out
+#endif
       ist = ist + icheck
     ENDDO
     IF (ist /= SUCCESS) THEN

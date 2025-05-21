@@ -114,11 +114,15 @@ CONTAINS
        CALL print_value('    aes_vdf_config('//TRIM(cg)//')% turb           ',aes_vdf_config(jg)% turb           )
        CALL print_value('    aes_vdf_config('//TRIM(cg)//')% use_tmx        ',aes_vdf_config(jg)% use_tmx        )
        IF (aes_vdf_config(jg)% use_tmx) THEN
-        CALL print_value('    aes_vdf_config('//TRIM(cg)//')% solver_type    ',aes_vdf_config(jg)% solver_type   )
-        CALL print_value('    aes_vdf_config('//TRIM(cg)//')% energy_type    ',aes_vdf_config(jg)% energy_type   )
-        CALL print_value('    aes_vdf_config('//TRIM(cg)//')% dissipation_factor',aes_vdf_config(jg)% dissipation_factor)
-        CALL print_value('    aes_vdf_config('//TRIM(cg)//')% use_louis     ',aes_vdf_config(jg)% use_louis      )
-        CALL print_value('    aes_vdf_config('//TRIM(cg)//')% louis_constant_b',aes_vdf_config(jg)% louis_constant_b)
+        CALL print_value('    aes_vdf_config('//TRIM(cg)//')% solver_type                ',aes_vdf_config(jg)% solver_type       )
+        CALL print_value('    aes_vdf_config('//TRIM(cg)//')% energy_type                ',aes_vdf_config(jg)% energy_type       )
+        CALL print_value('    aes_vdf_config('//TRIM(cg)//')% dissipation_factor         ',aes_vdf_config(jg)% dissipation_factor)
+        CALL print_value('    aes_vdf_config('//TRIM(cg)//')% use_louis                  ',aes_vdf_config(jg)% use_louis         )
+        CALL print_value('    aes_vdf_config('//TRIM(cg)//')% louis_constant_b           ',aes_vdf_config(jg)% louis_constant_b  )
+        CALL print_value('    aes_vdf_config('//TRIM(cg)//')% use_km_const               ',aes_vdf_config(jg)% use_km_const      )
+        CALL print_value('    aes_vdf_config('//TRIM(cg)//')% km_const                   ',aes_vdf_config(jg)% km_const          )
+        CALL print_value('    aes_vdf_config('//TRIM(cg)//')% use_scale_turb_energy_flux ',aes_vdf_config(jg)% use_scale_turb_energy_flux)
+        CALL print_value('    aes_vdf_config('//TRIM(cg)//')% scale_turb_energy_flux     ',aes_vdf_config(jg)% scale_turb_energy_flux)
        END IF
        CALL print_value('    aes_vdf_config('//TRIM(cg)//')% smag_constant  ',aes_vdf_config(jg)% smag_constant  )
        CALL print_value('    aes_vdf_config('//TRIM(cg)//')% turb_prandtl   ',aes_vdf_config(jg)% turb_prandtl   )
@@ -126,6 +130,7 @@ CONTAINS
        CALL print_value('    aes_vdf_config('//TRIM(cg)//')% km_min         ',aes_vdf_config(jg)% km_min         )
        CALL print_value('    aes_vdf_config('//TRIM(cg)//')% max_turb_scale ',aes_vdf_config(jg)% max_turb_scale )
        CALL print_value('    aes_vdf_config('//TRIM(cg)//')% min_sfc_wind   ',aes_vdf_config(jg)% min_sfc_wind   )
+       CALL print_value('    aes_vdf_config('//TRIM(cg)//')% lcuda_graph_vdf ',aes_vdf_config(jg)% lcuda_graph_vdf)
        CALL message    ('','')
        !
     END DO

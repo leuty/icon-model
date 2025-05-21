@@ -54,7 +54,7 @@ MODULE mo_real_timer
     &                           my_process_is_stdio, p_io, &
     &                           p_comm_work, p_comm_work_test, p_gather, p_mpi_comm_null
   USE mo_master_control,  ONLY: get_my_process_name
-  USE mo_run_config,      ONLY: profiling_output
+  USE mo_run_config,      ONLY: profiling_output, timers_level
 
   ! imporant necessary variables for intra-communicator usage
   USE mo_mpi,             ONLY: p_comm_work_only, p_pe_work_only
@@ -346,7 +346,9 @@ CONTAINS
          CALL real_timer_abort(it,'timer_start: timer_stop call missing')
     rt(it)%stat = rt_on_stat
 
-    !$ACC WAIT
+    IF (timers_level > 10) THEN
+      !$ACC WAIT
+    END IF
 #ifdef _USE_NVTX
     call nvtxStartRange(srt(it)%text)
 #endif
@@ -478,7 +480,9 @@ CONTAINS
     REAL(dp) :: dt
 
   !------------------------------------------------------------------------------------------------
-    !$ACC WAIT
+    IF (timers_level > 10) THEN
+      !$ACC WAIT
+    END IF
 #ifdef _USE_NVTX
     call nvtxEndRange()
 #endif

@@ -66,7 +66,8 @@ MODULE mo_nh_testcases_nml
     &       linit_tracer_fv, lhs_fric_heat, lcoupled_rho, u_cbl, v_cbl,      &
     &       th_cbl, psfc_cbl, sol_const, zenithang, bubctr_x, bubctr_y,      &
     &       tracer_inidist_list, zp_ape, ztmc_ape, is_dry_cbl, isrfc_type,   &
-    &       shflx, lhflx, ufric, albedo_set
+    &       shflx, lhflx, ufric, albedo_set, p_sfc, th_sfc, gamma, nlev_pert, &
+    &       itheta_init, t_cbl_sol
 
   PUBLIC :: dcmip_bw
   PUBLIC :: is_toy_chem, toy_chem
@@ -110,7 +111,7 @@ MODULE mo_nh_testcases_nml
   REAL(wp) :: ape_sst_val            ! (degC) value to be used for SST computation for aqua planet
   REAL(wp) :: zp_ape                 ! surface pressure (Pa)
   REAL(wp) :: ztmc_ape               ! total atmospheric moisture content (g/m3 ?)
-  REAL(wp) :: w_perturb, th_perturb !Random perturbation scale for torus based experiments
+  REAL(wp) :: w_perturb, th_perturb  ! Random perturbation scale for torus based experiments
   REAL(wp) :: sol_const              ! [W/m2] solar constant
   REAL(wp) :: zenithang              ! [degrees] zenith angle
   REAL(wp) :: albedo_set             ! [fraction] surface albedo, only considered when
@@ -121,6 +122,15 @@ MODULE mo_nh_testcases_nml
   REAL(wp) :: shflx                  ! Kinematic sensible heat flux at surface (K m/s) for isrfc_type=1
   REAL(wp) :: lhflx                  ! Kinematic latent heat flux at surface (m/s) for isrfc_type=1
   REAL(wp) :: ufric
+
+  ! aes_cbl variables
+  REAL(wp) :: p_sfc       ! surface pressure
+  REAL(wp) :: th_sfc      ! potential temperature at surface
+  REAL(wp) :: gamma       ! lapse rate of potential temperature profile
+  INTEGER  :: nlev_pert   ! number of vertical grid points from ground to perturbe initial profile
+  INTEGER  :: itheta_init ! 1: linear theta profile based on gamma and th_sfc,
+                          ! 2: analytical solution based on constant eddy diffusivity (km_constant in TMX)
+  REAL(wp) :: t_cbl_sol   ! time for analytical solution of CBL with const. surface heat flux for analytical solution.
 
   !Linear profiles of variables for LES testcases
   REAL(wp) :: u_cbl(2)   !u_cbl(1) = constant, u_cbl(2) = gradient
@@ -197,7 +207,10 @@ MODULE mo_nh_testcases_nml
                             psfc_cbl, sol_const, zenithang, bubctr_x,        &
                             bubctr_y, is_toy_chem, toy_chem, dcmip_bw,       &
                             tracer_inidist_list, is_dry_cbl,                 &
-                            isrfc_type, shflx, lhflx, ufric, albedo_set
+                            isrfc_type, shflx, lhflx, ufric, albedo_set,     &
+                            p_sfc, th_sfc, gamma, nlev_pert,                 &
+                            itheta_init, t_cbl_sol
+
 
   ! Non-namelist-variables
   LOGICAL :: ltestcase_update  ! Is current testcase subject to update during integration?
@@ -350,6 +363,13 @@ MODULE mo_nh_testcases_nml
     gw_clat    = 90._wp      ! center of temperature/density perturbation  [deg]
     gw_delta_temp = 0.01_wp  ! Max amplitude of perturbation [K]
 
+    ! For aes_cbl testcase
+    p_sfc     = 101325._wp
+    th_sfc    = 290._wp
+    gamma     = 0.006_wp
+    nlev_pert = 5
+    itheta_init = 1
+    t_cbl_sol = 1._wp
 
     !For CBL testcases, Anurag Dipankar (MPIM, 2013-04)
     u_cbl(1:2) = 0._wp

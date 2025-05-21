@@ -2201,6 +2201,7 @@ CONTAINS
       &                  startidx= i_startidx, &
       &                  endidx  = i_endidx,   &
       &                  varout  = p_face      )  ! out
+    !$ACC WAIT(1)
 
 
 

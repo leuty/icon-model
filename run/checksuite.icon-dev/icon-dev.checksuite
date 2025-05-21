@@ -490,21 +490,43 @@ nml_add(){
         sed -e '/\s*&'${NML}'/a\'$'\n'${PARAM}' = '${VALUE} < ${FILE} > ${FILE}.out
         mv ${FILE}.out ${FILE}
     else
-        echo "$0:${FUNCNAME}: ERROR namelist ${NML} not found in ${FILE}"
-        exit 1
+        # if the namelist is not present, add it before the parallel_nml namelist
+        echo "$0:${FUNCNAME}: WARNING namelist ${NML} not found in ${FILE}"
+
+        sed -e "s[&parallel_nml[\&${NML}\n${PARAM} = ${VALUE}\n/\n\&parallel_nml[" < ${FILE} > ${FILE}.out
+        mv ${FILE}.out ${FILE}
     fi
 }
 
 nml_replace_or_add(){
-    PARAM=$1
-    VALUE=$2
-    NML=$3
-    FILE=$4
+    local PARAM=$1
+    local VALUE=$2
+    local NML=$3
+    local FILE=$4
     if grep -q '^[[:space:]]*'${PARAM}'[[:space:]]*=' ${FILE}; then
         nml_replace ${PARAM} ${VALUE} ${FILE}
     else
         nml_add ${PARAM} ${VALUE} ${NML} ${FILE}
     fi
+}
+
+nml_replace_or_add_nested(){
+    PREFIX=$1
+    PARAM=$2
+    VALUE=$3
+    NML=$4
+    FILE=$5
+
+    no_of_domains=1
+    if grep -v '^#' $FILE | grep -q "atmo_dyn_grids="; then
+        eval "$(grep -v '^#' $FILE | grep "atmo_dyn_grids=")"
+        no_of_domains=$(echo $atmo_dyn_grids | wc -w)
+    fi
+
+    for dom in $(seq 1 $no_of_domains); do
+        FULL_PARAM="$PREFIX($dom)%$PARAM"
+        nml_replace_or_add $FULL_PARAM $VALUE $NML $FILE
+    done
 }
 
 #################### main script ########################################
@@ -663,6 +685,11 @@ if [ "${EXPERIMENT}" == 'atm_2mom_bubble_rceTorus_test' ]; then
     TYPES=${TYPES='atm_2d_ml atm_3d_ml'}
     DATES=${DATES='20080801T000000Z 20080801T000200Z 20080801T000400Z'}
     RESTART_DATE=${RESTART_DATE='20080801T000200Z'}
+fi
+if [ "${EXPERIMENT}" == 'atm_qubicc_test_aero' ]; then
+    TYPES=${TYPES='wa_ml' 'va_ml' 'ua_ml' 'tend_va_vdf_ml' 'tend_ua_vdf_ml' 'tend_ta_vdf_ml' 'tend_ta_rsw_ml' 'tend_ta_rlw_ml' 'tend_ta_mig_ml' 'ta_ml' 'rho_ml' 'qs_ml' 'qr_ml' 'qg_ml' 'pfull_ml' 'hus_ml' 'flx2d_ml' 'aer_3d_ml'}
+    DATES=${DATES='19790101T000040Z 19790101T000120Z 19790101T000200Z 19790101T000240Z 19790101T000320Z 19790101T000400Z'}
+    RESTART_DATE=${RESTART_DATE='19790101T000200Z'}
 fi
 
 echo " "
@@ -905,7 +932,7 @@ if [[ ${MD} =~ .*n.* ]]; then
         # change experiment name, except in the data package name
         sed "s/${SCRIPT}/${EXP_TEST}/g;s/data.${EXP_TEST}/data.${SCRIPT}/g" ${PREFIX}.${SCRIPT}.run > ${RUN_SCRIPT}
 
-        TEST_POSSIBLE=no
+	TEST_POSSIBLE=no
         N_NPROMA_NEW=$nproma
         N_NBLOCKS_C_NEW=$nblocks_c
 
@@ -1223,6 +1250,7 @@ if [[ ${MD} =~ .*g.* ]]; then
 
         nml_replace_or_add lcuda_graph_lnd .TRUE. lnd_nml ${RUN_SCRIPT}
         nml_replace_or_add lcuda_graph_turb_tran .TRUE. nwp_phy_nml ${RUN_SCRIPT}
+        nml_replace_or_add_nested "aes_vdf_config" "lcuda_graph_vdf" .TRUE. aes_vdf_nml ${RUN_SCRIPT}
 
         echo "Perform $TEST run"
         chmod 755 ${RUN_SCRIPT}

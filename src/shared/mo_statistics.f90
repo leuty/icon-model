@@ -17,7 +17,7 @@
 !----------------------------
 MODULE mo_statistics
   !-------------------------------------------------------------------------
-  USE mo_kind,               ONLY: wp,sp
+  USE mo_kind,               ONLY: wp
   USE mo_exception,          ONLY: warning, finish
 #ifdef _OPENMP
   USE omp_lib
@@ -40,7 +40,7 @@ MODULE mo_statistics
 
   !-------------------------------------------------------------------------
   ! NOTE: in order to get correct results make sure you provide the proper in_subset (ie, owned)!
-  PUBLIC :: global_minmaxmean, subset_sum, add_fields_3d
+  PUBLIC :: global_minmaxmean, subset_sum
   PUBLIC :: add_fields
   PUBLIC :: L2Norm, LInfNorm
   PUBLIC :: accumulate_mean, levels_horizontal_mean, horizontal_mean, total_mean
@@ -248,8 +248,6 @@ MODULE mo_statistics
   INTERFACE add_fields
     MODULE PROCEDURE add_fields_3d
     MODULE PROCEDURE add_fields_2d
-    MODULE PROCEDURE add_fields_3d_sp
-    MODULE PROCEDURE add_fields_2d_sp
   END INTERFACE add_fields
 
   INTERFACE print_value_location
@@ -2275,77 +2273,6 @@ CONTAINS
     END DO
 !ICON_OMP_END_PARALLEL_DO
   END SUBROUTINE add_fields_2d
-
-  SUBROUTINE add_fields_3d_sp(sum_field,field,subset,levels,has_missvals, missval)
-    REAL(wp),INTENT(inout)          :: sum_field(:,:,:)
-    REAL(sp),INTENT(in)             :: field(:,:,:)
-    TYPE(t_subset_range),INTENT(in) :: subset
-    INTEGER,INTENT(in),OPTIONAL :: levels
-    LOGICAL, INTENT(IN), OPTIONAL :: has_missvals
-    REAL(wp), INTENT(IN), OPTIONAL :: missval
-
-    INTEGER :: idx,block,level,start_index,end_index
-
-    INTEGER :: mylevels
-    LOGICAL :: my_force_level, my_has_missvals
-    REAL(wp) :: my_miss
-
-    my_has_missvals = .FALSE.
-    my_miss = 0.0_wp
-    IF (PRESENT(has_missvals)) my_has_missvals = has_missvals
-    IF (PRESENT(missval)) my_miss = missval
-
-      ! use constant levels
-      mylevels                       = SIZE(sum_field, VerticalDim_Position)
-      IF (PRESENT(levels))  mylevels = levels
-!ICON_OMP_PARALLEL_DO PRIVATE(start_index, end_index, idx, level) SCHEDULE(dynamic)
-      DO block = subset%start_block, subset%end_block
-        CALL get_index_range(subset, block, start_index, end_index)
-        !$ACC PARALLEL PRESENT(sum_field, field) ASYNC(1)
-        !$ACC LOOP GANG VECTOR COLLAPSE(2)
-        DO level = 1, mylevels
-          DO idx = start_index, end_index
-            sum_field(idx,level,block) = MERGE(my_miss, &
-                                             & sum_field(idx,level,block) + REAL(field(idx,level,block),wp), &
-                                             & my_has_missvals .AND. (field(idx,level,block) == REAL(my_miss,sp)))
-          END DO
-        END DO
-        !$ACC END PARALLEL
-      END DO
-!ICON_OMP_END_PARALLEL_DO
-
-  END SUBROUTINE add_fields_3d_sp
-
-  SUBROUTINE add_fields_2d_sp(sum_field,field,subset,has_missvals, missval)
-    REAL(wp),INTENT(inout)          :: sum_field(:,:)
-    REAL(sp),INTENT(in)             :: field(:,:)
-    TYPE(t_subset_range),INTENT(in) :: subset
-    LOGICAL, INTENT(IN), OPTIONAL :: has_missvals
-    REAL(wp), INTENT(IN), OPTIONAL :: missval
-
-    INTEGER :: jb,jc,start_index,end_index
-    LOGICAL :: my_has_missvals
-    REAL(wp) :: my_miss
-
-    my_has_missvals = .FALSE.
-    my_miss = 0.0_wp
-    IF (PRESENT(has_missvals)) my_has_missvals = has_missvals
-    IF (PRESENT(missval)) my_miss = missval
-
-!ICON_OMP_PARALLEL_DO PRIVATE(start_index, end_index, jc) SCHEDULE(dynamic)
-    DO jb = subset%start_block, subset%end_block
-      CALL get_index_range(subset, jb, start_index, end_index)
-      !$ACC PARALLEL PRESENT(sum_field, field) ASYNC(1)
-      !$ACC LOOP GANG VECTOR
-      DO jc = start_index, end_index
-        sum_field(jc,jb) = MERGE(my_miss, &
-                               & sum_field(jc,jb) + REAL(field(jc,jb),wp), &
-                               & my_has_missvals .AND. (field(jc,jb) == REAL(my_miss,sp)))
-      END DO
-      !$ACC END PARALLEL
-    END DO
-!ICON_OMP_END_PARALLEL_DO
-  END SUBROUTINE add_fields_2d_sp
 
   !-----------------------------------------------------------------------
   SUBROUTINE add_verticallyIntegrated_field(vint_field_acc,field_3D,subset,height,levels)

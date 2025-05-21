@@ -94,8 +94,6 @@ SUBROUTINE su_bc_aeropt_kinne(p_patch, nbndlw, nbndsw, opt_from_coupler)
   nblks=p_patch%nblks_c
   nblks_len=nproma
 
-  ! Check after merging icon-aes-link-echam-bc
-
   lend_of_year = ( time_config%tc_stopdate%date%month  == 1  .AND. &
     &              time_config%tc_stopdate%date%day    == 1  .AND. &
     &              time_config%tc_stopdate%time%hour   == 0  .AND. &
@@ -111,6 +109,8 @@ SUBROUTINE su_bc_aeropt_kinne(p_patch, nbndlw, nbndsw, opt_from_coupler)
   tiw_end = calculate_time_interpolation_weights(time_config%tc_stopdate)
 
   IF ( nyears > 1 ) THEN
+    ! at the change of year section 12:13 is copied over to 0:1
+    ! thus we have to allocate the full section in this case
     imonth_beg = 0
     imonth_end = 13
   ELSE
@@ -141,7 +141,7 @@ SUBROUTINE su_bc_aeropt_kinne(p_patch, nbndlw, nbndsw, opt_from_coupler)
     rdz_clim = 1._wp/dz_clim
 
     WRITE(message_text,'(a,f6.2)') ' delta_z set to ', dz_clim
-    CALL message('mo_bc_aeropt_kinne:read_months_bc_aeropt_kinne', message_text)
+    CALL message('mo_bc_aeropt_kinne:su_bc_aeropt_kinne', message_text)
 
   ENDIF
 

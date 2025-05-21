@@ -30,6 +30,11 @@ MODULE ppm_distributed_array
        ppm_int => p_int, &
        ppm_int_i8 => p_int_i8, &
        ppm_bool => p_bool, p_pe
+#ifdef __SINGLE_PRECISION
+  USE mo_mpi, ONLY: ppm_real_wp => p_real_sp
+#else
+  USE mo_mpi, ONLY: ppm_real_wp => p_real_dp
+#endif
 #ifdef __BLOCK_GET__
   USE mo_mpi, ONLY: p_comm_work
 #endif
@@ -151,7 +156,7 @@ MODULE ppm_distributed_array
   PUBLIC :: recv_array_dp, proc_lst_dp, ind_lst_dp
 #endif
 
-  PUBLIC ppm_real_dp, ppm_real_sp, ppm_int, ppm_int_i8, ppm_bool
+  PUBLIC :: ppm_real_dp, ppm_real_sp, ppm_real_wp, ppm_int, ppm_int_i8, ppm_bool
 
   PUBLIC :: dist_mult_array, global_array_desc
   PUBLIC :: dist_mult_array_new, dist_mult_array_delete
@@ -3267,6 +3272,11 @@ MODULE ppm_distributed_array
   INTEGER, PARAMETER :: ppm_int = 3
   INTEGER, PARAMETER :: ppm_int_i8 = 4
   INTEGER, PARAMETER :: ppm_bool = 5
+#ifdef __SINGLE_PRECISION
+  INTEGER, PARAMETER :: ppm_real_wp = ppm_real_sp
+#else
+  INTEGER, PARAMETER :: ppm_real_wp = ppm_real_dp
+#endif
 
   INTEGER, PARAMETER :: not_exposed = 0
   INTEGER, PARAMETER :: exposed = 1
@@ -3310,7 +3320,7 @@ MODULE ppm_distributed_array
     INTEGER :: exposure_status
   END TYPE dist_mult_array
 
-  PUBLIC ppm_real_dp, ppm_real_sp, ppm_int, ppm_int_i8, ppm_bool
+  PUBLIC :: ppm_real_dp, ppm_real_sp, ppm_real_wp, ppm_int, ppm_int_i8, ppm_bool
 
   PUBLIC :: dist_mult_array, global_array_desc
   PUBLIC :: dist_mult_array_new, dist_mult_array_delete

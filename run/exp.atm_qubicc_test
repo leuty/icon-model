@@ -32,7 +32,6 @@ author_list='Marco Giorgetta, MPIM'
 # - SST and sea ice
 # - spectral solar irradiation
 # - well mixed greenhouse gases CO2, CH4, N2O, CFCs
-# - O3 concentration
 #
 # - no aerosols  --> aes_rad_nml/aes_rad_config(1)%irad_aero  =  0
 #                    THIS SHOULD BE CHANGED TO TRANSIENT AEROSOLS
@@ -79,7 +78,7 @@ author_list='Marco Giorgetta, MPIM'
 # nblocks_c             = number of looping chunks used for cells
 #                         which is set in run/create_target_header for the used machine
 #
-#  nproma_sub           = radiation blocking length
+# nproma_sub            = radiation blocking length
 #
 #--------------------------------------------------------------------------------------------------
 #
@@ -120,12 +119,22 @@ output_format=${netcdf_format}
 # output control
 # - files are produced for every output date for single variables or variable groups, as specified
 # - the amount of variables depends on the model configuration
+#
 output_atm_vgrid=on         # 1 file/variable             , start date
 output_atm_state_3d_ini=on  # 1 file/variable             , start_date
 output_atm_state_3d_sim=on  # 1 file/variable/date        , first_output_date to last__output_date
 output_atm_state_2d_sim=on  # 1 file/(variable group)/date, first_output_date to last__output_date
 output_atm_tend_3d=on       # 1 file/variable/date        , first_output_date to last__output_date
 output_atm_flux_2d=on       # 1 file/(variable group)/date, first_output_date to last__output_date
+#
+output_atm_energy_3d=on     # 1 file/(variable group)/date, first_output_date to last__output_date
+output_atm_energy_2d=on     # 1 file/(variable group)/date, first_output_date to last__output_date
+output_atm_energy_1d=on     # 1 file/(variable group)/date, first_output_date to last__output_date
+output_atm_energy_0d=on     # 1 file/(variable group)/date, first_output_date to last__output_date
+#
+output_atm_mig_const=on     # 1 file/(variable group)     , first_output_date
+output_atm_mig_varin=on     # 1 file/(variable group)/date, first_output_date to last__output_date
+output_atm_mig_varout=on    # 1 file/(variable group)/date, first_output_date to last__output_date
 
 #--------------------------------------------------------------------------------------------------
 
@@ -152,11 +161,45 @@ lclearsky=.TRUE.    # .TRUE.: clear sky fluxes computed, .FALSE.: ... not comput
 fi # ${dt_rad}
 #
 dt_vdf=${dt_atm}    # as above
+if [ x${dt_vdf} != x ]
+then
+run_jsbach=yes
+use_tmx=.FALSE.     # .FALSE. for vdf code with tte schem, .TRUE. for tmx code with Smagorinsky scheme
+if [ ${use_tmx} = .FALSE. ]; then turb=1; max_ini_rough_m=-1.0; fi
+if [ ${use_tmx} = .TRUE.  ]; then turb=2; max_ini_rough_m=1.0 ; fi
+else
+run_jsbach=no
+fi # ${dt_vdf}
 #
 dt_mig=${dt_atm}    # as above
 #
-run_jsbach=yes      # yes,true: on, else: off
-jsbach_with_lakes=true # true/false
+dt_car=${dt_atm}    # as above
+
+# land surface and soil
+# ---------------------
+#
+if [ ${run_jsbach} = yes ]
+then
+jsb_case="'jsbach_lite'" # jsbach_lite or jsbach_pfts
+jsb_output_tiles="'veg','glac','land','lake','box'"
+#
+if [ ${jsb_case} = "'jsbach_lite'" ]
+then
+fract_filename="'bc_land_frac.nc'"
+use_alb_veg_simple=.TRUE.
+jsb_assimi_active=.FALSE.
+jsb_pheno_scheme="'climatology'"
+fi # ${jsb_case}
+#
+if [ ${jsb_case} = "'jsbach_pfts'" ]
+then
+fract_filename="'bc_land_frac_11pfts.nc'"
+use_alb_veg_simple=.FALSE.
+jsb_assimi_active=.TRUE.
+jsb_pheno_scheme="'logrop'"
+fi # ${jsb_case}
+#
+fi # ${run_jsbach}
 #
 fi # ${iforcing}
 
@@ -243,16 +286,16 @@ fi # ${ldynamics}
 cat >> ${atmo_namelist} << EOF
 !
 &transport_nml
- tracer_names       = 'hus','clw','cli', 'qr', 'qs', 'qg'
+ tracer_names       = 'hus','clw','cli', 'qr', 'qs', 'qg', 'o3'
 EOF
 #
 # Additional parameters are needed if the transport scheme is used
 if [ ${ltransport} = .TRUE. ]
 then
 cat >> ${atmo_namelist} << EOF
- ivadv_tracer       =    3 ,   3 ,   3 ,   3 ,   3 ,   3
- itype_hlimit       =    3 ,   4 ,   4 ,   4 ,   4 ,   4
- ihadv_tracer       =   20 ,  20 ,  20 ,  20 ,  20 ,  20
+ ivadv_tracer       =    3 ,   3 ,   3 ,   3 ,   3 ,   3 ,   3
+ itype_hlimit       =    3 ,   4 ,   4 ,   4 ,   4 ,   4 ,   4
+ ihadv_tracer       =   20 ,  20 ,  20 ,  20 ,  20 ,  20 ,  20
 EOF
 fi # ${ltransport}
 #
@@ -273,13 +316,14 @@ cat >> ${atmo_namelist} << EOF
  aes_phy_config(1)%dt_rad     = '${dt_rad}'
  aes_phy_config(1)%dt_vdf     = '${dt_vdf}'
  aes_phy_config(1)%dt_mig     = '${dt_mig}'
+ aes_phy_config(1)%dt_car     = '${dt_car}'
 !
 ! surface (.TRUE. or .FALSE.)
  aes_phy_config(1)%ljsb       = .TRUE.
  aes_phy_config(1)%lamip      = .TRUE.
  aes_phy_config(1)%lice       = .TRUE.
  aes_phy_config(1)%lmlo       = .FALSE.
- aes_phy_config(1)%llake      = .${jsbach_with_lakes}.
+ aes_phy_config(1)%llake      = .TRUE.
 !
 ! top height for cloud processes
  aes_phy_config(1)%zmaxcloudy = ${htop_cloudy}
@@ -314,7 +358,7 @@ cat >> ${atmo_namelist} << EOF
  aes_rad_config(1)%irad_co2   =  3
  aes_rad_config(1)%irad_ch4   =  13
  aes_rad_config(1)%irad_n2o   =  13
- aes_rad_config(1)%irad_o3    =  5
+ aes_rad_config(1)%irad_o3    =  1
  aes_rad_config(1)%irad_o2    =  2
  aes_rad_config(1)%irad_cfc11 =  3
  aes_rad_config(1)%irad_cfc12 =  3
@@ -332,6 +376,8 @@ cat >> ${atmo_namelist} << EOF
 &aes_vdf_nml ! grid(1)
  aes_vdf_config(1)%lmix_max   =  150.
  aes_vdf_config(1)%pr0        =  0.7
+ aes_vdf_config(1)%use_tmx    = ${use_tmx}
+ aes_vdf_config(1)%turb       = ${turb}
 /
 EOF
 fi # ${dt_vdf}
@@ -356,30 +402,31 @@ jsbach_namelist=NAMELIST_${EXPNAME}_lnd # also used in exec.iconrun
 #
 cat > ${jsbach_namelist} << EOF
 &jsb_model_nml
-  usecase                 = 'jsbach_lite'
-  use_lakes               = .${jsbach_with_lakes}.
-  fract_filename          = 'bc_land_frac.nc'
+  usecase                 = ${jsb_case}
+  fract_filename          = ${fract_filename}
+  output_tiles            = ${jsb_output_tiles}
   enforce_water_budget    = 'error'     ! Error: stop in case of water conservation problem
+  use_tmx                 = ${use_tmx}
 /
 &jsb_seb_nml
   bc_filename             = 'bc_land_phys.nc'
   ic_filename             = 'ic_land_soil.nc'
 /
 &jsb_rad_nml
-  use_alb_veg_simple      = .TRUE.
+  use_alb_veg_simple      = ${use_alb_veg_simple}
   bc_filename             = 'bc_land_phys.nc'
   ic_filename             = 'ic_land_soil.nc'
 /
 &jsb_turb_nml
   bc_filename             = 'bc_land_phys.nc'
   ic_filename             = 'ic_land_soil.nc'
-  max_ini_rough_m         = -1.0 ! > 0: limit for roughness length from initial file
+  max_ini_rough_m         = ${max_ini_rough_m}
 /
 &jsb_sse_nml
   l_heat_cap_map          = .FALSE.
   l_heat_cond_map         = .FALSE.
-  l_heat_cap_dyn          = .FALSE.
-  l_heat_cond_dyn         = .FALSE.
+  l_heat_cap_dyn          = .TRUE.
+  l_heat_cond_dyn         = .TRUE.
   l_snow                  = .TRUE.
   l_dynsnow               = .TRUE.
   l_freeze                = .TRUE.
@@ -394,10 +441,11 @@ cat > ${jsbach_namelist} << EOF
   bc_sso_filename         = 'bc_land_sso.nc'
 /
 &jsb_assimi_nml
-  active                  = .FALSE.
+  active                  = ${jsb_assimi_active}
 /
 &jsb_pheno_nml
-  scheme                  = 'climatology'
+  active                  = .TRUE.
+  scheme                  = ${jsb_pheno_scheme}
   bc_filename             = 'bc_land_phys.nc'
   ic_filename             = 'ic_land_soil.nc'
 /
@@ -421,7 +469,7 @@ fi # ${iforcing}
 # (3) Define the input: model constants, grid, initial state, boundary conditions
 
 # data directory for the input of this experiment
-datadir=${icon_data_rootFolder}/experiments/data.atm_qubicc_test.r1
+datadir=${icon_data_rootFolder}/experiments/data.atm_qubicc_test.r2
 if [ ! -d ${datadir} ]
 then
     echo "ERROR: input data directory ${datadir} not found"
@@ -560,7 +608,7 @@ then
 #
 # - all levels
 #
-varlist="'pfull' 'ta' 'rho' 'ua' 'va' 'wa' 'hus'"
+varlist="'pfull' 'ta' 'rho' 'ua' 'va' 'wa' 'hus' 'o3'"
 #
 for var in ${varlist}
 do
@@ -619,7 +667,7 @@ then
 #
 # - all levels
 #
-varlist="'pfull' 'ta' 'rho' 'ua' 'va' 'wa' 'hus'"
+varlist="'pfull' 'ta' 'rho' 'ua' 'va' 'wa' 'hus' 'o3'"
 #
 for var in ${varlist}
 do
@@ -684,7 +732,7 @@ if [ ${iforcing} -eq 2 ] ; then
 varlist="${varlist} 'ts'"
 if [ x${dt_rad} != x ] ; then varlist="${varlist} 'cosmu0' 'albedo' "; fi
 if [ x${dt_vdf} != x ] ; then varlist="${varlist} 'sic' 'sit' 'sfcwind' 'uas' 'vas' 'tas' 'dew2'   "; fi
-if [ x${dt_mig} != x ] ; then varlist="${varlist} 'clt' 'prw' 'cllvi' 'clivi' 'qrvi' 'qsvi' 'qgvi' "; fi
+if [ x${dt_mig} != x ] ; then varlist="${varlist} 'clt' 'prw' 'cllvi' 'clivi' 'qrvi' 'qsvi' 'qgvi' 'o3vi' "; fi
 fi # ${iforcing}
 #
 if [ "x${varlist}" != x ] ; then
@@ -726,8 +774,9 @@ if [ ${ldynamics}  = .TRUE. ] ; then varlist="${varlist}                        
 #
 if [ ${iforcing} -eq 2 ] ; then
 if [ x${dt_rad} != x ] ; then varlist="${varlist} 'tend_ta_rlw' 'tend_ta_rsw'"  ; fi
-if [ x${dt_vdf} != x ] ; then varlist="${varlist} 'tend_ua_vdf' 'tend_va_vdf' 'tend_ta_vdf' 'tend_hus_vdf'"; fi
+if [ x${dt_vdf} != x ] ; then varlist="${varlist} 'tend_ua_vdf' 'tend_va_vdf' 'tend_ta_vdf' 'tend_hus_vdf' 'tend_o3_vdf'"; fi
 if [ x${dt_mig} != x ] ; then varlist="${varlist} 'tend_ta_mig' 'tend_hus_mig'"; fi
+if [ x${dt_car} != x ] ; then varlist="${varlist} 'tend_o3_car'"; fi
 fi # ${iforcing}
 #
 for var in ${varlist}
@@ -824,6 +873,351 @@ EOF
 fi # varlist
 #
 fi # ${output_atm_flux_2d}
+
+
+# atmospheric energies
+# --------------------
+#
+if [ ${iforcing} -eq 2 ] ; then
+#
+# - from first_output_date to last__output_date
+# - all levels
+#
+#
+if [ ${output_atm_energy_3d} = on ]
+then
+#
+# - state: instantaneous
+#
+varlist=""
+varlist="${varlist} 'eindyn' 'ekhdyn' 'ekvdyn' 'egpdyn' 'etodyn'"
+varlist="${varlist} 'einphy' 'ekhphy' 'ekvphy' 'egpphy' 'etophy'"
+varlist="${varlist} 'ein'    'ekh'    'ekv'    'egp'    'eto'"
+#
+var="'e3d_state'"
+  cat >> ${atmo_namelist} << EOF
+&output_nml
+ output_filename  = '${EXPNAME}_${var//\'}'
+ filename_format  = '${EXPNAME}_${var//\'}_ml_<datetime2>'
+ ready_file       = '${EXPNAME}_${var//\'}_ml_<datetime2>.ready'
+ filetype         = ${output_format}
+ remap            = 0
+ output_grid      = .FALSE.
+ output_start     = '${first_output_date}'
+ output_end       = '${last__output_date}'
+ output_interval  = '${atm_output_interval}'
+ file_interval    = '${atm_file_interval}'
+ include_last     = .FALSE.
+ ml_varlist       = ${varlist}
+/
+EOF
+#
+# - tendencies: time mean
+#
+varlist=""
+varlist="${varlist} 'tend_eindyn' 'tend_ekhdyn' 'tend_ekvdyn' 'tend_egpdyn' 'tend_etodyn'"
+varlist="${varlist} 'tend_eincld'"
+varlist="${varlist} 'tend_einrad'"
+varlist="${varlist} 'tend_eintmx' 'tend_ekhtmx' 'tend_ekvtmx'"
+varlist="${varlist} 'tend_einphy' 'tend_ekhphy' 'tend_ekvphy' 'tend_egpphy' 'tend_etophy'"
+#
+var="'e3d_tends'"
+  cat >> ${atmo_namelist} << EOF
+&output_nml
+ output_filename  = '${EXPNAME}_${var//\'}'
+ filename_format  = '${EXPNAME}_${var//\'}_ml_<datetime2>'
+ ready_file       = '${EXPNAME}_${var//\'}_ml_<datetime2>.ready'
+ filetype         = ${output_format}
+ remap            = 0
+ operation        = 'mean'
+ output_grid      = .FALSE.
+ output_start     = '${first_output_date}'
+ output_end       = '${last__output_date}'
+ output_interval  = '${atm_output_interval}'
+ file_interval    = '${atm_file_interval}'
+ include_last     = .FALSE.
+ ml_varlist       = ${varlist}
+/
+EOF
+#
+fi # ${output_atm_energy_3d}
+#
+#
+if [ ${output_atm_energy_2d} = on ]
+then
+#
+# - vertical integrals of the state: instantaneous
+#
+varlist=""
+varlist="${varlist} 'eindynvi' 'ekhdynvi' 'ekvdynvi' 'egpdynvi' 'etodynvi'"
+varlist="${varlist} 'einphyvi' 'ekhphyvi' 'ekvphyvi' 'egpphyvi' 'etophyvi'"
+varlist="${varlist} 'einvi'    'ekhvi'    'ekvvi'    'egpvi'    'etovi'"
+#
+var="'e2d_state'"
+  cat >> ${atmo_namelist} << EOF
+&output_nml
+ output_filename  = '${EXPNAME}_${var//\'}'
+ filename_format  = '${EXPNAME}_${var//\'}_ml_<datetime2>'
+ ready_file       = '${EXPNAME}_${var//\'}_ml_<datetime2>.ready'
+ filetype         = ${output_format}
+ remap            = 0
+ output_grid      = .FALSE.
+ output_start     = '${first_output_date}'
+ output_end       = '${last__output_date}'
+ output_interval  = '${atm_output_interval}'
+ file_interval    = '${atm_file_interval}'
+ include_last     = .FALSE.
+ ml_varlist       = ${varlist}
+/
+EOF
+#
+# - vertical integrals of tendencies: time mean
+#
+varlist=""
+varlist="${varlist} 'tend_eindynvi' 'tend_ekhdynvi' 'tend_ekvdynvi' 'tend_egpdynvi' 'tend_etodynvi'"
+varlist="${varlist} 'tend_eincldvi'"
+varlist="${varlist} 'tend_einradvi'"
+varlist="${varlist} 'tend_eintmxvi' 'tend_ekhtmxvi' 'tend_ekvtmxvi'"
+varlist="${varlist} 'tend_einphyvi' 'tend_ekhphyvi' 'tend_ekvphyvi' 'tend_egpphyvi' 'tend_etophyvi'"
+#
+var="'e2d_tends'"
+  cat >> ${atmo_namelist} << EOF
+&output_nml
+ output_filename  = '${EXPNAME}_${var//\'}'
+ filename_format  = '${EXPNAME}_${var//\'}_ml_<datetime2>'
+ ready_file       = '${EXPNAME}_${var//\'}_ml_<datetime2>.ready'
+ filetype         = ${output_format}
+ remap            = 0
+ operation        = 'mean'
+ output_grid      = .FALSE.
+ output_start     = '${first_output_date}'
+ output_end       = '${last__output_date}'
+ output_interval  = '${atm_output_interval}'
+ file_interval    = '${atm_file_interval}'
+ include_last     = .FALSE.
+ ml_varlist       = ${varlist}
+/
+EOF
+#
+fi # ${output_atm_energy_2d}
+#
+#
+if [ ${output_atm_energy_1d} = on ]
+then
+#
+# - global means of the state: instantaneous
+#
+varlist=""
+varlist="${varlist} 'eindynhi' 'ekhdynhi' 'ekvdynhi' 'egpdynhi' 'etodynhi'"
+varlist="${varlist} 'einphyhi' 'ekhphyhi' 'ekvphyhi' 'egpphyhi' 'etophyhi'"
+varlist="${varlist} 'einhi'    'ekhhi'    'ekvhi'    'egphi'    'etohi'"
+#
+var="'e1d_state'"
+  cat >> ${atmo_namelist} << EOF
+&output_nml
+ output_filename  = '${EXPNAME}_${var//\'}'
+ filename_format  = '${EXPNAME}_${var//\'}_ml_<datetime2>'
+ ready_file       = '${EXPNAME}_${var//\'}_ml_<datetime2>.ready'
+ filetype         = ${output_format}
+ remap            = 0
+ output_grid      = .FALSE.
+ output_start     = '${first_output_date}'
+ output_end       = '${last__output_date}'
+ output_interval  = '${atm_output_interval}'
+ file_interval    = '${atm_file_interval}'
+ include_last     = .FALSE.
+ ml_varlist       = ${varlist}
+/
+EOF
+#
+# - global means of tendencies: time mean
+#
+varlist=""
+varlist="${varlist} 'tend_eindynhi' 'tend_ekhdynhi' 'tend_ekvdynhi' 'tend_egpdynhi' 'tend_etodynhi'"
+varlist="${varlist} 'tend_eincldhi'"
+varlist="${varlist} 'tend_einradhi'"
+varlist="${varlist} 'tend_eintmxhi' 'tend_ekhtmxhi' 'tend_ekvtmxhi'"
+varlist="${varlist} 'tend_einphyhi' 'tend_ekhphyhi' 'tend_ekvphyhi' 'tend_egpphyhi' 'tend_etophyhi'"
+#
+var="'e1d_tends'"
+  cat >> ${atmo_namelist} << EOF
+&output_nml
+ output_filename  = '${EXPNAME}_${var//\'}'
+ filename_format  = '${EXPNAME}_${var//\'}_ml_<datetime2>'
+ ready_file       = '${EXPNAME}_${var//\'}_ml_<datetime2>.ready'
+ filetype         = ${output_format}
+ remap            = 0
+ operation        = 'mean'
+ output_grid      = .FALSE.
+ output_start     = '${first_output_date}'
+ output_end       = '${last__output_date}'
+ output_interval  = '${atm_output_interval}'
+ file_interval    = '${atm_file_interval}'
+ include_last     = .FALSE.
+ ml_varlist       = ${varlist}
+/
+EOF
+#
+fi # ${output_atm_energy_1d}
+#
+#
+if [ ${output_atm_energy_0d} = on ]
+then
+#
+# - global means of vertical integrals of the state: instantaneous
+#
+varlist=""
+varlist="${varlist} 'eindynti' 'ekhdynti' 'ekvdynti' 'egpdynti' 'etodynti'"
+varlist="${varlist} 'einphyti' 'ekhphyti' 'ekvphyti' 'egpphyti' 'etophyti'"
+varlist="${varlist} 'einti'    'ekhti'    'ekvti'    'egpti'    'etoti'"
+#
+var="'e0d_state'"
+  cat >> ${atmo_namelist} << EOF
+&output_nml
+ output_filename  = '${EXPNAME}_${var//\'}'
+ filename_format  = '${EXPNAME}_${var//\'}_ml_<datetime2>'
+ ready_file       = '${EXPNAME}_${var//\'}_ml_<datetime2>.ready'
+ filetype         = ${output_format}
+ remap            = 0
+ output_grid      = .FALSE.
+ output_start     = '${first_output_date}'
+ output_end       = '${last__output_date}'
+ output_interval  = '${atm_output_interval}'
+ file_interval    = '${atm_file_interval}'
+ include_last     = .FALSE.
+ ml_varlist       = ${varlist}
+/
+EOF
+#
+# - global means of vertical integrals of tendencies: time mean
+#
+varlist=""
+varlist="${varlist} 'tend_eindynti' 'tend_ekhdynti' 'tend_ekvdynti' 'tend_egpdynti' 'tend_etodynti'"
+varlist="${varlist} 'tend_eincldti'"
+varlist="${varlist} 'tend_einradti'"
+varlist="${varlist} 'tend_eintmxti' 'tend_ekhtmxti' 'tend_ekvtmxti'"
+varlist="${varlist} 'tend_einphyti' 'tend_ekhphyti' 'tend_ekvphyti' 'tend_egpphyti' 'tend_etophyti'"
+#
+var="'e0d_tends'"
+  cat >> ${atmo_namelist} << EOF
+&output_nml
+ output_filename  = '${EXPNAME}_${var//\'}'
+ filename_format  = '${EXPNAME}_${var//\'}_ml_<datetime2>'
+ ready_file       = '${EXPNAME}_${var//\'}_ml_<datetime2>.ready'
+ filetype         = ${output_format}
+ remap            = 0
+ operation        = 'mean'
+ output_grid      = .FALSE.
+ output_start     = '${first_output_date}'
+ output_end       = '${last__output_date}'
+ output_interval  = '${atm_output_interval}'
+ file_interval    = '${atm_file_interval}'
+ include_last     = .FALSE.
+ ml_varlist       = ${varlist}
+/
+EOF
+#
+fi # ${output_atm_energy_0d}
+#
+fi # ${iforcing}
+
+
+
+# cloud microphysics input and output arguments
+# ---------------------------------------------
+#
+if [ ${iforcing} -eq 2 ] ; then
+if [ x${dt_mig} != x ]   ; then
+#
+# - instantaneous values
+# - multi-variables
+#
+if [ ${output_atm_mig_const} = on ]
+then
+#
+# input arguments constant-in-time
+# - output at first_output_date only
+#
+varlist="'jcs_mig' 'jce_mig' 'pdtime_mig'"
+#
+var="'mig_const'"
+cat >> ${atmo_namelist} << EOF
+&output_nml
+ output_filename  = '${EXPNAME}_${var//\'}'
+ filename_format  = '${EXPNAME}_${var//\'}_ml_<datetime2>'
+ ready_file       = '${EXPNAME}_${var//\'}_<datetime2>.ready'
+ filetype         = ${output_format}
+ remap            = 0
+ output_grid      = .FALSE.
+ output_start     = '${first_output_date}'
+ output_end       = '${first_output_date}'
+ output_interval  = '${atm_output_interval}'
+ file_interval    = '${atm_file_interval}'
+ include_last     = .FALSE.
+ ml_varlist       = ${varlist}
+/
+EOF
+#
+fi # ${output_atm_mig_const}
+#
+if [ ${output_atm_mig_varin} = on ]
+then
+#
+# input arguments variable in time
+# - from first_output_date to last__output_date
+#
+varlist="'dz_mig' 'rho_mig' 'pf_mig' 'ta_mig' 'hus_mig' 'clw_mig' 'cli_mig' 'qr_mig' 'qs_mig' 'qg_mig'"
+#
+var="'mig_varin'"
+cat >> ${atmo_namelist} << EOF
+&output_nml
+ output_filename  = '${EXPNAME}_${var//\'}'
+ filename_format  = '${EXPNAME}_${var//\'}_ml_<datetime2>'
+ ready_file       = '${EXPNAME}_${var//\'}_<datetime2>.ready'
+ filetype         = ${output_format}
+ remap            = 0
+ output_grid      = .FALSE.
+ output_start     = '${first_output_date}'
+ output_end       = '${last__output_date}'
+ output_interval  = '${atm_output_interval}'
+ file_interval    = '${atm_file_interval}'
+ include_last     = .FALSE.
+ ml_varlist       = ${varlist}
+/
+EOF
+#
+fi # ${output_atm_mig_varin}
+#
+if [ ${output_atm_mig_varout} = on ]
+then
+#
+# output arguments variable in time
+# - from first_output_date to last__output_date
+#
+varlist="'tend_ta_mig' 'tend_hus_mig' 'tend_clw_mig' 'tend_cli_mig' 'tend_qr_mig' 'tend_qs_mig' 'tend_qg_mig' 'pr_eflx' 'pr_rain' 'pr_ice' 'pr_snow' 'pr_grpl'"
+#
+var="'mig_varout'"
+cat >> ${atmo_namelist} << EOF
+&output_nml
+ output_filename  = '${EXPNAME}_${var//\'}'
+ filename_format  = '${EXPNAME}_${var//\'}_ml_<datetime2>'
+ ready_file       = '${EXPNAME}_${var//\'}_<datetime2>.ready'
+ filetype         = ${output_format}
+ remap            = 0
+ output_grid      = .FALSE.
+ output_start     = '${first_output_date}'
+ output_end       = '${last__output_date}'
+ output_interval  = '${atm_output_interval}'
+ file_interval    = '${atm_file_interval}'
+ include_last     = .FALSE.
+ ml_varlist       = ${varlist}
+/
+EOF
+#
+fi # ${output_atm_mig_varout}
+#
+fi # ${dt_mig}
+fi # ${iforcing}
 
 set +x
 echo
