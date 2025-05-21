@@ -76,8 +76,8 @@ run "make distclean" there first])])
 
 AC_ARG_ENABLE([rpaths],
   [AS_HELP_STRING([--enable-rpaths],
-     [add directories specified with -L flags in LDFLAGS and LIBS to the
-runtime library search paths (RPATH) @<:@default=yes@:>@])],
+     [add directories specified with -L flags in LDFLAGS, ICON_LDFLAGS and LIBS
+to the runtime library search paths (RPATH) @<:@default=yes@:>@])],
   [AS_IF([test x"$enableval" != xno], [enable_rpaths=yes])],
   [enable_rpaths=yes])
 
@@ -871,14 +871,14 @@ dnl Save the flags to pass them later to the bundled packages:
 subdir_FCFLAGS=$FCFLAGS
 
 dnl Make sure the configure checks are run with ICON_*FLAGS:
-AS_VAR_APPEND([LDFLAGS], ["${ICON_LDFLAGS:+ }${ICON_LDFLAGS}"])
-dnl We cannot literally append ICON_FCFLAGS to FCFLAGS now because it will be
-dnl difficult to replace ICON_FCFLAGS with ICON_OCEAN_FCFLAGS afterwards.
-dnl Instead, we make sure that all the checks are run with
-dnl '$FCFLAGS $ICON_FCFLAGS':
+dnl   Note that we cannot literally append ICON_FCFLAGS to FCFLAGS now because
+dnl   it will be difficult to replace ICON_FCFLAGS with ICON_<NAME>_FCFLAGS (see
+dnl   Fortran compile groups). We do not append ICON_LDFLAGS to LDFLAGS either
+dnl   because the former is meant for the Fortran compiler only and the latter
+dnl   is used for configure-time check with other languages.
 m4_pushdef([AC_LANG(Fortran)],
   m4_bpatsubst(m4_dquote(m4_defn([AC_LANG(Fortran)])),
-    [FCFLAGS],[FCFLAGS $ICON_FCFLAGS]))dnl
+    [FCFLAGS\|LDFLAGS],[\& $ICON_\&]))dnl
 
 dnl Delay the cross-compilation check:
 ACX_COMPILER_CROSS_CHECK_DELAY
@@ -949,9 +949,10 @@ AC_SUBST([FC_VERSION], [$acx_cv_fc_compiler_version])
 dnl Generate RPATH flags:
 AS_VAR_IF([enable_rpaths], [yes],
   [ACX_SHLIB_FC_RPATH_FLAG
-   ASX_EXTRACT_ARGS([icon_L_args], ["$LDFLAGS $LIBS"], ['-L@<:@ @:>@*'])
+   ASX_EXTRACT_ARGS([icon_L_args],
+     ["$LDFLAGS $ICON_LDFLAGS $LIBS"], ['-L@<:@ @:>@*'])
    for icon_L_arg in $icon_L_args; do
-     ASX_VAR_APPEND_UNIQ([LDFLAGS], ["$acx_cv_fc_rpath_flag$icon_L_arg"], [' '])
+     ASX_VAR_APPEND_UNIQ([ICON_LDFLAGS], ["$acx_cv_fc_rpath_flag$icon_L_arg"], [' '])
    done
    ACX_SHLIB_RPATH_FLAGS_CHECK])
 

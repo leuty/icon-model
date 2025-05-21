@@ -1517,9 +1517,9 @@ Optional Features:
   --disable-option-checking  ignore unrecognized --enable/--with options
   --disable-FEATURE       do not include FEATURE (same as --enable-FEATURE=no)
   --enable-FEATURE[=ARG]  include FEATURE [ARG=yes]
-  --enable-rpaths         add directories specified with -L flags in LDFLAGS
-                          and LIBS to the runtime library search paths (RPATH)
-                          [default=yes]
+  --enable-rpaths         add directories specified with -L flags in LDFLAGS,
+                          ICON_LDFLAGS and LIBS to the runtime library search
+                          paths (RPATH) [default=yes]
   --enable-silent-rules   less verbose build output (undo: "make V=1")
                           [default=yes]
   --enable-delayed-config configure the bundled packages at the build time
@@ -4204,7 +4204,6 @@ ac_compiler_gnu=$ac_cv_fc_compiler_gnu
 FCFLAGS=${FCFLAGS-}
 subdir_FCFLAGS=$FCFLAGS
 
-as_fn_append LDFLAGS "${ICON_LDFLAGS:+ }${ICON_LDFLAGS}"
 
 acx_save_cross_compiling=$cross_compiling
    acx_save_ac_tool_warned=$ac_tool_warned
@@ -4213,7 +4212,7 @@ acx_save_cross_compiling=$cross_compiling
 
 ac_ext=${ac_fc_srcext-f}
 ac_compile='$FC -c $FCFLAGS $ICON_FCFLAGS $ac_fcflags_srcext conftest.$ac_ext >&5'
-ac_link='$FC -o conftest$ac_exeext $FCFLAGS $ICON_FCFLAGS $LDFLAGS $ac_fcflags_srcext conftest.$ac_ext $LIBS >&5'
+ac_link='$FC -o conftest$ac_exeext $FCFLAGS $ICON_FCFLAGS $LDFLAGS $ICON_LDFLAGS $ac_fcflags_srcext conftest.$ac_ext $LIBS >&5'
 ac_compiler_gnu=$ac_cv_fc_compiler_gnu
 if test -n "$ac_tool_prefix"; then
   for ac_prog in gfortran g95 xlf95 f95 fort ifort ifc efc pgfortran pgf95 lf95 ftn nagfor xlf90 f90 pgf90 pghpf epcf90 g77 xlf f77 frt pgf77 cf77 fort77 fl32 af77
@@ -4611,7 +4610,7 @@ else
 fi
 ac_ext=${ac_fc_srcext-f}
 ac_compile='$FC -c $FCFLAGS $ICON_FCFLAGS $ac_fcflags_srcext conftest.$ac_ext >&5'
-ac_link='$FC -o conftest$ac_exeext $FCFLAGS $ICON_FCFLAGS $LDFLAGS $ac_fcflags_srcext conftest.$ac_ext $LIBS >&5'
+ac_link='$FC -o conftest$ac_exeext $FCFLAGS $ICON_FCFLAGS $LDFLAGS $ICON_LDFLAGS $ac_fcflags_srcext conftest.$ac_ext $LIBS >&5'
 ac_compiler_gnu=$ac_cv_fc_compiler_gnu
 
 export FC
@@ -4851,7 +4850,7 @@ fi
 $as_echo "$acx_cv_fc_rpath_flag" >&6; }
 
    icon_L_args=
-   asx_extract_args_args="$LDFLAGS $LIBS"
+   asx_extract_args_args="$LDFLAGS $ICON_LDFLAGS $LIBS"
    asx_extract_args_args=`$as_echo "$asx_extract_args_args" | sed 's%''-L[ ]*''%_ASX_EXTRACT_ARGS_MARKER_%g'`
    for asx_extract_args_arg in $asx_extract_args_args; do
      case $asx_extract_args_arg in #(
@@ -4863,13 +4862,13 @@ $as_echo "$acx_cv_fc_rpath_flag" >&6; }
 esac
    done
    for icon_L_arg in $icon_L_args; do
-     case ' '$LDFLAGS' ' in #(
+     case ' '$ICON_LDFLAGS' ' in #(
   *' '"$acx_cv_fc_rpath_flag$icon_L_arg"' '*) :
      ;; #(
   ' '' ') :
-    as_fn_append LDFLAGS "$acx_cv_fc_rpath_flag$icon_L_arg" ;; #(
+    as_fn_append ICON_LDFLAGS "$acx_cv_fc_rpath_flag$icon_L_arg" ;; #(
   *) :
-    as_fn_append LDFLAGS ' '; as_fn_append LDFLAGS "$acx_cv_fc_rpath_flag$icon_L_arg" ;;
+    as_fn_append ICON_LDFLAGS ' '; as_fn_append ICON_LDFLAGS "$acx_cv_fc_rpath_flag$icon_L_arg" ;;
 esac
    done
    acx_shlib_rpath_flags_check_result=no
@@ -5752,7 +5751,7 @@ if ${acx_cv_fc_attribute_contiguous+:} false; then :
 else
   ac_ext=${ac_fc_srcext-f}
 ac_compile='$FC -c $FCFLAGS $ICON_FCFLAGS $ac_fcflags_srcext conftest.$ac_ext >&5'
-ac_link='$FC -o conftest$ac_exeext $FCFLAGS $ICON_FCFLAGS $LDFLAGS $ac_fcflags_srcext conftest.$ac_ext $LIBS >&5'
+ac_link='$FC -o conftest$ac_exeext $FCFLAGS $ICON_FCFLAGS $LDFLAGS $ICON_LDFLAGS $ac_fcflags_srcext conftest.$ac_ext $LIBS >&5'
 ac_compiler_gnu=$ac_cv_fc_compiler_gnu
 
       cat > conftest.$ac_ext <<_ACEOF
@@ -5787,7 +5786,7 @@ fi
 rm -f core conftest.err conftest.$ac_objext conftest.$ac_ext
       ac_ext=${ac_fc_srcext-f}
 ac_compile='$FC -c $FCFLAGS $ICON_FCFLAGS $ac_fcflags_srcext conftest.$ac_ext >&5'
-ac_link='$FC -o conftest$ac_exeext $FCFLAGS $ICON_FCFLAGS $LDFLAGS $ac_fcflags_srcext conftest.$ac_ext $LIBS >&5'
+ac_link='$FC -o conftest$ac_exeext $FCFLAGS $ICON_FCFLAGS $LDFLAGS $ICON_LDFLAGS $ac_fcflags_srcext conftest.$ac_ext $LIBS >&5'
 ac_compiler_gnu=$ac_cv_fc_compiler_gnu
 
 fi
@@ -7249,7 +7248,7 @@ else
 fi
     ac_ext=${ac_fc_srcext-f}
 ac_compile='$FC -c $FCFLAGS $ICON_FCFLAGS $ac_fcflags_srcext conftest.$ac_ext >&5'
-ac_link='$FC -o conftest$ac_exeext $FCFLAGS $ICON_FCFLAGS $LDFLAGS $ac_fcflags_srcext conftest.$ac_ext $LIBS >&5'
+ac_link='$FC -o conftest$ac_exeext $FCFLAGS $ICON_FCFLAGS $LDFLAGS $ICON_LDFLAGS $ac_fcflags_srcext conftest.$ac_ext $LIBS >&5'
 ac_compiler_gnu=$ac_cv_fc_compiler_gnu
 
        { $as_echo "$as_me:${as_lineno-$LINENO}: checking whether Fortran compiler can link objects compiled with CUDA compiler" >&5
@@ -7275,7 +7274,7 @@ _ACEOF
 if ac_fn_cuda_try_compile "$LINENO"; then :
   ac_ext=${ac_fc_srcext-f}
 ac_compile='$FC -c $FCFLAGS $ICON_FCFLAGS $ac_fcflags_srcext conftest.$ac_ext >&5'
-ac_link='$FC -o conftest$ac_exeext $FCFLAGS $ICON_FCFLAGS $LDFLAGS $ac_fcflags_srcext conftest.$ac_ext $LIBS >&5'
+ac_link='$FC -o conftest$ac_exeext $FCFLAGS $ICON_FCFLAGS $LDFLAGS $ICON_LDFLAGS $ac_fcflags_srcext conftest.$ac_ext $LIBS >&5'
 ac_compiler_gnu=$ac_cv_fc_compiler_gnu
 
       { ac_try='mv ./conftest.$ac_objext ./conftest_cuda.$ac_objext'
@@ -7311,7 +7310,7 @@ fi
 rm -f core conftest.err conftest.$ac_objext conftest.$ac_ext
    ac_ext=${ac_fc_srcext-f}
 ac_compile='$FC -c $FCFLAGS $ICON_FCFLAGS $ac_fcflags_srcext conftest.$ac_ext >&5'
-ac_link='$FC -o conftest$ac_exeext $FCFLAGS $ICON_FCFLAGS $LDFLAGS $ac_fcflags_srcext conftest.$ac_ext $LIBS >&5'
+ac_link='$FC -o conftest$ac_exeext $FCFLAGS $ICON_FCFLAGS $LDFLAGS $ICON_LDFLAGS $ac_fcflags_srcext conftest.$ac_ext $LIBS >&5'
 ac_compiler_gnu=$ac_cv_fc_compiler_gnu
 
       acx_cv_fc_cuda_compatible=$acx_lang_cuda_compatible
@@ -7352,7 +7351,7 @@ _ACEOF
 if ac_fn_cuda_try_compile "$LINENO"; then :
   ac_ext=${ac_fc_srcext-f}
 ac_compile='$FC -c $FCFLAGS $ICON_FCFLAGS $ac_fcflags_srcext conftest.$ac_ext >&5'
-ac_link='$FC -o conftest$ac_exeext $FCFLAGS $ICON_FCFLAGS $LDFLAGS $ac_fcflags_srcext conftest.$ac_ext $LIBS >&5'
+ac_link='$FC -o conftest$ac_exeext $FCFLAGS $ICON_FCFLAGS $LDFLAGS $ICON_LDFLAGS $ac_fcflags_srcext conftest.$ac_ext $LIBS >&5'
 ac_compiler_gnu=$ac_cv_fc_compiler_gnu
 
       { ac_try='mv ./conftest.$ac_objext ./conftest_cuda.$ac_objext'
@@ -7388,7 +7387,7 @@ fi
 rm -f core conftest.err conftest.$ac_objext conftest.$ac_ext
    ac_ext=${ac_fc_srcext-f}
 ac_compile='$FC -c $FCFLAGS $ICON_FCFLAGS $ac_fcflags_srcext conftest.$ac_ext >&5'
-ac_link='$FC -o conftest$ac_exeext $FCFLAGS $ICON_FCFLAGS $LDFLAGS $ac_fcflags_srcext conftest.$ac_ext $LIBS >&5'
+ac_link='$FC -o conftest$ac_exeext $FCFLAGS $ICON_FCFLAGS $LDFLAGS $ICON_LDFLAGS $ac_fcflags_srcext conftest.$ac_ext $LIBS >&5'
 ac_compiler_gnu=$ac_cv_fc_compiler_gnu
 
       acx_cv_fc_cuda_compatible_stdcxx=$acx_lang_cuda_compatible
@@ -7829,7 +7828,7 @@ else
 fi
     ac_ext=${ac_fc_srcext-f}
 ac_compile='$FC -c $FCFLAGS $ICON_FCFLAGS $ac_fcflags_srcext conftest.$ac_ext >&5'
-ac_link='$FC -o conftest$ac_exeext $FCFLAGS $ICON_FCFLAGS $LDFLAGS $ac_fcflags_srcext conftest.$ac_ext $LIBS >&5'
+ac_link='$FC -o conftest$ac_exeext $FCFLAGS $ICON_FCFLAGS $LDFLAGS $ICON_LDFLAGS $ac_fcflags_srcext conftest.$ac_ext $LIBS >&5'
 ac_compiler_gnu=$ac_cv_fc_compiler_gnu
 
        { $as_echo "$as_me:${as_lineno-$LINENO}: checking whether Fortran compiler can link objects compiled with HIP compiler" >&5
@@ -7856,7 +7855,7 @@ _ACEOF
 if ac_fn_hip_try_compile "$LINENO"; then :
   ac_ext=${ac_fc_srcext-f}
 ac_compile='$FC -c $FCFLAGS $ICON_FCFLAGS $ac_fcflags_srcext conftest.$ac_ext >&5'
-ac_link='$FC -o conftest$ac_exeext $FCFLAGS $ICON_FCFLAGS $LDFLAGS $ac_fcflags_srcext conftest.$ac_ext $LIBS >&5'
+ac_link='$FC -o conftest$ac_exeext $FCFLAGS $ICON_FCFLAGS $LDFLAGS $ICON_LDFLAGS $ac_fcflags_srcext conftest.$ac_ext $LIBS >&5'
 ac_compiler_gnu=$ac_cv_fc_compiler_gnu
 
       { ac_try='mv ./conftest.$ac_objext ./conftest_hip.$ac_objext'
@@ -7892,7 +7891,7 @@ fi
 rm -f core conftest.err conftest.$ac_objext conftest.$ac_ext
    ac_ext=${ac_fc_srcext-f}
 ac_compile='$FC -c $FCFLAGS $ICON_FCFLAGS $ac_fcflags_srcext conftest.$ac_ext >&5'
-ac_link='$FC -o conftest$ac_exeext $FCFLAGS $ICON_FCFLAGS $LDFLAGS $ac_fcflags_srcext conftest.$ac_ext $LIBS >&5'
+ac_link='$FC -o conftest$ac_exeext $FCFLAGS $ICON_FCFLAGS $LDFLAGS $ICON_LDFLAGS $ac_fcflags_srcext conftest.$ac_ext $LIBS >&5'
 ac_compiler_gnu=$ac_cv_fc_compiler_gnu
 
       acx_cv_fc_hip_compatible=$acx_lang_hip_compatible
@@ -7933,7 +7932,7 @@ _ACEOF
 if ac_fn_hip_try_compile "$LINENO"; then :
   ac_ext=${ac_fc_srcext-f}
 ac_compile='$FC -c $FCFLAGS $ICON_FCFLAGS $ac_fcflags_srcext conftest.$ac_ext >&5'
-ac_link='$FC -o conftest$ac_exeext $FCFLAGS $ICON_FCFLAGS $LDFLAGS $ac_fcflags_srcext conftest.$ac_ext $LIBS >&5'
+ac_link='$FC -o conftest$ac_exeext $FCFLAGS $ICON_FCFLAGS $LDFLAGS $ICON_LDFLAGS $ac_fcflags_srcext conftest.$ac_ext $LIBS >&5'
 ac_compiler_gnu=$ac_cv_fc_compiler_gnu
 
       { ac_try='mv ./conftest.$ac_objext ./conftest_hip.$ac_objext'
@@ -7969,7 +7968,7 @@ fi
 rm -f core conftest.err conftest.$ac_objext conftest.$ac_ext
    ac_ext=${ac_fc_srcext-f}
 ac_compile='$FC -c $FCFLAGS $ICON_FCFLAGS $ac_fcflags_srcext conftest.$ac_ext >&5'
-ac_link='$FC -o conftest$ac_exeext $FCFLAGS $ICON_FCFLAGS $LDFLAGS $ac_fcflags_srcext conftest.$ac_ext $LIBS >&5'
+ac_link='$FC -o conftest$ac_exeext $FCFLAGS $ICON_FCFLAGS $LDFLAGS $ICON_LDFLAGS $ac_fcflags_srcext conftest.$ac_ext $LIBS >&5'
 ac_compiler_gnu=$ac_cv_fc_compiler_gnu
 
       acx_cv_fc_hip_compatible_stdcxx=$acx_lang_hip_compatible
@@ -8006,7 +8005,7 @@ DEPGEN_FCFLAGS=''
 
 ac_ext=${ac_fc_srcext-f}
 ac_compile='$FC -c $FCFLAGS $ICON_FCFLAGS $ac_fcflags_srcext conftest.$ac_ext >&5'
-ac_link='$FC -o conftest$ac_exeext $FCFLAGS $ICON_FCFLAGS $LDFLAGS $ac_fcflags_srcext conftest.$ac_ext $LIBS >&5'
+ac_link='$FC -o conftest$ac_exeext $FCFLAGS $ICON_FCFLAGS $LDFLAGS $ICON_LDFLAGS $ac_fcflags_srcext conftest.$ac_ext $LIBS >&5'
 ac_compiler_gnu=$ac_cv_fc_compiler_gnu
 
 
@@ -8432,7 +8431,7 @@ fi
 
    ac_ext=${ac_fc_srcext-f}
 ac_compile='$FC -c $FCFLAGS $ICON_FCFLAGS $ac_fcflags_srcext conftest.$ac_ext >&5'
-ac_link='$FC -o conftest$ac_exeext $FCFLAGS $ICON_FCFLAGS $LDFLAGS $ac_fcflags_srcext conftest.$ac_ext $LIBS >&5'
+ac_link='$FC -o conftest$ac_exeext $FCFLAGS $ICON_FCFLAGS $LDFLAGS $ICON_LDFLAGS $ac_fcflags_srcext conftest.$ac_ext $LIBS >&5'
 ac_compiler_gnu=$ac_cv_fc_compiler_gnu
  ;; #(
   hip) :
@@ -8456,7 +8455,7 @@ fi
 
    ac_ext=${ac_fc_srcext-f}
 ac_compile='$FC -c $FCFLAGS $ICON_FCFLAGS $ac_fcflags_srcext conftest.$ac_ext >&5'
-ac_link='$FC -o conftest$ac_exeext $FCFLAGS $ICON_FCFLAGS $LDFLAGS $ac_fcflags_srcext conftest.$ac_ext $LIBS >&5'
+ac_link='$FC -o conftest$ac_exeext $FCFLAGS $ICON_FCFLAGS $LDFLAGS $ICON_LDFLAGS $ac_fcflags_srcext conftest.$ac_ext $LIBS >&5'
 ac_compiler_gnu=$ac_cv_fc_compiler_gnu
  ;; #(
   *) :
