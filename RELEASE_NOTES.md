@@ -49,6 +49,11 @@ NWP: TERRA and other surface issues
 
 ### ICON-ART
 
+Fixes:
+  - changed used height array (z_mc -> z_ifc) for column computation in chemistry
+  - changed usage of tracer names to mode names in diagnostics routine regarding optical properties
+  - fixed setup information for standard configurations
+
 ### Coupling
 
 - Optimization of synchronization between atmosphere and ocean in coupled configurations (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/799)
