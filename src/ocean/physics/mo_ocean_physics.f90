@@ -265,13 +265,15 @@ CONTAINS
     END DO
 
     physics_param%bottom_drag_coeff = bottom_drag_coeff
-    !$ACC UPDATE DEVICE(physics_param%A_veloc_v, physics_param%a_tracer_v, physics_param%bottom_drag_coeff)
 
     ! precalculate exponential wind mixing decay with depth
     DO jk=2,n_zlev
       WindMixingDecay(jk) = EXP(-patch_3d%p_patch_1d(1)%del_zlev_m(jk-1)/WindMixingDecayDepth)
       WindMixingLevel(jk) = lambda_wind * patch_3d%p_patch_1d(1)%inv_del_zlev_m(jk-1)
     ENDDO
+    !$ACC UPDATE DEVICE(physics_param%A_veloc_v, physics_param%a_veloc_v_back) &
+    !$ACC   DEVICE(physics_param%a_tracer_v, physics_param%a_tracer_v_back) &
+    !$ACC   DEVICE(physics_param%bottom_drag_coeff, WindMixingDecay, WindMixingLevel)
 
     ! setup tke scheme
     SELECT CASE(vert_mix_type)
@@ -896,18 +898,20 @@ CONTAINS
 
 #ifdef _OPENACC
     IF (lzacc) THEN
-      IF (vert_mix_type /= vmix_tke) THEN
-        CALL finish('update_ho_params', 'OpenACC version for vert_mix_type /= vmix_tke currently not implemented')
+      IF ((vert_mix_type /= vmix_pp) .AND. (vert_mix_type /= vmix_tke)) THEN
+        CALL finish('update_ho_params', &
+          & 'OpenACC version only implemented for vert_mix_type == vmix_pp or vmix_tke')
       END IF
       IF (LeithClosure_form /= 0) THEN
-        CALL finish('update_ho_params', 'OpenACC version for LeithClosure_form /= 0 currently not implemented')
+        CALL finish('update_ho_params', &
+          & 'OpenACC version for LeithClosure_form /= 0 currently not implemented')
       END IF
     END IF
 #endif
 
     SELECT CASE(vert_mix_type)
     CASE(vmix_pp)
-      CALL update_PP_scheme(patch_3d, ocean_state, fu10, concsum, params_oce,op_coeffs)
+      CALL update_PP_scheme(patch_3d, ocean_state, fu10, concsum, params_oce,op_coeffs, lacc=lzacc)
     CASE(vmix_tke)
       !write(*,*) 'Do calc_tke...'
 #ifdef _OPENACC
@@ -996,8 +1000,9 @@ CONTAINS
 
 #ifdef _OPENACC
     IF (lzacc) THEN
-      IF (vert_mix_type /= vmix_tke) THEN
-        CALL finish('update_ho_params', 'OpenACC version for vert_mix_type /= vmix_tke currently not implemented')
+      IF ((vert_mix_type /= vmix_pp) .AND. (vert_mix_type /= vmix_tke)) THEN
+        CALL finish('update_ho_params', &
+          & 'OpenACC version only implemented for vert_mix_type == vmix_pp or vmix_tke')
       END IF
     END IF
 #endif
@@ -1005,7 +1010,7 @@ CONTAINS
     SELECT CASE(vert_mix_type)
     CASE(vmix_pp)
       CALL update_PP_scheme_zstar(patch_3d, ocean_state, fu10, concsum, params_oce,op_coeffs, &
-                                  & eta_c, stretch_c, stretch_e)
+                                  & eta_c, stretch_c, stretch_e, lacc=lzacc)
     CASE(vmix_tke)
       !write(*,*) 'Do calc_tke...'
       ! tke does not need a special routine for zstar
@@ -2109,20 +2114,18 @@ CONTAINS
     REAL(wp) :: z_shear_cell
     CHARACTER(len=*), PARAMETER :: routine = 'calc_vertical_stability'
 
-#if defined(__LVECTOR__) && !defined(__LVEC_BITID__)
+#if defined(__LVECTOR__) || defined(_OPENACC)
     REAL(wp) :: z_rho_up(nproma,n_zlev), z_rho_down(nproma,n_zlev) !, density(n_zlev)
     REAL(wp) :: pressure(nproma,n_zlev), salinity(nproma,n_zlev)!
 
     CALL set_acc_host_or_device(lzacc, lacc)
 
-#ifdef _OPENACC
-    IF (lzacc) CALL finish('calc_vertical_stability', 'OpenACC version for LVECTOR currently not implemented')
-#endif
-
+#ifdef __LVECTOR__
     IF (eos_type /= 2) THEN
      write(0,*) "Vector version for eos_type =",eos_type," not yet implemented."
      stop
     ENDIF
+#endif
     !-------------------------------------------------------------------------------
     patch_2D        => patch_3d%p_patch_2d(1)
     cells_in_domain => patch_2D%cells%in_domain
@@ -2131,74 +2134,72 @@ CONTAINS
 
     z_grav_rho = grav/OceanReferenceDensity
 
-    !$ACC DATA CREATE(z_rho_up, pressure, z_rho_down, salinity) IF(lzacc)
+    !$ACC DATA CREATE(salinity, z_rho_up, z_rho_down, pressure) IF(lzacc)
 
-    !ICON_OMP_PARALLEL PRIVATE(salinity, z_rho_up, z_rho_down, pressure)
-    salinity = sal_ref
-    z_rho_up=0.0_wp
-    z_rho_down=0.0_wp
-    pressure = 0._wp
+    !ICON_OMP_PARALLEL
+    !$ACC PARALLEL LOOP GANG VECTOR DEFAULT(PRESENT) COLLAPSE(2) ASYNC(1) IF(lzacc)
+    DO level = 1, n_zlev
+      DO cell_index = 1, nproma
+        salinity(cell_index,level) = sal_ref
+        z_rho_up(cell_index,level) = 0.0_wp
+        z_rho_down(cell_index,level) = 0.0_wp
+        pressure(cell_index,level) = 0._wp
+      END DO
+    END DO
+    !$ACC END PARALLEL LOOP
 
-    !ICON_OMP_DO PRIVATE(start_index, end_index, cell_index, end_level, level, &
+    !ICON_OMP_DO PRIVATE(start_index, end_index, cell_index, end_level, level, blockNo, &
     !ICON_OMP z_shear_cell) ICON_OMP_DEFAULT_SCHEDULE
     DO blockNo = all_cells%start_block, all_cells%end_block
       CALL get_index_range(all_cells, blockNo, start_index, end_index)
 
-      ocean_state%p_diag%Richardson_Number(:, :, blockNo) = 0.0_wp
-      ocean_state%p_diag%zgrad_rho(:,:, blockNo) = 0.0_wp
+      !$ACC PARALLEL LOOP GANG VECTOR DEFAULT(PRESENT) COLLAPSE(2) ASYNC(1) IF(lzacc)
+      DO level = 1, n_zlev
+        DO cell_index = 1, nproma
+          ocean_state%p_diag%Richardson_Number(cell_index, level, blockNo) = 0.0_wp
+          ocean_state%p_diag%zgrad_rho(cell_index, level, blockNo) = 0.0_wp
+        END DO
+      END DO
+      !$ACC END PARALLEL LOOP
 
-      DO level = 2, MAXVAL(patch_3d%p_patch_1d(1)%dolic_c(start_index:end_index,blockNo))
+      !$ACC PARALLEL LOOP GANG VECTOR DEFAULT(PRESENT) COLLAPSE(2) ASYNC(1) IF(lzacc)
+      DO level = 1, n_zlev
         DO cell_index = start_index, end_index
-
           end_level = patch_3d%p_patch_1d(1)%dolic_c(cell_index,blockNo)
-          IF (end_level < 2 .OR. level > end_level) CYCLE
+          IF ((end_level < 2) .OR. (level > end_level)) CYCLE
 
-          pressure(cell_index,level) = patch_3d%p_patch_1d(1)%depth_CellInterface(cell_index, level, blockNo) &
-             * OceanReferenceDensity * sitodbar
-        ENDDO
-      ENDDO
-
-      IF(no_tracer >= 2) THEN
-        DO level = 1, MAXVAL(patch_3d%p_patch_1d(1)%dolic_c(start_index:end_index,blockNo))
-          DO cell_index = start_index, end_index
-
-            end_level = patch_3d%p_patch_1d(1)%dolic_c(cell_index,blockNo)
-            IF (end_level < 2 .OR. level > end_level) CYCLE
-
+          IF(no_tracer >= 2) THEN
             salinity(cell_index,level) = ocean_state%p_prog(nold(1))%tracer(cell_index,level,blockNo,2)
-          ENDDO
-        ENDDO
-      ENDIF
-      DO level = 2, MAXVAL(patch_3d%p_patch_1d(1)%dolic_c(start_index:end_index,blockNo))
-        DO cell_index = start_index, end_index
+          ENDIF
 
-          end_level = patch_3d%p_patch_1d(1)%dolic_c(cell_index,blockNo)
-          IF (end_level < 2 .OR. level > end_level-1) CYCLE
-          z_rho_up(cell_index,level) = &
-             calculate_density_mpiom_onColumn(ocean_state%p_prog(nold(1))%tracer(cell_index,level,blockNo,1), &
-             salinity(cell_index,level), pressure(cell_index,level+1) )
+          IF (level >= 2) THEN
+            pressure(cell_index,level) = patch_3d%p_patch_1d(1)%depth_CellInterface(cell_index, level, blockNo) &
+               * OceanReferenceDensity * sitodbar
+          END IF
+        END DO
+      END DO
+      !$ACC END PARALLEL LOOP
 
-          z_rho_down(cell_index,level) = &
-             calculate_density_mpiom_onColumn(ocean_state%p_prog(nold(1))%tracer(cell_index,level,blockNo,1), &
-             salinity(cell_index,level), pressure(cell_index,level) )
-        ENDDO
-      ENDDO
-      DO cell_index = start_index, end_index
-        end_level = patch_3d%p_patch_1d(1)%dolic_c(cell_index,blockNo)
-        IF (end_level < 2 ) CYCLE
-        z_rho_up(cell_index,1) = &
-             calculate_density_mpiom_onColumn(ocean_state%p_prog(nold(1))%tracer(cell_index,1,blockNo,1), &
-             salinity(cell_index,1), pressure(cell_index,2) )
-
-        z_rho_down(cell_index,end_level) = &
-             calculate_density_mpiom_onColumn(ocean_state%p_prog(nold(1))%tracer(cell_index,end_level,blockNo,1), &
-             salinity(cell_index,end_level), pressure(cell_index,end_level) )
-      ENDDO
-
-      DO level = 2, MAXVAL(patch_3d%p_patch_1d(1)%dolic_c(start_index:end_index,blockNo))
+      !$ACC PARALLEL LOOP GANG VECTOR DEFAULT(PRESENT) COLLAPSE(2) ASYNC(1) IF(lzacc)
+      DO level = 2, n_zlev
         DO cell_index = start_index, end_index
           end_level = patch_3d%p_patch_1d(1)%dolic_c(cell_index,blockNo)
-          IF (end_level < 2 .OR. level > end_level) CYCLE
+          IF ((end_level < 2) .OR. (level > end_level)) CYCLE
+
+          z_rho_up(cell_index,level-1) = calculate_density_onColumn_elem(ocean_state%p_prog(nold(1))%tracer(cell_index,level-1,blockNo,1), &
+                                              salinity(cell_index,level-1), pressure(cell_index,level))
+
+          z_rho_down(cell_index,level) = calculate_density_onColumn_elem(ocean_state%p_prog(nold(1))%tracer(cell_index,level,blockNo,1), &
+                                              salinity(cell_index,level), pressure(cell_index,level))
+        END DO
+      END DO
+      !$ACC END PARALLEL LOOP
+
+      !$ACC PARALLEL LOOP GANG VECTOR DEFAULT(PRESENT) COLLAPSE(2) ASYNC(1) IF(lzacc)
+      DO level = 2, n_zlev
+        DO cell_index = start_index, end_index
+          end_level = patch_3d%p_patch_1d(1)%dolic_c(cell_index,blockNo)
+          IF ((end_level < 2) .OR. (level > end_level)) CYCLE
 
           z_shear_cell = dbl_eps + &
                SUM((ocean_state%p_diag%p_vn(cell_index,level-1,blockNo)%x &
@@ -2207,16 +2208,18 @@ CONTAINS
           ocean_state%p_diag%zgrad_rho(cell_index,level,blockNo) = (z_rho_down(cell_index,level) - z_rho_up(cell_index,level-1)) *  &
                patch_3d%p_patch_1d(1)%inv_prism_center_dist_c(cell_index,level,blockNo)
 
-          !adjusted vertical derivative (follows MOM, see Griffies-book,
-          ! (p. 332, eq. (15.15)) or MOM-5 manual (sect. 23.7.1.1)
-          !ocean_state%p_diag%zgrad_rho(cell_index,level,blockNo)= &
-          !     MIN(ocean_state%p_diag%zgrad_rho(cell_index,level,blockNo),-dbl_eps)
-
           ocean_state%p_diag%Richardson_Number(cell_index, level, blockNo) &
                = MAX(patch_3d%p_patch_1d(1)%prism_center_dist_c(cell_index,level,blockNo) * z_grav_rho * &
                (z_rho_down(cell_index,level) - z_rho_up(cell_index,level-1)) / z_shear_cell, 0.0_wp)
-        END DO ! index
-      END DO ! levels
+        END DO ! levels
+      END DO ! index
+      !$ACC END PARALLEL LOOP
+    END DO
+    !$ACC WAIT(1)
+!ICON_OMP_END_DO
+!ICON_OMP_END_PARALLEL
+
+    !$ACC END DATA
 #else
     REAL(wp) :: z_rho_up(n_zlev), z_rho_down(n_zlev) !, density(n_zlev)
     REAL(wp) :: pressure(n_zlev), salinity(n_zlev)
@@ -2234,23 +2237,28 @@ CONTAINS
     !$ACC DATA CREATE(salinity, z_rho_up, z_rho_down, pressure) IF(lzacc)
 
     !ICON_OMP_PARALLEL PRIVATE(salinity, z_rho_up, z_rho_down, pressure)
-    !$ACC KERNELS DEFAULT(PRESENT) ASYNC(1) IF(lzacc)
-    salinity(1:n_zlev) = sal_ref
-    z_rho_up(:)=0.0_wp
-    z_rho_down(:)=0.0_wp
-    pressure(:) = 0._wp
-    !$ACC END KERNELS
-    !$ACC WAIT(1)
+    !$ACC PARALLEL LOOP GANG VECTOR DEFAULT(PRESENT) ASYNC(1) IF(lzacc)
+    DO level = 1, n_zlev
+      salinity(level) = sal_ref
+      z_rho_up(level) = 0.0_wp
+      z_rho_down(level) = 0.0_wp
+      pressure(level) = 0._wp
+    END DO
+    !$ACC END PARALLEL LOOP
 
     !ICON_OMP_DO PRIVATE(start_index, end_index, cell_index, end_level, level, &
     !ICON_OMP z_shear_cell) ICON_OMP_DEFAULT_SCHEDULE
     DO blockNo = all_cells%start_block, all_cells%end_block
       CALL get_index_range(all_cells, blockNo, start_index, end_index)
 
-      !$ACC KERNELS DEFAULT(PRESENT) ASYNC(1) IF(lzacc)
-      ocean_state%p_diag%Richardson_Number(:, :, blockNo) = 0.0_wp
-      ocean_state%p_diag%zgrad_rho(:,:, blockNo) = 0.0_wp
-      !$ACC END KERNELS
+      !$ACC PARALLEL LOOP GANG VECTOR DEFAULT(PRESENT) COLLAPSE(2) ASYNC(1) IF(lzacc)
+      DO level = 1, n_zlev
+        DO cell_index = 1, nproma
+          ocean_state%p_diag%Richardson_Number(cell_index, level, blockNo) = 0.0_wp
+          ocean_state%p_diag%zgrad_rho(cell_index, level, blockNo) = 0.0_wp
+        END DO
+      END DO
+      !$ACC END PARALLEL LOOP
 
       !$ACC PARALLEL LOOP GANG VECTOR &
       !$ACC   PRIVATE(salinity, z_rho_up, z_rho_down, pressure) DEFAULT(PRESENT) ASYNC(1) IF(lzacc)
@@ -2260,12 +2268,16 @@ CONTAINS
         IF (end_level < 2) CYCLE
 
         IF(no_tracer >= 2) THEN
-            salinity(1:end_level) = ocean_state%p_prog(nold(1))%tracer(cell_index,1:end_level,blockNo,2)
+          DO level = 1, end_level
+            salinity(level) = ocean_state%p_prog(nold(1))%tracer(cell_index,level,blockNo,2)
+          END DO
         ENDIF
 
         !--------------------------------------------------------
-        pressure(2:end_level) = patch_3d%p_patch_1d(1)%depth_CellInterface(cell_index, 2:end_level, blockNo) &
+        DO level = 2, end_level
+          pressure(level) = patch_3d%p_patch_1d(1)%depth_CellInterface(cell_index, level, blockNo) &
              * OceanReferenceDensity * sitodbar
+        END DO
 
 #ifdef _OPENACC
         DO level = 1, end_level-1
@@ -2309,20 +2321,18 @@ CONTAINS
         END DO ! levels
       END DO ! index
       !$ACC END PARALLEL LOOP
-#endif
     END DO
     !$ACC WAIT(1)
 !ICON_OMP_END_DO
 !ICON_OMP_END_PARALLEL
 
     !$ACC END DATA
-
+#endif
   END SUBROUTINE calc_vertical_stability
   !-------------------------------------------------------------------------
 
 
 !<Optimize:inUse>
-#ifdef __LVECTOR__
   SUBROUTINE calc_vertical_stability_zstar(patch_3d, ocean_state, eta_c, stretch_c, lacc)
     TYPE(t_patch_3d ),TARGET, INTENT(in)             :: patch_3d
     TYPE(t_hydro_ocean_state), TARGET                :: ocean_state
@@ -2332,15 +2342,20 @@ CONTAINS
 
     !Local variables
     INTEGER :: start_index, end_index, cell_index,level,end_level, blockNo
+    LOGICAL :: lzacc
 
     TYPE(t_subset_range), POINTER :: cells_in_domain, all_cells
     TYPE(t_patch), POINTER :: patch_2D
 
     REAL(wp) :: z_grav_rho
     REAL(wp) :: z_shear_cell
-    REAL(wp) :: z_rho_up, z_rho_down !, density(n_zlev)
-    REAL(wp) :: pressure, salinity_up, salinity_down
-    LOGICAL :: lzacc
+    CHARACTER(len=*), PARAMETER :: routine = 'calc_vertical_stability_zstar'
+
+#if defined(__LVECTOR__) || defined(_OPENACC)
+    REAL(wp) :: z_rho_up(nproma,n_zlev), z_rho_down(nproma,n_zlev) !, density(n_zlev)
+    REAL(wp) :: pressure(nproma,n_zlev), salinity(nproma,n_zlev)!
+
+    CALL set_acc_host_or_device(lzacc, lacc)
 
     !-------------------------------------------------------------------------------
     patch_2D        => patch_3d%p_patch_2d(1)
@@ -2348,124 +2363,134 @@ CONTAINS
     all_cells       => patch_2D%cells%ALL
     !-------------------------------------------------------------------------------
 
-    CALL set_acc_host_or_device(lzacc, lacc)
-
     z_grav_rho = grav/OceanReferenceDensity
 
-    !ICON_OMP_PARALLEL PRIVATE(salinity_up, salinity_down, z_rho_up, z_rho_down, pressure)
-    !ICON_OMP_DO PRIVATE(start_index, end_index, cell_index, end_level, level, &
+    !$ACC DATA CREATE(salinity, z_rho_up, z_rho_down, pressure) IF(lzacc)
+
+    !ICON_OMP_PARALLEL
+    !$ACC PARALLEL LOOP GANG VECTOR DEFAULT(PRESENT) COLLAPSE(2) ASYNC(1) IF(lzacc)
+    DO level = 1, n_zlev
+      DO cell_index = 1, nproma
+        salinity(cell_index,level) = sal_ref
+        z_rho_up(cell_index,level) = 0.0_wp
+        z_rho_down(cell_index,level) = 0.0_wp
+        pressure(cell_index,level) = 0._wp
+      END DO
+    END DO
+    !$ACC END PARALLEL LOOP
+
+    !ICON_OMP_DO PRIVATE(start_index, end_index, cell_index, end_level, level, blockNo, &
     !ICON_OMP z_shear_cell) ICON_OMP_DEFAULT_SCHEDULE
     DO blockNo = all_cells%start_block, all_cells%end_block
       CALL get_index_range(all_cells, blockNo, start_index, end_index)
 
-      !$ACC KERNELS DEFAULT(PRESENT) ASYNC(1) IF(lzacc)
-      ocean_state%p_diag%Richardson_Number(:, :, blockNo) = 0.0_wp
-      ocean_state%p_diag%zgrad_rho(:,:, blockNo) = 0.0_wp
-      !$ACC END KERNELS
+      !$ACC PARALLEL LOOP GANG VECTOR DEFAULT(PRESENT) COLLAPSE(2) ASYNC(1) IF(lzacc)
+      DO level = 1, n_zlev
+        DO cell_index = 1, nproma
+          ocean_state%p_diag%Richardson_Number(cell_index, level, blockNo) = 0.0_wp
+          ocean_state%p_diag%zgrad_rho(cell_index, level, blockNo) = 0.0_wp
+        END DO
+      END DO
+      !$ACC END PARALLEL LOOP
 
-      !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1) IF(lzacc)
-      !$ACC LOOP SEQ
-      DO level = 2, MAXVAL(patch_3d%p_patch_1d(1)%dolic_c(start_index:end_index,blockNo))
-        !$ACC LOOP GANG VECTOR
+      !$ACC PARALLEL LOOP GANG VECTOR DEFAULT(PRESENT) COLLAPSE(2) ASYNC(1) IF(lzacc)
+      DO level = 1, n_zlev
         DO cell_index = start_index, end_index
+          end_level = patch_3d%p_patch_1d(1)%dolic_c(cell_index,blockNo)
+          IF ((end_level < 2) .OR. (level > end_level)) CYCLE
 
-          IF (level <= patch_3d%p_patch_1d(1)%dolic_c(cell_index,blockNo)) THEN
+          IF(no_tracer >= 2) THEN
+            salinity(cell_index,level) = ocean_state%p_prog(nold(1))%tracer(cell_index,level,blockNo,2)
+          ENDIF
 
-            IF(no_tracer >= 2) THEN
-              salinity_up = ocean_state%p_prog(nold(1))%tracer(cell_index,level-1,blockNo,2)
-              salinity_down = ocean_state%p_prog(nold(1))%tracer(cell_index,level,blockNo,2)
-            ELSE
-              salinity_up = sal_ref
-              salinity_down = sal_ref
-            ENDIF
-
-            !--------------------------------------------------------
-            pressure = (patch_3d%p_patch_1d(1)%depth_CellInterface(cell_index, level, blockNo) &
+          IF (level >= 2) THEN
+            pressure(cell_index,level) = (patch_3d%p_patch_1d(1)%depth_CellInterface(cell_index, level, blockNo) &
               & * stretch_c(cell_index, blockNo) - eta_c(cell_index,blockNo))  &
               & * OceanReferenceDensity * sitodbar
-
-            z_rho_up = &
-                calculate_density_onColumn_elem(ocean_state%p_prog(nold(1))%tracer(cell_index,level-1,blockNo,1), &
-                salinity_up, pressure)
-
-            z_rho_down = &
-                calculate_density_onColumn_elem(ocean_state%p_prog(nold(1))%tracer(cell_index,level,blockNo,1), &
-                salinity_down, pressure)
-
-            z_shear_cell = dbl_eps + &
-                SUM((ocean_state%p_diag%p_vn(cell_index,level-1,blockNo)%x &
-                - ocean_state%p_diag%p_vn(cell_index,level,blockNo)%x)**2)
-
-            ocean_state%p_diag%zgrad_rho(cell_index,level,blockNo) = (z_rho_down - z_rho_up) *  &
-                patch_3d%p_patch_1d(1)%inv_prism_center_dist_c(cell_index,level,blockNo) / stretch_c(cell_index, blockNo)
-
-            !adjusted vertical derivative (follows MOM, see Griffies-book,
-            ! (p. 332, eq. (15.15)) or MOM-5 manual (sect. 23.7.1.1)
-            !ocean_state%p_diag%zgrad_rho(cell_index,level,blockNo)= &
-            !     MIN(ocean_state%p_diag%zgrad_rho(cell_index,level,blockNo),-dbl_eps)
-
-            ocean_state%p_diag%Richardson_Number(cell_index, level, blockNo) &
-                = MAX(patch_3d%p_patch_1d(1)%prism_center_dist_c(cell_index,level,blockNo) * stretch_c(cell_index,blockNo) * z_grav_rho * &
-                (z_rho_down - z_rho_up) / z_shear_cell, 0.0_wp)
           END IF
-        END DO ! index
-      END DO ! levels
-      !$ACC END PARALLEL
+        END DO
+      END DO
+      !$ACC END PARALLEL LOOP
+
+      !$ACC PARALLEL LOOP GANG VECTOR DEFAULT(PRESENT) COLLAPSE(2) ASYNC(1) IF(lzacc)
+      DO level = 2, n_zlev
+        DO cell_index = start_index, end_index
+          end_level = patch_3d%p_patch_1d(1)%dolic_c(cell_index,blockNo)
+          IF ((end_level < 2) .OR. (level > end_level)) CYCLE
+
+          z_rho_up(cell_index,level-1) = calculate_density_onColumn_elem(ocean_state%p_prog(nold(1))%tracer(cell_index,level-1,blockNo,1), &
+                                              salinity(cell_index,level-1), pressure(cell_index,level))
+
+          z_rho_down(cell_index,level) = calculate_density_onColumn_elem(ocean_state%p_prog(nold(1))%tracer(cell_index,level,blockNo,1), &
+                                              salinity(cell_index,level), pressure(cell_index,level))
+        END DO
+      END DO
+      !$ACC END PARALLEL LOOP
+
+      !$ACC PARALLEL LOOP GANG VECTOR DEFAULT(PRESENT) COLLAPSE(2) ASYNC(1) IF(lzacc)
+      DO level = 2, n_zlev
+        DO cell_index = start_index, end_index
+          end_level = patch_3d%p_patch_1d(1)%dolic_c(cell_index,blockNo)
+          IF ((end_level < 2) .OR. (level > end_level)) CYCLE
+
+          z_shear_cell = dbl_eps + &
+               SUM((ocean_state%p_diag%p_vn(cell_index,level-1,blockNo)%x &
+               - ocean_state%p_diag%p_vn(cell_index,level,blockNo)%x)**2)
+
+          ocean_state%p_diag%zgrad_rho(cell_index,level,blockNo) = (z_rho_down(cell_index,level) - z_rho_up(cell_index,level-1)) *  &
+               patch_3d%p_patch_1d(1)%inv_prism_center_dist_c(cell_index,level,blockNo) / stretch_c(cell_index, blockNo)
+
+          ocean_state%p_diag%Richardson_Number(cell_index, level, blockNo) &
+               = MAX(patch_3d%p_patch_1d(1)%prism_center_dist_c(cell_index,level,blockNo) * stretch_c(cell_index,blockNo) * z_grav_rho * &
+               (z_rho_down(cell_index,level) - z_rho_up(cell_index,level-1)) / z_shear_cell, 0.0_wp)
+        END DO ! levels
+      END DO ! index
+      !$ACC END PARALLEL LOOP
     END DO
     !$ACC WAIT(1)
 !ICON_OMP_END_DO
 !ICON_OMP_END_PARALLEL
 
-  END SUBROUTINE calc_vertical_stability_zstar
+    !$ACC END DATA
 #else
-  SUBROUTINE calc_vertical_stability_zstar(patch_3d, ocean_state, eta_c, stretch_c, lacc)
-    TYPE(t_patch_3d ),TARGET, INTENT(in)             :: patch_3d
-    TYPE(t_hydro_ocean_state), TARGET                :: ocean_state
-    REAL(wp), INTENT(IN) :: eta_c(nproma, patch_3d%p_patch_2d(1)%alloc_cell_blocks) !! sfc ht
-    REAL(wp), INTENT(IN) :: stretch_c(nproma, patch_3d%p_patch_2d(1)%alloc_cell_blocks)
-    LOGICAL, INTENT(in), OPTIONAL                    :: lacc
-
-    !Local variables
-    INTEGER :: start_index, end_index, cell_index,level,end_level, blockNo
-
-    TYPE(t_subset_range), POINTER :: cells_in_domain, all_cells
-    TYPE(t_patch), POINTER :: patch_2D
-
-    REAL(wp) :: z_grav_rho
-    REAL(wp) :: z_shear_cell
     REAL(wp) :: z_rho_up(n_zlev), z_rho_down(n_zlev) !, density(n_zlev)
     REAL(wp) :: pressure(n_zlev), salinity(n_zlev)
-    LOGICAL :: lzacc
+
+    CALL set_acc_host_or_device(lzacc, lacc)
 
     !-------------------------------------------------------------------------------
     patch_2D        => patch_3d%p_patch_2d(1)
     cells_in_domain => patch_2D%cells%in_domain
     all_cells       => patch_2D%cells%ALL
     !-------------------------------------------------------------------------------
-
-    CALL set_acc_host_or_device(lzacc, lacc)
 
     z_grav_rho = grav/OceanReferenceDensity
 
     !$ACC DATA CREATE(salinity, z_rho_up, z_rho_down, pressure) IF(lzacc)
 
     !ICON_OMP_PARALLEL PRIVATE(salinity, z_rho_up, z_rho_down, pressure)
-    !$ACC KERNELS DEFAULT(PRESENT) ASYNC(1) IF(lzacc)
-    salinity(1:n_zlev) = sal_ref
-    z_rho_up(:)=0.0_wp
-    z_rho_down(:)=0.0_wp
-    pressure(:) = 0._wp
-    !$ACC END KERNELS
+    !$ACC PARALLEL LOOP GANG VECTOR DEFAULT(PRESENT) ASYNC(1) IF(lzacc)
+    DO level = 1, n_zlev
+      salinity(level) = sal_ref
+      z_rho_up(level) = 0.0_wp
+      z_rho_down(level) = 0.0_wp
+      pressure(level) = 0._wp
+    END DO
+    !$ACC END PARALLEL LOOP
 
     !ICON_OMP_DO PRIVATE(start_index, end_index, cell_index, end_level, level, &
     !ICON_OMP z_shear_cell) ICON_OMP_DEFAULT_SCHEDULE
     DO blockNo = all_cells%start_block, all_cells%end_block
       CALL get_index_range(all_cells, blockNo, start_index, end_index)
 
-      !$ACC KERNELS DEFAULT(PRESENT) ASYNC(1) IF(lzacc)
-      ocean_state%p_diag%Richardson_Number(:, :, blockNo) = 0.0_wp
-      ocean_state%p_diag%zgrad_rho(:,:, blockNo) = 0.0_wp
-      !$ACC END KERNELS
+      !$ACC PARALLEL LOOP GANG VECTOR DEFAULT(PRESENT) COLLAPSE(2) ASYNC(1) IF(lzacc)
+      DO level = 1, n_zlev
+        DO cell_index = 1, nproma
+          ocean_state%p_diag%Richardson_Number(cell_index, level, blockNo) = 0.0_wp
+          ocean_state%p_diag%zgrad_rho(cell_index, level, blockNo) = 0.0_wp
+        END DO
+      END DO
+      !$ACC END PARALLEL LOOP
 
       !$ACC PARALLEL LOOP GANG VECTOR &
       !$ACC   PRIVATE(salinity, z_rho_up, z_rho_down, pressure) DEFAULT(PRESENT) ASYNC(1) IF(lzacc)
@@ -2475,13 +2500,17 @@ CONTAINS
         IF (end_level < 2) CYCLE
 
         IF(no_tracer >= 2) THEN
-            salinity(1:end_level) = ocean_state%p_prog(nold(1))%tracer(cell_index,1:end_level,blockNo,2)
+          DO level = 1, end_level
+            salinity(level) = ocean_state%p_prog(nold(1))%tracer(cell_index,level,blockNo,2)
+          END DO
         ENDIF
 
         !--------------------------------------------------------
-        pressure(2:end_level) = (patch_3d%p_patch_1d(1)%depth_CellInterface(cell_index, 2:end_level, blockNo) &
+        DO level = 2, end_level
+          pressure(level) = (patch_3d%p_patch_1d(1)%depth_CellInterface(cell_index, level, blockNo) &
            & * stretch_c(cell_index, blockNo) - eta_c(cell_index,blockNo))  &
            & * OceanReferenceDensity * sitodbar
+        END DO
 
 #ifdef _OPENACC
         DO level = 1, end_level-1
@@ -2531,8 +2560,8 @@ CONTAINS
 !ICON_OMP_END_PARALLEL
 
     !$ACC END DATA
-  END SUBROUTINE calc_vertical_stability_zstar
 #endif
+  END SUBROUTINE calc_vertical_stability_zstar
   !-------------------------------------------------------------------------
 
 

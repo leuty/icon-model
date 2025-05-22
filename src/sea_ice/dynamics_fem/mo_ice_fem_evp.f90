@@ -74,6 +74,7 @@ subroutine index_si_elements(lacc)
     buffy_array(:) = 0._wp
     si_nod2D = 0
 
+    !$ACC UPDATE SELF(m_ice, a_ice) IF(lzacc)
     DO i=1, myDim_nod2D
         row=myList_nod2D(i)
 
@@ -144,7 +145,7 @@ CALL set_acc_host_or_device(lzacc, lacc)
 !ICON_OMP_PARALLEL
 
 !ICON_OMP_DO PRIVATE(i,row) SCHEDULE(static,4)
- !$ACC PARALLEL LOOP GANG VECTOR DEFAULT(PRESENT) IF(lzacc)
+ !$ACC PARALLEL LOOP GANG VECTOR DEFAULT(PRESENT) ASYNC(1) IF(lzacc)
  DO i=1, myDim_nod2D
      row=myList_nod2D(i)
      rhs_a(row)=0.0_wp    ! these are used as temporal storage here
@@ -158,7 +159,7 @@ CALL set_acc_host_or_device(lzacc, lacc)
 !ICON_OMP_END_DO
 
 !ICON_OMP_DO PRIVATE(i,elem) SCHEDULE(static,4)
- !$ACC PARALLEL LOOP GANG VECTOR DEFAULT(PRESENT) IF(lzacc)
+ !$ACC PARALLEL LOOP GANG VECTOR DEFAULT(PRESENT) ASYNC(1) IF(lzacc)
  DO i=1, myDim_elem2D
      elem=myList_elem2D(i)
      da(elem)=0.0_wp    ! initialize
@@ -168,25 +169,25 @@ CALL set_acc_host_or_device(lzacc, lacc)
 !ICON_OMP_END_DO
 
 !ICON_OMP_DO PRIVATE(i,elem,elnodes,aa,dx,dy,elevation_elem) SCHEDULE(static,4)
- !$ACC PARALLEL LOOP GANG VECTOR DEFAULT(PRESENT) PRIVATE(elnodes, dx, dy, elevation_elem) IF(lzacc)
+ !$ACC PARALLEL LOOP GANG VECTOR DEFAULT(PRESENT) PRIVATE(elnodes, dx, dy, elevation_elem) ASYNC(1) IF(lzacc)
  DO i=1,si_elem2D
      elem=si_idx_elem(i)
-     elnodes=elem2D_nodes(:,elem)
+     elnodes(:)=elem2D_nodes(:,elem)
 
-     dx=bafux(:,elem)
-     dy=bafuy(:,elem)
-     elevation_elem=elevation(elnodes)
+     dx(:)=bafux(:,elem)
+     dy(:)=bafuy(:,elem)
+     elevation_elem(:)=elevation(elnodes(:))
 
      ! use rhs_m and rhs_a for storing the contribution from elevation:
      aa=9.81_wp*voltriangle(elem)/3.0_wp
-     da(elem)=-aa*sum(dx*elevation_elem)
-     dm(elem)=-aa*sum(dy*elevation_elem)
+     da(elem)=-aa*sum(dx(:)*elevation_elem(:))
+     dm(elem)=-aa*sum(dy(:)*elevation_elem(:))
  END DO
  !$ACC END PARALLEL LOOP
 !ICON_OMP_END_DO
 
 !ICON_OMP_DO  PRIVATE(i,row,nodels,k,elem)  SCHEDULE(static,4)
- !$ACC PARALLEL LOOP GANG VECTOR DEFAULT(PRESENT) PRIVATE(nodels) IF(lzacc)
+ !$ACC PARALLEL LOOP GANG VECTOR DEFAULT(PRESENT) PRIVATE(nodels) ASYNC(1) IF(lzacc)
  DO i=1,si_nod2D
     row=si_idx_nodes(i)
     nodels=nod2D_elems(:,row)
@@ -204,7 +205,7 @@ CALL set_acc_host_or_device(lzacc, lacc)
 !ICON_OMP_END_DO
 
 !ICON_OMP_DO  PRIVATE(i,row,cluster_area,mass) SCHEDULE(static,4)
- !$ACC PARALLEL LOOP GANG VECTOR DEFAULT(PRESENT) IF(lzacc)
+ !$ACC PARALLEL LOOP GANG VECTOR DEFAULT(PRESENT) ASYNC(1) IF(lzacc)
  DO i=1,si_nod2D
      row=si_idx_nodes(i)
      cluster_area=lmass_matrix(row)
@@ -218,6 +219,7 @@ CALL set_acc_host_or_device(lzacc, lacc)
 !ICON_OMP_END_DO
 !ICON_OMP_END_PARALLEL
 
+!$ACC WAIT(1)
 !$ACC END DATA
 
 end subroutine precalc4rhs
@@ -275,8 +277,7 @@ implicit none
 ! !ICON_OMP_DO        PRIVATE(i,elem,elnodes,dx,dy,vsum,usum,eps11,eps22,eps12,delta,msum,asum,pressure, &
 ! !ICON_OMP                   delta_inv,zeta,r1,r2,r3,si1,si2)  SCHEDULE(static,4)
 !NEC$ ivdep
-    !$ACC PARALLEL LOOP GANG VECTOR DEFAULT(PRESENT) PRIVATE(elem, usum, vsum, eps11, eps12, eps22) &
-    !$ACC   PRIVATE(delta, msum, asum, pressure, delta_inv, zeta, r1, r2, r3, si1, si2) IF(lzacc)
+    !$ACC PARALLEL LOOP GANG VECTOR DEFAULT(PRESENT) ASYNC(1) IF(lzacc)
     DO i=1,si_elem2D
      elem = si_idx_elem(i)
 
@@ -356,6 +357,7 @@ implicit none
     !$ACC END PARALLEL LOOP
 ! !ICON_OMP_END_DO
 
+    !$ACC WAIT(1)
     !$ACC END DATA
 end subroutine stress_tensor
 !===================================================================
@@ -370,39 +372,35 @@ INTEGER, INTENT(IN) :: si_nod2D
 INTEGER, INTENT(IN), DIMENSION(:) :: si_idx_nodes
 LOGICAL, INTENT(IN), OPTIONAL     :: lacc
 
-INTEGER  :: row, elem, nodels(6), k, i
-REAL(wp) :: dx(6), dy(6)
+INTEGER  :: row, elem, k, i
+REAL(wp) :: dx, dy
 LOGICAL  :: lzacc
 
   CALL set_acc_host_or_device(lzacc, lacc)
 
-  !$ACC DATA CREATE(nodels, dx, dy) IF(lzacc)
-
-! !ICON_OMP_DO        PRIVATE(i,k,row,elem,nodels,dx,dy) ICON_OMP_DEFAULT_SCHEDULE
+! !ICON_OMP_DO        PRIVATE(i,k,row,elem,dx,dy) ICON_OMP_DEFAULT_SCHEDULE
 !NEC$ ivdep
-  !$ACC PARALLEL LOOP GANG VECTOR PRIVATE(row, elem) DEFAULT(PRESENT) IF(lzacc)
+  !$ACC PARALLEL LOOP GANG VECTOR DEFAULT(PRESENT) ASYNC(1) IF(lzacc)
   DO i=1,si_nod2D
 
      row = si_idx_nodes(i)
-
-     nodels=nod2D_elems(:,row)
-
-     dx=bafux_nod(:,row)
-     dy=bafuy_nod(:,row)
 
      ! initialize
      rhs_u(row)=0.0_wp
      rhs_v(row)=0.0_wp
 
      DO k=1,6
-        elem=nodels(k)
+        elem=nod2D_elems(k,row)
+        dx=bafux_nod(k,row)
+        dy=bafuy_nod(k,row)
+
         IF (elem > 0) THEN
 
         rhs_u(row)=rhs_u(row) - voltriangle(elem) * &
-             (sigma11(elem)*dx(k)+sigma12(elem)*(dy(k)) &
+             (sigma11(elem)*dx+sigma12(elem)*dy &
              +sigma12(elem)*val3*metrics_elem2D(elem))                          !metrics
         rhs_v(row)=rhs_v(row) - voltriangle(elem) * &
-             (sigma12(elem)*dx(k)+sigma22(elem)*dy(k) &
+             (sigma12(elem)*dx+sigma22(elem)*dy &
              -sigma11(elem)*val3*metrics_elem2D(elem))
         END IF
      END DO
@@ -415,7 +413,7 @@ LOGICAL  :: lzacc
   !$ACC END PARALLEL LOOP
 ! !ICON_OMP_END_DO
 
-  !$ACC END DATA
+  !$ACC WAIT(1)
 end subroutine stress2rhs
 !===================================================================
 
@@ -447,11 +445,12 @@ logical     :: lzacc
  !$ACC   COPY(lmass_matrix, myList_elem2D) &
  !$ACC   IF(lzacc)
 
-    !$ACC KERNELS DEFAULT(PRESENT) IF(lzacc)
+    !$ACC KERNELS DEFAULT(PRESENT) ASYNC(1) IF(lzacc)
     sigma11(:) = 0._wp
     sigma12(:) = 0._wp
     sigma22(:) = 0._wp
     !$ACC END KERNELS
+    !$ACC WAIT(1)
 
 ! index elements/nodes where sea ice is present for faster loops
     call index_si_elements(lacc=lzacc)
@@ -461,7 +460,7 @@ logical     :: lzacc
  DO shortstep=1, evp_rheol_steps
 
      ! ===== Boundary conditions
-     !$ACC PARALLEL LOOP GANG VECTOR DEFAULT(PRESENT) PRIVATE(i) IF(lzacc)
+     !$ACC PARALLEL LOOP GANG VECTOR DEFAULT(PRESENT) ASYNC(1) IF(lzacc)
      do j=1, myDim_nod2D+eDim_nod2D
         i=myList_nod2D(j)
         if(index_nod2D(i)==1) then
@@ -470,6 +469,7 @@ logical     :: lzacc
         end if
      end do
      !$ACC END PARALLEL LOOP
+     !$ACC WAIT(1)
 
      call stress_tensor(si_elem2D, si_idx_elem, lacc=lzacc)
 
@@ -478,7 +478,7 @@ logical     :: lzacc
 !ICON_OMP_PARALLEL
 !ICON_OMP_DO        PRIVATE(j,i,inv_mass,umod,drag,rhsu,rhsv,det) ICON_OMP_DEFAULT_SCHEDULE
 !NEC$ ivdep
-     !$ACC PARALLEL LOOP GANG VECTOR DEFAULT(PRESENT) PRIVATE(i, inv_mass, umod, drag, rhsu, rhsv, det) IF(lzacc)
+     !$ACC PARALLEL LOOP GANG VECTOR DEFAULT(PRESENT) ASYNC(1) IF(lzacc)
      DO j=1,si_nod2D
        i=si_idx_nodes(j)
        if (index_nod2D(i)>0) CYCLE          ! Skip boundary nodes
@@ -504,6 +504,7 @@ logical     :: lzacc
        end if
      END DO
      !$ACC END PARALLEL LOOP
+    !$ACC WAIT(1)
 !ICON_OMP_END_DO
 !ICON_OMP_END_PARALLEL
 

@@ -80,7 +80,11 @@ MODULE mo_surface_height_lhs_zstar
         REAL(wp), POINTER, INTENT(IN) :: thick_e(:,:)
         TYPE(t_operator_coeff), TARGET, INTENT(IN) :: op_coeffs_wp
         TYPE(t_solverCoeff_singlePrecision), TARGET, INTENT(IN) :: op_coeffs_sp
+#if defined(_OPENACC) || defined(__NO_CONT_SOLV_OCE__)
+        REAL(wp), INTENT(IN) :: str_e(:,:)
+#else
         REAL(wp), INTENT(IN), CONTIGUOUS :: str_e(:,:)
+#endif
         LOGICAL, INTENT(IN), OPTIONAL :: lacc
 
         LOGICAL :: lzacc
@@ -216,7 +220,11 @@ MODULE mo_surface_height_lhs_zstar
 
       SUBROUTINE update(this, str_e, lacc)
         CLASS(t_surface_height_lhs_zstar), INTENT(INOUT) :: this
+#if defined(_OPENACC) || defined(__NO_CONT_SOLV_OCE__)
+        REAL(wp), INTENT(IN) :: str_e(:,:)
+#else
         REAL(wp), INTENT(IN), CONTIGUOUS :: str_e(:,:)
+#endif
         LOGICAL, INTENT(IN), OPTIONAL :: lacc
         INTEGER :: jb, je, start_index, end_index
         TYPE(t_subset_range), POINTER :: edges_in_domain
@@ -260,8 +268,13 @@ MODULE mo_surface_height_lhs_zstar
     ! internal backend routine to compute surface height lhs -- "operator" implementation
       SUBROUTINE lhs_surface_height_ab_mim_zstar(this, x, lhs, lacc)
         CLASS(t_surface_height_lhs_zstar), INTENT(INOUT) :: this
+#if defined(_OPENACC) || defined(__NO_CONT_SOLV_OCE__)
+        REAL(wp), INTENT(IN) :: x(:,:)
+        REAL(wp), INTENT(INOUT) :: lhs(:,:)
+#else
         REAL(wp), INTENT(IN), CONTIGUOUS :: x(:,:)
         REAL(wp), INTENT(INOUT), CONTIGUOUS :: lhs(:,:)
+#endif
         LOGICAL, INTENT(in), OPTIONAL              :: lacc
 
         REAL(wp) :: gdt2_inv, gam_times_beta
@@ -344,14 +357,24 @@ MODULE mo_surface_height_lhs_zstar
       ! internal backend routine to compute surface height lhs -- "matrix" implementation
       SUBROUTINE lhs_surface_height_ab_mim_matrix_wp(this, x, lhs, lacc)
         CLASS(t_surface_height_lhs_zstar), INTENT(INOUT) :: this
+#if defined(_OPENACC) || defined(__NO_CONT_SOLV_OCE__)
+        REAL(wp), INTENT(IN) :: x(:,:)
+        REAL(wp), INTENT(INOUT) :: lhs(:,:)
+#else
         REAL(wp), INTENT(IN), CONTIGUOUS :: x(:,:)
         REAL(wp), INTENT(INOUT), CONTIGUOUS :: lhs(:,:)
+#endif
         LOGICAL, INTENT(IN), OPTIONAL :: lacc
         INTEGER :: start_index, end_index, jc, blkNo, ico
         TYPE(t_subset_range), POINTER :: cells_in_domain
+#if defined(_OPENACC) || defined(__NO_CONT_SOLV_OCE__)
+        REAL(wp), POINTER, DIMENSION(:,:,:) :: lhs_coeffs
+        INTEGER, POINTER, DIMENSION(:,:,:) :: idx, blk
+#else
         REAL(wp), POINTER, DIMENSION(:,:,:), CONTIGUOUS :: lhs_coeffs
-        REAL(wp) :: xco(9)
         INTEGER, POINTER, DIMENSION(:,:,:), CONTIGUOUS :: idx, blk
+#endif
+        REAL(wp) :: xco(9)
 
         LOGICAL :: lzacc
 
@@ -399,8 +422,13 @@ MODULE mo_surface_height_lhs_zstar
         REAL(KIND=wp), INTENT(INOUT), ALLOCATABLE, DIMENSION(:,:,:) :: coeff
         LOGICAL, INTENT(IN), OPTIONAL :: lacc
         INTEGER :: nidx, nblk, nnz, iidx, iblk, inz
+#if defined(_OPENACC) || defined(__NO_CONT_SOLV_OCE__)
+        INTEGER, POINTER, DIMENSION(:,:,:) :: opc_idx, opc_blk
+        REAL(wp), POINTER, DIMENSION(:,:,:) :: opc_coeff
+#else
         INTEGER, POINTER, DIMENSION(:,:,:), CONTIGUOUS :: opc_idx, opc_blk
         REAL(wp), POINTER, DIMENSION(:,:,:), CONTIGUOUS :: opc_coeff
+#endif
         LOGICAL :: lzacc
 
         CALL set_acc_host_or_device(lzacc, lacc)

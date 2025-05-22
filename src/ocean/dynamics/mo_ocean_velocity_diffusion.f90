@@ -1072,7 +1072,7 @@ CONTAINS
   !!
   !------------------------------------------------------------------------
 !<Optimize:inUse>
-#ifdef __LVECTOR__
+#if defined(__LVECTOR__) || defined(_OPENACC)
   SUBROUTINE velocity_diffusion_vertical_implicit_onBlock( &
     & patch_3d,                            &
     & velocity,                            &

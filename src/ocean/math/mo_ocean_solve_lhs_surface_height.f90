@@ -158,9 +158,13 @@ CONTAINS
     INTEGER :: start_index, end_index, jc, blkNo, ico
     LOGICAL :: lzacc
     TYPE(t_subset_range), POINTER :: cells_in_domain
+#if defined(_OPENACC) || defined(__NO_CONT_SOLV_OCE__)
+    REAL(wp), POINTER, DIMENSION(:,:,:) :: lhs_coeffs
+    INTEGER, POINTER, DIMENSION(:,:,:) :: idx, blk
+#else
     REAL(wp), POINTER, DIMENSION(:,:,:), CONTIGUOUS :: lhs_coeffs
-!     REAL(wp) :: xco(9)
     INTEGER, POINTER, DIMENSION(:,:,:), CONTIGUOUS :: idx, blk
+#endif
 
     cells_in_domain => this%patch_2D%cells%in_domain
     lhs_coeffs => this%op_coeffs_wp%lhs_all
@@ -225,8 +229,13 @@ CONTAINS
 ! internal backend routine to compute surface height lhs -- "operator" implementation
   SUBROUTINE lhs_surface_height_ab_mim_wp(this, x, lhs, lacc)
     CLASS(t_surface_height_lhs), INTENT(INOUT) :: this
+#if defined(_OPENACC) || defined(__NO_CONT_SOLV_OCE__)
+    REAL(wp), INTENT(IN) :: x(:,:)
+    REAL(wp), INTENT(INOUT) :: lhs(:,:)
+#else
     REAL(wp), INTENT(IN), CONTIGUOUS :: x(:,:)
     REAL(wp), INTENT(INOUT), CONTIGUOUS :: lhs(:,:)
+#endif
     LOGICAL, INTENT(IN), OPTIONAL :: lacc
     REAL(wp) :: gdt2_inv, gam_times_beta
     INTEGER :: start_index, end_index, jc, blkNo, je
@@ -301,8 +310,13 @@ CONTAINS
     REAL(KIND=wp), INTENT(INOUT), ALLOCATABLE, DIMENSION(:,:,:) :: coeff
     LOGICAL, INTENT(IN), OPTIONAL :: lacc
     INTEGER :: nidx, nblk, nnz, iidx, iblk, inz
+#if defined(_OPENACC) || defined(__NO_CONT_SOLV_OCE__)
+    INTEGER, POINTER, DIMENSION(:,:,:) :: opc_idx, opc_blk
+    REAL(wp), POINTER, DIMENSION(:,:,:) :: opc_coeff
+#else
     INTEGER, POINTER, DIMENSION(:,:,:), CONTIGUOUS :: opc_idx, opc_blk
     REAL(wp), POINTER, DIMENSION(:,:,:), CONTIGUOUS :: opc_coeff
+#endif
     LOGICAL :: lzacc
 
     CALL set_acc_host_or_device(lzacc, lacc)

@@ -110,7 +110,7 @@ CONTAINS
 
     INTEGER  :: edge_block_1,edge_block_2,edge_block_3,edge_index_1,edge_index_2,edge_index_3
     INTEGER  :: edge_block_i,start_index,end_index,edge_index_i,cell_block,cell_index
-    INTEGER  :: jc, jb, i_startidx_c, i_endidx_c
+    INTEGER  :: jc, jb, i_startidx_c, i_endidx_c, level
 
     CALL set_acc_host_or_device(lzacc, lacc)
 
@@ -165,24 +165,44 @@ CONTAINS
         !$ACC DATA CREATE(cvec_ice_velocity, boundary_cell_marker, boundary_edge_marker, ice_x, ice_y, ice_z) IF(lzacc)
 
         ! kartesischer Vektor auf Kantenmitte
-        !$ACC KERNELS DEFAULT(PRESENT) IF(lzacc)
-        cvec_ice_velocity(:,:)%x(1)=0.0_wp
-        cvec_ice_velocity(:,:)%x(2)=0.0_wp
-        cvec_ice_velocity(:,:)%x(3)=0.0_wp
+        !$ACC PARALLEL LOOP GANG VECTOR DEFAULT(PRESENT) COLLAPSE(2) ASYNC(1) IF(lzacc)
+        DO cell_block = 1, p_patch_3D%p_patch_2D(1)%alloc_cell_blocks
+          DO cell_index = 1, nproma
+            cvec_ice_velocity(cell_index, cell_block)%x(1)=0.0_wp
+            cvec_ice_velocity(cell_index, cell_block)%x(2)=0.0_wp
+            cvec_ice_velocity(cell_index, cell_block)%x(3)=0.0_wp
+          END DO
+        END DO
+        !$ACC END PARALLEL LOOP
 
-        boundary_cell_marker(:,:,:)=0.0_wp
-        boundary_edge_marker(:,:)=0.0_wp
-        ice_x(:,:)=0.0_wp
-        ice_y(:,:)=0.0_wp
-        ice_z(:,:)=0.0_wp
-        !$ACC END KERNELS
+        !$ACC PARALLEL LOOP GANG VECTOR DEFAULT(PRESENT) COLLAPSE(2) ASYNC(1) IF(lzacc)
+        DO cell_block = 1, p_patch_3D%p_patch_2D(1)%alloc_cell_blocks
+          DO level = 1, n_zlev
+            DO cell_index = 1, nproma
+              boundary_cell_marker(cell_index, level, cell_block)=0.0_wp
+            END DO
+          END DO
+        END DO
+        !$ACC END PARALLEL LOOP
+
+        !$ACC PARALLEL LOOP GANG VECTOR DEFAULT(PRESENT) COLLAPSE(2) ASYNC(1) IF(lzacc)
+        DO edge_block_i = 1, p_patch_3d%p_patch_2d(1)%nblks_e
+          DO edge_index_i = 1, nproma
+            boundary_edge_marker(edge_index_i, edge_block_i)=0.0_wp
+            ice_x(edge_index_i, edge_block_i)=0.0_wp
+            ice_y(edge_index_i, edge_block_i)=0.0_wp
+            ice_z(edge_index_i, edge_block_i)=0.0_wp
+          END DO
+        END DO
+        !$ACC END PARALLEL LOOP
+        !$ACC WAIT(1)
 
         CALL interface_boundary_cell_marker(boundary_cell_marker, p_patch_3D, p_ice)
         CALL interface_boundary_edge_marker(boundary_edge_marker,boundary_cell_marker, p_patch_3D, p_ice)
 
         DO edge_block_i = all_edges%start_block, all_edges%end_block
           CALL get_index_range(all_edges, edge_block_i, start_index, end_index)
-          !$ACC PARALLEL LOOP GANG VECTOR DEFAULT(PRESENT) PRIVATE(nix, tix, niy, tiy, niz, tiz) IF(lzacc)
+          !$ACC PARALLEL LOOP GANG VECTOR DEFAULT(PRESENT) ASYNC(1) IF(lzacc)
           DO edge_index_i =  start_index, end_index
             nix=p_patch%edges%primal_cart_normal(edge_index_i,edge_block_i)%x(1)
             tix=p_patch%edges%dual_cart_normal(edge_index_i,edge_block_i)%x(1)
@@ -203,13 +223,13 @@ CONTAINS
           ENDDO
           !$ACC END PARALLEL LOOP
         ENDDO
+        !$ACC WAIT(1)
 
 ! Mittlung auf Zellmitte
 
         DO cell_block = owned_cells%start_block, owned_cells%end_block
           CALL get_index_range(owned_cells, cell_block, start_index, end_index)
-          !$ACC PARALLEL LOOP GANG VECTOR DEFAULT(PRESENT) PRIVATE(edge_index_1, edge_block_1) &
-          !$ACC   PRIVATE(edge_index_2, edge_block_2, edge_index_3, edge_block_3) IF(lzacc)
+          !$ACC PARALLEL LOOP GANG VECTOR DEFAULT(PRESENT) ASYNC(1) IF(lzacc)
           DO cell_index = start_index, end_index
 
             edge_index_1 = p_patch%cells%edge_idx(cell_index, cell_block, 1)
@@ -230,6 +250,7 @@ CONTAINS
           ENDDO
           !$ACC END PARALLEL LOOP
         ENDDO
+        !$ACC WAIT(1)
 
         CALL cvec2gvec_c_2d(p_patch_3D, cvec_ice_velocity(:,:), p_ice%u, p_ice%v)
 
@@ -242,13 +263,14 @@ CONTAINS
 
       DO jb = all_cells%start_block, all_cells%end_block
         CALL get_index_range(all_cells, jb, i_startidx_c, i_endidx_c)
-        !$ACC PARALLEL LOOP GANG VECTOR DEFAULT(PRESENT) IF(lzacc)
+        !$ACC PARALLEL LOOP GANG VECTOR DEFAULT(PRESENT) ASYNC(1) IF(lzacc)
         DO jc = i_startidx_c, i_endidx_c
           p_ice%u(jc,jb) = 0._wp
           p_ice%v(jc,jb) = 0._wp
         END DO
         !$ACC END PARALLEL LOOP
       END DO
+      !$ACC WAIT(1)
 
     ENDIF
 
@@ -350,14 +372,15 @@ CONTAINS
         DO jb = all_cells%start_block, all_cells%end_block
           CALL get_index_range(all_cells, jb, i_startidx_c, i_endidx_c)
 
+          !$ACC PARALLEL LOOP GANG VECTOR DEFAULT(PRESENT) COLLAPSE(2) ASYNC(1) IF(lzacc)
           DO j =1,p_ice%kice
-            !$ACC PARALLEL LOOP GANG VECTOR DEFAULT(PRESENT) IF(lzacc)
             DO i=1,nproma
               nonsolar(i,j)   = atmos_fluxes%lat(i,j,jb) + atmos_fluxes%sens(i,j,jb) + atmos_fluxes%LWnet(i,j,jb)
               nonsolardT(i,j) = atmos_fluxes%dlatdT(i,j,jb) + atmos_fluxes%dsensdT(i,j,jb) + atmos_fluxes%dLWdT(i,j,jb)
             END DO
-            !$ACC END PARALLEL LOOP
           END DO
+          !$ACC END PARALLEL LOOP
+          !$ACC WAIT(1)
 
           CALL ice_fast(i_startidx_c, i_endidx_c, nproma, p_ice%kice, dtime, &
             &   p_ice% Tsurf(:,:,jb),   &          !  intent(inout)
@@ -384,21 +407,25 @@ CONTAINS
         ! to-do: move to more appropriate place, should not be done here
         SELECT CASE (atmos_flux_analytical_type)
         CASE (102)
-          !$ACC KERNELS DEFAULT(PRESENT) IF(lzacc)
-          p_ice%Qtop(:,1,:) = atmos_SWnet_const
-          !$ACC END KERNELS
-
-          !$ACC KERNELS DEFAULT(PRESENT) IF(lzacc)
-          p_ice%Qbot(:,1,:) = 0.0_wp
-          !$ACC END KERNELS
+          !$ACC PARALLEL LOOP GANG VECTOR DEFAULT(PRESENT) COLLAPSE(2) ASYNC(1) IF(lzacc)
+          DO j = 1, p_ice%kice
+            DO i = 1, nproma
+              p_ice%Qtop(i,1,j) = atmos_SWnet_const
+              p_ice%Qbot(i,1,j) = 0.0_wp
+            END DO
+          END DO
+          !$ACC END PARALLEL LOOP
+          !$ACC WAIT(1)
         CASE (103)
-          !$ACC KERNELS DEFAULT(PRESENT) IF(lzacc)
-          p_ice%Qtop(:,1,:) = 0.0_wp
-          !$ACC END KERNELS
-
-          !$ACC KERNELS DEFAULT(PRESENT) IF(lzacc)
-          p_ice%Qbot(:,1,:) = atmos_sens_const
-          !$ACC END KERNELS
+          !$ACC PARALLEL LOOP GANG VECTOR DEFAULT(PRESENT) COLLAPSE(2) ASYNC(1) IF(lzacc)
+          DO j = 1, p_ice%kice
+            DO i = 1, nproma
+              p_ice%Qtop(i,1,j) = 0.0_wp
+              p_ice%Qbot(i,1,j) = atmos_sens_const
+            END DO
+          END DO
+          !$ACC END PARALLEL LOOP
+          !$ACC WAIT(1)
         END SELECT
 
     !$ACC END DATA

@@ -993,13 +993,17 @@ CONTAINS
     !$ACC   CREATE(dragl0, dragl1, dragl, drags, fakts, humi, fa, fw) &
     !$ACC   IF(lzacc)
 
-    !$ACC KERNELS DEFAULT(PRESENT) ASYNC(1) IF(lzacc)
-    Tsurf(:,:)  = p_os%p_prog(nold(1))%tracer(:,1,:,1)  ! set surface temp = mixed layer temp
+    !$ACC PARALLEL LOOP GANG VECTOR DEFAULT(PRESENT) COLLAPSE(2) ASYNC(1)
+    DO jb = 1, p_patch_3D%p_patch_2D(1)%alloc_cell_blocks
+      DO jc = 1, nproma
+        Tsurf(jc,jb)  = p_os%p_prog(nold(1))%tracer(jc,1,jb,1)  ! set surface temp = mixed layer temp
 
-    tafoK(:,:)  = p_as%tafo(:,:)  + tmelt               ! Change units of tafo  to Kelvin
+        tafoK(jc,jb)  = p_as%tafo(jc,jb)  + tmelt               ! Change units of tafo  to Kelvin
 
-    ftdewC(:,:) = p_as%ftdew(:,:) - tmelt               ! Change units of ftdew to Celsius
-    !$ACC END KERNELS
+        ftdewC(jc,jb) = p_as%ftdew(jc,jb) - tmelt               ! Change units of ftdew to Celsius
+      END DO
+    END DO
+    !$ACC END PARALLEL LOOP
     !$ACC WAIT(1)
 
         !-----------------------------------------------------------------------
@@ -1019,29 +1023,37 @@ CONTAINS
     ! #slo# correction: pressure in enhancement formula is in mb (hPa) according to Buck 1981 and 1996
     !fa(:,:)   = 1.0_wp+AAw+p_as%pao(:,:)*(BBw+CCw*ftdewC(:,:)**2)
 
-    !$ACC KERNELS DEFAULT(PRESENT) ASYNC(1) IF(lzacc)
-    fa(:,:)   = 1.0_wp+AAw+p_as%pao(:,:)*0.01_wp*(BBw+CCw*ftdewC(:,:)**2)
-    esta(:,:) = fa(:,:) * aw*EXP((bw-ftdewC(:,:)/dw)*ftdewC(:,:)/(ftdewC(:,:)+cw))
+    !$ACC PARALLEL LOOP GANG VECTOR DEFAULT(PRESENT) COLLAPSE(2) ASYNC(1)
+    DO jb = 1, p_patch_3D%p_patch_2D(1)%alloc_cell_blocks
+      DO jc = 1, nproma
+        fa(jc,jb)   = 1.0_wp+AAw+p_as%pao(jc,jb)*0.01_wp*(BBw+CCw*ftdewC(jc,jb)**2)
+        esta(jc,jb) = fa(jc,jb) * aw*EXP((bw-ftdewC(jc,jb)/dw)*ftdewC(jc,jb)/(ftdewC(jc,jb)+cw))
 
-    !esta(:,:) =           aw*EXP((bw-ftdewC(:,:)/dw)*ftdewC(:,:)/(ftdewC(:,:)+cw))
-    !fw(:,:)   = 1.0_wp+AAw+p_as%pao(:,:)*(BBw+CCw*Tsurf(:,:) **2)
+        !esta(:,:) =           aw*EXP((bw-ftdewC(:,:)/dw)*ftdewC(:,:)/(ftdewC(:,:)+cw))
+        !fw(:,:)   = 1.0_wp+AAw+p_as%pao(:,:)*(BBw+CCw*Tsurf(:,:) **2)
 
-    fw(:,:)   = 1.0_wp+AAw+p_as%pao(:,:)*0.01_wp*(BBw+CCw*Tsurf(:,:) **2)
+        fw(jc,jb)   = 1.0_wp+AAw+p_as%pao(jc,jb)*0.01_wp*(BBw+CCw*Tsurf(jc,jb) **2)
 
         !estw(:,:) = fw(:,:) *aw*EXP((bw-Tsurf(:,:) /dw)*Tsurf(:,:) /(Tsurf(:,:) +cw))
         ! For a given surface salinity we should multiply estw with  1 - 0.000537*S
         ! #slo# correction according to MPIOM: lowering of saturation vapor pressure over saline water
         !       is taken constant to 0.9815
 
-    estw(:,:) = 0.9815_wp*fw(:,:)*aw*EXP((bw-Tsurf(:,:) /dw)*Tsurf(:,:) /(Tsurf(:,:) +cw))
-    !$ACC END KERNELS
+        estw(jc,jb) = 0.9815_wp*fw(jc,jb)*aw*EXP((bw-Tsurf(jc,jb) /dw)*Tsurf(jc,jb) /(Tsurf(jc,jb) +cw))
+      END DO
+    END DO
+    !$ACC END PARALLEL LOOP
     !$ACC WAIT(1)
 
-    !$ACC KERNELS DEFAULT(PRESENT) ASYNC(1) IF(lzacc)
-    sphumida(:,:)  = alpha * esta(:,:)/(p_as%pao(:,:)-beta*esta(:,:))
+    !$ACC PARALLEL LOOP GANG VECTOR DEFAULT(PRESENT) COLLAPSE(2) ASYNC(1)
+    DO jb = 1, p_patch_3D%p_patch_2D(1)%alloc_cell_blocks
+      DO jc = 1, nproma
+        sphumida(jc,jb)  = alpha * esta(jc,jb)/(p_as%pao(jc,jb)-beta*esta(jc,jb))
 
-    sphumidw(:,:)  = alpha * estw(:,:)/(p_as%pao(:,:)-beta*estw(:,:))
-    !$ACC END KERNELS
+        sphumidw(jc,jb)  = alpha * estw(jc,jb)/(p_as%pao(jc,jb)-beta*estw(jc,jb))
+      END DO
+    END DO
+    !$ACC END PARALLEL LOOP
     !$ACC WAIT(1)
 
         !-----------------------------------------------------------------------
@@ -1057,36 +1069,52 @@ CONTAINS
         !  the default usage).
         !-----------------------------------------------------------------------
 
-    !$ACC KERNELS DEFAULT(PRESENT) ASYNC(1) IF(lzacc)
-    humi(:,:)    = 0.39_wp - 0.05_wp*SQRT(esta(:,:)/100._wp)
-    !$ACC END KERNELS
+    !$ACC PARALLEL LOOP GANG VECTOR DEFAULT(PRESENT) COLLAPSE(2) ASYNC(1)
+    DO jb = 1, p_patch_3D%p_patch_2D(1)%alloc_cell_blocks
+      DO jc = 1, nproma
+        humi(jc,jb)    = 0.39_wp - 0.05_wp*SQRT(esta(jc,jb)/100._wp)
+      END DO
+    END DO
+    !$ACC END PARALLEL LOOP
     !$ACC WAIT(1)
 
         ! This is needed for the f-plane planar torus setup
         IF ( patch_2d%geometry_info%geometry_type == planar_torus_geometry &
              & .AND. coriolis_type ==  f_plane_coriolis ) THEN
-    !$ACC KERNELS DEFAULT(PRESENT) ASYNC(1) IF(lzacc)
-    fakts(:,:)   =  1.0_wp - ( 0.5_wp + 0.4_wp/90._wp &
-           &         *MIN(ABS(coriolis_fplane_latitude),60._wp) ) * p_as%fclou(:,:)**2
-    !$ACC END KERNELS
-    !$ACC WAIT(1)
+
+          !$ACC PARALLEL LOOP GANG VECTOR DEFAULT(PRESENT) COLLAPSE(2) ASYNC(1)
+          DO jb = 1, p_patch_3D%p_patch_2D(1)%alloc_cell_blocks
+            DO jc = 1, nproma
+              fakts(jc,jb)   =  1.0_wp - ( 0.5_wp + 0.4_wp/90._wp &
+                    &         *MIN(ABS(coriolis_fplane_latitude),60._wp) ) * p_as%fclou(jc,jb)**2
+            END DO
+          END DO
+          !$ACC END PARALLEL LOOP
+          !$ACC WAIT(1)
           ! Berliand & Berliand ('52) calculate only LWnetw
 
         ELSE
-      !$ACC KERNELS DEFAULT(PRESENT) ASYNC(1) IF(lzacc)
-      fakts(:,:)   =  1.0_wp - ( 0.5_wp + 0.4_wp/90._wp &
-           &         *MIN(ABS(rad2deg*patch_2D%cells%center(:,:)%lat),60._wp) ) * p_as%fclou(:,:)**2
-      !$ACC END KERNELS
-      !$ACC WAIT(1)
+
+          !$ACC PARALLEL LOOP GANG VECTOR DEFAULT(PRESENT) COLLAPSE(2) ASYNC(1)
+          DO jb = 1, p_patch_3D%p_patch_2D(1)%alloc_cell_blocks
+            DO jc = 1, nproma
+              fakts(jc,jb)   =  1.0_wp - ( 0.5_wp + 0.4_wp/90._wp &
+                  &         *MIN(ABS(rad2deg*patch_2D%cells%center(jc,jb)%lat),60._wp) ) * p_as%fclou(jc,jb)**2
+            END DO
+          END DO
+          !$ACC END PARALLEL LOOP
+          !$ACC WAIT(1)
           ! Berliand & Berliand ('52) calculate only LWnetw
         END IF
 
     ! #eoo# 2012-12-14: another bugfix
     ! #slo# #hha# 2012-12-13: bugfix, corrected form
 
-    !$ACC KERNELS DEFAULT(PRESENT) ASYNC(1) IF(lzacc)
-    atmos_fluxes%LWnetw(:,:) = - fakts(:,:) * humi(:,:) * zemiss_def*stbo * tafoK(:,:)**4  &
-      &                - 4._wp*zemiss_def*stbo*tafoK(:,:)**3 * (Tsurf(:,:) - p_as%tafo(:,:))
+    !$ACC PARALLEL LOOP GANG VECTOR DEFAULT(PRESENT) COLLAPSE(2) ASYNC(1)
+    DO jb = 1, p_patch_3D%p_patch_2D(1)%alloc_cell_blocks
+      DO jc = 1, nproma
+        atmos_fluxes%LWnetw(jc,jb) = - fakts(jc,jb) * humi(jc,jb) * zemiss_def*stbo * tafoK(jc,jb)**4  &
+          &                - 4._wp*zemiss_def*stbo*tafoK(jc,jb)**3 * (Tsurf(jc,jb) - p_as%tafo(jc,jb))
 
         ! same form as MPIOM:
         !atmos_fluxes%LWnetw(:,:) = - (fakts(:,:) * humi(:,:) * zemiss_def*stbo * tafoK(:,:)**4  &
@@ -1094,18 +1122,24 @@ CONTAINS
         ! bug
         !atmos_fluxes%LWnetw(:,:) = fakts(:,:) * humi(:,:) * zemiss_def*stbo * tafoK(:,:)**4  &
         !  &         - 4._wp*zemiss_def*stbo*tafoK(:,:)**3 * (Tsurf(:,:) - p_as%tafo(:,:))
-    !$ACC END KERNELS
+      END DO
+    END DO
+    !$ACC END PARALLEL LOOP
     !$ACC WAIT(1)
 
         ! Fractions of SWin in each band (from cice)
     fvisdir=0.28_wp; fvisdif=0.24_wp; fnirdir=0.31_wp; fnirdif=0.17_wp
 
-    !$ACC KERNELS DEFAULT(PRESENT) ASYNC(1) IF(lzacc)
-    atmos_fluxes%SWnetw(:,:) = ( 1._wp-atmos_fluxes%albvisdirw(:,:) )*fvisdir*p_as%fswr(:,:) +   &
-      &                ( 1._wp-atmos_fluxes%albvisdifw(:,:) )*fvisdif*p_as%fswr(:,:) +   &
-      &                ( 1._wp-atmos_fluxes%albnirdirw(:,:) )*fnirdir*p_as%fswr(:,:) +   &
-      &                ( 1._wp-atmos_fluxes%albnirdifw(:,:) )*fnirdif*p_as%fswr(:,:)
-    !$ACC END KERNELS
+    !$ACC PARALLEL LOOP GANG VECTOR DEFAULT(PRESENT) COLLAPSE(2) ASYNC(1)
+    DO jb = 1, p_patch_3D%p_patch_2D(1)%alloc_cell_blocks
+      DO jc = 1, nproma
+        atmos_fluxes%SWnetw(jc,jb) = ( 1._wp-atmos_fluxes%albvisdirw(jc,jb) )*fvisdir*p_as%fswr(jc,jb) +   &
+          &                ( 1._wp-atmos_fluxes%albvisdifw(jc,jb) )*fvisdif*p_as%fswr(jc,jb) +   &
+          &                ( 1._wp-atmos_fluxes%albnirdirw(jc,jb) )*fnirdir*p_as%fswr(jc,jb) +   &
+          &                ( 1._wp-atmos_fluxes%albnirdifw(jc,jb) )*fnirdif*p_as%fswr(jc,jb)
+      END DO
+    END DO
+    !$ACC END PARALLEL LOOP
     !$ACC WAIT(1)
 
         !-----------------------------------------------------------------------
@@ -1132,39 +1166,55 @@ CONTAINS
     END DO
     !$ACC WAIT(1)
 
-    !$ACC KERNELS DEFAULT(PRESENT) ASYNC(1) IF(lzacc)
-    fu10lim(:,:)    = MAX (2.5_wp, MIN(32.5_wp,p_as%fu10(:,:)) )
+    !$ACC PARALLEL LOOP GANG VECTOR DEFAULT(PRESENT) COLLAPSE(2) ASYNC(1)
+    DO jb = 1, p_patch_3D%p_patch_2D(1)%alloc_cell_blocks
+      DO jc = 1, nproma
+        fu10lim(jc,jb)    = MAX (2.5_wp, MIN(32.5_wp,p_as%fu10(jc,jb)) )
 
-    dragl1(:,:)     = 1e-3_wp*(-0.0154_wp + 0.5698_wp/fu10lim(:,:) &
-      &               - 0.6743_wp/(fu10lim(:,:) * fu10lim(:,:)))
+        dragl1(jc,jb)     = 1e-3_wp*(-0.0154_wp + 0.5698_wp/fu10lim(jc,jb) &
+          &               - 0.6743_wp/(fu10lim(jc,jb) * fu10lim(jc,jb)))
 
-    dragl0(:,:)     = 1e-3_wp*(0.8195_wp+0.0506_wp*fu10lim(:,:) &
-      &               - 0.0009_wp*fu10lim(:,:)*fu10lim(:,:))
+        dragl0(jc,jb)     = 1e-3_wp*(0.8195_wp+0.0506_wp*fu10lim(jc,jb) &
+          &               - 0.0009_wp*fu10lim(jc,jb)*fu10lim(jc,jb))
 
-    dragl(:,:)      = dragl0(:,:) + dragl1(:,:) * (Tsurf(:,:)-p_as%tafo(:,:))
-    !$ACC END KERNELS
+        dragl(jc,jb)      = dragl0(jc,jb) + dragl1(jc,jb) * (Tsurf(jc,jb)-p_as%tafo(jc,jb))
+      END DO
+    END DO
+    !$ACC END PARALLEL LOOP
     !$ACC WAIT(1)
 
         ! A reasonable maximum and minimum is needed for dragl in case there's a large difference
         ! between the 2-m and surface temperatures.
 
-    !$ACC KERNELS DEFAULT(PRESENT) ASYNC(1) IF(lzacc)
-    dragl(:,:)      = MAX(0.5e-3_wp, MIN(3.0e-3_wp,dragl(:,:)))
+    !$ACC PARALLEL LOOP GANG VECTOR DEFAULT(PRESENT) COLLAPSE(2) ASYNC(1)
+    DO jb = 1, p_patch_3D%p_patch_2D(1)%alloc_cell_blocks
+      DO jc = 1, nproma
+        dragl(jc,jb)      = MAX(0.5e-3_wp, MIN(3.0e-3_wp,dragl(jc,jb)))
 
-    drags(:,:)      = 0.95_wp * dragl(:,:)
-    !$ACC END KERNELS
+        drags(jc,jb)      = 0.95_wp * dragl(jc,jb)
+      END DO
+    END DO
+    !$ACC END PARALLEL LOOP
     !$ACC WAIT(1)
 
-    !$ACC KERNELS DEFAULT(PRESENT) ASYNC(1) IF(lzacc)
-    atmos_fluxes%sensw(:,:) = drags(:,:)*rhoair(:,:)*cpd*p_as%fu10(:,:) * fr_fac &
-      &               * (p_as%tafo(:,:) -Tsurf(:,:))
-    !$ACC END KERNELS
+    !$ACC PARALLEL LOOP GANG VECTOR DEFAULT(PRESENT) COLLAPSE(2) ASYNC(1)
+    DO jb = 1, p_patch_3D%p_patch_2D(1)%alloc_cell_blocks
+      DO jc = 1, nproma
+        atmos_fluxes%sensw(jc,jb) = drags(jc,jb)*rhoair(jc,jb)*cpd*p_as%fu10(jc,jb) * fr_fac &
+          &               * (p_as%tafo(jc,jb) -Tsurf(jc,jb))
+      END DO
+    END DO
+    !$ACC END PARALLEL LOOP
     !$ACC WAIT(1)
 
-    !$ACC KERNELS DEFAULT(PRESENT) ASYNC(1) IF(lzacc)
-    atmos_fluxes%latw(:,:)  = dragl(:,:)*rhoair(:,:)*alv*p_as%fu10(:,:) * fr_fac &
-      &               * (sphumida(:,:)-sphumidw(:,:))
-    !$ACC END KERNELS
+    !$ACC PARALLEL LOOP GANG VECTOR DEFAULT(PRESENT) COLLAPSE(2) ASYNC(1)
+    DO jb = 1, p_patch_3D%p_patch_2D(1)%alloc_cell_blocks
+      DO jc = 1, nproma
+        atmos_fluxes%latw(jc,jb)  = dragl(jc,jb)*rhoair(jc,jb)*alv*p_as%fu10(jc,jb) * fr_fac &
+          &               * (sphumida(jc,jb)-sphumidw(jc,jb))
+      END DO
+    END DO
+    !$ACC END PARALLEL LOOP
     !$ACC WAIT(1)
 
     ! wind stress over ice and open water
@@ -1222,6 +1272,7 @@ CONTAINS
 
     REAL(wp) :: u_for_stress(nproma, p_patch_3D%p_patch_2D(1)%alloc_cell_blocks), &
                 v_for_stress(nproma, p_patch_3D%p_patch_2D(1)%alloc_cell_blocks)
+    INTEGER  :: jb, jc
     LOGICAL  :: lzacc
 
     CALL set_acc_host_or_device(lzacc, lacc)
@@ -1232,15 +1283,19 @@ CONTAINS
     SELECT CASE (bulk_wind_stress_type)
 
     CASE(wind_stress_from_file)
-      !$ACC KERNELS DEFAULT(PRESENT) ASYNC(1) IF(lzacc)
-      atmos_fluxes%stress_xw(:,:) = p_as%topBoundCond_windStress_u(:,:)
+      !$ACC PARALLEL LOOP GANG VECTOR DEFAULT(PRESENT) COLLAPSE(2) ASYNC(1)
+      DO jb = 1, p_patch_3D%p_patch_2D(1)%alloc_cell_blocks
+        DO jc = 1, nproma
+          atmos_fluxes%stress_xw(jc,jb) = p_as%topBoundCond_windStress_u(jc,jb)
 
-      atmos_fluxes%stress_yw(:,:) = p_as%topBoundCond_windStress_v(:,:)
+          atmos_fluxes%stress_yw(jc,jb) = p_as%topBoundCond_windStress_v(jc,jb)
 
-      atmos_fluxes%stress_x(:,:) = p_as%topBoundCond_windStress_u(:,:) ! over ice
+          atmos_fluxes%stress_x(jc,jb) = p_as%topBoundCond_windStress_u(jc,jb) ! over ice
 
-      atmos_fluxes%stress_y(:,:) = p_as%topBoundCond_windStress_v(:,:) ! over ice
-      !$ACC END KERNELS
+          atmos_fluxes%stress_y(jc,jb) = p_as%topBoundCond_windStress_v(jc,jb) ! over ice
+        END DO
+      END DO
+      !$ACC END PARALLEL LOOP
       !$ACC WAIT(1)
     CASE(wind_stress_type_noocean) ! no ocean velocities
       !-----------------------------------------------------------------------
@@ -1248,34 +1303,42 @@ CONTAINS
       !   Gill (Atmosphere-Ocean Dynamics, 1982, Academic Press) (see also Smith, 1980, J. Phys
       !   Oceanogr., 10, 709-726)
       !-----------------------------------------------------------------------
-      !$ACC KERNELS DEFAULT(PRESENT) ASYNC(1) IF(lzacc)
-      wspeed(:,:) = SQRT( p_as%u**2 + p_as%v**2 )
+      !$ACC PARALLEL LOOP GANG VECTOR DEFAULT(PRESENT) COLLAPSE(2) ASYNC(1)
+      DO jb = 1, p_patch_3D%p_patch_2D(1)%alloc_cell_blocks
+        DO jc = 1, nproma
+          wspeed(jc,jb) = SQRT( p_as%u(jc,jb)**2 + p_as%v(jc,jb)**2 )
 
-      C_ao(:,:)   = MIN( 2._wp, MAX(1.1_wp, 0.61_wp+0.063_wp*wspeed ) )*1e-3_wp
+          C_ao(jc,jb)   = MIN( 2._wp, MAX(1.1_wp, 0.61_wp+0.063_wp*wspeed(jc,jb) ) )*1e-3_wp
 
-      atmos_fluxes%stress_xw(:,:) = C_ao(:,:)*rhoair(:,:)*wspeed(:,:)*p_as%u(:,:)! over water
+          atmos_fluxes%stress_xw(jc,jb) = C_ao(jc,jb)*rhoair(jc,jb)*wspeed(jc,jb)*p_as%u(jc,jb)! over water
 
-      atmos_fluxes%stress_yw(:,:) = C_ao(:,:)*rhoair(:,:)*wspeed(:,:)*p_as%v(:,:)! over water
+          atmos_fluxes%stress_yw(jc,jb) = C_ao(jc,jb)*rhoair(jc,jb)*wspeed(jc,jb)*p_as%v(jc,jb)! over water
 
-      atmos_fluxes%stress_x(:,:) = Cd_ia     *rhoair(:,:)*wspeed(:,:)*p_as%u(:,:)! over ice
+          atmos_fluxes%stress_x(jc,jb) = Cd_ia     *rhoair(jc,jb)*wspeed(jc,jb)*p_as%u(jc,jb)! over ice
 
-      atmos_fluxes%stress_y(:,:) = Cd_ia     *rhoair(:,:)*wspeed(:,:)*p_as%v(:,:)! over ice
-      !$ACC END KERNELS
+          atmos_fluxes%stress_y(jc,jb) = Cd_ia     *rhoair(jc,jb)*wspeed(jc,jb)*p_as%v(jc,jb)! over ice
+        END DO
+      END DO
+      !$ACC END PARALLEL LOOP
       !$ACC WAIT(1)
     CASE(wind_stress_type_ocean) ! with ocean/sea ice velocities
-      !$ACC KERNELS DEFAULT(PRESENT) ASYNC(1) IF(lzacc)
-      u_for_stress = p_as%u - p_os%p_diag%u(:,1,:)
+      !$ACC PARALLEL LOOP GANG VECTOR DEFAULT(PRESENT) COLLAPSE(2) ASYNC(1)
+      DO jb = 1, p_patch_3D%p_patch_2D(1)%alloc_cell_blocks
+        DO jc = 1, nproma
+          u_for_stress(jc,jb) = p_as%u(jc,jb) - p_os%p_diag%u(jc,1,jb)
 
-      v_for_stress = p_as%v - p_os%p_diag%v(:,1,:)
+          v_for_stress(jc,jb) = p_as%v(jc,jb) - p_os%p_diag%v(jc,1,jb)
 
-      wspeed(:,:) = SQRT( u_for_stress**2 + v_for_stress**2 )
+          wspeed(jc,jb) = SQRT( u_for_stress(jc,jb)**2 + v_for_stress(jc,jb)**2 )
 
-      C_ao(:,:)   = MIN( 2._wp, MAX(1.1_wp, 0.61_wp+0.063_wp*wspeed ) )*1e-3_wp
+          C_ao(jc,jb)   = MIN( 2._wp, MAX(1.1_wp, 0.61_wp+0.063_wp*wspeed(jc,jb) ) )*1e-3_wp
 
-      atmos_fluxes%stress_xw(:,:) = C_ao(:,:)*rhoair(:,:)*wspeed(:,:)*u_for_stress(:,:)! over water
+          atmos_fluxes%stress_xw(jc,jb) = C_ao(jc,jb)*rhoair(jc,jb)*wspeed(jc,jb)*u_for_stress(jc,jb)! over water
 
-      atmos_fluxes%stress_yw(:,:) = C_ao(:,:)*rhoair(:,:)*wspeed(:,:)*v_for_stress(:,:)! over water
-      !$ACC END KERNELS
+          atmos_fluxes%stress_yw(jc,jb) = C_ao(jc,jb)*rhoair(jc,jb)*wspeed(jc,jb)*v_for_stress(jc,jb)! over water
+        END DO
+      END DO
+      !$ACC END PARALLEL LOOP
       !$ACC WAIT(1)
 
           ! calculate wind stress over ice with sea ice velocity
@@ -1290,11 +1353,15 @@ CONTAINS
       !$ACC END KERNELS
       !$ACC WAIT(1)
 
-      !$ACC KERNELS DEFAULT(PRESENT) ASYNC(1) IF(lzacc)
-      atmos_fluxes%stress_x(:,:) = Cd_ia     *rhoair(:,:)*wspeed(:,:)*u_for_stress(:,:)! over ice
+      !$ACC PARALLEL LOOP GANG VECTOR DEFAULT(PRESENT) COLLAPSE(2) ASYNC(1)
+      DO jb = 1, p_patch_3D%p_patch_2D(1)%alloc_cell_blocks
+        DO jc = 1, nproma
+          atmos_fluxes%stress_x(jc,jb) = Cd_ia     *rhoair(jc,jb)*wspeed(jc,jb)*u_for_stress(jc,jb)! over ice
 
-      atmos_fluxes%stress_y(:,:) = Cd_ia     *rhoair(:,:)*wspeed(:,:)*v_for_stress(:,:)! over ice
-      !$ACC END KERNELS
+          atmos_fluxes%stress_y(jc,jb) = Cd_ia     *rhoair(jc,jb)*wspeed(jc,jb)*v_for_stress(jc,jb)! over ice
+        END DO
+      END DO
+      !$ACC END PARALLEL LOOP
       !$ACC WAIT(1)
 
     CASE default

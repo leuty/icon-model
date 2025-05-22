@@ -694,11 +694,7 @@ CONTAINS
 
         ! FIXME: Some diagnostics are calculated on CPU, so some values have to be updated
         !        from GPU memory
-        !$ACC UPDATE SELF(patch_3D%p_patch_1d(1)%prism_center_dist_c) &
-        !$ACC   SELF(patch_3D%p_patch_1d(1)%prism_volume) &
-        !$ACC   SELF(ocean_state(jg)%p_prog(nnew(1))%h, ocean_state(jg)%p_diag%rho) &
-        !$ACC   SELF(ocean_state(jg)%p_diag%kin, ocean_state(jg)%p_diag%w) &
-        !$ACC   SELF(p_oce_sfc%heatflux_total, p_oce_sfc%frshflux_volumetotal) IF(lzacc)
+        !$ACC UPDATE SELF(ocean_state(jg)%p_prog(nnew(1))%h) IF(lzacc)
 
         CALL fill_auxiliary_diagnostics(patch_3d, ocean_state(1))
 
@@ -799,7 +795,7 @@ CONTAINS
 
         ! by_nils: layer diagnostic
         IF (use_layers) THEN
-          CALL calc_layers(patch_3d, ocean_state(jg), p_oce_sfc, operators_coefficients, p_phys_param)
+          CALL calc_layers(patch_3d, ocean_state(jg), p_oce_sfc, operators_coefficients, p_phys_param, lacc=lzacc)
         END IF
 
         ! check whether time has come for writing restart file
@@ -1021,7 +1017,7 @@ CONTAINS
         !$ACC   SELF(ocean_state(jg)%p_diag%p_vn_dual, ocean_state(jg)%p_diag%u, ocean_state(jg)%p_diag%v) &
         !$ACC   SELF(ocean_state(jg)%p_diag%w_deriv, ocean_state(jg)%p_prog(nold(1))%tracer) &
         !$ACC   SELF(ocean_state(jg)%p_diag%Richardson_Number, ocean_state(jg)%p_diag%zgrad_rho) &
-        !$ACC   SELF(ocean_state(jg)%p_diag%veloc_adv_horz) &
+        !$ACC   SELF(ocean_state(jg)%p_diag%veloc_adv_horz, ocean_state(jg)%p_diag%vn_pred) &
         !$ACC   SELF(ocean_state(jg)%p_prog(nold(1))%eta_c, ocean_state(jg)%p_prog(nnew(1))%eta_c) &
         !$ACC   SELF(ocean_state(jg)%p_prog(nold(1))%stretch_c, ocean_state(jg)%p_prog(nnew(1))%stretch_c) &
         !$ACC   SELF(ocean_state(jg)%p_aux%bc_total_top_potential) IF(lzacc)
@@ -1055,7 +1051,8 @@ CONTAINS
         !$ACC   SELF(p_phys_param%vmix_params%tke_Tdis, p_phys_param%vmix_params%tke_Twin) &
         !$ACC   SELF(p_phys_param%vmix_params%tke_Tiwf, p_phys_param%vmix_params%tke_Tbck) &
         !$ACC   SELF(p_phys_param%vmix_params%tke_Ttot, p_phys_param%vmix_params%tke_Lmix) &
-        !$ACC   SELF(p_phys_param%vmix_params%tke_Pr) IF(lzacc)
+        !$ACC   SELF(p_phys_param%vmix_params%tke_Pr) &
+        !$ACC   SELF(p_phys_param%velocity_windMixing, p_phys_param%a_veloc_v_back) IF(lzacc)
 
         !$ACC UPDATE SELF(p_atm_f%stress_x, p_atm_f%stress_y, p_atm_f%stress_xw, p_atm_f%stress_yw) &
         !$ACC   SELF(p_atm_f%albvisdir, p_atm_f%albvisdif, p_atm_f%albnirdir, p_atm_f%albnirdif) IF(lzacc)
@@ -1105,6 +1102,8 @@ CONTAINS
 
         !$ACC UPDATE DEVICE(operators_coefficients%grad_coeff, operators_coefficients%div_coeff) &
         !$ACC   DEVICE(operators_coefficients%edge2edge_viacell_coeff) IF(lzacc)
+
+        !$ACC UPDATE DEVICE(p_phys_param%a_veloc_v) IF(lzacc)
 #endif
 
         !------------------------------------------------------------------------
@@ -1298,7 +1297,8 @@ CONTAINS
 
         ! by_nils: layer diagnostic
         IF (use_layers) THEN
-          CALL calc_layers(patch_3d, ocean_state(jg), p_oce_sfc, operators_coefficients, p_phys_param, ocean_state(jg)%p_prog(nold(1))%stretch_c, stretch_e)
+          CALL calc_layers(patch_3d, ocean_state(jg), p_oce_sfc, operators_coefficients, p_phys_param, &
+            & ocean_state(jg)%p_prog(nold(1))%stretch_c, stretch_e, lacc=lzacc)
         END IF
 
         ! check whether time has come for writing restart file

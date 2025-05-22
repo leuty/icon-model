@@ -94,9 +94,8 @@ CONTAINS
       this%rs_wp(:, this%trans%nblk+1:nblk_e) = 0._wp
 
       this%rsq_wp(:, this%trans%nblk+1:nblk_e) = 0._wp
-      !$ACC ENTER DATA COPYIN(this%z_wp, this%d_wp, this%r_wp, this%rsq_wp) ASYNC(1) IF(lzacc)
-
-      !$ACC ENTER DATA COPYIN(this%s_wp, this%rs_wp) ASYNC(1) IF(lzacc)
+      !$ACC ENTER DATA COPYIN(this%z_wp, this%d_wp, this%r_wp, this%rsq_wp) &
+      !$ACC   COPYIN(this%s_wp, this%rs_wp) ASYNC(1) IF(lzacc)
 
       !$ACC WAIT(1)
     END IF
@@ -117,14 +116,24 @@ CONTAINS
     CLASS(t_ocean_solve_cgo), INTENT(INOUT) :: this
     LOGICAL, INTENT(in), OPTIONAL :: lacc
     REAL(KIND=wp) :: alpha, beta, dz_glob, tol, tol2, rn, rn_last
-    INTEGER :: nidx_e, nblk, nblk_e, iblk, k, m, k_final
+    INTEGER :: nidx, nidx_e, nblk, nblk_e, iblk, idx, k, m, k_final
+#if defined(_OPENACC) || defined(__NO_CONT_SOLV_OCE__)
+    REAL(KIND=wp), POINTER, DIMENSION(:,:) :: &
+      & x, b, z, d, r, r2
+#else
     REAL(KIND=wp), POINTER, DIMENSION(:,:), CONTIGUOUS :: &
       & x, b, z, d, r, r2
+#endif
     LOGICAL :: done, lzacc
 
     REAL(KIND=wp) :: eta, eps
+#if defined(_OPENACC) || defined(__NO_CONT_SOLV_OCE__)
+    REAL(KIND=wp), POINTER, DIMENSION(:,:) :: &
+      & s, rs
+#else
     REAL(KIND=wp), POINTER, DIMENSION(:,:), CONTIGUOUS :: &
       & s, rs
+#endif
 
 
     CALL set_acc_host_or_device(lzacc, lacc)
@@ -132,6 +141,7 @@ CONTAINS
 ! retrieve extends of vector to solve
     nblk = this%trans%nblk
     nblk_e = MERGE(this%trans%nblk, 1, this%trans%nblk > 0)
+    nidx = this%trans%nidx
     nidx_e = this%trans%nidx_e
     m = this%par%m
     k_final = -1
@@ -144,85 +154,86 @@ CONTAINS
     CALL this%recover_arrays(x, b, z, d, r, s, r2, rs, lacc=lzacc)
     !$ACC DATA PRESENT(x, b, z, d, r, s, r2, rs) IF(lzacc)
 
-    !$ACC KERNELS DEFAULT(PRESENT) ASYNC(1) IF(lzacc)
-    b(nidx_e+1:, nblk_e) = 0._wp
-    !$ACC END KERNELS
+    !$ACC PARALLEL LOOP GANG VECTOR DEFAULT(PRESENT) ASYNC(1) IF(lzacc)
+    DO idx = nidx_e+1, nidx
+      b(idx, nblk_e) = 0._wp
+    END DO
+    !$ACC END PARALLEL LOOP
     !$ACC WAIT(1)
 
 !NEC_RP: use existing x instead of x = 0, like in original code
 !NEC_RP: compute r = b - Ax (not r = b - A*0 = b), z used as z = Ax
-    !$ACC UPDATE SELF(x) ASYNC(1) IF(lzacc)
-    !$ACC WAIT(1)
-    CALL this%trans%sync(x)
-    !$ACC UPDATE DEVICE(x) ASYNC(1) IF(lzacc)
-    !$ACC WAIT(1)
+    CALL this%trans%sync(x, lacc=lzacc)
 
     CALL this%lhs%apply(x, z, lacc=lzacc)
 
-    !$ACC KERNELS DEFAULT(PRESENT) ASYNC(1) IF(lzacc)
-    z(nidx_e+1:, nblk_e) = 0._wp
-    !$ACC END KERNELS
+    !$ACC PARALLEL LOOP GANG VECTOR DEFAULT(PRESENT) ASYNC(1) IF(lzacc)
+    DO idx = nidx_e+1, nidx
+      z(idx, nblk_e) = 0._wp
+    END DO
+    !$ACC END PARALLEL LOOP
     !$ACC WAIT(1)
 
 !NEC_RP: compute r = b - Ax, d = r, rn = <r, r>
 !ICON_OMP PARALLEL DO SCHEDULE(STATIC)
     ! The nblk_e upper limit is such that the loop runs at least once, even if the domain is empty.
     ! This ensures that r, d, and r2 are initialized.
+    !$ACC PARALLEL LOOP GANG VECTOR DEFAULT(PRESENT) COLLAPSE(2) ASYNC(1) IF(lzacc)
     DO iblk = 1, nblk_e
-      !$ACC KERNELS DEFAULT(PRESENT) ASYNC(1) IF(lzacc)
-!      r(:, iblk) = b(:, iblk)
-      r(:, iblk) = b(:, iblk) - z(:, iblk)
-      d(:, iblk) = r(:, iblk)
-      r2(:, iblk) = r(:, iblk) * r(:, iblk)
-      !$ACC END KERNELS
-      !$ACC WAIT(1)
+      DO idx = 1, nidx
+        r(idx, iblk) = b(idx, iblk) - z(idx, iblk)
+        d(idx, iblk) = r(idx, iblk)
+        r2(idx, iblk) = r(idx, iblk) * r(idx, iblk)
+      END DO
     END DO
+    !$ACC END PARALLEL LOOP
+    !$ACC WAIT(1)
 !ICON_OMP END PARALLEL DO
 
-    !$ACC KERNELS DEFAULT(PRESENT) ASYNC(1) IF(lzacc)
-    r(nidx_e+1:, nblk_e) = 0._wp
-    d(nidx_e+1:, nblk_e) = 0._wp
-    r2(nidx_e+1:, nblk_e) = 0._wp
-    !$ACC END KERNELS
+    !$ACC PARALLEL LOOP GANG VECTOR DEFAULT(PRESENT) ASYNC(1) IF(lzacc)
+    DO idx = nidx_e+1, nidx
+      r(idx, nblk_e) = 0._wp
+      d(idx, nblk_e) = 0._wp
+      r2(idx, nblk_e) = 0._wp
+    END DO
+    !$ACC END PARALLEL LOOP
     !$ACC WAIT(1)
 
-    !$ACC UPDATE SELF(r2) ASYNC(1) IF(lzacc)
-    !$ACC WAIT(1)
-    CALL this%trans%global_sum(r2, rn)
+    CALL this%trans%global_sum(r2, rn, lacc=lzacc)
     !IF (this%trans%is_leader_pe) write(0,*) "NEC_RP: ocean_solve_cgo_cal_wp - rn:", k, rn
 
 !NEC_RP: compute z = Ad
-    !$ACC UPDATE SELF(d) ASYNC(1) IF(lzacc)
-    !$ACC WAIT(1)
-    CALL this%trans%sync(d)
-    !$ACC UPDATE DEVICE(d) ASYNC(1) IF(lzacc)
-    !$ACC WAIT(1)
+    CALL this%trans%sync(d, lacc=lzacc)
 
     CALL this%lhs%apply(d, z, lacc=lzacc)
 
-    !$ACC KERNELS DEFAULT(PRESENT) ASYNC(1) IF(lzacc)
-    z(nidx_e+1:, nblk_e) = 0._wp
-    !$ACC END KERNELS
+    !$ACC PARALLEL LOOP GANG VECTOR DEFAULT(PRESENT) ASYNC(1) IF(lzacc)
+    DO idx = nidx_e+1, nidx
+      z(idx, nblk_e) = 0._wp
+    END DO
+    !$ACC END PARALLEL LOOP
     !$ACC WAIT(1)
 
 !NEC_RP: compute dz_glob = <d,z>, r2 used as r2 = d*z
 !ICON_OMP PARALLEL DO SCHEDULE(STATIC)
+    !$ACC PARALLEL LOOP GANG VECTOR DEFAULT(PRESENT) COLLAPSE(2) ASYNC(1) IF(lzacc)
     DO iblk = 1, nblk_e
-      !$ACC KERNELS DEFAULT(PRESENT) ASYNC(1) IF(lzacc)
-      r2(:, iblk) = d(:, iblk) * z(:, iblk)
-      !$ACC END KERNELS
-      !$ACC WAIT(1)
+      DO idx = 1, nidx
+        r2(idx, iblk) = d(idx, iblk) * z(idx, iblk)
+      END DO
     END DO
+    !$ACC END PARALLEL LOOP
+    !$ACC WAIT(1)
 !ICON_OMP END PARALLEL DO
 
-    !$ACC KERNELS DEFAULT(PRESENT) ASYNC(1) IF(lzacc)
-    r2(nidx_e+1:, nblk_e) = 0._wp
-    !$ACC END KERNELS
+    !$ACC PARALLEL LOOP GANG VECTOR DEFAULT(PRESENT) ASYNC(1) IF(lzacc)
+    DO idx = nidx_e+1, nidx
+      r2(idx, nblk_e) = 0._wp
+    END DO
+    !$ACC END PARALLEL LOOP
     !$ACC WAIT(1)
 
-    !$ACC UPDATE SELF(r2) ASYNC(1) IF(lzacc)
-    !$ACC WAIT(1)
-    CALL this%trans%global_sum(r2, dz_glob)
+    CALL this%trans%global_sum(r2, dz_glob, lacc=lzacc)
 
     alpha = rn / dz_glob
 
@@ -230,19 +241,23 @@ CONTAINS
 !ICON_OMP PARALLEL DO SCHEDULE(STATIC)
     ! The nblk_e upper limit is such that the loop runs at least once, even if the domain is empty.
     ! This ensures that r, d, and r2 are initialized.
+    !$ACC PARALLEL LOOP GANG VECTOR DEFAULT(PRESENT) COLLAPSE(2) ASYNC(1) IF(lzacc)
     DO iblk = 1, nblk_e
-      !$ACC KERNELS DEFAULT(PRESENT) ASYNC(1) IF(lzacc)
-      x(:, iblk) = x(:, iblk) + alpha * d(:, iblk)
-      r(:, iblk) = r(:, iblk) - alpha * z(:, iblk)
-      !$ACC END KERNELS
-      !$ACC WAIT(1)
+      DO idx = 1, nidx
+        x(idx, iblk) = x(idx, iblk) + alpha * d(idx, iblk)
+        r(idx, iblk) = r(idx, iblk) - alpha * z(idx, iblk)
+      END DO
     END DO
+    !$ACC END PARALLEL LOOP
+    !$ACC WAIT(1)
 !ICON_OMP END PARALLEL DO
 
-    !$ACC KERNELS DEFAULT(PRESENT) ASYNC(1) IF(lzacc)
-    x(nidx_e+1:, nblk_e) = 0._wp
-    r(nidx_e+1:, nblk_e) = 0._wp
-    !$ACC END KERNELS
+    !$ACC PARALLEL LOOP GANG VECTOR DEFAULT(PRESENT) ASYNC(1) IF(lzacc)
+    DO idx = nidx_e+1, nidx
+      x(idx, nblk_e) = 0._wp
+      r(idx, nblk_e) = 0._wp
+    END DO
+    !$ACC END PARALLEL LOOP
     !$ACC WAIT(1)
 
     ! tolerance
@@ -258,35 +273,33 @@ CONTAINS
     DO k = 2, m
 
 !NEC_RP: compute s = Ar, rn = <r, r>, eta = <r, s>
-      !$ACC UPDATE SELF(r) ASYNC(1) IF(lzacc)
-      !$ACC WAIT(1)
-      CALL this%trans%sync(r)
-      !$ACC UPDATE DEVICE(r) ASYNC(1) IF(lzacc)
-      !$ACC WAIT(1)
+      CALL this%trans%sync(r, lacc=lzacc)
 
       CALL this%lhs%apply(r, s, lacc=lzacc)
 
 !ICON_OMP PARALLEL DO SCHEDULE(STATIC)
+      !$ACC PARALLEL LOOP GANG VECTOR DEFAULT(PRESENT) COLLAPSE(2) ASYNC(1) IF(lzacc)
       DO iblk = 1, nblk
-        !$ACC KERNELS DEFAULT(PRESENT) ASYNC(1) IF(lzacc)
-        r2(:, iblk) = r(:, iblk) * r(:, iblk)
-        rs(:, iblk) = r(:, iblk) * s(:, iblk)
-        !$ACC END KERNELS
-        !$ACC WAIT(1)
+        DO idx = 1, nidx
+          r2(idx, iblk) = r(idx, iblk) * r(idx, iblk)
+          rs(idx, iblk) = r(idx, iblk) * s(idx, iblk)
+        END DO
       END DO
+      !$ACC END PARALLEL LOOP
+      !$ACC WAIT(1)
 !ICON_OMP END PARALLEL DO
 
-      !$ACC KERNELS DEFAULT(PRESENT) ASYNC(1) IF(lzacc)
-      r2(nidx_e+1:, nblk_e) = 0._wp
-      rs(nidx_e+1:, nblk_e) = 0._wp
-      !$ACC END KERNELS
+      !$ACC PARALLEL LOOP GANG VECTOR DEFAULT(PRESENT) ASYNC(1) IF(lzacc)
+      DO idx = nidx_e+1, nidx
+        r2(idx, nblk_e) = 0._wp
+        rs(idx, nblk_e) = 0._wp
+      END DO
+      !$ACC END PARALLEL LOOP
       !$ACC WAIT(1)
 
 ! save old and compute new residual norm
       rn_last = rn
-      !$ACC UPDATE SELF(r2) ASYNC(1) IF(lzacc)
-      !$ACC WAIT(1)
-      CALL this%trans%global_sum(r2, rn, rs, eta)
+      CALL this%trans%global_sum(r2, rn, rs, eta, lacc=lzacc)
 !      CALL this%trans%global_sum(r2, rn)
 
 !check if done
@@ -295,8 +308,6 @@ CONTAINS
         EXIT
       END IF
 
-      !$ACC UPDATE SELF(rs) ASYNC(1) IF(lzacc)
-      !$ACC WAIT(1)
 !      CALL this%trans%global_sum(rs, eta)
 
       beta = rn / rn_last
@@ -304,19 +315,23 @@ CONTAINS
 
 !NEC_RP: compute d = r + beta * d, z = s + beta * z
 !ICON_OMP PARALLEL DO SCHEDULE(STATIC)
+      !$ACC PARALLEL LOOP GANG VECTOR DEFAULT(PRESENT) COLLAPSE(2) ASYNC(1) IF(lzacc)
       DO iblk = 1, nblk
-        !$ACC KERNELS DEFAULT(PRESENT) ASYNC(1) IF(lzacc)
-        d(:, iblk) = r(:, iblk) + beta * d(:, iblk)
-        z(:, iblk) = s(:, iblk) + beta * z(:, iblk)
-        !$ACC END KERNELS
-        !$ACC WAIT(1)
+        DO idx = 1, nidx
+          d(idx, iblk) = r(idx, iblk) + beta * d(idx, iblk)
+          z(idx, iblk) = s(idx, iblk) + beta * z(idx, iblk)
+        END DO
       END DO
+      !$ACC END PARALLEL LOOP
+      !$ACC WAIT(1)
 !ICON_OMP END PARALLEL DO
 
-      !$ACC KERNELS DEFAULT(PRESENT) ASYNC(1) IF(lzacc)
-      d(nidx_e+1:, nblk_e) = 0._wp
-      z(nidx_e+1:, nblk_e) = 0._wp
-      !$ACC END KERNELS
+      !$ACC PARALLEL LOOP GANG VECTOR DEFAULT(PRESENT) ASYNC(1) IF(lzacc)
+      DO idx = nidx_e+1, nidx
+        d(idx, nblk_e) = 0._wp
+        z(idx, nblk_e) = 0._wp
+      END DO
+      !$ACC END PARALLEL LOOP
       !$ACC WAIT(1)
 
       dz_glob = eta + beta * eps
@@ -325,32 +340,31 @@ CONTAINS
 
 !NEC_RP: compute x = x + alpha * d and r = r - alpha * z, with alpha = rn / dz_glob
 !ICON_OMP PARALLEL DO SCHEDULE(STATIC)
+      !$ACC PARALLEL LOOP GANG VECTOR DEFAULT(PRESENT) COLLAPSE(2) ASYNC(1) IF(lzacc)
       DO iblk = 1, nblk
-        !$ACC KERNELS DEFAULT(PRESENT) ASYNC(1) IF(lzacc)
-        x(:, iblk) = x(:, iblk) + alpha * d(:, iblk)
-        r(:, iblk) = r(:, iblk) - alpha * z(:, iblk)
-        !$ACC END KERNELS
-        !$ACC WAIT(1)
+        DO idx = 1, nidx
+          x(idx, iblk) = x(idx, iblk) + alpha * d(idx, iblk)
+          r(idx, iblk) = r(idx, iblk) - alpha * z(idx, iblk)
+        END DO
       END DO
+      !$ACC END PARALLEL LOOP
+      !$ACC WAIT(1)
 !ICON_OMP END PARALLEL DO
 
-      !$ACC KERNELS DEFAULT(PRESENT) ASYNC(1) IF(lzacc)
-      x(nidx_e+1:, nblk_e) = 0._wp
-      r(nidx_e+1:, nblk_e) = 0._wp
-      !$ACC END KERNELS
+      !$ACC PARALLEL LOOP GANG VECTOR DEFAULT(PRESENT) ASYNC(1) IF(lzacc)
+      DO idx = nidx_e+1, nidx
+        x(idx, nblk_e) = 0._wp
+        r(idx, nblk_e) = 0._wp
+      END DO
+      !$ACC END PARALLEL LOOP
       !$ACC WAIT(1)
 
     END DO
 
-
     this%niter_cal(1) = k_final
     this%res_wp(1) = SQRT(rn)
 
-    !$ACC UPDATE SELF(x) ASYNC(1) IF(lzacc)
-    !$ACC WAIT(1)
-    CALL this%trans%sync(x)
-    !$ACC UPDATE DEVICE(x) ASYNC(1) IF(lzacc)
-    !$ACC WAIT(1)
+    CALL this%trans%sync(x, lacc=lzacc)
 
     !$ACC END DATA
 !    IF (this%trans%is_leader_pe) write(0,*) "NEC_RP: ocean_solve_cgo_cal_wp - #iter, rn, sqrt(rn):", k_final, rn, SQRT(rn)
@@ -382,8 +396,13 @@ CONTAINS
     CLASS(t_ocean_solve_cgo), INTENT(INOUT) :: this
     REAL(KIND=sp) :: alpha, beta, dz_glob, tol, tol2, rn, rn_last
     INTEGER :: nidx_e, nblk, nblk_e, iblk, k, m, k_final
+#if defined(_OPENACC) || defined(__NO_CONT_SOLV_OCE__)
+    REAL(KIND=sp), POINTER, DIMENSION(:,:) :: &
+      & x, b, z, d, r, r2
+#else
     REAL(KIND=sp), POINTER, DIMENSION(:,:), CONTIGUOUS :: &
       & x, b, z, d, r, r2
+#endif
     LOGICAL :: done
 
     CALL finish("mo_ocean_solve_cgo::ocean_solve_cgo_cal_sp", "Combination of SP and optimized CG solver is not supported.")

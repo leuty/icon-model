@@ -1179,12 +1179,8 @@ CONTAINS
       ! FIXME zstar: This is not modified for zstar
       ! requires density gradient, where is that calculated
       IF (PPscheme_type == PPscheme_ICON_Edge_vnPredict_type) THEN
-#ifdef _OPENACC
-    IF (lzacc) CALL finish("calculate_explicit_term_zstar", &
-       & "OpenACC version for PPscheme_ICON_Edge_vnPredict_type currently not implemented")
-#endif
         CALL ICON_PP_Edge_vnPredict_scheme(patch_3d, blockNo, start_edge_index, end_edge_index, &
-          & ocean_state, ocean_state%p_diag%vn_pred(:,:,blockNo))
+          & ocean_state, ocean_state%p_diag%vn_pred(:,:,blockNo), lacc=lzacc)
       END IF
       !In 3D case implicit vertical velocity diffusion is chosen
 !      eliminate_upper_diag = .not. eliminate_upper_diag ! switch the methods

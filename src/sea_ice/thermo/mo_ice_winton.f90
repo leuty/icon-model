@@ -266,9 +266,16 @@ CONTAINS
     !$ACC DATA CREATE(Q_surplus) IF(lzacc)
 
     ! Necessary initialisation
-    !$ACC KERNELS DEFAULT(PRESENT) IF(lzacc)
-    Q_surplus(:,:,:) = 0.0_wp
-    !$ACC END KERNELS
+    !$ACC PARALLEL LOOP GANG VECTOR DEFAULT(PRESENT) COLLAPSE(3) ASYNC(1) IF(lzacc)
+    DO jb = 1, p_patch%nblks_c
+      DO k = 1, ice%kice
+        DO jc = 1, nproma
+          Q_surplus(jc,k,jb) = 0.0_wp
+        END DO
+      END DO
+    END DO
+    !$ACC END PARALLEL LOOP
+    !$ACC WAIT(1)
     surfmelti1       = 0.0_wp
     surfmelti2       = 0.0_wp
     !
@@ -277,7 +284,7 @@ CONTAINS
     !-------------------------------------------------------------------------------
     DO jb = 1,p_patch%nblks_c
       CALL get_index_range(all_cells, jb, i_startidx_c, i_endidx_c)
-      !$ACC PARALLEL LOOP GANG VECTOR COLLAPSE(2) DEFAULT(PRESENT) IF(lzacc)
+      !$ACC PARALLEL LOOP GANG VECTOR COLLAPSE(2) DEFAULT(PRESENT) ASYNC(1) IF(lzacc)
       DO k=1,ice%kice
         DO jc = i_startidx_c,i_endidx_c
           ! Do the following wherever there is ice
@@ -481,6 +488,7 @@ CONTAINS
       END DO
       !$ACC END PARALLEL LOOP
     END DO
+    !$ACC WAIT(1)
 
     !$ACC END DATA
 

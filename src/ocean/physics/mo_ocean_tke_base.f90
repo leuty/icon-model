@@ -446,7 +446,7 @@ subroutine integrate_tke_gpu(                      &
     cp                                                          , & !
     dp
 
-  integer :: k, kk, kp1, jc, nlev, i
+  integer :: k, kk, kp1, jc, nlev, i, level
   real(wp) :: m, fxa
 
   CHARACTER(LEN=*), PARAMETER :: method_name = module_name//':integrate_tke_gpu'
@@ -465,28 +465,30 @@ subroutine integrate_tke_gpu(                      &
     IF (levels(jc) > 0) THEN
 
       ! initialize diagnostics
-      tke_Tbpr(jc,:) = 0.0_wp
-      tke_Tspr(jc,:) = 0.0_wp
-      tke_Tdif(jc,:) = 0.0_wp
-      tke_Tdis(jc,:) = 0.0_wp
-      tke_Twin(jc,:) = 0.0_wp
-      tke_Tiwf(jc,:) = 0.0_wp
-      tke_Tbck(jc,:) = 0.0_wp
-      tke_Ttot(jc,:) = 0.0_wp
+      DO level = 1, max_nlev+1
+        tke_Tbpr(jc,level) = 0.0_wp
+        tke_Tspr(jc,level) = 0.0_wp
+        tke_Tdif(jc,level) = 0.0_wp
+        tke_Tdis(jc,level) = 0.0_wp
+        tke_Twin(jc,level) = 0.0_wp
+        tke_Tiwf(jc,level) = 0.0_wp
+        tke_Tbck(jc,level) = 0.0_wp
+        tke_Ttot(jc,level) = 0.0_wp
 
-      vmix_int_1(jc,:) = 0.0_wp
-      vmix_int_2(jc,:) = 0.0_wp
-      vmix_int_3(jc,:) = 0.0_wp
+        vmix_int_1(jc,level) = 0.0_wp
+        vmix_int_2(jc,level) = 0.0_wp
+        vmix_int_3(jc,level) = 0.0_wp
 
-      tke_new(jc,:) = 0.0_wp
-      tke_upd(jc,:) = 0.0_wp
+        tke_new(jc,level) = 0.0_wp
+        tke_upd(jc,level) = 0.0_wp
 
-      a_dif(jc,:) = 0.0_wp
-      b_dif(jc,:) = 0.0_wp
-      c_dif(jc,:) = 0.0_wp
-      a_tri(jc,:) = 0.0_wp
-      b_tri(jc,:) = 0.0_wp
-      c_tri(jc,:) = 0.0_wp
+        a_dif(jc,level) = 0.0_wp
+        b_dif(jc,level) = 0.0_wp
+        c_dif(jc,level) = 0.0_wp
+        a_tri(jc,level) = 0.0_wp
+        b_tri(jc,level) = 0.0_wp
+        c_tri(jc,level) = 0.0_wp
+      END DO
 
       alpha_tke  = tke_constants_in%alpha_tke
       c_eps      = tke_constants_in%c_eps
@@ -511,10 +513,12 @@ subroutine integrate_tke_gpu(                      &
       !---------------------------------------------------------------------------------
       ! Part 1: calculate mixing length scale
       !---------------------------------------------------------------------------------
-      sqrttke(jc,:) = sqrt(max(0.0_wp,tke_old(jc,:)))
+      DO level = 1, max_nlev+1
+        sqrttke(jc,level) = sqrt(max(0.0_wp,tke_old(jc,level)))
 
-      ! turbulent mixing length
-      mxl(jc,:) = sqrt(2.0_wp)*sqrttke(jc,:)/sqrt(max(1e-12_wp,Nsqr(jc,:)))
+        ! turbulent mixing length
+        mxl(jc,level) = sqrt(2.0_wp)*sqrttke(jc,level)/sqrt(max(1e-12_wp,Nsqr(jc,level)))
+      END DO
 
       ! constrain mixing length scale as in MITgcm
       if (tke_mxl_choice==2) then
@@ -527,7 +531,9 @@ subroutine integrate_tke_gpu(                      &
         do k=nlev-1,2,-1
           mxl(jc,k) = min(mxl(jc,k), mxl(jc,k+1) + dzw(jc,k))
         end do
-        mxl(jc,:) = max(mxl(jc,:), mxl_min)
+        DO level = 1, max_nlev+1
+          mxl(jc,level) = max(mxl(jc,level), mxl_min)
+        END DO
       else if (tke_mxl_choice==3) then
         depth = sum(dzw(jc,1:nlev))
         do k=2,nlev+1
@@ -535,7 +541,9 @@ subroutine integrate_tke_gpu(                      &
           mxl(jc,k) = min(zzw, mxl(jc,k), depth-zzw)
         end do
         mxl(jc,1) = mxl(jc,2)
-        mxl(jc,:) = max(mxl(jc,:), mxl_min)
+        DO level = 1, max_nlev+1
+          mxl(jc,level) = max(mxl(jc,level), mxl_min)
+        END DO
       else
 !        CALL finish(method_name,'Wrong choice of tke_mxl_choice. Aborting...')
       end if
@@ -543,43 +551,50 @@ subroutine integrate_tke_gpu(                      &
       !---------------------------------------------------------------------------------
       ! Part 2: calculate diffusivities
       !---------------------------------------------------------------------------------
-      KappaM_out(jc,:) = min(KappaM_max, c_k*mxl(jc,:)*sqrttke(jc,:))
-      Rinum(jc,:) = Nsqr(jc,:) / max(Ssqr(jc,:), 1e-12_wp)
+      DO level = 1, max_nlev+1
+        KappaM_out(jc,level) = min(KappaM_max, c_k*mxl(jc,level)*sqrttke(jc,level))
+        Rinum(jc,level) = Nsqr(jc,level) / max(Ssqr(jc,level), 1e-12_wp)
 
-      if (.not.only_tke) &
-        Rinum(jc,:) = min(Rinum(jc,:), KappaM_out(jc,:) * Nsqr(jc,:) / max(1e-12_wp, alpha_c(jc,:)*E_iw(jc,:)**2))
+        if (.not.only_tke) &
+          Rinum(jc,level) = min(Rinum(jc,level), KappaM_out(jc,level) * Nsqr(jc,level) / max(1e-12_wp, alpha_c(jc,level)*E_iw(jc,level)**2))
 
-      prandtl(jc,:) = max(1.0_wp, min(10.0_wp, 6.6_wp*Rinum(jc,:)))
-      KappaH_out(jc,:) = KappaM_out(jc,:) / prandtl(jc,:)
+        prandtl(jc,level) = max(1.0_wp, min(10.0_wp, 6.6_wp*Rinum(jc,level)))
+        KappaH_out(jc,level) = KappaM_out(jc,level) / prandtl(jc,level)
 
-      ! restrict to minimum values
-      if (use_Kappa_min) then
-        KappaM_out(jc,:) = max(KappaM_min, KappaM_out(jc,:))
-        KappaH_out(jc,:) = max(KappaH_min, KappaH_out(jc,:))
-      end if
+        ! restrict to minimum values
+        if (use_Kappa_min) then
+          KappaM_out(jc,level) = max(KappaM_min, KappaM_out(jc,level))
+          KappaH_out(jc,level) = max(KappaH_min, KappaH_out(jc,level))
+        end if
+      END DO
 
       !---------------------------------------------------------------------------------
       ! Part 3: tke forcing
       !---------------------------------------------------------------------------------
-      ! initialize forcing
-      forc(jc,:) = 0.0_wp
+      DO level = 1, max_nlev+1
+        ! initialize forcing
+        forc(jc,level) = 0.0_wp
 
-      ! --- forcing by shear and buoycancy production
-      K_diss_v(jc,:) = Ssqr(jc,:) * KappaM_out(jc,:)
-      P_diss_v(jc,:) = Nsqr(jc,:) * KappaH_out(jc,:)
-      P_diss_v(jc,1) = -forc_rho_surf(jc) * grav / rho_ref
-      forc(jc,:) = forc(jc,:) + K_diss_v(jc,:) - P_diss_v(jc,:)
+        ! --- forcing by shear and buoycancy production
+        K_diss_v(jc,level) = Ssqr(jc,level) * KappaM_out(jc,level)
+        P_diss_v(jc,level) = Nsqr(jc,level) * KappaH_out(jc,level)
+        P_diss_v(jc,1) = -forc_rho_surf(jc) * grav / rho_ref
+        forc(jc,level) = forc(jc,level) + K_diss_v(jc,level) - P_diss_v(jc,level)
 
-      ! --- additional langmuir turbulence term
-      if (l_lc) forc(jc,:) = forc(jc,:) + tke_plc(jc,:)
+        ! --- additional langmuir turbulence term
+        if (l_lc) forc(jc,level) = forc(jc,level) + tke_plc(jc,level)
 
-      ! --- forcing by internal wave dissipation
-      if (.not.only_tke) forc(jc,:) = forc(jc,:) + iw_diss(jc,:)
+        ! --- forcing by internal wave dissipation
+        if (.not.only_tke) forc(jc,level) = forc(jc,level) + iw_diss(jc,level)
+      END DO
 
       !---------------------------------------------------------------------------------
       ! Part 4: vertical diffusion and dissipation is solved implicitely
       !---------------------------------------------------------------------------------
-      ke(jc,:) = 0.0_wp
+      DO level = 1, max_nlev+1
+        ke(jc,level) = 0.0_wp
+      END DO
+
       do k = 1, nlev
         kp1      = min(k+1,nlev)
         kk       = max(k,2)
@@ -603,8 +618,10 @@ subroutine integrate_tke_gpu(                      &
       end do
       a_dif(jc,1) = 0.0_wp ! not part of the diffusion matrix, thus value is arbitrary
 
-      ! copy tke_old
-      tke_upd(jc,1:nlev+1) = tke_old(jc,1:nlev+1)
+      DO level = 1, nlev+1
+        ! copy tke_old
+        tke_upd(jc,level) = tke_old(jc,level)
+      END DO
 
       ! upper boundary condition
       if (use_ubound_dirichlet) then
@@ -641,13 +658,23 @@ subroutine integrate_tke_gpu(                      &
       end if
 
       !--- construct tridiagonal matrix to solve diffusion and dissipation implicitely
-      a_tri(jc,:)      = -dtime * a_dif(jc,:)
-      b_tri(jc,:)      = 1.0_wp+dtime * b_dif(jc,:)
-      b_tri(jc,2:nlev) = b_tri(jc,2:nlev) + dtime * c_eps * sqrttke(jc,2:nlev) / mxl(jc,2:nlev)
-      c_tri(jc,:)      = -dtime * c_dif(jc,:)
+      DO level = 1, max_nlev+1
+        a_tri(jc,level)      = -dtime * a_dif(jc,level)
+        b_tri(jc,level)      = 1.0_wp+dtime * b_dif(jc,level)
+      END DO
 
-      !--- d is r.h.s. of implicite equation (d: new tke with only explicite tendencies included)
-      d_tri(jc,1:nlev+1)  = tke_upd(jc,1:nlev+1) + dtime*forc(jc,1:nlev+1)
+      DO level = 2, nlev
+        b_tri(jc,level) = b_tri(jc,level) + dtime * c_eps * sqrttke(jc,level) / mxl(jc,level)
+      END DO
+
+      DO level = 1, max_nlev+1
+        c_tri(jc,level)      = -dtime * c_dif(jc,level)
+      END DO
+
+      DO level = 1, nlev+1
+        !--- d is r.h.s. of implicite equation (d: new tke with only explicite tendencies included)
+        d_tri(jc,level)  = tke_upd(jc,level) + dtime*forc(jc,level)
+      END DO
 
       ! solve the tri-diag matrix
       cp(jc,1) = c_tri(jc,1) / b_tri(jc,1)
@@ -689,25 +716,41 @@ subroutine integrate_tke_gpu(                      &
       end if
 
       ! dissipation of TKE
-      tke_Tdis(jc,:) = 0.0_wp
-      tke_Tdis(jc,2:nlev) = -c_eps / mxl(jc,2:nlev) * sqrttke(jc,2:nlev) * tke_new(jc,2:nlev)
+      DO level = 1, max_nlev+1
+        tke_Tdis(jc,level) = 0.0_wp
+      END DO
+
+      DO level = 2, nlev
+        tke_Tdis(jc,level) = -c_eps / mxl(jc,level) * sqrttke(jc,level) * tke_new(jc,level)
+      END DO
 
       !---------------------------------------------------------------------------------
       ! Part 5: reset tke to bounding values
       !---------------------------------------------------------------------------------
-      ! copy of unrestored tke to diagnose energy input by restoring
-      tke_unrest(jc,:) = tke_new(jc,:)
+      DO level = 1, max_nlev+1
+        ! copy of unrestored tke to diagnose energy input by restoring
+        tke_unrest(jc,level) = tke_new(jc,level)
+      END DO
 
-      ! restrict values of TKE to tke_min, if IDEMIX is not used
-      if (only_tke) &
-        tke_new(jc,1:nlev+1) = MAX(tke_new(jc,1:nlev+1), tke_min)
+      IF (only_tke) THEN
+        DO level = 1, nlev+1
+          ! restrict values of TKE to tke_min, if IDEMIX is not used
+          tke_new(jc,level) = MAX(tke_new(jc,level), tke_min)
+        END DO
+      END IF
 
       !---------------------------------------------------------------------------------
       ! Part 6: Assign diagnostic variables
       !---------------------------------------------------------------------------------
-      tke_Tbpr(jc,1:nlev+1) = -P_diss_v(jc,1:nlev+1)
-      tke_Tspr(jc,1:nlev+1) = K_diss_v(jc,1:nlev+1)
-      tke_Tbck(jc,:) = (tke_new(jc,:) - tke_unrest(jc,:)) / dtime
+      DO level = 1, nlev+1
+        tke_Tbpr(jc,level) = -P_diss_v(jc,level)
+        tke_Tspr(jc,level) = K_diss_v(jc,level)
+      END DO
+
+      DO level = 1, max_nlev+1
+        tke_Tbck(jc,level) = (tke_new(jc,level) - tke_unrest(jc,level)) / dtime
+      END DO
+
       if (use_ubound_dirichlet) then
         tke_Twin(jc,1) = (tke_new(jc,1) - tke_old(jc,1)) / dtime - tke_Tdif(jc,1)
         tke_Tbck(jc,1) = 0.0_wp
@@ -722,19 +765,29 @@ subroutine integrate_tke_gpu(                      &
         tke_Twin(jc,nlev+1) = 0.0_wp
       end if
 
-      tke_Tiwf(jc,1:nlev+1) = iw_diss(jc,1:nlev+1)
-      tke_Ttot(jc,:)        = (tke_new(jc,:) - tke_old(jc,:)) / dtime
-      tke_Lmix(jc,nlev+1:)  = 0.0_wp
-      tke_Lmix(jc,1:nlev+1) = mxl(jc,1:nlev+1)
-      tke_Pr(jc,nlev+1:)    = 0.0_wp
-      tke_Pr(jc,1:nlev+1)   = prandtl(jc,1:nlev+1)
+      DO level = 1, max_nlev+1
+        tke_Ttot(jc,level)        = (tke_new(jc,level) - tke_old(jc,level)) / dtime
+      END DO
+
+      DO level = 1, nlev+1
+        tke_Tiwf(jc,level) = iw_diss(jc,level)
+        tke_Lmix(jc,level) = mxl(jc,level)
+        tke_Pr(jc,level)   = prandtl(jc,level)
+      END DO
+
+      DO level = nlev+1, max_nlev+1
+        tke_Lmix(jc,level)  = 0.0_wp
+        tke_Pr(jc,level)    = 0.0_wp
+      END DO
 
       ! -----------------------------------------------
       ! the rest is for debugging
       ! -----------------------------------------------
-      vmix_int_1(jc,:) = KappaH_out(jc,:)
-      vmix_int_2(jc,:) = KappaM_out(jc,:)
-      vmix_int_3(jc,:) = Nsqr(jc,:)
+      DO level = 1, max_nlev+1
+        vmix_int_1(jc,level) = KappaH_out(jc,level)
+        vmix_int_2(jc,level) = KappaM_out(jc,level)
+        vmix_int_3(jc,level) = Nsqr(jc,level)
+      END DO
 
     END IF
   END DO
