@@ -731,17 +731,14 @@ REAL (KIND=wp) ::   &
 
 ! Platzh. fuer verschiedene Laengenmasse:
   com_len, hk,hu,   & ! allgem. Laengenskala, Hoehe ueber Grund  und untere Hoehenbegrenzung
-  lh,lm,   & ! allgem. und stab.abh. turb. Laengenskalen fuer Skalare und Impuls
+  lh,lm,            & ! allgem. und stab.abh. turb. Laengenskalen fuer Skalare und Impuls
   edh                 ! Kehrwert von Schichtdicken
 
-REAL (KIND=wp) ::   &
-
-! Zwischenspeicher fuer
+REAL (KIND=wp) ::   & ! Local storage for:
   phasdif,          & !Temperaturtendenz durch Phasendiffusion
 
-! For empirical tuning of scale-interaction terms and minimal diffusion coefficient:
-  x4, x4i             !
-
+  x4, x4i,          & !empirical tuning of scale-interaction terms and minimal diffusion coefficient
+  c_diff_llim         !low-limited 'c_diff'
 ! Local arrays:
 
 INTEGER ::          &
@@ -1059,7 +1056,7 @@ my_thrd_id = omp_get_thread_num()
   DO WHILE (m < naux)                                       !2:cp_fakt, 3:dQs/dT, 4:g_tet l, 5:g_vap
     n=n+1; m=m+1; pvar(n)%bl => zaux(:,:,m) ; pvar(n)%ml => zaux(:,:,m)
   END DO
-  IF (lcircterm .OR. loutthcrc) THEN !Der bisherige "Zirkulationsterm" muss berechnet werden
+  IF (lcircterm .OR. loutthcrc) THEN !calculation of the raw "circulation term" required
     n=n+1; pvar(n)%bl => prss; pvar(n)%ml => prs            !air_pres
   END IF
   !___________________________________________________________________________
@@ -2153,6 +2150,12 @@ my_thrd_id = omp_get_thread_num()
 
       expl_mom => zaux(:,:,3)
 
+      IF (lcircterm) THEN !raw "circulation term" enters TKE-equations
+         c_diff_llim=MAX( tdc%epsi, tdc%c_diff) !low-limited 'c_diff'-value
+      ELSE
+         c_diff_llim=tdc%c_diff !always the unlimited 'c_diff'-value
+      END IF
+
       ! Diffusions-Koeffizienten auf NF:
       !$ACC PARALLEL ASYNC(1) DEFAULT(PRESENT) IF(lzacc)
       !$ACC LOOP GANG VECTOR COLLAPSE(2)
@@ -2162,13 +2165,13 @@ my_thrd_id = omp_get_thread_num()
           IF (tdc%imode_tkediff == 2) THEN !Diffusion in terms of TKE
 !___________________________________________________________________________
 !test: TKE-Diffusion mit Stab.fnkt. fuer Skalare: <
-            sav_prof(i,k)=tdc%c_diff*len_scale(i,k)*tke(i,k,ntur) !diff.-coeff. for TKE
-! sav_prof(i,k)=tdc%c_diff*tkvh(i,k)
+            sav_prof(i,k)= c_diff_llim*len_scale(i,k)*tke(i,k,ntur) !diff.-coeff. for TKE
+!sav_prof(i,k)=c_diff_llim*tkvh(i,k)
 !test>
 !___________________________________________________________________________
 
           ELSE !Diffusion in terms of q=SQRT(2*TKE)
-            sav_prof(i,k)=tdc%c_diff*len_scale(i,k)*tke(i,k,ntur)**2 !diff.coeff. for q
+            sav_prof(i,k)= c_diff_llim*len_scale(i,k)*tke(i,k,ntur)**2 !diff.coeff. for q
           END IF
         END DO
       END DO
@@ -2231,7 +2234,7 @@ my_thrd_id = omp_get_thread_num()
     ! Aufnahme des Zirkulationstermes mit Interpolation auf HF:
     !--------------------------------------------------------------------------------
 
-    IF (lcircterm .OR. loutthcrc) THEN !Der bisherige "Zirkulationsterm" muss berechnet werden
+    IF (lcircterm .OR. loutthcrc) THEN !calculation of the raw "circulation term" required
 
       !$ACC PARALLEL ASYNC(1) DEFAULT(PRESENT) IF(lzacc)
       !$ACC LOOP GANG VECTOR COLLAPSE(2)
@@ -2317,7 +2320,7 @@ my_thrd_id = omp_get_thread_num()
 
       END IF !explicit TKE-source of raw "circulation-term" required
 
-    END IF !Der bisherige "Zirkulationsterm" muss berechnet werden
+    END IF !calculation of the raw "circulation term" required
 
 !------------------------------------------------------------------------------------------------------
 ! 7) Addition des Theta-Gradienten, welcher zur nicht-turbulenten Theta-Flussdichte durch den
@@ -2352,7 +2355,7 @@ my_thrd_id = omp_get_thread_num()
 ! 8)  Bestimmung des Zirkulationstermes als zusaetzliche TKE-Flussdichte:
 !------------------------------------------------------------------------------------
 
-    IF (lcircterm) THEN !Der bisherige "Zirkulationsterm" geht in die TKE-Gleichung ein
+    IF (lcircterm) THEN !the raw "circulation term" enters the TKE-equation
 
       ! Berechnung der TKE-Flussdichte-Konvergenz (einchliesslich der von CKE) und anderer TKE-Quellen
       !  fuer den naechsten Zeitschritt:
@@ -2369,33 +2372,41 @@ my_thrd_id = omp_get_thread_num()
       END DO
       !$ACC END PARALLEL
 
+      fakt=tdc%c_diff/c_diff_llim !correction factor related to 'c_diff'-limitation
+
       !$ACC PARALLEL ASYNC(1) DEFAULT(PRESENT) IF(lzacc)
       !$ACC LOOP SEQ
       DO k=3,ke1
 !DIR$ IVDEP
-        !$ACC LOOP GANG VECTOR !to be activated
+        !$ACC LOOP GANG VECTOR PRIVATE(wert)
         DO i=ivstart, ivend
-          cur_prof(i,k)=(cur_prof(i,k-1)-sav_prof(i,k-1)+frm(i,k)/expl_mom(i,k))+sav_prof(i,k) !to be activated
+          wert=frm(i,k)/expl_mom(i,k) !contribution by the "circulation flux" to the firtual TKE-profile
+          cur_prof(i,k)=(cur_prof(i,k-1)-sav_prof(i,k-1))*fakt+wert+sav_prof(i,k)
+
+          !Note:
+          !Although 'c_diff_llim' (and with it 'expl_mom') applies a lower limit in order to prevent a division by zero,
+          ! the correction factor 'fakt' makes pure TKE-diffusion acting always with the unlimited value 'c_diff'.
         END DO
       END DO
       !$ACC END PARALLEL
 
-      !Beachte:
-      !'cur_prof' enthaelt ein virtuelles TKE-Profil (oder q-Profile bei "imode_tkediff=1"),
-      ! dessen Diffusions-Tendenz die Zirkulations-Tendenz einschliesst.
-      !Fuer die expliziten Diff.-Anteile wird ebenfalls 'cur_prof' benutzt.
+      !Note:
+      !'cur_prof' contains a virtual TKE-profile (or q-profile at "imode_tkediff=1"),
+      ! and its diffusion tendency includes the particular tendency by the "circulation term".
+      !Hence, 'cur_prof' is also used for the explicit (non-gradient) part of vertical diffusion.
+      !This "circulation tendency", however, is independent on 'c_diff' (except numerical effects).
 
-      !Bereucksichtige Zirkulations-Tendenz:
-      itndcon=0 !indem 'cur_prof' auf der rechten Seite der impliz. Diff.-Gl. benutzt wird.
+      itndcon=0 !no additional tendency consideration, as 'cur_prof' includes "circulation tendencies" implicitly;
+                !other TKE-sources are treated (partly implicitly) in SUB 'solve_turb_budgets'
 
     ELSEIF (ldotkedif) THEN
 
       cur_prof => sav_prof
 
-      itndcon=0 !'cur_prof' wird auf der rechter Seite der impliz. Diff.-Gl.
-                ! und fuer explizite Diff.-Anteile benutzt.
+      itndcon=0 !no additional tendency consideration, as other TKE-sources are treated (partly implicitly)
+                ! in SUB 'solve_turb_budgets'
 
-    END IF !Der bisherige "Zirkulationsterm" geht in die TKE-Gleichung ein
+    END IF !the raw "circulation term" enters the TKE-equation
 
     IF (ldotkedif .OR. lcircterm) THEN
 
