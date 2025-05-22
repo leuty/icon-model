@@ -23,7 +23,7 @@ makeflags='--jobs=8 --no-print-directory --output-sync=target V=1'
 
 set -x
 
-${icon_dir}/config/mpim/${linux_codename}.gcc --disable-yaxt --disable-openmp --enable-art --enable-dace --disable-delayed-config
+${icon_dir}/config/mpim/${linux_codename}.gcc --disable-yaxt --disable-openmp --enable-art --enable-dace --disable-delayed-config --enable-testbed
 
 make ${makeflags}
 

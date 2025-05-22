@@ -27,6 +27,6 @@ makeflags="--jobs=${job_count} --no-print-directory --output-sync=target V=1"
 
 set -x
 
-${icon_dir}/config/csc/lumi.cpu.cce
+${icon_dir}/config/csc/lumi.cpu.cce --enable-testbed
 
 make ${makeflags}

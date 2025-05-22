@@ -47,7 +47,7 @@ MODULE mo_nh_diffusion
   USE mo_gridref_config,      ONLY: denom_diffu_v
   USE mo_parallel_config,     ONLY: p_test_run
   USE mo_sync,                ONLY: SYNC_E, SYNC_C, SYNC_C1, SYNC_V, sync_patch_array, &
-                                    sync_patch_array_mult, sync_patch_array_mult_mp
+                                    sync_patch_array_mult, sync_patch_array_mult_mixprec
   USE mo_physical_constants,  ONLY: cvd_o_rd, grav
   USE mo_timer,               ONLY: timer_nh_hdiffusion, timer_start, timer_stop
   USE mo_fortran_tools,       ONLY: init, assert_acc_device_only
@@ -354,7 +354,7 @@ MODULE mo_nh_diffusion
       rl_end   = min_rledge_int - 2
 
 #ifdef __MIXED_PRECISION
-      CALL sync_patch_array_mult_mp(SYNC_V,p_patch,0,2,lacc=.TRUE., f3din1_sp=u_vert,f3din2_sp=v_vert, &
+      CALL sync_patch_array_mult_mixprec(SYNC_V,p_patch,0,2,lacc=.TRUE., f3din1_sp=u_vert,f3din2_sp=v_vert, &
                                     opt_varname="diffusion: u_vert and v_vert")
 #else
       CALL sync_patch_array_mult(SYNC_V,p_patch,2,lacc=.TRUE., f3din1=u_vert,f3din2=v_vert,                          &
@@ -479,7 +479,7 @@ MODULE mo_nh_diffusion
       rl_end   = min_rledge_int - 2
 
 #ifdef __MIXED_PRECISION
-      CALL sync_patch_array_mult_mp(SYNC_V, p_patch, 0, 2, lacc=.TRUE., f3din1_sp=u_vert,f3din2_sp=v_vert, &
+      CALL sync_patch_array_mult_mixprec(SYNC_V, p_patch, 0, 2, lacc=.TRUE., f3din1_sp=u_vert,f3din2_sp=v_vert, &
                                     opt_varname="diffusion: u_vert and v_vert 2")
 #else
       CALL sync_patch_array_mult(SYNC_V, p_patch, 2, lacc=.TRUE., f3din1=u_vert, f3din2=v_vert, &
@@ -871,7 +871,7 @@ MODULE mo_nh_diffusion
       rl_end   = min_rledge_int
 
 #ifdef __MIXED_PRECISION
-      CALL sync_patch_array_mult_mp(SYNC_V, p_patch, 0, 2, lacc=.TRUE., f3din1_sp=u_vert,f3din2_sp=v_vert, &
+      CALL sync_patch_array_mult_mixprec(SYNC_V, p_patch, 0, 2, lacc=.TRUE., f3din1_sp=u_vert,f3din2_sp=v_vert, &
                                     opt_varname="diffusion: u_vert and v_vert 3")
 #else
       CALL sync_patch_array_mult(SYNC_V, p_patch, 2, lacc=.TRUE., f3din1=u_vert, f3din2=v_vert, &

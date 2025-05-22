@@ -21,7 +21,7 @@ MODULE mo_icon_testbed_config
   ! Exported parameters
   PUBLIC :: null_model, test_coupler_model, test_jitter_model, test_halo_communication, &
     & test_netcdf_read_model, testbed_ocean_model, test_gather_communication, &
-    & test_exchange_communication, test_bench_exchange_data_mult
+    & test_exchange_communication, test_bench_exchange_data_mult, test_sync_exchange_communication
 
   ! Exported variables
   PUBLIC :: testbed_model
@@ -31,7 +31,7 @@ MODULE mo_icon_testbed_config
   PUBLIC :: testfile_3D_time, testfile_2D_time
 
   ! ---------------
-  ! the tesbed modes
+  ! the testbed modes
   INTEGER, PARAMETER :: null_model                   = 0  ! does nothing
   INTEGER, PARAMETER :: test_coupler_model           = 1  ! test the coupler
   INTEGER, PARAMETER :: test_jitter_model            = 3  ! test the jitter
@@ -41,7 +41,7 @@ MODULE mo_icon_testbed_config
   INTEGER, PARAMETER :: test_gather_communication = 8
   INTEGER, PARAMETER :: test_exchange_communication = 9
   INTEGER, PARAMETER :: test_bench_exchange_data_mult = 10
-
+  INTEGER, PARAMETER :: test_sync_exchange_communication = 11
 
   INTEGER  :: testbed_model
   ! ---------------

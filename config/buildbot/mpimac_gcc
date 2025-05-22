@@ -32,7 +32,7 @@ makeflags="--jobs=10 V=1"
 
 set -x
 
-${icon_dir}/config/generic/gcc "$@"
+${icon_dir}/config/generic/gcc --enable-testbed "$@"
 
 make ${makeflags}
 

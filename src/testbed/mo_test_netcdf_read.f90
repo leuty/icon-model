@@ -28,7 +28,11 @@ MODULE mo_test_netcdf_read
     &                               t_stream_id, read_1D, read_2D_time, &
     &                               read_3D_time, read_netcdf_broadcast_method
   USE mo_netcdf_errhandler,   ONLY: nf
-  USE mo_netcdf
+  USE mo_netcdf,              ONLY: nf90_create, nf90_close, nf90_def_dim, &
+    &                               nf90_def_var, nf90_float, nf90_double, &
+    &                               nf90_enddef, nf90_put_var, nf90_clobber, &
+    &                               nf90_64bit_offset, nf90_set_fill, nf90_nofill
+
 !-------------------------------------------------------------------------
 IMPLICIT NONE
 PRIVATE

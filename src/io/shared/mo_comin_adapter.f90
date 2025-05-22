@@ -1510,37 +1510,37 @@ CONTAINS
       IF(halo_sync_mode==COMIN_ZAXIS_2D) THEN
         SELECT CASE (iref_pos)
         CASE(1)
-          CALL sync_patch_array(sync_c, p_patch(jg), dp_ptr(1,:,:,1,1))
+          CALL sync_patch_array(sync_c, p_patch(jg), dp_ptr(1,:,:,1,1), lacc=.FALSE.)
         CASE(2)
-          CALL sync_patch_array(sync_c, p_patch(jg), dp_ptr(:,1,:,1,1))
+          CALL sync_patch_array(sync_c, p_patch(jg), dp_ptr(:,1,:,1,1), lacc=.FALSE.)
         CASE DEFAULT
-          CALL sync_patch_array(sync_c, p_patch(jg), dp_ptr(:,:,1,1,1))
+          CALL sync_patch_array(sync_c, p_patch(jg), dp_ptr(:,:,1,1,1), lacc=.FALSE.)
         END SELECT
       ELSE IF (halo_sync_mode==COMIN_ZAXIS_3D) THEN
         SELECT CASE (iref_pos)
         CASE(1)
-          CALL sync_patch_array(sync_c, p_patch(jg), dp_ptr(1,:,:,:,1))
+          CALL sync_patch_array(sync_c, p_patch(jg), dp_ptr(1,:,:,:,1), lacc=.FALSE.)
         CASE(2)
-          CALL sync_patch_array(sync_c, p_patch(jg), dp_ptr(:,1,:,:,1))
+          CALL sync_patch_array(sync_c, p_patch(jg), dp_ptr(:,1,:,:,1), lacc=.FALSE.)
         CASE(3)
-          CALL sync_patch_array(sync_c, p_patch(jg), dp_ptr(:,:,1,:,1))
+          CALL sync_patch_array(sync_c, p_patch(jg), dp_ptr(:,:,1,:,1), lacc=.FALSE.)
         CASE DEFAULT
-          CALL sync_patch_array(sync_c, p_patch(jg), dp_ptr(:,:,:,1,1))
+          CALL sync_patch_array(sync_c, p_patch(jg), dp_ptr(:,:,:,1,1), lacc=.FALSE.)
         END SELECT
       END IF
     CASE (COMIN_VAR_DATATYPE_FLOAT)
       CALL var%get_ptr(sp_ptr)
       IF(halo_sync_mode==COMIN_ZAXIS_2D) THEN
-        CALL sync_patch_array(sync_c, p_patch(jg), sp_ptr(:,:,1,1,1))
+        CALL sync_patch_array(sync_c, p_patch(jg), sp_ptr(:,:,1,1,1), lacc=.FALSE.)
       ELSE IF (halo_sync_mode==COMIN_ZAXIS_3D) THEN
-        CALL sync_patch_array(sync_c, p_patch(jg), sp_ptr(:,:,:,1,1))
+        CALL sync_patch_array(sync_c, p_patch(jg), sp_ptr(:,:,:,1,1), lacc=.FALSE.)
       END IF
     CASE (COMIN_VAR_DATATYPE_INT)
       CALL var%get_ptr(i_ptr)
       IF(halo_sync_mode==COMIN_ZAXIS_2D) THEN
-        CALL sync_patch_array(sync_c, p_patch(jg), i_ptr(:,:,1,1,1))
+        CALL sync_patch_array(sync_c, p_patch(jg), i_ptr(:,:,1,1,1), lacc=.FALSE.)
       ELSE IF (halo_sync_mode==COMIN_ZAXIS_3D) THEN
-        CALL sync_patch_array(sync_c, p_patch(jg), i_ptr(:,:,:,1,1))
+        CALL sync_patch_array(sync_c, p_patch(jg), i_ptr(:,:,:,1,1), lacc=.FALSE.)
       END IF
     END SELECT
     END SUBROUTINE icon_halo_sync_variable

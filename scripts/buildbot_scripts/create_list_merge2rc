@@ -383,6 +383,16 @@ $addexp checksuite.infrastructure/testbed/exp.icon-testbed_communication_orig --
 $addexp checksuite.infrastructure/testbed/exp.icon-testbed_communication_yaxt --builders 'levante_intel_hybrid' --list $listname --runflags "queue=shared,compute ntasks=8 memory=32G"
 $addexp checksuite.infrastructure/testbed/exp.icon-testbed_communication_orig --builders 'levante_intel_hybrid' --list $listname --runflags "queue=shared,compute ntasks=16 memory=32G"
 
+# Sync tests
+for builder in levante_gcc levante_intel_hybrid levante_cpu_nvhpc levante_gpu_nvhpc levante_aurora levante_nag \
+               dwd_nec_coupling mpimacc_gcc
+do
+    $addexp "checksuite.infrastructure/testbed/exp.icon-testbed_sync" --builders "${builder}" --list ${listname}
+done
+$addexp "checksuite.infrastructure/testbed/exp.icon-testbed_sync" --builders "breeze_gcc breeze_intel" --list ${listname} --runflags "mpi_procs_pernode=4"
+$addexp "checksuite.infrastructure/testbed/exp.icon-testbed_sync" --builders "lumi_gpu"                --list ${listname} --runflags "queue=dev-g"
+$addexp "checksuite.infrastructure/testbed/exp.icon-testbed_sync" --builders "lumi_cpu"                --list ${listname} --runflags "queue=debug"
+
 #lets see the list
 ./lslist $listname
 #-----------------------------------------------------------

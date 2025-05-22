@@ -30,7 +30,7 @@ makeflags="--jobs=${job_count} --no-print-directory --output-sync=target V=1"
 
 set -x
 
-${icon_dir}/config/dkrz/levante.nag --disable-openmp --enable-waves --disable-delayed-config "$@"
+${icon_dir}/config/dkrz/levante.nag --disable-openmp --enable-waves --disable-delayed-config --enable-testbed "$@"
 
 make ${makeflags}
 

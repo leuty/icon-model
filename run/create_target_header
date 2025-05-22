@@ -602,6 +602,10 @@ set_run_target_levante_aurora()
 	set_default use_mpi_procs_pernode 4
     fi
 
+cat >>"${output_script}" <<EOF
+${use_build_env}
+EOF
+
     start_header
 
 }
