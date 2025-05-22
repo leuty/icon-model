@@ -17,6 +17,7 @@ NWP Physics:
 - enable reading and interpolating ozone and Kinne aerosol data using YAC (icon-nwp!1716)
 - Fixes:
   - Inconsistent initialization time step length in vdiff interface and jsbach
+  - Make ecRad compilable with Cray 17.0.1 for AMD GPUs (https://gitlab.dkrz.de/icon/icon/-/merge_requests/648)
 
 ### ICON-Ocean
 
