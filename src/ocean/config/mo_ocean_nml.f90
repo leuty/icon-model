@@ -205,6 +205,7 @@ MODULE mo_ocean_nml
   INTEGER, PARAMETER :: select_gmres_r = 2  ! GMRES restart
   INTEGER, PARAMETER :: select_gmres_mp_r = 3 ! GMRES restart mixed precision
   INTEGER, PARAMETER :: select_cg = 4 ! conjugate gradients - Fletcher-Reeves
+  INTEGER, PARAMETER :: select_cgo = 40 ! conjugate gradients - Fletcher-Reeves + Optimisations (LAWN56)
   INTEGER, PARAMETER :: select_cgj = 5  ! conjugate gradients - Fletcher-Reeves + Jacobi-Preconditioner
   INTEGER, PARAMETER :: select_bcgs = 6 ! bi-conjugate gradients (stabilized)
   INTEGER, PARAMETER :: select_legacy_gmres = 7  ! GMRES restart former implementation, but in updated calling infrastructure (l_lhs_direct must be true)

@@ -23,12 +23,13 @@ MODULE mo_ocean_solve
   USE mo_ocean_solve_backend, ONLY: t_ocean_solve_backend
   USE mo_ocean_solve_gmres, ONLY: t_ocean_solve_gmres
   USE mo_ocean_solve_cg, ONLY: t_ocean_solve_cg
+  USE mo_ocean_solve_cgo, ONLY: t_ocean_solve_cgo
   USE mo_ocean_solve_cgj, ONLY: t_ocean_solve_cgj
   USE mo_ocean_solve_bicgStab, ONLY: t_ocean_solve_bicgStab
   USE mo_ocean_solve_legacy_gmres, ONLY: t_ocean_solve_legacy_gmres
   USE mo_ocean_solve_mres, ONLY: t_ocean_solve_mres
   USE mo_ocean_solve_aux, ONLY: solve_gmres, solve_cg, solve_mres, &
-    & solve_precon_jac, solve_bcgs, solve_legacy_gmres, &
+    & solve_precon_jac, solve_cg_opt, solve_bcgs, solve_legacy_gmres, &
     & t_ocean_solve_parm
   USE mo_run_config, ONLY: ltimer
   USE mo_timer, ONLY: new_timer, timer_start, timer_stop
@@ -123,6 +124,10 @@ CONTAINS
         this%timer = new_timer("cgj_solve")
         WRITE(this%sol_type_name, "(a)") "CG+JAC"
         ALLOCATE(t_ocean_solve_cgj :: this%act)
+      CASE(solve_cg_opt)
+        this%timer = new_timer("cg_solve")
+        WRITE(this%sol_type_name, "(a)") "CG-OPT"
+        ALLOCATE(t_ocean_solve_cgo :: this%act)
       CASE DEFAULT
         this%timer = new_timer("cg_solve")
         WRITE(this%sol_type_name, "(a)") "CG"

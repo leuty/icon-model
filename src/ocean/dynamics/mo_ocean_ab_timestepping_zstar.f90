@@ -33,7 +33,7 @@ MODULE mo_ocean_ab_timestepping_zstar
     & use_absolute_solver_tolerance, solver_max_restart_iterations, &
     & solver_max_iter_per_restart, dhdtw_abort, select_transfer, &
     & select_solver, select_gmres, select_gmres_r, select_mres, &
-    & select_gmres_mp_r, select_cg, select_cgj, select_bcgs, &
+    & select_gmres_mp_r, select_cg, select_cgo, select_cgj, select_bcgs, &
     & select_legacy_gmres, use_continuity_correction, select_cg_mp, &
     & solver_max_iter_per_restart_sp, solver_tolerance_sp, No_Forcing, &
     & MASS_MATRIX_INVERSION_TYPE,            &
@@ -81,7 +81,7 @@ MODULE mo_ocean_ab_timestepping_zstar
   USE mo_ocean_solve_trivial_transfer, ONLY: t_trivial_transfer
   USE mo_ocean_solve_subset_transfer, ONLY: t_subset_transfer
   USE mo_ocean_solve_aux, ONLY: t_ocean_solve_parm, solve_gmres, solve_cg, solve_mres, &
-   & solve_precon_none, solve_precon_jac, solve_bcgs, solve_legacy_gmres, &
+   & solve_precon_none, solve_precon_jac, solve_cg_opt, solve_bcgs, solve_legacy_gmres, &
    & solve_trans_scatter, solve_trans_compact, solve_cell, solve_edge, solve_invalid
   USE mo_primal_flip_flop_lhs, ONLY: t_primal_flip_flop_lhs
   USE mo_surface_height_lhs, ONLY: t_surface_height_lhs
@@ -484,6 +484,9 @@ CONTAINS
       par_sp%m = solver_max_iter_per_restart_sp
       par_sp%tol = REAL(solver_tolerance_sp, wp)
       par%m = solver_max_iter_per_restart
+    CASE(select_cgo) ! CG OPT (Fletcher-Reeves + LAWN56, wp only)
+      sol_type = solve_cg
+      par%pt = solve_cg_opt
     CASE(select_cg) ! CG (Fletcher-Reeves)
       sol_type = solve_cg
     CASE(select_cg_mp) ! CG (Fletcher-Reeves, sp+wp)
