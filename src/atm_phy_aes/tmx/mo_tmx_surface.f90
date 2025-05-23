@@ -58,7 +58,8 @@ CONTAINS
     & alb_vis_dif, &
     & alb_nir_dir, &
     & alb_nir_dif, &
-    & kh, km, kh_neutral, km_neutral)
+    & kh, km, kh_neutral, km_neutral, &
+    & co2flx)
 
     INTEGER, INTENT(in) :: &
       & jg
@@ -101,7 +102,8 @@ CONTAINS
       & kh         (:,:), & ! surface exchange coefficient (heat)
       & km         (:,:), & ! surface exchange coefficient (momentum)
       & kh_neutral (:,:), & ! neutral surface exchange coefficient (heat)
-      & km_neutral (:,:)    ! neutral surface exchange coefficient (momentum)
+      & km_neutral (:,:), & ! neutral surface exchange coefficient (momentum)
+      & co2flx     (:,:)    ! CO2 flux into the atmosphere from natural sources
 
     INTEGER :: jb, jc, jcs, jce
     REAL(wp), DIMENSION(domain%nproma) :: &
@@ -126,6 +128,7 @@ CONTAINS
       CALL init(km, lacc=.TRUE.)
       CALL init(kh_neutral, lacc=.TRUE.)
       CALL init(km_neutral, lacc=.TRUE.)
+      CALL init(co2flx, lacc=.TRUE.)
     END IF
 !$OMP END PARALLEL
 
@@ -196,7 +199,8 @@ CONTAINS
           & kh                = kh(jcs:jce,jb),                                           & ! out
           & km                = km(jcs:jce,jb),                                           & ! out
           & kh_neutral        = kh_neutral(jcs:jce,jb),                                   & ! out
-          & km_neutral        = km_neutral(jcs:jce,jb)                                    & ! out
+          & km_neutral        = km_neutral(jcs:jce,jb),                                   & ! out
+          & co2_flux          = co2flx(jcs:jce, jb)                                       & ! out
           ! & t_eff_srf         = ztsfc_lnd_eff(jcs:jce),                                   & ! out (T_s^eff) surface temp
           !                                                                                     ! (effective, for longwave rad)
           ! & s_srf             = zcpt_lnd(jcs:jce),                                        & ! out (s_s^star, for vdiff scheme)
@@ -210,7 +214,6 @@ CONTAINS
           ! & rough_h_srf       = z0h_lnd(jcs:jce),                                         & ! out
           ! & rough_m_srf       = z0m_tile(jcs:jce, idx_lnd),                               & ! out
           ! & q_snocpymlt       = q_snocpymlt(jcs:jce),                                     & ! out
-          ! & co2_flux          = pco2_flux_tile(jcs:jce, idx_lnd)                          & ! out
         )
       ELSE
         CALL jsbach_interface ( jg, jb, jcs, jce,                                         & ! in

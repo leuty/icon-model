@@ -60,6 +60,7 @@ MODULE mo_physical_constants
   REAL(wp), PARAMETER :: amn2  = 28.0134_wp       !! [g/mol] N2
   REAL(wp), PARAMETER :: amso4 = 96.0626_wp       !! [g/mol] SO4
   REAL(wp), PARAMETER :: ams   = 32.06_wp         !! [g/mol] S
+  REAL(wp), PARAMETER :: amc   = 12.0116_wp       !! [g/mol] C
   !
   !> Mixed species
   REAL(wp), PARAMETER :: amd   = 28.970_wp        !> [g/mol] dry air

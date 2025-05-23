@@ -9,6 +9,8 @@ AES Physics:
 - Optimization of the read-in of ozone data
 - Update atm_qubicc_test and its checksuite
 - Re-introduction of the optimized simple plumes (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/751)
+- Implemented full (interactive) carbon cycle with hamocc and land coupling, anthropogenic
+  emissions and CO2 tracer transport
 - Fixes for:
   - GPU port of solar_parameters() (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/776)
 
