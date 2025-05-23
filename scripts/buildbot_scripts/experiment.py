@@ -168,17 +168,22 @@ class Experiment:
             status = 0
         elif exp_path.suffix == ".config":
             icon_env.load()
+            cmd = f"mkexp {self.name}".split() + config_dict_to_list(
+                self.run_flags
+            )
+            print("\tbuilding runscript with: " + " ".join(cmd))
             status = subprocess.run(
-                f"mkexp {self.name}".split()
-                + config_dict_to_list(self.run_flags),
+                cmd,
                 cwd=run_path,
                 encoding="UTF-8",
             ).returncode
             if status:
                 return status
+
+            cmd = f"getexp -k EXP_ID -k SCRIPT_DIR {self.name}".split()
+            cmd += config_dict_to_list(self.run_flags)
             sp = subprocess.run(
-                f"getexp -k EXP_ID -k SCRIPT_DIR {self.name}".split()
-                + config_dict_to_list(self.run_flags),
+                cmd,
                 cwd=run_path,
                 stdout=subprocess.PIPE,
                 encoding="UTF-8",
@@ -190,6 +195,7 @@ class Experiment:
             self.run_name = str(
                 (Path(script_dir) / exp_name).with_suffix(".run_start")
             )
+            print(f"\t\tjobscript: {self.run_name}")
         else:
             # get filename -> get last element of filename (i.e. check.atm_amip -> atm_amip)
             exp_name = Path(self.name).name.split(".")[-1]
