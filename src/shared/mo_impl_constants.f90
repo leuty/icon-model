@@ -479,6 +479,10 @@ MODULE mo_impl_constants
   INTEGER, PARAMETER :: MODE_IAU_OLD     = 6
   INTEGER, PARAMETER :: MODE_ICONVREMAP  = 7
 
+  !----- Ocean init ICON operation modes (restart excluded) -----
+  INTEGER, PARAMETER :: MODE_DWDANA_OCE  = 1
+  INTEGER, PARAMETER :: MODE_IAU_OCE     = 2
+
   !----- MPI parallelization -----
   INTEGER, PARAMETER :: MAX_NUM_IO_PROCS = 256 ! 100      !< max. number of output ranks
   INTEGER, PARAMETER :: pio_type_async = 1, &

@@ -3,7 +3,7 @@
 # ICON
 #
 # ------------------------------------------
-# Copyright (C) 2004-2025, DWD, MPI-M, DKRZ, KIT, ETH, MeteoSwiss
+# Copyright (C) 2004-2024, DWD, MPI-M, DKRZ, KIT, ETH, MeteoSwiss
 # Contact information: icon-model.org
 # See AUTHORS.TXT for a list of authors
 # See LICENSES/ for license information
@@ -16,16 +16,20 @@
 #
 # This basic coupled test case computes a few days up to years of a
 # global weather forecast (ICON-NWP) coupled to a global ocean (ICON-O).
-# The system is set up on the R2B4 atmospheric grid with reduced radiation
+# The system is set up on the R2B5 atmospheric grid with reduced radiation
 # grid and the R2B6 ocean grid with zstar vertical coordinates.
 # The land-sea-mask is interpolated from the ocean grid.
-# It is initialized at 1979-01-01.
+# It is initialized at 2022-01-01.
 # The purpose is the technical testing of the coupled setup.
 #
-# Martin Koehler, Stephan Lorenz, Rene Redler Spring 2021
+# It's a copy of experiment 20 by Martin Koehler, Stephan Lorenz and Rene
+# Redler in Spring 2021, but reads in and writes out GRIB-files for the ocean
+# containing the temperature in Kelvin.
+#
+# Daniel Krueger, Nora Schenk, Winter 2024.
 #
 #
-# PBS options: NE=1-64, CPE=8
+# PBS options: NE=16, CPE=8
 #
 
 ulimit -s 2097152
@@ -45,13 +49,13 @@ icon_data_poolFolder="${icon_data_rootFolder:-/pool/data/ICON}/buildbot_data/nwp
 
 # environment variables for the experiment and the target system
 # --------------------------------------------------------------
-export EXPNAME="coupleR2B4_R2B6_020"
+export EXPNAME="coupleR2B5_R2B6_029"
 
 # start and end date+time of experiment
 # -------------------------------------
-start_date=${start_date:="1979-01-01T00:00:00Z"}
+start_date=${start_date:="2022-01-01T00:00:00Z"}
 #   end_date=${end_date:="1989-01-01T00:00:00Z"}
-    end_date=${end_date:="1979-01-02T00:00:00Z"}
+    end_date=${end_date:="2022-01-01T01:00:00Z"}
 
 #start_date=${start_date:="1979-01-01T00:00:00Z"}
 #    end_date=${end_date:="2111-01-01T00:00:00Z"}
@@ -79,8 +83,7 @@ atm_output_interval="P1D"
 oce_output_interval="P1D"
 
 # levels
-LEV=L64
-#LEV=L128SMT
+LEV=L72
 
 
 #=============================================================================
@@ -94,7 +97,6 @@ export OMP_DYNAMIC="false"
 export OMP_STACKSIZE=200M
 export NMPI_PROGINF=DETAIL       # get performance details (Jens-Olaf Beismann)
 
-# Run information
 let PPN=${CPE}*${NE}/${OMP_NUM_THREADS}         # no. of MPI procs. per NQS job
 let NE1=${NE}-1
 echo "PPN etc. $NN $NE $CPE $PPN"
@@ -112,7 +114,7 @@ mpi_total_procs=${PPN}
 # default: half of requested nodes for ocean
 
 #((mpi_oce_procs=mpi_total_procs/2))
-mpi_oce_procs=15    # optimum for this setup and non-multiple of 8 to test START_MODEL_function.
+mpi_oce_procs=32    # optimal: 8/16 for NE=4/8 dt=600/dt_rad=3600, 12 dt=450/dt_rad=3600, 8 dt=360/dt_rad=1800
 ((mpi_atm_procs=PPN-mpi_oce_procs))
 
 echo $mpi_total_procs ${mpi_atm_procs} ${mpi_oce_procs}
@@ -125,7 +127,7 @@ nproma_oce=$nproma
 
 # Note that "mpi_atm_io_procs" must match the number of output files
 mpi_atm_io_procs=2      # >0 for atmosphere plus land (not working for monitoring)
-mpi_oce_io_procs=2
+mpi_oce_io_procs=8
 ICON_COMPONENT2_proc0_shift=$proc0_shift
 
 #=============================================================================
@@ -134,14 +136,14 @@ ICON_COMPONENT2_proc0_shift=$proc0_shift
 #=============================================================================
 
 # root directory for input data
-DATAROOT="${icon_data_poolFolder}/Checksuite_data/ICON-seamless/proto2"
+DATAROOT="${icon_data_poolFolder}/Checksuite_data/ICON-seamless/proto2/data_exp28"
 
 
 # base directory for ICON sources and binary:
 ICONDIR="$basedir" # basedir is provided by create_target_header
 
 # run script directory
-job_name="exp.run_ICON_20_R2B4_R2B6_AO_coupled.run"        # name of run script
+job_name="exp.run_ICON_29_R2B5_R2B6_AO_coupled_gribInitOce.run" # name of run script
 RUNSCRIPTDIR=${ICONDIR}/run/checksuite.nwp                 # directory of run script
 
 rm -rf stdout.* stderr.*      # remove standard output from previous run
@@ -170,11 +172,11 @@ rm -rf stdout.* stderr.*      # remove standard output from previous run
 # (0) Basic model configuration
 # -----------------------------
 
-atmos_gridID="0012"
-atmos_refinement="R02B04"
+atmos_gridID="0030"
+atmos_refinement="R02B05"
 
-rad_gridID="0011"
-rad_refinement="R02B03"
+rad_gridID="0029"
+rad_refinement="R02B04"
 
 ocean_gridID="0035"
 ocean_refinement="R02B06"
@@ -213,15 +215,15 @@ unset OMPI_MCA_coll_fca_priority
 # use alternatively: full restart, init from (ocean) restart, init from climatology or false
 #  - set to false if ocean was already initialised
 # initialiseOcean="fromRestart"             # first run
-initialiseOcean="fromClimatology"           # from Levitus observations (current time, mean last 10 years)
+#initialiseOcean="fromClimatology"           # from Levitus observations (current time, mean last 10 years)
 # initialiseOcean="fromRestartwithHamocc"
 #initialiseOcean="coldStart"
 
 # use both lines for atm/oce initialisation from other experiment
-#initialiseOcean="FALSE"                    # restart run (maybe copy from other run)
+initialiseOcean="FALSE"                    # restart run (maybe copy from other run)
 #restart=.true.                             # deactivate semaphore mechanism
-restart_exp=couple_099
-restart_yea=19790101T00
+restart_exp=couple_029
+restart_yea=20220101T00
 
 # set initialiseOcean automatically to false via isRestart.sem
 #if [ -d "$basedir/experiments/$EXPNAME" ] ; then
@@ -311,24 +313,21 @@ oce_lag=1
 #
 # component names in coupling.yaml must (!) match with modelname_list[*]
 #
-cat > coupling_${EXPNAME}.yaml << EOF
+cat > coupling.yaml << EOF
 definitions:
-  components:
-    atm: &atm
-      component: ${modelname_list[0]}
-      grid: icon_atmos_grid
-    oce: &oce
-      component: ${modelname_list[1]}
-      grid: icon_ocean_grid
   atm2oce: &atm2oce
-    source: *atm
-    target: *oce
+    src_component: ${modelname_list[0]}
+    src_grid: icon_atmos_grid
+    tgt_component: ${modelname_list[1]}
+    tgt_grid: icon_ocean_grid
     time_reduction: average
     src_lag: ${atm_lag}
     tgt_lag: ${oce_lag}
   oce2atm: &oce2atm
-    source: *oce
-    target: *atm
+    src_component: ${modelname_list[1]}
+    src_grid: icon_ocean_grid
+    tgt_component: ${modelname_list[0]}
+    tgt_grid: icon_atmos_grid
     time_reduction: average
     src_lag: ${oce_lag}
     tgt_lag: ${atm_lag}
@@ -362,7 +361,7 @@ coupling:
     field: [surface_downward_eastward_stress,
             surface_downward_northward_stress]
   - <<: [ *atm2oce, *hcsbb_interp_stack ]
-    coupling_period: ${longcouplingTimeStep}
+    coupling_period: ${couplingTimeStep}
     field: [10m_wind_speed]
   - <<: [ *atm2oce, *conserv_interp_stack ]
     coupling_period: ${couplingTimeStep}
@@ -373,20 +372,8 @@ coupling:
     coupling_period: ${couplingTimeStep}
     field: [sea_surface_temperature,
             ocean_sea_ice_bundle]
-  # Sea-water velocities are used with VDIFF only.
-  # - <<: [ *oce2atm, *conserv_interp_stack ]
-  #   coupling_period: ${longcouplingTimeStep}
-  #   field: [eastward_sea_water_velocity,
-  #           northward_sea_water_velocity]
 EOF
 
-#
-# yaml files for yac
-# ------------------
-#
-#add_required_file ${basedir}/run/coupling_${EXPNAME}.yaml     ./coupling.yaml
-add_required_file                 coupling_${EXPNAME}.yaml     ./coupling.yaml
-#
 #-----------------------------------------------------------------------------
 # II. ATMOSPHERE
 #-----------------------------------------------------------------------------
@@ -402,44 +389,26 @@ iforcing=3        # 3 for inwp forcing; 0 for no forcing
 # link files directly
 atmo_grid_target=atmo_${atmos_refinement}_DOM01                      #  needed in name of ifs2icon and extpar data
 rad_grid_target=rad_${rad_refinement}_DOM00
-atmo_grid_folder=${DATAROOT}                                         # grid directory
-#atmo_grid_folder=/hpc/rhome/routfox/routfox/icon/grids/public/edzw   # grid directory
+#atmo_grid_folder=${DATAROOT}                                         # grid directory
+atmo_grid_folder=/hpc/rhome/routfox/routfox/icon/grids/public/edzw   # grid directory
 
 add_link_file ${atmo_grid_folder}/icon_grid_${rad_gridID}_${rad_refinement}_R.nc             ./${rad_grid_target}.nc
-#add_link_file ${atmo_grid_folder}/icon_grid_${rad_gridID}_${rad_refinement}_R-grfinfo.nc     ./${rad_grid_target}-grfinfo.nc
+add_link_file ${atmo_grid_folder}/icon_grid_${rad_gridID}_${rad_refinement}_R-grfinfo.nc     ./${rad_grid_target}-grfinfo.nc
 add_link_file ${atmo_grid_folder}/icon_grid_${atmos_gridID}_${atmos_refinement}_G.nc         ./${atmo_grid_target}.nc
-#add_link_file ${atmo_grid_folder}/icon_grid_${atmos_gridID}_${atmos_refinement}_G-grfinfo.nc ./${atmo_grid_target}-grfinfo.nc
+add_link_file ${atmo_grid_folder}/icon_grid_${atmos_gridID}_${atmos_refinement}_G-grfinfo.nc ./${atmo_grid_target}-grfinfo.nc
 
 
 
 # NWP Extpar and ifs2icon specificatons
 
-INDIR=${DATAROOT}                   # /hpc/uwork/mkoehler/run-icon/coupled
-add_link_file $INDIR/new-extpar-withfract12-35.nc           extpar_atmo_${atmos_refinement}_DOM01.nc  # Stephan
+INDIR=${DATAROOT}        # /hpc/uwork/mkoehler/run-icon/coupled
+add_link_file $INDIR/extpar_atmo_R02B05_DOM01.nc    extpar_atmo_${atmos_refinement}_DOM01.nc  # Stephan
 
-
-#add_link_file $INDIR/nn-0013-ifs2icon_R2B04.nc       ifs2icon_R2B04_DOM01.nc
-#add_link_file $INDIR/ifs2icon_0013_r0002_20140601.nc ifs2icon_R2B04_DOM01.nc
-#add_link_file $INDIR/ifs2icon_1979010100_R02B04_G.nc  ifs2icon_R2B04_DOM01.nc
-add_link_file $INDIR/ifs2icon_2021010100_0012_R02B04_G.nc  ifs2icon_R2B04_DOM01.nc
+add_link_file $INDIR/ifs2icon_R2B05_DOM01.nc  ifs2icon_R2B05_DOM01.nc
 
 # files needed for radiation
-add_link_file ${basedir}/data/ECHAM6_CldOptProps.nc .
-add_link_file ${basedir}/data/rrtmg_lw.nc .
 
-ecRad_data_path=${basedir}'/externals/ecrad/data'
-
-# Kinne background aerosols for the year 1850:
-datadir="${icon_data_poolFolder}/Checksuite_data/ICON-seamless"
-add_link_file ${datadir}/bc_aeropt_kinne_lw_b16_coa.nc      bc_aeropt_kinne_lw_b16_coa.nc
-add_link_file ${datadir}/bc_aeropt_kinne_sw_b14_coa.nc      bc_aeropt_kinne_sw_b14_coa.nc
-#
-# use time-dependent Kinne fine-mode aerosol  (irad_aero=13):
-add_link_file ${datadir}/bc_aeropt_kinne_sw_b14_fin_1978.nc bc_aeropt_kinne_sw_b14_fin_1978.nc
-add_link_file ${datadir}/bc_aeropt_kinne_sw_b14_fin_1979.nc bc_aeropt_kinne_sw_b14_fin_1979.nc
-
-#-----------------------------------------------------------------------------
-
+ecRad_data_path="${ICONDIR}/externals/ecrad/data"
 
 #-----------------------------------------------------------------------------
 
@@ -475,7 +444,6 @@ cat > ${atm_namelist} << EOF
 !
 &parallel_nml
  nproma                  = ${nproma_atm}
- nproma_sub              = ${nproma_sub} ! loop chunk length for radiation
  p_test_run              = .false.
  l_test_openmp           = .false.
  l_log_checks            = .true.
@@ -563,6 +531,7 @@ cat > ${atm_namelist} << EOF
  tune_gust_factor        = 7.0
  icpl_turb_clc           = 1
  lcalib_clcov            = .false.                   ! turn off TCC, HCC, MCC, LCC tuning
+ tune_eiscrit            = 7.0
 /
 &turbdiff_nml
  tkhmin                  = 0.6
@@ -577,7 +546,7 @@ cat > ${atm_namelist} << EOF
  rlam_heat               = 10.0
  rat_sea                 = 0.8
  ltkesso                 = .true.                    ! SSO dissipation energy used in TKE equation
- frcsmot                 = 0.2                       ! these 2 switches together apply vertical smoothing of the TKE source terms
+ frcsmot                 = 0.0                       ! these 2 switches together apply vertical smoothing of the TKE source terms
  imode_frcsmot           = 2                         ! in the tropics (only), which reduces the moist bias in the tropical lower troposphere
  itype_sher              = 3                         ! use horizontal shear production terms with 1/SQRT(Ri) scaling to prevent unwanted side effects
  ltkeshs                 = .true.
@@ -726,7 +695,6 @@ rbf_scale_mode_ll        = 2
 /
 &lnd_nml
  ntiles                  = 3
- nlev_snow               = 3
  lmulti_snow             = .false.
  itype_heatcond          = 3
  idiag_snowfrac          = 20
@@ -742,13 +710,14 @@ rbf_scale_mode_ll        = 2
  c_soil_urb              = 0.5
  sstice_mode             = 1                         ! 1 for coupled
  lprog_albsi             = .true.
+ itype_canopy            = 1
  hice_min                = 0.05                      ! default of nwp sea-ice model
  hice_max                = 4.8                       ! corresponding to 40% seaice_limit in icon-o
  itype_snowevap          = 2
 /
 &radiation_nml
  irad_o3                 = 79
- irad_aero               = 13               ! 6: default, 13: Kinne aerosol, time-dependent
+ irad_aero               = 6                ! 6: default, 13: Kinne aerosol, time-dependent
  izenith                 = 4                ! 4: NWP default, 3: no annual cycle
  isolrad                 = 1                ! 1: Coddington Scaling correction (default NWP)
  albedo_type             = 2                ! Modis albedo
@@ -791,9 +760,7 @@ EOF
 
 ocean_grid_source=icon_grid_${ocean_gridID}_${ocean_refinement}_O.nc
 ocean_grid_target=ocean_${ocean_refinement}_DOM01.nc
-#ocean_grid_folder="/work/mh0727/m300732/input_SBH/${ocean_gridID}"
-ocean_grid_folder=${DATAROOT}         # /hpc/uwork/mkoehler/run-icon/coupled
-#ocean_data_InputFolder="/pool/data/ICON/oes/input/r0004/${ocean_grid_name}"
+ocean_grid_folder=${DATAROOT}/../      # /hpc/uwork/mkoehler/run-icon/coupled
 ocean_data_InputFolder=${DATAROOT}    # /hpc/uwork/mkoehler/run-icon/coupled
 
 # ----------------------------------------------------------------------------
@@ -805,7 +772,7 @@ ocean_data_InputFolder=${DATAROOT}    # /hpc/uwork/mkoehler/run-icon/coupled
 #set the vertical coordinate  : 0=zlev, 1=zstar
 
 VERT_COR=1
-minVerticalLevels=2
+minVerticalLevels=10
 if [ ${VERT_COR} = 0 ] ; then
   vert_cor_type=0
   select_lhs=2
@@ -821,7 +788,7 @@ fi
 #-----------------------------------------------------------------------------
 #set the vertical number of levels
 
-##LEV=L64
+##LEV=L72
 
 if [ ${LEV} == L40 ] ; then
 
@@ -849,6 +816,24 @@ elif [ ${LEV} == L64 ] ; then
     levidx_2000m=46
 
     minVerticalLevels=2
+
+elif [ ${LEV} == L72 ] ; then
+
+    n_zlev=72
+    dzlev_m=" 2.0,    2.2,    2.5,    2.8,    3.1,    3.5,    3.9,    4.4,    4.9,    5.4,\
+              5.9,    6.4,    7.1,    7.7,    8.4,    9.2,   10.1,   11.0,   12.0,   13.2,\
+              14.4,   15.7,   17.1,   18.7,   20.4,   22.3,   24.3,   26.5,   28.9,   31.5,\
+              34.3,   37.3,   40.6,   43.1,   45.3,   46.8,   48.4,   50.0,   51.7,   53.4,\
+              55.2,   57.0,   58.9,   60.8  , 62.9,   66.6,   72.6,   80.6,   90.6,  100.2,\
+              110.0,  120.3,  128.7,  137.4,  146.4,  155.7,  165.2,  174.8,  184.4,  194.1,\
+              203.6,  212.9,  221.9,  230.5,  238.5,  245.9,  252.4,  258.1,  262.8,  266.4,\
+              268.9,  270.1"
+
+    levidx_100m=10
+    levidx_200m=17
+    levidx_2000m=46
+
+    minVerticalLevels=10
 
 elif [ ${LEV} == L128 ] ; then
 
@@ -936,11 +921,13 @@ cat > ${oce_namelist} << EOF
 !
 &coupling_mode_nml
   coupled_to_atmo            = .TRUE.
+  coupled_to_hydrodisc       = .FALSE.
 /
 &parallel_nml
  nproma                      = ${nproma_oce}
  num_io_procs                = ${mpi_oce_io_procs}
  num_prefetch_proc           = 0
+ pio_type                    = 1
  p_test_run                  = .FALSE.
  l_fast_sum                  = .TRUE.
  proc0_shift                 = ${ICON_COMPONENT2_proc0_shift}
@@ -954,11 +941,11 @@ cat > ${oce_namelist} << EOF
  modelTimeStep               = "${oceTimeStep}"
  output                      = 'nml'                            ! namelist controlled output scheme
  activate_sync_timers        = .TRUE.
- profiling_output            = 1                                ! aggregated: 1; detailed: 2; in files: 3
+ profiling_output            = 2                                ! aggregated: 1; detailed: 2; in files: 3
  msg_timestamp               = .FALSE.
  timers_level                = 10
  debug_check_level           = 1
- Restart_filename            = "${EXPNAME}_restart_oce_<rsttime>.nc"
+! Restart_filename            = "${EXPNAME}_restart_oce_<rsttime>.nc"
 /
 EOF
 
@@ -969,7 +956,7 @@ cat >> ${oce_namelist} << EOF
 !--------------------------------------------------------------------------------
  &output_nml
   output_filename  = "${EXPNAME}_oce_fx"
-  filetype         = 5                                ! output format: 2=GRIB2, 4=NETCDFv2, 5=NETCDFv4
+  filetype         = 2                                ! output format: 2=GRIB2, 4=NETCDFv2, 5=NETCDFv4
   mode             = 1                                ! 1: forecast mode, 2: climate mode
   filename_format  = "<output_filename>_<datetime2>"
   file_interval    = "${oce_file_interval}"           ! interval in ISO-format
@@ -993,7 +980,7 @@ if [[ "$output_oce_def" == "yes" ]]; then
 !--------------------------------------------------------------------------------
 &output_nml
   output_filename            = "${EXPNAME}_oce_def"
-  filetype                   = 5                                ! output format: 2=GRIB2, 4=NETCDFv2
+  filetype                   = 2                                ! output format: 2=GRIB2, 4=NETCDFv2
   mode                       = 1                                ! 1: forecast mode, 2: climate mode
   filename_format            = "<output_filename>_<datetime2>"
   output_start               = "${start_date}"                  ! start in ISO-format
@@ -1044,9 +1031,8 @@ if [[ "$output_oce_grib" == "yes" ]]; then
   mode                       = 1                                ! 1: forecast mode (relative t-axis)
                                                                 ! 2: climate mode (absolute t-axis)
   include_last               = .FALSE.
-  output_grid                = .TRUE.
-  ml_varlist                 = 'zos','SWPT','so','u','v','hi','hs','conc','column_thick_c','rho','rhopot','delhi','ice_u','ice_v',
-                               'normal_velocity','stretch_c','mld','mlotst'
+  output_grid                = .FALSE.
+  ml_varlist                 = 'zos','SWPT','so','u','v','hi','hs','conc','column_thick_c','rho','rhopot','delhi','ice_u','ice_v'
 /
 EOF
 fi
@@ -1153,7 +1139,7 @@ cat >> ${oce_namelist} << EOF
   select_solver                              = 4           ! 1=gmres_oce_old; 2=ocean_restart_gmres, 3=mixed precisison restart
                                                            ! 4=CG (default) 5=CGJ 6=BiCG 7=GMRES restart (legacy) 8=MINRES
   use_absolute_solver_tolerance              = .TRUE.
-  solver_tolerance                           = 1.0E-9      ! 1e-10 in omip-YVF - enlarged to 1e-9 (LL opt)
+  solver_tolerance                           = 1.0E-10      ! 1e-10 in omip-YVF - enlarged to 1e-9 (LL opt)
   select_lhs                             = ${select_lhs}   ! 1=operator based (default) 2=matrix based - 2=error?
   l_lhs_direct                           = ${l_lhs_direct} ! .true.= use lhs implementation directly  .false.= matrix scanner (default)
   solver_FirstGuess                          = 2           ! 0=start from zeros 1=last timestep smoothed 2=last timestep (default)
@@ -1163,8 +1149,8 @@ cat >> ${oce_namelist} << EOF
 
   fast_performance_level                     = 200         ! performance level 12: for cell-based; 5: default
   use_continuity_correction                  = .TRUE.      ! height adjustment according to vertical velocity in dynamics
-  cfl_check                                  = .FALSE.
-  cfl_write                                  = .FALSE.
+  cfl_check                                  = .TRUE.
+  cfl_write                                  = .TRUE.
 
   i_bc_veloc_top                             = 1
   i_bc_veloc_bot                             = 1           ! 0: (def) bottom friction off, 1: on
@@ -1267,7 +1253,7 @@ cat >> ${oce_namelist} << EOF
 &sea_ice_nml
   i_ice_therm                                = 1           ! 1=zero-layer (default), 2=Winton, 0/2: not allowed
   i_ice_dyn                                  = 1           ! 1/0=switch on/off AWI ice dynamics
-  stress_ice_zero                            = .TRUE.      ! default: FALSE
+  stress_ice_zero                            = .FALSE.      ! default: FALSE
 ! i_Qio_type                                 = 3           ! 3 (default): energy of whole grid-area used for melting (MPIOM-type)
 ! use_constant_tfreez                        = .TRUE.      ! default: TRUE
 ! use_no_flux_gradients                      = .FALSE.     ! default: TRUE
@@ -1291,10 +1277,11 @@ cat >> ${oce_namelist} << EOF
   forcing_enable_freshwater                  = .TRUE.      ! enable/disable freshwater flux
   forcing_windstress_u_type                  = 2           ! 0: zero wind stress, 1: read from file, 2: none
   forcing_windstress_v_type                  = 2           ! 0: zero wind stress, 1: read from file, 2: none
-                                                           ! salt-change due to internal fluxes only
+  atm_pressure_included_in_ocedyn            = .TRUE.
+  atm_pressure_included_in_icedyn            = .TRUE.
   limit_seaice                               = .TRUE.      ! default: TRUE
-  seaice_limit                               = 0.4         ! hard limit set to 40% of flat upper layer for sea ice
-  lfix_salt_content                          = .TRUE.
+  seaice_limit                               = 5.0         ! hard limit set to 40% of flat upper layer for sea ice
+  lfix_salt_content                          = .TRUE.      ! salt-change due to internal fluxes only
   limit_elevation                            = .TRUE.      ! true: adjust daily to zero, default=false: free surface
                                                            ! in absense of a river routing .TRUE. keeps ocen surface constant
 ! lswr_jerlov                                = .FALSE.     ! SW-penetration (Jerlov-radiation, default=T)
@@ -1340,6 +1327,13 @@ EOF
   initial_salinity_type                      = 0                ! 0: none, 1: read S from initial_state.nc
   initial_temperature_type                   = 0                ! 0: none, 1: read T from initial_state.nc
   initialize_fromRestart                     = .FALSE.
+  use_initicono                              = .TRUE.
+  ana_filename                               = "ana_oce_DOM01.grb"      !"ana_oce_DOM01_ML_0030000.grb"
+  init_mode_oce                              = 1
+  fg_filename                                = "fg_oce_DOM01.grb"
+  ana_varnames_map_file_oce                  = "dict.icono.dwd"
+  dt_shift_oce                               = 0.0              !set this to negative values for a shift
+  lconsistency_checks_oce                    = .FALSE.
 /
 EOF
     fi
@@ -1354,14 +1348,13 @@ cat >> ${oce_namelist} << EOF
 /
 &io_nml
   restart_file_type                          = 5
-  write_last_restart                         = .TRUE.
-! restart_write_mode                         = "joint procs multifile"  ! not yet available in ocean model
+  write_last_restart                         = .FALSE.
+  dt_checkpoint                              = 86400
+  restart_write_mode                         = "sync"
 ! lnetcdf_flt64_output                       = .TRUE.           ! 64 bit output in all files
   lkeep_in_sync                              = .TRUE.           ! sync after each timestep
 /
 EOF
-
-add_required_file ${basedir}/run/${oce_namelist} ./
 
 #-----------------------------------------------------------------------------
 #
@@ -1493,8 +1486,9 @@ else
 #   add_link_file init-restart-atm.nc restart_atm_DOM01.nc
 #   add_link_file init-restart-oce.nc restart_ocean_DOM01.nc
 
-    add_link_file ${ocean_data_InputFolder}/slo1414_restart_atm_21000101T000000Z.nc restart_atm_DOM01.nc
-    add_link_file ${ocean_data_InputFolder}/slo1414_restart_oce_21000101T000000Z.nc restart_ocean_DOM01.nc
+    add_link_file ${ocean_data_InputFolder}/exp28_fg_oce_DOM01.grb fg_oce_DOM01.grb
+    add_link_file ${ocean_data_InputFolder}/exp28_ana_oce_DOM01.grb ana_oce_DOM01.grb
+    add_link_file ${ocean_data_InputFolder}/exp28_dict.icono.dwd dict.icono.dwd
   fi
 fi
 #END AUTOMATIC_RESTART_SETUP
@@ -1748,29 +1742,24 @@ fi
 #-----------------------------------------------------------------------------
 # check if grib file have been written correctly
 #-----------------------------------------------------------------------------
-diff <(grib_ls -w level=0/108,stepRange=0 -p discipline,parameterCategory,parameterNumber,typeOfFirstFixedSurface,scaleFactorOfFirstFixedSurface,scaledValueOfFirstFixedSurface coupleR2B4_R2B6_020_oce_grb_19790101T000000Z.grb | sed -r 's/( +)/ /g' | sed -r 's/ $//g' ) <(echo "coupleR2B4_R2B6_020_oce_grb_19790101T000000Z.grb
-discipline parameterCategory parameterNumber typeOfFirstFixedSurface scaleFactorOfFirstFixedSurface scaledValueOfFirstFixedSurface
-10 3 1 G 0 0
-10 4 18 160 1 1075
-10 4 21 160 1 1075
-10 4 23 160 1 1075
-10 4 24 160 1 1075
-10 2 1 P 0 0
-10 2 192 P 0 0
-10 2 0 P 0 0
-10 4 7 G 0 0
-10 4 16 160 1 1075
-10 4 19 160 1 1075
-10 2 6 P 0 0
-10 2 4 G 0 0
-10 2 5 G 0 0
-10 4 53 160 1 1075
-10 192 20 G 0 0
-10 4 52 169 3 125
-10 4 52 169 2 3
-18 of 923 messages in coupleR2B4_R2B6_020_oce_grb_19790101T000000Z.grb
-
-18 of 923 total messages in 1 files")
+diff <(grib_ls -w level=0/107,stepRange=0 -p discipline,parameterCategory,parameterNumber ${EXPNAME}_oce_grb_20220101T000000Z.grb | sed -E 's/ +/ /g; s/ $//g' | tail -n +3 | head -n -3) \
+     <(cat << EOF
+10 3 1
+10 4 18
+10 4 21
+10 4 23
+10 4 24
+10 2 1
+10 2 192
+10 2 0
+10 4 7
+10 4 16
+10 4 19
+10 2 6
+10 2 4
+10 2 5
+EOF
+)
 diffrc=$?
 if [ $diffrc -ne 0 ] ; then
   echo "GRIB triplets not written as expected"

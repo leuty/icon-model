@@ -816,6 +816,14 @@ CONTAINS
       monitor%potential_enstrophy = global_mean_potEnstrophy
       !}}}
 
+      !Keep in mind, that SWPT gets a Post-Op that adds 273.15 to get Kelvin for the GRIB output
+      IF( isRegistered('SWPT')) then
+        !$ACC KERNELS DEFAULT(PRESENT) ASYNC(1)
+        p_diag%SWPT(:,:,:) = tracers(:,:,:,1)
+        !$ACC END KERNELS
+        !$ACC WAIT(1)
+      ENDIF
+
       IF ( isRegistered('delta_ice') .OR. isRegistered('delta_snow') .OR. &
            isRegistered('delta_thetao') .OR. &
            isRegistered('delta_so') .OR. &

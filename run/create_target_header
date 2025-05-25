@@ -2354,6 +2354,15 @@ create_target_header()
                     ;;
             esac
             ;;
+        *run_ICON_29_R2B5_R2B6_AO_coupled_gribInitOce*)
+            case $use_target in
+                rcl)
+                    use_nodes=8
+                    use_venum_lhost=2
+                    use_cpunum_job=12 # 2x proc0 + 2 atm-IO + 8 oce-IO
+                    ;;
+            esac
+            ;;
         *atm_nwp_jsbach_test*)
             use_memory="18gb"
             ;;

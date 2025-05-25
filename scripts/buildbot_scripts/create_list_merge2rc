@@ -225,6 +225,8 @@ $addexp checksuite.nwp/nwpexp.run_ICON_20_R2B4_R2B6_AO_coupled                 -
 $addexp checksuite.nwp/nwpexp.run_ICON_26_R2B4_R2B6_AO-HD_coupled              --builders dwd_nec_coupling --list $listname
 # atmo-wave coupled test
 $addexp checksuite.nwp/nwpexp.run_ICON_23_R2B4_atmo_waves_coupled              --builders dwd_nec_coupling --list $listname
+# GRIB-IO in both AO
+$addexp checksuite.nwp/nwpexp.run_ICON_29_R2B5_R2B6_AO_coupled_gribInitOce     --builders dwd_nec_coupling --list $listname
 
 # DWD_hybrid
 $addexp checksuite.nwp/nwpexp.run_ICON_11_R3B08_lam_initmode7_restarttest      --builders dwd_nec_hybrid --list $listname
@@ -326,6 +328,8 @@ $addexp exp.atm_tracer_Hadley --builders "${NVHPC_CPU_BUILDERS}" --list ${listna
 # add ocean_omip test for GPU
 $addexp "checksuite.ocean_internal/gpu/exp.ocean_omip_R2B4_V0_GM0"  --builders "${NVHPC_CPU_BUILDERS} ${NVHPC_GPU_BUILDERS}" --list $listname --runflags "cpu_time=00:10:00"
 $addexp "checksuite.ocean_internal/gpu/exp.ocean_omip_R2B4_V1_GM0"  --builders "${NVHPC_CPU_BUILDERS} ${NVHPC_GPU_BUILDERS}" --list $listname --runflags "cpu_time=00:10:00"
+$addexp "checksuite.ocean_internal/gpu/exp.ocean_omip_R2B4_V0_GM0_icono"  --builders "${NVHPC_CPU_BUILDERS} ${NVHPC_GPU_BUILDERS}" --list $listname --runflags "cpu_time=00:10:00"
+
 
 $addexp  checksuite.infrastructure/checkExternals/exp.check_externals_LEVANTE.run     --builders "${NVHPC_CPU_BUILDERS}" --list ${listname}
 $addexp  checksuite.infrastructure/checkExternals/exp.check_externals_LEVANTE_gpu.run --builders "${NVHPC_GPU_BUILDERS}" --list ${listname}

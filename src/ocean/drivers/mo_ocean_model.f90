@@ -50,7 +50,7 @@ MODULE mo_ocean_model
   USE mo_ocean_nml_crosscheck,   ONLY: ocean_crosscheck
   USE mo_ocean_nml,              ONLY: i_sea_ice, no_tracer, &
     & use_layers, & ! by_nils
-    & initialize_fromRestart
+    & initialize_fromRestart, use_initicono
 
   USE mo_model_domain,        ONLY: t_patch_3d, p_patch_local_parent
 
@@ -72,7 +72,8 @@ MODULE mo_ocean_model
   USE mo_ocean_initialization, ONLY: init_ho_base, &
     & init_ho_basins, init_coriolis_oce, init_patch_3d,   &
     & init_patch_3d
-  USE mo_ocean_initial_conditions,  ONLY:  apply_initial_conditions, init_ocean_bathymetry
+
+  USE mo_ocean_initial_conditions,  ONLY:  apply_initial_conditions, init_ocean_bathymetry, init_from_analysis
   USE mo_ocean_check_tools,     ONLY: init_oce_index
   USE mo_util_dbg_prnt,       ONLY: init_dbg_index
   USE mo_ext_data_types,      ONLY: t_external_data
@@ -110,6 +111,8 @@ MODULE mo_ocean_model
   USE mo_restart, ONLY: detachRestartProcs
   USE mo_ocean_time_events,    ONLY: init_ocean_time_events
   USE mo_icon_output_tools,    ONLY: init_io_processes, prepare_output
+  USE mo_ocean_initicono,      ONLY: read_initicono, t_initicono_read
+
   !-------------------------------------------------------------
   ! For the coupling
   USE mo_coupling_config,      ONLY: is_coupled_run
@@ -513,6 +516,7 @@ MODULE mo_ocean_model
     CALL init_oce_index(ocean_patch_3d%p_patch_2d,ocean_patch_3d, ocean_state, ext_data )
 
     CALL init_ho_params(ocean_patch_3d, v_params, p_as%fu10)
+    IF (use_initicono) CALL init_from_analysis(ocean_patch_3d, v_sea_ice, ocean_state, read_initicono )
 
     IF (use_layers) THEN
       CALL init_layers(ocean_patch_3d, ocean_state(1)%p_diag) ! by_nils

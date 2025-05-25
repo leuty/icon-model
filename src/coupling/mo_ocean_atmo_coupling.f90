@@ -19,24 +19,31 @@ MODULE mo_ocean_atmo_coupling
   USE mo_impl_constants,      ONLY: max_char_length
   USE mo_mpi,                 ONLY: p_comm_work, p_lor
   USE mo_physical_constants,  ONLY: tmelt, rhoh2o
-  USE mo_run_config,          ONLY: ltimer, msg_level
+  USE mo_run_config,          ONLY: msg_level
   USE mo_dynamics_config,     ONLY: nnew
-  USE mo_timer,               ONLY: timer_start, timer_stop, timer_coupling
   USE mo_sync,                ONLY: sync_c, sync_patch_array, global_sum_array
   USE mo_exception,           ONLY: message, message_text
-  USE mo_dbg_nml,             ONLY: idbg_mxmn, idbg_val
   USE mo_util_dbg_prnt,       ONLY: dbg_print
   USE mo_model_domain,        ONLY: t_patch, t_patch_3d
 
   USE mo_ocean_types
   USE mo_sea_ice_types,       ONLY: t_sea_ice, t_atmos_fluxes
   USE mo_ocean_surface_types, ONLY: t_atmos_for_ocean
+  USE mtime,                  ONLY: datetime, OPERATOR(<), OPERATOR(==), &
+                                    OPERATOR(/=)
+  USE mo_time_config,         ONLY: time_config
+  USE mo_exception,           ONLY: finish
+#ifdef YAC_coupling
+  USE yac,                    ONLY: yac_fget_role_from_field_id, &
+                                    YAC_EXCHANGE_TYPE_SOURCE
+#endif
 
   !-------------------------------------------------------------
   ! For the coupling
   !
   USE mo_coupling_utils,      ONLY: cpl_def_cell_field_mask, cpl_def_field, &
-    &                               cpl_put_field, cpl_get_field
+    &                               cpl_put_field, cpl_get_field, &
+    &                               cpl_get_field_datetime
   USE mo_parallel_config,     ONLY: nproma
   USE mo_coupling_config,     ONLY: is_coupled_to_atmo
   USE mo_hamocc_nml,          ONLY: l_cpl_co2
@@ -49,7 +56,7 @@ MODULE mo_ocean_atmo_coupling
 
   CHARACTER(len=*), PARAMETER :: str_module = 'mo_ocean_atmo_coupling'  ! Output of module for 1 line debug
 
-  PUBLIC :: construct_ocean_atmo_coupling, couple_ocean_toatmo_fluxes
+  PUBLIC :: construct_ocean_atmo_coupling, couple_ocean_toatmo_fluxes, construct_ocean_atmo_coupling_finalize
 
   INTEGER, TARGET :: field_id_umfl
   INTEGER, TARGET :: field_id_vmfl
@@ -225,6 +232,79 @@ CONTAINS
 
   END SUBROUTINE construct_ocean_atmo_coupling
 
+
+!>
+  !! This subroutine ensures consistency in the coupling definition and is
+  !! called after the coupling definition phase
+  SUBROUTINE construct_ocean_atmo_coupling_finalize()
+
+    CHARACTER(len=*), PARAMETER :: &
+    &  routine = str_module//':construct_ocean_atmo_coupling_finalize'
+    integer :: role
+
+    TYPE(datetime), TARGET ::  curr_datetime_sst
+    TYPE(datetime), TARGET ::  curr_datetime_oce_u
+    TYPE(datetime), TARGET ::  curr_datetime_oce_v
+    TYPE(datetime), TARGET ::  curr_datetime_seaice_oce
+    TYPE(datetime), TARGET ::  curr_datetime_co2_flx
+
+    TYPE(datetime), POINTER :: comparison
+
+    !Make sure that comparison is a Null pointer
+    NULLIFY(comparison)
+
+#ifdef YAC_coupling
+
+    role = yac_fget_role_from_field_id(field_id_sst)
+    IF( role == YAC_EXCHANGE_TYPE_SOURCE ) THEN
+      curr_datetime_sst = cpl_get_field_datetime(routine, field_id_sst)
+      comparison => curr_datetime_sst
+    ENDIF
+
+    role = yac_fget_role_from_field_id(field_id_oce_u)
+    IF( role == YAC_EXCHANGE_TYPE_SOURCE ) THEN
+      curr_datetime_oce_u = cpl_get_field_datetime(routine, field_id_oce_u)
+      IF( associated(comparison) ) THEN
+        IF( comparison /= curr_datetime_oce_u ) &
+        CALL finish(routine, "inconsistent definition of field datetime in oce-atm-coupling for oce_u")
+      ELSE
+        comparison => curr_datetime_oce_u
+      ENDIF
+    ENDIF
+
+    role = yac_fget_role_from_field_id(field_id_oce_v)
+    IF( role == YAC_EXCHANGE_TYPE_SOURCE ) THEN
+      curr_datetime_oce_v = cpl_get_field_datetime(routine, field_id_oce_v)
+      IF( associated(comparison) ) THEN
+        IF( comparison /= curr_datetime_oce_v ) &
+        CALL finish(routine, "inconsistent definition of field datetime in oce-atm-coupling for oce_v")
+      ELSE
+        comparison => curr_datetime_oce_v
+      ENDIF
+    ENDIF
+
+    role = yac_fget_role_from_field_id(field_id_seaice_oce)
+    IF( role == YAC_EXCHANGE_TYPE_SOURCE ) THEN
+      curr_datetime_seaice_oce = cpl_get_field_datetime(routine, field_id_seaice_oce)
+      IF( associated(comparison) ) THEN
+        IF( comparison /= curr_datetime_seaice_oce ) &
+        CALL finish(routine, "inconsistent definition of field datetime in oce-atm-coupling for seaice")
+      ELSE
+        comparison => curr_datetime_seaice_oce
+      ENDIF
+    ENDIF
+
+    IF(l_cpl_co2) THEN
+      curr_datetime_co2_flx = cpl_get_field_datetime(routine, field_id_co2_flx)
+      IF( associated(comparison) ) THEN
+        IF(comparison /= curr_datetime_co2_flx) &
+        CALL finish(routine, "inconsistent definition of field datetime in oce-atm-coupling for co2-flux")
+      ENDIF
+    ENDIF
+#endif
+
+  END SUBROUTINE construct_ocean_atmo_coupling_finalize
+
   !>
   !! Exchange fields between ocean and atmosphere model
   !!
@@ -250,6 +330,9 @@ CONTAINS
     REAL(wp), ALLOCATABLE :: get_buffer(:,:)
     REAL(wp):: diag_runoff
     LOGICAL :: received_data
+    LOGICAL, SAVE :: lcheck_for_timelag = .TRUE.
+    TYPE(datetime) :: curr_datetime_sst
+
 
     CHARACTER(LEN=*), PARAMETER   :: routine = str_module // ':couple_ocean_toatmo_fluxes'
 
@@ -316,6 +399,22 @@ CONTAINS
     ENDDO
 !ICON_OMP_END_PARALLEL_DO
     !
+
+    ! A component may execute timesteps for dates before the actual
+    ! start of this simulation (e.g. due to IAU). These timesteps are currently
+    ! not considered for coupling, which is why they are skipped here.
+    ! The first actual coupling timestep usually is a start_date + lag * field_timestep.
+    IF (lcheck_for_timelag) THEN
+
+      ! query current timestamps of source/target fields
+      curr_datetime_sst = cpl_get_field_datetime(routine, field_id_sst)
+
+      ! skip data exchange as long as the model timestamp lags behind the field timestamp.
+      lcheck_for_timelag = (time_config%tc_current_date < curr_datetime_sst)
+
+      IF (lcheck_for_timelag) RETURN
+
+    ENDIF !lcheck_for_timelag
 
     CALL cpl_put_field( &
       routine, field_id_sst, 'SST', nbr_hor_cells, &
@@ -432,6 +531,11 @@ CONTAINS
     IF (received_data) THEN
       CALL sync_patch_array(sync_c, patch_horz, atmos_fluxes%stress_xw(:,:), lacc=.FALSE.)
       CALL sync_patch_array(sync_c, patch_horz, atmos_fluxes%stress_x (:,:), lacc=.FALSE.)
+    ENDIF
+
+    IF (msg_level >= 10) THEN
+      WRITE (message_text,'(a,l7)') 'received data umfl :', received_data
+      CALL message(routine, message_text)
     ENDIF
 
     !

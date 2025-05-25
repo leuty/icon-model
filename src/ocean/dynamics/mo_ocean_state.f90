@@ -495,7 +495,7 @@ CONTAINS
         ALLOCATE(ocean_state_prog%tracer_ptr(no_tracer))
 
         DO jtrc = 1,no_tracer
-        CALL add_ref( ocean_restart_list, 'tracers'//var_suffix,   &
+          CALL add_ref( ocean_restart_list, 'tracers'//var_suffix,   &
             & TRIM(oce_config%tracer_shortnames(jtrc))//var_suffix,        &
             & ocean_state_prog%tracer_ptr(jtrc)%p,                         &
             & grid_unstructured_cell, za_depth_below_sea,                  &
@@ -511,20 +511,9 @@ CONTAINS
               & IAND(oce_config%tracer_codes(jtrc), INT(255)), DATATYPE_PACK16, GRID_UNSTRUCTURED, grid_cell), &
             & ref_idx=jtrc, &
             & ldims=(/nproma,n_zlev,alloc_cell_blocks/), tlev_source=TLEV_NNEW, &
-            & in_group=oce_tr_groups)
+            & in_group=groups("oce_tr_groups", "dwd_fg_oce_vars","mode_dwd_fg_oce_in",        &
+            &  "mode_dwd_ana_oce_in", "mode_iau_ana_oce_in", "mode_iau_fg_oce_in"))
         END DO
-        ! if temperature in Kelvin is requested
-        IF (is_variable_in_output(var_name="to_k")) THEN
-          CALL add_ref( ocean_restart_list, 'tracers'//var_suffix,   &
-            & 'to_k'//var_suffix, ocean_state_prog%tracer_ptr(1)%p,  &
-            & grid_unstructured_cell, za_depth_below_sea,            &
-            & t_cf_var(TRIM(oce_config%tracer_stdnames(1)), 'K', TRIM(oce_config%tracer_longnames(1)), DATATYPE_FLT, &
-            & 'to_k'), &
-            & grib2_var(10, 4, 18, DATATYPE_PACK16, GRID_UNSTRUCTURED, grid_cell), &
-            & ref_idx=1, &
-            & ldims=(/nproma,n_zlev,alloc_cell_blocks/), tlev_source=TLEV_NNEW, &
-            & in_group=oce_tr_groups, post_op=post_op(ipost_op_type=POST_OP_OFFSET, arg1=273.15_wp))
-        END IF
 
         !--------------------------------------------------------------------------
         ! use of the ocean_tracers structure
@@ -1330,14 +1319,16 @@ CONTAINS
       & za_depth_below_sea, &
       & t_cf_var('sea_water_x_velocity','m s-1','u zonal velocity component', datatype_flt),&
       & grib2_var(10, 4, 23, DATATYPE_PACK16, GRID_UNSTRUCTURED, grid_cell),&
-      & ldims=(/nproma,n_zlev,alloc_cell_blocks/),in_group=groups_oce_dde, lopenacc=.TRUE.)
+    & ldims=(/nproma,n_zlev,alloc_cell_blocks/),in_group=groups("groups_oce_dde", &
+            "dwd_fg_oce_vars", "mode_dwd_fg_oce_in"), lopenacc=.TRUE.)
     __acc_attach(ocean_state_diag%u)
     ! reconstructed v velocity component
     CALL add_var(ocean_default_list, 'v', ocean_state_diag%v, grid_unstructured_cell, &
       & za_depth_below_sea, &
       & t_cf_var('sea_water_y_velocity','m s-1','v meridional velocity component', datatype_flt),&
       & grib2_var(10, 4, 24, DATATYPE_PACK16, GRID_UNSTRUCTURED, grid_cell),&
-      & ldims=(/nproma,n_zlev,alloc_cell_blocks/),in_group=groups_oce_dde, lopenacc=.TRUE.)
+      & ldims=(/nproma,n_zlev,alloc_cell_blocks/),in_group=groups("groups_oce_dde", &
+      "dwd_fg_oce_vars", "mode_dwd_fg_oce_in"), lopenacc=.TRUE.)
     __acc_attach(ocean_state_diag%v)
     ! reconstrcuted velocity in cartesian coordinates
     !   CALL add_var(ocean_restart_list, 'p_vn', ocean_state_diag%p_vn, GRID_UNSTRUCTURED_CELL, ZA_DEPTH_BELOW_SEA, &
@@ -1508,6 +1499,17 @@ CONTAINS
       & t_cf_var('laplacian_vert','fixme','vertical diffusion', datatype_flt),&
       & dflt_g2_decl_edge,&
       & ldims=(/nproma,n_zlev,nblks_e/),lrestart_cont=.FALSE.)
+
+    ! if temperature in Kelvin is requested
+    CALL add_var( ocean_default_list, 'SWPT',   &
+      & ocean_state_diag%SWPT, grid_unstructured_cell, za_depth_below_sea, &
+      & t_cf_var('SWPT', 'K', 'Sea water potential temperature', DATATYPE_FLT), &
+      & grib2_var(10, 4, 18, DATATYPE_PACK16, GRID_UNSTRUCTURED, grid_cell), &
+      & ldims=(/nproma,n_zlev,alloc_cell_blocks/), &
+      & in_group=groups("dwd_fg_oce_vars","mode_dwd_fg_oce_in",        &
+      &  "mode_dwd_ana_oce_in", "mode_iau_ana_oce_in", "mode_iau_fg_oce_in"), &
+      post_op=post_op(ipost_op_type=POST_OP_OFFSET, arg1=273.15_wp), lopenacc=.TRUE.)
+      __acc_attach(ocean_state_diag%SWPT)
 
     ! by_nils_start
     IF (do_ts_budget) THEN
@@ -3196,7 +3198,7 @@ CONTAINS
     oce_config%tracer_longnames(1)  = 'sea water potential temperature'
     oce_config%tracer_units(1)      = 'C'
     ! discipline=10, parameterCategory=4, parameterNumber=18 encoded in one integer
-    ! Celsius is the wrong unit for GRIB => set to undefined. Use 'to_k' for output in Kelvin with triplet (10,4,18)
+    ! Celsius is the wrong unit for GRIB => set to undefined. Use 'to' for output in Kelvin with triplet (10,4,18)
     oce_config%tracer_codes(1)      = ISHFT(255,16)+ISHFT(255,8)+255
 
     oce_config%tracer_shortnames(2) = 'so'

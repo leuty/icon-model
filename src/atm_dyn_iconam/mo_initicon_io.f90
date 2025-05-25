@@ -42,8 +42,7 @@ MODULE mo_initicon_io
   USE mo_nh_init_utils,       ONLY: convert_omega2w, compute_input_pressure_and_height
   USE mo_impl_constants,      ONLY: max_dom, MODE_ICONVREMAP,          &
     &                               MODE_IAU, MODE_IAU_OLD, MODE_IFSANA, MODE_COMBINED, &
-    &                               MODE_COSMO, iss, iorg, ibc, iso4, idu, SUCCESS,     &
-    &                               vname_len
+    &                               MODE_COSMO, iss, iorg, ibc, iso4, idu, SUCCESS
   USE mo_exception,           ONLY: message, finish, message_text, warning
   USE mo_grid_config,         ONLY: n_dom, nroot, l_limited_area
   USE mo_mpi,                 ONLY: p_io, p_bcast, p_comm_work,    &
@@ -170,6 +169,10 @@ MODULE mo_initicon_io
 
   PUBLIC :: height_or_lev
 
+  PUBLIC :: fetch3d !We need this for fetch_dwdfg_oce
+  PUBLIC :: fetch3d_with_status !We need this for fetch_dwdfg_oce
+  PUBLIC :: fetchSurface !We need this for fetch_dwdfg_oce
+  PUBLIC :: t_fetchParams
 
   TYPE :: t_fetchParams
     TYPE(t_readInstructionListPtr), ALLOCATABLE :: inputInstructions(:)

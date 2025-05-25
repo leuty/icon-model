@@ -36,7 +36,7 @@ MODULE mo_nwp_ocean_coupling
        & CCYCLE_MODE_NONE, CCYCLE_MODE_PRESCRIBED, CCYCLE_MODE_INTERACTIVE, &
        & CCYCLE_CO2CONC_CONST, CCYCLE_CO2CONC_FROMFILE
   USE mo_dbg_nml             ,ONLY: idbg_mxmn, idbg_val
-  USE mo_exception           ,ONLY: finish
+  USE mo_exception           ,ONLY: finish, message, message_text
   USE mo_ext_data_types      ,ONLY: t_external_data
   USE mo_fortran_tools       ,ONLY: assert_acc_host_only, init
   USE mo_idx_list            ,ONLY: t_idx_list_blocked
@@ -53,7 +53,12 @@ MODULE mo_nwp_ocean_coupling
   USE mo_util_dbg_prnt       ,ONLY: dbg_print
 
   USE mo_atmo_ocean_coupling_common ,ONLY: out_field_ids, in_field_ids
-  USE mo_coupling_utils      ,ONLY: cpl_put_field, cpl_get_field
+  USE mo_coupling_utils      ,ONLY: cpl_put_field, cpl_get_field, &
+                                  & cpl_get_field_datetime
+  USE mtime                  ,ONLY: datetime, OPERATOR(<)
+  USE mo_run_config          ,ONLY: msg_level
+  USE mo_time_config         ,ONLY: time_config
+
 
   IMPLICIT NONE
 
@@ -318,6 +323,10 @@ CONTAINS
     REAL(wp) :: co2conc
 
     CHARACTER(LEN=*), PARAMETER :: routine = str_module // ':couple_ocean'
+    LOGICAL, SAVE :: lcheck_for_timelag = .TRUE.
+    TYPE(datetime)  :: curr_datetime_umfl
+
+    IF(time_config%timeshift%dt_shift .eq. 0) lcheck_for_timelag = .FALSE.
 
     CALL assert_acc_host_only('couple_ocean', lacc)
 
@@ -364,6 +373,22 @@ CONTAINS
       CALL finish(routine, 'ocean velocities are expected but fields &
           &have not been registered with YAC')
     END IF
+
+    ! A component may execute timesteps for dates before the actual
+    ! start of this simulation (e.g. due to IAU). These timesteps are currently
+    ! not considered for coupling, which is why they are skipped here.
+    ! The first actual coupling timestep usually is a start_date + lag * field_timestep.
+    IF (lcheck_for_timelag) THEN
+
+      ! query current timestamps of source/target fields
+      curr_datetime_umfl = cpl_get_field_datetime(routine, out_field_ids%umfl )
+
+      ! skip data exchange as long as the model timestamp lags behind the field timestamp.
+      lcheck_for_timelag = (time_config%tc_current_date < curr_datetime_umfl)
+
+      IF (lcheck_for_timelag) RETURN
+
+    ENDIF !lcheck_for_timelag
 
     !  *****  *****  *****  *****  *****  *****  *****  *****  *****  *****  *****  *****
     !  Send fields from atmosphere to ocean
@@ -547,7 +572,16 @@ CONTAINS
 
     CALL cpl_get_field( &
       routine, in_field_ids(jg)%sst, 'sst', p_patch%n_patch_cells, &
-      rx%t_seasfc, first_get=.TRUE.)
+      rx%t_seasfc, first_get=.TRUE., received_data=received_data)
+
+
+    ! Check for errors with the coupling (enough if only done for sst as the time of all
+    ! fields was synchronized in construct_atmo_ocean_coupling_common_finalize)
+
+    IF (msg_level >= 10) THEN
+      WRITE (message_text,'(a,l7)') 'received data oce to atm (sst): ', received_data
+      CALL message(routine, message_text)
+    ENDIF
 
     !------------------------------------------------
     !  Receive zonal velocity
@@ -673,6 +707,5 @@ CONTAINS
     END IF
 
   END SUBROUTINE couple_ocean
-
 
 END MODULE mo_nwp_ocean_coupling
