@@ -478,6 +478,9 @@ MODULE mo_initicon
     INTEGER :: i_rlstart, i_rlend, i_nchdom
     INTEGER :: i_startblk, i_endblk
 
+    ! Switch, .TRUE. if FLake cold start initialization is required in 'MODE_COMBINED'
+    LOGICAL :: l_flake_coldinit_combined
+
     SELECT CASE(init_mode)
         CASE(MODE_DWDANA)
             ! process DWD atmosphere analysis data
@@ -543,37 +546,56 @@ MODULE mo_initicon
             ! FLake. The procedure is the same as in "int2lm". Note
             ! that no lake ice is assumed at the cold start.
             IF (llake) THEN
-                DO jg = 1, n_dom
-                    IF (.NOT. p_patch(jg)%ldom_active) CYCLE
-                    i_rlstart  = 1
-                    i_rlend    = min_rlcell
-                    i_nchdom   =  MAX(1,p_patch(jg)%n_childdom)
-                    i_startblk = p_patch(jg)%cells%start_blk(i_rlstart,1)
-                    i_endblk   = p_patch(jg)%cells%end_blk(i_rlend,i_nchdom)
+                loop_over_n_dom: DO jg = 1, n_dom
+                    IF (.NOT. p_patch(jg)%ldom_active) CYCLE loop_over_n_dom
+
+                    ! 'flake_coldinit' should be executed in 'MODE_COSMO'.
+                    ! It should also be executed in 'MODE_COMBINED'
+                    ! if at least one of the FLake prognostic variables is not available in the first-guess file.
+                    ! Note that in 'MODE_COSMO' inputInstructions(jg)%ptr%sourceOfVar('...')' for FLake prognostic
+                    ! variables are not set as a result of 'fetchSurface' calls
+                    ! (hence 'l_flake_coldinit_combined=.TRUE.' for 'MODE_COSMO').
+                    l_flake_coldinit_combined = .TRUE.
+                    IF(init_mode == MODE_COMBINED) THEN
+                      l_flake_coldinit_combined = MERGE(l_flake_coldinit_combined, .FALSE.,             &
+                        &  (inputInstructions(jg)%ptr%sourceOfVar('t_mnw_lk') == kInputSourceCold .OR.  &
+                        &   inputInstructions(jg)%ptr%sourceOfVar('t_wml_lk') == kInputSourceCold .OR.  &
+                        &   inputInstructions(jg)%ptr%sourceOfVar('h_ml_lk')  == kInputSourceCold .OR.  &
+                        &   inputInstructions(jg)%ptr%sourceOfVar('t_bot_lk') == kInputSourceCold .OR.  &
+                        &   inputInstructions(jg)%ptr%sourceOfVar('c_t_lk')   == kInputSourceCold) )
+                    END IF
+
+                    IF(l_flake_coldinit_combined) THEN
+                      i_rlstart  = 1
+                      i_rlend    = min_rlcell
+                      i_nchdom   =  MAX(1,p_patch(jg)%n_childdom)
+                      i_startblk = p_patch(jg)%cells%start_blk(i_rlstart,1)
+                      i_endblk   = p_patch(jg)%cells%end_blk(i_rlend,i_nchdom)
 !$OMP PARALLEL
 !$OMP DO PRIVATE(jb)
-                    DO jb = i_startblk, i_endblk
-                        CALL flake_coldinit(                                        &
-                            &   nflkgb      = ext_data(jg)%atm%list_lake%ncount(jb),&
-                            &   idx_lst_fp  = ext_data(jg)%atm%list_lake%idx(:,jb), &
-                            &   depth_lk    = ext_data(jg)%atm%depth_lk  (:,jb),    &
-                            &   tskin       = p_lnd_state(jg)%prog_lnd(nnow_rcf(jg))%t_so_t(:,1,jb,1),&
-                            &   t_snow_lk_p = p_lnd_state(jg)%prog_wtr(nnow_rcf(jg))%t_snow_lk(:,jb), &
-                            &   h_snow_lk_p = p_lnd_state(jg)%prog_wtr(nnow_rcf(jg))%h_snow_lk(:,jb), &
-                            &   t_ice_p     = p_lnd_state(jg)%prog_wtr(nnow_rcf(jg))%t_ice    (:,jb), &
-                            &   h_ice_p     = p_lnd_state(jg)%prog_wtr(nnow_rcf(jg))%h_ice    (:,jb), &
-                            &   t_mnw_lk_p  = p_lnd_state(jg)%prog_wtr(nnow_rcf(jg))%t_mnw_lk (:,jb), &
-                            &   t_wml_lk_p  = p_lnd_state(jg)%prog_wtr(nnow_rcf(jg))%t_wml_lk (:,jb), &
-                            &   t_bot_lk_p  = p_lnd_state(jg)%prog_wtr(nnow_rcf(jg))%t_bot_lk (:,jb), &
-                            &   c_t_lk_p    = p_lnd_state(jg)%prog_wtr(nnow_rcf(jg))%c_t_lk   (:,jb), &
-                            &   h_ml_lk_p   = p_lnd_state(jg)%prog_wtr(nnow_rcf(jg))%h_ml_lk  (:,jb), &
-                            &   t_b1_lk_p   = p_lnd_state(jg)%prog_wtr(nnow_rcf(jg))%t_b1_lk  (:,jb), &
-                            &   h_b1_lk_p   = p_lnd_state(jg)%prog_wtr(nnow_rcf(jg))%h_b1_lk  (:,jb), &
-                            &   t_g_lk_p    = p_lnd_state(jg)%prog_lnd(nnow_rcf(jg))%t_g_t    (:,jb,isub_lake) )
-                    ENDDO
+                      DO jb = i_startblk, i_endblk
+                          CALL flake_coldinit(                                        &
+                              &   nflkgb      = ext_data(jg)%atm%list_lake%ncount(jb),&
+                              &   idx_lst_fp  = ext_data(jg)%atm%list_lake%idx(:,jb), &
+                              &   depth_lk    = ext_data(jg)%atm%depth_lk  (:,jb),    &
+                              &   tskin       = p_lnd_state(jg)%prog_lnd(nnow_rcf(jg))%t_so_t(:,1,jb,1),&
+                              &   t_snow_lk_p = p_lnd_state(jg)%prog_wtr(nnow_rcf(jg))%t_snow_lk(:,jb), &
+                              &   h_snow_lk_p = p_lnd_state(jg)%prog_wtr(nnow_rcf(jg))%h_snow_lk(:,jb), &
+                              &   t_ice_p     = p_lnd_state(jg)%prog_wtr(nnow_rcf(jg))%t_ice    (:,jb), &
+                              &   h_ice_p     = p_lnd_state(jg)%prog_wtr(nnow_rcf(jg))%h_ice    (:,jb), &
+                              &   t_mnw_lk_p  = p_lnd_state(jg)%prog_wtr(nnow_rcf(jg))%t_mnw_lk (:,jb), &
+                              &   t_wml_lk_p  = p_lnd_state(jg)%prog_wtr(nnow_rcf(jg))%t_wml_lk (:,jb), &
+                              &   t_bot_lk_p  = p_lnd_state(jg)%prog_wtr(nnow_rcf(jg))%t_bot_lk (:,jb), &
+                              &   c_t_lk_p    = p_lnd_state(jg)%prog_wtr(nnow_rcf(jg))%c_t_lk   (:,jb), &
+                              &   h_ml_lk_p   = p_lnd_state(jg)%prog_wtr(nnow_rcf(jg))%h_ml_lk  (:,jb), &
+                              &   t_b1_lk_p   = p_lnd_state(jg)%prog_wtr(nnow_rcf(jg))%t_b1_lk  (:,jb), &
+                              &   h_b1_lk_p   = p_lnd_state(jg)%prog_wtr(nnow_rcf(jg))%h_b1_lk  (:,jb), &
+                              &   t_g_lk_p    = p_lnd_state(jg)%prog_lnd(nnow_rcf(jg))%t_g_t    (:,jb,isub_lake) )
+                      ENDDO
 !$OMP END DO
 !$OMP END PARALLEL
-                ENDDO
+                    END IF
+                ENDDO loop_over_n_dom
             ENDIF
     END SELECT
 

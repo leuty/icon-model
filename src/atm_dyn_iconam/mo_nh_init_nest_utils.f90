@@ -1014,7 +1014,8 @@ MODULE mo_nh_init_nest_utils
             IF (p_child_ldiag%fr_seaice(jc,jb) == 0._wp) THEN
               p_child_wprog%alb_si(jc,jb) = ALB_SI_MISSVAL ! -1
             ELSE
-              p_child_wprog%alb_si(jc,jb) = MIN(0.8_wp, MAX(0.4_wp, p_child_wprog%alb_si(jc,jb)))
+              ! Min and Max values are the same as in 'FUNCTION alb_seaice_equil'
+              p_child_wprog%alb_si(jc,jb) = MIN(0.7_wp, MAX(0.48_wp, p_child_wprog%alb_si(jc,jb)))
             ENDIF
           ENDIF
           IF (ext_data(jgc)%atm%fr_land(jc,jb) >= 1._wp-MAX(frlake_thrhld,frsea_thrhld)) THEN ! pure land point

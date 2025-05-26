@@ -1,5 +1,12 @@
 # Release notes for icon-2025.04-1
 
+### ICON-Atmo
+
+NWP Physics:
+
+- Fixes:
+  - Enables using spun-up FLake variables from first guess in MODE_COMBINED
+
 ### ICON-ART
 
 Fixes:
