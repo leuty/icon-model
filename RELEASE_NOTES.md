@@ -18,6 +18,7 @@ NWP Physics:
 - Fixes:
   - Inconsistent initialization time step length in vdiff interface and jsbach
   - Make ecRad compilable with Cray 17.0.1 for AMD GPUs (https://gitlab.dkrz.de/icon/icon/-/merge_requests/648)
+  - Enables using spun-up FLake variables from first guess in MODE_COMBINED (https://gitlab.dkrz.de/icon/icon/-/merge_requests/654).
 
 ### ICON-Ocean
 

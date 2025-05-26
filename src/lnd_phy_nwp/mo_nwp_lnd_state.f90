@@ -1099,7 +1099,7 @@ MODULE mo_nwp_lnd_state
       CALL add_var( prog_list, vname_prefix//'t_mnw_lk'//suffix, p_prog_wtr%t_mnw_lk,                                 &
            & GRID_UNSTRUCTURED_CELL, ZA_LAKE_BOTTOM, cf_desc, grib2_desc, ldims=shape2d, tlev_source=TLEV_NNOW_RCF,   &
            & in_group=groups("dwd_fg_sfc_vars","mode_dwd_fg_in","mode_iau_fg_in","mode_iau_old_fg_in","mode_iniana",  &
-           & "iau_restore_vars"),                                                                                     &
+           &                 "mode_combined_in","iau_restore_vars"),                                                  &
            & lopenacc=.TRUE. )
       __acc_attach(p_prog_wtr%t_mnw_lk)
 
@@ -1111,7 +1111,7 @@ MODULE mo_nwp_lnd_state
       CALL add_var( prog_list, vname_prefix//'t_wml_lk'//suffix, p_prog_wtr%t_wml_lk,                                 &
            & GRID_UNSTRUCTURED_CELL, ZA_MIX_LAYER, cf_desc, grib2_desc, ldims=shape2d, tlev_source=TLEV_NNOW_RCF,     &
            & in_group=groups("dwd_fg_sfc_vars","mode_dwd_fg_in","mode_iau_fg_in","mode_iau_old_fg_in","mode_iniana",  &
-           & "iau_restore_vars"),                                                                                     &
+           &                 "mode_combined_in","iau_restore_vars"),                                                  &
            & lopenacc=.TRUE. )
       __acc_attach(p_prog_wtr%t_wml_lk)
 
@@ -1123,7 +1123,7 @@ MODULE mo_nwp_lnd_state
       CALL add_var( prog_list, vname_prefix//'h_ml_lk'//suffix, p_prog_wtr%h_ml_lk,                                   &
            & GRID_UNSTRUCTURED_CELL, ZA_MIX_LAYER, cf_desc, grib2_desc, ldims=shape2d, tlev_source=TLEV_NNOW_RCF,     &
            & in_group=groups("dwd_fg_sfc_vars","mode_dwd_fg_in","mode_iau_fg_in","mode_iau_old_fg_in","mode_iniana",  &
-           & "iau_restore_vars"),                                                                                     &
+           &                 "mode_combined_in","iau_restore_vars"),                                                  &
            & lopenacc=.TRUE. )
       __acc_attach(p_prog_wtr%h_ml_lk)
 
@@ -1135,7 +1135,7 @@ MODULE mo_nwp_lnd_state
       CALL add_var( prog_list, vname_prefix//'t_bot_lk'//suffix, p_prog_wtr%t_bot_lk,                                    &
            & GRID_UNSTRUCTURED_CELL, ZA_LAKE_BOTTOM_HALF, cf_desc, grib2_desc, ldims=shape2d, tlev_source=TLEV_NNOW_RCF, &
            & in_group=groups("dwd_fg_sfc_vars","mode_dwd_fg_in","mode_iau_fg_in","mode_iau_old_fg_in","mode_iniana",     &
-           & "iau_restore_vars"),                                                                                        &
+           &                 "mode_combined_in","iau_restore_vars"),                                                     &
            & lopenacc=.TRUE. )
       __acc_attach(p_prog_wtr%t_bot_lk)
 
@@ -1148,7 +1148,7 @@ MODULE mo_nwp_lnd_state
       CALL add_var( prog_list, vname_prefix//'c_t_lk'//suffix, p_prog_wtr%c_t_lk,                                     &
            & GRID_UNSTRUCTURED_CELL, ZA_MIX_LAYER, cf_desc, grib2_desc, ldims=shape2d, tlev_source=TLEV_NNOW_RCF,     &
            & in_group=groups("dwd_fg_sfc_vars","mode_dwd_fg_in","mode_iau_fg_in","mode_iau_old_fg_in","mode_iniana",  &
-           & "iau_restore_vars"),                                                                                     &
+           &                 "mode_combined_in","iau_restore_vars"),                                                  &
            & lopenacc=.TRUE. )
       __acc_attach(p_prog_wtr%c_t_lk)
 
