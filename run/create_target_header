@@ -1140,6 +1140,9 @@ set_run_target_gpnl()
     set_default use_ecrad_isolver 2 # McICA for OpenACC
     use_nodes=1
 
+    # absolute path to cdo
+    cdo="/hpc/sw/cdo/2.2.1/x86/gnu/bin/cdo"
+
     if [[ "$use_mpi" == "yes" ]]
     then
         set_default use_mpi_procs_pernode 8
@@ -1152,9 +1155,13 @@ set_run_target_gpnl()
     cat >> "$output_script" <<EOF
 #PBS -q ${use_queue:-gp_norm_all}
 #PBS -l elapstim_req=00:20:00
-#PBS -l memsz_job=${use_memory:-1920Gb}
-#PBS -l vmemsz_job=1920Gb
-#PBS -l vmemsz_prc=1920Gb
+#PBS -v gpu_per_lhost=${use_mpi_procs_pernode}
+#PBS --gpunum-lhost=\${gpu_per_lhost}
+#PBS --cpunum-lhost=${use_mpi_procs_pernode}
+# Request 100Gb of memory per GPU (100Gb out ouf 240Gb possible)
+#PBS -l memsz_job=${use_memory:-\${gpu_per_lhost\}00Gb}
+#PBS -l vmemsz_job=${use_memory:-\${gpu_per_lhost\}00Gb}
+#PBS -l vmemsz_prc=240Gb
 #PBS -j o
 #PBS -o LOG.${job_name}.o
 #-----------------------------------------------------------------------------
