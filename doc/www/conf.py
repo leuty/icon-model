@@ -48,7 +48,7 @@ else:
     )
     commit_ref_name = os.getenv(
         "CI_COMMIT_REF_NAME",
-        "release-" + myst_substitutions["release"] + "-public",
+        "icon-" + myst_substitutions["release"] + "-public",
     )
 
 myst_substitutions["base_url"] = project_url + "/-/blob/" + commit_ref_name
