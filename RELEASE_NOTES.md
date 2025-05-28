@@ -18,7 +18,6 @@ NWP Physics:
 - Fixes:
   - Inconsistent initialization time step length in vdiff interface and jsbach
   - Make ecRad compilable with Cray 17.0.1 for AMD GPUs (https://gitlab.dkrz.de/icon/icon/-/merge_requests/648)
-  - Enables using spun-up FLake variables from first guess in MODE_COMBINED (https://gitlab.dkrz.de/icon/icon/-/merge_requests/654).
 
 ### ICON-Ocean
 
@@ -51,20 +50,13 @@ NWP: TERRA and other surface issues
 
 ### ICON-ART
 
-Fixes:
-  - changed used height array (z_mc -> z_ifc) for column computation in chemistry
-  - changed usage of tracer names to mode names in diagnostics routine regarding optical properties
-  - fixed setup information for standard configurations
-
 ### Coupling
 
 - Optimization of synchronization between atmosphere and ocean in coupled configurations (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/799)
 
 ### Externals
 
-- Switch to the latest version of ICON-TIXI
 - Switch to fortran-support 2.2.0
-- Switch to YAXT 0.11.4
 - Switch to CDI 2.5.2.1
 
 ### Infrastructure
@@ -88,6 +80,28 @@ Fixes:
 #### Miscellaneous
 
 - Some OpenACC optimizations and fixes
+
+
+# Release notes for icon-2025.04-1
+
+### ICON-Atmo
+
+NWP Physics:
+
+- Fixes:
+  - Enables using spun-up FLake variables from first guess in MODE_COMBINED
+
+### ICON-ART
+
+Fixes:
+  - changed used height array (z_mc -> z_ifc) for column computation in chemistry
+  - changed usage of tracer names to mode names in diagnostics routine regarding optical properties
+  - fixed setup information for standard configurations
+
+### Externals
+
+- Switch to the latest version of ICON-TIXI
+- Switch to YAXT 0.11.4
 
 
 # Release notes for icon-2025.04
