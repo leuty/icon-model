@@ -44,5 +44,8 @@
     <rho type="real">810.0</rho>           
     <condensation type="int">0</condensation>
     <icoag type="int">0</icoag>
+    <!-- lut_optics added, as lart_diag_out=.true.
+         uses 'blank' optics, as iart_ari=0 and no radiative diagnostic intented -->
+    <lut_optics type="char">blank</lut_optics>
   </aerosol>                               
 </modes>

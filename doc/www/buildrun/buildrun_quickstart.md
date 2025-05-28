@@ -8,7 +8,13 @@ ICON is simultaneously developed in several repositories. There is the *primary*
 Clone the ICON repository of choice and its submodules using the following command:
 
 ```sh
-git clone --recursive git@gitlab.dkrz.de/icon/icon-model.git
+git clone --recursive https://gitlab.dkrz.de/icon/icon-model.git
+```
+
+Users _with a DKRZ GitLab account_ are recommended to clone the repository via the SSH protocol:
+
+```sh
+git clone --recursive git@gitlab.dkrz.de:icon/icon-model.git
 ```
 
 ## Configuring and Building
@@ -99,4 +105,4 @@ For **detailed information** please refer to section [](ref_buildrun_running).
     tar --transform 's:^:build-report/:' -czf build-report.tar.gz $(find . -name 'config.log' -o -name 'CMakeCache.txt') make.log
     ```
 
-    The result of the commands above will be file `build-report.tar.gz`, which should be attached to the very first email describing your problem. Please, do not forget to specify the **repository** and the **branch** that you experience the issue with, preferably in the form of a URL (e.g. {{ '[https://gitlab.dkrz.de/icon/icon-model/-/tree/release-{}-public](https://gitlab.dkrz.de/icon/icon-model/-/tree/release-{}-public)'.format(release, release) }}).
+    The result of the commands above will be file `build-report.tar.gz`, which should be attached to the very first email describing your problem. Please, do not forget to specify the **repository** and the **branch** that you experience the issue with, preferably in the form of a URL (e.g. {{ '[https://gitlab.dkrz.de/icon/icon-model/-/tree/icon-{}-public](https://gitlab.dkrz.de/icon/icon-model/-/tree/icon-{}-public)'.format(release, release) }}).

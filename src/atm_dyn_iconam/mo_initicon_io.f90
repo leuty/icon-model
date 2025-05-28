@@ -1884,6 +1884,11 @@ MODULE mo_initicon_io
             ! currently removed from input variable groups, which are defined via add_var
             IF(ASSOCIATED(wtr_prog%t_b1_lk)) CALL fetchSurface(params, 't_b1_lk', jg, wtr_prog%t_b1_lk)
             IF(ASSOCIATED(wtr_prog%h_b1_lk)) CALL fetchSurface(params, 'h_b1_lk', jg, wtr_prog%h_b1_lk)
+            ! In 'MODE_COMBINED', an attempt will be made to fetch FLake prognostic variables
+            ! (apart from 't_b1_lk' and 'h_b1_lk') from the first-guess file.
+            ! If an attempt is unsuccessful, the run is not terminated with 'CALL finish(...)'
+            ! since FLake prognostic variables in 'MODE_COMBINED' are declared optional,
+            ! see 'mo_input_instructions'.
 
             IF(iprog_aero >= 1) THEN
                 IF (iprog_aero == 1) THEN

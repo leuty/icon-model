@@ -1,4 +1,0 @@
-BasedOnStyle: LLVM
-IndentExternBlock: Indent
-DerivePointerAlignment: true
-AlignConsecutiveAssignments: AcrossComments

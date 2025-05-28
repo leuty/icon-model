@@ -59,7 +59,7 @@ INTEGER FUNCTION art_get_tracer_index(p_art_data, tracer_name) RESULT(i_tracer)
 
 END FUNCTION art_get_tracer_index
 
-SUBROUTINE art_find_diagnostic_optprops_for_tracer(jg, mode_name, diag_opt_props)
+SUBROUTINE art_find_diagnostic_optprops_for_tracer(jg, mode_name, diag_opt_props, success)
 !<
 ! SUBROUTINE art_find_diagnostic_optprops_for_tracer
 ! This routine searches through the modes for the one with the given tracer names and
@@ -70,23 +70,23 @@ SUBROUTINE art_find_diagnostic_optprops_for_tracer(jg, mode_name, diag_opt_props
 ! Initial Release: 2024-11-20
 !>
   !arguments
-  INTEGER, INTENT(IN)           :: jg !< patch id
-  CHARACTER(LEN=*), INTENT(IN)  :: mode_name
+  INTEGER, INTENT(IN)                :: jg !< patch id
+  CHARACTER(LEN=*), INTENT(IN)       :: mode_name
   TYPE(t_diag_optprops), INTENT(OUT) :: diag_opt_props
+  LOGICAL, INTENT(OUT)               :: success
   !local variables
-  TYPE(t_mode), POINTER          :: current_mode !< pointer to loop through mode structure
-  LOGICAL                        :: l_found
+  TYPE(t_mode), POINTER              :: current_mode !< pointer to loop through mode structure
 
-  l_found = .FALSE. !< first assume correct mode is not present
+  success = .FALSE. !< first assume correct mode is not present
   current_mode => p_mode_state(jg)%p_mode_list%p%first_mode
   DO WHILE(ASSOCIATED(current_mode))
     IF (TRIM(current_mode%fields%name) == TRIM(mode_name)) THEN
       SELECT TYPE (fields=>current_mode%fields)
         CLASS IS (t_fields_2mom)
           diag_opt_props = fields%diag_opt_props
-          l_found = .TRUE. !< found the correct mode
+          success = .TRUE. !< found the correct mode
         CLASS DEFAULT
-          CALL message('mo_art_aero_optical_props:art_find_diagnostic_optprops_for:tracer', &
+          CALL message('mo_art_aero_optical_props:art_find_diagnostic_optprops_for_tracer', &
             &          'mode '//TRIM(mode_name)//' is not of kind "2mom". '//&
             &          'Cannot return any diagnostic optprops!')
       END SELECT
@@ -95,19 +95,13 @@ SUBROUTINE art_find_diagnostic_optprops_for_tracer(jg, mode_name, diag_opt_props
     current_mode => current_mode%next_mode
   ENDDO
 
-  IF (.NOT.l_found) THEN
-    CALL finish('mo_art_aero_optical_props:art_find_optics_name_for_tracer', &
-      &         'Cannot find mode for tracer '//TRIM(mode_name)//'.' )
-  ENDIF
-
 END SUBROUTINE art_find_diagnostic_optprops_for_tracer
 
 
 
 SUBROUTINE art_calc_aod_single_diag(diag, istart, iend, nlev, jg, jb,         &
     &                               tracer, dz, rho, n_wavel,                 &
-    &                               imode1, tracername1, imode2, tracername2, &
-    &                               imode3, tracername3, imode4, tracername4 )
+    &                               n_modes, tracer_idx, mode_names, success)
 !<
 ! SUBROUTINE art_calc_aod_single_diag
 ! This subroutine calculates the aerosol optical depth at 9 different wavelengths used by AERONET or only at 550nm
@@ -124,33 +118,42 @@ SUBROUTINE art_calc_aod_single_diag(diag, istart, iend, nlev, jg, jb,         &
 !>
   !arguments
   TYPE(t_art_aeronet), INTENT(INOUT) :: diag(:)                        !< diagnostics container
+  LOGICAL, INTENT(INOUT) ::             success                        !< success of this routine
   INTEGER, INTENT(IN) ::                istart, iend,                & !< Start and end index of nproma loop
     &                                   nlev, jb,                    & !< Number of verical levels, Block index
     &                                   jg,                          & !< Patch id
     &                                   n_wavel,                     & !< number of wavelengths
-    &                                   imode1, imode2, imode3, imode4 !< tracer indices
+    &                                   n_modes                        !< number of modes
+  INTEGER, INTENT(IN) ::                tracer_idx(:)                  !< corresponding tracer indices
   REAL(wp), INTENT(IN) ::               rho(:,:,:),                  & !< Air density
     &                                   tracer(:,:,:,:),             & !< Tracer mixing ratios [kg/kg]
     &                                   dz(:,:,:)                      !< Layer height
-  CHARACTER(LEN=*), INTENT(IN) ::       tracername1, tracername2,    & !< tracer names
-    &                                   tracername3, tracername4       !< tracer names
+  CHARACTER(LEN=*), INTENT(IN) ::       mode_names(:)                  !< mode names
   !local variables
-  INTEGER ::                        jk, jc, i_wavel !, i550nm
+  LOGICAL ::                        available(n_modes)
+  INTEGER ::                        i, jk, jc, i_wavel, n_successes !, i550nm
   REAL(wp) ::                       ext_value
-  TYPE(t_diag_optprops) ::          diag1, diag2, diag3, diag4
+  TYPE(t_diag_optprops) ::          modediag(n_modes)
 
-  IF (imode1 > 0) THEN
-    CALL art_find_diagnostic_optprops_for_tracer(jg, tracername1, diag1)
-  ENDIF
-  IF (imode2 > 0) THEN
-    CALL art_find_diagnostic_optprops_for_tracer(jg, tracername2, diag2)
-  ENDIF
-  IF (imode3 > 0) THEN
-    CALL art_find_diagnostic_optprops_for_tracer(jg, tracername3, diag3)
-  ENDIF
-  IF (imode4 > 0) THEN
-    CALL art_find_diagnostic_optprops_for_tracer(jg, tracername4, diag4)
-  ENDIF
+  n_successes = 0
+  DO i = 1, n_modes
+    IF (tracer_idx(i) > 0) THEN
+      CALL art_find_diagnostic_optprops_for_tracer(jg, mode_names(i), modediag(i), available(i))
+      IF (available(i)) THEN
+        n_successes = n_successes + 1
+      END IF
+    ELSE
+      available(i) = .FALSE.
+    END IF
+  END DO
+
+  IF (n_successes == 0) THEN
+    !TODO: add info, which diagnostic is here unsufficient established.
+    CALL message("mo_art_aero_opt_props:art_calc_aod_single_diag", &
+      &          "Could not find any mode contributing to this diagnostic.")
+    success = .FALSE.
+    return
+  END IF
 
   IF (n_wavel == 1) THEN
     DO i_wavel = 1, n_wavel
@@ -158,18 +161,12 @@ SUBROUTINE art_calc_aod_single_diag(diag, istart, iend, nlev, jg, jb,         &
         DO jk = 1, nlev
           DO jc = istart, iend
             ext_value = 0.0_wp;
-            IF (imode1>0) THEN
-              ext_value = ext_value + diag1%ext_snglwave(i_wavel) * tracer(jc,jk,jb,imode1)
-            ENDIF
-            IF (imode2>0) THEN
-              ext_value = ext_value + diag2%ext_snglwave(i_wavel) * tracer(jc,jk,jb,imode2)
-            ENDIF
-            IF (imode3>0) THEN
-              ext_value = ext_value + diag3%ext_snglwave(i_wavel) * tracer(jc,jk,jb,imode3)
-            ENDIF
-            IF (imode4>0) THEN
-              ext_value = ext_value + diag4%ext_snglwave(i_wavel) * tracer(jc,jk,jb,imode4)
-            ENDIF
+            DO i = 1,n_modes
+              IF (available(i)) THEN
+                ext_value = ext_value + modediag(i)%ext_snglwave(i_wavel) &
+                  &                   * tracer(jc,jk,jb,tracer_idx(i))
+              ENDIF
+            END DO
             !factor 1.e-6_wp converts tracer from ug/kg to g/kg as extinction is given in nm2/g
             ext_value = ext_value * rho(jc,jk,jb) * 1.e-6_wp
             diag(i_wavel)%tau(jc,jk,jb) = ext_value * dz(jc,jk,jb)
@@ -185,18 +182,12 @@ SUBROUTINE art_calc_aod_single_diag(diag, istart, iend, nlev, jg, jb,         &
         DO jk = 1, nlev
           DO jc = istart, iend
             ext_value = 0.0_wp;
-            IF (imode1>0) THEN
-              ext_value = ext_value + diag1%ext_aeronet(i_wavel) * tracer(jc,jk,jb,imode1)
-            ENDIF
-            IF (imode2>0) THEN
-              ext_value = ext_value + diag2%ext_aeronet(i_wavel) * tracer(jc,jk,jb,imode2)
-            ENDIF
-            IF (imode3>0) THEN
-              ext_value = ext_value + diag3%ext_aeronet(i_wavel) * tracer(jc,jk,jb,imode3)
-            ENDIF
-            IF (imode4>0) THEN
-              ext_value = ext_value + diag4%ext_aeronet(i_wavel) * tracer(jc,jk,jb,imode4)
-            ENDIF
+            DO i = 1,n_modes
+              IF (available(i)) THEN
+                ext_value = ext_value + modediag(i)%ext_aeronet(i_wavel) &
+                  &                   * tracer(jc,jk,jb,tracer_idx(i))
+              ENDIF
+            END DO
             !factor 1.e-6_wp converts tracer from ug/kg to g/kg as extinction is given in nm2/g
             ext_value = ext_value * rho(jc,jk,jb) * 1.e-6_wp
             diag(i_wavel)%tau(jc,jk,jb) = ext_value * dz(jc,jk,jb)
@@ -206,12 +197,14 @@ SUBROUTINE art_calc_aod_single_diag(diag, istart, iend, nlev, jg, jb,         &
     ENDDO ! i_wavel
   END IF
 
+  success = .TRUE.
+
 END SUBROUTINE art_calc_aod_single_diag
 
 SUBROUTINE art_calc_aodvar_aeronet(aeronet, istart, iend, nlev, jb, jg, &
   &                                n_wavel,                             &
   &                                ini_cmd, cmd, rho, dz, tracer,       &
-  &                                imode, tracer_name)
+  &                                tracer_idx, mode_name)
 !<
 ! SUBROUTINE art_calc_aodvar_aeronet
 ! This subroutine calculates the aerosol optical depth at 9 different wavelengths used by AERONET for one mode
@@ -232,23 +225,30 @@ SUBROUTINE art_calc_aodvar_aeronet(aeronet, istart, iend, nlev, jb, jg, &
     &                                   nlev, jb,                    & !< Number of verical levels, Block index
     &                                   jg,                          & !< Patch id
     &                                   n_wavel,                     & !< number of wavelengths
-    &                                   imode                          !< tracer container index
+    &                                   tracer_idx                     !< tracer container index
   REAL(wp), INTENT(IN)               :: ini_cmd,                     & !< Initial Diameter number conc.
     &                                   cmd(:,:),                    & !< Diameter with respect to number conc.
     &                                   rho(:,:,:),                  & !< Air density
     &                                   dz(:,:,:),                   & !< Layer height
     &                                   tracer(:,:,:,:)                !< Tracer mixing ratios [kg/kg]
-  CHARACTER(LEN=*), INTENT(IN)       :: tracer_name
+  CHARACTER(LEN=*), INTENT(IN)       :: mode_name
   !local variables
+  LOGICAL                        :: available
   INTEGER                        :: jk, jc, i_wavel
   REAL(wp)                       :: fac_cmd
   TYPE(t_diag_optprops)          :: diag_opt_props
 
-  IF (imode < 1) THEN
+  IF (tracer_idx < 1) THEN
     RETURN
   ENDIF
 
-  CALL art_find_diagnostic_optprops_for_tracer(jg, tracer_name, diag_opt_props)
+  available = .FALSE.
+  CALL art_find_diagnostic_optprops_for_tracer(jg, mode_name, diag_opt_props, available)
+  IF (.NOT. available) THEN
+    CALL message('mo_art_aero_optical_props:art_calc_oadvar_aeronet', &
+      &          'Cannot find optical properties of required mode for aod diagnostic with variable diameter modes.')
+    RETURN
+  END IF
 
   DO i_wavel = 1, n_wavel
     IF (ASSOCIATED(aeronet(i_wavel)%tau)) THEN
@@ -263,7 +263,7 @@ SUBROUTINE art_calc_aodvar_aeronet(aeronet, istart, iend, nlev, jb, jg, &
           !factor 1.e-6_wp converts tracer from ug/kg to g/kg as extinction is given in nm2/g
           aeronet(i_wavel)%tau(jc,jk,jb) = aeronet(i_wavel)%tau(jc,jk,jb)             &
             &                            + diag_opt_props%ext_aeronet(i_wavel)        &
-            &                            * tracer(jc,jk,jb,imode)                     &
+            &                            * tracer(jc,jk,jb,tracer_idx)                &
             &                            * fac_cmd * rho(jc,jk,jb) * 1.e-6_wp * dz(jc,jk,jb)
         ENDDO !jc
       ENDDO !jk
@@ -274,13 +274,13 @@ END SUBROUTINE art_calc_aodvar_aeronet
 
 SUBROUTINE art_calc_single_backscatter(ceilometer, attenuation, satellite,            &
   &                                    istart, iend, nlev, jg, jb, tracer, dz, rho,   &
-  &                                    imode1, tname1, imode2, tname2, imode3, tname3 )
+  &                                    n_modes, tracer_idx, mode_names )
 !<
 ! SUBROUTINE art_calc_single_backscatter
 ! This subroutine calculates the aerosol backscatter and attenuated backscattter at 3 different
 ! wavelengths used by lidars from ground and from satellite
-! It combines the extinction and backscatter properties of up to 3 different tracers/modes, which are
-! given by `tnameX` amd their corresponding indices `imodeX` for the `tracer` array.
+! It combines the extinction and backscatter properties of multiple tracers/modes, which are
+! given by `mode_names` and their corresponding indices `tracer_idx` for the `tracer` array.
 ! It's a rewrite of the code developed by D. Rieger, P. Gasch and C. Walter (2014 - 2015)
 !
 ! Part of Module: mo_art_aero_optical_props
@@ -295,41 +295,49 @@ SUBROUTINE art_calc_single_backscatter(ceilometer, attenuation, satellite,      
   INTEGER, INTENT(IN) ::                istart, iend,                & !< Start and end index of nproma loop
     &                                   nlev, jb,                    & !< Number of verical levels, Block index
     &                                   jg,                          & !< Patch id
-    &                                   imode1, imode2, imode3         !< Tracer indices
+    &                                   n_modes,                     & !< number of modes
+    &                                   tracer_idx(:)                  !< Tracer indices
   REAL(wp), INTENT(IN) ::               rho(:,:,:),                  & !< Air density
     &                                   tracer(:,:,:,:),             & !< Tracer mixing ratios [kg/kg]
     &                                   dz(:,:,:)                      !< Layer height
-  CHARACTER(LEN=*), INTENT(IN) ::       tname1, tname2, tname3         !< Tracer names
+  CHARACTER(LEN=*), INTENT(IN) ::       mode_names(:)                  !< Mode names
   !local variables
-  INTEGER ::               jk, jkp1, jkm1, jc, i_wavel !, i550nm
+  LOGICAL ::               available(n_modes)
+  INTEGER ::               i, jk, jkp1, jkm1, jc, i_wavel, n_successes !, i550nm
   REAL(wp) ::              ext_value, bsc_value
-  TYPE(t_diag_optprops) :: diag1, diag2, diag3
+  TYPE(t_diag_optprops) :: modediag(n_modes)
   REAL(wp), DIMENSION(:,:), ALLOCATABLE :: att_arr
 
-  IF (imode1 > 0) THEN
-    CALL art_find_diagnostic_optprops_for_tracer(jg, tname1, diag1)
-  ENDIF
-  IF (imode2 > 0) THEN
-    CALL art_find_diagnostic_optprops_for_tracer(jg, tname2, diag2)
-  ENDIF
-  IF (imode3 > 0) THEN
-    CALL art_find_diagnostic_optprops_for_tracer(jg, tname3, diag3)
-  ENDIF
+  n_successes = 0
+  DO i = 1,n_modes
+    IF (tracer_idx(i) > 0) THEN
+      CALL art_find_diagnostic_optprops_for_tracer(jg, mode_names(i), modediag(i), available(i))
+      IF (available(i)) THEN
+        n_successes = n_successes + 1
+      ENDIF
+    ELSE
+      available(i) = .FALSE.
+    ENDIF
+  END DO
+
+  IF (n_successes == 0) THEN
+    !TODO: error message with specification of the bsc diag
+    CALL message("mo_art_aero_opt_props:art_calc_single_backscatter", &
+      &          "Could not find all modes corresponding to this backscatter diagnostic.")
+    RETURN
+  END IF
 
   DO i_wavel = 1, 3
     IF (ASSOCIATED(ceilometer(i_wavel)%bsc)) THEN
       DO jk=1,nlev
         DO jc = istart, iend
            bsc_value = 0.0_wp
-           IF (imode1 > 0) THEN
-             bsc_value = bsc_value + diag1%bsc_satellite(i_wavel) * tracer(jc,jk,jb,imode1)
-           END IF
-           IF (imode2 > 0) THEN
-             bsc_value = bsc_value + diag2%bsc_satellite(i_wavel) * tracer(jc,jk,jb,imode2)
-           END IF
-           IF (imode3 > 0) THEN
-             bsc_value = bsc_value + diag3%bsc_satellite(i_wavel) * tracer(jc,jk,jb,imode3)
-           END IF
+           DO i = 1,n_modes
+             IF (available(i)) THEN
+               bsc_value = bsc_value + modediag(i)%bsc_satellite(i_wavel) &
+                 &                   * tracer(jc,jk,jb,tracer_idx(i))
+             END IF
+           ENDDO
            !factor 1.e-6_wp converts tracer from ug/kg to g/kg as extinction is given in nm2/g
            ceilometer(i_wavel)%bsc(jc,jk,jb) = bsc_value * rho(jc,jk,jb) * 1.e-6_wp
         ENDDO !jc
@@ -350,15 +358,12 @@ SUBROUTINE art_calc_single_backscatter(ceilometer, attenuation, satellite,      
         DO jc = istart, iend
           IF (jk == nlev) att_arr(jc,jk) = 0.0_wp
           ext_value = 0.0_wp
-          IF (imode1 > 0) THEN
-            ext_value = ext_value + diag1%ext_satellite(i_wavel) * tracer(jc,jk,jb,imode1)
-          END IF
-          IF (imode2 > 0) THEN
-            ext_value = ext_value + diag2%ext_satellite(i_wavel) * tracer(jc,jk,jb,imode2)
-          END IF
-          IF (imode3 > 0) THEN
-            ext_value = ext_value + diag3%ext_satellite(i_wavel) * tracer(jc,jk,jb,imode3)
-          END IF
+          DO i = 1,n_modes
+            IF (available(i)) THEN
+              ext_value = ext_value + modediag(i)%ext_satellite(i_wavel) &
+                &                   * tracer(jc,jk,jb,tracer_idx(i))
+            END IF
+          ENDDO
           !factor 1.e-6_wp converts tracer from ug/kg to g/kg as extinction is given in nm2/g
           att_arr(jc,jk) = att_arr(jc,jkp1) + &
             &              ext_value * rho(jc,jk,jb) * 1.e-6_wp * dz(jc,jk,jb)
@@ -383,15 +388,12 @@ SUBROUTINE art_calc_single_backscatter(ceilometer, attenuation, satellite,      
         DO jc = istart, iend
           IF (jk == 1) att_arr(jc,jk) = 0.0_wp
           ext_value = 0.0_wp
-          IF (imode1 > 0) THEN
-            ext_value = ext_value + diag1%ext_satellite(i_wavel) * tracer(jc,jk,jb,imode1)
-          END IF
-          IF (imode2 > 0) THEN
-            ext_value = ext_value + diag2%ext_satellite(i_wavel) * tracer(jc,jk,jb,imode2)
-          END IF
-          IF (imode3 > 0) THEN
-            ext_value = ext_value + diag3%ext_satellite(i_wavel) * tracer(jc,jk,jb,imode3)
-          END IF
+          DO i = 1,n_modes
+            IF (available(i)) THEN
+              ext_value = ext_value + modediag(i)%ext_satellite(i_wavel) &
+                &                   * tracer(jc,jk,jb,tracer_idx(i))
+            END IF
+          ENDDO
           !factor 1.e-6_wp converts tracer from ug/kg to g/kg as extinction is given in nm2/g
           att_arr(jc,jk) = att_arr(jc,jkm1) + &
             &              ext_value * rho(jc,jk,jb) * 1.e-6_wp * dz(jc,jk,jb)
@@ -450,6 +452,7 @@ SUBROUTINE art_calc_aod(rho, tracer, dz, istart, iend, nlev, jb, jg, var_med_dia
   TYPE(t_art_data),INTENT(inout) :: &
     &  p_art_data             !< Data container for ART
   ! Local variables
+  LOGICAL  ::  success
   INTEGER  ::                            &
     ! tracer container indices for:
     &  iso4_sol_ait, iso4_sol_acc,       & !< soluble sulfate (SO4)
@@ -466,7 +469,7 @@ SUBROUTINE art_calc_aod(rho, tracer, dz, istart, iend, nlev, jb, jg, var_med_dia
     &  iasha, iashb, iashc,              & !< volcanic ash (generic)
     &  isoot,                            & !< soot (generic)
     &  isoot_insol_ait, isoot_insol_acc    !< insoluble soot
-  
+
   iso4_sol_ait   = art_get_tracer_index(p_art_data, 'so4_sol_ait')
   iso4_sol_acc   = art_get_tracer_index(p_art_data, 'so4_sol_acc')
   iash_insol_acc = art_get_tracer_index(p_art_data, 'ash_insol_acc')
@@ -474,15 +477,15 @@ SUBROUTINE art_calc_aod(rho, tracer, dz, istart, iend, nlev, jb, jg, var_med_dia
   iash_mixed_acc = art_get_tracer_index(p_art_data, 'ash_mixed_acc')
   iash_mixed_coa = art_get_tracer_index(p_art_data, 'ash_mixed_coa')
   iash_giant     = art_get_tracer_index(p_art_data, 'ash_giant')
-  
+
   ! Calculate AOD at specific wavelengths : SO4 - just for 550nm
   IF (iso4_sol_ait > 0 .OR. iso4_sol_acc > 0 ) THEN
     CALL art_calc_aod_single_diag(p_art_data%diag%so4_sol_aeronet,        &
       &                           istart, iend, nlev, jg, jb,             &
       &                           tracer, dz, rho, 1,                     &
-      &                           iso4_sol_ait, 'so4_sol_ait',            &
-      &                           iso4_sol_acc, 'so4_sol_acc',            &
-      &                           0, '', 0, '' )
+      &                           2, (/iso4_sol_ait,iso4_sol_acc/),       &
+      &                           (/'sol_ait','sol_acc'/),                &
+      &                           success )
   ENDIF
 
  ! Calculate AOD at specific wavelengths : ash insol - just for 550nm
@@ -490,9 +493,9 @@ SUBROUTINE art_calc_aod(rho, tracer, dz, istart, iend, nlev, jb, jg, var_med_dia
     CALL art_calc_aod_single_diag(p_art_data%diag%ash_insol_aeronet,      &
       &                           istart, iend, nlev, jg, jb,             &
       &                           tracer, dz, rho, 1,                     &
-      &                           iash_insol_acc, 'ash_insol_acc',        &
-      &                           iash_insol_coa, 'ash_insol_coa',        &
-      &                           0, '', 0, '' )
+      &                           2, (/iash_insol_acc,iash_insol_coa/),   &
+      &                           (/'insol_acc','insol_coa'/),            &
+      &                           success )
   ENDIF
 
  ! Calculate AOD at specific wavelengths : ash mixed - just for 550nm
@@ -500,9 +503,9 @@ SUBROUTINE art_calc_aod(rho, tracer, dz, istart, iend, nlev, jb, jg, var_med_dia
     CALL art_calc_aod_single_diag(p_art_data%diag%ash_mixed_aeronet,      &
       &                           istart, iend, nlev, jg, jb,             &
       &                           tracer, dz, rho, 1,                     &
-      &                           iash_mixed_acc, 'ash_mixed_acc',        &
-      &                           iash_mixed_coa, 'ash_mixed_coa',        &
-      &                           0, '', 0, '' )
+      &                           2, (/iash_mixed_acc,iash_mixed_coa/),   &
+      &                           (/'mixed_acc','mixed_coa'/),            &
+      &                           success )
   ENDIF
 
  ! Calculate AOD at specific wavelengths : ash giant - just for 550nm
@@ -510,8 +513,8 @@ SUBROUTINE art_calc_aod(rho, tracer, dz, istart, iend, nlev, jb, jg, var_med_dia
     CALL art_calc_aod_single_diag(p_art_data%diag%ash_giant_aeronet,      &
       &                           istart, iend, nlev, jg, jb,             &
       &                           tracer, dz, rho, 1,                     &
-      &                           iash_giant, 'ash_giant',                &
-      &                           0, '', 0, '', 0, '' )
+      &                           1, (/iash_giant/), (/'giant'/),         &
+      &                           success )
   ENDIF
 
   IF (art_config(jg)%lart_diag_out) THEN
@@ -539,18 +542,35 @@ SUBROUTINE art_calc_aod(rho, tracer, dz, istart, iend, nlev, jb, jg, var_med_dia
       ENDIF
 
       IF (idusta > 0 .AND. idustb > 0 .AND. idustc > 0) THEN
-        CALL art_calc_aod_single_diag(p_art_data%diag%dust_aeronet,       &
+        CALL art_calc_aod_single_diag(p_art_data%diag%dust_aeronet,        &
           &                           istart, iend, nlev, jg, jb,          &
           &                           tracer, dz, rho, 9,                  &
-          &                           idusta, 'dusta', idustb, 'dustb',    &
-          &                           idustc, 'dustc', 0, '' )
+          &                           3, (/idusta,idustb,idustc/),         &
+          &                           (/'dusta','dustb','dustc'/),         &
+          &                           success )
+        IF (.NOT. success) THEN
+          CALL art_calc_aod_single_diag(p_art_data%diag%dust_aeronet,        &
+            &                           istart, iend, nlev, jg, jb,          &
+            &                           tracer, dz, rho, 9,                  &
+            &                           3, (/idusta,idustb,idustc/),         &
+            &                           (/'insol_acc','insol_coa','giant    '/), &
+            &                           success )
+        END IF
       ELSE IF (idust_insol_acc > 0 .AND. idust_insol_coa > 0 .AND. idust_giant > 0) THEN
-        CALL art_calc_aod_single_diag(p_art_data%diag%dust_aeronet,       &
-          &                           istart, iend, nlev, jg, jb,          &
-          &                           tracer, dz, rho, 9,                  &
-          &                           idust_insol_acc, 'dust_insol_acc',   &
-          &                           idust_insol_coa, 'dust_insol_coa',   &
-          &                           0, '', 0, '' )
+        CALL art_calc_aod_single_diag(p_art_data%diag%dust_aeronet,           &
+          &                           istart, iend, nlev, jg, jb,             &
+          &                           tracer, dz, rho, 9,                     &
+          &                           2, (/idust_insol_acc,idust_insol_coa,idust_giant/), &
+          &                           (/'insol_acc','insol_coa','giant    '/),            &
+          &                           success )
+        IF (.NOT. success) THEN
+          CALL art_calc_aod_single_diag(p_art_data%diag%dust_aeronet,           &
+            &                           istart, iend, nlev, jg, jb,             &
+            &                           tracer, dz, rho, 9,                     &
+            &                           2, (/idust_insol_acc,idust_insol_coa,idust_giant/), &
+            &                           (/'dusta','dustb','dustc'/),            &
+            &                           success )
+        END IF
       ENDIF
 
     ENDIF
@@ -587,24 +607,24 @@ SUBROUTINE art_calc_aod(rho, tracer, dz, istart, iend, nlev, jb, jg, var_med_dia
         CALL art_calc_aod_single_diag(p_art_data%diag%seas_aeronet,        &
           &                           istart, iend, nlev, jg, jb,          &
           &                           tracer, dz, rho, 9,                  &
-          &                           iseasa, 'seasa', iseasb, 'seasb',    &
-          &                           iseasc, 'seasc', 0, '' )
+          &                           3, (/iseasa,iseasb,iseasc/),         &
+          &                           (/'seasa','seasb','seasc'/),         &
+          &                           success )
       ELSE IF (ina_sol_acc > 0 .AND. ina_sol_coa > 0 .AND.  &
         &      icl_sol_acc > 0 .AND. icl_sol_coa > 0) THEN
         CALL art_calc_aod_single_diag(p_art_data%diag%seas_aeronet,        &
           &                           istart, iend, nlev, jg, jb,          &
           &                           tracer, dz, rho, 9,                  &
-          &                           ina_sol_acc, 'na_sol_acc',           &
-          &                           ina_sol_coa, 'na_sol_coa',           &
-          &                           icl_sol_acc, 'cl_sol_acc',           &
-          &                           icl_sol_coa, 'cl_sol_coa' )
+          &                           4, (/ina_sol_acc,ina_sol_coa,icl_sol_acc,icl_sol_coa/),&
+          &                           (/'sol_acc','sol_coa','sol_acc','sol_coa'/),           &
+          &                           success )
       ELSE IF (inacl_sol_acc > 0 .AND. inacl_sol_coa > 0 ) THEN
         CALL art_calc_aod_single_diag(p_art_data%diag%seas_aeronet,        &
           &                           istart, iend, nlev, jg, jb,          &
           &                           tracer, dz, rho, 9,                  &
-          &                           inacl_sol_acc, 'nacl_sol_acc',       &
-          &                           inacl_sol_coa, 'nacl_sol_coa',       &
-          &                           0, '', 0, '' )
+          &                           2, (/inacl_sol_acc,inacl_sol_coa/),  &
+          &                           (/'sol_acc','sol_coa'/),             &
+          &                           success )
       ENDIF
 
     ENDIF
@@ -627,8 +647,9 @@ SUBROUTINE art_calc_aod(rho, tracer, dz, istart, iend, nlev, jb, jg, var_med_dia
         CALL art_calc_aod_single_diag(p_art_data%diag%volc_aeronet,        &
           &                           istart, iend, nlev, jg, jb,          &
           &                           tracer, dz, rho, 9,                  &
-          &                           iasha, 'asha', iashb, 'ashb',        &
-          &                           iashc, 'ashc', 0, '' )
+          &                           3, (/iasha,iashb,iashc/),            &
+          &                           (/'asha','ashb','ashc'/),            &
+          &                           success )
       ENDIF
 
     ENDIF
@@ -652,18 +673,19 @@ SUBROUTINE art_calc_aod(rho, tracer, dz, istart, iend, nlev, jb, jg, var_med_dia
       ENDIF
 
       IF (isoot > 0) THEN
-        CALL art_calc_aod_single_diag(p_art_data%diag%seas_aeronet,        &
+        CALL art_calc_aod_single_diag(p_art_data%diag%soot_aeronet,        &
           &                           istart, iend, nlev, jg, jb,          &
           &                           tracer, dz, rho, 9,                  &
-          &                           isoot, 'soot', 0, '', 0, '', 0, '' )
+          &                           1, (/isoot/), (/'soot'/),            &
+          &                           success )
       ELSE IF (isoot_insol_ait > 0 .AND. isoot_insol_acc > 0) THEN
         !do it with insoluble soot Aitken mode, or only accumulation mode?
-        CALL art_calc_aod_single_diag(p_art_data%diag%seas_aeronet,        &
-          &                           istart, iend, nlev, jg, jb,          &
-          &                           tracer, dz, rho, 9,                  &
-          &                           isoot_insol_ait, 'soot_insol_ait',   &
-          &                           isoot_insol_acc, 'soot_insol_acc',   &
-          &                           0, '', 0, '' )
+        CALL art_calc_aod_single_diag(p_art_data%diag%soot_aeronet,          &
+          &                           istart, iend, nlev, jg, jb,            &
+          &                           tracer, dz, rho, 9,                    &
+          &                           2, (/isoot_insol_ait,isoot_insol_acc/),&
+          &                           (/'insol_ait','insol_acc'/),           &
+          &                           success )
       ENDIF
 
     ENDIF
@@ -846,8 +868,8 @@ SUBROUTINE art_calc_bsc(rho,tracer, dz, istart, iend, nlev, jb, jg, p_art_data)
         &     p_art_data%diag%dust_sat,   &
         &     istart, iend, nlev, jg, jb, &
         &     tracer, dz, rho,            &
-        &     idusta, 'dusta', idustb,    &
-        &     'dustb', idustc, 'dustc')
+        &     3, (/idusta,idustb,idustc/),&
+        &     (/'dusta','dustb','dustc'/) )
 
     ENDIF
 
@@ -955,8 +977,8 @@ SUBROUTINE art_calc_bsc(rho,tracer, dz, istart, iend, nlev, jb, jg, p_art_data)
         &     p_art_data%diag%volc_sat,   &
         &     istart, iend, nlev, jg, jb, &
         &     tracer, dz, rho,            &
-        &     iasha, 'asha', iashb,       &
-        &     'ashb', iashc, 'ashc' )
+        &     3, (/iasha,iashb,iashc/),   &
+        &     (/'asha','ashb','ashc'/) )
       
     ENDIF
 
@@ -970,15 +992,16 @@ SUBROUTINE art_calc_bsc(rho,tracer, dz, istart, iend, nlev, jb, jg, p_art_data)
         &  'iart_fire > 0 is not (yet) supported on GPU')
 #endif
 
+      !Can combine isoot ('soot') with isoot_insol_ait,isoot_insol_acc ('insol_ait','insol_acc')
+      !as they do not interfere with each other. Either the first is set, or the second.
       CALL art_calc_single_backscatter(          &
         &     p_art_data%diag%soot_ceilo,        &
         &     p_art_data%diag%soot_att,          &
         &     p_art_data%diag%soot_sat,          &
         &     istart, iend, nlev, jg, jb,        &
         &     tracer, dz, rho,                   &
-        &     isoot, 'soot',                     &
-        &     isoot_insol_ait, 'soot_insol_ait', &
-        &     isoot_insol_acc, 'soot_insol_acc')
+        &     3, (/isoot,isoot_insol_ait,isoot_insol_acc/),&
+        &     (/'soot     ','insol_ait','insol_acc'/) )
       
     ENDIF !iart_fire >0
 

@@ -1,4 +1,0 @@
-Namespace(hello='world', arg='argument with spaces')
-plugin_info(id=2, name='python_adapter', options="../examples/simple_python_plugin.py --hello=world 'argument with spaces'", comm='')
-tracer dim_semantics: (2, 5, 3, 8, 8)
-tracer ncontained: 5

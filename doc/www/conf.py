@@ -35,7 +35,7 @@ myst_heading_anchors = 4
 
 myst_enable_extensions = ["deflist", "colon_fence", "substitution"]
 
-myst_substitutions = {"release": "2025.04"}
+myst_substitutions = {"release": "2025.04-1"}
 
 # Important: This needs to be updated with a new release.
 # Several URLs are built using this string
@@ -48,7 +48,7 @@ else:
     )
     commit_ref_name = os.getenv(
         "CI_COMMIT_REF_NAME",
-        "release-" + myst_substitutions["release"] + "-public",
+        "icon-" + myst_substitutions["release"] + "-public",
     )
 
 myst_substitutions["base_url"] = project_url + "/-/blob/" + commit_ref_name

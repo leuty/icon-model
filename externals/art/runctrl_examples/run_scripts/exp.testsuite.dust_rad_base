@@ -279,7 +279,7 @@ cat > ${atmo_namelist} << EOF
  lsq_high_ord      		= 3
  l_intp_c2l        		= .true.
  l_mono_c2l        		= .true.
- support_baryctr_intp 	= .true.
+ support_baryctr_intp 	        = .false.
 /
 &gribout_nml
  generatingCenter 		= 78
@@ -331,12 +331,12 @@ cat > ${atmo_namelist} << EOF
  iart_dust       = 1
  iart_nonsph	 = 1
  cart_io_suffix  = 'TCNR','TCNR'
- cart_aerosol_xml = '${INDIR}/${EXP}/tracers_dustrad.xml'
+ cart_aerosol_xml = '${ARTFOLDER}/runctrl_examples/xml_ctrl/${EXP}/tracers_dustrad.xml'
  cart_input_folder = '${INDIR}/${EXP}'
- cart_modes_xml  = '${INDIR}/${EXP}/modes_dustrad.xml'
- cart_coag_xml   = '${INDIR}/${EXP}/coagulate_dustrad.xml'
- cart_aero_emiss_xml = '${INDIR}/${EXP}/aero_emiss_dustrad.xml'
- cart_diagnostics_xml = '${INDIR}/${EXP}/diagnostics_aerosol_with_grib2.xml'
+ cart_modes_xml  = '${ARTFOLDER}/runctrl_examples/xml_ctrl/${EXP}/modes_dustrad.xml'
+ cart_coag_xml   = '${ARTFOLDER}/runctrl_examples/xml_ctrl/${EXP}/coagulate_dustrad.xml'
+ cart_aero_emiss_xml = '${ARTFOLDER}/runctrl_examples/xml_ctrl/${EXP}/aero_emiss_dustrad.xml'
+ cart_diagnostics_xml = '${ARTFOLDER}/runctrl_examples/xml_ctrl/${EXP}/diagnostics_aerosol_with_grib2.xml'
  cart_opt_props_nc = '${OUTDIR}/prescribed_opt_props.nc'
 /
 EOF

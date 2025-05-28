@@ -18,9 +18,9 @@ infrastructure/infrastructure.md
 literature/literature.md
 ```
 
-:::{admonition} Release Information & Quick Start
+:::{admonition} Release Information
 :class: admonition-icontheme
-The spring release of ICON 2025.04 has been published and is available for download.
+ICON {{ '{}'.format(release) }} has been published and is available for download.
 Information on the changes are available in the {{ '[**Release Notes**]({}/RELEASE_NOTES.md)'.format(base_url) }}.
 :::
 
@@ -40,7 +40,7 @@ Information on the changes are available in the {{ '[**Release Notes**]({}/RELEA
 :::{grid-item-card}
 [**Interfaces & Tools**](ref_tools)
 ^^^
-[](ref_tools_gridextpargui)  
+[Zonda](ref_tools_gridextpargui)  
 [](ref_tools_yac)  
 [](ref_tools_cdo)  
 [](ref_tools_comin)

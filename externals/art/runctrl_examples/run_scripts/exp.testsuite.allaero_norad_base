@@ -2,16 +2,17 @@
 ln -sf ${ICONFOLDER}/data/rrtmg_lw.nc rrtmg_lw.nc
 ln -sf ${ICONFOLDER}/data/ECHAM6_CldOptProps.nc ECHAM6_CldOptProps.nc
 
-ln -sf ${INDIR}/iconR2B06_DOM01.nc iconR2B06_DOM01.nc
-ln -sf ${INDIR}/iconR2B06_DOM01-grfinfo.nc iconR2B06_DOM01-grfinfo.nc
-ln -sf ${INDIR}/extpar_iconR2B06_DOM01.nc extpar_iconR2B06_DOM01.nc
-ln -sf ${INDIR}/ART_IAE_iconR2B06-grid_TCNR.nc ART_IAE_iconR2B06-grid_TCNR.nc
-ln -sf ${INDIR}/ART_STY_iconR2B06-grid_TCNR.nc  ART_STY_iconR2B06-grid_TCNR.nc
-ln -sf ${INDIR}/dwdFG_R2B06_DOM01.grb dwdFG_R2B06_DOM01.grb
-ln -sf ${INDIR}/dwdana_R2B06_DOM01.grb dwdana_R2B06_DOM01.grb
-ln -sf ${INDIR}/ART_BCF_iconR2B06-grid_TCNR.nc ART_BCF_iconR2B06-grid_TCNR.nc
-ln -sf ${INDIR}/Mie_ICON_CMD_USE.xml Mie_ICON_CMD_USE.xml                        
-ln -sf ${INDIR}/ana_varnames_map_file.txt map_file.ana
+ln -sf ${INDIR}/${EXP}/iconR2B06_DOM01.nc iconR2B06_DOM01.nc
+ln -sf ${INDIR}/${EXP}/iconR2B06_DOM01-grfinfo.nc iconR2B06_DOM01-grfinfo.nc
+ln -sf ${INDIR}/${EXP}/extpar_iconR2B06_DOM01.nc extpar_iconR2B06_DOM01.nc
+ln -sf ${INDIR}/${EXP}/ART_IAE_iconR2B06-grid_TCNR.nc ART_IAE_iconR2B06-grid_TCNR.nc
+ln -sf ${INDIR}/${EXP}/ART_STY_iconR2B06-grid_TCNR.nc  ART_STY_iconR2B06-grid_TCNR.nc
+ln -sf ${INDIR}/${EXP}/dwdFG_R2B06_DOM01.grb dwdFG_R2B06_DOM01.grb
+ln -sf ${INDIR}/${EXP}/dwdana_R2B06_DOM01.grb dwdana_R2B06_DOM01.grb
+ln -sf ${INDIR}/${EXP}/ART_BCF_iconR2B06-grid_TCNR.nc ART_BCF_iconR2B06-grid_TCNR.nc
+ln -sf ${ARTFOLDER}/runctrl_examples/xml_ctrl/${EXP}/ana_varnames_map_file.txt map_file.ana
+
+ln -sf $ARTFOLDER/runctrl_examples/init_ctrl/PrescribedOpticalProperties_CMD_USE.nc $OUTDIR/prescribed_opt_props.nc
 
 
 # the namelist filename
@@ -278,7 +279,7 @@ cat > ${atmo_namelist} << EOF
  lsq_high_ord      	   = 3
  l_intp_c2l        	   = .true.
  l_mono_c2l        	   = .true.
- support_baryctr_intp 	   = .true.
+ support_baryctr_intp 	   = .false.
 /
 &gribout_nml
  generatingCenter 	   = 78
@@ -314,18 +315,20 @@ cat > ${atmo_namelist} << EOF
  iart_ari                  = 0
  iart_init_aero            = 5
  iart_seasalt              = 0
- iart_dust                 = 0
+ iart_dust                 = 1
  iart_fire                 = 1
  iart_volcano              = 0  
  iart_aero_washout         = 1
  iart_nonsph	           = 0
  iart_isorropia            = 0
  cart_io_suffix            = 'TCNR'
- cart_aerosol_xml          = '${INDIR}/tracers_allaero_norad.xml'
- cart_input_folder         = '${INDIR}/'
- cart_modes_xml            = '${INDIR}/modes_allaero_norad.xml'
- cart_aero_emiss_xml       = '${INDIR}/aero_emiss_allaero_norad.xml'
- cart_diagnostics_xml      = '${INDIR}/diagnostics_allaero_norad.xml'
+ cart_aerosol_xml          = '${ARTFOLDER}/runctrl_examples/xml_ctrl/${EXP}/tracers_allaero_norad.xml'
+ !cart_coag_xml             = '${ARTFOLDER}/runctrl_examples/xml_ctrl/${EXP}/coagulate_allaero_norad.xml'
+ cart_input_folder         = '${INDIR}/${EXP}/'
+ cart_modes_xml            = '${ARTFOLDER}/runctrl_examples/xml_ctrl/${EXP}/modes_allaero_norad.xml'
+ cart_aero_emiss_xml       = '${ARTFOLDER}/runctrl_examples/xml_ctrl/${EXP}/aero_emiss_allaero_norad.xml'
+ cart_diagnostics_xml      = '${ARTFOLDER}/runctrl_examples/xml_ctrl/${EXP}/diagnostics_allaero_norad.xml'
+ cart_opt_props_nc         = '${OUTDIR}/prescribed_opt_props.nc'
 /
 
 EOF

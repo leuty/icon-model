@@ -17,6 +17,8 @@ ln -sf ${INDIR}/${EXP}/map_file.ana map_file.ana
 ln -sf ${INDIR}/${EXP}/map_file.lbc map_file.lbc
 ln -sf ${INDIR}/${EXP}/map_file.fc map_file.fc
 
+ln -sf ${ARTFOLDER}/runctrl_examples/init_ctrl/PrescribedOpticalProperties_CMD_USE.nc ${OUTDIR}/prescribed_opt_props.nc
+
 
 # the namelist filename
 atmo_namelist=NAMELIST_${EXP}
@@ -80,7 +82,7 @@ checkpointTimeIntval = "$checkpoint_interval"
   model_inc_rank	=	1
 /
 &time_nml
- ini_datetime_string = "$STARTDATE"
+ ini_datetime_string = "$start_date"
  dt_restart          = $dt_restart
 /
 EOF
@@ -303,6 +305,7 @@ cat > ${atmo_namelist} << EOF
  lsq_high_ord      	   = 3
  l_intp_c2l        	   = .TRUE.
  l_mono_c2l        	   = .TRUE.
+ support_baryctr_intp = .false.
 /
 &gribout_nml
  preset                          = "deterministic"
@@ -362,11 +365,12 @@ cat > ${atmo_namelist} << EOF
  iart_aero_washout         = 1
  iart_nonsph	             = 0
  iart_isorropia            = 0
- cart_aerosol_xml          = '${INDIR}/${EXP}/tracers_poll_spp.xml'
+ cart_aerosol_xml          = '${ARTFOLDER}/runctrl_examples/xml_ctrl/${EXP}/tracers_poll_spp.xml'
  cart_input_folder         = '${INDIR}/${EXP}/'
- cart_modes_xml            = '${INDIR}/${EXP}/modes_poll_spp.xml'
- cart_diagnostics_xml      = '${INDIR}/${EXP}/diagnostics_poll_spp.xml'
- cart_pntSrc_xml           = '${INDIR}/${EXP}/pntSrc_poll_spp.xml'
+ cart_modes_xml            = '${ARTFOLDER}/runctrl_examples/xml_ctrl/${EXP}/modes_poll_spp.xml'
+ cart_diagnostics_xml      = '${ARTFOLDER}/runctrl_examples/xml_ctrl/${EXP}/diagnostics_poll_spp.xml'
+ cart_pntSrc_xml           = '${ARTFOLDER}/runctrl_examples/xml_ctrl/${EXP}/pntSrc_poll_spp.xml'
+ cart_opt_props_nc         = '${OUTDIR}/prescribed_opt_props.nc'
 /
 
 EOF

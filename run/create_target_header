@@ -718,7 +718,7 @@ set_run_target_lumi_cpu()
 
     set_default use_nproma 32
     set_default use_nblocks_c 0
-    set_default use_account_no ${SBATCH_ACCOUNT:-project_465000454}
+    set_default use_account_no ${SBATCH_ACCOUNT:-project_462000911}
     set_default use_nodes 1
     set_default use_queue "standard"
 

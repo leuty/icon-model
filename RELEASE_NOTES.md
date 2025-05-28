@@ -1,3 +1,25 @@
+# Release notes for icon-2025.04-1
+
+### ICON-Atmo
+
+NWP Physics:
+
+- Fixes:
+  - Enables using spun-up FLake variables from first guess in MODE_COMBINED
+
+### ICON-ART
+
+Fixes:
+  - changed used height array (z_mc -> z_ifc) for column computation in chemistry
+  - changed usage of tracer names to mode names in diagnostics routine regarding optical properties
+  - fixed setup information for standard configurations
+
+### Externals
+
+- Switch to the latest version of ICON-TIXI
+- Switch to YAXT 0.11.4
+
+
 # Release notes for icon-2025.04
 
 ### ICON-Atmo

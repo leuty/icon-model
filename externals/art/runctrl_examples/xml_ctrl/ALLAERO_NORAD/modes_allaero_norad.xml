@@ -8,7 +8,7 @@
     <sigma_g type="real">1.7</sigma_g>
     <condensation type="int">0</condensation>
     <icoag type="int">0</icoag>
-    <lut_optics type="char">ash_ait</lut_optics>
+    <lut_optics type="char">soot_ait</lut_optics>
   </aerosol>
   <aerosol id="sol_acc">
     <kind type="char">2mom</kind>
@@ -16,7 +16,7 @@
     <sigma_g type="real">2.0</sigma_g>
     <condensation type="int">0</condensation>
     <icoag type="int">0</icoag>
-    <lut_optics type="char">inorg_acc</lut_optics>
+    <lut_optics type="char">seasalt_a_mie</lut_optics>
   </aerosol>
   <aerosol id="insol_acc">
     <kind type="char">2mom</kind>
@@ -24,7 +24,7 @@
     <sigma_g type="real">1.700E+0</sigma_g>
     <condensation type="int">0</condensation>
     <icoag type="int">0</icoag>
-    <lut_optics type="char">ash_acc</lut_optics>
+    <lut_optics type="char" cvar_dia="false">dust_a</lut_optics>
   </aerosol>
   <aerosol id="sol_coa">
     <kind type="char">2mom</kind>
@@ -32,7 +32,7 @@
     <sigma_g type="real">2.2</sigma_g>
     <condensation type="int">0</condensation>
     <icoag type="int">0</icoag>
-    <lut_optics type="char">inorg_coa</lut_optics>
+    <lut_optics type="char">seasalt_b_mie</lut_optics>
   </aerosol>
   <aerosol id="insol_coa">
     <kind type="char">2mom</kind>
@@ -40,6 +40,6 @@
     <sigma_g type="real">2.2</sigma_g>
     <condensation type="int">0</condensation>
     <icoag type="int">0</icoag>
-    <lut_optics type="char">ash_coa</lut_optics>
+    <lut_optics type="char">dust_b</lut_optics>
   </aerosol>
 </modes>

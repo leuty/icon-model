@@ -347,6 +347,16 @@ CONTAINS
                 ! I.e. ICON tries to read SMI, with W_SO being the fallback-option
                 CALL add_to_list(fgGroup, fgGroupSize, 'smi')
 
+                ! Add FLake prognostic variables to first-guess optional group to prevent
+                ! 'CALL finish(...)' if those variables are not found in the first-guess file.
+                ! This is required to avoid FLake cold start initialization if ICON is run
+                ! in 'MODE_COMBINED' using spun-up FLake prognostic variables.
+                IF(init_mode == MODE_COMBINED) THEN
+                  CALL add_to_list(fgOptGroup, fgOptGroupSize,  &
+                   &   str_list2=(/'t_mnw_lk        ', 't_wml_lk        ', 'h_ml_lk         ',  &
+                   &               't_bot_lk        ', 'c_t_lk          '/))
+                END IF
+
                 ! no analysis group
                 anaGroupSize = 0
 

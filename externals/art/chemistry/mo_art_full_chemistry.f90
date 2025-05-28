@@ -128,7 +128,7 @@ SUBROUTINE art_loss_full_chemistry(current_date,jg,p_dtime, p_tracer_now)
 
     CALL art_chem_calc_column(art_chem%mecicon%utils%o3_column(:,:,jb),            &
                   &            art_atmo%pres(:,:,jb),                              &
-                  &           art_atmo%temp(:,:,jb), art_atmo%z_mc(:,:,jb),        &
+                  &           art_atmo%temp(:,:,jb), art_atmo%z_ifc(:,:,jb),        &
                   &           p_tracer_now(:,:,jb, mapping_indices_kpp(ind_O3)),   &
                   &           i_startidx, i_endidx, art_atmo%nlev)
 

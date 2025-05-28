@@ -300,7 +300,7 @@ cat > ${atmo_namelist} << EOF
  lsq_high_ord      = 3
  l_intp_c2l        = .true.
  l_mono_c2l        = .true.
-! support_baryctr_intp = .true.
+ support_baryctr_intp = .false.
 /
 &extpar_nml
  itopo          = 1
@@ -338,12 +338,12 @@ cat > ${atmo_namelist} << EOF
  iart_modeshift      = 1          ! 0 = off; 1 = on
  iart_isorropia      = 1          ! 0 = off; 1 = on
 
- cart_aerosol_xml    = '${INDIR}/${EXP}/tracers_aerosol_volaero_rad.xml'
- cart_modes_xml      = '${INDIR}/${EXP}/modes_volaero_rad.xml'
- cart_coag_xml       = '${INDIR}/${EXP}/coagulate_volaero_rad.xml'
+ cart_aerosol_xml    = '${ARTFOLDER}/runctrl_examples/xml_ctrl/${EXP}/tracers_aerosol_volaero_rad.xml'
+ cart_modes_xml      = '${ARTFOLDER}/runctrl_examples/xml_ctrl/${EXP}/modes_volaero_rad.xml'
+ cart_coag_xml       = '${ARTFOLDER}/runctrl_examples/xml_ctrl/${EXP}/coagulate_volaero_rad.xml'
  cart_input_folder   = '${OUTDIR}/'
- cart_pntSrc_xml     = '${INDIR}/${EXP}/pntSrc_volaero_rad.xml'
- cart_chemtracer_xml = '${INDIR}/${EXP}/tracers_chemtracer_volaero_rad.xml'
+ cart_pntSrc_xml     = '${ARTFOLDER}/runctrl_examples/xml_ctrl/${EXP}/pntSrc_volaero_rad.xml'
+ cart_chemtracer_xml = '${ARTFOLDER}/runctrl_examples/xml_ctrl/${EXP}/tracers_chemtracer_volaero_rad.xml'
  cart_opt_props_nc   = '${OUTDIR}/prescribed_opt_props.nc'
 /
 EOF
