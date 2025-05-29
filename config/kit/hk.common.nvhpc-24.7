@@ -28,7 +28,7 @@ NVHPC_LIBS='-lstdc++ -llapack -lblas -lnvf'
 CUDA_ROOT="${NVHPC_ROOT}/cuda/12.5"
 CUDA_LIBS='-lcudart'
 
-MPI_ROOT="${NVHPC_ROOT}/comm_libs/12.5/hpcx/hpcx-2.19/ompi/"
+MPI_ROOT="${NVHPC_ROOT}/comm_libs/12.5/hpcx/latest/ompi/"
 MPI_FORTRAN_MOD_DIR="${MPI_ROOT}/lib"
 MPI_LIBS='-lmpi_usempif08 -lmpi_usempi_ignore_tkr -lmpi_mpifh -lmpi'
 
@@ -56,7 +56,7 @@ RTTOV_LIBS='-lrttov13'
 
 ################################################################################
 
-BUILD_ENV="export LD_LIBRARY_PATH=\"${NVHPC_COMPILERS}/lib:${MPI_ROOT}/lib:${CUDA_ROOT}/lib64:${BUILDENV_ROOT}/${BUILDENV}/lib:${BUILDENV_ROOT}/${BUILDENV}/lib64:${BUILDENV_ROOT}/generic/lib:${SERIALBOX2_ROOT}/lib:/usr/lib64:/usr/lib\";export PATH=\"${BUILDENV_ROOT}/bin:/usr/bin\"; unset CPATH C_INCLUDE_PATH CPLUS_INCLUDE_PATH INCLUDE LIBRARY_PATH;"
+BUILD_ENV="export LD_LIBRARY_PATH=\"${NVHPC_COMPILERS}/lib:${MPI_ROOT}/lib:${CUDA_ROOT}/lib64:${BUILDENV_ROOT}/${BUILDENV}/lib:${BUILDENV_ROOT}/${BUILDENV}/lib64:${SERIALBOX2_ROOT}/lib:/usr/lib64:/usr/lib\";export PATH=\"${BUILDENV_ROOT}/bin:/usr/bin\"; unset CPATH C_INCLUDE_PATH CPLUS_INCLUDE_PATH INCLUDE LIBRARY_PATH;"
 
 CC="${NVHPC_COMPILERS}/bin/nvc"
 FC="${NVHPC_COMPILERS}/bin/nvfortran"
@@ -64,19 +64,19 @@ CUDACXX="${NVHPC_COMPILERS}/bin/nvcc"
 AR='/usr/bin/ar'
 
 # 2025-03-14: currently mch_ch_r04b09_dace_synsat segfaults with -O2 in FCFLAGS.
-FCFLAGS="-I${MPI_ROOT}/include -I${MPI_FORTRAN_MOD_DIR} -I${BUILDENV_ROOT}/${BUILDENV}/include -I${BUILDENV_ROOT}/generic/include -I${SERIALBOX2_ROOT}/include -Mpreprocess -g -O -Mrecursive -Mallocatable=03 -Minfo=accel,inline -Mstack_arrays ${HK_GPU_FCFLAGS}"
+FCFLAGS="-I${MPI_ROOT}/include -I${MPI_FORTRAN_MOD_DIR} -I${BUILDENV_ROOT}/${BUILDENV}/include -I${SERIALBOX2_ROOT}/include -Mpreprocess -g -O -Mrecursive -Mallocatable=03 -Minfo=accel,inline -Mstack_arrays ${HK_GPU_FCFLAGS}"
 CFLAGS="-std=c99 -g -O2 -I${BUILDENV_ROOT}/${BUILDENV}/include -I${BUILDENV_ROOT}/generic/include"
 CPPFLAGS="-I${MPI_ROOT}/include -I${BUILDENV_ROOT}/${BUILDENV}/include -I${BUILDENV_ROOT}/generic/include -I${XML2_INCLUDE_DIR}"
 
 CUDAFLAGS='--std=c++14 -arch=sm_80 -g -O3'
 
-LDFLAGS="-L${NVHPC_COMPILERS}/lib -L${MPI_ROOT}/lib -L${CUDA_ROOT}/lib64 -L${BUILDENV_ROOT}/${BUILDENV}/lib -L${BUILDENV_ROOT}/${BUILDENV}/lib64 -L${BUILDENV_ROOT}/generic/lib -L${SERIALBOX2_ROOT}/lib"
+LDFLAGS="-L${NVHPC_COMPILERS}/lib -L${MPI_ROOT}/lib -L${CUDA_ROOT}/lib64 -L${BUILDENV_ROOT}/${BUILDENV}/lib -L${BUILDENV_ROOT}/${BUILDENV}/lib64 -L${SERIALBOX2_ROOT}/lib"
 LIBS="-Wl,--disable-new-dtags -Wl,--as-needed ${NVHPC_LIBS} ${MPI_LIBS} ${CUDA_LIBS} ${HDF5_LIBS} ${NETCDF_LIBS} ${NETCDFF_LIBS} ${ECCODES_LIBS} ${FYAML_LIBS} ${SERIALBOX2_LIBS} ${XML2_LIBS} ${ZLIB_LIBS} -lrt"
 
 
-MPI_LAUNCH="${MPI_ROOT}/bin/mpirun ${HK_GPU_MPIRUN_FLAGS}"
+MPI_LAUNCH="${MPI_ROOT}/bin/mpirun --bind-to none ${HK_GPU_MPIRUN_FLAGS}" # --bind-to none required because of issue https://github.com/open-mpi/ompi/issues/12470
 
-EXTRA_CONFIG_ARGS='--disable-loop-exchange --disable-coupling --disable-serialization --enable-grib2 --enable-art --enable-ecrad --enable-emvorado --enable-dace --disable-mpi-checks'
+EXTRA_CONFIG_ARGS='--disable-loop-exchange --enable-coupling --enable-grib2 --enable-art --enable-ecrad --enable-emvorado --enable-dace --disable-mpi-checks'
 
 # Enable RTTOV if installation is available
 if [[ -r "${RTTOV_ROOT}/lib" ]] && [[ -r "${RTTOV_ROOT}/include" ]]; then
