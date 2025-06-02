@@ -361,6 +361,17 @@ CONTAINS
 
     CASE(POST_OP_OFFSET)
 
+      IF (PRESENT(opt_inverse)) THEN
+        IF (opt_inverse) THEN
+          scalfac = -1._dp
+        ELSE
+          scalfac = 1._dp
+        ENDIF
+      ELSE
+        scalfac = 1._dp
+      ENDIF
+
+
 !$OMP PARALLEL
 !$OMP DO PRIVATE(l1,l2,l3), SCHEDULE(runtime)
       !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1) COPYIN(idim) IF(acc_is_present(field3D) .AND. lzacc)
@@ -368,7 +379,7 @@ CONTAINS
       DO l3=1,idim(3)
         DO l2=1,idim(2)
           DO l1=1,idim(1)
-            field3D(l1,l2,l3) = field3D(l1,l2,l3) + post_op%arg1%rval
+            field3D(l1,l2,l3) = field3D(l1,l2,l3) + scalfac* post_op%arg1%rval
           END DO
         END DO
       END DO

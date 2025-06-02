@@ -31,6 +31,6 @@ makeflags="--jobs=${job_count} --no-print-directory --output-sync=target V=1"
 
 set -x
 
-${icon_dir}/config/dkrz/levante.cpu.nvhpc --disable-openmp --enable-ecrad --enable-comin --enable-bundled-python=comin,mtime "$@"
+${icon_dir}/config/dkrz/levante.cpu.nvhpc --disable-openmp --enable-ecrad --enable-comin --enable-bundled-python=comin,mtime --enable-testbed "$@"
 
 make ${makeflags}

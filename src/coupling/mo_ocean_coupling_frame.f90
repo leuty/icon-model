@@ -31,7 +31,7 @@ MODULE mo_ocean_coupling_frame
     &                               is_coupled_to_output
   USE mo_output_coupling,     ONLY: construct_output_coupling, &
     &                               construct_output_coupling_finalize
-  USE mo_ocean_atmo_coupling, ONLY: construct_ocean_atmo_coupling
+  USE mo_ocean_atmo_coupling, ONLY: construct_ocean_atmo_coupling, construct_ocean_atmo_coupling_finalize
   USE mo_time_config,         ONLY: time_config
 
   !-------------------------------------------------------------
@@ -123,6 +123,8 @@ CONTAINS
 
     ! finalizes the output coupling
     IF( is_coupled_to_output() ) CALL construct_output_coupling_finalize()
+
+    IF ( is_coupled_to_atmo() ) CALL construct_ocean_atmo_coupling_finalize()
 
     IF (ltimer) CALL timer_stop(timer_coupling_init)
 

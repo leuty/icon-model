@@ -90,7 +90,7 @@ CONTAINS
     ENDIF
 
     SELECT CASE (select_solver)
-      CASE (select_gmres, select_gmres_r, select_gmres_mp_r, select_cg, select_cg_mp, select_cgj, select_bcgs, &
+      CASE (select_gmres, select_gmres_r, select_gmres_mp_r, select_cg, select_cgo, select_cg_mp, select_cgj, select_bcgs, &
         & select_legacy_gmres, select_mres)
       CASE default
         CALL finish(method_name, "Unknown solver type")
@@ -127,8 +127,8 @@ CONTAINS
     IF (vert_mix_type /=1) &
        PPscheme_type = -1
 
-    IF (proc0_shift > 0 .AND. select_solver /= select_cg) THEN
-      CALL finish(method_name, "proc0_shift only works with the CG solver (select_cg=4)")
+    IF (proc0_shift > 0 .AND. select_solver /=  select_cg .AND. select_solver /= select_cgo ) THEN
+      CALL finish(method_name, "proc0_shift only works with the CG/OPT-CG solver (select_solver=4, select_solver=40)")
     END IF
 
     IF (use_age_tracer) THEN

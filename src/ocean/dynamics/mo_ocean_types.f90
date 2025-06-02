@@ -257,7 +257,8 @@ MODULE mo_ocean_types
       & dhdt_srf ,& ! layer thickness change by surface density flux ! by_nils
       & dhdt_hfl ,& ! layer thickness change by horizontal flux ! by_nils
       & div_mass_flux_lay ,& ! divergence of mass flux within layer ! by_nils
-      & odensitytend
+      & odensitytend ,&
+      & SWPT        ! sea water potential temperature [K] (for grib) !dkrueger
 
 
     onCells_2D :: &

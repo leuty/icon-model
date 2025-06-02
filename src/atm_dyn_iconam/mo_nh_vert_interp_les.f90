@@ -26,7 +26,7 @@ MODULE mo_nh_vert_interp_les
   USE mo_sync,                ONLY: global_sum_array, SYNC_C, SYNC_V, &
                                     sync_patch_array_mult
 #ifdef __MIXED_PRECISION
-  USE mo_sync,                ONLY: sync_patch_array_mult_mp
+  USE mo_sync,                ONLY: sync_patch_array_mult_mixprec
 #endif
   USE mo_impl_constants_grf,  ONLY: grf_bdywidth_c
   USE mo_impl_constants,      ONLY: SUCCESS, min_rlcell_int
@@ -121,10 +121,10 @@ MODULE mo_nh_vert_interp_les
     CALL cells2verts_scalar(p_metrics%ddxt_z_half_c, p_patch, &
       &                     cells_aw_verts_vp, p_metrics%ddxt_z_half_v, lacc=.FALSE.)
 #ifdef __MIXED_PRECISION
-    CALL sync_patch_array_mult_mp(SYNC_V, p_patch, 1, 3, lacc=.FALSE., &
+    CALL sync_patch_array_mult_mixprec(SYNC_V, p_patch, 1, 3, lacc=.FALSE., &
       &                 f3din1_sp=p_metrics%ddxn_z_full_v, &
       &                 f3din2_sp=p_metrics%ddxt_z_full_v, &
-      &                    f3din1=p_metrics%inv_ddqz_z_full_v, &
+      &                    f3din1_dp=p_metrics%inv_ddqz_z_full_v, &
       &                 f3din3_sp=p_metrics%ddxt_z_half_v)
 #else
     CALL sync_patch_array_mult(SYNC_V, p_patch, 4, lacc=.FALSE., &

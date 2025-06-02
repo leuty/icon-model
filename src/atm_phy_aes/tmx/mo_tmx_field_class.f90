@@ -151,7 +151,10 @@ CONTAINS
     item => this%getFirstVariable()
     DO WHILE ( (.NOT. item%is_item_equal_to_key(name)) .AND. ASSOCIATED(item) )
       item => this%getNextVariable(item)
+      IF (.NOT. ASSOCIATED(item)) EXIT
     ENDDO
+
+    IF (.NOT. ASSOCIATED(item)) RETURN
 
     variable => item%item_value
 

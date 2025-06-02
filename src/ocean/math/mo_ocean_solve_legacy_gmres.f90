@@ -188,7 +188,9 @@ CONTAINS
 
     INTEGER :: mythreadno
 !    TYPE(t_patch), POINTER :: patch_2d
+#if !defined(_OPENACC) && !defined(__NO_CONT_SOLV_OCE__)
     CONTIGUOUS :: b, x
+#endif
 
 #ifdef _OPENMP
     INTEGER OMP_GET_THREAD_NUM

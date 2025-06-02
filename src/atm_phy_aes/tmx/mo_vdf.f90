@@ -470,6 +470,8 @@ CONTAINS
   !
   !============================================================================
   !
+  ! Also does vertical diffusion of CO2
+  !
   SUBROUTINE Compute_diffusion_hydrometeors(patch,p_int,domain,         &
                                             atmo,conf_atmo,ins_atmo,    &
                                             diags_atmo,diags_sfc)
@@ -484,7 +486,7 @@ CONTAINS
     TYPE(t_vdf_atmo_diagnostics), INTENT(in), POINTER :: diags_atmo
     TYPE(t_vdf_sfc_diagnostics),  INTENT(in), POINTER :: diags_sfc
 
-    INTEGER :: jb, jc, je, jk, itrac
+    INTEGER :: jb, jc, je, jk, itrac, no_of_tracers
     INTEGER :: nproma, nlev, nblks_c, rl_start, rl_end
     INTEGER :: i_startblk, i_endblk, i_startidx, i_endidx
     INTEGER,  DIMENSION(:,:,:), POINTER :: iecidx, iecblk, ieidx, ieblk, ividx, ivblk
@@ -523,9 +525,11 @@ CONTAINS
       dtime        => conf_atmo%dtime,      &
       solver_type  => conf_atmo%solver_type,&
       rturb_prandtl=> conf_atmo%rturb_prandtl,&
+      l_co2        => conf_atmo%l_co2,         &
       kh_ic        => diags_atmo%kh_ic,        &
       km_ie        => diags_atmo%km_ie,        &
       evapotrans   => diags_sfc%evapotrans, &
+      co2flx       => diags_sfc%co2flx,     &
       rho_ic    => diags_atmo%rho_ic,       &
       zf        => ins_atmo%zf,             &
       mair      => ins_atmo%mair,           &
@@ -570,7 +574,11 @@ CONTAINS
     END DO
 !$OMP END PARALLEL DO
 
-    DO itrac=1,3
+    ! Check if CO2 tracer is to be included
+    no_of_tracers = 3
+    IF (l_co2) no_of_tracers = 4
+
+    DO itrac=1,no_of_tracers
       SELECT CASE(itrac)
       CASE (1)
         state => atmo%states%Get_ptr_r3d('water vapor')
@@ -593,6 +601,13 @@ CONTAINS
 !$OMP PARALLEL
         CALL init(sfc_flx, lacc=.TRUE.)
 !$OMP END PARALLEL
+      CASE (4)
+        state => atmo%states%Get_ptr_r3d('co2')
+        tend => atmo%tendencies%Get_ptr_r3d('co2')
+        new_state => atmo%new_states%Get_ptr_r3d('co2')
+!$OMP PARALLEL
+        CALL copy(co2flx, sfc_flx, lacc=.TRUE.)
+!$OMP END PARALLEL
       END SELECT
 
 !$OMP PARALLEL
@@ -606,7 +621,11 @@ CONTAINS
         ! Set the right hand side
         !$ACC PARALLEL LOOP DEFAULT(PRESENT) GANG(STATIC: 1) VECTOR ASYNC(1)
         DO jc = i_startidx_c(jb), i_endidx_c(jb)
-          rhs(jc,nlev,jb) = - sfc_flx(jc,jb) * inv_mair(jc,nlev,jb)
+          IF (itrac == 4) THEN ! surface CO2 flux
+            rhs(jc,nlev,jb) = + sfc_flx(jc,jb) * inv_mair(jc,nlev,jb)
+          ELSE
+            rhs(jc,nlev,jb) = - sfc_flx(jc,jb) * inv_mair(jc,nlev,jb)
+          END IF
           rhs(jc,1   ,jb) = + top_flx(jc,jb) * inv_mair(jc,1   ,jb)
         END DO
         !$ACC END PARALLEL LOOP
@@ -659,6 +678,28 @@ CONTAINS
 
       END IF
 
+      ! Only do horizontal diffusion for temperature and hydrometeors
+      IF (itrac > 3) THEN
+
+!$OMP PARALLEL DO PRIVATE(jb,jc,jk) ICON_OMP_DEFAULT_SCHEDULE
+        DO jb = i_startblk_c,i_endblk_c
+          !$ACC PARALLEL LOOP DEFAULT(PRESENT) GANG(STATIC: 1) VECTOR ASYNC(1) COLLAPSE(2)
+          DO jk = 1, nlev
+            DO jc = i_startidx_c(jb), i_endidx_c(jb)
+              new_state(jc,jk,jb) = state(jc,jk,jb) + tend(jc,jk,jb) * dtime
+            END DO
+          END DO
+          !$ACC END PARALLEL LOOP
+        END DO
+!$OMP END PARALLEL DO
+
+        NULLIFY(state)
+        NULLIFY(tend)
+        NULLIFY(new_state)
+
+        EXIT
+
+      END IF
       !---------------------------------------------------------------
       ! Horizontal diffusion (conservative; following mo_nh_diffusion)
       !---------------------------------------------------------------

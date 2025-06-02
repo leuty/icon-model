@@ -366,7 +366,7 @@ CONTAINS
              ! co2 flux at the surface
              !$ACC LOOP GANG VECTOR
              DO jl = jcs,jce
-               zxt_emis(jl,ico2-(iqt-1),jb) = field%fco2nat(jl,jb)
+               zxt_emis(jl,ico2-(iqt-1),jb) = field%fco2nat(jl,jb) + field%fco2ant(jl,jb)
              END DO
              !
              ! co2 concentration in the lowermost layer

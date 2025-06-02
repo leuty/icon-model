@@ -24,7 +24,13 @@ MODULE mo_nh_testcases
   USE mo_kind,                 ONLY: wp
   USE mo_exception,            ONLY: message, finish, message_text
 
-  USE mo_nh_testcases_nml
+  USE mo_nh_testcases_nml,     ONLY: is_toy_chem, nh_test_name,              &
+    &       w_perturb, th_perturb, mount_height, mount_width, mount_width_2, &
+    &       torus_domain_length, nh_brunt_vais, nh_u0, nh_t0, jw_up, jw_u0,  &
+    &       jw_temp0, rh_at_1000hpa, qv_max, tpe_moist, tpe_psfc, tpe_temp,  &
+    &       rotate_axis_deg, lhs_nh_vn_ptb, hs_nh_vn_ptb_scale,              &
+    &       linit_tracer_fv, th_cbl, tracer_inidist_list, zp_ape, ztmc_ape,  &
+    &       ltestcase_update, nlev_pert
 
   USE mo_impl_constants,       ONLY: MAX_CHAR_LENGTH, inwp, icosmo
   USE mo_grid_config,          ONLY: lplane, n_dom, l_limited_area

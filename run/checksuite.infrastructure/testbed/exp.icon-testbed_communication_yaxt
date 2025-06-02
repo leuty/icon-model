@@ -11,7 +11,7 @@
 # ------------------------------------------
 
 #=============================================================================
-# Test the coupling of two dummy models
+# Testbed for communication routines (communication_yaxt)
 #=============================================================================
 # the namelist filename
 testbed_namelist=NAMELIST_${EXPNAME}
@@ -20,7 +20,7 @@ testbed_namelist=NAMELIST_${EXPNAME}
 start_date="2000-01-01T00:00:00Z"
   end_date="2000-01-03T00:00:00Z"
 
-grids_folder="/pool/data/ICON/oes/grids/AquaPlanets/"
+grids_folder="${icon_data_rootFolder:-/pool/data/ICON}/oes/grids/AquaPlanets/"
 atmo_dyn_grids="AquaPlanet_Icos_0158km_springOpt.nc"
 #-----------------------------------------------------------------------------
 # write ICON namelist parameters

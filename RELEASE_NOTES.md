@@ -9,6 +9,8 @@ AES Physics:
 - Optimization of the read-in of ozone data
 - Update atm_qubicc_test and its checksuite
 - Re-introduction of the optimized simple plumes (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/751)
+- Implemented full (interactive) carbon cycle with hamocc and land coupling, anthropogenic
+  emissions and CO2 tracer transport
 - Fixes for:
   - GPU port of solar_parameters() (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/776)
 
@@ -35,6 +37,7 @@ Climate: ICON-Land
   - Improved vegetation nitrogen uptake from soil
   - Minor modifications for using JSBACH physics processes with QUINCY
   - Replace memory variables of QUINCY physics process by variables from JSBACH physics processes
+- Use a common interface for QUINCY and JSBACH
 - Updated inline documentation of hydrology process
 - Fixes:
   - Verification check for some JSBACH lctlib parameters when compiling with single precision

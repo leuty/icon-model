@@ -90,7 +90,7 @@ CONTAINS
 !ICON_OMP_PARALLEL_DO PRIVATE(i_startidx_c, i_endidx_c, k, jc) SCHEDULE(dynamic)
     DO jb = all_cells%start_block, all_cells%end_block
       CALL get_index_range(all_cells, jb, i_startidx_c, i_endidx_c)
-      !$ACC PARALLEL LOOP GANG VECTOR COLLAPSE(2) DEFAULT(PRESENT) IF(lzacc)
+      !$ACC PARALLEL LOOP GANG VECTOR COLLAPSE(2) DEFAULT(PRESENT) ASYNC(1) IF(lzacc)
       DO k=1,ice%kice
         DO jc = i_startidx_c,i_endidx_c
         ! initialization
@@ -184,6 +184,7 @@ CONTAINS
       END DO
       !$ACC END PARALLEL LOOP
     END DO
+    !$ACC WAIT(1)
 !ICON_OMP_END_PARALLEL_DO
 
     !$ACC END DATA

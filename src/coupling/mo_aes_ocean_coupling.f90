@@ -906,7 +906,8 @@ CONTAINS
     !  - if no lake part is present, subtract land part only
     !  - if no jsbach is present (aquaplanet), frac_oce is 1.
 
-    !$ACC DATA CREATE(frac_oce, get_buffer, put_buffer)
+    !$ACC DATA CREATE(frac_oce, get_buffer, put_buffer) &
+    !$ACC   PRESENT(prm_field(jg)%qtrc_phy) ! ACCWA (nvhpc on levante): to prevent illegal address during kernel execution
 
     CALL compute_frac_oce(p_patch, use_mask(jg), frac_oce)
 

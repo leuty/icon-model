@@ -30,7 +30,7 @@ MODULE mo_ocean_ab_timestepping_mimetic
     & use_absolute_solver_tolerance, solver_max_restart_iterations, &
     & solver_max_iter_per_restart, dhdtw_abort, select_transfer, &
     & select_solver, select_gmres, select_gmres_r, select_mres, &
-    & select_gmres_mp_r, select_cg, select_cgj, select_bcgs, &
+    & select_gmres_mp_r, select_cg, select_cgo, select_cgj, select_bcgs, &
     & select_legacy_gmres, use_continuity_correction, select_cg_mp, &
     & solver_max_iter_per_restart_sp, solver_tolerance_sp, No_Forcing, &
     & MASS_MATRIX_INVERSION_TYPE,            &
@@ -70,7 +70,7 @@ MODULE mo_ocean_ab_timestepping_mimetic
   USE mo_ocean_solve_trivial_transfer, ONLY: t_trivial_transfer
   USE mo_ocean_solve_subset_transfer, ONLY: t_subset_transfer
   USE mo_ocean_solve_aux, ONLY: t_ocean_solve_parm, solve_gmres, solve_cg, solve_mres, &
-   & solve_precon_none, solve_precon_jac, solve_bcgs, solve_legacy_gmres, &
+   & solve_precon_none, solve_precon_jac, solve_cg_opt, solve_bcgs, solve_legacy_gmres, &
    & solve_trans_scatter, solve_trans_compact, solve_cell, solve_edge, solve_invalid
   USE mo_primal_flip_flop_lhs, ONLY: t_primal_flip_flop_lhs
   USE mo_surface_height_lhs, ONLY: t_surface_height_lhs
@@ -154,6 +154,9 @@ CONTAINS
       par%m = solver_max_iter_per_restart
     CASE(select_cg) ! CG (Fletcher-Reeves)
       sol_type = solve_cg
+    CASE(select_cgo) ! CG-OPT (Fletcher-Reeves)
+      sol_type = solve_cg
+      par%pt = solve_cg_opt
     CASE(select_cg_mp) ! CG (Fletcher-Reeves, sp+wp)
       sol_type = solve_cg
       par_sp = par
@@ -466,8 +469,11 @@ CONTAINS
       stop_detail_timer(timer_extra2,4)
 
     ELSE  !  iswm_oce=1
+      !$ACC KERNELS DEFAULT(PRESENT) ASYNC(1) IF(lzacc)
       ocean_state%p_diag%veloc_adv_vert = 0.0_wp
       ocean_state%p_diag%laplacian_vert = 0.0_wp
+      !$ACC END KERNELS
+      !$ACC WAIT(1)
     ENDIF
 
     !---------DEBUG DIAGNOSTICS-------------------------------------------
@@ -695,7 +701,6 @@ CONTAINS
         END DO
       END DO
       !$ACC END PARALLEL LOOP
-      !$ACC WAIT(1)
     ELSE ! IF(l_rigid_lid)THEN
       !$ACC PARALLEL LOOP GANG VECTOR DEFAULT(PRESENT) ASYNC(1) IF(lzacc)
       DO je = start_edge_index, end_edge_index
@@ -705,7 +710,6 @@ CONTAINS
         END DO
       END DO
       !$ACC END PARALLEL LOOP
-      !$ACC WAIT(1)
     ENDIF!Rigid lid
     CALL VelocityBottomBoundaryCondition_onBlock(patch_3d, &
       & blockNo,start_edge_index, end_edge_index, &
@@ -806,7 +810,6 @@ CONTAINS
     IF(MASS_MATRIX_INVERSION_TYPE/=MASS_MATRIX_INVERSION_ADVECTION)THEN
       !$ACC PARALLEL LOOP GANG VECTOR DEFAULT(PRESENT) ASYNC(1) IF(lzacc)
       DO je = start_edge_index, end_edge_index
-        !$ACC LOOP SEQ
         DO jk = 1, patch_3d%p_patch_1d(1)%dolic_e(je,blockNo)
           ocean_state%p_aux%g_n(je, jk, blockNo) = &
             & - ocean_state%p_diag%press_grad    (je, jk, blockNo)  &
@@ -818,11 +821,9 @@ CONTAINS
         END DO
       END DO
       !$ACC END PARALLEL LOOP
-      !$ACC WAIT(1)
     ELSEIF(MASS_MATRIX_INVERSION_TYPE==MASS_MATRIX_INVERSION_ADVECTION)THEN
       !$ACC PARALLEL LOOP GANG VECTOR DEFAULT(PRESENT) ASYNC(1) IF(lzacc)
       DO je = start_edge_index, end_edge_index
-        !$ACC LOOP SEQ
         DO jk = 1, patch_3d%p_patch_1d(1)%dolic_e(je,blockNo)
           ocean_state%p_aux%g_n(je, jk, blockNo) = &
             & - ocean_state%p_diag%press_grad    (je, jk, blockNo)  &
@@ -834,14 +835,12 @@ CONTAINS
         END DO
       END DO
       !$ACC END PARALLEL LOOP
-      !$ACC WAIT(1)
     ENDIF
     IF(is_first_timestep)THEN
       !$ACC KERNELS DEFAULT(PRESENT) ASYNC(1) IF(lzacc)
       ocean_state%p_aux%g_nimd(1:nproma,1:n_zlev, blockNo) = &
         & ocean_state%p_aux%g_n(1:nproma,1:n_zlev,blockNo)
       !$ACC END KERNELS
-      !$ACC WAIT(1)
     ELSE
       !$ACC PARALLEL LOOP GANG VECTOR DEFAULT(PRESENT) ASYNC(1) IF(lzacc)
       DO je = start_edge_index, end_edge_index
@@ -852,8 +851,8 @@ CONTAINS
         END DO
       END DO
       !$ACC END PARALLEL LOOP
-      !$ACC WAIT(1)
     ENDIF
+    !$ACC WAIT(1)
 
   END SUBROUTINE calculate_explicit_term_g_n_onBlock
 

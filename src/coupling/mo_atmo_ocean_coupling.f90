@@ -26,7 +26,7 @@ MODULE mo_atmo_ocean_coupling
   USE mo_parallel_config, ONLY: nproma
   USE mo_grid_config,     ONLY: n_dom
   USE mo_impl_constants,  ONLY: inwp, iaes, SUCCESS
-  USE mo_mpi,             ONLY: p_pe_work, p_comm_work, p_lor
+  USE mo_mpi,             ONLY: p_comm_work, p_lor
   USE mo_run_config,      ONLY: iforcing
   USE mo_util_dbg_prnt,   ONLY: dbg_print
   USE mo_exception,       ONLY: finish

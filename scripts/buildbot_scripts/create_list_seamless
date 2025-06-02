@@ -61,6 +61,9 @@ $addexp checksuite.nwp/nwpexp.run_ICON_17_R2B4_AO_coupled         --builders dwd
 $addexp checksuite.nwp/nwpexp.run_ICON_20_R2B4_R2B6_AO_coupled    --builders dwd_nec_coupling --list $listname
 ## Prototype-3 (TERRA and HD coupled through YAC):
 $addexp checksuite.nwp/nwpexp.run_ICON_26_R2B4_R2B6_AO-HD_coupled --builders dwd_nec_coupling --list $listname
+## Prototype-2 with GRIB-IO in both domains (TERRA coupled through YAC):
+$addexp checksuite.nwp/nwpexp.run_ICON_29_R2B5_R2B6_AO_coupled_gribInitOce --builders dwd_nec_coupling --list $listname
+
 
 
 #lets see the list

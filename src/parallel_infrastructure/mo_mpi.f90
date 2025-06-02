@@ -9189,22 +9189,33 @@ CONTAINS
   !------------------------------------------------------
 
   !------------------------------------------------------
-  !> computes a global sum of real single precision numbers
+  !> computes a global sum of real numbers
   !
-  !  perform an ALLREDUCE operation
-  FUNCTION p_sum_sp_0d (zfield, comm) RESULT (p_sum)
+  ! @param[in]    root     (Optional:) root PE, otherwise we perform an
+  !                                    ALLREDUCE operation
+  FUNCTION p_sum_sp_0d (zfield, comm, root) RESULT (p_sum)
 
     REAL(sp)                        :: p_sum
     REAL(sp),  INTENT(in)           :: zfield
     INTEGER,   INTENT(in)           :: comm
+    INTEGER,   INTENT(in), OPTIONAL :: root
 #ifndef NOMPI
-    INTEGER :: p_comm
+    INTEGER :: p_comm, my_rank
 
     p_comm = comm
 
     IF (my_process_is_mpi_parallel()) THEN
+      IF (PRESENT(root)) THEN
+        CALL MPI_REDUCE (zfield, p_sum, 1, p_real_sp, &
+          mpi_sum, root, p_comm, p_error)
+        ! get local PE identification
+        CALL MPI_COMM_RANK (p_comm, my_rank, p_error)
+        ! do not use the result on all the other ranks:
+        IF (root /= my_rank)  p_sum = zfield
+      ELSE
         CALL MPI_ALLREDUCE (zfield, p_sum, 1, p_real_sp, &
           mpi_sum, p_comm, p_error)
+      END IF
     ELSE
        p_sum = zfield
     END IF
@@ -9212,13 +9223,8 @@ CONTAINS
     p_sum = zfield
 #endif
   END FUNCTION p_sum_sp_0d
-  !------------------------------------------------------
 
-  !------------------------------------------------------
-  !> computes a global sum of real numbers
-  !
-  ! @param[in]    root     (Optional:) root PE, otherwise we perform an
-  !                                    ALLREDUCE operation
+
   FUNCTION p_sum_dp_0d (zfield, comm, root) RESULT (p_sum)
 
     REAL(dp)                        :: p_sum

@@ -78,7 +78,7 @@ MODULE mo_ocean_pp_scheme
     & za_depth_below_sea, za_depth_below_sea_half, za_surface
   USE mo_grid_subset,         ONLY: t_subset_range, get_index_range
   USE mo_sync,                ONLY: sync_c, sync_e, sync_v, sync_patch_array, global_max, sync_patch_array_mult
-  USE  mo_ocean_thermodyn,    ONLY: calculate_density_onColumn
+  USE  mo_ocean_thermodyn,    ONLY: calculate_density_onColumn, calculate_density_onColumn_elem
   USE mo_ocean_math_operators,ONLY: div_oce_3d
   USE mo_timer,               ONLY: ltimer, timer_start, timer_stop, &
     & timer_extra10, timer_extra11
@@ -203,7 +203,7 @@ CONTAINS
 
 
 !<Optimize:inUse:done>
-  SUBROUTINE update_PP_scheme(patch_3d, ocean_state, fu10, concsum, params_oce,op_coeffs) !, calculate_density_func)
+  SUBROUTINE update_PP_scheme(patch_3d, ocean_state, fu10, concsum, params_oce, op_coeffs, lacc) !, calculate_density_func)
 
     TYPE(t_patch_3d ),TARGET, INTENT(in) :: patch_3d
     TYPE(t_hydro_ocean_state), TARGET    :: ocean_state
@@ -211,11 +211,16 @@ CONTAINS
     REAL(wp), TARGET                     :: concsum(:,:) ! t_sea_ice%concsum
     TYPE(t_ho_params), INTENT(inout)     :: params_oce
     TYPE(t_operator_coeff),INTENT(in)    :: op_coeffs
+    LOGICAL, INTENT(IN), OPTIONAL        :: lacc
 
     INTEGER :: tracer_index
+    LOGICAL :: lzacc
     !-------------------------------------------------------------------------
+    CALL set_acc_host_or_device(lzacc, lacc)
+
     WindAmplitude_at10m => fu10
     SeaIceConcentration => concsum
+    !$ACC DATA COPYIN(WindAmplitude_at10m, SeaIceConcentration, WindMixingLevel) IF(lzacc)
 
     SELECT CASE (PPscheme_type)
     CASE (PPscheme_Constant_type)
@@ -223,27 +228,32 @@ CONTAINS
       !tracer mixing coefficient params_oce%A_tracer_v(:,:,:, tracer_index) is already
       !initialzed with params_oce%A_tracer_v_back(tracer_index)
       !and velocity diffusion coefficient
-      RETURN
-
 
     CASE (PPscheme_ICON_Edge_type)
+#ifdef _OPENACC
+      IF (lzacc) THEN
+        CALL finish('update_PP_scheme', &
+          & 'OpenACC version for PPscheme_type == PPscheme_ICON_Edge_type currently not implemented')
+      END IF
+#endif
       CALL ICON_PP_Edge_scheme2(patch_3d, ocean_state, params_oce)
 
     CASE (PPscheme_ICON_Edge_vnPredict_type)
 !       CALL update_PhysicsParameters_ICON_PP_Tracer(patch_3d, ocean_state)
-      CALL ICON_PP_Edge_scheme(patch_3d, ocean_state, params_oce)
+      CALL ICON_PP_Edge_scheme(patch_3d, ocean_state, params_oce, lacc=lzacc)
       ! the velovity friction will be updated during dynamics
 
     CASE default
       CALL finish("update_ho_params", "unknown PPscheme_type")
     END SELECT
 
+    !$ACC END DATA
   END SUBROUTINE update_PP_scheme
   !-------------------------------------------------------------------------
 
 !<Optimize:inUse:done>
   SUBROUTINE update_PP_scheme_zstar(patch_3d, ocean_state, fu10, concsum, params_oce,op_coeffs, &
-      & eta_c, stretch_c, stretch_e) !, calculate_density_func)
+      & eta_c, stretch_c, stretch_e, lacc) !, calculate_density_func)
 
     TYPE(t_patch_3d ),TARGET, INTENT(in) :: patch_3d
     TYPE(t_hydro_ocean_state), TARGET    :: ocean_state
@@ -254,12 +264,18 @@ CONTAINS
     REAL(wp), INTENT(IN) :: eta_c(nproma, patch_3d%p_patch_2d(1)%alloc_cell_blocks) !! sfc ht
     REAL(wp), INTENT(IN) :: stretch_c(nproma, patch_3d%p_patch_2d(1)%alloc_cell_blocks)
     REAL(wp), INTENT(IN) :: stretch_e(nproma, patch_3d%p_patch_2d(1)%nblks_e) !! stretch factor
+    LOGICAL, INTENT(IN), OPTIONAL        :: lacc
 
     INTEGER :: tracer_index
+    LOGICAL :: lzacc
+
+    !-------------------------------------------------------------------------
+    CALL set_acc_host_or_device(lzacc, lacc)
 
     !-------------------------------------------------------------------------
     WindAmplitude_at10m => fu10
     SeaIceConcentration => concsum
+    !$ACC DATA COPYIN(WindAmplitude_at10m, SeaIceConcentration, WindMixingLevel) IF(lzacc)
 
     SELECT CASE (PPscheme_type)
     CASE (PPscheme_Constant_type)
@@ -267,24 +283,29 @@ CONTAINS
       !tracer mixing coefficient params_oce%A_tracer_v(:,:,:, tracer_index) is already
       !initialzed with params_oce%A_tracer_v_back(tracer_index)
       !and velocity diffusion coefficient
-      RETURN
 
     !! FIXME: scheme2 has no zstar port
     CASE (PPscheme_ICON_Edge_type)
+#ifdef _OPENACC
+      IF (lzacc) THEN
+        CALL finish('update_PP_scheme', &
+          & 'OpenACC version for PPscheme_type == PPscheme_ICON_Edge_type currently not implemented')
+      END IF
+#endif
       CALL ICON_PP_Edge_scheme_zstar(patch_3d, ocean_state, params_oce, &
         & eta_c, stretch_c, stretch_e)
 
 
     CASE (PPscheme_ICON_Edge_vnPredict_type)
       CALL ICON_PP_Edge_scheme_zstar(patch_3d, ocean_state, params_oce, &
-        & eta_c, stretch_c, stretch_e)
+        & eta_c, stretch_c, stretch_e, lacc=lzacc)
 
     CASE default
       CALL finish("update_ho_params", "unknown PPscheme_type")
     END SELECT
     !-------------------------------------------------------------------------
 
-
+    !$ACC END DATA
   END SUBROUTINE update_PP_scheme_zstar
   !-------------------------------------------------------------------------
 
@@ -473,18 +494,19 @@ CONTAINS
   !! velocity gradients for the vertical viscocity are clculated on edges
   !!
   !<Optimize:inUse:done>
-  SUBROUTINE ICON_PP_Edge_scheme(patch_3d, ocean_state, params_oce) !, calculate_density_func)
+  SUBROUTINE ICON_PP_Edge_scheme(patch_3d, ocean_state, params_oce, lacc) !, calculate_density_func)
 
     TYPE(t_patch_3d ),TARGET, INTENT(in) :: patch_3d
     TYPE(t_hydro_ocean_state), TARGET :: ocean_state
     TYPE(t_ho_params), INTENT(inout)            :: params_oce
+    LOGICAL, INTENT(IN), OPTIONAL :: lacc
 
     ! Local variables
     INTEGER :: jc, blockNo, je,jk, tracer_index
     !INTEGER  :: ile1, ibe1,ile2, ibe2,ile3, ibe3
     INTEGER :: cell_1_idx, cell_1_block, cell_2_idx,cell_2_block
     INTEGER :: start_index, end_index
-    INTEGER :: levels
+    INTEGER :: level, levels
 
     REAL(wp) :: z_rho_up(n_zlev), z_rho_down(n_zlev), density(n_zlev)
     REAL(wp) :: pressure(n_zlev), salinity(n_zlev)
@@ -505,14 +527,26 @@ CONTAINS
     !-------------------------------------------------------------------------
     TYPE(t_subset_range), POINTER :: edges_in_domain, all_cells!, cells_in_domain
     TYPE(t_patch), POINTER :: patch_2D
+    LOGICAL :: lzacc
 
     !-------------------------------------------------------------------------
+    CALL set_acc_host_or_device(lzacc, lacc)
+
     patch_2D         => patch_3d%p_patch_2d(1)
     edges_in_domain => patch_2D%edges%in_domain
     !cells_in_domain => patch_2D%cells%in_domain
     all_cells       => patch_2D%cells%ALL
     z_vert_density_grad_c => ocean_state%p_diag%zgrad_rho
     levels = n_zlev
+
+#ifdef _OPENACC
+    IF(GMRedi_configuration/=Cartesian_Mixing) THEN
+      IF (lzacc) CALL finish('ICON_PP_Edge_scheme_zstar', &
+        & 'The current OpenACC implementation for GMRedi has loop backward dependencies')
+    END IF
+#endif
+
+    !$ACC DATA CREATE(z_rho_up, z_rho_down, pressure, salinity, z_ri_cell) IF(lzacc)
 
     !-------------------------------------------------------------------------
     z_grav_rho                   = grav/OceanReferenceDensity
@@ -521,17 +555,24 @@ CONTAINS
 !     IF (ltimer) CALL timer_start(timer_extra10)
 !ICON_OMP_PARALLEL PRIVATE(salinity, z_rho_up, z_rho_down, pressure, z_ri_cell, &
 !ICON_OMP tracer_windMixing, z_vert_density_grad_e,velocity_windMixing)
+    !$ACC KERNELS DEFAULT(PRESENT) ASYNC(1) IF(lzacc)
     salinity(1:levels) = sal_ref
     z_rho_up(:)=0.0_wp
     z_rho_down(:)=0.0_wp
     pressure(:) = 0._wp
+    !$ACC END KERNELS
 
 !ICON_OMP_DO PRIVATE(start_index, end_index, jc, levels, jk, &
 !ICON_OMP z_shear_cell, tracer_index, diffusion_weight) ICON_OMP_DEFAULT_SCHEDULE
     DO blockNo = all_cells%start_block, all_cells%end_block
       CALL get_index_range(all_cells, blockNo, start_index, end_index)
+      !$ACC KERNELS DEFAULT(PRESENT) ASYNC(1) IF(lzacc)
       z_ri_cell(:,:) = 0.0_wp
       z_vert_density_grad_c(:,:, blockNo) = 0.0_wp
+      !$ACC END KERNELS
+
+      !$ACC PARALLEL LOOP GANG VECTOR DEFAULT(PRESENT) &
+      !$ACC   PRIVATE(salinity, pressure, z_rho_up, z_rho_down) ASYNC(1) IF(lzacc)
       DO jc = start_index, end_index
 
         levels = patch_3d%p_patch_1d(1)%dolic_c(jc,blockNo)
@@ -544,10 +585,26 @@ CONTAINS
         !--------------------------------------------------------
         ! pressure in dbars
         pressure(2:levels) = patch_3d%p_patch_1d(1)%depth_CellInterface(jc, 2:levels, blockNo) * ReferencePressureIndbars
+
+#ifdef _OPENACC
+        DO level = 1, levels-1
+          z_rho_up(level) = calculate_density_onColumn_elem(ocean_state%p_prog(nold(1))%tracer(jc,level,blockNo,1), &
+                                              salinity(level), pressure(level+1))
+        END DO
+#else
         z_rho_up(1:levels-1)  = calculate_density_onColumn(ocean_state%p_prog(nold(1))%tracer(jc,1:levels-1,blockNo,1), &
           & salinity(1:levels-1), pressure(2:levels), levels-1)
+#endif
+
+#ifdef _OPENACC
+        DO level = 2, levels
+          z_rho_down(level) = calculate_density_onColumn_elem(ocean_state%p_prog(nold(1))%tracer(jc,level,blockNo,1), &
+                                              salinity(level), pressure(level))
+        END DO
+#else
         z_rho_down(2:levels)  = calculate_density_onColumn(ocean_state%p_prog(nold(1))%tracer(jc,2:levels,blockNo,1), &
           & salinity(2:levels), pressure(2:levels), levels-1)
+#endif
 
         IF(GMRedi_configuration/=Cartesian_Mixing) THEN
           ocean_state%p_diag%rho_GM(jc,2:levels-1,blockNo)=0.5_wp*(z_rho_up(2:levels-1)+z_rho_down(2:levels-1))
@@ -567,10 +624,13 @@ CONTAINS
         END DO ! levels
         ocean_state%p_diag%grad_rho_PP_vert(jc,2:levels,blockNo)=z_vert_density_grad_c(jc,2:levels,blockNo)
       END DO ! index
+      !$ACC END PARALLEL LOOP
+
       !-----------------------------------------------------------
       tracer_windMixing => params_oce%tracer_windMixing(:,:,blockNo)
 !       tracer_windMixing(:,:) = 0.0_wp
       IF (use_wind_mixing) THEN
+        !$ACC PARALLEL LOOP GANG VECTOR DEFAULT(PRESENT) ASYNC(1) IF(lzacc)
         DO jc = start_index, end_index
 
           levels = patch_3d%p_patch_1d(1)%dolic_c(jc,blockNo)
@@ -580,6 +640,7 @@ CONTAINS
             & (1.0_wp - SeaIceConcentration(jc,blockNo))
 
           ! exponential decay of wind-mixing, eq. (16) of Marsland et al., 2003
+          !$ACC LOOP SEQ
           DO jk = 2, levels
            tracer_windMixing(jc,jk) =  tracer_windMixing(jc,jk-1) * WindMixingDecay(jk) * &
              & WindMixingLevel(jk) / (WindMixingLevel(jk) + MAX(z_vert_density_grad_c(jc,jk,blockNo),0.0_wp))
@@ -587,10 +648,12 @@ CONTAINS
           END DO! levels
 
         END DO ! index
+        !$ACC END PARALLEL LOOP
 
       END IF  ! use_wind_mixing
       !-----------------------------------------------------------
 
+      !$ACC PARALLEL LOOP GANG VECTOR DEFAULT(PRESENT) COLLAPSE(2) ASYNC(1) IF(lzacc)
       DO tracer_index = 1, no_tracer
         DO jc = start_index, end_index
           levels = patch_3d%p_patch_1d(1)%dolic_c(jc,blockNo)
@@ -619,8 +682,10 @@ CONTAINS
           ENDDO ! levels
         ENDDO !  block index
       ENDDO ! tracer_index]
+      !$ACC END PARALLEL LOOP
 
     END DO ! blocks
+    !$ACC WAIT(1)
 !ICON_OMP_END_DO
 
 ! !ICON_OMP_END_PARALLEL
@@ -635,6 +700,8 @@ CONTAINS
       CALL get_index_range(edges_in_domain, blockNo, start_index, end_index)
       velocity_windMixing => params_oce%velocity_windMixing(:,:,blockNo)
 
+      !$ACC PARALLEL LOOP GANG VECTOR DEFAULT(PRESENT) &
+      !$ACC   PRIVATE(z_vert_density_grad_e) ASYNC(1) IF(lzacc)
       DO je = start_index, end_index
 
         cell_1_idx = patch_2D%edges%cell_idx(je,blockNo,1)
@@ -657,6 +724,7 @@ CONTAINS
             &    (SeaIceConcentration(cell_1_idx,cell_1_block) + SeaIceConcentration(cell_2_idx,cell_2_block)))
 
             ! exponential decay of wind-mixing, eq. (16) of Marsland et al., 2003
+            !$ACC LOOP SEQ
             DO jk = 2, patch_3d%p_patch_1d(1)%dolic_e(je, blockNo)
               velocity_windMixing(je, jk) =  velocity_windMixing(je, jk-1) * WindMixingDecay(jk) * &
                 & WindMixingLevel(jk) / (WindMixingLevel(jk) + MAX(z_vert_density_grad_e(jk),0.0_wp))
@@ -683,11 +751,14 @@ CONTAINS
 
         END DO ! jk = 2, levels
       ENDDO ! je = start_index, end_index
+      !$ACC END PARALLEL LOOP
     ENDDO ! blockNo = edges_in_domain%start_block, edges_in_domain%end_block
+    !$ACC WAIT(1)
 !ICON_OMP_END_DO NOWAIT
 !ICON_OMP_END_PARALLEL
 !     IF (ltimer) CALL timer_stop(timer_extra11)
 
+    !$ACC END DATA
   END SUBROUTINE ICON_PP_Edge_scheme
   !-------------------------------------------------------------------------
 
@@ -699,7 +770,7 @@ CONTAINS
   !!
   !<Optimize:inUse:done>
   SUBROUTINE ICON_PP_Edge_scheme_zstar(patch_3d, ocean_state, params_oce, &
-      & eta_c, stretch_c, stretch_e) !, calculate_density_func)
+      & eta_c, stretch_c, stretch_e, lacc) !, calculate_density_func)
 
     TYPE(t_patch_3d ),TARGET, INTENT(in) :: patch_3d
     TYPE(t_hydro_ocean_state), TARGET :: ocean_state
@@ -707,13 +778,14 @@ CONTAINS
     REAL(wp), INTENT(IN) :: eta_c(nproma, patch_3d%p_patch_2d(1)%alloc_cell_blocks) !! sfc ht
     REAL(wp), INTENT(IN) :: stretch_c(nproma, patch_3d%p_patch_2d(1)%alloc_cell_blocks)
     REAL(wp), INTENT(IN) :: stretch_e(nproma, patch_3d%p_patch_2d(1)%nblks_e) !! stretch factor
+    LOGICAL, INTENT(IN), OPTIONAL :: lacc
 
     ! Local variables
     INTEGER :: jc, blockNo, je,jk, tracer_index
     !INTEGER  :: ile1, ibe1,ile2, ibe2,ile3, ibe3
     INTEGER :: cell_1_idx, cell_1_block, cell_2_idx,cell_2_block
     INTEGER :: start_index, end_index
-    INTEGER :: levels
+    INTEGER :: level, levels
 
     REAL(wp) :: z_rho_up(n_zlev), z_rho_down(n_zlev), density(n_zlev)
     REAL(wp) :: pressure(n_zlev), salinity(n_zlev)
@@ -734,14 +806,26 @@ CONTAINS
     !-------------------------------------------------------------------------
     TYPE(t_subset_range), POINTER :: edges_in_domain, all_cells!, cells_in_domain
     TYPE(t_patch), POINTER :: patch_2D
+    LOGICAL :: lzacc
 
     !-------------------------------------------------------------------------
+    CALL set_acc_host_or_device(lzacc, lacc)
+
     patch_2D         => patch_3d%p_patch_2d(1)
     edges_in_domain => patch_2D%edges%in_domain
     !cells_in_domain => patch_2D%cells%in_domain
     all_cells       => patch_2D%cells%ALL
     z_vert_density_grad_c => ocean_state%p_diag%zgrad_rho
     levels = n_zlev
+
+#ifdef _OPENACC
+    IF(GMRedi_configuration/=Cartesian_Mixing) THEN
+      IF (lzacc) CALL finish('ICON_PP_Edge_scheme_zstar', &
+        & 'The current OpenACC implementation for GMRedi has loop backward dependencies')
+    END IF
+#endif
+
+    !$ACC DATA CREATE(z_rho_up, z_rho_down, pressure, salinity, z_ri_cell) IF(lzacc)
 
     !-------------------------------------------------------------------------
     z_grav_rho                   = grav/OceanReferenceDensity
@@ -750,17 +834,24 @@ CONTAINS
 !     IF (ltimer) CALL timer_start(timer_extra10)
 !ICON_OMP_PARALLEL PRIVATE(salinity, z_rho_up, z_rho_down, pressure, z_ri_cell, &
 !ICON_OMP tracer_windMixing, z_vert_density_grad_e,velocity_windMixing)
+    !$ACC KERNELS DEFAULT(PRESENT) ASYNC(1) IF(lzacc)
     salinity(1:levels) = sal_ref
     z_rho_up(:)=0.0_wp
     z_rho_down(:)=0.0_wp
     pressure(:) = 0._wp
+    !$ACC END KERNELS
 
 !ICON_OMP_DO PRIVATE(start_index, end_index, jc, levels, jk, &
 !ICON_OMP z_shear_cell, tracer_index, diffusion_weight) ICON_OMP_DEFAULT_SCHEDULE
     DO blockNo = all_cells%start_block, all_cells%end_block
       CALL get_index_range(all_cells, blockNo, start_index, end_index)
+      !$ACC KERNELS DEFAULT(PRESENT) ASYNC(1) IF(lzacc)
       z_ri_cell(:,:) = 0.0_wp
       z_vert_density_grad_c(:,:, blockNo) = 0.0_wp
+      !$ACC END KERNELS
+
+      !$ACC PARALLEL LOOP GANG VECTOR DEFAULT(PRESENT) &
+      !$ACC   PRIVATE(salinity, pressure, z_rho_up, z_rho_down) ASYNC(1) IF(lzacc)
       DO jc = start_index, end_index
 
         levels = patch_3d%p_patch_1d(1)%dolic_c(jc,blockNo)
@@ -774,10 +865,25 @@ CONTAINS
         ! pressure in dbars
         pressure(2:levels) = (patch_3d%p_patch_1d(1)%depth_CellInterface(jc, 2:levels, blockNo) * stretch_c(jc,blockNo) &
           & - eta_c(jc,blockNo)) * ReferencePressureIndbars !+ ocean_state%p_aux%bc_total_top_potential(jc,blockNo)
+#ifdef _OPENACC
+        DO level = 1, levels-1
+          z_rho_up(level) = calculate_density_onColumn_elem(ocean_state%p_prog(nold(1))%tracer(jc,level,blockNo,1), &
+                                              salinity(level), pressure(level+1))
+        END DO
+#else
         z_rho_up(1:levels-1)  = calculate_density_onColumn(ocean_state%p_prog(nold(1))%tracer(jc,1:levels-1,blockNo,1), &
           & salinity(1:levels-1), pressure(2:levels), levels-1)
+#endif
+
+#ifdef _OPENACC
+        DO level = 2, levels
+          z_rho_down(level) = calculate_density_onColumn_elem(ocean_state%p_prog(nold(1))%tracer(jc,level,blockNo,1), &
+                                              salinity(level), pressure(level))
+        END DO
+#else
         z_rho_down(2:levels)  = calculate_density_onColumn(ocean_state%p_prog(nold(1))%tracer(jc,2:levels,blockNo,1), &
           & salinity(2:levels), pressure(2:levels), levels-1)
+#endif
 
         IF(GMRedi_configuration/=Cartesian_Mixing) THEN
           ocean_state%p_diag%rho_GM(jc,2:levels-1,blockNo)=0.5_wp*(z_rho_up(2:levels-1)+z_rho_down(2:levels-1))
@@ -797,10 +903,13 @@ CONTAINS
         END DO ! levels
         ocean_state%p_diag%grad_rho_PP_vert(jc,2:levels,blockNo)=z_vert_density_grad_c(jc,2:levels,blockNo)
       END DO ! index
+      !$ACC END PARALLEL LOOP
+
       !-----------------------------------------------------------
       tracer_windMixing => params_oce%tracer_windMixing(:,:,blockNo)
 !       tracer_windMixing(:,:) = 0.0_wp
       IF (use_wind_mixing) THEN
+        !$ACC PARALLEL LOOP GANG VECTOR DEFAULT(PRESENT) ASYNC(1) IF(lzacc)
         DO jc = start_index, end_index
 
           levels = patch_3d%p_patch_1d(1)%dolic_c(jc,blockNo)
@@ -810,6 +919,7 @@ CONTAINS
             & (1.0_wp - SeaIceConcentration(jc,blockNo))
 
           ! exponential decay of wind-mixing, eq. (16) of Marsland et al., 2003
+          !$ACC LOOP SEQ
           DO jk = 2, levels
            tracer_windMixing(jc,jk) =  tracer_windMixing(jc,jk-1) * WindMixingDecay(jk) * &
              & WindMixingLevel(jk) / (WindMixingLevel(jk) + MAX(z_vert_density_grad_c(jc,jk,blockNo),0.0_wp))
@@ -817,10 +927,12 @@ CONTAINS
           END DO! levels
 
         END DO ! index
+        !$ACC END PARALLEL LOOP
 
       END IF  ! use_wind_mixing
       !-----------------------------------------------------------
 
+      !$ACC PARALLEL LOOP GANG VECTOR DEFAULT(PRESENT) COLLAPSE(2) ASYNC(1) IF(lzacc)
       DO tracer_index = 1, no_tracer
         DO jc = start_index, end_index
           levels = patch_3d%p_patch_1d(1)%dolic_c(jc,blockNo)
@@ -849,8 +961,10 @@ CONTAINS
           ENDDO ! levels
         ENDDO !  block index
       ENDDO ! tracer_index]
+      !$ACC END PARALLEL LOOP
 
     END DO ! blocks
+    !$ACC WAIT(1)
 !ICON_OMP_END_DO
 
 ! !ICON_OMP_END_PARALLEL
@@ -865,6 +979,8 @@ CONTAINS
       CALL get_index_range(edges_in_domain, blockNo, start_index, end_index)
       velocity_windMixing => params_oce%velocity_windMixing(:,:,blockNo)
 
+      !$ACC PARALLEL LOOP GANG VECTOR DEFAULT(PRESENT) &
+      !$ACC   PRIVATE(z_vert_density_grad_e) ASYNC(1) IF(lzacc)
       DO je = start_index, end_index
 
         cell_1_idx = patch_2D%edges%cell_idx(je,blockNo,1)
@@ -887,6 +1003,7 @@ CONTAINS
             &    (SeaIceConcentration(cell_1_idx,cell_1_block) + SeaIceConcentration(cell_2_idx,cell_2_block)))
 
             ! exponential decay of wind-mixing, eq. (16) of Marsland et al., 2003
+            !$ACC LOOP SEQ
             DO jk = 2, patch_3d%p_patch_1d(1)%dolic_e(je, blockNo)
               velocity_windMixing(je, jk) =  velocity_windMixing(je, jk-1) * WindMixingDecay(jk) * &
                 & WindMixingLevel(jk) / (WindMixingLevel(jk) + MAX(z_vert_density_grad_e(jk),0.0_wp))
@@ -913,11 +1030,14 @@ CONTAINS
 
         END DO ! jk = 2, levels
       ENDDO ! je = start_index, end_index
+      !$ACC END PARALLEL LOOP
     ENDDO ! blockNo = edges_in_domain%start_block, edges_in_domain%end_block
+    !$ACC WAIT(1)
 !ICON_OMP_END_DO NOWAIT
 !ICON_OMP_END_PARALLEL
 !     IF (ltimer) CALL timer_stop(timer_extra11)
 
+    !$ACC END DATA
   END SUBROUTINE ICON_PP_Edge_scheme_zstar
   !-------------------------------------------------------------------------
 
@@ -961,10 +1081,6 @@ CONTAINS
 
     CALL set_acc_host_or_device(lzacc, lacc)
 
-#ifdef _OPENACC
-    IF (lzacc) CALL finish(routine, "OpenACC version currently not tested/validated")
-#endif
-
     !-------------------------------------------------------------------------
     params_oce      => v_params
     patch_2D        => patch_3d%p_patch_2d(1)
@@ -977,9 +1093,8 @@ CONTAINS
     z_inv_OceanReferenceDensity  = 1.0_wp/OceanReferenceDensity
     !-------------------------------------------------------------------------
 
-    !$ACC DATA CREATE(z_vert_density_grad_e) IF(lzacc)
-
-    !$ACC PARALLEL LOOP GANG VECTOR DEFAULT(PRESENT) ASYNC(1) IF(lzacc)
+    !$ACC PARALLEL LOOP GANG VECTOR DEFAULT(PRESENT) &
+    !$ACC   PRIVATE(z_vert_density_grad_e) ASYNC(1) IF(lzacc)
     DO je = start_index, end_index
 
       cell_1_idx = patch_2D%edges%cell_idx(je,blockNo,1)
@@ -1027,8 +1142,6 @@ CONTAINS
     END DO ! je = start_index, end_index
     !$ACC END PARALLEL LOOP
     !$ACC WAIT(1)
-
-    !$ACC END DATA
 
   END SUBROUTINE ICON_PP_Edge_vnPredict_scheme
   !-------------------------------------------------------------------------

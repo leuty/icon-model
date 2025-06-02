@@ -78,8 +78,11 @@ SUBROUTINE ocean_solve_cgj_recover_arrays_wp(this, x, b, z, d, r, r2, &
     REAL(KIND=wp) :: alpha, beta, dz_glob, tol, tol2
     REAL(KIND=wp) :: rh_glob, rh_glob_o, rn
     INTEGER :: nidx_a, nidx_e, nblk, iblk, k, m, k_final
-    REAL(KIND=wp), POINTER, DIMENSION(:,:), CONTIGUOUS :: &
-      & x, b, z, d, r, r2, invaii, h
+#if defined(_OPENACC) || defined(__NO_CONT_SOLV_OCE__)
+    REAL(KIND=wp), POINTER, DIMENSION(:,:) :: x, b, z, d, r, r2, invaii, h
+#else
+    REAL(KIND=wp), POINTER, DIMENSION(:,:), CONTIGUOUS :: x, b, z, d, r, r2, invaii, h
+#endif
     LOGICAL :: done, lzacc
 
     CALL set_acc_host_or_device(lzacc, lacc)

@@ -91,7 +91,23 @@ Once the model is running, a directory is generated `./experiments/exp.ocean_omi
 
 ### Configuring HAMOCC
 
-_to be added_
+Similar to the ICON-O ocean-only, a configuration including HAMOCC can be setup using the make_target_runscript tool. To begin with, you can use the hamocc_omip_10days template for running HAMOCC in serial mode (non-concurrent). This template is for R2B4 grid.
+
+```
+cd run/
+cp checksuite.ocean_internal/hamocc/exp.hamocc_omip_10days .
+./make_target_runscript in_script=exp.hamocc_omip_10days \
+                        in_script=exec.iconrun \
+                        EXPNAME=exp.hamocc_omip_10days \
+                        cpu_time=00:10:00 \
+                        no_of_nodes=1 \
+                        openmp_threads=4 \
+                        account_no=<your-project-number>
+sbatch exp.hamocc_omip_10days.run
+```
+
+To run HAMOCC on concurrent mode use the exp.test_concurrent_hamocc_omip_10day template instead.
+
 
 ## Ocean diagnostics
 

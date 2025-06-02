@@ -85,8 +85,13 @@ CONTAINS
     LOGICAL, INTENT(in), OPTIONAL :: lacc
     REAL(wp) :: tol, ci, h_aux
     INTEGER :: jb, nblk, nidx_e, i, k, i_final
+#if defined(_OPENACC) || defined(__NO_CONT_SOLV_OCE__)
+    REAL(KIND=wp), POINTER :: v(:,:,:), x(:,:), b(:,:), &
+      & w(:,:), z(:,:), h(:,:), s(:), c(:), res(:), vi(:,:)
+#else
     REAL(KIND=wp), POINTER, CONTIGUOUS :: v(:,:,:), x(:,:), b(:,:), &
       & w(:,:), z(:,:), h(:,:), s(:), c(:), res(:), vi(:,:)
+#endif
     LOGICAL :: done, lzacc
 
     CALL set_acc_host_or_device(lzacc, lacc)
@@ -243,8 +248,13 @@ CONTAINS
     CLASS(t_ocean_solve_gmres), INTENT(INOUT) :: this
     REAL(sp) :: tol, ci, h_aux
     INTEGER :: jb, nblk, nidx_e, i, k, i_final
+#if defined(_OPENACC) || defined(__NO_CONT_SOLV_OCE__)
+    REAL(KIND=sp), POINTER :: v(:,:,:), x(:,:), b(:,:), &
+      & w(:,:), z(:,:), h(:,:), s(:), c(:), res(:), vi(:,:)
+#else
     REAL(KIND=sp), POINTER, CONTIGUOUS :: v(:,:,:), x(:,:), b(:,:), &
       & w(:,:), z(:,:), h(:,:), s(:), c(:), res(:), vi(:,:)
+#endif
     LOGICAL :: done
 
     CALL this%recover_arrays(v, x, b, w, z, h, s, c, res)

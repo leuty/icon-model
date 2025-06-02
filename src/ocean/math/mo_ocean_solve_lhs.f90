@@ -661,9 +661,7 @@ CONTAINS
     !$ACC WAIT(1)
 
 ! reorder indices info to grouped ordering
-    !$ACC DATA COPYIN(grp_map) IF(lzacc)
-
-    !$ACC PARALLEL LOOP GANG VECTOR DEFAULT(PRESENT) COLLAPSE(2) ASYNC(1) IF(lzacc)
+    !$ACC UPDATE HOST(elem_ct) IF(lzacc)
     DO iblk = 1, this%nblk_a_loc
       DO iidx = 1, this%nidx_loc
         IF (grp_map(iidx, iblk) .EQ. 127) CYCLE
@@ -675,10 +673,7 @@ CONTAINS
           & grp_map(iidx, iblk)) = iblk
       END DO
     END DO
-    !$ACC END PARALLEL LOOP
-    !$ACC WAIT(1)
-
-    !$ACC END DATA
+    !$ACC UPDATE DEVICE(elem_ct, this%grp_map_idx, this%grp_map_blk) IF(lzacc)
 
 ! allocate arrays to hold grouped matrix info
     ALLOCATE( this%grp_smap_idx(this%nnzero_cal, &
@@ -732,10 +727,17 @@ CONTAINS
 #endif
   SUBROUTINE lhs_doit_wp(this, x, ax, a , b, i, lacc)
     CLASS(t_lhs), INTENT(IN) :: this
+#if defined(_OPENACC) || defined(__NO_CONT_SOLV_OCE__)
+    REAL(KIND=wp), INTENT(IN), DIMENSION(:,:) :: x
+    REAL(KIND=wp), INTENT(INOUT), DIMENSION(:,:) :: ax
+    REAL(KIND=wp), INTENT(IN), DIMENSION(:,:,:) :: a
+    INTEGER, INTENT(IN), DIMENSION(:,:,:) :: i, b
+#else
     REAL(KIND=wp), INTENT(IN), DIMENSION(:,:), CONTIGUOUS :: x
     REAL(KIND=wp), INTENT(INOUT), DIMENSION(:,:), CONTIGUOUS :: ax
     REAL(KIND=wp), INTENT(IN), DIMENSION(:,:,:), CONTIGUOUS :: a
     INTEGER, INTENT(IN), DIMENSION(:,:,:), CONTIGUOUS :: i, b
+#endif
     LOGICAL, INTENT(IN), OPTIONAL :: lacc
     REAL(KIND=wp) :: x_t(this%trans%nidx)
     INTEGER :: iidx, iblk, inz
@@ -777,10 +779,17 @@ CONTAINS
 ! backend routine applying lhs-matrix, but omitting diagonal elements
   PURE_OR_OMP SUBROUTINE lhs_noaii_doit_wp(this, x, ax, a , b, i)
     CLASS(t_lhs), INTENT(IN) :: this
+#if defined(_OPENACC) || defined(__NO_CONT_SOLV_OCE__)
+    REAL(KIND=wp), INTENT(IN), DIMENSION(:,:) :: x
+    REAL(KIND=wp), INTENT(INOUT), DIMENSION(:,:) :: ax
+    REAL(KIND=wp), INTENT(IN), DIMENSION(:,:,:) :: a
+    INTEGER, INTENT(IN), DIMENSION(:,:,:) :: i, b
+#else
     REAL(KIND=wp), INTENT(IN), DIMENSION(:,:), CONTIGUOUS :: x
     REAL(KIND=wp), INTENT(INOUT), DIMENSION(:,:), CONTIGUOUS :: ax
     REAL(KIND=wp), INTENT(IN), DIMENSION(:,:,:), CONTIGUOUS :: a
     INTEGER, INTENT(IN), DIMENSION(:,:,:), CONTIGUOUS :: i, b
+#endif
     INTEGER :: iidx, iblk, inz
 
 !ICON_OMP PARALLEL
@@ -814,8 +823,13 @@ CONTAINS
 ! interface for solvers, applying lhs-matrix
   SUBROUTINE lhs_apply_wp(this, x, ax, opt_direct, lacc)
     CLASS(t_lhs), INTENT(INOUT) :: this
+#if defined(_OPENACC) || defined(__NO_CONT_SOLV_OCE__)
+    REAL(KIND=wp), INTENT(IN), DIMENSION(:,:) :: x
+    REAL(KIND=wp), INTENT(INOUT), DIMENSION(:,:) :: ax
+#else
     REAL(KIND=wp), INTENT(IN), DIMENSION(:,:), CONTIGUOUS :: x
     REAL(KIND=wp), INTENT(INOUT), DIMENSION(:,:), CONTIGUOUS :: ax
+#endif
     LOGICAL, INTENT(IN), OPTIONAL :: opt_direct
     LOGICAL, INTENT(in), OPTIONAL :: lacc
 
@@ -841,8 +855,13 @@ CONTAINS
 ! interface for solvers, applying lhs-matrix, but omitting diagonal elements
   SUBROUTINE lhs_apply_noaii_wp(this, x, ax)
     CLASS(t_lhs), INTENT(IN) :: this
+#if defined(_OPENACC) || defined(__NO_CONT_SOLV_OCE__)
+    REAL(KIND=wp), INTENT(IN), DIMENSION(:,:) :: x
+    REAL(KIND=wp), INTENT(INOUT), DIMENSION(:,:) :: ax
+#else
     REAL(KIND=wp), INTENT(IN), DIMENSION(:,:), CONTIGUOUS :: x
     REAL(KIND=wp), INTENT(INOUT), DIMENSION(:,:), CONTIGUOUS :: ax
+#endif
     CHARACTER(LEN=*),PARAMETER :: routine = module_name//":lhs_apply_noaii_wp()"
 
     IF (.NOT.this%is_init) CALL finish(routine, "t_lhs was not initiaized-...!")
@@ -858,10 +877,17 @@ CONTAINS
 #endif
   SUBROUTINE lhs_doit_sp(this, x, ax, a, b, i, lacc)
     CLASS(t_lhs), INTENT(IN) :: this
+#if defined(_OPENACC) || defined(__NO_CONT_SOLV_OCE__)
+    REAL(KIND=sp), INTENT(IN), DIMENSION(:,:) :: x
+    REAL(KIND=sp), INTENT(INOUT), DIMENSION(:,:) :: ax
+    REAL(KIND=sp), INTENT(IN), DIMENSION(:,:,:) :: a
+    INTEGER, INTENT(IN), DIMENSION(:,:,:) :: i, b
+#else
     REAL(KIND=sp), INTENT(IN), DIMENSION(:,:), CONTIGUOUS :: x
     REAL(KIND=sp), INTENT(INOUT), DIMENSION(:,:), CONTIGUOUS :: ax
     REAL(KIND=sp), INTENT(IN), DIMENSION(:,:,:), CONTIGUOUS :: a
     INTEGER, INTENT(IN), DIMENSION(:,:,:), CONTIGUOUS :: i, b
+#endif
     LOGICAL, INTENT(IN), OPTIONAL :: lacc
     REAL(KIND=sp) :: x_t(this%trans%nidx)
     INTEGER :: iidx, iblk, inz
@@ -901,8 +927,13 @@ CONTAINS
 ! sp-variant of lhs_apply_wp
   SUBROUTINE lhs_apply_sp(this, x, ax, opt_direct)
     CLASS(t_lhs), INTENT(IN) :: this
+#if defined(_OPENACC) || defined(__NO_CONT_SOLV_OCE__)
+    REAL(KIND=sp), INTENT(IN), DIMENSION(:,:) :: x
+    REAL(KIND=sp), INTENT(INOUT), DIMENSION(:,:) :: ax
+#else
     REAL(KIND=sp), INTENT(IN), DIMENSION(:,:), CONTIGUOUS :: x
     REAL(KIND=sp), INTENT(INOUT), DIMENSION(:,:), CONTIGUOUS :: ax
+#endif
     LOGICAL, INTENT(IN), OPTIONAL :: opt_direct
     LOGICAL :: l_direct
     CHARACTER(LEN=*),PARAMETER :: routine = module_name//":lhs_apply_sp()"
@@ -923,10 +954,17 @@ CONTAINS
 ! sp-variant of lhs_noaii_doit_wp
   SUBROUTINE lhs_noaii_doit_sp(this, x, ax, a , b, i)
     CLASS(t_lhs), INTENT(IN) :: this
+#if defined(_OPENACC) || defined(__NO_CONT_SOLV_OCE__)
+    REAL(KIND=sp), INTENT(IN), DIMENSION(:,:) :: x
+    REAL(KIND=sp), INTENT(INOUT), DIMENSION(:,:) :: ax
+    REAL(KIND=sp), INTENT(IN), DIMENSION(:,:,:) :: a
+    INTEGER, INTENT(IN), DIMENSION(:,:,:) :: i, b
+#else
     REAL(KIND=sp), INTENT(IN), DIMENSION(:,:), CONTIGUOUS :: x
     REAL(KIND=sp), INTENT(INOUT), DIMENSION(:,:), CONTIGUOUS :: ax
     REAL(KIND=sp), INTENT(IN), DIMENSION(:,:,:), CONTIGUOUS :: a
     INTEGER, INTENT(IN), DIMENSION(:,:,:), CONTIGUOUS :: i, b
+#endif
     INTEGER :: iidx, iblk, inz
 
 !ICON_OMP PARALLEL
@@ -957,8 +995,13 @@ CONTAINS
 ! sp-variant of lhs_apply_noaii_wp
   SUBROUTINE lhs_apply_noaii_sp(this, x, ax)
     CLASS(t_lhs), INTENT(IN) :: this
+#if defined(_OPENACC) || defined(__NO_CONT_SOLV_OCE__)
+    REAL(KIND=sp), INTENT(IN), DIMENSION(:,:) :: x
+    REAL(KIND=sp), INTENT(INOUT), DIMENSION(:,:) :: ax
+#else
     REAL(KIND=sp), INTENT(IN), DIMENSION(:,:), CONTIGUOUS :: x
     REAL(KIND=sp), INTENT(INOUT), DIMENSION(:,:), CONTIGUOUS :: ax
+#endif
     CHARACTER(LEN=*),PARAMETER :: routine = module_name//":lhs_apply_noaii_sp()"
 
     IF (.NOT.this%is_init) CALL finish(routine, "t_lhs was not initiaized-...!")

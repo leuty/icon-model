@@ -23,6 +23,7 @@
 #SBATCH  --error=LOG.exp.ocean_omip_R2B4_V0_GM0_cpurun_lvec.run.run.o
 #SBATCH --exclusive
 #SBATCH --time=00:10:00
+#SBATCH --deadline=now+120minutes
 #-----------------------------------------------------------------------------
 set +x
 ulimit -s unlimited
@@ -626,27 +627,6 @@ cat >> ${ocean_namelist} << EOF
 EOF
 
 
-if  [ x${vert_mix} = xTKE ] ; then
-
-cat >> ${ocean_namelist} << EOF
-&output_nml
-  filetype                        = 5
-  output_filename                 = "${EXPNAME}_P1M_tke"
-  output_start                    = "${start_date}"
-  output_end                      = "${end_date}"
-  output_interval                 = "${output_interval}"
-  file_interval                   = "${file_interval}"
-  filename_format                 = "<output_filename>_<datetime2>"
-  mode                            = 1
-  include_last                    = .FALSE.
-  output_grid                     = .TRUE.
-  operation                       = "mean"
-  ml_varlist                      = 'group:oce_vmix_tke'
-/
-
-EOF
-fi
-
 cat >> ${ocean_namelist} << EOF
 &output_nml
   filetype                        = 5
@@ -826,11 +806,11 @@ cat >> ${ocean_namelist} << EOF
 /
 EOF
 
-if  [ x${vert_mix} = xPP ] ; then
-
 cat >> ${ocean_namelist} << EOF
 &ocean_vertical_diffusion_nml
-  vert_mix_type                               = 1       ! 1: PP; 2: TKE;  4 TKE+IDEMIX
+  vert_mix_type                               = 2  ! 1: PP; 2: TKE; 4 TKE+IDEMIX
+  only_tke                                    = .TRUE. ! .TRUE. for TKE; .FALSE. for TKE+IDEMIX
+  ! pp parameters
   PPscheme_type                               = 0
   velocity_VerticalDiffusion_background       = 5.0E-5  ! [m2/s]  vertical background viscosity coefficient for velocity
   Temperature_VerticalDiffusion_background    = 1.0E-5  ! [m2/s]  vertical background diffusion coefficient for temperature
@@ -845,33 +825,23 @@ cat >> ${ocean_namelist} << EOF
   lambda_wind                                 = 0.03
   tracer_TopWindMixing                        = 0.5E-3  ! [m2/s] windmixing diffusivity in MPIOM-type pp-scheme
   velocity_TopWindMixing                      = 0.5E-3  ! [m2/s] windmixing viscosity in MPIOM-type pp-scheme
-/
-EOF
-
-elif  [ x${vert_mix} = xTKE ] ; then
-
-cat >> ${ocean_namelist} << EOF
-&ocean_vertical_diffusion_nml
-  vert_mix_type                   = 2  ! 1: PP; 2: TKE; 4 TKE+IDEMIX
-  only_tke                        = .TRUE. ! .TRUE. for TKE; .FALSE. for TKE+IDEMIX
   ! vmix/tke parameters
-  c_k                             = 0.3
-  c_eps                           = 0.7
-  alpha_tke                       = 30.0
-  mxl_min                         = 1.d-8
-  kappaM_min                      = 0.0
-  kappaM_max                      = 100.0
-  cd                              = 3.75
-  tke_min                         = 1.d-6
-  tke_mxl_choice                  = 2
-  tke_surf_min                    = 1.d-4
-  l_lc                            = .FALSE.   ! Use Langmuir parameterisation (Axell, 2002)
-  clc                             = 0.15      ! Factor in the vertical velocity profile of the Langmuir circulation (default clc=0.1 in Axell (2002))
-  use_ubound_dirichlet            = .FALSE.
-  use_lbound_dirichlet            = .FALSE.
+  c_k                                         = 0.3
+  c_eps                                       = 0.7
+  alpha_tke                                   = 30.0
+  mxl_min                                     = 1.d-8
+  kappaM_min                                  = 0.0
+  kappaM_max                                  = 100.0
+  cd                                          = 3.75
+  tke_min                                     = 1.d-6
+  tke_mxl_choice                              = 2
+  tke_surf_min                                = 1.d-4
+  l_lc                                        = .FALSE.   ! Use Langmuir parameterisation (Axell, 2002)
+  clc                                         = 0.15      ! Factor in the vertical velocity profile of the Langmuir circulation (default clc=0.1 in Axell (2002))
+  use_ubound_dirichlet                        = .FALSE.
+  use_lbound_dirichlet                        = .FALSE.
 /
 EOF
-fi
 
 
 cat >> ${ocean_namelist} << EOF
@@ -958,6 +928,9 @@ cat >> ${ocean_namelist} << EOF
   diagnose_for_heat_content       = .TRUE.
   eddydiag                        = .FALSE.
   diagnose_for_tendencies         = .TRUE.
+  use_layers                      = .FALSE.
+  n_dlev                          = 84
+  mode_layers                     = 1
 /
 
 &io_nml
@@ -1349,27 +1322,88 @@ ICON_COMPONENT1_VH_procs=$(( ${num_restart_procs:-0} + ${num_io_procs:-0} + ${nu
 START_MODEL="${START_MODEL:=$START $MODEL}"
 
 
-rm -f finish.status
-#
-date
-set -x
-${START_MODEL} || exit 1
-set +x
-date
-#
-if [ -r finish.status ] ; then
-  check_final_status 0 "${START} ${MODEL}"
-else
-  check_final_status -1 "${START} ${MODEL}"
+# At this point we're in the base experiment directory and everything is prepared.
+# Instead of simply running it, move all the files into a skeleton directory first.
+# Then copy all files to subdirectories, patch the namelists accordingly and run
+# all simulations
+
+if [ -d skeleton ]; then
+  rm -rf skeleton
 fi
-#
-#-----------------------------------------------------------------------------
-#
-finish_status=`cat finish.status`
-echo $finish_status
-echo "============================"
-echo "Script run successfully: $finish_status"
-echo "============================"
+mkdir skeleton
+while IFS= read filename; do
+  if [ -h "${filename}" ]; then
+    target=$(readlink -f "${filename}")
+    cd skeleton; ln -s ${target} ${filename}; cd ..
+  elif [ -f "${filename}" ]; then
+    cp ${filename} skeleton/
+  fi
+done < <(find . -maxdepth 1 -type f -o -type l)
+rm -f skeleton/finish.status
+
+# Load variations defined by the arrays directories and patchlines
+cp ${RUNSCRIPTDIR}/checksuite.ocean_internal/gpu/omip_variations.sh .
+source omip_variations.sh
+
+# Load PYTHON environment variable pointing to the Python installation which has f90nml
+source ${RUNSCRIPTDIR}/set-up.info
+
+idx=0
+# Main loop calling srun (within START_MODEL) for each variation/in each subdirectory
+for startdir in ${directories[@]}; do
+  echo -e "---\n\n>>> Processing ${startdir}"
+  nml_modification="${patchlines[${idx}]}"
+  echo -e "    using ${nml_modification}\n\n"
+
+  if [ -d "${startdir}" ]; then
+    rm -rf "${startdir}"
+  fi
+  mkdir ${startdir}
+  cd ${startdir}
+  cp ../skeleton/* .
+
+  # First move the original namelist, then create a reformatted namelist without changes
+  # and finally the reformatted namelist with changes. Keep the files around in case
+  # something goes wrong which is related to the namelist adjustments
+  mv NAMELIST_${EXPNAME} orig_nml
+  $PYTHON -c "import f90nml; nml=f90nml.read(\"orig_nml\"); nml.write(\"orig_nml_reformatted\");"
+  if [ $? -ne 0 ]; then
+    echo "Failed to process NAMELIST for ${startdir}"
+    exit 1
+  fi
+  $PYTHON -c "import f90nml; nml=f90nml.read(\"orig_nml\"); ${nml_modification}; nml.write(\"NAMELIST_${EXPNAME}\")"
+  if [ $? -ne 0 ]; then
+    echo "Failed to modify NAMELIST for ${startdir} with ${nml_modification}"
+    exit 1
+  fi
+  #
+  date
+  set -x
+  ${START_MODEL} || exit 1
+  set +x
+  date
+  #
+  if [ -r finish.status ] ; then
+   check_final_status 0 "${START} ${MODEL}"
+ else
+   check_final_status -1 "${START} ${MODEL}"
+  fi
+  #
+  #-----------------------------------------------------------------------------
+  #
+  finish_status=`cat finish.status`
+  echo $finish_status
+  echo "============================"
+  echo "Script run successfully: $finish_status"
+  echo "============================"
+
+  if [ "x${finish_status}" != "x OK" ]; then
+    echo "Exiting test loop because of status >${finish_status}<"
+    exit 1
+  fi
+  cd ..
+  let idx=idx+1
+done
 
 #-----------------------------------------------------------------------------
 # rm output_schedule_steps*

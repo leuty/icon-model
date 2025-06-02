@@ -11,7 +11,7 @@
 # ------------------------------------------
 
 #
-# configure wrapper which is used for buildbot builder dwd_nec_yac2 (VH)
+# configure wrapper which is used for buildbot builder dwd_nec_coupling (VH)
 #
 "$(dirname -- "${BASH_SOURCE[0]}")"/rcl.VH.gcc-11.2.0_mpi-3.5_oper \
   --enable-ocean \
@@ -20,4 +20,5 @@
   --enable-coupling \
   --enable-fcgroup-OCEAN \
   --enable-comin \
+  --enable-testbed \
   "$@"

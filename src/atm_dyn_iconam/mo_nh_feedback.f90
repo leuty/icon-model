@@ -41,7 +41,7 @@ MODULE mo_nh_feedback
   USE mo_communication,       ONLY: exchange_data_mult_mixprec
 #endif
   USE mo_sync,                ONLY: SYNC_C, SYNC_E, sync_patch_array, &
-    global_sum_array3, sync_patch_array_mult
+    sync_patch_array_mult
   USE mo_physical_constants,  ONLY: rd, cvd_o_rd, p0ref
   USE mo_nwp_lnd_types,       ONLY: t_lnd_state, t_lnd_prog, t_wtr_prog
   USE mo_nwp_phy_types,       ONLY: t_nwp_phy_diag

@@ -28,6 +28,7 @@ MODULE mo_ocean_solve_transfer
   USE mo_mpi, ONLY: p_sum, p_max
   USE mo_exception, ONLY: finish
   USE mo_run_config, ONLY: ltimer
+  USE mo_fortran_tools, ONLY: set_acc_host_or_device
 
   IMPLICIT NONE
   PRIVATE
@@ -102,7 +103,11 @@ MODULE mo_ocean_solve_transfer
       IMPORT t_transfer
       CLASS(t_transfer), INTENT(IN) :: this
       REAL(KIND=wp), INTENT(IN), DIMENSION(:,:) :: di1, di2
+#if defined(_OPENACC) || defined(__NO_CONT_SOLV_OCE__)
+      REAL(KIND=wp), INTENT(INOUT), DIMENSION(:,:) :: do1, do2
+#else
       REAL(KIND=wp), INTENT(INOUT), DIMENSION(:,:), CONTIGUOUS :: do1, do2
+#endif
       INTEGER, INTENT(IN) :: tt
       LOGICAL, INTENT(IN), OPTIONAL :: lacc
     END SUBROUTINE a_trans_into_2d_wp_2
@@ -110,7 +115,11 @@ MODULE mo_ocean_solve_transfer
       USE mo_kind, ONLY: wp
       IMPORT t_transfer
       CLASS(t_transfer), INTENT(IN) :: this
+#if defined(_OPENACC) || defined(__NO_CONT_SOLV_OCE__)
+      REAL(KIND=wp), INTENT(IN), DIMENSION(:,:,:) :: data_in
+#else
       REAL(KIND=wp), INTENT(IN), DIMENSION(:,:,:), CONTIGUOUS :: data_in
+#endif
       REAL(KIND=wp), INTENT(INOUT), DIMENSION(:,:,:), ALLOCATABLE :: data_out
       INTEGER, INTENT(IN) :: tt
       LOGICAL, INTENT(IN), OPTIONAL :: lacc
@@ -119,7 +128,11 @@ MODULE mo_ocean_solve_transfer
       & data_out_idx, data_out_blk, tt, lacc)
       IMPORT t_transfer
       CLASS(t_transfer), INTENT(IN) :: this
+#if defined(_OPENACC) || defined(__NO_CONT_SOLV_OCE__)
+      INTEGER, INTENT(IN), DIMENSION(:,:,:) :: data_in_idx, data_in_blk
+#else
       INTEGER, INTENT(IN), DIMENSION(:,:,:), CONTIGUOUS :: data_in_idx, data_in_blk
+#endif
       INTEGER, INTENT(INOUT), DIMENSION(:,:,:), ALLOCATABLE :: &
         & data_out_idx, data_out_blk
       INTEGER, INTENT(IN) :: tt
@@ -130,7 +143,11 @@ MODULE mo_ocean_solve_transfer
       IMPORT t_transfer
       CLASS(t_transfer), INTENT(IN) :: this
       REAL(KIND=wp), INTENT(IN), DIMENSION(:,:) :: data_in
+#if defined(_OPENACC) || defined(__NO_CONT_SOLV_OCE__)
+      REAL(KIND=wp), INTENT(INOUT), DIMENSION(:,:) :: data_out
+#else
       REAL(KIND=wp), INTENT(INOUT), DIMENSION(:,:), CONTIGUOUS :: data_out
+#endif
       INTEGER, INTENT(IN) :: tt
       LOGICAL, INTENT(IN), OPTIONAL :: lacc
     END SUBROUTINE a_trans_into_2d_wp
@@ -138,8 +155,13 @@ MODULE mo_ocean_solve_transfer
       USE mo_kind, ONLY: wp
       IMPORT t_transfer
       CLASS(t_transfer), INTENT(IN) :: this
+#if defined(_OPENACC) || defined(__NO_CONT_SOLV_OCE__)
+      REAL(KIND=wp), INTENT(IN), DIMENSION(:,:,:) :: data_in
+      REAL(KIND=wp), INTENT(INOUT), DIMENSION(:,:,:) :: data_out
+#else
       REAL(KIND=wp), INTENT(IN), DIMENSION(:,:,:), CONTIGUOUS :: data_in
       REAL(KIND=wp), INTENT(INOUT), DIMENSION(:,:,:), CONTIGUOUS :: data_out
+#endif
       INTEGER, INTENT(IN) :: tt
       LOGICAL, INTENT(IN), OPTIONAL :: lacc
     END SUBROUTINE a_trans_into_3d_wp
@@ -147,8 +169,13 @@ MODULE mo_ocean_solve_transfer
       & data_out_idx, data_out_blk, tt, lacc)
       IMPORT t_transfer
       CLASS(t_transfer), INTENT(IN) :: this
+#if defined(_OPENACC) || defined(__NO_CONT_SOLV_OCE__)
+      INTEGER, INTENT(IN), DIMENSION(:,:,:) :: data_in_blk, data_in_idx
+      INTEGER, INTENT(INOUT), DIMENSION(:,:,:) :: data_out_blk, data_out_idx
+#else
       INTEGER, INTENT(IN), DIMENSION(:,:,:), CONTIGUOUS :: data_in_blk, data_in_idx
       INTEGER, INTENT(INOUT), DIMENSION(:,:,:), CONTIGUOUS :: data_out_blk, data_out_idx
+#endif
       INTEGER, INTENT(IN) :: tt
       LOGICAL, INTENT(IN), OPTIONAL :: lacc
     END SUBROUTINE a_trans_into_idx
@@ -156,37 +183,60 @@ MODULE mo_ocean_solve_transfer
       USE mo_kind, ONLY: wp
       IMPORT t_transfer
       CLASS(t_transfer), INTENT(IN) :: this
+#if defined(_OPENACC) || defined(__NO_CONT_SOLV_OCE__)
+      REAL(KIND=wp), INTENT(IN), DIMENSION(:,:) :: data_in
+      REAL(KIND=wp), INTENT(INOUT), DIMENSION(:,:) :: data_out
+#else
       REAL(KIND=wp), INTENT(IN), DIMENSION(:,:), CONTIGUOUS :: data_in
       REAL(KIND=wp), INTENT(INOUT), DIMENSION(:,:), CONTIGUOUS :: data_out
+#endif
       LOGICAL, INTENT(IN), OPTIONAL :: lacc
     END SUBROUTINE a_trans_out_2d_wp
     SUBROUTINE a_trans_bcst_1d_wp(this, data_in, data_out, lacc)
       USE mo_kind, ONLY: wp
       IMPORT t_transfer
       CLASS(t_transfer), INTENT(IN) :: this
+#if defined(_OPENACC) || defined(__NO_CONT_SOLV_OCE__)
+      REAL(KIND=wp), INTENT(IN), DIMENSION(:) :: data_in
+      REAL(KIND=wp), INTENT(INOUT), DIMENSION(:) :: data_out
+#else
       REAL(KIND=wp), INTENT(IN), DIMENSION(:), CONTIGUOUS :: data_in
       REAL(KIND=wp), INTENT(INOUT), DIMENSION(:), CONTIGUOUS :: data_out
+#endif
       LOGICAL, INTENT(IN), OPTIONAL :: lacc
     END SUBROUTINE a_trans_bcst_1d_wp
     SUBROUTINE a_trans_bcst_1d_i(this, data_in, data_out, lacc)
       IMPORT t_transfer
       CLASS(t_transfer), INTENT(IN) :: this
+#if defined(_OPENACC) || defined(__NO_CONT_SOLV_OCE__)
+      INTEGER, INTENT(IN), DIMENSION(:) :: data_in
+      INTEGER, INTENT(INOUT), DIMENSION(:) :: data_out
+#else
       INTEGER, INTENT(IN), DIMENSION(:), CONTIGUOUS :: data_in
       INTEGER, INTENT(INOUT), DIMENSION(:), CONTIGUOUS :: data_out
+#endif
       LOGICAL, INTENT(IN), OPTIONAL :: lacc
     END SUBROUTINE a_trans_bcst_1d_i
     SUBROUTINE a_trans_sync_2d_wp(this, data_inout, lacc)
       USE mo_kind, ONLY: wp
       IMPORT t_transfer
       CLASS(t_transfer), INTENT(INOUT) :: this
+#if defined(_OPENACC) || defined(__NO_CONT_SOLV_OCE__)
+      REAL(KIND=wp), INTENT(INOUT), DIMENSION(:,:) :: data_inout
+#else
       REAL(KIND=wp), INTENT(INOUT), DIMENSION(:,:), CONTIGUOUS :: data_inout
+#endif
       LOGICAL, INTENT(IN), OPTIONAL :: lacc
     END SUBROUTINE a_trans_sync_2d_wp
     SUBROUTINE a_trans_sync_2d_sp(this, data_inout, lacc)
       USE mo_kind, ONLY: sp
       IMPORT t_transfer
       CLASS(t_transfer), INTENT(INOUT) :: this
+#if defined(_OPENACC) || defined(__NO_CONT_SOLV_OCE__)
+      REAL(KIND=sp), INTENT(INOUT), DIMENSION(:,:) :: data_inout
+#else
       REAL(KIND=sp), INTENT(INOUT), DIMENSION(:,:), CONTIGUOUS :: data_inout
+#endif
       LOGICAL, INTENT(IN), OPTIONAL :: lacc
     END SUBROUTINE a_trans_sync_2d_sp
     SUBROUTINE a_trans_destruct(this, lacc)
@@ -243,16 +293,21 @@ CONTAINS
 
 ! explicite interface for 1 global sum of double precision
   SUBROUTINE ocean_solve_transfer_global_sum_2d_dp_1(this, &
-    & data_in1, summa1)
+    & data_in1, summa1, lacc)
     CLASS(t_transfer), INTENT(IN) :: this
     REAL(KIND=dp), INTENT(IN), TARGET :: data_in1(:,:)
     REAL(KIND=dp), INTENT(OUT) :: summa1
+    LOGICAL, INTENT(IN), OPTIONAL :: lacc
     TYPE(t_ptr_2d_dp) :: data_in_ptr(1)
     REAL(KIND=dp) :: sums(1)
+    LOGICAL :: lzacc
 #ifdef __INTEL_COMPILER
     !DIR$ ATTRIBUTES ALIGN : 64 :: sums
 #endif
+    CALL set_acc_host_or_device(lzacc, lacc)
 
+    !$ACC UPDATE SELF(data_in1) ASYNC(1) IF(lzacc)
+    !$ACC WAIT(1)
     data_in_ptr(1)%p => data_in1
     CALL this%global_sum_internal(1, data_in_ptr, sums)
     summa1 = sums(1)
@@ -260,16 +315,22 @@ CONTAINS
 
 ! explicite interface for 2 global sums of double precision
   SUBROUTINE ocean_solve_transfer_global_sum_2d_dp_2(this, &
-    & data_in1, summa1, data_in2, summa2)
+    & data_in1, summa1, data_in2, summa2, lacc)
     CLASS(t_transfer), INTENT(IN) :: this
     REAL(KIND=dp), INTENT(IN), TARGET :: &
       & data_in1(:,:), data_in2(:,:)
     REAL(KIND=dp), INTENT(OUT) :: summa1, summa2
+    LOGICAL, INTENT(IN), OPTIONAL :: lacc
     TYPE(t_ptr_2d_dp) :: data_in_ptr(2)
     REAL(KIND=dp) :: sums(2)
+    LOGICAL :: lzacc
 #ifdef __INTEL_COMPILER
     !DIR$ ATTRIBUTES ALIGN : 64 :: sums
 #endif
+    CALL set_acc_host_or_device(lzacc, lacc)
+
+    !$ACC UPDATE SELF(data_in1, data_in2) ASYNC(1) IF(lzacc)
+    !$ACC WAIT(1)
 
     data_in_ptr(1)%p => data_in1
     data_in_ptr(2)%p => data_in2
@@ -280,16 +341,22 @@ CONTAINS
 
 ! explicite interface for 3 global sums of double precision
   SUBROUTINE ocean_solve_transfer_global_sum_2d_dp_3(this, &
-    & data_in1, summa1, data_in2, summa2, data_in3, summa3)
+    & data_in1, summa1, data_in2, summa2, data_in3, summa3, lacc)
     CLASS(t_transfer), INTENT(IN) :: this
     REAL(KIND=dp), INTENT(IN), TARGET :: &
       & data_in1(:,:), data_in2(:,:), data_in3(:,:)
     REAL(KIND=dp), INTENT(OUT) :: summa1, summa2, summa3
+    LOGICAL, INTENT(IN), OPTIONAL :: lacc
     TYPE(t_ptr_2d_dp) :: data_in_ptr(3)
     REAL(KIND=dp) :: sums(3)
+    LOGICAL :: lzacc
 #ifdef __INTEL_COMPILER
     !DIR$ ATTRIBUTES ALIGN : 64 :: sums
 #endif
+    CALL set_acc_host_or_device(lzacc, lacc)
+
+    !$ACC UPDATE SELF(data_in1, data_in2, data_in3) ASYNC(1) IF(lzacc)
+    !$ACC WAIT(1)
 
     data_in_ptr(1)%p => data_in1
     data_in_ptr(2)%p => data_in2
@@ -453,7 +520,11 @@ CONTAINS
 
 ! performs local sum -- 'fast' implementation - dp variant
   PURE_OR_OMP FUNCTION simple_sum_loc_dp_2d(vals) RESULT(local_sum)
+#if defined(_OPENACC) || defined(__NO_CONT_SOLV_OCE__)
+    REAL(dp), INTENT(IN) :: vals(:,:)
+#else
     REAL(dp), INTENT(IN), CONTIGUOUS :: vals(:,:)
+#endif
     REAL(dp) :: local_sum, aux_sum(SIZE(vals, 2))
     INTEGER :: j
 #ifdef __INTEL_COMPILER
@@ -469,7 +540,11 @@ CONTAINS
 
 ! performs local sum -- 'fast' implementation - sp variant
   PURE_OR_OMP FUNCTION simple_sum_loc_sp_2d(vals) RESULT(local_sum)
+#if defined(_OPENACC) || defined(__NO_CONT_SOLV_OCE__)
+    REAL(sp), INTENT(IN) :: vals(:,:)
+#else
     REAL(sp), INTENT(IN), CONTIGUOUS :: vals(:,:)
+#endif
     REAL(sp) :: local_sum, aux_sum(SIZE(vals, 2))
     INTEGER :: j
 #ifdef __INTEL_COMPILER
@@ -485,7 +560,11 @@ CONTAINS
 
 ! finds local MAXVAL(ABS(x(:,:)) implementation - dp variant
   PURE_OR_OMP FUNCTION abs_max_loc_dp_2d(vals) RESULT(abs_max)
+#if defined(_OPENACC) || defined(__NO_CONT_SOLV_OCE__)
+    REAL(dp), INTENT(IN) :: vals(:,:)
+#else
     REAL(dp), INTENT(IN), CONTIGUOUS :: vals(:,:)
+#endif
     REAL(dp) :: abs_max, aux_max(SIZE(vals, 2))
     INTEGER :: j
 #ifdef __INTEL_COMPILER
@@ -501,7 +580,11 @@ CONTAINS
 
 ! finds local MAXVAL(ABS(x(:,:)) implementation - dp variant
   PURE_OR_OMP FUNCTION abs_max_loc_sp_2d(vals) RESULT(abs_max)
+#if defined(_OPENACC) || defined(__NO_CONT_SOLV_OCE__)
+    REAL(sp), INTENT(IN) :: vals(:,:)
+#else
     REAL(sp), INTENT(IN), CONTIGUOUS :: vals(:,:)
+#endif
     REAL(sp) :: abs_max, aux_max(SIZE(vals, 2))
     INTEGER :: j
 #ifdef __INTEL_COMPILER
@@ -519,7 +602,11 @@ END FUNCTION abs_max_loc_sp_2d
 ! convert to scaled integers and locally sum those
   PURE_OR_OMP FUNCTION order_insensit_ieee64_sum_frst_dp_2d(vals, abs_max) &
     & RESULT(isum)
+#if defined(_OPENACC) || defined(__NO_CONT_SOLV_OCE__)
+    REAL(dp), INTENT(IN) :: vals(:,:)
+#else
     REAL(dp), INTENT(IN), CONTIGUOUS :: vals(:,:)
+#endif
     REAL(dp), INTENT(IN) :: abs_max
     INTEGER(KIND=i8) :: isum(2), isum1(SIZE(vals, 2)), &
       & isum2(SIZE(vals, 2)), ival(SIZE(vals, 1))
@@ -553,7 +640,11 @@ END FUNCTION abs_max_loc_sp_2d
 ! convert to scaled integers and locally sum those
   FUNCTION order_insensit_ieee64_sum_frst_sp_2d(vals, abs_max) &
     & RESULT(isum)
+#if defined(_OPENACC) || defined(__NO_CONT_SOLV_OCE__)
+    REAL(sp), INTENT(IN) :: vals(:,:)
+#else
     REAL(sp), INTENT(IN), CONTIGUOUS :: vals(:,:)
+#endif
     REAL(sp), INTENT(IN) :: abs_max
     INTEGER(KIND=i8) :: isum(2), isum1(SIZE(vals, 2)), &
       & isum2(SIZE(vals, 2)), ival(SIZE(vals, 1))

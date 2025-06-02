@@ -602,6 +602,10 @@ set_run_target_levante_aurora()
 	set_default use_mpi_procs_pernode 4
     fi
 
+cat >>"${output_script}" <<EOF
+${use_build_env}
+EOF
+
     start_header
 
 }
@@ -2345,6 +2349,15 @@ create_target_header()
                     use_nodes=4
                     use_venum_lhost=2
                     use_cpunum_job=6 # 2x proc0 + 2x2 IO
+                    ;;
+            esac
+            ;;
+        *run_ICON_29_R2B5_R2B6_AO_coupled_gribInitOce*)
+            case $use_target in
+                rcl)
+                    use_nodes=8
+                    use_venum_lhost=2
+                    use_cpunum_job=12 # 2x proc0 + 2 atm-IO + 8 oce-IO
                     ;;
             esac
             ;;

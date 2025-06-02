@@ -125,18 +125,33 @@ CONTAINS
 
     IF (ssh_in_icedyn_type == 1) THEN  ! Fully including ssh
       IF (vert_cor_type == 1) THEN
-        !$ACC KERNELS DEFAULT(PRESENT) IF(lzacc)
-        ssh(:,:) = p_os%p_prog(nold(1))%eta_c(:,:) + p_ice%draftave(:,:)
-        !$ACC END KERNELS
+        !$ACC PARALLEL LOOP GANG VECTOR DEFAULT(PRESENT) COLLAPSE(2) ASYNC(1) IF(lzacc)
+        DO jb = 1, SIZE(ssh,2)
+          DO jc = 1, SIZE(ssh,1)
+            ssh(jc,jb) = p_os%p_prog(nold(1))%eta_c(jc,jb) + p_ice%draftave(jc,jb)
+          END DO
+        END DO
+        !$ACC END PARALLEL LOOP
+        !$ACC WAIT(1)
       ELSEIF (vert_cor_type == 0) THEN
-        !$ACC KERNELS DEFAULT(PRESENT) IF(lzacc)
-        ssh(:,:) = p_os%p_prog(nold(1))%h(:,:)
-        !$ACC END KERNELS
+        !$ACC PARALLEL LOOP GANG VECTOR DEFAULT(PRESENT) COLLAPSE(2) ASYNC(1) IF(lzacc)
+        DO jb = 1, SIZE(ssh,2)
+          DO jc = 1, SIZE(ssh,1)
+            ssh(jc,jb) = p_os%p_prog(nold(1))%h(jc,jb)
+          END DO
+        END DO
+        !$ACC END PARALLEL LOOP
+        !$ACC WAIT(1)
       ENDIF
     ELSEIF (ssh_in_icedyn_type == 0)THEN  ! Not including ssh at all
-      !$ACC KERNELS DEFAULT(PRESENT) IF(lzacc)
-      ssh(:,:) = 0.0_wp
-      !$ACC END KERNELS
+        !$ACC PARALLEL LOOP GANG VECTOR DEFAULT(PRESENT) COLLAPSE(2) ASYNC(1) IF(lzacc)
+        DO jb = 1, SIZE(ssh,2)
+          DO jc = 1, SIZE(ssh,1)
+            ssh(jc,jb) = 0.0_wp
+          END DO
+        END DO
+        !$ACC END PARALLEL LOOP
+        !$ACC WAIT(1)
     ELSEIF (ssh_in_icedyn_type > 1)THEN
       CALL finish('Ice dynamics: ', 'FEM dynamics do not include ssh approximation yet (ssh_in_icedyn=2)!')
     ENDIF
@@ -148,13 +163,14 @@ CONTAINS
 !ICON_OMP_PARALLEL_DO PRIVATE(start_index, end_index, jc) ICON_OMP_DEFAULT_SCHEDULE
       DO jb = all_cells%start_block, all_cells%end_block
         CALL get_index_range(all_cells, jb, start_index, end_index)
-          !$ACC PARALLEL LOOP GANG VECTOR DEFAULT(PRESENT) IF(lzacc)
+          !$ACC PARALLEL LOOP GANG VECTOR DEFAULT(PRESENT) ASYNC(1) IF(lzacc)
           DO jc = start_index, end_index
             ssh_reduced(jc,jb) = ssh (jc,jb) &
                  + (p_as%pao(jc,jb)-sfc_press_pascal)/(rho_ref*grav)
           ENDDO
           !$ACC END PARALLEL LOOP
       ENDDO
+      !$ACC WAIT(1)
 !ICON_OMP_END_PARALLEL_DO
 
     ENDIF
@@ -197,6 +213,9 @@ CONTAINS
 !--------------------------------------------------------------------------------------------------
 
     IF (i_ice_advec == 1) THEN
+#ifdef _OPENACC
+      IF (lzacc) CALL finish('ice_fem_interface', 'OpenACC version for i_ice_advec == 1 not implemented')
+#endif
         IF (ltimer) CALL timer_start(timer_ice_advection)
 
         call ice_TG_rhs
@@ -215,6 +234,9 @@ CONTAINS
     ! If advection is on FEM grid, interp ice scalars back to ICON grid
 
     IF (i_ice_advec == 1) THEN
+#ifdef _OPENACC
+      IF (lzacc) CALL finish('ice_fem_interface', 'OpenACC version for i_ice_advec == 1 not implemented')
+#endif
         CALL map_fem2icon_scalar( p_patch, p_ice )
     ENDIF
 
@@ -309,7 +331,7 @@ CONTAINS
       IF (jb > all_verts%start_block) &
           CALL get_index_range(all_verts, jb-1, i_startidx_v_1, i_endidx_v_1)
 
-      !$ACC PARALLEL LOOP GANG VECTOR DEFAULT(PRESENT) IF(lzacc)
+      !$ACC PARALLEL LOOP GANG VECTOR DEFAULT(PRESENT) ASYNC(1) IF(lzacc)
       DO jv = i_startidx_v, i_endidx_v
         jk = jv-i_startidx_v+1 + &
             (jb-all_verts%start_block) * (i_endidx_v_1-i_startidx_v_1+1)
@@ -321,6 +343,7 @@ CONTAINS
       END DO
       !$ACC END PARALLEL LOOP
     END DO
+    !$ACC WAIT(1)
 
     !$ACC END DATA
 
@@ -410,13 +433,14 @@ CONTAINS
     CALL rotate_cvec_v(p_patch, p_tau_n_dual, rot_mat_3D, p_tau_n_dual_fem, lacc=lzacc)
     CALL cvec2gvec_v_fem(p_patch, p_tau_n_dual_fem, stress_atmice_x, stress_atmice_y, lacc=lzacc)
     ! ocean velocities
+    !$ACC PARALLEL LOOP GANG VECTOR DEFAULT(PRESENT) COLLAPSE(2) ASYNC(1) IF(lzacc)
     DO j=1,p_patch_3D%p_patch_2D(1)%nblks_v
-      !$ACC PARALLEL LOOP GANG VECTOR DEFAULT(PRESENT) IF(lzacc)
       DO i=1,nproma
         p_vn_dual_2D(i,j) = p_os%p_diag%p_vn_dual(i,1,j)
       END DO
-      !$ACC END PARALLEL LOOP
     END DO
+    !$ACC END PARALLEL LOOP
+    !$ACC WAIT(1)
     CALL rotate_cvec_v(p_patch, p_vn_dual_2D, rot_mat_3D, p_vn_dual_fem, lacc=lzacc)
     CALL cvec2gvec_v_fem(p_patch, p_vn_dual_fem, u_w, v_w, lacc=lzacc)
 
@@ -457,7 +481,6 @@ CONTAINS
 
 !--------------------------------------------------------------------------------------------------
     p_patch => p_patch_3D%p_patch_2D(1)
-    rot_mat_3D_trans(:,:) = TRANSPOSE(rot_mat_3D(:,:))
 
 #ifdef NAGFOR
     p_vn_c_3D(:,:,:)%x(1) = 0.0_wp
@@ -471,6 +494,11 @@ CONTAINS
     !$ACC DATA CREATE(vn_e_tmp, p_vn_dual_fem, p_vn_dual, p_vn_c_3D, p_vn_c_2D) &
     !$ACC   COPYIN(rot_mat_3D_trans) &
     !$ACC   IF(lzacc)
+
+    !$ACC KERNELS DEFAULT(PRESENT) ASYNC(1) IF(lzacc)
+    rot_mat_3D_trans(:,:) = TRANSPOSE(rot_mat_3D(:,:))
+    !$ACC END KERNELS
+    !$ACC WAIT(1)
 
     !**************************************************************
     ! (1) Rotate ice vels to ICON variables + convert to cc
@@ -491,13 +519,14 @@ CONTAINS
     !**************************************************************
     ! (3) ... and cells for drag calculation and output
     !**************************************************************
+    !$ACC PARALLEL LOOP GANG VECTOR DEFAULT(PRESENT) COLLAPSE(2) ASYNC(1) IF(lzacc)
     DO j = 1,p_patch%nblks_e
-      !$ACC PARALLEL LOOP GANG VECTOR DEFAULT(PRESENT) IF(lzacc)
       DO i = 1,nproma
         vn_e_tmp(i,1,j) = p_ice%vn_e(i,j)
       END DO
-      !$ACC END PARALLEL LOOP
     END DO
+    !$ACC END PARALLEL LOOP
+    !$ACC WAIT(1)
 
     CALL map_edges2cell_3D( p_patch_3D, vn_e_tmp, &
       &   p_op_coeff, p_vn_c_3D, 1, 1, lacc=lzacc)
@@ -505,13 +534,15 @@ CONTAINS
     !**************************************************************
     ! (4) Convert back to geographic coordinates
     !**************************************************************
+    !$ACC PARALLEL LOOP GANG VECTOR DEFAULT(PRESENT) COLLAPSE(2) ASYNC(1) IF(lzacc)
     DO j = 1,p_patch_3D%p_patch_2D(1)%alloc_cell_blocks
-      !$ACC PARALLEL LOOP GANG VECTOR DEFAULT(PRESENT) IF(lzacc)
       DO i = 1,nproma
         p_vn_c_2D(i,j) = p_vn_c_3D(i,1,j)
       END DO
-      !$ACC END PARALLEL LOOP
     END DO
+    !$ACC END PARALLEL LOOP
+    !$ACC WAIT(1)
+
     CALL cvec2gvec_c_2d(p_patch_3D, p_vn_c_2D, p_ice%u, p_ice%v, lacc=lzacc)
 
     CALL sync_patch_array(SYNC_C, p_patch, p_ice%u, lacc=lzacc)
@@ -549,21 +580,32 @@ CONTAINS
 
     !$ACC DATA CREATE(buffy_array, buffy, tmp) IF(lzacc)
 
-    !$ACC KERNELS DEFAULT(PRESENT) IF(lzacc)
-    buffy_array(:,:,:)   = 0.0_wp
-    !$ACC END KERNELS
+    !$ACC PARALLEL LOOP GANG VECTOR DEFAULT(PRESENT) COLLAPSE(3) ASYNC(1) IF(lzacc)
+    DO k=1,p_patch%nblks_v
+      DO j=1,p_ice%kice
+        DO i=1,nproma
+          buffy_array(i,j,k)   = 0.0_wp
+        END DO
+      END DO
+    END DO
+    !$ACC END PARALLEL LOOP
+    !$ACC WAIT(1)
 
+    !$ACC PARALLEL LOOP GANG VECTOR DEFAULT(PRESENT) COLLAPSE(2) ASYNC(1) IF(lzacc)
+    DO k=1,p_patch%alloc_cell_blocks
+      DO i=1,nproma
+        ! Interpolate tracers to vertices
+        tmp(i,1,k) = p_ice%hi(i,1,k) * MAX(TINY(1._wp),p_ice%conc(i,1,k))
+      END DO
+    END DO
+    !$ACC END PARALLEL LOOP
+    !$ACC WAIT(1)
 
-    ! Interpolate tracers to vertices
-    !$ACC KERNELS DEFAULT(PRESENT) IF(lzacc)
-    tmp(:,:,:) = p_ice%hi(:,:,:) * MAX(TINY(1._wp),p_ice%conc(:,:,:))
-    !$ACC END KERNELS
-
-    CALL cells2verts_scalar_seaice( tmp, p_patch, c2v_wgt, buffy_array, lacc=lzacc )
+    CALL cells2verts_scalar_seaice( tmp, p_patch, c2v_wgt, buffy_array, lacc=lzacc)
 
     CALL sync_patch_array(SYNC_V, p_patch, buffy_array, lacc=lzacc)
 
-    !$ACC PARALLEL LOOP GANG VECTOR COLLAPSE(3) DEFAULT(PRESENT) IF(lzacc)
+    !$ACC PARALLEL LOOP GANG VECTOR COLLAPSE(3) DEFAULT(PRESENT) ASYNC(1) IF(lzacc)
     DO k=1,p_patch%nblks_v
       DO j=1,p_ice%kice
         DO i=1,nproma
@@ -573,12 +615,13 @@ CONTAINS
       END DO
     END DO
     !$ACC END PARALLEL LOOP
+    !$ACC WAIT(1)
 
     CALL cells2verts_scalar_seaice( p_ice%conc, p_patch, c2v_wgt, buffy_array, lacc=lzacc )
 
     CALL sync_patch_array(SYNC_V, p_patch, buffy_array, lacc=lzacc)
 
-    !$ACC PARALLEL LOOP GANG VECTOR COLLAPSE(3) DEFAULT(PRESENT) IF(lzacc)
+    !$ACC PARALLEL LOOP GANG VECTOR COLLAPSE(3) DEFAULT(PRESENT) ASYNC(1) IF(lzacc)
     DO k=1,p_patch%nblks_v
       DO j=1,p_ice%kice
         DO i=1,nproma
@@ -588,16 +631,22 @@ CONTAINS
       END DO
     END DO
     !$ACC END PARALLEL LOOP
+    !$ACC WAIT(1)
 
-    !$ACC KERNELS DEFAULT(PRESENT) IF(lzacc)
-    tmp(:,:,:) = p_ice%hs(:,:,:) * MAX(TINY(1._wp),p_ice%conc(:,:,:))
-    !$ACC END KERNELS
+    !$ACC PARALLEL LOOP GANG VECTOR DEFAULT(PRESENT) COLLAPSE(2) ASYNC(1) IF(lzacc)
+    DO k=1,p_patch%alloc_cell_blocks
+      DO i=1,nproma
+        tmp(i,1,k) = p_ice%hs(i,1,k) * MAX(TINY(1._wp),p_ice%conc(i,1,k))
+      END DO
+    END DO
+    !$ACC END PARALLEL LOOP
+    !$ACC WAIT(1)
 
     CALL cells2verts_scalar_seaice( tmp, p_patch, c2v_wgt, buffy_array, lacc=lzacc )
 
     CALL sync_patch_array(SYNC_V, p_patch, buffy_array, lacc=lzacc)
 
-    !$ACC PARALLEL LOOP GANG VECTOR COLLAPSE(3) DEFAULT(PRESENT) IF(lzacc)
+    !$ACC PARALLEL LOOP GANG VECTOR COLLAPSE(3) DEFAULT(PRESENT) ASYNC(1) IF(lzacc)
     DO k=1,p_patch%nblks_v
       DO j=1,p_ice%kice
         DO i=1,nproma
@@ -607,20 +656,22 @@ CONTAINS
       END DO
     END DO
     !$ACC END PARALLEL LOOP
+    !$ACC WAIT(1)
 
     ! Interpolate SSH to vertices
-    !$ACC PARALLEL LOOP GANG VECTOR COLLAPSE(2) DEFAULT(PRESENT) IF(lzacc)
+    !$ACC PARALLEL LOOP GANG VECTOR COLLAPSE(2) DEFAULT(PRESENT) ASYNC(1) IF(lzacc)
     DO j=1,SIZE(ssh,2)
       DO i=1,SIZE(ssh,1)
         tmp(i,1,j) = ssh(i,j)
       END DO
     END DO
     !$ACC END PARALLEL LOOP
+    !$ACC WAIT(1)
 
     CALL cells2verts_scalar_seaice( tmp, p_patch, c2v_wgt, buffy_array, lacc=lzacc )
     CALL sync_patch_array(SYNC_V, p_patch, buffy_array, lacc=lzacc)
 
-    !$ACC PARALLEL LOOP GANG VECTOR COLLAPSE(3) DEFAULT(PRESENT) IF(lzacc)
+    !$ACC PARALLEL LOOP GANG VECTOR COLLAPSE(3) DEFAULT(PRESENT) ASYNC(1) IF(lzacc)
     DO k=1,p_patch%nblks_v
       DO j=1,p_ice%kice
         DO i=1,nproma
@@ -630,6 +681,7 @@ CONTAINS
       END DO
     END DO
     !$ACC END PARALLEL LOOP
+    !$ACC WAIT(1)
 
     !$ACC END DATA
 

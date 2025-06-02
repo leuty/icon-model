@@ -284,26 +284,43 @@ CONTAINS
     !$ACC   CREATE(rho_up, rho_down, pressure, Nsqr, Ssqr, tke_old) &
     !$ACC   IF(lzacc)
 
-    !$ACC KERNELS DEFAULT(PRESENT) ASYNC(1) IF(lzacc)
-    tke_kv(:,:,:) = 0.0_wp
-    tke_Av(:,:,:) = 0.0_wp
-    tke_iw_alpha_c(:,:,:) = 0.0_wp
-    tke_iwe(:,:,:) = 0.0_wp
-    tke_iwe_forcing(:,:,:) = 0.0_wp
-    !$ACC END KERNELS
+    !$ACC PARALLEL LOOP GANG VECTOR DEFAULT(PRESENT) COLLAPSE(3) ASYNC(1) IF(lzacc)
+    DO blockNo = 1, patch_3d%p_patch_2d(1)%alloc_cell_blocks
+      DO level = 1, n_zlev+1
+        DO jc = 1, nproma
+          tke_kv(jc,level,blockNo) = 0.0_wp
+          tke_Av(jc,level,blockNo) = 0.0_wp
+          tke_iw_alpha_c(jc,level,blockNo) = 0.0_wp
+          tke_iwe(jc,level,blockNo) = 0.0_wp
+          tke_iwe_forcing(jc,level,blockNo) = 0.0_wp
+        END DO
+      END DO
+    END DO
+    !$ACC END PARALLEL LOOP
+    !$ACC WAIT(1)
 
-    !$ACC KERNELS DEFAULT(PRESENT) ASYNC(1) IF(lzacc)
-    forc_rho_surf_2D(:,:) = 0.0_wp
-    bottom_fric_2D(:,:) = 0.0_wp
-    !$ACC END KERNELS
+    !$ACC PARALLEL LOOP GANG VECTOR DEFAULT(PRESENT) COLLAPSE(2) ASYNC(1) IF(lzacc)
+    DO blockNo = 1, patch_3d%p_patch_2d(1)%alloc_cell_blocks
+      DO jc = 1, nproma
+        forc_rho_surf_2D(jc,blockNo) = 0.0_wp
+        bottom_fric_2D(jc,blockNo) = 0.0_wp
+      END DO
+    END DO
+    !$ACC END PARALLEL LOOP
     !$ACC WAIT(1)
 
     IF(l_lc) THEN
       ! Langmuir turbulence variables
       tke_plc  => params_oce%vmix_params%tke_plc(:,:,:)
-      !$ACC KERNELS DEFAULT(PRESENT) ASYNC(1) IF(lzacc)
-      tke_plc(:,:,:) = 0.0_wp
-      !$ACC END KERNELS
+      !$ACC PARALLEL LOOP GANG VECTOR DEFAULT(PRESENT) COLLAPSE(3) ASYNC(1) IF(lzacc)
+      DO blockNo = 1, patch_3d%p_patch_2d(1)%alloc_cell_blocks
+        DO level = 1, n_zlev+1
+          DO jc = 1, nproma
+            tke_plc(jc,level,blockNo) = 0.0_wp
+          END DO
+        END DO
+      END DO
+      !$ACC END PARALLEL LOOP
       !$ACC WAIT(1)
       hlc      => params_oce%vmix_params%hlc(:,:)
       wlc      => params_oce%vmix_params%wlc(:,:,:)
@@ -332,29 +349,45 @@ CONTAINS
     ! special settings if IDEMIX is used together with TKE
     IF ( vert_mix_type==vmix_idemix_tke ) THEN
       ! use iwe dissipation as forcing for tke
-      !$ACC KERNELS DEFAULT(PRESENT) ASYNC(1) IF(lzacc)
-      tke_iwe_forcing(:,:,:) = -1.0_wp * params_oce%vmix_params%iwe_Tdis(:,:,:)
-      !$ACC END KERNELS
+      !$ACC PARALLEL LOOP GANG VECTOR DEFAULT(PRESENT) COLLAPSE(3) ASYNC(1) IF(lzacc)
+      DO blockNo = 1, patch_3d%p_patch_2d(1)%alloc_cell_blocks
+        DO level = 1, n_zlev+1
+          DO jc = 1, nproma
+            tke_iwe_forcing(jc,level,blockNo) = -1.0_wp * params_oce%vmix_params%iwe_Tdis(jc,level,blockNo)
+          END DO
+        END DO
+      END DO
+      !$ACC END PARALLEL LOOP
       !$ACC WAIT(1)
     ENDIF
 
     ! set zstar related parameters
     IF (vert_cor_type == 1) THEN
-      !$ACC KERNELS DEFAULT(PRESENT) ASYNC(1) IF(lzacc)
-      s_c(:,:) = ocean_state%p_prog(nold(1))%stretch_c(:,:)
-      !$ACC END KERNELS
+      !$ACC PARALLEL LOOP GANG VECTOR DEFAULT(PRESENT) COLLAPSE(2) ASYNC(1) IF(lzacc)
+      DO blockNo = 1, patch_3d%p_patch_2d(1)%alloc_cell_blocks
+        DO jc = 1, nproma
+          s_c(jc,blockNo) = ocean_state%p_prog(nold(1))%stretch_c(jc,blockNo)
+        END DO
+      END DO
+      !$ACC END PARALLEL LOOP
       !$ACC WAIT(1)
     ELSE
-      !$ACC KERNELS DEFAULT(PRESENT) ASYNC(1) IF(lzacc)
-      s_c(:,:) = 1.0_wp
-      !$ACC END KERNELS
+      !$ACC PARALLEL LOOP GANG VECTOR DEFAULT(PRESENT) COLLAPSE(2) ASYNC(1) IF(lzacc)
+      DO blockNo = 1, patch_3d%p_patch_2d(1)%alloc_cell_blocks
+        DO jc = 1, nproma
+          s_c(jc,blockNo) = 1.0_wp
+        END DO
+      END DO
+      !$ACC END PARALLEL LOOP
       !$ACC WAIT(1)
     ENDIF
 
     !$ACC PARALLEL LOOP GANG VECTOR DEFAULT(PRESENT) ASYNC(1) IF(lzacc)
     DO jc = 1,nproma
       pressure(jc,1) = 1.0_wp
-      pressure(jc,2:n_zlev) = patch_3d%p_patch_1d(1)%zlev_i(2:n_zlev) * ReferencePressureIndbars
+      DO level = 2, n_zlev
+        pressure(jc,level) = patch_3d%p_patch_1d(1)%zlev_i(level) * ReferencePressureIndbars
+      END DO
     END DO
     !$ACC END PARALLEL LOOP
     !$ACC WAIT(1)
@@ -366,12 +399,16 @@ CONTAINS
         levels = dolic_c(jc,blockNo)
         IF (dolic_c(jc,blockNo) > 0) THEN
 
-          tke_old(jc,:) = tke(jc,:,blockNo)
+          DO level = 1, n_zlev+1
+            tke_old(jc,level) = tke(jc,level,blockNo)
+            Nsqr(jc,level) = 0.0_wp
+            Ssqr(jc,level) = 0.0_wp
+          END DO
 
-          rho_up(jc,:)=0.0_wp
-          rho_down(jc,:)=0.0_wp
-          Nsqr(jc,:) = 0.0_wp
-          Ssqr(jc,:) = 0.0_wp
+          DO level = 1, n_zlev
+            rho_up(jc,level)=0.0_wp
+            rho_down(jc,level)=0.0_wp
+          END DO
 
           ! wind stress for tke surface forcing (reduced under sea ice)
           IF (use_reduced_mixing_under_ice) THEN
@@ -461,9 +498,13 @@ CONTAINS
 
             ! calculate langmuir turbulence term (tke_plc)
             IF (hlc(jc,blockNo) > 0.0_wp) THEN
-              tke_plc(jc,1:levels,blockNo) = wlc(jc,1:levels,blockNo)**3.0_wp / hlc(jc,blockNo)
+              DO level = 1, levels
+                tke_plc(jc,level,blockNo) = wlc(jc,level,blockNo)**3.0_wp / hlc(jc,blockNo)
+              END DO
             ELSE
-              tke_plc(jc,1:levels,blockNo) = 0.0_wp
+              DO level = 1, levels
+                tke_plc(jc,level,blockNo) = 0.0_wp
+              END DO
             ENDIF
 
           ENDIF
@@ -475,10 +516,19 @@ CONTAINS
 
     DO blockNo = all_cells%start_block, all_cells%end_block
       CALL get_index_range(all_cells, blockNo, start_index, end_index)
-      !$ACC PARALLEL LOOP GANG VECTOR DEFAULT(PRESENT) ASYNC(1) IF(lzacc)
-      DO jc = start_index, end_index
-        tmp_dzw(jc,:) = prism_thick_c(jc,:,blockNo)*s_c(jc,blockNo)
-        tmp_dzt(jc,:) = dz(jc,:,blockNo)*s_c(jc,blockNo)
+      !$ACC PARALLEL LOOP GANG VECTOR DEFAULT(PRESENT) COLLAPSE(2) ASYNC(1) IF(lzacc)
+      DO level = 1, n_zlev
+        DO jc = start_index, end_index
+          tmp_dzw(jc,level) = prism_thick_c(jc,level,blockNo)*s_c(jc,blockNo)
+        END DO
+      END DO
+      !$ACC END PARALLEL LOOP
+
+      !$ACC PARALLEL LOOP GANG VECTOR DEFAULT(PRESENT) COLLAPSE(2) ASYNC(1) IF(lzacc)
+      DO level = 1, n_zlev+1
+        DO jc = start_index, end_index
+          tmp_dzt(jc,level) = dz(jc,level,blockNo)*s_c(jc,blockNo)
+        END DO
       END DO
       !$ACC END PARALLEL LOOP
       !$ACC WAIT(1)
@@ -528,11 +578,17 @@ CONTAINS
     END DO
 
     ! interpolate vert. visosity from cell center to edges
+    !$ACC PARALLEL LOOP GANG VECTOR DEFAULT(PRESENT) COLLAPSE(3) ASYNC(1) IF(lzacc)
     DO blockNo = edges_in_domain%start_block, edges_in_domain%end_block
-      !$ACC KERNELS DEFAULT(PRESENT) ASYNC(1) IF(lzacc)
-      params_oce%a_veloc_v(:,:,blockNo) = 0.0_wp
-      !$ACC END KERNELS
+      DO level = 1, n_zlev+1
+        DO je = 1, nproma
+          params_oce%a_veloc_v(je,level,blockNo) = 0.0_wp
+        END DO
+      END DO
+    END DO
+    !$ACC END PARALLEL LOOP
 
+    DO blockNo = edges_in_domain%start_block, edges_in_domain%end_block
       CALL get_index_range(edges_in_domain, blockNo, start_index, end_index)
       !$ACC PARALLEL LOOP GANG VECTOR DEFAULT(PRESENT) ASYNC(1) IF(lzacc)
       DO je = start_index, end_index
@@ -558,7 +614,9 @@ CONTAINS
       DO jc = start_index, end_index
         ! FIXME: nils: make loop over all tracer
         DO jtrc = 1, no_tracer
-          params_oce%a_tracer_v(jc,:,blockNo,jtrc) = tke_kv(jc,:,blockNo)
+          DO level = 1, n_zlev+1
+            params_oce%a_tracer_v(jc,level,blockNo,jtrc) = tke_kv(jc,level,blockNo)
+          END DO
         ENDDO
       ENDDO
       !$ACC END PARALLEL LOOP
