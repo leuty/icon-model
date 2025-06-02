@@ -191,11 +191,16 @@ case "$use_site" in
         use_submit='sbatch'
         use_sync_submit='sbatch --wait'
         use_target='euler'
-        use_mpi_startrun='mpirun -n $mpi_total_procs'
+        use_mpi_startrun='srun -n $mpi_total_procs'
       ;;
     esac
   ;;
   dwd.de)
+    # support cross compilation
+    case "${use_compiler}@${use_host}" in
+      pgi@rcnl*) use_host=gpnl ;;
+    esac
+
     case "$use_host" in
       rcnl*)
         use_load_profile='. /etc/profile'

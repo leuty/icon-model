@@ -43,6 +43,7 @@ MODULE mo_nwp_aerosol
                                     &   iRadAeroCAMStd, iRadAeroVolc, iRadAeroKinneVolc, iRadAeroART, &
                                     &   iRadAeroKinneVolcSP, iRadAeroKinneSP, iRadAeroTegen,                &
                                     &   iRadAeroExternal, cams_aero_filename
+  USE mo_nwp_tuning_config,       ONLY: tune_sc_eis
 ! External infrastruture
   USE mtime,                      ONLY: datetime, timedelta, newDatetime, newTimedelta,       &
                                     &   operator(+), deallocateTimedelta, deallocateDatetime
@@ -287,7 +288,8 @@ CONTAINS
           ! aerosol-microphysics or aerosol-convection coupling is turned on
           IF (atm_phy_nwp_config(pt_patch%id)%icpl_aero_gscp == 1 .OR. icpl_aero_conv == 1) THEN
             CALL nwp_cpl_aero_gscp_conv(i_startidx, i_endidx, pt_patch%nlev, pt_diag%pres_sfc(:,jb), pt_diag%pres(:,:,jb), &
-              &                         prm_diag%acdnc(:,:,jb), prm_diag%cloud_num(:,jb), lacc)
+              &                         prm_diag%acdnc(:,:,jb), prm_diag%cloud_num(:,jb), prm_diag%k_inversion(:,jb),      &
+              &                         prm_diag%conv_eis(:,jb), lacc)
           ENDIF
 
         ENDDO !jb
@@ -447,7 +449,7 @@ CONTAINS
           IF (atm_phy_nwp_config(pt_patch%id)%icpl_aero_gscp == 3 .OR. icpl_aero_conv == 1) THEN
             CALL nwp_cpl_aero_gscp_conv(i_startidx, i_endidx, pt_patch%nlev, pt_diag%pres_sfc(:,jb), &
                                         pt_diag%pres(:,:,jb), prm_diag%acdnc(:,:,jb), prm_diag%cloud_num(:,jb), &
-                                        lacc=lzacc)
+                                        prm_diag%k_inversion(:,jb), prm_diag%conv_eis(:,jb), lacc=lzacc)
           ENDIF
 
         END DO
@@ -514,7 +516,8 @@ CONTAINS
           ! aerosol-microphysics or aerosol-convection coupling is turned on
           IF (atm_phy_nwp_config(pt_patch%id)%icpl_aero_gscp == 1 .OR. icpl_aero_conv == 1) THEN
             CALL nwp_cpl_aero_gscp_conv(i_startidx, i_endidx, pt_patch%nlev, pt_diag%pres_sfc(:,jb), pt_diag%pres(:,:,jb), &
-              &                         prm_diag%acdnc(:,:,jb), prm_diag%cloud_num(:,jb), lacc)
+              &                         prm_diag%acdnc(:,:,jb), prm_diag%cloud_num(:,jb), prm_diag%k_inversion(:,jb),      &
+              &                         prm_diag%conv_eis(:,jb), lacc)
           ENDIF
 
         ENDDO !jb
@@ -1062,19 +1065,20 @@ CONTAINS
   !---------------------------------------------------------------------------------------
 
   !---------------------------------------------------------------------------------------
-  SUBROUTINE nwp_cpl_aero_gscp_conv(istart, iend, nlev, pres_sfc, pres, acdnc, cloud_num, lacc)
+  SUBROUTINE nwp_cpl_aero_gscp_conv(istart, iend, nlev, pres_sfc, pres, acdnc, cloud_num, kc_inv, eis, lacc)
   INTEGER, INTENT(in)                 :: &
     &  istart, iend, nlev                  !< loop start and end indices (nproma, vertical)
   REAL(wp), INTENT(in)                :: &
     &  pres_sfc(:), pres(:,:)              !< Surface and atmospheric pressure
   REAL(wp), INTENT(inout)                :: &
     &  acdnc(:,:),                       & !< cloud droplet number concentration
-    &  cloud_num(:)                        !< cloud droplet number concentration
+    &  cloud_num(:), eis(:)                       !< cloud droplet number concentration
+  INTEGER, INTENT(in) :: kc_inv(:)
   LOGICAL, INTENT(in), OPTIONAL       :: &
     &  lacc                                !< If true, use openacc
   ! Local variables
   REAL(wp)                            :: &
-    &  wfac, ncn_bg
+    &  wfac, ncn_bg, wfac_stratus, pinv(nproma)
   INTEGER                             :: &
     &  jc, jk                              !< Loop indices
   LOGICAL                             :: &
@@ -1082,16 +1086,31 @@ CONTAINS
 
   CALL set_acc_host_or_device(lzacc, lacc)
 
+    !$ACC DATA CREATE(pinv) IF(lacc)
+
     !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1) IF(lzacc)
-    !$ACC LOOP GANG VECTOR COLLAPSE(2) PRIVATE(wfac, ncn_bg)
+    !$ACC LOOP GANG VECTOR
+    DO jc = istart, iend
+      IF (kc_inv(jc) < nlev .AND. pres(jc,kc_inv(jc))/pres_sfc(jc) > 0.925_wp .AND. eis(jc) > tune_sc_eis) THEN
+        pinv(jc) = pres(jc,kc_inv(jc))
+      ELSE
+        pinv(jc) = pres_sfc(jc)
+      ENDIF
+    ENDDO
+    !$ACC END PARALLEL
+
+    !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1) IF(lzacc)
+    !$ACC LOOP GANG VECTOR COLLAPSE(2) PRIVATE(wfac, ncn_bg, wfac_stratus)
     DO jk = 1,nlev
       DO jc = istart, iend
         wfac         = MAX(1._wp,MIN(8._wp,0.8_wp*pres_sfc(jc)/pres(jc,jk)))**2
         ncn_bg       = MIN(cloud_num(jc),50.e6_wp)
-        acdnc(jc,jk) = (ncn_bg+(cloud_num(jc)-ncn_bg)*(EXP(1._wp-wfac)))
+        wfac_stratus = MERGE(2._wp*eis(jc)/tune_sc_eis, 1._wp, pres(jc,jk) >= pinv(jc) )
+        acdnc(jc,jk) = (ncn_bg+(cloud_num(jc)-ncn_bg)*wfac_stratus*(EXP(1._wp-wfac)))
       END DO
     END DO
     !$ACC END PARALLEL
+    !$ACC END DATA
 
   END SUBROUTINE nwp_cpl_aero_gscp_conv
   !---------------------------------------------------------------------------------------

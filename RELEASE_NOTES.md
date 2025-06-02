@@ -15,9 +15,11 @@ AES Physics:
 NWP Physics:
 
 - enable reading and interpolating ozone and Kinne aerosol data using YAC (icon-nwp!1716)
+- Tuning changes for better prediction of fog / low stratus (https://gitlab.dkrz.de/icon/icon-nwp/-/merge_requests/1762)
 - Fixes:
   - Inconsistent initialization time step length in vdiff interface and jsbach
   - Make ecRad compilable with Cray 17.0.1 for AMD GPUs (https://gitlab.dkrz.de/icon/icon/-/merge_requests/648)
+  - Fix echotop and echotopinm diagnostics for clouds reaching model top (https://gitlab.dkrz.de/icon/icon-nwp/-/merge_requests/1750)
 
 ### ICON-Ocean
 
@@ -58,6 +60,7 @@ NWP: TERRA and other surface issues
 
 - Switch to fortran-support 2.2.0
 - Switch to CDI 2.5.2.1
+- Switch to HD v5.2.4
 
 ### Infrastructure
 

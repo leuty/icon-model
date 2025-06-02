@@ -1245,6 +1245,16 @@ SUBROUTINE new_nwp_phy_diag_list( k_jg, klev, klevp1, kblks,    &
                 & lopenacc=.TRUE.  )
     __acc_attach(diag%ktop_envel)
 
+    ! &      diag%k_inversion(nproma,nblks_c)
+    cf_desc    = t_cf_var('k_inversion', '', 'level index of lowest inversion', &
+      &                   datatype_flt)
+    grib2_desc = grib2_var(255, 255, 255, ibits, GRID_UNSTRUCTURED, GRID_CELL)
+    CALL add_var( diag_list, 'k_inversion', diag%k_inversion,                  &
+                & GRID_UNSTRUCTURED_CELL, ZA_SURFACE, cf_desc,                 &
+                & grib2_desc,ldims=shape2d, lrestart=.TRUE., loutput=.FALSE.,  &
+                & lopenacc=.TRUE., initval=klev )
+    __acc_attach(diag%k_inversion)
+
     !        diag%snowlmt(nproma,nblks_c)
     cf_desc    = t_cf_var('snowlmt', 'm', 'Height of snow fall limit above MSL', &
       &                   datatype_flt)

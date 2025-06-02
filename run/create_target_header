@@ -1142,6 +1142,9 @@ set_run_target_gpnl()
     set_default use_ecrad_isolver 2 # McICA for OpenACC
     use_nodes=1
 
+    # absolute path to cdo
+    cdo="/hpc/sw/cdo/2.2.1/x86/gnu/bin/cdo"
+
     if [[ "$use_mpi" == "yes" ]]
     then
         set_default use_mpi_procs_pernode 8
@@ -1154,9 +1157,13 @@ set_run_target_gpnl()
     cat >> "$output_script" <<EOF
 #PBS -q ${use_queue:-gp_norm_all}
 #PBS -l elapstim_req=00:20:00
-#PBS -l memsz_job=${use_memory:-1920Gb}
-#PBS -l vmemsz_job=1920Gb
-#PBS -l vmemsz_prc=1920Gb
+#PBS -v gpu_per_lhost=${use_mpi_procs_pernode}
+#PBS --gpunum-lhost=\${gpu_per_lhost}
+#PBS --cpunum-lhost=${use_mpi_procs_pernode}
+# Request 100Gb of memory per GPU (100Gb out ouf 240Gb possible)
+#PBS -l memsz_job=${use_memory:-\${gpu_per_lhost\}00Gb}
+#PBS -l vmemsz_job=${use_memory:-\${gpu_per_lhost\}00Gb}
+#PBS -l vmemsz_prc=240Gb
 #PBS -j o
 #PBS -o LOG.${job_name}.o
 #-----------------------------------------------------------------------------
@@ -1531,25 +1538,17 @@ set_run_target_euler()
   icon_data_rootFolder=${icon_data_rootFolder:=${poolFolder_prefix}/icon_input}
   icon_data_poolFolder=${icon_data_poolFolder:=${poolFolder_prefix}/icon_input}
 
+  testingFolder_prefix=/cluster/work/climate/icon_testing_input
+
   set_default use_nproma 64
   set_default use_rrtmgp_columns_chunk 64
   set_default use_nodes 1
-
-  #JENKINS_NO_OF_CORES can is unbound when not used with jenkins icon
-  set +eu
-
-  set_default use_mpi_procs_pernode 1
   set_default use_openmp_threads 1
-
-  set -eu
-
-  cdo="/cluster/apps/climate/2.0/bin/cdo"
-  cdo_diff="diff"
+  set_default use_mpi_procs_pernode 12
 
   job_log_name="LOG.$job_name.%J"
   s_cpu_time="SBATCH --time=00:15:00"
-  # Use ntasks (#cores) for no of nodes on Euler!
-  SBATCH_nodes="SBATCH --ntasks=${use_nodes}"
+  SBATCH_nodes="SBATCH --ntasks=${use_mpi_procs_pernode}"
 
   cat >> "$output_script" << EOF
 # ---------------------------

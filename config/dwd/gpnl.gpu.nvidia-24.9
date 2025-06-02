@@ -23,9 +23,11 @@ eval "$MODULE_SETTINGS"
 MODULES=(
     gpu/default
     hdf5/1.10.5-x86-nvhpc24.7
+    apps
+    gcc/11.2.0
     netcdf4/4.9.2-x86-nvhpc24.7
     eccodes/experimental/2.36.0-x86-nvhpc24.7
-    nvhpc-openmpi3/24.7
+    nvhpc-openmpi3/24.9
     unsupported
     cmake/3.26.4
   )
@@ -38,7 +40,7 @@ ${MODULE_SETTINGS} && . \"${SCRIPT_DIR}/module_switcher\"; \
 switch_for_module ${MODULES[@]}; \
 export CC=mpicc CXX=mpic++ FC=mpif90; \
 export LIBRARY_PATH=\${LD_LIBRARY_PATH}; \
-export load_runtime_modules=\"apps gpu netcdf4\";"
+export load_runtime_modules=\"apps gpu netcdf4/4.9.2-x86-nvhpc24.7 gcc/11.2.0\";"
 echo ${BUILD_ENV}
 
 # We need some of the environment variables set by the modules now:
@@ -98,9 +100,10 @@ FCFLAGS="-I${HDF5_DIR}/include -I${NETCDF_DIR}/include ${ECCODES_INCLUDE} -I${SE
   -g \
   -traceback \
   -acc=verystrict \
-  -gpu=cc80 \
   -Minfo=accel,inline \
   -D__USE_G2G \
+  -gpu=cc80 \
+  -gpu=cuda12.6 \
   -Mpcast \
 "
 

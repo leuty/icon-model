@@ -1752,9 +1752,19 @@ done
 #
 # HD Namelist
 #
+
+# HD start time
 YYYYMMDD_start=${start_date:0:4}${start_date:5:2}${start_date:8:2}
-YYYYMMDD_end=${end_date:0:4}${end_date:5:2}${end_date:8:2}
-#
+
+# HD is using sequential coupling with blocks of A-O|HD.  The last HD is saving fluxes
+# in the restart file for the next simulation.  The last block has the time step of the
+# last call of A-O|HD.  Therefore we need to reduce end_date by 1 HD time step.
+
+# Compute offset in human-readable format (e.g., "- 86400 seconds")
+offset="- ${dtime_riv} seconds"
+# Apply offset using GNU date
+YYYYMMDD_end=$(date -u -d "${end_date} ${offset}" +'%Y%m%d')
+
 ## Log output for gridboxes if nhd_diag=100
 xlon1=8.5
 xlat1=54.5
