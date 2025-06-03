@@ -45,6 +45,7 @@ Climate: ICON-Land
 - Code cleaning:
   - Only use one variable representing time step length
 - Updated JSBACH usecase with TMX and PFTs
+- Added JSBACH usecase with 12 PFTs: including C4 crops
 - Added support for CUDA graphs with AES physics (VDIFF and TMX)
 
 NWP: TERRA and other surface issues
