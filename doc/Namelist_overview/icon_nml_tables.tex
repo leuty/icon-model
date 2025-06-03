@@ -10419,9 +10419,9 @@ nh\_test\_name=\\'g\_lim\_area'
 itype\_anaprof\_uv&
 I& 1 & &
 kind of wind profile:\\
-1 piecewise linear wind layers\\
-2 constant zonal wind\\
-3 constant meridional wind&
+1: piecewise linear wind layers\\
+2: constant wind\\
+(3: constant meridional wind, deprecated)&
 nh\_test\_name=\\'g\_lim\_area'
 \tabularnewline
 %\hline
@@ -10556,9 +10556,15 @@ itype\_anaprof\_uv=1
 %\hline
 vel\_const&
 R& 20. & m/s &
-constant zonal/meridional wind (itype\_anaprof\_uv=2,3)&
+constant wind speed (itype\_anaprof\_uv=2)&
 nh\_test\_name=\\'g\_lim\_area' and
-itype\_anaprof\_uv=2,3
+itype\_anaprof\_uv=2
+\tabularnewline
+%\hline
+dir\_wind&
+R& 270. & deg &
+wind direction (0 = N, 90 = E)&
+nh\_test\_name=\\'g\_lim\_area'
 \tabularnewline
 %\hline
 mount\_lonc\_deg&

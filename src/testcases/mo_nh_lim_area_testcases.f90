@@ -110,6 +110,8 @@
   REAL(wp), PUBLIC      :: ugr_linwind(max_nlayers_linwind) ! gradient of U for each layer,
                                                             ! positive for increasing windspeed
                                                             ! with height, in 1/s
+  REAL(wp), PUBLIC      :: dir_wind ! Wind direction in degrees (-90 = wind from the west).
+
   ! For  itype_anaprof_uv == 2/3, constant U/V
   REAl(wp), PUBLIC      :: vel_const
                        !
@@ -146,7 +148,7 @@
       &  routine = 'mo_nh_lim_area_testcases:init_nh_atmo_ana_poly'
 
 
-    TYPE(t_patch), TARGET, INTENT(INOUT) :: &  !< patch on which computation is performed
+    TYPE(t_patch), TARGET, INTENT(IN)   :: &  !< patch on which computation is performed
       &  ptr_patch
 
     TYPE(t_nh_prog), INTENT(INOUT)      :: &  !< prognostic state vector
@@ -493,7 +495,7 @@
       &  routine = 'mo_nh_lim_area_testcases:init_nh_atmo_ana_nconstlayers'
 
 
-    TYPE(t_patch), TARGET, INTENT(INOUT) :: &  !< patch on which computation is performed
+    TYPE(t_patch), TARGET, INTENT(IN)   :: &  !< patch on which computation is performed
       &  ptr_patch
 
     TYPE(t_nh_prog), INTENT(INOUT)      :: &  !< prognostic state vector
@@ -886,7 +888,7 @@ jnlayer(:,:,:)=0
   !!
   SUBROUTINE init_nh_anaprof_uv( ptr_patch, vn, w,    &
     &                                p_metrics, p_int )
-    TYPE(t_patch), TARGET, INTENT(INOUT) :: &  !< patch on which computation is performed
+    TYPE(t_patch), TARGET, INTENT(IN) :: &  !< patch on which computation is performed
       &  ptr_patch
 
     REAL(wp), INTENT(INOUT) :: vn(:,:,:)    ! edge-normal wind component (m/s)
@@ -906,121 +908,65 @@ jnlayer(:,:,:)=0
 !
     ! number of vertical levels
     nlev   = ptr_patch%nlev
-
-!    nblks_c   = ptr_patch%nblks_c
-!    npromz_c  = ptr_patch%npromz_c
     nblks_e   = ptr_patch%nblks_e
 
-    SELECT CASE (itype_anaprof_uv)
+    ! arbitrary number of constant gradient U(z) layers
+    ! horizontal normal components of the velocity
+    ! initialize horizontal velocities
 
-      CASE(1)
-      ! arbitrary number of constant gradient U(z) layers
-      ! horizontal normal components of the velocity
-      ! initialize horizontal velocities
+    ALLOCATE(z_me(nproma,nlev,nblks_e))
+    z_me(:,:,:) = 0.0_wp
 
-       ALLOCATE(z_me(nproma,nlev,ptr_patch%nblks_e))
-       z_me(:,:,:) = 0.0_wp
+    ! Compute geometric height at edge points
+    CALL cells2edges_scalar(p_metrics%z_mc, ptr_patch, &
+            p_int%c_lin_e, z_me, lacc=.FALSE.)
 
-       ! Compute geometric height at edge points
-       CALL cells2edges_scalar(p_metrics%z_mc, ptr_patch, &
-               p_int%c_lin_e, z_me, lacc=.FALSE.)
+    CALL sync_patch_array(SYNC_E,ptr_patch,z_me, lacc=.FALSE.)
+    i_startblk = ptr_patch%edges%start_blk(2,1)
 
-       CALL sync_patch_array(SYNC_E,ptr_patch,z_me, lacc=.FALSE.)
-       i_startblk = ptr_patch%edges%start_blk(2,1)
-
-       ! horizontal normal components of the velocity
+    ! horizontal normal components of the velocity
 !$OMP PARALLEL
 !$OMP DO PRIVATE(jb,i_startidx,i_endidx,jk,je,z_u,jl,jn)
-       DO jb = i_startblk, nblks_e
+    DO jb = i_startblk, nblks_e
 
-        CALL get_indices_e(ptr_patch, jb, i_startblk, nblks_e, &
+      CALL get_indices_e(ptr_patch, jb, i_startblk, nblks_e, &
                          i_startidx, i_endidx, 2)
 
-        DO jk = 1, nlev
-          DO je = i_startidx, i_endidx
+      DO jk = 1, nlev
+        DO je = i_startidx, i_endidx
 
-             !set the layer corresponding to this point
-             IF (z_me(je,jk,jb) <  h_linwind(1) ) THEN
-               jn=0
-             ELSEIF (z_me(je,jk,jb) >=  h_linwind(nlayers_linwind) ) THEN
-              jn= nlayers_linwind
-             ELSE
-              DO jl=1,nlayers_linwind-1
-               IF (z_me(je,jk,jb) >= h_linwind(jl) .AND. z_me(je,jk,jb) < h_linwind(jl+1)) THEN
-                jn=jl
-                !EXIT
-               END IF
-              END DO
-             END IF
-             IF (jn <= 0 .OR. jn > nlayers_linwind) THEN
-                CALL finish ('corresponding layer has not been found')
-             END IF
+          !set the layer corresponding to this point
+          IF (z_me(je,jk,jb) <  h_linwind(1)) THEN
+            jn = 0
+          ELSEIF (z_me(je,jk,jb) >=  h_linwind(nlayers_linwind)) THEN
+            jn = nlayers_linwind
+          ELSE
+            DO jl = 1, nlayers_linwind - 1
+              IF (z_me(je,jk,jb) >= h_linwind(jl) .AND. z_me(je,jk,jb) < h_linwind(jl+1)) THEN
+                jn = jl
+                EXIT
+              END IF
+            END DO
+          END IF
+          IF (jn <= 0 .OR. jn > nlayers_linwind) THEN
+            CALL finish ('corresponding layer has not been found')
+          END IF
 
-            z_u = u_linwind(jn) +  ugr_linwind(jn)*    &
-                                &  (z_me(je,jk,jb)-h_linwind(jn))   !v component is zero
-            vn(je,jk,jb) = &
-             z_u * ptr_patch%edges%primal_normal(je,jb)%v1
+          z_u = u_linwind(jn) +  ugr_linwind(jn)*(z_me(je,jk,jb)-h_linwind(jn))
+          vn(je,jk,jb) = &
+              z_u * (-SIN(dir_wind * deg2rad) * ptr_patch%edges%primal_normal(je,jb)%v1 &
+                     -COS(dir_wind * deg2rad) * ptr_patch%edges%primal_normal(je,jb)%v2)
           ENDDO !je
         ENDDO !jk
     ENDDO  !jb
 !$OMP END DO
 !$OMP END PARALLEL
-       DEALLOCATE(z_me)
+    DEALLOCATE(z_me)
 
-      CASE(2)
-      ! constant zonal wind
-       z_u = vel_const
-       i_startblk = ptr_patch%edges%start_blk(2,1)
-
-       ! horizontal normal components of the velocity
-!$OMP PARALLEL
-!$OMP DO PRIVATE(jb,i_startidx,i_endidx,jk,je)
-       DO jb = i_startblk, nblks_e
-
-        CALL get_indices_e(ptr_patch, jb, i_startblk, nblks_e, &
-                         i_startidx, i_endidx, 2)
-
-        DO jk = 1, nlev
-          DO je = i_startidx, i_endidx
-
-           vn(je,jk,jb) =  &
-             z_u * ptr_patch%edges%primal_normal(je,jb)%v1
-          ENDDO !je
-        ENDDO !jk
-     ENDDO  !jb
-!$OMP END DO
-!$OMP END PARALLEL
-
-      CASE(3)
-      ! constant meridional wind
-       z_v = vel_const
-       i_startblk = ptr_patch%edges%start_blk(2,1)
-
-       ! horizontal normal components of the velocity
-!$OMP PARALLEL
-!$OMP DO PRIVATE(jb,i_startidx,i_endidx,jk,je)
-       DO jb = i_startblk, nblks_e
-
-        CALL get_indices_e(ptr_patch, jb, i_startblk, nblks_e, &
-                         i_startidx, i_endidx, 2)
-
-        DO jk = 1, nlev
-          DO je = i_startidx, i_endidx
-
-           vn(je,jk,jb) =  &
-             z_v * ptr_patch%edges%primal_normal(je,jb)%v2
-          ENDDO !je
-        ENDDO !jk
-     ENDDO  !jb
-!$OMP END DO
-!$OMP END PARALLEL
-
-    END SELECT
-
- ! initialize vertical velocity
-   CALL init_w(ptr_patch, p_int, vn, p_metrics%z_ifc, w)
-   CALL sync_patch_array(SYNC_C, ptr_patch, w, lacc=.FALSE.)
-   !CALL sync_patch_array(SYNC_E, ptr_patch, vn, lacc=.FALSE.)
+    ! initialize vertical velocity
+    CALL init_w(ptr_patch, p_int, vn, p_metrics%z_ifc, w)
+    CALL sync_patch_array(SYNC_C, ptr_patch, w, lacc=.FALSE.)
+    !CALL sync_patch_array(SYNC_E, ptr_patch, vn, lacc=.FALSE.)
 
   END SUBROUTINE init_nh_anaprof_uv
 !-------------------------------------------------------------------------
@@ -1031,7 +977,7 @@ jnlayer(:,:,:)=0
 
   SUBROUTINE init_nh_topo_ana( ptr_patch, lplane, topo_c, nblks_c, npromz_c)
 
-    TYPE(t_patch), TARGET,INTENT(INOUT) :: &  !< patch on which computation is performed
+    TYPE(t_patch), TARGET,INTENT(IN) :: &  !< patch on which computation is performed
       &  ptr_patch
 
     INTEGER,  INTENT (IN) ::  nblks_c, npromz_c
