@@ -75,7 +75,8 @@ MODULE mo_nwp_phy_types
     TYPE(t_ptr_2d3d),ALLOCATABLE :: tvh_t_ptr(:) !< pointer array: turbulent transfer velocity for heat
     TYPE(t_ptr_2d3d),ALLOCATABLE :: tkr_t_ptr(:) !< pointer array: turbulent reference surface diffusion coefficient
     TYPE(t_ptr_2d3d),ALLOCATABLE :: gz0_t_ptr(:) !< pointer array: roughness length * gravity
-    TYPE(t_ptr_2d3d),ALLOCATABLE :: rlamh_fac_ptr(:) !< pointer array: scaling factor for rlam_heat
+    TYPE(t_ptr_2d3d),ALLOCATABLE :: rlamh_fac_ptr(:) !< pointer array: (static) scaling factor for rlam_heat
+    TYPE(t_ptr_2d3d),ALLOCATABLE :: rlamh_varfac_ptr(:) !< pointer array: variable scaling factor for rlam_heat save field
 
     TYPE(t_ptr_2d3d),ALLOCATABLE :: tvs_s_t_ptr(:)  !< pointer array: turbulent velocity scale at surface
     TYPE(t_ptr_2d3d),ALLOCATABLE :: tkvm_s_t_ptr(:) !< pointer array: exchange coefficient for momentum at surface
@@ -167,6 +168,7 @@ MODULE mo_nwp_phy_types
       &  snowfrac_fac(:,:),    & !! Factor for adaptive tuning of snow-cover fraction diagnosis
       &  sfcfric_fac(:,:),     & !! Factor for adaptive surface friction tuning (coupled to DA increments for V_abs)
       &  hflux_si_fac(:,:),    & !! Factor for adaptive tuning of seaice bottom heat flux (coupled to DA increments for T)
+      &  r_bsmin_fac(:,:),     & !! Factor for adaptive tuning of bare-soil evaporation resistance
       &  vio3(:,:),            & !! vertically integrated ozone amount (Pa O3)
       &  hmo3(:,:),            & !! height of O3 maximum (Pa)
       &  flxdwswtoa(:,:),      & !! downward shortwave flux at TOA [W/m2]
@@ -339,7 +341,8 @@ MODULE mo_nwp_phy_types
       tkred_sfc_h(:,:),    & !! reduction factor for minimum diffusion coefficient for heat near the surface
                              !! (used for model-DA coupling)
       pat_len(:,:)    ,    & !! length scale of sub-grid scale roughness elements (m)
-      rlamh_fac_t(:,:,:),  & !! tuning factor for laminar transfer resistance (rlam_heat)
+      rlamh_fac_t(:,:,:),  & !! (static) tuning factor for laminar transfer resistance (rlam_heat)
+      rlamh_varfac_t(:,:,:),& !! variable tuning factor for laminar transfer resistance (rlam_heat)
       gz0(:,:),            & !! roughness length * g of the vertically not
                              !! resolved canopy                               (m2/s2)
       z0_waves(:,:),       & !! wave-dependent roughness length               (  m  )

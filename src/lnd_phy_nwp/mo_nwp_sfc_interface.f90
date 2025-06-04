@@ -831,7 +831,11 @@ CONTAINS
           eai_t(ic)                 =  ext_data%atm%eai_t(jc,jb,isubs)
           skinc_t(ic)               =  ext_data%atm%skinc_t(jc,jb,isubs)
           rsmin2d_t(ic)             =  ext_data%atm%rsmin2d_t(jc,jb,isubs)
+
           r_bsmin(ic)               =  ext_data%atm%r_bsmin(jc,jb)
+          IF (icpl_da_sfcevap >= 6) THEN
+            r_bsmin(ic)             = r_bsmin(ic) * prm_diag%r_bsmin_fac(jc,jb)
+          ENDIF
 
           t_so_now_t(ic,nlev_soil+1)= lnd_prog_now%t_so_t(jc,nlev_soil+1,jb,isubs)
 

@@ -48,7 +48,7 @@ MODULE mo_nwp_turbtrans_interface
   USE mo_advection_config,     ONLY: advection_config
   USE mo_turbdiff_config,      ONLY: turbdiff_config, t_turbdiff_config, &
                                      ltst2ml, ltst10ml
-  USE mo_initicon_config,      ONLY: icpl_da_sfcfric
+  USE mo_initicon_config,      ONLY: icpl_da_sfcfric, icpl_da_sfcevap
   USE sfc_flake_data,          ONLY: h_Ice_min_flk, tpl_T_f
   USE turb_transfer,           ONLY: turbtran
   USE mo_thdyn_functions,      ONLY: sat_pres_water, spec_humi
@@ -846,7 +846,12 @@ SUBROUTINE nwp_turbtrans  ( tcall_turb_jg,                     & !>in
 
             tvm_t  (ic)         = prm_diag%tvm_t    (jc,jb,jt)
             tvh_t  (ic)         = prm_diag%tvh_t    (jc,jb,jt)
-            rlamh_fac(ic)       = prm_diag%rlamh_fac_t(jc,jb,jt)
+
+            IF (jt <= ntiles_total .AND. icpl_da_sfcevap >= 6) THEN
+              rlamh_fac(ic)     = prm_diag%rlamh_varfac_t(jc,jb,jt)
+            ELSE
+              rlamh_fac(ic)     = prm_diag%rlamh_fac_t(jc,jb,jt)
+            ENDIF
 
             IF ((jt == ntiles_total+2) .AND. llake) THEN  !only for a lake tile with active lake scheme
               h_ice_t(ic)       = wtr_prog_new%h_ice(jc,jb)

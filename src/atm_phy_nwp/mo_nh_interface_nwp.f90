@@ -54,7 +54,7 @@ MODULE mo_nh_interface_nwp
   USE mo_coupling_config,         ONLY: is_coupled_to_ocean, is_coupled_to_waves, is_coupled_to_hydrodisc
   USE mo_parallel_config,         ONLY: nproma, p_test_run, use_physics_barrier
   USE mo_diffusion_config,        ONLY: diffusion_config
-  USE mo_initicon_config,         ONLY: is_iau_active
+  USE mo_initicon_config,         ONLY: is_iau_active, icpl_da_sfcevap
   USE mo_run_config,              ONLY: ntracer, iqv, iqc, iqi, iqs, iqr, iqg, iqtke,  &
     &                                   msg_level, ltimer, timers_level, lart, ldass_lhn
   USE mo_grid_config,             ONLY: l_limited_area
@@ -91,6 +91,7 @@ MODULE mo_nh_interface_nwp
   USE mo_mpi,                     ONLY: my_process_is_mpi_all_parallel, work_mpi_barrier
   USE mo_nwp_diagnosis,           ONLY: nwp_statistics, nwp_opt_diagnostics_2, &
                                     &   nwp_diag_output_1, nwp_diag_output_2
+  USE mo_apt_routines,            ONLY: update_apt_fields
 #ifdef __ICON_ART
   USE mo_art_config,              ONLY: art_config
   USE mo_art_data,                ONLY: p_art_data
@@ -1190,7 +1191,14 @@ CONTAINS
 !$OMP END DO NOWAIT
 !$OMP END PARALLEL
 
+    ! update time-dependent adaptive parameter tuning fields
+    ! needs to be called between TERRA and turbtran because surface heat fluxes on tiles are accessed
+    IF (icpl_da_sfcevap >= 6) THEN
+      CALL update_apt_fields (pt_patch, pt_prog, prm_diag, ext_data, linit)
+    ENDIF
+
     IF (timers_level > 1) CALL timer_stop(timer_fast_phys)
+
 #ifndef __NO_ICON_LES__
     IF ( (lcall_phy_jg(itturb) .OR. linit) .AND. ( ANY((/icosmo,igme/)==atm_phy_nwp_config(jg)%inwp_turb) .OR. &
          (ANY((/ismag,iprog/)==atm_phy_nwp_config(jg)%inwp_turb) .AND. (les_config(jg)%isrfc_type==1)) ) ) THEN

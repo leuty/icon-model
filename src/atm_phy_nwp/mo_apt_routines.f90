@@ -57,7 +57,7 @@ MODULE mo_apt_routines
   PRIVATE
 
 
-  PUBLIC  :: compute_filtincs, init_apt_fields, apply_landalb_tuning, apply_sma
+  PUBLIC  :: compute_filtincs, init_apt_fields, update_apt_fields, apply_landalb_tuning, apply_sma
 
 
   CONTAINS
@@ -413,7 +413,6 @@ MODULE mo_apt_routines
             trh_bias = 0._wp
           ENDIF
 
-
           IF (icpl_da_sfcevap >= 4) THEN
             ! minimum stomata resistance and bare soil evap resistance
             scal = MERGE(1.0_wp, 1.5_wp, icpl_da_sfcevap == 4) ! option 5 uses compensating asymmetric scaling for r_bsmin and hydiffu
@@ -485,6 +484,99 @@ MODULE mo_apt_routines
 !$OMP END PARALLEL
 
   END SUBROUTINE init_apt_fields
+
+  !-------------------------------------------------------------------------
+  !>
+  !! SUBROUTINE update_apt_fields
+  !!
+  !! Update of time-dependent fields that are subject to adaptive parameter tuning
+  !!
+  !-------------------------------------------------------------------------
+  SUBROUTINE update_apt_fields (p_patch, p_prog, prm_diag, ext_data, linit)
+
+    TYPE(t_patch),           INTENT(in)    :: p_patch
+    TYPE(t_nh_prog),         INTENT(in)    :: p_prog
+    TYPE(t_nwp_phy_diag),    INTENT(inout) :: prm_diag
+    TYPE(t_external_data),   INTENT(in)    :: ext_data
+    LOGICAL,                 INTENT(in)    :: linit ! indicates initial slow phyiscs call
+
+
+    INTEGER :: jb, ic, jc, jt
+    INTEGER :: rl_start, rl_end
+    INTEGER :: i_startblk, i_endblk    !> blocks
+    INTEGER :: i_startidx, i_endidx    !! slices
+    INTEGER :: nlev
+    REAL(wp) :: wfac, hydiff_th, shfl_fac
+
+    rl_start   = grf_bdywidth_c+1
+    rl_end     = min_rlcell_int
+    i_startblk = p_patch%cells%start_block(rl_start)
+    i_endblk   = p_patch%cells%end_block(rl_end)
+
+    nlev = p_patch%nlev
+
+    hydiff_th = 1._wp   ! threshold for transition zone based on APT factor for hydraulic diffusivity
+    shfl_fac  = 0.25_wp ! scale factor for SHFL vs. LHFL_BS, beyond which the bare-soil evap is reduced
+
+!$OMP PARALLEL
+!$OMP DO PRIVATE(jb,jc,jt,i_startidx,i_endidx,wfac)
+    DO jb = i_startblk, i_endblk
+
+      CALL get_indices_c(p_patch, jb, i_startblk, i_endblk, i_startidx, i_endidx, rl_start, rl_end)
+
+      !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1)
+      !$ACC LOOP GANG VECTOR COLLAPSE(2) PRIVATE(wfac)
+      DO jt = 1, ntiles_total
+        DO jc = i_startidx,i_endidx
+
+          ! increase rlam_heat when the SHFL is positive, i.e. the surface is colder than the atmosphere, but LHFL+SHFL are negative
+          IF (ext_data%atm%fr_glac(jc,jb) <= 0.99_wp .AND. prm_diag%hydiffu_fac(jc,jb) < hydiff_th .AND. &
+              prm_diag%shfl_s_t(jc,jb,jt) > 0._wp .AND.                                                  &
+              prm_diag%shfl_s_t(jc,jb,jt) + prm_diag%lhfl_s_t(jc,jb,jt) < 0._wp) THEN
+
+            wfac = 1.25_wp*(hydiff_th - prm_diag%hydiffu_fac(jc,jb))
+            prm_diag%rlamh_varfac_t(jc,jb,jt) = prm_diag%rlamh_fac_t(jc,jb,jt)* &
+              (1._wp + wfac*prm_diag%shfl_s_t(jc,jb,jt) )
+
+          ELSE IF (ext_data%atm%fr_glac(jc,jb) <= 0.99_wp .AND. prm_diag%shfl_s_t(jc,jb,jt) > 0._wp .AND. &
+                   prm_diag%shfl_s_t(jc,jb,jt) + prm_diag%lhfl_s_t(jc,jb,jt) > 0._wp) THEN
+
+            ! reduce rlam_heat when the stratification is stable and APT tries to correct a nocturnal warm bias
+            wfac = MIN(1._wp,MAX(0._wp,0.25_wp*(p_prog%theta_v(jc,prm_diag%k950(jc,jb),jb)-4._wp-p_prog%theta_v(jc,nlev-1,jb))))
+            prm_diag%rlamh_varfac_t(jc,jb,jt) = prm_diag%rlamh_fac_t(jc,jb,jt)* &
+              (1._wp-wfac+wfac*MIN(1._wp,prm_diag%heatcond_fac(jc,jb)))
+
+          ELSE
+            prm_diag%rlamh_varfac_t(jc,jb,jt) = prm_diag%rlamh_fac_t(jc,jb,jt)
+          ENDIF
+
+        ENDDO
+      ENDDO
+      !$ACC END PARALLEL
+
+      !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1)
+      !$ACC LOOP GANG VECTOR PRIVATE(wfac)
+      DO jc = i_startidx,i_endidx
+        IF (.NOT. linit .AND. prm_diag%hydiffu_fac(jc,jb) < hydiff_th .AND. &
+            prm_diag%lhfl_bs(jc,jb) < shfl_fac*prm_diag%shfl_s(jc,jb) .AND. &
+            prm_diag%shfl_s(jc,jb) + prm_diag%lhfl_s(jc,jb) < 0._wp) THEN
+
+          ! reduce bare-soil evaporation when there is a cold/moist bias and the bare-soil contribution to the LHFL
+          ! exceeds 25% (shfl_fac) of the SHFL
+          wfac = 10._wp*(hydiff_th - prm_diag%hydiffu_fac(jc,jb))
+          prm_diag%r_bsmin_fac(jc,jb) = (1._wp + wfac*(shfl_fac*prm_diag%shfl_s(jc,jb)-prm_diag%lhfl_bs(jc,jb)) / &
+            MAX(25._wp,ABS(prm_diag%shfl_s(jc,jb) + prm_diag%lhfl_s(jc,jb))) )
+        ELSE
+          prm_diag%r_bsmin_fac(jc,jb) = 1._wp
+        ENDIF
+      ENDDO
+     !$ACC END PARALLEL
+
+    ENDDO
+!$OMP END DO NOWAIT
+!$OMP END PARALLEL
+
+  END SUBROUTINE update_apt_fields
 
   !-------------------------------------------------------------------------
   !>

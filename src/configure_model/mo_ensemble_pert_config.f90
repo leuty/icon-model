@@ -631,8 +631,8 @@ MODULE mo_ensemble_pert_config
     CALL random_gen(rnd_gkdrag, rnd_num)
     tune_gkdrag(1) = gkdrag_sv(1) + 2._wp*(rnd_num-0.5_wp)*range_gkdrag
     IF (gkdrag_sv(1) > 0._wp) THEN
-      tune_gkdrag(2:max_dom)     = (gkdrag_sv(1) + 2._wp*(rnd_num-0.5_wp)*range_gkdrag)*gkdrag_sv(2:max_dom)/gkdrag_sv(1)
-      tune_gkdrag_enh(1:max_dom) = (gkdrag_sv(1) + 2._wp*(rnd_num-0.5_wp)*range_gkdrag)*gkdrag_enh_sv(1:max_dom)/gkdrag_sv(1)
+      tune_gkdrag(2:max_dom)     = (gkdrag_sv(1) + 2._wp*(rnd_num-0.5_wp)*range_gkdrag)*(gkdrag_sv(2:max_dom)/gkdrag_sv(1))
+      tune_gkdrag_enh(1:max_dom) = (gkdrag_sv(1) + 2._wp*(rnd_num-0.5_wp)*range_gkdrag)*(gkdrag_enh_sv(1:max_dom)/gkdrag_sv(1))
     ELSE
       tune_gkdrag(2:max_dom)     = gkdrag_sv(2:max_dom) + 2._wp*(rnd_num-0.5_wp)*range_gkdrag
       tune_gkdrag_enh(1:max_dom) = gkdrag_enh_sv(1:max_dom) + 2._wp*(rnd_num-0.5_wp)*range_gkdrag

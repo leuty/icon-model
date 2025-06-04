@@ -407,12 +407,17 @@ SUBROUTINE init_nwp_phy ( p_patch, p_metrics,             &
       ELSE
         prm_diag%innertropics_mask(jc,jb) = (17.5_wp-zlat)/5._wp
       ENDIF
+      zlat = p_patch%cells%center(jc,jb)%lat*rad2deg
       IF (zlat > 60._wp) THEN
         prm_diag%sso_lat_mask(jc,jb) = 0._wp
-      ELSE IF (zlat < 30._wp) THEN
-        prm_diag%sso_lat_mask(jc,jb) = 1._wp
-      ELSE
+      ELSE IF (zlat > 30._wp) THEN
         prm_diag%sso_lat_mask(jc,jb) = COS(3._wp*(zlat-30._wp)/rad2deg)
+      ELSE IF (zlat > 0._wp) THEN
+        prm_diag%sso_lat_mask(jc,jb) = 1._wp
+      ELSE IF (zlat > -30._wp) THEN
+        prm_diag%sso_lat_mask(jc,jb) = COS(3._wp*zlat/rad2deg)
+      ELSE
+        prm_diag%sso_lat_mask(jc,jb) = 0._wp
       ENDIF
     ENDDO
 

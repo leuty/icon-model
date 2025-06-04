@@ -354,7 +354,7 @@ cat > ${atmo_namelist} << EOF
  lp2cintp_incr			= .true.
  lp2cintp_sfcana		= .true.
  use_lakeiceana                 = .true.
- icpl_da_sfcevap                = 5
+ icpl_da_sfcevap                = 6
  icpl_da_skinc                  = 2
  adjust_tso_tsnow               = .TRUE.
  icpl_da_snowalb                = 3

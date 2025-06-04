@@ -469,6 +469,8 @@ SUBROUTINE new_nwp_phy_diag_list( k_jg, klev, klevp1, kblks,    &
       &     diag%reff_qr, &
       &     diag%reff_qs, &
       &     diag%rh, &
+      &     diag%rlamh_fac_t, &
+      &     diag%rlamh_varfac_t, &
       &     diag%sdi2, &
       &     diag%snowalb_fac, &
       &     diag%landalb_inc, &
@@ -484,6 +486,7 @@ SUBROUTINE new_nwp_phy_diag_list( k_jg, klev, klevp1, kblks,    &
       &     diag%tetfl_turb, &
       &     diag%tkred_sfc, &
       &     diag%tkred_sfc_h, &
+      &     diag%r_bsmin_fac, &
       &     diag%tt_lheat, &
       &     diag%ttend_lhn, &
       &     diag%twater, &
@@ -1878,6 +1881,17 @@ SUBROUTINE new_nwp_phy_diag_list( k_jg, klev, klevp1, kblks,    &
         &           grib2_desc, ldims=shape2d, loutput=.TRUE.,    &
         &           initval=1.0_wp, lrestart=.TRUE., lopenacc=.TRUE.)
         __acc_attach(diag%hydiffu_fac)
+    ENDIF
+
+    IF (icpl_da_sfcevap >= 6) THEN
+      ! Factor for bare-soil evaporation resistance
+      cf_desc    = t_cf_var('r_bsmin_fac', '-', 'tuning factor for bare-soil evaporation resistance', datatype_flt)
+      grib2_desc = grib2_var( 255, 255, 255, ibits, GRID_UNSTRUCTURED, GRID_CELL)
+      CALL add_var( diag_list, 'r_bsmin_fac', diag%r_bsmin_fac,   &
+        &           GRID_UNSTRUCTURED_CELL, ZA_SURFACE, cf_desc,  &
+        &           grib2_desc, ldims=shape2d, loutput=.TRUE.,    &
+        &           initval=1.0_wp, lrestart=.TRUE., lopenacc=.TRUE.)
+        __acc_attach(diag%r_bsmin_fac)
     ENDIF
 
     ! Factor for adaptive surface friction tuning
@@ -3435,7 +3449,32 @@ SUBROUTINE new_nwp_phy_diag_list( k_jg, klev, klevp1, kblks,    &
          & lrestart=.FALSE.)
     ENDDO
 
+    IF (icpl_da_sfcevap >= 6) THEN
+      !        diag%rlamh_varfac_t (nproma, nblks, ntiles_total)
+      cf_desc    = t_cf_var('rlamh_varfac_t', '', 'variable scaling factor for rlam_heat', &
+        &                   datatype_flt)
+      grib2_desc = grib2_var(255,255,255, ibits, GRID_UNSTRUCTURED, GRID_CELL)
+      CALL add_var( diag_list, 'rlamh_varfac_t', diag%rlamh_varfac_t,    &
+        & GRID_UNSTRUCTURED_CELL, ZA_SURFACE, cf_desc, grib2_desc,       &
+        & ldims=shape3dsubs, lcontainer=.TRUE., lrestart=.FALSE.,        &
+        & loutput=.FALSE., lopenacc=.TRUE., initval=1._wp)
+      __acc_attach(diag%rlamh_varfac_t)
 
+      ! fill the seperate variables belonging to the container rlamh_varfac_t
+      ALLOCATE(diag%rlamh_varfac_ptr(ntiles_total))
+      DO jsfc = 1,ntiles_total
+        WRITE(csfc,'(i1)') jsfc
+        CALL add_ref( diag_list, 'rlamh_varfac_t',                         &
+           & 'rlamh_varfac_t'//TRIM(ADJUSTL(csfc)),                        &
+           & diag%rlamh_varfac_ptr(jsfc)%p_2d,                             &
+           & GRID_UNSTRUCTURED_CELL, ZA_SURFACE,                           &
+           & t_cf_var('rlamh_varfac_'//TRIM(csfc), '', '', datatype_flt),  &
+           & grib2_var(255,255,255, ibits, GRID_UNSTRUCTURED, GRID_CELL),  &
+           & ref_idx=jsfc, ldims=shape2d,                                  &
+           & var_class=CLASS_TILE,                                         &
+           & lrestart=.TRUE.)
+      ENDDO
+    ENDIF
 
     ! &      diag%gz0(nproma,nblks_c)
     cf_desc     = t_cf_var('gz0', 'm2 s-2 ','roughness length times gravity', datatype_flt)
