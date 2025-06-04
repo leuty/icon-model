@@ -1009,7 +1009,8 @@ CONTAINS
       & za_surface, &
       & t_cf_var('verticallyTotal_mass_flux_e','kg s-1','vertically integrated mass flux at edges', datatype_flt),&
       & dflt_g2_decl_edge,&
-      & ldims=(/nproma,nblks_e/),in_group=groups_oce_diag)
+      & ldims=(/nproma,nblks_e/),in_group=groups_oce_diag, lopenacc=.TRUE.)
+    __acc_attach(ocean_state_diag%verticallyTotal_mass_flux_e)
 
     ! velocities
     CALL add_var(ocean_restart_list, 'w', ocean_state_diag%w, grid_unstructured_cell, &
