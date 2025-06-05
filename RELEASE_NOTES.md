@@ -42,6 +42,7 @@ Climate: ICON-Land
 - Fixes:
   - Verification check for some JSBACH lctlib parameters when compiling with single precision
   - Account for proc0_shift from the parallel namelist when running ICON-Land standalone
+  - OpenACC fixes for lumi
 - Code cleaning:
   - Only use one variable representing time step length
 - Updated JSBACH usecase with TMX and PFTs
