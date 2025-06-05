@@ -56,21 +56,6 @@ repos:
     hooks:
       - id: black
         args: [--line-length=80]
-        exclude: |
-          (?x)^(
-            # Exclude broken and outdated (e.g. Python 2) files:
-            schedulers/ecmwf/gen/date_calc.py |
-            scripts/buildbot_scripts/py/MainPage.py |
-            scripts/buildbot_scripts/py/exp_plot.py |
-            scripts/buildbot_scripts/py/reference_page.py |
-            scripts/building/build_all |
-            scripts/code_processing/check_style.py |
-            scripts/git_scripts/gitreview |
-            scripts/postprocessing/tools/analyze_io_files.py |
-            scripts/postprocessing/tools/plotTimers.py |
-            scripts/preprocessing/estimate.py |
-            scripts/preprocessing/sky4icon.py
-          )$
   - repo: https://github.com/pre-commit/mirrors-clang-format
     rev: v20.1.0
     hooks:
