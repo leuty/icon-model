@@ -79,7 +79,7 @@ MODULE mo_nml_crosscheck
     &                                    newDatetime, deallocateDatetime
   USE mo_sleve_config,             ONLY: itype_laydistr, flat_height, top_height
   USE mo_nudging_config,           ONLY: nudging_config, indg_type
-  USE mo_nwp_tuning_config,        ONLY: itune_gust_diag
+  USE mo_nwp_tuning_config,        ONLY: itune_gust_diag, tune_cu_alfa
   USE mo_nudging_nml,              ONLY: check_nudging
   USE mo_upatmo_config,            ONLY: check_upatmo
   USE mo_name_list_output_config,  ONLY: is_variable_in_output_dom
@@ -535,6 +535,11 @@ CONTAINS
           IF (irad_aero /= iRadAeroTegen) &
             & CALL finish(routine,'iprog_aero > 0 currently only available for irad_aero=6 (Tegen)')
         ENDIF
+
+        !! check options for cloud scheme
+        IF ( tune_cu_alfa > 0 .AND. ANY(atm_phy_nwp_config(1:n_dom)%icpl_aero_gscp == 0) ) THEN
+          CALL finish(routine,'cloud scheme with tune_cu_alfa > 0 requires icpl_aero_gscp > 0')
+        END IF
 
         !! check microphysics scheme
         IF (   ANY(atm_phy_nwp_config(1:n_dom)%inwp_gscp == 2) .AND. &

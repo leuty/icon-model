@@ -110,7 +110,7 @@ MODULE mo_nwp_phy_init
   USE mo_initicon_config,     ONLY: init_mode, lread_tke, itype_sma
   USE mo_apt_routines,        ONLY: init_apt_fields, apply_landalb_tuning, apply_sma
   USE mo_nwp_tuning_config,   ONLY: tune_zceff_min, tune_v0snow, tune_zvz0i, tune_icesedi_exp, &
-    &                               tune_box_liq_sfc_fac, tune_zcsg
+    &                               tune_box_liq_sfc_fac, tune_zcsg, tune_dice_conv
   USE mo_cuparameters,        ONLY: sugwd
   USE mtime,                  ONLY: datetime, MAX_DATETIME_STR_LEN, &
     &                               datetimeToString, newDatetime, deallocateDatetime
@@ -823,6 +823,7 @@ SUBROUTINE init_nwp_phy ( p_patch, p_metrics,             &
         tune_v0snow      = tune_v0snow,                  &
         tune_zcsg        = tune_zcsg,                    &
         tune_zvz0i       = tune_zvz0i,                   &
+        tune_dice_conv   = tune_dice_conv,               &
         tune_icesedi_exp = tune_icesedi_exp,             &
         tune_mu_rain        = atm_phy_nwp_config(1)%mu_rain,&
         tune_rain_n0_factor = atm_phy_nwp_config(1)%rain_n0_factor, &

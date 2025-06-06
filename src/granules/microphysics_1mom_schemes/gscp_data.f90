@@ -47,18 +47,12 @@ INTEGER,  PARAMETER ::  &
   iautocon       = 1,   &
   isnow_n0temp   = 2
 
-
 ! Epsilons and thresholds
 ! -----------------------
 
 REAL (KIND=wp), PARAMETER ::  &
   zqmin = 1.0E-15_wp, & ! threshold for computations
   zeps  = 1.0E-15_wp    ! small number
-
-
-REAL (KIND=wp), PARAMETER ::  &
-  zxiconv  = 1.0E-09_wp,      & ! mean crystal mass for convectively generated ice (gscp3 only)
-  zxidrift = 1.0E-07_wp         ! mean crystal mass for blowing snow (gscp3 only)
 
 ! Variables which are (mostly) initialized in gscp_set_coefficients
 ! -----------------------------------------------------------------
@@ -94,6 +88,7 @@ REAL (KIND=wp), PARAMETER ::  &
     zcsg,      & ! efficiency for cloud-graupel riming
     zvz0i,     & ! Terminal fall velocity of ice  (original value of Heymsfield+Donner 1990: 3.29)
     icesedi_exp,&! exponent for density correction for coud ice sedimentation
+    zxiconv,   & ! mean crystal mass for convectively generated ice (gscp3 only)
     cloud_num = 200.00e+06_wp      ! cloud droplet number concentration
 
   LOGICAL ::                        &
@@ -118,7 +113,6 @@ REAL (KIND=wp), PARAMETER ::  &
     kc_sigma       =  1.85_wp,      & !..exponent  in area-size relation
     do_i           =  5.83_wp,      & ! coefficients for drag correction
     co_i           =  0.6_wp          ! coefficients for turbulence correction
-
 
 ! Parameters for autoconversion of cloud water and cloud ice
 ! ----------------------------------------------------------
@@ -183,11 +177,9 @@ REAL    (KIND=wp   ), PARAMETER ::  &
   zmimax = 1.0E-9_wp,       & ! maximum mass of cloud ice crystals
   zmsmin = 3.0E-9_wp,       & ! initial mass of snow crystals
   zbvi   = 0.16_wp,         & ! v = zvz0i*rhoqi^zbvi
-!
   v_sedi_rain_min    = 0.7_wp, & ! in m/s; minimum terminal fall velocity of rain    particles (applied only near the ground)
   v_sedi_snow_min    = 0.1_wp, & ! in m/s; minimum terminal fall velocity of snow    particles (applied only near the ground)
   v_sedi_graupel_min = 0.4_wp    ! in m/s; minimum terminal fall velocity of graupel particles (applied only near the ground)
-
 
 ! Constant exponents in the transfer rate equations
 ! -------------------------------------------------
@@ -213,7 +205,6 @@ REAL    (KIND=wp   ), PARAMETER ::  &
     mmb(10) = (/0.476221_wp, -0.015896_wp,  0.165977_wp, 0.007468_wp, -0.000141_wp, &
                 0.060366_wp,  0.000079_wp,  0.000594_wp, 0.000000_wp, -0.003577_wp /)
 
-
 ! Parameters relevant to support supercooled liquid water (SLW), sticking efficiency, ...
 ! ---------------------------------------------------------------------------------------
 
@@ -223,12 +214,13 @@ REAL    (KIND=wp   ), PARAMETER ::  &
   zceff_fac        = 3.5E-3_wp, & ! Scaling factor [1/K] for temperature-dependent cloud ice sticking efficiency
   tmin_iceautoconv = 188.15_wp    ! Temperature at which cloud ice autoconversion starts
 
-
-
 !=======================================================================
 ! Parameters for two-moment cloud ice scheme
 ! ---------------------------------------------------------------------------------------
 
+REAL (KIND=wp), PARAMETER ::  &
+  zxidrift = zami * 100.0e-6_wp**3         ! mean crystal mass for blowing snow (gscp3 only)
+                                           ! (50e-6 according to Alexis Berne, pers. comm. March 2025)
 REAL    (KIND=wp   ), PARAMETER ::  &
   bgeo_ice = x1o3,                  &
   ageo_ice = zami**(-bgeo_ice)
@@ -272,7 +264,7 @@ CONTAINS
 
 SUBROUTINE gscp_set_coefficients (igscp, idbg, tune_zceff_min, tune_v0snow, tune_zvz0i, &
      &                             tune_mu_rain, tune_rain_n0_factor, tune_icesedi_exp, &
-     &                             tune_zcsg, lvar_rain_n0)
+     &                             tune_zcsg, tune_dice_conv, lvar_rain_n0)
 
 !------------------------------------------------------------------------------
 !> Description:
@@ -290,11 +282,12 @@ SUBROUTINE gscp_set_coefficients (igscp, idbg, tune_zceff_min, tune_v0snow, tune
   REAL(wp) ,INTENT(IN) ,OPTIONAL ::  tune_mu_rain
   REAL(wp) ,INTENT(IN) ,OPTIONAL ::  tune_rain_n0_factor
   REAL(wp) ,INTENT(IN) ,OPTIONAL ::  tune_zcsg
+  REAL(wp) ,INTENT(IN) ,OPTIONAL ::  tune_dice_conv
   LOGICAL  ,INTENT(IN) ,OPTIONAL ::  lvar_rain_n0
 
 ! Local variable
   REAL(wp) :: zams  ! local value of zams
-
+  REAL(wp) :: zdice
 
 !------------------------------------------------------------------------------
 !>  Initial setting of local and global variables
@@ -359,6 +352,12 @@ SUBROUTINE gscp_set_coefficients (igscp, idbg, tune_zceff_min, tune_v0snow, tune
     zcsg = 0.5_wp      ! default
   ENDIF
 
+  IF (PRESENT(tune_dice_conv)) THEN
+    zdice = tune_dice_conv
+  ELSE
+    zdice = 100e-6_wp      ! default
+  ENDIF
+
   IF (igscp == 2 .AND. PRESENT(lvar_rain_n0)) THEN
     lvariable_rain_n0 = lvar_rain_n0
   ELSE
@@ -394,6 +393,7 @@ SUBROUTINE gscp_set_coefficients (igscp, idbg, tune_zceff_min, tune_v0snow, tune
 
   zvzxp  = 0.5_wp/(mu_rain+4.0_wp)
   zvz0r0 = 130.0_wp*GAMMA(mu_rain+4.5_wp)/GAMMA(mu_rain+4.0_wp)*zar**(-zvzxp)
+  zxiconv= zami * zdice**3                     ! mean crystal mass of convectively generated ice (gscp3 only)
 
   IF (PRESENT(idbg)) THEN
     IF (idbg > 10) THEN

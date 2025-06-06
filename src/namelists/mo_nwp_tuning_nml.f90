@@ -87,6 +87,9 @@ MODULE mo_nwp_tuning_nml
     &                               config_tune_sc_eis           => tune_sc_eis,           &
     &                               config_tune_sc_invmin        => tune_sc_invmin,        &
     &                               config_tune_sc_invmax        => tune_sc_invmax,        &
+    &                               config_tune_cu_alfa          => tune_cu_alfa,          &
+    &                               config_tune_cu_cdnc          => tune_cu_cdnc,          &
+    &                               config_tune_dice_conv        => tune_dice_conv,        &
     &                               config_tune_dursun_scaling   => tune_dursun_scaling,   &
     &                               config_tune_sbmccn           => tune_sbmccn,           &
     &                               config_tune_urbahf           => tune_urbahf,           &
@@ -293,6 +296,15 @@ MODULE mo_nwp_tuning_nml
   REAL(wp) :: &                    !< maximum inversion height (m) used to define region with
        &  tune_sc_invmax           !< enhanced stratocumulus cloud cover
 
+  REAL(wp) :: &                    !< scaling factor for low cloud cover modification
+       &  tune_cu_alfa             !< used for more U-shaped low cloud cover
+
+  REAL(wp) :: &                    !< threshold cloud droplet number concentration for low cloud cover modification
+       &  tune_cu_cdnc             !< used for more U-shaped low cloud cover
+
+  REAL(wp) :: &                    !< mean diameter of detrained cloud ice of parameterized convection
+       &  tune_dice_conv           !< for two-moment schemes
+
   REAL(wp) :: &                    !< scaling of direct solar rediation to tune sunshine duration
        &  tune_dursun_scaling      !< in corresponding diagnostic
 
@@ -320,6 +332,7 @@ MODULE mo_nwp_tuning_nml
     &                      tune_blockred, itune_gust_diag, tune_rcapqadv,         &
     &                      tune_gustsso_lim, tune_eiscrit, itune_o3,              &
     &                      tune_sc_eis, tune_sc_invmin, tune_sc_invmax,           &
+    &                      tune_cu_alfa, tune_cu_cdnc, tune_dice_conv,            &
     &                      tune_capethresh, tune_gkdrag_enh, tune_grcrit_enh,     &
     &                      tune_minsso_gwd, tune_dursun_scaling, tune_sbmccn,     &
     &                      itune_slopecorr, tune_gustlim_agl, tune_gustlim_fac,   &
@@ -498,6 +511,16 @@ CONTAINS
     tune_sc_invmin   = 200._wp
     tune_sc_invmax   = 1500._wp
 
+    !> scaling parameter for low cloud cover modification and cloud droplet number
+    !> threshold to identify region for cloud cover modification
+    !> The parameter tune_cu_alfa is zero as default to turn off the modification.
+    tune_cu_alfa     = 0.0_wp
+    tune_cu_cdnc     = 150e6_wp
+
+    !> mean diameter of detrained cloud ice of parameterized convection
+    !> needed for two-moment microphysical schemes
+    tune_dice_conv   = 100e-6_wp
+
     !> scaling of direct solar radiation in sunshine duration diagnostic
     tune_dursun_scaling = 1._wp
 
@@ -649,6 +672,9 @@ CONTAINS
     config_tune_sc_eis           = tune_sc_eis
     config_tune_sc_invmin        = tune_sc_invmin
     config_tune_sc_invmax        = tune_sc_invmax
+    config_tune_cu_alfa          = tune_cu_alfa
+    config_tune_cu_cdnc          = tune_cu_cdnc
+    config_tune_dice_conv        = tune_dice_conv
     config_tune_dursun_scaling   = tune_dursun_scaling
     config_tune_sbmccn           = tune_sbmccn
     config_tune_urbisa           = tune_urbisa

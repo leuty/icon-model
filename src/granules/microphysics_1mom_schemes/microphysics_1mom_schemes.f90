@@ -150,6 +150,7 @@ CONTAINS
     tune_zcsg, &
     tune_zvz0i, &
     tune_mu_rain,  &
+    tune_dice_conv, &
     tune_icesedi_exp, &
     tune_rain_n0_factor, &
     lvariable_rain_n0)
@@ -160,6 +161,7 @@ CONTAINS
     REAL(wp), INTENT(IN) ::  tune_zcsg
     REAL(wp) ,INTENT(IN) ::  tune_zvz0i
     REAL(wp) ,INTENT(IN) ::  tune_mu_rain
+    REAL(wp) ,INTENT(IN) ::  tune_dice_conv
     REAL(wp) ,INTENT(IN) ::  tune_icesedi_exp
     REAL(wp) ,INTENT(IN) ::  tune_rain_n0_factor
     LOGICAL  ,INTENT(IN) ::  lvariable_rain_n0
@@ -169,6 +171,7 @@ CONTAINS
       &                        tune_v0snow      = tune_v0snow, &
       &                        tune_zcsg        = tune_zcsg, &
       &                        tune_zvz0i       = tune_zvz0i, &
+      &                        tune_dice_conv   = tune_dice_conv, &
       &                        tune_icesedi_exp = tune_icesedi_exp, &
       &                        tune_mu_rain        = tune_mu_rain,&
       &                        tune_rain_n0_factor = tune_rain_n0_factor,&

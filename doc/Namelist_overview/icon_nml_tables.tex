@@ -6021,7 +6021,7 @@ run\_nml:iforcing = inwp
 
 \hline
 \hline
-\multicolumn{6}{|l|}{\textbf{Grid scale microphysics} (one moment)}
+\multicolumn{6}{|l|}{\textbf{Grid scale microphysics}}
 \tabularnewline
 
 \hline
@@ -6070,13 +6070,22 @@ inwp\_gscp=2
 \tabularnewline
 
 \hline
+tune\_dice\_conv&
+R&
+100e-6&
+m&
+mean diameter of detrained cloud ice of parameterized convection &
+run\_nml:iforcing = inwp; inwp\_convection = 1, inwp\_gscp = 3
+\tabularnewline
+
+\hline
 tune\_sbmccn&
 R&
 1.0&
 &
 Scaling factor (0,1] for initial aerosol concentration profile, used for comparison\\
 between simulations with two-moment and warm SBM microphysics&
-run\_nml:iforcing = inwp
+run\_nml:iforcing = inwp, inwp\_gscp = 8
 \tabularnewline
 
 \hline
@@ -6213,6 +6222,11 @@ run\_nml:iforcing = inwp; lgrayzone\_deepconv = .TRUE.
 \tabularnewline
 
 \hline
+\hline
+\multicolumn{6}{|l|}{\textbf{Cloud scheme}}
+\tabularnewline
+
+\hline
 tune\_box\_liq&
 R&
 0.05&
@@ -6343,6 +6357,29 @@ run\_nml:iforcing = inwp; inwp\_clcover = 1
 \tabularnewline
 
 \hline
+tune\_cu\_alfa&
+R&
+0.0&
+&
+scaling parameter of modification of cloud fraction of shallow liquid clouds &
+run\_nml:iforcing = inwp; inwp\_clcover = 1;  icpl\_aero\_gscp $>$ 0
+\tabularnewline
+
+\hline
+tune\_cu\_cdnc&
+R&
+150e6&
+m$^{-3}$&
+cloud droplet number threshold to identify regions for cloud cover modification &
+run\_nml:iforcing = inwp; inwp\_clcover = 1
+\tabularnewline
+
+\hline
+\hline
+\multicolumn{6}{|l|}{\textbf{Saturation adjustment}}
+\tabularnewline
+
+\hline
 tune\_supsat\_limfac&
 R&
 0.0&
@@ -6351,7 +6388,6 @@ Limiting factor for parameterized supersaturation in updrafts during the saturat
 (0.0 for thermodynamic equilibrium) &
 run\_nml:iforcing = inwp; inwp\_satad = 1
 \tabularnewline
-
 
 \hline
 \hline

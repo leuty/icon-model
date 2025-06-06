@@ -1441,6 +1441,7 @@ CONTAINS
 &              deltaz = p_metrics%ddqz_z_full(:,:,jb)     ,       & !! in:  layer thickness
 &              rho    = pt_prog%rho          (:,:,jb  )   ,       & !! in:  density
 &              rcld   = prm_diag%rcld        (:,:,jb)     ,       & !! in:  standard deviation of saturation deficit
+&              cloud_num = prm_diag%cloud_num(:,jb)       ,       & !! in:  2d cloud droplet number
 &              ldland = ext_data%atm%llsm_atm_c (:,jb)    ,       & !! in:  land/sea mask
 &              ldcum  = prm_diag%locum       (:,jb)       ,       & !! in:  convection on/off
 &              kcbot  = prm_diag%mbas_con    (:,jb)       ,       & !! in:  convective cloud base
