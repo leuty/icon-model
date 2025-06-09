@@ -108,6 +108,14 @@ MODULE mo_nwp_phy_nml
 
   LOGICAL  :: lcuda_graph_turb_tran  !! Activate CUDA GRAPH in turbulent transfer
 
+  LOGICAL  :: lstochastic_pattern_generator   !! use stochastic pattern generator
+  LOGICAL  :: spg_use_asl           !! stochastic pattern generator, use ASL library
+  LOGICAL  :: spg_fourier_modes     !! stochastic pattern generator, Fourier modes
+  REAL(wp) :: spg_length_scale      !! stochastic pattern generator, length scale
+  REAL(wp) :: spg_time_scale        !! stochastic pattern generator, time scale of AR1 process
+  INTEGER  :: spg_spec_modes        !! stochastic pattern generator, number of spectral modes
+  REAL(wp) :: spg_variance          !! stochastic pattern generator, variance in grid point space
+
   !> NetCDF file containing longwave absorption coefficients and other data
   !> for RRTMG_LW k-distribution model ('rrtmg_lw.nc')
   CHARACTER(LEN=filename_max) :: lrtm_filename
@@ -134,7 +142,11 @@ MODULE mo_nwp_phy_nml
     &                    lgrayzone_deepconv, ithermo_water,          &
     &                    lsbm_warm_full, lcuda_graph_turb_tran,      &
     &                    lscale_cdnc, lvariable_rain_n0,             &
-    &                    itype_dissip_heat
+    &                    itype_dissip_heat,                          &
+    &                    lstochastic_pattern_generator,              &
+    &                    spg_length_scale, spg_time_scale,           &
+    &                    spg_spec_modes, spg_variance,               &
+    &                    spg_fourier_modes, spg_use_asl
 
 CONTAINS
 
@@ -220,6 +232,15 @@ CONTAINS
     itype_satpres_coeffs = 1 ! 1 = old coefficients inherited from the COSMO model, 2 = more accurate coefficients used in IFS
     qi0      = 0.0_wp
     qc0      = 0.0_wp
+
+    ! stochastic pattern generator
+    lstochastic_pattern_generator = .false.
+    spg_use_asl       = .false.
+    spg_fourier_modes = .true.
+    spg_length_scale  = 1000e3_wp
+    spg_time_scale    = 3600.0_wp
+    spg_spec_modes    = 50
+    spg_variance      = 1.0_wp
 
     ! shape parameter for gamma distribution for rain and snow
     mu_rain = 0.0_wp
@@ -469,6 +490,9 @@ CONTAINS
         CALL finish(routine,'GPU version not available for Stochastic Bin Microphysics (inwp_gscp=8).')
       ENDIF
 
+      IF (lstochastic_pattern_generator) THEN
+        CALL finish(routine,'The spectral stochastic pattern generatore has not yet been ported to GPU.')
+      END IF
 #endif
 
       IF (inwp_surface(jg) == LSS_JSBACH .AND. inwp_turb(jg) /= ivdiff) THEN
@@ -556,6 +580,13 @@ CONTAINS
       atm_phy_nwp_config(jg)%icpl_rad_reff   = icpl_rad_reff (jg)
       atm_phy_nwp_config(jg)%ithermo_water   = ithermo_water(jg)
       atm_phy_nwp_config(jg)%lsbm_warm_full  = lsbm_warm_full
+      atm_phy_nwp_config(jg)%lstochastic_pattern_generator = lstochastic_pattern_generator
+      atm_phy_nwp_config(jg)%spg_use_asl       = spg_use_asl
+      atm_phy_nwp_config(jg)%spg_length_scale  = spg_length_scale
+      atm_phy_nwp_config(jg)%spg_time_scale    = spg_time_scale
+      atm_phy_nwp_config(jg)%spg_spec_modes    = spg_spec_modes
+      atm_phy_nwp_config(jg)%spg_variance      = spg_variance
+      atm_phy_nwp_config(jg)%spg_fourier_modes = spg_fourier_modes
     ENDDO
 
     config_lrtm_filename         = TRIM(lrtm_filename)

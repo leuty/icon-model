@@ -163,6 +163,7 @@ MODULE mo_nh_interface_nwp
   USE mo_nwp_tuning_config,       ONLY: tune_sc_eis
   USE mo_sbm_storage,             ONLY: t_sbm_storage, get_sbm_storage
   USE mo_name_list_output_config, ONLY: is_variable_in_output
+  USE mo_stoch_pattern_generator, ONLY: stochastic_pattern_generator, stochastic_pattern_step
 
   !$ser verbatim USE mo_ser_all,              ONLY: serialize_all
 
@@ -677,6 +678,50 @@ CONTAINS
 
     IF (timers_level > 2) CALL timer_stop(timer_satad_v_3D)
 
+    !!-------------------------------------------------------------------------
+    !>  stochastic pattern generator
+    !!-------------------------------------------------------------------------
+
+    IF (atm_phy_nwp_config(jg)%lstochastic_pattern_generator) THEN
+
+      IF (msg_level >= 15) CALL message('mo_nh_interface_nwp:', 'stochastic pattern')
+
+      IF (timers_level > 2) CALL timer_start(timer_stoch_pattern_gen)
+
+      ! advance stochastic pattern in time by AR1 process
+      IF ( jg == 1 ) THEN
+        CALL stochastic_pattern_step(dtime=dt_phy_jg(itfastphy))
+      ENDIF
+
+      ! computations on prognostic points
+      rl_start   = grf_bdywidth_c+1
+      rl_end     = min_rlcell_int
+      i_startblk = pt_patch%cells%start_block(rl_start)
+      i_endblk   = pt_patch%cells%end_block(rl_end)
+
+!$OMP PARALLEL
+!$OMP DO PRIVATE(jb,i_startidx,i_endidx) ICON_OMP_DEFAULT_SCHEDULE
+      DO jb = i_startblk, i_endblk
+
+        CALL get_indices_c(pt_patch, jb, i_startblk, i_endblk, &
+             & i_startidx, i_endidx, rl_start, rl_end)
+
+        ! Stochastic pattern generator
+        CALL stochastic_pattern_generator(                   &
+             nproma  = nproma,                                  & ! nproma
+             istart  = i_startidx,                              & ! start index
+             iend    = i_endidx,                                & ! end index
+             spg     = prm_diag%spg(:,jb),                      & ! spatial random patter
+             clat    = pt_patch%cells%center(:,jb)%lat,         & ! latitude
+             clon    = pt_patch%cells%center(:,jb)%lon          & ! longitude
+             )
+      END DO
+!$OMP END DO NOWAIT
+!$OMP END PARALLEL
+
+      IF (timers_level > 2) CALL timer_stop(timer_stoch_pattern_gen)
+
+    END IF
 
     !!-------------------------------------------------------------------------
     !>  turbulent transfer and diffusion and microphysics

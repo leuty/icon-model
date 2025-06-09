@@ -347,7 +347,6 @@ CONTAINS
                                  'hydrometeors only works with ECRAD!')
         ENDIF
 
-
         ! check radiation scheme in relation to chosen ozone and irad_aero=iRadAeroTegen to itopo
 
         IF ( (atm_phy_nwp_config(jg)%inwp_radiation > 0) )  THEN
@@ -568,6 +567,26 @@ CONTAINS
           CALL finish(routine,' Turbulence enhancement of collisions '//  &
                       'in two-moment scheme (lturb_enhc) not applicable for aes physics.')
         ENDIF
+
+#ifdef __NEC__
+#ifndef __ASL__
+        IF ( atm_phy_nwp_config(jg)%lstochastic_pattern_generator .AND. atm_phy_nwp_config(jg)%spg_use_asl) THEN
+          CALL finish( routine,'Stochastic pattern generator using Advanced Scientific Library (ASL) has to be linked with ASL')
+        ENDIF
+#endif
+#else
+#ifndef __NEC_VH__
+        IF ( atm_phy_nwp_config(jg)%lstochastic_pattern_generator .AND. atm_phy_nwp_config(jg)%spg_use_asl) THEN
+          CALL finish( routine,'Stochastic pattern generator using Advanced Scientific Library (ASL) is only available on NEC')
+        ENDIF
+#endif
+#endif
+#ifdef __NEC__
+        IF ( atm_phy_nwp_config(jg)%lstochastic_pattern_generator .AND. .not.atm_phy_nwp_config(jg)%spg_use_asl) THEN
+          CALL finish(modname, 'Stochastic pattern generator on NEC without ASL. This is inefficient, please use ASL.')
+        END IF
+#endif
+
 
         ! ltmpcor activates the calculation of dissipative heating in turbdiff;
         ! to prevent double-counting, the respective calculations in the NWP interface need to be skipped

@@ -136,6 +136,15 @@ MODULE mo_atm_phy_nwp_config
     INTEGER  :: icpl_rad_reff      !! couplig of radiation and effective radius
     INTEGER  :: ithermo_water      !! thermodynamic of water
 
+    ! stochastic pattern generator
+    REAL(wp) :: spg_length_scale   !! length scale
+    REAL(wp) :: spg_time_scale     !! time scale of AR1 process
+    INTEGER  :: spg_spec_modes     !! number of spectral modes
+    REAL(wp) :: spg_variance       !! variance in grid point space
+    LOGICAL  :: spg_fourier_modes  !! use Fourier modes for limited area
+    LOGICAL  :: spg_use_asl        !! use ASL library on NEC
+    LOGICAL  :: lstochastic_pattern_generator   !! use stochastic pattern generator
+
     ! upper atmosphere
     LOGICAL ::  lupatmo_phy        !! use upper atmosphere physics
 

@@ -474,6 +474,7 @@ SUBROUTINE new_nwp_phy_diag_list( k_jg, klev, klevp1, kblks,    &
       &     diag%sdi2, &
       &     diag%snowalb_fac, &
       &     diag%landalb_inc, &
+      &     diag%spg, &
       &     diag%srh, &
       &     diag%ssa_sw, &
       &     diag%tot_pr_max, &
@@ -2932,6 +2933,15 @@ SUBROUTINE new_nwp_phy_diag_list( k_jg, klev, klevp1, kblks,    &
                 & lrestart=.FALSE., loutput=.FALSE., lopenacc=.TRUE.)
       __acc_attach(diag%g_sw)
     ENDIF
+
+    IF ( atm_phy_nwp_config(k_jg)%lstochastic_pattern_generator ) THEN
+      ! &      diag%spg(nproma,nblks_c)
+      cf_desc    = t_cf_var('spg', '-', 'stochastic pattern generator perturbation field', datatype_flt)
+      grib2_desc = grib2_var(255, 255, 255, ibits, GRID_UNSTRUCTURED, GRID_CELL)
+      CALL add_var( diag_list, 'spg', diag%spg,                 &
+           & GRID_UNSTRUCTURED_CELL, ZA_SURFACE, cf_desc, grib2_desc,          &
+           & ldims=shape2d, lrestart=.false., lopenacc=.FALSE. )
+    END IF
 
     ! &      diag%cloud_num(nproma,nblks_c)
     cf_desc    = t_cf_var('cloud_num', 'm-3', 'cloud droplet number concentration', datatype_flt)

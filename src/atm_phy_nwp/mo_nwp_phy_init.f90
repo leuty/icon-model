@@ -38,7 +38,7 @@ MODULE mo_nwp_phy_init
   USE mo_loopindices,         ONLY: get_indices_c
   USE mo_parallel_config,     ONLY: nproma
   USE mo_fortran_tools,       ONLY: copy
-  USE mo_run_config,          ONLY: ltestcase, iqv, iqc, inccn, ininpot, msg_level
+  USE mo_run_config,          ONLY: ltestcase, iqv, iqc, inccn, ininpot, msg_level, dtime
   USE mo_atm_phy_nwp_config,  ONLY: atm_phy_nwp_config, lrtm_filename,               &
     &                               cldopt_filename, icpl_aero_conv, icpl_aero_ice, iprog_aero
   USE mo_extpar_config,       ONLY: ext_o3_attr, itype_vegetation_cycle
@@ -67,9 +67,13 @@ MODULE mo_nwp_phy_init
   USE mo_aerosol_util,        ONLY: init_aerosol_props_tegen_ecrad
 #endif
 
+  ! microphysics
   USE mo_2mom_mcrph_driver,   ONLY: two_moment_mcrph_init
   USE microphysics_1mom_schemes, ONLY: microphysics_1mom_init
   USE mo_sbm_util,            ONLY: sbm_init
+
+  USE mo_stoch_pattern_generator, ONLY: stochastic_pattern_init, &
+                                        stochastic_pattern_boundaries
 
 #ifdef __ICON_ART
   USE mo_art_data,            ONLY: p_art_data
@@ -807,6 +811,21 @@ SUBROUTINE init_nwp_phy ( p_patch, p_metrics,             &
     IF(pref(jk) >  60.e2_wp) phy_params%k060=jk
   ENDDO
 
+  !------------------------------------------
+  !< initialize stochastic pattern generator
+  !------------------------------------------
+
+  IF (atm_phy_nwp_config(jg)%lstochastic_pattern_generator.AND.jg==1) THEN
+    CALL stochastic_pattern_boundaries(p_patch)
+    CALL stochastic_pattern_init(                           &
+          dtime=dtime, mtime_current=ini_date,              &
+          plam=atm_phy_nwp_config(jg)%spg_fourier_modes,    &
+          plength=atm_phy_nwp_config(jg)%spg_length_scale,  &
+          ptime=atm_phy_nwp_config(jg)%spg_time_scale,      &
+          pmodes=atm_phy_nwp_config(jg)%spg_spec_modes,     &
+          pasl=atm_phy_nwp_config(jg)%spg_use_asl,          &
+          pvar=atm_phy_nwp_config(jg)%spg_variance          )
+  ENDIF
 
   !------------------------------------------
   !< call for cloud microphysics

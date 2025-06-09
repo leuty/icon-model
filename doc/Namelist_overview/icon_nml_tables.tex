@@ -5879,6 +5879,69 @@ Activate cuda graphs for turbulent transfers. Automatically set to .FALSE. if no
 ICON\_USE\_CUDA\_GRAPH activated
 \tabularnewline
 
+%\hline
+lstochastic\_pattern\_generator &
+L &
+.FALSE. &
+-&
+Activate stochastic pattern generator using either spherical harmonics (global) or Fourier modes (LAM)&
+\tabularnewline
+
+%\hline
+spg\_fourier\_modes &
+L &
+.TRUE. &
+-&
+Use Fourier modes for stochastic pattern generator in LAM configurations. For LAM simulations spherical harmonics can be used by setting this switch to .false. but this is computationally inefficient and only useful for tests or consistency with a global configuration. & \scriptsize
+lstochastic\_pattern\_generator=.true. \\ and l\_limited\_area=.true.
+\tabularnewline
+
+%\hline
+spg\_use\_asl &
+L &
+.FALSE. &
+-&
+Use Advanced Scientific Library (ASL) provided by NEC. & \scriptsize
+lstochastic\_pattern\_generator=.true.
+\tabularnewline
+
+
+%\hline
+spg\_length\_scale &
+R &
+1000e3 &
+m &
+Length scale of stochastic pattern & \scriptsize
+lstochastic\_pattern\_generator=.true.
+\tabularnewline
+
+%\hline
+spg\_time\_scale &
+R &
+3600.0 &
+s &
+Time scale of stochastic pattern & \scriptsize
+lstochastic\_pattern\_generator=.true.
+\tabularnewline
+
+%\hline
+spg\_spec\_modes &
+I &
+50 &
+- &
+Number of spectral modes used for stochastic pattern generator & \scriptsize
+lstochastic\_pattern\_generator=.true.
+\tabularnewline
+
+%\hline
+spg\_variance &
+R &
+1.0 &
+- &
+Variance of stochastic pattern in grid point space & \scriptsize
+lstochastic\_pattern\_generator=.true.
+\tabularnewline
+
 \end{longtab}
 
 
