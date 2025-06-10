@@ -18,7 +18,7 @@ icon_dir=$(cd "${script_dir}/../.."; pwd)
 
 if test -n "${BB_NAME-}"; then
   job_count=${SLURM_NTASKS:-22}
-  set MPI_LAUNCH='srun'
+  set MPI_LAUNCH='srun --exclusive'
 else
   job_count=8
   # Do not override arguments set in the wrapper:

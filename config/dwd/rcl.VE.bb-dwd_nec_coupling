@@ -13,6 +13,7 @@
 #
 # configure wrapper which is used for buildbot builder dwd_nec_yac2 (VE)
 #
+
 # We are going to run 'make check' for the vector engine build. We also want to
 # enable the checks of the bundled libraries that require a valid MPI_LAUNCH
 # command. Currently, there are two libraries with such tests: YAXT and YAC.
@@ -27,17 +28,16 @@
 # arguments because we run 'make check' asynchronously via the scheduler (like
 # we do for other Buildbot tests). A workaround is to make sure that the bundled
 # libraries accept MPI_LAUNCH in the form that can be used on the existing
-# allocation of compute nodes. First, we set MPI_LAUNCH to a valid value. This
-# is enough for YAXT since its configure script does not check and does not
-# discard MPI_LAUNCH in the cross-compilation mode. The configure script of YAC
-# checks the command unconditionally because it expects a command that can work
-# as 'srun'. To skip the check, we additionally set the 'acx_cv_prog_mpirun'
-# cache variable to the same value as for the MPI_LAUNCH. Also, the configure
-# script of YAC runs an additional MPI Fortran/C library compatibility check
-# which fails if 'acx_cv_prog_mpirun' is set but does not work. To skip this
-# additional check, we set another cache variable 'acx_cv_fc_c_compatible_mpi'
-# to 'yes'.
-# Please note that MPI_LAUNCH is set in ${ICON_DIR}/config/dwd/rcl.VE.nfort-5.0.0_mpi-2.22_art_oper
+# allocation of compute nodes. First, we set MPI_LAUNCH to a valid value (see
+# rcl.VE.nfort-5.1.0_mpi-3.5_oper). This is enough for YAXT since its configure
+# script does not check and does not discard MPI_LAUNCH in the cross-compilation
+# mode. The configure script of YAC checks the command unconditionally because
+# it expects a command that can work as 'srun'. To skip the check, we
+# additionally set the 'acx_cv_prog_mpirun' cache variable to the same value as
+# for the MPI_LAUNCH. Also, the configure script of YAC runs an additional MPI
+# Fortran/C library compatibility check which fails if 'acx_cv_prog_mpirun' is
+# set but does not work. To skip this additional check, we set another cache
+# variable 'acx_cv_fc_c_compatible_mpi' to 'yes'.
 
 "$(dirname -- "${BASH_SOURCE[0]}")"/rcl.VE.nfort-5.1.0_mpi-3.5_oper \
   --disable-openmp \
@@ -50,6 +50,7 @@
   --enable-fcgroup-OCEAN \
   --enable-comin \
   --enable-testbed \
+  --enable-concurrent-mpi-tests \
   acx_cv_prog_mpirun='/opt/nec/ve/mpi/3.5.0/bin/runtime/mpirun' \
   acx_cv_fc_c_compatible_mpi=yes \
   "$@"
