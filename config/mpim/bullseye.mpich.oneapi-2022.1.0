@@ -79,7 +79,14 @@ LIBS="-Wl,--as-needed -lxml2 -lfyaml -lSerialboxFortran -leccodes_f90 -leccodes 
 AR='xiar'
 MPI_LAUNCH='mpiexec'
 
-EXTRA_CONFIG_ARGS='--enable-loop-exchange --enable-intel-consistency --enable-grib2 --enable-fcgroup-OCEAN --enable-fcgroup-WORKAROUND1'
+EXTRA_CONFIG_ARGS="\
+--enable-loop-exchange \
+--enable-intel-consistency \
+--enable-grib2 \
+--enable-fcgroup-OCEAN \
+--enable-fcgroup-WORKAROUND1 \
+--enable-bundled-python=mtime \
+"
 
 ################################################################################
 

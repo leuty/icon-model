@@ -114,6 +114,7 @@ EXTRA_CONFIG_ARGS="\
 --enable-fcgroup-MPICHVICTIMS \
 --enable-grib2 \
 --enable-loop-exchange \
+--enable-bundled-python=mtime \
 "
 
 ################################################################################

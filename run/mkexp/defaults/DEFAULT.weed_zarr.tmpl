@@ -13,7 +13,7 @@
 #
 # %{mkexp_input}
 #
-# $Id: run/mkexp/defaults/DEFAULT.weed_zarr.tmpl 3 2024-07-26 07:41:48Z m221078 $
+# $Id: run/mkexp/defaults/DEFAULT.weed_zarr.tmpl 4 2025-05-19 09:31:45Z m221078 $
 #
 # %{VERSIONS_|join('\n# ')}
 #
@@ -26,7 +26,7 @@
 #SBATCH --ntasks=%{JOB.tasks}
 #SBATCH --output=%{LOG_DIR}/%x.%8j.log
 #SBATCH --time=%{JOB.time_limit}
-#%include 'mkexp/environments/'+ENVIRONMENT+'.tmpl' ignore missing
+#%include ['mkexp/environments/'+ENVIRONMENT+'.tmpl', 'mkexp/environments/DEFAULT.tmpl'] ignore missing
 
 set -e
 #%  if JOB.debug_level|d(0)|int > 1:

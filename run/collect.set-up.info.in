@@ -46,7 +46,6 @@ use_submit
 use_sync_submit
 use_target
 use_flags_group
-VERSION_
 PYTHON
 BUNDLED_PYTHONPATH
 '
@@ -54,9 +53,6 @@ BUNDLED_PYTHONPATH
 # Set directories:
 use_srcdir='@abs_top_srcdir@'
 use_builddir='@abs_top_builddir@'
-
-# Version info required by mkexp:
-VERSION_='@PACKAGE_VERSION@'
 
 # PYTHON interpreter
 PYTHON='@PYTHON@'

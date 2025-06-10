@@ -20,14 +20,17 @@ You can find the `mkexp` tool in the `utils/mkexp` directory of the ICON source 
 
 Before you start using `mkexp`, make sure that your software environment meets the following requirements:
 
-1. The tool needs the Python interface of the [MTIME](https://gitlab.dkrz.de/icon-libraries/libmtime) library. The most simple way to get the required Python module is to configure ICON with the `--enable-bundled-python=mtime` argument. For example:
+1. You need to make sure that [Jinja2](https://pypi.org/project/Jinja2/) and [six](https://pypi.org/project/six/) are available in your Python environment.
+   Another option is installing `mkexp` in your local or virtual Python environment with
+
     ```sh
-    ./config/generic/gcc --enable-bundled-python=mtime
+    python3 -m pip install utils/mkexp
     ```
-2. Additionally, you need to make sure that [Jinja2](https://pypi.org/project/Jinja2/) and [six](https://pypi.org/project/six/) are available in your Python environment.
-3. If ICON is configured and built [out-of-source](ref_buildrun_configuration_oos), you need to set the `ICON_BUILD_DIR` environment variable to the absolute path to the root build directory of ICON:
+
+1. If ICON is configured and built [out-of-source](ref_buildrun_configuration_oos), you need to set the `MKEXP_PATH` environment variable to include the absolute path of the "`run`" subdirectory in your root build directory, like
+
     ```sh
-    export ICON_BUILD_DIR=/path/to/icon/build/directory
+    export MKEXP_PATH=.:/path/to/icon/build/directory/run
     ```
 
 ### Steps to run an experiment
@@ -45,42 +48,15 @@ cd ./run
 cp ./examples/bubble.config ./exp_id.config
 ```
 
-Now you need to review and edit the contents of `exp_id.config`. If you intend to run the experiment on the DKRZ machine, make sure the `ACCOUNT` is set correctly (it should be set to the SLURM account that you normally submit jobs with). Running the experiment in an unknown environment requires more adjustments. For example, if you want to run the bubble experiment on your personal machine, we recommend considering the following changes:
+You may now review and edit the contents of `exp_id.config`. It should run on most personal computing devices without changes.
+
+Running the experiment in an HPC environment may require adjustments. For example, if you intend to run the experiment on the DKRZ machine, make sure the `ACCOUNT` is set correctly (it should be set to the SLURM account that you normally submit jobs with):
 
 ```diff
-@@ -5,4 +5,4 @@
+@@ -15,2 +15,3 @@
  EXP_TYPE = torus
--ENVIRONMENT = levante
- ACCOUNT = mh0287
-+INPUT_ROOT = $HOME/data
++ACCOUNT = xy1234
 
-@@ -18,2 +18,5 @@ OUTPUT_INTERVAL = $ATMO_TIME_STEP
-
-+# workaround for set-up info
-+use_build_env =
-+
- [namelists]
-@@ -30,2 +33,4 @@ OUTPUT_INTERVAL = $ATMO_TIME_STEP
-       output_grid = true
-+    [[[parallel_nml]]]
-+      num_io_procs = 0
-     [[[output_nml atm_3d]]]
-@@ -38,3 +43,5 @@ OUTPUT_INTERVAL = $ATMO_TIME_STEP
-     nodes = 1
--    threads_per_task = 4
-+    threads_per_task = 2
-+    cpus_per_node = 4
-+    hardware_threads = true
-     time_limit = 00:05:00
-```
-
-In the macOS environment, you also need to override one of the diagnostic utilities:
-
-```diff
-@@ -37,2 +37,3 @@ OUTPUT_INTERVAL = $ATMO_TIME_STEP
-   [[run]]
-+    ldd = otool -L
-     nodes = 1
 ```
 
 **Step 2: Generate the scripts and workflow environment**

@@ -126,6 +126,7 @@ EXTRA_CONFIG_ARGS="\
 --enable-grib2 \
 --enable-loop-exchange \
 --enable-openmp \
+--enable-bundled-python=mtime \
 "
 
 ################################################################################

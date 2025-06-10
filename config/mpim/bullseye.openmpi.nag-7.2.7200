@@ -108,6 +108,7 @@ EXTRA_CONFIG_ARGS="\
 --enable-fcgroup-EMVORADO \
 --enable-grib2 \
 --enable-loop-exchange \
+--enable-bundled-python=mtime \
 "
 
 ################################################################################

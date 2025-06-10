@@ -13,14 +13,14 @@
 #
 # %{mkexp_input}
 #
-# $Id: run/mkexp/defaults/DEFAULT.run.tmpl 22 2025-03-04 15:02:22Z m221078 $
+# $Id: run/mkexp/defaults/DEFAULT.run.tmpl 24 2025-06-10 06:54:49Z m221078 $
 #
 # %{VERSIONS_|join('\n# ')}
 #
 #%from 'mkexp/defaults/format.tmpl' import format_files
 #=============================================================================
 #% set calling_from_run = true
-#%include 'mkexp/environments/'+ENVIRONMENT+'.tmpl' ignore missing with context
+#%include ['mkexp/environments/'+ENVIRONMENT+'.tmpl', 'mkexp/environments/DEFAULT.tmpl'] ignore missing with context
 
 #=============================================================================
 set -e
@@ -493,8 +493,8 @@ fi
 #-----------------------------------------------------------------------------
 
 if [ $mpi_total_procs -lt $((mpi_oce_procs + 1)) ] ; then
-   echo "Too few mpi_total_procs for requested mpi_oce_procs."
-   echo "-> check mpi_total_procs and mpi_oce_procs. Exiting."
+   echo "Total task count ($mpi_total_procs) does not fit ocean task count ($mpi_oce_procs)"
+   echo "-> check mpi_total_procs and mpi_oce_procs. Exiting"
    check_error 0
    exit
 fi

@@ -67,7 +67,15 @@ LIBS="-Wl,--as-needed -lxml2 -lSerialboxFortran -leccodes ${RTTOV_LIBS-} -llapac
 
 AR='xiar'
 
-EXTRA_CONFIG_ARGS='--enable-loop-exchange --enable-intel-consistency --disable-mpi --disable-coupling --enable-grib2 --enable-fcgroup-OCEAN'
+EXTRA_CONFIG_ARGS="\
+--enable-loop-exchange \
+--enable-intel-consistency \
+--disable-mpi \
+--disable-coupling \
+--enable-grib2 \
+--enable-fcgroup-OCEAN \
+--enable-bundled-python=mtime \
+"
 
 ################################################################################
 

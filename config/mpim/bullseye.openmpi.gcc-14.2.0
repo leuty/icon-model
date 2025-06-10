@@ -71,7 +71,13 @@ LIBS="-Wl,--as-needed -lxml2 -lfyaml -lSerialboxFortran -leccodes_f90 -leccodes 
 
 MPI_LAUNCH='mpiexec --oversubscribe'
 
-EXTRA_CONFIG_ARGS='--enable-loop-exchange --enable-grib2 --enable-fcgroup-OCEAN --enable-fcgroup-DACE'
+EXTRA_CONFIG_ARGS="\
+--enable-loop-exchange \
+--enable-grib2 \
+--enable-fcgroup-OCEAN \
+--enable-fcgroup-DACE \
+--enable-bundled-python=mtime \
+"
 
 ################################################################################
 
