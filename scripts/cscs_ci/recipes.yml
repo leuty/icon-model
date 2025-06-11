@@ -33,7 +33,7 @@ include:
 
 .check_with_uenv:
   script:
-    - uenv run ${UENV_VERSION} -- bash -c "module use /user-environment/modules && module load cdo && ./check.${EXPERIMENT}.run"
+    - uenv run ${UENV_VERSION} --view modules -- bash -c "module load nvhpc cdo && ./check.${EXPERIMENT}.run"
 
 .santis_create_common:
   extends: .container-runner-lightweight-zen2
@@ -107,7 +107,7 @@ include:
 
 .run_common_santis:
   extends: .baremetal-runner-santis-gh200
-  timeout: 3h
+  timeout: 2h
   stage: run
   dependencies:
     - Build ICON
@@ -121,4 +121,4 @@ include:
     - !reference [.check_with_uenv, script]
   variables:
     GIT_STRATEGY: none
-    SLURM_TIMELIMIT: '00:30:00'
+    SLURM_TIMELIMIT: '00:15:00'

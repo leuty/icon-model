@@ -693,7 +693,7 @@ class CscsCiInterface(ExperimentTestCollection):
                 "scripts/cscs_ci/recipes.yml",
             ],
             "variables": {
-                "GIT_DEPTH": 100,
+                "GIT_DEPTH": 1,
             },
             "stages": ["build", "run"],
         }
