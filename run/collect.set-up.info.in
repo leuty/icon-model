@@ -64,7 +64,7 @@ BUNDLED_PYTHONPATH='@BUNDLED_PYTHONPATH@'
 use_host='@host_fqdn@'
 use_site='local.net'
 case "$use_host" in
-  kfa-juelich.de|fz-juelich.de|*jureca*|*juwels*) use_site=juelich.de ;;
+  kfa-juelich.de|fz-juelich.de|*jureca*|*juwels*|*jpbl*) use_site=juelich.de ;;
   l*.lvt.dkrz.de|aurora*) use_site=dkrz.de ;;
   tave*|santis*|balfrin*|tasna*) use_site=cscs.ch ;;
   uc2*|fh2*|hk*) use_site=kit.edu ;;
@@ -264,10 +264,12 @@ case "$use_site" in
         test xyes != x"${use_openmp}" || use_mpi_startrun+=' --cpus-per-task=${OMP_NUM_THREADS}'
         use_target='juwels'
       ;;
-      juqueen*)
-        use_submit='llsubmit'
-        use_mpi_startrun='runjob --ranks-per-node \$mpi_procs_pernode --envs OMP_NUM_THREADS=\$OMP_NUM_THREADS --exe'
-        use_target='juqueen'
+      jpbl*)
+        use_submit='sbatch'
+        use_sync_submit='sbatch --wait'
+        use_mpi_startrun='srun --ntasks=${mpi_procs_pernode} '
+        test xyes != x"${use_openmp}" || use_mpi_startrun+=' --cpus-per-task=${OMP_NUM_THREADS}'
+        use_target='jupiter'
       ;;
     esac
   ;;

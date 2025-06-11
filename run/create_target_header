@@ -1790,7 +1790,57 @@ EOF
     start_header
 
 }
+#-------------------------------------------------------------------------------
+set_run_target_jupiter()
+{
+    icon_data_rootFolder=${icon_data_rootFolder:=/p/data1/slmet/model_data/ICON}
 
+    set_default use_nodes 1
+    set_default use_num_io_procs 1
+    set_default use_cpu_time 01:00:00
+    set_default use_queue 'booster'
+
+    if [[ -n "$BB_SYSTEM" ]]; then
+        job_log_name="LOG.$job_name"
+        use_cpu_time="00:15:00"
+    else
+        job_log_name="LOG.$job_name.%j"
+    fi
+
+    if [ "$use_gpu" == "yes" ]; then
+      set_default use_nproma 0
+      set_default use_nblocks_c 1
+      set_default use_mpi_procs_pernode 4
+    else
+      set_default use_nproma 8
+      set_default use_nblocks_c 0
+      set_default use_mpi_procs_pernode 112
+    fi
+
+    cdo='cdo'
+    cdo_diff='diffn'
+
+    cat >> "$output_script" << EOF
+#SBATCH --output=$output_folder/$job_log_name.o
+#SBATCH --error=$output_folder/$job_log_name.o
+#SBATCH --chdir=$output_folder
+#SBATCH --job-name=$job_name
+#SBATCH --nodes=${use_nodes}
+#SBATCH --partition=${use_queue}
+$(if [[ "x$BB_SYSTEM" != 'x' ]]
+ then
+  printf "#SBATCH ${TIME_LIMITS}
+";fi)
+#SBATCH --account=jureap22
+#SBATCH --ntasks-per-node=$use_mpi_procs_pernode
+#SBATCH --time=$use_cpu_time
+
+$use_build_env
+EOF
+
+    start_header
+
+}
 #-----------------------------------------------------------------------------
 set_run_target_leo()
 {
