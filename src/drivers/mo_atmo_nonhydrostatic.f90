@@ -327,7 +327,7 @@ CONTAINS
     INTEGER :: jg, ist, jt
 
     TYPE(t_sim_step_info) :: sim_step_info
-    REAL(wp) :: sim_time
+    REAL(wp) :: sim_time, dt_loc
     TYPE(t_key_value_store), POINTER :: restartAttributes
     CHARACTER(LEN=filename_max) :: model_base_dir
     INTEGER :: seed_size, i
@@ -907,7 +907,8 @@ CONTAINS
 #ifndef __NO_AES__
     DO jg =1,n_dom
       IF (aes_vdf_config(jg)%use_tmx) THEN
-        CALL init_tmx(p_patch(jg), dtime)
+        dt_loc = time_config%get_model_timestep_sec(p_patch(jg)%nest_level)
+        CALL init_tmx(p_patch(jg), dt_loc)
       END IF
     END DO
 #endif

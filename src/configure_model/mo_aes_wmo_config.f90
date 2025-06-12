@@ -17,6 +17,7 @@ MODULE mo_aes_wmo_config
   USE mo_exception            ,ONLY: message, print_value
   USE mo_kind                 ,ONLY: wp
   USE mo_impl_constants       ,ONLY: max_dom
+  USE mo_run_config           ,ONLY: num_lev, lvert_nest
 
   USE mo_vertical_coord_table ,ONLY: vct_a
 
@@ -110,6 +111,12 @@ CONTAINS
           END IF
        END DO
        !
+       ! account for potential vertical nesting
+       !
+       IF (lvert_nest) THEN
+          aes_wmo_config(jg)% jkswmo = MAX(1,aes_wmo_config(jg)% jkswmo - (num_lev(1)-num_lev(jg)))
+          aes_wmo_config(jg)% jkewmo = MAX(1,aes_wmo_config(jg)% jkewmo - (num_lev(1)-num_lev(jg)))
+       END IF
     END DO
     !
   END SUBROUTINE eval_aes_wmo_config
