@@ -37,6 +37,7 @@ Climate: ICON-Land
   - Improved vegetation nitrogen uptake from soil
   - Minor modifications for using JSBACH physics processes with QUINCY
   - Replace memory variables of QUINCY physics process by variables from JSBACH physics processes
+  - Bugfix related to soil/surface albedo when snow is present
 - Use a common interface for QUINCY and JSBACH
 - Updated inline documentation of hydrology process
 - Fixes:
