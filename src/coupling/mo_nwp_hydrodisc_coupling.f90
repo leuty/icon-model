@@ -152,22 +152,25 @@ CONTAINS
            & i_startidx, i_endidx, start_prog_cells, end_prog_cells)
 
       ! aggregate over land tiles (ocean, sea-ice, lake should not have any runoff)
+      !   TERRA: ntiles_total>=1; JSBACH: ntiles_total=1 and all surfaces are on tile 1
       DO isubs = 1, ntiles_total
         DO jc = i_startidx, i_endidx
           buffer(jc,jb,1) = buffer(jc,jb,1) + lnd_diag%runoff_s_inst_t(jc,jb,isubs) / dtime  &
             &                               * ext_data%atm%frac_t(jc,jb,isubs)
           buffer(jc,jb,2) = buffer(jc,jb,2) + lnd_diag%runoff_g_inst_t(jc,jb,isubs) / dtime  &
             &                               * ext_data%atm%frac_t(jc,jb,isubs)
-          ! add water residuum from TERRA to ground runoff (only land)
+          ! add water residuum from TERRA to ground runoff (only land), resid=0 for JSBACH
           buffer(jc,jb,2) = buffer(jc,jb,2) + lnd_diag%resid_wso_inst_t(jc,jb,isubs) / dtime &
             &                               * ext_data%atm%frac_t(jc,jb,isubs)
         ENDDO
       ENDDO
-      ! add lake P-E into surface runoff
-      DO jc = i_startidx, i_endidx
-        buffer(jc,jb,1) = buffer(jc,jb,1) + lnd_diag%runoff_s_inst_t(jc,jb,isub_lake) / dtime &
-          &                               * ext_data%atm%frac_t(jc,jb,isub_lake)
-      ENDDO
+      ! add lake P-E into surface runoff (only for TERRA)
+      IF (atm_phy_nwp_config(jg)%inwp_surface == LSS_TERRA) THEN
+        DO jc = i_startidx, i_endidx
+          buffer(jc,jb,1) = buffer(jc,jb,1) + lnd_diag%runoff_s_inst_t(jc,jb,isub_lake) / dtime &
+            &                               * ext_data%atm%frac_t(jc,jb,isub_lake)
+        ENDDO
+      ENDIF
     ENDDO
 !ICON_OMP_END_PARALLEL_DO
 
