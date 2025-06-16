@@ -861,10 +861,10 @@ SUBROUTINE init_nwp_phy ( p_patch, p_metrics,             &
 
     ! Init of number concentrations moved to mo_initicon_io.f90 !!!
 
-  CASE (8) !sbm micrphysics
+  CASE (8) !SBM microphysics
     IF (msg_level >= 12)  CALL message('mo_nwp_phy_init:', 'init microphysics: sbm')
 
-    IF (jg == 1) CALL sbm_init(p_patch, p_prog_now, ext_data%atm%fr_land, p_metrics%ddqz_z_full)
+    IF (jg == 1) CALL sbm_init(p_patch, p_prog_now, ext_data%atm%fr_land, p_metrics%z_mc, atm_phy_nwp_config(jg)%dt_fastphy)
 
   CASE (5) !two moment microphysics
     IF (msg_level >= 12)  CALL message(modname, 'init microphysics: two-moment')

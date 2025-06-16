@@ -249,7 +249,7 @@ MODULE mo_nwp_gpu_util
       !$ACC   DEVICE(a%lvariable_rain_n0) &
       !$ACC   DEVICE(a%efdt_min_raylfric, a%latm_above_top, a%icalc_reff, a%icpl_rad_reff, a%luse_clc_rad, a%ithermo_water) &
       !$ACC   DEVICE(a%lupatmo_phy, a%lenabled, a%lcall_phy, a%lcalc_acc_avg) &
-      !$ACC   DEVICE(a%lcalc_extra_avg, a%lhave_graupel, a%l2moment, a%lsbm, a%lhydrom_read_from_fg, a%lhydrom_read_from_ana) &
+      !$ACC   DEVICE(a%lcalc_extra_avg, a%lhave_graupel, a%l2moment, a%lhydrom_read_from_fg, a%lhydrom_read_from_ana) &
 #ifndef __NO_ICON_LES__
       !$ACC   DEVICE(a%is_les_phy) &
 #endif

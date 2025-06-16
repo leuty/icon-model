@@ -315,6 +315,18 @@ CONTAINS
           &  CALL finish( routine,'satad has to be switched on')
         ENDIF
 
+        IF (atm_phy_nwp_config(jg)%inwp_gscp == 8) THEN
+          IF (.NOT. atm_phy_nwp_config(jg)%lmicrophysicsFirst) THEN
+            CALL finish( routine,'lmicrophysicsFirst=TRUE is recommended for SBM')
+          END IF
+          IF (atm_phy_nwp_config(jg)%inwp_satad == 1) THEN
+            CALL finish( routine,'inwp_satad=0 is recommended for SBM')
+          END IF
+#ifdef _OPENACC
+          CALL finish(routine,'SBM is not supported on GPU')
+#endif
+        END IF
+
         IF( (atm_phy_nwp_config(jg)%inwp_gscp==0) .AND. &
           & (atm_phy_nwp_config(jg)%inwp_convection==0) .AND.&
           & (atm_phy_nwp_config(jg)%inwp_radiation==0) .AND.&

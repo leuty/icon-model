@@ -121,7 +121,8 @@ MODULE mo_atm_phy_nwp_config
     REAL(wp) :: mu_snow          !! ...for snow
     REAL(wp) :: rain_n0_factor   !! tuning factor for intercept parameter of raindrop size distribution
     LOGICAL  :: lvariable_rain_n0 !! if true: use variable rain_n0_factor approaching 1 for large QR
-    LOGICAL ::  lsbm_warm_full    !! false: Piggy Backing with 2M, true: full warm-phase SBM
+    LOGICAL  :: lmicrophysicsFirst !! if true: run microphysics before turbdiff
+    LOGICAL  :: lsbm_coupled       !! FALSE: use 2M for feedback and run uncoupled SBM, TRUE: use SBM feedback
     REAL(wp) :: qi0, qc0
 
     INTEGER  :: icpl_aero_gscp     !! type of aerosol-microphysics coupling
@@ -166,7 +167,6 @@ MODULE mo_atm_phy_nwp_config
 
     LOGICAL :: lhave_graupel       ! Flag if microphysics scheme has a prognostic variable for graupel
     LOGICAL :: l2moment            ! Flag if 2-moment microphysics scheme is used
-    LOGICAL :: lsbm                ! Flag if sbm microphysics scheme is used
     LOGICAL :: lhydrom_read_from_fg(1:20)  ! Flag for each hydrometeor tracer, if it has been read from fg file
     LOGICAL :: lhydrom_read_from_ana(1:20) ! Flag for each hydrometeor tracer, if it has been read from ana file
 
@@ -348,7 +348,6 @@ CONTAINS
         &  atm_phy_nwp_config(jg)%lenabled(itgwd)     = .TRUE.
 
       ! Set flags for the microphysics schemes:
-      atm_phy_nwp_config(jg)%lsbm = .FALSE.
       SELECT CASE (atm_phy_nwp_config(jg)%inwp_gscp)
       CASE (2)
         atm_phy_nwp_config(jg)%lhave_graupel = .TRUE.
@@ -358,7 +357,6 @@ CONTAINS
         atm_phy_nwp_config(jg)%l2moment = .TRUE.
       CASE (8)
         atm_phy_nwp_config(jg)%lhave_graupel = .TRUE.
-        atm_phy_nwp_config(jg)%lsbm = .TRUE.
       CASE DEFAULT
         atm_phy_nwp_config(jg)%lhave_graupel = .FALSE.
         atm_phy_nwp_config(jg)%l2moment = .FALSE.

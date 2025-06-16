@@ -120,9 +120,14 @@ More detailed descriptions of some of above options are available here:
 [](ref_atmosphere_ecrad_aerosol)
 [FSD Parameter](ref_atmosphere_ecrad_fsd)
 :::
-::::
 
-_to be extended_
+:::{grid-item-card}
+**Microphysics**
+^^^
+[Spectral Bin Microphysics (SBM)](ref_sbm_overview)  
+[](ref_sbm_implementation)  
+:::
+::::
 
 You can find a brief overview on the NWP physics package in chapter 3 of the **{term}`ICON Tutorial 2024`**.
 

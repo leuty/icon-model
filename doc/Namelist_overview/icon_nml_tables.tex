@@ -5621,10 +5621,14 @@ inwp\_cldcover = 1
 \tabularnewline
 
 %\hline
-lsbm\_warm\_full&
-L (max\_ dom) & .TRUE. &  & TRUE: warm-phase Spectral Bin Microphysics (SBM). False: 2-moment scheme
-is applied (as for inwp\_gscp = 4) and SBM is running in a "Piggy Backing" mode for diagnostic purposes&
+lsbm\_coupled&
+L (max\_ dom) & .TRUE. &  & TRUE: use SBM feedback, FALSE: use 2M for feedback and run uncoupled SBM &
 inwp\_gscp = 8
+\tabularnewline
+
+%\hline
+lmicrophysicsFirst&
+L (max\_ dom) & .FALSE. &  & TRUE: run microphysics before turbdiff, FALSE: after turbdiff
 \tabularnewline
 
 

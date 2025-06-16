@@ -47,11 +47,20 @@ Bechtold et al. 2008
 Borchert et al. 2019
   Borchert, S., Zhou, G., Baldauf, M., Schmidt, H., Zängl, G., and Reinert, D. (2019). The upper-atmosphere extension of the ICON general circulation model (version: ua-icon-1.0). Geoscientific Model Development, 12(8), 3541-3569. <https://doi.org/10.5194/gmd-12-3541-2019>
 
+Bott 1998
+  Bott, A. (1998): A flux method for the numerical solution of the stochastic collection equation. J. Atmos. Sci., 55(13), 2284-2293.
+
 Doms et al. 2011
   Doms, G., and Coauthors (2011): A Description of the Nonhydrostatic Regional COSMO Model. Part II: Physical Parameterization. Consortium for Small-Scale Modelling, <http://www.cosmo-model.org>.
 
+Ghan et al. 2011
+  Ghan, S. J., H. Abdul-Razzak, A. Nenes, Y. Ming, X. Liu, M. Ovchinnikov, B. Shipway, N. Meskhidze, J. Xu, and X. Shi ( 2011): Droplet nucleation: Physically based parameterizations and comparative evaluation, J. Adv. Model. Earth Syst., 3, M10001, doi:10.1029/2011MS000074.
+
 Hogan & Bozzo 2018
   Hogan, R. J., and A. Bozzo (2018): A flexible and efficient radiation scheme for the ecmwf model. J. Adv. Model Earth Sy., 10 (8), 1990-2008.
+
+Kamra et al. 1991
+  Kamra, A. K., Bhalwankar, R. V, & Sathe, A. B. (1991): Spontaneous breakup of charged and uncharged water drops freely suspended in a wind tunnel. J. Geophys. Res. Atmos., 96(D9), 7159-17168.
 
 Khain & Sednev 1996
   Khain, A. P., and I. Sednev (1996): Simulation of precipitation formation in the eastern mediterranean coastal zone using a spectral microphysics cloud ensemble model. Atmos. Res., 43 (1), 77-110, <https://doi.org/10.1016/S0169-8095(96)00005-1>
@@ -59,11 +68,23 @@ Khain & Sednev 1996
 Khain et al. 2004
   Khain, A., A. Pokrovsky, M. Pinsky, A. Seifert, and V. Phillips (2004): Simulation of Effects of Atmospheric Aerosols on Deep Turbulent Convective Clouds Using a Spectral Microphysics Mixed-Phase Cumulus Cloud Model. Part I: Model Description and Possible Applications. J. Atmos. Sci., 61 (24), 2963-2982, <https://doi.org/10.1175/JAS-3350.1>.
 
+Khain et al. 2008
+  Khain, A. P., N. Benmoshe, A. Pokrovsky (2008): Factors determining the impact of aerosols on surface precipitation from clouds: an attempt of classification. J. Atmos. Sci. 65, 1721-1748.
+
+Khain & Pinsky 2018
+  Khain, A. P. and M. Pinsky (2018): Physical processes in clouds and cloud modeling. Cambridge press, 642 pp.
+
+Khain et al. 2022
+  Khain, P., Shpund, J., Levi, Y., Khain, A. (2022): Warm-phase spectral-bin microphysics in ICON: Reasons of sensitivity to aerosols. Atmos. Res. 2022, 279, 106388.
+
 Lilly 1962
   Lilly, D. K. (1962): On the numerical simulation of buoyant convection. Tellus, 14 (2), 148-172, <https://doi.org/10.1111/j.2153-3490.1962.tb00128.x>.
 
 Lott & Miller 1997
   Lott, F., and M. J. Miller (1997): A new subgrid-scale orographic drag parametrization: Its formulation and testing. Q. J. R. Meteorol. Soc., 123 (537), 101-127, <https://doi.org/10.1002/qj.49712353704>.
+
+Meyers et al. 1992
+  Meyers, M. P., P. J. DeMott, and W. R. Cotton (1992): New primary ice-nucleation parameterizations in an explicit cloud model. J. Appl. Meteor., 31, 708-721.
 
 Mlawer et al. 1997
   Mlawer, E. J., S. J. Taubman, P. D. Brown, M. J. Iacono, and S. A. Clough (1997). Radiative transfer for inhomogeneous atmospheres: RRTM, a validated correlated-k model for the longwave.  J. Geophys. Res.: Atmos., 102 (D14), 663-682, <https://doi.org/10.1029/97JD00237>.
@@ -80,8 +101,14 @@ Reinert 2020
 Reinert & Zaengl 2021
   Reinert, D., and Zaengl, G. (2021). The tracer transport module part II: Description and validation of the vertical transport operator. Reports on ICON, 7. <https://doi.org/10.5676/DWD_pub/nwv/icon_007>
 
+Seifert et. al. 2005
+  Seifert, A., Khain, A., Blahak, U., & Beheng, K. D. (2005): Possible effects of collisional breakup on mixed-phase deep convection simulated by a spectral (bin) cloud model. J. Atmos. Sci., 62(6), 1917-1931.
+
 Seifert & Beheng 2006
   Seifert, A., and K. D. Beheng (2006): A two-moment cloud microphysics parameterization for mixed-phase clouds. Part 1: Model description. Meteorol. Atmos. Phys., 92 (1), 45-66, <https://doi.org/10.1007/s00703-005-0112-4>.
+
+Shpund et al. 2019
+  Shpund. J., A. Khain, Barry Lynn, Jiwen Fan, Bin Han, Alexander Ryzhkov, Jeffrey Snyder, Jimy Dudhia, Dave Gill (2019): Simulating a Mesoscale Convective System Using WRF with a New Spectral Bin Microphysics - Part 1: Hail vs Graupel. J. Geophys. Res.: Atmospheres, 124, 14072-14101., https://doi.org/ 10.1029/2019JD030576
 
 Smagorinsky 1963
   Smagorinsky, J. (1963): General Circulation Experiments with the Primitive Equations. Mon. Weather Rev., 91, 99.

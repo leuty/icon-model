@@ -58,8 +58,7 @@ MODULE mo_nwp_gscp_interface
   USE mo_run_config,           ONLY: msg_level, iqv, iqc, iqi, iqr, iqs,       &
                                      iqni, iqg, iqh, iqnr, iqns,               &
                                      iqng, iqnh, iqnc, inccn, ininpot, ininact,&
-                                     iqgl, iqhl, ldass_lhn, &
-                                     iqb_i, iqb_e
+                                     iqgl, iqhl, ldass_lhn, iqb_last
   USE mo_atm_phy_nwp_config,   ONLY: atm_phy_nwp_config, iprog_aero
   USE mo_radiation_config,     ONLY: irad_aero, iRadAeroTegen, iRadAeroCAMSclim, iRadAeroCAMStd
   USE microphysics_1mom_schemes,ONLY: graupel_run, cloudice_run, kessler_run, cloudice2mom_run, get_cloud_number
@@ -757,9 +756,6 @@ CONTAINS
 
         CASE(8)  ! SBM scheme
 
-!WRITE(*,*)'max p_prog_nsave%theta_v(:,:,jb)=',jb,MAXVAL(p_prog_nsave%theta_v(:,:,jb))
-!WRITE(*,*)'min p_prog_nsave%theta_v(:,:,jb)=',jb,MINVAL(p_prog_nsave%theta_v(:,:,jb))
-
           CALL sbm(                        &
                        isize  = nproma,                &!in: array size
                        ke     = nlev,                  &!in: end level/array size
@@ -796,16 +792,11 @@ CONTAINS
                        qrsflux= prm_diag%qrs_flux(:,:,jb),      & !inout: 3D precipitation flux for LHN
                        msg_level = msg_level,                   &
                        ithermo_water=atm_phy_nwp_config(jg)%ithermo_water, & !< in: latent heat choice
-                       qbin   = ptr_tracer (:,:,jb,7+iqb_i:7+iqb_e),&
-                       qv_before_satad=ptr_sbm_storage%qv_before_satad  (:,:,jb), &
-                       tk_before_satad=ptr_sbm_storage%temp_before_satad(:,:,jb), &
-                       qv_old         =ptr_sbm_storage%qv_old           (:,:,jb), &
-                       temp_old       =ptr_sbm_storage%temp_old         (:,:,jb), &
-!                      u      = p_diag%u(:,:,jb),               &
-!                      v      = p_diag%v(:,:,jb),               &
+                       qbin   = ptr_tracer (:,:,jb,7+1:7+iqb_last),&
+                       qv_old = ptr_sbm_storage%qv_old           (:,:,jb), &
+                       temp_old = ptr_sbm_storage%temp_old         (:,:,jb), &
                        exner  = p_prog%exner(:,:,jb),           &
-!                      fr_land= ext_data%atm%fr_land(:,jb),     &
-                       lsbm_warm_full =atm_phy_nwp_config(jg)%lsbm_warm_full )
+                       lsbm_coupled = atm_phy_nwp_config(jg)%lsbm_coupled) !FALSE: use 2M for feedback and run uncoupled SBM, TRUE: use SBM feedback
 
         CASE(9)  ! Kessler scheme (warm rain scheme)
 

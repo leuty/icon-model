@@ -78,6 +78,7 @@
     USE mo_util_string,         ONLY: tolower
     USE mo_util_sysinfo,        ONLY: check_file_exists
     USE mo_dictionary,          ONLY: t_dictionary
+    USE mo_atm_phy_nwp_config,  ONLY: atm_phy_nwp_config
 
     IMPLICIT NONE
     PRIVATE
@@ -794,6 +795,31 @@
             &           read_params(icell), latbc_dict)
         ENDIF
       END DO
+
+      ! Special treatment of lateral boundary conditions for SBM microphysics < -------------------------------
+      ! transfer all qx to qv:
+      IF ( atm_phy_nwp_config(1)%inwp_gscp == 8 ) THEN ! outer domain jg=1
+!$OMP PARALLEL DO PRIVATE (jk,jb,jc,i_startidx,i_endidx)
+        DO jb = 1, i_endblk
+          CALL get_indices_c(p_patch, jb, 1, i_endblk, i_startidx, i_endidx, 1, rl_end)
+          DO jk = 1, nlev_in
+            DO jc = i_startidx, i_endidx
+              latbc%latbc_data(tlev)%atm_in%qv(jc,jk,jb)=latbc%latbc_data(tlev)%atm_in%qv(jc,jk,jb)+ &
+                                       latbc%latbc_data(tlev)%atm_in%qc(jc,jk,jb)+ &
+                                       latbc%latbc_data(tlev)%atm_in%qr(jc,jk,jb)+ &
+                                       latbc%latbc_data(tlev)%atm_in%qi(jc,jk,jb)+ &
+                                       latbc%latbc_data(tlev)%atm_in%qs(jc,jk,jb)
+
+              latbc%latbc_data(tlev)%atm_in%qc(jc,jk,jb)=0.0_wp
+              latbc%latbc_data(tlev)%atm_in%qr(jc,jk,jb)=0.0_wp
+              latbc%latbc_data(tlev)%atm_in%qi(jc,jk,jb)=0.0_wp
+              latbc%latbc_data(tlev)%atm_in%qs(jc,jk,jb)=0.0_wp
+            END DO
+          END DO
+        END DO
+!$OMP END PARALLEL DO
+      END IF
+      ! Special treatment of lateral boundary conditions for SBM microphysics > -------------------------------
 
       IF (latbc%buffer%lread_theta_rho) THEN
 

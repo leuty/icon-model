@@ -100,7 +100,8 @@ MODULE mo_nwp_phy_nml
   REAL(wp) :: rain_n0_factor     !! tuning factor for intercept parameter of raindrop size distribution
   LOGICAL  :: lvariable_rain_n0  !! if true: use variable rain_n0_factor approaching 1 for large QR
   REAL(wp) :: mu_snow            !! ...for snow
-  LOGICAL  :: lsbm_warm_full     !! false: Piggy Backing with 2M, true: full warm-phase SBM
+  LOGICAL  :: lmicrophysicsFirst !! true: run microphysics before turbdiff, false: after turbdiff
+  LOGICAL  :: lsbm_coupled       !! FALSE: use 2M for feedback and run uncoupled SBM, TRUE: use SBM feedback
 
   INTEGER  :: icalc_reff(max_dom)    !! type of effective radius calculation
   INTEGER  :: icpl_rad_reff(max_dom) !! coupling radiation and effective radius
@@ -140,7 +141,8 @@ MODULE mo_nwp_phy_nml
     &                    ldetrain_conv_prec, rain_n0_factor,         &
     &                    icalc_reff, lupatmo_phy, icpl_rad_reff,     &
     &                    lgrayzone_deepconv, ithermo_water,          &
-    &                    lsbm_warm_full, lcuda_graph_turb_tran,      &
+    &                    lmicrophysicsFirst,                         &
+    &                    lsbm_coupled, lcuda_graph_turb_tran,        &
     &                    lscale_cdnc, lvariable_rain_n0,             &
     &                    itype_dissip_heat,                          &
     &                    lstochastic_pattern_generator,              &
@@ -248,7 +250,8 @@ CONTAINS
     rain_n0_factor = 1.0_wp
     lvariable_rain_n0 = .FALSE.
 
-    lsbm_warm_full = .TRUE. ! false: Piggy Backing with 2M, true: full warm-phase SBM
+    lmicrophysicsFirst = .FALSE. ! false: run microphysics after turbdiff, true: before turbdiff
+    lsbm_coupled = .TRUE. !FALSE: use 2M for feedback and run uncoupled SBM, TRUE: use SBM feedback
 
     ustart_raylfric    = 160._wp
     efdt_min_raylfric  = 10800._wp
@@ -579,7 +582,8 @@ CONTAINS
       atm_phy_nwp_config(jg)%icalc_reff      = icalc_reff (jg)
       atm_phy_nwp_config(jg)%icpl_rad_reff   = icpl_rad_reff (jg)
       atm_phy_nwp_config(jg)%ithermo_water   = ithermo_water(jg)
-      atm_phy_nwp_config(jg)%lsbm_warm_full  = lsbm_warm_full
+      atm_phy_nwp_config(jg)%lmicrophysicsFirst = lmicrophysicsFirst
+      atm_phy_nwp_config(jg)%lsbm_coupled    = lsbm_coupled
       atm_phy_nwp_config(jg)%lstochastic_pattern_generator = lstochastic_pattern_generator
       atm_phy_nwp_config(jg)%spg_use_asl       = spg_use_asl
       atm_phy_nwp_config(jg)%spg_length_scale  = spg_length_scale

@@ -23,7 +23,7 @@ MODULE mo_util_phys
     &                                 rdv,             & !! r_d / r_v
     &                                 cpd, p0ref, rd,  &
     &                                 vtmpc1, t3, grav,&
-    &                                 alv,alvdcp, rd_o_cpd
+    &                                 alvdcp, rd_o_cpd
   USE mo_exception,             ONLY: finish
   USE mo_thdyn_functions,       ONLY: sat_pres_water, sat_pres_ice
   USE mo_fortran_tools,         ONLY: assign_if_present, set_acc_host_or_device, assert_acc_host_only
@@ -32,8 +32,8 @@ MODULE mo_util_phys
   USE mo_nonhydro_types,        ONLY: t_nh_prog, t_nh_diag, t_nh_metrics
   USE mo_nwp_phy_types,         ONLY: t_nwp_phy_diag, t_nwp_phy_tend
   USE mo_run_config,            ONLY: iqv, iqc, iqi, iqr, iqs, iqni, ininact, &
-       &                              iqm_max, nqtendphy, lart, iqnc, iqnr, iqns, &
-       &                              iqb_i, iqb_e
+       &                              iqm_max, nqtendphy, lart, iqnc, iqnr, iqns, iqb_last, iqbin
+
 #ifndef __NO_ICON_LES__
   USE mo_ls_forcing_nml,        ONLY: is_ls_forcing, is_nudging_tq, &
        &                              nudge_start_height, nudge_full_height, dt_relax
@@ -600,6 +600,7 @@ CONTAINS
     ELSE
       conv_list = (/iqv,iqc,iqi,-1,-1/)
     ENDIF
+
     ! pos_qv holds the index of iqv in conv_list (defined above).
     ! ATTENTION: Remember to change the value of pos_qv if the ordering of
     !            conv_list's elements is changed.
@@ -780,13 +781,13 @@ CONTAINS
       !$ACC END PARALLEL
     END IF
 
-    ! clipping for mass-bins
-    IF(atm_phy_nwp_config(jg)%lsbm)THEN
-      CALL assert_acc_host_only("tracer_add_phytend lsbm", lacc)
-      DO jt = iqb_i, iqb_e
+    ! clipping for mass-bins of SBM microphysics
+    IF(atm_phy_nwp_config(jg)%inwp_gscp == 8)THEN
+      CALL assert_acc_host_only("tracer_add_phytend SBM", lacc)
+      DO jt = 1, iqb_last
         DO jk = kstart_moist(jg), kend
           DO jc = i_startidx, i_endidx
-            pt_prog_rcf%tracer(jc,jk,jb,jt) = MAX(0._wp, pt_prog_rcf%tracer(jc,jk,jb,jt))
+            pt_prog_rcf%tracer(jc,jk,jb,iqbin(jt)) = MAX(0._wp, pt_prog_rcf%tracer(jc,jk,jb,iqbin(jt)))
           ENDDO
         ENDDO
       ENDDO

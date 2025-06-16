@@ -53,7 +53,10 @@ MODULE mo_nonhydro_state
     &                                iqng, iqnh, iqnc, inccn, ininpot, ininact, &
     &                                iqgl, iqhl,                                &
     &                                iqtke, ltestcase, lart,                    &
-    &                                iqbin, iqb_i, iqb_e, iqb_s
+    &                                iqb_water_start, iqb_water_end,            &
+    &                                iqb_snow_start, iqb_snow_end,              &
+    &                                iqb_graupel_start, iqb_graupel_end,        &
+    &                                iqb_ccn_start, iqb_ccn_end, iqbin
   USE mo_coupling_config,      ONLY: is_coupled_to_ocean
   USE mo_radiation_config,     ONLY: irad_aero, iRadAeroCAMSclim, iRadAeroCAMStd
   USE mo_io_config,            ONLY: inextra_2d, inextra_3d, lnetcdf_flt64_output, &
@@ -440,7 +443,7 @@ MODULE mo_nonhydro_state
     TYPE(t_var), POINTER :: target_element
     INTEGER              :: tracer_idx
 
-    INTEGER                       :: iqb
+    INTEGER              :: iqb
     LOGICAL :: ingroup(MAX_GROUPS)
     !**
     !--------------------------------------------------------------
@@ -919,8 +922,8 @@ MODULE mo_nonhydro_state
           __acc_attach(p_prog%tracer_ptr(iqhl)%p_3d)
         END IF
 
-        !33 drop mass bins
-        DO iqb = iqb_i, iqb_s
+        !33 drop mass bins for SBM microphysics
+        DO iqb = iqb_water_start, iqb_water_end
           IF ( iqbin(iqb) /= 0 ) THEN
               tracer_name = TRIM(vname_prefix)//TRIM(advconf%tracer_names(iqbin(iqb)))
               CALL add_ref( p_prog_list, tracer_container_name,                      &
@@ -932,7 +935,7 @@ MODULE mo_nonhydro_state
                     & ref_idx=iqbin(iqb),                                            &
                     & ldims=shape3d_c,                                               &
                     & tlev_source=TLEV_NNOW_RCF,                                     & ! output from nnow_rcf slice
-                    & tracer_info=create_tracer_metadata_hydro(lis_tracer=.TRUE.,    &
+                    & tracer_info=create_tracer_metadata(lis_tracer=.TRUE.,          &
                     &             name        = TRIM(tracer_name)//suffix,           &
                     &             ihadv_tracer=advconf%ihadv_tracer(iqbin(iqb)),     &
                     &             ivadv_tracer=advconf%ivadv_tracer(iqbin(iqb))),    &
@@ -950,8 +953,70 @@ MODULE mo_nonhydro_state
           END IF
         END DO
 
-        !33 ccn number bins
-        DO iqb = iqb_s+1, iqb_e
+        !33 ice/snow mass bins for SBM microphysics
+        DO iqb = iqb_snow_start, iqb_snow_end
+          IF ( iqbin(iqb) /= 0 ) THEN
+              tracer_name = TRIM(vname_prefix)//TRIM(advconf%tracer_names(iqbin(iqb)))
+              CALL add_ref( p_prog_list, tracer_container_name,                      &
+                    & TRIM(tracer_name)//suffix, p_prog%tracer_ptr(iqbin(iqb))%p_3d, &
+                    & GRID_UNSTRUCTURED_CELL, ZA_REFERENCE,                          &
+                    & t_cf_var(TRIM(tracer_name),                                    &
+                    &  'kgkg-1 ','ice snow mass bins', datatype_flt),                &
+                    & grib2_var(0, 1, 71, ibits, GRID_UNSTRUCTURED, GRID_CELL),      &
+                    & ref_idx=iqbin(iqb),                                            &
+                    & ldims=shape3d_c,                                               &
+                    & tlev_source=TLEV_NNOW_RCF,                                     & ! output from nnow_rcf slice
+                    & tracer_info=create_tracer_metadata(lis_tracer=.TRUE.,          &
+                    &             name        = TRIM(tracer_name)//suffix,           &
+                    &             ihadv_tracer=advconf%ihadv_tracer(iqbin(iqb)),     &
+                    &             ivadv_tracer=advconf%ivadv_tracer(iqbin(iqb))),    &
+                    & vert_interp=create_vert_interp_metadata(                       &
+                    &             vert_intp_type=vintp_types("P","Z","I"),           &
+                    &             vert_intp_method=VINTP_METHOD_LIN,                 &
+                    &             l_loglin=.FALSE.,                                  &
+                    &             l_extrapol=.FALSE., l_pd_limit=.FALSE.,            &
+                    &             lower_limit=0._wp  ),                              &
+                    & in_group=groups("atmo_ml_vars","atmo_pl_vars","atmo_zl_vars",  &
+                    &                 "dwd_fg_atm_vars","mode_dwd_fg_in",            &
+                    &                 "mode_iau_ana_in","mode_iau_anaatm_in",        &
+                    &                 "mode_iau_fg_in",                              &
+                    &                 "LATBC_PREFETCH_VARS")  )
+          END IF
+        END DO
+
+        !33 graupel/hail mass bins for SBM microphysics
+        DO iqb = iqb_graupel_start, iqb_graupel_end
+          IF ( iqbin(iqb) /= 0 ) THEN
+              tracer_name = TRIM(vname_prefix)//TRIM(advconf%tracer_names(iqbin(iqb)))
+              CALL add_ref( p_prog_list, tracer_container_name,                      &
+                    & TRIM(tracer_name)//suffix, p_prog%tracer_ptr(iqbin(iqb))%p_3d, &
+                    & GRID_UNSTRUCTURED_CELL, ZA_REFERENCE,                          &
+                    & t_cf_var(TRIM(tracer_name),                                    &
+                    &  'kgkg-1 ','graupel hail mass bins', datatype_flt),            &
+                    & grib2_var(0, 1, 71, ibits, GRID_UNSTRUCTURED, GRID_CELL),      &
+                    & ref_idx=iqbin(iqb),                                            &
+                    & ldims=shape3d_c,                                               &
+                    & tlev_source=TLEV_NNOW_RCF,                                     & ! output from nnow_rcf slice
+                    & tracer_info=create_tracer_metadata(lis_tracer=.TRUE.,          &
+                    &             name        = TRIM(tracer_name)//suffix,           &
+                    &             ihadv_tracer=advconf%ihadv_tracer(iqbin(iqb)),     &
+                    &             ivadv_tracer=advconf%ivadv_tracer(iqbin(iqb))),    &
+                    & vert_interp=create_vert_interp_metadata(                       &
+                    &             vert_intp_type=vintp_types("P","Z","I"),           &
+                    &             vert_intp_method=VINTP_METHOD_LIN,                 &
+                    &             l_loglin=.FALSE.,                                  &
+                    &             l_extrapol=.FALSE., l_pd_limit=.FALSE.,            &
+                    &             lower_limit=0._wp  ),                              &
+                    & in_group=groups("atmo_ml_vars","atmo_pl_vars","atmo_zl_vars",  &
+                    &                 "dwd_fg_atm_vars","mode_dwd_fg_in",            &
+                    &                 "mode_iau_ana_in","mode_iau_anaatm_in",        &
+                    &                 "mode_iau_fg_in",                              &
+                    &                 "LATBC_PREFETCH_VARS")  )
+          END IF
+        END DO
+
+        !33 ccn number bins for SBM microphysics
+        DO iqb = iqb_ccn_start, iqb_ccn_end
           IF ( iqbin(iqb) /= 0 ) THEN
             tracer_name = TRIM(vname_prefix)//TRIM(advconf%tracer_names(iqbin(iqb)))
             CALL add_ref( p_prog_list, tracer_container_name,                        &
