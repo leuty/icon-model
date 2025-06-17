@@ -2635,12 +2635,9 @@ version of MTIME library @<:@default=$ICON_BUNDLED_CFLAGS@:>@])dnl
      [-DCMAKE_C_FLAGS=*|-DCMAKE_Fortran_FLAGS=*|-DCMAKE_CXX_*=*])
    ACX_SUBDIR_APPEND_ARGS([externals/mtime/build],
      [-DCMAKE_AR="$AR"], [-DCMAKE_RANLIB="$RANLIB"],
-     [-DCMAKE_C_FLAGS=],
-     [-DCMAKE_C_FLAGS_ICON=dnl
-"$subdir_CFLAGS $ICON_MTIME_CFLAGS $subdir_CPPFLAGS"],
-     [-DCMAKE_Fortran_FLAGS=],
-     [-DCMAKE_Fortran_FLAGS_ICON="$subdir_FCFLAGS $ICON_MTIME_FCFLAGS"],
-     [-DCMAKE_BUILD_TYPE=ICON],
+     [-DCMAKE_C_FLAGS="$subdir_CFLAGS $ICON_MTIME_CFLAGS $subdir_CPPFLAGS"],
+     [-DCMAKE_Fortran_FLAGS="$subdir_FCFLAGS $ICON_MTIME_FCFLAGS"],
+     [-DCMAKE_BUILD_TYPE=None],
      [-DCMAKE_PREFIX_PATH="$bundled_CMAKE_PREFIX_PATH"],
      [-DBUILD_SHARED_LIBS=OFF], [-DBUILD_TESTING=OFF],
      [-DMTIME_ENABLE_PYTHON="$icon_mtime_python"],
@@ -2812,15 +2809,11 @@ bundled version of COMIN library @<:@default=$ICON_BUNDLED_CXXFLAGS@:>@])dnl
      [-DCMAKE_C_FLAGS=*|-DCMAKE_Fortran_FLAGS=*|-DCMAKE_CXX_FLAGS=*])
    ACX_SUBDIR_APPEND_ARGS([externals/comin/build],
      [-DCMAKE_AR="$AR"], [-DCMAKE_RANLIB="$RANLIB"],
-     [-DCMAKE_C_FLAGS=],
-     [-DCMAKE_C_FLAGS_ICON=dnl
-"$subdir_CFLAGS $ICON_COMIN_CFLAGS $subdir_CPPFLAGS"],
-     [-DCMAKE_Fortran_FLAGS=],
-     [-DCMAKE_Fortran_FLAGS_ICON="$subdir_FCFLAGS $ICON_COMIN_FCFLAGS"],
-     [-DCMAKE_CXX_FLAGS=],
-     [-DCMAKE_CXX_FLAGS_ICON=dnl
+     [-DCMAKE_C_FLAGS="$subdir_CFLAGS $ICON_COMIN_CFLAGS $subdir_CPPFLAGS"],
+     [-DCMAKE_Fortran_FLAGS="$subdir_FCFLAGS $ICON_COMIN_FCFLAGS"],
+     [-DCMAKE_CXX_FLAGS=dnl
 "$subdir_CXXFLAGS $ICON_COMIN_CXXFLAGS $subdir_CPPFLAGS"],
-     [-DCMAKE_BUILD_TYPE=ICON],
+     [-DCMAKE_BUILD_TYPE=None],
      [-DCMAKE_PREFIX_PATH="$bundled_CMAKE_PREFIX_PATH"],
      [-DBUILD_SHARED_LIBS=OFF], [-DBUILD_TESTING=OFF],
      [-DCOMIN_ENABLE_EXAMPLES=OFF],
@@ -2863,13 +2856,10 @@ ${ICON_FORTRAN_SUPPORT_CFLAGS-$ICON_BUNDLED_CFLAGS}
      [icon_fs_openacc=ON], [icon_fs_openacc=OFF])
    ACX_SUBDIR_APPEND_ARGS([externals/fortran-support/build],
      [-DCMAKE_AR="$AR"], [-DCMAKE_RANLIB="$RANLIB"],
-     [-DCMAKE_C_FLAGS=],
-     [-DCMAKE_C_FLAGS_ICON=dnl
+     [-DCMAKE_C_FLAGS=dnl
 "$subdir_CFLAGS $ICON_FORTRAN_SUPPORT_CFLAGS $subdir_CPPFLAGS"],
-     [-DCMAKE_Fortran_FLAGS=],
-     [-DCMAKE_Fortran_FLAGS_ICON=dnl
-"$subdir_FCFLAGS $ICON_FORTRAN_SUPPORT_FCFLAGS"],
-     [-DCMAKE_BUILD_TYPE=ICON],
+     [-DCMAKE_Fortran_FLAGS="$subdir_FCFLAGS $ICON_FORTRAN_SUPPORT_FCFLAGS"],
+     [-DCMAKE_BUILD_TYPE=None],
      [-DCMAKE_PREFIX_PATH="$bundled_CMAKE_PREFIX_PATH"],
      [-DBUILD_SHARED_LIBS=OFF], [-DBUILD_TESTING=OFF],
      [-DFS_ENABLE_OMP="$enable_openmp"],
@@ -2903,9 +2893,8 @@ AS_VAR_IF([icon_gpu_primary], [openacc],
   [icon_im_openacc=ON], [icon_im_openacc=OFF])
 ACX_SUBDIR_APPEND_ARGS([externals/iconmath/build],
   [-DCMAKE_AR="$AR"], [-DCMAKE_RANLIB="$RANLIB"],
-  [-DCMAKE_Fortran_FLAGS=],
-  [-DCMAKE_Fortran_FLAGS_ICON="$subdir_FCFLAGS $ICON_ICONMATH_FCFLAGS"],
-  [-DCMAKE_BUILD_TYPE=ICON], [-DCMAKE_PREFIX_PATH="$bundled_CMAKE_PREFIX_PATH"],
+  [-DCMAKE_Fortran_FLAGS="$subdir_FCFLAGS $ICON_ICONMATH_FCFLAGS"],
+  [-DCMAKE_BUILD_TYPE=None], [-DCMAKE_PREFIX_PATH="$bundled_CMAKE_PREFIX_PATH"],
   [-DBUILD_SHARED_LIBS=OFF], [-DBUILD_TESTING=OFF],
   [-DIM_ENABLE_LOOP_EXCHANGE="$enable_loop_exchange"],
   [-DIM_ENABLE_MIXED_PRECISION="$enable_mixed_precision"],

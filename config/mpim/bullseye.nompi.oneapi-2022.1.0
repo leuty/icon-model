@@ -16,7 +16,12 @@ unset CDPATH
 script_dir=$(cd "$(dirname "$0")"; pwd)
 icon_dir=$(cd "${script_dir}/../.."; pwd)
 
-modules='oneapi/2022.1.0'
+# We cannot enforce the system GCC toolchain for the Fortran compiler using a
+# compiler flag. For example, '-gnu-prefix=/usr/bin/' results in
+# ifx: error #10417: Problem setting up the Intel(R) Compiler compilation environment. Requires 'install path' setting gathered from '/usr/bin'.
+# The best we can do is to unload the gcc environment module and hope that the
+# first `gcc` in the PATH is `/usr/bin/gcc`:
+modules='!gcc oneapi/2022.1.0'
 sw_root='/sw/bullseye-x64/views/icon/nompi/oneapi-2022.1.0'
 
 if test -r "${sw_root}/lib/librttov_main.a"; then
@@ -43,12 +48,12 @@ fi
 BUILD_ENV=". \"${ENV}\";. \"${script_dir}/module_switcher\"; switch_for_module ${modules}; export PATH=\"${sw_root}/bin:\${PATH-}\"; export LD_LIBRARY_PATH=\"${sw_root}/lib:\${LD_LIBRARY_PATH-}\"; export PYTHONPATH=\"${sw_root}/python/pp_ser:\${PYTHONPATH-}\";"
 
 CC='icx'
-CFLAGS='-g -march=native -pc64 -ftz -fma -qno-opt-dynamic-align'
+CFLAGS='-g -march=native -pc64 -ftz -fma -qno-opt-dynamic-align --gcc-toolchain=/usr'
 ICON_CFLAGS='-O3'
 ICON_BUNDLED_CFLAGS='-O2'
 
 CXX='icpx'
-CXXFLAGS='-g -march=native -pc64 -ftz -fma -qno-opt-dynamic-align -O2'
+CXXFLAGS='-g -march=native -pc64 -ftz -fma -qno-opt-dynamic-align -O2 --gcc-toolchain=/usr'
 
 CPPFLAGS="-I${sw_root}/include -I${sw_root}/include/libxml2"
 
@@ -65,7 +70,7 @@ ICON_OCEAN_PATH='src/hamocc:src/ocean:src/sea_ice'
 ICON_ECRAD_FCFLAGS='-qno-opt-dynamic-align -no-fma -fpe0'
 
 LDFLAGS="${RTTOV_LDFLAGS-} -L${sw_root}/lib -Wl,--disable-new-dtags"
-LIBS="-Wl,--as-needed -lxml2 -lSerialboxFortran -leccodes ${RTTOV_LIBS-} -llapack -lblas -lnetcdff -lnetcdf -lhdf5_hl_fortran -lhdf5_fortran -lhdf5"
+LIBS="-Wl,--as-needed -lxml2 -lSerialboxFortran -leccodes ${RTTOV_LIBS-} -llapack -lblas -lnetcdff -lnetcdf -lhdf5_hl_fortran -lhdf5_fortran -lhdf5 -lstdc++"
 
 AR='xiar'
 
