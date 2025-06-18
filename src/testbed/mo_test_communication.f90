@@ -1067,7 +1067,7 @@ CONTAINS
     REAL(sp), ALLOCATABLE, TARGET :: arr_sp_4d(:,:,:,:), ref_arr_sp_4d(:,:,:,:) !
     TYPE(t_ptr_3d_sp), ALLOCATABLE :: ptr_3d_arr_sp(:), ref_ptr_3d_arr_sp(:)
 #ifdef __PGI
-    REAL(dp), POINTER :: tmp_ptr_4d(:,:,:,:)
+    REAL(wp), POINTER :: tmp_ptr_4d(:,:,:,:)
 #endif
 
     CHARACTER(*), PARAMETER :: method_name = "mo_test_communication:sync_patch_array_testbed"

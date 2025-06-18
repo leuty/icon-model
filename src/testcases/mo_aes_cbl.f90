@@ -189,7 +189,7 @@ CONTAINS
 
     REAL(wp) :: h, eta, g, PI
 
-    PI=4._wp*DATAN(1._wp)
+    PI=4._wp*ATAN(1._wp)
 
     h = sqrt(4._wp*Kh*t_start)
     eta = z/h

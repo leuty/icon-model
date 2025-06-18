@@ -793,6 +793,7 @@ enable_dim_swap
 enable_realloc_buf
 enable_vectorized_lrtm
 enable_mixed_precision
+enable_single_precision
 enable_intel_consistency
 enable_hip_overrides
 enable_pgi_inlib
@@ -1636,6 +1637,9 @@ Optimization Features:
                           [default=no]
   --enable-mixed-precision
                           enable mixed precision dycore [default=no]
+  --enable-single-precision
+                          enable single precision as the working precision
+                          (experimental) [default=no]
   --enable-intel-consistency
                           enable Intel compiler directives enforcing
                           consistency [default=auto]
@@ -3588,6 +3592,16 @@ else
 fi
 
 
+# Check whether --enable-single-precision was given.
+if test "${enable_single_precision+set}" = set; then :
+  enableval=$enable_single_precision; if test x"$enableval" != xno; then :
+  enable_single_precision=yes
+fi
+else
+  enable_single_precision=no
+fi
+
+
 # Check whether --enable-intel-consistency was given.
 if test "${enable_intel_consistency+set}" = set; then :
   enableval=$enable_intel_consistency; if test x"$enableval" != xno && test x"$enableval" != xauto; then :
@@ -3881,6 +3895,12 @@ fi
 
 
 ############################# OPTION CROSS-CHECKS ##############################
+
+if test "x$enable_single_precision" = xyes; then :
+  if test "x$enable_mixed_precision" = xyes; then :
+  as_fn_error $? "unsupported combination of the configure options: you are trying to configure with the single precision as the working precision and the mixed precision dycore: either disable the single precision (--disable-single-precision) or disable the mixed precision dycore (--disable-mixed-precision)" "$LINENO" 5
+fi
+fi
 
 if test "x$enable_hip_overrides" = xyes && test "x$icon_gpu_secondary" != xhip; then :
   as_fn_error $? "unsupported combination of the configure options: you are trying to configure with the HIP overrides enabled but the GPU support is disabled or the secondary GPU compiler is not HIP: either disable the HIP overrides (--disable-hip-overrides) or enable the GPU support with HIP (e.g. --enable-gpu=openacc+hip)" "$LINENO" 5
@@ -5955,6 +5975,10 @@ fi
 
 if test "x$enable_mixed_precision" = xyes; then :
   as_fn_append FCFLAGS " ${FC_PP_DEF}__MIXED_PRECISION"
+fi
+
+if test "x$enable_single_precision" = xyes; then :
+  as_fn_append FCFLAGS " ${FC_PP_DEF}__SINGLE_PRECISION"
 fi
 
 if test "x$enable_intel_consistency" = xyes; then :
@@ -10457,7 +10481,7 @@ esac
 esac
      shift
    done
-   set dummy FCFLAGS="$subdir_FCFLAGS $ICON_RTE_RRTMGP_FCFLAGS" NETCDF_FCFLAGS= NETCDF_FCLIBS= RANLIB="$RANLIB" PYTHON="$PYTHON" --enable-silent-rules="$enable_silent_rules" --disable-maintainer-mode --enable-gpu="$icon_gpu_primary"; shift
+   set dummy FCFLAGS="$subdir_FCFLAGS $ICON_RTE_RRTMGP_FCFLAGS" NETCDF_FCFLAGS= NETCDF_FCLIBS= RANLIB="$RANLIB" PYTHON="$PYTHON" --enable-silent-rules="$enable_silent_rules" --enable-single-precision="$enable_single_precision" --disable-maintainer-mode --enable-gpu="$icon_gpu_primary"; shift
    for acx_tmp; do
      case $acx_tmp in #(
   *\'*) :
@@ -11577,7 +11601,7 @@ esac
 else
   icon_fs_openacc=OFF
 fi
-   set dummy -DCMAKE_AR="$AR" -DCMAKE_RANLIB="$RANLIB" -DCMAKE_C_FLAGS="$subdir_CFLAGS $ICON_FORTRAN_SUPPORT_CFLAGS $subdir_CPPFLAGS" -DCMAKE_Fortran_FLAGS="$subdir_FCFLAGS $ICON_FORTRAN_SUPPORT_FCFLAGS" -DCMAKE_BUILD_TYPE=None -DCMAKE_PREFIX_PATH="$bundled_CMAKE_PREFIX_PATH" -DBUILD_SHARED_LIBS=OFF -DBUILD_TESTING=OFF -DFS_ENABLE_OMP="$enable_openmp" -DFS_ENABLE_MIXED_PRECISION="$enable_mixed_precision" -DFS_ENABLE_OPENACC="$icon_fs_openacc"; shift
+   set dummy -DCMAKE_AR="$AR" -DCMAKE_RANLIB="$RANLIB" -DCMAKE_C_FLAGS="$subdir_CFLAGS $ICON_FORTRAN_SUPPORT_CFLAGS $subdir_CPPFLAGS" -DCMAKE_Fortran_FLAGS="$subdir_FCFLAGS $ICON_FORTRAN_SUPPORT_FCFLAGS" -DCMAKE_BUILD_TYPE=None -DCMAKE_PREFIX_PATH="$bundled_CMAKE_PREFIX_PATH" -DBUILD_SHARED_LIBS=OFF -DBUILD_TESTING=OFF -DFS_ENABLE_OMP="$enable_openmp" -DFS_ENABLE_MIXED_PRECISION="$enable_mixed_precision" -DFS_ENABLE_SINGLE_PRECISION="$enable_single_precision" -DFS_ENABLE_OPENACC="$icon_fs_openacc"; shift
    for acx_tmp; do
      case $acx_tmp in #(
   *\'*) :
@@ -11637,7 +11661,7 @@ if test "x$icon_gpu_primary" = xopenacc; then :
 else
   icon_im_openacc=OFF
 fi
-set dummy -DCMAKE_AR="$AR" -DCMAKE_RANLIB="$RANLIB" -DCMAKE_Fortran_FLAGS="$subdir_FCFLAGS $ICON_ICONMATH_FCFLAGS" -DCMAKE_BUILD_TYPE=None -DCMAKE_PREFIX_PATH="$bundled_CMAKE_PREFIX_PATH" -DBUILD_SHARED_LIBS=OFF -DBUILD_TESTING=OFF -DIM_ENABLE_LOOP_EXCHANGE="$enable_loop_exchange" -DIM_ENABLE_MIXED_PRECISION="$enable_mixed_precision" -DIM_ENABLE_DIM_SWAP="$enable_dim_swap" -DIM_ENABLE_OPENACC="$icon_im_openacc" -DIM_ENABLE_OPENMP="$enable_openmp"; shift
+set dummy -DCMAKE_AR="$AR" -DCMAKE_RANLIB="$RANLIB" -DCMAKE_Fortran_FLAGS="$subdir_FCFLAGS $ICON_ICONMATH_FCFLAGS" -DCMAKE_BUILD_TYPE=None -DCMAKE_PREFIX_PATH="$bundled_CMAKE_PREFIX_PATH" -DBUILD_SHARED_LIBS=OFF -DBUILD_TESTING=OFF -DIM_ENABLE_LOOP_EXCHANGE="$enable_loop_exchange" -DIM_ENABLE_MIXED_PRECISION="$enable_mixed_precision" -DIM_ENABLE_SINGLE_PRECISION="$enable_single_precision" -DIM_ENABLE_DIM_SWAP="$enable_dim_swap" -DIM_ENABLE_OPENACC="$icon_im_openacc" -DIM_ENABLE_OPENMP="$enable_openmp"; shift
    for acx_tmp; do
      case $acx_tmp in #(
   *\'*) :

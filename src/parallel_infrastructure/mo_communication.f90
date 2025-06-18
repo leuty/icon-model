@@ -143,6 +143,7 @@ INTERFACE exchange_data
    MODULE PROCEDURE exchange_data_l2d
    MODULE PROCEDURE exchange_data_l3d
    MODULE PROCEDURE gather_r_2d_deblock
+   MODULE PROCEDURE gather_s_2d_deblock
    MODULE PROCEDURE gather_r_1d_deblock
    MODULE PROCEDURE gather_s_1d_deblock
    MODULE PROCEDURE gather_i_2d_deblock
@@ -1648,6 +1649,71 @@ CONTAINS
     DEALLOCATE(send_buffer,recv_buffer)
 
   END SUBROUTINE gather_r_2d_deblock
+
+
+  SUBROUTINE gather_s_2d_deblock(in_array, out_array, fill_value, gather_pattern)
+    ! dimension (nproma, nlev, nblk)
+    REAL(sp), INTENT(IN) :: in_array(:,:,:)
+    ! dimension (global length, nlev); only required on root
+    REAL(sp), INTENT(INOUT) :: out_array(:,:)
+    REAL(sp), INTENT(IN), OPTIONAL :: fill_value ! if provided missing values will
+    ! be replaced with this value
+    ! if not provided all valid
+    ! points will be packed to the
+    ! front of the array
+    TYPE(t_comm_gather_pattern), INTENT(IN) :: gather_pattern
+
+    REAL(sp), ALLOCATABLE :: send_buffer(:,:), recv_buffer(:,:)
+    REAL(sp), POINTER :: collector_buffer(:,:)
+    INTEGER :: i, num_send_points, nlev, idx, blk
+
+    !
+    ! OPENACC:  GPU execution assumes that all information is now on the host
+    !
+
+    nlev = SIZE(in_array, 2)
+
+    IF (SIZE(in_array, 1) /= nproma) &
+      CALL finish("gather_s_2d_deblock", &
+      &         "size of first dimension of in_array is not nproma")
+
+    IF (nlev /= SIZE(out_array, 2) .AND. p_pe_work == process_mpi_root_id) &
+      CALL finish("gather_s_2d_deblock", &
+      &         "second size of in_array and out_array are not the same")
+
+    num_send_points = SUM(gather_pattern%collector_send_size(:))
+    IF (SIZE(in_array, 1) * SIZE(in_array, 3) < num_send_points) &
+      CALL finish("gather_s_2d_deblock", "in_array is too small")
+
+    ALLOCATE(send_buffer(nlev, num_send_points))
+    IF (p_pe_work == process_mpi_root_id) THEN
+      ALLOCATE(recv_buffer(nlev, MERGE(gather_pattern%global_size, &
+        &                              SUM(gather_pattern%collector_size(:)), &
+        &                              PRESENT(fill_value))))
+    ELSE
+      ALLOCATE(recv_buffer(0,0))
+    END IF
+
+    DO i = 1, SIZE(gather_pattern%loc_index(:))
+      idx = idx_no(gather_pattern%loc_index(i))
+      blk = blk_no(gather_pattern%loc_index(i))
+      send_buffer(:,i) = in_array(idx, :, blk)
+    END DO
+
+    CALL two_phase_gather_first(send_buffer_r=send_buffer, fill_value=fill_value,&
+      gather_pattern=gather_pattern, &
+      collector_buffer_r=collector_buffer)
+    CALL two_phase_gather_second(recv_buffer_r=recv_buffer, fill_value=fill_value,&
+      gather_pattern=gather_pattern, &
+      collector_buffer_r=collector_buffer)
+
+    IF (p_pe_work == process_mpi_root_id) &
+      out_array(1:SIZE(recv_buffer, 2),1:SIZE(recv_buffer, 1)) = &
+      TRANSPOSE(recv_buffer(:,:))
+
+    DEALLOCATE(send_buffer,recv_buffer)
+
+  END SUBROUTINE gather_s_2d_deblock
 
 
   !-------------------------------------------------------------------------

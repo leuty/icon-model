@@ -13,7 +13,7 @@
 
 MODULE mo_bc_anthro_emission
 
-  USE mo_kind,            ONLY: dp, i8
+  USE mo_kind,            ONLY: wp, i8
   USE mo_exception,       ONLY: finish, message, message_text
   USE mo_netcdf,          ONLY: nf90_nowrite, nf90_noerr
   USE mo_netcdf_parallel, ONLY: p_nf90_open, p_nf90_inq_dimid, p_nf90_inquire_dimension, &
@@ -26,7 +26,12 @@ MODULE mo_bc_anthro_emission
   USE mo_time_config,     ONLY: time_config
   USE mo_model_domain,    ONLY: t_patch
   USE mo_cdi,             ONLY: streamOpenRead, streamInqVlist, streamClose, &
-    & vlistInqTaxis, streamInqTimestep, taxisInqVdate, streamReadVarSlice
+    & vlistInqTaxis, streamInqTimestep, taxisInqVdate
+#ifdef __SINGLE_PRECISION
+  USE mo_cdi,                ONLY: streamReadVarSliceF
+#else
+  USE mo_cdi,                ONLY: streamReadVarSlice
+#endif
   USE mo_util_cdi,           ONLY: cdiGetStringError
   USE mo_mpi,             ONLY: my_process_is_mpi_workroot, p_bcast, &
     &                              process_mpi_root_id, p_comm_work
@@ -38,7 +43,7 @@ MODULE mo_bc_anthro_emission
   PRIVATE
 
   TYPE t_ext_emis
-    REAL(dp), CONTIGUOUS, POINTER :: co2ant(:,:,:) => NULL()
+    REAL(wp), CONTIGUOUS, POINTER :: co2ant(:,:,:) => NULL()
   END TYPE t_ext_emis
 
   TYPE(t_ext_emis), TARGET :: ext_emis(max_dom)
@@ -126,11 +131,11 @@ CONTAINS
   SUBROUTINE read_anthro_emission_data(p_patch, dst, fn, y)
 !TODO: switch to reading via mo_read_netcdf_distributed?
     TYPE(t_patch), INTENT(in) :: p_patch
-    REAL(dp), CONTIGUOUS, INTENT(INOUT) :: dst(:,:,imonth_beg:)
+    REAL(wp), CONTIGUOUS, INTENT(INOUT) :: dst(:,:,imonth_beg:)
     CHARACTER(len=*), INTENT(IN) :: fn
     INTEGER(i8), INTENT(in) :: y
-    REAL(dp), ALLOCATABLE :: zin(:)
-    REAL(dp) :: dummy(0)
+    REAL(wp), ALLOCATABLE :: zin(:)
+    REAL(wp) :: dummy(0)
     INTEGER :: vlID, taxID, tsID, ts_idx, strID, nmiss, vd, vy, vm, ts_found
     LOGICAL :: found_last_ts, lexist
     CHARACTER(LEN=MAX_CHAR_LENGTH) :: cdiErrorText
@@ -183,9 +188,13 @@ CONTAINS
           END IF
         END IF
         IF (ts_idx /= -1) THEN
-          CALL streamReadVarSlice(strID, 0, 0, zin, nmiss)
+#ifdef __SINGLE_PRECISION
+          CALL streamReadVarSliceF(strID, 0, 0, zin, nmiss)
+#else
+          CALL streamReadVarSlice (strID, 0, 0, zin, nmiss)
+#endif
           CALL p_bcast(ts_idx, process_mpi_root_id, p_comm_work)
-          dst(:,SIZE(dst,2),ts_idx) = 0._dp
+          dst(:,SIZE(dst,2),ts_idx) = 0._wp
           CALL p_patch%comm_pat_scatter_c%distribute(zin, dst(:,:,ts_idx), .FALSE.)
         ENDIF
         tsID = tsID+1
@@ -201,7 +210,7 @@ CONTAINS
       DO
         CALL p_bcast(ts_idx, process_mpi_root_id, p_comm_work)
         IF(ts_idx .EQ. -1) EXIT
-        dst(:,SIZE(dst,2),ts_idx) = 0._dp
+        dst(:,SIZE(dst,2),ts_idx) = 0._wp
         CALL p_patch%comm_pat_scatter_c%distribute(dummy, dst(:,:,ts_idx), .FALSE.)
       END DO
     END IF
@@ -210,10 +219,10 @@ CONTAINS
   SUBROUTINE bc_anthro_emission_time_interpolation(tiw, co2ant_out, p_patch)
 
     TYPE( t_time_interpolation_weights), INTENT(in) :: tiw
-    REAL(dp)       , INTENT(inout) :: co2ant_out(:,:)
+    REAL(wp)       , INTENT(inout) :: co2ant_out(:,:)
     TYPE(t_patch)  , INTENT(in)  :: p_patch
 
-    REAL(dp), CONTIGUOUS, POINTER :: co2ant_in(:,:,:)
+    REAL(wp), CONTIGUOUS, POINTER :: co2ant_in(:,:,:)
 
     INTEGER  :: jc, jb, jg, jce, nblk
 

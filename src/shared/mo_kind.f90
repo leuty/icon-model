@@ -54,18 +54,23 @@ MODULE mo_kind
 #endif
 
 #if __HAVE_QUAD_PRECISION
-  INTEGER, PARAMETER :: qp = SELECTED_REAL_KIND(pq) !< quad precision
+  INTEGER, PARAMETER :: qp = SELECTED_REAL_KIND(pq)    !< quad precision
 #else
-  INTEGER, PARAMETER :: qp = -1 !< quad precision
+  INTEGER, PARAMETER :: qp = -1                        !< quad precision
 #endif
   !
+#ifdef __SINGLE_PRECISION
+  INTEGER, PARAMETER :: wp = sp                        !< selected working precision
+  INTEGER, PARAMETER :: xwp = dp                       !< not working precision - {sp,dp} not wp
+  INTEGER, PARAMETER :: vp = sp                        !< selected variable precision
+#else
   INTEGER, PARAMETER :: wp = dp                        !< selected working precision
   INTEGER, PARAMETER :: xwp = sp                       !< not working precision - {sp,dp} not wp
-  !
 #ifdef __MIXED_PRECISION
-  INTEGER, PARAMETER :: vp = sp
+  INTEGER, PARAMETER :: vp = sp                        !< selected variable precision
 #else
-  INTEGER, PARAMETER :: vp = wp
+  INTEGER, PARAMETER :: vp = dp                        !< selected variable precision
+#endif
 #endif
 
 

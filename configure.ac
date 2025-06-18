@@ -489,6 +489,13 @@ AC_ARG_ENABLE([mixed-precision],
   [AS_IF([test x"$enableval" != xno], [enable_mixed_precision=yes])],
   [enable_mixed_precision=no])
 
+AC_ARG_ENABLE([single-precision],
+  [AS_HELP_STRING([--enable-single-precision],
+     [enable single precision as the working precision (experimental)
+@<:@default=no@:>@])],
+  [AS_IF([test x"$enableval" != xno], [enable_single_precision=yes])],
+  [enable_single_precision=no])
+
 AC_ARG_ENABLE([intel-consistency],
   [AS_HELP_STRING([--enable-intel-consistency],
      [enable Intel compiler directives enforcing consistency
@@ -695,6 +702,14 @@ AC_ARG_WITH([external-comin],
   [with_external_comin=no])
 
 ############################# OPTION CROSS-CHECKS ##############################
+
+AS_VAR_IF([enable_single_precision], [yes],
+  [AS_VAR_IF([enable_mixed_precision], [yes],
+    [AC_MSG_ERROR([unsupported combination of the configure options: you are dnl
+trying to configure with the single precision as the working precision and dnl
+the mixed precision dycore: either disable the single precision dnl
+(--disable-single-precision) or disable the mixed precision dycore dnl
+(--disable-mixed-precision)])])])
 
 AS_IF(
   [test "x$enable_hip_overrides" = xyes && test "x$icon_gpu_secondary" != xhip],
@@ -1122,6 +1137,10 @@ AS_VAR_IF([enable_vectorized_lrtm], [yes],
 AS_VAR_IF([enable_mixed_precision], [yes],
   [AS_VAR_APPEND([FCFLAGS],
      [" ${FC_PP_DEF}__MIXED_PRECISION"])])
+
+AS_VAR_IF([enable_single_precision], [yes],
+  [AS_VAR_APPEND([FCFLAGS],
+     [" ${FC_PP_DEF}__SINGLE_PRECISION"])])
 
 AS_VAR_IF([enable_intel_consistency], [yes],
   [AS_VAR_APPEND([FCFLAGS], [" ${FC_PP_DEF}IFORT_CONSISTENCY_ENFORCE"])])
@@ -2191,6 +2210,7 @@ bundled version of RTE+RRTMGP library @<:@default=$ICON_BUNDLED_FCFLAGS@:>@])dnl
      [FCFLAGS="$subdir_FCFLAGS $ICON_RTE_RRTMGP_FCFLAGS"],
      [NETCDF_FCFLAGS=], [NETCDF_FCLIBS=], [RANLIB="$RANLIB"],
      [PYTHON="$PYTHON"], [--enable-silent-rules="$enable_silent_rules"],
+     [--enable-single-precision="$enable_single_precision"],
      [--disable-maintainer-mode], [--enable-gpu="$icon_gpu_primary"])
 dnl The tests of the current version of RTE-RRTMGP are known to fail when built
 dnl with OpenACC support. The problem is in the test programs and not in the
@@ -2864,6 +2884,7 @@ ${ICON_FORTRAN_SUPPORT_CFLAGS-$ICON_BUNDLED_CFLAGS}
      [-DBUILD_SHARED_LIBS=OFF], [-DBUILD_TESTING=OFF],
      [-DFS_ENABLE_OMP="$enable_openmp"],
      [-DFS_ENABLE_MIXED_PRECISION="$enable_mixed_precision"],
+     [-DFS_ENABLE_SINGLE_PRECISION="$enable_single_precision"],
      [-DFS_ENABLE_OPENACC="$icon_fs_openacc"])
    AS_VAR_APPEND([bundled_CMAKE_PREFIX_PATH],
      ["${bundled_CMAKE_PREFIX_PATH:+";"}dnl
@@ -2898,6 +2919,7 @@ ACX_SUBDIR_APPEND_ARGS([externals/iconmath/build],
   [-DBUILD_SHARED_LIBS=OFF], [-DBUILD_TESTING=OFF],
   [-DIM_ENABLE_LOOP_EXCHANGE="$enable_loop_exchange"],
   [-DIM_ENABLE_MIXED_PRECISION="$enable_mixed_precision"],
+  [-DIM_ENABLE_SINGLE_PRECISION="$enable_single_precision"],
   [-DIM_ENABLE_DIM_SWAP="$enable_dim_swap"],
   [-DIM_ENABLE_OPENACC="$icon_im_openacc"],
   [-DIM_ENABLE_OPENMP="$enable_openmp"])

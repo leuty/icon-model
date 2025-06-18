@@ -9016,10 +9016,10 @@ CONTAINS
 
   ! probe implementation
 
-  SUBROUTINE p_probe (p_tagcount, p_tagtable, p_source, &
-       p_tag, p_count, comm)
+  SUBROUTINE p_probe (p_tagcount, p_tagtable, p_datatype, &
+       p_source, p_tag, p_count, comm)
 
-    INTEGER,   INTENT(in)  :: p_tagcount, p_tagtable(:)
+    INTEGER,   INTENT(in)  :: p_tagcount, p_tagtable(:), p_datatype
     INTEGER,   INTENT(out) :: p_source, p_tag, p_count
     INTEGER, OPTIONAL, INTENT(in) :: comm
 
@@ -9049,7 +9049,7 @@ CONTAINS
           IF (flag) THEN
              p_source = p_status(MPI_SOURCE)
              p_tag = p_status(MPI_TAG)
-             CALL MPI_GET_COUNT(p_status, p_real_dp, p_count, p_error)
+             CALL MPI_GET_COUNT(p_status, p_datatype, p_count, p_error)
 #ifdef DEBUG
              IF (p_error /= MPI_SUCCESS) THEN
                 WRITE (nerr,'(a,i4,a,i4,a,i6,a)') ' MPI_GET_COUNT on ', &
@@ -10119,7 +10119,7 @@ CONTAINS
     ENDIF
 
     IF (my_process_is_mpi_all_parallel()) THEN
-       CALL MPI_ALLREDUCE (zfield, p_max, SIZE(zfield), p_real_dp, &
+       CALL MPI_ALLREDUCE (zfield, p_max, SIZE(zfield), p_real_sp, &
             mpi_max, p_comm, p_error)
     ELSE
        p_max = zfield
@@ -10175,7 +10175,7 @@ CONTAINS
     ENDIF
 
     IF (my_process_is_mpi_all_parallel()) THEN
-       CALL MPI_ALLREDUCE (zfield, p_max, SIZE(zfield), p_real_dp, &
+       CALL MPI_ALLREDUCE (zfield, p_max, SIZE(zfield), p_real_sp, &
             mpi_max, p_comm, p_error)
     ELSE
        p_max = zfield
@@ -11793,15 +11793,7 @@ CONTAINS
 
      comm_size = p_comm_size(comm)
      tag = 1
-     SELECT CASE (wp)
-       CASE(sp)
-         datatype = p_real_sp
-       CASE(dp)
-         datatype = p_real_dp
-       CASE DEFAULT
-         datatype = -1
-         CALL finish (routine, 'invalid read type')
-     END SELECT
+     datatype = p_real
      DO i = 1, comm_size
        IF (recvcounts(i) > 0) THEN
          ofs = 1 + rdispls(i)
