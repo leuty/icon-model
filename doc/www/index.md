@@ -15,6 +15,7 @@ tools/ecflow-ecmwf.md
 tools/comin/comin.md
 atmosphere/atmosphere.md
 ocean/ocean.md
+waves/waves.md
 land/land.md
 infrastructure/infrastructure.md
 literature/literature.md
@@ -53,7 +54,6 @@ Information on the changes are available in the {{ '[**Release Notes**]({}/RELEA
 ^^^
 [](ref_atmosphere_dycore)  
 [](ref_atmosphere_physics)  
-[](ref_atmosphere_nwp_waves)  
 [](ref_atmosphere_art)
 :::
 
@@ -61,7 +61,14 @@ Information on the changes are available in the {{ '[**Release Notes**]({}/RELEA
 [**Ocean**](ref_ocean_overview)
 ^^^
 [](ref_ocean_seaice)  
-[](ref_ocean_biogeochem)
+[](ref_ocean_biogeochem)  
+:::
+
+:::{grid-item-card}
+[**Ocean surface waves**](ref_waves_overview)
+^^^
+[](ref_waves_config)  
+[](ref_waves_output)
 :::
 
 :::{grid-item-card}

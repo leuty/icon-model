@@ -168,6 +168,17 @@ Zeng and Beljaars 2005
   Zeng, X., & Beljaars, A. (2005): A prognostic scheme of sea surface skin temperature for modeling and data assimilation. Geophysical Research Letters, 32(14).
 :::
 
+(ref_waves_literature)=
+### Literature for ocean surface waves modeling in ICON
+:::{glossary}
+The Wamdi Group 1988
+  The Wamdi Group. (1988): The WAM model—A third generation ocean wave prediction model. Journal of Physical Oceanography, 18(12).
+
+Komen et al 1996
+  Komen, G. J., Cavaleri, L., Donelan, M., Hasselmann, K., Hasselmann, S., and Janssen, P. A. E. M. (1996): Dynamics and modelling of
+  ocean waves. Cambridge University Press, 1996.
+:::
+
 (ref_land_literature)=
 ### Literature for land surface modeling in ICON
 
