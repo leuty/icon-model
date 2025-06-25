@@ -33,7 +33,11 @@ extensions = [
 
 myst_heading_anchors = 4
 
-myst_enable_extensions = ["deflist", "colon_fence", "substitution"]
+myst_enable_extensions = [
+    "deflist",
+    "colon_fence",
+    "substitution",
+]
 
 myst_substitutions = {"release": "2025.04"}
 
