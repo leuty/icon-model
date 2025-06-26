@@ -434,13 +434,8 @@ CONTAINS
       message_text = ''
       NULLIFY(ccVal)
       SELECT TYPE(curVal)
-#ifdef __PGI
-      TYPE IS(t_char_workaround)
-        ccVal => curVal%c
-#else
       TYPE IS(CHARACTER(*))
         ccVal => curVal
-#endif
       TYPE IS(REAL(dp))
         WRITE(message_text, "(3a,e12.5,a)") "key = >", ccKey, "< val = >", curVal, "<"
       TYPE IS(REAL(sp))

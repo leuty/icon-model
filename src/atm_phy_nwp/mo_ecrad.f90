@@ -25,7 +25,7 @@
 
 MODULE mo_ecrad
 
-  USE mo_kind,                    ONLY: wp
+  USE mo_kind,                    ONLY: wp, rp
 #ifdef __ECRAD
   USE radiation_config,           ONLY: t_ecrad_conf=>config_type,                        &
                                     &   ISolverHomogeneous, ISolverMcICA,                 &
@@ -115,15 +115,15 @@ MODULE mo_ecrad
 ! Near-IR, visible, and photosynthetically active radiation weightings
   INTEGER            :: nweight_nir_ecrad
   INTEGER            :: iband_nir_ecrad(100)
-  REAL(KIND=wp)      :: weight_nir_ecrad(100)
+  REAL(KIND=rp)      :: weight_nir_ecrad(100)
 
   INTEGER            :: nweight_vis_ecrad
   INTEGER            :: iband_vis_ecrad(100)
-  REAL(KIND=wp)      :: weight_vis_ecrad(100)
+  REAL(KIND=rp)      :: weight_vis_ecrad(100)
 
   INTEGER            :: nweight_par_ecrad
   INTEGER            :: iband_par_ecrad(100)
-  REAL(KIND=wp)      :: weight_par_ecrad(100)
+  REAL(KIND=rp)      :: weight_par_ecrad(100)
 
   !$ACC DECLARE COPYIN(iband_nir_ecrad, weight_nir_ecrad)
   !$ACC DECLARE COPYIN(iband_vis_ecrad, weight_vis_ecrad)

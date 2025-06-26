@@ -24,7 +24,7 @@
 
 MODULE mo_cover_koe
 
-  USE mo_kind,               ONLY: wp, vp, i4
+  USE mo_kind,               ONLY: wp, vp, rp, i4
 
   USE mo_physical_constants, ONLY: rdv    , & !! r_d / r_v
                                    rv     , & !! Rv
@@ -822,8 +822,9 @@ REAL(KIND=wp), DIMENSION(klon,klev), INTENT(IN) ::  &
   & qi_tot           , & ! specific cloud ice   content diagnostic       (kg/kg)
   & zratfsd              ! detrainment ratio                             (unitless)
 
+REAL(KIND=rp), INTENT(IN) ::  &
+  & fsd_background       ! default FSD value
 REAL(KIND=wp), INTENT(IN) ::  &
-  & fsd_background   , & ! default FSD value
   & fsd_gridlen      , & ! assumed horizontal grid spacing in km
   & zcldlim              ! min condensate value for presence of cloud
 

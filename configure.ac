@@ -489,6 +489,12 @@ AC_ARG_ENABLE([mixed-precision],
   [AS_IF([test x"$enableval" != xno], [enable_mixed_precision=yes])],
   [enable_mixed_precision=no])
 
+AC_ARG_ENABLE([single-precision-ecrad],
+  [AS_HELP_STRING([--enable-single-precision-ecrad],
+     [enable single precision for ECRAD @<:@default=no@:>@])],
+  [AS_IF([test x"$enableval" != xno], [enable_single_precision_ecrad=yes])],
+  [enable_single_precision_ecrad=no])
+
 AC_ARG_ENABLE([intel-consistency],
   [AS_HELP_STRING([--enable-intel-consistency],
      [enable Intel compiler directives enforcing consistency
@@ -1122,6 +1128,10 @@ AS_VAR_IF([enable_vectorized_lrtm], [yes],
 AS_VAR_IF([enable_mixed_precision], [yes],
   [AS_VAR_APPEND([FCFLAGS],
      [" ${FC_PP_DEF}__MIXED_PRECISION"])])
+
+AS_VAR_IF([enable_single_precision_ecrad], [yes],
+  [AS_VAR_APPEND([FCFLAGS],
+     [" ${FC_PP_DEF}__SINGLE_PRECISION_ECRAD"])])
 
 AS_VAR_IF([enable_intel_consistency], [yes],
   [AS_VAR_APPEND([FCFLAGS], [" ${FC_PP_DEF}IFORT_CONSISTENCY_ENFORCE"])])
@@ -2233,7 +2243,8 @@ bundled version of ECRAD library @<:@default=$ICON_BUNDLED_FCFLAGS@:>@])dnl
      [NETCDF_FCFLAGS=], [NETCDF_FCLIBS=], [AR="$AR"], [PYTHON="$PYTHON"],
      [--enable-silent-rules="$enable_silent_rules"],
      [--enable-openacc="$icon_ecrad_openacc"],
-     [--enable-pgi-inlib="$enable_pgi_inlib"])
+     [--enable-pgi-inlib="$enable_pgi_inlib"],
+     [--enable-single-precision="$enable_single_precision_ecrad"])
    AS_VAR_APPEND([bundled_includes], ["${FC_MOD_IN}externals/ecrad/mod "])
    BUNDLED_LIBFILES="externals/ecrad/libifsaux.a $BUNDLED_LIBFILES"
    BUNDLED_LIBFILES="externals/ecrad/libutilities.a $BUNDLED_LIBFILES"

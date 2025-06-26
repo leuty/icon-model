@@ -11,7 +11,7 @@
 
 MODULE mo_radiation_config
 
-  USE mo_kind,           ONLY: wp
+  USE mo_kind,           ONLY: wp, rp
   USE mo_io_units,       ONLY: filename_max
   USE mo_impl_constants, ONLY: MAX_CHAR_LENGTH, max_dom
 
@@ -168,7 +168,7 @@ MODULE mo_radiation_config
       &  ecrad_data_path                !< Folder containing optical properties
 
     LOGICAL  :: lcalculate_fsd          !< calculate regime-dependent FSD parameter if .true., else use default value
-    REAL(wp) :: fsd_background          !< background value for fractional standard deviation used in radiation calculations
+    REAL(rp) :: fsd_background          !< background value for fractional standard deviation used in radiation calculations
     REAL(wp) :: fsd_gridlen(max_dom)    !< value for horizontal mesh size used in FSD parameterization,
                                         !< tuning parameter for TOA radiation balance
     !$ACC DECLARE CREATE(fsd_background, fsd_gridlen)

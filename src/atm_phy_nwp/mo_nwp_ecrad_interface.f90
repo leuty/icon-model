@@ -34,7 +34,7 @@
 
 MODULE mo_nwp_ecrad_interface
 
-  USE mo_kind,                   ONLY: wp
+  USE mo_kind,                   ONLY: wp, rp
   USE mo_exception,              ONLY: finish, message
   USE mo_math_constants,         ONLY: pi
   USE mo_model_domain,           ONLY: t_patch, p_patch_local_parent
@@ -262,7 +262,6 @@ CONTAINS
       CALL ecrad_cloud%allocate(nproma_sub, nlev)
     END IF
     ! Currently hardcoded values for FSD
-    !$ACC WAIT
     CALL ecrad_cloud%create_fractional_std(nproma_sub, nlev, fsd_background)
 
     IF ( ecrad_conf%use_aerosols ) THEN
@@ -360,7 +359,6 @@ CONTAINS
         !$ACC END PARALLEL
 
 ! Fill single level configuration type
-        !$ACC WAIT
         CALL ecrad_set_single_level(ecrad_single_level, current_datetime, pt_patch%cells%center(jcs:jce,jb),           &
           &                         prm_diag%cosmu0(jcs:jce,jb), prm_diag%tsfctrad(jcs:jce,jb),                        &
           &                         prm_diag%albvisdif(jcs:jce,jb), prm_diag%albnirdif(jcs:jce,jb),                    &
@@ -389,16 +387,15 @@ CONTAINS
           &                   pt_patch%cells%center(jcs:jce,jb),                                                   &
           &                   nlev, i_startidx_rad, i_endidx_rad, &
           &                   lacc=.TRUE.)
-        ! $ACC WAIT
 
 !Set inverse cloud effective size for SPARTACUS
         IF (ecrad_conf%i_solver_lw == ISolverSpartacus .OR. ecrad_conf%i_solver_sw == ISolverSpartacus ) THEN
           ! We are using the SPARTACUS solver so need to specify cloud scale,
           ! and use Mark Fielding's parameterization based on ARM data
           CALL ecrad_cloud%param_cloud_effective_separation_eta( ncol=nproma_sub, nlev=nlev, &
-            &                 pressure_hl=pt_diag%pres_ifc(jcs:jce,:,jb),                    &
-            &                 separation_surf=2500.0_wp, separation_toa=14000.0_wp,          &
-            &                 power=3.5_wp, inhom_separation_factor=0.75_wp,                 &
+            &                 pressure_hl=ecrad_thermodynamics%pressure_hl(:,:),             &
+            &                 separation_surf=2500.0_rp, separation_toa=14000.0_rp,          &
+            &                 power=3.5_rp, inhom_separation_factor=0.75_rp,                 &
             &                 istartcol=i_startidx_rad, iendcol=i_endidx_rad )
         ENDIF
 
@@ -457,7 +454,6 @@ CONTAINS
 !---------------------------------------------------------------------------------------
 ! Call the radiation scheme ecRad
 !---------------------------------------------------------------------------------------
-        !$ACC WAIT
         CALL ecrad(nproma_sub, nlev,                        & !< Array and loop bounds (input)
           &        i_startidx_rad, i_endidx_rad,            & !< Array and loop bounds (input)
           &        ecrad_conf,                              & !< General ecRad configuration object (input)
@@ -502,7 +498,6 @@ CONTAINS
         ENDIF
 
         ! Add 3D contribution to diffuse radiation
-        !$ACC WAIT
         CALL add_3D_diffuse_rad(ecrad_flux, ptr_clc, pt_diag%pres(jcs:jce,:,jb),                                 &
           &                     pt_diag%temp(jcs:jce,:,jb), prm_diag%cosmu0(jcs:jce,jb),                         &
           &                     prm_diag%fr_nir_sfc_diff(jcs:jce,jb), prm_diag%fr_vis_sfc_diff(jcs:jce,jb),      &
@@ -1064,7 +1059,6 @@ CONTAINS
     END IF
 
     ! Currently hardcoded values for FSD
-    !$ACC WAIT
     CALL ecrad_cloud%create_fractional_std(nproma_sub, nlev_rg, fsd_background)
 
     IF ( ecrad_conf%use_aerosols ) THEN
@@ -1223,9 +1217,9 @@ CONTAINS
           ! We are using the SPARTACUS solver so need to specify cloud scale,
           ! and use Mark Fielding's parameterization based on ARM data
           CALL ecrad_cloud%param_cloud_effective_separation_eta( ncol=nproma_sub, nlev=nlev, &
-            &                 pressure_hl=zrg_pres_ifc(jcs:jce,:,jb),                        &
-            &                 separation_surf=2500.0_wp, separation_toa=14000.0_wp,          &
-            &                 power=3.5_wp, inhom_separation_factor=0.75_wp,                 &
+            &                 pressure_hl=ecrad_thermodynamics%pressure_hl(:,:),             &
+            &                 separation_surf=2500.0_rp, separation_toa=14000.0_rp,          &
+            &                 power=3.5_rp, inhom_separation_factor=0.75_rp,                 &
             &                 istartcol=i_startidx_rad, iendcol=i_endidx_rad )
         ENDIF
 
@@ -1277,7 +1271,6 @@ CONTAINS
 !---------------------------------------------------------------------------------------
 ! Call the radiation scheme ecRad
 !---------------------------------------------------------------------------------------
-        !$ACC WAIT
         CALL ecrad(nproma_sub, nlev_rg,                     & !< Array and loop bounds (input)
           &        i_startidx_rad, i_endidx_rad,            & !< Array and loop bounds (input)
           &        ecrad_conf,                              & !< General ecRad configuration object (input)
@@ -1305,7 +1298,6 @@ CONTAINS
           &                     cosmu0mask, zsct, i_startidx_rad, i_endidx_rad, nlev_rgp1, lacc=.TRUE.)
 
         ! Add 3D contribution to diffuse radiation
-        !$ACC WAIT
         CALL add_3D_diffuse_rad(ecrad_flux, zrg_clc(jcs:jce,:,jb), zrg_pres(jcs:jce,:,jb), zrg_temp(jcs:jce,:,jb),    &
           &                     zrg_cosmu0            (jcs:jce,jb), zrg_fr_nir_sfc_diff  (jcs:jce,jb),                &
           &                     zrg_fr_vis_sfc_diff   (jcs:jce,jb), zrg_fr_par_sfc_diff  (jcs:jce,jb),                &
@@ -1337,7 +1329,6 @@ CONTAINS
 !$OMP END PARALLEL
 
 ! Downscale radiative fluxes from reduced radiation grid to full grid
-    !$ACC WAIT
     CALL downscale_rad_output(pt_patch%id, pt_par_patch%id,                                         &
       &  nlev_rg, zrg_aclcov, zrg_lwflxall, zrg_trsolall, zrg_trsol_clr_sfc, zrg_lwflx_clr_sfc,     &
       &  zrg_lwflx_up_sfc, zrg_trsol_up_toa, zrg_trsol_up_sfc, zrg_trsol_nir_sfc, zrg_trsol_vis_sfc,&

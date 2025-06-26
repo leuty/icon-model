@@ -18,7 +18,7 @@
 
 MODULE mo_bc_aeropt_splumes
 
-  USE mo_kind,                 ONLY: wp
+  USE mo_kind,                 ONLY: wp, rp
   USE mo_exception,            ONLY: finish
   USE mo_read_interface,       ONLY: openInputFile, read_1D, &
                                    & read_bcast_real_2D, read_bcast_real_3D, &
@@ -497,10 +497,11 @@ MODULE mo_bc_aeropt_splumes
     TYPE(datetime), POINTER      :: this_datetime
 
     REAL(wp), INTENT (IN)        :: &
-         zf(nproma,klev),            & !< geometric height at full level [m]
-         dz(nproma,klev),            & !< geometric height thickness     [m]
-         z_sfc(nproma),              & !< geometric height of surface    [m]
-         sw_wv1(nb_sw),              & !< smallest wave number in each of the sw bands
+         zf(nproma,klev),           & !< geometric height at full level [m]
+         dz(nproma,klev),           & !< geometric height thickness     [m]
+         z_sfc(nproma)                !< geometric height of surface    [m]
+    REAL(rp), INTENT (IN)        :: &
+         sw_wv1(nb_sw),             & !< smallest wave number in each of the sw bands
          sw_wv2(nb_sw)                !< largest  wave number in each of the sw bands
 
     REAL(wp), INTENT (INOUT) ::       &

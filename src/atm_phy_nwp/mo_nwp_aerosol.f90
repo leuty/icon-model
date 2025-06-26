@@ -17,7 +17,7 @@
 MODULE mo_nwp_aerosol
 
 ! ICON infrastructure
-  USE mo_kind,                    ONLY: wp
+  USE mo_kind,                    ONLY: wp, rp
   USE mo_exception,               ONLY: finish, message, message_text
   USE mo_model_domain,            ONLY: t_patch
   USE mo_grid_config,             ONLY: nroot
@@ -159,7 +159,7 @@ CONTAINS
       &  zf(:,:,:), zh(:,:,:), & !< model full/half layer height
       &  dz(:,:,:),            & !< Layer thickness
       &  dt_rad                  !< Radiation time step
-    REAL(wp), POINTER, INTENT(in) :: &
+    REAL(rp), POINTER, INTENT(in) :: &
       &  wavenum1_sw(:),       & !< Shortwave wavenumber lower band bounds
       &  wavenum2_sw(:)          !< Shortwave wavenumber upper band bounds
     REAL(wp), ALLOCATABLE, TARGET, INTENT(inout) :: &
@@ -622,7 +622,8 @@ CONTAINS
     TYPE(datetime), POINTER, INTENT(in) :: &
       &  mtime_datetime                      !< Current datetime
     REAL(wp), INTENT(in) ::                &
-      &  zf(:,:), zh(:,:), dz(:,:),        & !< model full/half layer height, layer thickness
+      &  zf(:,:), zh(:,:), dz(:,:)           !< model full/half layer height, layer thickness
+    REAL(rp), INTENT(in) ::                &
       &  wavenum1_sw(:),                   & !< Shortwave wavenumber lower band bounds
       &  wavenum2_sw(:)                      !< Shortwave wavenumber upper band bounds
     INTEGER, INTENT(in) ::                 &
