@@ -1071,7 +1071,7 @@ MODULE mo_nonhydro_state
         END IF
 
         !CO2
-        IF ( iqt <= ico2 .AND. ico2 <= ntracer) THEN
+        IF ( ico2 /= 0 ) THEN
           tlen = LEN_TRIM(advconf%tracer_names(ico2))
           tracer_name = vname_prefix(1:vntl)//advconf%tracer_names(ico2)(1:tlen)//suffix
           CALL add_ref( p_prog_list, tracer_container_name,                            &
@@ -3090,6 +3090,7 @@ MODULE mo_nonhydro_state
 
 
       ALLOCATE(p_diag%tracer_vi_ptr(ntracer))
+      !$ACC ENTER DATA CREATE(p_diag%tracer_vi_ptr)
 
       ! Q1 vertical integral: tqv(nproma,nblks_c)
       IF ( iqv /= 0 ) THEN
@@ -3102,6 +3103,7 @@ MODULE mo_nonhydro_state
                     & cf_desc, grib2_desc,                                         &
                     & ref_idx=iqv,                                                 &
                     & ldims=shape2d_c, lrestart=.FALSE.)
+        __acc_attach(p_diag%tracer_vi_ptr(iqv)%p_2d)
       END IF
 
       ! Q2 vertical integral: tqc(nproma,nblks_c)
@@ -3115,6 +3117,7 @@ MODULE mo_nonhydro_state
                     & cf_desc, grib2_desc,                                         &
                     & ref_idx=iqc,                                                 &
                     & ldims=shape2d_c, lrestart=.FALSE.)
+        __acc_attach(p_diag%tracer_vi_ptr(iqc)%p_2d)
       END IF
 
       ! Q3 vertical integral: tqi(nproma,nblks_c)
@@ -3128,6 +3131,7 @@ MODULE mo_nonhydro_state
                     & cf_desc, grib2_desc,                                         &
                     & ref_idx=iqi,                                                 &
                     & ldims=shape2d_c, lrestart=.FALSE.)
+        __acc_attach(p_diag%tracer_vi_ptr(iqi)%p_2d)
       END IF
 
       IF ( iqr /= 0 ) THEN
@@ -3142,6 +3146,7 @@ MODULE mo_nonhydro_state
                     & cf_desc, grib2_desc,                                         &
                     & ref_idx=iqr,                                                 &
                     & ldims=shape2d_c, lrestart=.FALSE.)
+        __acc_attach(p_diag%tracer_vi_ptr(iqr)%p_2d)
       ENDIF ! iqr /= 0
 
       IF ( iqs /= 0 ) THEN
@@ -3156,6 +3161,7 @@ MODULE mo_nonhydro_state
                     & cf_desc, grib2_desc,                                         &
                     & ref_idx=iqs,                                                 &
                     & ldims=shape2d_c, lrestart=.FALSE.)
+        __acc_attach(p_diag%tracer_vi_ptr(iqs)%p_2d)
       ENDIF  ! iqs /= 0
 
 
@@ -3172,6 +3178,7 @@ MODULE mo_nonhydro_state
                     & cf_desc, grib2_desc,                                         &
                     & ref_idx=iqg,                                                 &
                     & ldims=shape2d_c, lrestart=.FALSE.)
+        __acc_attach(p_diag%tracer_vi_ptr(iqg)%p_2d)
       ENDIF
 
       ! Note that hail is only taken into account by schemes 4, 5, 6 and 7
@@ -3188,9 +3195,23 @@ MODULE mo_nonhydro_state
                     & cf_desc, grib2_desc,                                         &
                     & ref_idx=iqh,                                                 &
                     & ldims=shape2d_c, lrestart=.FALSE.)
+        __acc_attach(p_diag%tracer_vi_ptr(iqh)%p_2d)
       ENDIF
 
-    ENDIF  !  ntracer >0
+      IF ( ico2 /= 0 ) THEN
+        cf_desc    = t_cf_var('tco2', 'kg m-2', 'total column integrated co2',     &
+          &          datatype_flt)
+        grib2_desc = grib2_var( 0, 1, 46, ibits, GRID_UNSTRUCTURED, GRID_CELL)
+        CALL add_ref( p_diag_list, 'tracer_vi', 'tco2',                             &
+                    & p_diag%tracer_vi_ptr(ico2)%p_2d,                              &
+                    & GRID_UNSTRUCTURED_CELL, ZA_SURFACE,                          &
+                    & cf_desc, grib2_desc,                                         &
+                    & ref_idx=ico2,                                                 &
+                    & ldims=shape2d_c, lrestart=.FALSE.)
+        __acc_attach(p_diag%tracer_vi_ptr(ico2)%p_2d)
+      ENDIF
+
+    ENDIF
 
 
     !

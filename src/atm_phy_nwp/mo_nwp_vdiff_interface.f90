@@ -110,7 +110,6 @@ CONTAINS
         & nh_diag, nh_metrics, phy_diag, ext_data, diag_lnd, prog_lnd_new, prog_wtr_now, &
         & prog_wtr_new, mem, phy_tend, initialize, lacc &
       )
-
     TYPE(datetime), POINTER, INTENT(IN) :: datetime_now !< Current time.
     REAL(wp), INTENT(IN) :: delta_time !< Time interval.
     TYPE(t_patch), TARGET, INTENT(IN) :: patch !< Current patch.
@@ -370,6 +369,7 @@ CONTAINS
 
     LOGICAL :: linit
     LOGICAL :: lis_coupled_to_ocean
+    LOGICAL :: lhave_flx_co2_natural_sea
 
     !
     ! Subroutine start
@@ -490,6 +490,7 @@ CONTAINS
       linit = .FALSE.
     END IF
 
+    lhave_flx_co2_natural_sea = ASSOCIATED(mem%sea_state%flx_co2_natural_sea)
     lis_coupled_to_ocean = is_coupled_to_ocean()
 
     i_startblk = patch%cells%start_block(start_prog_cells)
@@ -536,9 +537,13 @@ CONTAINS
             !$ACC LOOP GANG VECTOR
             DO ic = ics, ice
               tracer_srf_emission(ic,ico2 - iqt + 1,i_blk) = &
-                  & mem%flx_co2_natural_land(ic,i_blk) * fr_sft(ic,i_blk,SFT_LAND) &
+                & mem%flx_co2_natural_land(ic,i_blk) * fr_sft(ic,i_blk,SFT_LAND)
+              IF (lhave_flx_co2_natural_sea) THEN
+                tracer_srf_emission(ic,ico2 - iqt + 1,i_blk) = &
+                  & tracer_srf_emission(ic,ico2 - iqt + 1,i_blk) &
                   & + mem%sea_state%flx_co2_natural_sea(ic,i_blk) &
-                  &   * (fr_sft(ic,i_blk,SFT_SWTR) + fr_sft(ic,i_blk,SFT_SICE))
+                  & * (fr_sft(ic,i_blk,SFT_SWTR) + fr_sft(ic,i_blk,SFT_SICE))
+              END IF
             END DO
           END IF
           !$ACC END PARALLEL
@@ -1571,7 +1576,6 @@ CONTAINS
   !! Collect the surface CO2 concentration according to the carbon-cycle configuration.
   !! Time-dependent values are retrieved from `mo_bc_greenhouse_gases::ghg_co2mmr`.
   SUBROUTINE get_surface_co2_concentration (patch, ccycle_config, tracer, co2_concentration_srf, lacc)
-
     TYPE(t_patch), INTENT(IN) :: patch !< Current patch.
     !> Carbon-cycle configuration.
     TYPE(t_ccycle_config), INTENT(IN) :: ccycle_config

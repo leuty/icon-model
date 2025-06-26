@@ -39,6 +39,7 @@ MODULE mo_advection_utils
   USE mo_var_groups,            ONLY: MAX_GROUPS
   USE mo_advection_config,      ONLY: t_advection_config
   USE mo_comin_config,          ONLY: comin_config
+  USE mo_run_config,            ONLY: ico2
 #ifndef __NO_ICON_COMIN__
   USE iso_c_binding,            ONLY: c_ptr, c_f_pointer
   USE comin_host_interface,     ONLY: comin_request_get_list,            &
@@ -50,6 +51,7 @@ MODULE mo_advection_utils
     &                                 comin_ftnlist_iterator_delete,     &
     &                                 comin_ftnlist_is_end
 #endif
+  USE mo_ccycle_config, ONLY: ccycle_config, CCYCLE_MODE_INTERACTIVE
 
   IMPLICIT NONE
 
@@ -560,6 +562,14 @@ CONTAINS
           CALL finish(routine, message_text )
         ENDIF
       ENDIF
+
+      IF (ccycle_config(1)%iccycle == CCYCLE_MODE_INTERACTIVE) THEN
+        ntracer = ntracer + 1
+        ico2    = ntracer
+        advection_config(:)%tracer_names(ico2) = 'co2'
+        WRITE (message_text,'(a,i3)') 'Adding CO2 tracer, ico2 = ', ico2
+        CALL message(routine, message_text)
+      END IF
 
       ! Note: Indices for additional tracers are assigned automatically
       ! via add_tracer_ref in mo_nonhydro_state.

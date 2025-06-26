@@ -28,7 +28,7 @@ MODULE mo_nwp_diagnosis
   USE mo_exception,          ONLY: message, message_text, warning
   USE mo_model_domain,       ONLY: t_patch
   USE mo_run_config,         ONLY: iqv, iqc, iqi, iqr, iqs,  &
-                                   iqni, iqg, iqh, iqnc, iqm_max, iqgl, iqhl
+                                   iqni, iqg, iqh, iqnc, iqgl, iqhl, iqt, ntracer, ico2
   USE mo_grid_config,        ONLY: n_dom, n_dom_start
   USE mo_timer,              ONLY: ltimer, timer_start, timer_stop, timer_nh_diagnostics
   USE mo_nonhydro_types,     ONLY: t_nh_prog, t_nh_diag, t_nh_metrics, t_nh_state
@@ -1091,6 +1091,7 @@ CONTAINS
           EXIT
         ENDIF
       ENDDO
+
       !$ACC END PARALLEL
     ENDIF
 
@@ -1347,10 +1348,11 @@ CONTAINS
         ENDDO
       ENDDO
       !$ACC END PARALLEL
+      DO jt = 1, SIZE(pt_diag%tracer_vi_ptr)
+        IF (.NOT.ASSOCIATED(pt_diag%tracer_vi_ptr(jt)%p_2d)) CYCLE
 
-      DO jt = 1, iqm_max
         !$ACC KERNELS DEFAULT(PRESENT) ASYNC(1) IF(lzacc)
-        pt_diag%tracer_vi(i_startidx:i_endidx,jb,jt) = 0.0_wp
+        pt_diag%tracer_vi_ptr(jt)%p_2d(i_startidx:i_endidx,jb) = 0.0_wp
         !$ACC END KERNELS
 
         !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1) IF(lzacc)
@@ -1361,7 +1363,7 @@ CONTAINS
           !$ACC LOOP GANG VECTOR
           DO jc = i_startidx, i_endidx
 
-            pt_diag%tracer_vi(jc,jb,jt) = pt_diag%tracer_vi(jc,jb,jt)   &
+            pt_diag%tracer_vi_ptr(jt)%p_2d(jc,jb) = pt_diag%tracer_vi_ptr(jt)%p_2d(jc,jb)   &
               &                + rhodz(jc,jk) * pt_prog_rcf%tracer(jc,jk,jb,jt)
 
           ENDDO  ! jc
