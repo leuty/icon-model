@@ -674,8 +674,8 @@ The main switch for the Latent heat nudging scheme is called ldass\_lhn and has 
 
 %\hline
  {nlhn\_start}&
-I&
--9999&
+R(n\_dom)&
+-9999.&
 s&
 time in seconds when LHN is applied for the first time&
 run\_nml:ldass\_lhn = .true.
@@ -683,8 +683,8 @@ run\_nml:ldass\_lhn = .true.
 
 %\hline
  {nlhn\_end}&
-I&
--9999&
+R(n\_dom)&
+-9999.&
 s&
 time in seconds when LHN is applied for the last time&
 run\_nml:ldass\_lhn = .true.
@@ -692,7 +692,7 @@ run\_nml:ldass\_lhn = .true.
 
 %\hline
  {lhn\_coef}&
-R&
+R(n\_dom)&
 1.0&
 &
 Nudging coefficient of adding the increments&
@@ -700,7 +700,7 @@ Nudging coefficient of adding the increments&
 
 %\hline
  {fac\_lhn\_up}&
-R&
+R(n\_dom)&
 2.0&
 &
 Upper limit of the scaling factor of the temperature profile.&
@@ -708,7 +708,7 @@ Upper limit of the scaling factor of the temperature profile.&
 
 %\hline
  {fac\_lhn\_down}&
-R&
+R(n\_dom)&
 0.5&
 &
 Lower limit of the scaling factor of the temperature profile.&
@@ -725,7 +725,7 @@ fac\_lhn\_down, fac\_lhn\_up, fac\_lhn\_artif
 
 %\hline
  {lhn\_updt\_rule}&
-I(max\_ dom)&
+I(n\_dom)&
 0&
 &
 Rule for humidity update by LHN: \\
@@ -762,7 +762,7 @@ If set .FALSE. the model surface precipitation rate is used as reference.&
 
 %\hline
  {rqrsgmax}&
-R&
+R(n\_dom)&
 1.0&
 &
 This value determines the height of the vertical averaging, to obtain the reference precipitation rate\\
@@ -834,7 +834,7 @@ abs\_lhn\_lim
 
 %\hline
  {abs\_lhn\_lim}&
-R&
+R(n\_dom)&
 50./3600.&
 K/s&
 Lower and upper limit for temperature increments to be added.&
@@ -851,7 +851,7 @@ Vertical smoothing of the profile of temperature increments &
 
 %\hline
  {lhn\_relax}&
-L&
+L(n\_dom)&
 .FALSE.&
 &
 Horizontal smoothing of radar data but also of incorporated model fields &
@@ -860,7 +860,7 @@ nlhn\_relax
 
 %\hline
  {nlhn\_relax}&
-I&
+I(n\_dom)&
 2&
 grid points&
 Number of horizontal grid point, where smoothing is applied.&
@@ -869,7 +869,7 @@ lhn\_relax = .TRUE.
 
 %\hline
  {lhn\_wweight}&
-L&
+L(n\_dom)&
 .FALSE.&
 &
 Reduction of the LHN temperature increment in case of strong advection, messured by horizontal wind in 950, 850 and 700 hPa.\\
@@ -943,8 +943,8 @@ lhn\_artif, lhn\_artif\_only
 
 %\hline
  {nlhnverif\_start}&
-I&
--9999&
+R&
+-9999.&
 s&
 time in seconds when online verification within LHN is active for the first time&
 run\_nml:ldass\_lhn = .true.
@@ -952,8 +952,8 @@ run\_nml:ldass\_lhn = .true.
 
 %\hline
  {nlhnverif\_end}&
-I&
--9999&
+R&
+-9999.&
 s&
 time in seconds when online verification within LHN is active for the last time&
 run\_nml:ldass\_lhn = .true.
@@ -985,8 +985,8 @@ Path where the radar data file is expected.&
 \tabularnewline
 
 %\hline
- {radardata\_file(:)}&
-C (n\_dom)&
+ {radardata\_file}&
+C(n\_dom)&
 &
 &
 Name of the radar data file. This might be either in GRIB2 or in NetCDF (recommended).&
@@ -994,15 +994,15 @@ Name of the radar data file. This might be either in GRIB2 or in NetCDF (recomme
 
 %\hline
  {lhn\_black}&
-L&
+L(n\_dom)&
 .FALSE.&
 &
 Apply a blacklist information in the radar data obtained by comparison against satelite cloud information&
 \tabularnewline
 
 %\hline
- {blacklist\_file(:)}&
-C (n\_dom)&
+ {blacklist\_file}&
+C(n\_dom)&
 'radarblacklist.nc'&
 &
 Name of blacklist file, containing a mask concerning the quality of the radar data.\\
@@ -1014,15 +1014,15 @@ lhn\_black=.TRUE.
 
 %\hline
  {lhn\_bright}&
-L&
+L(n\_dom)&
 .FALSE.&
 &
 Apply a model intern bright band detection to avoid strong overestimation due to uncertain radar observations.&
 \tabularnewline
 
 %\hline
- {height\_file(:)}&
-C (n\_dom)&
+ {height\_file}&
+C(n\_dom)&
 'radarheight.nc'&
 &
 Name of file containing the height of the lowest scan for each possible radar station within the given radar composite.\\
@@ -1033,7 +1033,7 @@ lhn\_bright=.TRUE.
 
 %\hline
  {nradar}&
-I (n\_dom)&
+I(n\_dom)&
 20&
 &
 Maximal number of radar height layers contained within height\_file&
@@ -1042,7 +1042,7 @@ lhn\_bright=.TRUE.
 
 %\hline
  {lhn\_spqual}&
-L&
+L(n\_dom)&
 .FALSE.&
 &
 Use quality index to infer the horizontal spatial weight of the LHN increments. The quality index is read in as RAD\_QUAL variable (besides the RAD\_PRECIP variable) from the LHN input file.&

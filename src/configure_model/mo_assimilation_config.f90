@@ -73,16 +73,16 @@ MODULE mo_assimilation_config
       lhn_refbias         ! apply bias correction of LHN reference precipitation
 
     INTEGER ::  &
-      nlhn_start       ,& ! start of latent heat nudging period in timesteps
-      nlhn_end         ,& ! end of latent heat nudging period in timesteps
-      nlhnverif_start  ,& ! start of latent heat nudging period in timesteps
-      nlhnverif_end    ,& ! end of latent heat nudging period in timesteps
       nlhn_relax       ,& ! number of interations of horizontal filtering
       nradar           ,& ! max. number of radar stations within input data
       lhn_updt_rule    ,& ! Rule for updates of temperature/humidity/hydrometeors
       nobs_times          ! number of observation times (i.e. records in radar data file)
 
     REAL (KIND=wp)                   ::           &
+      nlhn_start        ,& ! start of latent heat nudging period in seconds
+      nlhn_end          ,& ! end of latent heat nudging period in seconds
+      nlhnverif_start   ,& ! start of latent heat nudging period in seconds
+      nlhnverif_end     ,& ! end of latent heat nudging period in seconds
       lhn_coef          ,& ! factor for reduction of lhn t-increments
       lhn_dt_obs        ,& ! time step of input data in minutes
       abs_lhn_lim       ,& ! absolute limit for lhn t-increments (used if lhn_limit lhn_limitp)
@@ -125,8 +125,8 @@ MODULE mo_assimilation_config
    TYPE(t_patch),       INTENT(IN) :: p_patch
    CHARACTER (LEN=255)  :: filepath
    LOGICAL  :: lf_exist,lb_exist,lh_exist
-   INTEGER  :: nobs,nt_end,nt_start
-   REAL(wp) :: dt_shift
+   INTEGER  :: nobs
+   REAL(wp) :: dt_shift,nt_end,nt_start
 
 
     ! local
@@ -197,10 +197,10 @@ MODULE mo_assimilation_config
 
 
     nt_end = MAX(assimilation_config(jg)%nlhn_end,assimilation_config(jg)%nlhnverif_end)
-    nt_end = MIN(nt_end,INT(REAL(nsteps,wp)*dtime-dt_shift))
+    nt_end = MIN(nt_end,(REAL(nsteps,wp)*dtime-dt_shift))
     nt_start = MIN(assimilation_config(jg)%nlhn_start,assimilation_config(jg)%nlhnverif_start)
     nt_start = MIN(nt_end - 1,nt_start)
-    nobs = NINT((REAL(nt_end-nt_start,wp)+3600._wp)/(assimilation_config(jg)%lhn_dt_obs*60._wp)) ! consider one hour more to be safe
+    nobs = NINT((nt_end-nt_start+3600._wp)/(assimilation_config(jg)%lhn_dt_obs*60._wp)) ! consider one hour more to be safe
     IF (nobs > 0) THEN
       assimilation_config(jg)%nobs_times = nobs
     ELSE
@@ -212,8 +212,8 @@ MODULE mo_assimilation_config
 
     if (assimilation_config(jg)%llhnverif) assimilation_config(jg)%lhn_diag=.true.
 
-    assimilation_config(jg)%nlhn_start      = INT(dt_ass)*NINT(REAL(assimilation_config(jg)%nlhn_start,wp)/dt_ass)
-    assimilation_config(jg)%nlhnverif_start = INT(dt_ass)*NINT(REAL(assimilation_config(jg)%nlhnverif_start,wp)/dt_ass)
+    assimilation_config(jg)%nlhn_start      = dt_ass*REAL(NINT(assimilation_config(jg)%nlhn_start/dt_ass),wp)
+    assimilation_config(jg)%nlhnverif_start = dt_ass*REAL(NINT(assimilation_config(jg)%nlhnverif_start/dt_ass),wp)
 
     ! LHN event
 

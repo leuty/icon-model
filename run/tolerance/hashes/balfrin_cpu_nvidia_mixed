@@ -4,16 +4,16 @@
 icon_data_rootFolder: /scratch/mch/jenkins/icon/pool/data/ICON
 builder: balfrin_cpu_nvidia_mixed
 # The list below maps each experiment to its current experiment_hash
-"c2sm_clm_r13b03_seaice": 03e239481067cd63ddbbb0a3917b338d003c0c4d
-"mch_icon-ch1_small": 9326d23f0aebe64145710d2d36cda25050cada28
-"mch_icon-ch2_small": f7ead094e2d21a6be5a80491653d7f1ebc601ceb
-"mch_kenda-ch1_small": 9281c591a46265f291316fc1add3a5a5cd08419b
-"mch_opr_r04b07": 7a1c96ab747d3c753e50d0bb10dcf3faeaf3d192
+"c2sm_clm_r13b03_seaice": 80605fe8a49c92f7c085a28c7b8fef1c571592d5
+"mch_icon-ch1_small": 5d27ad2038be075313f5b9d39e022ade97cdcde5
+"mch_icon-ch2_small": 586e03a935a68c26c30d67867090573ad5942ee3
+"mch_kenda-ch1_small": e3b00f0c80744db83857678bfe4501971ae2ee7a
+"mch_opr_r04b07": e0593a21539cefda1c555c24bbb003118cf42bc9
 "mch_opr_r04b07_lhn_00": 40d5e1450fff94db3c041008196fbfc1fab81c39
-"mch_opr_r04b07_lhn_12_emvorado": d3b77aaf1578776a708548caa8aecb33ac944951
-"mch_opr_r04b07_nest": 4fee7a3edfa0d0bf64eee8a876ef56962dbf4f3c
-"mch_opr_r04b07_sstice_inst": 347dd632f5ba951c6efb4bd177250fc86d15d87d
-"mch_opr_r19b07_lpi": e764c107490e36e308f65745d4a96a12b628f64c
-"mch_opr_r19b07_midnight": f87eee16433d62b5bfd65c879369e2883441877b
+"mch_opr_r04b07_lhn_12_emvorado": cd8983e23a5da06a20271b78bf85596d3077a0af
+"mch_opr_r04b07_nest": dea46116e203386688266e58c4cc8a57688facc8
+"mch_opr_r04b07_sstice_inst": 86d35f9d8a3d3dd6f3d6445e21695f3e10583858
+"mch_opr_r19b07_lpi": fe99fd13249909a7a8e2495c6242a6d8b5bae78a
+"mch_opr_r19b07_midnight": 66ad36ccc4d9959c55fcc522772b179d26f633f8
 "mch_opr_r19b07_turb": 3efb0a6a6e9f086f6e9b92f9f15a90d5b6e8b6b5
 "mch_pollen_test": 50490a01c6b7eff7ef7d00b7781f8923ce0928c1
